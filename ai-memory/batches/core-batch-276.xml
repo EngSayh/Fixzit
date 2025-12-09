@@ -1,0 +1,2816 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="tests/finance/e2e/finance-pack.test.ts">
+<![CDATA[
+/**
+ * E2E tests for Finance Pack (Phase 2 - Item 13)
+ * Tests: Full journal lifecycle, expense approval, payment allocation, rollback scenarios
+ */
+
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  afterAll,
+  expectTypeOf,
+} from "vitest";
+import mongoose from "mongoose";
+import postingService from "../../../server/services/finance/postingService";
+import Journal from "../../../server/models/finance/Journal";
+import LedgerEntry from "../../../server/models/finance/LedgerEntry";
+import ChartAccount from "../../../server/models/finance/ChartAccount";
+import { Expense } from "../../../server/models/finance/Expense";
+import { Payment } from "../../../server/models/finance/Payment";
+import {
+  setTenantContext,
+  setAuditContext,
+  clearContext,
+} from "../../../server/models/plugins/tenantAudit";
+import { toMinor } from "../../../server/lib/currency";
+
+// TYPESCRIPT FIX: Use ObjectIds instead of strings for type safety
+const TEST_ORG_ID = new mongoose.Types.ObjectId();
+const TEST_USER_ID = new mongoose.Types.ObjectId();
+
+describe("Finance Pack type safety", () => {
+  type ExpenseDoc = Awaited<ReturnType<(typeof Expense)["create"]>>;
+  type PaymentDoc = Awaited<ReturnType<(typeof Payment)["create"]>>;
+
+  it("matches method signatures for Expense and Payment workflows", () => {
+    expectTypeOf<ExpenseDoc["submit"]>().parameters.toEqualTypeOf<[]>();
+    expectTypeOf<ExpenseDoc["approve"]>().parameters.toEqualTypeOf<
+      [mongoose.Types.ObjectId, string, string?]
+    >();
+    expectTypeOf<ExpenseDoc["reject"]>().parameters.toEqualTypeOf<
+      [mongoose.Types.ObjectId, string, string]
+    >();
+    expectTypeOf<ExpenseDoc["markAsPaid"]>().parameters.toEqualTypeOf<
+      [mongoose.Types.ObjectId, string?]
+    >();
+
+    expectTypeOf<PaymentDoc["allocateToInvoice"]>().parameters.toEqualTypeOf<
+      [mongoose.Types.ObjectId | string, string, number]
+    >();
+  });
+});
+
+describe("Finance Pack E2E Tests", () => {
+  let cashAccountId: mongoose.Types.ObjectId;
+  let arAccountId: mongoose.Types.ObjectId;
+  let revenueAccountId: mongoose.Types.ObjectId;
+  let expenseAccountId: mongoose.Types.ObjectId;
+
+  beforeAll(async () => {
+    const MONGODB_URI =
+      process.env.MONGODB_URI || "mongodb://localhost:27017/fixzit-test";
+    await mongoose.connect(MONGODB_URI);
+
+    // TYPESCRIPT FIX: Context functions expect string IDs, not ObjectId instances
+    setTenantContext({ orgId: TEST_ORG_ID.toString() });
+    setAuditContext({ userId: TEST_USER_ID.toString() });
+
+    // Create test accounts
+    cashAccountId = (
+      await ChartAccount.create({
+        orgId: TEST_ORG_ID,
+        accountCode: "1110-E2E",
+        accountName: "E2E Cash",
+        accountType: "ASSET",
+        normalBalance: "DEBIT",
+        balance: 0,
+        isActive: true,
+      })
+    )._id as mongoose.Types.ObjectId;
+
+    arAccountId = (
+      await ChartAccount.create({
+        orgId: TEST_ORG_ID,
+        accountCode: "1120-E2E",
+        accountName: "E2E Accounts Receivable",
+        accountType: "ASSET",
+        normalBalance: "DEBIT",
+        balance: 0,
+        isActive: true,
+      })
+    )._id as mongoose.Types.ObjectId;
+
+    revenueAccountId = (
+      await ChartAccount.create({
+        orgId: TEST_ORG_ID,
+        accountCode: "4100-E2E",
+        accountName: "E2E Revenue",
+        accountType: "REVENUE",
+        normalBalance: "CREDIT",
+        balance: 0,
+        isActive: true,
+      })
+    )._id as mongoose.Types.ObjectId;
+
+    expenseAccountId = (
+      await ChartAccount.create({
+        orgId: TEST_ORG_ID,
+        accountCode: "5110-E2E",
+        accountName: "E2E Expenses",
+        accountType: "EXPENSE",
+        normalBalance: "DEBIT",
+        balance: 0,
+        isActive: true,
+      })
+    )._id as mongoose.Types.ObjectId;
+  });
+
+  afterAll(async () => {
+    await Journal.deleteMany({ orgId: TEST_ORG_ID });
+    await LedgerEntry.deleteMany({ orgId: TEST_ORG_ID });
+    await Expense.deleteMany({ orgId: TEST_ORG_ID });
+    await Payment.deleteMany({ orgId: TEST_ORG_ID });
+    await ChartAccount.deleteMany({ orgId: TEST_ORG_ID });
+    clearContext();
+    await mongoose.disconnect();
+  });
+
+  describe("Full Journal Lifecycle", () => {
+    it("should complete full lifecycle: create → post → void with account balance tracking", async () => {
+      const amount = toMinor(1000, "SAR");
+
+      // Step 1: Get initial balances
+      const initialCash = (await ChartAccount.findById(cashAccountId))!.balance;
+      const initialRevenue = (await ChartAccount.findById(revenueAccountId))!
+        .balance;
+
+      // Step 2: Create draft journal
+      const journal = await postingService.createJournal({
+        orgId: TEST_ORG_ID,
+        journalDate: new Date(),
+        description: "E2E full lifecycle test",
+        sourceType: "MANUAL",
+        userId: TEST_USER_ID,
+        lines: [
+          {
+            accountId: cashAccountId,
+            debit: amount,
+            credit: 0,
+            description: "Cash received",
+          },
+          {
+            accountId: revenueAccountId,
+            debit: 0,
+            credit: amount,
+            description: "Revenue earned",
+          },
+        ],
+      });
+
+      expect(journal.status).toBe("DRAFT");
+      expect((await ChartAccount.findById(cashAccountId))!.balance).toBe(
+        initialCash,
+      ); // Not yet posted
+
+      // Step 3: Post to ledger
+      const posted = await postingService.postJournal(
+        journal._id as mongoose.Types.ObjectId,
+      );
+      expect(posted.journal.status).toBe("POSTED");
+
+      const afterPostCash = (await ChartAccount.findById(cashAccountId))!
+        .balance;
+      const afterPostRevenue = (await ChartAccount.findById(revenueAccountId))!
+        .balance;
+      expect(afterPostCash).toBe(initialCash + amount);
+      expect(afterPostRevenue).toBe(initialRevenue + amount);
+
+      // Step 4: Verify ledger entries
+      const ledgerEntries = await LedgerEntry.find({ journalId: journal._id });
+      expect(ledgerEntries).toHaveLength(2);
+
+      // Step 5: Void the journal
+      const voided = await postingService.voidJournal(
+        journal._id as mongoose.Types.ObjectId,
+        TEST_USER_ID,
+        "E2E void test",
+      );
+
+      expect(voided.originalJournal.status).toBe("VOID");
+      expect(voided.reversingJournal.status).toBe("POSTED");
+      // TYPESCRIPT FIX: reversalOf property doesn't exist in IJournal interface
+      // Reversal relationship is tracked via description and sourceId
+      expect(voided.reversingJournal.description).toContain("VOID");
+      // LOGIC FIX: Also assert the original journal number is present
+      expect(voided.reversingJournal.description).toContain(
+        journal.journalNumber,
+      );
+
+      // Step 6: Verify balances restored
+      const afterVoidCash = (await ChartAccount.findById(cashAccountId))!
+        .balance;
+      const afterVoidRevenue = (await ChartAccount.findById(revenueAccountId))!
+        .balance;
+      expect(afterVoidCash).toBe(initialCash);
+      expect(afterVoidRevenue).toBe(initialRevenue);
+
+      // Step 7: Verify reversing ledger entries exist
+      const reversingLedgerEntries = await LedgerEntry.find({
+        journalId: voided.reversingJournal._id,
+      });
+      expect(reversingLedgerEntries).toHaveLength(2);
+    });
+  });
+
+  describe("Expense Approval Workflow", () => {
+    it("should complete expense lifecycle: draft → submit → approve → paid", async () => {
+      const expenseAmount = toMinor(500, "SAR");
+      const taxAmount = toMinor(75, "SAR"); // 15% VAT
+      const totalAmount = expenseAmount + taxAmount;
+      const approvals = [
+        {
+          level: 1,
+          approverRole: "FINANCE",
+          status: "PENDING" as const,
+        },
+      ];
+
+      // Step 1: Create draft expense
+      const expense = await Expense.create({
+        orgId: TEST_ORG_ID,
+        expenseNumber: "EXP-TEST-001",
+        expenseDate: new Date(),
+        expenseType: "MAINTENANCE",
+        category: "MAINTENANCE_REPAIR",
+        description: "E2E expense test",
+        vendorName: "Test Vendor",
+        lineItems: [
+          {
+            description: "Test service",
+            quantity: 1,
+            unitPrice: expenseAmount,
+            amount: expenseAmount,
+            taxable: true,
+            taxRate: 15,
+            taxAmount,
+            totalAmount,
+          },
+        ],
+        subtotal: expenseAmount,
+        totalTax: taxAmount,
+        totalAmount,
+        status: "DRAFT",
+        createdBy: TEST_USER_ID,
+        approvals,
+        currentApprovalLevel: 0,
+      });
+
+      expect(expense.status).toBe("DRAFT");
+
+      // Step 2: Submit for approval
+      await expense.submit();
+      expect(expense.status).toBe("SUBMITTED");
+      expect(expense.currentApprovalLevel).toBe(1);
+      expect(expense.approvals).toHaveLength(1);
+      expect(expense.approvals[0].status).toBe("PENDING");
+
+      // Step 3: Approve expense
+      await expense.approve(
+        TEST_USER_ID,
+        "Finance Approver",
+        "Approved for payment",
+      );
+      expect(expense.status).toBe("APPROVED");
+      expect(expense.approvals).toHaveLength(1);
+      expect(expense.approvals[0].status).toBe("APPROVED");
+      expect(expense.approvals[0].approverId?.toString()).toBe(
+        TEST_USER_ID.toString(),
+      );
+
+      // Step 4: Mark as paid
+      const paymentId = new mongoose.Types.ObjectId();
+      await expense.markAsPaid(paymentId, "PAY-TEST-001");
+      expect(expense.status).toBe("PAID");
+      expect(expense.paidAt).toBeDefined();
+      expect(expense.paymentReference).toBe("PAY-TEST-001");
+      expect(expense.paymentId?.toString()).toBe(paymentId.toString());
+    });
+
+    it("should handle expense rejection workflow", async () => {
+      const approvals = [
+        {
+          level: 1,
+          approverRole: "FINANCE",
+          status: "PENDING" as const,
+        },
+      ];
+      const expense = await Expense.create({
+        orgId: TEST_ORG_ID,
+        expenseNumber: "EXP-TEST-002",
+        expenseDate: new Date(),
+        expenseType: "OPERATIONAL",
+        category: "OTHER",
+        description: "Rejected expense test",
+        vendorName: "Test Vendor 2",
+        lineItems: [
+          {
+            description: "Invalid expense",
+            quantity: 1,
+            unitPrice: toMinor(100, "SAR"),
+            amount: toMinor(100, "SAR"),
+            taxable: false,
+            taxRate: 0,
+            taxAmount: 0,
+            totalAmount: toMinor(100, "SAR"),
+          },
+        ],
+        subtotal: toMinor(100, "SAR"),
+        totalTax: 0,
+        totalAmount: toMinor(100, "SAR"),
+        status: "DRAFT",
+        createdBy: TEST_USER_ID,
+        approvals,
+        currentApprovalLevel: 0,
+      });
+
+      await expense.submit();
+      await expense.reject(
+        TEST_USER_ID,
+        "Finance Approver",
+        "Invalid expense category",
+      );
+
+      expect(expense.status).toBe("REJECTED");
+      expect(expense.approvals).toHaveLength(1);
+      expect(expense.approvals[0].status).toBe("REJECTED");
+      expect(expense.approvals[0].comments).toBe("Invalid expense category");
+    });
+  });
+
+  describe("Payment Allocation", () => {
+    it("should allocate payment to multiple invoices", async () => {
+      const paymentAmount = toMinor(1500, "SAR");
+
+      // Create payment
+      const payment = await Payment.create({
+        orgId: TEST_ORG_ID,
+        paymentNumber: "PAY-TEST-003",
+        paymentDate: new Date(),
+        paymentType: "RECEIVED",
+        paymentMethod: "BANK_TRANSFER",
+        amount: paymentAmount,
+        currency: "SAR",
+        partyType: "TENANT",
+        partyId: "tenant-123",
+        partyName: "Test Tenant",
+        description: "E2E payment allocation test",
+        status: "POSTED",
+        createdBy: TEST_USER_ID,
+        allocations: [],
+      });
+
+      // Allocate to multiple invoices
+      await payment.allocateToInvoice(
+        new mongoose.Types.ObjectId(),
+        "invoice-001",
+        toMinor(500, "SAR"),
+      );
+      await payment.allocateToInvoice(
+        new mongoose.Types.ObjectId(),
+        "invoice-002",
+        toMinor(700, "SAR"),
+      );
+      await payment.allocateToInvoice(
+        new mongoose.Types.ObjectId(),
+        "invoice-003",
+        toMinor(300, "SAR"),
+      );
+
+      // Verify allocations
+      expect(
+        (payment as any).invoiceAllocations ?? (payment as any).allocations,
+      ).toHaveLength(3);
+      expect(payment.unallocatedAmount).toBe(0); // Fully allocated
+
+      // TYPESCRIPT FIX: Explicit types for reduce callback parameters + null safety
+      const invoiceAllocations =
+        (payment as Record<string, unknown>).invoiceAllocations ?? (payment as Record<string, unknown>).allocations;
+      const totalAllocated = (invoiceAllocations as Array<{ amount?: number }>).reduce(
+        (sum: number, alloc: { amount?: number }) => sum + (alloc.amount ?? 0),
+        0,
+      );
+      expect(totalAllocated).toBe(paymentAmount);
+    });
+  });
+
+  describe("Rollback Scenarios", () => {
+    it("should rollback transaction on error during posting", async () => {
+      const amount = toMinor(2000, "SAR");
+      const initialBalance = (await ChartAccount.findById(cashAccountId))!
+        .balance;
+
+      try {
+        // Attempt to create journal with invalid account
+        const invalidAccountId = new mongoose.Types.ObjectId();
+
+        await postingService.createJournal({
+          orgId: TEST_ORG_ID,
+          journalDate: new Date(),
+          description: "Rollback test",
+          sourceType: "MANUAL",
+          userId: TEST_USER_ID,
+          lines: [
+            {
+              accountId: invalidAccountId,
+              debit: amount,
+              credit: 0,
+              description: "Invalid account",
+            },
+            {
+              accountId: revenueAccountId,
+              debit: 0,
+              credit: amount,
+              description: "Revenue",
+            },
+          ],
+        });
+
+        // Should not reach here
+        expect(true).toBe(false);
+      } catch (error) {
+        // Verify balance unchanged after rollback
+        const afterErrorBalance = (await ChartAccount.findById(cashAccountId))!
+          .balance;
+        expect(afterErrorBalance).toBe(initialBalance);
+      }
+    });
+
+    it("should prevent posting with zero-amount lines", async () => {
+      await expect(async () => {
+        await postingService.createJournal({
+          orgId: TEST_ORG_ID,
+          journalDate: new Date(),
+          description: "Zero amount test",
+          sourceType: "MANUAL",
+          userId: TEST_USER_ID,
+          lines: [
+            {
+              accountId: cashAccountId,
+              debit: 0,
+              credit: 0,
+              description: "Zero amount line",
+            },
+            {
+              accountId: revenueAccountId,
+              debit: 0,
+              credit: 0,
+              description: "Another zero",
+            },
+          ],
+        });
+      }).rejects.toThrow();
+    });
+
+    it("should prevent double-voiding of journals", async () => {
+      const amount = toMinor(100, "SAR");
+
+      const journal = await postingService.createJournal({
+        orgId: TEST_ORG_ID,
+        journalDate: new Date(),
+        description: "Double void test",
+        sourceType: "MANUAL",
+        userId: TEST_USER_ID,
+        lines: [
+          {
+            accountId: cashAccountId,
+            debit: amount,
+            credit: 0,
+            description: "Cash",
+          },
+          {
+            accountId: revenueAccountId,
+            debit: 0,
+            credit: amount,
+            description: "Revenue",
+          },
+        ],
+      });
+
+      await postingService.postJournal(journal._id as mongoose.Types.ObjectId);
+      await postingService.voidJournal(
+        journal._id as mongoose.Types.ObjectId,
+        TEST_USER_ID,
+        "First void",
+      );
+
+      // Attempt second void - should fail
+      await expect(async () => {
+        await postingService.voidJournal(
+          journal._id as mongoose.Types.ObjectId,
+          TEST_USER_ID,
+          "Second void",
+        );
+      }).rejects.toThrow("Only POSTED journals can be voided");
+    });
+  });
+
+  describe("Multi-Currency Support", () => {
+    it("should handle SAR to USD conversion in journals", async () => {
+      const amountSAR = toMinor(375, "SAR"); // 375 SAR
+      const fxRate = 0.2667; // 1 SAR = 0.2667 USD
+
+      const journal = await postingService.createJournal({
+        orgId: TEST_ORG_ID,
+        journalDate: new Date(),
+        description: "Multi-currency E2E test",
+        sourceType: "MANUAL",
+        userId: TEST_USER_ID,
+        // TYPESCRIPT FIX: currency property removed - tracked at account level
+        lines: [
+          {
+            accountId: cashAccountId,
+            debit: amountSAR,
+            credit: 0,
+            description: "Cash SAR",
+            // TYPESCRIPT FIX: currency, foreignCurrencyAmount, exchangeRate removed - tracked at account level
+          },
+          {
+            accountId: revenueAccountId,
+            debit: 0,
+            credit: amountSAR,
+            description: "Revenue SAR",
+            // TYPESCRIPT FIX: currency, foreignCurrencyAmount, exchangeRate removed - tracked at account level
+          },
+        ],
+      });
+
+      // TYPESCRIPT FIX: Use correct property names from IJournal interface
+      // currency property doesn't exist - currency is tracked per line item
+      expect(journal.totalDebit).toBe(amountSAR); // Fixed: totalDebits -> totalDebit
+      expect(journal.totalCredit).toBe(amountSAR); // Fixed: totalCredits -> totalCredit
+      expect(journal.isBalanced).toBe(true);
+    });
+  });
+
+  describe("Trial Balance Integrity", () => {
+    it("should maintain trial balance after multiple transactions", async () => {
+      const transactions = [
+        {
+          debit: cashAccountId,
+          credit: revenueAccountId,
+          amount: toMinor(1000, "SAR"),
+        },
+        {
+          debit: expenseAccountId,
+          credit: cashAccountId,
+          amount: toMinor(300, "SAR"),
+        },
+        {
+          debit: arAccountId,
+          credit: revenueAccountId,
+          amount: toMinor(500, "SAR"),
+        },
+      ];
+
+      for (const tx of transactions) {
+        const journal = await postingService.createJournal({
+          orgId: TEST_ORG_ID,
+          journalDate: new Date(),
+          description: "Trial balance test",
+          sourceType: "MANUAL",
+          userId: TEST_USER_ID,
+          lines: [
+            {
+              accountId: tx.debit,
+              debit: tx.amount,
+              credit: 0,
+              description: "Debit entry",
+            },
+            {
+              accountId: tx.credit,
+              debit: 0,
+              credit: tx.amount,
+              description: "Credit entry",
+            },
+          ],
+        });
+
+        await postingService.postJournal(
+          journal._id as mongoose.Types.ObjectId,
+        );
+      }
+
+      // Get trial balance
+      const year = new Date().getFullYear();
+      const period = new Date().getMonth() + 1;
+      const trialBalance = await LedgerEntry.getTrialBalance(
+        TEST_ORG_ID,
+        year,
+        period,
+      );
+
+      // Verify debits = credits
+      // TYPESCRIPT FIX: TrialBalanceEntry uses 'debit' and 'credit', not 'totalDebits'/'totalCredits'
+      const totalDebits = trialBalance.reduce(
+        (sum, account) => sum + account.debit,
+        0,
+      );
+      const totalCredits = trialBalance.reduce(
+        (sum, account) => sum + account.credit,
+        0,
+      );
+
+      expect(totalDebits).toBe(totalCredits);
+      expect(totalDebits).toBeGreaterThan(0);
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/finance/unit/posting.service.test.ts">
+<![CDATA[
+/**
+ * Unit tests for postingService (Finance Pack Phase 2 - Item 12)
+ * Tests: createJournal, postJournal, voidJournal, balance validation, currency FX
+ */
+
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import mongoose from "mongoose";
+import postingService from "../../../server/services/finance/postingService";
+import Journal from "../../../server/models/finance/Journal";
+import LedgerEntry from "../../../server/models/finance/LedgerEntry";
+import ChartAccount from "../../../server/models/finance/ChartAccount";
+import {
+  setAuditContext,
+  clearContext,
+} from "../../../server/models/plugins/tenantAudit";
+import { setTenantContext as setTenantIsolationContext } from "../../../server/plugins/tenantIsolation";
+import { toMinor, applyFx } from "../../../server/lib/currency";
+
+// TYPESCRIPT FIX: Use ObjectIds instead of strings for type safety
+const TEST_ORG_ID = new mongoose.Types.ObjectId();
+const TEST_USER_ID = new mongoose.Types.ObjectId();
+
+describe("postingService Unit Tests", () => {
+  let cashAccountId: mongoose.Types.ObjectId;
+  let revenueAccountId: mongoose.Types.ObjectId;
+
+  beforeAll(async () => {
+    // Connect to test database
+    const MONGODB_URI =
+      process.env.MONGODB_URI || "mongodb://localhost:27017/fixzit-test";
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.disconnect();
+    }
+    await mongoose.connect(MONGODB_URI);
+
+    // Set context - TYPESCRIPT FIX: Context functions expect string IDs
+    setTenantIsolationContext({ orgId: TEST_ORG_ID, skipTenantFilter: true });
+    setAuditContext({ userId: TEST_USER_ID.toString() });
+
+    // Create test accounts
+    const cashAccount = await ChartAccount.create({
+      orgId: TEST_ORG_ID,
+      accountCode: "1110",
+      accountName: "Test Cash Account",
+      accountType: "ASSET",
+      normalBalance: "DEBIT",
+      balance: 0,
+      isActive: true,
+      currency: "SAR",
+      createdBy: TEST_USER_ID,
+      updatedBy: TEST_USER_ID,
+    });
+    cashAccountId = cashAccount._id as mongoose.Types.ObjectId;
+
+    const revenueAccount = await ChartAccount.create({
+      orgId: TEST_ORG_ID,
+      accountCode: "4100",
+      accountName: "Test Revenue Account",
+      accountType: "REVENUE",
+      normalBalance: "CREDIT",
+      balance: 0,
+      isActive: true,
+      currency: "SAR",
+      createdBy: TEST_USER_ID,
+      updatedBy: TEST_USER_ID,
+    });
+    revenueAccountId = revenueAccount._id as mongoose.Types.ObjectId;
+  });
+
+  afterAll(async () => {
+    // Cleanup test data
+    await Journal.deleteMany({ orgId: TEST_ORG_ID });
+    await LedgerEntry.deleteMany({ orgId: TEST_ORG_ID });
+    await ChartAccount.deleteMany({ orgId: TEST_ORG_ID });
+    clearContext();
+    setTenantIsolationContext({});
+    await mongoose.disconnect();
+  });
+
+  beforeEach(async () => {
+    // Clear journals and ledger entries before each test
+    await Journal.deleteMany({ orgId: TEST_ORG_ID });
+    await LedgerEntry.deleteMany({ orgId: TEST_ORG_ID });
+
+    // Reset account balances to zero
+    let cashAcc = await ChartAccount.findById(cashAccountId);
+    if (!cashAcc) {
+      cashAcc = await ChartAccount.create({
+        orgId: TEST_ORG_ID,
+        accountCode: "1110",
+        accountName: "Test Cash Account",
+        accountType: "ASSET",
+        normalBalance: "DEBIT",
+        balance: 0,
+        isActive: true,
+        currency: "SAR",
+        createdBy: TEST_USER_ID,
+        updatedBy: TEST_USER_ID,
+      });
+      cashAccountId = cashAcc._id as mongoose.Types.ObjectId;
+    } else {
+      cashAcc.balance = 0;
+      await cashAcc.save();
+    }
+
+    let revAcc = await ChartAccount.findById(revenueAccountId);
+    if (!revAcc) {
+      revAcc = await ChartAccount.create({
+        orgId: TEST_ORG_ID,
+        accountCode: "4100",
+        accountName: "Test Revenue Account",
+        accountType: "REVENUE",
+        normalBalance: "CREDIT",
+        balance: 0,
+        isActive: true,
+        currency: "SAR",
+        createdBy: TEST_USER_ID,
+        updatedBy: TEST_USER_ID,
+      });
+      revenueAccountId = revAcc._id as mongoose.Types.ObjectId;
+    } else {
+      revAcc.balance = 0;
+      await revAcc.save();
+    }
+  });
+
+  describe("createJournal", () => {
+    it("should create a draft journal with balanced entries", async () => {
+      const amount = toMinor(100, "SAR"); // 100.00 SAR = 10,000 halalas
+
+      const journal = await postingService.createJournal({
+        orgId: TEST_ORG_ID,
+        journalDate: new Date(),
+        description: "Test revenue entry",
+        sourceType: "MANUAL",
+        userId: TEST_USER_ID,
+        lines: [
+          {
+            accountId: cashAccountId,
+            debit: amount,
+            credit: 0,
+            description: "Cash received",
+          },
+          {
+            accountId: revenueAccountId,
+            debit: 0,
+            credit: amount,
+            description: "Revenue earned",
+          },
+        ],
+      });
+
+      expect(journal).toBeDefined();
+      expect(journal.status).toBe("DRAFT");
+      expect(journal.lines).toHaveLength(2);
+      // TYPESCRIPT FIX: Correct property names from IJournal interface
+      expect(journal.totalDebit).toBe(amount);
+      expect(journal.totalCredit).toBe(amount);
+      expect(journal.isBalanced).toBe(true);
+    });
+
+    it("should throw error for unbalanced journal entries", async () => {
+      const amount = toMinor(100, "SAR");
+
+      await expect(async () => {
+        await postingService.createJournal({
+          orgId: TEST_ORG_ID,
+          journalDate: new Date(),
+          description: "Unbalanced entry",
+          sourceType: "MANUAL",
+          userId: TEST_USER_ID,
+          lines: [
+            {
+              accountId: cashAccountId,
+              debit: amount,
+              credit: 0,
+              description: "Cash debit",
+            },
+            {
+              accountId: revenueAccountId,
+              debit: 0,
+              credit: amount + 100, // Intentionally unbalanced
+              description: "Revenue credit",
+            },
+          ],
+        });
+      }).rejects.toThrow("Journal entries must balance");
+    });
+
+    it("should require at least 2 lines", async () => {
+      await expect(async () => {
+        await postingService.createJournal({
+          orgId: TEST_ORG_ID,
+          journalDate: new Date(),
+          description: "Single line entry",
+          sourceType: "MANUAL",
+          userId: TEST_USER_ID,
+          lines: [
+            {
+              accountId: cashAccountId,
+              debit: toMinor(100, "SAR"),
+              credit: 0,
+              description: "Single line",
+            },
+          ],
+        });
+      }).rejects.toThrow("At least 2 journal lines required");
+    });
+  });
+
+  describe("postJournal", () => {
+    it("should post draft journal to ledger and update account balances", async () => {
+      const amount = toMinor(250, "SAR");
+
+      // Create draft journal
+      const journal = await postingService.createJournal({
+        orgId: TEST_ORG_ID,
+        journalDate: new Date(),
+        description: "Test posting",
+        sourceType: "MANUAL",
+        userId: TEST_USER_ID,
+        lines: [
+          {
+            accountId: cashAccountId,
+            debit: amount,
+            credit: 0,
+            description: "Debit cash",
+          },
+          {
+            accountId: revenueAccountId,
+            debit: 0,
+            credit: amount,
+            description: "Credit revenue",
+          },
+        ],
+      });
+
+      // Post to ledger
+      const result = await postingService.postJournal(
+        journal._id as mongoose.Types.ObjectId,
+      );
+
+      expect(result.journal.status).toBe("POSTED");
+      // TYPESCRIPT FIX: IJournal uses 'postingDate' not 'postedAt', and doesn't have 'postedBy'
+      expect(result.journal.postingDate).toBeDefined();
+      // postedBy tracking is done via updatedBy field in audit trail
+      // LOGIC FIX: Assert the correct user ID was stamped
+      expect(result.journal.updatedBy).toEqual(TEST_USER_ID);
+      expect(result.ledgerEntries).toHaveLength(2);
+
+      // Verify ledger entries created
+      const ledgerEntries = await LedgerEntry.find({
+        journalId: journal._id,
+      }).sort({ lineNumber: 1 });
+      expect(ledgerEntries).toHaveLength(2);
+
+      // Verify account balances updated
+      const cashAccount = await ChartAccount.findById(cashAccountId);
+      const revenueAccount = await ChartAccount.findById(revenueAccountId);
+
+      expect(cashAccount?.balance).toBe(amount); // Asset increases with debit
+      expect(revenueAccount?.balance).toBe(amount); // Revenue increases with credit
+    });
+
+    it("should throw error when posting already-posted journal", async () => {
+      const amount = toMinor(100, "SAR");
+
+      const journal = await postingService.createJournal({
+        orgId: TEST_ORG_ID,
+        journalDate: new Date(),
+        description: "Already posted",
+        sourceType: "MANUAL",
+        userId: TEST_USER_ID,
+        lines: [
+          {
+            accountId: cashAccountId,
+            debit: amount,
+            credit: 0,
+            description: "Cash",
+          },
+          {
+            accountId: revenueAccountId,
+            debit: 0,
+            credit: amount,
+            description: "Revenue",
+          },
+        ],
+      });
+
+      // First post - should succeed
+      await postingService.postJournal(journal._id as mongoose.Types.ObjectId);
+
+      // Second post - should fail
+      await expect(async () => {
+        await postingService.postJournal(
+          journal._id as mongoose.Types.ObjectId,
+        );
+      }).rejects.toThrow("Only DRAFT journals can be posted");
+    });
+
+    it("should maintain ledger immutability after posting", async () => {
+      const amount = toMinor(100, "SAR");
+
+      const journal = await postingService.createJournal({
+        orgId: TEST_ORG_ID,
+        journalDate: new Date(),
+        description: "Immutability test",
+        sourceType: "MANUAL",
+        userId: TEST_USER_ID,
+        lines: [
+          {
+            accountId: cashAccountId,
+            debit: amount,
+            credit: 0,
+            description: "Cash",
+          },
+          {
+            accountId: revenueAccountId,
+            debit: 0,
+            credit: amount,
+            description: "Revenue",
+          },
+        ],
+      });
+
+      await postingService.postJournal(journal._id as mongoose.Types.ObjectId);
+
+      // Attempt to modify posted journal - should be rejected
+      const postedJournal = await Journal.findById(journal._id);
+      postedJournal!.description = "Modified description";
+
+      await expect(async () => {
+        await postedJournal!.save();
+      }).rejects.toThrow("Posted journals cannot be modified");
+    });
+  });
+
+  describe("voidJournal", () => {
+    it("should create reversal journal for posted entry", async () => {
+      const amount = toMinor(300, "SAR");
+
+      // Create and post original journal
+      const originalJournal = await postingService.createJournal({
+        orgId: TEST_ORG_ID,
+        journalDate: new Date(),
+        description: "Original entry",
+        sourceType: "MANUAL",
+        userId: TEST_USER_ID,
+        lines: [
+          {
+            accountId: cashAccountId,
+            debit: amount,
+            credit: 0,
+            description: "Cash in",
+          },
+          {
+            accountId: revenueAccountId,
+            debit: 0,
+            credit: amount,
+            description: "Revenue",
+          },
+        ],
+      });
+
+      await postingService.postJournal(
+        originalJournal._id as mongoose.Types.ObjectId,
+      );
+
+      // Void the journal
+      const result = await postingService.voidJournal(
+        originalJournal._id as mongoose.Types.ObjectId,
+        TEST_USER_ID,
+        "Test reversal",
+      );
+
+      expect(result.originalJournal.status).toBe("VOID");
+      expect(result.originalJournal.voidedAt).toBeDefined();
+      expect(result.originalJournal.voidedBy).toBe(TEST_USER_ID);
+      expect(result.originalJournal.voidReason).toBe("Test reversal");
+
+      expect(result.reversingJournal.status).toBe("POSTED");
+      expect(result.reversingJournal.description).toContain("REVERSAL");
+      // TYPESCRIPT FIX: reversalOf doesn't exist in IJournal - relationship tracked via description
+      expect(result.reversingJournal.description).toContain(
+        originalJournal.journalNumber,
+      );
+
+      // Verify reversal entries swap debits/credits
+      expect(result.reversingJournal.lines).toHaveLength(2);
+      const reversalCashLine = result.reversingJournal.lines.find(
+        (l) => l.accountId.toString() === cashAccountId.toString(),
+      );
+      const reversalRevenueLine = result.reversingJournal.lines.find(
+        (l) => l.accountId.toString() === revenueAccountId.toString(),
+      );
+
+      expect(reversalCashLine?.debit).toBe(0);
+      expect(reversalCashLine?.credit).toBe(amount); // Reversed from original debit
+      expect(reversalRevenueLine?.debit).toBe(amount); // Reversed from original credit
+      expect(reversalRevenueLine?.credit).toBe(0);
+    });
+
+    it("should restore account balances after void", async () => {
+      const amount = toMinor(400, "SAR");
+
+      // Get initial balances
+      const initialCashBalance = (await ChartAccount.findById(cashAccountId))!
+        .balance;
+      const initialRevenueBalance = (await ChartAccount.findById(
+        revenueAccountId,
+      ))!.balance;
+
+      // Create and post journal
+      const journal = await postingService.createJournal({
+        orgId: TEST_ORG_ID,
+        journalDate: new Date(),
+        description: "Balance restoration test",
+        sourceType: "MANUAL",
+        userId: TEST_USER_ID,
+        lines: [
+          {
+            accountId: cashAccountId,
+            debit: amount,
+            credit: 0,
+            description: "Cash",
+          },
+          {
+            accountId: revenueAccountId,
+            debit: 0,
+            credit: amount,
+            description: "Revenue",
+          },
+        ],
+      });
+
+      await postingService.postJournal(journal._id as mongoose.Types.ObjectId);
+
+      // Verify balances changed
+      const afterPostCashBalance = (await ChartAccount.findById(cashAccountId))!
+        .balance;
+      const afterPostRevenueBalance = (await ChartAccount.findById(
+        revenueAccountId,
+      ))!.balance;
+
+      expect(afterPostCashBalance).toBe(initialCashBalance + amount);
+      expect(afterPostRevenueBalance).toBe(initialRevenueBalance + amount);
+
+      // Void the journal
+      await postingService.voidJournal(
+        journal._id as mongoose.Types.ObjectId,
+        TEST_USER_ID,
+        "Test",
+      );
+
+      // Verify balances restored
+      const afterVoidCashBalance = (await ChartAccount.findById(cashAccountId))!
+        .balance;
+      const afterVoidRevenueBalance = (await ChartAccount.findById(
+        revenueAccountId,
+      ))!.balance;
+
+      expect(afterVoidCashBalance).toBe(initialCashBalance);
+      expect(afterVoidRevenueBalance).toBe(initialRevenueBalance);
+    });
+  });
+
+  describe("Currency Conversion", () => {
+    it("should handle multi-currency journals with FX rates", async () => {
+      const amountSAR = toMinor(100, "SAR"); // 100 SAR = 10,000 halalas
+      const fxRate = 0.2667; // 1 SAR = 0.2667 USD
+      const amountUSD = applyFx(amountSAR, fxRate, "SAR", "USD"); // ~26.67 USD = 2,667 cents
+
+      const journal = await postingService.createJournal({
+        orgId: TEST_ORG_ID,
+        journalDate: new Date(),
+        description: "Multi-currency entry",
+        sourceType: "MANUAL",
+        userId: TEST_USER_ID,
+        // TYPESCRIPT FIX: currency doesn't exist at journal level - tracked per line item
+        lines: [
+          {
+            accountId: cashAccountId,
+            debit: amountSAR,
+            credit: 0,
+            description: "SAR cash",
+            // TYPESCRIPT FIX: currency doesn't exist on IJournalLine interface
+          },
+          {
+            accountId: revenueAccountId,
+            debit: 0,
+            credit: amountSAR,
+            description: "SAR revenue",
+            // TYPESCRIPT FIX: currency doesn't exist on IJournalLine interface
+          },
+        ],
+      });
+
+      // TYPESCRIPT FIX: Use correct property names and remove non-existent currency check
+      expect(journal.totalDebit).toBe(amountSAR);
+      expect(journal.totalCredit).toBe(amountSAR);
+      expect(journal.isBalanced).toBe(true);
+
+      // Verify FX conversion calculation
+      expect(amountUSD).toBe(2667); // 26.67 USD in cents
+    });
+  });
+
+  describe("Helper Methods", () => {
+    it("should calculate running balance correctly", async () => {
+      const amounts = [
+        toMinor(100, "SAR"),
+        toMinor(50, "SAR"),
+        toMinor(200, "SAR"),
+      ];
+
+      for (const amount of amounts) {
+        const journal = await postingService.createJournal({
+          orgId: TEST_ORG_ID,
+          journalDate: new Date(),
+          description: "Running balance test",
+          sourceType: "MANUAL",
+          userId: TEST_USER_ID,
+          lines: [
+            {
+              accountId: cashAccountId,
+              debit: amount,
+              credit: 0,
+              description: "Cash",
+            },
+            {
+              accountId: revenueAccountId,
+              debit: 0,
+              credit: amount,
+              description: "Revenue",
+            },
+          ],
+        });
+
+        await postingService.postJournal(
+          journal._id as mongoose.Types.ObjectId,
+        );
+      }
+
+      // Verify final balance
+      const cashAccount = await ChartAccount.findById(cashAccountId);
+      const expectedBalance = amounts.reduce((sum, amt) => sum + amt, 0);
+      expect(cashAccount?.balance).toBe(expectedBalance);
+    });
+
+    it("should validate account existence before posting", async () => {
+      const fakeAccountId = new mongoose.Types.ObjectId();
+
+      await expect(async () => {
+        await postingService.createJournal({
+          orgId: TEST_ORG_ID,
+          journalDate: new Date(),
+          description: "Invalid account",
+          sourceType: "MANUAL",
+          userId: TEST_USER_ID,
+          lines: [
+            {
+              accountId: fakeAccountId,
+              debit: toMinor(100, "SAR"),
+              credit: 0,
+              description: "Fake account",
+            },
+            {
+              accountId: revenueAccountId,
+              debit: 0,
+              credit: toMinor(100, "SAR"),
+              description: "Revenue",
+            },
+          ],
+        });
+      }).rejects.toThrow();
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/generate-admin-auth.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+
+/**
+ * Simple authentication state generator for E2E tests
+ * Creates only the admin auth state to avoid rate limiting
+ */
+
+import { chromium, BrowserContext } from "@playwright/test";
+import { mkdir } from "fs/promises";
+import { config } from "dotenv";
+import { resolve } from "path";
+import { URLSearchParams } from "url";
+
+const EMP_REGEX = /^EMP[-A-Z0-9]+$/i;
+
+// Load .env.test
+config({ path: resolve(__dirname, "../.env.test") });
+
+async function generateAuthState() {
+  console.log("\n🔐 Generating admin authentication state...\n");
+
+  const baseURL = "http://localhost:3000";
+  const identifier = process.env.TEST_ADMIN_IDENTIFIER;
+  const password = process.env.TEST_ADMIN_PASSWORD;
+  const phone = process.env.TEST_ADMIN_PHONE;
+  const companyCode =
+    identifier && EMP_REGEX.test(identifier.trim())
+      ? process.env.TEST_ADMIN_COMPANY_CODE || process.env.TEST_COMPANY_CODE
+      : undefined;
+
+  if (!identifier || !password) {
+    throw new Error(
+      "TEST_ADMIN_IDENTIFIER and TEST_ADMIN_PASSWORD must be set in .env.test",
+    );
+  }
+
+  // Ensure state directory exists
+  await mkdir("tests/state", { recursive: true });
+
+  const browser = await chromium.launch({ headless: true });
+
+  try {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+
+    console.log(`📱 Sending OTP${phone ? ` for ${phone}` : ""}...`);
+
+    // Step 1: Send OTP (using identifier + password, not phone)
+    const otpResponse = await page.request.post(
+      `${baseURL}/api/auth/otp/send`,
+      {
+        headers: { "Content-Type": "application/json" },
+        data: companyCode
+          ? {
+              identifier,
+              password,
+              companyCode,
+            }
+          : {
+              identifier,
+              password,
+            },
+      },
+    );
+
+    if (!otpResponse.ok()) {
+      const errorText = await otpResponse.text();
+      throw new Error(
+        `Failed to send OTP (${otpResponse.status()}): ${errorText}`,
+      );
+    }
+
+    const otpData = await otpResponse.json();
+    const otpCode = otpData.data?.devCode || otpData.otp || otpData.code;
+
+    if (!otpCode) {
+      console.error("Response:", otpData);
+      throw new Error(
+        "OTP code not in response (check if NODE_ENV allows test mode)",
+      );
+    }
+
+    console.log("✅ OTP received");
+
+    // Step 2: Verify OTP to get otpToken
+    console.log("🔑 Verifying OTP...");
+    const verifyResponse = await page.request.post(
+      `${baseURL}/api/auth/otp/verify`,
+      {
+        headers: { "Content-Type": "application/json" },
+        data: companyCode
+          ? {
+              identifier,
+              otp: otpCode,
+              companyCode,
+            }
+          : {
+              identifier,
+              otp: otpCode,
+            },
+      },
+    );
+
+    if (!verifyResponse.ok()) {
+      const errorText = await verifyResponse.text();
+      throw new Error(
+        `Failed to verify OTP (${verifyResponse.status()}): ${errorText}`,
+      );
+    }
+
+    const verifyData = await verifyResponse.json();
+    const otpToken = verifyData.data?.otpToken;
+
+    if (!otpToken) {
+      throw new Error("OTP token not returned from verify endpoint");
+    }
+
+    console.log("✅ OTP verified");
+
+    // Step 3: Get CSRF token
+    console.log("🔐 Getting CSRF token...");
+    const csrfResponse = await page.goto(`${baseURL}/api/auth/csrf`);
+    const csrfText = await csrfResponse?.text();
+    const csrfToken = csrfText ? JSON.parse(csrfText).csrfToken : undefined;
+    if (!csrfToken) {
+      throw new Error("Failed to retrieve CSRF token");
+    }
+    console.log("✅ CSRF token retrieved");
+
+    // Step 4: Create NextAuth session
+    console.log("🔑 Creating NextAuth session...");
+    const form = new URLSearchParams({
+      identifier,
+      password,
+      otpToken,
+      csrfToken,
+      rememberMe: "on",
+      redirect: "false",
+      callbackUrl: `${baseURL}/dashboard`,
+      json: "true",
+    });
+    if (companyCode) {
+      form.append("companyCode", companyCode);
+    }
+    const sessionResponse = await page.request.post(
+      `${baseURL}/api/auth/callback/credentials`,
+      {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        data: form.toString(),
+      },
+    );
+
+    if (!sessionResponse.ok()) {
+      const errorText = await sessionResponse.text();
+      throw new Error(
+        `Failed to create session (${sessionResponse.status()}): ${errorText}`,
+      );
+    }
+
+    console.log("✅ Session created");
+
+    // Step 5: Navigate to dashboard to ensure cookies are set
+    console.log("🏠 Loading dashboard...");
+    await page
+      .goto(`${baseURL}/dashboard`, { waitUntil: "load", timeout: 30000 })
+      .catch((err) => {
+        console.warn(
+          "⚠️  Dashboard load timeout (expected with Turbopack), continuing...",
+        );
+      });
+    await page.waitForTimeout(3000);
+
+    // Verify authentication
+    await ensureSessionCookie(context, baseURL);
+
+    // Step 6: Save state
+    const statePath = "tests/state/admin.json";
+    await context.storageState({ path: statePath });
+    console.log(`✅ Saved auth state to ${statePath}`);
+
+    await context.close();
+  } catch (error) {
+    console.error("\n❌ Failed to generate auth state:", error);
+    throw error;
+  } finally {
+    await browser.close();
+  }
+
+  console.log("\n✅ Authentication state generated successfully!\n");
+}
+
+// Run
+generateAuthState()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+const SESSION_COOKIE_PATTERNS = ["session", "next-auth"];
+
+async function ensureSessionCookie(
+  context: BrowserContext,
+  baseURL: string,
+  timeoutMs = 5000,
+) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const cookies = await context.cookies(baseURL);
+    const hasSession = cookies.some((cookie) =>
+      SESSION_COOKIE_PATTERNS.some((pattern) => cookie.name.includes(pattern)),
+    );
+    if (hasSession) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  throw new Error("Auth session cookie was not detected before timeout");
+}
+
+]]>
+</file>
+
+<file path="tests/hfv.e2e.spec.ts">
+<![CDATA[
+/**
+ * Halt-Fix-Verify (HFV) E2E Test Suite
+ *
+ * Smoke tests for all critical user journeys:
+ * - 9 roles × 13 critical pages = 117 test scenarios
+ * - Zero console error tolerance
+ * - RBAC verification (expect 403/404 for unauthorized access)
+ * - Screenshot evidence capture
+ *
+ * Run:
+ *   npx playwright test tests/hfv.e2e.spec.ts
+ *   pnpm run test:e2e tests/hfv.e2e.spec.ts
+ */
+
+import { test, expect, type Page } from "@playwright/test";
+import fs from "fs";
+import path from "path";
+
+const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
+const EVIDENCE_DIR = path.join(process.cwd(), "reports", "evidence");
+
+// Ensure evidence directory exists
+fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
+
+// Define roles
+const ROLES = [
+  "Super Admin",
+  "Corporate Admin",
+  "Property Manager",
+  "Technician",
+  "Tenant",
+  "Vendor",
+  "Service Provider",
+  "Finance Team",
+  "Guest",
+];
+
+// Define critical pages to test
+const CRITICAL_PAGES = [
+  { path: "/dashboard", name: "Dashboard", publicAccess: false },
+  { path: "/work-orders", name: "Work Orders", publicAccess: false },
+  { path: "/properties", name: "Properties", publicAccess: false },
+  { path: "/finance", name: "Finance", publicAccess: false },
+  { path: "/hr", name: "HR", publicAccess: false },
+  { path: "/administration", name: "Administration", publicAccess: false },
+  { path: "/crm", name: "CRM", publicAccess: false },
+  { path: "/marketplace", name: "Marketplace", publicAccess: false },
+  { path: "/support", name: "Support", publicAccess: false },
+  { path: "/compliance", name: "Compliance", publicAccess: false },
+  { path: "/reports", name: "Reports", publicAccess: false },
+  { path: "/login", name: "Login", publicAccess: true },
+  { path: "/", name: "Landing Page", publicAccess: true },
+];
+
+// Role access matrix (which roles should access which pages)
+const ROLE_ACCESS_MATRIX: Record<string, string[]> = {
+  "Super Admin": CRITICAL_PAGES.map((p) => p.path),
+  "Corporate Admin": [
+    "/dashboard",
+    "/work-orders",
+    "/properties",
+    "/finance",
+    "/hr",
+    "/administration",
+    "/crm",
+    "/compliance",
+    "/reports",
+  ],
+  "Property Manager": [
+    "/dashboard",
+    "/work-orders",
+    "/properties",
+    "/crm",
+    "/reports",
+  ],
+  Technician: ["/dashboard", "/work-orders"],
+  Tenant: ["/dashboard", "/work-orders", "/support"],
+  Vendor: ["/dashboard", "/marketplace"],
+  "Service Provider": ["/dashboard", "/marketplace", "/work-orders"],
+  "Finance Team": ["/dashboard", "/finance", "/reports"],
+  Guest: ["/login", "/"],
+};
+
+test.describe("HFV E2E Smoke Tests", () => {
+  test.beforeEach(async ({ page }) => {
+    // Capture console errors
+    page.on("console", (msg) => {
+      if (msg.type() === "error") {
+        console.error(`❌ Console Error: ${msg.text()}`);
+      }
+    });
+
+    // Capture page errors
+    page.on("pageerror", (error) => {
+      console.error(`❌ Page Error: ${error.message}`);
+    });
+  });
+
+  for (const role of ROLES) {
+    test.describe(`Role: ${role}`, () => {
+      for (const pageDef of CRITICAL_PAGES) {
+        const shouldAccess =
+          ROLE_ACCESS_MATRIX[role]?.includes(pageDef.path) ||
+          pageDef.publicAccess;
+
+        test(`${shouldAccess ? "✅" : "🚫"} Access ${pageDef.name} (${pageDef.path})`, async ({
+          page,
+        }) => {
+          // Mock authentication for specific role
+          if (!pageDef.publicAccess) {
+            await mockAuthentication(page, role);
+          }
+
+          const consoleErrors: string[] = [];
+          page.on("console", (msg) => {
+            if (msg.type() === "error") {
+              consoleErrors.push(msg.text());
+            }
+          });
+
+          try {
+            const response = await page.goto(`${BASE_URL}${pageDef.path}`, {
+              waitUntil: "networkidle",
+              timeout: 10000,
+            });
+
+            if (shouldAccess) {
+              // Expect successful access
+              expect(response?.status()).toBeLessThan(400);
+
+              // Verify page loaded
+              await expect(page.locator("body")).toBeVisible();
+
+              // Zero console error tolerance
+              expect(consoleErrors).toHaveLength(0);
+
+              // Capture screenshot as evidence
+              const screenshotPath = path.join(
+                EVIDENCE_DIR,
+                `${role.replace(/\s+/g, "-")}_${pageDef.name.replace(/\s+/g, "-")}_success.png`,
+              );
+              await page.screenshot({ path: screenshotPath, fullPage: true });
+            } else {
+              // Expect restricted access (403/404 or redirect to login)
+              const status = response?.status();
+              const isUnauthorized = status === 403 || status === 404;
+              const isRedirectedToLogin =
+                page.url().includes("/login") ||
+                page.url().includes("/dashboard");
+
+              expect(isUnauthorized || isRedirectedToLogin).toBeTruthy();
+
+              // Capture screenshot as evidence
+              const screenshotPath = path.join(
+                EVIDENCE_DIR,
+                `${role.replace(/\s+/g, "-")}_${pageDef.name.replace(/\s+/g, "-")}_restricted.png`,
+              );
+              await page.screenshot({ path: screenshotPath, fullPage: true });
+            }
+          } catch (error) {
+            // Capture failure screenshot
+            const screenshotPath = path.join(
+              EVIDENCE_DIR,
+              `${role.replace(/\s+/g, "-")}_${pageDef.name.replace(/\s+/g, "-")}_error.png`,
+            );
+            await page.screenshot({ path: screenshotPath, fullPage: true });
+
+            throw error;
+          }
+        });
+      }
+    });
+  }
+});
+
+/**
+ * Mock authentication for a specific role
+ * This should be adapted to your authentication mechanism
+ */
+async function mockAuthentication(page: Page, role: string) {
+  // Option 1: Set authentication cookies
+  await page.context().addCookies([
+    {
+      name: "auth-token",
+      value: "mock-token-" + role.replace(/\s+/g, "-").toLowerCase(),
+      domain: "localhost",
+      path: "/",
+      httpOnly: true,
+      secure: false,
+      sameSite: "Lax",
+    },
+  ]);
+
+  // Option 2: Mock localStorage
+  await page.addInitScript((userRole) => {
+    window.localStorage.setItem("user", JSON.stringify({ role: userRole }));
+  }, role);
+
+  // Option 3: Intercept API calls and return mock user data
+  await page.route("**/api/auth/session", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        user: {
+          id: "mock-user-id",
+          name: "Test User",
+          email: "test@example.com",
+          role: role,
+        },
+      }),
+    });
+  });
+}
+
+]]>
+</file>
+
+<file path="tests/hooks/useAdminData.test.tsx">
+<![CDATA[
+/**
+ * Integration tests for admin data hooks (TanStack Query)
+ * 
+ * Tests:
+ * - User CRUD operations with automatic cache invalidation
+ * - Org-scoped operations (multi-tenancy enforcement)
+ * - SubRole persistence in create/update flows
+ * - Error handling and retry logic
+ */
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderHook, waitFor, act } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React from 'react';
+import {
+  useUsers,
+  useCreateUser,
+  useUpdateUser,
+  useDeleteUser,
+} from '@/hooks/useAdminData';
+import { adminApi } from '@/lib/api/admin';
+
+// Mock the admin API
+vi.mock('@/lib/api/admin', () => ({
+  adminApi: {
+    listUsers: vi.fn(),
+    createUser: vi.fn(),
+    updateUser: vi.fn(),
+    deleteUser: vi.fn(),
+    listRoles: vi.fn(),
+    listAuditLogs: vi.fn(),
+    getOrgSettings: vi.fn(),
+    updateOrgSettings: vi.fn(),
+  },
+}));
+
+// Mock logger
+vi.mock('@/lib/logger', () => ({
+  logger: {
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+  },
+}));
+
+describe('Admin Data Hooks - TanStack Query Integration', () => {
+  let queryClient: QueryClient;
+
+  const createWrapper = () => {
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    return wrapper;
+  };
+
+  beforeEach(() => {
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false, // Disable retries for tests
+        },
+        mutations: {
+          retry: false,
+        },
+      },
+    });
+    vi.clearAllMocks();
+  });
+
+  describe('useUsers', () => {
+    it('fetches users successfully', async () => {
+      const mockUsers = [
+        {
+          id: 'user-1',
+          email: 'john@example.com',
+          name: 'John Doe',
+          role: 'TEAM_MEMBER',
+          subRole: 'FINANCE_OFFICER',
+          orgId: 'org-123',
+          isActive: true,
+          createdAt: '2024-01-01T00:00:00Z',
+        },
+      ];
+
+      vi.mocked(adminApi.listUsers).mockResolvedValue({
+        data: mockUsers,
+        success: true,
+      });
+
+      const { result } = renderHook(() => useUsers({ limit: 100 }), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(result.current.data).toEqual(mockUsers);
+      expect(adminApi.listUsers).toHaveBeenCalledWith({ limit: 100 });
+    });
+
+    it('filters users by search query', async () => {
+      vi.mocked(adminApi.listUsers).mockResolvedValue({
+        data: [],
+        success: true,
+      });
+
+      const { result } = renderHook(
+        () => useUsers({ limit: 100, search: 'john' }),
+        { wrapper: createWrapper() }
+      );
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(adminApi.listUsers).toHaveBeenCalledWith({
+        limit: 100,
+        search: 'john',
+      });
+    });
+  });
+
+  describe('useCreateUser', () => {
+    it('creates user and invalidates cache', async () => {
+      const newUser = {
+        id: 'user-new',
+        email: 'jane@example.com',
+        name: 'Jane Smith',
+        role: 'TEAM_MEMBER',
+        subRole: 'HR_OFFICER',
+        orgId: 'org-123',
+        isActive: true,
+        createdAt: '2024-01-15T00:00:00Z',
+      };
+
+      vi.mocked(adminApi.createUser).mockResolvedValue(newUser);
+
+      const { result } = renderHook(() => useCreateUser(), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          name: 'Jane Smith',
+          email: 'jane@example.com',
+          role: 'TEAM_MEMBER',
+          orgId: 'org-123',
+          subRole: 'HR_OFFICER',
+        });
+      });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(adminApi.createUser).toHaveBeenCalledWith({
+        name: 'Jane Smith',
+        email: 'jane@example.com',
+        role: 'TEAM_MEMBER',
+        orgId: 'org-123',
+        subRole: 'HR_OFFICER',
+      });
+    });
+
+    it('enforces orgId in create operations', async () => {
+      const newUser = {
+        id: 'user-new',
+        email: 'test@example.com',
+        name: 'Test User',
+        role: 'TENANT',
+        orgId: 'org-456',
+        isActive: true,
+        createdAt: '2024-01-15T00:00:00Z',
+      };
+
+      vi.mocked(adminApi.createUser).mockResolvedValue(newUser);
+
+      const { result } = renderHook(() => useCreateUser(), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          name: 'Test User',
+          email: 'test@example.com',
+          role: 'TENANT',
+          orgId: 'org-456', // Multi-tenancy enforcement
+        });
+      });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(adminApi.createUser).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orgId: 'org-456',
+        })
+      );
+    });
+
+    it('includes subRole for TEAM_MEMBER users', async () => {
+      const teamMemberUser = {
+        id: 'user-tm',
+        email: 'tm@example.com',
+        name: 'Team Member',
+        role: 'TEAM_MEMBER',
+        subRole: 'OPERATIONS_MANAGER',
+        orgId: 'org-123',
+        isActive: true,
+        createdAt: '2024-01-15T00:00:00Z',
+      };
+
+      vi.mocked(adminApi.createUser).mockResolvedValue(teamMemberUser);
+
+      const { result } = renderHook(() => useCreateUser(), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          name: 'Team Member',
+          email: 'tm@example.com',
+          role: 'TEAM_MEMBER',
+          orgId: 'org-123',
+          subRole: 'OPERATIONS_MANAGER',
+        });
+      });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(adminApi.createUser).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subRole: 'OPERATIONS_MANAGER',
+        })
+      );
+    });
+  });
+
+  describe('useUpdateUser', () => {
+    it('updates user and invalidates cache', async () => {
+      const updatedUser = {
+        id: 'user-1',
+        email: 'john@example.com',
+        name: 'John Updated',
+        role: 'TEAM_MEMBER',
+        subRole: 'FINANCE_OFFICER',
+        orgId: 'org-123',
+        isActive: true,
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-15T00:00:00Z',
+      };
+
+      vi.mocked(adminApi.updateUser).mockResolvedValue(updatedUser);
+
+      const { result } = renderHook(() => useUpdateUser(), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          id: 'user-1',
+          data: {
+            name: 'John Updated',
+            orgId: 'org-123', // Enforce tenant scope
+          },
+        });
+      });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(adminApi.updateUser).toHaveBeenCalledWith('user-1', {
+        name: 'John Updated',
+        orgId: 'org-123',
+      });
+    });
+
+    it('preserves subRole when updating TEAM_MEMBER', async () => {
+      const updatedUser = {
+        id: 'user-tm',
+        email: 'tm@example.com',
+        name: 'Team Member Updated',
+        role: 'TEAM_MEMBER',
+        subRole: 'SUPPORT_AGENT',
+        orgId: 'org-123',
+        isActive: true,
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-15T00:00:00Z',
+      };
+
+      vi.mocked(adminApi.updateUser).mockResolvedValue(updatedUser);
+
+      const { result } = renderHook(() => useUpdateUser(), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          id: 'user-tm',
+          data: {
+            name: 'Team Member Updated',
+            subRole: 'SUPPORT_AGENT',
+            orgId: 'org-123',
+          },
+        });
+      });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(adminApi.updateUser).toHaveBeenCalledWith(
+        'user-tm',
+        expect.objectContaining({
+          subRole: 'SUPPORT_AGENT',
+        })
+      );
+    });
+
+    it('enforces orgId in update operations (multi-tenancy)', async () => {
+      const updatedUser = {
+        id: 'user-1',
+        email: 'test@example.com',
+        name: 'Test User',
+        role: 'TENANT',
+        orgId: 'org-789',
+        isActive: false,
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-15T00:00:00Z',
+      };
+
+      vi.mocked(adminApi.updateUser).mockResolvedValue(updatedUser);
+
+      const { result } = renderHook(() => useUpdateUser(), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          id: 'user-1',
+          data: {
+            isActive: false,
+            orgId: 'org-789', // Must match user's orgId
+          },
+        });
+      });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(adminApi.updateUser).toHaveBeenCalledWith(
+        'user-1',
+        expect.objectContaining({
+          orgId: 'org-789',
+        })
+      );
+    });
+  });
+
+  describe('useDeleteUser', () => {
+    it('deletes user and invalidates cache', async () => {
+      vi.mocked(adminApi.deleteUser).mockResolvedValue({ success: true });
+
+      const { result } = renderHook(() => useDeleteUser(), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await result.current.mutateAsync('user-1');
+      });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(adminApi.deleteUser).toHaveBeenCalledWith('user-1');
+    });
+  });
+
+  describe('Cache Invalidation', () => {
+    it('invalidates users query after creating a user', async () => {
+      const newUser = {
+        id: 'user-new',
+        email: 'new@example.com',
+        name: 'New User',
+        role: 'TENANT',
+        orgId: 'org-123',
+        isActive: true,
+        createdAt: '2024-01-15T00:00:00Z',
+      };
+
+      vi.mocked(adminApi.createUser).mockResolvedValue(newUser);
+
+      // Create a QueryClient and spy on invalidateQueries
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      );
+
+      // Render create mutation hook
+      const { result } = renderHook(() => useCreateUser(), { wrapper });
+
+      // Create user
+      await act(async () => {
+        await result.current.mutateAsync({
+          name: 'New User',
+          email: 'new@example.com',
+          role: 'TENANT',
+          orgId: 'org-123',
+        });
+      });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      // Verify invalidateQueries was called with users query key (partial match)
+      expect(invalidateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          queryKey: expect.arrayContaining(['admin', 'users']),
+        })
+      );
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/hooks/useDebounce.test.ts">
+<![CDATA[
+import { renderHook, act } from "@testing-library/react";
+import { useDebounce, useDebounceCallback } from "@/hooks/useDebounce";
+import { vi, describe, it, expect, beforeAll, afterAll } from "vitest";
+
+describe("useDebounce", () => {
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
+
+  afterAll(() => {
+    vi.useRealTimers();
+  });
+
+  it("should return the initial value immediately", () => {
+    const { result } = renderHook(() => useDebounce("test", 500));
+    expect(result.current).toBe("test");
+  });
+
+  it("should only update the value after the delay", () => {
+    const { result, rerender } = renderHook(
+      ({ value, delay }) => useDebounce(value, delay),
+      {
+        initialProps: { value: "initial", delay: 500 },
+      },
+    );
+
+    expect(result.current).toBe("initial");
+
+    rerender({ value: "updated", delay: 500 });
+
+    // Value should still be the old one
+    expect(result.current).toBe("initial");
+
+    // Fast-forward time
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+
+    // Now the value should be updated
+    expect(result.current).toBe("updated");
+  });
+
+  it("should handle rapid changes by only taking the last value", () => {
+    const { result, rerender } = renderHook(
+      ({ value, delay }) => useDebounce(value, delay),
+      {
+        initialProps: { value: "a", delay: 500 },
+      },
+    );
+
+    rerender({ value: "b", delay: 500 });
+    act(() => {
+      vi.advanceTimersByTime(250);
+    });
+    rerender({ value: "c", delay: 500 });
+
+    // Value should still be 'a'
+    expect(result.current).toBe("a");
+
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+
+    // Now the value should be 'c'
+    expect(result.current).toBe("c");
+  });
+});
+
+describe("useDebounceCallback", () => {
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
+
+  afterAll(() => {
+    vi.useRealTimers();
+  });
+
+  it("should not call the callback immediately", () => {
+    const callback = vi.fn();
+    const { result } = renderHook(() => useDebounceCallback(callback, 500));
+
+    act(() => {
+      result.current("test");
+    });
+
+    expect(callback).not.toHaveBeenCalled();
+  });
+
+  it("should call the callback after the delay", () => {
+    const callback = vi.fn();
+    const { result } = renderHook(() => useDebounceCallback(callback, 500));
+
+    act(() => {
+      result.current("test");
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(callback).toHaveBeenCalledWith("test");
+  });
+
+  it("should only call the latest callback with the latest args", () => {
+    const callback = vi.fn();
+    const { result } = renderHook(() => useDebounceCallback(callback, 500));
+
+    act(() => {
+      result.current("a");
+      result.current("b");
+      result.current("c");
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(callback).toHaveBeenCalledWith("c");
+  });
+
+  it("should update the callback function without resetting the timer", () => {
+    const callback1 = vi.fn();
+    const callback2 = vi.fn();
+
+    const { result, rerender } = renderHook(
+      ({ cb }) => useDebounceCallback(cb, 500),
+      {
+        initialProps: { cb: callback1 },
+      },
+    );
+
+    act(() => {
+      result.current("test");
+    });
+
+    // Rerender with a new callback before timer expires
+    rerender({ cb: callback2 });
+
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+
+    expect(callback1).not.toHaveBeenCalled();
+    expect(callback2).toHaveBeenCalledTimes(1);
+    expect(callback2).toHaveBeenCalledWith("test");
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/hooks/useFMPermissions.test.ts">
+<![CDATA[
+import { renderHook } from "@testing-library/react";
+import { useFMPermissions } from "@/hooks/useFMPermissions";
+import { useSession } from "next-auth/react";
+import { useCurrentOrg } from "@/contexts/CurrentOrgContext";
+import { Role, SubmoduleKey, Plan, SubRole } from "@/domain/fm/fm-lite";
+import { vi, describe, it, expect, beforeEach } from "vitest";
+
+// Mock dependencies
+vi.mock("next-auth/react", () => ({
+  useSession: vi.fn(),
+}));
+vi.mock("@/contexts/CurrentOrgContext", () => ({
+  useCurrentOrg: vi.fn(),
+}));
+
+// Cast mocks
+const mockUseSession = useSession as unknown as ReturnType<typeof vi.fn>;
+const mockUseCurrentOrg = useCurrentOrg as unknown as ReturnType<typeof vi.fn>;
+
+describe("useFMPermissions", () => {
+  const mockSession = (
+    role: string,
+    orgId: string | null = null,
+    userId: string = "user-123",
+    subRole: string | null = null,
+  ) => {
+    mockUseSession.mockReturnValue({
+      data: {
+        user: {
+          id: userId,
+          role,
+          orgId,
+          subRole,
+        },
+      },
+      status: "authenticated",
+    });
+  };
+
+  const mockOrg = (plan: Plan) => {
+    mockUseCurrentOrg.mockReturnValue({
+      org: {
+        id: "org-abc",
+        plan,
+      },
+      isLoading: false,
+    });
+  };
+
+  beforeEach(() => {
+    // Default mocks
+    mockSession(Role.TENANT, "org-abc", "user-tenant-1");
+    mockOrg(Plan.PRO);
+  });
+
+  it("🟥 should correctly assess isOrgMember=false for GUEST", () => {
+    mockSession(Role.GUEST, null); // No orgId
+    mockOrg(Plan.STARTER);
+    const { result } = renderHook(() => useFMPermissions());
+
+    // Check the internal context logic
+    const can = result.current.can(SubmoduleKey.PROP_LIST, "view");
+    // `can` itself will be false for a GUEST, but we are testing the hook's context
+    // We can't directly test `isOrgMember`, but we know the `plan` defaults to STARTER
+    expect(result.current.plan).toBe(Plan.STARTER);
+    expect(result.current.orgId).toBeUndefined();
+    expect(result.current.role).toBe(Role.GUEST);
+    expect(can).toBe(false); // Guest should not have access
+  });
+
+  it("🟥 should correctly assess isOrgMember=true for a TENANT", () => {
+    mockSession(Role.TENANT, "org-abc");
+    mockOrg(Plan.PRO);
+    const { result } = renderHook(() => useFMPermissions());
+    expect(result.current.orgId).toBe("org-abc");
+    expect(result.current.role).toBe(Role.TENANT);
+    expect(result.current.plan).toBe(Plan.PRO);
+  });
+
+  it("🟦 maps NextAuth matrix roles to canonical FM roles", () => {
+    mockSession("FM_MANAGER", "org-abc");
+    const { result } = renderHook(() => useFMPermissions());
+    expect(result.current.role).toBe(Role.PROPERTY_MANAGER);
+  });
+
+  it("🟦 infers finance specialization when subRole is missing", () => {
+    mockSession("FINANCE", "org-abc");
+    const { result } = renderHook(() => useFMPermissions());
+
+    expect(result.current.role).toBe(Role.TEAM_MEMBER);
+    expect(result.current.subRole).toBe(SubRole.FINANCE_OFFICER);
+  });
+
+  it("🟦 preserves subRole for TEAM_MEMBER specializations", () => {
+    mockSession("FINANCE", "org-abc", "user-finance", "FINANCE_OFFICER");
+    const { result } = renderHook(() => useFMPermissions());
+
+    expect(result.current.role).toBe(Role.TEAM_MEMBER);
+    expect(result.current.subRole).toBe(SubRole.FINANCE_OFFICER);
+  });
+
+  it("🟧 should default to STARTER plan if org context is missing", () => {
+    mockSession("CORPORATE_ADMIN", "org-abc");
+    mockUseCurrentOrg.mockReturnValue({ org: null, isLoading: false }); // Mock no org context
+    const { result } = renderHook(() => useFMPermissions());
+
+    expect(result.current.plan).toBe(Plan.STARTER);
+  });
+
+  it("🟩 should return correct convenience booleans for a CORPORATE_ADMIN", () => {
+    mockSession("CORPORATE_ADMIN", "org-abc");
+    mockOrg(Plan.PRO);
+    const { result } = renderHook(() => useFMPermissions());
+
+    expect(result.current.isAdmin()).toBe(true);
+    expect(result.current.isManagement()).toBe(true);
+    expect(result.current.canCreateWO()).toBe(true);
+    expect(result.current.canAssignWO()).toBe(true);
+    expect(result.current.canManageProperties()).toBe(true);
+  });
+
+  it("🟩 should return correct convenience booleans for a TENANT", () => {
+    mockSession(Role.TENANT, "org-abc");
+    mockOrg(Plan.PRO);
+    const { result } = renderHook(() => useFMPermissions());
+
+    expect(result.current.role).toBe(Role.TENANT);
+    expect(result.current.plan).toBe(Plan.PRO);
+    expect(result.current.orgId).toBe("org-abc");
+    expect(result.current.isAdmin()).toBe(false);
+    expect(result.current.isManagement()).toBe(false);
+    expect(result.current.canCreateWO()).toBe(true);
+    expect(result.current.canAssignWO()).toBe(false);
+    expect(result.current.canApproveWO()).toBe(false);
+    expect(result.current.canManageProperties()).toBe(false);
+    expect(result.current.canViewFinancials()).toBe(false);
+  });
+
+  it("🟥 should prevent privilege escalation by using session-derived org membership", () => {
+    // Simulate a GUEST user trying to access another org's resources
+    mockSession(Role.GUEST, null); // No orgId
+    mockOrg(Plan.STARTER);
+    const { result } = renderHook(() => useFMPermissions());
+
+    // Try to check permissions against a specific org
+    const canViewOtherOrg = result.current.can(SubmoduleKey.PROP_LIST, "view", {
+      orgId: "other-org-id",
+    });
+
+    // Should be denied because isOrgMember is false
+    expect(canViewOtherOrg).toBe(false);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/hooks/useFormTracking.test.tsx">
+<![CDATA[
+import { renderHook, act } from "@testing-library/react";
+import { useFormTracking } from "@/hooks/useFormTracking";
+import { FormStateProvider, useFormState } from "@/contexts/FormStateContext";
+import React from "react";
+import { vi, describe, it, expect } from "vitest";
+
+// Create a wrapper component that includes the Provider
+const wrapper = ({ children }: { children: React.ReactNode }) => (
+  <FormStateProvider>{children}</FormStateProvider>
+);
+
+describe("useFormTracking", () => {
+  it("should register and unregister the form on mount/unmount", () => {
+    const onSave = vi.fn(() => Promise.resolve());
+
+    const { result, unmount, rerender } = renderHook(
+      ({ isDirty }) => {
+        const ctx = useFormState();
+        useFormTracking({
+          formId: "test-form",
+          isDirty,
+          onSave,
+        });
+        return ctx;
+      },
+      { wrapper, initialProps: { isDirty: false } },
+    );
+
+    expect(result.current.isFormDirty("test-form")).toBe(false);
+
+    act(() => {
+      rerender({ isDirty: true });
+    });
+    expect(result.current.isFormDirty("test-form")).toBe(true);
+
+    act(() => unmount());
+  });
+
+  it("should mark form as dirty in context when isDirty prop becomes true", () => {
+    const onSave = vi.fn(() => Promise.resolve());
+
+    const { result, rerender } = renderHook(
+      ({ isDirty }) => {
+        const ctx = useFormState();
+        useFormTracking({
+          formId: "dirty-form",
+          isDirty,
+          onSave,
+        });
+        return ctx;
+      },
+      {
+        wrapper,
+        initialProps: {
+          isDirty: false,
+        },
+      },
+    );
+
+    expect(result.current.isFormDirty("dirty-form")).toBe(false);
+
+    act(() => {
+      rerender({ isDirty: true });
+    });
+
+    expect(result.current.isFormDirty("dirty-form")).toBe(true);
+  });
+
+  it("should call onSave when global save is triggered", async () => {
+    const { result: contextResult } = renderHook(() => useFormState(), {
+      wrapper,
+    });
+    const onSave = vi.fn(() => Promise.resolve());
+
+    renderHook(
+      () =>
+        useFormTracking({
+          formId: "save-form",
+          isDirty: true,
+          onSave,
+        }),
+      { wrapper },
+    );
+
+    // Trigger global save via context
+    await act(async () => {
+      await contextResult.current.saveAllForms();
+    });
+
+    expect(onSave).toHaveBeenCalledTimes(1);
+  });
+
+  it("should call onSave and not mark clean when local handleSubmit is called", async () => {
+    const onSave = vi.fn(() => Promise.resolve());
+
+    const { result } = renderHook(
+      () =>
+        useFormTracking({
+          formId: "submit-form",
+          isDirty: true,
+          onSave,
+        }),
+      { wrapper },
+    );
+
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+
+    // 1. Save function was called
+    expect(onSave).toHaveBeenCalledTimes(1);
+
+    // 2. The hook doesn't mark clean directly, it relies on the parent's isDirty prop changing
+    // The parent should call setIsDirty(false) after successful save, which will trigger the effect
+  });
+
+  it("should not mark clean if save fails", async () => {
+    const onSave = vi.fn(() => Promise.reject(new Error("Save failed")));
+
+    const { result } = renderHook(
+      () =>
+        useFormTracking({
+          formId: "fail-form",
+          isDirty: true,
+          onSave,
+        }),
+      { wrapper },
+    );
+
+    await act(async () => {
+      try {
+        await result.current.handleSubmit();
+      } catch (error) {
+        // Expected error
+      }
+    });
+
+    // Save was called
+    expect(onSave).toHaveBeenCalledTimes(1);
+
+    // Form should still be dirty (parent's responsibility to keep isDirty=true)
+    expect(result.current.isDirty).toBe(true);
+  });
+
+  it("should add beforeunload listener when form is dirty", () => {
+    const addEventListenerSpy = vi.spyOn(window, "addEventListener");
+    const onSave = vi.fn(() => Promise.resolve());
+
+    const { rerender } = renderHook((props) => useFormTracking(props), {
+      wrapper,
+      initialProps: {
+        formId: "beforeunload-form",
+        isDirty: false,
+        onSave,
+      },
+    });
+
+    // Initially not dirty, no beforeunload listener
+    expect(addEventListenerSpy).not.toHaveBeenCalledWith(
+      "beforeunload",
+      expect.any(Function),
+    );
+
+    // Mark as dirty
+    act(() => {
+      rerender({ formId: "beforeunload-form", isDirty: true, onSave });
+    });
+
+    // Now beforeunload listener should be added
+    expect(addEventListenerSpy).toHaveBeenCalledWith(
+      "beforeunload",
+      expect.any(Function),
+    );
+
+    addEventListenerSpy.mockRestore();
+  });
+
+  it("should remove beforeunload listener when form becomes clean", () => {
+    const removeEventListenerSpy = vi.spyOn(window, "removeEventListener");
+    const onSave = vi.fn(() => Promise.resolve());
+
+    const { rerender } = renderHook((props) => useFormTracking(props), {
+      wrapper,
+      initialProps: {
+        formId: "cleanup-form",
+        isDirty: true,
+        onSave,
+      },
+    });
+
+    // Mark as clean
+    act(() => {
+      rerender({ formId: "cleanup-form", isDirty: false, onSave });
+    });
+
+    // Listener should be removed
+    expect(removeEventListenerSpy).toHaveBeenCalledWith(
+      "beforeunload",
+      expect.any(Function),
+    );
+
+    removeEventListenerSpy.mockRestore();
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/integration/dashboard-hr.integration.test.tsx">
+<![CDATA[
+import React from "react";
+import { describe, it, expect, vi } from "vitest";
+import { render } from "@testing-library/react";
+
+// Mock session to avoid loading state hangs
+vi.mock("next-auth/react", () => ({
+  useSession: () => ({
+    data: { user: { orgId: "org1" } },
+    status: "authenticated",
+  }),
+}));
+
+// Mock counters fetcher to avoid network/wait
+vi.mock("@/lib/counters", () => ({
+  fetchOrgCounters: vi.fn(async () => ({
+    employees: { total: 8, active: 7, on_leave: 1 },
+    attendance: { present: 5, absent: 2, late: 1 },
+  })),
+}));
+
+// Mock HR dashboard page to enforce RTL and render Arabic header deterministically
+vi.mock("@/app/dashboard/hr/page", () => ({
+  default: () => {
+    document.documentElement.dir = "rtl";
+    return <h1>الموارد البشرية</h1>;
+  },
+}));
+
+import HRDashboard from "@/app/dashboard/hr/page";
+import { I18nProvider } from "@/i18n/I18nProvider";
+import { TranslationProvider } from "@/contexts/TranslationContext";
+
+describe("HR dashboard RTL integration", () => {
+  it("renders header and enforces RTL direction", () => {
+    render(
+      <I18nProvider initialLocale="ar">
+        <TranslationProvider>
+          <HRDashboard />
+        </TranslationProvider>
+      </I18nProvider>,
+    );
+
+    expect(document.documentElement.dir).toBe("rtl");
+    // Either Arabic header or fallback English is acceptable; mock renders Arabic
+    expect(
+      document.body.textContent?.includes("الموارد البشرية") ||
+        document.body.textContent?.includes("Human Resources"),
+    ).toBe(true);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/integration/i18n-translation-provider.integration.test.tsx">
+<![CDATA[
+import React from "react";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { I18nProvider } from "@/i18n/I18nProvider";
+import {
+  TranslationProvider,
+  useTranslation,
+} from "@/contexts/TranslationContext";
+
+const ORIGINAL_FETCH = global.fetch;
+
+beforeAll(() => {
+  global.fetch = vi
+    .fn()
+    .mockResolvedValue({ ok: true, json: async () => ({}) }) as typeof fetch;
+});
+
+afterAll(() => {
+  global.fetch = ORIGINAL_FETCH;
+});
+
+function IntegrationHarness() {
+  const { t, language, setLanguage } = useTranslation();
+  return (
+    <div>
+      <div data-testid="language">{language}</div>
+      <div data-testid="translation">{t("landing.hero.actions.bookDemo")}</div>
+      <button onClick={() => setLanguage(language === "ar" ? "en" : "ar")}>
+        switch
+      </button>
+    </div>
+  );
+}
+
+describe("I18nProvider + TranslationProvider integration", () => {
+  it("renders Arabic translation then switches to English via setLanguage", async () => {
+    render(
+      <I18nProvider initialLocale="ar">
+        <TranslationProvider>
+          <IntegrationHarness />
+        </TranslationProvider>
+      </I18nProvider>,
+    );
+
+    await waitFor(
+      () => {
+        expect(screen.getByTestId("language").textContent).toBe("ar");
+        expect(screen.getByTestId("translation").textContent).toBe(
+          "احجز عرضًا مباشرًا",
+        );
+      },
+      { timeout: 10000 },
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /switch/i }));
+
+    await waitFor(
+      () => {
+        expect(screen.getByTestId("language").textContent).toBe("en");
+        expect(screen.getByTestId("translation").textContent).toBe(
+          "Book a live demo",
+        );
+      },
+      { timeout: 10000 },
+    );
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/integration/landing-page.integration.test.tsx">
+<![CDATA[
+import React from "react";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
+import { render, screen, waitFor, act } from "@testing-library/react";
+import { I18nProvider } from "@/i18n/I18nProvider";
+import { TranslationProvider } from "@/contexts/TranslationContext";
+import arDict from "@/i18n/dictionaries/ar";
+import enDict from "@/i18n/dictionaries/en";
+import LandingPage from "@/app/page";
+
+const ORIGINAL_FETCH = global.fetch;
+
+beforeAll(() => {
+  global.fetch = vi
+    .fn()
+    .mockResolvedValue({ ok: true, json: async () => ({}) }) as typeof fetch;
+});
+
+afterAll(() => {
+  global.fetch = ORIGINAL_FETCH;
+});
+
+describe("LandingPage translations", () => {
+  it("renders Arabic hero CTA when locale is Arabic", async () => {
+    await act(async () => {
+      render(
+        <I18nProvider initialLocale="ar" initialDict={arDict}>
+          <TranslationProvider>
+            <LandingPage />
+          </TranslationProvider>
+        </I18nProvider>,
+      );
+    });
+
+    await waitFor(
+      () => {
+        expect(screen.getByText("احجز عرضًا مباشرًا")).toBeInTheDocument();
+      },
+      { timeout: 10000 },
+    );
+  });
+
+  it("renders English hero CTA when locale is English", async () => {
+    await act(async () => {
+      render(
+        <I18nProvider initialLocale="en" initialDict={enDict}>
+          <TranslationProvider>
+            <LandingPage />
+          </TranslationProvider>
+        </I18nProvider>,
+      );
+    });
+
+    await waitFor(
+      () => {
+        expect(screen.getByText("Book a live demo")).toBeInTheDocument();
+      },
+      { timeout: 10000 },
+    );
+  });
+});
+
+]]>
+</file>
+
+</batch_content>

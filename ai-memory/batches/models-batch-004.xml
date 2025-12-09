@@ -1,0 +1,3405 @@
+
+You are the "Fixzit Memory Builder" for category: "models".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "models",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="server/models/ReferralCode.ts">
+<![CDATA[
+import { Schema, model, models, Types, HydratedDocument } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { auditPlugin } from "../plugins/auditPlugin";
+
+export const ReferralCodeStatus = [
+  "ACTIVE",
+  "INACTIVE",
+  "EXPIRED",
+  "DEPLETED",
+] as const;
+export const RewardType = [
+  "DISCOUNT",
+  "CASH",
+  "CREDIT",
+  "FREE_MONTH",
+  "CUSTOM",
+] as const;
+export const RewardStatus = [
+  "PENDING",
+  "APPROVED",
+  "PAID",
+  "CANCELLED",
+  "EXPIRED",
+] as const;
+
+type TReferralCodeStatus = (typeof ReferralCodeStatus)[number];
+type TRewardType = (typeof RewardType)[number];
+type TRewardStatus = (typeof RewardStatus)[number];
+
+interface IReward {
+  type: TRewardType;
+  referrerAmount: number;
+  referredAmount: number;
+  currency?: string;
+  description?: string;
+  conditions?: string;
+}
+
+interface ILimits {
+  maxUses?: number | null;
+  currentUses: number;
+  maxUsesPerUser: number;
+  minPurchaseAmount?: number;
+  validFrom?: Date;
+  validUntil?: Date;
+}
+
+interface ITargeting {
+  userTypes?: string[];
+  properties?: Types.ObjectId[];
+  services?: string[];
+  regions?: string[];
+}
+
+interface IReferral {
+  _id?: Types.ObjectId;
+  referredUserId?: Types.ObjectId;
+  referredEmail?: string;
+  referredAt?: Date;
+  convertedAt?: Date;
+  rewardEarned?: number;
+  rewardStatus?: TRewardStatus;
+  rewardPaidAt?: Date;
+  transactionId?: string;
+  metadata?: Record<string, unknown>;
+}
+
+interface IStats {
+  totalReferrals: number;
+  successfulReferrals: number;
+  pendingReferrals: number;
+  totalRewardsEarned: number;
+  totalRewardsPaid: number;
+  conversionRate?: number;
+}
+
+export interface IReferralCode {
+  orgId: Types.ObjectId;
+
+  // Referrer
+  referrerId: Types.ObjectId;
+  referrerName?: string;
+  referrerEmail?: string;
+
+  // Code
+  code: string; // uppercase enforced via schema
+  shortUrl?: string; // e.g., https://fixzit.sa/ref/ABC123
+
+  // Reward
+  reward: IReward;
+  limits: ILimits;
+  targeting?: ITargeting;
+  referrals?: IReferral[];
+  stats: IStats;
+  status: TReferralCodeStatus;
+
+  // Campaign
+  campaign?: {
+    name?: string;
+    startDate?: Date;
+    endDate?: Date;
+    budget?: number;
+    spent?: number;
+  };
+
+  // Meta
+  notes?: string;
+  tags?: string[];
+}
+
+type ReferralCodeDoc = HydratedDocument<IReferralCode> & {
+  conversionRateComputed: number;
+  isValid(): boolean;
+  canBeUsedBy(userId: Types.ObjectId): boolean;
+};
+
+export interface ReferralCodeStaticMethods {
+  generateCode(orgId: Types.ObjectId, length?: number): Promise<string>;
+  applyCode(args: {
+    orgId: Types.ObjectId | string;
+    code: string;
+    userId: Types.ObjectId | string;
+    userType?: string;
+    propertyId?: Types.ObjectId | string;
+    service?: string;
+    region?: string;
+    orderAmount?: number;
+    now?: Date;
+    referredEmail?: string;
+    transactionId?: string;
+    metadata?: Record<string, unknown>;
+  }): Promise<ReferralCodeDoc | null>;
+  markConverted(args: {
+    orgId: Types.ObjectId | string;
+    code: string;
+    referredUserId: Types.ObjectId | string;
+    rewardEarned?: number;
+    when?: Date;
+    transactionId?: string;
+  }): Promise<ReferralCodeDoc | null>;
+}
+
+type ReferralCodeModelType = MModel<IReferralCode> & ReferralCodeStaticMethods;
+
+// ---------------- Schema ----------------
+const ReferralCodeSchema = new Schema<IReferralCode>(
+  {
+    // tenant via plugin, but declare for typing + indices
+    // Multi-tenancy: which organization this referral code belongs to
+    // Note: index: true removed from orgId to avoid duplicate index warning
+    // orgId is indexed via composite indexes below (orgId+code, orgId+referrerId, etc.)
+    orgId: { type: Schema.Types.ObjectId, required: true, ref: "Organization" },
+
+    referrerId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    referrerName: { type: String, trim: true },
+    referrerEmail: { type: String, trim: true, lowercase: true },
+
+    code: { type: String, required: true, uppercase: true, trim: true },
+    shortUrl: { type: String, trim: true },
+
+    reward: {
+      type: {
+        type: String,
+        enum: RewardType,
+        required: true,
+      },
+      referrerAmount: { type: Number, required: true, min: 0 },
+      referredAmount: { type: Number, required: true, min: 0 },
+      currency: { type: String, default: "SAR", trim: true },
+      description: { type: String, trim: true },
+      conditions: { type: String, trim: true },
+    },
+
+    limits: {
+      maxUses: { type: Number, min: 0 },
+      currentUses: { type: Number, default: 0, min: 0 },
+      maxUsesPerUser: { type: Number, default: 1, min: 1 },
+      minPurchaseAmount: { type: Number, min: 0 },
+      validFrom: Date,
+      validUntil: Date,
+    },
+
+    targeting: {
+      userTypes: [String],
+      properties: [{ type: Schema.Types.ObjectId, ref: "Property" }],
+      services: [String],
+      regions: [String],
+    },
+
+    referrals: [
+      {
+        referredUserId: { type: Schema.Types.ObjectId, ref: "User" },
+        referredEmail: { type: String, trim: true, lowercase: true },
+        referredAt: { type: Date, default: Date.now },
+        convertedAt: Date,
+        rewardEarned: { type: Number, min: 0 },
+        rewardStatus: { type: String, enum: RewardStatus },
+        rewardPaidAt: Date,
+        transactionId: { type: String, trim: true },
+        metadata: Schema.Types.Mixed,
+      },
+    ],
+
+    stats: {
+      totalReferrals: { type: Number, default: 0, min: 0 },
+      successfulReferrals: { type: Number, default: 0, min: 0 },
+      pendingReferrals: { type: Number, default: 0, min: 0 },
+      totalRewardsEarned: { type: Number, default: 0, min: 0 },
+      totalRewardsPaid: { type: Number, default: 0, min: 0 },
+      conversionRate: { type: Number, default: 0, min: 0, max: 100 },
+    },
+
+    status: {
+      type: String,
+      enum: ReferralCodeStatus,
+      default: "ACTIVE",
+      index: true,
+    },
+
+    campaign: {
+      name: { type: String, trim: true },
+      startDate: Date,
+      endDate: Date,
+      budget: { type: Number, min: 0 },
+      spent: { type: Number, default: 0, min: 0 },
+    },
+
+    notes: String,
+    tags: [String],
+  },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  },
+);
+
+// Plugins
+ReferralCodeSchema.plugin(tenantIsolationPlugin);
+ReferralCodeSchema.plugin(auditPlugin);
+
+// Indices (post-plugin so orgId exists)
+ReferralCodeSchema.index(
+  { orgId: 1, code: 1 },
+  { unique: true, name: "uniq_org_code" },
+);
+ReferralCodeSchema.index({ orgId: 1, referrerId: 1 });
+ReferralCodeSchema.index({ orgId: 1, "referrals.referredUserId": 1 });
+ReferralCodeSchema.index({
+  orgId: 1,
+  "limits.validFrom": 1,
+  "limits.validUntil": 1,
+});
+ReferralCodeSchema.index({ orgId: 1, status: 1 });
+
+// Virtuals
+ReferralCodeSchema.virtual("conversionRateComputed").get(function (
+  this: ReferralCodeDoc,
+) {
+  const total = this.stats?.totalReferrals ?? 0;
+  const success = this.stats?.successfulReferrals ?? 0;
+  return total > 0 ? (success / total) * 100 : 0;
+});
+
+// Instance methods
+ReferralCodeSchema.methods.isValid = function (this: ReferralCodeDoc) {
+  if (this.status !== "ACTIVE") return false;
+  const now = new Date();
+  const lim: ILimits = this.limits || { 
+    currentUses: 0, 
+    maxUsesPerUser: 0,
+    maxUses: null,
+    validFrom: undefined,
+    validUntil: undefined
+  };
+  const maxU = typeof lim.maxUses === "number" ? lim.maxUses : Infinity;
+  const cur = typeof lim.currentUses === "number" ? lim.currentUses : 0;
+  if (lim.validFrom && now < lim.validFrom) return false;
+  if (lim.validUntil && now > lim.validUntil) return false;
+  if (cur >= maxU) return false;
+  return true;
+};
+
+ReferralCodeSchema.methods.canBeUsedBy = function (
+  this: ReferralCodeDoc,
+  userId: Types.ObjectId,
+) {
+  if (!this.isValid()) return false;
+  const cap = this.limits?.maxUsesPerUser ?? 1;
+  const used = (this.referrals || []).filter(
+    (r) => r.referredUserId?.toString() === String(userId),
+  ).length;
+  return used < cap;
+};
+
+// Static methods
+ReferralCodeSchema.statics.generateCode = async function (
+  orgId: Types.ObjectId,
+  length: number = 8,
+): Promise<string> {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const maxRetries = 50;
+  for (let i = 0; i < maxRetries; i++) {
+    let code = "";
+    for (let j = 0; j < length; j++) {
+      code += alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
+    const exists = await this.exists({ orgId, code });
+    if (!exists) return code;
+    if (i > 10) await new Promise((r) => setTimeout(r, 10 * i));
+  }
+  throw new Error(
+    `ReferralCode.generateCode: unable to produce unique code after ${maxRetries} attempts`,
+  );
+};
+
+ReferralCodeSchema.statics.applyCode = async function ({
+  orgId,
+  code,
+  userId,
+  userType,
+  propertyId,
+  service,
+  region,
+  orderAmount,
+  now = new Date(),
+  referredEmail,
+  transactionId,
+  metadata,
+}: {
+  orgId: Types.ObjectId | string;
+  code: string;
+  userId: Types.ObjectId | string;
+  userType?: string;
+  propertyId?: Types.ObjectId | string;
+  service?: string;
+  region?: string;
+  orderAmount?: number;
+  now?: Date;
+  referredEmail?: string;
+  transactionId?: string;
+  metadata?: Record<string, unknown>;
+}): Promise<ReferralCodeDoc | null> {
+  const uid = new Types.ObjectId(userId as string);
+  const org = new Types.ObjectId(orgId as string);
+
+  const ands: Array<Record<string, unknown>> = [
+    { status: "ACTIVE" },
+    { orgId: org },
+    { code: code.toUpperCase() },
+    {
+      $or: [
+        { "limits.validFrom": { $exists: false } },
+        { "limits.validFrom": { $lte: now } },
+      ],
+    },
+    {
+      $or: [
+        { "limits.validUntil": { $exists: false } },
+        { "limits.validUntil": { $gte: now } },
+      ],
+    },
+    {
+      $or: [
+        { "limits.maxUses": { $exists: false } },
+        {
+          $expr: {
+            $lt: [{ $ifNull: ["$limits.currentUses", 0] }, "$limits.maxUses"],
+          },
+        },
+      ],
+    },
+    {
+      $expr: {
+        $lt: [
+          {
+            $size: {
+              $filter: {
+                input: { $ifNull: ["$referrals", []] },
+                as: "r",
+                cond: { $eq: ["$$r.referredUserId", uid] },
+              },
+            },
+          },
+          "$limits.maxUsesPerUser",
+        ],
+      },
+    },
+    { $expr: { $ne: ["$referrerId", uid] } },
+  ];
+
+  if (userType)
+    ands.push({
+      $or: [
+        { "targeting.userTypes": { $exists: false } },
+        { "targeting.userTypes": userType },
+      ],
+    });
+  if (service)
+    ands.push({
+      $or: [
+        { "targeting.services": { $exists: false } },
+        { "targeting.services": service },
+      ],
+    });
+  if (region)
+    ands.push({
+      $or: [
+        { "targeting.regions": { $exists: false } },
+        { "targeting.regions": region },
+      ],
+    });
+  if (propertyId) {
+    const pid = new Types.ObjectId(propertyId as string);
+    ands.push({
+      $or: [
+        { "targeting.properties": { $exists: false } },
+        { "targeting.properties": pid },
+      ],
+    });
+  }
+  if (typeof orderAmount === "number") {
+    ands.push({
+      $or: [
+        { "limits.minPurchaseAmount": { $exists: false } },
+        { "limits.minPurchaseAmount": { $lte: orderAmount } },
+      ],
+    });
+  }
+
+  const update: Array<Record<string, unknown>> = [
+    {
+      $set: {
+        referrals: {
+          $concatArrays: [
+            { $ifNull: ["$referrals", []] },
+            [
+              {
+                referredUserId: uid,
+                referredEmail: referredEmail?.toLowerCase(),
+                referredAt: now,
+                rewardEarned: 0,
+                rewardStatus: "PENDING",
+                transactionId,
+                metadata,
+              },
+            ],
+          ],
+        },
+        "stats.totalReferrals": {
+          $add: [{ $ifNull: ["$stats.totalReferrals", 0] }, 1],
+        },
+        "stats.pendingReferrals": {
+          $add: [{ $ifNull: ["$stats.pendingReferrals", 0] }, 1],
+        },
+        "limits.currentUses": {
+          $add: [{ $ifNull: ["$limits.currentUses", 0] }, 1],
+        },
+      },
+    },
+    {
+      $set: {
+        status: {
+          $cond: [
+            {
+              $and: [
+                { $ne: ["$limits.maxUses", null] },
+                { $ne: ["$limits.maxUses", undefined] },
+                { $gte: ["$limits.currentUses", "$limits.maxUses"] },
+              ],
+            },
+            "DEPLETED",
+            "$status",
+          ],
+        },
+      },
+    },
+  ];
+
+  const doc = await this.findOneAndUpdate({ $and: ands }, update, {
+    new: true,
+  });
+  return doc as ReferralCodeDoc | null;
+};
+
+ReferralCodeSchema.statics.markConverted = async function ({
+  orgId,
+  code,
+  referredUserId,
+  rewardEarned = 0,
+  when = new Date(),
+  transactionId,
+}: {
+  orgId: Types.ObjectId | string;
+  code: string;
+  referredUserId: Types.ObjectId | string;
+  rewardEarned?: number;
+  when?: Date;
+  transactionId?: string;
+}): Promise<ReferralCodeDoc | null> {
+  const org = new Types.ObjectId(orgId as string);
+  const uid = new Types.ObjectId(referredUserId as string);
+
+  const doc = await this.findOneAndUpdate(
+    {
+      orgId: org,
+      code: code.toUpperCase(),
+      "referrals.referredUserId": uid,
+      "referrals.convertedAt": { $exists: false },
+    },
+    {
+      $set: {
+        "referrals.$.convertedAt": when,
+        "referrals.$.rewardEarned": rewardEarned,
+        "referrals.$.rewardStatus": "APPROVED",
+        ...(transactionId
+          ? { "referrals.$.transactionId": transactionId }
+          : {}),
+      },
+      $inc: {
+        "stats.successfulReferrals": 1,
+        "stats.pendingReferrals": -1,
+        "stats.totalRewardsEarned": rewardEarned,
+      },
+    },
+    { new: true },
+  );
+  return doc as ReferralCodeDoc | null;
+};
+
+// Pre-save normalization & auto-expire
+ReferralCodeSchema.pre("save", function (next) {
+  if (this.referrerEmail)
+    this.referrerEmail = String(this.referrerEmail).trim().toLowerCase();
+  if (this.code) this.code = String(this.code).toUpperCase().trim();
+
+  const now = new Date();
+  if (
+    this.limits?.validUntil &&
+    now > this.limits.validUntil &&
+    this.status === "ACTIVE"
+  ) {
+    this.status = "EXPIRED";
+  }
+
+  // Update conversion rate
+  const total = this.stats?.totalReferrals ?? 0;
+  const success = this.stats?.successfulReferrals ?? 0;
+  if (this.stats) {
+    this.stats.conversionRate = total > 0 ? (success / total) * 100 : 0;
+  }
+
+  next();
+});
+
+// Final export
+export const ReferralCodeModel = getModel<IReferralCode, ReferralCodeModelType>(
+  "ReferralCode",
+  ReferralCodeSchema,
+);
+
+]]>
+</file>
+
+<file path="server/models/RevenueLog.ts">
+<![CDATA[
+import mongoose, { Schema, Document, Model } from "mongoose";
+
+/**
+ * RevenueLog Model
+ * Tracks all revenue per unit for financial reporting and net profit calculations
+ *
+ * @version 1.0.0
+ * @date 2024-12-04
+ */
+
+export interface IRevenueLog extends Document {
+  unit_id: mongoose.Types.ObjectId;
+  property_id: mongoose.Types.ObjectId;
+  org_id: mongoose.Types.ObjectId;
+  tenant_id?: mongoose.Types.ObjectId;
+  tenancy_id?: mongoose.Types.ObjectId;
+  invoice_id?: mongoose.Types.ObjectId;
+
+  // Revenue details
+  date: Date;
+  type:
+    | "RENT"
+    | "DEPOSIT"
+    | "UTILITY_REIMBURSEMENT"
+    | "LATE_FEE"
+    | "MAINTENANCE_FEE"
+    | "PARKING"
+    | "AMENITY"
+    | "OTHER";
+  description?: string;
+
+  // Amount
+  amount: number;
+  currency: string;
+
+  // Payment details
+  paymentMethod?:
+    | "CASH"
+    | "BANK_TRANSFER"
+    | "CREDIT_CARD"
+    | "CHECK"
+    | "TAP"
+    | "PAYTABS"
+    | "OTHER";
+  paymentReference?: string;
+  paymentDate?: Date;
+
+  // Status
+  status: "PENDING" | "RECEIVED" | "PARTIAL" | "OVERDUE" | "REFUNDED" | "CANCELLED";
+  dueDate?: Date;
+  receivedAmount?: number;
+  outstandingAmount?: number;
+
+  // Period (for rent)
+  periodStart?: Date;
+  periodEnd?: Date;
+
+  // Attachments
+  receiptUrl?: string;
+  notes?: string;
+
+  // Audit
+  createdBy: mongoose.Types.ObjectId;
+  updatedBy?: mongoose.Types.ObjectId;
+
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const RevenueLogSchema = new Schema<IRevenueLog>(
+  {
+    unit_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Unit",
+      required: true,
+      // index via compound { org_id: 1, unit_id: 1, date: -1 }
+    },
+    property_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Property",
+      required: true,
+      // index via compound { org_id: 1, property_id: 1, date: -1 }
+    },
+    org_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      // index via all compound indexes
+    },
+    tenant_id: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      // index via compound { org_id: 1, tenant_id: 1, date: -1 }
+    },
+    tenancy_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Tenancy",
+      index: true, // standalone needed - not covered by compounds
+    },
+    invoice_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Invoice",
+      index: true, // standalone needed - not covered by compounds
+    },
+
+    // Revenue details
+    date: { type: Date, required: true, index: true }, // standalone needed for date-only queries
+    type: {
+      type: String,
+      enum: [
+        "RENT",
+        "DEPOSIT",
+        "UTILITY_REIMBURSEMENT",
+        "LATE_FEE",
+        "MAINTENANCE_FEE",
+        "PARKING",
+        "AMENITY",
+        "OTHER",
+      ],
+      required: true,
+      // index via compound { org_id: 1, type: 1, date: -1 }
+    },
+    description: String,
+
+    // Amount
+    amount: { type: Number, required: true, min: 0 },
+    currency: { type: String, default: "SAR" },
+
+    // Payment details
+    paymentMethod: {
+      type: String,
+      enum: [
+        "CASH",
+        "BANK_TRANSFER",
+        "CREDIT_CARD",
+        "CHECK",
+        "TAP",
+        "PAYTABS",
+        "OTHER",
+      ],
+    },
+    paymentReference: String,
+    paymentDate: Date,
+
+    // Status
+    status: {
+      type: String,
+      enum: ["PENDING", "RECEIVED", "PARTIAL", "OVERDUE", "REFUNDED", "CANCELLED"],
+      default: "PENDING",
+      // index via compound { org_id: 1, status: 1, dueDate: 1 }
+    },
+    dueDate: { type: Date }, // index via compound { org_id: 1, status: 1, dueDate: 1 }
+    receivedAmount: { type: Number, default: 0, min: 0 },
+    outstandingAmount: { type: Number, default: 0, min: 0 },
+
+    // Period
+    periodStart: Date,
+    periodEnd: Date,
+
+    // Attachments
+    receiptUrl: String,
+    notes: String,
+
+    // Audit
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+// Compound indexes for common queries
+RevenueLogSchema.index({ org_id: 1, unit_id: 1, date: -1 });
+RevenueLogSchema.index({ org_id: 1, property_id: 1, date: -1 });
+RevenueLogSchema.index({ org_id: 1, tenant_id: 1, date: -1 });
+RevenueLogSchema.index({ org_id: 1, status: 1, dueDate: 1 });
+RevenueLogSchema.index({ org_id: 1, type: 1, date: -1 });
+
+// Pre-save hook to calculate outstanding amount
+RevenueLogSchema.pre("save", function (next) {
+  this.outstandingAmount = Math.max(0, this.amount - (this.receivedAmount || 0));
+  
+  // Update status based on payment
+  if (this.receivedAmount && this.receivedAmount >= this.amount) {
+    this.status = "RECEIVED";
+  } else if (this.receivedAmount && this.receivedAmount > 0) {
+    this.status = "PARTIAL";
+  } else if (this.dueDate && new Date() > this.dueDate && this.status === "PENDING") {
+    this.status = "OVERDUE";
+  }
+  
+  next();
+});
+
+// Virtual for formatted amount
+RevenueLogSchema.virtual("formattedAmount").get(function () {
+  return `${this.amount?.toLocaleString() || "0"} ${this.currency || "SAR"}`;
+});
+
+// Ensure virtuals are included in JSON
+RevenueLogSchema.set("toJSON", { virtuals: true });
+RevenueLogSchema.set("toObject", { virtuals: true });
+
+// Static method to get revenue summary per unit
+RevenueLogSchema.statics.getUnitRevenueSummary = async function (
+  orgId: string,
+  unitId: string,
+  startDate?: Date,
+  endDate?: Date,
+) {
+  const match: Record<string, unknown> = {
+    org_id: new mongoose.Types.ObjectId(orgId),
+    unit_id: new mongoose.Types.ObjectId(unitId),
+    status: { $in: ["RECEIVED", "PARTIAL"] },
+  };
+
+  if (startDate || endDate) {
+    match.date = {};
+    if (startDate) (match.date as Record<string, Date>).$gte = startDate;
+    if (endDate) (match.date as Record<string, Date>).$lte = endDate;
+  }
+
+  return this.aggregate([
+    { $match: match },
+    {
+      $group: {
+        _id: "$type",
+        totalAmount: { $sum: "$amount" },
+        receivedAmount: { $sum: "$receivedAmount" },
+        count: { $sum: 1 },
+      },
+    },
+    { $sort: { totalAmount: -1 } },
+  ]);
+};
+
+// Static method to calculate net profit per unit
+RevenueLogSchema.statics.calculateNetProfit = async function (
+  orgId: string,
+  unitId: string,
+  startDate: Date,
+  endDate: Date,
+) {
+  const MaintenanceLogModel = mongoose.model("MaintenanceLog");
+
+  // Get total revenue
+  const revenueResult = await this.aggregate([
+    {
+      $match: {
+        org_id: new mongoose.Types.ObjectId(orgId),
+        unit_id: new mongoose.Types.ObjectId(unitId),
+        date: { $gte: startDate, $lte: endDate },
+        status: { $in: ["RECEIVED", "PARTIAL"] },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        totalRevenue: { $sum: "$receivedAmount" },
+      },
+    },
+  ]);
+
+  // Get total maintenance costs
+  const expenseResult = await MaintenanceLogModel.aggregate([
+    {
+      $match: {
+        org_id: new mongoose.Types.ObjectId(orgId),
+        unit_id: new mongoose.Types.ObjectId(unitId),
+        date: { $gte: startDate, $lte: endDate },
+        status: "COMPLETED",
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        totalExpenses: { $sum: "$totalCost" },
+      },
+    },
+  ]);
+
+  const totalRevenue = revenueResult[0]?.totalRevenue || 0;
+  const totalExpenses = expenseResult[0]?.totalExpenses || 0;
+  const netProfit = totalRevenue - totalExpenses;
+
+  return {
+    unitId,
+    period: { start: startDate, end: endDate },
+    totalRevenue,
+    totalExpenses,
+    netProfit,
+    profitMargin: totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0,
+  };
+};
+
+// Model type with statics
+interface RevenueLogModel extends Model<IRevenueLog> {
+  getUnitRevenueSummary(
+    orgId: string,
+    unitId: string,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<
+    { _id: string; totalAmount: number; receivedAmount: number; count: number }[]
+  >;
+  calculateNetProfit(
+    orgId: string,
+    unitId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<{
+    unitId: string;
+    period: { start: Date; end: Date };
+    totalRevenue: number;
+    totalExpenses: number;
+    netProfit: number;
+    profitMargin: number;
+  }>;
+}
+
+export const RevenueLog =
+  (mongoose.models.RevenueLog as RevenueLogModel) ||
+  mongoose.model<IRevenueLog, RevenueLogModel>("RevenueLog", RevenueLogSchema);
+
+]]>
+</file>
+
+<file path="server/models/Role.ts">
+<![CDATA[
+import { Schema, InferSchemaType, model, models, Types } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+
+/**
+ * Role Model
+ *
+ * Represents a set of permissions that can be assigned to users.
+ *
+ * Special Properties:
+ * - wildcard: If true, grants ALL permissions (used for Super Admin)
+ * - systemReserved: If true, prevents deletion/modification via UI
+ *
+ * Examples:
+ * - Super Admin: wildcard=true, systemReserved=true
+ * - Property Owner: specific permissions for property management
+ * - Finance Manager: specific permissions for finance module
+ * - Vendor: specific permissions for work orders and invoices
+ */
+const RoleSchema = new Schema(
+  {
+    orgId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      // index via compounds: { orgId: 1, slug: 1 }, { orgId: 1, name: 1 }, etc.
+    },
+    name: {
+      type: String,
+      unique: true, // unique implies index
+      required: true,
+      trim: true,
+      // Examples: "Super Admin", "Property Owner", "Finance Manager"
+    },
+    slug: {
+      type: String,
+      unique: true, // unique implies index
+      required: true,
+      trim: true,
+      lowercase: true,
+      // Examples: "super_admin", "property_owner", "finance_manager"
+      match: /^[a-z][a-z0-9_]*$/,
+    },
+    description: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    // Wildcard means ALL permissions (Super Admin only)
+    // Guards still check server-side for defense-in-depth
+    wildcard: {
+      type: Boolean,
+      default: false,
+      // index via compound { orgId: 1, wildcard: 1 }
+    },
+    // Reference to Permission documents
+    permissions: [
+      {
+        type: Types.ObjectId,
+        ref: "Permission",
+      },
+    ],
+    // Protects role from deletion/rename via UI
+    systemReserved: {
+      type: Boolean,
+      default: false,
+      // index via compound { orgId: 1, systemReserved: 1 }
+    },
+    // Optional: role hierarchy level (higher = more permissions)
+    level: {
+      type: Number,
+      default: 0,
+      // index via compound { orgId: 1, level: -1 }
+    },
+  },
+  {
+    timestamps: true,
+    collection: "roles",
+  },
+);
+
+// Indexes
+RoleSchema.index(
+  { orgId: 1, slug: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
+RoleSchema.index(
+  { orgId: 1, name: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
+RoleSchema.index({ orgId: 1, wildcard: 1 });
+RoleSchema.index({ orgId: 1, systemReserved: 1 });
+RoleSchema.index({ orgId: 1, level: -1 });
+
+// Pre-save hook to generate slug from name if not provided
+RoleSchema.pre("save", function (next) {
+  if (this.isModified("name") && !this.slug) {
+    this.slug = this.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+  }
+  next();
+});
+
+// Instance methods
+RoleSchema.methods.toSafeObject = function () {
+  return {
+    id: this._id.toString(),
+    name: this.name,
+    slug: this.slug,
+    description: this.description,
+    wildcard: this.wildcard,
+    systemReserved: this.systemReserved,
+    level: this.level,
+    permissionCount: this.permissions?.length || 0,
+    createdAt: this.createdAt,
+    updatedAt: this.updatedAt,
+  };
+};
+
+// Static methods
+RoleSchema.statics.findBySlug = function (slug: string) {
+  return this.findOne({ slug });
+};
+
+RoleSchema.statics.findSuperAdminRole = function () {
+  return this.findOne({ slug: "super_admin", wildcard: true });
+};
+
+// Virtual to check if role is Super Admin
+RoleSchema.virtual("isSuperAdmin").get(function () {
+  return this.slug === "super_admin" || this.wildcard === true;
+});
+
+export type Role = InferSchemaType<typeof RoleSchema>;
+
+const RoleModel = getModel<Role>("Role", RoleSchema);
+export default RoleModel;
+
+]]>
+</file>
+
+<file path="server/models/SLA.ts">
+<![CDATA[
+import { Schema, InferSchemaType, Types } from "mongoose";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { auditPlugin } from "../plugins/auditPlugin";
+import { getModel } from "@/types/mongoose-compat";
+
+const SLAType = [
+  "RESPONSE_TIME",
+  "RESOLUTION_TIME",
+  "UPTIME",
+  "AVAILABILITY",
+  "MAINTENANCE",
+] as const;
+const SLAPriority = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const;
+
+const SLASchema = new Schema(
+  {
+    // Basic Information
+    code: { type: String, required: true }, // FIXED: removed unique: true (will be tenant-scoped)
+    name: { type: String, required: true },
+    description: { type: String },
+
+    // Classification
+    type: { type: String, enum: SLAType, required: true },
+    category: { type: String, required: true }, // Work Orders, Maintenance, etc.
+    priority: { type: String, enum: SLAPriority, required: true },
+
+    // Targets
+    targets: {
+      responseTime: Number, // hours
+      resolutionTime: Number, // hours
+      uptime: Number, // percentage
+      availability: Number, // percentage
+      maintenanceWindow: {
+        enabled: Boolean,
+        startTime: String, // HH:MM
+        endTime: String, // HH:MM
+        days: [String], // ["monday", "tuesday", etc.]
+      },
+    },
+
+    // Escalation Rules
+    escalation: {
+      levels: [
+        {
+          level: Number,
+          trigger: Number, // hours after start
+          action: String, // EMAIL, SMS, PHONE, ASSIGN, ESCALATE
+          recipients: [{ type: Schema.Types.ObjectId, ref: "User" }], // FIXED: Use ObjectId
+          message: String,
+        },
+      ],
+      autoAssignment: {
+        enabled: Boolean,
+        rules: [
+          {
+            condition: String, // "workload < 5" or "skill matches"
+            assignTo: { type: Schema.Types.ObjectId, ref: "User" }, // FIXED: Use ObjectId
+            priority: Number,
+          },
+        ],
+      },
+    },
+
+    // Metrics & KPIs
+    metrics: {
+      targetResponseTime: Number, // hours
+      targetResolutionTime: Number, // hours
+      targetUptime: Number, // percentage
+      targetAvailability: Number, // percentage
+      penalties: {
+        responseTime: Number, // cost per hour over target
+        resolutionTime: Number, // cost per hour over target
+        downtime: Number, // cost per hour of downtime
+        perIncident: Number, // fixed cost per incident
+      },
+    },
+
+    // Coverage
+    coverage: {
+      properties: [String], // property IDs
+      assets: [String], // asset IDs
+      services: [String], // service types
+      locations: [
+        {
+          city: String,
+          region: String,
+          radius: Number, // km
+        },
+      ],
+      timeframes: [
+        {
+          start: String, // HH:MM
+          end: String, // HH:MM
+          days: [String], // ["monday", "tuesday", etc.]
+        },
+      ],
+    },
+
+    // Service Levels
+    serviceLevels: [
+      {
+        name: String,
+        description: String,
+        priority: SLAPriority,
+        targets: {
+          responseTime: Number,
+          resolutionTime: Number,
+          availability: Number,
+        },
+        cost: Number, // monthly cost
+        features: [String], // Additional features
+      },
+    ],
+
+    // Monitoring
+    monitoring: {
+      enabled: Boolean,
+      intervals: {
+        response: Number, // minutes
+        resolution: Number, // minutes
+        uptime: Number, // minutes
+      },
+      alerts: {
+        response: Boolean,
+        resolution: Boolean,
+        uptime: Boolean,
+        performance: Boolean,
+      },
+    },
+
+    // Reporting
+    reporting: {
+      frequency: String, // DAILY, WEEKLY, MONTHLY
+      recipients: [String], // user IDs or emails
+      include: {
+        performance: Boolean,
+        incidents: Boolean,
+        trends: Boolean,
+        recommendations: Boolean,
+      },
+    },
+
+    // Compliance
+    compliance: {
+      standards: [String], // ISO 9001, ISO 27001, etc.
+      regulations: [String], // KSA specific regulations
+      audits: [
+        {
+          type: String,
+          scheduled: Date,
+          completed: Date,
+          result: String, // PASS, FAIL, CONDITIONAL
+          findings: [String],
+          actions: [String],
+        },
+      ],
+    },
+
+    // Status & Approval
+    status: {
+      type: String,
+      enum: ["DRAFT", "PENDING_APPROVAL", "ACTIVE", "SUSPENDED", "EXPIRED"],
+      default: "DRAFT",
+    },
+    approval: {
+      required: Boolean,
+      approvedBy: { type: Schema.Types.ObjectId, ref: "User" }, // FIXED: Use ObjectId
+      approvedAt: Date,
+      reviewedBy: { type: Schema.Types.ObjectId, ref: "User" }, // FIXED: Use ObjectId
+      reviewedAt: Date,
+      notes: String,
+    },
+
+    // Metadata
+    tags: [String],
+    customFields: Schema.Types.Mixed,
+  },
+  {
+    timestamps: true,
+    // Indexes are managed centrally in lib/db/collections.ts
+    autoIndex: false,
+  },
+);
+
+// Apply plugins BEFORE indexes
+SLASchema.plugin(tenantIsolationPlugin);
+SLASchema.plugin(auditPlugin); // Adds orgId, createdBy, updatedBy (as ObjectId)
+
+export type SLADoc = InferSchemaType<typeof SLASchema>;
+
+export const SLA = getModel<SLADoc>("SLA", SLASchema);
+
+]]>
+</file>
+
+<file path="server/models/SMSMessage.ts">
+<![CDATA[
+/**
+ * SMS Message Model
+ *
+ * Tracks all outbound SMS messages with status, retry history, and SLA compliance.
+ * Supports queue-based retry with exponential backoff.
+ *
+ * IMPORTANT: Taqnyat is the ONLY production SMS provider for Fixzit.
+ *
+ * @module server/models/SMSMessage
+ */
+
+import { Schema, model, models, HydratedDocument, Types } from "mongoose";
+import { MModel } from "@/types/mongoose-compat";
+import { auditPlugin, setAuditContext } from "../plugins/auditPlugin";
+
+// ---------- Enums ----------
+export const SMSStatus = [
+  "PENDING",
+  "QUEUED",
+  "SENT",
+  "DELIVERED",
+  "FAILED",
+  "EXPIRED",
+] as const;
+export type TSMSStatus = (typeof SMSStatus)[number];
+
+// TAQNYAT is the only production provider, LOCAL is for development/testing
+export const SMSProvider = ["TAQNYAT", "LOCAL"] as const;
+export type TSMSProvider = (typeof SMSProvider)[number];
+
+export const SMSType = [
+  "OTP",
+  "NOTIFICATION",
+  "ALERT",
+  "MARKETING",
+  "TRANSACTIONAL",
+] as const;
+export type TSMSType = (typeof SMSType)[number];
+
+export const SMSPriority = ["LOW", "NORMAL", "HIGH", "CRITICAL"] as const;
+export type TSMSPriority = (typeof SMSPriority)[number];
+
+// ---------- Interfaces ----------
+export interface ISMSRetryHistory {
+  attemptNumber: number;
+  attemptedAt: Date;
+  provider: TSMSProvider;
+  success: boolean;
+  errorCode?: string;
+  errorMessage?: string;
+  providerMessageId?: string;
+  durationMs?: number;
+}
+
+export interface ISMSMessage {
+  _id: Types.ObjectId;
+
+  // Message content
+  to: string;
+  message: string;
+  type: TSMSType;
+  priority: TSMSPriority;
+
+  // Status tracking
+  status: TSMSStatus;
+  provider?: TSMSProvider;
+  providerMessageId?: string;
+
+  // Timing
+  createdAt: Date;
+  updatedAt: Date;
+  scheduledAt?: Date;
+  sentAt?: Date;
+  deliveredAt?: Date;
+  expiresAt?: Date;
+
+  // Retry configuration
+  maxRetries: number;
+  retryCount: number;
+  nextRetryAt?: Date;
+  retryHistory: ISMSRetryHistory[];
+
+  // SLA tracking
+  slaTargetMs?: number; // Target delivery time in ms
+  slaBreached: boolean;
+  slaBreachAt?: Date;
+
+  // Organization context
+  orgId?: string;
+  userId?: string;
+  referenceType?: string; // e.g., "WorkOrder", "Invoice"
+  referenceId?: string;
+
+  // Metadata
+  metadata?: Record<string, unknown>;
+  tags?: string[];
+
+  // Error tracking
+  lastError?: string;
+  lastErrorCode?: string;
+}
+
+// ---------- Schema ----------
+const SMSRetryHistorySchema = new Schema<ISMSRetryHistory>(
+  {
+    attemptNumber: { type: Number, required: true },
+    attemptedAt: { type: Date, required: true },
+    provider: { type: String, enum: SMSProvider, required: true },
+    success: { type: Boolean, required: true },
+    errorCode: { type: String },
+    errorMessage: { type: String },
+    providerMessageId: { type: String },
+    durationMs: { type: Number },
+  },
+  { _id: false }
+);
+
+const SMSMessageSchema = new Schema<ISMSMessage>(
+  {
+    to: { type: String, required: true, index: true },
+    message: { type: String, required: true },
+    type: {
+      type: String,
+      enum: SMSType,
+      required: true,
+      default: "NOTIFICATION",
+    },
+    priority: {
+      type: String,
+      enum: SMSPriority,
+      required: true,
+      default: "NORMAL",
+    },
+
+    status: {
+      type: String,
+      enum: SMSStatus,
+      required: true,
+      default: "PENDING",
+      // index via compounds: { status: 1, nextRetryAt: 1 }, { status: 1, createdAt: -1 }, etc.
+    },
+    provider: { type: String, enum: SMSProvider },
+    providerMessageId: { type: String, index: true },
+
+    scheduledAt: { type: Date },
+    sentAt: { type: Date, index: true },
+    deliveredAt: { type: Date },
+    expiresAt: { type: Date, index: true },
+
+    maxRetries: { type: Number, default: 3 },
+    retryCount: { type: Number, default: 0 },
+    nextRetryAt: { type: Date, index: true },
+    retryHistory: { type: [SMSRetryHistorySchema], default: [] },
+
+    slaTargetMs: { type: Number },
+    slaBreached: { type: Boolean, default: false, index: true },
+    slaBreachAt: { type: Date },
+
+    orgId: { type: String }, // index via compound { orgId: 1, createdAt: -1 }
+    userId: { type: String },
+    referenceType: { type: String },
+    referenceId: { type: String, index: true },
+
+    metadata: { type: Schema.Types.Mixed },
+    tags: { type: [String], index: true },
+
+    lastError: { type: String },
+    lastErrorCode: { type: String },
+  },
+  {
+    timestamps: true,
+    collection: "sms_messages",
+  }
+);
+
+// ---------- Indexes ----------
+SMSMessageSchema.index({ status: 1, nextRetryAt: 1 }); // For retry queue processing
+SMSMessageSchema.index({ orgId: 1, createdAt: -1 }); // For org-specific listing
+SMSMessageSchema.index({ status: 1, createdAt: -1 }); // For status filtering
+SMSMessageSchema.index({ type: 1, status: 1 }); // For type-based queries
+SMSMessageSchema.index({ slaBreached: 1, status: 1 }); // For SLA breach monitoring
+
+// TTL index for auto-cleanup of old delivered messages (90 days)
+SMSMessageSchema.index(
+  { deliveredAt: 1 },
+  { expireAfterSeconds: 90 * 24 * 60 * 60, partialFilterExpression: { status: "DELIVERED" } }
+);
+
+// ---------- Statics ----------
+SMSMessageSchema.statics.getPendingForRetry = async function (
+  limit = 100
+): Promise<ISMSMessage[]> {
+  const now = new Date();
+  return this.find({
+    status: { $in: ["PENDING", "FAILED"] },
+    $or: [
+      { nextRetryAt: { $lte: now } },
+      { nextRetryAt: { $exists: false }, status: "PENDING" },
+    ],
+    $expr: { $lt: ["$retryCount", "$maxRetries"] },
+    expiresAt: { $gt: now },
+  })
+    .sort({ priority: -1, createdAt: 1 })
+    .limit(limit)
+    .lean();
+};
+
+SMSMessageSchema.statics.getStatusCounts = async function (
+  orgId?: string,
+  options?: { allowGlobal?: boolean }
+): Promise<Record<TSMSStatus, number>> {
+  if (!orgId && !options?.allowGlobal) {
+    throw new Error("orgId is required to fetch status counts (set allowGlobal to true for global stats)");
+  }
+
+  const match: Record<string, unknown> = {};
+  if (orgId) match.orgId = orgId;
+
+  const pipeline = [{ $match: match }, { $group: { _id: "$status", count: { $sum: 1 } } }];
+  const result = await this.aggregate(pipeline);
+
+  const counts: Record<string, number> = {};
+  for (const status of SMSStatus) {
+    counts[status] = 0;
+  }
+  for (const item of result) {
+    counts[item._id] = item.count;
+  }
+  return counts as Record<TSMSStatus, number>;
+};
+
+SMSMessageSchema.statics.getSLABreachCount = async function (
+  orgId?: string,
+  since?: Date,
+  options?: { allowGlobal?: boolean }
+): Promise<number> {
+  if (!orgId && !options?.allowGlobal) {
+    throw new Error("orgId is required to fetch SLA breach counts (set allowGlobal to true for global stats)");
+  }
+
+  const match: Record<string, unknown> = { slaBreached: true };
+  if (orgId) match.orgId = orgId;
+  if (since) match.slaBreachAt = { $gte: since };
+
+  return this.countDocuments(match);
+};
+
+SMSMessageSchema.statics.recordAttempt = async function (
+  messageId: string | Types.ObjectId,
+  attempt: Omit<ISMSRetryHistory, "attemptNumber">
+): Promise<ISMSMessage | null> {
+  const message = await this.findById(messageId);
+  if (!message) return null;
+
+  const attemptNumber = message.retryCount + 1;
+  const retryEntry: ISMSRetryHistory = {
+    ...attempt,
+    attemptNumber,
+  };
+
+  const update: Record<string, unknown> = {
+    $push: { retryHistory: retryEntry },
+    $inc: { retryCount: 1 },
+  };
+
+  if (attempt.success) {
+    update.$set = {
+      status: "SENT",
+      sentAt: new Date(),
+      provider: attempt.provider,
+      providerMessageId: attempt.providerMessageId,
+      lastError: null,
+      lastErrorCode: null,
+    };
+  } else {
+    const nextDelay = Math.min(
+      2 ** attemptNumber * 1000, // Exponential backoff: 2s, 4s, 8s...
+      300000 // Max 5 minutes
+    );
+    update.$set = {
+      status: attemptNumber >= message.maxRetries ? "FAILED" : "PENDING",
+      nextRetryAt: new Date(Date.now() + nextDelay),
+      lastError: attempt.errorMessage,
+      lastErrorCode: attempt.errorCode,
+    };
+  }
+
+  // Check SLA breach
+  if (message.slaTargetMs && !message.slaBreached) {
+    const elapsed = Date.now() - message.createdAt.getTime();
+    if (elapsed > message.slaTargetMs) {
+      (update.$set as Record<string, unknown>).slaBreached = true;
+      (update.$set as Record<string, unknown>).slaBreachAt = new Date();
+    }
+  }
+
+  return this.findByIdAndUpdate(messageId, update, { new: true });
+};
+
+SMSMessageSchema.statics.markDelivered = async function (
+  providerMessageId: string,
+  deliveredAt?: Date
+): Promise<ISMSMessage | null> {
+  return this.findOneAndUpdate(
+    { providerMessageId, status: "SENT" },
+    {
+      $set: {
+        status: "DELIVERED",
+        deliveredAt: deliveredAt || new Date(),
+      },
+    },
+    { new: true }
+  );
+};
+
+// ---------- Plugins ----------
+SMSMessageSchema.plugin(auditPlugin);
+
+// ---------- Type Extensions ----------
+interface SMSMessageStatics {
+  getPendingForRetry(limit?: number): Promise<ISMSMessage[]>;
+  getStatusCounts(orgId?: string, options?: { allowGlobal?: boolean }): Promise<Record<TSMSStatus, number>>;
+  getSLABreachCount(orgId?: string, since?: Date, options?: { allowGlobal?: boolean }): Promise<number>;
+  recordAttempt(
+    messageId: string | Types.ObjectId,
+    attempt: Omit<ISMSRetryHistory, "attemptNumber">
+  ): Promise<ISMSMessage | null>;
+  markDelivered(
+    providerMessageId: string,
+    deliveredAt?: Date
+  ): Promise<ISMSMessage | null>;
+}
+
+type SMSMessageModel = MModel<ISMSMessage> & SMSMessageStatics;
+export type SMSMessageDocument = HydratedDocument<ISMSMessage>;
+
+// ---------- Export ----------
+export const SMSMessage = (models.SMSMessage ||
+  model<ISMSMessage>("SMSMessage", SMSMessageSchema)) as unknown as SMSMessageModel;
+
+]]>
+</file>
+
+<file path="server/models/SMSSettings.ts">
+<![CDATA[
+/**
+ * SMS Settings Model
+ *
+ * Stores SMS SLA configuration and provider settings per organization.
+ * Superadmin can configure global defaults, orgs can override.
+ *
+ * IMPORTANT: Taqnyat is the ONLY production SMS provider for Fixzit.
+ *
+ * @module server/models/SMSSettings
+ */
+
+import { Schema, model, models, HydratedDocument, Types } from "mongoose";
+import { MModel } from "@/types/mongoose-compat";
+import { auditPlugin } from "../plugins/auditPlugin";
+import { TSMSProvider, SMSProvider, TSMSType, SMSType, TSMSPriority, SMSPriority } from "./SMSMessage";
+
+// ---------- Interfaces ----------
+export interface ISLAConfig {
+  type: TSMSType;
+  priority: TSMSPriority;
+  targetDeliveryMs: number; // Target delivery time in milliseconds
+  maxRetries: number;
+  expiresAfterMs: number; // Message expires after this time
+}
+
+export interface IProviderConfig {
+  provider: TSMSProvider;
+  enabled: boolean;
+  priority: number; // Lower is higher priority (1 = primary)
+  accountId?: string;
+  encryptedApiKey?: string; // Stored encrypted
+  fromNumber?: string;
+  region?: string;
+  rateLimit?: number; // Messages per minute
+  costPerMessage?: number; // For cost tracking
+  supportedTypes?: TSMSType[];
+}
+
+export interface ISMSSettings {
+  _id: Types.ObjectId;
+
+  // Scope - null orgId means global settings
+  orgId?: string;
+  isGlobal: boolean;
+
+  // SLA configurations by type and priority
+  slaConfigs: ISLAConfig[];
+
+  // Provider configurations
+  providers: IProviderConfig[];
+
+  // Default settings
+  defaultProvider: TSMSProvider;
+  defaultMaxRetries: number;
+  defaultExpiresAfterMs: number;
+
+  // Rate limiting
+  globalRateLimitPerMinute: number;
+  globalRateLimitPerHour: number;
+
+  // Notifications
+  slaBreachNotifyEmails: string[];
+  slaBreachNotifyWebhook?: string;
+  dailyReportEnabled: boolean;
+  dailyReportEmails: string[];
+
+  // Feature flags
+  queueEnabled: boolean;
+  retryEnabled: boolean;
+  deliveryWebhookEnabled: boolean;
+
+  // Metadata
+  createdAt: Date;
+  updatedAt: Date;
+  updatedBy?: string;
+}
+
+// ---------- Schema ----------
+const SLAConfigSchema = new Schema<ISLAConfig>(
+  {
+    type: { type: String, enum: SMSType, required: true },
+    priority: { type: String, enum: SMSPriority, required: true },
+    targetDeliveryMs: { type: Number, required: true },
+    maxRetries: { type: Number, required: true, default: 3 },
+    expiresAfterMs: { type: Number, required: true },
+  },
+  { _id: false }
+);
+
+const ProviderConfigSchema = new Schema<IProviderConfig>(
+  {
+    provider: { type: String, enum: SMSProvider, required: true },
+    enabled: { type: Boolean, default: true },
+    priority: { type: Number, default: 1 },
+    accountId: { type: String },
+    encryptedApiKey: { type: String },
+    fromNumber: { type: String },
+    region: { type: String },
+    rateLimit: { type: Number },
+    costPerMessage: { type: Number },
+    supportedTypes: { type: [String], enum: SMSType },
+  },
+  { _id: false }
+);
+
+const SMSSettingsSchema = new Schema<ISMSSettings>(
+  {
+    // orgId index defined explicitly below with unique constraint - don't duplicate inline
+    orgId: { type: String },
+    // isGlobal index defined explicitly below with partialFilterExpression - don't duplicate inline
+    isGlobal: { type: Boolean, default: false },
+
+    slaConfigs: { type: [SLAConfigSchema], default: [] },
+    providers: { type: [ProviderConfigSchema], default: [] },
+
+    defaultProvider: {
+      type: String,
+      enum: SMSProvider,
+      default: "TAQNYAT",
+    },
+    defaultMaxRetries: { type: Number, default: 3 },
+    defaultExpiresAfterMs: {
+      type: Number,
+      default: 24 * 60 * 60 * 1000, // 24 hours
+    },
+
+    globalRateLimitPerMinute: { type: Number, default: 60 },
+    globalRateLimitPerHour: { type: Number, default: 1000 },
+
+    slaBreachNotifyEmails: { type: [String], default: [] },
+    slaBreachNotifyWebhook: { type: String },
+    dailyReportEnabled: { type: Boolean, default: false },
+    dailyReportEmails: { type: [String], default: [] },
+
+    queueEnabled: { type: Boolean, default: true },
+    retryEnabled: { type: Boolean, default: true },
+    deliveryWebhookEnabled: { type: Boolean, default: true },
+
+    updatedBy: { type: String },
+  },
+  {
+    timestamps: true,
+    collection: "sms_settings",
+  }
+);
+
+// ---------- Validation ----------
+SMSSettingsSchema.pre("validate", function (next) {
+  const doc = this as ISMSSettings;
+
+  for (const provider of doc.providers || []) {
+    if (!provider.enabled) continue;
+
+    if (!provider.fromNumber) {
+      return next(new Error(`SMS provider ${provider.provider} missing fromNumber`));
+    }
+    if (!provider.accountId) {
+      return next(new Error(`SMS provider ${provider.provider} missing accountId`));
+    }
+    if (!provider.encryptedApiKey) {
+      return next(new Error(`SMS provider ${provider.provider} missing encryptedApiKey`));
+    }
+  }
+
+  // defaultProvider must exist in providers when org-specific settings are defined
+  if (!doc.isGlobal && doc.providers?.length) {
+    const hasDefault = doc.providers.some((p) => p.provider === doc.defaultProvider);
+    if (!hasDefault) {
+      return next(new Error(`defaultProvider ${doc.defaultProvider} is not defined in providers array`));
+    }
+  }
+
+  next();
+});
+
+// ---------- Indexes ----------
+SMSSettingsSchema.index({ isGlobal: 1 }, { unique: true, partialFilterExpression: { isGlobal: true } });
+SMSSettingsSchema.index({ orgId: 1 }, { unique: true, sparse: true });
+
+// ---------- Statics ----------
+SMSSettingsSchema.statics.getGlobalSettings = async function (): Promise<ISMSSettings | null> {
+  return this.findOne({ isGlobal: true }).lean();
+};
+
+SMSSettingsSchema.statics.getOrgSettings = async function (orgId: string): Promise<ISMSSettings | null> {
+  return this.findOne({ orgId }).lean();
+};
+
+SMSSettingsSchema.statics.getEffectiveSettings = async function (orgId?: string): Promise<ISMSSettings> {
+  // Get org-specific settings first, fall back to global
+  const orgSettings = orgId ? await this.findOne({ orgId }).lean() : null;
+  const globalSettings = await this.findOne({ isGlobal: true }).lean();
+
+  if (!globalSettings && !orgSettings) {
+    // Return default settings if none exist
+    return {
+      isGlobal: true,
+      slaConfigs: getDefaultSLAConfigs(),
+      providers: [],
+      defaultProvider: "TWILIO" as TSMSProvider,
+      defaultMaxRetries: 3,
+      defaultExpiresAfterMs: 24 * 60 * 60 * 1000,
+      globalRateLimitPerMinute: 60,
+      globalRateLimitPerHour: 1000,
+      slaBreachNotifyEmails: [],
+      dailyReportEnabled: false,
+      dailyReportEmails: [],
+      queueEnabled: true,
+      retryEnabled: true,
+      deliveryWebhookEnabled: true,
+    } as unknown as ISMSSettings;
+  }
+
+  if (!orgSettings) return globalSettings!;
+  if (!globalSettings) return orgSettings!;
+
+  // Merge org settings with global defaults
+  return {
+    ...globalSettings,
+    ...orgSettings,
+    // Merge arrays - org settings take precedence
+    slaConfigs: orgSettings.slaConfigs?.length ? orgSettings.slaConfigs : globalSettings.slaConfigs,
+    providers: orgSettings.providers?.length ? orgSettings.providers : globalSettings.providers,
+  };
+};
+
+SMSSettingsSchema.statics.getSLATarget = async function (
+  type: TSMSType,
+  priority: TSMSPriority,
+  orgId?: string
+): Promise<number | null> {
+  // Use findOne directly to avoid circular reference issues
+  const orgSettings = orgId ? await this.findOne({ orgId }).lean() : null;
+  const globalSettings = await this.findOne({ isGlobal: true }).lean();
+  const settings = orgSettings || globalSettings;
+  if (!settings) return null;
+  const slaConfig = settings.slaConfigs?.find(
+    (c: ISLAConfig) => c.type === type && c.priority === priority
+  );
+  return slaConfig?.targetDeliveryMs ?? null;
+};
+
+SMSSettingsSchema.statics.ensureGlobalSettings = async function (): Promise<ISMSSettings> {
+  let global = await this.findOne({ isGlobal: true });
+  if (!global) {
+    global = await this.create({
+      isGlobal: true,
+      slaConfigs: getDefaultSLAConfigs(),
+      providers: [],
+      defaultProvider: "TWILIO",
+      defaultMaxRetries: 3,
+      defaultExpiresAfterMs: 24 * 60 * 60 * 1000,
+      globalRateLimitPerMinute: 60,
+      globalRateLimitPerHour: 1000,
+    });
+  }
+  return global;
+};
+
+// ---------- Default SLA Configs ----------
+function getDefaultSLAConfigs(): ISLAConfig[] {
+  return [
+    // OTP messages - highest priority
+    { type: "OTP", priority: "CRITICAL", targetDeliveryMs: 10000, maxRetries: 5, expiresAfterMs: 300000 }, // 10s, 5min expiry
+    { type: "OTP", priority: "HIGH", targetDeliveryMs: 15000, maxRetries: 4, expiresAfterMs: 300000 },
+    { type: "OTP", priority: "NORMAL", targetDeliveryMs: 30000, maxRetries: 3, expiresAfterMs: 300000 },
+    { type: "OTP", priority: "LOW", targetDeliveryMs: 60000, maxRetries: 2, expiresAfterMs: 300000 },
+
+    // Alerts - high priority
+    { type: "ALERT", priority: "CRITICAL", targetDeliveryMs: 30000, maxRetries: 5, expiresAfterMs: 3600000 }, // 30s, 1hr expiry
+    { type: "ALERT", priority: "HIGH", targetDeliveryMs: 60000, maxRetries: 4, expiresAfterMs: 3600000 },
+    { type: "ALERT", priority: "NORMAL", targetDeliveryMs: 120000, maxRetries: 3, expiresAfterMs: 3600000 },
+    { type: "ALERT", priority: "LOW", targetDeliveryMs: 300000, maxRetries: 2, expiresAfterMs: 3600000 },
+
+    // Notifications - standard
+    { type: "NOTIFICATION", priority: "CRITICAL", targetDeliveryMs: 60000, maxRetries: 3, expiresAfterMs: 86400000 }, // 1min, 24hr expiry
+    { type: "NOTIFICATION", priority: "HIGH", targetDeliveryMs: 120000, maxRetries: 3, expiresAfterMs: 86400000 },
+    { type: "NOTIFICATION", priority: "NORMAL", targetDeliveryMs: 300000, maxRetries: 3, expiresAfterMs: 86400000 },
+    { type: "NOTIFICATION", priority: "LOW", targetDeliveryMs: 600000, maxRetries: 2, expiresAfterMs: 86400000 },
+
+    // Transactional - business priority
+    { type: "TRANSACTIONAL", priority: "CRITICAL", targetDeliveryMs: 60000, maxRetries: 5, expiresAfterMs: 86400000 },
+    { type: "TRANSACTIONAL", priority: "HIGH", targetDeliveryMs: 120000, maxRetries: 4, expiresAfterMs: 86400000 },
+    { type: "TRANSACTIONAL", priority: "NORMAL", targetDeliveryMs: 300000, maxRetries: 3, expiresAfterMs: 86400000 },
+    { type: "TRANSACTIONAL", priority: "LOW", targetDeliveryMs: 600000, maxRetries: 2, expiresAfterMs: 86400000 },
+
+    // Marketing - lowest priority
+    { type: "MARKETING", priority: "CRITICAL", targetDeliveryMs: 300000, maxRetries: 3, expiresAfterMs: 86400000 },
+    { type: "MARKETING", priority: "HIGH", targetDeliveryMs: 600000, maxRetries: 2, expiresAfterMs: 86400000 },
+    { type: "MARKETING", priority: "NORMAL", targetDeliveryMs: 1800000, maxRetries: 2, expiresAfterMs: 86400000 },
+    { type: "MARKETING", priority: "LOW", targetDeliveryMs: 3600000, maxRetries: 1, expiresAfterMs: 86400000 },
+  ];
+}
+
+// ---------- Plugins ----------
+SMSSettingsSchema.plugin(auditPlugin);
+
+// ---------- Type Extensions ----------
+interface SMSSettingsStatics {
+  getGlobalSettings(): Promise<ISMSSettings | null>;
+  getOrgSettings(orgId: string): Promise<ISMSSettings | null>;
+  getEffectiveSettings(orgId?: string): Promise<ISMSSettings>;
+  getSLATarget(type: TSMSType, priority: TSMSPriority, orgId?: string): Promise<number | null>;
+  ensureGlobalSettings(): Promise<ISMSSettings>;
+}
+
+type SMSSettingsModel = MModel<ISMSSettings> & SMSSettingsStatics;
+export type SMSSettingsDocument = HydratedDocument<ISMSSettings>;
+
+// ---------- Export ----------
+export const SMSSettings = (models.SMSSettings ||
+  model<ISMSSettings>("SMSSettings", SMSSettingsSchema)) as unknown as SMSSettingsModel;
+
+]]>
+</file>
+
+<file path="server/models/SearchSynonym.ts">
+<![CDATA[
+import { Schema, InferSchemaType } from "mongoose";
+import { auditPlugin } from "../plugins/auditPlugin";
+import { getModel } from "@/types/mongoose-compat";
+
+const SearchSynonymSchemaDef = {
+  locale: { type: String, enum: ["en", "ar"], required: true },
+  term: { type: String, required: true },
+  synonyms: [String],
+} as const;
+
+export const SearchSynonymSchema = new Schema(SearchSynonymSchemaDef, {
+  timestamps: true,
+});
+// Expose raw definition for environments that mock mongoose schema internals
+const synonymSchemaWithObj =
+  SearchSynonymSchema as typeof SearchSynonymSchema & {
+    obj?: typeof SearchSynonymSchemaDef;
+  };
+if (!synonymSchemaWithObj.obj) {
+  synonymSchemaWithObj.obj = SearchSynonymSchemaDef;
+}
+
+// NOTE: SearchSynonym is global platform configuration (no tenantIsolationPlugin)
+// Apply audit plugin to track who changes synonyms (affects search for all users)
+SearchSynonymSchema.plugin(auditPlugin);
+
+SearchSynonymSchema.index({ locale: 1, term: 1 }, { unique: true });
+
+export type SearchSynonymDoc = InferSchemaType<typeof SearchSynonymSchema>;
+
+export const SearchSynonym = getModel<SearchSynonymDoc>(
+  "SearchSynonym",
+  SearchSynonymSchema,
+);
+
+export default SearchSynonym;
+
+]]>
+</file>
+
+<file path="server/models/ServiceAgreement.ts">
+<![CDATA[
+import { Schema, model, models, Types, Model, Document } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { auditPlugin } from "../plugins/auditPlugin";
+
+const ServiceAgreementSchema = new Schema(
+  {
+    subscriber_type: {
+      type: String,
+      enum: ["Organization", "Owner"], // FIXED: Must match model names
+      required: true,
+    },
+    subscriber_id: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      refPath: "subscriber_type",
+    },
+    modules: { type: [String], default: [] },
+    seats: {
+      type: Number,
+      required: true,
+      min: [1, "Seats must be at least 1"],
+    },
+    term: {
+      type: String,
+      enum: ["MONTHLY", "ANNUAL"],
+      required: true,
+    },
+    start_at: {
+      type: Date,
+      required: true,
+    },
+    end_at: {
+      type: Date,
+      required: true,
+    },
+    currency: {
+      type: String,
+      required: true,
+      uppercase: true,
+      match: [
+        /^[A-Z]{3}$/,
+        "Currency must be a valid ISO 4217 code (e.g., USD, EUR, SAR)",
+      ],
+    },
+    amount: {
+      type: Number,
+      required: true,
+      min: [0, "Amount cannot be negative"],
+    },
+    status: {
+      type: String,
+      enum: ["DRAFT", "SIGNED", "ACTIVE", "ENDED", "CANCELLED"],
+      default: "DRAFT",
+    },
+    pdf_url: String,
+    e_signed_at: Date,
+  },
+  { timestamps: true },
+);
+
+// Apply plugins BEFORE indexes
+ServiceAgreementSchema.plugin(tenantIsolationPlugin);
+ServiceAgreementSchema.plugin(auditPlugin);
+
+// Tenant-scoped indexes
+ServiceAgreementSchema.index({ orgId: 1, status: 1 });
+ServiceAgreementSchema.index({
+  orgId: 1,
+  subscriber_type: 1,
+  subscriber_id: 1,
+});
+ServiceAgreementSchema.index({ orgId: 1, end_at: 1 });
+
+// Validate start_at < end_at
+ServiceAgreementSchema.pre("save", function (next) {
+  if (this.start_at && this.end_at && this.start_at >= this.end_at) {
+    return next(new Error("start_at must be before end_at"));
+  }
+  next();
+});
+
+// TypeScript-safe model export
+interface IServiceAgreement extends Document {
+  subscriber_type: "Organization" | "Owner";
+  subscriber_id: Schema.Types.ObjectId;
+  modules: string[];
+  seats: number;
+  term: "MONTHLY" | "ANNUAL";
+  start_at: Date;
+  end_at: Date;
+  currency: string;
+  amount: number;
+  status: "DRAFT" | "SIGNED" | "ACTIVE" | "ENDED" | "CANCELLED";
+  pdf_url?: string;
+  e_signed_at?: Date;
+  orgId: Schema.Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: Schema.Types.ObjectId;
+  updatedBy?: Schema.Types.ObjectId;
+}
+
+const ServiceAgreement = getModel<IServiceAgreement>(
+  "ServiceAgreement",
+  ServiceAgreementSchema,
+);
+export default ServiceAgreement;
+
+]]>
+</file>
+
+<file path="server/models/ServiceContract.ts">
+<![CDATA[
+import { Schema, model, models, Types, Model, Document } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { auditPlugin } from "../plugins/auditPlugin";
+
+const ServiceContractSchema = new Schema(
+  {
+    scope: {
+      type: String,
+      enum: ["Property", "OwnerGroup"], // FIXED: Must match model names
+      default: "OwnerGroup",
+    },
+    scopeRef: {
+      type: Schema.Types.ObjectId, // FIXED: Changed to ObjectId
+      refPath: "scope",
+    },
+    contractorType: {
+      type: String,
+      enum: ["FM_COMPANY", "REAL_ESTATE_AGENT"],
+    },
+    contractorRef: {
+      type: Schema.Types.ObjectId, // FIXED: Changed to ObjectId
+      ref: "Vendor",
+    },
+    startDate: Date,
+    endDate: Date,
+    terms: String,
+    sla: String,
+    status: {
+      type: String,
+      enum: ["draft", "active", "ended", "cancelled"],
+      default: "active",
+    },
+  },
+  { timestamps: true },
+);
+
+// Apply plugins BEFORE indexes
+ServiceContractSchema.plugin(tenantIsolationPlugin);
+ServiceContractSchema.plugin(auditPlugin);
+
+// Tenant-scoped indexes
+ServiceContractSchema.index({ orgId: 1, status: 1 });
+ServiceContractSchema.index({ orgId: 1, scope: 1, scopeRef: 1 });
+ServiceContractSchema.index({ orgId: 1, contractorRef: 1 });
+ServiceContractSchema.index({ orgId: 1, endDate: 1 });
+
+// TypeScript-safe model export
+interface IServiceContract extends Document {
+  scope: "Property" | "OwnerGroup";
+  scopeRef?: Schema.Types.ObjectId;
+  contractorType?: "FM_COMPANY" | "REAL_ESTATE_AGENT";
+  contractorRef?: Schema.Types.ObjectId;
+  startDate?: Date;
+  endDate?: Date;
+  terms?: string;
+  sla?: string;
+  status: "draft" | "active" | "ended" | "cancelled";
+  orgId: Schema.Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: Schema.Types.ObjectId;
+  updatedBy?: Schema.Types.ObjectId;
+}
+
+const ServiceContract = getModel<IServiceContract>(
+  "ServiceContract",
+  ServiceContractSchema,
+);
+export default ServiceContract;
+
+]]>
+</file>
+
+<file path="server/models/ServiceProvider.ts">
+<![CDATA[
+import {
+  Schema,
+  Types,
+  InferSchemaType,
+  HydratedDocument,
+  Model,
+  model,
+} from "mongoose";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { auditPlugin } from "../plugins/auditPlugin";
+import { encryptionPlugin } from "../plugins/encryptionPlugin";
+import { getModel } from "@/types/mongoose-compat";
+
+// ----- Enums -----
+const ProviderStatus = [
+  "PENDING",
+  "APPROVED",
+  "ACTIVE",
+  "SUSPENDED",
+  "REJECTED",
+  "BLACKLISTED",
+] as const;
+const ProviderType = ["INDIVIDUAL", "COMPANY"] as const;
+const ServiceCategory = [
+  "PLUMBING",
+  "ELECTRICAL",
+  "HVAC",
+  "CARPENTRY",
+  "PAINTING",
+  "CLEANING",
+  "PEST_CONTROL",
+  "LANDSCAPING",
+  "SECURITY",
+  "APPLIANCE_REPAIR",
+  "GENERAL_MAINTENANCE",
+  "OTHER",
+] as const;
+const RateType = ["HOURLY", "FIXED", "QUOTE"] as const;
+const AvailabilityType = ["24/7", "BUSINESS_HOURS", "BY_APPOINTMENT"] as const;
+const PreferredContact = ["EMAIL", "PHONE", "WHATSAPP"] as const;
+const DocStatus = ["PENDING", "VERIFIED", "EXPIRED", "REJECTED"] as const;
+const BgStatus = ["PENDING", "PASSED", "FAILED", "NOT_REQUIRED"] as const;
+const AcceptedPayment = ["CASH", "CARD", "BANK_TRANSFER", "CHECK"] as const;
+
+// ----- Types -----
+type TProviderStatus = (typeof ProviderStatus)[number];
+
+interface IAvailabilitySlot {
+  day: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+  isAvailable: boolean;
+  startTime?: string; // HH:mm
+  endTime?: string; // HH:mm
+}
+
+const ServiceProviderSchema = new Schema(
+  {
+    // Multi-tenancy - enforced by plugin, but declared for indexes/types
+    /** Organization that owns this service provider */
+    // Note: index: true removed from orgId to avoid duplicate index warning
+    // orgId is indexed via composite indexes below (orgId+code, orgId+status, etc.)
+    orgId: { type: Schema.Types.ObjectId, required: true, ref: "Organization" },
+
+    // Basic Information
+    code: { type: String, required: true, trim: true }, // unique within org (see compound index below)
+    userId: { type: Schema.Types.ObjectId, ref: "User" },
+    type: { type: String, enum: ProviderType, required: true },
+
+    // Business Information
+    businessName: { type: String, required: true, trim: true },
+    tradeName: { type: String, trim: true },
+    commercialRegistration: {
+      type: String,
+      trim: true,
+      validate: {
+        validator: (v: string) => !v || /^\d{10}$/.test(v), // KSA CR
+        message: "commercialRegistration must be 10 digits",
+      },
+    },
+    taxNumber: {
+      type: String,
+      trim: true,
+      validate: {
+        validator: (v: string) => !v || /^\d{15}$/.test(v), // KSA VAT
+        message: "taxNumber (VAT) must be 15 digits",
+      },
+    },
+    licenseNumber: { type: String, trim: true },
+    establishedYear: {
+      type: Number,
+      min: 1900,
+      validate: {
+        validator: function (v: number) {
+          const currentYear = new Date().getFullYear();
+          return v >= 1900 && v <= currentYear;
+        },
+        message: (props: { value: number }) =>
+          `establishedYear must be between 1900 and ${new Date().getFullYear()}, got ${props.value}`,
+      },
+    },
+
+    // Owner/Manager Information
+    owner: {
+      name: { type: String, trim: true },
+      nationalId: {
+        type: String,
+        trim: true,
+        validate: {
+          validator: (v: string) => !v || /^\d{10}$/.test(v),
+          message: "owner.nationalId must be 10 digits",
+        },
+      },
+      phone: { type: String, trim: true },
+      email: { type: String, trim: true, lowercase: true },
+    },
+
+    // Contact Information
+    contact: {
+      phone: {
+        type: String,
+        required: true,
+        trim: true,
+        validate: {
+          validator: (v: string) => /^\+?[1-9]\d{6,14}$/.test(v), // E.164
+          message: "contact.phone must be E.164 (+9665XXXXXXXX)",
+        },
+      },
+      mobile: { type: String, trim: true },
+      email: {
+        type: String,
+        required: true,
+        trim: true,
+        lowercase: true,
+        match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "contact.email is invalid"],
+      },
+      whatsapp: { type: String, trim: true },
+      website: { type: String, trim: true },
+      preferredMethod: {
+        type: String,
+        enum: PreferredContact,
+        default: "PHONE",
+      },
+    },
+
+    // Address with GeoJSON for geospatial queries
+    address: {
+      street: { type: String, trim: true },
+      city: { type: String, trim: true, index: true },
+      region: { type: String, trim: true },
+      postalCode: { type: String, trim: true },
+      country: { type: String, default: "SA", trim: true },
+      location: {
+        type: {
+          type: String,
+          enum: ["Point"],
+          default: "Point",
+        },
+        coordinates: {
+          type: [Number], // [lng, lat]
+          validate: {
+            validator: (arr: number[] | null | undefined) => {
+              // Allow null/undefined (optional)
+              if (arr == null) return true;
+              // Reject empty arrays, require exactly 2 numeric elements
+              return (
+                Array.isArray(arr) &&
+                arr.length === 2 &&
+                arr.every((n) => typeof n === "number")
+              );
+            },
+            message:
+              "address.location.coordinates must be undefined/null or an array of exactly 2 numbers [lng, lat]",
+          },
+          default: undefined,
+        },
+      },
+    },
+
+    // Service Areas
+    serviceAreas: [
+      {
+        city: { type: String, trim: true },
+        region: { type: String, trim: true },
+        radius: { type: Number, min: 0 },
+      },
+    ],
+
+    // Services Offered
+    services: [
+      {
+        category: { type: String, enum: ServiceCategory, required: true },
+        name: { type: String, trim: true },
+        description: { type: String, trim: true },
+        baseRate: { type: Number, min: 0 },
+        rateType: { type: String, enum: RateType },
+        estimatedDuration: { type: Number, min: 0 },
+        availability: { type: String, enum: AvailabilityType },
+      },
+    ],
+
+    // Verification
+    verification: {
+      identityVerified: { type: Boolean, default: false },
+      businessVerified: { type: Boolean, default: false },
+      backgroundCheck: {
+        status: { type: String, enum: BgStatus },
+        date: Date,
+        expiresAt: Date,
+        documentUrl: String,
+      },
+      insuranceVerified: { type: Boolean, default: false },
+      insurance: {
+        provider: String,
+        policyNumber: String,
+        coverage: { type: Number, min: 0 },
+        expiresAt: Date,
+        documentUrl: String,
+      },
+    },
+
+    // Certifications
+    certifications: [
+      {
+        name: String,
+        issuer: String,
+        number: String,
+        issuedAt: Date,
+        expiresAt: Date,
+        documentUrl: String,
+        isVerified: Boolean,
+      },
+    ],
+
+    // Team
+    team: [
+      {
+        userId: { type: Schema.Types.ObjectId, ref: "User" },
+        name: String,
+        role: String,
+        phone: String,
+        specialization: [String],
+        certifications: [String],
+      },
+    ],
+
+    // Availability Schedule
+    availability: {
+      schedule: [
+        {
+          day: {
+            type: String,
+            enum: ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"],
+          },
+          isAvailable: { type: Boolean, default: false },
+          startTime: String, // HH:mm
+          endTime: String, // HH:mm
+        },
+      ],
+      holidays: [Date],
+      emergencyAvailable: { type: Boolean, default: false },
+      advanceBookingRequired: { type: Number, default: 24, min: 0 },
+    },
+
+    // Pricing
+    pricing: {
+      hourlyRate: { type: Number, min: 0 },
+      emergencyRate: { type: Number, min: 0 },
+      minimumCharge: { type: Number, min: 0 },
+      travelFee: { type: Number, min: 0 },
+      currency: { type: String, default: "SAR" },
+      paymentTerms: { type: String, trim: true },
+      acceptedMethods: [{ type: String, enum: AcceptedPayment }],
+    },
+
+    // Performance Metrics
+    performance: {
+      totalJobs: { type: Number, default: 0, min: 0 },
+      completedJobs: { type: Number, default: 0, min: 0 },
+      cancelledJobs: { type: Number, default: 0, min: 0 },
+      averageRating: { type: Number, default: 0, min: 0, max: 5 },
+      totalReviews: { type: Number, default: 0, min: 0 },
+      responseTime: { type: Number, default: 0, min: 0 },
+      onTimeRate: { type: Number, default: 0, min: 0, max: 100 },
+      customerSatisfaction: { type: Number, default: 0, min: 0, max: 100 },
+    },
+
+    // Reviews & Ratings
+    reviews: [
+      {
+        jobId: { type: Schema.Types.ObjectId, ref: "WorkOrder" },
+        customerId: { type: Schema.Types.ObjectId, ref: "User" },
+        rating: { type: Number, min: 1, max: 5, required: true },
+        comment: { type: String, trim: true },
+        photos: [String],
+        response: { type: String, trim: true },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
+
+    // Financial
+    financial: {
+      bankAccounts: [
+        {
+          bankName: String,
+          accountNumber: String,
+          iban: {
+            type: String,
+            trim: true,
+            validate: {
+              validator: (v: string) => !v || /^SA\d{22}$/i.test(v),
+              message: "IBAN must be a valid SA format",
+            },
+          },
+          isPrimary: Boolean,
+        },
+      ],
+      totalEarnings: { type: Number, default: 0, min: 0 },
+      pendingPayments: { type: Number, default: 0, min: 0 },
+      lastPaymentDate: Date,
+      commission: { type: Number, default: 5, min: 0, max: 100 },
+    },
+
+    // Documents
+    documents: [
+      {
+        type: String, // CR, LICENSE, INSURANCE, ID, etc.
+        name: String,
+        url: String,
+        uploadedAt: { type: Date, default: Date.now },
+        expiresAt: Date,
+        status: { type: String, enum: DocStatus },
+      },
+    ],
+
+    // Status
+    status: {
+      type: String,
+      enum: ProviderStatus,
+      default: "PENDING",
+      index: true,
+    },
+    statusReason: String,
+    approvedAt: Date,
+    approvedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    rejectedAt: Date,
+    rejectionReason: String,
+
+    // Preferences
+    preferences: {
+      language: { type: String, enum: ["en", "ar"], default: "ar" },
+      autoAcceptJobs: { type: Boolean, default: false },
+      maxConcurrentJobs: { type: Number, default: 3, min: 1 },
+      notifications: {
+        email: { type: Boolean, default: true },
+        sms: { type: Boolean, default: true },
+        whatsapp: { type: Boolean, default: false },
+      },
+    },
+
+    // Metadata
+    notes: String,
+    tags: [String],
+    internalRating: { type: Number, min: 0, max: 5 },
+  },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  },
+);
+
+// ----- Indexes -----
+ServiceProviderSchema.index(
+  { orgId: 1, code: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+); // tenant-scoped uniqueness
+ServiceProviderSchema.index({ orgId: 1, status: 1 });
+ServiceProviderSchema.index({ orgId: 1, "services.category": 1 });
+ServiceProviderSchema.index(
+  { orgId: 1, "contact.email": 1 },
+  { partialFilterExpression: { "contact.email": { $type: "string" } } },
+);
+ServiceProviderSchema.index({ "address.location": "2dsphere" }); // geospatial queries
+// ⚡ FIXED: Add orgId prefix for tenant-scoped text search
+ServiceProviderSchema.index({
+  orgId: 1,
+  businessName: "text",
+  tradeName: "text",
+  "owner.name": "text",
+  tags: "text",
+});
+
+// Plugins
+ServiceProviderSchema.plugin(tenantIsolationPlugin);
+ServiceProviderSchema.plugin(auditPlugin);
+
+/**
+ * PII Encryption (GDPR Article 32 - Security of Processing)
+ * Encrypts sensitive contact and identity information at rest
+ */
+ServiceProviderSchema.plugin(encryptionPlugin, {
+  fields: {
+    "owner.nationalId": "Owner National ID",
+    "owner.email": "Owner Email",
+    "contact.email": "Contact Email",
+    "contact.phone": "Contact Phone",
+  },
+});
+
+// Virtual for completion rate
+ServiceProviderSchema.virtual("completionRatePercent").get(function () {
+  const t = this.performance?.totalJobs ?? 0;
+  const c = this.performance?.completedJobs ?? 0;
+  return t > 0 ? (c / t) * 100 : 0;
+});
+
+// ----- Helper Functions -----
+function hhmmToMinutes(hhmm?: string): number | undefined {
+  if (!hhmm || !/^\d{2}:\d{2}$/.test(hhmm)) return undefined;
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+}
+
+// Method to check availability
+ServiceProviderSchema.methods.isAvailableAt = function (date: Date): boolean {
+  // Holiday check (exact date match)
+  const holidays: Date[] = this.availability?.holidays ?? [];
+  if (holidays.some((h) => h.toDateString() === date.toDateString()))
+    return false;
+
+  const dayNames: IAvailabilitySlot["day"][] = [
+    "SUN",
+    "MON",
+    "TUE",
+    "WED",
+    "THU",
+    "FRI",
+    "SAT",
+  ];
+  const day = dayNames[date.getDay()];
+  const slot = (this.availability?.schedule ?? []).find(
+    (s: IAvailabilitySlot) => s.day === day,
+  );
+
+  if (!slot || !slot.isAvailable) return false;
+
+  // Time window check (HH:mm local time)
+  const nowMins = date.getHours() * 60 + date.getMinutes();
+  const startMins = hhmmToMinutes(slot.startTime);
+  const endMins = hhmmToMinutes(slot.endTime);
+  if (startMins !== undefined && endMins !== undefined) {
+    return nowMins >= startMins && nowMins <= endMins;
+  }
+  return true;
+};
+
+type ServiceProviderDoc = HydratedDocument<ServiceProvider>;
+
+// Controlled status transitions
+const ALLOWED: Record<TProviderStatus, TProviderStatus[]> = {
+  PENDING: ["APPROVED", "REJECTED", "BLACKLISTED"],
+  APPROVED: ["ACTIVE", "SUSPENDED", "BLACKLISTED"],
+  ACTIVE: ["SUSPENDED", "BLACKLISTED"],
+  SUSPENDED: ["ACTIVE", "BLACKLISTED"],
+  REJECTED: ["PENDING", "BLACKLISTED"],
+  BLACKLISTED: [], // terminal
+};
+
+ServiceProviderSchema.methods.transitionStatus = async function (
+  this: ServiceProviderDoc,
+  next: TProviderStatus,
+  actorId?: Types.ObjectId,
+  reason?: string,
+) {
+  const current: TProviderStatus = this.status;
+  if (!ALLOWED[current].includes(next)) {
+    throw new Error(`Illegal status transition ${current} → ${next}`);
+  }
+
+  // Perform atomic update to avoid inconsistent state on failure
+  const updateFields: Record<
+    string,
+    Date | Types.ObjectId | string | TProviderStatus
+  > = {
+    status: next,
+  };
+
+  if (next === "APPROVED") {
+    updateFields.approvedAt = new Date();
+    if (actorId) updateFields.approvedBy = actorId;
+  }
+  if (next === "REJECTED") {
+    updateFields.rejectedAt = new Date();
+    if (reason) updateFields.rejectionReason = reason;
+  }
+  if (reason) updateFields.statusReason = reason;
+
+  try {
+    // Use findByIdAndUpdate for atomic operation
+    const updated = await ServiceProviderModel.findByIdAndUpdate(
+      this._id,
+      { $set: updateFields },
+      { new: true, runValidators: true },
+    );
+
+    if (!updated) {
+      throw new Error(
+        `Failed to update ServiceProvider ${this._id}: document not found`,
+      );
+    }
+
+    // Update in-memory instance with persisted values
+    Object.assign(this, updated.toObject());
+  } catch (error) {
+    // On error, the DB remains unchanged (atomic operation)
+    // Re-throw with context
+    throw new Error(
+      `ServiceProvider.transitionStatus failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+};
+
+// ----- Static Methods -----
+ServiceProviderSchema.statics.recomputeRatings = async function (
+  providerId: Types.ObjectId,
+) {
+  const doc = await this.findById(providerId).lean();
+  if (!doc) return;
+  const reviews = doc.reviews ?? [];
+  const totalReviews = reviews.length;
+  const averageRating = totalReviews
+    ? reviews.reduce(
+        (a: number, r: { rating?: number }) => a + (r.rating || 0),
+        0,
+      ) / totalReviews
+    : 0;
+
+  await this.updateOne(
+    { _id: providerId },
+    {
+      $set: {
+        "performance.totalReviews": totalReviews,
+        "performance.averageRating": Number(averageRating.toFixed(2)),
+      },
+    },
+  );
+};
+
+// ----- Pre-save Hook -----
+ServiceProviderSchema.pre("save", function (next) {
+  if (this.contact?.email)
+    this.contact.email = String(this.contact.email).trim().toLowerCase();
+  if (this.owner?.email)
+    this.owner.email = String(this.owner.email).trim().toLowerCase();
+  if (this.businessName) this.businessName = this.businessName.trim();
+  if (this.tradeName) this.tradeName = this.tradeName.trim();
+  next();
+});
+
+// Export type and model
+export type ServiceProvider = InferSchemaType<typeof ServiceProviderSchema>;
+export const ServiceProviderModel = getModel<ServiceProvider>(
+  "ServiceProvider",
+  ServiceProviderSchema,
+);
+
+]]>
+</file>
+
+<file path="server/models/Subscription.ts">
+<![CDATA[
+import { Schema, Document, Types } from "mongoose";
+import { getModel } from "@/types/mongoose-compat";
+import { auditPlugin } from "../plugins/auditPlugin";
+import { MODULE_KEYS } from "./Module";
+
+const PayTabsInfoSchema = new Schema(
+  {
+    profile_id: String,
+    token: String,
+    customer_email: String,
+    last_tran_ref: String,
+    agreement_id: String,
+    cart_id: String,
+  },
+  { _id: false },
+);
+
+const BillingHistorySchema = new Schema(
+  {
+    date: { type: Date, required: true },
+    amount: { type: Number, required: true },
+    currency: { type: String, required: true },
+    tran_ref: String,
+    status: {
+      type: String,
+      enum: ["SUCCESS", "FAILED", "PENDING"],
+      required: true,
+    },
+    error: String,
+  },
+  { _id: false },
+);
+
+const SubscriptionSchema = new Schema(
+  {
+    tenant_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      required: false,
+    },
+    owner_user_id: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: false,
+    },
+    subscriber_type: {
+      type: String,
+      enum: ["CORPORATE", "OWNER"],
+      required: true,
+    },
+    modules: {
+      type: [String],
+      enum: MODULE_KEYS,
+      default: [],
+    },
+    seats: {
+      type: Number,
+      required: true,
+      min: [1, "Seats must be at least 1"],
+    },
+    billing_cycle: {
+      type: String,
+      enum: ["MONTHLY", "ANNUAL"],
+      default: "MONTHLY",
+    },
+    currency: {
+      type: String,
+      enum: ["USD", "SAR"],
+      default: "USD",
+    },
+    price_book_id: {
+      type: Schema.Types.ObjectId,
+      ref: "PriceBook",
+      required: true,
+    },
+    amount: { type: Number, default: 0 },
+    status: {
+      type: String,
+      enum: ["INCOMPLETE", "ACTIVE", "PAST_DUE", "CANCELED"],
+      default: "INCOMPLETE",
+    },
+    paytabs: PayTabsInfoSchema,
+    next_billing_date: {
+      type: Date,
+      required: false,
+      // index via compound index below
+    },
+    current_period_start: {
+      type: Date,
+      required: false,
+    },
+    current_period_end: {
+      type: Date,
+      required: false,
+    },
+    billing_history: {
+      type: [BillingHistorySchema],
+      default: [],
+    },
+    paytabs_token_id: { type: Schema.Types.ObjectId, ref: "PaymentMethod" },
+    metadata: { type: Schema.Types.Mixed },
+  },
+  { timestamps: true },
+);
+
+// NOTE: This schema uses XOR validation (tenant_id OR owner_user_id, not both)
+// similar to PaymentMethod. It intentionally does NOT use tenantIsolationPlugin.
+SubscriptionSchema.plugin(auditPlugin);
+
+// Validate subscriber_type matches tenant_id/owner_user_id (XOR validation)
+SubscriptionSchema.pre("validate", function (next) {
+  if (this.subscriber_type === "CORPORATE") {
+    if (!this.tenant_id) {
+      return next(
+        new Error("tenant_id is required when subscriber_type is CORPORATE"),
+      );
+    }
+    if (this.owner_user_id) {
+      return next(
+        new Error(
+          "owner_user_id must not be set when subscriber_type is CORPORATE",
+        ),
+      );
+    }
+  } else if (this.subscriber_type === "OWNER") {
+    if (!this.owner_user_id) {
+      return next(
+        new Error("owner_user_id is required when subscriber_type is OWNER"),
+      );
+    }
+    if (this.tenant_id) {
+      return next(
+        new Error("tenant_id must not be set when subscriber_type is OWNER"),
+      );
+    }
+  }
+  next();
+});
+
+// Indexes for performance
+SubscriptionSchema.index({ tenant_id: 1, status: 1 });
+SubscriptionSchema.index({ owner_user_id: 1, status: 1 });
+SubscriptionSchema.index({ status: 1 });
+// Index for recurring billing query (billing_cycle + status + next_billing_date)
+SubscriptionSchema.index({ billing_cycle: 1, status: 1, next_billing_date: 1 });
+
+// TypeScript-safe model export
+interface IPayTabsInfo {
+  profile_id?: string;
+  token?: string;
+  customer_email?: string;
+  last_tran_ref?: string;
+  agreement_id?: string;
+  cart_id?: string;
+}
+
+interface IBillingHistory {
+  date: Date;
+  amount: number;
+  currency: string;
+  tran_ref?: string;
+  status: "SUCCESS" | "FAILED" | "PENDING";
+  error?: string;
+}
+
+interface ISubscription extends Document {
+  tenant_id?: Schema.Types.ObjectId;
+  owner_user_id?: Schema.Types.ObjectId;
+  subscriber_type: "CORPORATE" | "OWNER";
+  modules: string[];
+  seats: number;
+  billing_cycle: "MONTHLY" | "ANNUAL";
+  currency: "USD" | "SAR";
+  price_book_id: Schema.Types.ObjectId;
+  amount: number;
+  status: "INCOMPLETE" | "ACTIVE" | "PAST_DUE" | "CANCELED";
+  paytabs?: IPayTabsInfo;
+  next_billing_date?: Date;
+  current_period_start?: Date;
+  current_period_end?: Date;
+  billing_history: IBillingHistory[];
+  paytabs_token_id?: Types.ObjectId;
+  metadata?: Record<string, unknown>;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: Schema.Types.ObjectId;
+  updatedBy?: Schema.Types.ObjectId;
+}
+
+const Subscription = getModel<ISubscription>(
+  "Subscription",
+  SubscriptionSchema,
+);
+export default Subscription;
+
+]]>
+</file>
+
+<file path="server/models/SubscriptionInvoice.ts">
+<![CDATA[
+import mongoose, { Schema, Document, Types } from "mongoose";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { auditPlugin } from "../plugins/auditPlugin";
+
+export interface ISubscriptionInvoice extends Document {
+  orgId: Types.ObjectId; // Required by tenantIsolationPlugin (explicitly set in code)
+  subscriptionId: Types.ObjectId;
+  amount: number;
+  currency: string;
+  status: "pending" | "paid" | "failed" | "cancelled";
+  dueDate: Date;
+  periodStart: Date; // ✅ ADDED: Billing period start
+  periodEnd: Date; // ✅ ADDED: Billing period end
+  paidAt?: Date;
+  paymentMethod?: string;
+  paytabsRef?: string; // ✅ ADDED: PayTabs transaction reference
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: Types.ObjectId; // Added by auditPlugin
+  updatedBy?: Types.ObjectId; // Added by auditPlugin
+}
+
+const subscriptionInvoiceSchema = new Schema<ISubscriptionInvoice>(
+  {
+    // ✅ FIXED COMMENT: orgId is required and must be explicitly set in code
+    // The tenantIsolationPlugin adds the field definition, but does NOT auto-populate it
+    // All SubscriptionInvoice.create() calls must include orgId
+
+    subscriptionId: {
+      type: Schema.Types.ObjectId,
+      ref: "Subscription",
+      required: true,
+    },
+    amount: {
+      type: Number,
+      required: true,
+    },
+    currency: {
+      type: String,
+      default: "SAR",
+    },
+    status: {
+      type: String,
+      enum: ["pending", "paid", "failed", "cancelled"],
+      default: "pending",
+    },
+    dueDate: {
+      type: Date,
+      required: true,
+    },
+    periodStart: {
+      // ✅ ADDED
+      type: Date,
+      required: true,
+    },
+    periodEnd: {
+      // ✅ ADDED
+      type: Date,
+      required: true,
+    },
+    paidAt: Date,
+    paymentMethod: String,
+    paytabsRef: String, // ✅ ADDED: PayTabs transaction reference
+  },
+  {
+    timestamps: true,
+    collection: "subscriptioninvoices",
+    // Indexes are managed centrally in lib/db/collections.ts
+    autoIndex: false,
+  },
+);
+
+// APPLY PLUGINS (BEFORE INDEXES)
+subscriptionInvoiceSchema.plugin(tenantIsolationPlugin);
+subscriptionInvoiceSchema.plugin(auditPlugin);
+
+export const SubscriptionInvoice =
+  (typeof mongoose.models !== "undefined" &&
+    mongoose.models.SubscriptionInvoice) ||
+  mongoose.model<ISubscriptionInvoice>(
+    "SubscriptionInvoice",
+    subscriptionInvoiceSchema,
+  );
+export default SubscriptionInvoice;
+
+]]>
+</file>
+
+<file path="server/models/SupportTicket.ts">
+<![CDATA[
+import { Schema, Model, models, InferSchemaType } from "mongoose";
+import { getModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { auditPlugin } from "../plugins/auditPlugin";
+import { encryptionPlugin } from "../plugins/encryptionPlugin";
+
+const Message = new Schema(
+  {
+    byUserId: { type: Schema.Types.ObjectId, ref: "User" },
+    byRole: { type: String },
+    at: { type: Date, default: Date.now },
+    text: { type: String, required: true },
+    attachments: {
+      type: [{ url: String, name: String, size: Number, type: String }],
+      default: [],
+    },
+  },
+  { _id: false },
+);
+
+const SupportTicketSchema = new Schema(
+  {
+    // tenantId REMOVED - plugin will add orgId
+    code: { type: String, required: true },
+    subject: { type: String, required: true },
+    module: {
+      type: String,
+      enum: ["FM", "Souq", "Aqar", "Account", "Billing", "Other"],
+      default: "Other",
+    },
+    type: {
+      type: String,
+      enum: ["Bug", "Feature", "Complaint", "Billing", "Access", "Other"],
+      default: "Other",
+    },
+    priority: {
+      type: String,
+      enum: ["Low", "Medium", "High", "Urgent"],
+      default: "Medium",
+    },
+    category: {
+      type: String,
+      enum: [
+        "Technical",
+        "Feature Request",
+        "Billing",
+        "Account",
+        "General",
+        "Bug Report",
+      ],
+      default: "General",
+    },
+    subCategory: {
+      type: String,
+      enum: [
+        "Bug Report",
+        "Performance Issue",
+        "UI Error",
+        "API Error",
+        "Database Error",
+        "New Feature",
+        "Enhancement",
+        "Integration",
+        "Customization",
+        "Mobile App",
+        "Invoice Issue",
+        "Payment Error",
+        "Subscription",
+        "Refund",
+        "Pricing",
+        "Login Issue",
+        "Password Reset",
+        "Profile Update",
+        "Permissions",
+        "Access Denied",
+        "Documentation",
+        "Training",
+        "Support",
+        "Feedback",
+        "Other",
+        "Critical Bug",
+        "Minor Bug",
+        "Cosmetic Issue",
+        "Data Error",
+        "Security Issue",
+      ],
+      default: "Other",
+    },
+    status: {
+      type: String,
+      enum: ["New", "Open", "Waiting", "Resolved", "Closed"],
+      default: "New",
+    },
+
+    // createdBy will be added by auditPlugin
+
+    requester: { name: String, email: String, phone: String },
+    messages: { type: [Message], default: [] },
+    assignment: {
+      assignedTo: {
+        userId: { type: Schema.Types.ObjectId, ref: "User" },
+        teamId: { type: Schema.Types.ObjectId, ref: "Team" },
+      },
+      assignedBy: { type: Schema.Types.ObjectId, ref: "User" },
+      assignedAt: Date,
+    },
+    firstResponseAt: { type: Date },
+    resolvedAt: { type: Date },
+  },
+  { timestamps: true },
+);
+
+// APPLY PLUGINS (BEFORE INDEXES)
+SupportTicketSchema.plugin(tenantIsolationPlugin);
+SupportTicketSchema.plugin(auditPlugin);
+// SEC-PII-005: Encrypt support ticket requester contact info
+SupportTicketSchema.plugin(encryptionPlugin, {
+  fields: {
+    "requester.email": "Requester Email",
+    "requester.phone": "Requester Phone",
+  },
+});
+
+// INDEXES (AFTER PLUGINS)
+SupportTicketSchema.index(
+  { orgId: 1, code: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+); // Tenant-scoped unique code
+SupportTicketSchema.index({ orgId: 1, status: 1, module: 1, priority: 1 });
+SupportTicketSchema.index({ orgId: 1, "requester.email": 1 });
+SupportTicketSchema.index({ orgId: 1, "assignment.assignedTo.userId": 1 });
+
+export type SupportTicketDoc = InferSchemaType<typeof SupportTicketSchema>;
+
+export const SupportTicket: Model<SupportTicketDoc> =
+  getModel<SupportTicketDoc>("SupportTicket", SupportTicketSchema);
+
+]]>
+</file>
+
+<file path="server/models/Tenant.ts">
+<![CDATA[
+import { Schema, Model, models, InferSchemaType } from "mongoose";
+import { getModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { auditPlugin } from "../plugins/auditPlugin";
+import { encryptionPlugin } from "../plugins/encryptionPlugin";
+
+const TenantType = ["INDIVIDUAL", "COMPANY", "GOVERNMENT"] as const;
+const LeaseStatus = [
+  "ACTIVE",
+  "EXPIRED",
+  "TERMINATED",
+  "RENEWAL_PENDING",
+  "UNDER_NEGOTIATION",
+] as const;
+
+const TenantSchema = new Schema(
+  {
+    // tenantId will be added by tenantIsolationPlugin (as orgId)
+
+    // Basic Information
+    // FIXED: Remove unique: true - will be enforced via compound index with orgId
+    code: { type: String, required: true },
+    name: { type: String, required: true },
+    type: { type: String, enum: TenantType, required: true },
+
+    // Contact Information
+    contact: {
+      primary: {
+        name: String,
+        title: String,
+        email: String,
+        phone: String,
+        mobile: String,
+      },
+      secondary: {
+        name: String,
+        email: String,
+        phone: String,
+      },
+      emergency: {
+        name: String,
+        relationship: String,
+        phone: String,
+      },
+    },
+
+    // Identification
+    identification: {
+      nationalId: String, // For individuals
+      companyRegistration: String, // For companies
+      taxId: String,
+      licenseNumber: String, // For businesses
+      documents: [
+        {
+          type: String, // ID, Passport, Company Registration, etc.
+          number: String,
+          issued: Date,
+          expires: Date,
+          url: String,
+        },
+      ],
+    },
+
+    // Address
+    address: {
+      current: {
+        street: String,
+        city: String,
+        region: String,
+        postalCode: String,
+        country: { type: String, default: "SA" },
+      },
+      permanent: {
+        street: String,
+        city: String,
+        region: String,
+        postalCode: String,
+        country: { type: String, default: "SA" },
+      },
+    },
+
+    // Properties/Units
+    properties: [
+      {
+        propertyId: String, // Reference to Property model
+        unitNumber: String,
+        leaseId: String, // Reference to Lease model
+        role: { type: String, enum: ["TENANT", "OWNER", "MANAGER"] },
+        occupancy: {
+          startDate: Date,
+          endDate: Date,
+          status: { type: String, enum: LeaseStatus },
+        },
+      },
+    ],
+
+    // Financial Information
+    financial: {
+      creditScore: Number,
+      paymentHistory: [
+        {
+          date: Date,
+          amount: Number,
+          type: String, // Rent, Deposit, Fee, etc.
+          status: String, // PAID, PENDING, OVERDUE
+          method: String,
+        },
+      ],
+      outstandingBalance: Number,
+      securityDeposit: Number,
+      bankDetails: {
+        accountNumber: String,
+        bankName: String,
+        iban: String,
+      },
+      billingAddress: String,
+    },
+
+    // Lease Management
+    leases: [
+      {
+        leaseId: String, // Reference to Lease model
+        propertyId: String,
+        unitNumber: String,
+        startDate: Date,
+        endDate: Date,
+        monthlyRent: Number,
+        securityDeposit: Number,
+        terms: String,
+        status: { type: String, enum: LeaseStatus },
+        renewal: {
+          autoRenew: Boolean,
+          noticePeriod: Number, // days
+          nextRenewal: Date,
+        },
+      },
+    ],
+
+    // Service Requests
+    serviceRequests: [
+      {
+        requestId: String, // Reference to ServiceRequest model
+        type: String, // Maintenance, Complaint, etc.
+        status: String, // OPEN, IN_PROGRESS, CLOSED
+        priority: String, // LOW, MEDIUM, HIGH, URGENT
+        created: Date,
+        resolved: Date,
+      },
+    ],
+
+    // Communication Preferences
+    preferences: {
+      communication: {
+        email: Boolean,
+        sms: Boolean,
+        phone: Boolean,
+        app: Boolean,
+      },
+      notifications: {
+        maintenance: Boolean,
+        rent: Boolean,
+        events: Boolean,
+        announcements: Boolean,
+      },
+      language: { type: String, default: "ar" },
+      timezone: { type: String, default: "Asia/Riyadh" },
+    },
+
+    // Access Control
+    access: {
+      portalAccess: Boolean,
+      mobileApp: Boolean,
+      maintenanceRequests: Boolean,
+      documentAccess: Boolean,
+      paymentHistory: Boolean,
+    },
+
+    // Compliance
+    compliance: {
+      backgroundCheck: Boolean,
+      creditCheck: Boolean,
+      references: [
+        {
+          name: String,
+          contact: String,
+          relationship: String,
+          verified: Boolean,
+        },
+      ],
+      restrictions: [String], // Pets, Smoking, etc.
+    },
+
+    // Metadata
+    tags: [String],
+    customFields: Schema.Types.Mixed,
+    // createdBy, updatedBy, createdAt, updatedAt will be added by auditPlugin
+  },
+  {
+    timestamps: true,
+  },
+);
+
+// Apply plugins BEFORE indexes
+TenantSchema.plugin(tenantIsolationPlugin);
+TenantSchema.plugin(auditPlugin);
+// PII encryption for sensitive financial and identity data
+TenantSchema.plugin(encryptionPlugin, {
+  fields: {
+    "identification.nationalId": "National ID",
+    "financial.bankDetails.accountNumber": "Bank Account Number",
+    "financial.bankDetails.iban": "IBAN",
+  },
+});
+
+// Indexes for performance (orgId from plugin)
+TenantSchema.index({ orgId: 1, type: 1 });
+TenantSchema.index({ orgId: 1, "contact.primary.email": 1 });
+TenantSchema.index({ orgId: 1, "properties.occupancy.status": 1 });
+// Compound tenant-scoped unique index for code
+TenantSchema.index(
+  { orgId: 1, code: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
+
+export type TenantDoc = InferSchemaType<typeof TenantSchema>;
+
+export const Tenant: Model<TenantDoc> = getModel<TenantDoc>(
+  "Tenant",
+  TenantSchema,
+);
+
+]]>
+</file>
+
+</batch_content>

@@ -1,0 +1,3782 @@
+
+You are the "Fixzit Memory Builder" for category: "routes".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "routes",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="lib/api/crud-factory.ts">
+<![CDATA[
+/**
+ * CRUD Route Factory - DRY helper for API routes
+ *
+ * Consolidates duplicate logic across API routes:
+ * - Rate limiting
+ * - Authentication & tenant context
+ * - Database connection
+ * - Validation (Zod schemas)
+ * - Pagination
+ * - Error handling
+ * - Security headers
+ *
+ * Usage:
+ * ```typescript
+ * import { createCrudHandlers } from '@/lib/api/crud-factory';
+ * import { Vendor } from '@/server/models/Vendor';
+ * import { createVendorSchema } from '@/lib/validations/forms';
+ *
+ * export const { GET, POST } = createCrudHandlers({
+ *   Model: Vendor,
+ *   createSchema: createVendorSchema,
+ *   entityName: 'vendor',
+ *   generateCode: () => `VEN-${crypto.randomUUID().slice(0,12).toUpperCase()}`,
+ * });
+ * ```
+ */
+
+import { logger } from "@/lib/logger";
+import { NextRequest } from "next/server";
+import { z, ZodSchema } from "zod";
+import { SortOrder, Types } from "mongoose";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse, getClientIP } from "@/server/security/headers";
+import { isTruthy } from "@/lib/utils/env";
+import type { MModel } from "@/types/mongoose-compat";
+
+/**
+ * SEC-006 FIX: Validate MongoDB ObjectId format to prevent IDOR attacks
+ * Rejects query operators like { $or: [...] } that could bypass tenant isolation
+ */
+function isValidObjectId(id: string): boolean {
+  return Types.ObjectId.isValid(id) && new Types.ObjectId(id).toString() === id;
+}
+
+/**
+ * Escapes special regex characters to prevent ReDoS (Regular Expression Denial of Service) attacks
+ * @param str - User input string to escape
+ * @returns Escaped string safe for use in MongoDB $regex
+ */
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+export interface CrudFactoryOptions<T = unknown> {
+  /** Mongoose Model */
+  Model: MModel<T>;
+  /** Zod schema for POST/create validation */
+  createSchema?: ZodSchema;
+  /** Zod schema for PUT/update validation (if different from create) */
+  updateSchema?: ZodSchema;
+  /** Entity name for logging/error messages (e.g., 'vendor', 'tenant') */
+  entityName: string;
+  /** Optional: Function to generate unique code (e.g., VEN-XXX) */
+  generateCode?: () => string;
+  /** Optional: Default sort field (default: { createdAt: -1 }) */
+  defaultSort?: Record<string, SortOrder>;
+  /** Optional: Fields to allow search on */
+  searchFields?: string[];
+  /** Optional: Rate limit config (requests per window) */
+  rateLimit?: { requests: number; windowMs: number };
+  /** Optional: Custom filter builder - receives full user context for role-based filtering */
+  buildFilter?: (
+    searchParams: URLSearchParams,
+    orgId: string,
+    /** Full user context for role-based filtering (TECHNICIAN, VENDOR, TENANT scoping) */
+    user?: { id: string; orgId: string; role: string; vendorId?: string; units?: string[] },
+  ) => Record<string, unknown>;
+  /** Optional: Hook to transform data before creation (e.g., add SLA, init state) */
+  onCreate?: (
+    data: Record<string, unknown>,
+    user: { id: string; orgId: string; role: string },
+  ) => Promise<Record<string, unknown>> | Record<string, unknown>;
+  /** Optional: Hook to transform data before update (consumer calls manually) */
+  onUpdate?: (
+    id: string,
+    updates: Record<string, unknown>,
+    user: { id: string; orgId: string; role: string },
+  ) => Promise<Record<string, unknown>> | Record<string, unknown>;
+}
+
+/**
+ * Creates GET and POST handlers with standard CRUD logic
+ */
+export function createCrudHandlers<T = unknown>(
+  options: CrudFactoryOptions<T>,
+) {
+  const {
+    Model,
+    createSchema,
+    entityName,
+    generateCode,
+    defaultSort = { createdAt: -1 },
+    rateLimit: rateLimitConfig = { requests: 60, windowMs: 60_000 },
+    buildFilter,
+    onCreate,
+  } = options;
+
+  /**
+   * GET handler - List with pagination and filters
+   */
+  async function GET(req: NextRequest) {
+    // Authentication (MUST be outside try block to properly return 401)
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch (_error) {
+      const correlationId = crypto.randomUUID();
+      logger.warn("Unauthenticated request to GET endpoint", {
+        path: req.url,
+        correlationId,
+      });
+      return createSecureResponse(
+        {
+          error: "Unauthorized",
+          message: "Authentication required",
+          correlationId,
+        },
+        401,
+        req,
+      );
+    }
+
+    // Tenant context check
+    if (!user?.orgId) {
+      const correlationId = crypto.randomUUID();
+      return createSecureResponse(
+        {
+          error: "Unauthorized",
+          message: "Missing tenant context",
+          correlationId,
+        },
+        401,
+        req,
+      );
+    }
+
+    // Rate limiting
+    const clientIp = getClientIP(req);
+    const rl = rateLimit(
+      `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
+      rateLimitConfig.requests,
+      rateLimitConfig.windowMs,
+    );
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    // Parse query parameters early (used for offline short-circuit)
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, Number(searchParams.get("page")) || 1);
+    const limit = Math.min(100, Number(searchParams.get("limit")) || 20);
+    const query = searchParams.get("q") || searchParams.get("search") || "";
+
+    // OFFLINE MODE: Avoid MongoDB entirely to prevent 500s in CI/offline runs
+    if (isTruthy(process.env.ALLOW_OFFLINE_MONGODB)) {
+      return createSecureResponse(
+        {
+          items: [],
+          page,
+          limit,
+          total: 0,
+          pages: 0,
+        },
+        200,
+        req,
+      );
+    }
+
+    try {
+      await connectToDatabase();
+
+      // Build base filter - pass full user context for role-based filtering
+      // RBAC FIX: buildFilter now receives user context for TECHNICIAN/VENDOR/TENANT scoping
+      const match: Record<string, unknown> = buildFilter
+        ? buildFilter(searchParams, user.orgId, user)
+        : {};
+
+      // RBAC: Super Admin can access all tenants, others are scoped to their org_id
+      if (user.role !== "SUPER_ADMIN") {
+        match.orgId = user.orgId;
+      }
+
+      // Implement search functionality
+      if (query && options.searchFields && options.searchFields.length > 0) {
+        const escapedQuery = escapeRegex(query);
+        const searchOr = options.searchFields.map((field) => ({
+          [field]: { $regex: escapedQuery, $options: "i" },
+        }));
+
+        // If buildFilter already set $or, combine with $and to avoid overwriting
+        if (match.$or) {
+          const existingOr = match.$or;
+          delete match.$or;
+          match.$and = [{ $or: existingOr }, { $or: searchOr }];
+        } else {
+          match.$or = searchOr;
+        }
+      }
+
+      // Execute query with pagination
+      const itemsQuery = Model.find(match)
+        .sort(defaultSort)
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean<T>();
+
+      const [items, total] = await Promise.all([
+        itemsQuery,
+        Model.countDocuments(match),
+      ]);
+
+      return createSecureResponse(
+        {
+          items,
+          page,
+          limit,
+          total,
+          pages: Math.ceil(total / limit),
+        },
+        200,
+        req,
+        {
+          // Add caching headers for better performance
+          "Cache-Control": "private, max-age=10, stale-while-revalidate=60",
+          "CDN-Cache-Control": "max-age=60",
+        },
+      );
+    } catch (_error: unknown) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      const correlationId = crypto.randomUUID();
+      logger.error(`[DELETE /api/${entityName}/:id] Error:`, {
+        correlationId,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      return createSecureResponse(
+        {
+          error: `Failed to fetch ${entityName}s`,
+          correlationId,
+        },
+        500,
+        req,
+      );
+    }
+  }
+
+  /**
+   * POST handler - Create new entity
+   */
+  async function POST(req: NextRequest) {
+    // Authentication (MUST be outside try block to properly return 401)
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch (_error) {
+      const correlationId = crypto.randomUUID();
+      logger.warn("Unauthenticated request to POST endpoint", {
+        path: req.url,
+        correlationId,
+      });
+      return createSecureResponse(
+        {
+          error: "Unauthorized",
+          message: "Authentication required",
+          correlationId,
+        },
+        401,
+        req,
+      );
+    }
+
+    // Tenant context check
+    if (!user?.orgId) {
+      const correlationId = crypto.randomUUID();
+      return createSecureResponse(
+        {
+          error: "Unauthorized",
+          message: "Missing tenant context",
+          correlationId,
+        },
+        401,
+        req,
+      );
+    }
+
+    // Rate limiting
+    const clientIp = getClientIP(req);
+    const rl = rateLimit(
+      `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
+      rateLimitConfig.requests,
+      rateLimitConfig.windowMs,
+    );
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    // OFFLINE MODE: Reject mutations gracefully to avoid 500s in CI/offline runs
+    if (isTruthy(process.env.ALLOW_OFFLINE_MONGODB)) {
+      return createSecureResponse(
+        {
+          error: "ServiceUnavailable",
+          message:
+            "Data mutations are disabled in ALLOW_OFFLINE_MONGODB mode. Provide MongoDB or disable offline mode.",
+        },
+        503,
+        req,
+      );
+    }
+
+    try {
+      await connectToDatabase();
+
+      // Parse and validate request body
+      const body = await req.json();
+      const data = createSchema ? createSchema.parse(body) : body;
+
+      // Security: Strip tenant-scoping and audit fields from client payload to prevent mass assignment
+      delete data.org_id;
+      delete data.orgId;
+      delete data.tenantId;
+      delete data.createdBy;
+      delete data.updatedBy;
+
+      // Prepare entity data
+      let entityData = {
+        orgId: user.orgId,
+        ...(generateCode && { code: generateCode() }),
+        ...data,
+        createdBy: user.id,
+      };
+
+      // Apply onCreate hook if provided
+      if (onCreate) {
+        try {
+          entityData = await onCreate(entityData, user);
+        } catch (hookError: unknown) {
+          const correlationId = crypto.randomUUID();
+          logger.error(`[POST /api/${entityName}] onCreate hook error:`, {
+            correlationId,
+            userId: user.id,
+            orgId: user.orgId,
+            role: user.role,
+            timestamp: new Date().toISOString(),
+            error:
+              hookError instanceof Error
+                ? hookError.message
+                : String(hookError),
+            stack: hookError instanceof Error ? hookError.stack : undefined,
+          });
+
+          throw new Error(
+            `onCreate hook failed: ${hookError instanceof Error ? hookError.message : String(hookError)}`,
+          );
+        }
+      }
+
+      // Create entity
+      const entity = await Model.create(entityData);
+
+      return createSecureResponse(entity, 201, req);
+    } catch (_error: unknown) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      const correlationId = crypto.randomUUID();
+      logger.error(`[POST /api/${entityName}] Error:`, {
+        correlationId,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+
+      const status = error instanceof z.ZodError ? 422 : 500;
+      return createSecureResponse(
+        {
+          error: `Failed to create ${entityName}`,
+          correlationId,
+          ...(error instanceof z.ZodError && { validation: error.issues }),
+        },
+        status,
+        req,
+      );
+    }
+  }
+
+  return { GET, POST };
+}
+
+/**
+ * Creates GET, PUT, and DELETE handlers for single entity by ID
+ */
+export function createSingleEntityHandlers<T = unknown>(
+  options: CrudFactoryOptions<T>,
+) {
+  const {
+    Model,
+    updateSchema,
+    entityName,
+    rateLimit: rateLimitConfig = { requests: 60, windowMs: 60_000 },
+  } = options;
+
+  /**
+   * GET handler - Fetch single entity by ID
+   */
+  async function GET(req: NextRequest, context: { params: { id: string } }) {
+    // SEC-006 FIX: Validate ObjectId format to prevent IDOR via query operators
+    const entityId = context.params.id;
+    if (!isValidObjectId(entityId)) {
+      const correlationId = crypto.randomUUID();
+      logger.warn("Invalid ObjectId format in GET request", {
+        path: req.url,
+        providedId: entityId?.slice(0, 50), // Truncate for safety
+        correlationId,
+      });
+      return createSecureResponse(
+        {
+          error: "Invalid ID format",
+          correlationId,
+        },
+        400,
+        req,
+      );
+    }
+
+    // Authentication (MUST be outside try block to properly return 401)
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch (_error) {
+      const correlationId = crypto.randomUUID();
+      logger.warn("Unauthenticated request to GET by ID endpoint", {
+        path: req.url,
+        correlationId,
+      });
+      return createSecureResponse(
+        {
+          error: "Unauthorized",
+          message: "Authentication required",
+          correlationId,
+        },
+        401,
+        req,
+      );
+    }
+
+    // Tenant context check
+    if (!user?.orgId) {
+      const correlationId = crypto.randomUUID();
+      return createSecureResponse(
+        {
+          error: "Unauthorized",
+          message: "Missing tenant context",
+          correlationId,
+        },
+        401,
+        req,
+      );
+    }
+
+    // Rate limiting
+    const clientIp = getClientIP(req);
+    const rl = rateLimit(
+      `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
+      rateLimitConfig.requests,
+      rateLimitConfig.windowMs,
+    );
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    try {
+      await connectToDatabase();
+
+      // SEC-006 FIX: Use validated ObjectId to prevent query injection
+      const query: Record<string, unknown> = { _id: new Types.ObjectId(entityId) };
+      if (user.role !== "SUPER_ADMIN") {
+        query.orgId = user.orgId;
+      }
+
+      const entity = await Model.findOne(query).lean<T | null>();
+
+      if (!entity) {
+        const correlationId = crypto.randomUUID();
+        return createSecureResponse(
+          { error: `${entityName} not found`, correlationId },
+          404,
+          req,
+        );
+      }
+
+      return createSecureResponse(entity, 200, req);
+    } catch (_error: unknown) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      const correlationId = crypto.randomUUID();
+      logger.error(`[GET /api/${entityName}/:id] Error:`, {
+        correlationId,
+        id: entityId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return createSecureResponse(
+        {
+          error: `Failed to fetch ${entityName}`,
+          correlationId,
+        },
+        500,
+        req,
+      );
+    }
+  }
+
+  /**
+   * PUT handler - Update entity by ID
+   */
+  async function PUT(req: NextRequest, context: { params: { id: string } }) {
+    // SEC-006 FIX: Validate ObjectId format to prevent IDOR via query operators
+    const entityId = context.params.id;
+    if (!isValidObjectId(entityId)) {
+      const correlationId = crypto.randomUUID();
+      logger.warn("Invalid ObjectId format in PUT request", {
+        path: req.url,
+        providedId: entityId?.slice(0, 50),
+        correlationId,
+      });
+      return createSecureResponse(
+        {
+          error: "Invalid ID format",
+          correlationId,
+        },
+        400,
+        req,
+      );
+    }
+
+    // Authentication (MUST be outside try block to properly return 401)
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch (_error) {
+      const correlationId = crypto.randomUUID();
+      logger.warn("Unauthenticated request to PUT endpoint", {
+        path: req.url,
+        correlationId,
+      });
+      return createSecureResponse(
+        {
+          error: "Unauthorized",
+          message: "Authentication required",
+          correlationId,
+        },
+        401,
+        req,
+      );
+    }
+
+    // Tenant context check
+    if (!user?.orgId) {
+      const correlationId = crypto.randomUUID();
+      return createSecureResponse(
+        {
+          error: "Unauthorized",
+          message: "Missing tenant context",
+          correlationId,
+        },
+        401,
+        req,
+      );
+    }
+
+    // Rate limiting
+    const clientIp = getClientIP(req);
+    const rl = rateLimit(
+      `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
+      rateLimitConfig.requests,
+      rateLimitConfig.windowMs,
+    );
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    try {
+      await connectToDatabase();
+
+      const body = await req.json();
+      const data = updateSchema ? updateSchema.parse(body) : body;
+
+      // Security: Strip tenant-scoping and audit fields from client payload to prevent mass assignment
+      delete data.org_id;
+      delete data.orgId;
+      delete data.tenantId;
+      delete data.createdBy;
+      delete data.updatedBy;
+
+      // SEC-006 FIX: Use validated ObjectId to prevent query injection
+      const query: Record<string, unknown> = { _id: new Types.ObjectId(entityId) };
+      if (user.role !== "SUPER_ADMIN") {
+        query.orgId = user.orgId;
+      }
+
+      const entity = await Model.findOneAndUpdate(
+        query,
+        {
+          $set: {
+            ...data,
+            updatedBy: user.id,
+            // updatedAt is handled automatically by Mongoose timestamps: true
+          },
+        },
+        { new: true, runValidators: true },
+      ).lean<T | null>();
+
+      if (!entity) {
+        const correlationId = crypto.randomUUID();
+        return createSecureResponse(
+          { error: `${entityName} not found`, correlationId },
+          404,
+          req,
+        );
+      }
+
+      return createSecureResponse(entity, 200, req);
+    } catch (_error: unknown) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      const correlationId = crypto.randomUUID();
+      logger.error(`[PUT /api/${entityName}/:id] Error:`, {
+        correlationId,
+        id: entityId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      const status = error instanceof z.ZodError ? 422 : 500;
+      return createSecureResponse(
+        {
+          error: `Failed to update ${entityName}`,
+          correlationId,
+          ...(error instanceof z.ZodError && { validation: error.issues }),
+        },
+        status,
+        req,
+      );
+    }
+  }
+
+  /**
+   * DELETE handler - Delete entity by ID
+   */
+  async function DELETE(req: NextRequest, context: { params: { id: string } }) {
+    // SEC-006 FIX: Validate ObjectId format to prevent IDOR via query operators
+    const entityId = context.params.id;
+    if (!isValidObjectId(entityId)) {
+      const correlationId = crypto.randomUUID();
+      logger.warn("Invalid ObjectId format in DELETE request", {
+        path: req.url,
+        providedId: entityId?.slice(0, 50),
+        correlationId,
+      });
+      return createSecureResponse(
+        {
+          error: "Invalid ID format",
+          correlationId,
+        },
+        400,
+        req,
+      );
+    }
+
+    // Authentication (MUST be outside try block to properly return 401)
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch (_error) {
+      const correlationId = crypto.randomUUID();
+      logger.warn("Unauthenticated request to DELETE endpoint", {
+        path: req.url,
+        correlationId,
+      });
+      return createSecureResponse(
+        {
+          error: "Unauthorized",
+          message: "Authentication required",
+          correlationId,
+        },
+        401,
+        req,
+      );
+    }
+
+    // Tenant context check
+    if (!user?.orgId) {
+      const correlationId = crypto.randomUUID();
+      return createSecureResponse(
+        {
+          error: "Unauthorized",
+          message: "Missing tenant context",
+          correlationId,
+        },
+        401,
+        req,
+      );
+    }
+
+    // Rate limiting
+    const clientIp = getClientIP(req);
+    const rl = rateLimit(
+      `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
+      rateLimitConfig.requests,
+      rateLimitConfig.windowMs,
+    );
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    try {
+      await connectToDatabase();
+
+      // SEC-006 FIX: Use validated ObjectId to prevent query injection
+      const query: Record<string, unknown> = { _id: new Types.ObjectId(entityId) };
+      if (user.role !== "SUPER_ADMIN") {
+        query.orgId = user.orgId;
+      }
+
+      const entity = await Model.findOneAndDelete(query).lean<T | null>();
+
+      if (!entity) {
+        const correlationId = crypto.randomUUID();
+        return createSecureResponse(
+          { error: `${entityName} not found`, correlationId },
+          404,
+          req,
+        );
+      }
+
+      return createSecureResponse(
+        { message: `${entityName} deleted successfully` },
+        200,
+        req,
+      );
+    } catch (_error: unknown) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      const correlationId = crypto.randomUUID();
+      logger.error(`[DELETE /api/${entityName}/:id] Error:`, {
+        correlationId,
+        id: entityId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return createSecureResponse(
+        {
+          error: `Failed to delete ${entityName}`,
+          correlationId,
+        },
+        500,
+        req,
+      );
+    }
+  }
+
+  return { GET, PUT, DELETE };
+}
+
+]]>
+</file>
+
+<file path="lib/api/http.ts">
+<![CDATA[
+/**
+ * Standardized HTTP response helpers with correlation IDs
+ * @module lib/api/http
+ */
+import { NextResponse } from "next/server";
+
+export type ErrorPayload = {
+  name?: string;
+  code?: string | number;
+  userMessage: string;
+  devMessage?: string;
+  correlationId: string;
+};
+
+/**
+ * Success response with correlation ID
+ * NOTE: correlationId is REQUIRED (no fallback) to force compile-time checks
+ */
+export function ok(
+  data: unknown,
+  ctx: { correlationId: string },
+  status = 200,
+): NextResponse {
+  // Handle arrays and primitives correctly (don't use spread on non-objects)
+  let payload: unknown;
+
+  if (Array.isArray(data)) {
+    // Wrap arrays in { items: [...] } to maintain structure
+    payload = {
+      items: data,
+      correlationId: ctx.correlationId,
+    };
+  } else if (typeof data === "object" && data !== null) {
+    // Spread objects and add correlationId
+    payload = {
+      ...(data as Record<string, unknown>),
+      correlationId: ctx.correlationId,
+    };
+  } else {
+    // Wrap primitives in { data: value }
+    payload = {
+      data,
+      correlationId: ctx.correlationId,
+    };
+  }
+
+  return NextResponse.json(payload, { status });
+}
+
+/**
+ * Error response with standardized shape
+ * NOTE: correlationId is REQUIRED (no fallback)
+ */
+export function error(
+  userMessage: string,
+  status: number,
+  ctx: { correlationId: string; code?: string; devMessage?: string },
+): NextResponse {
+  const payload: ErrorPayload = {
+    name: "Error",
+    code: ctx.code ?? status,
+    userMessage,
+    devMessage: ctx.devMessage,
+    correlationId: ctx.correlationId,
+  };
+  return NextResponse.json({ error: payload }, { status });
+}
+
+type ErrorContext = {
+  correlationId: string;
+  code?: string;
+  devMessage?: string;
+};
+
+export const badRequest = (m: string, ctx: ErrorContext) => error(m, 400, ctx);
+export const unauthorized = (m: string, ctx: ErrorContext) =>
+  error(m, 401, ctx);
+export const forbidden = (m: string, ctx: ErrorContext) => error(m, 403, ctx);
+export const notFound = (m: string, ctx: ErrorContext) => error(m, 404, ctx);
+export const serverError = (m: string, ctx: ErrorContext) => error(m, 500, ctx);
+
+]]>
+</file>
+
+<file path="lib/api/validation.ts">
+<![CDATA[
+/**
+ * Validation utilities for API routes
+ * @module lib/api/validation
+ */
+
+import mongoose from "mongoose";
+
+/**
+ * Validates MongoDB ObjectId format using Mongoose (handles both string and ObjectId types)
+ * @param id Value to validate
+ * @returns True if valid ObjectId
+ */
+export function isValidObjectIdSafe(id: unknown): boolean {
+  return mongoose.Types.ObjectId.isValid(id as string);
+}
+
+/**
+ * Clamps and validates integer within range
+ * @param n Value to clamp
+ * @param min Minimum value (default 1)
+ * @param max Maximum value (default 100)
+ * @returns Clamped integer or min if invalid
+ */
+export function clampPositiveInt(n: unknown, min = 1, max = 100): number {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return min;
+  return Math.min(Math.max(Math.floor(v), min), max);
+}
+
+/**
+ * Validation result type
+ */
+export type ValidationResult =
+  | { valid: true }
+  | { valid: false; error: string };
+
+/**
+ * Validates positive number field (with automatic coercion from strings)
+ * @param value Value to validate
+ * @param fieldName Field name for error message
+ * @returns Validation result
+ */
+export function validatePositiveNumber(
+  value: unknown,
+  fieldName: string,
+): ValidationResult {
+  // Check for empty string before coercion to avoid Number('') === 0
+  if (value === "" || value === null || value === undefined) {
+    return { valid: false, error: `${fieldName} is required` };
+  }
+
+  const num = Number(value);
+  if (!Number.isFinite(num) || num <= 0) {
+    return { valid: false, error: `${fieldName} must be a positive number` };
+  }
+  return { valid: true };
+}
+
+/**
+ * Validates non-negative integer field (with automatic coercion from strings)
+ * @param value Value to validate
+ * @param fieldName Field name for error message
+ * @returns Validation result
+ */
+export function validateNonNegativeInteger(
+  value: unknown,
+  fieldName: string,
+): ValidationResult {
+  // Check for empty string before coercion to avoid Number('') === 0
+  if (value === "" || value === null || value === undefined) {
+    return { valid: false, error: `${fieldName} is required` };
+  }
+
+  const num = Number(value);
+  if (!Number.isFinite(num) || num < 0 || !Number.isInteger(num)) {
+    return {
+      valid: false,
+      error: `${fieldName} must be a non-negative integer`,
+    };
+  }
+  return { valid: true };
+}
+
+/**
+ * Validates non-negative number field (with automatic coercion from strings)
+ * @param value Value to validate
+ * @param fieldName Field name for error message
+ * @returns Validation result
+ */
+export function validateNonNegativeNumber(
+  value: unknown,
+  fieldName: string,
+): ValidationResult {
+  // Check for empty string before coercion to avoid Number('') === 0
+  if (value === "" || value === null || value === undefined) {
+    return { valid: false, error: `${fieldName} is required` };
+  }
+
+  const num = Number(value);
+  if (!Number.isFinite(num) || num < 0) {
+    return { valid: false, error: `${fieldName} must be non-negative` };
+  }
+  return { valid: true };
+}
+
+/**
+ * Validates non-empty string field
+ * @param value Value to validate
+ * @param fieldName Field name for error message
+ * @returns Validation result
+ */
+export function validateNonEmptyString(
+  value: unknown,
+  fieldName: string,
+): ValidationResult {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return { valid: false, error: `${fieldName} must be a non-empty string` };
+  }
+  return { valid: true };
+}
+
+]]>
+</file>
+
+<file path="lib/routes/aliasMetrics.ts">
+<![CDATA[
+import fg from "fast-glob";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
+import path from "path";
+
+export type AliasRecord = {
+  module: string;
+  aliasFile: string;
+  importTarget: string;
+  resolvedPath: string | null;
+  targetExists: boolean;
+};
+
+export type ModuleStat = {
+  module: string;
+  aliases: number;
+  missing: number;
+  uniqueTargets: number;
+  targets: string[];
+};
+
+export type ReuseSummary = {
+  target: string;
+  count: number;
+  aliasFiles: string[];
+  modules: string[];
+};
+
+export type DuplicateHistoryEntry = {
+  target: string;
+  firstSeen: string;
+  lastSeen: string;
+  resolvedAt: string | null;
+  active: boolean;
+};
+
+export type RouteHealthEntry = {
+  target: string;
+  pageViews: number;
+  errorRate: number;
+};
+
+export type RouteAliasInsights = {
+  duplicateHistory: DuplicateHistoryEntry[];
+  averageResolutionDays: number | null;
+  routeHealth: RouteHealthEntry[];
+};
+
+export type RouteAliasMetrics = {
+  generatedAt: string;
+  totals: {
+    aliasFiles: number;
+    modules: number;
+    reusedTargets: number;
+    uniqueTargets: number;
+    duplicateAliases: number;
+    unresolvedAliases: number;
+  };
+  modules: ModuleStat[];
+  aliases: AliasRecord[];
+  reuse: ReuseSummary[];
+  insights?: RouteAliasInsights;
+};
+
+const aliasPattern = /export\s+\{\s*default\s*\}\s+from\s+['"]([^'"]+)['"]/;
+const suffixes = [".tsx", ".ts", ".jsx", ".js", ".mdx"];
+
+const projectRoot = process.cwd();
+const DUP_HISTORY_ENV = process.env.ROUTE_DUP_HISTORY_PATH;
+
+/**
+ * Resolve an import target string such as "@/app/hr/employees/page"
+ * to a physical file path (relative to the project root).
+ */
+function resolveImportTarget(target: string): string | null {
+  const withoutAlias = target.startsWith("@/")
+    ? target.slice(2)
+    : target.replace(/^~\//, "");
+
+  const hasExtension = /\.[a-z]+$/i.test(withoutAlias);
+  if (hasExtension) {
+    const candidate = path.join(projectRoot, withoutAlias);
+    return existsSync(candidate) ? path.relative(projectRoot, candidate) : null;
+  }
+
+  for (const suffix of suffixes) {
+    const candidate = path.join(projectRoot, withoutAlias + suffix);
+    if (existsSync(candidate)) {
+      return path.relative(projectRoot, candidate);
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Collect every alias file that follows the `export { default } from '...';` pattern
+ * within the `/app/fm` subtree (configurable via baseDir).
+ */
+export function collectAliasRecords(baseDir = "app/fm"): AliasRecord[] {
+  const files = fg.sync(`${baseDir}/**/page.tsx`, { cwd: projectRoot });
+  const records: AliasRecord[] = [];
+
+  for (const filePath of files) {
+    const contents = readFileSync(path.join(projectRoot, filePath), "utf8");
+    const match = aliasPattern.exec(contents);
+    if (!match) continue;
+
+    const moduleName = filePath.split(/[/\\]/)[2] ?? "unknown";
+    const resolvedPath = resolveImportTarget(match[1]);
+
+    records.push({
+      module: moduleName,
+      aliasFile: filePath,
+      importTarget: match[1],
+      resolvedPath,
+      targetExists: Boolean(resolvedPath),
+    });
+  }
+
+  return records;
+}
+
+export function summarizeModules(records: AliasRecord[]): ModuleStat[] {
+  type ModuleEntry = {
+    aliases: number;
+    missing: number;
+    targets: Set<string>;
+  };
+
+  const stats = new Map<string, ModuleEntry>();
+
+  for (const record of records) {
+    const key = record.module;
+    if (!stats.has(key)) {
+      stats.set(key, { aliases: 0, missing: 0, targets: new Set() });
+    }
+    const entry = stats.get(key)!;
+    entry.aliases += 1;
+    if (!record.targetExists) entry.missing += 1;
+    entry.targets.add(record.resolvedPath ?? `missing:${record.importTarget}`);
+  }
+
+  return Array.from(stats.entries())
+    .sort((a, b) => b[1].aliases - a[1].aliases)
+    .map(([module, entry]) => ({
+      module,
+      aliases: entry.aliases,
+      missing: entry.missing,
+      uniqueTargets: entry.targets.size,
+      targets: Array.from(entry.targets).sort(),
+    }));
+}
+
+export function summarizeReuse(records: AliasRecord[]): ReuseSummary[] {
+  const reuse = new Map<
+    string,
+    {
+      count: number;
+      aliasFiles: string[];
+      modules: Set<string>;
+    }
+  >();
+
+  for (const record of records) {
+    if (!record.resolvedPath) continue;
+    if (!reuse.has(record.resolvedPath)) {
+      reuse.set(record.resolvedPath, {
+        count: 0,
+        aliasFiles: [],
+        modules: new Set(),
+      });
+    }
+    const entry = reuse.get(record.resolvedPath)!;
+    entry.count += 1;
+    entry.aliasFiles.push(record.aliasFile);
+    entry.modules.add(record.module);
+  }
+
+  return Array.from(reuse.entries())
+    .filter(([, data]) => data.count > 1)
+    .sort((a, b) => b[1].count - a[1].count)
+    .map(([target, data]) => ({
+      target,
+      count: data.count,
+      aliasFiles: data.aliasFiles.sort(),
+      modules: Array.from(data.modules).sort(),
+    }));
+}
+
+function countUniqueTargets(records: AliasRecord[]): number {
+  const targets = new Set<string>();
+  for (const record of records) {
+    const key = record.resolvedPath ?? `missing:${record.importTarget}`;
+    targets.add(key);
+  }
+  return targets.size;
+}
+
+function countDuplicateAliases(reuse: ReuseSummary[]): number {
+  return reuse.reduce((total, entry) => total + (entry.count - 1), 0);
+}
+
+function countUnresolved(records: AliasRecord[]): number {
+  return records.filter((record) => !record.targetExists).length;
+}
+
+export function generateRouteAliasMetrics(
+  baseDir = "app/fm",
+): RouteAliasMetrics {
+  const records = collectAliasRecords(baseDir);
+  const modules = summarizeModules(records);
+  const reuse = summarizeReuse(records);
+  const uniqueTargets = countUniqueTargets(records);
+  const duplicateAliases = countDuplicateAliases(reuse);
+  const unresolvedAliases = countUnresolved(records);
+
+  return {
+    generatedAt: new Date().toISOString(),
+    totals: {
+      aliasFiles: records.length,
+      modules: modules.length,
+      reusedTargets: reuse.length,
+      uniqueTargets,
+      duplicateAliases,
+      unresolvedAliases,
+    },
+    modules,
+    aliases: records,
+    reuse,
+  };
+}
+
+export function readRouteAliasMetrics(
+  jsonPath: string,
+): RouteAliasMetrics | null {
+  if (!existsSync(jsonPath)) {
+    return null;
+  }
+
+  try {
+    const contents = readFileSync(jsonPath, "utf8");
+    return JSON.parse(contents) as RouteAliasMetrics;
+  } catch {
+    return null;
+  }
+}
+
+export function saveRouteAliasMetrics(
+  jsonPath: string,
+  metrics: RouteAliasMetrics,
+) {
+  mkdirSync(path.dirname(jsonPath), { recursive: true });
+  writeFileSync(jsonPath, JSON.stringify(metrics, null, 2));
+}
+
+type DuplicateHistoryMap = Record<string, DuplicateHistoryEntry>;
+
+function readDuplicateHistory(): DuplicateHistoryMap {
+  const historyPath =
+    DUP_HISTORY_ENV ||
+    path.join(projectRoot, "_artifacts/route-dup-history.json");
+  if (!existsSync(historyPath)) {
+    return {};
+  }
+
+  try {
+    const raw = readFileSync(historyPath, "utf8");
+    return JSON.parse(raw) as DuplicateHistoryMap;
+  } catch {
+    return {};
+  }
+}
+
+function saveDuplicateHistory(history: DuplicateHistoryMap) {
+  const historyPath =
+    DUP_HISTORY_ENV ||
+    path.join(projectRoot, "_artifacts/route-dup-history.json");
+  writeFileSync(historyPath, JSON.stringify(history, null, 2));
+}
+
+function calculateAverageResolutionDays(
+  history: DuplicateHistoryEntry[],
+): number | null {
+  const resolved = history.filter((entry) => !entry.active && entry.resolvedAt);
+  if (resolved.length === 0) return null;
+
+  const total = resolved.reduce((acc, entry) => {
+    if (!entry.resolvedAt) return acc;
+    const first = new Date(entry.firstSeen).getTime();
+    const resolvedAt = new Date(entry.resolvedAt).getTime();
+    return acc + Math.max(resolvedAt - first, 0);
+  }, 0);
+
+  const avgMs = total / resolved.length;
+  return Number((avgMs / (1000 * 60 * 60 * 24)).toFixed(2));
+}
+
+type EnrichOptions = {
+  routeHealth?: RouteHealthEntry[];
+};
+
+export function enrichRouteAliasMetrics(
+  metrics: RouteAliasMetrics,
+  options: EnrichOptions = {},
+): RouteAliasMetrics {
+  const existingHistory = readDuplicateHistory();
+  const updatedHistory: DuplicateHistoryMap = { ...existingHistory };
+  const activeTargets = new Set(metrics.reuse.map((entry) => entry.target));
+  const now = metrics.generatedAt;
+
+  for (const reuseEntry of metrics.reuse) {
+    const current = updatedHistory[reuseEntry.target];
+    if (current) {
+      updatedHistory[reuseEntry.target] = {
+        ...current,
+        active: true,
+        lastSeen: now,
+        resolvedAt: null,
+      };
+    } else {
+      updatedHistory[reuseEntry.target] = {
+        target: reuseEntry.target,
+        firstSeen: now,
+        lastSeen: now,
+        resolvedAt: null,
+        active: true,
+      };
+    }
+  }
+
+  for (const [target, entry] of Object.entries(updatedHistory)) {
+    if (!activeTargets.has(target) && entry.active) {
+      updatedHistory[target] = {
+        ...entry,
+        active: false,
+        resolvedAt: entry.resolvedAt ?? now,
+        lastSeen: now,
+      };
+    }
+  }
+
+  const historyEntries = Object.values(updatedHistory).sort(
+    (a, b) => new Date(a.firstSeen).getTime() - new Date(b.firstSeen).getTime(),
+  );
+  const averageResolutionDays = calculateAverageResolutionDays(historyEntries);
+
+  saveDuplicateHistory(updatedHistory);
+
+  return {
+    ...metrics,
+    insights: {
+      duplicateHistory: historyEntries,
+      averageResolutionDays,
+      routeHealth: options.routeHealth ?? [],
+    },
+  };
+}
+
+]]>
+</file>
+
+<file path="lib/routes/routeHealth.ts">
+<![CDATA[
+import { existsSync, readFileSync } from "fs";
+import path from "path";
+
+import { RouteHealthEntry } from "./aliasMetrics";
+import { logger } from "@/lib/logger";
+
+const projectRoot = process.cwd();
+const ROUTE_HEALTH_ENDPOINT = process.env.ROUTE_HEALTH_ENDPOINT;
+const ROUTE_HEALTH_TOKEN = process.env.ROUTE_HEALTH_TOKEN;
+
+async function loadFromFile(
+  filePath = path.join(projectRoot, "_artifacts/route-health.json"),
+): Promise<RouteHealthEntry[]> {
+  if (!existsSync(filePath)) {
+    return [];
+  }
+
+  try {
+    const contents = readFileSync(filePath, "utf8");
+    return JSON.parse(contents) as RouteHealthEntry[];
+  } catch {
+    return [];
+  }
+}
+
+export async function loadRouteHealthData(): Promise<RouteHealthEntry[]> {
+  if (ROUTE_HEALTH_ENDPOINT) {
+    try {
+      const response = await fetch(ROUTE_HEALTH_ENDPOINT, {
+        headers: ROUTE_HEALTH_TOKEN
+          ? { Authorization: `Bearer ${ROUTE_HEALTH_TOKEN}` }
+          : undefined,
+      });
+
+      if (response.ok) {
+        const payload = (await response.json()) as RouteHealthEntry[];
+        return payload;
+      }
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      if (process.env.NODE_ENV !== "production") {
+        logger.error("Failed to fetch route health endpoint", error, {
+          component: "routeHealth",
+          endpoint: ROUTE_HEALTH_ENDPOINT,
+        });
+      }
+    }
+  }
+
+  return loadFromFile();
+}
+
+]]>
+</file>
+
+<file path="lib/routes/webhooks.ts">
+<![CDATA[
+import { logger } from "@/lib/logger";
+
+type MetricsWebhookPayload = {
+  duplicationRate: number;
+  generatedAt: string;
+  aliasFiles: number;
+};
+
+export async function postRouteMetricsWebhook(payload: MetricsWebhookPayload) {
+  const webhookUrl = process.env.ROUTE_METRICS_SLACK_WEBHOOK;
+  const message = `Route alias duplication is down to ${payload.duplicationRate.toFixed(
+    2,
+  )}% across ${payload.aliasFiles} aliases (generated ${payload.generatedAt}).`;
+
+  if (!webhookUrl) {
+    logger.info("Route metrics webhook (dry-run)", { ...payload, message });
+    return;
+  }
+
+  try {
+    const response = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text: message,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      const err = new Error(
+        `Route metrics webhook responded with ${response.status}: ${errorText}`,
+      );
+      logger.error("Failed to post route metrics webhook", err, {
+        status: response.status,
+      });
+    }
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("Error posting route metrics webhook", error as Error);
+  }
+}
+
+]]>
+</file>
+
+<file path="lib/routes/workflowStore.ts">
+<![CDATA[
+import { existsSync, readFileSync, writeFileSync } from "fs";
+import path from "path";
+
+const projectRoot = process.cwd();
+const WORKFLOW_PATH =
+  process.env.ROUTE_ALIAS_WORKFLOW_PATH ||
+  path.join(projectRoot, "_artifacts/alias-workflow.json");
+
+export type AliasWorkflowEntry = {
+  owner: string;
+  resolved: boolean;
+  updatedAt: string;
+};
+
+export type AliasWorkflowMap = Record<string, AliasWorkflowEntry>;
+
+function ensureDefaults(entry?: AliasWorkflowEntry): AliasWorkflowEntry {
+  return (
+    entry ?? {
+      owner: "",
+      resolved: false,
+      updatedAt: new Date().toISOString(),
+    }
+  );
+}
+
+export function readAliasWorkflow(): AliasWorkflowMap {
+  if (!existsSync(WORKFLOW_PATH)) {
+    return {};
+  }
+
+  try {
+    const raw = readFileSync(WORKFLOW_PATH, "utf8");
+    const data = JSON.parse(raw) as AliasWorkflowMap;
+    return data;
+  } catch {
+    return {};
+  }
+}
+
+export function writeAliasWorkflow(map: AliasWorkflowMap) {
+  writeFileSync(WORKFLOW_PATH, JSON.stringify(map, null, 2));
+}
+
+export function upsertAliasWorkflow(
+  aliasFile: string,
+  updates: Partial<AliasWorkflowEntry>,
+): AliasWorkflowEntry {
+  const currentMap = readAliasWorkflow();
+  const baseline = ensureDefaults(currentMap[aliasFile]);
+  const next: AliasWorkflowEntry = {
+    ...baseline,
+    ...updates,
+    updatedAt: new Date().toISOString(),
+  };
+  const nextMap: AliasWorkflowMap = {
+    ...currentMap,
+    [aliasFile]: next,
+  };
+  writeAliasWorkflow(nextMap);
+  return next;
+}
+
+]]>
+</file>
+
+<file path="lib/types/route-context.ts">
+<![CDATA[
+/**
+ * Generic RouteContext type for Next.js 15 dynamic route params
+ *
+ * Next.js 15+ provides params as a Promise or direct object.
+ * Use this type with specific param shapes:
+ *
+ * @example
+ * RouteContext<{ id: string }>
+ * RouteContext<{ id: string; action: string }>
+ */
+export type RouteContext<
+  T extends Record<string, string> = Record<string, string>,
+> = {
+  params: Promise<T> | T;
+};
+
+]]>
+</file>
+
+<file path="public/api-mock/route-metrics.json">
+<![CDATA[
+{
+  "generatedAt": "2025-11-18T14:02:57.929Z",
+  "totals": {
+    "aliasFiles": 48,
+    "modules": 14,
+    "reusedTargets": 12,
+    "uniqueTargets": 32,
+    "duplicateAliases": 28,
+    "unresolvedAliases": 0
+  },
+  "modules": [
+    {
+      "module": "admin",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": ["app/admin/page.tsx"]
+    },
+    {
+      "module": "administration",
+      "aliases": 2,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": ["app/administration/page.tsx", "app/administration/page.tsx"]
+    },
+    {
+      "module": "compliance",
+      "aliases": 2,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": ["app/compliance/page.tsx", "app/compliance/page.tsx"]
+    },
+    {
+      "module": "crm",
+      "aliases": 2,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": ["app/crm/page.tsx", "app/crm/page.tsx"]
+    },
+    {
+      "module": "finance",
+      "aliases": 9,
+      "missing": 0,
+      "uniqueTargets": 7,
+      "targets": [
+        "app/finance/budgets/new/page.tsx",
+        "app/fm/finance/page.tsx",
+        "app/finance/expenses/new/page.tsx",
+        "app/fm/finance/page.tsx",
+        "app/finance/invoices/new/page.tsx",
+        "app/fm/invoices/page.tsx",
+        "app/finance/payments/new/page.tsx",
+        "app/fm/finance/page.tsx",
+        "app/fm/reports/page.tsx"
+      ]
+    },
+    {
+      "module": "hr",
+      "aliases": 8,
+      "missing": 0,
+      "uniqueTargets": 4,
+      "targets": [
+        "app/hr/employees/page.tsx",
+        "app/hr/employees/page.tsx",
+        "app/hr/employees/page.tsx",
+        "app/hr/leave/page.tsx",
+        "app/hr/leave/page.tsx",
+        "app/hr/payroll/page.tsx",
+        "app/hr/payroll/page.tsx",
+        "app/hr/ats/jobs/page.tsx"
+      ]
+    },
+    {
+      "module": "invoices",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": ["app/finance/invoices/new/page.tsx"]
+    },
+    {
+      "module": "marketplace",
+      "aliases": 3,
+      "missing": 0,
+      "uniqueTargets": 3,
+      "targets": [
+        "app/marketplace/page.tsx",
+        "app/marketplace/orders/page.tsx",
+        "app/vendors/page.tsx"
+      ]
+    },
+    {
+      "module": "properties",
+      "aliases": 7,
+      "missing": 0,
+      "uniqueTargets": 5,
+      "targets": [
+        "app/properties/documents/page.tsx",
+        "app/properties/inspections/page.tsx",
+        "app/properties/inspections/page.tsx",
+        "app/properties/leases/page.tsx",
+        "app/fm/properties/page.tsx",
+        "app/properties/units/page.tsx",
+        "app/properties/units/page.tsx"
+      ]
+    },
+    {
+      "module": "reports",
+      "aliases": 2,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": ["app/fm/reports/page.tsx", "app/fm/reports/page.tsx"]
+    },
+    {
+      "module": "support",
+      "aliases": 2,
+      "missing": 0,
+      "uniqueTargets": 2,
+      "targets": ["app/support/page.tsx", "app/support/my-tickets/page.tsx"]
+    },
+    {
+      "module": "system",
+      "aliases": 3,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/system/page.tsx",
+        "app/system/page.tsx",
+        "app/system/page.tsx"
+      ]
+    },
+    {
+      "module": "tenants",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": ["app/fm/tenants/page.tsx"]
+    },
+    {
+      "module": "work-orders",
+      "aliases": 5,
+      "missing": 0,
+      "uniqueTargets": 5,
+      "targets": [
+        "app/work-orders/approvals/page.tsx",
+        "app/work-orders/board/page.tsx",
+        "app/work-orders/history/page.tsx",
+        "app/work-orders/new/page.tsx",
+        "app/work-orders/pm/page.tsx"
+      ]
+    }
+  ],
+  "reuse": [
+    {
+      "target": "app/fm/finance/page.tsx",
+      "count": 3
+    },
+    {
+      "target": "app/fm/reports/page.tsx",
+      "count": 3
+    },
+    {
+      "target": "app/hr/employees/page.tsx",
+      "count": 3
+    },
+    {
+      "target": "app/system/page.tsx",
+      "count": 3
+    },
+    {
+      "target": "app/administration/page.tsx",
+      "count": 2
+    },
+    {
+      "target": "app/compliance/page.tsx",
+      "count": 2
+    },
+    {
+      "target": "app/crm/page.tsx",
+      "count": 2
+    },
+    {
+      "target": "app/finance/invoices/new/page.tsx",
+      "count": 2
+    },
+    {
+      "target": "app/hr/leave/page.tsx",
+      "count": 2
+    },
+    {
+      "target": "app/hr/payroll/page.tsx",
+      "count": 2
+    },
+    {
+      "target": "app/properties/inspections/page.tsx",
+      "count": 2
+    },
+    {
+      "target": "app/properties/units/page.tsx",
+      "count": 2
+    }
+  ]
+}
+
+]]>
+</file>
+
+<file path="reports/route-metrics/history/route-aliases-2025-11-18T13-09-35-984Z.json">
+<![CDATA[
+{
+  "generatedAt": "2025-11-18T13:09:22.843Z",
+  "totals": {
+    "aliasFiles": 7,
+    "modules": 4,
+    "reusedTargets": 0,
+    "uniqueTargets": 7,
+    "duplicateAliases": 0,
+    "unresolvedAliases": 0
+  },
+  "modules": [
+    {
+      "module": "finance",
+      "aliases": 2,
+      "missing": 0,
+      "uniqueTargets": 2,
+      "targets": [
+        "app/fm/invoices/page.tsx",
+        "app/fm/reports/page.tsx"
+      ]
+    },
+    {
+      "module": "properties",
+      "aliases": 2,
+      "missing": 0,
+      "uniqueTargets": 2,
+      "targets": [
+        "app/properties/documents/page.tsx",
+        "app/properties/leases/page.tsx"
+      ]
+    },
+    {
+      "module": "support",
+      "aliases": 2,
+      "missing": 0,
+      "uniqueTargets": 2,
+      "targets": [
+        "app/support/my-tickets/page.tsx",
+        "app/support/page.tsx"
+      ]
+    },
+    {
+      "module": "admin",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/admin/page.tsx"
+      ]
+    }
+  ],
+  "aliases": [
+    {
+      "module": "admin",
+      "aliasFile": "app/fm/admin/page.tsx",
+      "importTarget": "@/app/admin/page",
+      "resolvedPath": "app/admin/page.tsx",
+      "targetExists": true
+    },
+    {
+      "module": "finance",
+      "aliasFile": "app/fm/finance/invoices/page.tsx",
+      "importTarget": "@/app/fm/invoices/page",
+      "resolvedPath": "app/fm/invoices/page.tsx",
+      "targetExists": true
+    },
+    {
+      "module": "finance",
+      "aliasFile": "app/fm/finance/reports/page.tsx",
+      "importTarget": "@/app/fm/reports/page",
+      "resolvedPath": "app/fm/reports/page.tsx",
+      "targetExists": true
+    },
+    {
+      "module": "properties",
+      "aliasFile": "app/fm/properties/documents/page.tsx",
+      "importTarget": "@/app/properties/documents/page",
+      "resolvedPath": "app/properties/documents/page.tsx",
+      "targetExists": true
+    },
+    {
+      "module": "properties",
+      "aliasFile": "app/fm/properties/leases/page.tsx",
+      "importTarget": "@/app/properties/leases/page",
+      "resolvedPath": "app/properties/leases/page.tsx",
+      "targetExists": true
+    },
+    {
+      "module": "support",
+      "aliasFile": "app/fm/support/escalations/new/page.tsx",
+      "importTarget": "@/app/support/page",
+      "resolvedPath": "app/support/page.tsx",
+      "targetExists": true
+    },
+    {
+      "module": "support",
+      "aliasFile": "app/fm/support/tickets/new/page.tsx",
+      "importTarget": "@/app/support/my-tickets/page",
+      "resolvedPath": "app/support/my-tickets/page.tsx",
+      "targetExists": true
+    }
+  ],
+  "reuse": [],
+  "insights": {
+    "duplicateHistory": [],
+    "averageResolutionDays": null,
+    "routeHealth": [
+      {
+        "target": "app/properties/inspections/page.tsx",
+        "pageViews": 1250,
+        "errorRate": 0.01
+      },
+      {
+        "target": "app/properties/units/page.tsx",
+        "pageViews": 980,
+        "errorRate": 0.015
+      },
+      {
+        "target": "app/finance/invoices/new/page.tsx",
+        "pageViews": 1575,
+        "errorRate": 0.02
+      },
+      {
+        "target": "app/compliance/page.tsx",
+        "pageViews": 460,
+        "errorRate": 0.03
+      },
+      {
+        "target": "app/crm/page.tsx",
+        "pageViews": 1120,
+        "errorRate": 0.012
+      },
+      {
+        "target": "app/administration/page.tsx",
+        "pageViews": 320,
+        "errorRate": 0.025
+      }
+    ]
+  }
+}
+]]>
+</file>
+
+<file path="reports/route-metrics/history/route-aliases-2025-11-18T14-01-17-864Z.json">
+<![CDATA[
+{
+  "generatedAt": "2025-11-18T14:01:17.864Z",
+  "totals": {
+    "aliasFiles": 3,
+    "modules": 2,
+    "reusedTargets": 0,
+    "uniqueTargets": 3,
+    "duplicateAliases": 0,
+    "unresolvedAliases": 0
+  },
+  "modules": [
+    {
+      "module": "finance",
+      "aliases": 2,
+      "missing": 0,
+      "uniqueTargets": 2,
+      "targets": [
+        "app/fm/invoices/page.tsx",
+        "app/fm/reports/page.tsx"
+      ]
+    },
+    {
+      "module": "admin",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/admin/page.tsx"
+      ]
+    }
+  ],
+  "aliases": [
+    {
+      "module": "admin",
+      "aliasFile": "app/fm/admin/page.tsx",
+      "importTarget": "@/app/admin/page",
+      "resolvedPath": "app/admin/page.tsx",
+      "targetExists": true
+    },
+    {
+      "module": "finance",
+      "aliasFile": "app/fm/finance/invoices/page.tsx",
+      "importTarget": "@/app/fm/invoices/page",
+      "resolvedPath": "app/fm/invoices/page.tsx",
+      "targetExists": true
+    },
+    {
+      "module": "finance",
+      "aliasFile": "app/fm/finance/reports/page.tsx",
+      "importTarget": "@/app/fm/reports/page",
+      "resolvedPath": "app/fm/reports/page.tsx",
+      "targetExists": true
+    }
+  ],
+  "reuse": [],
+  "insights": {
+    "duplicateHistory": [],
+    "averageResolutionDays": null,
+    "routeHealth": [
+      {
+        "target": "app/properties/inspections/page.tsx",
+        "pageViews": 1250,
+        "errorRate": 0.01
+      },
+      {
+        "target": "app/properties/units/page.tsx",
+        "pageViews": 980,
+        "errorRate": 0.015
+      },
+      {
+        "target": "app/finance/invoices/new/page.tsx",
+        "pageViews": 1575,
+        "errorRate": 0.02
+      },
+      {
+        "target": "app/compliance/page.tsx",
+        "pageViews": 460,
+        "errorRate": 0.03
+      },
+      {
+        "target": "app/crm/page.tsx",
+        "pageViews": 1120,
+        "errorRate": 0.012
+      },
+      {
+        "target": "app/administration/page.tsx",
+        "pageViews": 320,
+        "errorRate": 0.025
+      }
+    ]
+  }
+}
+]]>
+</file>
+
+<file path="reports/route-metrics/history/route-aliases-2025-11-18T14-02-31-433Z.json">
+<![CDATA[
+{
+  "generatedAt": "2025-11-18T14:02:31.433Z",
+  "totals": {
+    "aliasFiles": 2,
+    "modules": 2,
+    "reusedTargets": 0,
+    "uniqueTargets": 2,
+    "duplicateAliases": 0,
+    "unresolvedAliases": 0
+  },
+  "modules": [
+    {
+      "module": "invoices",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/fm/finance/invoices/page.tsx"
+      ]
+    },
+    {
+      "module": "reports",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/fm/finance/reports/page.tsx"
+      ]
+    }
+  ],
+  "aliases": [
+    {
+      "module": "invoices",
+      "aliasFile": "app/fm/invoices/page.tsx",
+      "importTarget": "@/app/fm/finance/invoices/page",
+      "resolvedPath": "app/fm/finance/invoices/page.tsx",
+      "targetExists": true
+    },
+    {
+      "module": "reports",
+      "aliasFile": "app/fm/reports/page.tsx",
+      "importTarget": "@/app/fm/finance/reports/page",
+      "resolvedPath": "app/fm/finance/reports/page.tsx",
+      "targetExists": true
+    }
+  ],
+  "reuse": [],
+  "insights": {
+    "duplicateHistory": [],
+    "averageResolutionDays": null,
+    "routeHealth": [
+      {
+        "target": "app/properties/inspections/page.tsx",
+        "pageViews": 1250,
+        "errorRate": 0.01
+      },
+      {
+        "target": "app/properties/units/page.tsx",
+        "pageViews": 980,
+        "errorRate": 0.015
+      },
+      {
+        "target": "app/finance/invoices/new/page.tsx",
+        "pageViews": 1575,
+        "errorRate": 0.02
+      },
+      {
+        "target": "app/compliance/page.tsx",
+        "pageViews": 460,
+        "errorRate": 0.03
+      },
+      {
+        "target": "app/crm/page.tsx",
+        "pageViews": 1120,
+        "errorRate": 0.012
+      },
+      {
+        "target": "app/administration/page.tsx",
+        "pageViews": 320,
+        "errorRate": 0.025
+      }
+    ]
+  }
+}
+]]>
+</file>
+
+<file path="reports/route-metrics/history/route-aliases-2025-11-18T17-20-54-211Z.json">
+<![CDATA[
+{
+  "generatedAt": "2025-11-18T17:20:54.211Z",
+  "totals": {
+    "aliasFiles": 2,
+    "modules": 2,
+    "reusedTargets": 0,
+    "uniqueTargets": 2,
+    "duplicateAliases": 0,
+    "unresolvedAliases": 0
+  },
+  "modules": [
+    {
+      "module": "invoices",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/fm/finance/invoices/page.tsx"
+      ]
+    },
+    {
+      "module": "reports",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/fm/finance/reports/page.tsx"
+      ]
+    }
+  ],
+  "aliases": [
+    {
+      "module": "invoices",
+      "aliasFile": "app/fm/invoices/page.tsx",
+      "importTarget": "@/app/fm/finance/invoices/page",
+      "resolvedPath": "app/fm/finance/invoices/page.tsx",
+      "targetExists": true
+    },
+    {
+      "module": "reports",
+      "aliasFile": "app/fm/reports/page.tsx",
+      "importTarget": "@/app/fm/finance/reports/page",
+      "resolvedPath": "app/fm/finance/reports/page.tsx",
+      "targetExists": true
+    }
+  ],
+  "reuse": [],
+  "insights": {
+    "duplicateHistory": [],
+    "averageResolutionDays": null,
+    "routeHealth": [
+      {
+        "target": "app/properties/inspections/page.tsx",
+        "pageViews": 1250,
+        "errorRate": 0.01
+      },
+      {
+        "target": "app/properties/units/page.tsx",
+        "pageViews": 980,
+        "errorRate": 0.015
+      },
+      {
+        "target": "app/finance/invoices/new/page.tsx",
+        "pageViews": 1575,
+        "errorRate": 0.02
+      },
+      {
+        "target": "app/compliance/page.tsx",
+        "pageViews": 460,
+        "errorRate": 0.03
+      },
+      {
+        "target": "app/crm/page.tsx",
+        "pageViews": 1120,
+        "errorRate": 0.012
+      },
+      {
+        "target": "app/administration/page.tsx",
+        "pageViews": 320,
+        "errorRate": 0.025
+      }
+    ]
+  }
+}
+]]>
+</file>
+
+<file path="reports/route-metrics/history/route-aliases-2025-11-18T17-22-53-413Z.json">
+<![CDATA[
+{
+  "generatedAt": "2025-11-18T17:22:53.413Z",
+  "totals": {
+    "aliasFiles": 2,
+    "modules": 2,
+    "reusedTargets": 0,
+    "uniqueTargets": 2,
+    "duplicateAliases": 0,
+    "unresolvedAliases": 0
+  },
+  "modules": [
+    {
+      "module": "invoices",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/fm/finance/invoices/page.tsx"
+      ]
+    },
+    {
+      "module": "reports",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/fm/finance/reports/page.tsx"
+      ]
+    }
+  ],
+  "aliases": [
+    {
+      "module": "invoices",
+      "aliasFile": "app/fm/invoices/page.tsx",
+      "importTarget": "@/app/fm/finance/invoices/page",
+      "resolvedPath": "app/fm/finance/invoices/page.tsx",
+      "targetExists": true
+    },
+    {
+      "module": "reports",
+      "aliasFile": "app/fm/reports/page.tsx",
+      "importTarget": "@/app/fm/finance/reports/page",
+      "resolvedPath": "app/fm/finance/reports/page.tsx",
+      "targetExists": true
+    }
+  ],
+  "reuse": [],
+  "insights": {
+    "duplicateHistory": [],
+    "averageResolutionDays": null,
+    "routeHealth": [
+      {
+        "target": "app/properties/inspections/page.tsx",
+        "pageViews": 1250,
+        "errorRate": 0.01
+      },
+      {
+        "target": "app/properties/units/page.tsx",
+        "pageViews": 980,
+        "errorRate": 0.015
+      },
+      {
+        "target": "app/finance/invoices/new/page.tsx",
+        "pageViews": 1575,
+        "errorRate": 0.02
+      },
+      {
+        "target": "app/compliance/page.tsx",
+        "pageViews": 460,
+        "errorRate": 0.03
+      },
+      {
+        "target": "app/crm/page.tsx",
+        "pageViews": 1120,
+        "errorRate": 0.012
+      },
+      {
+        "target": "app/administration/page.tsx",
+        "pageViews": 320,
+        "errorRate": 0.025
+      }
+    ]
+  }
+}
+]]>
+</file>
+
+<file path="reports/route-metrics/history/route-aliases-2025-11-19T04-31-37-501Z.json">
+<![CDATA[
+{
+  "generatedAt": "2025-11-19T04:31:37.501Z",
+  "totals": {
+    "aliasFiles": 2,
+    "modules": 2,
+    "reusedTargets": 0,
+    "uniqueTargets": 2,
+    "duplicateAliases": 0,
+    "unresolvedAliases": 0
+  },
+  "modules": [
+    {
+      "module": "invoices",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/fm/finance/invoices/page.tsx"
+      ]
+    },
+    {
+      "module": "reports",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/fm/finance/reports/page.tsx"
+      ]
+    }
+  ],
+  "aliases": [
+    {
+      "module": "invoices",
+      "aliasFile": "app/fm/invoices/page.tsx",
+      "importTarget": "@/app/fm/finance/invoices/page",
+      "resolvedPath": "app/fm/finance/invoices/page.tsx",
+      "targetExists": true
+    },
+    {
+      "module": "reports",
+      "aliasFile": "app/fm/reports/page.tsx",
+      "importTarget": "@/app/fm/finance/reports/page",
+      "resolvedPath": "app/fm/finance/reports/page.tsx",
+      "targetExists": true
+    }
+  ],
+  "reuse": [],
+  "insights": {
+    "duplicateHistory": [],
+    "averageResolutionDays": null,
+    "routeHealth": [
+      {
+        "target": "app/properties/inspections/page.tsx",
+        "pageViews": 1250,
+        "errorRate": 0.01
+      },
+      {
+        "target": "app/properties/units/page.tsx",
+        "pageViews": 980,
+        "errorRate": 0.015
+      },
+      {
+        "target": "app/finance/invoices/new/page.tsx",
+        "pageViews": 1575,
+        "errorRate": 0.02
+      },
+      {
+        "target": "app/compliance/page.tsx",
+        "pageViews": 460,
+        "errorRate": 0.03
+      },
+      {
+        "target": "app/crm/page.tsx",
+        "pageViews": 1120,
+        "errorRate": 0.012
+      },
+      {
+        "target": "app/administration/page.tsx",
+        "pageViews": 320,
+        "errorRate": 0.025
+      }
+    ]
+  }
+}
+]]>
+</file>
+
+<file path="reports/route-metrics/history/route-aliases-2025-11-19T06-27-01-226Z.json">
+<![CDATA[
+{
+  "generatedAt": "2025-11-19T06:27:01.226Z",
+  "totals": {
+    "aliasFiles": 2,
+    "modules": 2,
+    "reusedTargets": 0,
+    "uniqueTargets": 2,
+    "duplicateAliases": 0,
+    "unresolvedAliases": 0
+  },
+  "modules": [
+    {
+      "module": "invoices",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/fm/finance/invoices/page.tsx"
+      ]
+    },
+    {
+      "module": "reports",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/fm/finance/reports/page.tsx"
+      ]
+    }
+  ],
+  "aliases": [
+    {
+      "module": "invoices",
+      "aliasFile": "app/fm/invoices/page.tsx",
+      "importTarget": "@/app/fm/finance/invoices/page",
+      "resolvedPath": "app/fm/finance/invoices/page.tsx",
+      "targetExists": true
+    },
+    {
+      "module": "reports",
+      "aliasFile": "app/fm/reports/page.tsx",
+      "importTarget": "@/app/fm/finance/reports/page",
+      "resolvedPath": "app/fm/finance/reports/page.tsx",
+      "targetExists": true
+    }
+  ],
+  "reuse": [],
+  "insights": {
+    "duplicateHistory": [],
+    "averageResolutionDays": null,
+    "routeHealth": [
+      {
+        "target": "app/properties/inspections/page.tsx",
+        "pageViews": 1250,
+        "errorRate": 0.01
+      },
+      {
+        "target": "app/properties/units/page.tsx",
+        "pageViews": 980,
+        "errorRate": 0.015
+      },
+      {
+        "target": "app/finance/invoices/new/page.tsx",
+        "pageViews": 1575,
+        "errorRate": 0.02
+      },
+      {
+        "target": "app/compliance/page.tsx",
+        "pageViews": 460,
+        "errorRate": 0.03
+      },
+      {
+        "target": "app/crm/page.tsx",
+        "pageViews": 1120,
+        "errorRate": 0.012
+      },
+      {
+        "target": "app/administration/page.tsx",
+        "pageViews": 320,
+        "errorRate": 0.025
+      }
+    ]
+  }
+}
+]]>
+</file>
+
+<file path="reports/route-metrics/history/route-aliases-2025-11-21T16-59-02-295Z.json">
+<![CDATA[
+{
+  "generatedAt": "2025-11-21T16:59:02.295Z",
+  "totals": {
+    "aliasFiles": 2,
+    "modules": 2,
+    "reusedTargets": 0,
+    "uniqueTargets": 2,
+    "duplicateAliases": 0,
+    "unresolvedAliases": 0
+  },
+  "modules": [
+    {
+      "module": "invoices",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/fm/finance/invoices/page.tsx"
+      ]
+    },
+    {
+      "module": "reports",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/fm/finance/reports/page.tsx"
+      ]
+    }
+  ],
+  "aliases": [
+    {
+      "module": "invoices",
+      "aliasFile": "app/fm/invoices/page.tsx",
+      "importTarget": "@/app/fm/finance/invoices/page",
+      "resolvedPath": "app/fm/finance/invoices/page.tsx",
+      "targetExists": true
+    },
+    {
+      "module": "reports",
+      "aliasFile": "app/fm/reports/page.tsx",
+      "importTarget": "@/app/fm/finance/reports/page",
+      "resolvedPath": "app/fm/finance/reports/page.tsx",
+      "targetExists": true
+    }
+  ],
+  "reuse": [],
+  "insights": {
+    "duplicateHistory": [],
+    "averageResolutionDays": null,
+    "routeHealth": [
+      {
+        "target": "app/properties/inspections/page.tsx",
+        "pageViews": 1250,
+        "errorRate": 0.01
+      },
+      {
+        "target": "app/properties/units/page.tsx",
+        "pageViews": 980,
+        "errorRate": 0.015
+      },
+      {
+        "target": "app/finance/invoices/new/page.tsx",
+        "pageViews": 1575,
+        "errorRate": 0.02
+      },
+      {
+        "target": "app/compliance/page.tsx",
+        "pageViews": 460,
+        "errorRate": 0.03
+      },
+      {
+        "target": "app/crm/page.tsx",
+        "pageViews": 1120,
+        "errorRate": 0.012
+      },
+      {
+        "target": "app/administration/page.tsx",
+        "pageViews": 320,
+        "errorRate": 0.025
+      }
+    ]
+  }
+}
+]]>
+</file>
+
+<file path="reports/route-metrics/history/route-aliases-2025-11-24T09-39-07-549Z.json">
+<![CDATA[
+{
+  "generatedAt": "2025-11-24T09:39:07.549Z",
+  "totals": {
+    "aliasFiles": 2,
+    "modules": 2,
+    "reusedTargets": 0,
+    "uniqueTargets": 2,
+    "duplicateAliases": 0,
+    "unresolvedAliases": 0
+  },
+  "modules": [
+    {
+      "module": "invoices",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/fm/finance/invoices/page.tsx"
+      ]
+    },
+    {
+      "module": "reports",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/fm/finance/reports/page.tsx"
+      ]
+    }
+  ],
+  "aliases": [
+    {
+      "module": "invoices",
+      "aliasFile": "app/fm/invoices/page.tsx",
+      "importTarget": "@/app/fm/finance/invoices/page",
+      "resolvedPath": "app/fm/finance/invoices/page.tsx",
+      "targetExists": true
+    },
+    {
+      "module": "reports",
+      "aliasFile": "app/fm/reports/page.tsx",
+      "importTarget": "@/app/fm/finance/reports/page",
+      "resolvedPath": "app/fm/finance/reports/page.tsx",
+      "targetExists": true
+    }
+  ],
+  "reuse": [],
+  "insights": {
+    "duplicateHistory": [],
+    "averageResolutionDays": null,
+    "routeHealth": []
+  }
+}
+]]>
+</file>
+
+<file path="reports/route-metrics/history/route-aliases-2025-11-24T09-39-13-892Z.json">
+<![CDATA[
+{
+  "generatedAt": "2025-11-24T09:39:13.892Z",
+  "totals": {
+    "aliasFiles": 2,
+    "modules": 2,
+    "reusedTargets": 0,
+    "uniqueTargets": 2,
+    "duplicateAliases": 0,
+    "unresolvedAliases": 0
+  },
+  "modules": [
+    {
+      "module": "invoices",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/fm/finance/invoices/page.tsx"
+      ]
+    },
+    {
+      "module": "reports",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/fm/finance/reports/page.tsx"
+      ]
+    }
+  ],
+  "aliases": [
+    {
+      "module": "invoices",
+      "aliasFile": "app/fm/invoices/page.tsx",
+      "importTarget": "@/app/fm/finance/invoices/page",
+      "resolvedPath": "app/fm/finance/invoices/page.tsx",
+      "targetExists": true
+    },
+    {
+      "module": "reports",
+      "aliasFile": "app/fm/reports/page.tsx",
+      "importTarget": "@/app/fm/finance/reports/page",
+      "resolvedPath": "app/fm/finance/reports/page.tsx",
+      "targetExists": true
+    }
+  ],
+  "reuse": [],
+  "insights": {
+    "duplicateHistory": [],
+    "averageResolutionDays": null,
+    "routeHealth": []
+  }
+}
+]]>
+</file>
+
+<file path="reports/route-metrics/history/route-aliases-2025-11-24T14-18-18-424Z.json">
+<![CDATA[
+{
+  "generatedAt": "2025-11-24T14:18:18.424Z",
+  "totals": {
+    "aliasFiles": 2,
+    "modules": 2,
+    "reusedTargets": 0,
+    "uniqueTargets": 2,
+    "duplicateAliases": 0,
+    "unresolvedAliases": 0
+  },
+  "modules": [
+    {
+      "module": "invoices",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/fm/finance/invoices/page.tsx"
+      ]
+    },
+    {
+      "module": "reports",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/fm/finance/reports/page.tsx"
+      ]
+    }
+  ],
+  "aliases": [
+    {
+      "module": "invoices",
+      "aliasFile": "app/fm/invoices/page.tsx",
+      "importTarget": "@/app/fm/finance/invoices/page",
+      "resolvedPath": "app/fm/finance/invoices/page.tsx",
+      "targetExists": true
+    },
+    {
+      "module": "reports",
+      "aliasFile": "app/fm/reports/page.tsx",
+      "importTarget": "@/app/fm/finance/reports/page",
+      "resolvedPath": "app/fm/finance/reports/page.tsx",
+      "targetExists": true
+    }
+  ],
+  "reuse": [],
+  "insights": {
+    "duplicateHistory": [],
+    "averageResolutionDays": null,
+    "routeHealth": []
+  }
+}
+]]>
+</file>
+
+<file path="reports/route-metrics/history/route-aliases-2025-11-24T14-22-10-533Z.json">
+<![CDATA[
+{
+  "generatedAt": "2025-11-24T14:22:10.533Z",
+  "totals": {
+    "aliasFiles": 2,
+    "modules": 2,
+    "reusedTargets": 0,
+    "uniqueTargets": 2,
+    "duplicateAliases": 0,
+    "unresolvedAliases": 0
+  },
+  "modules": [
+    {
+      "module": "invoices",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/fm/finance/invoices/page.tsx"
+      ]
+    },
+    {
+      "module": "reports",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/fm/finance/reports/page.tsx"
+      ]
+    }
+  ],
+  "aliases": [
+    {
+      "module": "invoices",
+      "aliasFile": "app/fm/invoices/page.tsx",
+      "importTarget": "@/app/fm/finance/invoices/page",
+      "resolvedPath": "app/fm/finance/invoices/page.tsx",
+      "targetExists": true
+    },
+    {
+      "module": "reports",
+      "aliasFile": "app/fm/reports/page.tsx",
+      "importTarget": "@/app/fm/finance/reports/page",
+      "resolvedPath": "app/fm/finance/reports/page.tsx",
+      "targetExists": true
+    }
+  ],
+  "reuse": [],
+  "insights": {
+    "duplicateHistory": [],
+    "averageResolutionDays": null,
+    "routeHealth": []
+  }
+}
+]]>
+</file>
+
+<file path="reports/route-metrics/history/route-aliases-2025-12-09T07-57-33-534Z.json">
+<![CDATA[
+{
+  "generatedAt": "2025-12-09T07:57:33.534Z",
+  "totals": {
+    "aliasFiles": 2,
+    "modules": 2,
+    "reusedTargets": 0,
+    "uniqueTargets": 2,
+    "duplicateAliases": 0,
+    "unresolvedAliases": 0
+  },
+  "modules": [
+    {
+      "module": "invoices",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/fm/finance/invoices/page.tsx"
+      ]
+    },
+    {
+      "module": "reports",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/fm/finance/reports/page.tsx"
+      ]
+    }
+  ],
+  "aliases": [
+    {
+      "module": "invoices",
+      "aliasFile": "app/fm/invoices/page.tsx",
+      "importTarget": "@/app/fm/finance/invoices/page",
+      "resolvedPath": "app/fm/finance/invoices/page.tsx",
+      "targetExists": true
+    },
+    {
+      "module": "reports",
+      "aliasFile": "app/fm/reports/page.tsx",
+      "importTarget": "@/app/fm/finance/reports/page",
+      "resolvedPath": "app/fm/finance/reports/page.tsx",
+      "targetExists": true
+    }
+  ],
+  "reuse": [],
+  "insights": {
+    "duplicateHistory": [],
+    "averageResolutionDays": null,
+    "routeHealth": []
+  }
+}
+]]>
+</file>
+
+<file path="scripts/apply-auth-to-routes.js">
+<![CDATA[
+const fs = require("fs");
+const path = require("path");
+
+/**
+ * Apply authentication middleware to all unprotected routes
+ * Addresses 109 security vulnerabilities from audit
+ */
+
+let modifiedFiles = 0;
+let routesFixed = 0;
+
+function applyAuthToRoutes(directory) {
+  if (!fs.existsSync(directory)) {
+    console.log(`Directory ${directory} does not exist, skipping...`);
+    return;
+  }
+
+  const files = fs.readdirSync(directory);
+
+  files.forEach((file) => {
+    const fullPath = path.join(directory, file);
+    const stat = fs.statSync(fullPath);
+
+    if (
+      stat.isDirectory() &&
+      !fullPath.includes("node_modules") &&
+      !fullPath.includes(".git")
+    ) {
+      applyAuthToRoutes(fullPath);
+    } else if (file.endsWith(".js") && file !== "auth.js") {
+      let content = fs.readFileSync(fullPath, "utf8");
+      const _originalContent = content;
+
+      // Skip if already has enhanced auth
+      if (
+        content.includes("enhancedAuth") ||
+        content.includes("middleware/enhancedAuth")
+      ) {
+        return;
+      }
+
+      let fileModifications = 0;
+
+      // Add enhanced auth middleware import
+      if (
+        !content.includes("require('../middleware/enhancedAuth')") &&
+        content.includes("express")
+      ) {
+        const routerMatch = content.match(
+          /const router = (require('express')\.Router()|express\.Router())/,
+        );
+        if (routerMatch) {
+          content = content.replace(
+            routerMatch[0],
+            `${routerMatch[0]}\nconst { authenticate, authorize, ensureTenantIsolation } = require('../middleware/enhancedAuth');\nconst asyncHandler = require('../utils/asyncHandler');`,
+          );
+          fileModifications++;
+        }
+      }
+
+      // Apply global authentication middleware
+      if (
+        !content.includes("router.use(authenticate)") &&
+        content.includes("const router")
+      ) {
+        // Find position after router declaration
+        const routerDeclaration = content.match(/const router = .*\n/);
+        if (routerDeclaration) {
+          content = content.replace(
+            routerDeclaration[0],
+            `${routerDeclaration[0]}\n// Apply authentication to all routes\nrouter.use(authenticate);\nrouter.use(ensureTenantIsolation);\n`,
+          );
+          fileModifications++;
+        }
+      }
+
+      // Wrap async route handlers with asyncHandler
+      const routeHandlerRegex =
+        /router\.(get|post|put|delete|patch)((.*?),\s*async\s*((req,\s*res)(\,\s*next)?)\s*=>\s*{/g;
+      let match;
+      while ((match = routeHandlerRegex.exec(content)) !== null) {
+        const method = match[1];
+        const routeParams = match[2];
+        const _funcParams = match[3];
+        const nextParam = match[4] || "";
+
+        // Replace with asyncHandler wrapper
+        const replacement = `router.${method}(${routeParams}, asyncHandler(async (req, res${nextParam}) => {`;
+        content = content.replace(match[0], replacement);
+        fileModifications++;
+      }
+
+      // Add role-based authorization to sensitive endpoints
+      const sensitiveEndpoints = [
+        {
+          pattern: /router\.delete(/g,
+          roles: "authorize(['admin', 'manager'])",
+        },
+        {
+          pattern: /router\.post([^,]*admin[^,]*/g,
+          roles: "authorize(['admin'])",
+        },
+        {
+          pattern: /router\.put([^,]*admin[^,]*/g,
+          roles: "authorize(['admin'])",
+        },
+        {
+          pattern: /router\.(get|post|put)([^,]*\/users[^,]*/g,
+          roles: "authorize(['admin', 'hr'])",
+        },
+        {
+          pattern: /router\.(post|put|delete)([^,]*\/properties[^,]*/g,
+          roles: "authorize(['admin', 'property_owner', 'property_manager'])",
+        },
+      ];
+
+      sensitiveEndpoints.forEach((endpoint) => {
+        content = content.replace(endpoint.pattern, (match) => {
+          if (!match.includes("authorize(")) {
+            fileModifications++;
+            return match.replace(
+              "asyncHandler",
+              `${endpoint.roles}, asyncHandler`,
+            );
+          }
+          return match;
+        });
+      });
+
+      if (fileModifications > 0) {
+        fs.writeFileSync(fullPath, content);
+        console.log(
+          `✅ Applied ${fileModifications} security fixes to: ${fullPath}`,
+        );
+        modifiedFiles++;
+        routesFixed += fileModifications;
+      }
+    }
+  });
+}
+
+console.log("🔒 Applying authentication middleware to all routes...");
+console.log("=======================================================");
+
+// Apply authentication to all route files
+const routeDirectories = ["routes"];
+
+routeDirectories.forEach((dir) => {
+  console.log(`\n📁 Processing directory: ${dir}`);
+  applyAuthToRoutes(dir);
+});
+
+console.log("\n=======================================================");
+console.log("📊 AUTHENTICATION APPLICATION SUMMARY");
+console.log("=======================================================");
+console.log(`Files modified: ${modifiedFiles}`);
+console.log(`Security fixes applied: ${routesFixed}`);
+console.log("✅ Authentication middleware applied successfully!");
+
+if (routesFixed === 0) {
+  console.log(
+    "ℹ️  All routes already have proper authentication or were skipped",
+  );
+}
+
+]]>
+</file>
+
+<file path="scripts/archive-route-aliases.ts">
+<![CDATA[
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import path from "path";
+
+const projectRoot = process.cwd();
+const sourcePath = path.join(projectRoot, "_artifacts/route-aliases.json");
+const historyDir = path.join(projectRoot, "reports/route-metrics/history");
+
+if (!existsSync(sourcePath)) {
+  console.error(
+    "Missing _artifacts/route-aliases.json. Run npm run check:route-aliases:json first.",
+  );
+  process.exit(1);
+}
+
+const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+mkdirSync(historyDir, { recursive: true });
+
+const destination = path.join(historyDir, `route-aliases-${timestamp}.json`);
+const payload = readFileSync(sourcePath, "utf8");
+writeFileSync(destination, payload);
+
+console.log(
+  `Saved route alias snapshot to ${path.relative(projectRoot, destination)}`,
+);
+
+]]>
+</file>
+
+<file path="scripts/auto-enhance-routes.js">
+<![CDATA[
+#!/usr/bin/env node
+
+/**
+ * Automated API Route Enhancement Tool
+ *
+ * Systematically enhances Next.js API routes with:
+ * - Rate limiting (sensitivity-based)
+ * - OpenAPI 3.0 documentation
+ * - Standardized error handling
+ * - Security headers via createSecureResponse
+ *
+ * Usage: node scripts/auto-enhance-routes.js [route-file]
+ */
+
+const fs = require("fs");
+const _path = require("path");
+
+// Configuration
+const RATE_LIMITS = {
+  auth: { requests: 5, window: 900 }, // 5 req/15min - auth endpoints
+  payment: { requests: 10, window: 300 }, // 10 req/5min - payments
+  subscription: { requests: 3, window: 300 }, // 3 req/5min - subscriptions
+  write: { requests: 20, window: 60 }, // 20 req/min - write operations
+  read: { requests: 60, window: 60 }, // 60 req/min - read operations
+  admin: { requests: 100, window: 60 }, // 100 req/min - admin operations
+  public: { requests: 10, window: 60 }, // 10 req/min - public endpoints
+};
+
+// Import patterns to add
+const REQUIRED_IMPORTS = `import { rateLimit } from '@/server/security/rateLimit';
+import { 
+  unauthorizedError, 
+  forbiddenError, 
+  notFoundError, 
+  validationError, 
+  zodValidationError, 
+  rateLimitError, 
+  handleApiError 
+} from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';`;
+
+/**
+ * Determines rate limit category based on route path
+ */
+function _getRateLimitConfig(routePath) {
+  if (routePath.includes("/auth/")) return RATE_LIMITS.auth;
+  if (routePath.includes("/payment")) return RATE_LIMITS.payment;
+  if (routePath.includes("/subscribe")) return RATE_LIMITS.subscription;
+  if (routePath.includes("/admin/")) return RATE_LIMITS.admin;
+
+  // Check if it's a GET request (read) or POST/PUT/DELETE (write)
+  // This will be determined per method
+  return RATE_LIMITS.write; // Default
+}
+
+/**
+ * Checks if a file already has enhancements
+ */
+function isAlreadyEnhanced(content) {
+  const hasRateLimit = content.includes("rateLimit(");
+  const hasOpenAPI = content.includes("@openapi");
+  const hasSecureResponse = content.includes("createSecureResponse");
+
+  return hasRateLimit && hasOpenAPI && hasSecureResponse;
+}
+
+/**
+ * Adds imports if missing
+ */
+function addImports(content) {
+  // Check if already has our imports
+  if (content.includes("import { rateLimit }")) {
+    return content;
+  }
+
+  // Find the last import statement
+  const lines = content.split("\n");
+  let lastImportIndex = -1;
+
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].trim().startsWith("import ")) {
+      lastImportIndex = i;
+    }
+  }
+
+  if (lastImportIndex === -1) {
+    // No imports found, add at the beginning
+    return REQUIRED_IMPORTS + "\n\n" + content;
+  }
+
+  // Insert after last import
+  lines.splice(lastImportIndex + 1, 0, "", REQUIRED_IMPORTS);
+  return lines.join("\n");
+}
+
+/**
+ * Generates OpenAPI documentation for a route
+ */
+function _generateOpenAPIDoc(routePath, method, _existingJSDoc) {
+  const routeName = routePath.replace("app/api/", "").replace("/route.ts", "");
+  const tag = routeName.split("/")[0];
+
+  return `/**
+ * @openapi
+ * /api/${routeName}:
+ *   ${method.toLowerCase()}:
+ *     summary: ${method} ${routeName}
+ *     description: API endpoint for ${routeName}
+ *     tags:
+ *       - ${tag}
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ *       500:
+ *         description: Internal server error
+ */`;
+}
+
+/**
+ * Enhances a single route file
+ */
+function enhanceRoute(filePath) {
+  console.log(`\n🔧 Enhancing: ${filePath}`);
+
+  if (!fs.existsSync(filePath)) {
+    console.log(`❌ File not found: ${filePath}`);
+    return false;
+  }
+
+  let content = fs.readFileSync(filePath, "utf8");
+
+  // Check if already enhanced
+  if (isAlreadyEnhanced(content)) {
+    console.log(`✅ Already enhanced, skipping`);
+    return false;
+  }
+
+  // Add imports
+  content = addImports(content);
+
+  // Note: Full enhancement would require AST parsing
+  // For now, just add imports and flag for manual review
+
+  console.log(
+    `⚠️  Imports added, needs manual OpenAPI docs and rate limiting logic`,
+  );
+  console.log(`   Please review and add:`);
+  console.log(`   1. Rate limiting at start of handler`);
+  console.log(`   2. OpenAPI documentation above handler`);
+  console.log(`   3. Replace NextResponse.json with createSecureResponse`);
+  console.log(`   4. Replace manual errors with standardized handlers`);
+
+  return true;
+}
+
+/**
+ * Main execution
+ */
+function main() {
+  const args = process.argv.slice(2);
+
+  if (args.length === 0) {
+    console.log("❌ Usage: node scripts/auto-enhance-routes.js <route-file>");
+    console.log(
+      "   Example: node scripts/auto-enhance-routes.js app/api/work-orders/route.ts",
+    );
+    process.exit(1);
+  }
+
+  const routePath = args[0];
+  enhanceRoute(routePath);
+}
+
+if (require.main === module) {
+  main();
+}
+
+module.exports = { enhanceRoute, isAlreadyEnhanced };
+
+]]>
+</file>
+
+<file path="scripts/check-nav-routes.ts">
+<![CDATA[
+import { readFileSync, existsSync } from "fs";
+import { join } from "path";
+
+type SourceConfig = {
+  file: string;
+  description: string;
+};
+
+const PROJECT_ROOT = process.cwd();
+const ROUTE_PATTERN = /(['"])(\/[a-zA-Z0-9/_-]+)\1/g;
+const PREFIXES = ["/fm", "/marketplace", "/aqar"];
+
+const SOURCES: SourceConfig[] = [
+  { file: "nav/registry.ts", description: "FM navigation registry" },
+  { file: "config/topbar-modules.ts", description: "TopBar quick actions" },
+  { file: "app/fm/dashboard/page.tsx", description: "Dashboard quick actions" },
+];
+
+function collectRoutes() {
+  const routes = new Set<string>();
+
+  for (const source of SOURCES) {
+    const fullPath = join(PROJECT_ROOT, source.file);
+    const contents = readFileSync(fullPath, "utf8");
+    let match: RegExpExecArray | null;
+
+    while ((match = ROUTE_PATTERN.exec(contents)) !== null) {
+      const route = match[2];
+      if (!PREFIXES.some((prefix) => route.startsWith(prefix))) {
+        continue;
+      }
+      routes.add(route);
+    }
+  }
+
+  return Array.from(routes).sort();
+}
+
+function ensureRouteHasPage(route: string) {
+  const parts = route.replace(/^\/+/, "").split("/");
+  const fileLocation = join(PROJECT_ROOT, "app", ...parts, "page.tsx");
+  return existsSync(fileLocation);
+}
+
+const routes = collectRoutes();
+const missing = routes.filter((route) => !ensureRouteHasPage(route));
+
+if (missing.length > 0) {
+  console.error("❌ Navigation routes without matching page.tsx:");
+  for (const route of missing) {
+    const parts = route.replace(/^\/+/, "").split("/");
+    const path = join("app", ...parts, "page.tsx");
+    console.error(` - ${route} -> ${path}`);
+  }
+  process.exit(1);
+}
+
+console.log(
+  `✅ Verified ${routes.length} navigation routes have matching page.tsx files.`,
+);
+
+]]>
+</file>
+
+<file path="scripts/check-route-aliases.ts">
+<![CDATA[
+import path from "path";
+import { mkdirSync, writeFileSync, readdirSync, unlinkSync } from "fs";
+import {
+  generateRouteAliasMetrics,
+  saveRouteAliasMetrics,
+  RouteAliasMetrics,
+  enrichRouteAliasMetrics,
+} from "@/lib/routes/aliasMetrics";
+import { loadRouteHealthData } from "@/lib/routes/routeHealth";
+import fs from "fs";
+
+const RAW_ALIAS = "work_orders";
+const RAW_ALIAS_PATTERN = /['"]work_orders['"]/g;
+const ENFORCED_DIRS = [
+  "app/api",
+  "server",
+  "lib",
+  "config/navigation",
+  "app/fm",
+  "components",
+  "app",
+];
+const ALLOWLIST_FILES = new Set<string>([
+  // Central canonical definition of the legacy alias
+  path.join("config", "topbar-modules.ts"),
+]);
+
+type CliOptions = {
+  jsonPath: string | null;
+  history: boolean;
+};
+
+function parseArgs(): CliOptions {
+  const args = process.argv.slice(2);
+  if (args.includes("--no-json")) {
+    return { jsonPath: null, history: !args.includes("--no-history") };
+  }
+
+  const jsonFlagIndex = args.indexOf("--json");
+  if (jsonFlagIndex !== -1) {
+    const customPath = args[jsonFlagIndex + 1];
+    if (!customPath) throw new Error("--json flag requires a path argument");
+    const absolute = path.isAbsolute(customPath)
+      ? customPath
+      : path.join(process.cwd(), customPath);
+    return { jsonPath: absolute, history: !args.includes("--no-history") };
+  }
+
+  return {
+    jsonPath: path.join(process.cwd(), "_artifacts/route-aliases.json"),
+    history: !args.includes("--no-history"),
+  };
+}
+
+function logSummary(metrics: RouteAliasMetrics) {
+  console.log(`Scanned ${metrics.aliases.length} alias files under app/fm.`);
+
+  if (metrics.aliases.some((alias) => !alias.targetExists)) {
+    const missing = metrics.aliases.filter((alias) => !alias.targetExists);
+    console.error(`❌ ${missing.length} alias files point to missing targets:`);
+    for (const record of missing) {
+      console.error(` - ${record.aliasFile} -> ${record.importTarget}`);
+    }
+    process.exit(1);
+  }
+
+  console.log("✅ All alias files resolved to real target files.");
+
+  console.log("\nModule summary:");
+  for (const mod of metrics.modules) {
+    const targetWord = mod.uniqueTargets === 1 ? "target" : "targets";
+    console.log(
+      ` - ${mod.module}: ${mod.aliases} alias files, ${mod.uniqueTargets} ${targetWord} (${mod.missing} missing)`,
+    );
+  }
+
+  if (metrics.reuse.length > 0) {
+    console.log("\nMost reused targets (indicates shared implementations):");
+    for (const entry of metrics.reuse.slice(0, 10)) {
+      console.log(` - ${entry.target} ← ${entry.count} aliases`);
+    }
+  }
+
+  if (metrics.insights?.averageResolutionDays !== null) {
+    console.log(
+      `\nAvg duplication resolution time: ${metrics.insights.averageResolutionDays} days`,
+    );
+  }
+}
+
+function walkFiles(dir: string): string[] {
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  const files: string[] = [];
+  for (const entry of entries) {
+    if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...walkFiles(fullPath));
+    } else if (/\.(ts|tsx|js|jsx)$/.test(entry.name)) {
+      files.push(fullPath);
+    }
+  }
+  return files;
+}
+
+function checkWorkOrderAliasLiterals() {
+  const offenders: string[] = [];
+  for (const dir of ENFORCED_DIRS) {
+    const base = path.join(process.cwd(), dir);
+    if (!fs.existsSync(base)) continue;
+    for (const file of walkFiles(base)) {
+      const relative = path.relative(process.cwd(), file);
+      if (ALLOWLIST_FILES.has(relative)) continue;
+      const content = fs.readFileSync(file, "utf8");
+      RAW_ALIAS_PATTERN.lastIndex = 0;
+      if (RAW_ALIAS_PATTERN.test(content)) {
+        offenders.push(relative);
+      }
+    }
+  }
+
+  if (offenders.length > 0) {
+    console.error(
+      `❌ Found raw '${RAW_ALIAS}' literals in enforced directories. Use WORK_ORDERS_ENTITY or WORK_ORDERS_ENTITY_LEGACY constants instead:\n - ${offenders.join(
+        "\n - ",
+      )}`,
+    );
+    process.exit(1);
+  }
+
+  console.log(`✅ No raw '${RAW_ALIAS}' literals found in enforced directories.`);
+}
+
+const cliOptions = parseArgs();
+const HISTORY_LIMIT = Number(process.env.ROUTE_HISTORY_LIMIT ?? "120");
+
+async function main() {
+  const routeHealth = await loadRouteHealthData();
+  const metrics = enrichRouteAliasMetrics(generateRouteAliasMetrics(), {
+    routeHealth,
+  });
+  checkWorkOrderAliasLiterals();
+  logSummary(metrics);
+
+  if (cliOptions.jsonPath) {
+    saveRouteAliasMetrics(cliOptions.jsonPath, metrics);
+    console.log(
+      `\nSaved alias audit JSON to ${path.relative(process.cwd(), cliOptions.jsonPath)}`,
+    );
+  }
+
+  if (cliOptions.history) {
+    const historyDir = path.join(
+      process.cwd(),
+      "reports/route-metrics/history",
+    );
+    mkdirSync(historyDir, { recursive: true });
+    const safeTimestamp = metrics.generatedAt.replace(/[:.]/g, "-");
+    const historyPath = path.join(
+      historyDir,
+      `route-aliases-${safeTimestamp}.json`,
+    );
+    writeFileSync(historyPath, JSON.stringify(metrics, null, 2));
+    console.log(
+      `Archived snapshot to ${path.relative(process.cwd(), historyPath)}`,
+    );
+
+    const snapshots = readdirSync(historyDir)
+      .filter(
+        (file) => file.startsWith("route-aliases-") && file.endsWith(".json"),
+      )
+      .sort();
+    while (snapshots.length > HISTORY_LIMIT) {
+      const oldest = snapshots.shift();
+      if (oldest) {
+        unlinkSync(path.join(historyDir, oldest));
+      }
+    }
+  }
+}
+
+void main();
+
+]]>
+</file>
+
+<file path="scripts/check-route-references.ts">
+<![CDATA[
+import fg from "fast-glob";
+import { readFileSync, readdirSync } from "fs";
+import path from "path";
+
+type SegmentType = "static" | "dynamic" | "catchall" | "optionalCatchall";
+
+type Segment = { type: SegmentType; value: string };
+type RouteTemplate = { path: string; segments: Segment[] };
+type RouteRef = {
+  route: string;
+  file: string;
+  line: number;
+  hadTrailingSlash: boolean;
+};
+
+const PROJECT_ROOT = process.cwd();
+const APP_DIR = path.join(PROJECT_ROOT, "app");
+const ROUTE_REGEX = /(['"])(\/(?:fm|marketplace|aqar)[^'"`\s]*)\1/g;
+const TEMPLATE_LITERAL_REGEX = /`(\/(?:fm|marketplace|aqar)[^`$]*)`/g;
+const FILE_GLOBS = ["**/*.{ts,tsx,js,jsx}"];
+const IGNORE_GLOBS = [
+  "node_modules/**",
+  "**/node_modules/**",
+  ".next/**",
+  "**/.next/**",
+  "dist/**",
+  "build/**",
+  "coverage/**",
+  "_artifacts/**",
+  "playwright-report/**",
+  "docs/**",
+  "reports/**",
+  "scripts/fixtures/**",
+];
+
+function isRouteGroup(name: string) {
+  return name.startsWith("(") && name.endsWith(")");
+}
+
+function isParallelRoute(name: string) {
+  return name.startsWith("@");
+}
+
+function shouldSkipDir(name: string) {
+  if (name === "api") return true;
+  if (name.startsWith("_")) return true;
+  return false;
+}
+
+function parseSegment(name: string): Segment {
+  if (name.startsWith("[[...") && name.endsWith("]]")) {
+    return { type: "optionalCatchall", value: name.slice(4, -2) };
+  }
+  if (name.startsWith("[...") && name.endsWith("]")) {
+    return { type: "catchall", value: name.slice(4, -1) };
+  }
+  if (name.startsWith("[") && name.endsWith("]")) {
+    return { type: "dynamic", value: name.slice(1, -1) };
+  }
+  return { type: "static", value: name };
+}
+
+function collectRouteTemplates(
+  dir = APP_DIR,
+  acc: string[] = [],
+): RouteTemplate[] {
+  let templates: RouteTemplate[] = [];
+  let entries: ReturnType<typeof readdirSync> = [];
+  try {
+    entries = readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return templates;
+  }
+
+  for (const entry of entries) {
+    const currentPath = path.join(dir, entry.name);
+
+    if (entry.isDirectory()) {
+      if (isRouteGroup(entry.name) || isParallelRoute(entry.name)) {
+        templates = templates.concat(collectRouteTemplates(currentPath, acc));
+        continue;
+      }
+      if (shouldSkipDir(entry.name)) continue;
+
+      templates = templates.concat(
+        collectRouteTemplates(currentPath, [...acc, entry.name]),
+      );
+      continue;
+    }
+
+    if (!/^page\.(tsx|ts|jsx|js|mdx)$/.test(entry.name)) continue;
+    const routePath = "/" + acc.filter(Boolean).join("/");
+    templates.push({
+      path: routePath === "/" ? "/" : routePath.replace(/\/+/g, "/"),
+      segments: acc.map(parseSegment),
+    });
+  }
+
+  return templates;
+}
+
+function normalizeRoute(raw: string) {
+  if (!raw) return "/";
+  const base = raw.split(/[?#]/)[0] || "/";
+  if (base !== "/" && base.endsWith("/")) {
+    return base.slice(0, -1);
+  }
+  return base || "/";
+}
+
+function getLineNumber(source: string, index: number) {
+  return source.slice(0, index).split("\n").length;
+}
+
+function collectRouteReferences(): RouteRef[] {
+  const files = fg.sync(FILE_GLOBS, {
+    cwd: PROJECT_ROOT,
+    ignore: IGNORE_GLOBS,
+    dot: false,
+  });
+  const refs: RouteRef[] = [];
+
+  for (const file of files) {
+    const fullPath = path.join(PROJECT_ROOT, file);
+    const contents = readFileSync(fullPath, "utf8");
+
+    for (const match of contents.matchAll(ROUTE_REGEX)) {
+      const value = match[2];
+      if (!value) continue;
+      const line = getLineNumber(contents, match.index ?? 0);
+      refs.push({
+        route: value,
+        file,
+        line,
+        hadTrailingSlash: value.length > 1 && value.endsWith("/"),
+      });
+    }
+
+    for (const match of contents.matchAll(TEMPLATE_LITERAL_REGEX)) {
+      const value = match[1];
+      if (!value) continue;
+      const line = getLineNumber(contents, match.index ?? 0);
+      refs.push({
+        route: value,
+        file,
+        line,
+        hadTrailingSlash: value.length > 1 && value.endsWith("/"),
+      });
+    }
+  }
+
+  return refs;
+}
+
+function matchesTemplate(
+  template: Segment[],
+  segments: string[],
+  tIndex = 0,
+  sIndex = 0,
+): boolean {
+  if (tIndex === template.length) {
+    return sIndex === segments.length;
+  }
+
+  const seg = template[tIndex];
+  switch (seg.type) {
+    case "static":
+      if (segments[sIndex] !== seg.value) return false;
+      return matchesTemplate(template, segments, tIndex + 1, sIndex + 1);
+    case "dynamic":
+      if (sIndex >= segments.length) return false;
+      return matchesTemplate(template, segments, tIndex + 1, sIndex + 1);
+    case "catchall": {
+      if (sIndex >= segments.length) return false;
+      for (let consumed = 1; sIndex + consumed <= segments.length; consumed++) {
+        if (
+          matchesTemplate(template, segments, tIndex + 1, sIndex + consumed)
+        ) {
+          return true;
+        }
+      }
+      return false;
+    }
+    case "optionalCatchall": {
+      for (let consumed = 0; sIndex + consumed <= segments.length; consumed++) {
+        if (
+          matchesTemplate(template, segments, tIndex + 1, sIndex + consumed)
+        ) {
+          return true;
+        }
+      }
+      return false;
+    }
+    default:
+      return false;
+  }
+}
+
+function matchesDynamicPrefix(template: Segment[], literalSegments: string[]) {
+  const firstDynamicIndex = template.findIndex(
+    (segment) => segment.type !== "static",
+  );
+  if (firstDynamicIndex === -1) return false;
+  if (literalSegments.length !== firstDynamicIndex) return false;
+
+  for (let i = 0; i < firstDynamicIndex; i += 1) {
+    const seg = template[i];
+    if (seg.type !== "static" || seg.value !== literalSegments[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function routeExists(
+  route: string,
+  hadTrailingSlash: boolean,
+  templates: RouteTemplate[],
+) {
+  const clean = normalizeRoute(route);
+  if (clean === "/") return true;
+  const segments = clean.replace(/^\/+/, "").split("/").filter(Boolean);
+
+  return templates.some((template) => {
+    if (matchesTemplate(template.segments, segments)) {
+      return true;
+    }
+    return (
+      hadTrailingSlash && matchesDynamicPrefix(template.segments, segments)
+    );
+  });
+}
+
+function main() {
+  const templates = collectRouteTemplates();
+  const refs = collectRouteReferences();
+  const grouped = new Map<string, RouteRef[]>();
+
+  refs.forEach((ref) => {
+    const arr = grouped.get(ref.route) ?? [];
+    arr.push(ref);
+    grouped.set(ref.route, arr);
+  });
+
+  const missing: Array<{ normalized: string; refs: RouteRef[] }> = [];
+
+  grouped.forEach((value, route) => {
+    const normalized = normalizeRoute(route);
+    const hadTrailingSlash = value.some((ref) => ref.hadTrailingSlash);
+    if (!routeExists(route, hadTrailingSlash, templates)) {
+      missing.push({ normalized, refs: value });
+    }
+  });
+
+  if (missing.length > 0) {
+    console.error("❌ Route references without matching page implementations:");
+    for (const miss of missing) {
+      console.error(` - ${miss.normalized}`);
+      miss.refs.forEach((ref) => {
+        console.error(`    • ${ref.file}:${ref.line}`);
+      });
+    }
+    process.exit(1);
+  }
+
+  console.log(
+    `✅ Verified ${grouped.size} route references have matching page.tsx files.`,
+  );
+}
+
+main();
+
+]]>
+</file>
+
+</batch_content>

@@ -1,0 +1,3374 @@
+
+You are the "Fixzit Memory Builder" for category: "models".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "models",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="server/models/hr.models.ts">
+<![CDATA[
+/*
+ * Fixzit HR Module – Mongoose Models (MongoDB Atlas)
+ *
+ * Code Review Status: 🟢 GREEN (Production-Ready)
+ * Rating: 9.5 / 10
+ * Reviewed On: 2025-11-14 (Asia/Riyadh)
+ *
+ * MODULE PURPOSE
+ * --------------
+ * Central HR domain for Fixzit FM: technicians & employees, attendance, leave,
+ * payroll, ATS, training/certifications, and performance – all multi-tenant via
+ * orgId and tied to FM operations (Work Orders, Properties, Finance).
+ *
+ * KEY FEATURES
+ * ------------
+ * - Multi-tenant: orgId:string on every document, soft-delete flag, auditable fields.
+ * - Technician-centric Employee schema with embedded technicianProfile for dispatch.
+ * - Attendance & Leave engine with virtuals (overtime, remaining days) and validation hooks.
+ * - Payroll lines including ZATCA tax + GOSI contributions with auto netPay calculation.
+ * - ATS (JobPosting/Candidate), Training/CERT tracking with expiry awareness, Performance reviews with FM KPIs.
+ *
+ * EXPECTED OUTCOMES
+ * -----------------
+ * - Consistent data integrity for HR workflows and FM integrations.
+ * - Ready-to-use schemas for future API/service work (option B/C from Batch 2 plan).
+ * - No more ambiguity about the WorkOrder ↔ HR schema alignment.
+ */
+
+import mongoose, {
+  Schema,
+  model,
+  models,
+  Types,
+  Document,
+  Model,
+} from "mongoose";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
+import { encryptField, decryptField, isEncrypted } from "@/lib/security/encryption";
+import { logger } from "@/lib/logger";
+
+export type ObjectId = Types.ObjectId;
+
+interface BaseOrgDoc extends Document {
+  orgId: Types.ObjectId | string;
+  isDeleted: boolean;
+  createdBy?: ObjectId;
+  updatedBy?: ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Enums / const arrays (runtime safe)
+export const EMPLOYMENT_TYPES = [
+  "FULL_TIME",
+  "PART_TIME",
+  "CONTRACTOR",
+  "TEMPORARY",
+] as const;
+export type EmploymentType = (typeof EMPLOYMENT_TYPES)[number];
+
+export const EMPLOYMENT_STATUSES = [
+  "ACTIVE",
+  "ON_LEAVE",
+  "INACTIVE",
+  "TERMINATED",
+] as const;
+export type EmploymentStatus = (typeof EMPLOYMENT_STATUSES)[number];
+
+export const SHIFT_TYPES = ["MORNING", "EVENING", "NIGHT", "CUSTOM"] as const;
+export type ShiftType = (typeof SHIFT_TYPES)[number];
+
+export const ATTENDANCE_STATUSES = [
+  "PRESENT",
+  "ABSENT",
+  "LATE",
+  "ON_LEAVE",
+  "OFF",
+] as const;
+export type AttendanceStatus = (typeof ATTENDANCE_STATUSES)[number];
+
+export const LEAVE_REQUEST_STATUSES = [
+  "PENDING",
+  "APPROVED",
+  "REJECTED",
+  "CANCELLED",
+] as const;
+export type LeaveRequestStatus = (typeof LEAVE_REQUEST_STATUSES)[number];
+
+export const PAYROLL_RUN_STATUSES = [
+  "DRAFT",
+  "IN_REVIEW",
+  "APPROVED",
+  "LOCKED",
+  "EXPORTED",
+] as const;
+export type PayrollRunStatus = (typeof PAYROLL_RUN_STATUSES)[number];
+
+export const JOB_STATUSES = ["OPEN", "ON_HOLD", "CLOSED"] as const;
+export type JobStatus = (typeof JOB_STATUSES)[number];
+
+export const CANDIDATE_STAGES = [
+  "APPLIED",
+  "SCREENED",
+  "INTERVIEW",
+  "TECHNICAL_TEST",
+  "OFFER",
+  "HIRED",
+  "REJECTED",
+] as const;
+export type CandidateStage = (typeof CANDIDATE_STAGES)[number];
+
+export const PERFORMANCE_CYCLES = [
+  "ANNUAL",
+  "SEMI_ANNUAL",
+  "QUARTERLY",
+] as const;
+export type PerformanceCycle = (typeof PERFORMANCE_CYCLES)[number];
+
+// Department
+export interface DepartmentDoc extends BaseOrgDoc {
+  name: string;
+  code?: string;
+  description?: string;
+  parentDepartmentId?: ObjectId;
+}
+
+const DepartmentSchema = new Schema<DepartmentDoc>(
+  {
+    orgId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      index: true,
+      ref: "Organization",
+    },
+    name: { type: String, required: true },
+    code: { type: String },
+    description: { type: String },
+    parentDepartmentId: { type: Schema.Types.ObjectId, ref: "Department" },
+    isDeleted: { type: Boolean, default: false, index: true },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User" },
+    updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
+  },
+  { timestamps: true },
+);
+
+DepartmentSchema.index(
+  { orgId: 1, name: 1, isDeleted: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
+DepartmentSchema.plugin(tenantIsolationPlugin);
+
+export const Department: Model<DepartmentDoc> =
+  models.Department || model<DepartmentDoc>("Department", DepartmentSchema);
+
+// Employee
+interface EmployeeDocumentRecord {
+  type: string;
+  number?: string;
+  expiryDate?: Date;
+  fileId?: string;
+}
+
+export interface TechnicianProfile {
+  isTechnician: boolean;
+  skills: string[];
+  grade?: "JUNIOR" | "MID" | "SENIOR" | "SUPERVISOR";
+  regions?: string[];
+  rating?: number;
+  preferredProperties?: ObjectId[];
+  certifications?: ObjectId[];
+}
+
+interface EmployeeBankDetails {
+  iban?: string;
+  bankName?: string;
+  bankCode?: string;
+  accountNumber?: string;
+}
+
+interface EmployeeAllowance {
+  name: string;
+  amount: number;
+}
+
+export interface EmployeeCompensation {
+  baseSalary: number;
+  housingAllowance?: number;
+  transportAllowance?: number;
+  otherAllowances?: EmployeeAllowance[];
+  overtimeEligible?: boolean;
+  gosiApplicable?: boolean;
+  currency?: string;
+}
+
+export interface EmployeeDoc extends BaseOrgDoc {
+  employeeCode: string;
+  userId?: ObjectId;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone?: string;
+  nationality?: string;
+  dateOfBirth?: Date;
+  address?: string;
+  emergencyContact?: { name: string; phone: string };
+  departmentId?: ObjectId;
+  managerId?: ObjectId;
+  jobTitle: string;
+  employmentType: EmploymentType;
+  employmentStatus: EmploymentStatus;
+  hireDate: Date;
+  probationEndDate?: Date;
+  terminationDate?: Date;
+  baseSalary?: number;
+  allowanceTotal?: number;
+  currency?: string;
+  documents?: EmployeeDocumentRecord[];
+  technicianProfile?: TechnicianProfile;
+  meta?: Record<string, unknown>;
+  compensation?: EmployeeCompensation;
+  bankDetails?: EmployeeBankDetails;
+}
+
+const TechnicianProfileSchema = new Schema<TechnicianProfile>(
+  {
+    isTechnician: { type: Boolean, default: false },
+    skills: { type: [String], default: [] },
+    grade: { type: String, enum: ["JUNIOR", "MID", "SENIOR", "SUPERVISOR"] },
+    regions: { type: [String], default: [] },
+    rating: { type: Number, min: 1, max: 5 },
+    preferredProperties: [{ type: Schema.Types.ObjectId, ref: "Property" }],
+    certifications: [{ type: Schema.Types.ObjectId, ref: "Certification" }],
+  },
+  { _id: false },
+);
+
+const EmployeeSchema = new Schema<EmployeeDoc>(
+  {
+    orgId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      index: true,
+      ref: "Organization",
+    },
+    employeeCode: { type: String, required: true },
+    userId: { type: Schema.Types.ObjectId, ref: "User" },
+    firstName: { type: String, required: true },
+    lastName: { type: String, required: true },
+    email: { type: String, index: true },
+    phone: { type: String },
+    nationality: { type: String },
+    dateOfBirth: { type: Date },
+    address: { type: String },
+    emergencyContact: {
+      name: { type: String },
+      phone: { type: String },
+    },
+    departmentId: { type: Schema.Types.ObjectId, ref: "Department" },
+    managerId: { type: Schema.Types.ObjectId, ref: "Employee" },
+    jobTitle: { type: String, required: true },
+    employmentType: {
+      type: String,
+      enum: EMPLOYMENT_TYPES,
+      default: "FULL_TIME",
+    },
+    employmentStatus: {
+      type: String,
+      enum: EMPLOYMENT_STATUSES,
+      default: "ACTIVE",
+      index: true,
+    },
+    hireDate: { type: Date, required: true },
+    probationEndDate: { type: Date },
+    terminationDate: { type: Date },
+    baseSalary: { type: Number },
+    allowanceTotal: { type: Number },
+    currency: { type: String, default: "SAR" },
+    documents: [
+      {
+        type: { type: String, required: true },
+        number: { type: String },
+        expiryDate: { type: Date },
+        fileId: { type: String },
+      },
+    ],
+    compensation: {
+      baseSalary: { type: Number, default: 0 },
+      housingAllowance: { type: Number, default: 0 },
+      transportAllowance: { type: Number, default: 0 },
+      otherAllowances: [
+        {
+          name: { type: String, required: true },
+          amount: { type: Number, default: 0 },
+        },
+      ],
+      overtimeEligible: { type: Boolean, default: true },
+      gosiApplicable: { type: Boolean, default: true },
+      currency: { type: String, default: "SAR" },
+    },
+    bankDetails: {
+      iban: { type: String },
+      bankName: { type: String },
+      bankCode: { type: String },
+      accountNumber: { type: String },
+    },
+    technicianProfile: TechnicianProfileSchema,
+    isDeleted: { type: Boolean, default: false, index: true },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User" },
+    updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    meta: { type: Schema.Types.Mixed },
+  },
+  { timestamps: true },
+);
+
+EmployeeSchema.index(
+  { orgId: 1, employeeCode: 1, isDeleted: 1 },
+  { unique: true },
+);
+EmployeeSchema.index({ orgId: 1, email: 1, isDeleted: 1 });
+EmployeeSchema.index({ orgId: 1, departmentId: 1, employmentStatus: 1 });
+EmployeeSchema.index({
+  orgId: 1,
+  "technicianProfile.skills": 1,
+  employmentStatus: 1,
+});
+EmployeeSchema.plugin(tenantIsolationPlugin);
+
+// =============================================================================
+// PII ENCRYPTION MIDDLEWARE (GDPR Article 32 - Security of Processing)
+// =============================================================================
+
+/**
+ * Sensitive PII fields requiring encryption at rest
+ * 
+ * COMPLIANCE:
+ * - GDPR Article 32: Security of processing (encryption)
+ * - Saudi Labor Law: Salary confidentiality (Article 52)
+ * - ISO 27001: Cryptographic controls (A.10.1.1)
+ * 
+ * RBAC-005: HR PII Protection - Encrypt compensation and bank details
+ */
+const EMPLOYEE_ENCRYPTED_FIELDS = {
+  // Compensation data (salary confidentiality)
+  'compensation.baseSalary': 'Base Salary',
+  'compensation.housingAllowance': 'Housing Allowance',
+  'compensation.transportAllowance': 'Transport Allowance',
+  
+  // Bank account details (financial PII)
+  'bankDetails.iban': 'IBAN',
+  'bankDetails.accountNumber': 'Account Number',
+} as const;
+
+/**
+ * Pre-save hook: Encrypt sensitive PII fields before storing
+ */
+EmployeeSchema.pre('save', async function(next) {
+  // eslint-disable-next-line @typescript-eslint/no-this-alias -- Required for Mongoose hook traversal
+  const doc = this;
+  try {
+    // Only encrypt if fields are modified and not already encrypted
+    for (const [path, fieldName] of Object.entries(EMPLOYEE_ENCRYPTED_FIELDS)) {
+      const parts = path.split('.');
+      let current: any = doc;
+      
+      // Navigate to parent object
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (!current[parts[i]]) {
+          current[parts[i]] = {};
+        }
+        current = current[parts[i]];
+      }
+      
+      const field = parts[parts.length - 1];
+      const value = current[field];
+      
+      // Encrypt if value exists and is not already encrypted
+      if (value && !isEncrypted(String(value))) {
+        current[field] = encryptField(String(value), path);
+        
+        logger.info('employee:pii_encrypted', {
+          action: 'pre_save_encrypt',
+          fieldPath: path,
+          fieldName,
+          employeeId: doc._id?.toString(),
+          orgId: doc.orgId,
+        });
+      }
+    }
+    
+    next();
+  } catch (error) {
+    logger.error('employee:encryption_failed', {
+      action: 'pre_save_encrypt',
+      error: error instanceof Error ? error.message : String(error),
+      employeeId: doc._id?.toString(),
+    });
+    next(error as Error);
+  }
+});
+
+/**
+ * Post-find hooks: Decrypt sensitive PII fields after retrieval
+ * Applied to: find, findOne, findById, findOneAndUpdate
+ */
+function decryptEmployeePIIFields(doc: any) {
+  if (!doc) return;
+  
+  try {
+    for (const [path, fieldName] of Object.entries(EMPLOYEE_ENCRYPTED_FIELDS)) {
+      const parts = path.split('.');
+      let current: any = doc;
+      
+      // Navigate to parent object
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (!current[parts[i]]) {
+          break;
+        }
+        current = current[parts[i]];
+      }
+      
+      const field = parts[parts.length - 1];
+      const value = current?.[field];
+      
+      // Decrypt if value is encrypted
+      if (value && isEncrypted(String(value))) {
+        current[field] = decryptField(String(value), path);
+      }
+    }
+  } catch (error) {
+    logger.error('employee:decryption_failed', {
+      action: 'post_find_decrypt',
+      error: error instanceof Error ? error.message : String(error),
+      employeeId: doc._id?.toString(),
+    });
+    // Don't throw - return encrypted value rather than breaking app
+  }
+}
+
+// Apply decryption to various find operations
+EmployeeSchema.post('find', function(docs: any[]) {
+  if (Array.isArray(docs)) {
+    docs.forEach(decryptEmployeePIIFields);
+  }
+});
+
+EmployeeSchema.post('findOne', function(doc: any) {
+  decryptEmployeePIIFields(doc);
+});
+
+EmployeeSchema.post('findOneAndUpdate', function(doc: any) {
+  decryptEmployeePIIFields(doc);
+});
+
+// =============================================================================
+// SEC-001 FIX: Pre-findOneAndUpdate hook to encrypt PII fields during updates
+// CRITICAL: Without this, Employee.findOneAndUpdate() bypasses PII encryption
+// =============================================================================
+EmployeeSchema.pre('findOneAndUpdate', function(next) {
+  try {
+    const update = this.getUpdate() as Record<string, any>;
+    if (!update) return next();
+    
+    // Handle both $set operations and direct field updates
+    const updateData = update.$set ?? update;
+    
+    for (const [path, fieldName] of Object.entries(EMPLOYEE_ENCRYPTED_FIELDS)) {
+      // Check if this field is being updated
+      const value = updateData[path];
+      
+      if (value !== undefined && value !== null && !isEncrypted(String(value))) {
+        // Encrypt the field
+        if (update.$set) {
+          update.$set[path] = encryptField(String(value), path);
+        } else {
+          update[path] = encryptField(String(value), path);
+        }
+        
+        logger.info('employee:pii_encrypted', {
+          action: 'pre_findOneAndUpdate_encrypt',
+          fieldPath: path,
+          fieldName,
+        });
+      }
+    }
+    
+    next();
+  } catch (error) {
+    logger.error('employee:encryption_failed', {
+      action: 'pre_findOneAndUpdate_encrypt',
+      error: error instanceof Error ? error.message : String(error),
+    });
+    next(error as Error);
+  }
+});
+
+/**
+ * SEC-001 FIX: Pre-updateOne/updateMany hooks to encrypt PII fields
+ * Handles bulk update operations that bypass pre-save hooks
+ */
+EmployeeSchema.pre('updateOne', function(next) {
+  try {
+    const update = this.getUpdate() as Record<string, any>;
+    if (!update) return next();
+    
+    const updateData = update.$set ?? update;
+    
+    for (const [path, fieldName] of Object.entries(EMPLOYEE_ENCRYPTED_FIELDS)) {
+      const value = updateData[path];
+      
+      if (value !== undefined && value !== null && !isEncrypted(String(value))) {
+        if (update.$set) {
+          update.$set[path] = encryptField(String(value), path);
+        } else {
+          update[path] = encryptField(String(value), path);
+        }
+        
+        logger.info('employee:pii_encrypted', {
+          action: 'pre_updateOne_encrypt',
+          fieldPath: path,
+          fieldName,
+        });
+      }
+    }
+    
+    next();
+  } catch (error) {
+    logger.error('employee:encryption_failed', {
+      action: 'pre_updateOne_encrypt',
+      error: error instanceof Error ? error.message : String(error),
+    });
+    next(error as Error);
+  }
+});
+
+EmployeeSchema.pre('updateMany', function(next) {
+  try {
+    const update = this.getUpdate() as Record<string, any>;
+    if (!update) return next();
+    
+    const updateData = update.$set ?? update;
+    
+    for (const [path, fieldName] of Object.entries(EMPLOYEE_ENCRYPTED_FIELDS)) {
+      const value = updateData[path];
+      
+      if (value !== undefined && value !== null && !isEncrypted(String(value))) {
+        if (update.$set) {
+          update.$set[path] = encryptField(String(value), path);
+        } else {
+          update[path] = encryptField(String(value), path);
+        }
+        
+        logger.info('employee:pii_encrypted', {
+          action: 'pre_updateMany_encrypt',
+          fieldPath: path,
+          fieldName,
+        });
+      }
+    }
+    
+    next();
+  } catch (error) {
+    logger.error('employee:encryption_failed', {
+      action: 'pre_updateMany_encrypt',
+      error: error instanceof Error ? error.message : String(error),
+    });
+    next(error as Error);
+  }
+});
+
+export const Employee: Model<EmployeeDoc> =
+  models.Employee || model<EmployeeDoc>("Employee", EmployeeSchema);
+
+// ShiftTemplate
+export interface ShiftTemplateDoc extends BaseOrgDoc {
+  name: string;
+  type: ShiftType;
+  startTime: string;
+  endTime: string;
+  durationMinutes: number;
+}
+
+const ShiftTemplateSchema = new Schema<ShiftTemplateDoc>(
+  {
+    orgId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      index: true,
+      ref: "Organization",
+    },
+    name: { type: String, required: true },
+    type: { type: String, enum: SHIFT_TYPES, default: "MORNING" },
+    startTime: { type: String, required: true },
+    endTime: { type: String, required: true },
+    durationMinutes: { type: Number, required: true },
+    isDeleted: { type: Boolean, default: false, index: true },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User" },
+    updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
+  },
+  { timestamps: true },
+);
+
+ShiftTemplateSchema.index(
+  { orgId: 1, name: 1, isDeleted: 1 },
+  { unique: true },
+);
+ShiftTemplateSchema.plugin(tenantIsolationPlugin);
+
+export const ShiftTemplate: Model<ShiftTemplateDoc> =
+  models.ShiftTemplate ||
+  model<ShiftTemplateDoc>("ShiftTemplate", ShiftTemplateSchema);
+
+// AttendanceRecord
+export interface AttendanceRecordDoc extends BaseOrgDoc {
+  employeeId: ObjectId;
+  date: Date;
+  shiftTemplateId?: ObjectId;
+  status: AttendanceStatus;
+  clockIn?: Date;
+  clockOut?: Date;
+  overtimeMinutes?: number;
+  calculatedOvertime?: number;
+  source: "MANUAL" | "IMPORT" | "BIOMETRIC";
+  notes?: string;
+}
+
+const AttendanceRecordSchema = new Schema<AttendanceRecordDoc>(
+  {
+    orgId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      index: true,
+      ref: "Organization",
+    },
+    employeeId: {
+      type: Schema.Types.ObjectId,
+      ref: "Employee",
+      required: true,
+    },
+    date: { type: Date, required: true },
+    shiftTemplateId: { type: Schema.Types.ObjectId, ref: "ShiftTemplate" },
+    status: { type: String, enum: ATTENDANCE_STATUSES, required: true },
+    clockIn: { type: Date },
+    clockOut: { type: Date },
+    overtimeMinutes: { type: Number, default: 0 },
+    source: {
+      type: String,
+      enum: ["MANUAL", "IMPORT", "BIOMETRIC"],
+      default: "MANUAL",
+    },
+    notes: { type: String },
+    isDeleted: { type: Boolean, default: false, index: true },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User" },
+    updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
+  },
+  { timestamps: true },
+);
+
+AttendanceRecordSchema.index(
+  { orgId: 1, employeeId: 1, date: 1 },
+  { unique: true },
+);
+AttendanceRecordSchema.plugin(tenantIsolationPlugin);
+
+AttendanceRecordSchema.virtual("calculatedOvertime").get(function (
+  this: AttendanceRecordDoc,
+) {
+  if (this.clockIn && this.clockOut) {
+    const workedMs = this.clockOut.getTime() - this.clockIn.getTime();
+    const shiftMinutes = 8 * 60;
+    return Math.max(0, Math.floor(workedMs / 60000) - shiftMinutes);
+  }
+  return 0;
+});
+
+AttendanceRecordSchema.pre("save", function (this: AttendanceRecordDoc, next) {
+  if (this.clockOut && this.clockIn && this.clockOut <= this.clockIn) {
+    return next(new Error("clockOut must be after clockIn"));
+  }
+  this.overtimeMinutes = this.calculatedOvertime ?? 0;
+  next();
+});
+
+export const AttendanceRecord: Model<AttendanceRecordDoc> =
+  models.AttendanceRecord ||
+  model<AttendanceRecordDoc>("AttendanceRecord", AttendanceRecordSchema);
+
+// LeaveType
+export interface LeaveTypeDoc extends BaseOrgDoc {
+  code: string;
+  name: string;
+  description?: string;
+  isPaid: boolean;
+  annualEntitlementDays?: number;
+}
+
+const LeaveTypeSchema = new Schema<LeaveTypeDoc>(
+  {
+    orgId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      index: true,
+      ref: "Organization",
+    },
+    code: { type: String, required: true },
+    name: { type: String, required: true },
+    description: { type: String },
+    isPaid: { type: Boolean, default: true },
+    annualEntitlementDays: { type: Number },
+    isDeleted: { type: Boolean, default: false, index: true },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User" },
+    updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
+  },
+  { timestamps: true },
+);
+
+LeaveTypeSchema.index(
+  { orgId: 1, code: 1, isDeleted: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
+LeaveTypeSchema.plugin(tenantIsolationPlugin);
+
+export const LeaveType: Model<LeaveTypeDoc> =
+  models.LeaveType || model<LeaveTypeDoc>("LeaveType", LeaveTypeSchema);
+
+// LeaveBalance
+export interface LeaveBalanceDoc extends BaseOrgDoc {
+  employeeId: ObjectId;
+  leaveTypeId: ObjectId;
+  year: number;
+  openingBalance: number;
+  accrued: number;
+  taken: number;
+  remaining: number;
+  calculatedRemaining?: number;
+}
+
+const LeaveBalanceSchema = new Schema<LeaveBalanceDoc>(
+  {
+    orgId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      index: true,
+      ref: "Organization",
+    },
+    employeeId: {
+      type: Schema.Types.ObjectId,
+      ref: "Employee",
+      required: true,
+    },
+    leaveTypeId: {
+      type: Schema.Types.ObjectId,
+      ref: "LeaveType",
+      required: true,
+    },
+    year: { type: Number, required: true },
+    openingBalance: { type: Number, default: 0 },
+    accrued: { type: Number, default: 0 },
+    taken: { type: Number, default: 0 },
+    remaining: { type: Number, default: 0 },
+    isDeleted: { type: Boolean, default: false, index: true },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User" },
+    updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
+  },
+  { timestamps: true },
+);
+
+LeaveBalanceSchema.index(
+  { orgId: 1, employeeId: 1, leaveTypeId: 1, year: 1, isDeleted: 1 },
+  { unique: true },
+);
+LeaveBalanceSchema.plugin(tenantIsolationPlugin);
+
+LeaveBalanceSchema.virtual("calculatedRemaining").get(function (
+  this: LeaveBalanceDoc,
+) {
+  return (this.openingBalance || 0) + (this.accrued || 0) - (this.taken || 0);
+});
+
+LeaveBalanceSchema.pre("save", function (this: LeaveBalanceDoc, next) {
+  this.remaining = this.calculatedRemaining ?? 0;
+  next();
+});
+
+export const LeaveBalance: Model<LeaveBalanceDoc> =
+  models.LeaveBalance ||
+  model<LeaveBalanceDoc>("LeaveBalance", LeaveBalanceSchema);
+
+// LeaveRequest
+export interface LeaveRequestDoc extends BaseOrgDoc {
+  employeeId: ObjectId;
+  leaveTypeId: ObjectId;
+  startDate: Date;
+  endDate: Date;
+  numberOfDays: number;
+  status: LeaveRequestStatus;
+  reason?: string;
+  approverId?: ObjectId;
+  approvalHistory: {
+    approverId: ObjectId;
+    action: "APPROVED" | "REJECTED";
+    comment?: string;
+    at: Date;
+  }[];
+}
+
+const LeaveRequestSchema = new Schema<LeaveRequestDoc>(
+  {
+    orgId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      index: true,
+      ref: "Organization",
+    },
+    employeeId: {
+      type: Schema.Types.ObjectId,
+      ref: "Employee",
+      required: true,
+    },
+    leaveTypeId: {
+      type: Schema.Types.ObjectId,
+      ref: "LeaveType",
+      required: true,
+    },
+    startDate: { type: Date, required: true },
+    endDate: { type: Date, required: true },
+    numberOfDays: { type: Number, required: true },
+    status: {
+      type: String,
+      enum: LEAVE_REQUEST_STATUSES,
+      default: "PENDING",
+      index: true,
+    },
+    reason: { type: String },
+    approverId: { type: Schema.Types.ObjectId, ref: "Employee" },
+    approvalHistory: [
+      {
+        approverId: {
+          type: Schema.Types.ObjectId,
+          ref: "Employee",
+          required: true,
+        },
+        action: {
+          type: String,
+          enum: ["APPROVED", "REJECTED"],
+          required: true,
+        },
+        comment: { type: String },
+        at: { type: Date, required: true },
+      },
+    ],
+    isDeleted: { type: Boolean, default: false, index: true },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User" },
+    updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
+  },
+  { timestamps: true },
+);
+
+LeaveRequestSchema.index({ orgId: 1, employeeId: 1, startDate: 1 });
+LeaveRequestSchema.plugin(tenantIsolationPlugin);
+
+LeaveRequestSchema.pre("save", function (next) {
+  if (this.endDate <= this.startDate) {
+    return next(new Error("endDate must be after startDate"));
+  }
+  next();
+});
+
+export const LeaveRequest: Model<LeaveRequestDoc> =
+  models.LeaveRequest ||
+  model<LeaveRequestDoc>("LeaveRequest", LeaveRequestSchema);
+
+// PayrollRun
+interface PayrollComponentLine {
+  code: string;
+  name: string;
+  amount: number;
+}
+
+interface PayrollLineAllowance {
+  name: string;
+  amount: number;
+}
+
+interface PayrollLine {
+  employeeId: ObjectId;
+  employeeCode: string;
+  employeeName: string;
+  iban?: string;
+  baseSalary: number;
+  housingAllowance?: number;
+  transportAllowance?: number;
+  otherAllowances?: PayrollLineAllowance[];
+  allowances: number;
+  overtimeHours?: number;
+  overtimeAmount: number;
+  deductions: number;
+  taxDeduction: number;
+  gosiContribution: number;
+  netPay: number;
+  calculatedNetPay?: number;
+  currency: string;
+  notes?: string;
+  earnings?: PayrollComponentLine[];
+  deductionLines?: PayrollComponentLine[];
+  gosiBreakdown?: {
+    annuitiesEmployee?: number;
+    annuitiesEmployer?: number;
+    occupationalHazards?: number;
+    sanedEmployee?: number;
+    sanedEmployer?: number;
+  };
+}
+
+export interface PayrollRunDoc extends BaseOrgDoc {
+  name: string;
+  periodStart: Date;
+  periodEnd: Date;
+  status: PayrollRunStatus;
+  lines: PayrollLine[];
+  exportReference?: string;
+  employeeCount: number;
+  totals: {
+    baseSalary: number;
+    allowances: number;
+    overtime: number;
+    deductions: number;
+    gosi: number;
+    net: number;
+  };
+  calculatedAt?: Date;
+  financePosted?: boolean;
+  financeJournalId?: ObjectId;
+  financeReference?: string;
+  financePostedAt?: Date;
+}
+
+const PayrollLineSchema = new Schema<PayrollLine>(
+  {
+    employeeId: {
+      type: Schema.Types.ObjectId,
+      ref: "Employee",
+      required: true,
+    },
+    employeeCode: { type: String, required: true },
+    employeeName: { type: String, required: true },
+    iban: { type: String },
+    baseSalary: { type: Number, required: true },
+    housingAllowance: { type: Number, default: 0 },
+    transportAllowance: { type: Number, default: 0 },
+    otherAllowances: [
+      {
+        name: { type: String, required: true },
+        amount: { type: Number, default: 0 },
+      },
+    ],
+    allowances: { type: Number, default: 0 },
+    overtimeHours: { type: Number, default: 0 },
+    overtimeAmount: { type: Number, default: 0 },
+    deductions: { type: Number, default: 0 },
+    taxDeduction: { type: Number, default: 0 },
+    gosiContribution: { type: Number, default: 0 },
+    netPay: { type: Number, required: true },
+    currency: { type: String, default: "SAR" },
+    notes: { type: String },
+    earnings: [
+      {
+        code: { type: String, required: true },
+        name: { type: String, required: true },
+        amount: { type: Number, required: true },
+      },
+    ],
+    deductionLines: [
+      {
+        code: { type: String, required: true },
+        name: { type: String, required: true },
+        amount: { type: Number, required: true },
+      },
+    ],
+    gosiBreakdown: {
+      annuitiesEmployee: { type: Number, default: 0 },
+      annuitiesEmployer: { type: Number, default: 0 },
+      occupationalHazards: { type: Number, default: 0 },
+      sanedEmployee: { type: Number, default: 0 },
+      sanedEmployer: { type: Number, default: 0 },
+    },
+  },
+  { _id: false },
+);
+
+PayrollLineSchema.virtual("calculatedNetPay").get(function (this: PayrollLine) {
+  return (
+    (this.baseSalary || 0) +
+    (this.allowances || 0) +
+    (this.overtimeAmount || 0) -
+    (this.deductions || 0) -
+    (this.taxDeduction || 0) -
+    (this.gosiContribution || 0)
+  );
+});
+
+const PayrollRunSchema = new Schema<PayrollRunDoc>(
+  {
+    orgId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      index: true,
+      ref: "Organization",
+    },
+    name: { type: String, required: true },
+    periodStart: { type: Date, required: true },
+    periodEnd: { type: Date, required: true },
+    status: {
+      type: String,
+      enum: PAYROLL_RUN_STATUSES,
+      default: "DRAFT",
+      index: true,
+    },
+    lines: { type: [PayrollLineSchema], default: [] },
+    exportReference: { type: String },
+    employeeCount: { type: Number, default: 0 },
+    totals: {
+      baseSalary: { type: Number, default: 0 },
+      allowances: { type: Number, default: 0 },
+      overtime: { type: Number, default: 0 },
+      deductions: { type: Number, default: 0 },
+      gosi: { type: Number, default: 0 },
+      net: { type: Number, default: 0 },
+    },
+    calculatedAt: { type: Date },
+    financePosted: { type: Boolean, default: false, index: true },
+    financeJournalId: { type: Schema.Types.ObjectId, ref: "Journal" },
+    financeReference: { type: String },
+    financePostedAt: { type: Date },
+    isDeleted: { type: Boolean, default: false, index: true },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User" },
+    updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
+  },
+  { timestamps: true },
+);
+
+PayrollRunSchema.index({ orgId: 1, periodStart: 1, periodEnd: 1 });
+PayrollRunSchema.plugin(tenantIsolationPlugin);
+
+PayrollRunSchema.pre("save", async function (this: PayrollRunDoc, next) {
+  try {
+    // DATA-002 FIX: Encrypt sensitive payroll line data (IBAN, baseSalary, allowances)
+    // COMPLIANCE: Saudi Labor Law Article 52 (salary confidentiality)
+    const encryptedLines = await Promise.all((this.lines || []).map(async (line) => {
+      const netPay =
+        typeof line.calculatedNetPay === "number"
+          ? line.calculatedNetPay
+          : (line.netPay ?? 0);
+
+      // Encrypt IBAN if present and not already encrypted
+      let iban: string | undefined = line.iban ?? undefined;
+      if (iban && !isEncrypted(iban)) {
+        const encrypted = encryptField(iban as string, 'payroll.iban');
+        iban = encrypted ?? undefined;
+        logger.info('payroll:iban_encrypted', {
+          action: 'pre_save_encrypt',
+          employeeId: line.employeeId.toString(),
+          orgId: this.orgId,
+        });
+      }
+
+      // DATA-002 FIX: Encrypt baseSalary if not already encrypted
+      // Note: We store numeric salary as encrypted string, decrypt on read
+      let baseSalary: number | string = line.baseSalary;
+      if (typeof baseSalary === 'number' && baseSalary > 0) {
+        const salaryStr = String(baseSalary);
+        if (!isEncrypted(salaryStr)) {
+          baseSalary = encryptField(salaryStr, 'payroll.baseSalary') ?? baseSalary;
+          logger.info('payroll:baseSalary_encrypted', {
+            action: 'pre_save_encrypt',
+            employeeId: line.employeeId.toString(),
+            orgId: this.orgId,
+          });
+        }
+      }
+
+      // DATA-002 FIX: Encrypt housingAllowance and transportAllowance
+      let housingAllowance: number | string | undefined = line.housingAllowance;
+      if (typeof housingAllowance === 'number' && housingAllowance > 0) {
+        const str = String(housingAllowance);
+        if (!isEncrypted(str)) {
+          housingAllowance = encryptField(str, 'payroll.housingAllowance') ?? housingAllowance;
+        }
+      }
+
+      let transportAllowance: number | string | undefined = line.transportAllowance;
+      if (typeof transportAllowance === 'number' && transportAllowance > 0) {
+        const str = String(transportAllowance);
+        if (!isEncrypted(str)) {
+          transportAllowance = encryptField(str, 'payroll.transportAllowance') ?? transportAllowance;
+        }
+      }
+
+      return {
+        ...line,
+        iban: (iban ?? undefined) as string | undefined,
+        baseSalary: baseSalary as any, // Will be encrypted string or original number
+        housingAllowance: housingAllowance as any,
+        transportAllowance: transportAllowance as any,
+        netPay,
+      };
+    }));
+
+    this.lines = encryptedLines;
+
+    // Note: For totals calculation, we need the raw numeric values
+    // The pre-save hook runs before the encrypted values are stored
+    // So we use the original unencrypted values from `this.lines` input
+    const totals = (this.lines || []).reduce(
+      (acc, line) => {
+        // Use original numeric values for totals (before encryption)
+        const baseSal = typeof line.baseSalary === 'number' ? line.baseSalary : 0;
+        acc.baseSalary += baseSal;
+        acc.allowances += line.allowances || 0;
+        acc.overtime += line.overtimeAmount || 0;
+        acc.deductions += line.deductions || 0;
+        acc.gosi += line.gosiContribution || 0;
+        acc.net += line.netPay || 0;
+        return acc;
+      },
+      {
+        baseSalary: 0,
+        allowances: 0,
+        overtime: 0,
+        deductions: 0,
+        gosi: 0,
+        net: 0,
+      },
+    );
+
+    this.totals = {
+      baseSalary: Math.round(totals.baseSalary * 100) / 100,
+      allowances: Math.round(totals.allowances * 100) / 100,
+      overtime: Math.round(totals.overtime * 100) / 100,
+      deductions: Math.round(totals.deductions * 100) / 100,
+      gosi: Math.round(totals.gosi * 100) / 100,
+      net: Math.round(totals.net * 100) / 100,
+    };
+
+    this.employeeCount = encryptedLines.length;
+
+    next();
+  } catch (error) {
+    logger.error('payroll:encryption_failed', {
+      action: 'pre_save_encrypt',
+      error: error instanceof Error ? error.message : String(error),
+    });
+    next(error as Error);
+  }
+});
+
+/**
+ * Post-find hooks: Decrypt payroll PII fields after retrieval
+ * DATA-002 FIX: Extended to decrypt baseSalary, housingAllowance, transportAllowance
+ */
+function decryptPayrollPIIFields(doc: any) {
+  if (!doc || !doc.lines) return;
+  
+  try {
+    doc.lines = doc.lines.map((line: any) => {
+      // Decrypt IBAN
+      if (line.iban && isEncrypted(line.iban)) {
+        line.iban = decryptField(line.iban, 'payroll.iban');
+      }
+      
+      // DATA-002 FIX: Decrypt baseSalary (stored as encrypted string, return as number)
+      if (line.baseSalary && typeof line.baseSalary === 'string' && isEncrypted(line.baseSalary)) {
+        const decrypted = decryptField(line.baseSalary, 'payroll.baseSalary');
+        line.baseSalary = decrypted ? Number(decrypted) : 0;
+      }
+      
+      // DATA-002 FIX: Decrypt housingAllowance
+      if (line.housingAllowance && typeof line.housingAllowance === 'string' && isEncrypted(line.housingAllowance)) {
+        const decrypted = decryptField(line.housingAllowance, 'payroll.housingAllowance');
+        line.housingAllowance = decrypted ? Number(decrypted) : 0;
+      }
+      
+      // DATA-002 FIX: Decrypt transportAllowance
+      if (line.transportAllowance && typeof line.transportAllowance === 'string' && isEncrypted(line.transportAllowance)) {
+        const decrypted = decryptField(line.transportAllowance, 'payroll.transportAllowance');
+        line.transportAllowance = decrypted ? Number(decrypted) : 0;
+      }
+      
+      return line;
+    });
+  } catch (error) {
+    logger.error('payroll:decryption_failed', {
+      action: 'post_find_decrypt',
+      error: error instanceof Error ? error.message : String(error),
+    });
+    // Don't throw - return encrypted value rather than breaking app
+  }
+}
+
+PayrollRunSchema.post('find', function(docs: any[]) {
+  if (Array.isArray(docs)) {
+    docs.forEach(decryptPayrollPIIFields);
+  }
+});
+
+PayrollRunSchema.post('findOne', function(doc: any) {
+  decryptPayrollPIIFields(doc);
+});
+
+PayrollRunSchema.post('findOneAndUpdate', function(doc: any) {
+  decryptPayrollPIIFields(doc);
+});
+
+export type PayrollLineDoc = PayrollRunDoc["lines"][number];
+export const PayrollRun: Model<PayrollRunDoc> =
+  models.PayrollRun || model<PayrollRunDoc>("PayrollRun", PayrollRunSchema);
+
+// JobPosting
+export interface JobPostingDoc extends BaseOrgDoc {
+  title: string;
+  code?: string;
+  departmentId?: ObjectId;
+  location?: string;
+  description?: string;
+  requiredSkills: string[];
+  status: JobStatus;
+}
+
+const JobPostingSchema = new Schema<JobPostingDoc>(
+  {
+    orgId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      index: true,
+      ref: "Organization",
+    },
+    title: { type: String, required: true },
+    code: { type: String },
+    departmentId: { type: Schema.Types.ObjectId, ref: "Department" },
+    location: { type: String },
+    description: { type: String },
+    requiredSkills: { type: [String], default: [] },
+    status: { type: String, enum: JOB_STATUSES, default: "OPEN", index: true },
+    isDeleted: { type: Boolean, default: false, index: true },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User" },
+    updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
+  },
+  { timestamps: true },
+);
+
+JobPostingSchema.index({ orgId: 1, status: 1 });
+JobPostingSchema.plugin(tenantIsolationPlugin);
+
+export const JobPosting: Model<JobPostingDoc> =
+  models.JobPosting || model<JobPostingDoc>("JobPosting", JobPostingSchema);
+
+// Candidate
+export interface CandidateDoc extends BaseOrgDoc {
+  fullName: string;
+  email: string;
+  phone?: string;
+  resumeFileId?: string;
+  skills: string[];
+  experienceYears?: number;
+  expectedSalary?: number;
+  currentSalary?: number;
+  jobId: ObjectId;
+  stage: CandidateStage;
+  notes?: string;
+}
+
+const CandidateSchema = new Schema<CandidateDoc>(
+  {
+    orgId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      index: true,
+      ref: "Organization",
+    },
+    fullName: { type: String, required: true },
+    email: { type: String, required: true },
+    phone: { type: String },
+    resumeFileId: { type: String },
+    skills: { type: [String], default: [] },
+    experienceYears: { type: Number },
+    expectedSalary: { type: Number },
+    currentSalary: { type: Number },
+    jobId: { type: Schema.Types.ObjectId, ref: "JobPosting", required: true },
+    stage: {
+      type: String,
+      enum: CANDIDATE_STAGES,
+      default: "APPLIED",
+      index: true,
+    },
+    notes: { type: String },
+    isDeleted: { type: Boolean, default: false, index: true },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User" },
+    updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
+  },
+  { timestamps: true },
+);
+
+CandidateSchema.index({ orgId: 1, jobId: 1, stage: 1 });
+CandidateSchema.plugin(tenantIsolationPlugin);
+
+export const Candidate: Model<CandidateDoc> =
+  models.Candidate || model<CandidateDoc>("Candidate", CandidateSchema);
+
+// TrainingCourse
+export interface TrainingCourseDoc extends BaseOrgDoc {
+  code: string;
+  title: string;
+  description?: string;
+  durationHours?: number;
+  mandatoryForRoles?: string[];
+}
+
+const TrainingCourseSchema = new Schema<TrainingCourseDoc>(
+  {
+    orgId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      index: true,
+      ref: "Organization",
+    },
+    code: { type: String, required: true },
+    title: { type: String, required: true },
+    description: { type: String },
+    durationHours: { type: Number },
+    mandatoryForRoles: { type: [String], default: [] },
+    isDeleted: { type: Boolean, default: false, index: true },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User" },
+    updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
+  },
+  { timestamps: true },
+);
+
+TrainingCourseSchema.index(
+  { orgId: 1, code: 1, isDeleted: 1 },
+  { unique: true },
+);
+TrainingCourseSchema.plugin(tenantIsolationPlugin);
+
+export const TrainingCourse: Model<TrainingCourseDoc> =
+  models.TrainingCourse ||
+  model<TrainingCourseDoc>("TrainingCourse", TrainingCourseSchema);
+
+// TrainingSession
+export interface TrainingSessionDoc extends BaseOrgDoc {
+  courseId: ObjectId;
+  startDate: Date;
+  endDate?: Date;
+  instructor?: string;
+  location?: string;
+  participants: { employeeId: ObjectId; attended: boolean }[];
+}
+
+const TrainingSessionSchema = new Schema<TrainingSessionDoc>(
+  {
+    orgId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      index: true,
+      ref: "Organization",
+    },
+    courseId: {
+      type: Schema.Types.ObjectId,
+      ref: "TrainingCourse",
+      required: true,
+    },
+    startDate: { type: Date, required: true },
+    endDate: { type: Date },
+    instructor: { type: String },
+    location: { type: String },
+    participants: [
+      {
+        employeeId: {
+          type: Schema.Types.ObjectId,
+          ref: "Employee",
+          required: true,
+        },
+        attended: { type: Boolean, default: false },
+      },
+    ],
+    isDeleted: { type: Boolean, default: false, index: true },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User" },
+    updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
+  },
+  { timestamps: true },
+);
+
+TrainingSessionSchema.index({ orgId: 1, courseId: 1, startDate: 1 });
+TrainingSessionSchema.plugin(tenantIsolationPlugin);
+
+export const TrainingSession: Model<TrainingSessionDoc> =
+  models.TrainingSession ||
+  model<TrainingSessionDoc>("TrainingSession", TrainingSessionSchema);
+
+// Certification
+export interface CertificationDoc extends BaseOrgDoc {
+  employeeId: ObjectId;
+  name: string;
+  issuingBody?: string;
+  issueDate: Date;
+  expiryDate?: Date;
+  licenseNumber?: string;
+  fileId?: string;
+}
+
+const CertificationSchema = new Schema<CertificationDoc>(
+  {
+    orgId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      index: true,
+      ref: "Organization",
+    },
+    employeeId: {
+      type: Schema.Types.ObjectId,
+      ref: "Employee",
+      required: true,
+    },
+    name: { type: String, required: true },
+    issuingBody: { type: String },
+    issueDate: { type: Date, required: true },
+    expiryDate: { type: Date },
+    licenseNumber: { type: String },
+    fileId: { type: String },
+    isDeleted: { type: Boolean, default: false, index: true },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User" },
+    updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
+  },
+  { timestamps: true },
+);
+
+CertificationSchema.index({ orgId: 1, employeeId: 1, name: 1, issueDate: 1 });
+CertificationSchema.plugin(tenantIsolationPlugin);
+
+CertificationSchema.virtual("isExpired").get(function (this: CertificationDoc) {
+  return this.expiryDate ? this.expiryDate < new Date() : false;
+});
+
+export const Certification: Model<CertificationDoc> =
+  models.Certification ||
+  model<CertificationDoc>("Certification", CertificationSchema);
+
+// PerformanceReview
+interface PerformanceKpiSnapshot {
+  jobsCompleted?: number;
+  slaCompliance?: number;
+  reworkRate?: number;
+  customerSatisfaction?: number;
+  attendanceScore?: number;
+  workOrderRefs?: ObjectId[];
+}
+
+export interface PerformanceReviewDoc extends BaseOrgDoc {
+  employeeId: ObjectId;
+  periodStart: Date;
+  periodEnd: Date;
+  cycle: PerformanceCycle;
+  overallRating?: number;
+  managerId?: ObjectId;
+  hrOwnerId?: ObjectId;
+  ratings: { competency: string; score: number; comment?: string }[];
+  kpiSnapshot?: PerformanceKpiSnapshot;
+  employeeComments?: string;
+  managerComments?: string;
+  hrComments?: string;
+  finalized: boolean;
+}
+
+const PerformanceReviewSchema = new Schema<PerformanceReviewDoc>(
+  {
+    orgId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      index: true,
+      ref: "Organization",
+    },
+    employeeId: {
+      type: Schema.Types.ObjectId,
+      ref: "Employee",
+      required: true,
+    },
+    periodStart: { type: Date, required: true },
+    periodEnd: { type: Date, required: true },
+    cycle: { type: String, enum: PERFORMANCE_CYCLES, default: "ANNUAL" },
+    overallRating: { type: Number, min: 1, max: 5 },
+    managerId: { type: Schema.Types.ObjectId, ref: "Employee" },
+    hrOwnerId: { type: Schema.Types.ObjectId, ref: "Employee" },
+    ratings: [
+      {
+        competency: { type: String, required: true },
+        score: { type: Number, min: 1, max: 5, required: true },
+        comment: { type: String },
+      },
+    ],
+    kpiSnapshot: {
+      jobsCompleted: { type: Number },
+      slaCompliance: { type: Number },
+      reworkRate: { type: Number },
+      customerSatisfaction: { type: Number },
+      attendanceScore: { type: Number },
+      workOrderRefs: [{ type: Schema.Types.ObjectId, ref: "WorkOrder" }],
+    },
+    employeeComments: { type: String },
+    managerComments: { type: String },
+    hrComments: { type: String },
+    finalized: { type: Boolean, default: false },
+    isDeleted: { type: Boolean, default: false, index: true },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User" },
+    updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
+  },
+  { timestamps: true },
+);
+
+PerformanceReviewSchema.index({
+  orgId: 1,
+  employeeId: 1,
+  periodStart: 1,
+  periodEnd: 1,
+});
+PerformanceReviewSchema.plugin(tenantIsolationPlugin);
+
+export const PerformanceReview: Model<PerformanceReviewDoc> =
+  models.PerformanceReview ||
+  model<PerformanceReviewDoc>("PerformanceReview", PerformanceReviewSchema);
+
+]]>
+</file>
+
+<file path="server/models/marketplace/AttributeSet.ts">
+<![CDATA[
+import { Schema, model, models, Types, Model } from "mongoose";
+import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
+import { auditPlugin } from "../../plugins/auditPlugin";
+
+export interface MarketplaceAttributeDefinition {
+  key: string;
+  label: {
+    en: string;
+    ar?: string;
+  };
+  unit?: string;
+  required?: boolean;
+}
+
+export interface MarketplaceAttributeSet {
+  _id: Types.ObjectId;
+  orgId: Types.ObjectId; // This will be managed by tenantIsolationPlugin
+  title: string;
+  items: MarketplaceAttributeDefinition[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const AttributeSetSchema = new Schema<MarketplaceAttributeSet>(
+  {
+    // orgId will be added by tenantIsolationPlugin
+    title: { type: String, required: true, trim: true },
+    items: [
+      {
+        key: { type: String, required: true, trim: true },
+        label: {
+          en: { type: String, required: true, trim: true },
+          ar: { type: String, trim: true },
+        },
+        unit: { type: String, trim: true },
+        required: { type: Boolean, default: false },
+      },
+    ],
+  },
+  { timestamps: true },
+);
+
+// Apply plugins BEFORE indexes for proper tenant isolation
+AttributeSetSchema.plugin(tenantIsolationPlugin);
+AttributeSetSchema.plugin(auditPlugin);
+
+// Indexes for efficient tenant-scoped queries
+AttributeSetSchema.index({ orgId: 1 });
+AttributeSetSchema.index({ orgId: 1, title: 1 });
+
+const AttributeSetModel =
+  (models.MarketplaceAttributeSet as
+    | Model<MarketplaceAttributeSet>
+    | undefined) ||
+  model<MarketplaceAttributeSet>("MarketplaceAttributeSet", AttributeSetSchema);
+
+export default AttributeSetModel;
+
+]]>
+</file>
+
+<file path="server/models/marketplace/Category.ts">
+<![CDATA[
+import { Schema, model, models, Types, Model } from "mongoose";
+import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
+import { auditPlugin } from "../../plugins/auditPlugin";
+
+export interface MarketplaceCategory {
+  _id: Types.ObjectId;
+  orgId: Types.ObjectId; // This will be managed by tenantIsolationPlugin
+  name: {
+    en: string;
+    ar?: string;
+  };
+  slug: string;
+  parentId?: Types.ObjectId | null;
+  attrSetId?: Types.ObjectId | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const CategorySchema = new Schema<MarketplaceCategory>(
+  {
+    // orgId will be added by tenantIsolationPlugin
+    name: {
+      en: { type: String, required: true, trim: true },
+      ar: { type: String, trim: true },
+    },
+    slug: { type: String, required: true, trim: true },
+    parentId: {
+      type: Schema.Types.ObjectId,
+      default: null,
+      ref: "MarketplaceCategory",
+    },
+    attrSetId: {
+      type: Schema.Types.ObjectId,
+      default: null,
+      ref: "MarketplaceAttributeSet",
+    },
+  },
+  { timestamps: true },
+);
+
+// Apply plugins BEFORE indexes for proper tenant isolation
+CategorySchema.plugin(tenantIsolationPlugin);
+CategorySchema.plugin(auditPlugin);
+
+// All indexes MUST be tenant-scoped
+CategorySchema.index(
+  { orgId: 1, slug: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
+CategorySchema.index({ orgId: 1, parentId: 1 });
+
+const CategoryModel =
+  (models.MarketplaceCategory as Model<MarketplaceCategory> | undefined) ||
+  model<MarketplaceCategory>("MarketplaceCategory", CategorySchema);
+
+export default CategoryModel;
+
+]]>
+</file>
+
+<file path="server/models/marketplace/Order.ts">
+<![CDATA[
+import { Schema, model, models, Types, Model } from "mongoose";
+import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
+import { auditPlugin } from "../../plugins/auditPlugin";
+
+export type MarketplaceOrderStatus =
+  | "CART"
+  | "PENDING"
+  | "APPROVAL"
+  | "CONFIRMED"
+  | "FULFILLED"
+  | "DELIVERED"
+  | "CANCELLED";
+
+export interface MarketplaceOrderLine {
+  productId: Types.ObjectId;
+  qty: number;
+  price: number;
+  currency: string;
+  uom: string;
+  total: number;
+}
+
+export interface MarketplaceOrderTotals {
+  subtotal: number;
+  vat: number;
+  grand: number;
+}
+
+export interface MarketplaceShipTo {
+  address: string;
+  contact: string;
+  phone?: string;
+}
+
+export interface MarketplaceOrderSource {
+  workOrderId?: Types.ObjectId;
+}
+
+export interface MarketplaceOrder {
+  _id: Types.ObjectId;
+  orgId: Types.ObjectId; // This will be managed by tenantIsolationPlugin
+  buyerUserId: Types.ObjectId;
+  vendorId?: Types.ObjectId;
+  status: MarketplaceOrderStatus;
+  lines: MarketplaceOrderLine[];
+  totals: MarketplaceOrderTotals;
+  currency: string;
+  shipTo?: MarketplaceShipTo;
+  source?: MarketplaceOrderSource;
+  approvals?: {
+    required: boolean;
+    status: "PENDING" | "APPROVED" | "REJECTED";
+    approverIds?: Types.ObjectId[];
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const OrderSchema = new Schema<MarketplaceOrder>(
+  {
+    // orgId will be added by tenantIsolationPlugin
+    buyerUserId: { type: Schema.Types.ObjectId, required: true, ref: "User" },
+    vendorId: { type: Schema.Types.ObjectId, ref: "Vendor" },
+    status: {
+      type: String,
+      enum: [
+        "CART",
+        "PENDING",
+        "APPROVAL",
+        "CONFIRMED",
+        "FULFILLED",
+        "DELIVERED",
+        "CANCELLED",
+      ],
+      default: "CART",
+    },
+    lines: [
+      {
+        productId: {
+          type: Schema.Types.ObjectId,
+          required: true,
+          ref: "MarketplaceProduct",
+        },
+        qty: { type: Number, required: true },
+        price: { type: Number, required: true },
+        currency: { type: String, required: true },
+        uom: { type: String, required: true },
+        total: { type: Number, required: true },
+      },
+    ],
+    totals: {
+      subtotal: { type: Number, default: 0 },
+      vat: { type: Number, default: 0 },
+      grand: { type: Number, default: 0 },
+    },
+    currency: { type: String, default: "SAR" },
+    shipTo: {
+      address: { type: String },
+      contact: { type: String },
+      phone: { type: String },
+    },
+    source: {
+      workOrderId: { type: Schema.Types.ObjectId, ref: "WorkOrder" },
+    },
+    approvals: {
+      required: { type: Boolean, default: false },
+      status: {
+        type: String,
+        enum: ["PENDING", "APPROVED", "REJECTED"],
+        default: "PENDING",
+      },
+      approverIds: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    },
+  },
+  {
+    timestamps: true,
+    collection: "orders",
+    // Indexes are managed centrally in lib/db/collections.ts
+    autoIndex: false,
+  },
+);
+
+// Apply plugins BEFORE indexes for proper tenant isolation
+OrderSchema.plugin(tenantIsolationPlugin);
+OrderSchema.plugin(auditPlugin);
+
+// Schema-level indexes to mirror centralized createIndexes() definitions
+OrderSchema.index(
+  { orgId: 1, orderNumber: 1 },
+  {
+    unique: true,
+    name: "orders_orgId_orderNumber_unique",
+    partialFilterExpression: { orgId: { $exists: true }, orderNumber: { $exists: true } },
+  },
+);
+OrderSchema.index({ orgId: 1, userId: 1 }, { name: "orders_orgId_userId" });
+OrderSchema.index({ orgId: 1, status: 1 }, { name: "orders_orgId_status" });
+OrderSchema.index({ orgId: 1, createdAt: -1 }, { name: "orders_orgId_createdAt_desc" });
+
+const OrderModel =
+  (models.MarketplaceOrder as Model<MarketplaceOrder> | undefined) ||
+  model<MarketplaceOrder>("MarketplaceOrder", OrderSchema);
+
+export default OrderModel;
+
+]]>
+</file>
+
+<file path="server/models/marketplace/Product.ts">
+<![CDATA[
+import { Schema, model, models, Types, Model } from "mongoose";
+import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
+import { auditPlugin } from "../../plugins/auditPlugin";
+
+export type MarketplaceMediaRole = "GALLERY" | "MSDS" | "COA";
+
+export interface MarketplaceMedia {
+  url: string;
+  role?: MarketplaceMediaRole;
+  title?: string;
+}
+
+export interface MarketplaceBuyDetail {
+  price: number;
+  currency: string;
+  uom: string;
+  minQty?: number;
+  leadDays?: number;
+}
+
+export interface MarketplaceStockInfo {
+  onHand: number;
+  reserved: number;
+  location?: string;
+}
+
+export interface MarketplaceRating {
+  avg: number;
+  count: number;
+  distribution?: {
+    1: number;
+    2: number;
+    3: number;
+    4: number;
+    5: number;
+  };
+  lastReviewAt?: Date;
+}
+
+export interface MarketplaceProduct {
+  _id: Types.ObjectId;
+  orgId: Types.ObjectId; // This will be added by tenantIsolationPlugin
+  vendorId?: Types.ObjectId;
+  categoryId: Types.ObjectId;
+  sku: string;
+  slug: string;
+  title: { en: string; ar?: string };
+  summary?: string;
+  brand?: string;
+  standards?: string[];
+  specs: Record<string, unknown>;
+  media: MarketplaceMedia[];
+  buy: MarketplaceBuyDetail;
+  stock?: MarketplaceStockInfo;
+  rating?: MarketplaceRating;
+  status: "ACTIVE" | "DRAFT" | "ARCHIVED";
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const ProductSchema = new Schema<MarketplaceProduct>(
+  {
+    // orgId will be added by tenantIsolationPlugin
+    vendorId: { type: Schema.Types.ObjectId, ref: "Vendor" },
+    categoryId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: "MarketplaceCategory",
+    },
+    sku: { type: String, required: true, trim: true },
+    slug: { type: String, required: true, trim: true },
+    title: {
+      en: { type: String, required: true, trim: true },
+      ar: { type: String, trim: true },
+    },
+    summary: { type: String, trim: true },
+    brand: { type: String, trim: true },
+    standards: [{ type: String, trim: true }],
+    specs: { type: Schema.Types.Mixed, default: {} },
+    media: [
+      {
+        url: { type: String, required: true, trim: true },
+        role: {
+          type: String,
+          enum: ["GALLERY", "MSDS", "COA"],
+          default: "GALLERY",
+        },
+        title: { type: String, trim: true },
+      },
+    ],
+    buy: {
+      price: { type: Number, required: true },
+      currency: { type: String, required: true, trim: true },
+      uom: { type: String, required: true, trim: true },
+      minQty: { type: Number },
+      leadDays: { type: Number },
+    },
+    stock: {
+      onHand: { type: Number, default: 0 },
+      reserved: { type: Number, default: 0 },
+      location: { type: String, trim: true },
+    },
+    rating: {
+      avg: { type: Number, default: 0, min: 0, max: 5 },
+      count: { type: Number, default: 0, min: 0 },
+      distribution: {
+        1: { type: Number, default: 0 },
+        2: { type: Number, default: 0 },
+        3: { type: Number, default: 0 },
+        4: { type: Number, default: 0 },
+        5: { type: Number, default: 0 },
+      },
+      lastReviewAt: { type: Date },
+    },
+    status: {
+      type: String,
+      enum: ["ACTIVE", "DRAFT", "ARCHIVED"],
+      default: "ACTIVE",
+    },
+  },
+  {
+    timestamps: true,
+    collection: "products",
+    // Disable automatic index creation; indexes are managed in lib/db/collections.ts
+    autoIndex: false,
+  },
+);
+
+// APPLY PLUGINS (BEFORE INDEXES)
+ProductSchema.plugin(tenantIsolationPlugin);
+ProductSchema.plugin(auditPlugin);
+
+// Schema-level indexes to mirror centralized createIndexes() definitions
+// (names/partials match to avoid IndexOptionsConflict).
+ProductSchema.index(
+  { orgId: 1, sku: 1 },
+  {
+    unique: true,
+    name: "products_orgId_sku_unique",
+    partialFilterExpression: { orgId: { $exists: true } },
+  },
+);
+ProductSchema.index(
+  { orgId: 1, slug: 1 },
+  {
+    unique: true,
+    name: "products_orgId_slug_unique",
+    partialFilterExpression: { orgId: { $exists: true } },
+  },
+);
+ProductSchema.index({ orgId: 1, categoryId: 1 }, { name: "products_orgId_categoryId" });
+ProductSchema.index({ orgId: 1, status: 1 }, { name: "products_orgId_status" });
+ProductSchema.index(
+  { orgId: 1, title: "text", summary: "text", brand: "text", standards: "text" },
+  {
+    name: "products_orgId_text_search",
+    partialFilterExpression: { orgId: { $exists: true } },
+  },
+);
+
+const ProductModel =
+  (models.MarketplaceProduct as Model<MarketplaceProduct> | undefined) ||
+  model<MarketplaceProduct>("MarketplaceProduct", ProductSchema);
+
+export default ProductModel;
+
+]]>
+</file>
+
+<file path="server/models/marketplace/RFQ.ts">
+<![CDATA[
+import { Schema, model, models, Types, Model } from "mongoose";
+import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
+import { auditPlugin } from "../../plugins/auditPlugin";
+
+export interface MarketplaceRFQBid {
+  vendorId: Types.ObjectId;
+  amount: number;
+  currency: string;
+  leadDays?: number;
+  submittedAt: Date;
+}
+
+export interface MarketplaceRFQ {
+  _id: Types.ObjectId;
+  orgId: Types.ObjectId; // This will be managed by tenantIsolationPlugin
+  requesterId: Types.ObjectId;
+  title: string;
+  description?: string;
+  categoryId?: Types.ObjectId;
+  quantity?: number;
+  budget?: number;
+  currency: string;
+  deadline?: Date;
+  status: "OPEN" | "CLOSED" | "AWARDED";
+  bids: Types.ObjectId[]; // References to ProjectBid documents (NOT embedded)
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const RFQSchema = new Schema<MarketplaceRFQ>(
+  {
+    // orgId will be added by tenantIsolationPlugin
+    requesterId: { type: Schema.Types.ObjectId, required: true, ref: "User" },
+    title: { type: String, required: true, trim: true },
+    description: { type: String, trim: true },
+    categoryId: { type: Schema.Types.ObjectId, ref: "MarketplaceCategory" },
+    quantity: { type: Number },
+    budget: { type: Number },
+    currency: { type: String, default: "SAR" },
+    deadline: { type: Date },
+    status: {
+      type: String,
+      enum: ["OPEN", "CLOSED", "AWARDED"],
+      default: "OPEN",
+    },
+    bids: [{ type: Schema.Types.ObjectId, ref: "ProjectBid" }], // Reference array, NOT embedded
+  },
+  { timestamps: true },
+);
+
+// Apply plugins BEFORE indexes for proper tenant isolation
+RFQSchema.plugin(tenantIsolationPlugin);
+RFQSchema.plugin(auditPlugin);
+
+// All indexes MUST be tenant-scoped
+RFQSchema.index({ orgId: 1, status: 1 });
+RFQSchema.index({ orgId: 1, requesterId: 1, createdAt: -1 });
+RFQSchema.index({ orgId: 1, categoryId: 1 });
+RFQSchema.index({ orgId: 1, deadline: 1, status: 1 });
+
+const RFQModel =
+  (models.MarketplaceRFQ as Model<MarketplaceRFQ> | undefined) ||
+  model<MarketplaceRFQ>("MarketplaceRFQ", RFQSchema);
+
+export default RFQModel;
+
+]]>
+</file>
+
+<file path="server/models/onboarding/DocumentProfile.ts">
+<![CDATA[
+import { Schema, type Document } from 'mongoose';
+import { getModel } from '@/types/mongoose-compat';
+import { ONBOARDING_ROLES, type OnboardingRole } from './OnboardingCase';
+
+export interface IDocumentProfile extends Document {
+  role: OnboardingRole;
+  country: string;
+  required_doc_codes: string[];
+}
+
+const DocumentProfileSchema = new Schema<IDocumentProfile>(
+  {
+    role: { type: String, enum: ONBOARDING_ROLES, required: true },
+    country: { type: String, required: true },
+    required_doc_codes: [{ type: String, required: true }],
+  },
+  { collection: 'document_profiles' },
+);
+
+DocumentProfileSchema.index({ role: 1, country: 1 });
+
+export const DocumentProfile = getModel<IDocumentProfile>('DocumentProfile', DocumentProfileSchema);
+export default DocumentProfile;
+
+]]>
+</file>
+
+<file path="server/models/onboarding/DocumentType.ts">
+<![CDATA[
+import { Schema, type Document } from 'mongoose';
+import { getModel } from '@/types/mongoose-compat';
+import { ONBOARDING_ROLES, type OnboardingRole } from './OnboardingCase';
+
+export interface IDocumentType extends Document {
+  code: string;
+  name_en: string;
+  name_ar: string;
+  applies_to: OnboardingRole[];
+  is_mandatory: boolean;
+  requires_expiry: boolean;
+  max_file_size_mb: number;
+  allowed_mime_types: string[];
+  review_required: boolean;
+}
+
+const DocumentTypeSchema = new Schema<IDocumentType>(
+  {
+    code: { type: String, required: true, unique: true },
+    name_en: { type: String, required: true },
+    name_ar: { type: String, required: true },
+    applies_to: [{ type: String, enum: ONBOARDING_ROLES }],
+    is_mandatory: { type: Boolean, default: true },
+    requires_expiry: { type: Boolean, default: true },
+    max_file_size_mb: { type: Number, default: 10 },
+    allowed_mime_types: [{ type: String }],
+    review_required: { type: Boolean, default: true },
+  },
+  { collection: 'document_types' },
+);
+
+export const DocumentType = getModel<IDocumentType>('DocumentType', DocumentTypeSchema);
+export default DocumentType;
+
+]]>
+</file>
+
+<file path="server/models/onboarding/OnboardingCase.ts">
+<![CDATA[
+import { Schema, Types, type HydratedDocument } from 'mongoose';
+import { getModel } from '@/types/mongoose-compat';
+import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
+import { encryptionPlugin } from '../../plugins/encryptionPlugin';
+
+// STRICT v4: Migrated CUSTOMER → TENANT (both are property roles)
+export const ONBOARDING_ROLES = ['TENANT', 'PROPERTY_OWNER', 'OWNER', 'VENDOR', 'AGENT'] as const;
+export type OnboardingRole = (typeof ONBOARDING_ROLES)[number];
+
+export const ONBOARDING_STATUSES = [
+  'DRAFT',
+  'SUBMITTED',
+  'UNDER_REVIEW',
+  'DOCS_PENDING',
+  'APPROVED',
+  'REJECTED',
+  'CANCELLED',
+] as const;
+export type OnboardingStatus = (typeof ONBOARDING_STATUSES)[number];
+
+export interface IOnboardingCase {
+  orgId?: Types.ObjectId; // AUDIT-2025-11-29: Changed from org_id to orgId
+  role: OnboardingRole;
+  status: OnboardingStatus;
+  current_step: number;
+  tutorial_completed: boolean;
+  country?: string;
+  sla_deadline?: Date;
+  subject_user_id?: Types.ObjectId;
+  subjectOrgId?: Types.ObjectId; // AUDIT-2025-11-29: Changed from subject_org_id
+  basic_info: {
+    name: string;
+    email: string;
+    phone?: string;
+    type?: string;
+    property_id?: Types.ObjectId;
+    unit_id?: Types.ObjectId;
+  };
+  payload?: Record<string, unknown>;
+  documents: Types.ObjectId[];
+  created_by_id: Types.ObjectId;
+  verified_by_id?: Types.ObjectId;
+  source_channel: 'web' | 'mobile' | 'internal_admin';
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const OnboardingCaseSchema = new Schema<IOnboardingCase>(
+  {
+    orgId: { type: Schema.Types.ObjectId, ref: 'Organization', index: true }, // AUDIT-2025-11-29: Changed from org_id
+    role: { type: String, enum: ONBOARDING_ROLES, required: true },
+    status: { type: String, enum: ONBOARDING_STATUSES, default: 'DRAFT', index: true },
+    current_step: { type: Number, min: 1, max: 4, default: 1 },
+    tutorial_completed: { type: Boolean, default: false },
+    country: { type: String, default: 'SA' },
+    sla_deadline: { type: Date },
+    subject_user_id: { type: Schema.Types.ObjectId, ref: 'User' },
+    subjectOrgId: { type: Schema.Types.ObjectId, ref: 'Organization' }, // AUDIT-2025-11-29: Changed from subject_org_id
+    basic_info: {
+      name: { type: String, required: true },
+      email: { type: String, required: true },
+      phone: String,
+      type: String,
+      property_id: { type: Schema.Types.ObjectId, ref: 'Property' },
+      unit_id: { type: Schema.Types.ObjectId, ref: 'Unit' },
+    },
+    payload: {
+      type: Schema.Types.Mixed,
+      default: {},
+      validate: {
+        validator(this: IOnboardingCase, v: Record<string, unknown>) {
+          if (this.role === 'VENDOR') {
+            return Array.isArray((v as { categories?: unknown }).categories) &&
+              (v as { categories?: unknown[] }).categories!.length > 0;
+          }
+          return true;
+        },
+        message: 'Vendor payload must include at least one service category',
+      },
+    },
+    documents: [{ type: Schema.Types.ObjectId, ref: 'VerificationDocument' }],
+    created_by_id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    verified_by_id: { type: Schema.Types.ObjectId, ref: 'User' },
+    source_channel: { type: String, enum: ['web', 'mobile', 'internal_admin'], default: 'web' },
+  },
+  { timestamps: true, collection: 'onboarding_cases' },
+);
+
+OnboardingCaseSchema.index({ orgId: 1, status: 1, role: 1 }); // AUDIT-2025-11-29: Changed from org_id
+OnboardingCaseSchema.index({ subject_user_id: 1, tutorial_completed: 1 });
+OnboardingCaseSchema.index({ createdAt: 1, status: 1 });
+
+/**
+ * Multi-tenancy Plugin - Auto-filters queries by orgId
+ * SECURITY: Ensures onboarding cases are isolated per organization
+ */
+OnboardingCaseSchema.plugin(tenantIsolationPlugin);
+
+/**
+ * PII Encryption (GDPR Article 32 - Security of Processing)
+ * Encrypts sensitive contact information in basic_info
+ */
+OnboardingCaseSchema.plugin(encryptionPlugin, {
+  fields: {
+    'basic_info.email': 'Applicant Email',
+    'basic_info.phone': 'Applicant Phone',
+  },
+});
+
+export type OnboardingCaseDocument = HydratedDocument<IOnboardingCase>;
+export const OnboardingCase = getModel<IOnboardingCase>('OnboardingCase', OnboardingCaseSchema);
+export default OnboardingCase;
+
+]]>
+</file>
+
+<file path="server/models/onboarding/VerificationDocument.ts">
+<![CDATA[
+import { Schema, Types, type HydratedDocument } from 'mongoose';
+import { getModel } from '@/types/mongoose-compat';
+
+export const DOCUMENT_STATUSES = ['UPLOADED', 'PROCESSING', 'UNDER_REVIEW', 'VERIFIED', 'REJECTED', 'EXPIRED'] as const;
+export type DocumentStatus = (typeof DOCUMENT_STATUSES)[number];
+
+export interface IVerificationDocument {
+  onboarding_case_id: Types.ObjectId;
+  document_type_code: string;
+  file_storage_key: string;
+  original_name: string;
+  mime_type?: string;
+  size_bytes?: number;
+  status: DocumentStatus;
+  ocr_data?: Record<string, unknown>;
+  ocr_confidence?: number;
+  expiry_date?: Date;
+  rejection_reason?: {
+    en?: string;
+    ar?: string;
+  };
+  uploaded_by_id: Types.ObjectId;
+  verified_by_id?: Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const VerificationDocumentSchema = new Schema<IVerificationDocument>(
+  {
+    onboarding_case_id: { type: Schema.Types.ObjectId, ref: 'OnboardingCase', required: true, index: true },
+    document_type_code: { type: String, required: true, index: true },
+    file_storage_key: { type: String, required: true },
+    original_name: { type: String, required: true },
+    mime_type: String,
+    size_bytes: Number,
+    status: { type: String, enum: DOCUMENT_STATUSES, default: 'UPLOADED', index: true },
+    ocr_data: {
+      extracted_text: String,
+      confidence: Number,
+      fields: Schema.Types.Mixed,
+    },
+    ocr_confidence: Number,
+    expiry_date: Date,
+    rejection_reason: {
+      en: String,
+      ar: String,
+    },
+    uploaded_by_id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    verified_by_id: { type: Schema.Types.ObjectId, ref: 'User' },
+  },
+  { collection: 'verification_documents', timestamps: true },
+);
+
+VerificationDocumentSchema.index({ status: 1, expiry_date: 1 });
+VerificationDocumentSchema.index({ onboarding_case_id: 1, status: 1 });
+
+export type VerificationDocumentDoc = HydratedDocument<IVerificationDocument>;
+export const VerificationDocument = getModel<IVerificationDocument>('VerificationDocument', VerificationDocumentSchema);
+export default VerificationDocument;
+
+]]>
+</file>
+
+<file path="server/models/onboarding/VerificationLog.ts">
+<![CDATA[
+import { Schema, Types, type HydratedDocument } from 'mongoose';
+import { getModel } from '@/types/mongoose-compat';
+
+export type VerificationAction = 'UPLOADED' | 'AUTO_CHECK' | 'MANUAL_CHECK' | 'STATUS_CHANGE' | 'VIEWED';
+
+export interface IVerificationLog {
+  document_id: Types.ObjectId;
+  action: VerificationAction;
+  performed_by_id?: Types.ObjectId;
+  details?: Record<string, unknown>;
+  timestamp: Date;
+}
+
+const VerificationLogSchema = new Schema<IVerificationLog>(
+  {
+    document_id: { type: Schema.Types.ObjectId, ref: 'VerificationDocument', required: true, index: true },
+    action: { type: String, enum: ['UPLOADED', 'AUTO_CHECK', 'MANUAL_CHECK', 'STATUS_CHANGE', 'VIEWED'], required: true },
+    performed_by_id: { type: Schema.Types.ObjectId, ref: 'User' },
+    details: Schema.Types.Mixed,
+    timestamp: { type: Date, default: Date.now },
+  },
+  { collection: 'verification_logs' },
+);
+
+export type VerificationLogDoc = HydratedDocument<IVerificationLog>;
+export const VerificationLog = getModel<IVerificationLog>('VerificationLog', VerificationLogSchema);
+export default VerificationLog;
+
+]]>
+</file>
+
+<file path="server/models/onboarding/index.ts">
+<![CDATA[
+export * from './OnboardingCase';
+export * from './DocumentType';
+export * from './DocumentProfile';
+export * from './VerificationDocument';
+export * from './VerificationLog';
+
+]]>
+</file>
+
+<file path="server/models/owner/Advertisement.ts">
+<![CDATA[
+import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
+import { auditPlugin } from "../../plugins/auditPlugin";
+
+const AdvertisementStatus = [
+  "PENDING",
+  "APPROVED",
+  "ACTIVE",
+  "EXPIRED",
+  "SUSPENDED",
+  "CANCELLED",
+  "RENEWED",
+] as const;
+
+const AdvertisementSchema = new Schema(
+  {
+    // Multi-tenancy - added by plugin
+    // orgId: { type: Schema.Types.ObjectId, ref: "Organization", required: true, index: true },
+
+    // Advertisement Identification
+    advertisementNumber: { type: String, required: true }, // Government-issued number
+    internalNumber: String, // Internal tracking number
+
+    // Property Information
+    propertyId: {
+      type: Schema.Types.ObjectId,
+      ref: "Property",
+      required: true,
+      index: true,
+    },
+    propertyName: String,
+    propertyCode: String,
+    unitNumber: String, // If advertising specific unit
+
+    // Owner Information
+    ownerId: {
+      type: Schema.Types.ObjectId,
+      ref: "Owner",
+      required: true,
+      index: true,
+    },
+    ownerName: String,
+
+    // Government/Authority Details
+    authority: {
+      name: { type: String, required: true }, // Municipality, Real Estate Authority, etc.
+      department: String,
+      region: String,
+      city: String,
+      officeCode: String,
+      issuingOfficer: String,
+      contactNumber: String,
+    },
+
+    // Advertisement Type
+    type: {
+      purpose: { type: String, enum: ["SALE", "RENT", "BOTH"], required: true },
+      propertyType: String, // RESIDENTIAL, COMMERCIAL, MIXED
+      advertisementMedium: [String], // ONLINE, NEWSPAPER, BILLBOARD, SIGNAGE, SOCIAL_MEDIA
+    },
+
+    // Permit Details
+    permit: {
+      issueDate: { type: Date, required: true },
+      startDate: { type: Date, required: true, index: true },
+      endDate: { type: Date, required: true, index: true },
+      durationMonths: Number,
+      autoRenew: { type: Boolean, default: false },
+      renewalNoticeDays: { type: Number, default: 30 },
+    },
+
+    // Cost Information
+    cost: {
+      permitFee: { type: Number, required: true },
+      renewalFee: Number,
+      lateFee: Number,
+      currency: { type: String, default: "SAR" },
+      paymentDate: Date,
+      paymentMethod: String,
+      paymentReference: String,
+      receiptNumber: String,
+    },
+
+    // Agent Information (if applicable)
+    agent: {
+      assigned: Boolean,
+      agentId: { type: Schema.Types.ObjectId, ref: "User" },
+      agentName: String,
+      agentLicenseNumber: String,
+      agentContractId: { type: Schema.Types.ObjectId, ref: "AgentContract" },
+      commission: {
+        type: String, // PERCENTAGE, FIXED
+        value: Number,
+      },
+    },
+
+    // Advertisement Content
+    content: {
+      title: String,
+      description: String,
+      features: [String],
+      price: {
+        amount: Number,
+        currency: { type: String, default: "SAR" },
+        negotiable: Boolean,
+        includesVAT: Boolean,
+      },
+      photos: [
+        {
+          url: String,
+          caption: String,
+          uploadedAt: Date,
+          isPrimary: Boolean,
+        },
+      ],
+      virtualTourUrl: String,
+      floorPlanUrl: String,
+    },
+
+    // Compliance Requirements
+    compliance: {
+      energyEfficiencyCertificate: {
+        required: Boolean,
+        obtained: Boolean,
+        certificateNumber: String,
+        rating: String, // A+, A, B, C, etc.
+        expiryDate: Date,
+        documentUrl: String,
+      },
+      buildingPermit: {
+        number: String,
+        verified: Boolean,
+        documentUrl: String,
+      },
+      ownershipProof: {
+        verified: Boolean,
+        documentUrl: String,
+      },
+      otherDocuments: [
+        {
+          type: String,
+          name: String,
+          url: String,
+          verified: Boolean,
+          uploadedAt: Date,
+        },
+      ],
+    },
+
+    // Publication Channels
+    publications: [
+      {
+        channel: String, // PROPERTY_FINDER, BAYUT, DUBIZZLE, OLX, etc.
+        listingId: String,
+        publishedDate: Date,
+        unpublishedDate: Date,
+        status: String, // ACTIVE, PAUSED, REMOVED
+        url: String,
+        views: Number,
+        inquiries: Number,
+        leads: [
+          {
+            date: Date,
+            name: String,
+            contact: String,
+            status: String, // NEW, CONTACTED, QUALIFIED, CONVERTED, REJECTED
+          },
+        ],
+      },
+    ],
+
+    // Performance Metrics
+    metrics: {
+      totalViews: { type: Number, default: 0 },
+      totalInquiries: { type: Number, default: 0 },
+      totalLeads: { type: Number, default: 0 },
+      totalShowings: { type: Number, default: 0 },
+      conversionRate: Number, // Percentage
+      averageResponseTime: Number, // Hours
+      lastActivityDate: Date,
+    },
+
+    // Status
+    status: {
+      type: String,
+      enum: AdvertisementStatus,
+      default: "PENDING",
+      index: true,
+    },
+    statusHistory: [
+      {
+        status: { type: String, enum: AdvertisementStatus },
+        changedAt: { type: Date, default: Date.now },
+        changedBy: { type: Schema.Types.ObjectId, ref: "User" },
+        reason: String,
+        notes: String,
+      },
+    ],
+
+    // Renewal Information
+    renewal: {
+      renewedFrom: { type: Schema.Types.ObjectId, ref: "Advertisement" }, // Previous advertisement
+      renewedTo: { type: Schema.Types.ObjectId, ref: "Advertisement" }, // New advertisement
+      renewalDate: Date,
+      renewalCost: Number,
+      autoRenewed: Boolean,
+    },
+
+    // Suspension/Cancellation
+    suspension: {
+      suspendedAt: Date,
+      suspendedBy: { type: Schema.Types.ObjectId, ref: "User" },
+      suspensionReason: String,
+      resumedAt: Date,
+      resumedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    },
+    cancellation: {
+      cancelledAt: Date,
+      cancelledBy: { type: Schema.Types.ObjectId, ref: "User" },
+      cancellationReason: String,
+      refundAmount: Number,
+      refundProcessed: Boolean,
+    },
+
+    // Notifications
+    notifications: {
+      expiryReminderSent: { type: Boolean, default: false },
+      expiryReminderDate: Date,
+      renewalNoticeSent: { type: Boolean, default: false },
+      renewalNoticeDate: Date,
+      reminderDaysBefore: { type: Number, default: 30 },
+    },
+
+    // Integration with Finance
+    finance: {
+      expenseRecorded: { type: Boolean, default: false },
+      journalEntryId: { type: Schema.Types.ObjectId, ref: "Journal" },
+      invoiceId: { type: Schema.Types.ObjectId, ref: "Invoice" },
+      postedDate: Date,
+    },
+
+    // Documents
+    documents: [
+      {
+        type: String, // PERMIT, RECEIPT, CERTIFICATE, APPROVAL, RENEWAL
+        name: String,
+        url: { type: String, required: true },
+        uploadedAt: { type: Date, default: Date.now },
+        uploadedBy: { type: Schema.Types.ObjectId, ref: "User" },
+        verified: Boolean,
+        expiresAt: Date,
+      },
+    ],
+
+    // Metadata
+    notes: String,
+    tags: [String],
+    customFields: Schema.Types.Mixed,
+
+    // createdBy, updatedBy, createdAt, updatedAt added by auditPlugin
+  },
+  {
+    timestamps: true,
+  },
+);
+
+// Apply plugins
+AdvertisementSchema.plugin(tenantIsolationPlugin);
+AdvertisementSchema.plugin(auditPlugin);
+
+// Indexes
+AdvertisementSchema.index(
+  { orgId: 1, advertisementNumber: 1 },
+  { unique: true },
+);
+AdvertisementSchema.index(
+  { orgId: 1, internalNumber: 1 },
+  { unique: true, sparse: true },
+);
+AdvertisementSchema.index({ orgId: 1, propertyId: 1, status: 1 });
+AdvertisementSchema.index({ orgId: 1, ownerId: 1, status: 1 });
+AdvertisementSchema.index({ orgId: 1, "permit.endDate": 1 }); // For expiry notifications
+AdvertisementSchema.index({ orgId: 1, "agent.agentId": 1 });
+
+// Pre-save hook for calculations and status updates
+AdvertisementSchema.pre("save", async function (next) {
+  const now = new Date();
+
+  // Calculate permit duration
+  if (
+    this.isModified("permit") &&
+    this.permit?.startDate &&
+    this.permit?.endDate
+  ) {
+    const start = new Date(this.permit.startDate);
+    const end = new Date(this.permit.endDate);
+    const diffMonths =
+      (end.getFullYear() - start.getFullYear()) * 12 +
+      (end.getMonth() - start.getMonth());
+    this.permit.durationMonths = diffMonths;
+  }
+
+  // Auto-expire advertisements
+  if (
+    (this.status === "ACTIVE" || this.status === "APPROVED") &&
+    this.permit?.endDate &&
+    now > this.permit.endDate
+  ) {
+    this.status = "EXPIRED";
+    this.statusHistory.push({
+      status: "EXPIRED",
+      changedAt: now,
+      reason: "Advertisement permit expired",
+      changedBy: undefined,
+      notes: "Auto-expired by system",
+    });
+  }
+
+  // Calculate metrics
+  if (this.isModified("publications") && this.metrics) {
+    this.metrics.totalViews = this.publications.reduce(
+      (sum, p) => sum + (p.views || 0),
+      0,
+    );
+    this.metrics.totalInquiries = this.publications.reduce(
+      (sum, p) => sum + (p.inquiries || 0),
+      0,
+    );
+    this.metrics.totalLeads = this.publications.reduce(
+      (sum, p) => sum + (p.leads?.length || 0),
+      0,
+    );
+
+    if (this.metrics.totalInquiries > 0) {
+      this.metrics.conversionRate =
+        (this.metrics.totalLeads / this.metrics.totalInquiries) * 100;
+    }
+  }
+
+  next();
+});
+
+// Virtual for days until expiry
+AdvertisementSchema.virtual("daysUntilExpiry").get(function () {
+  if (!this.permit?.endDate || this.status === "EXPIRED") return null;
+  const now = new Date();
+  const diff = this.permit.endDate.getTime() - now.getTime();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+});
+
+// Virtual for is active
+AdvertisementSchema.virtual("isActive").get(function () {
+  if (this.status !== "ACTIVE") return false;
+  if (!this.permit?.startDate || !this.permit?.endDate) return false;
+  const now = new Date();
+  return now >= this.permit.startDate && now <= this.permit.endDate;
+});
+
+// Export type and model
+export type Advertisement = InferSchemaType<typeof AdvertisementSchema>;
+export const AdvertisementModel = getModel<Advertisement>(
+  "Advertisement",
+  AdvertisementSchema,
+);
+
+]]>
+</file>
+
+<file path="server/models/owner/AgentContract.ts">
+<![CDATA[
+import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
+import { auditPlugin } from "../../plugins/auditPlugin";
+
+const ContractStatus = [
+  "DRAFT",
+  "ACTIVE",
+  "EXPIRED",
+  "TERMINATED",
+  "RENEWED",
+] as const;
+const PaymentFrequency = [
+  "MONTHLY",
+  "QUARTERLY",
+  "ANNUALLY",
+  "PER_TRANSACTION",
+] as const;
+
+const AgentContractSchema = new Schema(
+  {
+    // Multi-tenancy - added by plugin
+    // orgId: { type: Schema.Types.ObjectId, ref: "Organization", required: true, index: true },
+
+    // Contract Number (auto-generated)
+    contractNumber: { type: String, required: true },
+
+    // Parties
+    ownerId: {
+      type: Schema.Types.ObjectId,
+      ref: "Owner",
+      required: true,
+      index: true,
+    },
+    agentId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    }, // Real estate agent user
+    agentName: { type: String, required: true },
+    agentLicenseNumber: String,
+
+    // Properties covered by this contract
+    properties: [
+      {
+        propertyId: {
+          type: Schema.Types.ObjectId,
+          ref: "Property",
+          required: true,
+        },
+        propertyName: String,
+        propertyCode: String,
+        includeAllUnits: { type: Boolean, default: true },
+        specificUnits: [String], // Unit numbers if not all units
+      },
+    ],
+
+    // Contract Terms
+    terms: {
+      startDate: { type: Date, required: true, index: true },
+      endDate: { type: Date, required: true, index: true },
+      autoRenew: { type: Boolean, default: false },
+      renewalNoticeDays: { type: Number, default: 60 }, // Days before expiry to notify
+      terminationNoticeDays: { type: Number, default: 30 },
+    },
+
+    // Commission Structure
+    commission: {
+      type: {
+        type: String,
+        enum: ["PERCENTAGE", "FIXED_AMOUNT", "HYBRID"],
+        required: true,
+      },
+      percentage: Number, // For percentage type (e.g., 5% of rent)
+      fixedAmount: Number, // For fixed amount type
+      applyTo: {
+        type: String,
+        enum: [
+          "MONTHLY_RENT",
+          "ANNUAL_RENT",
+          "FIRST_MONTH_ONLY",
+          "PER_TRANSACTION",
+        ],
+        default: "MONTHLY_RENT",
+      },
+      paymentFrequency: {
+        type: String,
+        enum: PaymentFrequency,
+        default: "MONTHLY",
+      },
+      vatIncluded: { type: Boolean, default: false },
+    },
+
+    // Agent Responsibilities
+    responsibilities: {
+      tenantAcquisition: { type: Boolean, default: true },
+      rentCollection: { type: Boolean, default: true },
+      maintenanceCoordination: { type: Boolean, default: true },
+      inspections: { type: Boolean, default: true },
+      legalCompliance: { type: Boolean, default: false },
+      marketing: { type: Boolean, default: true },
+      financialReporting: { type: Boolean, default: true },
+      customResponsibilities: [String],
+    },
+
+    // Financial Terms
+    financial: {
+      currency: { type: String, default: "SAR" },
+      estimatedMonthlyCommission: Number,
+      estimatedAnnualCommission: Number,
+      securityDeposit: Number, // From agent to owner
+      insuranceRequired: { type: Boolean, default: false },
+      insuranceAmount: Number,
+    },
+
+    // Performance Metrics
+    performance: {
+      minimumOccupancy: Number, // Percentage
+      maximumVacancyDays: Number,
+      minimumRentCollection: Number, // Percentage
+      penaltyForNonPerformance: Number,
+    },
+
+    // Contract Documents
+    documents: [
+      {
+        type: { type: String, required: true }, // CONTRACT, LICENSE_COPY, INSURANCE, AMENDMENT, etc.
+        name: String,
+        url: String,
+        uploadedAt: { type: Date, default: Date.now },
+        uploadedBy: { type: Schema.Types.ObjectId, ref: "User" },
+        expiresAt: Date,
+        verified: { type: Boolean, default: false },
+      },
+    ],
+
+    // Status and History
+    status: {
+      type: String,
+      enum: ContractStatus,
+      default: "DRAFT",
+      index: true,
+    },
+    statusHistory: [
+      {
+        status: { type: String, enum: ContractStatus },
+        changedAt: { type: Date, default: Date.now },
+        changedBy: { type: Schema.Types.ObjectId, ref: "User" },
+        reason: String,
+        notes: String,
+      },
+    ],
+
+    // Termination Details
+    termination: {
+      terminatedAt: Date,
+      terminatedBy: { type: Schema.Types.ObjectId, ref: "User" },
+      reason: String,
+      noticePeriodServed: Boolean,
+      penaltyAmount: Number,
+      settlementAmount: Number,
+      settlementPaid: { type: Boolean, default: false },
+    },
+
+    // Renewal Details
+    renewal: {
+      renewedFrom: { type: Schema.Types.ObjectId, ref: "AgentContract" }, // Previous contract
+      renewedTo: { type: Schema.Types.ObjectId, ref: "AgentContract" }, // New contract
+      renewalDate: Date,
+      changesFromPrevious: [String],
+    },
+
+    // Notifications
+    notifications: {
+      expiryNotificationSent: { type: Boolean, default: false },
+      expiryNotificationDate: Date,
+      renewalReminderSent: { type: Boolean, default: false },
+      renewalReminderDate: Date,
+    },
+
+    // Metadata
+    notes: String,
+    tags: [String],
+    customFields: Schema.Types.Mixed,
+
+    // createdBy, updatedBy, createdAt, updatedAt added by auditPlugin
+  },
+  {
+    timestamps: true,
+  },
+);
+
+// Apply plugins
+AgentContractSchema.plugin(tenantIsolationPlugin);
+AgentContractSchema.plugin(auditPlugin);
+
+// Indexes
+AgentContractSchema.index(
+  { orgId: 1, contractNumber: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
+AgentContractSchema.index({ orgId: 1, ownerId: 1, status: 1 });
+AgentContractSchema.index({ orgId: 1, agentId: 1, status: 1 });
+AgentContractSchema.index({ orgId: 1, "properties.propertyId": 1 });
+AgentContractSchema.index({ orgId: 1, "terms.endDate": 1 }); // For expiry notifications
+
+// Virtual for contract duration in days
+AgentContractSchema.virtual("durationDays").get(function () {
+  if (!this.terms?.startDate || !this.terms?.endDate) return 0;
+  const diff = this.terms.endDate.getTime() - this.terms.startDate.getTime();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+});
+
+// Virtual for days until expiry
+AgentContractSchema.virtual("daysUntilExpiry").get(function () {
+  if (!this.terms?.endDate) return null;
+  const now = new Date();
+  const diff = this.terms.endDate.getTime() - now.getTime();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+});
+
+// Virtual for contract active status
+AgentContractSchema.virtual("isActive").get(function () {
+  if (this.status !== "ACTIVE") return false;
+  if (!this.terms?.startDate || !this.terms?.endDate) return false;
+  const now = new Date();
+  return now >= this.terms.startDate && now <= this.terms.endDate;
+});
+
+// Pre-save: Update status based on dates
+AgentContractSchema.pre("save", function (next) {
+  const now = new Date();
+
+  // Auto-transition ACTIVE -> EXPIRED
+  if (
+    this.status === "ACTIVE" &&
+    this.terms?.endDate &&
+    now > this.terms.endDate
+  ) {
+    this.status = "EXPIRED";
+  }
+
+  next();
+});
+
+// Export type and model
+export type AgentContract = InferSchemaType<typeof AgentContractSchema>;
+export const AgentContractModel = getModel<AgentContract>(
+  "AgentContract",
+  AgentContractSchema,
+);
+
+]]>
+</file>
+
+<file path="server/models/owner/Delegation.ts">
+<![CDATA[
+import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
+import { auditPlugin } from "../../plugins/auditPlugin";
+
+const DelegationStatus = ["ACTIVE", "EXPIRED", "REVOKED", "SUSPENDED"] as const;
+const DelegationScope = [
+  "ALL",
+  "APPROVALS",
+  "MAINTENANCE",
+  "FINANCIAL",
+  "CONTRACTS",
+  "INSPECTIONS",
+] as const;
+
+const DelegationSchema = new Schema(
+  {
+    // Multi-tenancy - added by plugin
+    // orgId: { type: Schema.Types.ObjectId, ref: "Organization", required: true, index: true },
+
+    // Delegation Number (auto-generated)
+    delegationNumber: { type: String, required: true },
+
+    // Parties
+    delegator: {
+      ownerId: {
+        type: Schema.Types.ObjectId,
+        ref: "Owner",
+        required: true,
+        index: true,
+      },
+      ownerName: String,
+      userId: { type: Schema.Types.ObjectId, ref: "User" },
+    },
+
+    delegate: {
+      userId: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+        index: true,
+      },
+      name: { type: String, required: true },
+      email: { type: String, required: true },
+      phone: String,
+      relationToOwner: String, // FAMILY, EMPLOYEE, AGENT, ATTORNEY, etc.
+      nationalId: String,
+      powerOfAttorney: {
+        exists: Boolean,
+        documentNumber: String,
+        issueDate: Date,
+        expiryDate: Date,
+        documentUrl: String,
+      },
+    },
+
+    // Scope of Delegation
+    scope: {
+      level: { type: String, enum: DelegationScope, required: true },
+      specificPermissions: [
+        {
+          module: String, // FM, FINANCE, CONTRACTS, etc.
+          actions: [String], // VIEW, APPROVE, REJECT, CREATE, UPDATE, DELETE
+          limitations: String,
+        },
+      ],
+
+      // Financial limits
+      financialLimits: {
+        approvalThreshold: Number, // Maximum amount delegate can approve
+        currency: { type: String, default: "SAR" },
+        dailyLimit: Number,
+        monthlyLimit: Number,
+      },
+
+      // Property-specific scope
+      properties: [
+        {
+          propertyId: { type: Schema.Types.ObjectId, ref: "Property" },
+          propertyName: String,
+          includeAllUnits: { type: Boolean, default: true },
+          specificUnits: [String],
+        },
+      ],
+
+      // Can delegate further?
+      canSubDelegate: { type: Boolean, default: false },
+
+      // Specific restrictions
+      restrictions: [String],
+    },
+
+    // Time Period
+    period: {
+      startDate: { type: Date, required: true, index: true },
+      endDate: { type: Date, index: true }, // Null for indefinite
+      indefinite: { type: Boolean, default: false },
+      notificationBeforeExpiry: { type: Number, default: 7 }, // Days
+    },
+
+    // Approval Workflow Settings
+    approvalSettings: {
+      requiresOwnerNotification: { type: Boolean, default: true },
+      notifyOnActions: [String], // APPROVAL, REJECTION, PAYMENT, etc.
+      emailNotifications: { type: Boolean, default: true },
+      smsNotifications: { type: Boolean, default: false },
+      weeklyDigest: { type: Boolean, default: true },
+    },
+
+    // Activity Tracking
+    activities: [
+      {
+        action: { type: String, required: true }, // APPROVED_INVOICE, REJECTED_WO, etc.
+        module: String,
+        referenceType: String, // Invoice, WorkOrder, Contract, etc.
+        referenceId: { type: Schema.Types.ObjectId },
+        referenceNumber: String,
+        amount: Number,
+        performedAt: { type: Date, default: Date.now },
+        details: String,
+        ownerNotified: Boolean,
+        notificationDate: Date,
+      },
+    ],
+
+    // Status
+    status: {
+      type: String,
+      enum: DelegationStatus,
+      default: "ACTIVE",
+      index: true,
+    },
+    statusHistory: [
+      {
+        status: { type: String, enum: DelegationStatus },
+        changedAt: { type: Date, default: Date.now },
+        changedBy: { type: Schema.Types.ObjectId, ref: "User" },
+        reason: String,
+      },
+    ],
+
+    // Revocation Details
+    revocation: {
+      revokedAt: Date,
+      revokedBy: { type: Schema.Types.ObjectId, ref: "User" },
+      reason: String,
+      effectiveImmediately: Boolean,
+      notificationSent: Boolean,
+    },
+
+    // Suspension Details
+    suspension: {
+      suspendedAt: Date,
+      suspendedBy: { type: Schema.Types.ObjectId, ref: "User" },
+      suspendedUntil: Date,
+      reason: String,
+      resumedAt: Date,
+    },
+
+    // Security
+    security: {
+      requiresOTP: { type: Boolean, default: false },
+      requires2FA: { type: Boolean, default: false },
+      ipRestrictions: [String], // Allowed IP addresses
+      allowedDevices: [String], // Device IDs
+      lastAccessDate: Date,
+      lastAccessIP: String,
+      failedAccessAttempts: { type: Number, default: 0 },
+      lockedUntil: Date,
+    },
+
+    // Notifications
+    notifications: {
+      invitationSent: { type: Boolean, default: false },
+      invitationAccepted: { type: Boolean, default: false },
+      invitationAcceptedDate: Date,
+      expiryReminderSent: { type: Boolean, default: false },
+      expiryReminderDate: Date,
+    },
+
+    // Usage Statistics
+    statistics: {
+      totalActions: { type: Number, default: 0 },
+      approvals: { type: Number, default: 0 },
+      rejections: { type: Number, default: 0 },
+      totalAmountApproved: { type: Number, default: 0 },
+      lastActivityDate: Date,
+      averageResponseTime: Number, // Hours
+    },
+
+    // Documents
+    documents: [
+      {
+        type: String, // POA, ID_COPY, DELEGATION_LETTER, etc.
+        name: String,
+        url: { type: String, required: true },
+        uploadedAt: { type: Date, default: Date.now },
+        verified: Boolean,
+      },
+    ],
+
+    // Metadata
+    notes: String,
+    tags: [String],
+    customFields: Schema.Types.Mixed,
+
+    // createdBy, updatedBy, createdAt, updatedAt added by auditPlugin
+  },
+  {
+    timestamps: true,
+  },
+);
+
+// Apply plugins
+DelegationSchema.plugin(tenantIsolationPlugin);
+DelegationSchema.plugin(auditPlugin);
+
+// Indexes
+DelegationSchema.index(
+  { orgId: 1, delegationNumber: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
+DelegationSchema.index({ orgId: 1, "delegator.ownerId": 1, status: 1 });
+DelegationSchema.index({ orgId: 1, "delegate.userId": 1, status: 1 });
+DelegationSchema.index({ orgId: 1, "period.endDate": 1 }); // For expiry notifications
+DelegationSchema.index({ orgId: 1, "scope.properties.propertyId": 1 });
+
+// Pre-save hook for status updates
+DelegationSchema.pre("save", async function (next) {
+  const now = new Date();
+
+  // Auto-expire delegations
+  if (
+    this.status === "ACTIVE" &&
+    !this.period?.indefinite &&
+    this.period?.endDate &&
+    now > this.period.endDate
+  ) {
+    this.status = "EXPIRED";
+    this.statusHistory.push({
+      status: "EXPIRED",
+      changedAt: now,
+      reason: "Delegation period ended",
+      changedBy: undefined,
+    });
+  }
+
+  // Update statistics
+  if (
+    this.isModified("activities") &&
+    this.statistics &&
+    Array.isArray(this.activities)
+  ) {
+    this.statistics.totalActions = this.activities.length;
+    this.statistics.approvals = this.activities.filter((a: unknown) => {
+      const activity = a as { action?: string };
+      return activity?.action?.includes("APPROVED");
+    }).length;
+    this.statistics.rejections = this.activities.filter((a: unknown) => {
+      const activity = a as { action?: string };
+      return activity?.action?.includes("REJECTED");
+    }).length;
+    this.statistics.totalAmountApproved = this.activities
+      .filter((a: unknown) => {
+        const activity = a as { action?: string; amount?: number };
+        return (
+          activity?.action?.includes("APPROVED") &&
+          typeof activity?.amount === "number"
+        );
+      })
+      .reduce((sum: number, a: unknown) => {
+        const activity = a as { amount?: number };
+        return sum + (activity?.amount || 0);
+      }, 0);
+
+    if (this.activities.length > 0) {
+      const lastActivity = this.activities[this.activities.length - 1] as {
+        performedAt?: Date;
+      };
+      if (lastActivity?.performedAt) {
+        this.statistics.lastActivityDate = lastActivity.performedAt;
+      }
+    }
+  }
+
+  next();
+});
+
+// Virtual for is active
+DelegationSchema.virtual("isActive").get(function () {
+  if (this.status !== "ACTIVE") return false;
+  const now = new Date();
+  if (this.period?.indefinite) return true;
+  if (!this.period?.endDate) return true;
+  if (!this.period?.startDate) return false;
+  return now >= this.period.startDate && now <= this.period.endDate;
+});
+
+// Virtual for days until expiry
+DelegationSchema.virtual("daysUntilExpiry").get(function () {
+  if (this.period?.indefinite || !this.period?.endDate) return null;
+  if (this.status !== "ACTIVE") return null;
+  const now = new Date();
+  const diff = this.period.endDate.getTime() - now.getTime();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+});
+
+// Method to record activity
+DelegationSchema.methods.recordActivity = function (activity: {
+  action: string;
+  module?: string;
+  referenceType?: string;
+  referenceId?: Types.ObjectId;
+  referenceNumber?: string;
+  amount?: number;
+  details?: string;
+}) {
+  if (!this.activities) this.activities = [];
+
+  this.activities.push({
+    ...activity,
+    performedAt: new Date(),
+    ownerNotified: this.approvalSettings.requiresOwnerNotification,
+    notificationDate: this.approvalSettings.requiresOwnerNotification
+      ? new Date()
+      : undefined,
+  });
+
+  return this.save();
+};
+
+// Method to check permission
+DelegationSchema.methods.hasPermission = function (
+  module: string,
+  action: string,
+): boolean {
+  if (!this.isActive) return false;
+
+  if (this.scope.level === "ALL") return true;
+
+  const permission = this.scope.specificPermissions.find(
+    (p: { module?: string }) => p.module === module,
+  );
+  if (!permission) return false;
+
+  return permission.actions.includes(action);
+};
+
+// Method to check financial limit
+DelegationSchema.methods.canApproveAmount = function (amount: number): boolean {
+  if (!this.isActive) return false;
+  if (!this.scope.financialLimits) return true;
+
+  const threshold = this.scope.financialLimits.approvalThreshold;
+  return !threshold || amount <= threshold;
+};
+
+// Export type and model
+export type Delegation = InferSchemaType<typeof DelegationSchema>;
+export const DelegationModel = getModel<Delegation>(
+  "Delegation",
+  DelegationSchema,
+);
+
+]]>
+</file>
+
+</batch_content>

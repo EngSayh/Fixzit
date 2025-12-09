@@ -1,0 +1,3512 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="jobs/recurring-charge.ts">
+<![CDATA[
+import Subscription from "@/server/models/Subscription";
+import { logger } from "@/lib/logger";
+import { parseDate } from "@/lib/date-utils";
+
+export async function chargeDueMonthlySubs() {
+  const paytabsDomain = process.env.PAYTABS_DOMAIN;
+  const paytabsProfileId = process.env.PAYTABS_PROFILE_ID;
+  const paytabsServerKey = process.env.PAYTABS_SERVER_KEY;
+
+  if (!paytabsDomain || !paytabsProfileId || !paytabsServerKey) {
+    throw new Error("PayTabs environment variables are not fully configured");
+  }
+
+  // 💰 FINANCIAL FIX (PR #47): Only charge subscriptions that are DUE
+  // Calculate the start of today (00:00:00) in UTC
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+
+  // Calculate the end of today (23:59:59) in UTC
+  const endOfToday = new Date(today);
+  endOfToday.setUTCHours(23, 59, 59, 999);
+
+  const dueSubs = await Subscription.find({
+    billing_cycle: "MONTHLY",
+    status: "ACTIVE",
+    "paytabs.token": { $exists: true, $ne: null },
+    // ✅ CRITICAL: Only charge if next_billing_date is today or in the past
+    next_billing_date: { $lte: endOfToday },
+  }).lean();
+
+  const results = {
+    total: dueSubs.length,
+    success: 0,
+    failed: 0,
+    errors: [] as Array<{ subscriptionId: string; error: string }>,
+  };
+
+  for (const subscription of dueSubs) {
+    if (!subscription.paytabs?.token) {
+      logger.warn("[Billing] Subscription missing PayTabs token, skipping", {
+        subscriptionId: subscription._id,
+      });
+      results.failed++;
+      continue;
+    }
+
+    try {
+      const response = await fetch(`${paytabsDomain}/payment/request`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${paytabsServerKey}`,
+        },
+        body: JSON.stringify({
+          profile_id: paytabsProfileId,
+          tran_type: "sale",
+          tran_class: "recurring",
+          cart_id: `REN-${Date.now()}-${subscription._id}`,
+          cart_description: "Monthly subscription renewal",
+          cart_amount: subscription.amount,
+          cart_currency: subscription.currency,
+          token: subscription.paytabs.token,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.tran_ref && data.payment_result?.response_status === "A") {
+        // ✅ Payment successful - update next billing date
+        const nextBillingDate = parseDate(
+          subscription.next_billing_date,
+          () => new Date(),
+        );
+        nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+
+        await Subscription.findByIdAndUpdate(subscription._id, {
+          next_billing_date: nextBillingDate,
+          $push: {
+            billing_history: {
+              date: new Date(),
+              amount: subscription.amount,
+              currency: subscription.currency,
+              tran_ref: data.tran_ref,
+              status: "SUCCESS",
+            },
+          },
+        });
+
+        results.success++;
+        logger.info("[Billing] Successfully charged subscription", {
+          subscriptionId: subscription._id,
+          tranRef: data.tran_ref,
+        });
+      } else {
+        // ❌ Payment failed
+        const errorMsg =
+          data.payment_result?.response_message || "Payment declined";
+
+        await Subscription.findByIdAndUpdate(subscription._id, {
+          status: "PAST_DUE",
+          $push: {
+            billing_history: {
+              date: new Date(),
+              amount: subscription.amount,
+              currency: subscription.currency,
+              tran_ref: data.tran_ref,
+              status: "FAILED",
+              error: errorMsg,
+            },
+          },
+        });
+
+        results.failed++;
+        results.errors.push({
+          subscriptionId: String(subscription._id),
+          error: errorMsg,
+        });
+        logger.error("[Billing] Failed to charge subscription", {
+          subscriptionId: subscription._id,
+          error: errorMsg,
+        });
+      }
+    } catch (_error: unknown) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      results.failed++;
+      results.errors.push({
+        subscriptionId: String(subscription._id),
+        error: errorMessage,
+      });
+      logger.error("[Billing] Error charging subscription", {
+        subscriptionId: subscription._id,
+        error,
+      });
+    }
+  }
+
+  logger.info("[Billing] Recurring billing completed", {
+    success: results.success,
+    failed: results.failed,
+    total: results.total,
+  });
+  return results;
+}
+
+]]>
+</file>
+
+<file path="jobs/refund-retry-worker.ts">
+<![CDATA[
+import { createWorker, QUEUE_NAMES } from '@/lib/queues/setup';
+import { logger } from '@/lib/logger';
+import { RefundProcessor } from '@/services/souq/claims/refund-processor';
+
+type RefundRetryJob = {
+  refundId: string;
+  orgId: string;
+};
+
+// Start a dedicated worker to process delayed refund retries
+createWorker<RefundRetryJob>(
+  QUEUE_NAMES.REFUNDS,
+  async (job) => {
+    const { refundId, orgId } = job.data;
+    if (!refundId) {
+      throw new Error('Missing refundId for retry job');
+    }
+    if (!orgId) {
+      throw new Error('Missing orgId for retry job');
+    }
+
+    logger.info('[Refunds] Processing retry job', { refundId, orgId, jobId: job.id });
+    await RefundProcessor.processRetryJob(refundId, orgId);
+  },
+  3
+);
+
+]]>
+</file>
+
+<file path="jobs/refund-status-worker.ts">
+<![CDATA[
+import { Worker, type Job } from 'bullmq';
+import IORedis from 'ioredis';
+import { logger } from '@/lib/logger';
+import { RefundProcessor } from '@/services/souq/claims/refund-processor';
+import { QUEUE_NAMES } from '@/lib/queues/setup';
+
+type RefundStatusJob = { refundId: string; orgId: string };
+
+// Resolution order: BULLMQ_REDIS_URL → REDIS_URL → REDIS_KEY (Vercel/GitHub naming)
+const redisUrl = process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL || process.env.REDIS_KEY;
+const connection = redisUrl
+  ? new IORedis(redisUrl, { maxRetriesPerRequest: null })
+  : null;
+
+function buildWorker(): Worker<RefundStatusJob> | null {
+  if (!connection) {
+    logger.warn('[RefundStatusWorker] Redis not configured; worker disabled');
+    return null;
+  }
+
+  return new Worker<RefundStatusJob>(
+    QUEUE_NAMES.REFUNDS,
+    async (job: Job<RefundStatusJob>) => {
+      // Only handle status-check jobs; let other handlers pick up other names
+      if (job.name !== 'souq-claim-refund-status-check') {
+        logger.debug?.('[RefundStatusWorker] Skipping unrelated job', {
+          jobName: job.name,
+          jobId: job.id,
+        });
+        return;
+      }
+
+      const { refundId, orgId } = job.data;
+      await RefundProcessor.processStatusCheckJob(refundId, orgId);
+    },
+    { connection },
+  );
+}
+
+export function startRefundStatusWorker(): Worker<RefundStatusJob> | null {
+  return buildWorker();
+}
+
+if (require.main === module) {
+  const worker = startRefundStatusWorker();
+  if (worker) {
+    logger.info('[RefundStatusWorker] Worker started', { queue: QUEUE_NAMES.REFUNDS });
+  } else {
+    // eslint-disable-next-line no-console
+    console.error('refund-status:worker_not_started', { reason: 'Redis connection missing' });
+    process.exit(1);
+  }
+}
+
+]]>
+</file>
+
+<file path="jobs/refunds-review-worker.ts">
+<![CDATA[
+import { Worker, Job } from 'bullmq';
+import IORedis from 'ioredis';
+import mongoose from 'mongoose';
+import { logger } from '@/lib/logger';
+import { SouqRMA } from '@/server/models/souq/RMA';
+
+type FinanceReviewJob = { rmaId: string; orgId: string };
+
+// Resolution order: BULLMQ_REDIS_URL → REDIS_URL → REDIS_KEY (Vercel/GitHub naming)
+const redisUrl =
+  process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL || process.env.REDIS_KEY;
+const connection = redisUrl
+  ? new IORedis(redisUrl, { maxRetriesPerRequest: null })
+  : null;
+
+const QUEUE_NAME = process.env.REFUNDS_QUEUE_NAME || 'souq:refunds';
+
+const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
+  const orgString = typeof orgId === 'string' ? orgId : orgId?.toString?.();
+  const candidates: Array<string | mongoose.Types.ObjectId> = [];
+  if (orgString) {
+    const trimmed = orgString.trim();
+    candidates.push(trimmed);
+    if (mongoose.Types.ObjectId.isValid(trimmed)) {
+      candidates.push(new mongoose.Types.ObjectId(trimmed));
+    }
+  }
+  return candidates.length ? { orgId: { $in: candidates } } : { orgId };
+};
+
+async function ensureMongo() {
+  if (mongoose.connection.readyState === 1) return;
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    throw new Error('[RefundsWorker] MONGODB_URI not configured');
+  }
+  await mongoose.connect(uri);
+}
+
+function buildWorker(): Worker<FinanceReviewJob> | null {
+  if (!connection) {
+    logger.warn('[RefundsWorker] Redis not configured; worker disabled');
+    return null;
+  }
+
+  return new Worker<FinanceReviewJob>(
+    QUEUE_NAME,
+    async (job: Job<FinanceReviewJob>) => {
+      await ensureMongo();
+      const { rmaId, orgId } = job.data;
+
+      const rma = await SouqRMA.findOneAndUpdate(
+        { _id: rmaId, ...buildOrgFilter(orgId) },
+        {
+          $set: {
+            'refund.status': 'pending_finance_review',
+            'refund.reviewQueuedAt': new Date(),
+          },
+          $push: {
+            timeline: {
+              status: 'pending_finance_review',
+              timestamp: new Date(),
+              note: 'Auto-inspected return awaiting finance review',
+              performedBy: 'SYSTEM',
+            },
+          },
+        },
+        { new: true },
+      );
+
+      if (!rma) {
+        logger.warn('[RefundsWorker] RMA not found for finance review', {
+          rmaId,
+          orgId,
+          jobId: job.id,
+        });
+        return;
+      }
+
+      logger.info('[RefundsWorker] Queued finance review for RMA', {
+        rmaId: rma._id.toString(),
+        orgId,
+        jobId: job.id,
+      });
+    },
+    { connection },
+  );
+}
+
+export function startRefundsReviewWorker(): Worker<FinanceReviewJob> | null {
+  return buildWorker();
+}
+
+if (require.main === module) {
+  const worker = startRefundsReviewWorker();
+  if (worker) {
+    logger.info('[RefundsWorker] Worker started', { queue: QUEUE_NAME });
+  } else {
+    // eslint-disable-next-line no-console
+    logger.error('refunds_review:worker_not_started', {
+      reason: 'Redis connection missing',
+    });
+    process.exit(1);
+  }
+}
+
+]]>
+</file>
+
+<file path="jobs/search-index-jobs.ts">
+<![CDATA[
+import { Queue, Worker, Job } from "bullmq";
+import { SearchIndexerService } from "@/services/souq/search-indexer-service";
+import Redis from "ioredis";
+import { logger } from "@/lib/logger";
+
+// Support REDIS_URL or REDIS_KEY (Vercel/GitHub naming convention)
+const bullRedisUrl = process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL || process.env.REDIS_KEY;
+const bullRedisHost = process.env.BULLMQ_REDIS_HOST;
+const bullRedisPort = parseInt(process.env.BULLMQ_REDIS_PORT || "6379", 10);
+const bullRedisPassword =
+  process.env.BULLMQ_REDIS_PASSWORD || process.env.REDIS_PASSWORD;
+const hasBullRedisConfig = Boolean(bullRedisUrl || bullRedisHost);
+const DEFAULT_SEARCH_ORG_ID =
+  process.env.DEFAULT_ORG_ID || process.env.PUBLIC_ORG_ID;
+
+const resolveOrgId = (orgId?: string): string => {
+  const effectiveOrgId = orgId || DEFAULT_SEARCH_ORG_ID;
+  if (!effectiveOrgId) {
+    throw new Error(
+      "[SearchIndex] orgId is required for indexing jobs (STRICT v4.1 tenant isolation)",
+    );
+  }
+  return effectiveOrgId;
+};
+
+const connection = hasBullRedisConfig
+  ? bullRedisUrl
+    ? new Redis(bullRedisUrl, { maxRetriesPerRequest: null })
+    : new Redis({
+        host: bullRedisHost!,
+        port: bullRedisPort,
+        password: bullRedisPassword,
+        maxRetriesPerRequest: null,
+      })
+  : null;
+
+if (!connection) {
+  logger.warn(
+    "[SearchIndex] Redis not configured. Search indexing queue is disabled.",
+  );
+} else {
+  connection.on("error", (error) => {
+    logger.error("[SearchIndex] Redis connection error", { error });
+  });
+}
+
+// ============================================================================
+// QUEUE DEFINITIONS
+// ============================================================================
+
+export const searchIndexQueue = connection
+  ? new Queue("search-indexing", { connection })
+  : null;
+
+// ============================================================================
+// JOB TYPES
+// ============================================================================
+
+interface FullReindexJob {
+  type: "full_reindex";
+  target: "products" | "sellers" | "all";
+  orgId: string;
+}
+
+interface IncrementalUpdateJob {
+  type: "incremental_update";
+  target: "product" | "seller";
+  id: string; // listingId or sellerId
+  orgId: string;
+}
+
+interface DeleteFromIndexJob {
+  type: "delete";
+  target: "product" | "seller";
+  id: string; // fsin or sellerId
+  orgId: string;
+}
+
+type SearchIndexJobData =
+  | FullReindexJob
+  | IncrementalUpdateJob
+  | DeleteFromIndexJob;
+
+// ============================================================================
+// JOB SCHEDULERS
+// ============================================================================
+
+/**
+ * Schedule daily full reindex
+ * Runs at 2:00 AM Saudi time (UTC+3)
+ */
+export async function scheduleFullReindex() {
+  if (!searchIndexQueue) {
+    logger.warn(
+      "[SearchIndex] Cannot schedule full reindex - Redis not configured",
+    );
+    return;
+  }
+  const defaultOrgId = DEFAULT_SEARCH_ORG_ID;
+  if (!defaultOrgId) {
+    logger.warn(
+      "[SearchIndex] Skipping scheduled full reindex - DEFAULT_ORG_ID/PUBLIC_ORG_ID not set (STRICT v4.1 tenant isolation)",
+    );
+    return;
+  }
+  await searchIndexQueue.add(
+    "full_reindex",
+    {
+      type: "full_reindex",
+      target: "all",
+      orgId: defaultOrgId,
+    } as FullReindexJob,
+    {
+      repeat: {
+        pattern: "0 2 * * *", // 2 AM daily
+        tz: "Asia/Riyadh",
+      },
+      jobId: "full_reindex_daily",
+    },
+  );
+
+  logger.info("[SearchIndex] Scheduled daily full reindex at 2:00 AM");
+}
+
+/**
+ * Trigger immediate full reindex (manual)
+ */
+export async function triggerFullReindex(
+  target: "products" | "sellers" | "all" = "all",
+  orgId?: string,
+) {
+  if (!searchIndexQueue) {
+    logger.warn("[SearchIndex] Cannot trigger reindex - Redis not configured");
+    return null;
+  }
+  const resolvedOrgId = resolveOrgId(orgId);
+  const job = await searchIndexQueue.add(
+    "full_reindex",
+    {
+      type: "full_reindex",
+      target,
+      orgId: resolvedOrgId,
+    } as FullReindexJob,
+    {
+      priority: 1, // High priority for manual trigger
+    },
+  );
+
+  logger.info(`[SearchIndex] Triggered full reindex: ${job.id}`);
+  return job.id;
+}
+
+/**
+ * Trigger incremental update (on listing create/update)
+ */
+export async function triggerIncrementalUpdate(
+  target: "product" | "seller",
+  id: string,
+  orgId: string,
+) {
+  if (!searchIndexQueue) {
+    logger.warn(
+      "[SearchIndex] Cannot queue incremental update - Redis not configured",
+    );
+    return null;
+  }
+  const job = await searchIndexQueue.add(
+    "incremental_update",
+    {
+      type: "incremental_update",
+      target,
+      id,
+      orgId,
+    } as IncrementalUpdateJob,
+    {
+      priority: 5, // Medium priority
+      attempts: 3, // Retry 3 times on failure
+      backoff: {
+        type: "exponential",
+        delay: 1000, // Start with 1 second
+      },
+    },
+  );
+
+  logger.info(`[SearchIndex] Triggered incremental update: ${target} ${id}`);
+  return job.id;
+}
+
+/**
+ * Trigger deletion from index (on listing delete)
+ */
+export async function triggerDeleteFromIndex(
+  target: "product" | "seller",
+  id: string,
+  orgId: string,
+) {
+  if (!searchIndexQueue) {
+    logger.warn("[SearchIndex] Cannot queue delete - Redis not configured");
+    return null;
+  }
+  const job = await searchIndexQueue.add(
+    "delete",
+    {
+      type: "delete",
+      target,
+      id,
+      orgId,
+    } as DeleteFromIndexJob,
+    {
+      priority: 10, // Low priority (deletions can be delayed)
+      attempts: 3,
+      backoff: {
+        type: "exponential",
+        delay: 1000,
+      },
+    },
+  );
+
+  logger.info(`[SearchIndex] Triggered delete from index: ${target} ${id}`);
+  return job.id;
+}
+
+// ============================================================================
+// WORKER PROCESSOR
+// ============================================================================
+
+/**
+ * Process search indexing jobs
+ */
+async function processSearchIndexJob(job: Job<SearchIndexJobData>) {
+  logger.info(`[SearchIndex] Processing job: ${job.name} (${job.id})`);
+
+  try {
+    const { data } = job;
+
+    switch (data.type) {
+      case "full_reindex": {
+        if (!data.orgId) {
+          throw new Error(
+            "orgId missing for full_reindex job (STRICT v4.1 tenant isolation)",
+          );
+        }
+        // Extract after guard check to satisfy TypeScript narrowing
+        const reindexOrgId: string = data.orgId;
+        
+        if (data.target === "products" || data.target === "all") {
+          const result = await SearchIndexerService.fullReindexProducts({
+            orgId: reindexOrgId,
+          });
+          await job.updateProgress(50);
+          logger.info(`[SearchIndex] Products reindexed: ${result.indexed}`);
+        }
+
+        if (data.target === "sellers" || data.target === "all") {
+          const result = await SearchIndexerService.fullReindexSellers({
+            orgId: reindexOrgId,
+          });
+          await job.updateProgress(100);
+          logger.info(`[SearchIndex] Sellers reindexed: ${result.indexed}`);
+        }
+        break;
+      }
+
+      case "incremental_update": {
+        if (data.target === "product") {
+          await SearchIndexerService.updateListing(data.id, {
+            orgId: data.orgId,
+          });
+        } else if (data.target === "seller") {
+          await SearchIndexerService.updateSeller(data.id, {
+            orgId: data.orgId,
+          });
+        }
+        await job.updateProgress(100);
+        break;
+      }
+
+      case "delete": {
+        await SearchIndexerService.deleteFromIndex(data.id, {
+          orgId: data.orgId,
+        });
+        await job.updateProgress(100);
+        break;
+      }
+
+      default:
+        throw new Error(
+          `Unknown job type: ${(data as SearchIndexJobData).type}`,
+        );
+    }
+
+    logger.info(`[SearchIndex] Job completed: ${job.id}`);
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[SearchIndex] Job failed", { jobId: job.id, error });
+    throw error; // Let BullMQ handle retries
+  }
+}
+
+// ============================================================================
+// WORKER INITIALIZATION
+// ============================================================================
+
+let worker: Worker | null = null;
+
+/**
+ * Start the search indexing worker
+ */
+export function startSearchIndexWorker() {
+  if (!connection) {
+    logger.warn("[SearchIndex] Worker disabled - Redis not configured");
+    return null;
+  }
+  if (worker) {
+    logger.warn("[SearchIndex] Worker already running");
+    return worker;
+  }
+
+  worker = new Worker("search-indexing", processSearchIndexJob, {
+    connection,
+    concurrency: 2, // Process 2 jobs in parallel
+    limiter: {
+      max: 10, // Max 10 jobs per interval
+      duration: 60000, // 1 minute
+    },
+  });
+
+  worker.on("completed", (job: Job) => {
+    logger.info(`[SearchIndex] Job ${job.id} completed successfully`);
+  });
+
+  worker.on("failed", (job: Job | undefined, error: Error) => {
+    logger.error("[SearchIndex] Job failed event", { jobId: job?.id, error });
+  });
+
+  worker.on("error", (error: Error) => {
+    logger.error("[SearchIndex] Worker error event", { error });
+  });
+
+  logger.info("[SearchIndex] Worker started");
+
+  // Schedule daily reindex
+  scheduleFullReindex();
+
+  return worker;
+}
+
+/**
+ * Stop the search indexing worker
+ */
+export async function stopSearchIndexWorker() {
+  if (!worker) {
+    logger.warn("[SearchIndex] Worker not running");
+    return;
+  }
+
+  await worker.close();
+  worker = null;
+  logger.info("[SearchIndex] Worker stopped");
+}
+
+// ============================================================================
+// HOOKS FOR LISTING LIFECYCLE
+// ============================================================================
+
+/**
+ * Hook: Call this after listing created
+ */
+export async function onListingCreated(listingId: string, orgId: string) {
+  await triggerIncrementalUpdate("product", listingId, orgId);
+}
+
+/**
+ * Hook: Call this after listing updated
+ */
+export async function onListingUpdated(listingId: string, orgId: string) {
+  await triggerIncrementalUpdate("product", listingId, orgId);
+}
+
+/**
+ * Hook: Call this after listing deleted
+ */
+export async function onListingDeleted(fsin: string, orgId: string) {
+  await triggerDeleteFromIndex("product", fsin, orgId);
+}
+
+/**
+ * Hook: Call this after seller profile updated
+ */
+export async function onSellerUpdated(sellerId: string, orgId: string) {
+  await triggerIncrementalUpdate("seller", sellerId, orgId);
+}
+
+// ============================================================================
+// MANUAL ADMIN TRIGGERS
+// ============================================================================
+
+/**
+ * Admin endpoint: Trigger full reindex via API
+ */
+export async function adminTriggerFullReindex(
+  target: "products" | "sellers" | "all",
+  orgId?: string,
+) {
+  return await triggerFullReindex(target, orgId);
+}
+
+]]>
+</file>
+
+<file path="jobs/zatca-retry-queue.ts">
+<![CDATA[
+/**
+ * ZATCA Clearance Retry Queue
+ *
+ * Handles background retries for failed ZATCA clearance operations.
+ * Picks up payments with zatca.complianceStatus = "PENDING_RETRY" and
+ * re-attempts clearance with proper tenant scoping.
+ *
+ * Uses BullMQ for reliable job processing with exponential backoff.
+ */
+
+import { Queue, Worker, Job } from "bullmq";
+import { logger } from "@/lib/logger";
+import { getRedisClient } from "@/lib/redis";
+import { fetchWithRetry } from "@/lib/http/fetchWithRetry";
+import { SERVICE_RESILIENCE } from "@/config/service-timeouts";
+import { z } from "zod";
+
+const QUEUE_NAME = "zatca-clearance-retry";
+const MAX_ATTEMPTS = 5;
+
+// Zod schema for job payload validation - enforces tenant isolation
+const ZatcaRetryJobDataSchema = z.object({
+  aqarPaymentId: z.string().min(1, "aqarPaymentId is required"),
+  orgId: z.string().min(1, "orgId is required for tenant isolation"),
+  amount: z.number().positive("amount must be positive"),
+  currency: z.string().default("SAR"),
+  attemptNumber: z.number().optional(),
+});
+
+type ZatcaRetryJobData = z.infer<typeof ZatcaRetryJobDataSchema>;
+
+// ZATCA resilience configuration
+const zatcaResilience = SERVICE_RESILIENCE.zatca;
+
+// Queue and worker instances (for graceful shutdown)
+let queue: Queue | null = null;
+let activeWorker: Worker | null = null;
+
+/**
+ * Require Redis connection - fail fast if not configured.
+ * ZATCA is a critical compliance queue - silently disabling could cause
+ * regulatory violations (invoices not being cleared with tax authority).
+ */
+function requireRedisConnection(context: string) {
+  const connection = getRedisClient();
+  if (!connection) {
+    throw new Error(
+      `[ZatcaRetryQueue] Redis not configured (${context}). ` +
+      `REDIS_URL or REDIS_KEY is required for ZATCA clearance retries - this is a critical compliance queue.`
+    );
+  }
+  return connection;
+}
+
+/**
+ * Get or create the ZATCA retry queue
+ * Throws if Redis is not configured (fail-fast for critical compliance queue)
+ */
+export function getZatcaRetryQueue(): Queue {
+  const connection = requireRedisConnection("getZatcaRetryQueue");
+
+  if (!queue) {
+    queue = new Queue(QUEUE_NAME, {
+      connection,
+      defaultJobOptions: {
+        attempts: MAX_ATTEMPTS,
+        backoff: {
+          type: "exponential",
+          delay: 300000, // Start with 5 minutes (ZATCA may have rate limits)
+        },
+        removeOnComplete: {
+          age: 86400, // Keep completed jobs for 24 hours
+          count: 1000,
+        },
+        removeOnFail: {
+          age: 604800, // Keep failed jobs for 7 days
+          count: 5000,
+        },
+      },
+    });
+  }
+
+  return queue;
+}
+
+/**
+ * Enqueue a ZATCA clearance retry job
+ */
+export async function enqueueZatcaRetry(
+  aqarPaymentId: string,
+  orgId: string,
+  amount: number,
+  currency = "SAR",
+): Promise<string | null> {
+  // Validate payload with Zod schema (fail-closed on invalid data)
+  const parseResult = ZatcaRetryJobDataSchema.safeParse({
+    aqarPaymentId,
+    orgId,
+    amount,
+    currency,
+    attemptNumber: 0,
+  });
+
+  if (!parseResult.success) {
+    logger.error("[ZatcaRetryQueue] Invalid job payload - tenant isolation requires valid orgId", {
+      aqarPaymentId,
+      orgId,
+      validationErrors: parseResult.error.flatten().fieldErrors,
+    });
+    return null;
+  }
+
+  const zatcaQueue = getZatcaRetryQueue();
+  // getZatcaRetryQueue throws if Redis not configured, so queue is always valid here
+
+  try {
+    const job = await zatcaQueue.add(
+      "zatca-clearance",
+      parseResult.data,
+      {
+        jobId: `zatca-${aqarPaymentId}-${Date.now()}`,
+      },
+    );
+
+    logger.info("[ZatcaRetryQueue] Enqueued ZATCA clearance retry", {
+      jobId: job.id,
+      aqarPaymentId,
+      orgId,
+      amount,
+      currency,
+    });
+
+    return job.id || null;
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    logger.error("[ZatcaRetryQueue] Failed to enqueue retry", {
+      error,
+      aqarPaymentId,
+      orgId,
+    });
+    return null;
+  }
+}
+
+/**
+ * Find payments needing ZATCA retry and enqueue them.
+ * Call this from a scheduled job (e.g., cron) to pick up PENDING_RETRY payments.
+ *
+ * SECURITY: This function scans payments across orgs in a controlled manner.
+ * Each payment is processed with its own tenant context, ensuring proper isolation.
+ * The updateOne call uses buildOrgScopedFilter for tenant-safe writes.
+ */
+export async function scanAndEnqueuePendingRetries(): Promise<number> {
+  let enqueuedCount = 0;
+
+  try {
+    const { connectToDatabase } = await import("@/lib/mongodb-unified");
+    await connectToDatabase();
+
+    const { AqarPayment } = await import("@/server/models/aqar");
+    const { buildOrgScopedFilter } = await import("@/lib/utils/org-scope");
+
+    // Find payments with PENDING_RETRY status that haven't been retried recently
+    // NOTE: This cross-org scan is intentional for background job processing.
+    // Each payment is subsequently processed within its own tenant context.
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const pendingPayments = await AqarPayment.find({
+      "zatca.complianceStatus": "PENDING_RETRY",
+      orgId: { $exists: true, $ne: null },
+      $and: [
+        {
+          $or: [
+            { "zatca.lastRetryAt": { $exists: false } },
+            { "zatca.lastRetryAt": { $lt: oneHourAgo } },
+          ],
+        },
+      ],
+    })
+      .select("_id orgId amount currency zatca")
+      .limit(100) // Process in batches
+      .lean();
+
+    for (const payment of pendingPayments) {
+      const paymentId = payment._id.toString();
+      const orgId = payment.orgId?.toString();
+
+      if (!orgId) {
+        logger.error("[ZatcaRetryQueue] Payment missing orgId/org_id, skipping", {
+          paymentId,
+        });
+        continue;
+      }
+
+      const jobId = await enqueueZatcaRetry(
+        paymentId,
+        orgId,
+        payment.amount,
+        payment.currency || "SAR",
+      );
+
+      if (jobId) {
+        // Mark that we've scheduled a retry using tenant-scoped filter
+        const { setTenantContext, clearTenantContext } = await import("@/server/plugins/tenantIsolation");
+        try {
+          setTenantContext({ orgId, userId: "zatca-retry-scan" });
+          await AqarPayment.updateOne(
+            buildOrgScopedFilter(paymentId, orgId),
+            { $set: { "zatca.lastRetryAt": new Date() } },
+          );
+        } finally {
+          clearTenantContext();
+        }
+        enqueuedCount++;
+      }
+    }
+
+    logger.info("[ZatcaRetryQueue] Scan complete", {
+      found: pendingPayments.length,
+      enqueued: enqueuedCount,
+    });
+
+    return enqueuedCount;
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    logger.error("[ZatcaRetryQueue] Scan failed", { error });
+    return enqueuedCount;
+  }
+}
+
+/**
+ * Process ZATCA retry jobs.
+ * Call this from a worker process.
+ * Throws if Redis is not configured (fail-fast for critical compliance queue)
+ * 
+ * NOTE: This function is async to ensure MongoDB is connected before processing.
+ * The Worker is returned after connection is established.
+ */
+export async function startZatcaRetryWorker(): Promise<Worker> {
+  // CRITICAL: Ensure MongoDB is connected before any BullMQ handlers run.
+  // In standalone worker processes, mongoose may not be connected yet.
+  const { connectToDatabase } = await import("@/lib/mongodb-unified");
+  await connectToDatabase();
+
+  // SECURITY: requireRedisConnection throws if Redis not configured
+  // to ensure ZATCA compliance queue cannot be silently disabled
+  const connection = requireRedisConnection("startZatcaRetryWorker");
+
+  if (activeWorker) {
+    return activeWorker;
+  }
+
+  const worker = new Worker<ZatcaRetryJobData>(
+    QUEUE_NAME,
+    async (job: Job<ZatcaRetryJobData>) => {
+      // Validate job data
+      const parseResult = ZatcaRetryJobDataSchema.safeParse(job.data);
+      if (!parseResult.success) {
+        logger.error("[ZatcaRetryQueue] Job has invalid payload, failing permanently", {
+          jobId: job.id,
+          validationErrors: parseResult.error.flatten().fieldErrors,
+        });
+        throw new Error(`Invalid job payload: ${JSON.stringify(parseResult.error.flatten().fieldErrors)}`);
+      }
+
+      const { aqarPaymentId, orgId, amount, currency } = parseResult.data;
+
+      logger.info("[ZatcaRetryQueue] Processing ZATCA clearance retry", {
+        jobId: job.id,
+        aqarPaymentId,
+        orgId,
+        attempt: job.attemptsMade,
+      });
+
+      try {
+        // Check required ZATCA envs - INSIDE try block so we can persist retry metadata on config failures
+        const zatcaSellerName = process.env.ZATCA_SELLER_NAME;
+        const zatcaVatNumber = process.env.ZATCA_VAT_NUMBER;
+        const zatcaSellerAddress = process.env.ZATCA_SELLER_ADDRESS;
+        const clearanceApiKey = process.env.ZATCA_API_KEY;
+
+        if (!clearanceApiKey || !zatcaSellerName || !zatcaVatNumber || !zatcaSellerAddress) {
+          const missingEnvs = [
+            !clearanceApiKey && "ZATCA_API_KEY",
+            !zatcaSellerName && "ZATCA_SELLER_NAME",
+            !zatcaVatNumber && "ZATCA_VAT_NUMBER",
+            !zatcaSellerAddress && "ZATCA_SELLER_ADDRESS",
+          ].filter(Boolean);
+          
+          throw new Error(`ZATCA configuration incomplete - missing: ${missingEnvs.join(", ")}`);
+        }
+        const { setTenantContext, clearTenantContext } = await import("@/server/plugins/tenantIsolation");
+        const { AqarPayment } = await import("@/server/models/aqar");
+        const { buildOrgScopedFilter } = await import("@/lib/utils/org-scope");
+
+        // Build invoice payload
+        const invoicePayload = {
+          invoiceType: "SIMPLIFIED",
+          invoiceNumber: `PAY-${aqarPaymentId}`,
+          issueDate: new Date().toISOString(),
+          seller: {
+            name: zatcaSellerName,
+            vatNumber: zatcaVatNumber,
+            address: zatcaSellerAddress,
+          },
+          total: String(amount),
+          currency,
+          vatAmount: String(+(amount * 0.15).toFixed(2)),
+          items: [
+            {
+              description: "Payment via PayTabs (Retry)",
+              quantity: 1,
+              unitPrice: amount,
+              vatRate: 0.15,
+            },
+          ],
+        };
+
+        // Use centralized ZATCA config URL (avoids duplication)
+        const clearanceApiUrl = zatcaResilience.clearanceApiUrl;
+
+        // Call ZATCA clearance API with resilience (retry + timeout)
+        const response = await fetchWithRetry(clearanceApiUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${clearanceApiKey}`,
+            Accept: "application/json",
+          },
+          body: JSON.stringify(invoicePayload),
+        }, {
+          timeoutMs: zatcaResilience.timeouts.clearanceMs,
+          maxAttempts: zatcaResilience.retries.maxAttempts,
+          retryDelayMs: zatcaResilience.retries.baseDelayMs,
+          label: "zatca-clearance-retry",
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(`ZATCA API returned ${response.status}: ${JSON.stringify(errorData)}`);
+        }
+
+        const clearanceResponse = await response.json();
+        if (!clearanceResponse.clearanceStatus || clearanceResponse.clearanceStatus !== "CLEARED") {
+          throw new Error(`ZATCA clearance not approved: ${clearanceResponse.clearanceStatus || "UNKNOWN"}`);
+        }
+
+        // Update payment with clearance evidence
+        const clearanceId = clearanceResponse.clearanceId || clearanceResponse.uuid;
+        const zatcaQR = clearanceResponse.qrCode;
+        const invoiceHash = clearanceResponse.invoiceHash;
+
+        if (!clearanceId || !zatcaQR) {
+          throw new Error("ZATCA response missing required fields (clearanceId or qrCode)");
+        }
+
+        try {
+          setTenantContext({ orgId, userId: "zatca-retry-worker" });
+          
+          await AqarPayment.updateOne(
+            buildOrgScopedFilter(aqarPaymentId, orgId),
+            {
+              $set: {
+                status: "COMPLETED",
+                "zatca.complianceStatus": "CLEARED",
+                "zatca.qrCode": zatcaQR,
+                "zatca.invoiceHash": invoiceHash,
+                "zatca.clearanceId": clearanceId,
+                "zatca.clearedAt": new Date(),
+                "zatca.retryCompletedAt": new Date(),
+                // Evidence fields for compliance audit trail (aligned with PayTabs callback)
+                "zatca.submittedAt": new Date(),
+                "zatca.invoicePayload": invoicePayload,
+              },
+              // Clear prior error fields on successful clearance
+              $unset: {
+                "zatca.lastError": "",
+                "zatca.lastRetryError": "",
+              },
+            },
+          );
+        } finally {
+          clearTenantContext();
+        }
+
+        logger.info("[ZatcaRetryQueue] ZATCA clearance successful", {
+          aqarPaymentId,
+          clearanceId: clearanceId?.toString().slice(0, 16) + "...",
+        });
+
+        return { success: true, aqarPaymentId, clearanceId };
+      } catch (_error) {
+        const error = _error instanceof Error ? _error : new Error(String(_error));
+        logger.error("[ZatcaRetryQueue] ZATCA clearance attempt failed", {
+          jobId: job.id,
+          aqarPaymentId,
+          attempt: job.attemptsMade,
+          error: error.message,
+        });
+
+        // Update last retry attempt time with tenant context for audit consistency
+        try {
+          const { setTenantContext, clearTenantContext } = await import("@/server/plugins/tenantIsolation");
+          const { AqarPayment } = await import("@/server/models/aqar");
+          const { buildOrgScopedFilter } = await import("@/lib/utils/org-scope");
+          
+          setTenantContext({ orgId, userId: "zatca-retry-worker" });
+          try {
+            await AqarPayment.updateOne(
+              buildOrgScopedFilter(aqarPaymentId, orgId),
+              {
+                $set: {
+                  "zatca.lastRetryAt": new Date(),
+                  "zatca.lastRetryError": error.message,
+                  "zatca.retryAttempts": job.attemptsMade + 1,
+                },
+              },
+            );
+          } finally {
+            clearTenantContext();
+          }
+        } catch (updateError) {
+          logger.error("[ZatcaRetryQueue] Failed to update retry metadata", { updateError });
+        }
+
+        throw error; // Re-throw to trigger retry
+      }
+    },
+    {
+      connection,
+      concurrency: 2, // Lower concurrency for ZATCA rate limits
+      limiter: {
+        max: 5,
+        duration: 60000, // Max 5 jobs per minute
+      },
+    },
+  );
+
+  worker.on("completed", (job) => {
+    logger.info("[ZatcaRetryQueue] Job completed", { jobId: job.id });
+  });
+
+  worker.on("failed", (job, error) => {
+    logger.error("[ZatcaRetryQueue] Job failed", {
+      jobId: job?.id,
+      attempts: job?.attemptsMade,
+      error: error.message,
+    });
+  });
+
+  logger.info("[ZatcaRetryQueue] Worker started");
+  activeWorker = worker;
+  return worker;
+}
+
+/**
+ * Stop the ZATCA retry worker gracefully
+ * Call this before application shutdown
+ */
+export async function stopZatcaRetryWorker(): Promise<void> {
+  if (activeWorker) {
+    logger.info("[ZatcaRetryQueue] Stopping worker...");
+    await activeWorker.close();
+    activeWorker = null;
+    logger.info("[ZatcaRetryQueue] Worker stopped");
+  }
+}
+
+/**
+ * Graceful shutdown - closes worker, queue, and connection
+ * Note: Redis connection is managed by shared singleton, not disconnected here
+ */
+export async function closeZatcaRetryQueue(): Promise<void> {
+  // Stop worker first
+  await stopZatcaRetryWorker();
+  
+  // Close queue
+  if (queue) {
+    await queue.close();
+    queue = null;
+  }
+  
+  // Redis connection is managed by shared singleton in @/lib/redis
+  // Do not disconnect here - other parts of the app may still need it
+  logger.info("[ZatcaRetryQueue] Closed");
+}
+
+]]>
+</file>
+
+<file path="kb/chunk.ts">
+<![CDATA[
+export type TextChunk = {
+  id: string;
+  text: string;
+  index: number;
+};
+
+export function chunkText(
+  input: string,
+  chunkSize = 1000,
+  overlap = 200,
+): TextChunk[] {
+  const text = (input || "").replace(/\r\n?/g, "\n");
+  const chunks: TextChunk[] = [];
+  if (!text.trim()) return chunks;
+  let start = 0;
+  let idx = 0;
+  while (start < text.length) {
+    const end = Math.min(text.length, start + chunkSize);
+    const slice = text.slice(start, end);
+    chunks.push({ id: `c${idx}`, text: slice, index: idx });
+    idx += 1;
+    if (end === text.length) break;
+    start = end - overlap;
+    if (start < 0) start = 0;
+  }
+  return chunks;
+}
+
+]]>
+</file>
+
+<file path="kb/ingest.ts">
+<![CDATA[
+import { getDatabase } from "@/lib/mongodb-unified";
+import { embedText } from "@/ai/embeddings";
+import { chunkText } from "./chunk";
+
+type UpsertArgs = {
+  orgId: string | null;
+  tenantId?: string | null;
+  articleId: string;
+  lang?: string;
+  roleScopes?: string[];
+  route?: string;
+  title?: string;
+  content: string;
+};
+
+export async function upsertArticleEmbeddings(args: UpsertArgs) {
+  const db = await getDatabase();
+  const coll = db.collection("kb_embeddings");
+  const { articleId, content, lang, roleScopes, route, orgId, tenantId } = args;
+  const chunks = chunkText(content, 1200, 200);
+  const ops: Array<{
+    updateOne: {
+      filter: Record<string, unknown>;
+      update: Record<string, unknown>;
+      upsert: boolean;
+    };
+  }> = [];
+  let index = 0;
+  for (const chunk of chunks) {
+    const embedding = await embedText(chunk.text);
+    ops.push({
+      updateOne: {
+        filter: {
+          articleId,
+          chunkId: index,
+          tenantId: tenantId ?? null,
+          orgId: orgId ?? null,
+        },
+        update: {
+          $set: {
+            articleId,
+            chunkId: index,
+            text: chunk.text,
+            embedding,
+            lang: lang || "en",
+            route: route || "/help",
+            roleScopes: roleScopes && roleScopes.length ? roleScopes : ["USER"],
+            orgId: orgId ?? null,
+            tenantId: tenantId ?? null,
+            updatedAt: new Date(),
+          },
+        },
+        upsert: true,
+      },
+    });
+    index += 1;
+  }
+  if (ops.length) await coll.bulkWrite(ops, { ordered: false });
+}
+
+export async function deleteArticleEmbeddings(
+  articleId: string,
+  tenantId: string | null,
+) {
+  const db = await getDatabase();
+  const coll = db.collection("kb_embeddings");
+  await coll.deleteMany({ articleId, tenantId });
+}
+
+]]>
+</file>
+
+<file path="kb/search.ts">
+<![CDATA[
+import { getDatabase } from "@/lib/mongodb-unified";
+
+type SearchArgs = {
+  tenantId: string | null | undefined;
+  query: number[];
+  q?: string;
+  lang?: string;
+  role?: string;
+  route?: string;
+  limit?: number;
+};
+
+export async function performKbSearch(args: SearchArgs): Promise<unknown[]> {
+  const { tenantId, query, q, lang, role, route } = args;
+  const limit = Math.min(Math.max(args.limit ?? 8, 1), 12);
+  const db = await getDatabase();
+  const coll = db.collection("kb_embeddings");
+
+  interface QueryFilter {
+    $and: Array<Record<string, unknown>>;
+    text?: RegExp;
+  }
+
+  const scope: QueryFilter = {
+    $and: [
+      {
+        $or: [
+          // Only include the tenantId branch if provided to avoid { tenantId: undefined }
+          ...(tenantId ? [{ tenantId }] : []),
+          { tenantId: { $exists: false } },
+          { tenantId: null },
+        ],
+      },
+    ],
+  };
+  if (lang) scope.$and.push({ lang });
+  if (role) scope.$and.push({ roleScopes: { $in: [role] } });
+  if (route) scope.$and.push({ route });
+
+  try {
+    const pipe = [
+      {
+        $vectorSearch: {
+          index: process.env.KB_VECTOR_INDEX || "kb-embeddings-index",
+          path: "embedding",
+          queryVector: query,
+          numCandidates: 200,
+          limit,
+          filter: scope,
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          articleId: 1,
+          chunkId: 1,
+          text: 1,
+          lang: 1,
+          route: 1,
+          roleScopes: 1,
+          slug: 1,
+          title: 1,
+          updatedAt: 1,
+          score: { $meta: "vectorSearchScore" },
+        },
+      },
+    ];
+    const results = await coll.aggregate(pipe, { maxTimeMS: 3_000 }).toArray();
+    return results;
+  } catch (_e) {
+    // Fallback to lexical search on text when vector index not available
+    const safe = new RegExp(
+      (q || "").toString().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+      "i",
+    );
+    const filter: QueryFilter = { ...scope, text: safe };
+    const results = await coll
+      .find(filter, {
+        projection: {
+          _id: 0,
+          articleId: 1,
+          chunkId: 1,
+          text: 1,
+          lang: 1,
+          route: 1,
+          roleScopes: 1,
+          slug: 1,
+          title: 1,
+          updatedAt: 1,
+        },
+      })
+      .limit(limit)
+      .toArray();
+    return results;
+  }
+}
+
+]]>
+</file>
+
+<file path="lib/AutoFixManager.ts">
+<![CDATA[
+// AutoFixManager for system health monitoring - MongoDB only
+import { logger } from "@/lib/logger";
+import { STORAGE_KEYS } from "@/config/constants";
+
+export interface SystemCheck {
+  id: string;
+  name: string;
+  description: string;
+  check: () => Promise<boolean>;
+  fix?: () => Promise<boolean>;
+  priority: "critical" | "high" | "medium" | "low";
+  category: "api" | "database" | "component" | "network" | "auth" | "ui";
+}
+
+export interface FixResult {
+  checkId: string;
+  success: boolean;
+  error?: string;
+  fixApplied?: boolean;
+  timestamp: string;
+  duration: number;
+}
+
+export class AutoFixManager {
+  private checks: SystemCheck[] = [];
+  private isRunning = false;
+  private intervalId?: NodeJS.Timeout;
+
+  constructor() {
+    this.initializeChecks();
+    this.startAutoMonitoring();
+  }
+
+  private initializeChecks(): void {
+    this.checks = [
+      // Critical API endpoints
+      {
+        id: "api-auth-me",
+        name: "Authentication API",
+        description: "Check auth/me endpoint",
+        category: "api",
+        priority: "critical",
+        check: async () => {
+          try {
+            const res = await fetch("/api/auth/me", { credentials: "include" });
+            return res.ok || res.status === 401; // 401 is acceptable for unauthenticated
+          } catch {
+            return false;
+          }
+        },
+        fix: async () => {
+          // Clear auth cache and retry
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("fxz.auth");
+            localStorage.removeItem("fxz.user");
+          }
+          return true;
+        },
+      },
+
+      {
+        id: "api-help-articles",
+        name: "Help Articles API",
+        description: "Check help/articles endpoint",
+        category: "api",
+        priority: "high",
+        check: async () => {
+          try {
+            const res = await fetch("/api/help/articles");
+            // 401 is acceptable for unauthenticated users
+            return res.ok || res.status === 401;
+          } catch {
+            return false;
+          }
+        },
+        fix: async () => {
+          // Clear any cached help data
+          if (typeof window !== "undefined") {
+            sessionStorage.removeItem("fxz.help.cache");
+          }
+          return true;
+        },
+      },
+
+      {
+        id: "api-notifications",
+        name: "Notifications API",
+        description: "Check notifications endpoint",
+        category: "api",
+        priority: "high",
+        check: async () => {
+          try {
+            const res = await fetch("/api/notifications");
+            // 401 is acceptable for unauthenticated users
+            return res.ok || res.status === 401;
+          } catch {
+            return false;
+          }
+        },
+        fix: async () => {
+          // Clear notification cache
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("fxz.notifications");
+          }
+          return true;
+        },
+      },
+
+      // Database connectivity
+      {
+        id: "database-connection",
+        name: "Database Connection",
+        description: "Verify database connectivity",
+        category: "database",
+        priority: "critical",
+        check: async () => {
+          try {
+            const res = await fetch("/api/qa/health");
+            const data = await res.json();
+            return (
+              data.database === "connected" ||
+              data.database === "mock-connected"
+            );
+          } catch {
+            return false;
+          }
+        },
+        fix: async () => {
+          // Force database reconnection
+          try {
+            await fetch("/api/qa/reconnect", { method: "POST" });
+          } catch {
+            // Silent fail
+          }
+          return true;
+        },
+      },
+
+      // Network connectivity
+      {
+        id: "network-connectivity",
+        name: "Network Connectivity",
+        description: "Check internet connectivity",
+        category: "network",
+        priority: "critical",
+        check: async () => {
+          return navigator.onLine;
+        },
+        fix: async () => {
+          return new Promise((resolve) => {
+            const checkOnline = () => {
+              if (navigator.onLine) {
+                resolve(true);
+              } else {
+                setTimeout(checkOnline, 1000);
+              }
+            };
+            setTimeout(checkOnline, 1000);
+          });
+        },
+      },
+
+      // Component loading - disabled to prevent dynamic import issues
+      // {
+      //   id: 'component-loading',
+      //   name: 'Component Loading',
+      //   description: 'Verify UI components load correctly',
+      //   category: 'component',
+      //   priority: 'medium',
+      //   check: async () => {
+      //     // Skip component loading check
+      //     return true;
+      //   }
+      // },
+
+      // Local storage
+      {
+        id: "localStorage-access",
+        name: "Local Storage Access",
+        description: "Check localStorage functionality",
+        category: "ui",
+        priority: "medium",
+        check: async () => {
+          if (typeof window === "undefined") return false;
+          try {
+            const testKey = "fxz.test";
+            localStorage.setItem(testKey, "test");
+            const value = localStorage.getItem(testKey);
+            localStorage.removeItem(testKey);
+            return value === "test";
+          } catch {
+            return false;
+          }
+        },
+        fix: async () => {
+          // Clear corrupted data
+          if (typeof window !== "undefined") {
+            localStorage.clear();
+            sessionStorage.clear();
+          }
+          return true;
+        },
+      },
+
+      // Session management
+      {
+        id: "session-management",
+        name: "Session Management",
+        description: "Check session persistence",
+        category: "auth",
+        priority: "high",
+        check: async () => {
+          if (typeof window === "undefined") return true; // Skip on server
+          try {
+            const authData = localStorage.getItem("fxz.auth");
+            if (!authData) return true; // No session is ok
+
+            const auth = JSON.parse(authData);
+            return auth.token && auth.expires > Date.now();
+          } catch {
+            return false;
+          }
+        },
+        fix: async () => {
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("fxz.auth");
+            localStorage.removeItem("fxz.user");
+            localStorage.setItem("fxz.session.reset", "true");
+          }
+          return true;
+        },
+      },
+    ];
+  }
+
+  public async runHealthCheck(): Promise<FixResult[]> {
+    const results: FixResult[] = [];
+
+    for (const check of this.checks) {
+      const startTime = Date.now();
+
+      try {
+        const isHealthy = await check.check();
+        const duration = Date.now() - startTime;
+
+        if (!isHealthy) {
+          let fixApplied = false;
+          let fixError: string | undefined;
+          if (check.fix) {
+            try {
+              fixApplied = await check.fix();
+            } catch (err) {
+              // Capture fix failure for diagnostics
+              const errorMsg = err instanceof Error ? err.message : String(err);
+              fixError = `Fix attempt failed: ${errorMsg}`;
+
+              // Log for development/debugging (not in production)
+              if (process.env.NODE_ENV !== "production") {
+                logger.debug(`[AutoFix] ${check.id} fix failed:`, err);
+              }
+            }
+          }
+
+          results.push({
+            checkId: check.id,
+            success: false,
+            error: fixError || `${check.name} check failed`,
+            fixApplied,
+            timestamp: new Date().toISOString(),
+            duration,
+          });
+        } else {
+          results.push({
+            checkId: check.id,
+            success: true,
+            timestamp: new Date().toISOString(),
+            duration,
+          });
+        }
+      } catch (_error) {
+        const error =
+          _error instanceof Error ? _error : new Error(String(_error));
+        void error;
+        const duration = Date.now() - startTime;
+        results.push({
+          checkId: check.id,
+          success: false,
+          error: (error as Error).message,
+          timestamp: new Date().toISOString(),
+          duration,
+        });
+      }
+    }
+
+    return results;
+  }
+
+  public startAutoMonitoring(intervalMinutes: number = 5): void {
+    if (this.isRunning) return;
+
+    this.isRunning = true;
+
+    this.intervalId = setInterval(
+      async () => {
+        const results = await this.runHealthCheck();
+
+        // Log results
+        const failedCount = results.filter((r) => !r.success).length;
+        if (failedCount > 0) {
+          // Send alert to QA system
+          this.sendAlert(results);
+        }
+      },
+      intervalMinutes * 60 * 1000,
+    );
+  }
+
+  public stopAutoMonitoring(): void {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.isRunning = false;
+    }
+  }
+
+  private async sendAlert(results: FixResult[]): Promise<void> {
+    try {
+      await fetch("/api/qa/alert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event: "SYSTEM_HEALTH_ISSUE",
+          data: {
+            results,
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent,
+            url: window.location.href,
+          },
+        }),
+      });
+    } catch {
+      // Silent fail for alerts
+    }
+  }
+
+  public async verifySystemHealth(): Promise<{
+    overall: "healthy" | "degraded" | "critical";
+    issues: string[];
+    fixes: string[];
+  }> {
+    const results = await this.runHealthCheck();
+    const failedResults = results.filter((r) => !r.success);
+    const criticalFailures = failedResults.filter(
+      (r) =>
+        this.checks.find((c) => c.id === r.checkId)?.priority === "critical",
+    );
+
+    const issues = failedResults.map(
+      (r) => `${r.checkId}: ${r.error}${r.fixApplied ? " (fix applied)" : ""}`,
+    );
+
+    const fixes = results
+      .filter((r) => r.fixApplied)
+      .map((r) => `Fixed: ${r.checkId}`);
+
+    let overall: "healthy" | "degraded" | "critical" = "healthy";
+    if (criticalFailures.length > 0) {
+      overall = "critical";
+    } else if (failedResults.length > 0) {
+      overall = "degraded";
+    }
+
+    return { overall, issues, fixes };
+  }
+
+  // Emergency recovery
+  public async emergencyRecovery(): Promise<void> {
+    if (typeof window !== "undefined") {
+      // Clear all caches
+      localStorage.clear();
+      sessionStorage.clear();
+
+      // Reset application state
+      const keysToKeep: string[] = [STORAGE_KEYS.language, STORAGE_KEYS.theme];
+      Object.keys(localStorage).forEach((key) => {
+        if (!keysToKeep.includes(key)) {
+          localStorage.removeItem(key);
+        }
+      });
+
+      // Force reload after cleanup
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    }
+  }
+}
+
+// Global instance
+export const autoFixManager = new AutoFixManager();
+
+]]>
+</file>
+
+<file path="lib/README.md">
+<![CDATA[
+# Fixzit Core Library (`lib/`)
+
+> **Version:** 2.0.26  
+> **Last Updated:** November 27, 2025
+
+This directory contains the core utility modules, shared libraries, and infrastructure code used across the Fixzit platform.
+
+---
+
+## Directory Structure
+
+```
+lib/
+├── auth.ts              # JWT authentication & password hashing
+├── auth-middleware.ts   # Express-style auth middleware
+├── authz.ts             # Authorization & permission checks
+├── rbac.ts              # Role-based access control
+│
+├── mongo.ts             # MongoDB connection & utilities
+├── redis.ts             # Redis client & caching
+├── database.ts          # Database abstraction layer
+│
+├── logger.ts            # Structured logging (Pino-based)
+├── audit.ts             # Audit trail logging
+├── telemetry.ts         # OpenTelemetry instrumentation
+│
+├── api/                 # API utilities
+├── cache/               # Caching strategies
+├── errors/              # Custom error classes
+├── finance/             # Financial calculations
+├── hr/                  # HR utilities
+├── i18n/                # Internationalization
+├── integrations/        # Third-party integrations
+├── middleware/          # Reusable middleware
+├── monitoring/          # Metrics & alerting
+├── payments/            # Payment processing
+├── queues/              # BullMQ job queues
+├── reports/             # Report generation
+├── routes/              # Route utilities
+├── schemas/             # Zod validation schemas
+├── security/            # Security utilities
+├── storage/             # File storage (S3/local)
+├── types/               # TypeScript type definitions
+├── utils/               # General utilities
+├── validations/         # Input validation
+└── vendor/              # Vendor-specific integrations
+```
+
+---
+
+## Key Modules
+
+### Authentication (`auth.ts`)
+
+Core authentication functions for JWT-based auth:
+
+```typescript
+import {
+  hashPassword,
+  verifyPassword,
+  generateToken,
+  verifyToken,
+  authenticateUser,
+  getUserFromToken,
+} from '@/lib/auth';
+
+// Hash password for storage
+const hash = await hashPassword('userPassword');
+
+// Authenticate user
+const { token, user } = await authenticateUser(email, password);
+
+// Verify token from request
+const payload = await verifyToken(token);
+```
+
+**Related:**
+- `auth-middleware.ts` - Express middleware for route protection
+- `edge-auth-middleware.ts` - Edge runtime auth (Vercel Edge)
+- `rbac.ts` - Role-based access control
+
+### Database (`mongo.ts`)
+
+MongoDB connection with connection pooling and retry logic:
+
+```typescript
+import { db, getDb } from '@/lib/mongo';
+
+// Use default database
+await db;
+
+// Get specific database instance
+const database = await getDb();
+const collection = database.collection('users');
+```
+
+### Logger (`logger.ts`)
+
+Structured logging with correlation IDs:
+
+```typescript
+import { logger } from '@/lib/logger';
+
+logger.info('Operation completed', { userId, action: 'create' });
+logger.error('Operation failed', { error, correlationId });
+```
+
+### Cache (`cache/`)
+
+Multi-tier caching with Redis:
+
+```typescript
+import { cache } from '@/lib/cache';
+
+// Set with TTL
+await cache.set('key', value, { ttl: 3600 });
+
+// Get with fallback
+const data = await cache.getOrSet('key', fetchFunction);
+```
+
+### Queues (`queues/`)
+
+BullMQ-based job queues:
+
+```typescript
+import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
+
+await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
+  to: 'user@example.com',
+  template: 'welcome',
+});
+```
+
+---
+
+## Security Modules
+
+### RBAC (`rbac.ts`)
+
+Role-based access control:
+
+```typescript
+import { checkPermission, hasRole } from '@/lib/rbac';
+
+if (!checkPermission(user, 'work-orders:create')) {
+  throw new ForbiddenError('Insufficient permissions');
+}
+```
+
+### Secrets (`secrets.ts`)
+
+AWS Secrets Manager integration:
+
+```typescript
+import { getSecret } from '@/lib/secrets';
+
+const apiKey = await getSecret('stripe-api-key');
+```
+
+### Security Utilities (`security/`)
+
+- CORS configuration
+- Rate limiting
+- Input sanitization
+- XSS prevention
+
+---
+
+## STRICT v4.1 RBAC & Multi-tenancy Essentials
+- Canonical roles (14): Super Admin, Corporate Admin, Management, Finance, HR, Corporate Employee, Property Owner, Technician, Tenant/End-User, plus sub-roles Finance Officer, HR Officer, Support, Operations/Ops, and Vendor-facing roles.
+- Always include `org_id` scoping on data access; SUPER_ADMIN is the only cross-org role and must be audited.
+- Tenants: enforce `unit_id ∈ user.units`; never fetch across units without explicit ownership.
+- Technicians: require `org_id` + `assigned_to_user_id === user._id` for FM workflows; respect assignment guards in `domain/fm/fm.behavior.ts`.
+- Property Owners/Managers: filter by owned/managed `property_id`; OWNER_DEPUTY aliases follow the same filters.
+- Vendors: enforce `vendor_id === user.vendor_id` for Marketplace/Souq flows.
+- PII (HR/Finance): restrict to Super Admin, Admin, HR Officer, Finance Officer; avoid logging sensitive fields.
+
+---
+
+## Environment Variables
+
+Key environment variables used by lib modules:
+
+| Variable | Module | Description |
+|----------|--------|-------------|
+| `JWT_SECRET` | auth.ts | JWT signing secret |
+| `MONGODB_URI` | mongo.ts | MongoDB connection string |
+| `REDIS_URL` | redis.ts | Redis connection URL |
+| `AWS_REGION` | secrets.ts | AWS region for Secrets Manager |
+| `LOG_LEVEL` | logger.ts | Logging level (debug/info/warn/error) |
+
+---
+
+## Testing
+
+Unit tests are located in `lib/__tests__/`:
+
+```bash
+# Run lib tests (vitest)
+pnpm exec vitest run lib/__tests__
+
+# Run specific test
+pnpm exec vitest run lib/__tests__/auth.test.ts
+
+# Run with coverage
+pnpm exec vitest run --coverage lib/__tests__
+```
+
+---
+
+## Best Practices
+
+### Importing
+
+Always use absolute imports:
+
+```typescript
+// ✅ Good
+import { logger } from '@/lib/logger';
+
+// ❌ Avoid
+import { logger } from '../../../lib/logger';
+```
+
+### Error Handling
+
+Use custom error classes from `lib/errors/`:
+
+```typescript
+import { ValidationError, NotFoundError } from '@/lib/errors';
+
+if (!isValid) {
+  throw new ValidationError('Invalid input', { field: 'email' });
+}
+```
+
+### Async Operations
+
+Always handle async errors:
+
+```typescript
+import { logger } from '@/lib/logger';
+
+try {
+  await riskyOperation();
+} catch (error) {
+  logger.error('Operation failed', { error });
+  throw error; // Re-throw or handle appropriately
+}
+```
+
+---
+
+## Contributing
+
+1. Follow existing patterns in the codebase
+2. Add JSDoc comments to all exported functions
+3. Write unit tests for new functionality
+4. Update this README if adding new modules
+
+---
+
+## Related Documentation
+
+- [Authentication & NextAuth Readiness](../docs/security/NEXTAUTH_V5_PRODUCTION_READINESS.md)
+- [CSRF Token Flow](../docs/archived/CSRF_TOKEN_FLOW.md)
+- [Security Guidelines](../docs/guides/SECURITY.md)
+- [Architecture Overview](../docs/architecture/ARCHITECTURE.md)
+
+]]>
+</file>
+
+<file path="lib/analytics/incrementWithRetry.ts">
+<![CDATA[
+/**
+ * Analytics Increment Helper with Retry Logic
+ *
+ * Provides a shared retry mechanism for incrementing analytics counters
+ * across different models. Helps prevent duplicate retry logic across API routes.
+ */
+
+import { logger } from "@/lib/logger";
+import type { Types, UpdateQuery, Document } from "mongoose";
+import type { MModel } from "@/types/mongoose-compat";
+
+interface IncrementOptions<T = unknown> {
+  model: MModel<T>;
+  id: Types.ObjectId;
+  updateOp: UpdateQuery<T>;
+  entityType: string;
+  maxRetries?: number;
+  baseDelay?: number;
+}
+
+/**
+ * Increment analytics with linear backoff retry
+ *
+ * Uses a linear backoff strategy: baseDelay, baseDelay*2, baseDelay*3, etc.
+ * This provides increasing delays on retries without the aggressive growth of exponential backoff.
+ *
+ * @param options - Configuration for the increment operation
+ * @returns Promise that resolves when increment succeeds or all retries are exhausted
+ */
+export async function incrementAnalyticsWithRetry<T extends Document>({
+  model,
+  id,
+  updateOp,
+  entityType,
+  maxRetries = 3,
+  baseDelay = 100,
+}: IncrementOptions<T>): Promise<void> {
+  let retries = maxRetries;
+
+  while (retries > 0) {
+    try {
+      await model.findByIdAndUpdate(id, updateOp).exec();
+      break; // Success - exit retry loop
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      retries--;
+
+      if (retries === 0) {
+        // Final failure - log error
+        const errObj =
+          error instanceof Error ? error : new Error(String(error));
+        logger.error(
+          `Failed to increment ${entityType} analytics after ${maxRetries} retries`,
+          errObj,
+          {
+            id: id.toString(),
+            type: errObj.constructor.name,
+          },
+        );
+      } else {
+        // Wait before retry with exponential backoff
+        const delay = baseDelay * (maxRetries - retries);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+}
+
+]]>
+</file>
+
+<file path="lib/apiGuard.ts">
+<![CDATA[
+/**
+ * API Guard Middleware
+ *
+ * Provides server-side permission checking for API routes.
+ * Use requirePermission() to wrap API handlers with permission requirements.
+ *
+ * Usage:
+ * ```typescript
+ * import { requirePermission } from '@/lib/apiGuard';
+ *
+ * async function handler(req, res) {
+ *   // Your API logic here
+ * }
+ *
+ * export default requirePermission('finance:invoice.create', handler);
+ * ```
+ */
+
+import { NextApiHandler, NextApiRequest, NextApiResponse } from "next";
+import { logger } from "@/lib/logger";
+import { auth } from "@/auth";
+import { can, createRbacContext } from "./rbac";
+import { audit } from "./audit";
+
+function deriveOrgId(
+  req: NextApiRequest,
+  sessionOrgId?: string | null,
+): string {
+  const headerOrg =
+    (req.headers["x-org-id"] as string | undefined) ||
+    (req.headers["x-organization-id"] as string | undefined);
+  const orgId = sessionOrgId || headerOrg;
+  return orgId?.trim() || "unknown";
+}
+
+/**
+ * Require a specific permission to access an API route
+ *
+ * @param required Permission key (e.g., "finance:invoice.create")
+ * @param handler Next.js API handler function
+ * @returns Wrapped handler with permission check
+ */
+export function requirePermission(
+  required: string,
+  handler: NextApiHandler,
+): NextApiHandler {
+  return async (req: NextApiRequest, res: NextApiResponse) => {
+    try {
+      // Get session
+      const session = await auth();
+
+      if (!session?.user) {
+        // Audit failed access attempt
+        await audit({
+          actorId: "anonymous",
+          actorEmail: "anonymous",
+          action: "api.access.denied",
+          orgId: deriveOrgId(req),
+          meta: {
+            path: req.url,
+            method: req.method,
+            required,
+            reason: "not_authenticated",
+          },
+          ipAddress:
+            (req.headers["x-forwarded-for"] as string) ||
+            req.socket.remoteAddress,
+          success: false,
+        });
+
+        return res
+          .status(401)
+          .json({ error: "Unauthorized", message: "Authentication required" });
+      }
+
+      // Create RBAC context
+      const ctx = createRbacContext(session.user);
+
+      // Check permission
+      if (!can(ctx, required)) {
+        // Audit failed permission check
+        await audit({
+          actorId: session.user.id || "unknown",
+          actorEmail: session.user.email || "unknown",
+          action: "api.access.forbidden",
+          orgId: deriveOrgId(req, session.user.orgId),
+          meta: {
+            path: req.url,
+            method: req.method,
+            required,
+            reason: "insufficient_permissions",
+            userPermissions: ctx.permissions,
+            isSuperAdmin: ctx.isSuperAdmin,
+          },
+          ipAddress:
+            (req.headers["x-forwarded-for"] as string) ||
+            req.socket.remoteAddress,
+          success: false,
+        });
+
+        return res.status(403).json({
+          error: "Forbidden",
+          message: `Permission required: ${required}`,
+          required,
+        });
+      }
+
+      // Audit successful access (for sensitive operations)
+      if (required.includes("admin:") || required.includes("super")) {
+        await audit({
+          actorId: session.user.id || "unknown",
+          actorEmail: session.user.email || "unknown",
+          action: "api.access.granted",
+          orgId: deriveOrgId(req, session.user.orgId),
+          meta: {
+            path: req.url,
+            method: req.method,
+            required,
+            isSuperAdmin: ctx.isSuperAdmin,
+          },
+          ipAddress:
+            (req.headers["x-forwarded-for"] as string) ||
+            req.socket.remoteAddress,
+          success: true,
+        });
+      }
+
+      // Call original handler
+      return handler(req, res);
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("[apiGuard] Error:", { error });
+
+      await audit({
+        actorId: "system",
+        actorEmail: "system",
+        action: "api.access.error",
+        orgId: deriveOrgId(req),
+        meta: {
+          path: req.url,
+          method: req.method,
+          required,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        success: false,
+      });
+
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+  };
+}
+
+/**
+ * Require ANY of the specified permissions
+ *
+ * @param requiredAny Array of permission keys
+ * @param handler Next.js API handler function
+ * @returns Wrapped handler with permission check
+ */
+export function requireAnyPermission(
+  requiredAny: string[],
+  handler: NextApiHandler,
+): NextApiHandler {
+  return async (req: NextApiRequest, res: NextApiResponse) => {
+    try {
+      const session = await auth();
+
+      if (!session?.user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const ctx = createRbacContext(session.user);
+
+      // Check if user has any of the required permissions
+      const hasPermission =
+        ctx.isSuperAdmin ||
+        requiredAny.some((perm) => ctx.permissions.includes(perm));
+
+      if (!hasPermission) {
+        await audit({
+          actorId: session.user.id || "unknown",
+          actorEmail: session.user.email || "unknown",
+          action: "api.access.forbidden",
+          orgId: deriveOrgId(req, session.user.orgId),
+          meta: {
+            path: req.url,
+            method: req.method,
+            requiredAny,
+            reason: "insufficient_permissions",
+          },
+          success: false,
+        });
+
+        return res.status(403).json({
+          error: "Forbidden",
+          message: `One of these permissions required: ${requiredAny.join(", ")}`,
+          requiredAny,
+        });
+      }
+
+      return handler(req, res);
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("[apiGuard] Error:", { error });
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+  };
+}
+
+/**
+ * Require ALL of the specified permissions
+ *
+ * @param requiredAll Array of permission keys
+ * @param handler Next.js API handler function
+ * @returns Wrapped handler with permission check
+ */
+export function requireAllPermissions(
+  requiredAll: string[],
+  handler: NextApiHandler,
+): NextApiHandler {
+  return async (req: NextApiRequest, res: NextApiResponse) => {
+    try {
+      const session = await auth();
+
+      if (!session?.user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const ctx = createRbacContext(session.user);
+
+      // Check if user has all required permissions
+      const hasAllPermissions =
+        ctx.isSuperAdmin ||
+        requiredAll.every((perm) => ctx.permissions.includes(perm));
+
+      if (!hasAllPermissions) {
+        await audit({
+          actorId: session.user.id || "unknown",
+          actorEmail: session.user.email || "unknown",
+          action: "api.access.forbidden",
+          orgId: deriveOrgId(req, session.user.orgId),
+          meta: {
+            path: req.url,
+            method: req.method,
+            requiredAll,
+            reason: "insufficient_permissions",
+          },
+          success: false,
+        });
+
+        return res.status(403).json({
+          error: "Forbidden",
+          message: `All these permissions required: ${requiredAll.join(", ")}`,
+          requiredAll,
+        });
+      }
+
+      return handler(req, res);
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("[apiGuard] Error:", { error });
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+  };
+}
+
+/**
+ * Require Super Admin access
+ *
+ * @param handler Next.js API handler function
+ * @returns Wrapped handler with Super Admin check
+ */
+export function requireSuperAdmin(handler: NextApiHandler): NextApiHandler {
+  return async (req: NextApiRequest, res: NextApiResponse) => {
+    try {
+      const session = await auth();
+
+      if (!session?.user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const ctx = createRbacContext(session.user);
+
+      if (!ctx.isSuperAdmin) {
+        await audit({
+          actorId: session.user.id || "unknown",
+          actorEmail: session.user.email || "unknown",
+          action: "api.access.forbidden",
+          meta: {
+            path: req.url,
+            method: req.method,
+            required: "super_admin",
+            reason: "not_super_admin",
+          },
+          success: false,
+        });
+
+        // 🔐 STRICT v4.1: Return 404 (not 403) to hide admin-only endpoints from non-admins
+        return res.status(404).json({
+          error: "Not found",
+        });
+      }
+
+      // Audit Super Admin access
+      await audit({
+        actorId: session.user.id || "unknown",
+        actorEmail: session.user.email || "unknown",
+        action: "api.super_admin.access",
+        meta: {
+          path: req.url,
+          method: req.method,
+        },
+        ipAddress:
+          (req.headers["x-forwarded-for"] as string) ||
+          req.socket.remoteAddress,
+        success: true,
+      });
+
+      return handler(req, res);
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("[apiGuard] Error:", { error });
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+  };
+}
+
+/**
+ * Helper to get RBAC context from API request
+ * Useful when you need to check permissions inside your handler
+ *
+ * @param req Next.js API request
+ * @param res Next.js API response
+ * @returns RBAC context or null if not authenticated
+ */
+export async function getRbacContext(
+  _req: NextApiRequest,
+  _res: NextApiResponse,
+): Promise<ReturnType<typeof createRbacContext> | null> {
+  const session = await auth();
+  if (!session?.user) return null;
+  return createRbacContext(session.user);
+}
+
+]]>
+</file>
+
+<file path="lib/aqar/client-types.ts">
+<![CDATA[
+// Client-safe Aqar types (no mongoose imports)
+
+export type SmartHomeLevel = "NONE" | "BASIC" | "ADVANCED";
+
+export type ProptechFeature =
+  | "SMART_LOCKS"
+  | "ENERGY_MONITORING"
+  | "WATER_LEAK_SENSORS"
+  | "AIR_QUALITY"
+  | "SOLAR"
+  | "EV_CHARGER"
+  | "SECURITY_AI";
+
+export type ListingPricingInsights = {
+  pricePerSqm?: number;
+  percentile?: number;
+  neighborhoodAvg?: number;
+  yoyChangePct?: number;
+  projectedAppreciationPct?: number;
+  demandScore?: number;
+  dynamicRange?: {
+    conservative?: number;
+    base?: number;
+    bullish?: number;
+  };
+  confidence?: number;
+  lastComputedAt?: Date;
+};
+
+export type ListingProptech = {
+  smartHomeLevel: SmartHomeLevel;
+  features: ProptechFeature[];
+  iotVendors: string[];
+  sensors: string[];
+  energyScore?: number;
+  waterScore?: number;
+  evCharging?: boolean;
+  solarReady?: boolean;
+};
+
+export type ListingIotFeature = {
+  key?: string;
+  label?: string;
+};
+
+]]>
+</file>
+
+<file path="lib/aqar/package-activation.ts">
+<![CDATA[
+import { logger } from "@/lib/logger";
+import { buildOrgScopedFilter, isValidOrgId } from "@/lib/utils/org-scope";
+import { withTenantContext } from "@/server/plugins/tenantIsolation";
+/**
+ * Aqar Package Activation Utility
+ *
+ * This helper should be called from payment webhooks/callbacks when
+ * AqarPackage payments are successfully processed.
+ */
+
+import mongoose from "mongoose";
+import { AqarPackage, AqarPayment, PaymentStatus } from "@/server/models/aqar";
+
+/**
+ * Activates an Aqar package after successful payment
+ *
+ * Call this from payment webhook handlers when payment succeeds:
+ * - app/api/payments/paytabs/callback/route.ts
+ *
+ * @param paymentId - The AqarPayment ID that was paid
+ * @param orgId - The organization ID for tenant-scoped queries (REQUIRED)
+ * @returns true if activation succeeded, false otherwise
+ */
+export async function activatePackageAfterPayment(
+  paymentId: string | mongoose.Types.ObjectId,
+  orgId: string,
+): Promise<boolean> {
+  // SECURITY: orgId is required to prevent cross-tenant data access (fail-closed)
+  if (!isValidOrgId(orgId, "activatePackageAfterPayment")) {
+    logger.error("activatePackageAfterPayment: orgId is required for tenant isolation", {
+      paymentId,
+    });
+    return false;
+  }
+
+  // SECURITY: Wrap all DB operations in tenant context to engage the
+  // tenantIsolation plugin's automatic scoping and audit metadata
+  return withTenantContext(orgId, async () => {
+    try {
+      // Find the payment with org-scoped query (SECURITY: prevents cross-tenant reads)
+      const payment = await AqarPayment.findOne(buildOrgScopedFilter(paymentId, orgId));
+
+      if (!payment) {
+        logger.error("activatePackageAfterPayment: Payment not found (or wrong org)", {
+          paymentId,
+          orgId,
+        });
+        return false;
+      }
+
+      // Verify it's a package payment
+      if (payment.type !== "PACKAGE" || payment.relatedModel !== "AqarPackage") {
+        logger.warn("activatePackageAfterPayment: Not a package payment", {
+          paymentId,
+          type: payment.type,
+          relatedModel: payment.relatedModel,
+        });
+        return false;
+      }
+
+      // Verify payment is successful
+      if (payment.status !== PaymentStatus.COMPLETED) {
+        logger.warn(
+          "activatePackageAfterPayment: Payment not marked as COMPLETED",
+          {
+            paymentId,
+            status: payment.status,
+          },
+        );
+        return false;
+      }
+
+      // Verify payment has a related package ID
+      if (!payment.relatedId) {
+        logger.error("activatePackageAfterPayment: Payment missing relatedId", {
+          paymentId,
+          orgId,
+        });
+        return false;
+      }
+
+      // Find and activate the package with org-scoped query (SECURITY: prevents cross-tenant reads)
+      const pkg = await AqarPackage.findOne(buildOrgScopedFilter(payment.relatedId, orgId));
+
+      if (!pkg) {
+        logger.error("activatePackageAfterPayment: Package not found (or wrong org)", {
+          paymentId,
+          packageId: payment.relatedId,
+          orgId,
+        });
+        return false;
+      }
+
+      // Mark package as paid
+      if (!pkg.paidAt) {
+        pkg.paidAt = new Date();
+        await pkg.save();
+      }
+
+      // Activate if not already active
+      if (!pkg.active) {
+        await pkg.activate();
+        logger.info(
+          "activatePackageAfterPayment: Package activated successfully",
+          {
+            paymentId,
+            packageId: (pkg as { _id: { toString(): string } })._id.toString(),
+            userId: pkg.userId.toString(),
+            type: pkg.type,
+          },
+        );
+      }
+
+      return true;
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      logger.error("activatePackageAfterPayment: Error activating package", {
+        paymentId,
+        error: String((error as Error)?.message || error),
+      });
+      return false;
+    }
+  });
+}
+
+/**
+ * Example usage in payment webhook:
+ *
+ * ```typescript
+ * // After marking payment as successful (tenant context should be set by caller)
+ * if (payment.status === PaymentStatus.COMPLETED && payment.type === 'PACKAGE') {
+ *   await activatePackageAfterPayment(payment._id, payment.orgId).catch(err => {
+ *     console.error('Failed to activate package:', err);
+ *   });
+ * }
+ * ```
+ */
+
+]]>
+</file>
+
+<file path="lib/aqar/pricingInsights.ts">
+<![CDATA[
+// Re-export from services for backwards compatibility
+import {
+  PricingInsightsService,
+  type PricingInsightRequest,
+  type PricingInsightResponse,
+} from "@/services/aqar/pricing-insights-service";
+
+export { PricingInsightsService, PricingInsightRequest, PricingInsightResponse };
+
+/**
+ * Backwards-compatible wrapper for computing pricing insights
+ */
+export async function computePricingInsight(params: {
+  cityId: string;
+  neighborhoodId?: string;
+  propertyType?: string;
+  intent?: string;
+}): Promise<PricingInsightResponse> {
+  return PricingInsightsService.getInsights({
+    city: params.cityId,
+    neighborhood: params.neighborhoodId,
+    propertyType: params.propertyType as import("@/server/models/aqar/Listing").PropertyType,
+    intent: params.intent as import("@/server/models/aqar/Listing").ListingIntent,
+  });
+}
+
+]]>
+</file>
+
+<file path="lib/aqar/recommendation.ts">
+<![CDATA[
+// Re-export from services for backwards compatibility
+import {
+  AqarRecommendationEngine,
+  type RecommendationContext,
+  type RecommendationResponse,
+  type RecommendationResultItem,
+} from "@/services/aqar/recommendation-engine";
+
+export { AqarRecommendationEngine };
+export type { RecommendationContext, RecommendationResponse, RecommendationResultItem };
+
+/**
+ * Backwards-compatible wrapper for getting recommended listings
+ */
+export async function getRecommendedListings(
+  ctx: RecommendationContext,
+): Promise<RecommendationResponse> {
+  return AqarRecommendationEngine.recommend(ctx);
+}
+
+]]>
+</file>
+
+<file path="lib/ats/ics-generator.ts">
+<![CDATA[
+/**
+ * ICS Calendar Generator - Create RFC-5545 compliant .ics files for interview scheduling
+ * Phase 2 implementation
+ */
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
+
+interface ICSEvent {
+  summary: string; // Event title
+  description?: string; // Event details
+  location?: string; // Event location
+  startTime: Date; // Event start
+  endTime: Date; // Event end
+  organizer?: {
+    name: string;
+    email: string;
+  };
+  attendees?: Array<{
+    name: string;
+    email: string;
+  }>;
+  url?: string; // Meeting URL (for virtual interviews)
+}
+
+/**
+ * Generate RFC-5545 compliant ICS file content
+ */
+export function generateICS(event: ICSEvent): string {
+  const now = formatICSDate(new Date());
+  const uid = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}@${EMAIL_DOMAINS.primary}`;
+
+  const lines: string[] = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Fixzit//ATS Interview Scheduler//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:REQUEST",
+    "BEGIN:VEVENT",
+    `UID:${uid}`,
+    `DTSTAMP:${now}`,
+    `DTSTART:${formatICSDate(event.startTime)}`,
+    `DTEND:${formatICSDate(event.endTime)}`,
+    `SUMMARY:${escapeICSString(event.summary)}`,
+  ];
+
+  if (event.description) {
+    lines.push(`DESCRIPTION:${escapeICSString(event.description)}`);
+  }
+
+  if (event.location) {
+    lines.push(`LOCATION:${escapeICSString(event.location)}`);
+  }
+
+  if (event.url) {
+    lines.push(`URL:${event.url}`);
+  }
+
+  if (event.organizer) {
+    lines.push(
+      `ORGANIZER;CN="${escapeICSString(event.organizer.name)}":MAILTO:${event.organizer.email}`,
+    );
+  }
+
+  if (event.attendees && event.attendees.length > 0) {
+    event.attendees.forEach((attendee) => {
+      lines.push(
+        `ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;` +
+          `CN="${escapeICSString(attendee.name)}";RSVP=TRUE:MAILTO:${attendee.email}`,
+      );
+    });
+  }
+
+  lines.push("STATUS:CONFIRMED", "SEQUENCE:0", "END:VEVENT", "END:VCALENDAR");
+
+  return lines.join("\r\n");
+}
+
+/**
+ * Format Date object to ICS format (YYYYMMDDTHHmmssZ)
+ */
+function formatICSDate(date: Date): string {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  const hours = String(date.getUTCHours()).padStart(2, "0");
+  const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+  const seconds = String(date.getUTCSeconds()).padStart(2, "0");
+
+  return `${year}${month}${day}T${hours}${minutes}${seconds}Z`;
+}
+
+/**
+ * Escape special characters in ICS strings
+ */
+function escapeICSString(str: string): string {
+  return str
+    .replace(/\\/g, "\\\\")
+    .replace(/;/g, "\\;")
+    .replace(/,/g, "\\,")
+    .replace(/\n/g, "\\n")
+    .replace(/\r/g, "");
+}
+
+/**
+ * Generate ICS for ATS interview
+ */
+export function generateInterviewICS(interview: {
+  jobTitle: string;
+  candidateName: string;
+  candidateEmail?: string;
+  scheduledAt: Date;
+  duration: number; // minutes
+  location?: string;
+  meetingUrl?: string;
+  interviewers?: Array<{ name: string; email: string }>;
+  notes?: string;
+}): string {
+  const startTime = new Date(interview.scheduledAt);
+  const endTime = new Date(
+    startTime.getTime() + interview.duration * 60 * 1000,
+  );
+
+  const summary = `Interview: ${interview.candidateName} - ${interview.jobTitle}`;
+
+  let description = `Interview with ${interview.candidateName} for the position of ${interview.jobTitle}.`;
+  if (interview.notes) {
+    description += `\n\nNotes:\n${interview.notes}`;
+  }
+  if (interview.meetingUrl) {
+    description += `\n\nJoin Meeting: ${interview.meetingUrl}`;
+  }
+
+  const attendees: Array<{ name: string; email: string }> = [];
+
+  // Add candidate as attendee
+  if (interview.candidateEmail) {
+    attendees.push({
+      name: interview.candidateName,
+      email: interview.candidateEmail,
+    });
+  }
+
+  // Add interviewers as attendees
+  if (interview.interviewers) {
+    attendees.push(...interview.interviewers);
+  }
+
+  return generateICS({
+    summary,
+    description,
+    location:
+      interview.location || (interview.meetingUrl ? "Virtual Meeting" : "TBD"),
+    startTime,
+    endTime,
+    attendees,
+    url: interview.meetingUrl,
+  });
+}
+
+/**
+ * Create downloadable blob URL for ICS file
+ */
+export function createICSDownloadURL(icsContent: string): string {
+  const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
+  return URL.createObjectURL(blob);
+}
+
+/**
+ * Trigger download of ICS file in browser
+ */
+export function downloadICS(icsContent: string, filename: string): void {
+  const url = createICSDownloadURL(icsContent);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename.endsWith(".ics") ? filename : `${filename}.ics`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+export type { ICSEvent };
+
+]]>
+</file>
+
+<file path="lib/ats/permissions.ts">
+<![CDATA[
+import { UserRole } from "@/types/user";
+
+/**
+ * ATS RBAC Roles (6 roles)
+ */
+export type ATSRole =
+  | "Super Admin"
+  | "Corporate Admin"
+  | "HR Manager"
+  | "Recruiter"
+  | "Hiring Manager"
+  | "Candidate";
+
+/**
+ * ATS Permissions Matrix
+ */
+export type ATSPermission =
+  | "jobs:create"
+  | "jobs:read"
+  | "jobs:update"
+  | "jobs:delete"
+  | "jobs:publish"
+  | "applications:create"
+  | "applications:read"
+  | "applications:update"
+  | "applications:delete"
+  | "applications:score"
+  | "applications:stage-transition"
+  | "interviews:create"
+  | "interviews:read"
+  | "interviews:update"
+  | "interviews:delete"
+  | "interviews:feedback"
+  | "candidates:read"
+  | "candidates:update"
+  | "candidates:delete"
+  | "candidates:export"
+  | "settings:read"
+  | "settings:update"
+  | "tenant:impersonate";
+
+export const ROLE_PERMISSIONS: Record<ATSRole, ATSPermission[]> = {
+  "Super Admin": [
+    "jobs:create",
+    "jobs:read",
+    "jobs:update",
+    "jobs:delete",
+    "jobs:publish",
+    "applications:create",
+    "applications:read",
+    "applications:update",
+    "applications:delete",
+    "applications:score",
+    "applications:stage-transition",
+    "interviews:create",
+    "interviews:read",
+    "interviews:update",
+    "interviews:delete",
+    "interviews:feedback",
+    "candidates:read",
+    "candidates:update",
+    "candidates:delete",
+    "candidates:export",
+    "settings:read",
+    "settings:update",
+    "tenant:impersonate",
+  ],
+  "Corporate Admin": [
+    "jobs:create",
+    "jobs:read",
+    "jobs:update",
+    "jobs:delete",
+    "jobs:publish",
+    "applications:read",
+    "applications:update",
+    "applications:delete",
+    "applications:score",
+    "applications:stage-transition",
+    "interviews:create",
+    "interviews:read",
+    "interviews:update",
+    "interviews:delete",
+    "interviews:feedback",
+    "candidates:read",
+    "candidates:update",
+    "candidates:delete",
+    "candidates:export",
+    "settings:read",
+    "settings:update",
+  ],
+  "HR Manager": [
+    "jobs:create",
+    "jobs:read",
+    "jobs:update",
+    "jobs:publish",
+    "applications:read",
+    "applications:update",
+    "applications:score",
+    "applications:stage-transition",
+    "interviews:create",
+    "interviews:read",
+    "interviews:update",
+    "interviews:feedback",
+    "candidates:read",
+    "candidates:update",
+    "candidates:export",
+    "settings:read",
+  ],
+  Recruiter: [
+    "jobs:read",
+    "applications:read",
+    "applications:update",
+    "applications:score",
+    "applications:stage-transition",
+    "interviews:create",
+    "interviews:read",
+    "interviews:update",
+    "candidates:read",
+    "candidates:update",
+  ],
+  "Hiring Manager": [
+    "jobs:read",
+    "applications:read",
+    "applications:update",
+    "interviews:read",
+    "interviews:feedback",
+    "candidates:read",
+  ],
+  Candidate: ["applications:create", "applications:read", "jobs:read"],
+};
+
+export function mapUserRoleToATSRole(userRole: string): ATSRole {
+  const roleMap: Record<string, ATSRole> = {
+    [UserRole.SUPER_ADMIN]: "Super Admin",
+    [UserRole.CORPORATE_ADMIN]: "Corporate Admin",
+    [UserRole.HR]: "HR Manager",
+    [UserRole.ADMIN]: "HR Manager",
+    [UserRole.FM_MANAGER]: "Hiring Manager",
+    [UserRole.PROPERTY_MANAGER]: "Hiring Manager",
+  };
+
+  return roleMap[userRole] || "Candidate";
+}
+
+export function hasPermission(
+  role: ATSRole,
+  permission: ATSPermission,
+): boolean {
+  const permissions = ROLE_PERMISSIONS[role];
+  return permissions.includes(permission);
+}
+
+export function hasAnyPermission(
+  role: ATSRole,
+  permissions: ATSPermission[],
+): boolean {
+  return permissions.some((p) => hasPermission(role, p));
+}
+
+export function hasAllPermissions(
+  role: ATSRole,
+  permissions: ATSPermission[],
+): boolean {
+  return permissions.every((p) => hasPermission(role, p));
+}
+
+]]>
+</file>
+
+<file path="lib/ats/rbac.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import type { IOrganization } from "@/server/models/Organization";
+import { getServerTranslation } from "@/lib/i18n/server";
+import {
+  ATSRole,
+  ATSPermission,
+  hasAnyPermission,
+  hasPermission,
+  mapUserRoleToATSRole,
+} from "@/lib/ats/permissions";
+
+export type AtsModuleAccess = {
+  enabled: boolean;
+  jobPostLimit: number;
+  seats: number;
+  seatUsage: number;
+};
+
+const DEFAULT_ATS_MODULE: AtsModuleAccess = {
+  enabled: false,
+  jobPostLimit: 0,
+  seats: 0,
+  seatUsage: 0,
+};
+
+const ATS_UPGRADE_PATH = "/billing/upgrade?feature=ats";
+const ATS_SEAT_USER_ROLES = [
+  "HR",
+  "CORPORATE_ADMIN",
+  "ADMIN",
+  "FM_MANAGER",
+  "PROPERTY_MANAGER",
+];
+const ATS_SEAT_PROFESSIONAL_ROLES = [
+  "HR Manager",
+  "Recruiter",
+  "Hiring Manager",
+  "Corporate Admin",
+  "Talent Acquisition Lead",
+];
+const ATS_SEAT_REQUIRED_ROLES: ATSRole[] = [
+  "Corporate Admin",
+  "HR Manager",
+  "Recruiter",
+  "Hiring Manager",
+];
+
+/**
+ * ATS RBAC Middleware
+ *
+ * Usage in API routes:
+ * ```typescript
+ * const authResult = await atsRBAC(req, ['applications:read']);
+ * if (!authResult.authorized) {
+ *   return authResult.response;
+ * }
+ * const { userId, orgId, role } = authResult;
+ * ```
+ */
+export async function atsRBAC(
+  req: NextRequest,
+  requiredPermissions: ATSPermission[],
+): Promise<
+  | {
+      authorized: true;
+      userId: string;
+      orgId: string;
+      role: ATSRole;
+      isSuperAdmin: boolean;
+      atsModule: AtsModuleAccess;
+    }
+  | { authorized: false; response: NextResponse }
+> {
+  // Get session
+  const session = await auth();
+
+  if (!session?.user) {
+    const t = await getServerTranslation(req);
+    return {
+      authorized: false,
+      response: NextResponse.json(
+        { success: false, error: t("ats.errors.authenticationRequired") },
+        { status: 401 },
+      ),
+    };
+  }
+
+  const userId = session.user.id;
+  const role = mapUserRoleToATSRole(session.user.role ?? "GUEST");
+  const isSuperAdmin = role === "Super Admin";
+
+  // Get orgId from session (with impersonation support for Super Admin)
+  let orgId = session.user.orgId;
+
+  // Super Admin can impersonate tenants via X-Tenant-ID header
+  if (isSuperAdmin && hasPermission(role, "tenant:impersonate")) {
+    const impersonateOrgId = req.headers.get("X-Tenant-ID");
+    if (impersonateOrgId) {
+      orgId = impersonateOrgId;
+    }
+  }
+
+  // Fallback to platform default
+  if (!orgId) {
+    orgId = process.env.NEXT_PUBLIC_ORG_ID || "fixzit-platform";
+  }
+
+  // Check if user has any of the required permissions
+  const authorized = hasAnyPermission(role, requiredPermissions);
+
+  if (!authorized) {
+    const t = await getServerTranslation(req);
+    return {
+      authorized: false,
+      response: NextResponse.json(
+        {
+          success: false,
+          error: t("ats.errors.insufficientPermissions"),
+          required: requiredPermissions,
+          userRole: role,
+        },
+        { status: 403 },
+      ),
+    };
+  }
+
+  const { module: atsModule, errorResponse } = await ensureAtsModuleAccess(
+    req,
+    orgId,
+    role,
+    isSuperAdmin,
+  );
+  if (errorResponse) {
+    return { authorized: false, response: errorResponse };
+  }
+
+  return {
+    authorized: true,
+    userId,
+    orgId,
+    role,
+    isSuperAdmin,
+    atsModule,
+  };
+}
+
+async function ensureAtsModuleAccess(
+  req: NextRequest,
+  orgId: string,
+  role: ATSRole,
+  isSuperAdmin: boolean,
+): Promise<{ module: AtsModuleAccess; errorResponse?: NextResponse }> {
+  if (isSuperAdmin) {
+    return {
+      module: {
+        enabled: true,
+        jobPostLimit: Number.MAX_SAFE_INTEGER,
+        seats: Number.MAX_SAFE_INTEGER,
+        seatUsage: 0,
+      },
+    };
+  }
+
+  const { Organization } = await import("@/server/models/Organization");
+  const organization = await Organization.findOne(
+    { orgId },
+    { modules: 1 },
+  ).lean<Pick<IOrganization, "modules"> | null>();
+  const config = organization?.modules?.ats;
+
+  if (!config?.enabled) {
+    const t = await getServerTranslation(req);
+    return {
+      module: DEFAULT_ATS_MODULE,
+      errorResponse: NextResponse.json(
+        {
+          success: false,
+          error: t("ats.errors.moduleDisabled"),
+          feature: "ats",
+          upgradeUrl: ATS_UPGRADE_PATH,
+        },
+        { status: 402 },
+      ),
+    };
+  }
+
+  const atsModule: AtsModuleAccess = {
+    enabled: true,
+    jobPostLimit:
+      typeof config.jobPostLimit === "number" && config.jobPostLimit > 0
+        ? config.jobPostLimit
+        : Number.MAX_SAFE_INTEGER,
+    seats:
+      typeof config.seats === "number" && config.seats > 0
+        ? config.seats
+        : Number.MAX_SAFE_INTEGER,
+    seatUsage: 0,
+  };
+
+  if (
+    atsModule.seats !== Number.MAX_SAFE_INTEGER &&
+    ATS_SEAT_REQUIRED_ROLES.includes(role)
+  ) {
+    const usage = await countAtsSeatUsage(orgId);
+    atsModule.seatUsage = usage;
+    if (usage > atsModule.seats) {
+      const t = await getServerTranslation(req);
+      return {
+        module: atsModule,
+        errorResponse: NextResponse.json(
+          {
+            success: false,
+            error: t("ats.errors.seatLimitExceeded"),
+            feature: "ats",
+            upgradeUrl: ATS_UPGRADE_PATH,
+            seats: {
+              limit: atsModule.seats,
+              usage,
+            },
+          },
+          { status: 402 },
+        ),
+      };
+    }
+  }
+
+  return { module: atsModule };
+}
+
+async function countAtsSeatUsage(orgId: string): Promise<number> {
+  const { User } = await import("@/server/models/User");
+  return User.countDocuments({
+    orgId,
+    status: { $ne: "INACTIVE" },
+    $or: [
+      { role: { $in: ATS_SEAT_USER_ROLES } },
+      { "professional.role": { $in: ATS_SEAT_PROFESSIONAL_ROLES } },
+    ],
+  });
+}
+
+/**
+ * Resource ownership check
+ *
+ * Usage:
+ * ```typescript
+ * const application = await Application.findById(id);
+ * if (!canAccessResource(orgId, application.orgId, isSuperAdmin)) {
+ *   return NextResponse.json({ error: 'Not found' }, { status: 404 });
+ * }
+ * ```
+ */
+export function canAccessResource(
+  userOrgId: string,
+  resourceOrgId: string,
+  isSuperAdmin: boolean,
+): boolean {
+  // Super Admin can access all resources
+  if (isSuperAdmin) return true;
+
+  // Regular users can only access resources in their org
+  return userOrgId === resourceOrgId;
+}
+
+/**
+ * Stage transition guard (state machine)
+ *
+ * Prevents illegal stage transitions like "applied" → "hired"
+ */
+export const ALLOWED_STAGE_TRANSITIONS: Record<string, string[]> = {
+  applied: ["screening", "rejected", "withdrawn"],
+  screening: ["interview", "rejected", "withdrawn"],
+  interview: ["offer", "rejected", "withdrawn"],
+  offer: ["hired", "rejected", "withdrawn"],
+  hired: ["archived"],
+  rejected: ["archived"],
+  withdrawn: ["archived"],
+  archived: [],
+};
+
+export function isValidStageTransition(
+  currentStage: string,
+  newStage: string,
+): boolean {
+  const allowedNext = ALLOWED_STAGE_TRANSITIONS[currentStage] || [];
+  return allowedNext.includes(newStage);
+}
+
+]]>
+</file>
+
+</batch_content>

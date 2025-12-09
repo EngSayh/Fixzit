@@ -1,0 +1,1515 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="i18n/sources/errorHandling.translations.json">
+<![CDATA[
+{
+  "en": {
+    "errorHandling.alert": "Alert",
+    "errorHandling.authentication": "Authentication Error",
+    "errorHandling.authorization": "Authorization Error",
+    "errorHandling.badRequest": "400 Bad Request",
+    "errorHandling.bug": "Bug",
+    "errorHandling.connection": "Connection Error",
+    "errorHandling.crash": "Crash",
+    "errorHandling.critical": "Critical Error",
+    "errorHandling.debugging": "Debugging",
+    "errorHandling.defect": "Defect",
+    "errorHandling.error": "Error",
+    "errorHandling.exception": "Exception",
+    "errorHandling.failure": "Failure",
+    "errorHandling.fatal": "Fatal Error",
+    "errorHandling.fault": "Fault",
+    "errorHandling.forbidden": "403 Forbidden",
+    "errorHandling.issue": "Issue",
+    "errorHandling.network": "Network Error",
+    "errorHandling.notFound": "404 Not Found",
+    "errorHandling.parsing": "Parsing Error",
+    "errorHandling.recoverable": "Recoverable Error",
+    "errorHandling.serialization": "Serialization Error",
+    "errorHandling.serverError": "500 Server Error",
+    "errorHandling.stackTrace": "Stack Trace",
+    "errorHandling.timeout": "Timeout Error",
+    "errorHandling.unauthorized": "401 Unauthorized",
+    "errorHandling.unrecoverable": "Unrecoverable Error",
+    "errorHandling.validation": "Validation Error",
+    "errorHandling.warning": "Warning"
+  },
+  "ar": {
+    "errorHandling.alert": "التنبيه",
+    "errorHandling.authentication": "خطأ المصادقة",
+    "errorHandling.authorization": "خطأ التفويض",
+    "errorHandling.badRequest": "400 طلب خاطئ",
+    "errorHandling.bug": "العلة",
+    "errorHandling.connection": "خطأ الاتصال",
+    "errorHandling.crash": "الانهيار",
+    "errorHandling.critical": "خطأ حرج",
+    "errorHandling.debugging": "تصحيح الأخطاء",
+    "errorHandling.defect": "العيب",
+    "errorHandling.error": "الخطأ",
+    "errorHandling.exception": "الاستثناء",
+    "errorHandling.failure": "الفشل",
+    "errorHandling.fatal": "خطأ فادح",
+    "errorHandling.fault": "العطل",
+    "errorHandling.forbidden": "403 محظور",
+    "errorHandling.issue": "المشكلة",
+    "errorHandling.network": "خطأ الشبكة",
+    "errorHandling.notFound": "404 غير موجود",
+    "errorHandling.parsing": "خطأ التحليل",
+    "errorHandling.recoverable": "خطأ قابل للاسترداد",
+    "errorHandling.serialization": "خطأ التسلسل",
+    "errorHandling.serverError": "500 خطأ الخادم",
+    "errorHandling.stackTrace": "تتبع المكدس",
+    "errorHandling.timeout": "خطأ انتهاء المهلة",
+    "errorHandling.unauthorized": "401 غير مصرح",
+    "errorHandling.unrecoverable": "خطأ غير قابل للاسترداد",
+    "errorHandling.validation": "خطأ التحقق",
+    "errorHandling.warning": "التحذير"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/errors.translations.json">
+<![CDATA[
+{
+  "en": {
+    "errors.404.code": "404",
+    "errors.404.helpText": "If you believe this is an error, please contact",
+    "errors.404.message": "The page you're looking for doesn't exist or has been moved.",
+    "errors.404.title": "Page Not Found",
+    "errors.alreadyApplied": "You have already applied for this position",
+    "errors.errorCreatingInvoice": "Error creating invoice",
+    "errors.errorDeletingAsset": "Error deleting asset",
+    "errors.failedToCreateInvoice": "Failed to create invoice",
+    "errors.failedToSubmitBid": "Failed to submit bid",
+    "errors.genericError": "An error occurred. Please try again.",
+    "errors.insufficientPermissions": "Forbidden: Insufficient permissions",
+    "errors.invalidCredentials": "Invalid credentials",
+    "errors.invalidEmail": "Invalid email address",
+    "errors.loginFailed": "Login failed",
+    "errors.noNotificationsToDelete": "No notifications found to delete",
+    "errors.passwordsDoNotMatch": "Passwords do not match",
+    "errors.questionRequired": "Question is required",
+    "errors.requiredField": "This field is required",
+    "errors.signupFailed": "Signup failed",
+    "errors.tooManyRequests": "Too many API requests from this IP, please try again later.",
+    "errors.unableToLoadOrders": "Unable to load orders"
+  },
+  "ar": {
+    "errors.404.code": "404",
+    "errors.404.helpText": "إذا كنت تعتقد أن هذا خطأ، يرجى الاتصال",
+    "errors.404.message": "الصفحة التي تبحث عنها غير موجودة أو تم نقلها.",
+    "errors.404.title": "الصفحة غير موجودة",
+    "errors.alreadyApplied": "لقد تقدمت بالفعل لهذه الوظيفة",
+    "errors.errorCreatingInvoice": "خطأ في إنشاء الفاتورة",
+    "errors.errorDeletingAsset": "خطأ في حذف الأصل",
+    "errors.failedToCreateInvoice": "فشل إنشاء الفاتورة",
+    "errors.failedToSubmitBid": "فشل تقديم العرض",
+    "errors.genericError": "حدث خطأ. يرجى المحاولة مرة أخرى.",
+    "errors.insufficientPermissions": "محظور: صلاحيات غير كافية",
+    "errors.invalidCredentials": "بيانات الدخول غير صحيحة",
+    "errors.invalidEmail": "عنوان البريد الإلكتروني غير صحيح",
+    "errors.loginFailed": "فشل تسجيل الدخول",
+    "errors.noNotificationsToDelete": "لا توجد إشعارات للحذف",
+    "errors.passwordsDoNotMatch": "كلمات المرور غير متطابقة",
+    "errors.questionRequired": "السؤال مطلوب",
+    "errors.requiredField": "هذا الحقل مطلوب",
+    "errors.signupFailed": "فشل إنشاء الحساب",
+    "errors.tooManyRequests": "طلبات كثيرة جداً من هذا العنوان، يرجى المحاولة لاحقاً.",
+    "errors.unableToLoadOrders": "تعذر تحميل الطلبات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/ethicalPractices.translations.json">
+<![CDATA[
+{
+  "en": {
+    "ethicalPractices.accountability": "Ethical Accountability",
+    "ethicalPractices.awareness": "Ethics Awareness",
+    "ethicalPractices.code": "Code of Ethics",
+    "ethicalPractices.compliance": "Ethics Compliance",
+    "ethicalPractices.conduct": "Code of Conduct",
+    "ethicalPractices.conflict": "Conflict of Interest",
+    "ethicalPractices.culture": "Ethical Culture",
+    "ethicalPractices.decision": "Ethical Decision",
+    "ethicalPractices.dilemma": "Ethical Dilemma",
+    "ethicalPractices.disclosure": "Ethics Disclosure",
+    "ethicalPractices.ethical": "Ethical Practices",
+    "ethicalPractices.ethics": "Ethics Management",
+    "ethicalPractices.governance": "Ethics Governance",
+    "ethicalPractices.hotline": "Ethics Hotline",
+    "ethicalPractices.integrity": "Business Integrity",
+    "ethicalPractices.investigation": "Ethics Investigation",
+    "ethicalPractices.principles": "Ethical Principles",
+    "ethicalPractices.reporting": "Ethics Reporting",
+    "ethicalPractices.standards": "Ethical Standards",
+    "ethicalPractices.training": "Ethics Training",
+    "ethicalPractices.transparency": "Ethical Transparency",
+    "ethicalPractices.values": "Ethical Values"
+  },
+  "ar": {
+    "ethicalPractices.accountability": "المساءلة الأخلاقية",
+    "ethicalPractices.awareness": "الوعي بالأخلاقيات",
+    "ethicalPractices.code": "مدونة الأخلاقيات",
+    "ethicalPractices.compliance": "الامتثال الأخلاقي",
+    "ethicalPractices.conduct": "مدونة السلوك",
+    "ethicalPractices.conflict": "تضارب المصالح",
+    "ethicalPractices.culture": "الثقافة الأخلاقية",
+    "ethicalPractices.decision": "القرار الأخلاقي",
+    "ethicalPractices.dilemma": "المعضلة الأخلاقية",
+    "ethicalPractices.disclosure": "الإفصاح الأخلاقي",
+    "ethicalPractices.ethical": "الممارسات الأخلاقية",
+    "ethicalPractices.ethics": "إدارة الأخلاقيات",
+    "ethicalPractices.governance": "حوكمة الأخلاقيات",
+    "ethicalPractices.hotline": "الخط الساخن للأخلاقيات",
+    "ethicalPractices.integrity": "النزاهة التجارية",
+    "ethicalPractices.investigation": "التحقيق في الأخلاقيات",
+    "ethicalPractices.principles": "المبادئ الأخلاقية",
+    "ethicalPractices.reporting": "إعداد تقارير الأخلاقيات",
+    "ethicalPractices.standards": "المعايير الأخلاقية",
+    "ethicalPractices.training": "تدريب الأخلاقيات",
+    "ethicalPractices.transparency": "الشفافية الأخلاقية",
+    "ethicalPractices.values": "القيم الأخلاقية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/ethicsCompliance.translations.json">
+<![CDATA[
+{
+  "en": {
+    "ethicsCompliance.awareness": "Ethics Awareness",
+    "ethicsCompliance.behavior": "Ethical Behavior",
+    "ethicsCompliance.bribery": "Anti-Bribery",
+    "ethicsCompliance.code": "Code of Ethics",
+    "ethicsCompliance.conduct": "Code of Conduct",
+    "ethicsCompliance.conflict": "Conflict of Interest",
+    "ethicsCompliance.corruption": "Anti-Corruption",
+    "ethicsCompliance.culture": "Ethical Culture",
+    "ethicsCompliance.decision": "Ethical Decision Making",
+    "ethicsCompliance.dilemma": "Ethical Dilemma",
+    "ethicsCompliance.disclosure": "Disclosure",
+    "ethicsCompliance.ethics": "Ethics",
+    "ethicsCompliance.gift": "Gifts and Hospitality",
+    "ethicsCompliance.hotline": "Ethics Hotline",
+    "ethicsCompliance.investigation": "Ethics Investigation",
+    "ethicsCompliance.leadership": "Ethical Leadership",
+    "ethicsCompliance.principle": "Principle",
+    "ethicsCompliance.standard": "Ethical Standard",
+    "ethicsCompliance.training": "Ethics Training",
+    "ethicsCompliance.value": "Core Values",
+    "ethicsCompliance.violation": "Ethics Violation",
+    "ethicsCompliance.whistleblower": "Whistleblower"
+  },
+  "ar": {
+    "ethicsCompliance.awareness": "الوعي بالأخلاقيات",
+    "ethicsCompliance.behavior": "السلوك الأخلاقي",
+    "ethicsCompliance.bribery": "مكافحة الرشوة",
+    "ethicsCompliance.code": "مدونة الأخلاقيات",
+    "ethicsCompliance.conduct": "مدونة قواعد السلوك",
+    "ethicsCompliance.conflict": "تضارب المصالح",
+    "ethicsCompliance.corruption": "مكافحة الفساد",
+    "ethicsCompliance.culture": "الثقافة الأخلاقية",
+    "ethicsCompliance.decision": "اتخاذ القرار الأخلاقي",
+    "ethicsCompliance.dilemma": "المعضلة الأخلاقية",
+    "ethicsCompliance.disclosure": "الإفصاح",
+    "ethicsCompliance.ethics": "الأخلاقيات",
+    "ethicsCompliance.gift": "الهدايا والضيافة",
+    "ethicsCompliance.hotline": "خط ساخن للأخلاقيات",
+    "ethicsCompliance.investigation": "تحقيق الأخلاقيات",
+    "ethicsCompliance.leadership": "القيادة الأخلاقية",
+    "ethicsCompliance.principle": "المبدأ",
+    "ethicsCompliance.standard": "المعيار الأخلاقي",
+    "ethicsCompliance.training": "التدريب على الأخلاقيات",
+    "ethicsCompliance.value": "القيم الأساسية",
+    "ethicsCompliance.violation": "انتهاك الأخلاقيات",
+    "ethicsCompliance.whistleblower": "المبلغ عن المخالفات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/eventManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "eventManagement.agenda": "Event Agenda",
+    "eventManagement.attendee": "Attendee",
+    "eventManagement.budget": "Event Budget",
+    "eventManagement.catering": "Catering",
+    "eventManagement.conference": "Conference",
+    "eventManagement.coordination": "Event Coordination",
+    "eventManagement.event": "Event Management",
+    "eventManagement.feedback": "Event Feedback",
+    "eventManagement.logistics": "Logistics",
+    "eventManagement.marketing": "Event Marketing",
+    "eventManagement.organization": "Event Organization",
+    "eventManagement.participant": "Participant",
+    "eventManagement.planning": "Event Planning",
+    "eventManagement.registration": "Registration",
+    "eventManagement.schedule": "Event Schedule",
+    "eventManagement.seminar": "Seminar",
+    "eventManagement.speaker": "Speaker",
+    "eventManagement.sponsor": "Sponsor",
+    "eventManagement.survey": "Post-Event Survey",
+    "eventManagement.venue": "Venue",
+    "eventManagement.webinar": "Webinar",
+    "eventManagement.workshop": "Workshop"
+  },
+  "ar": {
+    "eventManagement.agenda": "جدول أعمال الفعالية",
+    "eventManagement.attendee": "الحاضر",
+    "eventManagement.budget": "ميزانية الفعالية",
+    "eventManagement.catering": "تقديم الطعام",
+    "eventManagement.conference": "المؤتمر",
+    "eventManagement.coordination": "تنسيق الفعاليات",
+    "eventManagement.event": "إدارة الفعاليات",
+    "eventManagement.feedback": "ملاحظات الفعالية",
+    "eventManagement.logistics": "اللوجستيات",
+    "eventManagement.marketing": "التسويق للفعالية",
+    "eventManagement.organization": "تنظيم الفعاليات",
+    "eventManagement.participant": "المشارك",
+    "eventManagement.planning": "تخطيط الفعاليات",
+    "eventManagement.registration": "التسجيل",
+    "eventManagement.schedule": "جدول الفعالية",
+    "eventManagement.seminar": "الندوة",
+    "eventManagement.speaker": "المتحدث",
+    "eventManagement.sponsor": "الراعي",
+    "eventManagement.survey": "استبيان ما بعد الفعالية",
+    "eventManagement.venue": "المكان",
+    "eventManagement.webinar": "الندوة عبر الإنترنت",
+    "eventManagement.workshop": "ورشة العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/eventManagementAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "eventManagementAdv.banquet": "Banquet",
+    "eventManagementAdv.booking": "Venue Booking",
+    "eventManagementAdv.breakdown": "Event Breakdown",
+    "eventManagementAdv.catering": "Event Catering",
+    "eventManagementAdv.celebration": "Celebration",
+    "eventManagementAdv.ceremony": "Ceremony",
+    "eventManagementAdv.conference": "Conference",
+    "eventManagementAdv.coordination": "Event Coordination",
+    "eventManagementAdv.entertainment": "Entertainment",
+    "eventManagementAdv.event": "Event Management",
+    "eventManagementAdv.invitation": "Invitation",
+    "eventManagementAdv.layout": "Event Layout",
+    "eventManagementAdv.meeting": "Meeting",
+    "eventManagementAdv.planning": "Event Planning",
+    "eventManagementAdv.reception": "Reception",
+    "eventManagementAdv.registration": "Event Registration",
+    "eventManagementAdv.rsvp": "RSVP",
+    "eventManagementAdv.seating": "Seating Arrangement",
+    "eventManagementAdv.seminar": "Seminar",
+    "eventManagementAdv.setup": "Event Setup",
+    "eventManagementAdv.venue": "Venue",
+    "eventManagementAdv.workshop": "Workshop"
+  },
+  "ar": {
+    "eventManagementAdv.banquet": "مأدبة",
+    "eventManagementAdv.booking": "حجز المكان",
+    "eventManagementAdv.breakdown": "تفكيك الفعالية",
+    "eventManagementAdv.catering": "تقديم الطعام للفعالية",
+    "eventManagementAdv.celebration": "احتفال",
+    "eventManagementAdv.ceremony": "حفل",
+    "eventManagementAdv.conference": "مؤتمر",
+    "eventManagementAdv.coordination": "تنسيق الفعاليات",
+    "eventManagementAdv.entertainment": "الترفيه",
+    "eventManagementAdv.event": "إدارة الفعاليات",
+    "eventManagementAdv.invitation": "دعوة",
+    "eventManagementAdv.layout": "تخطيط الفعالية",
+    "eventManagementAdv.meeting": "اجتماع",
+    "eventManagementAdv.planning": "تخطيط الفعاليات",
+    "eventManagementAdv.reception": "حفل استقبال",
+    "eventManagementAdv.registration": "التسجيل في الفعالية",
+    "eventManagementAdv.rsvp": "تأكيد الحضور",
+    "eventManagementAdv.seating": "ترتيب المقاعد",
+    "eventManagementAdv.seminar": "ندوة",
+    "eventManagementAdv.setup": "إعداد الفعالية",
+    "eventManagementAdv.venue": "مكان",
+    "eventManagementAdv.workshop": "ورشة عمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/eventManagementPlatform.translations.json">
+<![CDATA[
+{
+  "en": {
+    "eventManagementPlatform.abstractSubmission": "Abstract Submission",
+    "eventManagementPlatform.agendaBuilder": "Agenda Builder",
+    "eventManagementPlatform.attendanceTracking": "Attendance Tracking",
+    "eventManagementPlatform.attendeeManagement": "Attendee Management",
+    "eventManagementPlatform.badgePrinting": "Badge Printing",
+    "eventManagementPlatform.boothAssignment": "Booth Assignment",
+    "eventManagementPlatform.capacityPlanning": "Capacity Planning",
+    "eventManagementPlatform.checkInSystem": "Check-In System",
+    "eventManagementPlatform.description": "Comprehensive event planning and execution",
+    "eventManagementPlatform.emailCampaigns": "Email Campaigns",
+    "eventManagementPlatform.engagementMetrics": "Engagement Metrics",
+    "eventManagementPlatform.eventAnalytics": "Event Analytics",
+    "eventManagementPlatform.eventPlanning": "Event Planning",
+    "eventManagementPlatform.exhibitorManagement": "Exhibitor Management",
+    "eventManagementPlatform.floorPlanDesign": "Floor Plan Design",
+    "eventManagementPlatform.marketingPromotion": "Marketing & Promotion",
+    "eventManagementPlatform.mobileAppFeatures": "Mobile App Features",
+    "eventManagementPlatform.networkingTools": "Networking Tools",
+    "eventManagementPlatform.onlineRegistration": "Online Registration",
+    "eventManagementPlatform.programSchedule": "Program Schedule",
+    "eventManagementPlatform.registrationManagement": "Registration Management",
+    "eventManagementPlatform.revenueReporting": "Revenue Reporting",
+    "eventManagementPlatform.seatingArrangements": "Seating Arrangements",
+    "eventManagementPlatform.sessionManagement": "Session Management",
+    "eventManagementPlatform.socialMediaIntegration": "Social Media Integration",
+    "eventManagementPlatform.speakerManagement": "Speaker Management",
+    "eventManagementPlatform.sponsorshipManagement": "Sponsorship Management",
+    "eventManagementPlatform.surveysFeedback": "Surveys & Feedback",
+    "eventManagementPlatform.ticketingSales": "Ticketing & Sales",
+    "eventManagementPlatform.title": "Event Management Platform",
+    "eventManagementPlatform.venueManagement": "Venue Management",
+    "eventManagementPlatform.venueSourcing": "Venue Sourcing"
+  },
+  "ar": {
+    "eventManagementPlatform.abstractSubmission": "تقديم الملخصات",
+    "eventManagementPlatform.agendaBuilder": "منشئ الأجندة",
+    "eventManagementPlatform.attendanceTracking": "تتبع الحضور",
+    "eventManagementPlatform.attendeeManagement": "إدارة الحضور",
+    "eventManagementPlatform.badgePrinting": "طباعة الشارات",
+    "eventManagementPlatform.boothAssignment": "تخصيص الأكشاك",
+    "eventManagementPlatform.capacityPlanning": "تخطيط السعة",
+    "eventManagementPlatform.checkInSystem": "نظام تسجيل الوصول",
+    "eventManagementPlatform.description": "التخطيط والتنفيذ الشامل للفعاليات",
+    "eventManagementPlatform.emailCampaigns": "حملات البريد الإلكتروني",
+    "eventManagementPlatform.engagementMetrics": "مقاييس المشاركة",
+    "eventManagementPlatform.eventAnalytics": "تحليلات الفعاليات",
+    "eventManagementPlatform.eventPlanning": "تخطيط الفعاليات",
+    "eventManagementPlatform.exhibitorManagement": "إدارة العارضين",
+    "eventManagementPlatform.floorPlanDesign": "تصميم مخطط الطوابق",
+    "eventManagementPlatform.marketingPromotion": "التسويق والترويج",
+    "eventManagementPlatform.mobileAppFeatures": "ميزات تطبيق الهاتف المحمول",
+    "eventManagementPlatform.networkingTools": "أدوات التواصل",
+    "eventManagementPlatform.onlineRegistration": "التسجيل عبر الإنترنت",
+    "eventManagementPlatform.programSchedule": "جدول البرنامج",
+    "eventManagementPlatform.registrationManagement": "إدارة التسجيل",
+    "eventManagementPlatform.revenueReporting": "تقارير الإيرادات",
+    "eventManagementPlatform.seatingArrangements": "ترتيبات الجلوس",
+    "eventManagementPlatform.sessionManagement": "إدارة الجلسات",
+    "eventManagementPlatform.socialMediaIntegration": "تكامل وسائل التواصل الاجتماعي",
+    "eventManagementPlatform.speakerManagement": "إدارة المتحدثين",
+    "eventManagementPlatform.sponsorshipManagement": "إدارة الرعاية",
+    "eventManagementPlatform.surveysFeedback": "الاستبيانات والملاحظات",
+    "eventManagementPlatform.ticketingSales": "التذاكر والمبيعات",
+    "eventManagementPlatform.title": "منصة إدارة الفعاليات",
+    "eventManagementPlatform.venueManagement": "إدارة الأماكن",
+    "eventManagementPlatform.venueSourcing": "البحث عن الأماكن"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/eventMarketingAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "eventMarketingAdv.attendee": "Attendee",
+    "eventMarketingAdv.booth": "Booth",
+    "eventMarketingAdv.catering": "Catering",
+    "eventMarketingAdv.conference": "Conference",
+    "eventMarketingAdv.engagement": "Attendee Engagement",
+    "eventMarketingAdv.event": "Event Marketing",
+    "eventMarketingAdv.exhibition": "Exhibition",
+    "eventMarketingAdv.expo": "Expo",
+    "eventMarketingAdv.launch": "Product Launch",
+    "eventMarketingAdv.logistics": "Event Logistics",
+    "eventMarketingAdv.management": "Event Management",
+    "eventMarketingAdv.networking": "Networking Event",
+    "eventMarketingAdv.planning": "Event Planning",
+    "eventMarketingAdv.promotion": "Event Promotion",
+    "eventMarketingAdv.registration": "Event Registration",
+    "eventMarketingAdv.seminar": "Seminar",
+    "eventMarketingAdv.sponsorship": "Event Sponsorship",
+    "eventMarketingAdv.ticketing": "Ticketing",
+    "eventMarketingAdv.trade": "Trade Show",
+    "eventMarketingAdv.venue": "Venue Selection",
+    "eventMarketingAdv.webinar": "Webinar",
+    "eventMarketingAdv.workshop": "Workshop"
+  },
+  "ar": {
+    "eventMarketingAdv.attendee": "الحضور",
+    "eventMarketingAdv.booth": "جناح",
+    "eventMarketingAdv.catering": "خدمات الطعام",
+    "eventMarketingAdv.conference": "مؤتمر",
+    "eventMarketingAdv.engagement": "مشاركة الحضور",
+    "eventMarketingAdv.event": "التسويق بالفعاليات",
+    "eventMarketingAdv.exhibition": "معرض",
+    "eventMarketingAdv.expo": "إكسبو",
+    "eventMarketingAdv.launch": "إطلاق المنتج",
+    "eventMarketingAdv.logistics": "لوجستيات الفعالية",
+    "eventMarketingAdv.management": "إدارة الفعاليات",
+    "eventMarketingAdv.networking": "فعالية التواصل",
+    "eventMarketingAdv.planning": "تخطيط الفعاليات",
+    "eventMarketingAdv.promotion": "الترويج للفعالية",
+    "eventMarketingAdv.registration": "التسجيل في الفعالية",
+    "eventMarketingAdv.seminar": "ندوة",
+    "eventMarketingAdv.sponsorship": "رعاية الفعالية",
+    "eventMarketingAdv.ticketing": "التذاكر",
+    "eventMarketingAdv.trade": "معرض تجاري",
+    "eventMarketingAdv.venue": "اختيار المكان",
+    "eventMarketingAdv.webinar": "ندوة عبر الإنترنت",
+    "eventMarketingAdv.workshop": "ورشة عمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/executiveManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "executiveManagement.assessment": "Executive Assessment",
+    "executiveManagement.board": "Board of Directors",
+    "executiveManagement.coaching": "Executive Coaching",
+    "executiveManagement.committee": "Executive Committee",
+    "executiveManagement.communication": "Executive Communication",
+    "executiveManagement.compensation": "Executive Compensation",
+    "executiveManagement.dashboard": "Executive Dashboard",
+    "executiveManagement.decision": "Executive Decision Making",
+    "executiveManagement.development": "Executive Development",
+    "executiveManagement.executive": "Executive Management",
+    "executiveManagement.governance": "Executive Governance",
+    "executiveManagement.leadership": "Executive Leadership",
+    "executiveManagement.management": "Executive Management",
+    "executiveManagement.onboarding": "Executive Onboarding",
+    "executiveManagement.oversight": "Executive Oversight",
+    "executiveManagement.performance": "Executive Performance",
+    "executiveManagement.planning": "Executive Planning",
+    "executiveManagement.reporting": "Executive Reporting",
+    "executiveManagement.scorecard": "Executive Scorecard",
+    "executiveManagement.strategy": "Executive Strategy",
+    "executiveManagement.succession": "Executive Succession",
+    "executiveManagement.team": "Executive Team"
+  },
+  "ar": {
+    "executiveManagement.assessment": "تقييم التنفيذيين",
+    "executiveManagement.board": "مجلس الإدارة",
+    "executiveManagement.coaching": "تدريب التنفيذيين",
+    "executiveManagement.committee": "اللجنة التنفيذية",
+    "executiveManagement.communication": "التواصل التنفيذي",
+    "executiveManagement.compensation": "التعويض التنفيذي",
+    "executiveManagement.dashboard": "لوحة المعلومات التنفيذية",
+    "executiveManagement.decision": "اتخاذ القرار التنفيذي",
+    "executiveManagement.development": "التطوير التنفيذي",
+    "executiveManagement.executive": "الإدارة التنفيذية",
+    "executiveManagement.governance": "حوكمة التنفيذيين",
+    "executiveManagement.leadership": "القيادة التنفيذية",
+    "executiveManagement.management": "الإدارة التنفيذية",
+    "executiveManagement.onboarding": "تأهيل التنفيذيين",
+    "executiveManagement.oversight": "الإشراف التنفيذي",
+    "executiveManagement.performance": "أداء التنفيذيين",
+    "executiveManagement.planning": "التخطيط التنفيذي",
+    "executiveManagement.reporting": "التقارير التنفيذية",
+    "executiveManagement.scorecard": "بطاقة الأداء التنفيذية",
+    "executiveManagement.strategy": "الاستراتيجية التنفيذية",
+    "executiveManagement.succession": "تعاقب التنفيذيين",
+    "executiveManagement.team": "الفريق التنفيذي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/exitManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "exitManagement.access": "Access Revocation",
+    "exitManagement.certificate": "Experience Certificate",
+    "exitManagement.checklist": "Exit Checklist",
+    "exitManagement.clearance": "Exit Clearance",
+    "exitManagement.equipment": "Equipment Return",
+    "exitManagement.exit": "Exit Management",
+    "exitManagement.feedback": "Exit Feedback",
+    "exitManagement.final": "Final Settlement",
+    "exitManagement.handover": "Handover",
+    "exitManagement.interview": "Exit Interview",
+    "exitManagement.involuntary": "Involuntary Exit",
+    "exitManagement.notice": "Notice Period",
+    "exitManagement.offboarding": "Offboarding",
+    "exitManagement.reason": "Exit Reason",
+    "exitManagement.reference": "Reference Letter",
+    "exitManagement.rehire": "Rehire Eligibility",
+    "exitManagement.resignation": "Resignation",
+    "exitManagement.retirement": "Retirement",
+    "exitManagement.survey": "Exit Survey",
+    "exitManagement.termination": "Termination",
+    "exitManagement.transition": "Transition",
+    "exitManagement.voluntary": "Voluntary Exit"
+  },
+  "ar": {
+    "exitManagement.access": "إلغاء الوصول",
+    "exitManagement.certificate": "شهادة الخبرة",
+    "exitManagement.checklist": "قائمة الخروج",
+    "exitManagement.clearance": "تصريح الخروج",
+    "exitManagement.equipment": "إرجاع المعدات",
+    "exitManagement.exit": "إدارة الخروج",
+    "exitManagement.feedback": "ملاحظات الخروج",
+    "exitManagement.final": "التسوية النهائية",
+    "exitManagement.handover": "التسليم",
+    "exitManagement.interview": "مقابلة الخروج",
+    "exitManagement.involuntary": "خروج غير طوعي",
+    "exitManagement.notice": "فترة الإشعار",
+    "exitManagement.offboarding": "إجراءات الخروج",
+    "exitManagement.reason": "سبب الخروج",
+    "exitManagement.reference": "خطاب التوصية",
+    "exitManagement.rehire": "أهلية إعادة التوظيف",
+    "exitManagement.resignation": "الاستقالة",
+    "exitManagement.retirement": "التقاعد",
+    "exitManagement.survey": "استبيان الخروج",
+    "exitManagement.termination": "إنهاء الخدمة",
+    "exitManagement.transition": "الانتقال",
+    "exitManagement.voluntary": "خروج طوعي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/expenseTracking.translations.json">
+<![CDATA[
+{
+  "en": {
+    "expenseTracking.amount": "Amount",
+    "expenseTracking.approved": "Approved",
+    "expenseTracking.billable": "Billable",
+    "expenseTracking.budget": "Budget",
+    "expenseTracking.category": "Expense Category",
+    "expenseTracking.claim": "Expense Claim",
+    "expenseTracking.cost": "Cost",
+    "expenseTracking.date": "Expense Date",
+    "expenseTracking.description": "Description",
+    "expenseTracking.exceeded": "Budget Exceeded",
+    "expenseTracking.expenditure": "Expenditure",
+    "expenseTracking.expense": "Expense",
+    "expenseTracking.oneTime": "One-time Expense",
+    "expenseTracking.paymentMethod": "Payment Method",
+    "expenseTracking.pending": "Pending Approval",
+    "expenseTracking.receipt": "Receipt",
+    "expenseTracking.recurring": "Recurring Expense",
+    "expenseTracking.reimbursable": "Reimbursable",
+    "expenseTracking.rejected": "Rejected",
+    "expenseTracking.remaining": "Remaining Budget",
+    "expenseTracking.report": "Expense Report",
+    "expenseTracking.spending": "Spending",
+    "expenseTracking.submitted": "Submitted",
+    "expenseTracking.track": "Track Expenses",
+    "expenseTracking.type": "Expense Type",
+    "expenseTracking.vendor": "Vendor"
+  },
+  "ar": {
+    "expenseTracking.amount": "المبلغ",
+    "expenseTracking.approved": "موافق عليه",
+    "expenseTracking.billable": "قابل للفوترة",
+    "expenseTracking.budget": "الميزانية",
+    "expenseTracking.category": "فئة المصروف",
+    "expenseTracking.claim": "مطالبة المصروفات",
+    "expenseTracking.cost": "التكلفة",
+    "expenseTracking.date": "تاريخ المصروف",
+    "expenseTracking.description": "الوصف",
+    "expenseTracking.exceeded": "تجاوز الميزانية",
+    "expenseTracking.expenditure": "النفقات",
+    "expenseTracking.expense": "المصروف",
+    "expenseTracking.oneTime": "مصروف لمرة واحدة",
+    "expenseTracking.paymentMethod": "طريقة الدفع",
+    "expenseTracking.pending": "في انتظار الموافقة",
+    "expenseTracking.receipt": "الإيصال",
+    "expenseTracking.recurring": "مصروف متكرر",
+    "expenseTracking.reimbursable": "قابل للسداد",
+    "expenseTracking.rejected": "مرفوض",
+    "expenseTracking.remaining": "الميزانية المتبقية",
+    "expenseTracking.report": "تقرير المصروفات",
+    "expenseTracking.spending": "الإنفاق",
+    "expenseTracking.submitted": "مقدم",
+    "expenseTracking.track": "تتبع المصروفات",
+    "expenseTracking.type": "نوع المصروف",
+    "expenseTracking.vendor": "المورد"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/exportOptions.translations.json">
+<![CDATA[
+{
+  "en": {
+    "exportOptions.all": "Export All",
+    "exportOptions.compress": "Compress",
+    "exportOptions.csv": "CSV",
+    "exportOptions.current": "Export Current",
+    "exportOptions.download": "Download",
+    "exportOptions.excel": "Excel",
+    "exportOptions.export": "Export",
+    "exportOptions.format": "Export Format",
+    "exportOptions.image": "Image",
+    "exportOptions.json": "JSON",
+    "exportOptions.options": "Export Options",
+    "exportOptions.password": "Password Protect",
+    "exportOptions.pdf": "PDF",
+    "exportOptions.powerpoint": "PowerPoint",
+    "exportOptions.quality": "Quality",
+    "exportOptions.range": "Export Range",
+    "exportOptions.selected": "Export Selected",
+    "exportOptions.text": "Text",
+    "exportOptions.word": "Word",
+    "exportOptions.xml": "XML"
+  },
+  "ar": {
+    "exportOptions.all": "تصدير الكل",
+    "exportOptions.compress": "ضغط",
+    "exportOptions.csv": "CSV",
+    "exportOptions.current": "تصدير الحالي",
+    "exportOptions.download": "تحميل",
+    "exportOptions.excel": "إكسل",
+    "exportOptions.export": "تصدير",
+    "exportOptions.format": "تنسيق التصدير",
+    "exportOptions.image": "صورة",
+    "exportOptions.json": "JSON",
+    "exportOptions.options": "خيارات التصدير",
+    "exportOptions.password": "حماية بكلمة مرور",
+    "exportOptions.pdf": "PDF",
+    "exportOptions.powerpoint": "باوربوينت",
+    "exportOptions.quality": "الجودة",
+    "exportOptions.range": "تصدير نطاق",
+    "exportOptions.selected": "تصدير المحدد",
+    "exportOptions.text": "نص",
+    "exportOptions.word": "وورد",
+    "exportOptions.xml": "XML"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/facilities.translations.json">
+<![CDATA[
+{
+  "en": {
+    "facilities.accessControl": "Access Control",
+    "facilities.airConditioning": "Air Conditioning",
+    "facilities.alarm": "Alarm",
+    "facilities.backupPower": "Backup Power",
+    "facilities.bms": "BMS",
+    "facilities.building": "Building",
+    "facilities.buildingAutomation": "Building Automation",
+    "facilities.buildingManagementSystem": "Building Management System",
+    "facilities.buildings": "Buildings",
+    "facilities.buildingSystems": "Building Systems",
+    "facilities.cctv": "CCTV",
+    "facilities.cooling": "Cooling",
+    "facilities.drainage": "Drainage",
+    "facilities.electrical": "Electrical",
+    "facilities.electricalSystem": "Electrical System",
+    "facilities.elevator": "Elevator",
+    "facilities.elevators": "Elevators",
+    "facilities.emergencyExit": "Emergency Exit",
+    "facilities.energyManagement": "Energy Management",
+    "facilities.escalator": "Escalator",
+    "facilities.facilities1": "Facilities",
+    "facilities.facility": "Facility",
+    "facilities.fireAlarm": "Fire Alarm",
+    "facilities.fireExtinguisher": "Fire Extinguisher",
+    "facilities.fireSafety": "Fire Safety",
+    "facilities.generator": "Generator",
+    "facilities.heating": "Heating",
+    "facilities.heatingVentilation": "Heating & Ventilation",
+    "facilities.humidity": "Humidity",
+    "facilities.hvac": "HVAC",
+    "facilities.lift": "Lift",
+    "facilities.lighting": "Lighting",
+    "facilities.plumbing": "Plumbing",
+    "facilities.plumbingSystem": "Plumbing System",
+    "facilities.powerSupply": "Power Supply",
+    "facilities.security": "Security",
+    "facilities.securitySystem": "Security System",
+    "facilities.sewage": "Sewage",
+    "facilities.sprinklerSystem": "Sprinkler System",
+    "facilities.surveillance": "Surveillance",
+    "facilities.temperature": "Temperature",
+    "facilities.ventilation": "Ventilation",
+    "facilities.waterSupply": "Water Supply"
+  },
+  "ar": {
+    "facilities.accessControl": "التحكم في الوصول",
+    "facilities.airConditioning": "تكييف الهواء",
+    "facilities.alarm": "إنذار",
+    "facilities.backupPower": "طاقة احتياطية",
+    "facilities.bms": "نظام إدارة المباني",
+    "facilities.building": "مبنى",
+    "facilities.buildingAutomation": "أتمتة المباني",
+    "facilities.buildingManagementSystem": "نظام إدارة المباني",
+    "facilities.buildings": "مباني",
+    "facilities.buildingSystems": "أنظمة المباني",
+    "facilities.cctv": "كاميرات المراقبة",
+    "facilities.cooling": "التبريد",
+    "facilities.drainage": "تصريف المياه",
+    "facilities.electrical": "كهربائي",
+    "facilities.electricalSystem": "النظام الكهربائي",
+    "facilities.elevator": "مصعد",
+    "facilities.elevators": "مصاعد",
+    "facilities.emergencyExit": "مخرج طوارئ",
+    "facilities.energyManagement": "إدارة الطاقة",
+    "facilities.escalator": "سلم متحرك",
+    "facilities.facilities1": "منشآت",
+    "facilities.facility": "منشأة",
+    "facilities.fireAlarm": "إنذار الحريق",
+    "facilities.fireExtinguisher": "طفاية حريق",
+    "facilities.fireSafety": "السلامة من الحرائق",
+    "facilities.generator": "مولد كهربائي",
+    "facilities.heating": "التدفئة",
+    "facilities.heatingVentilation": "التدفئة والتهوية",
+    "facilities.humidity": "الرطوبة",
+    "facilities.hvac": "التدفئة والتهوية والتكييف",
+    "facilities.lift": "مصعد",
+    "facilities.lighting": "الإضاءة",
+    "facilities.plumbing": "السباكة",
+    "facilities.plumbingSystem": "نظام السباكة",
+    "facilities.powerSupply": "مصدر الطاقة",
+    "facilities.security": "الأمن",
+    "facilities.securitySystem": "نظام الأمن",
+    "facilities.sewage": "الصرف الصحي",
+    "facilities.sprinklerSystem": "نظام الرشاشات",
+    "facilities.surveillance": "المراقبة",
+    "facilities.temperature": "درجة الحرارة",
+    "facilities.ventilation": "التهوية",
+    "facilities.waterSupply": "إمدادات المياه"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/facilityManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "facilityManagement.access": "Access Control",
+    "facilityManagement.allocation": "Space Allocation",
+    "facilityManagement.building": "Building",
+    "facilityManagement.cleaning": "Cleaning",
+    "facilityManagement.corrective": "Corrective Maintenance",
+    "facilityManagement.electrical": "Electrical",
+    "facilityManagement.facility": "Facility Management",
+    "facilityManagement.hvac": "HVAC",
+    "facilityManagement.janitorial": "Janitorial",
+    "facilityManagement.maintenance": "Maintenance",
+    "facilityManagement.occupancy": "Occupancy",
+    "facilityManagement.parking": "Parking Management",
+    "facilityManagement.plumbing": "Plumbing",
+    "facilityManagement.premises": "Premises",
+    "facilityManagement.preventive": "Preventive Maintenance",
+    "facilityManagement.property": "Property",
+    "facilityManagement.reception": "Reception",
+    "facilityManagement.repair": "Repair",
+    "facilityManagement.security": "Facility Security",
+    "facilityManagement.space": "Space Management",
+    "facilityManagement.utilization": "Space Utilization",
+    "facilityManagement.work": "Work Order"
+  },
+  "ar": {
+    "facilityManagement.access": "التحكم في الوصول",
+    "facilityManagement.allocation": "تخصيص المساحة",
+    "facilityManagement.building": "المبنى",
+    "facilityManagement.cleaning": "التنظيف",
+    "facilityManagement.corrective": "الصيانة التصحيحية",
+    "facilityManagement.electrical": "الكهربائية",
+    "facilityManagement.facility": "إدارة المرافق",
+    "facilityManagement.hvac": "التدفئة والتهوية والتكييف",
+    "facilityManagement.janitorial": "خدمات النظافة",
+    "facilityManagement.maintenance": "الصيانة",
+    "facilityManagement.occupancy": "الإشغال",
+    "facilityManagement.parking": "إدارة مواقف السيارات",
+    "facilityManagement.plumbing": "السباكة",
+    "facilityManagement.premises": "المقر",
+    "facilityManagement.preventive": "الصيانة الوقائية",
+    "facilityManagement.property": "العقار",
+    "facilityManagement.reception": "الاستقبال",
+    "facilityManagement.repair": "الإصلاح",
+    "facilityManagement.security": "أمن المنشأة",
+    "facilityManagement.space": "إدارة المساحة",
+    "facilityManagement.utilization": "استخدام المساحة",
+    "facilityManagement.work": "أمر العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/facilityOperations.translations.json">
+<![CDATA[
+{
+  "en": {
+    "facilityOperations.cleaning": "Cleaning",
+    "facilityOperations.corrective": "Corrective Maintenance",
+    "facilityOperations.electrical": "Electrical",
+    "facilityOperations.energy": "Energy Management",
+    "facilityOperations.equipment": "Equipment",
+    "facilityOperations.grounds": "Grounds Maintenance",
+    "facilityOperations.housekeeping": "Housekeeping",
+    "facilityOperations.hvac": "HVAC",
+    "facilityOperations.inspection": "Inspection",
+    "facilityOperations.janitorial": "Janitorial Services",
+    "facilityOperations.landscaping": "Landscaping",
+    "facilityOperations.maintenance": "Maintenance",
+    "facilityOperations.management": "Operations Management",
+    "facilityOperations.operations": "Facility Operations",
+    "facilityOperations.plumbing": "Plumbing",
+    "facilityOperations.preventive": "Preventive Maintenance",
+    "facilityOperations.recycling": "Recycling",
+    "facilityOperations.repair": "Repair",
+    "facilityOperations.scheduling": "Scheduling",
+    "facilityOperations.utilities": "Utilities",
+    "facilityOperations.waste": "Waste Management",
+    "facilityOperations.work": "Work Order"
+  },
+  "ar": {
+    "facilityOperations.cleaning": "التنظيف",
+    "facilityOperations.corrective": "الصيانة التصحيحية",
+    "facilityOperations.electrical": "كهربائي",
+    "facilityOperations.energy": "إدارة الطاقة",
+    "facilityOperations.equipment": "معدات",
+    "facilityOperations.grounds": "صيانة الأراضي",
+    "facilityOperations.housekeeping": "خدمات النظافة",
+    "facilityOperations.hvac": "التدفئة والتهوية والتكييف",
+    "facilityOperations.inspection": "فحص",
+    "facilityOperations.janitorial": "خدمات التنظيف",
+    "facilityOperations.landscaping": "تنسيق الحدائق",
+    "facilityOperations.maintenance": "الصيانة",
+    "facilityOperations.management": "إدارة العمليات",
+    "facilityOperations.operations": "عمليات المنشأة",
+    "facilityOperations.plumbing": "سباكة",
+    "facilityOperations.preventive": "الصيانة الوقائية",
+    "facilityOperations.recycling": "إعادة التدوير",
+    "facilityOperations.repair": "إصلاح",
+    "facilityOperations.scheduling": "الجدولة",
+    "facilityOperations.utilities": "المرافق",
+    "facilityOperations.waste": "إدارة النفايات",
+    "facilityOperations.work": "أمر عمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/facilityOperationsExtended.translations.json">
+<![CDATA[
+{
+  "en": {
+    "facilityOperationsExtended.access": "Access Control",
+    "facilityOperationsExtended.alarms": "Alarm Systems",
+    "facilityOperationsExtended.barriers": "Barrier Systems",
+    "facilityOperationsExtended.cameras": "Camera Systems",
+    "facilityOperationsExtended.checks": "Routine Checks",
+    "facilityOperationsExtended.cleaning": "Cleaning Operations",
+    "facilityOperationsExtended.coordination": "Operations Coordination",
+    "facilityOperationsExtended.description": "Daily Facility Management Operations",
+    "facilityOperationsExtended.disinfection": "Disinfection",
+    "facilityOperationsExtended.electrical": "Electrical Systems",
+    "facilityOperationsExtended.equipment": "Equipment Management",
+    "facilityOperationsExtended.execution": "Operations Execution",
+    "facilityOperationsExtended.fire": "Fire Systems",
+    "facilityOperationsExtended.garage": "Parking Garages",
+    "facilityOperationsExtended.gates": "Gate Management",
+    "facilityOperationsExtended.grounds": "Grounds Maintenance",
+    "facilityOperationsExtended.housekeeping": "Housekeeping",
+    "facilityOperationsExtended.hvac": "HVAC Operations",
+    "facilityOperationsExtended.ice": "Ice Management",
+    "facilityOperationsExtended.inspections": "Daily Inspections",
+    "facilityOperationsExtended.inventory": "Inventory Control",
+    "facilityOperationsExtended.janitorial": "Janitorial Services",
+    "facilityOperationsExtended.keys": "Key Management",
+    "facilityOperationsExtended.landscaping": "Landscaping Services",
+    "facilityOperationsExtended.lighting": "Lighting Management",
+    "facilityOperationsExtended.loading": "Loading Dock",
+    "facilityOperationsExtended.locks": "Lock Management",
+    "facilityOperationsExtended.lot": "Parking Lots",
+    "facilityOperationsExtended.materials": "Materials Handling",
+    "facilityOperationsExtended.monitoring": "Operations Monitoring",
+    "facilityOperationsExtended.operations": "Operations Management",
+    "facilityOperationsExtended.optimization": "Operations Optimization",
+    "facilityOperationsExtended.parking": "Parking Management",
+    "facilityOperationsExtended.pest": "Pest Control",
+    "facilityOperationsExtended.planning": "Operations Planning",
+    "facilityOperationsExtended.plumbing": "Plumbing Systems",
+    "facilityOperationsExtended.receiving": "Receiving Area",
+    "facilityOperationsExtended.reporting": "Operations Reporting",
+    "facilityOperationsExtended.rounds": "Facility Rounds",
+    "facilityOperationsExtended.sanitation": "Sanitation Services",
+    "facilityOperationsExtended.scheduling": "Operations Scheduling",
+    "facilityOperationsExtended.security": "Security Systems",
+    "facilityOperationsExtended.shipping": "Shipping Area",
+    "facilityOperationsExtended.signage": "Signage Management",
+    "facilityOperationsExtended.snow": "Snow Removal",
+    "facilityOperationsExtended.storage": "Storage Management",
+    "facilityOperationsExtended.supplies": "Supplies Management",
+    "facilityOperationsExtended.title": "Facility Operations",
+    "facilityOperationsExtended.tools": "Tools Management",
+    "facilityOperationsExtended.warehouse": "Warehouse Operations",
+    "facilityOperationsExtended.wayfinding": "Wayfinding Systems"
+  },
+  "ar": {
+    "facilityOperationsExtended.access": "التحكم في الوصول",
+    "facilityOperationsExtended.alarms": "أنظمة الإنذار",
+    "facilityOperationsExtended.barriers": "أنظمة الحواجز",
+    "facilityOperationsExtended.cameras": "أنظمة الكاميرات",
+    "facilityOperationsExtended.checks": "الفحوصات الروتينية",
+    "facilityOperationsExtended.cleaning": "عمليات التنظيف",
+    "facilityOperationsExtended.coordination": "تنسيق العمليات",
+    "facilityOperationsExtended.description": "عمليات إدارة المنشآت اليومية",
+    "facilityOperationsExtended.disinfection": "التطهير",
+    "facilityOperationsExtended.electrical": "الأنظمة الكهربائية",
+    "facilityOperationsExtended.equipment": "إدارة المعدات",
+    "facilityOperationsExtended.execution": "تنفيذ العمليات",
+    "facilityOperationsExtended.fire": "أنظمة الحريق",
+    "facilityOperationsExtended.garage": "المرائب",
+    "facilityOperationsExtended.gates": "إدارة البوابات",
+    "facilityOperationsExtended.grounds": "صيانة الأراضي",
+    "facilityOperationsExtended.housekeeping": "التدبير المنزلي",
+    "facilityOperationsExtended.hvac": "عمليات التكييف",
+    "facilityOperationsExtended.ice": "إدارة الجليد",
+    "facilityOperationsExtended.inspections": "الفحوصات اليومية",
+    "facilityOperationsExtended.inventory": "التحكم في المخزون",
+    "facilityOperationsExtended.janitorial": "خدمات النظافة",
+    "facilityOperationsExtended.keys": "إدارة المفاتيح",
+    "facilityOperationsExtended.landscaping": "خدمات تنسيق الحدائق",
+    "facilityOperationsExtended.lighting": "إدارة الإضاءة",
+    "facilityOperationsExtended.loading": "رصيف التحميل",
+    "facilityOperationsExtended.locks": "إدارة الأقفال",
+    "facilityOperationsExtended.lot": "مواقف السيارات",
+    "facilityOperationsExtended.materials": "التعامل مع المواد",
+    "facilityOperationsExtended.monitoring": "مراقبة العمليات",
+    "facilityOperationsExtended.operations": "إدارة العمليات",
+    "facilityOperationsExtended.optimization": "تحسين العمليات",
+    "facilityOperationsExtended.parking": "إدارة المواقف",
+    "facilityOperationsExtended.pest": "مكافحة الآفات",
+    "facilityOperationsExtended.planning": "تخطيط العمليات",
+    "facilityOperationsExtended.plumbing": "أنظمة السباكة",
+    "facilityOperationsExtended.receiving": "منطقة الاستقبال",
+    "facilityOperationsExtended.reporting": "تقارير العمليات",
+    "facilityOperationsExtended.rounds": "جولات المنشأة",
+    "facilityOperationsExtended.sanitation": "خدمات الصرف الصحي",
+    "facilityOperationsExtended.scheduling": "جدولة العمليات",
+    "facilityOperationsExtended.security": "أنظمة الأمن",
+    "facilityOperationsExtended.shipping": "منطقة الشحن",
+    "facilityOperationsExtended.signage": "إدارة اللافتات",
+    "facilityOperationsExtended.snow": "إزالة الثلوج",
+    "facilityOperationsExtended.storage": "إدارة التخزين",
+    "facilityOperationsExtended.supplies": "إدارة الإمدادات",
+    "facilityOperationsExtended.title": "عمليات المنشأة",
+    "facilityOperationsExtended.tools": "إدارة الأدوات",
+    "facilityOperationsExtended.warehouse": "عمليات المستودع",
+    "facilityOperationsExtended.wayfinding": "أنظمة تحديد المسار"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/fashionRetail.translations.json">
+<![CDATA[
+{
+  "en": {
+    "fashionRetail.assortmentPlanning": "Assortment Planning",
+    "fashionRetail.collectionPlanning": "Collection Planning",
+    "fashionRetail.colorSizeMatrix": "Color/Size Matrix",
+    "fashionRetail.customerStyling": "Customer Styling",
+    "fashionRetail.description": "Fashion retail and apparel management",
+    "fashionRetail.inventoryManagement": "Inventory Management",
+    "fashionRetail.loyaltyProgram": "Loyalty Program",
+    "fashionRetail.mannequinPlanning": "Mannequin Planning",
+    "fashionRetail.markdownOptimization": "Markdown Optimization",
+    "fashionRetail.merchandisePlanning": "Merchandise Planning",
+    "fashionRetail.personalShopping": "Personal Shopping",
+    "fashionRetail.pricingStrategy": "Pricing Strategy",
+    "fashionRetail.productLifecycle": "Product Lifecycle",
+    "fashionRetail.promotionalPlanning": "Promotional Planning",
+    "fashionRetail.seasonalBuying": "Seasonal Buying",
+    "fashionRetail.sizeRunAnalysis": "Size Run Analysis",
+    "fashionRetail.skuManagement": "SKU Management",
+    "fashionRetail.stockTracking": "Stock Tracking",
+    "fashionRetail.storeDisplay": "Store Display",
+    "fashionRetail.styleManagement": "Style Management",
+    "fashionRetail.title": "Fashion & Retail",
+    "fashionRetail.transferManagement": "Transfer Management",
+    "fashionRetail.trendForecasting": "Trend Forecasting",
+    "fashionRetail.visualMerchandising": "Visual Merchandising",
+    "fashionRetail.windowDisplay": "Window Display"
+  },
+  "ar": {
+    "fashionRetail.assortmentPlanning": "تخطيط التشكيلات",
+    "fashionRetail.collectionPlanning": "تخطيط المجموعات",
+    "fashionRetail.colorSizeMatrix": "مصفوفة اللون/المقاس",
+    "fashionRetail.customerStyling": "تنسيق العملاء",
+    "fashionRetail.description": "إدارة تجارة الملابس والأزياء",
+    "fashionRetail.inventoryManagement": "إدارة المخزون",
+    "fashionRetail.loyaltyProgram": "برنامج الولاء",
+    "fashionRetail.mannequinPlanning": "تخطيط المانيكان",
+    "fashionRetail.markdownOptimization": "تحسين التخفيضات",
+    "fashionRetail.merchandisePlanning": "تخطيط البضائع",
+    "fashionRetail.personalShopping": "التسوق الشخصي",
+    "fashionRetail.pricingStrategy": "استراتيجية التسعير",
+    "fashionRetail.productLifecycle": "دورة حياة المنتج",
+    "fashionRetail.promotionalPlanning": "تخطيط العروض",
+    "fashionRetail.seasonalBuying": "المشتريات الموسمية",
+    "fashionRetail.sizeRunAnalysis": "تحليل توزيع المقاسات",
+    "fashionRetail.skuManagement": "إدارة رموز SKU",
+    "fashionRetail.stockTracking": "تتبع المخزون",
+    "fashionRetail.storeDisplay": "عرض المتجر",
+    "fashionRetail.styleManagement": "إدارة الطرازات",
+    "fashionRetail.title": "تجزئة الأزياء",
+    "fashionRetail.transferManagement": "إدارة التحويلات",
+    "fashionRetail.trendForecasting": "التنبؤ بالاتجاهات",
+    "fashionRetail.visualMerchandising": "العرض البصري",
+    "fashionRetail.windowDisplay": "عرض الواجهة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/featureFlags.translations.json">
+<![CDATA[
+{
+  "en": {
+    "featureFlags.abtest": "A/B Test",
+    "featureFlags.archive": "Archive",
+    "featureFlags.condition": "Condition",
+    "featureFlags.control": "Control Group",
+    "featureFlags.disable": "Disable",
+    "featureFlags.enable": "Enable",
+    "featureFlags.experiment": "Experiment",
+    "featureFlags.expiry": "Expiry",
+    "featureFlags.feature": "Feature Flag",
+    "featureFlags.flag": "Flag",
+    "featureFlags.gradual": "Gradual Rollout",
+    "featureFlags.override": "Override",
+    "featureFlags.percentage": "Percentage",
+    "featureFlags.rollout": "Rollout",
+    "featureFlags.rule": "Rule",
+    "featureFlags.schedule": "Schedule",
+    "featureFlags.segment": "Segment",
+    "featureFlags.targeting": "Targeting",
+    "featureFlags.toggle": "Toggle",
+    "featureFlags.treatment": "Treatment Group",
+    "featureFlags.variant": "Variant"
+  },
+  "ar": {
+    "featureFlags.abtest": "اختبار A/B",
+    "featureFlags.archive": "الأرشيف",
+    "featureFlags.condition": "الشرط",
+    "featureFlags.control": "المجموعة الضابطة",
+    "featureFlags.disable": "تعطيل",
+    "featureFlags.enable": "تمكين",
+    "featureFlags.experiment": "التجربة",
+    "featureFlags.expiry": "انتهاء الصلاحية",
+    "featureFlags.feature": "علامة الميزة",
+    "featureFlags.flag": "العلامة",
+    "featureFlags.gradual": "الطرح التدريجي",
+    "featureFlags.override": "التجاوز",
+    "featureFlags.percentage": "النسبة المئوية",
+    "featureFlags.rollout": "الطرح",
+    "featureFlags.rule": "القاعدة",
+    "featureFlags.schedule": "الجدولة",
+    "featureFlags.segment": "الشريحة",
+    "featureFlags.targeting": "الاستهداف",
+    "featureFlags.toggle": "التبديل",
+    "featureFlags.treatment": "المجموعة العلاجية",
+    "featureFlags.variant": "المتغير"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/feedbackElements.translations.json">
+<![CDATA[
+{
+  "en": {
+    "feedbackElements.alert": "Alert",
+    "feedbackElements.attachment": "Attachment",
+    "feedbackElements.audio": "Audio",
+    "feedbackElements.avatar": "Avatar",
+    "feedbackElements.badge": "Badge",
+    "feedbackElements.banner": "Banner",
+    "feedbackElements.chip": "Chip",
+    "feedbackElements.confirm": "Confirmation",
+    "feedbackElements.danger": "Danger",
+    "feedbackElements.dialog": "Dialog Box",
+    "feedbackElements.error": "Error",
+    "feedbackElements.file": "File",
+    "feedbackElements.icon": "Icon",
+    "feedbackElements.image": "Image",
+    "feedbackElements.indicator": "Indicator",
+    "feedbackElements.info": "Information",
+    "feedbackElements.label": "Label",
+    "feedbackElements.message": "Message",
+    "feedbackElements.notification": "Notification",
+    "feedbackElements.prompt": "Prompt",
+    "feedbackElements.snackbar": "Snackbar",
+    "feedbackElements.status": "Status",
+    "feedbackElements.success": "Success",
+    "feedbackElements.tag": "Tag",
+    "feedbackElements.thumbnail": "Thumbnail",
+    "feedbackElements.toast": "Toast",
+    "feedbackElements.video": "Video",
+    "feedbackElements.warning": "Warning"
+  },
+  "ar": {
+    "feedbackElements.alert": "التنبيه",
+    "feedbackElements.attachment": "المرفق",
+    "feedbackElements.audio": "الصوت",
+    "feedbackElements.avatar": "الصورة الرمزية",
+    "feedbackElements.badge": "الشارة",
+    "feedbackElements.banner": "الشعار",
+    "feedbackElements.chip": "الشريحة",
+    "feedbackElements.confirm": "التأكيد",
+    "feedbackElements.danger": "خطر",
+    "feedbackElements.dialog": "مربع الحوار",
+    "feedbackElements.error": "خطأ",
+    "feedbackElements.file": "الملف",
+    "feedbackElements.icon": "الأيقونة",
+    "feedbackElements.image": "الصورة",
+    "feedbackElements.indicator": "المؤشر",
+    "feedbackElements.info": "معلومات",
+    "feedbackElements.label": "التسمية",
+    "feedbackElements.message": "الرسالة",
+    "feedbackElements.notification": "الإشعار",
+    "feedbackElements.prompt": "المطالبة",
+    "feedbackElements.snackbar": "شريط الإشعار",
+    "feedbackElements.status": "الحالة",
+    "feedbackElements.success": "نجاح",
+    "feedbackElements.tag": "الوسم",
+    "feedbackElements.thumbnail": "الصورة المصغرة",
+    "feedbackElements.toast": "التوست",
+    "feedbackElements.video": "الفيديو",
+    "feedbackElements.warning": "تحذير"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/feedbackReviews.translations.json">
+<![CDATA[
+{
+  "en": {
+    "feedbackReviews.anonymous": "Anonymous",
+    "feedbackReviews.comment": "Comment",
+    "feedbackReviews.feedback": "Feedback",
+    "feedbackReviews.fiveStars": "5 Stars",
+    "feedbackReviews.flag": "Flag",
+    "feedbackReviews.fourStars": "4 Stars",
+    "feedbackReviews.helpful": "Helpful",
+    "feedbackReviews.negative": "Negative",
+    "feedbackReviews.neutral": "Neutral",
+    "feedbackReviews.oneStar": "1 Star",
+    "feedbackReviews.positive": "Positive",
+    "feedbackReviews.private": "Private",
+    "feedbackReviews.public": "Public",
+    "feedbackReviews.rating": "Rating",
+    "feedbackReviews.report": "Report",
+    "feedbackReviews.review": "Review",
+    "feedbackReviews.stars": "Stars",
+    "feedbackReviews.submit": "Submit Feedback",
+    "feedbackReviews.threeStars": "3 Stars",
+    "feedbackReviews.twoStars": "2 Stars",
+    "feedbackReviews.unhelpful": "Unhelpful",
+    "feedbackReviews.verified": "Verified"
+  },
+  "ar": {
+    "feedbackReviews.anonymous": "مجهول",
+    "feedbackReviews.comment": "التعليق",
+    "feedbackReviews.feedback": "الملاحظات",
+    "feedbackReviews.fiveStars": "5 نجوم",
+    "feedbackReviews.flag": "تمييز",
+    "feedbackReviews.fourStars": "4 نجوم",
+    "feedbackReviews.helpful": "مفيد",
+    "feedbackReviews.negative": "سلبي",
+    "feedbackReviews.neutral": "محايد",
+    "feedbackReviews.oneStar": "نجمة واحدة",
+    "feedbackReviews.positive": "إيجابي",
+    "feedbackReviews.private": "خاص",
+    "feedbackReviews.public": "عام",
+    "feedbackReviews.rating": "التقييم",
+    "feedbackReviews.report": "إبلاغ",
+    "feedbackReviews.review": "المراجعة",
+    "feedbackReviews.stars": "النجوم",
+    "feedbackReviews.submit": "إرسال الملاحظات",
+    "feedbackReviews.threeStars": "3 نجوم",
+    "feedbackReviews.twoStars": "نجمتان",
+    "feedbackReviews.unhelpful": "غير مفيد",
+    "feedbackReviews.verified": "موثق"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/fieldServiceManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "fieldServiceManagement.appointment": "Appointment",
+    "fieldServiceManagement.arrival": "Arrival Window",
+    "fieldServiceManagement.completion": "Job Completion",
+    "fieldServiceManagement.dispatch": "Dispatch",
+    "fieldServiceManagement.equipment": "Equipment",
+    "fieldServiceManagement.feedback": "Service Feedback",
+    "fieldServiceManagement.field": "Field Service",
+    "fieldServiceManagement.firstfix": "First-Time Fix Rate",
+    "fieldServiceManagement.gps": "GPS Tracking",
+    "fieldServiceManagement.inventory": "Field Inventory",
+    "fieldServiceManagement.mobile": "Mobile Workforce",
+    "fieldServiceManagement.onsite": "On-Site",
+    "fieldServiceManagement.parts": "Parts Management",
+    "fieldServiceManagement.route": "Route Optimization",
+    "fieldServiceManagement.scheduling": "Field Scheduling",
+    "fieldServiceManagement.service": "Service Call",
+    "fieldServiceManagement.signature": "Customer Signature",
+    "fieldServiceManagement.technician": "Field Technician",
+    "fieldServiceManagement.time": "Time Tracking",
+    "fieldServiceManagement.tool": "Tools",
+    "fieldServiceManagement.utilization": "Technician Utilization",
+    "fieldServiceManagement.work": "Work Order"
+  },
+  "ar": {
+    "fieldServiceManagement.appointment": "الموعد",
+    "fieldServiceManagement.arrival": "نافذة الوصول",
+    "fieldServiceManagement.completion": "إتمام العمل",
+    "fieldServiceManagement.dispatch": "الإرسال",
+    "fieldServiceManagement.equipment": "المعدات",
+    "fieldServiceManagement.feedback": "ملاحظات الخدمة",
+    "fieldServiceManagement.field": "الخدمة الميدانية",
+    "fieldServiceManagement.firstfix": "معدل الإصلاح من المرة الأولى",
+    "fieldServiceManagement.gps": "تتبع GPS",
+    "fieldServiceManagement.inventory": "المخزون الميداني",
+    "fieldServiceManagement.mobile": "القوى العاملة المتنقلة",
+    "fieldServiceManagement.onsite": "في الموقع",
+    "fieldServiceManagement.parts": "إدارة القطع",
+    "fieldServiceManagement.route": "تحسين المسار",
+    "fieldServiceManagement.scheduling": "جدولة الخدمة الميدانية",
+    "fieldServiceManagement.service": "مكالمة الخدمة",
+    "fieldServiceManagement.signature": "توقيع العميل",
+    "fieldServiceManagement.technician": "الفني الميداني",
+    "fieldServiceManagement.time": "تتبع الوقت",
+    "fieldServiceManagement.tool": "الأدوات",
+    "fieldServiceManagement.utilization": "استخدام الفني",
+    "fieldServiceManagement.work": "أمر العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/files.translations.json">
+<![CDATA[
+{
+  "en": {
+    "files.allowedTypes": "Allowed File Types",
+    "files.attachment": "Attachment",
+    "files.attachments": "Attachments",
+    "files.audio": "Audio",
+    "files.deleteFile": "Delete File",
+    "files.document": "Document",
+    "files.documents": "Documents",
+    "files.downloadFile": "Download File",
+    "files.dropFiles": "Drop Files Here",
+    "files.excel": "Excel",
+    "files.file": "File",
+    "files.fileName": "File Name",
+    "files.files1": "Files",
+    "files.fileSize": "File Size",
+    "files.filesSelected": "{count} Files Selected",
+    "files.fileType": "File Type",
+    "files.folder": "Folder",
+    "files.folders": "Folders",
+    "files.image": "Image",
+    "files.images": "Images",
+    "files.maxFileSize": "Maximum File Size",
+    "files.noFilesSelected": "No Files Selected",
+    "files.pdf": "PDF",
+    "files.photo": "Photo",
+    "files.photos": "Photos",
+    "files.previewFile": "Preview File",
+    "files.replaceFile": "Replace File",
+    "files.selectFiles": "Select Files",
+    "files.uploadComplete": "Upload Complete",
+    "files.uploadedAt": "Uploaded At",
+    "files.uploadedBy": "Uploaded By",
+    "files.uploadFailed": "Upload Failed",
+    "files.uploadFile": "Upload File",
+    "files.uploading": "Uploading...",
+    "files.video": "Video",
+    "files.videos": "Videos",
+    "files.viewFile": "View File",
+    "files.word": "Word"
+  },
+  "ar": {
+    "files.allowedTypes": "أنواع الملفات المسموح بها",
+    "files.attachment": "مرفق",
+    "files.attachments": "مرفقات",
+    "files.audio": "صوت",
+    "files.deleteFile": "حذف الملف",
+    "files.document": "مستند",
+    "files.documents": "مستندات",
+    "files.downloadFile": "تحميل الملف",
+    "files.dropFiles": "أفلت الملفات هنا",
+    "files.excel": "إكسل",
+    "files.file": "ملف",
+    "files.fileName": "اسم الملف",
+    "files.files1": "ملفات",
+    "files.fileSize": "حجم الملف",
+    "files.filesSelected": "{count} ملفات محددة",
+    "files.fileType": "نوع الملف",
+    "files.folder": "مجلد",
+    "files.folders": "مجلدات",
+    "files.image": "صورة",
+    "files.images": "صور",
+    "files.maxFileSize": "الحد الأقصى لحجم الملف",
+    "files.noFilesSelected": "لم يتم اختيار ملفات",
+    "files.pdf": "PDF",
+    "files.photo": "صورة فوتوغرافية",
+    "files.photos": "صور فوتوغرافية",
+    "files.previewFile": "معاينة الملف",
+    "files.replaceFile": "استبدال الملف",
+    "files.selectFiles": "اختر ملفات",
+    "files.uploadComplete": "اكتمل الرفع",
+    "files.uploadedAt": "تاريخ الرفع",
+    "files.uploadedBy": "رفع بواسطة",
+    "files.uploadFailed": "فشل الرفع",
+    "files.uploadFile": "رفع الملف",
+    "files.uploading": "جاري الرفع...",
+    "files.video": "فيديو",
+    "files.videos": "فيديوهات",
+    "files.viewFile": "عرض الملف",
+    "files.word": "وورد"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/filterOptions.translations.json">
+<![CDATA[
+{
+  "en": {
+    "filterOptions.active": "Active Filters",
+    "filterOptions.apply": "Apply Filters",
+    "filterOptions.available": "Available Filters",
+    "filterOptions.category": "Category Filter",
+    "filterOptions.clear": "Clear Filters",
+    "filterOptions.combine": "Combine Filters",
+    "filterOptions.custom": "Custom Filter",
+    "filterOptions.date": "Date Filter",
+    "filterOptions.dateRange": "Date Range",
+    "filterOptions.delete": "Delete Filter",
+    "filterOptions.exclude": "Exclude",
+    "filterOptions.filter": "Filter",
+    "filterOptions.filterBy": "Filter By",
+    "filterOptions.from": "From",
+    "filterOptions.include": "Include",
+    "filterOptions.location": "Location Filter",
+    "filterOptions.max": "Maximum",
+    "filterOptions.min": "Minimum",
+    "filterOptions.modify": "Modify Filter",
+    "filterOptions.preset": "Preset Filters",
+    "filterOptions.price": "Price Filter",
+    "filterOptions.priceRange": "Price Range",
+    "filterOptions.reset": "Reset Filters",
+    "filterOptions.save": "Save Filter",
+    "filterOptions.status": "Status Filter",
+    "filterOptions.tags": "Tags Filter",
+    "filterOptions.to": "To",
+    "filterOptions.type": "Type Filter"
+  },
+  "ar": {
+    "filterOptions.active": "المرشحات النشطة",
+    "filterOptions.apply": "تطبيق المرشحات",
+    "filterOptions.available": "المرشحات المتاحة",
+    "filterOptions.category": "مرشح الفئة",
+    "filterOptions.clear": "مسح المرشحات",
+    "filterOptions.combine": "دمج المرشحات",
+    "filterOptions.custom": "مرشح مخصص",
+    "filterOptions.date": "مرشح التاريخ",
+    "filterOptions.dateRange": "نطاق التاريخ",
+    "filterOptions.delete": "حذف المرشح",
+    "filterOptions.exclude": "استبعاد",
+    "filterOptions.filter": "التصفية",
+    "filterOptions.filterBy": "تصفية حسب",
+    "filterOptions.from": "من",
+    "filterOptions.include": "تضمين",
+    "filterOptions.location": "مرشح الموقع",
+    "filterOptions.max": "الحد الأقصى",
+    "filterOptions.min": "الحد الأدنى",
+    "filterOptions.modify": "تعديل المرشح",
+    "filterOptions.preset": "مرشحات محددة مسبقاً",
+    "filterOptions.price": "مرشح السعر",
+    "filterOptions.priceRange": "نطاق السعر",
+    "filterOptions.reset": "إعادة تعيين المرشحات",
+    "filterOptions.save": "حفظ المرشح",
+    "filterOptions.status": "مرشح الحالة",
+    "filterOptions.tags": "مرشح الوسوم",
+    "filterOptions.to": "إلى",
+    "filterOptions.type": "مرشح النوع"
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

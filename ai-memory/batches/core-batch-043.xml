@@ -1,0 +1,2958 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="components/TopBar.tsx">
+<![CDATA[
+"use client";
+
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { Bell, User, ChevronDown, Search, X } from "lucide-react";
+import { useSession, signOut } from "next-auth/react";
+import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
+
+// ✅ FIXED: Use standard components from design system
+import { Button, buttonVariants } from "./ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "./ui/dialog";
+import { SimpleTooltip } from "./ui/tooltip";
+
+// Context imports
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useResponsive } from "@/contexts/ResponsiveContext";
+import {
+  useFormState,
+  type FormStateContextValue,
+} from "@/contexts/FormStateContext";
+import {
+  MARKETING_ROUTES,
+  MARKETING_ROUTE_PREFIXES,
+} from "@/config/routes/public";
+
+// Sub-components
+import LanguageSelector from "./i18n/LanguageSelector";
+import CurrencySelector from "./i18n/CurrencySelector";
+import AppSwitcher from "./topbar/AppSwitcher";
+import GlobalSearch from "./topbar/GlobalSearch";
+import QuickActions from "./topbar/QuickActions";
+import { TopMegaMenu } from "./topbar/TopMegaMenu";
+import Portal from "./Portal";
+import { logger } from "@/lib/logger";
+import * as TopBarCtx from "@/contexts/TopBarContext";
+import SupportOrgSwitcher from "@/components/support/SupportOrgSwitcher";
+
+// Type definitions
+interface OrgSettings {
+  name: string;
+  logo: string | null;
+}
+
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  priority: "high" | "medium" | "low";
+  timestamp: string;
+  read: boolean;
+  targetUrl?: string;
+  category?: string;
+}
+
+type NotificationFilter = "all" | "workOrders" | "finance" | "support";
+
+const NOTIFICATION_FILTERS: Array<{
+  id: NotificationFilter;
+  labelKey: string;
+  category?: string;
+}> = [
+  { id: "all", labelKey: "notifications.filters.all" },
+  {
+    id: "workOrders",
+    labelKey: "notifications.filters.maintenance",
+    category: "maintenance",
+  },
+  {
+    id: "finance",
+    labelKey: "notifications.filters.finance",
+    category: "finance",
+  },
+  {
+    id: "support",
+    labelKey: "notifications.filters.system",
+    category: "system",
+  },
+];
+
+type TopBarContextValue = ReturnType<typeof TopBarCtx.useTopBar>;
+type ResponsiveContextValue = ReturnType<typeof useResponsive>;
+
+const createFormStateFallback = (): FormStateContextValue => ({
+  forms: new Map(),
+  hasUnsavedChanges: false,
+  registerForm: () => {},
+  unregisterForm: () => {},
+  updateField: () => {},
+  markFormClean: () => {},
+  getFormState: () => undefined,
+  saveAllForms: async () => {},
+  clearAllUnsavedChanges: () => {},
+  markFormDirty: () => {},
+  onSaveRequest: () => () => {},
+  isFormDirty: () => false,
+  requestSave: async () => {},
+});
+
+const topBarFallback: TopBarContextValue = {
+  app: "fm",
+  appLabelKey: "topbar.app",
+  appFallbackLabel: "Dashboard",
+  appSearchEntities: [],
+  module: "dashboard",
+  moduleLabelKey: "topbar.module",
+  moduleFallbackLabel: "Overview",
+  searchPlaceholderKey: "topbar.search.placeholder",
+  searchPlaceholderFallback: "Search",
+  searchEntities: [],
+  quickActions: [],
+  savedSearches: [],
+  navKey: undefined,
+  megaMenuCollapsed: true,
+  setMegaMenuCollapsed: () => {},
+  setApp: () => {},
+};
+
+const responsiveFallback: ResponsiveContextValue = {
+  isMobile: false,
+  isTablet: false,
+  isDesktop: true,
+  screenSize: "desktop",
+  screenInfo: {
+    isMobile: false,
+    isTablet: false,
+    isDesktop: true,
+    isLarge: true,
+    size: "desktop",
+  },
+  responsiveClasses: {
+    container: "px-6",
+    text: "text-base",
+    spacing: "space-y-4",
+  },
+};
+
+type SafeImageProps = React.ComponentProps<typeof Image>;
+const SafeImage: React.FC<SafeImageProps> = (props) => {
+  if (process.env.NODE_ENV === "test") {
+    // In test env, use native img with compatible props
+    const { src, alt, ...rest } = props;
+    return (
+      <img
+        src={String(src)}
+        alt={alt}
+        {...(rest as React.ImgHTMLAttributes<HTMLImageElement>)}
+      />
+    );
+  }
+  return <Image {...props} />;
+};
+
+function useSafeFormState(): FormStateContextValue {
+  try {
+    return useFormState();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (message && !message.includes("FormStateProvider")) {
+      throw error;
+    }
+    if (process.env.NODE_ENV === "development") {
+      logger.debug(
+        "FormStateProvider missing - using no-op fallback for TopBar",
+        {
+          errorMessage: error instanceof Error ? error.message : String(error),
+        },
+      );
+    }
+    return createFormStateFallback();
+  }
+}
+
+function useSafeTopBar(): TopBarContextValue {
+  try {
+    return TopBarCtx.useTopBar();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (message && !message.includes("TopBarProvider")) {
+      throw error;
+    }
+    if (process.env.NODE_ENV === "development") {
+      logger.debug(
+        "TopBarProvider missing - using fallback labels for TopBar",
+        {
+          errorMessage: error instanceof Error ? error.message : String(error),
+        },
+      );
+    }
+    return topBarFallback;
+  }
+}
+
+function useSafeResponsive(): ResponsiveContextValue {
+  try {
+    return useResponsive();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (message && !message.includes("ResponsiveProvider")) {
+      throw error;
+    }
+    if (process.env.NODE_ENV === "development") {
+      logger.debug(
+        "ResponsiveProvider missing - using desktop fallback for TopBar",
+        {
+          errorMessage: error instanceof Error ? error.message : String(error),
+        },
+      );
+    }
+    return responsiveFallback;
+  }
+}
+
+/**
+ * ✅ REFACTORED TopBar Component
+ *
+ * ARCHITECTURE IMPROVEMENTS:
+ * 1. ✅ Single auth system (NextAuth useSession only - NO dual auth)
+ * 2. ✅ NO fallback translation system (uses TranslationContext exclusively)
+ * 3. ✅ Standard Button/Dialog components (no hardcoded buttons/modals)
+ * 4. ✅ Simplified unsaved changes logic (NO window.dispatchEvent save triggering)
+ * 5. ✅ Semantic colors (bg-card, text-foreground, border-border, bg-primary)
+ * 6. ✅ Extracted sub-components (NotificationPopup, UserMenuPopup)
+ * 7. ✅ Fixed all hardcoded colors (removed bg-destructive, bg-white/10, text-destructive)
+ */
+function TopBarContent() {
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [userOpen, setUserOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [notifFilter, setNotifFilter] = useState<NotificationFilter>("all");
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(
+    null,
+  );
+  const [logoError, setLogoError] = useState(false);
+  const [orgSettings, setOrgSettings] = useState<OrgSettings>({
+    name: "FIXZIT ENTERPRISE",
+    logo: null,
+  });
+
+  // Anchor refs for dropdown positioning
+  const notifBtnRef = useRef<HTMLButtonElement>(null);
+  const userBtnRef = useRef<HTMLButtonElement>(null);
+
+  // Panel positioning state
+  type Pos = { top: number; left: number; width: number };
+  const [notifPos, setNotifPos] = useState<Pos>({
+    top: 60,
+    left: 16,
+    width: 384,
+  });
+  const [userPos, setUserPos] = useState<Pos>({
+    top: 60,
+    left: 16,
+    width: 224,
+  });
+
+  const clamp = (n: number, min: number, max: number) =>
+    Math.min(Math.max(n, min), max);
+  const logoAlt = `${orgSettings?.name || "Fixzit"} logo - Fixzit`;
+
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // ✅ FIXED: Single auth system - NextAuth only
+  const { data: session, status } = useSession();
+  const isAuthenticated = status === "authenticated";
+  const isSuperAdmin = Boolean(
+    (session?.user as { isSuperAdmin?: boolean })?.isSuperAdmin,
+  );
+  const roleUpper = ((session?.user as { role?: string })?.role || '').toUpperCase();
+  const isAdminUser = isSuperAdmin || roleUpper.includes('ADMIN');
+
+  // Context hooks
+  const { hasUnsavedChanges, clearAllUnsavedChanges } = useSafeFormState();
+  const { t, isRTL } = useTranslation();
+  const { isMobile } = useSafeResponsive();
+  const { appLabelKey, appFallbackLabel, moduleLabelKey, moduleFallbackLabel } =
+    useSafeTopBar();
+  const appLabel = t(appLabelKey, appFallbackLabel);
+  const moduleLabel = t(moduleLabelKey, moduleFallbackLabel);
+  const marketingRoutes = React.useMemo(() => new Set(MARKETING_ROUTES), []);
+  const isMarketingPage = React.useMemo(() => {
+    const path = pathname || "/";
+    if (marketingRoutes.has(path)) return true;
+    return MARKETING_ROUTE_PREFIXES.some(
+      (prefix) => path === prefix || path.startsWith(`${prefix}/`),
+    );
+  }, [marketingRoutes, pathname]);
+
+  // Close all popups helper
+  const closeAllPopups = useCallback(() => {
+    setNotifOpen(false);
+    setUserOpen(false);
+  }, []);
+
+  // Close dropdowns when route changes
+  useEffect(() => {
+    closeAllPopups();
+  }, [pathname, closeAllPopups]);
+
+  // Fetch organization settings on mount
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const fetchOrgSettings = async () => {
+      try {
+        const response = await fetch("/api/organization/settings", {
+          credentials: "include",
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setOrgSettings(data);
+        }
+      } catch (error) {
+        try {
+          const { logError } = await import("../lib/logger");
+          logError("Failed to fetch organization settings", error as Error, {
+            component: "TopBar",
+            action: "fetchOrgSettings",
+            authenticated: isAuthenticated,
+          });
+        } catch (logErr) {
+          logger.error("Failed to log error:", { error: logErr });
+        }
+      }
+    };
+    fetchOrgSettings().catch((err) => {
+      logger.error("Unhandled error in fetchOrgSettings:", { error: err });
+    });
+  }, [isAuthenticated]);
+
+  // Place dropdown panel under anchor, clamped inside viewport - RTL-aware
+  const placeDropdown = useCallback(
+    (anchor: HTMLElement, panelWidth: number): Pos => {
+      const r = anchor.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const top = r.bottom + 8;
+
+      // LTR: align panel's RIGHT edge to button's RIGHT (classic)
+      // RTL: align panel's LEFT edge to button's LEFT (mirrored)
+      let left = isRTL ? r.left : r.right - panelWidth;
+
+      // Keep within viewport with 8px gutters
+      left = clamp(left, 8, Math.max(8, vw - panelWidth - 8));
+
+      // If screen is narrow, shrink the panel to fit and re-clamp
+      const width = Math.min(panelWidth, vw - 16);
+      if (width !== panelWidth) {
+        left = clamp(isRTL ? r.left : r.right - width, 8, vw - width - 8);
+      }
+
+      return { top, left, width };
+    },
+    [isRTL],
+  );
+
+  // Handle logo click with unsaved changes check
+  // Smart routing: authenticated users go to FM dashboard, guests go to landing
+  // Uses /fm/dashboard to stay within FM route guards (aligns with MODULE_PATHS.dashboard)
+  const handleLogoClick = (e: React.MouseEvent) => {
+    const targetPath = isAuthenticated ? "/fm/dashboard" : "/";
+    if (hasUnsavedChanges) {
+      e.preventDefault();
+      setShowUnsavedDialog(true);
+      setPendingNavigation(targetPath);
+    } else {
+      router.push(targetPath);
+    }
+  };
+
+  // ✅ FIXED: Simplified unsaved changes - NO save triggering via events
+  // Only shows modal for user decision: save OR discard
+  const handleDiscardAndNavigate = () => {
+    clearAllUnsavedChanges();
+    setShowUnsavedDialog(false);
+    if (pendingNavigation) {
+      router.push(pendingNavigation);
+      setPendingNavigation(null);
+    }
+  };
+
+  const handleCancelNavigation = () => {
+    setShowUnsavedDialog(false);
+    setPendingNavigation(null);
+  };
+
+  // Fetch notifications
+  const fetchNotifications = useCallback(async () => {
+    if (!isAuthenticated) {
+      setNotifications([]);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        limit: "5",
+        read: "false",
+      });
+      const categoryValue = NOTIFICATION_FILTERS.find(
+        (f) => f.id === notifFilter,
+      )?.category;
+      if (categoryValue) {
+        params.set("category", categoryValue);
+      }
+      const response = await fetch(`/api/notifications?${params.toString()}`, {
+        credentials: "include",
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setNotifications(data.items || []);
+      } else {
+        setNotifications([]);
+      }
+    } catch (error) {
+      try {
+        const { logError } = await import("../lib/logger");
+        logError("Failed to fetch notifications", error as Error, {
+          component: "TopBar",
+          action: "fetchNotifications",
+          authenticated: isAuthenticated,
+        });
+      } catch (logErr) {
+        logger.error("Failed to log error:", { error: logErr });
+      }
+      setNotifications([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [isAuthenticated, notifFilter]);
+
+  // Fetch notifications when dropdown opens
+  useEffect(() => {
+    if (notifOpen && isAuthenticated) {
+      fetchNotifications();
+    }
+  }, [notifOpen, notifFilter, isAuthenticated, fetchNotifications]);
+
+  // Reposition dropdowns on resize/scroll
+  useEffect(() => {
+    if (!notifOpen && !userOpen) return;
+    const onReflow = () => {
+      if (notifOpen && notifBtnRef.current)
+        setNotifPos(placeDropdown(notifBtnRef.current, 384));
+      if (userOpen && userBtnRef.current)
+        setUserPos(placeDropdown(userBtnRef.current, 224));
+    };
+    window.addEventListener("resize", onReflow);
+    window.addEventListener("scroll", onReflow, true);
+    return () => {
+      window.removeEventListener("resize", onReflow);
+      window.removeEventListener("scroll", onReflow, true);
+    };
+  }, [notifOpen, userOpen, placeDropdown]);
+
+  // Close dropdowns on outside click or Escape
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      const isInsideNotification = target.closest(".notification-container");
+      const isInsideUserMenu = target.closest(".user-menu-container");
+
+      if (notifOpen && !isInsideNotification) setNotifOpen(false);
+      if (userOpen && !isInsideUserMenu) setUserOpen(false);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeAllPopups();
+    };
+
+    if (notifOpen || userOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+        document.removeEventListener("keydown", handleKeyDown);
+      };
+    }
+  }, [notifOpen, userOpen, closeAllPopups]);
+
+  const formatTimeAgo = (timestamp: string) => {
+    const now = new Date();
+    const time = new Date(timestamp);
+    const diffInMinutes = Math.floor(
+      (now.getTime() - time.getTime()) / (1000 * 60),
+    );
+
+    if (diffInMinutes < 1) return t("time.justNow");
+    if (diffInMinutes < 60) return `${diffInMinutes}${t("time.mAgo")}`;
+    if (diffInMinutes < 1440)
+      return `${Math.floor(diffInMinutes / 60)}${t("time.hAgo")}`;
+    return `${Math.floor(diffInMinutes / 1440)}${t("time.dAgo")}`;
+  };
+
+  // ✅ FIXED: Use semantic tokens for priority colors
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case "high":
+        return "text-destructive";
+      case "medium":
+        return "text-warning";
+      case "low":
+        return "text-success";
+      default:
+        return "text-muted-foreground";
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      // Close any open popovers then navigate to logout for coordinated cleanup.
+      setUserOpen(false);
+      setNotifOpen(false);
+
+      // Navigate to logout page for coordinated cleanup
+      // The logout page handles:
+      // 1. Storage clearing (preserving language/locale)
+      // 2. Session cleanup
+      // 3. NextAuth signOut
+      // 4. Redirect to login
+      router.push('/logout');
+
+      // Hard fallback: if client navigation stalls, force a full reload
+      setTimeout(() => {
+        if (typeof window !== 'undefined' && window.location.pathname !== '/logout') {
+          window.location.href = '/logout';
+        }
+      }, 250);
+    } catch (error) {
+      try {
+        const { logError } = await import('../lib/logger');
+        logError('Logout navigation error', error as Error, {
+          component: 'TopBar',
+          action: 'handleLogout',
+          authenticated: isAuthenticated,
+        });
+      } catch (logErr) {
+        logger.error("Failed to log error:", { error: logErr });
+      }
+      // Fallback: direct signOut if navigation fails
+      await signOut({ callbackUrl: '/login', redirect: true });
+    }
+  };
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  // ✅ FIXED: Use semantic colors throughout
+  return (
+    <header
+      className={`sticky top-0 z-40 fxz-topbar ${isMobile ? "px-2" : "px-4"}`}
+      role="banner"
+      aria-label={t("nav.globalHeader", "Fixzit global navigation")}
+    >
+      <div
+        className={`h-16 flex items-center justify-between gap-3 ${isRTL ? "flex-row-reverse" : ""}`}
+      >
+        {/* Left Section: Logo & App Switcher */}
+        <div
+          className={`flex items-center gap-3 flex-shrink-0 ${isRTL ? "flex-row-reverse" : ""}`}
+        >
+          <Button
+            variant="ghost"
+            onClick={handleLogoClick}
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity p-0 h-auto"
+            aria-label={t("common.backToHome")}
+          >
+            {orgSettings.logo && !logoError ? (
+              <SafeImage
+                src={orgSettings.logo}
+                alt={logoAlt}
+                width={36}
+                height={36}
+                className="rounded-2xl object-cover fxz-brand-logo fxz-topbar-logo"
+                onError={() => setLogoError(true)}
+                data-testid="header-logo-img"
+              />
+            ) : (
+              <SafeImage
+                src="/img/fixzit-logo.png"
+                alt="Fixzit"
+                width={120}
+                height={40}
+                className="h-9 w-auto object-contain fxz-brand-logo fxz-topbar-logo"
+                data-testid="header-logo-img"
+              />
+            )}
+            <div className="flex flex-col text-start">
+              <span
+                className={`font-semibold leading-tight ${isMobile ? "hidden" : "text-base"}`}
+              >
+                {orgSettings?.name || t("common.brand")}
+              </span>
+              {!isMarketingPage && (
+                <div className="flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+                  <span className="px-2 py-0.5 fxz-topbar-pill uppercase tracking-wide">
+                    {appLabel}
+                  </span>
+                  <span>{moduleLabel}</span>
+                </div>
+              )}
+            </div>
+          </Button>
+          {!isMarketingPage && (
+            <>
+              <AppSwitcher />
+              <TopMegaMenu />
+            </>
+          )}
+        </div>
+
+        {/* Center Section: Global Search */}
+        {!isMobile && (
+          <div className="flex-1 max-w-2xl mx-2 sm:mx-4 min-w-0">
+            <GlobalSearch />
+          </div>
+        )}
+
+        {/* Right Section: Actions & User Menu */}
+        <div
+          className={`flex items-center gap-1 sm:gap-2 flex-shrink-0 ${isRTL ? "flex-row-reverse" : ""}`}
+        >
+          {/* Mobile search button */}
+          {isMobile && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setMobileSearchOpen(true)}
+              aria-label={t("common.search")}
+            >
+              <Search className="w-4 h-4" />
+            </Button>
+          )}
+
+          {isAuthenticated && isSuperAdmin && <SupportOrgSwitcher />}
+
+          {/* Quick Actions (authenticated only) */}
+          {isAuthenticated && !isMarketingPage && <QuickActions />}
+
+          {/* Global language & currency selectors (always visible for e2e checks) */}
+          <LanguageSelector variant="compact" />
+          <CurrencySelector variant="compact" />
+
+          {/* Notifications (authenticated only) */}
+          {isAuthenticated && !isMarketingPage && (
+            <NotificationPopup
+              isRTL={isRTL}
+              notifOpen={notifOpen}
+              setNotifOpen={setNotifOpen}
+              setUserOpen={setUserOpen}
+              notifFilter={notifFilter}
+              setNotifFilter={setNotifFilter}
+              notifBtnRef={notifBtnRef}
+              notifPos={notifPos}
+              setNotifPos={setNotifPos}
+              placeDropdown={placeDropdown}
+              unreadCount={unreadCount}
+              loading={loading}
+              notifications={notifications}
+              formatTimeAgo={formatTimeAgo}
+              getPriorityColor={getPriorityColor}
+              router={router}
+              t={t}
+            />
+          )}
+
+          {/* User menu or Sign In button */}
+          {isAuthenticated ? (
+            <>
+              {isAdminUser && (
+                <span
+                  data-testid="admin-menu"
+                  className="text-xs font-semibold text-primary px-2 py-1 rounded-full bg-primary/10"
+                  aria-label={t('nav.admin', 'Admin')}
+                >
+                  {t('nav.admin', 'Admin')}
+                </span>
+              )}
+              <UserMenuPopup
+                isRTL={isRTL}
+                userOpen={userOpen}
+                setUserOpen={setUserOpen}
+                setNotifOpen={setNotifOpen}
+                userBtnRef={userBtnRef}
+              userPos={userPos}
+              setUserPos={setUserPos}
+              placeDropdown={placeDropdown}
+              handleLogout={handleLogout}
+              t={t}
+              />
+            </>
+          ) : (
+            // Don't show "Sign In" button when already on /login page (avoids redundant CTA)
+            pathname !== '/login' && (
+              <Link
+                href="/login"
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+              >
+                {t("common.signIn")}
+              </Link>
+            )
+          )}
+        </div>
+      </div>
+
+      {/* ✅ FIXED: Unsaved Changes Dialog - Standard Dialog component */}
+      <Dialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
+        <DialogContent className="bg-popover text-popover-foreground border-border">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">
+              {t("common.unsavedChanges")}
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              {t("common.unsavedChangesMessage")}
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="ghost"
+              onClick={handleCancelNavigation}
+              className="text-foreground"
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button variant="destructive" onClick={handleDiscardAndNavigate}>
+              {t("common.discard")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Mobile Search Modal */}
+      {mobileSearchOpen && (
+        <Portal>
+          <div
+            className="fixed inset-0 bg-black/50 z-[200] flex flex-col"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mobile-search-title"
+          >
+            <div className="bg-card text-card-foreground w-full flex flex-col h-full">
+              <div className="flex items-center gap-2 p-4 border-b border-border">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setMobileSearchOpen(false)}
+                  aria-label="Close search"
+                >
+                  <X className="w-5 h-5" />
+                </Button>
+                <h2
+                  id="mobile-search-title"
+                  className="text-lg font-semibold text-foreground"
+                >
+                  {t("common.search")}
+                </h2>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4">
+                <GlobalSearch
+                  onResultClick={() => setMobileSearchOpen(false)}
+                />
+              </div>
+            </div>
+          </div>
+        </Portal>
+      )}
+    </header>
+  );
+}
+
+/**
+ * TopBar export wrapper
+ * Note: Safe hooks (useSafeTopBar, useSafeFormState, useSafeResponsive) already handle
+ * missing context gracefully with fallbacks. No need for self-providing wrapper.
+ */
+export default function TopBar() {
+  return <TopBarContent />;
+}
+
+/**
+ * ✅ EXTRACTED: NotificationPopup Component
+ * Handles notification bell, dropdown, and list display
+ */
+interface NotificationPopupProps {
+  isRTL: boolean;
+  notifOpen: boolean;
+  setNotifOpen: (open: boolean) => void;
+  setUserOpen: (open: boolean) => void;
+  notifFilter: NotificationFilter;
+  setNotifFilter: (filter: NotificationFilter) => void;
+  notifBtnRef: React.RefObject<HTMLButtonElement>;
+  notifPos: { top: number; left: number; width: number };
+  setNotifPos: (pos: { top: number; left: number; width: number }) => void;
+  placeDropdown: (
+    anchor: HTMLElement,
+    width: number,
+  ) => { top: number; left: number; width: number };
+  unreadCount: number;
+  loading: boolean;
+  notifications: Notification[];
+  formatTimeAgo: (timestamp: string) => string;
+  getPriorityColor: (priority: string) => string;
+  router: ReturnType<typeof useRouter>;
+  t: (key: string, fallback?: string) => string;
+}
+
+function NotificationPopup({
+  isRTL,
+  notifOpen,
+  setNotifOpen,
+  setUserOpen,
+  notifFilter,
+  setNotifFilter,
+  notifBtnRef,
+  notifPos,
+  setNotifPos,
+  placeDropdown,
+  unreadCount,
+  loading,
+  notifications,
+  formatTimeAgo,
+  getPriorityColor,
+  router,
+  t,
+}: NotificationPopupProps) {
+  return (
+    <div className="notification-container relative">
+      <SimpleTooltip content={t("nav.notifications", "Notifications")} side="bottom">
+        <Button
+          ref={notifBtnRef}
+          variant="ghost"
+          size="icon"
+          onClick={() => {
+            setUserOpen(false);
+            const next = !notifOpen;
+            if (next && notifBtnRef.current) {
+              // compute AND SET the position (previous code threw this away)
+              setNotifPos(placeDropdown(notifBtnRef.current, 384));
+            }
+            setNotifOpen(next);
+          }}
+          className="relative"
+          aria-label={t("nav.notifications", "Toggle notifications")}
+          data-cursor-interactive
+        >
+          <Bell className="w-5 h-5" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -end-1 w-3 h-3 bg-destructive rounded-full animate-pulse"></span>
+          )}
+        </Button>
+      </SimpleTooltip>
+
+      {notifOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={t("nav.notifications", "Notifications")}
+          dir={isRTL ? "rtl" : "ltr"}
+          className="fixed bg-popover text-popover-foreground rounded-2xl shadow-2xl border border-border z-[100] animate-in slide-in-from-top-2 duration-200"
+          style={{
+            top: notifPos.top,
+            left: notifPos.left,
+            width: `min(${notifPos.width}px, calc(100vw - 2rem))`,
+            maxHeight: "calc(100vh - 80px)",
+            overflowY: "auto",
+          }}
+        >
+          {/* Header */}
+          <div className="p-3 border-b border-border">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="font-semibold text-foreground">
+                  {t("nav.notifications")}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  {unreadCount > 0
+                    ? `${unreadCount} ${t("common.unread")}`
+                    : t("common.noNotifications")}
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setNotifOpen(false)}
+                className="h-6 w-6 text-muted-foreground"
+                aria-label="Close notifications"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <div
+              className={`mt-3 flex flex-wrap gap-2 ${isRTL ? "justify-end" : "justify-start"}`}
+            >
+              {NOTIFICATION_FILTERS.map((filter) => (
+                <button
+                  key={filter.id}
+                  type="button"
+                  onClick={() => setNotifFilter(filter.id)}
+                  className={`rounded-full px-3 py-1 text-xs ${
+                    notifFilter === filter.id
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {t(filter.labelKey, filter.id)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Notification List */}
+          <div className="max-h-80 overflow-y-auto">
+            {loading ? (
+              <div className="p-3 text-center text-muted-foreground">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-muted mx-auto"></div>
+                <div className="text-xs mt-1">{t("common.loading")}</div>
+              </div>
+            ) : notifications.length > 0 ? (
+              <div className="space-y-1">
+                {notifications.map((notification) => (
+                  <button
+                    key={notification.id}
+                    type="button"
+                    className="w-full p-3 hover:bg-muted border-b border-border last:border-b-0 cursor-pointer transition-colors text-start"
+                    onClick={() => {
+                      setNotifOpen(false);
+                      const targetPath =
+                        notification.targetUrl || "/notifications";
+                      router.push(targetPath);
+                    }}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="font-medium text-sm text-foreground">
+                          {notification.title}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {notification.message}
+                        </div>
+                        <div className="flex items-center justify-between mt-2">
+                          <span
+                            className={`text-xs px-2 py-1 rounded-full ${getPriorityColor(notification.priority)} bg-muted`}
+                          >
+                            {notification.priority.toUpperCase()}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatTimeAgo(notification.timestamp)}
+                          </span>
+                        </div>
+                      </div>
+                      {!notification.read && (
+                        <div className="w-2 h-2 bg-primary rounded-full ms-2 flex-shrink-0"></div>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="p-6 text-center text-muted-foreground">
+                <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                <div className="text-sm">{t("common.noNotifications")}</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  {t("common.allCaughtUp")}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          {notifications.length > 0 && (
+            <div className="p-3 border-t border-border bg-muted">
+              <Link
+                href="/notifications"
+                className="text-xs text-primary hover:text-primary font-medium flex items-center justify-center gap-1"
+                onClick={() => setNotifOpen(false)}
+              >
+                {t("common.viewAll")}
+                <ChevronDown className="w-3 h-3 rotate-[-90deg]" />
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * ✅ EXTRACTED: UserMenuPopup Component
+ * Handles user avatar, dropdown menu, and logout
+ */
+interface UserMenuPopupProps {
+  isRTL: boolean;
+  userOpen: boolean;
+  setUserOpen: (open: boolean) => void;
+  setNotifOpen: (open: boolean) => void;
+  userBtnRef: React.RefObject<HTMLButtonElement>;
+  userPos: { top: number; left: number; width: number };
+  setUserPos: (pos: { top: number; left: number; width: number }) => void;
+  placeDropdown: (
+    anchor: HTMLElement,
+    width: number,
+  ) => { top: number; left: number; width: number };
+  handleLogout: () => void;
+  t: (key: string, fallback?: string) => string;
+}
+
+function UserMenuPopup({
+  isRTL,
+  userOpen,
+  setUserOpen,
+  setNotifOpen,
+  userBtnRef,
+  userPos,
+  setUserPos,
+  placeDropdown,
+  handleLogout,
+  t,
+}: UserMenuPopupProps) {
+  return (
+    <div className="user-menu-container relative">
+      <SimpleTooltip content={t("nav.profile", "Profile")} side="bottom">
+        <Button
+          ref={userBtnRef}
+          variant="ghost"
+          size="sm"
+          data-testid="user-menu"
+          onClick={() => {
+            setNotifOpen(false);
+            const next = !userOpen;
+            if (next && userBtnRef.current) {
+              setUserPos(placeDropdown(userBtnRef.current, 224));
+            }
+            setUserOpen(next);
+          }}
+          className="flex items-center gap-1"
+          aria-label={t("nav.profile", "Profile")}
+          data-cursor-interactive
+        >
+          <User className="w-5 h-5" />
+          <ChevronDown className="w-4 h-4" />
+        </Button>
+      </SimpleTooltip>
+
+      {userOpen && (
+        <div
+          role="menu"
+          aria-label={t("nav.profile")}
+          dir={isRTL ? "rtl" : "ltr"}
+          className="fixed bg-popover text-popover-foreground rounded-2xl shadow-2xl border border-border py-1 z-[100] animate-in slide-in-from-top-2 duration-200"
+          style={{
+            top: userPos.top,
+            left: userPos.left,
+            width: `min(${userPos.width}px, calc(100vw - 2rem))`,
+            maxHeight: "calc(100vh - 80px)",
+            overflowY: "auto",
+          }}
+        >
+          <Link
+            href="/profile"
+            className="block px-4 py-2 hover:bg-muted rounded transition-colors text-foreground"
+            role="menuitem"
+            onClick={() => setUserOpen(false)}
+          >
+            {t("nav.profile")}
+          </Link>
+          <Link
+            href="/settings"
+            className="block px-4 py-2 hover:bg-muted rounded transition-colors text-foreground"
+            role="menuitem"
+            onClick={() => setUserOpen(false)}
+          >
+            {t("nav.settings")}
+          </Link>
+
+          {/* Language & Currency Section */}
+          <div className="border-t my-1 mx-2 border-border" />
+          <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase">
+            {t("common.preferences")}
+          </div>
+          <div className="px-4 py-2 space-y-2" role="none">
+            <LanguageSelector variant="dark_minimal" />
+            <CurrencySelector variant="default" />
+          </div>
+
+          <Button
+            variant="ghost"
+            className="w-full text-start px-4 py-2 hover:bg-destructive/10 text-destructive rounded justify-start"
+            onClick={handleLogout}
+            data-testid="logout-button"
+          >
+            {t("common.logout")}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/TrialBanner.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect, useState } from "react";
+import { X, ArrowRight } from "lucide-react";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { useTranslation } from "@/contexts/TranslationContext";
+
+const DISMISS_KEY = "fixzit:trial-banner:dismissed";
+
+interface TrialBannerProps {
+  subscriptionStatus?: string | null;
+}
+
+export default function TrialBanner({ subscriptionStatus }: TrialBannerProps) {
+  const { t } = useTranslation();
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    // If already subscribed/active, never show
+    if (subscriptionStatus && subscriptionStatus.toUpperCase() === "ACTIVE") {
+      setVisible(false);
+      return;
+    }
+    try {
+      const dismissed = localStorage.getItem(DISMISS_KEY);
+      if (!dismissed) setVisible(true);
+    } catch {
+      setVisible(true);
+    }
+  }, [subscriptionStatus]);
+
+  if (!visible) return null;
+
+  const dismiss = () => {
+    try {
+      localStorage.setItem(DISMISS_KEY, "1");
+    } catch {
+      // ignore
+    }
+    setVisible(false);
+  };
+
+  return (
+    <div
+      className={cn(
+        "fixed bottom-4 end-4 start-4 z-40 max-w-4xl mx-auto rounded-2xl border border-primary/30 bg-primary/10 backdrop-blur px-4 py-3 shadow-lg",
+      )}
+    >
+      <div className="flex items-center gap-3">
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-primary">
+            {t("trial.banner.title", "You’re on a trial plan. Upgrade to keep all features active.")}
+          </p>
+          <p className="text-xs text-primary/80">
+            {t("trial.banner.subtitle", "View billing to manage your subscription, download invoices, or talk to sales.")}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/pricing"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary text-white px-3 py-2 text-sm font-medium hover:bg-primary/90"
+          >
+            {t("trial.banner.upgrade", "Upgrade")} <ArrowRight className="h-4 w-4" />
+          </Link>
+          <Link
+            href="/billing/history"
+            className="inline-flex items-center gap-2 rounded-lg border border-primary/50 px-3 py-2 text-sm font-medium text-primary hover:bg-primary/5"
+          >
+            {t("trial.banner.billing", "Billing")}
+          </Link>
+          <button
+            type="button"
+            onClick={dismiss}
+            className="p-2 rounded-lg text-primary hover:bg-primary/10"
+            aria-label={t("trial.banner.dismiss_aria", "Dismiss trial banner")}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/UpgradePrompt.tsx">
+<![CDATA[
+"use client";
+
+import { useMemo } from "react";
+import { Lock, ArrowRight, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useSubscription } from "@/hooks/useSubscription";
+import type { FeatureName, PlanName } from "@/lib/subscription/featureGating";
+
+export interface UpgradePromptProps {
+  feature: FeatureName;
+  requiredPlan: PlanName;
+  title?: string;
+  description?: string;
+  className?: string;
+  variant?: "inline" | "card" | "banner";
+}
+
+/**
+ * Upgrade prompt component shown when user lacks access to a feature.
+ * 
+ * @example
+ * ```tsx
+ * <UpgradePrompt 
+ *   feature="finance" 
+ *   requiredPlan="PREMIUM" 
+ *   variant="card"
+ * />
+ * ```
+ */
+export function UpgradePrompt({
+  feature,
+  requiredPlan,
+  title,
+  description,
+  className = "",
+  variant = "card",
+}: UpgradePromptProps) {
+  const { t } = useTranslation();
+  
+  const featureNames: Record<FeatureName, string> = useMemo(
+    () => ({
+      workOrders: t("features.workOrders", "Work Orders"),
+      properties: t("features.properties", "Properties"),
+      units: t("features.units", "Units"),
+      basicReports: t("features.basicReports", "Basic Reports"),
+      finance: t("features.finance", "Finance & Invoicing"),
+      invoicing: t("features.invoicing", "Invoicing"),
+      hrManagement: t("features.hrManagement", "HR Management"),
+      technicians: t("features.technicians", "Technician Management"),
+      approvals: t("features.approvals", "Approvals & Workflows"),
+      auditTrail: t("features.auditTrail", "Audit Trail"),
+      advancedReports: t("features.advancedReports", "Advanced Reports"),
+      apiAccess: t("features.apiAccess", "API Access"),
+      sso: t("features.sso", "Single Sign-On"),
+      scim: t("features.scim", "SCIM Provisioning"),
+      customSla: t("features.customSla", "Custom SLAs"),
+      dedicatedSupport: t("features.dedicatedSupport", "Dedicated Support"),
+      whiteLabeling: t("features.whiteLabeling", "White Labeling"),
+      multiRegion: t("features.multiRegion", "Multi-Region"),
+      complianceReports: t("features.complianceReports", "Compliance Reports"),
+    }),
+    [t],
+  );
+  
+  const planNames: Record<PlanName, string> = useMemo(
+    () => ({
+      BASIC: t("plans.basic", "Basic"),
+      STANDARD: t("plans.standard", "Standard"),
+      PREMIUM: t("plans.premium", "Premium"),
+      ENTERPRISE: t("plans.enterprise", "Enterprise"),
+    }),
+    [t],
+  );
+  
+  const featureName = featureNames[feature] || feature;
+  const planName = planNames[requiredPlan] || requiredPlan;
+  
+  const defaultTitle = t("upgrade.title", "Upgrade to unlock {{feature}}", { feature: featureName });
+  const defaultDescription = t(
+    "upgrade.description",
+    "This feature requires the {{plan}} plan. Upgrade now to access {{feature}} and more.",
+    { plan: planName, feature: featureName }
+  );
+  
+  const displayTitle = title || defaultTitle;
+  const displayDescription = description || defaultDescription;
+  
+  if (variant === "inline") {
+    return (
+      <div className={`flex items-center gap-2 text-sm text-muted-foreground ${className}`}>
+        <Lock className="h-4 w-4" />
+        <span>{displayTitle}</span>
+        <Link href="/pricing" className="text-primary hover:underline">
+          {t("upgrade.upgrade", "Upgrade")}
+        </Link>
+      </div>
+    );
+  }
+  
+  if (variant === "banner") {
+    return (
+      <div className={`bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 rounded-lg p-4 ${className}`}>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-full">
+              <Sparkles className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="font-medium text-foreground">{displayTitle}</p>
+              <p className="text-sm text-muted-foreground">{displayDescription}</p>
+            </div>
+          </div>
+          <Link href="/pricing">
+            <Button variant="default" size="sm" className="flex items-center gap-2">
+              {t("upgrade.viewPlans", "View plans")}
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+  
+  // Default: card variant
+  return (
+    <div className={`border border-border rounded-2xl bg-card p-6 text-center space-y-4 ${className}`}>
+      <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+        <Lock className="h-6 w-6 text-primary" />
+      </div>
+      
+      <div className="space-y-2">
+        <h3 className="text-lg font-semibold">{displayTitle}</h3>
+        <p className="text-sm text-muted-foreground max-w-md mx-auto">
+          {displayDescription}
+        </p>
+      </div>
+      
+      <div className="flex items-center justify-center gap-3">
+        <Link href="/pricing">
+          <Button className="flex items-center gap-2">
+            {t("upgrade.upgradeTo", "Upgrade to {{plan}}", { plan: planName })}
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </Link>
+        <Link href="/billing/plan">
+          <Button variant="ghost">
+            {t("upgrade.comparePlans", "Compare plans")}
+          </Button>
+        </Link>
+      </div>
+      
+      <p className="text-xs text-muted-foreground">
+        {t("upgrade.guarantee", "30-day money-back guarantee")}
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Higher-order component to wrap content with feature gating
+ */
+export function withFeatureGate<P extends object>(
+  WrappedComponent: React.ComponentType<P>,
+  feature: FeatureName,
+  requiredPlan: PlanName
+) {
+  return function FeatureGatedComponent(props: P) {
+    // Avoid gating flash while session/subscription is loading
+    const { canAccessFeature, isLoading } = useSubscription();
+
+    if (isLoading) {
+      return null;
+    }
+    
+    if (!canAccessFeature(feature)) {
+      return <UpgradePrompt feature={feature} requiredPlan={requiredPlan} />;
+    }
+    
+    return <WrappedComponent {...props} />;
+  };
+}
+
+export default UpgradePrompt;
+
+]]>
+</file>
+
+<file path="components/accessibility/SkipNavigation.tsx">
+<![CDATA[
+"use client";
+
+/**
+ * Skip Navigation Link for accessibility.
+ * Allows keyboard users to skip directly to main content.
+ * Only visible when focused via keyboard (Tab key).
+ */
+export default function SkipNavigation() {
+  return (
+    <a
+      href="#main-content"
+      className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:start-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-white focus:rounded-lg focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+    >
+      Skip to main content
+    </a>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/admin/AccessibleModal.tsx">
+<![CDATA[
+"use client";
+
+/**
+ * Accessible Modal Component
+ * 
+ * A fully accessible modal dialog with:
+ * - Focus trap (focus stays inside modal)
+ * - Escape key to close
+ * - ARIA labels and roles
+ * - Keyboard navigation
+ * - Click outside to close
+ */
+
+'use client';
+
+import { ReactNode, useEffect, useRef } from 'react';
+import { X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+export interface AccessibleModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  description?: string;
+  children: ReactNode;
+  size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
+  showCloseButton?: boolean;
+  closeOnClickOutside?: boolean;
+  closeOnEscape?: boolean;
+  footer?: ReactNode;
+}
+
+/**
+ * Accessible Modal Dialog
+ */
+export default function AccessibleModal({
+  isOpen,
+  onClose,
+  title,
+  description,
+  children,
+  size = 'md',
+  showCloseButton = true,
+  closeOnClickOutside = true,
+  closeOnEscape = true,
+  footer,
+}: AccessibleModalProps) {
+  const modalRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const focusTimerRef = useRef<NodeJS.Timeout>();
+  
+  // Focus management
+  useEffect(() => {
+    if (isOpen) {
+      // Store currently focused element
+      previousFocusRef.current = document.activeElement as HTMLElement;
+      
+      // Focus first focusable element in modal (with cleanup)
+      focusTimerRef.current = setTimeout(() => {
+        const focusable = modalRef.current?.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable && focusable.length > 0) {
+          (focusable[0] as HTMLElement).focus();
+        }
+      }, 50);
+      
+      // Add body class to prevent scrolling
+      document.body.style.overflow = 'hidden';
+    } else {
+      // Restore previous focus when modal closes
+      if (previousFocusRef.current) {
+        previousFocusRef.current.focus();
+      }
+      
+      // Remove body scroll lock
+      document.body.style.overflow = '';
+    }
+    
+    return () => {
+      document.body.style.overflow = '';
+      if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+    };
+  }, [isOpen]);
+  
+  // Escape key handler
+  useEffect(() => {
+    if (!isOpen || !closeOnEscape) return;
+    
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, closeOnEscape, onClose]);
+  
+  // Focus trap handler
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const handleTab = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      
+      const focusableElements = modalRef.current?.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      
+      if (!focusableElements || focusableElements.length === 0) return;
+      
+      const firstElement = focusableElements[0] as HTMLElement;
+      const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
+      
+      // Tab forward from last element -> focus first
+      if (!e.shiftKey && document.activeElement === lastElement) {
+        e.preventDefault();
+        firstElement.focus();
+      }
+      
+      // Shift+Tab backward from first element -> focus last
+      if (e.shiftKey && document.activeElement === firstElement) {
+        e.preventDefault();
+        lastElement.focus();
+      }
+    };
+    
+    document.addEventListener('keydown', handleTab);
+    return () => document.removeEventListener('keydown', handleTab);
+  }, [isOpen]);
+  
+  // Click outside handler
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (closeOnClickOutside && e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+  
+  if (!isOpen) return null;
+  
+  // Size classes
+  const sizeClasses = {
+    sm: 'max-w-md',
+    md: 'max-w-lg',
+    lg: 'max-w-2xl',
+    xl: 'max-w-4xl',
+    full: 'max-w-7xl',
+  };
+  
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      onClick={handleBackdropClick}
+      aria-modal="true"
+      role="dialog"
+      aria-labelledby="modal-title"
+      aria-describedby={description ? 'modal-description' : undefined}
+    >
+      <div
+        ref={modalRef}
+        className={`relative w-full ${sizeClasses[size]} bg-background rounded-lg shadow-lg border`}
+        role="document"
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between p-6 border-b">
+          <div className="flex-1">
+            <h2 id="modal-title" className="text-xl font-semibold text-foreground">
+              {title}
+            </h2>
+            {description && (
+              <p id="modal-description" className="mt-1 text-sm text-muted-foreground">
+                {description}
+              </p>
+            )}
+          </div>
+          {showCloseButton && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              aria-label="Close dialog"
+              className="ms-4"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          )}
+        </div>
+        
+        {/* Content */}
+        <div className="p-6 overflow-y-auto max-h-[60vh]">
+          {children}
+        </div>
+        
+        {/* Footer */}
+        {footer && (
+          <div className="flex items-center justify-end gap-3 p-6 border-t">
+            {footer}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/admin/AdminNotificationsTab.tsx">
+<![CDATA[
+"use client";
+
+/**
+ * Admin Notifications Tab Component
+ * Allows super admins to broadcast notifications via Email, SMS, WhatsApp
+ */
+
+import React, { useState, useEffect } from "react";
+import {
+  Send,
+  Mail,
+  MessageSquare,
+  Phone,
+  Users,
+  Building2,
+  Globe,
+  CheckCircle,
+  XCircle,
+  Clock,
+  AlertCircle,
+  History,
+} from "lucide-react";
+import { logger } from "@/lib/logger";
+import ClientDate from "@/components/ClientDate";
+
+interface NotificationHistory {
+  _id: string;
+  senderId: string;
+  senderEmail: string;
+  recipients: {
+    type: string;
+    count: number;
+  };
+  channels: string[];
+  subject: string;
+  message: string;
+  priority: string;
+  sentAt: string;
+  results: {
+    email: { sent: number; failed: number };
+    sms: { sent: number; failed: number };
+    whatsapp: { sent: number; failed: number };
+  };
+  status: string;
+}
+
+export default function AdminNotificationsTab({
+  t,
+}: {
+  t: (_key: string, _defaultText?: string) => string;
+}) {
+  const [recipientType, setRecipientType] = useState<
+    "users" | "tenants" | "corporate" | "all"
+  >("users");
+  const [channels, setChannels] = useState<Set<"email" | "sms" | "whatsapp">>(
+    new Set(["email"]),
+  );
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+  const [priority, setPriority] = useState<
+    "low" | "normal" | "high" | "urgent"
+  >("normal");
+  const [isSending, setIsSending] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [history, setHistory] = useState<NotificationHistory[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [notification, setNotification] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+
+  const toggleChannel = (channel: "email" | "sms" | "whatsapp") => {
+    const newChannels = new Set(channels);
+    if (newChannels.has(channel)) {
+      newChannels.delete(channel);
+    } else {
+      newChannels.add(channel);
+    }
+    setChannels(newChannels);
+  };
+
+  const fetchHistory = async () => {
+    setIsLoadingHistory(true);
+    try {
+      const response = await fetch("/api/admin/notifications/history?limit=20");
+      const data = await response.json();
+
+      if (data.success) {
+        const normalized = (data.data || []).map(
+          (item: NotificationHistory & { id?: string }, index: number) => ({
+            ...item,
+            _id: item._id || item.id || `${item.senderId}-${index}`,
+          }),
+        );
+        setHistory(normalized);
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      logger.error("[Admin Notifications] Failed to fetch history", { error });
+      setNotification({
+        type: "error",
+        message: t(
+          "admin.notifications.errors.historyFetch",
+          "Failed to load notification history",
+        ),
+      });
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showHistory) {
+      fetchHistory();
+    }
+  }, [showHistory]);
+
+  const handleSend = async () => {
+    // Validation
+    if (channels.size === 0) {
+      setNotification({
+        type: "error",
+        message: t(
+          "admin.notifications.errors.noChannels",
+          "Please select at least one channel",
+        ),
+      });
+      return;
+    }
+
+    if (!subject.trim() || !message.trim()) {
+      setNotification({
+        type: "error",
+        message: t(
+          "admin.notifications.errors.emptyFields",
+          "Subject and message are required",
+        ),
+      });
+      return;
+    }
+
+    setIsSending(true);
+    setNotification(null);
+
+    try {
+      const response = await fetch("/api/admin/notifications/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipients: {
+            type: recipientType,
+            ids: [], // Empty for "all" in selected type
+          },
+          channels: Array.from(channels),
+          subject,
+          message,
+          priority,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setNotification({
+          type: "success",
+          message: t(
+            "admin.notifications.success",
+            "Notification sent successfully",
+          ),
+        });
+
+        // Reset form
+        setSubject("");
+        setMessage("");
+        setChannels(new Set(["email"]));
+
+        // Refresh history
+        if (showHistory) {
+          fetchHistory();
+        }
+
+        logger.info("[Admin Notifications] Broadcast sent", {
+          results: data.results,
+        });
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      logger.error("[Admin Notifications] Send failed", { error });
+      setNotification({
+        type: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : t(
+                "admin.notifications.errors.sendFailed",
+                "Failed to send notification",
+              ),
+      });
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-start">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">
+            {t("admin.notifications.title", "Send Notification")}
+          </h2>
+          <p className="text-gray-600 mt-1">
+            {t(
+              "admin.notifications.subtitle",
+              "Broadcast messages via Email, SMS, or WhatsApp",
+            )}
+          </p>
+        </div>
+        <button
+          onClick={() => setShowHistory(!showHistory)}
+          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+        >
+          <History size={20} />
+          {showHistory
+            ? t("admin.notifications.hideHistory", "Hide History")
+            : t("admin.notifications.showHistory", "Show History")}
+        </button>
+      </div>
+
+      {/* Notification Banner */}
+      {notification && (
+        <div
+          className={`p-4 rounded-lg flex items-center gap-3 ${
+            notification.type === "success"
+              ? "bg-success/10 text-success"
+              : "bg-destructive/10 text-destructive"
+          }`}
+        >
+          {notification.type === "success" ? (
+            <CheckCircle size={20} />
+          ) : (
+            <AlertCircle size={20} />
+          )}
+          <span>{notification.message}</span>
+          <button onClick={() => setNotification(null)} className="ms-auto">
+            ×
+          </button>
+        </div>
+      )}
+
+      {!showHistory ? (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Form */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Recipient Type */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-lg font-semibold mb-4">
+                {t("admin.notifications.recipientType", "Recipient Type")}
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  {
+                    value: "users",
+                    label: t("admin.notifications.recipients.users", "Users"),
+                    icon: Users,
+                  },
+                  {
+                    value: "tenants",
+                    label: t(
+                      "admin.notifications.recipients.tenants",
+                      "Tenants",
+                    ),
+                    icon: Building2,
+                  },
+                  {
+                    value: "corporate",
+                    label: t(
+                      "admin.notifications.recipients.corporate",
+                      "Corporate",
+                    ),
+                    icon: Globe,
+                  },
+                  {
+                    value: "all",
+                    label: t("admin.notifications.recipients.all", "All"),
+                    icon: Globe,
+                  },
+                ].map(({ value, label, icon: Icon }) => (
+                  <button
+                    key={value}
+                    onClick={() =>
+                      setRecipientType(value as typeof recipientType)
+                    }
+                    className={`p-4 border-2 rounded-lg flex flex-col items-center gap-2 transition-colors ${
+                      recipientType === value
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <Icon size={24} />
+                    <span className="text-sm font-medium">{label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Channels */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-lg font-semibold mb-4">
+                {t("admin.notifications.channels", "Delivery Channels")}
+              </h3>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  {
+                    value: "email",
+                    label: "Email",
+                    icon: Mail,
+                    available: true,
+                  },
+                  {
+                    value: "sms",
+                    label: "SMS",
+                    icon: MessageSquare,
+                    available: true,
+                  },
+                  {
+                    value: "whatsapp",
+                    label: "WhatsApp",
+                    icon: Phone,
+                    available: false,
+                  },
+                ].map(({ value, label, icon: Icon, available }) => (
+                  <button
+                    key={value}
+                    onClick={() =>
+                      available &&
+                      toggleChannel(value as "email" | "sms" | "whatsapp")
+                    }
+                    disabled={!available}
+                    className={`p-4 border-2 rounded-lg flex flex-col items-center gap-2 transition-colors ${
+                      channels.has(value as "email" | "sms" | "whatsapp")
+                        ? "border-primary bg-primary/10 text-primary"
+                        : available
+                          ? "border-gray-200 hover:border-gray-300"
+                          : "border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed"
+                    }`}
+                  >
+                    <Icon size={24} />
+                    <span className="text-sm font-medium">{label}</span>
+                    {!available && (
+                      <span className="text-xs text-gray-400">
+                        {t("admin.notifications.comingSoon", "Coming Soon")}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Message Content */}
+            <div className="bg-white rounded-lg shadow p-6 space-y-4">
+              <h3 className="text-lg font-semibold">
+                {t("admin.notifications.message", "Message Content")}
+              </h3>
+
+              {/* Priority */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t("admin.notifications.priority", "Priority")}
+                </label>
+                <select
+                  value={priority}
+                  onChange={(e) =>
+                    setPriority(e.target.value as typeof priority)
+                  }
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
+                >
+                  <option value="low">
+                    {t("admin.notifications.priority.low", "Low")}
+                  </option>
+                  <option value="normal">
+                    {t("admin.notifications.priority.normal", "Normal")}
+                  </option>
+                  <option value="high">
+                    {t("admin.notifications.priority.high", "High")}
+                  </option>
+                  <option value="urgent">
+                    {t("admin.notifications.priority.urgent", "Urgent")}
+                  </option>
+                </select>
+              </div>
+
+              {/* Subject */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t("admin.notifications.subject", "Subject")}
+                </label>
+                <input
+                  type="text"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  placeholder={t(
+                    "admin.notifications.subjectPlaceholder",
+                    "Enter notification subject...",
+                  )}
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              {/* Message */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t("admin.notifications.messageBody", "Message")}
+                </label>
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder={t(
+                    "admin.notifications.messagePlaceholder",
+                    "Enter your message here...",
+                  )}
+                  rows={8}
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  {message.length}{" "}
+                  {t("admin.notifications.characters", "characters")}
+                  {channels.has("sms") && message.length > 160 && (
+                    <span className="text-amber-600 ms-2">
+                      ({Math.ceil(message.length / 160)} SMS segments)
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Preview & Stats */}
+          <div className="space-y-6">
+            {/* Preview */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-lg font-semibold mb-4">
+                {t("admin.notifications.preview", "Preview")}
+              </h3>
+              <div className="border rounded-lg p-4 bg-gray-50 space-y-2">
+                <div className="text-sm text-gray-500">
+                  {t("admin.notifications.to", "To")}:{" "}
+                  <span className="font-medium text-gray-700">
+                    {recipientType}
+                  </span>
+                </div>
+                <div className="text-sm text-gray-500">
+                  {t("admin.notifications.via", "Via")}:{" "}
+                  <span className="font-medium text-gray-700">
+                    {Array.from(channels).join(", ") ||
+                      t("admin.notifications.none", "None")}
+                  </span>
+                </div>
+                <hr className="my-2" />
+                <div className="font-semibold text-gray-900">
+                  {subject ||
+                    t("admin.notifications.noSubject", "[No Subject]")}
+                </div>
+                <div className="text-sm text-gray-600 whitespace-pre-wrap">
+                  {message ||
+                    t("admin.notifications.noMessage", "[No Message]")}
+                </div>
+              </div>
+            </div>
+
+            {/* Send Button */}
+            <button
+              onClick={handleSend}
+              disabled={
+                isSending ||
+                channels.size === 0 ||
+                !subject.trim() ||
+                !message.trim()
+              }
+              className="w-full px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium"
+            >
+              {isSending ? (
+                <>
+                  <Clock size={20} className="animate-spin" />
+                  {t("admin.notifications.sending", "Sending...")}
+                </>
+              ) : (
+                <>
+                  <Send size={20} />
+                  {t("admin.notifications.send", "Send Notification")}
+                </>
+              )}
+            </button>
+
+            {/* Info */}
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+              <h4 className="font-medium text-primary-dark mb-2 flex items-center gap-2">
+                <AlertCircle size={18} />
+                {t("admin.notifications.important", "Important")}
+              </h4>
+              <ul className="text-sm text-primary-dark space-y-1 list-disc list-inside">
+                <li>
+                  {t(
+                    "admin.notifications.info.1",
+                    "All notifications are logged for audit",
+                  )}
+                </li>
+                <li>
+                  {t(
+                    "admin.notifications.info.2",
+                    "Email requires SENDGRID_API_KEY",
+                  )}
+                </li>
+                <li>
+                  {t(
+                    "admin.notifications.info.3",
+                    "SMS requires TWILIO credentials",
+                  )}
+                </li>
+                <li>
+                  {t("admin.notifications.info.4", "WhatsApp coming soon")}
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      ) : (
+        // History View
+        <div className="bg-white rounded-lg shadow">
+          <div className="p-6">
+            <h3 className="text-lg font-semibold mb-4">
+              {t("admin.notifications.historyTitle", "Notification History")}
+            </h3>
+            {isLoadingHistory ? (
+              <div className="text-center py-12">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary border-t-transparent"></div>
+              </div>
+            ) : history.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                {t(
+                  "admin.notifications.noHistory",
+                  "No notifications sent yet",
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {history.map((item) => (
+                  <div
+                    key={item._id}
+                    className="border rounded-lg p-4 hover:bg-gray-50"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h4 className="font-medium">{item.subject}</h4>
+                        <p className="text-sm text-gray-500">
+                          {t("admin.notifications.sentBy", "Sent by")}{" "}
+                          {item.senderEmail} ·{" "}
+                          <ClientDate
+                            date={item.sentAt}
+                            format="medium"
+                            className="inline"
+                            placeholder="--"
+                          />
+                        </p>
+                      </div>
+                      <span
+                        className={`px-2 py-1 rounded text-xs font-medium ${
+                          item.priority === "urgent"
+                            ? "bg-red-100 text-red-800"
+                            : item.priority === "high"
+                              ? "bg-orange-100 text-orange-800"
+                              : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {item.priority}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                      {item.message}
+                    </p>
+                    <div className="flex items-center gap-4 text-sm">
+                      <span className="flex items-center gap-1">
+                        <Users size={16} className="text-gray-400" />
+                        {item.recipients.count} {item.recipients.type}
+                      </span>
+                      {item.results.email.sent > 0 && (
+                        <span className="flex items-center gap-1 text-success">
+                          <Mail size={16} />
+                          {item.results.email.sent} <CheckCircle size={14} />
+                          {item.results.email.failed > 0 && (
+                            <>
+                              <XCircle size={14} className="text-destructive" />{" "}
+                              {item.results.email.failed}
+                            </>
+                          )}
+                        </span>
+                      )}
+                      {item.results.sms.sent > 0 && (
+                        <span className="flex items-center gap-1 text-success">
+                          <MessageSquare size={16} />
+                          {item.results.sms.sent} <CheckCircle size={14} />
+                          {item.results.sms.failed > 0 && (
+                            <>
+                              <XCircle size={14} className="text-destructive" />{" "}
+                              {item.results.sms.failed}
+                            </>
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/admin/CommunicationDashboard.tsx">
+<![CDATA[
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  MessageSquare,
+  Mail,
+  Phone,
+  MessageCircle,
+  Search,
+  Filter,
+  Download,
+  RefreshCw,
+  Eye,
+  TrendingUp,
+  TrendingDown,
+  Activity,
+  Users,
+} from "lucide-react";
+import { logger } from "@/lib/logger";
+
+interface CommunicationLog {
+  _id: string;
+  userId: string;
+  userName?: string;
+  userEmail?: string;
+  userPhone?: string;
+  channel: "sms" | "email" | "whatsapp" | "otp";
+  type: string;
+  recipient: string;
+  subject?: string;
+  message: string;
+  status: "pending" | "sent" | "delivered" | "failed" | "read";
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+  deliveredAt?: string;
+  failedAt?: string;
+  errorMessage?: string;
+}
+
+interface Statistics {
+  totalSent: number;
+  totalDelivered: number;
+  totalFailed: number;
+  totalPending: number;
+  smsCount: number;
+  emailCount: number;
+  whatsappCount: number;
+  otpCount: number;
+  deliveryRate: string;
+  failureRate: string;
+}
+
+interface CommunicationDashboardProps {
+  t: (key: string, fallback: string) => string;
+  isRTL: boolean;
+}
+
+export default function CommunicationDashboard({
+  t,
+  isRTL,
+}: CommunicationDashboardProps) {
+  const [communications, setCommunications] = useState<CommunicationLog[]>([]);
+  const [statistics, setStatistics] = useState<Statistics | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [channelFilter, setChannelFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [selectedLog, setSelectedLog] = useState<CommunicationLog | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  const limit = 50;
+
+  // Fetch communications
+  const fetchCommunications = useCallback(async () => {
+    setLoading(true);
+
+    try {
+      const params = new URLSearchParams({
+        limit: limit.toString(),
+        skip: ((page - 1) * limit).toString(),
+      });
+
+      if (channelFilter && channelFilter !== "all") {
+        params.append("channel", channelFilter);
+      }
+
+      if (statusFilter) {
+        params.append("status", statusFilter);
+      }
+
+      if (debouncedSearch) {
+        params.append("search", debouncedSearch);
+      }
+
+      const response = await fetch(`/api/admin/communications?${params}`);
+      const data = await response.json();
+
+      if (data.success) {
+        const pages = Math.max(1, data.data.pagination.pages || 1);
+        setCommunications(data.data.communications);
+        setStatistics(data.data.statistics);
+        setTotalPages(pages);
+        if (page > pages) {
+          setPage(pages);
+        }
+      } else {
+        logger.error(
+          "[CommunicationDashboard] Fetch failed",
+          new Error(data.error),
+        );
+      }
+    } catch (error) {
+      logger.error("[CommunicationDashboard] Fetch error", error as Error);
+    } finally {
+      setLoading(false);
+    }
+  }, [channelFilter, debouncedSearch, limit, page, statusFilter]);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchCommunications();
+  }, [fetchCommunications]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [channelFilter, statusFilter]);
+
+  // Channel icons
+  const getChannelIcon = (channel: string) => {
+    switch (channel) {
+      case "sms":
+      case "otp":
+        return <Phone className="h-4 w-4" />;
+      case "email":
+        return <Mail className="h-4 w-4" />;
+      case "whatsapp":
+        return <MessageCircle className="h-4 w-4" />;
+      default:
+        return <MessageSquare className="h-4 w-4" />;
+    }
+  };
+
+  // Status badge
+  const getStatusBadge = (status: string) => {
+    const colors = {
+      pending: "bg-yellow-100 text-yellow-800",
+      sent: "bg-primary/10 text-primary-dark",
+      delivered: "bg-green-100 text-green-800",
+      failed: "bg-red-100 text-red-800",
+      read: "bg-purple-100 text-purple-800",
+    };
+
+    return (
+      <span
+        className={`px-2 py-1 text-xs rounded-full ${colors[status as keyof typeof colors] || "bg-gray-100 text-gray-800"}`}
+      >
+        {status}
+      </span>
+    );
+  };
+
+  // Export to CSV
+  const exportToCSV = () => {
+    const headers = [
+      "Date",
+      "User",
+      "Channel",
+      "Type",
+      "Recipient",
+      "Status",
+      "Message",
+    ];
+    const rows = communications.map((log) => [
+      new Date(log.createdAt).toLocaleString(),
+      log.userName || log.userEmail || "Unknown",
+      log.channel,
+      log.type,
+      log.recipient,
+      log.status,
+      log.message.substring(0, 100),
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `communications-${new Date().toISOString()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div
+        className={`flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}
+      >
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">
+            {t("communications.title", "Communication Dashboard")}
+          </h2>
+          <p className="text-muted-foreground text-sm">
+            {t(
+              "communications.subtitle",
+              "Track all SMS, Email, and WhatsApp communications",
+            )}
+          </p>
+        </div>
+        <div
+          className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}
+        >
+          <Button
+            onClick={exportToCSV}
+            variant="outline"
+            size="sm"
+            disabled={communications.length === 0}
+            className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}
+          >
+            <Download className="h-4 w-4" />
+            {t("communications.export", "Export")}
+          </Button>
+          <Button
+            onClick={fetchCommunications}
+            variant="outline"
+            size="sm"
+            disabled={loading}
+            className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            {t("communications.refresh", "Refresh")}
+          </Button>
+        </div>
+      </div>
+
+      {/* Statistics Cards */}
+      {statistics && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Total Sent */}
+          <div className="bg-card rounded-2xl p-4 border border-border">
+            <div
+              className={`flex items-center justify-between mb-2 ${isRTL ? "flex-row-reverse" : ""}`}
+            >
+              <span className="text-muted-foreground text-sm">
+                {t("communications.stats.totalSent", "Total Sent")}
+              </span>
+              <Activity className="h-5 w-5 text-primary" />
+            </div>
+            <p className="text-3xl font-bold text-foreground">
+              {statistics.totalSent.toLocaleString()}
+            </p>
+          </div>
+
+          {/* Delivery Rate */}
+          <div className="bg-card rounded-2xl p-4 border border-border">
+            <div
+              className={`flex items-center justify-between mb-2 ${isRTL ? "flex-row-reverse" : ""}`}
+            >
+              <span className="text-muted-foreground text-sm">
+                {t("communications.stats.deliveryRate", "Delivery Rate")}
+              </span>
+              <TrendingUp className="h-5 w-5 text-success" />
+            </div>
+            <p className="text-3xl font-bold text-success">
+              {statistics.deliveryRate}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {statistics.totalDelivered.toLocaleString()} delivered
+            </p>
+          </div>
+
+          {/* Failure Rate */}
+          <div className="bg-card rounded-2xl p-4 border border-border">
+            <div
+              className={`flex items-center justify-between mb-2 ${isRTL ? "flex-row-reverse" : ""}`}
+            >
+              <span className="text-muted-foreground text-sm">
+                {t("communications.stats.failureRate", "Failure Rate")}
+              </span>
+              <TrendingDown className="h-5 w-5 text-destructive" />
+            </div>
+            <p className="text-3xl font-bold text-destructive">
+              {statistics.failureRate}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {statistics.totalFailed.toLocaleString()} failed
+            </p>
+          </div>
+
+          {/* By Channel */}
+          <div className="bg-card rounded-2xl p-4 border border-border">
+            <div
+              className={`flex items-center justify-between mb-2 ${isRTL ? "flex-row-reverse" : ""}`}
+            >
+              <span className="text-muted-foreground text-sm">
+                {t("communications.stats.byChannel", "By Channel")}
+              </span>
+              <Users className="h-5 w-5 text-primary" />
+            </div>
+            <div className="space-y-1 text-sm">
+              <div
+                className={`flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}
+              >
+                <span className="text-muted-foreground">SMS:</span>
+                <span className="font-medium">{statistics.smsCount}</span>
+              </div>
+              <div
+                className={`flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}
+              >
+                <span className="text-muted-foreground">Email:</span>
+                <span className="font-medium">{statistics.emailCount}</span>
+              </div>
+              <div
+                className={`flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}
+              >
+                <span className="text-muted-foreground">WhatsApp:</span>
+                <span className="font-medium">{statistics.whatsappCount}</span>
+              </div>
+              <div
+                className={`flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}
+              >
+                <span className="text-muted-foreground">OTP:</span>
+                <span className="font-medium">{statistics.otpCount}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Filters */}
+      <div className="bg-card rounded-2xl p-4 border border-border">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-start">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder={t(
+                "communications.search",
+                "Search by user, phone, email...",
+              )}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="ps-10"
+            />
+          </div>
+
+          {/* Channel Filter */}
+          <div className="relative">
+            <Filter className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <select
+              value={channelFilter}
+              onChange={(e) => setChannelFilter(e.target.value)}
+              className="w-full h-10 ps-10 text-start border border-border rounded-md bg-background"
+            >
+              <option value="all">
+                {t("communications.filter.allChannels", "All Channels")}
+              </option>
+              <option value="sms">SMS</option>
+              <option value="email">Email</option>
+              <option value="whatsapp">WhatsApp</option>
+              <option value="otp">OTP</option>
+            </select>
+          </div>
+
+          {/* Status Filter */}
+          <div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full h-10 border border-border rounded-md bg-background text-start"
+            >
+              <option value="">
+                {t("communications.filter.allStatuses", "All Statuses")}
+              </option>
+              <option value="pending">Pending</option>
+              <option value="sent">Sent</option>
+              <option value="delivered">Delivered</option>
+              <option value="failed">Failed</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Communications Table */}
+      <div className="bg-card rounded-2xl border border-border overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-muted border-b border-border">
+              <tr>
+                <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
+                  {t("communications.table.date", "Date")}
+                </th>
+                <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
+                  {t("communications.table.user", "User")}
+                </th>
+                <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
+                  {t("communications.table.channel", "Channel")}
+                </th>
+                <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
+                  {t("communications.table.recipient", "Recipient")}
+                </th>
+                <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
+                  {t("communications.table.status", "Status")}
+                </th>
+                <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
+                  {t("communications.table.message", "Message")}
+                </th>
+                <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
+                  {t("communications.table.actions", "Actions")}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td
+                    colSpan={7}
+                    className="px-4 py-8 text-center text-muted-foreground"
+                  >
+                    {t("communications.loading", "Loading communications...")}
+                  </td>
+                </tr>
+              ) : communications.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={7}
+                    className="px-4 py-8 text-center text-muted-foreground"
+                  >
+                    {t("communications.noData", "No communications found")}
+                  </td>
+                </tr>
+              ) : (
+                communications.map((log) => (
+                  <tr
+                    key={log._id}
+                    className="border-b border-border hover:bg-muted/50 transition-colors"
+                  >
+                    <td className="px-4 py-3 text-sm text-foreground">
+                      {new Date(log.createdAt).toLocaleDateString()}
+                      <br />
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(log.createdAt).toLocaleTimeString()}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-foreground">
+                      <div>
+                        <div className="font-medium">
+                          {log.userName || "Unknown"}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {log.userEmail}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        {getChannelIcon(log.channel)}
+                        <span className="text-sm capitalize">
+                          {log.channel}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-foreground">
+                      {log.recipient}
+                    </td>
+                    <td className="px-4 py-3">{getStatusBadge(log.status)}</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">
+                      <div className="max-w-xs truncate">{log.message}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Button
+                        onClick={() => setSelectedLog(log)}
+                        variant="ghost"
+                        size="sm"
+                        className="flex items-center gap-1"
+                      >
+                        <Eye className="h-4 w-4" />
+                        {t("communications.view", "View")}
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div
+            className={`px-4 py-3 border-t border-border flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}
+          >
+            <Button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1 || loading}
+              variant="outline"
+              size="sm"
+            >
+              {t("communications.previous", "Previous")}
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              {t("communications.page", "Page")} {page}{" "}
+              {t("communications.of", "of")} {totalPages}
+            </span>
+            <Button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages || loading}
+              variant="outline"
+              size="sm"
+            >
+              {t("communications.next", "Next")}
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Detail Modal */}
+      {selectedLog && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setSelectedLog(null)}
+        >
+          <div
+            className="bg-card rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              className={`flex items-center justify-between mb-4 ${isRTL ? "flex-row-reverse" : ""}`}
+            >
+              <h3 className="text-xl font-bold text-foreground">
+                {t("communications.details.title", "Communication Details")}
+              </h3>
+              <button
+                onClick={() => setSelectedLog(null)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">
+                  {t("communications.details.user", "User")}
+                </label>
+                <p className="text-foreground">
+                  {selectedLog.userName || "Unknown"}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {selectedLog.userEmail}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    {t("communications.details.channel", "Channel")}
+                  </label>
+                  <p className="text-foreground capitalize">
+                    {selectedLog.channel}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    {t("communications.details.status", "Status")}
+                  </label>
+                  <div>{getStatusBadge(selectedLog.status)}</div>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">
+                  {t("communications.details.recipient", "Recipient")}
+                </label>
+                <p className="text-foreground">{selectedLog.recipient}</p>
+              </div>
+
+              {selectedLog.subject && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    {t("communications.details.subject", "Subject")}
+                  </label>
+                  <p className="text-foreground">{selectedLog.subject}</p>
+                </div>
+              )}
+
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">
+                  {t("communications.details.message", "Message")}
+                </label>
+                <p className="text-foreground whitespace-pre-wrap">
+                  {selectedLog.message}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    {t("communications.details.sent", "Sent At")}
+                  </label>
+                  <p className="text-foreground">
+                    {new Date(selectedLog.createdAt).toLocaleString()}
+                  </p>
+                </div>
+                {selectedLog.deliveredAt && (
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">
+                      {t("communications.details.delivered", "Delivered At")}
+                    </label>
+                    <p className="text-foreground">
+                      {new Date(selectedLog.deliveredAt).toLocaleString()}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {selectedLog.errorMessage && (
+                <div>
+                  <label className="text-sm font-medium text-destructive">
+                    {t("communications.details.error", "Error")}
+                  </label>
+                  <p className="text-destructive text-sm">
+                    {selectedLog.errorMessage}
+                  </p>
+                </div>
+              )}
+
+              {selectedLog.metadata &&
+                Object.keys(selectedLog.metadata).length > 0 && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      {t("communications.details.metadata", "Metadata")}
+                    </label>
+                    <pre className="text-xs bg-muted p-3 rounded-md overflow-x-auto">
+                      {JSON.stringify(selectedLog.metadata, null, 2)}
+                    </pre>
+                  </div>
+                )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+</batch_content>

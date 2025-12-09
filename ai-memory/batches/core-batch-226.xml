@@ -1,0 +1,3083 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="lib/utils.ts">
+<![CDATA[
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+export function generateSlug(input: string | null | undefined): string {
+  // Handle null/undefined/non-string inputs
+  if (input == null || typeof input !== "string") {
+    return "";
+  }
+
+  const src = input.trim();
+  if (!src) return "";
+
+  // Check for leading/trailing hyphens *after* trimming
+  const hadLeadingHyphen = src.startsWith("-");
+  const hadTrailingHyphen = src.endsWith("-");
+
+  let slug = src
+    .toLowerCase()
+    // FIX: Allow Arabic and other Unicode letters (prevents stripping)
+    // Use Unicode property escapes to match letters in any language
+    .replace(/[^\p{L}\p{N}\s-]/gu, "") // Keep letters, numbers, spaces, hyphens
+    .replace(/\s+/g, "-") // Collapse spaces
+    .replace(/-+/g, "-") // Collapse hyphens
+    .slice(0, 100);
+
+  // FIX: Respect original leading/trailing hyphens (to pass the test)
+  if (!hadLeadingHyphen) {
+    slug = slug.replace(/^-+/, "");
+  }
+  if (!hadTrailingHyphen) {
+    slug = slug.replace(/-+$/, "");
+  }
+
+  return slug;
+}
+
+]]>
+</file>
+
+<file path="lib/validations/forms.ts">
+<![CDATA[
+/**
+ * Zod Validation Schemas for Forms
+ *
+ * Centralized validation schemas for all form inputs across the platform.
+ * Provides type-safe validation with detailed error messages.
+ */
+
+import { z } from "zod";
+
+/**
+ * Common validation patterns
+ */
+
+// Saudi Arabia phone number: +966XXXXXXXXX (9 digits after +966)
+const saudiPhoneRegex = /^\+966[0-9]{9}$/;
+
+// Email validation (with common patterns)
+const emailSchema = z.string().email("Invalid email format");
+
+// Optional email (allows undefined or valid email, but not empty string)
+const optionalEmailSchema = z
+  .string()
+  .optional()
+  .refine((val) => !val || z.string().email().safeParse(val).success, {
+    message: "Invalid email format",
+  });
+
+// Saudi phone validation
+const saudiPhoneSchema = z
+  .string()
+  .regex(
+    saudiPhoneRegex,
+    "Phone must be in +966XXXXXXXXX format (e.g., +966501234567)",
+  );
+
+// Optional Saudi phone (allows undefined or valid phone, but not empty string)
+const optionalSaudiPhoneSchema = z
+  .string()
+  .optional()
+  .refine((val) => !val || saudiPhoneRegex.test(val), {
+    message: "Phone must be in +966XXXXXXXXX format",
+  });
+
+/**
+ * User Management Schemas
+ */
+
+export const CreateUserSchema = z.object({
+  email: emailSchema,
+  username: z
+    .string()
+    .min(3, "Username must be at least 3 characters")
+    .max(30, "Username must not exceed 30 characters")
+    .regex(
+      /^[a-zA-Z0-9_-]+$/,
+      "Username can only contain letters, numbers, underscores, and hyphens",
+    ),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
+  firstName: z.string().min(1, "First name is required").optional(),
+  lastName: z.string().min(1, "Last name is required").optional(),
+  role: z.enum(["user", "admin", "manager", "super_admin", "tenant", "vendor"]),
+  phone: optionalSaudiPhoneSchema,
+  status: z.enum(["active", "inactive", "suspended"]).optional(),
+});
+
+export const UpdateUserSchema = CreateUserSchema.partial().extend({
+  id: z.string().min(1, "User ID is required"),
+});
+
+/**
+ * Vendor Management Schemas
+ */
+
+export const CreateVendorSchema = z.object({
+  name: z
+    .string()
+    .min(2, "Vendor name must be at least 2 characters")
+    .max(100, "Vendor name must not exceed 100 characters"),
+  code: z
+    .string()
+    .min(2, "Vendor code must be at least 2 characters")
+    .max(20, "Vendor code must not exceed 20 characters")
+    .regex(
+      /^[A-Z0-9-]+$/,
+      "Vendor code must be uppercase letters, numbers, or hyphens",
+    ),
+  type: z.string().min(1, "Vendor type is required"),
+  status: z.enum([
+    "PENDING",
+    "APPROVED",
+    "SUSPENDED",
+    "REJECTED",
+    "BLACKLISTED",
+  ]),
+  contact: z
+    .object({
+      primary: z.object({
+        name: z.string().min(1, "Contact name is required"),
+        email: optionalEmailSchema,
+        phone: optionalSaudiPhoneSchema,
+        mobile: optionalSaudiPhoneSchema,
+      }),
+      address: z
+        .object({
+          street: z.string().optional(),
+          city: z.string().optional(),
+          region: z.string().optional(),
+          postalCode: z.string().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  business: z
+    .object({
+      specializations: z.array(z.string()).optional(),
+      crNumber: z.string().optional(),
+      taxNumber: z.string().optional(),
+      licenseNumber: z.string().optional(),
+      licenseExpiry: z.string().optional(), // ISO date string
+      insuranceExpiry: z.string().optional(), // ISO date string
+      description: z
+        .string()
+        .max(500, "Description must not exceed 500 characters")
+        .optional(),
+    })
+    .optional(),
+});
+
+export const UpdateVendorSchema = CreateVendorSchema.partial().extend({
+  id: z.string().min(1, "Vendor ID is required"),
+});
+
+/**
+ * Project Management Schemas
+ */
+
+export const CreateProjectSchema = z.object({
+  name: z
+    .string()
+    .min(3, "Project name must be at least 3 characters")
+    .max(150, "Project name must not exceed 150 characters"),
+  code: z
+    .string()
+    .min(2, "Project code must be at least 2 characters")
+    .max(20, "Project code must not exceed 20 characters")
+    .regex(
+      /^[A-Z0-9-]+$/,
+      "Project code must be uppercase letters, numbers, or hyphens",
+    ),
+  description: z
+    .string()
+    .max(1000, "Description must not exceed 1000 characters")
+    .optional(),
+  propertyId: z.string().min(1, "Property selection is required"),
+  type: z.string().min(1, "Project type is required"),
+  priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]),
+  status: z.enum([
+    "DRAFT",
+    "PLANNED",
+    "IN_PROGRESS",
+    "ON_HOLD",
+    "COMPLETED",
+    "CANCELLED",
+  ]),
+  budget: z.object({
+    estimated: z.number().min(0, "Estimated budget must be a positive number"),
+    approved: z
+      .number()
+      .min(0, "Approved budget must be a positive number")
+      .optional(),
+    spent: z
+      .number()
+      .min(0, "Spent amount must be a positive number")
+      .optional(),
+    currency: z.string().default("SAR"),
+  }),
+  schedule: z.object({
+    startDate: z.string().min(1, "Start date is required"), // ISO date string
+    endDate: z.string().min(1, "End date is required"), // ISO date string
+    actualStartDate: z.string().optional(),
+    actualEndDate: z.string().optional(),
+  }),
+  team: z
+    .object({
+      projectManager: z.string().optional(),
+      members: z.array(z.string()).optional(),
+      vendors: z.array(z.string()).optional(),
+    })
+    .optional(),
+  milestones: z
+    .array(
+      z.object({
+        name: z.string().min(1, "Milestone name is required"),
+        description: z.string().optional(),
+        dueDate: z.string().min(1, "Due date is required"),
+        status: z.enum(["PENDING", "IN_PROGRESS", "COMPLETED", "DELAYED"]),
+        progress: z.number().min(0).max(100).default(0),
+      }),
+    )
+    .optional(),
+});
+
+export const UpdateProjectSchema = CreateProjectSchema.partial().extend({
+  id: z.string().min(1, "Project ID is required"),
+});
+
+/**
+ * RFQ (Request for Quotation) Schemas
+ */
+
+export const CreateRFQSchema = z.object({
+  title: z
+    .string()
+    .min(5, "RFQ title must be at least 5 characters")
+    .max(200, "RFQ title must not exceed 200 characters"),
+  code: z
+    .string()
+    .min(2, "RFQ code must be at least 2 characters")
+    .max(20, "RFQ code must not exceed 20 characters")
+    .regex(
+      /^RFQ-[A-Z0-9-]+$/,
+      'RFQ code must start with "RFQ-" followed by uppercase letters/numbers',
+    ),
+  description: z
+    .string()
+    .min(10, "Description must be at least 10 characters")
+    .max(2000, "Description must not exceed 2000 characters"),
+  propertyId: z.string().min(1, "Property selection is required"),
+  category: z.string().min(1, "Category is required"),
+  priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]),
+  status: z.enum([
+    "DRAFT",
+    "PUBLISHED",
+    "IN_REVIEW",
+    "AWARDED",
+    "CLOSED",
+    "CANCELLED",
+  ]),
+  budget: z
+    .object({
+      min: z
+        .number()
+        .min(0, "Minimum budget must be a positive number")
+        .optional(),
+      max: z
+        .number()
+        .min(0, "Maximum budget must be a positive number")
+        .optional(),
+      currency: z.string().default("SAR"),
+    })
+    .refine(
+      (budget) => {
+        // Only validate min <= max if both are provided
+        if (budget.min !== undefined && budget.max !== undefined) {
+          return budget.min <= budget.max;
+        }
+        return true;
+      },
+      {
+        message: "Minimum budget must be less than or equal to maximum budget",
+        path: ["min"], // Attach error to the min field
+      },
+    ),
+  timeline: z.object({
+    submissionDeadline: z.string().min(1, "Submission deadline is required"),
+    projectStartDate: z.string().optional(),
+    projectDuration: z
+      .number()
+      .min(1, "Project duration must be at least 1 day")
+      .optional(),
+  }),
+  requirements: z
+    .array(
+      z.object({
+        item: z.string().min(1, "Requirement item is required"),
+        description: z.string().optional(),
+        quantity: z.number().min(1, "Quantity must be at least 1").optional(),
+        specifications: z.string().optional(),
+      }),
+    )
+    .min(1, "At least one requirement is needed"),
+  attachments: z
+    .array(
+      z.object({
+        name: z.string(),
+        url: z.string().url("Invalid attachment URL"),
+        type: z.string(),
+        size: z.number(),
+      }),
+    )
+    .optional(),
+});
+
+export const UpdateRFQSchema = CreateRFQSchema.partial().extend({
+  id: z.string().min(1, "RFQ ID is required"),
+});
+
+/**
+ * Property Management Schemas
+ */
+
+export const CreatePropertySchema = z.object({
+  name: z
+    .string()
+    .min(3, "Property name must be at least 3 characters")
+    .max(150, "Property name must not exceed 150 characters"),
+  code: z
+    .string()
+    .min(2, "Property code must be at least 2 characters")
+    .max(20, "Property code must not exceed 20 characters")
+    .regex(
+      /^[A-Z0-9-]+$/,
+      "Property code must be uppercase letters, numbers, or hyphens",
+    ),
+  type: z.string().min(1, "Property type is required"),
+  subtype: z.string().optional(),
+  location: z.object({
+    address: z.string().min(1, "Address is required"),
+    city: z.string().min(1, "City is required"),
+    region: z.string().min(1, "Region is required"),
+    postalCode: z.string().optional(),
+    coordinates: z
+      .object({
+        lat: z.number(),
+        lng: z.number(),
+      })
+      .optional(),
+  }),
+  details: z
+    .object({
+      totalArea: z
+        .number()
+        .min(0, "Total area must be a positive number")
+        .optional(),
+      builtArea: z
+        .number()
+        .min(0, "Built area must be a positive number")
+        .optional(),
+      yearBuilt: z
+        .number()
+        .min(1900, "Year built must be after 1900")
+        .optional(),
+      floors: z
+        .number()
+        .min(1, "Number of floors must be at least 1")
+        .optional(),
+    })
+    .optional(),
+  units: z
+    .array(
+      z.object({
+        unitNumber: z.string().min(1, "Unit number is required"),
+        type: z.string().min(1, "Unit type is required"),
+        area: z.number().min(0, "Unit area must be positive"),
+        bedrooms: z.number().min(0).optional(),
+        bathrooms: z.number().min(0).optional(),
+        status: z.enum(["VACANT", "OCCUPIED", "MAINTENANCE", "RESERVED"]),
+      }),
+    )
+    .optional(),
+});
+
+export const UpdatePropertySchema = CreatePropertySchema.partial().extend({
+  id: z.string().min(1, "Property ID is required"),
+});
+
+/**
+ * Budget Management Schemas
+ */
+
+export const CreateBudgetSchema = z.object({
+  name: z
+    .string()
+    .min(3, "Budget name must be at least 3 characters")
+    .max(100, "Budget name must not exceed 100 characters"),
+  fiscalYear: z
+    .number()
+    .min(2020, "Fiscal year must be 2020 or later")
+    .max(2100, "Fiscal year must be before 2100"),
+  period: z.enum(["MONTHLY", "QUARTERLY", "ANNUAL"]),
+  propertyId: z.string().min(1, "Property selection is required"),
+  ownerId: z.string().min(1, "Budget owner is required"),
+  totalAmount: z.number().min(0, "Total amount must be a positive number"),
+  currency: z.string().default("SAR"),
+  categories: z
+    .array(
+      z.object({
+        name: z.string().min(1, "Category name is required"),
+        allocatedAmount: z.number().min(0, "Allocated amount must be positive"),
+        percentage: z.number().min(0).max(100),
+      }),
+    )
+    .min(1, "At least one category is required"),
+  status: z.enum(["DRAFT", "PENDING_APPROVAL", "APPROVED", "ACTIVE", "CLOSED"]),
+});
+
+export const UpdateBudgetSchema = CreateBudgetSchema.partial().extend({
+  id: z.string().min(1, "Budget ID is required"),
+});
+
+/**
+ * Tenant Management Schemas
+ */
+
+export const CreateTenantSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: emailSchema,
+  phone: saudiPhoneSchema,
+  mobile: optionalSaudiPhoneSchema,
+  identification: z.object({
+    type: z.enum(["NATIONAL_ID", "IQAMA", "PASSPORT"]),
+    number: z.string().min(1, "ID number is required"),
+    expiryDate: z.string().optional(),
+  }),
+  emergencyContact: z
+    .object({
+      name: z.string().min(1, "Emergency contact name is required"),
+      phone: saudiPhoneSchema,
+      relationship: z.string().optional(),
+    })
+    .optional(),
+  preferences: z
+    .object({
+      language: z.enum(["en", "ar"]).default("en"),
+      notifications: z
+        .object({
+          email: z.boolean().default(true),
+          sms: z.boolean().default(true),
+          push: z.boolean().default(true),
+        })
+        .optional(),
+    })
+    .optional(),
+});
+
+export const UpdateTenantSchema = CreateTenantSchema.partial().extend({
+  id: z.string().min(1, "Tenant ID is required"),
+});
+
+/**
+ * Login/Auth Schemas
+ */
+
+export const LoginSchema = z.object({
+  email: emailSchema,
+  password: z.string().min(1, "Password is required"),
+  rememberMe: z.boolean().optional(),
+});
+
+export const SignupSchema = z
+  .object({
+    email: emailSchema,
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+      .regex(/[0-9]/, "Password must contain at least one number"),
+    confirmPassword: z.string(),
+    firstName: z.string().min(1, "First name is required"),
+    lastName: z.string().min(1, "Last name is required"),
+    phone: optionalSaudiPhoneSchema,
+    acceptTerms: z.boolean().refine((val) => val === true, {
+      message: "You must accept the terms and conditions",
+    }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
+
+export const ForgotPasswordSchema = z.object({
+  email: emailSchema,
+});
+
+export const ResetPasswordSchema = z
+  .object({
+    token: z.string().min(1, "Reset token is required"),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+      .regex(/[0-9]/, "Password must contain at least one number"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
+
+/**
+ * Type exports for use in components
+ */
+
+export type CreateUserInput = z.infer<typeof CreateUserSchema>;
+export type UpdateUserInput = z.infer<typeof UpdateUserSchema>;
+export type CreateVendorInput = z.infer<typeof CreateVendorSchema>;
+export type UpdateVendorInput = z.infer<typeof UpdateVendorSchema>;
+export type CreateProjectInput = z.infer<typeof CreateProjectSchema>;
+export type UpdateProjectInput = z.infer<typeof UpdateProjectSchema>;
+export type CreateRFQInput = z.infer<typeof CreateRFQSchema>;
+export type UpdateRFQInput = z.infer<typeof UpdateRFQSchema>;
+export type CreatePropertyInput = z.infer<typeof CreatePropertySchema>;
+export type UpdatePropertyInput = z.infer<typeof UpdatePropertySchema>;
+export type CreateBudgetInput = z.infer<typeof CreateBudgetSchema>;
+export type UpdateBudgetInput = z.infer<typeof UpdateBudgetSchema>;
+export type CreateTenantInput = z.infer<typeof CreateTenantSchema>;
+export type UpdateTenantInput = z.infer<typeof UpdateTenantSchema>;
+export type LoginInput = z.infer<typeof LoginSchema>;
+export type SignupInput = z.infer<typeof SignupSchema>;
+export type ForgotPasswordInput = z.infer<typeof ForgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof ResetPasswordSchema>;
+
+]]>
+</file>
+
+<file path="lib/validations/reviews.ts">
+<![CDATA[
+/**
+ * Souq Reviews Validation Schemas (Zod)
+ * @module lib/validations/reviews
+ */
+
+import { z } from "zod";
+
+/**
+ * Review Image Schema
+ */
+export const reviewImageSchema = z.object({
+  url: z.string().url("Invalid image URL"),
+  caption: z
+    .string()
+    .max(200, "Caption must be 200 characters or less")
+    .optional(),
+});
+
+/**
+ * Create Review Schema
+ */
+export const createReviewSchema = z.object({
+  productId: z.string().min(1, "Product ID is required"),
+  customerId: z.string().min(1, "Customer ID is required"),
+  customerName: z
+    .string()
+    .min(2, "Customer name must be at least 2 characters"),
+  orderId: z.string().optional(),
+  rating: z
+    .number()
+    .int("Rating must be an integer")
+    .min(1, "Rating must be at least 1")
+    .max(5, "Rating must be at most 5"),
+  title: z
+    .string()
+    .min(5, "Title must be at least 5 characters")
+    .max(200, "Title must be 200 characters or less"),
+  content: z
+    .string()
+    .min(20, "Review must be at least 20 characters")
+    .max(5000, "Review must be 5000 characters or less"),
+  pros: z.array(z.string().max(200)).max(10, "Maximum 10 pros").optional(),
+  cons: z.array(z.string().max(200)).max(10, "Maximum 10 cons").optional(),
+  images: z.array(reviewImageSchema).max(5, "Maximum 5 images").optional(),
+});
+
+/**
+ * Update Review Schema
+ */
+export const updateReviewSchema = z.object({
+  title: z
+    .string()
+    .min(5, "Title must be at least 5 characters")
+    .max(200, "Title must be 200 characters or less")
+    .optional(),
+  content: z
+    .string()
+    .min(20, "Review must be at least 20 characters")
+    .max(5000, "Review must be 5000 characters or less")
+    .optional(),
+  pros: z.array(z.string().max(200)).max(10, "Maximum 10 pros").optional(),
+  cons: z.array(z.string().max(200)).max(10, "Maximum 10 cons").optional(),
+  images: z.array(reviewImageSchema).max(5, "Maximum 5 images").optional(),
+});
+
+/**
+ * Seller Response Schema
+ */
+export const sellerResponseSchema = z.object({
+  content: z
+    .string()
+    .min(10, "Response must be at least 10 characters")
+    .max(1000, "Response must be 1000 characters or less"),
+});
+
+/**
+ * Report Review Schema
+ */
+export const reportReviewSchema = z.object({
+  reason: z
+    .string()
+    .min(5, "Reason must be at least 5 characters")
+    .max(500, "Reason must be 500 characters or less"),
+});
+
+/**
+ * Review Filters Schema
+ */
+export const reviewFiltersSchema = z.object({
+  rating: z.number().int().min(1).max(5).optional(),
+  verifiedOnly: z.boolean().optional(),
+  sortBy: z.enum(["recent", "helpful", "rating"]).optional(),
+  page: z.number().int().min(1).optional(),
+  limit: z.number().int().min(1).max(100).optional(),
+  status: z.enum(["pending", "published", "rejected", "flagged"]).optional(),
+});
+
+/**
+ * Review Status Schema
+ */
+export const reviewStatusSchema = z.enum([
+  "pending",
+  "published",
+  "rejected",
+  "flagged",
+]);
+
+/**
+ * Type exports for TypeScript
+ */
+export type CreateReviewInput = z.infer<typeof createReviewSchema>;
+export type UpdateReviewInput = z.infer<typeof updateReviewSchema>;
+export type SellerResponseInput = z.infer<typeof sellerResponseSchema>;
+export type ReportReviewInput = z.infer<typeof reportReviewSchema>;
+export type ReviewFiltersInput = z.infer<typeof reviewFiltersSchema>;
+export type ReviewStatusInput = z.infer<typeof reviewStatusSchema>;
+
+]]>
+</file>
+
+<file path="lib/vendor/opentelemetry/global-utils.js">
+<![CDATA[
+const VERSION = "1.9.0";
+
+const _globalThis =
+  typeof globalThis === "object"
+    ? globalThis
+    : typeof global !== "undefined"
+      ? global
+      : self;
+
+const versionRe = /^(\d+)\.(\d+)\.(\d+)(-(.+))?$/;
+
+function _makeCompatibilityCheck(ownVersion) {
+  const acceptedVersions = new Set([ownVersion]);
+  const rejectedVersions = new Set();
+  const myVersionMatch = ownVersion.match(versionRe);
+  if (!myVersionMatch) {
+    return () => false;
+  }
+
+  const ownVersionParsed = {
+    major: +myVersionMatch[1],
+    minor: +myVersionMatch[2],
+    patch: +myVersionMatch[3],
+    prerelease: myVersionMatch[4],
+  };
+
+  if (ownVersionParsed.prerelease != null) {
+    return (globalVersion) => globalVersion === ownVersion;
+  }
+
+  const reject = (v) => {
+    rejectedVersions.add(v);
+    return false;
+  };
+  const accept = (v) => {
+    acceptedVersions.add(v);
+    return true;
+  };
+
+  return (globalVersion) => {
+    if (acceptedVersions.has(globalVersion)) {
+      return true;
+    }
+    if (rejectedVersions.has(globalVersion)) {
+      return false;
+    }
+
+    const match = globalVersion.match(versionRe);
+    if (!match) {
+      return reject(globalVersion);
+    }
+
+    const parsed = {
+      major: +match[1],
+      minor: +match[2],
+      patch: +match[3],
+      prerelease: match[4],
+    };
+
+    if (parsed.prerelease != null) {
+      return reject(globalVersion);
+    }
+
+    if (ownVersionParsed.major !== parsed.major) {
+      return reject(globalVersion);
+    }
+
+    if (ownVersionParsed.major === 0) {
+      if (
+        ownVersionParsed.minor === parsed.minor &&
+        ownVersionParsed.patch <= parsed.patch
+      ) {
+        return accept(globalVersion);
+      }
+      return reject(globalVersion);
+    }
+
+    if (ownVersionParsed.minor <= parsed.minor) {
+      return accept(globalVersion);
+    }
+
+    return reject(globalVersion);
+  };
+}
+
+export const isCompatible = _makeCompatibilityCheck(VERSION);
+
+const major = VERSION.split(".")[0];
+const GLOBAL_OPENTELEMETRY_API_KEY = Symbol.for(
+  `opentelemetry.js.api.${major}`,
+);
+const _global = _globalThis;
+
+export function registerGlobal(type, instance, diag, allowOverride = false) {
+  const api = (_global[GLOBAL_OPENTELEMETRY_API_KEY] = _global[
+    GLOBAL_OPENTELEMETRY_API_KEY
+  ] ?? {
+    version: VERSION,
+  });
+
+  if (!allowOverride && api[type]) {
+    const err = new Error(
+      `@opentelemetry/api: Attempted duplicate registration of API: ${type}`,
+    );
+    diag.error(err.stack || err.message);
+    return false;
+  }
+
+  if (api.version !== VERSION) {
+    const err = new Error(
+      `@opentelemetry/api: Registration of version v${api.version} for ${type} does not match previously registered API v${VERSION}`,
+    );
+    diag.error(err.stack || err.message);
+    return false;
+  }
+
+  api[type] = instance;
+  diag.debug(
+    `@opentelemetry/api: Registered a global for ${type} v${VERSION}.`,
+  );
+  return true;
+}
+
+export function getGlobal(type) {
+  const globalVersion = _global[GLOBAL_OPENTELEMETRY_API_KEY]?.version;
+  if (!globalVersion || !isCompatible(globalVersion)) {
+    return undefined;
+  }
+  return _global[GLOBAL_OPENTELEMETRY_API_KEY]?.[type];
+}
+
+export function unregisterGlobal(type, diag) {
+  diag.debug(
+    `@opentelemetry/api: Unregistering a global for ${type} v${VERSION}.`,
+  );
+  const api = _global[GLOBAL_OPENTELEMETRY_API_KEY];
+  if (api) {
+    delete api[type];
+  }
+}
+
+]]>
+</file>
+
+<file path="lib/work-orders/status.ts">
+<![CDATA[
+type Translator = (key: string, fallback?: string) => string;
+
+const WORK_ORDER_STATUS_LABELS: Record<
+  string,
+  { key: string; fallback: string }
+> = {
+  SUBMITTED: { key: "status.submitted", fallback: "Submitted" },
+  DISPATCHED: { key: "status.dispatched", fallback: "Dispatched" },
+  IN_PROGRESS: { key: "status.inProgress", fallback: "In Progress" },
+  ON_HOLD: { key: "status.onHold", fallback: "On Hold" },
+  COMPLETED: { key: "status.completed", fallback: "Completed" },
+  VERIFIED: { key: "status.verified", fallback: "Verified" },
+  CLOSED: { key: "status.closed", fallback: "Closed" },
+  CANCELLED: { key: "status.cancelled", fallback: "Cancelled" },
+  PENDING: { key: "status.pending", fallback: "Pending" },
+  APPROVED: { key: "status.approved", fallback: "Approved" },
+  REJECTED: { key: "status.rejected", fallback: "Rejected" },
+  OPEN: { key: "status.open", fallback: "Open" },
+  DRAFT: { key: "status.draft", fallback: "Draft" },
+  SCHEDULED: { key: "workOrders.status.scheduled", fallback: "Scheduled" },
+  DUE: { key: "workOrders.status.due", fallback: "Due soon" },
+  OVERDUE: { key: "workOrders.status.overdue", fallback: "Overdue" },
+  UNDER_REVIEW: {
+    key: "workOrders.status.underReview",
+    fallback: "Under review",
+  },
+  VERIFICATION: { key: "status.verified", fallback: "Verified" },
+};
+
+/**
+ * Maps backend work-order statuses (case-insensitive, ignores dashes/spaces)
+ * to translated labels.
+ */
+export function getWorkOrderStatusLabel(
+  t: Translator,
+  status?: string | null,
+): string {
+  if (!status) {
+    return "";
+  }
+
+  const normalized = status.replace(/[\s-]+/g, "_").toUpperCase();
+  const entry = WORK_ORDER_STATUS_LABELS[normalized];
+
+  if (entry) {
+    return t(entry.key, entry.fallback);
+  }
+
+  return status;
+}
+
+]]>
+</file>
+
+<file path="lib/zatca.ts">
+<![CDATA[
+import QRCode from "qrcode";
+import { logger } from "@/lib/logger";
+
+// ZATCA specification limits
+const MAX_TLV_FIELD_LENGTH = 256; // Maximum bytes per field per ZATCA spec
+
+interface ZATCAData {
+  sellerName: string;
+  vatNumber: string;
+  timestamp: string;
+  total: string | number;
+  vatAmount: string | number;
+}
+
+/**
+ * Create a TLV (Tag-Length-Value) buffer for ZATCA QR code
+ * @throws Error if value exceeds ZATCA maximum field length (256 bytes)
+ */
+function toTLV(tag: number, value: string): Buffer {
+  const valueBuffer = Buffer.from(value, "utf8");
+  
+  // SECURITY FIX: Validate TLV field length per ZATCA specification
+  if (valueBuffer.length > MAX_TLV_FIELD_LENGTH) {
+    throw new Error(
+      `ZATCA TLV field (tag ${tag}) exceeds maximum length of ${MAX_TLV_FIELD_LENGTH} bytes. ` +
+      `Actual: ${valueBuffer.length} bytes. Truncate or split the value.`
+    );
+  }
+  
+  const tagBuffer = Buffer.from([tag]);
+  const lengthBuffer = Buffer.from([valueBuffer.length]);
+
+  return Buffer.concat([tagBuffer, lengthBuffer, valueBuffer]);
+}
+
+export function generateZATCATLV(data: ZATCAData): string {
+  const tlvArray = [
+    toTLV(1, data.sellerName),
+    toTLV(2, data.vatNumber),
+    toTLV(3, data.timestamp),
+    toTLV(4, String(data.total)),
+    toTLV(5, String(data.vatAmount)),
+  ];
+
+  const tlvBuffer = Buffer.concat(tlvArray);
+  return tlvBuffer.toString("base64");
+}
+
+export async function generateZATCAQR(data: ZATCAData): Promise<string> {
+  const tlvString = generateZATCATLV(data);
+
+  try {
+    const qrDataURL = await QRCode.toDataURL(tlvString, {
+      errorCorrectionLevel: "L",
+      margin: 1,
+      width: 300,
+    });
+    return qrDataURL;
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("QR Code generation error:", { error });
+    throw new Error("Failed to generate QR code");
+  }
+}
+
+export function validateZATCAData(data: ZATCAData): boolean {
+  // Validate seller name
+  if (!data.sellerName || data.sellerName.length > 300) {
+    return false;
+  }
+
+  // Validate VAT number (should be 15 digits for Saudi Arabia)
+  if (!data.vatNumber || !/^\d{15}$/.test(data.vatNumber)) {
+    return false;
+  }
+
+  // Validate timestamp (ISO 8601 format)
+  if (!data.timestamp || isNaN(Date.parse(data.timestamp))) {
+    return false;
+  }
+
+  // Validate total amount
+  const totalStr = String(data.total);
+  if (!data.total || isNaN(parseFloat(totalStr)) || parseFloat(totalStr) < 0) {
+    return false;
+  }
+
+  // Validate VAT amount
+  const vatStr = String(data.vatAmount);
+  if (!data.vatAmount || isNaN(parseFloat(vatStr)) || parseFloat(vatStr) < 0) {
+    return false;
+  }
+
+  return true;
+}
+
+]]>
+</file>
+
+<file path="lighthouserc.json">
+<![CDATA[
+{
+  "ci": {
+    "collect": {
+      "staticDistDir": "out",
+      "numberOfRuns": 1
+    },
+    "assert": {
+      "assertions": {
+        "categories:accessibility": ["warn", { "minScore": 0.95 }],
+        "categories:performance": ["warn", { "minScore": 0.8 }]
+      }
+    },
+    "upload": {
+      "target": "filesystem",
+      "outputDir": "lhci_reports"
+    }
+  }
+}
+
+]]>
+</file>
+
+<file path="middleware.ts">
+<![CDATA[
+import { NextResponse, NextRequest } from 'next/server';
+import { logger } from '@/lib/logger';
+import { handlePreflight } from '@/server/security/headers';
+import { isOriginAllowed } from '@/lib/security/cors-allowlist';
+import { logSecurityEvent } from '@/lib/monitoring/security-events';
+import { getClientIP } from '@/server/security/headers';
+import {
+  AUTH_ROUTES,
+  MARKETING_ROUTES,
+  PROTECTED_MARKETPLACE_ACTIONS,
+  PROTECTED_ROUTE_PREFIXES,
+  PUBLIC_MARKETPLACE_PREFIXES,
+} from '@/config/routes/public';
+
+// ⚡ PERFORMANCE OPTIMIZATION: Lazy-load auth only for protected routes
+// Previously: auth imported eagerly (adds ~30-40 KB to middleware bundle)
+// Now: auth loaded conditionally only when needed
+// Expected impact: Middleware size 105 KB → 60-65 KB (-40-45 KB, -40% bundle size)
+
+// ---------- Types ----------
+interface SessionUser {
+  id: string;
+  email?: string | null;
+  role: string;
+  orgId: string | null;
+  isSuperAdmin: boolean;
+  permissions: string[];
+  roles: string[];
+}
+
+interface AuthSession {
+  user?: SessionUser | null;
+}
+
+type WrappedReq = NextRequest & { auth?: AuthSession | null };
+
+// ---------- Configurable switches ----------
+const isE2E = process.env.PLAYWRIGHT === 'true' || process.env.NEXT_PUBLIC_E2E === 'true';
+const API_PROTECT_ALL = process.env.API_PROTECT_ALL !== 'false'; // secure-by-default
+const REQUIRE_ORG_ID_FOR_FM = process.env.REQUIRE_ORG_ID === 'true';
+// SECURITY: Enable CSRF protection for state-changing requests
+const CSRF_PROTECTION_ENABLED = process.env.CSRF_PROTECTION !== 'false'; // enabled by default
+
+// ---------- CSRF Protection ----------
+// Routes exempt from CSRF validation (auth callbacks, webhooks, etc.)
+const CSRF_EXEMPT_ROUTES = [
+  '/api/auth',       // NextAuth handles its own CSRF
+  '/api/webhooks',   // Webhooks use signature verification
+  '/api/health',     // Health checks don't change state
+  '/api/copilot',    // AI assistant uses separate auth
+  '/api/qa/log',     // QA logging endpoints are test utilities
+  '/api/qa/reconnect', // QA heartbeat endpoint used by Playwright harness
+  '/api/projects',   // Projects mock API used by Playwright tests
+];
+
+/**
+ * Validate CSRF token for state-changing requests
+ * Token must be present in X-CSRF-Token header and match session cookie
+ */
+function validateCSRF(request: NextRequest): boolean {
+  // Skip for safe methods (GET, HEAD, OPTIONS)
+  const method = request.method.toUpperCase();
+  if (['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+    return true;
+  }
+  
+  const pathname = request.nextUrl.pathname;
+  
+  // Skip for exempt routes
+  if (CSRF_EXEMPT_ROUTES.some(route => pathname.startsWith(route))) {
+    return true;
+  }
+  
+  // Get CSRF token from header
+  const headerToken = request.headers.get('X-CSRF-Token') || request.headers.get('x-csrf-token');
+  
+  // Get CSRF token from cookie (set by client on initial page load)
+  const cookieToken = request.cookies.get('csrf-token')?.value;
+  
+  // Both must be present and match
+  if (!headerToken || !cookieToken) {
+    logger.warn('[CSRF] Missing token', {
+      path: pathname,
+      method,
+      hasHeader: !!headerToken,
+      hasCookie: !!cookieToken,
+    });
+    return false;
+  }
+  
+  if (headerToken !== cookieToken) {
+    logger.warn('[CSRF] Token mismatch', { path: pathname, method });
+    return false;
+  }
+  
+  return true;
+}
+
+// ---------- Rate limiting for credential logins (tests expect 429 on abuse) ----------
+const LOGIN_RATE_LIMIT_WINDOW_MS =
+  Number(process.env.LOGIN_RATE_LIMIT_WINDOW_MS) || 60_000; // 1 minute default
+const LOGIN_RATE_LIMIT_MAX =
+  Number(process.env.LOGIN_RATE_LIMIT_MAX_ATTEMPTS) || 5;
+type RateEntry = { count: number; expiresAt: number };
+const loginAttempts = new Map<string, RateEntry>();
+
+// Cleanup expired rate limit entries every minute to prevent memory leak
+if (typeof setInterval !== 'undefined') {
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of loginAttempts.entries()) {
+      if (entry.expiresAt < now) {
+        loginAttempts.delete(key);
+      }
+    }
+  }, 60_000); // Run cleanup every 60 seconds
+}
+
+// ---------- Route helpers ----------
+function matchesRoute(pathname: string, route: string): boolean {
+  if (pathname === route) return true;
+  if (pathname.startsWith(route)) {
+    const nextChar = pathname[route.length];
+    if (nextChar === '/' || nextChar === undefined) return true;
+  }
+  return false;
+}
+function matchesAnyRoute(pathname: string, routes: string[]): boolean {
+  return routes.some((r) => matchesRoute(pathname, r));
+}
+
+// ---------- Public/Protected route sets ----------
+const publicRoutes = [...MARKETING_ROUTES, ...AUTH_ROUTES];
+
+const publicMarketplaceRoutes = PUBLIC_MARKETPLACE_PREFIXES;
+
+const protectedMarketplaceActions = PROTECTED_MARKETPLACE_ACTIONS;
+
+const fmRoutes = PROTECTED_ROUTE_PREFIXES.filter((route) => route.startsWith('/fm'));
+
+const publicApiPrefixes = [
+  '/api/auth',
+  '/api/copilot',
+  '/api/health',
+  '/api/i18n',
+  '/api/qa/health',
+  '/api/qa/reconnect',
+  '/api/qa/log',
+  '/api/marketplace/categories',
+  '/api/marketplace/products',
+  '/api/marketplace/search',
+  '/api/projects',
+  '/api/webhooks',
+  // SECURITY: /api/admin/* endpoints require auth - do NOT add to public list
+  // NOTE: /api/copilot is public but enforces role-based policies internally via CopilotSession
+];
+
+// Dev helpers gate
+function isDevHelpersPath(pathname: string): boolean {
+  return (
+    matchesRoute(pathname, '/login-helpers') ||
+    matchesRoute(pathname, '/dev/login-helpers') ||
+    pathname.startsWith('/api/dev/')
+  );
+}
+
+function isPublicAsset(pathname: string): boolean {
+  return (
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/favicon.ico') ||
+    pathname.startsWith('/api/_next/') ||
+    pathname.includes('.') // crude but effective for /public/* assets served at root
+  );
+}
+
+// ---------- Auth utilities ----------
+// ⚡ OPTIMIZATION: Lazy-load auth function only when needed
+async function getAuthSession(request: NextRequest): Promise<SessionUser | null> {
+  try {
+    const { auth } = await import('@/auth');
+    
+    // Type assertion for NextAuth middleware wrapper
+    type AuthMiddleware = (
+      _handler: (_req: WrappedReq) => Promise<SessionUser | null>
+    ) => (_request: NextRequest) => Promise<SessionUser | null>;
+    const wrappedAuth = auth as unknown as AuthMiddleware;
+    
+    const handler = wrappedAuth(async (req: WrappedReq) => {
+      const sess = req.auth;
+      if (!sess?.user) return null;
+      
+      return { 
+        id: sess.user.id || (sess as { sub?: string }).sub || '',
+        email: sess.user.email || null,
+        role: sess.user.role || 'USER',
+        orgId: sess.user.orgId || null,
+        isSuperAdmin: sess.user.isSuperAdmin || false,
+        permissions: sess.user.permissions || [],
+        roles: sess.user.roles || [],
+      } as SessionUser;
+    });
+    
+    const result = await handler(request);
+    return result;
+  } catch (error) {
+    logger.error('Auth session error:', { error });
+    return null;
+  }
+}
+
+// Check if user has any of the given permissions
+function hasAnyPermission(user: SessionUser | null, permissions: string[]): boolean {
+  if (!user) return false;
+  if (user.isSuperAdmin) return true;
+  if (!user.permissions || !Array.isArray(user.permissions)) return false;
+  if (user.permissions.includes('*')) return true;
+  return permissions.some(p => user.permissions.includes(p));
+}
+
+function attachUserHeaders(req: NextRequest, user: SessionUser): NextResponse {
+  const headers = new Headers(req.headers);
+  const supportOrgId = user.isSuperAdmin ? req.cookies.get('support_org_id')?.value : undefined;
+  const effectiveOrgId = supportOrgId || user.orgId || null;
+
+  const payload = {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    orgId: effectiveOrgId,
+    realOrgId: user.orgId,
+    isSuperAdmin: user.isSuperAdmin,
+    permissions: user.permissions,
+    roles: user.roles,
+    impersonatedOrgId: supportOrgId || null,
+  };
+
+  headers.set('x-user', JSON.stringify(payload));
+  if (effectiveOrgId) {
+    headers.set('x-org-id', effectiveOrgId);
+  }
+  if (supportOrgId) {
+    headers.set('x-impersonated-org-id', supportOrgId);
+  }
+  return NextResponse.next({ request: { headers } });
+}
+
+// ---------- Middleware ----------
+// Exported for testing: sanitize incoming headers to avoid spoofing
+export function sanitizeIncomingHeaders(request: NextRequest): Headers {
+  const sanitizedHeaders = new Headers(request.headers);
+  sanitizedHeaders.delete('x-user');
+  sanitizedHeaders.delete('x-org-id');
+  sanitizedHeaders.delete('x-impersonated-org-id');
+  // Only strip x-user-id headers in production (tests may use them)
+  if (process.env.NODE_ENV !== 'test') {
+    sanitizedHeaders.delete('x-user-id');
+    sanitizedHeaders.delete('x-user-role');
+    sanitizedHeaders.delete('x-user-email');
+    sanitizedHeaders.delete('x-user-org-id');
+  }
+  return sanitizedHeaders;
+}
+
+export async function middleware(request: NextRequest) {
+  // SECURITY: Strip any incoming x-user/x-org headers to prevent spoofing
+  // These headers are set by middleware ONLY after validating the session
+  const sanitizedHeaders = sanitizeIncomingHeaders(request);
+
+  // Use a request clone with sanitized headers for all downstream logic
+  const sanitizedRequest = new NextRequest(request, { headers: sanitizedHeaders });
+
+  const { pathname } = sanitizedRequest.nextUrl;
+  const method = sanitizedRequest.method;
+  const isApiRequest = pathname.startsWith('/api');
+  const isUnitTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
+  const isPlaywright = !isUnitTest && process.env.PLAYWRIGHT_TESTS === 'true';
+  const stubPagesForPlaywright =
+    process.env.PLAYWRIGHT_STUB_PAGES === 'true';
+  const clientIp = getClientIP(sanitizedRequest) || 'unknown';
+
+  // Lightweight rate limit specifically for credential callback to satisfy abuse protection and tests
+  if (!isPlaywright && pathname === '/api/auth/callback/credentials' && method === 'POST') {
+    const entry = loginAttempts.get(clientIp);
+    const now = Date.now();
+    if (entry && entry.expiresAt > now) {
+      if (entry.count >= LOGIN_RATE_LIMIT_MAX) {
+        return NextResponse.json({ error: 'Too many attempts. Please try again later.' }, { status: 429 });
+      }
+      entry.count += 1;
+      loginAttempts.set(clientIp, entry);
+    } else {
+      loginAttempts.set(clientIp, { count: 1, expiresAt: now + LOGIN_RATE_LIMIT_WINDOW_MS });
+    }
+  }
+
+  // Playwright stub pages to avoid runtime client errors during E2E smoke checks
+  // Disabled by default so full layouts render in E2E runs; opt-in with PLAYWRIGHT_STUB_PAGES=true.
+  if (isPlaywright && stubPagesForPlaywright && !isApiRequest) {
+    const modules = [
+      "Dashboard",
+      "Work Orders",
+      "Properties",
+      "Finance",
+      "Human Resources",
+      "Administration",
+      "CRM",
+      "Marketplace",
+      "Support",
+      "Compliance",
+      "Reports",
+      "System",
+    ];
+
+    const pageMap: Record<string, string> = {
+      "/": `
+        <html><body>
+          <header style="background:#0061A8;padding:12px;color:white;">Header</header>
+          <main style="padding:16px;">
+            <a href="/login">Sign in</a>
+            <h1>Fixzit Souq</h1>
+            <button>Access</button>
+          </main>
+          <footer><button aria-label="Select language">Select language</button></footer>
+        </body></html>
+      `,
+      "/login": `
+        <html><body>
+          <header>Header</header>
+          <main>
+            <label>Email or employee number<input aria-label="Email or employee number" /></label>
+            <label>Password<input aria-label="Password" type="password" /></label>
+            <button type="submit" onclick="location.href='/dashboard'">Sign In</button>
+          </main>
+        </body></html>
+      `,
+      "/dashboard": `
+        <html><body>
+          <header>Header</header>
+          <aside>${modules
+            .map((m) => `<button>${m}</button>`)
+            .join("")}</aside>
+          <main><h1>Dashboard</h1></main>
+        </body></html>
+      `,
+      "/properties": `<html><body><header>Header</header><h1>Properties</h1><footer>Footer</footer></body></html>`,
+      "/work-orders": `<html><body><header>Header</header><h1>Work Orders</h1><footer>Footer</footer></body></html>`,
+      "/marketplace": `
+        <html><body>
+          <header>Header</header>
+          <main>
+            <h1>Facilities, MRO & Construction Marketplace</h1>
+            <div class="grid gap-6"><div>Card</div></div>
+          </main>
+          <footer>Footer</footer>
+        </body></html>
+      `,
+      "/reports": `<html><body><header>Header</header><h1>Reports</h1><footer>Footer</footer></body></html>`,
+      "/help": `
+        <html><body>
+          <h1>Fixzit Knowledge Center</h1>
+          <button onclick="window.open('/help/ai-chat','_blank')">Ask AI Assistant</button>
+          <button onclick="window.open('/help/support-ticket','_blank')">Create Support Ticket</button>
+          <a href="/support/my-tickets">View My Tickets</a>
+          <h2>Interactive Tutorials</h2>
+          <h3>Getting Started with Fixzit FM</h3>
+          <div>15 min <span>Beginner</span> <span>Intermediate</span></div>
+          ${Array.from({ length: 5 })
+            .map(() => `<button>Start Tutorial</button>`)
+            .join("")}
+          <h2>Work Orders 101</h2>
+          <h2>General Overview</h2>
+          <div>General</div>
+          <div>Updated 2024-01-15</div>
+          <a href="/help/work-orders-101">Read More</a>
+          <div>No articles found.</div>
+          <h2>System Overview</h2>
+          <h3>Properties</h3><h3>Work Orders</h3><h3>Vendors</h3><h3>Finance</h3>
+        </body></html>
+      `,
+      "/aqar": `
+        <html><body>
+          <h1>Aqar</h1>
+          <a href="/aqar/properties">Properties</a>
+        </body></html>
+      `,
+      "/souq/catalog": `
+        <html><body>
+          <h1>Materials Marketplace Catalog</h1>
+        </body></html>
+      `,
+    };
+
+    if (pageMap[pathname]) {
+      return new NextResponse(pageMap[pathname], {
+        headers: { "content-type": "text/html" },
+      });
+    }
+  }
+
+  // --------- Test harness fast-path ----------
+  if (isUnitTest) {
+    // Minimal but strict enforcement for unit tests to validate redirects/401s/CSRF
+    const hasTestSession = Boolean(sanitizedRequest.cookies.get('fixzit_auth'));
+    if (isApiRequest) {
+      // Allow public API prefixes even in test mode
+      const isPublicApi = publicApiPrefixes.some((p) => matchesRoute(pathname, p));
+      if (isPublicApi) {
+        return NextResponse.next();
+      }
+      const isSafeMethod = ['GET', 'HEAD', 'OPTIONS'].includes(method);
+      if (!isSafeMethod && CSRF_PROTECTION_ENABLED && !validateCSRF(sanitizedRequest)) {
+        return NextResponse.json(
+          { error: 'Invalid or missing CSRF token' },
+          { status: 403 }
+        );
+      }
+      if (!hasTestSession && API_PROTECT_ALL) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      // Allow rest of middleware (auth header injection) for tests with session
+    } else {
+      const isProtectedRoute =
+        matchesAnyRoute(pathname, PROTECTED_ROUTE_PREFIXES) ||
+        matchesAnyRoute(pathname, protectedMarketplaceActions);
+      if (isProtectedRoute && !hasTestSession) {
+        return NextResponse.redirect(new URL('/login', sanitizedRequest.url));
+      }
+    }
+  }
+
+  if (isApiRequest) {
+    // Test harness: allow API calls to flow without auth/CSRF during Playwright runs
+    if (isPlaywright) {
+      return NextResponse.next();
+    }
+    if (method === 'OPTIONS') {
+      const preflight = handlePreflight(sanitizedRequest);
+      if (preflight) return preflight;
+    }
+
+    const origin = sanitizedRequest.headers.get('origin');
+    if (origin && !isOriginAllowed(origin)) {
+      // Log CORS block for monitoring
+      logSecurityEvent({
+        type: 'cors_block',
+        ip: clientIp,
+        path: pathname,
+        timestamp: new Date().toISOString(),
+        metadata: {
+          origin,
+          method,
+        },
+      }).catch(err => logger.error('[CORS] Failed to log security event', { error: err }));
+      
+      return NextResponse.json(
+        { error: 'Origin not allowed' },
+        { status: 403 }
+      );
+    }
+
+    // SECURITY: CSRF protection for state-changing API requests
+    if (CSRF_PROTECTION_ENABLED && !validateCSRF(sanitizedRequest)) {
+      logSecurityEvent({
+        type: 'csrf_violation',
+        ip: clientIp,
+        path: pathname,
+        timestamp: new Date().toISOString(),
+        metadata: { method },
+      }).catch(err => logger.error('[CSRF] Failed to log security event', { error: err }));
+      
+      return NextResponse.json(
+        { error: 'Invalid or missing CSRF token' },
+        { status: 403 }
+      );
+    }
+  }
+
+  // Dev helpers hard gate (server-only check)
+  const devEnabled = process.env.ENABLE_DEMO_LOGIN === 'true' || process.env.NODE_ENV === 'development';
+  if (!devEnabled && isDevHelpersPath(pathname)) {
+    return NextResponse.redirect(new URL('/login', sanitizedRequest.url));
+  }
+
+  // Skip static assets & preflights quickly
+  if (isPublicAsset(pathname) || method === 'OPTIONS') {
+    return NextResponse.next();
+  }
+
+  // Public pages
+  if (matchesAnyRoute(pathname, publicRoutes) || matchesAnyRoute(pathname, publicMarketplaceRoutes)) {
+    return NextResponse.next();
+  }
+
+  // --------- API branch ----------
+  if (pathname.startsWith('/api/')) {
+    // Allow public API prefixes
+    if (publicApiPrefixes.some((p) => matchesRoute(pathname, p))) {
+      return NextResponse.next();
+    }
+
+    // All other API routes require authentication (API_PROTECT_ALL=true by default)
+    if (!API_PROTECT_ALL) {
+      return NextResponse.next();
+    }
+
+    const user = await getAuthSession(sanitizedRequest);
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // RBAC: Admin and System endpoints require elevated privileges
+    // Use segment boundary matching to avoid false matches (e.g., /api/adminXYZ)
+    const isAdminRoute = pathname === '/api/admin' || pathname.startsWith('/api/admin/');
+    const isSystemRoute = pathname === '/api/system' || pathname.startsWith('/api/system/');
+    if (isAdminRoute || isSystemRoute) {
+      // Super Admin always has access
+      if (user.isSuperAdmin) {
+        return attachUserHeaders(sanitizedRequest, user);
+      }
+      
+      // Check for admin permissions
+      const hasAdminAccess = hasAnyPermission(user, [
+        'system:admin.access',
+        'system:settings.write',
+        '*',
+      ]);
+      
+      if (!hasAdminAccess) {
+        // Fallback to legacy role check (includes legacy aliases for migration period)
+        const adminRoles = new Set(['SUPER_ADMIN', 'ADMIN', 'CORPORATE_ADMIN']);
+        if (!adminRoles.has(user.role)) {
+          logger.warn('[Middleware] API admin access denied', {
+            path: pathname,
+            role: user.role,
+            permissions: user.permissions,
+          });
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+      }
+    }
+
+    return attachUserHeaders(sanitizedRequest, user);
+  }
+
+  // --------- Non-API protected areas ----------
+  // Resolve user from NextAuth session only
+  const hasSessionCookie =
+    Boolean(sanitizedRequest.cookies.get('authjs.session-token')) ||
+    Boolean(sanitizedRequest.cookies.get('next-auth.session-token'));
+  const user = hasSessionCookie ? await getAuthSession(sanitizedRequest) : null;
+
+  // Unauthenticated flows → redirect for protected zones
+  if (!user) {
+    const isProtectedRoute =
+      matchesAnyRoute(pathname, PROTECTED_ROUTE_PREFIXES) ||
+      matchesAnyRoute(pathname, protectedMarketplaceActions);
+
+    if (isProtectedRoute) {
+      return NextResponse.redirect(new URL('/login', sanitizedRequest.url));
+    }
+    return NextResponse.next();
+  }
+
+  // Admin RBAC for /admin and /admin/* (consistent with API RBAC)
+  if (matchesRoute(pathname, '/admin')) {
+    // Super Admin always has access
+    if (user.isSuperAdmin) {
+      return attachUserHeaders(sanitizedRequest, user);
+    }
+    
+    // Check for admin permissions
+    const hasAdminAccess = hasAnyPermission(user, [
+      'system:admin.access',
+      'system:settings.write',
+      '*',
+    ]);
+    
+    if (!hasAdminAccess) {
+      // Fallback to legacy role check (includes legacy aliases for migration period)
+      const adminRoles = new Set(['SUPER_ADMIN', 'ADMIN', 'CORPORATE_ADMIN']);
+      if (!adminRoles.has(user.role)) {
+        return NextResponse.redirect(new URL('/login', sanitizedRequest.url));
+      }
+    }
+  }
+
+  // Authenticated users visiting /login should be redirected to dashboard
+  if (pathname === '/login' && !isE2E) {
+    return NextResponse.redirect(new URL('/dashboard', sanitizedRequest.url));
+  }
+
+  // Optional org requirement for FM
+  if (REQUIRE_ORG_ID_FOR_FM && matchesAnyRoute(pathname, fmRoutes) && !user.orgId) {
+    return NextResponse.redirect(new URL('/login', sanitizedRequest.url));
+  }
+
+  // Attach x-user headers for FM and protected marketplace actions
+  if (matchesAnyRoute(pathname, fmRoutes) || matchesAnyRoute(pathname, protectedMarketplaceActions)) {
+    return attachUserHeaders(sanitizedRequest, user);
+  }
+
+  return NextResponse.next();
+}
+
+// ---------- Matcher ----------
+export const config = {
+  matcher: [
+    // Match everything except Next static/image and favicon; public/ isn't a real route but keep the guard.
+    '/((?!_next/static|_next/image|favicon.ico|public/).*)',
+  ],
+};
+
+]]>
+</file>
+
+<file path="modules/organizations/service.ts">
+<![CDATA[
+import mongoose from "mongoose";
+import Organization from "./schema";
+import type {
+  CreateOrganizationInput,
+  UpdateOrganizationInput,
+  QueryOrganizationsInput,
+} from "./validator";
+
+const escapeRegex = (value: string): string =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+export class OrganizationService {
+  static async list(filters: QueryOrganizationsInput) {
+    const { page, limit, subscriptionPlan, status, search, sortBy, sortOrder } =
+      filters;
+    const query: Record<string, unknown> = {};
+
+    if (subscriptionPlan) query.subscriptionPlan = subscriptionPlan;
+    if (status) query.status = status;
+    if (search) {
+      const safeSearch = escapeRegex(search);
+      query.$or = [
+        { name: { $regex: safeSearch, $options: "i" } },
+        { nameAr: { $regex: safeSearch, $options: "i" } },
+      ];
+    }
+
+    const skip = (page - 1) * limit;
+    const sort: Record<string, 1 | -1> = {
+      [sortBy]: sortOrder === "asc" ? 1 : -1,
+    };
+
+    const [organizations, total] = await Promise.all([
+      Organization.find(query).sort(sort).skip(skip).limit(limit).lean().exec(),
+      Organization.countDocuments(query).exec(),
+    ]);
+
+    return {
+      data: organizations,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1,
+      },
+    };
+  }
+
+  static async getById(id: string) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new Error("Invalid organization ID format");
+    }
+    const organization = await Organization.findById(id).lean().exec();
+    if (!organization) throw new Error("Organization not found");
+    return organization;
+  }
+
+  static async create(data: CreateOrganizationInput, userId?: string) {
+    const escapedName = escapeRegex(data.name);
+    const existing = await Organization.findOne({
+      name: new RegExp(`^${escapedName}$`, "i"),
+    }).exec();
+    if (existing) throw new Error("Organization with this name already exists");
+
+    const organization = new Organization({
+      ...data,
+      createdBy: userId ? new mongoose.Types.ObjectId(userId) : undefined,
+      updatedBy: userId ? new mongoose.Types.ObjectId(userId) : undefined,
+    });
+    await organization.save();
+    return organization.toObject();
+  }
+
+  static async update(
+    id: string,
+    data: UpdateOrganizationInput,
+    userId?: string,
+  ) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new Error("Invalid organization ID format");
+    }
+    const organization = await Organization.findById(id).exec();
+    if (!organization) throw new Error("Organization not found");
+
+    if (data.name && data.name !== organization.name) {
+      const escapedName = escapeRegex(data.name);
+      const existing = await Organization.findOne({
+        name: new RegExp(`^${escapedName}$`, "i"),
+        _id: { $ne: id },
+      }).exec();
+      if (existing)
+        throw new Error("Organization with this name already exists");
+    }
+
+    Object.assign(organization, data);
+    if (userId) organization.updatedBy = new mongoose.Types.ObjectId(userId);
+    await organization.save();
+    return organization.toObject();
+  }
+
+  static async delete(id: string, userId?: string) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new Error("Invalid organization ID format");
+    }
+    const organization = await Organization.findById(id).exec();
+    if (!organization) throw new Error("Organization not found");
+
+    organization.isActive = false;
+    organization.status = "inactive";
+    if (userId) organization.updatedBy = new mongoose.Types.ObjectId(userId);
+    await organization.save();
+    return organization.toObject();
+  }
+}
+
+]]>
+</file>
+
+<file path="modules/organizations/validator.ts">
+<![CDATA[
+import { z } from "zod";
+
+export const createOrganizationSchema = z
+  .object({
+    name: z.string().trim().min(2).max(100),
+    nameAr: z.string().trim().max(100).optional(),
+    subscriptionPlan: z
+      .enum(["Standard", "Premium", "Enterprise"])
+      .default("Standard"),
+    status: z
+      .enum(["active", "inactive", "suspended", "trial"])
+      .default("active"),
+    logoUrl: z.string().url().optional(),
+    email: z.string().email().optional(),
+    phone: z.string().max(20).optional(),
+    website: z.string().url().optional(),
+    address: z
+      .object({
+        street: z.string().optional(),
+        city: z.string().optional(),
+        state: z.string().optional(),
+        postalCode: z.string().optional(),
+        country: z.string().optional(),
+      })
+      .optional(),
+    billingEmail: z.string().email().optional(),
+    taxId: z.string().max(50).optional(),
+    settings: z
+      .object({
+        timezone: z.string().optional(),
+        language: z.enum(["en", "ar"]).optional(),
+        currency: z.enum(["SAR", "USD", "EUR", "AED"]).optional(),
+      })
+      .optional(),
+  })
+  .strict();
+
+export const updateOrganizationSchema = createOrganizationSchema.partial();
+
+export const queryOrganizationsSchema = z.object({
+  page: z.coerce.number().min(1).default(1),
+  limit: z.coerce.number().min(1).max(100).default(20),
+  subscriptionPlan: z.enum(["Standard", "Premium", "Enterprise"]).optional(),
+  status: z.enum(["active", "inactive", "suspended", "trial"]).optional(),
+  search: z.string().trim().optional(),
+  sortBy: z.enum(["name", "createdAt", "updatedAt"]).default("createdAt"),
+  sortOrder: z.enum(["asc", "desc"]).default("desc"),
+});
+
+export type CreateOrganizationInput = z.infer<typeof createOrganizationSchema>;
+export type UpdateOrganizationInput = z.infer<typeof updateOrganizationSchema>;
+export type QueryOrganizationsInput = z.infer<typeof queryOrganizationsSchema>;
+
+]]>
+</file>
+
+<file path="modules/users/service.ts">
+<![CDATA[
+import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
+import User from "./schema";
+import type {
+  CreateUserInput,
+  UpdateUserInput,
+  QueryUsersInput,
+} from "./validator";
+import {
+  setTenantContext,
+  clearTenantContext,
+} from "@/server/plugins/tenantIsolation";
+import {
+  setAuditContext,
+  clearAuditContext,
+} from "@/server/plugins/auditPlugin";
+
+export class UserService {
+  static async list(orgId: string, filters: QueryUsersInput) {
+    const { page, limit, role, isActive, search, sortBy, sortOrder } = filters;
+    const query: Record<string, unknown> = { orgId }; // Plugin will auto-filter, but explicit is better
+
+    if (role) query.role = role;
+    if (isActive !== undefined) query.isActive = isActive;
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+        { employeeId: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const skip = (page - 1) * limit;
+    const sort: Record<string, 1 | -1> = {
+      [sortBy]: sortOrder === "asc" ? 1 : -1,
+    };
+
+    // Set tenant context for automatic filtering
+    setTenantContext({ orgId });
+    try {
+      const [users, total] = await Promise.all([
+        User.find(query)
+          .sort(sort)
+          .skip(skip)
+          .limit(limit)
+          .select("-passwordHash")
+          .lean()
+          .exec(),
+        User.countDocuments(query).exec(),
+      ]);
+
+      return {
+        data: users,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasNext: page < Math.ceil(total / limit),
+          hasPrev: page > 1,
+        },
+      };
+    } finally {
+      clearTenantContext();
+    }
+  }
+
+  static async getById(id: string, orgId: string) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new Error("Invalid user ID format");
+    }
+
+    setTenantContext({ orgId });
+    try {
+      const user = await User.findOne({ _id: id, orgId })
+        .select("-passwordHash")
+        .lean()
+        .exec();
+      if (!user) throw new Error("User not found");
+      return user;
+    } finally {
+      clearTenantContext();
+    }
+  }
+
+  static async create(
+    data: CreateUserInput,
+    orgId: string,
+    createdBy?: string,
+  ) {
+    // Set tenant and audit context
+    setTenantContext({ orgId });
+    setAuditContext({
+      userId: createdBy || "SYSTEM",
+      timestamp: new Date(),
+    });
+
+    const { password, ...userData } = data;
+    if (!password) {
+      throw new Error("Password is required");
+    }
+
+    try {
+      const existing = await User.findOne({
+        orgId,
+        email: userData.email,
+      }).exec();
+      if (existing)
+        throw new Error(
+          "User with this email already exists in this organization",
+        );
+
+      const passwordHash = await bcrypt.hash(password, 12);
+      const user = new User({
+        ...userData,
+        orgId, // Explicitly set orgId (plugin will use context as fallback)
+        passwordHash,
+        // createdBy will be set automatically by auditPlugin from context
+      });
+      await user.save();
+      const { passwordHash: _removed, ...safeUser } = user.toObject();
+      return safeUser;
+    } finally {
+      clearTenantContext();
+      clearAuditContext();
+    }
+  }
+
+  static async update(
+    id: string,
+    data: UpdateUserInput,
+    orgId: string,
+    updatedBy?: string,
+  ) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new Error("Invalid user ID format");
+    }
+
+    setTenantContext({ orgId });
+    setAuditContext({
+      userId: updatedBy || "SYSTEM",
+      timestamp: new Date(),
+    });
+
+    try {
+      const user = await User.findOne({ _id: id, orgId }).exec();
+      if (!user) throw new Error("User not found");
+
+      if (data.email && data.email !== user.email) {
+        const existing = await User.findOne({
+          orgId,
+          email: data.email,
+          _id: { $ne: id },
+        }).exec();
+        if (existing) throw new Error("User with this email already exists");
+      }
+
+      Object.assign(user, data);
+      // updatedBy will be set automatically by auditPlugin from context
+      await user.save();
+
+      const { passwordHash: _removed, ...safeUser } = user.toObject();
+      return safeUser;
+    } finally {
+      clearTenantContext();
+      clearAuditContext();
+    }
+  }
+
+  static async delete(id: string, orgId: string, deletedBy?: string) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new Error("Invalid user ID format");
+    }
+
+    setTenantContext({ orgId });
+    setAuditContext({
+      userId: deletedBy || "SYSTEM",
+      timestamp: new Date(),
+    });
+
+    try {
+      const user = await User.findOne({ _id: id, orgId }).exec();
+      if (!user) throw new Error("User not found");
+
+      user.isActive = false;
+      // updatedBy will be set automatically by auditPlugin from context
+      await user.save();
+
+      const { passwordHash: _removed, ...safeUser } = user.toObject();
+      return safeUser;
+    } finally {
+      clearTenantContext();
+      clearAuditContext();
+    }
+  }
+
+  /**
+   * Verify user password with tenant isolation.
+   * SECURITY: Requires orgId to prevent cross-tenant authentication.
+   */
+  static async verifyPassword(
+    email: string,
+    password: string,
+    orgId: string,
+  ): Promise<Record<string, unknown> | null> {
+    if (!orgId) {
+      throw new Error("orgId is required for password verification");
+    }
+    
+    const user = await User.findOne({ email, orgId }).select("+passwordHash").exec();
+    if (!user || !user.isActive) return null;
+
+    const isValid = await bcrypt.compare(password, user.passwordHash);
+    if (!isValid) return null;
+
+    // Update last login with audit context
+    setAuditContext({
+      userId: user._id.toString(),
+      timestamp: new Date(),
+    });
+
+    try {
+      user.lastLoginAt = new Date();
+      await user.save();
+
+      const { passwordHash: _removed, ...safeUser } = user.toObject();
+      return safeUser as Record<string, unknown>;
+    } finally {
+      clearAuditContext();
+    }
+  }
+}
+
+]]>
+</file>
+
+<file path="modules/users/validator.ts">
+<![CDATA[
+import { z } from "zod";
+
+const roleEnum = z.enum([
+  "super_admin",
+  "corporate_admin",
+  "management",
+  "finance",
+  "hr",
+  "employee",
+  "property_owner",
+  "technician",
+  "tenant",
+  "vendor",
+  "guest",
+]);
+
+export const createUserSchema = z
+  .object({
+    email: z.string().email().toLowerCase(),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    name: z.string().trim().min(2).max(100),
+    role: roleEnum,
+    employeeId: z.string().trim().max(50).optional(),
+    permissions: z.array(z.string()).default([]),
+    isActive: z.boolean().default(true),
+  })
+  .strict();
+
+export const updateUserSchema = z
+  .object({
+    email: z.string().email().toLowerCase().optional(),
+    name: z.string().trim().min(2).max(100).optional(),
+    role: roleEnum.optional(),
+    employeeId: z.string().trim().max(50).optional(),
+    permissions: z.array(z.string()).optional(),
+    isActive: z.boolean().optional(),
+  })
+  .strict();
+
+export const queryUsersSchema = z.object({
+  page: z.coerce.number().min(1).default(1),
+  limit: z.coerce.number().min(1).max(100).default(20),
+  role: roleEnum.optional(),
+  isActive: z.coerce.boolean().optional(),
+  search: z.string().trim().optional(),
+  sortBy: z
+    .enum(["name", "email", "createdAt", "lastLoginAt"])
+    .default("createdAt"),
+  sortOrder: z.enum(["asc", "desc"]).default("desc"),
+});
+
+export type CreateUserInput = z.infer<typeof createUserSchema>;
+export type UpdateUserInput = z.infer<typeof updateUserSchema>;
+export type QueryUsersInput = z.infer<typeof queryUsersSchema>;
+
+]]>
+</file>
+
+<file path="nav/registry.ts">
+<![CDATA[
+// src/nav/registry.ts
+// [CODE REVIEW FIX]: Changed Role type to UPPER_SNAKE_CASE to match RBAC middleware (withAuthRbac.ts)
+// and database schema. All route and path strings now include /fm/ prefix to match application structure.
+import React from "react";
+import {
+  LayoutDashboard,
+  ClipboardList,
+  Building2,
+  DollarSign,
+  Users,
+  Settings,
+  UserCheck,
+  ShoppingBag,
+  Headphones,
+  ShieldCheck,
+  BarChart3,
+  Cog,
+} from "lucide-react";
+import type { Role } from "@/config/rbac.config";
+
+// Nav gating uses the canonical STRICT v4.1 Role from config/rbac.config.
+// To add/remove roles, update UserRole in types/user.ts / rbac.config, not here.
+export type { Role };
+
+export type QuickAction = {
+  id: string;
+  label: string;
+  path: string;
+  roles?: Role[];
+};
+
+export type ModuleDef = {
+  id: string;
+  label: string;
+  route: string;
+  icon: React.ComponentType<Record<string, unknown>>;
+  roles: Role[]; // who can see the module
+  children?: { label: string; route: string }[];
+  quickActions: QuickAction[];
+};
+
+export const modules: ModuleDef[] = [
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    route: "/fm/dashboard",
+    icon: LayoutDashboard,
+    // SECURITY FIX: Removed GUEST role - guests should not have dashboard access (principle of least privilege)
+    roles: [
+      "SUPER_ADMIN",
+      "ADMIN",
+      "CORPORATE_OWNER",
+      "TEAM_MEMBER",
+      "TECHNICIAN",
+      "PROPERTY_MANAGER",
+      "TENANT",
+      "VENDOR",
+    ],
+    quickActions: [
+      { id: "qa-new-wo", label: "New Work Order", path: "/fm/work-orders/new" },
+      {
+        id: "qa-new-invoice",
+        label: "New Invoice",
+        path: "/fm/finance/invoices/new",
+      },
+      {
+        id: "qa-add-property",
+        label: "Add Property",
+        path: "/fm/properties/new",
+      },
+    ],
+  },
+  {
+    id: "work-orders",
+    label: "Work Orders",
+    route: "/fm/work-orders",
+    icon: ClipboardList,
+    roles: [
+      "SUPER_ADMIN",
+      "ADMIN",
+      "CORPORATE_OWNER",
+      "TEAM_MEMBER",
+      "TECHNICIAN",
+      "PROPERTY_MANAGER",
+      "TENANT",
+      "VENDOR",
+    ],
+    children: [
+      { label: "Create", route: "/fm/work-orders/new" },
+      { label: "Track & Assign", route: "/fm/work-orders/board" },
+      { label: "Preventive", route: "/fm/work-orders/pm" },
+      { label: "Service History", route: "/fm/work-orders/history" },
+    ],
+    quickActions: [
+      { id: "qa-wo-new", label: "New Work Order", path: "/fm/work-orders/new" },
+      { id: "qa-wo-assign", label: "Assign", path: "/fm/work-orders/board" },
+      {
+        id: "qa-wo-approval",
+        label: "Request Approval",
+        path: "/fm/work-orders/approvals",
+      },
+    ],
+  },
+  {
+    id: "properties",
+    label: "Properties",
+    route: "/fm/properties",
+    icon: Building2,
+    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER", "PROPERTY_MANAGER", "TENANT"],
+    children: [
+      { label: "Property List", route: "/fm/properties" },
+      { label: "Units & Tenants", route: "/fm/properties/units" },
+      { label: "Lease Management", route: "/fm/properties/leases" },
+      { label: "Inspections", route: "/fm/properties/inspections" },
+      { label: "Documents", route: "/fm/properties/documents" },
+    ],
+    quickActions: [
+      { id: "qa-prop-new", label: "Add Property", path: "/fm/properties/new" },
+      {
+        id: "qa-unit-new",
+        label: "Add Unit",
+        path: "/fm/properties/units/new",
+      },
+      {
+        id: "qa-inspection",
+        label: "Create Inspection",
+        path: "/fm/properties/inspections/new",
+      },
+    ],
+  },
+  {
+    id: "finance",
+    label: "Finance",
+    route: "/fm/finance",
+    icon: DollarSign,
+    // STRICT v4.1: Finance roles and officers; visibility for admin and corporate owner/admin
+    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER", "CORPORATE_ADMIN", "FINANCE", "FINANCE_OFFICER"],
+    children: [
+      { label: "Invoices", route: "/fm/finance/invoices" },
+      { label: "Payments", route: "/fm/finance/payments" },
+      { label: "Expenses", route: "/fm/finance/expenses" },
+      { label: "Budgets", route: "/fm/finance/budgets" },
+      { label: "Reports", route: "/fm/finance/reports" },
+    ],
+    quickActions: [
+      {
+        id: "qa-inv-new",
+        label: "New Invoice",
+        path: "/fm/finance/invoices/new",
+      },
+      {
+        id: "qa-pay-new",
+        label: "Record Payment",
+        path: "/fm/finance/payments/new",
+      },
+      {
+        id: "qa-exp-new",
+        label: "New Expense",
+        path: "/fm/finance/expenses/new",
+      },
+      {
+        id: "qa-bud-new",
+        label: "New Budget",
+        path: "/fm/finance/budgets/new",
+      },
+    ],
+  },
+  {
+    id: "hr",
+    label: "Human Resources",
+    route: "/fm/hr",
+    icon: Users,
+    // STRICT v4.1: HR, HR_OFFICER have module access
+    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER", "CORPORATE_ADMIN", "HR", "HR_OFFICER"],
+    children: [
+      { label: "Directory", route: "/fm/hr/directory" },
+      { label: "Attendance & Leave", route: "/fm/hr/leave" },
+      { label: "Payroll", route: "/fm/hr/payroll" },
+      { label: "Recruitment", route: "/fm/hr/recruitment" },
+    ],
+    quickActions: [
+      { id: "qa-hr-emp", label: "Add Employee", path: "/fm/hr/directory/new" },
+      {
+        id: "qa-hr-leave",
+        label: "Approve Leave",
+        path: "/fm/hr/leave/approvals",
+      },
+      { id: "qa-hr-payroll", label: "Run Payroll", path: "/fm/hr/payroll/run" },
+    ],
+  },
+  {
+    id: "administration",
+    label: "Administration",
+    route: "/fm/administration",
+    icon: Settings,
+    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER"],
+    quickActions: [
+      {
+        id: "qa-admin-policy",
+        label: "Add Policy",
+        path: "/fm/administration/policies/new",
+      },
+      {
+        id: "qa-admin-asset",
+        label: "Add Asset",
+        path: "/fm/administration/assets/new",
+      },
+    ],
+  },
+  {
+    id: "crm",
+    label: "CRM",
+    route: "/fm/crm",
+    icon: UserCheck,
+    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER", "TEAM_MEMBER"],
+    quickActions: [
+      { id: "qa-crm-lead", label: "Add Lead", path: "/fm/crm/leads/new" },
+      {
+        id: "qa-crm-account",
+        label: "Add Account",
+        path: "/fm/crm/accounts/new",
+      },
+    ],
+  },
+  {
+    id: "marketplace",
+    label: "Marketplace",
+    route: "/fm/marketplace",
+    icon: ShoppingBag,
+    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER", "TENANT", "VENDOR"],
+    quickActions: [
+      {
+        id: "qa-mkt-vendor",
+        label: "Add Vendor",
+        path: "/fm/marketplace/vendors/new",
+      },
+      {
+        id: "qa-mkt-listing",
+        label: "New Listing",
+        path: "/fm/marketplace/listings/new",
+      },
+      {
+        id: "qa-mkt-po",
+        label: "Raise PO/RFQ",
+        path: "/fm/marketplace/orders/new",
+      },
+    ],
+  },
+  {
+    id: "support",
+    label: "Support & Helpdesk",
+    route: "/fm/support",
+    icon: Headphones,
+    // STRICT v4.1: SUPPORT_AGENT has dedicated access
+    roles: [
+      "SUPER_ADMIN",
+      "ADMIN",
+      "CORPORATE_OWNER",
+      "CORPORATE_ADMIN",
+      "TEAM_MEMBER",
+      "TECHNICIAN",
+      "PROPERTY_MANAGER",
+      "FM_MANAGER",
+      "SUPPORT_AGENT",
+      "OPERATIONS_MANAGER",
+      "TENANT",
+      "VENDOR",
+    ],
+    quickActions: [
+      {
+        id: "qa-sup-ticket",
+        label: "New Ticket",
+        path: "/fm/support/tickets/new",
+      },
+      {
+        id: "qa-sup-escalate",
+        label: "Escalate",
+        path: "/fm/support/escalations/new",
+      },
+    ],
+  },
+  {
+    id: "compliance",
+    label: "Compliance & Legal",
+    route: "/fm/compliance",
+    icon: ShieldCheck,
+    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER"],
+    quickActions: [
+      {
+        id: "qa-legal-contract",
+        label: "Upload Contract",
+        path: "/fm/compliance/contracts/new",
+      },
+      {
+        id: "qa-legal-audit",
+        label: "Start Audit",
+        path: "/fm/compliance/audits/new",
+      },
+    ],
+  },
+  {
+    id: "reports",
+    label: "Reports & Analytics",
+    route: "/fm/reports",
+    icon: BarChart3,
+    roles: [
+      "SUPER_ADMIN",
+      "ADMIN",
+      "CORPORATE_OWNER",
+      "TEAM_MEMBER",
+      "TECHNICIAN",
+      "PROPERTY_MANAGER",
+      "TENANT",
+      "VENDOR",
+    ],
+    quickActions: [
+      { id: "qa-rpt-gen", label: "Generate Report", path: "/fm/reports/new" },
+      {
+        id: "qa-rpt-sched",
+        label: "Schedule",
+        path: "/fm/reports/schedules/new",
+      },
+    ],
+  },
+  {
+    id: "system",
+    label: "System Management",
+    route: "/fm/system",
+    icon: Cog,
+    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER"],
+    quickActions: [
+      {
+        id: "qa-sys-invite",
+        label: "Invite User",
+        path: "/fm/system/users/invite",
+      },
+      { id: "qa-sys-role", label: "Create Role", path: "/fm/system/roles/new" },
+      {
+        id: "qa-sys-int",
+        label: "Configure Integration",
+        path: "/fm/system/integrations",
+      },
+    ],
+  },
+];
+
+]]>
+</file>
+
+<file path="next-env.d.ts">
+<![CDATA[
+/// <reference types="next" />
+/// <reference types="next/image-types/global" />
+/// <reference types="next/navigation-types/compat/navigation" />
+/// <reference path="./.next/types/routes.d.ts" />
+
+// NOTE: This file should not be edited
+// see https://nextjs.org/docs/app/api-reference/config/typescript for more information.
+
+]]>
+</file>
+
+<file path="next.config.js">
+<![CDATA[
+/** @type {import('next').NextConfig} */
+const isDevelopment = process.env.NODE_ENV === 'development';
+const isTruthy = (value) => value === 'true' || value === '1';
+
+// Bundle analyzer configuration
+const path = require('path');
+const fs = require('fs');
+const resolveFromRoot = (...segments) => path.resolve(__dirname, ...segments);
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
+
+// ---- Production guardrails (fail fast for unsafe flags/secrets) ----
+// Only validate critical settings on actual production deployments
+const isProdDeploy = process.env.VERCEL_ENV === 'production';
+const isVercelDeploy = process.env.VERCEL_ENV === 'production' || process.env.VERCEL_ENV === 'preview';
+
+if (isVercelDeploy) {
+  const violations = [];
+  const warnings = [];
+  const tapConfigured =
+    Boolean(process.env.TAP_PUBLIC_KEY) &&
+    Boolean(process.env.TAP_WEBHOOK_SECRET);
+  const paytabsConfigured =
+    Boolean(process.env.PAYTABS_PROFILE_ID) &&
+    Boolean(process.env.PAYTABS_SERVER_KEY);
+  
+  // Critical security checks for all Vercel deployments
+  if (isTruthy(process.env.SKIP_ENV_VALIDATION)) {
+    violations.push('SKIP_ENV_VALIDATION must be false in production');
+  }
+  if (isTruthy(process.env.DISABLE_MONGODB_FOR_BUILD)) {
+    violations.push('DISABLE_MONGODB_FOR_BUILD must be false in production');
+  }
+  
+  // Payment provider guardrails (at least one provider configured in production)
+  if (isProdDeploy) {
+    if (!tapConfigured && !paytabsConfigured) {
+      warnings.push(
+        'No payment provider configured: set PayTabs (PAYTABS_PROFILE_ID, PAYTABS_SERVER_KEY) or Tap (TAP_PUBLIC_KEY, TAP_WEBHOOK_SECRET)',
+      );
+    }
+  }
+
+  if (violations.length > 0) {
+    // Throwing here fails the build early and loudly
+    throw new Error(
+      `Production env validation failed:\n- ${violations.join('\n- ')}`
+    );
+  }
+
+  if (warnings.length > 0) {
+    warnings.forEach((warning) => {
+      process.stderr.write(`Production env warning (non-blocking): ${warning}\n`);
+    });
+  }
+}
+
+
+const nextConfig = {
+  // App Router is enabled by default in Next.js 14
+  // No need for experimental.appDir anymore
+
+  // Image optimization for marketplace and property images
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
+      {
+        protocol: 'https',
+        hostname: 'fixzit.co',
+      },
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.amazonaws.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'googleusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'ui-avatars.com',
+      },
+    ],
+    formats: ['image/avif', 'image/webp'],
+  },
+
+  // Environment variables (non-sensitive)
+  env: {
+    NEXT_PUBLIC_APP_NAME: 'FIXZIT SOUQ Enterprise',
+    NEXT_PUBLIC_VERSION: '2.0.26',
+    NEXT_PUBLIC_DEFAULT_LOCALE: 'ar',
+    NEXT_PUBLIC_CURRENCY: 'SAR',
+    CORS_ORIGINS:
+      process.env.CORS_ORIGINS ||
+      'https://fixzit.sa,https://www.fixzit.sa,https://app.fixzit.sa,https://dashboard.fixzit.sa,https://staging.fixzit.sa',
+  },
+
+  // Performance optimizations
+  compress: true,
+  poweredByHeader: false,
+  // Note: SWC is the default compiler in Next.js 15+
+  
+  // SECURITY FIX: Disable production browser sourcemaps to prevent source code exposure
+  // Source maps are generated server-side only (hidden-source-map) for error tracking
+  // If you need source maps for Sentry/monitoring, upload them during CI/CD instead
+  productionBrowserSourceMaps: false,
+  
+  // 🚀 SPEED OPTIMIZATIONS - Memory-optimized for constrained environments
+  experimental: {
+    // Enable optimized package imports (reduces bundle size & build time)
+    // 🔧 MEMORY FIX: Added more packages to reduce memory during tree-shaking
+    optimizePackageImports: [
+      'lucide-react',
+      'date-fns',
+      '@radix-ui/react-icons',
+      'framer-motion',
+      'sonner',
+      'react-day-picker',
+      // Additional heavy packages to optimize
+      '@tanstack/react-query',
+      'react-hook-form',
+      'zod',
+      '@hookform/resolvers',
+      'clsx',
+      'tailwind-merge',
+    ],
+    // Use 1 CPU for build to prevent OOM kills in memory-constrained environments
+    // Root Cause: Limited RAM - Multi-threaded builds cause memory spikes
+    workerThreads: false, // Single-threaded prevents memory spikes
+    cpus: 1, // One worker = stable memory usage
+    // Optimize chunk loading
+    optimisticClientCache: true,
+    // ⚡ PERFORMANCE FIX: Disable devtools in production (saves 175KB + 1.3s execution)
+    nextScriptWorkers: false,
+    // Memory optimizations
+    webpackMemoryOptimizations: true,
+    // Reduce parallel compilation (Next.js 15 handles Edge builds automatically)
+    parallelServerCompiles: false,
+    // 🔧 MEMORY FIX: Reduce parallel server builds
+    parallelServerBuildTraces: false,
+  },
+  // ⚡ FIX BUILD TIMEOUT: Add reasonable timeout for static page generation
+  // Default is infinite which can cause CI to kill the process (exit 143 = SIGTERM)
+  staticPageGenerationTimeout: 180, // 3 minutes per page (was hanging at 135/181 pages)
+
+  // 🚀 Turbopack Configuration (Next.js 15 Development Bundler)
+  // Used when running `npm run dev` (which uses --turbo flag)
+  // Turbopack is 700x faster than Webpack for hot reloads
+  // ✅ FIXES WARNING: "Webpack is configured while Turbopack is not"
+  turbopack: {
+    root: __dirname,
+    // Configure module resolution for Turbopack
+    resolveAlias: {
+      '@': '.',
+    },
+    // Optimize module rules (Turbopack automatically handles most cases)
+    rules: {
+      // Turbopack handles CSS/SCSS/PostCSS automatically
+      // No additional configuration needed
+    },
+  },
+
+  // 🛡️ MEMORY PROTECTION: Prevent cache bloat causing OOM (Exit Code 5)
+  // Root Cause: .next/cache was growing to 3GB+ causing memory exhaustion
+  // Solution: Limit cache and enable aggressive cleanup
+  cacheHandler: undefined, // Use default handler with size limits
+  cacheMaxMemorySize: 50 * 1024 * 1024, // 50MB max cache in memory (default: unlimited)
+  
+  // Clean build artifacts on each build to prevent accumulation
+  cleanDistDir: true,
+
+  // TypeScript and ESLint - PRODUCTION QUALITY GATES
+  // ✅ RESTORED: Build-time type checking and linting enforced
+  // These checks are CRITICAL for preventing broken code from reaching production
+  // If builds are slow, fix the errors - don't disable the checks
+  typescript: {
+    ignoreBuildErrors: false, // ✅ ENFORCE: Build fails if TypeScript errors exist
+    tsconfigPath: './tsconfig.json'
+  },
+  eslint: {
+    ignoreDuringBuilds: false, // ✅ ENFORCE: Build fails if ESLint errors exist
+  },
+
+  serverExternalPackages: [
+    'mongoose', 
+    'bcryptjs',
+    'ioredis', // Keep ioredis server-side only - requires 'dns' module not available in Edge
+    'bullmq', // Keep bullmq server-side only - uses path, child_process, worker_threads, crypto
+    'twilio', // Keep twilio server-side only - uses crypto, stream, etc.
+  ],
+
+  // ✅ FIXED: Turbopack configuration added above to silence warning
+  // 
+  // This webpack config is ONLY used during production builds (`npm run build`)
+  // When running `npm run dev`, Turbopack is used instead (configured above)
+  //
+  webpack: (config, { dev, nextRuntime }) => {
+    // Ensure Next manifest files exist to prevent ENOENT during build/runtime
+    class EnsureManifestsPlugin {
+      apply(compiler) {
+        const ensureFiles = () => {
+          try {
+            const nextDir = resolveFromRoot('.next');
+            const serverDir = path.join(nextDir, 'server');
+            const manifests = [
+              path.join(nextDir, 'routes-manifest.json'),
+              path.join(nextDir, 'build-manifest.json'),
+              path.join(nextDir, 'app-build-manifest.json'),
+              path.join(nextDir, 'prerender-manifest.json'),
+              path.join(nextDir, 'required-server-files.json'),
+              path.join(nextDir, 'BUILD_ID'),
+              path.join(serverDir, 'pages-manifest.json'),
+              path.join(serverDir, 'app-paths-manifest.json'),
+              path.join(serverDir, 'app-build-manifest.json'),
+              path.join(serverDir, 'next-font-manifest.json'),
+            ];
+            const stubs = [
+              path.join(serverDir, 'pages', '_document.js'),
+              path.join(serverDir, 'pages', '_app.js'),
+              path.join(serverDir, 'app', 'page.js'),
+              path.join(serverDir, 'vendor-chunks', '@auth+core@0.41.0.js'),
+            ];
+
+            for (const file of manifests) {
+              const dir = path.dirname(file);
+              if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+              if (!fs.existsSync(file)) {
+                const isBuildId = path.basename(file) === 'BUILD_ID';
+                fs.writeFileSync(
+                  file,
+                  isBuildId ? `${Date.now().toString(36)}` : JSON.stringify({}),
+                  'utf8',
+                );
+              }
+            }
+
+            for (const file of stubs) {
+              const dir = path.dirname(file);
+              if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+              if (!fs.existsSync(file)) {
+                fs.writeFileSync(file, 'module.exports = {};', 'utf8');
+              }
+            }
+
+            // Pre-create .nft.json stubs for app/api route source files (TS/JS) to prevent trace ENOENT
+            const ensureSourceRouteNfts = () => {
+              const apiDir = resolveFromRoot('app', 'api');
+              if (!fs.existsSync(apiDir)) return;
+              const stack = [apiDir];
+              while (stack.length) {
+                const current = stack.pop();
+                const entries = fs.readdirSync(current, { withFileTypes: true });
+                for (const entry of entries) {
+                  const fullPath = path.join(current, entry.name);
+                  if (entry.isDirectory()) {
+                    stack.push(fullPath);
+                  } else if (
+                    entry.isFile() &&
+                    (entry.name === 'route.ts' || entry.name === 'route.js')
+                  ) {
+                    const relativeDir = path.relative(apiDir, path.dirname(fullPath));
+                    const targetDir = path.join(serverDir, 'app', 'api', relativeDir);
+                    if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
+                    const nftPath = path.join(targetDir, 'route.js.nft.json');
+                    if (!fs.existsSync(nftPath)) {
+                      fs.writeFileSync(
+                        nftPath,
+                        JSON.stringify({ version: 1, files: [], warnings: [] }),
+                        'utf8',
+                      );
+                    }
+                  }
+                }
+              }
+            };
+
+            ensureSourceRouteNfts();
+
+            // Ensure .nft.json stubs exist for any emitted route.js files to avoid ENOENT during trace collection
+            const ensureNftStubs = () => {
+              const appDir = path.join(serverDir, 'app');
+              if (!fs.existsSync(appDir)) return;
+              const stack = [appDir];
+              while (stack.length) {
+                const current = stack.pop();
+                const entries = fs.readdirSync(current, { withFileTypes: true });
+                for (const entry of entries) {
+                  const fullPath = path.join(current, entry.name);
+                  if (entry.isDirectory()) {
+                    stack.push(fullPath);
+                  } else if (entry.isFile() && entry.name.endsWith('route.js')) {
+                    const nftPath = `${fullPath}.nft.json`;
+                    if (!fs.existsSync(nftPath)) {
+                      fs.writeFileSync(nftPath, JSON.stringify({ version: 1, files: [], warnings: [] }), 'utf8');
+                    }
+                  }
+                }
+              }
+            };
+
+            ensureNftStubs();
+
+            // Ensure static build manifests exist for the active BUILD_ID to avoid ENOENT in tracing
+            const buildIdPath = path.join(nextDir, 'BUILD_ID');
+            const buildId = fs.existsSync(buildIdPath)
+              ? fs.readFileSync(buildIdPath, 'utf8').trim()
+              : `${Date.now().toString(36)}`;
+            const staticDir = path.join(nextDir, 'static', buildId);
+            if (!fs.existsSync(staticDir)) fs.mkdirSync(staticDir, { recursive: true });
+            const ssgPath = path.join(staticDir, '_ssgManifest.js');
+            const buildManifestPath = path.join(staticDir, '_buildManifest.js');
+            if (!fs.existsSync(ssgPath)) {
+              fs.writeFileSync(
+                ssgPath,
+                'self.__SSG_MANIFEST=new Set;self.__SSG_MANIFEST_CB&&self.__SSG_MANIFEST_CB()',
+                'utf8',
+              );
+            }
+            if (!fs.existsSync(buildManifestPath)) {
+              fs.writeFileSync(
+                buildManifestPath,
+                'self.__BUILD_MANIFEST={};self.__BUILD_MANIFEST_CB&&self.__BUILD_MANIFEST_CB()',
+                'utf8',
+              );
+            }
+          } catch (err) {
+            // Do not fail the build on manifest guard
+            // eslint-disable-next-line no-console
+            console.warn('[next-config] ensure manifests failed', err);
+          }
+        };
+
+        compiler.hooks.beforeRun.tap('EnsureManifestsPlugin', ensureFiles);
+        compiler.hooks.afterEmit.tap('EnsureManifestsPlugin', ensureFiles);
+      }
+    }
+
+    config.plugins = config.plugins || [];
+    config.plugins.push(new EnsureManifestsPlugin());
+
+    // 🔧 MEMORY FIX: Configure webpack cache to use filesystem instead of memory
+    // This reduces memory pressure during large builds by writing cache to disk
+    if (!dev) {
+      config.cache = {
+        type: 'filesystem',
+        buildDependencies: {
+          config: [__filename],
+        },
+        compression: false, // Avoid compression overhead
+        maxMemoryGenerations: 1, // Minimize memory retention
+      };
+    }
+
+    // Production-only webpack optimizations below
+    const otelShim = resolveFromRoot('lib/vendor/opentelemetry/global-utils.js');
+    config.resolve = config.resolve || {};
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@opentelemetry/api/build/esm/internal/global-utils': otelShim,
+      '@opentelemetry/api/build/esm/internal/global-utils.js': otelShim,
+    };
+    
+    // Silence vendor dynamic-require warnings from OpenTelemetry/Sentry bundles
+    config.module = config.module || {};
+    config.module.parser = {
+      ...config.module.parser,
+      javascript: {
+        ...config.module.parser?.javascript,
+        exprContextCritical: false, // suppress "request of a dependency is an expression"
+      },
+    };
+    
+    // ⚡ FIX: Exclude mongoose and server models from Edge Runtime
+    // Edge Runtime (middleware) cannot use dynamic code evaluation (mongoose, bcrypt, etc.)
+    // This ensures these packages are never bundled for Edge Runtime
+    if (nextRuntime === 'edge') {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        mongoose: false,
+        '@/server/models/User': false,
+        '@/server/plugins/tenantIsolation': false, // Uses async_hooks
+        '@/lib/mongoUtils': false,
+        '@/lib/mongoUtils.server': false,
+        'bcryptjs': false,
+        'async_hooks': false,
+        'ioredis': false, // ioredis uses 'dns' module not available in Edge
+      };
+    }
+
+    // Avoid bundling server-only packages on the client to prevent:
+    // - mongoose: schema errors during Playwright runs
+    // - ioredis: "Cannot find module 'dns'" error in browser bundles
+    if (nextRuntime === 'web') {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        mongoose: false,
+        ioredis: false, // ioredis requires 'dns' module not available in browser
+      };
+    }
+
+    // Silence critical-dependency noise from @opentelemetry and @sentry instrumentation (third-party issues)
+    config.ignoreWarnings = [
+      ...(config.ignoreWarnings || []),
+      /@opentelemetry\/instrumentation\/build\/esm\/platform\/node\/instrumentation\.js/,
+      // Suppress expression-based dependency warnings only from known vendor packages
+      /node_modules[\\/]@opentelemetry[\\/].*Critical dependency.*expression/,
+      /node_modules[\\/]@sentry[\\/].*Critical dependency.*expression/,
+    ];
+    
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false,
+      net: false,
+      tls: false,
+      dns: false, // Required by ioredis but not available in browser/Edge
+      mongoose: false, // Exclude mongoose from client/edge bundles
+      ioredis: false, // Exclude ioredis from client/edge bundles (uses dns)
+      async_hooks: false, // Node.js core module - not available in browser
+    }
+    
+    // 🚀 MEMORY-OPTIMIZED: Balance speed with memory constraints
+    if (!dev) {
+      // Production optimizations optimized for 2GB available memory
+      config.optimization = {
+        ...config.optimization,
+        moduleIds: 'deterministic', // Faster than 'hashed'
+        // Keep these enabled for stability in low-memory environments
+        removeAvailableModules: true,
+        removeEmptyChunks: true,
+        // ⚡ PERFORMANCE: Module concatenation (scope hoisting) reduces bundle size
+        concatenateModules: true,
+        // Simplified chunk splitting to reduce memory pressure
+        splitChunks: {
+          chunks: 'all',
+          cacheGroups: {
+            default: false,
+            vendors: false,
+            // Single framework chunk
+            framework: {
+              chunks: 'all',
+              name: 'framework',
+              test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/,
+              priority: 40,
+              enforce: true,
+            },
+            // ⚡ PERFORMANCE: Separate lib chunk for common dependencies
+            lib: {
+              test: /[\\/]node_modules[\\/]/,
+              name: 'commons',
+              priority: 20,
+              minChunks: 2,
+              reuseExistingChunk: true,
+            },
+          },
+        },
+        // ⚡ PERFORMANCE: Minimize bundle size
+        minimize: true,
+      };
+      
+      // Configure source maps: hidden maps for production (enables stack traces without exposing source)
+      // In production, generate hidden source maps for error tracking (upload to Sentry/monitoring)
+      // In development, keep fast builds without source maps to save memory
+      config.devtool = false; // Keep dev builds fast
+      if (!dev && process.env.CI === 'true') {
+        // Production builds in CI: generate hidden source maps for error tracking
+        config.devtool = 'hidden-source-map'; // Generates .map files but doesn't reference them in bundles
+        // Note: Upload generated .map files to Sentry or your error tracking service in CI/CD pipeline
+      }
+      
+      // Limit parallelism to prevent memory spikes
+      config.parallelism = 1;
+    }
+    
+    // Add polling for OneDrive file watching issues (only applies when NOT using turbopack)
+    if (dev) {
+      config.watchOptions = {
+        poll: 1000,
+        aggregateTimeout: 300,
+        ignored: /node_modules/
+      }
+    }
+    
+    return config
+  },
+
+  // Redirects for old routes
+  async redirects() {
+    return [
+      {
+        source: '/admin',
+        destination: '/system',
+        permanent: true,
+      },
+      // Legacy dashboard aliases -> FM routes
+      {
+        source: '/dashboard',
+        destination: '/fm/dashboard',
+        permanent: false,
+      },
+      {
+        source: '/dashboard/:path*',
+        destination: '/fm/:path*',
+        permanent: false,
+      },
+    ]
+  },
+
+  // UI + API rewrites
+  async rewrites() {
+    const apiRewrites = isDevelopment
+      ? [
+          {
+            source: '/api/auth/:path*',
+            destination: '/api/auth/:path*',
+          },
+          {
+            source: '/api/marketplace/:path*',
+            destination: 'http://localhost:5000/api/marketplace/:path*',
+          },
+          {
+            source: '/api/properties/:path*',
+            destination: 'http://localhost:5000/api/properties/:path*',
+          },
+          {
+            source: '/api/workorders/:path*',
+            destination: 'http://localhost:5000/api/workorders/:path*',
+          },
+          {
+            source: '/api/finance/:path*',
+            destination: 'http://localhost:5000/api/finance/:path*',
+          },
+          {
+            source: '/api/hr/:path*',
+            destination: 'http://localhost:5000/api/hr/:path*',
+          },
+          {
+            source: '/api/crm/:path*',
+            destination: 'http://localhost:5000/api/crm/:path*',
+          },
+          {
+            source: '/api/compliance/:path*',
+            destination: 'http://localhost:5000/api/compliance/:path*',
+          },
+          {
+            source: '/api/analytics/:path*',
+            destination: 'http://localhost:5000/api/analytics/:path*',
+          },
+        ]
+      : [];
+
+    return apiRewrites;
+  },
+
+  // Output configuration for deployment
+  // Use standalone output in production builds, but avoid it in local/test to reduce build flakiness
+  output: process.env.NEXT_OUTPUT || (isVercelDeploy ? 'standalone' : undefined),
+}
+
+module.exports = withBundleAnalyzer(nextConfig)
+
+]]>
+</file>
+
+</batch_content>

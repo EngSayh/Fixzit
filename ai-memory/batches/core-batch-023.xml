@@ -1,0 +1,2835 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/fm/finance/invoices/page.tsx">
+<![CDATA[
+"use client";
+import { logger } from "@/lib/logger";
+import { useState } from "react";
+import useSWR from "swr";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Pagination } from "@/components/ui/pagination";
+import { CardGridSkeleton } from "@/components/skeletons";
+import {
+  FileText,
+  Plus,
+  Search,
+  DollarSign,
+  QrCode,
+  Send,
+  Eye,
+  Download,
+  Mail,
+  CheckCircle,
+  AlertCircle,
+  Clock,
+} from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { FmGuardedPage } from "@/components/fm/FmGuardedPage";
+import ClientDate from "@/components/ClientDate";
+import { parseDate } from "@/lib/date-utils";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
+
+interface InvoiceItem {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  discount: number;
+  tax: {
+    type: string;
+    rate: number;
+    amount: number;
+  };
+  total: number;
+}
+
+interface InvoiceRecipient {
+  name: string;
+  taxId?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  customerId?: string;
+}
+
+interface InvoiceZATCA {
+  status?: string;
+  qrCode?: string;
+}
+
+interface InvoicePayment {
+  date?: string;
+}
+
+interface Invoice {
+  id: string;
+  number: string;
+  recipient: InvoiceRecipient;
+  status: string;
+  total: number;
+  currency: string;
+  issueDate: string;
+  dueDate: string;
+  type: string;
+  items?: InvoiceItem[];
+  zatca?: InvoiceZATCA;
+  payments?: InvoicePayment[];
+}
+
+export default function InvoicesPage() {
+  return (
+    <FmGuardedPage moduleId="finance">
+      {({ orgId, supportOrg }) => (
+        <InvoicesContent orgId={orgId} supportOrg={supportOrg} />
+      )}
+    </FmGuardedPage>
+  );
+}
+
+type InvoicesContentProps = {
+  orgId: string;
+  supportOrg?: { name?: string } | null;
+};
+
+function InvoicesContent({ orgId, supportOrg }: InvoicesContentProps) {
+  const { t } = useTranslation();
+  const { data: session } = useSession();
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
+
+  const fetcher = (url: string) =>
+    fetch(url)
+      .then((r) => r.json())
+      .catch((error) => {
+        logger.error("FM invoices fetch error", error);
+        throw error;
+      });
+
+  const { data, mutate, isLoading } = useSWR(
+    orgId
+      ? [
+          `/api/finance/invoices?q=${encodeURIComponent(search)}&status=${statusFilter}&type=${typeFilter}&page=${currentPage}&limit=${itemsPerPage}&org=${encodeURIComponent(
+            orgId,
+          )}`,
+          orgId,
+        ]
+      : null,
+    ([url]) => fetcher(url),
+  );
+
+  if (!session) {
+    return <CardGridSkeleton count={6} />;
+  }
+
+  const invoices: Invoice[] = data?.data || [];
+
+  const totalPages = data?.pagination?.pages || 1;
+  const totalItems = data?.pagination?.total || 0;
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="finance" />
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">
+            {t("fm.invoices.title", "Invoices")}
+          </h1>
+          <p className="text-muted-foreground">
+            {t(
+              "fm.invoices.subtitle",
+              "ZATCA compliant e-invoicing with QR codes",
+            )}
+          </p>
+        </div>
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-success hover:bg-success/90">
+              <Plus className="w-4 h-4 me-2" />
+              {t("fm.invoices.newInvoice", "New Invoice")}
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {t("fm.invoices.createInvoice", "Create Invoice")}
+              </DialogTitle>
+            </DialogHeader>
+            <CreateInvoiceForm
+              orgId={orgId}
+              onCreated={() => {
+                mutate();
+                setCreateOpen(false);
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t("fm.finance.support.activeOrg", "Support context: {{name}}", {
+            name: supportOrg.name ?? "Support org",
+          })}
+        </div>
+      )}
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  {t("fm.invoices.totalOutstanding", "Total Outstanding")}
+                </p>
+                <p className="text-2xl font-bold">
+                  {invoices
+                    .filter(
+                      (inv: Invoice) =>
+                        inv.status !== "PAID" && inv.status !== "CANCELLED",
+                    )
+                    .reduce((sum: number, inv: Invoice) => sum + inv.total, 0)
+                    .toLocaleString()}{" "}
+                  SAR
+                </p>
+              </div>
+              <DollarSign className="w-8 h-8 text-success" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  {t("fm.invoices.overdue", "Overdue")}
+                </p>
+                <p className="text-2xl font-bold text-destructive">
+                  {
+                    invoices.filter((inv: Invoice) => inv.status === "OVERDUE")
+                      .length
+                  }
+                </p>
+              </div>
+              <AlertCircle className="w-8 h-8 text-destructive" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  {t("fm.invoices.pending", "Pending")}
+                </p>
+                <p className="text-2xl font-bold text-accent-foreground">
+                  {
+                    invoices.filter(
+                      (inv: Invoice) =>
+                        inv.status === "SENT" || inv.status === "VIEWED",
+                    ).length
+                  }
+                </p>
+              </div>
+              <Clock className="w-8 h-8 text-accent-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  {t("fm.invoices.paidThisMonth", "Paid This Month")}
+                </p>
+                <p className="text-2xl font-bold text-success">
+                  {
+                    invoices.filter((inv: Invoice) => {
+                      if (inv.status !== "PAID") {
+                        return false;
+                      }
+                      const paymentDate = parseDate(
+                        inv.payments?.[0]?.date,
+                        () => new Date(),
+                      );
+                      return paymentDate.getMonth() === new Date().getMonth();
+                    }).length
+                  }
+                </p>
+              </div>
+              <CheckCircle className="w-8 h-8 text-success" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-wrap gap-4">
+            <div className="flex-1 min-w-64">
+              <div className="relative">
+                <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  placeholder={t(
+                    "fm.invoices.searchInvoices",
+                    "Search by invoice number or customer...",
+                  )}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="ps-10"
+                />
+              </div>
+            </div>
+            <Select
+              value={statusFilter}
+              onValueChange={setStatusFilter}
+              placeholder={t("fm.properties.status", "Status")}
+              className="w-48"
+            >
+              <SelectContent>
+                <SelectItem value="">
+                  {t("common.all", "All Status")}
+                </SelectItem>
+                <SelectItem value="DRAFT">
+                  {t("fm.invoices.draft", "Draft")}
+                </SelectItem>
+                <SelectItem value="SENT">
+                  {t("fm.invoices.sent", "Sent")}
+                </SelectItem>
+                <SelectItem value="VIEWED">
+                  {t("fm.invoices.viewed", "Viewed")}
+                </SelectItem>
+                <SelectItem value="APPROVED">
+                  {t("fm.vendors.approved", "Approved")}
+                </SelectItem>
+                <SelectItem value="PAID">
+                  {t("fm.invoices.paid", "Paid")}
+                </SelectItem>
+                <SelectItem value="OVERDUE">
+                  {t("fm.invoices.overdue", "Overdue")}
+                </SelectItem>
+                <SelectItem value="CANCELLED">
+                  {t("fm.invoices.cancelled", "Cancelled")}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={typeFilter}
+              onValueChange={setTypeFilter}
+              placeholder={t("fm.properties.type", "Type")}
+              className="w-48"
+            >
+              <SelectContent>
+                <SelectItem value="">
+                  {t("fm.properties.allTypes", "All Types")}
+                </SelectItem>
+                <SelectItem value="SALES">
+                  {t("fm.invoices.sales", "Sales")}
+                </SelectItem>
+                <SelectItem value="PURCHASE">
+                  {t("fm.invoices.purchase", "Purchase")}
+                </SelectItem>
+                <SelectItem value="RENTAL">
+                  {t("fm.invoices.rental", "Rental")}
+                </SelectItem>
+                <SelectItem value="SERVICE">
+                  {t("fm.invoices.service", "Service")}
+                </SelectItem>
+                <SelectItem value="MAINTENANCE">
+                  {t("fm.invoices.maintenance", "Maintenance")}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Invoices Grid */}
+      {isLoading ? (
+        <CardGridSkeleton count={itemsPerPage} />
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {invoices.map((invoice: Invoice) => (
+              <InvoiceCard
+                key={invoice.id}
+                invoice={invoice}
+                onUpdated={mutate}
+                orgId={orgId}
+              />
+            ))}
+          </div>
+
+          {/* Empty State */}
+          {invoices.length === 0 && !isLoading && (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <FileText className="w-12 h-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  {t("fm.invoices.noInvoices", "No Invoices Found")}
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  {t(
+                    "fm.invoices.noInvoicesText",
+                    "Get started by creating your first invoice.",
+                  )}
+                </p>
+                <Button
+                  onClick={() => setCreateOpen(true)}
+                  className="bg-success hover:bg-success/90"
+                >
+                  <Plus className="w-4 h-4 me-2" />
+                  {t("fm.invoices.createInvoice", "Create Invoice")}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Pagination */}
+          {totalItems > itemsPerPage && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+            />
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function InvoiceCard({
+  invoice,
+  onUpdated,
+  orgId,
+}: {
+  invoice: Invoice;
+  onUpdated: () => void;
+  orgId: string;
+}) {
+  const { t } = useTranslation();
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleViewInvoice = () => {
+    // Open invoice detail view in a new tab or modal
+    window.open(`/fm/finance/invoices/${invoice.id}`, "_blank");
+  };
+
+  const handleDownloadInvoice = async () => {
+    setIsProcessing(true);
+    try {
+      const response = await fetch(`/api/finance/invoices/${invoice.id}/download?org=${encodeURIComponent(orgId)}`);
+      if (!response.ok) {
+        throw new Error("Failed to download invoice");
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `invoice-${invoice.number}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success(t("fm.invoices.toast.downloadSuccess", "Invoice downloaded successfully"));
+    } catch (error) {
+      logger.error("Invoice download failed", error);
+      toast.error(t("fm.invoices.toast.downloadFailed", "Failed to download invoice"));
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleSendInvoice = async () => {
+    setIsProcessing(true);
+    try {
+      const response = await fetch(`/api/finance/invoices/${invoice.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "SENT" }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to send invoice");
+      }
+      toast.success(t("fm.invoices.toast.sendSuccess", "Invoice sent successfully"));
+      onUpdated();
+    } catch (error) {
+      logger.error("Invoice send failed", error);
+      toast.error(t("fm.invoices.toast.sendFailed", "Failed to send invoice"));
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleSendReminder = async () => {
+    setIsProcessing(true);
+    try {
+      const response = await fetch(`/api/finance/invoices/${invoice.id}/reminder`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orgId }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to send reminder");
+      }
+      toast.success(t("fm.invoices.toast.reminderSuccess", "Payment reminder sent"));
+      onUpdated();
+    } catch (error) {
+      logger.error("Invoice reminder failed", error);
+      toast.error(t("fm.invoices.toast.reminderFailed", "Failed to send reminder"));
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "DRAFT":
+        return "bg-muted text-foreground";
+      case "SENT":
+        return "bg-primary/10 text-primary-foreground";
+      case "VIEWED":
+        return "bg-secondary/10 text-secondary";
+      case "APPROVED":
+        return "bg-success/10 text-success-foreground";
+      case "PAID":
+        return "bg-success/10 text-success";
+      case "OVERDUE":
+        return "bg-destructive/10 text-destructive-foreground";
+      case "CANCELLED":
+        return "bg-muted text-foreground";
+      default:
+        return "bg-muted text-foreground";
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      DRAFT: t("fm.invoices.draft", "Draft"),
+      SENT: t("fm.invoices.sent", "Sent"),
+      VIEWED: t("fm.invoices.viewed", "Viewed"),
+      APPROVED: t("fm.vendors.approved", "Approved"),
+      PAID: t("fm.invoices.paid", "Paid"),
+      OVERDUE: t("fm.invoices.overdue", "Overdue"),
+      CANCELLED: t("fm.invoices.cancelled", "Cancelled"),
+    };
+    return labels[status] || status.toLowerCase();
+  };
+
+  const getTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      SALES: t("fm.invoices.sales", "Sales"),
+      PURCHASE: t("fm.invoices.purchase", "Purchase"),
+      RENTAL: t("fm.invoices.rental", "Rental"),
+      SERVICE: t("fm.invoices.service", "Service"),
+      MAINTENANCE: t("fm.invoices.maintenance", "Maintenance"),
+    };
+    return labels[type] || type.toLowerCase();
+  };
+
+  const getZATCAStatus = (status: string) => {
+    switch (status) {
+      case "CLEARED":
+        return { icon: CheckCircle, color: "text-success" };
+      case "PENDING":
+        return { icon: Clock, color: "text-warning" };
+      default:
+        return { icon: AlertCircle, color: "text-muted-foreground" };
+    }
+  };
+
+  const zatcaStatus = getZATCAStatus(invoice.zatca?.status || "PENDING");
+  const ZatcaIcon = zatcaStatus.icon;
+
+  const daysOverdue =
+    invoice.status === "OVERDUE"
+      ? Math.floor(
+          (new Date().getTime() - new Date(invoice.dueDate).getTime()) /
+            (1000 * 60 * 60 * 24),
+        )
+      : 0;
+
+  return (
+    <Card className="hover:shadow-lg transition-shadow">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div>
+            <CardTitle className="text-lg">{invoice.number}</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {invoice.recipient?.name}
+            </p>
+          </div>
+          <Badge className={getStatusColor(invoice.status)}>
+            {getStatusLabel(invoice.status)}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between">
+          <span className="text-2xl font-bold">
+            {invoice.total?.toLocaleString()} {invoice.currency}
+          </span>
+          <div className="flex items-center space-x-2">
+            <ZatcaIcon className={`w-5 h-5 ${zatcaStatus.color}`} />
+            {invoice.zatca?.qrCode && (
+              <QrCode className="w-5 h-5 text-muted-foreground" />
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <div>
+            <p className="text-muted-foreground">
+              {t("fm.invoices.issueDate", "Issue Date")}
+            </p>
+            <p className="font-medium">
+              <ClientDate date={invoice.issueDate} format="date-only" />
+            </p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">
+              {t("fm.invoices.dueDate", "Due Date")}
+            </p>
+            <p
+              className={`font-medium ${daysOverdue > 0 ? "text-destructive" : ""}`}
+            >
+              <ClientDate date={invoice.dueDate} format="date-only" />
+              {daysOverdue > 0 &&
+                ` (${daysOverdue}${t("fm.invoices.overdueDays", "d overdue")})`}
+            </p>
+          </div>
+        </div>
+
+        <Separator />
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2 text-sm">
+            <Badge variant="outline" className="text-xs">
+              {getTypeLabel(invoice.type)}
+            </Badge>
+            {invoice.items?.length && (
+              <span className="text-muted-foreground">
+                {invoice.items.length} {t("fm.invoices.items", "items")}
+              </span>
+            )}
+          </div>
+          <div className="flex space-x-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleViewInvoice}
+              disabled={isProcessing}
+              aria-label={t("fm.invoices.viewInvoice", "View invoice")}
+            >
+              <Eye className="w-4 h-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleDownloadInvoice}
+              disabled={isProcessing}
+              aria-label={t("fm.invoices.downloadInvoice", "Download invoice")}
+            >
+              <Download className="w-4 h-4" />
+            </Button>
+            {invoice.status === "DRAFT" && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleSendInvoice}
+                disabled={isProcessing}
+                aria-label={t("fm.invoices.sendInvoice", "Send invoice")}
+              >
+                <Send className="w-4 h-4" />
+              </Button>
+            )}
+            {(invoice.status === "SENT" || invoice.status === "VIEWED") && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleSendReminder}
+                disabled={isProcessing}
+                aria-label={t("fm.invoices.sendReminder", "Send payment reminder")}
+              >
+                <Mail className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function CreateInvoiceForm({
+  onCreated,
+  orgId,
+}: {
+  onCreated: () => void;
+  orgId: string;
+}) {
+  const { t } = useTranslation();
+
+  const [formData, setFormData] = useState({
+    type: "SALES",
+    issuer: {
+      name: "Fixzit Enterprise Co.",
+      taxId: "300000000000003",
+      address: "King Fahd Road, Riyadh 11564, Saudi Arabia",
+      phone: "+966 11 123 4567",
+      email: EMAIL_DOMAINS.invoices,
+      registration: "CR-1234567890",
+      license: "L-1234567890",
+    },
+    recipient: {
+      name: "",
+      taxId: "",
+      address: "",
+      phone: "",
+      email: "",
+      customerId: "",
+    },
+    issueDate: new Date().toISOString().split("T")[0],
+    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0],
+    description: "",
+    items: [
+      {
+        description: "",
+        quantity: 1,
+        unitPrice: 0,
+        discount: 0,
+        tax: {
+          type: "VAT",
+          rate: 15,
+          amount: 0,
+        },
+        total: 0,
+      },
+    ],
+    currency: "SAR",
+    payment: {
+      method: "BANK_TRANSFER",
+      terms: "Net 30",
+      instructions: "Please transfer to the following account:",
+      account: {
+        bank: "Al Rajhi Bank",
+        accountNumber: "1234567890",
+        iban: "SA0380000000608010167519",
+        swift: "RJHISARI",
+      },
+    },
+  });
+
+  const calculateItemTotal = (item: InvoiceItem): InvoiceItem => {
+    const subtotal = item.quantity * item.unitPrice - item.discount;
+    const taxAmount = subtotal * (item.tax.rate / 100);
+    return {
+      ...item,
+      tax: { ...item.tax, amount: taxAmount },
+      total: subtotal + taxAmount,
+    };
+  };
+
+  const handleItemChange = (
+    index: number,
+    field: string,
+    value: number | string | { type: string; rate: number; amount: number },
+  ) => {
+    const newItems = [...formData.items];
+    newItems[index] = { ...newItems[index], [field]: value };
+    newItems[index] = calculateItemTotal(newItems[index]);
+    setFormData({ ...formData, items: newItems });
+  };
+
+  const addItem = () => {
+    setFormData({
+      ...formData,
+      items: [
+        ...formData.items,
+        {
+          description: "",
+          quantity: 1,
+          unitPrice: 0,
+          discount: 0,
+          tax: { type: "VAT", rate: 15, amount: 0 },
+          total: 0,
+        },
+      ],
+    });
+  };
+
+  const removeItem = (index: number) => {
+    setFormData({
+      ...formData,
+      items: formData.items.filter((_, i) => i !== index),
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const orgForRequest = orgId;
+      const response = await fetch("/api/finance/invoices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orgId: orgForRequest,
+          type: formData.type,
+          issueDate: formData.issueDate,
+          dueDate: formData.dueDate,
+          currency: formData.currency,
+          // Include recipient/customer data
+          recipient: {
+            name: formData.recipient.name,
+            taxId: formData.recipient.taxId || undefined,
+            address: formData.recipient.address || undefined,
+            phone: formData.recipient.phone || undefined,
+            email: formData.recipient.email || undefined,
+            customerId: formData.recipient.customerId || undefined,
+          },
+          // Include issuer data
+          issuer: formData.issuer,
+          lines: formData.items.map((it: InvoiceItem) => ({
+            description: it.description,
+            qty: it.quantity,
+            unitPrice: it.unitPrice,
+            discount: it.discount,
+            vatRate: it.tax?.rate ?? 15,
+          })),
+          // Include payment terms
+          payment: formData.payment,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success(
+          t("fm.invoices.toast.createSuccess", "Invoice created successfully"),
+        );
+        onCreated();
+      } else {
+        const error = await response.json().catch(() => ({}));
+        const message =
+          error &&
+          typeof error === "object" &&
+          "error" in error &&
+          typeof error.error === "string"
+            ? error.error
+            : t("fm.invoices.errors.unknown", "Unknown error");
+        toast.error(
+          t(
+            "fm.invoices.toast.createFailed",
+            "Failed to create invoice: {{message}}",
+          ).replace("{{message}}", message),
+        );
+      }
+    } catch {
+      toast.error(
+        t(
+          "fm.invoices.toast.createUnknown",
+          "Error creating invoice. Please try again.",
+        ),
+      );
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {t("fm.invoices.invoiceType", "Invoice Type")}
+          </label>
+          <Select
+            value={formData.type}
+            onValueChange={(value) => setFormData({ ...formData, type: value })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="SALES">
+                {t("fm.invoices.sales", "Sales")}
+              </SelectItem>
+              <SelectItem value="PURCHASE">
+                {t("fm.invoices.purchase", "Purchase")}
+              </SelectItem>
+              <SelectItem value="RENTAL">
+                {t("fm.invoices.rental", "Rental")}
+              </SelectItem>
+              <SelectItem value="SERVICE">
+                {t("fm.invoices.service", "Service")}
+              </SelectItem>
+              <SelectItem value="MAINTENANCE">
+                {t("fm.invoices.maintenance", "Maintenance")}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {t("fm.invoices.currency", "Currency")}
+          </label>
+          <Select
+            value={formData.currency}
+            onValueChange={(value) =>
+              setFormData({ ...formData, currency: value })
+            }
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="SAR">SAR</SelectItem>
+              <SelectItem value="USD">USD</SelectItem>
+              <SelectItem value="EUR">EUR</SelectItem>
+              <SelectItem value="AED">AED</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="font-medium mb-2">
+          {t("fm.invoices.customerInfo", "Customer Information")}
+        </h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              {t("fm.invoices.customerName", "Customer Name")} *
+            </label>
+            <Input
+              value={formData.recipient.name}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  recipient: { ...formData.recipient, name: e.target.value },
+                })
+              }
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              {t("fm.invoices.taxId", "Tax ID")}
+            </label>
+            <Input
+              value={formData.recipient.taxId}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  recipient: { ...formData.recipient, taxId: e.target.value },
+                })
+              }
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {t("fm.invoices.issueDate", "Issue Date")} *
+          </label>
+          <Input
+            type="date"
+            value={formData.issueDate}
+            onChange={(e) =>
+              setFormData({ ...formData, issueDate: e.target.value })
+            }
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {t("fm.invoices.dueDate", "Due Date")} *
+          </label>
+          <Input
+            type="date"
+            value={formData.dueDate}
+            onChange={(e) =>
+              setFormData({ ...formData, dueDate: e.target.value })
+            }
+            required
+          />
+        </div>
+      </div>
+
+      <div>
+        <h3 className="font-medium mb-2">
+          {t("fm.invoices.lineItems", "Line Items")}
+        </h3>
+        <div className="space-y-2">
+          {formData.items.map((item, index) => (
+            <div
+              key={`item-${index}`}
+              className="grid grid-cols-12 gap-2 items-center"
+            >
+              <div className="col-span-4">
+                <Input
+                  placeholder={t("fm.invoices.description", "Description")}
+                  value={item.description}
+                  onChange={(e) =>
+                    handleItemChange(index, "description", e.target.value)
+                  }
+                  required
+                />
+              </div>
+              <div className="col-span-2">
+                <Input
+                  type="number"
+                  placeholder={t("fm.invoices.quantity", "Qty")}
+                  value={item.quantity}
+                  onChange={(e) =>
+                    handleItemChange(index, "quantity", Number(e.target.value))
+                  }
+                  required
+                />
+              </div>
+              <div className="col-span-2">
+                <Input
+                  type="number"
+                  placeholder={t("fm.invoices.unitPrice", "Price")}
+                  value={item.unitPrice}
+                  onChange={(e) =>
+                    handleItemChange(index, "unitPrice", Number(e.target.value))
+                  }
+                  required
+                />
+              </div>
+              <div className="col-span-2">
+                <Input
+                  type="number"
+                  placeholder={t("fm.invoices.vat", "VAT %")}
+                  value={item.tax.rate}
+                  onChange={(e) =>
+                    handleItemChange(index, "tax", {
+                      ...item.tax,
+                      rate: Number(e.target.value),
+                    })
+                  }
+                />
+              </div>
+              <div className="col-span-1 text-end font-medium">
+                {item.total.toFixed(2)}
+              </div>
+              <div className="col-span-1">
+                {formData.items.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeItem(index)}
+                    className="text-destructive"
+                  >
+                    ×
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={addItem}
+          className="mt-2"
+        >
+          {t("fm.invoices.addLineItem", "Add Line Item")}
+        </Button>
+      </div>
+
+      <div className="flex justify-end space-x-2 pt-4">
+        <Button type="submit" className="bg-success hover:bg-success/90">
+          {t("fm.invoices.createInvoice", "Create Invoice")}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/finance/page.tsx">
+<![CDATA[
+"use client";
+
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+export default function FinancePage() {
+  const { hasOrgContext, guard, supportBanner } = useFmOrgGuard({
+    moduleId: "finance",
+  });
+  const auto = useAutoTranslator("fm.finance");
+  if (!hasOrgContext) {
+    return guard;
+  }
+
+  return (
+    <div className="space-y-6">
+      {supportBanner}
+      <ModuleViewTabs moduleId="finance" />
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            {auto("Finance", "header.title")}
+          </h1>
+          <p className="text-muted-foreground">
+            {auto("Financial management and billing", "header.subtitle")}
+          </p>
+        </div>
+      </div>
+
+      <div className="bg-card rounded-2xl shadow-md border border-border p-8 text-center">
+        <h2 className="text-lg font-semibold text-foreground mb-2">
+          {auto("Financial Dashboard", "card.title")}
+        </h2>
+        <p className="text-muted-foreground mb-4">
+          {auto("Finance management interface loads here.", "card.description")}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {auto("Connected to Finance API endpoints.", "card.footer")}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/finance/payments/new/page.tsx">
+<![CDATA[
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useFormState } from "@/contexts/FormStateContext";
+import { useRouter } from "next/navigation";
+import { Money, decimal } from "@/lib/finance/decimal";
+import ClientDate from "@/components/ClientDate";
+
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { logger } from "@/lib/logger";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+// ============================================================================
+// INTERFACES
+// ============================================================================
+
+interface IInvoiceAllocation {
+  id: string;
+  invoiceId: string;
+  invoiceNumber: string;
+  customerName: string;
+  invoiceDate: string;
+  dueDate: string;
+  totalAmount: number;
+  amountDue: number;
+  amountAllocated: number;
+  selected: boolean;
+}
+
+interface IChartAccount {
+  id: string;
+  code: string;
+  name: string;
+  nameAr?: string;
+  type: string;
+}
+
+interface IAvailableInvoice {
+  id: string;
+  invoiceNumber: string;
+  customer: { name: string };
+  issueDate: string;
+  dueDate: string;
+  totalAmount: number;
+  amountDue: number;
+}
+
+export default function NewPaymentPage() {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const { registerForm, unregisterForm } = useFormState();
+  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({
+    moduleId: "finance",
+  });
+  const missingOrg = !hasOrgContext || !orgId;
+
+  // Core payment fields
+  const [paymentType, setPaymentType] = useState<string>("RECEIVED");
+  const [paymentDate, setPaymentDate] = useState<string>(""); // ✅ HYDRATION FIX: Initialize empty
+  const [amount, setAmount] = useState<string>("");
+  const [currency, setCurrency] = useState<string>("SAR");
+  const [paymentMethod, setPaymentMethod] = useState<string>("CASH");
+  const [referenceNumber, setReferenceNumber] = useState<string>("");
+  const [notes, setNotes] = useState<string>("");
+
+  // Party details
+  const [partyType, setPartyType] = useState<string>("TENANT");
+  const [partyId] = useState<string>("");
+  const [partyName, setPartyName] = useState<string>("");
+
+  // Method-specific fields - Bank Transfer
+  const [bankName, setBankName] = useState<string>("");
+  const [accountNumber, setAccountNumber] = useState<string>("");
+  const [accountHolder, setAccountHolder] = useState<string>("");
+  const [swiftCode, setSwiftCode] = useState<string>("");
+  const [iban, setIban] = useState<string>("");
+
+  // Method-specific fields - Cheque
+  const [chequeNumber, setChequeNumber] = useState<string>("");
+  const [chequeDate, setChequeDate] = useState<string>("");
+  const [chequeBankName, setChequeBankName] = useState<string>("");
+  const [drawerName, setDrawerName] = useState<string>("");
+
+  // Method-specific fields - Card
+  const [cardType, setCardType] = useState<string>("VISA");
+  const [last4Digits, setLast4Digits] = useState<string>("");
+  const [transactionId, setTransactionId] = useState<string>("");
+  const [authorizationCode, setAuthorizationCode] = useState<string>("");
+
+  // Cash account selection
+  const [cashAccountId, setCashAccountId] = useState<string>("");
+
+  // Invoice allocations
+  const [allocations, setAllocations] = useState<IInvoiceAllocation[]>([]);
+  const [, setAvailableInvoices] = useState<IAvailableInvoice[]>([]);
+  const [showInvoiceAllocation, setShowInvoiceAllocation] =
+    useState<boolean>(false);
+
+  // Data lookups
+  const [chartAccounts, setChartAccounts] = useState<IChartAccount[]>([]);
+
+  // UI state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
+  const [loadingAccounts, setLoadingAccounts] = useState(false);
+
+  // Calculate totals using Decimal math
+  const totalAllocated = React.useMemo(
+    () =>
+      Money.sum(
+        allocations.map((a: IInvoiceAllocation) => decimal(a.amountAllocated)),
+      ),
+    [allocations],
+  );
+
+  const paymentAmountNum = React.useMemo(
+    () => decimal(amount || "0"),
+    [amount],
+  );
+
+  const unallocatedAmount = React.useMemo(
+    () => paymentAmountNum.minus(totalAllocated),
+    [paymentAmountNum, totalAllocated],
+  );
+
+  // ============================================================================
+  // LIFECYCLE & DATA LOADING
+  // ============================================================================
+
+  // ✅ HYDRATION FIX: Set default date after client hydration
+  useEffect(() => {
+    if (!paymentDate) {
+      setPaymentDate(new Date().toISOString().split("T")[0]);
+    }
+  }, [paymentDate]);
+
+  useEffect(() => {
+    const formId = "new-payment-form";
+    registerForm(formId);
+    return () => unregisterForm(formId);
+  }, [registerForm, unregisterForm]);
+
+  // Load chart of accounts (cash/bank accounts)
+  useEffect(() => {
+    const loadAccounts = async () => {
+      try {
+        setLoadingAccounts(true);
+        const response = await fetch(
+          "/api/finance/accounts?type=ASSET&active=true",
+        );
+        if (response.ok) {
+          const data = await response.json();
+          // Filter to cash/bank accounts only
+          const cashAccounts = (data.accounts || []).filter(
+            (acc: IChartAccount) =>
+              acc.name.toLowerCase().includes("cash") ||
+              acc.name.toLowerCase().includes("bank") ||
+              acc.code.startsWith("1010") || // Common cash account codes
+              acc.code.startsWith("1020"), // Common bank account codes
+          );
+          setChartAccounts(cashAccounts);
+
+          // Auto-select first cash account if available
+          if (cashAccounts.length > 0 && !cashAccountId) {
+            setCashAccountId(cashAccounts[0].id);
+          }
+        }
+      } catch (_error) {
+        logger.error("Error loading accounts:", { error: _error });
+      } finally {
+        setLoadingAccounts(false);
+      }
+    };
+    loadAccounts().catch((err) => {
+      logger.error("Unhandled error in loadAccounts", { error: err });
+      setLoadingAccounts(false);
+    });
+  }, []);
+
+  // Load available invoices when payment type is RECEIVED
+  useEffect(() => {
+    if (paymentType === "RECEIVED" && showInvoiceAllocation) {
+      loadAvailableInvoices();
+    }
+  }, [paymentType, showInvoiceAllocation]);
+
+  const loadAvailableInvoices = () => {
+    (async () => {
+      try {
+        setLoadingInvoices(true);
+        // Load unpaid/partially paid invoices
+        const response = await fetch(
+          "/api/finance/invoices?status=POSTED&hasBalance=true",
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setAvailableInvoices(data.invoices || []);
+
+          // Initialize allocations from available invoices
+          const newAllocations: IInvoiceAllocation[] = (
+            data.invoices || []
+          ).map((inv: IAvailableInvoice) => ({
+            id: inv.id,
+            invoiceId: inv.id,
+            invoiceNumber: inv.invoiceNumber,
+            customerName: inv.customer?.name || "Unknown",
+            invoiceDate: inv.issueDate,
+            dueDate: inv.dueDate,
+            totalAmount: inv.totalAmount,
+            amountDue: inv.amountDue,
+            amountAllocated: 0,
+            selected: false,
+          }));
+          setAllocations(newAllocations);
+        }
+      } catch (_error) {
+        logger.error("Error loading invoices:", { error: _error });
+        setErrors({ ...errors, invoices: "Failed to load invoices" });
+      } finally {
+        setLoadingInvoices(false);
+      }
+    })().catch((err) => {
+      logger.error("Unhandled error in loadAvailableInvoices", { error: err });
+      setErrors({ ...errors, invoices: "Failed to load invoices" });
+      setLoadingInvoices(false);
+    });
+  };
+
+  // ============================================================================
+  // INVOICE ALLOCATION MANAGEMENT
+  // ============================================================================
+
+  const toggleInvoiceSelection = (id: string) => {
+    setAllocations(
+      allocations.map((a: IInvoiceAllocation) => {
+        if (a.id === id) {
+          const newAllocated = !a.selected
+            ? Money.toNumber(
+                Money.min(
+                  decimal(a.amountDue),
+                  Money.add(unallocatedAmount, a.amountAllocated),
+                ),
+              )
+            : 0;
+          return { ...a, selected: !a.selected, amountAllocated: newAllocated };
+        }
+        return a;
+      }),
+    );
+  };
+
+  const updateAllocationAmount = (id: string, value: string) => {
+    const numValue = parseFloat(value) || 0;
+    setAllocations(
+      allocations.map((a: IInvoiceAllocation) => {
+        if (a.id === id) {
+          // Cap at invoice amount due using Decimal for precision
+          const cappedValue = Money.toNumber(
+            Money.min(decimal(numValue), decimal(a.amountDue)),
+          );
+          return {
+            ...a,
+            amountAllocated: cappedValue,
+            selected: cappedValue > 0,
+          };
+        }
+        return a;
+      }),
+    );
+  };
+
+  const allocateEqually = () => {
+    const selectedAllocations = allocations.filter(
+      (a: IInvoiceAllocation) => a.selected,
+    );
+    if (selectedAllocations.length === 0) return;
+
+    const perInvoice = Money.divide(
+      paymentAmountNum,
+      selectedAllocations.length,
+    );
+    setAllocations(
+      allocations.map((a: IInvoiceAllocation) => {
+        if (a.selected) {
+          const allocated = Money.toNumber(
+            Money.min(perInvoice, decimal(a.amountDue)),
+          );
+          return { ...a, amountAllocated: allocated };
+        }
+        return a;
+      }),
+    );
+  };
+
+  const allocateByPriority = () => {
+    // Allocate by due date (oldest first)
+    const selectedInvoices = allocations
+      .filter((a) => a.selected)
+      .sort(
+        (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
+      );
+
+    // Process selected invoices in priority order (oldest first)
+    let remaining = paymentAmountNum;
+    const allocatedMap = new Map<string, number>();
+
+    for (const invoice of selectedInvoices) {
+      const toAllocate = Money.toNumber(
+        Money.min(remaining, decimal(invoice.amountDue)),
+      );
+      allocatedMap.set(invoice.invoiceId, toAllocate);
+      remaining = remaining.minus(decimal(toAllocate));
+      if (!remaining.isPositive()) break;
+    }
+
+    // Update all allocations with priority-based amounts
+    const updated = allocations.map((a: IInvoiceAllocation) => {
+      if (a.selected && allocatedMap.has(a.invoiceId)) {
+        return { ...a, amountAllocated: allocatedMap.get(a.invoiceId) || 0 };
+      }
+      return a;
+    });
+    setAllocations(updated);
+  };
+
+  const clearAllocations = () => {
+    setAllocations(
+      allocations.map((a: IInvoiceAllocation) => ({
+        ...a,
+        selected: false,
+        amountAllocated: 0,
+      })),
+    );
+  };
+
+  // ============================================================================
+  // FORM VALIDATION
+  // ============================================================================
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    // Required fields
+    if (!paymentDate) newErrors.paymentDate = "Payment date is required";
+    if (!amount || !paymentAmountNum.isPositive())
+      newErrors.amount = "Amount must be greater than 0";
+    if (!partyName) newErrors.partyName = "Party name is required";
+    if (!cashAccountId)
+      newErrors.cashAccountId = "Cash/Bank account is required";
+
+    // Payment method specific validations
+    if (paymentMethod === "BANK_TRANSFER") {
+      if (!bankName) newErrors.bankName = "Bank name is required";
+      if (!accountNumber)
+        newErrors.accountNumber = "Account number is required";
+    }
+
+    if (paymentMethod === "CHEQUE") {
+      if (!chequeNumber) newErrors.chequeNumber = "Cheque number is required";
+      if (!chequeDate) newErrors.chequeDate = "Cheque date is required";
+      if (!chequeBankName) newErrors.chequeBankName = "Bank name is required";
+    }
+
+    if (paymentMethod === "CARD") {
+      if (!last4Digits) newErrors.last4Digits = "Last 4 digits are required";
+      if (last4Digits && !/^\d{4}$/.test(last4Digits)) {
+        newErrors.last4Digits = "Must be exactly 4 digits";
+      }
+    }
+
+    // Allocation validation - use Decimal comparison methods
+    if (totalAllocated.greaterThan(paymentAmountNum)) {
+      newErrors.allocations =
+        "Total allocated amount cannot exceed payment amount";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // ============================================================================
+  // FORM SUBMISSION
+  // ============================================================================
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    (async () => {
+      try {
+        // Build method-specific details
+        const bankDetails =
+          paymentMethod === "BANK_TRANSFER"
+            ? {
+                bankName,
+                accountNumber,
+                accountHolder,
+                swiftCode,
+                iban,
+              }
+            : undefined;
+
+        const chequeDetails =
+          paymentMethod === "CHEQUE"
+            ? {
+                chequeNumber,
+                chequeDate: new Date(chequeDate),
+                bankName: chequeBankName,
+                drawerName,
+              }
+            : undefined;
+
+        const cardDetails =
+          paymentMethod === "CARD"
+            ? {
+                cardType,
+                last4Digits,
+                transactionId,
+                authorizationCode,
+              }
+            : undefined;
+
+        // Build allocations array (only selected invoices with amounts)
+        const invoiceAllocations = allocations
+          .filter(
+            (a: IInvoiceAllocation) => a.selected && a.amountAllocated > 0,
+          )
+          .map((a: IInvoiceAllocation) => ({
+            invoiceId: a.invoiceId,
+            invoiceNumber: a.invoiceNumber,
+            amount: a.amountAllocated,
+          }));
+
+        const payload = {
+          paymentType,
+          amount: Money.toNumber(paymentAmountNum),
+          currency,
+          paymentMethod,
+          paymentDate: new Date(paymentDate),
+          partyType,
+          partyId: partyId || undefined,
+          partyName,
+          referenceNumber: referenceNumber || undefined,
+          notes: notes || undefined,
+          cashAccountId,
+          bankDetails,
+          chequeDetails,
+          cardDetails,
+          allocations: invoiceAllocations,
+          unallocatedAmount: Money.toNumber(unallocatedAmount),
+          status: "POSTED", // Auto-post payment
+        };
+
+        const response = await fetch("/api/finance/payments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          logger.info("Payment created:", { data });
+
+          // Show success message (you can add toast notification here)
+          router.push("/finance/payments");
+        } else {
+          const errorData = await response.json();
+          setErrors({ submit: errorData.error || "Failed to create payment" });
+        }
+      } catch (_error) {
+        logger.error("Error creating payment:", { error: _error });
+        setErrors({ submit: "An unexpected error occurred" });
+      } finally {
+        setIsSubmitting(false);
+      }
+    })().catch((err) => {
+      logger.error("Unhandled error in handleSubmit", { error: err });
+      setErrors({ submit: "An unexpected error occurred" });
+      setIsSubmitting(false);
+    });
+  };
+
+  // ============================================================================
+  // RENDER HELPERS
+  // ============================================================================
+
+  const renderMethodSpecificFields = () => {
+    switch (paymentMethod) {
+      case "BANK_TRANSFER":
+        return (
+          <div className="space-y-4 p-4 bg-primary/10 rounded-2xl">
+            <h3 className="font-medium text-primary">
+              {t("Bank Transfer Details")}
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  {t("Bank Name")} <span className="text-destructive">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={bankName}
+                  onChange={(e) => setBankName(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-2xl ${errors.bankName ? "border-destructive" : "border-border"}`}
+                />
+                {errors.bankName && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.bankName}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  {t("Account Number")}{" "}
+                  <span className="text-destructive">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={accountNumber}
+                  onChange={(e) => setAccountNumber(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-2xl ${errors.accountNumber ? "border-destructive" : "border-border"}`}
+                />
+                {errors.accountNumber && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.accountNumber}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  {t("Account Holder")}
+                </label>
+                <input
+                  type="text"
+                  value={accountHolder}
+                  onChange={(e) => setAccountHolder(e.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded-2xl"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  {t("SWIFT Code")}
+                </label>
+                <input
+                  type="text"
+                  value={swiftCode}
+                  onChange={(e) => setSwiftCode(e.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded-2xl"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  {t("IBAN")}
+                </label>
+                <input
+                  type="text"
+                  value={iban}
+                  onChange={(e) => setIban(e.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded-2xl"
+                  placeholder="SA1234567890123456789012"
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case "CHEQUE":
+        return (
+          <div className="space-y-4 p-4 bg-secondary/10 rounded-2xl">
+            <h3 className="font-medium text-secondary">
+              {t("Cheque Details")}
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  {t("Cheque Number")}{" "}
+                  <span className="text-destructive">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={chequeNumber}
+                  onChange={(e) => setChequeNumber(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-2xl ${errors.chequeNumber ? "border-destructive" : "border-border"}`}
+                />
+                {errors.chequeNumber && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.chequeNumber}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  {t("Cheque Date")} <span className="text-destructive">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={chequeDate}
+                  onChange={(e) => setChequeDate(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-2xl ${errors.chequeDate ? "border-destructive" : "border-border"}`}
+                />
+                {errors.chequeDate && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.chequeDate}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  {t("Bank Name")} <span className="text-destructive">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={chequeBankName}
+                  onChange={(e) => setChequeBankName(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-2xl ${errors.chequeBankName ? "border-destructive" : "border-border"}`}
+                />
+                {errors.chequeBankName && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.chequeBankName}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  {t("Drawer Name")}
+                </label>
+                <input
+                  type="text"
+                  value={drawerName}
+                  onChange={(e) => setDrawerName(e.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded-2xl"
+                  placeholder={t("Name on cheque")}
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case "CARD":
+        return (
+          <div className="space-y-4 p-4 bg-success/10 rounded-2xl">
+            <h3 className="font-medium text-success">
+              {t("Card Payment Details")}
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  {t("Card Type")}
+                </label>
+                <select
+                  value={cardType}
+                  onChange={(e) => setCardType(e.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded-2xl"
+                >
+                  <option value="VISA">Visa</option>
+                  <option value="MASTERCARD">Mastercard</option>
+                  <option value="AMEX">American Express</option>
+                  <option value="MADA">Mada</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  {t("Last 4 Digits")}{" "}
+                  <span className="text-destructive">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={last4Digits}
+                  onChange={(e) => setLast4Digits(e.target.value)}
+                  maxLength={4}
+                  pattern="\d{4}"
+                  className={`w-full px-3 py-2 border rounded-2xl ${errors.last4Digits ? "border-destructive" : "border-border"}`}
+                  placeholder="1234"
+                />
+                {errors.last4Digits && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.last4Digits}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  {t("Transaction ID")}
+                </label>
+                <input
+                  type="text"
+                  value={transactionId}
+                  onChange={(e) => setTransactionId(e.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded-2xl"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  {t("Authorization Code")}
+                </label>
+                <input
+                  type="text"
+                  value={authorizationCode}
+                  onChange={(e) => setAuthorizationCode(e.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded-2xl"
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  // ============================================================================
+  // MAIN RENDER
+  // ============================================================================
+
+  if (missingOrg) {
+    return (
+      <div className="space-y-6">
+        <ModuleViewTabs moduleId="finance" />
+        {guard}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="finance" />
+      {supportBanner}
+      <div className="container mx-auto p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold">{t("New Payment")}</h1>
+          <button
+            onClick={() => router.back()}
+            className="px-4 py-2 text-muted-foreground hover:text-foreground"
+            disabled={isSubmitting}
+          >
+            {t("Cancel")}
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Main Payment Details Card */}
+          <div className="bg-card shadow-sm rounded-2xl p-6 space-y-4">
+            <h2 className="text-xl font-semibold border-b pb-2">
+              {t("Payment Details")}
+            </h2>
+
+            {/* Payment Type & Date */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  {t("Payment Type")}{" "}
+                  <span className="text-destructive">*</span>
+                </label>
+                <select
+                  value={paymentType}
+                  onChange={(e) => setPaymentType(e.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded-2xl"
+                >
+                  <option value="RECEIVED">{t("Payment Received")}</option>
+                  <option value="MADE">{t("Payment Made")}</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  {t("Payment Date")}{" "}
+                  <span className="text-destructive">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={paymentDate}
+                  onChange={(e) => setPaymentDate(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-2xl ${errors.paymentDate ? "border-destructive" : "border-border"}`}
+                  required
+                />
+                {errors.paymentDate && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.paymentDate}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  {t("Reference Number")}
+                </label>
+                <input
+                  type="text"
+                  value={referenceNumber}
+                  onChange={(e) => setReferenceNumber(e.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded-2xl"
+                  placeholder={t("Optional")}
+                />
+              </div>
+            </div>
+
+            {/* Amount & Currency */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  {t("Amount")} <span className="text-destructive">*</span>
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-2xl ${errors.amount ? "border-destructive" : "border-border"}`}
+                  required
+                />
+                {errors.amount && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.amount}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  {t("Currency")} <span className="text-destructive">*</span>
+                </label>
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded-2xl"
+                >
+                  <option value="SAR">SAR - Saudi Riyal</option>
+                  <option value="USD">USD - US Dollar</option>
+                  <option value="EUR">EUR - Euro</option>
+                  <option value="GBP">GBP - British Pound</option>
+                  <option value="AED">AED - UAE Dirham</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Payment Method */}
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">
+                {t("Payment Method")}{" "}
+                <span className="text-destructive">*</span>
+              </label>
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="w-full px-3 py-2 border border-border rounded-2xl"
+              >
+                <option value="CASH">{t("Cash")}</option>
+                <option value="CARD">{t("Credit/Debit Card")}</option>
+                <option value="BANK_TRANSFER">{t("Bank Transfer")}</option>
+                <option value="CHEQUE">{t("Cheque")}</option>
+                <option value="ONLINE">{t("Online Payment")}</option>
+                <option value="OTHER">{t("Other")}</option>
+              </select>
+            </div>
+
+            {/* Cash/Bank Account Selection */}
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">
+                {t("Deposit To Account")}{" "}
+                <span className="text-destructive">*</span>
+              </label>
+              <select
+                value={cashAccountId}
+                onChange={(e) => setCashAccountId(e.target.value)}
+                className={`w-full px-3 py-2 border rounded-2xl ${errors.cashAccountId ? "border-destructive" : "border-border"}`}
+                disabled={loadingAccounts}
+              >
+                <option value="">
+                  {loadingAccounts ? t("Loading...") : t("Select Account")}
+                </option>
+                {chartAccounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.code} - {account.name}
+                  </option>
+                ))}
+              </select>
+              {errors.cashAccountId && (
+                <p className="text-xs text-destructive mt-1">
+                  {errors.cashAccountId}
+                </p>
+              )}
+            </div>
+
+            {/* Method-specific fields */}
+            {renderMethodSpecificFields()}
+
+            {/* Party Details */}
+            <div className="pt-4 border-t">
+              <h3 className="font-medium text-foreground mb-3">
+                {paymentType === "RECEIVED" ? t("Received From") : t("Paid To")}
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">
+                    {t("Party Type")}
+                  </label>
+                  <select
+                    value={partyType}
+                    onChange={(e) => setPartyType(e.target.value)}
+                    className="w-full px-3 py-2 border border-border rounded-2xl"
+                  >
+                    <option value="TENANT">{t("Tenant")}</option>
+                    <option value="CUSTOMER">{t("Customer")}</option>
+                    <option value="VENDOR">{t("Vendor")}</option>
+                    <option value="SUPPLIER">{t("Supplier")}</option>
+                    <option value="OWNER">{t("Owner")}</option>
+                    <option value="OTHER">{t("Other")}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">
+                    {t("Party Name")}{" "}
+                    <span className="text-destructive">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={partyName}
+                    onChange={(e) => setPartyName(e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-2xl ${errors.partyName ? "border-destructive" : "border-border"}`}
+                    required
+                  />
+                  {errors.partyName && (
+                    <p className="text-xs text-destructive mt-1">
+                      {errors.partyName}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">
+                {t("Notes")}
+              </label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={3}
+                className="w-full px-3 py-2 border border-border rounded-2xl"
+                placeholder={t("Optional payment notes...")}
+              />
+            </div>
+          </div>
+
+          {/* Invoice Allocation Card (for RECEIVED payments only) */}
+          {paymentType === "RECEIVED" && (
+            <div className="bg-card shadow-sm rounded-2xl p-6 space-y-4">
+              <div className="flex items-center justify-between border-b pb-2">
+                <h2 className="text-xl font-semibold">
+                  {t("Invoice Allocation")}
+                </h2>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowInvoiceAllocation(!showInvoiceAllocation)
+                  }
+                  className="px-4 py-2 text-sm bg-primary/10 text-primary rounded-2xl hover:bg-primary/20"
+                >
+                  {showInvoiceAllocation
+                    ? t("Hide Invoices")
+                    : t("Allocate to Invoices")}
+                </button>
+              </div>
+
+              {showInvoiceAllocation && (
+                <>
+                  {loadingInvoices ? (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">
+                        {t("Loading invoices...")}
+                      </p>
+                    </div>
+                  ) : allocations.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">
+                        {t("No unpaid invoices found")}
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Allocation Actions */}
+                      <div className="flex gap-2 pb-3 border-b">
+                        <button
+                          type="button"
+                          onClick={allocateEqually}
+                          className="px-3 py-1 text-sm bg-muted text-foreground rounded hover:bg-muted/80"
+                          disabled={
+                            allocations.filter((a) => a.selected).length === 0
+                          }
+                        >
+                          {t("Allocate Equally")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={allocateByPriority}
+                          className="px-3 py-1 text-sm bg-muted text-foreground rounded hover:bg-muted/80"
+                          disabled={
+                            allocations.filter((a) => a.selected).length === 0
+                          }
+                        >
+                          {t("By Due Date")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={clearAllocations}
+                          className="px-3 py-1 text-sm bg-destructive/10 text-destructive rounded hover:bg-destructive/20"
+                        >
+                          {t("Clear All")}
+                        </button>
+                      </div>
+
+                      {/* Allocations Table */}
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-border">
+                          <thead className="bg-muted">
+                            <tr>
+                              <th className="px-3 py-2 text-start text-xs font-medium text-muted-foreground uppercase">
+                                {t("Select")}
+                              </th>
+                              <th className="px-3 py-2 text-start text-xs font-medium text-muted-foreground uppercase">
+                                {t("Invoice #")}
+                              </th>
+                              <th className="px-3 py-2 text-start text-xs font-medium text-muted-foreground uppercase">
+                                {t("Customer")}
+                              </th>
+                              <th className="px-3 py-2 text-start text-xs font-medium text-muted-foreground uppercase">
+                                {t("Due Date")}
+                              </th>
+                              <th className="px-3 py-2 text-end text-xs font-medium text-muted-foreground uppercase">
+                                {t("Amount Due")}
+                              </th>
+                              <th className="px-3 py-2 text-end text-xs font-medium text-muted-foreground uppercase">
+                                {t("Allocate")}
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-card divide-y divide-border">
+                            {allocations.map((allocation) => (
+                              <tr
+                                key={allocation.id}
+                                className={
+                                  allocation.selected ? "bg-primary/10" : ""
+                                }
+                              >
+                                <td className="px-3 py-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={allocation.selected}
+                                    onChange={() =>
+                                      toggleInvoiceSelection(allocation.id)
+                                    }
+                                    className="w-4 h-4 text-primary rounded"
+                                  />
+                                </td>
+                                <td className="px-3 py-2 text-sm font-medium text-foreground">
+                                  {allocation.invoiceNumber}
+                                </td>
+                                <td className="px-3 py-2 text-sm text-foreground">
+                                  {allocation.customerName}
+                                </td>
+                                <td className="px-3 py-2 text-sm text-foreground">
+                                  <ClientDate
+                                    date={allocation.dueDate}
+                                    format="date-only"
+                                  />
+                                </td>
+                                <td className="px-3 py-2 text-sm text-end text-foreground">
+                                  {allocation.amountDue.toFixed(2)} {currency}
+                                </td>
+                                <td className="px-3 py-2">
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    max={allocation.amountDue}
+                                    value={allocation.amountAllocated}
+                                    onChange={(e) =>
+                                      updateAllocationAmount(
+                                        allocation.id,
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="w-full px-2 py-1 text-sm text-end border border-border rounded"
+                                    disabled={!allocation.selected}
+                                  />
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Allocation Summary */}
+                      <div className="pt-3 border-t">
+                        <div className="grid grid-cols-3 gap-4 text-sm">
+                          <div className="bg-muted p-3 rounded">
+                            <p className="text-muted-foreground">
+                              {t("Payment Amount")}
+                            </p>
+                            <p className="text-lg font-bold text-foreground">
+                              {Money.toString(paymentAmountNum)} {currency}
+                            </p>
+                          </div>
+                          <div className="bg-primary/10 p-3 rounded">
+                            <p className="text-muted-foreground">
+                              {t("Allocated")}
+                            </p>
+                            <p className="text-lg font-bold text-primary">
+                              {Money.toString(totalAllocated)} {currency}
+                            </p>
+                          </div>
+                          <div
+                            className={`p-3 rounded ${unallocatedAmount.isNegative() ? "bg-destructive/10" : "bg-success/10"}`}
+                          >
+                            <p className="text-muted-foreground">
+                              {t("Unallocated")}
+                            </p>
+                            <p
+                              className={`text-lg font-bold ${unallocatedAmount.isNegative() ? "text-destructive" : "text-success"}`}
+                            >
+                              {Money.toString(unallocatedAmount)} {currency}
+                            </p>
+                          </div>
+                        </div>
+                        {errors.allocations && (
+                          <p className="text-sm text-destructive mt-2">
+                            {errors.allocations}
+                          </p>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Error Display */}
+          {errors.submit && (
+            <div className="bg-destructive/10 border border-destructive/20 rounded-2xl p-4">
+              <p className="text-sm text-destructive">{errors.submit}</p>
+            </div>
+          )}
+
+          {/* Submit Actions */}
+          <div className="flex justify-end gap-3 bg-card shadow-sm rounded-2xl p-6">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="px-6 py-2 border border-border rounded-2xl text-foreground hover:bg-muted"
+              disabled={isSubmitting}
+            >
+              {t("Cancel")}
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isSubmitting || Object.keys(errors).length > 0}
+            >
+              {isSubmitting ? t("Creating...") : t("Create Payment")}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/finance/payments/page.tsx">
+<![CDATA[
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { CardGridSkeleton } from "@/components/skeletons";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import ClientDate from "@/components/ClientDate";
+
+export default function PaymentsPage() {
+  const auto = useAutoTranslator("fm.finance.payments");
+  const { data: session } = useSession();
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({
+    moduleId: "finance",
+  });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const timer = window.setTimeout(
+      () => setDebouncedQuery(searchQuery.trim()),
+      350,
+    );
+    return () => window.clearTimeout(timer);
+  }, [searchQuery]);
+
+  const fetchPayments = useCallback(
+    async ({
+      signal,
+      showSpinner = true,
+    }: { signal?: AbortSignal; showSpinner?: boolean } = {}) => {
+      if (!orgId) return;
+      setError(null);
+      if (showSpinner) {
+        setIsLoading(true);
+      }
+      try {
+        const params = new URLSearchParams({ orgId });
+        const response = await fetch(
+          `/api/finance/payments?${params.toString()}`,
+          { signal },
+        );
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          throw new Error(
+            payload?.error ?? auto("Unable to load payments.", "errors.fetch"),
+          );
+        }
+        const data = await response.json();
+        setPayments(Array.isArray(data?.payments) ? data.payments : []);
+      } catch (err) {
+        if ((err as Error).name === "AbortError") {
+          return;
+        }
+        setError(
+          err instanceof Error
+            ? err.message
+            : auto("Unable to load payments.", "errors.fetch"),
+        );
+      } finally {
+        if (showSpinner) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [auto, orgId],
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchPayments({ signal: controller.signal });
+    return () => controller.abort();
+  }, [fetchPayments]);
+
+  const filteredPayments = useMemo(() => {
+    if (!debouncedQuery) return payments;
+    const query = debouncedQuery.toLowerCase();
+    return payments.filter(
+      (payment) =>
+        payment.vendor.toLowerCase().includes(query) ||
+        payment.reference.toLowerCase().includes(query),
+    );
+  }, [payments, debouncedQuery]);
+
+  const handlePaymentStatusChange = (paymentId: string, newStatus: PaymentRecord["status"]) => {
+    setPayments(prev =>
+      prev.map(payment =>
+        payment.id === paymentId ? { ...payment, status: newStatus } : payment
+      )
+    );
+  };
+
+  if (!session) {
+    return <CardGridSkeleton count={4} />;
+  }
+
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="finance" />
+
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            {auto("Payment Processing", "header.title")}
+          </h1>
+          <p className="text-muted-foreground">
+            {auto(
+              "Process and track vendor and contractor payments",
+              "header.subtitle",
+            )}
+          </p>
+        </div>
+        <RecordPaymentDialog orgId={orgId} onRecorded={() => fetchPayments()} />
+      </div>
+
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {auto("Support context: {{name}}", "support.activeOrg", {
+            name: supportOrg.name,
+          })}
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <Input
+          placeholder={auto(
+            "Search payments by vendor or reference...",
+            "search.placeholder",
+          )}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="max-w-md"
+        />
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => setDebouncedQuery(searchQuery.trim())}
+        >
+          {auto("Search", "search.button")}
+        </Button>
+      </div>
+
+      {error && (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+          <p className="text-sm text-destructive">{error}</p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3"
+            onClick={() => fetchPayments()}
+          >
+            {auto("Retry", "errors.retry")}
+          </Button>
+        </div>
+      )}
+
+      {isLoading && !filteredPayments.length ? (
+        <CardGridSkeleton count={3} />
+      ) : (
+        <div className="grid gap-4">
+          {filteredPayments.map((payment) => (
+            <PaymentCard 
+              key={payment.id} 
+              {...payment}
+              orgId={orgId} // AUDIT-2025-11-30: Pass orgId for API calls
+              onStatusChange={handlePaymentStatusChange}
+            />
+          ))}
+        </div>
+      )}
+
+      {!isLoading && !error && filteredPayments.length === 0 && (
+        <div className="mt-6 rounded-lg border border-border p-6 text-center text-muted-foreground">
+          {debouncedQuery
+            ? auto("No payments match your search.", "search.empty")
+            : auto("No payments recorded yet.", "empty.state")}
+        </div>
+      )}
+    </div>
+  );
+}
+
+type PaymentRecord = {
+  id: string;
+  reference: string;
+  amount: number;
+  currency: string;
+  date: string;
+  method: string;
+  status: "pending" | "completed" | "failed";
+  vendor: string;
+};
+
+function PaymentCard({
+  id,
+  vendor,
+  reference,
+  amount,
+  currency,
+  date,
+  method,
+  status,
+  orgId, // AUDIT-2025-11-30: Added orgId for multi-tenant API calls
+  onStatusChange,
+}: PaymentRecord & { orgId: string; onStatusChange?: (id: string, newStatus: PaymentRecord["status"]) => void }) {
+  const auto = useAutoTranslator("fm.finance.payments.card");
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const statusColors = {
+    pending: "bg-warning/10 text-warning border-warning/30",
+    completed: "bg-success/10 text-success border-success/30",
+    failed: "bg-destructive/10 text-destructive border-destructive/30",
+  };
+
+  const handleMarkCompleted = async () => {
+    setIsProcessing(true);
+    try {
+      // AUDIT-2025-11-30: Include orgId in query params for multi-tenant scoping
+      const params = new URLSearchParams({ orgId });
+      const response = await fetch(`/api/finance/payments/${id}/complete?${params.toString()}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data?.error || "Failed to mark payment as completed");
+      }
+      toast.success(auto("Payment marked as completed", "toast.completeSuccess"));
+      onStatusChange?.(id, "completed");
+    } catch (error) {
+      const message = error instanceof Error
+        ? error.message
+        : auto("Failed to complete payment", "toast.completeError");
+      toast.error(message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleViewDetails = () => {
+    window.open(`/fm/finance/payments/${id}`, "_blank");
+  };
+
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <div className="font-semibold text-lg">{vendor}</div>
+            <div className="text-sm text-muted-foreground">{reference}</div>
+            <div className="text-xs text-muted-foreground">
+              {auto("Method", "method")}: {auto(method, `methods.${method}`)}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              <ClientDate date={date} format="date-only" />
+            </div>
+          </div>
+          <div className="text-end space-y-2">
+            <div className="text-xl font-bold">
+              {amount.toLocaleString()} {currency}
+            </div>
+            <span
+              className={`text-xs rounded-full px-2 py-1 border ${statusColors[status]}`}
+            >
+              {auto(status, `status.${status}`)}
+            </span>
+          </div>
+        </div>
+        {status === "pending" && (
+          <div className="flex gap-2 mt-4">
+            <Button 
+              size="sm" 
+              variant="default"
+              onClick={handleMarkCompleted}
+              disabled={isProcessing}
+              aria-label={auto("Mark payment as completed", "actions.completeLabel")}
+            >
+              {auto("Mark Completed", "actions.complete")}
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={handleViewDetails}
+              disabled={isProcessing}
+              aria-label={auto("View payment details", "actions.viewLabel")}
+            >
+              {auto("View Details", "actions.view")}
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function RecordPaymentDialog({ orgId, onRecorded: _onRecorded }: { orgId: string; onRecorded?: () => void }) {
+  const auto = useAutoTranslator("fm.finance.payments.create");
+  const [open, setOpen] = useState(false);
+  const [vendor, setVendor] = useState("");
+  const [amount, setAmount] = useState("");
+  const [method, setMethod] = useState("bank_transfer");
+  const [reference, setReference] = useState("");
+  const [isSubmitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const handleSubmit = async () => {
+    if (!vendor.trim() || !amount) {
+      setSubmitError(
+        auto("Vendor and amount are mandatory.", "toast.validation"),
+      );
+      return;
+    }
+    setSubmitError(null);
+    const toastId = toast.loading(
+      auto("Recording payment...", "toast.loading"),
+    );
+    setSubmitting(true);
+    try {
+      const payload = {
+        orgId,
+        vendor: vendor.trim(),
+        amount: Number(amount),
+        method,
+        reference: reference.trim(),
+      };
+      const response = await fetch("/api/finance/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(
+          body?.error ?? auto("Failed to record payment", "toast.error"),
+        );
+      }
+      toast.success(auto("Payment recorded successfully", "toast.success"), {
+        id: toastId,
+      });
+      setOpen(false);
+      setVendor("");
+      setAmount("");
+      setReference("");
+      _onRecorded?.();
+    } catch (_error) {
+      const message =
+        _error instanceof Error
+          ? _error.message
+          : auto("Failed to record payment", "toast.error");
+      setSubmitError(message);
+      toast.error(message, { id: toastId });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>{auto("Record Payment", "trigger")}</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{auto("Record New Payment", "title")}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="payment-vendor" className="text-sm font-medium">
+              {auto("Vendor", "fields.vendor")}
+            </label>
+            <Input
+              id="payment-vendor"
+              placeholder={auto(
+                "e.g. ABC Supplies Co.",
+                "fields.vendorPlaceholder",
+              )}
+              value={vendor}
+              onChange={(e) => setVendor(e.target.value)}
+              disabled={isSubmitting}
+            />
+          </div>
+          <div>
+            <label htmlFor="payment-amount" className="text-sm font-medium">
+              {auto("Amount (SAR)", "fields.amount")}
+            </label>
+            <Input
+              id="payment-amount"
+              type="number"
+              placeholder="12500"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              disabled={isSubmitting}
+            />
+          </div>
+          <div>
+            <label htmlFor="payment-method" className="text-sm font-medium">
+              {auto("Payment Method", "fields.method")}
+            </label>
+            <select
+              id="payment-method"
+              className="w-full border border-border rounded-md p-2"
+              value={method}
+              onChange={(e) => setMethod(e.target.value)}
+              disabled={isSubmitting}
+            >
+              <option value="bank_transfer">
+                {auto("Bank Transfer", "methods.bank_transfer")}
+              </option>
+              <option value="check">{auto("Check", "methods.check")}</option>
+              <option value="cash">{auto("Cash", "methods.cash")}</option>
+              <option value="credit_card">
+                {auto("Credit Card", "methods.credit_card")}
+              </option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="payment-reference" className="text-sm font-medium">
+              {auto("Reference Number", "fields.reference")}
+            </label>
+            <Input
+              id="payment-reference"
+              placeholder={auto(
+                "e.g. PAY-2024-004",
+                "fields.referencePlaceholder",
+              )}
+              value={reference}
+              onChange={(e) => setReference(e.target.value)}
+              disabled={isSubmitting}
+            />
+          </div>
+          {submitError && (
+            <p className="text-sm text-destructive">{submitError}</p>
+          )}
+          <Button
+            onClick={handleSubmit}
+            disabled={!vendor.trim() || !amount || isSubmitting}
+            className="w-full"
+          >
+            {isSubmitting
+              ? auto("Recording...", "submit.loading")
+              : auto("Record Payment", "submit")}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+]]>
+</file>
+
+</batch_content>

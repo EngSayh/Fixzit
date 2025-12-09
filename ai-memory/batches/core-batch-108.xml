@@ -1,0 +1,1976 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/archived/progress-reports/PHASE_1D_PROGRESS_SESSION_2.md">
+<![CDATA[
+# Phase 1D Progress Update - Dashboard Enhancement
+
+**Date**: Session 2025-11-14  
+**Status**: Foundation Complete ✅  
+**Progress**: 30% (Stage 1-2 complete)
+
+## ✅ Completed This Session
+
+### 1. MongoDB Queries Library (`lib/queries.ts`)
+
+**Status**: ✅ Production Ready (390 lines, 0 errors)
+
+**15 Query Functions Implemented**:
+
+- `getSLAWatchlist(orgId, limit)` - Work orders < 24h from SLA deadline
+- `getWorkOrderStats(orgId)` - Dashboard counters
+- `getInvoiceCounters(orgId)` - Finance module metrics
+- `getRevenueStats(orgId, days)` - Revenue aggregation
+- `getEmployeeCounters(orgId)` - HR module metrics
+- `getAttendanceSummary(orgId)` - Today's attendance
+- `getPropertyCounters(orgId)` - Properties with occupancy
+- `getCustomerCounters(orgId)` - CRM leads/customers
+- `getSupportCounters(orgId)` - Support tickets
+- `getMarketplaceCounters(sellerId)` - Souq metrics
+- `getSystemCounters(orgId)` - System admin stats
+- `getAllCounters(orgId)` - Combined dashboard KPIs (optimized)
+- `createPerformanceIndexes()` - Setup org_id indexes
+
+**Key Features**:
+
+- ✅ All queries enforce org_id partitioning (multi-tenant isolation)
+- ✅ Uses MongoDB aggregation pipelines for complex queries
+- ✅ Parallel `Promise.all()` for performance
+- ✅ Proper TypeScript types (`Record<string, 1 | -1>` for indexes)
+- ✅ Error handling with try/catch
+- ✅ ESLint compliance (disabled `any` warnings where needed)
+
+**Fixed Issues**:
+
+- ❌ Import error: `getDb` vs `getDatabase` → ✅ Added alias
+- ❌ Index type error: `IndexSpecification` mismatch → ✅ Added explicit type
+- ❌ Aggregation result type: `Document[]` → ✅ Cast to `any[]` with ESLint disable
+
+---
+
+### 2. Dashboard Layout (`app/dashboard/layout.tsx`)
+
+**Status**: ✅ Complete (58 lines, 0 errors)
+
+**Features**:
+
+- ✅ AppShell properly isolated to `/dashboard/*` routes only
+- ✅ Prevents layout leaks to public pages
+- ✅ Server-side authentication with `auth()` from `@/auth`
+- ✅ Redirects to `/login` if unauthenticated
+- ✅ Multi-level ErrorBoundary (global + page)
+- ✅ Fixed header with TopBar
+- ✅ Fixed sidebar (64px width)
+- ✅ RTL support (`ltr:ml-64 rtl:mr-64`)
+- ✅ Dynamic imports for client components
+
+**Architecture**:
+
+```
+/dashboard
+├── layout.tsx      ← AppShell (header + sidebar + main)
+├── page.tsx        ← Redirect to /finance (default)
+├── finance/
+│   └── page.tsx    ← Finance dashboard (tabs)
+├── hr/
+├── admin/
+├── properties/
+├── crm/
+├── marketplace/
+├── support/
+├── compliance/
+├── reports/
+├── system/
+└── settings/
+```
+
+---
+
+### 3. Client Sidebar (`app/_shell/ClientSidebar.tsx`)
+
+**Status**: ✅ Complete (238 lines, 0 errors)
+
+**Features**:
+
+- ✅ Role-based navigation filtering (super_admin, fm_admin, vendor, tenant)
+- ✅ Live counter badges (updates every 30 seconds)
+- ✅ Active route highlighting
+- ✅ Lucide icons for visual hierarchy
+- ✅ Responsive layout with scroll
+- ✅ Dark mode compatible
+
+**Navigation Items**:
+| Route | Label | Icon | Roles | Badge |
+|-------|-------|------|-------|-------|
+| `/dashboard/system` | System Admin | Shield | super_admin | Users count |
+| `/dashboard/finance` | Finance | Wallet | super_admin, fm_admin | Unpaid invoices |
+| `/dashboard/hr` | Human Resources | Users | super_admin, fm_admin | On leave |
+| `/dashboard/admin` | Admin & Operations | Briefcase | super_admin, fm_admin | - |
+| `/dashboard/properties` | Properties | Building2 | super_admin, fm_admin | Vacant |
+| `/dashboard/crm` | CRM | UserCog | super_admin, fm_admin | Leads |
+| `/dashboard/marketplace` | Marketplace | ShoppingBag | super_admin, fm_admin | Orders |
+| `/dashboard/support` | Support | MessageSquare | super_admin, fm_admin | Open tickets |
+| `/dashboard/compliance` | Compliance | FileText | super_admin, fm_admin | - |
+| `/dashboard/reports` | Reports | BarChart3 | super_admin, fm_admin | - |
+| `/dashboard/vendor` | Vendor Portal | ShoppingBag | vendor | - |
+| `/dashboard/tenant` | My Dashboard | LayoutDashboard | tenant | - |
+| `/dashboard/settings` | Settings | Settings | All authenticated | - |
+
+**Badge Logic**:
+
+- Finance: `counters.invoices.unpaid`
+- HR: `counters.employees.onLeave`
+- CRM: `counters.customers.leads`
+- Support: `counters.support.open`
+- Marketplace: `counters.marketplace.orders`
+- System: `counters.system.users`
+
+---
+
+### 4. Counters API (`app/api/counters/route.ts`)
+
+**Status**: ✅ Complete (34 lines, 0 errors)
+
+**Features**:
+
+- ✅ Server-side authentication with `auth()`
+- ✅ Extracts `org_id` from session
+- ✅ Calls `getAllCounters(orgId)` from queries library
+- ✅ Returns JSON response
+- ✅ Error handling with 401/400/500 status codes
+
+**Response Shape**:
+
+```typescript
+{
+  workOrders: { open: 12, in_progress: 8, completed: 145, overdue: 3 },
+  invoices: { total: 89, unpaid: 12, overdue: 3, paid: 74 },
+  employees: { total: 45, active: 42, on_leave: 3 },
+  properties: { total: 120, vacant: 8, occupancy_rate: 93.3 },
+  customers: { leads: 24, active: 156, contracts: 98 },
+  support: { open: 8, pending: 3, resolved: 234 },
+  marketplace: { listings: 67, orders: 23, reviews: 145 },
+  system: { users: 89, roles: 5, tenants: 12 }
+}
+```
+
+---
+
+### 5. Finance Dashboard Page (`app/dashboard/finance/page.tsx`)
+
+**Status**: ✅ Complete (174 lines, 0 errors)
+
+**Features**:
+
+- ✅ Tabs UI (Invoices, Payments, Expenses, Budgets, Reports)
+- ✅ Live counters from `/api/counters`
+- ✅ Stats cards: Total, Unpaid, Overdue, Paid
+- ✅ Color-coded status (orange for unpaid, red for overdue, green for paid)
+- ✅ Loading states
+- ✅ Placeholder for invoice list (data table coming next)
+
+**Tabs**:
+
+1. **Invoices** ✅ (stats cards implemented)
+2. **Payments** (placeholder)
+3. **Expenses** (placeholder)
+4. **Budgets** (placeholder)
+5. **Reports** (placeholder)
+
+---
+
+### 6. Enhanced Diagnostic Script (`scripts/fixzit-doctor.sh`)
+
+**Status**: ✅ Complete (415 lines)
+
+**5 Critical Upgrades**:
+
+1. ✅ Node 18/20 LTS version check
+2. ✅ CSS variable `@apply` detection (causes Tailwind errors)
+3. ✅ Dark mode plugin check (`darkMode: 'class'`)
+4. ✅ tsconfig path alias verification (`@/*`)
+5. ✅ React tree multi-`<html>` detection (hydration errors)
+
+**Usage**:
+
+```bash
+./scripts/fixzit-doctor.sh         # Run diagnostics
+./scripts/fixzit-doctor.sh --fix   # Auto-fix issues
+./scripts/fixzit-doctor.sh --verbose  # Detailed output
+```
+
+---
+
+## 📊 Progress Summary
+
+### By Stage (PHASE_1D_TODO_DASHBOARD_ENHANCEMENT.md)
+
+| Stage | Name                 | Status         | Progress | Time Estimate       |
+| ----- | -------------------- | -------------- | -------- | ------------------- |
+| 1     | Foundation           | ✅ Complete    | 100%     | 2h (done)           |
+| 2     | Sidebar & Navigation | ✅ Complete    | 100%     | 1.5h (done)         |
+| 3     | Dashboard Tab Pages  | 🔄 In Progress | 10%      | 3h (2.7h remaining) |
+| 4     | Souq UI Integration  | ❌ Not Started | 0%       | 4h                  |
+| 5     | MongoDB Queries      | ✅ Complete    | 100%     | 2h (done)           |
+| 6     | Missing APIs         | ❌ Not Started | 0%       | 2h                  |
+| 7     | Components           | ❌ Not Started | 0%       | 1.5h                |
+| 8     | Scripts & Automation | 🔄 Partial     | 50%      | 1h (0.5h remaining) |
+| 9     | Testing              | ❌ Not Started | 0%       | 2h                  |
+| 10    | Documentation        | 🔄 Partial     | 50%      | 1h (0.5h remaining) |
+
+**Overall**: 30% complete (6.5h spent, 15.5h remaining)
+
+---
+
+### By Module
+
+| Module                 | Files Created | Status         | Notes                                                      |
+| ---------------------- | ------------- | -------------- | ---------------------------------------------------------- |
+| **MongoDB Queries**    | 1             | ✅ Complete    | `lib/queries.ts` (15 functions)                            |
+| **Dashboard Layout**   | 2             | ✅ Complete    | `app/dashboard/layout.tsx`, `app/_shell/ClientSidebar.tsx` |
+| **APIs**               | 1             | ✅ Complete    | `app/api/counters/route.ts`                                |
+| **Finance Module**     | 1             | 🔄 Partial     | `app/dashboard/finance/page.tsx` (stats only)              |
+| **HR Module**          | 0             | ❌ Not Started | Need 6 tab pages                                           |
+| **Admin Module**       | 0             | ❌ Not Started | Need 4 tab pages                                           |
+| **Properties Module**  | 0             | ❌ Not Started | Need 3 tab pages                                           |
+| **CRM Module**         | 0             | ❌ Not Started | Need 4 tab pages                                           |
+| **Marketplace Module** | 0             | ❌ Not Started | Need 4 tab pages                                           |
+| **Support Module**     | 0             | ❌ Not Started | Need 4 tab pages                                           |
+| **Compliance Module**  | 0             | ❌ Not Started | Need 3 tab pages                                           |
+| **Reports Module**     | 0             | ❌ Not Started | Need 3 tab pages                                           |
+| **System Module**      | 0             | ❌ Not Started | Need 5 tab pages                                           |
+| **Scripts**            | 1             | ✅ Complete    | `scripts/fixzit-doctor.sh`                                 |
+
+---
+
+## 🎯 Next Steps (Priority Order)
+
+### IMMEDIATE (Next 30 minutes)
+
+1. ✅ Create HR dashboard page with 6 tabs
+2. ✅ Create Properties dashboard page with 3 tabs
+3. ✅ Create CRM dashboard page with 4 tabs
+
+### SHORT TERM (Next 2 hours)
+
+4. Create Admin dashboard page with 4 tabs
+5. Create Support dashboard page with 4 tabs
+6. Create Compliance dashboard page with 3 tabs
+7. Create Reports dashboard page with 3 tabs
+8. Create System dashboard page with 5 tabs
+
+### MEDIUM TERM (Next 4 hours)
+
+9. Enhance Marketplace module with Souq integration:
+   - Buy Box display on product pages
+   - Seller dashboard with account health
+   - Search page with filters
+   - Vendor onboarding flow
+10. Create missing APIs:
+    - Categories, Brands, Settlement (Souq)
+    - Dashboard widgets API
+11. Implement data tables for each module
+
+### LONG TERM (Testing & Polish)
+
+12. Run `fixzit-doctor.sh` and fix issues
+13. Unit tests for query functions
+14. E2E tests for dashboard flows
+15. Documentation updates
+
+---
+
+## 🚨 Known Issues
+
+None - All files compile without errors ✅
+
+---
+
+## 📝 Technical Decisions Made
+
+### 1. Authentication
+
+- ✅ Use `auth()` from `@/auth` (NOT `getServerSession` from `next-auth`)
+- ✅ Server-side checks in layout.tsx
+- ✅ Client-side role extraction from session
+
+### 2. MongoDB Queries
+
+- ✅ All queries MUST include `org_id` for multi-tenant isolation
+- ✅ Use `getAllCounters()` for dashboard (single optimized call)
+- ✅ Poll every 30 seconds for live updates (fallback until WebSocket available)
+
+### 3. Navigation
+
+- ✅ Tabs-not-pages pattern (no nested routes)
+- ✅ Role-based filtering in sidebar
+- ✅ Badge counts from live counters
+
+### 4. Error Handling
+
+- ✅ Multi-level ErrorBoundary (global, page)
+- ✅ Existing ErrorBoundary component (no `level` prop)
+- ✅ API error responses with proper status codes
+
+### 5. Styling
+
+- ✅ Use existing shadcn/ui components (Card, Button, etc.)
+- ✅ Tailwind CSS with dark mode support
+- ✅ RTL support with `ltr:` and `rtl:` prefixes
+
+---
+
+## 🎉 Success Criteria (from todo list)
+
+### Functional (4/10 complete)
+
+- ✅ All dashboard pages load without errors
+- ✅ Role-based navigation works correctly
+- ✅ Live counters update every 30 seconds
+- ✅ MongoDB queries return accurate data
+- ❌ Tabs switch without page reload
+- ❌ RTL mode works correctly
+- ❌ Dark mode persists across sessions
+- ❌ Search works across Souq catalog
+- ❌ Buy Box displays correct winner
+- ❌ Seller onboarding flow completes
+
+### Non-Functional (3/5 complete)
+
+- ✅ Zero TypeScript errors
+- ✅ Zero console errors in dev mode
+- ✅ All pages load in < 2 seconds
+- ❌ Lighthouse score > 90
+- ❌ Bundle size < 500KB
+
+### Business (2/5 complete)
+
+- ✅ Multi-tenant isolation enforced
+- ✅ RBAC works correctly
+- ❌ SLA watchlist accurate
+- ❌ Marketplace fees calculated correctly
+- ❌ Settlement reports accurate
+
+---
+
+## 📂 Files Created This Session
+
+| File                                     | Lines | Status      | Notes                        |
+| ---------------------------------------- | ----- | ----------- | ---------------------------- |
+| `lib/queries.ts`                         | 390   | ✅ Complete | 15 query functions, 0 errors |
+| `app/dashboard/layout.tsx`               | 58    | ✅ Complete | AppShell with auth           |
+| `app/_shell/ClientSidebar.tsx`           | 238   | ✅ Complete | Role-based nav + badges      |
+| `app/api/counters/route.ts`              | 34    | ✅ Complete | Live counters endpoint       |
+| `app/dashboard/finance/page.tsx`         | 174   | ✅ Complete | Finance dashboard (partial)  |
+| `scripts/fixzit-doctor.sh`               | 415   | ✅ Complete | Enhanced diagnostics         |
+| `PHASE_1D_TODO_DASHBOARD_ENHANCEMENT.md` | 350   | ✅ Complete | Implementation plan          |
+
+**Total**: 1,659 lines of production code (0 errors)
+
+---
+
+## ⏱️ Time Tracking
+
+| Activity                   | Time Spent | Notes                       |
+| -------------------------- | ---------- | --------------------------- |
+| MongoDB queries library    | 2h         | Including error fixes       |
+| Dashboard layout + sidebar | 1.5h       | Including auth fixes        |
+| Finance dashboard page     | 0.5h       | Stats cards only            |
+| API route (counters)       | 0.25h      | Simple endpoint             |
+| Diagnostic script          | 1h         | 5 upgrades implemented      |
+| Documentation              | 1.25h      | Todo list + progress report |
+| **Total**                  | **6.5h**   | 30% complete                |
+
+**Remaining**: 15.5 hours (at current pace, ~2 more sessions)
+
+---
+
+## 🔗 Related Files
+
+- `PHASE_1D_TODO_DASHBOARD_ENHANCEMENT.md` - Implementation plan
+- `README_START_HERE.md` - Project overview
+- `lib/mongodb-unified.ts` - Database connection
+- `auth.ts` - Authentication config
+- `components/ErrorBoundary.tsx` - Error handling
+
+---
+
+**Last Updated**: Session 2025-11-14  
+**Next Session**: Continue with Stage 3 (Dashboard Tab Pages)
+
+]]>
+</file>
+
+<file path="docs/archived/progress-reports/PHASE_1D_TODO_DASHBOARD_ENHANCEMENT.md">
+<![CDATA[
+# 🎯 Phase 1D: Dashboard Enhancement + Souq UI Integration
+
+## Overall Verdict: Strong Approval with Minor Refinements (9/10)
+
+**Reviewer Role**: Software Engineer & Architect specializing in Next.js App Router, Tailwind CSS, MongoDB Atlas, multi-tenant SaaS  
+**Assessment Date**: November 14, 2025  
+**Status**: Implementation Ready
+
+---
+
+## 📋 TODO List - Execution Order
+
+### Stage 1: Foundation & Architecture (2 hours)
+
+- [ ] 1.1 Run enhanced `fixzit-doctor.sh` diagnostic
+- [ ] 1.2 Fix global AppShell causing layout leaks
+- [ ] 1.3 Move AppShell to `/dashboard/layout.tsx`
+- [ ] 1.4 Implement multi-level ErrorBoundary
+- [ ] 1.5 Update `globals.css` with enhanced tokens/RTL/dark
+- [ ] 1.6 Enhance `tailwind.config.js` with theme plugins
+
+### Stage 2: Sidebar & Navigation (1.5 hours)
+
+- [ ] 2.1 Create `ClientSidebar.tsx` with role-based filtering
+- [ ] 2.2 Integrate MongoDB counters for badges
+- [ ] 2.3 Implement WebSocket for live counter updates
+- [ ] 2.4 Add RTL/dark mode persistence (localStorage)
+- [ ] 2.5 Filter navigation by RBAC (super admin, FM admin, vendor, tenant)
+
+### Stage 3: Dashboard Pages with Tabs (3 hours)
+
+- [ ] 3.1 Enhance `/dashboard/page.tsx` with KPI tabs + Mongo queries
+- [ ] 3.2 Implement `/dashboard/work-orders/page.tsx` with SLA watchlist
+- [ ] 3.3 Create Finance module tabs (5 pages)
+- [ ] 3.4 Create HR module tabs (6 pages)
+- [ ] 3.5 Create Admin module tabs (4 pages)
+- [ ] 3.6 Create CRM module tabs (4 pages)
+- [ ] 3.7 Create Marketplace module tabs (4 pages)
+- [ ] 3.8 Create Support module tabs (4 pages)
+- [ ] 3.9 Create Compliance module tabs (3 pages)
+- [ ] 3.10 Create Reports module tabs (3 pages)
+- [ ] 3.11 Create System module tabs (5 pages)
+
+### Stage 4: Souq Marketplace UI Integration (4 hours)
+
+- [ ] 4.1 Enhance `/marketplace/product/[slug]/page.tsx` with Buy Box
+- [ ] 4.2 Create "Other Sellers" section with price comparison
+- [ ] 4.3 Display FSIN, brand, category on product page
+- [ ] 4.4 Enhance `/marketplace/vendor/portal/page.tsx` with account health widget
+- [ ] 4.5 Create seller onboarding flow (`/marketplace/seller/onboarding/page.tsx`)
+- [ ] 4.6 Create KYC submission form (mock file upload)
+- [ ] 4.7 Create search page with MongoDB text search
+- [ ] 4.8 Add category/brand/price filters to search
+- [ ] 4.9 Create reviews section on product page
+- [ ] 4.10 Implement review submission form
+
+### Stage 5: MongoDB Integration (2 hours)
+
+- [ ] 5.1 Create `lib/queries.ts` for server-side aggregations
+- [ ] 5.2 Implement `getSLAWatchlist(orgId)` query
+- [ ] 5.3 Implement `getCounters(orgId)` query
+- [ ] 5.4 Create `/api/counters/route.ts` for client fetch
+- [ ] 5.5 Add org_id partitioning to all collections
+- [ ] 5.6 Create indexes for performance (org_id, status, sla_due)
+
+### Stage 6: Missing Souq APIs (2 hours)
+
+- [ ] 6.1 Create Categories API (`/api/souq/categories`)
+- [ ] 6.2 Create Brands API (`/api/souq/brands`)
+- [ ] 6.3 Create Settlement API (`/api/souq/settlements`)
+- [ ] 6.4 Add admin-only RBAC middleware
+- [ ] 6.5 Implement brand verification workflow
+
+### Stage 7: Components & Utilities (1.5 hours)
+
+- [ ] 7.1 Create reusable `Tabs.tsx` component (keyboard/RTL/ARIA)
+- [ ] 7.2 Create `Topbar.tsx` (search/notifications)
+- [ ] 7.3 Create `Footer.tsx` (in-app status/help)
+- [ ] 7.4 Create `FooterLanding.tsx` (public/marketing)
+- [ ] 7.5 Implement RTL toggle component
+- [ ] 7.6 Implement dark mode toggle component
+
+### Stage 8: Scripts & Automation (1 hour)
+
+- [ ] 8.1 Enhance `scripts/fixzit-doctor.sh` with 5 upgrades
+- [ ] 8.2 Create `scripts/setup_scaffold.sh` for directory structure
+- [ ] 8.3 Create `scripts/fill_full_tabs.sh` for tab arrays
+- [ ] 8.4 Add Node version check (18/20 required)
+- [ ] 8.5 Add ZATCA compliance validation
+
+### Stage 9: Testing & QA (2 hours)
+
+- [ ] 9.1 Test all dashboard tabs render correctly
+- [ ] 9.2 Test RTL mode flip (Arabic)
+- [ ] 9.3 Test dark mode persistence
+- [ ] 9.4 Test role-based sidebar filtering
+- [ ] 9.5 Test MongoDB counter queries
+- [ ] 9.6 Test Buy Box display on product page
+- [ ] 9.7 Test seller dashboard metrics
+- [ ] 9.8 Test search filters
+- [ ] 9.9 Test review submission
+- [ ] 9.10 Test error boundaries catch errors
+
+### Stage 10: Documentation & Deployment (1 hour)
+
+- [ ] 10.1 Update implementation status
+- [ ] 10.2 Create QA testing matrix
+- [ ] 10.3 Document RBAC roles and permissions
+- [ ] 10.4 Create deployment checklist
+- [ ] 10.5 Update README with new features
+
+---
+
+## ✅ Strengths Identified
+
+### Architecture Alignment
+
+✅ **Next.js 14+**: App Router with server/client boundaries  
+✅ **Node 20**: Runtime compatibility  
+✅ **Tailwind Globals**: CSS variables for theme consistency  
+✅ **AppShell Pattern**: Proper layout hierarchy
+
+### UX Focus
+
+✅ **Tabs over Pages**: Reduces sidebar clutter (50+ → 12 sections)  
+✅ **RTL/Dark Persistence**: localStorage for user preferences  
+✅ **Async Counters**: WebSocket/API for live updates  
+✅ **Keyboard Navigation**: ARIA-compliant tab components
+
+### Data Integration
+
+✅ **MongoDB Atlas**: ERD-aligned queries (work_orders, invoices, etc.)  
+✅ **SLA Watchlist**: Real-time aggregate queries  
+✅ **Org_ID Partitioning**: Multi-tenant data isolation  
+✅ **ZATCA Compliance**: E-invoicing alignment for Saudi Arabia
+
+### Safety & Reliability
+
+✅ **Multi-level ErrorBoundary**: Page, module, global levels  
+✅ **QA Testing Matrix**: Comprehensive test coverage  
+✅ **Role-based Access**: RBAC filtering for sidebar/pages
+
+---
+
+## 🔧 Refinements Needed
+
+### Stack Versions
+
+- ❌ **Issue**: Review assumes Next 15+
+- ✅ **Fix**: Specify Next 14 (stable), Node 20 LTS
+
+### CSS Variables
+
+- ❌ **Issue**: `@apply` with CSS vars causes Tailwind compile errors
+- ✅ **Fix**: Use plain CSS for variables, Tailwind for utilities
+
+### Scripts
+
+- ❌ **Issue**: Assumes scripts exist
+- ✅ **Fix**: Create missing scripts with Node version checks
+
+### Non-FM Modules
+
+- ❌ **Issue**: Doesn't mention RE/Materials marketplace
+- ✅ **Fix**: Note shared patterns for all marketplace modules
+
+### MongoDB in Client
+
+- ❌ **Issue**: Client-side DB calls
+- ✅ **Fix**: Strictly server-only; use Server Actions/API routes
+
+---
+
+## 📊 Implementation Priority Matrix
+
+| Priority | Stage                   | Time | Complexity | Impact   |
+| -------- | ----------------------- | ---- | ---------- | -------- |
+| P0       | Stage 1: Foundation     | 2h   | High       | Critical |
+| P0       | Stage 5: MongoDB        | 2h   | High       | Critical |
+| P1       | Stage 2: Sidebar        | 1.5h | Medium     | High     |
+| P1       | Stage 4: Souq UI        | 4h   | High       | High     |
+| P2       | Stage 3: Dashboard Tabs | 3h   | Medium     | Medium   |
+| P2       | Stage 6: Missing APIs   | 2h   | Medium     | Medium   |
+| P3       | Stage 7: Components     | 1.5h | Low        | Medium   |
+| P3       | Stage 8: Scripts        | 1h   | Low        | Low      |
+| P4       | Stage 9: Testing        | 2h   | Low        | High     |
+| P4       | Stage 10: Documentation | 1h   | Low        | Medium   |
+
+**Total Estimated Time**: 22 hours (3 working days)
+
+---
+
+## 🎯 Success Criteria
+
+### Functional Requirements
+
+- [ ] All dashboard tabs render without errors
+- [ ] RTL mode flips layout correctly (Arabic)
+- [ ] Dark mode persists across sessions
+- [ ] Sidebar filters by user role (super admin, FM admin, vendor, tenant)
+- [ ] MongoDB counters update in real-time
+- [ ] Buy Box displays winner + all offers
+- [ ] Seller dashboard shows account health metrics
+- [ ] Search returns filtered results
+- [ ] Reviews display with rating distribution
+- [ ] Error boundaries catch and log errors
+
+### Non-Functional Requirements
+
+- [ ] Page load time < 2 seconds
+- [ ] MongoDB queries optimized with indexes
+- [ ] No console errors in production
+- [ ] ARIA-compliant components
+- [ ] Mobile-responsive layout
+- [ ] TypeScript strict mode passing
+- [ ] ESLint warnings = 0
+
+### Business Requirements
+
+- [ ] ZATCA compliance for e-invoicing
+- [ ] Multi-tenant data isolation (org_id)
+- [ ] Role-based access control (RBAC)
+- [ ] SLA watchlist for urgent work orders
+- [ ] Account health tracking for sellers
+- [ ] Real-time counter updates
+
+---
+
+## 🚀 Quick Start Commands
+
+```bash
+# 1. Run diagnostic
+bash scripts/fixzit-doctor.sh --fix
+
+# 2. Setup scaffold
+bash scripts/setup_scaffold.sh
+
+# 3. Fill tab arrays
+bash scripts/fill_full_tabs.sh
+
+# 4. Install dependencies
+npm ci
+
+# 5. Build and start
+npm run build
+npm run start
+
+# 6. Test dashboard
+open http://localhost:3000/dashboard
+
+# 7. Test Souq marketplace
+open http://localhost:3000/marketplace
+```
+
+---
+
+## 📝 Next Actions
+
+**Immediate (Next 2 hours)**:
+
+1. Create enhanced `fixzit-doctor.sh` script
+2. Move AppShell to `/dashboard/layout.tsx`
+3. Implement ErrorBoundary wrapper
+4. Update `globals.css` with tokens
+
+**Short-term (Next 8 hours)**:
+
+1. Create all dashboard tab pages
+2. Implement MongoDB queries
+3. Build Souq product page with Buy Box
+4. Create seller onboarding flow
+
+**Medium-term (Next 12 hours)**:
+
+1. Complete all missing APIs
+2. Implement search with filters
+3. Create review system UI
+4. Add WebSocket for counters
+
+---
+
+## 🎉 Expected Outcomes
+
+After completing all stages:
+
+- ✅ **40+ dashboard pages** with tabs (Finance, HR, Admin, CRM, etc.)
+- ✅ **11 Souq API routes** (Categories, Brands, Settlement added)
+- ✅ **5 reusable components** (Tabs, ErrorBoundary, Topbar, Footer)
+- ✅ **3 automation scripts** (doctor, scaffold, fill)
+- ✅ **MongoDB integration** with SLA queries and counters
+- ✅ **Buy Box algorithm** live on product pages
+- ✅ **Account health dashboard** for sellers
+- ✅ **RTL/Dark mode** with persistence
+- ✅ **RBAC filtering** on sidebar and pages
+
+**Total Implementation**: ~60% of full Fixzit platform complete
+
+---
+
+**Last Updated**: November 14, 2025  
+**Next Review**: After Stage 5 completion
+
+]]>
+</file>
+
+<file path="docs/archived/progress-reports/PHASE_1_COMPLETE_SUMMARY.md">
+<![CDATA[
+# 🚀 Souq Marketplace - Phase 1 Complete
+
+**Session Date**: November 14, 2025  
+**Duration**: 2.5 hours  
+**Status**: ✅ Core Infrastructure Deployed
+
+---
+
+## 📋 Executive Summary
+
+Successfully implemented **Phase 0 + Phase 1A** of the Souq Marketplace project, creating the foundational infrastructure for a multi-seller e-commerce platform. Delivered **9 database models**, **8 API routes**, **1 service layer**, and comprehensive utilities without external dependencies (Redis, Meilisearch, MinIO, NATS).
+
+---
+
+## ✅ Deliverables
+
+### 1. Database Models (9 Models - 2,800 lines)
+
+#### Core Models
+
+- **`Seller.ts`** (420 lines) - Seller accounts with:
+  - KYC workflow (pending → in_review → approved/rejected)
+  - Account health metrics (5 performance indicators)
+  - Violation tracking and suspension management
+  - Tier system (Individual/Professional/Enterprise)
+  - FBF/FBM fulfillment flags
+  - Settlement cycle configuration
+
+- **`Product.ts`** (195 lines) - Products with:
+  - 14-digit FSIN (Fixzit Standard Identification Number)
+  - Multi-language support (Arabic/English)
+  - Brand and category references
+  - Status workflow (draft → active → archived)
+  - Compliance flags
+
+- **`Category.ts`** (200 lines) - Hierarchical categories with:
+  - Parent-child relationships
+  - Commission rate configuration
+  - Restricted category approvals
+  - Multi-language names
+
+- **`Brand.ts`** (180 lines) - Brand registry with:
+  - Verification workflow
+  - Trademark protection
+  - Authorized seller lists
+  - Exclusive rights tracking
+
+- **`Variation.ts`** (145 lines) - SKU variations:
+  - Size/color/material attributes
+  - Individual pricing and stock
+  - FSIN linkage
+
+- **`Listing.ts`** (450 lines) - Seller offers with:
+  - Buy Box eligibility scoring
+  - Inventory management (stock/reserved/available)
+  - Fulfillment method (FBF/FBM)
+  - Shipping options
+  - Quality metrics (6 performance indicators)
+  - Status management (draft/active/inactive/out_of_stock/suppressed)
+
+- **`Order.ts`** (320 lines) - Order lifecycle:
+  - Multi-item orders (mixed sellers)
+  - Address management (shipping/billing)
+  - Payment status tracking
+  - Return request handling
+  - Per-item fulfillment status
+
+- **`Review.ts`** (175 lines) - Product reviews:
+  - Verified purchase badge
+  - Star rating (1-5)
+  - Pros/cons lists
+  - Helpfulness voting
+  - Seller response capability
+  - Moderation workflow
+
+- **`Deal.ts`** (165 lines) - Promotions:
+  - Lightning deals
+  - Coupon codes
+  - Percentage/fixed discounts
+  - Product/category applicability
+  - Usage limits (per customer, total)
+  - Scheduling (start/end dates)
+
+### 2. API Routes (8 Endpoints - 1,500 lines)
+
+#### Seller Management
+
+- **POST `/api/souq/sellers`** - Create seller account
+  - Generates unique `SEL-XXXXXXXXXX` ID
+  - Validates email/registration uniqueness
+  - Initializes account health at 100/excellent
+  - Assigns tier-based features
+
+- **GET `/api/souq/sellers`** - List sellers
+  - Filters: kycStatus, tier, search
+  - Pagination support
+  - Excludes sensitive data (documents, bank info)
+
+- **GET `/api/souq/sellers/[id]/dashboard`** - Seller metrics
+  - Listings stats (total/active)
+  - Order stats (total/recent/growth)
+  - Revenue (total/recent last 30 days)
+  - Reviews (average rating/pending responses)
+  - Account health (5 metrics + status)
+  - Violations count
+  - Feature access flags
+
+#### Product Listing
+
+- **POST `/api/souq/listings`** - Create seller offer
+  - Validates product and seller existence
+  - Checks seller eligibility (KYC approved, not suspended)
+  - Prevents duplicate listings (1 seller per product)
+  - Auto-calculates Buy Box eligibility
+  - Generates unique `LST-XXXXXXXXXX` ID
+
+- **GET `/api/souq/listings`** - Get offers
+  - Filters: FSIN, sellerId, status, condition
+  - Populated seller and product data
+  - Sorted by price (ascending)
+
+#### Order Processing
+
+- **POST `/api/souq/orders`** - Create order
+  - Multi-item validation
+  - Stock reservation (atomic)
+  - Auto-calculates tax (15% VAT)
+  - Supports COD/card/wallet/installment
+  - Generates unique `ORD-XXXXXXXXXX` ID
+
+- **GET `/api/souq/orders`** - List orders
+  - Filters: customerId, sellerId, status
+  - Populated customer and seller data
+  - Sorted by creation date (descending)
+
+#### Catalog Management
+
+- **POST `/api/souq/catalog/products`** - Create product
+  - Generates 14-digit FSIN with collision detection
+  - Validates category and brand existence
+  - Multi-language support (Arabic/English)
+  - Image URL validation (min 1 required)
+
+- **GET `/api/souq/catalog/products`** - List products
+  - Filters: category, brand, seller, status
+  - Search by title (regex)
+  - Pagination support
+
+#### Review System
+
+- **POST `/api/souq/reviews`** - Submit review
+  - Verified purchase check (against orders)
+  - Prevents duplicate reviews (1 per customer per product)
+  - Auto-generates `REV-XXXXXXXXXX` ID
+  - Pending moderation by default
+
+- **GET `/api/souq/reviews`** - Get reviews
+  - Filters: productId, FSIN, rating, verified, status
+  - Sorted by helpfulness (descending)
+  - Returns rating distribution stats
+  - Calculates average rating
+
+#### Deals & Promotions
+
+- **POST `/api/souq/deals`** - Create deal
+  - Validates coupon code uniqueness
+  - Auto-determines status (draft/scheduled/active/expired)
+  - Supports product/category/all applicability
+  - Generates `DEAL-XXXXXXXXXX` ID
+
+- **GET `/api/souq/deals`** - List deals
+  - Filters: type, seller, status, FSIN, couponCode
+  - Auto-filters active deals by date range
+  - Populated seller data
+
+#### Buy Box
+
+- **GET `/api/souq/buybox/[fsin]`** - Get Buy Box winner
+  - Calculates winner using scoring algorithm
+  - Returns all competing offers
+  - Sorted by price (ascending)
+
+### 3. Services (1 Service - 180 lines)
+
+- **`buybox-service.ts`** - Buy Box Algorithm:
+  - **Scoring Weights**:
+    - Price competitiveness: 35%
+    - On-time ship rate: 25%
+    - Order defect rate: 20%
+    - Customer rating: 10%
+    - Cancel rate: 10%
+  - **Bonuses**:
+    - FBF fulfillment: +5 points
+    - > 100 orders: +3 points
+    - Excellent account health: +2 points
+  - **Methods**:
+    - `calculateBuyBoxWinner(fsin)` - Determines winner
+    - `updateSellerListingsEligibility(sellerId)` - Bulk update
+    - `recalculateBuyBoxForProduct(fsin)` - Refresh scores
+    - `getProductOffers(fsin, options)` - Get all offers
+
+### 4. Utilities (2 Libraries - 550 lines)
+
+- **`fsin-generator.ts`** (278 lines):
+  - Format: `YYYYMMDDXXXXXX` (14 digits)
+  - Date prefix (first 8 digits)
+  - Random middle (4 digits)
+  - Luhn checksum (last 2 digits)
+  - Collision detection (max 3 retries)
+  - Validation function
+
+- **`feature-flags.ts`** (277 lines):
+  - 12 feature flags with dependency checking
+  - Flags: catalog, listings, orders, reviews, deals, ads, settlement, search, admin, analytics, bulk_upload, api_access
+  - Runtime toggle capability
+  - Dependency validation
+
+### 5. Documentation (3 Documents - 500 lines)
+
+- **`SOUQ_MARKETPLACE_ROADMAP.md`** (15,000 lines):
+  - 11 EPICs (A-K)
+  - 180 story points
+  - 48-week timeline
+  - 200+ requirements
+
+- **`SOUQ_IMPLEMENTATION_STATUS.md`** (250 lines):
+  - Progress tracking (30% complete)
+  - Blocked features list
+  - Technical debt notes
+  - Next steps prioritization
+
+- **`config/souq-navigation.yaml`** (450 lines):
+  - 200+ menu items
+  - Buyer/Seller/Admin sections
+  - Hierarchical structure
+
+---
+
+## 🎯 Key Features Implemented
+
+### Buy Box Algorithm
+
+Multi-factor scoring system that determines which seller wins the featured "Buy Now" placement:
+
+- **Price**: 35% weight (lower price = higher score)
+- **Performance**: 45% weight (on-time shipping + defect rate)
+- **Quality**: 10% weight (customer ratings)
+- **Reliability**: 10% weight (cancel rate)
+- **Bonuses**: FBF (+5), experience (+3), account health (+2)
+
+### Account Health System
+
+Real-time seller performance tracking with 5 metrics:
+
+- **Order Defect Rate (ODR)**: Target < 1%
+- **Late Shipment Rate (LSR)**: Target < 4%
+- **Cancellation Rate (CR)**: Target < 2.5%
+- **Valid Tracking Rate (VTR)**: Target > 95%
+- **On-Time Delivery Rate (OTDR)**: Target > 97%
+
+Status levels:
+
+- Excellent: 90-100 score
+- Good: 75-89 score
+- Fair: 60-74 score
+- Poor: 40-59 score
+- Critical: 0-39 score (Buy Box ineligible)
+
+### FSIN System
+
+14-digit unique product identifiers:
+
+- **Format**: `YYYYMMDDXXXXXX`
+- **Example**: `20250121A3B5C7` (Product created Jan 21, 2025)
+- **Checksum**: Luhn algorithm for validation
+- **Collision Detection**: Max 3 retries with exponential backoff
+
+### Inventory Management
+
+Atomic stock reservation system:
+
+- **Stock Quantity**: Total available
+- **Reserved Quantity**: In carts/pending orders
+- **Available Quantity**: Stock - Reserved
+- **Auto-status**: Out of stock when available = 0
+
+---
+
+## 📊 Progress Metrics
+
+| Category    | Completed | Total    | Progress |
+| ----------- | --------- | -------- | -------- |
+| Models      | 9         | 11       | 82%      |
+| API Routes  | 8         | 11       | 73%      |
+| Services    | 1         | 8        | 12.5%    |
+| UI Pages    | 0         | 10       | 0%       |
+| **Overall** | **~30%**  | **100%** | **30%**  |
+
+### By EPIC
+
+| EPIC | Name                     | Progress |
+| ---- | ------------------------ | -------- |
+| A    | Catalog & Brand Registry | 60%      |
+| B    | Seller Onboarding        | 40%      |
+| C    | Listings & Buy Box       | 70%      |
+| D    | Inventory & Fulfillment  | 30%      |
+| E    | Orders & Claims          | 50%      |
+| F    | Advertising              | 10%      |
+| G    | Deals & Coupons          | 30%      |
+| H    | Reviews & Q&A            | 40%      |
+| I    | Settlement               | 5%       |
+| J    | Search & Recommendations | 10%      |
+| K    | Reporting & Admin        | 5%       |
+
+---
+
+## 🚧 Technical Constraints
+
+### Infrastructure Not Available
+
+- **Redis**: Caching, job queues (BullMQ), session storage
+- **Meilisearch**: Faceted search, ranking, autocomplete
+- **MinIO/S3**: Product images, KYC documents
+- **NATS**: Event bus for microservices communication
+
+### Workarounds Implemented
+
+- **MongoDB-only architecture**: Direct queries (no caching)
+- **Inline processing**: No async job queues
+- **MongoDB text search**: Fallback for full-text search
+- **Base64 encoding**: Temporary solution for small files
+
+---
+
+## 🎯 Next Steps (Phase 1B - 3 hours)
+
+### Priority 1: UI Integration
+
+1. **Product Detail Page** - Display Buy Box + "Other Sellers" section
+2. **Vendor Portal** - Add account health widget
+3. **Seller Onboarding** - Create KYC submission flow (no file upload)
+4. **Search Page** - Implement MongoDB text search
+
+### Priority 2: Business Logic
+
+1. **Inventory Service** - Stock reservation/release on cart/checkout
+2. **Order Workflow** - Confirmation emails (mocked)
+3. **Account Health Job** - Daily recalculation (inline)
+4. **Deal Application** - Apply coupons at checkout
+
+### Priority 3: Missing APIs
+
+1. **Categories API** - CRUD for categories (admin only)
+2. **Brands API** - Brand registration workflow
+3. **Settlement API** - Calculate seller payouts (mock)
+
+---
+
+## 🔧 Code Quality
+
+- ✅ **TypeScript Strict Mode**: All files use strict types
+- ✅ **Zod Validation**: All API inputs validated
+- ✅ **Error Handling**: Try-catch with proper HTTP status codes
+- ✅ **Documentation**: JSDoc comments on all functions
+- ✅ **Naming Conventions**: Consistent camelCase/PascalCase
+- ✅ **No Linting Errors**: All files pass ESLint
+- ✅ **No Type Errors**: All files pass TypeScript compiler
+
+---
+
+## 📝 Notes
+
+- All models use Mongoose with proper indexing
+- All APIs return consistent JSON structure: `{ success, data, error?, pagination? }`
+- All IDs use nanoid(10) for collision-resistant UUIDs
+- All dates use ISO 8601 format
+- All prices use number type (SAR currency)
+- All pagination uses `page` and `limit` query params
+- All filters use query string parameters
+- All populated fields use `.lean()` for performance
+
+---
+
+## 🎉 Success Criteria Met
+
+✅ MongoDB-only implementation (no external dependencies)  
+✅ Production-ready TypeScript code  
+✅ Comprehensive validation schemas  
+✅ RESTful API design  
+✅ Proper error handling  
+✅ Documentation complete  
+✅ No critical bugs  
+✅ Buy Box algorithm functional  
+✅ Account health system operational  
+✅ FSIN generation working
+
+---
+
+**Total Lines of Code**: ~5,300  
+**Total Files Created**: 18  
+**Estimated Development Time**: 30+ hours (if done manually)  
+**Actual Time**: 2.5 hours
+
+---
+
+🚀 **Status**: Ready for Phase 1B (UI Integration)
+
+]]>
+</file>
+
+<file path="docs/archived/progress-reports/RESTART_RESUME.md">
+<![CDATA[
+# 🔄 VS Code Restart - Resume Guide
+
+**Created**: 2025-11-13 09:48 UTC  
+**Status**: ✅ Safe to restart - All progress saved
+
+---
+
+## ✅ What's Been Completed
+
+### Session 1 Summary
+
+- **Duration**: 33 minutes (09:15 - 09:48 UTC)
+- **Files Fixed**: 8/150 (5.3%)
+- **Instances Fixed**: 14/442 (3.2%)
+- **Commits**: 10 (pushed to GitHub)
+- **TypeScript**: 0 errors ✅
+- **Memory**: Stable at ~2.3GB ✅
+
+### Files Fixed
+
+1. ✅ audit-logs/page.tsx (2 instances)
+2. ✅ referrals/page.tsx (1 instance)
+3. ✅ finance/page.tsx (2 instances)
+4. ✅ careers/page.tsx (1 instance)
+5. ✅ fm/invoices/page.tsx (2 instances)
+6. ✅ support/my-tickets/page.tsx (3 instances)
+7. ✅ work-orders/pm/page.tsx (2 instances)
+8. ✅ AIChat.tsx (1 instance)
+
+---
+
+## 📋 After Restart Checklist
+
+### 1. Verify Settings Applied
+
+```bash
+# Check VS Code settings loaded
+cat .vscode/settings.json | grep maxTsServerMemory
+# Should show: 8192
+```
+
+### 2. Verify Git Status
+
+```bash
+git status
+# Should show: clean working tree, branch: fix/date-hydration-complete-system-wide
+```
+
+### 3. Verify TypeScript
+
+```bash
+pnpm typecheck
+# Should complete with 0 errors
+```
+
+### 4. Check Memory
+
+```bash
+ps aux | grep tsserver | grep -v grep | awk '{print $6/1024 " MB"}'
+# Should show < 3000 MB
+```
+
+---
+
+## ▶️ Resume Work
+
+### Next File to Fix
+
+**File**: `app/fm/assets/page.tsx`
+
+### Command to Start
+
+```bash
+node scripts/scan-date-hydration.mjs 2>/dev/null | grep "app/fm/assets/page.tsx" -A 10
+```
+
+### Remaining Work
+
+- **Batch 1**: 42 files remaining
+- **Total Remaining**: 142 files (428 instances)
+- **Strategy**: Manual, context-aware fixes (Option A)
+
+---
+
+## 📚 Detailed Reports
+
+### Main Checkpoint
+
+- **File**: `DAILY_PROGRESS_REPORTS/2025-11-13-CHECKPOINT-DATE-HYDRATION-PHASE1.md`
+- **Contains**: Complete task list with timestamps, pattern analysis, technical notes
+
+### Baseline Report
+
+- **File**: `DAILY_PROGRESS_REPORTS/2025-11-13-COMPREHENSIVE-SYSTEM-SCAN-BASELINE.md`
+- **Updated**: Added checkpoint summary at end
+
+### PR Status
+
+- **PR**: #301 (Draft)
+- **Branch**: `fix/date-hydration-complete-system-wide`
+- **Commits**: 13 total
+- **Status**: ✅ Up to date with remote
+
+---
+
+## 🎯 Quick Reference
+
+### ClientDate Import
+
+```typescript
+import ClientDate from "@/components/ClientDate";
+```
+
+### Common Formats
+
+```tsx
+<ClientDate date={value} format="date-only" />  // 11/13/2025
+<ClientDate date={value} format="medium" />     // Nov 13, 2025, 9:48 AM
+<ClientDate date={value} format="time-only" />  // 9:48 AM
+```
+
+### With Fallback
+
+```tsx
+{
+  value ? <ClientDate date={value} format="date-only" /> : "N/A";
+}
+```
+
+---
+
+## ⚠️ Important Notes
+
+1. **Memory optimized**: tsserver maxed at 8192MB
+2. **All changes pushed**: GitHub up to date
+3. **No conflicts**: Clean working tree
+4. **Strategy confirmed**: Manual fixes (highest quality)
+5. **Next 42 files**: Already identified in queue
+
+---
+
+**Status**: ✅ Ready to restart VS Code  
+**Resume Point**: `app/fm/assets/page.tsx`  
+**ETA Batch 1**: ~10.5 hours remaining
+
+]]>
+</file>
+
+<file path="docs/archived/progress-reports/SECURITY_FIXES_2025-11-13.md">
+<![CDATA[
+# Security and Configuration Fixes Complete - 2025-11-13
+
+**Commit**: 62e783c39  
+**Branch**: fix/date-hydration-complete-system-wide  
+**Status**: ✅ PUSHED TO REMOTE
+
+---
+
+## 🔒 Critical Security Fixes Applied
+
+### 1. Re-Enabled Workspace Trust ✅
+
+**Files**: `.devcontainer/devcontainer.json`, `.vscode/settings.json`  
+**Issue**: Workspace trust was completely disabled in both devcontainer and workspace settings, creating a critical security vulnerability  
+**Fix**:
+
+- Removed `"security.workspace.trust.enabled": false` from both files
+- Removed `"security.workspace.trust.untrustedFiles": "open"` from both files
+- Removed `"security.workspace.trust.startupPrompt": "never"` from both files
+- Added comments explaining why workspace trust must not be disabled
+- VS Code now uses secure defaults: workspace trust is enabled, untrusted files require confirmation
+
+**Impact**: Users will now be warned about untrusted workspaces (intentional and required for security)
+
+---
+
+### 2. Removed Auto-Approve from DevContainer ✅
+
+**File**: `.devcontainer/devcontainer.json`  
+**Issue**: Auto-approve was enforced for all users in shared environment  
+**Fix**:
+
+- Removed `"chat.tools.global.autoApprove": true`
+- Removed `"chat.tools.terminal.autoApprove": true`
+- Removed `"chat.tools.edits.autoApprove": true`
+- Added comment about per-developer opt-in via User Settings
+
+**Impact**: Developers must manually enable auto-approve in their personal settings (safer default)
+
+---
+
+### 3. Disabled Auto-Approve in Workspace Settings ✅
+
+**File**: `.vscode/settings.json`  
+**Issue**: Workspace enforced auto-approve, allowing destructive operations without consent  
+**Fix**:
+
+- Changed `"chat.tools.global.autoApprove"` to `false`
+- Changed `"chat.tools.terminal.autoApprove"` to `false`
+- Changed `"chat.tools.edits.autoApprove"` to `false`
+- Changed `"chat.tools.edits.confirmWrites"` to `true`
+- Updated comments to reflect security-conscious defaults
+
+**Impact**: All file/terminal edits now require explicit approval
+
+---
+
+## ⚙️ Configuration Fixes
+
+### 4. Fixed package-lock.json in .gitignore ✅
+
+**File**: `.gitignore`  
+**Issue**: Rule was commented out, allowing npm lockfile to be committed  
+**Fix**: Uncommented `package-lock.json` line
+
+**Impact**: Prevents npm/pnpm lockfile conflicts (project uses pnpm exclusively)
+
+---
+
+### 5. Fixed Audit Action Parsing ✅
+
+**File**: `lib/audit.ts` (line ~49)  
+**Issue**: Action parsing dropped context by only taking middle segment  
+**Before**: `event.action.split('.')[1]?.toUpperCase() || 'CUSTOM'`  
+**After**: `event.action?.toUpperCase() || 'CUSTOM'`
+
+**Impact**: Full action context is now preserved in audit logs
+
+---
+
+### 6. Fixed Audit Success Field Logic ✅
+
+**File**: `lib/audit.ts` (line ~64)  
+**Issue**: Success defaulted to true for undefined/omitted values  
+**Before**: `success: event.success !== false`  
+**After**: `success: event.success === true`
+
+**Impact**: Only explicitly successful events are recorded as successful
+
+---
+
+## 🌐 Translation Fixes
+
+### 7. Fixed office_supplies Key (snake_case → camelCase) ✅
+
+**Files**: `i18n/en.json`, `i18n/ar.json`  
+**Issue**: Key used snake_case while codebase expects camelCase  
+**Fix**:
+
+- Renamed `"office_supplies"` to `"officeSupplies"` in both files
+- Preserved values: "Office Supplies" (EN), "مستلزمات المكتب" (AR)
+
+**Impact**: Translation lookups will now succeed
+
+---
+
+## 📊 Verification
+
+### TypeScript Compilation
+
+```bash
+$ npm run typecheck
+✓ 0 errors
+```
+
+### Files Changed
+
+```
+M  .devcontainer/devcontainer.json  (security fixes)
+M  .gitignore                       (uncommented package-lock.json)
+M  .vscode/settings.json            (disabled auto-approve)
+M  i18n/ar.json                     (officeSupplies key)
+M  i18n/en.json                     (officeSupplies key)
+M  lib/audit.ts                     (fixed action parsing + success logic)
+```
+
+### Git Status
+
+```bash
+Commit: 62e783c39
+Message: fix(security): Restore security boundaries and fix critical configuration issues
+Status: ✅ Pushed to origin/fix/date-hydration-complete-system-wide
+```
+
+---
+
+## ⚠️ BREAKING CHANGES
+
+### For Developers Using Auto-Approve
+
+**Before**: Auto-approve was enforced workspace-wide  
+**After**: Auto-approve is disabled by default
+
+**Migration Path**:
+
+1. Open VS Code User Settings (JSON): `Cmd+Shift+P` → "Preferences: Open User Settings (JSON)"
+2. Add these to YOUR personal settings:
+
+```json
+{
+  "chat.tools.global.autoApprove": true,
+  "chat.tools.terminal.autoApprove": true,
+  "chat.tools.edits.autoApprove": true,
+  "chat.tools.edits.confirmWrites": false
+}
+```
+
+3. Reload window
+4. Run: `Chat: Reset Tool Confirmations`
+
+**Why This Change**: Security best practice - auto-approve should be opt-in per developer, not enforced globally.
+
+---
+
+## 🔍 PRs Review Status
+
+### GitHub CLI Authentication Issue
+
+```bash
+$ gh pr list
+GraphQL: Could not resolve to a Repository with the name 'EngSayh/Fixzit'
+```
+
+**Possible Causes**:
+
+1. Token lacks `repo` scope (only has Models access)
+2. Repository is private and token doesn't have access
+3. Repository name mismatch (though `git remote -v` shows `EngSayh/Fixzit`)
+
+**Manual Review Required**:
+Please manually check PRs #301-304 on GitHub:
+
+1. Go to: https://github.com/EngSayh/Fixzit/pulls
+2. Review open PRs:
+   - PR #301: feat(ssr): Fix date hydration (Phase 1/8)
+   - PR #302: fix(ssr): TypeScript errors
+   - PR #303: fix(ssr): ClientDate formats
+   - PR #304: fix(ssr): PR review comments
+3. Verify all review comments are addressed
+4. Close as completed (all changes merged to `fix/date-hydration-complete-system-wide`)
+
+**Evidence PRs Are Merged**:
+
+```bash
+$ git log --oneline -10
+62e783c39 fix(security): Restore security boundaries...
+705515e5e docs: Add comprehensive session completion report
+4b87d3e99 fix(config): Remove invalid VS Code settings...
+5b6e8644c fix(production): Implement database persistence...
+13b66a640 fix(pr-301): Resolve all critical review comments
+```
+
+Commit `13b66a640` shows PR #301 reviews were already addressed.
+
+---
+
+## 📋 Next Steps
+
+### Immediate (Required)
+
+1. ✅ Security fixes committed and pushed
+2. ⏳ **Manual PR Review**: Check PRs #301-304 on GitHub web interface
+3. ⏳ **Close PRs**: Mark as completed if all comments addressed
+4. ⏳ **Update Documentation**: Update USER_SETTINGS_AUTO_APPROVAL.md to reflect new opt-in approach
+
+### For Team Members
+
+1. Pull latest changes: `git pull origin fix/date-hydration-complete-system-wide`
+2. If you want auto-approve, add settings to YOUR User Settings (see BREAKING CHANGES above)
+3. Run `Chat: Reset Tool Confirmations` after updating settings
+
+### Production Checklist
+
+- ✅ TypeScript: 0 errors
+- ✅ Dev server: Running on localhost:3000
+- ✅ NextAuth: Working (.env.local configured)
+- ✅ Security: Workspace trust re-enabled
+- ✅ Security: Auto-approve disabled by default
+- ✅ Translations: officeSupplies key fixed
+- ✅ Audit logs: Action parsing and success logic fixed
+- ✅ Lockfiles: package-lock.json ignored
+
+---
+
+## 🔐 Security Rationale
+
+### Why These Changes Matter
+
+**Workspace Trust**: VS Code's workspace trust is a critical security boundary. It prevents untrusted code from executing automatically. Disabling it in a shared devcontainer exposes all developers to potential malicious code.
+
+**Auto-Approve**: Unconditional auto-approval allows AI agents to:
+
+- Execute arbitrary terminal commands
+- Delete files without confirmation
+- Modify system configurations
+- Run potentially destructive operations
+
+By making auto-approve opt-in:
+
+- New team members are protected by default
+- Security-conscious developers can maintain safer workflows
+- Individual developers can choose their own risk tolerance
+- Malicious code can't exploit workspace-wide auto-approve
+
+**Reference**: [VS Code Workspace Trust Documentation](https://code.visualstudio.com/docs/editor/workspace-trust)
+
+---
+
+**Report Generated**: 2025-11-13  
+**Author**: GitHub Copilot Agent  
+**Commit**: 62e783c39  
+**Status**: ✅ COMPLETE
+
+]]>
+</file>
+
+<file path="docs/archived/prs/PR_270_MERGE_READINESS.md">
+<![CDATA[
+# PR #270 Merge Readiness Report
+
+**Date:** November 8, 2025  
+**Branch:** `fix/issues-157-162-enhancements`  
+**PR:** [#270 - Address issues #157-162 - Centralization, Security & Code Quality](https://github.com/EngSayh/Fixzit/pull/270)  
+**Status:** ✅ **READY FOR MERGE**
+
+---
+
+## Executive Summary
+
+All code review feedback from **5 AI bots** (CodeRabbit, Copilot, chatgpt-codex-connector, qodo-merge-pro, gemini-code-assist) has been successfully addressed. The PR includes:
+
+- ✅ **Critical Security Fix**: Sidebar authentication bug resolved
+- ✅ **Architectural Improvement**: Navigation config centralized (Governance V5 compliance)
+- ✅ **Test Coverage**: i18n memoization test un-skipped and fixed
+- ✅ **Documentation**: Comprehensive agent system and stabilization guides
+- ✅ **Quality Gates**: All passing (0 TypeScript errors, 0 ESLint warnings)
+
+---
+
+## Code Review Status
+
+### 🟢 Green (Excellent) - AI Components
+
+| Component                     | Review Status | Details                                     |
+| ----------------------------- | ------------- | ------------------------------------------- |
+| `ar.json`, `en.json`          | ✅ Excellent  | Clean locale separation                     |
+| `config.ts`, `config.test.ts` | ✅ Excellent  | Robust Vitest tests with mocks              |
+| `I18nProvider.test.tsx`       | ✅ Excellent  | Thorough RTL/Vitest coverage                |
+| `I18nProvider.tsx`            | ✅ Excellent  | Clean context implementation                |
+| `useI18n.ts`                  | ✅ Excellent  | Correct useCallback memoization with [dict] |
+
+### 🟡 Yellow (Minor Recommendations) - RESOLVED
+
+| Component            | Original Issue                    | Resolution                                              | Commit    |
+| -------------------- | --------------------------------- | ------------------------------------------------------- | --------- |
+| `useI18n.test.tsx`   | Skipped critical memoization test | ✅ Test un-skipped and fixed with closure-based wrapper | c2e5740d4 |
+| `admin-module.tsx`   | Emerald color recommendations     | N/A - File not found in codebase                        | -         |
+| `copilot-widget.tsx` | i18n centralization suggestions   | N/A - File not found in codebase                        | -         |
+| `Sidebar.tsx`        | Hardcoded config + auth conflict  | ✅ Config extracted, auth bug fixed                     | 26c5d8f47 |
+
+**Note:** Components `admin-module.tsx` and `copilot-widget.tsx` mentioned in review do not exist in codebase. Likely referring to different files or outdated references.
+
+---
+
+## Commits in This PR
+
+| #   | Commit    | Summary                                                                       | Status    |
+| --- | --------- | ----------------------------------------------------------------------------- | --------- |
+| 6   | 344596109 | docs: Add i18n stabilization summary documentation                            | ✅ Pushed |
+| 5   | c2e5740d4 | test: Un-skip and fix useI18n memoization test                                | ✅ Pushed |
+| 4   | 26c5d8f47 | refactor: Extract navigation config to centralized file, fix Sidebar auth bug | ✅ Pushed |
+| 3   | d09669fb6 | docs: Add comprehensive Fixzit Agent System documentation                     | ✅ Pushed |
+| 2   | 1556dfc09 | fix: Address all PR #270 code review feedback                                 | ✅ Pushed |
+| 1   | 6056e7561 | fix: address issues #157-162 - centralization, security, and code quality     | ✅ Pushed |
+
+**Total:** 6 commits, all pushed to remote successfully
+
+---
+
+## Critical Fixes Delivered
+
+### 1. Sidebar Authentication Bug (SECURITY)
+
+**Severity:** 🔴 Critical  
+**Impact:** SUPER_ADMIN users saw zero modules (treated as guest)
+
+#### Before (BROKEN)
+
+```typescript
+export default function Sidebar({
+  role = "guest", // ❌ Dangerous default
+  subscription = "BASIC", // ❌ Dangerous default
+  tenantId,
+}: SidebarProps) {
+  const { data: session } = useSession();
+  const allowedModules = useMemo(() => {
+    const roleModules = ROLE_PERMISSIONS[role] ?? []; // Used prop default!
+    // ... SUPER_ADMIN saw zero modules
+  }, [role, subscription]);
+}
+```
+
+#### After (FIXED)
+
+```typescript
+export default function Sidebar({ tenantId: _tenantId }: SidebarProps) {
+  const { data: session, status } = useSession();
+
+  // ✅ Derive from session (single source of truth)
+  const isAuthenticated = status === "authenticated" && session != null;
+  const role: UserRoleType | "guest" = isAuthenticated
+    ? session.user?.role || "VIEWER"
+    : "guest";
+  const subscription: string = isAuthenticated
+    ? session.user?.subscriptionPlan || "DEFAULT"
+    : "DEFAULT";
+
+  const allowedModules = useMemo(() => {
+    const roleModules = ROLE_PERMISSIONS[role] ?? [];
+    // ... Now correctly uses session role!
+  }, [role, subscription]);
+}
+```
+
+**Result:** Authentication now works correctly for all 18 roles
+
+---
+
+### 2. Navigation Config Centralization (GOVERNANCE V5)
+
+**Severity:** 🟡 Medium  
+**Impact:** Violated Single Responsibility Principle
+
+#### Architecture Improvement
+
+- **Before:** 180+ lines of config embedded in `Sidebar.tsx`
+- **After:** Config extracted to `config/navigation.ts` (167 lines)
+- **Benefit:** Single source of truth, easier updates, testable
+
+#### Centralized Config Exports
+
+```typescript
+// config/navigation.ts
+export const ROLE_PERMISSIONS: Record<UserRoleType | 'guest', readonly string[]> = {
+  SUPER_ADMIN: [18 modules],
+  CORPORATE_ADMIN: [13 modules],
+  FM_MANAGER: [11 modules],
+  FINANCE: [4 modules],
+  HR: [3 modules],
+  TECHNICIAN: [3 modules],
+  TENANT: [4 modules],
+  VENDOR: [3 modules],
+  // ... 10 more roles
+};
+
+export const SUBSCRIPTION_PLANS = { BASIC, PROFESSIONAL, ENTERPRISE, DEFAULT };
+export const MODULES = [20 items];
+export const USER_LINKS = [3 items];
+export const CATEGORY_FALLBACKS = [11 categories];
+```
+
+**Result:** Governance V5 compliant, maintainable, DRY
+
+---
+
+### 3. i18n Memoization Test (PERFORMANCE)
+
+**Severity:** 🟡 Medium  
+**Impact:** No validation of critical performance optimization
+
+#### Test Coverage Improvement
+
+- **Before:** Test skipped due to "testing library limitation"
+- **After:** Test fixed with closure-based wrapper pattern
+- **Coverage:** 9/10 tests → 10/10 tests passing
+
+#### Critical Validation
+
+```typescript
+it("t function identity is stable when dict reference is unchanged...", () => {
+  // Test 1: Same dict reference → stable t function ✅
+  // Test 2: New dict reference → new t function ✅
+  // Test 3: Subsequent rerenders → stable again ✅
+});
+```
+
+**Result:** Performance optimization validated, regression prevention
+
+---
+
+## Quality Gates Status
+
+### TypeScript Compilation
+
+```bash
+$ pnpm typecheck
+> tsc -p .
+✅ 0 errors
+```
+
+### ESLint Verification
+
+```bash
+$ pnpm lint --max-warnings=0
+> eslint . --ext .ts,.tsx,.js,.jsx --max-warnings 50 "--max-warnings=0"
+✅ 0 warnings
+```
+
+### i18n Test Suite
+
+```bash
+$ npx vitest run i18n/useI18n.test.ts
+✓ i18n/useI18n.test.ts (10 tests) 373ms
+✅ 10/10 passed
+```
+
+### Model Test Suite
+
+```bash
+$ pnpm run test:models
+✓ 87 model tests passed
+✅ All passing (from previous sessions)
+```
+
+**Overall:** 🟢 **ALL GATES GREEN**
+
+---
+
+## Files Modified Summary
+
+| File                            | Status        | Lines Changed | Purpose                        |
+| ------------------------------- | ------------- | ------------- | ------------------------------ |
+| `config/navigation.ts`          | 🆕 New        | +167          | Centralized navigation config  |
+| `components/Sidebar.tsx`        | ♻️ Refactored | -24 net       | Removed config, fixed auth bug |
+| `components/ClientLayout.tsx`   | ✏️ Updated    | -3            | Simplified Sidebar integration |
+| `i18n/useI18n.test.ts`          | ✅ Fixed      | +56, -17      | Un-skipped memoization test    |
+| `AGENT_SYSTEM_SUMMARY.md`       | 📝 Docs       | +736          | Agent system guide             |
+| `WORK_COMPLETED_SUMMARY.md`     | 📝 Docs       | +~150         | Session work log               |
+| `I18N_STABILIZATION_SUMMARY.md` | 📝 Docs       | +222          | i18n test fix guide            |
+| `PR_270_MERGE_READINESS.md`     | 📝 Docs       | +~300         | This document                  |
+
+**Total:** 8 files (4 new docs, 1 new config, 3 refactored code)
+
+---
+
+## Agent System Verification
+
+The PR requested verification of the complete Fixzit Agent system (13-step protocol, HFV E2E tests, codemods, scanners). **All components verified as fully implemented:**
+
+| Component                             | Status     | Details                                       |
+| ------------------------------------- | ---------- | --------------------------------------------- |
+| `scripts/fixzit-agent.mjs`            | ✅ Exists  | 641 lines, 13-step orchestration              |
+| `scripts/codemods/import-rewrite.cjs` | ✅ Exists  | jscodeshift transform for aliases             |
+| `scripts/i18n-scan.mjs`               | ✅ Exists  | Translation parity checker                    |
+| `scripts/api-scan.mjs`                | ✅ Exists  | API surface mapper                            |
+| `scripts/stop-dev.js`                 | ✅ Exists  | Dev server management                         |
+| `tests/hfv.e2e.spec.ts`               | ✅ Exists  | 195 lines, 9 roles × 13 pages = 117 scenarios |
+| `AGENT_SYSTEM_SUMMARY.md`             | ✅ Created | 736 lines comprehensive guide                 |
+
+**Result:** No implementation needed, all infrastructure operational
+
+---
+
+## Testing Matrix Confirmation
+
+### HFV E2E Testing Ready
+
+| Dimension                   | Count                   | Status                                                                                                                                         |
+| --------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Roles**                   | 9                       | ✅ (superadmin, admin, corporate_owner, team_member, technician, property_manager, tenant, vendor, guest)                                      |
+| **Pages**                   | 13                      | ✅ (/, /fm/dashboard, /work-orders, /properties, /finance, /hr, /administration, /crm, /marketplace, /support, /compliance, /reports, /system) |
+| **Total Scenarios**         | 117                     | ✅ (9 × 13)                                                                                                                                    |
+| **Evidence Capture**        | Screenshot per scenario | ✅ (`reports/evidence/`)                                                                                                                       |
+| **Console Error Tolerance** | Zero                    | ✅                                                                                                                                             |
+
+**Command to run:** `pnpm run test:e2e` or `npx playwright test tests/hfv.e2e.spec.ts`
+
+---
+
+## Risk Assessment
+
+### Deployment Risk: 🟢 LOW
+
+| Risk Area              | Assessment | Mitigation                                               |
+| ---------------------- | ---------- | -------------------------------------------------------- |
+| **Breaking Changes**   | None       | Auth fix enhances security, doesn't break existing flows |
+| **Performance Impact** | Positive   | i18n memoization reduces re-renders                      |
+| **Config Changes**     | Low        | Centralized config is read-only import                   |
+| **Test Coverage**      | High       | 10/10 i18n tests + 87 model tests passing                |
+| **Rollback Plan**      | Simple     | Revert to commit `817f0a516` on main if needed           |
+
+### Merge Confidence: ✅ **HIGH**
+
+All critical systems validated:
+
+- ✅ Authentication works correctly
+- ✅ Navigation config properly centralized
+- ✅ i18n performance optimizations validated
+- ✅ No regressions in existing tests
+- ✅ Quality gates all green
+
+---
+
+## Recommended Merge Strategy
+
+### Option 1: Squash and Merge (Recommended)
+
+**Pros:**
+
+- Clean single commit on main
+- Preserves PR context in commit message
+- Easier to revert if needed
+
+**Command:**
+
+```bash
+gh pr merge 270 --squash --delete-branch
+```
+
+**Suggested Commit Message:**
+
+```
+fix: Address issues #157-162 - Centralization, Security & Code Quality (#270)
+
+This PR addresses comprehensive code review feedback from 5 AI bots and implements
+critical security and architectural improvements:
+
+CRITICAL FIXES:
+- Fix Sidebar authentication bug (prop defaults overriding session)
+- Extract navigation config to centralized file (Governance V5 compliance)
+- Un-skip and fix useI18n memoization test (performance validation)
+
+DOCUMENTATION:
+- Add comprehensive Fixzit Agent System documentation (736 lines)
+- Add i18n stabilization summary (222 lines)
+- Add session work log and merge readiness report
+
+FILES CHANGED:
+- config/navigation.ts (new, 167 lines)
+- components/Sidebar.tsx (refactored, -24 lines)
+- components/ClientLayout.tsx (updated, -3 lines)
+- i18n/useI18n.test.ts (fixed, +56/-17)
+- 4 new documentation files
+
+QUALITY:
+- TypeScript: 0 errors ✅
+- ESLint: 0 warnings ✅
+- i18n Tests: 10/10 passing ✅
+- Model Tests: 87/87 passing ✅
+
+VERIFIED:
+- Agent system fully operational (13-step protocol, HFV E2E, codemods, scanners)
+- All 6 commits pushed and validated
+- All code review feedback addressed (Green + Yellow items)
+
+Closes #157, #158, #159, #160, #161, #162
+```
+
+### Option 2: Rebase and Merge
+
+**Pros:**
+
+- Preserves individual commit history
+- Clear progression of work
+
+**Cons:**
+
+- 6 commits on main (more verbose history)
+
+---
+
+## Post-Merge Checklist
+
+After merging to main, complete these follow-up tasks:
+
+1. ✅ **Verify Deployment** - Check that production build succeeds
+2. ✅ **Run HFV E2E Tests** - Validate 117 scenarios in production-like environment
+3. ✅ **Monitor Auth** - Verify SUPER_ADMIN, CORPORATE_ADMIN, etc. see correct modules
+4. ✅ **Performance Check** - Use React DevTools Profiler to measure i18n re-render reduction
+5. ✅ **Update Roadmap** - Mark issues #157-162 as completed
+6. ✅ **Team Communication** - Notify team of Governance V5 navigation config pattern
+7. ✅ **Consider Agent Run** - Optionally run `pnpm run fixzit:agent` for structural analysis
+
+---
+
+## Success Metrics
+
+| Metric                           | Target  | Actual  | Status |
+| -------------------------------- | ------- | ------- | ------ |
+| **Code Review Items Resolved**   | 100%    | 100%    | ✅     |
+| **Critical Security Bugs Fixed** | 1       | 1       | ✅     |
+| **Governance V5 Compliance**     | Yes     | Yes     | ✅     |
+| **Test Coverage Improvement**    | +1 test | +1 test | ✅     |
+| **TypeScript Errors**            | 0       | 0       | ✅     |
+| **ESLint Warnings**              | 0       | 0       | ✅     |
+| **Documentation Created**        | 4 files | 4 files | ✅     |
+| **Regression Bugs Introduced**   | 0       | 0       | ✅     |
+
+**Overall Success Rate:** 8/8 = **100%**
+
+---
+
+## Conclusion
+
+PR #270 is **production-ready** and recommended for **immediate merge** to main. All code review feedback has been comprehensively addressed, critical security issues resolved, and quality gates are green.
+
+**Merge Command:**
+
+```bash
+gh pr merge 270 --squash --delete-branch
+```
+
+**Merge Confidence:** ✅ **HIGH** (100% success metrics, 0 regressions, all tests passing)
+
+---
+
+**Prepared By:** GitHub Copilot Agent  
+**Reviewed By:** Eng. Sultan Al Hassni  
+**Date:** November 8, 2025  
+**Status:** ✅ APPROVED FOR MERGE
+
+]]>
+</file>
+
+</batch_content>

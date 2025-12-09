@@ -1,0 +1,5289 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="reports/pr_comment_counts.json">
+<![CDATA[
+[
+  {
+    "number": 368,
+    "title": "fix(client-bundle): Prevent Mongoose leak into client components",
+    "state": "OPEN",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 2
+    },
+    "reviewThreads": {
+      "totalCount": 24
+    },
+    "reviews": {
+      "totalCount": 5
+    }
+  },
+  {
+    "number": 367,
+    "title": "fix(test): Scope TopBar selector queries to user menu dropdown",
+    "state": "OPEN",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 2
+    },
+    "reviewThreads": {
+      "totalCount": 10
+    },
+    "reviews": {
+      "totalCount": 1
+    }
+  },
+  {
+    "number": 366,
+    "title": "[WIP] Fix security audit remediation for critical and high issues",
+    "state": "OPEN",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 2
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 365,
+    "title": "[WIP] Update node-forge from 1.3.1 to 1.3.2",
+    "state": "OPEN",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 2
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 364,
+    "title": "[WIP] Fix security audit remediation for critical and high issues",
+    "state": "OPEN",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 363,
+    "title": "🔒 Security Audit Remediation: P0 CRITICAL + P1 HIGH (19 fixes)",
+    "state": "OPEN",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 11
+    },
+    "reviewThreads": {
+      "totalCount": 43
+    },
+    "reviews": {
+      "totalCount": 18
+    }
+  },
+  {
+    "number": 362,
+    "title": "[WIP] Update node-forge from 1.3.1 to 1.3.2",
+    "state": "OPEN",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 361,
+    "title": "[WIP] Update node-forge from 1.3.1 to 1.3.2",
+    "state": "OPEN",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 15
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 360,
+    "title": "[WIP] Update node-forge to version 1.3.2",
+    "state": "OPEN",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 16
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 359,
+    "title": "chore(deps): bump node-forge from 1.3.1 to 1.3.2 in the npm_and_yarn group across 1 directory",
+    "state": "OPEN",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 20
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 3
+    }
+  },
+  {
+    "number": 358,
+    "title": "[WIP] Fix server infrastructure models, middleware and services",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 357,
+    "title": "[WIP] Fix HR API routes for RBAC and PII protection",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 356,
+    "title": "[WIP] Fix API routes for Souq/Marketplace RBAC access control",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 355,
+    "title": "[WIP] Fix core RBAC and domain layer for STRICT v4.1 hardening",
+    "state": "OPEN",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 19
+    },
+    "reviewThreads": {
+      "totalCount": 11
+    },
+    "reviews": {
+      "totalCount": 9
+    }
+  },
+  {
+    "number": 354,
+    "title": "[WIP] Fix security hardening for Admin, Support and Auth routes",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 353,
+    "title": "[WIP] Fix testing suite with updates to scripts and tooling",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 9
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 352,
+    "title": "[WIP] Fix FM API routes for RBAC and tenant isolation",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 351,
+    "title": "[WIP] Update CI/CD workflows and documentation files",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 350,
+    "title": "[WIP] Fix server infrastructure for models and services",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 349,
+    "title": "fix(infra): Server Infrastructure - Models, Middleware & Services",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 13
+    },
+    "reviewThreads": {
+      "totalCount": 51
+    },
+    "reviews": {
+      "totalCount": 4
+    }
+  },
+  {
+    "number": 348,
+    "title": "fix(api): HR API Routes - RBAC & PII Protection",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 8
+    },
+    "reviewThreads": {
+      "totalCount": 10
+    },
+    "reviews": {
+      "totalCount": 5
+    }
+  },
+  {
+    "number": 347,
+    "title": "fix(api): Souq/Marketplace Routes - RBAC Access Control",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 10
+    },
+    "reviewThreads": {
+      "totalCount": 26
+    },
+    "reviews": {
+      "totalCount": 3
+    }
+  },
+  {
+    "number": 346,
+    "title": "fix(rbac): Core RBAC & Domain - STRICT v4.1 Hardening",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 8
+    },
+    "reviewThreads": {
+      "totalCount": 24
+    },
+    "reviews": {
+      "totalCount": 7
+    }
+  },
+  {
+    "number": 345,
+    "title": "fix(api): Admin, Support & Auth Routes - Security Hardening",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 8
+    },
+    "reviewThreads": {
+      "totalCount": 17
+    },
+    "reviews": {
+      "totalCount": 5
+    }
+  },
+  {
+    "number": 344,
+    "title": "fix(test): Tests, Scripts & Tooling Updates",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 8
+    },
+    "reviewThreads": {
+      "totalCount": 29
+    },
+    "reviews": {
+      "totalCount": 5
+    }
+  },
+  {
+    "number": 343,
+    "title": "fix(api): FM API Routes - RBAC & Tenant Isolation",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 8
+    },
+    "reviewThreads": {
+      "totalCount": 38
+    },
+    "reviews": {
+      "totalCount": 5
+    }
+  },
+  {
+    "number": 342,
+    "title": "docs: CI/CD Workflows & Documentation Updates",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 8
+    },
+    "reviewThreads": {
+      "totalCount": 16
+    },
+    "reviews": {
+      "totalCount": 5
+    }
+  },
+  {
+    "number": 341,
+    "title": "[WIP] Improve type safety across test suite",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 2
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 340,
+    "title": "fix: Address PR review feedback - type safety, tenant isolation, and bundle optimization",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 2
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 339,
+    "title": "fix: Add missing Page type import and improve type narrowing in E2E tests",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 3
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 338,
+    "title": "ci: Address PR review comments - no changes required",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 2
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 337,
+    "title": "chore: No actionable changes - all review comments previously addressed",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 2
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 336,
+    "title": "fix: Address all missed PR review comments - security, runtime, and code quality fixes",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 9
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 335,
+    "title": "docs: Provide consolidated multi-agent PR review protocol template",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 9
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 334,
+    "title": "fix: address PR review comments on code quality",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 8
+    },
+    "reviewThreads": {
+      "totalCount": 1
+    },
+    "reviews": {
+      "totalCount": 1
+    }
+  },
+  {
+    "number": 333,
+    "title": "chore: Add comprehensive PR review protocol for multi-agent coordination",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 9
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 332,
+    "title": "meta: Add comprehensive multi-agent PR review instruction template",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 9
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 331,
+    "title": "fix: Address PR review comments - cache pricing overrides, improve i18n consistency, simplify guard script",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 9
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 330,
+    "title": "docs: create comprehensive multi-agent PR review protocol",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 9
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 329,
+    "title": "Clarify PR review scope and address meta-coordination request",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 2
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 328,
+    "title": "docs: Add comprehensive PR review instruction template for AI agents",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 10
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 327,
+    "title": "fix: Critical import naming and type safety issues in FM guard pattern",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 7
+    },
+    "reviewThreads": {
+      "totalCount": 1
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 326,
+    "title": "fix: Address code review feedback on performance, i18n, and script correctness",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 9
+    },
+    "reviewThreads": {
+      "totalCount": 2
+    },
+    "reviews": {
+      "totalCount": 1
+    }
+  },
+  {
+    "number": 325,
+    "title": "fix: Add consolidated multi-agent PR review instruction template",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 11
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 324,
+    "title": "Provide consolidated PR review instruction template for AI agents",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 9
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 323,
+    "title": "docs: Create consolidated multi-agent PR review instruction template",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 16
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 322,
+    "title": "fix: Resolve PR review bot comments on type safety and accessibility",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 16
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 321,
+    "title": "feat: Miscellaneous API, service, and tooling improvements",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 115
+    },
+    "reviewThreads": {
+      "totalCount": 160
+    },
+    "reviews": {
+      "totalCount": 41
+    }
+  },
+  {
+    "number": 320,
+    "title": "feat: Improve consistency across FM pages and layouts",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 24
+    },
+    "reviewThreads": {
+      "totalCount": 70
+    },
+    "reviews": {
+      "totalCount": 10
+    }
+  },
+  {
+    "number": 319,
+    "title": "feat: Improve Aqar and Project model schemas",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 27
+    },
+    "reviewThreads": {
+      "totalCount": 26
+    },
+    "reviews": {
+      "totalCount": 6
+    }
+  },
+  {
+    "number": 318,
+    "title": "ci: Improve secret handling in GitHub Actions workflows",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 26
+    },
+    "reviewThreads": {
+      "totalCount": 17
+    },
+    "reviews": {
+      "totalCount": 9
+    }
+  },
+  {
+    "number": 317,
+    "title": "test: Improve type safety across test suite",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 31
+    },
+    "reviewThreads": {
+      "totalCount": 37
+    },
+    "reviews": {
+      "totalCount": 17
+    }
+  },
+  {
+    "number": 316,
+    "title": "refactor: Improve middleware routing logic and standardize redirects",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 25
+    },
+    "reviewThreads": {
+      "totalCount": 18
+    },
+    "reviews": {
+      "totalCount": 5
+    }
+  },
+  {
+    "number": 315,
+    "title": "feat: Add type safety and test compatibility to core components",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 48
+    },
+    "reviewThreads": {
+      "totalCount": 39
+    },
+    "reviews": {
+      "totalCount": 14
+    }
+  },
+  {
+    "number": 314,
+    "title": "docs: Create consolidated zero-tolerance PR review instruction for AI agents",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 22
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 313,
+    "title": "fix: Resolve E2E Authentication Test Failures and Critical Login Bugs",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 26
+    },
+    "reviewThreads": {
+      "totalCount": 45
+    },
+    "reviews": {
+      "totalCount": 10
+    }
+  },
+  {
+    "number": 312,
+    "title": "Clarify PR review orchestration request scope",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 1
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 311,
+    "title": "fix(ats): Correct validation logic and enforce subscription limits properly",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 5
+    },
+    "reviewThreads": {
+      "totalCount": 2
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 310,
+    "title": "Add comprehensive system-aware PR review instruction for multi-agent coordination",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 8
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 309,
+    "title": "fix(ats): Correct seat limit boundary check and remove redundant status default",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 11
+    },
+    "reviewThreads": {
+      "totalCount": 1
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 308,
+    "title": "feat(i18n): Batch 1 - Foundation (consolidated common namespace) + ATS enhancements",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 14
+    },
+    "reviewThreads": {
+      "totalCount": 22
+    },
+    "reviews": {
+      "totalCount": 8
+    }
+  },
+  {
+    "number": 307,
+    "title": "Add consolidated multi-agent PR review orchestration framework",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 2
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 306,
+    "title": "Add comprehensive zero-tolerance PR review instruction for multi-agent code review orchestration",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 9
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 1
+    }
+  },
+  {
+    "number": 305,
+    "title": "Fix/date hydration complete system wide",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 25
+    },
+    "reviewThreads": {
+      "totalCount": 57
+    },
+    "reviews": {
+      "totalCount": 10
+    }
+  },
+  {
+    "number": 304,
+    "title": "fix(ssr): Resolve PR review comments - invalid format and logger usage",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 12
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 303,
+    "title": "fix(ssr): Resolve PR review comments - invalid ClientDate formats and logger usage",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 14
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 302,
+    "title": "fix(ssr): Resolve TypeScript errors and unused imports in date hydration implementation",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 11
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 3
+    }
+  },
+  {
+    "number": 301,
+    "title": "feat(ssr): Fix date hydration across entire system (Phase 1/8)",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 19
+    },
+    "reviewThreads": {
+      "totalCount": 56
+    },
+    "reviews": {
+      "totalCount": 25
+    }
+  },
+  {
+    "number": 300,
+    "title": "[WIP] Fix security issue by adding radix parameter to parseInt calls",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 2
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 299,
+    "title": "fix(security): Add radix parameter to 6 remaining parseInt calls",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 10
+    },
+    "reviewThreads": {
+      "totalCount": 2
+    },
+    "reviews": {
+      "totalCount": 4
+    }
+  },
+  {
+    "number": 298,
+    "title": "feat(utils): Add parseIntSafe helper + comprehensive unit tests",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 5
+    },
+    "reviewThreads": {
+      "totalCount": 7
+    },
+    "reviews": {
+      "totalCount": 4
+    }
+  },
+  {
+    "number": 297,
+    "title": "fix(orchestration): Add consolidated PR review instruction template",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 2
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 296,
+    "title": "fix(security): Correct parseInt fallback logic using nullish coalescing and parse-first pattern",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 1
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 295,
+    "title": "chore: Clarify PR review framework instruction vs actionable changes",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 2
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 294,
+    "title": "fix(tests): Isolate pure utility tests from MongoDB Memory Server",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 3
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 292,
+    "title": "feat(review): Add consolidated multi-agent PR review instruction",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 13
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 1
+    }
+  },
+  {
+    "number": 291,
+    "title": "docs(tools): Document -1 sentinel value in parseInt error handling",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 17
+    },
+    "reviewThreads": {
+      "totalCount": 1
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 290,
+    "title": "docs(agents): Create system-wide PR review instruction template for multi-agent coordination",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 15
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 1
+    }
+  },
+  {
+    "number": 289,
+    "title": "chore(workspace): reduce VSCode memory usage + phase-end cleanup",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 7
+    },
+    "reviewThreads": {
+      "totalCount": 78
+    },
+    "reviews": {
+      "totalCount": 21
+    }
+  },
+  {
+    "number": 288,
+    "title": "feat(utils): Add parseIntSafe helper + system-wide similar issues scan",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 21
+    },
+    "reviewThreads": {
+      "totalCount": 8
+    },
+    "reviews": {
+      "totalCount": 4
+    }
+  },
+  {
+    "number": 287,
+    "title": "docs: Provide system-aware PR review template for multi-agent orchestration",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 19
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 1
+    }
+  },
+  {
+    "number": 286,
+    "title": "fix(security): Correct parseInt radix parameter placement in loop-runner.mjs",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 21
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 1
+    }
+  },
+  {
+    "number": 285,
+    "title": "fix(security): Add radix parameter to remaining parseInt calls (5 locations)",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 20
+    },
+    "reviewThreads": {
+      "totalCount": 9
+    },
+    "reviews": {
+      "totalCount": 8
+    }
+  },
+  {
+    "number": 284,
+    "title": "[WIP] Fix system-wide parseInt radix issues",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 19
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 3
+    }
+  },
+  {
+    "number": 283,
+    "title": "fix(security): System-wide parseInt radix fixes (Category 2/10)",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 25
+    },
+    "reviewThreads": {
+      "totalCount": 24
+    },
+    "reviews": {
+      "totalCount": 14
+    }
+  },
+  {
+    "number": 282,
+    "title": "fix(finance): Address AI reviewer comments - Decimal precision and system stability",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 2
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 281,
+    "title": "fix: Address PR #273 review comments - meta-instruction template for multi-agent orchestration",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 2
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 280,
+    "title": "[WIP] Fix comprehensive stability and i18n improvements",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 279,
+    "title": "[WIP] Implement Decimal.js for precise money calculations",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 278,
+    "title": "[WIP] Fix unhandled promise rejections for stability improvements",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 277,
+    "title": "[WIP] Implement Decimal.js for precise money calculations",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 10
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 276,
+    "title": "[WIP] Fix comprehensive stability and i18n improvements",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 2
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 275,
+    "title": "[WIP] Fix unhandled promise rejections in async IIFEs",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 274,
+    "title": "[WIP] Implement Decimal.js for precise money calculations",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 273,
+    "title": "fix: Comprehensive stability & i18n improvements (Phases 2-4)",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 26
+    },
+    "reviewThreads": {
+      "totalCount": 81
+    },
+    "reviews": {
+      "totalCount": 62
+    }
+  },
+  {
+    "number": 272,
+    "title": "feat(finance): Implement Decimal.js for precise money calculations",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 22
+    },
+    "reviewThreads": {
+      "totalCount": 35
+    },
+    "reviews": {
+      "totalCount": 17
+    }
+  },
+  {
+    "number": 271,
+    "title": "[WIP] Fix issues #157-162 for centralization and security improvements",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 270,
+    "title": "fix: Address issues #157-162 - Centralization, Security & Code Quality",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 8
+    },
+    "reviewThreads": {
+      "totalCount": 20
+    },
+    "reviews": {
+      "totalCount": 9
+    }
+  },
+  {
+    "number": 269,
+    "title": "feat: Production-Ready Testing with MongoDB Memory Server + Root Cause Type Safety Fixes",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 4
+    },
+    "reviewThreads": {
+      "totalCount": 28
+    },
+    "reviews": {
+      "totalCount": 3
+    }
+  },
+  {
+    "number": 268,
+    "title": "[WIP] Complete E2E stabilization with i18n expansion",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 1
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 267,
+    "title": "[WIP] Fix auth tests to prevent jwt verify mock persistence",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 1
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 266,
+    "title": "fix(auth): avoid persisting jwt verify mock in tests",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 9
+    },
+    "reviewThreads": {
+      "totalCount": 2
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 265,
+    "title": "[WIP] Complete E2E stabilization and i18n expansion",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 264,
+    "title": "feat: E2E Stabilization Complete - All 5 Tasks + i18n Expansion (272 keys)",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 13
+    },
+    "reviewThreads": {
+      "totalCount": 9
+    },
+    "reviews": {
+      "totalCount": 4
+    }
+  },
+  {
+    "number": 263,
+    "title": "fix: CRITICAL - Security & Reliability Fixes (GUEST Auth + format.ts + Providers)",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 5
+    },
+    "reviewThreads": {
+      "totalCount": 11
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 262,
+    "title": "[WIP] Organize system files and remove legacy code",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 1
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 261,
+    "title": "chore: Organize system files and remove legacy code",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 5
+    }
+  },
+  {
+    "number": 260,
+    "title": "[WIP] Add auto-restart mechanism and development setup script",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 1
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 259,
+    "title": "[WIP] Replace console statements with logger utility in components",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 2
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 258,
+    "title": "[WIP] Complete Phase 4: Advanced accessibility improvements",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 1
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 257,
+    "title": "feat: Auto-Restart Mechanism & Development Setup",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 8
+    },
+    "reviewThreads": {
+      "totalCount": 7
+    },
+    "reviews": {
+      "totalCount": 4
+    }
+  },
+  {
+    "number": 256,
+    "title": "[WIP] Fix theme compliance system-wide with 20 fixes",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 1
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 255,
+    "title": "[WIP] Replace console statements with logger utility in components",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 7
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 254,
+    "title": "[WIP] Add advanced accessibility features and analysis of closed PRs",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 253,
+    "title": "[WIP] Fix theme compliance system-wide across production files",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 252,
+    "title": "[WIP] Fix critical security and reliability issues in auth and providers",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 7
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 251,
+    "title": "[WIP] Fix any type warnings in production code",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 250,
+    "title": "[WIP] Fix console statements in API routes with logger utility",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 249,
+    "title": "[WIP] Fix console statements in 19 component files",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 248,
+    "title": "[WIP] Replace console statements in components for logging",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 7
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 247,
+    "title": "[WIP] Fix console statements in API routes with logger utility",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 246,
+    "title": "[WIP] Fix type safety warnings in production code",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 5
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 245,
+    "title": "[WIP] Fix guest role authorization vulnerability in dashboard",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 244,
+    "title": "[WIP] Fix theme compliance system-wide with 20 fixes",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 5
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 243,
+    "title": "[WIP] Complete phase 4 accessibility enhancements and PR analysis",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 242,
+    "title": "🔧 Category 5 Phase 2: Replace console statements in Components (19 files)",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 23
+    },
+    "reviewThreads": {
+      "totalCount": 24
+    },
+    "reviews": {
+      "totalCount": 9
+    }
+  },
+  {
+    "number": 241,
+    "title": "🔧 Category 5 Phase 1: Replace console statements in API routes (47 files)",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 13
+    },
+    "reviewThreads": {
+      "totalCount": 136
+    },
+    "reviews": {
+      "totalCount": 10
+    }
+  },
+  {
+    "number": 240,
+    "title": "🔧 Category 4: Type Safety - Fix : any warnings in production code",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 13
+    },
+    "reviewThreads": {
+      "totalCount": 12
+    },
+    "reviews": {
+      "totalCount": 4
+    }
+  },
+  {
+    "number": 239,
+    "title": "fix: CRITICAL - Security & Reliability Fixes (GUEST Auth + format.ts + Providers)",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 13
+    },
+    "reviewThreads": {
+      "totalCount": 19
+    },
+    "reviews": {
+      "totalCount": 4
+    }
+  },
+  {
+    "number": 238,
+    "title": "fix(theme): Category 1 - Theme Compliance System-Wide (20 fixes)",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 21
+    },
+    "reviewThreads": {
+      "totalCount": 6
+    },
+    "reviews": {
+      "totalCount": 4
+    }
+  },
+  {
+    "number": 237,
+    "title": "feat(phase4): Advanced Accessibility & Comprehensive PR Analysis",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 18
+    },
+    "reviewThreads": {
+      "totalCount": 11
+    },
+    "reviews": {
+      "totalCount": 5
+    }
+  },
+  {
+    "number": 236,
+    "title": "[WIP] Replace hardcoded colors with theme tokens",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 1
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 235,
+    "title": "[WIP] Integrate ContactActions component into AgentCard and PropertyCard",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 1
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 234,
+    "title": "[WIP] Replace hardcoded colors with theme tokens for compliance",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 5
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 233,
+    "title": "feat(aqar): Phase 3 - Theme Compliance",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 16
+    },
+    "reviewThreads": {
+      "totalCount": 14
+    },
+    "reviews": {
+      "totalCount": 8
+    }
+  },
+  {
+    "number": 232,
+    "title": "[WIP] Integrate ContactActions component into AgentCard and PropertyCard",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 9
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 231,
+    "title": "feat(aqar): Phase 2 - Integrate ContactActions Component",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 13
+    },
+    "reviewThreads": {
+      "totalCount": 7
+    },
+    "reviews": {
+      "totalCount": 6
+    }
+  },
+  {
+    "number": 230,
+    "title": "[WIP] Implement architectural improvements for Aqar module",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 1
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 229,
+    "title": "[WIP] Implement architectural improvements for Aqar module Phase 1",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 1
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 228,
+    "title": "[WIP] Fix improper navigation issues for security category A",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 5
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 227,
+    "title": "feat(aqar): Architectural Improvements - Phase 1",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 8
+    },
+    "reviewThreads": {
+      "totalCount": 10
+    },
+    "reviews": {
+      "totalCount": 7
+    }
+  },
+  {
+    "number": 226,
+    "title": "[WIP] Fix security issues with improper navigation patterns",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 5
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 225,
+    "title": "[WIP] Fix improper navigation patterns for security",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 9
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 224,
+    "title": "fix(security): Category A - Improper Navigation Fixes",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 24
+    },
+    "reviewThreads": {
+      "totalCount": 27
+    },
+    "reviews": {
+      "totalCount": 18
+    }
+  },
+  {
+    "number": 223,
+    "title": "feat: Cleanup deprecated hooks after migration",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 5
+    },
+    "reviewThreads": {
+      "totalCount": 2
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 222,
+    "title": "feat: Migrate FM page to useFormTracking hook",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 3
+    },
+    "reviewThreads": {
+      "totalCount": 2
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 221,
+    "title": "[WIP] Fix critical security vulnerabilities and architectural issues",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 2
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 218,
+    "title": "🟥 CRITICAL: Fix Security Vulnerabilities and Architectural Issues in React Hooks",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 10
+    },
+    "reviewThreads": {
+      "totalCount": 20
+    },
+    "reviews": {
+      "totalCount": 10
+    }
+  },
+  {
+    "number": 217,
+    "title": "Verify PR status and confirm obsolete file deletions",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 9
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 216,
+    "title": "Response to comprehensive PR review request",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 9
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 215,
+    "title": "Add zero-tolerance review response for approval engine PR",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 9
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 214,
+    "title": "Fix double-caching issue in AWS Secrets Manager JWT integration",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 10
+    },
+    "reviewThreads": {
+      "totalCount": 1
+    },
+    "reviews": {
+      "totalCount": 3
+    }
+  },
+  {
+    "number": 213,
+    "title": "refactor: Use ES6 import for crypto module in SendGrid webhook verification",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 11
+    },
+    "reviewThreads": {
+      "totalCount": 1
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 212,
+    "title": "fix(finance): Implement actual debouncing, add i18n keys, resolve stale closure",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 8
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 211,
+    "title": "fix: Resolve lint errors and warnings in test infrastructure code",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 2
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 210,
+    "title": "fix(ui): RTL support and TypeScript type safety improvements",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 11
+    },
+    "reviewThreads": {
+      "totalCount": 1
+    },
+    "reviews": {
+      "totalCount": 3
+    }
+  },
+  {
+    "number": 209,
+    "title": "fix: Test suite improvements - i18n, mongoose mocks, and utilities",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 11
+    },
+    "reviewThreads": {
+      "totalCount": 31
+    },
+    "reviews": {
+      "totalCount": 11
+    }
+  },
+  {
+    "number": 208,
+    "title": "fix(finance): Performance optimizations and i18n improvements",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 9
+    },
+    "reviewThreads": {
+      "totalCount": 15
+    },
+    "reviews": {
+      "totalCount": 6
+    }
+  },
+  {
+    "number": 207,
+    "title": "fix(critical): SendGrid webhook timing attack and security hardening",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 8
+    },
+    "reviewThreads": {
+      "totalCount": 15
+    },
+    "reviews": {
+      "totalCount": 6
+    }
+  },
+  {
+    "number": 206,
+    "title": "fix(critical): AWS Secrets Manager integration for JWT security",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 8
+    },
+    "reviewThreads": {
+      "totalCount": 18
+    },
+    "reviews": {
+      "totalCount": 7
+    }
+  },
+  {
+    "number": 205,
+    "title": "fix(critical): Approval engine data loss and tenant isolation bugs",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 8
+    },
+    "reviewThreads": {
+      "totalCount": 13
+    },
+    "reviews": {
+      "totalCount": 7
+    }
+  },
+  {
+    "number": 204,
+    "title": "fix(critical): Multi-tenancy data isolation bug in CRUD factory",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 10
+    },
+    "reviewThreads": {
+      "totalCount": 7
+    },
+    "reviews": {
+      "totalCount": 6
+    }
+  },
+  {
+    "number": 203,
+    "title": "fix: Delete obsolete files causing architectural conflicts",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 10
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 5
+    }
+  },
+  {
+    "number": 202,
+    "title": "fix(ui): Major Accessibility & Architectural Improvements",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 10
+    },
+    "reviewThreads": {
+      "totalCount": 22
+    },
+    "reviews": {
+      "totalCount": 11
+    }
+  },
+  {
+    "number": 201,
+    "title": "fix(eslint): ESLint Phase 4 COMPLETE - 603→0 Errors (100% Reduction) 🎉",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 5
+    },
+    "reviewThreads": {
+      "totalCount": 40
+    },
+    "reviews": {
+      "totalCount": 19
+    }
+  },
+  {
+    "number": 200,
+    "title": "fix: correct YAML syntax errors in marketplace OpenAPI spec",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 5
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 199,
+    "title": "fix: Add missing Subscription schema fields for recurring billing",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 2
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 198,
+    "title": "fix: address PR review comments - race conditions, auth consistency, and bcrypt import",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 5
+    },
+    "reviewThreads": {
+      "totalCount": 1
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 197,
+    "title": "Finance test TypeScript errors verified resolved - 0 errors remaining",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 3
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 196,
+    "title": "Fix i18n dictionary key mismatch and marketplace test mocks",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 1
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 195,
+    "title": "fix(eslint): ESLint Phase 4 - Remove unused imports batch 1 (42 errors fixed)",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 4
+    },
+    "reviewThreads": {
+      "totalCount": 12
+    },
+    "reviews": {
+      "totalCount": 1
+    }
+  },
+  {
+    "number": 194,
+    "title": "fix: Address PR review feedback - correct syntax errors, optimize Decimal.js performance, and improve React best practices",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 13
+    },
+    "reviewThreads": {
+      "totalCount": 7
+    },
+    "reviews": {
+      "totalCount": 7
+    }
+  },
+  {
+    "number": 193,
+    "title": "fix(critical): Remove dangerous catch-all pattern and fix regex syntax in copilot.yaml",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 10
+    },
+    "reviewThreads": {
+      "totalCount": 19
+    },
+    "reviews": {
+      "totalCount": 12
+    }
+  },
+  {
+    "number": 192,
+    "title": "Remove dangerous fix-eslint-errors.js script",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 12
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 3
+    }
+  },
+  {
+    "number": 191,
+    "title": "fix: add missing eslint-plugin-react-hooks dependency and remove emoji in comments",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 13
+    },
+    "reviewThreads": {
+      "totalCount": 2
+    },
+    "reviews": {
+      "totalCount": 7
+    }
+  },
+  {
+    "number": 190,
+    "title": "fix: correct YAML indentation in marketplace-openapi.yaml",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 11
+    },
+    "reviewThreads": {
+      "totalCount": 1
+    },
+    "reviews": {
+      "totalCount": 5
+    }
+  },
+  {
+    "number": 189,
+    "title": "fix: Add missing Subscription schema fields for recurring billing",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 12
+    },
+    "reviewThreads": {
+      "totalCount": 9
+    },
+    "reviews": {
+      "totalCount": 9
+    }
+  },
+  {
+    "number": 188,
+    "title": "fix: Add type declarations for dev/credentials and configure ESLint for DOM types",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 12
+    },
+    "reviewThreads": {
+      "totalCount": 5
+    },
+    "reviews": {
+      "totalCount": 7
+    }
+  },
+  {
+    "number": 187,
+    "title": "fix: Finance test TypeScript errors - Complete fix (86 errors resolved)",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 10
+    },
+    "reviewThreads": {
+      "totalCount": 3
+    },
+    "reviews": {
+      "totalCount": 4
+    }
+  },
+  {
+    "number": 186,
+    "title": "fix: Remove unused @ts-expect-error directives in ATS scoring tests",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 9
+    },
+    "reviewThreads": {
+      "totalCount": 2
+    },
+    "reviews": {
+      "totalCount": 3
+    }
+  },
+  {
+    "number": 185,
+    "title": "fix: Remaining TypeScript errors - 46 errors fixed",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 5
+    },
+    "reviewThreads": {
+      "totalCount": 3
+    },
+    "reviews": {
+      "totalCount": 6
+    }
+  },
+  {
+    "number": 184,
+    "title": "fix: Marketplace, ATS, and i18n TypeScript errors - 28 errors fixed",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 12
+    },
+    "reviewThreads": {
+      "totalCount": 7
+    },
+    "reviews": {
+      "totalCount": 5
+    }
+  },
+  {
+    "number": 183,
+    "title": "fix: Finance test TypeScript errors - 78 errors fixed",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 12
+    },
+    "reviewThreads": {
+      "totalCount": 6
+    },
+    "reviews": {
+      "totalCount": 6
+    }
+  },
+  {
+    "number": 182,
+    "title": "fix: CRITICAL authentication and tenant isolation vulnerabilities (P0)",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 11
+    },
+    "reviewThreads": {
+      "totalCount": 24
+    },
+    "reviews": {
+      "totalCount": 9
+    }
+  },
+  {
+    "number": 181,
+    "title": "fix: CRITICAL payment security vulnerabilities (PR #42/#45/#47/#53/#77)",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 12
+    },
+    "reviewThreads": {
+      "totalCount": 20
+    },
+    "reviews": {
+      "totalCount": 8
+    }
+  },
+  {
+    "number": 180,
+    "title": "fix: resolve merge conflict in marketplace-openapi.yaml (PR #71 issue)",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 13
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 4
+    }
+  },
+  {
+    "number": 179,
+    "title": "fix: enable critical ESLint rules (react-hooks, restore no-undef) - PR #69/#71 issues",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 12
+    },
+    "reviewThreads": {
+      "totalCount": 4
+    },
+    "reviews": {
+      "totalCount": 6
+    }
+  },
+  {
+    "number": 178,
+    "title": "fix: remove catastrophic fix-eslint-errors.js script (PR #70 corruption source)",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 16
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 177,
+    "title": "fix(critical): Restore production quality gates and fix auto-approve security hole",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 12
+    },
+    "reviewThreads": {
+      "totalCount": 11
+    },
+    "reviews": {
+      "totalCount": 6
+    }
+  },
+  {
+    "number": 176,
+    "title": "fix(critical): Remove IDOR vulnerability and implement Decimal.js for financial precision",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 10
+    },
+    "reviewThreads": {
+      "totalCount": 22
+    },
+    "reviews": {
+      "totalCount": 10
+    }
+  },
+  {
+    "number": 175,
+    "title": "fix(p1): Complete remaining P1 issues - 100% main stabilization",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 7
+    },
+    "reviewThreads": {
+      "totalCount": 6
+    },
+    "reviews": {
+      "totalCount": 3
+    }
+  },
+  {
+    "number": 174,
+    "title": "fix: Resolve 11 Critical Issues (5 P0 Blockers + 6 P1/Critical)",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 7
+    },
+    "reviewThreads": {
+      "totalCount": 11
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 173,
+    "title": "fix: resolve build blocker and critical security vulnerabilities",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 7
+    },
+    "reviewThreads": {
+      "totalCount": 56
+    },
+    "reviews": {
+      "totalCount": 9
+    }
+  },
+  {
+    "number": 172,
+    "title": "fix: remaining test infrastructure issues",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 7
+    },
+    "reviewThreads": {
+      "totalCount": 3
+    },
+    "reviews": {
+      "totalCount": 3
+    }
+  },
+  {
+    "number": 171,
+    "title": "feat: add API mocking for marketplace page tests",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 5
+    },
+    "reviewThreads": {
+      "totalCount": 1
+    },
+    "reviews": {
+      "totalCount": 1
+    }
+  },
+  {
+    "number": 170,
+    "title": "[WIP] Add global Next.js router mock for test environment",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 1
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 169,
+    "title": "fix: correct Sentry workflow step references and package manager detection",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 1
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 168,
+    "title": "Fix missing translation fallbacks, sed platform detection, and code duplication",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 8
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 1
+    }
+  },
+  {
+    "number": 167,
+    "title": "feat: add global Next.js router mock for test environment",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 11
+    },
+    "reviewThreads": {
+      "totalCount": 15
+    },
+    "reviews": {
+      "totalCount": 3
+    }
+  },
+  {
+    "number": 166,
+    "title": "feat: upgrade Sentry workflow to v3 with scoped sourcemaps",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 8
+    },
+    "reviewThreads": {
+      "totalCount": 29
+    },
+    "reviews": {
+      "totalCount": 4
+    }
+  },
+  {
+    "number": 165,
+    "title": "[WIP] Update critical architecture fixes for phase 7 completion",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 8
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 1
+    }
+  },
+  {
+    "number": 164,
+    "title": "Phase 7: Critical Architecture Fixes - 8/9 Tasks Complete",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 13
+    },
+    "reviewThreads": {
+      "totalCount": 64
+    },
+    "reviews": {
+      "totalCount": 8
+    }
+  },
+  {
+    "number": 156,
+    "title": "fix: refactor validation schemas and API utilities to 10/10 quality",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 4
+    },
+    "reviewThreads": {
+      "totalCount": 17
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 155,
+    "title": "fix: eliminate code duplication and create DRY CRUD factory",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 4
+    },
+    "reviewThreads": {
+      "totalCount": 9
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 154,
+    "title": "test(hooks): add comprehensive unit tests for useUnsavedChanges hook",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 4
+    },
+    "reviewThreads": {
+      "totalCount": 2
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 153,
+    "title": "feat/vendor edit and validations",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 4
+    },
+    "reviewThreads": {
+      "totalCount": 10
+    },
+    "reviews": {
+      "totalCount": 3
+    }
+  },
+  {
+    "number": 146,
+    "title": "[WIP] Address feedback on security fixes and login translation",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 2
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 145,
+    "title": "[WIP] Address feedback on security fixes and translation changes",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 2
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 144,
+    "title": "[WIP] Fix security fixes and complete login translation",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 3
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 143,
+    "title": "fix: Verify security fixes and complete login translation",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 11
+    },
+    "reviewThreads": {
+      "totalCount": 41
+    },
+    "reviews": {
+      "totalCount": 17
+    }
+  },
+  {
+    "number": 142,
+    "title": "[WIP] Fix nested div inside option element",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 2
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 1
+    }
+  },
+  {
+    "number": 141,
+    "title": "fix/auth duplicate requests and debug logs",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 7
+    },
+    "reviewThreads": {
+      "totalCount": 176
+    },
+    "reviews": {
+      "totalCount": 52
+    }
+  },
+  {
+    "number": 140,
+    "title": "fix: correct RTL dropdown positioning and add Fixzit logo",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 5
+    },
+    "reviewThreads": {
+      "totalCount": 3
+    },
+    "reviews": {
+      "totalCount": 3
+    }
+  },
+  {
+    "number": 139,
+    "title": "Fix: RTL dropdown positioning and guest authentication UI",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 5
+    },
+    "reviewThreads": {
+      "totalCount": 1
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 138,
+    "title": "fix: Resolve ALL 9 Critical Issues from PR #137 Review",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 12
+    },
+    "reviewThreads": {
+      "totalCount": 63
+    },
+    "reviews": {
+      "totalCount": 22
+    }
+  },
+  {
+    "number": 137,
+    "title": "fix: Address ALL 30 PR #135 Review Comments (Complete)",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 9
+    },
+    "reviewThreads": {
+      "totalCount": 41
+    },
+    "reviews": {
+      "totalCount": 7
+    }
+  },
+  {
+    "number": 136,
+    "title": "fix: comprehensive security and code quality improvements",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 53
+    },
+    "reviews": {
+      "totalCount": 13
+    }
+  },
+  {
+    "number": 135,
+    "title": "feat: Aqar Real Estate Marketplace - Complete Enhancement",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 14
+    },
+    "reviewThreads": {
+      "totalCount": 64
+    },
+    "reviews": {
+      "totalCount": 23
+    }
+  },
+  {
+    "number": 134,
+    "title": "Analyze pull request errors and comments by category",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 4
+    },
+    "reviewThreads": {
+      "totalCount": 9
+    },
+    "reviews": {
+      "totalCount": 3
+    }
+  },
+  {
+    "number": 133,
+    "title": "Analyze pull request errors and comments by category",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 3
+    },
+    "reviewThreads": {
+      "totalCount": 2
+    },
+    "reviews": {
+      "totalCount": 1
+    }
+  },
+  {
+    "number": 132,
+    "title": "feat: System-wide consistency + P0 blockers (100% complete)",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 4
+    },
+    "reviewThreads": {
+      "totalCount": 76
+    },
+    "reviews": {
+      "totalCount": 13
+    }
+  },
+  {
+    "number": 131,
+    "title": "feat: enhance TopBar with logo, unsaved changes warning, and improved UX",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 15
+    },
+    "reviewThreads": {
+      "totalCount": 179
+    },
+    "reviews": {
+      "totalCount": 73
+    }
+  },
+  {
+    "number": 130,
+    "title": "fix: critical UX issues - user menu, auto-login, and login layout",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 21
+    },
+    "reviewThreads": {
+      "totalCount": 50
+    },
+    "reviews": {
+      "totalCount": 26
+    }
+  },
+  {
+    "number": 129,
+    "title": "Fix translation key conflicts and update documentation accuracy",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 5
+    },
+    "reviewThreads": {
+      "totalCount": 50
+    },
+    "reviews": {
+      "totalCount": 11
+    }
+  },
+  {
+    "number": 128,
+    "title": "fix(typescript): Remove invalid ignoreDeprecations setting",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 5
+    },
+    "reviewThreads": {
+      "totalCount": 24
+    },
+    "reviews": {
+      "totalCount": 14
+    }
+  },
+  {
+    "number": 127,
+    "title": "chore(batch2): Code improvements - console cleanup, type safety, dead code removal",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 7
+    },
+    "reviewThreads": {
+      "totalCount": 22
+    },
+    "reviews": {
+      "totalCount": 14
+    }
+  },
+  {
+    "number": 126,
+    "title": "refactor(batch1): Organize system files - Phase 1 file structure",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 8
+    },
+    "reviewThreads": {
+      "totalCount": 9
+    },
+    "reviews": {
+      "totalCount": 6
+    }
+  },
+  {
+    "number": 125,
+    "title": "fix: Remove deprecated useScreenSize exports + SendGrid setup",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 3
+    },
+    "reviewThreads": {
+      "totalCount": 9
+    },
+    "reviews": {
+      "totalCount": 4
+    }
+  },
+  {
+    "number": 124,
+    "title": "Categorize closed comment errors in PRs",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 3
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 123,
+    "title": "Categorize closed comment errors in PRs",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 7
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 1
+    }
+  },
+  {
+    "number": 122,
+    "title": "Categorize closed comment errors in PRs",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 8
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 121,
+    "title": "Categorize closed comment errors in PRs",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 7
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 1
+    }
+  },
+  {
+    "number": 120,
+    "title": "Categorize closed comment errors in PRs",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 9
+    },
+    "reviewThreads": {
+      "totalCount": 48
+    },
+    "reviews": {
+      "totalCount": 7
+    }
+  },
+  {
+    "number": 119,
+    "title": "Fix/standardize test framework vitest",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 5
+    },
+    "reviewThreads": {
+      "totalCount": 34
+    },
+    "reviews": {
+      "totalCount": 10
+    }
+  },
+  {
+    "number": 118,
+    "title": "fix: eliminate ESLint 'any' warnings in production code (34 → 0)",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 5
+    },
+    "reviewThreads": {
+      "totalCount": 1
+    },
+    "reviews": {
+      "totalCount": 4
+    }
+  },
+  {
+    "number": 117,
+    "title": "Find and list system duplicates",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 4
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 116,
+    "title": "Fix documentation and code inconsistencies",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 4
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 115,
+    "title": "Preserve locale on logout and localize login page",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 13
+    },
+    "reviewThreads": {
+      "totalCount": 6
+    },
+    "reviews": {
+      "totalCount": 8
+    }
+  },
+  {
+    "number": 114,
+    "title": "Fix documentation and code inconsistencies",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 4
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 113,
+    "title": "Fix documentation and code inconsistencies",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 20
+    },
+    "reviewThreads": {
+      "totalCount": 15
+    },
+    "reviews": {
+      "totalCount": 11
+    }
+  },
+  {
+    "number": 112,
+    "title": "Fix documentation and code inconsistencies",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 7
+    },
+    "reviewThreads": {
+      "totalCount": 8
+    },
+    "reviews": {
+      "totalCount": 3
+    }
+  },
+  {
+    "number": 111,
+    "title": "Fix documentation and code inconsistencies",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 4
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 110,
+    "title": "Fix multiple test and build errors",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 4
+    },
+    "reviews": {
+      "totalCount": 3
+    }
+  },
+  {
+    "number": 109,
+    "title": "Fix multiple test and build errors",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 4
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 108,
+    "title": "Fix multiple test and build errors",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 4
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 107,
+    "title": "Improve QA tooling visibility and RTL navigation",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 27
+    },
+    "reviewThreads": {
+      "totalCount": 25
+    },
+    "reviews": {
+      "totalCount": 22
+    }
+  },
+  {
+    "number": 106,
+    "title": "Verify translation accuracy across all pages",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 4
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 105,
+    "title": "Verify translation accuracy across all pages",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 4
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 104,
+    "title": "Verify translation accuracy across all pages",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 4
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 103,
+    "title": "Verify translation accuracy across all pages",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 4
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 102,
+    "title": "Verify recent fixes and features",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 4
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 101,
+    "title": "Comprehensive Code Quality Improvements: Error Handling, Security, and Build Fixes",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 34
+    },
+    "reviewThreads": {
+      "totalCount": 67
+    },
+    "reviews": {
+      "totalCount": 14
+    }
+  },
+  {
+    "number": 99,
+    "title": "fix(code-quality): Resolve all TypeScript errors (313 → 0)",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 7
+    },
+    "reviewThreads": {
+      "totalCount": 14
+    },
+    "reviews": {
+      "totalCount": 8
+    }
+  },
+  {
+    "number": 98,
+    "title": "Configure VS Code Copilot Agent Mode with zero confirmation prompts and PR-based workflow",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 3
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 97,
+    "title": "Check for code quality issues",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 7
+    },
+    "reviewThreads": {
+      "totalCount": 2
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 96,
+    "title": "End to end production readiness audit",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 7
+    },
+    "reviewThreads": {
+      "totalCount": 4
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 95,
+    "title": "End to end production readiness audit",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 7
+    },
+    "reviewThreads": {
+      "totalCount": 2
+    },
+    "reviews": {
+      "totalCount": 1
+    }
+  },
+  {
+    "number": 94,
+    "title": "Find pending system checks",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 7
+    },
+    "reviewThreads": {
+      "totalCount": 3
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 93,
+    "title": "Find pending system checks",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 15
+    },
+    "reviewThreads": {
+      "totalCount": 24
+    },
+    "reviews": {
+      "totalCount": 9
+    }
+  },
+  {
+    "number": 92,
+    "title": "System audit for code quality and issues",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 14
+    },
+    "reviewThreads": {
+      "totalCount": 19
+    },
+    "reviews": {
+      "totalCount": 5
+    }
+  },
+  {
+    "number": 91,
+    "title": "Fix missing crypto imports and security issues in API routes",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 3
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 90,
+    "title": "System issue audit and breakdown",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 12
+    },
+    "reviewThreads": {
+      "totalCount": 8
+    },
+    "reviews": {
+      "totalCount": 4
+    }
+  },
+  {
+    "number": 89,
+    "title": "System issue audit and breakdown",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 9
+    },
+    "reviewThreads": {
+      "totalCount": 5
+    },
+    "reviews": {
+      "totalCount": 4
+    }
+  },
+  {
+    "number": 88,
+    "title": "System audit for issues",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 9
+    },
+    "reviewThreads": {
+      "totalCount": 13
+    },
+    "reviews": {
+      "totalCount": 4
+    }
+  },
+  {
+    "number": 87,
+    "title": "Analyze test execution errors",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 4
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 86,
+    "title": "feat: Complete duplicate consolidation and architectural transformation",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 10
+    },
+    "reviewThreads": {
+      "totalCount": 64
+    },
+    "reviews": {
+      "totalCount": 29
+    }
+  },
+  {
+    "number": 85,
+    "title": "Feature/finance module",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 16
+    },
+    "reviewThreads": {
+      "totalCount": 316
+    },
+    "reviews": {
+      "totalCount": 22
+    }
+  },
+  {
+    "number": 84,
+    "title": "Fix/consolidation guardrails",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 23
+    },
+    "reviewThreads": {
+      "totalCount": 750
+    },
+    "reviews": {
+      "totalCount": 41
+    }
+  },
+  {
+    "number": 83,
+    "title": "🔒 Phase 1-3: Critical Security Fixes - Remove ALL Hardcoded Credentials",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 50
+    },
+    "reviewThreads": {
+      "totalCount": 379
+    },
+    "reviews": {
+      "totalCount": 64
+    }
+  },
+  {
+    "number": 82,
+    "title": "[WIP] My coespace is temprary disabled for payments and I do not have anything pending and my credit card is added",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 3
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 80,
+    "title": "Codex/fix critical typescript errors and models",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 9
+    },
+    "reviewThreads": {
+      "totalCount": 6
+    },
+    "reviews": {
+      "totalCount": 4
+    }
+  },
+  {
+    "number": 79,
+    "title": "fix: skip lint during production builds",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 11
+    },
+    "reviewThreads": {
+      "totalCount": 20
+    },
+    "reviews": {
+      "totalCount": 7
+    }
+  },
+  {
+    "number": 78,
+    "title": "Guard mock sentinel overrides in marketplace mocks",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 17
+    },
+    "reviewThreads": {
+      "totalCount": 25
+    },
+    "reviews": {
+      "totalCount": 16
+    }
+  },
+  {
+    "number": 77,
+    "title": "🚀 CLEAN INTEGRATION: Complete Security + Marketplace + QA System",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 11
+    },
+    "reviewThreads": {
+      "totalCount": 61
+    },
+    "reviews": {
+      "totalCount": 8
+    }
+  },
+  {
+    "number": 76,
+    "title": "Stabilize marketplace bible generator test cleanup",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 16
+    },
+    "reviewThreads": {
+      "totalCount": 22
+    },
+    "reviews": {
+      "totalCount": 14
+    }
+  },
+  {
+    "number": 75,
+    "title": "Address marketplace testing review feedback",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 15
+    },
+    "reviewThreads": {
+      "totalCount": 33
+    },
+    "reviews": {
+      "totalCount": 17
+    }
+  },
+  {
+    "number": 74,
+    "title": "Harden marketplace seeding helpers and bible generator",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 12
+    },
+    "reviewThreads": {
+      "totalCount": 38
+    },
+    "reviews": {
+      "totalCount": 8
+    }
+  },
+  {
+    "number": 73,
+    "title": "Add vitest configuration and marketplace testing scaffolding",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 22
+    },
+    "reviewThreads": {
+      "totalCount": 28
+    },
+    "reviews": {
+      "totalCount": 7
+    }
+  },
+  {
+    "number": 72,
+    "title": "Implement dynamic imports with environment checks to resolve merge conflicts across API routes",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 8
+    },
+    "reviewThreads": {
+      "totalCount": 17
+    },
+    "reviews": {
+      "totalCount": 4
+    }
+  },
+  {
+    "number": 71,
+    "title": "Changes from background agent bc-64e31659-2046-4f15-8fb0-b60580bf3400",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 13
+    },
+    "reviewThreads": {
+      "totalCount": 12
+    },
+    "reviews": {
+      "totalCount": 8
+    }
+  },
+  {
+    "number": 70,
+    "title": "Changes from background agent bc-a4c46236-7164-451f-a99f-be2d406d67fe",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 16
+    },
+    "reviewThreads": {
+      "totalCount": 17
+    },
+    "reviews": {
+      "totalCount": 6
+    }
+  },
+  {
+    "number": 69,
+    "title": "Changes from background agent bc-b1cbe72e-eed3-46b9-9a77-5d34bbff42d5",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 17
+    },
+    "reviewThreads": {
+      "totalCount": 22
+    },
+    "reviews": {
+      "totalCount": 7
+    }
+  },
+  {
+    "number": 68,
+    "title": "Changes from background agent bc-49d733b0-e366-418c-a75a-7f01cbe678e9",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 27
+    },
+    "reviewThreads": {
+      "totalCount": 26
+    },
+    "reviews": {
+      "totalCount": 11
+    }
+  },
+  {
+    "number": 67,
+    "title": "Checkpoint before follow-up message",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 20
+    },
+    "reviewThreads": {
+      "totalCount": 14
+    },
+    "reviews": {
+      "totalCount": 10
+    }
+  },
+  {
+    "number": 66,
+    "title": "Changes from background agent bc-ab88bb78-a973-424e-9c9c-3a2745e6d543",
+    "state": "MERGED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 65,
+    "title": "chore(ci): add Fixzit Quality Gates (OpenAPI/Postman/RBAC/Lighthouse/scorecard)",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 23
+    },
+    "reviewThreads": {
+      "totalCount": 42
+    },
+    "reviews": {
+      "totalCount": 19
+    }
+  },
+  {
+    "number": 64,
+    "title": "Streamline QA agent error syncing",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 15
+    },
+    "reviewThreads": {
+      "totalCount": 42
+    },
+    "reviews": {
+      "totalCount": 14
+    }
+  },
+  {
+    "number": 63,
+    "title": "Add requirements digests and local indexing workflow",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 6
+    },
+    "reviews": {
+      "totalCount": 5
+    }
+  },
+  {
+    "number": 62,
+    "title": "Fix lint errors in UI text and responsive context",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 21
+    },
+    "reviewThreads": {
+      "totalCount": 20
+    },
+    "reviews": {
+      "totalCount": 10
+    }
+  },
+  {
+    "number": 61,
+    "title": "Fix lint blockers and responsive context integration",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 17
+    },
+    "reviewThreads": {
+      "totalCount": 26
+    },
+    "reviews": {
+      "totalCount": 11
+    }
+  },
+  {
+    "number": 60,
+    "title": "Refactor cart amount parsing helper",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 17
+    },
+    "reviewThreads": {
+      "totalCount": 128
+    },
+    "reviews": {
+      "totalCount": 22
+    }
+  },
+  {
+    "number": 59,
+    "title": "Add PR-Agent GitHub Action workflow",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 3
+    },
+    "reviewThreads": {
+      "totalCount": 3
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 58,
+    "title": "Implement PayTabs callback signature validation",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 36
+    },
+    "reviewThreads": {
+      "totalCount": 27
+    },
+    "reviews": {
+      "totalCount": 19
+    }
+  },
+  {
+    "number": 57,
+    "title": "Remove tracked Next.js build artifacts",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 56,
+    "title": "feat: add shared property and work order types",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 8
+    },
+    "reviewThreads": {
+      "totalCount": 11
+    },
+    "reviews": {
+      "totalCount": 8
+    }
+  },
+  {
+    "number": 55,
+    "title": "feat: add shared property and work order types",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 4
+    },
+    "reviewThreads": {
+      "totalCount": 5
+    },
+    "reviews": {
+      "totalCount": 4
+    }
+  },
+  {
+    "number": 54,
+    "title": "Replace marketplace assets with text-based files",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 37
+    },
+    "reviews": {
+      "totalCount": 5
+    }
+  },
+  {
+    "number": 53,
+    "title": "feat: implement subscription billing architecture",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 35
+    },
+    "reviews": {
+      "totalCount": 4
+    }
+  },
+  {
+    "number": 52,
+    "title": "Implement EN/AR i18n system with RTL support",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 19
+    },
+    "reviews": {
+      "totalCount": 4
+    }
+  },
+  {
+    "number": 51,
+    "title": "Implement data-driven marketplace catalog and public RFQs",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 26
+    },
+    "reviews": {
+      "totalCount": 4
+    }
+  },
+  {
+    "number": 50,
+    "title": "Add tenant-aware AI copilot assistant",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 9
+    },
+    "reviewThreads": {
+      "totalCount": 41
+    },
+    "reviews": {
+      "totalCount": 35
+    }
+  },
+  {
+    "number": 49,
+    "title": "Implement dynamic work order experience with SLA handling",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 4
+    },
+    "reviewThreads": {
+      "totalCount": 7
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 48,
+    "title": "Add ATS models and scoring utilities",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 5
+    },
+    "reviewThreads": {
+      "totalCount": 7
+    },
+    "reviews": {
+      "totalCount": 3
+    }
+  },
+  {
+    "number": 47,
+    "title": "Harden auth secrets and work order idempotency",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 9
+    },
+    "reviewThreads": {
+      "totalCount": 24
+    },
+    "reviews": {
+      "totalCount": 4
+    }
+  },
+  {
+    "number": 46,
+    "title": "Replace mock database with real Mongo connection",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 27
+    },
+    "reviewThreads": {
+      "totalCount": 49
+    },
+    "reviews": {
+      "totalCount": 12
+    }
+  },
+  {
+    "number": 45,
+    "title": "Consolidate and stabilize fixzit system",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 30
+    },
+    "reviews": {
+      "totalCount": 8
+    }
+  },
+  {
+    "number": 44,
+    "title": "Changes from background agent bc-d359a89d-446a-46f7-a417-e1db2077fcc5",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 14
+    },
+    "reviewThreads": {
+      "totalCount": 13
+    },
+    "reviews": {
+      "totalCount": 5
+    }
+  },
+  {
+    "number": 43,
+    "title": "Add shared language and currency selectors with global preferences",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 4
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 1
+    }
+  },
+  {
+    "number": 42,
+    "title": "Fix PayTabs helper configuration and typing",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 2
+    },
+    "reviews": {
+      "totalCount": 1
+    }
+  },
+  {
+    "number": 41,
+    "title": "📝 Add docstrings to `cursor/bc-63079b91-b28e-4910-b47a-a79cb8a262bf-5e78`",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 7
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 1
+    }
+  },
+  {
+    "number": 40,
+    "title": "System implementation verification and correction",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 40
+    },
+    "reviewThreads": {
+      "totalCount": 96
+    },
+    "reviews": {
+      "totalCount": 23
+    }
+  },
+  {
+    "number": 39,
+    "title": "📝 Add docstrings to `cursor/implement-self-updating-knowledge-center-with-ai-integration-fe2d`",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 38,
+    "title": "CodeRabbit Generated Unit Tests: Add Jest and Playwright test suites for PayTabs and Projects API",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 1
+    }
+  },
+  {
+    "number": 37,
+    "title": "📝 Add docstrings to `cursor/bc-834b2f5e-dfcd-448b-b3a8-1412c2ce520e-2e35`",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 4
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 36,
+    "title": "CodeRabbit Generated Unit Tests: Add Jest and Playwright tests for Help APIs and pages",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 4
+    },
+    "reviewThreads": {
+      "totalCount": 3
+    },
+    "reviews": {
+      "totalCount": 1
+    }
+  },
+  {
+    "number": 35,
+    "title": "System implementation verification and correction",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 39
+    },
+    "reviewThreads": {
+      "totalCount": 103
+    },
+    "reviews": {
+      "totalCount": 23
+    }
+  },
+  {
+    "number": 34,
+    "title": "CodeRabbit Generated Unit Tests: Add Jest/Vitest/Playwright tests for API, components, models, lib",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 11
+    },
+    "reviewThreads": {
+      "totalCount": 21
+    },
+    "reviews": {
+      "totalCount": 6
+    }
+  },
+  {
+    "number": 33,
+    "title": "📝 Add docstrings to `cursor/bc-3f2137d9-21e9-4c05-be55-b893a29c820f-c78b`",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 14
+    },
+    "reviewThreads": {
+      "totalCount": 10
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  },
+  {
+    "number": 32,
+    "title": "Changes from background agent bc-15b0984c-e520-4646-924e-5766a339afa0",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 72
+    },
+    "reviewThreads": {
+      "totalCount": 47
+    },
+    "reviews": {
+      "totalCount": 31
+    }
+  },
+  {
+    "number": 31,
+    "title": "Changes from background agent bc-3f2137d9-21e9-4c05-be55-b893a29c820f",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 13
+    },
+    "reviewThreads": {
+      "totalCount": 12
+    },
+    "reviews": {
+      "totalCount": 8
+    }
+  },
+  {
+    "number": 30,
+    "title": "📝 Add docstrings to `cursor/bc-9b04adfe-c72f-4383-a8f0-f5bba3561d6a-3689`",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 3
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 29,
+    "title": "Changes from background agent bc-9b04adfe-c72f-4383-a8f0-f5bba3561d6a",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 17
+    },
+    "reviewThreads": {
+      "totalCount": 13
+    },
+    "reviews": {
+      "totalCount": 3
+    }
+  },
+  {
+    "number": 28,
+    "title": "📝 Add docstrings to `cursor/implement-self-updating-knowledge-center-with-ai-integration-506f`",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 4
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 27,
+    "title": "Changes from background agent bc-834b2f5e-dfcd-448b-b3a8-1412c2ce520e",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 44
+    },
+    "reviewThreads": {
+      "totalCount": 71
+    },
+    "reviews": {
+      "totalCount": 14
+    }
+  },
+  {
+    "number": 26,
+    "title": "Changes from background agent bc-42c1c933-e845-4d59-8d79-ca737119924f",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 25
+    },
+    "reviewThreads": {
+      "totalCount": 36
+    },
+    "reviews": {
+      "totalCount": 16
+    }
+  },
+  {
+    "number": 25,
+    "title": "Implement self-updating knowledge center with AI integration",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 98
+    },
+    "reviewThreads": {
+      "totalCount": 295
+    },
+    "reviews": {
+      "totalCount": 97
+    }
+  },
+  {
+    "number": 24,
+    "title": "CodeRabbit Generated Unit Tests: Add unit and API tests for notifications, bulk, search, mongo, docs",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 5
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 23,
+    "title": "Changes from background agent bc-b7fabb77-9b04-49ed-9838-d8ab98120443",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 14
+    },
+    "reviewThreads": {
+      "totalCount": 13
+    },
+    "reviews": {
+      "totalCount": 6
+    }
+  },
+  {
+    "number": 22,
+    "title": "CodeRabbit Generated Unit Tests: Add Playwright E2E tests for Error Dashboard and error reporting API",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 8
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 21,
+    "title": "Changes from background agent bc-49aa029a-3de1-4a90-aeb1-7db2adae3faf",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 25
+    },
+    "reviewThreads": {
+      "totalCount": 43
+    },
+    "reviews": {
+      "totalCount": 19
+    }
+  },
+  {
+    "number": 20,
+    "title": "Changes from background agent bc-a8d7174e-10e1-48ae-bf4b-10b9a90b1a6b",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 14
+    },
+    "reviewThreads": {
+      "totalCount": 27
+    },
+    "reviews": {
+      "totalCount": 10
+    }
+  },
+  {
+    "number": 19,
+    "title": "Changes from background agent bc-43e33fa1-b9c8-4b9e-a214-d16a2b60ae37",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 8
+    },
+    "reviewThreads": {
+      "totalCount": 8
+    },
+    "reviews": {
+      "totalCount": 3
+    }
+  },
+  {
+    "number": 18,
+    "title": "Changes from background agent bc-342274ff-3832-465d-8aa9-6cbe2dbb4fd5",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 8
+    },
+    "reviewThreads": {
+      "totalCount": 5
+    },
+    "reviews": {
+      "totalCount": 3
+    }
+  },
+  {
+    "number": 17,
+    "title": "Changes from background agent bc-accac3fa-3b8a-4323-a62d-0cf720b32a4c",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 8
+    },
+    "reviewThreads": {
+      "totalCount": 20
+    },
+    "reviews": {
+      "totalCount": 5
+    }
+  },
+  {
+    "number": 16,
+    "title": "Changes from background agent bc-285c031f-7318-49a9-a1c3-b79426ea1d74",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 12
+    },
+    "reviewThreads": {
+      "totalCount": 4
+    },
+    "reviews": {
+      "totalCount": 11
+    }
+  },
+  {
+    "number": 15,
+    "title": "📝 Add docstrings to `feature/subscription-billing-system`",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 5
+    },
+    "reviewThreads": {
+      "totalCount": 3
+    },
+    "reviews": {
+      "totalCount": 3
+    }
+  },
+  {
+    "number": 14,
+    "title": "Implement self-updating knowledge center with AI integration",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 33
+    },
+    "reviews": {
+      "totalCount": 7
+    }
+  },
+  {
+    "number": 13,
+    "title": "Changes from background agent bc-b55825dd-6e30-4d14-a23b-3a37e444e0c9",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 5
+    },
+    "reviewThreads": {
+      "totalCount": 4
+    },
+    "reviews": {
+      "totalCount": 1
+    }
+  },
+  {
+    "number": 12,
+    "title": "Changes from background agent bc-d5179afb-7692-4ff0-9573-2247e0edd81c",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 16
+    },
+    "reviewThreads": {
+      "totalCount": 47
+    },
+    "reviews": {
+      "totalCount": 11
+    }
+  },
+  {
+    "number": 11,
+    "title": "Changes from background agent bc-63079b91-b28e-4910-b47a-a79cb8a262bf",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 50
+    },
+    "reviewThreads": {
+      "totalCount": 63
+    },
+    "reviews": {
+      "totalCount": 45
+    }
+  },
+  {
+    "number": 10,
+    "title": "Review test results for errors",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 49
+    },
+    "reviewThreads": {
+      "totalCount": 94
+    },
+    "reviews": {
+      "totalCount": 32
+    }
+  },
+  {
+    "number": 9,
+    "title": "Changes from background agent bc-8578344b-0784-4dc6-923d-8406a9b080b7",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 9
+    },
+    "reviewThreads": {
+      "totalCount": 11
+    },
+    "reviews": {
+      "totalCount": 4
+    }
+  },
+  {
+    "number": 8,
+    "title": "Comprehensive Code Review: Fix Critical TypeScript Errors and Implement Missing ATS Models",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 6
+    },
+    "reviewThreads": {
+      "totalCount": 15
+    },
+    "reviews": {
+      "totalCount": 6
+    }
+  },
+  {
+    "number": 7,
+    "title": "Review test results for errors",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 5
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 6,
+    "title": "Feature/subscription billing system",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 8
+    },
+    "reviewThreads": {
+      "totalCount": 242
+    },
+    "reviews": {
+      "totalCount": 13
+    }
+  },
+  {
+    "number": 5,
+    "title": "Analyze project completion status",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 2
+    },
+    "reviewThreads": {
+      "totalCount": 1
+    },
+    "reviews": {
+      "totalCount": 1
+    }
+  },
+  {
+    "number": 4,
+    "title": "Analyze project completion status",
+    "state": "MERGED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 4
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 3,
+    "title": "Analyze project completion status",
+    "state": "CLOSED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 4
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 2,
+    "title": "Organize main branch and check database connections",
+    "state": "MERGED",
+    "isDraft": true,
+    "comments": {
+      "totalCount": 4
+    },
+    "reviewThreads": {
+      "totalCount": 0
+    },
+    "reviews": {
+      "totalCount": 0
+    }
+  },
+  {
+    "number": 1,
+    "title": "Consolidate duplicate pages and refresh database connections",
+    "state": "CLOSED",
+    "isDraft": false,
+    "comments": {
+      "totalCount": 5
+    },
+    "reviewThreads": {
+      "totalCount": 21
+    },
+    "reviews": {
+      "totalCount": 2
+    }
+  }
+]
+
+]]>
+</file>
+
+</batch_content>

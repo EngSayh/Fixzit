@@ -1,0 +1,1994 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="tests/e2e/critical-flows.spec.ts">
+<![CDATA[
+import { test, expect } from "@playwright/test";
+import { getRequiredTestCredentials, getTestOrgIdOptional, hasTestCredentials } from './utils/credentials';
+import { attemptLogin } from './utils/auth';
+
+/**
+ * Critical User Flows E2E Tests
+ * Tests core business functionality and user journeys
+ * 
+ * AUDIT-2025-12-01: Aligned with secure credential pattern from subrole-api-access.spec.ts
+ * - CI: Hard fail if TEST_ADMIN credentials missing (security-critical)
+ * - Local: Warn if credentials missing (developer visibility)
+ * - Fork PRs: Skip gracefully (secrets unavailable)
+ */
+
+const TEST_ORG_ID = getTestOrgIdOptional();
+const IS_CI = process.env.CI === 'true';
+const IS_PULL_REQUEST = process.env.GITHUB_EVENT_NAME === 'pull_request';
+
+/**
+ * Fork detection: Forked PRs cannot access secrets.
+ * We detect this to skip gracefully instead of crashing.
+ */
+const HAS_ADMIN_CREDENTIALS = hasTestCredentials('ADMIN');
+const IS_FORK_OR_MISSING_SECRETS = IS_CI && IS_PULL_REQUEST && !HAS_ADMIN_CREDENTIALS;
+
+/**
+ * AUDIT-2025-12-01: Credential validation guard
+ * Aligned with subrole-api-access.spec.ts for consistent behavior
+ */
+if (IS_CI && !HAS_ADMIN_CREDENTIALS && !IS_FORK_OR_MISSING_SECRETS) {
+  throw new Error(
+    "CI REQUIRES TEST_ADMIN_EMAIL/PASSWORD for critical-flows tests.\n\n" +
+    "Tests using hardcoded fallback credentials mask real auth failures.\n" +
+    "ACTION: Add TEST_ADMIN_EMAIL and TEST_ADMIN_PASSWORD to GitHub Secrets."
+  );
+} else if (!HAS_ADMIN_CREDENTIALS && !IS_CI) {
+  console.warn(
+    "⚠️  CRITICAL FLOWS: TEST_ADMIN_EMAIL/PASSWORD not set.\n" +
+    "   Set credentials in .env.local for full test coverage.\n" +
+    "   Tests will skip authentication steps."
+  );
+}
+
+// AUDIT-2025-12-01: Skip all tests if running on fork without secrets
+test.skip(
+  IS_FORK_OR_MISSING_SECRETS,
+  'Skipping critical-flows tests: forked PR or missing TEST_ADMIN credentials. ' +
+  'Internal PRs require secrets configured in GitHub Actions.'
+);
+
+// Get credentials safely - will throw in CI if missing (after skip check)
+let TEST_CREDENTIALS: { email: string; password: string } | null = null;
+try {
+  TEST_CREDENTIALS = HAS_ADMIN_CREDENTIALS ? getRequiredTestCredentials('ADMIN') : null;
+} catch {
+  // Already handled by skip and guard above
+}
+
+test.describe("Critical User Flows", () => {
+  // AUDIT-2025-12-01: Use proper login flow instead of offline token injection
+  // Offline tokens mask real auth failures and bypass RBAC validation
+  test.beforeEach(async ({ page }) => {
+    if (!TEST_CREDENTIALS) {
+      // Skip to dashboard without auth - tests will handle auth-gated features gracefully
+      await page.goto("/dashboard", { waitUntil: 'domcontentloaded' }).catch(() => {});
+      return;
+    }
+
+    // Use shared attemptLogin helper for consistent auth behavior
+    await page.goto("/login", { waitUntil: 'domcontentloaded' });
+    const result = await attemptLogin(page, TEST_CREDENTIALS.email, TEST_CREDENTIALS.password);
+    
+    if (!result.success) {
+      console.warn(
+        `⚠️  Login failed for critical-flows: ${result.errorText}\n` +
+        `   Tests may fail on auth-gated pages.`
+      );
+    }
+  });
+
+  test.describe("Work Orders", () => {
+    test("should navigate to work orders page", async ({ page }) => {
+      await page.click('a[href*="/work-orders"]');
+      await expect(page).toHaveURL(/\/work-orders/);
+
+      // Check page loaded
+      await expect(page.locator("h1")).toContainText(/work orders/i);
+    });
+
+    test("should display work orders list", async ({ page }) => {
+      await page.goto("/work-orders");
+
+      // Wait for data to load
+      await page.waitForSelector('[data-testid="work-orders-table"]', {
+        timeout: 10000,
+      });
+
+      // Check table exists
+      const table = page.locator('[data-testid="work-orders-table"]');
+      await expect(table).toBeVisible();
+    });
+
+    test("should create new work order", async ({ page }) => {
+      await page.goto("/work-orders");
+
+      // Click create button
+      await page.click('button:has-text("Create"), button:has-text("New")');
+
+      // Fill work order form
+      await page.fill('input[name="title"]', "Test Work Order E2E");
+      await page.fill(
+        'textarea[name="description"]',
+        "Automated test work order",
+      );
+
+      // Select priority
+      await page.click('[name="priority"]');
+      await page.click("text=High");
+
+      // Select category
+      await page.click('[name="category"]');
+      await page.click("text=Maintenance");
+
+      // Submit form
+      await page.click(
+        'button[type="submit"]:has-text("Create"), button[type="submit"]:has-text("Save")',
+      );
+
+      // Wait for success message
+      await expect(page.locator("text=/created successfully/i")).toBeVisible({
+        timeout: 10000,
+      });
+
+      // Verify redirected to work orders list or details
+      await page.waitForURL(/\/work-orders/, { timeout: 5000 });
+    });
+
+    test("should filter work orders by status", async ({ page }) => {
+      await page.goto("/work-orders");
+
+      // Wait for table
+      await page.waitForSelector('[data-testid="work-orders-table"]');
+
+      // Click status filter
+      await page.click('[data-testid="status-filter"]');
+      await page.click("text=Open");
+
+      // Wait for filtered results to load
+      await page.waitForLoadState('networkidle');
+
+      // Verify all visible work orders have "Open" status
+      const statusBadges = await page
+        .locator('[data-testid="status-badge"]')
+        .allTextContents();
+      statusBadges.forEach((status) => {
+        expect(status).toContain("Open");
+      });
+    });
+
+    test("should view work order details", async ({ page }) => {
+      await page.goto("/work-orders");
+      await page.waitForSelector('[data-testid="work-orders-table"]');
+
+      // Click first work order
+      await page.locator('[data-testid="work-order-row"]').first().click();
+
+      // Should navigate to details page
+      await expect(page).toHaveURL(/\/work-orders\/[a-zA-Z0-9-]+/);
+
+      // Check details are visible
+      await expect(
+        page.locator('[data-testid="work-order-title"]'),
+      ).toBeVisible();
+      await expect(
+        page.locator('[data-testid="work-order-description"]'),
+      ).toBeVisible();
+    });
+
+    test("should update work order status", async ({ page }) => {
+      await page.goto("/work-orders");
+      await page.waitForSelector('[data-testid="work-orders-table"]');
+
+      // Click first work order
+      await page.locator('[data-testid="work-order-row"]').first().click();
+
+      // Click status dropdown
+      await page.click('[data-testid="status-select"]');
+      await page.click("text=In Progress");
+
+      // Wait for update
+      await expect(page.locator("text=/updated successfully/i")).toBeVisible({
+        timeout: 10000,
+      });
+    });
+  });
+
+  test.describe("Properties", () => {
+    test("should navigate to properties page", async ({ page }) => {
+      await page.click('a[href*="/properties"]');
+      await expect(page).toHaveURL(/\/properties/);
+    });
+
+    test("should display properties list", async ({ page }) => {
+      await page.goto("/properties");
+
+      // Wait for properties to load
+      await page.waitForSelector(
+        '[data-testid="properties-grid"], [data-testid="properties-list"]',
+        { timeout: 10000 },
+      );
+
+      // Check properties are visible
+      const properties = page.locator('[data-testid="property-card"]');
+      await expect(properties.first()).toBeVisible();
+    });
+
+    test("should create new property", async ({ page }) => {
+      await page.goto("/properties");
+
+      // Click create button
+      await page.click(
+        'button:has-text("Add Property"), button:has-text("Create")',
+      );
+
+      // Fill property form
+      await page.fill('input[name="name"]', "Test Property E2E");
+      await page.fill('input[name="address"]', "123 Test Street");
+      await page.fill('input[name="city"]', "Riyadh");
+
+      // Submit
+      await page.click('button[type="submit"]');
+
+      // Wait for success
+      await expect(page.locator("text=/created successfully/i")).toBeVisible({
+        timeout: 10000,
+      });
+    });
+
+    test("should view property details", async ({ page }) => {
+      await page.goto("/properties");
+      await page.waitForSelector('[data-testid="property-card"]');
+
+      // Click first property
+      await page.locator('[data-testid="property-card"]').first().click();
+
+      // Should navigate to details
+      await expect(page).toHaveURL(/\/properties\/[a-zA-Z0-9-]+/);
+
+      // Check details visible
+      await expect(page.locator('[data-testid="property-name"]')).toBeVisible();
+    });
+
+    test("should link asset to property", async ({ page }) => {
+      await page.goto("/properties");
+      await page.waitForSelector('[data-testid="property-card"]');
+
+      // Click first property
+      await page.locator('[data-testid="property-card"]').first().click();
+
+      // Click add asset button
+      await page.click('button:has-text("Add Asset")');
+
+      // Fill asset form
+      await page.fill('input[name="assetName"]', "Test Asset E2E");
+      await page.fill('input[name="assetType"]', "HVAC");
+
+      // Submit
+      await page.click('button[type="submit"]');
+
+      // Wait for success
+      await expect(page.locator("text=/asset added/i")).toBeVisible({
+        timeout: 10000,
+      });
+    });
+  });
+
+  test.describe("Marketplace", () => {
+    test("should browse marketplace", async ({ page }) => {
+      await page.goto("/marketplace");
+
+      // Wait for products to load
+      await page.waitForSelector('[data-testid="product-card"]', {
+        timeout: 10000,
+      });
+
+      // Check products are visible
+      const products = page.locator('[data-testid="product-card"]');
+      await expect(products.first()).toBeVisible();
+    });
+
+    test("should search for products", async ({ page }) => {
+      await page.goto("/marketplace");
+
+      // Enter search query
+      await page.fill('input[placeholder*="Search"]', "air conditioner");
+      await page.press('input[placeholder*="Search"]', "Enter");
+
+      // Wait for search results to load
+      await page.waitForLoadState('networkidle');
+
+      // Check results contain search term
+      const productTitles = await page
+        .locator('[data-testid="product-title"]')
+        .allTextContents();
+      expect(
+        productTitles.some((title) => title.toLowerCase().includes("air")),
+      ).toBe(true);
+    });
+
+    test("should add product to cart", async ({ page }) => {
+      await page.goto("/marketplace");
+      await page.waitForSelector('[data-testid="product-card"]');
+
+      // Click first product
+      await page.locator('[data-testid="product-card"]').first().click();
+
+      // Click add to cart
+      await page.click('button:has-text("Add to Cart")');
+
+      // Check cart badge updated
+      const cartBadge = page.locator('[data-testid="cart-badge"]');
+      await expect(cartBadge).toBeVisible();
+
+      // Success message
+      await expect(page.locator("text=/added to cart/i")).toBeVisible({
+        timeout: 5000,
+      });
+    });
+
+    test("should complete checkout flow", async ({ page }) => {
+      // Add product to cart first
+      await page.goto("/marketplace");
+      await page.waitForSelector('[data-testid="product-card"]');
+      await page.locator('[data-testid="product-card"]').first().click();
+      await page.click('button:has-text("Add to Cart")');
+
+      // Navigate to cart
+      await page.click('[data-testid="cart-icon"]');
+      await expect(page).toHaveURL(/\/marketplace\/cart/);
+
+      // Proceed to checkout
+      await page.click(
+        'button:has-text("Checkout"), button:has-text("Proceed")',
+      );
+      await expect(page).toHaveURL(/\/marketplace\/checkout/);
+
+      // Fill shipping info
+      await page.fill('input[name="shippingAddress"]', "123 Test St, Riyadh");
+      await page.fill('input[name="phone"]', "+966500000000");
+
+      // Select payment method
+      await page.click('[data-testid="payment-method-card"]');
+
+      // Submit order (don't actually process payment in test)
+      await page.click('button:has-text("Place Order")');
+
+      // Wait for confirmation
+      await expect(
+        page.locator("text=/order placed|order confirmed/i"),
+      ).toBeVisible({ timeout: 15000 });
+    });
+
+    test("should view order history", async ({ page }) => {
+      await page.goto("/marketplace/orders");
+
+      // Wait for orders to load
+      await page.waitForSelector('[data-testid="order-list"]', {
+        timeout: 10000,
+      });
+
+      // Check orders table visible
+      const ordersTable = page.locator('[data-testid="order-list"]');
+      await expect(ordersTable).toBeVisible();
+    });
+  });
+
+  test.describe("Documents", () => {
+    test("should upload document", async ({ page }) => {
+      await page.goto("/work-orders");
+      await page.waitForSelector('[data-testid="work-order-row"]');
+
+      // Click first work order
+      await page.locator('[data-testid="work-order-row"]').first().click();
+
+      // Click upload button
+      await page.click('button:has-text("Upload"), button:has-text("Attach")');
+
+      // Upload file
+      const fileInput = page.locator('input[type="file"]');
+      await fileInput.setInputFiles({
+        name: "test-document.pdf",
+        mimeType: "application/pdf",
+        buffer: Buffer.from("PDF test content"),
+      });
+
+      // Wait for upload to complete
+      await expect(page.locator("text=/uploaded successfully/i")).toBeVisible({
+        timeout: 15000,
+      });
+    });
+
+    test("should preview document", async ({ page }) => {
+      await page.goto("/work-orders");
+      await page.waitForSelector('[data-testid="work-order-row"]');
+
+      // Click first work order
+      await page.locator('[data-testid="work-order-row"]').first().click();
+
+      // Find and click first document
+      const documentLink = page
+        .locator('[data-testid="document-link"]')
+        .first();
+      if (await documentLink.isVisible()) {
+        await documentLink.click();
+
+        // Check preview modal or new tab opened
+        await expect(
+          page.locator('[data-testid="document-preview"]'),
+        ).toBeVisible({ timeout: 5000 });
+      }
+    });
+
+    test("should download document", async ({ page }) => {
+      await page.goto("/work-orders");
+      await page.waitForSelector('[data-testid="work-order-row"]');
+
+      // Click first work order
+      await page.locator('[data-testid="work-order-row"]').first().click();
+
+      // Click download button
+      const downloadPromise = page.waitForEvent("download");
+      await page.locator('[data-testid="document-download"]').first().click();
+
+      // Wait for download
+      const download = await downloadPromise;
+      expect(download.suggestedFilename()).toBeTruthy();
+    });
+  });
+
+  test.describe("Reports", () => {
+    test("should navigate to reports page", async ({ page }) => {
+      await page.goto("/reports");
+
+      // Check page loaded
+      await expect(page.locator("h1")).toContainText(/reports/i);
+    });
+
+    test("should generate work orders report", async ({ page }) => {
+      await page.goto("/reports");
+
+      // Select report type
+      await page.click('[data-testid="report-type-select"]');
+      await page.click("text=Work Orders");
+
+      // Select date range
+      await page.click('[data-testid="date-range-picker"]');
+      await page.click("text=Last 30 Days");
+
+      // Generate report
+      await page.click(
+        'button:has-text("Generate"), button:has-text("Create Report")',
+      );
+
+      // Wait for report to generate
+      await expect(page.locator('[data-testid="report-preview"]')).toBeVisible({
+        timeout: 15000,
+      });
+    });
+
+    test("should export report to PDF", async ({ page }) => {
+      await page.goto("/reports");
+
+      // Generate report first
+      await page.click('[data-testid="report-type-select"]');
+      await page.click("text=Work Orders");
+      await page.click('button:has-text("Generate")');
+      await page.waitForSelector('[data-testid="report-preview"]', {
+        timeout: 15000,
+      });
+
+      // Export to PDF
+      const downloadPromise = page.waitForEvent("download");
+      await page.click(
+        'button:has-text("Export PDF"), button:has-text("Download PDF")',
+      );
+
+      // Wait for download
+      const download = await downloadPromise;
+      expect(download.suggestedFilename()).toMatch(/\.pdf$/);
+    });
+
+    test("should export report to Excel", async ({ page }) => {
+      await page.goto("/reports");
+
+      // Generate report first
+      await page.click('[data-testid="report-type-select"]');
+      await page.click("text=Work Orders");
+      await page.click('button:has-text("Generate")');
+      await page.waitForSelector('[data-testid="report-preview"]', {
+        timeout: 15000,
+      });
+
+      // Export to Excel
+      const downloadPromise = page.waitForEvent("download");
+      await page.click(
+        'button:has-text("Export Excel"), button:has-text("Download Excel")',
+      );
+
+      // Wait for download
+      const download = await downloadPromise;
+      expect(download.suggestedFilename()).toMatch(/\.xlsx$/);
+    });
+  });
+
+  test.describe("Notifications", () => {
+    test("should display notifications panel", async ({ page }) => {
+      await page.goto("/dashboard");
+
+      // Click notifications icon
+      await page.click('[data-testid="notifications-button"]');
+
+      // Check panel opens
+      await expect(
+        page.locator('[data-testid="notifications-panel"]'),
+      ).toBeVisible();
+    });
+
+    test("should mark notification as read", async ({ page }) => {
+      await page.goto("/dashboard");
+
+      // Open notifications
+      await page.click('[data-testid="notifications-button"]');
+
+      // Find unread notification
+      const unreadNotification = page
+        .locator('[data-testid="notification-unread"]')
+        .first();
+      if (await unreadNotification.isVisible()) {
+        // Click notification
+        await unreadNotification.click();
+
+        // Check marked as read (badge removed)
+        await expect(
+          unreadNotification.locator('[data-testid="unread-badge"]'),
+        ).not.toBeVisible();
+      }
+    });
+
+    test("should navigate to notification target", async ({ page }) => {
+      await page.goto("/dashboard");
+
+      // Open notifications
+      await page.click('[data-testid="notifications-button"]');
+
+      // Click first notification
+      const firstNotification = page
+        .locator('[data-testid="notification-item"]')
+        .first();
+      await firstNotification.click();
+
+      // Should navigate to related page
+      await page.waitForURL(/\/(work-orders|properties|marketplace)/, {
+        timeout: 5000,
+      });
+    });
+  });
+
+  test.describe("User Profile", () => {
+    test("should view user profile", async ({ page }) => {
+      await page.goto("/profile");
+
+      // Check profile page loaded
+      await expect(page.locator("h1")).toContainText(/profile/i);
+
+      // Check user info visible
+      await expect(page.locator('[data-testid="user-email"]')).toBeVisible();
+      await expect(page.locator('[data-testid="user-name"]')).toBeVisible();
+    });
+
+    test("should update profile information", async ({ page }) => {
+      await page.goto("/profile");
+
+      // Click edit button
+      await page.click(
+        'button:has-text("Edit Profile"), button:has-text("Edit")',
+      );
+
+      // Update name
+      await page.fill('input[name="name"]', "Updated Name E2E");
+
+      // Save
+      await page.click('button[type="submit"]:has-text("Save")');
+
+      // Wait for success
+      await expect(page.locator("text=/updated successfully/i")).toBeVisible({
+        timeout: 10000,
+      });
+    });
+
+    test("should change password", async ({ page }) => {
+      // AUDIT-2025-12-01: Skip if no credentials available
+      test.skip(!TEST_CREDENTIALS, 'Requires TEST_ADMIN credentials for password change test');
+      
+      await page.goto("/profile");
+
+      // Navigate to security tab
+      await page.click('button:has-text("Security"), a:has-text("Security")');
+
+      // Fill password form
+      await page.fill('input[name="currentPassword"]', TEST_CREDENTIALS!.password);
+      await page.fill('input[name="newPassword"]', "NewPassword123!");
+      await page.fill('input[name="confirmPassword"]', "NewPassword123!");
+
+      // Submit
+      await page.click('button:has-text("Change Password")');
+
+      // Wait for success
+      await expect(page.locator("text=/password changed/i")).toBeVisible({
+        timeout: 10000,
+      });
+
+      // Note: In real test, should revert password back
+    });
+  });
+
+  test.describe("Search", () => {
+    test("should search across modules", async ({ page }) => {
+      await page.goto("/dashboard");
+
+      // Click global search
+      await page.click('[data-testid="global-search"]');
+
+      // Type search query
+      await page.fill('input[placeholder*="Search"]', "maintenance");
+      await page.press('input[placeholder*="Search"]', "Enter");
+
+      // Wait for results
+      await expect(page.locator('[data-testid="search-results"]')).toBeVisible({
+        timeout: 5000,
+      });
+
+      // Check results contain query
+      const results = await page
+        .locator('[data-testid="search-result-item"]')
+        .allTextContents();
+      expect(
+        results.some((result) => result.toLowerCase().includes("maintenance")),
+      ).toBe(true);
+    });
+  });
+
+  test.describe("Language Toggle", () => {
+    test("should switch to Arabic", async ({ page }) => {
+      await page.goto("/dashboard");
+
+      // Click language selector
+      await page.click('[data-testid="language-selector"]');
+      await page.click("text=العربية");
+
+      // Wait for RTL direction to be applied
+      await expect(page.locator('body')).toHaveAttribute('dir', 'rtl', { timeout: 5000 });
+
+      // Check RTL direction
+      const body = page.locator("body");
+      await expect(body).toHaveAttribute("dir", "rtl");
+
+      // Check Arabic text visible
+      await expect(page.locator("text=/لوحة التحكم/")).toBeVisible();
+    });
+
+    test("should persist language preference", async ({ page }) => {
+      // Switch to Arabic
+      await page.goto("/dashboard");
+      await page.click('[data-testid="language-selector"]');
+      await page.click("text=العربية");
+      
+      // Wait for RTL direction to be applied
+      await expect(page.locator('body')).toHaveAttribute('dir', 'rtl', { timeout: 5000 });
+
+      // Reload page
+      await page.reload();
+
+      // Should still be Arabic
+      const body = page.locator("body");
+      await expect(body).toHaveAttribute("dir", "rtl");
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/e2e/database.spec.ts">
+<![CDATA[
+/**
+ * E2E Database Connectivity Tests
+ * 
+ * Tests database integration through API endpoints
+ * to ensure full system connectivity in deployment environment
+ */
+
+import { test, expect } from '@playwright/test';
+import { MongoClient, ObjectId } from 'mongodb';
+
+test.describe('Database E2E Tests', () => {
+  let mongoClient: MongoClient;
+  let testOrgId: string;
+  let testOrgCode: string;
+  
+  test.beforeAll(async () => {
+    // Setup direct MongoDB connection for test data preparation
+    const mongoUri = process.env.MONGODB_URI;
+    if (!mongoUri) {
+      throw new Error('MONGODB_URI not set for E2E tests');
+    }
+    
+    mongoClient = new MongoClient(mongoUri);
+    await mongoClient.connect();
+    
+    // Create test organization with unique orgId/code to avoid dupes on reruns
+    testOrgId = new ObjectId().toString();
+    testOrgCode = `E2E-DB-${testOrgId.slice(-6)}`;
+    const orgs = mongoClient.db('fixzit').collection('organizations');
+    await orgs.deleteMany({
+      $or: [
+        { code: null },
+        { code: { $exists: false } },
+        { orgId: null },
+        { orgId: { $exists: false } },
+      ],
+    });
+    await orgs.deleteMany({ code: /^E2E-DB-/ });
+    await orgs.insertOne({
+      _id: new ObjectId(testOrgId),
+      orgId: testOrgId,
+      code: testOrgCode,
+      name: 'E2E Test Org',
+      createdAt: new Date()
+    });
+
+    // Clean any lingering properties from previous runs
+    await mongoClient.db('fixzit').collection('properties').deleteMany({
+      code: { $in: ['E2E-TEST-001', 'ORG1-PROP', 'ORG2-PROP'] },
+    });
+  });
+
+  test.afterAll(async () => {
+    // Cleanup test data
+    if (mongoClient && testOrgId) {
+      await mongoClient.db('fixzit').collection('organizations').deleteOne({
+        _id: new ObjectId(testOrgId)
+      });
+      await mongoClient.db('fixzit').collection('properties').deleteMany({
+        tenantId: testOrgId
+      });
+      await mongoClient.close();
+    }
+  });
+
+  test('Health check endpoint returns database status', async ({ request }) => {
+    const response = await request.get('/api/health/database');
+    
+    expect(response.status()).toBe(200);
+    
+    const health = await response.json();
+    expect(health).toHaveProperty('status', 'healthy');
+    expect(health).toHaveProperty('database', 'mongodb');
+    expect(health).toHaveProperty('connection', 'active');
+    expect(health).toHaveProperty('timestamp');
+  });
+
+  test('Properties API connects to MongoDB successfully', async ({ request }) => {
+    // Insert test property directly to MongoDB
+    const testProperty = {
+      _id: new ObjectId(),
+      tenantId: testOrgId,
+      orgId: testOrgId,
+      code: 'E2E-TEST-001',
+      name: 'E2E Test Property',
+      type: 'apartment',
+      address: {
+        city: 'Riyadh',
+        district: 'Olaya'
+      },
+      details: {
+        bedrooms: 2,
+        bathrooms: 2,
+        totalArea: 120
+      },
+      market: {
+        listingPrice: 250000
+      },
+      createdAt: new Date()
+    };
+
+    await mongoClient.db('fixzit').collection('properties').insertOne(testProperty);
+
+    // Test API retrieval
+    const response = await request.get(`/api/aqar/properties?city=Riyadh`);
+    expect(response.status()).toBe(200);
+    
+    const data = (await response.json()) as { items?: Array<{ code?: string; name?: string; org_id?: string }> };
+    expect(data).toHaveProperty('items');
+    expect(Array.isArray(data.items)).toBe(true);
+    
+    // Should find our test property (or at least not error)
+    const foundProperty = data.items.find((p: { code?: string; name?: string; org_id?: string }) => p.code === 'E2E-TEST-001');
+    if (foundProperty) {
+      expect(foundProperty.name).toBe('E2E Test Property');
+      expect(foundProperty.org_id).toBe(testOrgId);
+    }
+  });
+
+  test('Database connection survives concurrent requests', async ({ request }) => {
+    // Fire multiple concurrent requests to test connection pooling
+    const requests = Array.from({ length: 10 }, (_, i) => 
+      request.get(`/api/aqar/properties?page=${i + 1}&pageSize=5`)
+    );
+
+    const responses = await Promise.all(requests);
+    
+    // All requests should succeed
+    responses.forEach(response => {
+      expect(response.status()).toBe(200);
+    });
+
+    // Verify data consistency
+    const results = await Promise.all(responses.map(r => r.json()));
+    results.forEach(result => {
+      expect(result).toHaveProperty('items');
+      expect(result).toHaveProperty('page');
+      expect(result).toHaveProperty('total');
+    });
+  });
+
+  test('Multi-tenant data isolation works correctly', async ({ request }) => {
+    // Create second test organization
+    const testOrg2Id = new ObjectId().toString();
+    await mongoClient.db('fixzit').collection('organizations').insertOne({
+      _id: new ObjectId(testOrg2Id),
+      orgId: testOrg2Id,
+      code: `E2E-DB-${testOrg2Id.slice(-6)}`,
+      name: 'E2E Test Org 2',
+      createdAt: new Date()
+    });
+
+    // Insert properties for both organizations
+    const org1Property = {
+      _id: new ObjectId(),
+      tenantId: testOrgId,
+      orgId: testOrgId,
+      code: 'ORG1-PROP',
+      name: 'Org 1 Property',
+      type: 'villa',
+      createdAt: new Date()
+    };
+
+    const org2Property = {
+      _id: new ObjectId(),
+      tenantId: testOrg2Id,
+      orgId: testOrg2Id,
+      code: 'ORG2-PROP',
+      name: 'Org 2 Property',
+      type: 'villa',
+      createdAt: new Date()
+    };
+
+    await mongoClient.db('fixzit').collection('properties').insertMany([
+      org1Property,
+      org2Property
+    ]);
+
+    // Test that API properly isolates data (this would need proper auth context)
+    const response = await request.get('/api/aqar/properties');
+    
+    // The API should not leak data between tenants
+    // Note: This test may need to be adapted based on your auth implementation
+    expect(response.status()).toBe(200);
+    
+    const data = await response.json();
+    const codes = data.items.map((item: { code?: string }) => item.code);
+    
+    // In a proper multi-tenant setup, we shouldn't see both properties in one response
+    const hasOrg1 = codes.includes('ORG1-PROP');
+    const hasOrg2 = codes.includes('ORG2-PROP');
+    
+    // AUDIT-2025-12-01: Fail-closed assertion for multi-tenant isolation
+    // At least one should be filtered out (unless using super admin context)
+    // Previously this was a console.warn - converted to assertion to catch regressions
+    expect(
+      hasOrg1 && hasOrg2,
+      'MULTI-TENANT ISOLATION FAILED: Both ORG1-PROP and ORG2-PROP visible in single response.\n' +
+      'This indicates cross-tenant data leakage - API is not scoping by org_id.\n' +
+      'ACTION: Check API middleware and Mongoose query scoping for org_id enforcement.'
+    ).toBe(false);
+
+    // Cleanup
+    await mongoClient.db('fixzit').collection('organizations').deleteOne({
+      _id: new ObjectId(testOrg2Id)
+    });
+    await mongoClient.db('fixzit').collection('properties').deleteMany({
+      tenantId: testOrg2Id
+    });
+  });
+
+  test('Database handles malformed queries gracefully', async ({ request }) => {
+    // Test various malformed queries
+    const malformedQueries = [
+      '/api/aqar/properties?priceMin=invalid',
+      '/api/aqar/properties?page=-1',
+      '/api/aqar/properties?pageSize=9999',
+      '/api/aqar/properties?bedsMin=not-a-number'
+    ];
+
+    for (const query of malformedQueries) {
+      const response = await request.get(query);
+      
+      // Should either handle gracefully (200) or return proper error
+      expect([200, 400].includes(response.status())).toBe(true);
+      
+      if (response.status() === 200) {
+        const data = await response.json();
+        expect(data).toHaveProperty('items');
+      }
+    }
+  });
+
+  test('Database performance meets requirements', async ({ request }) => {
+    // Measure a direct MongoDB query to avoid rate-limit noise
+    const startTime = Date.now();
+    const properties = await mongoClient
+      .db('fixzit')
+      .collection('properties')
+      .find({ orgId: { $in: [testOrgId] } })
+      .limit(50)
+      .toArray();
+    const responseTime = Date.now() - startTime;
+
+    // Query should complete within reasonable time (5 seconds)
+    expect(responseTime).toBeLessThan(5000);
+    expect(Array.isArray(properties)).toBe(true);
+    console.log(`Database query performance: ${responseTime}ms for ${properties.length} items`);
+  });
+
+  test('Database connection recovery after network interruption simulation', async ({ request }) => {
+    // First, establish that connection works
+    const response1 = await request.get('/api/health/database');
+    expect(response1.status()).toBe(200);
+    
+    // Simulate rapid successive calls (connection stress test)
+    const rapidRequests = Array.from({ length: 5 }, () => 
+      request.get('/api/health/database')
+    );
+    
+    const rapidResponses = await Promise.all(rapidRequests);
+    rapidResponses.forEach(response => {
+      expect(response.status()).toBe(200);
+    });
+    
+    // Final verification that connection is still stable
+    const finalResponse = await request.get('/api/health/database');
+    expect(finalResponse.status()).toBe(200);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/e2e/finance.spec.ts">
+<![CDATA[
+import { test } from "@playwright/test";
+import { assertNoConsoleErrors } from "../helpers/console";
+
+/**
+ * Finance HFV (Happy Flow Verification) Test
+ * 
+ * AUDIT-2025-12-01: Updated to use event-driven waits instead of hardcoded timeouts
+ * - Replaced waitForTimeout(1000) with waitForLoadState/waitForSelector
+ * - Added org_id to stub response for tenant scoping consistency
+ */
+test("Finance HFV - Invoice post", async ({ page }) => {
+  await assertNoConsoleErrors(page, async () => {
+    // Stub finance APIs to avoid 401/403 in offline mode
+    // AUDIT-2025-12-01: org_id uses TEST_ORG_ID or undefined (no fallback)
+    // This ensures tenant validation helpers correctly skip/warn when TEST_ORG_ID is missing
+    // instead of passing with a fake 'stub-org-id' that could mask validation issues
+    await page.route("**/api/finance/**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: true,
+          org_id: process.env.TEST_ORG_ID,
+          incomeStatement: {
+            revenue: 125000,
+            expenses: 45000,
+            netIncome: 80000,
+          },
+          balanceSheet: {
+            assets: 500000,
+            liabilities: 150000,
+            equity: 350000,
+          },
+          cashFlow: {
+            operating: 60000,
+            investing: -10000,
+            financing: -5000,
+          },
+          invoices: [],
+          payments: [],
+        }),
+      }),
+    );
+
+    await page.goto("/finance", { waitUntil: "domcontentloaded" });
+    
+    // AUDIT-2025-12-01: Replace hardcoded waitForTimeout with event-driven waits
+    // Wait for page content to load instead of arbitrary delays
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForSelector('h1, h2, [data-testid="finance-dashboard"], [class*="finance"]', { 
+      timeout: 5000 
+    }).catch(() => {
+      // Page may not have expected selectors in stub mode - that's OK for HFV
+    });
+    
+    await page.screenshot({ path: "artifacts/finance-before.png" });
+    
+    // Wait for any animations/transitions to complete
+    await page.waitForLoadState('networkidle').catch(() => {});
+    
+    await page.screenshot({ path: "artifacts/finance-after.png" });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/e2e/health-endpoints.spec.ts">
+<![CDATA[
+import { test, expect } from "@playwright/test";
+
+/**
+ * Health Endpoints E2E Tests
+ * Tests /api/health and /api/health/ready endpoints
+ * 
+ * These tests verify:
+ * 1. Health endpoint returns correct status
+ * 2. Readiness endpoint returns correct status
+ * 3. Authentication tokens provide additional diagnostics
+ * 4. Circuit breaker metrics endpoint works
+ */
+
+const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
+const HEALTH_CHECK_TOKEN = process.env.HEALTH_CHECK_TOKEN || "";
+
+test.describe("Health Endpoints", () => {
+  test("GET /api/health returns 200 with health status", async ({ request }) => {
+    const response = await request.get(`${BASE_URL}/api/health`);
+    
+    expect(response.status()).toBe(200);
+    
+    const body = await response.json();
+    
+    // Required fields
+    expect(body).toHaveProperty("status");
+    expect(body).toHaveProperty("timestamp");
+    expect(body).toHaveProperty("database");
+    
+    // Status should be healthy or unhealthy
+    expect(["healthy", "unhealthy"]).toContain(body.status);
+    
+    // Timestamp should be valid ISO date
+    expect(() => new Date(body.timestamp)).not.toThrow();
+    
+    // Database should have a status value
+    expect(["connected", "disconnected", "error", "timeout"]).toContain(body.database);
+  });
+
+  test("GET /api/health returns uptime", async ({ request }) => {
+    const response = await request.get(`${BASE_URL}/api/health`);
+    
+    expect(response.status()).toBe(200);
+    
+    const body = await response.json();
+    
+    // Uptime should be a positive number
+    expect(body).toHaveProperty("uptime");
+    expect(typeof body.uptime).toBe("number");
+    expect(body.uptime).toBeGreaterThanOrEqual(0);
+  });
+
+  test("GET /api/health without token does not expose diagnostics", async ({ request }) => {
+    const response = await request.get(`${BASE_URL}/api/health`);
+    
+    expect(response.status()).toBe(200);
+    
+    const body = await response.json();
+    
+    // Without auth token, diagnostics should NOT be present
+    expect(body).not.toHaveProperty("diagnostics");
+  });
+
+  test.describe("Authorized Health Checks", () => {
+    test.skip(!HEALTH_CHECK_TOKEN, "HEALTH_CHECK_TOKEN not configured");
+
+    test("GET /api/health with token returns diagnostics", async ({ request }) => {
+      const response = await request.get(`${BASE_URL}/api/health`, {
+        headers: {
+          "X-Health-Token": HEALTH_CHECK_TOKEN,
+        },
+      });
+      
+      expect(response.status()).toBe(200);
+      
+      const body = await response.json();
+      
+      // With auth token, diagnostics should be present
+      expect(body).toHaveProperty("diagnostics");
+      expect(body.diagnostics).toHaveProperty("database");
+      expect(body.diagnostics).toHaveProperty("memory");
+      expect(body.diagnostics).toHaveProperty("environment");
+      
+      // Memory should have expected fields
+      expect(body.diagnostics.memory).toHaveProperty("usedMB");
+      expect(body.diagnostics.memory).toHaveProperty("totalMB");
+      expect(body.diagnostics.memory).toHaveProperty("rssMB");
+    });
+  });
+});
+
+test.describe("Readiness Endpoint", () => {
+  test("GET /api/health/ready returns 200 when ready", async ({ request }) => {
+    const response = await request.get(`${BASE_URL}/api/health/ready`);
+    
+    // Should be 200 (ready) or 503 (not ready)
+    expect([200, 503]).toContain(response.status());
+    
+    const body = await response.json();
+    
+    // Required fields
+    expect(body).toHaveProperty("ready");
+    expect(body).toHaveProperty("checks");
+    
+    // ready should be boolean
+    expect(typeof body.ready).toBe("boolean");
+    
+    // If status is 200, ready should be true
+    if (response.status() === 200) {
+      expect(body.ready).toBe(true);
+    }
+  });
+
+  test("GET /api/health/ready includes database check", async ({ request }) => {
+    const response = await request.get(`${BASE_URL}/api/health/ready`);
+    
+    const body = await response.json();
+    
+    // Checks should include database
+    expect(body.checks).toHaveProperty("database");
+    expect(["connected", "disconnected", "error", "timeout"]).toContain(body.checks.database);
+  });
+});
+
+test.describe("Circuit Breaker Metrics", () => {
+  test("GET /api/metrics/circuit-breakers returns Prometheus format", async ({ request }) => {
+    const response = await request.get(`${BASE_URL}/api/metrics/circuit-breakers`);
+    
+    expect(response.status()).toBe(200);
+    
+    const contentType = response.headers()["content-type"];
+    expect(contentType).toContain("text/plain");
+    
+    const body = await response.text();
+    
+    // Should contain Prometheus metric format
+    expect(body).toContain("circuit_breaker_state");
+    expect(body).toContain("circuit_breaker_failures_total");
+    expect(body).toContain("# HELP");
+    expect(body).toContain("# TYPE");
+  });
+
+  test("GET /api/metrics/circuit-breakers?format=json returns JSON", async ({ request }) => {
+    const response = await request.get(`${BASE_URL}/api/metrics/circuit-breakers?format=json`);
+    
+    expect(response.status()).toBe(200);
+    
+    const body = await response.json();
+    
+    // Should have summary fields
+    expect(body).toHaveProperty("total");
+    expect(body).toHaveProperty("open");
+    expect(body).toHaveProperty("closed");
+    expect(body).toHaveProperty("halfOpen");
+    expect(body).toHaveProperty("breakers");
+    
+    // Total should be a positive number
+    expect(typeof body.total).toBe("number");
+    expect(body.total).toBeGreaterThan(0);
+    
+    // Breakers array should have entries
+    expect(Array.isArray(body.breakers)).toBe(true);
+    expect(body.breakers.length).toBe(body.total);
+    
+    // Each breaker should have expected fields
+    for (const breaker of body.breakers) {
+      expect(breaker).toHaveProperty("name");
+      expect(breaker).toHaveProperty("state");
+      expect(breaker).toHaveProperty("stateNumeric");
+      expect(breaker).toHaveProperty("failureCount");
+      expect(["closed", "open", "half-open"]).toContain(breaker.state);
+    }
+  });
+
+  test("Circuit breaker states are valid", async ({ request }) => {
+    const response = await request.get(`${BASE_URL}/api/metrics/circuit-breakers?format=json`);
+    
+    expect(response.status()).toBe(200);
+    
+    const body = await response.json();
+    
+    // Verify state counts add up
+    expect(body.open + body.closed + body.halfOpen).toBe(body.total);
+  });
+});
+
+test.describe("Health Endpoint Performance", () => {
+  test("Health check responds within 3 seconds", async ({ request }) => {
+    const start = Date.now();
+    
+    const response = await request.get(`${BASE_URL}/api/health`);
+    
+    const duration = Date.now() - start;
+    
+    expect(response.status()).toBe(200);
+    expect(duration).toBeLessThan(3000);
+  });
+
+  test("Readiness check responds within 5 seconds", async ({ request }) => {
+    const start = Date.now();
+    
+    const response = await request.get(`${BASE_URL}/api/health/ready`);
+    
+    const duration = Date.now() - start;
+    
+    // Even if not ready, should respond quickly
+    expect([200, 503]).toContain(response.status());
+    expect(duration).toBeLessThan(5000);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/e2e/landing-metrics-guard.spec.ts">
+<![CDATA[
+import { expect, test } from "@playwright/test";
+import { assertNoConsoleErrors } from "../helpers/console";
+
+const forbiddenTokens = [
+  "FM Command",
+  "Today · Portfolio overview",
+  "124 active work orders",
+  "18 overdue",
+  "91% occupied",
+  "SAR 1.4M",
+  "مركز تحكم FM",
+  "124 أمر عمل",
+  "18 متأخر",
+  "91٪ مشغولة",
+  "1.4 مليون ريال",
+];
+
+const riskPatterns = [
+  {
+    reason: "work-order counts",
+    regex: /\b\d{1,4}\s+(?:active|open|overdue)?\s*work\s*orders?\b/i,
+  },
+  { reason: "overdue counts", regex: /\b\d{1,4}\s+overdue\b/i },
+  {
+    reason: "occupancy percentage",
+    regex: /\b\d{1,3}\s*%\s*(?:occupied|occupancy|utilization)\b/i,
+  },
+  {
+    reason: "currency (SAR/region)",
+    regex: /\b(?:sar|usd|aed|qar|bhd|omr|eur|gbp)\s?\d[\d,.]*/i,
+  },
+  { reason: "currency symbol", regex: /[$€£]\s?\d[\d,.]*/ },
+  { reason: "large comma-separated number", regex: /\b\d{1,3}(?:,\d{3})+\b/ },
+];
+
+test.describe("Landing page data hygiene", () => {
+  test("does not expose FM metrics on public landing", async ({ page }) => {
+    await assertNoConsoleErrors(page, async () => {
+      await page.goto("/");
+      const body = page.locator("body");
+      await expect(body).toBeVisible();
+
+      for (const token of forbiddenTokens) {
+        await expect(body).not.toContainText(token, { timeout: 1000 });
+      }
+
+      const normalizedBody = ((await page.innerText("body")) || "")
+        .replace(/\s+/g, " ")
+        .trim();
+      const patternHits = riskPatterns
+        .map(({ reason, regex }) => ({
+          reason,
+          match: normalizedBody.match(regex)?.[0],
+        }))
+        .filter(({ match }) => Boolean(match));
+
+      expect.soft(patternHits).toEqual([]);
+
+      const highlightTexts = (
+        await page
+          .locator("section.fxz-hero span.rounded-full")
+          .allTextContents()
+      )
+        .map((t) => t.replace(/\s+/g, " ").trim())
+        .filter(Boolean);
+
+      const normalizedHighlights = highlightTexts.join(" | ") || "<empty>";
+      expect(normalizedHighlights).toBe(
+        "Rapid RFQ | Work Order linked orders | Finance ready invoices",
+      );
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/e2e/marketplace-flow.spec.ts">
+<![CDATA[
+/**
+ * E2E Test: Marketplace Flow
+ * Tests marketplace browsing, search, and product viewing
+ * 
+ * AUDIT-2025-12-01: Aligned tenant validation with subrole-api-access.spec.ts pattern
+ * - CI: Hard fail if TEST_ORG_ID missing (security-critical)
+ * - Local: Warn if TEST_ORG_ID missing (developer visibility)
+ * - Fork PRs: Skip gracefully (secrets unavailable)
+ */
+
+import { test, expect } from "@playwright/test";
+import { verifyTenantScoping } from "./utils/tenant-validation";
+
+const TEST_ORG_ID = process.env.TEST_ORG_ID;
+const ALLOW_MISSING_TEST_ORG_ID = process.env.ALLOW_MISSING_TEST_ORG_ID === "true";
+const IS_CI = process.env.CI === "true";
+const IS_PULL_REQUEST = process.env.GITHUB_EVENT_NAME === "pull_request";
+
+/**
+ * Fork detection: Forked PRs cannot access secrets.
+ * We detect this to skip gracefully instead of crashing.
+ */
+const IS_FORK_OR_MISSING_SECRETS = IS_CI && IS_PULL_REQUEST && !TEST_ORG_ID;
+
+/**
+ * AUDIT-2025-12-01: Tenant validation guard
+ * Aligned with subrole-api-access.spec.ts for consistent behavior
+ */
+if (IS_CI && !TEST_ORG_ID && !IS_FORK_OR_MISSING_SECRETS) {
+  throw new Error(
+    "CI REQUIRES TEST_ORG_ID for tenant isolation validation in marketplace-flow.\n\n" +
+    "Cross-tenant data leaks are a critical security vulnerability.\n" +
+    "ACTION: Add TEST_ORG_ID to GitHub Secrets and pass to E2E workflow."
+  );
+} else if (!TEST_ORG_ID && !IS_CI && !ALLOW_MISSING_TEST_ORG_ID) {
+  console.warn(
+    "⚠️  TENANT VALIDATION DISABLED: TEST_ORG_ID not set.\n" +
+    "   Set TEST_ORG_ID in .env.local for full multi-tenancy validation.\n" +
+    "   Or set ALLOW_MISSING_TEST_ORG_ID=true to acknowledge skip."
+  );
+}
+
+test.describe("Marketplace - Public Access", () => {
+  test("should display marketplace home page", async ({ page }) => {
+    await page.goto("/marketplace");
+    await page.waitForLoadState("networkidle");
+
+    // Page should load
+    await expect(page).toHaveTitle(/Marketplace|Fixzit/i);
+    await expect(page.locator("body")).toBeVisible();
+  });
+
+  test("should display product categories", async ({ page }) => {
+    await page.goto("/marketplace");
+    await page.waitForLoadState("networkidle");
+
+    // Look for category navigation or filters
+    const categories = page.locator('[data-category], [class*="category"]');
+    const categoryCount = await categories.count();
+
+    // AUDIT-2025-11-30: Strengthened assertion - categories should exist on marketplace
+    // If categories are intentionally hidden, update this assertion with documented reason
+    expect(
+      categoryCount,
+      'Marketplace should display at least one category. If this is intentional, document the reason.'
+    ).toBeGreaterThan(0);
+  });
+
+  test("should have working search functionality", async ({ page }) => {
+    // Stub search API to ensure deterministic results in offline mode
+    await page.route("**/api/marketplace/search**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          items: [{ id: "p1", name: "Test Pump", price: 100 }],
+        }),
+      }),
+    );
+
+    await page.goto("/marketplace");
+    await page.waitForLoadState("networkidle");
+
+    // AUDIT-2025-12-01: Search is a critical marketplace UX element
+    // Silent pass when search is missing masks UI regressions. Fail-closed is safer.
+    const searchInput = page.locator(
+      'input[type="search"], input[placeholder*="search" i], input[placeholder*="بحث" i]',
+    );
+    const searchCount = await searchInput.count();
+
+    expect(
+      searchCount,
+      'Marketplace should display at least one search input. ' +
+      'If search is intentionally removed, update this test with documented reason.'
+    ).toBeGreaterThan(0);
+
+    await expect(searchInput.first()).toBeVisible();
+
+    // Type search query
+    await searchInput.first().fill("pump");
+    
+    // AUDIT-2025-12-01: Wait for search response using Playwright's or() combinator
+    // Either products appear OR a "no results" message appears
+    const productSelector = '[class*="product"], [data-product]';
+    const noResultsSelector = 'text=/no.*results|not.*found/i';
+    const resultOrEmpty = page.locator(productSelector).first().or(page.locator(noResultsSelector));
+    await resultOrEmpty.waitFor({ state: 'visible', timeout: 10000 });
+
+    // Should show results or no results message
+    const hasResults = (await page.locator(productSelector).count()) > 0;
+    const hasNoResultsMsg = await page.locator(noResultsSelector).isVisible();
+
+    expect(
+      hasResults || hasNoResultsMsg,
+      'Search should display either product results or a "no results" message'
+    ).toBeTruthy();
+  });
+
+  test("should display product cards", async ({ page }) => {
+    await page.goto("/marketplace");
+    await page.waitForLoadState("networkidle");
+
+    // AUDIT-2025-12-01: Product cards are the core marketplace UI element
+    // If the marketplace renders, there should be products. Silent pass on 0 masks regressions.
+    const productCards = page.locator(
+      '[data-testid*="product"], [class*="product-card"]',
+    );
+    const cardCount = await productCards.count();
+
+    expect(
+      cardCount,
+      'Marketplace should display at least one product card. ' +
+      'If empty state is intentional, update this test with documented reason.'
+    ).toBeGreaterThan(0);
+
+    // First product should be visible
+    await expect(productCards.first()).toBeVisible();
+  });
+
+  test("should navigate to product details", async ({ page }) => {
+    await page.goto("/marketplace");
+    await page.waitForLoadState("networkidle");
+
+    // AUDIT-2025-12-01: Product links are essential for marketplace navigation
+    // If products are displayed, they must be clickable. Silent pass on missing links masks regressions.
+    const productLink = page
+      .locator('a[href*="/marketplace/"], a[href*="/product/"]')
+      .first();
+    const linkCount = await page
+      .locator('a[href*="/marketplace/"], a[href*="/product/"]')
+      .count();
+
+    expect(
+      linkCount,
+      'Marketplace should display at least one clickable product link. ' +
+      'If products are non-clickable by design, update this test with documented reason.'
+    ).toBeGreaterThan(0);
+
+    await expect(productLink).toBeVisible();
+    await productLink.click();
+    await page.waitForLoadState("networkidle");
+
+    // Should navigate to product page
+    expect(page.url()).toMatch(/marketplace|product/);
+  });
+
+  test("should display product filters", async ({ page }) => {
+    await page.goto("/marketplace");
+    await page.waitForLoadState("networkidle");
+
+    // AUDIT-2025-12-01: Filters are expected on marketplace for UX discoverability
+    // Silent pass when filters=0 masks UI regressions. Fail-closed is safer.
+    const filters = page.locator(
+      '[data-filter], [class*="filter"], select, button:has-text("Filter")',
+    );
+    const filterCount = await filters.count();
+
+    expect(
+      filterCount,
+      'Marketplace should display at least one filter control (category, price, etc). ' +
+      'If filters are intentionally removed, update this test with documented reason.'
+    ).toBeGreaterThan(0);
+
+    // First filter should be visible
+    await expect(filters.first()).toBeVisible();
+  });
+
+  test("should handle pagination", async ({ page }) => {
+    await page.goto("/marketplace");
+    await page.waitForLoadState("networkidle");
+
+    // AUDIT-2025-12-01: Pagination is expected for marketplace with multiple products
+    // Silent pass when pagination=0 masks UI regressions. Fail-closed is safer.
+    // If infinite scroll is implemented, update this test with documented reason.
+    const pagination = page.locator(
+      '[aria-label*="pagination" i], button:has-text("Next"), button:has-text("Previous"), ' +
+      '[class*="pagination"], nav[role="navigation"]',
+    );
+    const paginationCount = await pagination.count();
+
+    expect(
+      paginationCount,
+      'Marketplace should display pagination controls (Next/Previous or page numbers). ' +
+      'If infinite scroll is used instead, update this test with documented reason.'
+    ).toBeGreaterThan(0);
+
+    // First pagination control should be visible
+    await expect(pagination.first()).toBeVisible();
+  });
+});
+
+test.describe("Marketplace - Product Details", () => {
+  test("should display product information", async ({ page }) => {
+    // Navigate to a product (using a sample URL pattern)
+    await page.goto("/marketplace");
+    await page.waitForLoadState("networkidle");
+
+    // AUDIT-2025-12-01: Product detail navigation is critical for marketplace flow
+    // Products must be clickable and lead to detail pages. Fail if navigation targets missing.
+    const firstProduct = page
+      .locator('a[href*="/product/"], a[href*="/marketplace/"]')
+      .first();
+    const productCount = await page
+      .locator('a[href*="/product/"], a[href*="/marketplace/"]')
+      .count();
+
+    expect(
+      productCount,
+      'Marketplace should display clickable product links for detail navigation. ' +
+      'If this is intentional, update this test with documented reason.'
+    ).toBeGreaterThan(0);
+
+    await expect(firstProduct).toBeVisible();
+    await firstProduct.click();
+    await page.waitForLoadState("networkidle");
+
+    // Should show product details - title is mandatory on detail pages
+    const titleCount = await page.locator("h1, h2").count();
+    expect(
+      titleCount,
+      'Product detail page should display a title (h1 or h2). ' +
+      'If title is intentionally missing, update this test with documented reason.'
+    ).toBeGreaterThan(0);
+  });
+
+  test("should display product price", async ({ page }) => {
+    await page.goto("/marketplace");
+    await page.waitForLoadState("networkidle");
+
+    // AUDIT-2025-12-01: Prices are essential marketplace information
+    // Products should display pricing. Silent pass on missing prices masks regressions.
+    const pricePattern = /ر\.س|SAR|\$|€|£|\d+/;
+    const prices = page.locator('[class*="price"], [data-price]');
+    const priceCount = await prices.count();
+
+    expect(
+      priceCount,
+      'Marketplace should display at least one price indicator. ' +
+      'If prices are intentionally hidden, update this test with documented reason.'
+    ).toBeGreaterThan(0);
+
+    const priceText = await prices.first().textContent();
+    expect(priceText).toBeTruthy();
+    expect(priceText).toMatch(pricePattern);
+  });
+
+  test("should display add to cart or request quote button", async ({
+    page,
+  }) => {
+    await page.goto("/marketplace");
+    await page.waitForLoadState("networkidle");
+
+    // AUDIT-2025-12-01: Action buttons are critical for marketplace conversion
+    // Product details must have a CTA (add to cart, request quote, etc).
+    const firstProduct = page
+      .locator('a[href*="/product/"], a[href*="/marketplace/"]')
+      .first();
+    const productCount = await page
+      .locator('a[href*="/product/"], a[href*="/marketplace/"]')
+      .count();
+
+    expect(
+      productCount,
+      'Marketplace should display clickable product links. ' +
+      'If this is intentional, update this test with documented reason.'
+    ).toBeGreaterThan(0);
+
+    await expect(firstProduct).toBeVisible();
+    await firstProduct.click();
+    await page.waitForLoadState("networkidle");
+
+    // Look for action buttons - at least one CTA should exist on product detail
+    const actionButton = page.locator(
+      'button:has-text("Cart"), button:has-text("Quote"), button:has-text("Add"), button:has-text("Request"), ' +
+      'button:has-text("سلة"), button:has-text("طلب"), button:has-text("إضافة")',
+    );
+    const actionCount = await actionButton.count();
+
+    expect(
+      actionCount,
+      'Product detail page should display at least one action button (Add to Cart, Request Quote, etc). ' +
+      'If CTAs are intentionally hidden, update this test with documented reason.'
+    ).toBeGreaterThan(0);
+
+    await expect(actionButton.first()).toBeVisible();
+  });
+});
+
+test.describe("Marketplace - API Integration", () => {
+  test("should search products via API", async ({ request }) => {
+    const response = await request.get("/api/marketplace/products?q=pump", {
+      failOnStatusCode: false,
+    });
+
+    // AUDIT-2025-12-01 (Phase 20): Require 200 status to ensure tenant validation runs
+    // Previously: status < 500 allowed 401/403/404 to silently skip org_id checks
+    // Now: fail if not 200, guaranteeing scoping validation executes
+    expect(
+      response.status(),
+      `Marketplace product search should return 200 for tenant validation to run.\n` +
+      `Got ${response.status()} - this may mask cross-tenant leaks.`
+    ).toBe(200);
+
+    // AUDIT-2025-12-01: Use shared verifyTenantScoping helper (fail-closed by default)
+    // - Recursive validation catches nested/wrapped/camelCase org_id leaks
+    // - requirePresence: true enforced via helper default
+    // - DO NOT wrap in try/catch - tenant leaks are security violations
+    if (TEST_ORG_ID) {
+      const body = await response.json();
+      verifyTenantScoping(body, TEST_ORG_ID, '/api/marketplace/products', 'product search');
+    }
+    // Note: Missing TEST_ORG_ID warnings are now handled at module-level guard
+  });
+
+  test("should handle malformed search queries", async ({ request }) => {
+    const response = await request.get(
+      "/api/marketplace/products?q=" +
+        encodeURIComponent('<script>alert("xss")</script>'),
+      {
+        failOnStatusCode: false,
+      },
+    );
+
+    // AUDIT-2025-12-01 (Phase 20): Intentionally lenient status assertion
+    // This test validates XSS input handling (security boundary), not data scoping.
+    // Acceptable responses: 200 (sanitized), 400 (rejected), 404 (not found)
+    // Only 5xx indicates server failure.
+    // NOTE: Tenant validation is NOT enforced here - use product search test for that.
+    expect(response.status()).toBeLessThan(500);
+  });
+});
+
+test.describe("Marketplace - Language Support", () => {
+  test("should display marketplace in Arabic", async ({ page }) => {
+    // AUDIT-2025-12-01: RTL/Arabic is a core platform requirement
+    // Force Arabic locale via URL parameter or accept-language header
+    // to ensure this test validates Arabic rendering, not just "if RTL exists"
+    await page.goto("/marketplace");
+    await page.waitForLoadState("networkidle");
+
+    // Check document direction - for RTL-first platform, we expect RTL or explicit LTR
+    const dir = await page.locator("html").getAttribute("dir");
+
+    // AUDIT-2025-12-01: Changed from conditional to fail-closed
+    // Previously: if (dir === 'rtl') { ... } silently passed when LTR
+    // Now: Assert direction is set (RTL or LTR) - missing dir is a regression
+    expect(
+      dir,
+      'HTML should have dir attribute set (rtl or ltr). ' +
+      'Missing dir attribute breaks accessibility and RTL support.'
+    ).toBeTruthy();
+
+    // If RTL, validate Arabic content is present
+    if (dir === "rtl") {
+      const bodyText = await page.locator("body").textContent();
+      const hasArabic = /[\u0600-\u06FF]/.test(bodyText || "");
+      expect(
+        hasArabic,
+        'RTL page should contain Arabic text. ' +
+        'If RTL without Arabic is intentional, document the reason.'
+      ).toBeTruthy();
+    }
+  });
+
+  test("should switch marketplace language", async ({ page }) => {
+    await page.goto("/marketplace");
+    await page.waitForLoadState("networkidle");
+
+    // AUDIT-2025-12-01: Language toggle is critical for RTL-first platform (Arabic/English)
+    // Silent pass when selector is missing masks L10n regressions. Fail-closed is safer.
+    // If language toggle is feature-flagged, add explicit env check here.
+    const langSelector = page.locator(
+      '[aria-label*="language" i], [aria-label*="اللغة" i], ' +
+      'button:has-text("العربية"), button:has-text("English"), ' +
+      '[data-testid*="language"], [class*="language-switch"]',
+    );
+    const langCount = await langSelector.count();
+
+    expect(
+      langCount,
+      'Marketplace should display a language selector (RTL-first platform requirement). ' +
+      'If language toggle is feature-flagged, add explicit skip condition with documented reason.'
+    ).toBeGreaterThan(0);
+
+    await expect(langSelector.first()).toBeVisible();
+
+    // AUDIT-2025-12-01: Removed unused initialDir variable
+    // Direction change is validated after language switch, not before
+
+    await langSelector.first().click();
+    
+    // AUDIT-2025-12-01: Wait for language options to appear instead of hardcoded timeout
+    const langOption = page.locator('[role="option"], [role="menuitem"], li[data-lang], button[data-lang]');
+    await langOption.first().waitFor({ state: 'visible', timeout: 5000 }).catch(() => {
+      // Options may already be visible or use different selector
+    });
+
+    // Language options should appear after clicking selector
+    const optionCount = await langOption.count();
+
+    expect(
+      optionCount,
+      'Language selector should display at least one language option when clicked. ' +
+      'If options are loaded async, increase wait timeout.'
+    ).toBeGreaterThan(0);
+
+    await langOption.first().click();
+    
+    // AUDIT-2025-12-01: Wait for page to respond to language change
+    // Either dir attribute changes or page reloads
+    await page.waitForFunction(() => {
+      const html = document.querySelector('html');
+      return html?.getAttribute('dir') !== null;
+    }, { timeout: 5000 }).catch(() => {});
+
+    const newDir = await page.locator("html").getAttribute("dir");
+    // Direction should be set (RTL or LTR)
+    expect(
+      newDir,
+      'HTML dir attribute should be set after language selection'
+    ).toBeTruthy();
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/e2e/referrals-flow.spec.ts">
+<![CDATA[
+/**
+ * E2E Test: Referrals Flow
+ * Tests referral code generation, sharing, and tracking
+ */
+
+import { test, expect } from "@playwright/test";
+
+test.describe("Referrals Program", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+  });
+
+  test("should display referrals page", async ({ page }) => {
+    await page.goto("/referrals");
+    await page.waitForLoadState("networkidle");
+
+    expect(page.url()).not.toContain("/login"); // Requires authenticated session state
+
+    // Page should load with referral content
+    await expect(page.locator("body")).toBeVisible();
+    await page.waitForLoadState('networkidle');
+  });
+
+  test("should show generate referral code button", async ({ page }) => {
+    await page.goto("/referrals");
+    await page.waitForLoadState("networkidle");
+
+    expect(page.url()).not.toContain("/login"); // Requires authenticated session state
+
+    // Look for generate button or existing code
+    const generateButton = page.locator('button:has-text("Generate")');
+    const referralCode = page.locator('[data-testid="referral-code"]');
+
+    const hasGenerateButton = (await generateButton.count()) > 0;
+    const hasExistingCode = (await referralCode.count()) > 0;
+
+    // Should have either generate button or existing code
+    expect(hasGenerateButton || hasExistingCode).toBeTruthy();
+  });
+
+  test("should display copy buttons for referral code", async ({ page }) => {
+    await page.goto("/referrals");
+    await page.waitForLoadState("networkidle");
+
+    expect(page.url()).not.toContain("/login"); // Requires authenticated session state
+
+    // Look for copy buttons
+    const copyButtons = page.locator('button:has-text("Copy")');
+    const copyButtonCount = await copyButtons.count();
+
+    if (copyButtonCount > 0) {
+      await expect(copyButtons.first()).toBeVisible();
+    }
+  });
+
+  test("should display share options", async ({ page }) => {
+    await page.goto("/referrals");
+    await page.waitForLoadState("networkidle");
+
+    expect(page.url()).not.toContain("/login"); // Requires authenticated session state
+
+    // Look for WhatsApp and Email share buttons
+    const whatsappButton = page.locator('button[data-testid="share-whatsapp"]');
+    const emailButton = page.locator('button[data-testid="share-email"]');
+
+    const hasShareButtons =
+      (await whatsappButton.count()) > 0 || (await emailButton.count()) > 0;
+
+    if (hasShareButtons) {
+      // At least one share button should exist
+      expect(hasShareButtons).toBeTruthy();
+    }
+  });
+
+  test("should display referral statistics", async ({ page }) => {
+    await page.goto("/referrals");
+    await page.waitForLoadState("networkidle");
+
+    expect(page.url()).not.toContain("/login"); // Requires authenticated session state
+
+    // Look for stats section
+    const statsSection = page.locator('[data-testid="referral-stats"]');
+
+    if (await statsSection.isVisible()) {
+      // Should show stats like total referrals, successful, etc.
+      await expect(statsSection).toBeVisible();
+    }
+  });
+
+  test("should display referrals table", async ({ page }) => {
+    await page.goto("/referrals");
+    await page.waitForLoadState("networkidle");
+
+    expect(page.url()).not.toContain("/login"); // Requires authenticated session state
+
+    // Look for referrals table
+    const table = page.locator('table, [data-testid="referrals-table"]');
+
+    if (await table.isVisible()) {
+      await expect(table).toBeVisible();
+    }
+  });
+
+  test("should handle copy to clipboard", async ({ page, context }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await page.goto("/referrals");
+    await page.waitForLoadState("networkidle");
+
+    expect(page.url()).not.toContain("/login"); // Requires authenticated session state
+
+    // Look for copy button and click it
+    const copyButton = page.locator('button:has-text("Copy")').first();
+
+    if (await copyButton.isVisible()) {
+      await copyButton.click();
+
+      // Should see success feedback (may appear briefly)
+      const successText = page.locator("text=/copied|✓|success/i");
+      // Wait up to 2s for success feedback to appear
+      await successText.first().waitFor({ state: 'visible', timeout: 2000 }).catch(() => {});
+
+      if (await successText.first().isVisible()) {
+        await expect(successText.first()).toBeVisible();
+      }
+    }
+  });
+
+  test("should format currency correctly", async ({ page }) => {
+    await page.goto("/referrals");
+    await page.waitForLoadState("networkidle");
+
+    expect(page.url()).not.toContain("/login"); // Requires authenticated session state
+
+    // Look for currency formatting (SAR symbol or amount)
+    const currencyPattern = /ر\.س|SAR|\$|€|£/;
+    const pageContent = await page.locator("body").textContent();
+
+    if (pageContent && pageContent.match(currencyPattern)) {
+      expect(pageContent).toMatch(currencyPattern);
+    }
+  });
+});
+
+test.describe("Referrals - Error Handling", () => {
+  test("should handle referrals API errors gracefully", async ({ page }) => {
+    await page.goto("/referrals");
+    await page.waitForLoadState("networkidle");
+
+    expect(page.url()).not.toContain("/login"); // Requires authenticated session state
+
+    // Page should load without crashing
+    await expect(page.locator("body")).toBeVisible();
+
+    // Should show error message or loading state, not blank page
+    const hasContent = (await page.locator("h1, h2, p, button").count()) > 0;
+    expect(hasContent).toBeTruthy();
+  });
+
+  test("should show retry button on error", async ({ page }) => {
+    await page.goto("/referrals");
+    await page.waitForLoadState("networkidle");
+
+    expect(page.url()).not.toContain("/login"); // Requires authenticated session state
+
+    // Look for retry or error message
+    const retryButton = page.locator(
+      'button:has-text("Try Again"), button:has-text("Retry")',
+    );
+
+    if (await retryButton.isVisible()) {
+      await expect(retryButton).toBeVisible();
+    }
+  });
+});
+
+]]>
+</file>
+
+</batch_content>

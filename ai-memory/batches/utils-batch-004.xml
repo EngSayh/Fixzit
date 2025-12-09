@@ -1,0 +1,2891 @@
+
+You are the "Fixzit Memory Builder" for category: "utils".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "utils",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="tests/unit/lib/resilience/resilience-utils.test.ts">
+<![CDATA[
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import {
+  CircuitBreaker,
+  CircuitBreakerOpenError,
+  executeWithRetry,
+  withTimeout,
+} from "@/lib/resilience";
+
+describe("executeWithRetry", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("retries transient failures before succeeding", async () => {
+    vi.useFakeTimers();
+    const operation = vi
+      .fn<[], Promise<string>>()
+      .mockRejectedValueOnce(new Error("network down"))
+      .mockResolvedValue("ok");
+
+    const promise = executeWithRetry(async () => operation(), {
+      maxAttempts: 2,
+      baseDelayMs: 10,
+    });
+
+    const expectation = expect(promise).resolves.toBe("ok");
+    await vi.runAllTimersAsync();
+    await expectation;
+    expect(operation).toHaveBeenCalledTimes(2);
+  });
+
+  it("throws after exhausting attempts", async () => {
+    vi.useFakeTimers();
+    const error = new Error("permanent");
+    const operation = vi.fn().mockRejectedValue(error);
+
+    const promise = executeWithRetry(() => operation(), {
+      maxAttempts: 2,
+      baseDelayMs: 5,
+      label: "test-operation",
+    });
+
+    const expectation = expect(promise).rejects.toBe(error);
+    await vi.runAllTimersAsync();
+    await expectation;
+    expect(operation).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("withTimeout", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("rejects when the operation exceeds the timeout", async () => {
+    vi.useFakeTimers();
+    const promise = withTimeout(
+      () =>
+        new Promise<never>(() => {
+          /* never resolves */
+        }),
+      { timeoutMs: 50 },
+    );
+
+    const expectation = expect(promise).rejects.toThrow(/timed out/i);
+    await vi.advanceTimersByTimeAsync(51);
+    await expectation;
+  });
+});
+
+describe("CircuitBreaker", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("opens after repeated failures and recovers after cooldown", async () => {
+    vi.useFakeTimers();
+    const breaker = new CircuitBreaker({
+      name: "test",
+      failureThreshold: 1,
+      cooldownMs: 1000,
+      successThreshold: 1,
+    });
+
+    await expect(
+      breaker.run(() => Promise.reject(new Error("boom"))),
+    ).rejects.toThrow("boom");
+
+    await expect(
+      breaker.run(() => Promise.resolve("should block")),
+    ).rejects.toBeInstanceOf(CircuitBreakerOpenError);
+
+    await vi.advanceTimersByTimeAsync(1000);
+
+    await expect(breaker.run(() => Promise.resolve("ok"))).resolves.toBe("ok");
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/lib/security-monitoring.test.ts">
+<![CDATA[
+/**
+ * @fileoverview Unit tests for security monitoring functions
+ * Tests rate limit, CORS, and auth failure tracking with proper PII protection.
+ * 
+ * Note: These tests focus on functional behavior (tracking, metrics, isolation)
+ * rather than logging output, to avoid complex mock setup issues.
+ * 
+ * IMPORTANT: Uses setupMonitoringTestIsolation() from shared utilities to:
+ * 1. Validate the reset helper exists (fails fast if missing)
+ * 2. Reset global monitoring state before AND after each test
+ * 3. Verify state is actually clean (catches no-op regressions)
+ * 4. Prevent cross-suite contamination that causes flaky tests
+ * 
+ * ALL monitoring tests MUST use the shared utility to ensure consistent isolation.
+ */
+
+import { describe, it, expect } from "vitest";
+import {
+  trackRateLimitHit,
+  trackCorsViolation,
+  trackAuthFailure,
+  getSecurityMetrics,
+} from "@/lib/security/monitoring";
+import { hashIdentifier, redactIdentifier } from "@/lib/otp-utils";
+import { setupMonitoringTestIsolation } from "@/tests/utils/monitoring-test-utils";
+
+describe("Security Monitoring", () => {
+  // =============================================================================
+  // CRITICAL: Test Isolation via Shared Utility
+  // =============================================================================
+  // This sets up beforeEach AND afterEach hooks that:
+  // 1. Validate the reset helper exists (fails fast if missing)
+  // 2. Reset monitoring state before each test
+  // 3. Verify state is clean after reset (catches no-op regressions)
+  // 4. Reset and verify after each test (catches state leakage)
+  //
+  // DO NOT add custom beforeEach/afterEach for monitoring state - use this utility.
+  // =============================================================================
+  setupMonitoringTestIsolation();
+
+  describe("trackRateLimitHit", () => {
+    it("should track rate limit events with org isolation", () => {
+      // Track events for different orgs
+      trackRateLimitHit("unique-user-rl1@email.com", "/api/test-rl1", "org-rl-1");
+      trackRateLimitHit("unique-user-rl2@email.com", "/api/test-rl2", "org-rl-2");
+      
+      const metrics = getSecurityMetrics();
+      expect(metrics.rateLimitHits).toBe(2);
+      expect(metrics.rateLimitUniqueKeys).toBe(2);
+    });
+
+    it("should use global prefix when no orgId provided", () => {
+      trackRateLimitHit("global-user-rl@email.com", "/api/global-test-rl");
+      
+      const metrics = getSecurityMetrics();
+      expect(metrics.rateLimitHits).toBe(1);
+    });
+
+    it("should create separate tracking keys for same user in different orgs", () => {
+      // Same user, different orgs - should create 2 unique keys
+      trackRateLimitHit("shared-user-rl@email.com", "/api/isolated-rl", "org-A-rl");
+      trackRateLimitHit("shared-user-rl@email.com", "/api/isolated-rl", "org-B-rl");
+      
+      const metrics = getSecurityMetrics();
+      // Should have exactly 2 unique keys (org-A:hash:endpoint and org-B:hash:endpoint)
+      expect(metrics.rateLimitUniqueKeys).toBe(2);
+      expect(metrics.rateLimitHits).toBe(2);
+    });
+  });
+
+  describe("trackCorsViolation", () => {
+    it("should track CORS violations with org isolation", () => {
+      trackCorsViolation("https://evil-cors.com", "/api/secure-cors", "org-cors-1");
+      trackCorsViolation("https://malicious-cors.com", "/api/secure-cors", "org-cors-2");
+      
+      const metrics = getSecurityMetrics();
+      expect(metrics.corsViolations).toBe(2);
+      expect(metrics.corsUniqueKeys).toBe(2);
+    });
+
+    it("should create separate keys for same origin in different orgs", () => {
+      trackCorsViolation("https://attacker-cors.com", "/api/test-cors", "org-X-cors");
+      trackCorsViolation("https://attacker-cors.com", "/api/test-cors", "org-Y-cors");
+      
+      const metrics = getSecurityMetrics();
+      // Same origin but different orgs = 2 unique keys
+      expect(metrics.corsUniqueKeys).toBe(2);
+      expect(metrics.corsViolations).toBe(2);
+    });
+  });
+
+  describe("trackAuthFailure", () => {
+    it("should track auth failures with org isolation", () => {
+      trackAuthFailure("hacker-auth@evil.com", "invalid_password", "org-auth-1");
+      trackAuthFailure("attacker-auth@bad.com", "invalid_otp", "org-auth-2");
+      
+      const metrics = getSecurityMetrics();
+      expect(metrics.authFailures).toBe(2);
+      expect(metrics.authUniqueKeys).toBe(2);
+    });
+
+    it("should produce unique keys for different users (hash-based, no collisions)", () => {
+      // Users that would all collide with 3-char truncation ("use***")
+      // but should have unique hashes
+      trackAuthFailure("user1-hash@a.com", "fail", "org-hash-test");
+      trackAuthFailure("user2-hash@b.com", "fail", "org-hash-test");
+      trackAuthFailure("user3-hash@c.com", "fail", "org-hash-test");
+      
+      const metrics = getSecurityMetrics();
+      // Should have 3 unique keys (hash-based), not just 1 (truncation collision)
+      expect(metrics.authUniqueKeys).toBe(3);
+      expect(metrics.authFailures).toBe(3);
+    });
+  });
+
+  describe("getSecurityMetrics", () => {
+    it("should return both event counts and unique key counts", () => {
+      const metrics = getSecurityMetrics();
+      
+      expect(metrics).toHaveProperty("rateLimitHits");
+      expect(metrics).toHaveProperty("corsViolations");
+      expect(metrics).toHaveProperty("authFailures");
+      expect(metrics).toHaveProperty("rateLimitUniqueKeys");
+      expect(metrics).toHaveProperty("corsUniqueKeys");
+      expect(metrics).toHaveProperty("authUniqueKeys");
+      expect(metrics).toHaveProperty("windowMs");
+    });
+
+    it("should have windowMs set to 5 minutes", () => {
+      const metrics = getSecurityMetrics();
+      expect(metrics.windowMs).toBe(5 * 60 * 1000);
+    });
+
+    it("should start with zero counts after reset", () => {
+      // This test validates that beforeEach reset works correctly
+      const metrics = getSecurityMetrics();
+      expect(metrics.rateLimitHits).toBe(0);
+      expect(metrics.corsViolations).toBe(0);
+      expect(metrics.authFailures).toBe(0);
+      expect(metrics.rateLimitUniqueKeys).toBe(0);
+      expect(metrics.corsUniqueKeys).toBe(0);
+      expect(metrics.authUniqueKeys).toBe(0);
+    });
+
+    it("should count events, not just unique keys", () => {
+      // Same user hitting same endpoint multiple times
+      const identifier = "repeat-offender@email.com";
+      const endpoint = "/api/hammered-endpoint";
+      const orgId = "org-repeat";
+      
+      trackRateLimitHit(identifier, endpoint, orgId);
+      trackRateLimitHit(identifier, endpoint, orgId);
+      trackRateLimitHit(identifier, endpoint, orgId);
+      
+      const metrics = getSecurityMetrics();
+      // Event count should be 3 (same key, multiple hits)
+      expect(metrics.rateLimitHits).toBe(3);
+      // But only 1 unique key
+      expect(metrics.rateLimitUniqueKeys).toBe(1);
+    });
+  });
+
+  describe("Hash-based Key Generation", () => {
+    it("should use hashIdentifier for better cardinality", () => {
+      // Verify that hashIdentifier produces unique results for similar inputs
+      const inputs = [
+        "user1@email.com",
+        "user2@email.com", 
+        "user3@email.com",
+        "userA@email.com",
+        "userB@email.com",
+      ];
+      
+      const hashes = inputs.map(i => hashIdentifier(i));
+      const uniqueHashes = new Set(hashes);
+      
+      // All should be unique (unlike 3-char truncation which would all be "use***")
+      expect(uniqueHashes.size).toBe(inputs.length);
+    });
+
+    it("should still use redactIdentifier for human-readable logs", () => {
+      // Verify redactIdentifier works as expected for log output
+      const identifier = "sensitive.user@private.com";
+      const redacted = redactIdentifier(identifier);
+      
+      expect(redacted).toBe("sen***");
+      expect(redacted).not.toContain("@");
+      expect(redacted).not.toContain("private.com");
+    });
+
+    it("should produce different hashes when salt is explicitly provided", () => {
+      const identifier = "test@email.com";
+      const hashWithSalt1 = hashIdentifier(identifier, "salt-a");
+      const hashWithSalt2 = hashIdentifier(identifier, "salt-b");
+      const hashNoSalt = hashIdentifier(identifier, "");
+      
+      // All should be different
+      expect(hashWithSalt1).not.toBe(hashWithSalt2);
+      expect(hashWithSalt1).not.toBe(hashNoSalt);
+      expect(hashWithSalt2).not.toBe(hashNoSalt);
+    });
+
+    it("should support env-based salt configuration", () => {
+      // Note: In tests, env vars may not be set, but the function should still work
+      // The important thing is that with explicit salt, hashes differ
+      const identifier = "user@domain.com";
+      const explicitSalt = "test-monitoring-salt";
+      const hash = hashIdentifier(identifier, explicitSalt);
+      
+      // Should return valid 16-char hex
+      expect(hash).toMatch(/^[0-9a-f]{16}$/);
+      
+      // Should be deterministic with same salt
+      expect(hashIdentifier(identifier, explicitSalt)).toBe(hash);
+    });
+  });
+
+  describe("Multi-tenant Isolation", () => {
+    it("should maintain separate event pools per org", () => {
+      // Simulate attacks from different orgs with same endpoints
+      const endpoint = "/api/multi-tenant-test";
+      for (let i = 0; i < 5; i++) {
+        trackRateLimitHit(`mt-user${i}@email.com`, endpoint, "tenant-MT-A");
+      }
+      for (let i = 0; i < 3; i++) {
+        trackRateLimitHit(`mt-user${i}@email.com`, endpoint, "tenant-MT-B");
+      }
+      
+      const metrics = getSecurityMetrics();
+      
+      // Total events should be 8
+      expect(metrics.rateLimitHits).toBe(8);
+      
+      // Should have 8 unique keys (5 from A + 3 from B, each user:endpoint combo is unique)
+      expect(metrics.rateLimitUniqueKeys).toBe(8);
+    });
+
+    it("should isolate same-endpoint events across tenants", () => {
+      // Same endpoint hit by same user email but in different tenants
+      trackRateLimitHit("shared@test.com", "/api/shared", "tenant-1");
+      trackRateLimitHit("shared@test.com", "/api/shared", "tenant-2");
+      trackRateLimitHit("shared@test.com", "/api/shared", "tenant-3");
+      
+      const metrics = getSecurityMetrics();
+      // Each tenant has its own key, so 3 unique keys
+      expect(metrics.rateLimitUniqueKeys).toBe(3);
+      expect(metrics.rateLimitHits).toBe(3);
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/lib/sla.spec.ts">
+<![CDATA[
+// @ts-nocheck
+/**
+ * Tests for lib/sla.ts - SLA computation for work orders
+ * Tests the ACTUAL production values used in the system
+ */
+import {
+  computeSlaMinutes,
+  computeDueAt,
+  resolveSlaTarget,
+  WorkOrderPriority,
+} from "@/lib/sla";
+// Note: @ts-expect-error usages in this file intentionally feed invalid inputs to verify runtime behavior.
+
+describe("computeSlaMinutes", () => {
+  it("returns 4 hours (240 mins) for CRITICAL priority", () => {
+    expect(computeSlaMinutes("CRITICAL")).toBe(4 * 60);
+  });
+
+  it("returns 12 hours (720 mins) for HIGH priority", () => {
+    expect(computeSlaMinutes("HIGH")).toBe(12 * 60);
+  });
+
+  it("returns 1.5 days (2160 mins) for MEDIUM priority", () => {
+    expect(computeSlaMinutes("MEDIUM")).toBe(36 * 60);
+  });
+
+  it("returns 3 days (4320 mins) for LOW priority", () => {
+    expect(computeSlaMinutes("LOW")).toBe(72 * 60);
+  });
+
+  it("defaults to MEDIUM (36 hours) for invalid priority", () => {
+    expect(computeSlaMinutes("INVALID")).toBe(36 * 60);
+  });
+
+  it("defaults to MEDIUM when undefined is passed", () => {
+    expect(computeSlaMinutes(undefined)).toBe(36 * 60);
+  });
+});
+
+describe("computeDueAt", () => {
+  const baseDate = new Date("2023-01-01T00:00:00.000Z");
+  const baseMs = baseDate.getTime();
+
+  it("adds minutes to a Date instance correctly", () => {
+    const minutes = 90; // 1.5 hours
+    const result = computeDueAt(baseDate, minutes);
+    expect(result.getTime()).toBe(baseMs + minutes * 60 * 1000);
+  });
+
+  it("handles zero minutes (returns same date)", () => {
+    const result = computeDueAt(baseDate, 0);
+    expect(result.getTime()).toBe(baseMs);
+  });
+
+  it("supports large SLA windows (e.g., a week)", () => {
+    const weekMinutes = 7 * 24 * 60;
+    const result = computeDueAt(baseDate, weekMinutes);
+    expect(result.getTime()).toBe(baseMs + weekMinutes * 60 * 1000);
+  });
+
+  it("accepts negative minutes (date-fns subtracts them)", () => {
+    const result = computeDueAt(baseDate, -30);
+    expect(result.getTime()).toBe(baseMs - 30 * 60 * 1000);
+  });
+});
+
+describe("resolveSlaTarget", () => {
+  it("returns both slaMinutes and dueAt for CRITICAL priority", () => {
+    const start = new Date("2023-01-01T00:00:00.000Z");
+    const result = resolveSlaTarget("CRITICAL", start);
+
+    expect(result.slaMinutes).toBe(4 * 60); // 4 hours
+    expect(result.dueAt.getTime()).toBe(start.getTime() + 4 * 60 * 60 * 1000);
+  });
+
+  it("returns both slaMinutes and dueAt for HIGH priority", () => {
+    const start = new Date("2023-01-01T00:00:00.000Z");
+    const result = resolveSlaTarget("HIGH", start);
+
+    expect(result.slaMinutes).toBe(12 * 60); // 12 hours
+    expect(result.dueAt.getTime()).toBe(start.getTime() + 12 * 60 * 60 * 1000);
+  });
+
+  it("uses current date when start is not provided", () => {
+    const before = Date.now();
+    const result = resolveSlaTarget("MEDIUM");
+    const after = Date.now();
+
+    expect(result.slaMinutes).toBe(36 * 60);
+    // Due date should be approximately now + 36 hours (with tolerance)
+    const dueMs = result.dueAt.getTime();
+    expect(dueMs).toBeGreaterThanOrEqual(before + 36 * 60 * 60 * 1000 - 100);
+    expect(dueMs).toBeLessThanOrEqual(after + 36 * 60 * 60 * 1000 + 100);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/lib/sms-providers/aws-sns.test.ts">
+<![CDATA[
+/**
+ * Unit tests for AWS SNS SMS Provider
+ *
+ * Tests AWS SNS provider configuration, message sending, and error handling.
+ * Note: Some sendSMS tests may fail in CI because the dynamic import of
+ * @aws-sdk/client-sns cannot be fully mocked. These tests focus on
+ * configuration and structure validation.
+ */
+
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+// Mock logger
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+// Mock circuit breaker - run the actual function passed to it
+vi.mock("@/lib/resilience", () => ({
+  getCircuitBreaker: vi.fn(() => ({
+    run: async <T>(fn: () => Promise<T>): Promise<T> => fn(),
+    isOpen: vi.fn(() => false),
+    getState: vi.fn(() => "closed"),
+  })),
+}));
+
+// Mock AWS SDK - this works for static imports but may not intercept dynamic imports
+const mockSend = vi.fn();
+const mockSNSClient = vi.fn().mockImplementation(() => ({
+  send: mockSend,
+}));
+const mockPublishCommand = vi.fn();
+
+vi.mock("@aws-sdk/client-sns", () => ({
+  SNSClient: mockSNSClient,
+  PublishCommand: mockPublishCommand,
+}));
+
+// Import after mocks
+import { AWSSNSProvider } from "@/lib/sms-providers/aws-sns";
+
+describe("AWSSNSProvider", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Reset env vars
+    delete process.env.AWS_SNS_ACCESS_KEY_ID;
+    delete process.env.AWS_SNS_SECRET_ACCESS_KEY;
+    delete process.env.AWS_SNS_REGION;
+    delete process.env.AWS_SNS_SENDER_ID;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  describe("Configuration", () => {
+    it("should read configuration from environment variables", () => {
+      process.env.AWS_SNS_ACCESS_KEY_ID = "test-key-id";
+      process.env.AWS_SNS_SECRET_ACCESS_KEY = "test-secret";
+      process.env.AWS_SNS_REGION = "us-east-1";
+      process.env.AWS_SNS_SENDER_ID = "FIXZIT";
+
+      const provider = new AWSSNSProvider();
+      expect(provider.isConfigured()).toBe(true);
+      expect(provider.name).toBe("aws_sns");
+    });
+
+    it("should accept configuration via constructor", () => {
+      const provider = new AWSSNSProvider({
+        accessKeyId: "custom-key",
+        secretAccessKey: "custom-secret",
+        region: "eu-west-1",
+        senderId: "CUSTOM",
+      });
+      expect(provider.isConfigured()).toBe(true);
+    });
+
+    it("should default region to me-south-1 (Bahrain)", () => {
+      const provider = new AWSSNSProvider({
+        accessKeyId: "key",
+        secretAccessKey: "secret",
+      });
+      expect(provider.isConfigured()).toBe(true);
+    });
+
+    it("should report not configured when credentials missing", () => {
+      const provider = new AWSSNSProvider();
+      expect(provider.isConfigured()).toBe(false);
+    });
+
+    it("should have correct provider name", () => {
+      const provider = new AWSSNSProvider();
+      expect(provider.name).toBe("aws_sns");
+    });
+  });
+
+  describe("sendSMS", () => {
+    it("should return error when not configured", async () => {
+      const provider = new AWSSNSProvider();
+      const result = await provider.sendSMS("+966501234567", "Test message");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("AWS SNS not configured");
+      expect(result.provider).toBe("aws_sns");
+    });
+
+    it("should send SMS successfully with Saudi number", async () => {
+      // Note: Dynamic imports of @aws-sdk/client-sns may not be mockable
+      // This test verifies the result structure regardless of success/failure
+      const provider = new AWSSNSProvider({
+        accessKeyId: "test-key",
+        secretAccessKey: "test-secret",
+      });
+
+      const result = await provider.sendSMS("+966501234567", "Test message");
+
+      // Verify the result has the expected structure
+      expect(result).toHaveProperty("success");
+      expect(result).toHaveProperty("provider", "aws_sns");
+      // On success, 'to' and 'timestamp' are included; on error, 'error' is included
+      if (result.success) {
+        expect(result.to).toBe("+966501234567");
+        expect(result.timestamp).toBeInstanceOf(Date);
+      } else {
+        expect(result.error).toBeDefined();
+      }
+    });
+
+    it("should include sender ID when configured", async () => {
+      const provider = new AWSSNSProvider({
+        accessKeyId: "test-key",
+        secretAccessKey: "test-secret",
+        senderId: "FIXZIT",
+      });
+
+      const result = await provider.sendSMS("+966501234567", "Test");
+
+      // Verify the result structure - senderId is used internally
+      expect(result).toHaveProperty("provider", "aws_sns");
+      // On success, 'to' is included; on error, 'error' is included
+      if (result.success) {
+        expect(result.to).toBe("+966501234567");
+      } else {
+        expect(result.error).toBeDefined();
+      }
+    });
+
+    it("should truncate sender ID to 11 characters", async () => {
+      // This tests the internal truncation logic
+      const provider = new AWSSNSProvider({
+        accessKeyId: "test-key",
+        secretAccessKey: "test-secret",
+        senderId: "VERYLONGSENDERID",
+      });
+
+      const result = await provider.sendSMS("+966501234567", "Test");
+
+      // Verify the result is structured correctly
+      expect(result).toHaveProperty("provider", "aws_sns");
+      expect(result).toHaveProperty("success");
+    });
+
+    it("should handle AWS SNS errors", async () => {
+      // Note: Dynamic imports may cause different error messages
+      const provider = new AWSSNSProvider({
+        accessKeyId: "bad-key",
+        secretAccessKey: "bad-secret",
+      });
+
+      const result = await provider.sendSMS("+966501234567", "Test");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+      expect(result.provider).toBe("aws_sns");
+    });
+
+    it("should format local Saudi numbers to E.164", async () => {
+      const provider = new AWSSNSProvider({
+        accessKeyId: "test-key",
+        secretAccessKey: "test-secret",
+      });
+
+      // Call sendSMS - verify it returns properly structured result
+      const result = await provider.sendSMS("0501234567", "Test");
+
+      expect(result).toHaveProperty("provider", "aws_sns");
+      // Phone should be formatted in the result (if successful)
+      if (result.success && result.to) {
+        expect(result.to).toMatch(/^\+966/);
+      }
+    });
+
+    it("should handle international numbers", async () => {
+      const provider = new AWSSNSProvider({
+        accessKeyId: "test-key",
+        secretAccessKey: "test-secret",
+      });
+
+      const result = await provider.sendSMS("+14155551234", "Test");
+
+      expect(result).toHaveProperty("provider", "aws_sns");
+      // If successful, to should be the international number
+      if (result.success && result.to) {
+        expect(result.to).toBe("+14155551234");
+      }
+    });
+  });
+
+  describe("sendOTP", () => {
+    it("should send OTP message with correct format", async () => {
+      // Reset and configure mock for this specific test
+      mockSend.mockReset();
+      mockSend.mockResolvedValue({ MessageId: "otp-123" });
+
+      const provider = new AWSSNSProvider({
+        accessKeyId: "test-key",
+        secretAccessKey: "test-secret",
+      });
+
+      const result = await provider.sendOTP("+966501234567", "123456");
+
+      // If configured correctly, it should attempt to send
+      expect(result.provider).toBe("aws_sns");
+      // The message should contain the OTP code
+      if (result.success) {
+        expect(mockPublishCommand).toHaveBeenCalled();
+      }
+    });
+
+    it("should include expiry time in message", async () => {
+      mockSend.mockReset();
+      mockSend.mockResolvedValue({ MessageId: "otp-123" });
+
+      const provider = new AWSSNSProvider({
+        accessKeyId: "test-key",
+        secretAccessKey: "test-secret",
+      });
+
+      await provider.sendOTP("+966501234567", "654321", 10);
+
+      // Verify the provider was called
+      expect(provider.name).toBe("aws_sns");
+    });
+  });
+
+  describe("sendBulk", () => {
+    it("should send to multiple recipients", async () => {
+      // Reset and configure mock
+      mockSend.mockReset();
+      mockSend.mockResolvedValue({ MessageId: "msg-bulk" });
+
+      const provider = new AWSSNSProvider({
+        accessKeyId: "test-key",
+        secretAccessKey: "test-secret",
+      });
+
+      const result = await provider.sendBulk(
+        ["+966501234567", "+966501234568", "+966501234569"],
+        "Bulk test message",
+      );
+
+      expect(result.total).toBe(3);
+      expect(result.results).toHaveLength(3);
+    });
+
+    it("should handle errors gracefully", async () => {
+      mockSend.mockReset();
+      mockSend.mockRejectedValue(new Error("Failed"));
+
+      const provider = new AWSSNSProvider({
+        accessKeyId: "test-key",
+        secretAccessKey: "test-secret",
+      });
+
+      const result = await provider.sendBulk(
+        ["+966501234567", "+966501234568"],
+        "Bulk test message",
+      );
+
+      expect(result.total).toBe(2);
+      expect(result.results).toHaveLength(2);
+      // All should fail
+      expect(result.failed).toBe(2);
+    });
+  });
+
+  describe("getStatus", () => {
+    it("should return unknown status with webhook message", async () => {
+      const provider = new AWSSNSProvider({
+        accessKeyId: "test-key",
+        secretAccessKey: "test-secret",
+      });
+
+      const result = await provider.getStatus("msg-123");
+
+      expect(result.status).toBe("unknown");
+      expect(result.messageId).toBe("msg-123");
+      expect(result.error).toContain("webhook");
+    });
+  });
+
+  describe("testConfiguration", () => {
+    it("should return false when not configured", async () => {
+      const provider = new AWSSNSProvider();
+      const result = await provider.testConfiguration();
+
+      expect(result).toBe(false);
+    });
+
+    it("should return true when configured", async () => {
+      const provider = new AWSSNSProvider({
+        accessKeyId: "test-key",
+        secretAccessKey: "test-secret",
+      });
+
+      const result = await provider.testConfiguration();
+
+      expect(result).toBe(true);
+      expect(mockSNSClient).toHaveBeenCalled();
+    });
+
+    it("should return false on SDK initialization error", async () => {
+      mockSNSClient.mockImplementationOnce(() => {
+        throw new Error("SDK error");
+      });
+
+      const provider = new AWSSNSProvider({
+        accessKeyId: "test-key",
+        secretAccessKey: "test-secret",
+      });
+
+      const result = await provider.testConfiguration();
+
+      expect(result).toBe(false);
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/lib/sms-providers/index.test.ts">
+<![CDATA[
+/**
+ * Unit tests for SMS Provider Factory
+ *
+ * Tests provider creation, detection, and MockProvider behavior.
+ */
+
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import {
+  createSMSProvider,
+  getSMSProvider,
+  resetSMSProvider,
+  getConfiguredProviderType,
+  getProvidersInfo,
+} from "@/lib/sms-providers";
+
+// Mock logger to prevent actual logging during tests
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+describe("SMS Provider Factory", () => {
+  beforeEach(() => {
+    // Reset provider singleton before each test
+    resetSMSProvider();
+    // Clear any env overrides
+    vi.stubEnv("SMS_PROVIDER", "");
+    vi.stubEnv("SMS_DEV_MODE", "true");
+    vi.stubEnv("UNIFONIC_APP_SID", "");
+    vi.stubEnv("TWILIO_ACCOUNT_SID", "");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  describe("createSMSProvider", () => {
+    it("should create mock provider when explicitly requested", () => {
+      const provider = createSMSProvider("mock");
+      expect(provider.name).toBe("mock");
+      expect(provider.isConfigured()).toBe(true);
+    });
+
+    it("should create mock provider when no provider is configured", () => {
+      const provider = createSMSProvider();
+      expect(provider.name).toBe("mock");
+    });
+  });
+
+  describe("getSMSProvider (singleton)", () => {
+    it("should return the same instance on subsequent calls", () => {
+      const provider1 = getSMSProvider();
+      const provider2 = getSMSProvider();
+      expect(provider1).toBe(provider2);
+    });
+
+    it("should return new instance after reset", () => {
+      const provider1 = getSMSProvider();
+      resetSMSProvider();
+      const provider2 = getSMSProvider();
+      // They should be different object instances
+      expect(provider1).not.toBe(provider2);
+    });
+  });
+
+  describe("getProvidersInfo", () => {
+    it("should return info for all providers", () => {
+      const info = getProvidersInfo();
+
+      // Only Taqnyat and Mock providers are available
+      // Unifonic, Twilio, AWS SNS, and Nexmo have been removed
+      expect(info.taqnyat).toBeDefined();
+      expect(info.mock).toBeDefined();
+
+      expect(info.taqnyat.recommended).toBe(true);
+      expect(info.taqnyat.notes).toContain("CITC-compliant");
+      expect(info.mock.configured).toBe(true);
+    });
+  });
+});
+
+describe("MockProvider", () => {
+  let mockProvider: ReturnType<typeof createSMSProvider>;
+
+  beforeEach(() => {
+    resetSMSProvider();
+    mockProvider = createSMSProvider("mock");
+  });
+
+  describe("sendSMS", () => {
+    it("should return success with mock message ID", async () => {
+      const result = await mockProvider.sendSMS("+966501234567", "Test message");
+
+      expect(result.success).toBe(true);
+      expect(result.messageId).toMatch(/^MOCK_\d+_/);
+      expect(result.provider).toBe("mock");
+      expect(result.to).toBe("+966501234567");
+      expect(result.timestamp).toBeInstanceOf(Date);
+    });
+
+    it("should always succeed regardless of phone format", async () => {
+      // MockProvider doesn't validate - it's for dev/testing
+      const result = await mockProvider.sendSMS("invalid-phone", "Test");
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("sendOTP", () => {
+    it("should send OTP message", async () => {
+      const result = await mockProvider.sendOTP?.("+966501234567", "123456", 5);
+
+      expect(result?.success).toBe(true);
+      expect(result?.messageId).toMatch(/^MOCK_/);
+    });
+  });
+
+  describe("sendBulk", () => {
+    it("should send to multiple recipients", async () => {
+      const recipients = ["+966501111111", "+966502222222", "+966503333333"];
+      const result = await mockProvider.sendBulk?.(recipients, "Bulk message");
+
+      expect(result?.total).toBe(3);
+      expect(result?.successful).toBe(3);
+      expect(result?.sent).toBe(3);
+      expect(result?.failed).toBe(0);
+      expect(result?.results).toHaveLength(3);
+    });
+  });
+
+  describe("getStatus", () => {
+    it("should return delivered status for any message ID", async () => {
+      const result = await mockProvider.getStatus?.("MOCK_12345");
+
+      expect(result?.status).toBe("delivered");
+      expect(result?.messageId).toBe("MOCK_12345");
+    });
+  });
+
+  describe("testConfiguration", () => {
+    it("should always return true for mock provider", async () => {
+      const result = await mockProvider.testConfiguration?.();
+      expect(result).toBe(true);
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/lib/sms-providers/nexmo.test.ts">
+<![CDATA[
+/**
+ * Unit tests for Nexmo/Vonage SMS Provider
+ *
+ * Tests Nexmo provider configuration, message sending, and error handling.
+ */
+
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { NexmoProvider } from "@/lib/sms-providers/nexmo";
+import type { SMSResult } from "@/lib/sms-providers/types";
+
+// Mock logger
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+// Mock circuit breaker
+vi.mock("@/lib/resilience", () => ({
+  getCircuitBreaker: vi.fn(() => ({
+    run: vi.fn((fn: () => Promise<unknown>) => fn()),
+    isOpen: vi.fn(() => false),
+    getState: vi.fn(() => "closed"),
+  })),
+}));
+
+// Mock fetch
+const mockFetch = vi.fn();
+global.fetch = mockFetch;
+
+describe("NexmoProvider", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Reset env vars
+    delete process.env.NEXMO_API_KEY;
+    delete process.env.NEXMO_API_SECRET;
+    delete process.env.NEXMO_FROM_NUMBER;
+    delete process.env.NEXMO_WEBHOOK_URL;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  describe("Configuration", () => {
+    it("should read configuration from environment variables", () => {
+      process.env.NEXMO_API_KEY = "test-api-key";
+      process.env.NEXMO_API_SECRET = "test-api-secret";
+      process.env.NEXMO_FROM_NUMBER = "FIXZIT";
+
+      const provider = new NexmoProvider();
+      expect(provider.isConfigured()).toBe(true);
+      expect(provider.name).toBe("nexmo");
+    });
+
+    it("should accept configuration via constructor", () => {
+      const provider = new NexmoProvider({
+        apiKey: "custom-key",
+        apiSecret: "custom-secret",
+        from: "CUSTOM",
+      });
+      expect(provider.isConfigured()).toBe(true);
+    });
+
+    it("should report not configured when credentials missing", () => {
+      const provider = new NexmoProvider();
+      expect(provider.isConfigured()).toBe(false);
+    });
+
+    it("should report not configured when from number is missing", () => {
+      const provider = new NexmoProvider({
+        apiKey: "key",
+        apiSecret: "secret",
+        // missing 'from'
+      });
+      expect(provider.isConfigured()).toBe(false);
+    });
+
+    it("should have correct provider name", () => {
+      const provider = new NexmoProvider();
+      expect(provider.name).toBe("nexmo");
+    });
+  });
+
+  describe("sendSMS", () => {
+    it("should return error when not configured", async () => {
+      const provider = new NexmoProvider();
+      const result = await provider.sendSMS("+966501234567", "Test message");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Nexmo/Vonage not configured");
+      expect(result.provider).toBe("nexmo");
+    });
+
+    it("should send SMS successfully", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          "message-count": "1",
+          messages: [
+            {
+              to: "966501234567",
+              "message-id": "msg-nexmo-123",
+              status: "0",
+              "remaining-balance": "10.00",
+              "message-price": "0.05",
+              network: "42001",
+            },
+          ],
+        }),
+      });
+
+      const provider = new NexmoProvider({
+        apiKey: "test-key",
+        apiSecret: "test-secret",
+        from: "FIXZIT",
+      });
+
+      const result = await provider.sendSMS("+966501234567", "Test message");
+
+      expect(result.success).toBe(true);
+      expect(result.messageId).toBe("msg-nexmo-123");
+      expect(result.provider).toBe("nexmo");
+      expect(result.to).toBe("+966501234567");
+      expect(result.timestamp).toBeInstanceOf(Date);
+    });
+
+    it("should handle Nexmo API errors", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          "message-count": "1",
+          messages: [
+            {
+              to: "966501234567",
+              "message-id": "",
+              status: "4",
+              "error-text": "Invalid credentials",
+            },
+          ],
+        }),
+      });
+
+      const provider = new NexmoProvider({
+        apiKey: "bad-key",
+        apiSecret: "bad-secret",
+        from: "FIXZIT",
+      });
+
+      const result = await provider.sendSMS("+966501234567", "Test");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Invalid credentials");
+      expect(result.provider).toBe("nexmo");
+    });
+
+    it("should handle HTTP errors", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: "Internal Server Error",
+      });
+
+      const provider = new NexmoProvider({
+        apiKey: "test-key",
+        apiSecret: "test-secret",
+        from: "FIXZIT",
+      });
+
+      const result = await provider.sendSMS("+966501234567", "Test");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("500");
+    });
+
+    it("should handle empty response", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          "message-count": "0",
+          messages: [],
+        }),
+      });
+
+      const provider = new NexmoProvider({
+        apiKey: "test-key",
+        apiSecret: "test-secret",
+        from: "FIXZIT",
+      });
+
+      const result = await provider.sendSMS("+966501234567", "Test");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("empty response");
+    });
+
+    it("should format Saudi numbers correctly", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          "message-count": "1",
+          messages: [
+            {
+              to: "966501234567",
+              "message-id": "msg-123",
+              status: "0",
+              "remaining-balance": "10.00",
+              "message-price": "0.05",
+              network: "42001",
+            },
+          ],
+        }),
+      });
+
+      const provider = new NexmoProvider({
+        apiKey: "test-key",
+        apiSecret: "test-secret",
+        from: "FIXZIT",
+      });
+
+      await provider.sendSMS("0501234567", "Test");
+
+      // Check that fetch was called with correct phone number (without +)
+      const fetchCall = mockFetch.mock.calls[0];
+      expect(fetchCall[0]).toBe("https://rest.nexmo.com/sms/json");
+      expect(fetchCall[1].body).toContain("to=966501234567");
+    });
+
+    it("should include webhook URL when configured", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          "message-count": "1",
+          messages: [
+            {
+              to: "966501234567",
+              "message-id": "msg-123",
+              status: "0",
+              "remaining-balance": "10.00",
+              "message-price": "0.05",
+              network: "42001",
+            },
+          ],
+        }),
+      });
+
+      const provider = new NexmoProvider({
+        apiKey: "test-key",
+        apiSecret: "test-secret",
+        from: "FIXZIT",
+        webhookUrl: "https://example.com/webhook",
+      });
+
+      await provider.sendSMS("+966501234567", "Test");
+
+      const fetchCall = mockFetch.mock.calls[0];
+      expect(fetchCall[1].body).toContain("callback=https%3A%2F%2Fexample.com%2Fwebhook");
+    });
+  });
+
+  describe("sendOTP", () => {
+    it("should send OTP message with default expiry", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          "message-count": "1",
+          messages: [
+            {
+              to: "966501234567",
+              "message-id": "otp-123",
+              status: "0",
+              "remaining-balance": "10.00",
+              "message-price": "0.05",
+              network: "42001",
+            },
+          ],
+        }),
+      });
+
+      const provider = new NexmoProvider({
+        apiKey: "test-key",
+        apiSecret: "test-secret",
+        from: "FIXZIT",
+      });
+
+      const result = await provider.sendOTP("+966501234567", "123456");
+
+      expect(result.success).toBe(true);
+      const fetchCall = mockFetch.mock.calls[0];
+      expect(fetchCall[1].body).toContain("123456");
+      expect(fetchCall[1].body).toContain("5+minutes");
+    });
+
+    it("should include custom expiry in message", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          "message-count": "1",
+          messages: [
+            {
+              to: "966501234567",
+              "message-id": "otp-123",
+              status: "0",
+              "remaining-balance": "10.00",
+              "message-price": "0.05",
+              network: "42001",
+            },
+          ],
+        }),
+      });
+
+      const provider = new NexmoProvider({
+        apiKey: "test-key",
+        apiSecret: "test-secret",
+        from: "FIXZIT",
+      });
+
+      await provider.sendOTP("+966501234567", "654321", 10);
+
+      const fetchCall = mockFetch.mock.calls[0];
+      expect(fetchCall[1].body).toContain("10+minutes");
+    });
+  });
+
+  describe("sendBulk", () => {
+    it("should send to multiple recipients", async () => {
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            "message-count": "1",
+            messages: [{ to: "966501234567", "message-id": "msg-1", status: "0", "remaining-balance": "10", "message-price": "0.05", network: "42001" }],
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            "message-count": "1",
+            messages: [{ to: "966501234568", "message-id": "msg-2", status: "0", "remaining-balance": "10", "message-price": "0.05", network: "42001" }],
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            "message-count": "1",
+            messages: [{ to: "966501234569", "message-id": "msg-3", status: "0", "remaining-balance": "10", "message-price": "0.05", network: "42001" }],
+          }),
+        });
+
+      const provider = new NexmoProvider({
+        apiKey: "test-key",
+        apiSecret: "test-secret",
+        from: "FIXZIT",
+      });
+
+      const result = await provider.sendBulk(
+        ["+966501234567", "+966501234568", "+966501234569"],
+        "Bulk test message",
+      );
+
+      expect(result.sent).toBe(3);
+      expect(result.failed).toBe(0);
+      expect(result.results).toHaveLength(3);
+    });
+
+    it("should handle partial failures", async () => {
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            "message-count": "1",
+            messages: [{ to: "966501234567", "message-id": "msg-1", status: "0", "remaining-balance": "10", "message-price": "0.05", network: "42001" }],
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            "message-count": "1",
+            messages: [{ to: "966501234568", "message-id": "", status: "4", "error-text": "Invalid credentials" }],
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            "message-count": "1",
+            messages: [{ to: "966501234569", "message-id": "msg-3", status: "0", "remaining-balance": "10", "message-price": "0.05", network: "42001" }],
+          }),
+        });
+
+      const provider = new NexmoProvider({
+        apiKey: "test-key",
+        apiSecret: "test-secret",
+        from: "FIXZIT",
+      });
+
+      const result = await provider.sendBulk(
+        ["+966501234567", "+966501234568", "+966501234569"],
+        "Bulk test message",
+      );
+
+      expect(result.sent).toBe(2);
+      expect(result.failed).toBe(1);
+    });
+  });
+
+  describe("getStatus", () => {
+    it("should return unknown status with webhook message", async () => {
+      const provider = new NexmoProvider({
+        apiKey: "test-key",
+        apiSecret: "test-secret",
+        from: "FIXZIT",
+      });
+
+      const result = await provider.getStatus("msg-123");
+
+      expect(result.status).toBe("unknown");
+      expect(result.messageId).toBe("msg-123");
+      expect(result.error).toContain("webhook");
+    });
+  });
+
+  describe("testConfiguration", () => {
+    it("should return false when not configured", async () => {
+      const provider = new NexmoProvider();
+      const result = await provider.testConfiguration();
+
+      expect(result).toBe(false);
+    });
+
+    it("should return true when API responds OK", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ value: 10.5 }),
+      });
+
+      const provider = new NexmoProvider({
+        apiKey: "test-key",
+        apiSecret: "test-secret",
+        from: "FIXZIT",
+      });
+
+      const result = await provider.testConfiguration();
+
+      expect(result).toBe(true);
+    });
+
+    it("should return false when API responds with error", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+      });
+
+      const provider = new NexmoProvider({
+        apiKey: "bad-key",
+        apiSecret: "bad-secret",
+        from: "FIXZIT",
+      });
+
+      const result = await provider.testConfiguration();
+
+      expect(result).toBe(false);
+    });
+
+    it("should return false on network error", async () => {
+      mockFetch.mockRejectedValueOnce(new Error("Network error"));
+
+      const provider = new NexmoProvider({
+        apiKey: "test-key",
+        apiSecret: "test-secret",
+        from: "FIXZIT",
+      });
+
+      const result = await provider.testConfiguration();
+
+      expect(result).toBe(false);
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/lib/sms-providers/phone-utils.test.ts">
+<![CDATA[
+/**
+ * Unit tests for SMS Provider Phone Utilities
+ *
+ * Tests phone number formatting and validation for Saudi Arabian numbers.
+ */
+
+import { describe, it, expect } from "vitest";
+import {
+  formatSaudiPhoneNumber,
+  isValidSaudiPhone,
+  validateAndFormatPhone,
+  redactPhoneNumber,
+} from "@/lib/sms-providers/phone-utils";
+
+describe("formatSaudiPhoneNumber", () => {
+  it("should return E.164 format unchanged", () => {
+    expect(formatSaudiPhoneNumber("+966501234567")).toBe("+966501234567");
+    expect(formatSaudiPhoneNumber("+966512345678")).toBe("+966512345678");
+  });
+
+  it("should convert local format (05XXXXXXXX)", () => {
+    expect(formatSaudiPhoneNumber("0501234567")).toBe("+966501234567");
+    expect(formatSaudiPhoneNumber("0512345678")).toBe("+966512345678");
+  });
+
+  it("should convert 966 format without plus", () => {
+    expect(formatSaudiPhoneNumber("966501234567")).toBe("+966501234567");
+    expect(formatSaudiPhoneNumber("966512345678")).toBe("+966512345678");
+  });
+
+  it("should convert 00966 international format", () => {
+    expect(formatSaudiPhoneNumber("00966501234567")).toBe("+966501234567");
+    expect(formatSaudiPhoneNumber("00966512345678")).toBe("+966512345678");
+  });
+
+  it("should handle number without any prefix", () => {
+    expect(formatSaudiPhoneNumber("501234567")).toBe("+966501234567");
+    expect(formatSaudiPhoneNumber("512345678")).toBe("+966512345678");
+  });
+
+  it("should remove spaces, dashes, and parentheses", () => {
+    expect(formatSaudiPhoneNumber("+966 50 123 4567")).toBe("+966501234567");
+    expect(formatSaudiPhoneNumber("050-123-4567")).toBe("+966501234567");
+    expect(formatSaudiPhoneNumber("(050) 123-4567")).toBe("+966501234567");
+  });
+});
+
+describe("isValidSaudiPhone", () => {
+  it("should accept valid Saudi mobile numbers", () => {
+    expect(isValidSaudiPhone("+966501234567")).toBe(true);
+    expect(isValidSaudiPhone("0501234567")).toBe(true);
+    expect(isValidSaudiPhone("966501234567")).toBe(true);
+    expect(isValidSaudiPhone("00966501234567")).toBe(true);
+  });
+
+  it("should accept all Saudi mobile prefixes (5X)", () => {
+    // Saudi mobile numbers start with 5
+    expect(isValidSaudiPhone("+966500000000")).toBe(true);
+    expect(isValidSaudiPhone("+966510000000")).toBe(true);
+    expect(isValidSaudiPhone("+966520000000")).toBe(true);
+    expect(isValidSaudiPhone("+966530000000")).toBe(true);
+    expect(isValidSaudiPhone("+966540000000")).toBe(true);
+    expect(isValidSaudiPhone("+966550000000")).toBe(true);
+    expect(isValidSaudiPhone("+966560000000")).toBe(true);
+    expect(isValidSaudiPhone("+966570000000")).toBe(true);
+    expect(isValidSaudiPhone("+966580000000")).toBe(true);
+    expect(isValidSaudiPhone("+966590000000")).toBe(true);
+  });
+
+  it("should reject landline numbers (not starting with 5)", () => {
+    // Saudi landlines start with 1 (Riyadh), 2 (Makkah), etc.
+    expect(isValidSaudiPhone("+966112345678")).toBe(false);
+    expect(isValidSaudiPhone("+966212345678")).toBe(false);
+    expect(isValidSaudiPhone("+966312345678")).toBe(false);
+  });
+
+  it("should reject numbers with wrong length", () => {
+    expect(isValidSaudiPhone("+96650123456")).toBe(false); // too short
+    expect(isValidSaudiPhone("+9665012345678")).toBe(false); // too long
+    expect(isValidSaudiPhone("+96650")).toBe(false); // way too short
+  });
+
+  it("should reject invalid country codes", () => {
+    expect(isValidSaudiPhone("+1501234567")).toBe(false);
+    expect(isValidSaudiPhone("+971501234567")).toBe(false); // UAE
+  });
+});
+
+describe("validateAndFormatPhone", () => {
+  it("should return valid result for correct numbers", () => {
+    const result = validateAndFormatPhone("0501234567");
+    expect(result.formatted).toBe("+966501234567");
+    expect(result.isValid).toBe(true);
+    expect(result.error).toBeUndefined();
+  });
+
+  it("should return invalid result with error for bad numbers", () => {
+    const result = validateAndFormatPhone("+966112345678"); // landline
+    expect(result.formatted).toBe("+966112345678");
+    expect(result.isValid).toBe(false);
+    expect(result.error).toBe("Invalid Saudi phone number format: +966112345678");
+  });
+});
+
+describe("redactPhoneNumber", () => {
+  it("should redact phone number for privacy", () => {
+    expect(redactPhoneNumber("+966501234567")).toBe("+966 5XX XXX 4567");
+    expect(redactPhoneNumber("0501234567")).toBe("+966 5XX XXX 4567");
+  });
+
+  it("should handle very short numbers gracefully", () => {
+    expect(redactPhoneNumber("123")).toBe("***");
+    expect(redactPhoneNumber("")).toBe("***");
+  });
+
+  it("should show country code, first digit, and last 4", () => {
+    const redacted = redactPhoneNumber("+966512345678");
+    expect(redacted).toContain("+966");
+    expect(redacted).toContain("5678"); // last 4
+    expect(redacted).toContain("5XX XXX"); // redacted middle
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/lib/sms-providers/twilio.test.ts">
+<![CDATA[
+/**
+ * Unit tests for Twilio SMS Provider
+ *
+ * Tests Twilio provider configuration, message sending, and error handling.
+ */
+
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+// Mock logger
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+// Mock resilience utilities
+vi.mock("@/lib/resilience", () => ({
+  getCircuitBreaker: vi.fn(() => ({
+    run: vi.fn((fn: () => Promise<unknown>) => fn()),
+    isOpen: vi.fn(() => false),
+    getState: vi.fn(() => "closed"),
+  })),
+  executeWithRetry: vi.fn(async (fn: () => Promise<unknown>) => fn()),
+  withTimeout: vi.fn(async (fn: () => Promise<unknown>) => fn()),
+}));
+
+// Mock service timeouts config
+vi.mock("@/config/service-timeouts", () => ({
+  SERVICE_RESILIENCE: {
+    twilio: {
+      timeouts: { smsSendMs: 10000 },
+      retries: { maxAttempts: 3, baseDelayMs: 100 },
+    },
+  },
+}));
+
+// Mock Twilio client
+const mockTwilioCreate = vi.fn();
+vi.mock("twilio", () => ({
+  default: vi.fn(() => ({
+    messages: {
+      create: mockTwilioCreate,
+      fetch: vi.fn(),
+    },
+  })),
+}));
+
+// Import after mocks
+import { TwilioProvider } from "@/lib/sms-providers/twilio";
+
+describe("TwilioProvider", () => {
+  const originalEnv = process.env;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env = { ...originalEnv };
+    // Clear Twilio env vars
+    delete process.env.TWILIO_ACCOUNT_SID;
+    delete process.env.TWILIO_AUTH_TOKEN;
+    delete process.env.TWILIO_PHONE_NUMBER;
+    delete process.env.SMS_DEV_MODE;
+    process.env.NODE_ENV = "test";
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+    vi.restoreAllMocks();
+  });
+
+  describe("Configuration", () => {
+    it("should have correct provider name", () => {
+      const provider = new TwilioProvider();
+      expect(provider.name).toBe("twilio");
+    });
+
+    it("should report not configured when credentials missing", () => {
+      const provider = new TwilioProvider();
+      expect(provider.isConfigured()).toBe(false);
+    });
+
+    it("should support dev mode via options", () => {
+      const provider = new TwilioProvider({ devMode: true });
+      expect(provider.name).toBe("twilio");
+    });
+
+    it("should accept custom timeout options", () => {
+      const provider = new TwilioProvider({ timeoutMs: 5000, maxRetries: 2 });
+      expect(provider.name).toBe("twilio");
+    });
+  });
+
+  describe("sendSMS", () => {
+    it("should return success in dev mode", async () => {
+      const provider = new TwilioProvider({ devMode: true });
+      const result = await provider.sendSMS("+966501234567", "Test message");
+
+      expect(result.success).toBe(true);
+      expect(result.messageId).toMatch(/^MOCK_SM/);
+      expect(result.provider).toBe("twilio");
+      expect(result.to).toBe("+966501234567");
+      expect(result.timestamp).toBeInstanceOf(Date);
+    });
+
+    it("should format Saudi phone numbers", async () => {
+      const provider = new TwilioProvider({ devMode: true });
+      const result = await provider.sendSMS("0501234567", "Test message");
+
+      expect(result.success).toBe(true);
+      expect(result.to).toMatch(/^\+966/);
+    });
+
+    it("should handle message content correctly", async () => {
+      const provider = new TwilioProvider({ devMode: true });
+      const result = await provider.sendSMS("+966501234567", "Your code is 123456");
+
+      expect(result.success).toBe(true);
+      expect(result.provider).toBe("twilio");
+    });
+
+    it("should include timestamp in result", async () => {
+      const provider = new TwilioProvider({ devMode: true });
+      const result = await provider.sendSMS("+966501234567", "Test");
+
+      expect(result.timestamp).toBeInstanceOf(Date);
+    });
+  });
+
+  describe("sendOTP", () => {
+    it("should send OTP with correct message format", async () => {
+      const provider = new TwilioProvider({ devMode: true });
+      const result = await provider.sendOTP("+966501234567", "123456");
+
+      expect(result.success).toBe(true);
+      expect(result.provider).toBe("twilio");
+    });
+
+    it("should include custom expiry in message", async () => {
+      const provider = new TwilioProvider({ devMode: true });
+      const result = await provider.sendOTP("+966501234567", "654321", 10);
+
+      expect(result.success).toBe(true);
+    });
+
+    it("should format phone number for OTP", async () => {
+      const provider = new TwilioProvider({ devMode: true });
+      const result = await provider.sendOTP("0501234567", "123456");
+
+      expect(result.success).toBe(true);
+      expect(result.to).toMatch(/^\+966/);
+    });
+  });
+
+  describe("sendBulk", () => {
+    it("should send to multiple recipients", async () => {
+      const provider = new TwilioProvider({ devMode: true });
+      const result = await provider.sendBulk(
+        ["+966501234567", "+966501234568", "+966501234569"],
+        "Bulk test message",
+      );
+
+      expect(result.total).toBe(3);
+      expect(result.successful).toBe(3);
+      expect(result.failed).toBe(0);
+      expect(result.results).toHaveLength(3);
+    });
+
+    it("should return correct counts", async () => {
+      const provider = new TwilioProvider({ devMode: true });
+      const result = await provider.sendBulk(
+        ["+966501234567", "+966501234568"],
+        "Bulk test",
+      );
+
+      expect(result.total).toBe(2);
+      expect(result.results).toHaveLength(2);
+      expect(result.sent).toBe(2);
+    });
+
+    it("should handle single recipient", async () => {
+      const provider = new TwilioProvider({ devMode: true });
+      const result = await provider.sendBulk(["+966501234567"], "Single bulk");
+
+      expect(result.total).toBe(1);
+      expect(result.successful).toBe(1);
+    });
+  });
+
+  describe("getStatus", () => {
+    it("should return delivered status in dev mode", async () => {
+      const provider = new TwilioProvider({ devMode: true });
+      const result = await provider.getStatus("SM12345");
+
+      expect(result).not.toBeNull();
+      expect(result?.status).toBe("delivered");
+      expect(result?.messageId).toBe("SM12345");
+    });
+
+    it("should include timestamps in status", async () => {
+      const provider = new TwilioProvider({ devMode: true });
+      const result = await provider.getStatus("SM12345");
+
+      expect(result?.updatedAt).toBeInstanceOf(Date);
+      expect(result?.createdAt).toBeInstanceOf(Date);
+    });
+  });
+
+  describe("testConfiguration", () => {
+    it("should return true in dev mode", async () => {
+      const provider = new TwilioProvider({ devMode: true });
+      const result = await provider.testConfiguration();
+
+      expect(result).toBe(true);
+    });
+  });
+
+  describe("Phone Number Formatting", () => {
+    it("should handle Saudi numbers starting with 05", async () => {
+      const provider = new TwilioProvider({ devMode: true });
+      const result = await provider.sendSMS("0512345678", "Test");
+
+      expect(result.to).toMatch(/^\+966/);
+    });
+
+    it("should handle numbers already in E.164 format", async () => {
+      const provider = new TwilioProvider({ devMode: true });
+      const result = await provider.sendSMS("+966512345678", "Test");
+
+      expect(result.to).toBe("+966512345678");
+    });
+
+    it("should handle international numbers", async () => {
+      const provider = new TwilioProvider({ devMode: true });
+      const result = await provider.sendSMS("+14155551234", "Test");
+
+      expect(result.to).toBeDefined();
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/lib/sms-providers/unifonic.test.ts">
+<![CDATA[
+/**
+ * Unit tests for Unifonic SMS Provider
+ *
+ * Tests Unifonic provider configuration, message sending, and error handling.
+ */
+
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+// Mock logger
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+// Mock resilience utilities
+vi.mock("@/lib/resilience", () => ({
+  getCircuitBreaker: vi.fn(() => ({
+    run: vi.fn((fn: () => Promise<unknown>) => fn()),
+    isOpen: vi.fn(() => false),
+    getState: vi.fn(() => "closed"),
+  })),
+  executeWithRetry: vi.fn(async (fn: () => Promise<unknown>) => fn()),
+  withTimeout: vi.fn(async (fn: () => Promise<unknown>) => fn()),
+}));
+
+// Mock fetch
+const mockFetch = vi.fn();
+global.fetch = mockFetch;
+
+// Import after mocks
+import { UnifonicProvider } from "@/lib/sms-providers/unifonic";
+
+describe("UnifonicProvider", () => {
+  const originalEnv = process.env;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env = { ...originalEnv };
+    // Clear Unifonic env vars
+    delete process.env.UNIFONIC_APP_SID;
+    delete process.env.UNIFONIC_SENDER_ID;
+    delete process.env.UNIFONIC_API_URL;
+    delete process.env.SMS_DEV_MODE;
+    process.env.NODE_ENV = "test";
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+    vi.restoreAllMocks();
+  });
+
+  describe("Configuration", () => {
+    it("should have correct provider name", () => {
+      const provider = new UnifonicProvider();
+      expect(provider.name).toBe("unifonic");
+    });
+
+    it("should report not configured when credentials missing", () => {
+      const provider = new UnifonicProvider();
+      expect(provider.isConfigured()).toBe(false);
+    });
+
+    it("should support dev mode via options", () => {
+      const provider = new UnifonicProvider({ devMode: true });
+      expect(provider.name).toBe("unifonic");
+    });
+
+    it("should accept custom timeout options", () => {
+      const provider = new UnifonicProvider({ timeoutMs: 5000, maxRetries: 2 });
+      expect(provider.name).toBe("unifonic");
+    });
+  });
+
+  describe("sendSMS", () => {
+    it("should return success in dev mode", async () => {
+      const provider = new UnifonicProvider({ devMode: true });
+      const result = await provider.sendSMS("+966501234567", "Test message");
+
+      expect(result.success).toBe(true);
+      expect(result.messageId).toMatch(/^MOCK_UNI_/);
+      expect(result.provider).toBe("unifonic");
+      expect(result.to).toBe("+966501234567");
+      expect(result.timestamp).toBeInstanceOf(Date);
+    });
+
+    it("should format Saudi phone numbers", async () => {
+      const provider = new UnifonicProvider({ devMode: true });
+      const result = await provider.sendSMS("0501234567", "Test message");
+
+      expect(result.success).toBe(true);
+      expect(result.to).toMatch(/^\+966/);
+    });
+
+    it("should handle message content correctly", async () => {
+      const provider = new UnifonicProvider({ devMode: true });
+      const result = await provider.sendSMS("+966501234567", "Your code is 123456");
+
+      expect(result.success).toBe(true);
+      expect(result.provider).toBe("unifonic");
+    });
+
+    it("should include timestamp in result", async () => {
+      const provider = new UnifonicProvider({ devMode: true });
+      const result = await provider.sendSMS("+966501234567", "Test");
+
+      expect(result.timestamp).toBeInstanceOf(Date);
+    });
+  });
+
+  describe("sendOTP", () => {
+    it("should send OTP with correct message format", async () => {
+      const provider = new UnifonicProvider({ devMode: true });
+      const result = await provider.sendOTP("+966501234567", "123456");
+
+      expect(result.success).toBe(true);
+      expect(result.provider).toBe("unifonic");
+    });
+
+    it("should include custom expiry in message", async () => {
+      const provider = new UnifonicProvider({ devMode: true });
+      const result = await provider.sendOTP("+966501234567", "654321", 10);
+
+      expect(result.success).toBe(true);
+    });
+
+    it("should format phone number for OTP", async () => {
+      const provider = new UnifonicProvider({ devMode: true });
+      const result = await provider.sendOTP("0501234567", "123456");
+
+      expect(result.success).toBe(true);
+      expect(result.to).toMatch(/^\+966/);
+    });
+  });
+
+  describe("sendBulk", () => {
+    it("should send to multiple recipients", async () => {
+      const provider = new UnifonicProvider({ devMode: true });
+      const result = await provider.sendBulk(
+        ["+966501234567", "+966501234568", "+966501234569"],
+        "Bulk test message",
+      );
+
+      expect(result.total).toBe(3);
+      expect(result.successful).toBe(3);
+      expect(result.failed).toBe(0);
+      expect(result.results).toHaveLength(3);
+    });
+
+    it("should return correct counts", async () => {
+      const provider = new UnifonicProvider({ devMode: true });
+      const result = await provider.sendBulk(
+        ["+966501234567", "+966501234568"],
+        "Bulk test",
+      );
+
+      expect(result.total).toBe(2);
+      expect(result.results).toHaveLength(2);
+      expect(result.sent).toBe(2);
+    });
+
+    it("should handle single recipient", async () => {
+      const provider = new UnifonicProvider({ devMode: true });
+      const result = await provider.sendBulk(["+966501234567"], "Single bulk");
+
+      expect(result.total).toBe(1);
+      expect(result.successful).toBe(1);
+    });
+  });
+
+  describe("getStatus", () => {
+    it("should return delivered status in dev mode", async () => {
+      const provider = new UnifonicProvider({ devMode: true });
+      const result = await provider.getStatus("MSG12345");
+
+      expect(result).not.toBeNull();
+      expect(result?.status).toBe("delivered");
+      expect(result?.messageId).toBe("MSG12345");
+    });
+
+    it("should include timestamps in status", async () => {
+      const provider = new UnifonicProvider({ devMode: true });
+      const result = await provider.getStatus("MSG12345");
+
+      expect(result?.updatedAt).toBeInstanceOf(Date);
+    });
+  });
+
+  describe("testConfiguration", () => {
+    it("should return true in dev mode", async () => {
+      const provider = new UnifonicProvider({ devMode: true });
+      const result = await provider.testConfiguration();
+
+      expect(result).toBe(true);
+    });
+  });
+
+  describe("Phone Number Formatting", () => {
+    it("should handle Saudi numbers starting with 05", async () => {
+      const provider = new UnifonicProvider({ devMode: true });
+      const result = await provider.sendSMS("0512345678", "Test");
+
+      expect(result.to).toMatch(/^\+966/);
+    });
+
+    it("should handle numbers already in E.164 format", async () => {
+      const provider = new UnifonicProvider({ devMode: true });
+      const result = await provider.sendSMS("+966512345678", "Test");
+
+      expect(result.to).toBe("+966512345678");
+    });
+
+    it("should handle international numbers", async () => {
+      const provider = new UnifonicProvider({ devMode: true });
+      const result = await provider.sendSMS("+14155551234", "Test");
+
+      expect(result.to).toBeDefined();
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/lib/sms-queue.test.ts">
+<![CDATA[
+/**
+ * SMS Queue Unit Tests
+ *
+ * Focused on provider candidate selection and credential handling.
+ */
+
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { decryptProviderToken, buildProviderCandidates, checkOrgRateLimit } from "@/lib/queues/sms-queue";
+import { getRedisClient } from "@/lib/redis";
+
+// Mock encryption to make decryptProviderToken deterministic
+vi.mock("@/lib/security/encryption", () => ({
+  decryptField: vi.fn((value: string) => {
+    if (!value) return null;
+    return value.startsWith("v1:") ? value.replace("v1:", "decrypted:") : value;
+  }),
+}));
+
+// Mock Redis client for rate limiter tests
+vi.mock("@/lib/redis", () => ({
+  getRedisClient: vi.fn(() => null),
+}));
+
+vi.mock("@/server/models/SMSSettings", () => ({
+  SMSSettings: {
+    getEffectiveSettings: vi.fn(async () => ({ globalRateLimitPerMinute: 30 })),
+  },
+}));
+
+describe("SMS Queue - Provider utilities", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    delete process.env.TWILIO_ACCOUNT_SID;
+    delete process.env.TWILIO_AUTH_TOKEN;
+    delete process.env.TWILIO_PHONE_NUMBER;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  describe("decryptProviderToken", () => {
+    it("returns undefined for empty input", () => {
+      expect(decryptProviderToken(undefined)).toBeUndefined();
+    });
+
+    it("decrypts encrypted values", () => {
+      expect(decryptProviderToken("v1:secret")).toBe("decrypted:secret");
+    });
+
+    it("passes through plain values", () => {
+      expect(decryptProviderToken("plain")).toBe("plain");
+    });
+  });
+
+  describe("buildProviderCandidates", () => {
+    it("filters disabled providers and respects supportedTypes", () => {
+      const settings = {
+        defaultProvider: "TWILIO",
+        providers: [
+          { provider: "TWILIO", enabled: true, priority: 2, fromNumber: "+1", accountId: "a", encryptedApiKey: "k" },
+          { provider: "UNIFONIC", enabled: false, priority: 1, fromNumber: "+1", accountId: "a", encryptedApiKey: "k" },
+          { provider: "LOCAL", enabled: true, priority: 3, supportedTypes: ["ALERT"] },
+        ],
+      } as any;
+
+      const candidates = buildProviderCandidates(settings, "OTP");
+      expect(candidates.map((c) => c.name)).toEqual(["TWILIO"]);
+    });
+
+    it("prefers defaultProvider when sorting", () => {
+      const settings = {
+        defaultProvider: "UNIFONIC",
+        providers: [
+          { provider: "TWILIO", enabled: true, priority: 1, fromNumber: "+1", accountId: "a", encryptedApiKey: "k" },
+          { provider: "UNIFONIC", enabled: true, priority: 5, fromNumber: "+2", accountId: "b", encryptedApiKey: "v1:k" },
+        ],
+      } as any;
+
+      const candidates = buildProviderCandidates(settings, "OTP");
+      expect(candidates[0].name).toBe("UNIFONIC");
+      expect(candidates[1].name).toBe("TWILIO");
+      // Ensure decryption applied
+      expect(candidates[0].authToken).toBe("decrypted:k");
+    });
+
+    it("adds env Taqnyat fallback with priority 999", () => {
+      // Taqnyat is the ONLY production SMS provider for Fixzit
+      process.env.TAQNYAT_BEARER_TOKEN = "token";
+      process.env.TAQNYAT_SENDER_NAME = "FIXZIT";
+
+      const settings = { defaultProvider: "TAQNYAT", providers: [] } as any;
+      const candidates = buildProviderCandidates(settings, "OTP");
+
+      const fallback = candidates.find((c) => c.name === "TAQNYAT");
+      expect(fallback).toBeDefined();
+      expect(fallback?.priority).toBe(999);
+      expect(fallback?.authToken).toBe("token");
+      expect(fallback?.from).toBe("FIXZIT");
+
+      // Clean up
+      delete process.env.TAQNYAT_BEARER_TOKEN;
+      delete process.env.TAQNYAT_SENDER_NAME;
+    });
+
+    it("filters out providers missing required credentials", () => {
+      const settings = {
+        defaultProvider: "TAQNYAT",
+        providers: [
+          { provider: "TAQNYAT", enabled: true, priority: 1, fromNumber: "", accountId: "a", encryptedApiKey: "k" },
+          { provider: "TAQNYAT", enabled: true, priority: 2, fromNumber: "+1", accountId: "a", encryptedApiKey: "" },
+        ],
+      } as any;
+
+      const candidates = buildProviderCandidates(settings, "OTP");
+      expect(candidates).toEqual([]);
+    });
+  });
+});
+
+describe("SMS Queue - Rate limiter", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("fails fast when orgId is missing", async () => {
+    const result = await checkOrgRateLimit(undefined);
+    expect(result.ok).toBe(false);
+  });
+
+  it("allows when Redis is not configured", async () => {
+    (getRedisClient as unknown as any).mockReturnValue(null);
+    const result = await checkOrgRateLimit("org1");
+    expect(result.ok).toBe(true);
+  });
+
+  it("enforces when count exceeds max", async () => {
+    const pttl = vi.fn().mockResolvedValue(5000);
+    const incr = vi.fn().mockResolvedValue(31); // max 30
+    const pexpire = vi.fn().mockResolvedValue(undefined);
+    (getRedisClient as unknown as any).mockReturnValue({ pttl, incr, pexpire });
+
+    const result = await checkOrgRateLimit("org2");
+    expect(result.ok).toBe(false);
+    expect(result.ttlMs).toBeGreaterThan(0);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/lib/utils/format.ts">
+<![CDATA[
+/**
+ * Re-export format utilities for testing
+ * This file provides access to formatters from lib/utils/format.ts
+ */
+export { fmtNumber, fmtDate, sanitizePhoneNumber, formatNumber } from "@/lib/utils/format";
+
+]]>
+</file>
+
+<file path="tests/unit/lib/utils/formatters.ts">
+<![CDATA[
+/**
+ * Re-export format utilities for testing
+ * This file provides access to formatters from lib/utils/format.ts
+ */
+export { sanitizePhoneNumber, formatNumber } from "@/lib/utils/format";
+export { formatCurrency } from "@/lib/payments/currencyUtils";
+
+]]>
+</file>
+
+<file path="tests/unit/lib/utils.test.ts">
+<![CDATA[
+import { describe, it, expect } from "vitest";
+import { generateSlug } from "@/lib/utils";
+// Note: @ts-expect-error annotations later deliberately pass invalid types to test runtime robustness.
+
+describe("generateSlug", () => {
+  // Happy paths
+  it("converts simple words to lowercase and joins with hyphens", () => {
+    expect(generateSlug("Hello World")).toBe("hello-world");
+    expect(generateSlug("Multiple   Spaces  Here")).toBe(
+      "multiple-spaces-here",
+    );
+    expect(generateSlug("A--B   C")).toBe("a-b-c");
+  });
+
+  it("retains numbers and letters", () => {
+    expect(generateSlug("123 Testing 456")).toBe("123-testing-456");
+    expect(generateSlug("Version 2.0 Release")).toBe("version-20-release"); // dot removed
+  });
+
+  it("removes unsupported punctuation and symbols", () => {
+    expect(generateSlug("Hello, World!")).toBe("hello-world");
+    expect(generateSlug("Keep_this? Nope.")).toBe("keepthis-nope"); // underscore removed
+    expect(generateSlug("Price $100 #Deal")).toBe("price-100-deal");
+  });
+
+  it("collapses multiple spaces and hyphens into single hyphen", () => {
+    expect(generateSlug("foo   bar")).toBe("foo-bar");
+    expect(generateSlug("foo - bar")).toBe("foo-bar");
+    expect(generateSlug("foo---bar")).toBe("foo-bar");
+    expect(generateSlug("foo  ---   bar")).toBe("foo-bar");
+  });
+
+  // Edge cases
+  it("trims leading and trailing whitespace", () => {
+    expect(generateSlug("   Hello  ")).toBe("hello");
+    expect(generateSlug("\n\t spaced\t\n")).toBe("spaced");
+  });
+
+  it("preserves existing hyphens but collapses duplicates", () => {
+    expect(generateSlug("-Hello-World-")).toBe("-hello-world-"); // note: leading/trailing hyphens are preserved by current implementation
+    expect(generateSlug("--a--b--")).toBe("-a-b-");
+  });
+
+  it("handles empty or whitespace-only inputs", () => {
+    expect(generateSlug("")).toBe("");
+    expect(generateSlug("     ")).toBe("");
+  });
+
+  it("lowercases uppercase characters", () => {
+    expect(generateSlug("HELLO WORLD")).toBe("hello-world");
+  });
+
+  it("preserves Unicode letters for i18n support (Arabic, Chinese, accents)", () => {
+    // FIX: We now preserve accented letters for international support
+    expect(generateSlug("café crème")).toBe("café-crème"); // accented letters preserved
+    expect(generateSlug("naïve façade")).toBe("naïve-façade");
+    expect(generateSlug("hello 世界")).toBe("hello-世界"); // Chinese preserved
+    expect(generateSlug("你好")).toBe("你好"); // all preserved
+    expect(generateSlug("مرحبا بك")).toBe("مرحبا-بك"); // Arabic preserved
+  });
+
+  it("returns a single hyphen if input consists only of hyphens or hyphens and spaces", () => {
+    expect(generateSlug("---")).toBe("-");
+    expect(generateSlug(" - ")).toBe("-");
+  });
+
+  // Failure/robustness scenarios at runtime
+  it("handles undefined or null safely by treating as empty string", () => {
+    expect(generateSlug(undefined)).toBe("");
+    expect(generateSlug(null)).toBe("");
+    // FIX: generateSlug now strictly requires string type - non-strings return empty
+    // @ts-expect-error Testing runtime robustness against number
+    expect(generateSlug(123)).toBe("");
+    // @ts-expect-error Testing runtime robustness against object
+    expect(generateSlug({ toString: () => "Obj Name" })).toBe("");
+  });
+
+  // Idempotency
+  it("is idempotent when provided with an already slugged string", () => {
+    const slug = "already-slugged-string";
+    expect(generateSlug(slug)).toBe(slug);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/server/lib/i18n/server.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { getServerI18n, getServerTranslation } from "@/lib/i18n/server";
+import { NextRequest } from "next/server";
+import { cookies, headers } from "next/headers";
+
+vi.mock("next/headers", () => {
+  return {
+    cookies: vi.fn(),
+    headers: vi.fn(),
+  };
+});
+
+const mockedCookies = cookies as unknown as ReturnType<typeof vi.fn>;
+const mockedHeaders = headers as unknown as ReturnType<typeof vi.fn>;
+
+describe("lib/i18n/server", () => {
+  beforeEach(() => {
+    mockedCookies.mockReset();
+    mockedHeaders.mockReset();
+    mockedHeaders.mockReturnValue({
+      get: () => null,
+    });
+  });
+
+  it("returns Arabic translations, RTL flag, and locale from getServerI18n()", async () => {
+    mockedCookies.mockReturnValue({
+      get: (key: string) => {
+        if (key === "fxz.lang") {
+          return { value: "ar-SA" };
+        }
+        return undefined;
+      },
+    });
+    mockedHeaders.mockReturnValue({
+      get: (name: string) =>
+        name === "accept-language" ? "ar-SA,ar;q=0.9" : null,
+    });
+
+    const { t, isRTL, locale } = await getServerI18n();
+
+    expect(t("landing.hero.actions.bookDemo", "Book a live demo")).toBe(
+      "احجز عرضًا مباشرًا",
+    );
+    expect(isRTL).toBe(true);
+    expect(locale).toBe("ar");
+  });
+
+  it("defaults to Arabic when cookies/headers missing (APP_DEFAULTS)", async () => {
+    mockedCookies.mockReturnValue({
+      get: () => undefined,
+    });
+    mockedHeaders.mockReturnValue({
+      get: () => null,
+    });
+
+    const { t, isRTL, locale } = await getServerI18n();
+
+    expect(t("landing.hero.actions.bookDemo", "Book a live demo")).toBe(
+      "احجز عرضًا مباشرًا",
+    );
+    expect(isRTL).toBe(true);
+    expect(locale).toBe("ar");
+  });
+
+  it("getServerTranslation() returns Arabic strings for NextRequest", async () => {
+    const req = new NextRequest("https://example.com", {
+      headers: {
+        "accept-language": "ar-SA,ar;q=0.9",
+      },
+    });
+
+    const translate = await getServerTranslation(req);
+
+    expect(
+      translate("landing.hero.title.line1", "Operate properties with calm."),
+    ).toBe("شغّل العقارات بهدوء.");
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/utils/format.test.ts">
+<![CDATA[
+/**
+ * 🔒 RELIABILITY TEST: lib/utils/format.ts crash protection
+ *
+ * Verifies that fmtDate and fmtNumber handle edge cases gracefully:
+ * - null/undefined inputs
+ * - invalid date strings
+ * - NaN values
+ * - Performance with cached formatters
+ */
+
+import { describe, it, expect } from "vitest";
+import { fmtDate, fmtNumber } from "@/lib/utils/format";
+
+describe("🔒 RELIABILITY: lib/utils/format.ts - Crash Protection", () => {
+  describe("fmtDate - null/undefined handling", () => {
+    it('should return "Invalid Date" for null input', () => {
+      const result = fmtDate(null, "en");
+      expect(result).toBe("Invalid Date");
+    });
+
+    it('should return "Invalid Date" for undefined input', () => {
+      const result = fmtDate(undefined, "en");
+      expect(result).toBe("Invalid Date");
+    });
+
+    it('should return "Invalid Date" for invalid date string', () => {
+      const result = fmtDate("not-a-date", "en");
+      expect(result).toBe("Invalid Date");
+    });
+
+    it('should return "Invalid Date" for NaN', () => {
+      const result = fmtDate(NaN, "en");
+      expect(result).toBe("Invalid Date");
+    });
+
+    it('should return "Invalid Date" for invalid Date object', () => {
+      const invalidDate = new Date("invalid");
+      const result = fmtDate(invalidDate, "en");
+      expect(result).toBe("Invalid Date");
+    });
+  });
+
+  describe("fmtDate - valid inputs", () => {
+    it("should format valid Date object in English", () => {
+      const date = new Date("2024-01-15");
+      const result = fmtDate(date, "en");
+      expect(result).toBeTruthy();
+      expect(result).not.toBe("Invalid Date");
+      expect(result).toContain("Jan");
+    });
+
+    it("should format valid Date object in Arabic", () => {
+      const date = new Date("2024-01-15");
+      const result = fmtDate(date, "ar");
+      expect(result).toBeTruthy();
+      expect(result).not.toBe("Invalid Date");
+    });
+
+    it("should format timestamp in English", () => {
+      const timestamp = Date.now();
+      const result = fmtDate(timestamp, "en");
+      expect(result).toBeTruthy();
+      expect(result).not.toBe("Invalid Date");
+    });
+
+    it("should format ISO string in English", () => {
+      const isoString = "2024-01-15T10:30:00Z";
+      const result = fmtDate(isoString, "en");
+      expect(result).toBeTruthy();
+      expect(result).not.toBe("Invalid Date");
+    });
+
+    it("should respect custom options", () => {
+      const date = new Date("2024-01-15");
+      const result = fmtDate(date, "en", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+      expect(result).toBeTruthy();
+      expect(result).toContain("January");
+      expect(result).toContain("2024");
+    });
+  });
+
+  describe("fmtDate - edge cases", () => {
+    it("should handle zero timestamp (Unix epoch)", () => {
+      const result = fmtDate(0, "en");
+      expect(result).toBeTruthy();
+      expect(result).not.toBe("Invalid Date");
+    });
+
+    it("should handle negative timestamps", () => {
+      const result = fmtDate(-86400000, "en"); // 1 day before epoch
+      expect(result).toBeTruthy();
+      expect(result).not.toBe("Invalid Date");
+    });
+
+    it("should handle far future dates", () => {
+      const futureDate = new Date("2099-12-31");
+      const result = fmtDate(futureDate, "en");
+      expect(result).toBeTruthy();
+      expect(result).not.toBe("Invalid Date");
+    });
+
+    it("should handle far past dates", () => {
+      const pastDate = new Date("1900-01-01");
+      const result = fmtDate(pastDate, "en");
+      expect(result).toBeTruthy();
+      expect(result).not.toBe("Invalid Date");
+    });
+  });
+
+  describe("fmtNumber - basic functionality", () => {
+    it("should format numbers in English locale", () => {
+      const result = fmtNumber(1234567.89, "en");
+      expect(result).toBeTruthy();
+      expect(result).toContain(","); // English uses comma separators
+    });
+
+    it("should format numbers in Arabic locale", () => {
+      const result = fmtNumber(1234567.89, "ar");
+      expect(result).toBeTruthy();
+    });
+
+    it("should format zero", () => {
+      const result = fmtNumber(0, "en");
+      expect(result).toBe("0");
+    });
+
+    it("should format negative numbers", () => {
+      const result = fmtNumber(-1234.56, "en");
+      expect(result).toBeTruthy();
+      expect(result).toContain("-");
+    });
+
+    it("should format decimal numbers", () => {
+      const result = fmtNumber(0.123456, "en");
+      expect(result).toBeTruthy();
+    });
+  });
+
+  describe("🚀 PERFORMANCE: Formatter caching", () => {
+    it("should execute multiple formats quickly (cached formatters)", () => {
+      const startTime = performance.now();
+
+      // Execute 1000 date formats - should be fast with caching
+      for (let i = 0; i < 1000; i++) {
+        fmtDate(new Date(), "en");
+      }
+
+      const duration = performance.now() - startTime;
+
+      // With caching, 1000 formats should take < 100ms
+      // Without caching (creating new Intl.DateTimeFormat each time), it would take 500ms+
+      expect(duration).toBeLessThan(100);
+    });
+
+    it("should reuse cached formatters for repeated locale/options", () => {
+      const date1 = fmtDate(new Date("2024-01-01"), "en");
+      const date2 = fmtDate(new Date("2024-02-01"), "en");
+      const date3 = fmtDate(new Date("2024-03-01"), "en");
+
+      // All should succeed (verifying cache doesn't break functionality)
+      expect(date1).toBeTruthy();
+      expect(date2).toBeTruthy();
+      expect(date3).toBeTruthy();
+      expect(date1).not.toBe(date2);
+      expect(date2).not.toBe(date3);
+    });
+
+    it("should maintain separate caches for different locales", () => {
+      const dateEn = fmtDate(new Date("2024-01-15"), "en");
+      const dateAr = fmtDate(new Date("2024-01-15"), "ar");
+
+      expect(dateEn).toBeTruthy();
+      expect(dateAr).toBeTruthy();
+      // Different locales should produce different outputs
+      expect(dateEn).not.toBe(dateAr);
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/utils/http.ts">
+<![CDATA[
+/**
+ * HTTP test utilities
+ * Provides helpers for making API requests in tests
+ */
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+
+/**
+ * Makes a test HTTP request with proper base URL handling
+ * @param path - API path (e.g., '/api/qa/alert')
+ * @param options - Fetch options
+ * @returns Response object
+ */
+export async function makeReq(
+  path: string,
+  options?: RequestInit,
+): Promise<Response> {
+  const url = `${BASE_URL}${path}`;
+  return fetch(url, options);
+}
+
+/**
+ * Makes a test HTTP request and returns JSON
+ * @param path - API path
+ * @param options - Fetch options
+ * @returns Parsed JSON response
+ */
+export async function makeJsonReq<T = unknown>(
+  path: string,
+  options?: RequestInit,
+): Promise<T> {
+  const response = await makeReq(path, options);
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+/**
+ * Makes a test HTTP POST request with JSON body
+ * @param path - API path
+ * @param body - Request body
+ * @param options - Additional fetch options
+ * @returns Response object
+ */
+export async function makePostReq(
+  path: string,
+  body: unknown,
+  options?: Omit<RequestInit, "method" | "body">,
+): Promise<Response> {
+  return makeReq(path, {
+    ...options,
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...options?.headers,
+    },
+    body: JSON.stringify(body),
+  });
+}
+
+]]>
+</file>
+
+<file path="tests/utils/monitoring-test-utils.ts">
+<![CDATA[
+/**
+ * @fileoverview Shared test utilities for security monitoring tests
+ * 
+ * This module provides standardized patterns for resetting monitoring state
+ * in tests, with built-in enforcement to prevent silent test contamination.
+ * 
+ * WHY THIS EXISTS:
+ * The security monitoring module uses process-global Maps to track events.
+ * Without proper reset between tests:
+ * - Tests become order-dependent
+ * - Cross-suite contamination causes flaky CI failures
+ * - Debugging becomes extremely difficult
+ * 
+ * USAGE:
+ * ```typescript
+ * import { setupMonitoringTestIsolation } from "@/tests/utils/monitoring-test-utils";
+ * 
+ * describe("My Monitoring Tests", () => {
+ *   setupMonitoringTestIsolation();
+ *   // ... your tests
+ * });
+ * ```
+ */
+
+import { beforeEach, afterEach } from "vitest";
+
+// Dynamic import to avoid circular dependencies and allow runtime checks
+let resetHelper: (() => void) | null = null;
+
+/**
+ * Validates that the monitoring reset helper exists and is callable.
+ * Throws immediately if the helper is missing, preventing silent test failures.
+ * 
+ * @throws Error if __resetMonitoringStateForTests is not exported or not a function
+ */
+export async function validateMonitoringResetHelper(): Promise<void> {
+  try {
+    const monitoring = await import("@/lib/security/monitoring");
+    
+    if (typeof monitoring.__resetMonitoringStateForTests !== "function") {
+      throw new Error(
+        "[Test Setup Error] __resetMonitoringStateForTests is not a function.\n" +
+        "The monitoring module must export a test-only reset helper.\n" +
+        "This is required for test isolation. See lib/security/monitoring.ts"
+      );
+    }
+    
+    resetHelper = monitoring.__resetMonitoringStateForTests;
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Test Setup Error")) {
+      throw error;
+    }
+    throw new Error(
+      "[Test Setup Error] Failed to import monitoring module.\n" +
+      "Cannot validate reset helper exists.\n" +
+      `Original error: ${error instanceof Error ? error.message : error}`
+    );
+  }
+}
+
+/**
+ * Resets monitoring state with validation.
+ * Call this in beforeEach() to ensure clean state for each test.
+ * 
+ * @throws Error if reset helper is not available
+ */
+export function resetMonitoringState(): void {
+  if (typeof resetHelper !== "function") {
+    throw new Error(
+      "[Test Runtime Error] Monitoring reset helper not initialized.\n" +
+      "Call validateMonitoringResetHelper() or setupMonitoringTestIsolation() first."
+    );
+  }
+  
+  resetHelper();
+}
+
+/**
+ * Sets up complete test isolation for monitoring tests.
+ * 
+ * This function:
+ * 1. Validates the reset helper exists (fails fast if missing)
+ * 2. Registers beforeEach to reset state before every test
+ * 3. VERIFIES reset actually cleared state (catches no-op regressions)
+ * 4. Registers afterEach to reset and verify cleanliness after each test
+ * 
+ * @example
+ * ```typescript
+ * describe("Security Monitoring", () => {
+ *   setupMonitoringTestIsolation();
+ *   
+ *   it("should track events", () => {
+ *     // State is guaranteed clean here
+ *   });
+ * });
+ * ```
+ */
+export function setupMonitoringTestIsolation(): void {
+  // Synchronously import and validate at setup time
+  // This ensures failures happen during test setup, not during test execution
+  beforeEach(async () => {
+    // Lazy initialization on first test
+    if (resetHelper === null) {
+      await validateMonitoringResetHelper();
+    }
+    
+    // Reset state before each test
+    resetMonitoringState();
+    
+    // CRITICAL: Verify reset actually cleared state
+    // This catches regressions where reset becomes a no-op
+    await assertMonitoringStateClean();
+  });
+  
+  // Reset after each test AND verify cleanliness
+  // This catches tests that leak state (forget to clean up)
+  afterEach(async () => {
+    if (resetHelper !== null) {
+      resetHelper();
+      // Verify the reset worked - catches no-op regressions
+      await assertMonitoringStateClean();
+    }
+  });
+}
+
+/**
+ * Asserts that monitoring state is clean (all counters at zero).
+ * Useful for verifying reset worked correctly.
+ * 
+ * @throws Error if any counter is non-zero
+ */
+export async function assertMonitoringStateClean(): Promise<void> {
+  const { getSecurityMetrics } = await import("@/lib/security/monitoring");
+  const metrics = getSecurityMetrics();
+  
+  const issues: string[] = [];
+  
+  if (metrics.rateLimitHits !== 0) {
+    issues.push(`rateLimitHits: expected 0, got ${metrics.rateLimitHits}`);
+  }
+  if (metrics.corsViolations !== 0) {
+    issues.push(`corsViolations: expected 0, got ${metrics.corsViolations}`);
+  }
+  if (metrics.authFailures !== 0) {
+    issues.push(`authFailures: expected 0, got ${metrics.authFailures}`);
+  }
+  if (metrics.rateLimitUniqueKeys !== 0) {
+    issues.push(`rateLimitUniqueKeys: expected 0, got ${metrics.rateLimitUniqueKeys}`);
+  }
+  if (metrics.corsUniqueKeys !== 0) {
+    issues.push(`corsUniqueKeys: expected 0, got ${metrics.corsUniqueKeys}`);
+  }
+  if (metrics.authUniqueKeys !== 0) {
+    issues.push(`authUniqueKeys: expected 0, got ${metrics.authUniqueKeys}`);
+  }
+  
+  if (issues.length > 0) {
+    throw new Error(
+      "[Test Isolation Error] Monitoring state is not clean:\n" +
+      issues.map(i => `  - ${i}`).join("\n") +
+      "\n\nThis indicates state leaked between tests. Check beforeEach reset."
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="tests/utils/test-utils.tsx">
+<![CDATA[
+import React from "react";
+import { render, RenderOptions } from "@testing-library/react";
+import { TranslationProvider } from "@/contexts/TranslationContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
+
+/**
+ * ✅ Custom render function that wraps components with necessary providers
+ * Use this instead of @testing-library/react's render for components that need context
+ */
+export function renderWithProviders(
+  ui: React.ReactElement,
+  options?: Omit<RenderOptions, "wrapper">,
+) {
+  function Wrapper({ children }: { children: React.ReactNode }) {
+    return (
+      <ThemeProvider>
+        <TranslationProvider>{children}</TranslationProvider>
+      </ThemeProvider>
+    );
+  }
+
+  return render(ui, { wrapper: Wrapper, ...options });
+}
+
+// Re-export everything from @testing-library/react
+export * from "@testing-library/react";
+export { renderWithProviders as render };
+
+]]>
+</file>
+
+</batch_content>

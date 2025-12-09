@@ -1,0 +1,3011 @@
+
+You are the "Fixzit Memory Builder" for category: "routes".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "routes",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/api/health/database/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { logger } from "@/lib/logger";
+import { checkDatabaseHealth, getDatabase } from "@/lib/mongodb-unified";
+import { createSecureResponse } from "@/server/security/headers";
+import { isAuthorizedHealthRequest } from "@/server/security/health-token";
+
+/**
+ * @openapi
+ * /api/health/database:
+ *   get:
+ *     summary: health/database operations
+ *     tags: [health]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(request: NextRequest) {
+  const startTime = Date.now();
+  const isAuthorized = isAuthorizedHealthRequest(request);
+
+  try {
+    const isConnected = await checkDatabaseHealth();
+
+    if (!isConnected) {
+      const payload = {
+        status: "unhealthy",
+        database: "mongodb",
+        connection: "failed",
+        timestamp: new Date().toISOString(),
+        responseTime: Date.now() - startTime,
+      };
+      return createSecureResponse(payload, 503, request);
+    }
+
+    const db = await getDatabase();
+    const pingResult = await db.admin().ping();
+
+    const responseTime = Date.now() - startTime;
+
+    const basePayload = {
+      status: "healthy",
+      database: "mongodb",
+      connection: "active",
+      timestamp: new Date().toISOString(),
+      responseTime,
+    };
+
+    if (!isAuthorized) {
+      return createSecureResponse(basePayload, 200, request);
+    }
+
+    return createSecureResponse(
+      {
+        ...basePayload,
+        details: {
+          ping: pingResult,
+          database: db.databaseName,
+        },
+      },
+      200,
+      request,
+    );
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+    logger.error(
+      "Database health check failed:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+
+    return createSecureResponse(
+      {
+        status: "unhealthy",
+        database: "mongodb",
+        connection: "error",
+        timestamp: new Date().toISOString(),
+        responseTime,
+        error: "Database connection failed",
+      },
+      503,
+      request,
+    );
+  }
+}
+
+export async function HEAD(request: NextRequest) {
+  try {
+    const isHealthy = await checkDatabaseHealth();
+    return createSecureResponse(
+      null,
+      isHealthy ? 200 : 503,
+      request,
+      {
+        "X-Health-Status": isHealthy ? "healthy" : "unhealthy",
+      },
+    );
+  } catch {
+    return createSecureResponse(
+      null,
+      503,
+      request,
+      {
+        "X-Health-Status": "error",
+      },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/health/live/route.ts">
+<![CDATA[
+/**
+ * Kubernetes Liveness Probe
+ * GET /api/health/live
+ *
+ * Returns 200 if the Node.js process is alive and responsive.
+ * This is a lightweight check that doesn't verify dependencies.
+ *
+ * Use this endpoint for k8s livenessProbe configuration.
+ * For full readiness checks, use /api/health/ready.
+ *
+ * @module api/health/live
+ */
+
+import { NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
+
+export async function GET(): Promise<NextResponse> {
+  return NextResponse.json(
+    {
+      alive: true,
+      uptime: process.uptime(),
+      memory: {
+        heapUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+        heapTotal: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
+        rss: Math.round(process.memoryUsage().rss / 1024 / 1024),
+      },
+      timestamp: new Date().toISOString(),
+    },
+    { status: 200 }
+  );
+}
+
+]]>
+</file>
+
+<file path="app/api/health/ready/route.ts">
+<![CDATA[
+/**
+ * Kubernetes Readiness Probe
+ * GET /api/health/ready
+ *
+ * Returns 200 when the application is ready to serve traffic.
+ * Checks critical dependencies: MongoDB and Redis.
+ *
+ * Use this endpoint for k8s readinessProbe configuration.
+ * For liveness checks, use /api/health (lighter weight).
+ *
+ * @module api/health/ready
+ */
+
+import { NextResponse } from "next/server";
+import { db } from "@/lib/mongo";
+import { getRedisClient } from "@/lib/redis";
+import { logger } from "@/lib/logger";
+import { withTimeout } from "@/lib/resilience";
+import { getAllCircuitBreakerStats, hasOpenCircuitBreakers } from "@/lib/resilience/service-circuit-breakers";
+
+export const dynamic = "force-dynamic";
+
+// Timeout for dependency checks - fail fast for readiness
+const HEALTH_CHECK_TIMEOUT_MS = 3_000;
+
+interface CircuitBreakerStat {
+  name: string;
+  state: "closed" | "open" | "half-open";
+  failureCount: number;
+  isOpen: boolean;
+  cooldownRemaining?: number;
+}
+
+interface ReadinessStatus {
+  ready: boolean;
+  checks: {
+    mongodb: "ok" | "error" | "timeout";
+    redis: "ok" | "error" | "disabled" | "timeout";
+    email: "ok" | "error" | "disabled" | "timeout";
+  };
+  latency: {
+    mongodb?: number;
+    redis?: number;
+    email?: number;
+  };
+  circuitBreakers?: {
+    hasOpenBreakers: boolean;
+    breakers: CircuitBreakerStat[];
+  };
+  timestamp: string;
+  requiresRedis?: boolean;
+}
+
+export async function GET(): Promise<NextResponse> {
+  const status: ReadinessStatus = {
+    ready: false,
+    checks: {
+      mongodb: "error",
+      redis: "disabled",
+      email: "disabled",
+    },
+    latency: {},
+    timestamp: new Date().toISOString(),
+  };
+
+  try {
+    // Check MongoDB
+    const mongoStart = Date.now();
+    try {
+      const connection = (await db) as unknown as {
+        command?: (cmd: Record<string, unknown>, options?: { signal?: AbortSignal }) => Promise<unknown>;
+      };
+
+      if (typeof connection?.command === "function") {
+        const cmd = connection.command;
+        await withTimeout(
+          async (signal: AbortSignal) => {
+            await cmd({ ping: 1, maxTimeMS: HEALTH_CHECK_TIMEOUT_MS }, { signal });
+          },
+          { timeoutMs: HEALTH_CHECK_TIMEOUT_MS }
+        );
+        status.checks.mongodb = "ok";
+        status.latency.mongodb = Date.now() - mongoStart;
+      } else {
+        throw new Error("MongoDB connection does not support command()");
+      }
+    } catch (mongoError) {
+      status.latency.mongodb = Date.now() - mongoStart;
+      const isTimeout = mongoError instanceof Error && mongoError.message.includes("timeout");
+      status.checks.mongodb = isTimeout ? "timeout" : "error";
+      logger.warn("[Health/Ready] MongoDB check failed", {
+        error: mongoError instanceof Error ? mongoError.message : String(mongoError),
+      });
+    }
+
+    // Check Redis (optional - if configured)
+    const redisConfigured = Boolean(process.env.REDIS_URL);
+    const redisClient = getRedisClient();
+    if (redisClient) {
+      const redisStart = Date.now();
+      try {
+        await withTimeout(
+          async () => {
+            await redisClient.ping();
+          },
+          { timeoutMs: HEALTH_CHECK_TIMEOUT_MS }
+        );
+        status.checks.redis = "ok";
+        status.latency.redis = Date.now() - redisStart;
+      } catch (redisError) {
+        status.latency.redis = Date.now() - redisStart;
+        const isTimeout = redisError instanceof Error && redisError.message.includes("timeout");
+        status.checks.redis = isTimeout ? "timeout" : "error";
+        logger.warn("[Health/Ready] Redis check failed", {
+          error: redisError instanceof Error ? redisError.message : String(redisError),
+        });
+      }
+    }
+
+    // Ready if MongoDB is OK and Redis is OK when configured
+    // This gates readiness on Redis when it's configured to prevent traffic
+    // routing to pods that can't reach the Redis dependency
+    const redisOk = !redisConfigured || status.checks.redis === "ok";
+    status.ready = status.checks.mongodb === "ok" && redisOk;
+    status.requiresRedis = redisConfigured;
+
+    // Add circuit breaker states for observability
+    status.circuitBreakers = {
+      hasOpenBreakers: hasOpenCircuitBreakers(),
+      breakers: getAllCircuitBreakerStats(),
+    };
+
+    if (status.ready) {
+      return NextResponse.json(status, { status: 200 });
+    } else {
+      return NextResponse.json(status, { status: 503 });
+    }
+  } catch (error) {
+    logger.error("[Health/Ready] Unexpected error", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+
+    return NextResponse.json(
+      {
+        ready: false,
+        checks: { mongodb: "error", redis: "error" },
+        error: "Health check failed",
+        timestamp: new Date().toISOString(),
+      },
+      { status: 503 }
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/health/route.ts">
+<![CDATA[
+/**
+ * Health Check Endpoint
+ * GET /api/health
+ *
+ * Returns server health status for monitoring and E2E test readiness checks.
+ * 
+ * SECURITY: Deep diagnostics only exposed when X-Health-Token header matches
+ * HEALTH_CHECK_TOKEN env variable. See env.example for configuration.
+ * 
+ * RELIABILITY: DB liveness check uses withTimeout to avoid hanging on stale
+ * connections. All callers (authorized or not) get an accurate health status.
+ */
+import { NextRequest } from "next/server";
+import { db } from "@/lib/mongo";
+import { getRedisClient } from "@/lib/redis";
+import { logger } from "@/lib/logger";
+import { isAuthorizedHealthRequest } from "@/server/security/health-token";
+import { createSecureResponse } from "@/server/security/headers";
+import { withTimeout } from "@/lib/resilience";
+
+export const dynamic = "force-dynamic";
+
+// Ping timeout - short to avoid hanging health checks
+const PING_TIMEOUT_MS = 2_000;
+
+export async function GET(request: NextRequest) {
+  try {
+    const isAuthorized = isAuthorizedHealthRequest(request);
+    
+    // Check database connection with timeout to avoid false positives from stale connections
+    let dbStatus: "connected" | "disconnected" | "error" | "timeout" = "disconnected";
+    let dbLatency = 0;
+
+    const dbStart = Date.now();
+    try {
+      const connection = (await db) as unknown as {
+        command?: (
+          cmd: Record<string, unknown>,
+          options?: { signal?: AbortSignal },
+        ) => Promise<unknown>;
+      };
+
+      // Lightweight admin ping with server-side timeout; avoids full collection scans.
+      const command = connection?.command;
+      if (typeof command === "function") {
+        const cmd = command;
+        await withTimeout(
+          async (signal: AbortSignal) => {
+            await cmd({ ping: 1, maxTimeMS: PING_TIMEOUT_MS }, { signal });
+          },
+          { timeoutMs: PING_TIMEOUT_MS },
+        );
+        dbStatus = "connected";
+        dbLatency = Date.now() - dbStart;
+      } else {
+        throw new Error("Database handle does not support command()");
+      }
+    } catch (dbError) {
+      dbLatency = Date.now() - dbStart;
+      const errorMessage = dbError instanceof Error ? dbError.message : String(dbError);
+      
+      if (errorMessage.includes("timeout") || errorMessage.includes("Timeout")) {
+        dbStatus = "timeout";
+        logger.warn("[Health Check] Database ping timeout", { latency: dbLatency });
+      } else {
+        dbStatus = "error";
+        logger.error("[Health Check] Database error", dbError as Error);
+      }
+    }
+
+    // Check Redis connection if configured
+    let redisStatus: "ok" | "error" | "not_configured" = "not_configured";
+    let redisLatency = 0;
+    const redisConfigured = Boolean(process.env.REDIS_URL);
+
+    if (redisConfigured) {
+      const redisStart = Date.now();
+      try {
+        const redis = getRedisClient();
+        if (redis) {
+          await withTimeout(
+            async () => {
+              await redis.ping();
+            },
+            { timeoutMs: PING_TIMEOUT_MS },
+          );
+          redisStatus = "ok";
+        }
+        redisLatency = Date.now() - redisStart;
+      } catch (redisError) {
+        redisLatency = Date.now() - redisStart;
+        redisStatus = "error";
+        logger.warn("[Health Check] Redis ping failed", { error: redisError instanceof Error ? redisError.message : String(redisError) });
+      }
+    }
+
+    const redisOk = !redisConfigured || redisStatus === "ok";
+    const isHealthy = dbStatus === "connected" && redisOk;
+    
+    const health = {
+      status: isHealthy ? "healthy" : "unhealthy",
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      // Always include basic DB and Redis status for monitoring (not sensitive)
+      database: dbStatus,
+      redis: redisConfigured ? redisStatus : "not_configured",
+      // Authorized callers get detailed diagnostics
+      ...(isAuthorized && {
+        diagnostics: {
+          database: {
+            status: dbStatus,
+            latencyMs: dbLatency,
+          },
+          redis: redisConfigured ? {
+            status: redisStatus,
+            latencyMs: redisLatency,
+          } : { status: "not_configured" },
+          memory: {
+            usedMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+            totalMB: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
+            rssMB: Math.round(process.memoryUsage().rss / 1024 / 1024),
+          },
+          environment: process.env.NODE_ENV || "development",
+          version: process.env.npm_package_version || "unknown",
+          commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || process.env.GIT_COMMIT_SHA?.slice(0, 7) || "unknown",
+        },
+      }),
+    };
+
+    const statusCode = isHealthy ? 200 : 503;
+
+    return createSecureResponse(health, statusCode, request);
+  } catch (error) {
+    logger.error("[Health Check] Error", error as Error);
+    return createSecureResponse(
+      {
+        status: "unhealthy",
+        timestamp: new Date().toISOString(),
+        database: "error",
+        redis: "error",
+        error: process.env.NODE_ENV === "development" 
+          ? (error instanceof Error ? error.message : "Unknown error")
+          : "Internal error",
+      },
+      503,
+      request,
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/health/sms/route.ts">
+<![CDATA[
+/**
+ * SMS Service Health Check Endpoint
+ * GET /api/health/sms
+ *
+ * Returns SMS/Twilio health status with configuration details
+ * SECURITY: Detailed config is only exposed to authorized internal tools using
+ * the X-Health-Token header (redacted otherwise). Preview/Dev environments are
+ * treated as non-prod for dev-mode SMS.
+ */
+import { NextRequest } from "next/server";
+import { logger } from "@/lib/logger";
+import { createSecureResponse } from "@/server/security/headers";
+import { withTimeout } from "@/lib/resilience";
+import { getRedisClient } from "@/lib/redis-client";
+import { isAuthorizedHealthRequest } from "@/server/security/health-token";
+
+export const dynamic = "force-dynamic";
+
+const TWILIO_TIMEOUT_MS = 3_000;
+const REDIS_TIMEOUT_MS = 1_500;
+
+/**
+ * Resolve production/preview flags so that Vercel preview deployments do not
+ * get treated as production (where dev-mode SMS must be disabled).
+ */
+function resolveEnvironment() {
+  const vercelEnv = process.env.VERCEL_ENV;
+  const nodeEnv = process.env.NODE_ENV || "development";
+  const isProd = vercelEnv
+    ? vercelEnv === "production"
+    : nodeEnv === "production";
+  const isPreview = vercelEnv === "preview";
+
+  return { isProd, isPreview, vercelEnv, nodeEnv };
+}
+
+async function checkTwilioReachability(twilioConfigured: boolean) {
+  if (!twilioConfigured) {
+    return { reachable: false, latencyMs: null, error: "Twilio not configured" };
+  }
+
+  try {
+    const { default: twilio } = await import("twilio");
+    const client = twilio(
+      process.env.TWILIO_ACCOUNT_SID!,
+      process.env.TWILIO_AUTH_TOKEN!,
+    );
+
+    const start = Date.now();
+    await withTimeout(
+      () => client.api.accounts(process.env.TWILIO_ACCOUNT_SID!).fetch(),
+      { timeoutMs: TWILIO_TIMEOUT_MS },
+    );
+
+    return { reachable: true, latencyMs: Date.now() - start, error: null };
+  } catch (error) {
+    logger.warn("[SMS Health Check] Twilio reachability failed", { error });
+    return {
+      reachable: false,
+      latencyMs: null,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+async function checkRedisReachability(redisConfigured: boolean) {
+  if (!redisConfigured) {
+    return { reachable: false, latencyMs: null, error: "Redis not configured" };
+  }
+
+  try {
+    const client = getRedisClient();
+    if (!client) {
+      return { reachable: false, latencyMs: null, error: "Redis client unavailable" };
+    }
+
+    if (client.status === "wait") {
+      await withTimeout(() => client.connect(), { timeoutMs: REDIS_TIMEOUT_MS });
+    }
+
+    const start = Date.now();
+    await withTimeout(() => client.ping(), { timeoutMs: REDIS_TIMEOUT_MS });
+
+    return { reachable: true, latencyMs: Date.now() - start, error: null };
+  } catch (error) {
+    logger.warn("[SMS Health Check] Redis reachability failed", { error });
+    return {
+      reachable: false,
+      latencyMs: null,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const { isProd, isPreview, vercelEnv, nodeEnv } = resolveEnvironment();
+    const isAuthorized = isAuthorizedHealthRequest(request);
+    const deepCheckRequested =
+      isAuthorized &&
+      request.headers.get("X-Health-Deep") !== "0" &&
+      request.headers.get("x-health-deep") !== "0";
+
+    const twilioConfigured = Boolean(
+      process.env.TWILIO_ACCOUNT_SID &&
+        process.env.TWILIO_AUTH_TOKEN &&
+        process.env.TWILIO_PHONE_NUMBER,
+    );
+
+    // Only allow dev-mode SMS in non-production to avoid silent OTP loss in prod
+    const smsDevMode =
+      !isProd &&
+      (process.env.SMS_DEV_MODE === "true" ||
+        process.env.SMS_DEV_MODE === undefined);
+
+    const redisConfigured = Boolean(
+      process.env.REDIS_URL ||
+        process.env.REDIS_KEY ||
+        process.env.OTP_STORE_REDIS_URL,
+    );
+
+    // Check if demo auth is enabled (should be false in production)
+    const demoAuthEnabled =
+      !isProd &&
+      (process.env.ALLOW_DEMO_LOGIN === "true" || nodeEnv === "development");
+
+    // Optional deep checks (only when authorized to avoid unnecessary external calls)
+    const twilioReachability = deepCheckRequested
+      ? await checkTwilioReachability(twilioConfigured)
+      : { reachable: null, latencyMs: null, error: null };
+
+    const redisReachability = deepCheckRequested
+      ? await checkRedisReachability(redisConfigured)
+      : { reachable: null, latencyMs: null, error: null };
+
+    // In production, require Twilio to be configured; in non-prod allow dev mode fallback.
+    // When a deep check ran, prefer its result for health determination.
+    const twilioHealthy =
+      twilioReachability.reachable ?? (twilioConfigured || smsDevMode);
+
+    const statusHealthy = isProd ? twilioHealthy : twilioHealthy || smsDevMode;
+    const healthStatus = statusHealthy ? "healthy" : "unhealthy";
+
+    // SECURITY: Only expose detailed config to authorized internal tools.
+    if (!isAuthorized) {
+      return createSecureResponse(
+        {
+          status: healthStatus,
+          timestamp: new Date().toISOString(),
+        },
+        statusHealthy ? 200 : 503,
+        request,
+      );
+    }
+
+    const health = {
+      status: healthStatus,
+      timestamp: new Date().toISOString(),
+      env: {
+        nodeEnv,
+        vercelEnv: vercelEnv || "not-set",
+        isProd,
+        isPreview,
+      },
+      sms: {
+        twilioConfigured,
+        smsDevMode,
+        twilioReachable: twilioReachability.reachable,
+        twilioLatencyMs: twilioReachability.latencyMs,
+        twilioError: twilioReachability.error,
+        // Do not expose credentials in responses (mask even in non-prod)
+        accountSidPrefix: null,
+        phoneConfigured: Boolean(process.env.TWILIO_PHONE_NUMBER),
+      },
+      otp: {
+        redisConfigured,
+        redisReachable: redisReachability.reachable,
+        redisLatencyMs: redisReachability.latencyMs,
+        redisError: redisReachability.error,
+        fallbackEnabled: !redisConfigured, // Will use in-memory if Redis unavailable
+      },
+      auth: {
+        demoAuthEnabled,
+        environment: nodeEnv,
+      },
+      diagnostics: {
+        message: (() => {
+          if (statusHealthy) {
+            if (twilioReachability.reachable === false) {
+              return "Twilio configured but unreachable (check credentials/network)";
+            }
+            if (twilioConfigured) {
+              return "Twilio configured and ready";
+            }
+            if (smsDevMode) {
+              return "SMS Dev Mode enabled - OTPs logged to console only";
+            }
+            return "Healthy";
+          }
+          if (!twilioConfigured) {
+            return "Twilio not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER (SMS_DEV_MODE ignored in production)";
+          }
+          if (twilioReachability.reachable === false) {
+            return "Twilio configured but unreachable. Verify credentials and network.";
+          }
+          return "Twilio health indeterminate";
+        })(),
+      },
+    };
+
+    const statusCode = health.status === "healthy" ? 200 : 503;
+
+    return createSecureResponse(health, statusCode, request);
+  } catch (error) {
+    logger.error("[SMS Health Check] Error", error as Error);
+    return createSecureResponse(
+      {
+        status: "error",
+        timestamp: new Date().toISOString(),
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      500,
+      request,
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/healthcheck/route.ts">
+<![CDATA[
+export { dynamic } from "../health/route";
+export { GET } from "../health/route";
+
+]]>
+</file>
+
+<file path="app/api/help/articles/[id]/comments/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
+import { ObjectId } from "mongodb";
+import { createSecureResponse } from "@/server/security/headers";
+import { validationError } from "@/server/utils/errorResponses";
+import { logger } from "@/lib/logger";
+
+const commentSchema = z.object({
+  comment: z.string().min(1).max(2000),
+});
+
+const buildArticleFilter = (id: string, orgId?: string | null) => {
+  const base = (() => {
+    try {
+      return { _id: new ObjectId(id) };
+    } catch {
+      return { slug: id };
+    }
+  })();
+  const tenantScope = {
+    $or: [{ orgId }, { orgId: { $exists: false } }, { orgId: null }],
+  };
+  return { ...base, ...tenantScope };
+};
+
+export async function POST(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
+  try {
+    const params = await props.params;
+    const user = await getSessionUser(req);
+    if (!user) {
+      return createSecureResponse({ error: "Unauthorized" }, 401, req);
+    }
+
+    const payload = await req.json().catch(() => ({}));
+    const data = commentSchema.parse(payload);
+
+    const db = await getDatabase();
+  const articles = db.collection(COLLECTIONS.HELP_ARTICLES);
+  const comments = db.collection(COLLECTIONS.HELP_COMMENTS);
+
+    const articleFilter = buildArticleFilter(params.id, user.orgId);
+    const article = await articles.findOne(articleFilter, {
+      projection: { slug: 1, status: 1, orgId: 1 },
+    });
+    if (!article) {
+      return createSecureResponse({ error: "Article not found" }, 404, req);
+    }
+    if (article.status !== "PUBLISHED") {
+      return createSecureResponse(
+        { error: "Comments are allowed only on published articles" },
+        403,
+        req,
+      );
+    }
+
+    const now = new Date();
+    await comments.insertOne({
+      articleSlug: article.slug,
+      orgId: article.orgId ?? user.orgId ?? null,
+      userId: user.id,
+      comment: data.comment.trim(),
+      createdAt: now,
+    });
+
+    const response = NextResponse.json({
+      ok: true,
+      createdAt: now.toISOString(),
+    });
+    response.headers.set("Cache-Control", "no-store, max-age=0");
+    return response;
+  } catch (err: unknown) {
+    if (
+      err &&
+      typeof err === "object" &&
+      "name" in err &&
+      err.name === "ZodError" &&
+      "issues" in err
+    ) {
+      return validationError(
+        "Validation failed",
+        err.issues as Array<{ message: string }>,
+      );
+    }
+    logger.error("POST /api/help/articles/[id]/comments failed", err);
+    return createSecureResponse({ error: "Internal Server Error" }, 500, req);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/help/articles/[id]/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
+import { ObjectId } from "mongodb";
+
+import { validationError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+
+import { logger } from "@/lib/logger";
+const patchSchema = z.object({
+  title: z.string().min(2).optional(),
+  content: z.string().min(1).optional(),
+  category: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  status: z.enum(["DRAFT", "PUBLISHED"]).optional(),
+});
+
+/**
+ * HTTP PATCH handler that updates a help article.
+ *
+ * Validates the request body against `patchSchema`, requires the caller to have the `SUPER_ADMIN` role,
+ * and updates the matching document in the `helparticles` collection. The handler accepts an article
+ * identifier (`params.id`) that may be either a MongoDB ObjectId or a slug; it first tries to treat
+ * `params.id` as an ObjectId and falls back to matching `slug` if parsing fails. The update sets the
+ * provided fields plus `updatedBy` (current user id) and `updatedAt` (current timestamp).
+ *
+ * Returns a JSON NextResponse containing the updated article on success, a 403 response if the user
+ * is not authorized, or a 404 response if no article matches the identifier.
+ *
+ * @param params.id - Article identifier; either a MongoDB ObjectId string or a slug.
+ */
+export async function PATCH(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await props.params;
+    // Handle authentication separately to return 401 instead of 500
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch (authError) {
+      // Log only sanitized error message to avoid exposing sensitive data
+      logger.error(
+        "Authentication failed:",
+        authError instanceof Error ? authError.message : "Unknown error",
+      );
+      return createSecureResponse({ error: "Unauthorized" }, 401, req);
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const data = patchSchema.parse(body);
+    const db = await getDatabase();
+    const coll = db.collection(COLLECTIONS.HELP_ARTICLES);
+
+    const baseFilter = (() => {
+      try {
+        return { _id: new ObjectId(id) };
+      } catch {
+        return { slug: id };
+      }
+    })();
+    // Scope updates to caller's tenant or global articles
+    const tenantScope = {
+      $or: [
+        { orgId: user.orgId },
+        { orgId: { $exists: false } },
+        { orgId: null },
+      ],
+    };
+    const filter = { ...baseFilter, ...tenantScope };
+
+    const article = await coll.findOne(filter);
+    if (!article) return createSecureResponse({ error: "Not found" }, 404, req);
+
+    const isSuperAdmin =
+      user?.role === "SUPER_ADMIN" ||
+      (Array.isArray(user?.roles) && user.roles.includes("SUPER_ADMIN"));
+    const canModerate =
+      isSuperAdmin ||
+      (Array.isArray(user?.permissions) &&
+        user.permissions.includes("help:moderate"));
+
+    // Only SUPER_ADMIN (or explicit help:moderate) can publish or change published content
+    if (!canModerate) {
+      if (data.status === "PUBLISHED") {
+        return createSecureResponse(
+          { error: "Only SUPER_ADMIN can publish articles" },
+          403,
+          req,
+        );
+      }
+      if (article.status === "PUBLISHED") {
+        return createSecureResponse(
+          { error: "Only SUPER_ADMIN can modify published articles" },
+          403,
+          req,
+        );
+      }
+    }
+
+    const update = {
+      $set: {
+        ...data,
+        updatedBy: user.id,
+        updatedAt: new Date(),
+      },
+    };
+
+    const res = await coll.findOneAndUpdate(filter, update, {
+      returnDocument: "after",
+    });
+    const updatedArticle = res?.value || null;
+    if (!updatedArticle)
+      return createSecureResponse({ error: "Not found" }, 404, req);
+    // Trigger async KB ingest (best-effort) via internal helper to avoid auth issues
+    import("@/kb/ingest")
+      .then(({ upsertArticleEmbeddings }) =>
+        upsertArticleEmbeddings({
+          orgId: updatedArticle?.orgId ?? user?.orgId ?? null,
+          articleId: updatedArticle.slug,
+          lang: "en",
+          route: `/help/${updatedArticle.slug}`,
+          roleScopes: ["USER"],
+          content: updatedArticle.content || "",
+        }),
+      )
+      .catch((e) =>
+        logger.error(
+          `Failed to trigger KB ingest for article ${updatedArticle.slug}:`,
+          e,
+        ),
+      );
+    const response = NextResponse.json(updatedArticle);
+    response.headers.set("Cache-Control", "no-store, max-age=0");
+    return response;
+  } catch (_err: unknown) {
+    if (
+      _err &&
+      typeof _err === "object" &&
+      "name" in _err &&
+      _err.name === "ZodError" &&
+      "issues" in _err
+    ) {
+      return validationError(
+        "Validation failed",
+        _err.issues as Array<{ message: string }>,
+      );
+    }
+    if (
+      _err &&
+      typeof _err === "object" &&
+      "code" in _err &&
+      _err.code === 11000
+    ) {
+      return createSecureResponse(
+        { error: "Duplicate key (e.g., slug) exists" },
+        409,
+        req,
+      );
+    }
+    logger.error(
+      "PATCH /api/help/articles/[id] failed",
+      _err instanceof Error ? _err : new Error(String(_err)),
+      { route: "PATCH /api/help/articles/[id]" },
+    );
+    return createSecureResponse({ error: "Internal Server Error" }, 500, req);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/help/articles/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { Filter, Document } from "mongodb";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+
+// Force dynamic rendering for this route
+export const dynamic = "force-dynamic";
+
+interface UserWithAuth {
+  orgId?: string;
+  permissions?: string[];
+  roles?: string[];
+  role?: string;
+  subRole?: string | null;
+}
+
+interface MongoTextFilter extends Document {
+  $text: { $search: string };
+}
+
+// Collection name aligned with Mongoose default pluralization for model "HelpArticle"
+const COLLECTION = "helparticles";
+
+/**
+ * Handles GET requests to list help articles with filtering, text search, and pagination.
+ *
+ * Supports query parameters:
+ * - `category`: exact-match category filter
+ * - `q`: full-text search over title, content, and tags
+ * - `status`: article status (defaults to `"PUBLISHED"`)
+ * - `page`: 1-based page number (minimum 1)
+ * - `limit`: page size (clamped between 1 and 50, defaults to 20)
+ *
+ * Indexes are expected to be created by scripts/add-database-indexes.js (unique `slug`, `status+updatedAt`, and a text index on `title`, `content`, and `tags`).
+ * The handler builds a filter from the query params and returns a JSON response with the matching items sorted by text score when `q` is provided or by `updatedAt` otherwise.
+ *
+ * Successful response (200) JSON shape:
+ * {
+ *   items: Array<{ slug, title, category, updatedAt, ... }>,
+ *   page: number,
+ *   limit: number,
+ *   total: number,
+ *   hasMore: boolean
+ * }
+ *
+ * On failure returns a 500 response with `{ error: 'Failed to fetch help articles' }`.
+ */
+/**
+ * @openapi
+ * /api/help/articles:
+ *   get:
+ *     summary: help/articles operations
+ *     tags: [help]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(req: NextRequest) {
+  const allowPlaywright =
+    process.env.PLAYWRIGHT_TESTS === "true" && process.env.NODE_ENV === "test";
+  if (allowPlaywright) {
+    return NextResponse.json({
+      items: [
+        {
+          slug: "work-orders-101",
+          title: "Work Orders 101",
+          category: "General Overview",
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          slug: "general-overview",
+          title: "General Overview",
+          category: "General",
+          updatedAt: new Date().toISOString(),
+        },
+      ],
+      page: 1,
+      limit: 20,
+      total: 2,
+      hasMore: false,
+    });
+  }
+  if (process.env.PLAYWRIGHT_TESTS === "true" && process.env.NODE_ENV !== "test") {
+    // Prevent accidental public access if flag is set outside test
+    return NextResponse.json({ error: "Not Found" }, { status: 404 });
+  }
+
+  try {
+    const user = await getSessionUser(req).catch(() => null);
+    if (!user) return createSecureResponse({ error: "Unauthorized" }, 401, req);
+
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+    const url = new URL(req.url);
+    const sp = url.searchParams;
+    const category = sp.get("category") || undefined;
+    const qParam = sp.get("q");
+    const q = qParam && qParam.trim() !== "" ? qParam.trim() : undefined;
+    const statusParam = sp.get("status");
+    const requestedStatus = statusParam ? statusParam.toUpperCase() : undefined;
+    const userWithAuth = user as UserWithAuth;
+    const canModerate =
+      (Array.isArray(userWithAuth?.permissions) &&
+        userWithAuth.permissions.includes("help:moderate")) ||
+      ["SUPER_ADMIN", "ADMIN"].includes(userWithAuth.role ?? "");
+    const status =
+      canModerate && requestedStatus ? requestedStatus : "PUBLISHED";
+    const rawPage = Number(sp.get("page"));
+    const page =
+      Number.isFinite(rawPage) && rawPage > 0 ? Math.floor(rawPage) : 1;
+    const limitParam = sp.get("limit");
+    const rawLimit = limitParam === null ? NaN : Number(limitParam);
+    const limit = Number.isFinite(rawLimit)
+      ? Math.max(1, Math.min(50, Math.floor(rawLimit)))
+      : 20;
+    const skip = (page - 1) * limit;
+
+    const db = await getDatabase();
+    const coll = db.collection(COLLECTION);
+
+    // Indexes are created by scripts/add-database-indexes.js
+
+    // Enforce tenant isolation; allow global articles with no orgId
+    const orClauses: Filter<Document>[] = [
+      { orgId: { $exists: false } },
+      { orgId: null },
+    ];
+    if (user.orgId) orClauses.unshift({ orgId: user.orgId });
+    const tenantScope = { $or: orClauses };
+    const filter: Filter<Document> = { ...tenantScope };
+    if (status && status !== "ALL") filter.status = status;
+    if (category) filter.category = category;
+
+    function escapeRegExp(input: string) {
+      return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+
+    let items: unknown[] = [];
+    let total = 0;
+
+    if (q) {
+      // Try $text search first; fallback to regex if text index is missing
+      const textFilter: Filter<Document> & MongoTextFilter = {
+        ...filter,
+        $text: { $search: q },
+      };
+      const textProjection = {
+        _id: 0,
+        score: { $meta: "textScore" },
+        slug: 1,
+        title: 1,
+        category: 1,
+        updatedAt: 1,
+      };
+      try {
+        total = await coll.countDocuments(textFilter);
+        items = await coll
+          .find(textFilter, { projection: textProjection })
+          .maxTimeMS(250)
+          .sort({ score: { $meta: "textScore" } })
+          .skip(skip)
+          .limit(limit)
+          .toArray();
+      } catch (_err: unknown) {
+        const errorWithCode = _err as {
+          codeName?: string;
+          code?: number;
+          message?: string;
+        };
+        const isMissingTextIndex =
+          errorWithCode?.codeName === "IndexNotFound" ||
+          errorWithCode?.code === 27 ||
+          /text index required/i.test(String(errorWithCode?.message || ""));
+        if (!isMissingTextIndex) throw _err;
+        // Fallback when text index is missing (restrict by recent updatedAt to reduce scan)
+        const safe = new RegExp(escapeRegExp(q), "i");
+        const cutoffDate = new Date();
+        cutoffDate.setMonth(cutoffDate.getMonth() - 6);
+        const regexFilter: Filter<Document> = {
+          ...filter,
+          updatedAt: { $gte: cutoffDate },
+          $or: [{ title: safe }, { content: safe }, { tags: safe }],
+        };
+        total = await coll.countDocuments(regexFilter);
+        items = await coll
+          .find(regexFilter, {
+            projection: {
+              _id: 0,
+              slug: 1,
+              title: 1,
+              category: 1,
+              updatedAt: 1,
+            },
+          })
+          .maxTimeMS(250)
+          .sort({ updatedAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .toArray();
+      }
+    } else {
+      total = await coll.countDocuments(filter);
+      items = await coll
+        .find(filter, {
+          projection: { _id: 0, slug: 1, title: 1, category: 1, updatedAt: 1 },
+        })
+        .maxTimeMS(250)
+        .sort({ updatedAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .toArray();
+    }
+
+    const response = NextResponse.json({
+      items,
+      page,
+      limit,
+      total,
+      hasMore: skip + items.length < total,
+    });
+    // Small public cache window; underlying query is tenant-scoped
+    response.headers.set(
+      "Cache-Control",
+      "public, max-age=300, stale-while-revalidate=60",
+    );
+    return response;
+  } catch (_error) {
+    const message = _error instanceof Error ? _error.message : "Unknown error";
+    logger.error("Error fetching help articles:", message);
+    return createSecureResponse(
+      { error: "Failed to fetch help articles" },
+      500,
+      req,
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/help/ask/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import Redis from "ioredis";
+import { Filter, Document } from "mongodb";
+
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
+
+import { logger } from "@/lib/logger";
+export const dynamic = "force-dynamic";
+
+type AskRequest = {
+  question: string;
+  limit?: number;
+  category?: string;
+  lang?: string;
+  route?: string;
+};
+
+interface UserWithAuth {
+  orgId?: string;
+  tenantId?: string;
+  role?: string;
+}
+
+interface SearchChunk {
+  slug?: string;
+  articleId?: string;
+  title?: string;
+  text?: string;
+  updatedAt?: string | Date;
+}
+
+function redactPII(s: string) {
+  return (
+    s
+      // Email addresses
+      .replace(
+        /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,
+        "[redacted email]",
+      )
+      // Phone patterns: optional country code, optional area code, standard 7-10 digits with separators
+      .replace(
+        /\b(?:\+?(\d{1,3})?[-.\s]?)?(\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}\b/g,
+        "[redacted phone]",
+      )
+      // Credit card patterns (13-16 digits with optional spaces/dashes)
+      .replace(/\b(?:\d{4}[-\s]?){3}\d{1,4}\b/g, "[redacted card]")
+      // SSN patterns (XXX-XX-XXXX)
+      .replace(/\b\d{3}-\d{2}-\d{4}\b/g, "[redacted SSN]")
+      // IP addresses (IPv4)
+      .replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, "[redacted IP]")
+      // 8-digit numeric IDs (may include Omani Civil IDs, invoice numbers, dates YYYYMMDD, etc.; trades precision for safety)
+      .replace(/\b\d{8}\b/g, "[redacted ID]")
+  );
+}
+
+/**
+ * Builds a plain-text heuristic answer from a list of article contexts for a given question.
+ *
+ * Produces a short human-readable summary: a header indicating whether any matching articles
+ * were found for `question`, followed by up to three bullet lines. Each bullet contains the
+ * context's title and a whitespace-normalized snippet of its text (trimmed to 400 characters).
+ * A trailing ellipsis is added to a snippet when it was truncated.
+ *
+ * @param question - The user's question used in the header.
+ * @param contexts - Array of contexts where each item has a `title` and `text`; only the first three are used.
+ * @returns A single newline-separated string containing the header and bullet lines.
+ */
+// Maximum length for context snippets in heuristic answers.
+// 400 was chosen to balance informativeness and brevity for UI display and model input.
+// You can override this value by setting the MAX_SNIPPET_LENGTH environment variable.
+const MAX_SNIPPET_LENGTH_ENV = Number(process.env.MAX_SNIPPET_LENGTH);
+const MAX_SNIPPET_LENGTH =
+  Number.isFinite(MAX_SNIPPET_LENGTH_ENV) && MAX_SNIPPET_LENGTH_ENV > 0
+    ? Math.floor(MAX_SNIPPET_LENGTH_ENV)
+    : 400;
+function buildHeuristicAnswer(
+  question: string,
+  contexts: Array<{ title: string; text: string }>,
+) {
+  const lines: string[] = [];
+  lines.push(
+    contexts.length
+      ? `Here is what I found about: "${question}"`
+      : `No matching articles found for: "${question}"`,
+  );
+  for (const ctx of contexts.slice(0, 3)) {
+    const originalText = ctx.text.replace(/\s+/g, " ");
+    const wasTruncated = originalText.length > MAX_SNIPPET_LENGTH;
+    const snippet = originalText.slice(0, MAX_SNIPPET_LENGTH).trim();
+    lines.push(`- ${ctx.title}: ${snippet}${wasTruncated ? "…" : ""}`);
+  }
+  return lines.join("\n");
+}
+
+/**
+ * Optionally requests an OpenAI chat completion to produce a concise answer based on provided contexts.
+ *
+ * If OPENAI_API_KEY is not set, the request fails, the API returns a non-OK response, or an error occurs, this function returns `null`.
+ *
+ * @param question - The user's question to answer.
+ * @param contexts - Array of context strings to provide to the model (each typically "title\ntext").
+ * @returns A string with the model's reply, or `null` if no API key is configured or the request fails.
+ */
+async function maybeSummarizeWithOpenAI(
+  question: string,
+  contexts: string[],
+): Promise<string | null> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return null;
+  let t: NodeJS.Timeout | undefined;
+  try {
+    const controller = new AbortController();
+    t = setTimeout(() => controller.abort(), 8000);
+    const messages = [
+      {
+        role: "system",
+        content:
+          "Answer concisely using ONLY the provided context. Include a short step list when relevant. English only.",
+      },
+      {
+        role: "user",
+        content: `Question: ${question}\n\nContext:\n${contexts.join("\n---\n")}`,
+      },
+    ];
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages,
+        temperature: 0.1,
+      }),
+      signal: controller.signal,
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.choices?.[0]?.message?.content || null;
+  } catch {
+    return null;
+  } finally {
+    if (t) clearTimeout(t);
+  }
+}
+
+/**
+ * Handle POST requests to answer a user question by searching help articles and optionally using OpenAI.
+ *
+ * Validates the request body for a non-empty `question` (responds 400 if missing), queries the `helparticles`
+ * MongoDB collection (ensuring a text index) for published articles (optionally filtered by `category`),
+ * and builds an answer from either an OpenAI summary (when OPENAI_API_KEY is configured and the call succeeds)
+ * or a deterministic heuristic summary. The JSON response contains `answer` and `citations` (matched docs' slug,
+ * title, and updatedAt). Returns a 500 response on unexpected errors.
+ *
+ * @returns A NextResponse with JSON `{ answer, citations }` on success, or `{ error }` with status 400/500 on failure.
+ */
+/**
+ * @openapi
+ * /api/help/ask:
+ *   post:
+ *     summary: help/ask operations
+ *     tags: [help]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const user = await getSessionUser(req).catch(() => null);
+    // Distributed rate limit per IP (uses Redis if available, falls back to in-memory)
+    await rateLimitAssert(req);
+    const body = await req.json().catch(() => ({}) as AskRequest);
+    const question = typeof body?.question === "string" ? body.question : "";
+    const rawLimit = Number(body?.limit);
+    const limit =
+      Number.isFinite(rawLimit) && rawLimit > 0
+        ? Math.min(8, Math.floor(rawLimit))
+        : 5;
+    const category =
+      typeof body?.category === "string" ? body.category : undefined;
+    const lang = typeof body?.lang === "string" ? body.lang : "en";
+    const userWithAuth = user as UserWithAuth | null;
+    const role = userWithAuth?.role || undefined;
+    const route = typeof body?.route === "string" ? body.route : undefined;
+    if (!question || !question.trim()) {
+      return createSecureResponse({ error: "Missing question" }, 400, req);
+    }
+
+    const db = await getDatabase();
+    type Doc = {
+      slug: string;
+      title: string;
+      content: string;
+      updatedAt?: Date;
+    };
+    const coll = db.collection<Doc>("helparticles");
+
+    // Text index is created by scripts/add-database-indexes.js
+
+    // Enforce tenant isolation; allow global articles with no orgId
+    const orClauses: Filter<Document>[] = [
+      { orgId: { $exists: false } },
+      { orgId: null },
+    ];
+    if (user?.orgId) orClauses.unshift({ orgId: user.orgId });
+    const tenantScope = { $or: orClauses };
+    const filter: Filter<Document> = { status: "PUBLISHED", ...tenantScope };
+    if (category) filter.category = category;
+
+    // Prefer vector search if available
+    let docs: Doc[] = [];
+    try {
+      const { embedText } = await import("@/ai/embeddings");
+      const { performKbSearch } = await import("@/kb/search");
+      const qVec = await embedText(question);
+      const chunks = await performKbSearch({
+        tenantId: user?.tenantId,
+        query: qVec,
+        q: question,
+        lang,
+        role,
+        route,
+        limit,
+      });
+      const typedChunks = (chunks || []) as SearchChunk[];
+      docs = typedChunks.map((c) => ({
+        slug: c.slug || c.articleId || "",
+        title: c.title || "",
+        content: c.text || "",
+        updatedAt: c.updatedAt ? new Date(c.updatedAt) : undefined,
+      }));
+    } catch (e) {
+      logger.error(
+        "Vector search failed, falling back to lexical search",
+        e instanceof Error ? e : new Error(String(e)),
+        { route: "/api/help/ask", context: "vector-search" },
+      );
+    }
+
+    if (!docs || docs.length === 0) {
+      try {
+        docs = await coll
+          .find(
+            { ...filter, $text: { $search: question } },
+            {
+              projection: {
+                score: { $meta: "textScore" },
+                slug: 1,
+                title: 1,
+                content: 1,
+                updatedAt: 1,
+              },
+            },
+          )
+          .sort({ score: { $meta: "textScore" } })
+          .limit(Math.min(8, Math.max(1, limit)))
+          .toArray();
+      } catch {
+        // Fallback when text index is missing: restrict by recent updatedAt to reduce collection scan
+        const safe = new RegExp(
+          question.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+          "i",
+        );
+        const cutoffDate = new Date();
+        cutoffDate.setMonth(cutoffDate.getMonth() - 6);
+        const regexFilter: Filter<Document> = {
+          ...filter,
+          updatedAt: { $gte: cutoffDate },
+          $or: [{ title: safe }, { content: safe }, { tags: safe }],
+        };
+        docs = await coll
+          .find(regexFilter, {
+            projection: { slug: 1, title: 1, content: 1, updatedAt: 1 },
+          })
+          .sort({ updatedAt: -1 })
+          .limit(Math.min(8, Math.max(1, limit)))
+          .toArray();
+      }
+    }
+
+    const contexts = docs.slice(0, 3).map((d: Doc) => ({
+      title: d.title,
+      text: (d.content || "").slice(0, 2000),
+    }));
+    const contextTexts = contexts.map(
+      (c) => `${c.title}\n${redactPII(c.text)}`,
+    );
+
+    // Try to summarize with OpenAI if configured; otherwise deterministic heuristic
+    const aiAnswer = await maybeSummarizeWithOpenAI(
+      redactPII(question),
+      contextTexts,
+    );
+    const answer = aiAnswer || buildHeuristicAnswer(question, contexts);
+
+    const citations = docs.map((d: Doc) => ({
+      slug: d.slug,
+      title: d.title,
+      updatedAt: d.updatedAt,
+    }));
+    return NextResponse.json({ answer, citations });
+  } catch (_err: Error | unknown) {
+    if (_err instanceof Error && _err.message === "Rate limited") {
+      return NextResponse.json(
+        {
+          name: "RateLimited",
+          code: "HELP_ASK_RATE_LIMITED",
+          userMessage: "Too many requests, please wait a minute.",
+          correlationId:
+            typeof crypto.randomUUID === "function"
+              ? crypto.randomUUID()
+              : `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        },
+        { status: 429 },
+      );
+    }
+    const correlationId =
+      typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    logger.error(
+      "help/ask error",
+      _err instanceof Error ? _err : new Error(String(_err)),
+      { correlationId },
+    );
+    return NextResponse.json(
+      {
+        name: "HelpAskError",
+        code: "HELP_ASK_FAILED",
+        userMessage: "Unable to process your question. Please try again.",
+        correlationId,
+      },
+      { status: 500 },
+    );
+  }
+}
+
+// Distributed rate limiter using Redis for multi-instance deployments
+// Falls back to in-memory implementation if Redis is not available
+const MAX_RATE_PER_MIN_ENV = Number(process.env.HELP_ASK_MAX_RATE_PER_MIN);
+const MAX_RATE_PER_MIN =
+  Number.isFinite(MAX_RATE_PER_MIN_ENV) && MAX_RATE_PER_MIN_ENV > 0
+    ? Math.floor(MAX_RATE_PER_MIN_ENV)
+    : 30;
+
+// Initialize Redis client if connection URL is provided
+// Support REDIS_URL or REDIS_KEY (Vercel/GitHub naming convention)
+const redisConnectionUrl = process.env.REDIS_URL || process.env.REDIS_KEY;
+let redis: Redis | null = null;
+if (redisConnectionUrl) {
+  try {
+    redis = new Redis(redisConnectionUrl, {
+      maxRetriesPerRequest: 3,
+      retryStrategy: (times) => Math.min(times * 50, 2000),
+      connectTimeout: 5000,
+      commandTimeout: 5000,
+    });
+
+    // Handle connection events for monitoring
+    redis.on("error", (err) => {
+      logger.error(
+        "Redis connection error",
+        err instanceof Error ? err : new Error(String(err)),
+        { route: "/api/help/ask", context: "redis-connection" },
+      );
+    });
+
+    redis.on("close", () => {
+      logger.warn(
+        "Redis connection closed, will attempt to reconnect automatically",
+      );
+      // Don't set redis = null - let it reconnect automatically
+    });
+
+    redis.on("reconnecting", () => {
+      logger.info("Redis reconnecting...");
+    });
+
+    redis.on("ready", () => {
+      logger.info("Redis connection restored");
+    });
+  } catch (err) {
+    logger.error(
+      "Failed to initialize Redis client",
+      err instanceof Error ? err : new Error(String(err)),
+      { route: "/api/help/ask", context: "redis-init" },
+    );
+  }
+}
+
+// Fallback in-memory store for development/testing
+const rateMap = new Map<string, { count: number; ts: number }>();
+
+async function rateLimitAssert(req: NextRequest) {
+  const ip = getClientIP(req);
+  const key = `help:ask:${ip}`;
+
+  // Try Redis first if available
+  if (redis) {
+    try {
+      const multi = redis.multi();
+      multi.incr(key);
+      multi.expire(key, 60);
+      const results = await multi.exec();
+
+      if (
+        results &&
+        results[0] &&
+        typeof results[0][1] === "number" &&
+        results[0][1] > MAX_RATE_PER_MIN
+      ) {
+        throw new Error("Rate limited");
+      }
+      return;
+    } catch (_err: Error | unknown) {
+      if ((_err as Error).message === "Rate limited") throw _err;
+      logger.error(
+        "Redis rate limit check failed, falling back to in-memory",
+        _err instanceof Error ? _err : new Error(String(_err)),
+        { route: "/api/help/ask", context: "rate-limit-redis" },
+      );
+    }
+  }
+
+  // Fallback to in-memory implementation
+  const now = Date.now();
+  const rec = rateMap.get(key) || { count: 0, ts: now };
+  if (now - rec.ts > 60_000) {
+    rec.count = 0;
+    rec.ts = now;
+  }
+  rec.count += 1;
+  rateMap.set(key, rec);
+  if (rec.count > MAX_RATE_PER_MIN) throw new Error("Rate limited");
+}
+// Note: Next.js restricts API route exports to HTTP methods only (GET, POST, etc.)
+
+]]>
+</file>
+
+<file path="app/api/help/context/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from 'next/server';
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { resolveEscalationContact } from '@/server/services/escalation.service';
+
+const MODULES = ['FM', 'Souq', 'Aqar', 'Account', 'Billing', 'Other'] as const;
+
+export async function GET(req: NextRequest) {
+  const user = await getSessionUser(req).catch(() => null);
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const moduleParam = new URL(req.url).searchParams.get('module') || '';
+  const moduleNormalized = MODULES.includes(moduleParam as (typeof MODULES)[number])
+    ? (moduleParam as (typeof MODULES)[number])
+    : 'Other';
+
+  const escalation = await resolveEscalationContact(user, moduleNormalized);
+
+  // TODO: integrate KnowledgeBase collection for contextual articles
+  return NextResponse.json({ articles: [], escalation }, { status: 200 });
+}
+
+]]>
+</file>
+
+<file path="app/api/help/escalate/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from 'next/server';
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { resolveEscalationContact } from '@/server/services/escalation.service';
+import { connectMongo } from '@/lib/mongo';
+import { SupportTicket } from '@/server/models/SupportTicket';
+import { setTenantContext, clearTenantContext } from '@/server/plugins/tenantIsolation';
+
+export async function POST(req: NextRequest) {
+  const user = await getSessionUser(req).catch(() => null);
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const body = (await req.json().catch(() => ({}))) as { module?: string; attempted_action?: string };
+  const { module: moduleParam, attempted_action } = body;
+  const moduleNormalized = ['FM', 'Souq', 'Aqar', 'Account', 'Billing', 'Other'].includes(
+    moduleParam || '',
+  )
+    ? (moduleParam as string)
+    : 'Other';
+
+  await connectMongo();
+  if (user.orgId) setTenantContext({ orgId: user.orgId });
+
+  try {
+    const escalation = await resolveEscalationContact(user);
+    
+    // Defensive check: ensure escalation contact has a valid user_id
+    if (!escalation || !escalation.user_id) {
+      return NextResponse.json(
+        { error: 'Unable to resolve escalation contact for this module' },
+        { status: 500 }
+      );
+    }
+    
+    // Generate unique ticket code with timestamp + random suffix to prevent collisions
+    const code = `HELP-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+
+    const ticket = await SupportTicket.create({
+      code,
+      subject: `Access request: ${attempted_action || 'Unknown action'}`,
+      module: moduleNormalized,
+      type: 'Access',
+      priority: 'Medium',
+      requester: { name: user.name, email: user.email },
+      messages: [
+        {
+          text: `User ${user.email} requested access for ${attempted_action || 'unknown action'} on module ${moduleParam || 'n/a'}.`,
+        },
+      ],
+      assignment: { assignedTo: { userId: escalation.user_id } },
+      ...(user.orgId ? { orgId: user.orgId } : {}),
+    });
+
+    return NextResponse.json({ ticket_id: ticket._id, escalated_to: escalation }, { status: 201 });
+  } finally {
+    // Prevent tenant context leakage across requests
+    clearTenantContext();
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/hr/attendance/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { AttendanceService } from "@/server/services/hr/attendance.service";
+import type { AttendanceStatus } from "@/server/models/hr.models";
+
+// 🔒 STRICT v4.1: Attendance requires HR, HR Officer, or Admin role
+const HR_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER'];
+
+export async function GET(req: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.orgId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 🔒 RBAC check
+    if (!session.user.role || !HR_ALLOWED_ROLES.includes(session.user.role)) {
+      return NextResponse.json({ error: "Forbidden: HR access required" }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const employeeId = searchParams.get("employeeId");
+    if (!employeeId) {
+      return NextResponse.json(
+        { error: "employeeId is required" },
+        { status: 400 },
+      );
+    }
+
+    const from = searchParams.get("from");
+    const to = searchParams.get("to");
+
+    await connectToDatabase();
+
+    const entries = await AttendanceService.list(
+      session.user.orgId,
+      employeeId,
+      from ? new Date(from) : undefined,
+      to ? new Date(to) : undefined,
+    );
+
+    return NextResponse.json({ entries });
+  } catch (error) {
+    logger.error("Error fetching attendance:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch attendance" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.orgId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 🔒 RBAC check
+    if (!session.user.role || !HR_ALLOWED_ROLES.includes(session.user.role)) {
+      return NextResponse.json({ error: "Forbidden: HR access required" }, { status: 403 });
+    }
+
+    const body = await req.json();
+    const required = ["employeeId", "date", "status"];
+    const missing = required.filter((field) => !body[field]);
+    if (missing.length) {
+      return NextResponse.json(
+        { error: `Missing fields: ${missing.join(", ")}` },
+        { status: 400 },
+      );
+    }
+
+    await connectToDatabase();
+
+    const entry = await AttendanceService.logEntry({
+      orgId: session.user.orgId,
+      employeeId: body.employeeId,
+      date: new Date(body.date),
+      status: body.status as AttendanceStatus,
+      shiftTemplateId: body.shiftTemplateId,
+      clockIn: body.clockIn ? new Date(body.clockIn) : undefined,
+      clockOut: body.clockOut ? new Date(body.clockOut) : undefined,
+      source: body.source,
+      notes: body.notes,
+    });
+
+    return NextResponse.json(entry, { status: 201 });
+  } catch (error) {
+    logger.error("Error logging attendance:", error);
+    return NextResponse.json(
+      { error: "Failed to log attendance" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/hr/employees/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { Types } from "mongoose";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { EmployeeService } from "@/server/services/hr/employee.service";
+import { hasAllowedRole } from "@/lib/auth/role-guards";
+
+// Define session user type with subRole support
+interface SessionUser {
+  role?: string;
+  subRole?: string | null;
+  orgId?: string;
+}
+
+// GET /api/hr/employees - List all employees for the organization
+export async function GET(req: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.orgId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 🔒 STRICT v4.1: HR endpoints require HR, HR Officer, or Admin role
+    // Now supports TEAM_MEMBER + subRole: HR_OFFICER pattern
+    const allowedRoles = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER'];
+    const user = session.user as SessionUser;
+    if (!hasAllowedRole(user.role, user.subRole, allowedRoles)) {
+      return NextResponse.json(
+        { error: "Forbidden: HR access required" },
+        { status: 403 }
+      );
+    }
+
+    await connectToDatabase();
+
+    // Parse query parameters
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = Math.min(
+      parseInt(searchParams.get("limit") || "50", 10),
+      100,
+    );
+    const status = searchParams.get("status");
+    const department = searchParams.get("department");
+    const search = searchParams.get("search");
+    const includePiiRequested = searchParams.get("includePii") === "true";
+
+    if (department && !Types.ObjectId.isValid(department)) {
+      return NextResponse.json(
+        { error: "Invalid department parameter" },
+        { status: 400 },
+      );
+    }
+
+    // Build query
+    // MINOR FIX: Use projection to exclude PII by default (compensation, bankDetails)
+    // to avoid leaking sensitive data in bulk list responses
+    // 🔒 STRICT v4.1: Support subRole for PII access (TEAM_MEMBER + HR_OFFICER)
+    const piiAllowedRoles = ["HR", "HR_OFFICER"];
+    const includePii =
+      includePiiRequested &&
+      hasAllowedRole(user.role, user.subRole, piiAllowedRoles);
+    
+    const {
+      items,
+      total,
+      page: safePage,
+      limit: safeLimit,
+    } = await EmployeeService.searchWithPagination(
+      {
+        orgId: session.user.orgId,
+        employmentStatus: (() => {
+          const allowed = new Set([
+            "ACTIVE",
+            "INACTIVE",
+            "ON_LEAVE",
+            "TERMINATED",
+          ]);
+          return status && allowed.has(status)
+            ? (status as "ACTIVE" | "INACTIVE" | "ON_LEAVE" | "TERMINATED")
+            : undefined;
+        })(),
+        departmentId: department || undefined,
+        text: search || undefined,
+      },
+      { page, limit, includePii },
+    );
+    
+    const itemArray = Array.isArray(items) ? items : [];
+    // Strip PII fields unless explicitly requested
+    const sanitizedItems = includePii
+      ? itemArray
+      : itemArray.map((emp: Record<string, unknown>) => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { compensation, bankDetails, ...safeEmployee } = emp;
+          return safeEmployee;
+        });
+
+    return NextResponse.json({
+      employees: sanitizedItems,
+      pagination: {
+        page: safePage,
+        limit: safeLimit,
+        total,
+        pages: Math.ceil(total / safeLimit),
+      },
+    });
+  } catch (error) {
+    logger.error("Error fetching employees:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch employees" },
+      { status: 500 },
+    );
+  }
+}
+
+// POST /api/hr/employees - Create a new employee
+export async function POST(req: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.orgId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 🔒 STRICT v4.1: HR endpoints require HR, HR Officer, or Admin role
+    // Now supports TEAM_MEMBER + subRole: HR_OFFICER pattern
+    const allowedRoles = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER'];
+    const user = session.user as SessionUser;
+    if (!hasAllowedRole(user.role, user.subRole, allowedRoles)) {
+      return NextResponse.json(
+        { error: "Forbidden: HR access required" },
+        { status: 403 }
+      );
+    }
+
+    await connectToDatabase();
+
+    const body = await req.json();
+
+    // Validate required fields
+    if (
+      !body.employeeCode ||
+      !body.firstName ||
+      !body.lastName ||
+      !body.email ||
+      !body.jobTitle ||
+      !body.hireDate
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Missing required fields: employeeCode, firstName, lastName, email, jobTitle, hireDate",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (
+      body.departmentId &&
+      !Types.ObjectId.isValid(body.departmentId as string)
+    ) {
+      return NextResponse.json(
+        { error: "Invalid departmentId" },
+        { status: 400 },
+      );
+    }
+
+    if (body.managerId && !Types.ObjectId.isValid(body.managerId as string)) {
+      return NextResponse.json(
+        { error: "Invalid managerId" },
+        { status: 400 },
+      );
+    }
+    const existing = await EmployeeService.getByCode(
+      session.user.orgId,
+      body.employeeCode,
+    );
+    if (existing) {
+      return NextResponse.json(
+        { error: `Employee code ${body.employeeCode} already exists` },
+        { status: 409 },
+      );
+    }
+
+    const employee = await EmployeeService.upsert({
+      orgId: session.user.orgId,
+      employeeCode: body.employeeCode,
+      firstName: body.firstName,
+      lastName: body.lastName,
+      email: body.email,
+      phone: body.phone,
+      jobTitle: body.jobTitle,
+      departmentId: body.departmentId,
+      managerId: body.managerId,
+      employmentType: body.employmentType || "FULL_TIME",
+      employmentStatus: body.employmentStatus || "ACTIVE",
+      hireDate: new Date(body.hireDate),
+      technicianProfile: body.technicianProfile,
+      compensation: body.compensation,
+      bankDetails: body.bankDetails,
+    });
+
+    return NextResponse.json(employee, { status: 201 });
+  } catch (error: unknown) {
+    logger.error("Error creating employee:", error);
+
+    if ((error as { code?: number }).code === 11000) {
+      return NextResponse.json(
+        { error: "Employee code or email already exists" },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Failed to create employee" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/hr/leave-types/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { LeaveTypeService } from "@/server/services/hr/leave-type.service";
+
+// 🔒 STRICT v4.1: HR endpoints require HR, HR Officer, or Admin role
+const HR_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER'];
+
+export async function GET(req: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.orgId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 🔒 RBAC check
+    if (!session.user.role || !HR_ALLOWED_ROLES.includes(session.user.role)) {
+      return NextResponse.json({ error: "Forbidden: HR access required" }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const search = searchParams.get("search") || undefined;
+    const limit = parseInt(searchParams.get("limit") || "0", 10);
+
+    await connectToDatabase();
+    const leaveTypes = await LeaveTypeService.list(session.user.orgId, search, {
+      limit: Number.isNaN(limit) || limit <= 0 ? undefined : limit,
+    });
+
+    return NextResponse.json({ leaveTypes });
+  } catch (error) {
+    logger.error("Failed to fetch leave types", error as Error);
+    return NextResponse.json(
+      { error: "Failed to fetch leave types" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.orgId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 🔒 RBAC check
+    if (!session.user.role || !HR_ALLOWED_ROLES.includes(session.user.role)) {
+      return NextResponse.json({ error: "Forbidden: HR access required" }, { status: 403 });
+    }
+
+    await connectToDatabase();
+    const body = await req.json();
+    if (!body?.code || !body?.name) {
+      return NextResponse.json(
+        { error: "code and name are required" },
+        { status: 400 },
+      );
+    }
+
+    const leaveType = await LeaveTypeService.create(session.user.orgId, {
+      code: body.code,
+      name: body.name,
+      description: body.description,
+      isPaid: typeof body.isPaid === "boolean" ? body.isPaid : true,
+      annualEntitlementDays: body.annualEntitlementDays ?? undefined,
+    });
+
+    return NextResponse.json(leaveType, { status: 201 });
+  } catch (error) {
+    logger.error("Failed to create leave type", error as Error);
+    return NextResponse.json(
+      { error: "Failed to create leave type" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/hr/leaves/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { LeaveService } from "@/server/services/hr/leave.service";
+import type {
+  LeaveRequestDoc,
+  LeaveRequestStatus,
+} from "@/server/models/hr.models";
+import { Types } from "mongoose";
+
+// 🔒 STRICT v4.1: HR endpoints require HR, HR Officer, or Admin role
+const HR_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER'];
+
+export async function GET(req: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.orgId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 🔒 RBAC check
+    if (!session.user.role || !HR_ALLOWED_ROLES.includes(session.user.role)) {
+      return NextResponse.json({ error: "Forbidden: HR access required" }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const status = searchParams.get("status") as LeaveRequestStatus | null;
+
+    await connectToDatabase();
+
+    const requests = await LeaveService.list(
+      session.user.orgId,
+      status || undefined,
+    );
+    return NextResponse.json({ requests });
+  } catch (error) {
+    logger.error("Error fetching leave requests:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch leave requests" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.orgId || !session.user.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 🔒 RBAC check
+    if (!session.user.role || !HR_ALLOWED_ROLES.includes(session.user.role)) {
+      return NextResponse.json({ error: "Forbidden: HR access required" }, { status: 403 });
+    }
+
+    const body = await req.json();
+    const missing = [
+      "employeeId",
+      "leaveTypeId",
+      "startDate",
+      "endDate",
+      "numberOfDays",
+    ].filter((field) => !body[field]);
+    if (missing.length) {
+      return NextResponse.json(
+        { error: `Missing fields: ${missing.join(", ")}` },
+        { status: 400 },
+      );
+    }
+
+    await connectToDatabase();
+
+    const leaveInput = {
+      orgId: new Types.ObjectId(session.user.orgId),
+      employeeId: new Types.ObjectId(body.employeeId),
+      leaveTypeId: new Types.ObjectId(body.leaveTypeId),
+      startDate: new Date(body.startDate),
+      endDate: new Date(body.endDate),
+      numberOfDays: body.numberOfDays,
+      status: "PENDING",
+      reason: body.reason,
+      approvalHistory: [],
+    } as unknown as Omit<
+      LeaveRequestDoc,
+      "createdAt" | "updatedAt" | "isDeleted"
+    >;
+    const requestDoc = await LeaveService.request(leaveInput);
+
+    return NextResponse.json(requestDoc, { status: 201 });
+  } catch (error) {
+    logger.error("Error creating leave request:", error);
+    return NextResponse.json(
+      { error: "Failed to create leave request" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PUT(req: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.orgId || !session.user.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 🔒 RBAC check
+    if (!session.user.role || !HR_ALLOWED_ROLES.includes(session.user.role)) {
+      return NextResponse.json({ error: "Forbidden: HR access required" }, { status: 403 });
+    }
+
+    const body = await req.json();
+    if (!body.leaveRequestId || !body.status) {
+      return NextResponse.json(
+        { error: "Missing fields: leaveRequestId, status" },
+        { status: 400 },
+      );
+    }
+
+    await connectToDatabase();
+
+    const updated = await LeaveService.updateStatus(
+      session.user.orgId,
+      body.leaveRequestId,
+      body.status,
+      session.user.id,
+      body.comment,
+    );
+
+    return NextResponse.json(updated);
+  } catch (error) {
+    logger.error("Error updating leave request:", error);
+    return NextResponse.json(
+      { error: "Failed to update leave request" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/hr/payroll/runs/[id]/calculate/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import {
+  Employee,
+  AttendanceRecord,
+  type PayrollLineDoc,
+} from "@/server/models/hr.models";
+import { PayrollService } from "@/server/services/hr/payroll.service";
+import { calculateNetPay } from "@/services/hr/ksaPayrollService";
+
+// 🔒 STRICT v4.1: Payroll calculation requires HR Officer, Finance Officer, or Admin role
+const PAYROLL_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER', 'FINANCE', 'FINANCE_OFFICER'];
+
+type RouteParams = { id: string };
+
+export async function POST(
+  _req: NextRequest,
+  props: { params: Promise<RouteParams> },
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.orgId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 🔒 RBAC check
+    if (!session.user.role || !PAYROLL_ALLOWED_ROLES.includes(session.user.role)) {
+      return NextResponse.json({ error: "Forbidden: HR/Finance access required" }, { status: 403 });
+    }
+
+    await connectToDatabase();
+
+    const { id } = await props.params;
+    const run = await PayrollService.getById(session.user.orgId, id);
+
+    if (!run) {
+      return NextResponse.json(
+        { error: "Payroll run not found" },
+        { status: 404 },
+      );
+    }
+
+    if (run.status !== "DRAFT") {
+      return NextResponse.json(
+        { error: "Can only calculate DRAFT payroll runs" },
+        { status: 400 },
+      );
+    }
+
+    const employees = await Employee.find({
+      orgId: session.user.orgId,
+      employmentStatus: "ACTIVE",
+      isDeleted: false,
+    }).lean();
+
+    if (!employees.length) {
+      return NextResponse.json(
+        { error: "No active employees available for payroll calculation" },
+        { status: 400 },
+      );
+    }
+
+    const overtimeAggregate = await AttendanceRecord.aggregate<{
+      _id: string;
+      totalMinutes: number;
+    }>([
+      {
+        $match: {
+          orgId: session.user.orgId,
+          isDeleted: false,
+          date: { $gte: run.periodStart, $lte: run.periodEnd },
+        },
+      },
+      {
+        $group: {
+          _id: "$employeeId",
+          totalMinutes: { $sum: "$overtimeMinutes" },
+        },
+      },
+    ]);
+
+    const overtimeMinutesMap = new Map<string, number>(
+      overtimeAggregate.map((entry) => [
+        String(entry._id),
+        entry.totalMinutes || 0,
+      ]),
+    );
+
+    const payrollLines: PayrollLineDoc[] = [];
+
+    for (const employee of employees) {
+      const compensation = employee.compensation || {
+        baseSalary: employee.baseSalary || 0,
+        housingAllowance: 0,
+        transportAllowance: 0,
+        otherAllowances: [],
+        currency: employee.currency || "SAR",
+      };
+
+      const baseSalary = compensation.baseSalary || 0;
+      const housingAllowance = compensation.housingAllowance || 0;
+      const transportAllowance = compensation.transportAllowance || 0;
+      const otherAllowances = compensation.otherAllowances || [];
+      const otherAllowanceTotal = otherAllowances.reduce(
+        (sum, item) => sum + (item.amount || 0),
+        0,
+      );
+
+      const overtimeMinutes = overtimeMinutesMap.get(String(employee._id)) || 0;
+      const overtimeHours = Math.round((overtimeMinutes / 60) * 100) / 100;
+
+      const nationality = (employee.nationality || "").toLowerCase();
+      const isSaudiNational =
+        nationality === "saudi" || nationality === "saudi arabia";
+      const isNewEntrant = employee.hireDate
+        ? employee.hireDate >= new Date("2024-01-01")
+        : false;
+
+      const calculation = calculateNetPay(
+        baseSalary,
+        housingAllowance,
+        transportAllowance,
+        otherAllowances,
+        overtimeHours,
+        compensation.gosiApplicable ?? isSaudiNational,
+        isNewEntrant,
+      );
+
+      const overtimeComponent = calculation.earnings.find(
+        (earning) => earning.code === "OVERTIME",
+      );
+
+      payrollLines.push({
+        employeeId: employee._id,
+        employeeCode: employee.employeeCode,
+        employeeName: `${employee.firstName} ${employee.lastName}`,
+        iban: employee.bankDetails?.iban,
+        baseSalary,
+        housingAllowance,
+        transportAllowance,
+        otherAllowances,
+        allowances: housingAllowance + transportAllowance + otherAllowanceTotal,
+        overtimeHours,
+        overtimeAmount: overtimeComponent?.amount || 0,
+        deductions: calculation.totalDeductions,
+        taxDeduction: 0,
+        gosiContribution: calculation.gosi.employerContribution,
+        netPay: calculation.netPay,
+        currency: compensation.currency || employee.currency || "SAR",
+        notes: undefined,
+        earnings: calculation.earnings,
+        deductionLines: calculation.deductions,
+        gosiBreakdown: calculation.gosi.breakdown,
+      });
+    }
+
+    const updatedRun = await PayrollService.updateCalculation(
+      session.user.orgId,
+      id,
+      payrollLines,
+      "IN_REVIEW",
+    );
+
+    if (!updatedRun) {
+      return NextResponse.json(
+        { error: "Failed to persist payroll calculation results" },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json({
+      run: updatedRun,
+      summary: {
+        employeesProcessed: payrollLines.length,
+        totals: updatedRun.totals,
+      },
+    });
+  } catch (error) {
+    logger.error("Error calculating payroll:", error);
+    return NextResponse.json(
+      { error: "Failed to calculate payroll" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/hr/payroll/runs/[id]/export/wps/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { PayrollService } from "@/server/services/hr/payroll.service";
+import { generateWPSFile, validateWPSFile } from "@/services/hr/wpsService";
+
+// 🔒 STRICT v4.1 CRITICAL: WPS export contains banking data (IBANs, salaries)
+// Requires HR Officer, Finance Officer, or Admin role
+const PAYROLL_EXPORT_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER', 'FINANCE', 'FINANCE_OFFICER'];
+
+type RouteParams = { id: string };
+
+export async function GET(
+  _req: NextRequest,
+  props: { params: Promise<RouteParams> },
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.orgId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 🔒 RBAC check - CRITICAL for banking data protection
+    if (!session.user.role || !PAYROLL_EXPORT_ALLOWED_ROLES.includes(session.user.role)) {
+      logger.warn("WPS export access denied", { 
+        userId: session.user.id, 
+        role: session.user.role,
+        orgId: session.user.orgId 
+      });
+      return NextResponse.json({ error: "Forbidden: HR/Finance access required for WPS export" }, { status: 403 });
+    }
+
+    await connectToDatabase();
+
+    const { id } = await props.params;
+    const run = await PayrollService.getById(session.user.orgId, id);
+
+    if (!run) {
+      return NextResponse.json(
+        { error: "Payroll run not found" },
+        { status: 404 },
+      );
+    }
+
+    if (run.status === "DRAFT") {
+      return NextResponse.json(
+        { error: "Cannot export WPS file for a DRAFT payroll run" },
+        { status: 400 },
+      );
+    }
+
+    if (!run.lines.length) {
+      return NextResponse.json(
+        { error: "Payroll run has no calculated lines" },
+        { status: 400 },
+      );
+    }
+
+    const periodMonth = new Date(run.periodEnd).toISOString().slice(0, 7);
+    const { file: wpsFile, errors } = await generateWPSFile(
+      run.lines,
+      session.user.orgId,
+      periodMonth,
+    );
+
+    if (!wpsFile.recordCount) {
+      return NextResponse.json(
+        {
+          error: "Failed to generate WPS file - no valid records",
+          errors,
+        },
+        { status: 400 },
+      );
+    }
+
+    const validation = validateWPSFile(wpsFile);
+    if (!validation.isValid) {
+      return NextResponse.json(
+        {
+          error: "WPS file validation failed",
+          errors: validation.errors,
+          warnings: validation.warnings,
+          generationErrors: errors,
+        },
+        { status: 400 },
+      );
+    }
+
+    return new NextResponse(wpsFile.content, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": `attachment; filename="${wpsFile.filename}"`,
+        "X-File-Checksum": wpsFile.checksum,
+        "X-Record-Count": wpsFile.recordCount.toString(),
+        "X-Total-Net-Salary": wpsFile.totalNetSalary.toString(),
+        ...(errors.length > 0 && {
+          "X-Generation-Warnings": errors.length.toString(),
+        }),
+      },
+    });
+  } catch (error) {
+    logger.error("Error generating WPS file:", error);
+    return NextResponse.json(
+      { error: "Failed to generate WPS file" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/hr/payroll/runs/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { PayrollService } from "@/server/services/hr/payroll.service";
+
+// 🔒 STRICT v4.1: Payroll requires HR Officer, Finance Officer, or Admin role
+// Finance Officer included because payroll is a financial function
+const PAYROLL_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER', 'FINANCE', 'FINANCE_OFFICER'];
+
+// GET /api/hr/payroll/runs - List all payroll runs
+export async function GET(req: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.orgId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 🔒 RBAC check
+    if (!session.user.role || !PAYROLL_ALLOWED_ROLES.includes(session.user.role)) {
+      return NextResponse.json({ error: "Forbidden: HR/Finance access required" }, { status: 403 });
+    }
+
+    await connectToDatabase();
+
+    const { searchParams } = new URL(req.url);
+    const status = searchParams.get("status");
+
+    const runs = await PayrollService.list({
+      orgId: session.user.orgId,
+      status: (() => {
+        const allowed = new Set([
+          "DRAFT",
+          "APPROVED",
+          "IN_REVIEW",
+          "LOCKED",
+          "EXPORTED",
+        ]);
+        return status && allowed.has(status)
+          ? (status as
+              | "DRAFT"
+              | "APPROVED"
+              | "IN_REVIEW"
+              | "LOCKED"
+              | "EXPORTED")
+          : undefined;
+      })(),
+    });
+
+    return NextResponse.json({ runs });
+  } catch (error) {
+    logger.error("Error fetching payroll runs:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch payroll runs" },
+      { status: 500 },
+    );
+  }
+}
+
+// POST /api/hr/payroll/runs - Create a new DRAFT payroll run
+export async function POST(req: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.orgId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 🔒 RBAC check
+    if (!session.user.role || !PAYROLL_ALLOWED_ROLES.includes(session.user.role)) {
+      return NextResponse.json({ error: "Forbidden: HR/Finance access required" }, { status: 403 });
+    }
+
+    await connectToDatabase();
+
+    const body = await req.json();
+
+    if (!body.periodStart || !body.periodEnd || !body.name) {
+      return NextResponse.json(
+        { error: "Missing required fields: name, periodStart, periodEnd" },
+        { status: 400 },
+      );
+    }
+
+    const periodStart = new Date(body.periodStart);
+    const periodEnd = new Date(body.periodEnd);
+
+    const overlap = await PayrollService.existsOverlap(
+      session.user.orgId,
+      periodStart,
+      periodEnd,
+    );
+    if (overlap) {
+      return NextResponse.json(
+        { error: "A payroll run already exists for this period" },
+        { status: 409 },
+      );
+    }
+
+    const run = await PayrollService.create({
+      orgId: session.user.orgId,
+      name: body.name,
+      periodStart,
+      periodEnd,
+    });
+
+    return NextResponse.json(run, { status: 201 });
+  } catch (error) {
+    logger.error("Error creating payroll run:", error);
+    return NextResponse.json(
+      { error: "Failed to create payroll run" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/i18n/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { SUPPORTED_LOCALES, type Locale } from "@/i18n/config";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+
+/**
+ * @openapi
+ * /api/i18n:
+ *   post:
+ *     summary: Set user locale preference
+ *     tags: [i18n]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               locale:
+ *                 type: string
+ *                 enum: [en, ar]
+ *     responses:
+ *       200:
+ *         description: Locale preference saved
+ *       400:
+ *         description: Invalid or unsupported locale
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(request: NextRequest) {
+  // Rate limiting: 30 requests per minute per IP to prevent abuse
+  const rateLimitResponse = enforceRateLimit(request, {
+    keyPrefix: "i18n-locale",
+    requests: 30,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
+  const body = await request.json().catch(() => ({}));
+  const locale = body?.locale as Locale | undefined;
+
+  if (!locale || !SUPPORTED_LOCALES.includes(locale)) {
+    return NextResponse.json({ ok: false }, { status: 400 });
+  }
+
+  // Persist the locale choice in a cookie so the middleware and layout can read it
+  const response = NextResponse.json({ ok: true });
+  response.cookies.set("locale", locale, {
+    path: "/",
+    sameSite: "lax",
+  });
+  response.cookies.set("fxz.lang", locale, {
+    path: "/",
+    sameSite: "lax",
+  });
+  response.cookies.set("fxz.locale", locale === "ar" ? "ar-SA" : "en-GB", {
+    path: "/",
+    sameSite: "lax",
+  });
+  return response;
+}
+
+]]>
+</file>
+
+<file path="app/api/integrations/linkedin/apply/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectMongo } from "@/lib/mongo";
+import { Job } from "@/server/models/Job";
+import { Candidate } from "@/server/models/Candidate";
+import { Application } from "@/server/models/Application";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import {
+  notFoundError,
+  validationError,
+  rateLimitError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
+
+/**
+ * @openapi
+ * /api/integrations/linkedin/apply:
+ *   get:
+ *     summary: integrations/linkedin/apply operations
+ *     tags: [integrations]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  try {
+    // Check if LinkedIn integration is enabled
+    if (process.env.ATS_ENABLED !== "true") {
+      return createSecureResponse(
+        { error: "LinkedIn integration not available in this deployment" },
+        501,
+        req,
+      );
+    }
+
+    await connectMongo();
+    const { jobSlug, profile, answers } = await req.json();
+    if (!jobSlug || !profile?.email) return validationError("Missing fields");
+
+    const job = await Job.findOne({
+      slug: jobSlug,
+      status: "published",
+    }).lean();
+    if (!job) return notFoundError("Job");
+
+    let candidate = await Candidate.findByEmail(job.orgId, profile.email);
+    if (!candidate) {
+      candidate = await Candidate.create({
+        orgId: job.orgId,
+        firstName: profile.firstName,
+        lastName: profile.lastName || "NA",
+        email: profile.email,
+        phone: profile.phone,
+        location: profile.location,
+        linkedin: profile.linkedinUrl,
+        source: "linkedin",
+      });
+    }
+
+    if (!candidate) {
+      return NextResponse.json(
+        { success: false, error: "Failed to create candidate" },
+        { status: 500 },
+      );
+    }
+
+    const orgId = job.orgId;
+    const jobId = job._id;
+
+    const dup = await Application.findOne({
+      orgId,
+      jobId,
+      candidateId: candidate._id,
+    });
+    if (dup)
+      return NextResponse.json({
+        success: true,
+        data: { applicationId: dup._id, message: "Already applied" },
+      });
+
+    const app = await Application.create({
+      orgId,
+      jobId,
+      candidateId: candidate._id,
+      stage: "applied",
+      score: 0,
+      source: "linkedin",
+      answers: answers || [],
+      candidateSnapshot: {
+        fullName: `${candidate.firstName} ${candidate.lastName}`,
+        email: candidate.email,
+        phone: candidate.phone,
+        location: candidate.location,
+        skills: candidate.skills || [],
+        experience: candidate.experience || 0,
+      },
+      history: [{ action: "applied", by: "candidate", at: new Date() }],
+    });
+
+    return NextResponse.json(
+      { success: true, data: { applicationId: app._id } },
+      { status: 201 },
+    );
+  } catch (error) {
+    logger.error(
+      "LinkedIn apply error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse(
+      { error: "Failed to apply with LinkedIn" },
+      500,
+      req,
+    );
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

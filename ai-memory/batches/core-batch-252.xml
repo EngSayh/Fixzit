@@ -1,0 +1,2925 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="scripts/scanner.js">
+<![CDATA[
+#!/usr/bin/env node
+
+/**
+ * FIXZIT SOUQ Phase 1 - Comprehensive Code Scanner
+ * Run this scanner to detect all issues in your codebase
+ * Usage: node scanner.js [--fix] [--report] [--severity=critical]
+ */
+
+const fs = require("fs").promises;
+const path = require("path");
+
+// Color codes for terminal output
+const colors = {
+  reset: "\x1b[0m",
+  red: "\x1b[31m",
+  yellow: "\x1b[33m",
+  green: "\x1b[32m",
+  blue: "\x1b[34m",
+  cyan: "\x1b[36m",
+  magenta: "\x1b[35m",
+  bold: "\x1b[1m",
+};
+
+// Scanner configuration
+const config = {
+  projectRoot: process.cwd(),
+  excludeDirs: [
+    "node_modules",
+    ".git",
+    "dist",
+    "build",
+    ".next",
+    "coverage",
+    ".replit",
+  ],
+  fileExtensions: [".js", ".jsx", ".ts", ".tsx", ".json", ".env", ".sql"],
+  apiRoutes: ["pages/api", "src/api", "app/api", "routes"],
+  maxFileSize: 1024 * 1024 * 10, // 10MB
+  issues: [],
+  stats: {
+    filesScanned: 0,
+    totalLines: 0,
+    totalIssues: 0,
+    critical: 0,
+    high: 0,
+    medium: 0,
+    low: 0,
+  },
+};
+
+// Issue severity levels
+const Severity = {
+  CRITICAL: "critical",
+  HIGH: "high",
+  MEDIUM: "medium",
+  LOW: "low",
+};
+
+// Main scanner class
+class FixzitScanner {
+  constructor() {
+    this.issues = [];
+    this.fileCache = new Map();
+  }
+
+  // Main scan function
+  async scan() {
+    console.log(`${colors.cyan}${colors.bold}
+╔══════════════════════════════════════════════════════════╗
+║          FIXZIT SOUQ COMPREHENSIVE CODE SCANNER         ║
+╚══════════════════════════════════════════════════════════╝
+${colors.reset}`);
+
+    console.log(
+      `${colors.blue}Starting comprehensive scan...${colors.reset}\n`,
+    );
+
+    try {
+      // 1. File System Scan
+      await this.scanFileSystem();
+
+      // 2. Security Vulnerabilities
+      await this.scanSecurity();
+
+      // 3. Route Configuration
+      await this.scanRoutes();
+
+      // 4. Database Issues
+      await this.scanDatabase();
+
+      // 5. API & Integration
+      await this.scanAPIs();
+
+      // 6. Performance Issues
+      await this.scanPerformance();
+
+      // 7. TypeScript/JavaScript Errors
+      await this.scanTypeScriptErrors();
+
+      // 8. Dependencies
+      await this.scanDependencies();
+
+      // 9. Multi-tenant Issues
+      await this.scanMultiTenant();
+
+      // 10. Localization & RTL
+      await this.scanLocalization();
+
+      // 11. ZATCA Compliance
+      await this.scanZATCACompliance();
+
+      // 12. Code Quality
+      await this.scanCodeQuality();
+
+      // 13. Testing Coverage
+      await this.scanTestCoverage();
+
+      // Generate Report
+      await this.generateReport();
+    } catch (_error) {
+      const message = _error instanceof Error ? _error.message : String(_error);
+      console.error(`${colors.red}Scanner Error: ${message}${colors.reset}`);
+      process.exit(1);
+    }
+  }
+
+  // Scan single file
+  async scanFile(filePath) {
+    try {
+      const stats = await fs.stat(filePath);
+      if (stats.size > config.maxFileSize) {
+        this.addIssue({
+          type: "Performance",
+          severity: Severity.MEDIUM,
+          file: filePath,
+          issue: `Large file size: ${(stats.size / 1024 / 1024).toFixed(2)}MB`,
+        });
+        return;
+      }
+
+      const content = await fs.readFile(filePath, "utf-8");
+      this.fileCache.set(filePath, content);
+
+      const lines = content.split("\n").length;
+      config.stats.totalLines += lines;
+
+      if (lines > 500) {
+        this.addIssue({
+          type: "Code Quality",
+          severity: Severity.LOW,
+          file: filePath,
+          issue: `Large file: ${lines} lines`,
+        });
+      }
+    } catch (_error) {
+      // File might be binary or inaccessible
+    }
+  }
+
+  // Add issue to list
+  addIssue(issue) {
+    this.issues.push(issue);
+    config.stats.totalIssues++;
+    config.stats[issue.severity]++;
+  }
+
+  // Find line numbers for pattern matches
+  findLineNumbers(content, pattern) {
+    const lines = content.split("\n");
+    const matchedLines = [];
+    lines.forEach((line, index) => {
+      if (pattern.test(line)) {
+        matchedLines.push(index + 1);
+      }
+    });
+    return matchedLines;
+  }
+
+  // 1. FILE SYSTEM SCAN
+  async scanFileSystem() {
+    console.log(`${colors.yellow}📁 Scanning file system...${colors.reset}`);
+
+    const scanDir = async (dir) => {
+      try {
+        const items = await fs.readdir(dir, { withFileTypes: true });
+
+        for (const item of items) {
+          const fullPath = path.join(dir, item.name);
+
+          if (item.isDirectory()) {
+            if (!config.excludeDirs.includes(item.name)) {
+              await scanDir(fullPath);
+            }
+          } else if (item.isFile()) {
+            const ext = path.extname(item.name);
+            if (config.fileExtensions.includes(ext)) {
+              await this.scanFile(fullPath);
+              config.stats.filesScanned++;
+            }
+          }
+        }
+      } catch (_err) {
+        // Directory might not be accessible
+      }
+    };
+
+    await scanDir(config.projectRoot);
+    console.log(`  ✓ Scanned ${config.stats.filesScanned} files\n`);
+  }
+
+  // 2. SECURITY VULNERABILITIES SCAN
+  async scanSecurity() {
+    console.log(
+      `${colors.yellow}🔒 Scanning security vulnerabilities...${colors.reset}`,
+    );
+
+    const securityPatterns = [
+      // Authentication Issues
+      {
+        pattern: /jwt\.sign([^,]+,\s*['"][^'"]+['"]\s*,\s*\{[^}]*\})/gi,
+        issue: "JWT without expiration",
+        severity: Severity.CRITICAL,
+      },
+      {
+        pattern: /localStorage\.setItem\(['"][^'"]*token/gi,
+        issue: "Token stored in localStorage",
+        severity: Severity.HIGH,
+      },
+      {
+        pattern: /eval\s*\(/g,
+        issue: "eval() usage detected",
+        severity: Severity.CRITICAL,
+      },
+      {
+        pattern: /innerHTML\s*=/g,
+        issue: "innerHTML usage (XSS risk)",
+        severity: Severity.HIGH,
+      },
+
+      // SQL Injection
+      {
+        pattern: /query\s*\(\s*['"`].*\$\{.*\}.*['"`]/g,
+        issue: "SQL injection vulnerability",
+        severity: Severity.CRITICAL,
+      },
+      {
+        pattern: /query\s*\(\s*['"`].*\+.*['"`]/g,
+        issue: "SQL concatenation detected",
+        severity: Severity.CRITICAL,
+      },
+
+      // API Keys & Secrets
+      {
+        pattern: /api[_-]?key\s*[:=]\s*['"][^'"]+['"]/gi,
+        issue: "API key in code",
+        severity: Severity.CRITICAL,
+      },
+      {
+        pattern: /password\s*[:=]\s*['"][^'"]+['"]/gi,
+        issue: "Hardcoded password",
+        severity: Severity.CRITICAL,
+      },
+
+      // CORS Issues
+      {
+        pattern: /Access-Control-Allow-Origin.*\*/g,
+        issue: "CORS wildcard origin",
+        severity: Severity.HIGH,
+      },
+      {
+        pattern: /cors(\s*)/g,
+        issue: "CORS without configuration",
+        severity: Severity.HIGH,
+      },
+
+      // Console statements
+      {
+        pattern: /console\.(log|error|warn|info)/g,
+        issue: "Console statement in code",
+        severity: Severity.LOW,
+      },
+      {
+        pattern: /debugger/g,
+        issue: "Debugger statement",
+        severity: Severity.HIGH,
+      },
+    ];
+
+    for (const [filePath, content] of this.fileCache) {
+      for (const { pattern, issue, severity } of securityPatterns) {
+        const matches = content.match(pattern);
+        if (matches) {
+          this.addIssue({
+            type: "Security",
+            severity,
+            file: filePath,
+            issue,
+            count: matches.length,
+            lines: this.findLineNumbers(content, pattern),
+          });
+        }
+      }
+    }
+
+    console.log(`  ✓ Security scan complete\n`);
+  }
+
+  // 3. ROUTE CONFIGURATION SCAN
+  async scanRoutes() {
+    console.log(
+      `${colors.yellow}🛣️  Scanning route configuration...${colors.reset}`,
+    );
+
+    const routePatterns = [
+      // Missing authentication
+      {
+        pattern: /router\.(get|post|put|delete|patch)\s*([^,]*,\s*(?!.*auth)/g,
+        issue: "Route without authentication",
+        severity: Severity.CRITICAL,
+      },
+
+      // Missing rate limiting
+      {
+        pattern: /\/api\/(?!.*rateLimit).*$/gm,
+        issue: "API route without rate limiting",
+        severity: Severity.HIGH,
+      },
+
+      // Debug routes
+      {
+        pattern: /\/(debug|test|temp|admin\/debug)/g,
+        issue: "Debug route exposed",
+        severity: Severity.CRITICAL,
+      },
+
+      // Error handling
+      {
+        pattern: /catch\s*([^)]*)\s*\{\s*\}/g,
+        issue: "Empty catch block",
+        severity: Severity.MEDIUM,
+      },
+      {
+        pattern: /throw\s+new\s+Error([^)]*)(?!\s*;?\s*})/g,
+        issue: "Unhandled error throw",
+        severity: Severity.MEDIUM,
+      },
+    ];
+
+    // Scan route files
+    for (const [filePath, content] of this.fileCache) {
+      if (filePath.includes("routes/") || filePath.includes("/api/")) {
+        for (const { pattern, issue, severity } of routePatterns) {
+          const matches = content.match(pattern);
+          if (matches) {
+            this.addIssue({
+              type: "Route",
+              severity,
+              file: filePath,
+              issue,
+              count: matches.length,
+            });
+          }
+        }
+      }
+    }
+
+    console.log(`  ✓ Route scan complete\n`);
+  }
+
+  // 4. DATABASE ISSUES SCAN
+  async scanDatabase() {
+    console.log(
+      `${colors.yellow}🗄️  Scanning database issues...${colors.reset}`,
+    );
+
+    const dbPatterns = [
+      // N+1 Queries
+      {
+        pattern: /\.map\s*([^)]*await\s+[^)]*\.(find|query|select)/g,
+        issue: "N+1 query pattern detected",
+        severity: Severity.HIGH,
+      },
+
+      // Missing indexes
+      {
+        pattern: /where\s+[^.]+\.(?!id|_id|uuid)/gi,
+        issue: "Query on non-indexed field",
+        severity: Severity.MEDIUM,
+      },
+
+      // Transaction issues
+      {
+        pattern: /BEGIN|START\s+TRANSACTION(?![\s\S]*COMMIT|ROLLBACK)/gi,
+        issue: "Transaction without commit/rollback",
+        severity: Severity.HIGH,
+      },
+
+      // Connection leaks
+      {
+        pattern: /createConnection|connect((?![\s\S]*\.close()|\.end())/g,
+        issue: "Database connection not closed",
+        severity: Severity.HIGH,
+      },
+
+      // Injection vulnerabilities
+      {
+        pattern: /\$\{[^}]*\}.*(?:WHERE|AND|OR)/gi,
+        issue: "Template literal in SQL query",
+        severity: Severity.CRITICAL,
+      },
+    ];
+
+    for (const [filePath, content] of this.fileCache) {
+      for (const { pattern, issue, severity } of dbPatterns) {
+        if (pattern.test(content)) {
+          this.addIssue({
+            type: "Database",
+            severity,
+            file: filePath,
+            issue,
+          });
+        }
+      }
+    }
+
+    console.log(`  ✓ Database scan complete\n`);
+  }
+
+  // 5. API & INTEGRATION SCAN
+  async scanAPIs() {
+    console.log(
+      `${colors.yellow}🔌 Scanning API & integrations...${colors.reset}`,
+    );
+
+    const apiPatterns = [
+      // Missing error handling
+      {
+        pattern: /fetch([^)]+)(?!\.then(|\.catch(|await)/g,
+        issue: "Fetch without error handling",
+        severity: Severity.HIGH,
+      },
+      {
+        pattern: /axios\.[a-z]+([^)]+)(?!\.then(|\.catch(|await)/g,
+        issue: "Axios without error handling",
+        severity: Severity.HIGH,
+      },
+
+      // Missing timeout
+      {
+        pattern: /fetch([^)]+)(?![^}]*timeout)/g,
+        issue: "Fetch without timeout",
+        severity: Severity.MEDIUM,
+      },
+
+      // API versioning
+      {
+        pattern: /\/api\/(?!v\d+)/g,
+        issue: "API without versioning",
+        severity: Severity.LOW,
+      },
+
+      // ZATCA specific
+      {
+        pattern: /zatca|invoice.*qr|e-?invoice/gi,
+        issue: "ZATCA integration check needed",
+        severity: Severity.HIGH,
+      },
+
+      // Payment gateway
+      {
+        pattern: /stripe|payment|card.*number/gi,
+        issue: "Payment processing check needed",
+        severity: Severity.CRITICAL,
+      },
+    ];
+
+    for (const [filePath, content] of this.fileCache) {
+      for (const { pattern, issue, severity } of apiPatterns) {
+        if (pattern.test(content)) {
+          this.addIssue({
+            type: "API/Integration",
+            severity,
+            file: filePath,
+            issue,
+          });
+        }
+      }
+    }
+
+    console.log(`  ✓ API scan complete\n`);
+  }
+
+  // 6. PERFORMANCE SCAN
+  async scanPerformance() {
+    console.log(
+      `${colors.yellow}🚀 Scanning performance issues...${colors.reset}`,
+    );
+
+    const performancePatterns = [
+      // React performance
+      {
+        pattern: /useEffect([^,]+)/g,
+        issue: "useEffect without dependencies",
+        severity: Severity.MEDIUM,
+      },
+
+      // Bundle size
+      {
+        pattern: /import\s+\*\s+as/g,
+        issue: "Full library import",
+        severity: Severity.MEDIUM,
+      },
+      {
+        pattern: /require(['"][^'"]+['"])/g,
+        issue: "Dynamic require (affects bundling)",
+        severity: Severity.MEDIUM,
+      },
+
+      // Memory leaks
+      {
+        pattern: /addEventListener(?![\s\S]*removeEventListener)/g,
+        issue: "Event listener not removed",
+        severity: Severity.HIGH,
+      },
+      {
+        pattern: /setInterval(?![\s\S]*clearInterval)/g,
+        issue: "Interval not cleared",
+        severity: Severity.HIGH,
+      },
+
+      // Inefficient operations
+      {
+        pattern: /JSON\.parse(JSON\.stringify/g,
+        issue: "Inefficient deep clone",
+        severity: Severity.MEDIUM,
+      },
+    ];
+
+    for (const [filePath, content] of this.fileCache) {
+      for (const { pattern, issue, severity } of performancePatterns) {
+        if (pattern.test(content)) {
+          this.addIssue({
+            type: "Performance",
+            severity,
+            file: filePath,
+            issue,
+          });
+        }
+      }
+    }
+
+    console.log(`  ✓ Performance scan complete\n`);
+  }
+
+  // 7. TYPESCRIPT ERRORS SCAN
+  async scanTypeScriptErrors() {
+    console.log(
+      `${colors.yellow}📝 Scanning TypeScript/JavaScript errors...${colors.reset}`,
+    );
+
+    const tsPatterns = [
+      // Type errors
+      {
+        pattern: /any(?:\[\])?(?:\s*[,;]|\s*))/g,
+        issue: 'Using "any" type',
+        severity: Severity.LOW,
+      },
+      {
+        pattern: /@ts-ignore|@ts-nocheck/g,
+        issue: "TypeScript checks disabled",
+        severity: Severity.MEDIUM,
+      },
+      {
+        pattern: /!\./g,
+        issue: "Non-null assertion operator",
+        severity: Severity.LOW,
+      },
+
+      // Common errors
+      {
+        pattern: /TODO|FIXME|HACK|XXX/g,
+        issue: "Unresolved TODO/FIXME",
+        severity: Severity.LOW,
+      },
+
+      // Async issues
+      {
+        pattern: /async\s+([^)]*)\s*=>\s*(?!.*await)/g,
+        issue: "Async function without await",
+        severity: Severity.LOW,
+      },
+      {
+        pattern: /new\s+Promise([^)]+)(?!.*(?:resolve|reject))/g,
+        issue: "Promise without resolve/reject",
+        severity: Severity.HIGH,
+      },
+    ];
+
+    for (const [filePath, content] of this.fileCache) {
+      if (
+        filePath.endsWith(".ts") ||
+        filePath.endsWith(".tsx") ||
+        filePath.endsWith(".js") ||
+        filePath.endsWith(".jsx")
+      ) {
+        for (const { pattern, issue, severity } of tsPatterns) {
+          const matches = content.match(pattern);
+          if (matches) {
+            this.addIssue({
+              type: "TypeScript",
+              severity,
+              file: filePath,
+              issue,
+              count: matches.length,
+            });
+          }
+        }
+      }
+    }
+
+    console.log(`  ✓ TypeScript scan complete\n`);
+  }
+
+  // 8. DEPENDENCIES SCAN
+  async scanDependencies() {
+    console.log(`${colors.yellow}📦 Scanning dependencies...${colors.reset}`);
+
+    try {
+      // Check package.json
+      const packagePath = path.join(config.projectRoot, "package.json");
+      const packageContent = await fs.readFile(packagePath, "utf-8");
+      const pkg = JSON.parse(packageContent);
+
+      const depCount = Object.keys(pkg.dependencies || {}).length;
+      const devDepCount = Object.keys(pkg.devDependencies || {}).length;
+
+      if (depCount > 50) {
+        this.addIssue({
+          type: "Dependencies",
+          severity: Severity.MEDIUM,
+          file: "package.json",
+          issue: `Too many dependencies (${depCount})`,
+        });
+      }
+
+      if (devDepCount > 30) {
+        this.addIssue({
+          type: "Dependencies",
+          severity: Severity.LOW,
+          file: "package.json",
+          issue: `Many dev dependencies (${devDepCount})`,
+        });
+      }
+    } catch (_err) {
+      // package.json might not exist
+    }
+
+    console.log(`  ✓ Dependencies scan complete\n`);
+  }
+
+  // 9. MULTI-TENANT SCAN
+  async scanMultiTenant() {
+    console.log(
+      `${colors.yellow}🏢 Scanning multi-tenant issues...${colors.reset}`,
+    );
+
+    const tenantPatterns = [
+      // Missing tenant isolation
+      {
+        pattern: /(?:find|query|select)(?!.*tenant|.*where.*tenant)/gi,
+        issue: "Query without tenant filter",
+        severity: Severity.CRITICAL,
+      },
+      {
+        pattern: /DELETE\s+FROM(?!.*WHERE.*tenant)/gi,
+        issue: "DELETE without tenant filter",
+        severity: Severity.CRITICAL,
+      },
+      {
+        pattern: /UPDATE\s+\w+\s+SET(?!.*WHERE.*tenant)/gi,
+        issue: "UPDATE without tenant filter",
+        severity: Severity.CRITICAL,
+      },
+
+      // Cross-tenant references
+      {
+        pattern: /JOIN(?!.*ON.*tenant)/gi,
+        issue: "JOIN without tenant constraint",
+        severity: Severity.HIGH,
+      },
+
+      // Global operations
+      {
+        pattern: /cache\.(get|set)([^,)]+)(?!.*tenant)/g,
+        issue: "Cache without tenant namespace",
+        severity: Severity.HIGH,
+      },
+    ];
+
+    for (const [filePath, content] of this.fileCache) {
+      for (const { pattern, issue, severity } of tenantPatterns) {
+        if (pattern.test(content)) {
+          this.addIssue({
+            type: "Multi-tenant",
+            severity,
+            file: filePath,
+            issue,
+          });
+        }
+      }
+    }
+
+    console.log(`  ✓ Multi-tenant scan complete\n`);
+  }
+
+  // 10. LOCALIZATION SCAN
+  async scanLocalization() {
+    console.log(
+      `${colors.yellow}🌍 Scanning localization & RTL issues...${colors.reset}`,
+    );
+
+    const i18nPatterns = [
+      // Hardcoded text
+      {
+        pattern: />([A-Z][a-z]+(?:\s+[a-z]+)+)</g,
+        issue: "Hardcoded English text in JSX",
+        severity: Severity.LOW,
+      },
+      {
+        pattern: /placeholder=["'][A-Z][a-z]+/g,
+        issue: "Hardcoded placeholder text",
+        severity: Severity.LOW,
+      },
+
+      // RTL issues
+      {
+        pattern: /left:\s*\d+|margin-left:|padding-left:/g,
+        issue: "Fixed left positioning (RTL issue)",
+        severity: Severity.MEDIUM,
+      },
+      {
+        pattern: /right:\s*\d+|margin-right:|padding-right:/g,
+        issue: "Fixed right positioning (RTL issue)",
+        severity: Severity.MEDIUM,
+      },
+      {
+        pattern: /float:\s*(?:left|right)/g,
+        issue: "Float direction (RTL issue)",
+        severity: Severity.MEDIUM,
+      },
+
+      // Date/Number formatting
+      {
+        pattern: /new\s+Date()\.to(?:Date|Time|Locale)String()/g,
+        issue: "Date formatting without locale",
+        severity: Severity.MEDIUM,
+      },
+    ];
+
+    for (const [filePath, content] of this.fileCache) {
+      for (const { pattern, issue, severity } of i18nPatterns) {
+        if (pattern.test(content)) {
+          this.addIssue({
+            type: "Localization",
+            severity,
+            file: filePath,
+            issue,
+          });
+        }
+      }
+    }
+
+    console.log(`  ✓ Localization scan complete\n`);
+  }
+
+  // 11. ZATCA COMPLIANCE SCAN
+  async scanZATCACompliance() {
+    console.log(
+      `${colors.yellow}⚖️  Scanning ZATCA compliance...${colors.reset}`,
+    );
+
+    const zatcaPatterns = [
+      // Missing ZATCA features
+      {
+        pattern: /invoice(?!.*zatca|.*qr|.*xml)/gi,
+        issue: "Invoice without ZATCA compliance",
+        severity: Severity.CRITICAL,
+      },
+      {
+        pattern: /qr.*code(?!.*zatca)/gi,
+        issue: "QR code without ZATCA format",
+        severity: Severity.HIGH,
+      },
+      {
+        pattern: /tax.*number(?!.*format|.*validate)/gi,
+        issue: "Tax number without validation",
+        severity: Severity.HIGH,
+      },
+
+      // Digital signature
+      {
+        pattern: /sign(?:ature)?(?!.*digital|.*certificate)/gi,
+        issue: "Signing without digital certificate",
+        severity: Severity.CRITICAL,
+      },
+    ];
+
+    for (const [filePath, content] of this.fileCache) {
+      if (
+        filePath.includes("invoice") ||
+        filePath.includes("finance") ||
+        filePath.includes("zatca")
+      ) {
+        for (const { pattern, issue, severity } of zatcaPatterns) {
+          if (pattern.test(content)) {
+            this.addIssue({
+              type: "ZATCA",
+              severity,
+              file: filePath,
+              issue,
+            });
+          }
+        }
+      }
+    }
+
+    console.log(`  ✓ ZATCA scan complete\n`);
+  }
+
+  // 12. CODE QUALITY SCAN
+  async scanCodeQuality() {
+    console.log(`${colors.yellow}🔧 Scanning code quality...${colors.reset}`);
+
+    const qualityPatterns = [
+      // Long functions
+      {
+        pattern: /function[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g,
+        issue: "Long function detected",
+        severity: Severity.LOW,
+      },
+
+      // Deep nesting
+      {
+        pattern: /\s{8,}\w+/g,
+        issue: "Deep nesting detected",
+        severity: Severity.MEDIUM,
+      },
+
+      // Duplicate code
+      {
+        pattern: /(\w+\s*=\s*\w+\s*;?\s*){3,}/g,
+        issue: "Potential duplicate code",
+        severity: Severity.LOW,
+      },
+
+      // Magic numbers
+      {
+        pattern: /\b(?!0|1|2|10|100|1000)\d{2,}\b/g,
+        issue: "Magic number detected",
+        severity: Severity.LOW,
+      },
+    ];
+
+    for (const [filePath, content] of this.fileCache) {
+      for (const { pattern, issue, severity } of qualityPatterns) {
+        const matches = content.match(pattern);
+        if (matches && matches.length > 5) {
+          // Only report if significant
+          this.addIssue({
+            type: "Code Quality",
+            severity,
+            file: filePath,
+            issue,
+            count: matches.length,
+          });
+        }
+      }
+    }
+
+    console.log(`  ✓ Code quality scan complete\n`);
+  }
+
+  // 13. TESTING COVERAGE SCAN
+  async scanTestCoverage() {
+    console.log(
+      `${colors.yellow}🧪 Scanning testing coverage...${colors.reset}`,
+    );
+
+    let testFiles = 0;
+    let sourceFiles = 0;
+
+    for (const [filePath] of this.fileCache) {
+      if (
+        filePath.includes(".test.") ||
+        filePath.includes(".spec.") ||
+        filePath.includes("__tests__")
+      ) {
+        testFiles++;
+      } else if (
+        filePath.endsWith(".js") ||
+        filePath.endsWith(".ts") ||
+        filePath.endsWith(".jsx") ||
+        filePath.endsWith(".tsx")
+      ) {
+        sourceFiles++;
+      }
+    }
+
+    const testCoverage = sourceFiles > 0 ? (testFiles / sourceFiles) * 100 : 0;
+
+    if (testCoverage < 50) {
+      this.addIssue({
+        type: "Testing",
+        severity: Severity.HIGH,
+        file: "Test Coverage",
+        issue: `Low test coverage: ${testCoverage.toFixed(1)}%`,
+      });
+    }
+
+    if (testFiles === 0) {
+      this.addIssue({
+        type: "Testing",
+        severity: Severity.CRITICAL,
+        file: "Test Coverage",
+        issue: "No test files found",
+      });
+    }
+
+    console.log(
+      `  ✓ Testing scan complete (${testCoverage.toFixed(1)}% coverage)\n`,
+    );
+  }
+
+  // Generate comprehensive report
+  async generateReport() {
+    console.log(`${colors.cyan}${colors.bold}
+╔══════════════════════════════════════════════════════════╗
+║                    SCAN RESULTS SUMMARY                 ║
+╚══════════════════════════════════════════════════════════╝${colors.reset}`);
+
+    // Statistics
+    console.log(`${colors.blue}📊 Statistics:${colors.reset}`);
+    console.log(`  Files Scanned: ${config.stats.filesScanned}`);
+    console.log(`  Total Lines: ${config.stats.totalLines.toLocaleString()}`);
+    console.log(`  Total Issues: ${config.stats.totalIssues}`);
+    console.log();
+
+    // Issues by severity
+    console.log(`${colors.blue}🔍 Issues by Severity:${colors.reset}`);
+    console.log(
+      `  ${colors.red}● Critical: ${config.stats.critical}${colors.reset}`,
+    );
+    console.log(
+      `  ${colors.yellow}● High: ${config.stats.high}${colors.reset}`,
+    );
+    console.log(
+      `  ${colors.blue}● Medium: ${config.stats.medium}${colors.reset}`,
+    );
+    console.log(`  ${colors.green}● Low: ${config.stats.low}${colors.reset}`);
+    console.log();
+
+    // Critical issues details
+    if (config.stats.critical > 0) {
+      console.log(
+        `${colors.red}${colors.bold}⚠️  CRITICAL ISSUES (Immediate Action Required):${colors.reset}`,
+      );
+      const criticalIssues = this.issues
+        .filter((i) => i.severity === Severity.CRITICAL)
+        .slice(0, 10);
+
+      criticalIssues.forEach((issue, index) => {
+        console.log(
+          `  ${index + 1}. ${colors.red}[${issue.type}] ${issue.issue}${colors.reset}`,
+        );
+        console.log(`     📁 ${issue.file}`);
+        if (issue.lines && issue.lines.length > 0) {
+          console.log(
+            `     📍 Lines: ${issue.lines.slice(0, 5).join(", ")}${issue.lines.length > 5 ? "..." : ""}`,
+          );
+        }
+        if (issue.count && issue.count > 1) {
+          console.log(`     🔢 Occurrences: ${issue.count}`);
+        }
+        console.log();
+      });
+
+      if (
+        this.issues.filter((i) => i.severity === Severity.CRITICAL).length > 10
+      ) {
+        console.log(
+          `     ... and ${this.issues.filter((i) => i.severity === Severity.CRITICAL).length - 10} more critical issues`,
+        );
+        console.log();
+      }
+    }
+
+    // High priority issues
+    if (config.stats.high > 0) {
+      console.log(
+        `${colors.yellow}🔥 HIGH PRIORITY ISSUES (Top 5):${colors.reset}`,
+      );
+      const highIssues = this.issues
+        .filter((i) => i.severity === Severity.HIGH)
+        .slice(0, 5);
+
+      highIssues.forEach((issue, index) => {
+        console.log(`  ${index + 1}. [${issue.type}] ${issue.issue}`);
+        console.log(`     📁 ${path.basename(issue.file)}`);
+      });
+      console.log();
+    }
+
+    // System health score
+    const maxPossibleScore = 100;
+    const criticalPenalty = config.stats.critical * 15;
+    const highPenalty = config.stats.high * 5;
+    const mediumPenalty = config.stats.medium * 2;
+    const lowPenalty = config.stats.low * 0.5;
+
+    const totalPenalty =
+      criticalPenalty + highPenalty + mediumPenalty + lowPenalty;
+    const healthScore = Math.max(0, maxPossibleScore - totalPenalty);
+
+    const healthColor =
+      healthScore >= 80
+        ? colors.green
+        : healthScore >= 60
+          ? colors.yellow
+          : colors.red;
+
+    console.log(
+      `${colors.blue}🏥 System Health Score: ${healthColor}${healthScore.toFixed(0)}/100${colors.reset}`,
+    );
+
+    if (healthScore < 50) {
+      console.log(
+        `${colors.red}🚨 CRITICAL: System health is below acceptable threshold!${colors.reset}`,
+      );
+    } else if (healthScore < 70) {
+      console.log(
+        `${colors.yellow}⚠️  WARNING: System health needs improvement${colors.reset}`,
+      );
+    } else if (healthScore >= 90) {
+      console.log(
+        `${colors.green}✅ EXCELLENT: System is in good health${colors.reset}`,
+      );
+    }
+
+    console.log();
+
+    // Recommendations
+    console.log(`${colors.blue}💡 Top Recommendations:${colors.reset}`);
+    if (config.stats.critical > 0) {
+      console.log(
+        `  1. 🔴 Fix ${config.stats.critical} critical security issues immediately`,
+      );
+    }
+    if (config.stats.high > 5) {
+      console.log(
+        `  2. 🟡 Address high-priority performance and database issues`,
+      );
+    }
+    if (config.stats.medium > 10) {
+      console.log(`  3. 🔵 Improve code quality and add proper error handling`);
+    }
+    console.log(
+      `  4. 🧪 Implement comprehensive testing (current coverage is low)`,
+    );
+    console.log(
+      `  5. 🔒 Review and enhance security measures across all modules`,
+    );
+    console.log();
+
+    // Save detailed report
+    const report = {
+      timestamp: new Date().toISOString(),
+      stats: config.stats,
+      healthScore: healthScore.toFixed(0),
+      issues: this.issues,
+      recommendations: [
+        "Fix all critical security vulnerabilities",
+        "Implement proper error handling in API routes",
+        "Add comprehensive testing suite",
+        "Optimize database queries and add indexes",
+        "Enhance ZATCA compliance implementation",
+      ],
+    };
+
+    const reportPath = path.join(config.projectRoot, "fixzit-scan-report.json");
+    await fs.writeFile(reportPath, JSON.stringify(report, null, 2));
+
+    console.log(
+      `${colors.green}✅ Full report saved to: ${reportPath}${colors.reset}`,
+    );
+    console.log();
+
+    // Exit code based on critical issues
+    if (config.stats.critical > 0) {
+      console.log(
+        `${colors.red}❌ SCAN FAILED: Critical issues found. DO NOT DEPLOY.${colors.reset}`,
+      );
+      process.exit(1);
+    } else {
+      console.log(
+        `${colors.green}✅ SCAN PASSED: No critical issues found.${colors.reset}`,
+      );
+      process.exit(0);
+    }
+  }
+}
+
+// Run scanner
+const scanner = new FixzitScanner();
+scanner.scan();
+
+]]>
+</file>
+
+<file path="scripts/security/configure-monitoring.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * Security Event Monitoring Configuration
+ * 
+ * ⚠️ DEPRECATED - DO NOT RUN ⚠️
+ * 
+ * This generator script is OUTDATED and will overwrite the hardened 
+ * security monitoring implementations with insecure versions.
+ * 
+ * The following files have been manually hardened with:
+ * - PII redaction (redactIdentifier, redactMetadata)
+ * - Multi-tenant isolation (orgId scoping in tracking keys)
+ * - First-crossing alert guard (prevents alert spam)
+ * - Sentry integration with production guards
+ * - Accurate metrics (event counts, not just unique keys)
+ * 
+ * Files that would be overwritten (DO NOT REGENERATE):
+ * - lib/security/monitoring.ts
+ * - lib/middleware/enhanced-rate-limit.ts  
+ * - lib/middleware/enhanced-cors.ts
+ * 
+ * If you need to update monitoring configuration:
+ * 1. Edit the target files directly
+ * 2. Follow the patterns in the existing hardened implementations
+ * 3. Run tests: pnpm vitest run tests/unit/lib/otp-utils.test.ts
+ * 
+ * @deprecated Since 2025-11-29 - Security audit hardening applied manually
+ */
+
+import { existsSync, writeFileSync, mkdirSync } from "fs";
+import { join, dirname } from "path";
+
+// Safety check - abort if hardened files exist
+const HARDENED_FILES = [
+  "lib/security/monitoring.ts",
+  "lib/middleware/enhanced-rate-limit.ts",
+  "lib/middleware/enhanced-cors.ts",
+];
+
+const cwd = process.cwd();
+const existingFiles = HARDENED_FILES.filter(f => existsSync(join(cwd, f)));
+
+if (existingFiles.length > 0) {
+  console.error("❌ ABORT: This script is DEPRECATED and would overwrite hardened security files.\n");
+  console.error("The following files have been manually hardened with security improvements:");
+  existingFiles.forEach(f => console.error(`  - ${f}`));
+  console.error("\n⚠️  DO NOT regenerate these files. Edit them directly if changes are needed.");
+  console.error("\nHardened features that would be lost:");
+  console.error("  - PII redaction (redactIdentifier, redactMetadata)");
+  console.error("  - Multi-tenant isolation (orgId in tracking keys)");
+  console.error("  - First-crossing alert guard (prevents spam)");
+  console.error("  - Sentry integration with production guards");
+  console.error("  - Accurate metrics (event counts, not just unique keys)");
+  console.error("\nExiting without changes.");
+  process.exit(1);
+}
+
+// Original generator code below (only runs if files don't exist)
+// This is kept for reference but should never execute in normal operation
+
+console.warn("⚠️  WARNING: Running deprecated generator. This should only happen on fresh installs.");
+console.warn("   Consider using the hardened implementations from git history instead.\n");
+
+const MONITORING_CONFIG = {
+  rateLimit: {
+    logLevel: "warn",
+    alertThreshold: 100, // Alert if 100+ rate limit hits in 5 minutes
+    destinations: ["console", "file", "webhook"],
+  },
+  cors: {
+    logLevel: "warn",
+    alertThreshold: 50, // Alert if 50+ CORS violations in 5 minutes
+    destinations: ["console", "file"],
+  },
+  auth: {
+    logLevel: "error",
+    alertThreshold: 10, // Alert if 10+ auth failures in 5 minutes
+    destinations: ["console", "file", "webhook"],
+  },
+  mongodb: {
+    logLevel: "error",
+    alertThreshold: 5, // Alert if 5+ connection failures in 5 minutes
+    destinations: ["console", "file", "webhook"],
+  },
+};
+
+const MONITORING_MIDDLEWARE = `
+/**
+ * Security event monitoring middleware
+ * Auto-generated by scripts/security/configure-monitoring.ts
+ * 
+ * HARDENED VERSION with:
+ * - PII protection via hashIdentifier (better cardinality than 3-char truncation)
+ * - Multi-tenant isolation via orgId in tracking keys
+ * - First-crossing alert guard (=== instead of >=)
+ * - Sentry integration with production guards
+ */
+
+import { logger } from '@/lib/logger';
+import { hashIdentifier, redactIdentifier } from '@/lib/otp-utils';
+
+// Rate limit event tracking
+const rateLimitHits = new Map<string, number[]>();
+const corsViolations = new Map<string, number[]>();
+const authFailures = new Map<string, number[]>();
+
+const WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+const ALERT_THRESHOLDS = ${JSON.stringify(MONITORING_CONFIG, null, 2)};
+
+async function sendSentryAlert(eventType: string, payload: Record<string, unknown>): Promise<void> {
+  // Only attempt in server context with Sentry configured (avoid client bundles)
+  if (typeof window !== "undefined") return;
+  if (!process.env.SENTRY_DSN || process.env.NODE_ENV !== "production") return;
+
+  try {
+    const Sentry = await import("@sentry/nextjs").catch(() => null);
+    if (!Sentry) return;
+
+    Sentry.captureMessage(\`[Security] \${eventType}\`, {
+      level: "warning",
+      extra: payload,
+      tags: {
+        security_event: eventType,
+      },
+    });
+  } catch (error) {
+    // Avoid throwing from monitoring path
+    logger.error("[Security] Failed to send Sentry alert", {
+      eventType,
+      error: error instanceof Error ? error.message : error,
+    });
+  }
+}
+
+function cleanOldEntries(map: Map<string, number[]>, windowMs: number): void {
+  const cutoff = Date.now() - windowMs;
+  for (const [key, timestamps] of map.entries()) {
+    const filtered = timestamps.filter(t => t > cutoff);
+    if (filtered.length === 0) {
+      map.delete(key);
+    } else {
+      map.set(key, filtered);
+    }
+  }
+}
+
+function trackEvent(
+  map: Map<string, number[]>,
+  key: string,
+  eventType: string,
+  threshold: number
+): void {
+  cleanOldEntries(map, WINDOW_MS);
+  
+  const timestamps = map.get(key) || [];
+  timestamps.push(Date.now());
+  map.set(key, timestamps);
+  
+  // Alert only on FIRST threshold crossing (=== not >=) to prevent spam
+  if (timestamps.length === threshold) {
+    logger.warn(\`[\${eventType}] Alert threshold exceeded\`, {
+      key,
+      count: timestamps.length,
+      windowMs: WINDOW_MS,
+      threshold
+    });
+    
+    // Send to Sentry for centralized monitoring (non-blocking)
+    void sendSentryAlert(eventType, {
+      key,
+      count: timestamps.length,
+      threshold,
+      windowMs: WINDOW_MS,
+    });
+    
+    // Emit webhook if configured
+    if (process.env.SECURITY_ALERT_WEBHOOK) {
+      fetch(process.env.SECURITY_ALERT_WEBHOOK, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event: eventType,
+          key,
+          count: timestamps.length,
+          threshold,
+          timestamp: new Date().toISOString()
+        })
+      }).catch(err => logger.error('[Webhook] Failed to send alert', err));
+    }
+  }
+}
+
+export function trackRateLimitHit(identifier: string, endpoint: string, orgId?: string): void {
+  // Use hashIdentifier for key (better cardinality than 3-char truncation)
+  // Salt is automatically loaded from MONITORING_HASH_SALT or LOG_HASH_SALT env vars
+  const hashedId = hashIdentifier(identifier);
+  // Include orgId in key for multi-tenant isolation
+  const key = orgId 
+    ? \`\${orgId}:\${hashedId}:\${endpoint}\`
+    : \`global:\${hashedId}:\${endpoint}\`;
+  trackEvent(rateLimitHits, key, 'RateLimit', ALERT_THRESHOLDS.rateLimit.alertThreshold);
+  
+  logger.warn('[RateLimit] Request blocked', {
+    orgId: orgId ?? 'global',
+    identifier: redactIdentifier(identifier),  // Redacted for logs (human-readable)
+    endpoint,
+    timestamp: new Date().toISOString()
+  });
+}
+
+export function trackCorsViolation(origin: string, endpoint: string, orgId?: string): void {
+  // Include orgId in key for multi-tenant isolation
+  const key = orgId
+    ? \`\${orgId}:\${origin}:\${endpoint}\`
+    : \`global:\${origin}:\${endpoint}\`;
+  trackEvent(corsViolations, key, 'CORS', ALERT_THRESHOLDS.cors.alertThreshold);
+  
+  logger.warn('[CORS] Origin blocked', {
+    orgId: orgId ?? 'global',
+    origin,
+    endpoint,
+    timestamp: new Date().toISOString()
+  });
+}
+
+export function trackAuthFailure(identifier: string, reason: string, orgId?: string): void {
+  // Use hashIdentifier for key (better cardinality than 3-char truncation)
+  // Salt is automatically loaded from MONITORING_HASH_SALT or LOG_HASH_SALT env vars
+  const hashedId = hashIdentifier(identifier);
+  // Include orgId in key for multi-tenant isolation
+  const key = orgId
+    ? \`\${orgId}:\${hashedId}\`
+    : \`global:\${hashedId}\`;
+  trackEvent(authFailures, key, 'Auth', ALERT_THRESHOLDS.auth.alertThreshold);
+  
+  logger.error('[Auth] Authentication failed', {
+    orgId: orgId ?? 'global',
+    identifier: redactIdentifier(identifier),  // Redacted for logs (human-readable)
+    reason,
+    timestamp: new Date().toISOString()
+  });
+}
+
+export function getSecurityMetrics() {
+  // Sum actual event counts, not just unique keys
+  const sumEvents = (map: Map<string, number[]>): number =>
+    [...map.values()].reduce((acc, timestamps) => acc + timestamps.length, 0);
+    
+  return {
+    rateLimitHits: sumEvents(rateLimitHits),
+    corsViolations: sumEvents(corsViolations),
+    authFailures: sumEvents(authFailures),
+    // Also expose unique key counts for cardinality analysis
+    rateLimitUniqueKeys: rateLimitHits.size,
+    corsUniqueKeys: corsViolations.size,
+    authUniqueKeys: authFailures.size,
+    windowMs: WINDOW_MS
+  };
+}
+`;
+
+const ENHANCED_RATE_LIMIT_MIDDLEWARE = `
+/**
+ * Enhanced rate limiting with monitoring
+ * Based on lib/security/rate-limit.ts
+ * 
+ * HARDENED VERSION with:
+ * - Multi-tenant orgId tracking (session-first, header fallback for telemetry only)
+ * - Proper documentation about header-based orgId security implications
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/server/security/rateLimit';
+import { rateLimitError } from '@/server/utils/errorResponses';
+import { getClientIP } from '@/server/security/headers';
+import { trackRateLimitHit } from '@/lib/security/monitoring';
+
+export type RateLimitOptions = {
+  identifier?: string;
+  keyPrefix?: string;
+  requests?: number;
+  windowMs?: number;
+  orgId?: string; // For multi-tenant isolation in monitoring
+};
+
+export function enforceRateLimit(
+  request: NextRequest,
+  options: RateLimitOptions = {}
+): NextResponse | null {
+  const identifier = options.identifier ?? getClientIP(request);
+  const prefix = options.keyPrefix ?? new URL(request.url).pathname;
+  const key = \`\${prefix}:\${identifier}\`;
+  
+  // Extract orgId from options or request headers for multi-tenant tracking.
+  // NOTE: Header-based orgId is used for TELEMETRY ONLY (monitoring/alerting isolation).
+  // This does NOT grant any permissions - it only affects how events are grouped.
+  // Spoofing would only misclassify the attacker's own events in monitoring dashboards.
+  // For security-critical operations, use session.user.orgId from authenticated context.
+  const orgId = options.orgId 
+    ?? request.headers.get("X-Org-ID") 
+    ?? request.headers.get("X-Tenant-ID")
+    ?? undefined;
+
+  const result = rateLimit(key, options.requests ?? 30, options.windowMs ?? 60_000);
+  
+  if (!result.allowed) {
+    // Track rate limit event for monitoring (with org context)
+    trackRateLimitHit(identifier, prefix, orgId ?? undefined);
+    return rateLimitError();
+  }
+
+  // Add rate limit headers
+  const response = NextResponse.next();
+  response.headers.set('X-RateLimit-Limit', String(options.requests ?? 30));
+  response.headers.set('X-RateLimit-Remaining', String(result.remaining));
+  response.headers.set('X-RateLimit-Reset', String(Date.now() + (options.windowMs ?? 60_000)));
+  
+  return null;
+}
+`;
+
+const ENHANCED_CORS_MIDDLEWARE = `
+/**
+ * Enhanced CORS middleware with monitoring
+ * Updates middleware.ts CORS handling
+ * 
+ * HARDENED VERSION with:
+ * - Multi-tenant orgId tracking (header-based for telemetry only)
+ * - Proper documentation about header-based orgId security implications
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { isOriginAllowed, resolveAllowedOrigin } from '@/lib/security/cors-allowlist';
+import { trackCorsViolation } from '@/lib/security/monitoring';
+
+export function handleCorsRequest(request: NextRequest): NextResponse | null {
+  const origin = request.headers.get('origin');
+  const pathname = new URL(request.url).pathname;
+  
+  // Extract orgId from request headers for multi-tenant monitoring.
+  // NOTE: Header-based orgId is used for TELEMETRY ONLY (monitoring/alerting isolation).
+  // This does NOT grant any permissions - it only affects how CORS violations are grouped.
+  // Spoofing would only misclassify the attacker's own events in monitoring dashboards.
+  // For security-critical operations, use session.user.orgId from authenticated context.
+  const orgId = request.headers.get("X-Org-ID") 
+    ?? request.headers.get("X-Tenant-ID")
+    ?? undefined;
+  
+  // Check if origin is allowed
+  if (origin && !isOriginAllowed(origin)) {
+    // Track CORS violation for monitoring (with org context)
+    trackCorsViolation(origin, pathname, orgId ?? undefined);
+    
+    return new NextResponse('Forbidden: Origin not allowed', {
+      status: 403,
+      headers: {
+        'Content-Type': 'text/plain'
+      }
+    });
+  }
+  
+  // Origin is allowed - add CORS headers
+  const allowedOrigin = resolveAllowedOrigin(origin);
+  
+  if (request.method === 'OPTIONS') {
+    return new NextResponse(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': allowedOrigin || '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Tenant-ID, X-Org-ID',
+        'Access-Control-Max-Age': '86400',
+        'Access-Control-Allow-Credentials': 'true'
+      }
+    });
+  }
+  
+  return null;
+}
+
+export function addCorsHeaders(response: NextResponse, origin: string | null): NextResponse {
+  const allowedOrigin = resolveAllowedOrigin(origin);
+  
+  if (allowedOrigin) {
+    response.headers.set('Access-Control-Allow-Origin', allowedOrigin);
+    response.headers.set('Access-Control-Allow-Credentials', 'true');
+  }
+  
+  return response;
+}
+`;
+
+console.log("🔧 Configuring security monitoring...\n");
+
+// Helper to ensure directory exists
+const ensureDir = (filePath: string) => {
+  const dir = dirname(filePath);
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+};
+
+// Create monitoring middleware file
+const monitoringPath = join(process.cwd(), "lib/security/monitoring.ts");
+ensureDir(monitoringPath);
+writeFileSync(monitoringPath, MONITORING_MIDDLEWARE.trim());
+console.log("✅ Created lib/security/monitoring.ts");
+
+// Create enhanced rate limit middleware
+const enhancedRateLimitPath = join(
+  process.cwd(),
+  "lib/middleware/enhanced-rate-limit.ts",
+);
+ensureDir(enhancedRateLimitPath);
+writeFileSync(enhancedRateLimitPath, ENHANCED_RATE_LIMIT_MIDDLEWARE.trim());
+console.log("✅ Created lib/middleware/enhanced-rate-limit.ts");
+
+// Create enhanced CORS middleware
+const enhancedCorsPath = join(process.cwd(), "lib/middleware/enhanced-cors.ts");
+ensureDir(enhancedCorsPath);
+writeFileSync(enhancedCorsPath, ENHANCED_CORS_MIDDLEWARE.trim());
+console.log("✅ Created lib/middleware/enhanced-cors.ts");
+
+// Create environment variables template
+const envTemplate = `
+# Security Monitoring Configuration
+# Add these to your .env.local file
+
+# Webhook for security alerts (optional)
+SECURITY_ALERT_WEBHOOK=https://your-monitoring-service.com/webhook
+
+# Log level for security events (debug, info, warn, error)
+SECURITY_LOG_LEVEL=warn
+
+# Enable security monitoring (true/false)
+ENABLE_SECURITY_MONITORING=true
+`;
+
+const envTemplatePath = join(process.cwd(), ".env.security.template");
+writeFileSync(envTemplatePath, envTemplate.trim());
+console.log("✅ Created .env.security.template");
+
+// Create monitoring dashboard query examples
+const dashboardQueries = `
+# Security Monitoring Dashboard Queries
+# Use these with your logging/monitoring service (DataDog, New Relic, etc.)
+
+## Rate Limit Events
+\`\`\`
+service:fixzit event:RateLimit
+| group by identifier, endpoint
+| count
+| top 10
+\`\`\`
+
+## CORS Violations
+\`\`\`
+service:fixzit event:CORS
+| group by origin, endpoint
+| count
+| where count > 10
+\`\`\`
+
+## Authentication Failures
+\`\`\`
+service:fixzit event:Auth status:failed
+| group by identifier, reason
+| count
+| where count > 5
+\`\`\`
+
+## Security Metrics (Last 24 Hours)
+\`\`\`
+service:fixzit (event:RateLimit OR event:CORS OR event:Auth)
+| timeseries sum(count) by event
+| timeframe last_24h
+\`\`\`
+`;
+
+const dashboardPath = join(
+  process.cwd(),
+  "docs/security/MONITORING_QUERIES.md",
+);
+ensureDir(dashboardPath);
+writeFileSync(dashboardPath, dashboardQueries.trim());
+console.log("✅ Created docs/security/MONITORING_QUERIES.md");
+
+// Create integration instructions
+const integrationInstructions = `
+# Security Monitoring Integration Guide
+
+## Step 1: Update Rate-Limited Routes
+
+For each rate-limited route, replace the import:
+
+\`\`\`typescript
+// OLD:
+import { enforceRateLimit } from '@/lib/middleware/rate-limit';
+
+// NEW:
+import { enforceRateLimit } from '@/lib/middleware/enhanced-rate-limit';
+\`\`\`
+
+The enhanced version includes automatic monitoring hooks.
+
+## Step 2: Update Middleware.ts
+
+Update your \`middleware.ts\` file to use enhanced CORS:
+
+\`\`\`typescript
+import { handleCorsRequest, addCorsHeaders } from '@/lib/middleware/enhanced-cors';
+
+export async function middleware(request: NextRequest) {
+  // Handle CORS with monitoring
+  const corsResponse = handleCorsRequest(request);
+  if (corsResponse) return corsResponse;
+  
+  // ... rest of middleware logic
+  
+  // Add CORS headers to response
+  const response = NextResponse.next();
+  return addCorsHeaders(response, request.headers.get('origin'));
+}
+\`\`\`
+
+## Step 3: Configure Environment Variables
+
+Copy \`.env.security.template\` to \`.env.local\` and fill in values:
+
+\`\`\`bash
+cp .env.security.template .env.local.security
+# Edit .env.local.security with your values
+# Then append to .env.local:
+cat .env.local.security >> .env.local
+\`\`\`
+
+## Step 4: Set Up Alerting Webhook (Optional)
+
+Configure a webhook URL to receive security alerts:
+
+### Option A: Slack
+1. Create a Slack webhook: https://api.slack.com/messaging/webhooks
+2. Set SECURITY_ALERT_WEBHOOK to your Slack webhook URL
+
+### Option B: Discord
+1. Create a Discord webhook in your server settings
+2. Set SECURITY_ALERT_WEBHOOK to your Discord webhook URL
+
+### Option C: Custom Service
+1. Deploy a webhook receiver (see examples/webhook-receiver.ts)
+2. Set SECURITY_ALERT_WEBHOOK to your service URL
+
+## Step 5: Test Monitoring
+
+Run the security test suite to generate events:
+
+\`\`\`bash
+pnpm tsx scripts/security/run-all-security-tests.sh
+\`\`\`
+
+Check your logs for security events:
+
+\`\`\`bash
+grep "RateLimit|CORS|Auth" logs/*.log
+\`\`\`
+
+## Step 6: Set Up Dashboard (Optional)
+
+Use the queries in \`docs/security/MONITORING_QUERIES.md\` with your monitoring service.
+
+### DataDog
+1. Create a new dashboard
+2. Add widgets using the provided queries
+3. Set up monitors for alert thresholds
+
+### New Relic
+1. Create a new dashboard
+2. Add NRQL queries based on the templates
+3. Set up alert policies
+
+### Grafana
+1. Create a new dashboard
+2. Add panels with LogQL/PromQL queries
+3. Configure alerting rules
+
+## Monitoring Metrics
+
+The following metrics are tracked:
+
+- **Rate Limit Hits:** Count of 429 responses per endpoint
+- **CORS Violations:** Count of blocked origins per endpoint
+- **Auth Failures:** Count of failed authentications per user
+- **Alert Triggers:** Count of threshold breaches
+
+## Alert Thresholds (Configurable)
+
+- Rate Limit: 100 hits in 5 minutes
+- CORS Violations: 50 blocks in 5 minutes
+- Auth Failures: 10 failures in 5 minutes
+
+Adjust these in \`lib/security/monitoring.ts\` as needed.
+`;
+
+const integrationPath = join(
+  process.cwd(),
+  "docs/security/MONITORING_INTEGRATION.md",
+);
+ensureDir(integrationPath);
+writeFileSync(integrationPath, integrationInstructions.trim());
+console.log("✅ Created docs/security/MONITORING_INTEGRATION.md");
+
+console.log("\n✅ Security monitoring configuration complete!\n");
+console.log("Next steps:");
+console.log("1. Review .env.security.template and add values to .env.local");
+console.log("2. Follow docs/security/MONITORING_INTEGRATION.md to integrate");
+console.log("3. Run pnpm tsx scripts/security/run-all-security-tests.sh");
+console.log("4. Set up monitoring dashboard with provided queries\n");
+
+]]>
+</file>
+
+<file path="scripts/security/fix-ip-extraction.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * CRITICAL SECURITY FIX: Replace Unsafe IP Extraction Patterns
+ *
+ * This script replaces all unsafe IP extraction patterns across the codebase
+ * with the centralized secure function.
+ *
+ * VULNERABILITY: x-forwarded-for?.split(',')[0] uses FIRST IP (client-controlled)
+ * FIX: Import and use getClientIP() which uses LAST IP (trusted proxy)
+ *
+ * Usage:
+ *   tsx scripts/security/fix-ip-extraction.ts         # Apply fixes
+ *   tsx scripts/security/fix-ip-extraction.ts --dry-run  # Preview changes only
+ */
+
+import { readFileSync, writeFileSync } from "fs";
+import { glob } from "glob";
+import * as ts from "typescript";
+
+// Parse CLI arguments
+const args = process.argv.slice(2);
+const DRY_RUN = args.includes("--dry-run");
+
+// Comprehensive patterns to find and replace (non-global for test, global for replace)
+const UNSAFE_PATTERNS = [
+  {
+    // Pattern 1: const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    name: "clientIp assignment with trim and fallback",
+    find: () =>
+      new RegExp(
+        /const\s+(clientIp|ip)\s*=\s*req\.headers\.get\(['"](x-forwarded-for|X-Forwarded-For)['"]\)\?\.split\(['"],['"]\)\[0\]\?\.trim\(\)\s*\|\|\s*['"](?:unknown|local|anonymous)['"];?/.source,
+        "g",
+      ),
+    replace: (varName: string) => `const ${varName} = getClientIP(req);`,
+  },
+  {
+    // Pattern 2: req.headers.get("x-forwarded-for")?.split(",")[0] || req.headers.get("x-real-ip") || "unknown"
+    name: "inline with x-real-ip fallback",
+    find: () =>
+      new RegExp(
+        /req\.headers\.get\(["'](x-forwarded-for|X-Forwarded-For)["']\)\?\.split\(["'],["']\)\[0\]\?\.trim\(\)\s*\|\|\s*req\.headers\.get\(["'](x-real-ip|X-Real-IP)["']\)\s*\|\|\s*["'](?:unknown|local|anonymous)["']/.source,
+        "g",
+      ),
+    replace: (_varName: string) => "getClientIP(req)",
+  },
+  {
+    // Pattern 3: Simple inline with fallback (no x-real-ip)
+    name: "inline with direct fallback",
+    find: () =>
+      new RegExp(
+        /req\.headers\.get\(['"](x-forwarded-for|X-Forwarded-For)['"]\)\?\.split\(['"],['"]\)\[0\]\?\.trim\(\)\s*\|\|\s*['"](unknown|local|anonymous)['"]/.source,
+        "g",
+      ),
+    replace: (_varName: string) => "getClientIP(req)",
+  },
+  {
+    // Pattern 4: Simple inline without trim
+    name: "inline without trim",
+    find: () =>
+      new RegExp(
+        /req\.headers\.get\(['"](x-forwarded-for|X-Forwarded-For)['"]\)\?\.split\(['"],['"]\)\[0\]\s*\|\|\s*['"](unknown|local|anonymous)['"]/.source,
+        "g",
+      ),
+    replace: (_varName: string) => "getClientIP(req)",
+  },
+  {
+    // Pattern 5: In function calls (no variable assignment)
+    name: "inline in function call",
+    find: () =>
+      new RegExp(
+        /req\.headers\.get\(["'](x-forwarded-for|X-Forwarded-For)["']\)\?\.split\(["'],["']\)\[0\]/.source,
+        "g",
+      ),
+    replace: (_varName: string) => "getClientIP(req)",
+  },
+];
+
+/**
+ * Validate TypeScript syntax
+ */
+function validateTypeScript(content: string): {
+  valid: boolean;
+  errors: string[];
+} {
+  const errors: string[] = [];
+
+  try {
+    const sourceFile = ts.createSourceFile(
+      "temp.ts",
+      content,
+      ts.ScriptTarget.Latest,
+      true,
+    );
+
+    // Check for syntax errors
+    const diagnostics =
+      (sourceFile as ts.SourceFile & { parseDiagnostics?: ts.Diagnostic[] })
+        .parseDiagnostics || [];
+    if (diagnostics.length > 0) {
+      diagnostics.forEach((diag: ts.Diagnostic) => {
+        const message = ts.flattenDiagnosticMessageText(diag.messageText, "\n");
+        errors.push(`Line ${diag.start}: ${message}`);
+      });
+      return { valid: false, errors };
+    }
+
+    return { valid: true, errors: [] };
+  } catch (error) {
+    errors.push(
+      `Parse error: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    return { valid: false, errors };
+  }
+}
+
+async function fixFile(filePath: string): Promise<boolean> {
+  try {
+    const originalContent = readFileSync(filePath, "utf-8");
+    let content = originalContent;
+    let modified = false;
+    const changes: string[] = [];
+
+    // Check if file has unsafe patterns
+    const hasUnsafe = /x-forwarded-for.*split.*\[0\]/i.test(content);
+    if (!hasUnsafe) return false;
+
+    // Check if already imports getClientIP
+    const hasImport =
+      /import.*getClientIP.*from.*(@\/lib\/security\/client-ip|@\/server\/security\/headers)/.test(
+        content,
+      );
+
+    // Add import if not present
+    if (!hasImport && hasUnsafe) {
+      // Find any existing import statements
+      const importMatch = content.match(/import[^;]+;/g);
+      if (importMatch && importMatch.length > 0) {
+        // Insert after last import
+        const lastImport = importMatch[importMatch.length - 1];
+        const importIndex = content.lastIndexOf(lastImport);
+        content =
+          content.slice(0, importIndex + lastImport.length) +
+          "\nimport { getClientIP } from '@/lib/security/client-ip';" +
+          content.slice(importIndex + lastImport.length);
+        modified = true;
+        changes.push("Added import statement");
+      } else {
+        // No import statements found - insert near top after shebang or 'use client'/'use server' directives
+        let insertPos = 0;
+
+        // Skip shebang if present
+        const shebangMatch = content.match(/^#!.*\n/);
+        if (shebangMatch) {
+          insertPos = shebangMatch[0].length;
+        }
+
+        // Skip 'use client' or 'use server' directives
+        const remainingContent = content.slice(insertPos);
+        const directiveMatch = remainingContent.match(
+          /^(['"]use (client|server)['"])\s*;?\s*\n/,
+        );
+        if (directiveMatch) {
+          insertPos += directiveMatch[0].length;
+        }
+
+        // Insert import at calculated position
+        content =
+          content.slice(0, insertPos) +
+          "import { getClientIP } from '@/lib/security/client-ip';\n\n" +
+          content.slice(insertPos);
+        modified = true;
+        changes.push("Added import statement at top");
+      }
+    }
+
+    // Replace all unsafe patterns (patterns now return fresh RegExp instances)
+    UNSAFE_PATTERNS.forEach((pattern) => {
+      const regex = pattern.find();
+      const matches = content.match(regex);
+      if (matches) {
+        // Extract variable name if present for proper replacement
+        const varMatch = matches[0].match(/const\s+(clientIp|ip)\s*=/);
+        const varName = varMatch ? varMatch[1] : "clientIp";
+
+        const replacement = pattern.replace(varName);
+        content = content.replace(regex, replacement);
+        modified = true;
+        changes.push(
+          `Replaced ${matches.length} occurrence(s) of: ${pattern.name}`,
+        );
+      }
+    });
+
+    if (modified) {
+      // Validate TypeScript syntax
+      const validation = validateTypeScript(content);
+      if (!validation.valid) {
+        console.error(`❌ Validation failed for ${filePath}:`);
+        validation.errors.forEach((err) => console.error(`   ${err}`));
+        return false;
+      }
+
+      if (DRY_RUN) {
+        console.log(`\n📝 [DRY RUN] Would fix: ${filePath}`);
+        changes.forEach((change) => console.log(`   - ${change}`));
+        return true;
+      }
+
+      // Create backup
+      const backupPath = filePath + ".bak";
+      writeFileSync(backupPath, originalContent, "utf-8");
+      console.log(`💾 Created backup: ${backupPath}`);
+
+      // Write modified content
+      writeFileSync(filePath, content, "utf-8");
+      console.log(`✅ Fixed: ${filePath}`);
+      changes.forEach((change) => console.log(`   - ${change}`));
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    console.error(`❌ Error fixing ${filePath}:`, error);
+    return false;
+  }
+}
+
+async function main() {
+  if (DRY_RUN) {
+    console.log("🔍 DRY RUN MODE - No files will be modified\n");
+  }
+
+  console.log("🔍 Scanning for unsafe IP extraction patterns...\n");
+
+  const files = await glob("app/api/**/*.ts", {
+    ignore: ["node_modules/**", ".next/**"],
+  });
+  console.log(`📁 Found ${files.length} API route files\n`);
+
+  let fixedCount = 0;
+  const fixedFiles: string[] = [];
+
+  for (const file of files) {
+    const fixed = await fixFile(file);
+    if (fixed) {
+      fixedCount++;
+      fixedFiles.push(file);
+    }
+  }
+
+  console.log(
+    `\n${DRY_RUN ? "📋" : "✅"} ${fixedCount} file(s) ${DRY_RUN ? "would be fixed" : "fixed"} with unsafe IP extraction patterns`,
+  );
+
+  if (fixedFiles.length > 0) {
+    console.log(
+      `\n📝 ${DRY_RUN ? "Files that would be fixed" : "Fixed files"}:`,
+    );
+    fixedFiles.forEach((f) => console.log(`   - ${f}`));
+  }
+
+  if (DRY_RUN) {
+    console.log("\n� Run without --dry-run to apply changes");
+  } else {
+    console.log(
+      "\n�🔒 All IP extraction now uses secure centralized function (LAST IP from trusted proxy)",
+    );
+    console.log("💾 Backup files created with .bak extension");
+  }
+}
+
+main().catch(console.error);
+
+]]>
+</file>
+
+<file path="scripts/security/mongodb-uri-check.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+import { getValidatedMongoUri } from "@/lib/mongo-uri-validator";
+
+async function main() {
+  try {
+    const uri = getValidatedMongoUri();
+    console.log(`SUCCESS:${uri}`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`FAILED:${message}`);
+    process.exit(1);
+  }
+}
+
+void main();
+
+]]>
+</file>
+
+<file path="scripts/security-audit.js">
+<![CDATA[
+#!/usr/bin/env node
+// ==============================================================
+// FIXZIT SOUQ SECURITY AUDIT SCRIPT
+// Verifies all critical security fixes are properly implemented
+// ==============================================================
+
+const fs = require("fs");
+const path = require("path");
+
+// Color codes for terminal output
+const colors = {
+  reset: "\x1b[0m",
+  bright: "\x1b[1m",
+  red: "\x1b[31m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  blue: "\x1b[34m",
+  cyan: "\x1b[36m",
+};
+
+const auditResults = {
+  timestamp: new Date().toISOString(),
+  criticalIssues: 0,
+  securityScore: 0,
+  checks: [],
+};
+
+function addCheck(name, status, severity, message) {
+  const check = { name, status, severity, message };
+  auditResults.checks.push(check);
+
+  if (!status && severity === "critical") {
+    auditResults.criticalIssues++;
+  }
+
+  const statusColor = status ? colors.green + "✅" : colors.red + "❌";
+  const severityColor =
+    severity === "critical"
+      ? colors.red
+      : severity === "high"
+        ? colors.yellow
+        : colors.cyan;
+
+  console.log(
+    `${statusColor} ${severityColor}[${severity.toUpperCase()}]${colors.reset} ${name}: ${message}`,
+  );
+}
+
+console.log(
+  colors.bright + colors.cyan + "🔐 FIXZIT SOUQ SECURITY AUDIT" + colors.reset,
+);
+console.log("═══════════════════════════════════════════════════════");
+
+// 1. Check JWT Secret Security
+console.log(
+  "\n" + colors.bright + "1. JWT Security Configuration" + colors.reset,
+);
+try {
+  require("dotenv").config();
+  const jwtSecret = process.env.JWT_SECRET;
+
+  if (!jwtSecret) {
+    addCheck(
+      "JWT_SECRET_EXISTS",
+      false,
+      "critical",
+      "JWT_SECRET not found in environment",
+    );
+  } else if (jwtSecret.length < 32) {
+    addCheck(
+      "JWT_SECRET_LENGTH",
+      false,
+      "critical",
+      `JWT secret too short (${jwtSecret.length} chars, need 32+)`,
+    );
+  } else if (
+    jwtSecret === "your-secret-key-here" ||
+    jwtSecret.includes("change") ||
+    jwtSecret.includes("default")
+  ) {
+    addCheck(
+      "JWT_SECRET_DEFAULT",
+      false,
+      "critical",
+      "JWT secret appears to be default/placeholder value",
+    );
+  } else {
+    addCheck(
+      "JWT_SECRET_SECURE",
+      true,
+      "critical",
+      `JWT secret is secure (${jwtSecret.length} characters)`,
+    );
+  }
+} catch (error) {
+  addCheck(
+    "JWT_CONFIG_ERROR",
+    false,
+    "critical",
+    `Error checking JWT config: ${error.message}`,
+  );
+}
+
+// 2. Check Authentication Middleware
+console.log(
+  "\n" + colors.bright + "2. Authentication Middleware" + colors.reset,
+);
+try {
+  const authPath = path.join(__dirname, "middleware", "auth.js");
+  if (!fs.existsSync(authPath)) {
+    addCheck(
+      "AUTH_MIDDLEWARE_EXISTS",
+      false,
+      "critical",
+      "Authentication middleware file not found",
+    );
+  } else {
+    const authContent = fs.readFileSync(authPath, "utf8");
+
+    // Check for database verification
+    if (
+      authContent.includes("User.findById") &&
+      authContent.includes("decoded.userId")
+    ) {
+      addCheck(
+        "AUTH_DB_VERIFICATION",
+        true,
+        "critical",
+        "Database verification implemented in auth middleware",
+      );
+    } else {
+      addCheck(
+        "AUTH_DB_VERIFICATION",
+        false,
+        "critical",
+        "Missing database user verification in auth middleware",
+      );
+    }
+
+    // Check for query parameter token blocking
+    if (!authContent.includes("req.query.token")) {
+      addCheck(
+        "AUTH_NO_QUERY_TOKENS",
+        true,
+        "high",
+        "Query parameter tokens properly blocked",
+      );
+    } else {
+      addCheck(
+        "AUTH_NO_QUERY_TOKENS",
+        false,
+        "high",
+        "Still accepting tokens from query parameters (security risk)",
+      );
+    }
+
+    // Check for JWT fallback removal
+    if (
+      !authContent.includes("default-secret") &&
+      !authContent.includes("fallback")
+    ) {
+      addCheck(
+        "AUTH_NO_FALLBACK",
+        true,
+        "critical",
+        "JWT fallback properly removed",
+      );
+    } else {
+      addCheck(
+        "AUTH_NO_FALLBACK",
+        false,
+        "critical",
+        "JWT fallback still present",
+      );
+    }
+  }
+} catch (error) {
+  addCheck(
+    "AUTH_CHECK_ERROR",
+    false,
+    "high",
+    `Error checking auth middleware: ${error.message}`,
+  );
+}
+
+// 3. Check Input Validation
+console.log(
+  "\n" + colors.bright + "3. Input Validation Security" + colors.reset,
+);
+try {
+  const validationPath = path.join(__dirname, "middleware", "validation.js");
+  if (!fs.existsSync(validationPath)) {
+    addCheck(
+      "VALIDATION_MIDDLEWARE_EXISTS",
+      false,
+      "high",
+      "Validation middleware not found",
+    );
+  } else {
+    const validationContent = fs.readFileSync(validationPath, "utf8");
+
+    // Check for XSS protection
+    if (
+      validationContent.includes("xss") &&
+      validationContent.includes("deepSanitize")
+    ) {
+      addCheck(
+        "XSS_PROTECTION",
+        true,
+        "high",
+        "XSS protection with deep sanitization implemented",
+      );
+    } else {
+      addCheck(
+        "XSS_PROTECTION",
+        false,
+        "high",
+        "Missing comprehensive XSS protection",
+      );
+    }
+
+    // Check for NoSQL injection prevention
+    if (
+      validationContent.includes("preventNoSQLInjection") &&
+      validationContent.includes("$where")
+    ) {
+      addCheck(
+        "NOSQL_INJECTION_PROTECTION",
+        true,
+        "high",
+        "NoSQL injection prevention implemented",
+      );
+    } else {
+      addCheck(
+        "NOSQL_INJECTION_PROTECTION",
+        false,
+        "high",
+        "Missing NoSQL injection prevention",
+      );
+    }
+  }
+} catch (error) {
+  addCheck(
+    "VALIDATION_CHECK_ERROR",
+    false,
+    "high",
+    `Error checking validation: ${error.message}`,
+  );
+}
+
+// 4. Check Package Dependencies
+console.log(
+  "\n" + colors.bright + "4. Security Package Dependencies" + colors.reset,
+);
+try {
+  const packagePath = path.join(__dirname, "package.json");
+  if (fs.existsSync(packagePath)) {
+    const packageJson = JSON.parse(fs.readFileSync(packagePath, "utf8"));
+    const dependencies = {
+      ...packageJson.dependencies,
+      ...packageJson.devDependencies,
+    };
+
+    const securityPackages = [
+      "helmet",
+      "express-rate-limit",
+      "express-validator",
+      "xss",
+      "bcryptjs",
+    ];
+    let installedCount = 0;
+
+    securityPackages.forEach((pkg) => {
+      if (dependencies[pkg]) {
+        installedCount++;
+      }
+    });
+
+    if (installedCount === securityPackages.length) {
+      addCheck(
+        "SECURITY_PACKAGES",
+        true,
+        "medium",
+        `All ${securityPackages.length} security packages installed`,
+      );
+    } else {
+      addCheck(
+        "SECURITY_PACKAGES",
+        false,
+        "medium",
+        `Missing security packages (${installedCount}/${securityPackages.length} installed)`,
+      );
+    }
+  }
+} catch (error) {
+  addCheck(
+    "PACKAGE_CHECK_ERROR",
+    false,
+    "medium",
+    `Error checking packages: ${error.message}`,
+  );
+}
+
+// 5. Check Environment Security
+console.log(
+  "\n" + colors.bright + "5. Environment Configuration" + colors.reset,
+);
+try {
+  if (fs.existsSync(".env")) {
+    const envContent = fs.readFileSync(".env", "utf8");
+
+    if (envContent.includes("NODE_ENV=production")) {
+      addCheck(
+        "PRODUCTION_MODE",
+        true,
+        "medium",
+        "Application configured for production mode",
+      );
+    } else {
+      addCheck(
+        "PRODUCTION_MODE",
+        false,
+        "medium",
+        "Application not in production mode",
+      );
+    }
+
+    // Check for .env in .gitignore
+    if (fs.existsSync(".gitignore")) {
+      const gitignoreContent = fs.readFileSync(".gitignore", "utf8");
+      if (gitignoreContent.includes(".env")) {
+        addCheck(
+          "ENV_GITIGNORE",
+          true,
+          "medium",
+          ".env file properly excluded from git",
+        );
+      } else {
+        addCheck(
+          "ENV_GITIGNORE",
+          false,
+          "high",
+          ".env file not excluded from git (security risk)",
+        );
+      }
+    }
+  } else {
+    addCheck("ENV_FILE_EXISTS", false, "high", ".env file not found");
+  }
+} catch (error) {
+  addCheck(
+    "ENV_CHECK_ERROR",
+    false,
+    "medium",
+    `Error checking environment: ${error.message}`,
+  );
+}
+
+// Calculate security score
+const totalChecks = auditResults.checks.length;
+const passedChecks = auditResults.checks.filter((c) => c.status).length;
+auditResults.securityScore =
+  totalChecks > 0 ? Math.round((passedChecks / totalChecks) * 100) : 0;
+
+// Display results
+console.log(
+  "\n" +
+    colors.bright +
+    colors.cyan +
+    "🎯 SECURITY AUDIT RESULTS" +
+    colors.reset,
+);
+console.log("═══════════════════════════════════════════════════════");
+console.log(
+  `📊 Security Score: ${auditResults.securityScore >= 80 ? colors.green : auditResults.securityScore >= 60 ? colors.yellow : colors.red}${auditResults.securityScore}%${colors.reset}`,
+);
+console.log(
+  `✅ Passed Checks: ${colors.green}${passedChecks}${colors.reset}/${totalChecks}`,
+);
+console.log(
+  `🚨 Critical Issues: ${auditResults.criticalIssues > 0 ? colors.red : colors.green}${auditResults.criticalIssues}${colors.reset}`,
+);
+
+if (auditResults.criticalIssues === 0 && auditResults.securityScore >= 80) {
+  console.log(
+    "\n" +
+      colors.green +
+      colors.bright +
+      "🎉 SECURITY STATUS: EXCELLENT" +
+      colors.reset,
+  );
+  console.log(
+    colors.green +
+      "   Your Fixzit Souq platform is properly secured!" +
+      colors.reset,
+  );
+} else if (auditResults.criticalIssues === 0) {
+  console.log(
+    "\n" +
+      colors.yellow +
+      colors.bright +
+      "⚠️  SECURITY STATUS: GOOD" +
+      colors.reset,
+  );
+  console.log(
+    colors.yellow +
+      "   Most security measures implemented, minor improvements needed" +
+      colors.reset,
+  );
+} else {
+  console.log(
+    "\n" +
+      colors.red +
+      colors.bright +
+      "🚨 SECURITY STATUS: CRITICAL ISSUES FOUND" +
+      colors.reset,
+  );
+  console.log(
+    colors.red +
+      "   Immediate action required to fix critical vulnerabilities!" +
+      colors.reset,
+  );
+}
+
+// Save detailed report
+const reportFile = `security-audit-${new Date().toISOString().split("T")[0]}.json`;
+fs.writeFileSync(reportFile, JSON.stringify(auditResults, null, 2));
+console.log(`\n📄 Detailed report saved to: ${reportFile}`);
+
+process.exit(auditResults.criticalIssues > 0 ? 1 : 0);
+
+]]>
+</file>
+
+<file path="scripts/security-migration.js">
+<![CDATA[
+// security-migration.js - Run this script to apply all security fixes
+const fs = require("fs").promises;
+const _path = require("path");
+const _crypto = require("crypto");
+
+// Color codes for console output
+const colors = {
+  reset: "\x1b[0m",
+  bright: "\x1b[1m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  red: "\x1b[31m",
+  cyan: "\x1b[36m",
+};
+
+const log = {
+  success: (msg) => console.log(`${colors.green}✅ ${msg}${colors.reset}`),
+  warning: (msg) => console.log(`${colors.yellow}⚠️  ${msg}${colors.reset}`),
+  error: (msg) => console.log(`${colors.red}❌ ${msg}${colors.reset}`),
+  info: (msg) => console.log(`${colors.cyan}ℹ️  ${msg}${colors.reset}`),
+  header: (msg) =>
+    console.log(
+      `\n${colors.bright}${colors.cyan}${"=".repeat(50)}\n${msg}\n${"=".repeat(50)}${colors.reset}\n`,
+    ),
+};
+
+// Fixes to apply
+const fixes = {
+  // Fix 1: Replace Math.random() with crypto.randomBytes()
+  fixWeakRandom: async () => {
+    log.header("Fixing Weak Random Number Generation");
+
+    const files = [
+      {
+        path: "routes/auth.js",
+        fixes: [
+          {
+            line: 79,
+            old: "const otpCode = Math.floor(100000 + Math.random() * 900000).toString();",
+            new: "const otpCode = (() => { const rb = crypto.randomBytes(3); return (rb.readUIntBE(0, 3) % 900000 + 100000).toString(); })();",
+          },
+        ],
+      },
+      {
+        path: "routes/finance.js",
+        fixes: [
+          {
+            line: 419,
+            old: "const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');",
+            new: "const random = (crypto.randomBytes(2).readUInt16BE(0) % 1000).toString().padStart(3, '0');",
+          },
+          {
+            line: 436,
+            old: "const success = Math.random() > 0.1;",
+            new: "const success = crypto.randomBytes(1)[0] > 25; // ~90% success rate",
+          },
+        ],
+      },
+      {
+        path: "routes/marketplace.js",
+        fixes: [
+          {
+            line: 32,
+            old: "const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');",
+            new: "const random = (crypto.randomBytes(2).readUInt16BE(0) % 10000).toString().padStart(4, '0');",
+          },
+          {
+            line: 204,
+            old: "const tempPassword = `Vendor@${Math.random().toString(36).slice(-8)}`;",
+            new: "const tempPassword = `Vendor@${crypto.randomBytes(6).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 8)}`;",
+          },
+        ],
+      },
+      {
+        path: "routes/crm.js",
+        fixes: [
+          {
+            line: 1047,
+            old: "const randomIndex = Math.floor(Math.random() * salesUsers.length);",
+            new: "const randomIndex = crypto.randomBytes(1)[0] % salesUsers.length;",
+          },
+        ],
+      },
+    ];
+
+    for (const file of files) {
+      try {
+        let content = await fs.readFile(file.path, "utf8");
+
+        // Add crypto import if not present
+        if (!content.includes("require('crypto')")) {
+          content = "const _crypto = require('crypto');\n" + content;
+        }
+
+        // Apply fixes
+        for (const fix of file.fixes) {
+          if (content.includes(fix.old)) {
+            content = content.replace(fix.old, fix.new);
+            log.success(
+              `Fixed weak random at line ${fix.line} in ${file.path}`,
+            );
+          }
+        }
+
+        await fs.writeFile(file.path, content);
+      } catch (error) {
+        log.error(`Failed to fix ${file.path}: ${error.message}`);
+      }
+    }
+  },
+
+  // Fix 2: Remove console statements
+  removeConsoleStatements: async () => {
+    log.header("Removing Console Statements");
+
+    const filesToFix = [
+      "routes/auth.js",
+      "routes/finance.js",
+      "routes/portals.js",
+      "routes/dashboard.js",
+      "routes/workorders.js",
+      "routes/crm.js",
+      "routes/marketplace.js",
+      "routes/system.js",
+      "server.js",
+    ];
+
+    let totalRemoved = 0;
+
+    for (const filePath of filesToFix) {
+      try {
+        let content = await fs.readFile(filePath, "utf8");
+        const _originalLength = content.length;
+
+        // Remove console.log, console.error, console.warn statements
+        const patterns = [
+          /console\.(log|error|warn|info|debug)([^)]*);?\n?/g,
+          /console\.(log|error|warn|info|debug)([^{]*{[^}]*});?\n?/g,
+          /console\.(log|error|warn|info|debug)(`[^`]*`);?\n?/g,
+        ];
+
+        let removedCount = 0;
+        for (const pattern of patterns) {
+          const matches = content.match(pattern);
+          if (matches) {
+            removedCount += matches.length;
+            content = content.replace(pattern, "");
+          }
+        }
+
+        if (removedCount > 0) {
+          await fs.writeFile(filePath, content);
+          log.success(
+            `Removed ${removedCount} console statements from ${filePath}`,
+          );
+          totalRemoved += removedCount;
+        }
+      } catch (error) {
+        log.error(`Failed to process ${filePath}: ${error.message}`);
+      }
+    }
+
+    log.info(`Total console statements removed: ${totalRemoved}`);
+  },
+
+  // Fix 3: Create logger utility
+  createLogger: async () => {
+    log.header("Creating Professional Logger System");
+
+    const loggerPath = "utils/logger.js";
+
+    // Check if utils directory exists
+    try {
+      await fs.access("utils");
+    } catch {
+      await fs.mkdir("utils");
+      log.info("Created utils directory");
+    }
+
+    // Create logs directory
+    try {
+      await fs.access("logs");
+    } catch {
+      await fs.mkdir("logs");
+      log.info("Created logs directory");
+    }
+
+    // Update logger with professional version
+    const loggerContent = `const winston = require('winston');
+const _path = require('path');
+
+const logger = winston.createLogger({
+  level: process.env.LOG_LEVEL || 'info',
+  format: winston.format.combine(
+    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+    winston.format.errors({ stack: true }),
+    winston.format.json()
+  ),
+  defaultMeta: { service: 'fixzit-souq' },
+  transports: [
+    new winston.transports.File({ 
+      filename: path.join('logs', 'error.log'), 
+      level: 'error',
+      maxsize: 5242880,
+      maxFiles: 5
+    }),
+    new winston.transports.File({ 
+      filename: path.join('logs', 'combined.log'),
+      maxsize: 5242880,
+      maxFiles: 5
+    }),
+    new winston.transports.File({
+      filename: path.join('logs', 'security.log'),
+      level: 'warn',
+      maxsize: 5242880,
+      maxFiles: 5
+    })
+  ]
+});
+
+if (process.env.NODE_ENV !== 'production') {
+  logger.add(new winston.transports.Console({
+    format: winston.format.combine(
+      winston.format.colorize(),
+      winston.format.simple()
+    )
+  }));
+}
+
+// Security logging methods
+logger.security = {
+  authFailure: (userId, reason, ip) => {
+    logger.warn('Authentication failure', { type: 'AUTH_FAILURE', userId, reason, ip });
+  },
+  authSuccess: (userId, method, ip) => {
+    logger.info('Authentication success', { type: 'AUTH_SUCCESS', userId, method, ip });
+  }
+};
+
+// Audit logging
+logger.audit = {
+  create: (userId, resource, data) => {
+    logger.info('Resource created', { type: 'AUDIT_CREATE', userId, resource, data });
+  },
+  update: (userId, resource, changes) => {
+    logger.info('Resource updated', { type: 'AUDIT_UPDATE', userId, resource, changes });
+  }
+};
+
+module.exports = logger;`;
+
+    await fs.writeFile(loggerPath, loggerContent);
+    log.success("Enhanced logger utility at utils/logger.js");
+  },
+
+  // Fix 4: Create security middleware
+  createSecurityMiddleware: async () => {
+    log.header("Creating Security Middleware");
+
+    const middlewarePath = "middleware/security.js";
+
+    // Check if middleware directory exists
+    try {
+      await fs.access("middleware");
+    } catch {
+      await fs.mkdir("middleware");
+      log.info("Created middleware directory");
+    }
+
+    const securityContent = `const validator = require('validator');
+const xss = require('xss');
+const rateLimiter = require('express-rate-limit');
+
+const validateInput = (schema) => {
+  return (req, res, next) => {
+    const errors = [];
+    
+    if (schema.body) {
+      for (const [field, rules] of Object.entries(schema.body)) {
+        const value = req.body[field];
+        
+        if (rules.required && !value) {
+          errors.push(\`\${field} is required\`);
+          continue;
+        }
+        
+        if (value) {
+          if (rules.type === 'email' && !validator.isEmail(value)) {
+            errors.push(\`\${field} must be a valid email\`);
+          }
+          
+          if (rules.minLength && value.length < rules.minLength) {
+            errors.push(\`\${field} must be at least \${rules.minLength} characters\`);
+          }
+          
+          if (typeof value === 'string') {
+            req.body[field] = xss(value.trim());
+          }
+        }
+      }
+    }
+    
+    if (errors.length > 0) {
+      return res.status(400).json({ error: 'Validation failed', details: errors });
+    }
+    
+    next();
+  };
+};
+
+const createRateLimiter = (options = {}) => {
+  return rateLimiter({
+    windowMs: options.windowMs || 15 * 60 * 1000,
+    max: options.max || 100,
+    message: 'Too many requests from this IP, please try again later',
+    standardHeaders: true,
+    legacyHeaders: false
+  });
+};
+
+const securityHeaders = (req, res, next) => {
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  if (req.secure) {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  
+  next();
+};
+
+module.exports = { validateInput, createRateLimiter, securityHeaders };`;
+
+    await fs.writeFile(middlewarePath, securityContent);
+    log.success("Created security middleware at middleware/security.js");
+  },
+
+  // Fix 5: Update server.js with security middleware
+  updateServerSecurity: async () => {
+    log.header("Updating Server Security");
+
+    try {
+      let content = await fs.readFile("server.js", "utf8");
+
+      // Add security imports at the top
+      const imports = `const { securityHeaders } = require('./middleware/security');
+const logger = require('./utils/logger');
+const helmet = require('helmet');`;
+
+      if (!content.includes("require('./middleware/security')")) {
+        content = imports + "\n\n" + content;
+      }
+
+      // Add security middleware after app initialization
+      if (!content.includes("app.use(helmet())")) {
+        const appInitPattern = /const app = express();/;
+        content = content.replace(
+          appInitPattern,
+          `const app = express();
+app.use(helmet());
+app.use(securityHeaders);`,
+        );
+      }
+
+      // Replace console.log with logger
+      content = content.replace(/console\.log(/g, "logger.info(");
+      content = content.replace(/console\.error(/g, "logger.error(");
+      content = content.replace(/console\.warn(/g, "logger.warn(");
+
+      await fs.writeFile("server.js", content);
+      log.success("Updated server.js with security middleware");
+    } catch (error) {
+      log.error(`Failed to update server.js: ${error.message}`);
+    }
+  },
+};
+
+// Main execution
+async function runSecurityMigration() {
+  log.header("🔒 FIXZIT SOUQ SECURITY MIGRATION");
+  log.info(
+    "This script will apply comprehensive security fixes to your codebase",
+  );
+
+  try {
+    await fixes.fixWeakRandom();
+    await fixes.removeConsoleStatements();
+    await fixes.createLogger();
+    await fixes.createSecurityMiddleware();
+    await fixes.updateServerSecurity();
+
+    log.header("✅ SECURITY MIGRATION COMPLETED");
+    log.success("All critical security vulnerabilities have been fixed");
+    log.info("Next steps:");
+    log.info(
+      "1. Run: npm install winston validator xss express-rate-limit helmet",
+    );
+    log.info("2. Test your application thoroughly");
+    log.info("3. Run security scan again to verify fixes");
+    log.info("4. Expected health score: 85+/100");
+  } catch (error) {
+    log.error(`Migration failed: ${error.message}`);
+    process.exit(1);
+  }
+}
+
+// Run the migration
+runSecurityMigration();
+
+]]>
+</file>
+
+</batch_content>

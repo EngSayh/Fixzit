@@ -1,0 +1,3588 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="lib/finance/paytabs-subscription.ts">
+<![CDATA[
+import PaymentMethod from "@/server/models/PaymentMethod";
+import Subscription from "@/server/models/Subscription";
+
+import {
+  normalizePaytabsCallbackPayload,
+  type PaytabsCallbackPayload,
+} from "@/lib/payments/paytabs-callback.contract";
+import { provisionSubscriber } from "./provision";
+
+export type NormalizedPayTabsPayload = PaytabsCallbackPayload;
+
+export function normalizePayTabsPayload(
+  data: unknown,
+): NormalizedPayTabsPayload {
+  return normalizePaytabsCallbackPayload(data);
+}
+
+/**
+ * Calculate the next billing date based on billing cycle
+ * Handles month-end edge cases by capping to last day of month
+ */
+function calculateNextBillingDate(billingCycle: "MONTHLY" | "ANNUAL"): Date {
+  const nextDate = new Date();
+  nextDate.setUTCHours(0, 0, 0, 0);
+
+  if (billingCycle === "MONTHLY") {
+    // Get current day to preserve billing day-of-month
+    const currentDay = nextDate.getUTCDate();
+    nextDate.setUTCMonth(nextDate.getUTCMonth() + 1);
+
+    // Handle month-end edge cases (e.g., Jan 31 -> Feb 28/29)
+    // If the day changed after setMonth, it overflowed to next month
+    if (nextDate.getUTCDate() < currentDay) {
+      // Set to last day of the intended month
+      nextDate.setUTCDate(0);
+    }
+  } else {
+    nextDate.setUTCFullYear(nextDate.getUTCFullYear() + 1);
+  }
+
+  return nextDate;
+}
+
+export async function finalizePayTabsTransaction(
+  payload: NormalizedPayTabsPayload,
+) {
+  if (!payload.cartId) {
+    throw new Error("Missing cart identifier");
+  }
+
+  const subscription = await Subscription.findOne({
+    "paytabs.cart_id": payload.cartId,
+  });
+  if (!subscription) {
+    throw new Error("Subscription not found for cart");
+  }
+
+  if (payload.respStatus !== "A") {
+    subscription.status = "PAST_DUE";
+    await subscription.save();
+    return { ok: false, subscription };
+  }
+
+  if (payload.token) {
+    await PaymentMethod.findOneAndUpdate(
+      { pt_token: payload.token },
+      {
+        pt_token: payload.token,
+        pt_customer_email: payload.customerEmail,
+        pt_masked_card: payload.maskedCard,
+        org_id:
+          subscription.subscriber_type === "CORPORATE"
+            ? subscription.tenant_id
+            : undefined,
+        owner_user_id:
+          subscription.subscriber_type === "OWNER"
+            ? subscription.owner_user_id
+            : undefined,
+      },
+      { upsert: true },
+    );
+  }
+
+  subscription.status = "ACTIVE";
+  subscription.amount = payload.amount ?? subscription.amount;
+  const incomingCurrency =
+    typeof payload.currency === "string"
+      ? payload.currency.toUpperCase()
+      : undefined;
+  if (incomingCurrency === "USD" || incomingCurrency === "SAR") {
+    subscription.currency = incomingCurrency;
+  }
+
+  // Set next_billing_date for recurring subscriptions
+  if (!subscription.next_billing_date) {
+    subscription.next_billing_date = calculateNextBillingDate(
+      subscription.billing_cycle,
+    );
+  }
+
+  subscription.paytabs = {
+    ...(subscription.paytabs || {}),
+    token: payload.token ?? subscription.paytabs?.token,
+    last_tran_ref: payload.tranRef,
+    customer_email:
+      payload.customerEmail ?? subscription.paytabs?.customer_email,
+    cart_id: subscription.paytabs?.cart_id,
+    profile_id: subscription.paytabs?.profile_id,
+  };
+
+  // Record successful payment in billing history
+  subscription.billing_history.push({
+    date: new Date(),
+    amount: subscription.amount,
+    currency: subscription.currency,
+    tran_ref: payload.tranRef,
+    status: "SUCCESS",
+  });
+
+  await subscription.save();
+
+  if (
+    subscription.subscriber_type === "OWNER" &&
+    subscription.metadata &&
+    typeof subscription.metadata === "object" &&
+    "ownerGroup" in subscription.metadata
+  ) {
+    const meta = subscription.metadata.ownerGroup as Record<string, unknown>;
+    if (meta?.name) {
+      const { OwnerGroupModel } = await import("@/server/models/OwnerGroup");
+      await OwnerGroupModel.findOneAndUpdate(
+        {
+          name: meta.name,
+          primary_contact_user_id:
+            meta.primary_contact_user_id || subscription.owner_user_id,
+        },
+        {
+          name: meta.name,
+          primary_contact_user_id:
+            meta.primary_contact_user_id || subscription.owner_user_id,
+          member_user_ids: meta.member_user_ids || [],
+          fm_provider_org_id: meta.fm_provider_org_id,
+          agent_org_id: meta.agent_org_id,
+          property_ids: meta.property_ids || [],
+        },
+        { upsert: true, new: true },
+      );
+    }
+  }
+
+  await provisionSubscriber(payload.cartId);
+
+  return { ok: true, subscription };
+}
+
+]]>
+</file>
+
+<file path="lib/finance/pricing.ts">
+<![CDATA[
+import PriceBook from "@/server/models/PriceBook";
+import DiscountRule from "@/server/models/DiscountRule";
+import { z, type ZodIssue } from "zod";
+
+export type BillingCycle = "MONTHLY" | "ANNUAL";
+
+export type QuoteLine = {
+  module: string;
+  perSeatMonthly: number;
+  discountedPerSeatMonthly: number;
+};
+
+export type QuoteResult =
+  | { requiresQuote: true; total: 0; lines: []; annualDiscount?: number }
+  | {
+      requiresQuote: false;
+      total: number;
+      lines: QuoteLine[];
+      annualDiscount?: number;
+    };
+
+// Type definitions for better type safety
+interface PriceRowType {
+  module_key: string;
+  monthly_usd: number;
+  monthly_sar: number;
+}
+
+interface TierType {
+  min_seats: number;
+  max_seats: number;
+  discount_pct: number;
+  prices: PriceRowType[];
+}
+
+interface PriceBookDoc {
+  tiers: TierType[];
+}
+
+interface DiscountRuleDoc {
+  percentage?: number;
+}
+
+// Custom error class for pricing-related errors
+export class PricingError extends Error {
+  constructor(
+    message: string,
+    public readonly code: string,
+    public readonly details?: Record<string, unknown>,
+  ) {
+    super(message);
+    this.name = "PricingError";
+  }
+}
+
+// Input validation schema
+const quotePriceSchema = z.object({
+  priceBookCurrency: z.enum(["USD", "SAR"]),
+  seats: z.number().positive().int().min(1).max(10000),
+  modules: z.array(z.string()).min(1),
+  billingCycle: z.enum(["MONTHLY", "ANNUAL"]),
+});
+
+export async function quotePrice(opts: {
+  priceBookCurrency: "USD" | "SAR";
+  seats: number;
+  modules: string[];
+  billingCycle: BillingCycle;
+}): Promise<QuoteResult> {
+  // Validate input parameters
+  const validation = quotePriceSchema.safeParse(opts);
+  if (!validation.success) {
+    const issueMessages = validation.error.issues
+      .map((issue: ZodIssue) => issue.message)
+      .join(", ");
+    throw new PricingError(
+      `Invalid pricing parameters: ${issueMessages}`,
+      "INVALID_INPUT",
+      { errors: validation.error.issues },
+    );
+  }
+
+  const { priceBookCurrency, seats, modules, billingCycle } = opts;
+
+  // Handle enterprise quotes
+  if (seats > 200) {
+    return { requiresQuote: true, total: 0, lines: [], annualDiscount: 0 };
+  }
+
+  // Parallel query optimization: fetch price book and discount rule simultaneously
+  const [pb, rule] = await Promise.all([
+    PriceBook.findOne({
+      currency: priceBookCurrency,
+      active: true,
+    }).lean<PriceBookDoc>(),
+    billingCycle === "ANNUAL"
+      ? DiscountRule.findOne({ key: "ANNUAL_PREPAY" }).lean<DiscountRuleDoc>()
+      : Promise.resolve(null),
+  ]);
+
+  if (!pb) {
+    throw new PricingError(
+      `No active price book found for currency ${priceBookCurrency}`,
+      "PRICEBOOK_NOT_FOUND",
+      { currency: priceBookCurrency },
+    );
+  }
+
+  const tier = pb.tiers.find(
+    (t: TierType) => seats >= t.min_seats && seats <= t.max_seats,
+  );
+
+  if (!tier) {
+    throw new PricingError(
+      `No pricing tier found for ${seats} seats`,
+      "TIER_NOT_FOUND",
+      {
+        seats,
+        availableTiers: pb.tiers.map((t: TierType) => ({
+          min: t.min_seats,
+          max: t.max_seats,
+        })),
+      },
+    );
+  }
+
+  const FALLBACK_PRICES: Record<string, { usd: number; sar: number }> = {
+    AQAR: { usd: 50, sar: 187.5 },
+    FM: { usd: 40, sar: 150 },
+    HR: { usd: 30, sar: 112.5 },
+  };
+
+  // Build quote lines with proper type safety
+  const lines = modules.map((moduleKey: string) => {
+    let priceRow = tier.prices.find(
+      (row: PriceRowType) => row.module_key === moduleKey,
+    );
+    if (!priceRow) {
+      const fallback = FALLBACK_PRICES[moduleKey];
+      if (fallback) {
+        priceRow = {
+          module_key: moduleKey,
+          monthly_usd: fallback.usd,
+          monthly_sar: fallback.sar,
+        } as PriceRowType;
+      }
+    }
+
+    if (!priceRow) {
+      throw new PricingError(
+        `No price found for module '${moduleKey}'`,
+        "MODULE_NOT_FOUND",
+        {
+          module: moduleKey,
+          availableModules: tier.prices.map((p: PriceRowType) => p.module_key),
+        },
+      );
+    }
+
+    const perSeatMonthly =
+      priceBookCurrency === "USD" ? priceRow.monthly_usd : priceRow.monthly_sar;
+    const discountedPerSeatMonthly = perSeatMonthly * (1 - tier.discount_pct);
+
+    return { module: moduleKey, perSeatMonthly, discountedPerSeatMonthly };
+  });
+
+  const subtotalMonthly =
+    lines.reduce(
+      (total: number, line) => total + line.discountedPerSeatMonthly,
+      0,
+    ) * seats;
+
+  // Calculate annual pricing with discount
+  if (billingCycle === "ANNUAL") {
+    const annualDisc = rule?.percentage ?? 0;
+    const total =
+      Math.round(subtotalMonthly * 12 * (1 - annualDisc) * 100) / 100;
+
+    return { requiresQuote: false, total, lines, annualDiscount: annualDisc };
+  }
+
+  // Calculate monthly pricing
+  const total = Math.round(subtotalMonthly * 100) / 100;
+  return { requiresQuote: false, total, lines };
+}
+
+]]>
+</file>
+
+<file path="lib/finance/provision.ts">
+<![CDATA[
+import Subscription from "@/server/models/Subscription";
+
+export async function provisionSubscriber(cartIdOrSubscriptionId: string) {
+  const subscription = await Subscription.findOne({
+    $or: [
+      { _id: cartIdOrSubscriptionId },
+      { "paytabs.cart_id": cartIdOrSubscriptionId },
+    ],
+  });
+
+  if (!subscription) {
+    throw new Error("Subscription not found for provisioning");
+  }
+
+  // Provisioning hooks tie into the broader RBAC and automation layer. For now we
+  // simply return the subscription document so callers can continue with their
+  // onboarding routines without blocking on additional infrastructure.
+  return subscription;
+}
+
+]]>
+</file>
+
+<file path="lib/finance/schemas.ts">
+<![CDATA[
+/**
+ * Finance Module - Zod Validation Schemas
+ * Ensures data integrity for budgets, invoices, and payments
+ * Uses Decimal.js for precise money calculations
+ */
+
+import { z } from "zod";
+
+/**
+ * Budget Category Schema
+ * Represents a single category within a budget
+ */
+export const budgetCategorySchema = z.object({
+  id: z.string().min(1),
+  category: z.string().min(1, "Category name is required"),
+  amount: z.number().nonnegative("Amount must be non-negative"),
+  percentage: z
+    .number()
+    .min(0)
+    .max(100, "Percentage must be between 0 and 100"),
+});
+
+export type BudgetCategory = z.infer<typeof budgetCategorySchema>;
+
+/**
+ * Budget Creation Schema
+ * Validates complete budget data before submission
+ */
+export const createBudgetSchema = z
+  .object({
+    budgetName: z.string().min(1, "Budget name is required").max(100),
+    periodType: z.enum(["monthly", "quarterly", "semi-annual", "annual"]),
+    startDate: z.string().refine((date) => !isNaN(Date.parse(date)), {
+      message: "Invalid start date",
+    }),
+    endDate: z.string().refine((date) => !isNaN(Date.parse(date)), {
+      message: "Invalid end date",
+    }),
+    propertyId: z.string().nullable(),
+    budgetOwner: z.string().optional(),
+    categories: z
+      .array(budgetCategorySchema)
+      .min(1, "At least one category is required"),
+    settings: z.object({
+      enableAlerts: z.boolean(),
+      requireApprovals: z.boolean(),
+      allowCarryover: z.boolean(),
+    }),
+    description: z.string().optional(),
+    status: z.enum(["draft", "active", "closed"]),
+  })
+  .refine((data) => new Date(data.startDate) < new Date(data.endDate), {
+    message: "End date must be after start date",
+    path: ["endDate"],
+  });
+
+export type CreateBudget = z.infer<typeof createBudgetSchema>;
+
+/**
+ * Invoice Line Item Schema
+ */
+export const invoiceLineItemSchema = z.object({
+  id: z.string().min(1),
+  description: z.string().min(1, "Description is required"),
+  quantity: z.number().positive("Quantity must be positive"),
+  rate: z.number().nonnegative("Rate must be non-negative"),
+  amount: z.number().nonnegative("Amount must be non-negative"),
+  taxable: z.boolean().optional().default(false),
+});
+
+export type InvoiceLineItem = z.infer<typeof invoiceLineItemSchema>;
+
+/**
+ * Invoice Creation Schema
+ */
+export const createInvoiceSchema = z.object({
+  invoiceNumber: z.string().min(1, "Invoice number is required"),
+  clientName: z.string().min(1, "Client name is required"),
+  clientEmail: z.string().email("Invalid email address").optional(),
+  invoiceDate: z.string().refine((date) => !isNaN(Date.parse(date)), {
+    message: "Invalid invoice date",
+  }),
+  dueDate: z.string().refine((date) => !isNaN(Date.parse(date)), {
+    message: "Invalid due date",
+  }),
+  propertyId: z.string().nullable(),
+  lineItems: z
+    .array(invoiceLineItemSchema)
+    .min(1, "At least one line item is required"),
+  subtotal: z.number().nonnegative(),
+  taxRate: z.number().min(0).max(100, "Tax rate must be between 0 and 100"),
+  taxAmount: z.number().nonnegative(),
+  total: z.number().nonnegative(),
+  notes: z.string().optional(),
+  status: z.enum(["draft", "sent", "paid", "overdue", "cancelled"]),
+  currency: z.string().length(3).default("OMR"),
+});
+
+export type CreateInvoice = z.infer<typeof createInvoiceSchema>;
+
+/**
+ * Payment Method Schemas
+ */
+const cashPaymentSchema = z.object({
+  method: z.literal("cash"),
+  receiptNumber: z.string().optional(),
+});
+
+const chequePaymentSchema = z.object({
+  method: z.literal("cheque"),
+  chequeNumber: z.string().min(1, "Cheque number is required"),
+  chequeDate: z.string().refine((date) => !isNaN(Date.parse(date)), {
+    message: "Invalid cheque date",
+  }),
+  bankName: z.string().min(1, "Bank name is required"),
+  drawerName: z.string().optional(),
+});
+
+const bankTransferSchema = z.object({
+  method: z.literal("bank_transfer"),
+  accountNumber: z.string().min(1, "Account number is required"),
+  accountHolder: z.string().min(1, "Account holder is required"),
+  bankName: z.string().min(1, "Bank name is required"),
+  referenceNumber: z.string().optional(),
+  swiftCode: z.string().optional(),
+  iban: z.string().optional(),
+});
+
+const cardPaymentSchema = z.object({
+  method: z.literal("card"),
+  cardType: z.enum(["visa", "mastercard", "amex", "other"]),
+  last4Digits: z.string().length(4, "Must be 4 digits"),
+  transactionId: z.string().optional(),
+  authorizationCode: z.string().optional(),
+});
+
+export const paymentMethodSchema = z.discriminatedUnion("method", [
+  cashPaymentSchema,
+  chequePaymentSchema,
+  bankTransferSchema,
+  cardPaymentSchema,
+]);
+
+export type PaymentMethod = z.infer<typeof paymentMethodSchema>;
+
+/**
+ * Payment Creation Schema
+ */
+export const createPaymentSchema = z.object({
+  paymentType: z.enum(["received", "made"]),
+  paymentDate: z.string().refine((date) => !isNaN(Date.parse(date)), {
+    message: "Invalid payment date",
+  }),
+  amount: z.number().positive("Amount must be positive"),
+  currency: z.string().length(3).default("OMR"),
+  propertyId: z.string().nullable(),
+  paymentMethod: paymentMethodSchema,
+  invoiceId: z.string().optional(),
+  description: z.string().optional(),
+  status: z.enum(["pending", "completed", "failed", "cancelled"]),
+});
+
+export type CreatePayment = z.infer<typeof createPaymentSchema>;
+
+/**
+ * Helper function to safely parse numbers that might be strings
+ * Note: This function strips non-numeric characters (except . and -) which may not handle
+ * all locale-specific number formats (e.g., comma as decimal separator).
+ * For production use with international locales, consider using Intl.NumberFormat
+ * or the Decimal.js constructor directly with proper locale handling.
+ * @throws {Error} if input is invalid and cannot be parsed to a valid number
+ */
+export function parseDecimalInput(value: string | number): number {
+  if (typeof value === "number") {
+    if (isNaN(value)) {
+      throw new Error("Invalid number: NaN provided");
+    }
+    return value;
+  }
+
+  // Remove non-numeric characters except . and -
+  // WARNING: This assumes dot (.) as decimal separator (US/UK format)
+  // Comma-based locales (e.g., European "1.234,56") will be incorrectly parsed
+  const cleaned = value.replace(/[^0-9.-]/g, "");
+
+  // Check if result is empty or invalid pattern
+  if (!cleaned || cleaned === "-" || cleaned === ".") {
+    throw new Error(`Invalid monetary input: "${value}"`);
+  }
+
+  const parsed = parseFloat(cleaned);
+
+  if (isNaN(parsed)) {
+    throw new Error(
+      `Invalid monetary input: "${value}" could not be parsed to a number`,
+    );
+  }
+
+  return parsed;
+}
+
+// NOTE: Use formatCurrency from lib/payments/currencyUtils.ts or utils/formatters.ts
+// This duplicate was removed to consolidate currency formatting logic.
+
+]]>
+</file>
+
+<file path="lib/finance/tap-payments.ts">
+<![CDATA[
+/**
+ * Tap Payments API Client for Saudi Market
+ *
+ * Official Docs: https://developers.tap.company/reference
+ *
+ * Features:
+ * - Create payment charges
+ * - Process card payments
+ * - Handle Apple Pay / Mada / STC Pay
+ * - Webhook verification
+ * - Refunds and partial refunds
+ *
+ * Environment Variables Required:
+ * - TAP_SECRET_KEY: Your Tap secret API key
+ * - TAP_PUBLIC_KEY: Your Tap publishable key
+ * - TAP_WEBHOOK_SECRET: Webhook signing secret
+ */
+
+import crypto from "crypto";
+import { logger } from "@/lib/logger";
+
+// ============================================================================
+// Types & Interfaces
+// ============================================================================
+
+export interface TapCustomer {
+  first_name: string;
+  middle_name?: string;
+  last_name: string;
+  email: string;
+  phone?: {
+    country_code: string;
+    number: string;
+  };
+}
+
+export interface TapAddress {
+  country?: string;
+  line1?: string;
+  city?: string;
+  state?: string;
+  zip_code?: string;
+}
+
+export interface TapSource {
+  id: string; // Card token or source ID
+}
+
+export interface TapRedirect {
+  url: string; // Where to redirect after payment
+}
+
+export interface TapPost {
+  url: string; // Webhook endpoint
+}
+
+export interface TapMetadata {
+  orderId?: string;
+  userId?: string;
+  organizationId?: string;
+  [key: string]: string | number | boolean | undefined;
+}
+
+export interface TapChargeRequest {
+  amount: number; // Amount in smallest currency unit (halalas for SAR)
+  currency: string; // "SAR" for Saudi Riyal
+  customer: TapCustomer;
+  source?: TapSource; // Optional: provide saved card token
+  redirect: TapRedirect;
+  post?: TapPost; // Webhook URL
+  description?: string;
+  metadata?: TapMetadata;
+  reference?: {
+    transaction?: string; // Your internal transaction ID
+    order?: string; // Your internal order ID
+  };
+  receipt?: {
+    email: boolean; // Send receipt to customer email
+    sms: boolean; // Send receipt to customer phone
+  };
+  billing?: TapAddress;
+  shipping?: TapAddress;
+}
+
+export interface TapChargeResponse {
+  id: string; // Charge ID (chg_xxxx)
+  object: "charge";
+  live_mode: boolean;
+  api_version: string;
+  amount: number;
+  currency: string;
+  customer: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: {
+      country_code: string;
+      number: string;
+    };
+  };
+  source: {
+    id: string;
+    object: string;
+    type: string;
+    payment_method: string;
+    payment_type: string;
+  };
+  redirect: {
+    status: "PENDING" | "COMPLETED" | "FAILED";
+    url: string;
+  };
+  response: {
+    code: string;
+    message: string;
+  };
+  transaction: {
+    timezone: string;
+    created: string;
+    url: string;
+    expiry: {
+      period: number;
+      type: string;
+    };
+    asynchronous: boolean;
+  };
+  status:
+    | "INITIATED"
+    | "CAPTURED"
+    | "AUTHORIZED"
+    | "DECLINED"
+    | "CANCELLED"
+    | "FAILED";
+  metadata?: TapMetadata;
+  reference?: {
+    transaction?: string;
+    order?: string;
+  };
+}
+
+export interface TapRefundRequest {
+  charge_id: string; // Charge ID to refund
+  amount?: number; // Optional: partial refund amount (defaults to full)
+  currency: string; // Must match original charge currency
+  reason?: string;
+  metadata?: TapMetadata;
+  reference?: {
+    merchant?: string;
+  };
+  post?: TapPost;
+}
+
+export interface TapRefundResponse {
+  id: string; // Refund ID (ref_xxxx)
+  object: "refund";
+  live_mode: boolean;
+  api_version: string;
+  amount: number;
+  currency: string;
+  charge: string; // Original charge ID
+  status: "PENDING" | "SUCCEEDED" | "FAILED";
+  reason?: string;
+  metadata?: TapMetadata;
+  response: {
+    code: string;
+    message: string;
+  };
+  created: string;
+}
+
+export interface TapWebhookEvent {
+  id: string; // Event ID
+  object: "event";
+  live_mode: boolean;
+  created: string;
+  type: string; // e.g., "charge.created", "charge.captured", "refund.succeeded"
+  data: {
+    object: TapChargeResponse | TapRefundResponse;
+  };
+}
+
+export interface TapError {
+  errors: Array<{
+    code: string;
+    description: string;
+    parameter?: string;
+  }>;
+}
+
+// ============================================================================
+// Tap Payments Client
+// ============================================================================
+
+class TapPaymentsClient {
+  private readonly baseUrl = "https://api.tap.company/v2";
+  private readonly secretKey: string;
+  private readonly publicKey: string;
+  private readonly webhookSecret: string;
+  private readonly isConfigured: boolean;
+
+  constructor() {
+    this.secretKey = process.env.TAP_SECRET_KEY || "";
+    this.publicKey = process.env.TAP_PUBLIC_KEY || "";
+    this.webhookSecret = process.env.TAP_WEBHOOK_SECRET || "";
+    
+    const paytabsConfigured =
+      Boolean(process.env.PAYTABS_PROFILE_ID) &&
+      Boolean(process.env.PAYTABS_SERVER_KEY);
+    
+    // Tap is only considered configured when BOTH essential API keys exist
+    this.isConfigured = Boolean(this.secretKey && this.publicKey);
+
+    // Suppress Tap warnings when PayTabs is configured and Tap is intentionally absent
+    const tapEnvPresent = Boolean(this.secretKey) || Boolean(this.publicKey);
+    if (!tapEnvPresent) {
+      if (!paytabsConfigured) {
+        logger.warn(
+          "Tap Payments not configured and PayTabs not configured; payment routes will be disabled until one provider is set",
+        );
+      }
+      return;
+    }
+
+    // Warn if partially configured (one key present but not both)
+    if (!this.isConfigured) {
+      logger.error(
+        "Tap Payments partially configured: both TAP_SECRET_KEY and TAP_PUBLIC_KEY are required for API access",
+      );
+    }
+    
+    if (!this.webhookSecret) {
+      logger.warn(
+        "TAP_WEBHOOK_SECRET environment variable not set (webhook verification disabled)",
+      );
+    }
+  }
+
+  private ensureConfigured(action: string) {
+    if (!this.isConfigured) {
+      throw new Error(
+        `Tap Payments is not configured (${action}). Set TAP_SECRET_KEY and TAP_PUBLIC_KEY or use PayTabs instead.`,
+      );
+    }
+  }
+
+  /**
+   * Get public key for frontend card tokenization
+   */
+  getPublicKey(): string {
+    this.ensureConfigured("public key lookup");
+    return this.publicKey;
+  }
+
+  /**
+   * Create a payment charge
+   * @param request - Charge creation parameters
+   * @returns Charge response with transaction URL
+   */
+  async createCharge(request: TapChargeRequest): Promise<TapChargeResponse> {
+    this.ensureConfigured("create charge");
+    try {
+      logger.info("Creating Tap payment charge", {
+        amount: request.amount,
+        currency: request.currency,
+        customerEmail: request.customer.email,
+      });
+
+      const response = await fetch(`${this.baseUrl}/charges`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.secretKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(request),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const error = data as TapError;
+        logger.error(
+          "Tap API error creating charge",
+          new Error(JSON.stringify(error)),
+        );
+        throw new Error(
+          error.errors?.map((e) => e.description).join(", ") ||
+            "Failed to create charge",
+        );
+      }
+
+      logger.info("Tap charge created successfully", {
+        chargeId: data.id,
+        status: data.status,
+        transactionUrl: data.transaction.url,
+      });
+
+      return data as TapChargeResponse;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("Error creating Tap charge", error as Error);
+      throw error;
+    }
+  }
+
+  /**
+   * Retrieve a charge by ID
+   * @param chargeId - Charge ID (chg_xxxx)
+   * @returns Charge details
+   */
+  async getCharge(chargeId: string): Promise<TapChargeResponse> {
+    this.ensureConfigured("get charge");
+    try {
+      const response = await fetch(`${this.baseUrl}/charges/${chargeId}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${this.secretKey}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const error = data as TapError;
+        logger.error(
+          "Tap API error retrieving charge",
+          new Error(JSON.stringify(error)),
+          { chargeId },
+        );
+        throw new Error(
+          error.errors?.map((e) => e.description).join(", ") ||
+            "Failed to retrieve charge",
+        );
+      }
+
+      return data as TapChargeResponse;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("Error retrieving Tap charge", error as Error, { chargeId });
+      throw error;
+    }
+  }
+
+  /**
+   * Create a refund for a charge
+   * @param request - Refund parameters
+   * @returns Refund response
+   */
+  async createRefund(request: TapRefundRequest): Promise<TapRefundResponse> {
+    this.ensureConfigured("create refund");
+    try {
+      logger.info("Creating Tap refund", {
+        chargeId: request.charge_id,
+        amount: request.amount,
+        reason: request.reason,
+      });
+
+      const response = await fetch(`${this.baseUrl}/refunds`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.secretKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(request),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const error = data as TapError;
+        logger.error(
+          "Tap API error creating refund",
+          new Error(JSON.stringify(error)),
+        );
+        throw new Error(
+          error.errors?.map((e) => e.description).join(", ") ||
+            "Failed to create refund",
+        );
+      }
+
+      logger.info("Tap refund created successfully", {
+        refundId: data.id,
+        status: data.status,
+      });
+
+      return data as TapRefundResponse;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("Error creating Tap refund", error as Error);
+      throw error;
+    }
+  }
+
+  /**
+   * Verify webhook signature
+   * @param payload - Raw webhook payload (as string)
+   * @param signature - X-Tap-Signature header value
+   * @returns True if signature is valid
+   */
+  verifyWebhookSignature(payload: string, signature: string): boolean {
+    this.ensureConfigured("verify webhook signature");
+    if (!this.webhookSecret) {
+      logger.warn(
+        "Webhook signature verification skipped - TAP_WEBHOOK_SECRET not configured",
+      );
+      return true; // Allow in dev/test environments
+    }
+
+    try {
+      const hmac = crypto.createHmac("sha256", this.webhookSecret);
+      const calculatedSignature = hmac.update(payload).digest("hex");
+
+      const isValid = calculatedSignature === signature;
+
+      if (!isValid) {
+        logger.error(
+          "Invalid webhook signature",
+          new Error("Signature mismatch"),
+          {
+            provided: signature,
+            calculated: calculatedSignature,
+          },
+        );
+      }
+
+      return isValid;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("Error verifying webhook signature", error as Error);
+      return false;
+    }
+  }
+
+  /**
+   * Parse and validate webhook event
+   * @param payload - Raw webhook payload (as string)
+   * @param signature - X-Tap-Signature header value
+   * @returns Parsed webhook event
+   * @throws Error if signature is invalid
+   */
+  parseWebhookEvent(payload: string, signature: string): TapWebhookEvent {
+    this.ensureConfigured("parse webhook event");
+    if (!this.verifyWebhookSignature(payload, signature)) {
+      throw new Error("Invalid webhook signature");
+    }
+
+    try {
+      const event = JSON.parse(payload) as TapWebhookEvent;
+      logger.info("Parsed Tap webhook event", {
+        eventId: event.id,
+        eventType: event.type,
+        liveMode: event.live_mode,
+      });
+      return event;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("Error parsing webhook payload", { error });
+      throw new Error("Invalid webhook payload");
+    }
+  }
+
+  /**
+   * Convert SAR to halalas (smallest currency unit)
+   * 1 SAR = 100 halalas
+   */
+  sarToHalalas(amountSAR: number): number {
+    return Math.round(amountSAR * 100);
+  }
+
+  /**
+   * Convert halalas to SAR
+   */
+  halalasToSAR(amountHalalas: number): number {
+    return amountHalalas / 100;
+  }
+
+  /**
+   * Format amount for display
+   * @param amountHalalas - Amount in halalas
+   * @param locale - Locale for formatting (default: 'ar-SA')
+   * @returns Formatted amount string (e.g., "١٢٫٥٠ ر.س")
+   */
+  formatAmount(amountHalalas: number, locale: string = "ar-SA"): string {
+    const amountSAR = this.halalasToSAR(amountHalalas);
+    return new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: "SAR",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amountSAR);
+  }
+}
+
+// Export singleton instance
+export const tapPayments = new TapPaymentsClient();
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Build Tap customer object from user data
+ */
+export function buildTapCustomer(user: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+}): TapCustomer {
+  const customer: TapCustomer = {
+    first_name: user.firstName,
+    last_name: user.lastName,
+    email: user.email,
+  };
+
+  // Parse phone number if provided (expects format: +966501234567)
+  if (user.phone) {
+    const phoneMatch = user.phone.match(/^\+(\d{1,3})(\d+)$/);
+    if (phoneMatch) {
+      customer.phone = {
+        country_code: `+${phoneMatch[1]}`,
+        number: phoneMatch[2],
+      };
+    }
+  }
+
+  return customer;
+}
+
+/**
+ * Build redirect URLs for payment flow
+ */
+export function buildRedirectUrls(
+  baseUrl: string,
+  successPath: string = "/payments/success",
+  _errorPath: string = "/payments/error",
+): TapRedirect {
+  // Tap requires a single redirect URL - we'll handle success/error via query params
+  return {
+    url: `${baseUrl}${successPath}`,
+  };
+}
+
+/**
+ * Build webhook configuration
+ */
+export function buildWebhookConfig(baseUrl: string): TapPost {
+  return {
+    url: `${baseUrl}/api/payments/tap/webhook`,
+  };
+}
+
+/**
+ * Check if charge is successful
+ */
+export function isChargeSuccessful(charge: TapChargeResponse): boolean {
+  return charge.status === "CAPTURED" || charge.status === "AUTHORIZED";
+}
+
+/**
+ * Check if charge is pending
+ */
+export function isChargePending(charge: TapChargeResponse): boolean {
+  return charge.status === "INITIATED";
+}
+
+/**
+ * Check if charge failed
+ */
+export function isChargeFailed(charge: TapChargeResponse): boolean {
+  return (
+    charge.status === "DECLINED" ||
+    charge.status === "CANCELLED" ||
+    charge.status === "FAILED"
+  );
+}
+
+/**
+ * Get user-friendly status message
+ */
+export function getChargeStatusMessage(
+  charge: TapChargeResponse,
+  locale: "ar" | "en" = "ar",
+): string {
+  const messages = {
+    ar: {
+      CAPTURED: "تمت العملية بنجاح",
+      AUTHORIZED: "تم التفويض بنجاح",
+      INITIATED: "قيد المعالجة",
+      DECLINED: "تم الرفض",
+      CANCELLED: "تم الإلغاء",
+      FAILED: "فشلت العملية",
+    },
+    en: {
+      CAPTURED: "Payment successful",
+      AUTHORIZED: "Payment authorized",
+      INITIATED: "Payment pending",
+      DECLINED: "Payment declined",
+      CANCELLED: "Payment cancelled",
+      FAILED: "Payment failed",
+    },
+  };
+
+  return messages[locale][charge.status] || charge.status;
+}
+
+]]>
+</file>
+
+<file path="lib/fm-approval-engine.ts">
+<![CDATA[
+import { logger } from "@/lib/logger";
+/**
+ * FM Approval Routing Engine
+ * Routes quotations to appropriate approvers based on APPROVAL_POLICIES
+ *
+ * NOW WITH PERSISTENCE: Uses FMApproval model for database storage
+ */
+
+import { APPROVAL_POLICIES, Role } from "@/domain/fm/fm.behavior";
+
+// Lean query result types for type-safe Mongoose operations
+interface LeanUser {
+  _id: string;
+  email: string;
+  professional?: {
+    role?: string;
+    firstName?: string;
+    lastName?: string;
+  };
+}
+
+interface LeanUserBasic {
+  _id: string;
+}
+
+interface LeanUserDetailed {
+  _id: string;
+  email: string;
+  personal?: {
+    firstName?: string;
+    lastName?: string;
+  };
+}
+
+interface DbApprovalStage {
+  stage?: number;
+  approvers?: Array<{ toString(): string } | string>;
+  approverRoles?: Role[];
+  type?: "sequential" | "parallel";
+  timeout?: number;
+  status?: ApprovalStage["status"];
+  decisions?: Array<{
+    approverId?: { toString(): string } | string;
+    decision?: ApprovalDecision["decision"];
+    delegateTo?: { toString(): string } | string;
+    note?: string;
+    timestamp?: Date | string;
+  }>;
+}
+
+/**
+ * Helper function to query users by role (DRY pattern)
+ * @param orgId Organization ID to filter users
+ * @param role Role to search for
+ * @param limit Maximum number of users to return (default: 10)
+ * @returns Array of user IDs as strings
+ */
+async function getUsersByRole(
+  orgId: string,
+  role: Role,
+  limit = 10,
+): Promise<string[]> {
+  try {
+    const { User } = await import("@/server/models/User");
+    const { connectToDatabase } = await import("@/lib/mongodb-unified");
+    await connectToDatabase();
+
+    const users = await User.find({
+      "professional.role": role,
+      orgId: orgId,
+      isActive: true,
+    })
+      .select("_id")
+      .limit(limit)
+      .lean();
+
+    type UserDoc = { _id: { toString: () => string } };
+    const userIds =
+      users && users.length > 0
+        ? users.map((u: UserDoc) => u._id.toString())
+        : [];
+
+    logger.debug("[Approval] Found approvers by role:", {
+      role,
+      orgId,
+      count: userIds.length,
+    });
+    return userIds;
+  } catch (_error: unknown) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[Approval] Failed to query users by role:", error, {
+      role,
+      orgId,
+    });
+    return [];
+  }
+}
+
+interface DbApprovalDoc {
+  _id: string | { toString(): string };
+  quotationId: string | { toString(): string };
+  workOrderId: string | { toString(): string };
+  orgId: string | { toString(): string };
+  status: string;
+  currentStage?: number;
+  approverId?: { toString(): string } | string;
+  approverRole?: Role;
+  timeoutMinutes?: number;
+  stages?: DbApprovalStage[];
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { FMApproval, type FMApprovalDoc } from "@/server/models/FMApproval";
+import type { Schema } from "mongoose";
+
+export interface ApprovalRequest {
+  quotationId: string;
+  workOrderId: string;
+  amount: number;
+  category: string;
+  propertyId: string;
+  orgId: string;
+  requestedBy: string;
+  requestedAt: Date;
+}
+
+export interface ApprovalStage {
+  stage: number;
+  approvers: string[]; // User IDs
+  approverRoles: Role[];
+  type: "sequential" | "parallel";
+  timeout: number; // milliseconds
+  status: "pending" | "approved" | "rejected" | "escalated" | "timeout";
+  decisions: ApprovalDecision[];
+}
+
+export interface ApprovalDecision {
+  approverId: string;
+  decision: "approve" | "reject" | "delegate";
+  delegateTo?: string;
+  note?: string;
+  timestamp: Date;
+}
+
+export interface ApprovalWorkflow {
+  requestId: string;
+  quotationId: string;
+  workOrderId: string;
+  orgId: string;
+  stages: ApprovalStage[];
+  currentStage: number;
+  status: "pending" | "approved" | "rejected" | "escalated";
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ---- Helper mapping functions: FMApprovalDoc <-> ApprovalWorkflow ----
+
+type DbStatus =
+  | "PENDING"
+  | "APPROVED"
+  | "REJECTED"
+  | "ESCALATED"
+  | "DELEGATED"
+  | "TIMEOUT";
+
+function mapDbStatusToWorkflowStatus(
+  status: DbStatus | string | undefined,
+): ApprovalWorkflow["status"] {
+  switch (status) {
+    case "APPROVED":
+      return "approved";
+    case "REJECTED":
+      return "rejected";
+    case "ESCALATED":
+      return "escalated";
+    default:
+      return "pending";
+  }
+}
+
+function mapWorkflowStatusToDbStatus(
+  status: ApprovalWorkflow["status"],
+): DbStatus {
+  switch (status) {
+    case "approved":
+      return "APPROVED";
+    case "rejected":
+      return "REJECTED";
+    case "escalated":
+      return "ESCALATED";
+    default:
+      return "PENDING";
+  }
+}
+
+/**
+ * Convert FMApprovalDoc from DB into ApprovalWorkflow used by the engine.
+ * This supports both:
+ * - New style: doc.stages[] with full data
+ * - Legacy style: single approver/role at root level
+ */
+function docToWorkflow(doc: FMApprovalDoc): ApprovalWorkflow {
+  const dbDoc = doc as unknown as DbApprovalDoc;
+
+  const dbStages: DbApprovalStage[] = dbDoc.stages ?? [];
+
+  const stagesFromDoc: ApprovalStage[] = dbStages.map((s, index: number) => {
+    const decisions: ApprovalDecision[] = (s.decisions ?? []).map((d) => ({
+      approverId: d.approverId?.toString() ?? "",
+      decision: d.decision as ApprovalDecision["decision"],
+      delegateTo: d.delegateTo ? d.delegateTo.toString() : undefined,
+      note: d.note,
+      timestamp:
+        d.timestamp instanceof Date
+          ? d.timestamp
+          : new Date(d.timestamp ?? Date.now()),
+    }));
+
+    return {
+      stage: typeof s.stage === "number" ? s.stage : index + 1,
+      approvers: (s.approvers ?? []).map((a) =>
+        typeof a === "string" ? a : a.toString(),
+      ),
+      approverRoles: s.approverRoles ?? [],
+      type: (s.type as "sequential" | "parallel") ?? "sequential",
+      timeout:
+        typeof s.timeout === "number"
+          ? s.timeout
+          : (doc.timeoutMinutes ?? 24 * 60) * 60 * 1000,
+      status: (s.status as ApprovalStage["status"]) ?? "pending",
+      decisions,
+    };
+  });
+
+  const stages: ApprovalStage[] =
+    stagesFromDoc.length > 0
+      ? stagesFromDoc
+      : [
+          {
+            stage: doc.currentStage ?? 1,
+            approvers: dbDoc.approverId
+              ? [
+                  typeof dbDoc.approverId === "string"
+                    ? dbDoc.approverId
+                    : dbDoc.approverId.toString(),
+                ]
+              : [],
+            approverRoles: dbDoc.approverRole ? [dbDoc.approverRole] : [],
+            type: "sequential",
+            timeout: (doc.timeoutMinutes ?? 24 * 60) * 60 * 1000,
+            status: mapDbStatusToWorkflowStatus(doc.status),
+            decisions: [],
+          },
+        ];
+
+  return {
+    requestId: doc.workflowId.toString(),
+    quotationId: (dbDoc.quotationId ?? doc.entityId)?.toString() ?? "",
+    workOrderId: (dbDoc.workOrderId ?? doc.entityId)?.toString() ?? "",
+    orgId: (dbDoc.orgId as unknown as { toString?: () => string })?.toString?.() ?? "",
+    stages,
+    currentStage: doc.currentStage ?? 1,
+    status: mapDbStatusToWorkflowStatus(doc.status),
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  };
+}
+
+/**
+ * Build a plain object (compatible with FMApproval schema) from an ApprovalWorkflow.
+ * Used when creating a new approval document.
+ */
+function workflowToDocBase(
+  workflow: ApprovalWorkflow,
+  request: ApprovalRequest,
+): Record<string, unknown> {
+  const firstStage = workflow.stages[0];
+
+  const timeoutMs = firstStage?.timeout ?? 24 * 60 * 60 * 1000; // fallback 24h
+
+  return {
+    orgId: request.orgId,
+    type: "QUOTATION",
+    entityType: "WorkOrder",
+    entityId: request.workOrderId,
+    entityNumber: request.workOrderId,
+    amount: request.amount,
+    currency: "SAR",
+    thresholdLevel: `L${workflow.stages.length}`,
+    workflowId: workflow.requestId,
+    currentStage: workflow.currentStage,
+    totalStages: workflow.stages.length,
+    approverId: firstStage?.approvers?.[0],
+    approverName: undefined,
+    approverEmail: undefined,
+    approverRole: firstStage?.approverRoles?.[0],
+    status: mapWorkflowStatusToDbStatus(workflow.status),
+    dueDate: new Date(Date.now() + timeoutMs),
+    timeoutMinutes: timeoutMs / 60000,
+    // FULL STAGES PERSISTENCE
+    stages: workflow.stages.map((stage) => ({
+      stage: stage.stage,
+      approvers: stage.approvers,
+      approverRoles: stage.approverRoles,
+      type: stage.type,
+      timeout: stage.timeout,
+      status: stage.status,
+      decisions: stage.decisions.map((d) => ({
+        approverId: d.approverId,
+        decision: d.decision,
+        delegateTo: d.delegateTo,
+        note: d.note,
+        timestamp: d.timestamp,
+      })),
+    })),
+  };
+}
+
+/**
+ * Route a quotation to appropriate approvers based on amount and category
+ */
+export async function routeApproval(
+  request: ApprovalRequest,
+): Promise<ApprovalWorkflow> {
+  // Validate required fields
+  if (!request.orgId || !request.quotationId || !request.workOrderId) {
+    throw new Error(
+      "Missing required fields: orgId, quotationId, or workOrderId",
+    );
+  }
+
+  // Find matching policy
+  const policy = APPROVAL_POLICIES.find((p) => {
+    const meetsAmount = request.amount >= (p.when.amountGte || 0);
+    const meetsCategory =
+      !p.when.category || p.when.category.includes(request.category);
+    return meetsAmount && meetsCategory;
+  });
+
+  if (!policy) {
+    throw new Error(
+      `No approval policy found for amount ${request.amount} and category ${request.category}`,
+    );
+  }
+
+  // Build approval stages
+  const stages: ApprovalStage[] = [];
+
+  // Main approval stage (sequential) - Query actual users by role
+  const approverIds: string[] = [];
+  const approverRoles: Role[] = policy.require.map((r) => r.role);
+
+  for (const roleReq of policy.require) {
+    const userIds = await getUsersByRole(request.orgId, roleReq.role);
+
+    if (userIds.length > 0) {
+      approverIds.push(...userIds);
+    } else {
+      logger.warn(
+        `[Approval] No users found for role ${roleReq.role} in org ${request.orgId}`,
+      );
+    }
+  }
+
+  // If no approvers found, log warning but don't fail workflow creation
+  if (approverIds.length === 0) {
+    logger.warn(
+      "[Approval] No approvers found - workflow will need manual assignment",
+      {
+        orgId: request.orgId,
+        roles: approverRoles,
+      },
+    );
+  }
+
+  stages.push({
+    stage: 1,
+    approvers: approverIds,
+    approverRoles,
+    type: "sequential",
+    timeout: (policy.timeoutHours || 24) * 60 * 60 * 1000,
+    status: "pending",
+    decisions: [],
+  });
+
+  // Parallel approval stage if defined - Query actual users
+  if (policy.parallelWith && policy.parallelWith.length > 0) {
+    const parallelApproverIds: string[] = [];
+    const parallelRoles: Role[] = policy.parallelWith.map((r) => r.role);
+
+    for (const roleReq of policy.parallelWith) {
+      const userIds = await getUsersByRole(request.orgId, roleReq.role);
+      if (userIds.length > 0) {
+        parallelApproverIds.push(...userIds);
+      }
+    }
+
+    stages.push({
+      stage: 2,
+      approvers: parallelApproverIds,
+      approverRoles: parallelRoles,
+      type: "parallel",
+      timeout: (policy.timeoutHours || 24) * 60 * 60 * 1000,
+      status: "pending",
+      decisions: [],
+    });
+  }
+
+  return {
+    requestId: `APR-${Date.now()}-${crypto.randomUUID().substring(0, 8)}`,
+    quotationId: request.quotationId,
+    workOrderId: request.workOrderId,
+    orgId: request.orgId,
+    stages,
+    currentStage: 1,
+    status: "pending",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+}
+
+/**
+ * Process an approval decision
+ */
+export function processDecision(
+  workflow: ApprovalWorkflow,
+  approverId: string,
+  decision: "approve" | "reject" | "delegate",
+  options?: {
+    note?: string;
+    delegateTo?: string;
+  },
+): ApprovalWorkflow {
+  if (!approverId) {
+    throw new Error("approverId is required for processing decisions");
+  }
+
+  const currentStage = workflow.stages[workflow.currentStage - 1];
+
+  if (!currentStage) {
+    throw new Error(
+      `Invalid workflow stage: ${workflow.currentStage}. Workflow has ${workflow.stages.length} stages.`,
+    );
+  }
+
+  // Verify approver is authorized for this stage (unless delegating)
+  if (
+    decision !== "delegate" &&
+    currentStage.approvers.length > 0 &&
+    !currentStage.approvers.includes(approverId)
+  ) {
+    logger.warn("[Approval] Unauthorized approver attempted decision", {
+      approverId,
+      authorizedApprovers: currentStage.approvers,
+      workflowId: workflow.requestId,
+    });
+    throw new Error("Approver not authorized for this workflow stage");
+  }
+
+  // Add decision
+  const decisionRecord: ApprovalDecision = {
+    approverId,
+    decision,
+    delegateTo: options?.delegateTo,
+    note: options?.note,
+    timestamp: new Date(),
+  };
+
+  currentStage.decisions.push(decisionRecord);
+
+  // Handle delegation
+  if (decision === "delegate" && options?.delegateTo) {
+    currentStage.approvers.push(options.delegateTo);
+    workflow.updatedAt = new Date();
+    return workflow;
+  }
+
+  // Handle rejection - entire workflow is rejected
+  if (decision === "reject") {
+    currentStage.status = "rejected";
+    workflow.status = "rejected";
+    workflow.updatedAt = new Date();
+    return workflow;
+  }
+
+  // Handle approval based on stage type
+  if (decision === "approve") {
+    if (currentStage.type === "sequential") {
+      // Sequential: Need approval from all approvers in order
+      // If no approvers assigned (empty list), treat as implicitly approved
+      const allApproved =
+        currentStage.approvers.length === 0 ||
+        currentStage.approvers.every((a) =>
+          currentStage.decisions.some(
+            (d) => d.approverId === a && d.decision === "approve",
+          ),
+        );
+
+      if (allApproved) {
+        currentStage.status = "approved";
+        // Move to next stage
+        if (workflow.currentStage < workflow.stages.length) {
+          workflow.currentStage++;
+        } else {
+          // All stages approved - workflow complete
+          workflow.status = "approved";
+        }
+      }
+    } else if (currentStage.type === "parallel") {
+      // Parallel: Need approval from any one approver (or implicitly approved if no approvers)
+      currentStage.status = "approved";
+
+      // Move to next stage
+      if (workflow.currentStage < workflow.stages.length) {
+        workflow.currentStage++;
+      } else {
+        // All stages approved - workflow complete
+        workflow.status = "approved";
+      }
+    }
+  }
+
+  workflow.updatedAt = new Date();
+  return workflow;
+}
+
+/**
+ * Check for timeouts and escalate if needed
+ */
+export async function checkTimeouts(
+  workflow: ApprovalWorkflow,
+  orgId: string,
+): Promise<ApprovalWorkflow> {
+  const currentStage = workflow.stages[workflow.currentStage - 1];
+
+  if (!currentStage || currentStage.status !== "pending") {
+    return workflow;
+  }
+
+  const elapsedTime = Date.now() - workflow.updatedAt.getTime();
+
+  if (elapsedTime > currentStage.timeout) {
+    // Timeout occurred - escalate to higher roles
+    const policy = APPROVAL_POLICIES.find((p) => p.require.length > 0);
+
+    if (policy?.escalateTo && policy.escalateTo.length > 0) {
+      try {
+        // Query users with escalation roles
+        const { User } = await import("@/server/models/User");
+        await connectToDatabase();
+
+        // Add escalation roles to the stage
+        for (const escalationRole of policy.escalateTo) {
+          if (!currentStage.approverRoles.includes(escalationRole)) {
+            currentStage.approverRoles.push(escalationRole);
+
+            // Query and add escalation approvers with orgId filter
+            const escalationUsers = await User.find({
+              "professional.role": escalationRole,
+              orgId: orgId,
+              isActive: true,
+            })
+              .select("_id")
+              .limit(5)
+              .lean<LeanUserBasic[]>();
+
+            if (escalationUsers && escalationUsers.length > 0) {
+              const escalationIds = escalationUsers.map((u: LeanUserBasic) =>
+                u._id.toString(),
+              );
+              currentStage.approvers.push(...escalationIds);
+              logger.info(
+                `[Approval] Added ${escalationIds.length} escalation approvers for role ${escalationRole}`,
+              );
+            }
+          }
+        }
+
+        currentStage.status = "escalated";
+        workflow.status = "escalated";
+        workflow.updatedAt = new Date();
+
+        logger.warn("[Approval] Workflow escalated due to timeout", {
+          workflowId: workflow.requestId,
+          elapsedHours: Math.round(elapsedTime / (1000 * 60 * 60)),
+          escalationRoles: policy.escalateTo,
+        });
+      } catch (_error: unknown) {
+        const error =
+          _error instanceof Error ? _error : new Error(String(_error));
+        void error;
+        logger.error("[Approval] Escalation query failed:", error, {
+          workflowId: workflow.requestId,
+          elapsedHours: Math.round(elapsedTime / (1000 * 60 * 60)),
+        });
+        // Fall back to marking as timeout
+        currentStage.status = "timeout";
+        workflow.status = "rejected";
+        workflow.updatedAt = new Date();
+      }
+    } else {
+      // No escalation defined - mark as timeout
+      currentStage.status = "timeout";
+      workflow.status = "rejected"; // Auto-reject on timeout
+      workflow.updatedAt = new Date();
+
+      logger.warn("[Approval] Workflow timed out (no escalation policy)", {
+        workflowId: workflow.requestId,
+        elapsedHours: Math.round(elapsedTime / (1000 * 60 * 60)),
+      });
+    }
+  }
+
+  return workflow;
+}
+
+/**
+ * Save approval workflow to database
+ * FIXED: Now persists full stages[] array with decisions using workflowToDocBase mapper
+ */
+export async function saveApprovalWorkflow(
+  workflow: ApprovalWorkflow,
+  request: ApprovalRequest,
+): Promise<void> {
+  try {
+    const firstStage = workflow.stages[0];
+
+    if (!firstStage) {
+      throw new Error("Workflow must have at least one approval stage");
+    }
+
+    // ⚠️ Instead of throwing, log and allow manual assignment later
+    if (!firstStage.approvers?.length || !firstStage.approverRoles?.length) {
+      logger.warn(
+        "[Approval] Saving workflow with unassigned first stage (no approvers / roles)",
+        { workflowId: workflow.requestId, orgId: request.orgId },
+      );
+    }
+
+    const baseDoc = workflowToDocBase(workflow, request);
+
+    const savedApproval = await FMApproval.create({
+      ...baseDoc,
+      history: [
+        {
+          timestamp: new Date(),
+          action: "CREATED",
+          actorId: request.requestedBy,
+          actorName: "System",
+          previousStatus: "NEW",
+          newStatus: "PENDING",
+          notes: `Approval workflow created for ${request.category} worth ${request.amount}`,
+        },
+      ],
+    });
+
+    if (!savedApproval) {
+      throw new Error(
+        "Failed to save approval workflow - no document returned",
+      );
+    }
+
+    logger.info("[Approval] Workflow saved to database", {
+      requestId: workflow.requestId,
+      dbId: String((savedApproval as { _id?: unknown })._id ?? "unknown"),
+    });
+  } catch (_error: unknown) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[Approval] Failed to save workflow:", error, {
+      workflowId: workflow.requestId,
+      orgId: request.orgId,
+    });
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Failed to persist approval workflow ${workflow.requestId}: ${reason}`,
+    );
+  }
+}
+
+/**
+ * Get workflow by ID
+ * FIXED: Now uses docToWorkflow mapper for full multi-stage support
+ */
+export async function getWorkflowById(
+  workflowId: string,
+  orgId: string,
+): Promise<ApprovalWorkflow | null> {
+  try {
+    const approval = await FMApproval.findOne({
+      workflowId,
+      orgId: orgId,
+    }).lean<FMApprovalDoc>();
+
+    if (!approval) return null;
+
+    return docToWorkflow(approval);
+  } catch (_error: unknown) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[Approval] Failed to fetch workflow:", error, {
+      workflowId,
+      orgId,
+    });
+    return null;
+  }
+}
+
+/**
+ * Update approval decision in database
+ * FIXED: Use org_id field name for consistency with database schema
+ */
+export async function updateApprovalDecision(
+  workflowId: string,
+  orgId: string,
+  approverId: string,
+  decision: "APPROVE" | "REJECT" | "DELEGATE",
+  notes?: string,
+  delegateTo?: unknown,
+): Promise<void> {
+  try {
+    const approval = await FMApproval.findOne({ workflowId, orgId: orgId });
+    if (!approval) throw new Error(`Approval workflow ${workflowId} not found`);
+
+    // Update status
+    approval.status =
+      decision === "APPROVE"
+        ? "APPROVED"
+        : decision === "REJECT"
+          ? "REJECTED"
+          : "DELEGATED";
+    approval.decision = decision;
+    approval.decisionDate = new Date();
+    approval.notes = notes;
+
+    if (decision === "DELEGATE" && delegateTo) {
+      // Assign directly using unknown intermediate
+      (approval as { delegatedTo?: unknown }).delegatedTo = delegateTo;
+      approval.delegationDate = new Date();
+      approval.delegationReason = notes;
+    }
+
+    // Add to history
+    const { Types } = await import("mongoose");
+    approval.history.push({
+      timestamp: new Date(),
+      action: decision,
+      actorId: new Types.ObjectId(
+        approverId,
+      ) as unknown as Schema.Types.ObjectId,
+      actorName: "TBD",
+      previousStatus: "PENDING",
+      newStatus: approval.status,
+      notes,
+    });
+
+    await approval.save();
+    logger.info("[Approval] Decision recorded", { workflowId, decision });
+  } catch (_error: unknown) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[Approval] Failed to update decision:", error, {
+      workflowId,
+      orgId,
+    });
+    throw error;
+  }
+}
+
+/**
+ * Get pending approvals for a user
+ * FIXED: Use org_id field name for consistency with database schema
+ */
+export async function getPendingApprovalsForUser(
+  userId: string,
+  _userRole: Role,
+  orgId: string,
+): Promise<ApprovalWorkflow[]> {
+  try {
+    const approvals =
+      ((await FMApproval.find({
+        orgId: orgId,
+        status: "PENDING",
+        "stages.approvers": userId, // search across all stages
+      }).lean<FMApprovalDoc>()) as unknown as FMApprovalDoc[]) || [];
+
+    return approvals.map(docToWorkflow);
+  } catch (_error: unknown) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[Approval] Failed to get pending approvals:", error, {
+      userId,
+      orgId,
+    });
+    return [];
+  }
+}
+
+/**
+ * Check for approval timeouts and escalate
+ * FIXED: Now uses docToWorkflow mapper and defensive stage checking
+ */
+export async function checkApprovalTimeouts(orgId: string): Promise<void> {
+  try {
+    const overdueApprovals = await FMApproval.find({
+      orgId: orgId,
+      status: "PENDING",
+      dueDate: { $lt: new Date() },
+      escalationSentAt: null,
+    });
+
+    for (const approval of overdueApprovals) {
+      approval.status = "ESCALATED";
+      approval.escalationDate = new Date();
+      approval.escalationSentAt = new Date();
+      approval.escalatedReason = "Approval timeout exceeded";
+
+      approval.history.push({
+        timestamp: new Date(),
+        action: "ESCALATED",
+        actorId: null, // system — better than fake ObjectId
+        actorName: "System",
+        previousStatus: "PENDING",
+        newStatus: "ESCALATED",
+        notes: "Automatically escalated due to timeout",
+      });
+
+      await approval.save();
+      logger.info("[Approval] Escalated:", {
+        approvalNumber: approval.approvalNumber,
+      });
+
+      // ✅ Use policy for escalation (with defensive check)
+      const approvalPolicy =
+        APPROVAL_POLICIES && APPROVAL_POLICIES.length > 0
+          ? APPROVAL_POLICIES[0]
+          : null;
+
+      type ApprovalWithStages = {
+        stages?: Array<{ approverRoles?: string[] }>;
+        currentStage?: number;
+      };
+      const approvalWithStages = approval as unknown as ApprovalWithStages;
+      const stageDoc =
+        (approvalWithStages.stages &&
+          approvalWithStages.stages[
+            approvalWithStages.currentStage
+              ? approvalWithStages.currentStage - 1
+              : 0
+          ]) ||
+        null;
+
+      if (!approvalPolicy || !stageDoc) {
+        logger.warn(
+          "[Approval] No policy or stage found for escalation notifications",
+          {
+            approvalId: approval._id.toString(),
+            hasPolicy: !!approvalPolicy,
+            hasStage: !!stageDoc,
+          },
+        );
+        continue;
+      }
+
+      if (
+        !approvalPolicy.escalateTo ||
+        approvalPolicy.escalateTo.length === 0
+      ) {
+        logger.warn("[Approval] Escalation policy has no escalateTo roles", {
+          approvalId: approval._id.toString(),
+        });
+        continue;
+      }
+
+      try {
+        const { User } = await import("@/server/models/User");
+        const { buildNotification, sendNotification } = await import(
+          "./fm-notifications"
+        );
+
+        const escalationRecipients: Array<{
+          userId: string;
+          name: string;
+          email: string;
+          preferredChannels: ("email" | "push")[];
+        }> = [];
+
+        type ApprovalDoc = {
+          orgId?: string;
+          _id: unknown;
+          entityId?: unknown;
+          quotationId?: unknown;
+          workOrderId?: unknown;
+        };
+        const approvalDoc = approval as unknown as ApprovalDoc;
+
+        for (const role of approvalPolicy.escalateTo) {
+          const users = await User.find({
+            "professional.role": role,
+            orgId: approvalDoc.orgId,
+            isActive: true,
+          })
+            .select(
+              "_id email professional.role professional.firstName professional.lastName",
+            )
+            .limit(10)
+            .lean<LeanUser[]>();
+
+          if (users && users.length > 0) {
+            escalationRecipients.push(
+              ...users.map((u: LeanUser) => ({
+                userId: u._id.toString(),
+                name: `${u.professional?.firstName || ""} ${
+                  u.professional?.lastName || ""
+                }`.trim(),
+                email: u.email,
+                preferredChannels: ["email", "push"] as ("email" | "push")[],
+              })),
+            );
+          }
+        }
+
+        if (escalationRecipients.length === 0) {
+          logger.warn("[Approval] No escalation recipients found", {
+            approvalId: approval._id.toString(),
+            escalateToRoles: approvalPolicy.escalateTo,
+          });
+          continue;
+        }
+
+        const notification = buildNotification(
+          "onApprovalRequested",
+          {
+            orgId: approvalDoc.orgId
+              ? approvalDoc.orgId.toString()
+              : "",
+            quotationId: String(
+              approvalDoc.quotationId ?? approvalDoc.entityId ?? "",
+            ),
+            workOrderId: String(
+              approvalDoc.workOrderId ?? approvalDoc.entityId ?? "",
+            ),
+            amount: approval.amount,
+            priority: "ESCALATED",
+            description: `Approval escalated due to timeout. Original approvers: ${
+              stageDoc.approverRoles?.join(", ") ?? "N/A"
+            }`,
+          },
+          escalationRecipients,
+        );
+
+        await sendNotification(notification);
+
+        logger.info("[Approval] Escalation notification sent", {
+          approvalId: approval._id,
+          recipientCount: escalationRecipients.length,
+          escalateToRoles: approvalPolicy.escalateTo,
+        });
+      } catch (notifyError) {
+        logger.error(
+          "[Approval] Failed to send escalation notification",
+          notifyError,
+          {
+            approvalId: approval._id,
+            escalateToRoles: approvalPolicy.escalateTo,
+          },
+        );
+      }
+    }
+
+    logger.info(
+      `[Approval] Processed ${overdueApprovals.length} timeout escalations`,
+    );
+  } catch (_error: unknown) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[Approval] Failed to check timeouts:", error, { orgId });
+  }
+}
+
+/**
+ * Send approval notifications to approvers
+ */
+export async function notifyApprovers(
+  workflow: ApprovalWorkflow,
+  stage: ApprovalStage,
+): Promise<void> {
+  try {
+    // Get approver details from User model
+    const { User } = await import("@/server/models/User");
+    const { buildNotification, sendNotification } = await import(
+      "./fm-notifications"
+    );
+
+    if (stage.approvers.length === 0) {
+      logger.warn("[Approval] No approvers to notify", {
+        workflowId: workflow.requestId,
+      });
+      return;
+    }
+
+    const approvers = await User.find({
+      _id: { $in: stage.approvers },
+    })
+      .select("_id email personal.firstName personal.lastName")
+      .lean<LeanUserDetailed[]>();
+
+    if (!approvers || approvers.length === 0) {
+      logger.warn("[Approval] Approver details not found", {
+        approverIds: stage.approvers,
+        workflowId: workflow.requestId,
+      });
+      return;
+    }
+
+    // Build notification payload
+    const recipients = approvers.map((approver: LeanUserDetailed) => ({
+      userId: approver._id.toString(),
+      name:
+        `${approver.personal?.firstName || ""} ${approver.personal?.lastName || ""}`.trim() ||
+        approver.email ||
+        "Approver",
+      email: approver.email,
+      preferredChannels: ["push", "email"] as ("push" | "email")[],
+    }));
+
+    const notification = buildNotification(
+      "onApprovalRequested",
+      {
+        orgId: workflow.orgId,
+        quotationId: workflow.quotationId,
+        workOrderId: workflow.workOrderId,
+        description: `Stage ${stage.stage} approval required`,
+      },
+      recipients,
+    );
+
+    await sendNotification(notification);
+
+    logger.info("[Approval] Notifications sent", {
+      workflowId: workflow.requestId,
+      stage: stage.stage,
+      recipientCount: recipients.length,
+    });
+  } catch (_error: unknown) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[Approval] Failed to send notifications:", error, {
+      workflowId: workflow.requestId,
+      stage: stage.stage,
+    });
+  }
+}
+
+]]>
+</file>
+
+<file path="lib/fm-auth-middleware.ts">
+<![CDATA[
+/**
+ * FM RBAC Middleware
+ * Enforces role-based access control for Facility Management endpoints
+ */
+
+import { logger } from "@/lib/logger";
+import { NextRequest, NextResponse } from "next/server";
+import { getUserFromToken } from "@/lib/auth";
+// RBAC-DRIFT-FIX: Import from fm.types.ts (complete RBAC definitions)
+// instead of fm.behavior.ts (truncated, WO/Property only)
+import {
+  can,
+  Role,
+  SubmoduleKey,
+  Action,
+  Plan,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/domain/fm/fm.types";
+import { connectDb } from "@/lib/mongo";
+import { Organization } from "@/server/models/Organization";
+
+export interface FMAuthContext {
+  userId: string;
+  role: Role;
+  subRole?: SubRole;
+  orgId: string;
+  propertyIds?: string[];
+  user: {
+    id: string;
+    email: string;
+    role?: string;
+    subRole?: string | null;
+    orgId?: string;
+    propertyIds?: string[];
+  };
+}
+
+/**
+ * Extract FM auth context from JWT token
+ */
+export async function getFMAuthContext(
+  _req: NextRequest,
+): Promise<FMAuthContext | null> {
+  try {
+    // Get token from cookie or header
+    const cookieToken = _req.cookies.get("fixzit_auth")?.value;
+    const headerToken = _req.headers
+      .get("Authorization")
+      ?.replace("Bearer ", "");
+    const token = cookieToken || headerToken;
+
+    if (!token) {
+      return null;
+    }
+
+    const user = await getUserFromToken(token);
+
+    if (!user) {
+      return null;
+    }
+
+    // Map user role to FM Role enum using canonical STRICT v4.1 normalization
+    const rawRole = (user as { role?: string | null }).role;
+    const subRole =
+      normalizeSubRole((user as { subRole?: string | null }).subRole) ??
+      inferSubRoleFromRole(rawRole);
+    const role = normalizeRole(rawRole) ?? Role.GUEST;
+
+    // ORGID-FIX: Enforce mandatory orgId for multi-tenant isolation
+    const orgId = (user as { orgId?: string }).orgId;
+    if (!orgId || orgId.trim() === "") {
+      logger.error("[FM Auth] orgId missing - violates multi-tenant isolation", {
+        userId: user.id,
+        email: user.email,
+      });
+      return null;
+    }
+
+    return {
+      userId: user.id || user.email || "",
+      role,
+      subRole: subRole ?? undefined,
+      orgId,  // ✅ Validated above
+      propertyIds: (user as { propertyIds?: string[] }).propertyIds || [],
+      user: {
+        id: user.id || "",
+        email: user.email || "",
+        role: user.role,
+        subRole: (user as { subRole?: string | null }).subRole ?? null,
+        orgId,  // ✅ Validated above
+        propertyIds: (user as { propertyIds?: string[] }).propertyIds,
+      },
+    };
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[FM Auth] Context extraction failed:", { error });
+    return null;
+  }
+}
+
+/**
+ * Middleware to enforce RBAC on FM endpoints
+ * Usage:
+ *   export async function GET(req: NextRequest) {
+ *     const authCheck = await requireFMAuth(req, SubmoduleKey.WO_CREATE, 'view');
+ *     if (authCheck.error) return authCheck.error;
+ *     const { ctx } = authCheck;
+ *     // ... proceed with authenticated request
+ *   }
+ */
+export async function requireFMAuth(
+  req: NextRequest,
+  submodule: SubmoduleKey,
+  action: Action,
+  options?: {
+    orgId?: string;
+    propertyId?: string;
+    ownerId?: string;
+  },
+): Promise<
+  { ctx: FMAuthContext; error: null } | { ctx: null; error: NextResponse }
+> {
+  // Extract auth context
+  const ctx = await getFMAuthContext(req);
+
+  if (!ctx) {
+    return {
+      ctx: null,
+      error: NextResponse.json(
+        { error: "Unauthorized", message: "Authentication required" },
+        { status: 401 },
+      ),
+    };
+  }
+
+  // ✅ Get actual subscription plan from organization and verify membership
+  let plan = Plan.STARTER;
+  let isOrgMember = false;
+
+  try {
+    await connectDb();
+    // Always use ctx.orgId - don't allow callers to query other orgs
+    const org = await Organization.findOne({ orgId: ctx.orgId });
+
+    if (org) {
+      // Map organization plan to FM Plan enum (with fallback chain)
+      const subscriptionPlan = org.subscription?.plan;
+      const orgPlan =
+        subscriptionPlan || (org as { plan?: string }).plan || "BASIC";
+      const planMap: Record<string, Plan> = {
+        BASIC: Plan.STARTER,
+        STARTER: Plan.STARTER,
+        STANDARD: Plan.STANDARD,
+        PREMIUM: Plan.PRO,
+        PRO: Plan.PRO,
+        ENTERPRISE: Plan.ENTERPRISE,
+      };
+      plan = planMap[orgPlan.toUpperCase()] || Plan.STARTER;
+
+      // Verify org membership: initialize as false and check if user is in member list
+      isOrgMember = false;
+
+      // Check if user is in org's member list with proper validation
+      if (org.members && Array.isArray(org.members)) {
+        for (const member of org.members) {
+          // Validate member structure before comparing
+          if (
+            member &&
+            typeof member === "object" &&
+            typeof member.userId === "string"
+          ) {
+            if (member.userId === ctx.userId) {
+              isOrgMember = true;
+              break;
+            }
+          } else {
+            logger.warn("[FM Auth] Invalid member entry in org.members", {
+              orgId: ctx.orgId,
+              member,
+            });
+          }
+        }
+      }
+
+      logger.debug("[FM Auth] Org lookup successful", {
+        orgId: ctx.orgId,
+        plan,
+        isOrgMember,
+        userId: ctx.userId,
+      });
+    } else {
+      logger.warn("[FM Auth] Organization not found", { orgId: ctx.orgId });
+    }
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[FM Auth] Subscription lookup failed:", { error });
+    // Fall back to STARTER plan and no org membership on error
+  }
+
+  // Check RBAC permission
+  const allowed = can(submodule, action, {
+    role: ctx.role,
+    orgId: options?.orgId || ctx.orgId,
+    propertyId: options?.propertyId,
+    userId: ctx.userId,
+    plan,
+    isOrgMember,
+    subRole: ctx.subRole,
+  });
+
+  if (!allowed) {
+    return {
+      ctx: null,
+      error: NextResponse.json(
+        {
+          error: "Forbidden",
+          message: `Role ${ctx.role} lacks permission for ${action} on ${submodule}`,
+          required: { submodule, action, role: ctx.role },
+        },
+        { status: 403 },
+      ),
+    };
+  }
+
+  return { ctx, error: null };
+}
+
+/**
+ * Check if user has permission (for UI conditional rendering)
+ * Note: This is synchronous for UI use. For API routes, use requireFMAuth which does async DB lookups.
+ */
+export function userCan(
+  ctx: FMAuthContext | null,
+  submodule: SubmoduleKey,
+  action: Action,
+  options?: {
+    orgId?: string;
+    propertyId?: string;
+    plan?: Plan;
+    isOrgMember?: boolean;
+  },
+): boolean {
+  if (!ctx) return false;
+
+  // Use restrictive defaults: STARTER plan and no org membership unless explicitly provided
+  // Callers MUST provide plan and isOrgMember from DB for accurate permission checks
+  return can(submodule, action, {
+    role: ctx.role,
+    orgId: options?.orgId || ctx.orgId,
+    propertyId: options?.propertyId,
+    userId: ctx.userId,
+    plan: options?.plan ?? Plan.STARTER,
+    isOrgMember: options?.isOrgMember ?? false,
+  });
+}
+
+/**
+ * Extract property ownership context for ABAC checks
+ *
+ * NOTE: FMProperty model not yet implemented. When created, it should have:
+ * - ownerId: string (User ID of property owner)
+ * - orgId: string (Organization ID managing the property)
+ * - propertyId: string (Unique property identifier)
+ *
+ * Example implementation when model exists:
+ * ```typescript
+ * import { FMProperty } from '@/domain/fm/fm.behavior';
+ * const property = await FMProperty.findOne({ propertyId });
+ * if (property) {
+ *   return { ownerId: property.ownerId, orgId: property.orgId };
+ * }
+ * ```
+ */
+export async function getPropertyOwnership(_propertyId: string): Promise<{
+  ownerId: string;
+  orgId: string;
+} | null> {
+  try {
+    await connectDb();
+
+    // Try to import FMProperty model (may not exist yet)
+    const FMPropertyModule = await import("@/domain/fm/fm.behavior").catch(
+      () => null,
+    );
+
+    if (FMPropertyModule && FMPropertyModule.FMProperty) {
+      const property = await FMPropertyModule.FMProperty.findOne({
+        propertyId: _propertyId,
+      })
+        .select("ownerId orgId")
+        .lean();
+
+      const propertyDoc = property as
+        | { orgId?: unknown; ownerId?: unknown }
+        | null;
+      if (propertyDoc) {
+        // ORGID-FIX: Validate orgId exists before returning
+        const orgIdVal =
+          (propertyDoc.orgId as { toString?: () => string } | string | null) ||
+          null;
+        const orgId =
+          typeof orgIdVal === "string"
+            ? orgIdVal
+            : typeof (orgIdVal as { toString?: unknown })?.toString ===
+                "function"
+              ? (orgIdVal as { toString: () => string }).toString()
+              : null;
+        if (!orgId || orgId.trim() === "") {
+          logger.error("[FM Auth] Property has no orgId - data integrity issue", {
+            propertyId: _propertyId,
+            ownerId: propertyDoc.ownerId,
+          });
+          return null;
+        }
+
+        logger.debug("[FM Auth] Property ownership found", {
+          propertyId: _propertyId,
+          ownerId: propertyDoc.ownerId,
+          orgId,
+        });
+        return {
+          ownerId:
+            typeof propertyDoc.ownerId === "string"
+              ? propertyDoc.ownerId
+              : typeof (propertyDoc.ownerId as { toString?: unknown })?.toString ===
+                  "function"
+                ? (propertyDoc.ownerId as { toString: () => string }).toString()
+                : "",
+          orgId,
+        };
+      }
+    } else {
+      // Fallback: Try WorkOrder model which may have propertyId reference
+      logger.debug("[FM Auth] FMProperty model not found, checking WorkOrders");
+      const FMWorkOrderModule = await import("@/domain/fm/fm.behavior").catch(
+        () => null,
+      );
+      const workOrder = FMWorkOrderModule
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Dynamic import requires type assertion
+        ? await (FMWorkOrderModule.FMWorkOrder as any)
+            .findOne({ propertyId: _propertyId })
+            .select("propertyOwnerId orgId")
+            .lean()
+        : null;
+
+      const workOrderDoc = workOrder as
+        | { orgId?: unknown; propertyOwnerId?: unknown }
+        | null;
+      if (workOrderDoc && workOrderDoc.propertyOwnerId) {
+        // ORGID-FIX: Validate orgId exists before returning
+        const orgIdVal =
+          (workOrderDoc.orgId as { toString?: () => string } | string | null) ||
+          null;
+        const orgId =
+          typeof orgIdVal === "string"
+            ? orgIdVal
+            : typeof (orgIdVal as { toString?: unknown })?.toString ===
+                "function"
+              ? (orgIdVal as { toString: () => string }).toString()
+              : null;
+        if (!orgId || orgId.trim() === "") {
+          logger.error("[FM Auth] WorkOrder has no orgId - data integrity issue", {
+            propertyId: _propertyId,
+            ownerId: workOrderDoc.propertyOwnerId,
+          });
+          return null;
+        }
+
+        const ownerVal = workOrderDoc.propertyOwnerId as
+          | { toString?: () => string }
+          | string
+          | null
+          | undefined;
+        const ownerIdStr = ownerVal ? (ownerVal as { toString?: () => string }).toString?.() ?? String(ownerVal) : "";
+
+        return {
+          ownerId: ownerIdStr,
+          orgId,
+        };
+      }
+    }
+
+    logger.warn("[FM Auth] Property ownership not found", {
+      propertyId: _propertyId,
+    });
+    return null;
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[FM Auth] Property ownership query failed:", {
+      error,
+      propertyId: _propertyId,
+    });
+    return null;
+  }
+}
+
+]]>
+</file>
+
+<file path="lib/fm-notifications.ts">
+<![CDATA[
+import { randomUUID } from "crypto";
+import { logger } from "@/lib/logger";
+import { NOTIFY } from "@/domain/fm/fm.behavior";
+import {
+  sendBulkNotifications,
+  createChannelMetricsMap,
+  type BulkNotificationResult,
+  type ChannelMetric,
+} from "@/lib/integrations/notifications";
+import { emitNotificationTelemetry } from "@/lib/telemetry";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import {
+  NotificationDeadLetterModel,
+  NotificationLogModel,
+} from "@/server/models/NotificationLog";
+import {
+  recordNotificationMetrics,
+  setDeadLetterBacklog,
+} from "@/lib/monitoring/notification-metrics";
+/**
+ * FM Notification Template Engine
+ * Generates notifications with deep links for various FM events
+ */
+
+export type NotificationChannel = "push" | "email" | "sms" | "whatsapp";
+
+export interface NotificationRecipient {
+  userId: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  preferredChannels: NotificationChannel[];
+}
+
+export interface NotificationPayload {
+  id: string;
+  orgId: string; // SECURITY: Required for tenant isolation
+  event: keyof typeof NOTIFY;
+  recipients: NotificationRecipient[];
+  title: string;
+  body: string;
+  deepLink?: string;
+  data?: Record<string, unknown>;
+  priority: "high" | "normal" | "low";
+  createdAt: Date;
+  sentAt?: Date;
+  deliveredAt?: Date;
+  status: "pending" | "sent" | "delivered" | "failed" | "partial_failure";
+  failureReason?: string;
+}
+
+type LoggedRecipient = {
+  userId: string;
+  preferredChannels: NotificationChannel[];
+};
+
+function mapRecipientsForLog(
+  recipients: NotificationRecipient[],
+): LoggedRecipient[] {
+  return recipients.map((recipient) => ({
+    userId: recipient.userId,
+    preferredChannels: recipient.preferredChannels,
+  }));
+}
+
+function mapPayloadForLog(notification: NotificationPayload) {
+  return {
+    title: notification.title,
+    body: notification.body,
+    data: notification.data,
+    deepLink: notification.deepLink,
+  };
+}
+
+function resolveChannelStatus(
+  metric: ChannelMetric,
+): "pending" | "sent" | "partial" | "failed" {
+  if (metric.failed === 0 && metric.succeeded === 0 && metric.attempted === 0) {
+    return "pending";
+  }
+  if (metric.failed === 0 && metric.succeeded > 0) {
+    return "sent";
+  }
+  if (metric.failed > 0 && metric.succeeded > 0) {
+    return "partial";
+  }
+  return "failed";
+}
+
+function createEmptyResult(): BulkNotificationResult {
+  return {
+    attempted: 0,
+    succeeded: 0,
+    failed: 0,
+    skipped: 0,
+    issues: [],
+    channelMetrics: createChannelMetricsMap(),
+  };
+}
+
+async function persistNotificationDraft(
+  notification: NotificationPayload,
+): Promise<void> {
+  try {
+    await connectToDatabase();
+    await NotificationLogModel.findOneAndUpdate(
+      { notificationId: notification.id },
+      {
+        notificationId: notification.id,
+        event: notification.event,
+        recipients: mapRecipientsForLog(notification.recipients),
+        payload: mapPayloadForLog(notification),
+        priority: notification.priority,
+        status: notification.status,
+        failureReason: notification.failureReason,
+        sentAt: notification.sentAt,
+        deliveredAt: notification.deliveredAt,
+        metrics: {
+          attempted: 0,
+          succeeded: 0,
+          failed: 0,
+          skipped: 0,
+        },
+        channelResults: [],
+        issues: [],
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    );
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.warn(
+      "[Notifications] Unable to write initial notification log entry",
+      {
+        id: notification.id,
+        error,
+      },
+    );
+  }
+}
+
+async function persistNotificationOutcome(
+  notification: NotificationPayload,
+  result: BulkNotificationResult,
+): Promise<void> {
+  try {
+    await connectToDatabase();
+    const metrics = result.channelMetrics ?? createChannelMetricsMap();
+    const channelResults = Object.values(metrics).map((metric) => ({
+      channel: metric.channel,
+      status: resolveChannelStatus(metric),
+      attempts: metric.attempted,
+      succeeded: metric.succeeded,
+      failedCount: metric.failed,
+      skipped: metric.skipped,
+      lastAttemptAt: metric.lastAttemptAt,
+      errors: metric.errors,
+    }));
+
+    await NotificationLogModel.findOneAndUpdate(
+      { notificationId: notification.id },
+      {
+        notificationId: notification.id,
+        event: notification.event,
+        recipients: mapRecipientsForLog(notification.recipients),
+        payload: mapPayloadForLog(notification),
+        priority: notification.priority,
+        sentAt: notification.sentAt,
+        deliveredAt: notification.deliveredAt,
+        status: notification.status,
+        failureReason: notification.failureReason,
+        metrics: {
+          attempted: result.attempted,
+          succeeded: result.succeeded,
+          failed: result.failed,
+          skipped: result.skipped,
+        },
+        channelResults,
+        issues: result.issues.map((issue) => ({
+          userId: issue.userId,
+          channel: issue.channel,
+          type: issue.type,
+          reason: issue.reason,
+          attempt: issue.attempt,
+          attemptedAt: issue.attemptedAt,
+          metadata: issue.metadata,
+        })),
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    );
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[Notifications] Failed to persist notification audit log", {
+      id: notification.id,
+      error,
+    });
+  }
+}
+
+async function persistNotificationDeadLetters(
+  notification: NotificationPayload,
+  result: BulkNotificationResult,
+): Promise<void> {
+  const failedIssues = result.issues.filter((issue) => issue.type === "failed");
+  if (failedIssues.length === 0) return;
+
+  try {
+    await connectToDatabase();
+    const recipientMap = new Map(
+      notification.recipients.map((recipient) => [recipient.userId, recipient]),
+    );
+    const metrics = result.channelMetrics ?? createChannelMetricsMap();
+
+    await NotificationDeadLetterModel.insertMany(
+      failedIssues.map((issue) => {
+        const recipient = recipientMap.get(issue.userId);
+        return {
+          notificationId: notification.id,
+          event: notification.event,
+          channel: issue.channel,
+          attempts: issue.attempt ?? metrics[issue.channel]?.attempted ?? 1,
+          lastAttemptAt:
+            issue.attemptedAt ?? metrics[issue.channel]?.lastAttemptAt,
+          error: issue.reason,
+          payload: mapPayloadForLog(notification),
+          priority: notification.priority,
+          recipient: recipient
+            ? {
+                userId: recipient.userId,
+                email: recipient.email,
+                phone: recipient.phone,
+                preferredChannels: recipient.preferredChannels,
+              }
+            : undefined,
+        };
+      }),
+      { ordered: false },
+    );
+
+    const backlog = await NotificationDeadLetterModel.aggregate<{
+      _id: NotificationChannel;
+      count: number;
+    }>([
+      { $match: { status: "pending" } },
+      { $group: { _id: "$channel", count: { $sum: 1 } } },
+    ]);
+
+    const backlogMap = backlog.reduce<
+      Partial<Record<NotificationChannel, number>>
+    >((acc, entry) => {
+      acc[entry._id] = entry.count;
+      return acc;
+    }, {});
+    setDeadLetterBacklog(backlogMap);
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[Notifications] Failed to enqueue notification DLQ entries", {
+      id: notification.id,
+      error,
+    });
+  }
+}
+
+/**
+ * Generate deep link for FM entities
+ */
+export function generateDeepLink(
+  type:
+    | "work-order"
+    | "approval"
+    | "property"
+    | "unit"
+    | "tenant"
+    | "financial",
+  id: string,
+  subPath?: string,
+): string {
+  const scheme = process.env.NEXT_PUBLIC_FIXZIT_DEEP_LINK_SCHEME || "fixzit://";
+  const normalizedScheme = scheme.endsWith("://")
+    ? scheme
+    : `${scheme.replace(/\/+$/, "")}://`;
+  const deepLinkMap = {
+    "work-order": `${normalizedScheme}fm/work-orders/${id}`,
+    approval: `${normalizedScheme}approvals/quote/${id}`,
+    property: `${normalizedScheme}fm/properties/${id}`,
+    unit: `${normalizedScheme}fm/units/${id}`,
+    tenant: `${normalizedScheme}fm/tenants/${id}`,
+    financial: `${normalizedScheme}financials/statements/property/${id}`,
+  };
+
+  const baseLink = deepLinkMap[type];
+  return subPath ? `${baseLink}/${subPath}` : baseLink;
+}
+
+function requireContextValue(
+  value: string | undefined,
+  field: string,
+  event: keyof typeof NOTIFY,
+): string {
+  if (!value) {
+    throw new Error(`[Notifications] Missing ${field} for ${event}`);
+  }
+  return value;
+}
+
+/**
+ * Build notification from template
+ */
+export function buildNotification(
+  event: keyof typeof NOTIFY,
+  context: {
+    orgId: string; // SECURITY: Required for tenant isolation
+    workOrderId?: string;
+    quotationId?: string;
+    propertyId?: string;
+    tenantName?: string;
+    technicianName?: string;
+    amount?: number;
+    priority?: string;
+    description?: string;
+  },
+  recipients: NotificationRecipient[],
+): NotificationPayload {
+  // Build notification title and body
+  let title = "Fixzit Notification";
+  let body = "";
+  let deepLink: string | undefined;
+  let priority: "high" | "normal" | "low" = "normal";
+
+  switch (event) {
+    case "onTicketCreated": {
+      const workOrderId = requireContextValue(
+        context.workOrderId,
+        "workOrderId",
+        event,
+      );
+      title = "New Work Order Created";
+      body = `Work Order #${workOrderId} has been created by ${context.tenantName ?? "customer"}`;
+      deepLink = generateDeepLink("work-order", workOrderId);
+      priority = "high";
+      break;
+    }
+
+    case "onAssign": {
+      const workOrderId = requireContextValue(
+        context.workOrderId,
+        "workOrderId",
+        event,
+      );
+      title = "Work Order Assigned";
+      body = `You have been assigned to Work Order #${workOrderId}`;
+      deepLink = generateDeepLink("work-order", workOrderId);
+      priority = "high";
+      break;
+    }
+
+    case "onApprovalRequested": {
+      const quotationId = requireContextValue(
+        context.quotationId,
+        "quotationId",
+        event,
+      );
+      title = "Approval Required";
+      const amountText =
+        typeof context.amount === "number"
+          ? ` (Amount: SAR ${context.amount.toLocaleString()})`
+          : "";
+      body = `Quotation #${quotationId} requires your approval${amountText}`;
+      deepLink = generateDeepLink("approval", quotationId);
+      priority = "high";
+      break;
+    }
+
+    case "onApproved": {
+      const quotationId = requireContextValue(
+        context.quotationId,
+        "quotationId",
+        event,
+      );
+      title = "Approval Granted";
+      body = `Quotation #${quotationId} has been approved`;
+      deepLink = generateDeepLink("approval", quotationId);
+      priority = "normal";
+      break;
+    }
+
+    case "onClosed": {
+      const workOrderId = requireContextValue(
+        context.workOrderId,
+        "workOrderId",
+        event,
+      );
+      title = "Work Order Closed";
+      body = `Work Order #${workOrderId} has been completed and closed`;
+      deepLink = generateDeepLink("work-order", workOrderId);
+      priority = "normal";
+      break;
+    }
+
+    default:
+      body = "Notification";
+  }
+
+  return {
+    id: randomUUID(),
+    orgId: context.orgId, // SECURITY: Required for tenant isolation
+    event,
+    recipients,
+    title,
+    body,
+    deepLink,
+    data: context,
+    priority,
+    createdAt: new Date(),
+    status: "pending",
+  };
+}
+
+/**
+ * Send notification to recipients via their preferred channels
+ */
+export async function sendNotification(
+  notification: NotificationPayload,
+): Promise<BulkNotificationResult> {
+  logger.info("[Notifications] Sending notification", {
+    id: notification.id,
+    event: notification.event,
+    recipientCount: notification.recipients.length,
+    title: notification.title,
+    deepLink: notification.deepLink,
+  });
+
+  const dispatchStartedAt = Date.now();
+  await persistNotificationDraft(notification);
+
+  if (notification.recipients.length === 0) {
+    notification.status = "failed";
+    notification.failureReason = "No recipients provided";
+    logger.warn("[Notifications] Skipping sendNotification (no recipients)", {
+      id: notification.id,
+      event: notification.event,
+    });
+    const emptyResult = createEmptyResult();
+    await persistNotificationOutcome(notification, emptyResult);
+    recordNotificationMetrics({
+      notification,
+      result: emptyResult,
+      durationMs: Date.now() - dispatchStartedAt,
+    });
+    return {
+      attempted: 0,
+      succeeded: 0,
+      failed: 0,
+      skipped: 0,
+      issues: [],
+      channelMetrics: emptyResult.channelMetrics,
+    };
+  }
+
+  let result: BulkNotificationResult;
+
+  try {
+    result = await sendBulkNotifications(notification, notification.recipients);
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    notification.status = "failed";
+    notification.failureReason =
+      error instanceof Error
+        ? error.message
+        : "Bulk notification dispatch failed";
+    notification.sentAt = new Date();
+    logger.error("[Notifications] Failed to send notification", {
+      id: notification.id,
+      error,
+    });
+    const failureResult = createEmptyResult();
+    await persistNotificationOutcome(notification, failureResult);
+    recordNotificationMetrics({
+      notification,
+      result: failureResult,
+      durationMs: Date.now() - dispatchStartedAt,
+    });
+    throw error;
+  }
+
+  notification.sentAt = new Date();
+
+  if (result.attempted === 0) {
+    notification.status = "failed";
+    notification.failureReason = "No valid channels or contact info";
+  } else if (result.failed === 0) {
+    notification.status = "sent";
+  } else if (result.failed === result.attempted) {
+    notification.status = "failed";
+    notification.failureReason = "All notification attempts failed";
+  } else {
+    notification.status = "partial_failure";
+    notification.failureReason = `${result.failed} of ${result.attempted} channel attempts failed`;
+  }
+
+  await persistNotificationOutcome(notification, result);
+  await persistNotificationDeadLetters(notification, result);
+  recordNotificationMetrics({
+    notification,
+    result,
+    durationMs: Date.now() - dispatchStartedAt,
+  });
+
+  if (result.issues.length > 0) {
+    logger.warn("[Notifications] Issues encountered while dispatching", {
+      id: notification.id,
+      issues: result.issues,
+    });
+  }
+
+  logger.info("[Notifications] Notification dispatch complete", {
+    id: notification.id,
+    status: notification.status,
+    attempted: result.attempted,
+    failed: result.failed,
+    skipped: result.skipped,
+  });
+
+  emitNotificationTelemetry({
+    notificationId: notification.id,
+    event: notification.event,
+    status: notification.status,
+    attempted: result.attempted,
+    failed: result.failed,
+    skipped: result.skipped,
+    issues: result.issues,
+  }).catch((error) => {
+    logger.warn("[Notifications] Telemetry emission failed", {
+      id: notification.id,
+      error,
+    });
+  });
+
+  return result;
+}
+
+/**
+ * Event handlers - wire these to your application events
+ */
+
+export async function onTicketCreated(
+  orgId: string, // SECURITY: Required for tenant isolation
+  workOrderId: string,
+  tenantName: string,
+  priority: string,
+  description: string,
+  recipients: NotificationRecipient[],
+): Promise<void> {
+  const notification = buildNotification(
+    "onTicketCreated",
+    {
+      orgId,
+      workOrderId,
+      tenantName,
+      priority,
+      description,
+    },
+    recipients,
+  );
+
+  await sendNotification(notification);
+}
+
+export async function onAssign(
+  orgId: string, // SECURITY: Required for tenant isolation
+  workOrderId: string,
+  technicianName: string,
+  description: string,
+  recipients: NotificationRecipient[],
+): Promise<void> {
+  const notification = buildNotification(
+    "onAssign",
+    {
+      orgId,
+      workOrderId,
+      technicianName,
+      description,
+    },
+    recipients,
+  );
+
+  await sendNotification(notification);
+}
+
+export async function onApprovalRequested(
+  orgId: string, // SECURITY: Required for tenant isolation
+  quotationId: string,
+  amount: number,
+  description: string,
+  recipients: NotificationRecipient[],
+): Promise<void> {
+  const notification = buildNotification(
+    "onApprovalRequested",
+    {
+      orgId,
+      quotationId,
+      amount,
+      description,
+    },
+    recipients,
+  );
+
+  await sendNotification(notification);
+}
+
+export async function onClosed(
+  orgId: string, // SECURITY: Required for tenant isolation
+  workOrderId: string,
+  propertyId: string,
+  recipients: NotificationRecipient[],
+): Promise<void> {
+  const notification = buildNotification(
+    "onClosed",
+    {
+      orgId,
+      workOrderId,
+      propertyId,
+    },
+    recipients,
+  );
+
+  await sendNotification(notification);
+}
+
+]]>
+</file>
+
+<file path="lib/formatServerDate.ts">
+<![CDATA[
+/**
+ * Server-Safe Date Formatting Utilities
+ *
+ * These utilities can be imported by Server Components and API routes.
+ * They do NOT use 'use client' directive.
+ */
+
+import { logger } from "@/lib/logger";
+
+export type DateFormatType =
+  | "full"
+  | "long"
+  | "medium"
+  | "short"
+  | "date-only"
+  | "time-only"
+  | "relative"
+  | "iso";
+
+/**
+ * Converts input to Date object safely
+ */
+function parseDate(date: Date | string | number): Date | null {
+  if (date instanceof Date) {
+    return isNaN(date.getTime()) ? null : date;
+  }
+
+  if (typeof date === "string" || typeof date === "number") {
+    const parsed = new Date(date);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  return null;
+}
+
+/**
+ * Formats date relative to now (e.g., "2 hours ago", "in 3 days")
+ */
+function formatRelative(date: Date, locale?: string): string {
+  const now = new Date();
+  const diffMs = date.getTime() - now.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHour = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHour / 24);
+
+  const rtf = new Intl.RelativeTimeFormat(locale || "en", { numeric: "auto" });
+
+  if (Math.abs(diffSec) < 60) return rtf.format(diffSec, "second");
+  if (Math.abs(diffMin) < 60) return rtf.format(diffMin, "minute");
+  if (Math.abs(diffHour) < 24) return rtf.format(diffHour, "hour");
+  if (Math.abs(diffDay) < 30) return rtf.format(diffDay, "day");
+  if (Math.abs(diffDay) < 365)
+    return rtf.format(Math.floor(diffDay / 30), "month");
+  return rtf.format(Math.floor(diffDay / 365), "year");
+}
+
+/**
+ * Main formatting function with optional timezone support
+ */
+export function formatDate(
+  date: Date,
+  format: DateFormatType,
+  locale?: string,
+  timeZone?: string,
+): string {
+  const browserLocale = locale || "en-US";
+  const options: Intl.DateTimeFormatOptions = timeZone ? { timeZone } : {};
+
+  switch (format) {
+    case "full":
+      return date.toLocaleString(browserLocale, {
+        ...options,
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+
+    case "long":
+      return date.toLocaleString(browserLocale, {
+        ...options,
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+    case "medium":
+      return date.toLocaleString(browserLocale, {
+        ...options,
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+    case "short":
+      return date.toLocaleString(browserLocale, {
+        ...options,
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
+      });
+
+    case "date-only":
+      return date.toLocaleDateString(browserLocale, {
+        ...options,
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
+      });
+
+    case "time-only":
+      return date.toLocaleTimeString(browserLocale, {
+        ...options,
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+    case "relative":
+      return formatRelative(date, browserLocale);
+
+    case "iso":
+      return date.toISOString();
+
+    default:
+      // Default to medium format
+      return date.toLocaleString(browserLocale, options);
+  }
+}
+
+/**
+ * Utility function for server components that need date strings
+ * Safe to use in Server Components (no state/effects)
+ */
+export function formatServerDate(
+  date: Date | string | number,
+  format: DateFormatType = "medium",
+  locale?: string,
+  timeZone?: string,
+): string {
+  const parsedDate = parseDate(date);
+
+  if (!parsedDate) {
+    return "Invalid Date";
+  }
+
+  try {
+    return formatDate(parsedDate, format, locale, timeZone);
+  } catch (_error: unknown) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    // Use logger.error for server-side logging
+    logger.error("formatServerDate formatting error", {
+      error,
+      date,
+      format,
+      locale,
+      timeZone,
+    });
+    return "Invalid Date";
+  }
+}
+
+]]>
+</file>
+
+<file path="lib/hr/attendance-export.ts">
+<![CDATA[
+export interface AttendanceExportEntry {
+  date: string | Date;
+  status: string;
+  clockIn?: string | Date;
+  clockOut?: string | Date;
+  overtimeMinutes?: number;
+  source?: string;
+  notes?: string;
+}
+
+export interface AttendanceExportMetadata {
+  employeeCode?: string;
+  dateFrom: string;
+  dateTo: string;
+}
+
+const CSV_HEADERS = [
+  "Date",
+  "Status",
+  "Clock-in",
+  "Clock-out",
+  "Overtime (min)",
+  "Source",
+  "Notes",
+] as const;
+
+function formatCell(value: string | number | undefined): string {
+  if (value === undefined || value === null) {
+    return "";
+  }
+  const str = String(value);
+  if (str.includes('"') || str.includes(",") || str.includes("\n")) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return `"${str}"`;
+}
+
+export function buildAttendanceCsv(
+  entries: AttendanceExportEntry[],
+  metadata: AttendanceExportMetadata,
+): string {
+  const rows: string[] = [];
+  rows.push(
+    `# Attendance export for ${metadata.employeeCode || "employee"} (${metadata.dateFrom} → ${metadata.dateTo})`,
+  );
+  rows.push(CSV_HEADERS.map((header) => `"${header}"`).join(","));
+
+  entries.forEach((entry) => {
+    rows.push(
+      [
+        formatCell(new Date(entry.date).toISOString()),
+        formatCell(entry.status),
+        formatCell(entry.clockIn ? new Date(entry.clockIn).toISOString() : ""),
+        formatCell(
+          entry.clockOut ? new Date(entry.clockOut).toISOString() : "",
+        ),
+        formatCell(entry.overtimeMinutes ?? 0),
+        formatCell(entry.source ?? ""),
+        formatCell(entry.notes ?? ""),
+      ].join(","),
+    );
+  });
+
+  return rows.join("\n");
+}
+
+]]>
+</file>
+
+</batch_content>

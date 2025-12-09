@@ -1,0 +1,4244 @@
+
+You are the "Fixzit Memory Builder" for category: "models".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "models",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="server/models/souq/Deal.ts">
+<![CDATA[
+/**
+ * Souq Deal Model - Lightning deals, coupons, promotions
+ * @module server/models/souq/Deal
+ */
+
+import mongoose, { Schema, type Document } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+
+export interface IDeal extends Document {
+  _id: mongoose.Types.ObjectId;
+  dealId: string;
+  orgId: mongoose.Types.ObjectId;
+
+  type:
+    | "lightning_deal"
+    | "coupon"
+    | "bundle"
+    | "bogo"
+    | "percentage_off"
+    | "amount_off";
+
+  title: string;
+  description: string;
+
+  sellerId?: mongoose.Types.ObjectId;
+
+  applicableProducts?: Array<{
+    productId: mongoose.Types.ObjectId;
+    fsin: string;
+  }>;
+  applicableCategories?: mongoose.Types.ObjectId[];
+  allProducts: boolean;
+
+  discountType: "percentage" | "fixed_amount";
+  discountValue: number;
+  maxDiscountAmount?: number;
+
+  minPurchaseAmount?: number;
+  maxUsagePerCustomer: number;
+  totalUsageLimit?: number;
+  currentUsageCount: number;
+
+  couponCode?: string;
+
+  startDate: Date;
+  endDate: Date;
+
+  status: "draft" | "scheduled" | "active" | "expired" | "paused";
+
+  priority: number;
+
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const DealSchema = new Schema<IDeal>(
+  {
+    orgId: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      index: true,
+    },
+    dealId: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+    type: {
+      type: String,
+      enum: [
+        "lightning_deal",
+        "coupon",
+        "bundle",
+        "bogo",
+        "percentage_off",
+        "amount_off",
+      ],
+      required: true,
+      index: true,
+    },
+    title: {
+      type: String,
+      required: true,
+    },
+    description: {
+      type: String,
+      required: true,
+    },
+    sellerId: {
+      type: Schema.Types.ObjectId,
+      ref: "SouqSeller",
+      index: true,
+    },
+    applicableProducts: [
+      {
+        productId: {
+          type: Schema.Types.ObjectId,
+          ref: "SouqProduct",
+        },
+        fsin: String,
+      },
+    ],
+    applicableCategories: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "SouqCategory",
+      },
+    ],
+    allProducts: {
+      type: Boolean,
+      default: false,
+    },
+    discountType: {
+      type: String,
+      enum: ["percentage", "fixed_amount"],
+      required: true,
+    },
+    discountValue: {
+      type: Number,
+      required: true,
+      min: 0,
+      validate: {
+        validator: function (this: IDeal, value: number) {
+          if (this.discountType === "percentage") {
+            return value <= 100;
+          }
+          return true;
+        },
+        message: "Percentage discount cannot exceed 100",
+      },
+    },
+    maxDiscountAmount: {
+      type: Number,
+      min: 0,
+    },
+    minPurchaseAmount: {
+      type: Number,
+      min: 0,
+    },
+    maxUsagePerCustomer: {
+      type: Number,
+      default: 1,
+      min: 1,
+    },
+    totalUsageLimit: {
+      type: Number,
+      min: 1,
+    },
+    currentUsageCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    couponCode: {
+      type: String,
+      sparse: true,
+      uppercase: true,
+      index: true,
+    },
+    startDate: {
+      type: Date,
+      required: true,
+      index: true,
+    },
+    endDate: {
+      type: Date,
+      required: true,
+      index: true,
+    },
+    status: {
+      type: String,
+      enum: ["draft", "scheduled", "active", "expired", "paused"],
+      default: "draft",
+      index: true,
+    },
+    priority: {
+      type: Number,
+      default: 0,
+    },
+  },
+  {
+    timestamps: true,
+    collection: "souq_deals",
+  },
+);
+
+DealSchema.index({ status: 1, startDate: 1, endDate: 1 });
+DealSchema.index({ "applicableProducts.fsin": 1, status: 1 });
+DealSchema.index({ orgId: 1, couponCode: 1 });
+DealSchema.index({ orgId: 1, sellerId: 1, status: 1 });
+
+export const SouqDeal = getModel<IDeal>("SouqDeal", DealSchema);
+
+export default SouqDeal;
+
+]]>
+</file>
+
+<file path="server/models/souq/FeeSchedule.ts">
+<![CDATA[
+import mongoose, { Schema, type Document } from "mongoose";
+import { getModel } from "@/types/mongoose-compat";
+
+/**
+ * Fee Schedule Model
+ * Defines commission structure, FBF fees, and other charges per category
+ */
+
+export interface ICategoryFee {
+  categoryId: string;
+  categoryName: string;
+  referralFeePercent: number; // e.g., 15% = 15.0
+  minimumReferralFee: number; // Minimum commission in SAR
+  closingFee?: number; // Fixed fee per item sold
+}
+
+export interface IFBFFee {
+  categoryId: string;
+  weightTier: "standard" | "small_standard" | "large_standard" | "oversize"; // Size tier
+  fulfillmentFee: number; // Fee per unit
+  storageFeePerCubicMeter: number; // Monthly storage fee
+  pickPackFee: number; // Pick and pack fee
+}
+
+export interface IAdvertisingFee {
+  cpcMinimum: number; // Minimum CPC bid in SAR
+  cpcMaximum: number; // Maximum CPC bid in SAR
+  platformFeePercent: number; // Platform's cut of ad spend (e.g., 20%)
+}
+
+export interface IPaymentProcessingFee {
+  percentageFee: number; // e.g., 2.9%
+  fixedFee: number; // e.g., 1 SAR per transaction
+  method: "mada" | "visa" | "mastercard" | "stc_pay" | "apple_pay";
+}
+
+export interface IRefundFee {
+  adminFee: number; // Fixed fee charged to seller for buyer-initiated returns
+  restockingFee: number; // Percentage charged to buyer for non-defective returns
+}
+
+export interface IHighVolumeDiscount {
+  minimumMonthlyGMV: number; // Minimum monthly sales to qualify
+  discountPercent: number; // Discount on referral fee
+  fbfDiscountPercent?: number; // Additional discount on FBF fees
+}
+
+export interface IFeeSchedule extends Document {
+  feeScheduleId: string;
+  orgId: string;
+  version: string; // e.g., "2025-Q1"
+  effectiveFrom: Date;
+  effectiveTo?: Date;
+  isActive: boolean;
+
+  // Category-based fees
+  categoryFees: ICategoryFee[];
+
+  // FBF (Fulfillment by Fixzit) fees
+  fbfFees: IFBFFee[];
+
+  // Advertising fees
+  advertisingFees: IAdvertisingFee;
+
+  // Payment processing fees
+  paymentProcessingFees: IPaymentProcessingFee[];
+
+  // Refund/Return fees
+  refundFees: IRefundFee;
+
+  // High-volume seller discounts
+  highVolumeDiscounts: IHighVolumeDiscount[];
+
+  // Other fees
+  subscriptionFee?: number; // Monthly seller subscription (if any)
+  setupFee?: number; // One-time seller onboarding fee
+
+  // VAT
+  vatPercent: number; // e.g., 15% in Saudi Arabia
+
+  // Audit
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy: string;
+}
+
+const CategoryFeeSchema = new Schema<ICategoryFee>(
+  {
+    categoryId: { type: String, required: true },
+    categoryName: { type: String, required: true },
+    referralFeePercent: { type: Number, required: true, min: 0, max: 100 },
+    minimumReferralFee: { type: Number, default: 0 },
+    closingFee: Number,
+  },
+  { _id: false },
+);
+
+const FBFFeeSchema = new Schema<IFBFFee>(
+  {
+    categoryId: { type: String, required: true },
+    weightTier: {
+      type: String,
+      enum: ["standard", "small_standard", "large_standard", "oversize"],
+      required: true,
+    },
+    fulfillmentFee: { type: Number, required: true },
+    storageFeePerCubicMeter: { type: Number, required: true },
+    pickPackFee: { type: Number, required: true },
+  },
+  { _id: false },
+);
+
+const AdvertisingFeeSchema = new Schema<IAdvertisingFee>(
+  {
+    cpcMinimum: { type: Number, required: true, default: 0.5 }, // 0.50 SAR minimum
+    cpcMaximum: { type: Number, required: true, default: 50.0 }, // 50 SAR maximum
+    platformFeePercent: { type: Number, required: true, default: 20 }, // Platform takes 20% of ad spend
+  },
+  { _id: false },
+);
+
+const PaymentProcessingFeeSchema = new Schema<IPaymentProcessingFee>(
+  {
+    percentageFee: { type: Number, required: true },
+    fixedFee: { type: Number, required: true },
+    method: {
+      type: String,
+      enum: ["mada", "visa", "mastercard", "stc_pay", "apple_pay"],
+      required: true,
+    },
+  },
+  { _id: false },
+);
+
+const RefundFeeSchema = new Schema<IRefundFee>(
+  {
+    adminFee: { type: Number, default: 10 }, // 10 SAR admin fee for returns
+    restockingFee: { type: Number, default: 0 }, // Percentage charged to buyer
+  },
+  { _id: false },
+);
+
+const HighVolumeDiscountSchema = new Schema<IHighVolumeDiscount>(
+  {
+    minimumMonthlyGMV: { type: Number, required: true },
+    discountPercent: { type: Number, required: true, min: 0, max: 100 },
+    fbfDiscountPercent: Number,
+  },
+  { _id: false },
+);
+
+const FeeScheduleSchema = new Schema<IFeeSchedule>(
+  {
+    feeScheduleId: { type: String, required: true, unique: true, index: true },
+    orgId: { type: String, required: true, index: true },
+    version: { type: String, required: true, index: true },
+    effectiveFrom: { type: Date, required: true, index: true },
+    effectiveTo: Date,
+    isActive: { type: Boolean, default: true, index: true },
+
+    categoryFees: [CategoryFeeSchema],
+    fbfFees: [FBFFeeSchema],
+    advertisingFees: { type: AdvertisingFeeSchema, required: true },
+    paymentProcessingFees: [PaymentProcessingFeeSchema],
+    refundFees: { type: RefundFeeSchema, required: true },
+    highVolumeDiscounts: [HighVolumeDiscountSchema],
+
+    subscriptionFee: Number,
+    setupFee: Number,
+
+    vatPercent: { type: Number, required: true, default: 15 }, // Saudi VAT
+
+    createdBy: { type: String, required: true },
+  },
+  {
+    timestamps: true,
+    collection: "souq_fee_schedules",
+    autoIndex: false,
+  },
+);
+
+// Methods
+
+/**
+ * Get referral fee for a category
+ */
+FeeScheduleSchema.methods.getReferralFee = function (
+  categoryId: string,
+  salePrice: number,
+): number {
+  const categoryFee = this.categoryFees.find(
+    (f: ICategoryFee) => f.categoryId === categoryId,
+  );
+
+  if (!categoryFee) {
+    // Default fee if category not found
+    return Math.max(salePrice * 0.15, 1.0); // 15% or 1 SAR minimum
+  }
+
+  const calculatedFee = salePrice * (categoryFee.referralFeePercent / 100);
+  return Math.max(calculatedFee, categoryFee.minimumReferralFee || 0);
+};
+
+/**
+ * Get closing fee
+ */
+FeeScheduleSchema.methods.getClosingFee = function (
+  categoryId: string,
+): number {
+  const categoryFee = this.categoryFees.find(
+    (f: ICategoryFee) => f.categoryId === categoryId,
+  );
+  return categoryFee?.closingFee || 0;
+};
+
+/**
+ * Get FBF fulfillment fee
+ */
+FeeScheduleSchema.methods.getFBFFee = function (
+  categoryId: string,
+  weightTier: string,
+): number {
+  const fbfFee = this.fbfFees.find(
+    (f: IFBFFee) => f.categoryId === categoryId && f.weightTier === weightTier,
+  );
+
+  return fbfFee?.fulfillmentFee || 5.0; // Default 5 SAR
+};
+
+/**
+ * Get FBF storage fee
+ */
+FeeScheduleSchema.methods.getStorageFee = function (
+  categoryId: string,
+  weightTier: string,
+  cubicMeters: number,
+): number {
+  const fbfFee = this.fbfFees.find(
+    (f: IFBFFee) => f.categoryId === categoryId && f.weightTier === weightTier,
+  );
+
+  const feePerCubicMeter = fbfFee?.storageFeePerCubicMeter || 20.0; // Default 20 SAR per cubic meter
+  return feePerCubicMeter * cubicMeters;
+};
+
+/**
+ * Get payment processing fee
+ */
+FeeScheduleSchema.methods.getPaymentProcessingFee = function (
+  method: string,
+  transactionAmount: number,
+): number {
+  const paymentFee = this.paymentProcessingFees.find(
+    (f: IPaymentProcessingFee) => f.method === method,
+  );
+
+  if (!paymentFee) {
+    // Default fee (similar to Stripe/Hyperpay)
+    return transactionAmount * 0.029 + 1.0; // 2.9% + 1 SAR
+  }
+
+  return (
+    transactionAmount * (paymentFee.percentageFee / 100) + paymentFee.fixedFee
+  );
+};
+
+/**
+ * Get high-volume discount
+ */
+FeeScheduleSchema.methods.getHighVolumeDiscount = function (
+  monthlyGMV: number,
+): IHighVolumeDiscount | null {
+  // Find highest discount tier the seller qualifies for
+  const qualifiedDiscounts = this.highVolumeDiscounts.filter(
+    (d: IHighVolumeDiscount) => monthlyGMV >= d.minimumMonthlyGMV,
+  );
+
+  if (qualifiedDiscounts.length === 0) {
+    return null;
+  }
+
+  // Return the best discount (highest GMV threshold)
+  return qualifiedDiscounts.sort(
+    (a: IHighVolumeDiscount, b: IHighVolumeDiscount) =>
+      b.minimumMonthlyGMV - a.minimumMonthlyGMV,
+  )[0];
+};
+
+/**
+ * Calculate total fees for a sale
+ */
+FeeScheduleSchema.methods.calculateTotalFees = function (
+  categoryId: string,
+  salePrice: number,
+  isFBF: boolean = false,
+  weightTier?: string,
+  paymentMethod: string = "mada",
+  monthlyGMV?: number,
+): {
+  referralFee: number;
+  closingFee: number;
+  fbfFee: number;
+  paymentProcessingFee: number;
+  vatAmount: number;
+  totalFees: number;
+  netProceeds: number;
+  discount?: number;
+} {
+  let referralFee = this.getReferralFee(categoryId, salePrice);
+  const closingFee = this.getClosingFee(categoryId);
+  let fbfFee = 0;
+
+  if (isFBF && weightTier) {
+    fbfFee = this.getFBFFee(categoryId, weightTier);
+  }
+
+  const paymentProcessingFee = this.getPaymentProcessingFee(
+    paymentMethod,
+    salePrice,
+  );
+
+  // Apply high-volume discount if applicable
+  let discount = 0;
+  if (monthlyGMV) {
+    const volumeDiscount = this.getHighVolumeDiscount(monthlyGMV);
+    if (volumeDiscount) {
+      discount = referralFee * (volumeDiscount.discountPercent / 100);
+      referralFee -= discount;
+
+      if (volumeDiscount.fbfDiscountPercent && isFBF) {
+        const fbfDiscount = fbfFee * (volumeDiscount.fbfDiscountPercent / 100);
+        fbfFee -= fbfDiscount;
+        discount += fbfDiscount;
+      }
+    }
+  }
+
+  const totalFeesBeforeVAT =
+    referralFee + closingFee + fbfFee + paymentProcessingFee;
+  const vatAmount = totalFeesBeforeVAT * (this.vatPercent / 100);
+  const totalFees = totalFeesBeforeVAT + vatAmount;
+  const netProceeds = salePrice - totalFees;
+
+  return {
+    referralFee,
+    closingFee,
+    fbfFee,
+    paymentProcessingFee,
+    vatAmount,
+    totalFees,
+    netProceeds,
+    discount,
+  };
+};
+
+/**
+ * Validate CPC bid amount
+ */
+FeeScheduleSchema.methods.isValidCPCBid = function (
+  bidAmount: number,
+): boolean {
+  return (
+    bidAmount >= this.advertisingFees.cpcMinimum &&
+    bidAmount <= this.advertisingFees.cpcMaximum
+  );
+};
+
+/**
+ * Calculate platform's cut from ad spend
+ */
+FeeScheduleSchema.methods.calculateAdPlatformFee = function (
+  adSpend: number,
+): number {
+  return adSpend * (this.advertisingFees.platformFeePercent / 100);
+};
+
+export const SouqFeeSchedule = getModel<IFeeSchedule>(
+  "SouqFeeSchedule",
+  FeeScheduleSchema,
+);
+
+]]>
+</file>
+
+<file path="server/models/souq/Inventory.ts">
+<![CDATA[
+import mongoose, { Schema, type Document } from "mongoose";
+import { getModel } from "@/types/mongoose-compat";
+
+/**
+ * Inventory Model
+ * Tracks available stock per listing, reservations during checkout,
+ * and inventory health metrics (aging, stranded, unfulfillable)
+ */
+
+export interface IInventoryReservation {
+  reservationId: string;
+  orderId?: string;
+  quantity: number;
+  reservedAt: Date;
+  expiresAt: Date; // Auto-release if not converted to order
+  status: "active" | "converted" | "expired";
+}
+
+export interface IInventoryTransaction {
+  transactionId: string;
+  type: "receive" | "sale" | "return" | "damage" | "lost" | "adjustment";
+  quantity: number; // Positive for increase, negative for decrease
+  orderId?: string;
+  rmaId?: string;
+  reason?: string;
+  performedBy: string; // User ID or system
+  performedAt: Date;
+}
+
+export interface IInventoryHealth {
+  sellableUnits: number;
+  unsellableUnits: number; // Damaged, defective, etc.
+  inboundUnits: number; // In transit to warehouse
+  reservedUnits: number; // Pending checkout
+  agingDays: number; // Days since last sale
+  isStranded: boolean; // No active listing linked
+  lastSoldAt?: Date;
+}
+
+export interface IInventory extends Document {
+  inventoryId: string;
+  listingId: string; // Link to SouqListing
+  productId: string; // Link to SouqProduct (FSIN)
+  sellerId: string;
+  orgId?: mongoose.Types.ObjectId;
+
+  // Stock Levels
+  availableQuantity: number; // Sellable units minus reservations
+  totalQuantity: number; // All units (sellable + unsellable + reserved)
+  reservedQuantity: number; // Sum of active reservations
+
+  // Warehouse Location
+  fulfillmentType: "FBM" | "FBF"; // Fulfilled by Merchant or Fixzit
+  warehouseId?: string; // For FBF only
+  binLocation?: string; // Physical shelf location
+
+  // Reservations
+  reservations: IInventoryReservation[];
+
+  // Transaction History
+  transactions: IInventoryTransaction[];
+
+  // Health Metrics
+  health: IInventoryHealth;
+
+  // Thresholds
+  lowStockThreshold: number;
+  outOfStockThreshold: number;
+  reorderQuantity?: number;
+
+  // Status
+  status: "active" | "suspended" | "depleted";
+
+  // Audit
+  createdAt: Date;
+  updatedAt: Date;
+
+  reserve(
+    reservationId: string,
+    quantity: number,
+    expirationMinutes?: number,
+  ): boolean;
+  release(reservationId: string): boolean;
+  convertReservation(reservationId: string, orderId: string): boolean;
+  receive(quantity: number, performedBy: string, reason?: string): void;
+  processReturn(
+    rmaId: string,
+    quantity: number,
+    condition: "sellable" | "unsellable",
+  ): void;
+  adjustUnsellable(
+    quantity: number,
+    type: "damage" | "lost",
+    performedBy: string,
+    reason: string,
+  ): void;
+  isLowStock(): boolean;
+  isOutOfStock(): boolean;
+  updateHealth(): void;
+  cleanExpiredReservations(): number;
+}
+
+const InventoryReservationSchema = new Schema<IInventoryReservation>(
+  {
+    reservationId: { type: String, required: true },
+    orderId: String,
+    quantity: { type: Number, required: true, min: 1 },
+    reservedAt: { type: Date, required: true, default: Date.now },
+    expiresAt: { type: Date, required: true },
+    status: {
+      type: String,
+      enum: ["active", "converted", "expired"],
+      default: "active",
+    },
+  },
+  { _id: false },
+);
+
+const InventoryTransactionSchema = new Schema<IInventoryTransaction>(
+  {
+    transactionId: { type: String, required: true },
+    type: {
+      type: String,
+      enum: ["receive", "sale", "return", "damage", "lost", "adjustment"],
+      required: true,
+    },
+    quantity: { type: Number, required: true },
+    orderId: String,
+    rmaId: String,
+    reason: String,
+    performedBy: { type: String, required: true },
+    performedAt: { type: Date, required: true, default: Date.now },
+  },
+  { _id: false },
+);
+
+const InventoryHealthSchema = new Schema<IInventoryHealth>(
+  {
+    sellableUnits: { type: Number, default: 0 },
+    unsellableUnits: { type: Number, default: 0 },
+    inboundUnits: { type: Number, default: 0 },
+    reservedUnits: { type: Number, default: 0 },
+    agingDays: { type: Number, default: 0 },
+    isStranded: { type: Boolean, default: false },
+    lastSoldAt: Date,
+  },
+  { _id: false },
+);
+
+const InventorySchema = new Schema<IInventory>(
+  {
+    inventoryId: { type: String, required: true, unique: true, index: true },
+    listingId: { type: String, required: true, index: true },
+    productId: { type: String, required: true, index: true },
+    sellerId: { type: String, required: true, index: true },
+    orgId: { type: Schema.Types.ObjectId, ref: "Organization", required: true, index: true },
+
+    availableQuantity: { type: Number, required: true, min: 0, default: 0 },
+    totalQuantity: { type: Number, required: true, min: 0, default: 0 },
+    reservedQuantity: { type: Number, required: true, min: 0, default: 0 },
+
+    fulfillmentType: { type: String, enum: ["FBM", "FBF"], required: true },
+    warehouseId: String,
+    binLocation: String,
+
+    reservations: [InventoryReservationSchema],
+    transactions: [InventoryTransactionSchema],
+    health: { type: InventoryHealthSchema, default: () => ({}) },
+
+    lowStockThreshold: { type: Number, default: 5 },
+    outOfStockThreshold: { type: Number, default: 0 },
+    reorderQuantity: Number,
+
+    status: {
+      type: String,
+      enum: ["active", "suspended", "depleted"],
+      default: "active",
+    },
+  },
+  {
+    timestamps: true,
+    collection: "souq_inventory",
+  },
+);
+
+// Indexes
+InventorySchema.index({ listingId: 1, status: 1 });
+InventorySchema.index({ orgId: 1, listingId: 1 });
+InventorySchema.index({ sellerId: 1, fulfillmentType: 1 });
+InventorySchema.index({ orgId: 1, status: 1 });
+InventorySchema.index({ "health.isStranded": 1 });
+InventorySchema.index({ "health.agingDays": -1 });
+
+// Methods
+
+/**
+ * Reserve inventory for a pending order
+ */
+InventorySchema.methods.reserve = function (
+  reservationId: string,
+  quantity: number,
+  expirationMinutes: number = 15,
+): boolean {
+  if (this.availableQuantity < quantity) {
+    return false; // Insufficient stock
+  }
+
+  const expiresAt = new Date();
+  expiresAt.setMinutes(expiresAt.getMinutes() + expirationMinutes);
+
+  this.reservations.push({
+    reservationId,
+    quantity,
+    reservedAt: new Date(),
+    expiresAt,
+    status: "active",
+  });
+
+  this.reservedQuantity += quantity;
+  this.availableQuantity -= quantity;
+  this.health.reservedUnits += quantity;
+
+  return true;
+};
+
+/**
+ * Release a reservation (order cancelled or expired)
+ */
+InventorySchema.methods.release = function (reservationId: string): boolean {
+  const reservation = this.reservations.find(
+    (r: IInventoryReservation) =>
+      r.reservationId === reservationId && r.status === "active",
+  );
+
+  if (!reservation) {
+    return false;
+  }
+
+  reservation.status = "expired";
+  this.reservedQuantity -= reservation.quantity;
+  this.availableQuantity += reservation.quantity;
+  this.health.reservedUnits -= reservation.quantity;
+
+  return true;
+};
+
+/**
+ * Convert reservation to sale (order confirmed)
+ */
+InventorySchema.methods.convertReservation = function (
+  reservationId: string,
+  orderId: string,
+): boolean {
+  const reservation = this.reservations.find(
+    (r: IInventoryReservation) =>
+      r.reservationId === reservationId && r.status === "active",
+  );
+
+  if (!reservation) {
+    return false;
+  }
+
+  reservation.status = "converted";
+  reservation.orderId = orderId;
+  this.reservedQuantity -= reservation.quantity;
+  this.totalQuantity -= reservation.quantity;
+  this.health.reservedUnits -= reservation.quantity;
+  this.health.sellableUnits -= reservation.quantity;
+
+  // Record transaction
+  this.transactions.push({
+    transactionId: `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    type: "sale",
+    quantity: -reservation.quantity,
+    orderId,
+    performedBy: "system",
+    performedAt: new Date(),
+  });
+
+  this.health.lastSoldAt = new Date();
+  this.health.agingDays = 0;
+
+  // Update status
+  if (this.availableQuantity === 0) {
+    this.status = "depleted";
+  }
+
+  return true;
+};
+
+/**
+ * Receive new stock
+ */
+InventorySchema.methods.receive = function (
+  quantity: number,
+  performedBy: string,
+  reason?: string,
+): void {
+  this.availableQuantity += quantity;
+  this.totalQuantity += quantity;
+  this.health.sellableUnits += quantity;
+
+  this.transactions.push({
+    transactionId: `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    type: "receive",
+    quantity,
+    reason,
+    performedBy,
+    performedAt: new Date(),
+  });
+
+  if (this.status === "depleted" && this.availableQuantity > 0) {
+    this.status = "active";
+  }
+};
+
+/**
+ * Process return (RMA)
+ */
+InventorySchema.methods.processReturn = function (
+  rmaId: string,
+  quantity: number,
+  condition: "sellable" | "unsellable",
+): void {
+  this.totalQuantity += quantity;
+
+  if (condition === "sellable") {
+    this.availableQuantity += quantity;
+    this.health.sellableUnits += quantity;
+  } else {
+    this.health.unsellableUnits += quantity;
+  }
+
+  this.transactions.push({
+    transactionId: `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    type: "return",
+    quantity,
+    rmaId,
+    reason: `Return condition: ${condition}`,
+    performedBy: "system",
+    performedAt: new Date(),
+  });
+
+  if (this.status === "depleted" && this.availableQuantity > 0) {
+    this.status = "active";
+  }
+};
+
+/**
+ * Mark units as damaged/lost
+ */
+InventorySchema.methods.adjustUnsellable = function (
+  quantity: number,
+  type: "damage" | "lost",
+  performedBy: string,
+  reason: string,
+): void {
+  this.totalQuantity -= quantity;
+  this.health.unsellableUnits += quantity;
+
+  this.transactions.push({
+    transactionId: `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    type,
+    quantity: -quantity,
+    reason,
+    performedBy,
+    performedAt: new Date(),
+  });
+};
+
+/**
+ * Check if low stock alert needed
+ */
+InventorySchema.methods.isLowStock = function (): boolean {
+  return (
+    this.availableQuantity > 0 &&
+    this.availableQuantity <= this.lowStockThreshold
+  );
+};
+
+/**
+ * Check if out of stock
+ */
+InventorySchema.methods.isOutOfStock = function (): boolean {
+  return this.availableQuantity <= this.outOfStockThreshold;
+};
+
+/**
+ * Update health metrics (run periodically)
+ */
+InventorySchema.methods.updateHealth = function (): void {
+  if (this.health.lastSoldAt) {
+    const daysSinceLastSale = Math.floor(
+      (Date.now() - this.health.lastSoldAt.getTime()) / (1000 * 60 * 60 * 24),
+    );
+    this.health.agingDays = daysSinceLastSale;
+  }
+
+  // Mark as stranded if no active listing
+  // (This would be checked via listingId lookup in actual implementation)
+};
+
+/**
+ * Clean up expired reservations (run periodically)
+ */
+InventorySchema.methods.cleanExpiredReservations = function (): number {
+  let releasedCount = 0;
+  const now = new Date();
+
+  this.reservations.forEach((reservation: IInventoryReservation) => {
+    if (reservation.status === "active" && reservation.expiresAt < now) {
+      this.release(reservation.reservationId);
+      releasedCount++;
+    }
+  });
+
+  return releasedCount;
+};
+
+export const SouqInventory = getModel<IInventory>(
+  "SouqInventory",
+  InventorySchema,
+);
+
+]]>
+</file>
+
+<file path="server/models/souq/Listing.ts">
+<![CDATA[
+/**
+ * Souq Listing Model - Seller offers for products (multi-seller marketplace)
+ * @module server/models/souq/Listing
+ */
+
+import mongoose, { Schema, type Document } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+
+export interface IListing extends Document {
+  _id: mongoose.Types.ObjectId;
+  listingId: string;
+
+  productId: mongoose.Types.ObjectId;
+  fsin: string;
+  variationId?: mongoose.Types.ObjectId;
+  sku?: string;
+
+  sellerId: mongoose.Types.ObjectId;
+  orgId?: mongoose.Types.ObjectId;
+
+  price: number;
+  compareAtPrice?: number;
+  currency: string;
+
+  stockQuantity: number;
+  reservedQuantity: number;
+  availableQuantity: number;
+  lowStockThreshold: number;
+
+  fulfillmentMethod: "fbf" | "fbm";
+  warehouseLocation?: string;
+  handlingTime: number;
+
+  shippingOptions: {
+    method: "standard" | "express" | "overnight";
+    carrier?: string;
+    price: number;
+    estimatedDays: number;
+  }[];
+  freeShipping: boolean;
+
+  condition:
+    | "new"
+    | "refurbished"
+    | "used-like-new"
+    | "used-good"
+    | "used-acceptable";
+  conditionNotes?: string;
+
+  buyBoxEligible: boolean;
+  buyBoxScore?: number;
+  lastBuyBoxWin?: Date;
+  badges: string[];
+  lastPriceChange?: Date;
+
+  status: "draft" | "active" | "inactive" | "out_of_stock" | "suppressed";
+  suppressionReasons?: string[];
+
+  metrics: {
+    orderCount: number;
+    cancelRate: number;
+    defectRate: number;
+    onTimeShipRate: number;
+    customerRating: number;
+    priceCompetitiveness: number;
+  };
+
+  isFeatured: boolean;
+  isPrime: boolean;
+  isSponsored: boolean;
+
+  createdAt: Date;
+  updatedAt: Date;
+  activatedAt?: Date;
+  deactivatedAt?: Date;
+
+  // Methods
+  checkBuyBoxEligibility(): Promise<boolean>;
+}
+
+const ListingSchema = new Schema<IListing>(
+  {
+    listingId: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+    productId: {
+      type: Schema.Types.ObjectId,
+      ref: "SouqProduct",
+      required: true,
+      index: true,
+    },
+    fsin: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    variationId: {
+      type: Schema.Types.ObjectId,
+      ref: "SouqVariation",
+      index: true,
+    },
+    sku: {
+      type: String,
+      index: true,
+    },
+    sellerId: {
+      type: Schema.Types.ObjectId,
+      ref: "SouqSeller",
+      required: true,
+      index: true,
+    },
+    orgId: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      index: true,
+    },
+    price: {
+      type: Number,
+      required: true,
+      min: 0,
+      index: true,
+    },
+    compareAtPrice: {
+      type: Number,
+      min: 0,
+    },
+    currency: {
+      type: String,
+      default: "SAR",
+    },
+    stockQuantity: {
+      type: Number,
+      required: true,
+      default: 0,
+      min: 0,
+    },
+    reservedQuantity: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    availableQuantity: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    lowStockThreshold: {
+      type: Number,
+      default: 5,
+      min: 0,
+    },
+    fulfillmentMethod: {
+      type: String,
+      enum: ["fbf", "fbm"],
+      required: true,
+      default: "fbm",
+      index: true,
+    },
+    warehouseLocation: String,
+    handlingTime: {
+      type: Number,
+      required: true,
+      default: 2,
+      min: 0,
+      max: 30,
+    },
+    shippingOptions: [
+      {
+        method: {
+          type: String,
+          enum: ["standard", "express", "overnight"],
+          required: true,
+        },
+        carrier: String,
+        price: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
+        estimatedDays: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
+      },
+    ],
+    freeShipping: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    condition: {
+      type: String,
+      enum: [
+        "new",
+        "refurbished",
+        "used-like-new",
+        "used-good",
+        "used-acceptable",
+      ],
+      default: "new",
+      index: true,
+    },
+    conditionNotes: String,
+    buyBoxEligible: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    buyBoxScore: {
+      type: Number,
+      min: 0,
+      max: 100,
+    },
+    lastBuyBoxWin: Date,
+    badges: {
+      type: [String],
+      default: [],
+    },
+    lastPriceChange: Date,
+    status: {
+      type: String,
+      enum: ["draft", "active", "inactive", "out_of_stock", "suppressed"],
+      default: "draft",
+      index: true,
+    },
+    suppressionReasons: [String],
+    metrics: {
+      orderCount: {
+        type: Number,
+        default: 0,
+      },
+      cancelRate: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 100,
+      },
+      defectRate: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 100,
+      },
+      onTimeShipRate: {
+        type: Number,
+        default: 100,
+        min: 0,
+        max: 100,
+      },
+      customerRating: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 5,
+      },
+      priceCompetitiveness: {
+        type: Number,
+        default: 50,
+        min: 0,
+        max: 100,
+      },
+    },
+    isFeatured: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    isPrime: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    isSponsored: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    activatedAt: Date,
+    deactivatedAt: Date,
+  },
+  {
+    timestamps: true,
+    collection: "souq_listings",
+  },
+);
+
+// Compound indexes for Buy Box queries
+ListingSchema.index({ fsin: 1, status: 1, buyBoxEligible: 1 });
+ListingSchema.index({ productId: 1, sellerId: 1 }, { unique: true });
+ListingSchema.index({ sellerId: 1, status: 1 });
+ListingSchema.index({ price: 1, status: 1 });
+ListingSchema.index({ orgId: 1, listingId: 1 });
+ListingSchema.index({ orgId: 1, sellerId: 1 });
+ListingSchema.index({ orgId: 1, status: 1 });
+
+// Pre-save: Calculate available quantity
+ListingSchema.pre("save", function (next) {
+  this.availableQuantity = Math.max(
+    0,
+    this.stockQuantity - this.reservedQuantity,
+  );
+
+  // Auto-update status based on stock
+  if (this.availableQuantity === 0 && this.status === "active") {
+    this.status = "out_of_stock";
+  } else if (this.availableQuantity > 0 && this.status === "out_of_stock") {
+    this.status = "active";
+  }
+
+  next();
+});
+
+// Method: Calculate Buy Box score
+ListingSchema.methods.calculateBuyBoxScore = function (): number {
+  const {
+    orderCount,
+    cancelRate,
+    defectRate,
+    onTimeShipRate,
+    customerRating,
+    priceCompetitiveness,
+  } = this.metrics;
+
+  // Weighted scoring algorithm
+  const priceScore = priceCompetitiveness * 0.35;
+  const performanceScore = onTimeShipRate * 0.25;
+  const qualityScore = (100 - defectRate) * 0.2;
+  const ratingScore = (customerRating / 5) * 100 * 0.1;
+  const reliabilityScore = (100 - cancelRate) * 0.1;
+
+  // Boost for order history (experience factor)
+  const experienceBoost = Math.min(orderCount / 100, 1) * 5;
+
+  const score =
+    priceScore +
+    performanceScore +
+    qualityScore +
+    ratingScore +
+    reliabilityScore +
+    experienceBoost;
+
+  return Math.round(Math.max(0, Math.min(100, score)));
+};
+
+// Method: Check if listing is eligible for Buy Box
+ListingSchema.methods.checkBuyBoxEligibility =
+  async function (): Promise<boolean> {
+    // Must be active with stock
+    if (this.status !== "active" || this.availableQuantity === 0) {
+      this.buyBoxEligible = false;
+      return false;
+    }
+
+    // Must have acceptable performance
+    if (
+      this.metrics.defectRate > 2 ||
+      this.metrics.cancelRate > 2.5 ||
+      this.metrics.onTimeShipRate < 95
+    ) {
+      this.buyBoxEligible = false;
+      return false;
+    }
+
+    // Check seller account health
+    const seller = await mongoose.model("SouqSeller").findById(this.sellerId);
+    if (!seller || !seller.canCompeteInBuyBox()) {
+      this.buyBoxEligible = false;
+      return false;
+    }
+
+    this.buyBoxEligible = true;
+    this.buyBoxScore = this.calculateBuyBoxScore();
+    return true;
+  };
+
+// Method: Reserve quantity for order
+ListingSchema.methods.reserveStock = async function (
+  quantity: number,
+): Promise<boolean> {
+  if (this.availableQuantity < quantity) {
+    return false;
+  }
+
+  this.reservedQuantity += quantity;
+  await this.save();
+  return true;
+};
+
+// Method: Release reserved quantity
+ListingSchema.methods.releaseStock = async function (
+  quantity: number,
+): Promise<void> {
+  this.reservedQuantity = Math.max(0, this.reservedQuantity - quantity);
+  await this.save();
+};
+
+// Method: Deduct stock after order
+ListingSchema.methods.deductStock = async function (
+  quantity: number,
+): Promise<boolean> {
+  if (this.reservedQuantity < quantity) {
+    return false;
+  }
+
+  this.stockQuantity -= quantity;
+  this.reservedQuantity -= quantity;
+  await this.save();
+  return true;
+};
+
+// Static: Get Buy Box winner for a product
+ListingSchema.statics.getBuyBoxWinner = async function (fsin: string) {
+  const listings = await this.find({
+    fsin,
+    status: "active",
+    buyBoxEligible: true,
+    availableQuantity: { $gt: 0 },
+  })
+    .populate("sellerId")
+    .sort({ buyBoxScore: -1, price: 1 })
+    .limit(1);
+
+  return listings[0] || null;
+};
+
+// Static: Get all offers for a product
+ListingSchema.statics.getProductOffers = async function (
+  fsin: string,
+  options = {},
+) {
+  const { condition = "new", sort = "price" } = options as {
+    condition?: string;
+    sort?: string;
+  };
+
+  const query: Record<string, unknown> = {
+    fsin,
+    status: "active",
+    availableQuantity: { $gt: 0 },
+  };
+
+  if (condition) {
+    query.condition = condition;
+  }
+
+  const sortOptions: Record<string, number> = {};
+  if (sort === "price") {
+    sortOptions.price = 1;
+  } else if (sort === "rating") {
+    sortOptions["metrics.customerRating"] = -1;
+  }
+
+  return this.find(query).populate("sellerId").sort(sortOptions);
+};
+
+export const SouqListing = getModel<IListing>("SouqListing", ListingSchema);
+
+export default SouqListing;
+
+]]>
+</file>
+
+<file path="server/models/souq/Order.ts">
+<![CDATA[
+/**
+ * Souq Order Model - Marketplace orders
+ * @module server/models/souq/Order
+ */
+
+import mongoose, { Schema, type Document } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+import {
+  EscrowState,
+  type EscrowStateValue,
+} from "@/server/models/finance/EscrowAccount";
+
+export interface IOrder extends Document {
+  _id: mongoose.Types.ObjectId;
+  orderId: string;
+  orgId?: mongoose.Types.ObjectId;
+
+  customerId: mongoose.Types.ObjectId;
+  customerEmail: string;
+  customerPhone: string;
+
+  items: Array<{
+    listingId: mongoose.Types.ObjectId;
+    productId: mongoose.Types.ObjectId;
+    fsin: string;
+    sellerId: mongoose.Types.ObjectId;
+    title: string;
+    quantity: number;
+    pricePerUnit: number;
+    subtotal: number;
+    fulfillmentMethod: "fbf" | "fbm";
+    status:
+      | "pending"
+      | "processing"
+      | "shipped"
+      | "delivered"
+      | "cancelled"
+      | "returned";
+    trackingNumber?: string;
+    carrier?: string;
+    shippedAt?: Date;
+    deliveredAt?: Date;
+  }>;
+
+  shippingAddress: {
+    name: string;
+    phone: string;
+    addressLine1: string;
+    addressLine2?: string;
+    city: string;
+    state?: string;
+    country: string;
+    postalCode: string;
+  };
+
+  billingAddress?: {
+    name: string;
+    phone: string;
+    addressLine1: string;
+    addressLine2?: string;
+    city: string;
+    state?: string;
+    country: string;
+    postalCode: string;
+  };
+  shippingSpeed?: "standard" | "express" | "same_day";
+
+  pricing: {
+    subtotal: number;
+    shippingFee: number;
+    tax: number;
+    discount: number;
+    total: number;
+    currency: string;
+  };
+
+  payment: {
+    method: "card" | "cod" | "wallet" | "installment";
+    status: "pending" | "authorized" | "captured" | "failed" | "refunded";
+    transactionId?: string;
+    paidAt?: Date;
+  };
+
+  status:
+    | "pending"
+    | "confirmed"
+    | "processing"
+    | "shipped"
+    | "delivered"
+    | "cancelled"
+    | "returned";
+  fulfillmentStatus?:
+    | "pending"
+    | "pending_seller"
+    | "shipped"
+    | "in_transit"
+    | "out_for_delivery"
+    | "delivered"
+    | "delivery_failed";
+  shippingCarrier?: string;
+  trackingNumber?: string;
+  shippingLabelUrl?: string;
+  estimatedDeliveryDate?: Date;
+  deliveredAt?: Date;
+
+  cancelledAt?: Date;
+  cancellationReason?: string;
+
+  returnRequest?: {
+    requestedAt: Date;
+    reason: string;
+    refundAmount: number;
+    status: "pending" | "approved" | "rejected" | "completed";
+    approvedAt?: Date;
+    refundedAt?: Date;
+  };
+
+  escrow?: {
+    accountId?: mongoose.Types.ObjectId;
+    status?: EscrowStateValue;
+    releaseAfter?: Date;
+    lastEventId?: string;
+    idempotencyKey?: string;
+  };
+
+  notes?: string;
+
+  createdAt: Date;
+  updatedAt: Date;
+  confirmedAt?: Date;
+  completedAt?: Date;
+}
+
+const OrderSchema = new Schema<IOrder>(
+  {
+    orderId: {
+      type: String,
+      required: true,
+    },
+    customerId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    orgId: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      index: true,
+    },
+    customerEmail: {
+      type: String,
+      required: true,
+    },
+    customerPhone: {
+      type: String,
+      required: true,
+    },
+    items: [
+      {
+        listingId: {
+          type: Schema.Types.ObjectId,
+          ref: "SouqListing",
+          required: true,
+        },
+        productId: {
+          type: Schema.Types.ObjectId,
+          ref: "SouqProduct",
+          required: true,
+        },
+        fsin: {
+          type: String,
+          required: true,
+        },
+        sellerId: {
+          type: Schema.Types.ObjectId,
+          ref: "SouqSeller",
+          required: true,
+          index: true,
+        },
+        title: {
+          type: String,
+          required: true,
+        },
+        quantity: {
+          type: Number,
+          required: true,
+          min: 1,
+        },
+        pricePerUnit: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
+        subtotal: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
+        fulfillmentMethod: {
+          type: String,
+          enum: ["fbf", "fbm"],
+          required: true,
+        },
+        status: {
+          type: String,
+          enum: [
+            "pending",
+            "processing",
+            "shipped",
+            "delivered",
+            "cancelled",
+            "returned",
+          ],
+          default: "pending",
+        },
+        trackingNumber: String,
+        carrier: String,
+        shippedAt: Date,
+        deliveredAt: Date,
+      },
+    ],
+    shippingAddress: {
+      name: {
+        type: String,
+        required: true,
+      },
+      phone: {
+        type: String,
+        required: true,
+      },
+      addressLine1: {
+        type: String,
+        required: true,
+      },
+      addressLine2: String,
+      city: {
+        type: String,
+        required: true,
+      },
+      state: String,
+      country: {
+        type: String,
+        required: true,
+        default: "SA",
+      },
+      postalCode: {
+        type: String,
+        required: true,
+      },
+    },
+    billingAddress: {
+      name: String,
+      phone: String,
+      addressLine1: String,
+      addressLine2: String,
+      city: String,
+      state: String,
+      country: String,
+      postalCode: String,
+    },
+    shippingSpeed: {
+      type: String,
+      enum: ["standard", "express", "same_day"],
+      default: "standard",
+    },
+    pricing: {
+      subtotal: {
+        type: Number,
+        required: true,
+        min: 0,
+      },
+      shippingFee: {
+        type: Number,
+        required: true,
+        default: 0,
+        min: 0,
+      },
+      tax: {
+        type: Number,
+        required: true,
+        default: 0,
+        min: 0,
+      },
+      discount: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+      total: {
+        type: Number,
+        required: true,
+        min: 0,
+      },
+      currency: {
+        type: String,
+        default: "SAR",
+      },
+    },
+    payment: {
+      method: {
+        type: String,
+        enum: ["card", "cod", "wallet", "installment"],
+        required: true,
+      },
+      status: {
+        type: String,
+        enum: ["pending", "authorized", "captured", "failed", "refunded"],
+        default: "pending",
+      },
+      transactionId: String,
+      paidAt: Date,
+    },
+    status: {
+      type: String,
+      enum: [
+        "pending",
+        "confirmed",
+        "processing",
+        "shipped",
+        "delivered",
+        "cancelled",
+        "returned",
+      ],
+      default: "pending",
+      index: true,
+    },
+    fulfillmentStatus: {
+      type: String,
+      enum: [
+        "pending",
+        "pending_seller",
+        "shipped",
+        "in_transit",
+        "out_for_delivery",
+        "delivered",
+        "delivery_failed",
+      ],
+      default: "pending",
+      index: true,
+    },
+    shippingCarrier: String,
+    trackingNumber: {
+      type: String,
+      index: true,
+    },
+    shippingLabelUrl: String,
+    estimatedDeliveryDate: Date,
+    deliveredAt: Date,
+    cancelledAt: Date,
+    cancellationReason: String,
+    returnRequest: {
+      requestedAt: Date,
+      reason: String,
+      refundAmount: Number,
+      status: {
+        type: String,
+        enum: ["pending", "approved", "rejected", "completed"],
+      },
+      approvedAt: Date,
+      refundedAt: Date,
+    },
+    escrow: {
+      accountId: {
+        type: Schema.Types.ObjectId,
+        ref: "EscrowAccount",
+        index: true,
+      },
+      status: { type: String, enum: Object.values(EscrowState) },
+      releaseAfter: { type: Date },
+      lastEventId: { type: String },
+      idempotencyKey: { type: String },
+    },
+    notes: String,
+    confirmedAt: Date,
+    completedAt: Date,
+  },
+  {
+    timestamps: true,
+    collection: "souq_orders",
+    // Indexes managed centrally in lib/db/collections.ts to avoid conflicts
+    autoIndex: false,
+  },
+);
+
+// Tenant-scoped access patterns
+OrderSchema.index({ orgId: 1, orderId: 1 });
+OrderSchema.index({ orgId: 1, trackingNumber: 1 });
+
+export const SouqOrder = getModel<IOrder>("SouqOrder", OrderSchema);
+
+export default SouqOrder;
+
+]]>
+</file>
+
+<file path="server/models/souq/PayoutRequest.ts">
+<![CDATA[
+/**
+ * Souq Payout Request MongoDB Model
+ *
+ * Stores payout requests for seller withdrawals.
+ */
+
+import mongoose, { Schema, Document } from "mongoose";
+
+export interface ISouqPayoutRequest extends Document {
+  payoutId: string;
+  sellerId: mongoose.Types.ObjectId;
+  orgId: mongoose.Types.ObjectId; // 🔐 STRICT v4.1: Required for tenant isolation
+  statementId: string;
+  escrowAccountId?: mongoose.Types.ObjectId;
+  amount: number;
+  currency: string;
+  bankAccount: {
+    bankName: string;
+    accountNumber: string;
+    iban: string;
+    accountHolderName: string;
+    swiftCode?: string;
+  };
+  method: "sadad" | "span" | "manual";
+  status: "pending" | "processing" | "completed" | "failed" | "cancelled";
+  requestedAt: Date;
+  processedAt?: Date;
+  completedAt?: Date;
+  failedAt?: Date;
+  retryCount: number;
+  maxRetries: number;
+  errorMessage?: string;
+  transactionReference?: string; // Bank transaction ID
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const SouqPayoutRequestSchema = new Schema<ISouqPayoutRequest>(
+  {
+    payoutId: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+    sellerId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: "User",
+      index: true,
+    },
+    orgId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: "Organization",
+      index: true,
+    },
+    statementId: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    escrowAccountId: {
+      type: Schema.Types.ObjectId,
+      ref: "EscrowAccount",
+    },
+    amount: {
+      type: Number,
+      required: true,
+    },
+    currency: {
+      type: String,
+      required: true,
+      default: "SAR",
+    },
+    bankAccount: {
+      bankName: { type: String, required: true },
+      accountNumber: { type: String, required: true },
+      iban: { type: String, required: true },
+      accountHolderName: { type: String, required: true },
+      swiftCode: String,
+    },
+    method: {
+      type: String,
+      required: true,
+      enum: ["sadad", "span", "manual"],
+      default: "sadad",
+    },
+    status: {
+      type: String,
+      required: true,
+      enum: ["pending", "processing", "completed", "failed", "cancelled"],
+      default: "pending",
+      index: true,
+    },
+    requestedAt: {
+      type: Date,
+      required: true,
+      default: Date.now,
+    },
+    processedAt: Date,
+    completedAt: Date,
+    failedAt: Date,
+    retryCount: {
+      type: Number,
+      default: 0,
+    },
+    maxRetries: {
+      type: Number,
+      default: 3,
+    },
+    errorMessage: String,
+    transactionReference: String,
+    notes: String,
+  },
+  {
+    timestamps: true,
+    collection: "souq_payouts",
+  },
+);
+
+// Indexes - 🔐 STRICT v4.1: Include orgId for tenant isolation
+SouqPayoutRequestSchema.index({ orgId: 1, sellerId: 1, status: 1, requestedAt: -1 });
+SouqPayoutRequestSchema.index({ orgId: 1, payoutId: 1 });
+SouqPayoutRequestSchema.index({ status: 1, retryCount: 1 });
+
+export const SouqPayoutRequest =
+  (mongoose.models.SouqPayoutRequest as mongoose.Model<ISouqPayoutRequest>) ||
+  mongoose.model<ISouqPayoutRequest>(
+    "SouqPayoutRequest",
+    SouqPayoutRequestSchema,
+  );
+
+]]>
+</file>
+
+<file path="server/models/souq/PriceHistory.ts">
+<![CDATA[
+/**
+ * Souq Price History Model - Tracks price changes for listings
+ * @module server/models/souq/PriceHistory
+ */
+
+import mongoose, { Schema, type Document } from "mongoose";
+import { getModel } from "@/types/mongoose-compat";
+
+export interface IPriceHistory extends Document {
+  _id: mongoose.Types.ObjectId;
+  listingId: string;
+  sellerId: string;
+  productId: string;
+
+  // Price changes
+  oldPrice: number;
+  newPrice: number;
+  change: number; // Calculated: newPrice - oldPrice
+  changePercent: number; // Calculated: (change / oldPrice) * 100
+
+  // Context
+  reason:
+    | "manual"
+    | "auto_repricer"
+    | "competitor_match"
+    | "promotion"
+    | "cost_change"
+    | "demand_adjustment";
+  competitorPrice?: number; // If triggered by competitor
+
+  // Metadata
+  createdAt: Date;
+  createdBy?: string; // userId if manual
+
+  // Auto-repricer metadata
+  autoRepricerRule?: string; // Rule ID that triggered change
+  competitorListingId?: string; // Competitor that triggered change
+
+  // Methods
+  calculateImpact(): number | null;
+
+  // Impact tracking
+  salesBefore?: number; // 7-day avg before change (filled later by analytics job)
+  salesAfter?: number; // 7-day avg after change (filled later by analytics job)
+  impactAnalyzedAt?: Date;
+}
+
+const PriceHistorySchema = new Schema<IPriceHistory>(
+  {
+    listingId: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    sellerId: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    productId: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    oldPrice: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    newPrice: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    change: {
+      type: Number,
+      required: true,
+    },
+    changePercent: {
+      type: Number,
+      required: true,
+    },
+    reason: {
+      type: String,
+      enum: [
+        "manual",
+        "auto_repricer",
+        "competitor_match",
+        "promotion",
+        "cost_change",
+        "demand_adjustment",
+      ],
+      required: true,
+      index: true,
+    },
+    competitorPrice: {
+      type: Number,
+      min: 0,
+    },
+    createdBy: {
+      type: String,
+    },
+    autoRepricerRule: {
+      type: String,
+      index: true,
+    },
+    competitorListingId: {
+      type: String,
+    },
+    salesBefore: {
+      type: Number,
+      min: 0,
+    },
+    salesAfter: {
+      type: Number,
+      min: 0,
+    },
+    impactAnalyzedAt: {
+      type: Date,
+    },
+  },
+  {
+    timestamps: true,
+    collection: "souq_price_history",
+  },
+);
+
+// Indexes for efficient queries
+PriceHistorySchema.index({ listingId: 1, createdAt: -1 });
+PriceHistorySchema.index({ sellerId: 1, createdAt: -1 });
+PriceHistorySchema.index({ productId: 1, createdAt: -1 });
+PriceHistorySchema.index({ reason: 1, createdAt: -1 });
+PriceHistorySchema.index({ autoRepricerRule: 1, createdAt: -1 });
+
+// Method: Calculate impact percentage
+PriceHistorySchema.methods.calculateImpact = function (): number | null {
+  if (this.salesBefore && this.salesAfter) {
+    return ((this.salesAfter - this.salesBefore) / this.salesBefore) * 100;
+  }
+  return null;
+};
+
+// Static: Get price history for listing
+PriceHistorySchema.statics.getListingHistory = async function (
+  listingId: string,
+  limit: number = 50,
+) {
+  return this.find({ listingId }).sort({ createdAt: -1 }).limit(limit);
+};
+
+// Static: Get seller price changes
+PriceHistorySchema.statics.getSellerHistory = async function (
+  sellerId: string,
+  startDate?: Date,
+  endDate?: Date,
+  limit: number = 100,
+) {
+  const query: {
+    sellerId: string;
+    createdAt?: { $gte?: Date; $lte?: Date };
+  } = { sellerId };
+
+  if (startDate || endDate) {
+    query.createdAt = {};
+    if (startDate) query.createdAt.$gte = startDate;
+    if (endDate) query.createdAt.$lte = endDate;
+  }
+
+  return this.find(query).sort({ createdAt: -1 }).limit(limit);
+};
+
+// Static: Get auto-repricer performance
+PriceHistorySchema.statics.getRepricerPerformance = async function (
+  sellerId: string,
+  days: number = 30,
+) {
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+
+  const changes = await this.find({
+    sellerId,
+    reason: "auto_repricer",
+    createdAt: { $gte: startDate },
+    impactAnalyzedAt: { $exists: true }, // Only analyzed changes
+  });
+
+  const totalChanges = changes.length;
+  const positiveImpact = changes.filter((c: IPriceHistory) => {
+    const impact = c.calculateImpact();
+    return impact !== null && impact > 0;
+  }).length;
+
+  const avgPriceChange =
+    changes.reduce(
+      (sum: number, c: IPriceHistory) => sum + c.changePercent,
+      0,
+    ) / totalChanges;
+
+  return {
+    totalChanges,
+    positiveImpact,
+    negativeImpact: totalChanges - positiveImpact,
+    successRate: (positiveImpact / totalChanges) * 100,
+    avgPriceChange,
+  };
+};
+
+export const PriceHistory = getModel<IPriceHistory>(
+  "PriceHistory",
+  PriceHistorySchema,
+);
+
+export default PriceHistory;
+
+]]>
+</file>
+
+<file path="server/models/souq/Product.ts">
+<![CDATA[
+/**
+ * Souq Product Model - Base product/FSIN entity
+ * @module server/models/souq/Product
+ */
+
+import mongoose, { Schema, type Document } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+
+export interface IProduct extends Document {
+  _id: mongoose.Types.ObjectId;
+  fsin: string; // Fixzit Standard Item Number (unique)
+  orgId: mongoose.Types.ObjectId;
+
+  // Basic Info
+  title: Record<string, string>; // { en: '...', ar: '...' }
+  description: Record<string, string>;
+  shortDescription?: Record<string, string>;
+
+  // Classification
+  categoryId: string; // Category.categoryId
+  brandId?: string; // Brand.brandId
+
+  // Images & Media
+  images: string[]; // URLs (first is primary)
+  videos?: string[];
+  documents?: string[]; // Spec sheets, manuals
+
+  // Attributes (category-specific)
+  attributes: Record<string, string | number | boolean | string[]>; // { color: 'red', size: 'L', ... }
+
+  // Variations
+  hasVariations: boolean; // If true, variations exist
+  variationTheme?: "color" | "size" | "style" | "color_size" | "custom";
+
+  // Compliance
+  complianceFlags: {
+    type: "hazmat" | "restricted" | "age_restricted" | "prescription" | "other";
+    reason: string;
+    severity: "warning" | "error" | "info";
+    resolvedAt?: Date;
+  }[];
+
+  // Status
+  isActive: boolean;
+  createdBy: mongoose.Types.ObjectId; // Seller ID who created
+
+  // Metadata
+  searchKeywords?: string[]; // For search optimization
+  bulletPoints?: Record<string, string[]>; // Key features
+
+  // Reviews & Ratings
+  averageRating: number; // 0-5 star rating
+  reviewCount: number; // Total number of reviews
+  ratingDistribution: {
+    1: number;
+    2: number;
+    3: number;
+    4: number;
+    5: number;
+  };
+
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const ProductSchema = new Schema<IProduct>(
+  {
+    fsin: {
+      type: String,
+      required: true,
+      index: true, // uniqueness enforced per-tenant via compound index below
+      uppercase: true,
+    },
+    orgId: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      index: true,
+    },
+    title: {
+      type: Map,
+      of: String,
+      required: true,
+    },
+    description: {
+      type: Map,
+      of: String,
+      required: true,
+    },
+    shortDescription: {
+      type: Map,
+      of: String,
+    },
+    categoryId: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    brandId: {
+      type: String,
+      index: true,
+    },
+    images: {
+      type: [String],
+      required: true,
+      validate: {
+        validator: (v: string[]) => v.length > 0,
+        message: "At least one image is required",
+      },
+    },
+    videos: [String],
+    documents: [String],
+    attributes: {
+      type: Map,
+      of: Schema.Types.Mixed,
+      default: {},
+    },
+    hasVariations: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    variationTheme: {
+      type: String,
+      enum: ["color", "size", "style", "color_size", "custom", null],
+    },
+    complianceFlags: [
+      {
+        type: {
+          type: String,
+          enum: [
+            "hazmat",
+            "restricted",
+            "age_restricted",
+            "prescription",
+            "other",
+          ],
+          required: true,
+        },
+        reason: {
+          type: String,
+          required: true,
+        },
+        severity: {
+          type: String,
+          enum: ["warning", "error", "info"],
+          default: "warning",
+        },
+        resolvedAt: Date,
+      },
+    ],
+    isActive: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "SouqSeller",
+      required: true,
+      index: true,
+    },
+    searchKeywords: [String],
+    bulletPoints: {
+      type: Map,
+      of: [String],
+    },
+    averageRating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
+      index: true,
+    },
+    reviewCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+      index: true,
+    },
+    ratingDistribution: {
+      type: {
+        1: { type: Number, default: 0 },
+        2: { type: Number, default: 0 },
+        3: { type: Number, default: 0 },
+        4: { type: Number, default: 0 },
+        5: { type: Number, default: 0 },
+      },
+      default: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+    },
+  },
+  {
+    timestamps: true,
+    collection: "souq_products",
+  },
+);
+
+// Indexes for performance
+ProductSchema.index({ orgId: 1, fsin: 1 }, { unique: true });
+ProductSchema.index({ orgId: 1, isActive: 1 });
+ProductSchema.index({ orgId: 1, createdBy: 1, isActive: 1 });
+ProductSchema.index({ categoryId: 1, brandId: 1 });
+ProductSchema.index({ createdBy: 1, isActive: 1 });
+ProductSchema.index({
+  "title.en": "text",
+  "title.ar": "text",
+  searchKeywords: "text",
+});
+
+// Method: Check if product has unresolved compliance issues
+ProductSchema.methods.hasUnresolvedComplianceIssues = function (): boolean {
+  return this.complianceFlags.some(
+    (flag: { severity: string; resolvedAt?: Date }) =>
+      flag.severity === "error" && !flag.resolvedAt,
+  );
+};
+
+// Method: Get primary image
+ProductSchema.methods.getPrimaryImage = function (): string | undefined {
+  return this.images[0];
+};
+
+// Static: Search products
+ProductSchema.statics.searchProducts = async function (
+  query: string,
+  filters: { categoryId?: string; brandId?: string; limit?: number } = {},
+) {
+  const searchQuery: {
+    isActive: boolean;
+    $text: { $search: string };
+    categoryId?: string;
+    brandId?: string;
+  } = {
+    isActive: true,
+    $text: { $search: query },
+  };
+
+  if (filters.categoryId) {
+    searchQuery.categoryId = filters.categoryId;
+  }
+
+  if (filters.brandId) {
+    searchQuery.brandId = filters.brandId;
+  }
+
+  return this.find(searchQuery)
+    .select("fsin title images categoryId brandId")
+    .limit(filters.limit || 50);
+};
+
+export const SouqProduct = getModel<IProduct>("SouqProduct", ProductSchema);
+
+export default SouqProduct;
+
+]]>
+</file>
+
+<file path="server/models/souq/QA.ts">
+<![CDATA[
+/**
+ * Question & Answer Models - Product Q&A system
+ * @module server/models/souq/QA
+ */
+
+import mongoose, { Schema, type Document } from "mongoose";
+import { getModel } from "@/types/mongoose-compat";
+
+export interface IQuestion extends Document {
+  _id: mongoose.Types.ObjectId;
+  questionId: string;
+
+  // Product reference
+  productId: mongoose.Types.ObjectId;
+  fsin: string;
+
+  // Author
+  userId: mongoose.Types.ObjectId;
+  userDisplayName?: string;
+
+  // Content
+  question: string;
+
+  // Moderation
+  moderationStatus: "pending" | "approved" | "rejected" | "flagged";
+  moderationNotes?: string;
+  moderatedAt?: Date;
+  moderatedBy?: mongoose.Types.ObjectId;
+
+  // Engagement
+  answerCount: number;
+  upvotes: number;
+
+  // Status
+  isActive: boolean;
+
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IAnswer extends Document {
+  _id: mongoose.Types.ObjectId;
+  answerId: string;
+
+  // Question reference
+  questionId: mongoose.Types.ObjectId;
+
+  // Author
+  userId?: mongoose.Types.ObjectId;
+  sellerId?: mongoose.Types.ObjectId; // If answered by seller
+  userDisplayName?: string;
+  isSellerAnswer: boolean;
+
+  // Content
+  answer: string;
+
+  // Moderation
+  moderationStatus: "pending" | "approved" | "rejected" | "flagged";
+  moderationNotes?: string;
+  moderatedAt?: Date;
+  moderatedBy?: mongoose.Types.ObjectId;
+
+  // Engagement
+  upvotes: number;
+  downvotes: number;
+  isVerifiedPurchase?: boolean;
+
+  // Status
+  isActive: boolean;
+
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const QuestionSchema = new Schema<IQuestion>(
+  {
+    questionId: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+    productId: {
+      type: Schema.Types.ObjectId,
+      ref: "SouqProduct",
+      required: true,
+      index: true,
+    },
+    fsin: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    userDisplayName: String,
+    question: {
+      type: String,
+      required: true,
+      maxlength: 1000,
+    },
+    moderationStatus: {
+      type: String,
+      enum: ["pending", "approved", "rejected", "flagged"],
+      default: "pending",
+      index: true,
+    },
+    moderationNotes: String,
+    moderatedAt: Date,
+    moderatedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    answerCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    upvotes: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
+  },
+  {
+    timestamps: true,
+    collection: "souq_questions",
+  },
+);
+
+const AnswerSchema = new Schema<IAnswer>(
+  {
+    answerId: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+    questionId: {
+      type: Schema.Types.ObjectId,
+      ref: "SouqQuestion",
+      required: true,
+      index: true,
+    },
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      index: true,
+    },
+    sellerId: {
+      type: Schema.Types.ObjectId,
+      ref: "SouqSeller",
+      index: true,
+    },
+    userDisplayName: String,
+    isSellerAnswer: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    answer: {
+      type: String,
+      required: true,
+      maxlength: 2000,
+    },
+    moderationStatus: {
+      type: String,
+      enum: ["pending", "approved", "rejected", "flagged"],
+      default: "pending",
+      index: true,
+    },
+    moderationNotes: String,
+    moderatedAt: Date,
+    moderatedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    upvotes: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    downvotes: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    isVerifiedPurchase: {
+      type: Boolean,
+      default: false,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
+  },
+  {
+    timestamps: true,
+    collection: "souq_answers",
+  },
+);
+
+// Indexes
+QuestionSchema.index({ productId: 1, moderationStatus: 1, isActive: 1 });
+QuestionSchema.index({ userId: 1, isActive: 1 });
+QuestionSchema.index({ createdAt: -1 });
+
+AnswerSchema.index({ questionId: 1, moderationStatus: 1, isActive: 1 });
+AnswerSchema.index({ sellerId: 1, isActive: 1 });
+AnswerSchema.index({ createdAt: -1 });
+
+// Text search
+QuestionSchema.index({ question: "text" });
+AnswerSchema.index({ answer: "text" });
+
+export const SouqQuestion = getModel<IQuestion>("SouqQuestion", QuestionSchema);
+export const SouqAnswer = getModel<IAnswer>("SouqAnswer", AnswerSchema);
+
+export default { SouqQuestion, SouqAnswer };
+
+]]>
+</file>
+
+<file path="server/models/souq/RMA.ts">
+<![CDATA[
+import { Schema, type Document } from 'mongoose';
+import { getModel } from '@/types/mongoose-compat';
+
+/**
+ * RMA (Return Merchandise Authorization) Model
+ * Manages the return process from initiation through inspection and refund
+ */
+
+export interface IRMAItem {
+  orderItemId: string;
+  listingId: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  reason: string;
+  returnReason: 'defective' | 'wrong_item' | 'not_as_described' | 'no_longer_needed' | 'damaged_in_shipping' | 'other';
+  imageUrls?: string[]; // Evidence photos
+}
+
+export interface IRMATimeline {
+  status: string;
+  timestamp: Date;
+  note?: string;
+  performedBy?: string;
+}
+
+export interface IRMAInspection {
+  inspectedAt: Date;
+  inspectedBy: string;
+  condition: 'as_new' | 'minor_wear' | 'damaged' | 'defective' | 'wrong_item' | 'good' | 'acceptable' | 'like_new';
+  notes: string;
+  approved: boolean;
+  restockable: boolean;
+  photosUrls?: string[];
+}
+
+export interface IRMARefund {
+  amount: number;
+  method: 'original_payment' | 'wallet' | 'bank_transfer';
+  processedBy?: string;
+  processedAt?: Date;
+  transactionId?: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+}
+
+export interface IRMAShipping {
+  carrier?: string;
+  trackingNumber?: string;
+  labelUrl?: string;
+  pickupScheduled?: Date;
+  pickupAddress?: string;
+  deliveredAt?: Date;
+  shippingCost: number;
+  paidBy: 'buyer' | 'seller' | 'platform';
+}
+
+export interface IRMA extends Document {
+  rmaId: string;
+  orgId: string;
+  orderId: string;
+  orderNumber: string;
+  buyerId: string;
+  sellerId: string;
+  
+  // Items being returned
+  items: IRMAItem[];
+  
+  // Status workflow
+  status: 'initiated' | 'approved' | 'rejected' | 'label_generated' | 'in_transit' | 
+          'received' | 'inspecting' | 'inspected' | 'completed' | 'cancelled';
+  
+  // Auto-approval
+  autoApproved: boolean;
+  approvalReason?: string;
+  approvedAt?: Date;
+  
+  // Return window
+  returnWindowDays: number;
+  returnDeadline: Date;
+  
+  // Shipping
+  shipping: IRMAShipping;
+  
+  // Inspection
+  inspection?: IRMAInspection;
+  
+  // Refund
+  refund: IRMARefund;
+  
+  // Communication
+  buyerNotes?: string;
+  sellerNotes?: string;
+  adminNotes?: string;
+  
+  // Timeline
+  timeline: IRMATimeline[];
+  
+  // Policy violation
+  isFraudSuspected: boolean;
+  fraudReason?: string;
+  
+  // Audit
+  createdAt: Date;
+  updatedAt: Date;
+  completedAt?: Date;
+
+  addTimelineEvent(status: string, note?: string, performedBy?: string): void;
+  approve(flagOrActor?: boolean | string, reason?: string): void;
+  reject(reason: string, performedBy: string): void;
+  generateLabel(carrier: string, trackingNumber: string, labelUrl: string): void;
+  markInTransit(): void;
+  markReceived(): void;
+  startInspection(): void;
+  completeInspection(
+    inspectedBy: string,
+    condition: string,
+    approved: boolean,
+    restockable: boolean,
+    notes: string,
+    photos?: string[]
+  ): void;
+  initiateRefund(): void;
+  completeRefund(refundInfo: string | { transactionId: string; processedAt?: Date; status?: IRMARefund['status'] }): void;
+  cancel(reason: string, performedBy: string): void;
+  isWithinReturnWindow(): boolean;
+  calculateRefundAmount(): number;
+  flagFraud(reason: string): void;
+}
+
+const RMAItemSchema = new Schema<IRMAItem>({
+  orderItemId: { type: String, required: true },
+  listingId: { type: String, required: true },
+  productId: { type: String, required: true },
+  productName: { type: String, required: true },
+  quantity: { type: Number, required: true, min: 1 },
+  unitPrice: { type: Number, required: true },
+  reason: { type: String, required: true },
+  returnReason: { 
+    type: String, 
+    enum: ['defective', 'wrong_item', 'not_as_described', 'no_longer_needed', 'damaged_in_shipping', 'other'],
+    required: true 
+  },
+  imageUrls: [String]
+}, { _id: false });
+
+const RMATimelineSchema = new Schema<IRMATimeline>({
+  status: { type: String, required: true },
+  timestamp: { type: Date, required: true, default: Date.now },
+  note: String,
+  performedBy: String
+}, { _id: false });
+
+const RMAInspectionSchema = new Schema<IRMAInspection>({
+  inspectedAt: { type: Date, required: true },
+  inspectedBy: { type: String, required: true },
+  condition: { 
+    type: String, 
+    enum: ['as_new', 'minor_wear', 'damaged', 'defective', 'wrong_item', 'good', 'acceptable', 'like_new'],
+    required: true 
+  },
+  notes: { type: String, required: true },
+  approved: { type: Boolean, required: true },
+  restockable: { type: Boolean, required: true },
+  photosUrls: [String]
+}, { _id: false });
+
+const RMARefundSchema = new Schema<IRMARefund>({
+  amount: { type: Number, required: true },
+  method: { 
+    type: String, 
+    enum: ['original_payment', 'wallet', 'bank_transfer'],
+    default: 'original_payment'
+  },
+  processedBy: String,
+  processedAt: Date,
+  transactionId: String,
+  status: { 
+    type: String, 
+    enum: ['pending', 'processing', 'completed', 'failed'],
+    default: 'pending'
+  }
+}, { _id: false });
+
+const RMAShippingSchema = new Schema<IRMAShipping>({
+  carrier: String,
+  trackingNumber: String,
+  labelUrl: String,
+  pickupScheduled: Date,
+  pickupAddress: String,
+  deliveredAt: Date,
+  shippingCost: { type: Number, default: 0 },
+  paidBy: { 
+    type: String, 
+    enum: ['buyer', 'seller', 'platform'],
+    default: 'seller'
+  }
+}, { _id: false });
+
+const RMASchema = new Schema<IRMA>({
+  rmaId: { type: String, required: true, unique: true, index: true },
+  orgId: { type: String, required: true, index: true },
+  orderId: { type: String, required: true, index: true },
+  orderNumber: { type: String, required: true },
+  buyerId: { type: String, required: true, index: true },
+  sellerId: { type: String, required: true, index: true },
+  
+  items: [RMAItemSchema],
+  
+  status: { 
+    type: String, 
+    enum: ['initiated', 'approved', 'rejected', 'label_generated', 'in_transit', 
+           'received', 'inspecting', 'inspected', 'completed', 'cancelled'],
+    default: 'initiated',
+    index: true
+  },
+  
+  autoApproved: { type: Boolean, default: false },
+  approvalReason: String,
+  approvedAt: Date,
+  
+  returnWindowDays: { type: Number, default: 30 },
+  returnDeadline: { type: Date, required: true },
+  
+  shipping: { type: RMAShippingSchema, default: () => ({}) },
+  inspection: RMAInspectionSchema,
+  refund: { type: RMARefundSchema, required: true },
+  
+  buyerNotes: String,
+  sellerNotes: String,
+  adminNotes: String,
+  
+  timeline: [RMATimelineSchema],
+  
+  isFraudSuspected: { type: Boolean, default: false },
+  fraudReason: String,
+  
+  completedAt: Date
+}, {
+  timestamps: true,
+  collection: 'souq_rmas'
+});
+
+// Indexes
+RMASchema.index(
+  { orgId: 1, rmaId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { orgId: { $exists: true }, rmaId: { $exists: true } },
+  },
+);
+RMASchema.index({ orgId: 1, status: 1, createdAt: -1 });
+RMASchema.index({ orgId: 1, buyerId: 1, status: 1 });
+RMASchema.index({ orgId: 1, sellerId: 1, status: 1 });
+RMASchema.index({ orgId: 1, sellerId: 1, createdAt: -1 });
+RMASchema.index({ orgId: 1, returnDeadline: 1 });
+
+// Methods
+
+/**
+ * Add timeline event
+ */
+RMASchema.methods.addTimelineEvent = function(status: string, note?: string, performedBy?: string): void {
+  this.timeline.push({
+    status,
+    timestamp: new Date(),
+    note,
+    performedBy
+  });
+};
+
+/**
+ * Approve RMA (manual or auto)
+ */
+RMASchema.methods.approve = function(flagOrActor: boolean | string = false, reason?: string): void {
+  const isAuto = typeof flagOrActor === 'boolean' ? flagOrActor : false;
+  const performedBy =
+    typeof flagOrActor === 'string' ? flagOrActor : isAuto ? 'system' : 'admin';
+
+  this.status = 'approved';
+  this.autoApproved = isAuto;
+  this.approvalReason = reason || (isAuto ? 'Auto-approved per policy' : 'Manually approved');
+  this.approvedAt = new Date();
+  
+  this.addTimelineEvent('approved', this.approvalReason, performedBy);
+};
+
+/**
+ * Reject RMA
+ */
+RMASchema.methods.reject = function(reason: string, performedBy: string): void {
+  this.status = 'rejected';
+  this.adminNotes = reason;
+  
+  this.addTimelineEvent('rejected', reason, performedBy);
+};
+
+/**
+ * Generate return label
+ */
+RMASchema.methods.generateLabel = function(carrier: string, trackingNumber: string, labelUrl: string): void {
+  this.status = 'label_generated';
+  this.shipping.carrier = carrier;
+  this.shipping.trackingNumber = trackingNumber;
+  this.shipping.labelUrl = labelUrl;
+  
+  this.addTimelineEvent('label_generated', `${carrier} - ${trackingNumber}`, 'system');
+};
+
+/**
+ * Mark as in transit
+ */
+RMASchema.methods.markInTransit = function(): void {
+  this.status = 'in_transit';
+  this.addTimelineEvent('in_transit', 'Package picked up by carrier', 'system');
+};
+
+/**
+ * Mark as received at warehouse
+ */
+RMASchema.methods.markReceived = function(): void {
+  this.status = 'received';
+  this.shipping.deliveredAt = new Date();
+  this.addTimelineEvent('received', 'Package received at warehouse', 'system');
+};
+
+/**
+ * Start inspection
+ */
+RMASchema.methods.startInspection = function(): void {
+  this.status = 'inspecting';
+  this.addTimelineEvent('inspecting', 'Quality inspection in progress', 'system');
+};
+
+/**
+ * Complete inspection
+ */
+RMASchema.methods.completeInspection = function(
+  inspectedBy: string,
+  condition: IRMAInspection['condition'],
+  approved: boolean,
+  restockable: boolean,
+  notes: string,
+  photos?: string[]
+): void {
+  this.inspection = {
+    inspectedAt: new Date(),
+    inspectedBy,
+    condition,
+    notes,
+    approved,
+    restockable,
+    photosUrls: photos
+  };
+  
+  this.addTimelineEvent('inspection_complete', `Condition: ${condition}, Approved: ${approved}`, inspectedBy);
+  this.status = approved ? 'inspected' : 'completed';
+  
+  if (approved) {
+    this.initiateRefund();
+  } else {
+    this.completedAt = new Date();
+    this.addTimelineEvent('completed', 'Return rejected after inspection', 'system');
+  }
+};
+
+/**
+ * Initiate refund
+ */
+RMASchema.methods.initiateRefund = function(): void {
+  this.refund.status = 'processing';
+  this.addTimelineEvent('refund_initiated', `Refund amount: ${this.refund.amount} SAR`, 'system');
+};
+
+/**
+ * Complete refund
+ */
+RMASchema.methods.completeRefund = function(
+  refundInfo: string | { transactionId: string; processedAt?: Date; status?: IRMARefund['status'] }
+): void {
+  const info =
+    typeof refundInfo === 'string'
+      ? { transactionId: refundInfo }
+      : refundInfo;
+
+  this.refund.status = info.status || 'completed';
+  this.refund.processedAt = info.processedAt || new Date();
+  this.refund.transactionId = info.transactionId;
+  
+  this.status = 'completed';
+  this.completedAt = new Date();
+  
+  this.addTimelineEvent('completed', `Refund completed: ${info.transactionId}`, 'system');
+};
+
+/**
+ * Cancel RMA
+ */
+RMASchema.methods.cancel = function(reason: string, performedBy: string): void {
+  this.status = 'cancelled';
+  this.adminNotes = reason;
+  this.completedAt = new Date();
+  
+  this.addTimelineEvent('cancelled', reason, performedBy);
+};
+
+/**
+ * Check if return window is valid
+ */
+RMASchema.methods.isWithinReturnWindow = function(): boolean {
+  return new Date() <= this.returnDeadline;
+};
+
+/**
+ * Calculate refund amount
+ */
+RMASchema.methods.calculateRefundAmount = function(): number {
+  return this.items.reduce(
+    (sum: number, item: IRMAItem) => sum + (item.unitPrice * item.quantity),
+    0
+  );
+};
+
+/**
+ * Flag as potential fraud
+ */
+RMASchema.methods.flagFraud = function(reason: string): void {
+  this.isFraudSuspected = true;
+  this.fraudReason = reason;
+  this.addTimelineEvent('fraud_flagged', reason, 'system');
+};
+
+export const SouqRMA = getModel<IRMA>('SouqRMA', RMASchema);
+
+]]>
+</file>
+
+<file path="server/models/souq/Review.ts">
+<![CDATA[
+/**
+ * Souq Review Model - Product reviews and ratings
+ * @module server/models/souq/Review
+ */
+
+import mongoose, { Schema, type Document } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+
+export interface IReview extends Document {
+  _id: mongoose.Types.ObjectId;
+  reviewId: string;
+
+  orgId: mongoose.Types.ObjectId; // AUDIT-2025-11-29: Changed from org_id to orgId
+  productId: mongoose.Types.ObjectId;
+  fsin: string;
+
+  customerId: mongoose.Types.ObjectId;
+  customerName: string;
+  isVerifiedPurchase: boolean;
+  orderId?: mongoose.Types.ObjectId;
+
+  rating: number;
+  title: string;
+  content: string;
+
+  pros?: string[];
+  cons?: string[];
+
+  images?: Array<{
+    url: string;
+    caption?: string;
+    uploadedAt: Date;
+  }>;
+
+  helpful: number;
+  notHelpful: number;
+  helpfulVoters?: mongoose.Types.ObjectId[];
+  notHelpfulVoters?: mongoose.Types.ObjectId[];
+
+  sellerResponse?: {
+    content: string;
+    respondedAt: Date;
+    respondedBy: mongoose.Types.ObjectId;
+  };
+
+  status: "pending" | "published" | "rejected" | "flagged";
+  moderationNotes?: string;
+  moderatedBy?: mongoose.Types.ObjectId;
+  moderatedAt?: Date;
+
+  reportedCount: number;
+  reportReasons?: string[];
+  reporters?: mongoose.Types.ObjectId[]; // 🔐 Track who reported to prevent duplicates
+
+  createdAt: Date;
+  updatedAt: Date;
+  publishedAt?: Date;
+}
+
+const ReviewSchema = new Schema<IReview>(
+  {
+    reviewId: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+    orgId: { // AUDIT-2025-11-29: Changed from org_id
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      index: true,
+    },
+    productId: {
+      type: Schema.Types.ObjectId,
+      ref: "SouqProduct",
+      required: true,
+      index: true,
+    },
+    fsin: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    customerId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    customerName: {
+      type: String,
+      required: true,
+    },
+    isVerifiedPurchase: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    orderId: {
+      type: Schema.Types.ObjectId,
+      ref: "SouqOrder",
+    },
+    rating: {
+      type: Number,
+      required: true,
+      min: 1,
+      max: 5,
+      index: true,
+    },
+    title: {
+      type: String,
+      required: true,
+      maxlength: 200,
+    },
+    content: {
+      type: String,
+      required: true,
+      maxlength: 5000,
+    },
+    pros: [String],
+    cons: [String],
+    images: [
+      {
+        url: {
+          type: String,
+          required: true,
+        },
+        caption: String,
+        uploadedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+    helpful: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    notHelpful: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    helpfulVoters: {
+      type: [Schema.Types.ObjectId],
+      ref: "User",
+      default: [],
+      select: false,
+    },
+    notHelpfulVoters: {
+      type: [Schema.Types.ObjectId],
+      ref: "User",
+      default: [],
+      select: false,
+    },
+    sellerResponse: {
+      content: {
+        type: String,
+        maxlength: 2000,
+      },
+      respondedAt: Date,
+      respondedBy: {
+        type: Schema.Types.ObjectId,
+        ref: "SouqSeller",
+      },
+    },
+    status: {
+      type: String,
+      enum: ["pending", "published", "rejected", "flagged"],
+      default: "pending",
+      index: true,
+    },
+    moderationNotes: String,
+    moderatedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      select: false, // hide reviewer identity by default
+    },
+    moderatedAt: {
+      type: Date,
+      select: false,
+    },
+    reportedCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    reportReasons: [String],
+    reporters: {
+      type: [Schema.Types.ObjectId],
+      ref: "User",
+      default: [],
+      select: false, // Hide from normal queries for privacy
+    },
+    publishedAt: Date,
+  },
+  {
+    timestamps: true,
+    collection: "souq_reviews",
+  },
+);
+
+ReviewSchema.index({ productId: 1, status: 1, createdAt: -1 });
+ReviewSchema.index({ productId: 1, rating: 1, createdAt: -1 });
+// 🔐 STRICT v4.1: Unique index must be org-scoped to prevent cross-tenant collisions
+ReviewSchema.index({ orgId: 1, customerId: 1, productId: 1 }, { unique: true });
+ReviewSchema.index({ rating: 1, status: 1 });
+ReviewSchema.index({ helpful: -1, status: 1 });
+// 🚀 PERF: Compound indexes for high-traffic query patterns (ISSUE-SOUQ-012)
+ReviewSchema.index({ orgId: 1, productId: 1, status: 1, createdAt: -1 });
+ReviewSchema.index({ orgId: 1, productId: 1 });
+
+export const SouqReview = getModel<IReview>("SouqReview", ReviewSchema);
+
+export default SouqReview;
+
+]]>
+</file>
+
+<file path="server/models/souq/Seller.ts">
+<![CDATA[
+/**
+ * Souq Seller Model - Seller/Vendor accounts for marketplace
+ * @module server/models/souq/Seller
+ */
+
+import mongoose, { Schema, type Document } from "mongoose";
+import { getModel } from "@/types/mongoose-compat";
+
+export interface ISellerPolicyViolation {
+  type:
+    | "restricted_product"
+    | "fake_review"
+    | "price_gouging"
+    | "counterfeit"
+    | "late_shipment"
+    | "high_odr"
+    | "other";
+  severity: "warning" | "minor" | "major" | "critical";
+  description: string;
+  occurredAt: Date;
+  resolved: boolean;
+  resolvedAt?: Date;
+  action:
+    | "warning"
+    | "listing_suppression"
+    | "account_suspension"
+    | "permanent_deactivation"
+    | "none";
+}
+
+export interface IAutoRepricerRule {
+  enabled: boolean;
+  minPrice: number;
+  maxPrice: number;
+  targetPosition: "win" | "competitive";
+  undercut: number;
+  protectMargin: boolean;
+}
+
+export interface IKYCDocumentEntry {
+  type:
+    | "cr"
+    | "vat_certificate"
+    | "bank_letter"
+    | "id"
+    | "authorization"
+    | "other";
+  url: string;
+  uploadedAt: Date;
+  expiresAt?: Date;
+  verified: boolean;
+  verifiedAt?: Date;
+  verifiedBy?: string;
+  rejectionReason?: string;
+}
+
+export interface IKYCWorkflow {
+  status:
+    | "pending"
+    | "in_review"
+    | "under_review"
+    | "approved"
+    | "rejected"
+    | "suspended";
+  step: "company_info" | "documents" | "bank_details" | "verification";
+  companyInfoComplete: boolean;
+  documentsComplete: boolean;
+  bankDetailsComplete: boolean;
+  submittedAt?: Date;
+  approvedAt?: Date;
+  approvedBy?: string;
+  rejectedAt?: Date;
+  rejectedBy?: string;
+  rejectionReason?: string;
+}
+
+export interface ISeller extends Document {
+  _id: mongoose.Types.ObjectId;
+  sellerId: string; // SEL-{UUID}
+  orgId: mongoose.Types.ObjectId;
+
+  // Legal Entity
+  legalName: string;
+  tradeName?: string;
+  registrationType: "individual" | "company" | "partnership";
+  registrationNumber?: string; // CR number
+  vatNumber?: string;
+  country: string;
+  city: string;
+  address: string;
+  businessName?: string;
+  businessNameArabic?: string;
+  industry?: string;
+  description?: string;
+  website?: string;
+  businessAddress?: {
+    street: string;
+    city: string;
+    region?: string;
+    postalCode?: string;
+    country?: string;
+  };
+
+  // Contact
+  contactEmail: string;
+  contactPhone: string;
+  contactPerson?: string;
+
+  // KYC Status
+  kycStatus: IKYCWorkflow;
+  kycSubmittedAt?: Date;
+  kycApprovedAt?: Date;
+  kycRejectionReason?: string;
+
+  // KYC Documents
+  documents: IKYCDocumentEntry[];
+
+  // Bank Details
+  bankAccount?: {
+    bankName: string;
+    accountName: string;
+    accountNumber: string;
+    iban: string;
+    swiftCode?: string;
+  };
+
+  // Account Health Metrics
+  accountHealth: {
+    orderDefectRate: number; // % (target < 1%)
+    lateShipmentRate: number; // % (target < 4%)
+    cancellationRate: number; // % (target < 2.5%)
+    validTrackingRate: number; // % (target > 95%)
+    onTimeDeliveryRate: number; // % (target > 97%)
+    score: number; // 0-100
+    status: "excellent" | "good" | "fair" | "poor" | "critical";
+    lastCalculated: Date;
+  };
+
+  // Violations & Suspensions
+  violations: {
+    type: "policy" | "quality" | "shipping" | "communication" | "ip" | "other";
+    description: string;
+    severity: "minor" | "moderate" | "major" | "critical";
+    occurredAt: Date;
+    resolvedAt?: Date;
+    action: "warning" | "fee" | "suspension" | "removal";
+  }[];
+  policyViolations?: ISellerPolicyViolation[];
+
+  // Seller Tier (for fee schedules)
+  tier: "individual" | "professional" | "enterprise";
+  tierEffectiveFrom: Date;
+
+  // Fulfillment Settings
+  fulfillmentMethod: {
+    fbf: boolean; // Fulfillment by Fixzit
+    fbm: boolean; // Fulfillment by Merchant
+  };
+
+  // Return Settings
+  returnPolicy?: {
+    acceptsReturns: boolean;
+    returnWindow: number; // days
+    restockingFee?: number; // %
+    customPolicy?: string;
+  };
+
+  // Settlement Settings
+  settlementCycle: 7 | 14 | 30; // days
+  holdPeriod: number; // days to hold funds for claims
+
+  // Status
+  isActive: boolean;
+  isSuspended: boolean;
+  suspensionReason?: string;
+  suspendedAt?: Date;
+
+  // Feature Access
+  features: {
+    sponsored_ads: boolean;
+    auto_repricer: boolean;
+    bulk_upload: boolean;
+    api_access: boolean;
+    dedicated_support: boolean;
+  };
+
+  // Methods
+  canCompeteInBuyBox(): boolean;
+
+  autoRepricerSettings?: {
+    enabled: boolean;
+    rules: Record<string, IAutoRepricerRule>;
+    defaultRule?: IAutoRepricerRule;
+  } | null;
+
+  // Performance Stats (cached)
+  stats?: {
+    totalProducts: number;
+    activeProducts: number;
+    totalOrders: number;
+    totalRevenue: number;
+    averageRating: number;
+    totalReviews: number;
+  };
+
+  // Linked User Account
+  userId?: mongoose.Types.ObjectId;
+
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const SellerSchema = new Schema<ISeller>(
+  {
+    orgId: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      index: true,
+    },
+    sellerId: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+    legalName: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true,
+    },
+    tradeName: {
+      type: String,
+      trim: true,
+    },
+    registrationType: {
+      type: String,
+      enum: ["individual", "company", "partnership"],
+      required: true,
+    },
+    registrationNumber: {
+      type: String,
+      sparse: true,
+      index: true,
+    },
+    vatNumber: {
+      type: String,
+      sparse: true,
+      index: true,
+    },
+    country: {
+      type: String,
+      required: true,
+      default: "SA",
+    },
+    city: {
+      type: String,
+      required: true,
+    },
+    address: {
+      type: String,
+      required: true,
+    },
+    businessName: {
+      type: String,
+      trim: true,
+    },
+    businessNameArabic: {
+      type: String,
+      trim: true,
+    },
+    industry: String,
+    description: String,
+    website: String,
+    businessAddress: {
+      street: String,
+      city: String,
+      region: String,
+      postalCode: String,
+      country: String,
+    },
+    contactEmail: {
+      type: String,
+      required: true,
+      lowercase: true,
+      trim: true,
+      index: true,
+    },
+    contactPhone: {
+      type: String,
+      required: true,
+    },
+    contactPerson: String,
+    kycStatus: {
+      status: {
+        type: String,
+        enum: [
+          "pending",
+          "in_review",
+          "under_review",
+          "approved",
+          "rejected",
+          "suspended",
+        ],
+        default: "pending",
+        index: true,
+      },
+      step: {
+        type: String,
+        enum: ["company_info", "documents", "bank_details", "verification"],
+        default: "company_info",
+      },
+      companyInfoComplete: { type: Boolean, default: false },
+      documentsComplete: { type: Boolean, default: false },
+      bankDetailsComplete: { type: Boolean, default: false },
+      submittedAt: Date,
+      approvedAt: Date,
+      approvedBy: String,
+      rejectedAt: Date,
+      rejectedBy: String,
+      rejectionReason: String,
+    },
+    kycSubmittedAt: Date,
+    kycApprovedAt: Date,
+    kycRejectionReason: String,
+    documents: [
+      {
+        type: {
+          type: String,
+          enum: [
+            "cr",
+            "vat_certificate",
+            "bank_letter",
+            "id",
+            "authorization",
+            "other",
+          ],
+          required: true,
+        },
+        url: { type: String, required: true },
+        uploadedAt: { type: Date, default: Date.now },
+        expiresAt: Date,
+        verified: { type: Boolean, default: false },
+        verifiedAt: Date,
+        verifiedBy: String,
+        rejectionReason: String,
+      },
+    ],
+    bankAccount: {
+      bankName: String,
+      accountName: String,
+      accountNumber: String,
+      iban: String,
+      swiftCode: String,
+    },
+    accountHealth: {
+      orderDefectRate: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 100,
+      },
+      lateShipmentRate: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 100,
+      },
+      cancellationRate: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 100,
+      },
+      validTrackingRate: {
+        type: Number,
+        default: 100,
+        min: 0,
+        max: 100,
+      },
+      onTimeDeliveryRate: {
+        type: Number,
+        default: 100,
+        min: 0,
+        max: 100,
+      },
+      score: {
+        type: Number,
+        default: 100,
+        min: 0,
+        max: 100,
+      },
+      status: {
+        type: String,
+        enum: ["excellent", "good", "fair", "poor", "critical"],
+        default: "excellent",
+      },
+      lastCalculated: {
+        type: Date,
+        default: Date.now,
+      },
+    },
+    violations: [
+      {
+        type: {
+          type: String,
+          enum: [
+            "policy",
+            "quality",
+            "shipping",
+            "communication",
+            "ip",
+            "other",
+          ],
+          required: true,
+        },
+        description: {
+          type: String,
+          required: true,
+        },
+        severity: {
+          type: String,
+          enum: ["minor", "moderate", "major", "critical"],
+          required: true,
+        },
+        occurredAt: {
+          type: Date,
+          default: Date.now,
+        },
+        resolvedAt: Date,
+        action: {
+          type: String,
+          enum: ["warning", "fee", "suspension", "removal"],
+          required: true,
+        },
+      },
+    ],
+    policyViolations: [
+      {
+        type: {
+          type: String,
+          enum: [
+            "restricted_product",
+            "fake_review",
+            "price_gouging",
+            "counterfeit",
+            "late_shipment",
+            "high_odr",
+            "other",
+          ],
+          required: true,
+        },
+        severity: {
+          type: String,
+          enum: ["warning", "minor", "major", "critical"],
+          default: "warning",
+        },
+        description: {
+          type: String,
+          required: true,
+        },
+        occurredAt: {
+          type: Date,
+          default: Date.now,
+        },
+        resolved: {
+          type: Boolean,
+          default: false,
+        },
+        resolvedAt: Date,
+        action: {
+          type: String,
+          enum: [
+            "warning",
+            "listing_suppression",
+            "account_suspension",
+            "permanent_deactivation",
+            "none",
+          ],
+          default: "warning",
+        },
+      },
+    ],
+    tier: {
+      type: String,
+      enum: ["individual", "professional", "enterprise"],
+      default: "individual",
+      index: true,
+    },
+    tierEffectiveFrom: {
+      type: Date,
+      default: Date.now,
+    },
+    fulfillmentMethod: {
+      fbf: {
+        type: Boolean,
+        default: false,
+      },
+      fbm: {
+        type: Boolean,
+        default: true,
+      },
+    },
+    returnPolicy: {
+      acceptsReturns: {
+        type: Boolean,
+        default: true,
+      },
+      returnWindow: {
+        type: Number,
+        default: 30,
+        min: 0,
+        max: 90,
+      },
+      restockingFee: {
+        type: Number,
+        min: 0,
+        max: 100,
+      },
+      customPolicy: String,
+    },
+    settlementCycle: {
+      type: Number,
+      enum: [7, 14, 30],
+      default: 14,
+    },
+    holdPeriod: {
+      type: Number,
+      default: 7,
+      min: 0,
+      max: 30,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
+    isSuspended: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    suspensionReason: String,
+    suspendedAt: Date,
+    features: {
+      sponsored_ads: {
+        type: Boolean,
+        default: false,
+      },
+      auto_repricer: {
+        type: Boolean,
+        default: false,
+      },
+      bulk_upload: {
+        type: Boolean,
+        default: true,
+      },
+      api_access: {
+        type: Boolean,
+        default: false,
+      },
+      dedicated_support: {
+        type: Boolean,
+        default: false,
+      },
+    },
+    autoRepricerSettings: {
+      type: Schema.Types.Mixed,
+      default: null,
+    },
+    stats: {
+      totalProducts: {
+        type: Number,
+        default: 0,
+      },
+      activeProducts: {
+        type: Number,
+        default: 0,
+      },
+      totalOrders: {
+        type: Number,
+        default: 0,
+      },
+      totalRevenue: {
+        type: Number,
+        default: 0,
+      },
+      averageRating: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 5,
+      },
+      totalReviews: {
+        type: Number,
+        default: 0,
+      },
+    },
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      index: true,
+    },
+  },
+  {
+    timestamps: true,
+    collection: "souq_sellers",
+  },
+);
+
+// Indexes
+SellerSchema.index({ "kycStatus.status": 1, isActive: 1 });
+SellerSchema.index({ "accountHealth.status": 1 });
+SellerSchema.index({ tier: 1, isActive: 1 });
+SellerSchema.index({ legalName: "text", tradeName: "text" });
+SellerSchema.index({ orgId: 1, contactEmail: 1 });
+SellerSchema.index({ orgId: 1, registrationNumber: 1 });
+SellerSchema.index({ orgId: 1, sellerId: 1 });
+
+// Method: Calculate account health score
+SellerSchema.methods.calculateAccountHealth = function (): number {
+  const {
+    orderDefectRate,
+    lateShipmentRate,
+    cancellationRate,
+    validTrackingRate,
+    onTimeDeliveryRate,
+  } = this.accountHealth;
+
+  // Weighted scoring
+  const score =
+    100 -
+    orderDefectRate * 30 - // Most important
+    lateShipmentRate * 20 -
+    cancellationRate * 20 -
+    (100 - validTrackingRate) * 15 -
+    (100 - onTimeDeliveryRate) * 15;
+
+  return Math.max(0, Math.min(100, score));
+};
+
+// Method: Update account health status
+SellerSchema.methods.updateAccountHealthStatus = function (): void {
+  const score = this.calculateAccountHealth();
+  this.accountHealth.score = score;
+
+  if (score >= 90) {
+    this.accountHealth.status = "excellent";
+  } else if (score >= 75) {
+    this.accountHealth.status = "good";
+  } else if (score >= 60) {
+    this.accountHealth.status = "fair";
+  } else if (score >= 40) {
+    this.accountHealth.status = "poor";
+  } else {
+    this.accountHealth.status = "critical";
+  }
+
+  this.accountHealth.lastCalculated = new Date();
+};
+
+// Method: Check if seller can create listings
+SellerSchema.methods.canCreateListings = function (): boolean {
+  return (
+    this.isActive &&
+    !this.isSuspended &&
+    this.kycStatus?.status === "approved" &&
+    this.accountHealth.status !== "critical"
+  );
+};
+
+// Method: Check if seller can participate in Buy Box
+SellerSchema.methods.canCompeteInBuyBox = function (): boolean {
+  return (
+    this.canCreateListings() &&
+    this.accountHealth.score >= 60 &&
+    this.accountHealth.orderDefectRate < 2
+  );
+};
+
+// Static: Get pending KYC approvals
+SellerSchema.statics.getPendingKYC = async function () {
+  return this.find({
+    "kycStatus.status": "in_review",
+    isActive: true,
+  }).sort({ "kycStatus.submittedAt": 1 });
+};
+
+// Static: Get sellers with critical health
+SellerSchema.statics.getCriticalHealthSellers = async function () {
+  return this.find({
+    isActive: true,
+    "accountHealth.status": "critical",
+  });
+};
+
+export const SouqSeller = getModel<ISeller>("SouqSeller", SellerSchema);
+
+export default SouqSeller;
+
+]]>
+</file>
+
+<file path="server/models/souq/SellerMetrics.ts">
+<![CDATA[
+/**
+ * Seller Metrics Model - Analytics snapshots
+ * @module server/models/souq/SellerMetrics
+ */
+
+import mongoose, { Schema, type Document } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+
+export interface ISellerMetrics extends Document {
+  _id: mongoose.Types.ObjectId;
+  sellerId: mongoose.Types.ObjectId;
+  date: Date; // Snapshot date
+  period: "daily" | "weekly" | "monthly";
+
+  sales: {
+    revenue: number;
+    orders: number;
+    averageOrderValue: number;
+    conversionRate: number;
+  };
+
+  products: {
+    topProductIds: string[];
+    lowStockCount: number;
+    underperformingCount: number;
+  };
+
+  customers: {
+    newCustomers: number;
+    repeatCustomerRate: number;
+    lifetimeValue: number;
+  };
+
+  traffic: {
+    pageViews: number;
+    uniqueVisitors: number;
+    bounceRate: number;
+  };
+
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const SellerMetricsSchema = new Schema<ISellerMetrics>(
+  {
+    sellerId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: "SouqSeller",
+      index: true,
+    },
+    date: {
+      type: Date,
+      required: true,
+      index: true,
+    },
+    period: {
+      type: String,
+      enum: ["daily", "weekly", "monthly"],
+      required: true,
+    },
+    sales: {
+      revenue: { type: Number, required: true, default: 0 },
+      orders: { type: Number, required: true, default: 0 },
+      averageOrderValue: { type: Number, required: true, default: 0 },
+      conversionRate: { type: Number, required: true, default: 0 },
+    },
+    products: {
+      topProductIds: [{ type: String }],
+      lowStockCount: { type: Number, default: 0 },
+      underperformingCount: { type: Number, default: 0 },
+    },
+    customers: {
+      newCustomers: { type: Number, default: 0 },
+      repeatCustomerRate: { type: Number, default: 0 },
+      lifetimeValue: { type: Number, default: 0 },
+    },
+    traffic: {
+      pageViews: { type: Number, default: 0 },
+      uniqueVisitors: { type: Number, default: 0 },
+      bounceRate: { type: Number, default: 0 },
+    },
+  },
+  {
+    timestamps: true,
+    collection: "souq_seller_metrics",
+  },
+);
+
+// Indexes
+SellerMetricsSchema.index({ sellerId: 1, date: -1 });
+SellerMetricsSchema.index({ sellerId: 1, period: 1, date: -1 });
+
+export const SellerMetrics: MModel<ISellerMetrics> = getModel<ISellerMetrics>(
+  "SellerMetrics",
+  SellerMetricsSchema,
+);
+export type { ISellerMetrics as SellerMetricsType };
+
+]]>
+</file>
+
+</batch_content>

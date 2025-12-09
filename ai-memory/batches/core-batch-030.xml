@@ -1,0 +1,2592 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/fm/vendors/page.tsx">
+<![CDATA[
+"use client";
+import { logger } from "@/lib/logger";
+
+import { useState, type ReactNode } from "react";
+import useSWR from "swr";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { useTranslation } from "@/contexts/TranslationContext";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { CardGridSkeleton } from "@/components/skeletons";
+import {
+  Search,
+  Download,
+  Eye,
+  Edit,
+  Trash2,
+  Star,
+  Phone,
+  Mail,
+  MapPin,
+} from "lucide-react";
+import { FmGuardedPage } from "@/components/fm/FmGuardedPage";
+
+interface Vendor {
+  id: string;
+  code: string;
+  name: string;
+  type: string;
+  status: "PENDING" | "APPROVED" | "SUSPENDED" | "REJECTED" | "BLACKLISTED";
+  contact?: {
+    primary?: {
+      name?: string;
+      email?: string;
+      phone?: string;
+      mobile?: string;
+    };
+    address?: {
+      street?: string;
+      city?: string;
+      region?: string;
+      postalCode?: string;
+    };
+  };
+  business?: {
+    specializations?: string[];
+  };
+  rating?: number;
+  responseTime?: string;
+}
+
+const fetcher = async (url: string, orgId: string) => {
+  try {
+    const res = await fetch(url, {
+      headers: { "x-tenant-id": orgId },
+    });
+    if (!res.ok) throw new Error("Failed to fetch vendors");
+    return res.json();
+  } catch (_error) {
+    logger.error("FM vendors fetch error", _error as Error);
+    throw _error;
+  }
+};
+
+export default function FMVendorsPage() {
+  return (
+    <FmGuardedPage moduleId="vendors">
+      {({ orgId, supportBanner }) => (
+        <FMVendorsContent orgId={orgId} supportBanner={supportBanner} />
+      )}
+    </FmGuardedPage>
+  );
+}
+
+type FMVendorsContentProps = {
+  orgId: string;
+  supportBanner?: ReactNode | null;
+};
+
+function FMVendorsContent({ orgId, supportBanner }: FMVendorsContentProps) {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const { data: session } = useSession();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const limit = 20;
+
+  // Fetch vendors with pagination
+  const vendorsUrl = orgId
+    ? `/api/vendors?page=${page}&limit=${limit}${searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : ""}${statusFilter !== "all" ? `&status=${statusFilter.toUpperCase()}` : ""}`
+    : null;
+
+  const {
+    data: vendorsData,
+    error,
+    isLoading,
+    mutate,
+  } = useSWR(
+    vendorsUrl ? [vendorsUrl, orgId] : null,
+    ([url, id]: [string, string]) => fetcher(url, id),
+  );
+
+  const vendors = vendorsData?.items || [];
+  const totalPages = vendorsData?.pages || 1;
+
+  const handleDelete = async (vendorId: string, vendorName: string) => {
+    const confirmMessage = t(
+      "vendors.confirmDelete",
+      'Delete vendor "{{name}}"? This cannot be undone.',
+    ).replace("{{name}}", vendorName);
+    if (!confirm(confirmMessage)) return;
+    if (!orgId)
+      return toast.error(
+        t("fm.errors.orgIdMissing", "Organization ID missing from session"),
+      );
+
+    const toastId = toast.loading(
+      t("vendors.toast.deleting", "Deleting vendor..."),
+    );
+    try {
+      const res = await fetch(`/api/vendors/${vendorId}`, {
+        method: "DELETE",
+        headers: { "x-tenant-id": orgId },
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        const message =
+          error &&
+          typeof error === "object" &&
+          "error" in error &&
+          typeof error.error === "string"
+            ? error.error
+            : t("vendors.errors.deleteUnknown", "Failed to delete vendor");
+        throw new Error(message);
+      }
+      toast.success(
+        t("vendors.toast.deleteSuccess", "Vendor deleted successfully"),
+        { id: toastId },
+      );
+      mutate();
+    } catch (_error) {
+      const message =
+        _error instanceof Error
+          ? _error.message
+          : t("vendors.errors.deleteUnknown", "Failed to delete vendor");
+      toast.error(
+        t(
+          "vendors.toast.deleteFailed",
+          "Failed to delete vendor: {{message}}",
+        ).replace("{{message}}", message),
+        { id: toastId },
+      );
+    }
+  };
+
+  const exportVendorsCsv = () => {
+    if (vendors.length === 0) {
+      return toast(t("vendors.export.empty", "No vendors to export"));
+    }
+    const rows = [
+      ["Code", "Name", "Type", "Status", "Contact", "Email", "Location"],
+    ];
+    for (const v of vendors) {
+      rows.push([
+        v.code || "",
+        v.name || "",
+        v.type || "",
+        v.status || "",
+        v.contact?.primary?.phone || v.contact?.primary?.mobile || "",
+        v.contact?.primary?.email || "",
+        v.contact?.address?.city || "",
+      ]);
+    }
+    const csv = rows
+      .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `vendors-export-${new Date().toISOString()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(
+      t("vendors.export.success", "Exported {{count}} vendors").replace(
+        "{{count}}",
+        String(vendors.length),
+      ),
+    );
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case "approved":
+        return "bg-success/10 text-success-foreground border-success/20";
+      case "pending":
+        return "bg-warning/10 text-warning-foreground border-warning/20";
+      case "suspended":
+        return "bg-warning/10 text-warning border-warning";
+      case "rejected":
+        return "bg-destructive/10 text-destructive-foreground border-destructive/20";
+      case "blacklisted":
+        return "bg-destructive text-destructive-foreground border-destructive";
+      default:
+        return "bg-muted text-foreground border-border";
+    }
+  };
+
+  // Loading state
+  if (!session) return <CardGridSkeleton count={6} />;
+  if (isLoading) return <CardGridSkeleton count={6} />;
+  if (error) {
+    return (
+      <div className="p-6 text-center text-destructive">
+        {t(
+          "vendors.errors.loadFailed",
+          "Failed to load vendors: {{message}}",
+        ).replace("{{message}}", error.message)}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="vendors" />
+      {supportBanner}
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-foreground mb-2">
+          {t("nav.vendors", "Vendors")}
+        </h1>
+        <p className="text-muted-foreground">
+          {t(
+            "vendors.description",
+            "Manage your vendor relationships and service providers",
+          )}
+        </p>
+      </div>
+
+      {/* Search and Filters */}
+      <div className="mb-6 flex flex-col sm:flex-row gap-4">
+        <div className="flex-1">
+          <div className="relative">
+            <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder={t("common.search", "Search vendors...")}
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setPage(1); // Reset to page 1 on search
+              }}
+              className="ps-10"
+            />
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Select
+            value={statusFilter}
+            onValueChange={(val) => {
+              setStatusFilter(val);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">
+                {t("common.all", "All Status")}
+              </SelectItem>
+              <SelectItem value="approved">
+                {t("status.approved", "Approved")}
+              </SelectItem>
+              <SelectItem value="pending">
+                {t("status.pending", "Pending")}
+              </SelectItem>
+              <SelectItem value="suspended">
+                {t("status.suspended", "Suspended")}
+              </SelectItem>
+              <SelectItem value="rejected">
+                {t("status.rejected", "Rejected")}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" onClick={exportVendorsCsv}>
+            <Download className="h-4 w-4 me-2" />
+            {t("common.export", "Export")}
+          </Button>
+        </div>
+      </div>
+
+      {/* Vendors List */}
+      {vendors.length === 0 ? (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <p className="text-muted-foreground mb-4">
+              {t("vendors.empty.description", "No vendors found")}
+            </p>
+            <Button onClick={() => router.push("/fm/marketplace/vendors/new")}>
+              {t("vendors.empty.cta", "Add First Vendor")}
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          <div className="space-y-4">
+            {vendors.map((vendor: Vendor) => (
+              <Card
+                key={vendor.id}
+                className="hover:shadow-md transition-shadow"
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-3">
+                        <h3 className="text-lg font-semibold text-foreground">
+                          {vendor.name}
+                        </h3>
+                        <Badge className={getStatusColor(vendor.status)}>
+                          {vendor.status}
+                        </Badge>
+                        {vendor.rating && (
+                          <div className="flex items-center gap-1">
+                            <Star className="h-4 w-4 fill-warning text-warning" />
+                            <span className="text-sm font-medium">
+                              {vendor.rating.toFixed(1)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span className="font-medium">
+                            {t("vendor.type", "Type")}:
+                          </span>
+                          {vendor.type?.replace("_", " ")}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <MapPin className="h-4 w-4" />
+                          {vendor.contact?.address?.city || "N/A"},{" "}
+                          {vendor.contact?.address?.region || ""}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Phone className="h-4 w-4" />
+                          {vendor.contact?.primary?.phone ||
+                            vendor.contact?.primary?.mobile ||
+                            "N/A"}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Mail className="h-4 w-4" />
+                          {vendor.contact?.primary?.email || "N/A"}
+                        </div>
+                      </div>
+
+                      {vendor.business?.specializations &&
+                        vendor.business.specializations.length > 0 && (
+                          <div className="mb-4">
+                            <h4 className="font-medium text-foreground mb-2">
+                              {t("vendor.services", "Services")}:
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {vendor.business.specializations.map(
+                                (service) => (
+                                  <Badge key={service} variant="outline">
+                                    {service}
+                                  </Badge>
+                                ),
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span className="font-medium">
+                            {t("vendor.code", "Code")}:
+                          </span>
+                          {vendor.code}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              router.push(`/fm/vendors/${vendor.id}`)
+                            }
+                          >
+                            <Eye className="h-4 w-4 me-2" />
+                            {t("common.view", "View")}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              router.push(`/fm/vendors/${vendor.id}/edit`)
+                            }
+                          >
+                            <Edit className="h-4 w-4 me-2" />
+                            {t("common.edit", "Edit")}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => handleDelete(vendor.id, vendor.name)}
+                          >
+                            <Trash2 className="h-4 w-4 me-2" />
+                            {t("common.delete", "Delete")}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-between items-center mt-6">
+              <Button
+                variant="outline"
+                disabled={page === 1}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                Previous
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Page {page} of {totalPages} ({vendorsData?.total || 0} total
+                vendors)
+              </span>
+              <Button
+                variant="outline"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Next
+              </Button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/work-orders/approvals/page.tsx">
+<![CDATA[
+"use client";
+
+import React from "react";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { getWorkOrderStatusLabel } from "@/lib/work-orders/status";
+import { WORK_ORDERS_MODULE_ID } from "@/config/navigation/constants";
+
+export default function WorkOrderApprovalsPage() {
+  const { t } = useTranslation();
+  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({
+    moduleId: WORK_ORDERS_MODULE_ID,
+  });
+  const pendingApprovals = [
+    {
+      id: "WO-1004",
+      title: "Emergency electrical repair",
+      property: "Tower A / 1204",
+      requestedBy: "Ahmed Al-Rashid",
+      requestDate: "2025-01-22",
+      estimatedCost: "SAR 800",
+      priority: "P1",
+      reason: "Urgent safety issue requiring immediate attention",
+      status: "pending",
+    },
+    {
+      id: "WO-1005",
+      title: "HVAC system upgrade",
+      property: "Tower B / Lobby",
+      requestedBy: "Property Manager",
+      requestDate: "2025-01-21",
+      estimatedCost: "SAR 2,500",
+      priority: "P2",
+      reason: "Scheduled upgrade to improve efficiency",
+      status: "pending",
+    },
+    {
+      id: "WO-1006",
+      title: "Painting exterior walls",
+      property: "Villa Complex",
+      requestedBy: "Omar Al-Fahad",
+      requestDate: "2025-01-20",
+      estimatedCost: "SAR 1,200",
+      priority: "P3",
+      reason: "Routine maintenance and aesthetic improvement",
+      status: "under-review",
+    },
+  ];
+
+  const approvedWorkOrders = [
+    {
+      id: "WO-1001",
+      title: "AC not cooling",
+      property: "Tower A / 1204",
+      approvedBy: "Admin User",
+      approvalDate: "2025-01-19",
+      estimatedCost: "SAR 150",
+      actualCost: "SAR 145",
+      status: "approved",
+    },
+    {
+      id: "WO-1002",
+      title: "Elevator maintenance",
+      property: "Tower B / Lobby",
+      approvedBy: "Admin User",
+      approvalDate: "2025-01-18",
+      estimatedCost: "SAR 300",
+      actualCost: "SAR 285",
+      status: "approved",
+    },
+  ];
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "pending":
+        return "bg-warning/10 text-warning-foreground border-warning/20";
+      case "approved":
+        return "bg-success/10 text-success-foreground border-success/20";
+      case "rejected":
+        return "bg-destructive/10 text-destructive-foreground border-destructive/20";
+      case "under-review":
+        return "bg-primary/10 text-primary-foreground border-primary/20";
+      default:
+        return "bg-muted text-foreground border-border";
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case "P1":
+        return "bg-destructive/100 text-white";
+      case "P2":
+        return "bg-warning/100 text-white";
+      case "P3":
+        return "bg-warning/100 text-black";
+      case "P4":
+        return "bg-success/100 text-white";
+      default:
+        return "bg-muted0 text-white";
+    }
+  };
+
+  if (!hasOrgContext) {
+    return guard;
+  }
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId={WORK_ORDERS_MODULE_ID} />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t("fm.org.supportContext", "Support context: {{name}}", {
+            name: supportOrg.name,
+          })}
+        </div>
+      )}
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            {t("workOrders.approvals.title", "Work Order Approvals")}
+          </h1>
+          <p className="text-muted-foreground">
+            {t(
+              "workOrders.approvals.subtitle",
+              "Review and approve work orders that require authorization",
+            )}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button className="btn-secondary">
+            {t("workOrders.approvals.rules", "Approval Rules")}
+          </button>
+          <button className="btn-primary">
+            📋 {t("workOrders.approvals.bulkApprove", "Bulk Approve")}
+          </button>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                {t("workOrders.approvals.pendingApproval", "Pending Approval")}
+              </p>
+              <p className="text-2xl font-bold text-accent">3</p>
+            </div>
+            <div className="text-accent">⏳</div>
+          </div>
+        </div>
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                {t("workOrders.approvals.approvedToday", "Approved Today")}
+              </p>
+              <p className="text-2xl font-bold text-success">5</p>
+            </div>
+            <div className="text-success">✅</div>
+          </div>
+        </div>
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                {t("workOrders.approvals.avgTime", "Avg. Approval Time")}
+              </p>
+              <p className="text-2xl font-bold text-primary">2.3h</p>
+            </div>
+            <div className="text-primary">⏱️</div>
+          </div>
+        </div>
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                {t("workOrders.approvals.totalApproved", "Total Approved")}
+              </p>
+              <p className="text-2xl font-bold text-[hsl(var(--secondary))]">
+                247
+              </p>
+            </div>
+            <div className="text-secondary">📊</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Pending Approvals */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">
+            {t("workOrders.approvals.pending", "Pending Approvals")}
+          </h3>
+          <span className="bg-accent/10 text-accent px-3 py-1 rounded-full text-sm font-medium">
+            {pendingApprovals.length} {t("workOrders.pending", "pending")}
+          </span>
+        </div>
+
+        <div className="space-y-4">
+          {pendingApprovals.map((item) => (
+            <div
+              key={item.id}
+              className="border border-border rounded-2xl p-4 hover:bg-muted"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="font-semibold text-foreground">
+                      {item.id}
+                    </span>
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-medium ${getPriorityColor(item.priority)}`}
+                    >
+                      {item.priority}
+                    </span>
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(item.status)}`}
+                    >
+                      {getWorkOrderStatusLabel(t, item.status)}
+                    </span>
+                  </div>
+                  <h4 className="font-medium text-foreground mb-1">
+                    {item.title}
+                  </h4>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    {item.property}
+                  </p>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    {item.reason}
+                  </p>
+
+                  <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                    <span>
+                      <strong>
+                        {t(
+                          "workOrders.approvals.details.requestedBy",
+                          "Requested by",
+                        )}
+                        :
+                      </strong>{" "}
+                      {item.requestedBy}
+                    </span>
+                    <span>
+                      <strong>
+                        {t("workOrders.approvals.details.date", "Date")}:
+                      </strong>{" "}
+                      {item.requestDate}
+                    </span>
+                    <span>
+                      <strong>
+                        {t(
+                          "workOrders.approvals.details.estimatedCost",
+                          "Estimated Cost",
+                        )}
+                        :
+                      </strong>{" "}
+                      {item.estimatedCost}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 ms-4">
+                  <button className="px-4 py-2 bg-success text-white rounded-2xl hover:bg-success/90 transition-colors">
+                    {t("common.approve", "Approve")}
+                  </button>
+                  <button className="px-4 py-2 bg-[hsl(var(--destructive))] text-white rounded-2xl hover:bg-[hsl(var(--destructive)) / 0.9] transition-colors">
+                    {t("common.reject", "Reject")}
+                  </button>
+                  <button className="px-4 py-2 bg-muted text-foreground rounded-2xl hover:bg-muted/80 transition-colors">
+                    {t("common.review", "Review")}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Recent Approvals */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">
+            {t("workOrders.approvals.recent", "Recent Approvals")}
+          </h3>
+          <button className="btn-ghost">
+            {t("workOrders.approvals.viewAll", "View All")}
+          </button>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-muted">
+              <tr>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("workOrders.woId", "WO ID")}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("workOrders.title", "Title")}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("workOrders.property", "Property")}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("workOrders.approvals.approvedBy", "Approved By")}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("workOrders.approvals.approvalDate", "Approval Date")}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("workOrders.approvals.estimatedCost", "Estimated Cost")}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("workOrders.approvals.actualCost", "Actual Cost")}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("workOrders.status", "Status")}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-card divide-y divide-border">
+              {approvedWorkOrders.map((item) => (
+                <tr key={item.id} className="hover:bg-muted">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-foreground">
+                    {item.id}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-foreground">
+                    {item.title}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    {item.property}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    {item.approvedBy}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    {item.approvalDate}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    {item.estimatedCost}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    {item.actualCost}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap">
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(item.status)}`}
+                    >
+                      {getWorkOrderStatusLabel(t, item.status)}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="card">
+        <h3 className="text-lg font-semibold mb-4">
+          {t("workOrders.quickActions", "Quick Actions")}
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">✅</div>
+            <div className="text-sm font-medium">
+              {t("workOrders.approvals.bulkApprove", "Bulk Approve")}
+            </div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">📋</div>
+            <div className="text-sm font-medium">
+              {t("workOrders.approvals.rules", "Approval Rules")}
+            </div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">📊</div>
+            <div className="text-sm font-medium">
+              {t("workOrders.reports", "Reports")}
+            </div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">🔄</div>
+            <div className="text-sm font-medium">
+              {t("workOrders.approvals.workflow", "Workflow")}
+            </div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">⚙️</div>
+            <div className="text-sm font-medium">
+              {t("workOrders.settings", "Settings")}
+            </div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">📤</div>
+            <div className="text-sm font-medium">
+              {t("workOrders.export", "Export")}
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/work-orders/board/page.tsx">
+<![CDATA[
+"use client";
+
+import React from "react";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { WORK_ORDERS_MODULE_ID } from "@/config/navigation/constants";
+
+export default function WorkOrdersBoardPage() {
+  const { t } = useTranslation();
+  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({
+    moduleId: WORK_ORDERS_MODULE_ID,
+  });
+  const workOrders = [
+    {
+      id: "WO-1001",
+      title: "AC not cooling",
+      property: "Tower A / 1204",
+      priority: "P2",
+      status: "in-progress",
+      assignee: "Ahmed Al-Rashid",
+      dueDate: "2025-01-25",
+      daysOpen: 3,
+    },
+    {
+      id: "WO-1002",
+      title: "Leak in ceiling",
+      property: "Villa 9",
+      priority: "P1",
+      status: "pending",
+      assignee: "Mohammed Al-Saud",
+      dueDate: "2025-01-24",
+      daysOpen: 1,
+    },
+    {
+      id: "WO-1003",
+      title: "Elevator maintenance",
+      property: "Tower B / Lobby",
+      priority: "P3",
+      status: "scheduled",
+      assignee: "Omar Al-Fahad",
+      dueDate: "2025-01-26",
+      daysOpen: 7,
+    },
+  ];
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case "P1":
+        return "bg-[hsl(var(--destructive))] text-white";
+      case "P2":
+        return "bg-[hsl(var(--warning))] text-white";
+      case "P3":
+        return "bg-[hsl(var(--accent))] text-foreground";
+      case "P4":
+        return "bg-success text-white";
+      default:
+        return "bg-muted0 text-white";
+    }
+  };
+
+  if (!hasOrgContext) {
+    return guard;
+  }
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId={WORK_ORDERS_MODULE_ID} />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t("fm.org.supportContext", "Support context: {{name}}", {
+            name: supportOrg.name,
+          })}
+        </div>
+      )}
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            {t("workOrders.board.title", "Work Orders Board")}
+          </h1>
+          <p className="text-muted-foreground">
+            {t(
+              "workOrders.board.description",
+              "Track and assign work orders across all properties",
+            )}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button className="btn-secondary">
+            {t("workOrders.filter", "Filter")}
+          </button>
+          <button className="btn-primary">
+            + {t("workOrders.board.newWO", "New Work Order")}
+          </button>
+        </div>
+      </div>
+
+      {/* Board */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Pending */}
+        <div className="card">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-foreground">
+              {t("workOrders.pending", "Pending")}
+            </h3>
+            <span className="bg-accent/10 text-accent px-2 py-1 rounded-full text-xs font-medium">
+              2
+            </span>
+          </div>
+          <div className="space-y-3">
+            {workOrders
+              .filter((wo) => wo.status === "pending")
+              .map((wo) => (
+                <div
+                  key={wo.id}
+                  className="p-3 bg-accent/10 border border-warning/20 rounded-2xl"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-sm">{wo.id}</span>
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-medium ${getPriorityColor(wo.priority)}`}
+                    >
+                      {wo.priority}
+                    </span>
+                  </div>
+                  <p className="text-sm font-medium text-foreground mb-1">
+                    {wo.title}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{wo.property}</p>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-xs text-muted-foreground">
+                      {wo.assignee}
+                    </span>
+                    <span className="text-xs text-destructive">
+                      {wo.daysOpen}d
+                    </span>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+
+        {/* In Progress */}
+        <div className="card">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-foreground">
+              {t("workOrders.inProgress", "In Progress")}
+            </h3>
+            <span className="bg-primary/10 text-primary px-2 py-1 rounded-full text-xs font-medium">
+              1
+            </span>
+          </div>
+          <div className="space-y-3">
+            {workOrders
+              .filter((wo) => wo.status === "in-progress")
+              .map((wo) => (
+                <div
+                  key={wo.id}
+                  className="p-3 bg-primary/10 border border-primary/20 rounded-2xl"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-sm">{wo.id}</span>
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-medium ${getPriorityColor(wo.priority)}`}
+                    >
+                      {wo.priority}
+                    </span>
+                  </div>
+                  <p className="text-sm font-medium text-foreground mb-1">
+                    {wo.title}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{wo.property}</p>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-xs text-muted-foreground">
+                      {wo.assignee}
+                    </span>
+                    <span className="text-xs text-primary">{wo.daysOpen}d</span>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+
+        {/* Scheduled */}
+        <div className="card">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-foreground">
+              {t("workOrders.scheduled", "Scheduled")}
+            </h3>
+            <span className="bg-secondary/10 text-secondary px-2 py-1 rounded-full text-xs font-medium">
+              1
+            </span>
+          </div>
+          <div className="space-y-3">
+            {workOrders
+              .filter((wo) => wo.status === "scheduled")
+              .map((wo) => (
+                <div
+                  key={wo.id}
+                  className="p-3 bg-secondary/10 border border-secondary/30 rounded-2xl"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-sm">{wo.id}</span>
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-medium ${getPriorityColor(wo.priority)}`}
+                    >
+                      {wo.priority}
+                    </span>
+                  </div>
+                  <p className="text-sm font-medium text-foreground mb-1">
+                    {wo.title}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{wo.property}</p>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-xs text-muted-foreground">
+                      {wo.assignee}
+                    </span>
+                    <span className="text-xs text-[hsl(var(--secondary))]">
+                      {wo.daysOpen}d
+                    </span>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+
+        {/* Completed */}
+        <div className="card">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-foreground">
+              {t("workOrders.completed", "Completed")}
+            </h3>
+            <span className="bg-success/10 text-success px-2 py-1 rounded-full text-xs font-medium">
+              0
+            </span>
+          </div>
+          <div className="text-center py-8">
+            <div className="text-success mb-2">✅</div>
+            <p className="text-sm text-muted-foreground">
+              {t("workOrders.board.noCompleted", "No completed work orders")}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="card">
+        <h3 className="text-lg font-semibold mb-4">
+          {t("workOrders.quickActions", "Quick Actions")}
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">📝</div>
+            <div className="text-sm font-medium">
+              {t("workOrders.board.createWO", "Create WO")}
+            </div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">👥</div>
+            <div className="text-sm font-medium">
+              {t("workOrders.board.assignTech", "Assign Tech")}
+            </div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">📅</div>
+            <div className="text-sm font-medium">
+              {t("workOrders.board.schedule", "Schedule")}
+            </div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">📊</div>
+            <div className="text-sm font-medium">
+              {t("workOrders.reports", "Reports")}
+            </div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">🔍</div>
+            <div className="text-sm font-medium">
+              {t("common.search", "Search")}
+            </div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">⚙️</div>
+            <div className="text-sm font-medium">
+              {t("workOrders.settings", "Settings")}
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/work-orders/history/page.tsx">
+<![CDATA[
+"use client";
+
+import React from "react";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { getWorkOrderStatusLabel } from "@/lib/work-orders/status";
+import { WORK_ORDERS_MODULE_ID } from "@/config/navigation/constants";
+
+export default function ServiceHistoryPage() {
+  const { t } = useTranslation();
+  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({
+    moduleId: WORK_ORDERS_MODULE_ID,
+  });
+  const serviceHistory = [
+    {
+      id: "WO-1001",
+      title: "AC not cooling",
+      property: "Tower A / 1204",
+      technician: "Ahmed Al-Rashid",
+      completionDate: "2025-01-20",
+      duration: "2 hours",
+      cost: "SAR 150",
+      rating: 5,
+      status: "completed",
+    },
+    {
+      id: "WO-1002",
+      title: "Elevator maintenance",
+      property: "Tower B / Lobby",
+      technician: "Mohammed Al-Saud",
+      completionDate: "2025-01-18",
+      duration: "4 hours",
+      cost: "SAR 300",
+      rating: 4,
+      status: "completed",
+    },
+    {
+      id: "WO-1003",
+      title: "Plumbing repair",
+      property: "Villa 9",
+      technician: "Omar Al-Fahad",
+      completionDate: "2025-01-15",
+      duration: "1.5 hours",
+      cost: "SAR 120",
+      rating: 5,
+      status: "completed",
+    },
+  ];
+
+  const propertyOptions = [
+    {
+      value: "all",
+      key: "workOrders.history.filters.allProperties",
+      fallback: "All Properties",
+    },
+    {
+      value: "tower-a",
+      key: "workOrders.history.filters.towerA",
+      fallback: "Tower A",
+    },
+    {
+      value: "tower-b",
+      key: "workOrders.history.filters.towerB",
+      fallback: "Tower B",
+    },
+    {
+      value: "villa-complex",
+      key: "workOrders.history.filters.villaComplex",
+      fallback: "Villa Complex",
+    },
+  ];
+
+  const technicianOptions = [
+    {
+      value: "all",
+      key: "workOrders.history.filters.allTechnicians",
+      fallback: "All Technicians",
+    },
+    {
+      value: "ahmed",
+      key: "workOrders.history.filters.technicianAhmed",
+      fallback: "Ahmed Al-Rashid",
+    },
+    {
+      value: "mohammed",
+      key: "workOrders.history.filters.technicianMohammed",
+      fallback: "Mohammed Al-Saud",
+    },
+    {
+      value: "omar",
+      key: "workOrders.history.filters.technicianOmar",
+      fallback: "Omar Al-Fahad",
+    },
+  ];
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "completed":
+        return "bg-success/10 text-success-foreground border-success/20";
+      case "cancelled":
+        return "bg-destructive/10 text-destructive-foreground border-destructive/20";
+      case "pending":
+        return "bg-warning/10 text-warning-foreground border-warning/20";
+      default:
+        return "bg-muted text-foreground border-border";
+    }
+  };
+
+  if (!hasOrgContext) {
+    return guard;
+  }
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId={WORK_ORDERS_MODULE_ID} />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t("fm.org.supportContext", "Support context: {{name}}", {
+            name: supportOrg.name,
+          })}
+        </div>
+      )}
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            {t("workOrders.history.title", "Service History")}
+          </h1>
+          <p className="text-muted-foreground">
+            {t(
+              "workOrders.history.subtitle",
+              "View completed work orders and service history",
+            )}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button className="btn-secondary">
+            {t("workOrders.history.exportReport", "Export Report")}
+          </button>
+          <button className="btn-primary">
+            📊 {t("common.analytics", "Analytics")}
+          </button>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                {t("workOrders.history.totalCompleted", "Total Completed")}
+              </p>
+              <p className="text-2xl font-bold text-success">247</p>
+            </div>
+            <div className="text-success">✅</div>
+          </div>
+        </div>
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                {t("common.thisMonth", "This Month")}
+              </p>
+              <p className="text-2xl font-bold text-primary">23</p>
+            </div>
+            <div className="text-primary">📅</div>
+          </div>
+        </div>
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                {t("common.avgRating", "Avg. Rating")}
+              </p>
+              <p className="text-2xl font-bold text-accent">4.8</p>
+            </div>
+            <div className="text-accent">⭐</div>
+          </div>
+        </div>
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                {t("common.totalCost", "Total Cost")}
+              </p>
+              <p className="text-2xl font-bold text-[hsl(var(--secondary))]">
+                SAR 45,230
+              </p>
+            </div>
+            <div className="text-secondary">💰</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="card">
+        <div className="flex flex-wrap gap-4">
+          <div className="flex-1 min-w-48">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
+              {propertyOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {t(option.key, option.fallback)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex-1 min-w-48">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
+              {technicianOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {t(option.key, option.fallback)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex-1 min-w-48">
+            <input
+              type="date"
+              placeholder={t(
+                "workOrders.history.filters.fromDate",
+                "From Date",
+              )}
+              aria-label={t("workOrders.history.filters.fromDate", "From Date")}
+              className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+            />
+          </div>
+          <div className="flex-1 min-w-48">
+            <input
+              type="date"
+              placeholder={t("workOrders.history.filters.toDate", "To Date")}
+              aria-label={t("workOrders.history.filters.toDate", "To Date")}
+              className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+            />
+          </div>
+          <button className="btn-primary">
+            {t("workOrders.filter", "Filter")}
+          </button>
+        </div>
+      </div>
+
+      {/* Service History Table */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">
+            {t("workOrders.history.title", "Service History")}
+          </h3>
+          <div className="flex gap-2">
+            <button className="btn-ghost">
+              📄 {t("common.exportCsv", "Export CSV")}
+            </button>
+            <button className="btn-ghost">
+              📊 {t("common.viewCharts", "View Charts")}
+            </button>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-muted">
+              <tr>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("workOrders.woId", "WO ID")}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("workOrders.history.table.title", "Title")}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("workOrders.history.table.property", "Property")}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("workOrders.history.table.technician", "Technician")}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t(
+                    "workOrders.history.table.completionDate",
+                    "Completion Date",
+                  )}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("workOrders.history.table.duration", "Duration")}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("workOrders.history.table.cost", "Cost")}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("workOrders.history.table.rating", "Rating")}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("workOrders.history.table.status", "Status")}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("workOrders.history.table.actions", "Actions")}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-card divide-y divide-border">
+              {serviceHistory.map((item) => (
+                <tr key={item.id} className="hover:bg-muted">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-foreground">
+                    {item.id}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-foreground">
+                    {item.title}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    {item.property}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    {item.technician}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    {item.completionDate}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    {item.duration}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    {item.cost}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    <div className="flex items-center">
+                      <span className="text-accent">⭐</span>
+                      <span className="ms-1">
+                        {t(
+                          "workOrders.history.table.ratingOutOf",
+                          "{{rating}}/5",
+                        ).replace("{{rating}}", String(item.rating))}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap">
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(item.status)}`}
+                    >
+                      {getWorkOrderStatusLabel(t, item.status)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex gap-2">
+                      <button className="text-primary hover:text-primary">
+                        {t("workOrders.history.view", "View")}
+                      </button>
+                      <button className="text-success hover:text-success-foreground">
+                        {t("workOrders.history.invoice", "Invoice")}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="card">
+        <h3 className="text-lg font-semibold mb-4">
+          {t("workOrders.quickActions", "Quick Actions")}
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">📊</div>
+            <div className="text-sm font-medium">
+              {t("workOrders.history.quickActions.analytics", "Analytics")}
+            </div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">📈</div>
+            <div className="text-sm font-medium">
+              {t("workOrders.history.quickActions.trends", "Trends")}
+            </div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">💰</div>
+            <div className="text-sm font-medium">
+              {t("workOrders.history.quickActions.cost", "Cost Analysis")}
+            </div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">👥</div>
+            <div className="text-sm font-medium">
+              {t(
+                "workOrders.history.quickActions.techPerformance",
+                "Tech Performance",
+              )}
+            </div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">📄</div>
+            <div className="text-sm font-medium">
+              {t("workOrders.history.quickActions.reports", "Reports")}
+            </div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">⚙️</div>
+            <div className="text-sm font-medium">
+              {t("workOrders.history.quickActions.settings", "Settings")}
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/work-orders/new/page.tsx">
+<![CDATA[
+"use client";
+
+import React from "react";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { WorkOrderAttachments } from "@/components/fm/WorkOrderAttachments";
+import { useState } from "react";
+import type { WorkOrderAttachment } from "@/components/fm/WorkOrderAttachments";
+import { WORK_ORDERS_MODULE_ID } from "@/config/navigation/constants";
+
+export default function NewWorkOrderPage() {
+  const { t } = useTranslation();
+  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({
+    moduleId: WORK_ORDERS_MODULE_ID,
+  });
+  const [attachments, setAttachments] = useState<WorkOrderAttachment[]>([]);
+  const [workOrderId, setWorkOrderId] = useState<string | null>(null);
+  const [title, setTitle] = useState("");
+  const [priority, setPriority] = useState("MEDIUM");
+  const [description, setDescription] = useState("");
+  const [propertyId, setPropertyId] = useState("");
+  const [unitNumber, setUnitNumber] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [draftSaving, setDraftSaving] = useState(false);
+
+  if (!hasOrgContext) {
+    return guard;
+  }
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId={WORK_ORDERS_MODULE_ID} />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t("fm.org.supportContext", "Support context: {{name}}", {
+            name: supportOrg.name,
+          })}
+        </div>
+      )}
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            {t("workOrders.new.title", "New Work Order")}
+          </h1>
+          <p className="text-muted-foreground">
+            {t(
+              "workOrders.new.subtitle",
+              "Create a new work order for maintenance or services",
+            )}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            className="btn-primary"
+            onClick={async () => {
+              setCreating(true);
+              setError(null);
+              try {
+                if (!propertyId || !title) {
+                  throw new Error(
+                    t(
+                      "workOrders.new.requiredFields",
+                      "Title and property are required",
+                    ),
+                  );
+                }
+                // NOTE: Attachments are NOT sent here. They're uploaded AFTER WO creation
+                // via WorkOrderAttachments component which PATCHes the WO once files are uploaded to S3.
+                const res = await fetch("/api/work-orders", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    title: title || "New Work Order",
+                    priority,
+                    description: description || undefined,
+                    propertyId: propertyId || undefined,
+                    unitNumber: unitNumber || undefined,
+                    status: "SUBMITTED",
+                    // attachments deliberately omitted - uploaded separately after WO exists
+                  }),
+                });
+                const json = await res.json().catch(() => ({}));
+                if (!res.ok || !json?.data?._id) {
+                  throw new Error(json?.error || "Failed to create work order");
+                }
+                setWorkOrderId(json.data._id as string);
+                setSuccess(true);
+              } catch (err) {
+                setError(
+                  err instanceof Error
+                    ? err.message
+                    : "Failed to create work order",
+                );
+              } finally {
+                setCreating(false);
+              }
+            }}
+            disabled={creating || !title || !propertyId}
+          >
+            {creating
+              ? t("common.saving", "Saving...")
+              : t("workOrders.board.createWO", "Create Work Order")}
+          </button>
+        </div>
+      </div>
+      {error && (
+        <div className="rounded-lg border border-destructive bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <p className="font-medium">{t("common.error", "Error")}</p>
+          <p>{error}</p>
+        </div>
+      )}
+      {success && workOrderId && (
+        <div className="rounded-lg border border-success bg-success/10 px-4 py-3 text-sm text-success-dark">
+          <p className="font-medium">
+            {t("workOrders.new.success", "Work order created successfully!")}
+          </p>
+          <p className="mt-1">
+            {t("workOrders.new.woNumber", "Work Order ID:")}{" "}
+            <span className="font-mono font-semibold">{workOrderId}</span>
+          </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {t(
+              "workOrders.new.uploadHint",
+              "You can now upload attachments using the panel on the right.",
+            )}
+          </p>
+        </div>
+      )}
+      {/* Form */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Form */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">
+              {t("workOrders.new.basicInfo", "Basic Information")}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  {t("workOrders.title", "Work Order Title")} *
+                </label>
+                <input
+                  type="text"
+                  placeholder={t(
+                    "workOrders.new.titlePlaceholder",
+                    "Enter work order title...",
+                  )}
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  {t("workOrders.priority", "Priority")} *
+                </label>
+                <select
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value)}
+                >
+                  <option value="CRITICAL">
+                    {t("workOrders.priority.p1", "P1 - Critical")}
+                  </option>
+                  <option value="HIGH">
+                    {t("workOrders.priority.p2", "P2 - High")}
+                  </option>
+                  <option value="MEDIUM">
+                    {t("workOrders.priority.p3", "P3 - Medium")}
+                  </option>
+                  <option value="LOW">
+                    {t("workOrders.priority.p4", "P4 - Low")}
+                  </option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">
+              {t("workOrders.new.propertyLocation", "Property & Location")}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  {t("common.property", "Property")} *
+                </label>
+                <select
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                  value={propertyId}
+                  onChange={(e) => setPropertyId(e.target.value)}
+                >
+                  <option value="">
+                    {t("common.selectProperty", "Select Property")}
+                  </option>
+                  <option value="tower-a">Tower A</option>
+                  <option value="tower-b">Tower B</option>
+                  <option value="villa-9">Villa 9</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  {t("common.location", "Unit/Location")}
+                </label>
+                <input
+                  type="text"
+                  placeholder={t(
+                    "workOrders.new.locationPlaceholder",
+                    "Unit number or specific location...",
+                  )}
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                  value={unitNumber}
+                  onChange={(e) => setUnitNumber(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">
+              {t("common.description", "Description")}
+            </h3>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                {t("common.description", "Work Description")} *
+              </label>
+              <textarea
+                rows={4}
+                placeholder={t(
+                  "workOrders.new.descriptionPlaceholder",
+                  "Describe the work that needs to be done...",
+                )}
+                className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">
+              {t(
+                "workOrders.new.assignmentScheduling",
+                "Assignment & Scheduling",
+              )}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  {t("workOrders.assignTo", "Assign To")}
+                </label>
+                <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
+                  <option value="">
+                    {t("workOrders.selectTechnician", "Select Technician")}
+                  </option>
+                  <option value="tech-1">Ahmed Al-Rashid</option>
+                  <option value="tech-2">Mohammed Al-Saud</option>
+                  <option value="tech-3">Omar Al-Fahad</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  {t("common.dueDate", "Due Date")}
+                </label>
+                <input
+                  type="date"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar */}
+        <div className="space-y-6">
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">
+              {t("workOrders.attachments", "Attachments")}
+            </h3>
+            <WorkOrderAttachments
+              workOrderId={workOrderId ?? undefined}
+              onChange={setAttachments}
+              draftCreator={async () => {
+                if (workOrderId || draftSaving) return workOrderId || undefined;
+                setDraftSaving(true);
+                setError(null);
+                try {
+                  const res = await fetch("/api/work-orders", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      title: title || "Untitled Work Order",
+                      priority,
+                      description: description || "Draft work order",
+                      propertyId: propertyId || undefined,
+                      unitNumber: unitNumber || undefined,
+                      status: "DRAFT",
+                    }),
+                  });
+                  const json = await res.json().catch(() => ({}));
+                  if (!res.ok || !json?.data?._id) {
+                    throw new Error(
+                      json?.error || "Failed to save draft work order",
+                    );
+                  }
+                  setWorkOrderId(json.data._id as string);
+                  return json.data._id as string;
+                } catch (err) {
+                  setError(
+                    err instanceof Error
+                      ? err.message
+                      : "Failed to save draft work order",
+                  );
+                  return undefined;
+                } finally {
+                  setDraftSaving(false);
+                }
+              }}
+            />
+            {attachments.length > 0 && (
+              <p className="text-xs text-muted-foreground mt-2">
+                {t(
+                  "workOrders.attachmentsCount",
+                  "{{count}} attachment(s) ready for submission",
+                  {
+                    count: attachments.length,
+                  },
+                )}
+              </p>
+            )}
+          </div>
+
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">
+              {t("workOrders.quickActions", "Quick Actions")}
+            </h3>
+            <div className="space-y-2">
+              <button className="w-full btn-ghost text-start">
+                📋 {t("workOrders.createFromTemplate", "Create from Template")}
+              </button>
+              <button className="w-full btn-ghost text-start">
+                📞 {t("workOrders.emergencyContact", "Emergency Contact")}
+              </button>
+              <button className="w-full btn-ghost text-start">
+                📊 {t("workOrders.costCalculator", "Cost Calculator")}
+              </button>
+            </div>
+          </div>
+
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">
+              {t("workOrders.recentActivity", "Recent Activity")}
+            </h3>
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-[hsl(var(--success)) / 0.2] rounded-full"></div>
+                <span className="text-muted-foreground">
+                  {t("workOrders.formAutoSaved", "Form auto-saved")}
+                </span>
+                <span className="text-muted-foreground ms-auto">2m ago</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-primary/20 rounded-full"></div>
+                <span className="text-muted-foreground">
+                  {t("workOrders.propertySelected", "Property selected")}
+                </span>
+                <span className="text-muted-foreground ms-auto">5m ago</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/work-orders/page.tsx">
+<![CDATA[
+"use client";
+
+import React from "react";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { WorkOrdersView } from "@/components/fm/WorkOrdersView";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { WORK_ORDERS_MODULE_ID } from "@/config/navigation/constants";
+
+export default function WorkOrdersPage() {
+  const { t } = useTranslation();
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({
+    moduleId: WORK_ORDERS_MODULE_ID,
+  });
+
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
+  return (
+    <div className="space-y-6 p-6">
+      <ModuleViewTabs moduleId={WORK_ORDERS_MODULE_ID} />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t("fm.org.supportContext", "Support context: {{name}}", {
+            name: supportOrg.name,
+          })}
+        </div>
+      )}
+      <WorkOrdersView orgId={orgId} />
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/work-orders/pm/page.tsx">
+<![CDATA[
+"use client";
+
+import React from "react";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useTranslation } from "@/contexts/TranslationContext";
+import useSWR from "swr";
+import ClientDate from "@/components/ClientDate";
+import { logger } from "@/lib/logger";
+import { getWorkOrderStatusLabel } from "@/lib/work-orders/status";
+import { WORK_ORDERS_MODULE_ID } from "@/config/navigation/constants";
+
+const fetcher = (url: string) =>
+  fetch(url)
+    .then((r) => r.json())
+    .catch((error) => {
+      logger.error("PM work orders fetch error", error);
+      throw error;
+    });
+
+interface PMPlan {
+  id: string;
+  planNumber: string;
+  title: string;
+  propertyId: string;
+  category: string;
+  recurrencePattern: string;
+  nextScheduledDate: string;
+  lastGeneratedDate?: string;
+  status: string;
+  stats?: {
+    totalGenerated?: number;
+    totalCompleted?: number;
+  };
+}
+
+export default function PreventiveMaintenancePage() {
+  const { t } = useTranslation();
+  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({
+    moduleId: WORK_ORDERS_MODULE_ID,
+  });
+  const propertyFilterOptions = [
+    {
+      value: "all",
+      key: "workOrders.pm.filters.allProperties",
+      fallback: "All Properties",
+    },
+    {
+      value: "tower-a",
+      key: "workOrders.pm.filters.towerA",
+      fallback: "Tower A",
+    },
+    {
+      value: "tower-b",
+      key: "workOrders.pm.filters.towerB",
+      fallback: "Tower B",
+    },
+    {
+      value: "villa-complex",
+      key: "workOrders.pm.filters.villaComplex",
+      fallback: "Villa Complex",
+    },
+  ];
+
+  // Fetch PM plans from API
+  const { data: response } = useSWR("/api/pm/plans?status=ACTIVE", fetcher, {
+    refreshInterval: 30000, // Refresh every 30 seconds
+  });
+
+  const pmSchedules: PMPlan[] = response?.data || [];
+
+  const getStatusForPlan = (plan: PMPlan) => {
+    const nextDue = new Date(plan.nextScheduledDate);
+    const now = new Date();
+    const daysUntil = Math.floor(
+      (nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
+    if (daysUntil < 0) return "overdue";
+    if (daysUntil <= 7) return "due";
+    return "scheduled";
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "scheduled":
+        return "bg-primary/10 text-primary border-[hsl(var(--primary)) / 0.1]";
+      case "due":
+        return "bg-warning/10 text-warning border-warning/20";
+      case "overdue":
+        return "bg-destructive/10 text-destructive border-[hsl(var(--destructive)) / 0.1]";
+      case "completed":
+        return "bg-success/10 text-success border-[hsl(var(--success)) / 0.1]";
+      default:
+        return "bg-muted text-foreground border-border";
+    }
+  };
+
+  if (!hasOrgContext) {
+    return guard;
+  }
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId={WORK_ORDERS_MODULE_ID} />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t("fm.org.supportContext", "Support context: {{name}}", {
+            name: supportOrg.name,
+          })}
+        </div>
+      )}
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            {t("workOrders.pm.title", "Preventive Maintenance")}
+          </h1>
+          <p className="text-muted-foreground">
+            {t(
+              "workOrders.pm.subtitle",
+              "Schedule and track preventive maintenance activities",
+            )}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button className="btn-secondary">
+            {t("workOrders.pm.importSchedule", "Import Schedule")}
+          </button>
+          <button className="btn-primary">
+            + {t("workOrders.pm.newPM", "New PM Schedule")}
+          </button>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                {t("workOrders.scheduled", "Scheduled")}
+              </p>
+              <p className="text-2xl font-bold text-primary">8</p>
+            </div>
+            <div className="text-primary">📅</div>
+          </div>
+        </div>
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                {t("workOrders.pm.thisMonth", "Due This Month")}
+              </p>
+              <p className="text-2xl font-bold text-accent">3</p>
+            </div>
+            <div className="text-accent">⚠️</div>
+          </div>
+        </div>
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                {t("common.overdue", "Overdue")}
+              </p>
+              <p className="text-2xl font-bold text-destructive">2</p>
+            </div>
+            <div className="text-[hsl(var(--destructive)) / 0.1]">🔴</div>
+          </div>
+        </div>
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                {t("workOrders.completed", "Completed")}
+              </p>
+              <p className="text-2xl font-bold text-success">15</p>
+            </div>
+            <div className="text-success">✅</div>
+          </div>
+        </div>
+      </div>
+
+      {/* PM Schedule Table */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">
+            {t("workOrders.pm.schedulesTitle", "PM Schedules")}
+          </h3>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder={t(
+                "workOrders.pm.filters.search",
+                "Search schedules...",
+              )}
+              aria-label={t(
+                "workOrders.pm.filters.search",
+                "Search schedules...",
+              )}
+              className="px-3 py-2 border border-border rounded-2xl text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
+            />
+            <select className="px-3 py-2 border border-border rounded-2xl text-sm focus:ring-2 focus:ring-primary focus:border-transparent">
+              {propertyFilterOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {t(option.key, option.fallback)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-muted">
+              <tr>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("workOrders.pm.table.id", "ID")}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("workOrders.pm.table.title", "Title")}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("workOrders.pm.table.property", "Property")}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("workOrders.pm.frequency", "Frequency")}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("workOrders.pm.lastCompleted", "Last Done")}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("workOrders.pm.nextDue", "Next Due")}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("workOrders.pm.table.status", "Status")}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("workOrders.pm.table.assigned", "Assigned")}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("workOrders.pm.table.actions", "Actions")}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-card divide-y divide-border">
+              {pmSchedules.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={9}
+                    className="px-4 py-8 text-center text-muted-foreground"
+                  >
+                    {t(
+                      "workOrders.pm.emptyState",
+                      "No PM plans found. Create your first preventive maintenance schedule.",
+                    )}
+                  </td>
+                </tr>
+              ) : (
+                pmSchedules.map((schedule) => {
+                  const planStatus = getStatusForPlan(schedule);
+                  return (
+                    <tr key={schedule.id} className="hover:bg-muted">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-foreground">
+                        {schedule.planNumber}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-foreground">
+                        {schedule.title}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                        {schedule.propertyId}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                        {schedule.recurrencePattern}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                        {schedule.lastGeneratedDate ? (
+                          <ClientDate
+                            date={schedule.lastGeneratedDate}
+                            format="date-only"
+                          />
+                        ) : (
+                          t("common.notAvailable", "N/A")
+                        )}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                        {schedule.nextScheduledDate ? (
+                          <ClientDate
+                            date={schedule.nextScheduledDate}
+                            format="date-only"
+                          />
+                        ) : (
+                          t("common.notAvailable", "N/A")
+                        )}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(planStatus)}`}
+                        >
+                          {getWorkOrderStatusLabel(t, planStatus)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                        {t(
+                          "workOrders.pm.table.generated",
+                          "{{count}} WOs",
+                        ).replace(
+                          "{{count}}",
+                          String(schedule.stats?.totalGenerated ?? 0),
+                        )}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex gap-2">
+                          <button className="text-primary hover:text-primary">
+                            {t("common.edit", "Edit")}
+                          </button>
+                          <button className="text-success hover:text-success-foreground">
+                            {t("workOrders.pm.generate", "Generate")}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="card">
+        <h3 className="text-lg font-semibold mb-4">
+          {t("workOrders.quickActions", "Quick Actions")}
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">📅</div>
+            <div className="text-sm font-medium">
+              {t("workOrders.pm.quickActions.schedule", "Schedule PM")}
+            </div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">📋</div>
+            <div className="text-sm font-medium">
+              {t("workOrders.pm.quickActions.templates", "Templates")}
+            </div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">📊</div>
+            <div className="text-sm font-medium">
+              {t("workOrders.pm.quickActions.reports", "Reports")}
+            </div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">🔧</div>
+            <div className="text-sm font-medium">
+              {t("workOrders.pm.quickActions.checklists", "Checklists")}
+            </div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">⚙️</div>
+            <div className="text-sm font-medium">
+              {t("workOrders.pm.quickActions.settings", "Settings")}
+            </div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">📤</div>
+            <div className="text-sm font-medium">
+              {t("workOrders.pm.quickActions.export", "Export")}
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/forgot-password/page.tsx">
+<![CDATA[
+'use client';
+
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Mail, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { logger } from '@/lib/logger';
+import { BrandLogoWithCard } from '@/components/brand';
+
+export default function ForgotPassword() {
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
+  const { t } = useTranslation();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email })
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to send reset email');
+      }
+      
+      setSuccess(true);
+    } catch (err) {
+      // For tests and offline flows, show success state even if the backend stub fails
+      logger.warn('Password reset request failed (stub)', { error: err, email });
+      setSuccess(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (success) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-brand-500 via-success to-accent flex items-center justify-center p-4">
+        <div className="bg-card rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-8 h-8 text-success" />
+          </div>
+          
+          <h1 className="text-2xl font-bold text-foreground mb-4">
+            {t('forgotPassword.success.title', 'Check Your Email')}
+          </h1>
+          <p className="text-muted-foreground mb-6">
+            {t('forgotPassword.success.message', "We've sent a password reset link to")}{' '}
+            <strong>{email}</strong>
+          </p>
+          <p className="text-sm text-muted-foreground mb-8">
+            {t('forgotPassword.success.hint', "Didn't receive the email? Check your spam folder or try again.")}
+          </p>
+          
+          <div className="space-y-3">
+            <Button
+              onClick={() => setSuccess(false)}
+              variant="outline"
+              className="w-full"
+            >
+              {t('forgotPassword.sendAnother', 'Send Another Email')}
+            </Button>
+            <Link href="/login">
+              <Button variant="ghost" className="w-full">
+                <ArrowLeft className="w-4 h-4 me-2" />
+                {t('forgotPassword.backToLogin', 'Back to Login')}
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-brand-500 via-success to-accent flex items-center justify-center p-4">
+      <div className="bg-card rounded-2xl shadow-2xl p-8 max-w-md w-full">
+        <div className="text-center mb-8">
+          <div className="flex justify-center mb-4">
+            <BrandLogoWithCard 
+              size="lg" 
+              alt="Fixzit Logo"
+              fetchOrgLogo={false}
+              data-testid="forgot-password-logo"
+            />
+          </div>
+          <h1 className="text-2xl font-bold text-foreground mb-2">
+            {t('forgotPassword.title', 'Reset Your Password')}
+          </h1>
+          <p className="text-muted-foreground">
+            {t('forgotPassword.subtitle', "Enter your email address and we'll send you a reset link.")}
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
+              {t('forgotPassword.emailLabel', 'Email Address')}
+            </label>
+            <div className="relative">
+              <Mail className="absolute start-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" aria-hidden="true" />
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder={t('forgotPassword.emailPlaceholder', 'Enter your email address')}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="ps-10 h-12"
+                required
+              />
+            </div>
+          </div>
+
+          {error && (
+            <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-2xl text-destructive">
+              <AlertCircle className="h-5 w-5" />
+              <span className="text-sm">{error}</span>
+            </div>
+          )}
+
+          <Button
+            type="submit"
+            disabled={loading || !email}
+            className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold transition-colors"
+          >
+            {loading ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                {t('forgotPassword.sending', 'Sending Reset Link...')}
+              </div>
+            ) : (
+              t('forgotPassword.submit', 'Send Reset Link')
+            )}
+          </Button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <Link href="/login" className="text-primary hover:text-primary font-medium flex items-center justify-center gap-2 transition-colors">
+            <ArrowLeft className="w-4 h-4" />
+            {t('forgotPassword.backToLogin', 'Back to Login')}
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+</batch_content>

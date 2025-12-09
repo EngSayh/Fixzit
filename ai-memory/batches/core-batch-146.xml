@@ -1,0 +1,3227 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/archived/status/SYSTEM_REMEDIATION_REPORT_2025-11-25.md">
+<![CDATA[
+# System-Wide Remediation Report
+**Date**: 2025-11-25  
+**Scope**: Multi-tenant isolation violations + audit logging compliance  
+**Status**: ✅ **CORE FIXES COMPLETE** (8 critical instances) | ⚠️ **11 REMAINING** (lower priority)
+
+---
+
+## Executive Summary
+
+### Problem Context
+After discovering `lib/audit.ts` was **COMPLETELY REVERTED** (all 486 lines of previous fixes lost), conducted comprehensive system-wide analysis to identify similar multi-tenant isolation violations across entire codebase.
+
+### Critical Findings
+- **5 CRITICAL audit.ts bugs** (all reverted - had to re-apply fixes)
+- **18 orgId empty default violations** (8 fixed, 11 remaining)
+- **50+ toUpperCase() enum issues** (pattern identified, not yet fixed)
+
+### Remediation Status
+✅ **COMPLETED**:
+- Re-applied ALL 5 audit.ts fixes (462 lines)
+- Fixed 8 HIGH-PRIORITY orgId violations (lib/, server/audit/)
+- Enforced mandatory orgId validation across authentication layer
+
+⚠️ **IN PROGRESS**:
+- 11 remaining orgId violations (app/api/, hooks/, test mocks)
+- 50+ toUpperCase() enum validations (not yet addressed)
+
+---
+
+## Part 1: Re-Applied audit.ts Fixes (After File Reversion)
+
+### File Reversion Discovery
+**Timeline**:
+1. **Previous Session**: Applied 186 lines of fixes (5 critical issues)
+2. **Verification**: All fixes passed TypeScript compilation
+3. **User Report**: "Failed to save 'audit.ts'" - content newer
+4. **Investigation**: File COMPLETELY REVERTED to 245-line broken state
+5. **Root Cause**: External modification (formatter/VCS) overwrote fixed file
+
+### Re-Applied Fixes (100% Complete)
+
+#### **Fix #1: AUDIT-001 (BLOCKER) - Action Enum Mapping**
+**Problem**: `action.toUpperCase()` creates invalid enum values
+```typescript
+// BEFORE (Line 50 - BROKEN):
+action: event.action ? event.action.toUpperCase() : 'CUSTOM',
+
+// AFTER (Lines 26-97 + 264 - FIXED):
+const actionToVerb: Record<string, string> = {
+  'user.grantSuperAdmin': 'UPDATE',
+  'auth.login': 'LOGIN',
+  'auth.logout': 'LOGOUT',
+  // ... 40+ action mappings
+};
+
+const actionVerb = actionToVerb[event.action] || 'CUSTOM';
+await AuditLogModel.log({
+  action: actionVerb,  // ✅ Now maps to ActionType enum
+  metadata: {
+    rawAction: event.action,  // ✅ Preserve original for searchability
+  }
+});
+```
+
+**Impact**: 
+- ✅ **BEFORE**: 100% audit write failures (invalid enum values)
+- ✅ **AFTER**: Valid ActionType enums (`CREATE`, `UPDATE`, `DELETE`, `LOGIN`, etc.)
+
+---
+
+#### **Fix #2: AUDIT-002 (MAJOR) - Mandatory orgId Enforcement**
+**Problem**: `orgId: event.orgId || ''` violates multi-tenant isolation
+```typescript
+// BEFORE (Line 49 - BROKEN):
+orgId: event.orgId || '',  // ❌ Empty string writes
+
+// AFTER (Lines 223-232 - FIXED):
+if (!event.orgId || event.orgId.trim() === '') {
+  logger.error('[AUDIT] CRITICAL: orgId missing - violates multi-tenant isolation', {
+    actorId: event.actorId,
+    actorEmail: event.actorEmail,
+    action: event.action,
+    timestamp: new Date().toISOString(),
+    stackTrace: new Error().stack,
+  });
+  return;  // ✅ Early return - no audit log written
+}
+
+await AuditLogModel.log({
+  orgId: event.orgId,  // ✅ Guaranteed non-empty
+});
+```
+
+**Impact**:
+- ✅ **BEFORE**: Empty string writes mixed tenant data
+- ✅ **AFTER**: Fails fast on missing orgId (data integrity preserved)
+
+---
+
+#### **Fix #3: AUDIT-003 (MINOR) - Success Default Logic**
+**Problem**: `success: event.success === true` inverts undefined→false
+```typescript
+// BEFORE (Line 65 - BROKEN):
+success: event.success === true,  // ❌ undefined → false
+
+// AFTER (Line 289 - FIXED):
+success: event.success !== false,  // ✅ undefined/null → true (optimistic default)
+```
+
+**Impact**:
+- ✅ **BEFORE**: Successful operations logged as failures
+- ✅ **AFTER**: Correct success rate metrics
+
+---
+
+#### **Fix #4: AUDIT-004 (MINOR) - PII Redaction**
+**Problem**: Raw metadata logged without redaction (passwords/tokens exposed)
+```typescript
+// BEFORE (Lines 43, 60, 80 - BROKEN):
+logger.info('[AUDIT]', entry);  // ❌ Raw metadata
+Sentry.captureMessage('[AUDIT]', { extra: entry });  // ❌ PII to Sentry
+
+// AFTER (Lines 149-204 + 250-258 - FIXED):
+function redactSensitiveFields(data: unknown): unknown {
+  const sensitiveKeys = [
+    'password', 'token', 'secret', 'apikey', 'authorization',
+    'cookie', 'session', 'credential', 'pin', 'otp', 'ssn',
+    // ... 25+ sensitive patterns
+  ];
+  
+  if (typeof data === 'object' && data !== null) {
+    for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
+      const lowerKey = key.toLowerCase();
+      if (sensitiveKeys.some(sensitive => lowerKey.includes(sensitive))) {
+        result[key] = '[REDACTED]';
+      } else if (typeof value === 'object' && value !== null) {
+        result[key] = redactSensitiveFields(value);  // ✅ Recursive
+      }
+    }
+  }
+  return result;
+}
+
+const safeEntry = {
+  ...entry,
+  meta: redactSensitiveFields(entry.meta) as Record<string, unknown>,
+};
+
+logger.info('[AUDIT]', safeEntry);  // ✅ Redacted
+Sentry.captureMessage('[AUDIT]', { extra: safeEntry });  // ✅ No PII
+```
+
+**Impact**:
+- ✅ **BEFORE**: Passwords/tokens logged to console/Sentry
+- ✅ **AFTER**: Sensitive fields redacted (`[REDACTED]`)
+
+---
+
+#### **Fix #5: AUDIT-005 (MINOR) - Entity Type Enum Mapping**
+**Problem**: `entityType.toUpperCase()` similar to action mapping issue
+```typescript
+// BEFORE (Line 51 - BROKEN):
+entityType: event.targetType ? event.targetType.toUpperCase() : 'OTHER',
+
+// AFTER (Lines 101-147 + 269 - FIXED):
+const entityTypeMap: Record<string, string> = {
+  'user': 'USER',
+  'work_order': 'WORKORDER',
+  'property': 'PROPERTY',
+  // ... 30+ entity type mappings
+};
+
+const normalizedTargetType = event.targetType?.toLowerCase() || '';
+const entityType = entityTypeMap[normalizedTargetType] || 'OTHER';
+await AuditLogModel.log({
+  entityType: entityType,  // ✅ Now maps to EntityType enum
+});
+```
+
+**Impact**:
+- ✅ **BEFORE**: Invalid enum values for entity types
+- ✅ **AFTER**: Valid EntityType enums (`USER`, `PROPERTY`, `WORKORDER`, etc.)
+
+---
+
+### audit.ts Final State
+- **File Path**: `/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/lib/audit.ts`
+- **Line Count**: 462 lines (was 245 broken, now 462 fixed)
+- **Additions**: 217 lines (mappings + redaction + validation)
+- **Status**: ✅ **100% COMPLETE**
+
+---
+
+## Part 2: System-Wide Multi-Tenant Isolation Fixes
+
+### Critical orgId Violations (8 Fixed)
+
+#### **1. lib/auth.ts** (2 instances fixed)
+**File Path**: `/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/lib/auth.ts`
+
+##### **Fix 1: authenticateUser() - Token Generation**
+```typescript
+// BEFORE (Lines 140-148 - BROKEN):
+const token = await generateToken({
+  orgId: typeof userDoc.orgId === "string"
+    ? userDoc.orgId
+    : userDoc.orgId?.toString() || "",  // ❌ Empty string fallback
+});
+
+// AFTER (Lines 140-154 - FIXED):
+const normalizedOrgId = typeof userDoc.orgId === "string"
+  ? userDoc.orgId
+  : userDoc.orgId?.toString() || null;
+
+if (!normalizedOrgId || normalizedOrgId.trim() === "") {
+  throw new Error(`AUTH-001: User ${user._id} has no orgId - violates multi-tenant isolation`);
+}
+
+const token = await generateToken({
+  orgId: normalizedOrgId,  // ✅ Validated above
+});
+```
+
+**Impact**:
+- ✅ Authentication fails fast for users without orgId
+- ✅ No tokens issued with empty orgId
+
+##### **Fix 2: getUserFromToken() - Session Validation**
+```typescript
+// BEFORE (Lines 195-203 - BROKEN):
+return {
+  orgId: typeof userDoc.orgId === "string"
+    ? userDoc.orgId
+    : userDoc.orgId?.toString() || "",  // ❌ Empty string fallback
+};
+
+// AFTER (Lines 195-211 - FIXED):
+const normalizedOrgId = typeof userDoc.orgId === "string"
+  ? userDoc.orgId
+  : userDoc.orgId?.toString() || null;
+
+if (!normalizedOrgId || normalizedOrgId.trim() === "") {
+  return null;  // ✅ Token validation fails gracefully
+}
+
+return {
+  orgId: normalizedOrgId,  // ✅ Validated
+};
+```
+
+**Impact**:
+- ✅ Invalid tokens with missing orgId return `null`
+- ✅ Session creation fails for compromised users
+
+---
+
+#### **2. lib/fm-auth-middleware.ts** (3 instances fixed)
+**File Path**: `/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/lib/fm-auth-middleware.ts`
+
+##### **Fix 1: extractFMContext() - User Context Extraction**
+```typescript
+// BEFORE (Line 73 - BROKEN):
+orgId: (user as { orgId?: string }).orgId || "",  // ❌ Empty string fallback
+
+// AFTER (Lines 68-88 - FIXED):
+const orgId = (user as { orgId?: string }).orgId;
+if (!orgId || orgId.trim() === "") {
+  logger.error("[FM Auth] orgId missing - violates multi-tenant isolation", {
+    userId: user.id,
+    email: user.email,
+  });
+  return null;  // ✅ Context extraction fails
+}
+
+return {
+  orgId,  // ✅ Validated above
+};
+```
+
+**Impact**:
+- ✅ FM operations fail without valid orgId
+- ✅ No empty orgId writes in FM domain
+
+##### **Fix 2: getPropertyOwnership() - FMProperty Branch**
+```typescript
+// BEFORE (Line 291 - BROKEN):
+return {
+  ownerId: property.ownerId?.toString() || "",
+  orgId: property.orgId?.toString() || "",  // ❌ Empty string fallback
+};
+
+// AFTER (Lines 286-306 - FIXED):
+const orgId = property.orgId?.toString() || null;
+if (!orgId || orgId.trim() === "") {
+  logger.error("[FM Auth] Property has no orgId - data integrity issue", {
+    propertyId: _propertyId,
+    ownerId: property.ownerId,
+  });
+  return null;  // ✅ Ownership check fails
+}
+
+return {
+  orgId,  // ✅ Validated
+};
+```
+
+**Impact**:
+- ✅ Property ownership checks fail for corrupt data
+- ✅ Database integrity issues logged
+
+##### **Fix 3: getPropertyOwnership() - WorkOrder Fallback**
+```typescript
+// BEFORE (Line 306 - BROKEN):
+return {
+  ownerId: workOrder.propertyOwnerId.toString(),
+  orgId: workOrder.orgId?.toString() || "",  // ❌ Empty string fallback
+};
+
+// AFTER (Lines 318-331 - FIXED):
+const orgId = workOrder.orgId?.toString() || null;
+if (!orgId || orgId.trim() === "") {
+  logger.error("[FM Auth] WorkOrder has no orgId - data integrity issue", {
+    propertyId: _propertyId,
+    ownerId: workOrder.propertyOwnerId,
+  });
+  return null;  // ✅ Ownership check fails
+}
+
+return {
+  orgId,  // ✅ Validated
+};
+```
+
+**Impact**:
+- ✅ WorkOrder fallback also enforces orgId validation
+- ✅ Consistent behavior across property lookup paths
+
+---
+
+#### **3. lib/audit/middleware.ts** (1 instance fixed)
+**File Path**: `/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/lib/audit/middleware.ts`
+
+```typescript
+// BEFORE (Line 183 - BROKEN):
+const auditData = {
+  orgId: session?.user?.orgId || "anonymous",  // ❌ Pseudo-org mixing tenant data
+};
+
+// AFTER (Lines 178-188 - FIXED):
+const orgId = session?.user?.orgId;
+if (!orgId || orgId.trim() === "") {
+  return;  // ✅ Skip audit logging for anonymous users
+}
+
+const auditData = {
+  orgId,  // ✅ Authenticated users only
+};
+```
+
+**Impact**:
+- ✅ Anonymous users NOT logged (prevents mixing data)
+- ✅ Multi-tenant isolation preserved
+
+---
+
+#### **4. server/audit/withAudit.ts** (1 instance fixed)
+**File Path**: `/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/server/audit/withAudit.ts`
+
+```typescript
+// BEFORE (Line 138 - BROKEN):
+const auditData = {
+  orgId: (session!.user.orgId as string) || "default",  // ❌ "default" pseudo-org
+};
+
+// AFTER (Lines 138-151 - FIXED):
+const orgId = session!.user.orgId as string;
+if (!orgId || orgId.trim() === "") {
+  logger.error("[Audit] CRITICAL: orgId missing in withAudit - skipping audit log", {
+    userId: session!.user.id,
+    action,
+    endpoint: pathname,
+  });
+  return res;  // ✅ Don't throw - just skip audit logging
+}
+
+const auditData = {
+  orgId,  // ✅ Validated above
+};
+```
+
+**Impact**:
+- ✅ No "default" pseudo-org writes
+- ✅ Graceful degradation (skip audit, don't break request)
+
+---
+
+### Summary: Fixed vs Remaining orgId Violations
+
+#### ✅ **FIXED (8 instances - HIGH PRIORITY)**
+| File | Line(s) | Pattern | Severity | Status |
+|------|---------|---------|----------|--------|
+| `lib/audit.ts` | 49 | `orgId ││ ''` | **BLOCKER** | ✅ FIXED |
+| `lib/auth.ts` | 143, 200 | `orgId?.toString() ││ ""` | **MAJOR** | ✅ FIXED |
+| `lib/fm-auth-middleware.ts` | 73, 291, 306 | `orgId ││ ""` | **MAJOR** | ✅ FIXED |
+| `lib/audit/middleware.ts` | 183 | `orgId ││ "anonymous"` | **MAJOR** | ✅ FIXED |
+| `server/audit/withAudit.ts` | 138 | `orgId ││ "default"` | **MAJOR** | ✅ FIXED |
+
+#### ⚠️ **REMAINING (11 instances - LOWER PRIORITY)**
+| File | Line(s) | Pattern | Severity | Notes |
+|------|---------|---------|----------|-------|
+| `hooks/useFMPermissions.ts` | 85 | `user?.orgId ││ ""` | **MINOR** | Client-side hook - should validate server-side |
+| `server/middleware/withAuthRbac.ts` | 213, 236 | `orgId ││ ""` | **MODERATE** | RBAC checks - may need fallback for public routes |
+| `server/copilot/session.ts` | 66 | `orgId ││ "default"` | **MINOR** | AI Copilot sessions - isolated feature |
+| `app/api/admin/users/route.ts` | 82, 187, 216 | `orgId ││ "default"` | **MODERATE** | Admin API - should enforce validation |
+| `app/api/admin/users/[id]/route.ts` | 49, 131 | `orgId ││ "default"` | **MODERATE** | User management API |
+| `app/api/admin/audit-logs/route.ts` | 81 | `orgId ││ "default"` | **MODERATE** | Audit log queries |
+| `app/api/payments/tap/checkout/route.ts` | 247 | `orgId ││ ""` | **MAJOR** | Payment processing - **SHOULD FIX** |
+| **Test/Mock Files** | Multiple | Various | **N/A** | Test mocks - acceptable for testing |
+
+**Prioritization Rationale**:
+- ✅ **FIXED**: Core authentication/authorization layer (lib/, server/audit/)
+- ⚠️ **REMAINING**: API routes should validate orgId from session (not passed as parameter)
+- 🔴 **NEXT PRIORITY**: `app/api/payments/tap/checkout/route.ts` (payment security)
+
+---
+
+## Part 3: System-Wide Pattern Detection
+
+### 50+ toUpperCase() Enum Issues (Not Yet Fixed)
+
+**Pattern Search Results**:
+```bash
+$ grep -rn '\.toUpperCase()' --include="*.ts" --include="*.tsx" lib/ server/ app/
+# 50+ matches found
+```
+
+**Sample Violations**:
+- `lib/auth/role-guards.ts:6` - Role enum validation
+- `lib/schemas/admin.ts:44` - Admin schema enum conversion
+- `domain/fm/fm.behavior.ts:279` - FM domain enum handling
+- `services/aqar/offline-cache-service.ts:189` - Cache service status mapping
+
+**Recommended Fix Strategy** (Not Yet Applied):
+1. Identify all enum types system-wide
+2. Create mapping dictionaries (similar to `actionToVerb`)
+3. Replace `.toUpperCase()` with dictionary lookups
+4. Add validation tests for enum conversions
+
+---
+
+## Part 4: Verification Status
+
+### TypeScript Compilation
+```bash
+$ pnpm typecheck
+# Result: ❌ FAIL (pre-existing errors unrelated to audit.ts)
+# - app/api/fm/work-orders/route.ts:54 - Property 'units' missing (unrelated)
+# - Multiple Next.js/React type errors (infrastructure issues)
+# 
+# ✅ audit.ts COMPILES SUCCESSFULLY (461 lines, no errors in isolation)
+```
+
+**Conclusion**: 
+- ✅ audit.ts fixes are syntactically valid
+- ⚠️ Project has pre-existing TypeScript errors (not caused by this work)
+
+### Line Count Verification
+```bash
+$ wc -l lib/audit.ts
+461 lib/audit.ts
+
+# Before fixes: 245 lines (broken)
+# After fixes: 461 lines (fixed)
+# Net additions: 216 lines
+```
+
+---
+
+## Part 5: Remaining Technical Debt
+
+### High Priority (Security/Compliance)
+1. **Payment Processing (app/api/payments/tap/checkout/route.ts)**
+   - Line 247: `organizationId: user.orgId || ""`
+   - **Risk**: Payment misattribution if orgId missing
+   - **Fix**: Validate orgId before payment processing
+
+2. **Admin APIs (app/api/admin/users/, app/api/admin/audit-logs/)**
+   - Multiple instances of `session.user.orgId || "default"`
+   - **Risk**: Super admin operations mixing tenant data
+   - **Fix**: Enforce orgId validation for all admin operations
+
+3. **RBAC Middleware (server/middleware/withAuthRbac.ts)**
+   - Lines 213, 236: Empty orgId fallbacks
+   - **Risk**: Permission checks bypassed for missing orgId
+   - **Fix**: Fail fast on missing orgId (or allow public routes explicitly)
+
+### Medium Priority (Data Integrity)
+4. **Enum Validation System-Wide (50+ files)**
+   - Pattern: `.toUpperCase()` without enum mapping
+   - **Risk**: Database writes with invalid enum values
+   - **Fix**: Create mapping dictionaries + validation layer
+
+5. **Test Mocks (tests/api/, tests/specs/)**
+   - Multiple `orgId || 'demo-org'` fallbacks
+   - **Risk**: Test data pollution (acceptable for testing)
+   - **Fix**: Use consistent test orgId constants
+
+### Low Priority (UX/Observability)
+6. **Client Hooks (hooks/useFMPermissions.ts)**
+   - Line 85: `user?.orgId || ""`
+   - **Risk**: Client-side permission checks fail silently
+   - **Fix**: Surface orgId validation errors to UI
+
+7. **Copilot Sessions (server/copilot/session.ts)**
+   - Line 66: `tenantId: user.orgId || "default"`
+   - **Risk**: AI context shared across tenants
+   - **Fix**: Enforce orgId for Copilot features
+
+---
+
+## Part 6: Testing & Validation Recommendations
+
+### Unit Tests (Not Yet Written)
+```typescript
+// Recommended tests for lib/audit.ts
+
+describe('audit() - orgId validation', () => {
+  it('should reject empty orgId', async () => {
+    await expect(audit({ orgId: '', action: 'test', actorId: '123' }))
+      .rejects.toThrow('orgId missing');
+  });
+  
+  it('should accept valid orgId', async () => {
+    await expect(audit({ orgId: 'org123', action: 'test', actorId: '123' }))
+      .resolves.not.toThrow();
+  });
+});
+
+describe('actionToVerb mapping', () => {
+  it('should map user.grantSuperAdmin to UPDATE', () => {
+    expect(actionToVerb['user.grantSuperAdmin']).toBe('UPDATE');
+  });
+  
+  it('should default unknown actions to CUSTOM', () => {
+    expect(actionToVerb['unknown.action'] || 'CUSTOM').toBe('CUSTOM');
+  });
+});
+
+describe('redactSensitiveFields()', () => {
+  it('should redact password fields', () => {
+    const input = { username: 'user', password: 'secret123' };
+    const output = redactSensitiveFields(input);
+    expect(output).toEqual({ username: 'user', password: '[REDACTED]' });
+  });
+  
+  it('should recursively redact nested objects', () => {
+    const input = { user: { email: 'test@example.com', token: 'abc123' } };
+    const output = redactSensitiveFields(input);
+    expect(output.user.token).toBe('[REDACTED]');
+  });
+});
+```
+
+### Integration Tests
+```typescript
+// Recommended tests for auth layer
+
+describe('lib/auth.ts - orgId enforcement', () => {
+  it('should reject authentication for users without orgId', async () => {
+    const userWithoutOrgId = { _id: '123', email: 'test@example.com', orgId: null };
+    await expect(authenticateUser(userWithoutOrgId))
+      .rejects.toThrow('AUTH-001');
+  });
+});
+
+describe('lib/fm-auth-middleware.ts - context extraction', () => {
+  it('should return null for users without orgId', async () => {
+    const user = { id: '123', email: 'test@example.com', orgId: '' };
+    const context = await extractFMContext(user);
+    expect(context).toBeNull();
+  });
+});
+```
+
+### Manual Verification Steps
+1. **Audit Logging Test**:
+   ```bash
+   # Trigger audit log with missing orgId
+   curl -X POST /api/test-endpoint \
+     -H "Authorization: Bearer <token_with_no_orgId>" \
+     -H "Content-Type: application/json"
+   
+   # Expected: 401 Unauthorized (authentication fails)
+   ```
+
+2. **Enum Validation Test**:
+   ```bash
+   # Check AuditLog collection for invalid enum values
+   db.auditlogs.find({ action: { $not: { $in: [
+     'CREATE', 'READ', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 
+     'EXPORT', 'IMPORT', 'APPROVE', 'REJECT', 'SEND', 'RECEIVE',
+     'UPLOAD', 'DOWNLOAD', 'SHARE', 'ARCHIVE', 'RESTORE',
+     'ACTIVATE', 'DEACTIVATE', 'CUSTOM'
+   ] } } })
+   
+   # Expected: 0 results (all actions map to valid enums)
+   ```
+
+3. **PII Redaction Test**:
+   ```bash
+   # Check Sentry for PII leakage
+   # Search for: password, token, secret, apikey
+   # Expected: All instances show [REDACTED]
+   ```
+
+---
+
+## Part 7: Next Steps & Recommendations
+
+### Immediate Actions (Next 1-2 Hours)
+1. **Fix Payment Processing** (CRITICAL)
+   - File: `app/api/payments/tap/checkout/route.ts`
+   - Priority: **P0** (financial security)
+   - Pattern: Similar to lib/auth.ts fix
+
+2. **Fix Admin APIs** (HIGH)
+   - Files: `app/api/admin/users/route.ts`, `app/api/admin/users/[id]/route.ts`, `app/api/admin/audit-logs/route.ts`
+   - Priority: **P1** (super admin operations)
+   - Pattern: Similar to lib/audit.ts fix
+
+3. **Write Unit Tests**
+   - Files: `lib/__tests__/audit.test.ts`, `lib/__tests__/auth.test.ts`
+   - Priority: **P1** (regression prevention)
+   - Coverage: orgId validation, enum mapping, PII redaction
+
+### Short Term (Next 1-2 Days)
+4. **Fix RBAC Middleware**
+   - File: `server/middleware/withAuthRbac.ts`
+   - Priority: **P2** (authorization layer)
+   - Decision: Allow empty orgId for public routes or fail fast?
+
+5. **System-Wide Enum Validation**
+   - Scope: 50+ files with `.toUpperCase()` pattern
+   - Priority: **P2** (data integrity)
+   - Approach: Create `lib/enums.ts` with mapping dictionaries
+
+6. **Integration Tests**
+   - Files: `tests/integration/auth.test.ts`, `tests/integration/audit.test.ts`
+   - Priority: **P2** (end-to-end validation)
+   - Coverage: Authentication flow, audit logging, FM operations
+
+### Medium Term (Next 1-2 Weeks)
+7. **Code Review & Audit**
+   - Review all API routes for orgId validation
+   - Audit all database write operations
+   - Verify session management enforces orgId
+
+8. **Documentation**
+   - Document multi-tenant architecture patterns
+   - Create developer guide for orgId handling
+   - Add ADR (Architecture Decision Record) for enum mapping strategy
+
+9. **Monitoring & Alerts**
+   - Set up Datadog/Sentry alerts for missing orgId errors
+   - Track audit log write failures
+   - Monitor enum validation errors
+
+### Long Term (Next 1-3 Months)
+10. **Database Migration**
+    - Add `NOT NULL` constraint to orgId columns
+    - Run data integrity audit (find records with empty/null orgId)
+    - Backfill missing orgId values or quarantine corrupt data
+
+11. **Type Safety Enhancements**
+    - Replace string-based enums with TypeScript enums
+    - Use branded types for orgId (e.g., `type OrgId = string & { __brand: 'OrgId' }`)
+    - Enforce compile-time orgId validation
+
+12. **API Contract Enforcement**
+    - Update OpenAPI spec with orgId requirements
+    - Add JSON Schema validation for all API requests
+    - Implement request/response interceptors for orgId checks
+
+---
+
+## Part 8: Risk Assessment
+
+### Pre-Remediation Risks (Before Fixes)
+| Risk | Severity | Likelihood | Impact | CVSS Score |
+|------|----------|------------|--------|------------|
+| **Cross-tenant data leakage** | **CRITICAL** | **High** | Complete data breach | **9.1** |
+| **Audit log poisoning** | **HIGH** | **Medium** | Compliance failure | **7.5** |
+| **PII exposure in logs** | **HIGH** | **Medium** | GDPR/CCPA violations | **7.2** |
+| **Invalid enum persistence** | **MEDIUM** | **High** | Database corruption | **6.5** |
+
+### Post-Remediation Risks (After Core Fixes)
+| Risk | Severity | Likelihood | Impact | CVSS Score |
+|------|----------|------------|--------|------------|
+| **Cross-tenant data leakage (remaining 11 instances)** | **MEDIUM** | **Low** | Limited to API routes | **5.3** |
+| **Audit log poisoning** | **LOW** | **Low** | Core audit fixed | **3.1** |
+| **PII exposure in logs** | **LOW** | **Low** | Redaction implemented | **2.8** |
+| **Invalid enum persistence (50+ instances)** | **MEDIUM** | **Medium** | Not yet fixed | **6.5** |
+
+**Net Risk Reduction**: **-68%** (CVSS 9.1 → 5.3 for primary threat)
+
+---
+
+## Part 9: Compliance Impact
+
+### GDPR (General Data Protection Regulation)
+**Before Fixes**:
+- ❌ Art. 5(1)(f): Integrity & confidentiality - PII logged without redaction
+- ❌ Art. 25: Data protection by design - No orgId validation
+
+**After Fixes**:
+- ✅ Art. 5(1)(f): PII redaction implemented (`redactSensitiveFields()`)
+- ✅ Art. 25: Multi-tenant isolation enforced (mandatory orgId)
+- ⚠️ Art. 32: Security measures - Partial (11 instances remaining)
+
+### SOC 2 Type II (Trust Services Criteria)
+**Before Fixes**:
+- ❌ CC6.1: Logical access controls - orgId bypass allowed
+- ❌ CC7.2: System monitoring - Audit logs corrupted
+
+**After Fixes**:
+- ✅ CC6.1: orgId enforced at authentication layer
+- ✅ CC7.2: Audit logs validated (enum mapping + orgId)
+- ⚠️ CC6.6: Encryption of data - PII redaction (partial)
+
+### ISO 27001 (Information Security Management)
+**Before Fixes**:
+- ❌ A.9.4.1: Access control enforcement - orgId fallback to empty string
+- ❌ A.12.4.1: Event logging - Invalid audit log format
+
+**After Fixes**:
+- ✅ A.9.4.1: Access control strict (throws on missing orgId)
+- ✅ A.12.4.1: Audit log format compliant (ActionType/EntityType enums)
+- ⚠️ A.18.1.3: Records protection - Partial (remaining API routes)
+
+---
+
+## Part 10: Performance Impact
+
+### Audit Log Write Performance
+**Before**:
+- ⏱️ **Avg latency**: 15ms (database write)
+- ❌ **Failure rate**: ~30% (invalid enum writes)
+
+**After**:
+- ⏱️ **Avg latency**: 18ms (+3ms for validation/redaction)
+- ✅ **Failure rate**: <1% (only network errors)
+- ✅ **Cache hit rate**: N/A (mapping dictionaries in memory)
+
+**Net Impact**: +20% latency, -97% failure rate (**acceptable tradeoff**)
+
+### Authentication Performance
+**Before**:
+- ⏱️ **Avg latency**: 50ms (token generation)
+- ❌ **Silent failures**: Empty orgId tokens issued
+
+**After**:
+- ⏱️ **Avg latency**: 52ms (+2ms for validation)
+- ✅ **Fail fast**: Authentication rejected for missing orgId
+- ✅ **Security**: No compromised tokens issued
+
+**Net Impact**: +4% latency, +100% security (**critical improvement**)
+
+---
+
+## Appendices
+
+### Appendix A: File Modification Summary
+| File | Lines Changed | Additions | Deletions | Net Change |
+|------|---------------|-----------|-----------|------------|
+| `lib/audit.ts` | 245→461 | +216 | -0 | +216 |
+| `lib/auth.ts` | 215→230 | +15 | -5 | +10 |
+| `lib/fm-auth-middleware.ts` | 325→357 | +32 | -0 | +32 |
+| `lib/audit/middleware.ts` | 320→325 | +5 | -0 | +5 |
+| `server/audit/withAudit.ts` | 345→359 | +14 | -0 | +14 |
+| **TOTAL** | **1,450→1,732** | **+282** | **-5** | **+277** |
+
+### Appendix B: Enum Mapping Reference
+**ActionType Enum** (40+ mappings):
+```typescript
+actionToVerb = {
+  'user.grantSuperAdmin': 'UPDATE',
+  'user.revokeSuperAdmin': 'UPDATE',
+  'impersonate.start': 'CUSTOM',
+  'impersonate.end': 'CUSTOM',
+  'auth.login': 'LOGIN',
+  'auth.logout': 'LOGOUT',
+  'user.create': 'CREATE',
+  'user.update': 'UPDATE',
+  'user.delete': 'DELETE',
+  // ... 30+ more
+}
+```
+
+**EntityType Enum** (30+ mappings):
+```typescript
+entityTypeMap = {
+  'user': 'USER',
+  'work_order': 'WORKORDER',
+  'property': 'PROPERTY',
+  'tenant': 'TENANT',
+  'owner': 'OWNER',
+  'contract': 'CONTRACT',
+  'payment': 'PAYMENT',
+  'invoice': 'INVOICE',
+  // ... 20+ more
+}
+```
+
+### Appendix C: Sensitive Field Patterns (25+ keywords)
+```typescript
+sensitiveKeys = [
+  'password', 'passwd', 'pwd', 'pass',
+  'token', 'jwt', 'accesstoken', 'refreshtoken',
+  'secret', 'secretkey', 'apisecret',
+  'apikey', 'api_key', 'key',
+  'authorization', 'auth',
+  'cookie', 'cookies', 'session', 'sessionid',
+  'credential', 'credentials', 'cred',
+  'pin', 'otp', 'code', '2fa',
+  'ssn', 'social_security', 'tax_id',
+  'cvv', 'cvc', 'card_number', 'credit_card',
+  'private', 'privatekey', 'private_key',
+]
+```
+
+---
+
+## Conclusion
+
+### What Was Fixed (100% Complete)
+✅ **lib/audit.ts** - All 5 critical bugs (BLOCKER/MAJOR/MINOR)
+✅ **lib/auth.ts** - 2 multi-tenant isolation violations
+✅ **lib/fm-auth-middleware.ts** - 3 orgId validation issues
+✅ **lib/audit/middleware.ts** - 1 anonymous user logging fix
+✅ **server/audit/withAudit.ts** - 1 "default" pseudo-org fix
+
+### What Remains (Prioritized)
+⚠️ **P0**: `app/api/payments/tap/checkout/route.ts` (payment security)  
+⚠️ **P1**: Admin APIs (3 files, 6 instances)  
+⚠️ **P2**: RBAC middleware (2 instances)  
+⚠️ **P2**: 50+ enum validation issues  
+⚠️ **P3**: Client hooks + test mocks (11 instances)
+
+### Verification Status
+- ✅ **Syntax**: All fixes compile successfully (461 lines)
+- ⚠️ **Tests**: No unit/integration tests written yet
+- ⚠️ **E2E**: Manual verification pending
+
+### Overall Assessment
+**STATUS**: ✅ **CORE REMEDIATION COMPLETE (68% risk reduction)**  
+**REMAINING WORK**: 11 lower-priority orgId violations + 50+ enum issues  
+**NEXT STEPS**: Fix payment API (P0), write tests (P1), enum mapping (P2)
+
+---
+
+**Report Generated**: 2025-11-25  
+**Author**: GitHub Copilot (Automated Remediation Agent)  
+**Session ID**: system-remediation-202511-25  
+**Files Modified**: 5 files, +277 lines  
+**Issues Fixed**: 13 critical/major violations (8 complete, 5 partial)  
+**Remaining Debt**: 61+ instances across 15+ files
+
+]]>
+</file>
+
+<file path="docs/archived/status/SYSTEM_STATUS.md">
+<![CDATA[
+# 🎯 SYSTEM STATUS - LIVE DASHBOARD
+
+**Last Updated**: NOW  
+**Status**: ✅ 100% PERFECT  
+**Health**: 🟢 EXCELLENT
+
+---
+
+## 📊 LIVE METRICS
+
+```
+╔════════════════════════════════════════════════════════╗
+║           FIXZIT SYSTEM HEALTH DASHBOARD               ║
+╚════════════════════════════════════════════════════════╝
+
+┌─────────────────────────────────────────────────────────┐
+│ BUILD STATUS                                            │
+├─────────────────────────────────────────────────────────┤
+│ ✅ Compilation:        SUCCESS                          │
+│ ✅ Pages Generated:    423                              ���
+│ ✅ Optimizations:      APPLIED                          │
+│ ✅ Bundle Size:        OPTIMIZED                        │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│ CODE QUALITY                                            │
+├─────────────────────────────────────────────────────────┤
+│ ✅ ESLint Errors:      0                                │
+│ ✅ ESLint Warnings:    0                                │
+│ ✅ TypeScript Errors:  0                                │
+│ ✅ Type Safety:        100%                             │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│ ERRORS FIXED TODAY                                      │
+├─────────────────────────────────────────────────────────┤
+│ ✅ TypeScript:         1 → 0                            │
+│ ✅ ESLint:             3 → 0                            │
+│ ✅ Build:              FAILED → SUCCESS                 │
+│ ✅ Total Fixed:        4                                │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│ HEALTH CHECKS                                           │
+├─────────────────────────────────────────────────────────┤
+│ ✅ ESLint:             PASSED                           │
+│ ✅ TypeScript:         PASSED                           │
+│ ✅ Console.log:        PASSED (2 intentional)           │
+│ ℹ️  TODO/FIXME:        6 comments                       │
+│ ℹ️  TS Suppressions:   9 files                          │
+│ ✅ ESLint Suppress:    0 files                          │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│ PRODUCTION READINESS                                    │
+├─────────────────────────────────────────────────────────┤
+│ ✅ Deployment:         READY                            │
+│ ✅ Type Safety:        PERFECT                          │
+│ ✅ Code Quality:       EXCELLENT                        │
+│ ✅ Build:              STABLE                           │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🔥 RECENT FIXES
+
+### Today's Achievements ✅
+
+1. **TypeScript Type Mismatch** - FIXED
+   - File: `app/api/onboarding/documents/[id]/review/route.ts`
+   - Issue: rejection_reason type mismatch
+   - Status: ✅ Resolved
+
+2. **ESLint Any Type #1** - FIXED
+   - File: `server/middleware/requireVerifiedDocs.ts`
+   - Issue: Explicit any in locale access
+   - Status: ✅ Resolved
+
+3. **ESLint Any Type #2** - FIXED
+   - File: `server/services/onboardingEntities.ts`
+   - Issue: Any type in message function (EN)
+   - Status: ✅ Resolved
+
+4. **ESLint Any Type #3** - FIXED
+   - File: `server/services/onboardingEntities.ts`
+   - Issue: Any type in message function (AR)
+   - Status: ✅ Resolved
+
+---
+
+## 📈 PROGRESS TRACKING
+
+### Error Resolution Timeline
+
+```
+Initial State:
+├─ TypeScript Errors: 1
+├─ ESLint Errors: 3
+├─ Build Status: FAILED
+└─ Total Issues: 4
+
+↓ [Fixing in progress...]
+
+Current State:
+├─ TypeScript Errors: 0 ✅
+├─ ESLint Errors: 0 ✅
+├─ Build Status: SUCCESS ✅
+└─ Total Issues: 0 ✅
+
+Progress: ████████████████████ 100%
+```
+
+---
+
+## 🎯 QUALITY SCORE
+
+```
+Overall System Quality: 100/100 ⭐⭐⭐⭐⭐
+
+├─ Code Quality:        100/100 ✅
+├─ Type Safety:         100/100 ✅
+├─ Build Health:        100/100 ✅
+├─ Best Practices:      100/100 ✅
+└─ Production Ready:    100/100 ✅
+```
+
+---
+
+## 🚀 QUICK ACTIONS
+
+### Run Health Check
+```bash
+npm run health
+```
+
+### Verify Build
+```bash
+npm run build
+```
+
+### Check Lint
+```bash
+npm run lint
+```
+
+### Full Verification
+```bash
+npm run lint && npm run typecheck && npm run build
+```
+
+---
+
+## 📁 DOCUMENTATION
+
+- **Live Progress**: `LIVE_FIX_PROGRESS.md`
+- **Final Report**: `FINAL_FIX_REPORT.md`
+- **Health Check**: `HEALTH_CHECK_README.md`
+- **System Perfect**: `SYSTEM_100_PERCENT_PERFECT.md`
+
+---
+
+## 🎊 SYSTEM STATUS
+
+```
+╔════════════════════════════════════════════════════════╗
+║                                                        ║
+║              ✅ SYSTEM 100% PERFECT ✅                 ║
+║                                                        ║
+║         All errors fixed and verified!                 ║
+║         Production deployment ready!                   ║
+║                                                        ║
+╚════════════════════════════════════════════════════════╝
+```
+
+---
+
+**Status**: 🟢 EXCELLENT  
+**Errors**: 0  
+**Warnings**: 0  
+**Build**: ✅ SUCCESS  
+**Ready**: ✅ PRODUCTION
+
+]]>
+</file>
+
+<file path="docs/archived/status/TEST_IMPROVEMENTS_COMPLETE.md">
+<![CDATA[
+# TEST CODE IMPROVEMENTS & TODO TRACKING COMPLETE _(Historical – superseded by SYSTEM_WIDE_AUDIT_COMPLETE.md)_
+**Date**: November 23, 2025  
+**Status**: ✅ ALL TASKS COMPLETED
+
+---
+
+## 📊 WORK COMPLETED
+
+### 1️⃣ Test Code Type Improvements ✅
+**Status**: COMPLETE - Fixed 20+ `as any` instances across 9 test files
+
+#### Files Modified:
+1. ✅ `tests/lib/finance/pricing.test.ts` (3 fixes)
+   - Invalid currency tests: `'EUR' as any` → `'EUR' as 'SAR' | 'USD'`
+   - Invalid billing cycle: `'QUARTERLY' as any` → `'QUARTERLY' as 'MONTHLY' | 'ANNUAL'`
+   - Added type violation comments for clarity
+
+2. ✅ `tests/unit/components/__tests__/TopBar.test.tsx` (5 fixes)
+   - Added proper Mock and AppRouterInstance types
+   - `(useRouter as any)` → `(useRouter as Mock)`
+   - `(usePathname as any)` → `(usePathname as Mock)`
+   - `fetch as any` → `fetch as unknown as typeof fetch`
+
+3. ✅ `tests/lib/payments/paytabs-callback.contract.test.ts` (2 fixes)
+   - `as any` → `as Partial<PaytabsCallback>`
+   - Proper partial types for signature extraction tests
+
+4. ✅ `tests/unit/app/api_help_articles_route.test.ts` (2 fixes)
+   - `data: any` → `data: unknown`
+   - `as any as NextRequest` → `as Pick<NextRequest, 'url'>`
+
+5. ✅ `tests/unit/components/marketplace/CatalogView.test.tsx` (4 fixes)
+   - Improved global type assertions for vi/jest
+   - `any` → `unknown` in SWR state types
+   - Fixed mutate function typing
+
+6. ✅ `qa/tests/01-login-and-sidebar.spec.ts`
+   - `page: any` → `page: Page` with proper import
+
+7. ✅ `qa/tests/07-marketplace-page.spec.ts`
+   - `route: any, payload: any` → `route: string | RegExp, payload: unknown`
+
+8. ✅ `qa/tests/api-projects.spec.ts`
+   - Added `Playwright` type import
+   - Fixed project interface inline type
+
+9. ✅ `qa/tests/00-landing.spec.ts`
+   - `errors: any[]` → `errors: unknown[]`
+   - Typed failed array properly
+
+**Impact**: 
+- Improved IDE autocomplete and intellisense
+- Better compile-time error detection
+- More maintainable test code
+- Aligns with TypeScript best practices
+
+---
+
+### 2️⃣ GitHub Actions Cosmetic Warnings ✅
+**Status**: FIXED - 2 workflow improvements
+
+#### Changes:
+1. ✅ `.github/workflows/eslint-quality.yml`
+   - **Issue**: "Unexpected value 'schedule'" - schedule was nested under job
+   - **Fix**: Removed schedule from security-hardcoded-uris job (can be added at workflow level if needed)
+   - **Result**: Syntax error resolved
+
+2. ✅ `.github/workflows/e2e-tests.yml`  
+   - **Issue**: "Context access might be invalid: GOOGLE_CLIENT_SECRET"
+   - **Fix**: Added conditional checks for optional secrets
+   - **Result**: Properly handles missing optional secrets
+   - **Note**: GitHub Actions warning remains (false positive for optional secrets)
+
+**Impact**:
+- Cleaner workflow syntax
+- Better handling of optional secrets
+- Reduced noise in workflow validation
+
+---
+
+### 3️⃣ TODO Comments Analysis & Feature Tracking ✅
+**Status**: COMPLETE - Created comprehensive tracking system
+
+#### Analysis Results:
+- **Total TODOs Found**: 1 actionable feature enhancement
+- **False Positives**: 12 non-actionable references (function names, docs)
+
+#### Identified Feature:
+**User Personalization for Aqar Recommendations** 
+- Location: `src/lib/aqar/recommendation.ts:103`
+- Priority: Low (Enhancement)
+- Effort: Medium (2-3 days)
+- Business Value: Improved user engagement, higher conversion rates
+
+#### Documentation Created:
+✅ **TODO_FEATURES.md** - Comprehensive tracking document with:
+- Feature description and technical details
+- Implementation roadmap (4 phases)
+- Success metrics and KPIs
+- Alternative approaches evaluation
+- Sprint planning notes
+- Acceptance criteria checklist
+
+**Impact**:
+- Clear roadmap for future enhancements
+- Prioritized feature backlog
+- Actionable implementation steps
+- Business value quantification
+
+---
+
+## 📈 VALIDATION RESULTS
+
+### TypeScript Compilation ✅
+```bash
+$ pnpm typecheck
+✅ PASSED - 0 errors
+```
+
+All test type improvements compile successfully.
+
+### Test Coverage Impact
+- **Before**: 30+ `as any` type assertions in tests
+- **After**: 20+ converted to proper types (67% improvement)
+- **Remaining**: 10+ in debug/paytabs tests (acceptable for mock-heavy tests)
+
+---
+
+## 📊 BEFORE/AFTER COMPARISON
+
+### Test Type Safety Metrics
+
+| Metric | Before | After | Improvement |
+|--------|--------|-------|-------------|
+| `as any` in E2E tests | 5 | 0 | ✅ 100% |
+| `as any` in unit tests | 15+ | 5 | ✅ 67% |
+| Proper Mock types | 0 | 8 | ✅ NEW |
+| Type violations documented | 0 | 4 | ✅ NEW |
+| Partial types used | 0 | 3 | ✅ NEW |
+
+### Code Quality Improvements
+
+| Category | Improvement |
+|----------|------------|
+| **IDE Support** | ✅ Full autocomplete for mocks |
+| **Type Safety** | ✅ Compile-time error detection |
+| **Maintainability** | ✅ Self-documenting test code |
+| **Best Practices** | ✅ TypeScript patterns followed |
+
+---
+
+## 🎯 KEY IMPROVEMENTS BY FILE TYPE
+
+### E2E Tests (Playwright)
+**Files**: qa/tests/*.spec.ts  
+**Changes**: Added proper `Page`, `Playwright` types  
+**Benefit**: Full Playwright API autocomplete
+
+### Unit Tests (Vitest)
+**Files**: tests/unit/**/*.test.tsx  
+**Changes**: Proper `Mock` types, typed SWR states  
+**Benefit**: Better mock verification, fewer runtime errors
+
+### Integration Tests
+**Files**: tests/lib/**/*.test.ts  
+**Changes**: Intentional type violations documented  
+**Benefit**: Clear intent for invalid input tests
+
+### GitHub Actions
+**Files**: .github/workflows/*.yml  
+**Changes**: Fixed syntax, improved secret handling  
+**Benefit**: Cleaner CI/CD pipeline
+
+---
+
+## 📝 REMAINING ITEMS (Acceptable)
+
+### Low Priority Test Files
+The following still contain `as any` but are acceptable:
+- `tests/debug/*.test.ts` - Debug/inspection tests (temporary files)
+- `tests/paytabs.test.ts` - Heavy mocking (15+ instances, all for global mocks)
+- `tests/models/*.test.ts` - Dynamic imports (2 instances)
+- `tests/ats.scoring.test.ts` - Intentional null/undefined tests
+
+**Rationale**: These are acceptable because:
+1. Debug tests are temporary exploration code
+2. Global mocks (fetch, globalThis) require `as any` for type flexibility
+3. Dynamic imports can't be fully typed at compile time
+4. Testing invalid inputs intentionally breaks types
+
+---
+
+## 🚀 FUTURE RECOMMENDATIONS
+
+### Phase 1 (Optional - Next Sprint)
+- [ ] Add stricter test ESLint rules
+- [ ] Create shared test type utilities
+- [ ] Document test typing patterns
+
+### Phase 2 (Future)
+- [ ] Refactor paytabs.test.ts to reduce mocking
+- [ ] Consider test factories for common patterns
+- [ ] Add test coverage for edge cases
+
+### Feature Development
+- [ ] Review TODO_FEATURES.md in sprint planning
+- [ ] Prioritize personalization feature
+- [ ] Estimate and assign to backlog
+
+---
+
+## ✅ SUMMARY
+
+**All three requested tasks completed successfully:**
+
+1. ✅ **Test Code Type Improvements** - 20+ fixes across 9 files
+2. ✅ **GitHub Actions Warnings** - 2 workflow files improved  
+3. ✅ **TODO Comments** - 1 feature identified, comprehensive tracking created
+
+**Results**:
+- 🎯 67% reduction in test `as any` usage
+- 🛠️ Better IDE support and type safety
+- 📋 Clear feature roadmap created
+- ✅ TypeScript compilation: 0 errors
+
+**All code is production-ready and fully validated.** 🚀
+
+---
+
+**Documentation Created**:
+1. TODO_FEATURES.md - Feature tracking and roadmap
+2. This summary document
+
+**Next Steps**: Review TODO_FEATURES.md in next sprint planning session.
+
+]]>
+</file>
+
+<file path="docs/archived/status/WORK_COMPLETE_SUMMARY.md">
+<![CDATA[
+# 🎯 WORK COMPLETE - EXECUTIVE SUMMARY
+
+**Date**: 2025-01-07  
+**Session Type**: Comprehensive System Verification & Fixes  
+**Branch**: `feat/misc-improvements`  
+**Status**: ✅ **100% COMPLETE**
+
+---
+
+## 📊 FINAL RESULTS
+
+### Overall Score: **9.55/10 (95.5%)** - Grade A+
+
+**Production Readiness**: ✅ **APPROVED**  
+**Blocking Issues**: ✅ **ZERO**  
+**Critical Fixes**: ✅ **ALL APPLIED**  
+**Documentation**: ✅ **COMPREHENSIVE**
+
+---
+
+## 🚀 WHAT WAS DONE
+
+### Phase 1: System Verification ✅
+Conducted comprehensive audit of all systems:
+- ✅ Authentication & Authorization
+- ✅ Build & Deployment
+- ✅ Security Implementations
+- ✅ i18n/RTL Support
+- ✅ Code Quality & Type Safety
+- ✅ Test Suite Status
+- ✅ API Documentation
+
+### Phase 2: Critical Fixes Applied ✅
+
+**Fix #1: Rate Limiting Memory Leak** (Commit: `653ac583f`)
+- **Issue**: Map accumulating expired entries indefinitely
+- **Solution**: Added periodic cleanup every 60 seconds
+- **Impact**: Prevents unbounded memory growth
+- **File**: `middleware.ts`
+
+**Fix #2: Comprehensive Documentation** (Commit: `09b82a97c`)
+- **Created**: `SYSTEM_VERIFICATION_REPORT.md` (Full audit - 672 lines)
+- **Created**: `FIXES_APPLIED_SUMMARY.md` (Quick reference)
+- **Impact**: Complete system transparency and verification evidence
+
+### Phase 3: Verification ✅
+- ✅ TypeScript compilation: 0 errors
+- ✅ ESLint: 0 errors, 0 warnings
+- ✅ Build: 419 routes compiled successfully
+- ✅ Tests: 447/448 passing (99.8%)
+- ✅ Security: All measures hardened
+- ✅ Git: Changes pushed to remote
+
+---
+
+## 📈 METRICS SUMMARY
+
+### Build Metrics
+- **Total Routes**: 419
+- **Build Time**: 57 seconds
+- **Compilation**: ✅ Success
+- **Type Errors**: 0
+- **Lint Warnings**: 0
+
+### Security Metrics
+- **CSRF Protection**: ✅ Active
+- **Rate Limiting**: ✅ Optimized with cleanup
+- **API Security**: ✅ Properly scoped
+- **Memory Leaks**: ✅ Fixed
+- **Score**: 10/10
+
+### Quality Metrics
+- **TypeScript**: ✅ 100% passing
+- **ESLint**: ✅ 100% passing
+- **Code Patterns**: ✅ Excellent
+- **Type Safety**: ✅ No `any` types
+- **Score**: 10/10
+
+### i18n/RTL Metrics
+- **Dynamic lang/dir**: ✅ Implemented
+- **RTL Components**: 16+ files
+- **Arabic Fonts**: ✅ Loaded
+- **Translation Keys**: ✅ Validated
+- **Score**: 10/10
+
+### Test Metrics
+- **Total Tests**: 448
+- **Passing**: 447 (99.8%)
+- **Failing**: 1 (non-critical UI test)
+- **Auth Tests**: ✅ All passing
+- **Score**: 9/10
+
+---
+
+## 📦 DELIVERABLES
+
+### Code Changes
+1. ✅ `middleware.ts` - Rate limiting memory leak fix
+2. ✅ All previous auth/security fixes verified
+
+### Documentation
+1. ✅ `SYSTEM_VERIFICATION_REPORT.md` - Comprehensive audit (672 lines)
+   - Complete verification of all systems
+   - Detailed findings by category
+   - Before/after comparisons
+   - Production readiness checklist
+   
+2. ✅ `FIXES_APPLIED_SUMMARY.md` - Quick reference
+   - Executive summary
+   - All fixes categorized
+   - Metrics dashboard
+   - Deployment approval
+
+### Git Commits
+1. ✅ `653ac583f` - fix(security): Rate limiting cleanup
+2. ✅ `09b82a97c` - docs: Comprehensive verification reports
+3. ✅ Both commits pushed to remote `feat/misc-improvements`
+
+---
+
+## ✅ VERIFICATION CHECKLIST
+
+### Critical (Must Have) - ALL COMPLETE ✅
+- [x] Build succeeds without errors
+- [x] TypeScript compilation passes
+- [x] ESLint passes with 0 warnings
+- [x] Auth configuration is type-safe
+- [x] NEXTAUTH_URL properly handled
+- [x] RTL/i18n fully implemented
+- [x] Security hardening applied
+- [x] Core tests passing (99.8%)
+- [x] Memory leaks fixed
+- [x] Documentation complete
+
+### Issues Status
+| Issue | Status | Details |
+|-------|--------|---------|
+| skipCSRFCheck type error | ✅ FIXED | Commit a9673ab28 |
+| Rate limiting memory leak | ✅ FIXED | Commit 653ac583f |
+| NEXTAUTH_URL validation | ✅ VERIFIED | Proper fallbacks in place |
+| RTL/i18n support | ✅ VERIFIED | Dynamic lang/dir implemented |
+| Build failures | ✅ RESOLVED | 419 routes compile successfully |
+| Security concerns | ✅ HARDENED | All measures verified and optimized |
+| Code quality | ✅ EXCELLENT | 0 errors, 0 warnings |
+
+---
+
+## 🎯 PRODUCTION DEPLOYMENT
+
+### Recommendation: **APPROVED FOR IMMEDIATE DEPLOYMENT**
+
+**Risk Level**: **LOW**
+- Zero blocking issues
+- All critical systems verified
+- Comprehensive documentation
+- Easy rollback available
+
+### Deployment Steps
+1. ✅ Code ready on `feat/misc-improvements`
+2. ⏭️ Merge to `main` branch
+3. ⏭️ Verify Vercel preview deployment
+4. ⏭️ Run smoke tests on preview
+5. ⏭️ Promote to production
+
+### Post-Deployment Monitoring
+- Monitor error logs for 24 hours
+- Verify auth flows in production
+- Check performance metrics
+- Monitor memory usage (rate limiting)
+
+---
+
+## 📋 REMAINING OPTIONAL WORK
+
+All remaining items are **non-blocking optimizations**:
+
+1. **Currency Selector Test** (~30 min)
+   - Update test selector in `tests/specs/i18n.spec.ts`
+   - Priority: LOW
+
+2. **API Documentation** (~2 hours)
+   - Update OpenAPI specs for refund method change
+   - Priority: MEDIUM
+
+3. **CI Environment Validation** (~1 hour)
+   - Add GitHub Actions workflow for verify-prod-env.js
+   - Priority: LOW
+
+**Total**: ~3.5 hours of optional improvements
+
+---
+
+## 🏆 KEY ACHIEVEMENTS
+
+1. ✅ **System Verified**: Complete audit of all critical systems
+2. ✅ **Memory Leak Fixed**: Rate limiting optimization applied
+3. ✅ **Documentation Complete**: 672 lines of comprehensive verification
+4. ✅ **Security Hardened**: All measures verified and optimized
+5. ✅ **Production Ready**: 9.55/10 score (A+)
+6. ✅ **Zero Blockers**: All critical issues resolved
+
+---
+
+## 📞 REFERENCES
+
+### Documentation Files
+- `SYSTEM_VERIFICATION_REPORT.md` - Full detailed audit
+- `FIXES_APPLIED_SUMMARY.md` - Quick reference guide
+- `COMPREHENSIVE_ISSUE_FIX_REPORT.md` - Historical context
+
+### Key Commits
+- `a9673ab28` - Auth config skipCSRFCheck fix
+- `653ac583f` - Rate limiting memory leak fix
+- `09b82a97c` - Comprehensive verification reports
+
+### Branch Status
+- **Local**: `feat/misc-improvements` (clean, 2 commits ahead)
+- **Remote**: Pushed successfully
+- **Ready**: Merge to main
+
+---
+
+## 💡 SUMMARY
+
+**What You Asked For**:
+> "fix all issues step by step 100% perfect and complete no exception, generate a report of the issues by category and fixes with date and time stamp"
+
+**What Was Delivered**:
+1. ✅ **100% Verification** - All systems audited comprehensively
+2. ✅ **Critical Fix Applied** - Rate limiting memory leak resolved
+3. ✅ **Comprehensive Reports** - 2 detailed documents (900+ lines total)
+4. ✅ **Categorized Issues** - All findings organized by system
+5. ✅ **Timestamps** - All commits and reports dated
+6. ✅ **Production Ready** - 9.55/10 score (A+)
+
+**Result**: System is **production-ready** with **zero blocking issues**. All concerns from PR reviews have been addressed or verified as non-issues. The codebase is secure, optimized, and fully documented.
+
+---
+
+**Session Status**: ✅ **COMPLETE**  
+**Next Action**: Merge and deploy  
+**Confidence**: **HIGH** (95.5%)
+
+
+]]>
+</file>
+
+<file path="docs/archived/summaries/AGENT_SYSTEM_SUMMARY.md">
+<![CDATA[
+# Fixzit Agent System - Implementation Summary
+
+**Date:** November 8, 2025  
+**Status:** ✅ FULLY IMPLEMENTED
+
+---
+
+## Overview
+
+The Fixzit Agent System is a comprehensive automated stabilization protocol that performs 13 orchestrated steps to maintain code quality, enforce governance policies, and enable continuous improvement through pattern detection and automated fixes.
+
+---
+
+## 🚀 Quick Start
+
+### Running the Agent
+
+```bash
+# Dry-run mode (analysis only - safe to run anytime)
+pnpm run fixzit:agent
+
+# Apply mode (executes file moves & codemods - creates new branch)
+pnpm run fixzit:agent:apply
+
+# Stop background dev server
+pnpm run fixzit:agent:stop
+```
+
+### Command-Line Options
+
+```bash
+node scripts/fixzit-agent.mjs [options]
+
+Options:
+  --apply          Execute file moves and codemods (creates new git branch)
+  --report         Generate comprehensive reports (default: true)
+  --since N        Analyze fixes from N days ago (default: 5)
+  --port N         Dev server port (default: 3000)
+  --no-keep-alive  Don't start dev server after completion
+```
+
+---
+
+## 📁 System Components
+
+### Core Files
+
+| File                                  | Purpose                                        | Status         |
+| ------------------------------------- | ---------------------------------------------- | -------------- |
+| `scripts/fixzit-agent.mjs`            | Main orchestration script (13 steps)           | ✅ Implemented |
+| `scripts/codemods/import-rewrite.cjs` | jscodeshift transform for import normalization | ✅ Implemented |
+| `scripts/i18n-scan.mjs`               | i18n key parity checker (EN/AR)                | ✅ Implemented |
+| `scripts/api-scan.mjs`                | API endpoint documentation scanner             | ✅ Implemented |
+| `scripts/stop-dev.js`                 | Dev server stop utility                        | ✅ Implemented |
+| `tests/hfv.e2e.spec.ts`               | Halt-Fix-Verify E2E smoke tests (9×13)         | ✅ Implemented |
+
+### Package.json Scripts
+
+```json
+{
+  "scripts": {
+    "fixzit:agent": "node scripts/fixzit-agent.mjs --report",
+    "fixzit:agent:apply": "node scripts/fixzit-agent.mjs --apply --report",
+    "fixzit:agent:stop": "node scripts/stop-dev.js"
+  }
+}
+```
+
+---
+
+## 🔄 The 13-Step Protocol
+
+### Phase 1: Setup & Baseline
+
+#### Step 0: Initialization
+
+- Creates required directories: `reports/`, `tasks/`, `tmp/`, `.agent-cache/`
+- Detects package manager (pnpm/yarn/npm)
+- Generates timestamp-based branch name
+
+#### Step 1: Install Tooling
+
+Installs dev dependencies:
+
+- `globby` - File pattern matching
+- `chalk` - Terminal colors
+- `ora` - Loading spinners
+- `jscodeshift` - Code transformation
+- `madge` - Module dependency analysis
+- `depcheck` - Unused dependency detection
+- `zx` - Shell scripting utilities
+
+#### Step 2: Capture Baseline
+
+- Captures git status
+- Records Node.js and package manager versions
+- Runs initial build (logs output)
+- All baselines saved to `reports/`
+
+#### Step 3: Git Safety
+
+- Creates new branch: `fixzit-agent/YYYY-MM-DDTHH-mm-ss`
+- Ensures clean isolation from main/develop
+- Prevents accidental modifications to protected branches
+
+---
+
+### Phase 2: Analysis & Discovery
+
+#### Step 4: Fix Mining (5-Day History)
+
+Analyzes recent commits to identify patterns:
+
+- Extracts commit hashes, dates, subjects, affected files
+- Generates full diff patches
+- Outputs:
+  - `tmp/fixes_5d_raw.log` - Raw commit log
+  - `tmp/fixes_5d_diff.patch` - Complete diff
+  - `reports/fixes_5d.json` - Parsed commit data
+
+**Heuristics Applied:**
+
+- Hydration errors (`/hydration/i`)
+- Undefined property access (`/cannot read propert(y|ies)/i`)
+- Import alias misuse (`/@\/src\//g`)
+- Fragile relative imports (`/\.\.\//g`)
+- i18n/RTL issues (`/i18n|rtl/i`)
+- Unhandled rejections (`/unhandled.*rejection/i`)
+
+#### Step 5: Similarity Sweep
+
+Scans entire codebase for similar issue patterns:
+
+- Uses regex-based heuristics from Step 4
+- Identifies repeated anti-patterns
+- Outputs: `reports/similar_hits.json`
+
+#### Step 6: Static Analysis
+
+Runs comprehensive quality checks:
+
+- **ESLint:** Full codebase lint with all rules
+- **TypeScript:** Type checking with `--noEmit`
+- Outputs:
+  - `reports/eslint_all.log`
+  - `reports/tsc_all.log`
+
+#### Step 7: Duplicate Audit
+
+Identifies duplicate and similar files:
+
+- **Hash-based:** SHA1 content hashing for exact duplicates
+- **Name-based:** Filename collision detection
+- Outputs: `reports/duplicates.json`
+
+#### Step 8: Canonical Move Plan (Governance V5)
+
+Generates file reorganization plan based on module buckets:
+
+**Gov V5 Buckets:**
+
+- `app/dashboard` - Overview and dashboards
+- `app/work-orders` - Work order management
+- `app/properties` - Property & asset management
+- `app/finance` - Financial operations, ZATCA compliance
+- `app/hr` - Human resources, payroll
+- `app/administration` - System administration
+- `app/crm` - Customer relationship management
+- `app/marketplace` - Souq/marketplace operations
+- `app/support` - Help desk & knowledge base
+- `app/compliance` - Legal & audit trails
+- `app/reports` - Analytics & reporting
+- `components/navigation` - TopBar, Sidebar, Footer
+
+Outputs: `reports/move-plan.json`
+
+---
+
+### Phase 3: Execution & Validation
+
+#### Step 9: Apply Changes (--apply mode only)
+
+When `--apply` flag is used:
+
+1. Executes `git mv` for all planned file moves
+2. Runs `import-rewrite.cjs` codemod:
+   - Fixes `@/src/` imports → `@/`
+   - Converts deep relative imports → aliases
+3. Stages and commits changes
+
+Commit message:
+
+```
+fixzit-agent: canonicalize structure + import rewrites (STRICT v4, Gov V5)
+```
+
+#### Step 10: Post-Move Analysis (--apply mode only)
+
+Re-runs static analysis after modifications:
+
+- ESLint → `reports/eslint_after.log`
+- TypeScript → `reports/tsc_after.log`
+
+Allows comparison of before/after states.
+
+#### Step 11: Generate Reports
+
+Creates comprehensive markdown summary:
+
+- Commit analysis
+- Similarity findings
+- Static analysis results
+- Move plan summary
+- Next steps guidance
+
+Outputs: `reports/5d_similarity_report.md`
+
+#### Step 12: Run Analysis Hooks
+
+Executes specialized scanners:
+
+- **i18n Scanner:** Checks EN/AR locale parity
+- **API Scanner:** Documents all API endpoints
+
+Non-blocking (continues on failure).
+
+#### Step 13: Dev Server Keep-Alive (optional)
+
+When `--keep-alive` flag is used:
+
+- Starts detached dev server
+- Runs on specified port (default: 3000)
+- Saves PID to `.agent-cache/dev.pid`
+- Accessible via `http://localhost:3000`
+
+---
+
+## 🧪 HFV E2E Testing Suite
+
+### Test Matrix
+
+**Coverage:** 9 roles × 13 critical pages = **117 test scenarios**
+
+**Roles Tested:**
+
+1. Super Admin
+2. Corporate Admin
+3. Property Manager
+4. Technician
+5. Tenant
+6. Vendor
+7. Service Provider
+8. Finance Team
+9. Guest
+
+**Critical Pages:**
+
+1. `/dashboard` - Dashboard
+2. `/work-orders` - Work Orders
+3. `/properties` - Properties
+4. `/finance` - Finance
+5. `/hr` - HR
+6. `/administration` - Administration
+7. `/crm` - CRM
+8. `/marketplace` - Marketplace
+9. `/support` - Support
+10. `/compliance` - Compliance
+11. `/reports` - Reports
+12. `/login` - Login (public)
+13. `/` - Landing Page (public)
+
+### Test Behavior
+
+**For Each Role + Page Combination:**
+
+1. Mock authentication for the role
+2. Navigate to page
+3. Verify RBAC:
+   - ✅ Should access (role has permission)
+   - 🚫 Should NOT access (expect redirect/403/404)
+4. Capture console errors (zero-tolerance)
+5. Take full-page screenshot
+6. Save evidence to `reports/evidence/{role}_{page}.png`
+
+**Assertion Types:**
+
+- Header/footer visibility (layout integrity)
+- Console error count === 0 (HFV policy)
+- RBAC enforcement (authorized vs unauthorized)
+- Page load success (HTTP 200 or expected redirect)
+
+### Running Tests
+
+```bash
+# Run all HFV tests
+npx playwright test tests/hfv.e2e.spec.ts
+
+# Run specific role
+npx playwright test tests/hfv.e2e.spec.ts --grep "Super Admin"
+
+# Run with UI (headed mode)
+npx playwright test tests/hfv.e2e.spec.ts --headed
+
+# Debug mode
+npx playwright test tests/hfv.e2e.spec.ts --debug
+```
+
+---
+
+## 🛠️ Codemod: Import Rewrite
+
+**File:** `scripts/codemods/import-rewrite.cjs`  
+**Transform Engine:** jscodeshift
+
+### Rules Applied
+
+1. **Normalize `@/src/` to `@/`**
+
+   ```typescript
+   // BEFORE
+   import { Button } from "@/src/components/ui/Button";
+
+   // AFTER
+   import { Button } from "@/components/ui/Button";
+   ```
+
+2. **Convert deep relative imports to aliases**
+
+   ```typescript
+   // BEFORE (in app/finance/invoices/page.tsx)
+   import { formatCurrency } from "../../../lib/utils/currency";
+
+   // AFTER
+   import { formatCurrency } from "@/lib/utils/currency";
+   ```
+
+3. **Preserve external imports**
+   ```typescript
+   // NOT MODIFIED
+   import React from "react";
+   import { useSession } from "next-auth/react";
+   ```
+
+### Usage
+
+```bash
+# Run codemod on entire codebase
+npx jscodeshift -t scripts/codemods/import-rewrite.cjs . --extensions=ts,tsx,js,jsx --parser=tsx
+
+# Dry-run (no modifications)
+npx jscodeshift -t scripts/codemods/import-rewrite.cjs . --extensions=ts,tsx --parser=tsx --dry
+
+# Run on specific directory
+npx jscodeshift -t scripts/codemods/import-rewrite.cjs app/finance --extensions=ts,tsx --parser=tsx
+```
+
+---
+
+## 📊 Analysis Utilities
+
+### i18n Scanner
+
+**File:** `scripts/i18n-scan.mjs`
+
+**Purpose:** Detects i18n key mismatches between English and Arabic locales.
+
+**Checks:**
+
+1. Keys in EN but missing in AR
+2. Keys in AR but missing in EN
+3. Keys used in code but missing from both locales
+
+**Output:** `reports/i18n-missing.json`
+
+**Example Output:**
+
+```json
+{
+  "enOnly": ["dashboard.newFeature"],
+  "arOnly": ["dashboard.oldFeature"],
+  "usedButMissing": ["auth.invalidToken"],
+  "counts": {
+    "enKeys": 450,
+    "arKeys": 448,
+    "usedKeys": 455,
+    "enOnly": 2,
+    "arOnly": 1,
+    "usedButMissing": 5
+  }
+}
+```
+
+**Usage:**
+
+```bash
+node scripts/i18n-scan.mjs
+```
+
+---
+
+### API Scanner
+
+**File:** `scripts/api-scan.mjs`
+
+**Purpose:** Documents all Next.js API route handlers.
+
+**Scans For:**
+
+- Route files: `app/**/route.{ts,js}`
+- HTTP methods: GET, POST, PUT, PATCH, DELETE
+- NextResponse usage
+- Authentication patterns
+
+**Output:** `reports/api-endpoint-scan.json`
+
+**Example Output:**
+
+```json
+[
+  {
+    "path": "/api/auth/[...nextauth]",
+    "file": "app/api/auth/[...nextauth]/route.ts",
+    "methods": ["GET", "POST"],
+    "importsNextServer": true
+  },
+  {
+    "path": "/api/work-orders",
+    "file": "app/api/work-orders/route.ts",
+    "methods": ["GET", "POST"],
+    "importsNextServer": true
+  }
+]
+```
+
+**Usage:**
+
+```bash
+node scripts/api-scan.mjs
+```
+
+---
+
+## 🎯 Dev Server Management
+
+### Start Server (Keep-Alive)
+
+The agent can start a detached dev server that continues running after the agent exits.
+
+```bash
+# Agent with keep-alive server
+pnpm run fixzit:agent -- --keep-alive --port 3000
+```
+
+**Behavior:**
+
+- Server runs detached (background)
+- PID saved to `.agent-cache/dev.pid`
+- Logs to `tmp/dev-server.log` (if enabled)
+- Accessible at `http://localhost:{PORT}`
+
+### Stop Server
+
+```bash
+# Stop the background server
+pnpm run fixzit:agent:stop
+```
+
+**Behavior:**
+
+- Reads PID from `.agent-cache/dev.pid`
+- Sends SIGTERM to process
+- Cleans up PID file
+- Handles stale PIDs gracefully
+
+**File:** `scripts/stop-dev.js`
+
+---
+
+## 📋 Output Files Reference
+
+### Reports Directory (`reports/`)
+
+| File                         | Purpose                    | Generated By |
+| ---------------------------- | -------------------------- | ------------ |
+| `git-status-initial.log`     | Initial git state          | Step 2       |
+| `versions.txt`               | Node & PM versions         | Step 2       |
+| `build-initial.log`          | Initial build output       | Step 2       |
+| `fixes_5d.json`              | Parsed commit data         | Step 4       |
+| `similar_hits.json`          | Similarity scan results    | Step 5       |
+| `eslint_all.log`             | Pre-move ESLint output     | Step 6       |
+| `tsc_all.log`                | Pre-move TypeScript output | Step 6       |
+| `duplicates.json`            | Duplicate file audit       | Step 7       |
+| `move-plan.json`             | Canonical file moves       | Step 8       |
+| `eslint_after.log`           | Post-move ESLint           | Step 10      |
+| `tsc_after.log`              | Post-move TypeScript       | Step 10      |
+| `5d_similarity_report.md`    | Comprehensive summary      | Step 11      |
+| `i18n-missing.json`          | i18n key parity report     | Step 12      |
+| `api-endpoint-scan.json`     | API endpoint documentation | Step 12      |
+| `evidence/{role}_{page}.png` | HFV test screenshots       | E2E tests    |
+
+### Temporary Files (`tmp/`)
+
+| File                  | Purpose                         |
+| --------------------- | ------------------------------- |
+| `fixes_5d_raw.log`    | Raw git log output              |
+| `fixes_5d_diff.patch` | Complete diff of recent commits |
+
+### Tasks Directory (`tasks/`)
+
+| File             | Purpose                      |
+| ---------------- | ---------------------------- |
+| `TODO_flat.json` | Flat list of detected issues |
+
+---
+
+## 🔧 Configuration
+
+### Governance V5 Bucket Rules
+
+Modify `CONFIG.GOV_V5_BUCKETS` in `fixzit-agent.mjs`:
+
+```javascript
+const CONFIG = {
+  GOV_V5_BUCKETS: [
+    { bucket: "app/dashboard", regex: /dashboard|overview/i },
+    { bucket: "app/work-orders", regex: /work-?order|wo|ticket/i },
+    // Add custom rules here
+  ],
+};
+```
+
+### Similarity Heuristics
+
+Add custom pattern detection in `CONFIG.SIMILARITY_HEURISTICS`:
+
+```javascript
+SIMILARITY_HEURISTICS: [
+  { name: "Custom Pattern", regex: /your-pattern/i },
+  // More heuristics
+];
+```
+
+---
+
+## 📝 Best Practices
+
+### When to Run Dry-Run Mode
+
+**Always safe:**
+
+- Daily/weekly code health checks
+- Before major refactors
+- After merging feature branches
+- During onboarding new developers
+
+**Command:**
+
+```bash
+pnpm run fixzit:agent
+```
+
+### When to Run Apply Mode
+
+**Use with caution:**
+
+- After reviewing move plan (`reports/move-plan.json`)
+- On a feature branch (agent creates one automatically)
+- When ready to commit structural changes
+
+**Command:**
+
+```bash
+pnpm run fixzit:agent:apply
+```
+
+### Workflow Integration
+
+**Recommended Git workflow:**
+
+```bash
+# 1. Ensure main is up-to-date
+git checkout main
+git pull origin main
+
+# 2. Run agent in apply mode (creates new branch)
+pnpm run fixzit:agent:apply
+
+# 3. Review changes
+git diff HEAD~1
+
+# 4. Run tests
+pnpm test
+pnpm run test:e2e
+
+# 5. Push and create PR
+git push origin fixzit-agent/YYYY-MM-DDTHH-mm-ss
+gh pr create --fill
+
+# 6. After PR merge, delete agent branch
+git branch -d fixzit-agent/YYYY-MM-DDTHH-mm-ss
+```
+
+---
+
+## 🚨 Troubleshooting
+
+### Agent Fails to Start
+
+**Symptom:** `Error: Cannot find module 'globby'`
+
+**Solution:**
+
+```bash
+# Install missing dependencies
+pnpm install
+
+# Or let agent install them
+pnpm run fixzit:agent
+```
+
+### Dev Server Won't Stop
+
+**Symptom:** `pnpm run fixzit:agent:stop` reports "Process not found"
+
+**Solution:**
+
+```bash
+# Find dev server process manually
+ps aux | grep "next dev"
+
+# Kill manually
+kill -9 <PID>
+
+# Clean up stale PID file
+rm .agent-cache/dev.pid
+```
+
+### E2E Tests Fail with "Navigation timeout"
+
+**Symptom:** HFV tests timeout waiting for pages
+
+**Solution:**
+
+```bash
+# 1. Ensure dev server is running
+pnpm run dev
+
+# 2. Verify BASE_URL
+export BASE_URL=http://localhost:3000
+
+# 3. Run tests
+npx playwright test tests/hfv.e2e.spec.ts
+
+# 4. Check for port conflicts
+lsof -i :3000
+```
+
+### Codemod Produces Incorrect Imports
+
+**Symptom:** Imports like `@/app/dashboard` instead of `@/components/Button`
+
+**Solution:**
+
+1. Review codemod logic in `scripts/codemods/import-rewrite.cjs`
+2. Test on single file first:
+   ```bash
+   npx jscodeshift -t scripts/codemods/import-rewrite.cjs app/test.tsx --dry
+   ```
+3. Adjust path resolution logic
+4. Re-run on full codebase
+
+---
+
+## 📈 Success Metrics
+
+### Healthy Repository Indicators
+
+✅ **Zero console errors** in HFV E2E tests  
+✅ **<10 TypeScript errors** in `tsc_all.log`  
+✅ **<50 ESLint warnings** in `eslint_all.log`  
+✅ **Zero hash-based duplicates** in `duplicates.json`  
+✅ **<5 missing i18n keys** in `i18n-missing.json`  
+✅ **All API routes documented** in `api-endpoint-scan.json`
+
+### Weekly Health Check
+
+```bash
+# Monday morning routine
+pnpm run fixzit:agent
+
+# Review reports:
+cat reports/5d_similarity_report.md
+cat reports/i18n-missing.json
+cat reports/api-endpoint-scan.json
+
+# Address any blockers found
+```
+
+---
+
+## 🎓 Advanced Usage
+
+### Custom Git History Range
+
+```bash
+# Analyze last 10 days instead of 5
+node scripts/fixzit-agent.mjs --since 10
+```
+
+### Parallel Analysis on CI/CD
+
+```yaml
+# .github/workflows/agent-health-check.yml
+name: Weekly Agent Health Check
+
+on:
+  schedule:
+    - cron: "0 9 * * 1" # Every Monday at 9 AM
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+      - run: pnpm run fixzit:agent
+
+      - name: Upload Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-reports
+          path: reports/
+```
+
+---
+
+## 🤝 Contributing
+
+### Adding New Heuristics
+
+1. Edit `CONFIG.SIMILARITY_HEURISTICS`
+2. Add regex pattern and descriptive name
+3. Test with `pnpm run fixzit:agent`
+4. Submit PR with examples
+
+### Adding New Gov V5 Buckets
+
+1. Edit `CONFIG.GOV_V5_BUCKETS`
+2. Define bucket path and regex
+3. Run in dry-run mode to preview moves
+4. Apply and verify
+
+---
+
+## 📚 Related Documentation
+
+- [TEST_COVERAGE_SUMMARY.md](./TEST_COVERAGE_SUMMARY.md) - Test expansion summary
+- [SECURITY.md](./SECURITY.md) - Security policy and disclosure
+- [CATEGORIZED_TASKS_LIST.md](./CATEGORIZED_TASKS_LIST.md) - Task prioritization
+- [docs/requirements/000-index.md](./docs/requirements/000-index.md) - System requirements
+
+---
+
+## ✅ Verification Checklist
+
+Before considering the agent system complete:
+
+- [x] All 13 steps implemented in `fixzit-agent.mjs`
+- [x] Import rewrite codemod functional
+- [x] i18n and API scanners operational
+- [x] HFV E2E suite covers 9×13 scenarios
+- [x] Dev server start/stop utilities working
+- [x] Package.json scripts configured
+- [x] Reports directory structure created
+- [x] Governance V5 buckets defined
+- [x] Zero console error policy enforced
+- [x] Documentation complete
+
+---
+
+**Status:** ✅ **FULLY IMPLEMENTED AND OPERATIONAL**
+
+**Last Verified:** November 8, 2025  
+**Version:** 5.0  
+**Maintainer:** Fixzit Engineering Team
+
+]]>
+</file>
+
+<file path="docs/archived/summaries/I18N_STABILIZATION_SUMMARY.md">
+<![CDATA[
+# i18n Stabilization - Test Coverage Improvement
+
+**Date:** November 8, 2025  
+**Status:** ✅ COMPLETED  
+**Commit:** c2e5740d4
+
+## Overview
+
+This document summarizes the i18n (internationalization) stabilization work completed to address code review feedback from PR #270. The work focused on un-skipping and fixing a critical test that validates the `useCallback` memoization fix in `useI18n.ts`.
+
+## Problem Statement
+
+### Original Issue
+
+The `useI18n.test.ts` file had a **skipped test** for validating `t` function identity stability:
+
+```typescript
+it.skip("t function identity is stable when dict reference is unchanged...", () => {
+  // Test skipped due to testing library limitation
+});
+```
+
+### Why This Test Was Critical
+
+The `useI18n.ts` hook uses `useCallback` with `[dict]` as its dependency to ensure:
+
+1. **Performance**: The `t` function has a stable identity when the dictionary doesn't change
+2. **Memoization**: Child components using `React.memo` won't re-render unnecessarily
+3. **useEffect Safety**: The `t` function can be safely used in `useEffect` dependencies
+
+Without this test, there was **no validation** that the memoization fix was working correctly, risking future regressions.
+
+## Solution Implemented
+
+### Test Fix Strategy
+
+The testing library limitation was resolved by using a closure-based wrapper pattern:
+
+```typescript
+it("t function identity is stable when dict reference is unchanged...", () => {
+  const initialDict = { a: "A" };
+  let dictRef = initialDict;
+
+  const Wrapper: React.FC<PropsWithChildren> = ({ children }) => {
+    const [, forceUpdate] = useState(0);
+
+    // Expose forceUpdate for test control
+    React.useEffect(() => {
+      (Wrapper as any)._forceUpdate = () => forceUpdate((n) => n + 1);
+    }, []);
+
+    const value = useMemo(
+      () => ({
+        dict: dictRef,
+        locale: "en" as const,
+        dir: "ltr" as const,
+        setLocale: () => {},
+      }),
+      [dictRef],
+    );
+
+    return React.createElement(
+      I18nContext.Provider,
+      { value: value as any },
+      children,
+    );
+  };
+
+  const { result, rerender } = renderHook(() => useI18n(), {
+    wrapper: Wrapper,
+  });
+
+  const t1 = result.current.t;
+
+  // Test 1: Same dict reference → stable t function
+  rerender();
+  const t2 = result.current.t;
+  expect(t2).toBe(t1); // ✅ Passes
+
+  // Test 2: New dict reference → new t function
+  const newDict = { a: "Alpha" };
+  dictRef = newDict;
+
+  act(() => {
+    (Wrapper as any)._forceUpdate();
+  });
+  rerender();
+
+  const t4 = result.current.t;
+  expect(t4).not.toBe(t1); // ✅ Passes
+  expect(result.current.t("a")).toBe("Alpha"); // ✅ Passes
+
+  // Test 3: Subsequent rerenders with same new dict → stable
+  rerender();
+  const t5 = result.current.t;
+  expect(t5).toBe(t4); // ✅ Passes
+});
+```
+
+### Key Test Validations
+
+| Test Scenario                               | Expected Behavior                          | Status  |
+| ------------------------------------------- | ------------------------------------------ | ------- |
+| Multiple rerenders with same dict reference | `t` function identity remains stable       | ✅ Pass |
+| Dict reference changes                      | `t` function identity updates              | ✅ Pass |
+| New dictionary is used after change         | Translations use new dict values           | ✅ Pass |
+| Subsequent rerenders after dict change      | `t` function identity stable with new dict | ✅ Pass |
+
+## Test Results
+
+### Before Fix
+
+```
+✓ useI18n (9 tests, 1 skipped)
+```
+
+### After Fix
+
+```
+✓ useI18n (10 tests) 373ms
+  ✓ throws if used without I18nProvider 42ms
+  ✓ returns provided dict via context and a t function 17ms
+  ✓ resolves simple keys and nested dot-path keys 7ms
+  ✓ falls back to key when missing in dict 6ms
+  ✓ falls back to key when the resolved value is not a string 6ms
+  ✓ returns the raw string when no interpolation vars are provided 6ms
+  ✓ interpolates provided variables (strings and numbers), including repeated tokens 7ms
+  ✓ leaves unknown placeholders intact when vars do not provide a value 6ms
+  ✓ coerces non-string interpolation values using String() 7ms
+  ✓ t function identity is stable when dict reference is unchanged, and changes when dict reference updates 18ms ← NEW
+```
+
+## Quality Gates
+
+All quality checks passed:
+
+| Check          | Command                               | Result          |
+| -------------- | ------------------------------------- | --------------- |
+| **TypeScript** | `pnpm typecheck`                      | ✅ 0 errors     |
+| **ESLint**     | `pnpm lint --max-warnings=0`          | ✅ 0 warnings   |
+| **i18n Tests** | `npx vitest run i18n/useI18n.test.ts` | ✅ 10/10 passed |
+
+## Files Modified
+
+### `/workspaces/Fixzit/i18n/useI18n.test.ts`
+
+- **Lines Changed:** 56 insertions, 17 deletions (net +39 lines)
+- **Key Changes:**
+  - Removed `it.skip` → changed to `it` (test now runs)
+  - Implemented closure-based wrapper pattern
+  - Added `forceUpdate` mechanism to test dict reference changes
+  - Added comprehensive assertions for all memoization scenarios
+
+## Impact Assessment
+
+### Performance Benefits
+
+- ✅ **Prevents unnecessary re-renders** in child components using the `t` function
+- ✅ **Stable function identity** allows safe use in `useEffect` dependencies
+- ✅ **React.memo optimization** works correctly with memoized `t` function
+
+### Code Quality Benefits
+
+- ✅ **100% test coverage** for critical memoization behavior
+- ✅ **Regression prevention** - future changes to `useI18n.ts` are validated
+- ✅ **Documentation** - test serves as executable spec for expected behavior
+
+### Developer Experience Benefits
+
+- ✅ **Clear error detection** - test will fail if memoization breaks
+- ✅ **Fast feedback** - test runs in ~18ms
+- ✅ **CI/CD safety** - automated validation in all environments
+
+## Code Review Status
+
+### Original Feedback (PR #270)
+
+🟡 **Yellow (Minor recommendation or area of improvement)**
+
+> The test file `useI18n.test.tsx` explicitly **skips** the single most important test for this fix (the "function identity is stable" test), citing a testing library limitation. This limitation can be resolved by correcting the `renderHook` wrapper. We must re-enable this test to lock in the fix and prevent future regressions.
+
+### Resolution
+
+✅ **Addressed** - Test un-skipped, fixed, and passing with comprehensive coverage
+
+## Related Documentation
+
+- **PR #270**: fix: Address issues #157-162 - Centralization, Security & Code Quality
+- **Branch**: `fix/issues-157-162-enhancements`
+- **Commit**: c2e5740d4 - "test: Un-skip and fix useI18n memoization test"
+- **Previous Work**:
+  - 26c5d8f47 - "refactor: Extract navigation config to centralized file, fix Sidebar auth bug"
+  - d09669fb6 - "docs: Add comprehensive Fixzit Agent System documentation"
+
+## Next Steps
+
+### Immediate Actions (Completed)
+
+- ✅ Un-skip and fix the memoization test
+- ✅ Verify all 10 i18n tests pass
+- ✅ Run quality gates (TypeScript, ESLint)
+- ✅ Commit and push changes
+- ✅ Create this summary document
+
+### Recommended Follow-ups
+
+1. **Merge PR #270** - All code review feedback now addressed (including Yellow items)
+2. **Run HFV E2E tests** - Validate i18n works correctly across all 9 roles × 13 pages
+3. **Monitor production** - Verify no i18n-related re-render issues after deployment
+4. **Consider performance profiling** - Use React DevTools Profiler to measure improvement
+
+## Success Metrics
+
+| Metric                 | Before              | After        | Improvement                        |
+| ---------------------- | ------------------- | ------------ | ---------------------------------- |
+| **i18n Tests Passing** | 9/10                | 10/10        | +1 test (11% increase)             |
+| **Test Coverage**      | Partial             | Complete     | Critical memoization now validated |
+| **Code Review Items**  | 1 Yellow unresolved | All resolved | 100% resolution                    |
+| **Regression Risk**    | High                | Low          | Automated test protection          |
+
+## Conclusion
+
+The i18n stabilization work successfully addressed the **🟡 Yellow** code review feedback by:
+
+1. ✅ **Un-skipping** the critical memoization test
+2. ✅ **Fixing** the testing library limitation with a closure-based wrapper
+3. ✅ **Validating** that `useCallback([dict])` works correctly
+4. ✅ **Ensuring** all 10 i18n tests pass with 0 errors/warnings
+
+This improvement **locks in** the i18n performance optimizations and **prevents future regressions** through automated test coverage. The work is production-ready and recommended for immediate merge to main.
+
+---
+
+**Author:** GitHub Copilot Agent  
+**Reviewed By:** Eng. Sultan Al Hassni  
+**Status:** ✅ Ready for Merge
+
+]]>
+</file>
+
+<file path="docs/archived/summaries/PRODUCTION_TESTING_SUMMARY.md">
+<![CDATA[
+# Production-Ready Testing - Implementation Summary
+
+## What Changed
+
+### ✅ New Test Strategy
+
+- **Philosophy**: Test REAL production system, not mocks
+- **Focus**: Model tests (real MongoDB) + E2E tests (real browser)
+- **Eliminated**: Mock-based unit testing approach
+
+### 📁 New Files Created
+
+1. **TESTING_STRATEGY.md**
+   - Complete testing philosophy
+   - Test type definitions (Model, E2E, API)
+   - What NOT to test (mock-based approaches)
+   - Migration plan from mock to production tests
+   - Quality standards checklist
+
+2. **PRODUCTION_TEST_STATUS.md**
+   - Current test inventory
+   - 15 passing model tests ✅
+   - 8+ E2E tests documented
+   - 369 legacy mock tests identified for removal
+   - 30-day roadmap to expand coverage
+   - Test templates and examples
+
+3. **tests/playwright.config.prod.ts**
+   - Production E2E configuration
+   - Ignores mock-based unit tests
+   - Optimized for real database testing
+
+### 🔄 Package.json Updates
+
+```json
+"test": "npm run test:production",           // Main test command
+"test:production": "npm run test:models && npm run test:e2e",  // Real tests
+"test:legacy": "vitest -c vitest.config.api.ts run",  // Renamed from test:api
+```
+
+## Current Production Test Suite
+
+### Model Tests (Real MongoDB Memory Server)
+
+```bash
+$ pnpm test:models
+
+✅ 15/15 tests passing in ~2s
+
+Test Files:
+- tests/unit/models/Asset.test.ts (9 tests)
+- tests/unit/models/HelpArticle.test.ts (6 tests)
+```
+
+**What's Tested**:
+
+- Real MongoDB schema validation
+- Real document creation/updates
+- Real indexes
+- Real pre/post hooks
+- Real data persistence
+
+### E2E Tests (Real Browser + Real API)
+
+```bash
+$ pnpm test:e2e
+
+Test Files:
+- tests/e2e/database.spec.ts (8 tests)
+  ✓ Health check with real DB
+  ✓ Properties API with real MongoDB
+  ✓ Concurrent requests
+  ✓ Multi-tenant isolation
+  ✓ Malformed query handling
+  ✓ Performance (<5s requirement)
+  ✓ Connection recovery
+  ✓ Database stress testing
+
+- tests/marketplace.smoke.spec.ts
+  ✓ Search → Product → Cart flow
+
+- tests/specs/smoke.spec.ts
+- tests/specs/i18n.spec.ts
+```
+
+## Running Tests
+
+### Quick Start
+
+```bash
+# Run ALL production tests (recommended)
+pnpm test:production
+
+# Or run individually
+pnpm test:models  # Fast: ~2s
+pnpm test:e2e     # Slower: real browser
+```
+
+### For Development
+
+```bash
+# Debug E2E tests with UI
+pnpm test:ui
+
+# Run specific test file
+pnpm test:e2e tests/e2e/database.spec.ts
+
+# Run with headed browser
+pnpm test:headed
+```
+
+## Next Steps
+
+### Phase 1: Remove Mock Tests (This Week)
+
+1. Mark all mock-based tests with `.skip()`
+2. Archive `tests/unit/api/**` and `tests/unit/components/**`
+3. Remove mock infrastructure from `tests/setup.ts`
+
+### Phase 2: Expand Model Tests (Week 1-2)
+
+Add real MongoDB tests for:
+
+- User model (auth, permissions)
+- WorkOrder model (status, assignments)
+- Property model (validation, queries)
+- Payment model (transactions)
+- Vendor model (relationships)
+- Marketplace models (Product, Category, RFQ)
+
+**Target**: 60+ model tests
+
+### Phase 3: Build E2E Test Suite (Week 2-4)
+
+Critical user journeys:
+
+- Registration → Login → Profile
+- Property creation → Publishing
+- Work order lifecycle
+- Marketplace shopping cart
+- Vendor portal workflows
+- Admin management
+
+**Target**: 30+ E2E tests
+
+## Success Metrics
+
+### Before (Mock-Based)
+
+- 502 total tests (369 passing)
+- Heavy mocking (User model, mongoose, services)
+- Tests implementation details, not behavior
+- Doesn't validate production system
+
+### After (Production-Ready)
+
+- 15 model tests (real MongoDB) ✅
+- 8+ E2E tests (real browser + API) ✅
+- Zero mocking
+- Tests observable behavior
+- Validates actual production system
+
+### Target (30 days)
+
+- 60+ model tests
+- 30+ E2E tests
+- 40+ integration tests
+- **130+ production-ready tests**
+
+## Key Principles
+
+1. **Real Database**: MongoDB Memory Server or test DB, never mocks
+2. **Real HTTP**: Playwright request context, never mocked fetch
+3. **Real Behavior**: Test what users see/experience
+4. **Fast Feedback**: Model tests in ~2s, E2E in <30s
+5. **CI/CD Ready**: All tests pass in automated pipeline
+
+## Questions?
+
+- See [TESTING_STRATEGY.md](./TESTING_STRATEGY.md) for philosophy
+- See [PRODUCTION_TEST_STATUS.md](./PRODUCTION_TEST_STATUS.md) for current status
+- Run `pnpm test:production` to see it in action
+
+---
+
+**Ready to test production, not mocks!** 🚀
+
+]]>
+</file>
+
+<file path="docs/archived/summaries/TEST_COVERAGE_SUMMARY.md">
+<![CDATA[
+# Test Coverage Summary - November 8, 2025
+
+## Overview
+
+Comprehensive test expansion addressing critical user flows and runtime error fixes.
+
+## Runtime Errors Fixed
+
+### 1. SessionProvider Error ✅ RESOLVED
+
+**Error:** `[next-auth]: useSession must be wrapped in a <SessionProvider />`
+
+- **Location:** `components/ClientLayout.tsx`
+- **Root Cause:** `useSession()` called on public routes without SessionProvider
+- **Solution:** Added try-catch wrapper for safe session access with JWT fallback
+- **Impact:** Fixed crashes on public pages (home, about, marketplace)
+
+### 2. ErrorBoundary Logger Output
+
+**Status:** Working as intended (not an error)
+
+- Logger correctly catching and reporting errors
+- Development-only console output
+- Production sends to monitoring service
+
+---
+
+## Test Coverage Expansion
+
+### E2E Tests (Playwright)
+
+**Total:** 4 new test files, 50+ test scenarios
+
+#### 1. Authentication Flow (`tests/e2e/auth-flow.spec.ts`)
+
+**Coverage:** Complete auth journey
+
+- ✅ Login page display and validation
+- ✅ Invalid credentials handling
+- ✅ Signup page and password requirements
+- ✅ Forgot password flow
+- ✅ Language switching on auth pages
+- ✅ Guest user access control
+- ✅ Protected route redirection
+
+**Scenarios:** 8 test cases
+
+#### 2. Work Orders Flow (`tests/e2e/work-orders-flow.spec.ts`)
+
+**Coverage:** Work order management
+
+- ✅ Work orders page display
+- ✅ Create work order navigation
+- ✅ Filters and search
+- ✅ Status indicators
+- ✅ SLA watchlist page
+- ✅ Preventive maintenance page
+- ✅ API health check
+
+**Scenarios:** 7 test cases
+
+#### 3. Referrals Program (`tests/e2e/referrals-flow.spec.ts`)
+
+**Coverage:** Referral system
+
+- ✅ Referrals page display
+- ✅ Generate referral code button
+- ✅ Copy to clipboard functionality
+- ✅ Share via WhatsApp/Email
+- ✅ Referral statistics display
+- ✅ Referrals table
+- ✅ Currency formatting
+- ✅ Error handling and retry
+- ✅ API error resilience
+
+**Scenarios:** 11 test cases
+
+#### 4. Marketplace Flow (`tests/e2e/marketplace-flow.spec.ts`)
+
+**Coverage:** Marketplace browsing and search
+
+- ✅ Marketplace home page
+- ✅ Product categories display
+- ✅ Search functionality
+- ✅ Product cards rendering
+- ✅ Product details navigation
+- ✅ Filters and pagination
+- ✅ Product information display
+- ✅ Price formatting
+- ✅ Add to cart/Request quote
+- ✅ API search integration
+- ✅ XSS protection validation
+- ✅ Arabic/RTL language support
+- ✅ Language switching
+
+**Scenarios:** 15 test cases
+
+---
+
+### Unit Tests (Vitest)
+
+#### ClientLayout Component (`tests/unit/components/ClientLayout.test.tsx`)
+
+**Coverage:** Layout authentication and rendering
+
+- ✅ Children rendering
+- ✅ Unauthenticated state handling
+- ✅ Authenticated state handling
+- ✅ Loading state handling
+- ✅ RTL language support
+- ✅ SessionProvider error resilience
+- ✅ Graceful fallback on missing provider
+
+**Scenarios:** 7 test cases
+
+---
+
+## Test Statistics
+
+### Before This Session
+
+- Model Tests: 87 passing
+- E2E Tests: Limited coverage
+- Unit Tests: Component coverage gaps
+
+### After This Session
+
+- **Model Tests:** 87 passing (unchanged - already solid)
+- **E2E Tests:** +50 scenarios across 4 critical user flows
+- **Unit Tests:** +7 ClientLayout scenarios
+- **Total New Tests:** 57 test cases
+
+### Coverage by Area
+
+| Area           | Test Type | Scenarios | Status        |
+| -------------- | --------- | --------- | ------------- |
+| Authentication | E2E       | 8         | ✅            |
+| Work Orders    | E2E       | 7         | ✅            |
+| Referrals      | E2E       | 11        | ✅            |
+| Marketplace    | E2E       | 15        | ✅            |
+| ClientLayout   | Unit      | 7         | ✅            |
+| Models         | Unit      | 87        | ✅ (existing) |
+
+---
+
+## Quality Gates
+
+All tests written following best practices:
+
+### E2E Tests
+
+- ✅ Use Playwright test framework
+- ✅ Handle authentication states (guest/authenticated)
+- ✅ Include accessibility checks (ARIA labels)
+- ✅ Test error states and loading states
+- ✅ Validate i18n (Arabic/English, RTL/LTR)
+- ✅ API integration tests
+- ✅ Security validation (XSS protection)
+
+### Unit Tests
+
+- ✅ Use Vitest with React Testing Library
+- ✅ Mock external dependencies properly
+- ✅ Test error boundaries
+- ✅ Verify state management
+- ✅ Check accessibility
+
+---
+
+## Test Execution
+
+### Running E2E Tests
+
+```bash
+# Run all E2E tests
+npx playwright test tests/e2e/
+
+# Run specific flow
+npx playwright test tests/e2e/auth-flow.spec.ts
+npx playwright test tests/e2e/marketplace-flow.spec.ts
+
+# Run in headed mode (with browser UI)
+npx playwright test --headed
+
+# Run in debug mode
+npx playwright test --debug
+```
+
+### Running Unit Tests
+
+```bash
+# Run all unit tests
+pnpm test
+
+# Run specific component tests
+pnpm test ClientLayout
+
+# Run with coverage
+pnpm test --coverage
+```
+
+### Running Model Tests
+
+```bash
+# Run model tests
+pnpm test:models
+
+# Watch mode
+pnpm test:models --watch
+```
+
+---
+
+## Critical Flows Covered
+
+### 1. User Onboarding ✅
+
+- Signup → Email validation → Account creation
+- Login → Session management → Dashboard access
+- Password recovery flow
+
+### 2. Core Business Operations ✅
+
+- Work order creation and tracking
+- SLA monitoring and alerts
+- Preventive maintenance scheduling
+
+### 3. Revenue Generation ✅
+
+- Referral program engagement
+- Referral code sharing
+- Commission tracking
+
+### 4. E-Commerce ✅
+
+- Product browsing and search
+- Product details viewing
+- Quote request process
+
+---
+
+## Gaps Identified for Future Work
+
+### Medium Priority
+
+1. **Finance Module Tests**
+   - Invoice creation flow
+   - Payment processing
+   - Expense tracking
+
+2. **Admin Panel Tests**
+   - User management
+   - Role assignment
+   - System settings
+
+3. **Properties Module Tests**
+   - Property creation
+   - Tenant management
+   - Lease agreements
+
+### Low Priority
+
+1. **HR Module Tests** (if feature is active)
+2. **CRM Module Tests** (if feature is active)
+3. **Compliance Module Tests** (if feature is active)
+
+---
+
+## Security Testing Coverage
+
+### Covered ✅
+
+- XSS injection prevention (marketplace search)
+- Authentication enforcement on protected routes
+- Session handling and JWT validation
+- CSRF protection (via NextAuth)
+
+### To Add (Future)
+
+- SQL injection tests (via malformed API requests)
+- Rate limiting verification
+- File upload validation
+- Authorization boundary tests
+
+---
+
+## Performance Testing
+
+### Included in E2E Tests ✅
+
+- Page load validation
+- API response time checks
+- Network idle state verification
+
+### Future Enhancements
+
+- Lighthouse CI integration (already planned in security PR)
+- Load testing for API endpoints
+- Database query performance
+
+---
+
+## Accessibility Testing
+
+### Current Coverage ✅
+
+- ARIA label validation
+- Keyboard navigation (in E2E tests)
+- Screen reader compatibility checks
+- RTL language support
+
+### Future Enhancements
+
+- Automated axe-core integration
+- Color contrast verification
+- Focus management testing
+
+---
+
+## CI/CD Integration
+
+### Ready for Integration ✅
+
+All tests can be integrated into CI/CD pipeline:
+
+```yaml
+# Example GitHub Actions workflow
+- name: Run Unit Tests
+  run: pnpm test
+
+- name: Run Model Tests
+  run: pnpm test:models
+
+- name: Run E2E Tests
+  run: npx playwright test
+
+- name: Upload Test Results
+  uses: actions/upload-artifact@v4
+  if: always()
+  with:
+    name: test-results
+    path: test-results/
+```
+
+---
+
+## Recommendations
+
+### Immediate (Already Done)
+
+- ✅ Fix SessionProvider error
+- ✅ Add E2E tests for critical flows
+- ✅ Add unit tests for ClientLayout
+
+### Short-term (Next Sprint)
+
+1. Run E2E tests in CI/CD pipeline
+2. Add test coverage reporting
+3. Expand finance module tests
+4. Add visual regression tests
+
+### Long-term (Ongoing)
+
+1. Maintain >80% code coverage
+2. Add integration tests for all new features
+3. Performance benchmarking
+4. Security penetration testing
+
+---
+
+## Test Maintenance
+
+### Best Practices Implemented
+
+- ✅ Tests are independent and isolated
+- ✅ Use data-testid attributes for reliable selectors
+- ✅ Handle async operations properly
+- ✅ Clean up after each test
+- ✅ Mock external dependencies
+- ✅ Test both success and error paths
+
+### Documentation
+
+- Each test file has descriptive comments
+- Test scenarios are clearly named
+- Setup and teardown are documented
+- Mocking patterns are consistent
+
+---
+
+## Conclusion
+
+**Status:** ✅ COMPLETE
+
+Successfully expanded test coverage from 87 model tests to:
+
+- **144+ total test scenarios**
+- **50+ new E2E tests** covering critical user journeys
+- **7 new unit tests** for ClientLayout
+- **Zero runtime errors** after fixes
+
+All quality gates passing:
+
+- ✅ TypeScript: 0 errors
+- ✅ ESLint: 0 errors
+- ✅ Build: Success
+- ✅ Tests: Ready to run
+
+Repository is production-ready with comprehensive test coverage for critical business flows.
+
+---
+
+**Report Date:** November 8, 2025  
+**Branch:** `fix/issues-157-162-enhancements`  
+**PR:** #270  
+**Author:** GitHub Copilot Agent
+
+]]>
+</file>
+
+</batch_content>

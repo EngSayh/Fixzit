@@ -1,0 +1,3180 @@
+
+You are the "Fixzit Memory Builder" for category: "routes".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "routes",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/api/souq/reviews/route.ts">
+<![CDATA[
+/**
+ * Souq Reviews API - Product reviews management
+ * @route /api/souq/reviews
+ */
+
+import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import type { NextRequest } from "next/server";
+import { z } from "zod";
+import { connectDb } from "@/lib/mongodb-unified";
+import { getServerSession } from "@/lib/auth/getServerSession";
+import { reviewService } from "@/services/souq/reviews/review-service";
+import { SouqReview } from "@/server/models/souq/Review";
+import { ObjectId } from "mongodb";
+
+const reviewCreateSchema = z.object({
+  productId: z.string().min(1),
+  orderId: z.string().min(1).optional(),
+  customerName: z.string().min(2).max(120).optional(),
+  rating: z.number().int().min(1).max(5),
+  title: z.string().min(3).max(200),
+  content: z.string().min(10).max(5000),
+  pros: z.array(z.string().min(1).max(120)).max(10).optional(),
+  cons: z.array(z.string().min(1).max(120)).max(10).optional(),
+  images: z
+    .array(
+      z.object({
+        url: z.string().url(),
+        caption: z.string().max(200).optional(),
+      }),
+    )
+    .max(5)
+    .optional(),
+});
+
+const reviewListQuerySchema = z.object({
+  status: z.enum(["pending", "published", "rejected", "flagged"]).optional(),
+  rating: z.coerce.number().int().min(1).max(5).optional(),
+  verifiedOnly: z
+    .union([z.literal("true"), z.literal("false")])
+    .transform((val) => val === "true")
+    .optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getServerSession();
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: "Unauthorized", message: "Authentication required" },
+        { status: 401 },
+      );
+    }
+
+    await connectDb();
+
+    const body = await request.json();
+    const payload = reviewCreateSchema.parse(body);
+
+    const orgId = session.user.orgId ?? session.user.id;
+    const review = await reviewService.submitReview(orgId, {
+      ...payload,
+      customerId: session.user.id,
+      customerName:
+        payload.customerName ?? session.user.name ?? "Marketplace Customer",
+    });
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: review,
+      },
+      { status: 201 },
+    );
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Validation failed", issues: error.issues },
+        { status: 400 },
+      );
+    }
+
+    logger.error("Review creation error:", error as Error);
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to create review",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getServerSession();
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: "Unauthorized", message: "Authentication required" },
+        { status: 401 },
+      );
+    }
+
+    await connectDb();
+    const orgId = session.user.orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+    const orgCandidates = ObjectId.isValid(orgId)
+      ? [orgId, new ObjectId(orgId)]
+      : [orgId];
+
+    const { searchParams } = new URL(request.url);
+    const parsed = reviewListQuerySchema.parse({
+      status: searchParams.get("status") ?? undefined,
+      rating: searchParams.get("rating") ?? undefined,
+      verifiedOnly: searchParams.get("verifiedOnly") ?? undefined,
+      page: searchParams.get("page") ?? undefined,
+      limit: searchParams.get("limit") ?? undefined,
+    });
+
+    const query: Record<string, unknown> = {
+      customerId: session.user.id,
+      $or: [{ orgId: { $in: orgCandidates } }, { org_id: { $in: orgCandidates } }],
+    };
+
+    if (parsed.status) query.status = parsed.status;
+    if (parsed.rating) query.rating = parsed.rating;
+    if (parsed.verifiedOnly) query.isVerifiedPurchase = true;
+
+    const skip = (parsed.page - 1) * parsed.limit;
+    const [reviews, total] = await Promise.all([
+      SouqReview.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parsed.limit)
+        .lean(),
+      SouqReview.countDocuments(query),
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      data: reviews,
+      pagination: {
+        page: parsed.page,
+        limit: parsed.limit,
+        total,
+        pages: Math.ceil(total / parsed.limit),
+      },
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Validation failed", issues: error.issues },
+        { status: 400 },
+      );
+    }
+
+    logger.error("Review fetch error:", error as Error);
+    return NextResponse.json(
+      { error: "Failed to fetch reviews" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/search/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { searchClient, INDEXES } from "@/lib/meilisearch";
+import { withMeiliResilience } from "@/lib/meilisearch-resilience";
+import { z } from "zod";
+import { logger } from "@/lib/logger";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
+import {
+  isUnauthorizedMarketplaceContext,
+  resolveMarketplaceContext,
+} from "@/lib/marketplace/context";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { escapeMeiliFilterValue } from "@/lib/marketplace/meiliFilters";
+import crypto from "node:crypto";
+
+const MAX_QUERY_LENGTH = 256;
+const MAX_BADGES = 10;
+const ERROR_CODES = {
+  UNAUTHORIZED: "UNAUTHORIZED",
+  VALIDATION: "VALIDATION_ERROR",
+  BAD_REQUEST: "BAD_REQUEST",
+  UPSTREAM: "UPSTREAM_ERROR",
+} as const;
+
+const searchQuerySchema = z.object({
+  q: z.string().optional().default(""),
+  category: z.string().optional(),
+  subcategory: z.string().optional(),
+  brandId: z.string().optional(),
+  minPrice: z.coerce.number().optional(),
+  maxPrice: z.coerce.number().optional(),
+  minRating: z.coerce.number().min(0).max(5).optional(),
+  badges: z.string().optional(), // Comma-separated
+  inStock: z.coerce.boolean().optional(),
+  isActive: z.coerce.boolean().optional().default(true),
+  sort: z
+    .enum(["relevance", "price_asc", "price_desc", "rating", "newest"])
+    .optional()
+    .default("relevance"),
+  page: z.coerce.number().min(1).optional().default(1),
+  limit: z.coerce.number().min(1).max(100).optional().default(20),
+});
+
+/**
+ * GET /api/souq/search
+ *
+ * Search products using Meilisearch with faceted filters
+ *
+ * Query Parameters:
+ * - q: Search query (string)
+ * - category: Filter by category (string)
+ * - subcategory: Filter by subcategory (string)
+ * - brandId: Filter by brand ID
+ * - minPrice: Minimum price filter
+ * - maxPrice: Maximum price filter
+ * - minRating: Minimum rating (0-5)
+ * - badges: Comma-separated badges (e.g., "fbf,top-seller")
+ * - inStock: Filter in-stock only (boolean)
+ * - isActive: Filter by active status (server default: true)
+ * - sort: Sort order (relevance|price_asc|price_desc|rating|newest)
+ * - page: Page number (default: 1)
+ * - limit: Items per page (1-100, default: 20)
+ *
+ * @returns Search results with facets and pagination metadata
+ */
+export async function GET(req: NextRequest) {
+  try {
+    // Rate limiting: 120 req/min for public search
+    const clientIp = getClientIP(req);
+    const rl = await smartRateLimit(`/api/souq/search:${clientIp}`, 120, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    // Parse and validate query parameters
+    const { searchParams } = new URL(req.url);
+    const params = {
+      q: searchParams.get("q") || undefined,
+      category: searchParams.get("category") || undefined,
+      subcategory: searchParams.get("subcategory") || undefined,
+      brandId: searchParams.get("brandId") || undefined,
+      minPrice: searchParams.get("minPrice") || undefined,
+      maxPrice: searchParams.get("maxPrice") || undefined,
+      minRating: searchParams.get("minRating") || undefined,
+      badges: searchParams.get("badges") || undefined,
+      inStock: searchParams.get("inStock") || undefined,
+      isActive: searchParams.get("isActive") || undefined,
+      sort: searchParams.get("sort") || undefined,
+      page: searchParams.get("page") || undefined,
+      limit: searchParams.get("limit") || undefined,
+    };
+
+    const validated = searchQuerySchema.parse(params);
+
+    // Cap query length defensively
+    const sanitizedQuery =
+      validated.q && validated.q.length > MAX_QUERY_LENGTH
+        ? validated.q.slice(0, MAX_QUERY_LENGTH)
+        : validated.q;
+
+    if (process.env.VITEST === "true") {
+      const allowlist = new Set(
+        (process.env.MARKETPLACE_PUBLIC_ORGS || "")
+          .split(",")
+          .map((v) => v.trim())
+          .filter(Boolean),
+      );
+      const testContext = await resolveMarketplaceContext(req);
+      const testOrgId = testContext?.orgId?.toString();
+      const testAuthed = Boolean(testContext?.userId);
+      const allowed =
+        testAuthed ||
+        (testOrgId && allowlist.size > 0 && allowlist.has(testOrgId));
+      if (!allowed) {
+        return NextResponse.json(
+          { error: "Unauthorized", errorCode: ERROR_CODES.UNAUTHORIZED },
+          { status: 403 },
+        );
+      }
+
+      const filters: string[] = [];
+      const effectiveIsActive = validated.isActive ?? true;
+      filters.push(`isActive = ${effectiveIsActive ? "true" : "false"}`);
+      filters.push(`orgId = ${escapeMeiliFilterValue(testOrgId)}`);
+      filters.push(`org_id = ${escapeMeiliFilterValue(testOrgId)}`);
+      if (validated.category) {
+        filters.push(`category = ${escapeMeiliFilterValue(validated.category)}`);
+      }
+
+      const offset = (validated.page - 1) * validated.limit;
+      const index = searchClient.index(INDEXES.PRODUCTS);
+      const results = await index.search(sanitizedQuery, {
+        filter: filters,
+        sort: undefined,
+        limit: validated.limit,
+        offset,
+        facets: ["category", "subcategory", "rating", "badges"],
+      });
+
+      const totalHits = results.estimatedTotalHits || results.hits.length;
+      const response = NextResponse.json({
+        success: true,
+        data: {
+          hits: results.hits,
+          query: sanitizedQuery,
+          page: validated.page,
+          limit: validated.limit,
+          totalHits,
+          totalPages: Math.max(1, Math.ceil(totalHits / validated.limit)),
+          facets: {
+            categories: results.facetDistribution?.category || {},
+            subcategories: results.facetDistribution?.subcategory || {},
+            ratings: results.facetDistribution?.rating || {},
+            badges: results.facetDistribution?.badges || {},
+            priceRanges: {},
+          },
+          processingTimeMs: results.processingTimeMs,
+          filters: {
+            category: validated.category,
+            subcategory: validated.subcategory,
+            brandId: validated.brandId,
+            minPrice: validated.minPrice,
+            maxPrice: validated.maxPrice,
+            minRating: validated.minRating,
+            badges: validated.badges,
+            inStock: validated.inStock,
+            isActive: effectiveIsActive,
+            sort: validated.sort,
+          },
+        },
+      });
+      response.headers.set("X-Correlation-Id", testContext?.correlationId ?? "");
+      response.headers.set("X-RateLimit-Limit", "120");
+      response.headers.set("X-RateLimit-Remaining", "119");
+      return response;
+    }
+
+    // Limit badge list length
+    const badgeListRaw =
+      validated.badges?.split(",").filter((b) => b.trim().length > 0) ?? [];
+    if (badgeListRaw.length > MAX_BADGES) {
+      return NextResponse.json(
+        {
+          error: "Too many badges",
+          errorCode: ERROR_CODES.BAD_REQUEST,
+        },
+        { status: 400 },
+      );
+    }
+
+    // Build filter array
+    const filters: string[] = [];
+
+    // Enforce tenant scoping from trusted context (session first, marketplace fallback)
+    const sessionUser = await getSessionUser(req).catch(() => null);
+    const marketplaceContext = await resolveMarketplaceContext(req);
+    const orgIdFromContext =
+      sessionUser?.orgId?.toString() || marketplaceContext?.orgId?.toString();
+    const correlationId =
+      sessionUser?.id || marketplaceContext?.correlationId || undefined;
+
+    // Allowlist public catalogs via env (comma-separated ObjectIds)
+    // SECURITY FIX: Empty allowlist = NO public access (strict default)
+    const publicOrgAllowlist = new Set(
+      (process.env.MARKETPLACE_PUBLIC_ORGS || "")
+        .split(",")
+        .map((v) => v.trim())
+        .filter(Boolean),
+    );
+    
+    // SECURITY: Authenticated users (session or marketplace token) are allowed
+    const isAuthenticated = Boolean(sessionUser?.id || marketplaceContext?.userId);
+    
+    // SECURITY: Unauthenticated users must have org in explicit allowlist
+    const isPublicAllowed =
+      isAuthenticated ||
+      (orgIdFromContext &&
+        publicOrgAllowlist.size > 0 &&
+        publicOrgAllowlist.has(orgIdFromContext));
+    
+    // SECURITY: Reject unauthorized context marker from resolveMarketplaceContext
+    const isUnauthorizedContext =
+      !orgIdFromContext || isUnauthorizedMarketplaceContext(marketplaceContext);
+
+    if (isUnauthorizedContext || !isPublicAllowed) {
+      const clientIpHash = clientIp
+        ? crypto.createHash("sha256").update(clientIp).digest("hex").slice(0, 16)
+        : undefined;
+      logger.warn("[Souq Search] Unauthorized org access attempt", {
+        orgIdFromContext,
+        clientIp,
+        clientIpHash,
+        correlationId,
+        metric: "souq.search.unauthorized",
+      });
+      return NextResponse.json(
+        { error: "Unauthorized", errorCode: ERROR_CODES.UNAUTHORIZED },
+        { status: 403 },
+      );
+    }
+
+    // Apply isActive filter (server-default true to avoid inactive exposure)
+    const effectiveIsActive = validated.isActive ?? true;
+    filters.push(`isActive = ${effectiveIsActive ? "true" : "false"}`);
+
+    if (validated.category) {
+      filters.push(`category = ${escapeMeiliFilterValue(validated.category)}`);
+    }
+
+    if (validated.subcategory) {
+      filters.push(
+        `subcategory = ${escapeMeiliFilterValue(validated.subcategory)}`,
+      );
+    }
+
+    if (validated.brandId) {
+      filters.push(`brand = ${escapeMeiliFilterValue(validated.brandId)}`);
+    }
+
+    if (validated.minPrice !== undefined || validated.maxPrice !== undefined) {
+      if (
+        validated.minPrice !== undefined &&
+        validated.maxPrice !== undefined
+      ) {
+        filters.push(`price ${validated.minPrice} TO ${validated.maxPrice}`);
+      } else if (validated.minPrice !== undefined) {
+        filters.push(`price >= ${validated.minPrice}`);
+      } else if (validated.maxPrice !== undefined) {
+        filters.push(`price <= ${validated.maxPrice}`);
+      }
+    }
+
+    if (validated.minRating !== undefined) {
+      filters.push(`rating >= ${validated.minRating}`);
+    }
+
+    if (badgeListRaw.length > 0) {
+      // SECURITY: Escape each badge value to prevent filter injection
+      const badgeFilters = badgeListRaw.map(
+        (badge) => `badges = ${escapeMeiliFilterValue(badge.trim())}`,
+      );
+      filters.push(`(${badgeFilters.join(" OR ")})`);
+    }
+
+    if (validated.inStock) {
+      filters.push("inStock = true");
+    }
+
+    // SECURITY: Tenant isolation – require org scope derived from trusted context
+    filters.push(`orgId = ${escapeMeiliFilterValue(orgIdFromContext)}`);
+    filters.push(`org_id = ${escapeMeiliFilterValue(orgIdFromContext)}`);
+
+    // Determine sort order
+    let sortArray: string[] = [];
+    switch (validated.sort) {
+      case "price_asc":
+        sortArray = ["price:asc"];
+        break;
+      case "price_desc":
+        sortArray = ["price:desc"];
+        break;
+      case "rating":
+        sortArray = ["rating:desc", "totalReviews:desc"];
+        break;
+      case "newest":
+        sortArray = ["createdAt:desc"];
+        break;
+      default:
+        // Relevance (Meilisearch default)
+        sortArray = [];
+    }
+
+    // Calculate offset
+    const offset = (validated.page - 1) * validated.limit;
+
+    // Perform search
+    const index = searchClient.index(INDEXES.PRODUCTS);
+
+    const startedAt = Date.now();
+    const results = await withMeiliResilience("products-search", "search", () =>
+      index.search(sanitizedQuery, {
+        filter: filters.length > 0 ? filters : undefined,
+        sort: sortArray.length > 0 ? sortArray : undefined,
+        limit: validated.limit,
+        offset,
+        attributesToHighlight: ["title", "brand", "description"],
+        highlightPreTag: "<mark>",
+        highlightPostTag: "</mark>",
+        facets: ["category", "subcategory", "rating", "badges"],
+      }),
+    );
+    const durationMs = Date.now() - startedAt;
+
+    // Calculate price range facets
+    const priceRanges = calculatePriceRanges(
+      results.hits.map((hit) => {
+        const value = (hit as { price?: number }).price;
+        return typeof value === "number" ? value : 0;
+      }),
+    );
+
+    const totalHits = results.estimatedTotalHits || results.hits.length;
+    const totalPages = Math.ceil(totalHits / validated.limit);
+
+    logger.info("[Souq Search] success", {
+      orgId: orgIdFromContext,
+      correlationId,
+      requestId: req.headers.get("x-request-id") || undefined,
+      sort: validated.sort,
+      page: validated.page,
+      limit: validated.limit,
+      durationMs,
+      filtersCount: filters.length,
+    });
+
+    const response = NextResponse.json({
+      success: true,
+      data: {
+        hits: results.hits,
+        query: sanitizedQuery,
+        page: validated.page,
+        limit: validated.limit,
+        totalHits,
+        totalPages,
+        facets: {
+          categories: results.facetDistribution?.category || {},
+          subcategories: results.facetDistribution?.subcategory || {},
+          ratings: results.facetDistribution?.rating || {},
+          badges: results.facetDistribution?.badges || {},
+          priceRanges,
+        },
+        processingTimeMs: results.processingTimeMs,
+        filters: {
+          category: validated.category,
+          subcategory: validated.subcategory,
+          brandId: validated.brandId,
+          minPrice: validated.minPrice,
+          maxPrice: validated.maxPrice,
+          minRating: validated.minRating,
+          badges: validated.badges,
+          inStock: validated.inStock,
+          isActive: effectiveIsActive,
+          sort: validated.sort,
+        },
+      },
+    });
+    response.headers.set("X-Correlation-Id", correlationId ?? "");
+    response.headers.set("X-RateLimit-Limit", "120");
+    response.headers.set("X-RateLimit-Remaining", rl.remaining.toString());
+    return response;
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          error: "Invalid query parameters",
+          errorCode: ERROR_CODES.VALIDATION,
+          details: (error as unknown as { errors: unknown }).errors,
+        },
+        { status: 400 },
+      );
+    }
+
+    logger.error("[Souq Search] Search failed", error as Error);
+
+    return NextResponse.json(
+      {
+        error: "Search failed",
+        errorCode: ERROR_CODES.UPSTREAM,
+        message:
+          error instanceof Error ? error.message : "Unknown error occurred",
+      },
+      { status: 503 },
+    );
+  }
+}
+
+/**
+ * Calculate price range buckets for faceting
+ */
+function calculatePriceRanges(prices: number[]): Record<string, number> {
+  if (prices.length === 0) return {};
+
+  const ranges = {
+    "Under 50 SAR": 0,
+    "50 - 100 SAR": 0,
+    "100 - 200 SAR": 0,
+    "200 - 500 SAR": 0,
+    "500 - 1000 SAR": 0,
+    "Above 1000 SAR": 0,
+  };
+
+  prices.forEach((price) => {
+    if (price < 50) ranges["Under 50 SAR"]++;
+    else if (price < 100) ranges["50 - 100 SAR"]++;
+    else if (price < 200) ranges["100 - 200 SAR"]++;
+    else if (price < 500) ranges["200 - 500 SAR"]++;
+    else if (price < 1000) ranges["500 - 1000 SAR"]++;
+    else ranges["Above 1000 SAR"]++;
+  });
+
+  return ranges;
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/seller-central/health/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { accountHealthService } from "@/services/souq/account-health-service";
+
+/**
+ * GET /api/souq/seller-central/health
+ * Get account health metrics for current seller
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const period = (searchParams.get("period") || "last_30_days") as
+      | "last_7_days"
+      | "last_30_days"
+      | "last_90_days";
+
+    // Get health metrics
+    const metrics = await accountHealthService.calculateAccountHealth(
+      session.user.id,
+      orgId,
+      period,
+    );
+
+    return NextResponse.json({
+      success: true,
+      ...metrics,
+    });
+  } catch (error) {
+    logger.error("Get account health error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to get account health",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/seller-central/health/summary/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { accountHealthService } from "@/services/souq/account-health-service";
+
+/**
+ * GET /api/souq/seller-central/health/summary
+ * Get comprehensive account health summary with trends and recommendations
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    // Extract period parameter (defaults to last_30_days)
+    const { searchParams } = new URL(request.url);
+    const period = (searchParams.get("period") ?? "last_30_days") as
+      | "last_7_days"
+      | "last_30_days"
+      | "last_90_days";
+
+    // Get health summary for specified period
+    const summary = await accountHealthService.getHealthSummary(
+      session.user.id,
+      orgId,
+      period,
+    );
+
+    return NextResponse.json({
+      success: true,
+      ...summary,
+    });
+  } catch (error) {
+    logger.error("Get health summary error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to get health summary",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/seller-central/health/violation/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { accountHealthService } from "@/services/souq/account-health-service";
+import {
+  Role,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
+import mongoose from "mongoose";
+
+const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
+  const orgString = typeof orgId === "string" ? orgId : orgId?.toString?.();
+  const candidates: Array<string | mongoose.Types.ObjectId> = [];
+  if (orgString) {
+    const trimmed = orgString.trim();
+    candidates.push(trimmed);
+    if (mongoose.Types.ObjectId.isValid(trimmed)) {
+      candidates.push(new mongoose.Types.ObjectId(trimmed));
+    }
+  }
+  return candidates.length ? { orgId: { $in: candidates } } : { orgId };
+};
+
+/**
+ * POST /api/souq/seller-central/health/violation
+ * Record a policy violation (Admin only)
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rawSubRole = (session.user as { subRole?: string | null }).subRole;
+    const normalizedSubRole =
+      normalizeSubRole(rawSubRole) ?? inferSubRoleFromRole(session.user.role);
+    const normalizedRole = normalizeRole(session.user.role, normalizedSubRole);
+
+    const isPlatformAdmin =
+      normalizedRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const isOrgAdmin =
+      normalizedRole !== null &&
+      [Role.ADMIN, Role.CORPORATE_OWNER].includes(normalizedRole);
+
+    if (!isPlatformAdmin && !isOrgAdmin) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const { sellerId, type, severity, description, action, targetOrgId } = body;
+
+    // Validation
+    if (!sellerId || !type || !severity || !description || !action) {
+      return NextResponse.json(
+        {
+          error:
+            "Missing required fields: sellerId, type, severity, description, action",
+        },
+        { status: 400 },
+      );
+    }
+
+    const sessionOrgId = (session.user as { orgId?: string }).orgId;
+    const effectiveOrgId = isPlatformAdmin
+      ? targetOrgId ?? sessionOrgId
+      : sessionOrgId;
+
+    if (!effectiveOrgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    // Ensure seller is within org scope for non-platform admin
+    if (!isPlatformAdmin) {
+      const sellerInOrg = await (await import("@/server/models/souq/Seller")).SouqSeller.findOne({
+        _id: sellerId,
+        ...buildOrgFilter(effectiveOrgId),
+      }).select({ _id: 1 });
+      if (!sellerInOrg) {
+        return NextResponse.json(
+          { error: "Seller not found in organization scope" },
+          { status: 404 },
+        );
+      }
+    }
+
+    // Record violation
+    await accountHealthService.recordViolation(sellerId, effectiveOrgId, {
+      type,
+      severity,
+      description,
+      action,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Policy violation recorded successfully",
+    });
+  } catch (error) {
+    logger.error("Record violation error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to record violation",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/seller-central/kyc/approve/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { sellerKYCService } from "@/services/souq/seller-kyc-service";
+import {
+  Role,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
+
+/**
+ * POST /api/souq/seller-central/kyc/approve
+ * Approve or reject KYC submission (Admin only)
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rawSubRole = (session.user as { subRole?: string | null }).subRole;
+    const normalizedSubRole =
+      normalizeSubRole(rawSubRole) ?? inferSubRoleFromRole(session.user.role);
+    const normalizedRole = normalizeRole(session.user.role, normalizedSubRole);
+
+    const isPlatformAdmin =
+      normalizedRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const isOrgAdmin =
+      normalizedRole !== null &&
+      [Role.ADMIN, Role.CORPORATE_OWNER].includes(normalizedRole);
+
+    if (!isPlatformAdmin && !isOrgAdmin) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const { sellerId, approved, rejectionReason, targetOrgId } = body;
+
+    // Validation
+    if (!sellerId || approved === undefined) {
+      return NextResponse.json(
+        {
+          error: "Missing required fields: sellerId, approved",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (!approved && !rejectionReason) {
+      return NextResponse.json(
+        {
+          error: "Rejection reason required when approved is false",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (approved) {
+      const sessionOrgId = (session.user as { orgId?: string }).orgId;
+      const effectiveOrgId = isPlatformAdmin
+        ? targetOrgId ?? sessionOrgId
+        : sessionOrgId;
+      if (!effectiveOrgId) {
+        return NextResponse.json(
+          { error: "Organization context required" },
+          { status: 403 },
+        );
+      }
+      await sellerKYCService.approveKYC(sellerId, effectiveOrgId, session.user.id);
+    } else {
+      const sessionOrgId = (session.user as { orgId?: string }).orgId;
+      const effectiveOrgId = isPlatformAdmin
+        ? targetOrgId ?? sessionOrgId
+        : sessionOrgId;
+      if (!effectiveOrgId) {
+        return NextResponse.json(
+          { error: "Organization context required" },
+          { status: 403 },
+        );
+      }
+      await sellerKYCService.rejectKYC(
+        sellerId,
+        effectiveOrgId,
+        session.user.id,
+        rejectionReason,
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `KYC ${approved ? "approved" : "rejected"} successfully`,
+    });
+  } catch (error) {
+    logger.error("Approve/reject KYC error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to process KYC approval",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/seller-central/kyc/pending/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { sellerKYCService } from "@/services/souq/seller-kyc-service";
+import {
+  Role,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
+
+/**
+ * GET /api/souq/seller-central/kyc/pending
+ * Get pending KYC submissions (Admin only)
+ */
+export async function GET(_request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rawSubRole = (session.user as { subRole?: string | null }).subRole;
+    const normalizedSubRole =
+      normalizeSubRole(rawSubRole) ?? inferSubRoleFromRole(session.user.role);
+    const normalizedRole = normalizeRole(session.user.role, normalizedSubRole);
+
+    const isPlatformAdmin =
+      normalizedRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const isOrgAdmin =
+      normalizedRole !== null &&
+      [Role.ADMIN, Role.CORPORATE_OWNER].includes(normalizedRole);
+
+    if (!isPlatformAdmin && !isOrgAdmin) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId && !isPlatformAdmin) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    const effectiveOrgId = orgId;
+    if (!effectiveOrgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    // Get pending submissions
+    const pending = await sellerKYCService.getPendingKYCSubmissions(
+      effectiveOrgId as string,
+    );
+
+    return NextResponse.json({
+      success: true,
+      pending,
+      total: pending.length,
+    });
+  } catch (error) {
+    logger.error("Get pending KYC error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to get pending KYC submissions",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/seller-central/kyc/status/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { sellerKYCService } from "@/services/souq/seller-kyc-service";
+
+/**
+ * GET /api/souq/seller-central/kyc/status
+ * Get KYC status for current seller
+ */
+export async function GET(_request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    // Get KYC status
+    const status = await sellerKYCService.getKYCStatus(session.user.id, orgId);
+
+    return NextResponse.json({
+      success: true,
+      ...status,
+    });
+  } catch (error) {
+    logger.error("Get KYC status error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to get KYC status",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/seller-central/kyc/submit/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { sellerKYCService } from "@/services/souq/seller-kyc-service";
+
+/**
+ * POST /api/souq/seller-central/kyc/submit
+ * Submit KYC information (multi-step)
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { step, data } = body;
+
+    // Validation
+    if (!step || !data) {
+      return NextResponse.json(
+        {
+          error: "Missing required fields: step, data",
+        },
+        { status: 400 },
+      );
+    }
+
+    const validSteps = ["company_info", "documents", "bank_details"];
+    if (!validSteps.includes(step)) {
+      return NextResponse.json(
+        {
+          error: `Invalid step. Must be one of: ${validSteps.join(", ")}`,
+        },
+        { status: 400 },
+      );
+    }
+
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    // Submit KYC
+    await sellerKYCService.submitKYC({
+      sellerId: session.user.id,
+      orgId,
+      step,
+      data,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `KYC ${step} submitted successfully`,
+      nextStep:
+        step === "company_info"
+          ? "documents"
+          : step === "documents"
+            ? "bank_details"
+            : "verification",
+    });
+  } catch (error) {
+    logger.error("Submit KYC error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to submit KYC",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/seller-central/kyc/verify-document/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { sellerKYCService } from "@/services/souq/seller-kyc-service";
+import {
+  Role,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
+
+/**
+ * POST /api/souq/seller-central/kyc/verify-document
+ * Verify a specific KYC document (Admin only)
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rawSubRole = (session.user as { subRole?: string | null }).subRole;
+    const normalizedSubRole =
+      normalizeSubRole(rawSubRole) ?? inferSubRoleFromRole(session.user.role);
+    const normalizedRole = normalizeRole(session.user.role, normalizedSubRole);
+
+    const isPlatformAdmin =
+      normalizedRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const isOrgAdmin =
+      normalizedRole !== null &&
+      [Role.ADMIN, Role.CORPORATE_OWNER].includes(normalizedRole);
+
+    if (!isPlatformAdmin && !isOrgAdmin) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const { sellerId, documentType, approved, rejectionReason, targetOrgId } = body;
+
+    // Validation
+    if (!sellerId || !documentType || approved === undefined) {
+      return NextResponse.json(
+        {
+          error: "Missing required fields: sellerId, documentType, approved",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (!approved && !rejectionReason) {
+      return NextResponse.json(
+        {
+          error: "Rejection reason required when approved is false",
+        },
+        { status: 400 },
+      );
+    }
+
+    const sessionOrgId = (session.user as { orgId?: string }).orgId;
+    const effectiveOrgId = isPlatformAdmin ? targetOrgId ?? sessionOrgId : sessionOrgId;
+    if (!effectiveOrgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    // Verify document
+    await sellerKYCService.verifyDocument({
+      sellerId,
+      orgId: effectiveOrgId,
+      documentType,
+      approved,
+      verifiedBy: session.user.id,
+      rejectionReason,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `Document ${approved ? "approved" : "rejected"} successfully`,
+    });
+  } catch (error) {
+    logger.error("Verify document error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to verify document",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/seller-central/reviews/[id]/respond/route.ts">
+<![CDATA[
+/**
+ * POST /api/souq/seller-central/reviews/[id]/respond - Seller response to review
+ */
+import { NextRequest, NextResponse } from "next/server";
+import { reviewService } from "@/services/souq/reviews/review-service";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { connectDb } from "@/lib/mongodb-unified";
+import { z } from "zod";
+
+type RouteContext = {
+  params: Promise<{
+    id: string;
+  }>;
+};
+
+const sellerResponseSchema = z.object({
+  content: z.string().min(10).max(1000),
+});
+
+export async function POST(req: NextRequest, context: RouteContext) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    await connectDb();
+
+    const { id: reviewId } = await context.params;
+    const body = await req.json();
+    const { content } = sellerResponseSchema.parse(body);
+
+    // 🔐 STRICT v4.1: orgId is required for tenant isolation
+    const orgId = session.user.orgId;
+    if (!orgId) {
+      return NextResponse.json({ error: "Missing orgId" }, { status: 400 });
+    }
+
+    const review = await reviewService.respondToReview(
+      orgId,
+      reviewId,
+      session.user.id,
+      content,
+    );
+
+    return NextResponse.json(review);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Validation failed", issues: error.issues },
+        { status: 400 },
+      );
+    }
+
+    logger.error("[POST /api/souq/seller-central/reviews/[id]/respond]", {
+      error,
+    });
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to respond to review",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/seller-central/reviews/route.ts">
+<![CDATA[
+/**
+ * GET /api/souq/seller-central/reviews - Get seller reviews
+ */
+import { NextRequest, NextResponse } from "next/server";
+import { reviewService } from "@/services/souq/reviews/review-service";
+import { auth } from "@/auth";
+import { connectDb } from "@/lib/mongodb-unified";
+import { z } from "zod";
+import { logger } from "@/lib/logger";
+
+const sellerReviewFiltersSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  rating: z.coerce.number().int().min(1).max(5).optional(),
+  verifiedOnly: z
+    .union([z.literal("true"), z.literal("false")])
+    .transform((val) => val === "true")
+    .optional(),
+  sortBy: z.enum(["recent", "helpful", "rating"]).default("recent"),
+  status: z.enum(["pending", "published", "rejected", "flagged"]).optional(),
+});
+
+export async function GET(req: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    await connectDb();
+
+    const { searchParams } = new URL(req.url);
+    const filters = sellerReviewFiltersSchema.parse({
+      page: searchParams.get("page") ?? undefined,
+      limit: searchParams.get("limit") ?? undefined,
+      rating: searchParams.get("rating") ?? undefined,
+      verifiedOnly: searchParams.get("verifiedOnly") ?? undefined,
+      sortBy: searchParams.get("sortBy") ?? undefined,
+      status: searchParams.get("status") ?? undefined,
+    });
+
+    const result = await reviewService.getSellerReviews(orgId, session.user.id, {
+      page: filters.page,
+      limit: filters.limit,
+      rating: filters.rating,
+      verifiedOnly: filters.verifiedOnly,
+      sortBy: filters.sortBy,
+      status: filters.status,
+    });
+
+    return NextResponse.json(result);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Validation failed", issues: error.issues },
+        { status: 400 },
+      );
+    }
+
+    logger.error("[GET /api/souq/seller-central/reviews]", error as Error);
+    return NextResponse.json(
+      { error: "Failed to fetch reviews" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/sellers/[id]/dashboard/route.ts">
+<![CDATA[
+/**
+ * Souq Seller Dashboard API - Seller metrics and statistics
+ * @route /api/souq/sellers/[id]/dashboard
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { SouqSeller } from "@/server/models/souq/Seller";
+import { SouqListing } from "@/server/models/souq/Listing";
+import { SouqOrder } from "@/server/models/souq/Order";
+import { SouqReview } from "@/server/models/souq/Review";
+import { connectDb } from "@/lib/mongodb-unified";
+import {
+  Role,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
+
+export async function GET(
+  request: NextRequest,
+  context: { params: { id: string } },
+) {
+  try {
+    // 🔒 AUTH: Require authentication
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const sessionOrgId = (session.user as { orgId?: string }).orgId;
+    const rawSubRole = (session.user as { subRole?: string | null }).subRole;
+    const normalizedSubRole =
+      normalizeSubRole(rawSubRole) ??
+      inferSubRoleFromRole((session.user as { role?: string }).role);
+    const normalizedRole = normalizeRole(
+      (session.user as { role?: string }).role,
+      normalizedSubRole,
+    );
+    const isSuperAdmin =
+      normalizedRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const targetOrgId = request.nextUrl.searchParams.get("targetOrgId") || undefined;
+    const orgId = isSuperAdmin ? (targetOrgId || sessionOrgId) : sessionOrgId;
+    if (isSuperAdmin && !orgId) {
+      return NextResponse.json(
+        { error: "targetOrgId is required for platform admins" },
+        { status: 400 },
+      );
+    }
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    await connectDb();
+
+    const sellerId = context.params.id;
+
+    const sellerQuery: Record<string, unknown> = { _id: sellerId };
+    if (orgId) {
+      sellerQuery.orgId = orgId;
+    }
+
+    const seller = await SouqSeller.findOne(sellerQuery);
+
+    if (!seller) {
+      return NextResponse.json({ error: "Seller not found" }, { status: 404 });
+    }
+
+    // 🔒 ACCESS CONTROL: Only seller owner or same-org admin (or super admin) can view dashboard
+    const isOwner = seller.userId?.toString() === session.user.id;
+    const isOrgAdmin =
+      normalizedRole !== null &&
+      [Role.ADMIN, Role.CORPORATE_OWNER].includes(normalizedRole);
+    const isOpsOrSupport =
+      normalizedRole === Role.TEAM_MEMBER &&
+      !!normalizedSubRole &&
+      [SubRole.OPERATIONS_MANAGER, SubRole.SUPPORT_AGENT].includes(
+        normalizedSubRole,
+      );
+
+    const isSameOrgAdmin =
+      (isOrgAdmin || isOpsOrSupport) &&
+      seller.orgId &&
+      sessionOrgId &&
+      seller.orgId.toString() === sessionOrgId;
+
+    if (!isOwner && !isSuperAdmin && !isSameOrgAdmin) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const [
+      totalListings,
+      activeListings,
+      totalOrders,
+      recentOrders,
+      totalRevenue,
+      recentRevenue,
+      averageRating,
+    ] = await Promise.all([
+      SouqListing.countDocuments({ sellerId, orgId: seller.orgId }),
+      SouqListing.countDocuments({ sellerId, orgId: seller.orgId, status: "active" }),
+      SouqOrder.countDocuments({ "items.sellerId": sellerId, orgId: seller.orgId }),
+      SouqOrder.countDocuments({
+        "items.sellerId": sellerId,
+        orgId: seller.orgId,
+        createdAt: { $gte: thirtyDaysAgo },
+      }),
+      SouqOrder.aggregate([
+        { $unwind: "$items" },
+        { $match: { "items.sellerId": seller._id, orgId: seller.orgId } },
+        { $group: { _id: null, total: { $sum: "$items.subtotal" } } },
+      ]),
+      SouqOrder.aggregate([
+        { $unwind: "$items" },
+        {
+          $match: {
+            "items.sellerId": seller._id,
+            orgId: seller.orgId,
+            createdAt: { $gte: thirtyDaysAgo },
+          },
+        },
+        { $group: { _id: null, total: { $sum: "$items.subtotal" } } },
+      ]),
+      SouqReview.aggregate([
+        {
+          $lookup: {
+            from: "souq_products",
+            localField: "productId",
+            foreignField: "_id",
+            as: "product",
+          },
+        },
+        { $unwind: "$product" },
+        {
+          $lookup: {
+            from: "souq_listings",
+            localField: "product._id",
+            foreignField: "productId",
+            as: "listings",
+          },
+        },
+        { $unwind: "$listings" },
+        { $match: { "listings.sellerId": seller._id } },
+        { $group: { _id: null, avgRating: { $avg: "$rating" } } },
+      ]),
+    ]);
+
+    // Extract distinct productIds before the next two queries to avoid redundant calls
+    const productIds = await SouqListing.distinct("productId", {
+      sellerId,
+      orgId: seller.orgId,
+    });
+
+    const [totalReviews, pendingReviews] = await Promise.all([
+      SouqReview.countDocuments({
+        productId: { $in: productIds },
+      }),
+      SouqReview.countDocuments({
+        productId: { $in: productIds },
+        sellerResponse: { $exists: false },
+        createdAt: { $gte: thirtyDaysAgo },
+      }),
+    ]);
+
+    const stats = {
+      listings: {
+        total: totalListings,
+        active: activeListings,
+        inactive: totalListings - activeListings,
+      },
+      orders: {
+        total: totalOrders,
+        recent: recentOrders,
+        growth:
+          totalOrders > 0
+            ? ((recentOrders / totalOrders) * 100).toFixed(1)
+            : "0.0",
+      },
+      revenue: {
+        total: totalRevenue[0]?.total || 0,
+        recent: recentRevenue[0]?.total || 0,
+        currency: "SAR",
+      },
+      reviews: {
+        averageRating: averageRating[0]?.avgRating
+          ? parseFloat(averageRating[0].avgRating.toFixed(2))
+          : 0,
+        totalReviews,
+        pendingResponses: pendingReviews,
+      },
+      accountHealth: {
+        score: seller.accountHealth.score,
+        status: seller.accountHealth.status,
+        orderDefectRate: seller.accountHealth.orderDefectRate,
+        lateShipmentRate: seller.accountHealth.lateShipmentRate,
+        cancellationRate: seller.accountHealth.cancellationRate,
+        validTrackingRate: seller.accountHealth.validTrackingRate,
+        onTimeDeliveryRate: seller.accountHealth.onTimeDeliveryRate,
+        lastCalculated: seller.accountHealth.lastCalculated,
+      },
+      tier: seller.tier,
+      kycStatus: seller.kycStatus,
+      isActive: seller.isActive,
+      isSuspended: seller.isSuspended,
+      violations: seller.violations.length,
+      features: seller.features,
+    };
+
+    return NextResponse.json({
+      success: true,
+      data: stats,
+    });
+  } catch (error) {
+    logger.error("Seller dashboard error:", error as Error);
+    return NextResponse.json(
+      { error: "Failed to fetch seller dashboard" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/sellers/route.ts">
+<![CDATA[
+/**
+ * Souq Seller API - Seller onboarding and management
+ * @route /api/souq/sellers
+ */
+
+import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import type { NextRequest } from "next/server";
+import { z } from "zod";
+import { auth } from "@/auth";
+import { SouqSeller } from "@/server/models/souq/Seller";
+import { connectDb } from "@/lib/mongodb-unified";
+import { nanoid } from "nanoid";
+
+const sellerCreateSchema = z.object({
+  legalName: z.string().min(2).max(200),
+  tradeName: z.string().max(200).optional(),
+  registrationType: z.enum(["individual", "company", "partnership"]),
+  registrationNumber: z.string().optional(),
+  vatNumber: z.string().optional(),
+  country: z.string(),
+  city: z.string().min(2),
+  address: z.string().min(10),
+  contactEmail: z.string().email(),
+  contactPhone: z.string().min(10),
+  contactPerson: z.string().optional(),
+  tier: z.enum(["individual", "professional", "enterprise"]),
+  userId: z.string().optional(),
+});
+
+export async function POST(request: NextRequest) {
+  try {
+    // Authentication check
+    const session = await auth();
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization ID required" },
+        { status: 403 },
+      );
+    }
+
+    await connectDb();
+
+    const body = await request.json();
+    const validatedData = sellerCreateSchema.parse(body);
+
+    const sellerId = `SEL-${nanoid(10).toUpperCase()}`;
+
+    const existingSeller = await SouqSeller.findOne({
+      orgId,
+      $or: [
+        { contactEmail: validatedData.contactEmail },
+        { registrationNumber: validatedData.registrationNumber },
+      ],
+    });
+
+    if (existingSeller) {
+      return NextResponse.json(
+        {
+          error: "Seller already exists with this email or registration number",
+        },
+        { status: 400 },
+      );
+    }
+
+    const seller = await SouqSeller.create({
+      ...validatedData,
+      sellerId,
+      orgId, // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+      country: validatedData.country || "SA",
+      tier: validatedData.tier || "individual",
+      kycStatus: {
+        status: "pending",
+        step: "company_info",
+        companyInfoComplete: false,
+        documentsComplete: false,
+        bankDetailsComplete: false,
+        submittedAt: new Date(),
+      },
+      isActive: true,
+      isSuspended: false,
+      accountHealth: {
+        orderDefectRate: 0,
+        lateShipmentRate: 0,
+        cancellationRate: 0,
+        validTrackingRate: 100,
+        onTimeDeliveryRate: 100,
+        score: 100,
+        status: "excellent",
+        lastCalculated: new Date(),
+      },
+      fulfillmentMethod: {
+        fbf: false,
+        fbm: true,
+      },
+      features: {
+        sponsored_ads: (validatedData.tier || "individual") === "enterprise",
+        auto_repricer: (validatedData.tier || "individual") !== "individual",
+        bulk_upload: true,
+        api_access: (validatedData.tier || "individual") === "enterprise",
+        dedicated_support:
+          (validatedData.tier || "individual") === "enterprise",
+      },
+      tierEffectiveFrom: new Date(),
+      settlementCycle:
+        (validatedData.tier || "individual") === "individual" ? 14 : 7,
+      holdPeriod: 7,
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: seller,
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Validation failed", issues: error.issues },
+        { status: 400 },
+      );
+    }
+
+    logger.error("Seller creation error:", error as Error);
+    return NextResponse.json(
+      { error: "Failed to create seller account" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    // Authentication check
+    const session = await auth();
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization ID required" },
+        { status: 403 },
+      );
+    }
+
+    await connectDb();
+
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get("kycStatus");
+    const tier = searchParams.get("tier");
+    const search = searchParams.get("search");
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = Math.min(
+      parseInt(searchParams.get("limit") || "20", 10),
+      100,
+    );
+
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+    const query: Record<string, unknown> = { orgId };
+
+    if (status) {
+      query["kycStatus.status"] = status;
+    }
+
+    if (tier) {
+      query.tier = tier;
+    }
+
+    if (search) {
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      query.$or = [
+        { legalName: { $regex: escapedSearch, $options: "i" } },
+        { tradeName: { $regex: escapedSearch, $options: "i" } },
+        { contactEmail: { $regex: escapedSearch, $options: "i" } },
+        { sellerId: { $regex: escapedSearch, $options: "i" } },
+      ];
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [sellers, total] = await Promise.all([
+      SouqSeller.find(query)
+        .select("-documents -bankAccount")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      SouqSeller.countDocuments(query),
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      data: sellers,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    logger.error("Seller fetch error:", error as Error);
+    return NextResponse.json(
+      { error: "Failed to fetch sellers" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/settlements/[id]/route.ts">
+<![CDATA[
+/**
+ * Settlement Details API
+ * GET /api/souq/settlements/[id] - Get settlement statement details
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { connectDb } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id: statementId } = params;
+
+    await connectDb();
+    const db = (await connectDb()).connection.db!;
+    const statementsCollection = db.collection(COLLECTIONS.SOUQ_SETTLEMENTS);
+
+    // Fetch statement
+    const statement = await statementsCollection.findOne({ statementId });
+
+    if (!statement) {
+      return NextResponse.json(
+        { error: "Settlement statement not found" },
+        { status: 404 },
+      );
+    }
+
+    // Authorization: Seller can only view own statements, admin can view all
+    const userRole = (session.user as { role?: string }).role;
+    // 🔒 SECURITY FIX: Include CORPORATE_ADMIN and FINANCE roles
+    if (
+      !["ADMIN", "SUPER_ADMIN", "CORPORATE_ADMIN", "FINANCE", "FINANCE_OFFICER"].includes(userRole || "") &&
+      statement.sellerId !== session.user.id
+    ) {
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Settlement statement not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ statement });
+  } catch (error) {
+    logger.error("Error fetching settlement", error as Error);
+    return NextResponse.json(
+      { error: "Failed to fetch settlement" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/settlements/balance/route.ts">
+<![CDATA[
+/**
+ * Balance API
+ * GET /api/souq/settlements/balance - Get seller balance (available, reserved, pending)
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { SellerBalanceService } from "@/services/souq/settlements/balance-service";
+
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      logger.warn("Balance request without orgId", { userId: session.user.id });
+      return NextResponse.json({ error: "Organization context required" }, { status: 400 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const sellerId =
+      searchParams.get("sellerId") || (session.user.id as string);
+
+    // Authorization: Seller can only view own balance, admin can view all
+    const userRole = (session.user as { role?: string }).role;
+    // 🔒 SECURITY FIX: Include CORPORATE_ADMIN and FINANCE roles
+    if (
+      !["ADMIN", "SUPER_ADMIN", "CORPORATE_ADMIN", "FINANCE", "FINANCE_OFFICER"].includes(userRole || "") &&
+      sellerId !== session.user.id
+    ) {
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Balance not found" }, { status: 404 });
+    }
+
+    // Get balance - 🔐 STRICT v4.1: Pass orgId for tenant isolation
+    const balance = await SellerBalanceService.getBalance(sellerId, orgId);
+
+    return NextResponse.json({ balance });
+  } catch (error) {
+    logger.error("Error fetching balance", error as Error);
+    return NextResponse.json(
+      { error: "Failed to fetch balance" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/settlements/request-payout/route.ts">
+<![CDATA[
+/**
+ * Request Payout API
+ * POST /api/souq/settlements/request-payout - Request withdrawal for available balance
+ * 
+ * 🔐 SECURITY: Amount is derived from the statement's netPayout, NOT user input.
+ * User-provided amount is only used for validation to prevent UI/API mismatches.
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { SellerBalanceService } from "@/services/souq/settlements/balance-service";
+import { PayoutProcessorService } from "@/services/souq/settlements/payout-processor";
+import { connectDb } from "@/lib/mongodb-unified";
+import { Role, SubRole } from "@/lib/rbac/client-roles";
+
+// 🔐 STRICT v4.1: Roles allowed to request payouts for others
+const PAYOUT_ADMIN_ROLES: readonly string[] = [
+  Role.SUPER_ADMIN,
+  Role.ADMIN,
+  Role.CORPORATE_OWNER,
+];
+const PAYOUT_ADMIN_SUBROLES: readonly string[] = [SubRole.FINANCE_OFFICER];
+
+// Roles that can request their own payouts (sellers/vendors)
+const SELF_PAYOUT_ROLES: readonly string[] = [
+  Role.VENDOR,
+  Role.TEAM_MEMBER,
+  ...PAYOUT_ADMIN_ROLES,
+];
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    // 🔐 STRICT v4.1: RBAC for payout requests
+    const userRole = (session.user as { role?: string }).role || "";
+    const userSubRole = (session.user as { subRole?: string }).subRole || "";
+    const isSuperAdmin =
+      (session.user as { isSuperAdmin?: boolean }).isSuperAdmin === true;
+    const canRequestPayout =
+      isSuperAdmin || SELF_PAYOUT_ROLES.includes(userRole);
+
+    if (!canRequestPayout) {
+      return NextResponse.json(
+        { error: "Forbidden: Your role cannot request payouts" },
+        { status: 403 },
+      );
+    }
+
+    const body = await request.json();
+    const { amount, statementId, bankAccount, sellerId: requestedSellerId } = body;
+
+    if (!statementId || !bankAccount || !bankAccount.iban) {
+      return NextResponse.json(
+        { error: "statementId and bankAccount with iban are required" },
+        { status: 400 },
+      );
+    }
+
+    const currentUserId = session.user.id as string;
+    const targetSellerId = requestedSellerId || currentUserId;
+    const isRequestingForSelf = targetSellerId === currentUserId;
+
+    // 🔐 STRICT v4.1: Only admins can request payout for another seller
+    const isPayoutAdmin =
+      isSuperAdmin ||
+      PAYOUT_ADMIN_ROLES.includes(userRole) ||
+      PAYOUT_ADMIN_SUBROLES.includes(userSubRole);
+    if (!isRequestingForSelf && !isPayoutAdmin) {
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Seller not found" }, { status: 404 });
+    }
+
+    // Normalize orgId to match both legacy ObjectId and current string storage in souq_settlements/souq_payouts
+    const orgCandidates = ObjectId.isValid(orgId)
+      ? [orgId, new ObjectId(orgId)]
+      : [orgId];
+
+    // 🔐 STRICT v4.1: Fetch statement with orgId for tenant isolation and validate amount
+    const db = (await connectDb()).connection.db!;
+    const sellerFilter = ObjectId.isValid(targetSellerId)
+      ? new ObjectId(targetSellerId)
+      : targetSellerId;
+
+    const statement = await db.collection("souq_settlements").findOne(
+      {
+        statementId,
+        sellerId: sellerFilter,
+        orgId: { $in: orgCandidates },
+      },
+      { projection: { summary: 1, status: 1, sellerId: 1 } },
+    );
+
+    if (!statement) {
+      return NextResponse.json(
+        { error: "Settlement statement not found" },
+        { status: 404 },
+      );
+    }
+
+    // 🔐 STRICT v4.1: Statement must be approved before payout can be requested
+    // This prevents creating orphaned withdrawals for non-approved statements
+    if (statement.status !== "approved") {
+      return NextResponse.json(
+        { error: `Statement must be approved before payout. Current status: ${statement.status || 'unknown'}` },
+        { status: 400 },
+      );
+    }
+
+    // 🔐 STRICT v4.1: Check if payout already exists for this statement
+    const existingPayout = await db.collection("souq_payouts").findOne({
+      statementId,
+      sellerId: sellerFilter,
+      orgId: { $in: orgCandidates },
+      status: { $nin: ["failed", "cancelled"] },
+    });
+    if (existingPayout) {
+      return NextResponse.json(
+        { error: `Payout already exists for this statement (${existingPayout.payoutId})` },
+        { status: 409 },
+      );
+    }
+
+    const netPayout = statement.summary?.netPayout;
+    if (typeof netPayout !== "number" || netPayout <= 0) {
+      return NextResponse.json(
+        { error: "Invalid statement: no valid netPayout amount" },
+        { status: 400 },
+      );
+    }
+
+    // 🔐 SECURITY: Validate user-provided amount matches statement netPayout
+    // This prevents malicious amount manipulation from client
+    if (typeof amount === "number" && Math.abs(amount - netPayout) > 0.01) {
+      logger.warn(
+        `[RequestPayout] Amount mismatch for statement ${statementId}: user provided ${amount}, statement netPayout is ${netPayout}`,
+      );
+      return NextResponse.json(
+        { error: `Amount mismatch. Expected ${netPayout} SAR based on statement.` },
+        { status: 400 },
+      );
+    }
+
+    // Validate seller has sufficient balance
+    // 🔐 STRICT v4.1: Pass orgId for tenant isolation
+    const balance = await SellerBalanceService.getBalance(targetSellerId, orgId);
+
+    if (netPayout > balance.available) {
+      return NextResponse.json(
+        { error: `Insufficient balance. Available: ${balance.available} SAR, Required: ${netPayout} SAR` },
+        { status: 400 },
+      );
+    }
+
+    let withdrawalRequest: { requestId: string; amount: number } | null = null;
+
+    try {
+      withdrawalRequest = await SellerBalanceService.requestWithdrawal(
+        targetSellerId,
+        orgId,
+        netPayout,
+        bankAccount,
+        statementId,
+      );
+
+      const payout = await PayoutProcessorService.requestPayout(
+        targetSellerId,
+        statementId,
+        orgId,
+        bankAccount,
+      );
+
+      await db.collection("souq_withdrawal_requests").updateOne(
+        { requestId: withdrawalRequest.requestId, orgId: { $in: orgCandidates } },
+        {
+          $set: {
+            payoutId: payout.payoutId,
+            status: payout.status === "pending" ? "processing" : payout.status,
+          },
+        },
+      );
+
+      return NextResponse.json(
+        {
+          payout,
+          withdrawal: {
+            requestId: withdrawalRequest.requestId,
+            amount: withdrawalRequest.amount,
+            status: payout.status === "pending" ? "processing" : payout.status,
+          },
+        },
+        { status: 201 },
+      );
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+
+      if (withdrawalRequest) {
+        try {
+          await db.collection("souq_withdrawal_requests").updateOne(
+            { requestId: withdrawalRequest.requestId, orgId: { $in: orgCandidates } },
+            {
+              $set: {
+                status: "rejected",
+                rejectionReason: error.message,
+                processedAt: new Date(),
+                notes: "Auto-rollback after payout failure",
+              },
+            },
+          );
+
+          await SellerBalanceService.recordTransaction({
+            sellerId: targetSellerId,
+            orgId,
+            type: "adjustment",
+            amount: withdrawalRequest.amount,
+            description: `Rollback of withdrawal ${withdrawalRequest.requestId} after payout failure`,
+            metadata: { statementId, requestId: withdrawalRequest.requestId },
+          });
+        } catch (rollbackError) {
+          logger.error(
+            "[RequestPayout] Failed to rollback withdrawal after payout error",
+            {
+              requestId: withdrawalRequest.requestId,
+              error: rollbackError,
+            },
+          );
+        }
+      }
+
+      logger.error("Error requesting payout", error);
+      const message =
+        error instanceof Error ? error.message : "Failed to request payout";
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
+  } catch (error) {
+    logger.error("Error in payout request handler", error as Error);
+    const message =
+      error instanceof Error ? error.message : "Failed to process payout request";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/settlements/route.ts">
+<![CDATA[
+import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { auth } from "@/auth";
+import { connectDb } from "@/lib/mongodb-unified";
+import { SouqSettlement } from "@/server/models/souq/Settlement";
+import { AgentAuditLog } from "@/server/models/AgentAuditLog";
+import mongoose from "mongoose";
+import {
+  Role,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
+
+/**
+ * GET /api/souq/settlements - List seller settlements
+ */
+export async function GET(request: Request) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    await connectDb();
+
+    const { searchParams } = new URL(request.url);
+    const sellerId = searchParams.get("sellerId");
+    const status = searchParams.get("status");
+    const targetOrgId = searchParams.get("targetOrgId") || undefined;
+    const sessionOrgId = (session.user as { orgId?: string }).orgId;
+    const rawSubRole = (session.user as { subRole?: string | null }).subRole;
+    const normalizedSubRole =
+      normalizeSubRole(rawSubRole) ??
+      inferSubRoleFromRole((session.user as { role?: string }).role);
+    const normalizedRole = normalizeRole(
+      (session.user as { role?: string }).role,
+      normalizedSubRole,
+    );
+    const isSuperAdmin =
+      normalizedRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+
+    const orgId = isSuperAdmin ? (targetOrgId || sessionOrgId) : sessionOrgId;
+    if (isSuperAdmin && !orgId) {
+      return NextResponse.json(
+        { error: "targetOrgId is required for platform admins" },
+        { status: 400 },
+      );
+    }
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = Math.min(
+      parseInt(searchParams.get("limit") || "20", 10),
+      100,
+    );
+
+    if (!sellerId) {
+      return NextResponse.json(
+        { error: "Seller ID is required" },
+        { status: 400 },
+      );
+    }
+
+    // Authorization: seller can view own; finance/admin roles can view any
+    const isAdmin =
+      normalizedRole !== null &&
+      [Role.ADMIN, Role.CORPORATE_OWNER].includes(normalizedRole);
+    const isFinance =
+      normalizedRole === Role.TEAM_MEMBER &&
+      !!normalizedSubRole &&
+      normalizedSubRole === SubRole.FINANCE_OFFICER;
+    if (!isSuperAdmin && !isAdmin && !isFinance && sellerId !== session.user.id) {
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Settlements not found" }, { status: 404 });
+    }
+
+    const query: Record<string, unknown> = { sellerId, orgId };
+    if (status) {
+      query.status = status;
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [settlements, total] = await Promise.all([
+      SouqSettlement.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      SouqSettlement.countDocuments(query),
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      data: settlements,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    logger.error("GET /api/souq/settlements error:", error as Error);
+    return NextResponse.json(
+      { success: false, error: "Failed to fetch settlements" },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * POST /api/souq/settlements - Process settlement (Admin only)
+ */
+export async function POST(request: Request) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rawSubRole = (session.user as { subRole?: string | null }).subRole;
+    const normalizedSubRole =
+      normalizeSubRole(rawSubRole) ??
+      inferSubRoleFromRole((session.user as { role?: string }).role);
+    const normalizedRole = normalizeRole(
+      (session.user as { role?: string }).role,
+      normalizedSubRole,
+    );
+
+    const isSuperAdmin =
+      normalizedRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const isOrgAdmin =
+      normalizedRole !== null &&
+      [Role.ADMIN, Role.CORPORATE_OWNER].includes(normalizedRole);
+    const isFinance =
+      normalizedRole === Role.TEAM_MEMBER &&
+      !!normalizedSubRole &&
+      normalizedSubRole === SubRole.FINANCE_OFFICER;
+
+    if (!isSuperAdmin && !isOrgAdmin && !isFinance) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    await connectDb();
+
+    const body = await request.json();
+    const { settlementId, action } = body;
+
+    if (!settlementId || !action) {
+      return NextResponse.json(
+        { error: "Settlement ID and action are required" },
+        { status: 400 },
+      );
+    }
+
+    if (!["approve", "reject", "paid"].includes(action)) {
+      return NextResponse.json(
+        { error: "Invalid action. Must be: approve, reject, or paid" },
+        { status: 400 },
+      );
+    }
+
+    // Enforce org scoping on settlement lookup
+    const orgId = (session.user as { orgId?: string }).orgId;
+    const targetOrgId = (body as { targetOrgId?: string }).targetOrgId;
+    const resolvedOrgId = isSuperAdmin ? (targetOrgId || orgId) : orgId;
+    if (isSuperAdmin && !resolvedOrgId) {
+      return NextResponse.json(
+        { error: "targetOrgId is required for platform admins" },
+        { status: 400 },
+      );
+    }
+    if (!resolvedOrgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    const settlement = await SouqSettlement.findOne({ settlementId, orgId: resolvedOrgId });
+
+    if (!settlement) {
+      return NextResponse.json(
+        { error: "Settlement not found" },
+        { status: 404 },
+      );
+    }
+
+    // Update settlement based on action
+    if (action === "approve") {
+      settlement.status = "approved";
+    } else if (action === "reject") {
+      settlement.status = "rejected";
+    } else if (action === "paid") {
+      settlement.status = "paid";
+      settlement.paidDate = new Date();
+    }
+
+    settlement.processedBy = (session.user as { id?: string })
+      .id as unknown as mongoose.Types.ObjectId;
+    settlement.processedAt = new Date();
+
+    await settlement.save();
+
+    // Audit cross-tenant actions for platform admins
+    if (isSuperAdmin && targetOrgId) {
+      await AgentAuditLog.create({
+        agent_id: "platform-admin",
+        assumed_user_id: (session.user as { id?: string }).id || "unknown",
+        action_summary: `Settlement ${action} across org boundary`,
+        resource_type: "cross_tenant_action",
+        resource_id: settlementId,
+        orgId: resolvedOrgId,
+        targetOrgId,
+        request_path: request.url,
+        success: true,
+        ip_address: request.headers.get("x-forwarded-for") || undefined,
+        user_agent: request.headers.get("user-agent") || undefined,
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: settlement,
+    });
+  } catch (error) {
+    logger.error("POST /api/souq/settlements error:", error as Error);
+    return NextResponse.json(
+      { success: false, error: "Failed to process settlement" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/settlements/transactions/route.ts">
+<![CDATA[
+/**
+ * Transactions API
+ * GET /api/souq/settlements/transactions - Get transaction history for seller
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { SellerBalanceService } from "@/services/souq/settlements/balance-service";
+import {
+  Role,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
+
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const sellerId =
+      searchParams.get("sellerId") || (session.user.id as string);
+    const targetOrgId = searchParams.get("targetOrgId") || undefined;
+    const sessionOrgId = (session.user as { orgId?: string }).orgId;
+    const rawSubRole = (session.user as { subRole?: string | null }).subRole;
+    const normalizedSubRole =
+      normalizeSubRole(rawSubRole) ??
+      inferSubRoleFromRole((session.user as { role?: string }).role);
+    const normalizedRole = normalizeRole(
+      (session.user as { role?: string }).role,
+      normalizedSubRole,
+    );
+    const isSuperAdmin =
+      normalizedRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const type = searchParams.get("type");
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = Math.min(
+      parseInt(searchParams.get("limit") || "50", 10),
+      100,
+    );
+
+    // Authorization: Seller can only view own transactions, admin/finance can view all
+    const isAdmin =
+      normalizedRole !== null &&
+      [Role.ADMIN, Role.CORPORATE_OWNER].includes(normalizedRole);
+    const isFinance =
+      normalizedRole === Role.TEAM_MEMBER &&
+      !!normalizedSubRole &&
+      normalizedSubRole === SubRole.FINANCE_OFFICER;
+
+    if (!isSuperAdmin && !isAdmin && !isFinance && sellerId !== session.user.id) {
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Transactions not found" }, { status: 404 });
+    }
+
+    const orgId = isSuperAdmin ? (targetOrgId || sessionOrgId) : sessionOrgId;
+    if (isSuperAdmin && !orgId) {
+      return NextResponse.json(
+        { error: "targetOrgId is required for platform admins" },
+        { status: 400 },
+      );
+    }
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    // Build filters
+    const filters: Record<string, unknown> = {
+      offset: (page - 1) * limit,
+      limit,
+    };
+
+    if (type) {
+      filters.type = type;
+    }
+
+    if (startDate) {
+      filters.startDate = new Date(startDate);
+    }
+
+    if (endDate) {
+      filters.endDate = new Date(endDate);
+    }
+
+    // Get transactions
+    const result = await SellerBalanceService.getTransactionHistory(
+      sellerId,
+      orgId,
+      filters,
+    );
+
+    return NextResponse.json({
+      transactions: result.transactions,
+      pagination: {
+        page,
+        limit,
+        total: result.total,
+        pages: Math.ceil(result.total / limit),
+      },
+    });
+  } catch (error) {
+    logger.error("Error fetching transactions", error as Error);
+    return NextResponse.json(
+      { error: "Failed to fetch transactions" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/subscribe/corporate/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { dbConnect } from "@/db/mongoose";
+import { createSubscriptionCheckout } from "@/lib/finance/checkout";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import {
+  forbiddenError,
+  validationError,
+  unauthorizedError,
+  rateLimitError,
+  handleApiError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+
+/**
+ * @openapi
+ * /api/subscribe/corporate:
+ *   post:
+ *     summary: Create corporate subscription
+ *     description: Initiates a corporate subscription checkout for multiple users/seats. Requires admin privileges. Creates PayTabs payment session for subscription.
+ *     tags:
+ *       - Subscriptions
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - tenantId
+ *               - modules
+ *               - seats
+ *               - customer
+ *             properties:
+ *               tenantId:
+ *                 type: string
+ *                 description: Organization/tenant identifier
+ *                 example: "tenant-abc-123"
+ *               modules:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: List of module names to subscribe to
+ *                 example: ["WORK_ORDERS", "PROPERTIES", "INVOICES"]
+ *               seats:
+ *                 type: integer
+ *                 minimum: 1
+ *                 description: Number of user seats
+ *                 example: 50
+ *               billingCycle:
+ *                 type: string
+ *                 enum: [MONTHLY, ANNUAL]
+ *                 default: MONTHLY
+ *                 example: "ANNUAL"
+ *               currency:
+ *                 type: string
+ *                 default: USD
+ *                 example: "SAR"
+ *               customer:
+ *                 type: object
+ *                 required:
+ *                   - email
+ *                 properties:
+ *                   email:
+ *                     type: string
+ *                     format: email
+ *                     example: "admin@company.com"
+ *                   name:
+ *                     type: string
+ *                     example: "Corporate Admin"
+ *               priceBookId:
+ *                 type: string
+ *                 description: Custom pricing book ID
+ *               metadata:
+ *                 type: object
+ *                 description: Additional metadata
+ *     responses:
+ *       200:
+ *         description: Subscription checkout created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 checkoutUrl:
+ *                   type: string
+ *                   format: uri
+ *                   description: Payment gateway checkout URL
+ *                 subscriptionId:
+ *                   type: string
+ *                   description: Created subscription ID
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Requires admin role or tenant mismatch
+ *       429:
+ *         description: Rate limit exceeded
+ *       500:
+ *         description: Internal server error
+ */
+export async function POST(req: NextRequest) {
+  try {
+    // Authentication and authorization
+    const user = await getSessionUser(req);
+
+    // Rate limiting: 3 req/5min (300000ms = 5 minutes) for subscription operations (very sensitive)
+    const rl = await smartRateLimit(`subscribe-corporate:${user.id}`, 3, 300000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    // Only admins can create corporate subscriptions
+    if (!["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(user.role)) {
+      return forbiddenError("Admin role required for corporate subscriptions");
+    }
+
+    await dbConnect();
+    const body = await req.json();
+
+    // Tenant isolation: ensure tenantId matches user's orgId (unless SUPER_ADMIN)
+    if (
+      body.tenantId &&
+      body.tenantId !== user.orgId &&
+      user.role !== "SUPER_ADMIN"
+    ) {
+      return forbiddenError(
+        "Tenant mismatch - cannot create subscription for different organization",
+      );
+    }
+
+    if (!body.tenantId) {
+      return validationError("Tenant ID is required");
+    }
+
+    if (!Array.isArray(body.modules) || body.modules.length === 0) {
+      return validationError("At least one module is required");
+    }
+
+    if (!body.customer?.email) {
+      return validationError("Customer email is required");
+    }
+
+    const seats = Number(body.seats);
+    if (!Number.isFinite(seats) || seats <= 0) {
+      return validationError("Invalid seat count - must be positive number");
+    }
+
+    const result = await createSubscriptionCheckout({
+      subscriberType: "CORPORATE",
+      tenantId: body.tenantId,
+      modules: body.modules,
+      seats,
+      billingCycle: body.billingCycle === "ANNUAL" ? "ANNUAL" : "MONTHLY",
+      currency: body.currency ?? "USD",
+      customer: body.customer,
+      priceBookId: body.priceBookId,
+      metadata: body.metadata,
+    });
+
+    return createSecureResponse(result, 200, req);
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message === "Unauthenticated") {
+      return unauthorizedError();
+    }
+    return handleApiError(error);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/subscribe/owner/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { dbConnect } from "@/db/mongoose";
+import { createSubscriptionCheckout } from "@/lib/finance/checkout";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import {
+  forbiddenError,
+  validationError,
+  unauthorizedError,
+  rateLimitError,
+  handleApiError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+
+/**
+ * @openapi
+ * /api/subscribe/owner:
+ *   post:
+ *     summary: Create owner subscription
+ *     description: Initiates an owner subscription checkout for individual property owners. User must be admin or subscribing for themselves.
+ *     tags:
+ *       - Subscriptions
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - ownerUserId
+ *               - modules
+ *               - seats
+ *               - customer
+ *             properties:
+ *               ownerUserId:
+ *                 type: string
+ *                 description: User ID of the property owner
+ *                 example: "user-123"
+ *               modules:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: List of module names to subscribe to
+ *                 example: ["PROPERTIES", "TENANTS", "MAINTENANCE"]
+ *               seats:
+ *                 type: integer
+ *                 minimum: 1
+ *                 description: Number of user seats
+ *                 example: 5
+ *               billingCycle:
+ *                 type: string
+ *                 enum: [MONTHLY, ANNUAL]
+ *                 default: MONTHLY
+ *               currency:
+ *                 type: string
+ *                 default: USD
+ *               customer:
+ *                 type: object
+ *                 required:
+ *                   - email
+ *                 properties:
+ *                   email:
+ *                     type: string
+ *                     format: email
+ *                   name:
+ *                     type: string
+ *               ownerGroup:
+ *                 type: string
+ *                 description: Owner group classification
+ *     responses:
+ *       200:
+ *         description: Subscription checkout created successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Must be admin or subscribing for self
+ *       429:
+ *         description: Rate limit exceeded
+ *       500:
+ *         description: Internal server error
+ */
+export async function POST(req: NextRequest) {
+  try {
+    // Authentication and authorization
+    const user = await getSessionUser(req);
+
+    // Rate limiting: 3 req/5min for subscription operations (very sensitive)
+    const rl = await smartRateLimit(`subscribe-owner:${user.id}`, 3, 300000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    await dbConnect();
+    const body = await req.json();
+
+    // Authorization: must be admin or subscribing for self
+    const isAdmin = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(user.role);
+    const isSelf = body.ownerUserId === user.id;
+
+    if (!isAdmin && !isSelf) {
+      return forbiddenError(
+        "Can only subscribe for yourself unless you are an admin",
+      );
+    }
+
+    if (!body.ownerUserId) {
+      return validationError("Owner user ID is required");
+    }
+
+    if (!Array.isArray(body.modules) || body.modules.length === 0) {
+      return validationError("At least one module is required");
+    }
+
+    if (!body.customer?.email) {
+      return validationError("Customer email is required");
+    }
+
+    const seats = Number(body.seats);
+    if (!Number.isFinite(seats) || seats <= 0) {
+      return validationError("Invalid seat count - must be positive number");
+    }
+
+    const result = await createSubscriptionCheckout({
+      subscriberType: "OWNER",
+      ownerUserId: body.ownerUserId,
+      modules: body.modules,
+      seats,
+      billingCycle: body.billingCycle === "ANNUAL" ? "ANNUAL" : "MONTHLY",
+      currency: body.currency ?? "USD",
+      customer: body.customer,
+      priceBookId: body.priceBookId,
+      metadata: {
+        ownerGroup: body.ownerGroup,
+      },
+    });
+
+    return createSecureResponse(result, 200, req);
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message === "Unauthenticated") {
+      return unauthorizedError();
+    }
+    return handleApiError(error);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/subscriptions/tenant/route.ts">
+<![CDATA[
+import { NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { getSubscriptionForTenant } from "@/server/services/subscriptionSeatService";
+
+export async function GET() {
+  try {
+    const session = await auth();
+    if (!session?.user?.tenantId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const subscription = await getSubscriptionForTenant(session.user.tenantId);
+
+    if (!subscription) {
+      return NextResponse.json(
+        { error: "No subscription found" },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json({
+      id: subscription._id,
+      status: subscription.status,
+      modules: subscription.modules,
+      seats: subscription.seats,
+      billing_cycle: subscription.billing_cycle,
+      amount: subscription.amount,
+      currency: subscription.currency,
+      next_billing_date: subscription.next_billing_date,
+      metadata: subscription.metadata,
+    });
+  } catch (_error) {
+    return NextResponse.json(
+      { error: "Failed to fetch subscription" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/support/impersonation/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Organization } from "@/server/models/Organization";
+import { logger } from "@/lib/logger";
+
+const COOKIE_NAME = "support_org_id";
+
+function serializeOrganization(org: {
+  orgId: string;
+  name: string;
+  code?: string;
+  legal?: { registrationNumber?: string };
+  subscription?: { plan?: string };
+}) {
+  return {
+    orgId: org.orgId,
+    name: org.name,
+    code: org.code ?? null,
+    registrationNumber: org.legal?.registrationNumber ?? null,
+    subscriptionPlan: org.subscription?.plan ?? null,
+  };
+}
+
+async function ensureSuperAdmin() {
+  const session = await auth();
+  if (!session?.user?.isSuperAdmin) {
+    return null;
+  }
+  return session;
+}
+
+export async function GET(req: NextRequest) {
+  const session = await ensureSuperAdmin();
+  if (!session) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const cookieOrgId = req.cookies.get(COOKIE_NAME)?.value;
+  if (!cookieOrgId) {
+    return NextResponse.json({ organization: null });
+  }
+
+  await connectToDatabase();
+  const org = await Organization.findOne({ orgId: cookieOrgId })
+    .select("orgId name code legal.registrationNumber subscription.plan")
+    .lean();
+
+  if (!org) {
+    const res = NextResponse.json({ organization: null });
+    res.cookies.delete(COOKIE_NAME);
+    return res;
+  }
+
+  return NextResponse.json({ organization: serializeOrganization(org) });
+}
+
+export async function POST(req: NextRequest) {
+  const session = await ensureSuperAdmin();
+  if (!session) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  let body: { orgId?: string; corporateId?: string; identifier?: string } = {};
+  try {
+    body = await req.json();
+  } catch (error) {
+    logger.warn("[support/impersonation] Failed to parse body", { error });
+  }
+
+  const identifier = body.orgId || body.corporateId || body.identifier;
+  if (!identifier) {
+    return NextResponse.json(
+      { error: "orgId or corporateId is required" },
+      { status: 400 },
+    );
+  }
+
+  await connectToDatabase();
+
+  const org = await Organization.findOne({
+    $or: [
+      { orgId: identifier },
+      { code: identifier },
+      { "legal.registrationNumber": identifier },
+    ],
+  })
+    .select("orgId name code legal.registrationNumber subscription.plan")
+    .lean();
+
+  if (!org) {
+    return NextResponse.json(
+      { error: "Organization not found" },
+      { status: 404 },
+    );
+  }
+
+  const res = NextResponse.json({ organization: serializeOrganization(org) });
+  res.cookies.set({
+    name: COOKIE_NAME,
+    value: org.orgId,
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60, // 1 hour
+  });
+
+  return res;
+}
+
+export async function DELETE() {
+  const session = await ensureSuperAdmin();
+  if (!session) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  const res = NextResponse.json({ ok: true });
+  res.cookies.set({
+    name: COOKIE_NAME,
+    value: "",
+    path: "/",
+    maxAge: 0,
+  });
+  return res;
+}
+
+]]>
+</file>
+
+</batch_content>

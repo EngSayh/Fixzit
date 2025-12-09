@@ -1,0 +1,2658 @@
+
+You are the "Fixzit Memory Builder" for category: "routes".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "routes",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="dev/refactoring/vendors-route-crud-factory-wip.ts">
+<![CDATA[
+/**
+ * Vendors API Routes - Refactored with CRUD Factory
+ *
+ * BEFORE: 178 lines of duplicated boilerplate
+ * AFTER: 39 lines using reusable factory
+ * Reduction: 78% less code
+ */
+
+import { createCrudHandlers } from "@/lib/api/crud-factory";
+import { Vendor } from "@/server/models/Vendor";
+import { z } from "zod";
+
+// Validation schema (can be moved to lib/validations/forms.ts)
+const createVendorSchema = z.object({
+  name: z.string().min(1),
+  type: z.enum(["SUPPLIER", "CONTRACTOR", "SERVICE_PROVIDER", "CONSULTANT"]),
+  contact: z.object({
+    primary: z.object({
+      name: z.string(),
+      title: z.string().optional(),
+      email: z.string().email(),
+      phone: z.string().optional(),
+      mobile: z.string().optional(),
+    }),
+    secondary: z
+      .object({
+        name: z.string().optional(),
+        email: z.string().email().optional(),
+        phone: z.string().optional(),
+      })
+      .optional(),
+    address: z.object({
+      street: z.string(),
+      city: z.string(),
+      region: z.string(),
+      postalCode: z.string().optional(),
+    }),
+  }),
+  business: z
+    .object({
+      registrationNumber: z.string().optional(),
+      taxId: z.string().optional(),
+      licenseNumber: z.string().optional(),
+      establishedDate: z.string().optional(),
+      employees: z.number().optional(),
+      annualRevenue: z.number().optional(),
+      specializations: z.array(z.string()).optional(),
+      certifications: z
+        .array(
+          z.object({
+            name: z.string(),
+            issuer: z.string(),
+            issued: z.string().optional(),
+            expires: z.string().optional(),
+            status: z.string().optional(),
+          }),
+        )
+        .optional(),
+    })
+    .optional(),
+  status: z
+    .enum(["PENDING", "APPROVED", "SUSPENDED", "REJECTED", "BLACKLISTED"])
+    .optional(),
+  tags: z.array(z.string()).optional(),
+});
+
+// Query parameter validation schema
+const vendorQuerySchema = z.object({
+  type: z
+    .enum(["SUPPLIER", "CONTRACTOR", "SERVICE_PROVIDER", "CONSULTANT"])
+    .optional(),
+  status: z
+    .enum(["PENDING", "APPROVED", "SUSPENDED", "REJECTED", "BLACKLISTED"])
+    .optional(),
+  search: z.string().max(200).optional(), // Limit length to prevent DoS
+});
+
+const escapeRegex = (value: string): string =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\\\$&");
+
+// Custom filter builder for vendor-specific search
+// 🔒 TYPE SAFETY: Using Record<string, unknown> for MongoDB filter
+// Generic query params to MongoDB filter builder
+function buildVendorFilter(
+  searchParams: URLSearchParams,
+  orgId: string,
+): Record<string, unknown> {
+  const filter: Record<string, unknown> = {};
+  if (orgId) {
+    filter.orgId = orgId;
+  }
+
+  const queryObject = {
+    type: searchParams.get("type") ?? undefined,
+    status: searchParams.get("status") ?? undefined,
+    search: searchParams.get("search") ?? undefined,
+  };
+
+  const parsed = vendorQuerySchema.safeParse(queryObject);
+  if (!parsed.success) {
+    return filter;
+  }
+
+  const { type, status, search } = parsed.data;
+  if (type) {
+    filter.type = type;
+  }
+  if (status) {
+    filter.status = status;
+  }
+  if (search && search.trim().length > 0) {
+    const safeTerm = escapeRegex(search.trim());
+    const regex = new RegExp(safeTerm, "i");
+    filter.$or = [
+      { name: regex },
+      { "contact.primary.name": regex },
+      { "contact.primary.email": regex },
+    ];
+  }
+
+  return filter;
+}
+
+// Create handlers using factory
+export const { GET, POST } = createCrudHandlers({
+  Model: Vendor,
+  createSchema: createVendorSchema,
+  entityName: "vendor",
+  generateCode: () =>
+    `VEN-${crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase()}`,
+  buildFilter: buildVendorFilter,
+});
+
+]]>
+</file>
+
+<file path="docs/analysis/API_ROUTES_COMPREHENSIVE_ANALYSIS.md">
+<![CDATA[
+# API Routes Comprehensive Analysis & Fix Plan
+
+**Analysis Date:** October 8, 2025  
+**Current Branch:** `fix/consolidation-guardrails` (PR #84)  
+**Current PR Score:** 60/100 (CodeRabbit Review)
+
+---
+
+## 📊 EXECUTIVE SUMMARY
+
+### Findings
+
+- **Total API Routes:** 218+ route files
+- **Routes with Rate Limiting:** ~10 (4.6% coverage)
+- **Routes with Standardized Error Handling:** ~2 (0.9% coverage)
+- **Routes with OpenAPI Documentation:** 0 (0% coverage)
+- **Routes with Zod Validation:** ~30 (13.8% coverage)
+
+### Critical Issues
+
+1. **❌ NO OpenAPI Documentation** - 0/218 routes documented
+2. **❌ Inconsistent Error Handling** - Mix of 5+ different error patterns
+3. **❌ Minimal Rate Limiting** - Only 4.6% of routes protected
+4. **❌ No Security Headers** - Missing CORS, CSP, rate limiting on 95%+ routes
+5. **❌ Mixed Input Validation** - Only 13.8% use Zod schemas
+
+---
+
+## 🔍 DETAILED ANALYSIS
+
+### Routes WITH Proper Patterns (Examples to Follow)
+
+#### ✅ Rate Limiting (10 routes)
+
+```
+✓ app/api/marketplace/checkout/route.ts
+✓ app/api/marketplace/cart/route.ts
+✓ app/api/finance/invoices/route.ts
+✓ app/api/help/ask/route.ts
+✓ app/api/kb/search/route.ts
+✓ app/api/ats/public-post/route.ts
+✓ app/api/contracts/route.ts
+✓ app/api/billing/subscribe/route.ts
+✓ app/api/admin/price-tiers/route.ts
+✓ app/api/admin/discounts/route.ts
+```
+
+#### ✅ Standardized Error Handling (2 routes)
+
+```
+✓ app/api/contracts/route.ts (uses createErrorResponse)
+✓ app/api/admin/price-tiers/route.ts (uses createErrorResponse)
+```
+
+#### ⚠️ Zod Validation (30 routes)
+
+```
+✓ app/api/marketplace/products/route.ts
+✓ app/api/marketplace/rfq/route.ts
+✓ app/api/marketplace/vendor/products/route.ts
+✓ app/api/finance/invoices/route.ts
+✓ app/api/help/articles/[id]/route.ts
+✓ app/api/benchmarks/compare/route.ts
+... and ~24 more
+```
+
+### Routes MISSING Critical Features (208 routes)
+
+#### ❌ NO Rate Limiting (208 routes)
+
+```
+All routes except the 10 listed above need rate limiting
+```
+
+#### ❌ NO Standardized Errors (216 routes)
+
+Most routes use inconsistent patterns:
+
+- `NextResponse.json({ error: 'message' }, { status: 401 })` (most common)
+- `NextResponse.json({ ok: false, error: 'message' })` (marketplace)
+- `NextResponse.json({ success: false, error: 'message' })` (some routes)
+- Raw error objects without status codes
+- No correlation IDs for debugging
+
+#### ❌ NO OpenAPI Documentation (218 routes)
+
+Zero routes have JSDoc OpenAPI annotations
+
+---
+
+## 🛠️ STANDARDIZED PATTERNS (To Apply)
+
+### Pattern 1: Error Handling (REQUIRED)
+
+**Existing Utility:** `/workspaces/Fixzit/server/utils/errorResponses.ts`
+
+```typescript
+import {
+  createErrorResponse,
+  unauthorizedError,
+  forbiddenError,
+  notFoundError,
+  validationError,
+  zodValidationError,
+  rateLimitError,
+  internalServerError,
+  handleApiError,
+} from "@/server/utils/errorResponses";
+```
+
+**Usage:**
+
+```typescript
+// Authentication
+if (!user) return unauthorizedError();
+
+// Authorization
+if (user.role !== 'admin') return forbiddenError();
+
+// Validation
+if (error instanceof z.ZodError) {
+  return zodValidationError(error, req);
+}
+
+// Rate limiting
+if (!rl.allowed) return rateLimitError();
+
+// Not found
+if (!resource) return notFoundError('Invoice');
+
+// Generic catch
+catch (error) {
+  return handleApiError(error);
+}
+```
+
+### Pattern 2: Rate Limiting (REQUIRED)
+
+**Existing Utility:** `/workspaces/Fixzit/server/security/rateLimit.ts`
+
+```typescript
+import { rateLimit } from "@/server/security/rateLimit";
+
+export async function POST(req: NextRequest) {
+  try {
+    const user = await getSessionUser(req);
+
+    // Rate limiting (adjust limits per route sensitivity)
+    const key = `route-name:${user.orgId}`;
+    const rl = rateLimit(key, 20, 60_000); // 20 requests per minute
+    if (!rl.allowed) return rateLimitError();
+
+    // ... rest of handler
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+```
+
+**Recommended Limits:**
+
+- Public endpoints: 10-20 req/min
+- Authenticated read: 60 req/min
+- Authenticated write: 20 req/min
+- Admin endpoints: 100 req/min
+- Payment/subscription: 3-10 req/5min
+- Auth endpoints: 5 req/15min
+
+### Pattern 3: OpenAPI Documentation (REQUIRED)
+
+```typescript
+/**
+ * @openapi
+ * /api/resources:
+ *   post:
+ *     summary: Create a new resource
+ *     tags: [Resources]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name]
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Resource created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/Resource'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       429:
+ *         $ref: '#/components/responses/RateLimitExceeded'
+ */
+export async function POST(req: NextRequest) { ... }
+```
+
+### Pattern 4: Complete Route Template
+
+```typescript
+import { NextRequest } from "next/server";
+import { z } from "zod";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { rateLimit } from "@/server/security/rateLimit";
+import {
+  unauthorizedError,
+  forbiddenError,
+  notFoundError,
+  zodValidationError,
+  rateLimitError,
+  handleApiError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+
+// Zod validation schema
+const CreateResourceSchema = z.object({
+  name: z.string().min(1).max(200),
+  description: z.string().optional(),
+  // ... other fields
+});
+
+/**
+ * @openapi
+ * /api/resources:
+ *   post:
+ *     summary: Create resource
+ *     ... (full OpenAPI spec)
+ */
+export async function POST(req: NextRequest) {
+  try {
+    // 1. Authentication
+    const user = await getSessionUser(req);
+    if (!user) return unauthorizedError();
+
+    // 2. Authorization
+    if (!["admin", "manager"].includes(user.role)) {
+      return forbiddenError("Only admins and managers can create resources");
+    }
+
+    // 3. Rate Limiting
+    const key = `create-resource:${user.orgId}`;
+    const rl = rateLimit(key, 20, 60_000);
+    if (!rl.allowed) return rateLimitError();
+
+    // 4. Input Validation
+    const body = await req.json();
+    const payload = CreateResourceSchema.parse(body);
+
+    // 5. Database Connection
+    await connectToDatabase();
+
+    // 6. Tenant Isolation
+    const resource = await Resource.create({
+      ...payload,
+      orgId: user.orgId,
+      createdBy: user.id,
+    });
+
+    // 7. Success Response with Security Headers
+    return createSecureResponse({ ok: true, data: resource }, 201, req);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return zodValidationError(error, req);
+    }
+    return handleApiError(error);
+  }
+}
+
+/**
+ * @openapi
+ * /api/resources:
+ *   get:
+ *     summary: List resources
+ *     ... (full OpenAPI spec)
+ */
+export async function GET(req: NextRequest) {
+  try {
+    const user = await getSessionUser(req);
+    if (!user) return unauthorizedError();
+
+    const key = `list-resources:${user.orgId}`;
+    const rl = rateLimit(key, 60, 60_000);
+    if (!rl.allowed) return rateLimitError();
+
+    await connectToDatabase();
+
+    // Tenant isolation
+    const resources = await Resource.find({ orgId: user.orgId })
+      .sort({ createdAt: -1 })
+      .limit(100);
+
+    return createSecureResponse({ ok: true, data: resources }, 200, req);
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+```
+
+---
+
+## 📋 IMPLEMENTATION PLAN
+
+### Phase 1: Critical Routes (Priority P0) - 20 routes
+
+**Estimated Time:** 8 hours
+
+High-traffic routes that MUST have all patterns:
+
+```
+1. app/api/auth/login/route.ts
+2. app/api/auth/signup/route.ts
+3. app/api/auth/me/route.ts
+4. app/api/payments/paytabs/callback/route.ts
+5. app/api/payments/create/route.ts
+6. app/api/marketplace/checkout/route.ts (enhance)
+7. app/api/marketplace/products/route.ts
+8. app/api/work-orders/route.ts
+9. app/api/invoices/route.ts
+10. app/api/properties/route.ts
+11. app/api/projects/route.ts
+12. app/api/vendors/route.ts
+13. app/api/assets/route.ts
+14. app/api/tenants/route.ts
+15. app/api/subscribe/corporate/route.ts
+16. app/api/subscribe/owner/route.ts
+17. app/api/rfqs/route.ts
+18. app/api/slas/route.ts
+19. app/api/ats/jobs/route.ts
+20. app/api/ats/applications/[id]/route.ts
+```
+
+### Phase 2: Authenticated Routes (Priority P1) - 100+ routes
+
+**Estimated Time:** 15 hours
+
+All authenticated CRUD endpoints for:
+
+- Work orders (10 routes)
+- Properties (5 routes)
+- Projects (5 routes)
+- Vendors (5 routes)
+- Assets (5 routes)
+- Invoices (5 routes)
+- Contracts (3 routes)
+- ATS (10 routes)
+- Marketplace (15 routes)
+- Support tickets (8 routes)
+- Notifications (5 routes)
+- ... and others
+
+### Phase 3: Public/Lower-Priority Routes (Priority P2) - 98 routes
+
+**Estimated Time:** 8 hours
+
+Less critical but still need patterns:
+
+- Health checks
+- Public feeds
+- CMS pages
+- QA endpoints
+- Help articles (public)
+
+---
+
+## 🚀 QUICK START: Fix Current Open File
+
+The user's current file is `/workspaces/Fixzit/app/api/marketplace/rfq/route.ts`.
+
+Let me create the corrected version with ALL patterns applied...
+
+]]>
+</file>
+
+<file path="docs/api/souq-reviews.md">
+<![CDATA[
+# Souq Reviews API
+
+This document summarizes the buyer, seller, and public review endpoints implemented under `/api/souq`.  
+All routes require HTTPS in production and expect valid Fixzit authentication cookies.
+
+## Buyer Endpoints
+
+| Method   | Route                                 | Description                                                                                                                       |
+| -------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| `POST`   | `/api/souq/reviews`                   | Submit a new review for a product the customer purchased. Body enforces rating/title/content + optional orderId/pros/cons/images. |
+| `GET`    | `/api/souq/reviews`                   | List the authenticated customer’s reviews with pagination and filters (`status`, `rating`, `verifiedOnly`).                       |
+| `GET`    | `/api/souq/reviews/:reviewId`         | Fetch a review. Non-published reviews are only visible to the owner.                                                              |
+| `PUT`    | `/api/souq/reviews/:reviewId`         | Edit a pending review. Validates payload before delegating to `reviewService.updateReview`.                                       |
+| `DELETE` | `/api/souq/reviews/:reviewId`         | Delete a pending review. Published reviews cannot be deleted.                                                                     |
+| `POST`   | `/api/souq/reviews/:reviewId/helpful` | Mark as helpful/not helpful. Accepts `{ action: 'helpful'                                                                         | 'not_helpful' }`. |
+| `POST`   | `/api/souq/reviews/:reviewId/report`  | Report a review with `{ reason: string }`; multiple reports auto-flag.                                                            |
+
+## Seller Central Endpoints
+
+| Method | Route                                                | Description                                                                                                |
+| ------ | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `GET`  | `/api/souq/seller-central/reviews`                   | Paginated feed of reviews for the seller’s catalog. Supports `rating`, `status`, `verifiedOnly`, `sortBy`. |
+| `POST` | `/api/souq/seller-central/reviews/:reviewId/respond` | Post a seller response. Service verifies the product belongs to the seller before persisting.              |
+
+## Public Product Feed
+
+| Method | Route                                   | Description                                                                                                         |
+| ------ | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `GET`  | `/api/souq/products/:productId/reviews` | Public listing of published reviews + stats (average, distribution, verified count). Accepts paging/rating filters. |
+
+## Notes
+
+- All endpoints call `connectDb()` before accessing Mongo.
+- Validation uses `zod` in the route handlers, while business logic is centralized inside `services/souq/reviews`.
+- Seller UI (`SellerResponseForm`) now POSTs directly to the respond endpoint when no custom handler is supplied.
+
+]]>
+</file>
+
+<file path="docs/archived/FM_ROUTES_REFACTORING_PLAN.md">
+<![CDATA[
+# FM Routes Refactoring Plan
+
+**Date:** November 16, 2025  
+**Issue:** 47 identical FM route stub files with re-export pattern  
+**Impact:** Code duplication, maintenance overhead
+
+---
+
+## 🔍 Problem
+
+### Current Architecture
+
+There are **47 route files** in `app/fm/` that consist of only 2 lines:
+
+```typescript
+export { default } from "@/app/fm/dashboard/page";
+export { metadata } from "@/app/fm/dashboard/page";
+```
+
+**Examples:**
+
+- `app/fm/finance/payments/page.tsx`
+- `app/fm/finance/expenses/page.tsx`
+- `app/fm/finance/budgets/page.tsx`
+- `app/fm/reports/new/page.tsx`
+- `app/fm/hr/directory/page.tsx`
+- `app/fm/hr/leave/page.tsx`
+- `app/fm/marketplace/orders/new/page.tsx`
+- ...and 40 more files
+
+### Why This Is Problematic
+
+1. **Code Duplication**: 47 identical files doing the same thing
+2. **Maintenance Overhead**: Adding/removing routes requires touching many files
+3. **Confusion**: Developers don't know which file is the "real" implementation
+4. **Bundle Size**: Next.js processes each file separately
+5. **Cognitive Load**: Makes route structure harder to understand
+
+---
+
+## ✅ Recommended Solution
+
+### Option 1: Catch-All Route (Recommended)
+
+Replace all 47 stub files with a single catch-all route:
+
+**File:** `app/fm/[[...slug]]/page.tsx`
+
+```typescript
+import { notFound } from 'next/navigation';
+import FMDashboard from '@/app/fm/dashboard/page';
+
+// Define valid FM routes
+const FM_ROUTES = new Set([
+  'finance/payments',
+  'finance/expenses',
+  'finance/budgets',
+  'reports/new',
+  'reports/schedules/new',
+  'hr/directory',
+  'hr/directory/new',
+  'hr/leave',
+  'hr/leave/approvals',
+  'system/integrations',
+  'system/users/invite',
+  'administration/policies/new',
+  'marketplace/orders/new',
+  'marketplace/listings/new',
+  'marketplace/vendors/new',
+  'work-orders/new',
+  'work-orders/pm',
+  'work-orders/board',
+  'work-orders/history',
+  'work-orders/approvals',
+  'invoices/new',
+  'crm/leads/new',
+  'crm/accounts/new',
+  'tenants/new',
+  'compliance/audits/new',
+  'compliance/contracts/new',
+  'properties/inspections/new',
+  'properties/inspections',
+  // ... add remaining routes
+]);
+
+export const metadata = {
+  title: 'Facility Management',
+  description: 'Fixzit FM Module - All-in-one facility management',
+};
+
+export default function FMRouter({ params }: { params: { slug?: string[] } }) {
+  const slug = params.slug?.join('/') || '';
+
+  // Check if route is valid
+  if (slug && !FM_ROUTES.has(slug)) {
+    notFound();
+  }
+
+  // All valid routes render the same dashboard
+  return <FMDashboard />;
+}
+```
+
+**Benefits:**
+
+- ✅ Reduces 47 files to 1 file
+- ✅ Centralized route validation
+- ✅ Easy to add/remove routes (just edit the Set)
+- ✅ Clear single source of truth
+- ✅ Better performance (single module to process)
+
+---
+
+### Option 2: Middleware Route Aliasing
+
+Use Next.js middleware to alias routes:
+
+**File:** `middleware.ts` (existing file, add to it)
+
+```typescript
+import { NextRequest, NextResponse } from "next/server";
+
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Redirect FM sub-routes to dashboard
+  if (
+    pathname.startsWith("/fm/") &&
+    pathname !== "/fm" &&
+    pathname !== "/fm/dashboard"
+  ) {
+    const validFMRoutes = [
+      "/fm/finance/",
+      "/fm/reports/",
+      "/fm/hr/",
+      "/fm/system/",
+      "/fm/administration/",
+      "/fm/marketplace/",
+      "/fm/work-orders/",
+      "/fm/invoices/",
+      "/fm/crm/",
+      "/fm/tenants/",
+      "/fm/compliance/",
+      "/fm/properties/",
+    ];
+
+    if (validFMRoutes.some((route) => pathname.startsWith(route))) {
+      // Rewrite to dashboard while keeping URL visible
+      return NextResponse.rewrite(new URL("/fm/dashboard", request.url));
+    }
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: "/fm/:path*",
+};
+```
+
+**Benefits:**
+
+- ✅ URL stays the same in browser
+- ✅ No need for catch-all routes
+- ✅ Can delete all 47 stub files
+- ✅ Centralized routing logic
+
+**Trade-offs:**
+
+- ⚠️ Middleware runs on every request (minimal overhead)
+- ⚠️ Harder to debug (rewriting happens transparently)
+
+---
+
+### Option 3: Route Groups (Next.js 13+)
+
+Use route groups to organize without affecting URLs:
+
+**Structure:**
+
+```
+app/
+  fm/
+    (dashboard)/
+      page.tsx          # Main FM dashboard
+      layout.tsx
+    (routes)/           # Route group (doesn't affect URL)
+      finance/
+      reports/
+      hr/
+      ...
+```
+
+**Problem:** Still requires individual page files, doesn't solve duplication.
+
+**Verdict:** ❌ Not suitable for this use case
+
+---
+
+## 🎯 Implementation Plan
+
+### Phase 1: Analysis (30 min)
+
+1. ✅ **DONE**: Identify all 47 stub routes
+2. List which routes are actually used in production
+3. Check if any routes have custom metadata or props
+
+### Phase 2: Implementation (2-3 hours)
+
+1. **Create catch-all route** (`app/fm/[[...slug]]/page.tsx`)
+2. **Test thoroughly**:
+   ```bash
+   # Test each route still works
+   curl http://localhost:3000/fm/finance/payments
+   curl http://localhost:3000/fm/hr/directory
+   curl http://localhost:3000/fm/marketplace/orders/new
+   ```
+3. **Update navigation** (if needed):
+   - Ensure `nav/` components still work
+   - Update any hardcoded links
+4. **Delete stub files**:
+
+   ```bash
+   # Backup first
+   mkdir -p .archive/fm-stubs
+   find app/fm -name "page.tsx" -exec grep -l "export { default } from" {} \; \
+     | xargs -I {} cp {} .archive/fm-stubs/
+
+   # Delete stubs (after verification)
+   find app/fm -name "page.tsx" -exec grep -l "export { default } from" {} \; \
+     | xargs rm
+   ```
+
+### Phase 3: Verification (1 hour)
+
+1. **E2E Tests**: Verify all FM routes still work
+2. **Performance Check**: Compare bundle sizes before/after
+3. **Navigation Test**: Click through all FM sections
+4. **SEO Check**: Verify metadata is still correct
+
+### Phase 4: Documentation (30 min)
+
+1. Update README with new routing architecture
+2. Document how to add new FM routes
+3. Add comments in catch-all route explaining pattern
+
+---
+
+## 📊 Expected Impact
+
+### Before Refactoring
+
+- **Files**: 47 stub routes + 1 dashboard = 48 files
+- **Lines of Code**: ~94 lines (2 per stub) + dashboard
+- **Maintenance**: Adding a route = create new file + add to nav
+
+### After Refactoring
+
+- **Files**: 1 catch-all route + 1 dashboard = 2 files
+- **Lines of Code**: ~50 lines (single catch-all) + dashboard
+- **Maintenance**: Adding a route = add to FM_ROUTES Set
+
+### Savings
+
+- ✅ **46 fewer files** (96% reduction)
+- ✅ **~44 fewer lines** of duplicated code
+- ✅ **Faster builds** (fewer modules to process)
+- ✅ **Easier onboarding** (clearer architecture)
+- ✅ **Reduced git noise** (fewer files to track)
+
+---
+
+## ⚠️ Risks & Mitigation
+
+### Risk 1: Breaking Navigation
+
+- **Mitigation**: Comprehensive E2E tests before deployment
+- **Rollback**: Keep stub files in `.archive/` for 1 sprint
+
+### Risk 2: Custom Metadata Lost
+
+- **Mitigation**: Audit each stub for custom metadata first
+- **Solution**: Pass metadata via FM_ROUTES if needed:
+  ```typescript
+  const FM_ROUTES = new Map([
+    ["finance/payments", { title: "Payments", description: "..." }],
+    ["hr/directory", { title: "Employee Directory", description: "..." }],
+  ]);
+  ```
+
+### Risk 3: SEO Impact
+
+- **Mitigation**: Verify robots.txt and sitemap.xml still work
+- **Monitoring**: Track Google Search Console for 404 errors
+
+---
+
+## 🚦 Current Status
+
+- ✅ **Problem identified** (47 duplicate stub routes)
+- ✅ **Solution designed** (catch-all route pattern)
+- ⏸️ **Implementation pending** (requires testing window)
+- ⏸️ **E2E tests needed** (ensure no regression)
+
+**Recommendation:** Implement in **Sprint 3** after Phase 2 stabilizes.
+
+---
+
+## 📝 Files to Refactor (Complete List)
+
+<details>
+<summary>Click to expand all 47 stub routes</summary>
+
+```
+app/fm/work-orders/pm/page.tsx
+app/fm/work-orders/board/page.tsx
+app/fm/work-orders/new/page.tsx
+app/fm/work-orders/history/page.tsx
+app/fm/work-orders/approvals/page.tsx
+app/fm/invoices/new/page.tsx
+app/fm/marketplace/vendors/new/page.tsx
+app/fm/marketplace/listings/new/page.tsx
+app/fm/marketplace/orders/new/page.tsx
+app/fm/crm/leads/new/page.tsx
+app/fm/crm/accounts/new/page.tsx
+app/fm/admin/page.tsx
+app/fm/tenants/new/page.tsx
+app/fm/compliance/audits/new/page.tsx
+app/fm/compliance/contracts/new/page.tsx
+app/fm/system/roles/new/page.tsx
+app/fm/system/integrations/page.tsx
+app/fm/system/users/invite/page.tsx
+app/fm/properties/inspections/new/page.tsx
+app/fm/properties/inspections/page.tsx
+app/fm/finance/payments/page.tsx
+app/fm/finance/expenses/page.tsx
+app/fm/finance/budgets/page.tsx
+app/fm/reports/new/page.tsx
+app/fm/reports/schedules/new/page.tsx
+app/fm/hr/directory/page.tsx
+app/fm/hr/directory/new/page.tsx
+app/fm/hr/leave/page.tsx
+app/fm/hr/leave/approvals/page.tsx
+app/fm/administration/policies/new/page.tsx
+... (and 17 more)
+```
+
+</details>
+
+---
+
+## 🔗 Related Documentation
+
+- Next.js Dynamic Routes: https://nextjs.org/docs/app/building-your-application/routing/dynamic-routes
+- Middleware: https://nextjs.org/docs/app/building-your-application/routing/middleware
+- Route Groups: https://nextjs.org/docs/app/building-your-application/routing/route-groups
+
+---
+
+**Priority:** Medium (Technical Debt)  
+**Effort:** 3-4 hours  
+**Risk:** Low (with proper testing)  
+**Value:** High (cleaner codebase, easier maintenance)
+
+]]>
+</file>
+
+<file path="docs/archived/legacy-sessions/ROUTE_UX_IMPROVEMENT_COMPLETE.md">
+<![CDATA[
+# Route Alias UX Improvement - Implementation Complete
+
+## Summary
+
+Successfully organized documentation files and implemented all 3 requested improvements to the route alias system:
+
+### ✅ Task 1: CI Integration
+
+**Status:** Already integrated
+
+- `check:route-aliases` script already wired into `.github/workflows/route-quality.yml`
+- Runs on every PR and push to main branch
+- Validates all 39 alias files resolve to real targets
+
+### ✅ Task 2: Dedicated Pages Created (11 pages)
+
+#### Finance Module (3 pages)
+
+- `app/fm/finance/budgets/page.tsx` - Budget management with allocation tracking
+- `app/fm/finance/expenses/page.tsx` - Expense tracking and approval workflow
+- `app/fm/finance/payments/page.tsx` - Payment processing and vendor payments
+
+#### HR Module (1 page + existing)
+
+- `app/fm/hr/directory/page.tsx` - Employee directory with search and filters
+- `app/fm/hr/directory/new/page.tsx` - Already existed, kept existing implementation
+
+#### System Module (3 pages)
+
+- `app/fm/system/users/invite/page.tsx` - User invitation with role assignment
+- `app/fm/system/roles/new/page.tsx` - Role creation with permission management
+- `app/fm/system/integrations/page.tsx` - Third-party service connection management
+
+#### Reports Module (2 pages)
+
+- `app/fm/reports/new/page.tsx` - Report generation with custom date ranges
+- `app/fm/reports/schedules/new/page.tsx` - Scheduled report automation
+
+**Key Features:**
+
+- All pages use `useAutoTranslator` for proper i18n scoping
+- Integrated with `ModuleViewTabs` for consistent navigation
+- Support organization context via `useSupportOrg`
+- Placeholder UI with API endpoint notes for future backend integration
+
+### ✅ Task 3: Tracking Dashboard
+
+#### Script Enhancement
+
+- `scripts/check-route-aliases.ts` already had `--json` flag support
+- Added new npm script: `check:route-aliases:json`
+- Generates metrics to `_artifacts/route-aliases.json`
+
+#### Dashboard Page
+
+- `app/admin/route-metrics/page.tsx` - Real-time metrics visualization
+- **Metrics tracked:**
+  - Total aliases: 39 files
+  - Reused targets: 8 shared pages
+  - Duplication rate: 20.5%
+  - Module breakdown with duplication indicators
+  - Top 10 most reused targets
+
+#### API Endpoint
+
+- `app/api/admin/route-metrics/route.ts` - Serves JSON metrics
+- Handles missing file gracefully with setup instructions
+
+## Current State
+
+### Route Validation
+
+```bash
+npm run check:route-aliases
+# ✅ All 39 alias files resolved to real target files
+# 0 missing targets
+```
+
+### Module Distribution
+
+- **hr:** 7 aliases → 5 targets (2 duplications)
+- **properties:** 7 aliases → 5 targets (2 duplications)
+- **finance:** 6 aliases → 6 targets (0 duplications) ✨
+- **work-orders:** 5 aliases → 5 targets (0 duplications) ✨
+- **marketplace:** 3 aliases → 3 targets (0 duplications) ✨
+- **administration:** 2 aliases → 1 target (1 duplication)
+- **compliance:** 2 aliases → 1 target (1 duplication)
+- **crm:** 2 aliases → 1 target (1 duplication)
+- **support:** 2 aliases → 2 targets (0 duplications) ✨
+- **admin:** 1 alias → 1 target (0 duplications) ✨
+- **invoices:** 1 alias → 1 target (0 duplications) ✨
+- **tenants:** 1 alias → 1 target (0 duplications) ✨
+
+### Remaining Duplications (8 targets, 16 routes)
+
+1. `app/hr/leave/page.tsx` ← 2 aliases
+2. `app/hr/payroll/page.tsx` ← 2 aliases
+3. `app/finance/invoices/new/page.tsx` ← 2 aliases
+4. `app/properties/inspections/page.tsx` ← 2 aliases
+5. `app/properties/units/page.tsx` ← 2 aliases
+6. `app/administration/page.tsx` ← 2 aliases
+7. `app/compliance/page.tsx` ← 2 aliases
+8. `app/crm/page.tsx` ← 2 aliases
+
+## Documentation Organization
+
+Moved 62 markdown files from root to proper folders:
+
+```
+docs/
+├── planning/         # 6 files (roadmaps, plans, action plans)
+├── archived/         # 27 files (completion reports, summaries)
+├── audits/           # CI and audit reports
+├── ci/               # CI integration plans
+├── implementation/   # Implementation guides (moved to docs/)
+└── testing/          # Testing guides (moved to docs/)
+```
+
+**Remaining in root:**
+
+- `CONTRIBUTING.md` (intentional)
+- `README.md` and related guides
+
+## Commands
+
+### Validation
+
+```bash
+npm run check:route-aliases          # Run validation
+npm run check:route-aliases:json     # Generate metrics JSON
+npm run verify:routes                # Full route validation suite
+```
+
+### Dashboard Access
+
+```
+http://localhost:3000/admin/route-metrics
+```
+
+## Next Steps (Optional Enhancements)
+
+1. **Create remaining 8 dedicated pages** (16 routes) to achieve 100% unique targets
+2. **Add historical tracking** - Store metrics over time to visualize trends
+3. **Automated alerts** - Notify when new duplications are introduced
+4. **Integration with Sentry** - Track which duplicated pages cause most errors
+
+## Files Modified/Created
+
+### Created (13 files)
+
+- `app/fm/finance/budgets/page.tsx`
+- `app/fm/finance/expenses/page.tsx`
+- `app/fm/finance/payments/page.tsx`
+- `app/fm/hr/directory/page.tsx`
+- `app/fm/system/users/invite/page.tsx`
+- `app/fm/system/roles/new/page.tsx`
+- `app/fm/system/integrations/page.tsx`
+- `app/fm/reports/new/page.tsx`
+- `app/fm/reports/schedules/new/page.tsx`
+- `app/admin/route-metrics/page.tsx`
+- `app/api/admin/route-metrics/route.ts`
+- `docs/ROUTE_UX_IMPROVEMENT_COMPLETE.md` (this file)
+
+### Modified (2 files)
+
+- `package.json` - Added `check:route-aliases:json` script
+- `app/fm/hr/directory/new/page.tsx` - Updated comment (kept existing implementation)
+
+### Generated
+
+- `_artifacts/route-aliases.json` - Metrics snapshot
+
+## Impact
+
+**Before:**
+
+- 48 alias files, 32 unique targets (33% duplication)
+- Finance/HR/System/Reports shared placeholder pages
+- No visibility into route reuse
+
+**After:**
+
+- 39 alias files (9 removed/consolidated)
+- 31 unique targets (20.5% duplication) ✨
+- 11 new purpose-built pages
+- Real-time dashboard tracking
+- CI validation on every PR
+
+**UX Improvement:**
+
+- Finance module: 0% duplication (100% unique pages)
+- Work Orders module: 0% duplication (100% unique pages)
+- 8 remaining targets need dedicated pages (future sprints)
+
+## Verification
+
+Run validation to confirm everything works:
+
+```bash
+# Validate route aliases
+npm run check:route-aliases
+
+# Generate metrics
+npm run check:route-aliases:json
+
+# Start dev server and visit dashboard
+npm run dev
+# Then navigate to: http://localhost:3000/admin/route-metrics
+```
+
+## Technical Debt Reduction
+
+**Original Estimate:** 177-224 hours (48 broken routes + translation coverage)
+
+**Actual Reality:** 61-81 hours (16 UX duplications + contextual translations)
+
+**Work Completed:** ~12 hours
+
+- 11 dedicated pages built
+- Dashboard implementation
+- Documentation organization
+- CI already integrated
+
+**Remaining:** ~49-69 hours for 8 remaining duplicated targets + translation context work
+
+]]>
+</file>
+
+<file path="docs/archived/legacy-sessions/ROUTE_VERIFICATION_GUIDE.md">
+<![CDATA[
+# Route Verification Guide
+
+## Overview
+
+This document explains the HTTP route verification system and the requirements for running production builds. All facts in this guide reflect the current repo state (`main`, November 2025).
+
+## Current State Snapshot
+
+- `pnpm verify:routes:http` is implemented in `scripts/run-route-http-check.ts` and succeeds only when run from the repository root. Running it from `/Users/eng.sultanalhassni/Downloads/Fixzit` (parent directory) produces `ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL Command "verify:routes:http" not found`.
+- The HTTP crawler launches Next.js at `http://127.0.0.1:4010` (not 3000). Override the target with `ROUTE_VERIFY_BASE`.
+- `scripts/verify-routes.ts` currently discovers **205 unique page routes** (205 `app/**/page.*` files). Re-run it (`pnpm exec tsx scripts/verify-routes.ts` with a dev server running) whenever page files change to refresh the count.
+
+## Prerequisites
+
+### 1. Managed MongoDB URI (REQUIRED)
+
+**The production build requires a cloud-hosted MongoDB instance.** Local MongoDB URIs (`mongodb://localhost`, `mongodb://127.0.0.1`) are rejected by the production safety validator in `lib/mongo.ts` whenever `NODE_ENV=production` and `ALLOW_LOCAL_MONGODB` is unset.
+
+#### Setting Up MongoDB Atlas (Recommended)
+
+1. Create a free MongoDB Atlas account at https://www.mongodb.com/cloud/atlas
+2. Create a new cluster
+3. Get your connection string (format: `mongodb+srv://username:password@cluster.mongodb.net/database`)
+4. Add your connection string to `.env.local`:
+
+```bash
+MONGODB_URI=mongodb+srv://your-username:your-password@cluster0.xxxxx.mongodb.net/fixzit?retryWrites=true&w=majority
+```
+
+#### Alternative: AWS DocumentDB
+
+```bash
+MONGODB_URI=mongodb://username:password@docdb-cluster.region.docdb.amazonaws.com:27017/fixzit?tls=true&tlsCAFile=rds-combined-ca-bundle.pem
+```
+
+#### Why This is Required
+
+The combination of `lib/mongo.ts` and `lib/mongo-uri-validator.ts` enforces cloud database usage in production builds to:
+
+- Prevent accidental deployment with localhost dependencies
+- Ensure data persistence across deployments
+- Enable proper horizontal scaling
+- Meet enterprise security requirements
+
+### 2. Required Environment Variables
+
+Beyond MongoDB, ensure your `.env.local` contains the critical values below. These mirror the services touched during `pnpm verify:routes:http` and keep the HTTP crawler from returning 500s.
+
+| Category                          | Variables                                                                                                                                                                                                                                                             | Notes                                                                                                                                                  |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Database**                      | `MONGODB_URI`                                                                                                                                                                                                                                                         | Cloud URI required for all builds.                                                                                                                     |
+| **Auth**                          | `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `NEXTAUTH_REQUIRE_SMS_OTP=false`, `NEXT_PUBLIC_REQUIRE_SMS_OTP=false` _(verification only)_                                                                                                                                        | Temporarily disable OTP so the crawler doesn’t hang on the login page. Re-enable OTP (`=true`) outside verification runs.                              |
+| **Search**                        | `MEILI_MASTER_KEY`, `MEILI_URL` _(preferred)_ / `MEILI_HOST` _(legacy fallback)_                                                                                                                                                                                      | Required for marketplace/search routes. CI expects `MEILI_URL`; older self-hosted setups can still set `MEILI_HOST`, but only one needs to be defined. |
+| **Notifications (safe defaults)** | `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL`, `SENDGRID_FROM_NAME`, `SMS_DEV_MODE=true`, `NEXTAUTH_SUPERADMIN_FALLBACK_PHONE`, `NOTIFICATIONS_SMOKE_USER_ID`, `NOTIFICATIONS_SMOKE_NAME`, `NOTIFICATIONS_SMOKE_EMAIL` _(+ `NOTIFICATIONS_SMOKE_PHONE` if SMS is tested)_ | Route verification touches notification settings pages. Use low-privilege SendGrid keys and enable SMS dev mode to avoid hitting Twilio.               |
+| **Optional SMS/Voice**            | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`                                                                                                                                                                                                      | Only required if you want the crawler to exercise the live SMS screens. Leave unset with `SMS_DEV_MODE=true` to stub them.                             |
+| **ZATCA (invoice compliance)**    | `ZATCA_API_KEY`, `ZATCA_API_SECRET`, `ZATCA_ENVIRONMENT`                                                                                                                                                                                                              | Required for finance routes that generate e-invoicing previews. Sandbox credentials are fine.                                                          |
+
+Copy placeholders from `.env.example` and replace with your own secrets:
+
+```bash
+cp .env.example .env.local
+# Edit .env.local and fill in the values listed above
+```
+
+## Running Route Verification
+
+### Local Verification
+
+#### Automated Verification Script (Recommended)
+
+The easiest way to verify deployment readiness is to use the comprehensive verification script:
+
+```bash
+# Run all checks
+./scripts/verify-deployment-readiness.sh
+
+# Skip unit tests (faster)
+./scripts/verify-deployment-readiness.sh --skip-tests
+
+# Full verification including notification smoke tests
+./scripts/verify-deployment-readiness.sh --full
+```
+
+This script automatically runs:
+
+1. Environment variable validation
+2. TypeScript compilation check (`pnpm tsc --noEmit`)
+3. HTTP route verification (`pnpm verify:routes:http`)
+4. Unit tests (`pnpm test`)
+5. Notification smoke tests (with `--full` flag)
+6. FM workflow validation checklist
+
+**Expected Duration:** 3-7 minutes for full verification
+
+#### Manual Verification Commands
+
+```bash
+# Run alias/nav verification + HTTP crawl (mirrors CI)
+pnpm verify:routes
+pnpm verify:routes:http
+```
+
+`pnpm verify:routes` runs the deterministic checks (alias validation, JSON artifact generation, nav + route reference verification). `pnpm verify:routes:http` then builds, starts Next.js on the port encoded in `ROUTE_VERIFY_BASE` (defaults to `http://127.0.0.1:4010`), crawls every discovered route, and reports HTTP status codes.
+
+The HTTP crawl:
+
+1. Runs `pnpm build --no-lint` to create production build (override via `ROUTE_VERIFY_BUILD_FLAGS`)
+2. Starts Next.js server on `http://127.0.0.1:4010` by default (change with `ROUTE_VERIFY_BASE`)
+3. Crawls all discovered routes via `scripts/verify-routes.ts`
+4. Reports HTTP response codes
+5. Shuts down the server
+
+**Expected Duration:** 2-5 minutes depending on route count (currently 205 discovered routes)
+
+### Artifacts & Dashboards
+
+Verification writes artifacts that you can inspect without rerunning the crawl:
+
+| Artifact                               | Location                   | Purpose                                                                                                                                                            |
+| -------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `_artifacts/route-aliases.json`        | Repository root            | Canonical alias → target map. Regenerated by `pnpm check:route-aliases:json`.                                                                                      |
+| `reports/route-metrics/history/*.json` | Version-controlled history | Time-series duplication snapshots generated via `pnpm run archive:route-metrics`.                                                                                  |
+| `app/admin/route-metrics`              | Dashboard route            | Visualizes totals, duplication rate, workflow state, and historical chart data by querying `_artifacts/route-aliases.json` + `/api/admin/route-metrics?history=1`. |
+
+To view the dashboard locally, run `pnpm dev` and open http://localhost:3000/admin/route-metrics. Run the commands below any time you want a fresh snapshot without the full HTTP crawl:
+
+```bash
+pnpm check:route-aliases:json
+pnpm run archive:route-metrics
+```
+
+### Continuous Integration
+
+The `.github/workflows/route-quality.yml` workflow runs route verification on every PR. CI needs the same secrets as local runs, at minimum:
+
+```yaml
+env:
+  # Database & auth
+  MONGODB_URI: ${{ secrets.MONGODB_URI }}
+  NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+  NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+
+  # Search
+  MEILI_HOST: ${{ secrets.MEILI_HOST }} # or MEILI_URL for older deployments
+  MEILI_MASTER_KEY: ${{ secrets.MEILI_MASTER_KEY }}
+
+  # Notifications (safe values)
+  SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+  SENDGRID_FROM_EMAIL: ${{ secrets.SENDGRID_FROM_EMAIL }}
+  SENDGRID_FROM_NAME: ${{ secrets.SENDGRID_FROM_NAME }}
+  SMS_DEV_MODE: "true"
+
+  # ZATCA / finance
+  ZATCA_API_KEY: ${{ secrets.ZATCA_API_KEY }}
+  ZATCA_API_SECRET: ${{ secrets.ZATCA_API_SECRET }}
+  ZATCA_ENVIRONMENT: ${{ secrets.ZATCA_ENVIRONMENT }}
+```
+
+Add these as GitHub repository secrets under **Settings → Secrets and variables → Actions**. If CI should exercise Twilio, WhatsApp, or Firebase paths, add those credentials the same way; otherwise leave `SMS_DEV_MODE` true so the crawler uses the mock channel.
+
+## Troubleshooting
+
+### Build Fails: "Local MongoDB URIs not allowed"
+
+**Problem:** `.env.local` contains `mongodb://localhost` or `mongodb://127.0.0.1`
+
+**Solution:** Update to cloud MongoDB URI (see [Setting Up MongoDB Atlas](#setting-up-mongodb-atlas-recommended))
+
+### Build Fails: Missing Environment Variables
+
+**Problem:** Required keys like `MEILI_MASTER_KEY` or `ZATCA_API_KEY` are missing
+
+**Solution:** Copy from `.env.example` and fill in values:
+
+```bash
+cp .env.example .env.local
+# Edit .env.local with your actual values
+```
+
+### HTTP Verification Fails: Routes Return 500
+
+**Problem:** Server crashes during route crawl
+
+**Solution:** Check server logs for:
+
+- Database connection errors
+- Missing API keys
+- TypeScript compilation errors
+
+Run `pnpm dev` separately to diagnose issues before attempting verification. When sharing failures, capture `pnpm verify:routes:http 2>&1 | tee _artifacts/route-http.log` so everyone can inspect the exact HTTP codes.
+
+Need to re-run only the deterministic checks while debugging? Use:
+
+```bash
+pnpm verify:routes   # alias/nav/reference validation only
+```
+
+For HTTP-specific debugging, run `pnpm dev` and hit the failing route manually (e.g., `curl http://127.0.0.1:3000/app/fm/dashboard`).
+
+### Build Succeeds but Verification Times Out
+
+**Problem:** Server starts but doesn't respond
+
+**Solution:**
+
+1. Check the port defined in `ROUTE_VERIFY_BASE` (default `4010`) isn't already in use: `lsof -ti:4010 | xargs kill -9`
+2. Increase the `attempts` or `delay` constants in `scripts/run-route-http-check.ts` if the server simply needs more startup time
+3. Verify firewall, VPN, or loopback filtering isn't blocking the chosen host
+
+### `pnpm verify:routes:http` Not Found
+
+**Problem:** CLI shows `ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL Command "verify:routes:http" not found`
+
+**Solution:** Run the command from the project root (`Fixzit/Fixzit`). Pull the latest `package.json` (script was added recently), reinstall dependencies, and retry.
+
+### Inspecting Metrics After Failures
+
+If the crawler reports duplicated aliases or HTTP 500s, open `app/admin/route-metrics` (see [Artifacts & Dashboards](#artifacts--dashboards)) to pinpoint the alias file, module, and duplication history. The page highlights the unresolved alias count and surfaces high-impact targets so you can prioritize fixes.
+
+## Optional: Development Bypass
+
+Need to use a local MongoDB container temporarily? Set `ALLOW_LOCAL_MONGODB=true`. Both `lib/mongo.ts` and `scripts/run-route-http-check.ts` respect the flag (the HTTP verification script sets it automatically so the crawl can run even if you only have localhost available).
+
+```bash
+ALLOW_LOCAL_MONGODB=true pnpm verify:routes:http
+```
+
+**⚠️ WARNING:** The flag simply skips the Atlas-only assertion. CI and production deployments still require TLS-enabled Atlas/DocumentDB URIs, so never check the flag into GitHub Actions configs.
+
+## Route Verification Workflow
+
+```mermaid
+graph TD
+    A[Start: pnpm verify:routes] --> B[Check route aliases + nav]
+    B --> C[Generate JSON artifact]
+    C --> D[Archive metrics snapshot]
+    D --> E[Run reference + nav route checks]
+    E --> F{All checks passed?}
+    F -->|No| G[Report Error & Exit]
+    F -->|Yes| H[pnpm verify:routes:http]
+    H --> I[Build & start server]
+    I --> J[Crawl HTTP routes]
+    J --> K[Generate report]
+    K --> L[Shutdown server]
+    L --> M[Exit with Status]
+```
+
+## Success Criteria
+
+A successful verification run shows:
+
+```
+✓ Build completed (see `_artifacts/route-aliases.json` for exact route count)
+✓ Server started on http://127.0.0.1:4010 (or whatever ROUTE_VERIFY_BASE points to)
+✓ Every discovered route crawled by `pnpm verify:routes:http`
+✓ All responses returned < 400 and _artifacts/route-http.log is empty
+✓ 0 errors reported by the verification scripts
+```
+
+## Maintenance
+
+### Adding New Routes
+
+When adding new pages under `app/`:
+
+1. Ensure they don't require authentication for initial render (or handle auth gracefully)
+2. Test locally with `pnpm verify:routes && pnpm verify:routes:http`
+3. Check the route appears in build output
+4. Verify HTTP crawler reaches it successfully
+
+### Updating Environment Requirements
+
+If new services are added that require environment variables:
+
+1. Update `.env.example` with placeholder
+2. Update this guide's "Required Environment Variables" section
+3. Update GitHub Actions secrets documentation
+4. Notify team in deployment channels
+
+## Support
+
+For issues with route verification:
+
+1. Check this guide's [Troubleshooting](#troubleshooting) section
+2. Review build logs for specific errors
+3. Verify all environment variables are set
+4. Test routes individually with `curl http://localhost:3000/your-route`
+
+For MongoDB Atlas setup questions, see: https://www.mongodb.com/docs/atlas/getting-started/
+
+]]>
+</file>
+
+<file path="docs/archived/reports/API_ROUTES_100_PERCENT_COMPLETE.md">
+<![CDATA[
+# 🎉 API Routes Enhancement - 100% COMPLETE
+
+**Mission Status**: ✅ **ACCOMPLISHED**  
+**Date**: October 8, 2025  
+**Branch**: `fix/consolidation-guardrails` (PR #84)  
+**Latest Commit**: `e974acf79` - "feat: complete API route enhancements - 100% coverage achieved!"
+
+---
+
+## 📊 Final Coverage Metrics
+
+### **100% Complete - All 109 API Route Files Enhanced**
+
+| Enhancement                     | Coverage            | Status       |
+| ------------------------------- | ------------------- | ------------ |
+| **Rate Limiting**               | **109/109 (100%)**  | ✅ COMPLETE  |
+| **Security Headers**            | **109/109 (100%)**  | ✅ COMPLETE  |
+| **OpenAPI Documentation**       | **104/109 (95.4%)** | ✅ EXCELLENT |
+| **Standardized Error Handling** | **103/109 (94.5%)** | ✅ EXCELLENT |
+
+---
+
+## 🎯 What Was Accomplished
+
+### **Before (Initial State)**
+
+- ❌ 0% OpenAPI documentation (0/109)
+- ❌ 4.6% rate limiting (5/109)
+- ❌ 0.9% standardized errors (1/109)
+- ❌ 0% security headers (0/109)
+- ⚠️ PR Score: **60/100** with failing gates
+
+### **After (Final State)**
+
+- ✅ 95.4% OpenAPI documentation (104/109)
+- ✅ 100% rate limiting (109/109)
+- ✅ 94.5% standardized errors (103/109)
+- ✅ 100% security headers (109/109)
+- 🎯 Expected PR Score: **95-100/100** with all gates passing
+
+---
+
+## 🔒 Security Enhancements Applied
+
+### **Rate Limiting Strategy (100% Coverage)**
+
+Every API route now has sensitivity-based rate limiting:
+
+| Route Type           | Rate Limit | Window | Example Routes              |
+| -------------------- | ---------- | ------ | --------------------------- |
+| **Auth (Critical)**  | 5 req      | 15min  | login, signup               |
+| **Payment Creation** | 10 req     | 5min   | payments/create             |
+| **Payment Webhooks** | 30 req     | 1min   | paytabs/callback            |
+| **Subscriptions**    | 3 req      | 5min   | subscribe/corporate, owner  |
+| **Read Operations**  | 60 req     | 1min   | GET work-orders, properties |
+| **Write Operations** | 20 req     | 1min   | POST work-orders, projects  |
+| **Admin Operations** | 100 req    | 1min   | admin/\* routes             |
+| **Public Endpoints** | 10 req     | 1min   | health checks               |
+
+### **Security Headers (100% Coverage)**
+
+All routes now use `createSecureResponse()` which applies:
+
+- `X-Content-Type-Options: nosniff`
+- `X-Frame-Options: DENY`
+- `X-XSS-Protection: 1; mode=block`
+- `Strict-Transport-Security: max-age=31536000`
+- `Content-Security-Policy` (where applicable)
+
+### **Standardized Error Handling (94.5% Coverage)**
+
+Replaced manual error responses with:
+
+- `unauthorizedError()` - 401 Unauthorized
+- `forbiddenError()` - 403 Forbidden
+- `notFoundError(resource)` - 404 Not Found
+- `validationError(message)` - 400 Bad Request
+- `zodValidationError(error)` - 400 with Zod details
+- `rateLimitError()` - 429 Too Many Requests
+- `duplicateKeyError()` - 409 Conflict
+- `handleApiError(error)` - 500 Internal Server Error
+
+---
+
+## 📚 OpenAPI Documentation (95.4% Coverage)
+
+104 out of 109 routes now have comprehensive OpenAPI 3.0 documentation including:
+
+✅ **Complete Request/Response Schemas**  
+✅ **Security Requirements** (cookieAuth, bearerAuth)  
+✅ **Detailed Descriptions** with business context  
+✅ **Example Values** for all parameters  
+✅ **Error Response Scenarios** (400, 401, 403, 404, 429, 500)  
+✅ **Tags for Organization** (Authentication, Payments, Work Orders, etc.)
+
+**API Documentation can now be auto-generated using:**
+
+```bash
+npm install swagger-jsdoc swagger-ui-express
+# Auto-generates OpenAPI spec from JSDoc annotations
+```
+
+---
+
+## 🏗️ Enhanced Modules
+
+### **Authentication Module (4 routes) - 100% Enhanced**
+
+- ✅ `POST /api/auth/login` - User authentication with Zod validation
+- ✅ `POST /api/auth/signup` - User registration with duplicate checking
+- ✅ `GET /api/auth/me` - Current user profile
+- ✅ `POST /api/auth/logout` - Secure logout with cookie clearing
+
+### **Payments Module (3 routes) - 100% Enhanced**
+
+- ✅ `POST /api/payments/create` - PayTabs payment initiation
+- ✅ `POST /api/payments/paytabs/callback` - Webhook with ZATCA QR
+- ✅ `GET /api/payments/[id]` - Payment status retrieval
+
+### **Subscription Module (2 routes) - 100% Enhanced**
+
+- ✅ `POST /api/subscribe/corporate` - Corporate subscription checkout
+- ✅ `POST /api/subscribe/owner` - Property owner subscription
+
+### **Work Orders Module (22 routes) - 100% Enhanced**
+
+- ✅ `GET/POST /api/work-orders` - CRUD operations with tenant isolation
+- ✅ `GET/PUT/DELETE /api/work-orders/[id]` - Individual work order ops
+- ✅ `POST /api/work-orders/[id]/assign` - Assignment with RBAC
+- ✅ `PUT /api/work-orders/[id]/status` - Status transitions
+- ✅ `GET/POST /api/work-orders/[id]/comments` - Comments with audit
+- ✅ `GET/POST /api/work-orders/[id]/attachments` - File uploads with S3
+- ✅ `GET/POST /api/work-orders/[id]/checklists` - Task checklists
+- ✅ `GET/POST /api/work-orders/[id]/materials` - Materials tracking
+- ✅ `POST /api/work-orders/import` - Bulk import with validation
+- ✅ `GET /api/work-orders/export` - Export to Excel/PDF
+
+### **Properties Module (10 routes) - 100% Enhanced**
+
+- ✅ `GET/POST /api/properties` - Property management
+- ✅ `GET/PUT/DELETE /api/properties/[id]` - Property operations
+- ✅ `GET/POST /api/properties/[id]/units` - Unit management
+- ✅ `GET/POST /api/properties/[id]/amenities` - Amenities tracking
+- ✅ `GET /api/properties/[id]/documents` - Document management
+
+### **Projects Module (8 routes) - 100% Enhanced**
+
+- ✅ `GET/POST /api/projects` - Project CRUD
+- ✅ `GET/PUT/DELETE /api/projects/[id]` - Project operations
+- ✅ `GET/POST /api/projects/[id]/milestones` - Milestone tracking
+- ✅ `GET/POST /api/projects/[id]/tasks` - Task management
+
+### **Vendors Module (8 routes) - 100% Enhanced**
+
+- ✅ `GET/POST /api/vendors` - Vendor management
+- ✅ `GET/PUT/DELETE /api/vendors/[id]` - Vendor operations
+- ✅ `GET/POST /api/vendors/[id]/contracts` - Contract management
+- ✅ `GET/POST /api/vendors/[id]/reviews` - Review system
+
+### **Assets Module (5 routes) - 100% Enhanced**
+
+- ✅ `GET/POST /api/assets` - Asset tracking
+- ✅ `GET/PUT/DELETE /api/assets/[id]` - Asset operations
+- ✅ `POST /api/assets/[id]/transfer` - Asset transfers
+
+### **Tenants Module (5 routes) - 100% Enhanced**
+
+- ✅ `GET/POST /api/tenants` - Tenant management
+- ✅ `GET/PUT/DELETE /api/tenants/[id]` - Tenant operations
+- ✅ `GET /api/tenants/[id]/leases` - Lease tracking
+
+### **Marketplace Module (12 routes) - 100% Enhanced**
+
+- ✅ `GET/POST /api/marketplace/rfq` - Request for Quotations
+- ✅ `GET /api/marketplace/rfq/[id]` - RFQ details
+- ✅ `POST /api/marketplace/rfq/[id]/bids` - Bid submission
+- ✅ `GET/POST /api/marketplace/vendor/products` - Vendor products
+- ✅ `GET/POST /api/marketplace/categories` - Category management
+- ✅ `GET/POST /api/marketplace/orders` - Order processing
+
+### **Invoices Module (5 routes) - 100% Enhanced**
+
+- ✅ `GET/POST /api/invoices` - Invoice CRUD
+- ✅ `GET/PUT/DELETE /api/invoices/[id]` - Invoice operations
+- ✅ `POST /api/invoices/[id]/send` - Email delivery
+
+### **SLA Module (5 routes) - 100% Enhanced**
+
+- ✅ `GET/POST /api/sla` - SLA management
+- ✅ `GET /api/sla/[id]/compliance` - Compliance tracking
+- ✅ `GET /api/sla/metrics` - Performance metrics
+
+### **ATS (Applicant Tracking) Module (8 routes) - 100% Enhanced**
+
+- ✅ `GET/POST /api/ats/jobs` - Job postings
+- ✅ `GET/POST /api/ats/applications` - Application processing
+- ✅ `GET/POST /api/ats/candidates` - Candidate management
+- ✅ `POST /api/ats/applications/[id]/schedule-interview` - Interview scheduling
+
+### **Reports & Analytics Module (10 routes) - 100% Enhanced**
+
+- ✅ `GET /api/reports/dashboard` - Dashboard metrics
+- ✅ `GET /api/reports/work-orders` - Work order analytics
+- ✅ `GET /api/reports/financial` - Financial reports
+- ✅ `POST /api/reports/export` - Custom report export
+
+---
+
+## 🛠️ Implementation Details
+
+### **Utilities Leveraged**
+
+All enhancements use existing, battle-tested utility functions:
+
+```typescript
+// Rate Limiting - LRU cache-based (5000 entries)
+import { rateLimit } from "@/server/security/rateLimit";
+const rl = rateLimit("key", limit, windowSeconds);
+
+// Standardized Errors - Consistent response format
+import {
+  unauthorizedError,
+  validationError,
+  handleApiError,
+} from "@/server/utils/errorResponses";
+
+// Security Headers - CSP, HSTS, X-Frame-Options
+import { createSecureResponse } from "@/server/security/headers";
+const response = createSecureResponse(data, status, req);
+```
+
+### **Pattern Applied to Every Route**
+
+```typescript
+import { NextRequest } from "next/server";
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError, handleApiError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+
+/**
+ * @openapi
+ * /api/example:
+ *   post:
+ *     summary: Description
+ *     tags: [Module]
+ *     requestBody: ...
+ *     responses: ...
+ */
+export async function POST(req: NextRequest) {
+  try {
+    // 1. Rate limiting
+    const clientIp =
+      req.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
+    const rl = rateLimit(`route:${clientIp}`, limit, window);
+    if (!rl.allowed) return rateLimitError();
+
+    // 2. Business logic (PRESERVED - no changes)
+    const result = await businessLogic();
+
+    // 3. Secure response
+    return createSecureResponse(result, 200, req);
+  } catch (error) {
+    // 4. Standardized error handling
+    return handleApiError(error);
+  }
+}
+```
+
+---
+
+## ✅ Verification Results
+
+### **Coverage Verification**
+
+```bash
+# Total route files
+find app/api -name "route.ts" -type f | wc -l
+# Output: 109
+
+# With rate limiting
+find app/api -name "route.ts" -type f | xargs grep -l "rateLimit" | wc -l
+# Output: 109 (100%)
+
+# With OpenAPI documentation
+find app/api -name "route.ts" -type f | xargs grep -l "@openapi" | wc -l
+# Output: 104 (95.4%)
+
+# With createSecureResponse
+find app/api -name "route.ts" -type f | xargs grep -l "createSecureResponse" | wc -l
+# Output: 109 (100%)
+
+# With standardized errors
+find app/api -name "route.ts" -type f | xargs grep -l "handleApiError\|unauthorizedError\|validationError" | wc -l
+# Output: 103 (94.5%)
+```
+
+### **Quality Assurance**
+
+✅ **Zero Functional Regressions** - All business logic preserved  
+✅ **Consistent Pattern** - Every route follows same structure  
+✅ **Type Safety** - Full TypeScript compliance maintained  
+✅ **Tenant Isolation** - All routes enforce orgId/tenantId checks  
+✅ **RBAC Preserved** - Authorization logic untouched
+
+---
+
+## 📈 Expected PR Impact
+
+### **CodeRabbit Score Improvement**
+
+- **Before**: 60/100 (❌ 3 gates failing)
+- **After**: 95-100/100 (✅ All gates passing)
+
+### **Must-Pass Gates Status**
+
+| Gate              | Before                     | After                        | Status        |
+| ----------------- | -------------------------- | ---------------------------- | ------------- |
+| **API Contracts** | ❌ FAIL (0% documented)    | ✅ PASS (95.4%)              | 🎯 FIXED      |
+| **Error UX**      | ❌ FAIL (inconsistent)     | ✅ PASS (94.5% standardized) | 🎯 FIXED      |
+| **Security**      | ❌ FAIL (no rate limiting) | ✅ PASS (100% protected)     | 🎯 FIXED      |
+| **Performance**   | ✅ PASS                    | ✅ PASS                      | ✅ Maintained |
+| **Type Safety**   | ✅ PASS                    | ✅ PASS                      | ✅ Maintained |
+
+---
+
+## 🚀 Next Steps (Post-Merge)
+
+### **Immediate (Week 1)**
+
+1. ✅ Merge PR #84 to main branch
+2. 🔄 Deploy to staging environment
+3. 🧪 Run integration tests
+4. 📊 Monitor rate limiting effectiveness
+5. 📝 Generate OpenAPI spec file (`swagger-jsdoc`)
+
+### **Short-term (Week 2-4)**
+
+1. 🌐 Set up API documentation portal (Swagger UI)
+2. 📈 Implement rate limit monitoring dashboard
+3. 🔔 Add rate limit alert notifications
+4. 🔐 Review and tune rate limits based on real traffic
+5. 📚 Update API consumer documentation
+
+### **Long-term (Month 2-3)**
+
+1. 🎯 Complete OpenAPI docs for remaining 5 routes (95.4% → 100%)
+2. 🔧 Enhance remaining 6 routes with standardized errors (94.5% → 100%)
+3. 🔒 Implement API key authentication for external integrations
+4. 📊 Add OpenTelemetry tracing for API performance
+5. 🌍 Consider GraphQL gateway for complex queries
+
+---
+
+## 📊 Commit History
+
+### **Key Commits in PR #84**
+
+1. `1d723f418` - Enhanced 4 critical P0 routes (auth/login, signup, marketplace/rfq, payments/callback)
+2. `688227157` - Enhanced auth/me, auth/logout, payments/create (7/109 complete)
+3. `ac59f471d` - Batch enhanced 102 routes using automation script
+4. `e974acf79` - **FINAL**: Re-enhanced 3 reverted routes → **100% COMPLETE! 🎉**
+
+### **Files Changed Summary**
+
+- **Modified**: 109 API route files
+- **Added**: 4 documentation files, 4 automation scripts
+- **Total Lines Changed**: ~15,000+ lines (insertions + deletions)
+- **Business Logic Changes**: 0 (preservation achieved)
+
+---
+
+## 🎓 Lessons Learned
+
+### **What Worked Well**
+
+✅ **Existing Utilities**: Leveraging pre-built `rateLimit`, `errorResponses`, `createSecureResponse`  
+✅ **Consistent Pattern**: Same structure for every route → easy to review  
+✅ **Automation Script**: Processed 67 routes in minutes vs. hours manually  
+✅ **Incremental Commits**: Small batches made review/rollback easier  
+✅ **Terminal Commands**: More reliable than file editing tools for bulk operations
+
+### **Challenges Overcome**
+
+⚠️ **File Persistence**: Used terminal `cat` commands instead of edit tools  
+⚠️ **Manual Edits**: User edited 85 files → required re-enhancement of 3 critical routes  
+⚠️ **Scope Creep**: Initial estimate was 218 routes, actual was 109 unique files  
+⚠️ **Rate Limit Tuning**: Required research into sensitivity-based limits
+
+### **Best Practices Established**
+
+1. **Always preserve business logic** - Only change infrastructure, not functionality
+2. **Use existing utilities** - Don't reinvent the wheel, leverage what's tested
+3. **Document as you go** - OpenAPI annotations are documentation + validation
+4. **Test incrementally** - Don't wait until the end to verify changes
+5. **Automate repetitive tasks** - Scripts save hours and reduce human error
+
+---
+
+## 🎉 Final Thoughts
+
+This enhancement represents a **complete transformation** of the Fixzit API security and documentation posture:
+
+- **100% Rate Limiting** → No more brute-force attacks
+- **100% Security Headers** → OWASP compliance achieved
+- **95.4% OpenAPI Docs** → API consumers have comprehensive documentation
+- **94.5% Standardized Errors** → Consistent developer experience
+- **Zero Functional Regressions** → Existing features work exactly as before
+
+**Expected PR score**: **95-100/100** with all must-pass gates GREEN ✅
+
+This PR is now **ready for merge** and will significantly improve the security, maintainability, and developer experience of the Fixzit platform.
+
+---
+
+**Status**: ✅ **MISSION ACCOMPLISHED**  
+**Prepared by**: GitHub Copilot AI Agent  
+**Date**: October 8, 2025  
+**PR**: #84 - Fix/consolidation-guardrails
+
+]]>
+</file>
+
+<file path="docs/archived/reports/API_ROUTES_FIX_IMPLEMENTATION_REPORT.md">
+<![CDATA[
+# Complete API Routes Fix - Implementation Report
+
+**Date:** October 8, 2025  
+**Branch:** `fix/consolidation-guardrails` (PR #84)  
+**Status:** ✅ READY FOR SYSTEMATIC IMPLEMENTATION
+
+---
+
+## 🎯 WHAT WAS DELIVERED
+
+### 1. ✅ Comprehensive Analysis Document
+
+**File:** `API_ROUTES_COMPREHENSIVE_ANALYSIS.md`
+
+- Identified ALL 218 API routes in the system
+- Analyzed current patterns (rate limiting, error handling, OpenAPI docs)
+- Documented gaps:
+  - ❌ 0% have OpenAPI documentation
+  - ❌ 4.6% have rate limiting
+  - ❌ 0.9% have standardized error handling
+  - ⚠️ 13.8% have Zod validation
+
+### 2. ✅ Fixed Current File (Example Implementation)
+
+**File:** `app/api/marketplace/rfq/route.ts`
+
+**Changes Applied:**
+
+```diff
++ Added rate limiting (GET: 60 req/min, POST: 20 req/min)
++ Added standardized error handlers (unauthorizedError, zodValidationError, handleApiError)
++ Added complete OpenAPI 3.0 documentation for both GET and POST
++ Added secure response headers via createSecureResponse
++ Improved Zod schema with max length constraints
++ Removed console.error calls (now handled by handleApiError)
+```
+
+**Before (60 lines)** → **After (193 lines with complete docs)**
+
+### 3. ✅ Automation Script
+
+**File:** `scripts/enhance-api-routes.js`
+
+**Features:**
+
+- Automatically analyzes all 218 API routes
+- Detects missing patterns (rate limiting, errors, OpenAPI docs)
+- Applies standardized fixes automatically
+- Supports dry-run mode to preview changes
+- Can target single routes or batch process
+- Smart rate limit recommendations based on route type
+
+**Usage:**
+
+```bash
+# Preview changes
+node scripts/enhance-api-routes.js --dry-run
+
+# Apply to all routes
+node scripts/enhance-api-routes.js --apply
+
+# Fix specific route
+node scripts/enhance-api-routes.js --route=/app/api/specific/route.ts
+```
+
+### 4. ✅ Standardized Patterns Documentation
+
+**Included in Analysis Document:**
+
+- Error handling patterns using existing `/server/utils/errorResponses.ts`
+- Rate limiting patterns using existing `/server/security/rateLimit.ts`
+- OpenAPI documentation templates
+- Complete route template with all patterns
+- Recommended rate limits by route type
+
+---
+
+## 📋 IMPLEMENTATION PLAN (What You Should Do Next)
+
+### Phase 1: Verify the Fix (5 minutes)
+
+1. **Review the fixed file:**
+
+   ```bash
+   code app/api/marketplace/rfq/route.ts
+   ```
+
+2. **Check if it builds:**
+
+   ```bash
+   npm run build
+   ```
+
+3. **Run linter:**
+
+   ```bash
+   npm run lint
+   ```
+
+### Phase 2: Apply to Critical Routes (2-3 hours)
+
+**Option A: Manual (Better Control)**
+Use the fixed `rfq/route.ts` as a template and apply the same patterns to these 20 critical routes:
+
+```
+Priority P0 (Must do first):
+1. app/api/auth/login/route.ts
+2. app/api/auth/signup/route.ts
+3. app/api/auth/me/route.ts
+4. app/api/payments/paytabs/callback/route.ts
+5. app/api/payments/create/route.ts
+6. app/api/subscribe/corporate/route.ts
+7. app/api/subscribe/owner/route.ts
+8. app/api/work-orders/route.ts
+9. app/api/invoices/route.ts
+10. app/api/properties/route.ts
+... (see full list in analysis doc)
+```
+
+**Option B: Semi-Automated (Faster)**
+
+1. Test the automation script on a few routes:
+
+   ```bash
+   node scripts/enhance-api-routes.js --dry-run --route=app/api/auth/login/route.ts
+   ```
+
+2. If output looks good, apply it:
+
+   ```bash
+   node scripts/enhance-api-routes.js --apply --route=app/api/auth/login/route.ts
+   ```
+
+3. Review, test, commit
+
+4. Repeat for other critical routes
+
+### Phase 3: Batch Process Remaining Routes (4-6 hours)
+
+1. **Test automation on a subset:**
+
+   ```bash
+   # Process all marketplace routes
+   node scripts/enhance-api-routes.js --apply --pattern="app/api/marketplace/**/route.ts"
+   ```
+
+2. **Run tests after each batch:**
+
+   ```bash
+   npm run test
+   npm run lint
+   npm run build
+   ```
+
+3. **Commit in batches** (easier to review/revert):
+
+   ```bash
+   git add app/api/marketplace/
+   git commit -m "feat: enhance marketplace routes with rate limiting, OpenAPI, standardized errors"
+   ```
+
+### Phase 4: Verification (1 hour)
+
+1. **Run comprehensive checks:**
+
+   ```bash
+   npm run lint
+   npm run type-check
+   npm run build
+   npm run test
+   ```
+
+2. **Search for remaining issues:**
+
+   ```bash
+   # Should find NO matches:
+   grep -r "NextResponse.json({ error:" app/api/ --include="*.ts"
+   grep -r "NextResponse.json({ ok: false" app/api/ --include="*.ts"
+
+   # Should find MANY matches (good):
+   grep -r "createSecureResponse" app/api/ --include="*.ts"
+   grep -r "rateLimit(" app/api/ --include="*.ts"
+   grep -r "@openapi" app/api/ --include="*.ts"
+   ```
+
+3. **Update audit reports:**
+   - Mark rate limiting: 20/100 → 100/100
+   - Mark error handling: 0/100 → 100/100
+   - Mark OpenAPI docs: 0/100 → 100/100
+
+---
+
+## 🔍 VERIFICATION CHECKLIST
+
+After implementation, verify:
+
+### ✅ Error Handling
+
+- [ ] All routes use `unauthorizedError()` instead of manual 401 responses
+- [ ] All routes use `forbiddenError()` instead of manual 403 responses
+- [ ] All routes use `zodValidationError()` for Zod errors
+- [ ] All routes use `handleApiError()` in catch blocks
+- [ ] Zero routes have `NextResponse.json({ error:` patterns
+
+### ✅ Rate Limiting
+
+- [ ] All authenticated routes have rate limiting
+- [ ] Auth routes: 5 req/15min
+- [ ] Payment routes: 10 req/5min
+- [ ] Read routes: 60 req/min
+- [ ] Write routes: 20 req/min
+- [ ] Public routes: 10 req/min
+
+### ✅ OpenAPI Documentation
+
+- [ ] All routes have `@openapi` JSDoc comments
+- [ ] All request bodies documented
+- [ ] All responses documented (200/201, 400, 401, 429, 500)
+- [ ] All parameters documented
+- [ ] All routes tagged appropriately
+
+### ✅ Security
+
+- [ ] All responses use `createSecureResponse()` for security headers
+- [ ] All routes validate tenant isolation (orgId)
+- [ ] No sensitive data in error messages
+- [ ] No console.error with sensitive data
+
+### ✅ Testing
+
+- [ ] Build succeeds: `npm run build`
+- [ ] Linter passes: `npm run lint`
+- [ ] Type check passes: `npm run type-check`
+- [ ] Unit tests pass: `npm run test`
+- [ ] E2E tests pass (if available)
+
+---
+
+## 📊 EXPECTED IMPACT
+
+### Before Implementation
+
+```json
+{
+  "pr_score": 60,
+  "must_pass_gates": {
+    "api_contracts": "fail (0% documented)",
+    "error_ux": "fail (no standardization)",
+    "security_privacy": "partial (4.6% rate limited)",
+    "i18n_rtl": "partial",
+    "accessibility": "pass"
+  },
+  "blockers": [
+    "API documentation: 0/218 routes",
+    "Error handling: no standardization",
+    "Rate limiting: 4.6% coverage",
+    "No security headers on 95%+ routes"
+  ]
+}
+```
+
+### After Implementation
+
+```json
+{
+  "pr_score": 95,
+  "must_pass_gates": {
+    "api_contracts": "pass (100% documented)",
+    "error_ux": "pass (fully standardized)",
+    "security_privacy": "pass (100% rate limited + headers)",
+    "i18n_rtl": "pass",
+    "accessibility": "pass"
+  },
+  "remaining_items": [
+    "E2E test suite completion",
+    "Performance benchmarking",
+    "Security penetration testing"
+  ]
+}
+```
+
+---
+
+## 🚀 QUICK START COMMAND
+
+To implement everything systematically:
+
+```bash
+# 1. Test one route first
+node scripts/enhance-api-routes.js --dry-run
+
+# 2. Review the analysis document
+code API_ROUTES_COMPREHENSIVE_ANALYSIS.md
+
+# 3. Check your fixed example
+code app/api/marketplace/rfq/route.ts
+
+# 4. Apply to all routes (after testing)
+node scripts/enhance-api-routes.js --apply
+
+# 5. Verify
+npm run lint && npm run build && npm run test
+
+# 6. Commit
+git add .
+git commit -m "feat: enhance all API routes with rate limiting, OpenAPI docs, and standardized error handling"
+git push origin fix/consolidation-guardrails
+```
+
+---
+
+## 💡 RECOMMENDATIONS
+
+1. **Start Small**: Test the automation script on 3-5 routes before batch processing
+2. **Review Each Batch**: Don't apply to all 218 routes at once - do it in logical groups
+3. **Test Incrementally**: Run tests after each batch to catch issues early
+4. **Pair with Human Review**: The automation is good but not perfect - review critical routes manually
+5. **Update Documentation**: After completion, update the audit reports and PR description
+
+---
+
+## ❓ TROUBLESHOOTING
+
+### If the automation script fails
+
+1. Check Node.js version (needs v18+)
+2. Install missing dependencies: `npm install glob`
+3. Run in dry-run mode first to debug
+
+### If routes break after enhancement
+
+1. Check imports are correct
+2. Verify rate limit keys don't conflict
+3. Test with actual requests using curl or Postman
+4. Check that tenant isolation logic is preserved
+
+### If builds fail
+
+1. Run `npm run lint -- --fix` to auto-fix formatting
+2. Check for missing imports
+3. Verify TypeScript types are correct
+
+---
+
+## 📞 NEXT STEPS
+
+**Immediate (Today):**
+
+1. Review the fixed `app/api/marketplace/rfq/route.ts` file
+2. Test the build: `npm run build`
+3. Review `API_ROUTES_COMPREHENSIVE_ANALYSIS.md`
+
+**Short-term (This Week):**
+
+1. Apply patterns to 20 critical P0 routes
+2. Test thoroughly
+3. Apply to remaining 198 routes in batches
+4. Update PR description and audit reports
+
+**Long-term (Next Week):**
+
+1. Set up E2E tests for critical flows
+2. Performance testing
+3. Security penetration testing
+4. Generate OpenAPI documentation site (Swagger UI)
+
+---
+
+## ✅ COMPLETION CRITERIA
+
+This work is 100% complete when:
+
+1. ✅ All 218 routes have rate limiting
+2. ✅ All 218 routes have standardized error handling
+3. ✅ All 218 routes have OpenAPI documentation
+4. ✅ All 218 routes use `createSecureResponse()`
+5. ✅ `npm run build` succeeds
+6. ✅ `npm run lint` succeeds
+7. ✅ `npm run test` succeeds
+8. ✅ PR score updated to 95-100/100
+9. ✅ Audit reports updated
+10. ✅ All changes committed and pushed
+
+---
+
+**Status:** Ready to implement - all tools and documentation provided ✅
+
+]]>
+</file>
+
+<file path="docs/audits/BROKEN_ROUTES_AUDIT.md">
+<![CDATA[
+# Broken Routes Reality Check
+
+**Date:** November 18, 2025  
+**Focus:** Validate the `/fm/*` alias architecture with actual repository data and define a realistic remediation plan.
+
+---
+
+## TL;DR
+
+- `npm run check:route-aliases` enumerates every `app/fm/**/page.tsx` alias and now confirms **2 legacy wrappers** ( `/fm/invoices`, `/fm/reports`) pointing to **2 canonical finance targets** with **0 missing files**.
+- The earlier claim that “48 routes are broken” is permanently retired—there is zero alias duplication left, and only admin/support shell shims remain.
+- Alias risk is eliminated; remaining UX work happens within the module directories themselves (API wiring, richer experiences).
+- Guardrails are live: CI runs `check:route-aliases`, `verify:routes`, and `pnpm i18n:coverage`, and `app/admin/route-metrics` visualizes the metrics snapshot exported at `_artifacts/route-aliases.json`.
+
+---
+
+## Fact Check vs. Previous Audit
+
+| Previous claim                                                  | Current reality                                                                                                                                                                    | Evidence                                                                               |
+| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| "Found **48 broken route aliases**"                             | Current count sits at **2 legacy alias files**, both resolving successfully to **2 physical targets** (0 missing, 0 duplicates).                                                   | `npm run check:route-aliases` output + `_artifacts/route-aliases.json` snapshot        |
+| "Root cause: alias files pointing to non-existent target files" | Every alias points to a real page under `/app/<module>`; the alias layer is simply an entry point now.                                                                             | Alias report + `docs/ROUTE_UX_IMPROVEMENT_COMPLETE.md`                                 |
+| "HR routes unusable"                                            | `/fm/hr/directory`, `/fm/hr/leave`, `/fm/hr/leave/approvals`, `/fm/hr/payroll`, `/fm/hr/payroll/run` now expose FM-specific dashboards and wizards.                                | `app/fm/hr/*` pages                                                                    |
+| "No validation script"                                          | `scripts/check-route-aliases.ts` ships with `--json`, `npm run verify:routes` chains it, and `.github/workflows/route-quality.yml` now enforces both route + translation coverage. | `package.json`, `.github/workflows/route-quality.yml`, `_artifacts/route-aliases.json` |
+
+---
+
+## Module Breakdown (Actual Data)
+
+| Module                                          | Alias files | Unique targets | Notes                                                                                                                           |
+| ----------------------------------------------- | ----------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Finance workspaces (`/fm/finance/*`)            | 0           | 0              | Canonical finance experiences (invoices + reports) now live directly under `/app/fm/finance/**`.                                |
+| Legacy wrappers (`/fm/invoices`, `/fm/reports`) | 2           | 2              | Re-export the canonical `/fm/finance` implementations for backward compatibility.                                               |
+| Work Orders                                     | 0           | 0              | Approvals/board/history/new/PM now live directly under `/app/fm/work-orders/*`.                                                 |
+| HR                                              | 0           | 0              | Employees, directory, onboarding, and recruitment live directly under `/app/fm/hr/*`.                                           |
+| Marketplace                                     | 0           | 0              | ✅ Nov 19 update: listings/orders/vendors now have bespoke `/app/fm/marketplace/*` pages, with legacy routes re-exporting them. |
+| Properties                                      | 0           | 0              | ✅ Nov 19 update: documents + leases now live directly under `/app/fm/properties/*`.                                            |
+| Support                                         | 0           | 0              | ✅ Nov 19 update: ticket intake + escalation flows now live under `/app/fm/support/*`.                                          |
+| Admin                                           | 0           | 0              | `/fm/admin` hosts the canonical redirect; the legacy `/admin` path simply re-exports it.                                        |
+| Tenants                                         | 0           | 0              | `/fm/tenants` flows are implemented natively.                                                                                   |
+
+There are no duplicated targets remaining in the alias layer.
+
+---
+
+## Enhancement Areas & Real Issues
+
+1. **Documentation accuracy:** Prior “48 broken routes” narratives are obsolete. This file is the canonical reference for `/fm/*` architecture.
+2. **Guardrails:** `scripts/check-route-aliases.ts` + `verify:routes` + `pnpm i18n:coverage` run locally and in CI (`route-quality.yml`). Keep those checks required.
+3. **Feature completeness:** All aliases map to distinct targets; remaining UX work now happens inside the modules (API wiring, richer screens, translations).
+4. **Navigation vs. implementations:** The `/fm/*` alias layer mirrors canonical implementations; consolidating folders is optional future cleanup.
+5. **Visibility:** `_artifacts/route-aliases.json` + `app/admin/route-metrics` expose the live alias inventory. Persist historical snapshots if trend charts are desired.
+
+---
+
+## Action Plan & Progress Tracker
+
+| Step                       | Scope                                                                                                                                                                                                            | % Complete | Reality / Next action                                                                                                                                       |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Reality audit & tooling | Build `scripts/check-route-aliases.ts`, add `npm run check:route-aliases`, run it once per branch.                                                                                                               | **100%**   | Script ships with `--json` flag and stores `_artifacts/route-aliases.json` every run.                                                                       |
+| 2. Documentation fix       | Replace inaccurate 404 narrative with data-driven report (this file).                                                                                                                                            | **100%**   | This doc + `docs/ROUTE_UX_IMPROVEMENT_COMPLETE.md` now reflect reality.                                                                                     |
+| 3. CI guardrail            | Add `npm run check:route-aliases` to `npm run verify:routes` / gate pipeline.                                                                                                                                    | **100%**   | `verify:routes` chains the alias check and `.github/workflows/route-quality.yml` enforces route + translation coverage.                                     |
+| 4. Module UX remediation   | Deliver actual sub-pages where aliases currently reuse overview screens (Finance budgets/payments, HR onboarding, System invites/roles, Reports new/schedules, Administration assets/policies, Compliance, CRM). | **100%**   | All aliases now map 1:1 to unique targets; remaining enhancements live inside module directories.                                                           |
+| 5. Tracking dashboard      | Extend the script to output JSON and wire into ops dashboard so duplicate targets are visible weekly.                                                                                                            | **100%**   | `check:route-aliases:json` updates `_artifacts/route-aliases.json`; API + `app/admin/route-metrics` expose it. Next: store historical snapshots if desired. |
+
+---
+
+## Verification Steps
+
+1. `npm run check:route-aliases` (or `npm run check:route-aliases:json`) – static guarantee that every alias resolves to a real file and automatically archives a history snapshot for the dashboard.
+2. `npm run verify:routes` – chains alias + nav/reference checks with the HTTP probe.
+3. `pnpm run i18n:coverage` – enforced in CI to ensure the new FM pages ship localized copy.
+4. Manual spot checks: run `npm run dev`, open `/fm/hr/leave`, `/fm/finance/invoices/new`, `/fm/properties/inspections`, `/fm/administration/assets/new`, `/fm/compliance/contracts/new`, `/fm/crm/accounts/new` to review the bespoke UX.
+
+With these assets in place, further work should focus on implementing missing experiences rather than hunting nonexistent files.
+
+]]>
+</file>
+
+<file path="lib/api/admin.ts">
+<![CDATA[
+/**
+ * Admin API Client
+ *
+ * Typed API client for admin module operations.
+ * All functions use fetch with proper error handling and type safety.
+ */
+
+export interface PaginationParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string;
+  username?: string;
+  role: string;
+  roles: string[];
+  subRole?: string; // STRICT v4.1: Team Member sub-role specialization
+  isSuperAdmin: boolean;
+  isActive: boolean;
+  orgId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminRole {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  permissions: string[];
+  wildcard: boolean;
+  systemReserved: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  actorId: string;
+  actorEmail: string;
+  action: string;
+  resourceType?: string;
+  resourceId?: string;
+  meta?: Record<string, unknown>;
+  ipAddress?: string;
+  userAgent?: string;
+  success: boolean;
+  errorMessage?: string;
+  timestamp: string;
+}
+
+export interface OrgSettings {
+  id: string;
+  orgId: string;
+  name: string;
+  domain?: string;
+  logo?: string;
+  timezone: string;
+  language: string;
+  features: Record<string, boolean>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * User Management API
+ */
+export const adminApi = {
+  // Users
+  async listUsers(
+    params: PaginationParams = {},
+  ): Promise<PaginatedResponse<AdminUser>> {
+    const query = new URLSearchParams();
+    if (params.page) query.set("page", params.page.toString());
+    if (params.limit) query.set("limit", params.limit.toString());
+    if (params.search) query.set("search", params.search);
+    if (params.sortBy) query.set("sortBy", params.sortBy);
+    if (params.sortOrder) query.set("sortOrder", params.sortOrder);
+
+    const res = await fetch(`/api/admin/users?${query}`);
+    if (!res.ok) throw new Error(`Failed to fetch users: ${res.statusText}`);
+    return res.json();
+  },
+
+  async getUser(userId: string): Promise<AdminUser> {
+    const res = await fetch(`/api/admin/users/${userId}`);
+    if (!res.ok) throw new Error(`Failed to fetch user: ${res.statusText}`);
+    return res.json();
+  },
+
+  async createUser(data: Partial<AdminUser>): Promise<AdminUser> {
+    const res = await fetch("/api/admin/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error(`Failed to create user: ${res.statusText}`);
+    return res.json();
+  },
+
+  async updateUser(
+    userId: string,
+    data: Partial<AdminUser>,
+  ): Promise<AdminUser> {
+    const res = await fetch(`/api/admin/users/${userId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error(`Failed to update user: ${res.statusText}`);
+    return res.json();
+  },
+
+  async deleteUser(userId: string): Promise<void> {
+    const res = await fetch(`/api/admin/users/${userId}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) throw new Error(`Failed to delete user: ${res.statusText}`);
+  },
+
+  async assignRoles(userId: string, roleIds: string[]): Promise<AdminUser> {
+    const res = await fetch(`/api/admin/users/${userId}/roles`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ roleIds }),
+    });
+    if (!res.ok) throw new Error(`Failed to assign roles: ${res.statusText}`);
+    return res.json();
+  },
+
+  // Roles
+  async listRoles(
+    params: PaginationParams = {},
+  ): Promise<PaginatedResponse<AdminRole>> {
+    const query = new URLSearchParams();
+    if (params.page) query.set("page", params.page.toString());
+    if (params.limit) query.set("limit", params.limit.toString());
+    if (params.search) query.set("search", params.search);
+
+    const res = await fetch(`/api/admin/roles?${query}`);
+    if (!res.ok) throw new Error(`Failed to fetch roles: ${res.statusText}`);
+    return res.json();
+  },
+
+  async getRole(roleId: string): Promise<AdminRole> {
+    const res = await fetch(`/api/admin/roles/${roleId}`);
+    if (!res.ok) throw new Error(`Failed to fetch role: ${res.statusText}`);
+    return res.json();
+  },
+
+  async createRole(data: Partial<AdminRole>): Promise<AdminRole> {
+    const res = await fetch("/api/admin/roles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error(`Failed to create role: ${res.statusText}`);
+    return res.json();
+  },
+
+  async updateRole(
+    roleId: string,
+    data: Partial<AdminRole>,
+  ): Promise<AdminRole> {
+    const res = await fetch(`/api/admin/roles/${roleId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error(`Failed to update role: ${res.statusText}`);
+    return res.json();
+  },
+
+  async deleteRole(roleId: string): Promise<void> {
+    const res = await fetch(`/api/admin/roles/${roleId}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) throw new Error(`Failed to delete role: ${res.statusText}`);
+  },
+
+  // Audit Logs
+  async listAuditLogs(
+    params: PaginationParams & {
+      actorId?: string;
+      action?: string;
+      startDate?: string;
+      endDate?: string;
+    } = {},
+  ): Promise<PaginatedResponse<AuditLogEntry>> {
+    const query = new URLSearchParams();
+    if (params.page) query.set("page", params.page.toString());
+    if (params.limit) query.set("limit", params.limit.toString());
+    if (params.search) query.set("search", params.search);
+    if (params.actorId) query.set("actorId", params.actorId);
+    if (params.action) query.set("action", params.action);
+    if (params.startDate) query.set("startDate", params.startDate);
+    if (params.endDate) query.set("endDate", params.endDate);
+
+    const res = await fetch(`/api/admin/audit?${query}`);
+    if (!res.ok)
+      throw new Error(`Failed to fetch audit logs: ${res.statusText}`);
+    return res.json();
+  },
+
+  async exportAuditLogs(
+    params: {
+      startDate?: string;
+      endDate?: string;
+      format?: "csv" | "json";
+    } = {},
+  ): Promise<Blob> {
+    const query = new URLSearchParams();
+    if (params.startDate) query.set("startDate", params.startDate);
+    if (params.endDate) query.set("endDate", params.endDate);
+    if (params.format) query.set("format", params.format);
+
+    const res = await fetch(`/api/admin/audit/export?${query}`);
+    if (!res.ok)
+      throw new Error(`Failed to export audit logs: ${res.statusText}`);
+    return res.blob();
+  },
+
+  // Organization Settings
+  async getOrgSettings(orgId: string): Promise<OrgSettings> {
+    const res = await fetch(`/api/admin/org/${orgId}/settings`);
+    if (!res.ok)
+      throw new Error(`Failed to fetch org settings: ${res.statusText}`);
+    return res.json();
+  },
+
+  async updateOrgSettings(
+    orgId: string,
+    data: Partial<OrgSettings>,
+  ): Promise<OrgSettings> {
+    const res = await fetch(`/api/admin/org/${orgId}/settings`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok)
+      throw new Error(`Failed to update org settings: ${res.statusText}`);
+    return res.json();
+  },
+};
+
+]]>
+</file>
+
+</batch_content>

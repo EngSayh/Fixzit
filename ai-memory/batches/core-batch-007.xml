@@ -1,0 +1,1713 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path=".copilot/action-plan/fixes/fix-security-tenant-context-leak.md">
+<![CDATA[
+# fix-security-tenant-context-leak.md
+
+## Issue: SEC-003 - Tenant Context Global Leakage Risk
+
+### Priority: P0 CRITICAL
+### Category: Security/RBAC/Auth
+### Labels: `copilot:ready`, `owner:backend`, `flag:governance_violation`
+
+---
+
+## Problem Statement
+
+`tenantIsolation.ts` maintains a mutable `currentTenantContext` global variable alongside `AsyncLocalStorage`. In serverless/concurrent environments (like Vercel), this risks cross-request context leakage where User A's request could see User B's tenant context.
+
+## Affected File
+
+`/Fixzit/server/plugins/tenantIsolation.ts` - Lines 17-39
+
+## Root Cause
+
+The code uses two mechanisms for tenant context:
+1. `AsyncLocalStorage` (correct - request-scoped)
+2. `currentTenantContext` global variable (incorrect - process-global)
+
+When `tenantStorage.getStore()` returns undefined (e.g., outside ALS scope), the code falls back to the global variable, which may contain stale data from a previous request.
+
+## Current Problematic Code
+
+```typescript
+const tenantStorage = new AsyncLocalStorage<TenantContext>();
+let currentTenantContext: TenantContext = {}; // ❌ GLOBAL MUTABLE STATE
+
+export function setTenantContext(context: TenantContext) {
+  const merged = { ...getTenantContext(), ...context };
+  tenantStorage.enterWith(merged);
+  currentTenantContext = merged; // ❌ Race condition in concurrent requests
+}
+
+export function getTenantContext(): TenantContext {
+  return getStoredContext() ?? currentTenantContext; // ❌ Falls back to stale global
+}
+```
+
+## Fix Implementation
+
+### Complete Replacement for `/Fixzit/server/plugins/tenantIsolation.ts`
+
+Replace the context management section (lines 1-75) with:
+
+```typescript
+import { Schema, Query, Types } from "mongoose";
+import { AsyncLocalStorage } from "async_hooks";
+import { logger } from "@/lib/logger";
+
+// Context interface for tenant isolation
+// STRICT v4.1: Enhanced with Super Admin cross-tenant support
+export interface TenantContext {
+  orgId?: string | Types.ObjectId;
+  skipTenantFilter?: boolean;
+  // PHASE-2 FIX: Super Admin tracking for audit trail
+  isSuperAdmin?: boolean;
+  userId?: string;
+  assumedOrgId?: string; // Org assumed by Super Admin (for audit)
+}
+
+// Request-scoped tenant context using AsyncLocalStorage ONLY
+// CRITICAL: No global fallback to prevent cross-request leakage
+const tenantStorage = new AsyncLocalStorage<TenantContext>();
+
+// ❌ REMOVED: let currentTenantContext: TenantContext = {};
+
+/**
+ * Get tenant context from AsyncLocalStorage only
+ * Returns empty context (safe default) if not in ALS scope
+ * 
+ * SECURITY: Never falls back to global state
+ */
+export function getTenantContext(): TenantContext {
+  const stored = tenantStorage.getStore();
+  
+  if (!stored) {
+    // Log warning in development for debugging
+    if (process.env.NODE_ENV === 'development') {
+      logger.debug('tenant_context_outside_scope', {
+        action: 'get_tenant_context',
+        warning: 'Called outside AsyncLocalStorage scope - returning empty context',
+        stack: new Error().stack?.split('\n').slice(1, 4).join(' | '),
+      });
+    }
+    return {}; // Safe default - no tenant filter applied
+  }
+  
+  return stored;
+}
+
+/**
+ * Set tenant context within AsyncLocalStorage
+ * 
+ * AUDIT: Logs Super Admin cross-tenant access
+ */
+export function setTenantContext(context: TenantContext) {
+  // AUDIT: Log Super Admin cross-tenant access
+  if (context.isSuperAdmin && context.assumedOrgId && context.userId) {
+    logger.info('superadmin_tenant_context', {
+      action: 'set_tenant_context',
+      userId: context.userId,
+      assumedOrgId: context.assumedOrgId,
+      skipTenantFilter: context.skipTenantFilter ?? false,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  const current = tenantStorage.getStore() ?? {};
+  const merged = { ...current, ...context };
+  
+  tenantStorage.enterWith(merged);
+  // ❌ REMOVED: currentTenantContext = merged;
+}
+
+/**
+ * PHASE-2 FIX: Set tenant context for Super Admin with mandatory audit
+ * Super Admin can operate cross-tenant but MUST be logged
+ */
+export function setSuperAdminTenantContext(
+  orgId: string,
+  userId: string,
+  options?: { skipTenantFilter?: boolean }
+) {
+  logger.info('superadmin_access', {
+    action: 'assume_org',
+    userId,
+    assumedOrgId: orgId,
+    skipTenantFilter: options?.skipTenantFilter ?? false,
+    timestamp: new Date().toISOString(),
+  });
+  
+  setTenantContext({
+    orgId,
+    isSuperAdmin: true,
+    userId,
+    assumedOrgId: orgId,
+    skipTenantFilter: options?.skipTenantFilter ?? false,
+  });
+}
+
+/**
+ * Clear tenant context
+ * 
+ * Call at end of request to prevent any potential leakage
+ */
+export function clearTenantContext() {
+  tenantStorage.enterWith({});
+  // ❌ REMOVED: currentTenantContext = {};
+}
+
+/**
+ * Run a function within a specific tenant context
+ * Preferred method for ensuring proper ALS scope
+ * 
+ * @example
+ * await withTenantContext({ orgId: 'org-123' }, async () => {
+ *   const data = await Model.find({}); // Automatically scoped
+ * });
+ */
+export function withTenantContext<T>(
+  context: TenantContext, 
+  fn: () => T | Promise<T>
+): T | Promise<T> {
+  return tenantStorage.run(context, fn);
+}
+
+// ... rest of the file (plugin function) remains unchanged
+```
+
+### Add Helper for API Routes
+
+Create `/Fixzit/lib/middleware/withTenant.ts`:
+
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/auth';
+import { withTenantContext, TenantContext } from '@/server/plugins/tenantIsolation';
+
+type RouteHandler = (req: NextRequest, context?: any) => Promise<NextResponse>;
+
+/**
+ * Wrapper that ensures API route runs within proper tenant context
+ * 
+ * @example
+ * export const GET = withTenant(async (req) => {
+ *   const data = await Model.find({}); // Automatically scoped to user's org
+ *   return NextResponse.json(data);
+ * });
+ */
+export function withTenant(handler: RouteHandler): RouteHandler {
+  return async (req: NextRequest, routeContext?: any) => {
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const tenantContext: TenantContext = {
+      orgId: session.user.orgId,
+      userId: session.user.id,
+      isSuperAdmin: session.user.role === 'SUPER_ADMIN',
+    };
+
+    // Super Admin can access any org via X-Assume-Org header
+    const assumedOrg = req.headers.get('X-Assume-Org');
+    if (tenantContext.isSuperAdmin && assumedOrg) {
+      tenantContext.assumedOrgId = assumedOrg;
+      tenantContext.orgId = assumedOrg;
+    }
+
+    return withTenantContext(tenantContext, () => handler(req, routeContext));
+  };
+}
+```
+
+## Verification Steps
+
+### 1. Create Concurrent Request Test
+
+Create `/Fixzit/tests/integration/security/tenant-context-concurrent.test.ts`:
+
+```typescript
+import { describe, it, expect } from 'vitest';
+import { 
+  getTenantContext, 
+  setTenantContext, 
+  clearTenantContext,
+  withTenantContext 
+} from '@/server/plugins/tenantIsolation';
+
+describe('Tenant Context Isolation', () => {
+  describe('No Global State Leakage', () => {
+    it('returns empty context outside ALS scope', () => {
+      clearTenantContext();
+      const context = getTenantContext();
+      expect(context).toEqual({});
+      expect(context.orgId).toBeUndefined();
+    });
+
+    it('isolates concurrent contexts with withTenantContext', async () => {
+      const results: string[] = [];
+      
+      const task1 = withTenantContext({ orgId: 'org-1' }, async () => {
+        // Simulate async work
+        await new Promise(resolve => setTimeout(resolve, 50));
+        const ctx = getTenantContext();
+        results.push(`task1: ${ctx.orgId}`);
+        return ctx.orgId;
+      });
+
+      const task2 = withTenantContext({ orgId: 'org-2' }, async () => {
+        // Shorter delay - finishes during task1
+        await new Promise(resolve => setTimeout(resolve, 10));
+        const ctx = getTenantContext();
+        results.push(`task2: ${ctx.orgId}`);
+        return ctx.orgId;
+      });
+
+      const [result1, result2] = await Promise.all([task1, task2]);
+
+      // Each task sees its own context
+      expect(result1).toBe('org-1');
+      expect(result2).toBe('org-2');
+      
+      // Verify order shows interleaving (task2 finished first)
+      expect(results[0]).toBe('task2: org-2');
+      expect(results[1]).toBe('task1: org-1');
+    });
+
+    it('does not leak context between sequential requests', async () => {
+      // Simulate request 1
+      await withTenantContext({ orgId: 'request-1-org' }, async () => {
+        expect(getTenantContext().orgId).toBe('request-1-org');
+      });
+
+      // After request 1 completes, no context should remain
+      expect(getTenantContext().orgId).toBeUndefined();
+
+      // Simulate request 2 - should start fresh
+      await withTenantContext({ orgId: 'request-2-org' }, async () => {
+        expect(getTenantContext().orgId).toBe('request-2-org');
+      });
+    });
+  });
+
+  describe('Super Admin Audit Trail', () => {
+    it('logs Super Admin cross-tenant access', async () => {
+      const logSpy = vi.spyOn(console, 'info');
+      
+      await withTenantContext({
+        orgId: 'target-org',
+        isSuperAdmin: true,
+        userId: 'super-admin-1',
+        assumedOrgId: 'target-org',
+      }, async () => {
+        // Context is set
+        const ctx = getTenantContext();
+        expect(ctx.isSuperAdmin).toBe(true);
+        expect(ctx.assumedOrgId).toBe('target-org');
+      });
+      
+      // Verify audit log was called (implementation specific)
+      // This checks our logger was invoked with the right params
+    });
+  });
+});
+```
+
+### 2. Run Tests
+
+```bash
+# Run concurrent context tests
+pnpm test tests/integration/security/tenant-context-concurrent.test.ts
+
+# Run all tenant isolation tests
+pnpm test tests/integration/security/tenant-isolation.test.ts
+```
+
+### 3. Manual Verification
+
+```bash
+# Start dev server and make concurrent requests
+curl -X GET "http://localhost:3000/api/aqar/leads" -H "Authorization: Bearer $ORG_A_TOKEN" &
+curl -X GET "http://localhost:3000/api/aqar/leads" -H "Authorization: Bearer $ORG_B_TOKEN" &
+wait
+
+# Check logs for any context leakage warnings
+grep "tenant_context" .next/server/logs/*.log
+```
+
+## Migration Steps
+
+### Update Existing API Routes
+
+API routes using `setTenantContext` should migrate to `withTenantContext`:
+
+**Before:**
+```typescript
+export async function GET(req: NextRequest) {
+  const session = await getServerSession();
+  setTenantContext({ orgId: session?.user?.orgId });
+  
+  const data = await Model.find({});
+  return NextResponse.json(data);
+}
+```
+
+**After:**
+```typescript
+import { withTenant } from '@/lib/middleware/withTenant';
+
+export const GET = withTenant(async (req) => {
+  // Tenant context automatically set via wrapper
+  const data = await Model.find({});
+  return NextResponse.json(data);
+});
+```
+
+### Middleware Update
+
+Ensure middleware sets context properly:
+
+```typescript
+// middleware.ts
+import { withTenantContext } from '@/server/plugins/tenantIsolation';
+
+export async function middleware(request: NextRequest) {
+  // ... auth checks ...
+  
+  // Wrap the request handling
+  return withTenantContext(
+    { orgId: session.user.orgId, userId: session.user.id },
+    () => NextResponse.next()
+  );
+}
+```
+
+## Rollback Plan
+
+If issues occur:
+1. Revert to the backup file with global state
+2. Add additional logging to track which code paths rely on global fallback
+3. Gradually migrate those paths to use `withTenantContext`
+
+## Related Issues
+
+- DATA-001: Aqar Tenant Isolation (depends on this fix)
+- SEC-006: IDOR in crud-factory (uses tenant context)
+
+## Compliance
+
+- ✅ SOC 2 CC6.1: Logical access controls
+- ✅ Multi-tenant data isolation
+- ✅ Race condition prevention
+
+]]>
+</file>
+
+<file path=".copilot/action-plan/issues-metadata.json">
+<![CDATA[
+{
+  "metadata": {
+    "generated": "2025-11-25T00:00:00.000Z",
+    "generator": "GitHub Copilot (Claude Opus 4.5 Preview)",
+    "workspace": "Fixzit Enterprise Platform",
+    "version": "1.0.0"
+  },
+  "summary": {
+    "totalIssues": 51,
+    "byPriority": {
+      "P0_CRITICAL": 10,
+      "P1_HIGH": 16,
+      "P2_MEDIUM": 18,
+      "P3_LOW": 7
+    },
+    "byCategory": {
+      "security_rbac_auth": 11,
+      "data_schema_db": 9,
+      "business_logic": 10,
+      "testing_qa": 6,
+      "error_logging": 5,
+      "docs_process": 6,
+      "performance": 4
+    }
+  },
+  "issues": [
+    {
+      "id": "SEC-001",
+      "title": "PII Encryption Bypass via findOneAndUpdate",
+      "category": "security_rbac_auth",
+      "severity": "P0_CRITICAL",
+      "labels": ["copilot:ready", "owner:backend", "flag:governance_violation", "compliance:GDPR"],
+      "files": [
+        {
+          "path": "/Fixzit/server/models/User.ts",
+          "lines": "276-320"
+        },
+        {
+          "path": "/Fixzit/server/models/hr.models.ts",
+          "lines": "353-394, 920-988"
+        }
+      ],
+      "rootCause": "Mongoose document middleware (pre('save')) doesn't execute for query middleware operations",
+      "verification": [
+        "pnpm test tests/unit/security/encryption-update-hooks.test.ts",
+        "Manual: Create user, update via findOneAndUpdate, check DB for encrypted value"
+      ],
+      "estimatedEffort": "2-4 hours",
+      "dependencies": []
+    },
+    {
+      "id": "SEC-002",
+      "title": "Aqar Lead/Booking PII Unencrypted",
+      "category": "security_rbac_auth",
+      "severity": "P0_CRITICAL",
+      "labels": ["copilot:ready", "owner:backend", "flag:governance_violation", "compliance:GDPR"],
+      "files": [
+        {
+          "path": "/Fixzit/models/aqar/Lead.ts",
+          "lines": "59, 130"
+        },
+        {
+          "path": "/Fixzit/models/aqar/Booking.ts",
+          "lines": "48-50, 125-126"
+        }
+      ],
+      "rootCause": "PII fields (inquirerNationalId, inquirerPhone, guestNationalId, guestPhone) stored without encryption or select:false",
+      "verification": [
+        "pnpm test tests/unit/models/aqar/lead-pii.test.ts",
+        "pnpm test tests/unit/models/aqar/booking-pii.test.ts"
+      ],
+      "estimatedEffort": "3-4 hours",
+      "dependencies": ["SEC-001"]
+    },
+    {
+      "id": "SEC-003",
+      "title": "Tenant Context Global Leakage Risk",
+      "category": "security_rbac_auth",
+      "severity": "P0_CRITICAL",
+      "labels": ["copilot:ready", "owner:backend", "flag:governance_violation"],
+      "files": [
+        {
+          "path": "/Fixzit/server/plugins/tenantIsolation.ts",
+          "lines": "17-39"
+        }
+      ],
+      "rootCause": "Mutable currentTenantContext global alongside AsyncLocalStorage risks cross-request leakage",
+      "verification": [
+        "pnpm test tests/integration/tenant-isolation-concurrent.test.ts"
+      ],
+      "estimatedEffort": "2-3 hours",
+      "dependencies": []
+    },
+    {
+      "id": "SEC-004",
+      "title": "Missing HR Role Guards (canViewPayroll, canEditPayroll)",
+      "category": "security_rbac_auth",
+      "severity": "P0_CRITICAL",
+      "labels": ["copilot:ready", "owner:backend", "flag:rbac_gap"],
+      "files": [
+        {
+          "path": "/Fixzit/lib/auth/role-guards.ts",
+          "lines": "end of file"
+        }
+      ],
+      "rootCause": "No dedicated role guards for payroll access control",
+      "verification": [
+        "pnpm test tests/unit/auth/role-guards.test.ts",
+        "Manual: Verify HR_MANAGER can access payroll, EMPLOYEE cannot"
+      ],
+      "estimatedEffort": "1-2 hours",
+      "dependencies": []
+    },
+    {
+      "id": "SEC-005",
+      "title": "Audit Trail Blind Spot (Missing orgId)",
+      "category": "error_logging",
+      "severity": "P0_CRITICAL",
+      "labels": ["copilot:ready", "owner:backend", "flag:audit_gap"],
+      "files": [
+        {
+          "path": "/Fixzit/lib/middleware/withAudit.ts",
+          "lines": "137-146"
+        }
+      ],
+      "rootCause": "Audit logging skipped entirely when orgId missing instead of logging with sentinel",
+      "verification": [
+        "pnpm test tests/unit/middleware/withAudit.test.ts"
+      ],
+      "estimatedEffort": "1 hour",
+      "dependencies": []
+    },
+    {
+      "id": "DATA-001",
+      "title": "Aqar Models Missing tenantIsolationPlugin",
+      "category": "data_schema_db",
+      "severity": "P0_CRITICAL",
+      "labels": ["copilot:ready", "owner:backend", "flag:multi_tenancy_gap"],
+      "files": [
+        {
+          "path": "/Fixzit/models/aqar/Lead.ts",
+          "lines": "schema definition"
+        },
+        {
+          "path": "/Fixzit/models/aqar/Booking.ts",
+          "lines": "schema definition"
+        },
+        {
+          "path": "/Fixzit/models/aqar/Listing.ts",
+          "lines": "schema definition"
+        },
+        {
+          "path": "/Fixzit/models/aqar/Project.ts",
+          "lines": "schema definition"
+        },
+        {
+          "path": "/Fixzit/models/aqar/SavedSearch.ts",
+          "lines": "schema definition"
+        },
+        {
+          "path": "/Fixzit/models/aqar/Favorite.ts",
+          "lines": "schema definition"
+        }
+      ],
+      "rootCause": "Aqar models have orgId but don't use tenantIsolationPlugin for automatic query scoping",
+      "verification": [
+        "grep -r 'tenantIsolationPlugin' models/aqar/",
+        "pnpm test tests/integration/security/tenant-isolation.test.ts"
+      ],
+      "estimatedEffort": "2-3 hours",
+      "dependencies": ["SEC-003"]
+    },
+    {
+      "id": "DATA-002",
+      "title": "PayrollLine baseSalary Not Encrypted",
+      "category": "data_schema_db",
+      "severity": "P0_CRITICAL",
+      "labels": ["copilot:ready", "owner:backend", "flag:compliance_violation"],
+      "files": [
+        {
+          "path": "/Fixzit/server/models/hr.models.ts",
+          "lines": "800-850, 920-988"
+        }
+      ],
+      "rootCause": "PayrollLine only encrypts IBAN, not salary components in embedded subdocument",
+      "verification": [
+        "pnpm test tests/unit/models/hr/payroll-encryption.test.ts"
+      ],
+      "estimatedEffort": "2-3 hours",
+      "dependencies": ["SEC-001"]
+    },
+    {
+      "id": "DATA-003",
+      "title": "Booking Derived Fields Bypass on findOneAndUpdate",
+      "category": "business_logic",
+      "severity": "P0_CRITICAL",
+      "labels": ["copilot:ready", "owner:backend", "flag:data_integrity"],
+      "files": [
+        {
+          "path": "/Fixzit/models/aqar/Booking.ts",
+          "lines": "129-159"
+        }
+      ],
+      "rootCause": "Derived fields (nights, totalPrice, platformFee, hostPayout) only calculated in pre('validate'), bypassed by findOneAndUpdate",
+      "verification": [
+        "pnpm test tests/unit/models/aqar/booking-derived-fields.test.ts"
+      ],
+      "estimatedEffort": "2-3 hours",
+      "dependencies": []
+    },
+    {
+      "id": "SEC-006",
+      "title": "IDOR Risk in crud-factory.ts",
+      "category": "security_rbac_auth",
+      "severity": "P1_HIGH",
+      "labels": ["copilot:ready", "owner:backend"],
+      "files": [
+        {
+          "path": "/Fixzit/lib/crud-factory.ts",
+          "lines": "429-435"
+        }
+      ],
+      "rootCause": "Query trusts user.orgId without validating against entity's tenant",
+      "verification": [
+        "pnpm test tests/unit/lib/crud-factory.test.ts"
+      ],
+      "estimatedEffort": "2-3 hours",
+      "dependencies": []
+    },
+    {
+      "id": "SEC-007",
+      "title": "Unsafe Email Link Injection",
+      "category": "security_rbac_auth",
+      "severity": "P1_HIGH",
+      "labels": ["copilot:ready", "owner:backend"],
+      "files": [
+        {
+          "path": "/Fixzit/server/services/fm-notification-engine.ts",
+          "lines": "878-882"
+        }
+      ],
+      "rootCause": "Email links not validated against domain allowlist before injection",
+      "verification": [
+        "pnpm test tests/unit/services/fm-notification-engine.test.ts"
+      ],
+      "estimatedEffort": "1-2 hours",
+      "dependencies": []
+    },
+    {
+      "id": "SEC-008",
+      "title": "Company Code Enumeration Attack Surface",
+      "category": "security_rbac_auth",
+      "severity": "P1_HIGH",
+      "labels": ["copilot:ready", "owner:backend"],
+      "files": [
+        {
+          "path": "/Fixzit/app/(auth)/login/page.tsx",
+          "lines": "282-295"
+        }
+      ],
+      "rootCause": "companyCode in auth flow without rate limiting enables enumeration",
+      "verification": [
+        "Manual: Attempt 20 logins with different company codes, verify rate limit triggers"
+      ],
+      "estimatedEffort": "2-3 hours",
+      "dependencies": []
+    },
+    {
+      "id": "DATA-004",
+      "title": "Incomplete Encryption Coverage Pattern",
+      "category": "data_schema_db",
+      "severity": "P1_HIGH",
+      "labels": ["copilot:ready", "owner:backend", "flag:refactor_opportunity"],
+      "files": [
+        {
+          "path": "/Fixzit/server/models/User.ts",
+          "lines": "261-360"
+        },
+        {
+          "path": "/Fixzit/server/models/hr.models.ts",
+          "lines": "320-430"
+        }
+      ],
+      "rootCause": "Encryption logic duplicated across models instead of centralized plugin",
+      "verification": [
+        "pnpm test tests/unit/plugins/encryption-plugin.test.ts"
+      ],
+      "estimatedEffort": "4-6 hours",
+      "dependencies": ["SEC-001", "SEC-002", "DATA-002"]
+    },
+    {
+      "id": "LOG-001",
+      "title": "PII in Client Logs",
+      "category": "error_logging",
+      "severity": "P1_HIGH",
+      "labels": ["copilot:ready", "owner:frontend"],
+      "files": [
+        {
+          "path": "/Fixzit/hooks/useAdminData.ts",
+          "lines": "38-45"
+        }
+      ],
+      "rootCause": "Client-side logs expose admin query params containing user IDs",
+      "verification": [
+        "Manual: Check browser console in production for PII exposure"
+      ],
+      "estimatedEffort": "1-2 hours",
+      "dependencies": []
+    },
+    {
+      "id": "LOG-002",
+      "title": "Console.error Exposes Internal Details",
+      "category": "error_logging",
+      "severity": "P1_HIGH",
+      "labels": ["copilot:ready", "owner:frontend"],
+      "files": [
+        {
+          "path": "/Fixzit/hooks/useProperties.ts",
+          "lines": "31-41"
+        }
+      ],
+      "rootCause": "console.error logs response status/statusText in production",
+      "verification": [
+        "Manual: Trigger API error and check browser console"
+      ],
+      "estimatedEffort": "1 hour",
+      "dependencies": []
+    },
+    {
+      "id": "BIZ-001",
+      "title": "Lead State Machine Allows Invalid Transitions",
+      "category": "business_logic",
+      "severity": "P1_HIGH",
+      "labels": ["copilot:ready", "owner:backend"],
+      "files": [
+        {
+          "path": "/Fixzit/models/aqar/Lead.ts",
+          "lines": "180-220"
+        }
+      ],
+      "rootCause": "State transition methods don't validate allowed transitions consistently",
+      "verification": [
+        "pnpm test tests/unit/models/aqar/lead-state-machine.test.ts"
+      ],
+      "estimatedEffort": "2-3 hours",
+      "dependencies": []
+    },
+    {
+      "id": "TEST-001",
+      "title": "Missing Integration Tests for Encryption",
+      "category": "testing_qa",
+      "severity": "P1_HIGH",
+      "labels": ["copilot:ready", "owner:qa"],
+      "files": [
+        {
+          "path": "/Fixzit/tests/integration/security/encryption-lifecycle.test.ts",
+          "lines": "new file"
+        }
+      ],
+      "rootCause": "No tests verify encryption works across save/update/find operations",
+      "verification": [
+        "pnpm test tests/integration/security/encryption-lifecycle.test.ts"
+      ],
+      "estimatedEffort": "4-6 hours",
+      "dependencies": ["SEC-001"]
+    },
+    {
+      "id": "TEST-002",
+      "title": "Missing Tenant Isolation Tests",
+      "category": "testing_qa",
+      "severity": "P1_HIGH",
+      "labels": ["copilot:ready", "owner:qa"],
+      "files": [
+        {
+          "path": "/Fixzit/tests/integration/security/tenant-isolation.test.ts",
+          "lines": "new file"
+        }
+      ],
+      "rootCause": "No tests verify cross-tenant data access is prevented",
+      "verification": [
+        "pnpm test tests/integration/security/tenant-isolation.test.ts"
+      ],
+      "estimatedEffort": "4-6 hours",
+      "dependencies": ["SEC-003", "DATA-001"]
+    },
+    {
+      "id": "DOC-001",
+      "title": "Deprecated Owner Portal Architecture Doc",
+      "category": "docs_process",
+      "severity": "P2_MEDIUM",
+      "labels": ["copilot:ready", "owner:docs"],
+      "files": [
+        {
+          "path": "/Fixzit/docs/owner-portal-architecture.md",
+          "lines": "all"
+        }
+      ],
+      "rootCause": "Still references Prisma despite MongoDB-only stack",
+      "verification": [
+        "Manual: Review updated documentation"
+      ],
+      "estimatedEffort": "1-2 hours",
+      "dependencies": []
+    },
+    {
+      "id": "DOC-002",
+      "title": "Missing RBAC Role Matrix",
+      "category": "docs_process",
+      "severity": "P2_MEDIUM",
+      "labels": ["copilot:ready", "owner:docs"],
+      "files": [
+        {
+          "path": "/Fixzit/docs/security/RBAC_ROLE_MATRIX.md",
+          "lines": "new file"
+        }
+      ],
+      "rootCause": "No central document mapping all 14 roles to permissions",
+      "verification": [
+        "Manual: Review role matrix completeness"
+      ],
+      "estimatedEffort": "2-4 hours",
+      "dependencies": []
+    },
+    {
+      "id": "PERF-001",
+      "title": "Missing Index on aqar_leads.inquirerPhone",
+      "category": "performance",
+      "severity": "P2_MEDIUM",
+      "labels": ["copilot:ready", "owner:backend"],
+      "files": [
+        {
+          "path": "/Fixzit/models/aqar/Lead.ts",
+          "lines": "index definitions"
+        }
+      ],
+      "rootCause": "Common query patterns not indexed",
+      "verification": [
+        "db.aqar_leads.getIndexes()"
+      ],
+      "estimatedEffort": "30 minutes",
+      "dependencies": []
+    }
+  ],
+  "phases": {
+    "phase1_critical_security": {
+      "name": "Critical Security",
+      "duration": "Days 1-2",
+      "issues": ["SEC-001", "SEC-002", "SEC-003", "DATA-001", "DATA-002"]
+    },
+    "phase2_data_integrity": {
+      "name": "Data Integrity",
+      "duration": "Days 3-4",
+      "issues": ["DATA-003", "SEC-004", "SEC-005", "BIZ-001"]
+    },
+    "phase3_hardening": {
+      "name": "Hardening",
+      "duration": "Days 5-7",
+      "issues": ["SEC-006", "SEC-007", "SEC-008", "LOG-001", "LOG-002"]
+    },
+    "phase4_testing_docs": {
+      "name": "Testing & Docs",
+      "duration": "Week 2",
+      "issues": ["TEST-001", "TEST-002", "DOC-001", "DOC-002", "DATA-004", "PERF-001"]
+    }
+  },
+  "verificationCommands": {
+    "lint": "pnpm lint",
+    "typecheck": "pnpm tsc --noEmit",
+    "test": "pnpm test",
+    "build": "pnpm build",
+    "securityTests": "pnpm test tests/integration/security/",
+    "coverage": "pnpm test:coverage --reporter=lcov"
+  }
+}
+
+]]>
+</file>
+
+<file path=".devcontainer/devcontainer.json">
+<![CDATA[
+{
+  "name": "Fixzit Dev Container",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "mounts": [
+    "source=vscode-server,target=/home/node/.vscode-server,type=volume",
+    "source=qodo-history,target=/home/node/.qodo,type=volume"
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "GitHub.copilot",
+        "GitHub.copilot-chat",
+        "ms-vscode.vscode-typescript-next",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ],
+      "settings": {
+        // — Agent: Security-conscious configuration for shared devcontainer —
+        "chat.agent.enabled": true,
+        "chat.agent.maxRequests": 999,
+
+        // SECURITY: Auto-approve disabled in shared environment.
+        // Developers who want auto-approve should configure it in their personal User Settings.
+        // Do not re-enable these in the shared devcontainer configuration.
+
+        // Stop interactive CLI pauses (y/n, prompts)
+        "chat.tools.terminal.autoReplyToPrompts": true,
+
+        // Auto-accept edits DISABLED for security (developers can enable in User Settings)
+        // "chat.editing.autoAcceptDelay": 3,
+
+        // Checkpoints for rollback
+        "chat.checkpoints.enabled": true,
+
+        // Disable notification balloons
+        "chat.notifyWindowOnConfirmation": false,
+
+        // Disable MCP discovery (boolean, not object)
+        "chat.mcp.discovery.enabled": false,
+
+        // SECURITY: Workspace trust ENABLED (critical security boundary).
+        // Do not disable workspace trust in shared devcontainer - users must be warned about untrusted code.
+        // The startup prompt is intentional and required for security.
+        // Lines below are commented out to use VS Code defaults (trust enabled):
+        // "security.workspace.trust.enabled": true,
+        // "security.workspace.trust.untrustedFiles": "prompt",
+        // "security.workspace.trust.startupPrompt": "default",
+
+        // Agent can run tasks silently
+        "github.copilot.chat.agent.runTasks": true,
+        "github.copilot.chat.codeGeneration.useInstructionFiles": true,
+
+        // Editor QoL
+        "git.branchProtection": ["main", "master"],
+        "git.branchProtectionPrompt": "alwaysPrompt"
+      }
+    }
+  },
+  "containerEnv": {
+    "NO_PROXY": "127.0.0.1,localhost,.local,.internal,.docker,github.com,api.github.com,githubusercontent.com,githubcopilot.com,githubcontent.com,copilot-proxy.githubusercontent.com,origin-tracker.githubusercontent.com",
+    "no_proxy": "${containerEnv:NO_PROXY}"
+  },
+  "remoteEnv": {
+    "HTTP_PROXY": "${localEnv:HTTP_PROXY}",
+    "HTTPS_PROXY": "${localEnv:HTTPS_PROXY}"
+  },
+  "postCreateCommand": "bash -c 'if [ -f .devcontainer/setup.sh ]; then bash .devcontainer/setup.sh; else echo Setup script not found, skipping...; fi'",
+  "remoteUser": "node",
+  "updateRemoteUserUID": true,
+  "waitFor": "onCreateCommand"
+}
+
+]]>
+</file>
+
+<file path=".eslintrc.json">
+<![CDATA[
+{
+  "extends": ["next/core-web-vitals"],
+  "rules": {
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/no-unused-vars": "off",
+    "@typescript-eslint/ban-ts-comment": "off",
+    "@typescript-eslint/no-empty-function": "off",
+    "@typescript-eslint/no-var-requires": "off",
+    "no-unused-vars": "off",
+    "no-console": "off",
+    "no-debugger": "off",
+    "no-empty": "off",
+    "no-empty-pattern": "off",
+    "no-useless-escape": "off",
+    "react/no-unescaped-entities": "off",
+    "react-hooks/exhaustive-deps": "off",
+    "react-hooks/rules-of-hooks": "off",
+    "@next/next/no-img-element": "off",
+    "@next/next/no-html-link-for-pages": "off"
+  },
+  "ignorePatterns": ["node_modules", ".next", "out", "public", "*.config.js", "*.config.ts"]
+}
+
+]]>
+</file>
+
+<file path=".fixzit/dedupe-report.md">
+<![CDATA[
+# De-dupe Report
+
+Found 1 duplicate groups.
+
+## Group (2 files)
+
+- app/work-orders/page.tsx
+- app/fm/work-orders/page.tsx
+
+]]>
+</file>
+
+<file path=".fixzit-waivers.json">
+<![CDATA[
+{
+  "routes": {
+    "treat_factory_destructures_as_valid": true,
+    "treat_named_reexports_as_valid": true,
+    "treat_nextauth_v5_handlers_as_valid": true
+  },
+  "console": {
+    "allow_error_and_warn_in_runtime": true,
+    "flag_log_and_dir_only": true
+  },
+  "duplicates": {
+    "ignore_dirs": [
+      "aws/dist",
+      "tmp",
+      ".next",
+      "dist",
+      "build",
+      "coverage",
+      ".turbo",
+      ".vercel"
+    ]
+  },
+  "imports": {
+    "treat_atslash_src_as_alias_to_root": true,
+    "forbid_deep_relatives": true
+  },
+  "i18n": {
+    "merge_translation_context": "contexts/TranslationContext.tsx"
+  }
+}
+
+]]>
+</file>
+
+<file path=".markdownlint.json">
+<![CDATA[
+{
+  "default": true,
+  "MD013": false,
+  "MD033": false,
+  "MD034": true,
+  "MD040": true,
+  "MD041": false,
+  "MD046": false,
+  "MD024": {
+    "siblings_only": true
+  },
+  "line-length": false,
+  "no-inline-html": false,
+  "no-bare-urls": true,
+  "fenced-code-language": true,
+  "first-line-heading": false,
+  "code-block-style": false,
+  "no-duplicate-heading": {
+    "siblings_only": true
+  }
+}
+
+]]>
+</file>
+
+<file path="AGENTS.md">
+<![CDATA[
+# AGENTS.md – Fixzit Coding Agents
+
+You are an AI coding agent working on the Fixzit codebase.
+
+## ALWAYS-ON MEMORY PIPELINE
+
+For **every request** you handle in this repository:
+
+1. **Memory Phase**  
+   - Treat `ai-memory/master-index.json` as your primary map of the system.  
+   - Before proposing any plan or code, check `master-index.json` for entries related to:
+     - The feature name mentioned,
+     - Relevant routes, models, components, or utilities,
+     - Any domain mentioned (auth, work orders, properties, billing, etc.).
+
+2. **Target Selection**  
+   - From `master-index.json`, determine which files are likely involved.  
+   - Focus on those files only; do not assume the entire repo is in context.
+
+3. **Context Loading**  
+   - Open or fetch those specific files (for example via `#file` or `#codebase`).  
+   - Use them as your source of truth for implementation details.
+
+4. **Action**  
+   - Propose a plan, then apply edits step by step.  
+   - Where behavior changes, add or update tests.  
+   - Summarize what you changed and why.
+
+## Additional Rules
+
+- Do not scan the whole repo blindly. Always start from `ai-memory/master-index.json`.
+- Keep diffs and suggestions focused, safe, and consistent with existing patterns.
+- If the memory appears outdated (missing key files or domains), say so and recommend rebuilding it with:
+  - `node tools/smart-chunker.js`
+  - Inline Chat over new batches
+  - `node tools/merge-memory.js`
+
+## Project Context
+
+- Multi-tenant facility management + marketplace platform.
+- Core domains:
+  - Facility Management / Work Orders
+  - Real Estate / Aqar marketplace
+  - Shared Services (Finance, HR, CRM, Admin, Support)
+- Tech stack: Next.js (App Router), TypeScript, Node.js, MongoDB (Mongoose), Tailwind, shadcn/ui.
+
+## Setup
+
+- Install dependencies: `pnpm install`
+- Run dev server: `pnpm dev`
+- Run tests: `pnpm test` (and any E2E scripts if defined)
+
+]]>
+</file>
+
+<file path="CONTRIBUTING.md">
+<![CDATA[
+# Contributing to Fixzit
+
+## Getting Started
+
+### 1. Setup Git Hooks
+
+Git hooks are configured via `simple-git-hooks` in `package.json`. They install automatically when you run `pnpm install`.
+
+**Pre-commit hook runs:**
+
+- ✅ `pnpm lint:prod` – ESLint on production code (0 warnings allowed)
+- ✅ `pnpm guard:fm-hooks` – FM hooks safety check
+- ✅ `bash scripts/security/check-hardcoded-uris.sh` – Security URI scan
+
+**Pre-push hook runs:**
+
+- ✅ `pnpm lint:mongo-unwrap` – MongoDB unwrap safety check
+- ✅ `pnpm typecheck` – TypeScript compilation
+
+> ⚠️ **Translation audit is NOT in pre-commit hooks.** Run it manually before committing i18n changes:
+> ```bash
+> node scripts/audit-translations.mjs
+> ```
+
+**To bypass hooks** (emergency only):
+
+```bash
+git commit --no-verify
+```
+
+### 2. Translation Workflow
+
+#### Adding New Translation Keys
+
+1. **Add to both catalogs** (`contexts/TranslationContext.tsx`):
+
+   ```typescript
+   // English catalog
+   const catalogEN = {
+     "module.category.key": "English Text",
+     // ...
+   };
+
+   // Arabic catalog
+   const catalogAR = {
+     "module.category.key": "النص العربي",
+     // ...
+   };
+   ```
+
+2. **Use namespaced keys** (not direct strings):
+
+   ```typescript
+   // ✅ Correct
+   t("finance.payment.bankName");
+
+   // ❌ Wrong
+   t("Bank Name");
+   ```
+
+3. **Run audit before committing**:
+
+   ```bash
+   node scripts/audit-translations.mjs
+   ```
+
+4. **Fix any gaps detected**:
+
+   ```bash
+   node scripts/audit-translations.mjs --fix
+   ```
+
+5. **Commit changes**:
+   ```bash
+   git add -A
+   git commit -m "feat(i18n): Add payment form translations"
+   ```
+
+#### Translation Key Naming Conventions
+
+- **Format**: `module.category.key`
+- **Examples**:
+  - `finance.payment.bankName`
+  - `hr.employee.fullName`
+  - `aqar.property.address`
+  - `workOrder.status.completed`
+
+### 3. Development Workflow
+
+#### Create Feature Branch
+
+```bash
+git checkout -b feat/<task-name>
+```
+
+#### Make Changes
+
+- Write code following TypeScript strict mode
+- Add tests for new features
+- Update translations if adding UI text
+
+#### Verify Changes
+
+```bash
+# Type checking
+pnpm typecheck
+
+# Linting
+pnpm lint
+
+# Tests
+pnpm test
+
+# Build
+pnpm build
+```
+
+#### Commit Changes
+
+```bash
+git add -A
+git commit -m "feat(module): Description"
+```
+
+Pre-commit hook will automatically:
+
+- Run `lint:prod` (ESLint with 0 warnings)
+- Run `guard:fm-hooks` (FM hooks safety)
+- Run security URI scan
+
+> ℹ️ Translation audit is **not** in hooks. Run manually for i18n changes:
+> ```bash
+> node scripts/audit-translations.mjs
+> ```
+
+#### Push and Create PR
+
+```bash
+git push -u origin HEAD
+gh pr create --fill --draft
+```
+
+### 4. Commit Message Format
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+**Types**:
+
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation only
+- `chore`: Maintenance tasks
+- `refactor`: Code restructuring
+- `test`: Adding tests
+- `perf`: Performance improvement
+- `ci`: CI/CD changes
+- `build`: Build system changes
+- `revert`: Revert previous commit
+
+**Examples**:
+
+```
+feat(i18n): Add complete translation coverage for finance module
+
+- Added 213 keys for budgets, expenses, invoices, payments
+- Maintains 100% EN-AR parity
+- All translations professionally done
+
+Closes #42
+```
+
+```
+fix(auth): Prevent session hijacking with HTTP-only cookies
+
+- Changed session storage from localStorage to HTTP-only cookies
+- Added CSRF token validation
+- Updated login/logout flows
+
+Resolves ISSUE-SEC-003
+```
+
+### 5. Code Quality Standards
+
+#### TypeScript
+
+- ✅ Strict mode enabled
+- ✅ No implicit `any`
+- ✅ Proper types for all variables
+- ✅ Use `interface` for object shapes
+- ✅ Use `type` for unions/intersections
+- ✅ Null safety with optional chaining (`?.`)
+
+#### React
+
+- ✅ Functional components only
+- ✅ Hooks for state management
+- ✅ Error boundaries for route components
+- ✅ ARIA labels for accessibility
+- ✅ Keyboard navigation support
+
+#### Performance
+
+- ✅ Lazy loading with `React.lazy()` and `Suspense`
+- ✅ Memoization with `useMemo`, `useCallback`
+- ✅ Pagination for large datasets
+- ✅ Debouncing for search inputs
+
+### 6. Module-Specific Rules
+
+#### Finance Module
+
+- Use `Decimal` type for monetary values (not `number`)
+- Include currency code with amounts: `{ amount: 100, currency: 'OMR' }`
+- Log all transactions with audit trail
+- Double-entry accounting for transactions
+
+#### HR Module
+
+- Encrypt PII (SSN, salary, bank accounts)
+- Verify role-based permissions
+- Audit log for all HR actions
+
+#### Property Management (Aqar)
+
+- Include coordinates for all properties
+- Maintain unit hierarchy (Property > Building > Floor > Unit)
+- Track occupancy status accurately
+
+#### Work Orders
+
+- Calculate SLA on every status change
+- Priority inheritance from property criticality
+- Auto-assignment based on category and vendor availability
+
+### 7. Security Guidelines
+
+#### Authentication
+
+- Never expose tokens in logs or commits
+- Store session tokens in HTTP-only cookies
+- Implement CSRF protection
+
+#### Authorization
+
+- Check permissions server-side
+- Principle of least privilege
+
+**🔒 STRICT v4.1 Role Hierarchy (9 canonical roles)**:
+```
+SUPER_ADMIN
+    ↓
+ADMIN
+    ↓
+MANAGER (org-level management)
+    ↓
+┌─────────────────────────────────────────────┐
+│         TEAM_MEMBER + Sub-Roles             │
+│  ┌─────────────┬─────────────┬───────────┐  │
+│  │ FINANCE_    │ HR_OFFICER  │ SUPPORT_  │  │
+│  │ OFFICER     │             │ AGENT     │  │
+│  ├─────────────┴─────────────┴───────────┤  │
+│  │        OPERATIONS_MANAGER             │  │
+│  └───────────────────────────────────────┘  │
+└─────────────────────────────────────────────┘
+    ↓
+TECHNICIAN (field workers)
+    ↓
+VENDOR (external contractors)
+    ↓
+GUEST (read-only dashboard access)
+```
+
+**Sub-roles** (assigned via `professional.subRole`):
+- `FINANCE_OFFICER` - Finance module + reports
+- `HR_OFFICER` - HR module + PII access + reports
+- `SUPPORT_AGENT` - Support + CRM + reports
+- `OPERATIONS_MANAGER` - Work Orders + Properties + Marketplace
+
+**Additional roles** (property/external context):
+- `OWNER`, `TENANT`, `AUDITOR`, `CUSTOMER`, `VIEWER`
+
+See `types/user.ts` for full role definitions and `domain/fm/fm-lite.ts` for module access mapping.
+
+#### Data Protection
+
+- Encrypt PII at rest
+- Validate and sanitize all inputs
+- Implement rate limiting
+
+### 8. Testing
+
+#### Running Tests
+
+```bash
+# All tests (models + E2E)
+pnpm test
+
+# Model tests only (fast, recommended for development)
+pnpm test:models
+
+# Service tests
+pnpm test:services
+
+# E2E tests
+pnpm test:e2e
+
+# Fast CI tests (bail on first failure)
+pnpm test:ci
+
+# Watch mode during development
+pnpm test:watch
+
+# RBAC Parity Tests (client/server alignment)
+pnpm rbac:parity
+
+# RBAC Linting
+pnpm lint:rbac
+```
+
+#### RBAC Parity Testing
+
+The RBAC parity tests ensure that client-side permission checks (UI visibility) match server-side authorization (API access control). This prevents drift between what users see and what they can actually do.
+
+**Key Files:**
+- Static lint script: [`scripts/lint-rbac-parity.ts`](scripts/lint-rbac-parity.ts) – 7-dimension parity checks
+- Behavioral tests: [`tests/domain/fm.can-parity.test.ts`](tests/domain/fm.can-parity.test.ts) – 66 tests
+- Contributor guide: [`docs/rbac/TOOLING.md`](docs/rbac/TOOLING.md) – detailed documentation
+
+```bash
+# Run RBAC parity tests (66 tests)
+pnpm rbac:parity
+```
+
+**What it tests (66 tests):**
+- Static data structure parity (ROLE_ACTIONS, SUB_ROLE_ACTIONS, PLAN_GATES, SUBMODULE_REQUIRED_SUBROLE)
+- `can()` function behavioral parity across all 9 canonical roles
+- Sub-role enforcement (FINANCE_OFFICER, HR_OFFICER, SUPPORT_AGENT, OPERATIONS_MANAGER)
+- Plan gate enforcement (STARTER, STANDARD, PRO, ENTERPRISE)
+- Technician assignment and work order lifecycle permissions
+- Cross-role sub-role boundary enforcement
+- Plan downgrade scenarios
+- Org membership edge cases (non-member denial, SUPER_ADMIN bypass, GUEST limits)
+- Vendor role parity (marketplace access, work order restrictions)
+- Action-specific parity (export, approve, assign)
+- `computeAllowedModules()` parity (server/client/lite)
+
+**CI Integration:**
+- `pnpm rbac:parity` runs in the **`fixzit-quality-gates.yml`** workflow (not in `lint:ci`)
+- **Always run locally** when changing RBAC logic: `pnpm rbac:parity`
+- The `lint:ci` script runs static checks only; behavioral parity tests are in quality-gates
+
+#### Writing Tests
+
+- Test filename: `<component>.test.tsx`
+- Location: `tests/unit/` or `tests/e2e/`
+- Coverage target: >80%
+
+### 9. Pre-commit Checklist
+
+Before committing, ensure:
+
+- [ ] `pnpm typecheck` passes (0 errors)
+- [ ] `pnpm lint` passes (0 errors)
+- [ ] `pnpm test` passes (all tests)
+- [ ] `pnpm rbac:parity` passes (66 RBAC parity tests) – **run manually for RBAC changes**
+- [ ] Translation audit passes (run `node scripts/audit-translations.mjs` for i18n changes)
+- [ ] No `console.log` statements (except error handling)
+- [ ] Documentation updated if needed
+- [ ] Commit message follows format
+
+### 10. PR Checklist
+
+Before requesting review:
+
+- [ ] All tests pass (unit + E2E)
+- [ ] Code coverage >80%
+- [ ] No critical/major security issues
+- [ ] Documentation updated
+- [ ] Translation keys added if needed
+- [ ] No breaking changes (or documented if unavoidable)
+- [ ] PR description explains what/why/how
+
+### 11. Emergency Procedures
+
+#### Production Incident
+
+1. Rollback immediately: `git revert` or redeploy previous version
+2. Create incident report
+3. Fix forward with hotfix branch
+4. Fast-track PR review
+5. Post-mortem documentation
+
+#### Data Loss Prevention
+
+- Never run `DELETE` without `WHERE` clause
+- Always backup before migrations
+- Test migrations on staging first
+- Have rollback plan ready
+
+### 12. Resources
+
+- **Agent Instructions**: `.github/copilot-instructions.md`
+- **Translation Audit**: `scripts/audit-translations.mjs`
+- **Issues Register**: `ISSUES_REGISTER.md` (if exists)
+- **Daily Progress Reports**: `docs/archived/DAILY_PROGRESS_REPORTS/`
+- **RBAC Parity Tests**: `tests/domain/fm.can-parity.test.ts`
+- **E2E Sub-Role Tests**: `tests/e2e/subrole-api-access.spec.ts`
+- **PR Comments Audit**: `reports/pr-comments-audit-20251130.md`
+
+### 13. Getting Help
+
+- **Translation Issues**: Check `scripts/audit-translations.mjs --help`
+- **Git Hooks**: Re-run `./scripts/setup-git-hooks.sh`
+- **Build Errors**: Check `pnpm typecheck` and `pnpm lint`
+- **Test Failures**: Check `playwright-report/index.html` for E2E
+
+### 14. CI/CD Troubleshooting
+
+#### GitHub Actions Minutes Quota Exhausted
+
+If CI pipelines fail due to GitHub Actions minutes quota exhaustion, you have several options:
+
+**Option 1: Upgrade GitHub Plan**
+- Free tier: 2,000 minutes/month (500 for private repos)
+- Pro tier: 3,000 minutes/month
+- Team/Enterprise: More minutes available
+- Contact your admin to upgrade the plan
+
+**Option 2: Make Repository Public** (if allowed)
+- Public repositories have unlimited GitHub Actions minutes
+- Only viable for open-source projects
+
+**Option 3: Self-Hosted Runners**
+- Set up self-hosted runners on your own infrastructure
+- No GitHub Actions minutes consumed
+- Guide: [GitHub Self-Hosted Runners](https://docs.github.com/en/actions/hosting-your-own-runners)
+
+**Option 4: Optimize Workflows**
+- Use caching (`actions/cache`) to reduce build times
+- Skip unnecessary steps with conditional execution
+- Use concurrency groups to cancel redundant runs
+- Split workflows to run only affected tests
+
+**Option 5: Run Tests Locally**
+While CI is unavailable, run quality checks locally:
+```bash
+# Run all quality checks
+pnpm typecheck && pnpm lint && pnpm test
+
+# Run RBAC parity tests
+pnpm rbac:parity
+
+# Run E2E tests locally
+pnpm test:e2e
+```
+
+**Current Workflow Optimizations:**
+- `fixzit-quality-gates.yml` uses concurrency groups to cancel redundant runs
+- Dependency caching enabled for pnpm
+- Jobs run in parallel where possible
+
+### 15. E2E Testing Setup
+
+#### Prerequisites
+
+E2E tests require explicit credentials - no default passwords are used for security reasons.
+
+#### Required Environment Variables
+
+Add these to your `.env.local` file (see `env.example` for documentation):
+
+```bash
+# E2E Test Credentials - required for RBAC tests
+TEST_FINANCE_OFFICER_EMAIL=finance.officer@example.com
+TEST_FINANCE_OFFICER_PASSWORD=<secure-password>
+
+TEST_HR_OFFICER_EMAIL=hr.officer@example.com
+TEST_HR_OFFICER_PASSWORD=<secure-password>
+
+TEST_SUPPORT_AGENT_EMAIL=support.agent@example.com
+TEST_SUPPORT_AGENT_PASSWORD=<secure-password>
+
+TEST_OPERATIONS_MANAGER_EMAIL=ops.manager@example.com
+TEST_OPERATIONS_MANAGER_PASSWORD=<secure-password>
+
+TEST_TEAM_MEMBER_EMAIL=team.member@example.com
+TEST_TEAM_MEMBER_PASSWORD=<secure-password>
+
+TEST_ADMIN_EMAIL=admin@example.com
+TEST_ADMIN_PASSWORD=<secure-password>
+```
+
+#### Creating Test Users
+
+Each test user must exist in the database with the appropriate role configuration:
+
+| User Type | Role | subRole | Module Access |
+|-----------|------|---------|---------------|
+| FINANCE_OFFICER | TEAM_MEMBER | FINANCE_OFFICER | Finance APIs |
+| HR_OFFICER | TEAM_MEMBER | HR_OFFICER | HR APIs |
+| SUPPORT_AGENT | TEAM_MEMBER | SUPPORT_AGENT | Support APIs |
+| OPERATIONS_MANAGER | TEAM_MEMBER | OPERATIONS_MANAGER | Work Orders, Properties, Marketplace |
+| TEAM_MEMBER | TEAM_MEMBER | (none) | Limited access |
+| ADMIN | ADMIN | (any) | All modules |
+
+#### Running E2E Tests
+
+```bash
+# Start dev server (if not running)
+pnpm dev
+
+# Run all E2E tests
+pnpm test:e2e
+
+# Run specific sub-role tests
+pnpm playwright test subrole-api-access.spec.ts
+
+# Run with UI mode
+pnpm playwright test --ui
+```
+
+#### Troubleshooting E2E Tests
+
+**Tests fail with "Missing required test credentials"**
+- Ensure all `TEST_*_EMAIL` and `TEST_*_PASSWORD` vars are set in `.env.local`
+- No fallback defaults exist - this is intentional for security
+
+**Login failures**
+- Verify test users exist in database with correct roles
+- Check `professional.subRole` is set correctly for TEAM_MEMBER users
+- Ensure the dev server is running at `http://localhost:3000`
+
+**403 Forbidden errors**
+- Check RBAC configuration in `lib/auth/role-guards.ts`
+- Verify `subRole` is being propagated to session (see `auth.config.ts`)
+
+---
+
+**Last Updated**: 2025-12-01  
+**Maintained By**: Engineering Team
+
+]]>
+</file>
+
+</batch_content>

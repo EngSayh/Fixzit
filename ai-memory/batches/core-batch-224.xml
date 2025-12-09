@@ -1,0 +1,3373 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="lib/queues/sms-queue.ts">
+<![CDATA[
+/**
+ * SMS Queue Service
+ *
+ * Queue-based SMS delivery with retry, SLA tracking, and provider failover.
+ * Integrates with BullMQ for reliable background processing.
+ *
+ * @module lib/queues/sms-queue
+ */
+
+import { Queue, Worker, Job } from "bullmq";
+import type Redis from "ioredis";
+import { getRedisClient } from "@/lib/redis";
+import { logger } from "@/lib/logger";
+import { SMSMessage, TSMSType, TSMSPriority, TSMSProvider, type ISMSMessage } from "@/server/models/SMSMessage";
+import { SMSSettings } from "@/server/models/SMSSettings";
+import { sendSMS } from "@/lib/sms";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { decryptField } from "@/lib/security/encryption";
+
+// Queue name
+export const SMS_QUEUE_NAME = "sms:outbound";
+
+// Job data interface
+export interface ISMSJobData {
+  messageId: string;
+  to: string;
+  message: string;
+  type: TSMSType;
+  priority: TSMSPriority;
+  orgId?: string;
+  userId?: string;
+  referenceType?: string;
+  referenceId?: string;
+  metadata?: Record<string, unknown>;
+}
+
+// Queue instance (singleton)
+let smsQueue: Queue<ISMSJobData> | null = null;
+let smsWorker: Worker<ISMSJobData> | null = null;
+
+/**
+ * Decrypt provider auth token if stored encrypted; swallow failures to avoid crashing queue.
+ */
+function decryptProviderToken(encrypted?: string): string | undefined {
+  if (!encrypted) return undefined;
+  try {
+    return decryptField(encrypted, "sms.providerApiKey") ?? undefined;
+  } catch (error) {
+    logger.error("[SMS Queue] Failed to decrypt provider API key", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return undefined;
+  }
+}
+
+// Provider candidate for Taqnyat-only configuration
+type ProviderCandidate = {
+  name: 'TAQNYAT' | 'LOCAL';
+  provider: 'TAQNYAT' | 'LOCAL';
+  senderName?: string;
+  bearerToken?: string;
+  priority: number;
+  supportedTypes?: string[];
+};
+
+const maskPhone = (to: string | undefined) => {
+  if (!to) return undefined;
+  const digits = to.replace(/\D/g, "");
+  if (digits.length <= 4) return "***";
+  return `${"*".repeat(Math.max(0, digits.length - 4))}${digits.slice(-4)}`;
+};
+
+/**
+ * Select provider candidates honoring defaultProvider, priority, supportedTypes,
+ * and fall back to env Taqnyat creds when org settings are unusable.
+ * 
+ * IMPORTANT: Taqnyat is the ONLY production SMS provider for Fixzit.
+ */
+function buildProviderCandidates(settings: Awaited<ReturnType<typeof SMSSettings.getEffectiveSettings>>, messageType: string): ProviderCandidate[] {
+  const candidates: ProviderCandidate[] = [];
+
+  for (const p of settings.providers || []) {
+    if (!p.enabled) continue;
+    if (p.supportedTypes?.length && !p.supportedTypes.includes(messageType as TSMSType)) continue;
+    // Only include TAQNYAT or LOCAL providers
+    if (p.provider !== 'TAQNYAT' && p.provider !== 'LOCAL') continue;
+    candidates.push({
+      name: p.provider as ProviderCandidate["name"],
+      provider: p.provider as ProviderCandidate["provider"],
+      senderName: p.fromNumber,
+      bearerToken: decryptProviderToken(p.encryptedApiKey),
+      priority: typeof p.priority === "number" ? p.priority : 99,
+      supportedTypes: p.supportedTypes,
+    });
+  }
+
+  candidates.sort((a, b) => {
+    const aDefault = a.name === settings.defaultProvider;
+    const bDefault = b.name === settings.defaultProvider;
+    if (aDefault && !bDefault) return -1;
+    if (bDefault && !aDefault) return 1;
+    return (a.priority ?? 99) - (b.priority ?? 99);
+  });
+
+  // Fall back to env Taqnyat credentials
+  const hasEnvTaqnyat =
+    Boolean(process.env.TAQNYAT_BEARER_TOKEN && process.env.TAQNYAT_SENDER_NAME);
+  if (hasEnvTaqnyat) {
+    candidates.push({
+      name: "TAQNYAT",
+      provider: "TAQNYAT",
+      senderName: process.env.TAQNYAT_SENDER_NAME,
+      bearerToken: process.env.TAQNYAT_BEARER_TOKEN,
+      priority: 999,
+    });
+  }
+
+  // Filter out providers missing any required credential
+  return candidates.filter(
+    (c) => Boolean(c.senderName) && Boolean(c.bearerToken),
+  );
+}
+
+/**
+ * Remove pending BullMQ jobs for a given SMS messageId to prevent duplicate or cancelled sends.
+ */
+export async function removePendingSMSJobs(messageId: string): Promise<number> {
+  const queue = getSMSQueue();
+  if (!queue) return 0;
+
+  const jobs = await queue.getJobs(["waiting", "delayed", "active"]);
+  let removed = 0;
+
+  for (const job of jobs) {
+    if (!job) continue;
+    if (job.data?.messageId === messageId || job.id === `sms-${messageId}`) {
+      await job.remove();
+      removed++;
+    }
+  }
+
+  return removed;
+}
+
+/**
+ * Simple per-org rate limiter using Redis counters to avoid noisy-neighbor issues.
+ * @internal Reserved for future per-org rate limiting enhancement
+ */
+export async function checkOrgRateLimit(orgId?: string): Promise<{ ok: true } | { ok: false; ttlMs: number }> {
+  // 🔒 Enforce orgId presence to avoid unscoped throttling bypass
+  if (!orgId) return { ok: false, ttlMs: 0 };
+
+  const connection = getRedisClient();
+  if (!connection) return { ok: true };
+
+  const settings = await SMSSettings.getEffectiveSettings(orgId);
+  const maxPerMinute = settings?.globalRateLimitPerMinute ?? 30;
+  const key = `sms:rate:${orgId}`;
+  const ttlMs = await connection.pttl(key);
+  const count = await connection.incr(key);
+  if (ttlMs < 0) {
+    await connection.pexpire(key, 60_000);
+  }
+
+  if (count > maxPerMinute) {
+    const remaining = ttlMs > 0 ? ttlMs : 60_000;
+    return { ok: false, ttlMs: remaining };
+  }
+
+  return { ok: true };
+}
+
+/**
+ * Get or create the SMS queue instance
+ */
+export function getSMSQueue(): Queue<ISMSJobData> | null {
+  if (smsQueue) return smsQueue;
+
+  const connection = getRedisClient();
+  if (!connection) {
+    logger.warn("[SMS Queue] Redis not configured, queue disabled");
+    return null;
+  }
+
+  smsQueue = new Queue<ISMSJobData>(SMS_QUEUE_NAME, {
+    connection: connection as Redis,
+    defaultJobOptions: {
+      attempts: 5,
+      backoff: {
+        type: "exponential",
+        delay: 2000,
+      },
+      removeOnComplete: {
+        age: 7 * 24 * 3600, // Keep completed jobs for 7 days
+        count: 10000,
+      },
+      removeOnFail: {
+        age: 30 * 24 * 3600, // Keep failed jobs for 30 days
+      },
+    },
+  });
+
+  logger.info("📱 SMS Queue created");
+  return smsQueue;
+}
+
+/**
+ * Queue an SMS for delivery
+ * 🔒 SECURITY: orgId is REQUIRED for tenant isolation and audit logging
+ */
+export async function queueSMS(options: {
+  to: string;
+  message: string;
+  type?: TSMSType;
+  priority?: TSMSPriority;
+  orgId: string; // 🔐 REQUIRED for tenant isolation
+  userId?: string;
+  referenceType?: string;
+  referenceId?: string;
+  scheduledAt?: Date;
+  metadata?: Record<string, unknown>;
+  tags?: string[];
+}): Promise<{ messageId: string; queued: boolean }> {
+  const {
+    to,
+    message,
+    type = "NOTIFICATION",
+    priority = "NORMAL",
+    orgId,
+    userId,
+    referenceType,
+    referenceId,
+    scheduledAt,
+    metadata,
+    tags,
+  } = options;
+
+  // 🔐 SECURITY: Enforce orgId requirement for tenant isolation
+  if (!orgId) {
+    throw new Error('orgId is required to queue SMS (tenant isolation)');
+  }
+
+  // Basic E.164 validation to reduce provider rejects
+  const E164 = /^\+?[1-9]\d{7,14}$/;
+  if (!E164.test(to)) {
+    throw new Error("Invalid destination phone (E.164 format required)");
+  }
+
+  // 🗄️ Ensure DB connection BEFORE any Mongo operations (fixes cold-start race condition)
+  await connectToDatabase();
+
+  // 🚦 Pre-queue rate limiting to avoid creating messages we can't send promptly
+  // Note: checkOrgRateLimit queries SMSSettings, so DB must be connected first
+  const rateCheck = await checkOrgRateLimit(orgId);
+  if (!rateCheck.ok) {
+    logger.warn("[SMS Queue] Rate limit exceeded for org; rejecting enqueue", {
+      orgId,
+      ttlMs: rateCheck.ttlMs,
+    });
+    throw new Error(`SMS rate limit exceeded for org; retry after ${Math.ceil(rateCheck.ttlMs / 1000)}s`);
+  }
+
+  // Get SLA settings
+  const settings = await SMSSettings.getEffectiveSettings(orgId);
+  const slaConfig = settings.slaConfigs?.find(
+    (c: { type: string; priority: string }) => c.type === type && c.priority === priority
+  );
+
+  // Create message record
+  const smsMessage = await SMSMessage.create({
+    to,
+    message,
+    type,
+    priority,
+    status: "PENDING",
+    orgId,
+    userId,
+    referenceType,
+    referenceId,
+    scheduledAt,
+    metadata,
+    tags,
+    maxRetries: slaConfig?.maxRetries ?? settings.defaultMaxRetries,
+    slaTargetMs: slaConfig?.targetDeliveryMs,
+    expiresAt: new Date(Date.now() + (slaConfig?.expiresAfterMs ?? settings.defaultExpiresAfterMs)),
+  });
+
+  // Try to queue
+  const queue = getSMSQueue();
+  if (!queue || !settings.queueEnabled) {
+    // Send immediately without queue
+    logger.info("[SMS Queue] Queue disabled, sending immediately", {
+      messageId: smsMessage._id.toString(),
+      orgId,
+      toMasked: maskPhone(to),
+    });
+    await processSMSJob(smsMessage._id.toString());
+    return { messageId: smsMessage._id.toString(), queued: false };
+  }
+
+  // Calculate delay for scheduled messages
+  const delay = scheduledAt ? Math.max(0, scheduledAt.getTime() - Date.now()) : 0;
+
+  // Add to queue with priority
+  const priorityValue = { CRITICAL: 1, HIGH: 2, NORMAL: 3, LOW: 4 }[priority];
+
+  await queue.add(
+    "send",
+    {
+      messageId: smsMessage._id.toString(),
+      to,
+      message,
+      type,
+      priority,
+      orgId,
+      userId,
+      referenceType,
+      referenceId,
+      metadata,
+    },
+    {
+      delay,
+      priority: priorityValue,
+      jobId: `sms-${smsMessage._id.toString()}`,
+      // Align BullMQ retries with SLA-configured maxRetries
+      attempts: smsMessage.maxRetries,
+    }
+  );
+
+  // Update status to QUEUED
+  await SMSMessage.findByIdAndUpdate(smsMessage._id, { status: "QUEUED" });
+
+  logger.info("[SMS Queue] Message queued", {
+    messageId: smsMessage._id.toString(),
+    orgId,
+    toMasked: maskPhone(to),
+    type,
+    priority,
+    delay,
+  });
+
+  return { messageId: smsMessage._id.toString(), queued: true };
+}
+
+type ExistingSMS = Pick<
+  ISMSMessage,
+  | "_id"
+  | "to"
+  | "message"
+  | "type"
+  | "priority"
+  | "orgId"
+  | "userId"
+  | "referenceType"
+  | "referenceId"
+  | "metadata"
+  | "maxRetries"
+ | "retryCount"
+>;
+
+/**
+ * Enqueue an existing SMS record for delivery without creating a new document.
+ * Falls back to immediate send when the queue is disabled.
+ */
+export async function enqueueExistingSMS(
+  message: ExistingSMS,
+  options: { attempts?: number; jobId?: string } = {}
+): Promise<void> {
+  if (!message.orgId) {
+    throw new Error("[SMS Queue] orgId is required to enqueue SMS");
+  }
+
+  const queue = getSMSQueue();
+  const messageId = typeof message._id === "string" ? message._id : message._id.toString();
+
+  if (!queue) {
+    await processSMSJob(messageId);
+    return;
+  }
+
+  const priorityValue = { CRITICAL: 1, HIGH: 2, NORMAL: 3, LOW: 4 }[message.priority];
+  const jobId = options.jobId ?? `sms-${messageId}`;
+  // When callers reset retryCount before enqueue, honor the requested attempts/maxRetries directly.
+  const attemptsRemaining = Math.max(1, options.attempts ?? message.maxRetries ?? 1);
+
+  await queue.add(
+    "send",
+    {
+      messageId,
+      to: message.to,
+      message: message.message,
+      type: message.type,
+      priority: message.priority,
+      orgId: message.orgId,
+      userId: message.userId,
+      referenceType: message.referenceType,
+      referenceId: message.referenceId,
+      metadata: message.metadata as Record<string, unknown> | undefined,
+    },
+    {
+      priority: priorityValue,
+      jobId,
+      attempts: attemptsRemaining,
+    }
+  );
+
+  logger.info("[SMS Queue] Existing message queued", {
+    messageId,
+    orgId: message.orgId,
+    toMasked: maskPhone(message.to),
+    priority: message.priority,
+  });
+}
+
+/**
+ * Process a single SMS job
+ */
+async function processSMSJob(messageId: string): Promise<void> {
+  await connectToDatabase();
+
+  const message = await SMSMessage.findById(messageId);
+  if (!message) {
+    logger.error("[SMS Queue] Message not found", { messageId });
+    return;
+  }
+
+  if (!message.orgId) {
+    await SMSMessage.findByIdAndUpdate(messageId, {
+      status: "FAILED",
+      lastError: "Missing orgId",
+    });
+    logger.error("[SMS Queue] Missing orgId on message; aborting", { messageId });
+    return;
+  }
+
+  // Skip messages that are expired/cancelled before processing
+  if (message.status === "EXPIRED") {
+    logger.info("[SMS Queue] Message cancelled/expired; skipping send", {
+      messageId,
+      orgId: message.orgId,
+    });
+    return;
+  }
+
+  // Respect max retry policy and terminal failure states to avoid double sends/costs
+  if (message.status === "FAILED" || message.retryCount >= message.maxRetries) {
+    await SMSMessage.findByIdAndUpdate(messageId, { status: "FAILED" });
+    logger.warn("[SMS Queue] Max retries reached; skipping send", {
+      messageId,
+      orgId: message.orgId,
+      status: message.status,
+      retryCount: message.retryCount,
+      maxRetries: message.maxRetries,
+    });
+    return;
+  }
+
+  // Check if expired
+  if (message.expiresAt && new Date() > message.expiresAt) {
+    await SMSMessage.findByIdAndUpdate(messageId, { status: "EXPIRED" });
+    logger.warn("[SMS Queue] Message expired", { messageId, orgId: message.orgId });
+    return;
+  }
+
+  // Check if already delivered
+  if (message.status === "DELIVERED" || message.status === "SENT") {
+    logger.info("[SMS Queue] Message already sent/delivered", { messageId, status: message.status });
+    return;
+  }
+
+  // 🚦 Check per-org rate limit to prevent noisy-neighbor issues
+  const rateCheck = await checkOrgRateLimit(message.orgId);
+  if (!rateCheck.ok) {
+    const delayMs = Math.max(rateCheck.ttlMs, 5_000);
+    const queue = getSMSQueue();
+    const priorityValue = { CRITICAL: 1, HIGH: 2, NORMAL: 3, LOW: 4 }[message.priority];
+
+    await SMSMessage.findByIdAndUpdate(messageId, {
+      status: "PENDING",
+      nextRetryAt: new Date(Date.now() + delayMs),
+    });
+
+    if (queue) {
+      await queue.add(
+        "send",
+        {
+          messageId,
+          to: message.to,
+          message: message.message,
+          type: message.type,
+          priority: message.priority,
+          orgId: message.orgId,
+          userId: message.userId,
+          referenceType: message.referenceType,
+          referenceId: message.referenceId,
+          metadata: message.metadata as Record<string, unknown> | undefined,
+        },
+        {
+          delay: delayMs,
+          priority: priorityValue,
+          jobId: `sms-${messageId}-ratelimit-${Date.now()}`,
+          attempts: Math.max(1, message.maxRetries - message.retryCount),
+        }
+      );
+    }
+
+    logger.warn("[SMS Queue] Rate limit exceeded for org; rescheduled", {
+      messageId,
+      orgId: message.orgId,
+      delayMs,
+    });
+    return;
+  }
+
+  const startTime = Date.now();
+  let recordedAttempt = false;
+
+  try {
+    const settings = await SMSSettings.getEffectiveSettings(message.orgId);
+    const candidates = buildProviderCandidates(settings, message.type);
+
+    if (!candidates.length) {
+      throw new Error("No valid SMS providers configured (org or env)");
+    }
+
+    let lastError = "Unknown SMS failure";
+    for (const candidate of candidates) {
+      if (!candidate.bearerToken || !candidate.senderName) {
+        lastError = `Provider ${candidate.name} missing credentials`;
+        logger.warn("[SMS Queue] Skipping provider due to missing credentials", {
+          messageId,
+          provider: candidate.name,
+        });
+        continue;
+      }
+
+      const result = await sendSMS(message.to, message.message, {
+        provider: candidate.provider,
+        bearerToken: candidate.bearerToken,
+        senderName: candidate.senderName,
+      });
+
+      const durationMs = Date.now() - startTime;
+
+      if (result.success) {
+        await SMSMessage.recordAttempt(messageId, {
+          attemptedAt: new Date(),
+          provider: (candidate.name || candidate.provider || "LOCAL") as TSMSProvider,
+          success: true,
+          providerMessageId: result.messageSid,
+          durationMs,
+        });
+        recordedAttempt = true;
+
+        logger.info("[SMS Queue] Message sent successfully", {
+          messageId,
+          orgId: message.orgId,
+          toMasked: maskPhone(message.to),
+          provider: candidate.name,
+          messageSid: result.messageSid,
+          durationMs,
+        });
+        return;
+      }
+
+      lastError = result.error || "SMS send failed";
+      logger.warn("[SMS Queue] Provider failed, trying next candidate", {
+        messageId,
+        orgId: message.orgId,
+        toMasked: maskPhone(message.to),
+        providerTried: candidate.name,
+        error: lastError,
+      });
+    }
+
+    const finalProvider = candidates[candidates.length - 1];
+    const durationMs = Date.now() - startTime;
+    await SMSMessage.recordAttempt(messageId, {
+      attemptedAt: new Date(),
+      provider: (finalProvider?.name || "LOCAL") as TSMSProvider,
+      success: false,
+      errorMessage: lastError,
+      durationMs,
+    });
+    recordedAttempt = true;
+
+    throw new Error(lastError || "SMS send failed");
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    if (!recordedAttempt) {
+      await SMSMessage.recordAttempt(messageId, {
+        attemptedAt: new Date(),
+        provider: "LOCAL", // System-level failure before reaching provider
+        success: false,
+        errorMessage,
+        durationMs,
+      });
+      recordedAttempt = true;
+    }
+
+    // 📊 FIXED: Record failed attempt for retry tracking and SLA breach detection
+    logger.error("[SMS Queue] Send failed", {
+      messageId,
+      orgId: message.orgId,
+      toMasked: maskPhone(message.to),
+      error: errorMessage,
+      durationMs,
+      retryCount: message.retryCount + 1,
+      maxRetries: message.maxRetries,
+    });
+
+    throw error; // Let BullMQ handle retry
+  }
+}
+
+/**
+ * Start the SMS worker
+ */
+export function startSMSWorker(): Worker<ISMSJobData> | null {
+  if (smsWorker) return smsWorker;
+
+  const connection = getRedisClient();
+  if (!connection) {
+    logger.warn("[SMS Worker] Redis not configured, worker disabled");
+    return null;
+  }
+
+  // Worker throughput limit: configurable via env, default 120/min to accommodate multiple orgs
+  // Per-org limits are enforced separately via checkOrgRateLimit (default 60/org/min)
+  // Global worker limit should be >= max expected concurrent orgs * per-org limit
+  const workerMaxPerMinute = process.env.SMS_WORKER_MAX_PER_MIN
+    ? Math.max(30, Number(process.env.SMS_WORKER_MAX_PER_MIN))
+    : 120;
+
+  smsWorker = new Worker<ISMSJobData>(
+    SMS_QUEUE_NAME,
+    async (job: Job<ISMSJobData>) => {
+      await processSMSJob(job.data.messageId);
+    },
+    {
+      connection: connection as Redis,
+      concurrency: 5,
+      limiter: {
+        max: workerMaxPerMinute,
+        duration: 60_000,
+      },
+    }
+  );
+
+  smsWorker.on("completed", (job) => {
+    logger.info("[SMS Worker] Job completed", { jobId: job.id, messageId: job.data.messageId });
+  });
+
+  smsWorker.on("failed", (job, error) => {
+    logger.error("[SMS Worker] Job failed", {
+      jobId: job?.id,
+      messageId: job?.data.messageId,
+      error: error.message,
+      attemptsMade: job?.attemptsMade,
+    });
+  });
+
+  smsWorker.on("error", (error) => {
+    logger.error("[SMS Worker] Worker error", { error: error.message });
+  });
+
+  logger.info("📱 SMS Worker started");
+  return smsWorker;
+}
+
+/**
+ * Stop the SMS worker and queue
+ */
+export async function stopSMSQueue(): Promise<void> {
+  if (smsWorker) {
+    await smsWorker.close();
+    smsWorker = null;
+    logger.info("[SMS Worker] Stopped");
+  }
+
+  if (smsQueue) {
+    await smsQueue.close();
+    smsQueue = null;
+    logger.info("[SMS Queue] Stopped");
+  }
+}
+
+/**
+ * Get queue statistics
+ */
+export async function getSMSQueueStats(): Promise<{
+  waiting: number;
+  active: number;
+  completed: number;
+  failed: number;
+  delayed: number;
+} | null> {
+  const queue = getSMSQueue();
+  if (!queue) return null;
+
+  const [waiting, active, completed, failed, delayed] = await Promise.all([
+    queue.getWaitingCount(),
+    queue.getActiveCount(),
+    queue.getCompletedCount(),
+    queue.getFailedCount(),
+    queue.getDelayedCount(),
+  ]);
+
+  return { waiting, active, completed, failed, delayed };
+}
+
+/**
+ * Retry failed messages
+ * 🔒 SECURITY: Only retries messages that have orgId for tenant isolation
+ */
+export async function retryFailedMessages(orgId?: string, limit = 100): Promise<number> {
+  await connectToDatabase();
+
+  if (!orgId) {
+    throw new Error("[SMS Queue] orgId is required to retry failed messages");
+  }
+
+  const queue = getSMSQueue();
+  const filter: Record<string, unknown> = { status: "FAILED", orgId };
+
+  const failedMessages = await SMSMessage.find(filter)
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .lean();
+
+  let retried = 0;
+
+  for (const msg of failedMessages) {
+    // 🔐 SECURITY: Skip messages without orgId (legacy records without tenant scope)
+    if (!msg.orgId) {
+      logger.warn('[SMS Queue] Skipping retry for message without orgId', { messageId: msg._id });
+      continue;
+    }
+
+    if (msg.retryCount < msg.maxRetries) {
+      const nextStatus = queue ? "QUEUED" : "PENDING";
+      await SMSMessage.findByIdAndUpdate(msg._id, {
+        status: nextStatus,
+        retryCount: 0,
+        nextRetryAt: new Date(),
+        lastError: null,
+        lastErrorCode: null,
+      });
+
+      // Clean up any pending jobs to avoid duplicate sends after retry
+      await removePendingSMSJobs(msg._id.toString());
+
+      await enqueueExistingSMS({
+        _id: msg._id as unknown as ISMSMessage["_id"],
+        to: msg.to,
+        message: msg.message,
+        type: msg.type,
+        priority: msg.priority,
+        orgId: msg.orgId,
+        userId: msg.userId,
+        referenceType: msg.referenceType,
+        referenceId: msg.referenceId,
+        metadata: msg.metadata as Record<string, unknown> | undefined,
+        maxRetries: msg.maxRetries,
+        retryCount: msg.retryCount,
+      }, { attempts: msg.maxRetries ?? 1 });
+      retried++;
+    }
+  }
+
+  return retried;
+}
+
+// Export internals for testing/monitoring
+export { buildProviderCandidates, decryptProviderToken };
+
+]]>
+</file>
+
+<file path="lib/rbac/client-roles.ts">
+<![CDATA[
+/**
+ * Client-safe RBAC definitions.
+ *
+ * SINGLE SOURCE OF TRUTH: domain/fm/fm-lite.ts
+ *
+ * This file re-exports from fm-lite to ensure client/server RBAC consistency.
+ * Do NOT define RBAC matrices here - all definitions come from fm-lite.
+ *
+ * @see domain/fm/fm-lite.ts for canonical RBAC definitions
+ */
+
+// Re-export all RBAC types and constants from the canonical source
+export {
+  Role,
+  SubRole,
+  Plan,
+  ModuleKey,
+  SubmoduleKey,
+  PLAN_GATES,
+  ROLE_MODULES,
+  normalizeRole,
+  normalizeSubRole,
+  computeAllowedModules,
+  inferSubRoleFromRole,
+  type Action,
+} from "@/domain/fm/fm-lite";
+
+]]>
+</file>
+
+<file path="lib/rbac.ts">
+<![CDATA[
+/**
+ * RBAC (Role-Based Access Control) Utilities
+ *
+ * Provides permission checking functions for server and client.
+ *
+ * Permission Format: "module:action" (e.g., "finance:invoice.read")
+ *
+ * Super Admin Bypass: isSuperAdmin=true grants all permissions
+ */
+
+export type RbacContext = {
+  isSuperAdmin: boolean;
+  permissions: string[]; // "module:action" format
+  roles?: string[]; // role slugs (optional)
+};
+
+/**
+ * Check if user has a specific permission
+ * @param ctx RBAC context (from session/JWT)
+ * @param perm Permission key (e.g., "finance:invoice.read")
+ * @returns true if user has permission or is Super Admin
+ */
+export function can(ctx: RbacContext, perm: string): boolean {
+  if (!ctx) return false;
+  if (ctx.isSuperAdmin) return true; // Super Admin bypass
+  return ctx.permissions?.includes(perm) || false;
+}
+
+/**
+ * Check if user has ANY of the specified permissions
+ * @param ctx RBAC context
+ * @param perms Array of permission keys
+ * @returns true if user has at least one permission or is Super Admin
+ */
+export function canAny(ctx: RbacContext, perms: string[]): boolean {
+  if (!ctx) return false;
+  if (ctx.isSuperAdmin) return true; // Super Admin bypass
+  if (!perms || perms.length === 0) return false;
+  return perms.some((p) => ctx.permissions?.includes(p));
+}
+
+/**
+ * Check if user has ALL of the specified permissions
+ * @param ctx RBAC context
+ * @param perms Array of permission keys
+ * @returns true if user has all permissions or is Super Admin
+ */
+export function canAll(ctx: RbacContext, perms: string[]): boolean {
+  if (!ctx) return false;
+  if (ctx.isSuperAdmin) return true; // Super Admin bypass
+  if (!perms || perms.length === 0) return true;
+  return perms.every((p) => ctx.permissions?.includes(p));
+}
+
+/**
+ * Check if user has permission for a specific module
+ * @param ctx RBAC context
+ * @param module Module name (e.g., "finance", "workorders")
+ * @returns true if user has any permission in the module or is Super Admin
+ */
+export function canModule(ctx: RbacContext, module: string): boolean {
+  if (!ctx) return false;
+  if (ctx.isSuperAdmin) return true; // Super Admin bypass
+  return ctx.permissions?.some((p) => p.startsWith(`${module}:`)) || false;
+}
+
+/**
+ * Get all permissions for a specific module
+ * @param ctx RBAC context
+ * @param module Module name
+ * @returns Array of permission keys for the module
+ */
+export function getModulePermissions(
+  ctx: RbacContext,
+  module: string,
+): string[] {
+  if (!ctx) return [];
+  if (ctx.isSuperAdmin) return [`${module}:*`]; // Wildcard for Super Admin
+  return ctx.permissions?.filter((p) => p.startsWith(`${module}:`)) || [];
+}
+
+/**
+ * Check if user has a specific role
+ * @param ctx RBAC context
+ * @param roleSlug Role slug (e.g., "super_admin", "property_owner")
+ * @returns true if user has the role
+ */
+export function hasRole(ctx: RbacContext, roleSlug: string): boolean {
+  if (!ctx) return false;
+  if (ctx.isSuperAdmin && roleSlug === "super_admin") return true;
+  return ctx.roles?.includes(roleSlug) || false;
+}
+
+/**
+ * Check if user has ANY of the specified roles
+ * @param ctx RBAC context
+ * @param roleSlugs Array of role slugs
+ * @returns true if user has at least one role
+ */
+export function hasAnyRole(ctx: RbacContext, roleSlugs: string[]): boolean {
+  if (!ctx) return false;
+  if (ctx.isSuperAdmin && roleSlugs.includes("super_admin")) return true;
+  if (!roleSlugs || roleSlugs.length === 0) return false;
+  return roleSlugs.some((r) => ctx.roles?.includes(r));
+}
+
+/**
+ * Check if user is Super Admin
+ * @param ctx RBAC context
+ * @returns true if user is Super Admin
+ */
+export function isSuperAdmin(ctx: RbacContext): boolean {
+  return ctx?.isSuperAdmin || false;
+}
+
+/**
+ * Create RBAC context from session/JWT data
+ * @param user User object from session
+ * @returns RBAC context
+ */
+export function createRbacContext(
+  user:
+    | { isSuperAdmin?: boolean; permissions?: string[]; roles?: string[] }
+    | null
+    | undefined,
+): RbacContext {
+  return {
+    isSuperAdmin: user?.isSuperAdmin || false,
+    permissions: user?.permissions || [],
+    roles: user?.roles || [],
+  };
+}
+
+/**
+ * Permission categories for common operations
+ */
+export const PermissionActions = {
+  READ: "read",
+  CREATE: "create",
+  UPDATE: "update",
+  DELETE: "delete",
+  APPROVE: "approve",
+  EXPORT: "export",
+  IMPORT: "import",
+  MANAGE: "manage",
+} as const;
+
+/**
+ * Common permission patterns
+ */
+export const PermissionPatterns = {
+  // Finance
+  FINANCE_INVOICE_READ: "finance:invoice.read",
+  FINANCE_INVOICE_CREATE: "finance:invoice.create",
+  FINANCE_INVOICE_UPDATE: "finance:invoice.update",
+  FINANCE_INVOICE_DELETE: "finance:invoice.delete",
+  FINANCE_PAYMENT_READ: "finance:payment.read",
+  FINANCE_PAYMENT_CREATE: "finance:payment.create",
+
+  // Work Orders
+  WORKORDERS_READ: "workorders:read",
+  WORKORDERS_CREATE: "workorders:create",
+  WORKORDERS_UPDATE: "workorders:update",
+  WORKORDERS_DELETE: "workorders:delete",
+  WORKORDERS_ASSIGN: "workorders:assign",
+  WORKORDERS_APPROVE: "workorders:approve",
+
+  // Properties
+  PROPERTIES_READ: "properties:read",
+  PROPERTIES_CREATE: "properties:create",
+  PROPERTIES_UPDATE: "properties:update",
+  PROPERTIES_DELETE: "properties:delete",
+
+  // HR
+  HR_EMPLOYEE_READ: "hr:employee.read",
+  HR_EMPLOYEE_CREATE: "hr:employee.create",
+  HR_EMPLOYEE_UPDATE: "hr:employee.update",
+  HR_EMPLOYEE_DELETE: "hr:employee.delete",
+  HR_PAYROLL_READ: "hr:payroll.read",
+  HR_PAYROLL_PROCESS: "hr:payroll.process",
+
+  // Admin
+  ADMIN_SETTINGS_READ: "admin:settings.read",
+  ADMIN_SETTINGS_WRITE: "admin:settings.write",
+  ADMIN_USERS_READ: "admin:users.read",
+  ADMIN_USERS_MANAGE: "admin:users.manage",
+  ADMIN_ROLES_MANAGE: "admin:roles.manage",
+  ADMIN_SUPER_GRANT: "admin:super.grant",
+  ADMIN_SUPER_REVOKE: "admin:super.revoke",
+  ADMIN_IMPERSONATE: "admin:impersonate",
+
+  // Reports
+  REPORTS_VIEW: "reports:view",
+  REPORTS_EXPORT: "reports:export",
+
+  // CRM
+  CRM_LEAD_READ: "crm:lead.read",
+  CRM_LEAD_CREATE: "crm:lead.create",
+  CRM_LEAD_UPDATE: "crm:lead.update",
+
+  // Marketplace
+  MARKETPLACE_CATALOG_READ: "marketplace:catalog.read",
+  MARKETPLACE_CATALOG_MANAGE: "marketplace:catalog.manage",
+
+  // Support
+  SUPPORT_TICKET_READ: "support:ticket.read",
+  SUPPORT_TICKET_CREATE: "support:ticket.create",
+  SUPPORT_TICKET_ASSIGN: "support:ticket.assign",
+
+  // Compliance
+  COMPLIANCE_VIEW: "compliance:view",
+  COMPLIANCE_AUDIT: "compliance:audit",
+} as const;
+
+/**
+ * Module names
+ */
+export const Modules = {
+  FINANCE: "finance",
+  WORKORDERS: "workorders",
+  PROPERTIES: "properties",
+  HR: "hr",
+  CRM: "crm",
+  ADMIN: "admin",
+  REPORTS: "reports",
+  MARKETPLACE: "marketplace",
+  SUPPORT: "support",
+  COMPLIANCE: "compliance",
+  SYSTEM: "system",
+} as const;
+
+]]>
+</file>
+
+<file path="lib/redis-client.ts">
+<![CDATA[
+/**
+ * Redis Client Configuration
+ * Used for caching, rate limiting, and BullMQ job queues.
+ * Provides in-memory fallbacks when Redis is not configured.
+ */
+
+import Redis from "ioredis";
+import { logger } from "@/lib/logger";
+
+type MemoryEntry = { value: string; expiresAt: number };
+
+// Resolution order: BULLMQ_REDIS_URL → REDIS_URL → REDIS_KEY (Vercel/GitHub naming)
+const redisUrl = process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL || process.env.REDIS_KEY;
+const redisHost = process.env.REDIS_HOST;
+const redisPort = parseInt(process.env.REDIS_PORT || "6379", 10);
+const redisPassword = process.env.REDIS_PASSWORD;
+const redisDb = parseInt(process.env.REDIS_DB || "0", 10);
+
+const hasRedisConfig = Boolean(redisUrl || redisHost);
+
+let redisClient: Redis | null = null;
+let warnedMissingRedis = false;
+
+const memoryStore = new Map<string, MemoryEntry>();
+const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
+
+function cleanupMemoryEntry(key: string): MemoryEntry | null {
+  const entry = memoryStore.get(key);
+  if (!entry) return null;
+  if (
+    entry.expiresAt !== Number.POSITIVE_INFINITY &&
+    entry.expiresAt <= Date.now()
+  ) {
+    memoryStore.delete(key);
+    return null;
+  }
+  return entry;
+}
+
+function memoryGet(key: string): string | null {
+  const entry = cleanupMemoryEntry(key);
+  return entry ? entry.value : null;
+}
+
+function memorySet(key: string, value: string, ttlSeconds?: number): void {
+  const expiresAt = ttlSeconds
+    ? Date.now() + ttlSeconds * 1000
+    : Number.POSITIVE_INFINITY;
+  memoryStore.set(key, { value, expiresAt });
+}
+
+function memoryDel(key: string): void {
+  memoryStore.delete(key);
+}
+
+function memoryDelPattern(pattern: string): void {
+  const regex = new RegExp("^" + pattern.replace(/\*/g, ".*") + "$");
+  for (const key of memoryStore.keys()) {
+    if (regex.test(key)) {
+      memoryStore.delete(key);
+    }
+  }
+}
+
+function memoryIncr(key: string): number {
+  const current = Number(memoryGet(key) || "0");
+  const next = current + 1;
+  memorySet(key, next.toString());
+  return next;
+}
+
+function memoryExpire(key: string, ttlSeconds: number): void {
+  const entry = memoryStore.get(key);
+  if (!entry) return;
+  entry.expiresAt = Date.now() + ttlSeconds * 1000;
+  memoryStore.set(key, entry);
+}
+
+function buildRedisClient(): Redis | null {
+  if (!hasRedisConfig) {
+    if (!warnedMissingRedis && process.env.NODE_ENV !== "test") {
+      logger.warn(
+        "[Redis] REDIS_URL/REDIS_HOST not configured. Redis-backed features disabled.",
+      );
+      warnedMissingRedis = true;
+    }
+    return null;
+  }
+
+  if (redisClient) {
+    return redisClient;
+  }
+
+  const baseConfig = {
+    lazyConnect: true,
+    maxRetriesPerRequest: 3,
+    retryStrategy(times: number) {
+      return Math.min(times * 50, 2000);
+    },
+  };
+
+  redisClient = redisUrl
+    ? new Redis(redisUrl, baseConfig)
+    : new Redis({
+        host: redisHost!,
+        port: redisPort,
+        password: redisPassword,
+        db: redisDb,
+        ...baseConfig,
+      });
+
+  redisClient.on("connect", () => {
+    // Mask credentials in URL before logging to prevent leakage
+    const maskedUrl = redisUrl ? redisUrl.replace(/:(\/\/)?[^@/]*@/, "$1****@") : undefined;
+    logger.info(
+      "🔴 Redis connected",
+      maskedUrl ? { url: maskedUrl } : { host: redisHost, port: redisPort },
+    );
+  });
+
+  redisClient.on("ready", () => {
+    logger.info("✅ Redis ready for commands");
+  });
+
+  redisClient.on("reconnecting", () => {
+    logger.info("Redis reconnecting...");
+  });
+
+  redisClient.on("close", () => {
+    logger.warn("Redis connection closed");
+  });
+
+  redisClient.on("error", (error) => {
+    logger.error("Redis connection error", { error });
+  });
+
+  return redisClient;
+}
+
+export function getRedisClient(): Redis | null {
+  return buildRedisClient();
+}
+
+export async function connectRedis(): Promise<void> {
+  const client = getRedisClient();
+  if (!client) {
+    logger.warn("connectRedis skipped - Redis not configured");
+    return;
+  }
+  if (client.status === "ready") return;
+  await client.connect();
+  logger.info("Redis client connected successfully");
+}
+
+export async function disconnectRedis(): Promise<void> {
+  if (redisClient) {
+    await redisClient.quit();
+    redisClient = null;
+    logger.info("Redis client disconnected");
+  }
+}
+
+export const cache = {
+  async get<T>(key: string): Promise<T | null> {
+    const client = getRedisClient();
+    if (client) {
+      try {
+        const value = await client.get(key);
+        return value ? (JSON.parse(value) as T) : null;
+      } catch (_error) {
+        const error =
+          _error instanceof Error ? _error : new Error(String(_error));
+        void error;
+        logger.error("Cache get error", { key, error });
+      }
+    }
+    const memoryValue = memoryGet(key);
+    return memoryValue ? (JSON.parse(memoryValue) as T) : null;
+  },
+
+  async set(key: string, value: unknown, ttlSeconds?: number): Promise<void> {
+    const serialized = JSON.stringify(value);
+    const client = getRedisClient();
+    if (client) {
+      try {
+        if (ttlSeconds) {
+          await client.setex(key, ttlSeconds, serialized);
+        } else {
+          await client.set(key, serialized);
+        }
+        return;
+      } catch (_error) {
+        const error =
+          _error instanceof Error ? _error : new Error(String(_error));
+        void error;
+        logger.error("Cache set error", { key, error });
+      }
+    }
+    memorySet(key, serialized, ttlSeconds);
+  },
+
+  async del(key: string): Promise<void> {
+    const client = getRedisClient();
+    if (client) {
+      try {
+        await client.del(key);
+        return;
+      } catch (_error) {
+        const error =
+          _error instanceof Error ? _error : new Error(String(_error));
+        void error;
+        logger.error("Cache delete error", { key, error });
+      }
+    }
+    memoryDel(key);
+  },
+
+  async delPattern(pattern: string): Promise<void> {
+    const client = getRedisClient();
+    if (client) {
+      try {
+        const keys = await client.keys(pattern);
+        if (keys.length) {
+          await client.del(...keys);
+        }
+        return;
+      } catch (_error) {
+        const error =
+          _error instanceof Error ? _error : new Error(String(_error));
+        void error;
+        logger.error("Cache delete pattern error", { pattern, error });
+      }
+    }
+    memoryDelPattern(pattern);
+  },
+
+  async exists(key: string): Promise<boolean> {
+    const client = getRedisClient();
+    if (client) {
+      try {
+        return (await client.exists(key)) === 1;
+      } catch (_error) {
+        const error =
+          _error instanceof Error ? _error : new Error(String(_error));
+        void error;
+        logger.error("Cache exists error", { key, error });
+      }
+    }
+    return memoryGet(key) !== null;
+  },
+
+  async incr(key: string): Promise<number> {
+    const client = getRedisClient();
+    if (client) {
+      try {
+        return await client.incr(key);
+      } catch (_error) {
+        const error =
+          _error instanceof Error ? _error : new Error(String(_error));
+        void error;
+        logger.error("Cache increment error", { key, error });
+      }
+    }
+    return memoryIncr(key);
+  },
+
+  async expire(key: string, ttlSeconds: number): Promise<void> {
+    const client = getRedisClient();
+    if (client) {
+      try {
+        await client.expire(key, ttlSeconds);
+        return;
+      } catch (_error) {
+        const error =
+          _error instanceof Error ? _error : new Error(String(_error));
+        void error;
+        logger.error("Cache expire error", { key, error });
+      }
+    }
+    memoryExpire(key, ttlSeconds);
+  },
+};
+
+export const rateLimit = {
+  async check(
+    key: string,
+    limit: number,
+    windowSeconds: number,
+  ): Promise<{ allowed: boolean; remaining: number; resetAt: Date }> {
+    const client = getRedisClient();
+    if (client) {
+      try {
+        const rateKey = `ratelimit:${key}`;
+        const current = await client.incr(rateKey);
+        if (current === 1) {
+          await client.expire(rateKey, windowSeconds);
+        }
+        const ttl = await client.ttl(rateKey);
+        const resetAt = new Date(Date.now() + ttl * 1000);
+        const remaining = Math.max(0, limit - current);
+        return { allowed: current <= limit, remaining, resetAt };
+      } catch (_error) {
+        const error =
+          _error instanceof Error ? _error : new Error(String(_error));
+        void error;
+        logger.error("Rate limit check error", { key, error });
+      }
+    }
+
+    const now = Date.now();
+    const bucket = rateLimitBuckets.get(key);
+    if (!bucket || bucket.resetAt <= now) {
+      const resetAt = now + windowSeconds * 1000;
+      rateLimitBuckets.set(key, { count: 1, resetAt });
+      return {
+        allowed: true,
+        remaining: limit - 1,
+        resetAt: new Date(resetAt),
+      };
+    }
+
+    bucket.count += 1;
+    const allowed = bucket.count <= limit;
+    const remaining = Math.max(0, limit - bucket.count);
+    rateLimitBuckets.set(key, bucket);
+    return { allowed, remaining, resetAt: new Date(bucket.resetAt) };
+  },
+};
+
+export default {
+  getRedisClient,
+  connectRedis,
+  disconnectRedis,
+  cache,
+  rateLimit,
+};
+
+]]>
+</file>
+
+<file path="lib/redis.ts">
+<![CDATA[
+/**
+ * Redis Singleton Connection Pool
+ *
+ * SECURITY & PERFORMANCE FIX:
+ * Historical context: app/api/support/incidents/route.ts created new Redis()
+ * connection per request, then called quit(), exhausting connection pools
+ * and causing performance degradation.
+ *
+ * This singleton pattern:
+ * - Reuses single connection across all requests
+ * - Prevents connection exhaustion
+ * - Automatically reconnects on failure
+ * - Gracefully handles Redis unavailability
+ *
+ * IMPORTANT: This module uses dynamic require() to avoid bundling ioredis
+ * into Edge/client bundles. The 'dns' module required by ioredis is not
+ * available in Edge runtime.
+ *
+ * @module lib/redis
+ */
+
+import { logger } from "@/lib/logger";
+
+// Use 'any' for Redis types to avoid importing ioredis at module level
+// which would cause webpack to bundle it for Edge runtime
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RedisCtor = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RedisInstance = any;
+
+let RedisModule: RedisCtor | null = null;
+let redis: RedisInstance | null = null;
+let isConnecting = false;
+let loggedMissingRedisUrl = false;
+
+// =============================================================================
+// Connection Metrics for Observability
+// =============================================================================
+
+interface RedisMetrics {
+  connectionAttempts: number;
+  successfulConnections: number;
+  connectionErrors: number;
+  reconnectAttempts: number;
+  lastConnectedAt: Date | null;
+  lastErrorAt: Date | null;
+  lastError: string | null;
+  currentStatus: string;
+}
+
+const metrics: RedisMetrics = {
+  connectionAttempts: 0,
+  successfulConnections: 0,
+  connectionErrors: 0,
+  reconnectAttempts: 0,
+  lastConnectedAt: null,
+  lastErrorAt: null,
+  lastError: null,
+  currentStatus: "disconnected",
+};
+
+/**
+ * Get Redis connection metrics for observability/monitoring.
+ * Useful for health dashboards and alerting systems.
+ *
+ * @returns Current Redis connection metrics
+ *
+ * @example
+ * const metrics = getRedisMetrics();
+ * console.log(`Connection attempts: ${metrics.connectionAttempts}`);
+ * console.log(`Current status: ${metrics.currentStatus}`);
+ */
+export function getRedisMetrics(): Readonly<RedisMetrics> {
+  return { ...metrics };
+}
+
+function isEdgeRuntime(): boolean {
+  // Edge runtime sets global EdgeRuntime
+  return typeof (globalThis as Record<string, unknown>).EdgeRuntime !== "undefined" ||
+    process?.env?.NEXT_RUNTIME === "edge";
+}
+
+function getRedisCtor(): RedisCtor | null {
+  if (RedisModule) return RedisModule;
+  if (typeof require === "undefined") return null;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require("ioredis");
+    RedisModule = mod.default || mod;
+    return RedisModule;
+  } catch (error) {
+    logger.warn("[Redis] ioredis not available in this runtime", { error });
+    return null;
+  }
+}
+
+/**
+ * Get or create singleton Redis connection
+ *
+ * @returns Redis client instance or null if Redis is unavailable
+ */
+export function getRedisClient(): RedisInstance | null {
+  // Never attempt Redis on Edge runtime
+  if (isEdgeRuntime()) {
+    return null;
+  }
+
+  // Redis is optional - return null if no URL configured
+  // Support multiple env aliases for compatibility with different deployment configs:
+  // - REDIS_URL: Standard convention (preferred)
+  // - REDIS_KEY: Vercel/GitHub Actions naming convention
+  // - OTP_STORE_REDIS_URL: Dedicated OTP Redis instance
+  // - BULLMQ_REDIS_URL: Dedicated queue Redis instance
+  const redisUrl = 
+    process.env.REDIS_URL || 
+    process.env.REDIS_KEY ||
+    process.env.OTP_STORE_REDIS_URL || 
+    process.env.BULLMQ_REDIS_URL;
+  if (!redisUrl) {
+    if (!loggedMissingRedisUrl) {
+      logger.warn("[Redis] No REDIS_URL, REDIS_KEY, OTP_STORE_REDIS_URL, or BULLMQ_REDIS_URL configured - Redis-backed features disabled");
+      loggedMissingRedisUrl = true;
+    }
+    return null;
+  }
+
+  const RedisCtorLocal = getRedisCtor();
+  if (!RedisCtorLocal) {
+    return null;
+  }
+
+  // Return existing connection if ready, connecting, or reconnecting
+  if (
+    redis &&
+    (redis.status === "ready" ||
+      redis.status === "connecting" ||
+      redis.status === "reconnecting")
+  ) {
+    metrics.currentStatus = redis.status;
+    return redis;
+  }
+
+  // Return in-flight client instead of null to preserve cache usage during connection
+  // This prevents cache misses when a connection is being established
+  if (isConnecting && redis) {
+    metrics.currentStatus = "connecting";
+    return redis;
+  }
+
+  // Prevent multiple simultaneous connection attempts
+  if (isConnecting) {
+    metrics.currentStatus = "connecting";
+    return null;
+  }
+
+  // Wrap Redis instantiation in try-catch to handle constructor errors
+  try {
+    isConnecting = true;
+    metrics.connectionAttempts++;
+    metrics.currentStatus = "connecting";
+
+    const connectTimeout = Number(process.env.REDIS_CONNECT_TIMEOUT_MS) || 5000;
+    redis = new RedisCtorLocal(redisUrl, {
+      connectTimeout,
+      maxRetriesPerRequest: 3,
+      enableReadyCheck: true,
+      enableOfflineQueue: false, // Fail fast if Redis is down
+      retryStrategy(times: number) {
+        // Exponential backoff: 50ms, 100ms, 200ms, 400ms, max 2s
+        const delay = Math.min(times * 50, 2000);
+        return delay;
+      },
+      reconnectOnError(err: Error) {
+        // Reconnect on specific errors
+        const targetErrors = ["READONLY", "ECONNRESET", "ETIMEDOUT"];
+        return targetErrors.some((target) => err.message.includes(target));
+      },
+    });
+
+    redis.on("error", (err: Error) => {
+      logger.error("[Redis] Connection error:", {
+        message: err.message,
+        code: (err as { code?: string }).code,
+        timestamp: new Date().toISOString(),
+      });
+      // Update metrics
+      metrics.connectionErrors++;
+      metrics.lastErrorAt = new Date();
+      metrics.lastError = err.message;
+      metrics.currentStatus = "error";
+      // Reset isConnecting flag on error to allow retry attempts
+      isConnecting = false;
+    });
+
+    redis.on("connect", () => {
+      logger.info("[Redis] Connected successfully");
+      metrics.successfulConnections++;
+      metrics.lastConnectedAt = new Date();
+      metrics.currentStatus = "connected";
+    });
+
+    redis.on("ready", () => {
+      logger.info("[Redis] Ready to accept commands");
+      metrics.currentStatus = "ready";
+      isConnecting = false;
+    });
+
+    redis.on("close", () => {
+      logger.warn("[Redis] Connection closed");
+      metrics.currentStatus = "closed";
+      // Reset isConnecting flag on close to allow reconnection
+      isConnecting = false;
+    });
+
+    redis.on("reconnecting", () => {
+      logger.info("[Redis] Reconnecting...");
+      metrics.reconnectAttempts++;
+      metrics.currentStatus = "reconnecting";
+    });
+
+    redis.on("end", () => {
+      logger.info("[Redis] Connection ended");
+      metrics.currentStatus = "ended";
+      // Reset isConnecting flag when connection ends
+      isConnecting = false;
+    });
+
+    return redis;
+  } catch (_error: unknown) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    isConnecting = false;
+    logger.error("[Redis] Failed to create connection:", { error });
+    return null;
+  }
+}
+
+/**
+ * Gracefully close Redis connection
+ * Call this during application shutdown
+ */
+export async function closeRedis(): Promise<void> {
+  if (redis) {
+    try {
+      await redis.quit();
+      redis = null;
+      logger.info("[Redis] Connection closed gracefully");
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      logger.error("[Redis] Error closing connection:", { error });
+      // Force disconnect if graceful close fails
+      if (redis) {
+        redis.disconnect();
+      }
+      redis = null;
+    }
+  }
+}
+
+/**
+ * Health check for Redis connection
+ *
+ * @returns true if Redis is connected and responding, false otherwise
+ */
+export async function isRedisHealthy(): Promise<boolean> {
+  const client = getRedisClient();
+  if (!client) return false;
+
+  try {
+    const result = await client.ping();
+    return result === "PONG";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Safe Redis operation wrapper with automatic fallback
+ *
+ * @param operation - Async function that performs Redis operation
+ * @param fallback - Value to return if Redis fails
+ * @returns Operation result or fallback value
+ *
+ * @example
+ * const value = await safeRedisOp(
+ *   async (client) => client.get('key'),
+ *   null // fallback value
+ * );
+ */
+export async function safeRedisOp<T>(
+  operation: (client: RedisInstance) => Promise<T>,
+  fallback: T,
+): Promise<T> {
+  const client = getRedisClient();
+  if (!client) return fallback;
+
+  try {
+    return await operation(client);
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    logger.error("[Redis] Operation failed:", { error });
+    return fallback;
+  }
+}
+
+// =============================================================================
+// Cache helpers (shared ioredis client)
+// =============================================================================
+
+/**
+ * Redact sensitive parts of cache keys for logging.
+ * Prevents ID enumeration attacks by masking middle segments of keys.
+ * 
+ * @param key - The cache key to redact
+ * @returns Redacted key safe for logging
+ * 
+ * @example
+ * redactCacheKey("seller:12345:balance") // "seller:1234****:balance"
+ * redactCacheKey("analytics:org123:30") // "analytics:org1****:30"
+ */
+function redactCacheKey(key: string): string {
+  const parts = key.split(":");
+  if (parts.length > 1) {
+    return parts
+      .map((part, i) =>
+        i === 0 || i === parts.length - 1
+          ? part
+          : part.slice(0, 4) + "****"
+      )
+      .join(":");
+  }
+  // Fallback: show first 8 chars + mask
+  return key.slice(0, 8) + "****";
+}
+
+export const CacheTTL = {
+  FIVE_MINUTES: 300,
+  FIFTEEN_MINUTES: 900,
+  ONE_HOUR: 3600,
+  ONE_DAY: 86400,
+  ONE_WEEK: 604800,
+} as const;
+
+/**
+ * Get cached value or compute/store using provided function.
+ */
+/**
+ * Get cached value or compute/store using provided function.
+ * 
+ * @param key - Cache key (will be redacted in logs)
+ * @param ttl - Time to live in seconds
+ * @param fn - Function to compute value on cache miss
+ * @returns Cached or computed value
+ * 
+ * @example
+ * const balance = await getCached(
+ *   `seller:${sellerId}:balance`,
+ *   CacheTTL.FIVE_MINUTES,
+ *   () => calculateBalance(sellerId)
+ * );
+ */
+export async function getCached<T>(
+  key: string,
+  ttl: number,
+  fn: () => Promise<T>,
+): Promise<T> {
+  const client = getRedisClient();
+  if (client) {
+    try {
+      const cached = await client.get(key);
+      if (cached) {
+        logger.info(`[Cache] HIT: ${redactCacheKey(key)}`);
+        return JSON.parse(cached) as T;
+      }
+      logger.info(`[Cache] MISS: ${redactCacheKey(key)}`);
+    } catch (error) {
+      logger.error(`[Cache] Read error for key ${redactCacheKey(key)}`, { error });
+    }
+  }
+
+  const data = await fn();
+
+  // Use != null to prevent caching null values (which would mask "not found" states)
+  if (client && data != null) {
+    try {
+      await client.setex(key, ttl, JSON.stringify(data));
+      logger.info(`[Cache] SET: ${redactCacheKey(key)} (TTL ${ttl}s)`);
+    } catch (error) {
+      logger.error(`[Cache] Write error for key ${redactCacheKey(key)}`, { error });
+    }
+  }
+
+  return data;
+}
+
+export async function setCache<T>(
+  key: string,
+  value: T,
+  ttl: number,
+): Promise<void> {
+  const client = getRedisClient();
+  if (!client) return;
+  try {
+    await client.setex(key, ttl, JSON.stringify(value));
+    logger.info(`[Cache] SET: ${redactCacheKey(key)} (TTL ${ttl}s)`);
+  } catch (error) {
+    logger.error(`[Cache] Error setting key ${redactCacheKey(key)}`, { error });
+  }
+}
+
+export async function getCache<T>(key: string): Promise<T | null> {
+  const client = getRedisClient();
+  if (!client) return null;
+  try {
+    const cached = await client.get(key);
+    if (cached) {
+      logger.info(`[Cache] HIT: ${redactCacheKey(key)}`);
+      return JSON.parse(cached) as T;
+    }
+    logger.info(`[Cache] MISS: ${redactCacheKey(key)}`);
+    return null;
+  } catch (error) {
+    logger.error(`[Cache] Error reading key ${redactCacheKey(key)}`, { error });
+    return null;
+  }
+}
+
+export async function invalidateCache(pattern: string): Promise<void> {
+  const client = getRedisClient();
+  if (!client) return;
+
+  const keys: string[] = [];
+  try {
+    const stream = client.scanStream({ match: pattern, count: 200 });
+    for await (const chunk of stream as AsyncIterable<string[]>) {
+      keys.push(...chunk);
+    }
+
+    if (keys.length > 0) {
+      await client.del(...keys);
+      logger.info(`[Cache] Invalidated ${keys.length} keys for pattern ${redactCacheKey(pattern)}`);
+    } else {
+      logger.info(`[Cache] No keys found for pattern ${redactCacheKey(pattern)}`);
+    }
+  } catch (error) {
+    logger.error(`[Cache] Error invalidating pattern ${redactCacheKey(pattern)}`, { error });
+  }
+}
+
+export async function invalidateCacheKey(key: string): Promise<void> {
+  const client = getRedisClient();
+  if (!client) return;
+  try {
+    await client.del(key);
+    logger.info(`[Cache] Invalidated key ${redactCacheKey(key)}`);
+  } catch (error) {
+    logger.error(`[Cache] Error invalidating key ${redactCacheKey(key)}`, { error });
+  }
+}
+
+]]>
+</file>
+
+<file path="lib/refresh-token-store.ts">
+<![CDATA[
+import { logger } from "@/lib/logger";
+import { getRedisClient, safeRedisOp } from "@/lib/redis";
+
+/**
+ * Distributed refresh token replay protection
+ *
+ * Stores refresh token JTIs with TTL to detect reuse across instances.
+ * Falls back to in-memory storage when Redis is unavailable (development only).
+ */
+const memoryStore = new Map<string, number>();
+let warnedMemoryFallback = false;
+
+function key(userId: string, jti: string): string {
+  return `refresh:${userId}:${jti}`;
+}
+
+function warnMemory(): void {
+  if (warnedMemoryFallback || process.env.NODE_ENV !== "production") return;
+  logger.error(
+    "[auth/refresh] CRITICAL: Redis unavailable; using in-memory refresh store. Replay protection NOT shared across instances.",
+    { severity: "ops_critical", feature: "auth_refresh_replay" },
+  );
+  warnedMemoryFallback = true;
+}
+
+/**
+ * Persist a refresh token JTI with TTL (seconds).
+ */
+export async function persistRefreshJti(
+  userId: string,
+  jti: string,
+  ttlSeconds: number,
+): Promise<void> {
+  const client = getRedisClient();
+  if (client) {
+    await safeRedisOp(
+      async (c) => c.setex(key(userId, jti), ttlSeconds, "1"),
+      undefined,
+    );
+    return;
+  }
+
+  warnMemory();
+  memoryStore.set(key(userId, jti), Date.now() + ttlSeconds * 1000);
+}
+
+/**
+ * Validate a refresh token JTI exists (and not expired).
+ */
+export async function validateRefreshJti(
+  userId: string,
+  jti: string,
+): Promise<boolean> {
+  const client = getRedisClient();
+  if (client) {
+    const exists = await safeRedisOp(
+      async (c) => c.exists(key(userId, jti)),
+      0,
+    );
+    return exists === 1;
+  }
+
+  warnMemory();
+  const expiresAt = memoryStore.get(key(userId, jti));
+  if (!expiresAt) return false;
+  if (Date.now() > expiresAt) {
+    memoryStore.delete(key(userId, jti));
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Revoke a refresh token JTI (optional cleanup).
+ */
+export async function revokeRefreshJti(
+  userId: string,
+  jti: string,
+): Promise<void> {
+  const client = getRedisClient();
+  if (client) {
+    await safeRedisOp(async (c) => c.del(key(userId, jti)), 0);
+    return;
+  }
+
+  warnMemory();
+  memoryStore.delete(key(userId, jti));
+}
+
+]]>
+</file>
+
+<file path="lib/regex.ts">
+<![CDATA[
+export function escapeRegex(input: string): string {
+  return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+]]>
+</file>
+
+<file path="lib/reports/generator.ts">
+<![CDATA[
+import { Readable } from "stream";
+
+export type ReportJobInput = {
+  id: string;
+  name: string;
+  type: string;
+  format: "csv" | "pdf";
+  dateRange?: string;
+  startDate?: string;
+  endDate?: string;
+  notes?: string;
+};
+
+export type GeneratedReport = {
+  buffer: Buffer;
+  mime: string;
+  filename: string;
+  size: number;
+};
+
+/**
+ * Minimal report generator.
+ * Currently outputs CSV; easily extended with PDF later.
+ */
+export async function generateReport(
+  job: ReportJobInput,
+): Promise<GeneratedReport> {
+  const rows = [
+    ["Report ID", job.id],
+    ["Name", job.name],
+    ["Type", job.type],
+    ["Format", job.format],
+    ["DateRange", job.dateRange || "", job.startDate || "", job.endDate || ""],
+    ["Notes", job.notes || ""],
+    ["GeneratedAt", new Date().toISOString()],
+    [],
+    ["Section", "Metric", "Value"],
+    ["Summary", "Total Records", "0"],
+    ["Summary", "Total Amount", "0"],
+  ];
+
+  const csv = rows.map((r) => r.map(escapeCsv).join(",")).join("\n");
+  const buffer = Buffer.from(csv, "utf-8");
+  return {
+    buffer,
+    mime: "text/csv",
+    filename: `${job.name || "report"}-${job.id}.csv`,
+    size: buffer.length,
+  };
+}
+
+function escapeCsv(value: unknown): string {
+  const str = value === undefined || value === null ? "" : String(value);
+  if (/[",\n]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+// Utility to stream buffer if needed by callers
+export function bufferToStream(buffer: Buffer): Readable {
+  const stream = new Readable();
+  stream.push(buffer);
+  stream.push(null);
+  return stream;
+}
+
+]]>
+</file>
+
+<file path="lib/resilience/circuit-breaker-metrics.ts">
+<![CDATA[
+/**
+ * Circuit Breaker Metrics Export
+ * Provides Prometheus-compatible metrics for all service circuit breakers.
+ * 
+ * Metrics Format:
+ * - circuit_breaker_state{name="..."} - 0=closed, 1=open, 2=half-open
+ * - circuit_breaker_failures_total{name="..."}
+ * - circuit_breaker_successes_total{name="..."}
+ */
+
+import { CircuitBreaker } from "./circuit-breaker";
+import { serviceCircuitBreakers, CircuitBreakerName } from "./service-circuit-breakers";
+
+export type CircuitBreakerState = "closed" | "open" | "half-open";
+
+export interface CircuitBreakerMetrics {
+  name: string;
+  state: CircuitBreakerState;
+  stateNumeric: 0 | 1 | 2; // 0=closed, 1=open, 2=half-open
+  failureCount: number;
+  successCount: number;
+  cooldownMs: number;
+  lastStateChange?: number;
+}
+
+/**
+ * Get stats from a CircuitBreaker instance.
+ * Uses reflection to access private state (for metrics only).
+ */
+function getBreakerStats(breaker: CircuitBreaker): {
+  state: CircuitBreakerState;
+  failureCount: number;
+  successCount: number;
+  cooldownMs: number;
+} {
+  // Access private fields via any cast (metrics-only, safe pattern)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const b = breaker as any;
+  return {
+    state: b.state ?? "closed",
+    failureCount: b.failureCount ?? 0,
+    successCount: b.successCount ?? 0,
+    cooldownMs: b.options?.cooldownMs ?? b.cooldownMs ?? 30000,
+  };
+}
+
+/**
+ * Get metrics for all registered circuit breakers.
+ */
+export function getAllCircuitBreakerMetrics(): CircuitBreakerMetrics[] {
+  const metrics: CircuitBreakerMetrics[] = [];
+
+  for (const [name, breaker] of Object.entries(serviceCircuitBreakers)) {
+    const stats = getBreakerStats(breaker);
+    
+    let stateNumeric: 0 | 1 | 2 = 0;
+    if (stats.state === "open") stateNumeric = 1;
+    else if (stats.state === "half-open") stateNumeric = 2;
+
+    metrics.push({
+      name: name as CircuitBreakerName,
+      state: stats.state,
+      stateNumeric,
+      failureCount: stats.failureCount,
+      successCount: stats.successCount,
+      cooldownMs: stats.cooldownMs,
+    });
+  }
+
+  return metrics;
+}
+
+/**
+ * Export metrics in Prometheus text format.
+ * 
+ * Example output:
+ * ```
+ * # HELP circuit_breaker_state Current state of circuit breaker (0=closed, 1=open, 2=half-open)
+ * # TYPE circuit_breaker_state gauge
+ * circuit_breaker_state{name="paytabs"} 0
+ * circuit_breaker_state{name="twilio"} 0
+ * ...
+ * ```
+ */
+export function getPrometheusMetrics(): string {
+  const metrics = getAllCircuitBreakerMetrics();
+  const lines: string[] = [];
+
+  // State metric
+  lines.push("# HELP circuit_breaker_state Current state (0=closed, 1=open, 2=half-open)");
+  lines.push("# TYPE circuit_breaker_state gauge");
+  for (const m of metrics) {
+    lines.push(`circuit_breaker_state{name="${m.name}"} ${m.stateNumeric}`);
+  }
+
+  lines.push("");
+
+  // Failure count
+  lines.push("# HELP circuit_breaker_failures_total Total failure count");
+  lines.push("# TYPE circuit_breaker_failures_total counter");
+  for (const m of metrics) {
+    lines.push(`circuit_breaker_failures_total{name="${m.name}"} ${m.failureCount}`);
+  }
+
+  lines.push("");
+
+  // Success count
+  lines.push("# HELP circuit_breaker_successes_total Total success count in half-open state");
+  lines.push("# TYPE circuit_breaker_successes_total counter");
+  for (const m of metrics) {
+    lines.push(`circuit_breaker_successes_total{name="${m.name}"} ${m.successCount}`);
+  }
+
+  lines.push("");
+
+  // Cooldown config
+  lines.push("# HELP circuit_breaker_cooldown_ms Cooldown period in milliseconds");
+  lines.push("# TYPE circuit_breaker_cooldown_ms gauge");
+  for (const m of metrics) {
+    lines.push(`circuit_breaker_cooldown_ms{name="${m.name}"} ${m.cooldownMs}`);
+  }
+
+  return lines.join("\n");
+}
+
+/**
+ * Get a JSON summary of all circuit breakers.
+ * Useful for health check endpoints.
+ */
+export function getCircuitBreakerSummary(): {
+  total: number;
+  open: number;
+  closed: number;
+  halfOpen: number;
+  breakers: CircuitBreakerMetrics[];
+} {
+  const metrics = getAllCircuitBreakerMetrics();
+  
+  return {
+    total: metrics.length,
+    open: metrics.filter(m => m.state === "open").length,
+    closed: metrics.filter(m => m.state === "closed").length,
+    halfOpen: metrics.filter(m => m.state === "half-open").length,
+    breakers: metrics,
+  };
+}
+
+]]>
+</file>
+
+<file path="lib/resilience/circuit-breaker.ts">
+<![CDATA[
+import { logger } from "@/lib/logger";
+
+export class CircuitBreakerOpenError extends Error {
+  constructor(
+    public readonly breakerName: string,
+    cooldownMs: number,
+  ) {
+    super(
+      `Circuit breaker "${breakerName}" is open for another ${cooldownMs}ms`,
+    );
+    this.name = "CircuitBreakerOpenError";
+  }
+}
+
+type BreakerState = "closed" | "open" | "half-open";
+
+export interface CircuitBreakerOptions {
+  name: string;
+  failureThreshold?: number;
+  successThreshold?: number;
+  cooldownMs?: number;
+}
+
+export class CircuitBreaker {
+  private state: BreakerState = "closed";
+  private failureCount = 0;
+  private successCount = 0;
+  private nextAttemptTimestamp = 0;
+
+  constructor(private readonly options: CircuitBreakerOptions) {}
+
+  /**
+   * Check if the circuit breaker is currently open (in cooldown).
+   * Use this to skip providers that are known to be failing.
+   */
+  isOpen(): boolean {
+    if (this.state !== "open") return false;
+    // Check if cooldown has expired
+    if (Date.now() >= this.nextAttemptTimestamp) {
+      return false; // Will transition to half-open on next run()
+    }
+    return true;
+  }
+
+  /**
+   * Get the current state of the circuit breaker.
+   */
+  getState(): BreakerState {
+    return this.state;
+  }
+
+  private get failureThreshold(): number {
+    return this.options.failureThreshold ?? 5;
+  }
+
+  private get successThreshold(): number {
+    return this.options.successThreshold ?? 2;
+  }
+
+  private get cooldownMs(): number {
+    return this.options.cooldownMs ?? 30_000;
+  }
+
+  async run<T>(operation: () => Promise<T>): Promise<T> {
+    if (this.state === "open") {
+      const now = Date.now();
+      if (now < this.nextAttemptTimestamp) {
+        throw new CircuitBreakerOpenError(
+          this.options.name,
+          this.nextAttemptTimestamp - now,
+        );
+      }
+      this.state = "half-open";
+      logger.warn(
+        `[CircuitBreaker] ${this.options.name} transitioning to half-open`,
+        {
+          component: "circuit-breaker",
+          action: "half-open",
+        },
+      );
+    }
+
+    try {
+      const result = await operation();
+      this.recordSuccess();
+      return result;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      this.recordFailure(error);
+      throw error;
+    }
+  }
+
+  private recordSuccess(): void {
+    if (this.state === "half-open") {
+      this.successCount += 1;
+      if (this.successCount >= this.successThreshold) {
+        this.close();
+      }
+    } else if (this.state === "closed") {
+      this.failureCount = 0;
+    }
+  }
+
+  private recordFailure(error: unknown): void {
+    logger.warn(`[CircuitBreaker] ${this.options.name} recorded failure`, {
+      component: "circuit-breaker",
+      action: "failure",
+      error: error instanceof Error ? error.message : String(error),
+    });
+
+    this.failureCount += 1;
+    // FIX: Was "this.failureThreshold >= this.failureThreshold" (always true!)
+    // Now correctly checks if failure count has reached threshold
+    if (
+      this.failureCount >= this.failureThreshold ||
+      this.state === "half-open"
+    ) {
+      this.open();
+    }
+  }
+
+  private open(): void {
+    this.state = "open";
+    this.nextAttemptTimestamp = Date.now() + this.cooldownMs;
+    this.successCount = 0;
+    logger.error(`[CircuitBreaker] ${this.options.name} opened`, undefined, {
+      component: "circuit-breaker",
+      action: "open",
+      cooldownMs: this.cooldownMs,
+    });
+  }
+
+  private close(): void {
+    this.state = "closed";
+    this.failureCount = 0;
+    this.successCount = 0;
+    logger.info(`[CircuitBreaker] ${this.options.name} closed`, {
+      component: "circuit-breaker",
+      action: "close",
+    });
+  }
+
+  /**
+   * Reset the circuit breaker to initial closed state.
+   * @internal Only use in test code to prevent state bleeding between tests.
+   */
+  reset(): void {
+    this.state = "closed";
+    this.failureCount = 0;
+    this.successCount = 0;
+    this.nextAttemptTimestamp = 0;
+  }
+
+  /**
+   * Get statistics for monitoring/health checks
+   */
+  getStats(): {
+    name: string;
+    state: BreakerState;
+    failureCount: number;
+    isOpen: boolean;
+    cooldownRemaining: number;
+  } {
+    const now = Date.now();
+    return {
+      name: this.options.name,
+      state: this.state,
+      failureCount: this.failureCount,
+      isOpen: this.isOpen(),
+      cooldownRemaining: this.state === "open" 
+        ? Math.max(0, this.nextAttemptTimestamp - now)
+        : 0,
+    };
+  }
+}
+
+]]>
+</file>
+
+<file path="lib/resilience/index.ts">
+<![CDATA[
+export * from "./retry";
+export * from "./timeout";
+export * from "./circuit-breaker";
+export * from "./service-circuit-breakers";
+export * from "./circuit-breaker-metrics";
+
+]]>
+</file>
+
+<file path="lib/resilience/retry.ts">
+<![CDATA[
+import { logger } from "@/lib/logger";
+
+export interface RetryOptions {
+  maxAttempts?: number;
+  baseDelayMs?: number;
+  maxDelayMs?: number;
+  backoffFactor?: number;
+  jitterRatio?: number;
+  label?: string;
+  shouldRetry?: (context: RetryContext) => boolean;
+  onAttempt?: (context: RetryContext) => void;
+}
+
+export interface RetryContext {
+  attempt: number;
+  maxAttempts: number;
+  lastError?: unknown;
+}
+
+const wait = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
+export async function executeWithRetry<T>(
+  operation: (context: RetryContext) => Promise<T>,
+  options: RetryOptions = {},
+): Promise<T> {
+  const {
+    maxAttempts = 3,
+    baseDelayMs = 500,
+    maxDelayMs = 15_000,
+    backoffFactor = 2,
+    jitterRatio = 0.2,
+    label = "resilient-operation",
+    shouldRetry,
+    onAttempt,
+  } = options;
+
+  if (maxAttempts < 1) {
+    throw new Error("maxAttempts must be at least 1");
+  }
+
+  let attempt = 0;
+  let delay = baseDelayMs;
+  let lastError: unknown;
+
+  while (attempt < maxAttempts) {
+    attempt += 1;
+    const context: RetryContext = { attempt, maxAttempts, lastError };
+    try {
+      const result = await operation(context);
+      onAttempt?.(context);
+      return result;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      lastError = error;
+      context.lastError = error;
+      onAttempt?.(context);
+
+      const shouldRetryThisAttempt =
+        attempt < maxAttempts && (shouldRetry ? shouldRetry(context) : true);
+
+      if (!shouldRetryThisAttempt) {
+        throw error;
+      }
+
+      const jitter = delay * jitterRatio * Math.random();
+      const waitMs = Math.min(delay + jitter, maxDelayMs);
+
+      logger.warn(
+        `[Retry] ${label} failed (attempt ${attempt}/${maxAttempts})`,
+        {
+          component: "resilience.retry",
+          action: "retry",
+          error: error instanceof Error ? error.message : String(error),
+        },
+      );
+
+      await wait(waitMs);
+      delay = Math.min(delay * backoffFactor, maxDelayMs);
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Retry attempts exhausted");
+}
+
+]]>
+</file>
+
+<file path="lib/resilience/service-circuit-breakers.ts">
+<![CDATA[
+import { CircuitBreaker } from "./circuit-breaker";
+
+const createBreaker = (name: string, cooldownMs: number): CircuitBreaker =>
+  new CircuitBreaker({
+    name,
+    failureThreshold: 4,
+    successThreshold: 2,
+    cooldownMs,
+  });
+
+const paytabsBreaker = createBreaker("paytabs", 30_000);
+const taqnyatBreaker = createBreaker("taqnyat", 30_000);
+const meilisearchBreaker = createBreaker("meilisearch", 15_000);
+const zatcaBreaker = createBreaker("zatca", 60_000);
+const sendgridBreaker = createBreaker("sendgrid", 20_000);
+
+export const serviceCircuitBreakers = {
+  paytabs: paytabsBreaker,
+  taqnyat: taqnyatBreaker,
+  meilisearch: meilisearchBreaker,
+  zatca: zatcaBreaker,
+  sendgrid: sendgridBreaker,
+} as const;
+
+export type CircuitBreakerName = keyof typeof serviceCircuitBreakers;
+
+export function getCircuitBreaker(name: CircuitBreakerName): CircuitBreaker {
+  return serviceCircuitBreakers[name];
+}
+
+]]>
+</file>
+
+<file path="lib/resilience/timeout.ts">
+<![CDATA[
+export interface TimeoutControllerOptions {
+  timeoutMs: number;
+  signal?: AbortSignal;
+  reason?: string;
+}
+
+export interface TimeoutController {
+  signal: AbortSignal;
+  dispose: () => void;
+}
+
+/**
+ * Creates an AbortSignal that auto-aborts after the provided timeout and
+ * mirrors the lifecycle of an optional upstream signal.
+ */
+export function createTimeoutSignal({
+  timeoutMs,
+  signal: upstreamSignal,
+  reason,
+}: TimeoutControllerOptions): TimeoutController {
+  const controller = new AbortController();
+
+  if (upstreamSignal?.aborted) {
+    controller.abort(upstreamSignal.reason);
+  }
+
+  const abortFromUpstream = () => {
+    controller.abort(upstreamSignal?.reason);
+  };
+
+  if (upstreamSignal) {
+    upstreamSignal.addEventListener("abort", abortFromUpstream, { once: true });
+  }
+
+  const timeoutId =
+    timeoutMs > 0
+      ? setTimeout(() => {
+          controller.abort(
+            reason
+              ? new Error(reason)
+              : new Error(`Operation timed out after ${timeoutMs}ms`),
+          );
+        }, timeoutMs)
+      : null;
+
+  return {
+    signal: controller.signal,
+    dispose: () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      if (upstreamSignal) {
+        upstreamSignal.removeEventListener("abort", abortFromUpstream);
+      }
+    },
+  };
+}
+
+export async function withTimeout<T>(
+  operation: (signal: AbortSignal) => Promise<T>,
+  options: TimeoutControllerOptions,
+): Promise<T> {
+  const { signal, dispose } = createTimeoutSignal(options);
+
+  let abortHandler: (() => void) | null = null;
+  const abortPromise = new Promise<never>((_, reject) => {
+    abortHandler = () => {
+      signal.removeEventListener("abort", abortHandler!);
+      reject(signal.reason ?? new Error("Operation aborted"));
+    };
+
+    if (signal.aborted) {
+      abortHandler();
+      return;
+    }
+
+    signal.addEventListener("abort", abortHandler!, { once: true });
+  });
+
+  try {
+    return await Promise.race([operation(signal), abortPromise]);
+  } finally {
+    if (abortHandler) {
+      signal.removeEventListener("abort", abortHandler);
+    }
+    dispose();
+  }
+}
+
+]]>
+</file>
+
+<file path="lib/sanitize-html.ts">
+<![CDATA[
+import createDOMPurify from "isomorphic-dompurify";
+import { JSDOM } from "jsdom";
+
+let domPurifyInstance: ReturnType<typeof createDOMPurify> | null = null;
+
+function getDOMPurify() {
+  if (domPurifyInstance) return domPurifyInstance;
+  const windowLike: Window & typeof globalThis =
+    typeof window === "undefined"
+      ? (new JSDOM("").window as unknown as Window & typeof globalThis)
+      : (window as unknown as Window & typeof globalThis);
+  domPurifyInstance = createDOMPurify(windowLike);
+  return domPurifyInstance;
+}
+
+export function sanitizeHtml(html: string) {
+  return getDOMPurify().sanitize(html ?? "", {
+    ALLOWED_TAGS: [
+      "p",
+      "strong",
+      "em",
+      "u",
+      "a",
+      "ul",
+      "ol",
+      "li",
+      "br",
+      "span",
+      "div",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+    ],
+    ALLOWED_ATTR: ["href", "target", "rel", "style", "class"],
+  });
+}
+
+]]>
+</file>
+
+<file path="lib/schemas/admin.ts">
+<![CDATA[
+/**
+ * Zod validation schemas for Admin module forms
+ * 
+ * Features:
+ * - Type-safe validation
+ * - Custom error messages
+ * - Conditional validation (sub-role required for TEAM_MEMBER)
+ * - Email format validation
+ * - Integration with react-hook-form
+ * 
+ * CRITICAL: Import from fm-lite.ts (client-safe) NOT fm.behavior.ts
+ * fm.behavior.ts contains Mongoose schemas that will leak into client bundles
+ */
+
+import { z } from "zod";
+import { SubRole } from "@/domain/fm/fm-lite";
+
+/**
+ * User form validation schema
+ * 
+ * Validates:
+ * - Name: Required, min 2 characters
+ * - Email: Required, valid email format
+ * - Role: Required
+ * - SubRole: Required if role is TEAM_MEMBER
+ * - Status: One of Active, Inactive, Locked
+ */
+export const userFormSchema = z
+  .object({
+    name: z
+      .string()
+      .min(1, "Name is required")
+      .min(2, "Name must be at least 2 characters"),
+    email: z
+      .string()
+      .min(1, "Email is required")
+      .email("Invalid email format"),
+    role: z.string().min(1, "Role is required"),
+    subRole: z.nativeEnum(SubRole).nullable().optional(),
+    status: z.enum(["Active", "Inactive", "Locked"]).optional(),
+    department: z.string().optional(),
+    phone: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      // If role is TEAM_MEMBER, subRole is required
+      const normalizedRole = data.role?.toUpperCase().replace(/\s+/g, "_");
+      if (normalizedRole === "TEAM_MEMBER") {
+        return data.subRole !== null && data.subRole !== undefined;
+      }
+      return true;
+    },
+    {
+      message: "Sub-role is required for Team Members",
+      path: ["subRole"],
+    }
+  );
+
+export type UserFormSchema = z.infer<typeof userFormSchema>;
+
+/**
+ * Organization settings validation schema
+ */
+export const orgSettingsSchema = z.object({
+  name: z.string().min(1, "Organization name is required"),
+  timezone: z.string().optional(),
+  language: z.string().optional(),
+  features: z.record(z.string(), z.boolean()).optional(),
+});
+
+export type OrgSettingsSchema = z.infer<typeof orgSettingsSchema>;
+
+]]>
+</file>
+
+<file path="lib/secrets.ts">
+<![CDATA[
+import { logger } from "@/lib/logger";
+/**
+ * AWS Secrets Manager Integration
+ * Securely retrieves sensitive configuration from AWS Secrets Manager
+ * Falls back to environment variables for development
+ */
+
+import { randomBytes } from "crypto";
+import {
+  SecretsManagerClient,
+  GetSecretValueCommand,
+} from "@aws-sdk/client-secrets-manager";
+
+// Cached secrets to avoid repeated AWS API calls
+const secretCache = new Map<string, { value: string; expiresAt: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+let secretsClient: SecretsManagerClient | null = null;
+
+/**
+ * Initialize AWS Secrets Manager client
+ * Only initializes in production with proper AWS credentials
+ *
+ * BUILD-SAFE: Returns null during Next.js build phase to prevent build failures
+ */
+function getSecretsClient(): SecretsManagerClient | null {
+  // Return cached client if already initialized
+  if (secretsClient !== undefined) {
+    return secretsClient;
+  }
+
+  // Skip AWS initialization during Next.js build phase
+  // This prevents build failures when AWS credentials are not available
+  const isNextBuild = process.env.NEXT_PHASE === "phase-production-build";
+  if (isNextBuild) {
+    logger.info("[Secrets] Skipping AWS initialization during build phase");
+    secretsClient = null;
+    return null;
+  }
+
+  // Initialize if AWS region is configured
+  // Let AWS SDK use its default credential provider chain:
+  // - ECS/EKS task role metadata
+  // - Environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
+  // - Shared credentials file (~/.aws/credentials)
+  // - EC2 instance metadata
+  const region = process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION;
+  if (!region) {
+    secretsClient = null;
+    return null;
+  }
+
+  try {
+    secretsClient = new SecretsManagerClient({
+      region,
+      // Only provide explicit credentials if both are present
+      credentials:
+        process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY
+          ? {
+              accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+              secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+            }
+          : undefined, // Use AWS SDK default credential provider chain
+    });
+
+    logger.info("[Secrets] AWS Secrets Manager initialized", { region });
+    return secretsClient;
+  } catch (error) {
+    // Gracefully handle AWS initialization errors
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.warn("[Secrets] Could not initialize AWS Secrets Manager", {
+      region,
+      error: errorMessage,
+    });
+    secretsClient = null;
+    return null;
+  }
+}
+
+/**
+ * Get a secret value from AWS Secrets Manager or environment variables
+ *
+ * Priority order:
+ * 1. AWS Secrets Manager (production only, with caching)
+ * 2. Environment variables (all environments)
+ * 3. Error if not found and required
+ *
+ * @param secretName - The name of the secret (e.g., 'JWT_SECRET', 'prod/fixzit/jwt-secret')
+ * @param envFallback - Environment variable name to use as fallback
+ * @param required - Whether the secret is required (throws if not found)
+ * @returns The secret value or null if not found and not required
+ */
+export async function getSecret(
+  secretName: string,
+  envFallback?: string,
+  required: boolean = false,
+): Promise<string | null> {
+  try {
+    // Check cache first
+    const cached = secretCache.get(secretName);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.value;
+    }
+
+    // Try AWS Secrets Manager in production
+    const client = getSecretsClient();
+    if (client) {
+      try {
+        const command = new GetSecretValueCommand({ SecretId: secretName });
+        const response = await client.send(command);
+
+        const secretValue =
+          response.SecretString ||
+          (response.SecretBinary
+            ? Buffer.from(response.SecretBinary).toString("utf-8")
+            : null);
+
+        if (secretValue) {
+          // Cache the secret
+          secretCache.set(secretName, {
+            value: secretValue,
+            expiresAt: Date.now() + CACHE_TTL,
+          });
+
+          if (process.env.NODE_ENV !== "production") {
+            logger.info("[Secrets] Retrieved from AWS Secrets Manager", {
+              secretName,
+            });
+          }
+          return secretValue;
+        }
+      } catch (awsError) {
+        const errorMessage =
+          awsError instanceof Error ? awsError.message : String(awsError);
+        logger.warn("[Secrets] Failed to retrieve from AWS", {
+          secretName,
+          errorMessage,
+        });
+        // Fall through to environment variable fallback
+      }
+    }
+
+    // Fallback to environment variable
+    if (envFallback) {
+      const envValue = process.env[envFallback]?.trim();
+      if (envValue) {
+        if (process.env.NODE_ENV !== "production") {
+          logger.info("[Secrets] Using environment variable", {
+            envKey: envFallback,
+          });
+        }
+        return envValue;
+      }
+    }
+
+    // Not found
+    if (required) {
+      const errorMessage =
+        `Required secret '${secretName}' not found in AWS Secrets Manager` +
+        (envFallback ? ` or environment variable '${envFallback}'` : "");
+      throw new Error(errorMessage);
+    }
+
+    return null;
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    if (required) {
+      logger.error("[Secrets] Failed to retrieve required secret", {
+        secretName,
+        error,
+      });
+      throw error;
+    }
+    logger.warn("[Secrets] Failed to retrieve optional secret", { secretName });
+    return null;
+  }
+}
+
+/**
+ * Get JWT secret with proper priority handling
+ *
+ * Priority:
+ * 1. AWS Secrets Manager: prod/fixzit/jwt-secret (production)
+ * 2. Environment: JWT_SECRET (all environments)
+ * 3. Error in production, ephemeral in development
+ */
+export async function getJWTSecret(): Promise<string> {
+  // Try AWS Secrets Manager first (production only)
+  const awsSecretName = process.env.JWT_SECRET_NAME || "prod/fixzit/jwt-secret";
+  const secret = await getSecret(awsSecretName, "JWT_SECRET", false);
+
+  if (secret) {
+    return secret;
+  }
+
+  // Production MUST have JWT_SECRET configured
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      `JWT_SECRET is required in production. Configure it in AWS Secrets Manager (using secret name '${awsSecretName}') or as environment variable 'JWT_SECRET'.`,
+    );
+  }
+
+  // Development fallback - generate ephemeral secret
+  logger.warn(
+    "[Secrets] No JWT_SECRET configured. Using ephemeral secret for development.",
+  );
+  logger.warn(
+    "[Secrets] Set JWT_SECRET environment variable for session persistence.",
+  );
+
+  return randomBytes(32).toString("hex");
+}
+
+/**
+ * Get database connection string with proper security
+ */
+export async function getDatabaseURL(): Promise<string> {
+  const secret = await getSecret(
+    process.env.DB_SECRET_NAME || "prod/fixzit/mongodb-uri",
+    "MONGODB_URI",
+    true,
+  );
+
+  if (!secret) {
+    throw new Error("Database connection string is required");
+  }
+
+  return secret;
+}
+
+/**
+ * Get SendGrid API key with proper security
+ */
+export async function getSendGridAPIKey(): Promise<string | null> {
+  return getSecret(
+    process.env.SENDGRID_SECRET_NAME || "prod/fixzit/sendgrid-api-key",
+    "SENDGRID_API_KEY",
+    false,
+  );
+}
+
+/**
+ * Clear the secret cache (useful for testing or forced refresh)
+ */
+export function clearSecretCache(): void {
+  secretCache.clear();
+  logger.info("[Secrets] Cache cleared");
+}
+
+]]>
+</file>
+
+<file path="lib/security/av-scan.ts">
+<![CDATA[
+/**
+ * Lightweight AV scan client for S3 objects.
+ * Expects an external scanning service at AV_SCAN_ENDPOINT that accepts:
+ *   POST { bucket: string, key: string }
+ * and returns { clean: boolean }.
+ */
+export async function scanS3Object(
+  key: string,
+  bucket = process.env.AWS_S3_BUCKET || "",
+): Promise<boolean> {
+  const endpoint = process.env.AV_SCAN_ENDPOINT;
+  if (!endpoint) {
+    // No scanner configured; treat as clean.
+    return true;
+  }
+  try {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bucket, key }),
+    });
+    if (!res.ok) return false;
+    const data = await res.json().catch(() => ({}));
+    return Boolean(data?.clean ?? data?.success ?? false);
+  } catch {
+    return false;
+  }
+}
+
+]]>
+</file>
+
+<file path="lib/security/client-ip.ts">
+<![CDATA[
+/**
+ * Secure Client IP Extraction Utility
+ *
+ * Provides safe methods to extract client IP addresses from HTTP requests
+ * while preventing spoofing attacks via x-forwarded-for header manipulation.
+ *
+ * @module lib/security/client-ip
+ */
+
+import { NextRequest } from "next/server";
+import { isIP } from "net";
+import { validateTrustedProxyCount } from "@/server/security/ip-utils";
+
+/**
+ * Extract client IP with trusted proxy counting strategy
+ *
+ * @param request - Next.js request object
+ * @returns Client IP address or 'unknown' if not determinable
+ *
+ * @security
+ * - Uses TRUSTED_PROXY_COUNT to skip known trusted proxy hops from the right
+ * - Consistent with lib/ip.ts extractClientIP implementation
+ * - Falls back to leftmost public IP, cf-connecting-ip, and x-real-ip (when trusted)
+ *
+ * @example
+ * ```typescript
+ * // With TRUSTED_PROXY_COUNT=1:
+ * // x-forwarded-for: "client-ip, proxy1-ip, proxy2-ip"
+ * // Returns: "proxy1-ip" (skip 1 from right: proxy2-ip)
+ * ```
+ */
+export function getClientIp(request: NextRequest): string {
+  // Priority 1: Cloudflare's CF-Connecting-IP (most trustworthy when behind Cloudflare)
+  const cfIp = request.headers.get("cf-connecting-ip");
+  if (cfIp && cfIp.trim()) return cfIp.trim();
+
+  // Priority 2: X-Forwarded-For with trusted proxy counting
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  if (forwardedFor) {
+    const trimmed = forwardedFor.trim();
+    // Treat empty or whitespace-only header as absent
+    if (trimmed) {
+      const ips = trimmed
+        .split(",")
+        .map((ip) => ip.trim())
+        .filter((ip) => ip.length > 0);
+      if (ips.length > 0) {
+        const trustedProxyCount = validateTrustedProxyCount();
+
+        // Skip trusted proxy hops from the right
+        const clientIPIndex = Math.max(0, ips.length - 1 - trustedProxyCount);
+        const hopSkippedIP = ips[clientIPIndex];
+
+        // If hop-skipped IP is valid and public, use it
+        if (hopSkippedIP && !isPrivateIP(hopSkippedIP)) {
+          return hopSkippedIP;
+        }
+
+        // Fallback: find leftmost public IP
+        for (const ip of ips) {
+          if (!isPrivateIP(ip)) {
+            return ip;
+          }
+        }
+
+        // If no public IP found, continue to fallback (don't expose private IPs)
+      }
+    }
+    // Fall through if header was empty or no valid public IPs
+  }
+
+  // Priority 3: x-real-ip (only when explicitly trusted)
+  if (process.env.TRUST_X_REAL_IP === "true") {
+    const realIp = request.headers.get("x-real-ip");
+    if (realIp && realIp.trim()) {
+      return realIp.trim();
+    }
+  }
+
+  // Fallback for direct connections (development, testing)
+  return "unknown";
+}
+
+/**
+ * Extract client IP with fallback value
+ *
+ * @param request - Next.js request object
+ * @param fallback - Fallback value if IP cannot be determined (default: 'unknown')
+ * @returns Client IP address or fallback value
+ *
+ * @example
+ * ```typescript
+ * const ip = getClientIpWithFallback(request, '0.0.0.0');
+ * ```
+ */
+export function getClientIpWithFallback(
+  request: NextRequest,
+  fallback = "unknown",
+): string {
+  const ip = getClientIp(request);
+  return ip === "unknown" ? fallback : ip;
+}
+
+/**
+ * Validate if string is a valid IPv4 address
+ *
+ * @param ip - IP address string to validate
+ * @returns true if valid IPv4, false otherwise
+ */
+export function isValidIPv4(ip: string): boolean {
+  const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+  if (!ipv4Regex.test(ip)) return false;
+
+  const parts = ip.split(".");
+  return parts.every((part) => {
+    const num = parseInt(part, 10);
+    return num >= 0 && num <= 255;
+  });
+}
+
+/**
+ * Validates if a string is a valid IPv6 address using Node.js built-in validation.
+ *
+ * Note: Production-security decisions rely on this robust check using Node's net.isIP().
+ * This correctly handles all IPv6 edge cases including :: abbreviation and mixed notation.
+ *
+ * @param ip - IP address string to validate
+ * @returns true if valid IPv6, false otherwise
+ */
+export function isValidIPv6(ip: string): boolean {
+  // Use Node.js built-in validation (isIP returns 6 for IPv6, 4 for IPv4, 0 for invalid)
+  return isIP(ip) === 6;
+}
+
+/**
+ * Check if IP is from a private network (RFC 1918)
+ *
+ * Fail-closed behavior: Invalid or non-IPv4 addresses are treated as private
+ * to prevent security bypasses.
+ *
+ * @param ip - IP address to check
+ * @returns true if private IP or invalid, false if public IPv4
+ */
+export function isPrivateIP(ip: string): boolean {
+  // Fail-closed: treat invalid/non-IPv4 input as private to prevent security bypass
+  if (!isValidIPv4(ip)) return true;
+
+  const parts = ip.split(".").map(Number);
+  const [first, second] = parts;
+
+  // 10.0.0.0/8
+  if (first === 10) return true;
+
+  // 172.16.0.0/12
+  if (first === 172 && second >= 16 && second <= 31) return true;
+
+  // 192.168.0.0/16
+  if (first === 192 && second === 168) return true;
+
+  // 127.0.0.0/8 (localhost)
+  if (first === 127) return true;
+
+  return false;
+}
+
+]]>
+</file>
+
+<file path="lib/security/cors-allowlist.ts">
+<![CDATA[
+import { logSecurityEvent } from "@/lib/monitoring/security-events";
+import { logger } from "@/lib/logger";
+import { DOMAINS } from "@/lib/config/domains";
+
+// Build CORS allowlist from centralized domain config
+const buildOriginsList = () => {
+  const primaryDomain = new URL(DOMAINS.primary).hostname.replace('www.', '');
+  return [
+    // Primary domain variants
+    `https://${primaryDomain}`,
+    `https://www.${primaryDomain}`,
+    `https://app.${primaryDomain}`,
+    `https://dashboard.${primaryDomain}`,
+    `https://staging.${primaryDomain}`,
+    `https://api.${primaryDomain}`,
+    // Also allow .sa variant if primary is .co
+    ...(primaryDomain.endsWith('.co') ? [
+      `https://${primaryDomain.replace('.co', '.sa')}`,
+      `https://www.${primaryDomain.replace('.co', '.sa')}`,
+      `https://app.${primaryDomain.replace('.co', '.sa')}`,
+      `https://dashboard.${primaryDomain.replace('.co', '.sa')}`,
+      `https://staging.${primaryDomain.replace('.co', '.sa')}`,
+      `https://api.${primaryDomain.replace('.co', '.sa')}`,
+    ] : []),
+  ];
+};
+
+const STATIC_ALLOWED_ORIGINS = buildOriginsList();
+
+const DEV_ALLOWED_ORIGINS = [
+  "http://localhost:3000",
+  "http://localhost:3001",
+] as const;
+
+const isE2E =
+  process.env.PLAYWRIGHT === "true" ||
+  process.env.NEXT_PUBLIC_E2E === "true";
+
+export function parseOrigins(value?: string | null): string[] {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+    .filter((origin) => {
+      // Validate URL structure
+      try {
+        const url = new URL(origin);
+        // Only allow http/https protocols
+        if (!["http:", "https:"].includes(url.protocol)) {
+          if (process.env.NODE_ENV !== "production") {
+            logger.warn("Invalid protocol in origin", {
+              component: "CORS",
+              origin,
+              protocol: url.protocol,
+            });
+          }
+          return false;
+        }
+        // Disallow localhost in production CORS_ORIGINS
+        if (
+          process.env.NODE_ENV === "production" &&
+          !isE2E &&
+          (url.hostname === "localhost" || url.hostname === "127.0.0.1")
+        ) {
+          if (process.env.NODE_ENV !== "production") {
+            logger.warn("Localhost not allowed in production CORS_ORIGINS", {
+              component: "CORS",
+              origin,
+            });
+          }
+          return false;
+        }
+        return true;
+      } catch (err) {
+        if (process.env.NODE_ENV !== "production") {
+          logger.warn("Invalid URL in CORS_ORIGINS", {
+            component: "CORS",
+            origin,
+            error: err,
+          });
+        }
+        return false;
+      }
+    });
+}
+
+function buildAllowedOrigins(): string[] {
+  const envOrigins = parseOrigins(process.env.CORS_ORIGINS);
+  const frontendOrigins = parseOrigins(process.env.FRONTEND_URL);
+  return Array.from(
+    new Set([...STATIC_ALLOWED_ORIGINS, ...frontendOrigins, ...envOrigins]),
+  );
+}
+
+export function getAllowedOriginsSet(): Set<string> {
+  return new Set(buildAllowedOrigins());
+}
+
+export function isOriginAllowed(origin: string | null): boolean {
+  // No Origin header behavior:
+  // - Development: Allow (same-origin requests from localhost)
+  // - Production: Reject for security (enforce explicit origin validation)
+  if (!origin) {
+    return process.env.NODE_ENV !== "production";
+  }
+  const allowedOrigins = getAllowedOriginsSet();
+  if (allowedOrigins.has(origin)) {
+    return true;
+  }
+  const allowDev =
+    (process.env.NODE_ENV !== "production" || isE2E) &&
+    DEV_ALLOWED_ORIGINS.includes(
+      origin as (typeof DEV_ALLOWED_ORIGINS)[number],
+    );
+  if (!allowDev) {
+    logSecurityEvent({
+      type: "cors_block",
+      ip: "unknown",
+      path: origin,
+      timestamp: new Date().toISOString(),
+      metadata: { origin },
+    }).catch(() => undefined);
+  }
+  return allowDev;
+}
+
+export function resolveAllowedOrigin(
+  origin: string | null,
+): string | undefined {
+  if (origin) {
+    const allowedOrigins = getAllowedOriginsSet();
+    if (allowedOrigins.has(origin)) {
+      return origin;
+    }
+    if (
+      (process.env.NODE_ENV !== "production" || isE2E) &&
+      DEV_ALLOWED_ORIGINS.includes(
+        origin as (typeof DEV_ALLOWED_ORIGINS)[number],
+      )
+    ) {
+      return origin;
+    }
+    return undefined;
+  }
+
+  if (process.env.NODE_ENV !== "production" || isE2E) {
+    return DEV_ALLOWED_ORIGINS[0];
+  }
+
+  return undefined;
+}
+
+export { STATIC_ALLOWED_ORIGINS, DEV_ALLOWED_ORIGINS };
+
+]]>
+</file>
+
+</batch_content>

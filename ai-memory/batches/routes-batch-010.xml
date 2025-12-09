@@ -1,0 +1,3248 @@
+
+You are the "Fixzit Memory Builder" for category: "routes".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "routes",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/api/fm/system/roles/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { FMErrors } from "@/app/api/fm/errors";
+import { requireFmPermission } from "@/app/api/fm/permissions";
+import { resolveTenantId, isCrossTenantMode } from "@/app/api/fm/utils/tenant";
+import { ModuleKey } from "@/domain/fm/fm.behavior";
+import { FMAction } from "@/types/fm/enums";
+
+type RoleDocument = {
+  _id: ObjectId;
+  orgId: string; // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+  name: string;
+  description?: string;
+  permissions: string[];
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type RolePayload = {
+  name?: string;
+  description?: string;
+  permissions?: string[];
+};
+
+const COLLECTION = "fm_roles";
+
+const sanitizePayload = (payload: RolePayload) => {
+  const sanitized: RolePayload = {};
+  if (payload.name) sanitized.name = payload.name.trim();
+  if (payload.description) sanitized.description = payload.description.trim();
+  if (Array.isArray(payload.permissions)) {
+    sanitized.permissions = payload.permissions
+      .map((p) => String(p).trim())
+      .filter(Boolean);
+  }
+  return sanitized;
+};
+
+const validatePayload = (payload: RolePayload): string | null => {
+  if (!payload.name) return "Name is required";
+  if (!payload.permissions || payload.permissions.length === 0) {
+    return "At least one permission is required";
+  }
+  return null;
+};
+
+const mapRole = (doc: RoleDocument) => ({
+  id: doc._id.toString(),
+  name: doc.name,
+  description: doc.description ?? "",
+  permissions: doc.permissions,
+  createdAt: doc.createdAt,
+  updatedAt: doc.updatedAt,
+});
+
+export async function GET(req: NextRequest) {
+  try {
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.FINANCE,
+      action: FMAction.VIEW,
+    });
+    if (actor instanceof NextResponse) return actor;
+    // AUDIT-2025-11-29: Pass Super Admin context for proper audit logging
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    const db = await getDatabase();
+    const collection = db.collection<RoleDocument>(COLLECTION);
+    const items = await collection
+      .find({ orgId: tenantId }) // AUDIT-2025-11-29: Changed from org_id
+      .sort({ updatedAt: -1 })
+      .limit(200)
+      .toArray();
+
+    return NextResponse.json({ success: true, data: items.map(mapRole) });
+  } catch (error) {
+    logger.error("FM Roles API - GET error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.FINANCE,
+      action: FMAction.CREATE,
+    });
+    if (actor instanceof NextResponse) return actor;
+    // AUDIT-2025-11-29: Pass Super Admin context for proper audit logging
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    // AUDIT-2025-11-29: Reject cross-tenant mode for POST (must specify explicit tenant)
+    if (isCrossTenantMode(tenantId)) {
+      return NextResponse.json(
+        { success: false, error: "Super Admin must specify tenant context for role creation" },
+        { status: 400 }
+      );
+    }
+
+    const payload = sanitizePayload(await req.json());
+    const validationError = validatePayload(payload);
+    if (validationError) {
+      return NextResponse.json(
+        { success: false, error: validationError },
+        { status: 400 },
+      );
+    }
+
+    const now = new Date();
+    const doc: RoleDocument = {
+      _id: new ObjectId(),
+      orgId: tenantId, // AUDIT-2025-11-29: Changed from org_id
+      name: payload.name!,
+      description: payload.description ?? "",
+      permissions: payload.permissions ?? [],
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const db = await getDatabase();
+    const collection = db.collection<RoleDocument>(COLLECTION);
+
+    // enforce unique name per tenant
+    const existing = await collection.findOne({
+      orgId: tenantId, // AUDIT-2025-11-29: Changed from org_id
+      name: doc.name,
+    });
+    if (existing) {
+      return NextResponse.json(
+        { success: false, error: "Role name already exists" },
+        { status: 409 },
+      );
+    }
+
+    await collection.insertOne(doc);
+    return NextResponse.json(
+      { success: true, data: mapRole(doc) },
+      { status: 201 },
+    );
+  } catch (error) {
+    logger.error("FM Roles API - POST error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/fm/system/users/invite/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { FMErrors } from "@/app/api/fm/errors";
+import { requireFmPermission } from "@/app/api/fm/permissions";
+import { resolveTenantId, isCrossTenantMode } from "@/app/api/fm/utils/tenant";
+import { ModuleKey } from "@/domain/fm/fm.behavior";
+import { FMAction } from "@/types/fm/enums";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+
+type InviteDocument = {
+  _id: ObjectId;
+  orgId: string; // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  status: "pending" | "sent";
+  createdAt: Date;
+  updatedAt: Date;
+  jobId?: string;
+};
+
+type InvitePayload = {
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  role?: string;
+};
+
+const COLLECTION = "fm_user_invites";
+
+const sanitize = (payload: InvitePayload) => ({
+  email: payload.email?.trim().toLowerCase(),
+  firstName: payload.firstName?.trim(),
+  lastName: payload.lastName?.trim(),
+  role: payload.role?.trim(),
+});
+
+const validate = (payload: ReturnType<typeof sanitize>): string | null => {
+  if (!payload.email) return "Email is required";
+  if (!payload.firstName) return "First name is required";
+  if (!payload.lastName) return "Last name is required";
+  if (!payload.role) return "Role is required";
+  return null;
+};
+
+const mapInvite = (doc: InviteDocument) => ({
+  id: doc._id.toString(),
+  email: doc.email,
+  firstName: doc.firstName,
+  lastName: doc.lastName,
+  role: doc.role,
+  status: doc.status,
+  createdAt: doc.createdAt,
+  updatedAt: doc.updatedAt,
+});
+
+export async function GET(req: NextRequest) {
+  try {
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.FINANCE,
+      action: FMAction.VIEW,
+    });
+    if (actor instanceof NextResponse) return actor;
+    // AUDIT-2025-11-29: Pass Super Admin context for proper audit logging
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    const db = await getDatabase();
+    const collection = db.collection<InviteDocument>(COLLECTION);
+    const invites = await collection
+      .find({ orgId: tenantId }) // AUDIT-2025-11-29: Changed from org_id
+      .sort({ updatedAt: -1 })
+      .limit(200)
+      .toArray();
+    return NextResponse.json({ success: true, data: invites.map(mapInvite) });
+  } catch (error) {
+    logger.error("FM Invites API - GET error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.FINANCE,
+      action: FMAction.CREATE,
+    });
+    if (actor instanceof NextResponse) return actor;
+    // AUDIT-2025-11-29: Pass Super Admin context for proper audit logging
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    // AUDIT-2025-11-29: Reject cross-tenant mode for POST (must specify explicit tenant)
+    if (isCrossTenantMode(tenantId)) {
+      return NextResponse.json(
+        { success: false, error: "Super Admin must specify tenant context for user invitations" },
+        { status: 400 }
+      );
+    }
+
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, actor.orgId, actor.id), 30, 60_000);
+    if (!rl.allowed) return rateLimitError();
+
+    const payload = sanitize(await req.json());
+    const validationError = validate(payload);
+    if (validationError) {
+      return NextResponse.json(
+        { success: false, error: validationError },
+        { status: 400 },
+      );
+    }
+
+    const now = new Date();
+    const doc: InviteDocument = {
+      _id: new ObjectId(),
+      orgId: tenantId, // AUDIT-2025-11-29: Changed from org_id
+      email: payload.email!,
+      firstName: payload.firstName!,
+      lastName: payload.lastName!,
+      role: payload.role!,
+      status: "pending",
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const db = await getDatabase();
+    const collection = db.collection<InviteDocument>(COLLECTION);
+
+    const existing = await collection.findOne({
+      orgId: tenantId, // AUDIT-2025-11-29: Changed from org_id
+      email: doc.email,
+    });
+    if (existing) {
+      return NextResponse.json(
+        { success: false, error: "Invitation already exists for this email" },
+        { status: 409 },
+      );
+    }
+
+    await collection.insertOne(doc);
+
+    // Enqueue email invitation job for background processing
+    try {
+      const { JobQueue } = await import("@/lib/jobs/queue");
+      const jobId = await JobQueue.enqueue("email-invitation", {
+        inviteId: doc._id.toString(),
+        email: doc.email,
+        firstName: doc.firstName,
+        lastName: doc.lastName,
+        role: doc.role,
+        orgId: tenantId,
+      });
+
+      // Update invite status to 'sent' immediately (will be processed in background)
+      await collection.updateOne(
+        { _id: doc._id },
+        { $set: { status: "sent", jobId, updatedAt: new Date() } },
+      );
+      doc.status = "sent";
+      doc.jobId = jobId;
+    } catch (error) {
+      logger.error("Failed to enqueue invitation email", error as Error, {
+        inviteId: doc._id.toString(),
+      });
+      // Don't fail the request if job queue fails - invitation is still created
+    }
+
+    return NextResponse.json(
+      { success: true, data: mapInvite(doc) },
+      { status: 201 },
+    );
+  } catch (error) {
+    logger.error("FM Invites API - POST error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/fm/utils/auth.ts">
+<![CDATA[
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { requireAbility } from "@/server/middleware/withAuthRbac";
+import { FMErrors, fmErrorContext, type FMErrorOptions } from "../errors";
+
+type Ability = Parameters<typeof requireAbility>[0];
+
+const ABILITY_ERROR_MAP: Record<
+  number,
+  (message?: string, options?: FMErrorOptions) => NextResponse
+> = {
+  401: FMErrors.unauthorized,
+  403: FMErrors.forbidden,
+};
+
+export function requireFmAbility(ability: Ability) {
+  return async (req: NextRequest) => {
+    const result = await requireAbility(ability)(req);
+    if (result instanceof NextResponse) {
+      const formatter =
+        ABILITY_ERROR_MAP[result.status] ?? FMErrors.internalError;
+      const context = fmErrorContext(req);
+      return formatter(undefined, context);
+    }
+    return result;
+  };
+}
+
+]]>
+</file>
+
+<file path="app/api/fm/utils/tenant.ts">
+<![CDATA[
+import type { NextRequest } from "next/server";
+import type { NextResponse } from "next/server";
+import { FMErrors, fmErrorContext } from "../errors";
+import { logger } from "@/lib/logger";
+
+type TenantResolutionSuccess = {
+  tenantId: string;
+  source: "header" | "query" | "session";
+};
+
+type TenantFieldName = "orgId";
+
+export type TenantResolutionResult =
+  | TenantResolutionSuccess
+  | { error: NextResponse };
+
+// PHASE-2 FIX: Options for Super Admin-aware tenant resolution
+export interface TenantResolutionOptions {
+  isSuperAdmin?: boolean;
+  userId?: string;
+  allowHeaderOverride?: boolean; // Only true for Super Admin with explicit assumption
+}
+
+// Constants for cross-tenant marker
+export const CROSS_TENANT_MARKER = '__CROSS_TENANT__' as const;
+
+/**
+ * Type guard to check if resolved tenantId is the cross-tenant marker
+ * Used by Super Admins for platform-wide queries
+ */
+export function isCrossTenantMode(tenantId: string): tenantId is typeof CROSS_TENANT_MARKER {
+  return tenantId === CROSS_TENANT_MARKER;
+}
+
+/**
+ * Build a tenant-scoped query filter.
+ * For Super Admins in cross-tenant mode, returns empty object (no org filter).
+ * For regular users, returns { orgId: tenantId } filter.
+ * 
+ * @param tenantId - The resolved tenant ID or CROSS_TENANT_MARKER
+ * @param fieldName - The field name to use (default: 'orgId', some collections use legacy org id)
+ */
+export function buildTenantFilter(
+  tenantId: string,
+  fieldName: TenantFieldName = "orgId",
+): Record<string, string> {
+  if (isCrossTenantMode(tenantId)) {
+    // Super Admin cross-tenant mode - no org filter
+    return {};
+  }
+  return { [fieldName]: tenantId };
+}
+
+const TENANT_HEADER_CANDIDATES = [
+  "x-tenant-id",
+  "x-org-id",
+  "x-organization-id",
+  "x-customer-id",
+  "x-support-org-id",
+] as const;
+
+const normalizeTenantValue = (
+  value: string | null | undefined,
+): string | null => {
+  if (!value) return null;
+  const trimmed = value.trim();
+  return trimmed.length ? trimmed : null;
+};
+
+/**
+ * Resolves the active tenant/org context for FM endpoints from headers, query params, or the session.
+ * Guards against conflicts by returning a standardized FM error response when mismatched values are supplied.
+ * 
+ * PHASE-2 FIX: Hardened against header spoofing attacks
+ * - Non-Super Admin: Header override REJECTED if session has orgId
+ * - Super Admin: Header override ALLOWED only with explicit audit logging
+ */
+export function resolveTenantId(
+  req: NextRequest,
+  fallbackTenantId?: string | null,
+  options?: TenantResolutionOptions,
+): TenantResolutionResult {
+  const headerTenant =
+    TENANT_HEADER_CANDIDATES.map((header) =>
+      normalizeTenantValue(req.headers.get(header)),
+    ).find(Boolean) ?? null;
+  const queryTenant = normalizeTenantValue(
+    req.nextUrl?.searchParams?.get("tenantId"),
+  );
+  const sessionTenant = normalizeTenantValue(
+    typeof fallbackTenantId === "string"
+      ? fallbackTenantId
+      : (fallbackTenantId ?? null),
+  );
+
+  // PHASE-2 FIX: Reject header override for authenticated non-Super Admin users
+  // This prevents header spoofing attacks where users inject x-org-id headers
+  if (headerTenant && sessionTenant && headerTenant !== sessionTenant) {
+    if (!options?.isSuperAdmin || !options?.allowHeaderOverride) {
+      logger.warn('tenant_header_spoofing_blocked', {
+        action: 'reject_header_override',
+        headerOrg: headerTenant,
+        sessionOrg: sessionTenant,
+        userId: options?.userId,
+        isSuperAdmin: options?.isSuperAdmin ?? false,
+        path: req.nextUrl.pathname,
+        timestamp: new Date().toISOString(),
+      });
+      return {
+        error: FMErrors.forbidden(
+          "Tenant context mismatch: header override not permitted",
+          fmErrorContext(req),
+        ),
+      };
+    }
+    
+    // Super Admin with explicit header override - AUDIT
+    logger.info('superadmin_header_override', {
+      action: 'allow_header_override',
+      userId: options?.userId,
+      sessionOrg: sessionTenant,
+      assumedOrg: headerTenant,
+      path: req.nextUrl.pathname,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  const conflictPairs: Array<[string | null, string | null]> = [
+    [headerTenant, queryTenant],
+    [queryTenant, sessionTenant],
+  ];
+
+  for (const [first, second] of conflictPairs) {
+    if (first && second && first !== second) {
+      return {
+        error: FMErrors.forbidden(
+          "Tenant context mismatch detected",
+          fmErrorContext(req),
+        ),
+      };
+    }
+  }
+
+  // PHASE-2 FIX: For Super Admin without orgId, allow null tenantId (cross-tenant mode)
+  // For regular users, require tenantId
+  const tenantId = headerTenant ?? queryTenant ?? sessionTenant;
+  if (!tenantId) {
+    if (options?.isSuperAdmin) {
+      // Super Admin cross-tenant access - return special marker
+      // AUDIT FIX: Use explicit marker instead of empty string to prevent silent failures
+      // Caller must handle cross-tenant queries explicitly and decide how to scope
+      logger.info('superadmin_cross_tenant_mode', {
+        action: 'enter_cross_tenant',
+        userId: options?.userId,
+        path: req.nextUrl.pathname,
+        timestamp: new Date().toISOString(),
+      });
+      return {
+        tenantId: '__CROSS_TENANT__', // Explicit marker instead of empty string
+        source: 'session',
+      };
+    }
+    return { error: FMErrors.missingTenant(fmErrorContext(req)) };
+  }
+
+  return {
+    tenantId,
+    source: headerTenant ? "header" : queryTenant ? "query" : "session",
+  };
+}
+
+]]>
+</file>
+
+<file path="app/api/fm/work-orders/[id]/assign/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { ModifyResult, ObjectId } from "mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
+import type { WithId } from "mongodb";
+import { unwrapFindOneResult } from "@/lib/mongoUtils.server";
+import { logger } from "@/lib/logger";
+import {
+  getCanonicalUserId,
+  mapWorkOrderDocument,
+  recordTimelineEntry,
+  type WorkOrderDocument,
+} from "../../utils";
+import { resolveTenantId } from "../../../utils/tenant";
+import { requireFmAbility } from "../../../utils/auth";
+import { FMErrors } from "../../../errors";
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const actor = await requireFmAbility("ASSIGN")(req);
+    if (actor instanceof NextResponse) return actor;
+    const isSuperAdmin = actor.role === 'SUPER_ADMIN';
+    const tenantResult = resolveTenantId(req, actor.orgId || actor.tenantId, { isSuperAdmin });
+    if ("error" in tenantResult) return tenantResult.error;
+    const { tenantId } = tenantResult;
+    const actorId = getCanonicalUserId(actor);
+    if (!actorId) {
+      return FMErrors.validationError("User identifier is required");
+    }
+
+    const workOrderId = params.id;
+    if (!ObjectId.isValid(workOrderId)) {
+      return FMErrors.invalidId("work order");
+    }
+
+    const body = await req.json();
+    const { assigneeId, technicianId, vendorId, notes } = body ?? {};
+    if (!assigneeId && !technicianId && !vendorId) {
+      return FMErrors.validationError("assigneeId, technicianId, or vendorId is required");
+    }
+
+    const db = await getDatabase();
+    const now = new Date();
+    // STRICT v4.1: Use canonical assignment.assignedTo structure only
+    const update: Record<string, unknown> = {
+      updatedAt: now,
+      assignment: {
+        assignedTo: {
+          userId: assigneeId || technicianId,
+          vendorId: vendorId,
+          assignedAt: now,
+        },
+        assignedBy: actorId,
+        assignedAt: now,
+        notes,
+      },
+    };
+
+    const collection = db.collection<WorkOrderDocument>("workorders");
+    // RBAC-001 FIX: Use tenantId variable (has fallback) for STRICT v4 tenant isolation
+    const result = await collection.findOneAndUpdate(
+      { _id: new ObjectId(workOrderId), orgId: tenantId },
+      { $set: update },
+      { returnDocument: "after" },
+    );
+
+    const updated = unwrapFindOneResult(
+      result as ModifyResult<WorkOrderDocument> | WithId<WorkOrderDocument> | null,
+    );
+    if (!updated) {
+      return FMErrors.notFound("Work order");
+    }
+
+    // RBAC-001 FIX: Use tenantId variable (has fallback) for timeline entry
+    await recordTimelineEntry({
+      workOrderId,
+      orgId: tenantId, // FIX: Use tenantId variable (has fallback to actor.tenantId)
+      action: "assigned",
+      description: notes
+        ? `Assigned with note: ${notes}`
+        : "Assignment updated",
+      metadata: { 
+        userId: assigneeId || technicianId,
+        vendorId,
+        assignmentType: vendorId ? 'vendor' : 'internal',
+      },
+      performedBy: actorId,
+      performedAt: now,
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: mapWorkOrderDocument(updated),
+      message: "Work order assignment updated",
+    });
+  } catch (error) {
+    logger.error("FM Work Order Assignment API error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/fm/work-orders/[id]/attachments/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
+import { unwrapFindOneResult } from "@/lib/mongoUtils.server";
+import { logger } from "@/lib/logger";
+import type { WorkOrderPhoto } from "@/types/fm";
+import { WorkOrderAttachment } from "@/server/models/workorder/WorkOrderAttachment";
+import {
+  assertWorkOrderQuota,
+  getCanonicalUserId,
+  recordTimelineEntry,
+  WORK_ORDER_ATTACHMENT_LIMIT,
+  WorkOrderQuotaError,
+  WORK_ORDER_TIMELINE_LIMIT,
+} from "../../utils";
+import { resolveTenantId } from "../../../utils/tenant";
+import { requireFmAbility } from "../../../utils/auth";
+import { FMErrors } from "../../../errors";
+
+type AttachmentDocument = Partial<{
+  _id: { toString?: () => string };
+  id: string;
+  workOrderId: string | ObjectId;
+  url: string;
+  thumbnailUrl: string | null | undefined;
+  type: string | null;
+  caption: string;
+  fileName: string;
+  fileSize: number;
+  uploadedAt: Date | string | number;
+}> & Record<string, unknown>;
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const actor = await requireFmAbility("VIEW")(req);
+    if (actor instanceof NextResponse) return actor;
+    const isSuperAdmin = actor.role === 'SUPER_ADMIN';
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId || actor.tenantId,
+      { isSuperAdmin }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId: orgId } = tenantResolution;  // Use orgId for consistency
+
+    if (!getCanonicalUserId(actor)) {
+      return FMErrors.validationError("User identifier is required");
+    }
+
+    const workOrderId = params.id;
+    if (!ObjectId.isValid(workOrderId)) {
+      return FMErrors.invalidId("work order");
+    }
+
+    const db = await getDatabase();
+    const attachments = await db
+      .collection(COLLECTIONS.WORKORDER_ATTACHMENTS)
+      .find({ orgId, workOrderId })
+      .sort({ uploadedAt: -1 })
+      .toArray();
+
+    return NextResponse.json({
+      success: true,
+      data: attachments.map((doc) => mapAttachmentDocument(doc as AttachmentDocument)),
+    });
+  } catch (error) {
+    logger.error("FM Work Order Attachments GET error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const actor = await requireFmAbility("EDIT")(req);
+    if (actor instanceof NextResponse) return actor;
+    const isSuperAdmin = actor.role === 'SUPER_ADMIN';
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId || actor.tenantId,
+      { isSuperAdmin }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId: orgId } = tenantResolution;  // Use orgId for consistency
+
+    const actorId = getCanonicalUserId(actor);
+    if (!actorId) {
+      return FMErrors.validationError("User identifier is required");
+    }
+
+    const workOrderId = params.id;
+    if (!ObjectId.isValid(workOrderId)) {
+      return FMErrors.invalidId("work order");
+    }
+
+    const body = await req.json();
+    const url = (body?.url || "").trim();
+    if (!url) {
+      return FMErrors.validationError("Attachment URL is required");
+    }
+
+    const type: WorkOrderPhoto["type"] = body?.type ?? "attachment";
+    const now = new Date();
+    await getDatabase();
+    await assertWorkOrderQuota(
+      COLLECTIONS.WORKORDER_ATTACHMENTS,
+      orgId,
+      workOrderId,
+      WORK_ORDER_ATTACHMENT_LIMIT,
+    );
+    const attachmentDoc = {
+      orgId,  // STRICT v4.1: Use orgId instead of tenantId
+      workOrderId,
+      url,
+      thumbnailUrl: body?.thumbnailUrl,
+      caption: body?.caption,
+      type,
+      fileName: body?.fileName,
+      fileSize: body?.fileSize,
+      uploadedAt: now,
+      metadata: body?.metadata,
+      uploadedBy: {
+        id: actorId,
+        name: actor.name ?? undefined,
+        email: actor.email ?? undefined,
+      },
+    };
+
+    const result = await WorkOrderAttachment.create(attachmentDoc);
+
+    await recordTimelineEntry({
+      workOrderId,
+      orgId,  // STRICT v4.1: Use orgId for timeline
+      action: "photo_uploaded",
+      description: body?.caption || body?.fileName || "Attachment uploaded",
+      metadata: {
+        attachmentId: result._id.toString(),
+        type,
+      },
+      performedBy: actorId,
+      performedAt: now,
+    }, WORK_ORDER_TIMELINE_LIMIT);
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: mapAttachmentDocument({
+          _id: result._id,
+          ...attachmentDoc,
+        }),
+      },
+      { status: 201 },
+    );
+  } catch (error) {
+    if (error instanceof WorkOrderQuotaError) {
+      return FMErrors.rateLimited(error.message, {
+        limit: error.limit,
+        resource: "attachments",
+      });
+    }
+    logger.error("FM Work Order Attachments POST error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const actor = await requireFmAbility("EDIT")(req);
+    if (actor instanceof NextResponse) return actor;
+    const isSuperAdmin = actor.role === 'SUPER_ADMIN';
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId || actor.tenantId,
+      { isSuperAdmin }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId: orgId } = tenantResolution;  // Use orgId for consistency
+
+    const actorId = getCanonicalUserId(actor);
+    if (!actorId) {
+      return FMErrors.validationError("User identifier is required");
+    }
+
+    const workOrderId = params.id;
+    if (!ObjectId.isValid(workOrderId)) {
+      return FMErrors.invalidId("work order");
+    }
+
+    const { searchParams } = new URL(req.url);
+    const attachmentId = searchParams.get("attachmentId");
+    if (!attachmentId) {
+      return FMErrors.validationError(
+        "attachmentId query parameter is required",
+      );
+    }
+    if (!ObjectId.isValid(attachmentId)) {
+      return FMErrors.invalidId("attachment");
+    }
+
+    await getDatabase();
+    const result = unwrapFindOneResult(
+      await WorkOrderAttachment.findOneAndDelete({
+        _id: new ObjectId(attachmentId),
+        orgId,
+        workOrderId,
+      }).lean(),
+    );
+
+    if (!result) {
+      return FMErrors.notFound("Attachment");
+    }
+
+    await recordTimelineEntry({
+      workOrderId,
+      orgId,  // STRICT v4.1: Use orgId for timeline
+      action: "photo_removed",
+      description: `Attachment removed: ${result.caption || result.fileName || result.url}`,
+      metadata: {
+        attachmentId,
+      },
+      performedBy: actorId,
+      performedAt: new Date(),
+    }, WORK_ORDER_TIMELINE_LIMIT);
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    logger.error("FM Work Order Attachments DELETE error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+function mapAttachmentDocument(doc: AttachmentDocument): WorkOrderPhoto {
+  const uploadedAt =
+    doc.uploadedAt instanceof Date
+      ? doc.uploadedAt
+      : new Date(doc.uploadedAt ?? Date.now());
+
+  return {
+    id: doc._id?.toString?.() ?? doc.id ?? "",
+    url: doc.url ?? "",
+    thumbnailUrl: doc.thumbnailUrl ?? undefined,
+    type:
+      (doc.type as "before" | "after" | "attachment" | undefined) ??
+      "attachment",
+    caption: doc.caption ?? doc.fileName ?? "",
+    uploadedAt: uploadedAt.toISOString(),
+  };
+}
+
+]]>
+</file>
+
+<file path="app/api/fm/work-orders/[id]/comments/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
+import { logger } from "@/lib/logger";
+import type { WorkOrderComment } from "@/types/fm";
+import { WorkOrderComment as WorkOrderCommentModel } from "@/server/models/workorder/WorkOrderComment";
+import {
+  assertWorkOrderQuota,
+  buildWorkOrderUser,
+  getCanonicalUserId,
+  recordTimelineEntry,
+  WorkOrderQuotaError,
+  WORK_ORDER_COMMENT_LIMIT,
+  WORK_ORDER_TIMELINE_LIMIT,
+} from "../../utils";
+import { resolveTenantId } from "../../../utils/tenant";
+import { requireFmAbility } from "../../../utils/auth";
+import { FMErrors } from "../../../errors";
+
+interface CommentDocument {
+  _id?: { toString?: () => string };
+  id?: string;
+  workOrderId?: string | ObjectId;
+  comment?: string;
+  type?: string;
+  createdAt?: Date | string | number;
+  createdBy?: {
+    id?: string | null;
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    name?: string;
+  };
+  [key: string]: unknown;
+}
+
+const COMMENT_TYPES = new Set<WorkOrderComment["type"]>([
+  "comment",
+  "internal",
+]);
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const actor = await requireFmAbility("VIEW")(req);
+    if (actor instanceof NextResponse) return actor;
+    const tenantResult = resolveTenantId(req, actor.orgId || actor.tenantId);
+    if ("error" in tenantResult) return tenantResult.error;
+    const { tenantId: orgId } = tenantResult;
+
+    const workOrderId = params.id;
+    if (!ObjectId.isValid(workOrderId)) {
+      return FMErrors.invalidId("work order");
+    }
+
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(parseInt(searchParams.get("page") || "1", 10), 1);
+    const limit = Math.min(
+      parseInt(searchParams.get("limit") || "20", 10),
+      100,
+    );
+    const skip = (page - 1) * limit;
+
+    const filter = { orgId, workOrderId };
+
+    const [comments, total] = await Promise.all([
+      WorkOrderCommentModel.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      WorkOrderCommentModel.countDocuments(filter),
+    ]);
+
+    const data: WorkOrderComment[] = comments.map((doc) =>
+      mapCommentDocument(doc as CommentDocument),
+    );
+
+    return NextResponse.json({
+      success: true,
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    logger.error("FM Work Order Comments GET error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const actor = await requireFmAbility("COMMENT")(req);
+    if (actor instanceof NextResponse) return actor;
+    const tenantResult = resolveTenantId(req, actor.orgId || actor.tenantId);
+    if ("error" in tenantResult) return tenantResult.error;
+    const { tenantId: orgId } = tenantResult;
+    const actorId = getCanonicalUserId(actor);
+    if (!actorId) {
+      return FMErrors.validationError("User identifier is required");
+    }
+
+    const workOrderId = params.id;
+    if (!ObjectId.isValid(workOrderId)) {
+      return FMErrors.invalidId("work order");
+    }
+
+    const body = await req.json();
+    const comment = (body?.comment || "").trim();
+    const type: WorkOrderComment["type"] = COMMENT_TYPES.has(body?.type)
+      ? body.type
+      : "comment";
+
+    if (!comment) {
+      return FMErrors.validationError("Comment text is required");
+    }
+
+    await assertWorkOrderQuota(
+      "workorder_comments",
+      orgId,
+      workOrderId,
+      WORK_ORDER_COMMENT_LIMIT,
+    );
+    const now = new Date();
+    const commentDoc = {
+      orgId,
+      workOrderId,
+      comment,
+      type,
+      attachments: body?.attachments ?? [],
+      createdAt: now,
+      createdBy: {
+        id: actorId,
+        name: actor.name ?? undefined,
+        email: actor.email ?? undefined,
+      },
+    };
+
+    const result = await WorkOrderCommentModel.create(commentDoc);
+
+    await recordTimelineEntry(
+      {
+        workOrderId,
+        orgId,
+        action: "comment_added",
+        description: comment.slice(0, 240),
+        metadata: {
+          commentId: result.id.toString(),
+          type,
+        },
+        performedBy: actorId,
+        performedAt: now,
+      },
+      WORK_ORDER_TIMELINE_LIMIT,
+    );
+
+    const createdComment: WorkOrderComment = mapCommentDocument({
+      _id: result._id,
+      ...commentDoc,
+    });
+
+    return NextResponse.json(
+      { success: true, data: createdComment },
+      { status: 201 },
+    );
+  } catch (error) {
+    if (error instanceof WorkOrderQuotaError) {
+      return FMErrors.rateLimited(error.message, {
+        limit: error.limit,
+        resource: "comments",
+      });
+    }
+    logger.error("FM Work Order Comments POST error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+function mapCommentDocument(doc: CommentDocument): WorkOrderComment {
+  const createdAt =
+    doc.createdAt instanceof Date
+      ? doc.createdAt
+      : new Date(doc.createdAt ?? Date.now());
+  const createdBy = doc.createdBy || {};
+
+  const workOrderId =
+    typeof doc.workOrderId === "string"
+      ? doc.workOrderId
+      : doc.workOrderId?.toString?.() ?? "";
+
+  return {
+    id: doc._id?.toString?.() ?? doc.id ?? "",
+    workOrderId,
+    comment: doc.comment ?? "",
+    type: (COMMENT_TYPES.has(doc.type as "comment" | "internal")
+      ? doc.type
+      : "comment") as "comment" | "internal",
+    createdAt: createdAt.toISOString(),
+    user: buildWorkOrderUser(null, {
+      id: createdBy.id ?? createdBy.email ?? undefined,
+      firstName: createdBy.firstName ?? createdBy.name ?? undefined,
+      lastName: createdBy.lastName ?? "",
+      email: createdBy.email,
+    }),
+  };
+}
+
+]]>
+</file>
+
+<file path="app/api/fm/work-orders/[id]/route.ts">
+<![CDATA[
+/**
+ * FM Work Orders API - Individual Work Order Operations
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { ObjectId, type ModifyResult } from "mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { unwrapFindOneResult } from "@/lib/mongoUtils.server";
+import { WOStatus } from "@/types/fm";
+import { logger } from "@/lib/logger";
+import {
+  getCanonicalUserId,
+  mapWorkOrderDocument,
+  recordTimelineEntry,
+  type WorkOrderDocument,
+} from "../utils";
+import { resolveTenantId } from "../../utils/tenant";
+import { requireFmAbility } from "../../utils/auth";
+import { FMErrors } from "../../errors";
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const actor = await requireFmAbility("VIEW")(req);
+    if (actor instanceof NextResponse) return actor;
+    const orgId = actor.orgId?.trim();
+    if (!orgId) {
+      logger.error("[FM WO][GET] Missing orgId on actor - tenant isolation enforced", {
+        userId: actor.id,
+        role: actor.role,
+      });
+      return NextResponse.json(
+        { error: "Missing organization context" },
+        { status: 401 },
+      );
+    }
+    // AUDIT-2025-11-26: Pass Super Admin context for proper audit logging
+    const tenantResult = resolveTenantId(req, orgId, {
+      isSuperAdmin: actor.isSuperAdmin,
+      userId: actor.id,
+      allowHeaderOverride: actor.isSuperAdmin,
+    });
+    if ("error" in tenantResult) return tenantResult.error;
+    const { tenantId: _tenantId } = tenantResult; // Prefix with _ to indicate intentionally unused
+
+    const { id } = params;
+    if (!ObjectId.isValid(id)) {
+      return FMErrors.invalidId("work order");
+    }
+
+    const db = await getDatabase();
+    const collection = db.collection<WorkOrderDocument>("workorders");
+    
+    // RBAC-005: Build role-based filter per STRICT v4 multi-tenant isolation
+    const baseFilter: {
+      _id: ObjectId;
+      orgId: string;
+      $or?: Array<Record<string, unknown>>;
+    } = {
+      _id: new ObjectId(id),
+      orgId,
+    };
+    const orFilters: Array<Record<string, unknown>> = [];
+    
+    // Scope by role to enforce assignment/ownership
+    // BLOCKER FIX: Add empty-unit guard for TENANT role and use canonical paths
+    if (actor.role === "TENANT") {
+      if (!actor.units?.length) {
+        return NextResponse.json(
+          { error: "No units assigned to this tenant" },
+          { status: 403 }
+        );
+      }
+      // Use $or to match both legacy and canonical field paths
+      orFilters.push(
+        { "location.unitNumber": { $in: actor.units } },
+        { unit_id: { $in: actor.units } },
+        { unitId: { $in: actor.units } },
+      );
+    }
+    // BLOCKER FIX: Use correct session field 'id' (not 'userId') and canonical schema paths
+    // MIGRATION FIX: Support both legacy flat fields and canonical paths for legacy data
+    const actorId = actor.id;
+    if (actor.role === "TECHNICIAN" && actorId) {
+      // Support both canonical and legacy paths
+      orFilters.push(
+        { "assignment.assignedTo.userId": actorId },
+        { technicianId: actorId },
+        { assignedTo: actorId },
+      );
+    }
+    if (actor.role === "VENDOR" && actor.vendorId) {
+      // Support both canonical and legacy paths
+      orFilters.push(
+        { "assignment.assignedTo.vendorId": actor.vendorId },
+        { vendorId: actor.vendorId },
+      );
+    }
+    if (orFilters.length) {
+      baseFilter.$or = [...orFilters];
+    }
+    // ADMIN, MANAGER, FM_MANAGER, PROPERTY_MANAGER see all org work orders
+    
+    const workOrder = await collection.findOne(baseFilter);
+
+    if (!workOrder) {
+      return FMErrors.notFound("Work order");
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: mapWorkOrderDocument(workOrder),
+    });
+  } catch (error) {
+    logger.error("FM Work Order API - GET error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const actor = await requireFmAbility("EDIT")(req);
+    if (actor instanceof NextResponse) return actor;
+    const orgId = actor.orgId?.trim();
+    if (!orgId) {
+      logger.error("[FM WO][PATCH] Missing orgId on actor - tenant isolation enforced", {
+        userId: actor.id,
+        role: actor.role,
+      });
+      return NextResponse.json(
+        { error: "Missing organization context" },
+        { status: 401 },
+      );
+    }
+    // AUDIT-2025-11-26: Pass Super Admin context for proper audit logging
+    const tenantResult = resolveTenantId(req, orgId, {
+      isSuperAdmin: actor.isSuperAdmin,
+      userId: actor.id,
+      allowHeaderOverride: actor.isSuperAdmin,
+    });
+    if ("error" in tenantResult) return tenantResult.error;
+    const { tenantId } = tenantResult;
+    const actorId = getCanonicalUserId(actor);
+    if (!actorId) {
+      return FMErrors.validationError("User identifier is required");
+    }
+
+    const { id } = params;
+    if (!ObjectId.isValid(id)) {
+      return FMErrors.invalidId("work order");
+    }
+
+    const body = await req.json();
+    const update: Record<string, unknown> & { updatedAt: Date } = {
+      updatedAt: new Date(),
+    };
+    
+    // RBAC-006: Build role-based filter for updates
+    const baseFilter: Record<string, unknown> = {
+      _id: new ObjectId(id),
+      orgId, // Fixed: use orgId (not tenantId)
+    };
+    
+    // BLOCKER FIX: Add empty-unit guard for TENANT role and use canonical paths
+    if (actor.role === "TENANT") {
+      if (!actor.units?.length) {
+        return NextResponse.json(
+          { error: "No units assigned to this tenant" },
+          { status: 403 }
+        );
+      }
+      baseFilter.$or = [
+        { "location.unitNumber": { $in: actor.units } },
+        { unit_id: { $in: actor.units } },
+        { unitId: { $in: actor.units } },
+      ];
+    }
+    // BLOCKER FIX: Use correct session field 'id' (not 'userId') and canonical schema paths
+    // MIGRATION FIX: Support both legacy flat fields and canonical paths for legacy data
+    const actorIdForFilter = actor.id;
+    if (actor.role === "TECHNICIAN" && actorIdForFilter) {
+      // Support both canonical and legacy paths
+      const currentOr: Record<string, unknown>[] = Array.isArray(baseFilter.$or)
+        ? baseFilter.$or
+        : [];
+      baseFilter.$or = [
+        ...currentOr,
+        { "assignment.assignedTo.userId": actorIdForFilter },
+        { technicianId: actorIdForFilter },
+        { assignedTo: actorIdForFilter },
+      ];
+    }
+    if (actor.role === "VENDOR" && actor.vendorId) {
+      // Support both canonical and legacy paths
+      const currentOr: Record<string, unknown>[] = Array.isArray(baseFilter.$or)
+        ? baseFilter.$or
+        : [];
+      baseFilter.$or = [
+        ...currentOr,
+        { "assignment.assignedTo.vendorId": actor.vendorId },
+        { vendorId: actor.vendorId },
+      ];
+    }
+    
+    const allowedFields = [
+      "title",
+      "description",
+      "status",
+      "priority",
+      "category",
+      "propertyId",
+      "unitId",
+      "assignedTo", // Fixed: assignedTo (not assigneeId)
+      "technicianId",
+      "vendorId", // Added for vendor assignment tracking
+      "scheduledAt",
+      "startedAt",
+      "completedAt",
+      "estimatedCost",
+      "actualCost",
+    ];
+
+    allowedFields.forEach((field) => {
+      if (Object.prototype.hasOwnProperty.call(body, field)) {
+        update[field] = body[field];
+      }
+    });
+
+    if (update.scheduledAt)
+      update.scheduledAt = new Date(update.scheduledAt as string);
+    if (update.startedAt)
+      update.startedAt = new Date(update.startedAt as string);
+    if (update.completedAt)
+      update.completedAt = new Date(update.completedAt as string);
+
+    const db = await getDatabase();
+    const collection = db.collection<WorkOrderDocument>("workorders");
+    
+    // Use role-based filter for finding and updating (RBAC-006)
+    const existingWorkOrder = await collection.findOne(baseFilter);
+
+    if (!existingWorkOrder) {
+      return FMErrors.notFound("Work order");
+    }
+
+    const result = (await collection.findOneAndUpdate(
+      baseFilter, // Fixed: use role-based filter
+      { $set: update },
+      { returnDocument: "after" },
+    )) as unknown as ModifyResult<WorkOrderDocument>;
+
+    const updatedDoc = unwrapFindOneResult(result);
+    if (!updatedDoc) {
+      return FMErrors.notFound("Work order");
+    }
+
+    if (body.status && existingWorkOrder.status !== body.status) {
+      await recordTimelineEntry({
+        workOrderId: id,
+        orgId: tenantId, // FIX: Use tenantId variable (has fallback to actor.tenantId)
+        action: "status_changed",
+        description: `Status changed to ${body.status}`,
+        metadata: {
+          toStatus: body.status,
+          fromStatus: existingWorkOrder.status,
+        },
+        performedBy: actorId,
+        performedAt: new Date(),
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: mapWorkOrderDocument(updatedDoc),
+    });
+  } catch (error) {
+    logger.error("FM Work Order API - PATCH error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const actor = await requireFmAbility("DELETE")(req);
+    if (actor instanceof NextResponse) return actor;
+    // AUDIT-2025-11-26: Pass Super Admin context for proper audit logging
+    const tenantResult = resolveTenantId(req, actor.orgId || actor.tenantId, {
+      isSuperAdmin: actor.isSuperAdmin,
+      userId: actor.id,
+      allowHeaderOverride: actor.isSuperAdmin,
+    });
+    if ("error" in tenantResult) return tenantResult.error;
+    const { tenantId } = tenantResult;
+    const actorId = getCanonicalUserId(actor);
+    if (!actorId) {
+      return FMErrors.validationError("User identifier is required");
+    }
+
+    const { id } = params;
+    if (!ObjectId.isValid(id)) {
+      return FMErrors.invalidId("work order");
+    }
+
+    // RBAC-007: Build role-based filter for deletion
+    const baseFilter: Record<string, unknown> = {
+      _id: new ObjectId(id),
+      orgId: actor.orgId, // Fixed: use orgId (not tenantId)
+    };
+    
+    // BLOCKER FIX: Add empty-unit guard for TENANT role and use canonical paths
+    if (actor.role === "TENANT") {
+      if (!actor.units?.length) {
+        return NextResponse.json(
+          { error: "No units assigned to this tenant" },
+          { status: 403 }
+        );
+      }
+      baseFilter.$or = [
+        { "location.unitNumber": { $in: actor.units } },
+        { unit_id: { $in: actor.units } },
+        { unitId: { $in: actor.units } },
+      ];
+    }
+    // BLOCKER FIX: Use correct session field 'id' (not 'userId') and canonical schema paths
+    const actorIdForDelete = actor.id;
+    if (actor.role === "TECHNICIAN" && actorIdForDelete) {
+      baseFilter["assignment.assignedTo.userId"] = actorIdForDelete;
+    }
+    if (actor.role === "VENDOR" && actor.vendorId) {
+      baseFilter["assignment.assignedTo.vendorId"] = actor.vendorId;
+    }
+
+    const db = await getDatabase();
+    const collection = db.collection<WorkOrderDocument>("workorders");
+    const deleteResult = (await collection.findOneAndUpdate(
+      baseFilter, // Fixed: use role-based filter
+      {
+        $set: {
+          status: WOStatus.CLOSED,
+          deletedAt: new Date(),
+          updatedAt: new Date(),
+        },
+      },
+      { returnDocument: "after" },
+    )) as unknown as ModifyResult<WorkOrderDocument>;
+
+    const deletedWorkOrder = unwrapFindOneResult(deleteResult);
+    if (!deletedWorkOrder) {
+      return FMErrors.notFound("Work order");
+    }
+
+    await recordTimelineEntry({
+      workOrderId: id,
+      orgId: tenantId, // FIX: Use tenantId variable (has fallback to actor.tenantId)
+      action: "status_changed",
+      description: "Work order closed",
+      metadata: { toStatus: WOStatus.CLOSED },
+      performedBy: actorId,
+      performedAt: new Date(),
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Work order deleted successfully",
+    });
+  } catch (error) {
+    logger.error("FM Work Order API - DELETE error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/fm/work-orders/[id]/timeline/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
+import { logger } from "@/lib/logger";
+import type { WorkOrderTimeline } from "@/types/fm";
+import { buildWorkOrderUser } from "../../utils";
+import { requireFmAbility } from "../../../utils/auth";
+import { resolveTenantId } from "../../../utils/tenant";
+import { FMErrors } from "../../../errors";
+
+interface TimelineDocument {
+  _id?: { toString?: () => string };
+  id?: string;
+  workOrderId?: string;
+  action?: string;
+  description?: string;
+  performedAt?: Date | string | number;
+  performedBy?: string;
+  metadata?: Record<string, unknown>;
+  comment?: string;
+  [key: string]: unknown;
+}
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const actor = await requireFmAbility("VIEW")(req);
+    if (actor instanceof NextResponse) return actor;
+    const tenantResult = resolveTenantId(req, actor.orgId || actor.tenantId);
+    if ("error" in tenantResult) return tenantResult.error;
+    const { tenantId } = tenantResult;
+
+    const workOrderId = params.id;
+    if (!ObjectId.isValid(workOrderId)) {
+      return FMErrors.invalidId("work order");
+    }
+
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(parseInt(searchParams.get("page") || "1", 10), 1);
+    const limit = Math.min(
+      parseInt(searchParams.get("limit") || "25", 10),
+      100,
+    );
+    const skip = (page - 1) * limit;
+
+    const db = await getDatabase();
+    const collection = db.collection(COLLECTIONS.WORKORDER_TIMELINE);
+    // RBAC-002 FIX: Use tenantId variable (has fallback) for STRICT v4 tenant isolation
+    const filter = { tenantId: tenantId, workOrderId };
+
+    const [entries, total] = await Promise.all([
+      collection
+        .find(filter)
+        .sort({ performedAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .toArray(),
+      collection.countDocuments(filter),
+    ]);
+
+    const data: WorkOrderTimeline[] = entries.map(mapTimelineDocument);
+
+    return NextResponse.json({
+      success: true,
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    logger.error("FM Work Order Timeline GET error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+function mapTimelineDocument(doc: TimelineDocument): WorkOrderTimeline {
+  const performedAt =
+    doc.performedAt instanceof Date
+      ? doc.performedAt
+      : new Date(doc.performedAt ?? Date.now());
+
+  return {
+    id: doc._id?.toString?.() ?? doc.id ?? "",
+    workOrderId: doc.workOrderId ?? "",
+    action: doc.action ?? "updated",
+    description: doc.description ?? "",
+    performedAt: performedAt.toISOString(),
+    user: buildWorkOrderUser(null, {
+      id: doc.performedBy ?? undefined,
+      firstName: doc.performedBy ?? "System",
+    }),
+    metadata:
+      doc.metadata ?? (doc.comment ? { comment: doc.comment } : undefined),
+  };
+}
+
+]]>
+</file>
+
+<file path="app/api/fm/work-orders/[id]/transition/route.ts">
+<![CDATA[
+/**
+ * FM Work Orders API - FSM State Transitions
+ * POST /api/fm/work-orders/[id]/transition
+ *
+ * Handles work order state transitions according to FSM rules
+ * Enforces RBAC permissions and validates transitions
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { ModifyResult, ObjectId } from "mongodb";
+import { logger } from "@/lib/logger";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
+import { unwrapFindOneResult } from "@/lib/mongoUtils.server";
+import { FMErrors } from "@/app/api/fm/errors";
+import {
+  WORK_ORDER_FSM,
+  canTransition,
+  can,
+  Role as FMRole,
+  Plan as FMPlan,
+  SubmoduleKey,
+  WOStatus,
+  type ResourceCtx,
+} from "@/domain/fm/fm.behavior";
+import {
+  getCanonicalUserId,
+  mapWorkOrderDocument,
+  recordTimelineEntry,
+  type WorkOrderDocument,
+} from "../../utils";
+import { resolveTenantId } from "../../../utils/tenant";
+import {
+  getSessionUser,
+  UnauthorizedError,
+  type SessionUser,
+} from "@/server/middleware/withAuthRbac";
+import type { WorkOrderUser } from "@/types/fm/work-order";
+
+interface AttachmentWithCategory {
+  category?: string;
+  type?: string;
+  [key: string]: unknown;
+}
+
+interface WorkOrderForTransition {
+  orgId?: { toString?: () => string } | string;
+  propertyId?: string;
+  requesterId?: string;
+  ownerUserId?: string;
+  location?: string | { propertyId?: string };
+  requester?: WorkOrderUser | { userId?: string; [key: string]: unknown };
+  assignment?: {
+    assignedTo?: Record<string, unknown>;
+    [key: string]: unknown;
+  };
+  attachments?: Array<AttachmentWithCategory | string>;
+  [key: string]: unknown;
+}
+import { requireFmAbility } from "../../../utils/auth";
+import type {
+  NotificationChannel,
+  NotificationRecipient,
+} from "@/lib/fm-notifications";
+
+/**
+ * POST - Transition work order to new status
+ */
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const abilityCheck = await requireFmAbility("STATUS")(req);
+    if (abilityCheck instanceof NextResponse) return abilityCheck;
+
+    const user = await getSessionUser(req);
+    const tenantResult = resolveTenantId(req, user.orgId || user.tenantId);
+    if ("error" in tenantResult) return tenantResult.error;
+    const { tenantId } = tenantResult;
+
+    const { id } = params;
+    if (!ObjectId.isValid(id)) {
+      return FMErrors.invalidId("work order");
+    }
+
+    const body = await req.json();
+    const { toStatus, comment, metadata } = body;
+
+    if (!isWOStatus(toStatus)) {
+      return FMErrors.validationError("Invalid target status");
+    }
+
+    const actorRole = mapSessionRole(user.role);
+    if (!actorRole) {
+      return FMErrors.forbidden("Role not allowed to transition work orders");
+    }
+
+    const db = await getDatabase();
+    const collection = db.collection<WorkOrderDocument>(COLLECTIONS.WORK_ORDERS);
+    // LEGACY-003 FIX: Use orgId for STRICT v4 tenant isolation
+    const workOrder = await collection.findOne({
+      _id: new ObjectId(id),
+      orgId: user.orgId, // Fixed: use orgId (not tenantId)
+    });
+
+    if (!workOrder) {
+      return FMErrors.notFound("Work order");
+    }
+
+    const currentStatus = toWorkOrderStatus(workOrder.status);
+    if (!currentStatus) {
+      return FMErrors.validationError("Unsupported work order status", {
+        currentStatus: workOrder.status,
+      });
+    }
+
+    const transition = WORK_ORDER_FSM.transitions.find(
+      (t) =>
+        t.from === currentStatus &&
+        t.to === toStatus &&
+        t.by.includes(actorRole),
+    );
+
+    if (!transition) {
+      const allowedTransitions = WORK_ORDER_FSM.transitions
+        .filter((t) => t.from === currentStatus)
+        .map((t) => t.to);
+      return FMErrors.invalidTransition(
+        `Cannot transition from ${currentStatus} to ${toStatus}`,
+        allowedTransitions,
+      );
+    }
+
+    const actorContext = buildResourceContext(
+      workOrder,
+      user,
+      tenantId,
+      actorRole,
+    );
+
+    const guardFailure = getTransitionGuardFailure(transition, actorContext);
+    if (guardFailure) {
+      return FMErrors.validationError(guardFailure, {
+        required: transition.requireMedia,
+      });
+    }
+
+    if (!canTransition(currentStatus, toStatus, actorRole, actorContext)) {
+      if (
+        transition.action &&
+        !can(SubmoduleKey.WO_TRACK_ASSIGN, transition.action, actorContext)
+      ) {
+        return FMErrors.forbidden(
+          `Role ${actorRole} cannot perform action ${transition.action}`,
+        );
+      }
+      return FMErrors.validationError(
+        "Transition not permitted - guard validation failed",
+      );
+    }
+
+    // Build update object
+    const update: Record<string, unknown> & {
+      status: WOStatus;
+      updatedAt: Date;
+    } = {
+      status: toStatus,
+      updatedAt: new Date(),
+    };
+
+    // Set timestamps based on status
+    if (toStatus === WOStatus.IN_PROGRESS && !workOrder.startedAt) {
+      update.startedAt = new Date();
+    }
+    if (toStatus === WOStatus.WORK_COMPLETE && !workOrder.completedAt) {
+      update.completedAt = new Date();
+    }
+
+    // Apply update
+    // LEGACY-003 FIX: Use orgId for STRICT v4 tenant isolation
+    const result = (await collection.findOneAndUpdate(
+      { _id: new ObjectId(id), orgId: user.orgId }, // Fixed: use orgId
+      { $set: update },
+      { returnDocument: "after" },
+    )) as unknown as ModifyResult<WorkOrderDocument>;
+    const updated = unwrapFindOneResult(result);
+
+    if (!updated) {
+      return FMErrors.notFound("Work order");
+    }
+
+    // Add timeline entry
+    const actorId = getCanonicalUserId(user);
+    if (!actorId) {
+      return FMErrors.validationError("User identifier is required");
+    }
+
+    // LEGACY-003 FIX: Use orgId for timeline entry
+    await recordTimelineEntry({
+      workOrderId: workOrder._id?.toString?.() ?? id,
+      orgId: user.orgId, // Fixed: use orgId for STRICT v4 compliance
+      action: "status_changed",
+      description: `Status changed from ${currentStatus} to ${toStatus}`,
+      metadata: {
+        fromStatus: currentStatus,
+        toStatus,
+        comment,
+        transitionMetadata: metadata,
+      },
+      performedBy: actorId,
+      performedAt: new Date(),
+    });
+
+    const orgId = workOrder.orgId?.toString?.() ?? tenantId;
+
+    // Trigger notifications for important status changes
+    try {
+      const { onAssign } = await import("@/lib/fm-notifications");
+      const recipients: NotificationRecipient[] = [];
+
+      // Notify requester on completion
+      if (
+        (toStatus === WOStatus.WORK_COMPLETE || toStatus === WOStatus.CLOSED) &&
+        workOrder.requesterId
+      ) {
+        // 🔐 STRICT v4.1: Include orgId in user lookup for tenant isolation
+        const requester = await db.collection(COLLECTIONS.USERS).findOne({
+          orgId,
+          $or: [
+            { _id: new ObjectId(workOrder.requesterId) },
+            { email: workOrder.requesterId },
+          ],
+        });
+        if (requester?.email) {
+          recipients.push({
+            userId: workOrder.requesterId,
+            name: requester.name || requester.email,
+            email: requester.email,
+            phone: requester.phone,
+            preferredChannels: ["email", "push"] as NotificationChannel[],
+          });
+        }
+      }
+
+      // Notify assignee on new assignment
+      if (toStatus === WOStatus.IN_PROGRESS && workOrder.assigneeId) {
+        // 🔐 STRICT v4.1: Include orgId in user lookup for tenant isolation
+        const assignee = await db
+          .collection(COLLECTIONS.USERS)
+          .findOne({ _id: new ObjectId(workOrder.assigneeId), orgId });
+        if (assignee?.email) {
+          recipients.push({
+            userId: workOrder.assigneeId,
+            name: assignee.name || assignee.email,
+            email: assignee.email,
+            phone: assignee.phone,
+            preferredChannels: ["email", "push"] as NotificationChannel[],
+          });
+        }
+      }
+
+      if (recipients.length > 0) {
+        await onAssign(
+          orgId,
+          workOrder.workOrderNumber || id,
+          user.name || user.email || "Manager",
+          `Status changed to ${toStatus}`,
+          recipients,
+        );
+      }
+    } catch (notifError) {
+      logger.error(
+        "Failed to send transition notification",
+        notifError as Error,
+      );
+    }
+
+    // Check SLA compliance
+    if (updated.slaHours && updated.createdAt) {
+      const elapsedHours =
+        (new Date().getTime() - new Date(updated.createdAt).getTime()) /
+        (1000 * 60 * 60);
+      if (elapsedHours > updated.slaHours && toStatus !== WOStatus.CLOSED) {
+        const breachHours = Math.floor(elapsedHours - updated.slaHours);
+        logger.warn("Work order SLA breach detected", {
+          workOrderId: id,
+          workOrderNumber: updated.workOrderNumber,
+          slaHours: updated.slaHours,
+          elapsedHours: Math.floor(elapsedHours),
+          breachHours,
+          currentStatus: toStatus,
+        });
+
+        // Notify managers about SLA breach
+        try {
+          const managers = await db
+            .collection(COLLECTIONS.USERS)
+            .find({
+              tenantId,
+              role: {
+                $in: ["ADMIN", "MANAGER", "FM_MANAGER", "PROPERTY_MANAGER"],
+              },
+            })
+            .limit(50)
+            .toArray(); // Limit to prevent memory issues with large orgs
+
+          if (managers.length > 0) {
+            const { onAssign } = await import("@/lib/fm-notifications");
+            const managerRecipients = managers
+              .filter((m) => m.email)
+              .map((m) => ({
+                userId: m._id.toString(),
+                name: m.name || m.email,
+                email: m.email,
+                phone: m.phone,
+                preferredChannels: ["email", "push"] as NotificationChannel[],
+              }));
+
+            await onAssign(
+              orgId,
+              updated.workOrderNumber || id,
+              "SLA Manager",
+              `⚠️ SLA BREACH: Work order ${updated.workOrderNumber || id} has exceeded SLA by ${breachHours} hours (${updated.slaHours}h limit). Current status: ${toStatus}`,
+              managerRecipients,
+            );
+          }
+        } catch (slaNotifError) {
+          logger.error(
+            "Failed to send SLA breach notification",
+            slaNotifError as Error,
+          );
+        }
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: mapWorkOrderDocument(updated),
+      message: `Work order transitioned to ${toStatus}`,
+    });
+  } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return FMErrors.unauthorized();
+    }
+    logger.error("FM Work Order Transition API error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+// LEGACY-003 FIX: Use canonical STRICT v4 FM roles (not deprecated aliases)
+const ROLE_ALIASES: Record<string, FMRole> = {
+  // Admin roles → ADMIN
+  ADMIN: FMRole.ADMIN,
+  CORPORATE_ADMIN: FMRole.ADMIN,
+  
+  // Management roles → TEAM_MEMBER or PROPERTY_MANAGER
+  MANAGER: FMRole.TEAM_MEMBER,
+  FM_MANAGER: FMRole.PROPERTY_MANAGER,
+  PROPERTY_MANAGER: FMRole.PROPERTY_MANAGER,
+  DISPATCHER: FMRole.TEAM_MEMBER,
+  
+  // Owner roles → CORPORATE_OWNER
+  OWNER: FMRole.CORPORATE_OWNER,
+  PROPERTY_OWNER: FMRole.CORPORATE_OWNER,
+  OWNER_DEPUTY: FMRole.PROPERTY_MANAGER, // Deputy acts as Property Manager
+  
+  // Other mappings
+  CUSTOMER: FMRole.TENANT,
+  SUPPORT: FMRole.TEAM_MEMBER,
+  AUDITOR: FMRole.TEAM_MEMBER,
+  
+  // Business function roles → TEAM_MEMBER
+  FINANCE: FMRole.TEAM_MEMBER,
+  HR: FMRole.TEAM_MEMBER,
+  PROCUREMENT: FMRole.TEAM_MEMBER,
+};
+
+const PLAN_ALIASES: Record<string, FMPlan> = {
+  STARTER: FMPlan.STARTER,
+  FREE: FMPlan.STARTER,
+  BASIC: FMPlan.STARTER,
+  STANDARD: FMPlan.STANDARD,
+  DEFAULT: FMPlan.STANDARD,
+  PRO: FMPlan.PRO,
+  PROFESSIONAL: FMPlan.PRO,
+  PREMIUM: FMPlan.PRO,
+  ENTERPRISE: FMPlan.ENTERPRISE,
+  CUSTOM: FMPlan.ENTERPRISE,
+};
+
+const LEGACY_STATUS_MAP: Record<string, WOStatus> = {
+  DRAFT: WOStatus.NEW,
+  SUBMITTED: WOStatus.ASSESSMENT,
+  ASSIGNED: WOStatus.ASSESSMENT,
+  OPEN: WOStatus.ASSESSMENT,
+  ON_HOLD: WOStatus.ASSESSMENT,
+  APPROVED: WOStatus.APPROVED,
+  VERIFIED: WOStatus.QUALITY_CHECK,
+  COMPLETED: WOStatus.WORK_COMPLETE,
+  FINISHED: WOStatus.WORK_COMPLETE,
+  IN_PROGRESS: WOStatus.IN_PROGRESS,
+  PENDING_APPROVAL: WOStatus.PENDING_APPROVAL,
+  CANCELLED: WOStatus.CLOSED,
+  CLOSED: WOStatus.CLOSED,
+  WORK_COMPLETE: WOStatus.WORK_COMPLETE,
+  QUALITY_CHECK: WOStatus.QUALITY_CHECK,
+  FINANCIAL_POSTING: WOStatus.FINANCIAL_POSTING,
+};
+
+function isWOStatus(value: unknown): value is WOStatus {
+  if (typeof value !== "string") return false;
+  return (Object.values(WOStatus) as string[]).includes(value);
+}
+
+function toWorkOrderStatus(input: unknown): WOStatus | null {
+  if (isWOStatus(input)) return input;
+  if (typeof input !== "string") return null;
+  const normalized = input.toUpperCase();
+  return LEGACY_STATUS_MAP[normalized] ?? null;
+}
+
+function mapSessionRole(role?: string | null): FMRole | null {
+  if (!role) return null;
+  const normalized = role.trim().toUpperCase();
+  if ((Object.values(FMRole) as string[]).includes(normalized)) {
+    return normalized as FMRole;
+  }
+  return ROLE_ALIASES[normalized] ?? null;
+}
+
+// SEC-003 FIX: Use STARTER as default (least privilege principle)
+// Previously FMPlan.STANDARD granted WO features the user may not have paid for
+function resolvePlan(plan?: string | null): FMPlan {
+  if (!plan) return FMPlan.STARTER;
+  const normalized = plan.toUpperCase();
+  return PLAN_ALIASES[normalized] ?? FMPlan.STARTER;
+}
+
+function buildResourceContext(
+  workOrder: WorkOrderForTransition,
+  user: SessionUser,
+  tenantId: string,
+  role: FMRole,
+): ResourceCtx {
+  const userId = (user?.id ?? user?.email ?? "unknown").toString();
+  const orgId = workOrder.orgId?.toString?.() ?? tenantId;
+  const propertyId =
+    workOrder.propertyId ??
+    (typeof workOrder.location === "object"
+      ? workOrder.location?.propertyId
+      : undefined);
+  const requesterUser = workOrder.requester as
+    | WorkOrderUser
+    | { userId?: string }
+    | undefined;
+  const requesterId =
+    workOrder.requesterId ??
+    (requesterUser && "userId" in requesterUser
+      ? requesterUser.userId
+      : undefined) ??
+    (requesterUser && "id" in requesterUser ? requesterUser.id : undefined);
+  const ownerId =
+    workOrder.ownerUserId ??
+    (requesterUser && "userId" in requesterUser
+      ? requesterUser.userId
+      : undefined) ??
+    (requesterUser && "id" in requesterUser ? requesterUser.id : undefined) ??
+    requesterId;
+
+  const isOwnerOfProperty = ownerId ? String(ownerId) === userId : false;
+  const isSuperAdmin = Boolean(user?.isSuperAdmin);
+  const belongsToOrg =
+    isSuperAdmin ||
+    !user?.orgId ||
+    String(user.orgId) === orgId ||
+    String(user.orgId) === tenantId;
+
+  return {
+    orgId,
+    plan: resolvePlan(user?.subscriptionPlan),
+    role,
+    userId,
+    isOrgMember: belongsToOrg,
+    isSuperAdmin,
+    propertyId: propertyId ? String(propertyId) : undefined,
+    requesterUserId: requesterId ? String(requesterId) : undefined,
+    isOwnerOfProperty,
+    isTechnicianAssigned: isActorAssignedToWorkOrder(workOrder, user),
+    uploadedMedia: collectUploadedMedia(workOrder.attachments),
+  };
+}
+
+function collectUploadedMedia(
+  attachments: Array<AttachmentWithCategory | string> | undefined,
+): ResourceCtx["uploadedMedia"] {
+  if (!attachments?.length) return [];
+  const allowed = new Set(["BEFORE", "AFTER", "DURING", "QUOTE"]);
+  const collected = attachments
+    .map((attachment) =>
+      typeof attachment === "string"
+        ? undefined
+        : (attachment?.category ?? attachment?.type),
+    )
+    .filter((cat): cat is string => Boolean(cat))
+    .map((category) => category.toString().toUpperCase());
+  return Array.from(
+    new Set(collected.filter((value) => allowed.has(value))),
+  ) as ResourceCtx["uploadedMedia"];
+}
+
+function isActorAssignedToWorkOrder(
+  workOrder: WorkOrderForTransition,
+  user: SessionUser,
+): boolean {
+  const actorId = (user?.id ?? user?.email)?.toString();
+  if (!actorId) return false;
+
+  const assignment = workOrder.assignment?.assignedTo;
+  const candidateIds = [
+    assignment?.userId,
+    assignment?.vendorId,
+    assignment?.technicianId,
+    workOrder.technicianId,
+  ]
+    .filter(Boolean)
+    .map((value) => value?.toString?.() ?? String(value));
+
+  return candidateIds.some((value) => value === actorId);
+}
+
+function getTransitionGuardFailure(
+  transition: (typeof WORK_ORDER_FSM.transitions)[number],
+  ctx: ResourceCtx,
+): string | null {
+  if (transition.requireMedia?.length) {
+    const missing = transition.requireMedia.filter(
+      (media) => !ctx.uploadedMedia?.includes(media),
+    );
+    if (missing.length) {
+      return `${missing.join(" & ")} media required before continuing`;
+    }
+  }
+
+  if (transition.guard === "technicianAssigned" && !ctx.isTechnicianAssigned) {
+    return "Assign a technician before performing this transition";
+  }
+
+  return null;
+}
+
+]]>
+</file>
+
+<file path="app/api/fm/work-orders/route.ts">
+<![CDATA[
+/**
+ * FM Work Orders API - GET /api/fm/work-orders
+ *
+ * List all work orders with filtering, pagination, and search
+ * Enforces tenant isolation via authenticated org context
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
+import { WOStatus, WOPriority, type WorkOrder, WOCategory } from "@/types/fm";
+import { logger } from "@/lib/logger";
+import {
+  mapWorkOrderDocument,
+  recordTimelineEntry,
+  type WorkOrderDocument,
+} from "./utils";
+import {
+  onTicketCreated,
+  type NotificationChannel,
+  type NotificationRecipient,
+} from "@/lib/fm-notifications";
+import { FMErrors } from "../errors";
+import { requireFmAbility } from "../utils/auth";
+
+export async function GET(req: NextRequest) {
+  try {
+    const abilityCheck = await requireFmAbility("VIEW")(req);
+    if (abilityCheck instanceof NextResponse) return abilityCheck;
+    const tenantId = abilityCheck.orgId ?? abilityCheck.tenantId;
+    if (!tenantId) {
+      return FMErrors.missingTenant();
+    }
+
+    // Parse query parameters
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = Math.min(
+      parseInt(searchParams.get("limit") || "20", 10),
+      100,
+    ); // Max 100 per page
+    const status = searchParams.get("status");
+    const priority = searchParams.get("priority");
+    const propertyId = searchParams.get("propertyId");
+    const assigneeId = searchParams.get("assigneeId");
+    const search = searchParams.get("search");
+
+    // Build query - RBAC-001: Use orgId per STRICT v4.1 (migrated from tenantId)
+    // SEC-001 FIX: Use tenantId scope variable (with fallback) instead of raw abilityCheck.orgId
+    const query: Record<string, unknown> = { orgId: tenantId };
+    
+    // Use $and to combine multiple filter conditions without overwriting
+    const andFilters: Record<string, unknown>[] = [];
+
+    // RBAC-002: TENANT role unit filtering per STRICT v4.1 spec
+    // BLOCKER FIX: Use canonical schema path 'location.unitNumber' or 'unit_id'
+    if (abilityCheck.role === "TENANT") {
+      const userUnits = abilityCheck.units || [];
+      if (userUnits.length === 0) {
+        return NextResponse.json(
+          { error: "No units assigned to this tenant" },
+          { status: 403 }
+        );
+      }
+      // Use both field names to support legacy and new documents
+      // FIX: Add to $and array instead of setting $or directly (prevents search overwrite)
+      andFilters.push({
+        $or: [
+          { "location.unitNumber": { $in: userUnits } },
+          { unit_id: { $in: userUnits } },
+          { unitId: { $in: userUnits } },
+        ]
+      });
+    }
+
+    if (status) {
+      query.status = { $in: status.split(",") };
+    }
+
+    if (priority) {
+      query.priority = { $in: priority.split(",") };
+    }
+
+    if (propertyId) {
+      query.propertyId = propertyId;
+    }
+
+    // FIX: Use canonical schema path for assigneeId filter
+    if (assigneeId) {
+      andFilters.push({
+        $or: [
+          { "assignment.assignedTo.userId": assigneeId },
+          { assignedTo: assigneeId }, // Legacy support
+        ]
+      });
+    }
+
+    // 🔒 RBAC-003: Filter by vendor for VENDOR role per STRICT v4
+    // BLOCKER FIX: Use canonical schema path 'assignment.assignedTo.vendorId'
+    // MIGRATION FIX: Support both legacy vendorId and canonical path for legacy data
+    if (abilityCheck.role === "VENDOR" && abilityCheck.vendorId) {
+      andFilters.push({
+        $or: [
+          { "assignment.assignedTo.vendorId": abilityCheck.vendorId },
+          { vendorId: abilityCheck.vendorId }, // Legacy support
+        ]
+      });
+    }
+
+    // 🔒 RBAC-004: Filter by assignee for TECHNICIAN role per STRICT v4
+    // BLOCKER FIX: Use canonical schema path 'assignment.assignedTo.userId' and correct session field 'id' (not 'userId')
+    // MIGRATION FIX: Support both legacy flat fields and canonical path for legacy data
+    const actorId = abilityCheck.id;
+    if (abilityCheck.role === "TECHNICIAN" && actorId) {
+      andFilters.push({
+        $or: [
+          { "assignment.assignedTo.userId": actorId },
+          { technicianId: actorId }, // Legacy support
+          { assignedTo: actorId }, // Legacy support
+        ]
+      });
+    }
+
+    // FIX: Add search to $and filters instead of overwriting $or
+    if (search) {
+      // Escape special regex characters to prevent injection
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      andFilters.push({
+        $or: [
+          { title: { $regex: escapedSearch, $options: "i" } },
+          { description: { $regex: escapedSearch, $options: "i" } },
+          { workOrderNumber: { $regex: escapedSearch, $options: "i" } },
+        ]
+      });
+    }
+    
+    // Apply $and filters if any exist
+    if (andFilters.length > 0) {
+      query.$and = andFilters;
+    }
+
+    // Connect to database
+    const db = await getDatabase();
+    const collection = db.collection<WorkOrderDocument>(COLLECTIONS.WORK_ORDERS);
+
+    // Execute query with pagination
+    const skip = (page - 1) * limit;
+    const [workOrders, total] = await Promise.all([
+      collection
+        .find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .toArray(),
+      collection.countDocuments(query),
+    ]);
+
+    // Transform MongoDB documents to WorkOrder interface
+    const data: WorkOrder[] = workOrders.map(mapWorkOrderDocument);
+
+    return NextResponse.json({
+      success: true,
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    logger.error("FM Work Orders API - GET error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+/**
+ * FM Work Orders API - POST /api/fm/work-orders
+ *
+ * Create a new work order
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const abilityCheck = await requireFmAbility("CREATE")(req);
+    if (abilityCheck instanceof NextResponse) return abilityCheck;
+    const tenantId = abilityCheck.orgId ?? abilityCheck.tenantId;
+    if (!tenantId) {
+      return FMErrors.missingTenant();
+    }
+
+    const body = await req.json();
+
+    // Validate required fields
+    if (!body.title || !body.description) {
+      return FMErrors.validationError(
+        "Missing required fields: title, description",
+        {
+          required: ["title", "description"],
+        },
+      );
+    }
+
+    // Validate enum fields if provided
+    if (body.priority && !Object.values(WOPriority).includes(body.priority)) {
+      return FMErrors.validationError("Invalid priority value", {
+        allowed: Object.values(WOPriority),
+      });
+    }
+
+    if (body.category && !Object.values(WOCategory).includes(body.category)) {
+      return FMErrors.validationError("Invalid category value", {
+        allowed: Object.values(WOCategory),
+      });
+    }
+    
+    // FIX: Validate tenant can only create work orders for their assigned units
+    // STRICT v4: Tenant unit ownership enforcement
+    if (abilityCheck.role === "TENANT") {
+      const userUnits = abilityCheck.units || [];
+      if (userUnits.length === 0) {
+        return NextResponse.json(
+          { error: "No units assigned to this tenant" },
+          { status: 403 }
+        );
+      }
+      // If unitId provided, validate it belongs to tenant's assigned units
+      if (body.unitId && !userUnits.includes(body.unitId)) {
+        return FMErrors.validationError(
+          "Unit not allowed for this tenant. You can only create work orders for your assigned units.",
+          { allowedUnits: userUnits }
+        );
+      }
+      // If no unitId provided for tenant, require it
+      if (!body.unitId) {
+        return FMErrors.validationError(
+          "Unit ID is required for tenant work orders",
+          { allowedUnits: userUnits }
+        );
+      }
+    }
+
+    // Connect to database
+    const db = await getDatabase();
+    const collection = db.collection<WorkOrderDocument>("workorders");
+
+    // Generate work order number (format: WO-YYYYMMDD-XXXX)
+    // DATA-001 FIX: Use orgId scope (via tenantId variable) for numbering consistency with reads
+    const date = new Date();
+    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, "");
+    const count = await collection.countDocuments({ orgId: tenantId });
+    const workOrderNumber = `WO-${dateStr}-${String(count + 1).padStart(4, "0")}`;
+
+    // Create work order document - BLOCKER FIX: use canonical schema fields
+    // AUDIT-2025-11-26: Removed tenantId - use only orgId per STRICT v4.1
+    // FIX: Use tenantId variable (which has fallback) not raw abilityCheck.orgId
+    const workOrder: WorkOrderDocument = {
+      orgId: tenantId, // FIX: Use scoped tenantId (has fallback to abilityCheck.tenantId)
+      workOrderNumber,
+      title: body.title,
+      description: body.description,
+      status: WOStatus.NEW,
+      priority: body.priority || WOPriority.MEDIUM,
+      category: body.category,
+      propertyId: body.propertyId,
+      // AUDIT-2025-11-26: Use only unitId (camelCase) per STRICT v4.1
+      // Removed: unit_id (snake_case), location.unitNumber (redundant)
+      unitId: body.unitId,
+      requesterId: abilityCheck.id ?? abilityCheck.email,
+      // BLOCKER FIX: Use canonical assignment structure from WorkOrder schema
+      // AUDIT-2025-11-26: Removed legacy flat fields (assignedTo, technicianId, vendorId)
+      // Use only canonical nested structure per STRICT v4.1
+      assignment: {
+        assignedTo: {
+          userId: body.assigneeId || body.assignedTo,
+          vendorId: body.vendorId,
+          name: undefined, // Will be populated by service layer
+        },
+        assignedBy: abilityCheck.id,
+        assignedAt: body.assigneeId || body.assignedTo || body.vendorId ? new Date() : undefined,
+      },
+      scheduledAt: body.scheduledAt ? new Date(body.scheduledAt) : undefined,
+      estimatedCost: body.estimatedCost,
+      currency: body.currency || "SAR",
+      slaHours: calculateSLA(body.priority || WOPriority.MEDIUM),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    // Insert into database
+    const result = await collection.insertOne(workOrder);
+
+    // Trigger notifications to relevant users
+    try {
+      // Get recipients (managers, assignee if exists)
+      const recipients: NotificationRecipient[] = [];
+
+      // Add assignee if specified - use canonical assignment structure
+      // SEC-002 FIX: Scope user lookup to same org to prevent cross-org PII leakage
+      const assigneeUserId = workOrder.assignment?.assignedTo?.userId;
+      if (assigneeUserId) {
+        const assigneeIdString = String(assigneeUserId);
+        const assigneeObjectId = ObjectId.isValid(assigneeIdString)
+          ? new ObjectId(assigneeIdString)
+          : null;
+        if (assigneeObjectId) {
+          const assignee = await db
+            .collection(COLLECTIONS.USERS)
+            .findOne({ _id: assigneeObjectId, orgId: tenantId });
+          if (assignee?.email) {
+            recipients.push({
+              userId: assigneeIdString,
+              name: assignee.name || assignee.email,
+              email: assignee.email,
+              phone: assignee.phone,
+              preferredChannels: ["email", "push"] as NotificationChannel[],
+            });
+          }
+        }
+      }
+
+      if (recipients.length > 0) {
+        await onTicketCreated(
+          tenantId,
+          workOrderNumber,
+          abilityCheck.name || abilityCheck.email || "User",
+          body.priority || WOPriority.MEDIUM,
+          body.description,
+          recipients,
+        );
+      }
+    } catch (notifError) {
+      // Log but don't fail the request
+      logger.error(
+        "Failed to send work order creation notification",
+        notifError as Error,
+      );
+    }
+
+    await recordTimelineEntry({
+      workOrderId: result.insertedId.toString(),
+      orgId: tenantId, // FIX: Use scoped tenantId (has fallback)
+      action: "created",
+      description: "Work order created",
+      metadata: { status: WOStatus.NEW },
+      performedBy: abilityCheck.id ?? abilityCheck.email,
+      performedAt: new Date(),
+    });
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          id: result.insertedId.toString(),
+          ...workOrder,
+        },
+      },
+      { status: 201 },
+    );
+  } catch (error) {
+    logger.error("FM Work Orders API - POST error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+/**
+ * Calculate SLA hours based on priority
+ */
+function calculateSLA(priority: WOPriority): number {
+  const slaMap: Record<WOPriority, number> = {
+    [WOPriority.CRITICAL]: 4, // 4 hours
+    [WOPriority.HIGH]: 24, // 1 day
+    [WOPriority.MEDIUM]: 72, // 3 days
+    [WOPriority.LOW]: 168, // 7 days
+  };
+  return slaMap[priority] || 72;
+}
+
+]]>
+</file>
+
+<file path="app/api/fm/work-orders/stats/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
+import { logger } from "@/lib/logger";
+import { WOStatus, WOPriority, type WorkOrderStats } from "@/types/fm";
+import { FMErrors } from "../../errors";
+import { requireFmAbility } from "../../utils/auth";
+import { resolveTenantId } from "../../utils/tenant";
+
+const FINAL_STATUSES = new Set<WOStatus>([
+  WOStatus.CLOSED,
+  WOStatus.FINANCIAL_POSTING,
+  WOStatus.WORK_COMPLETE,
+]);
+
+export async function GET(req: NextRequest) {
+  try {
+    const actor = await requireFmAbility("VIEW")(req);
+    if (actor instanceof NextResponse) return actor;
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId || actor.tenantId,
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    const db = await getDatabase();
+    const collection = db.collection(COLLECTIONS.WORK_ORDERS);
+
+    const match = { tenantId };
+
+    const [total, statusAgg, priorityAgg, completionAgg] = await Promise.all([
+      collection.countDocuments(match),
+      collection
+        .aggregate<{
+          _id: WOStatus | string;
+          count: number;
+        }>([
+          { $match: match },
+          { $group: { _id: "$status", count: { $sum: 1 } } },
+        ])
+        .toArray(),
+      collection
+        .aggregate<{
+          _id: WOPriority | string;
+          count: number;
+        }>([
+          { $match: match },
+          { $group: { _id: "$priority", count: { $sum: 1 } } },
+        ])
+        .toArray(),
+      collection
+        .aggregate<{
+          avgCompletionTime: number;
+          totalCompleted: number;
+          slaMet: number;
+          slaDefinedCount: number;
+        }>([
+          {
+            $match: {
+              tenantId,
+              completedAt: { $ne: null },
+              createdAt: { $ne: null },
+            },
+          },
+          {
+            $project: {
+              diffHours: {
+                $divide: [
+                  { $subtract: ["$completedAt", "$createdAt"] },
+                  1000 * 60 * 60,
+                ],
+              },
+              slaHours: { $ifNull: ["$slaHours", null] },
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              avgCompletionTime: { $avg: "$diffHours" },
+              totalCompleted: { $sum: 1 },
+              slaDefinedCount: {
+                $sum: {
+                  $cond: [{ $gt: ["$slaHours", 0] }, 1, 0],
+                },
+              },
+              slaMet: {
+                $sum: {
+                  $cond: [
+                    {
+                      $and: [
+                        { $gt: ["$slaHours", 0] },
+                        { $lte: ["$diffHours", "$slaHours"] },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              },
+            },
+          },
+        ])
+        .toArray(),
+    ]);
+
+    const statusCounts = Object.fromEntries(
+      statusAgg.map(({ _id, count }) => [_id ?? "UNKNOWN", count]),
+    );
+    const priorityCounts = Object.fromEntries(
+      priorityAgg.map(({ _id, count }) => [_id ?? "UNKNOWN", count]),
+    );
+
+    const completionMetrics = completionAgg[0] ?? {
+      avgCompletionTime: 0,
+      totalCompleted: 0,
+      slaMet: 0,
+      slaDefinedCount: 0,
+    };
+
+    const now = new Date();
+    const overdueCount = await collection.countDocuments({
+      tenantId,
+      completedAt: { $exists: false },
+      slaHours: { $gt: 0 },
+      createdAt: { $ne: null },
+      status: { $nin: Array.from(FINAL_STATUSES) },
+      $expr: {
+        $gt: [
+          now,
+          {
+            $add: ["$createdAt", { $multiply: ["$slaHours", 60 * 60 * 1000] }],
+          },
+        ],
+      },
+    });
+
+    const stats: WorkOrderStats = {
+      total,
+      byStatus: statusCounts,
+      byPriority: priorityCounts,
+      avgCompletionTime: Number(
+        completionMetrics.avgCompletionTime?.toFixed?.(2) ?? 0,
+      ),
+      slaCompliance:
+        completionMetrics.slaDefinedCount > 0
+          ? Number(
+              (
+                (completionMetrics.slaMet / completionMetrics.slaDefinedCount) *
+                100
+              ).toFixed(2),
+            )
+          : 100,
+      overdueCount,
+    };
+
+    return NextResponse.json({ success: true, data: stats });
+  } catch (error) {
+    logger.error("FM Work Orders Stats API error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/fm/work-orders/utils.ts">
+<![CDATA[
+import type { DefaultSession } from "next-auth";
+import type { WorkOrder, WorkOrderUser } from "@/types/fm";
+import type { ObjectId } from "mongodb";
+import { WorkOrderComment } from "@/server/models/workorder/WorkOrderComment";
+import { WorkOrderAttachment } from "@/server/models/workorder/WorkOrderAttachment";
+import { WorkOrderTimeline } from "@/server/models/workorder/WorkOrderTimeline";
+
+export type WorkOrderDocument = Partial<WorkOrder> & {
+  _id?: ObjectId;
+  id?: string;
+  orgId?: string; // Fixed: added for STRICT v4 multi-tenancy
+  workOrderNumber?: string;
+  woNumber?: string;
+  code?: string;
+  category?: string;
+  unitId?: string;
+  unit_id?: string; // Canonical field per WorkOrder schema
+  technicianId?: string;
+  vendorId?: string; // Fixed: added for vendor RBAC filtering
+  assignedTo?: string; // Fixed: normalized field name (legacy support)
+  // Canonical assignment structure per server/models/WorkOrder.ts
+  assignment?: {
+    assignedTo?: {
+      userId?: string | ObjectId;
+      teamId?: string | ObjectId;
+      vendorId?: string | ObjectId;
+      name?: string;
+      contactInfo?: {
+        phone?: string;
+        email?: string;
+      };
+    };
+    assignedBy?: string | ObjectId;
+    assignedAt?: Date;
+  };
+  // Location structure per WorkOrder schema
+  location?: {
+    propertyId?: string | ObjectId;
+    unitNumber?: string;
+    floor?: string;
+    building?: string;
+    area?: string;
+    room?: string;
+  };
+  estimatedCost?: number;
+  actualCost?: number;
+  currency?: string;
+  photos?: unknown[];
+  attachments?: unknown[];
+  comments?: unknown[];
+  timeline?: unknown[];
+  requester?: unknown;
+  assignee?: unknown;
+  technician?: unknown;
+  tags?: string[];
+  metadata?: Record<string, unknown>;
+};
+
+/**
+ * Map a MongoDB work order document to the API WorkOrder shape.
+ */
+export function mapWorkOrderDocument(doc: WorkOrderDocument): WorkOrder {
+  if (!doc) {
+    throw new Error("Work order document is required");
+  }
+
+  const normalizedId = doc._id?.toString?.() ?? doc.id ?? "";
+
+  return {
+    id: normalizedId,
+    _id: doc._id?.toString?.(),
+    tenantId: doc.tenantId,
+    orgId: doc.orgId, // Fixed: include orgId in mapped output
+    workOrderNumber: doc.workOrderNumber ?? doc.code ?? doc.woNumber,
+    title: doc.title,
+    description: doc.description,
+    status: doc.status,
+    priority: doc.priority,
+    category: doc.category,
+    propertyId: doc.propertyId,
+    unitId: doc.unitId,
+    requesterId: doc.requesterId,
+    assigneeId: doc.assigneeId ?? doc.assignedTo, // Fixed: support both field names during migration
+    technicianId: doc.technicianId,
+    vendorId: doc.vendorId, // Fixed: include vendorId
+    scheduledAt: doc.scheduledAt,
+    startedAt: doc.startedAt,
+    completedAt: doc.completedAt,
+    slaHours: doc.slaHours,
+    estimatedCost: doc.estimatedCost,
+    actualCost: doc.actualCost,
+    currency: doc.currency,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+    photos: doc.photos,
+    attachments: doc.attachments,
+    comments: doc.comments,
+    timeline: doc.timeline,
+    requester: doc.requester,
+    assignee: doc.assignee,
+    technician: doc.technician,
+    tags: doc.tags,
+    metadata: doc.metadata,
+  } as WorkOrder;
+}
+
+type SessionUser =
+  | (DefaultSession["user"] & { id?: string | null; role?: string | null })
+  | null
+  | undefined;
+
+/**
+ * Build a WorkOrderUser structure using session/user metadata.
+ */
+export function buildWorkOrderUser(
+  user: SessionUser,
+  overrides: Partial<WorkOrderUser> = {},
+): WorkOrderUser {
+  const fallbackName = (user?.name ?? user?.email ?? "User").trim();
+  const [firstName, ...rest] = fallbackName.split(/\s+/);
+
+  return {
+    id: (user?.id ?? user?.email ?? overrides.id ?? "unknown").toString(),
+    firstName: overrides.firstName ?? (firstName || "User"),
+    lastName: overrides.lastName ?? rest.join(" "),
+    avatar: overrides.avatar ?? undefined,
+    role: overrides.role ?? user?.role ?? undefined,
+    email: overrides.email ?? user?.email ?? undefined,
+    phone: overrides.phone ?? undefined,
+  };
+}
+
+export class WorkOrderQuotaError extends Error {
+  limit: number;
+  constructor(message: string, limit: number) {
+    super(message);
+    this.name = "WorkOrderQuotaError";
+    this.limit = limit;
+  }
+}
+
+export const WORK_ORDER_COMMENT_LIMIT = 500;
+export const WORK_ORDER_ATTACHMENT_LIMIT = 200;
+export const WORK_ORDER_TIMELINE_LIMIT = 1000;
+
+export async function assertWorkOrderQuota(
+  collectionName: string,
+  orgId: string,
+  workOrderId: string,
+  limit: number,
+): Promise<void> {
+  const model =
+    collectionName === "workorder_comments"
+      ? WorkOrderComment
+      : collectionName === "workorder_attachments"
+        ? WorkOrderAttachment
+        : WorkOrderTimeline;
+
+  const existingCount = await model.countDocuments({ orgId, workOrderId });
+  if (existingCount >= limit) {
+    throw new WorkOrderQuotaError(
+      `Maximum ${collectionName.replace("workorder_", "").replace("_", " ")} reached for this work order`,
+      limit,
+    );
+  }
+}
+
+type TimelineEntry = {
+  workOrderId: string;
+  orgId: string;
+  action: string;
+  description?: string;
+  metadata?: Record<string, unknown>;
+  comment?: string;
+  performedBy: string | null | undefined;
+  performedAt: Date;
+};
+
+export async function recordTimelineEntry(
+  entry: TimelineEntry,
+  limit: number = WORK_ORDER_TIMELINE_LIMIT,
+) {
+  await WorkOrderTimeline.create({
+    orgId: entry.orgId,
+    workOrderId: entry.workOrderId,
+    performedAt: entry.performedAt,
+    action: entry.action,
+    description: entry.description,
+    metadata: entry.metadata,
+    performedBy: entry.performedBy
+      ? { id: entry.performedBy }
+      : undefined,
+  });
+  await trimTimelineEntries(entry.orgId, entry.workOrderId, limit);
+}
+
+type CanonicalUser = { id?: string | null } | null | undefined;
+
+/**
+ * Returns a canonical actor identifier (user id) if available, otherwise null.
+ * Ensures we consistently reference the same identifier type in audit records.
+ */
+export function getCanonicalUserId(user: CanonicalUser): string | null {
+  if (!user?.id) return null;
+  return user.id.toString();
+}
+
+async function trimTimelineEntries(
+  orgId: string,
+  workOrderId: string,
+  limit: number,
+) {
+  const total = await WorkOrderTimeline.countDocuments({ orgId, workOrderId });
+  const excess = total - limit;
+  if (excess <= 0) {
+    return;
+  }
+
+  const oldest = await WorkOrderTimeline.find({ orgId, workOrderId })
+    .sort({ performedAt: 1, _id: 1 })
+    .limit(excess)
+    .select({ _id: 1 })
+    .lean();
+
+  const ids = oldest.map((doc) => doc._id).filter(Boolean);
+  if (ids.length) {
+    await WorkOrderTimeline.deleteMany({ _id: { $in: ids } });
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/health/auth/route.ts">
+<![CDATA[
+/**
+ * Auth Configuration Health Check Endpoint
+ * GET /api/health/auth
+ *
+ * Returns auth configuration status WITHOUT exposing secrets.
+ * Use this to debug 500 errors on /api/auth/session in production.
+ * SECURITY: Detailed config is only returned to authorized callers that provide
+ * X-Health-Token matching HEALTH_CHECK_TOKEN. Unauthenticated callers receive
+ * a minimal status payload to avoid recon/fingerprinting.
+ */
+import { NextRequest } from "next/server";
+import { logger } from "@/lib/logger";
+import { isAuthorizedHealthRequest } from "@/server/security/health-token";
+import { createSecureResponse } from "@/server/security/headers";
+
+export const dynamic = "force-dynamic";
+
+// Ensure this runs in Node.js runtime (not Edge) for consistent behavior
+export const runtime = "nodejs";
+
+function resolveEnvironment() {
+  const vercelEnv = process.env.VERCEL_ENV;
+  const nodeEnv = process.env.NODE_ENV || "development";
+  const isProd = vercelEnv ? vercelEnv === "production" : nodeEnv === "production";
+  const isPreview = vercelEnv === "preview";
+  return { isProd, isPreview, vercelEnv: vercelEnv || "not-set", nodeEnv };
+}
+
+/**
+ * Check if an environment variable is set (without exposing its value)
+ */
+function checkEnvVar(name: string): { set: boolean; length?: number } {
+  const value = process.env[name];
+  if (!value) {
+    return { set: false };
+  }
+  return { set: true, length: value.length };
+}
+
+export async function GET(_request: NextRequest) {
+  try {
+    const { isProd, isPreview, vercelEnv, nodeEnv } = resolveEnvironment();
+    const isAuthorized = isAuthorizedHealthRequest(_request);
+
+    // Check critical auth environment variables
+    const authConfig = {
+      // Core Auth (CRITICAL)
+      NEXTAUTH_SECRET: checkEnvVar("NEXTAUTH_SECRET"),
+      AUTH_SECRET: checkEnvVar("AUTH_SECRET"),
+      NEXTAUTH_URL: checkEnvVar("NEXTAUTH_URL"),
+      AUTH_TRUST_HOST: checkEnvVar("AUTH_TRUST_HOST"),
+      NEXTAUTH_TRUST_HOST: checkEnvVar("NEXTAUTH_TRUST_HOST"),
+
+      // Database (CRITICAL)
+      MONGODB_URI: checkEnvVar("MONGODB_URI"),
+
+      // OAuth (Optional)
+      GOOGLE_CLIENT_ID: checkEnvVar("GOOGLE_CLIENT_ID"),
+      GOOGLE_CLIENT_SECRET: checkEnvVar("GOOGLE_CLIENT_SECRET"),
+      APPLE_CLIENT_ID: checkEnvVar("APPLE_CLIENT_ID"),
+      APPLE_CLIENT_SECRET: checkEnvVar("APPLE_CLIENT_SECRET"),
+
+      // Vercel-specific (auto-set by Vercel)
+      VERCEL: checkEnvVar("VERCEL"),
+      VERCEL_ENV: checkEnvVar("VERCEL_ENV"),
+      VERCEL_URL: checkEnvVar("VERCEL_URL"),
+    };
+
+    // Determine overall status
+    const criticalMissing: string[] = [];
+
+    if (!authConfig.NEXTAUTH_SECRET.set && !authConfig.AUTH_SECRET.set) {
+      criticalMissing.push("NEXTAUTH_SECRET (or AUTH_SECRET fallback)");
+    }
+
+    // trustHost is required on Vercel
+    const isVercel = process.env.VERCEL === "1";
+    const trustHostSet =
+      authConfig.AUTH_TRUST_HOST.set || authConfig.NEXTAUTH_TRUST_HOST.set;
+
+    if (isVercel && !trustHostSet) {
+      criticalMissing.push("AUTH_TRUST_HOST (required for Vercel)");
+    }
+
+    if (!authConfig.MONGODB_URI.set) {
+      criticalMissing.push("MONGODB_URI");
+    }
+
+    // Check if NEXTAUTH_URL or Vercel URL derivation will work
+    const hasNextAuthUrl =
+      authConfig.NEXTAUTH_URL.set || authConfig.VERCEL_URL.set;
+    if (!hasNextAuthUrl) {
+      criticalMissing.push("NEXTAUTH_URL (or VERCEL_URL for auto-derivation)");
+    }
+
+    const status = criticalMissing.length === 0 ? "healthy" : "unhealthy";
+
+    // Redact details for unauthenticated callers to avoid recon. Only minimal
+    // status + timestamp is exposed publicly.
+    if (!isAuthorized) {
+      return createSecureResponse(
+        {
+          status,
+          timestamp: new Date().toISOString(),
+        },
+        status === "healthy" ? 200 : 503,
+        _request,
+      );
+    }
+
+    const response = {
+      status,
+      timestamp: new Date().toISOString(),
+      environment: nodeEnv,
+      vercel: {
+        isVercel,
+        env: vercelEnv,
+        isPreview,
+        isProd,
+      },
+      config: {
+        // Only show set/not-set status, never actual values
+        NEXTAUTH_SECRET: authConfig.NEXTAUTH_SECRET.set
+          ? `✅ Set (${authConfig.NEXTAUTH_SECRET.length} chars)`
+          : authConfig.AUTH_SECRET.set
+            ? `✅ Set via AUTH_SECRET (${authConfig.AUTH_SECRET.length} chars)`
+            : "❌ Missing",
+        NEXTAUTH_URL: authConfig.NEXTAUTH_URL.set
+          ? "✅ Set"
+          : authConfig.VERCEL_URL.set
+            ? "⚠️ Will derive from VERCEL_URL"
+            : "❌ Missing",
+        AUTH_TRUST_HOST:
+          authConfig.AUTH_TRUST_HOST.set ||
+          authConfig.NEXTAUTH_TRUST_HOST.set
+            ? "✅ Set"
+            : isVercel
+              ? "❌ Missing (REQUIRED for Vercel)"
+              : "⚠️ Not set (ok for non-Vercel)",
+        MONGODB_URI: authConfig.MONGODB_URI.set ? "✅ Set" : "❌ Missing",
+        GOOGLE_OAUTH:
+          authConfig.GOOGLE_CLIENT_ID.set &&
+          authConfig.GOOGLE_CLIENT_SECRET.set
+            ? "✅ Configured"
+            : authConfig.GOOGLE_CLIENT_ID.set ||
+                authConfig.GOOGLE_CLIENT_SECRET.set
+              ? "⚠️ Partial (both ID and SECRET required)"
+              : "ℹ️ Not configured (credentials-only auth)",
+        APPLE_OAUTH:
+          authConfig.APPLE_CLIENT_ID.set && authConfig.APPLE_CLIENT_SECRET.set
+            ? "✅ Configured"
+            : "ℹ️ Not configured",
+      },
+      criticalIssues:
+        criticalMissing.length > 0
+          ? criticalMissing
+          : ["None - auth should work"],
+      recommendations:
+        criticalMissing.length > 0
+          ? [
+              "Add missing environment variables in Vercel Dashboard:",
+              "  Settings → Environment Variables → Add for Production",
+              "",
+              "Critical variables to add:",
+              ...criticalMissing.map((v) => `  • ${v}`),
+              "",
+              "After adding, redeploy the application.",
+            ]
+          : ["Auth configuration looks good!"],
+    };
+
+    logger.info("[Health/Auth] Auth configuration check", {
+      status,
+      criticalMissing,
+    });
+
+    return createSecureResponse(
+      response,
+      status === "healthy" ? 200 : 503,
+      _request,
+    );
+  } catch (error) {
+    logger.error("[Health/Auth] Error checking auth config", error as Error);
+    const isAuthorized = isAuthorizedHealthRequest(_request);
+    
+    // Only expose error details to authorized callers to prevent recon
+    return createSecureResponse(
+      {
+        status: "error",
+        timestamp: new Date().toISOString(),
+        ...(isAuthorized && {
+          error: error instanceof Error ? error.message : "Unknown error",
+          recommendations: [
+            "Check Vercel function logs for detailed error",
+            "Ensure all environment variables are set correctly",
+          ],
+        }),
+      },
+      500,
+      _request,
+    );
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

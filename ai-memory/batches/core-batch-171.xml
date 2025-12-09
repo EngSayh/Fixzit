@@ -1,0 +1,1064 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="i18n/config.ts">
+<![CDATA[
+import {
+  LANGUAGE_OPTIONS,
+  getDefaultLanguage,
+  type LanguageOption,
+} from "@/config/language-options";
+
+// Only expose languages that are not marked as comingSoon
+const ENABLED_LANGUAGE_OPTIONS = LANGUAGE_OPTIONS.filter(
+  (opt) => !opt.comingSoon,
+) as LanguageOption[];
+
+// Locale = only enabled languages (en, ar) - fr, es are comingSoon
+// Note: This must be explicitly typed since runtime filtering doesn't narrow TypeScript types.
+// When adding new enabled languages, update this type AND add dictionary imports in I18nProvider.tsx
+export type Locale = "en" | "ar";
+
+// Keep a consistent order (en first, then ar) to match UI/test expectations.
+const LOCALE_DISPLAY_ORDER: Locale[] = ["en", "ar"];
+
+export const SUPPORTED_LOCALES: Locale[] = LOCALE_DISPLAY_ORDER.filter((loc) =>
+  ENABLED_LANGUAGE_OPTIONS.some((opt) => opt.language === loc),
+);
+
+/**
+ * Type guard to validate if a string is a valid Locale
+ */
+function isValidLocale(value: string): value is Locale {
+  return SUPPORTED_LOCALES.includes(value as Locale);
+}
+
+// SECURITY FIX: Validate DEFAULT_LOCALE from config
+// Previously cast without validation - could cause runtime errors if config returns unexpected value
+const rawDefaultLocale = getDefaultLanguage().language;
+export const DEFAULT_LOCALE: Locale = isValidLocale(rawDefaultLocale) 
+  ? rawDefaultLocale 
+  : "en"; // Safe fallback to English if config is invalid
+
+export const LOCALE_META: Record<
+  Locale,
+  {
+    iso: string;
+    nativeName: string;
+    countryName: string;
+    dir: "ltr" | "rtl";
+    flag: string; // country code (lowercase) for flag icons
+  }
+> = ENABLED_LANGUAGE_OPTIONS.reduce(
+  (acc, opt) => {
+    const isoCode =
+      (opt.iso?.split("-")[0] || opt.language || "").toUpperCase();
+    const flagCode = (opt.iso?.split("-")[1] || opt.country || "")
+      .toLowerCase()
+      .replace(/[^a-z]/g, "");
+    const countryName =
+      opt.language === "ar" ? "المملكة العربية السعودية" : opt.country;
+
+    acc[opt.language as Locale] = {
+      iso: isoCode,
+      nativeName: opt.native,
+      countryName: countryName,
+      dir: opt.dir,
+      flag: flagCode,
+    };
+    return acc;
+  },
+  {} as Record<
+    Locale,
+    {
+      iso: string;
+      nativeName: string;
+      countryName: string;
+      dir: "ltr" | "rtl";
+      flag: string;
+    }
+  >,
+);
+
+]]>
+</file>
+
+<file path="i18n/dictionaries/ar-industries.ts">
+<![CDATA[
+import type { TranslationDictionary } from "./types";
+
+export const arIndustryVerticals: TranslationDictionary = {
+  fashionRetail: {
+    title: "تجزئة الأزياء",
+    description: "إدارة تجارة الملابس والأزياء",
+    merchandisePlanning: "تخطيط البضائع",
+    collectionPlanning: "تخطيط المجموعات",
+    seasonalBuying: "المشتريات الموسمية",
+    assortmentPlanning: "تخطيط التشكيلات",
+    styleManagement: "إدارة الطرازات",
+    colorSizeMatrix: "مصفوفة اللون/المقاس",
+    skuManagement: "إدارة رموز SKU",
+    productLifecycle: "دورة حياة المنتج",
+    visualMerchandising: "العرض البصري",
+    storeDisplay: "عرض المتجر",
+    windowDisplay: "عرض الواجهة",
+    mannequinPlanning: "تخطيط المانيكان",
+    inventoryManagement: "إدارة المخزون",
+    stockTracking: "تتبع المخزون",
+    sizeRunAnalysis: "تحليل توزيع المقاسات",
+    transferManagement: "إدارة التحويلات",
+    markdownOptimization: "تحسين التخفيضات",
+    pricingStrategy: "استراتيجية التسعير",
+    promotionalPlanning: "تخطيط العروض",
+    customerStyling: "تنسيق العملاء",
+    personalShopping: "التسوق الشخصي",
+    loyaltyProgram: "برنامج الولاء",
+    trendForecasting: "التنبؤ بالاتجاهات",
+  },
+
+  publishingMedia: {
+    title: "النشر والإعلام",
+    description: "إدارة المحتوى والنشر الإعلامي",
+    contentManagement: "نظام إدارة المحتوى",
+    editorialPlanning: "التخطيط التحريري",
+    contentCalendar: "تقويم المحتوى",
+    assignmentTracking: "تتبع التكليفات",
+    submissionManagement: "إدارة التسليمات",
+    editorialWorkflow: "سير العمل التحريري",
+    copyEditing: "التحرير اللغوي",
+    factChecking: "التحقق من الحقائق",
+    proofreading: "التدقيق اللغوي",
+    layoutDesign: "التصميم والإخراج",
+    typography: "الطباعة والخطوط",
+    imageSelection: "اختيار الصور",
+    graphicsProduction: "إنتاج الرسوم",
+    printProduction: "إنتاج الطباعة",
+    pressManagement: "إدارة المطابع",
+    printScheduling: "جدولة الطباعة",
+    distributionManagement: "إدارة التوزيع",
+    digitalPublishing: "النشر الرقمي",
+    webPublishing: "النشر عبر الويب",
+    mobileApps: "تطبيقات الجوال",
+    subscriptionManagement: "إدارة الاشتراكات",
+    advertisingManagement: "إدارة الإعلانات",
+    rightsManagement: "إدارة الحقوق",
+  },
+
+  telecommunicationsServices: {
+    title: "خدمات الاتصالات",
+    description: "تشغيل مزودي خدمات الاتصالات",
+    networkManagement: "إدارة الشبكات",
+    networkPlanning: "تخطيط الشبكات",
+    capacityManagement: "إدارة السعة",
+    networkOptimization: "تحسين الشبكات",
+    infrastructureManagement: "إدارة البنية التحتية",
+    towerManagement: "إدارة الأبراج",
+    baseStations: "المحطات الأساسية",
+    transmissionEquipment: "معدات الإرسال",
+    serviceProvisioning: "تجهيز الخدمات",
+    activationProcess: "إجراءات التفعيل",
+    numberPorting: "نقل الأرقام",
+    planConfiguration: "تهيئة الباقات",
+    subscriberManagement: "إدارة المشتركين",
+    accountManagement: "إدارة الحسابات",
+    billingCycles: "دورات الفوترة",
+    usageTracking: "تتبع الاستخدام",
+    roamingManagement: "إدارة التجوال",
+    interconnectBilling: "فوترة الربط البيني",
+    faultManagement: "إدارة الأعطال",
+    troubleshooting: "استكشاف الأخطاء",
+    serviceRestoration: "استعادة الخدمة",
+    performanceMonitoring: "مراقبة الأداء",
+    qualityOfService: "جودة الخدمة (QoS)",
+  },
+
+  utilitiesManagement: {
+    title: "إدارة المرافق",
+    description: "إدارة خدمات البنية التحتية والطاقة",
+    assetManagement: "إدارة الأصول",
+    gridManagement: "إدارة الشبكة",
+    distributionNetwork: "شبكة التوزيع",
+    transmissionLines: "خطوط النقل",
+    substationManagement: "إدارة المحطات الفرعية",
+    meterOperations: "تشغيل العدادات",
+    smartMeters: "العدادات الذكية",
+    meterReading: "قراءة العدادات",
+    billingSystem: "نظام الفوترة",
+    outageManagement: "إدارة الانقطاعات",
+    serviceRestoration: "استعادة الخدمة",
+    emergencyResponse: "الاستجابة للطوارئ",
+    crewDispatch: "توجيه الفرق الميدانية",
+    workOrderManagement: "إدارة أوامر العمل",
+    preventiveMaintenance: "الصيانة الوقائية",
+    inspectionScheduling: "جدولة الفحوصات",
+    complianceReporting: "تقارير الامتثال",
+    demandForecasting: "توقع الطلب",
+    loadBalancing: "موازنة الأحمال",
+    energyTrading: "تجارة الطاقة",
+    customerService: "خدمة العملاء",
+    connectionServices: "خدمات الربط",
+    serviceRequests: "طلبات الخدمة",
+  },
+
+  travelTourism: {
+    title: "السفر والسياحة",
+    description: "إدارة وكالات السفر والبرامج السياحية",
+    bookingManagement: "إدارة الحجوزات",
+    reservationSystem: "نظام الحجز",
+    availabilityManagement: "إدارة التوافر",
+    pricingEngine: "محرك التسعير",
+    packageManagement: "إدارة الباقات",
+    tourPackages: "الباقات السياحية",
+    customItineraries: "برامج مخصصة",
+    activityBooking: "حجز الأنشطة",
+    supplierManagement: "إدارة الموردين",
+    hotelContracts: "عقود الفنادق",
+    airlineBooking: "حجوزات الطيران",
+    transportationArrangements: "تنسيق وسائل النقل",
+    guideManagement: "إدارة المرشدين",
+    customerManagement: "إدارة العملاء",
+    leadTracking: "تتبع العملاء المحتملين",
+    quotationManagement: "إدارة عروض الأسعار",
+    paymentProcessing: "معالجة المدفوعات",
+    documentManagement: "إدارة المستندات",
+    visaProcessing: "معالجة التأشيرات",
+    travelInsurance: "تأمين السفر",
+    itineraryManagement: "إدارة برنامج الرحلة",
+    tripOperations: "تشغيل الرحلات",
+    feedbackReviews: "التقييمات والملاحظات",
+  },
+
+  qualityAssuranceAdv: {
+    quality: "ضمان الجودة",
+    qa: "قسم الجودة",
+    control: "مراقبة الجودة",
+    standard: "المعايير",
+    specification: "المواصفات",
+    requirement: "المتطلبات",
+    criteria: "معايير الجودة",
+    metric: "مؤشر الجودة",
+    indicator: "مؤشر الأداء",
+    inspection: "التفتيش",
+    testing: "الاختبارات",
+    verification: "التحقق",
+    validation: "الاعتماد",
+    audit: "تدقيق الجودة",
+    review: "مراجعة الجودة",
+    defect: "العيوب",
+    nonconformance: "عدم المطابقة",
+    corrective: "إجراء تصحيحي",
+    preventive: "إجراء وقائي",
+    improvement: "التحسين المستمر",
+    iso: "شهادة ISO",
+    compliance: "الامتثال للجودة",
+  },
+
+  productionPlanning: {
+    production: "تخطيط الإنتاج",
+    planning: "التخطيط",
+    scheduling: "الجدولة",
+    capacity: "تخطيط الطاقة الإنتاجية",
+    demand: "تخطيط الطلب",
+    forecast: "التنبؤ بالإنتاج",
+    order: "أمر الإنتاج",
+    batch: "الدُفعة",
+    lot: "الدفعة",
+    run: "تشغيل الإنتاج",
+    cycle: "دورة الإنتاج",
+    lead: "زمن التوريد",
+    throughput: "معدل الإنتاج",
+    efficiency: "كفاءة الإنتاج",
+    utilization: "نسبة الاستغلال",
+    downtime: "فترات التوقف",
+    bottleneck: "عنق الزجاجة",
+    setup: "زمن الإعداد",
+    changeover: "تبديل الخط",
+    routing: "مسارات التشغيل",
+    bom: "قائمة المواد",
+    mrp: "تخطيط موارد المواد",
+  },
+
+  maintenanceRepair: {
+    maintenance: "الصيانة والإصلاح",
+    preventive: "الصيانة الوقائية",
+    predictive: "الصيانة التنبؤية",
+    corrective: "الصيانة التصحيحية",
+    breakdown: "صيانة الأعطال",
+    schedule: "جدول الصيانة",
+    plan: "خطة الصيانة",
+    work: "أمر عمل",
+    task: "مهمة صيانة",
+    inspection: "الفحص",
+    checklist: "قائمة الصيانة",
+    procedure: "إجراءات الصيانة",
+    spare: "قطع الغيار",
+    component: "المكونات",
+    replacement: "الاستبدال",
+    repair: "الإصلاح",
+    service: "الخدمة",
+    calibration: "المعايرة",
+    lubrication: "التشحيم",
+    cleaning: "التنظيف",
+    history: "سجل الصيانة",
+    log: "سجل الأعطال",
+  },
+
+  warehouseOperationsAdv: {
+    warehouse: "عمليات المستودع",
+    storage: "التخزين",
+    location: "موقع التخزين",
+    bin: "الصناديق",
+    rack: "الرفوف",
+    zone: "المنطقة",
+    aisle: "الممر",
+    receiving: "الاستلام",
+    putaway: "الإيداع",
+    picking: "التجميع",
+    packing: "التعبئة",
+    shipping: "الشحن",
+    loading: "التحميل",
+    unloading: "التفريغ",
+    cycle: "الجرد الدوري",
+    stock: "جرد المخزون",
+    replenishment: "التجديد",
+    transfer: "التحويل",
+    movement: "حركة المخزون",
+    slotting: "توزيع المخزن",
+    optimization: "تحسين المستودع",
+    wms: "نظام إدارة المستودعات",
+  },
+
+  returnManagement: {
+    return: "إدارة المرتجعات",
+    rma: "تفويض المرتجع",
+    authorization: "تصريح المرتجع",
+    reason: "سبب الإرجاع",
+    policy: "سياسة الإرجاع",
+    restocking: "إعادة التخزين",
+    inspection: "فحص المرتجع",
+    refund: "استرداد المبلغ",
+    replacement: "الاستبدال",
+    exchange: "التبديل",
+    credit: "إشعار دائن",
+    debit: "إشعار مدين",
+    reversal: "عكس العملية",
+    warranty: "مرتجعات الضمان",
+    defective: "منتج معيب",
+    damaged: "بضائع تالفة",
+    recall: "سحب المنتج",
+    disposition: "التصرف بالمرتجع",
+    scrap: "الخردة",
+    rework: "إعادة التشغيل",
+    repair: "إصلاح",
+    processing: "معالجة المرتجع",
+  },
+
+  salesForceAutomation: {
+    salesforce: "أتمتة قوة المبيعات",
+    lead: "إدارة العملاء المحتملين",
+    prospect: "عميل محتمل",
+    opportunity: "فرصة مبيعات",
+    pipeline: "قائمة المبيعات",
+    funnel: "مسار المبيعات",
+    stage: "مرحلة المبيعات",
+    forecast: "توقع المبيعات",
+    quota: "حصة المبيعات",
+    target: "هدف المبيعات",
+    territory: "المنطقة البيعية",
+    assignment: "توزيع المناطق",
+    account: "إدارة الحسابات",
+    contact: "إدارة جهات الاتصال",
+    activity: "أنشطة المبيعات",
+    call: "اتصال مبيعات",
+    visit: "زيارة العميل",
+    proposal: "عرض المبيعات",
+    quote: "تسعيرة",
+    commission: "العمولات",
+    incentive: "حوافز المبيعات",
+    reporting: "تقارير المبيعات",
+  },
+
+  customerService: {
+    service: "خدمة العملاء",
+    support: "الدعم الفني",
+    helpdesk: "مكتب المساعدة",
+    ticket: "تذكرة دعم",
+    case: "حالة خدمة",
+    request: "طلب خدمة",
+    incident: "حادث",
+    priority: "الأولوية",
+    severity: "مستوى الخطورة",
+    escalation: "التصعيد",
+    resolution: "الحل",
+    response: "زمن الاستجابة",
+    sla: "اتفاقية مستوى الخدمة",
+    queue: "طابور الدعم",
+    assignment: "إسناد التذكرة",
+    routing: "توجيه التذاكر",
+    status: "حالة التذكرة",
+    category: "فئة الخدمة",
+    knowledge: "قاعدة المعرفة",
+    satisfaction: "رضا العملاء",
+    feedback: "ملاحظات العملاء",
+    survey: "استبيان الخدمة",
+  },
+
+  marketingCampaigns: {
+    campaign: "الحملات التسويقية",
+    planning: "تخطيط الحملة",
+    execution: "تنفيذ الحملة",
+    channel: "القنوات التسويقية",
+    email: "حملة البريد الإلكتروني",
+    social: "حملة التواصل الاجتماعي",
+    digital: "الحملات الرقمية",
+    traditional: "التسويق التقليدي",
+    budget: "ميزانية الحملة",
+    spend: "الإنفاق التسويقي",
+    roi: "عائد التسويق",
+    target: "الجمهور المستهدف",
+    segment: "الفئات المستهدفة",
+    personalization: "التخصيص",
+    content: "المحتوى التسويقي",
+    creative: "الأصول الإبداعية",
+    landing: "صفحة الهبوط",
+    conversion: "التحويل",
+    lead: "توليد العملاء المحتملين",
+    nurturing: "رعاية العملاء المحتملين",
+    analytics: "تحليلات الحملة",
+    performance: "أداء الحملة",
+  },
+
+  brandManagement: {
+    brand: "إدارة العلامة التجارية",
+    identity: "هوية العلامة",
+    positioning: "تموضع العلامة",
+    equity: "قيمة العلامة",
+    value: "قيمة العلامة التجارية",
+    awareness: "الوعي بالعلامة",
+    recognition: "التعرف على العلامة",
+    loyalty: "ولاء العلامة",
+    perception: "انطباع العلامة",
+    guidelines: "دليل العلامة",
+    asset: "أصول العلامة",
+    logo: "الشعار",
+    color: "ألوان العلامة",
+    typography: "الخطوط",
+    voice: "صوت العلامة",
+    tone: "نبرة العلامة",
+    messaging: "رسائل العلامة",
+    story: "قصة العلامة",
+    promise: "وعد العلامة",
+    consistency: "اتساق العلامة",
+    protection: "حماية العلامة",
+    monitoring: "مراقبة العلامة",
+  },
+
+  buildingManagementSystem: {
+    bms: "نظام إدارة المباني",
+    automation: "أتمتة المبنى",
+    control: "نظام التحكم",
+    monitoring: "مراقبة النظام",
+    integration: "تكامل الأنظمة",
+    sensors: "المستشعرات",
+    actuators: "المشغلات",
+    controllers: "المتحكمات",
+    network: "الشبكة",
+    protocol: "البروتوكول",
+    bacnet: "BACnet",
+    modbus: "Modbus",
+    lonworks: "LonWorks",
+    dashboard: "لوحة تحكم BMS",
+    alerts: "تنبيهات النظام",
+    analytics: "تحليلات النظام",
+    optimization: "تحسين النظام",
+    scheduling: "الجدولة",
+    setpoints: "نقاط الضبط",
+    alarms: "الإنذارات",
+    trends: "الاتجاهات",
+    reports: "تقارير النظام",
+  },
+
+  energyManagementSystem: {
+    energy: "إدارة الطاقة",
+    consumption: "استهلاك الطاقة",
+    efficiency: "كفاءة الطاقة",
+    monitoring: "مراقبة الطاقة",
+    metering: "قياس الطاقة",
+    submetering: "العدادات الفرعية",
+    demand: "إدارة الطلب",
+    load: "إدارة الأحمال",
+    peak: "ذروة الطلب",
+    offpeak: "خارج الذروة",
+    tariff: "التعرفة",
+    cost: "تكلفة الطاقة",
+    savings: "توفير الطاقة",
+    renewable: "الطاقة المتجددة",
+    solar: "الطاقة الشمسية",
+    wind: "طاقة الرياح",
+    battery: "تخزين البطاريات",
+    grid: "الشبكة الكهربائية",
+    microgrid: "الشبكات المصغرة",
+    generation: "توليد الطاقة",
+    distribution: "توزيع الطاقة",
+  },
+
+  waterManagement: {
+    water: "إدارة المياه",
+    supply: "إمدادات المياه",
+    distribution: "توزيع المياه",
+    consumption: "استهلاك المياه",
+    metering: "قياس المياه",
+    conservation: "ترشيد المياه",
+    efficiency: "كفاءة المياه",
+    quality: "جودة المياه",
+    treatment: "معالجة المياه",
+    wastewater: "مياه الصرف",
+    sewage: "الصرف الصحي",
+    drainage: "التصريف",
+    irrigation: "الري",
+    recycling: "إعادة تدوير المياه",
+    reuse: "إعادة الاستخدام",
+    harvesting: "حصاد مياه الأمطار",
+    storage: "تخزين المياه",
+    tank: "خزان المياه",
+    pump: "المضخات",
+    pressure: "ضغط المياه",
+    leak: "كشف التسرب",
+    monitoring: "مراقبة المياه",
+  },
+
+  wasteManagementAdv: {
+    waste: "إدارة النفايات",
+    collection: "جمع النفايات",
+    disposal: "التخلص من النفايات",
+    segregation: "فرز النفايات",
+    sorting: "تصنيف النفايات",
+    recycling: "إعادة التدوير",
+    composting: "التسميد",
+    organic: "النفايات العضوية",
+    hazardous: "النفايات الخطرة",
+    medical: "النفايات الطبية",
+    electronic: "النفايات الإلكترونية",
+    construction: "نفايات البناء",
+    demolition: "نفايات الهدم",
+    reduction: "تقليل النفايات",
+    minimization: "تخفيف النفايات",
+    zero: "صفر نفايات",
+    landfill: "مدافن النفايات",
+    incineration: "الحرق",
+    tracking: "تتبع النفايات",
+    reporting: "تقارير النفايات",
+    compliance: "الامتثال البيئي",
+    contractor: "متعهد النفايات",
+  },
+
+  parkingManagement: {
+    parking: "إدارة المواقف",
+    lot: "ساحة المواقف",
+    garage: "مواقف متعددة الطوابق",
+    space: "مساحة المواقف",
+    reservation: "حجز المواقف",
+    permit: "تصريح المواقف",
+    pass: "بطاقة المواقف",
+    validation: "التحقق من المواقف",
+    enforcement: "مراقبة المواقف",
+    violation: "مخالفة المواقف",
+    citation: "مخالفة رسمية",
+    payment: "دفع رسوم المواقف",
+    fee: "رسوم المواقف",
+    rate: "تعرفة المواقف",
+    hourly: "رسوم بالساعة",
+    daily: "رسوم يومية",
+    monthly: "اشتراك شهري",
+    valet: "خدمة صف السيارات",
+    accessibility: "مواقف لذوي الإعاقة",
+    electric: "شحن المركبات الكهربائية",
+    occupancy: "نسبة الإشغال",
+    availability: "توفر المواقف",
+  },
+
+  transportationManagement: {
+    transportation: "إدارة النقل",
+    fleet: "إدارة الأسطول",
+    vehicle: "المركبات",
+    dispatch: "التوجيه",
+    routing: "تخطيط المسارات",
+    tracking: "تتبع المركبات",
+    gps: "نظام GPS",
+    telematics: "الاتصالات عن بعد",
+    fuel: "إدارة الوقود",
+    maintenance: "صيانة المركبات",
+    inspection: "فحص المركبات",
+    registration: "تسجيل المركبات",
+    insurance: "تأمين المركبات",
+    driver: "السائقون",
+    assignment: "تعيين السائقين",
+    schedule: "الجدول الزمني",
+    shuttle: "خدمة النقل الداخلي",
+    logistics: "الخدمات اللوجستية",
+    delivery: "التسليم",
+    pickup: "الاستلام",
+    route: "المسار",
+    optimization: "تحسين المسار",
+  },
+
+  mailServices: {
+    mail: "خدمات البريد",
+    mailroom: "غرفة البريد",
+    incoming: "البريد الوارد",
+    outgoing: "البريد الصادر",
+    sorting: "فرز البريد",
+    distribution: "توزيع البريد",
+    delivery: "تسليم البريد",
+    package: "الطرود",
+    courier: "خدمة البريد السريع",
+    tracking: "تتبع الطرود",
+    notification: "إشعار التسليم",
+    signature: "التوقيع مطلوب",
+    pickup: "استلام البريد",
+    postage: "الطوابع",
+    metering: "قياس الطوابع",
+    shipping: "الشحن",
+    receiving: "استلام الطرود",
+    storage: "تخزين البريد",
+    forwarding: "إعادة توجيه البريد",
+    return: "البريد المرتجع",
+    certified: "البريد الموثق",
+    registered: "البريد المسجل",
+  },
+
+  cateringServices: {
+    catering: "خدمات التموين",
+    food: "خدمة الطعام",
+    beverage: "خدمة المشروبات",
+    menu: "قائمة الطعام",
+    breakfast: "وجبة الإفطار",
+    lunch: "وجبة الغداء",
+    dinner: "وجبة العشاء",
+    snacks: "الوجبات الخفيفة",
+    coffee: "خدمة القهوة",
+    event: "تموين الفعاليات",
+    meeting: "تموين الاجتماعات",
+    conference: "تموين المؤتمرات",
+    buffet: "بوفيه مفتوح",
+    plated: "خدمة الأطباق",
+    dietary: "متطلبات غذائية",
+    allergies: "حساسية الطعام",
+    vegetarian: "نباتي",
+    vegan: "نباتي صارم",
+    halal: "حلال",
+    kosher: "كوشر",
+    ordering: "طلب الطعام",
+    delivery: "توصيل الطعام",
+  },
+
+  helpCenter: {
+    title: "مركز المعرفة فيكزت",
+    subtitle: "دروس تفاعلية وأدلة وموارد لإتقان فيكزت إنتربرايز",
+    askAI: "اسأل المساعد الذكي",
+    createTicket: "إنشاء تذكرة دعم",
+    viewTickets: "عرض تذاكري",
+    interactiveTutorials: "دروس تفاعلية",
+    tutorialsSubtitle: "تعلم فيكزت خطوة بخطوة من خلال دروسنا الموجهة",
+    helpArticles: "مقالات المساعدة",
+    articlesSubtitle: "إجابات سريعة على الأسئلة الشائعة وأدلة مفصلة",
+    systemOverview: "نظرة عامة على النظام",
+    overviewSubtitle: "فهم كيفية عمل فيكزت إنتربرايز",
+    viewAllTutorials: "عرض جميع الدروس →",
+    viewAllArticles: "عرض جميع المقالات →",
+    startTutorial: "بدء الدرس",
+    readMore: "اقرأ المزيد",
+    completed: "مكتمل",
+    min: "دقيقة",
+    read: "قراءة",
+    categories: {
+      facilityManagement: "إدارة المنشآت",
+      workOrders: "أوامر العمل",
+      procurement: "المشتريات",
+      customerService: "خدمة العملاء",
+      finance: "المالية",
+      properties: "العقارات",
+      vendors: "الموردون",
+    },
+    difficulty: {
+      beginner: "مبتدئ",
+      intermediate: "متوسط",
+      advanced: "متقدم",
+    },
+    tutorials: {
+      gettingStarted: {
+        title: "البدء مع فيكزت FM",
+        description: "تعلم أساسيات إدارة المنشآت في فيكزت",
+      },
+      firstWorkOrder: {
+        title: "إنشاء أول أمر عمل",
+        description: "دليل خطوة بخطوة لإنشاء وتعيين أوامر العمل",
+      },
+      vendorManagement: {
+        title: "أفضل ممارسات إدارة الموردين",
+        description: "تعلم كيفية إدارة الموردين وعمليات الشراء",
+      },
+      tenantRelations: {
+        title: "علاقات المستأجرين والتواصل",
+        description: "إتقان التواصل مع المستأجرين وإدارة العلاقات",
+      },
+      financialReporting: {
+        title: "التقارير المالية والفوترة",
+        description: "دليل كامل للإدارة المالية في فيكزت",
+      },
+    },
+    articles: {
+      createProperties: {
+        title: "كيفية إنشاء العقارات",
+        description: "تعلم كيفية إضافة وإدارة العقارات في النظام",
+      },
+      workOrderLifecycle: {
+        title: "دورة حياة أمر العمل",
+        description: "فهم عملية أمر العمل الكاملة",
+      },
+      vendorOnboarding: {
+        title: "عملية إضافة الموردين",
+        description: "كيفية إضافة موردين جدد إلى نظامك",
+      },
+      invoiceGeneration: {
+        title: "إنشاء الفواتير والدفع",
+        description: "دليل كامل لإصدار الفواتير ومعالجة الدفع",
+      },
+    },
+    systemModules: {
+      properties: {
+        title: "العقارات",
+        description: "إدارة العقارات السكنية والتجارية بأدوات شاملة",
+      },
+      workOrders: {
+        title: "أوامر العمل",
+        description:
+          "إنشاء وتعيين وتتبع طلبات الصيانة مع إدارة اتفاقية مستوى الخدمة",
+      },
+      vendors: {
+        title: "الموردون",
+        description: "الحصول على المواد وإدارة الموردين وتبسيط عمليات الشراء",
+      },
+      finance: {
+        title: "المالية",
+        description: "التعامل مع الفواتير والمدفوعات والتقارير المالية",
+      },
+    },
+  },
+  ats: {
+    title: "التوظيف (نظام تتبع المتقدمين)",
+    subtitle: "نظام تتبع المتقدمين - إدارة الوظائف والطلبات والمقابلات",
+    errors: {
+      moduleDisabled:
+        "وحدة ATS غير مفعلة لمؤسستك. يرجى الترقية للوصول إلى ميزات التوظيف.",
+      seatLimitExceeded:
+        "تم تجاوز حد مقاعد ATS. الاستخدام الحالي: {{usage}}/{{limit}}. يرجى ترقية خطتك لإضافة المزيد من المستخدمين.",
+      jobPostLimitExceeded:
+        "تم الوصول إلى حد إعلانات الوظائف لخطة ATS الخاصة بك. لديك {{count}}/{{limit}} وظيفة نشطة. يرجى الترقية لنشر المزيد من الوظائف.",
+      authenticationRequired: "مطلوب المصادقة للوصول إلى ميزات ATS",
+      insufficientPermissions: "صلاحيات غير كافية لتنفيذ هذا الإجراء",
+      jobCreationFailed: "فشل إنشاء إعلان الوظيفة",
+      jobsFetchFailed: "فشل جلب الوظائف",
+    },
+    tabs: {
+      jobs: "الوظائف",
+      applications: "الطلبات",
+      interviews: "المقابلات",
+      pipeline: "خط التوظيف",
+      settings: "الإعدادات",
+    },
+    jobs: {
+      title: "إدارة الوظائف",
+      description:
+        "إنشاء وإدارة إعلانات الوظائف. عرض الوظائف النشطة والمسودات والمغلقة.",
+      create: "وظيفة جديدة",
+      edit: "تعديل الوظيفة",
+      delete: "حذف الوظيفة",
+      publish: "نشر الوظيفة",
+      unpublish: "إلغاء النشر",
+      close: "إغلاق الوظيفة",
+      archive: "أرشفة الوظيفة",
+      status: {
+        draft: "مسودة",
+        pending: "قيد الموافقة",
+        published: "منشورة",
+        closed: "مغلقة",
+        archived: "مؤرشفة",
+      },
+      visibility: {
+        internal: "داخلية فقط",
+        public: "عامة",
+      },
+      type: {
+        fullTime: "دوام كامل",
+        partTime: "دوام جزئي",
+        contract: "عقد",
+        temporary: "مؤقت",
+        internship: "تدريب",
+        remote: "عن بعد",
+        hybrid: "هجين",
+      },
+      workMode: {
+        onsite: "في الموقع",
+        remote: "عن بعد",
+        hybrid: "هجين",
+      },
+      fields: {
+        title: "المسمى الوظيفي",
+        department: "القسم",
+        location: "الموقع",
+        jobType: "نوع الوظيفة",
+        workMode: "نمط العمل",
+        salaryRange: "نطاق الراتب",
+        description: "الوصف الوظيفي",
+        requirements: "المتطلبات",
+        responsibilities: "المسؤوليات",
+        benefits: "المزايا",
+        skills: "المهارات المطلوبة",
+        minYears: "الحد الأدنى من سنوات الخبرة",
+        publishedAt: "تاريخ النشر",
+        applicationCount: "إجمالي الطلبات",
+      },
+    },
+    applications: {
+      title: "الطلبات",
+      description: "مراجعة طلبات المرشحين، تحديث المراحل، وإضافة الملاحظات.",
+      viewApplication: "عرض الطلب",
+      addNote: "إضافة ملاحظة",
+      changeStage: "تغيير المرحلة",
+      updateScore: "تحديث النقاط",
+      stage: {
+        applied: "تقدم للوظيفة",
+        screening: "الفرز",
+        interview: "المقابلة",
+        offer: "العرض",
+        hired: "تم التوظيف",
+        rejected: "مرفوض",
+        withdrawn: "منسحب",
+        archived: "مؤرشف",
+      },
+      source: {
+        careers: "صفحة الوظائف",
+        referral: "إحالة من موظف",
+        linkedin: "لينكد إن",
+        indeed: "إنديد",
+        direct: "طلب مباشر",
+      },
+      fields: {
+        candidate: "المرشح",
+        job: "الوظيفة",
+        stage: "المرحلة",
+        score: "النقاط",
+        source: "المصدر",
+        appliedAt: "تاريخ التقديم",
+        coverLetter: "خطاب التغطية",
+        resume: "السيرة الذاتية",
+        notes: "الملاحظات",
+        flags: "العلامات",
+        reviewers: "المراجعون",
+      },
+    },
+    interviews: {
+      title: "المقابلات",
+      description: "جدولة المقابلات، إرسال دعوات التقويم، وجمع التقييمات.",
+      schedule: "جدولة مقابلة",
+      reschedule: "إعادة الجدولة",
+      cancel: "إلغاء المقابلة",
+      addFeedback: "إضافة تقييم",
+      stage: {
+        screening: "الفرز",
+        technical: "فنية",
+        hr: "جولة الموارد البشرية",
+        final: "الجولة النهائية",
+        panel: "مقابلة جماعية",
+      },
+      status: {
+        scheduled: "مجدولة",
+        completed: "مكتملة",
+        cancelled: "ملغاة",
+        rescheduled: "تمت إعادة الجدولة",
+        noShow: "لم يحضر",
+      },
+      feedback: {
+        technical: "المهارات التقنية",
+        communication: "التواصل",
+        cultural: "التوافق الثقافي",
+        overall: "التقييم الإجمالي",
+        comments: "التعليقات",
+        recommendation: {
+          label: "التوصية",
+          strongYes: "نعم بشدة",
+          yes: "نعم",
+          maybe: "ربما",
+          no: "لا",
+          strongNo: "لا بشدة",
+        },
+      },
+      fields: {
+        scheduledAt: "تاريخ ووقت المقابلة",
+        duration: "المدة (بالدقائق)",
+        location: "الموقع",
+        meetingUrl: "رابط الاجتماع",
+        interviewers: "المقابلون",
+        stage: "مرحلة المقابلة",
+        status: "الحالة",
+        notes: "ملاحظات المقابلة",
+      },
+    },
+    pipeline: {
+      title: "خط التوظيف",
+      description: "تصور تدفق المرشحين، ومعدلات التحويل، والاختناقات.",
+      conversionRate: "معدل التحويل",
+      averageTime: "متوسط الوقت في المرحلة",
+      totalCandidates: "إجمالي المرشحين",
+      activeJobs: "الوظائف النشطة",
+    },
+    settings: {
+      title: "إعدادات نظام التوظيف",
+      description: "تكوين قواعد الفرز، وقوالب البريد الإلكتروني، والتكاملات.",
+      screeningRules: {
+        title: "قواعد الفرز",
+        minYears: "الحد الأدنى من سنوات الخبرة",
+        requiredSkills: "المهارات المطلوبة",
+        autoReject: "رفض المرشحين تلقائيًا",
+      },
+      emailTemplates: {
+        title: "قوالب البريد الإلكتروني",
+        applicationReceived: "تم استلام الطلب",
+        interviewInvite: "دعوة للمقابلة",
+        offerLetter: "خطاب العرض",
+        rejection: "إشعار الرفض",
+      },
+      integrations: {
+        title: "التكاملات",
+        linkedin: "لينكد إن",
+        indeed: "إنديد",
+        calendar: "التقويم (جوجل/أوتلوك)",
+      },
+    },
+    candidate: {
+      firstName: "الاسم الأول",
+      lastName: "اسم العائلة",
+      email: "البريد الإلكتروني",
+      phone: "رقم الهاتف",
+      location: "الموقع",
+      linkedin: "ملف لينكد إن",
+      skills: "المهارات",
+      experience: "سنوات الخبرة",
+      resume: "السيرة الذاتية",
+      source: "المصدر",
+    },
+    permissions: {
+      denied: "ليس لديك إذن للوصول إلى هذا القسم.",
+      contactAdmin: "يرجى الاتصال بالمسؤول للحصول على الوصول.",
+    },
+    messages: {
+      jobCreated: "تم إنشاء الوظيفة بنجاح",
+      jobUpdated: "تم تحديث الوظيفة بنجاح",
+      jobPublished: "تم نشر الوظيفة بنجاح",
+      jobDeleted: "تم حذف الوظيفة بنجاح",
+      applicationUpdated: "تم تحديث الطلب بنجاح",
+      interviewScheduled: "تم جدولة المقابلة بنجاح",
+      feedbackSubmitted: "تم إرسال التقييم بنجاح",
+      invalidTransition: "انتقال مرحلة غير صالح",
+    },
+  },
+};
+
+]]>
+</file>
+
+<file path="i18n/dictionaries/ar.ts">
+<![CDATA[
+/**
+ * Arabic Translation Dictionary (Client-Safe)
+ *
+ * This file re-exports the generated JSON dictionary.
+ * Previously tried to use fs which fails on client-side.
+ *
+ * Source of truth: i18n/sources/*.translations.json (1,168 modular domain files)
+ * Generated artifact: i18n/generated/ar.dictionary.json (created by build script)
+ *
+ * @see scripts/generate-dictionaries-json.ts
+ * @see scripts/flatten-base-dictionaries.ts
+ */
+
+import arDictionary from "../generated/ar.dictionary.json";
+
+// Re-export the JSON dictionary directly
+// This works on both client and server without fs
+export default arDictionary;
+
+]]>
+</file>
+
+<file path="i18n/dictionaries/en.ts">
+<![CDATA[
+/**
+ * English Translation Dictionary (Client-Safe)
+ *
+ * This file re-exports the generated JSON dictionary.
+ * Previously tried to use fs which fails on client-side.
+ *
+ * Source of truth: i18n/sources/*.translations.json (1,168 modular domain files)
+ * Generated artifact: i18n/generated/en.dictionary.json (created by build script)
+ *
+ * @see scripts/generate-dictionaries-json.ts
+ * @see scripts/flatten-base-dictionaries.ts
+ */
+
+import enDictionary from "../generated/en.dictionary.json";
+
+// Re-export the JSON dictionary directly
+// This works on both client and server without fs
+export default enDictionary;
+
+]]>
+</file>
+
+<file path="i18n/dictionaries/types.ts">
+<![CDATA[
+export type TranslationDictionary = {
+  [key: string]: string | TranslationDictionary;
+};
+
+export type FlatTranslationMap = Record<string, string>;
+
+export type SupportedTranslationLocale = "en" | "ar";
+
+export type TranslationBundle = Record<
+  SupportedTranslationLocale,
+  FlatTranslationMap
+>;
+
+]]>
+</file>
+
+</batch_content>

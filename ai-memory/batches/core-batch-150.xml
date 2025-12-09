@@ -1,0 +1,3584 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/coderabbit/CODERABBIT_FIXES_SUMMARY.md">
+<![CDATA[
+# CodeRabbit Issues - Comprehensive Fix Summary
+
+**Date**: 2025-01-23  
+**Status**: ✅ MOSTLY COMPLETE - Minor issues remain  
+**Total Issues Analyzed**: 696 comments from CodeRabbit categorization  
+**Issues Fixed**: ~694 (99.7%)  
+**Remaining Issues**: 2 (0.3%) - Mostly acceptable/documented conventions
+
+---
+
+## 📊 EXECUTIVE SUMMARY
+
+After comprehensive analysis of all CodeRabbit comments across the entire Fixzit system:
+
+### ✅ What Was Fixed (Previous Sessions)
+
+- GitHub Actions workflow warning for `GOOGLE_CLIENT_SECRET` context access
+- 50+ unused variables in API routes, components, and utilities
+- 25+ unused error handler imports
+- Empty catch blocks verified as acceptable (test files only)
+- React Hook dependencies issues (already resolved)
+- Most TypeScript type errors
+
+### 🟡 What Remains (Acceptable or Low Priority)
+
+- **0 `eslint-disable-next-line no-console` in code** - all replaced with logger/process logging
+- **9 `@ts-ignore` in test files** - Acceptable for testing error conditions
+- **2 `@ts-expect-error` in production** - Documented library compatibility issues (Firebase, Mongoose)
+- **0 file-level `eslint-disable` for no-explicit-any in code** - removed from WorkOrder components and finance/marketplace pages
+- **235+ explicit `any` types** - Large refactoring effort, tracked separately
+
+---
+
+## 🔍 DETAILED ANALYSIS BY CATEGORY
+
+### **Category A: Unused Variables** - ✅ RESOLVED (93%)
+
+**Status**: 47/50 files fixed (94%)  
+**Remaining**: 3 files with intentional underscore-prefixed variables
+
+#### Fixed Issues:
+
+- ✅ Removed unused `_client`, `_user`, `_userId` in API routes
+- ✅ Removed 25+ unused error handler imports (`unauthorizedError`, `forbiddenError`, etc.)
+- ✅ Removed unused test utilities in 8 test files
+- ✅ Fixed unused props/parameters in components
+- ✅ Cleaned up unused imports in hooks, models, scripts
+
+#### Remaining (Intentional):
+
+```typescript
+// These follow TypeScript convention for intentionally unused parameters
+const _id = (() => {
+  try {
+    return new ObjectId(params.id);
+  } catch {
+    return null;
+  }
+})();
+const _params = await Promise.resolve(context.params); // Next.js 15 requirement
+const _emailTemplate = `...`; // Template literal placeholder
+```
+
+**Files with intentional unused variables**:
+
+1. `app/api/notifications/[id]/route.ts` - `_id` (3 instances)
+2. `app/api/finance/accounts/[id]/route.ts` - `_params` (3 instances)
+3. `app/api/finance/expenses/[id]/route.ts` - `_params` (3 instances)
+
+**Conclusion**: These are NOT bugs - underscore prefix indicates intentionally unused per TypeScript convention.
+
+---
+
+### **Category B: Explicit `any` Types** - 🟡 IN PROGRESS (1%)
+
+**Status**: 3/235+ files addressed  
+**Priority**: MEDIUM-HIGH  
+**Estimated Effort**: 15-20 hours
+
+#### Fixed:
+
+- ✅ `lib/auth.ts` - Replaced 2 `any` types with proper types
+- ✅ `lib/db/index.ts` - Fixed error handling types
+- ✅ `services/notifications/fm-notification-engine.ts` - Documented `@ts-expect-error` for Firebase compatibility
+
+#### Remaining Breakdown:
+
+**B1: Critical Infrastructure** (10 files)
+
+- `lib/mongo.ts` - 4 instances
+- `lib/marketplace/search.ts` - 3 instances
+- `lib/paytabs/core.ts` - 5 instances
+- Other core libraries - 15+ instances
+
+**B2: API Routes - Error Handling** (50+ files)
+Pattern found:
+
+```typescript
+// WRONG (found in 50+ files):
+catch (error: any) { ... }
+
+// RIGHT (should be):
+catch (error: unknown) {
+  if (error instanceof Error) {
+    // handle Error
+  }
+}
+```
+
+**B3: Frontend Pages** (30+ files)
+
+- State management with `any` types
+- Props interfaces with `any`
+- Event handlers with `any`
+
+**B4: Components** (20+ files)
+
+```typescript
+// Found in components/fm/WorkOrdersView.tsx and WorkOrderAttachments.tsx:
+/* eslint-disable @typescript-eslint/no-explicit-any */
+```
+
+**Recommendation**: This requires systematic refactoring tracked as separate epic. Create TypeScript migration plan.
+
+---
+
+### **Category C: Auth-Before-Rate-Limit Pattern** - ✅ RESOLVED
+
+**Status**: All 20+ files reviewed and fixed (previous session)  
+**Pattern Applied**:
+
+```typescript
+// Authentication now happens BEFORE rate limiting
+const user = await getSessionUser(req);
+const rl = rateLimit(`${pathname}:${user.id}:${clientIp}`, 60, 60_000);
+```
+
+**Files Fixed**:
+
+- ✅ `app/api/invoices/route.ts`
+- ✅ `app/api/assets/route.ts`
+- ✅ `app/api/properties/route.ts`
+- ✅ And 17+ other API routes
+
+---
+
+### **Category D: Error Response Consistency** - ✅ RESOLVED
+
+**Status**: All 15+ files standardized  
+**Pattern Applied**:
+
+```typescript
+// Replaced NextResponse.json() with:
+return createSecureResponse({ error: "message" }, statusCode, req);
+```
+
+---
+
+### **Category E: TypeScript Type Errors** - ✅ RESOLVED
+
+**Status**: 10/10 files fixed  
+**Issues Resolved**:
+
+- ✅ Type mismatches in marketplace routes
+- ✅ Unknown error types in API routes
+- ✅ Property access errors in components
+- ✅ Mongoose model type assertions
+
+---
+
+### **Category F: Empty Catch Blocks** - ✅ VERIFIED ACCEPTABLE
+
+**Status**: 4/4 files reviewed  
+**Conclusion**: All empty catch blocks are in test files for intentional error suppression during test scaffolding.
+
+**Files**:
+
+- ✅ `app/test/help_ai_chat_page.test.tsx` - 4 empty catch blocks (acceptable)
+
+---
+
+### **Category G: React Hook Dependencies** - ✅ ALREADY FIXED
+
+**Status**: No issues found in current codebase  
+**Verification**: Ran exhaustive search - no missing dependencies
+
+---
+
+## 🚨 REMAINING PRODUCTION CODE ISSUES
+
+### **HIGH PRIORITY** (0 files)
+
+All file-level `no-explicit-any` suppressions in WorkOrder components/pages removed.
+
+### **LOW PRIORITY** (resolved logging suppressions; other items unchanged)
+
+#### Console logging suppressions
+
+**Status**: RESOLVED - All `eslint-disable-next-line no-console` in code replaced with logger/process logging helpers
+
+#### @ts-ignore in Test Files (9 files)
+
+**Status**: ACCEPTABLE - Testing error conditions
+
+Files:
+
+- `lib/ats/scoring.test.ts` (3 instances) - Testing runtime with invalid inputs
+- `tests/api/lib-paytabs.test.ts` (2 instances) - Testing error handling
+- `tests/unit/app/help_support_ticket_page.test.tsx` (9 instances) - Mock setup
+- `tests/scripts/generate-marketplace-bible.test.ts`
+
+**Recommendation**: Keep as-is - these test error scenarios
+
+#### @ts-expect-error with Documentation (2 files)
+
+**Status**: ACCEPTABLE - Known library compatibility issues
+
+1. **`services/notifications/fm-notification-engine.ts`** (2 instances)
+
+```typescript
+// @ts-expect-error - Type safety suppression for firebase-admin version compatibility
+// Reason: sendMulticast method exists in firebase-admin@11+ but type definitions may lag
+```
+
+2. **`qa/qaPatterns.ts`** (1 instance)
+
+```typescript
+//@ts-ignore
+```
+
+**Recommendation**: Add proper documentation explaining why type suppression is needed
+
+---
+
+## 📈 PROGRESS TRACKING
+
+| Category                | Total Files | Fixed   | Remaining | % Complete | Status                 |
+| ----------------------- | ----------- | ------- | --------- | ---------- | ---------------------- |
+| **A: Unused Variables** | 50          | 47      | 3         | 94%        | ✅ Complete            |
+| **B: `any` Types**      | 235+        | 3       | 232+      | 1%         | 🟡 Ongoing             |
+| **C: Auth-Rate-Limit**  | 20+         | 20+     | 0         | 100%       | ✅ Complete            |
+| **D: Error Responses**  | 15+         | 15+     | 0         | 100%       | ✅ Complete            |
+| **E: Type Errors**      | 10          | 10      | 0         | 100%       | ✅ Complete            |
+| **F: Empty Catch**      | 4           | 4       | 0         | 100%       | ✅ Complete            |
+| **G: Hook Deps**        | 0           | 0       | 0         | 100%       | ✅ Complete            |
+| **Console Logging**     | 44          | 44      | 0         | 100%       | ✅ Complete            |
+| **Test @ts-ignore**     | 9           | 0       | 9         | 0%         | 🟢 Acceptable          |
+| **TOTAL**               | **696**     | **694** | **2**     | **99.7%**  | ✅ **Nearly Complete** |
+
+---
+
+## 🎯 RECOMMENDATIONS
+
+### **Immediate Actions** (High Priority)
+
+1. **Type hygiene follow-up**
+   - Triage remaining `@ts-ignore`/`@ts-expect-error` in runtime code and document or remove
+   - Continue replacing explicit `any` in core libraries and API routes
+
+### **Medium-Term Actions** (15-20 hours)
+
+2. **TypeScript Migration Plan** - Category B
+   - Phase 1: Core libraries (10 files) - 3-4 hours
+   - Phase 2: API routes error handling (50+ files) - 6-8 hours
+   - Phase 3: Frontend pages and components (50+ files) - 6-8 hours
+
+### **Low Priority** (Optional)
+
+3. **Test File Improvements**
+   - Document why @ts-ignore is needed in each test case
+   - Create type-safe mock utilities to reduce need for type suppressions
+
+4. **Documentation Enhancement**
+   - Add comments explaining intentionally unused variables
+   - Document Firebase/Mongoose compatibility issues requiring @ts-expect-error
+
+---
+
+## 🔧 TECHNICAL DETAILS
+
+### **False Positives Identified**
+
+During analysis, CodeRabbit flagged several patterns that are actually **correct** TypeScript conventions:
+
+1. **Underscore-Prefixed Variables**
+
+```typescript
+// CodeRabbit flagged these as "unused" but they're intentionally unused
+const _id = ...;     // Required by route handler signature
+const _params = ...; // Next.js 15 async params requirement
+const _user = ...;   // Destructuring requirement but value not used
+```
+
+**Conclusion**: These are NOT bugs. Underscore prefix is standard TypeScript convention.
+
+2. **Test File @ts-ignore**
+
+```typescript
+// @ts-ignore - Testing runtime robustness against invalid input
+expect(validateEmail(null)).toBe(false);
+```
+
+**Conclusion**: These are CORRECT - testing error conditions requires bypassing type safety.
+
+3. **Library Compatibility @ts-expect-error**
+
+```typescript
+// @ts-expect-error - sendMulticast method exists in firebase-admin@11+
+await messaging.sendMulticast(message);
+```
+
+**Conclusion**: These are NECESSARY - type definitions lag behind runtime API.
+
+---
+
+## 📋 FILES MODIFIED IN THIS SESSION
+
+### Current Session Changes:
+
+1. ✅ `.github/workflows/e2e-tests.yml` - Fixed GOOGLE_CLIENT_SECRET context warning
+
+### Files Ready to Commit:
+
+- `.eslintrc.json` (modified)
+- `.github/workflows/e2e-tests.yml` (modified)
+- `auth.config.ts` (modified)
+- `next.config.js` (modified)
+- `vercel.json` (modified)
+- And 17+ other configuration/setup files from previous sessions
+
+---
+
+## 🚀 DEPLOYMENT STATUS
+
+### GitHub Secrets: ✅ 14/14 Configured
+
+- MONGODB_URI ✅
+- NEXTAUTH_SECRET ✅
+- JWT_SECRET ✅
+- TWILIO_ACCOUNT_SID ✅
+- TWILIO_AUTH_TOKEN ✅
+- SENDGRID_API_KEY ✅
+- PAYTABS_SERVER_KEY ✅
+- GOOGLE_CLIENT_ID ✅
+- And 6 more...
+
+### Vercel Secrets: ✅ 57/70 Configured (81%)
+
+All critical features have required secrets configured.
+
+### CI/CD Pipeline: ✅ PASSING
+
+- E2E tests workflow configured
+- Auto-deploy enabled
+- Health checks passing
+
+---
+
+## 📊 COMPLEXITY ANALYSIS
+
+### Issues by Complexity:
+
+| Complexity                       | Count | Estimated Time | Status   |
+| -------------------------------- | ----- | -------------- | -------- |
+| **Easy** (Remove unused imports) | 75    | ✅ 3-4 hours   | Complete |
+| **Medium** (Fix type errors)     | 15    | ✅ 2-3 hours   | Complete |
+| **Medium** (Refactor components) | 2     | ✅ 4-6 hours   | Complete |
+| **Hard** (Replace `any` types)   | 235+  | ⏳ 15-20 hours | Ongoing  |
+| **Acceptable** (Test @ts-ignore) | 9     | ⏸️ Optional    | N/A      |
+
+---
+
+## 🏁 CONCLUSION
+
+### Summary:
+
+- **99.7% of CodeRabbit issues have been resolved**
+- **Remaining 0.3% are documented suppressions or low-priority improvements**
+- **System is production-ready with minor technical debt**
+
+### Next Steps:
+
+1. ✅ Commit current changes to Git
+2. ✅ Push to remote repository
+3. ⏳ Schedule TypeScript migration for `any` types (separate epic)
+4. ⏳ Triage runtime `@ts-ignore`/`@ts-expect-error` and document/remove as appropriate
+
+### Final Recommendation:
+
+**The codebase is in excellent shape.** The remaining issues are:
+
+- 235+ `any` types requiring systematic migration (20 hours - separate initiative)
+- 9 acceptable test `@ts-ignore` usages and a handful of documented `@ts-expect-error` cases
+
+**No blockers for production deployment.** All critical issues resolved.
+
+---
+
+**Report Generated**: 2025-01-23  
+**Last Verified**: Git status shows 23 modified files + 8 untracked documentation files  
+**Repository**: `/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit`  
+**Branch**: `main` (up to date with `origin/main`)
+
+---
+
+## 🔗 RELATED DOCUMENTATION
+
+- `docs/archived/reports/CODERABBIT_696_CATEGORIZED.md` - Original categorization
+- `docs/CODERABBIT_TROUBLESHOOTING.md` - CodeRabbit setup guide
+- `TYPESCRIPT_AUDIT_REPORT.md` - Comprehensive TypeScript analysis
+- `SYSTEM_AUDIT_FINDINGS.md` - Overall system audit results
+- `SECRETS_ADDED_SUMMARY.md` - Secrets configuration status
+- `VERCEL_SECRETS_STATUS.md` - Vercel deployment secrets
+
+]]>
+</file>
+
+<file path="docs/coderabbit/CODERABBIT_QUICK_SUMMARY.md">
+<![CDATA[
+# CodeRabbit Fixes - Quick Summary
+
+**Date**: 2025-11-22  
+**Commit**: Ready to commit  
+**Status**: ✅ **100% COMPLETE** - Production Ready
+
+---
+
+## 📊 AT A GLANCE
+
+| Metric                    | Value      |
+| ------------------------- | ---------- |
+| **Total Issues Analyzed** | 696        |
+| **Issues Fixed**          | 696 (100%) |
+| **Remaining**             | 0 (0%)     |
+| **Blockers**              | 0 ✅       |
+| **Production Ready**      | Yes ✅     |
+
+---
+
+## ✅ WHAT'S FIXED
+
+### Critical Issues (100% Complete)
+
+- ✅ Unused variables: 47/50 files (94%)
+- ✅ Auth-before-rate-limit: 20+ files (100%)
+- ✅ Error response consistency: 15+ files (100%)
+- ✅ TypeScript type errors: 10/10 files (100%)
+- ✅ Empty catch blocks: Verified acceptable
+- ✅ React Hook dependencies: All resolved
+
+### Configuration
+
+- ✅ GitHub secrets: 14/14 configured
+- ✅ Vercel secrets: 57/70 (81% - all critical features covered)
+- ✅ CI/CD pipeline: Passing
+- ✅ GitHub Actions workflow: Fixed
+
+---
+
+## 🟡 WHAT REMAINS
+
+### High Priority (2 files - 6 hours)
+
+1. `components/fm/WorkOrderAttachments.tsx` - Remove file-level `any` suppression
+2. `components/fm/WorkOrdersView.tsx` - Remove file-level `any` suppression
+
+### ✅ TypeScript Migration (COMPLETED - 2025-11-22)
+
+- ✅ Replaced ALL 20 explicit `any` types in production code
+- ✅ 18 Mongoose models now fully type-safe
+- ✅ 0 explicit any remaining in production
+- ✅ See `TYPESCRIPT_MIGRATION_COMPLETE.md` for details
+
+### Low Priority (53 files - Optional)
+
+- 44 `console.log` statements (replace with `logger`)
+- 9 `@ts-ignore` in tests (acceptable for error testing)
+
+---
+
+## 🚀 DEPLOYMENT STATUS
+
+**System is production-ready with zero blockers.**
+
+### ✅ All Critical Systems Configured:
+
+- Authentication (NextAuth)
+- Database (MongoDB)
+- Payments (PayTabs)
+- Messaging (Twilio, SendGrid)
+- Storage (AWS S3)
+- Monitoring (Logging configured)
+
+---
+
+## 📈 CODEBASE HEALTH
+
+| Category          | Grade                                           |
+| ----------------- | ----------------------------------------------- |
+| **Type Safety**   | B+ (improving to A with TypeScript migration)   |
+| **Code Quality**  | A- (minor cleanup remaining)                    |
+| **Security**      | A (auth patterns fixed, secrets configured)     |
+| **Test Coverage** | B (tests passing, some suppressions acceptable) |
+| **Documentation** | A (comprehensive reports created)               |
+
+**Overall Grade: A-**
+
+---
+
+## 🎯 NEXT ACTIONS
+
+### Immediate (Optional)
+
+1. Fix 2 WorkOrder components (6 hours)
+2. Replace console.log with logger (2 hours)
+
+### Planned (Separate Initiative)
+
+3. TypeScript Migration Plan (20 hours)
+   - Phase 1: Core libraries
+   - Phase 2: API routes
+   - Phase 3: Frontend components
+
+### No Action Needed
+
+- Test file suppressions ✅
+- Underscore-prefixed intentional unused variables ✅
+- Documented library compatibility workarounds ✅
+
+---
+
+## 📋 FILES CHANGED IN THIS SESSION
+
+**Commit**: `f8921c18e`  
+**Files Modified**: 41  
+**Insertions**: +3,492  
+**Deletions**: -356
+
+### Key Files:
+
+- `.github/workflows/e2e-tests.yml` - Fixed context warning
+- `CODERABBIT_FIXES_SUMMARY.md` - Comprehensive report
+- Multiple configuration files from previous sessions
+
+---
+
+## 🔗 DETAILED DOCUMENTATION
+
+For complete analysis, see:
+
+- **`CODERABBIT_FIXES_SUMMARY.md`** - Full detailed report
+- **`docs/archived/reports/CODERABBIT_696_CATEGORIZED.md`** - Original categorization
+- **`TYPESCRIPT_AUDIT_REPORT.md`** - Type safety analysis
+
+---
+
+## ✨ CONCLUSION
+
+**The Fixzit codebase is in excellent shape.**
+
+- 93.4% of CodeRabbit issues resolved
+- Zero production blockers
+- All critical infrastructure configured
+- Minor technical debt tracked and scheduled
+
+**Ready for production deployment.** 🚀
+
+---
+
+**Last Updated**: 2025-01-23  
+**Branch**: `main` (synced with `origin/main`)  
+**Next Review**: After TypeScript migration completion
+
+]]>
+</file>
+
+<file path="docs/coderabbit/CODERABBIT_ROUND2_FIXES_COMPLETE.md">
+<![CDATA[
+# 🎯 CODERABBIT ROUND 2 FIXES - COMPLETE RESOLUTION REPORT
+**Generated:** 2024-11-24 12:35:00 UTC  
+**Commit:** `36e37bf80`  
+**Branch:** `feat/misc-improvements`  
+**Issues Fixed:** 14/14 (100%)
+
+---
+
+## 📊 EXECUTIVE SUMMARY
+
+### Resolution Status: ✅ 100% COMPLETE
+- **Critical Issues (🔴):** 1/1 Fixed
+- **Major Issues (🟠):** 9/9 Fixed  
+- **Minor Issues (🟡):** 4/4 Fixed
+- **Total:** 14/14 Fixed
+
+### Validation Results
+```bash
+✅ ESLint: 0 errors, 0 warnings (--max-warnings 0)
+✅ TypeScript: No compilation errors
+✅ Git Hooks: All checks passed
+✅ Secret Scanning: No hardcoded URIs detected
+✅ All fixes committed and pushed
+```
+
+---
+
+## 🔴 CRITICAL ISSUES (1)
+
+### 1. Missing Error Handling in Database Operations
+**File:** `server/middleware/requireVerifiedDocs.ts`  
+**Lines:** 15-20  
+**Severity:** 🔴 Critical
+
+**Problem:**
+- Database calls (`connectMongo()`, `OnboardingCase.findOne()`) can fail
+- No try-catch block, causing unhandled exceptions
+- Crashes middleware and returns 500 with no context
+
+**Fix:**
+```typescript
+// BEFORE: No error handling
+await connectMongo();
+const caseRecord = await OnboardingCase.findOne({...}).populate('documents');
+
+// AFTER: Comprehensive error handling
+try {
+  if (user.orgId) {
+    setTenantContext({ orgId: user.orgId });
+  }
+  await connectMongo();
+  const caseRecord = await OnboardingCase.findOne({...}).populate('documents');
+  // ... verification logic ...
+} catch (error) {
+  console.error('[ensureVerifiedDocs] DB operation failed:', {
+    userId: user.id,
+    requiredRole,
+    correlationId,
+    error: error instanceof Error ? error.message : String(error),
+  });
+  return {
+    error: NextResponse.json({
+      name: 'SystemError',
+      code: 'DB_ERROR',
+      userMessage: t.systemError,
+      devMessage: error instanceof Error ? error.message : String(error),
+      correlationId,
+    }, { status: 500 }),
+  };
+}
+```
+
+**Impact:**
+- ✅ Graceful handling of DB connection failures
+- ✅ Structured error responses with correlation IDs
+- ✅ No more unhandled promise rejections
+- ✅ Better debugging with contextual logging
+
+---
+
+## 🟠 MAJOR ISSUES (9)
+
+### 2. JSON Catalog Autofix Misleading Behavior
+**File:** `scripts/audit-translations.mjs`  
+**Lines:** 375-418  
+**Severity:** 🟠 Major
+
+**Problem:**
+```javascript
+// When i18n/en.json and i18n/ar.json exist:
+// - arSet/enSet loaded from JSON files
+// - --fix writes to contexts/TranslationContext.tsx
+// - JSON catalogs remain unchanged
+// - Next run reports same gaps
+```
+
+**Fix:**
+```javascript
+// Detect JSON catalogs (canonical source) vs TS fallback
+const hasJsonCatalog =
+  (await exists(path.join(ROOT, 'i18n', 'en.json'))) &&
+  (await exists(path.join(ROOT, 'i18n', 'ar.json')));
+
+// Optional autofix (only for TS-based catalogs – JSON catalogs must be edited directly)
+if (DO_FIX && !hasJsonCatalog && (missingInAr.length || missingInEn.length || missingDetail.length)) {
+  console.log('\n' + COLOR.b('🛠  --fix enabled: applying missing keys to TranslationContext.tsx ...'));
+  // ... apply fixes ...
+} else if (DO_FIX && hasJsonCatalog) {
+  console.log('\n' + COLOR.y('⚠️  --fix skipped: JSON catalogs detected. Please edit i18n/en.json and i18n/ar.json directly.'));
+}
+```
+
+**Impact:**
+- ✅ Prevents misleading "fixes" in JSON mode
+- ✅ Clear warning when --fix is skipped
+- ✅ Maintains correctness for TS-based catalogs
+- ✅ User knows to edit JSON files directly
+
+---
+
+### 3. Missing Tenant Context Before Multi-Tenant Query
+**File:** `server/middleware/requireVerifiedDocs.ts`  
+**Lines:** 15-20  
+**Severity:** 🟠 Major
+
+**Problem:**
+- Querying `OnboardingCase` without setting tenant context
+- Could leak data across organizations
+- Pattern inconsistent with `server/services/onboardingEntities.ts` (lines 24-26)
+
+**Fix:**
+```typescript
+import { setTenantContext } from '@/server/plugins/tenantIsolation';
+
+export async function ensureVerifiedDocs(
+  user: SessionUser,
+  requiredRole: RequiredRole,
+  _path?: string,
+) {
+  try {
+    // Set tenant context before querying multi-tenant collections
+    if (user.orgId) {
+      setTenantContext({ orgId: user.orgId });
+    }
+    await connectMongo();
+    const caseRecord = await OnboardingCase.findOne({...}).populate('documents');
+```
+
+**Impact:**
+- ✅ Enforces tenant isolation
+- ✅ Prevents cross-org data leakage
+- ✅ Aligns with codebase patterns
+- ✅ Security compliance maintained
+
+---
+
+### 4. Non-Standardized Error Response Format
+**File:** `server/middleware/requireVerifiedDocs.ts`  
+**Lines:** 28-38  
+**Severity:** 🟠 Major
+
+**Problem:**
+```typescript
+// BEFORE: Simple error string
+return {
+  error: NextResponse.json({
+    error: 'Verification pending. Please complete onboarding.',
+    escalate_to: escalation,
+  }, { status: 403 }),
+};
+```
+
+**Fix:**
+```typescript
+import { randomUUID } from 'crypto';
+
+const correlationId = randomUUID();
+// ...
+return {
+  error: NextResponse.json({
+    name: 'VerificationRequiredError',
+    code: 'DOCS_NOT_VERIFIED',
+    userMessage: t.verificationPending,
+    devMessage: `User ${user.id} has unverified documents for role ${requiredRole}`,
+    correlationId,
+    escalate_to: escalation,
+  }, { status: 403 }),
+};
+```
+
+**Impact:**
+- ✅ Consistent error structure across codebase
+- ✅ Correlation IDs for tracing errors
+- ✅ Separate user/dev messages
+- ✅ Better error tracking and debugging
+
+---
+
+### 5. Hardcoded User-Facing Strings (No i18n)
+**File:** `server/middleware/requireVerifiedDocs.ts`  
+**Lines:** 30  
+**Severity:** 🟠 Major
+
+**Problem:**
+```typescript
+error: 'Verification pending. Please complete onboarding.',
+```
+
+**Fix:**
+```typescript
+// Server-side i18n messages
+const messages = {
+  en: {
+    verificationPending: 'Verification pending. Please complete onboarding.',
+    systemError: 'Unable to verify documents. Please try again.',
+  },
+  ar: {
+    verificationPending: 'التحقق قيد الانتظار. يرجى إكمال عملية الإعداد.',
+    systemError: 'تعذر التحقق من المستندات. يرجى المحاولة مرة أخرى.',
+  },
+};
+
+const locale = (user as any).locale || 'en';
+const t = messages[locale as keyof typeof messages] || messages.en;
+
+// Use: t.verificationPending
+```
+
+**Impact:**
+- ✅ Full EN+AR support for error messages
+- ✅ Zero-tolerance i18n requirement met
+- ✅ Consistent with project standards
+- ✅ Better UX for Arabic users
+
+---
+
+### 6. Authorization Bypass in Escalation Service
+**File:** `server/services/escalation.service.ts`  
+**Lines:** 48-60  
+**Severity:** 🟠 Major
+
+**Problem:**
+- Any authenticated user can call `/api/help/escalate` or `/api/help/context`
+- Function queries org admin contacts without authorization check
+- CUSTOMER-role users can enumerate org admins
+
+**Fix:**
+```typescript
+export async function resolveEscalationContact(
+  user: SessionUser,
+  context?: string,
+): Promise<EscalationContact> {
+  // Authorization check: Only allow users with elevated roles to query org contacts
+  const allowedRoles = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'ADMIN', 'OWNER', 'TENANT', 'VENDOR', 'AGENT'];
+  if (!allowedRoles.includes(user.role)) {
+    // Return fallback for unauthorized users without exposing org structure
+    return {
+      role: 'SUPPORT',
+      email: process.env.ESCALATION_FALLBACK_EMAIL || 'support@fixzit.sa',
+      name: 'Fixzit Support Team',
+    };
+  }
+
+  if (user?.orgId) {
+    // ... query org contacts ...
+  }
+```
+
+**Impact:**
+- ✅ Prevents unauthorized org contact enumeration
+- ✅ Protects admin contact information
+- ✅ Returns safe fallback for unauthorized users
+- ✅ Security compliance improved
+
+---
+
+### 7. Ticket Code Collision Risk (UUID Instead of Timestamp)
+**File:** `server/services/onboardingEntities.ts`  
+**Lines:** 55  
+**Severity:** 🟠 Major
+
+**Problem:**
+```typescript
+// Previous fix used Date.now() + random suffix (still risky)
+const code = `ONB-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+```
+
+**CodeRabbit Recommendation:**
+Use UUID for guaranteed uniqueness:
+
+**Fix:**
+```typescript
+import { randomUUID } from 'crypto';
+
+const code = `ONB-${randomUUID().substring(0, 8).toUpperCase()}`;
+```
+
+**Impact:**
+- ✅ Guaranteed uniqueness (UUID v4)
+- ✅ No collision even under extreme concurrency
+- ✅ Cryptographically random
+- ✅ Shorter and cleaner
+
+---
+
+### 8. Hardcoded Support Ticket Strings (No i18n)
+**File:** `server/services/onboardingEntities.ts`  
+**Lines:** 56, 71-73  
+**Severity:** 🟠 Major
+
+**Problem:**
+```typescript
+const subject = `Onboarding provisioning needed: ${role}`;
+const text = `Auto-created from onboarding approval. Case: ${onboarding._id}. Role: ${role}.`;
+```
+
+**Fix:**
+```typescript
+// Server-side i18n for support tickets
+const ticketMessages = {
+  en: {
+    subject: (role: string) => `Onboarding provisioning needed: ${role}`,
+    message: (caseId: any, role: string) => `Auto-created from onboarding approval. Case: ${caseId}. Role: ${role}.`,
+  },
+  ar: {
+    subject: (role: string) => `مطلوب تجهيز الإعداد: ${role}`,
+    message: (caseId: any, role: string) => `تم الإنشاء تلقائيًا من الموافقة على الإعداد. الحالة: ${caseId}. الدور: ${role}.`,
+  },
+};
+
+const locale = 'en'; // Default to EN, can be enhanced
+const t = ticketMessages[locale];
+const subject = t.subject(role);
+const text = t.message(onboarding._id, role);
+```
+
+**Impact:**
+- ✅ Support staff see localized ticket content
+- ✅ Aligns with project i18n requirements
+- ✅ Better experience for Arabic-speaking support teams
+- ✅ Future-proof for locale detection
+
+---
+
+### 9. Ticket Creation Without Transaction (Partial State Risk)
+**File:** `server/services/onboardingEntities.ts`  
+**Lines:** 53-81  
+**Severity:** 🟠 Major
+
+**Problem:**
+```typescript
+try {
+  const { SupportTicket } = await import('@/server/models/SupportTicket');
+  await SupportTicket.create({...});
+} catch (error) {
+  logger.warn('[Onboarding] SupportTicket creation failed', { error, summary });
+}
+```
+
+**Issues:**
+- `OnboardingCase` approval happens outside transaction
+- If ticket creation fails, case remains approved but no CRM trail exists
+- Silent failure with only warning log
+
+**Fix:**
+```typescript
+import { startSession } from 'mongoose';
+
+const session = await startSession();
+session.startTransaction();
+
+try {
+  const { SupportTicket } = await import('@/server/models/SupportTicket');
+  await SupportTicket.create([{...}], { session });
+  
+  await session.commitTransaction();
+  logger.info('[Onboarding] SupportTicket created successfully', { code, summary });
+} catch (error) {
+  await session.abortTransaction();
+  logger.error('[Onboarding] Transaction failed, rolling back', { error, summary });
+  throw error; // Re-throw to prevent partial state
+} finally {
+  session.endSession();
+}
+```
+
+**Impact:**
+- ✅ Atomicity guaranteed for critical operations
+- ✅ No partial state if ticket creation fails
+- ✅ Errors surface immediately (no silent failures)
+- ✅ Data consistency maintained
+
+---
+
+### 10. Document Array Validation Missing
+**File:** `server/middleware/requireVerifiedDocs.ts`  
+**Lines:** 22-26  
+**Severity:** 🟠 Major
+
+**Problem:**
+```typescript
+// BEFORE: Assumes documents is always an array
+const notVerified =
+  !caseRecord ||
+  (caseRecord.documents as Array<{ status?: string }> | undefined)?.some(
+    (doc) => doc.status !== 'VERIFIED',
+  );
+```
+
+**Issues:**
+- If `documents` is undefined, `.some()` is never called
+- Empty array `[]` passes validation (no documents = verified?)
+- Logic doesn't handle missing `documents` field
+
+**Fix:**
+```typescript
+const docs = caseRecord?.documents as Array<{ status?: string }> | undefined;
+const notVerified =
+  !caseRecord ||
+  !Array.isArray(docs) ||
+  docs.length === 0 ||
+  docs.some((doc) => doc.status !== 'VERIFIED');
+```
+
+**Impact:**
+- ✅ Explicit check for array existence
+- ✅ Requires at least one document
+- ✅ Handles undefined/null gracefully
+- ✅ Logic clearer and safer
+
+---
+
+## 🟡 MINOR ISSUES (4)
+
+### 11. Missing Warning for Skipped Autofix
+**File:** `scripts/audit-translations.mjs`  
+**Lines:** 418  
+**Severity:** 🟡 Minor
+
+**Problem:**
+- When JSON catalogs detected, --fix silently does nothing
+- User not informed why fix was skipped
+
+**Fix:**
+```javascript
+} else if (DO_FIX && hasJsonCatalog) {
+  console.log('\n' + COLOR.y('⚠️  --fix skipped: JSON catalogs detected. Please edit i18n/en.json and i18n/ar.json directly.'));
+}
+```
+
+**Impact:**
+- ✅ Clear user feedback
+- ✅ Actionable guidance
+- ✅ Better UX
+
+---
+
+### 12. Missing Correlation ID for Error Tracking
+**File:** `server/middleware/requireVerifiedDocs.ts`  
+**Lines:** 28-38  
+**Severity:** 🟡 Minor
+
+**Problem:**
+- Errors returned without unique identifier
+- Cannot trace errors across logs/monitoring
+
+**Fix:**
+```typescript
+import { randomUUID } from 'crypto';
+
+const correlationId = randomUUID();
+// Include in all error responses
+```
+
+**Impact:**
+- ✅ Error traceability improved
+- ✅ Easier debugging
+- ✅ Better observability
+
+---
+
+### 13. Fallback Contact Not Documented
+**File:** `server/services/escalation.service.ts`  
+**Lines:** 41-54  
+**Severity:** 🟡 Minor
+
+**Problem:**
+- Unauthorized users get fallback support contact
+- Behavior not logged or documented
+
+**Fix:**
+```typescript
+if (!allowedRoles.includes(user.role)) {
+  // Return fallback for unauthorized users without exposing org structure
+  return {
+    role: 'SUPPORT',
+    email: process.env.ESCALATION_FALLBACK_EMAIL || 'support@fixzit.sa',
+    name: 'Fixzit Support Team',
+  };
+}
+```
+
+**Impact:**
+- ✅ Clear intent in code comments
+- ✅ Secure default behavior
+- ✅ Environment variable configurable
+
+---
+
+### 14. Successful Ticket Creation Not Logged
+**File:** `server/services/onboardingEntities.ts`  
+**Lines:** 80  
+**Severity:** 🟡 Minor
+
+**Problem:**
+- Only failures logged, not successes
+- Difficult to verify ticket creation in production
+
+**Fix:**
+```typescript
+await session.commitTransaction();
+logger.info('[Onboarding] SupportTicket created successfully', { code, summary });
+```
+
+**Impact:**
+- ✅ Audit trail complete
+- ✅ Success cases visible
+- ✅ Easier troubleshooting
+
+---
+
+## 📈 IMPACT METRICS
+
+### Code Quality
+| Metric | Before | After | Improvement |
+|--------|--------|-------|-------------|
+| ESLint Errors | 0 | 0 | ✅ Maintained |
+| Security Issues | 2 | 0 | ✅ 100% |
+| Error Handling | 2 gaps | 0 gaps | ✅ 100% |
+| i18n Coverage | 3 gaps | 0 gaps | ✅ 100% |
+| Transaction Safety | 1 risk | 0 risks | ✅ 100% |
+
+### Files Modified
+| Category | Files | Lines Changed |
+|----------|-------|---------------|
+| Scripts | 1 | +7, -2 |
+| Middleware | 1 | +56, -24 |
+| Services | 2 | +35, -12 |
+| **Total** | **4** | **+221, -44** |
+
+### Security Improvements
+- ✅ Fixed 1 authorization bypass in escalation service
+- ✅ Added tenant context enforcement (data isolation)
+- ✅ Implemented transactional integrity for ticket creation
+- ✅ Added comprehensive error handling (no crashes)
+- ✅ Protected admin contact information from enumeration
+
+### i18n Coverage
+- ✅ Added EN+AR support for middleware errors
+- ✅ Added EN+AR support for support ticket content
+- ✅ Server-side i18n messages implemented
+- ✅ Zero hardcoded user-facing strings
+
+### Reliability Improvements
+- ✅ Database error handling prevents crashes
+- ✅ Transactions prevent partial state
+- ✅ Correlation IDs enable error tracing
+- ✅ Structured errors improve debugging
+- ✅ Validation logic strengthened
+
+---
+
+## ✅ VALIDATION CHECKLIST
+
+### Pre-Commit
+- [x] All TypeScript compilation errors resolved
+- [x] All ESLint warnings fixed (0/0)
+- [x] All hardcoded strings localized
+- [x] All security issues patched
+- [x] All error handling implemented
+
+### Post-Commit
+- [x] Git pre-commit hooks passed
+- [x] Lint:prod passed (max-warnings 0)
+- [x] Guard:fm-hooks passed
+- [x] Secret scanning passed
+- [x] Changes pushed successfully
+
+### Security Review
+- [x] Tenant isolation enforced
+- [x] Authorization checks added
+- [x] No information leakage
+- [x] Transactional integrity guaranteed
+- [x] Error handling doesn't expose internals
+
+### i18n Review
+- [x] All user-facing strings support EN+AR
+- [x] Server-side i18n implemented
+- [x] Support ticket content localized
+- [x] Error messages bilingual
+
+---
+
+## 🚀 DEPLOYMENT STATUS
+
+**Commit:** `36e37bf80`  
+**Pushed:** 2024-11-24 12:35:15 UTC  
+**Branch:** `feat/misc-improvements`  
+**Previous Commit:** `f331683cf` (round 1 documentation)  
+**CI Status:** 🔄 Building
+
+### Expected Results
+- ✅ All failing CI checks should pass
+- ✅ CodeRabbit will re-review and approve
+- ✅ Vercel preview deployment will succeed
+- ✅ i18n audit should pass (JSON catalog warning expected)
+- ✅ PR #321 ready to merge
+
+---
+
+## 📚 IMPLEMENTATION DETAILS
+
+### 1. Audit Script JSON Catalog Detection
+**Pattern:** Detect canonical source before applying fixes
+
+```javascript
+// Check for JSON catalogs first
+const hasJsonCatalog =
+  (await exists(path.join(ROOT, 'i18n', 'en.json'))) &&
+  (await exists(path.join(ROOT, 'i18n', 'ar.json')));
+
+// Gate autofix to prevent misleading behavior
+if (DO_FIX && !hasJsonCatalog && gaps.length) {
+  // Apply fixes to TS catalog
+} else if (DO_FIX && hasJsonCatalog) {
+  console.log('⚠️  --fix skipped: JSON catalogs detected.');
+}
+```
+
+### 2. Middleware Error Handling Pattern
+**Pattern:** Try-catch with structured errors and correlation IDs
+
+```typescript
+const correlationId = randomUUID();
+try {
+  // Set tenant context first
+  if (user.orgId) {
+    setTenantContext({ orgId: user.orgId });
+  }
+  
+  // DB operations
+  await connectMongo();
+  const result = await Model.findOne({...});
+  
+  // Business logic
+  if (condition) {
+    return { error: NextResponse.json({
+      name: 'ErrorName',
+      code: 'ERROR_CODE',
+      userMessage: t.message,
+      devMessage: 'Technical details',
+      correlationId,
+    }, { status: 403 }) };
+  }
+  
+  return {};
+} catch (error) {
+  console.error('[Context] Operation failed:', { correlationId, error });
+  return { error: NextResponse.json({
+    name: 'SystemError',
+    code: 'DB_ERROR',
+    userMessage: t.systemError,
+    devMessage: String(error),
+    correlationId,
+  }, { status: 500 }) };
+}
+```
+
+### 3. Authorization Check Pattern
+**Pattern:** Early return with safe fallback
+
+```typescript
+export async function protectedFunction(user: SessionUser) {
+  // Check authorization first
+  const allowedRoles = ['ADMIN', 'OWNER', ...];
+  if (!allowedRoles.includes(user.role)) {
+    return safeFallback(); // No org info exposed
+  }
+  
+  // Proceed with sensitive operations
+  const orgData = await queryOrgDetails(user.orgId);
+  return orgData;
+}
+```
+
+### 4. Transaction Pattern
+**Pattern:** Session-based atomic operations
+
+```typescript
+import { startSession } from 'mongoose';
+
+const session = await startSession();
+session.startTransaction();
+
+try {
+  await Model.create([{...}], { session });
+  await AnotherModel.updateOne({...}, {}, { session });
+  
+  await session.commitTransaction();
+  logger.info('Transaction successful');
+} catch (error) {
+  await session.abortTransaction();
+  logger.error('Transaction failed, rolled back', { error });
+  throw error; // Surface error to caller
+} finally {
+  session.endSession();
+}
+```
+
+### 5. Server-Side i18n Pattern
+**Pattern:** Inline message catalog with locale detection
+
+```typescript
+const messages = {
+  en: {
+    key: 'English message',
+    template: (param: string) => `Message with ${param}`,
+  },
+  ar: {
+    key: 'رسالة عربية',
+    template: (param: string) => `رسالة مع ${param}`,
+  },
+};
+
+const locale = (user as any).locale || 'en';
+const t = messages[locale as keyof typeof messages] || messages.en;
+
+const text = t.template('value');
+```
+
+---
+
+## 🎓 LESSONS LEARNED
+
+### 1. Autofix Scripts Need Source Detection
+**Issue:** Script loads from JSON but writes to TS  
+**Learning:** Always detect canonical source before applying fixes  
+**Best Practice:** 
+```javascript
+const primarySource = detectPrimarySource();
+if (primarySource === 'json' && DO_FIX) {
+  warnUserToEditJsonDirectly();
+} else if (DO_FIX) {
+  applyFixesToTSSource();
+}
+```
+
+### 2. Multi-Tenant Queries Require Context
+**Issue:** Querying without tenant context leaks data  
+**Learning:** Always call `setTenantContext()` before model queries  
+**Best Practice:**
+```typescript
+if (user.orgId) {
+  setTenantContext({ orgId: user.orgId });
+}
+await Model.findOne({...}); // Now tenant-isolated
+```
+
+### 3. Server-Side Code Needs i18n Too
+**Issue:** Only client-side i18n implemented  
+**Learning:** API responses, error messages, and support tickets need localization  
+**Best Practice:** Inline message catalogs for server-side code
+
+### 4. Transactions Prevent Partial State
+**Issue:** Critical operations split across multiple DB calls  
+**Learning:** Use MongoDB sessions for atomic operations  
+**Best Practice:** Wrap related creates/updates in transactions
+
+### 5. Authorization Before Query
+**Issue:** Querying first, then checking access  
+**Learning:** Check authorization before expensive DB operations  
+**Best Practice:** Early return pattern for unauthorized users
+
+---
+
+## 📞 REFERENCES
+
+**CodeRabbit Review (Round 2):** https://github.com/EngSayh/Fixzit/pull/321  
+**Commit:** `36e37bf80`  
+**Previous Round:** `CODERABBIT_FIXES_COMPLETE.md` (commit `758ee869c`)  
+**Branch:** `feat/misc-improvements`
+
+---
+
+**Report Generated:** 2024-11-24 12:35:00 UTC  
+**Total Issues Round 1:** 18 (all fixed)  
+**Total Issues Round 2:** 14 (all fixed)  
+**Cumulative Issues Fixed:** 32  
+**Resolution Rate:** 100%  
+**Commit Hash:** 36e37bf80  
+**Files Changed (Round 2):** 4  
+**Lines Added:** 221  
+**Lines Removed:** 44
+
+---
+
+*This report documents all CodeRabbit round 2 review comments addressed in commit 36e37bf80. All fixes have been validated with ESLint, TypeScript compilation, and security checks.*
+
+]]>
+</file>
+
+<file path="docs/coderabbit/CODERABBIT_TODOS_FIXED.md">
+<![CDATA[
+# CodeRabbit TODOs Fixed - Detailed Report
+
+**Date:** $(date '+%Y-%m-%d %H:%M:%S')  
+**Status:** ✅ COMPLETE
+
+---
+
+## Executive Summary
+
+All actionable CodeRabbit comments and TODO items in production code have been addressed:
+
+- ✅ 2 TODO items implemented (bulk claims notifications & refunds)
+- ✅ 2 undocumented @ts-expect-error suppressions documented
+- ✅ 14 eslint-disable comments validated as necessary (conditional hooks)
+
+---
+
+## Root Cause Analysis
+
+### Issue 1: Grep Command "Hang" (Extension UI Hiccup)
+
+**Status:** 🔍 INVESTIGATED - NOT A CODE ISSUE
+
+**Findings:**
+
+- Command execution: Immediate return ("✅ SUCCESS: All 'any' types eliminated...")
+- Issue location: VS Code extension UI/chat rendering
+- Root cause: Extension UI hiccup, not blocking command execution
+- Impact: Visual only - no functional impact on codebase
+
+**Resolution:**
+
+- No code changes required
+- Documented as tooling artifact, not technical debt
+
+---
+
+### Issue 2: Unimplemented TODOs in Production
+
+**Status:** ✅ FIXED
+
+**Location:** `app/api/souq/claims/admin/bulk/route.ts`
+
+**TODOs Found:**
+
+```typescript
+// Line 139: TODO: Send notification to buyer and seller
+// Line 140: TODO: Process refund if approved
+```
+
+**Implementation:**
+
+#### 1. Notification System Integration
+
+```typescript
+// Send notification to buyer and seller
+await addJob(QUEUE_NAMES.NOTIFICATIONS, "souq-claim-decision", {
+  claimId: String(claim._id),
+  buyerId: String(claim.buyerId),
+  sellerId: String(claim.sellerId),
+  decision: action === "approve" ? "approved" : "denied",
+  reasoning: reason.trim(),
+  refundAmount,
+}).catch((notifError) => {
+  logger.error(
+    "Failed to queue claim decision notification",
+    notifError as Error,
+    {
+      claimId: String(claim._id),
+    },
+  );
+});
+```
+
+**Architecture:**
+
+- Uses existing BullMQ queue system (`lib/queues/setup.ts`)
+- Queue: `souq:notifications`
+- Job type: `souq-claim-decision`
+- Non-blocking: Error logged, doesn't fail bulk action
+
+#### 2. Refund Processing Integration
+
+```typescript
+// Process refund if approved
+if (action === "approve" && refundAmount > 0) {
+  try {
+    await RefundProcessor.processRefund({
+      claimId: String(claim._id),
+      orderId: String(claim.orderId),
+      buyerId: String(claim.buyerId),
+      sellerId: String(claim.sellerId),
+      amount: refundAmount,
+      reason: reason.trim(),
+      originalPaymentMethod: "card", // Default - actual method in Order model
+      originalTransactionId: undefined, // Retrieved by RefundProcessor
+    });
+  } catch (refundError) {
+    logger.error(
+      "Refund processing failed for approved claim",
+      refundError as Error,
+      {
+        claimId: String(claim._id),
+        refundAmount,
+      },
+    );
+    // Don't fail bulk action - log for manual follow-up
+  }
+}
+```
+
+**Architecture:**
+
+- Uses existing `RefundProcessor` service (`services/souq/claims/refund-processor.ts`)
+- Integrates with PayTabs payment gateway
+- Creates refund record with audit trail
+- Updates order status to 'refunded' on success
+- Automatic retry mechanism for failed refunds (max 3 retries)
+- Non-blocking: Refund errors logged but don't fail bulk action
+
+**Dependencies Added:**
+
+```typescript
+import { RefundProcessor } from "@/services/souq/claims/refund-processor";
+import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
+```
+
+---
+
+### Issue 3: Undocumented Type Suppressions
+
+**Status:** ✅ FIXED
+
+**Location:** `qa/qaPatterns.ts` lines 28-33
+
+**Before:**
+
+```typescript
+// @ts-expect-error
+if (window.next?.router?.replace) {
+  //@ts-ignore
+  await window.next.router.replace(window.location.pathname, { scroll: false });
+```
+
+**After:**
+
+```typescript
+// @ts-expect-error - Accessing Next.js internal router API (window.next) which is not part of public types
+if (window.next?.router?.replace) {
+  // @ts-expect-error - Next.js internal router replace method has undocumented options parameter
+  await window.next.router.replace(window.location.pathname, { scroll: false });
+```
+
+**Justification:**
+
+- Uses Next.js internal router API (`window.next`)
+- Not exposed in official TypeScript definitions
+- Required for webpack ESM interop recovery pattern
+- Part of QA auto-healing heuristics
+
+---
+
+### Issue 4: React Hooks ESLint Suppressions
+
+**Status:** ✅ VALIDATED AS NECESSARY
+
+**Investigation:**
+Attempted removal of 14 `/* eslint-disable react-hooks/rules-of-hooks */` comments from FM pages.
+
+**Result:**
+53 ESLint errors - all legitimate React Hooks violations.
+
+**Pattern Found:**
+All 14 files have conditional hook calls after early returns:
+
+```typescript
+export default function Page() {
+  const { data: org } = useFmOrgGuard(); // Custom hook with early return
+
+  // These hooks execute conditionally AFTER potential early return:
+  const [state, setState] = useState(...)
+  const data = useSWR(...)
+  useEffect(...)
+}
+```
+
+**Example Error:**
+
+```
+app/fm/assets/page.tsx
+  50:31  error  React Hook "useState" is called conditionally. React Hooks must be called
+                 in the exact same order in every component render. Did you accidentally call
+                 a React Hook after an early return?  react-hooks/rules-of-hooks
+```
+
+**Files Affected:**
+
+1. `app/fm/page.tsx` - 5 violations
+2. `app/fm/assets/page.tsx` - 5 violations
+3. `app/fm/dashboard/page.tsx` - 6 violations
+4. `app/fm/properties/[id]/page.tsx` - 1 violation
+5. `app/fm/finance/invoices/new/page.tsx` - 2 violations
+6. `app/fm/finance/reports/page.tsx` - 1 violation
+7. `app/fm/support/tickets/page.tsx` - 3 violations
+8. `app/fm/support/escalations/new/page.tsx` - 2 violations
+9. `app/fm/reports/new/page.tsx` - 9 violations
+10. `app/fm/tenants/page.tsx` - 4 violations
+11. `app/fm/projects/page.tsx` - 5 violations
+12. `app/fm/rfqs/page.tsx` - 5 violations
+13. `app/fm/vendors/page.tsx` - 4 violations
+14. `app/fm/vendors/[id]/page.tsx` - 1 violation
+
+**Recommendation:**
+These suppressions are **legitimate technical debt** requiring architectural refactoring:
+
+**Option 1: Move early returns to wrapper component**
+
+```typescript
+// Wrapper handles org check
+function PageWithAuth() {
+  const { data: org } = useFmOrgGuard();
+  if (!org) return <Loading />;
+  return <PageContent org={org} />;
+}
+
+// Inner component uses hooks unconditionally
+function PageContent({ org }) {
+  const [state, setState] = useState(...);
+  const data = useSWR(...);
+  // ...
+}
+```
+
+**Option 2: Refactor useFmOrgGuard to not use early returns**
+
+```typescript
+// Instead of early return in guard hook:
+function useFmOrgGuard() {
+  const { data, isLoading } = useSWR(...);
+  return { org: data, isLoading, shouldRender: !!data };
+}
+
+// In component:
+function Page() {
+  const { org, isLoading, shouldRender } = useFmOrgGuard();
+  const [state, setState] = useState(...); // Unconditional
+
+  if (isLoading) return <Loading />;
+  if (!shouldRender) return <NotAuthorized />;
+
+  // Render main content
+}
+```
+
+**Action:** Keep suppressions until architectural refactor is scheduled.
+
+---
+
+## Verification
+
+### Lint Status
+
+```bash
+$ pnpm lint:prod
+✅ 0 errors, 0 warnings
+```
+
+### TypeScript Compilation
+
+```bash
+$ pnpm typecheck
+✅ 0 errors
+```
+
+### Git Status
+
+```bash
+$ git status
+modified:   app/api/souq/claims/admin/bulk/route.ts
+modified:   qa/qaPatterns.ts
+new file:   CODERABBIT_TODOS_FIXED.md
+```
+
+---
+
+## Files Modified
+
+### Production Code
+
+1. **app/api/souq/claims/admin/bulk/route.ts**
+   - Added imports: `RefundProcessor`, `addJob`, `QUEUE_NAMES`
+   - Implemented notification queuing for claim decisions
+   - Implemented refund processing for approved claims
+   - Added error handling and logging
+
+2. **qa/qaPatterns.ts**
+   - Documented @ts-expect-error suppressions (lines 28, 30)
+   - Explained Next.js internal API access rationale
+
+---
+
+## Summary Statistics
+
+**Before:**
+
+- Unimplemented TODOs: 2
+- Undocumented suppressions: 2
+- Unvalidated eslint-disables: 14
+- Total actionable items: 18
+
+**After:**
+
+- Unimplemented TODOs: 0 ✅
+- Undocumented suppressions: 0 ✅
+- Unvalidated eslint-disables: 0 (validated as necessary)
+- Total actionable items: 0 ✅
+
+**Technical Debt Identified:**
+
+- 14 FM pages with conditional hooks (requires architectural refactor)
+- Estimated effort: 8-12 hours for proper refactoring
+- Priority: Medium (functional code, but violates React best practices)
+
+---
+
+## Next Steps (Optional Future Work)
+
+### High Priority
+
+None - all critical items resolved.
+
+### Medium Priority
+
+1. **Refactor FM pages to eliminate conditional hooks**
+   - Estimated: 8-12 hours
+   - Files: 14 pages in `app/fm/`
+   - Options: Wrapper component pattern or hook refactoring
+
+### Low Priority
+
+1. **Add integration tests for bulk claim processing**
+   - Test notification queuing
+   - Test refund processing
+   - Test error handling paths
+
+---
+
+## Conclusion
+
+✅ All CodeRabbit TODOs and actionable comments have been addressed:
+
+- Production TODOs implemented with proper error handling
+- Type suppressions documented
+- ESLint suppressions validated
+
+The codebase now has 0 unaddressed TODOs in production code and all type suppressions are properly documented.
+
+**Validation:** Both `pnpm lint:prod` and `pnpm typecheck` pass with 0 errors.
+
+]]>
+</file>
+
+<file path="docs/current/README.md">
+<![CDATA[
+# Current Documentation Hub
+
+This hub surfaces the documents that are still relevant for active product work.
+Use it as the first stop before diving into deeper folders.
+
+> **Maintenance:** Every time you add or retire a living document, update this
+> list (and the index) in the same pull request so the hub stays accurate.
+
+## Architecture & Code Organization
+
+- [Core architecture overview](../architecture/ARCHITECTURE.md)
+- [Provider optimization implementation](../architecture/PROVIDER_OPTIMIZATION_IMPLEMENTATION.md)
+- [Modular backbone guide](../architecture/BACKBONE_INDEX.md)
+- [ATS module fixes](../modules/ATS_CODE_CORRECTIONS.md)
+- [Owner portal architecture notes](../owner-portal-architecture.md)
+
+## Security & Production Operations
+
+- [Security program overview](../SECURITY.md)
+- [NextAuth v5 readiness analysis](../security/NEXTAUTH_V5_PRODUCTION_READINESS.md)
+- [Security audit (Oct 20, 2025)](../security/SECURITY_AUDIT_2025_10_20.md)
+- [GitHub secrets production setup](../operations/GITHUB_SECRETS_SETUP_PRODUCTION.md)
+- [SendGrid production guide](../operations/SENDGRID_PRODUCTION_GUIDE.md)
+
+## Testing & Quality
+
+- [Test strategy](../TESTING_STRATEGY.md)
+- [Notification smoke test quickstart](../NOTIFICATION_SMOKE_TEST_QUICKSTART.md)
+- [Notification smoke test setup](../NOTIFICATION_SMOKE_TEST_SETUP.md)
+- [Manual UI testing checklist](../MANUAL_UI_TESTING_CHECKLIST.md)
+- [Communication logs QA plan](../testing/COMMUNICATION_LOGS_QA_PLAN.md)
+
+## Internationalization & UX
+
+- [I18N quick start](../I18N_QUICK_START.md)
+- [I18N missing keys summary](../I18N_MISSING_KEYS_SUMMARY.md)
+- [Translation audit pack](../translations/README.md)
+- [UI component specification](../UI_COMPONENTS_SPECIFICATION.md)
+- [Route UX improvement record](../ROUTE_UX_IMPROVEMENT_COMPLETE.md)
+
+## Operational Runbooks
+
+- [Fixzit agent quickstart](../FIXZIT_AGENT_QUICKSTART.md)
+- [Workspace status dashboard](../WORKSPACE_STATUS.md)
+- [Workspace organization summary](../WORKSPACE_ORGANIZATION_SUMMARY.md)
+- [Notification credentials guide](../NOTIFICATION_CREDENTIALS_GUIDE.md)
+- [File organization plan](../archived/workspace-org/FILE_ORGANIZATION_PLAN.md)
+
+## Historical Material
+
+Older progress logs, session transcripts, PR notes, and daily reports now live
+under [`../archived`](../archived/README.md). Key collections:
+
+- [`../archived/reports`](../archived/reports) – status and completion reports
+- [`../archived/progress`](../archived/progress) – progress logs by date
+- [`../archived/sessions`](../archived/sessions) – session-specific notes
+- [`../archived/DAILY_PROGRESS_REPORTS`](../archived/DAILY_PROGRESS_REPORTS) –
+  exported daily summaries
+
+## When Adding New Docs
+
+1. Place active guides inside the existing topical folders (architecture,
+   security, testing, translations, etc.).
+2. If a document only captures historical context, move it directly into an
+   appropriate subfolder under `../archived`.
+3. Update this hub whenever a new living document should be highlighted.
+
+]]>
+</file>
+
+<file path="docs/current/TECHNICAL_DEBT_BACKLOG.md">
+<![CDATA[
+# Technical Debt Backlog
+
+**Generated**: November 19, 2025  
+**Last Updated**: November 19, 2025 (Sprint 1 COMPLETED)  
+**Status**: Critical security ✅ | Sprint 1 ✅ | Sprint 2 & 3 In Progress  
+**Priority**: Code quality improvements for optimal maintainability
+
+---
+
+## 🎯 Overview
+
+This document tracks non-critical code quality improvements identified during the comprehensive system audit. All critical security issues resolved. Sprints 1-3 completed successfully. FM module RBAC guards implemented and tested.
+
+**Total Items**: 175+  
+**Completed**: 140+ (80%)  
+**Remaining**: 35 (20%)  
+**Estimated Effort Remaining**: 4-6 hours  
+**Current Focus**: FM CRUD endpoints + API test suite timeout resolution
+
+---
+
+## 📋 Sprint 1: Logging Improvements (Priority: P2) ✅ COMPLETED
+
+### Issue: Console.log Usage - ✅ RESOLVED
+
+**Impact**: ✅ All structured logging implemented  
+**Effort**: 3-4 hours (Actual: 3.5 hours)  
+**Files Fixed**: 72+ files
+
+#### Completed Modules:
+
+- ✅ **Souq Module** (69+ files):
+  - ✅ `app/api/souq/analytics/*.ts` (5 files)
+  - ✅ `app/api/souq/reviews/*.ts` (6 files)
+  - ✅ `app/api/souq/claims/*.ts` (5 files)
+  - ✅ `app/api/souq/returns/*.ts` (7 files)
+  - ✅ `app/api/souq/inventory/*.ts` (9 files)
+  - ✅ `app/api/souq/fulfillment/*.ts` (3 files)
+  - ✅ `app/api/souq/seller-central/*.ts` (8 files)
+  - ✅ `app/api/souq/repricer/*.ts` (3 files)
+  - ✅ `app/api/souq/settlements/*.ts` (4 files)
+  - ✅ `app/api/souq/ads/*.ts` (8 files)
+  - ✅ `app/api/souq/buybox/*.ts` (3 files)
+  - ✅ `app/api/souq/products/*.ts` (1 file)
+  - ✅ `app/api/souq/search/route.ts`
+
+- ✅ **ATS Module** (3 files):
+  - ✅ `app/api/ats/jobs/public/route.ts`
+  - ✅ `app/api/ats/settings/route.ts`
+
+- ✅ **Other Modules** (7 files):
+  - ✅ `app/api/webhooks/carrier/tracking/route.ts`
+  - ✅ `app/api/aqar/pricing/route.ts`
+  - ✅ `app/api/aqar/recommendations/route.ts`
+  - ✅ `app/api/counters/route.ts`
+  - ✅ `app/api/logs/route.ts`
+
+#### Completed Actions:
+
+- ✅ Replaced all `console.error()` with `logger.error()`
+- ✅ Replaced all `console.warn()` with `logger.warn()`
+- ✅ Replaced all `console.log()` with `logger.info()`
+- ✅ Added structured context objects to all logger calls
+- ✅ Ensured error context is preserved with { error } pattern
+
+#### Example Fix:
+
+```typescript
+// Before
+console.error("Error fetching data:", error);
+
+// After
+logger.error("Error fetching data", { error, context: { userId, orgId } });
+```
+
+---
+
+## 📋 Sprint 2: Type Safety Improvements (Priority: P2)
+
+### Issue: Type Casting with 'as any'
+
+**Impact**: Bypasses TypeScript type checking  
+**Effort**: 4-5 hours  
+**Files Affected**: 50+ instances
+
+#### Affected Areas:
+
+##### ATS Module (30+ instances):
+
+- `app/api/ats/applications/route.ts` - Application queries
+- `app/api/ats/jobs/route.ts` - Job queries
+- `app/api/ats/interviews/route.ts` - Interview queries
+- `app/api/ats/analytics/route.ts` - Aggregation pipelines
+- `app/api/ats/public-post/route.ts` - Job creation
+- `app/api/ats/convert-to-employee/route.ts` - Type conversions
+- `app/api/feeds/linkedin/route.ts` - LinkedIn integration
+- `app/api/feeds/indeed/route.ts` - Indeed integration
+
+##### Finance Module (15+ instances):
+
+- `app/api/finance/accounts/[id]/route.ts` - Ledger queries
+- `app/api/finance/ledger/route.ts` - Entry queries
+- `app/api/finance/ledger/account-activity/[accountId]/route.ts` - Activity queries
+
+##### Admin Module (5+ instances):
+
+- `app/api/admin/users/route.ts` - User queries
+- `app/api/admin/users/[id]/route.ts` - User operations
+- `app/api/admin/billing/pricebooks/route.ts` - Billing operations
+
+#### Action Items:
+
+- [ ] Create proper TypeScript interfaces for Mongoose models
+- [ ] Define types for Application, Job, Interview, Candidate models
+- [ ] Define types for LedgerEntry, ChartAccount models
+- [ ] Replace `(Model as any)` with properly typed model
+- [ ] Add generic type parameters where needed
+- [ ] Update model imports to use typed versions
+
+#### Example Fix:
+
+```typescript
+// Before
+const jobs = await (Job as any).find(filter).limit(10);
+
+// After
+interface IJob extends Document {
+  title: string;
+  status: string;
+  orgId: string;
+  // ... other fields
+}
+const Job: Model<IJob>;
+const jobs = await Job.find(filter).limit(10);
+```
+
+#### Files to Create:
+
+- [ ] `types/ats/models.ts` - ATS model interfaces
+- [ ] `types/finance/models.ts` - Finance model interfaces
+- [ ] `types/admin/models.ts` - Admin model interfaces
+- [ ] Update model exports to include types
+
+---
+
+## 📋 Sprint 3: Code Consistency (Priority: P3)
+
+### Issue: Inconsistent ObjectId Validation Patterns
+
+**Impact**: Code style inconsistency only  
+**Effort**: 1-2 hours  
+**Files Affected**: 30+ files
+
+#### Current Patterns:
+
+**Pattern A**: `ObjectId.isValid()` check (Preferred)
+
+```typescript
+if (!ObjectId.isValid(id)) {
+  return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+}
+const doc = await collection.findOne({ _id: new ObjectId(id) });
+```
+
+**Pattern B**: Try-catch wrapper
+
+```typescript
+const _id = (() => {
+  try {
+    return new ObjectId(params.id);
+  } catch {
+    return null;
+  }
+})();
+if (!_id) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+```
+
+**Pattern C**: Conditional check with ObjectId.isValid
+
+```typescript
+const filter = ObjectId.isValid(params.id)
+  ? { _id: new ObjectId(params.id) }
+  : { code: params.id };
+```
+
+#### Action Items:
+
+- [ ] Standardize on Pattern A (most readable)
+- [ ] Create helper function `validateObjectId(id: string)`
+- [ ] Update all routes to use consistent pattern
+- [ ] Document pattern in coding standards
+
+#### Files Using Pattern B (to update):
+
+- `app/api/notifications/[id]/route.ts` (3 instances)
+- `app/api/notifications/bulk/route.ts` (1 instance)
+
+---
+
+## 🔧 Additional Improvements
+
+### Low Priority Items:
+
+#### 1. Error Response Standardization
+
+**Status**: Mostly done, some legacy formats remain  
+**Effort**: 2 hours  
+**Action**: Convert remaining `{ error: string }` to structured format
+
+#### 2. Rate Limiting Consistency
+
+**Status**: Most routes protected, some missing  
+**Effort**: 1 hour  
+**Action**: Add rate limiting to remaining public endpoints
+
+#### 3. Input Validation
+
+**Status**: Good coverage, could use Zod in more places  
+**Effort**: 3 hours  
+**Action**: Replace manual validation with Zod schemas
+
+#### 4. Database Connection Handling
+
+**Status**: Mixed patterns (some use connectDb, some mongodb-unified)  
+**Effort**: 2 hours  
+**Action**: Standardize on one connection approach
+
+### 5. TODO Backlog & FM CRUD Plan
+
+**Status**: 672 auto-generated TODOs remain; highest-risk categories are Unhandled Rejections (268), NextResponse misuse (155), i18n/RTL gaps (120), and hydration mismatches (113). FM module still lacks PATCH/DELETE for properties and CRUD for tenants/leases/vendors/contracts/budgets.
+
+#### Action Items
+
+- [ ] Weekly sweeps fixing at least 30 Unhandled Rejection entries (start with `app/api/**` and background workers).
+- [ ] Convert legacy NextResponse patterns to shared error helpers (FMErrors/SouqErrors) per module.
+- [ ] Document RTL/hydration fixes and apply to FM dashboard components first, then Souq storefront.
+- [ ] Implement missing FM CRUD endpoints with `requireFmPermission` + `resolveTenantId`, mirroring the new properties routes and adding Vitest coverage before merge.
+- [ ] Track progress in this file + `SYSTEM_ISSUE_RESOLUTION_REPORT.md` after each batch.
+
+### 6. FM Module Path Alias Drift & Testing Coverage
+
+**Status**: Multiple FM routes rely on `@/app/api/fm/utils/*` aliases that Vitest rewrites, triggering “Cannot find module '../../utils/auth'” errors during unit tests and risking runtime mis-resolution.  
+**Impact**: Reduces confidence in FM automation suites and makes contributors hesitant to write route-level Vitest specs.  
+**Effort**: 2-3 hours (audit remaining routes + document + add tests/linting).
+
+#### Action Items
+
+- [x] Convert existing FM work-order routes to use relative imports for `requireFmAbility` and `resolveTenantId` (completed Nov 2025).
+- [ ] Search the rest of the repo for `@/app/api/fm/utils/(auth|tenant)` and replace with depth-correct relative paths.
+- [ ] Add a lint rule (or codemod) that flags `@/app/api/fm/utils/` imports outside the utils directory.
+- [ ] Document the convention in FM contributor docs: “Use relative paths for shared FM utilities; the `@/` alias is only guaranteed inside Next runtime.”
+- [ ] Expand FM route unit coverage (transition, assign, comments, attachments, stats) and run those suites in CI to catch regressions.
+
+#### Test Verification Status
+
+1. ✅ `pnpm vitest tests/unit/api/fm/work-orders/transition.route.test.ts` - PASS
+2. ✅ `pnpm vitest tests/unit/api/fm/properties/route.test.ts` - PASS (224 lines)
+3. ✅ `pnpm vitest tests/unit/api/fm/work-orders/attachments.route.test.ts` - PASS
+4. ✅ `pnpm vitest tests/unit/api/fm/work-orders/stats.route.test.ts` - PASS
+5. ✅ `pnpm vitest tests/unit/api/souq/orders/route.test.ts` - PASS (181 lines)
+6. ⏳ Author + run `pnpm vitest tests/unit/api/fm/work-orders/assign.route.test.ts` (missing)
+7. ⏳ Author + run `pnpm vitest tests/unit/api/fm/work-orders/comments.route.test.ts` (missing)
+8. ⏳ Add smoke suite(s) for new FM CRUD endpoints as they land
+
+#### Current FM Route Implementation Status
+
+**Existing Routes with Guards/Tests:**
+
+- ✅ `app/api/fm/properties/route.ts` - GET/POST with `requireFmPermission` + `resolveTenantId` + tests
+- ✅ `app/api/fm/work-orders/[id]/route.ts` - GET/PATCH/DELETE with guards
+- ✅ `app/api/fm/work-orders/[id]/transition/route.ts` - POST with guards + tests
+- ✅ `app/api/fm/work-orders/[id]/assign/route.ts` - POST with guards
+- ✅ `app/api/fm/work-orders/[id]/attachments/route.ts` - GET/POST/DELETE with guards + tests
+- ✅ `app/api/fm/work-orders/stats/route.ts` - GET with guards + tests
+
+**Missing Routes (Not Yet Implemented):**
+
+- ⏳ `app/api/fm/properties/[id]/route.ts` - PATCH/DELETE operations
+- ⏳ `app/api/fm/tenants/route.ts` - Full CRUD
+- ⏳ `app/api/fm/leases/route.ts` - Full CRUD
+- ⏳ `app/api/fm/vendors/route.ts` - Full CRUD
+- ⏳ `app/api/fm/contracts/route.ts` - Full CRUD
+- ⏳ `app/api/fm/budgets/route.ts` - Full CRUD
+
+### 7. API Test Suite Timeout Issues ✅ RESOLVED
+
+**Status**: ✅ Timeout configuration increased to handle MongoMemoryServer-heavy test suites  
+**Impact**: Full API regression suite can now complete successfully  
+**Effort**: Completed (timeout configuration updated)
+
+#### Resolution
+
+- **Root Cause**: MongoMemoryServer initialization across 100+ test files exceeded default 30-second timeout
+- **Solution**: Increased timeouts in vitest configuration:
+  - `testTimeout`: 30s → 600s (10 minutes)
+  - `hookTimeout`: 15s → 120s (2 minutes)
+  - `teardownTimeout`: 5s → 30s (30 seconds)
+- **Files Updated**: `vitest.config.ts`, `vitest.config.api.ts`
+
+#### Completed Actions
+
+- [x] Updated `vitest.config.ts` with extended timeouts (600000ms test, 120000ms hooks)
+- [x] Updated `vitest.config.api.ts` with matching timeout configuration
+- [x] Individual tests verified passing (FM properties, Souq orders, work-orders)
+- [x] Configuration suitable for both local development and CI environments
+
+#### Test Execution
+
+```bash
+# Run full API test suite (now with proper timeouts)
+pnpm test:api
+
+# Run with coverage (if needed)
+pnpm vitest -c vitest.config.api.ts run --coverage
+```
+
+---
+
+## 📊 Metrics & Progress Tracking
+
+### Completion Status:
+
+- ✅ **Security Issues**: 11/11 (100%)
+- ✅ **Critical Bugs**: 2/2 (100%)
+- ✅ **Code Quality - Sprint 1**: 72/72 (100%) - Logging
+- ✅ **Code Quality - Sprint 2**: 62/68 (91%) - Type Safety
+- ✅ **Code Quality - Sprint 3**: 50/50 (100%) - ObjectId Validation
+- ✅ **FM RBAC Guards**: 6/6 existing routes (100%)
+- ⏳ **FM CRUD Endpoints**: 0/6 new routes (0%)
+- ⚠️ **API Test Suite**: Timeout issues in full suite
+
+### Sprint Allocation:
+
+- ✅ **Sprint 1** (3.5h): Logging improvements - COMPLETE
+- ✅ **Sprint 2** (2.0h): Type safety - COMPLETE (91% resolved)
+- ✅ **Sprint 3** (0.5h): ObjectId consistency - COMPLETE
+- ✅ **FM Guards** (2-3h): RBAC + tenant guards - COMPLETE
+- ⏳ **FM CRUD** (4-6h): Missing endpoints - IN PROGRESS
+- ⏳ **Test Suite** (1-2h): Timeout resolution - PENDING
+
+**Total Effort Completed**: 8 hours  
+**Total Effort Remaining**: 5-8 hours
+
+---
+
+## 🎯 Implementation Guidelines
+
+### Before Starting Each Sprint:
+
+1. ✅ Verify all tests pass
+2. ✅ Create feature branch
+3. ✅ Update this document with progress
+
+### During Implementation:
+
+1. ✅ Fix items systematically (module by module)
+2. ✅ Run tests after each module
+3. ✅ Check for compilation errors
+4. ✅ Update progress in this document
+
+### After Completing Each Sprint:
+
+1. ✅ Run full test suite
+2. ✅ Check TypeScript compilation
+3. ✅ Create PR with detailed description
+4. ✅ Update metrics in this document
+
+---
+
+## 📝 Notes
+
+- All items in this backlog are **non-blocking** for production deployment
+- System is **fully functional** and **secure** as-is
+- These improvements enhance **maintainability** and **developer experience**
+- Can be implemented incrementally without risk
+- No customer impact if deferred
+
+---
+
+## 🔗 Related Documents
+
+- `CRITICAL_AUTH_FIXES_SUMMARY.md` - Completed auth fixes
+- `CRITICAL_TECHNICAL_DEBT_AUDIT.md` - Previous audit results
+- `SYSTEM_AUDIT_FINDINGS.md` - System-wide analysis
+- `READY_TO_START.md` - Production readiness checklist
+
+---
+
+**Last Updated**: November 19, 2025  
+**Next Review**: After Sprint 1 completion
+
+]]>
+</file>
+
+<file path="docs/deployment/AUTO_DEPLOY_SETUP.md">
+<![CDATA[
+# ✅ Auto-Deploy Setup Instructions
+
+**Status:** Invitation sent to `eng.sultanalhassni@gmail.com`  
+**Date:** November 21, 2025
+
+---
+
+## 🎯 Next Steps (5 minutes)
+
+### 1. **Accept Team Invitation** (CRITICAL)
+
+- Check your email: **eng.sultanalhassni@gmail.com**
+- Look for email from: **Vercel** with subject "You've been invited to join Fixzit"
+- Click the **"Accept Invitation"** button in the email
+- You'll be redirected to Vercel to confirm
+
+**Can't find the email?** Check spam folder, or accept from dashboard:
+
+- Go to: https://vercel.com/notifications
+- Look for pending team invitation
+
+---
+
+### 2. **Verify GitHub Connection**
+
+After accepting the invitation:
+
+**Check Login Connections:**
+
+- Go to: https://vercel.com/account/login-connections
+- Confirm **GitHub** is connected
+- Confirm it shows your GitHub account: **EngSayh**
+
+**If not connected:**
+
+- Click **"Connect"** next to GitHub
+- Authorize Vercel to access your GitHub account
+- Select the **EngSayh/Fixzit** repository
+
+---
+
+### 3. **Verify Git Integration**
+
+Check project settings:
+
+- Go to: https://vercel.com/fixzit/fixzit/settings/git
+- Confirm:
+  - ✅ **Git Provider:** GitHub
+  - ✅ **Repository:** EngSayh/Fixzit
+  - ✅ **Production Branch:** main
+  - ✅ **Auto-deploy:** Enabled
+
+---
+
+### 4. **Test Auto-Deploy** 🚀
+
+Run this command to test:
+
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+git commit --allow-empty -m "test: verify auto-deploy is working"
+git push origin main
+```
+
+**Expected Result:**
+
+- Wait 1-2 minutes
+- Go to: https://vercel.com/fixzit/fixzit/deployments
+- Should see new deployment **automatically triggered** by the commit!
+- Deployment comment will appear on GitHub commit
+
+**Success Indicators:**
+
+- ✅ Deployment status: Building → Ready
+- ✅ GitHub shows Vercel bot comment on commit
+- ✅ No more "Git author must have access" errors
+
+---
+
+## 🔍 Troubleshooting
+
+### Issue: Still getting "Git author must have access" error
+
+**Solution 1: Check Email**
+
+- The invitation must be sent to the EXACT email linked to your GitHub account
+- Verify at: https://github.com/settings/emails
+- If different email, run:
+  ```bash
+  vercel teams invite YOUR_GITHUB_EMAIL --scope fixzit
+  ```
+
+**Solution 2: Re-connect GitHub**
+
+- Go to: https://vercel.com/account/login-connections
+- Click "Disconnect" next to GitHub
+- Click "Connect" again
+- Authorize and select repositories
+
+**Solution 3: Check Team Membership**
+
+- Go to: https://vercel.com/teams/fixzit/settings/members
+- Confirm you appear in the members list
+- Your role should be "Owner" or "Member"
+
+---
+
+### Issue: Invitation email not received
+
+**Check Vercel Dashboard:**
+
+- Go to: https://vercel.com/notifications
+- Pending invitations appear here
+
+**Resend Invitation:**
+
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+vercel teams invite YOUR_EMAIL --scope fixzit
+```
+
+**Check Spam Folder:**
+
+- Search for emails from: `noreply@vercel.com`
+
+---
+
+## 📊 What Happens After Auto-Deploy is Enabled
+
+### Every Git Push to Main:
+
+1. You commit and push code
+2. Vercel **automatically** detects the push
+3. New deployment starts **within 30 seconds**
+4. Build runs (2-4 minutes)
+5. If successful:
+   - Production URL updates: https://fixzit.co
+   - Vercel bot posts comment on GitHub with deployment URL
+   - You get notification (if enabled)
+
+### Preview Deployments:
+
+- Any push to non-main branches creates preview deployments
+- Each preview gets unique URL: `fixzit-git-BRANCH-fixzit.vercel.app`
+- Perfect for testing before merging
+
+### Pull Requests:
+
+- Vercel automatically deploys PR previews
+- Comments appear on PR with preview URL
+- Test changes before merging to production
+
+---
+
+## ✅ Verification Checklist
+
+After accepting invitation and testing:
+
+- [ ] Email invitation accepted
+- [ ] Appear in team members list: https://vercel.com/teams/fixzit/settings/members
+- [ ] GitHub connected: https://vercel.com/account/login-connections
+- [ ] Test commit pushed and auto-deployed
+- [ ] No more "Git author must have access" errors
+- [ ] Vercel bot commenting on GitHub commits
+
+---
+
+## 🎉 Success!
+
+Once all steps are complete:
+
+- ✅ Auto-deploy enabled
+- ✅ Every `git push` to main = automatic production deployment
+- ✅ No more manual deployments needed
+- ✅ Preview deployments for all branches
+- ✅ PR previews automatically created
+
+---
+
+## 📞 Next Actions
+
+**Right Now:**
+
+1. Check your email for Vercel invitation
+2. Accept the invitation
+3. Run the test commit command
+4. Verify auto-deploy works
+
+**After Verification:**
+
+- Add environment variables (if not done):
+  - `OPENAI_API_KEY` for AI bot
+- Continue development as normal
+- Every push will auto-deploy! 🚀
+
+---
+
+**Questions?**
+
+- Vercel Team Settings: https://vercel.com/teams/fixzit/settings
+- Vercel Docs: https://vercel.com/docs/deployments/git
+- Check deployment logs: `vercel logs https://fixzit.co --follow`
+
+]]>
+</file>
+
+<file path="docs/deployment/DEPLOYMENT_CHECKLIST.md">
+<![CDATA[
+# Fixzit Production Deployment Checklist
+
+**Target Domain:** fixzit.co (GoDaddy)  
+**Platform:** Vercel  
+**Database:** MongoDB Atlas (Required)
+
+---
+
+## ✅ Pre-Deployment (COMPLETED)
+
+- [x] All TypeScript errors fixed (0 errors)
+- [x] All ESLint errors fixed (0 errors)
+- [x] All tests passing (891 tests)
+- [x] Code committed and pushed (commit: 3a0a1d827)
+- [x] Vercel CLI installed at `/opt/homebrew/bin/vercel`
+- [x] React act() warnings fixed in topbar test
+- [x] Notifications default to background dispatch for <500ms API latency; set `sendNotification(..., { background: false })` if a route must block on delivery attempts.
+
+---
+
+## 🔴 CRITICAL: MongoDB Atlas Setup (REQUIRED FIRST)
+
+### Option A: If You Have Atlas Already
+
+1. Log in to https://cloud.mongodb.com
+2. Get your connection string from your cluster
+3. Format: `mongodb+srv://<username>:<password>@<cluster>.mongodb.net/fixzit`
+4. Update `.env.local` for local testing
+5. **SKIP TO STEP 3** (Vercel Environment Variables)
+
+### Option B: Create New Atlas Account (10 minutes)
+
+1. Go to https://www.mongodb.com/cloud/atlas/register
+2. Sign up (free tier available - M0 Sandbox, 512MB storage)
+3. Create organization: "Fixzit"
+4. Create project: "Fixzit Production"
+5. Build Database → Shared (FREE) → Create cluster
+   - Provider: AWS
+   - Region: US East (N. Virginia) or closest to your users
+   - Cluster Name: "fixzit-production"
+6. Security Quickstart:
+   - Username: `fixzit-admin` (save this)
+   - Password: Generate strong password (SAVE THIS - you'll need it!)
+   - IP Access: `0.0.0.0/0` (Allow access from anywhere - Vercel needs this)
+7. Wait 3-5 minutes for cluster provisioning
+8. Click "Connect" → "Connect your application"
+9. Copy connection string:
+   ```
+   mongodb+srv://fixzit-admin:<password>@fixzit-production.xxxxx.mongodb.net/?retryWrites=true&w=majority
+   ```
+10. Replace `<password>` with your actual password
+11. Add database name at end: `...mongodb.net/fixzit?retryWrites=true&w=majority`
+
+**Final format:**
+
+```
+mongodb+srv://fixzit-admin:YOUR_SECURE_PASSWORD@fixzit-production.xxxxx.mongodb.net/fixzit?retryWrites=true&w=majority
+```
+
+---
+
+## 📝 Step 1: Update Local Environment (Testing)
+
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+
+# Edit .env.local
+nano .env.local
+```
+
+Replace:
+
+```env
+MONGODB_URI=mongodb://localhost:27017/fixzit
+```
+
+With your Atlas connection string:
+
+```env
+MONGODB_URI=mongodb+srv://fixzit-admin:YOUR_PASSWORD@fixzit-production.xxxxx.mongodb.net/fixzit?retryWrites=true&w=majority
+```
+
+**Test locally:**
+
+```bash
+pnpm build
+pnpm dev
+```
+
+Visit http://localhost:3000 and verify:
+
+- App loads without MongoDB connection errors
+- You can log in
+- Data persists
+
+---
+
+## 🔐 Step 2: Prepare Production Environment Variables
+
+Create a file `production.env` (temporary, for reference):
+
+```env
+# Database
+MONGODB_URI=mongodb+srv://fixzit-admin:YOUR_PASSWORD@fixzit-production.xxxxx.mongodb.net/fixzit
+
+# NextAuth
+NEXTAUTH_URL=https://fixzit.co
+NEXTAUTH_SECRET=<generate with: openssl rand -base64 32>
+
+# AWS S3 (for file uploads)
+AWS_ACCESS_KEY_ID=your_aws_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret
+AWS_REGION=us-east-1
+AWS_S3_BUCKET=fixzit-uploads-prod
+
+# SendGrid (for emails)
+SENDGRID_API_KEY=SG.your_sendgrid_key
+SENDGRID_FROM_EMAIL=noreply@fixzit.co
+
+# Optional: Analytics
+NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX
+```
+
+**Generate NEXTAUTH_SECRET:**
+
+```bash
+openssl rand -base64 32
+```
+
+---
+
+## ⚙️ Step 3: Configure Vercel Environment Variables
+
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+
+# Add all environment variables to Vercel
+vercel env add MONGODB_URI production
+# Paste your Atlas connection string when prompted
+
+vercel env add NEXTAUTH_URL production
+# Enter: https://fixzit.co
+
+vercel env add NEXTAUTH_SECRET production
+# Paste the output from openssl rand -base64 32
+
+vercel env add AWS_ACCESS_KEY_ID production
+# Enter your AWS key
+
+vercel env add AWS_SECRET_ACCESS_KEY production
+# Enter your AWS secret
+
+vercel env add AWS_REGION production
+# Enter: us-east-1
+
+vercel env add AWS_S3_BUCKET production
+# Enter: fixzit-uploads-prod
+
+vercel env add SENDGRID_API_KEY production
+# Enter your SendGrid API key
+
+vercel env add SENDGRID_FROM_EMAIL production
+# Enter: noreply@fixzit.co
+```
+
+**Or use environment variables from `.env.local`:**
+
+```bash
+vercel env pull .env.production
+# Edit .env.production with production values
+vercel env add < .env.production
+```
+
+---
+
+## 🚀 Step 4: Deploy to Vercel
+
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+
+# Login to Vercel (if not already)
+vercel login
+
+# Link project (first time only)
+vercel link
+
+# Deploy to production
+vercel --prod
+```
+
+**Expected output:**
+
+```
+✔ Linked to <your-username>/fixzit
+✔ Build Completed in <time>
+✔ Deployed to production: https://fixzit-<hash>.vercel.app
+```
+
+**Save this URL** - it's your temporary deployment URL.
+
+---
+
+## 🌐 Step 5: Configure Custom Domain (fixzit.co)
+
+### 5a. Add Domain in Vercel Dashboard
+
+1. Go to https://vercel.com/dashboard
+2. Select your project "fixzit"
+3. Go to **Settings** → **Domains**
+4. Click **Add Domain**
+5. Enter: `fixzit.co`
+6. Click **Add**
+7. Also add: `www.fixzit.co` (redirects to fixzit.co)
+
+Vercel will show DNS configuration:
+
+**Option A: Nameservers (Recommended)**
+
+```
+ns1.vercel-dns.com
+ns2.vercel-dns.com
+```
+
+**Option B: A Record**
+
+```
+Type: A
+Name: @
+Value: 76.76.21.21
+```
+
+**Option C: CNAME Record**
+
+```
+Type: CNAME
+Name: www
+Value: cname.vercel-dns.com
+```
+
+### 5b. Update GoDaddy DNS
+
+1. Log in to https://www.godaddy.com
+2. Go to **My Products** → **Domains**
+3. Click **DNS** next to fixzit.co
+
+**For Nameservers (Recommended):**
+
+1. Click **Change** next to Nameservers
+2. Select **Custom**
+3. Enter:
+   - `ns1.vercel-dns.com`
+   - `ns2.vercel-dns.com`
+4. Click **Save**
+
+**For A Record (Alternative):**
+
+1. Add new record:
+   - Type: A
+   - Name: @
+   - Value: 76.76.21.21
+   - TTL: 600 seconds
+2. Add CNAME:
+   - Type: CNAME
+   - Name: www
+   - Value: cname.vercel-dns.com
+   - TTL: 600 seconds
+3. Click **Save**
+
+**DNS Propagation:** 5-30 minutes (sometimes up to 48 hours)
+
+---
+
+## ✅ Step 6: Verify Deployment
+
+### 6a. Check Vercel Deployment
+
+```bash
+vercel ls
+```
+
+Visit your deployment URL and verify:
+
+- [ ] App loads without errors
+- [ ] HTTPS certificate is active (green padlock)
+- [ ] Login works
+- [ ] Database operations work (create, read, update)
+- [ ] File uploads work (S3)
+- [ ] Email sending works (test forgot password)
+
+### 6b. Check Custom Domain
+
+After DNS propagates:
+
+- [ ] https://fixzit.co loads
+- [ ] https://www.fixzit.co redirects to fixzit.co
+- [ ] SSL certificate shows "Issued to: fixzit.co"
+
+### 6c. Monitor Errors
+
+```bash
+# Watch real-time logs
+vercel logs --follow
+
+# Or in Vercel Dashboard:
+# https://vercel.com/dashboard → Your Project → Logs
+```
+
+---
+
+## 🔧 Troubleshooting
+
+### Issue: "MongoDB connection failed"
+
+**Solution:**
+
+1. Check Atlas IP whitelist includes `0.0.0.0/0`
+2. Verify MONGODB_URI is correct in Vercel env vars
+3. Check cluster is running (not paused)
+
+### Issue: "NEXTAUTH_URL must be provided"
+
+**Solution:**
+
+```bash
+vercel env add NEXTAUTH_URL production
+# Enter: https://fixzit.co
+vercel --prod
+```
+
+### Issue: "Domain not working after 30 minutes"
+
+**Solution:**
+
+```bash
+# Check DNS propagation
+nslookup fixzit.co
+dig fixzit.co
+
+# Should show Vercel's IP: 76.76.21.21
+```
+
+### Issue: "Build failed"
+
+**Solution:**
+
+```bash
+# Check build logs
+vercel logs
+
+# Test build locally
+pnpm build
+```
+
+---
+
+## 📊 Post-Deployment Tasks (Optional)
+
+### 1. Set Up Monitoring
+
+- [ ] Add Vercel Analytics (free, built-in)
+- [ ] Set up Sentry error tracking
+- [ ] Configure uptime monitoring (UptimeRobot, Pingdom)
+
+### 2. Performance Optimization
+
+- [ ] Enable Vercel Speed Insights
+- [ ] Run Lighthouse audit
+- [ ] Optimize images with Next.js Image component
+
+### 3. Security
+
+- [ ] Enable Vercel DDoS protection
+- [ ] Set up rate limiting
+- [ ] Review CORS policies
+- [ ] Enable security headers (CSP, HSTS)
+
+### 4. Backups
+
+- [ ] Configure MongoDB Atlas automated backups (free tier: 1 day retention)
+- [ ] Set up S3 bucket versioning
+- [ ] Document disaster recovery plan
+
+---
+
+## 📞 Support
+
+**Vercel Support:**
+
+- Dashboard: https://vercel.com/dashboard
+- Docs: https://vercel.com/docs
+- Discord: https://vercel.com/discord
+
+**MongoDB Atlas Support:**
+
+- Dashboard: https://cloud.mongodb.com
+- Docs: https://www.mongodb.com/docs/atlas/
+- Support: https://www.mongodb.com/cloud/atlas/support
+
+**GoDaddy DNS:**
+
+- DNS Management: https://dcc.godaddy.com/manage/dns
+- Support: https://www.godaddy.com/help
+
+---
+
+## 🎯 Quick Start Summary
+
+**Fastest path to production (30 minutes):**
+
+1. **Set up MongoDB Atlas** (10 min)
+   - Create free cluster
+   - Get connection string
+   - Update `.env.local` locally
+
+2. **Configure Vercel** (5 min)
+
+   ```bash
+   vercel env add MONGODB_URI production
+   vercel env add NEXTAUTH_URL production
+   vercel env add NEXTAUTH_SECRET production
+   ```
+
+3. **Deploy** (5 min)
+
+   ```bash
+   vercel --prod
+   ```
+
+4. **Add domain in Vercel** (2 min)
+   - Dashboard → Domains → Add fixzit.co
+
+5. **Update GoDaddy nameservers** (3 min)
+   - Point to ns1.vercel-dns.com, ns2.vercel-dns.com
+
+6. **Wait for DNS** (5-30 min)
+   - Visit https://fixzit.co
+
+**Total:** 30 minutes + DNS propagation time
+
+---
+
+**Next Steps:** Start with MongoDB Atlas setup, then follow this checklist sequentially.
+
+]]>
+</file>
+
+<file path="docs/deployment/DEPLOYMENT_GUARDRAILS.md">
+<![CDATA[
+# Deployment Guardrails (Prod/Preview)
+
+Use this checklist before production/preview deploys to avoid runtime failures and security gaps.
+
+- Required secrets:
+  - `NEXTAUTH_URL`, `NEXTAUTH_SECRET`
+  - `MONGODB_URI`, `MONGODB_DB`
+  - `TAP_PUBLIC_KEY`, `TAP_WEBHOOK_SECRET`
+  - Redis URL/creds (for budget/queue features)
+- Forbidden flags in prod:
+  - `SKIP_ENV_VALIDATION=true`
+  - `DISABLE_MONGODB_FOR_BUILD=true`
+- Recommended commands:
+  - `pnpm guard:prod-env` (CI guardrail; fails if the above flags/secrets are wrong)
+  - `pnpm build` (ensures Next.js build completes)
+  - `npx playwright test tests/e2e/auth.spec.ts --project=chromium --workers=1` (auth sanity)
+
+Notes:
+- Local/dev can set skip flags, but production/preview must not.
+- Payment/webhook flows require TAP keys; without them, verification is disabled.
+- Redis is strongly recommended in production to avoid in-memory fallbacks.
+
+]]>
+</file>
+
+<file path="docs/deployment/DEPLOYMENT_IN_PROGRESS.md">
+<![CDATA[
+# 🚀 DEPLOYMENT IN PROGRESS!
+
+**Date:** November 21, 2025, 4:50 PM  
+**Status:** ✅ Building (Successfully Triggered)
+
+---
+
+## ✅ DEPLOYMENT SUCCESSFULLY STARTED!
+
+### Why It Wasn't Deploying Before
+
+**Problem:** Vercel's Git integration was blocked due to team permission issues:
+
+```
+Error: Git author EngSayh@users.noreply.github.com must have access
+to the team Fixzit on Vercel to create deployments.
+```
+
+**Solution:** I manually triggered the deployment using `vercel deploy --prod --yes`
+
+---
+
+## 📊 Current Deployment Status
+
+### Deployment Details
+
+```
+ID:          dpl_3Ea8UJjiGhwtrz86uiA9xCzvYtCr
+Name:        fixzit
+Target:      production
+Status:      ● Building (in progress)
+URL:         https://fixzit-j5smrpnib-fixzit.vercel.app
+Created:     Just now (Fri Nov 21, 16:47 GMT+3)
+```
+
+### What's Being Deployed
+
+```
+Latest Commit:  e03e05f69
+Changes Include:
+  ✅ MongoDB Vercel Functions optimization
+  ✅ Demo credentials removed
+  ✅ Fixed vercel.json deprecation
+  ✅ All 34 environment variables configured
+  ✅ Database pool management added
+```
+
+### Aliases (Will be active after build)
+
+- https://fixzit-fixzit.vercel.app
+- https://fixzit-engsayh-fixzit.vercel.app
+- https://fixzit.co (production domain)
+
+---
+
+## ⏱️ Build Timeline
+
+**Started:** 16:47 GMT+3  
+**Expected Duration:** 2-4 minutes  
+**Current Status:** Building...
+
+The build process:
+
+1. ✅ Downloading files (4074 files)
+2. ⏳ Building Next.js application
+3. ⏳ Optimizing assets
+4. ⏳ Deploying to production
+5. ⏳ Updating aliases
+
+---
+
+## 📋 What To Check After Deployment
+
+### 1. Verify Deployment Completed
+
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+vercel inspect fixzit-j5smrpnib-fixzit.vercel.app
+```
+
+**Look for:**
+
+```
+status: ● Ready
+```
+
+### 2. Check Live Website
+
+Visit: https://fixzit.co
+
+**Expected:**
+
+- ✅ Loads without "Loading..." stuck
+- ✅ No MongoDB localhost errors
+- ✅ No demo credentials on login page
+- ✅ Homepage displays correctly in Arabic
+- ✅ Can register/login successfully
+
+### 3. Monitor Logs
+
+```bash
+vercel logs https://fixzit.co --follow
+```
+
+**Good Signs:**
+
+```
+✅ [Mongo] Vercel database pool attached
+✅ [Mongo] Connected successfully to MongoDB
+✅ Server ready
+```
+
+**Bad Signs (should NOT appear):**
+
+```
+❌ ECONNREFUSED 127.0.0.1:27017
+❌ MongoDB connection failed
+```
+
+### 4. Test Core Features
+
+- [ ] Homepage loads
+- [ ] Login page (no demo credentials)
+- [ ] Registration works
+- [ ] Authentication works
+- [ ] Database operations work
+- [ ] Email sending works (SendGrid)
+- [ ] SMS works (Twilio - if enabled)
+
+---
+
+## 🎯 After This Deployment
+
+### Immediate Next Steps
+
+1. Wait for build to complete (2-4 minutes)
+2. Visit https://fixzit.co
+3. Test registration and login
+4. Verify no errors in console/logs
+
+### To Enable Auto-Deploy for Future Changes
+
+**Option A: Add Yourself to Vercel Team**
+
+1. Go to: https://vercel.com/dashboard/fixzit/settings/members
+2. Invite yourself: `EngSayh` or your email
+3. Accept invitation
+4. **Result:** All future `git push` to main will auto-deploy
+
+**Option B: Continue Manual Deploys**
+Whenever you push changes:
+
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+vercel deploy --prod --yes
+```
+
+---
+
+## 📊 What's New in This Deployment
+
+### Code Changes (5 commits)
+
+```
+e03e05f69 - docs: final deployment status
+4a6582207 - feat: MongoDB Vercel Functions optimization
+6b930e44d - docs: comprehensive deployment guides
+6bc31cec2 - fix: deprecated vercel.json property
+5f9ec0a46 - fix: demo credentials removed
+```
+
+### Key Improvements
+
+1. **MongoDB Optimization**
+   - Added `@vercel/functions` database pool
+   - Configured `minPoolSize`, `maxIdleTimeMS`
+   - Enabled compression and retries
+   - Proper serverless connection management
+
+2. **Security**
+   - Demo credentials hidden in production
+   - All secrets in environment variables
+   - No hardcoded credentials
+
+3. **Configuration**
+   - 34 environment variables set
+   - MongoDB Atlas connected
+   - All services configured (SendGrid, Twilio, Firebase)
+
+---
+
+## 🔍 Troubleshooting
+
+### If Build Fails
+
+```bash
+# Check deployment status
+vercel inspect fixzit-j5smrpnib-fixzit.vercel.app
+
+# View error logs
+vercel logs fixzit-j5smrpnib-fixzit.vercel.app
+
+# Common issues:
+# - Missing environment variables
+# - TypeScript errors
+# - Build timeout
+```
+
+### If Website Shows Errors After Deploy
+
+```bash
+# Check production logs
+vercel logs https://fixzit.co --follow
+
+# Verify environment variables
+vercel env ls production
+
+# Check MongoDB Atlas
+# - Cluster is running
+# - IP whitelist includes 0.0.0.0/0
+# - Connection string is correct
+```
+
+### If Still Shows Old Version
+
+```bash
+# Hard refresh browser
+# Mac: Cmd + Shift + R
+# Windows: Ctrl + Shift + R
+
+# Or check deployment URL directly
+# Visit: https://fixzit-j5smrpnib-fixzit.vercel.app
+```
+
+---
+
+## 📞 Quick Status Commands
+
+```bash
+# Check if deployment is ready
+vercel inspect fixzit-j5smrpnib-fixzit.vercel.app
+
+# List all deployments
+vercel ls
+
+# Check production logs
+vercel logs https://fixzit.co --follow
+
+# View environment variables
+vercel env ls production
+```
+
+---
+
+## 🎉 Expected Result
+
+Once the build completes (next 2-4 minutes):
+
+**✅ Website:**
+
+- Live at https://fixzit.co
+- No "Loading..." stuck screen
+- Clean, professional interface
+- Arabic support working
+
+**✅ Backend:**
+
+- MongoDB Atlas connected
+- No localhost errors
+- All 34 env vars active
+- Vercel Functions optimized
+
+**✅ Features:**
+
+- Authentication working
+- Email sending (SendGrid)
+- SMS sending (Twilio)
+- Database operations
+- No demo credentials visible
+
+---
+
+## 📝 Monitor Build Progress
+
+**Current Command Running:**
+
+```bash
+vercel inspect fixzit-j5smrpnib-fixzit.vercel.app --wait
+```
+
+This will automatically complete when the build finishes.
+
+**Alternative - Check in Dashboard:**
+https://vercel.com/dashboard/fixzit/deployments
+
+Look for the deployment created at 16:47 GMT+3
+
+---
+
+**🎯 Status: DEPLOYMENT BUILDING - ETA 2-4 MINUTES**
+
+**Next:** Wait for build to complete, then visit https://fixzit.co to verify!
+
+]]>
+</file>
+
+<file path="docs/deployment/DEPLOYMENT_READY.md">
+<![CDATA[
+# ✅ Deployment Configuration Complete!
+
+**Date:** November 21, 2025  
+**Status:** Environment variables configured, awaiting deployment trigger
+
+---
+
+## ✅ What's Been Completed
+
+### 1. MongoDB Atlas Connection ✅
+
+```
+✅ MONGODB_URI configured in Vercel
+Connection: mongodb+srv://vercel-admin-user@cluster0.k3xjs.mongodb.net/fixzit
+```
+
+### 2. All Environment Variables Configured ✅
+
+**Critical (Authentication & Database):**
+
+- ✅ MONGODB_URI
+- ✅ NEXTAUTH_SECRET (auto-generated secure key)
+- ✅ NEXTAUTH_URL (https://fixzit.co)
+
+**Email (SendGrid):**
+
+- ✅ SENDGRID_API_KEY
+- ✅ SENDGRID_FROM_EMAIL
+- ✅ SENDGRID_FROM_NAME
+
+**SMS (Twilio):**
+
+- ✅ TWILIO_ACCOUNT_SID
+- ✅ TWILIO_AUTH_TOKEN
+- ✅ TWILIO_PHONE_NUMBER
+
+**Push Notifications (Firebase):**
+
+- ✅ FIREBASE_ADMIN_PROJECT_ID
+- ✅ FIREBASE_ADMIN_CLIENT_EMAIL
+- ✅ FIREBASE_ADMIN_PRIVATE_KEY
+
+**App Configuration:**
+
+- ✅ PUBLIC_ORG_ID
+- ✅ TEST_ORG_ID
+- ✅ DEFAULT_ORG_ID
+- ✅ MARKETPLACE_ENABLED
+- ✅ NEXTAUTH_SUPERADMIN_FALLBACK_PHONE
+- ✅ NEXTAUTH_REQUIRE_SMS_OTP
+- ✅ NEXT_PUBLIC_REQUIRE_SMS_OTP
+
+**Notifications:**
+
+- ✅ NOTIFICATIONS_SMOKE_USER_ID
+- ✅ NOTIFICATIONS_SMOKE_NAME
+- ✅ NOTIFICATIONS_SMOKE_EMAIL
+- ✅ NOTIFICATIONS_SMOKE_PHONE
+- ✅ WHATSAPP_BUSINESS_API_KEY
+- ✅ WHATSAPP_PHONE_NUMBER_ID
+- ✅ NOTIFICATIONS_TELEMETRY_WEBHOOK
+
+**ZATCA (Saudi E-Invoicing):**
+
+- ✅ ZATCA_API_KEY
+- ✅ ZATCA_API_SECRET
+- ✅ ZATCA_ENVIRONMENT
+- ✅ ZATCA_SELLER_NAME
+- ✅ ZATCA_VAT_NUMBER
+- ✅ ZATCA_SELLER_ADDRESS
+
+**Search (MeiliSearch):**
+
+- ✅ MEILI_HOST
+- ✅ MEILI_MASTER_KEY
+
+### 3. Code Changes ✅
+
+- ✅ Removed demo credentials from production login page
+- ✅ Fixed deprecated `name` property in vercel.json
+- ✅ Pushed all changes to GitHub (commits: 5f9ec0a46, 6bc31cec2)
+
+### 4. Vercel Configuration ✅
+
+- ✅ Project linked: `fixzit/fixzit`
+- ✅ Domain configured: `fixzit.co`
+- ✅ Git integration enabled
+- ✅ Auto-deploy on push enabled
+
+---
+
+## ⚠️ Deployment Blocked: Team Permission Issue
+
+### The Problem
+
+```
+Error: Git author EngSayh@users.noreply.github.com must have access
+to the team Fixzit on Vercel to create deployments.
+```
+
+### What This Means
+
+Your GitHub user needs to be added as a member of the "Fixzit" team on Vercel before deployments can be triggered via CLI or Git push.
+
+---
+
+## 🔧 Solution: 2 Options to Deploy
+
+### Option 1: Add GitHub User to Vercel Team (Recommended)
+
+**Steps:**
+
+1. Go to Vercel Dashboard: https://vercel.com/dashboard
+2. Navigate to **Settings** → **Members**
+3. Click **Invite Member**
+4. Enter your GitHub email or invite: `EngSayh`
+5. Set role to **Member** or **Owner**
+6. Accept the invitation
+7. Then push code again or run: `vercel --prod`
+
+**Time:** 2-3 minutes
+
+---
+
+### Option 2: Deploy via Vercel Dashboard (Quick Fix)
+
+**Steps:**
+
+1. Go to: https://vercel.com/dashboard
+2. Select project: **fixzit**
+3. Go to **Deployments** tab
+4. Click **Deploy** button (three dots menu)
+5. Select **Redeploy** → **Production**
+6. Confirm deployment
+
+**Time:** 1 minute
+
+**This will:**
+
+- Build with latest `main` branch code (your recent commits)
+- Use all configured environment variables
+- Deploy to https://fixzit.co
+- Fix the MongoDB localhost error
+
+---
+
+### Option 3: Enable Vercel GitHub App Auto-Deploy
+
+**Steps:**
+
+1. Go to: https://vercel.com/dashboard/fixzit/settings/git
+2. Ensure **GitHub** is connected
+3. Enable **Production Branch**: `main`
+4. Enable **Automatic deployments from Git**
+5. Save settings
+
+**Then:**
+
+```bash
+git commit --allow-empty -m "trigger deployment"
+git push origin main
+```
+
+Vercel will automatically deploy the latest code.
+
+**Time:** 2-3 minutes
+
+---
+
+## 🎯 Recommended Next Steps
+
+### Step 1: Deploy Now (Choose One Method Above)
+
+I recommend **Option 2** (Dashboard Deploy) for immediate results:
+
+- Fastest method (1 minute)
+- No permission changes needed
+- Works immediately
+
+### Step 2: Verify Deployment (5 minutes)
+
+After deployment completes:
+
+```bash
+# Check logs for errors
+vercel logs https://fixzit.co --follow
+```
+
+**Expected output:**
+
+```
+✅ Database connected successfully
+✅ Server ready on port 3000
+```
+
+**Should NOT see:**
+
+```
+❌ ECONNREFUSED 127.0.0.1:27017
+```
+
+### Step 3: Test Website (5 minutes)
+
+1. Visit https://fixzit.co
+2. **Verify:**
+   - ✅ Homepage loads (not stuck at "Loading...")
+   - ✅ No demo credentials visible on login page
+   - ✅ Can access login page
+   - ✅ Can register new account
+
+3. **Test Login:**
+   - Create a new account or use existing credentials
+   - Should login successfully
+   - Should redirect to `/fm/dashboard`
+
+4. **Test Features:**
+   - Database operations work (CRUD)
+   - Email sending works (forgot password)
+   - SMS works (if OTP enabled)
+   - File uploads work (if AWS S3 configured)
+
+### Step 4: Monitor (Ongoing)
+
+**Real-time logs:**
+
+```bash
+vercel logs https://fixzit.co --follow
+```
+
+**Check deployment status:**
+
+```bash
+vercel ls
+```
+
+**View latest deployment:**
+
+```bash
+vercel inspect fixzit.co
+```
+
+---
+
+## 📊 Current Status Summary
+
+| Component            | Status         | Notes                        |
+| -------------------- | -------------- | ---------------------------- |
+| **Code**             | ✅ Ready       | All fixes committed & pushed |
+| **MongoDB Atlas**    | ✅ Connected   | Vercel integration active    |
+| **Environment Vars** | ✅ Configured  | All 30+ variables set        |
+| **Vercel Project**   | ✅ Linked      | fixzit.co domain ready       |
+| **Git Integration**  | ✅ Enabled     | Auto-deploy configured       |
+| **Deployment**       | ⏳ **PENDING** | **Needs manual trigger**     |
+| **Demo Credentials** | ✅ Removed     | Only in development mode     |
+
+---
+
+## ✅ Pre-Deployment Checklist
+
+- [x] MongoDB Atlas connection string added
+- [x] NEXTAUTH_SECRET generated and added
+- [x] NEXTAUTH_URL set to https://fixzit.co
+- [x] SendGrid credentials configured
+- [x] Twilio credentials configured
+- [x] Firebase credentials configured
+- [x] All app configuration variables set
+- [x] ZATCA e-invoicing variables set
+- [x] MeiliSearch variables set
+- [x] Demo credentials removed from production
+- [x] Code pushed to GitHub main branch
+- [x] Vercel project linked
+- [x] Domain configured (fixzit.co)
+- [ ] **→ Deployment triggered (NEEDS ACTION)**
+
+---
+
+## 🚀 Deploy Now!
+
+**Quick Action:**
+
+1. Open: https://vercel.com/dashboard/fixzit
+2. Click: **Deployments**
+3. Click: **...** (three dots) → **Redeploy**
+4. Select: **Use existing Build Cache** → **Deploy**
+5. Wait: 2-3 minutes for build
+6. Visit: https://fixzit.co
+
+**Or add yourself to team:**
+
+1. Open: https://vercel.com/dashboard/fixzit/settings/members
+2. Invite: `EngSayh` or your email
+3. Accept invitation
+4. Run: `vercel --prod`
+
+---
+
+## 🎉 After Deployment
+
+Your site will be:
+
+- ✅ Live at https://fixzit.co
+- ✅ Connected to MongoDB Atlas
+- ✅ No localhost errors
+- ✅ No demo credentials visible
+- ✅ All features working
+- ✅ SSL certificate active
+- ✅ Global CDN enabled
+
+---
+
+## 📞 Need Help?
+
+**If deployment fails:**
+
+1. Check Vercel logs: `vercel logs https://fixzit.co`
+2. Check build logs in Vercel dashboard
+3. Verify environment variables: `vercel env ls production`
+
+**If site doesn't load:**
+
+1. Check DNS propagation: `nslookup fixzit.co`
+2. Clear browser cache
+3. Wait 1-2 minutes for CDN cache
+
+**If MongoDB errors:**
+
+1. Verify connection string in Vercel env vars
+2. Check MongoDB Atlas IP whitelist (should have 0.0.0.0/0)
+3. Ensure database name is `/fixzit` in connection string
+
+---
+
+**Everything is ready! Just trigger the deployment and your site will be live!** 🚀
+
+]]>
+</file>
+
+</batch_content>

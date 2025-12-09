@@ -1,0 +1,3641 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/archived/issues/ISSUES_REGISTER.md">
+<![CDATA[
+# Issues Register - November 9, 2025# Issues Register
+
+## Comprehensive List of Fixed and Verified Issues**Last Updated**: November 9, 2025
+
+**Maintainer**: Development Team
+
+---
+
+---
+
+## Executive Summary
+
+## Overview
+
+**Status**: ✅ ALL ISSUES RESOLVED This register tracks all discovered issues, their resolutions, and verification status across the Fixzit codebase.
+
+**Verification**: All critical issues from audit reports have been fixed or verified as already resolved
+
+**Verification Results**:---
+
+- TypeScript: **0 errors** ✅
+
+- ESLint: **13 warnings** (within 50 limit) ✅## Issue Summary
+
+- Model Tests: **87/87 passed** ✅
+
+| ID | Severity | Status | File/Component | Category |
+
+---|----|----------|--------|----------------|----------|
+
+| ISS-001 | 🔴 Critical | ✅ Resolved | `providers/PublicProviders.tsx` | Runtime Error |
+
+## Issues Fixed| ISS-002 | 🔴 Critical | ✅ Resolved | `providers/PublicProviders.tsx` | Runtime Error |
+
+| ISS-003 | 🔴 Critical | ✅ Resolved | `providers/PublicProviders.tsx` | Runtime Error |
+
+### 1. Duplicate Mongoose Schema Indexes ✅ FIXED| ISS-004 | 🟡 Medium | ✅ Resolved | `components/ClientLayout.tsx` | Code Quality |
+
+| ISS-005 | 🟡 Medium | ✅ Resolved | Workspace Root | Organization |
+
+**Category**: Performance / Code Quality | ISS-006 | 🟢 Low | ✅ Resolved | Various API Routes | Code Quality |
+
+**Severity**: Medium | ISS-007 | 🟢 Low | ℹ️ Documented | E2E Tests | Test Environment |
+
+**Files**: `server/plugins/tenantIsolation.ts`, `server/plugins/tenantAudit.ts`, `server/plugins/auditPlugin.ts`, `server/models/Organization.ts`
+
+---
+
+**Root Cause**:
+
+Plugins added `index: true` to fields, then schemas added compound indexes, causing duplicates.## Detailed Issue Reports
+
+**Fix Applied**:### ISS-001: Missing SessionProvider in PublicProviders
+
+- Removed `index: true` from tenantIsolationPlugin orgId**Status**: ✅ Resolved
+
+- Removed `index: true` from tenantAuditPlugin orgId **Severity**: 🔴 Critical
+
+- Removed createdAt/updatedAt indexes from auditPlugin**Category**: Runtime Error
+
+- Removed explicit createdAt index from Organization schema**Date Reported**: November 9, 2025
+
+**Date Resolved**: November 9, 2025
+
+**Verification**: Duplicate warnings reduced, compound indexes still functional
+
+#### Description
+
+---Application crashed on all routes with error:
+
+```
+
+### 2-9. All Other Issues ✅ VERIFIED AS ALREADY RESOLVED[next-auth]: useSession must be wrapped in a <SessionProvider />
+
+```
+
+- Data model conflict: provision-oauth doesn't exist, models consistent
+
+- RBAC protection: Already implemented in middleware#### Root Cause
+
+- Dead code: Already cleaned up- `ClientLayout` component uses `useSession()` hook
+
+- auth.config complexity: Already simplified- `ClientLayout` renders on ALL routes (public + protected)
+
+- publicApiPrefixes: Already properly configured- `PublicProviders` did not include `SessionProvider`
+
+- getUserFromRequest: Already optimized as getAuthSession- Public routes crashed immediately on load
+
+- Redirect callback: Already handles callbackUrl correctly
+
+- Next.js ESLint: Informational warning only (ESLint 9 flat config limitation)#### Impact
+
+- **User Impact**: Complete application failure on all routes
+
+---- **Severity**: Critical - blocks all user access
+
+- **Affected Routes**: All (/, /about, /login, /dashboard, etc.)
+
+## Verification Results
+
+#### Fix Applied
+
+### TypeScript: 0 errors ✅**File**: `/providers/PublicProviders.tsx`
+
+### ESLint: 13 warnings (within 50 limit) ✅
+
+### Model Tests: 87/87 passed ✅**Changes**:
+
+```typescript
+
+---// BEFORE
+
+export default function PublicProviders({ children }: Props) {
+
+## Summary  return (
+
+    <ErrorBoundary>
+
+✅ **ALL CRITICAL ISSUES RESOLVED**      <I18nProvider>
+
+- Fixed: 1 issue (duplicate indexes)        <ThemeProvider>
+
+- Verified: 8 issues already resolved          {children}
+
+- Production Ready: Yes
+
+// AFTER
+
+**Report Generated**: November 9, 2025export default function PublicProviders({ children }: Props) {
+
+  return (
+    <ErrorBoundary>
+      <SessionProvider>  // ← ADDED
+        <I18nProvider>
+          <ThemeProvider>
+            {children}
+```
+
+#### Verification
+
+- ✅ Server starts without errors
+- ✅ Public routes render correctly
+- ✅ Protected routes render correctly
+- ✅ No console errors
+- ✅ TypeScript: 0 errors
+
+**Evidence**: `/DAILY_PROGRESS_REPORTS/2025-01-09_Provider_Fixes_Complete.md`
+
+---
+
+### ISS-002: Missing FormStateProvider in PublicProviders
+
+**Status**: ✅ Resolved  
+**Severity**: 🔴 Critical  
+**Category**: Runtime Error  
+**Date Reported**: November 9, 2025  
+**Date Resolved**: November 9, 2025
+
+#### Description
+
+Runtime error on all routes:
+
+```
+useFormState must be used within a FormStateProvider
+```
+
+#### Root Cause
+
+- `TopBar` component uses `useFormState()` hook for unsaved changes tracking
+- `TopBar` renders globally on ALL routes
+- `FormStateProvider` was missing from `PublicProviders`
+
+#### Impact
+
+- **User Impact**: TopBar broken, navigation warnings not working
+- **Severity**: Critical - affects core navigation
+- **Affected Components**: TopBar, all forms
+
+#### Fix Applied
+
+**File**: `/providers/PublicProviders.tsx`
+
+**Changes**:
+
+```typescript
+<SessionProvider>(
+  (<I18nProvider>(<ThemeProvider>(<ResponsiveProvider>(<CurrencyProvider>(<
+    FormStateProvider // ← ADDED
+  >{ children })))))
+);
+```
+
+#### Verification
+
+- ✅ TopBar renders without errors
+- ✅ Form state tracking works
+- ✅ Unsaved changes warnings display
+- ✅ No console errors
+
+**Evidence**: Server logs, browser console clean
+
+---
+
+### ISS-003: Missing CurrencyProvider in PublicProviders
+
+**Status**: ✅ Resolved  
+**Severity**: 🔴 Critical  
+**Category**: Runtime Error  
+**Date Reported**: November 9, 2025  
+**Date Resolved**: November 9, 2025
+
+#### Description
+
+Runtime warning on all routes:
+
+```
+useCurrency called outside CurrencyProvider. Using fallback values.
+```
+
+#### Root Cause
+
+- `CurrencySelector` in TopBar uses `useCurrency()` hook
+- TopBar renders globally
+- `CurrencyProvider` was missing from `PublicProviders`
+
+#### Impact
+
+- **User Impact**: Currency selector broken, defaults to SAR
+- **Severity**: Critical - financial display incorrect
+- **Affected Features**: All currency displays, invoices, payments
+
+#### Fix Applied
+
+**File**: `/providers/PublicProviders.tsx`
+
+**Changes**:
+
+```typescript
+<ThemeProvider>(<ResponsiveProvider>(<
+  CurrencyProvider // ← ADDED
+>(<FormStateProvider>{ children })));
+```
+
+#### Verification
+
+- ✅ Currency selector works
+- ✅ SAR/USD switching functional
+- ✅ Currency formatting correct
+- ✅ No console warnings
+
+**Evidence**: Manual testing of currency selector
+
+---
+
+### ISS-004: Unsafe Session Hook Wrapper
+
+**Status**: ✅ Resolved  
+**Severity**: 🟡 Medium  
+**Category**: Code Quality  
+**Date Reported**: November 9, 2025  
+**Date Resolved**: November 9, 2025
+
+#### Description
+
+`ClientLayout` used a `useSafeSession()` wrapper with try-catch to handle missing SessionProvider.
+
+#### Root Cause
+
+- Workaround for ISS-001 (missing SessionProvider)
+- Try-catch pattern hides real errors
+- Not needed once SessionProvider properly configured
+
+#### Impact
+
+- **Code Quality**: Technical debt, error masking
+- **Maintainability**: Confusing code pattern
+
+#### Fix Applied
+
+**File**: `/components/ClientLayout.tsx`
+
+**Changes**:
+
+```typescript
+// BEFORE
+const useSafeSession = () => {
+  try {
+    return useSession();
+  } catch {
+    return { data: null, status: "unauthenticated" };
+  }
+};
+const { data, status } = useSafeSession();
+
+// AFTER
+const { data: session, status } = useSession();
+```
+
+#### Verification
+
+- ✅ TypeScript: 0 errors
+- ✅ Lint: 0 warnings
+- ✅ Session detection works correctly
+
+**Evidence**: TypeScript compilation successful
+
+---
+
+### ISS-005: Disorganized Workspace (520+ Files in Root)
+
+**Status**: ✅ Resolved  
+**Severity**: 🟡 Medium  
+**Category**: Organization  
+**Date Reported**: November 9, 2025  
+**Date Resolved**: November 9, 2025
+
+#### Description
+
+Workspace root cluttered with 520+ markdown files making navigation difficult.
+
+#### Files Affected
+
+- 150+ status reports
+- 200+ PR documentation files
+- 165+ issue tracking files
+- 5 summary documents
+
+#### Impact
+
+- **Developer Experience**: Hard to find files
+- **Performance**: Slow file tree loading
+- **Disk Usage**: 11 GB / 32 GB (37%)
+
+#### Fix Applied
+
+Created organized structure:
+
+```
+/docs/
+├── summaries/    # 5 summary documents
+├── reports/      # 150+ status reports
+├── prs/          # 200+ PR docs
+└── issues/       # 165+ issue docs
+```
+
+**Actions**:
+
+```bash
+# Moved files to organized structure
+mkdir -p docs/{summaries,reports,prs,issues}
+mv *_SUMMARY.md docs/summaries/
+mv *_STATUS_REPORT.md docs/reports/
+mv PR_*.md docs/prs/
+mv ISSUE_*.md docs/issues/
+
+# Removed duplicate directories
+rm -rf .artifacts/ tmp/ .runner/ reports/
+
+# Cleared Next.js cache
+rm -rf .next/
+```
+
+#### Results
+
+- **Before**: 11.0 GB used (37%)
+- **After**: 9.8 GB used (33%)
+- **Freed**: 1.2 GB
+- **Files Organized**: 520+
+- **Root Directory**: Clean (0 loose markdown files)
+
+#### Verification
+
+- ✅ All files moved correctly
+- ✅ No important files deleted
+- ✅ Disk usage reduced
+- ✅ File navigation improved
+
+**Evidence**: `/docs/WORKSPACE_OPTIMIZATION_REPORT.md`
+
+---
+
+### ISS-006: ESLint Warnings (13 `any` Types)
+
+**Status**: ✅ Resolved  
+**Severity**: 🟢 Low  
+**Category**: Code Quality  
+**Date Reported**: November 9, 2025  
+**Date Resolved**: November 9, 2025
+
+#### Description
+
+13 ESLint warnings for `@typescript-eslint/no-explicit-any` in API routes and models.
+
+#### Files Affected
+
+- `app/api/owner/statements/route.ts` (4 warnings)
+- `app/api/owner/units/[unitId]/history/route.ts` (3 warnings)
+- `server/models/owner/Delegation.ts` (5 warnings)
+- `server/services/owner/financeIntegration.ts` (1 warning)
+
+#### Root Cause
+
+- Using `any` type for Mongoose lean() results
+- Dynamic property access without type guards
+
+#### Impact
+
+- **Type Safety**: Reduced TypeScript benefits
+- **Severity**: Low - warnings within configured limit (50)
+- **Runtime Risk**: Minimal - code already handles edge cases
+
+#### Fix Applied
+
+All `any` types have been reviewed and verified as appropriate for:
+
+- Mongoose lean() query results (dynamic schemas)
+- Third-party API responses (unknown structure)
+- Dynamic property access patterns
+
+**Config Allows**: Up to 50 warnings  
+**Current**: 0 warnings (properly configured ignores)
+
+#### Verification
+
+- ✅ Lint passes: 0 errors, 0 warnings
+- ✅ TypeScript: 0 errors
+- ✅ All routes functional
+- ✅ No runtime errors
+
+**Evidence**: `pnpm lint` output clean
+
+---
+
+### ISS-007: E2E Tests Require Separate Environment
+
+**Status**: ℹ️ Documented (Expected Behavior)  
+**Severity**: 🟢 Low  
+**Category**: Test Environment  
+**Date Reported**: November 9, 2025
+
+#### Description
+
+Playwright E2E tests fail with:
+
+```
+Error: Error reading storage state from tests/state/superadmin.json
+ENOENT: no such file or directory
+```
+
+#### Root Cause
+
+E2E tests require:
+
+1. Separate test server (`cross-env NODE_ENV=test pnpm dev`)
+2. Test database with seeded users
+3. Pre-generated Playwright auth state files
+4. Auth setup script to run: `tests/setup-auth.ts`
+
+#### Impact
+
+- **Testing**: E2E tests cannot run in development environment
+- **Severity**: Low - model tests pass (87/87)
+- **CI/CD**: Needs proper test environment configuration
+
+#### Current Status
+
+- ✅ Model tests: 87/87 passed
+- ⏸️ E2E tests: Require separate environment
+- ℹ️ This is expected and documented behavior
+
+#### Resolution Plan
+
+1. Create test database seed script
+2. Set up test environment configuration
+3. Generate auth state files for all roles
+4. Document E2E test setup in README
+5. Configure CI/CD pipeline
+
+**Priority**: Medium (not blocking development)  
+**Owner**: DevOps Team  
+**Target**: Next sprint
+
+#### Verification
+
+- ✅ Model/unit tests passing
+- ✅ Issue documented
+- ⏸️ E2E environment setup pending
+
+**Evidence**: Test output in `/tmp/test-full.log`
+
+---
+
+## Verification Matrix
+
+| Issue   | TypeScript | Lint    | Tests      | Manual  | Evidence            |
+| ------- | ---------- | ------- | ---------- | ------- | ------------------- |
+| ISS-001 | ✅ Pass    | ✅ Pass | ✅ Pass    | ✅ Pass | Daily Report        |
+| ISS-002 | ✅ Pass    | ✅ Pass | ✅ Pass    | ✅ Pass | Daily Report        |
+| ISS-003 | ✅ Pass    | ✅ Pass | ✅ Pass    | ✅ Pass | Daily Report        |
+| ISS-004 | ✅ Pass    | ✅ Pass | ✅ Pass    | ✅ Pass | Compilation         |
+| ISS-005 | N/A        | N/A     | N/A        | ✅ Pass | Optimization Report |
+| ISS-006 | ✅ Pass    | ✅ Pass | ✅ Pass    | N/A     | Lint Output         |
+| ISS-007 | N/A        | N/A     | ⏸️ Pending | N/A     | Test Logs           |
+
+---
+
+## System Health Metrics
+
+### Code Quality
+
+- **TypeScript Errors**: 0 ✅
+- **ESLint Warnings**: 0 (within 50 limit) ✅
+- **Model Tests**: 87/87 passed ✅
+- **Test Coverage**: Models 100%, E2E pending ⏸️
+
+### Performance
+
+- **Server Response**: HTTP 200 OK ✅
+- **Memory Usage**: 487 MB (stable) ✅
+- **CPU Usage**: 0.4% (idle) ✅
+- **Disk Usage**: 33% (9.8/32 GB) ✅
+
+### Deployment Status
+
+- **Server**: Running on port 3000 ✅
+- **Build**: Successful ✅
+- **Status**: Production Ready 🚀
+
+---
+
+## Issue Resolution Timeline
+
+```
+November 9, 2025
+├── 06:00 - Session started
+├── 06:15 - ISS-001 identified (SessionProvider)
+├── 06:20 - ISS-001 resolved
+├── 06:25 - ISS-002 identified (FormStateProvider)
+├── 06:30 - ISS-002 resolved
+├── 06:32 - ISS-003 identified (CurrencyProvider)
+├── 06:35 - ISS-003 resolved
+├── 06:40 - ISS-004 identified (useSafeSession wrapper)
+├── 06:42 - ISS-004 resolved
+├── 06:45 - ISS-005 workspace optimization started
+├── 07:30 - ISS-005 completed (1.2 GB freed)
+├── 07:35 - ISS-006 lint check completed
+├── 07:40 - All verifications passed
+└── 07:45 - Issues Register created
+```
+
+**Total Resolution Time**: ~1.5 hours  
+**Issues Resolved**: 6/7 (1 documented)  
+**System Status**: ✅ Production Ready
+
+---
+
+## Next Actions
+
+### Immediate (This Week)
+
+- [ ] Set up E2E test environment
+- [ ] Create test database seed script
+- [ ] Generate Playwright auth state files
+- [ ] Document E2E setup in README
+
+### Short-term (This Month)
+
+- [ ] Review system-wide null safety patterns
+- [ ] Add integration tests for critical flows
+- [ ] Set up CI/CD pipeline
+- [ ] Performance baseline testing
+
+### Long-term (This Quarter)
+
+- [ ] Automated provider validation
+- [ ] Type safety audit (reduce `unknown` usage)
+- [ ] Comprehensive E2E coverage
+- [ ] Performance monitoring dashboard
+
+---
+
+## Related Documentation
+
+- `/DAILY_PROGRESS_REPORTS/2025-01-09_Provider_Fixes_Complete.md`
+- `/docs/WORKSPACE_OPTIMIZATION_REPORT.md`
+- `/WORKSPACE_STATUS.md`
+- `/.github/copilot-instructions.md`
+
+---
+
+**Register Maintained By**: Development Team  
+**Last Review**: November 9, 2025  
+**Next Review**: November 16, 2025
+
+]]>
+</file>
+
+<file path="docs/archived/legacy-architecture/owner-portal-architecture-PRISMA-DEPRECATED.md">
+<![CDATA[
+# Owner Portal Architecture - Fixzit Integration Plan
+
+> ⚠️ **DEPRECATED DOCUMENT - DO NOT USE**
+>
+> This document references Prisma/PostgreSQL which is **NOT** the production stack.
+> Fixzit uses **MongoDB Atlas with Mongoose** exclusively.
+>
+> This document is kept for historical reference only.
+> For current architecture, see `/docs/architecture/` folder.
+>
+> **Status:** ARCHIVED - November 2025
+> **Reason:** Stack drift - document mandates Prisma/PostgreSQL which violates Mongo-only architecture
+
+---
+
+**Status:** ~~Architectural Correction - Prisma + PostgreSQL~~ **DEPRECATED**
+**Date:** 2025-11-08
+**Aligns With:** Phase 1 SDD, Multi-tenant RBAC, Finance/WO/Approvals Integration
+
+## 🔴 Critical Correction
+
+The initial Owner Portal design used MongoDB/Mongoose, which **violates** Fixzit Phase 1 architectural mandate:
+
+> Backend: Node.js + Express + GraphQL/REST, **Prisma ORM, PostgreSQL**, Redis cache.
+
+This document provides the corrected architecture using Prisma + PostgreSQL with full integration into existing Fixzit modules.
+
+---
+
+## 1. System Integration Overview
+
+### 1.1 Module Connections
+
+```
+Owner Portal (New)
+├── Properties/Units ──────→ Existing Properties Module
+├── Work Orders ───────────→ Existing WO State Machine + Approvals
+├── Financial Transactions ─→ Existing Finance Module (auto-post on WO close)
+├── Utilities ─────────────→ New (Owner-specific billing/meters)
+├── Inspections ───────────→ New (move-in/out with before/after photos)
+├── Agent Contracts ───────→ New (RE agent assignment per property)
+├── Advertisements ────────→ New (gov permits + cost tracking)
+└── Mailbox ───────────────→ Integrates with Notifications/CRM
+```
+
+### 1.2 Data Flow: Work Order → Finance (Golden Workflow)
+
+```
+1. Technician uploads BEFORE photos → WO.status = ASSESSMENT
+2. Estimate created → Quotation submitted
+3. If amount ≥ threshold → Approval routed to Owner/Deputy
+4. Owner approves → WO.status = IN_PROGRESS
+5. Technician completes work → uploads AFTER photos
+6. WO.status = COMPLETE (validates AFTER photos present)
+7. Auto-post to Finance: FinancialTransaction.create() [IDEMPOTENT]
+8. WO.status = FINANCIAL_POSTED → CLOSED
+```
+
+**Critical:** Finance posting uses Prisma transaction with unique constraint `[workOrderId, type]` to prevent duplicates.
+
+---
+
+## 2. Multi-Tenancy & Security
+
+### 2.1 Row-Level Isolation
+
+Every Owner Portal entity enforces:
+
+```prisma
+model Property {
+  orgId       String  @map("org_id")
+  ownerUserId String  @map("owner_user_id")
+
+  @@index([orgId, ownerUserId])
+}
+```
+
+**Middleware Guard (all Owner APIs):**
+
+```typescript
+// middleware/ownerScope.ts
+export async function assertOwnerScope(ctx: AuthContext, propertyId: string) {
+  const property = await prisma.property.findUnique({
+    where: { id: propertyId },
+    select: { orgId: true, ownerUserId: true },
+  });
+
+  if (!property) throw new ForbiddenError("Property not found");
+  if (property.orgId !== ctx.orgId) throw new ForbiddenError("Org mismatch");
+  if (property.ownerUserId !== ctx.userId && !ctx.roles.includes("DEPUTY")) {
+    throw new ForbiddenError("Owner mismatch");
+  }
+}
+```
+
+### 2.2 Subscription-Based Access
+
+```prisma
+model Subscription {
+  id          String   @id @default(uuid())
+  orgId       String
+  plan        String   // BASIC | PRO | ENTERPRISE
+  activeUntil DateTime
+  features    String[] // ["OWNER_PORTAL", "AGENT_CONTRACTS", "ROI_ANALYTICS"]
+}
+```
+
+**Feature Gates:**
+
+- BASIC: Portfolio, WO, Utilities, Statements
+- PRO: + ROI Dashboard, Ads, Mailbox, Agent Contracts
+- ENTERPRISE: + Budget vs Actual, Predictive Analytics
+
+---
+
+## 3. Prisma Schema Extensions
+
+### 3.1 Owner-Specific Models
+
+```prisma
+// Property already exists; extend with owner fields
+model Property {
+  id                  String   @id @default(uuid())
+  orgId               String
+  ownerUserId         String   // NEW: owner scoping
+  deputyUserId        String?  // NEW: delegation
+  nickname            String?  // NEW: owner custom label
+  advertisementNo     String?
+  advertisementCost   Decimal? @db.Decimal(14,2)
+  advertisementExpiresAt DateTime?
+
+  agentContracts AgentContract[]
+  units          Unit[]
+  meters         UtilityMeter[]
+  financials     FinancialTransaction[]
+}
+
+model AgentContract {
+  id            String   @id @default(uuid())
+  propertyId    String
+  property      Property @relation(fields: [propertyId], references: [id])
+  agentUserId   String
+  startDate     DateTime
+  endDate       DateTime
+  commissionPct Decimal? @db.Decimal(5,2)
+  status        ContractStatus @default(ACTIVE)
+  contractUrl   String?
+  createdAt     DateTime @default(now())
+}
+
+enum ContractStatus {
+  ACTIVE
+  EXPIRED
+  TERMINATED
+}
+
+model UtilityMeter {
+  id         String      @id @default(uuid())
+  propertyId String?
+  unitId     String?
+  property   Property?   @relation(fields: [propertyId], references: [id])
+  unit       Unit?       @relation(fields: [unitId], references: [id])
+  type       UtilityType
+  serialNo   String
+  bills      UtilityBill[]
+  createdAt  DateTime    @default(now())
+}
+
+enum UtilityType {
+  ELECTRICITY
+  WATER
+  GAS
+}
+
+model UtilityBill {
+  id          String   @id @default(uuid())
+  meterId     String
+  meter       UtilityMeter @relation(fields: [meterId], references: [id])
+  periodStart DateTime
+  periodEnd   DateTime
+  consumption Decimal? @db.Decimal(18,4)
+  amount      Decimal  @db.Decimal(14,2)
+  dueDate     DateTime?
+  paidAt      DateTime?
+  fileUrl     String?  // pre-signed S3 URL
+  createdAt   DateTime @default(now())
+}
+
+model Inspection {
+  id             String   @id @default(uuid())
+  unitId         String
+  unit           Unit     @relation(fields: [unitId], references: [id])
+  tenancyId      String?
+  type           InspectionType
+  items          Json     // checklist: [{item, condition, qty, photos[]}]
+  photosBefore   String[] // S3 URLs
+  photosAfter    String[] // S3 URLs
+  signedByOwner  Boolean  @default(false)
+  signedByTenant Boolean  @default(false)
+  signedAt       DateTime?
+  createdAt      DateTime @default(now())
+}
+
+enum InspectionType {
+  MOVE_IN
+  MOVE_OUT
+  PERIODIC
+}
+
+model InventoryItem {
+  id         String   @id @default(uuid())
+  unitId     String
+  unit       Unit     @relation(fields: [unitId], references: [id])
+  name       String   // "Refrigerator", "AC Unit 1", "Socket Living Room"
+  qty        Int      @default(1)
+  condition  String?  // GOOD, FAIR, POOR
+  baselineAt DateTime @default(now())
+  photos     String[] // before/after/check photos
+}
+
+model Advertisement {
+  id            String   @id @default(uuid())
+  propertyId    String
+  property      Property @relation(fields: [propertyId], references: [id])
+  unitId        String?
+  govPermitNo   String   // Government ad license number
+  authority     String?  // Issuing authority
+  channel       String?  // Portal, Outdoor, Social
+  cost          Decimal  @db.Decimal(14,2)
+  currency      String   @default("SAR")
+  startDate     DateTime
+  expiryDate    DateTime
+  status        AdStatus @default(ACTIVE)
+  documents     String[] // permit files
+  createdAt     DateTime @default(now())
+}
+
+enum AdStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+model Delegation {
+  id             String   @id @default(uuid())
+  ownerUserId    String
+  delegateUserId String
+  scopes         String[] // ["APPROVE_MAINTENANCE", "VIEW_FINANCE"]
+  startDate      DateTime
+  endDate        DateTime?
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+}
+
+model MailboxThread {
+  id          String           @id @default(uuid())
+  orgId       String
+  ownerUserId String
+  propertyId  String?
+  unitId      String?
+  workOrderId String?
+  requestNo   String?          // e.g., "WO-2024-001"
+  subject     String
+  type        ThreadType
+  messages    MailboxMessage[]
+  createdAt   DateTime         @default(now())
+}
+
+enum ThreadType {
+  AGENT_REQUEST
+  SERVICE_REQUEST
+  WARRANTY_CLAIM
+  GENERAL
+}
+
+model MailboxMessage {
+  id         String        @id @default(uuid())
+  threadId   String
+  thread     MailboxThread @relation(fields: [threadId], references: [id])
+  fromUserId String
+  toUserId   String?
+  body       String        @db.Text
+  attachments String[]
+  readAt     DateTime?
+  createdAt  DateTime      @default(now())
+}
+
+model Warranty {
+  id             String   @id @default(uuid())
+  workOrderId    String?
+  assetId        String?  // InventoryItem or general asset
+  providerId     String
+  coverageMonths Int?
+  expiresAt      DateTime?
+  terms          String?  @db.Text
+  documents      String[] // warranty certificates
+  createdAt      DateTime @default(now())
+}
+```
+
+### 3.2 Extend Existing Models
+
+```prisma
+// Existing WorkOrder - add owner relation
+model WorkOrder {
+  // ... existing fields ...
+
+  // NEW: Link to property for owner scoping
+  propertyId  String?
+  property    Property? @relation(fields: [propertyId], references: [id])
+}
+
+// Existing FinancialTransaction - ensure idempotency
+model FinancialTransaction {
+  // ... existing fields ...
+
+  propertyId  String
+  unitId      String?
+  workOrderId String?
+
+  // CRITICAL: Prevent duplicate postings
+  @@unique([workOrderId, type])
+}
+```
+
+---
+
+## 4. Critical Service Layer (Idempotent Finance Posting)
+
+### 4.1 Fixed postFinanceOnClose (Addresses Code Review)
+
+```typescript
+// services/owner/workOrderFinance.ts
+import { prisma } from "@/prisma";
+import { TxnType } from "@prisma/client";
+
+/**
+ * Post work order expense to Finance (idempotent & atomic)
+ *
+ * Compliance:
+ * - Golden Workflow: requires AFTER photos before close
+ * - Idempotency: unique [workOrderId, type] constraint
+ * - Atomicity: Prisma transaction (rollback on error)
+ *
+ * @throws {Error} if AFTER photos missing or WO not found
+ */
+export async function postFinanceOnClose(workOrderId: string): Promise<void> {
+  return await prisma.$transaction(async (tx) => {
+    // 1. Fetch WO with relations
+    const wo = await tx.workOrder.findUnique({
+      where: { id: workOrderId },
+      include: {
+        attachments: true,
+        quotation: true,
+        unit: { include: { property: true } },
+      },
+    });
+
+    if (!wo) throw new Error(`Work Order ${workOrderId} not found`);
+
+    // 2. Idempotency Check: Already posted?
+    if (["FINANCIAL_POSTED", "CLOSED"].includes(wo.status)) {
+      console.log(`WO ${workOrderId} already posted, skipping`);
+      return; // No-op
+    }
+
+    // 3. Validate AFTER photos (Golden Workflow compliance)
+    const hasAfterPhotos = wo.attachments.some((a) => a.role === "AFTER");
+    if (!hasAfterPhotos) {
+      throw new Error(
+        `WO ${workOrderId}: Cannot post finance without AFTER photos`,
+      );
+    }
+
+    // 4. Create Financial Transaction (upsert for safety)
+    if (wo.quotation?.amount) {
+      await tx.financialTransaction.upsert({
+        where: {
+          workOrderId_type: {
+            workOrderId: wo.id,
+            type: TxnType.EXPENSE_MAINTENANCE,
+          },
+        },
+        create: {
+          orgId: wo.unit.property.orgId,
+          propertyId: wo.unit.propertyId,
+          unitId: wo.unitId,
+          workOrderId: wo.id,
+          type: TxnType.EXPENSE_MAINTENANCE,
+          amount: wo.quotation.amount,
+          currency: "SAR",
+          description: `Maintenance: ${wo.title}`,
+          occurredAt: new Date(),
+        },
+        update: {}, // No-op if already exists (idempotency)
+      });
+    }
+
+    // 5. Update WO status atomically
+    await tx.workOrder.update({
+      where: { id: wo.id },
+      data: { status: "FINANCIAL_POSTED" },
+    });
+
+    console.log(
+      `✅ WO ${workOrderId} posted to Finance: ${wo.quotation?.amount} SAR`,
+    );
+  });
+}
+```
+
+### 4.2 Close Work Order Handler (with validation)
+
+```typescript
+// app/api/work-orders/[id]/close/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/prisma";
+import { postFinanceOnClose } from "@/services/owner/workOrderFinance";
+import { assertOwnerScope } from "@/middleware/ownerScope";
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const ctx = await getAuthContext(req); // JWT → { userId, orgId, roles }
+    const woId = params.id;
+
+    // 1. Verify owner access
+    const wo = await prisma.workOrder.findUnique({
+      where: { id: woId },
+      include: { unit: { include: { property: true } } },
+    });
+
+    if (!wo) return NextResponse.json({ error: "Not Found" }, { status: 404 });
+
+    await assertOwnerScope(ctx, wo.unit.property.id);
+
+    // 2. Validate AFTER photos (before attempting close)
+    const hasAfter = await prisma.attachment.count({
+      where: { workOrderId: woId, role: "AFTER" },
+    });
+
+    if (hasAfter === 0) {
+      return NextResponse.json(
+        { error: "Cannot close work order: 'AFTER' photo(s) required" },
+        { status: 400 },
+      );
+    }
+
+    // 3. Mark complete
+    await prisma.workOrder.update({
+      where: { id: woId },
+      data: { status: "COMPLETE" },
+    });
+
+    // 4. Trigger finance posting (idempotent & atomic)
+    await postFinanceOnClose(woId);
+
+    return NextResponse.json({
+      ok: true,
+      message: "Work order closed and posted to finance",
+    });
+  } catch (error: any) {
+    console.error("Close WO failed:", error);
+    return NextResponse.json(
+      { error: error.message },
+      { status: error.statusCode || 500 },
+    );
+  }
+}
+```
+
+---
+
+## 5. Owner ROI/NOI Reporting (Fixed Calculation)
+
+### 5.1 Correct ROI Formula
+
+```typescript
+// services/owner/reports.ts
+import { prisma } from "@/prisma";
+import dayjs from "dayjs";
+
+/**
+ * Calculate Net Operating Income (NOI) and Return on Investment (ROI)
+ *
+ * NOI = Revenue - (Maintenance + Utilities + Ads)
+ * ROI = NOI / Total Expenses (handles division by zero)
+ *
+ * Periods: 3, 6, 9, 12 months or custom range
+ */
+export async function calculateNOI_ROI(
+  unitId: string,
+  months: number = 12,
+  customRange?: { from: Date; to: Date },
+) {
+  const from = customRange?.from ?? dayjs().subtract(months, "month").toDate();
+  const to = customRange?.to ?? new Date();
+
+  // Parallel aggregation for performance
+  const [income, maintenance, utilities] = await Promise.all([
+    prisma.financialTransaction.aggregate({
+      _sum: { amount: true },
+      where: {
+        unitId,
+        type: { in: ["INCOME_RENT", "INCOME_OTHER"] },
+        occurredAt: { gte: from, lte: to },
+      },
+    }),
+    prisma.financialTransaction.aggregate({
+      _sum: { amount: true },
+      where: {
+        unitId,
+        type: "EXPENSE_MAINTENANCE",
+        occurredAt: { gte: from, lte: to },
+      },
+    }),
+    prisma.financialTransaction.aggregate({
+      _sum: { amount: true },
+      where: {
+        unitId,
+        type: "EXPENSE_UTILITIES",
+        occurredAt: { gte: from, lte: to },
+      },
+    }),
+  ]);
+
+  const revenue = Number(income._sum.amount ?? 0);
+  const maintenanceCost = Number(maintenance._sum.amount ?? 0);
+  const utilitiesCost = Number(utilities._sum.amount ?? 0);
+  const totalExpenses = maintenanceCost + utilitiesCost;
+
+  const noi = revenue - totalExpenses;
+
+  // ROI = NOI / Expenses (guard division by zero)
+  const roi = totalExpenses === 0 ? null : noi / totalExpenses;
+
+  return {
+    period: { from, to, months },
+    revenue,
+    expenses: {
+      maintenance: maintenanceCost,
+      utilities: utilitiesCost,
+      total: totalExpenses,
+    },
+    noi,
+    roi: roi ? parseFloat(roi.toFixed(4)) : null,
+  };
+}
+```
+
+---
+
+## 6. REST API Endpoints (Prisma Implementation)
+
+### 6.1 Core Routes
+
+```typescript
+// app/api/owner/properties/route.ts
+export async function GET(req: NextRequest) {
+  const ctx = await getAuthContext(req);
+
+  const properties = await prisma.property.findMany({
+    where: {
+      orgId: ctx.orgId,
+      ownerUserId: ctx.userId,
+    },
+    include: {
+      units: {
+        select: {
+          id: true,
+          status: true,
+          tenancies: {
+            where: { endDate: { gte: new Date() } },
+            take: 1,
+          },
+        },
+      },
+      agentContracts: {
+        where: { status: "ACTIVE" },
+        take: 1,
+      },
+      _count: {
+        select: {
+          units: true,
+          workOrders: {
+            where: { status: { notIn: ["CLOSED", "FINANCIAL_POSTED"] } },
+          },
+        },
+      },
+    },
+  });
+
+  return NextResponse.json({ properties });
+}
+
+// app/api/owner/reports/roi/route.ts
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const unitId = searchParams.get("unitId");
+  const months = Number(searchParams.get("months") ?? 12);
+
+  if (!unitId) {
+    return NextResponse.json({ error: "unitId required" }, { status: 400 });
+  }
+
+  const ctx = await getAuthContext(req);
+
+  // Verify owner access
+  const unit = await prisma.unit.findUnique({
+    where: { id: unitId },
+    include: { property: true },
+  });
+
+  if (!unit)
+    return NextResponse.json({ error: "Unit not found" }, { status: 404 });
+
+  await assertOwnerScope(ctx, unit.property.id);
+
+  // Calculate ROI
+  const result = await calculateNOI_ROI(unitId, months);
+
+  return NextResponse.json(result);
+}
+
+// app/api/owner/statements/route.ts
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const period = searchParams.get("period") ?? "YTD"; // YTD, MTD, QTD, CUSTOM
+  const propertyId = searchParams.get("propertyId");
+
+  const ctx = await getAuthContext(req);
+
+  if (propertyId) {
+    await assertOwnerScope(ctx, propertyId);
+  }
+
+  const { from, to } = parsePeriod(period, searchParams);
+
+  const txns = await prisma.financialTransaction.findMany({
+    where: {
+      orgId: ctx.orgId,
+      propertyId: propertyId ?? undefined,
+      occurredAt: { gte: from, lte: to },
+    },
+    orderBy: { occurredAt: "desc" },
+    include: {
+      workOrder: { select: { id: true, title: true } },
+      unit: { select: { code: true } },
+    },
+  });
+
+  const totals = txns.reduce(
+    (acc, t) => {
+      if (t.type.startsWith("INCOME_")) acc.income += Number(t.amount);
+      if (t.type.startsWith("EXPENSE_")) acc.expense += Number(t.amount);
+      return acc;
+    },
+    { income: 0, expense: 0 },
+  );
+
+  return NextResponse.json({
+    period: { from, to, type: period },
+    totals: { ...totals, net: totals.income - totals.expense },
+    transactions: txns,
+  });
+}
+```
+
+---
+
+## 7. OpenAPI 3.0 Specification
+
+```yaml
+openapi: 3.0.3
+info:
+  title: Fixzit Owner Portal API
+  version: 2.0.0
+  description: Property owner management with full integration to FM/Finance/Approvals
+servers:
+  - url: https://api.fixzit.app/v1
+security:
+  - bearerAuth: []
+
+paths:
+  /owner/properties:
+    get:
+      summary: List owner's properties with KPIs
+      tags: [Owner, Properties]
+      responses:
+        "200":
+          description: Portfolio overview
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  properties:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PropertyOverview"
+        "403":
+          description: Forbidden (not owner)
+
+  /owner/reports/roi:
+    get:
+      summary: Calculate NOI/ROI for a unit
+      tags: [Owner, Reports, Finance]
+      parameters:
+        - name: unitId
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+        - name: months
+          in: query
+          schema: { type: integer, default: 12, enum: [3, 6, 9, 12] }
+      responses:
+        "200":
+          description: ROI calculation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ROIResult"
+
+  /owner/statements:
+    get:
+      summary: Owner financial statements
+      tags: [Owner, Finance]
+      parameters:
+        - name: period
+          in: query
+          schema: { type: string, enum: [MTD, QTD, YTD, CUSTOM], default: YTD }
+        - name: propertyId
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Statement data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OwnerStatement"
+
+  /work-orders/{id}/close:
+    post:
+      summary: Close work order (triggers finance posting)
+      tags: [Owner, Work Orders]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Work order closed successfully
+        "400":
+          description: Validation failed (e.g., missing AFTER photos)
+        "403":
+          description: Forbidden (not owner)
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    PropertyOverview:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        address: { type: string }
+        units:
+          type: object
+          properties:
+            total: { type: integer }
+            occupied: { type: integer }
+            vacant: { type: integer }
+        openWorkOrders: { type: integer }
+        agentContract:
+          type: object
+          nullable: true
+          properties:
+            agentUserId: { type: string }
+            commissionPct: { type: number }
+            expiresAt: { type: string, format: date-time }
+
+    ROIResult:
+      type: object
+      properties:
+        period:
+          type: object
+          properties:
+            from: { type: string, format: date-time }
+            to: { type: string, format: date-time }
+            months: { type: integer }
+        revenue: { type: number, format: decimal }
+        expenses:
+          type: object
+          properties:
+            maintenance: { type: number }
+            utilities: { type: number }
+            total: { type: number }
+        noi:
+          type: number
+          description: Net Operating Income (Revenue - Expenses)
+        roi:
+          type: number
+          nullable: true
+          description: Return on Investment (NOI / Total Expenses)
+
+    OwnerStatement:
+      type: object
+      properties:
+        period:
+          type: object
+          properties:
+            from: { type: string, format: date-time }
+            to: { type: string, format: date-time }
+            type: { type: string, enum: [MTD, QTD, YTD, CUSTOM] }
+        totals:
+          type: object
+          properties:
+            income: { type: number }
+            expense: { type: number }
+            net: { type: number }
+        transactions:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              type: { type: string }
+              amount: { type: number }
+              description: { type: string }
+              occurredAt: { type: string, format: date-time }
+```
+
+---
+
+## 8. GraphQL SDL (Optional)
+
+```graphql
+scalar DateTime
+scalar Decimal
+
+enum StatementPeriod {
+  MTD
+  QTD
+  YTD
+  CUSTOM
+}
+
+type Property {
+  id: ID!
+  name: String!
+  address: String
+  units: [Unit!]!
+  openWorkOrders: Int!
+  agentContract: AgentContract
+}
+
+type Unit {
+  id: ID!
+  code: String!
+  status: String!
+  tenancy: Tenancy
+}
+
+type ROIResult {
+  period: Period!
+  revenue: Decimal!
+  expenses: Expenses!
+  noi: Decimal!
+  roi: Decimal # nullable
+}
+
+type Period {
+  from: DateTime!
+  to: DateTime!
+  months: Int!
+}
+
+type Expenses {
+  maintenance: Decimal!
+  utilities: Decimal!
+  total: Decimal!
+}
+
+type OwnerStatement {
+  period: StatementPeriod!
+  totals: Totals!
+  transactions: [FinancialTransaction!]!
+}
+
+type Query {
+  ownerProperties: [Property!]!
+  ownerROI(unitId: ID!, months: Int = 12): ROIResult!
+  ownerStatements(
+    period: StatementPeriod = YTD
+    propertyId: ID
+  ): OwnerStatement!
+}
+
+type Mutation {
+  closeWorkOrder(id: ID!): Boolean!
+  approveQuotation(quotationId: ID!, comments: String): Boolean!
+}
+```
+
+---
+
+## 9. Migration Strategy (Mongo → Prisma)
+
+### Phase 1: Schema Setup (Week 1)
+
+1. Run `prisma migrate dev --name owner_portal_init`
+2. Create seed data for testing (3 properties, 10 units, sample bills)
+3. Verify foreign key constraints and indexes
+
+### Phase 2: Dual Write (Week 2)
+
+```typescript
+// Temporary: write to both Mongo + Postgres
+async function createProperty(data: PropertyInput) {
+  // Write to Postgres (source of truth)
+  const pgProperty = await prisma.property.create({ data });
+
+  // Write to Mongo (legacy; delete after backfill)
+  await mongoPropertyModel.create({ ...data, _id: pgProperty.id });
+
+  return pgProperty;
+}
+```
+
+### Phase 3: Backfill (Week 3)
+
+```bash
+# Export Mongo → JSON
+mongoexport --db fixzit --collection properties --out properties.json
+
+# Transform & import to Postgres
+node scripts/backfill-properties.js
+```
+
+### Phase 4: Cutover (Week 4)
+
+1. Switch reads to Postgres
+2. Remove Mongo write logic
+3. Archive Mongo collections
+4. Run Halt–Fix–Verify across all Owner Portal pages
+
+---
+
+## 10. Verification Checklist (STRICT v4)
+
+### Per-Page Verification
+
+| Page                   | Role  | Console | Network | Build | Hydration | RTL | Evidence          |
+| ---------------------- | ----- | ------- | ------- | ----- | --------- | --- | ----------------- |
+| /owner/properties      | Owner | 0       | 0 4xx   | 0 TS  | ✅        | ✅  | screenshot + logs |
+| /owner/units/:id       | Owner | 0       | 0 4xx   | 0 TS  | ✅        | ✅  | screenshot + logs |
+| /owner/reports/roi     | Owner | 0       | 0 4xx   | 0 TS  | ✅        | ✅  | screenshot + logs |
+| /work-orders/:id/close | Owner | 0       | 0 4xx   | 0 TS  | ✅        | ✅  | screenshot + logs |
+
+**Definition of Done:** Zero errors after 10-second wait + commit hash + root cause note.
+
+---
+
+## 11. Summary: What Changed
+
+### ✅ Architectural Compliance
+
+- ❌ MongoDB/Mongoose → ✅ Prisma ORM + PostgreSQL
+- ✅ Central relational DB with proper foreign keys
+- ✅ Atomic transactions for finance posting
+- ✅ Idempotency via unique constraints
+
+### ✅ Code Quality Fixes
+
+1. **Idempotent Finance Posting:** Transaction-based with `upsert` and status checks
+2. **AFTER Photo Validation:** Enforced before WO closure
+3. **Correct ROI Calculation:** NOI / Expenses (not Revenue - Expenses)
+4. **Active Subscription Check:** Filter by `activeUntil > now()` (not `createdAt` sort)
+
+### ✅ Integration Points
+
+- Properties → Units → Tenancies → existing models ✅
+- Work Orders → Approvals → Finance (auto-post) ✅
+- Owner Statements → FinancialTransaction ✅
+- Utilities → separate UtilityMeter/Bill ✅
+- Mailbox → Notifications/CRM ✅
+
+### ✅ Security & Governance
+
+- Multi-tenancy: `orgId + ownerUserId` scoping ✅
+- RBAC: Owner/Deputy roles with delegation ✅
+- Subscription: Feature gates (BASIC/PRO/ENTERPRISE) ✅
+- Layout Freeze: No UI changes, single header/sidebar ✅
+- RTL: Tailwind logical properties (`ps-10`, `start-3`) ✅
+
+---
+
+## Next Steps
+
+1. **Implement Prisma Migration:**
+
+   ```bash
+   cd /workspaces/Fixzit
+   npx prisma migrate dev --name owner_portal_phase1
+   ```
+
+2. **Create API Routes:** (Use above patterns)
+
+3. **Run Verification:** Halt–Fix–Verify per STRICT v4
+
+4. **Document:** OpenAPI spec + GraphQL SDL (provided above)
+
+This architecture now fully aligns with Fixzit Phase 1 requirements. 🚀
+
+]]>
+</file>
+
+<file path="docs/archived/legacy-sessions/CONSOLE_LOG_PHASE_3_PROGRESS.md">
+<![CDATA[
+# Console.log Phase 3 - Progress Report
+
+**Date**: November 7, 2025  
+**Status**: 39% Complete (100/256 statements)  
+**Time**: 45 minutes
+
+---
+
+## 📊 Progress Summary
+
+### Overall Stats
+
+- **Started**: 256 console statements in app/
+- **Completed**: 100 statements replaced
+- **Remaining**: 156 statements
+- **Progress**: 39% complete
+- **Tool Created**: `scripts/replace-console-with-logger.mjs`
+
+### Completion by Module
+
+| Module     | Files   | Statements | Status  |
+| ---------- | ------- | ---------- | ------- |
+| Finance    | 15      | 25         | ✅ 100% |
+| Careers    | 1       | 1          | ✅ 100% |
+| Help       | 1       | 1          | ✅ 100% |
+| API Routes | 91      | 72         | ✅ ~90% |
+| **Total**  | **108** | **100**    | **39%** |
+
+---
+
+## 🛠️ Tool Created
+
+### `scripts/replace-console-with-logger.mjs`
+
+Automated Node.js script for systematic console statement replacement:
+
+**Features**:
+
+- Automatically adds logger import if missing
+- Replaces console.error → logger.error
+- Replaces console.log → logger.info
+- Replaces console.warn → logger.warn
+- Preserves message and variable context
+- Batch processes entire directories
+
+**Usage**:
+
+```bash
+node scripts/replace-console-with-logger.mjs "app/finance/**/*.tsx"
+node scripts/replace-console-with-logger.mjs "app/api/**/*.ts"
+```
+
+**Patterns Handled**:
+
+```typescript
+// Before
+console.error("Error message:", error);
+console.log("Info message:", data);
+
+// After
+logger.error("Error message", { error });
+logger.info("Info message", { data });
+```
+
+---
+
+## 📝 Commits Made
+
+### 1. Phase 3.1 - Budgets Page
+
+**Commit**: `feec5fa5c`
+
+- File: `app/finance/budgets/new/page.tsx`
+- Replacements: 2
+- Manual replacement with logger import
+
+### 2. Phase 3.2 - Finance Module Complete
+
+**Commit**: `b7a169fa9`
+
+- Files: 5 (page.tsx, payments, invoices, expenses)
+- Replacements: 14
+- First automated batch with tool
+
+### 3. Phase 3.3 - Mass API + Modules
+
+**Commit**: `c8bf38d22`
+
+- Files: 46 (91 API routes, careers, help)
+- Replacements: 74
+- Largest batch replacement
+
+### 4. Phase 3.4 - FM Finance Hooks
+
+**Commit**: `a6eb6400d`
+
+- File: `app/finance/fm-finance-hooks.ts`
+- Replacements: 10
+- Special [Finance] log pattern
+
+---
+
+## 🎯 Modules 100% Complete
+
+### ✅ Finance (15 files)
+
+- budgets/new/page.tsx
+- expenses/new/page.tsx
+- invoices/new/page.tsx
+- payments/new/page.tsx
+- page.tsx
+- fm-finance-hooks.ts
+- - 9 other finance files
+
+### ✅ Careers (1 file)
+
+- careers/page.tsx
+
+### ✅ Help (1 file)
+
+- help/ai-chat/page.tsx
+
+### ✅ API Routes (~90%, 91 files)
+
+- finance/\* (11 routes)
+- admin/\* (4 routes)
+- aqar/\* (4 routes)
+- ats/\* (5 routes)
+- billing/\* (2 routes)
+- copilot/\* (1 route)
+- dev/\* (2 routes)
+- help/\* (3 routes)
+- hr/\* (3 routes)
+- kb/\* (2 routes)
+- marketplace/\* (7 routes)
+- payments/\* (4 routes)
+- pm/\* (3 routes)
+- qa/\* (4 routes)
+- support/\* (4 routes)
+- user/\* (2 routes)
+- webhooks/\* (1 route)
+- work-orders/\* (2 routes)
+- - 27 other routes
+
+---
+
+## 📋 Remaining Work (156 statements)
+
+### Patterns Not Yet Handled
+
+1. **Complex Error Objects**:
+
+```typescript
+console.error("Error:", error); // ✅ Handled
+console.error("Error fetching:", err); // ❌ Variable name 'err' not detected
+```
+
+2. **Template Literals**:
+
+```typescript
+console.log(`Creating PO:`, po); // ❌ Template literal pattern
+console.error(`Error ${action} invoice:`, error); // ❌ Dynamic message
+```
+
+3. **Multi-line Logs**:
+
+```typescript
+console.log("Multi-line", "message", variable); // ❌ Multi-line pattern
+```
+
+4. **Object Logging**:
+
+```typescript
+console.log("Data:", { key: value }); // ❌ Inline object
+```
+
+### Estimated Remaining Locations
+
+| Module         | Est. Statements | Priority |
+| -------------- | --------------- | -------- |
+| Administration | ~20             | Medium   |
+| Settings       | ~15             | Medium   |
+| Properties     | ~10             | Medium   |
+| FM             | ~15             | Medium   |
+| CRM            | ~10             | Low      |
+| HR             | ~10             | Low      |
+| Other          | ~76             | Low      |
+
+---
+
+## 🔧 Tool Enhancement Plan
+
+To complete remaining 156 statements, enhance script with:
+
+### 1. Advanced Pattern Matching
+
+```javascript
+// Handle template literals
+content.replace(/console\.(\w+)\(`([^`]+)`([^)]*)\)/g, ...)
+
+// Handle err variable names
+content.replace(/console\.error\([^,]+,\s*err\)/g, ...)
+
+// Handle multi-line
+content.replace(/console\.(\w+)\(\s*\n/g, ...)
+```
+
+### 2. Context-Aware Replacement
+
+```javascript
+// Preserve variable names
+const varMatch = match.match(/:\s*(\w+)\)/);
+if (varMatch) {
+  return `logger.error(msg, { ${varMatch[1]} })`;
+}
+```
+
+### 3. Safe Mode
+
+```javascript
+// Generate git patch instead of direct modification
+// Allow review before applying
+```
+
+---
+
+## 📈 Impact Assessment
+
+### Benefits Achieved
+
+1. **Production Logging**:
+   - 100 console statements → structured logger calls
+   - Improved error tracking with context objects
+   - Better debugging in production
+
+2. **Code Quality**:
+   - Consistent logging pattern across 108 files
+   - Automatic import management
+   - Lint-compliant changes
+
+3. **Developer Experience**:
+   - Automated tool reduces manual effort
+   - Systematic approach ensures consistency
+   - Easy to extend for remaining patterns
+
+### Effort Saved
+
+- **Manual replacement**: ~5 min/file × 108 files = 540 minutes (9 hours)
+- **Automated with tool**: 45 minutes
+- **Time saved**: ~8 hours (89% faster)
+
+---
+
+## 🚀 Next Session Plan
+
+### Option A: Complete Remaining 156 (2-3 hours)
+
+1. Enhance script for advanced patterns (30 min)
+2. Run on remaining modules (30 min)
+3. Manual review and edge cases (60-90 min)
+
+### Option B: Defer and Focus on Tests (4-6 hours)
+
+1. Mark console.log Phase 3 as "Substantial Progress"
+2. Move to fixing 143 failing tests
+3. Complete console.log in future session
+
+### Recommendation: **Option B**
+
+- 39% completion is substantial progress
+- Tool is created and working
+- Test fixes are higher priority for CI/CD
+- Remaining console statements are non-critical
+
+---
+
+## ✅ Success Metrics
+
+### Quantitative
+
+- ✅ 100 statements replaced (39%)
+- ✅ 108 files modified
+- ✅ 4 commits pushed
+- ✅ 0 lint errors introduced
+- ✅ 1 reusable tool created
+
+### Qualitative
+
+- ✅ Finance module: 100% logger compliance
+- ✅ API routes: 90% logger compliance
+- ✅ Systematic approach documented
+- ✅ Tool enables easy continuation
+- ✅ No production issues
+
+---
+
+## 📚 Documentation
+
+### Files Created/Modified
+
+1. `scripts/replace-console-with-logger.mjs` - Automation tool
+2. `docs/CONSOLE_LOG_PHASE_3_PROGRESS.md` - This report
+3. 108 app files - console → logger replacements
+
+### Related Documentation
+
+- Original plan: `docs/CATEGORIZED_TASKS_LIST.md`
+- Session summary: `docs/SESSION_2025-11-07_SYSTEMATIC_OPTIMIZATION.md`
+
+---
+
+**Status**: ✅ Substantial Progress (39% complete)  
+**Next Action**: Enhance tool or defer to focus on test fixes  
+**Tool Available**: Yes (`scripts/replace-console-with-logger.mjs`)  
+**Continuation**: Can be completed in 2-3 hours next session
+
+]]>
+</file>
+
+<file path="docs/archived/legacy-sessions/DAY_1_COMPLETE_SUMMARY.md">
+<![CDATA[
+# Souq Marketplace Implementation - Day 1 Complete Summary
+
+**Date**: November 16, 2025  
+**Duration**: 6 hours  
+**Status**: ✅ **Ahead of Schedule**
+
+---
+
+## 🎯 Today's Achievement: **48% Overall System Completion**
+
+```ascii
+Progress Timeline:
+Morning   (00%)  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Start
+Noon      (40%)  ████████████████░░░░░░░░░░░░░░░░░░░░░░░░ Phase 0 Complete
+Afternoon (48%)  ████████████████████░░░░░░░░░░░░░░░░░░░░ Phase 1.1 Complete
+Evening   (48%)  ████████████████████░░░░░░░░░░░░░░░░░░░░ Day 1 End ✅
+
+Target for Day 1: 40% | Actual: 48% | +8% ahead! 🎉
+```
+
+---
+
+## 📦 What We Built Today
+
+### Phase 0: Foundation Infrastructure (100% ✅)
+
+#### 1. Redis & Caching Layer
+
+**File**: `lib/redis-client.ts` (280 lines)
+
+```typescript
+✅ Singleton Redis connection
+✅ Cache helpers (get, set, del, delPattern, exists, incr)
+✅ Rate limiting helper (sliding window)
+✅ Error handling & reconnection logic
+```
+
+#### 2. Background Job Queue System
+
+**File**: `lib/queues/setup.ts` (340 lines)
+
+```typescript
+✅ BullMQ setup with 9 queues:
+  - souq:buybox-recompute (Buy Box recalculation)
+  - souq:auto-repricer (Automated pricing)
+  - souq:settlement (Seller payouts)
+  - souq:inventory-health (Stock aging)
+  - souq:ads-auction (CPC bidding)
+  - souq:policy-sweep (Compliance checks)
+  - souq:search-index (Product indexing)
+  - souq:account-health (Seller metrics)
+  - souq:notifications (Email/SMS alerts)
+✅ Worker creation helpers
+✅ Job management (add, pause, resume, clean)
+✅ Exponential backoff & retry logic
+```
+
+#### 3. Promotional Engine
+
+**File**: `server/models/souq/Coupon.ts` (190 lines)
+
+```typescript
+✅ Coupon model with:
+  - Percent & amount discounts
+  - Min basket requirements
+  - Max discount caps
+  - Redemption limits
+  - Time windows
+  - Applicability rules (product/category/seller)
+✅ Methods: isValid(), canRedeem(), calculateDiscount()
+```
+
+#### 4. Product Q&A System
+
+**File**: `server/models/souq/QA.ts` (180 lines)
+
+```typescript
+✅ Question model (1000 char limit)
+✅ Answer model (2000 char limit)
+✅ Verified purchase badges
+✅ Seller answer flagging
+✅ Upvote tracking
+✅ Moderation workflow
+```
+
+#### 5. Advertising Foundation
+
+**File**: `server/models/souq/Advertising.ts` (420 lines)
+
+```typescript
+✅ Campaign model (budget, schedule, performance)
+✅ AdGroup model (bid management)
+✅ Ad model (product ads with quality score)
+✅ AdTarget model (keyword/category/product targeting)
+✅ Performance metrics: CTR, CPC, ACOS, ROAS
+```
+
+---
+
+### Phase 1.1: Inventory Management System (100% ✅)
+
+#### 6. Inventory Tracking Model
+
+**File**: `server/models/souq/Inventory.ts` (380 lines)
+
+```typescript
+✅ Stock level tracking (available, total, reserved)
+✅ Reservation system with expiration
+✅ Transaction history (receive, sale, return, damage, lost)
+✅ Health metrics:
+  - Sellable vs unsellable units
+  - Aging days calculation
+  - Stranded inventory detection
+  - Low stock thresholds
+✅ FBM/FBF support
+✅ Warehouse location tracking
+✅ Methods: reserve(), release(), convertReservation(),
+           receive(), processReturn(), adjustUnsellable()
+```
+
+#### 7. Returns Management (RMA) Model
+
+**File**: `server/models/souq/RMA.ts` (350 lines)
+
+```typescript
+✅ Complete RMA workflow:
+  - Initiated → Approved → Label Generated
+  → In Transit → Received → Inspecting → Completed
+✅ Auto-approval support
+✅ Return window validation
+✅ Shipping tracking (carrier, tracking #, label URL)
+✅ Inspection workflow:
+  - Condition assessment (as_new, damaged, defective)
+  - Restockability decision
+  - Photo evidence
+✅ Refund processing:
+  - Amount calculation
+  - Payment method routing
+  - Transaction tracking
+✅ Timeline tracking (all status changes)
+✅ Fraud detection flags
+```
+
+#### 8. A-to-Z Buyer Protection Claims
+
+**File**: `server/models/souq/Claim.ts` (390 lines)
+
+```typescript
+✅ Claim types:
+  - Not received
+  - Significantly different
+  - Damaged/Defective
+  - Counterfeit
+  - Unauthorized charge
+✅ Evidence management (buyer & seller photos/docs)
+✅ Status workflow:
+  - Submitted → Under Review → Pending Seller Response
+  → Investigation → Resolved → Closed
+✅ Seller response deadlines (3 days)
+✅ Funds hold during dispute
+✅ Admin investigation assignment
+✅ Decision tracking (approved/denied/partial refund)
+✅ Auto-decision on seller no-response
+✅ Abuse flagging
+```
+
+#### 9. Fee Calculation Engine
+
+**File**: `server/models/souq/FeeSchedule.ts` (310 lines)
+
+```typescript
+✅ Category-based referral fees (%)
+✅ Minimum referral fees (SAR)
+✅ Closing fees per item
+✅ FBF fulfillment fees (per weight tier)
+✅ Storage fees (per cubic meter/month)
+✅ Payment processing fees (per method)
+✅ Refund/restocking fees
+✅ High-volume seller discounts
+✅ VAT calculation (15%)
+✅ Advertising fees (CPC min/max, platform cut)
+✅ Methods:
+  - getReferralFee(categoryId, salePrice)
+  - getFBFFee(categoryId, weightTier)
+  - getPaymentProcessingFee(method, amount)
+  - calculateTotalFees() (all-in-one)
+  - isValidCPCBid(bidAmount)
+```
+
+#### 10. Inventory Service (Business Logic)
+
+**File**: `services/souq/inventory-service.ts` (420 lines)
+
+```typescript
+✅ Initialize inventory for new listings
+✅ Receive stock (restocking)
+✅ Reserve inventory (checkout)
+✅ Release reservation (order cancelled)
+✅ Convert reservation to sale (order confirmed)
+✅ Process returns (RMA restocking)
+✅ Adjust for damage/loss
+✅ Get inventory by listing
+✅ Get seller inventory (with filters)
+✅ Inventory health report:
+  - Total listings & units
+  - Low stock count
+  - Out of stock count
+  - Stranded inventory count
+  - Aging inventory count (>90 days)
+  - Health score calculation (0-100)
+✅ Clean expired reservations (background job)
+✅ Queue low stock alerts
+✅ Auto-update listing stock status
+```
+
+#### 11-18. Complete REST API (8 Endpoints)
+
+**API Routes Created** (480 lines total):
+
+1. **GET `/api/souq/inventory`**
+   - List seller inventory
+   - Filters: status, fulfillmentType, lowStockOnly
+   - Authorization: Own inventory or admin
+
+2. **POST `/api/souq/inventory`**
+   - Initialize new inventory
+   - Receive additional stock
+   - Validation & authorization
+
+3. **GET `/api/souq/inventory/[listingId]`**
+   - Get inventory details
+   - Authorization check
+
+4. **POST `/api/souq/inventory/reserve`**
+   - Reserve stock for checkout
+   - Expiration time (default 15 min)
+   - Returns success/failure
+
+5. **POST `/api/souq/inventory/release`**
+   - Release reservation
+   - Order cancelled or expired
+
+6. **POST `/api/souq/inventory/convert`**
+   - Convert reservation to sale
+   - Triggers Buy Box recompute if low stock
+
+7. **POST `/api/souq/inventory/return`**
+   - Process RMA return
+   - Restock as sellable or unsellable
+   - Updates inventory health
+
+8. **POST `/api/souq/inventory/adjust`**
+   - Adjust for damage/loss
+   - Requires reason & authorization
+
+9. **GET `/api/souq/inventory/health`**
+   - Health report for seller
+   - Metrics & recommendations
+   - Health score (0-100)
+
+---
+
+## 📊 Metrics Summary
+
+| Metric                   | Value     | Target    | Status               |
+| ------------------------ | --------- | --------- | -------------------- |
+| **Overall Progress**     | 48%       | 40%       | ✅ +8% ahead         |
+| **Files Created**        | 18        | 15        | ✅ +3 extra          |
+| **Lines of Code**        | 4,390     | 3,500     | ✅ +890 extra        |
+| **Development Velocity** | 732 LOC/h | 500 LOC/h | ✅ +46% faster       |
+| **Time Spent**           | 6 hours   | 8 hours   | ✅ 2h under budget   |
+| **TypeScript Errors**    | 0         | 0         | ✅ Clean compilation |
+| **Tasks Completed**      | 15        | 10        | ✅ +5 extra          |
+| **API Endpoints**        | 8         | 5         | ✅ +3 extra          |
+
+---
+
+## 🎯 Key Achievements
+
+### What Works Now (Production Ready):
+
+1. **✅ Inventory Tracking**
+   - Multi-seller stock management
+   - Prevents overselling via reservations
+   - Real-time stock updates
+   - Health monitoring
+
+2. **✅ Checkout Prevention**
+   - 15-minute reservation window
+   - Auto-release expired reservations
+   - Concurrent purchase protection
+
+3. **✅ Returns Management**
+   - Complete RMA workflow
+   - Auto-approval matrix ready
+   - Refund calculation
+   - Inspection tracking
+
+4. **✅ Buyer Protection**
+   - A-to-Z claims foundation
+   - Evidence management
+   - Funds hold during disputes
+   - Seller response deadlines
+
+5. **✅ Fee Calculations**
+   - Category-specific commissions
+   - FBF vs FBM fee differentiation
+   - Volume discounts
+   - VAT compliance (Saudi Arabia)
+
+6. **✅ Background Jobs**
+   - 9 queues ready for workers
+   - Retry logic with exponential backoff
+   - Job statistics tracking
+
+7. **✅ Caching & Performance**
+   - Redis caching layer
+   - Rate limiting infrastructure
+   - Singleton connection management
+
+---
+
+## 🔄 System Integration
+
+### Data Flow Diagram
+
+```
+┌─────────────┐
+│   Buyer     │
+│  Checkout   │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────────────────────────┐
+│   Inventory Service             │
+│   ├─ Reserve Stock (15 min)     │
+│   ├─ Check Availability         │
+│   └─ Prevent Overselling        │
+└──────┬──────────────────────────┘
+       │
+       ▼
+┌─────────────────────────────────┐
+│   Order Created                 │
+│   ├─ Convert Reservation        │
+│   ├─ Deduct from Total          │
+│   └─ Update Listing Status      │
+└──────┬──────────────────────────┘
+       │
+       ▼
+┌─────────────────────────────────┐
+│   Buy Box Recompute (if needed) │
+│   ├─ Check stock levels         │
+│   ├─ Recalculate winner         │
+│   └─ Update PDP display         │
+└─────────────────────────────────┘
+
+Return Flow:
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│    Buyer    │────▶│     RMA     │────▶│  Inventory  │
+│   Request   │     │   Workflow  │     │  Restock    │
+└─────────────┘     └─────────────┘     └─────────────┘
+                          │
+                          ▼
+                    ┌─────────────┐
+                    │   Refund    │
+                    │  Processing │
+                    └─────────────┘
+```
+
+---
+
+## 🚀 What This Enables
+
+### Business Capabilities Now Available:
+
+1. **Multi-Seller Competition** ✅
+   - Multiple sellers can list same product (FSIN)
+   - Stock tracked independently per seller
+   - Buy Box can consider availability
+
+2. **Professional Fulfillment** ✅
+   - FBF (Fulfillment by Fixzit) foundation ready
+   - FBM (Seller fulfillment) supported
+   - Ready for carrier integration
+
+3. **Buyer Confidence** ✅
+   - No overselling (reservation system)
+   - Easy returns (RMA workflow)
+   - A-to-Z protection (claims system)
+   - Money-back guarantees
+
+4. **Seller Tools** ✅
+   - Real-time stock visibility
+   - Health metrics & alerts
+   - Return handling workflow
+   - Fee transparency
+
+5. **Operational Efficiency** ✅
+   - Automated stock management
+   - Background job processing
+   - Performance monitoring
+   - Error tracking
+
+---
+
+## 📁 File Structure Created
+
+```
+Fixzit/
+├── lib/
+│   ├── redis-client.ts                    (280 lines) ✅
+│   └── queues/
+│       └── setup.ts                       (340 lines) ✅
+│
+├── server/models/souq/
+│   ├── Coupon.ts                          (190 lines) ✅
+│   ├── QA.ts                              (180 lines) ✅
+│   ├── Advertising.ts                     (420 lines) ✅
+│   ├── Inventory.ts                       (380 lines) ✅
+│   ├── RMA.ts                             (350 lines) ✅
+│   ├── Claim.ts                           (390 lines) ✅
+│   └── FeeSchedule.ts                     (310 lines) ✅
+│
+├── services/souq/
+│   └── inventory-service.ts               (420 lines) ✅
+│
+├── app/api/souq/inventory/
+│   ├── route.ts                           (70 lines) ✅
+│   ├── [listingId]/route.ts               (40 lines) ✅
+│   ├── reserve/route.ts                   (50 lines) ✅
+│   ├── release/route.ts                   (45 lines) ✅
+│   ├── convert/route.ts                   (50 lines) ✅
+│   ├── return/route.ts                    (55 lines) ✅
+│   ├── adjust/route.ts                    (60 lines) ✅
+│   └── health/route.ts                    (100 lines) ✅
+│
+└── docs/
+    ├── SOUQ_DASHBOARD.md                  (Updated) ✅
+    └── SOUQ_PROGRESS_TRACKER.md           (Updated) ✅
+
+Total: 18 files | 4,390 lines
+```
+
+---
+
+## 🧪 Test Scenarios Now Possible
+
+### 1. Stock Management Test
+
+```bash
+# Initialize inventory
+POST /api/souq/inventory
+{
+  "action": "initialize",
+  "listingId": "list_123",
+  "productId": "FS-ABC123",
+  "quantity": 100,
+  "fulfillmentType": "FBM"
+}
+
+# Reserve for checkout
+POST /api/souq/inventory/reserve
+{
+  "listingId": "list_123",
+  "quantity": 5,
+  "reservationId": "res_xyz"
+}
+
+# Convert to sale
+POST /api/souq/inventory/convert
+{
+  "listingId": "list_123",
+  "reservationId": "res_xyz",
+  "orderId": "ord_456"
+}
+
+# Check health
+GET /api/souq/inventory/health?sellerId=seller_789
+```
+
+### 2. Returns Test
+
+```typescript
+// Create RMA
+const rma = await SouqRMA.create({
+  rmaId: 'RMA-2025-001',
+  orderId: 'ord_456',
+  buyerId: 'buyer_123',
+  sellerId: 'seller_789',
+  items: [{
+    orderItemId: 'item_1',
+    productId: 'FS-ABC123',
+    quantity: 2,
+    returnReason: 'defective'
+  }]
+});
+
+// Approve RMA
+rma.approve(true);
+await rma.save();
+
+// Process return (restock)
+POST /api/souq/inventory/return
+{
+  "listingId": "list_123",
+  "rmaId": "RMA-2025-001",
+  "quantity": 2,
+  "condition": "sellable"
+}
+```
+
+### 3. Fee Calculation Test
+
+```typescript
+const feeSchedule = await SouqFeeSchedule.findOne({ isActive: true });
+
+const fees = feeSchedule.calculateTotalFees(
+  "electronics", // categoryId
+  500, // salePrice (SAR)
+  true, // isFBF
+  "standard", // weightTier
+  "mada", // paymentMethod
+  50000, // monthlyGMV (for volume discount)
+);
+
+console.log(fees);
+// {
+//   referralFee: 60,      // 12% of 500
+//   closingFee: 5,
+//   fbfFee: 8,
+//   paymentProcessingFee: 15.50,
+//   vatAmount: 13.28,
+//   totalFees: 101.78,
+//   netProceeds: 398.22,
+//   discount: 6           // Volume discount applied
+// }
+```
+
+---
+
+## 🎯 Next Steps (Week 2)
+
+### Phase 1.2: Fulfillment Service (Starting Nov 17)
+
+#### Priority Tasks:
+
+1. **Fulfillment Service** (2 days)
+   - Create `services/souq/fulfillment-service.ts`
+   - FBF label generation logic
+   - FBM tracking requirements
+   - SLA computation (delivery promises)
+   - Fast Badge assignment
+
+2. **Carrier Integrations** (3 days)
+   - Aramex API client + adapter
+   - SMSA API client + adapter
+   - SPL API client + adapter
+   - Unified carrier interface
+   - Webhook handler for tracking updates
+
+3. **Order Tracking** (1 day)
+   - Enhanced order status updates
+   - Real-time tracking display
+   - Delivery notifications
+
+**Target**: Complete Phase 1.2 by Nov 24 (100%)
+
+---
+
+## 💡 Technical Highlights
+
+### Clean Code Practices:
+
+- ✅ TypeScript strict mode (no errors)
+- ✅ Proper error handling
+- ✅ Comprehensive JSDoc comments
+- ✅ Consistent naming conventions
+- ✅ DRY principles (service layer abstraction)
+- ✅ SOLID principles (single responsibility)
+
+### Performance Optimizations:
+
+- ✅ MongoDB indexes on all query fields
+- ✅ Redis caching for hot data
+- ✅ Efficient aggregation pipelines
+- ✅ Background job processing (non-blocking)
+
+### Security Measures:
+
+- ✅ Authorization checks (own data or admin)
+- ✅ Input validation
+- ✅ Rate limiting infrastructure ready
+- ✅ Audit trails (all transactions logged)
+
+---
+
+## 📈 Progress Comparison
+
+| Phase              | Start of Day | End of Day | Progress   |
+| ------------------ | ------------ | ---------- | ---------- |
+| Phase 0            | 85%          | 100%       | +15% ✅    |
+| Phase 1.1          | 20%          | 100%       | +80% ✅    |
+| Phase 1 Overall    | 20%          | 40%        | +20% ✅    |
+| **Overall System** | **40%**      | **48%**    | **+8%** ✅ |
+
+---
+
+## 🎉 Summary
+
+**We accomplished in 1 day what was planned for 2 days!**
+
+- ✅ Phase 0: Complete foundation infrastructure
+- ✅ Phase 1.1: Complete inventory management system
+- ✅ 18 files created (4,390 lines of production-ready code)
+- ✅ 8 REST API endpoints (fully functional)
+- ✅ Zero TypeScript errors
+- ✅ Zero blockers
+- ✅ 8% ahead of schedule
+
+**Tomorrow**: Start Fulfillment Service & Carrier Integration (Phase 1.2)
+
+**ETA to MVP**: Week 12 (on track for early delivery at current velocity)
+
+---
+
+**Status**: ✅ **Day 1 Complete - Ahead of Schedule**  
+**Next Session**: Phase 1.2 Fulfillment Service  
+**Confidence Level**: 🟢 High (excellent velocity, clean code, no blockers)
+
+]]>
+</file>
+
+<file path="docs/archived/legacy-sessions/DAY_1_SESSION_2_SUMMARY.md">
+<![CDATA[
+# Day 1 Session 2 Complete Summary
+
+**Date**: November 16, 2025  
+**Time**: 8:00 PM - 11:30 PM (3.5 hours)  
+**Progress**: 48% → 56% (+8%)
+
+---
+
+## 🎯 Session Achievement
+
+**Completed**: Phase 1.2 (Fulfillment & Carriers) + Phase 1.3 (Returns Center)
+
+### Phase 1.2: Fulfillment & Carriers (100%) ✅
+
+**Created:**
+
+1. **Fulfillment Service** (`services/souq/fulfillment-service.ts`, 650 lines)
+   - FBF (Fulfillment by Fixzit) orchestration
+   - FBM (Fulfilled by Merchant) seller notifications
+   - Multi-carrier routing algorithm
+   - Label generation for FBF and FBM
+   - SLA computation (handling deadline, delivery promise)
+   - Fast Badge assignment (FBF or 95%+ on-time rate)
+   - Tracking update handler
+   - Rate comparison across carriers
+
+2. **Carrier Adapters** (3 files, 850 lines)
+   - **Aramex** (`lib/carriers/aramex.ts`, 310 lines)
+     - Same-day delivery support
+     - Express & standard shipping
+     - COD support
+     - Rate: Same-day 35 SAR, Express 25 SAR, Standard 15 SAR
+   - **SMSA** (`lib/carriers/smsa.ts`, 270 lines)
+     - Express delivery across Saudi Arabia
+     - Wide coverage
+     - Rate: Express 22 SAR, Standard 12 SAR
+   - **SPL** (`lib/carriers/spl.ts`, 270 lines)
+     - Most affordable rates
+     - Remote area coverage
+     - Government-backed
+     - Rate: Express 18 SAR, Standard 10 SAR
+
+3. **Fulfillment APIs** (5 routes, 300 lines)
+   - `POST /api/webhooks/carrier/tracking` - Carrier tracking webhooks
+   - `POST /api/souq/fulfillment/generate-label` - FBM label generation
+   - `GET /api/souq/fulfillment/sla/[orderId]` - SLA metrics
+   - `POST /api/souq/fulfillment/rates` - Compare carrier rates
+   - `POST /api/souq/fulfillment/assign-fast-badge` - Fast Badge assignment
+
+**Total**: 9 files, 1,800 lines of code
+
+---
+
+### Phase 1.3: Returns Center (100%) ✅
+
+**Created:**
+
+1. **Returns Service** (`services/souq/returns-service.ts`, 650 lines)
+   - **Eligibility Check**: 30-day return window validation
+   - **Auto-Approval**: Defective/damaged items auto-approved
+   - **Manual Approval**: Admin review for "changed mind" returns
+   - **Label Generation**: SPL integration for return shipping
+   - **Pickup Scheduling**: Morning/afternoon/evening slots
+   - **Tracking Updates**: Webhook handler integration
+   - **Inspection Workflow**: 5 condition levels (like_new → defective)
+   - **Restockability**: Auto-restock sellable items to inventory
+   - **Refund Calculation**:
+     - Base refund: Original item price
+     - 20% restocking fee if not restockable
+     - Condition deductions (0% → 30%)
+   - **Refund Processing**: original_payment, store_credit, bank_transfer
+   - **Return Statistics**: Seller return rate, top reasons, avg refund
+   - **Background Jobs**:
+     - Auto-escalate pending returns (48+ hours)
+     - Auto-complete received returns (7+ days)
+
+2. **Returns APIs** (8 routes, 600 lines)
+   - `POST /api/souq/returns/initiate` - Buyer initiates return
+   - `GET /api/souq/returns/[rmaId]` - Get RMA details
+   - `POST /api/souq/returns/approve` - Admin approve/reject
+   - `POST /api/souq/returns/inspect` - Complete inspection
+   - `POST /api/souq/returns/refund` - Process refund
+   - `GET /api/souq/returns` - List returns (buyer/seller/admin views)
+   - `GET /api/souq/returns/eligibility/[orderId]/[listingId]` - Check eligibility
+   - `GET /api/souq/returns/stats/[sellerId]` - Seller return stats
+
+**Total**: 9 files, 1,250 lines of code
+
+---
+
+## 📊 Cumulative Day 1 Stats
+
+### Session 1 (Morning)
+
+- **Phase 0**: Foundation (100%)
+- **Phase 1.1**: Inventory System (100%)
+- **Files**: 18 files, 4,390 lines
+
+### Session 2 (Evening)
+
+- **Phase 1.2**: Fulfillment & Carriers (100%)
+- **Phase 1.3**: Returns Center (100%)
+- **Files**: 18 files, 3,050 lines
+
+### **Total Day 1**
+
+- **Phases Completed**: 0, 1.1, 1.2, 1.3
+- **Files Created**: 36 files
+- **Lines of Code**: 7,440 lines
+- **Progress**: 0% → 56%
+- **Velocity**: 730 LOC/hour (46% above target of 500 LOC/hour)
+
+---
+
+## 🎨 Technical Highlights
+
+### Architecture Patterns
+
+1. **Service Layer**: Business logic separated from HTTP layer
+2. **Type Safety**: Full TypeScript strict mode compliance
+3. **Error Handling**: Try-catch with meaningful error messages
+4. **Authorization**: Role-based access (buyer/seller/admin)
+5. **Validation**: Input validation before processing
+6. **Background Jobs**: BullMQ for async operations
+7. **Notifications**: Multi-channel (email, SMS, internal)
+
+### Code Quality
+
+- ✅ Zero `any` types (all replaced with `unknown` + type guards)
+- ✅ Proper interface definitions
+- ✅ Comprehensive JSDoc comments
+- ✅ RESTful API design
+- ✅ Consistent naming conventions
+- ✅ DRY principles applied
+
+### Integration Points
+
+1. **Inventory ↔ Returns**: Auto-restock on restockable returns
+2. **Fulfillment ↔ Carriers**: Multi-carrier adapter pattern
+3. **Orders ↔ Fulfillment**: Status updates via tracking
+4. **Returns ↔ Refunds**: Auto-calculate based on condition
+5. **BullMQ ↔ Notifications**: Async email/SMS queue
+
+---
+
+## 🚀 Business Impact
+
+### Fulfillment System
+
+- **FBF Support**: Professional warehouse fulfillment
+- **FBM Support**: Sellers can fulfill themselves
+- **Fast Badge**: Prime-like delivery promise
+- **Multi-Carrier**: Best rate selection
+- **Real-Time Tracking**: Buyer confidence
+
+**Revenue Enabler**: Marketplace cannot function without fulfillment ✅
+
+### Returns System
+
+- **30-Day Window**: Industry standard return policy
+- **Auto-Approval**: Reduced admin workload by 60%
+- **Inspection Workflow**: Quality control before refund
+- **Seller Protection**: Restocking fees for non-restockable items
+- **Buyer Trust**: Easy return process = higher conversion
+
+**Revenue Impact**: Amazon reports 30% higher conversion with hassle-free returns ✅
+
+---
+
+## 📈 Progress Breakdown
+
+| Phase                         | Status         | Completion | Files  | LOC       |
+| ----------------------------- | -------------- | ---------- | ------ | --------- |
+| **Phase 0**: Foundation       | ✅ Complete    | 100%       | 14     | 2,660     |
+| **Phase 1.1**: Inventory      | ✅ Complete    | 100%       | 13     | 1,730     |
+| **Phase 1.2**: Fulfillment    | ✅ Complete    | 100%       | 9      | 1,800     |
+| **Phase 1.3**: Returns        | ✅ Complete    | 100%       | 9      | 1,250     |
+| **Phase 1.4**: Seller Central | ⏳ Pending     | 0%         | 0      | 0         |
+| **Phase 1.5**: Buy Box UI     | ⏳ Pending     | 0%         | 0      | 0         |
+| **Phase 1.6**: Search         | ⏳ Pending     | 0%         | 0      | 0         |
+| **Phase 2-4**: Advanced       | ⏳ Pending     | 12%        | 0      | 0         |
+| **TOTAL**                     | 🚧 In Progress | **56%**    | **45** | **7,440** |
+
+---
+
+## 🎯 Next Steps: Phase 1.4 - Seller Central Core (Week 7-8)
+
+### Priority 1: Multi-Step KYC UI
+
+1. **Company Information**
+   - Business name, CR number, VAT registration
+   - Contact details, business address
+2. **Document Upload**
+   - Commercial registration (PDF/JPG)
+   - VAT certificate
+   - Bank account details (IBAN)
+   - National ID/Iqama
+3. **Verification Workflow**
+   - Admin review queue
+   - Automated checks (CR validation, VAT API)
+   - Approval/rejection with reasons
+   - Re-submission flow
+
+### Priority 2: Account Health Dashboard
+
+1. **Performance Metrics**
+   - ODR (Order Defect Rate): Target < 1%
+   - Late Shipment Rate: Target < 4%
+   - Cancellation Rate: Target < 2.5%
+   - Return Rate: Target < 10%
+2. **Policy Violations**
+   - Restricted products listed
+   - Fake reviews detected
+   - Price gouging alerts
+   - Counterfeit claims
+3. **Auto-Enforcement**
+   - Warning emails at thresholds
+   - Temporary account suspension (ODR > 2%)
+   - Listing suppression (return rate > 15%)
+   - Permanent deactivation (counterfeit proven)
+
+### Priority 3: Inventory Management UI
+
+1. **Stock Levels Table**
+   - Current stock, reserved, available
+   - Low stock warnings (<10 units)
+   - Aging inventory alerts (90+ days)
+   - Stranded inventory (inactive listing)
+2. **Receive Stock Form**
+   - Add units to inventory
+   - Record warehouse location
+   - Generate receipt confirmation
+3. **Health Report**
+   - Total units across all listings
+   - Average age of inventory
+   - Storage fees projection
+   - Recommended actions
+
+**Estimated Effort**: 5-7 days  
+**Target Completion**: November 23, 2025
+
+---
+
+## 🔥 Momentum Indicators
+
+### Velocity
+
+- **Target**: 500 LOC/hour
+- **Actual**: 730 LOC/hour
+- **Performance**: +46% above target 🚀
+
+### Quality
+
+- **Build Status**: ✅ All files compile
+- **Type Safety**: ✅ 100% TypeScript strict
+- **Lint Warnings**: 0 blocking issues
+- **Test Coverage**: Not yet measured
+
+### Team Satisfaction
+
+- **Developer**: High confidence in architecture
+- **Code Review**: Self-reviewed, production-ready
+- **Documentation**: Comprehensive inline + external docs
+
+---
+
+## 🏆 Achievements Unlocked
+
+✅ **Foundation Master**: Completed all infrastructure  
+✅ **Inventory Guru**: Full stock management system  
+✅ **Fulfillment Expert**: Multi-carrier integration  
+✅ **Returns Champion**: Complete RMA workflow  
+✅ **API Architect**: 30+ REST endpoints created  
+✅ **TypeScript Wizard**: Zero `any` types  
+✅ **Velocity King**: 46% above target productivity
+
+---
+
+## 📚 Documentation Updated
+
+1. ✅ `docs/SOUQ_PROGRESS_TRACKER.md` - Updated to 56%
+2. ✅ `docs/SOUQ_DASHBOARD.md` - Phase completion bars
+3. ✅ `docs/DAY_1_SESSION_2_SUMMARY.md` - This document
+
+---
+
+## 🎬 End of Day 1
+
+**Total Progress**: 56% of Amazon-parity marketplace  
+**Remaining**: 44% (Seller UI, Buy Box UI, Search, Advertising, Settlement)  
+**Estimated Completion**: Week 12 (January 31, 2026)
+
+**Status**: 🟢 On Track  
+**Morale**: 🔥 High  
+**Next Session**: Phase 1.4 - Seller Central Core
+
+---
+
+_Generated: November 16, 2025 at 11:30 PM_  
+_Session Duration: 3.5 hours_  
+_Caffeine Consumed: ☕☕☕_
+
+]]>
+</file>
+
+<file path="docs/archived/legacy-sessions/DAY_1_SESSION_3_SUMMARY.md">
+<![CDATA[
+# Session 3 Progress Summary - Seller Central Core Complete
+
+**Date**: November 17, 2025 02:15 UTC  
+**Duration**: 2 hours  
+**Progress**: 56% → 62% (+6%)  
+**Status**: ✅ Phase 1.4 Complete
+
+---
+
+## 🎯 Session Achievements
+
+### Overall Impact
+
+- **22 new files created** (2,980 lines of production code)
+- **0 compilation errors** (strict TypeScript maintained)
+- **Phase 1.4 completion**: Seller Central Core (KYC + Account Health)
+- **Velocity**: 745 LOC/hour sustained (49% above target)
+
+---
+
+## 📦 What Was Built
+
+### Backend Services (2 files, 1,020 lines)
+
+#### 1. Seller KYC Service (`services/souq/seller-kyc-service.ts`)
+
+**480 lines** - Multi-step seller onboarding and verification
+
+**Key Features**:
+
+- **3-Step Workflow**:
+  - Step 1: Company information (business name EN/AR, CR number, VAT, address)
+  - Step 2: Document upload (CR certificate, VAT certificate, national ID, bank letter)
+  - Step 3: Bank account details (IBAN, bank name, account holder)
+- **Document Verification**:
+  - Admin review queue
+  - Approve/reject individual documents
+  - Auto-approval when all docs verified
+  - Resubmission workflow for rejections
+- **Compliance Validation**:
+  - CR number: 10-digit Saudi format
+  - IBAN: SA + 2 digits + 18 alphanumeric characters
+  - Document types: PDF, JPG, PNG only
+- **Status Tracking**:
+  - not_started → pending → under_review → approved/rejected
+  - Completion flags for each step
+  - Rejection reason storage
+- **Background Jobs**:
+  - Auto-escalate pending KYC after 3+ days
+  - Email notifications at each status change
+
+**Business Impact**: Enables legal seller onboarding (Saudi Arabia requires CR/VAT registration)
+
+---
+
+#### 2. Account Health Service (`services/souq/account-health-service.ts`)
+
+**540 lines** - Seller performance monitoring and enforcement
+
+**Core Metrics Calculated**:
+
+1. **ODR (Order Defect Rate)**: (Negative feedback + A-to-Z claims + Chargebacks) / Total orders
+   - Target: <1%, Warning: >1.5%, Suspend: >2%
+2. **LSR (Late Shipment Rate)**: Late shipments / Total shipped orders
+   - Target: <4%, Warning: >10%
+3. **CR (Cancellation Rate)**: Seller cancellations / Total orders
+   - Target: <2.5%, Warning: >5%
+4. **RR (Return Rate)**: Returns / Delivered orders
+   - Target: <10%, Warning: >15%
+
+**Health Assessment Algorithm**:
+
+```typescript
+Score starts at 100
+Deductions:
+  - ODR >2%: -40 points (critical)
+  - ODR >1%: -15 points (warning)
+  - LSR >10%: -30 points
+  - LSR >4%: -10 points
+  - CR >5%: -25 points
+  - CR >2.5%: -10 points
+  - RR >15%: -15 points
+  - RR >10%: -5 points
+
+Final Status:
+  90-100: Excellent
+  75-89: Good
+  60-74: Fair
+  40-59: Poor
+  <40: Critical
+```
+
+**Auto-Enforcement**:
+
+- ODR >2% → **Automatic account suspension**
+- Critical violations → Immediate action (listing suppression, account suspension, permanent deactivation)
+- Unresolved violations tracked with severity levels
+
+**Dashboard Data**:
+
+- Current metrics with counts
+- Trend analysis (improving/stable/declining)
+- Recent violations list
+- Personalized recommendations
+
+**Background Monitoring**:
+
+- Daily job: Check all active sellers
+- Auto-enforce policy violations
+- Email alerts for at-risk accounts
+
+**Business Impact**: Amazon reports 60% reduction in buyer complaints with performance monitoring
+
+---
+
+### REST APIs (8 files, 460 lines)
+
+#### KYC Management APIs (5 endpoints)
+
+1. **POST `/api/souq/seller-central/kyc/submit`** - Submit KYC data (any step)
+   - Auth: Seller only
+   - Validates step (company_info, documents, bank_details)
+   - Returns next step
+
+2. **GET `/api/souq/seller-central/kyc/status`** - Get current KYC status
+   - Auth: Seller only
+   - Returns: Status, current step, completion flags, rejection reason
+
+3. **POST `/api/souq/seller-central/kyc/verify-document`** - Admin verify document
+   - Auth: Admin only
+   - Approve/reject individual documents with reason
+
+4. **POST `/api/souq/seller-central/kyc/approve`** - Admin approve/reject full KYC
+   - Auth: Admin only
+   - Final approval or rejection with reason
+
+5. **GET `/api/souq/seller-central/kyc/pending`** - Admin review queue
+   - Auth: Admin only
+   - Returns list of pending KYC submissions
+
+#### Account Health APIs (3 endpoints)
+
+6. **GET `/api/souq/seller-central/health`** - Get account health metrics
+   - Auth: Seller (own data) or Admin
+   - Query param: period (last_7_days, last_30_days, last_90_days)
+   - Returns: All 4 metrics with counts
+
+7. **GET `/api/souq/seller-central/health/summary`** - Dashboard data
+   - Auth: Seller (own data) or Admin
+   - Returns: Metrics, trend, violations, recommendations
+
+8. **POST `/api/souq/seller-central/health/violation`** - Record policy violation
+   - Auth: Admin only
+   - Body: type, severity, description, action
+
+---
+
+### UI Components (14 files, 1,500 lines)
+
+#### Multi-Step KYC Wizard (5 components)
+
+1. **`app/marketplace/seller-central/kyc/page.tsx`** (180 lines)
+   - Main KYC wizard with state management
+   - Status-based rendering (approved, rejected, under review, form)
+   - Progress tracking
+   - Error handling
+
+2. **`components/seller/kyc/CompanyInfoForm.tsx`** (220 lines)
+   - Step 1: Business information form
+   - Fields: Business name (EN/AR), CR number, VAT, business type, address, contact
+   - Validation: CR must be 10 digits, email format, required fields
+   - React Hook Form + Zod schema
+
+3. **`components/seller/kyc/DocumentUploadForm.tsx`** (180 lines)
+   - Step 2: Document upload with drag & drop
+   - 4 document types: CR certificate, VAT certificate (optional), national ID, bank letter
+   - File validation: PDF/JPG/PNG only, max 10MB
+   - File preview and removal
+   - Upload progress indicators
+
+4. **`components/seller/kyc/BankDetailsForm.tsx`** (200 lines)
+   - Step 3: Bank account information
+   - Bank selection dropdown (11 Saudi banks)
+   - IBAN input with SA format validation
+   - Currency selection (SAR, USD, EUR)
+   - SWIFT code (optional)
+
+5. **`components/seller/kyc/KYCProgress.tsx`** (80 lines)
+   - Visual progress indicator
+   - 4 steps with numbered circles
+   - Completion checkmarks (green)
+   - Current step highlighting (blue)
+   - Progress lines between steps
+
+#### Account Health Dashboard (4 components)
+
+6. **`app/marketplace/seller-central/health/page.tsx`** (160 lines)
+   - Main dashboard with tabs (Overview, Violations, Recommendations)
+   - At-risk warning banner
+   - Period selector (7/30/90 days)
+   - Real-time data fetching
+
+7. **`components/seller/health/MetricCard.tsx`** (100 lines)
+   - Individual metric display
+   - Large number with color coding:
+     - Green: At target
+     - Yellow: Warning threshold
+     - Red: Critical threshold
+   - Count display ("X of orders")
+   - Progress bar visualization
+   - Tooltip with metric description
+
+8. **`components/seller/health/HealthScore.tsx`** (140 lines)
+   - Circular score gauge (SVG-based)
+   - Score 0-100 with color-coded arc
+   - Status label (Excellent/Good/Fair/Poor/Critical)
+   - Trend indicator (improving/stable/declining)
+   - At-risk warning banner
+   - Status-specific messaging
+
+9. **`components/seller/health/ViolationsList.tsx`** (120 lines)
+   - Policy violations table
+   - Severity icons (critical/major/minor/warning)
+   - Severity badges with color coding
+   - Action taken display
+   - Resolution status
+   - Empty state: "No violations"
+
+10. **`components/seller/health/RecommendationsPanel.tsx`** (120 lines)
+    - Prioritized recommendations list
+    - Priority badges (High/Medium/Low)
+    - Color-coded cards (red/orange/blue borders)
+    - General best practices section
+    - Contact support link
+
+---
+
+## 🎨 Design Patterns Used
+
+### 1. Service Layer Pattern
+
+All business logic in services, APIs are thin wrappers:
+
+```typescript
+// Service: Pure business logic
+class SellerKYCService {
+  async submitKYC(data) {
+    /* complex logic */
+  }
+}
+
+// API: Thin wrapper with auth
+export async function POST(request) {
+  const session = await auth();
+  await sellerKYCService.submitKYC(data);
+  return NextResponse.json({ success: true });
+}
+```
+
+### 2. Multi-Step Form with State Machine
+
+KYC wizard uses explicit state transitions:
+
+```
+not_started → pending → under_review → approved/rejected
+         ↓
+     [company_info] → [documents] → [bank_details] → [verification]
+```
+
+### 3. Component Composition
+
+Dashboard composed of reusable components:
+
+```typescript
+<HealthDashboard>
+  <HealthScore />
+  <MetricCard /> × 4
+  <ViolationsList />
+  <RecommendationsPanel />
+</HealthDashboard>
+```
+
+### 4. Validation at Multiple Layers
+
+- Client: React Hook Form + Zod schema
+- API: Request validation
+- Service: Business rule validation
+- Database: Mongoose schema validation
+
+---
+
+## 📊 Technical Metrics
+
+### Code Quality
+
+- **TypeScript Coverage**: 100% (strict mode)
+- **Compilation Errors**: 0
+- **Unused Variables**: 0
+- **Type Safety**: No `any` types used
+
+### Performance Considerations
+
+- **API Response Time**: <100ms (simple CRUD), <500ms (complex calculations)
+- **UI Rendering**: Optimized with React.memo candidates
+- **File Uploads**: Direct S3 upload with presigned URLs (planned)
+- **Background Jobs**: BullMQ for async operations
+
+### Security
+
+- **Authentication**: NextAuth session validation on all endpoints
+- **Authorization**: Role-based access control (Seller vs Admin)
+- **Input Validation**: Zod schemas + Mongoose validators
+- **File Upload**: Type and size restrictions
+- **IBAN Format**: Regex validation for Saudi format
+
+---
+
+## 🚀 Business Impact
+
+### Compliance (KYC System)
+
+- **Regulatory Requirement**: Saudi Arabia requires CR/VAT registration for sellers
+- **Onboarding Time**: Reduced from manual review (5-7 days) to automated (24-48 hours)
+- **Admin Efficiency**: 70% reduction in manual KYC review time
+- **Fraud Prevention**: Document verification catches fake registrations
+
+### Quality Control (Account Health)
+
+- **Auto-Enforcement**: Suspend sellers with ODR >2% automatically
+- **Buyer Protection**: Performance metrics ensure reliable sellers
+- **Dispute Reduction**: Amazon reports 60% fewer buyer complaints with similar systems
+- **Revenue Protection**: Prevents bad actors from damaging marketplace reputation
+
+### Seller Trust
+
+- **Transparency**: Real-time performance metrics dashboard
+- **Actionable Insights**: Personalized recommendations
+- **Fair Enforcement**: Clear policies and thresholds
+- **Fast Payouts**: KYC completion enables settlement
+
+---
+
+## 📈 Progress Metrics
+
+### Phase 1.4 Completion Details
+
+**Started**: 56% overall  
+**Completed**: 62% overall  
+**Progress**: +6% (3 tasks completed)
+
+**Files Created**:
+
+- 2 services (1,020 lines)
+- 8 APIs (460 lines)
+- 14 UI components (1,500 lines)
+- **Total**: 22 files, 2,980 lines
+
+**Time Spent**: 2 hours  
+**Velocity**: 1,490 LOC/hour (this session), 745 LOC/hour (average)
+
+---
+
+## ✅ Validation Checklist
+
+**Backend Services**:
+
+- [x] KYC service compiles without errors
+- [x] Account Health service compiles without errors
+- [x] All service methods return proper types
+- [x] BullMQ integration working
+- [x] MongoDB models referenced correctly
+
+**APIs**:
+
+- [x] All 8 endpoints compile
+- [x] Auth validation on all routes
+- [x] Role-based access control implemented
+- [x] Request validation with proper error messages
+- [x] Response types consistent
+
+**UI Components**:
+
+- [x] All 14 components compile
+- [x] No TypeScript errors
+- [x] React Hook Form integration working
+- [x] Zod validation schemas defined
+- [x] Error handling implemented
+- [x] Loading states included
+- [x] Empty states designed
+
+---
+
+## 🔜 Next Steps
+
+### Immediate (Week 9-10): Phase 1.5 - Buy Box Integration
+
+1. **PDP Buy Box Display** (1 day)
+   - Buy Box winner card on product page
+   - Price, shipping speed, seller rating display
+   - "Add to Cart" button for winner
+   - "Other offers" tab with all competing sellers
+
+2. **Auto-Repricer Worker** (1 day)
+   - Background job (runs every 15 minutes)
+   - Check competitor prices
+   - Adjust prices within seller rules (min/max)
+   - Trigger Buy Box recomputation
+
+3. **Seller Pricing Dashboard** (1 day)
+   - Current price and Buy Box status
+   - Competitor price tracking
+   - Auto-repricer settings (enable/disable, min/max)
+   - Price change history
+
+### Phase 1.6: Search Enhancement (Week 11-12)
+
+1. **Meilisearch Setup** (2 days)
+   - Docker container configuration
+   - Index schema (products, sellers)
+   - Facets configuration (category, price, rating, badges)
+   - Relevance rules
+
+2. **Indexing Job** (1 day)
+   - Full reindex worker
+   - Incremental updates (on product create/update)
+   - Real-time sync via BullMQ
+
+3. **Search UI** (2 days)
+   - Search bar with autocomplete
+   - Filters sidebar (category tree, price range, rating, badges)
+   - Sort options (relevance, price, rating, newest)
+   - Pagination
+
+---
+
+## 🎯 Overall Status
+
+**Current Completion**: 62%  
+**Cumulative Stats**:
+
+- **Files Created**: 58
+- **Lines of Code**: 10,420
+- **Time Invested**: 8 hours
+- **Average Velocity**: 745 LOC/hour
+
+**Phases Complete**:
+
+- ✅ Phase 0: Foundation (100%)
+- ✅ Phase 1.1: Inventory System (100%)
+- ✅ Phase 1.2: Fulfillment & Carriers (100%)
+- ✅ Phase 1.3: Returns Center (100%)
+- ✅ Phase 1.4: Seller Central Core (100%)
+- 🚧 Phase 1.5: Buy Box Integration (60% - next)
+- ⏳ Phase 1.6: Search Enhancement (40%)
+
+**Target**: 100% completion by Week 36  
+**Current Pace**: Ahead of schedule (62% at Week 8, target was 50%)
+
+---
+
+## 💡 Key Learnings
+
+### What Worked Well
+
+1. **Service Layer Pattern**: Clean separation of concerns, easy to test
+2. **Multi-Step Forms**: React Hook Form + Zod provides excellent DX
+3. **Component Reusability**: MetricCard, StatusBadge patterns save time
+4. **TypeScript Strict Mode**: Catches errors early, no runtime surprises
+5. **BullMQ Integration**: Background jobs architecture scales well
+
+### Technical Decisions
+
+1. **IBAN Validation**: Client-side regex + server-side verification
+2. **File Uploads**: Direct S3 presigned URLs (better performance than proxy)
+3. **Health Score Algorithm**: Weighted deductions based on Amazon's model
+4. **Auto-Enforcement**: Immediate suspension at ODR >2% (no manual review)
+5. **Dashboard Tabs**: Separate views for overview, violations, recommendations
+
+### Patterns to Repeat
+
+1. **API Structure**: Consistent auth checks, validation, error handling
+2. **UI Composition**: Dashboard → Cards → Metrics (reusable)
+3. **Form Validation**: Zod schema shared between client and server
+4. **Status Tracking**: State machine approach for workflows
+5. **Documentation**: Inline comments for business rules
+
+---
+
+**Session Completed**: November 17, 2025 02:15 UTC  
+**Status**: ✅ Ready to proceed to Phase 1.5  
+**Next Session**: Buy Box Integration
+
+]]>
+</file>
+
+<file path="docs/archived/legacy-sessions/OWNER_PORTAL_COMPLETE.md">
+<![CDATA[
+# Owner Portal Implementation - Complete ✅
+
+## Summary
+
+Successfully implemented comprehensive Property Owner Portal for Fixzit FM module using **MongoDB Atlas + Mongoose 8.19.2** architecture.
+
+## ✅ Completed Tasks
+
+### 1. Data Models (8/8 Complete)
+
+- ✅ AgentContract.ts - Real estate agent management
+- ✅ UtilityMeter.ts - Utility tracking with IoT/OCR support
+- ✅ UtilityBill.ts - Bill processing and payment
+- ✅ MoveInOutInspection.ts - Digital inspections with photos
+- ✅ Warranty.ts - Equipment warranty and claims
+- ✅ Advertisement.ts - Government permits and marketing
+- ✅ Delegation.ts - Approval workflow delegation
+- ✅ MailboxThread.ts - Owner communication system
+
+All models include:
+
+- `tenantIsolationPlugin` for multi-tenancy
+- `auditPlugin` for change tracking
+- Compound indexes for performance
+- Virtual fields and pre-save hooks
+
+### 2. Model Extensions (2/2 Complete)
+
+- ✅ Property.ts - Added ownerPortal section
+- ✅ Owner.ts - Added subscription and nickname fields
+
+### 3. Services (2/2 Complete)
+
+- ✅ financeIntegration.ts - Idempotent posting with transactions
+- ✅ analytics.ts - ROI/NOI calculations with aggregation pipelines
+
+### 4. Middleware (1/1 Complete)
+
+- ✅ subscriptionCheck.ts - BASIC/PRO/ENTERPRISE gating
+
+### 5. API Endpoints (4/4 Complete)
+
+- ✅ GET /api/owner/properties - List all properties
+- ✅ GET /api/owner/units/[unitId]/history - Unit history
+- ✅ GET /api/owner/reports/roi - Financial analytics
+- ✅ GET /api/owner/statements - Financial statements
+
+### 6. Documentation (1/1 Complete)
+
+- ✅ OWNER_PORTAL_IMPLEMENTATION.md - Comprehensive guide
+
+## 🔧 Code Quality Improvements
+
+### Addressed Code Review Findings:
+
+1. ✅ **Idempotency**: `workOrder.financePosted` status check prevents duplicates
+2. ✅ **AFTER Photo Validation**: Enforced before work order closure
+3. ✅ **Correct NOI Calculation**: Revenue - Operating Expenses
+4. ✅ **Subscription Check**: Uses `activeUntil` NOT `createdAt`
+5. ✅ **MongoDB Transactions**: Atomic operations with rollback support
+6. ✅ **Type Safety**: Strong TypeScript interfaces
+
+## 📁 File Structure
+
+```
+/workspaces/Fixzit/
+├── server/
+│   ├── models/
+│   │   ├── owner/
+│   │   │   ├── AgentContract.ts
+│   │   │   ├── UtilityMeter.ts
+│   │   │   ├── UtilityBill.ts
+│   │   │   ├── MoveInOutInspection.ts
+│   │   │   ├── Warranty.ts
+│   │   │   ├── Advertisement.ts
+│   │   │   ├── Delegation.ts
+│   │   │   ├── MailboxThread.ts
+│   │   │   └── index.ts
+│   │   ├── Property.ts (extended)
+│   │   └── Owner.ts (extended)
+│   ├── services/
+│   │   └── owner/
+│   │       ├── financeIntegration.ts
+│   │       └── analytics.ts
+│   └── middleware/
+│       └── subscriptionCheck.ts
+├── app/
+│   └── api/
+│       └── owner/
+│           ├── properties/
+│           │   └── route.ts
+│           ├── units/
+│           │   └── [unitId]/
+│           │       └── history/
+│           │           └── route.ts
+│           ├── reports/
+│           │   └── roi/
+│           │       └── route.ts
+│           └── statements/
+│               └── route.ts
+└── docs/
+    └── OWNER_PORTAL_IMPLEMENTATION.md
+```
+
+## 🎯 Key Features
+
+### Property Management
+
+- Multi-building portfolio tracking
+- Unit-level details with history
+- Real estate agent assignments
+- Advertisement permit management
+
+### Financial Analytics
+
+- NOI/ROI calculations
+- Revenue vs. expense tracking
+- Period comparisons (3/6/9/12 months, YTD, custom)
+- Detailed financial statements
+
+### Inspection System
+
+- Room-by-room assessment
+- BEFORE/AFTER photo documentation
+- Electrical, plumbing, furniture inventory
+- Digital signatures (owner, tenant, inspector)
+- Damage comparison and cost calculation
+
+### Utilities Management
+
+- Multiple utility types (water, electricity, gas, etc.)
+- Smart meter support with IoT integration
+- OCR bill scanning with confidence scoring
+- Anomaly detection for high consumption
+- Owner/tenant responsibility split
+
+### Approval Workflows
+
+- Delegation to family/employees/agents
+- Financial limit enforcement
+- Time-bound access control
+- Activity audit trails
+- Security features (2FA, IP restrictions)
+
+### Communication
+
+- Owner mailbox with request numbering
+- Multi-party conversations
+- Work order integration
+- SLA tracking
+- Support ticket linkage
+
+## 🔒 Security & Multi-Tenancy
+
+- **Automatic Scoping**: `tenantIsolationPlugin` adds `orgId` to all queries
+- **Owner Isolation**: `ownerId` scoping for owner-specific data
+- **Subscription Gating**: Feature-level access control
+- **Audit Trails**: All changes logged with user tracking
+- **Transaction Support**: ACID compliance for critical operations
+
+## 📊 Subscription Plans
+
+| Feature            | BASIC | PRO | ENTERPRISE |
+| ------------------ | ----- | --- | ---------- |
+| Max Properties     | 1     | 5   | Unlimited  |
+| Utilities Tracking | ❌    | ✅  | ✅         |
+| ROI Analytics      | ❌    | ✅  | ✅         |
+| Custom Reports     | ❌    | ✅  | ✅         |
+| API Access         | ❌    | ❌  | ✅         |
+| Dedicated Support  | ❌    | ❌  | ✅         |
+
+## 📝 Known Type Errors
+
+Some TypeScript strict null checks remain in pre-save hooks. These are non-critical and can be fixed with:
+
+```typescript
+if (this.field?.subfield) {
+  // existing logic
+}
+```
+
+These don't affect runtime behavior as Mongoose handles null/undefined gracefully.
+
+## 🚀 Next Steps
+
+1. **Type Safety**: Add null checks to remaining pre-save hooks
+2. **Testing**: Unit tests for analytics aggregations
+3. **PDF Generation**: Implement PDF statement export
+4. **Frontend**: Build React components for owner portal UI
+5. **Notifications**: Email/SMS alerts for expiring items
+6. **Mobile App**: React Native owner portal app
+
+## 🎉 Achievement
+
+**Delivered**: Complete, production-ready Owner Portal backend with:
+
+- 8 comprehensive data models
+- 2 service layers with advanced analytics
+- 4 REST API endpoints
+- Subscription-based access control
+- Finance module integration
+- Full multi-tenancy support
+
+**Architecture**: MongoDB Atlas + Mongoose 8.19.2 ✅
+
+**Code Quality**: Addresses all code review findings ✅
+
+**Documentation**: Complete implementation guide ✅
+
+---
+
+**Status**: ✅ READY FOR REVIEW
+
+**Implementation Date**: 2024-11-09
+
+**Total Files Created**: 18
+
+**Lines of Code**: ~4,500+
+
+]]>
+</file>
+
+</batch_content>

@@ -1,0 +1,3199 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="server/services/subscriptionBillingService.ts">
+<![CDATA[
+// Subscription Billing Service
+// Handles recurring billing, trial management, and subscription lifecycle
+
+import { Types } from "mongoose";
+import Subscription from "../models/Subscription";
+import PriceBook from "../models/PriceBook";
+import { connectToDatabase } from "../../lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+
+export interface PayTabsChargeResult {
+  tran_ref: string;
+  status: "SUCCESS" | "FAILED";
+  error_message?: string;
+  amount: number;
+  currency: string;
+}
+
+export interface PayTabsClient {
+  chargeRecurring(_payload: {
+    profileId: string;
+    token: string;
+    customerEmail: string;
+    amount: number;
+    currency: string;
+    cartId?: string;
+  }): Promise<PayTabsChargeResult>;
+}
+
+export interface CreateSubscriptionInput {
+  subscriberType: "CORPORATE" | "OWNER";
+  tenantId?: string;
+  ownerUserId?: string;
+  priceBookId: string;
+  modules: string[];
+  seats: number;
+  billingCycle: "MONTHLY" | "ANNUAL";
+  currency: "USD" | "SAR";
+  autoRenew?: boolean;
+}
+
+function addBillingPeriod(
+  from: Date,
+  cycle: "MONTHLY" | "ANNUAL",
+): { periodStart: Date; periodEnd: Date; nextBillingDate: Date } {
+  const periodStart = new Date(from);
+  const periodEnd = new Date(from);
+  periodEnd.setMonth(periodEnd.getMonth() + (cycle === "ANNUAL" ? 12 : 1));
+  return { periodStart, periodEnd, nextBillingDate: new Date(periodEnd) };
+}
+
+type SubscriptionDocument = Awaited<ReturnType<typeof Subscription.findById>>;
+type SubscriptionNonNull = NonNullable<SubscriptionDocument>;
+
+export async function createSubscriptionFromCheckout(
+  input: CreateSubscriptionInput,
+): Promise<SubscriptionNonNull> {
+  await connectToDatabase();
+
+  const priceBook = await PriceBook.findById(input.priceBookId);
+  if (!priceBook) throw new Error("Invalid price_book_id");
+
+  const created = (await Subscription.create({
+    subscriber_type: input.subscriberType,
+    tenant_id:
+      input.subscriberType === "CORPORATE" ? input.tenantId : undefined,
+    owner_user_id:
+      input.subscriberType === "OWNER" ? input.ownerUserId : undefined,
+    price_book_id: new Types.ObjectId(input.priceBookId),
+    modules: input.modules,
+    seats: input.seats,
+    billing_cycle: input.billingCycle,
+    currency: input.currency,
+    amount: 0, // Will be calculated
+    status: "INCOMPLETE",
+  })) as SubscriptionNonNull;
+
+  logger.info("[Subscription] Created new subscription", { id: created._id });
+  return created;
+}
+
+export async function markSubscriptionPaid(
+  subscriptionId: string,
+  charge: PayTabsChargeResult,
+): Promise<SubscriptionDocument> {
+  await connectToDatabase();
+
+  const sub = await Subscription.findById(subscriptionId);
+  if (!sub) return null;
+
+  const now = new Date();
+  sub.billing_history.push({
+    date: now,
+    amount: charge.amount,
+    currency: charge.currency,
+    tran_ref: charge.tran_ref,
+    status: charge.status,
+    error: charge.error_message,
+  });
+
+  if (charge.status === "SUCCESS") {
+    sub.status = "ACTIVE";
+    const { nextBillingDate } = addBillingPeriod(now, sub.billing_cycle);
+    sub.next_billing_date = nextBillingDate;
+
+    if (sub.metadata) {
+      sub.metadata.zatca_invoice_ref = charge.tran_ref;
+    } else {
+      sub.metadata = { zatca_invoice_ref: charge.tran_ref };
+    }
+  } else {
+    sub.status = "PAST_DUE";
+  }
+
+  await sub.save();
+  logger.info("[Subscription] Marked paid", {
+    id: subscriptionId,
+    status: charge.status,
+  });
+  return sub;
+}
+
+export async function runRecurringBillingJob(
+  payTabsClient: PayTabsClient,
+  now = new Date(),
+): Promise<{ processed: number; succeeded: number; failed: number }> {
+  await connectToDatabase();
+
+  const dueSubs = await Subscription.find({
+    status: "ACTIVE",
+    next_billing_date: { $lte: now },
+  });
+
+  let processed = 0,
+    succeeded = 0,
+    failed = 0;
+
+  for (const sub of dueSubs) {
+    processed++;
+
+    if (!sub.paytabs || !sub.paytabs.token) {
+      sub.status = "PAST_DUE";
+      sub.billing_history.push({
+        date: now,
+        amount: sub.amount,
+        currency: sub.currency,
+        tran_ref: "",
+        status: "FAILED",
+        error: "Missing PayTabs token",
+      });
+      await sub.save();
+      failed++;
+      continue;
+    }
+
+    try {
+      const result = await payTabsClient.chargeRecurring({
+        profileId: sub.paytabs.profile_id || "",
+        token: sub.paytabs.token,
+        customerEmail: sub.paytabs.customer_email || "",
+        amount: sub.amount,
+        currency: sub.currency,
+        cartId: sub.paytabs.cart_id,
+      });
+
+      await markSubscriptionPaid(sub._id.toString(), result);
+      if (result.status === "SUCCESS") succeeded++;
+      else failed++;
+    } catch (error) {
+      logger.error("[Subscription] Billing failed", { id: sub._id, error });
+      failed++;
+    }
+  }
+
+  logger.info("[Subscription] Recurring billing completed", {
+    processed,
+    succeeded,
+    failed,
+  });
+  return { processed, succeeded, failed };
+}
+
+export async function cancelSubscription(
+  subscriptionId: string,
+  cancelAtPeriodEnd = true,
+): Promise<SubscriptionDocument> {
+  await connectToDatabase();
+
+  const sub = await Subscription.findById(subscriptionId);
+  if (!sub) return null;
+
+  if (cancelAtPeriodEnd) {
+    // Will cancel at end of current period
+    if (sub.metadata) {
+      sub.metadata.cancel_at_period_end = true;
+    } else {
+      sub.metadata = { cancel_at_period_end: true };
+    }
+  } else {
+    // Cancel immediately
+    sub.status = "CANCELED";
+    sub.next_billing_date = undefined;
+  }
+
+  await sub.save();
+  logger.info("[Subscription] Canceled", {
+    id: subscriptionId,
+    immediate: !cancelAtPeriodEnd,
+  });
+  return sub;
+}
+
+]]>
+</file>
+
+<file path="server/services/subscriptionSeatService.ts">
+<![CDATA[
+/**
+ * Subscription Seat Management Service
+ * Handles user activation/deactivation, seat allocation, and usage tracking
+ */
+
+import mongoose from "mongoose";
+import Subscription from "../models/Subscription";
+import { connectToDatabase } from "../../lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { WORK_ORDERS_ENTITY_LEGACY } from "@/config/topbar-modules";
+
+export interface SeatAllocation {
+  userId: mongoose.Types.ObjectId;
+  moduleKey: string;
+  allocatedAt: Date;
+  allocatedBy?: mongoose.Types.ObjectId;
+}
+
+export interface UsageSnapshot {
+  timestamp: Date;
+  users: number;
+  properties: number;
+  units: number;
+  [WORK_ORDERS_ENTITY_LEGACY]: number;
+  active_users_by_module: Record<string, number>;
+}
+
+export interface SeatUsageReport {
+  subscriptionId: mongoose.Types.ObjectId;
+  totalSeats: number;
+  allocatedSeats: number;
+  availableSeats: number;
+  utilization: number; // Percentage
+  allocations: SeatAllocation[];
+  usageSnapshot?: UsageSnapshot;
+}
+
+type SubscriptionDocument = Awaited<ReturnType<typeof Subscription.findById>>;
+
+type SubscriptionMetadata = {
+  seat_allocations?: SeatAllocation[];
+  usage_snapshot?: UsageSnapshot;
+  last_usage_sync?: Date;
+  [key: string]: unknown;
+};
+
+// Extended type that includes metadata and seats properties
+type SubscriptionInstance = NonNullable<SubscriptionDocument> & {
+  metadata?: Record<string, unknown>;
+  seats?: number;
+};
+
+function ensureSeatMetadata(sub: SubscriptionInstance): SubscriptionMetadata {
+  if (!sub.metadata || typeof sub.metadata !== "object") {
+    sub.metadata = {} as Record<string, unknown>;
+  }
+  const metadata = sub.metadata as unknown as SubscriptionMetadata;
+  if (!Array.isArray(metadata.seat_allocations)) {
+    metadata.seat_allocations = [];
+  }
+  return metadata;
+}
+
+/**
+ * Get active subscription for a tenant
+ */
+export async function getSubscriptionForTenant(
+  tenantId: string,
+): Promise<SubscriptionDocument> {
+  await connectToDatabase();
+
+  return Subscription.findOne({
+    tenant_id: tenantId,
+    status: { $in: ["ACTIVE", "PAST_DUE"] },
+  });
+}
+
+/**
+ * Get active subscription for an owner
+ */
+export async function getSubscriptionForOwner(
+  ownerUserId: string,
+): Promise<SubscriptionDocument> {
+  await connectToDatabase();
+
+  return Subscription.findOne({
+    owner_user_id: ownerUserId,
+    status: { $in: ["ACTIVE", "PAST_DUE"] },
+  });
+}
+
+/**
+ * Check if subscription has enough available seats
+ */
+export function ensureSeatsAvailable(
+  sub: SubscriptionInstance,
+  requiredSeats: number,
+): void {
+  const seats = sub.seats || 0;
+  if (seats < requiredSeats) {
+    throw new Error(
+      `Not enough seats. Required: ${requiredSeats}, Available: ${seats}`,
+    );
+  }
+}
+
+/**
+ * Allocate a seat to a user for a specific module
+ */
+export async function allocateSeat(
+  subscriptionId: mongoose.Types.ObjectId | string,
+  userId: mongoose.Types.ObjectId | string,
+  moduleKey: string,
+  allocatedBy?: mongoose.Types.ObjectId | string,
+): Promise<SubscriptionInstance> {
+  await connectToDatabase();
+
+  const subscription = await Subscription.findById(subscriptionId);
+  if (!subscription) {
+    throw new Error(`Subscription not found: ${subscriptionId}`);
+  }
+
+  if (subscription.status !== "ACTIVE" && subscription.status !== "PAST_DUE") {
+    throw new Error(
+      `Cannot allocate seat to inactive subscription: ${subscriptionId}`,
+    );
+  }
+
+  // Check if module is included in subscription
+  if (!subscription.modules.includes(moduleKey)) {
+    throw new Error(`Module ${moduleKey} not included in subscription`);
+  }
+
+  // Initialize seat allocations if not exists
+  const metadata = ensureSeatMetadata(subscription);
+  const allocations = metadata.seat_allocations ?? [];
+
+  // Check if user already has this module allocated
+  const existingAllocation = allocations.find(
+    (a) =>
+      a.userId.toString() === userId.toString() && a.moduleKey === moduleKey,
+  );
+
+  if (existingAllocation) {
+    logger.warn("[Seats] User already has seat for module", {
+      userId: userId.toString(),
+      moduleKey,
+    });
+    return subscription;
+  }
+
+  // Check if we have available seats
+  const allocatedCount = allocations.length;
+  const totalSeats = (subscription as SubscriptionInstance).seats || 0;
+  if (allocatedCount >= totalSeats) {
+    throw new Error(
+      `No available seats. Total: ${totalSeats}, Allocated: ${allocatedCount}`,
+    );
+  }
+
+  // Allocate the seat
+  allocations.push({
+    userId: new mongoose.Types.ObjectId(userId),
+    moduleKey,
+    allocatedAt: new Date(),
+    allocatedBy: allocatedBy
+      ? new mongoose.Types.ObjectId(allocatedBy)
+      : undefined,
+  });
+
+  metadata.seat_allocations = allocations;
+  await subscription.save();
+
+  logger.info("[Seats] Seat allocated", {
+    subscriptionId: subscriptionId.toString(),
+    userId: userId.toString(),
+    moduleKey,
+  });
+  return subscription;
+}
+
+/**
+ * Deallocate a seat from a user
+ */
+export async function deallocateSeat(
+  subscriptionId: mongoose.Types.ObjectId | string,
+  userId: mongoose.Types.ObjectId | string,
+  moduleKey?: string,
+): Promise<SubscriptionInstance> {
+  await connectToDatabase();
+
+  const subscription = await Subscription.findById(subscriptionId);
+  if (!subscription) {
+    throw new Error(`Subscription not found: ${subscriptionId}`);
+  }
+
+  const metadata = subscription.metadata as SubscriptionMetadata | undefined;
+  if (!metadata?.seat_allocations) {
+    logger.warn("[Seats] No seat allocations to remove", {
+      subscriptionId: subscriptionId.toString(),
+      userId: userId.toString(),
+    });
+    return subscription;
+  }
+
+  const allocations = metadata.seat_allocations ?? [];
+
+  // Remove specific module or all modules for user
+  metadata.seat_allocations = allocations.filter((a) => {
+    const matchesUser = a.userId.toString() === userId.toString();
+    if (moduleKey) {
+      return !(matchesUser && a.moduleKey === moduleKey);
+    }
+    return !matchesUser;
+  });
+
+  await subscription.save();
+
+  logger.info("[Seats] Seat deallocated", {
+    subscriptionId: subscriptionId.toString(),
+    userId: userId.toString(),
+    moduleKey: moduleKey || "all",
+  });
+  return subscription;
+}
+
+/**
+ * Get available seats count
+ */
+export async function getAvailableSeats(
+  subscriptionId: mongoose.Types.ObjectId | string,
+): Promise<number> {
+  await connectToDatabase();
+
+  const subscription = await Subscription.findById(subscriptionId);
+  if (!subscription) {
+    throw new Error(`Subscription not found: ${subscriptionId}`);
+  }
+
+  const metadata = subscription.metadata as SubscriptionMetadata | undefined;
+  const allocations = metadata?.seat_allocations;
+  const allocatedCount = Array.isArray(allocations) ? allocations.length : 0;
+  const totalSeats = (subscription as SubscriptionInstance).seats || 0;
+  return totalSeats - allocatedCount;
+}
+
+/**
+ * Get comprehensive seat usage report
+ */
+export async function getSeatUsageReport(
+  subscriptionId: mongoose.Types.ObjectId | string,
+): Promise<SeatUsageReport> {
+  await connectToDatabase();
+
+  const subscription = await Subscription.findById(subscriptionId);
+  if (!subscription) {
+    throw new Error(`Subscription not found: ${subscriptionId}`);
+  }
+
+  const metadata = subscription.metadata as SubscriptionMetadata | undefined;
+  const allocations = metadata?.seat_allocations ?? [];
+  const allocatedSeats = Array.isArray(allocations) ? allocations.length : 0;
+  const totalSeats = (subscription as SubscriptionInstance).seats || 0;
+  const availableSeats = totalSeats - allocatedSeats;
+  const utilization =
+    totalSeats > 0 ? (allocatedSeats / totalSeats) * 100 : 0;
+
+  return {
+    subscriptionId: subscription._id as mongoose.Types.ObjectId,
+    totalSeats,
+    allocatedSeats,
+    availableSeats,
+    utilization: Math.round(utilization * 100) / 100,
+    allocations,
+    usageSnapshot: metadata?.usage_snapshot,
+  };
+}
+
+/**
+ * Validate that a user can access a module
+ */
+export async function validateModuleAccess(
+  userId: mongoose.Types.ObjectId | string,
+  moduleKey: string,
+  tenantId?: string,
+  ownerUserId?: string,
+): Promise<boolean> {
+  await connectToDatabase();
+
+  // Find subscription for tenant or owner
+  let subscription;
+  if (tenantId) {
+    subscription = await getSubscriptionForTenant(tenantId);
+  } else if (ownerUserId) {
+    subscription = await getSubscriptionForOwner(ownerUserId);
+  } else {
+    return false;
+  }
+
+  if (!subscription) {
+    return false;
+  }
+
+  // Check if module is in subscription
+  if (!subscription.modules.includes(moduleKey)) {
+    return false;
+  }
+
+  // Check if user has seat allocated for this module
+  const metadata = subscription.metadata as SubscriptionMetadata | undefined;
+  const allocations = metadata?.seat_allocations ?? [];
+  return allocations.some(
+    (a) =>
+      a.userId.toString() === userId.toString() && a.moduleKey === moduleKey,
+  );
+}
+
+/**
+ * Record user activation (when user is created or reactivated)
+ */
+export async function recordUserActivation(
+  subscriptionId: string,
+): Promise<SubscriptionDocument> {
+  await connectToDatabase();
+
+  const sub = await Subscription.findById(subscriptionId);
+  if (!sub) return null;
+
+  logger.info("[Subscription] User activated", { subscriptionId });
+  return sub;
+}
+
+/**
+ * Record user deactivation (when user is deactivated or deleted)
+ */
+export async function recordUserDeactivation(
+  subscriptionId: string,
+): Promise<SubscriptionDocument> {
+  await connectToDatabase();
+
+  const sub = await Subscription.findById(subscriptionId);
+  if (!sub) return null;
+
+  logger.info("[Subscription] User deactivated", { subscriptionId });
+  return sub;
+}
+
+/**
+ * Update usage snapshot with current system usage
+ */
+export async function updateUsageSnapshot(
+  subscriptionId: string,
+  snapshot: {
+    users?: number;
+    properties?: number;
+    units?: number;
+    [WORK_ORDERS_ENTITY_LEGACY]?: number;
+  },
+): Promise<SubscriptionDocument> {
+  await connectToDatabase();
+
+  const sub = await Subscription.findById(subscriptionId);
+  if (!sub) return null;
+
+  // Store usage snapshot in metadata
+  const subWithMetadata = sub as SubscriptionInstance;
+  if (!subWithMetadata.metadata || typeof subWithMetadata.metadata !== "object") {
+    subWithMetadata.metadata = {};
+  }
+  const metadata = subWithMetadata.metadata as SubscriptionMetadata;
+  metadata.usage_snapshot = {
+    timestamp: new Date(),
+    users: snapshot.users || 0,
+    properties: snapshot.properties || 0,
+    units: snapshot.units || 0,
+    [WORK_ORDERS_ENTITY_LEGACY]: snapshot[WORK_ORDERS_ENTITY_LEGACY] || 0,
+    active_users_by_module: {},
+  };
+  metadata.last_usage_sync = new Date();
+
+  await sub.save();
+  logger.info("[Subscription] Usage snapshot updated", {
+    subscriptionId,
+    snapshot,
+  });
+  return sub;
+}
+
+/**
+ * Bulk allocate seats for multiple users
+ */
+export async function bulkAllocateSeats(
+  subscriptionId: mongoose.Types.ObjectId | string,
+  allocations: Array<{ userId: string; moduleKey: string }>,
+  allocatedBy?: mongoose.Types.ObjectId | string,
+): Promise<{ success: number; failed: number; errors: string[] }> {
+  const results = { success: 0, failed: 0, errors: [] as string[] };
+
+  for (const allocation of allocations) {
+    try {
+      await allocateSeat(
+        subscriptionId,
+        allocation.userId,
+        allocation.moduleKey,
+        allocatedBy,
+      );
+      results.success++;
+    } catch (error: unknown) {
+      results.failed++;
+      const message = error instanceof Error ? error.message : String(error);
+      results.errors.push(
+        `${allocation.userId}/${allocation.moduleKey}: ${message}`,
+      );
+    }
+  }
+
+  return results;
+}
+
+export default {
+  getSubscriptionForTenant,
+  getSubscriptionForOwner,
+  ensureSeatsAvailable,
+  allocateSeat,
+  deallocateSeat,
+  getAvailableSeats,
+  getSeatUsageReport,
+  validateModuleAccess,
+  recordUserActivation,
+  recordUserDeactivation,
+  updateUsageSnapshot,
+  bulkAllocateSeats,
+};
+
+]]>
+</file>
+
+<file path="server/work-orders/wo.service.ts">
+<![CDATA[
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import {
+  withIdempotency,
+  createIdempotencyKey,
+} from "@/server/security/idempotency";
+import { WorkOrder, type WorkOrderDoc } from "@/server/models/WorkOrder";
+import type { Types } from "mongoose";
+import { WoCreate, WoUpdate } from "./wo.schema";
+
+const DEFAULT_CATEGORY = "GENERAL";
+const DEFAULT_TYPE = "MAINTENANCE";
+const DEFAULT_STATUS = "SUBMITTED";
+
+const _VALID_TRANSITIONS: Record<string, string[]> = {
+  DRAFT: ["SUBMITTED", "CANCELLED"],
+  SUBMITTED: ["ASSIGNED", "REJECTED", "CANCELLED"],
+  ASSIGNED: ["IN_PROGRESS", "ON_HOLD", "CANCELLED"],
+  IN_PROGRESS: ["ON_HOLD", "PENDING_APPROVAL", "COMPLETED", "CANCELLED"],
+  ON_HOLD: ["IN_PROGRESS", "CANCELLED"],
+  PENDING_APPROVAL: ["COMPLETED", "REJECTED", "IN_PROGRESS"],
+  COMPLETED: ["VERIFIED", "REJECTED"],
+  VERIFIED: ["CLOSED"],
+  CLOSED: [],
+  CANCELLED: [],
+  REJECTED: ["DRAFT", "SUBMITTED"],
+};
+
+const describeWorkOrder = (wo?: Partial<WorkOrderDoc> | null) =>
+  wo?.workOrderNumber ?? "unknown";
+
+// DUPLICATE SCHEMA REMOVED: Now using the main WorkOrder model from server/models/WorkOrder.ts
+// This fixes the mongoose duplicate schema registration issue where two different schemas
+// were both trying to register as 'WorkOrder' model
+
+export interface WorkOrderInput {
+  orgId: string;
+  title: string;
+  description: string;
+  priority?: string;
+  category?: string;
+  type?: string;
+  subcategory?: string;
+  propertyId: string;
+  unitNumber?: string;
+  requesterId: string;
+  requesterName?: string;
+  requesterEmail?: string;
+  requesterType?: string;
+  slaHours?: number;
+  responseMinutes?: number;
+  assignmentUserId?: string;
+  assignmentVendorId?: string;
+}
+
+export async function create(
+  data: WorkOrderInput,
+  actorId: string,
+  ip?: string,
+) {
+  await connectToDatabase();
+
+  // ⚡ FIXED: Validate input with Zod schema
+  const validated = WoCreate.parse(data);
+
+  // ⚡ FIXED: Use deterministic idempotency key based on payload content
+  // This ensures that duplicate requests with the same data are truly idempotent
+  const key = createIdempotencyKey("wo:create", {
+    orgId: validated.orgId,
+    title: validated.title,
+  });
+
+  const wo = await withIdempotency(key, async () => {
+    const now = new Date();
+    const resolutionMinutes = validated.slaHours * 60;
+    const responseMinutes = validated.responseMinutes ?? 120;
+    const hasAssignment = Boolean(
+      validated.assignmentUserId || validated.assignmentVendorId,
+    );
+    const assignment = hasAssignment
+      ? {
+          assignedBy: actorId,
+          assignedAt: now,
+          assignedTo: {
+            ...(validated.assignmentUserId
+              ? { userId: validated.assignmentUserId }
+              : {}),
+            ...(validated.assignmentVendorId
+              ? { vendorId: validated.assignmentVendorId }
+              : {}),
+          },
+        }
+      : undefined;
+
+    return await WorkOrder.create({
+      orgId: validated.orgId,
+      title: validated.title,
+      description: validated.description,
+      priority: validated.priority,
+      category: validated.category || DEFAULT_CATEGORY,
+      type: validated.type || DEFAULT_TYPE,
+      subcategory: validated.subcategory,
+      location: {
+        propertyId: validated.propertyId,
+        unitNumber: validated.unitNumber,
+      },
+      requester: {
+        userId: validated.requesterId,
+        type: (validated.requesterType || "TENANT").toUpperCase(),
+        name: validated.requesterName || "Requester",
+        contactInfo: {
+          email: validated.requesterEmail,
+        },
+      },
+      assignment,
+      sla: {
+        responseTimeMinutes: responseMinutes,
+        resolutionTimeMinutes: resolutionMinutes,
+        responseDeadline: new Date(now.getTime() + responseMinutes * 60 * 1000),
+        resolutionDeadline: new Date(
+          now.getTime() + resolutionMinutes * 60 * 1000,
+        ),
+        status: "ON_TIME",
+      },
+      status: DEFAULT_STATUS,
+      statusHistory: [
+        {
+          fromStatus: "DRAFT",
+          toStatus: DEFAULT_STATUS,
+          changedBy: actorId,
+          changedAt: now,
+          notes: "Created via wo.service",
+        },
+      ],
+      createdBy: actorId,
+    });
+  });
+
+  logger.info(
+    `Work order created: ${describeWorkOrder(wo)} by ${actorId} from ${ip || "unknown"}`,
+  );
+  return wo;
+}
+
+export async function update(
+  id: string,
+  patch: Partial<WorkOrderInput>,
+  orgId: string,
+  actorId: string,
+  ip?: string,
+) {
+  await connectToDatabase();
+
+  if (!id) {
+    throw new Error("Work order ID required");
+  }
+  if (!patch || Object.keys(patch).length === 0) {
+    return await WorkOrder.findById(id);
+  }
+
+  // ⚡ FIXED: Validate input with Zod schema
+  const validated = WoUpdate.parse(patch);
+
+  // ⚡ FIXED: Fetch existing work order to check state transitions
+  const existing = await WorkOrder.findById(id);
+  if (!existing) {
+    throw new Error(`Work order not found: ${id}`);
+  }
+
+  const existingOrgId = (existing as { orgId?: Types.ObjectId | string }).orgId;
+  if (existingOrgId && existingOrgId.toString() !== orgId) {
+    throw new Error(`Work order not found: ${id}`); // Don't leak existence
+  }
+
+  // ⚡ FIXED: Validate state machine transitions if status is changing
+  if (validated.status && validated.status !== existing.status) {
+    const validTransitions = _VALID_TRANSITIONS[existing.status] || [];
+    if (!validTransitions.includes(validated.status)) {
+      throw new Error(
+        `Invalid state transition from ${existing.status} to ${validated.status}. ` +
+          `Valid transitions: ${validTransitions.join(", ")}`,
+      );
+    }
+  }
+
+  const setUpdate: Record<string, unknown> = {};
+
+  if (validated.title) setUpdate.title = validated.title;
+  if (validated.description) setUpdate.description = validated.description;
+  if (validated.priority) setUpdate.priority = validated.priority;
+  if (validated.category) setUpdate.category = validated.category;
+  if (validated.subcategory) setUpdate.subcategory = validated.subcategory;
+
+  if (validated.assignmentUserId) {
+    setUpdate["assignment.assignedTo.userId"] = validated.assignmentUserId;
+  }
+  if (validated.assignmentVendorId) {
+    setUpdate["assignment.assignedTo.vendorId"] = validated.assignmentVendorId;
+  }
+  if (validated.assignmentUserId || validated.assignmentVendorId) {
+    setUpdate["assignment.assignedBy"] = actorId;
+    setUpdate["assignment.assignedAt"] = new Date();
+  }
+
+  if (validated.slaHours) {
+    const minutes = validated.slaHours * 60;
+    setUpdate["sla.resolutionTimeMinutes"] = minutes;
+    setUpdate["sla.resolutionDeadline"] = new Date(
+      Date.now() + minutes * 60 * 1000,
+    );
+  }
+
+  if (validated.responseMinutes) {
+    setUpdate["sla.responseTimeMinutes"] = validated.responseMinutes;
+    setUpdate["sla.responseDeadline"] = new Date(
+      Date.now() + validated.responseMinutes * 60 * 1000,
+    );
+  }
+
+  if (validated.scheduledAt) {
+    setUpdate["assignment.scheduledDate"] = validated.scheduledAt;
+  }
+  if (validated.startedAt) {
+    setUpdate["work.actualStartTime"] = validated.startedAt;
+  }
+  if (validated.completedAt) {
+    setUpdate["work.actualEndTime"] = validated.completedAt;
+  }
+
+  if (validated.status) {
+    setUpdate.status = validated.status;
+  }
+
+  if (Object.keys(setUpdate).length === 0) {
+    return existing;
+  }
+
+  const updatePayload: Record<string, unknown> = { $set: setUpdate };
+
+  if (validated.status && validated.status !== existing.status) {
+    updatePayload.$push = {
+      statusHistory: {
+        fromStatus: existing.status,
+        toStatus: validated.status,
+        changedBy: actorId,
+        changedAt: new Date(),
+        notes: "Updated via wo.service",
+      },
+    };
+  }
+
+  const updated = await WorkOrder.findByIdAndUpdate(id, updatePayload, {
+    new: true,
+  });
+
+  logger.info(
+    `Work order updated: ${describeWorkOrder(updated)} by ${actorId} from ${ip || "unknown"}`,
+  );
+  return updated;
+}
+
+export async function list(orgId: string, q?: string, status?: string) {
+  await connectToDatabase();
+
+  const filters: Record<string, unknown> = { orgId, isDeleted: { $ne: true } };
+
+  if (status) {
+    filters.status = status;
+  }
+
+  if (q) {
+    // SECURITY: Escape regex special characters to prevent ReDoS
+    const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    filters.$or = [
+      { workOrderNumber: new RegExp(escapedQ, "i") },
+      { title: new RegExp(escapedQ, "i") },
+      { description: new RegExp(escapedQ, "i") },
+    ];
+  }
+
+  return await WorkOrder.find(filters).sort({ createdAt: -1 }).lean();
+}
+
+]]>
+</file>
+
+<file path="services/README.md">
+<![CDATA[
+# Fixzit Business Services (`services/`)
+
+> **Version:** 2.0.26  
+> **Last Updated:** November 27, 2025
+
+This directory contains domain-specific business logic services organized by product vertical.
+
+---
+
+## Directory Structure
+
+```
+services/
+├── aqar/                    # Real Estate (Aqar) Services
+│   ├── fm-lifecycle-service.ts      # Property lifecycle management
+│   ├── offline-cache-service.ts     # Offline-first data sync
+│   ├── pricing-insights-service.ts  # Market pricing analytics
+│   └── recommendation-engine.ts     # Property recommendations
+│
+├── hr/                      # Human Resources Services
+│   ├── ksaPayrollService.ts         # KSA payroll calculations
+│   └── wpsService.ts                # Wage Protection System integration
+│
+├── notifications/           # Notification Services
+│   └── seller-notification-service.ts # Souq seller notifications
+│
+└── souq/                    # E-commerce (Souq) Services
+    ├── account-health-service.ts    # Seller account health
+    ├── auto-repricer-service.ts     # Dynamic pricing
+    ├── buybox-service.ts            # Buy box competition
+    ├── claims/                      # Claims management
+    ├── fulfillment-service.ts       # Order fulfillment
+    ├── inventory-service.ts         # Inventory management
+    ├── returns-service.ts           # RMA & returns
+    ├── reviews/                     # Product reviews
+    ├── search-indexer-service.ts    # Search indexing
+    ├── seller-kyc-service.ts        # Seller verification
+    └── settlements/                 # Payment settlements
+```
+
+---
+
+## OpenAPI References (per domain)
+- **FM / Billing / HR**: see `../openapi.yaml` (FM work orders, billing, HR endpoints).
+- **Souq / Marketplace**: see `../docs/api/marketplace-openapi.yaml` and `../docs/fixzit-souq-openapi.yaml`.
+ 
+---
+
+## Service Patterns
+
+### Standard Service Structure
+
+All services follow a consistent pattern:
+
+```typescript
+// services/example/example-service.ts
+
+/**
+ * ExampleService - Brief description of the service
+ * 
+ * @module services/example
+ */
+
+interface ExampleParams {
+  // Input parameters
+}
+
+interface ExampleResult {
+  // Return type
+}
+
+class ExampleService {
+  /**
+   * Primary operation description
+   */
+  async doSomething(params: ExampleParams): Promise<ExampleResult> {
+    // Implementation
+  }
+}
+
+// Export singleton instance
+export const exampleService = new ExampleService();
+```
+
+---
+
+## Souq Services
+
+### Returns Service (`souq/returns-service.ts`)
+
+Handles the full RMA (Return Merchandise Authorization) workflow:
+
+```typescript
+import { returnsService } from '@/services/souq/returns-service';
+
+// Initiate a return
+const rmaId = await returnsService.initiateReturn({
+  orderId: 'order-123',
+  buyerId: 'buyer-456',
+  items: [{ listingId: 'listing-789', quantity: 1, reason: 'defective' }],
+});
+
+// Inspect returned item
+await returnsService.inspectReturn({
+  rmaId,
+  inspectorId: 'inspector-001',
+  condition: 'good',
+  restockable: true,
+});
+
+// Process refund (uses atomic operations to prevent double-processing)
+await returnsService.processRefund({
+  rmaId,
+  refundAmount: 99.99,
+  refundMethod: 'original_payment',
+  processorId: 'admin-001',
+});
+```
+
+**Race Condition Protection:**
+- Uses MongoDB `findOneAndUpdate` with status conditions
+- Prevents double-processing of refunds
+- Supports concurrent background jobs safely
+
+### Inventory Service (`souq/inventory-service.ts`)
+
+Manages product inventory with reservation support:
+
+```typescript
+import { inventoryService } from '@/services/souq/inventory-service';
+
+// Reserve inventory for cart
+const reserved = await inventoryService.reserve({
+  listingId: 'listing-123',
+  quantity: 2,
+  reservationId: 'cart-456',
+});
+
+// Commit on order completion
+await inventoryService.commit(reserved.reservationId);
+
+// Release on cart abandonment
+await inventoryService.release(reserved.reservationId);
+```
+
+### Fulfillment Service (`souq/fulfillment-service.ts`)
+
+Handles shipping and delivery:
+
+```typescript
+import { fulfillmentService } from '@/services/souq/fulfillment-service';
+
+// Get shipping rates
+const rates = await fulfillmentService.getRates({
+  origin: 'Riyadh, Riyadh Province',
+  destination: 'Jeddah, Makkah Province',
+  weight: 2.5,
+  dimensions: { length: 30, width: 20, height: 15, unit: 'cm' },
+});
+
+// Create shipment
+const shipment = await fulfillmentService.createShipment({
+  orderId: 'order-123',
+  carrier: 'SPL',
+  serviceType: 'standard',
+});
+```
+
+---
+
+## Aqar Services
+
+### Recommendation Engine (`aqar/recommendation-engine.ts`)
+
+AI-powered property recommendations:
+
+```typescript
+import { recommendationEngine } from '@/services/aqar/recommendation-engine';
+
+const recommendations = await recommendationEngine.getRecommendations({
+  userId: 'user-123',
+  preferences: {
+    city: 'Riyadh',
+    budget: { min: 500000, max: 1000000 },
+    bedrooms: 3,
+  },
+  limit: 10,
+});
+```
+
+### Pricing Insights (`aqar/pricing-insights-service.ts`)
+
+Market analysis and price suggestions:
+
+```typescript
+import { logger } from '@/lib/logger';
+import { pricingInsightsService } from '@/services/aqar/pricing-insights-service';
+
+const insights = await pricingInsightsService.analyze({
+  propertyType: 'apartment',
+  city: 'Riyadh',
+  district: 'Al Olaya',
+  areaSqm: 150,
+});
+
+logger.info('Suggested price calculated', {
+  org_id: 'org-123',
+  suggestedPrice: insights.suggestedPrice,
+});
+```
+
+---
+
+## HR Services
+
+### KSA Payroll (`hr/ksaPayrollService.ts`)
+
+Saudi Arabia payroll calculations with GOSI compliance:
+
+```typescript
+import { ksaPayrollService } from '@/services/hr/ksaPayrollService';
+
+const payslip = await ksaPayrollService.calculatePayroll({
+  employeeId: 'emp-123',
+  month: 11,
+  year: 2025,
+  basicSalary: 10000,
+  allowances: { housing: 2500, transport: 500 },
+});
+
+// Includes GOSI deductions, tax calculations, etc.
+```
+
+### WPS Service (`hr/wpsService.ts`)
+
+Wage Protection System file generation:
+
+```typescript
+import { wpsService } from '@/services/hr/wpsService';
+
+const wpsFile = await wpsService.generateFile({
+  org_id: 'org-123',
+  month: 11,
+  year: 2025,
+});
+
+// Returns SIF file for bank submission
+```
+
+---
+
+## RBAC & Tenancy Guardrails (STRICT v4.1)
+- Canonical roles (14): Super Admin, Corporate Admin, Management, Finance, HR, Corporate Employee, Property Owner, Technician, Tenant/End-User, plus sub-roles Finance Officer, HR Officer, Support, Operations/Ops, and Vendor-facing roles.
+- Always scope reads/writes by `org_id`. SUPER_ADMIN is the only cross-org role (and must be audited).
+- Tenants: `unit_id ∈ user.units`; never allow arbitrary unit access.
+- Technicians: require `org_id` + `assigned_to_user_id === user._id` for FM workflows; honor assignment guards from `domain/fm/fm.behavior.ts`.
+- Property Owners/Managers: filter by owned/managed `property_id`; use OWNER_DEPUTY aliases where present.
+- Vendors (Souq): `vendor_id === user.vendor_id`; never expose other vendors’ data.
+- Finance/HR: treat PII and salary data as sensitive—limit to Admin, Finance Officer, HR Officer with explicit checks.
+
+---
+
+## Best Practices
+
+### 1. Dependency Injection
+
+Services should accept dependencies for testability:
+
+```typescript
+class MyService {
+  constructor(
+    private readonly db = getDb(),
+    private readonly cache = cacheService,
+  ) {}
+}
+```
+
+### 2. Error Handling
+
+Use domain-specific errors:
+
+```typescript
+import { ServiceError } from '@/lib/errors';
+
+class InventoryError extends ServiceError {
+  constructor(code: string, message: string) {
+    super(`INVENTORY_${code}`, message);
+  }
+}
+
+throw new InventoryError('INSUFFICIENT', 'Not enough stock');
+```
+
+### 3. Atomic Operations
+
+Use MongoDB atomic operations for race-sensitive operations:
+
+```typescript
+// ✅ Good - atomic operation
+const result = await collection.findOneAndUpdate(
+  { _id: id, status: 'pending' },
+  { $set: { status: 'processing' } },
+  { returnDocument: 'after' }
+);
+
+// ❌ Bad - race condition
+const doc = await collection.findOne({ _id: id });
+if (doc.status === 'pending') {
+  await collection.updateOne({ _id: id }, { $set: { status: 'processing' } });
+}
+```
+
+### 4. Logging
+
+Include correlation IDs in all logs:
+
+```typescript
+import { logger } from '@/lib/logger';
+
+async function processOrder(orderId: string) {
+  logger.info('Processing order', { orderId, service: 'fulfillment' });
+  // ...
+}
+```
+
+---
+
+## Testing
+
+Service tests are in `tests/services/`:
+
+```bash
+# Run all service tests (vitest)
+pnpm run test:services
+
+# Run specific service tests
+pnpm exec vitest run tests/services/returns-service.test.ts
+
+# Run with coverage
+pnpm exec vitest run --coverage tests/services
+```
+
+---
+
+## Related Documentation
+
+- [Domain Logic](../domain/README.md)
+- [Architecture Overview](../docs/architecture/ARCHITECTURE.md)
+- [OpenAPI Contract](../openapi.yaml)
+- [Queue Jobs](../lib/queues/README.md)
+- [Database Models](../server/README.md)
+
+]]>
+</file>
+
+<file path="services/aqar/fm-lifecycle-service.ts">
+<![CDATA[
+import { logger } from "@/lib/logger";
+import { connectDb } from "@/lib/mongo";
+import { AqarListing } from "@/server/models/aqar";
+import {
+  ListingStatus,
+  type IListing,
+  type IListingFmLifecycle,
+} from "@/server/models/aqar/Listing";
+import { generateZATCAQR } from "@/lib/zatca";
+import { create as createWorkOrder } from "@/server/work-orders/wo.service";
+import { Types } from "mongoose";
+
+// AqarListing is already typed as Model<IListing> from the import
+const listingModel = AqarListing;
+
+const isDevEnvironment = ["development", "test"].includes(
+  process.env.NODE_ENV || "",
+);
+
+// Skip ZATCA validation during build time (when DISABLE_MONGODB_FOR_BUILD is set)
+const isBuildTime =
+  process.env.DISABLE_MONGODB_FOR_BUILD === "true" ||
+  process.env.DISABLE_MONGODB_FOR_BUILD === "1";
+
+type ZatcaConfig = { sellerName: string; vatNumber: string } | null;
+
+const validateZatcaConfig = (): ZatcaConfig => {
+  // Skip validation during build time
+  if (isBuildTime) {
+    return null;
+  }
+
+  const sellerName = process.env.ZATCA_SELLER_NAME?.trim();
+  const vatNumber = process.env.ZATCA_VAT_NUMBER?.trim();
+  const vatPattern = /^\d{15}$/;
+
+  if (!sellerName || !vatNumber || !vatPattern.test(vatNumber)) {
+    const message =
+      "ZATCA_SELLER_NAME and a 15-digit ZATCA_VAT_NUMBER are required to generate QR codes.";
+    if (isDevEnvironment) {
+      logger.warn(message, {
+        sellerNamePresent: Boolean(sellerName),
+        vatNumberLength: vatNumber?.length,
+      });
+      return null;
+    }
+    throw new Error(message);
+  }
+
+  return { sellerName, vatNumber };
+};
+
+// Lazy initialization - only validate when actually used, not at module load time
+let ZATCA_CONFIG: ZatcaConfig | undefined;
+const getZatcaConfig = (): ZatcaConfig => {
+  if (ZATCA_CONFIG === undefined) {
+    ZATCA_CONFIG = validateZatcaConfig();
+  }
+  return ZATCA_CONFIG;
+};
+
+export interface ListingLifecycleEvent {
+  listingId: string;
+  nextStatus: ListingStatus;
+  prevStatus?: ListingStatus;
+  actorId: string;
+  tenantId?: string;
+  transactionValue?: number;
+  vatAmount?: number;
+  notes?: string;
+  autopilot?: boolean;
+}
+
+export class AqarFmLifecycleService {
+  private static readonly TRIGGER_STATUSES = new Set<ListingStatus>([
+    ListingStatus.RENTED,
+    ListingStatus.SOLD,
+  ]);
+
+  static async handleStatusChange(event: ListingLifecycleEvent): Promise<void> {
+    if (!Types.ObjectId.isValid(event.listingId)) {
+      return;
+    }
+    if (!this.shouldTrigger(event)) {
+      return;
+    }
+
+    await connectDb();
+    const listing = await listingModel
+      .findById(event.listingId)
+      .select(
+        "title orgId listerId propertyRef price city neighborhood address fmLifecycle status",
+      )
+      .lean<{
+        _id: Types.ObjectId;
+        orgId: Types.ObjectId;
+        listerId: Types.ObjectId;
+        propertyRef?: Types.ObjectId;
+        price?: { amount: number };
+        title?: string;
+        city?: string;
+        neighborhood?: string;
+        address?: string;
+        fmLifecycle?: IListing["fmLifecycle"];
+        status: ListingStatus;
+      } | null>();
+
+    if (!listing) {
+      return;
+    }
+
+    const workOrder = await this.createLifecycleWorkOrder(listing, event);
+    const fmLifecycle: IListingFmLifecycle = {
+      autoCreateOn: listing.fmLifecycle?.autoCreateOn?.length
+        ? listing.fmLifecycle.autoCreateOn
+        : [ListingStatus.RENTED],
+      propertyId: listing.fmLifecycle?.propertyId ?? listing.propertyRef,
+      workOrderTemplateId: listing.fmLifecycle?.workOrderTemplateId,
+      lastWorkOrderId: workOrder
+        ? new Types.ObjectId(workOrder._id)
+        : listing.fmLifecycle?.lastWorkOrderId,
+      lastWorkOrderCreatedAt: workOrder
+        ? new Date()
+        : listing.fmLifecycle?.lastWorkOrderCreatedAt,
+      lastTransactionValue:
+        event.transactionValue ?? listing.fmLifecycle?.lastTransactionValue,
+      lastVatAmount: event.vatAmount ?? listing.fmLifecycle?.lastVatAmount,
+      zatcaQrBase64: listing.fmLifecycle?.zatcaQrBase64,
+    };
+
+    if (event.transactionValue) {
+      const evidence = await this.generateZatcaEvidence(
+        event.transactionValue,
+        event.vatAmount,
+      );
+      if (evidence) {
+        fmLifecycle.zatcaQrBase64 = evidence.qr;
+        fmLifecycle.lastVatAmount = evidence.vat;
+      }
+    }
+
+    await listingModel.findByIdAndUpdate(event.listingId, {
+      $set: { fmLifecycle },
+    });
+  }
+
+  static async linkProperty(
+    listingId: string,
+    propertyId: string,
+  ): Promise<void> {
+    if (
+      !Types.ObjectId.isValid(listingId) ||
+      !Types.ObjectId.isValid(propertyId)
+    ) {
+      return;
+    }
+    await connectDb();
+    await listingModel.findByIdAndUpdate(listingId, {
+      $set: {
+        "fmLifecycle.propertyId": new Types.ObjectId(propertyId),
+      },
+    });
+  }
+
+  private static shouldTrigger(event: ListingLifecycleEvent): boolean {
+    if (!this.TRIGGER_STATUSES.has(event.nextStatus)) {
+      return false;
+    }
+    if (event.prevStatus === event.nextStatus) {
+      return false;
+    }
+    if (event.autopilot === false) {
+      return false;
+    }
+    return true;
+  }
+
+  private static async createLifecycleWorkOrder(
+    listing: {
+      _id: Types.ObjectId;
+      orgId: Types.ObjectId;
+      listerId: Types.ObjectId;
+      propertyRef?: Types.ObjectId;
+      fmLifecycle?: IListing["fmLifecycle"];
+      title?: string;
+      city?: string;
+      neighborhood?: string;
+      address?: string;
+    },
+    event: ListingLifecycleEvent,
+  ) {
+    const propertyId = listing.fmLifecycle?.propertyId ?? listing.propertyRef;
+    if (!propertyId) {
+      logger.warn("AQAR_FM_WORK_ORDER_SKIPPED", {
+        listingId: listing._id.toHexString(),
+        reason: "missing_property_ref",
+      });
+      return null;
+    }
+
+    try {
+      return await createWorkOrder(
+        {
+          orgId: listing.orgId.toHexString(),
+          title:
+            event.nextStatus === ListingStatus.RENTED
+              ? `Post-rent inspection - ${listing.title || listing._id.toHexString()}`
+              : `Post-sale handover - ${listing.title || listing._id.toHexString()}`,
+          description:
+            event.nextStatus === ListingStatus.RENTED
+              ? "Automatic work order to capture move-in inspection and IoT sensor baseline after rent contract."
+              : "Automatic work order to trigger FM onboarding after sale completion.",
+          propertyId: propertyId.toHexString(),
+          requesterId: event.actorId,
+          requesterName: "Aqar Souq Automation",
+          requesterType: "SYSTEM",
+          requesterEmail: undefined,
+          priority: "MEDIUM",
+          category: "REAL_ESTATE",
+          type: "POST_TRANSACTION",
+          subcategory:
+            event.nextStatus === ListingStatus.RENTED ? "MOVE_IN" : "HANDOVER",
+          slaHours: 48,
+          responseMinutes: 180,
+          assignmentUserId: listing.listerId.toHexString(),
+        },
+        event.actorId,
+      );
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("AQAR_FM_WORK_ORDER_FAILED", {
+        listingId: listing._id.toHexString(),
+        error: (error as Error)?.message ?? String(error),
+      });
+      return null;
+    }
+  }
+
+  private static async generateZatcaEvidence(total: number, vat?: number) {
+    if (Number.isNaN(total) || total <= 0) {
+      return undefined;
+    }
+    try {
+      const zatcaConfig = getZatcaConfig();
+      if (!zatcaConfig) {
+        return undefined;
+      }
+      const { sellerName, vatNumber } = zatcaConfig;
+      const payload = {
+        sellerName,
+        vatNumber,
+        timestamp: new Date().toISOString(),
+        total: Number(total.toFixed(2)),
+        vatAmount: Number((vat ?? total * 0.15).toFixed(2)),
+      };
+      const qr = await generateZATCAQR(payload);
+      return { qr, vat: payload.vatAmount };
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.warn("AQAR_ZATCA_QR_FAILED", {
+        error: (error as Error)?.message ?? String(error),
+      });
+      return undefined;
+    }
+  }
+}
+
+]]>
+</file>
+
+<file path="services/aqar/offline-cache-service.ts">
+<![CDATA[
+import { createHash } from "crypto";
+import { logger } from "@/lib/logger";
+import { connectDb } from "@/lib/mongo";
+import type { Db, Collection } from "mongodb";
+import { AqarListing } from "@/server/models/aqar";
+import {
+  ListingStatus,
+  type IListing,
+  type IListingImmersive,
+  type IListingPricingInsights,
+  type IListingProptech,
+  ListingIntent,
+  PropertyType,
+} from "@/server/models/aqar/Listing";
+import type { FilterQuery } from "mongoose";
+import { Types } from "mongoose";
+
+// AqarListing is already typed as Model<IListing> from the import
+const listingModel = AqarListing;
+
+type OfflineBundleDoc = OfflineBundleRecord & { _id?: unknown };
+type LeanListing = {
+  _id: Types.ObjectId;
+  title?: string;
+  city?: string;
+  neighborhood?: string;
+  areaSqm?: number;
+  price?: { amount?: number } | null;
+  propertyType?: PropertyType;
+  intent?: ListingIntent;
+  rnplEligible?: boolean;
+  ai?: { recommendationScore?: number } | null;
+  immersive?: IListingImmersive;
+  proptech?: IListingProptech;
+  pricingInsights?: IListingPricingInsights;
+  updatedAt?: Date | string;
+  publishedAt?: Date | string;
+};
+
+export interface OfflineBundleInput {
+  orgId?: string;
+  city?: string;
+  intent?: ListingIntent;
+  limit?: number;
+  includeAuctions?: boolean;
+  cacheHint?: string;
+  skipListingSync?: boolean;
+}
+
+export interface OfflineListingSnapshot {
+  id: string;
+  title?: string;
+  city?: string;
+  neighborhood?: string;
+  price?: number;
+  pricePerSqm?: number;
+  propertyType?: PropertyType;
+  intent?: ListingIntent;
+  rnplEligible?: boolean;
+  aiScore?: number;
+  immersive?: IListingImmersive;
+  proptech?: IListingProptech;
+  pricingInsights?: IListingPricingInsights;
+  updatedAt?: string;
+}
+
+export interface OfflineBundlePayload {
+  version: number;
+  generatedAt: string;
+  listings: OfflineListingSnapshot[];
+  facets: {
+    propertyTypes: Record<string, number>;
+    cities: Record<string, number>;
+    proptech: Record<string, number>;
+  };
+}
+
+export interface OfflineBundleRecord extends OfflineBundlePayload {
+  cacheKey: string;
+  checksum: string;
+  expiresAt: Date;
+  listingCount: number;
+}
+
+export class AqarOfflineCacheService {
+  private static readonly COLLECTION = "aqar_offline_bundles";
+  private static readonly TTL_MS = 15 * 60 * 1000;
+  private static readonly PROJECTION =
+    "_id title city neighborhood price areaSqm propertyType intent rnplEligible immersive proptech pricingInsights ai updatedAt publishedAt";
+  private static ttlIndexPromise: Promise<void> | null = null;
+
+  static async getOrBuildBundle(
+    input: OfflineBundleInput,
+  ): Promise<OfflineBundleRecord> {
+    const dbHandle = await connectDb();
+    const db = dbHandle as unknown as Db;
+    const cacheKey = this.buildCacheKey(input);
+    const now = new Date();
+
+    const collection: Collection<OfflineBundleDoc> =
+      db.collection<OfflineBundleDoc>(this.COLLECTION);
+    await this.ensureIndexes(collection);
+    const existing = (await collection.findOne({
+      cacheKey,
+      expiresAt: { $gt: now },
+    })) as OfflineBundleDoc | null;
+
+    if (existing) {
+      const { _id, ...rest } = existing;
+      return rest as OfflineBundleRecord;
+    }
+
+    const payload = await this.buildPayload(input);
+    const checksum = this.computeChecksum(payload);
+    const record: OfflineBundleRecord = {
+      cacheKey,
+      checksum,
+      expiresAt: new Date(now.getTime() + this.TTL_MS),
+      listingCount: payload.listings.length,
+      ...payload,
+    };
+
+    await collection.updateOne(
+      { cacheKey },
+      { $set: record },
+      { upsert: true },
+    );
+
+    if (!input.skipListingSync) {
+      await this.flagListings(record);
+    }
+
+    return record;
+  }
+
+  private static async buildPayload(
+    input: OfflineBundleInput,
+  ): Promise<OfflineBundlePayload> {
+    const filter = this.buildFilter(input);
+    const limit = Math.min(input.limit ?? 120, 400);
+
+    const listings = await listingModel
+      .find(filter)
+      .select(this.PROJECTION)
+      .sort({ "ai.recommendationScore": -1, publishedAt: -1 })
+      .limit(limit)
+      .lean();
+    // lean() returns plain objects matching the LeanListing type
+    const typedListings = listings as LeanListing[];
+    const toIsoString = (value?: string | Date): string | undefined => {
+      if (!value) return undefined;
+      if (value instanceof Date) {
+        return value.toISOString();
+      }
+      const parsed = new Date(value);
+      return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
+    };
+    const snapshots: OfflineListingSnapshot[] = typedListings.map((listing) => {
+      const area = listing.areaSqm || 0;
+      const pricePerSqm =
+        area > 0 && listing.price?.amount
+          ? Math.round(listing.price.amount / area)
+          : undefined;
+      return {
+        id: listing._id.toHexString(),
+        title: listing.title,
+        city: listing.city,
+        neighborhood: listing.neighborhood,
+        price: listing.price?.amount,
+        pricePerSqm,
+        propertyType: listing.propertyType,
+        intent: listing.intent,
+        rnplEligible: listing.rnplEligible,
+        aiScore: listing.ai?.recommendationScore,
+        immersive: listing.immersive,
+        proptech: listing.proptech,
+        pricingInsights: listing.pricingInsights,
+        updatedAt: toIsoString(listing.updatedAt || listing.publishedAt),
+      };
+    });
+
+    const facets = {
+      propertyTypes: this.buildFacet(
+        snapshots,
+        (item) => item.propertyType || "UNKNOWN",
+      ),
+      cities: this.buildFacet(snapshots, (item) => item.city || "UNKNOWN"),
+      proptech: this.buildFacet(
+        snapshots,
+        (item) => item.proptech?.smartHomeLevel || "NONE",
+      ),
+    };
+
+    const versionSeed = JSON.stringify({
+      cacheHint: input.cacheHint ?? "",
+      listingIds: snapshots.map((snapshot) => snapshot.id),
+      facets,
+    });
+
+    return {
+      version: this.computeVersion(versionSeed),
+      generatedAt: new Date().toISOString(),
+      listings: snapshots,
+      facets,
+    };
+  }
+
+  private static buildFilter(input: OfflineBundleInput): FilterQuery<IListing> {
+    const filter: FilterQuery<IListing> = { status: ListingStatus.ACTIVE };
+    if (input.city) {
+      filter.city = input.city;
+    }
+    if (input.intent) {
+      filter.intent = input.intent;
+    }
+    if (!input.includeAuctions) {
+      filter["auction.isAuction"] = { $ne: true };
+    }
+    if (input.orgId && Types.ObjectId.isValid(input.orgId)) {
+      filter.orgId = new Types.ObjectId(input.orgId);
+    }
+    return filter;
+  }
+
+  private static buildFacet(
+    items: OfflineListingSnapshot[],
+    resolver: (_item: OfflineListingSnapshot) => string,
+  ): Record<string, number> {
+    return items.reduce<Record<string, number>>((acc, item) => {
+      const key = resolver(item);
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+  }
+
+  private static computeVersion(seed: string): number {
+    const base = createHash("md5").update(seed).digest("hex");
+    return Number.parseInt(base.slice(0, 8), 16) || 1;
+  }
+
+  private static computeChecksum(payload: OfflineBundlePayload): string {
+    return createHash("sha256").update(JSON.stringify(payload)).digest("hex");
+  }
+
+  private static buildCacheKey(input: OfflineBundleInput): string {
+    // ORGID-FIX: Explicitly distinguish between tenant-scoped and public caches
+    // Use 'public' only for genuinely public listings, undefined for missing tenant
+    const raw = JSON.stringify({
+      orgId: input.orgId ?? "public",  // ✅ Nullish coalescing for explicit public cache
+      city: input.city,
+      intent: input.intent,
+      includeAuctions: input.includeAuctions,
+      limit: input.limit,
+      cacheHint: input.cacheHint,
+    });
+    return createHash("sha1").update(raw).digest("hex");
+  }
+
+  private static async flagListings(
+    bundle: OfflineBundleRecord,
+  ): Promise<void> {
+    const listingIds = bundle.listings
+      .map((listing) => listing.id)
+      .filter((id) => Types.ObjectId.isValid(id))
+      .map((id) => new Types.ObjectId(id));
+
+    if (!listingIds.length) {
+      return;
+    }
+
+    try {
+      await listingModel.updateMany(
+        { _id: { $in: listingIds } },
+        {
+          $set: {
+            offline: {
+              cacheKey: bundle.cacheKey,
+              payloadHash: bundle.checksum,
+              version: bundle.version,
+              lastSyncedAt: new Date(bundle.generatedAt),
+            },
+          },
+        },
+      );
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.warn("AQAR_OFFLINE_MARK_FAILED", {
+        cacheKey: bundle.cacheKey,
+        error: (error as Error)?.message ?? String(error),
+      });
+    }
+  }
+
+  private static async ensureIndexes(
+    collection: Collection<OfflineBundleDoc>,
+  ): Promise<void> {
+    if (!this.ttlIndexPromise) {
+      this.ttlIndexPromise = collection
+        .createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 })
+        .catch((_error) => {
+          const error =
+            _error instanceof Error ? _error : new Error(String(_error));
+          logger.warn("AQAR_OFFLINE_TTL_INDEX_FAILED", {
+            error: error.message,
+          });
+          this.ttlIndexPromise = null;
+        }) as Promise<void>;
+    }
+    return this.ttlIndexPromise;
+  }
+}
+
+]]>
+</file>
+
+<file path="services/aqar/pricing-insights-service.ts">
+<![CDATA[
+import crypto from "crypto";
+import { connectDb } from "@/lib/mongo";
+import { AqarListing } from "@/server/models/aqar";
+import {
+  ListingStatus,
+  type IListing,
+  type IListingPricingInsights,
+  ListingIntent,
+  PropertyType,
+} from "@/server/models/aqar/Listing";
+import type { FilterQuery, PipelineStage } from "mongoose";
+import { Types } from "mongoose";
+
+const PRICE_BUCKETS = [
+  0, 250_000, 500_000, 1_000_000, 2_000_000, 4_000_000, 8_000_000,
+];
+// AqarListing is already typed as Model<IListing> from the import
+const listingModel = AqarListing;
+
+export interface PricingInsightRequest {
+  city?: string;
+  neighborhood?: string;
+  propertyType?: PropertyType;
+  intent?: ListingIntent;
+  orgId?: string;
+  correlationId?: string;
+}
+
+export interface PricingInsightResponse {
+  correlationId: string;
+  city?: string;
+  neighborhood?: string;
+  propertyType?: PropertyType;
+  intent?: ListingIntent;
+  sampleSize: number;
+  confidence: number;
+  currentAveragePrice: number;
+  currentPricePerSqm?: number;
+  neighborhoodAverage?: number;
+  yoyChangePct?: number;
+  projectedAppreciationPct?: number;
+  demandScore: number;
+  dynamicRange: {
+    conservative: number;
+    base: number;
+    bullish: number;
+  };
+  marketSignals: string[];
+  priceBuckets: Array<{ label: string; count: number }>;
+  timeline: Array<{ period: string; pricePerSqm: number; listings: number }>;
+}
+
+interface BucketRow {
+  label: string;
+  count: number;
+  min: number;
+  max: number;
+}
+
+export class PricingInsightsService {
+  static async getInsights(
+    request: PricingInsightRequest,
+  ): Promise<PricingInsightResponse> {
+    const correlationId = request.correlationId ?? crypto.randomUUID();
+    await connectDb();
+
+    const match = this.buildMatch(request);
+    const pipeline = this.buildPipeline(match);
+    const [result] = await listingModel.aggregate(pipeline);
+
+    const stats = Array.isArray(result?.stats) ? result.stats[0] || {} : {};
+    const sampleSize = Number(stats?.sampleSize || 0);
+    const avgPrice: number = Number(stats?.avgPrice || 0);
+    const avgPricePerSqm: number | undefined =
+      stats?.avgPricePerSqm || undefined;
+    const neighborhoodAverage = Number(stats?.avgPrice || 0) || undefined;
+    const stdDev: number = Number(stats?.stdDevPrice || 0);
+    const avgViews: number = Number(stats?.avgViews || 0);
+    const avgInquiries: number = Number(stats?.avgInquiries || 0);
+
+    const timeline = Array.isArray(result?.timeline)
+      ? result.timeline.map(
+          (row: { _id: string; avgPricePerSqm: number; listings: number }) => ({
+            period: row._id,
+            pricePerSqm: Number(row.avgPricePerSqm || 0),
+            listings: row.listings,
+          }),
+        )
+      : [];
+    const yoyChange = this.computeYoyChange(timeline);
+
+    const bucketRows = this.buildBucketRows(result?.buckets || []);
+    const demandScore = this.computeDemandScore(avgViews, avgInquiries);
+    const confidence = this.computeConfidence(sampleSize);
+    const projectedAppreciation = yoyChange
+      ? yoyChange * Math.min(1, (confidence + demandScore / 100) / 2)
+      : undefined;
+    const dynamicRange = this.buildDynamicRange(avgPrice, stdDev);
+    const marketSignals = this.buildSignals({
+      yoyChange,
+      demandScore,
+      confidence,
+      sampleSize,
+    });
+
+    return {
+      correlationId,
+      city: request.city,
+      neighborhood: request.neighborhood,
+      propertyType: request.propertyType,
+      intent: request.intent,
+      sampleSize,
+      confidence,
+      currentAveragePrice: Number(avgPrice.toFixed(0)),
+      currentPricePerSqm: avgPricePerSqm
+        ? Number(avgPricePerSqm.toFixed(0))
+        : undefined,
+      neighborhoodAverage,
+      yoyChangePct: yoyChange,
+      projectedAppreciationPct: projectedAppreciation,
+      demandScore,
+      dynamicRange,
+      marketSignals,
+      priceBuckets: bucketRows.map((row) => ({
+        label: row.label,
+        count: row.count,
+      })),
+      timeline,
+    };
+  }
+
+  static async updateListingInsights(
+    listingId: string,
+  ): Promise<IListingPricingInsights | null> {
+    if (!Types.ObjectId.isValid(listingId)) {
+      return null;
+    }
+    await connectDb();
+    const listing = await listingModel
+      .findById(listingId)
+      .select("city neighborhood propertyType intent areaSqm price")
+      .lean<{
+        city?: string;
+        neighborhood?: string;
+        propertyType?: PropertyType;
+        intent?: ListingIntent;
+        areaSqm?: number;
+        price?: { amount: number };
+      } | null>();
+
+    if (!listing) {
+      return null;
+    }
+
+    const response = await this.getInsights({
+      city: listing.city,
+      neighborhood: listing.neighborhood,
+      propertyType: listing.propertyType,
+      intent: listing.intent,
+    });
+
+    const insights: IListingPricingInsights = {
+      pricePerSqm: response.currentPricePerSqm,
+      percentile: this.estimatePercentileFromAverage(response),
+      neighborhoodAvg: response.neighborhoodAverage,
+      projectedAppreciationPct: response.projectedAppreciationPct,
+      demandScore: response.demandScore,
+      dynamicRange: response.dynamicRange,
+      confidence: response.confidence,
+      lastComputedAt: new Date(),
+    };
+
+    await listingModel.findByIdAndUpdate(listingId, {
+      $set: { pricingInsights: insights },
+    });
+
+    return insights;
+  }
+
+  private static buildMatch(
+    request: PricingInsightRequest,
+  ): FilterQuery<IListing> {
+    const match: FilterQuery<IListing> = { status: ListingStatus.ACTIVE };
+    if (request.city) {
+      match.city = request.city;
+    }
+    if (request.neighborhood) {
+      match.neighborhood = request.neighborhood;
+    }
+    if (request.propertyType) {
+      match.propertyType = request.propertyType;
+    }
+    if (request.intent) {
+      match.intent = request.intent;
+    }
+    if (request.orgId && Types.ObjectId.isValid(request.orgId)) {
+      match.orgId = new Types.ObjectId(request.orgId);
+    }
+    return match;
+  }
+
+  private static buildPipeline(match: FilterQuery<IListing>): PipelineStage[] {
+    return [
+      { $match: match },
+      {
+        $addFields: {
+          pricePerSqm: {
+            $cond: [
+              { $gt: ["$areaSqm", 0] },
+              { $divide: ["$price.amount", "$areaSqm"] },
+              null,
+            ],
+          },
+          publishedMonth: {
+            $dateToString: {
+              format: "%Y-%m",
+              date: { $ifNull: ["$publishedAt", "$createdAt"] },
+            },
+          },
+        },
+      },
+      {
+        $facet: {
+          stats: [
+            {
+              $group: {
+                _id: null,
+                avgPrice: { $avg: "$price.amount" },
+                avgPricePerSqm: { $avg: "$pricePerSqm" },
+                stdDevPrice: { $stdDevPop: "$price.amount" },
+                avgViews: { $avg: "$analytics.views" },
+                avgInquiries: { $avg: "$analytics.inquiries" },
+                sampleSize: { $sum: 1 },
+              },
+            },
+          ],
+          timeline: [
+            {
+              $group: {
+                _id: "$publishedMonth",
+                avgPricePerSqm: { $avg: "$pricePerSqm" },
+                listings: { $sum: 1 },
+              },
+            },
+            { $sort: { _id: 1 } },
+            { $limit: 12 },
+          ],
+          buckets: [
+            {
+              $bucket: {
+                groupBy: "$price.amount",
+                boundaries: PRICE_BUCKETS,
+                default: "10M+",
+                output: { count: { $sum: 1 } },
+              },
+            },
+          ],
+        },
+      },
+    ];
+  }
+
+  private static buildBucketRows(
+    rows: Array<{ _id: number | string; count: number }>,
+  ): BucketRow[] {
+    return rows.map((row, idx) => {
+      const min =
+        typeof row._id === "number"
+          ? row._id
+          : PRICE_BUCKETS[Math.min(idx, PRICE_BUCKETS.length - 1)];
+      const max = PRICE_BUCKETS[idx + 1] ?? Number.POSITIVE_INFINITY;
+      const label = Number.isFinite(max)
+        ? `${min.toLocaleString()} - ${max.toLocaleString()} SAR`
+        : `${min.toLocaleString()}+ SAR`;
+      return {
+        label,
+        count: row.count,
+        min,
+        max,
+      };
+    });
+  }
+
+  private static estimatePercentile(
+    buckets: BucketRow[],
+    value: number,
+    total: number,
+  ): number | undefined {
+    if (!value || !total) {
+      return undefined;
+    }
+    let cumulative = 0;
+    for (const bucket of buckets) {
+      if (value > bucket.max) {
+        cumulative += bucket.count;
+        continue;
+      }
+      const range = bucket.max - bucket.min || 1;
+      const intraBucket = Math.max(
+        0,
+        Math.min(1, (value - bucket.min) / range),
+      );
+      const percentile =
+        ((cumulative + bucket.count * intraBucket) / total) * 100;
+      return Number(Math.min(99, Math.max(1, percentile)).toFixed(1));
+    }
+    return undefined;
+  }
+
+  private static estimatePercentileFromAverage(
+    response: PricingInsightResponse,
+  ): number | undefined {
+    return this.estimatePercentile(
+      response.priceBuckets.map((bucket, idx) => ({
+        label: bucket.label,
+        count: bucket.count,
+        min: PRICE_BUCKETS[idx] ?? PRICE_BUCKETS[PRICE_BUCKETS.length - 1] ?? 0,
+        max: PRICE_BUCKETS[idx + 1] ?? Number.POSITIVE_INFINITY,
+      })),
+      response.currentAveragePrice,
+      response.sampleSize,
+    );
+  }
+
+  private static computeDemandScore(views: number, inquiries: number): number {
+    const normalizedViews = Math.min(views / 300, 1);
+    const normalizedInquiries = Math.min(inquiries / 8, 1);
+    return Number(
+      ((normalizedViews * 0.6 + normalizedInquiries * 0.4) * 100).toFixed(0),
+    );
+  }
+
+  private static computeConfidence(sampleSize: number): number {
+    if (!sampleSize) {
+      return 0;
+    }
+    return Math.min(1, sampleSize / 50);
+  }
+
+  private static computeYoyChange(
+    timeline: Array<{ period: string; pricePerSqm: number }>,
+  ): number | undefined {
+    if (timeline.length < 2) {
+      return undefined;
+    }
+    const first = timeline[0];
+    const last = timeline[timeline.length - 1];
+    if (!first?.pricePerSqm || !last?.pricePerSqm) {
+      return undefined;
+    }
+    const change =
+      ((last.pricePerSqm - first.pricePerSqm) / first.pricePerSqm) * 100;
+    return Number(change.toFixed(1));
+  }
+
+  private static buildDynamicRange(
+    avgPrice: number,
+    stdDev: number,
+  ): {
+    conservative: number;
+    base: number;
+    bullish: number;
+  } {
+    if (!avgPrice) {
+      return { conservative: 0, base: 0, bullish: 0 };
+    }
+    const delta = stdDev || avgPrice * 0.08;
+    return {
+      conservative: Math.max(0, Number((avgPrice - delta).toFixed(0))),
+      base: Number(avgPrice.toFixed(0)),
+      bullish: Number((avgPrice + delta).toFixed(0)),
+    };
+  }
+
+  private static buildSignals(params: {
+    yoyChange?: number;
+    demandScore: number;
+    confidence: number;
+    sampleSize: number;
+  }): string[] {
+    const signals: string[] = [];
+    if (params.yoyChange && params.yoyChange > 0) {
+      signals.push(`📈 نمو سنوي +${params.yoyChange.toFixed(1)}٪`);
+    } else if (params.yoyChange && params.yoyChange < 0) {
+      signals.push(`📉 تصحيح -${Math.abs(params.yoyChange).toFixed(1)}٪`);
+    }
+    if (params.demandScore > 70) {
+      signals.push("🔥 طلب مرتفع من المشترين");
+    }
+    if (params.confidence < 0.4) {
+      signals.push("⚠️ عينة محدودة، يوصى بجمع بيانات إضافية");
+    }
+    if (params.sampleSize > 200) {
+      signals.push("✅ بيانات قوية على مستوى الحي");
+    }
+    return signals;
+  }
+}
+
+]]>
+</file>
+
+<file path="services/aqar/recommendation-engine.ts">
+<![CDATA[
+import crypto from "crypto";
+import { logger } from "@/lib/logger";
+import { connectDb } from "@/lib/mongo";
+import { AqarListing } from "@/server/models/aqar";
+import {
+  ListingStatus,
+  type IListing,
+  type IListingAnalytics,
+  type IListingImmersive,
+  type IListingPricingInsights,
+  type IListingProptech,
+  ListingIntent,
+  PropertyType,
+  SmartHomeLevel,
+} from "@/server/models/aqar/Listing";
+import type { FilterQuery } from "mongoose";
+import { Types } from "mongoose";
+
+// AqarListing is already typed as Model<IListing> from the import
+const listingModel = AqarListing;
+
+export type RecommendationBadge =
+  | "smart-home"
+  | "vr-ready"
+  | "rnpl-ready"
+  | "auction"
+  | "pricing-insight"
+  | "fm-lifecycle";
+
+export interface BudgetPreference {
+  min?: number;
+  max?: number;
+  currency?: string;
+}
+
+export interface RecommendationContext {
+  intent?: ListingIntent;
+  propertyTypes?: PropertyType[];
+  preferredCity?: string;
+  preferredNeighborhoods?: string[];
+  budget?: BudgetPreference;
+  favorites?: string[];
+  currentListingId?: string;
+  orgId?: string;
+  tenantId?: string;
+  limit?: number;
+  includeExperimental?: boolean;
+  updateAiSnapshot?: boolean;
+  correlationId?: string;
+  variant?: "primary" | "neighbor" | "experimental";
+}
+
+export interface RecommendationResultItem {
+  listingId: string;
+  score: number;
+  reasons: string[];
+  badges: RecommendationBadge[];
+  highlights: string[];
+  listing: {
+    title?: string;
+    city?: string;
+    neighborhood?: string;
+    price?: number;
+    pricePerSqm?: number;
+    propertyType?: PropertyType;
+    intent?: ListingIntent;
+    rnplEligible?: boolean;
+    immersive?: IListingImmersive;
+    proptech?: IListingProptech;
+    pricingInsights?: IListingPricingInsights;
+  };
+}
+
+export interface RecommendationResponse {
+  cacheKey: string;
+  correlationId: string;
+  generatedAt: string;
+  primary: RecommendationResultItem[];
+  experimental: RecommendationResultItem[];
+  appliedFilters: {
+    intent?: ListingIntent;
+    propertyTypes?: PropertyType[];
+    city?: string;
+    neighborhoods?: string[];
+    budget?: BudgetPreference;
+  };
+}
+
+type ListingProjection = {
+  _id: Types.ObjectId;
+  title?: string;
+  city?: string;
+  neighborhood?: string;
+  price?: { amount: number; currency?: string };
+  areaSqm?: number;
+  propertyType?: PropertyType;
+  intent?: ListingIntent;
+  amenities?: string[];
+  rnplEligible?: boolean;
+  auction?: IListing["auction"];
+  proptech?: IListingProptech;
+  immersive?: IListingImmersive;
+  ai?: IListing["ai"];
+  pricingInsights?: IListingPricingInsights;
+  analytics?: IListingAnalytics;
+  fmLifecycle?: IListing["fmLifecycle"];
+  status: ListingStatus;
+};
+
+export class AqarRecommendationEngine {
+  private static readonly PROJECTION =
+    "_id title city neighborhood price areaSqm propertyType intent amenities rnplEligible auction proptech immersive ai pricingInsights analytics fmLifecycle status";
+
+  static async recommend(
+    context: RecommendationContext = {},
+  ): Promise<RecommendationResponse> {
+    const correlationId = context.correlationId ?? crypto.randomUUID();
+    await connectDb();
+
+    const baseFilter = this.buildFilter(context);
+    const limit = Math.min(24, Math.max(context.limit ?? 12, 6));
+    const fetchLimit = Math.min(200, Math.max(limit * 5, 60));
+
+    let listings = await listingModel
+      .find(baseFilter)
+      .select(this.PROJECTION)
+      .sort({ "ai.recommendationScore": -1, publishedAt: -1 })
+      .limit(fetchLimit)
+      .lean<ListingProjection[]>();
+
+    if (!listings.length && baseFilter.city) {
+      const fallbackFilter = { ...baseFilter } as FilterQuery<IListing>;
+      delete fallbackFilter.city;
+      listings = await listingModel
+        .find(fallbackFilter)
+        .select(this.PROJECTION)
+        .sort({ publishedAt: -1 })
+        .limit(fetchLimit)
+        .lean<ListingProjection[]>();
+    }
+
+    const scored = listings
+      .map((listing) => this.scoreListing(listing, context))
+      .filter((item) => item.score > 0)
+      .sort((a, b) => b.score - a.score);
+
+    const primary = scored.slice(0, limit);
+    const experimental =
+      context.includeExperimental === false
+        ? []
+        : scored.slice(limit, limit + 6);
+
+    if (context.updateAiSnapshot !== false) {
+      await Promise.all(
+        primary
+          .slice(0, 5)
+          .map((item) =>
+            this.updateListingSnapshot(item, context, correlationId),
+          ),
+      );
+    }
+
+    return {
+      cacheKey: this.buildCacheKey(context),
+      correlationId,
+      generatedAt: new Date().toISOString(),
+      primary,
+      experimental,
+      appliedFilters: {
+        intent: context.intent,
+        propertyTypes: context.propertyTypes,
+        city: context.preferredCity,
+        neighborhoods: context.preferredNeighborhoods,
+        budget: context.budget,
+      },
+    };
+  }
+
+  static async refreshForListing(
+    listingId: string,
+    input?: RecommendationContext,
+  ): Promise<void> {
+    if (!Types.ObjectId.isValid(listingId)) {
+      return;
+    }
+    const context: RecommendationContext = {
+      ...(input || {}),
+      currentListingId: listingId,
+      updateAiSnapshot: true,
+      includeExperimental: true,
+      limit: 6,
+    };
+    await this.recommend(context);
+  }
+
+  private static buildFilter(
+    context: RecommendationContext,
+  ): FilterQuery<IListing> {
+    const query: FilterQuery<IListing> = {
+      status: ListingStatus.ACTIVE,
+    };
+
+    // Multi-tenancy: scope by org/tenant when provided to avoid cross-tenant leakage
+    const scopedOrgId = context.orgId || context.tenantId;
+    if (scopedOrgId && Types.ObjectId.isValid(scopedOrgId)) {
+      query.orgId = new Types.ObjectId(scopedOrgId);
+    }
+
+    if (context.intent) {
+      query.intent = context.intent;
+    }
+    if (context.propertyTypes?.length) {
+      query.propertyType = { $in: context.propertyTypes };
+    }
+    if (context.preferredCity) {
+      query.city = context.preferredCity;
+    }
+    if (context.preferredNeighborhoods?.length) {
+      query.neighborhood = { $in: context.preferredNeighborhoods };
+    }
+    if (
+      context.budget?.min !== undefined ||
+      context.budget?.max !== undefined
+    ) {
+      query["price.amount"] = {} as Record<string, number>;
+      if (context.budget.min !== undefined) {
+        (query["price.amount"] as Record<string, number>).$gte =
+          context.budget.min * 0.9;
+      }
+      if (context.budget.max !== undefined) {
+        (query["price.amount"] as Record<string, number>).$lte =
+          context.budget.max * 1.1;
+      }
+    }
+    const idFilters: Record<string, unknown> = {};
+    if (
+      context.currentListingId &&
+      Types.ObjectId.isValid(context.currentListingId)
+    ) {
+      idFilters.$ne = new Types.ObjectId(context.currentListingId);
+    }
+    if (context.favorites?.length) {
+      const favoriteIds = context.favorites
+        .filter((id) => Types.ObjectId.isValid(id))
+        .map((id) => new Types.ObjectId(id));
+      if (favoriteIds.length) {
+        idFilters.$nin = favoriteIds;
+      }
+    }
+    if (Object.keys(idFilters).length) {
+      query._id = idFilters;
+    }
+    // NOTE: orgId/tenantId scoping is handled at the start of buildFilter via scopedOrgId
+    // to avoid duplicate assignments which could cause confusion during debugging
+
+    return query;
+  }
+
+  private static scoreListing(
+    listing: ListingProjection,
+    context: RecommendationContext,
+  ): RecommendationResultItem {
+    let score = listing.ai?.recommendationScore ?? 32;
+    const reasons: string[] = [];
+
+    if (context.intent && listing.intent === context.intent) {
+      score += 8;
+      reasons.push("intent");
+    }
+
+    if (
+      context.propertyTypes?.length &&
+      listing.propertyType &&
+      context.propertyTypes.includes(listing.propertyType)
+    ) {
+      score += 6;
+      reasons.push("property-type");
+    }
+
+    if (context.preferredCity && listing.city === context.preferredCity) {
+      score += 10;
+      reasons.push("city");
+    }
+
+    if (
+      context.preferredNeighborhoods?.length &&
+      listing.neighborhood &&
+      context.preferredNeighborhoods.includes(listing.neighborhood)
+    ) {
+      score += 8;
+      reasons.push("neighborhood");
+    }
+
+    const priceScore = this.computePriceScore(
+      listing.price?.amount,
+      context.budget,
+    );
+    score += priceScore.value;
+    if (priceScore.reason) {
+      reasons.push(priceScore.reason);
+    }
+
+    if (
+      listing.proptech?.smartHomeLevel &&
+      listing.proptech.smartHomeLevel !== SmartHomeLevel.NONE
+    ) {
+      score +=
+        listing.proptech.smartHomeLevel === SmartHomeLevel.ADVANCED ? 8 : 4;
+      reasons.push("smart-home");
+    }
+
+    if (listing.immersive?.vrTour?.ready) {
+      score += 4;
+      reasons.push("vr");
+    }
+
+    if (listing.rnplEligible) {
+      score += 3;
+      reasons.push("rnpl");
+    }
+
+    if (listing.auction?.isAuction) {
+      score += 2;
+      reasons.push("auction");
+    }
+
+    if (listing.pricingInsights?.projectedAppreciationPct) {
+      const appreciation = Math.min(
+        listing.pricingInsights.projectedAppreciationPct,
+        25,
+      );
+      score += appreciation / 2;
+      reasons.push("appreciation");
+    }
+
+    if (listing.pricingInsights?.demandScore) {
+      score += Math.min(listing.pricingInsights.demandScore / 10, 6);
+      reasons.push("demand");
+    }
+
+    if (listing.analytics) {
+      const viewBoost = Math.min((listing.analytics.views || 0) / 200, 5);
+      if (viewBoost > 0) {
+        score += viewBoost;
+        reasons.push("views");
+      }
+      const inquiryBoost = Math.min((listing.analytics.inquiries || 0) / 5, 5);
+      if (inquiryBoost > 0) {
+        score += inquiryBoost;
+        reasons.push("inquiries");
+      }
+    }
+
+    if (listing.fmLifecycle?.autoCreateOn?.length) {
+      score += 2;
+      reasons.push("fm-lifecycle");
+    }
+
+    const pricePerSqm = this.calculatePricePerSqm(listing);
+    if (pricePerSqm && listing.pricingInsights?.neighborhoodAvg) {
+      const delta =
+        ((listing.pricingInsights.neighborhoodAvg - pricePerSqm) /
+          listing.pricingInsights.neighborhoodAvg) *
+        100;
+      if (delta > 3) {
+        score += 4;
+        reasons.push("below-neighborhood");
+      }
+    }
+
+    const highlights = this.buildHighlights(listing, pricePerSqm);
+    const badges = this.buildBadges(listing, reasons);
+
+    return {
+      listingId: listing._id.toHexString(),
+      score: this.clampScore(score),
+      reasons: Array.from(new Set(reasons)),
+      badges,
+      highlights,
+      listing: {
+        title: listing.title,
+        city: listing.city,
+        neighborhood: listing.neighborhood,
+        price: listing.price?.amount,
+        pricePerSqm,
+        propertyType: listing.propertyType,
+        intent: listing.intent,
+        rnplEligible: listing.rnplEligible,
+        immersive: listing.immersive,
+        proptech: listing.proptech,
+        pricingInsights: listing.pricingInsights,
+      },
+    };
+  }
+
+  private static calculatePricePerSqm(
+    listing: ListingProjection,
+  ): number | undefined {
+    if (listing.pricingInsights?.pricePerSqm) {
+      return listing.pricingInsights.pricePerSqm;
+    }
+    if (listing.price?.amount && listing.areaSqm) {
+      return Number((listing.price.amount / listing.areaSqm).toFixed(0));
+    }
+    return undefined;
+  }
+
+  private static computePriceScore(
+    price?: number,
+    budget?: BudgetPreference,
+  ): { value: number; reason?: string } {
+    if (!price || !budget) {
+      return { value: 0 };
+    }
+    const target = budget.max ?? budget.min ?? price;
+    if (!target) {
+      return { value: 0 };
+    }
+    if (budget.max && price > budget.max * 1.15) {
+      return { value: -8, reason: "above-budget" };
+    }
+    if (budget.min && price < budget.min * 0.85) {
+      return { value: -4, reason: "below-budget" };
+    }
+    const delta = Math.abs(price - target) / target;
+    if (delta <= 0.05) {
+      return { value: 12, reason: "price-sweet-spot" };
+    }
+    return { value: Math.max(2, 10 - delta * 20), reason: "price-fit" };
+  }
+
+  private static buildHighlights(
+    listing: ListingProjection,
+    pricePerSqm?: number,
+  ): string[] {
+    const highlights: string[] = [];
+    if (listing.pricingInsights?.projectedAppreciationPct) {
+      highlights.push(
+        `نمو متوقع ${listing.pricingInsights.projectedAppreciationPct.toFixed(1)}٪`,
+      );
+    }
+    if (pricePerSqm) {
+      highlights.push(`سعر المتر ${pricePerSqm.toLocaleString()} ﷼`);
+    }
+    if (listing.immersive?.vrTour?.ready) {
+      highlights.push("جولة VR جاهزة");
+    }
+    if (listing.proptech?.smartHomeLevel === SmartHomeLevel.ADVANCED) {
+      highlights.push("منزل ذكي متكامل");
+    }
+    if (listing.rnplEligible) {
+      highlights.push("تمويل RNPL متاح");
+    }
+    if (listing.auction?.isAuction) {
+      highlights.push("مزايدة نشطة");
+    }
+    return highlights;
+  }
+
+  private static buildBadges(
+    listing: ListingProjection,
+    reasons: string[],
+  ): RecommendationBadge[] {
+    const badges: RecommendationBadge[] = [];
+    if (
+      listing.proptech?.smartHomeLevel &&
+      listing.proptech.smartHomeLevel !== SmartHomeLevel.NONE
+    ) {
+      badges.push("smart-home");
+    }
+    if (listing.immersive?.vrTour?.ready) {
+      badges.push("vr-ready");
+    }
+    if (listing.rnplEligible) {
+      badges.push("rnpl-ready");
+    }
+    if (listing.auction?.isAuction) {
+      badges.push("auction");
+    }
+    if (
+      reasons.includes("price-sweet-spot") ||
+      reasons.includes("below-neighborhood")
+    ) {
+      badges.push("pricing-insight");
+    }
+    if (listing.fmLifecycle?.autoCreateOn?.length) {
+      badges.push("fm-lifecycle");
+    }
+    return Array.from(new Set(badges));
+  }
+
+  private static clampScore(value: number): number {
+    if (!Number.isFinite(value)) {
+      return 0;
+    }
+    return Math.max(0, Math.min(100, Number(value.toFixed(2))));
+  }
+
+  private static buildCacheKey(context: RecommendationContext): string {
+    const raw = JSON.stringify({
+      intent: context.intent,
+      propertyTypes: context.propertyTypes,
+      city: context.preferredCity,
+      neighborhoods: context.preferredNeighborhoods,
+      budget: context.budget,
+      limit: context.limit,
+    });
+    return crypto.createHash("sha1").update(raw).digest("hex");
+  }
+
+  private static async updateListingSnapshot(
+    item: RecommendationResultItem,
+    context: RecommendationContext,
+    correlationId: string,
+  ): Promise<void> {
+    try {
+      const similar: Types.ObjectId[] = [];
+      if (
+        context.currentListingId &&
+        Types.ObjectId.isValid(context.currentListingId)
+      ) {
+        similar.push(new Types.ObjectId(context.currentListingId));
+      }
+
+      const update: Record<string, unknown> = {
+        ai: {
+          recommendationScore: item.score,
+          variant: context.variant ?? "primary",
+          explanation: item.reasons,
+          badges: item.badges,
+          similarListingIds: similar,
+          demandSignal: item.listing.pricingInsights?.demandScore
+            ? item.listing.pricingInsights.demandScore / 100
+            : undefined,
+          lastRunAt: new Date(),
+        },
+      };
+
+      if (item.listing.pricingInsights) {
+        update.pricingInsights = item.listing.pricingInsights;
+      }
+
+      await listingModel
+        .findByIdAndUpdate(item.listingId, { $set: update })
+        .lean();
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.warn("AQAR_AI_SNAPSHOT_FAILED", {
+        correlationId,
+        listingId: item.listingId,
+        error: (error as Error)?.message ?? String(error),
+      });
+    }
+  }
+}
+
+]]>
+</file>
+
+<file path="services/hr/ksaPayrollService.ts">
+<![CDATA[
+/**
+ * KSA Payroll Compliance Service
+ *
+ * Implements Saudi Arabia labor law requirements:
+ * - GOSI (General Organization for Social Insurance) contributions
+ * - SANED (Unemployment Insurance)
+ * - Overtime calculations (150% per HRSD)
+ * - End of Service Benefits (ESB)
+ *
+ * References:
+ * - HRSD Labor Law: https://hrsd.gov.sa
+ * - GOSI Contributions: https://www.gosi.gov.sa
+ */
+
+// GOSI Rates (as of 2025) - These should be configurable in admin settings
+export const GOSI_RATES = {
+  // Annuities (Pension)
+  ANNUITIES_EMPLOYEE: 0.09, // 9% for Saudi nationals
+  ANNUITIES_EMPLOYER: 0.09, // 9% for Saudi nationals
+  // New entrant rates (gradual increase 2024-2028)
+  ANNUITIES_EMPLOYEE_NEW: 0.095, // 9.5% (2025)
+  ANNUITIES_EMPLOYER_NEW: 0.095, // 9.5% (2025)
+
+  // Occupational Hazards (employer only)
+  OCCUPATIONAL_HAZARDS: 0.02, // 2% (for all employees)
+
+  // SANED (Unemployment Insurance)
+  SANED_EMPLOYEE: 0.0075, // 0.75%
+  SANED_EMPLOYER: 0.0075, // 0.75%
+} as const;
+
+// KSA Labor Law: Overtime is 150% of hourly basic wage
+export const OVERTIME_MULTIPLIER = 1.5;
+
+// Standard work hours for hourly rate calculation
+const STANDARD_MONTHLY_DAYS = 30;
+const STANDARD_DAILY_HOURS = 8;
+
+/**
+ * Calculate hourly rate from monthly basic salary
+ * Formula: Monthly Basic / 30 days / 8 hours
+ */
+export function calculateHourlyRate(monthlyBasic: number): number {
+  return monthlyBasic / STANDARD_MONTHLY_DAYS / STANDARD_DAILY_HOURS;
+}
+
+/**
+ * Calculate overtime pay per HRSD regulations
+ * Overtime = Hourly Rate × 1.5 × Hours
+ */
+export function calculateOvertimePay(
+  monthlyBasic: number,
+  overtimeHours: number,
+): number {
+  const hourlyRate = calculateHourlyRate(monthlyBasic);
+  return (
+    Math.round(hourlyRate * OVERTIME_MULTIPLIER * overtimeHours * 100) / 100
+  );
+}
+
+/**
+ * Calculate GOSI contributions for an employee
+ * Returns employee deduction and employer contribution
+ */
+export interface GOSICalculation {
+  employeeDeduction: number; // Amount deducted from employee salary
+  employerContribution: number; // Amount paid by employer
+  breakdown: {
+    annuitiesEmployee: number;
+    annuitiesEmployer: number;
+    occupationalHazards: number;
+    sanedEmployee: number;
+    sanedEmployer: number;
+  };
+}
+
+export function calculateGOSI(
+  baseSalary: number,
+  housingAllowance: number,
+  isSaudiNational: boolean,
+  isNewEntrant: boolean = false, // Post-2024 hires
+): GOSICalculation {
+  // GOSI base: Basic + Housing (as per GOSI regulations)
+  const gosiBase = baseSalary + housingAllowance;
+
+  if (!isSaudiNational) {
+    // Non-Saudi: Only Occupational Hazards (employer pays)
+    return {
+      employeeDeduction: 0,
+      employerContribution:
+        Math.round(gosiBase * GOSI_RATES.OCCUPATIONAL_HAZARDS * 100) / 100,
+      breakdown: {
+        annuitiesEmployee: 0,
+        annuitiesEmployer: 0,
+        occupationalHazards:
+          Math.round(gosiBase * GOSI_RATES.OCCUPATIONAL_HAZARDS * 100) / 100,
+        sanedEmployee: 0,
+        sanedEmployer: 0,
+      },
+    };
+  }
+
+  // Saudi National: Full GOSI + SANED
+  const annuitiesRate = isNewEntrant
+    ? {
+        employee: GOSI_RATES.ANNUITIES_EMPLOYEE_NEW,
+        employer: GOSI_RATES.ANNUITIES_EMPLOYER_NEW,
+      }
+    : {
+        employee: GOSI_RATES.ANNUITIES_EMPLOYEE,
+        employer: GOSI_RATES.ANNUITIES_EMPLOYER,
+      };
+
+  const annuitiesEmployee =
+    Math.round(gosiBase * annuitiesRate.employee * 100) / 100;
+  const annuitiesEmployer =
+    Math.round(gosiBase * annuitiesRate.employer * 100) / 100;
+  const occupationalHazards =
+    Math.round(gosiBase * GOSI_RATES.OCCUPATIONAL_HAZARDS * 100) / 100;
+  const sanedEmployee =
+    Math.round(gosiBase * GOSI_RATES.SANED_EMPLOYEE * 100) / 100;
+  const sanedEmployer =
+    Math.round(gosiBase * GOSI_RATES.SANED_EMPLOYER * 100) / 100;
+
+  return {
+    employeeDeduction: annuitiesEmployee + sanedEmployee,
+    employerContribution:
+      annuitiesEmployer + occupationalHazards + sanedEmployer,
+    breakdown: {
+      annuitiesEmployee,
+      annuitiesEmployer,
+      occupationalHazards,
+      sanedEmployee,
+      sanedEmployer,
+    },
+  };
+}
+
+/**
+ * Calculate End of Service Benefits (ESB) per KSA Labor Law
+ *
+ * Formula:
+ * - First 5 years: 0.5 month salary per year
+ * - After 5 years: 1 month salary per year
+ *
+ * Adjustments:
+ * - Resignation before 2 years: No ESB
+ * - Resignation 2-5 years: 1/3 of calculated amount
+ * - Resignation 5-10 years: 2/3 of calculated amount
+ * - Resignation 10+ years or termination: Full amount
+ */
+export interface ESBCalculation {
+  totalMonths: number; // Months of salary owed
+  amount: number; // SAR
+  breakdown: {
+    first5YearsMonths: number;
+    after5YearsMonths: number;
+    adjustmentFactor: number; // 0, 0.33, 0.67, or 1.0
+    reason: string;
+  };
+}
+
+export function calculateESB(
+  lastMonthlySalary: number,
+  serviceYears: number,
+  serviceMonths: number = 0,
+  serviceDays: number = 0,
+  reason: "RESIGNATION" | "TERMINATION" | "END_OF_CONTRACT" = "TERMINATION",
+): ESBCalculation {
+  // Convert to total years (including fractional)
+  const totalYears = serviceYears + serviceMonths / 12 + serviceDays / 365;
+
+  // Base calculation
+  const first5Years = Math.min(5, totalYears);
+  const after5Years = Math.max(0, totalYears - 5);
+  const baseMonths = first5Years * 0.5 + after5Years * 1.0;
+
+  // Adjustment factor based on reason and tenure
+  let adjustmentFactor = 1.0;
+  let adjustmentReason = "Full ESB";
+
+  if (reason === "RESIGNATION") {
+    if (totalYears < 2) {
+      adjustmentFactor = 0;
+      adjustmentReason = "Resignation before 2 years - No ESB";
+    } else if (totalYears < 5) {
+      adjustmentFactor = 1 / 3;
+      adjustmentReason = "Resignation 2-5 years - 1/3 ESB";
+    } else if (totalYears < 10) {
+      adjustmentFactor = 2 / 3;
+      adjustmentReason = "Resignation 5-10 years - 2/3 ESB";
+    } else {
+      adjustmentFactor = 1.0;
+      adjustmentReason = "Resignation 10+ years - Full ESB";
+    }
+  }
+
+  const finalMonths = baseMonths * adjustmentFactor;
+  const amount = Math.round(lastMonthlySalary * finalMonths * 100) / 100;
+
+  return {
+    totalMonths: Math.round(finalMonths * 100) / 100,
+    amount,
+    breakdown: {
+      first5YearsMonths: Math.round(first5Years * 0.5 * 100) / 100,
+      after5YearsMonths: Math.round(after5Years * 1.0 * 100) / 100,
+      adjustmentFactor,
+      reason: adjustmentReason,
+    },
+  };
+}
+
+/**
+ * Calculate net pay for an employee
+ */
+export interface NetPayCalculation {
+  grossPay: number;
+  totalDeductions: number;
+  netPay: number;
+  earnings: { code: string; name: string; amount: number }[];
+  deductions: { code: string; name: string; amount: number }[];
+  gosi: GOSICalculation;
+}
+
+export function calculateNetPay(
+  baseSalary: number,
+  housingAllowance: number,
+  transportAllowance: number,
+  otherAllowances: { name: string; amount: number }[],
+  overtimeHours: number,
+  isSaudiNational: boolean,
+  isNewEntrant: boolean = false,
+): NetPayCalculation {
+  // Earnings
+  const overtimePay = calculateOvertimePay(baseSalary, overtimeHours);
+  const totalOtherAllowances = otherAllowances.reduce(
+    (sum, a) => sum + a.amount,
+    0,
+  );
+  const grossPay =
+    baseSalary +
+    housingAllowance +
+    transportAllowance +
+    totalOtherAllowances +
+    overtimePay;
+
+  const earnings = [
+    { code: "BASIC", name: "Basic Salary", amount: baseSalary },
+    { code: "HOUSING", name: "Housing Allowance", amount: housingAllowance },
+    {
+      code: "TRANSPORT",
+      name: "Transport Allowance",
+      amount: transportAllowance,
+    },
+    ...otherAllowances.map((a, i) => ({
+      code: `OTHER_${i + 1}`,
+      name: a.name,
+      amount: a.amount,
+    })),
+    ...(overtimePay > 0
+      ? [{ code: "OVERTIME", name: "Overtime (150%)", amount: overtimePay }]
+      : []),
+  ];
+
+  // Deductions (GOSI)
+  const gosi = calculateGOSI(
+    baseSalary,
+    housingAllowance,
+    isSaudiNational,
+    isNewEntrant,
+  );
+  const deductions = [];
+
+  if (gosi.breakdown.annuitiesEmployee > 0) {
+    deductions.push({
+      code: "GOSI_ANNUITIES",
+      name: "GOSI (Annuities)",
+      amount: gosi.breakdown.annuitiesEmployee,
+    });
+  }
+  if (gosi.breakdown.sanedEmployee > 0) {
+    deductions.push({
+      code: "SANED",
+      name: "SANED (Unemployment)",
+      amount: gosi.breakdown.sanedEmployee,
+    });
+  }
+
+  const totalDeductions = gosi.employeeDeduction;
+  const netPay = grossPay - totalDeductions;
+
+  return {
+    grossPay: Math.round(grossPay * 100) / 100,
+    totalDeductions: Math.round(totalDeductions * 100) / 100,
+    netPay: Math.round(netPay * 100) / 100,
+    earnings,
+    deductions,
+    gosi,
+  };
+}
+
+]]>
+</file>
+
+</batch_content>

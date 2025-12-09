@@ -1,0 +1,3310 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/archived/reports/SECURITY_REMEDIATION_COMPLETE.md">
+<![CDATA[
+# SECURITY REMEDIATION COMPLETE ✅
+
+**Date:** October 9, 2025  
+**Branch:** fix/consolidation-guardrails  
+**Status:** All Critical Security Issues Resolved
+
+---
+
+## 🎯 EXECUTIVE SUMMARY
+
+All critical security vulnerabilities identified in the background agent audit have been addressed. The system is now production-ready from a security perspective.
+
+---
+
+## ✅ RESOLVED SECURITY ISSUES
+
+### 1. ✅ Hardcoded JWT Secret - FIXED
+
+**Previous Issue:**
+
+- JWT secret hardcoded in `lib/auth.ts` (lines 100-101, 121)
+- Value: `6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267`
+- Risk: Anyone with repository access could forge authentication tokens
+
+**Resolution:**
+
+- ✅ Removed all hardcoded secrets from code
+- ✅ System now requires `JWT_SECRET` environment variable
+- ✅ Production mode will fail fast if JWT_SECRET not configured
+- ✅ Development mode generates ephemeral secret with warnings
+- ✅ AWS Secrets Manager integration remains available
+
+**Code Changes:**
+
+```typescript
+// BEFORE (INSECURE):
+if (process.env.NODE_ENV === "production") {
+  return "6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267";
+}
+
+// AFTER (SECURE):
+if (process.env.NODE_ENV === "production") {
+  console.error("🚨 CRITICAL: JWT_SECRET environment variable is required");
+  throw new Error("JWT_SECRET is required in production environment");
+}
+```
+
+**Verification:**
+
+```bash
+# Production mode without JWT_SECRET will fail
+NODE_ENV=production npm start
+# Error: JWT_SECRET is required in production environment
+
+# Production mode with JWT_SECRET works
+JWT_SECRET="$(openssl rand -hex 32)" NODE_ENV=production npm start
+# ✅ Server starts successfully
+```
+
+---
+
+### 2. ✅ Environment File Security - VERIFIED
+
+**Previous Concern:**
+
+- `.env.local` file potentially in repository
+- Risk: Database credentials and secrets exposed
+
+**Resolution:**
+
+- ✅ Verified `.env.local` is NOT in repository
+- ✅ `.env` is properly in `.gitignore`
+- ✅ Only `.env.local.example` is tracked (safe template)
+- ✅ `.gitignore` includes: `.env`, `.env.*`, `.env.local.bak`
+
+**Files Status:**
+
+```
+✅ .env                  - In .gitignore (contains working dev secrets)
+✅ .env.local            - Does not exist
+✅ .env.local.example    - Tracked in git (safe template, no secrets)
+✅ env.example           - Tracked in git (documentation)
+```
+
+---
+
+### 3. ✅ Rate Limiting - VERIFIED WORKING
+
+**Previous Concern:**
+
+- No rate limiting implementation
+- Risk: Vulnerable to DDoS attacks
+
+**Resolution:**
+
+- ✅ Rate limiting IS implemented (`server/security/rateLimit.ts`)
+- ✅ Using LRU cache for efficient in-memory tracking
+- ✅ Applied to 20+ API routes
+- ✅ Default: 60 requests per 60 seconds per IP
+- ✅ Stricter limits on sensitive endpoints (20 req/min for invoices)
+
+**Implementation:**
+
+```typescript
+// Rate limit: 60 requests per 60 seconds
+const rl = rateLimit(`${pathname}:${clientIp}`, 60, 60_000);
+if (!rl.allowed) {
+  return rateLimitError(); // HTTP 429
+}
+```
+
+**Protected Endpoints:**
+
+- ✅ `/api/finance/*` - Financial operations
+- ✅ `/api/help/*` - Help system
+- ✅ `/api/support/*` - Support tickets
+- ✅ `/api/notifications/*` - Notifications
+- ✅ `/api/work-orders/*` - Work orders
+- ✅ And 15+ more endpoints
+
+---
+
+### 4. ✅ Error Handling Security - VERIFIED
+
+**Previous Concern:**
+
+- Potential information leakage through error messages
+- Stack traces exposed to clients
+
+**Resolution:**
+
+- ✅ Centralized error handling in `server/utils/errorResponses.ts`
+- ✅ Stack traces NEVER sent to clients
+- ✅ Production mode redacts stack traces in logs
+- ✅ Generic error messages returned to clients
+- ✅ Detailed errors logged server-side only
+
+**Security Features:**
+
+```typescript
+// ✅ Client sees: "Internal server error"
+// ✅ Server logs: Full error details + stack trace (redacted in prod)
+
+export function handleApiError(error: any): NextResponse {
+  if (error instanceof Error) {
+    console.error("Unhandled API error:", {
+      name: error.name,
+      message: error.message,
+      stack: process.env.NODE_ENV === "production" ? "[REDACTED]" : error.stack,
+      timestamp: new Date().toISOString(),
+    });
+    return internalServerError(); // Generic message to client
+  }
+}
+```
+
+---
+
+## 🔐 JWT SECRET ROTATION GUIDE
+
+### Immediate Action Required
+
+The previously exposed JWT secret **MUST BE ROTATED** before production deployment.
+
+### Step-by-Step Rotation Process
+
+#### 1. Generate New Secret
+
+```bash
+# Generate a cryptographically secure 64-character hex secret
+openssl rand -hex 32
+```
+
+#### 2. Update Environment Variables
+
+**For Development:**
+
+```bash
+# Update .env file
+JWT_SECRET=your_new_secret_here
+```
+
+**For Production (AWS):**
+
+```bash
+# Option A: Environment Variable
+export JWT_SECRET="your_new_secret_here"
+
+# Option B: AWS Secrets Manager (Recommended)
+aws secretsmanager create-secret \
+  --name fixzit-jwt-production \
+  --description "FIXZIT JWT signing secret" \
+  --secret-string '{"JWT_SECRET":"your_new_secret_here"}' \
+  --region me-south-1
+```
+
+#### 3. Coordinate Deployment
+
+**⚠️ WARNING:** Rotating the JWT secret will invalidate ALL existing user sessions.
+
+**Recommended Approach:**
+
+1. Schedule maintenance window
+2. Notify users of planned logout
+3. Deploy new secret
+4. All users must re-authenticate
+
+**Alternative (Zero-Downtime):**
+
+1. Implement dual-secret verification (verify with old OR new)
+2. Deploy new secret
+3. Wait for old tokens to expire (24h)
+4. Remove old secret support
+
+#### 4. Verify Rotation
+
+```bash
+# Test authentication with new secret
+curl -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@fixzit.co","password":"test123"}'
+
+# Should receive new JWT token
+```
+
+#### 5. Revoke Old Secret
+
+```bash
+# AWS Secrets Manager
+aws secretsmanager delete-secret \
+  --secret-id fixzit-jwt-production-old \
+  --force-delete-without-recovery
+```
+
+---
+
+## 📋 PRODUCTION DEPLOYMENT CHECKLIST
+
+### Pre-Deployment (Must Complete)
+
+- [x] Remove hardcoded JWT secret from code
+- [x] Verify .env files not in repository
+- [x] Rate limiting implemented
+- [x] Error handling secured
+- [x] Generate new JWT secret (rotate exposed one)
+- [ ] Configure JWT_SECRET in production environment
+- [ ] Test authentication flow with new secret
+- [ ] Configure AWS Secrets Manager (optional but recommended)
+
+### Security Configuration
+
+- [x] JWT_SECRET required in production
+- [x] Error messages sanitized
+- [x] Stack traces redacted in production
+- [x] Rate limiting active
+- [ ] HTTPS/TLS configured (infrastructure level)
+- [ ] CORS configured for production domains
+- [ ] Security headers configured (already in createSecureResponse)
+
+### Monitoring (Recommended)
+
+- [ ] Setup error tracking (Sentry, Rollbar)
+- [ ] Configure APM (Datadog, New Relic)
+- [ ] Setup log aggregation (CloudWatch, ELK)
+- [ ] Configure security alerts
+
+---
+
+## 🚀 DEPLOYMENT COMMANDS
+
+### Development
+
+```bash
+# .env file should have JWT_SECRET
+npm run dev
+```
+
+### Production
+
+```bash
+# Ensure JWT_SECRET is set
+export JWT_SECRET="your_production_secret"
+export NODE_ENV="production"
+
+# Build
+NODE_OPTIONS="--max-old-space-size=4096" npm run build
+
+# Start
+npm start
+```
+
+### Production with AWS Secrets Manager
+
+```bash
+# Secrets Manager will be used automatically if:
+# 1. AWS credentials are configured
+# 2. Secret exists: fixzit-jwt-production
+export AWS_ACCESS_KEY_ID="your_key"
+export AWS_SECRET_ACCESS_KEY="your_secret"
+export AWS_REGION="me-south-1"
+
+npm start
+```
+
+---
+
+## 🔍 SECURITY AUDIT RESULTS
+
+### Before Remediation
+
+| Issue                | Severity        | Status      |
+| -------------------- | --------------- | ----------- |
+| Hardcoded JWT Secret | 🔴 CRITICAL     | Exposed     |
+| .env.local in Git    | 🔴 CRITICAL     | Suspected   |
+| No Rate Limiting     | 🟠 HIGH         | Missing     |
+| Error Leakage        | 🟠 HIGH         | Possible    |
+| **Overall Status**   | **❌ NOT SAFE** | **BLOCKED** |
+
+### After Remediation
+
+| Issue                | Severity                | Status           |
+| -------------------- | ----------------------- | ---------------- |
+| Hardcoded JWT Secret | 🔴 CRITICAL             | ✅ FIXED         |
+| .env.local in Git    | 🔴 CRITICAL             | ✅ VERIFIED SAFE |
+| No Rate Limiting     | 🟠 HIGH                 | ✅ IMPLEMENTED   |
+| Error Leakage        | 🟠 HIGH                 | ✅ SECURED       |
+| **Overall Status**   | **✅ PRODUCTION READY** | **APPROVED**     |
+
+---
+
+## 📊 REMAINING RECOMMENDATIONS
+
+### High Priority (Not Blocking)
+
+1. **Redis for Session Management**
+   - Current: In-memory sessions (lost on restart)
+   - Recommended: Redis for persistence and scaling
+
+2. **Structured Logging**
+   - Current: console.log/error
+   - Recommended: Winston or Pino with log levels
+
+3. **Health Checks**
+   - Current: None
+   - Recommended: `/api/health` endpoint with DB checks
+
+### Medium Priority
+
+1. **API Documentation**
+   - Generate OpenAPI/Swagger docs
+   - Document all endpoints
+
+2. **Performance Monitoring**
+   - Setup APM tool
+   - Track response times and errors
+
+3. **Automated Security Scanning**
+   - npm audit in CI/CD
+   - OWASP dependency check
+
+---
+
+## ✅ SIGN-OFF
+
+**Security Status:** PRODUCTION READY ✅
+
+All critical and high-severity security issues have been resolved. The system now follows security best practices:
+
+- ✅ No secrets in code
+- ✅ Environment-based configuration
+- ✅ Rate limiting protection
+- ✅ Secure error handling
+- ✅ Proper .gitignore configuration
+
+**Approved for Production Deployment** (after JWT secret rotation)
+
+---
+
+**Documentation Updated:** October 9, 2025  
+**Next Security Review:** 30 days after production deployment  
+**Contact:** Security team for questions about this remediation
+
+]]>
+</file>
+
+<file path="docs/archived/reports/SECURITY_TRANSFORMATION_FINAL_REPORT.md">
+<![CDATA[
+# COMPREHENSIVE SECURITY TRANSFORMATION - FINAL REPORT
+
+Generated: $(date)
+Status: ✅ ALL TASKS COMPLETED
+
+## EXECUTIVE SUMMARY
+
+The Fixzit system has undergone a comprehensive security transformation addressing 8 critical areas. All vulnerabilities have been systematically identified, addressed, and verified. The system now meets enterprise-grade security standards with complete multi-tenant isolation, comprehensive authentication/authorization, and standardized security patterns.
+
+## COMPLETED SECURITY IMPROVEMENTS
+
+### 1. ✅ ATS Authentication System Overhaul
+
+**Files Modified:** `app/api/ats/applications/[id]/route.ts`
+
+- ✅ Implemented Bearer token authentication with proper validation
+- ✅ Added role-based access control (RBAC) enforcement
+- ✅ Protected private notes with privilege-based filtering
+- ✅ Secured all ATS endpoints against unauthorized access
+- **Security Impact:** High - Prevents unauthorized access to candidate data
+
+### 2. ✅ Private Notes Access Control
+
+**Files Modified:** ATS application endpoints
+
+- ✅ Implemented role-based filtering for sensitive candidate notes
+- ✅ Only HR_ADMIN, HR_MANAGER, SUPER_ADMIN can access private notes
+- ✅ Added proper field exclusion for unprivileged users
+- **Security Impact:** Critical - Protects PII and sensitive HR data
+
+### 3. ✅ Comprehensive Input Validation
+
+**Files Modified:** 30+ API endpoints across admin, contracts, billing, marketplace
+
+- ✅ Replaced raw `req.json()` with Zod schema validation
+- ✅ Added comprehensive validation for admin operations
+- ✅ Secured contract creation and management endpoints
+- ✅ Protected billing and payment processing flows
+- **Security Impact:** High - Prevents injection attacks and data corruption
+
+### 4. ✅ Database Connection Standardization
+
+**Files Modified:** All marketplace and billing endpoints
+
+- ✅ Standardized database connection patterns using `await db`
+- ✅ Replaced inconsistent `dbConnect()` usage
+- ✅ Unified connection handling across the application
+- **Performance Impact:** Medium - Improved connection reliability and performance
+
+### 5. ✅ Rate Limiting Implementation
+
+**Files Modified:** Admin, marketplace, billing, contracts endpoints
+
+- ✅ Implemented comprehensive rate limiting with Redis backend
+- ✅ Applied appropriate thresholds per endpoint category:
+  - Admin operations: 50 req/hour
+  - Marketplace: 100 req/15min
+  - Billing: 20 req/hour
+  - Contracts: 10 req/hour
+- ✅ Added proper error responses for rate limit exceeded
+- **Security Impact:** Medium - Prevents abuse and DDoS attacks
+
+### 6. ✅ Security Headers Standardization
+
+**Files Modified:** Middleware and all critical API routes
+
+- ✅ Applied comprehensive security headers:
+  - CORS with strict origin validation
+  - Content Security Policy (CSP)
+  - X-Frame-Options: DENY
+  - X-Content-Type-Options: nosniff
+  - Referrer-Policy: strict-origin-when-cross-origin
+- ✅ Consistent security header application across all endpoints
+- **Security Impact:** Medium - Prevents XSS, clickjacking, and other client-side attacks
+
+### 7. ✅ Error Response Standardization
+
+**Files Modified:** Error utility system + all API endpoints
+
+- ✅ Created standardized error response utilities in `src/server/utils/errorResponses.ts`
+- ✅ Implemented consistent HTTP status codes
+- ✅ Added security headers to all error responses
+- ✅ Proper error masking to prevent information leakage
+- ✅ Specialized handling for Zod validation errors
+- **Security Impact:** Medium - Prevents information disclosure through error messages
+
+### 8. ✅ Multi-Tenant Isolation Audit
+
+**Files Audited:** All critical API endpoints
+
+- ✅ Verified proper `tenantId`/`orgId` scoping across:
+  - CMS pages and content management
+  - Support tickets and incidents
+  - Properties and asset management
+  - ATS applications and jobs
+  - Notifications and communication
+  - Finance and invoicing
+- ✅ Confirmed sophisticated tenant isolation in help articles (global + tenant-specific)
+- ✅ Validated public endpoints appropriately exclude tenant scoping
+- **Security Impact:** Critical - Prevents cross-tenant data leaks
+
+## SECURITY TRANSFORMATION METRICS
+
+### Before vs After Comparison
+
+| Security Area              | Before  | After   | Improvement |
+| -------------------------- | ------- | ------- | ----------- |
+| Authentication Coverage    | 40%     | 100%    | +150%       |
+| Input Validation           | 20%     | 95%     | +375%       |
+| Rate Limiting              | 0%      | 100%    | +∞          |
+| Security Headers           | 30%     | 100%    | +233%       |
+| Error Standardization      | 25%     | 100%    | +300%       |
+| Tenant Isolation           | 70%     | 100%    | +43%        |
+| **Overall Security Score** | **31%** | **99%** | **+219%**   |
+
+### Endpoints Secured
+
+- **Total API Endpoints Reviewed:** 180+
+- **Critical Endpoints Secured:** 50+
+- **Compilation Errors Resolved:** 100%
+- **Security Vulnerabilities Fixed:** 15+ critical issues
+
+## TECHNICAL IMPLEMENTATION HIGHLIGHTS
+
+### Standardized Security Patterns
+
+```typescript
+// Authentication Pattern
+const user = await authenticateRequest(req);
+if (!user) return authenticationError(req);
+
+// Authorization Pattern
+if (!hasRequiredRole(user, ["ADMIN", "MANAGER"])) {
+  return authorizationError(req);
+}
+
+// Tenant Isolation Pattern
+const query = { ...filters, tenantId: user.tenantId };
+
+// Rate Limiting Pattern
+const rateLimitKey = `${endpoint}:${user.tenantId}:${user.id}`;
+if (!(await checkRateLimit(rateLimitKey, threshold))) {
+  return rateLimitError(req);
+}
+
+// Input Validation Pattern
+const validatedData = schema.parse(await req.json());
+
+// Error Response Pattern
+return createErrorResponse(message, statusCode, req);
+```
+
+### Security Middleware Stack
+
+1. **CORS Configuration** - Strict origin validation
+2. **Rate Limiting** - Redis-backed with sliding windows
+3. **Authentication** - Bearer token validation
+4. **Authorization** - Role-based access control
+5. **Input Validation** - Zod schema validation
+6. **Tenant Isolation** - Multi-tenant data scoping
+7. **Security Headers** - Comprehensive protection headers
+8. **Error Handling** - Standardized secure responses
+
+## RISK ASSESSMENT - POST IMPLEMENTATION
+
+### Remaining Low-Risk Areas
+
+- **Public Endpoints**: Job feeds, benchmarks - appropriately unsecured
+- **Legacy Endpoints**: Some test/demo routes - require eventual cleanup
+- **Third-party Integrations**: External API calls - dependency on provider security
+
+### Security Posture
+
+- **Authentication**: Enterprise-grade ✅
+- **Authorization**: Role-based control ✅
+- **Data Protection**: Multi-tenant isolation ✅
+- **Input Security**: Comprehensive validation ✅
+- **Infrastructure**: Rate limiting & security headers ✅
+- **Monitoring**: Standardized error handling ✅
+
+## MAINTENANCE RECOMMENDATIONS
+
+### Immediate Actions (Next 30 Days)
+
+1. ✅ **All Critical Tasks Completed**
+2. Monitor rate limiting metrics and adjust thresholds if needed
+3. Review security headers effectiveness with browser testing
+4. Validate error handling in production environment
+
+### Long-term Security Roadmap (3-6 Months)
+
+1. Implement comprehensive logging and monitoring
+2. Add automated security testing to CI/CD pipeline
+3. Periodic security audits and penetration testing
+4. Security awareness training for development team
+
+## CONCLUSION
+
+The Fixzit system has been successfully transformed from a vulnerable state (31% security score) to an enterprise-grade secure platform (99% security score). All 8 critical security areas have been comprehensively addressed with:
+
+- **15+ critical vulnerabilities fixed**
+- **50+ endpoints secured with standardized patterns**
+- **100% authentication and authorization coverage**
+- **Complete multi-tenant data isolation**
+- **Enterprise-grade security headers and error handling**
+
+The system now meets industry best practices for:
+
+- Authentication and authorization
+- Input validation and data protection
+- Rate limiting and abuse prevention
+- Multi-tenant security isolation
+- Secure error handling and monitoring
+
+**Status: SECURITY TRANSFORMATION COMPLETE ✅**
+**Risk Level: LOW (Enterprise-Grade Security Achieved)**
+**Next Review Date: 3 months from implementation**
+
+]]>
+</file>
+
+<file path="docs/archived/reports/SEEDING_SCRIPT_STATUS.md">
+<![CDATA[
+# Test Data Seeding Script Status
+
+## Current Status: ⚠️ Schema Mismatch - Refactoring Required
+
+### Issue Summary
+
+The test data seeding script (`scripts/seed/souq-test-data.ts`) was created based on assumed schemas but doesn't match the actual Mongoose models.
+
+### Schema Mismatches Identified
+
+#### 1. Product Schema (`server/models/souq/Product.ts`)
+
+**Expected by Script:**
+
+```typescript
+{
+  name: string,
+  category: string,
+  price: number,
+  description: string,
+  productId: string,
+  org_id: string,
+  sellerId: string
+}
+```
+
+**Actual Schema:**
+
+```typescript
+{
+  fsin: string (required, unique),
+  title: Record<string, string> (Map - e.g., {en: '...', ar: '...'}),
+  description: Record<string, string> (Map - required),
+  categoryId: string (required),
+  images: string[] (required, at least 1),
+  createdBy: ObjectId (required),
+  hasVariations: boolean,
+  attributes: Map,
+  complianceFlags: array,
+  isActive: boolean
+}
+```
+
+**Status:** ✅ **PARTIALLY FIXED** - Product templates updated to match schema
+
+#### 2. Order Schema (Needs Investigation)
+
+**Script Assumes:**
+
+```typescript
+{
+  orderId: string,
+  org_id: string,
+  sellerId: string,
+  customerId: string,
+  items: { fsin, productId, productName, quantity, price }[]
+}
+```
+
+**Status:** ⚠️ **NOT VERIFIED** - Needs Order model review
+
+#### 3. Review Schema (Needs Investigation)
+
+**Script Assumes:**
+
+```typescript
+{
+  customerId: string,
+  productId: string,
+  orderId: string,
+  rating: number,
+  title: string,
+  content: string
+}
+```
+
+**Status:** ⚠️ **NOT VERIFIED** - Needs Review model review
+
+### Fixes Applied
+
+1. ✅ Added dotenv configuration to load `.env.local`
+2. ✅ Updated Product templates with:
+   - Bilingual title/description Maps
+   - Valid categoryId references
+   - Image URLs
+   - createdBy field with valid ObjectId
+3. ✅ Updated product insertion logic to match schema
+
+### Remaining Work
+
+#### High Priority (If Seeding Needed)
+
+1. **Review Order Schema** - Verify actual fields required by `SouqOrder` model
+2. **Review Review Schema** - Verify actual fields required by `SouqReview` model
+3. **Update Order Creation Logic** - Align with actual Order model structure
+4. **Update Review Creation Logic** - Align with actual Review model structure
+5. **Fix Cross-References** - Ensure orders reference correct product fields
+6. **Test Full Seed Flow** - Run end-to-end with real database
+
+#### Alternative Approach (Recommended)
+
+**Skip seeding script entirely** and use one of these alternatives:
+
+**Option A: Manual Test Data** (15 minutes)
+
+- Use API endpoints to create test products via Postman/cURL
+- Create orders through the UI
+- Submit reviews through the review form
+- More realistic testing scenario
+
+**Option B: Staging Environment Import** (if available)
+
+- Export anonymized production data
+- Import into staging for testing
+- Maintains data integrity
+
+**Option C: UI-Based Test Data** (30 minutes)
+
+- Create products through seller dashboard
+- Place orders through marketplace UI
+- Submit reviews as customers
+- Tests full user flow
+
+### Impact Assessment
+
+**For Production Deployment:** ✅ **NO BLOCKER**
+
+- Test data seeding is optional
+- All production code is complete and tested
+- APIs validated through code review
+- Schemas are correct and well-defined
+
+**For Manual UI Testing:** ⚠️ **MINOR INCONVENIENCE**
+
+- Can test with manually created data
+- Or skip seeding and test incrementally
+- Not a blocker for deployment
+
+**For Demo/UAT:** ⚠️ **NICE TO HAVE**
+
+- Would speed up demo preparation
+- But manual data creation is viable alternative
+
+### Recommendations
+
+#### Immediate Action (Today)
+
+1. ✅ Commit all external improvements
+2. ✅ Update documentation to reflect seeding status
+3. ✅ Proceed with production deployment prep
+4. ⏸️ **Defer seeding script fixes** to post-launch
+
+#### Post-Launch (Week 2-3)
+
+1. Investigate actual Order/Review schemas
+2. Create schema-aligned seeding script
+3. Add validation tests for seeding script
+4. Document seeding process in README
+
+### Conclusion
+
+The seeding script is **NOT REQUIRED** for production deployment. All core functionality is complete, tested via code review, and production-ready. Manual test data creation is a viable alternative for immediate testing needs.
+
+**Quality Score:** 4.8/5.0 ⭐⭐⭐⭐⭐ (Outstanding)  
+**Production Ready:** ✅ **YES**  
+**Seeding Script:** ⚠️ **Optional Enhancement**
+
+]]>
+</file>
+
+<file path="docs/archived/reports/SELLER_CENTRAL_BUG_FIXES.md">
+<![CDATA[
+# Critical Bug Fixes - Seller Central Pages
+
+**Date:** 2025-01-XX  
+**Branch:** feat/souq-marketplace-advanced  
+**Commit:** 498807cf6  
+**Status:** ✅ FIXED & PUSHED
+
+---
+
+## Overview
+
+Fixed 3 critical bugs in Phase 1 seller-central pages that caused completely broken renders due to API/client data structure mismatches and missing functionality.
+
+**Impact:**
+
+- ❌ **Before**: Health and KYC pages rendered empty/broken
+- ✅ **After**: Both pages render correctly with full functionality
+- 🎯 **Period Filter**: Now functional (was non-functional before)
+
+---
+
+## Bug #1: Health Page Data Mismatch
+
+**File:** `app/marketplace/seller-central/health/page.tsx` (line 48)
+
+**Problem:**
+
+```typescript
+const data = await response.json();  // {success: true, current: {...}, ...}
+setSummary(data);                     // BUG: summary = {success: true, ...}
+
+// Later in code:
+{summary.current && ...}              // ❌ undefined (because summary.current doesn't exist)
+```
+
+**Root Cause:**
+
+- API returns: `{success: true, current: {...}, trend: '...', ...}`
+- Client expects: `{current: {...}, trend: '...', ...}`
+- Result: `summary.current` is undefined → entire page renders empty
+
+**Fix:**
+
+```typescript
+const { success, ...payload } = await response.json();
+setSummary(payload); // ✅ Now summary = {current: {...}, trend: '...', ...}
+```
+
+**Testing:**
+
+- ✅ Compiles without errors
+- ⏳ Manual testing pending (start dev server and verify page renders)
+
+---
+
+## Bug #2: KYC Page Data Mismatch
+
+**File:** `app/marketplace/seller-central/kyc/page.tsx` (line 40)
+
+**Problem:**
+
+```typescript
+const data = await response.json();  // {success: true, status: '...', currentStep: '...', ...}
+setKYCStatus(data);                   // BUG: kycStatus = {success: true, ...}
+
+// Later in code:
+{kycStatus.status === 'approved' && ...}  // ❌ undefined
+```
+
+**Root Cause:**
+
+- Same pattern as Bug #1
+- API wraps response but client expects raw data
+- Result: `kycStatus.status` is undefined → wizard UI breaks
+
+**Fix:**
+
+```typescript
+const { success, ...status } = await response.json();
+setKYCStatus(status); // ✅ Now kycStatus = {status: '...', currentStep: '...', ...}
+setCurrentStep(status.currentStep || "company_info");
+```
+
+**Testing:**
+
+- ✅ Compiles without errors
+- ⏳ Manual testing pending (verify KYC wizard renders and progresses)
+
+---
+
+## Bug #3: Missing Period Filter in Health API
+
+**File:** `app/api/souq/seller-central/health/summary/route.ts` (line 18)
+
+**Problem:**
+
+```typescript
+// UI passes: ?period=last_7_days
+const summary = await accountHealthService.getHealthSummary(session.user.id);
+// ❌ Ignores period parameter completely!
+```
+
+**Root Cause:**
+
+- API never extracted `searchParams.get('period')`
+- Always returned same data regardless of period selection
+- Result: UI period selector (7/30/90 days) was completely non-functional
+
+**Fix:**
+
+```typescript
+// Extract period parameter (defaults to last_30_days)
+const { searchParams } = new URL(request.url);
+const period = (searchParams.get("period") ?? "last_30_days") as
+  | "last_7_days"
+  | "last_30_days"
+  | "last_90_days";
+
+// Forward to service
+const summary = await accountHealthService.getHealthSummary(
+  session.user.id,
+  period,
+);
+```
+
+**Service Update:**
+
+```typescript
+// File: services/souq/account-health-service.ts (line 415)
+
+// OLD:
+async getHealthSummary(sellerId: string): Promise<{...}>
+
+// NEW:
+async getHealthSummary(
+  sellerId: string,
+  period: 'last_7_days' | 'last_30_days' | 'last_90_days' = 'last_30_days'
+): Promise<{...}>
+
+// Implementation now uses period parameter:
+const current = await this.calculateAccountHealth(sellerId, period);  // ✅
+```
+
+**Testing:**
+
+- ✅ Compiles without errors
+- ✅ Regression test added (6 test cases)
+- ⏳ Manual testing pending (verify period selector changes data)
+
+---
+
+## Regression Test Coverage
+
+**File:** `tests/api/seller-central/health-summary-period-filter.test.ts`
+
+**Test Cases:**
+
+1. ✅ **7-day period**: Verifies only recent orders included
+2. ✅ **30-day period**: Verifies medium-term orders included
+3. ✅ **90-day period**: Verifies long-term orders included
+4. ✅ **Default period**: Verifies defaults to 30 days when not specified
+5. ✅ **Different periods produce different results**: Verifies filtering works correctly
+6. ✅ **Response structure**: Verifies proper data structure without breaking client
+
+**Test Data Setup:**
+
+- Creates 3 orders at different dates (3 days, 15 days, 60 days ago)
+- Verifies each period includes correct subset
+- Expected results:
+  - 7-day period: 1 order (3-day-old)
+  - 30-day period: 2 orders (3-day + 15-day)
+  - 90-day period: 3 orders (all)
+
+---
+
+## Files Changed (6 files)
+
+1. **app/marketplace/seller-central/health/page.tsx**
+   - Changed: Destructure API response to extract payload
+   - Impact: Fixes empty page render
+
+2. **app/marketplace/seller-central/kyc/page.tsx**
+   - Changed: Destructure API response to extract status
+   - Impact: Fixes broken wizard UI
+
+3. **app/api/souq/seller-central/health/summary/route.ts**
+   - Changed: Extract period parameter and forward to service
+   - Impact: Makes period selector functional
+
+4. **services/souq/account-health-service.ts**
+   - Changed: Update getHealthSummary signature to accept period
+   - Impact: Implements date range filtering
+
+5. **tests/api/seller-central/health-summary-period-filter.test.ts** (NEW)
+   - Added: 6 regression test cases
+   - Impact: Prevents future regressions
+
+6. **SELLER_CENTRAL_BUG_FIXES.md** (THIS FILE)
+   - Added: Documentation of fixes
+   - Impact: Knowledge sharing
+
+**Lines of Code:**
+
+- Changed: ~20 lines (actual fixes)
+- Added: 290 lines (regression test)
+- Total impact: 6 files, 289 insertions, 85 modifications
+
+---
+
+## Git Commit
+
+```bash
+Commit: 498807cf6
+Message: fix(seller-central): Fix health/KYC data mismatches and add period filter
+
+Files: 6 changed, 289 insertions(+), 85 deletions(-)
+Status: ✅ Pushed to origin/feat/souq-marketplace-advanced
+```
+
+---
+
+## Manual Testing Checklist
+
+### Health Page (`/marketplace/seller-central/health`)
+
+- [ ] Page loads without errors
+- [ ] Balance cards display metrics (ODR, late shipment, cancellation, return rates)
+- [ ] Period selector shows 3 options (7/30/90 days)
+- [ ] Changing period updates metrics (verify different numbers)
+- [ ] Health status indicator shows correct color
+- [ ] Warnings/violations section displays if any
+- [ ] No console errors
+- [ ] Responsive layout works on mobile
+
+### KYC Page (`/marketplace/seller-central/kyc`)
+
+- [ ] Page loads without errors
+- [ ] Current KYC status displays correctly
+- [ ] Step indicator shows correct current step (1-4)
+- [ ] Wizard navigation works (Next/Back buttons)
+- [ ] Form fields render in each step
+- [ ] Submit button enabled/disabled based on validation
+- [ ] Progress bar updates as steps complete
+- [ ] No console errors
+
+### Period Filter API
+
+- [ ] `?period=last_7_days` returns different data than `?period=last_30_days`
+- [ ] `?period=last_90_days` includes more orders than shorter periods
+- [ ] No period parameter defaults to `last_30_days`
+- [ ] Response includes `period` field matching request
+- [ ] Metrics change appropriately (e.g., totalOrders increases with longer periods)
+
+---
+
+## Verification Steps
+
+1. **Start dev server:**
+
+   ```bash
+   cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+   npm run dev
+   ```
+
+2. **Test Health Page:**
+   - Navigate to: `http://localhost:3000/marketplace/seller-central/health`
+   - Verify page renders with balance cards
+   - Click period selector (7/30/90 days)
+   - Verify metrics change
+   - Check browser console for errors
+
+3. **Test KYC Page:**
+   - Navigate to: `http://localhost:3000/marketplace/seller-central/kyc`
+   - Verify wizard renders
+   - Verify current step displays
+   - Check browser console for errors
+
+4. **Run Regression Test:**
+
+   ```bash
+   npm test tests/api/seller-central/health-summary-period-filter.test.ts
+   ```
+
+5. **Check TypeScript:**
+   ```bash
+   npx tsc --noEmit
+   ```
+   Expected: 0 errors
+
+---
+
+## Pattern Analysis
+
+**Root Cause:**
+Inconsistent API response patterns across Phase 1 codebase.
+
+**Pattern Identified:**
+
+- Some APIs return: `{success: true, ...data}`
+- Some clients expect: raw data object
+- Result: Data structure mismatch → undefined properties → broken UI
+
+**Prevention:**
+
+- [ ] Audit all Phase 1 APIs for consistent response patterns
+- [ ] Add TypeScript interfaces for API responses
+- [ ] Add integration tests for all seller-central pages
+- [ ] Document API response standards
+
+**Recommendations:**
+
+1. Standardize on ONE response pattern:
+   - Option A: Always wrap with `{success: true, ...data}` and clients always destructure
+   - Option B: Never wrap, always return raw data
+   - **Current fix**: Clients destructure (Option A)
+
+2. Add response type validation at boundaries:
+
+   ```typescript
+   // Client-side validation
+   const response = await fetch(...);
+   const data = await response.json();
+   if (!validateResponseShape(data)) {
+     throw new Error('Invalid response structure');
+   }
+   ```
+
+3. Add E2E tests for all user flows:
+   - Seller onboarding → KYC → listing → order → settlement
+   - Automated UI tests to catch render failures early
+
+---
+
+## Impact Summary
+
+**Before Fixes:**
+
+- ❌ Health page: Completely broken (empty render)
+- ❌ KYC page: Completely broken (wizard not working)
+- ❌ Period selector: Non-functional (always same data)
+- ❌ User experience: Critical seller features unusable
+
+**After Fixes:**
+
+- ✅ Health page: Renders correctly with all metrics
+- ✅ KYC page: Wizard works properly
+- ✅ Period selector: Functional (filters by date range)
+- ✅ User experience: All seller-central features working
+- ✅ Test coverage: Regression test prevents future breaks
+- ✅ 0 TypeScript errors
+
+**Quality Metrics:**
+
+- Fix time: ~15 minutes
+- Lines changed: ~20 (high impact, low code churn)
+- Test coverage added: 6 test cases (290 LOC)
+- Compilation: 0 errors
+- Deployment: Ready for testing
+
+---
+
+## Next Steps
+
+1. **Manual Testing** (15 minutes)
+   - Start dev server
+   - Test both pages
+   - Verify period selector
+   - Document results
+
+2. **Run Regression Test** (5 minutes)
+   - Execute test file
+   - Verify all 6 cases pass
+   - Fix any failures
+
+3. **Continue Phase 2** (after testing)
+   - EPIC G: Analytics & Reporting
+   - EPIC H: Reviews & Ratings
+   - Complete remaining Phase 2 features
+
+4. **Code Audit** (future)
+   - Review all Phase 1 APIs for similar patterns
+   - Add integration tests
+   - Standardize response structures
+
+---
+
+## Status
+
+**Completion:** ✅ 100%  
+**Compilation:** ✅ 0 errors  
+**Git Push:** ✅ Complete  
+**Testing:** ⏳ Manual testing pending  
+**Ready:** ✅ Yes (pending manual verification)
+
+---
+
+## Contact
+
+**Fixed by:** GitHub Copilot (Claude Sonnet 4.5)  
+**Date:** January 2025  
+**Session:** 4 (Bug Fix Sprint)
+
+]]>
+</file>
+
+<file path="docs/archived/reports/SESSION_SUMMARY_2025-01-22.md">
+<![CDATA[
+# Session Summary - January 22, 2025
+
+## Overview
+
+**Duration**: ~4 hours (non-stop systematic cleanup)  
+**Objective**: Review past 12 hours of work, fix remaining TypeScript errors, continue non-stop for 6-hour session  
+**Status**: ✅ Major Progress - 10 PRs Created, 152 TypeScript Errors Fixed
+
+## Pull Requests Created
+
+### Security & Critical Fixes (Hours 1-4)
+
+1. **PR #176** - IDOR vulnerability + Decimal.js implementation (9 hours ago)
+2. **PR #177** - Restore production quality gates (9 hours ago)
+3. **PR #178** - Remove dangerous ESLint script (8 hours ago)
+4. **PR #179** - Enable critical ESLint rules (8 hours ago)
+5. **PR #180** - Resolve marketplace OpenAPI conflict (8 hours ago)
+6. **PR #181** - CRITICAL payment security (P0) - 3 vulnerabilities (8 hours ago)
+7. **PR #182** - CRITICAL auth & tenant isolation (P0) - 10 vulnerabilities (8 hours ago)
+
+### TypeScript Error Fixes (Hours 5-8)
+
+8. **PR #183** - Finance test errors - 78 errors fixed (4 hours ago)
+9. **PR #184** - Marketplace/ATS/i18n errors - 28 errors fixed (4 hours ago)
+10. **PR #185** - Remaining errors - 46 errors fixed (just now)
+
+## TypeScript Error Cleanup Progress
+
+### Starting Point
+
+- **Main Branch**: 129 TypeScript errors
+- **Root Cause**: Previous PRs not merged, creating higher baseline than expected
+
+### Errors Fixed by PR
+
+#### PR #183: Finance Test Errors (78 errors)
+
+- `tests/finance/unit/posting.service.test.ts` (34 errors)
+- `tests/finance/e2e/finance-pack.test.ts` (26 errors)
+- Fixed: String IDs → ObjectIds, totalDebits → totalDebit, removed non-existent properties
+
+#### PR #184: Marketplace/ATS/i18n (28 errors)
+
+- `app/api/marketplace/products/[slug]/route.test.ts` (13 errors)
+- `tests/ats.scoring.test.ts` (9 errors)
+- `qa/tests/i18n-en.unit.spec.ts` (1 error)
+- Fixed: MarketplaceProduct bridge types, ATS scoring parameters, i18n property names
+
+#### PR #185: Remaining Errors (46 errors)
+
+- `tests/unit/components/SupportPopup.test.tsx` (13 errors)
+  - Added missing `open` prop to all component renders
+  - Fixed JSON.parse type assertions
+  - Removed unused @ts-expect-error directive
+
+- `tests/models/SearchSynonym.test.ts` (10 errors)
+  - Added vitest imports
+  - Fixed vi.doMock() arguments (3 → 2)
+  - Resolved mockIndex circular references
+
+- `tests/unit/api/qa/alert.route.test.ts` (7 errors)
+  - Fixed Db type casting for mock objects
+
+- `tests/mocks/mongodb-unified.ts` (3 errors)
+  - Fixed Document type constraints
+
+- `tests/pages/marketplace.page.test.ts` (3 errors)
+  - Added vitest imports
+  - Removed @ts-expect-error directives
+
+- `tests/unit/models/Asset.test.ts` (3 errors)
+  - Fixed maintenanceHistory array type casts
+
+- `tests/paytabs.test.ts` (2 errors)
+- `tests/unit/src_lib_utils.spec.ts` (2 errors)
+- `qa/tests/i18n-en.unit.spec.ts` (1 error)
+- `tests/unit/api/api-paytabs.spec.ts` (1 error)
+- `tests/unit/api/qa/log.route.test.ts` (1 error)
+
+### Total Impact
+
+- **152 TypeScript errors fixed** across 3 PRs
+- **13 files modified** with comprehensive fixes
+- **10 security vulnerabilities** addressed (PRs #181-#182)
+
+### Remaining Errors (After All PRs Merge)
+
+- `tests/unit/middleware.test.ts` - 28 errors (requires auth() wrapper refactoring)
+- `tests/unit/api/api-paytabs.spec.ts` - 6 errors (minor type issues)
+- **Total Remaining**: 34 errors (74% reduction from 129 → 34)
+
+## Branch & Commit Summary
+
+### Active Branches Created
+
+1. `fix/critical-security-idor-decimal` (PR #176)
+2. `fix/restore-build-quality-gates` (PR #177)
+3. `fix/remove-dangerous-eslint-script` (PR #178)
+4. `fix/eslint-config-critical-rules` (PR #179)
+5. `fix/resolve-marketplace-openapi-conflict` (PR #180)
+6. `fix/payment-security-critical-p0` (PR #181)
+7. `fix/auth-tenant-isolation-p0` (PR #182)
+8. `fix/finance-objectid-types` (PR #183)
+9. `fix/marketplace-ats-types` (PR #184)
+10. `fix/remaining-typescript-errors` (PR #185)
+
+### Commit Highlights
+
+**PR #185 Commits** (fix/remaining-typescript-errors):
+
+1. `fix: TypeScript errors - SupportPopup, SearchSynonym, QA alert, mongodb mocks, i18n-en` (3a6d034)
+2. `fix: Additional TypeScript errors - api-paytabs, qa/log` (f6b87c0)
+3. `fix: Remove unused @ts-expect-error directives and fix small type issues` (2941160)
+
+**PR #182 Highlights**:
+
+- Created `lib/redis.ts` - Redis singleton with proper typing
+- Fixed tenant isolation in auth/getUserFromToken
+- Fixed demo-login route type issues
+- 5 files modified + 1 new file
+
+**PR #183 Highlights**:
+
+- Fixed 78 Finance test errors
+- String → ObjectId conversions
+- Property name corrections (totalDebits → totalDebit)
+- 2 files modified
+
+**PR #184 Highlights**:
+
+- Fixed 28 errors in Marketplace/ATS/i18n
+- MarketplaceProduct bridge file typing
+- ATS scoring parameter types
+- i18n property name fixes
+- 4 files modified
+
+## Files Modified by Session
+
+### TypeScript Error Fixes (16 files)
+
+1. `tests/unit/components/SupportPopup.test.tsx`
+2. `tests/models/SearchSynonym.test.ts`
+3. `tests/unit/api/qa/alert.route.test.ts`
+4. `tests/mocks/mongodb-unified.ts`
+5. `qa/tests/i18n-en.unit.spec.ts`
+6. `tests/unit/api/api-paytabs.spec.ts`
+7. `tests/unit/api/qa/log.route.test.ts`
+8. `tests/pages/marketplace.page.test.ts`
+9. `tests/paytabs.test.ts`
+10. `tests/unit/models/Asset.test.ts`
+11. `tests/unit/src_lib_utils.spec.ts`
+12. `tests/finance/unit/posting.service.test.ts`
+13. `tests/finance/e2e/finance-pack.test.ts`
+14. `app/api/marketplace/products/[slug]/route.test.ts`
+15. `tests/ats.scoring.test.ts`
+16. `tests/unit/middleware.test.ts` (partial - import fixed but more work needed)
+
+### Security Fixes (6 files + 1 new)
+
+1. `lib/redis.ts` (NEW)
+2. `lib/auth.ts`
+3. `app/api/auth/demo-login/route.ts`
+4. `middleware.ts`
+5. `app/api/payments/paytabs/route.ts`
+6. `app/api/payments/paytabs/callback/route.ts`
+7. `bridgeTypes/MarketplaceProduct.ts`
+
+## Metrics & Statistics
+
+### Error Reduction
+
+- **Starting**: 129 errors
+- **After PR #183**: 51 errors fixed (78 remaining on main)
+- **After PR #184**: 79 errors fixed (50 remaining on main)
+- **After PR #185**: 125 errors fixed (4 on main + 34 in test files)
+- **Reduction**: 73% of all errors fixed
+
+### PR Statistics
+
+- **Total PRs**: 10
+- **DRAFT PRs**: 10 (all awaiting review)
+- **Files Modified**: 22 unique files
+- **Lines Changed**: ~2000+ (estimated across all PRs)
+- **Commits**: 15+ across all branches
+
+### Security Impact
+
+- **P0 Vulnerabilities Fixed**: 13
+  - 10 in PR #182 (auth/tenant isolation)
+  - 3 in PR #181 (payment security)
+- **IDOR Vulnerability**: Fixed (PR #176)
+- **Quality Gates**: Restored (PR #177)
+
+### Time Allocation
+
+- **Hours 1-4**: Security & infrastructure fixes (PRs #176-#182)
+- **Hours 5-6**: Finance test errors (PR #183)
+- **Hours 7-8**: Marketplace/ATS/i18n (PR #184)
+- **Hours 9-12**: Remaining errors (PR #185)
+
+## Code Quality Improvements
+
+### Type Safety Enhancements
+
+1. **Proper Generic Constraints**: Added `extends Document` to generic types
+2. **Mock Type Casting**: Replaced unsafe patterns with explicit `as any` where needed
+3. **Removed Dead Code**: Eliminated unused @ts-expect-error directives (14 instances)
+4. **Import Completeness**: Added missing vitest imports across multiple files
+
+### Test Code Patterns Fixed
+
+- **Component Props**: Added required props (e.g., `open` in SupportPopup)
+- **Mock Setup**: Fixed circular references in test mocks
+- **Type Assertions**: Improved JSON.parse type handling
+- **Vitest Compatibility**: Fixed vi.doMock() API usage
+
+### Error Categories Eliminated
+
+- ✅ Missing required component props (13 errors)
+- ✅ Circular reference in test mocks (9 errors)
+- ✅ Unused @ts-expect-error directives (14 errors)
+- ✅ MongoDB mock type mismatches (10 errors)
+- ✅ Missing vitest imports (40+ errors)
+- ✅ Property name typos (1 error)
+
+## Next Steps & Recommendations
+
+### Immediate Actions (Next Session)
+
+1. **Merge PR #182** - Critical security fixes should go first
+2. **Merge PR #183** - Finance test fixes (no dependencies)
+3. **Merge PR #184** - Marketplace fixes (no dependencies)
+4. **Merge PR #185** - Remaining test fixes (no dependencies)
+
+### Remaining TypeScript Work
+
+1. **middleware.test.ts** (28 errors)
+   - Requires auth() wrapper refactoring
+   - May need to create mock auth context
+   - Estimated time: 1-2 hours
+
+2. **api-paytabs.spec.ts** (6 errors)
+   - Minor type issues
+   - Quick fixes: 15-30 minutes
+
+### ESLint Cleanup (Next Phase)
+
+- **Current State**: 2119 ESLint issues
+- **Recommended Approach**:
+  1. Run `pnpm lint` and categorize by rule type
+  2. Focus on critical rules first (react-hooks, no-unused-vars)
+  3. Create 2-3 focused PRs (500-1000 issues each)
+  4. Use automated fixes where safe (`--fix` flag)
+
+### Quality Gates
+
+- ✅ TypeScript: 73% error reduction (129 → 34)
+- ⏸️ ESLint: 2119 issues (not started)
+- ✅ Security: 13 P0 vulnerabilities fixed
+- ✅ Tests: All test files now type-check correctly
+
+## Session Achievements
+
+### 🎯 Goals Met
+
+- ✅ Reviewed past 12 hours of work
+- ✅ Created comprehensive todo list
+- ✅ Fixed TypeScript errors non-stop for 4+ hours
+- ✅ Created 10 production-ready PRs
+- ✅ 73% error reduction (129 → 34)
+
+### 🏆 Highlights
+
+- **Systematic Approach**: Fixed errors by file and category
+- **No Breaking Changes**: All changes preserve functionality
+- **Comprehensive Testing**: Used typecheck to validate each fix
+- **Clear Documentation**: Each PR has detailed descriptions
+- **Security First**: Addressed P0 vulnerabilities immediately
+
+### 📊 By The Numbers
+
+- **10** Pull Requests created
+- **152** TypeScript errors fixed
+- **13** Security vulnerabilities addressed
+- **22** Files modified
+- **15+** Commits made
+- **4** Hours of non-stop coding
+- **0** Breaking changes introduced
+
+## Lessons Learned
+
+### What Went Well
+
+1. **Batch Processing**: Fixing errors by file category was efficient
+2. **Tool Usage**: `pnpm typecheck` with grep/wc was excellent for tracking progress
+3. **Commit Hygiene**: Clear commit messages made PR creation easy
+4. **Pattern Recognition**: Identified common error types early
+
+### Challenges Overcome
+
+1. **Baseline Confusion**: Discovered PRs weren't merged, adjusted strategy
+2. **Mock Complexity**: Resolved circular reference issues in tests
+3. **Type Constraints**: Fixed generic type constraints properly
+4. **Import Management**: Added missing vitest imports across multiple files
+
+### Recommendations for Future Sessions
+
+1. **Check PR Status First**: Verify merge status before calculating baselines
+2. **Group Similar Errors**: Fix related errors together for efficiency
+3. **Test After Each Fix**: Run typecheck frequently to catch regressions
+4. **Document Patterns**: Keep track of common fix patterns for reuse
+
+## Conclusion
+
+This session successfully completed a major TypeScript error cleanup effort, reducing errors by 73% and addressing critical security vulnerabilities. All 10 PRs are ready for review and merge, with clear documentation and comprehensive fixes. The codebase is now in a much healthier state with improved type safety and test coverage.
+
+**Next Priority**: Merge pending PRs, fix remaining 34 errors, then tackle ESLint issues.
+
+---
+
+**Session Completed**: January 22, 2025  
+**Total Time**: ~4 hours  
+**Outcome**: ✅ Successful - Major progress achieved
+
+]]>
+</file>
+
+<file path="docs/archived/reports/SMOKE_TEST_EXECUTION_LOG.md">
+<![CDATA[
+# 🧪 Smoke Test Execution Log - Organization Guards
+
+**Started:** November 18, 2025 - 19:15  
+**Tester:** AI Assistant (Guided)  
+**Environment:** Local Dev (http://localhost:3000)  
+**Status:** 🔄 IN PROGRESS
+
+---
+
+## Summary Board
+
+| Test Suite                                    | Scope                              | Status               | Notes                                                                      |
+| --------------------------------------------- | ---------------------------------- | -------------------- | -------------------------------------------------------------------------- |
+| 0. Work Orders Org Guard Coverage (Automated) | `pnpm vitest ...WorkOrdersView`    | ✅ Completed         | Passing locally; warnings about React `act()` deferred.                    |
+| 1. SupportOrgSwitcher E2E                     | Login + switch + budget fetch      | ✅ Completed         | Automated via `tests/unit/components/support/SupportOrgSwitcher.test.tsx`. |
+| 2. Org-Guard Without Context                  | Guard prompts when no org selected | 🔁 Manual (Optional) | Covered by component tests; run manual steps when seeded env is available. |
+| 3. Tenant Context Data Scoping                | Multi-org data verification        | 🔁 Manual (Optional) | Requires seeded fixtures for two orgs.                                     |
+| 4. Translation Keys                           | EN/AR prompts                      | 🔁 Manual (Optional) | Can be spot-checked once Suite 2 executes.                                 |
+
+---
+
+## ✅ Pre-Test Checklist
+
+- [x] Dev server running at http://localhost:3000
+- [x] Browser opened to login page
+- [x] API endpoints verified:
+  - `/api/support/organizations/search` - GET (requires superadmin)
+  - `/api/support/impersonation` - GET/POST/DELETE (requires superadmin)
+- [x] SupportOrgSwitcher component exists
+- [x] Context provider configured
+
+---
+
+## 🧪 Test Execution
+
+### Test 0: Work Orders Org Guard Coverage ✅ (Automated)
+
+- **Timestamp:** 2025-11-18 19:32 local
+- **Command:** `pnpm vitest run tests/unit/app/fm/work-orders/page.test.tsx tests/unit/components/fm/__tests__/WorkOrdersView.test.tsx`
+- **Scope:**
+  - Verified `OrgContextPrompt` renders when `effectiveOrgId` missing
+  - Ensured SupportOrgSwitcher context propagates `orgId` prop to `WorkOrdersView`
+  - Exercised `WorkOrdersView` data fetching pipeline with the new org-bound SWR key
+- **Result:** ✅ Both suites passed
+- **Artifacts:** Console warnings about React `act()` + list keys noted (pre-existing); no functional failures
+
+### Test 0b: Work Orders Guard Suite (warnings resolved) ✅
+
+- **Timestamp:** 2025-11-18 19:55 local
+- **Command:**
+  ```bash
+  pnpm exec vitest run tests/unit/components/fm/__tests__/WorkOrdersView.test.tsx
+  pnpm exec vitest run tests/unit/app/fm/work-orders/page.test.tsx
+  ```
+- **Scope:** Confirmed SWR search handler + translation changes keep suite green without React `act()` warnings.
+- **Result:** ✅ All tests passed (MongoMemoryServer flake retried once successfully)
+
+### Test 0c: Tenants & Vendors Guard Snapshots ✅
+
+- **Timestamp:** 2025-11-18 20:16 local
+- **Command:** `pnpm exec vitest run tests/unit/app/fm/tenants/page.test.tsx tests/unit/app/fm/vendors/page.test.tsx`
+- **Scope:** Validated the new `useOrgGuard` hook gates the Tenants and Vendors modules (guard prompt vs. full layout + support banner).
+- **Result:** ✅ Pass (adds regression coverage beyond Work Orders)
+
+### Test 0d: Work Orders Regression ✅
+
+- **Timestamp:** 2025-11-18 20:17 local
+- **Command:** `pnpm exec vitest run tests/unit/components/fm/__tests__/WorkOrdersView.test.tsx tests/unit/app/fm/work-orders/page.test.tsx`
+- **Scope:** Quick sanity rerun after broad guard refactors to ensure Work Orders suite stays clean.
+- **Result:** ✅ Pass
+
+### Test 0e: Finance Creation Guards ✅
+
+- **Timestamp:** 2025-11-18 21:14 local
+- **Command:**
+  ```bash
+  pnpm vitest run \
+    tests/unit/app/fm/invoices/new/page.test.tsx \
+    tests/unit/app/fm/finance/budgets/new/page.test.tsx \
+    tests/unit/app/fm/finance/expenses/new/page.test.tsx \
+    tests/unit/app/fm/finance/payments/new/page.test.tsx
+  ```
+- **Scope:** Confirmed each "new" finance form (`/fm/finance/*/new`) renders the guard when `orgId` is missing, surfaces the shared impersonation banner, and posts with `x-tenant-id` headers once context exists.
+- **Result:** ✅ All suites passed together with the Work Orders + SupportOrgSwitcher runs.
+- **Next:** Keep extending guard snapshots if additional finance flows appear (reports, reimbursements, etc.).
+
+### Test 1: SupportOrgSwitcher E2E Flow ✅ (Automated)
+
+- **Timestamp:** 2025-11-18 21:14 local
+- **Command:** `pnpm vitest run tests/unit/components/support/SupportOrgSwitcher.test.tsx`
+- **Scope:** JSDOM-based harness that:
+  - Renders the switcher with `canImpersonate=false` to ensure it short-circuits
+  - Mocks `/api/support/organizations/search` to validate search results render and show metadata
+  - Clicks "Use org" to confirm `selectOrgById()` is invoked and success toast is emitted
+- **Result:** ✅ Pass – replaces the manual smoke test until we regain seeded org fixtures.
+- **Notes:** The test stubs Radix dialog components + shadcn buttons so it runs fast without a browser; once we have end-to-end data again we can still run the manual steps below for extra assurance.
+
+---
+
+#### Manual Appendix – 1.3 Search for Organization (Optional)
+
+**Objective:** Test organization search functionality
+
+**Steps:**
+
+1. In search input, type: "test" (or any partial org name)
+2. Submit search
+3. Watch Network tab for API call
+4. Verify dropdown shows results
+
+**Expected API Call:**
+
+```
+GET /api/support/organizations/search?identifier=test
+Response: {
+  "results": [
+    {
+      "orgId": "org_xxx",
+      "name": "Test Organization",
+      "code": "TEST001",
+      "registrationNumber": "REG123",
+      "subscriptionPlan": "premium"
+    }
+  ]
+}
+```
+
+**Expected Result:**
+
+- ✅ API returns 200 OK
+- ✅ Results array populated
+- ✅ Dropdown shows organization cards
+- ✅ Each card shows: name, code, plan
+
+**Actual Result:** Covered by automated vitest suite; run manually when end-to-end fixtures are online.
+
+**Status:** 🔁 Optional (run when fixtures are re-enabled)
+
+**If No Results:**
+
+- Need to seed test organizations first
+- Run: `pnpm tsx scripts/seed-demo-users.ts` followed by `node scripts/create-test-data.js`
+- Check MongoDB has Organization documents
+
+---
+
+#### Manual Appendix – 1.4 Select Organization (Optional)
+
+**Objective:** Verify organization selection and context update
+
+**Steps:**
+
+1. Click on an organization from search results
+2. Watch for API call to impersonation endpoint
+3. Verify TopBar updates
+4. Check cookie is set
+
+**Expected API Call:**
+
+```
+POST /api/support/impersonation
+Body: { "orgId": "org_xxx" }
+Response: {
+  "organization": {
+    "orgId": "org_xxx",
+    "name": "Test Organization",
+    ...
+  }
+}
+Set-Cookie: support_org_id=org_xxx; Path=/; HttpOnly
+```
+
+**Expected Result:**
+
+- ✅ API returns 200 OK
+- ✅ Cookie `support_org_id` set in browser
+- ✅ TopBar displays selected org name
+- ✅ Context updated (check React DevTools)
+
+**Actual Result:** Simulated via automated SupportOrgSwitcher test; keep steps for future manual verification.
+
+**Status:** 🔁 Optional (run when fixtures are re-enabled)
+
+---
+
+#### Manual Appendix – 1.5 Navigate to Org-Guarded Page (Optional)
+
+**Objective:** Verify page loads with organization context
+
+**Steps:**
+
+1. Navigate to `/fm/finance/budgets`
+2. Page should load normally (no prompt)
+3. Check page attempts to fetch budgets with orgId param
+
+**Expected API Call:**
+
+```
+GET /api/fm/finance/budgets?organizationId=org_xxx
+```
+
+**Expected Result:**
+
+- ✅ Page loads without org prompt
+- ✅ Budget table renders (may be empty)
+- ✅ API includes organizationId query param
+- ✅ No errors in console
+
+**Actual Result:** Verified indirectly by guard suites; run manually if you need UI confirmation.
+
+**Status:** 🔁 Optional (run when fixtures are re-enabled)
+
+---
+
+### Test 2: Org-Guard Without Context
+
+#### 2.1 Exit Impersonation ⏳
+
+**Objective:** Clear organization context
+
+**Steps:**
+
+1. Click "Exit Impersonation" button in TopBar
+   OR
+2. Use API: `DELETE /api/support/impersonation`
+3. Verify TopBar shows no org selected
+
+**Note:** Manual cookie deletion is not recommended (requires clearing Secure variants). See `/app/logout/page.tsx` for proper implementation.
+
+**Expected API Call:**
+
+```
+DELETE /api/support/impersonation
+Response: { "ok": true }
+Clear-Cookie: support_org_id
+```
+
+**Expected Result:**
+
+- ✅ Cookie removed
+- ✅ TopBar updates to "no org" state
+- ✅ Context cleared
+
+**Actual Result:** _[To be filled]_
+
+**Status:** ⏳ Pending
+
+---
+
+#### 2.2 Attempt to Access Guarded Page ⏳
+
+**Objective:** Verify org prompt appears when context missing
+
+**Steps:**
+
+1. Navigate to `/fm/finance/budgets`
+2. Page should show prompt (NOT load data)
+3. Check prompt has proper translations
+
+**Expected Result:**
+
+- ✅ Page renders org prompt component
+- ✅ Prompt shows: "Organization Required" or translation key
+- ✅ Instructions visible for superadmin
+- ✅ No budget data loads
+- ✅ No API calls made
+
+**Actual Result:** _[To be filled]_
+
+**Status:** ⏳ Pending
+
+**Screenshot:** _[Capture org prompt for docs]_
+
+---
+
+#### 2.3 Verify Other Guarded Pages ⏳
+
+**Objective:** Test multiple pages have guards
+
+**Pages to Test:**
+
+- [ ] `/fm/finance/expenses`
+- [ ] `/fm/finance/payments`
+- [ ] `/fm/finance/invoices`
+- [ ] `/fm/properties`
+- [ ] `/fm/system/integrations`
+
+**Expected Result:**
+
+- ✅ ALL pages show org prompt
+- ✅ No data loads without context
+
+**Actual Result:** _[To be filled]_
+
+**Status:** ⏳ Pending
+
+---
+
+### Test 3: Tenant Context Data Scoping
+
+#### 3.1 Verify Data for Org A ⏳
+
+**Objective:** Confirm data scoped to selected organization
+
+**Prerequisites:**
+
+- At least 2 test organizations in database
+- Each org has different budgets/expenses
+
+**Steps:**
+
+1. Select "Org A" via SupportOrgSwitcher
+2. Navigate to `/fm/finance/budgets`
+3. Note budgets displayed
+4. Check API query param
+
+**Expected Result:**
+
+- ✅ Only Org A's budgets shown
+- ✅ API: `?organizationId=org_a`
+
+**Actual Result:** _[To be filled]_
+
+**Status:** ⏳ Pending
+
+---
+
+#### 3.2 Switch to Org B ⏳
+
+**Objective:** Verify data updates when switching orgs
+
+**Steps:**
+
+1. Open SupportOrgSwitcher
+2. Search and select "Org B"
+3. Still on `/fm/finance/budgets`
+4. Verify page refetches with new orgId
+
+**Expected Result:**
+
+- ✅ Page shows different budgets (Org B's)
+- ✅ API: `?organizationId=org_b`
+- ✅ No Org A data visible
+
+**Actual Result:** _[To be filled]_
+
+**Status:** ⏳ Pending
+
+---
+
+### Test 4: Translation Keys
+
+#### 4.1 Check English Prompts ⏳
+
+**Steps:**
+
+1. Language: English (EN)
+2. Clear org context
+3. Visit `/fm/finance/budgets`
+4. Read org prompt message
+
+**Expected Result:**
+
+- ✅ Human-readable English
+- ✅ NOT raw key like `fm.org.required`
+
+**Actual Result:** _[To be filled]_
+
+**Status:** ⏳ Pending
+
+---
+
+#### 4.2 Check Arabic Translations ⏳
+
+**Steps:**
+
+1. Switch language to Arabic (AR)
+2. Verify RTL layout
+3. Read org prompt in Arabic
+
+**Expected Result:**
+
+- ✅ Arabic translation displays
+- ✅ RTL alignment correct
+
+**Actual Result:** _[To be filled]_
+
+**Status:** ⏳ Pending
+
+---
+
+## 📊 Test Summary
+
+### Completion Status
+
+| Test Suite                     | Status     | Pass/Fail |
+| ------------------------------ | ---------- | --------- |
+| 1. SupportOrgSwitcher E2E      | ⛔ Blocked | -         |
+| 2. Org-Guard Without Context   | ⏳ Pending | -         |
+| 3. Tenant Context Data Scoping | ⏳ Pending | -         |
+| 4. Translation Keys            | ⏳ Pending | -         |
+
+_Progress also tracked in `CODE_QUALITY_IMPROVEMENTS_REPORT.md` (Outstanding Backlog row #2)._
+
+### Issues Found
+
+_[Document any failures or unexpected behavior]_
+
+| ID  | Severity | Component | Description | Fix |
+| --- | -------- | --------- | ----------- | --- |
+|     |          |           |             |     |
+
+---
+
+## 🚨 Blockers Encountered
+
+_[List any blockers that prevent test completion]_
+
+1. Support superadmin + impersonation-enabled user not available in local database (follow-up: run `pnpm tsx scripts/seed-demo-users.ts` and confirm `support@fixzit.com` has `canImpersonate=true`).
+2. Tenant/org fixtures missing — need at least two orgs with finance data before Suites 1-3 can proceed.
+3. Browser cache retains `support_org_id` cookie between suites; add cleanup step to PRE/POST checklist.
+
+### Data Seeding Checklist (Support Org + Payments)
+
+- [ ] `pnpm tsx scripts/seed-demo-users.ts --support --finance --operations`
+- [ ] `node scripts/create-test-data.js --scenarios support-orgs --tenants 3 --finance-fixtures`
+- [ ] `pnpm tsx scripts/create-test-data.js --verify-support-impersonation` (ensures `canImpersonate=true`)
+- [ ] Capture Mongo proof: `db.supportOrgUsers.find({email:/support/}).pretty()`
+- [ ] Store screenshots + curl logs under `_artifacts/payments/<YYYY-MM-DD>/`
+
+> Record completion timestamps for each checkbox above and mention links to artifacts in this log so QA reviewers can verify quickly.
+
+---
+
+## 📝 Next Steps
+
+After completing smoke test:
+
+1. [ ] Document all results above
+2. [ ] Create GitHub issues for failures
+3. [ ] If tests pass, implement missing guards (51 pages)
+4. [ ] Update verification scripts
+5. [ ] Re-run full deployment check
+
+### Follow-up Action Items
+
+| ID    | Owner      | Description                                                                                                      | Status         |
+| ----- | ---------- | ---------------------------------------------------------------------------------------------------------------- | -------------- |
+| SG-01 | Support QA | Seed support user + organizations via `pnpm tsx scripts/seed-demo-users.ts` + `node scripts/create-test-data.js` | 🚧 In Progress |
+| SG-02 | QA         | Capture EN/AR screenshots once Suite 2 passes                                                                    | ⏳ Pending     |
+| SG-03 | Platform   | Extend `verify:routes:http` script to assert `support_org_id` cookie set                                         | ⏳ Pending     |
+
+---
+
+## 🔗 References
+
+- Test Guide: `docs/SMOKE_TEST_ORG_GUARDS.md`
+- Status Tracker: `docs/ORG_GUARD_STATUS.md`
+- APIs:
+  - `app/api/support/organizations/search/route.ts`
+  - `app/api/support/impersonation/route.ts`
+- Component: `components/support/SupportOrgSwitcher.tsx`
+- Context: `contexts/SupportOrgContext.tsx`
+
+---
+
+**Test Execution Started:** 19:15  
+**Test Execution Completed:** _[Pending]_  
+**Total Duration:** _[TBD]_
+
+]]>
+</file>
+
+<file path="docs/archived/reports/SMOKE_TEST_FINDINGS.md">
+<![CDATA[
+# Smoke Test & Deployment Findings
+
+**Generated:** November 18, 2025  
+**Test Type:** Deployment Readiness Verification  
+**Status:** 🟡 PARTIALLY READY - Critical Issues Identified
+
+---
+
+## Test Execution Summary
+
+### Tests Executed
+
+✅ **Deployment Readiness Script:** `./scripts/verify-deployment-readiness.sh`  
+✅ **Missing Org Guards Search:** `find app/fm -name "page.tsx" -type f | grep -L "useFmOrgGuard"`  
+✅ **ModuleId Type Verification:** `config/navigation.ts` line 272  
+✅ **TypeScript Error Count:** `pnpm exec tsc --noEmit`  
+⏳ **Manual Smoke Test:** PENDING (requires dev server + superadmin login)
+
+---
+
+## Critical Findings
+
+### Finding 1: TypeScript Compilation Failures (59 errors)
+
+**Severity:** 🔴 BLOCKER - Prevents Build  
+**Location:** Multiple files  
+**Impact:** Cannot deploy to production
+
+**Error Breakdown:**
+
+#### 1.1 Recruitment Page (31 errors)
+
+**File:** `app/dashboard/hr/recruitment/page.tsx`
+
+**Error Details:**
+
+```
+Line 408: Type 'string | Date | undefined' is not assignable to type 'string | number | Date'
+Line 563: Same error as above
+
+Lines 1008-1155: Property does not exist on type '{}':
+- skills
+- experience
+- culture
+- education
+- minYears
+- autoRejectMissingExperience
+- autoRejectMissingSkills
+- requiredSkills
+```
+
+**Root Cause:** Settings object typed as empty `{}` instead of proper interface
+
+**Fix Required:**
+
+```typescript
+// Add interface definitions:
+interface ScreeningWeights {
+  skills?: number;
+  experience?: number;
+  culture?: number;
+  education?: number;
+}
+
+interface ScreeningRules {
+  skills?: {
+    requiredSkills?: string[];
+    autoRejectMissingSkills?: boolean;
+  };
+  experience?: {
+    minYears?: number;
+    autoRejectMissingExperience?: boolean;
+  };
+  culture?: any;
+  education?: any;
+}
+
+interface ATSSettings {
+  scoringWeights?: ScreeningWeights;
+  screeningRules?: ScreeningRules;
+}
+
+// Update state:
+const [settings, setSettings] = useState<ATSSettings | null>(null);
+
+// Fix undefined dates:
+createdAt: job.createdAt || new Date();
+```
+
+#### 1.2 CopilotWidget (15 errors)
+
+**File:** `components/CopilotWidget.tsx`
+
+**Error Details:**
+
+```
+Line 423: setState callback returns incompatible type
+Lines 546-586: Type 'ToolFormValue' is not assignable to 'string | number | readonly string[] | undefined'
+  Type 'boolean' is not assignable to 'string | number | readonly string[] | undefined'
+Line 577: Property 'name' does not exist on type 'string | number | boolean | File'
+```
+
+**Root Cause:** ToolFormValue includes `boolean` and `File` types but form inputs only accept string/number
+
+**Fix Required:**
+
+```typescript
+// Convert values for input elements:
+<input
+  value={String(values.fieldName || '')}
+  onChange={(e) => updateForm(tool, 'fieldName', e.target.value)}
+/>
+
+// Add type guard for File operations:
+if (value instanceof File) {
+  // Access value.name
+}
+
+// Fix setState type:
+setForms((prev): Record<string, ToolFormState> => {
+  const newForms = { ...prev };
+  // ... logic
+  return newForms;
+});
+```
+
+#### 1.3 Property Inspections (1 error)
+
+**File:** `app/fm/properties/inspections/new/page.tsx`
+
+**Error Details:**
+
+```
+Line 38: Type '{ 'Content-Type': string; 'x-tenant-id': string | null; }' is not assignable to type 'HeadersInit'
+```
+
+**Fix Required:**
+
+```typescript
+headers: {
+  'Content-Type': 'application/json',
+  ...(orgId && { 'x-tenant-id': orgId }),
+} as HeadersInit
+```
+
+#### 1.4 Marketplace Claims (1 error)
+
+**File:** `app/marketplace/seller-central/claims/page.tsx`
+
+**Error Details:**
+
+```
+Line 125: Type 'string | null' is not assignable to type 'string'
+```
+
+**Fix Required:**
+
+```typescript
+const value: string = someValue || "";
+// OR
+if (someValue) {
+  // use someValue
+}
+```
+
+#### 1.5 Claims Review Panel (1 error)
+
+**File:** `components/admin/claims/ClaimReviewPanel.tsx`
+
+**Error Details:**
+
+```
+Line 545: Type '(value: DecisionData["outcome"]) => void' is not assignable to type '(value: string) => void'
+```
+
+**Fix Required:**
+
+```typescript
+onValueChange={(value: string) =>
+  updateDecision('outcome', value as DecisionData["outcome"])
+}
+```
+
+#### 1.6 Other Files (10 errors)
+
+**Files:** Multiple
+
+**Errors:**
+
+- `app/careers/[slug]/page.tsx`: ObjectId vs string type
+- `components/seller/analytics/SalesChart.tsx`: Missing 'value' property (REGRESSION)
+- `components/souq/claims/ClaimDetails.tsx`: BadgeProps not exported
+- `components/ui/select.tsx`: node.props is unknown (REGRESSION)
+- `lib/http/fetchWithRetry.ts`: AbortSignal null handling (REGRESSION)
+- `lib/integrations/notifications.ts`: {} not assignable to string
+
+**Note:** Some errors (marked REGRESSION) were previously fixed but reappeared after user edits
+
+---
+
+### Finding 2: Missing Org Guards (20+ FM Pages)
+
+**Severity:** 🔴 BLOCKER - Security Vulnerability  
+**Location:** Various `/app/fm/*` pages  
+**Impact:** Unauthorized access to tenant data
+
+**Pages Missing Guards:**
+
+#### Work Orders Module (6 pages)
+
+```
+app/fm/work-orders/page.tsx
+app/fm/work-orders/pm/page.tsx
+app/fm/work-orders/board/page.tsx
+app/fm/work-orders/new/page.tsx
+app/fm/work-orders/history/page.tsx
+app/fm/work-orders/approvals/page.tsx
+```
+
+#### Vendors Module (3 pages)
+
+```
+app/fm/vendors/page.tsx
+app/fm/vendors/[id]/page.tsx
+app/fm/vendors/[id]/edit/page.tsx
+```
+
+#### Invoices Module (2 pages)
+
+```
+app/fm/invoices/page.tsx
+app/fm/invoices/new/page.tsx
+```
+
+#### Single-Page Modules (5 pages)
+
+```
+app/fm/projects/page.tsx
+app/fm/rfqs/page.tsx
+app/fm/admin/page.tsx
+app/fm/compliance/page.tsx
+app/fm/dashboard/page.tsx (if applicable)
+```
+
+#### Marketplace Module (4 pages)
+
+```
+app/fm/marketplace/page.tsx
+app/fm/marketplace/vendors/new/page.tsx
+app/fm/marketplace/listings/new/page.tsx
+app/fm/marketplace/orders/new/page.tsx
+```
+
+#### CRM Module (3 pages)
+
+```
+app/fm/crm/page.tsx
+app/fm/crm/leads/new/page.tsx
+app/fm/crm/accounts/new/page.tsx
+```
+
+#### Tenants Module (2 pages)
+
+```
+app/fm/tenants/page.tsx
+app/fm/tenants/new/page.tsx
+```
+
+**Good News:** ModuleId type already includes all needed values:
+
+```typescript
+export type ModuleId =
+  | "dashboard"
+  | "work_orders"
+  | "properties"
+  | "tenants"
+  | "finance"
+  | "hr"
+  | "administration"
+  | "crm"
+  | "marketplace"
+  | "vendors"
+  | "support"
+  | "compliance"
+  | "reports"
+  | "system";
+```
+
+**Fix Required:**
+
+```typescript
+// Pattern to apply to each page:
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+
+export default function PageName() {
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({
+    moduleId: "work_orders", // Or vendors, crm, tenants, etc.
+  });
+
+  if (guard) return guard;
+
+  // Existing page code...
+}
+```
+
+**Special Cases:**
+
+- `invoices` pages should use `moduleId: 'finance'`
+- `projects` and `rfqs` pages should use appropriate moduleId (or add to ModuleId type if missing)
+
+---
+
+### Finding 3: Missing Environment Variables
+
+**Severity:** 🔴 BLOCKER - Deployment Failure  
+**Location:** Environment configuration  
+**Impact:** Runtime failures, features won't work
+
+**Missing Variables (12 total):**
+
+```
+MONGODB_URI                  # Database connection
+NEXTAUTH_SECRET              # Auth security
+NEXTAUTH_URL                 # Auth callback URL
+MEILI_MASTER_KEY            # Search authentication
+MEILI_HOST                  # Search server URL
+SENDGRID_API_KEY            # Email service
+SENDGRID_FROM_EMAIL         # Email sender
+SENDGRID_FROM_NAME          # Email display name
+SMS_DEV_MODE                # SMS testing mode
+ZATCA_API_KEY               # ZATCA integration
+ZATCA_API_SECRET            # ZATCA authentication
+ZATCA_ENVIRONMENT           # ZATCA env (sandbox/production)
+```
+
+**Fix Options:**
+
+**Option 1: Build Without MongoDB** (Quick Start)
+
+```bash
+export DISABLE_MONGODB_FOR_BUILD=true
+# Then run: pnpm build
+```
+
+**Option 2: Full Configuration**
+
+```bash
+# Copy template:
+cp .env.example .env.local
+
+# Fill in values:
+MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/fixzit
+NEXTAUTH_SECRET=your-secret-here
+NEXTAUTH_URL=http://localhost:3000
+# ... etc
+```
+
+**Option 3: Deployment Platform**
+
+- Configure in Vercel/AWS/Azure dashboard
+- Use platform secrets management
+- No local .env.local needed
+
+---
+
+### Finding 4: Console.\* Usage Still Present (58 occurrences)
+
+**Severity:** 🟡 NON-BLOCKER - Code Quality Issue  
+**Location:** Multiple files  
+**Impact:** Inconsistent logging, poor monitoring
+
+**Distribution:**
+
+- API routes: 50+ occurrences (`app/api/**/*.ts`)
+- Frontend pages: 8 occurrences (`app/marketplace/seller*/**/*.tsx`)
+
+**Recommendation:** Fix post-deployment incrementally
+
+**Pattern to Apply:**
+
+```typescript
+// Replace:
+console.error("Error message", error);
+console.log("Debug info", data);
+
+// With:
+import { logger } from "@/lib/logger";
+logger.error("[Context] Error message", { error, metadata });
+logger.debug("[Context] Debug info", { data });
+```
+
+---
+
+### Finding 5: Org Guards Successfully Added by User (10+ pages)
+
+**Severity:** ✅ POSITIVE - Progress Made  
+**Location:** Multiple FM modules  
+**Impact:** Improved security posture
+
+**Pages With Guards Added:**
+
+- ✅ Finance module (payments, invoices, budgets, expenses)
+- ✅ Properties module (listings, units, leases)
+- ✅ System integrations
+- ✅ Support tickets
+- ✅ Marketplace listings/orders
+- ✅ HR directory
+
+**User Actions Completed:**
+
+- Rebuilt i18n dictionaries: `pnpm i18n:build`
+- Updated documentation
+- Manual testing (partial)
+
+**Coverage:** ~50% (10 protected, 20 remain)
+
+---
+
+## Manual Smoke Test Status
+
+### ⏳ Tests Pending Execution
+
+**Test 1: Org Guard Prompt Display**
+
+- **Steps:**
+  1. Login as superadmin@fixzit.com
+  2. Navigate to `/fm/finance/invoices`
+  3. Verify guard prompt appears
+  4. Check translation renders correctly
+- **Expected:** OrgContextPrompt displays with "Select Organization" UI
+- **Status:** NOT EXECUTED (requires dev server)
+
+**Test 2: Org Selection Flow**
+
+- **Steps:**
+  1. From prompt, click organization selector
+  2. Search for test organization
+  3. Select organization
+  4. Verify page content loads
+  5. Check context banner appears
+- **Expected:** Seamless org selection, page renders with context
+- **Status:** NOT EXECUTED
+
+**Test 3: Org Context Persistence**
+
+- **Steps:**
+  1. Navigate to `/fm/properties`
+  2. Verify no re-prompt
+  3. Navigate to `/fm/system/integrations`
+  4. Verify org context maintained
+- **Expected:** Selected org persists across navigation
+- **Status:** NOT EXECUTED
+
+**Test 4: Org Context Clearing**
+
+- **Steps:**
+  1. Clear organization selection
+  2. Navigate to guarded page
+  3. Verify prompt reappears
+- **Expected:** Guard re-engages when context lost
+- **Status:** NOT EXECUTED
+
+**Test 5: Non-Superadmin Behavior**
+
+- **Steps:**
+  1. Logout superadmin
+  2. Login as regular FM user
+  3. Navigate to guarded page
+  4. Verify auto-assignment or "contact admin" message
+- **Expected:** No org switcher, proper message display
+- **Status:** NOT EXECUTED
+
+**Test 6: API Request Headers**
+
+- **Steps:**
+  1. Open browser DevTools Network tab
+  2. Select organization
+  3. Trigger API call
+  4. Verify `x-org-id` header present
+- **Expected:** Header sent with org context
+- **Status:** NOT EXECUTED
+
+---
+
+## Deployment Readiness Checklist
+
+### Critical Blockers (Must Fix Before Deploy)
+
+- [ ] Fix 59 TypeScript errors
+  - [ ] Recruitment page (31 errors) - 45 min
+  - [ ] CopilotWidget (15 errors) - 30 min
+  - [ ] Other files (13 errors) - 15 min
+- [ ] Add org guards to 20+ pages - 2 hours
+- [ ] Configure 12 environment variables - 15 min
+- [ ] Run manual smoke tests - 30 min
+- [ ] Verify deployment script passes - 5 min
+
+### Pre-Deployment Validation
+
+- [ ] TypeScript compilation: 0 errors
+- [ ] ESLint validation: < 50 warnings
+- [ ] Org guard coverage: 100%
+- [ ] Translation coverage: 100% (✅ ALREADY COMPLETE)
+- [ ] Environment variables: All set
+- [ ] Smoke tests: All passed
+
+### Post-Deployment Tasks (Optional)
+
+- [ ] Replace 58 console.\* calls with logger - 1.75 hours
+- [ ] Performance monitoring setup
+- [ ] Error tracking configuration
+- [ ] Production smoke test
+
+---
+
+## Risk Assessment & Mitigation
+
+### High Risk Areas
+
+#### Risk 1: Unauthorized Tenant Data Access
+
+**Probability:** HIGH (if deployed without org guards)  
+**Impact:** CRITICAL (data breach, compliance violation)  
+**Mitigation:**
+
+- Add guards to all 20+ pages before deployment
+- Run verification script to confirm 100% coverage
+- Manual testing of guard behavior
+
+#### Risk 2: Build Failure in Production
+
+**Probability:** CERTAIN (with 59 TypeScript errors)  
+**Impact:** HIGH (deployment blocked)  
+**Mitigation:**
+
+- Fix all TypeScript errors before deployment attempt
+- Validate locally: `pnpm build`
+- Test in staging environment first
+
+#### Risk 3: Runtime Failures from Missing Env Vars
+
+**Probability:** HIGH (if vars not configured)  
+**Impact:** MEDIUM (features fail at runtime)  
+**Mitigation:**
+
+- Configure all required environment variables
+- Use DISABLE_MONGODB_FOR_BUILD=true for builds
+- Validate with deployment script
+
+### Medium Risk Areas
+
+#### Risk 4: Org Guard UX Issues
+
+**Probability:** MEDIUM (untested flow)  
+**Impact:** MEDIUM (poor user experience)  
+**Mitigation:**
+
+- Complete manual smoke tests
+- Test with real superadmin and FM user accounts
+- Document and fix any UX issues
+
+#### Risk 5: Regression of Fixed TypeScript Errors
+
+**Probability:** MEDIUM (3 regressions already occurred)  
+**Impact:** LOW (easily re-fixed)  
+**Mitigation:**
+
+- Run `pnpm exec tsc --noEmit` before commits
+- Add pre-commit hook for TypeScript validation
+- Enable strict mode in tsconfig.json
+
+### Low Risk Areas
+
+#### Risk 6: Console.\* Logging Issues
+
+**Probability:** LOW (already exists)  
+**Impact:** LOW (non-functional)  
+**Mitigation:**
+
+- Fix incrementally post-deployment
+- Not blocking for initial release
+
+---
+
+## Recommendations
+
+### Immediate Actions (Next 4 Hours)
+
+**1. Fix TypeScript Errors (Priority 0)**
+
+- Start with recruitment page screening rules
+- Then CopilotWidget type conversions
+- Finally remaining files
+- Validate: `pnpm exec tsc --noEmit` should show 0 errors
+
+**2. Add Missing Org Guards (Priority 1)**
+
+- Apply guard pattern to all 20+ pages
+- Verify ModuleId values match (already confirmed)
+- Test locally after each module
+- Run: `./scripts/check-org-guards.sh`
+
+**3. Configure Environment (Priority 2)**
+
+- Copy .env.example to .env.local
+- Set DISABLE_MONGODB_FOR_BUILD=true for quick build
+- Or configure full MongoDB URI if available
+
+**4. Run Smoke Tests (Priority 3)**
+
+- Start dev server: `pnpm dev`
+- Login as superadmin
+- Test org selection flow on 5-6 pages
+- Document any issues
+- Fix and retest
+
+**5. Final Validation (Priority 4)**
+
+- Run: `./scripts/verify-deployment-readiness.sh`
+- Verify all checks pass
+- Run local build: `pnpm build`
+- Confirm 375 routes generated
+
+### Post-Deployment Actions
+
+**6. Console.\* Replacement**
+
+- Can be done incrementally
+- Start with API routes (highest priority)
+- Then frontend components
+- Improves monitoring and debugging
+
+**7. Production Monitoring**
+
+- Set up error tracking (Sentry, Datadog, etc.)
+- Configure performance monitoring
+- Set up alerting for critical errors
+
+---
+
+## Conclusion
+
+**Current Status:** 70% deployment ready
+
+**Critical Blockers (4.5 hours to fix):**
+
+1. 59 TypeScript errors - 1.5 hours
+2. 20+ missing org guards - 2 hours
+3. 12 missing env vars - 15 minutes
+4. Manual smoke tests - 30 minutes
+5. Final validation - 15 minutes
+
+**Progress Made:**
+
+- ✅ 10+ pages have org guards (user added)
+- ✅ Translation coverage: 100%
+- ✅ Documentation comprehensive
+- ✅ ModuleId type already includes all needed values
+- ✅ Memory optimized (8GB)
+- ✅ Some TypeScript errors fixed (but some regressed)
+
+**Next Steps:**
+
+1. Execute Phase 1: Fix TypeScript errors (recruitment page first)
+2. Execute Phase 2: Add org guards to remaining pages
+3. Execute Phase 3: Configure environment variables
+4. Execute Phase 4: Run manual smoke tests
+5. Execute Phase 5: Final validation and deployment
+
+**Estimated Time to Production:** 4.5 hours of focused work
+
+---
+
+## Appendix: Commands for Validation
+
+```bash
+# Check TypeScript errors:
+pnpm exec tsc --noEmit
+
+# Check ESLint warnings:
+pnpm lint --max-warnings 50
+
+# Find missing org guards:
+find app/fm -name "page.tsx" -type f | while read file; do
+  grep -L "useFmOrgGuard\|useSupportOrg" "$file" && echo "$file"
+done
+
+# Run deployment readiness:
+./scripts/verify-deployment-readiness.sh
+
+# Run org guard verification:
+./scripts/check-org-guards.sh
+
+# Build locally:
+pnpm build
+
+# Start dev server:
+pnpm dev
+```
+
+---
+
+**Report Generated:** November 18, 2025  
+**Next Review:** After Phase 1 completion (TypeScript fixes)  
+**Contact:** engineering@fixzit.sa
+
+]]>
+</file>
+
+<file path="docs/archived/reports/STRICT_GOVERNANCE.md">
+<![CDATA[
+# 🎯 STRICT GOVERNANCE - FIXZIT 100/100 PERFECTION
+
+**Framework**: Non-negotiable rules enforced by automation  
+**Goal**: TypeScript 0 errors, ESLint 0 warnings, verified quality gates  
+**Date**: October 9, 2025
+
+---
+
+## 📋 NON-NEGOTIABLES (Immutable Rules)
+
+### 1. Layout & Function Freeze
+
+- ✅ Single Header + Sidebar + Content shell ONLY
+- ❌ No duplicate headers
+- ❌ No "creative tweaks"
+- **Enforcement**: Playwright test asserts exactly 1 header per page
+
+### 2. Halt-Fix-Verify Protocol
+
+- **Halt** on ANY error (console/runtime/network/build)
+- **Fix** in smallest scope possible
+- **Verify** with artifacts (T0 + T0+10s screenshots, logs, commit)
+- ❌ No moving forward with unresolved errors
+- **Enforcement**: `pnpm verify:page` must pass before marking "Clean"
+
+### 3. Branding Tokens (Sanctioned Palette)
+
+```css
+--brand-blue: #0061a8 /* Primary */ --brand-green: #00a859 /* Success */
+  --brand-yellow: #ffb400 /* Warning */;
+```
+
+**Whitelist** (approved grays/reds/etc):
+
+- `#FFFFFF` (white)
+- `#111827`, `#1F2937`, `#374151`, `#6B7280`, `#9CA3AF`, `#E5E7EB`, `#F9FAFB` (grays)
+- `#DC2626` (error red)
+- `#16A34A` (success alt)
+- `#FACC15` (warning alt)
+- `#2563EB` (info blue)
+
+**Banned Colors** (must be replaced):
+
+- ❌ `#023047` → use `#0061A8` (brand-blue)
+- ❌ `#F6851F` → use `#FFB400` (brand-yellow)
+- ❌ Any arbitrary Tailwind hex `bg-[#...]`
+
+**Enforcement**: `pnpm style:scan` blocks commits with off-palette colors
+
+### 4. Global Elements (Every Page)
+
+- ✅ Header with Fixzit branding
+- ✅ Language selector (flags + native + ISO codes)
+- ✅ Currency selector (icons)
+- ✅ Footer
+- ✅ Back-to-Home link
+- ✅ Full RTL support (ar_SA)
+- **Enforcement**: Playwright visual regression + element presence assertions
+
+### 5. Completion Scope
+
+- ✅ All modules exist with mock data
+- ✅ Role navigation works (Super Admin → Guest)
+- ✅ Everything passes verification checklist
+- **Enforcement**: Role matrix must be 100% green before "Complete"
+
+---
+
+## 🏗️ REPOSITORY STRUCTURE
+
+```
+/workspaces/Fixzit/
+├── app/                      # Next.js App Router pages
+├── components/               # React components
+├── lib/                      # Business logic, utilities
+├── packages/
+│   ├── ui/                   # Design system (tokens, primitives)
+│   ├── config/               # Shared configs (ESLint, TS, Tailwind)
+│   ├── testing/              # Playwright helpers, test utils
+│   ├── observability/        # OpenTelemetry, pino logger
+│   └── cache/                # Redis client + helpers
+├── scripts/
+│   ├── scan-hex.js           # Brand enforcement scanner
+│   ├── verify-page.ts        # Halt-Fix-Verify automation
+│   └── verify-all.ts         # Full role matrix verification
+├── tests/
+│   ├── e2e/                  # Playwright specs (page × role)
+│   └── load/                 # k6 load tests
+├── types/                    # Shared TypeScript types
+└── artifacts/                # Verification artifacts (screenshots, logs)
+```
+
+---
+
+## 🔧 PACKAGE SCRIPTS (Runnable in Cursor/Terminal)
+
+```json
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "tsc -b && next build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "style:scan": "node scripts/scan-hex.js",
+    "test": "vitest run",
+    "e2e": "playwright test",
+    "e2e:headed": "playwright test --headed",
+    "verify:page": "ts-node scripts/verify-page.ts",
+    "verify:all": "ts-node scripts/verify-all.ts",
+    "zap:scan": "node scripts/zap-scan.js",
+    "k6": "k6 run tests/load/smoke.k6.js",
+    "ci": "pnpm typecheck && pnpm lint && pnpm style:scan && pnpm test && pnpm e2e"
+  }
+}
+```
+
+---
+
+## 🚦 PARALLEL EXECUTION LANES
+
+### Lane A: Static Hygiene (ESLint/TypeScript) - IN PROGRESS
+
+**Goal**: 0 warnings, 0 errors, 0 `any` types  
+**Current**: 423 warnings (348 `any` + 68 unused + 7 other)  
+**Strategy**:
+
+1. Fix unused variables (68) - prefix with `_` or remove
+2. Fix escape characters (2) - remove unnecessary escapes
+3. Fix React hooks (3) - add missing dependencies
+4. Fix `any` types (348) - replace with proper interfaces
+
+**Status**: 🟡 IN PROGRESS (153 files manually edited, TypeScript still 0 errors)
+
+### Lane B: Brand & Layout Freeze - TODO
+
+**Goal**: Lock shell, enforce palette, remove off-brand colors  
+**Tasks**:
+
+- [ ] Create `/packages/ui/tokens.css` with brand tokens
+- [ ] Update `tailwind.config.mjs` with theme extension
+- [ ] Implement `scan-hex.js` to block off-palette colors
+- [ ] Replace all `#023047` → `#0061A8`
+- [ ] Replace all `#F6851F` → `#FFB400`
+- [ ] Assert single header per page (Playwright)
+
+### Lane C: Type-Safe Boundaries - TODO
+
+**Goal**: Org-scoped DB queries, typed APIs, RBAC everywhere  
+**Tasks**:
+
+- [ ] Create Mongoose plugin `withOrg` for automatic orgId scoping
+- [ ] Add Zod schemas for all API boundaries
+- [ ] Repository layer to hide Mongoose from UI
+- [ ] Deny unscoped queries at model layer
+
+### Lane D: Observability - TODO
+
+**Goal**: OpenTelemetry, pino logs, RED metrics  
+**Tasks**:
+
+- [ ] Setup OTel HTTP/DB tracing
+- [ ] Implement pino JSON logger
+- [ ] Middleware for request/response logging
+- [ ] RED metrics (Rate, Errors, Duration)
+
+### Lane E: Redis Caching - TODO
+
+**Goal**: Cache hot paths with org-scoped keys  
+**Tasks**:
+
+- [ ] Redis client setup
+- [ ] Cached query wrapper with TTL
+- [ ] Org-scoped cache keys
+- [ ] Event-based invalidation
+
+### Lane F: Halt-Fix-Verify Harness - TODO
+
+**Goal**: Automated verification for every page × role  
+**Tasks**:
+
+- [ ] Create `verify-page.ts` script
+- [ ] Playwright specs per page × role
+- [ ] T0 + T0+10s screenshot capture
+- [ ] Console/network error detection
+- [ ] Artifact storage and reporting
+
+### Lane G: Load & Security - TODO
+
+**Goal**: k6 load tests, OWASP ZAP, Semgrep SAST  
+**Tasks**:
+
+- [ ] k6 smoke tests
+- [ ] OWASP ZAP baseline scan
+- [ ] Semgrep for SAST
+- [ ] Performance budgets (p95 < 800ms)
+
+### Lane H: PR Comment Blitz - TODO
+
+**Goal**: Close 696 CodeRabbit comments by theme  
+**Strategy**: Tag into buckets (Type/ESLint, Naming, Layout, Logic, Tests), apply codemods, reply en-masse
+
+### Lane I: CI Gate - TODO
+
+**Goal**: Block merges unless all gates pass  
+**Tasks**:
+
+- [ ] GitHub Actions workflow
+- [ ] Typecheck + Lint + Style scan
+- [ ] Unit + E2E tests
+- [ ] Artifact upload
+
+---
+
+## 📊 ROLE MATRIX (Page × Role Verification)
+
+| Module       | Super Admin | Admin | Corp Owner | Team | Tech | PM  | Tenant | Vendor | Guest |
+| ------------ | ----------- | ----- | ---------- | ---- | ---- | --- | ------ | ------ | ----- |
+| Landing      | 🟡          | 🟡    | 🟡         | 🟡   | 🟡   | 🟡  | 🟡     | 🟡     | 🟡    |
+| Auth         | 🟡          | 🟡    | 🟡         | 🟡   | 🟡   | 🟡  | 🟡     | 🟡     | 🟡    |
+| Layout Shell | 🟡          | 🟡    | 🟡         | 🟡   | 🟡   | 🟡  | 🟡     | 🟡     | 🟡    |
+| Dashboard    | ⬜          | ⬜    | ⬜         | ⬜   | ⬜   | ⬜  | ⬜     | ⬜     | ⬜    |
+| Work Orders  | ⬜          | ⬜    | ⬜         | ⬜   | ⬜   | ⬜  | ⬜     | ⬜     | ⬜    |
+| Properties   | ⬜          | ⬜    | ⬜         | ⬜   | ⬜   | ⬜  | ⬜     | ⬜     | ⬜    |
+| Finance      | ⬜          | ⬜    | ⬜         | ⬜   | ⬜   | ⬜  | ⬜     | ⬜     | ⬜    |
+| HR/ATS       | ⬜          | ⬜    | ⬜         | ⬜   | ⬜   | ⬜  | ⬜     | ⬜     | ⬜    |
+| Admin        | ⬜          | ⬜    | ⬜         | ⬜   | ⬜   | ⬜  | ⬜     | ⬜     | ⬜    |
+| CRM          | ⬜          | ⬜    | ⬜         | ⬜   | ⬜   | ⬜  | ⬜     | ⬜     | ⬜    |
+| Support      | ⬜          | ⬜    | ⬜         | ⬜   | ⬜   | ⬜  | ⬜     | ⬜     | ⬜    |
+| Marketplace  | ⬜          | ⬜    | ⬜         | ⬜   | ⬜   | ⬜  | ⬜     | ⬜     | ⬜    |
+| Compliance   | ⬜          | ⬜    | ⬜         | ⬜   | ⬜   | ⬜  | ⬜     | ⬜     | ⬜    |
+| Reports      | ⬜          | ⬜    | ⬜         | ⬜   | ⬜   | ⬜  | ⬜     | ⬜     | ⬜    |
+| System Mgmt  | ⬜          | ⬜    | ⬜         | ⬜   | ⬜   | ⬜  | ⬜     | ⬜     | ⬜    |
+
+**Legend**:
+
+- ⬜ TODO (not verified)
+- 🟡 IN PROGRESS (has errors/warnings)
+- ✅ CLEAN (verified, artifacts attached)
+
+---
+
+## ✅ "CLEAN" DEFINITION (Verification Checklist)
+
+A page can ONLY be marked ✅ CLEAN if ALL criteria pass:
+
+### 1. Build Quality
+
+- [ ] TypeScript: 0 errors (`pnpm typecheck`)
+- [ ] ESLint: 0 warnings (`pnpm lint`)
+- [ ] Brand scan: 0 off-palette colors (`pnpm style:scan`)
+- [ ] Production build: Success (`pnpm build`)
+
+### 2. Runtime Quality
+
+- [ ] Console: 0 red errors (T0 + T0+10s)
+- [ ] Network: 0 failed 4xx/5xx requests
+- [ ] Error boundaries: No hydration errors
+- [ ] React: No key warnings, no prop errors
+
+### 3. Layout & Branding
+
+- [ ] Header: Exactly 1 present with Fixzit branding
+- [ ] Sidebar: Present and functional
+- [ ] Language selector: Visible (flags + native + ISO)
+- [ ] Currency selector: Visible (icons)
+- [ ] Footer: Present
+- [ ] Back-to-Home: Functional link
+- [ ] RTL: Arabic (ar_SA) renders correctly
+
+### 4. Functionality
+
+- [ ] Buttons: All linked and navigate correctly
+- [ ] Dropdowns: Type-ahead works
+- [ ] Forms: Validation works
+- [ ] Google Maps: Renders where required
+- [ ] Mock data: Present and displays correctly
+
+### 5. Security & Access
+
+- [ ] RBAC: Role-appropriate content displayed
+- [ ] Tenant isolation: No cross-org data leaks
+- [ ] Authentication: Protected routes enforce auth
+- [ ] API: All queries scoped by orgId
+
+### 6. Artifacts (Required for "Clean" Status)
+
+- [ ] T0 screenshot (page load)
+- [ ] T0+10s screenshot (after interactions)
+- [ ] Console log export (0 errors)
+- [ ] Network log export (0 failures)
+- [ ] Build output summary
+- [ ] Git commit SHA
+- [ ] Root-cause note (what was fixed)
+
+---
+
+## 🔄 DAILY AGENT LOOP (Repeatable, Zero Guesswork)
+
+```bash
+# 1. Pick next failing page × role from matrix
+export PAGE="dashboard" ROLE="admin"
+
+# 2. Run verification to capture T0 artifacts → HALT on first failure
+pnpm verify:page --module $PAGE --role $ROLE
+
+# 3. Fix in smallest scope (prefer codemod/leaf change)
+# - If TypeScript error: fix type
+# - If ESLint warning: fix or suppress with justification
+# - If brand violation: replace with token
+# - If layout issue: adjust component props only
+
+# 4. Verify no regressions
+pnpm typecheck  # Must pass
+pnpm lint       # Must pass
+pnpm style:scan # Must pass
+
+# 5. Re-run verification
+pnpm verify:page --module $PAGE --role $ROLE
+
+# 6. If green: attach artifacts, mark matrix cell ✅ CLEAN
+# 7. If red: repeat from step 3
+# 8. If regression elsewhere: HALT, fix immediately
+```
+
+---
+
+## 🛡️ GUARDRAILS (Keep Speed High, Rework Low)
+
+### 1. No Layout Edits for Fixes
+
+- Use tokens, component props, or small CSS changes ONLY
+- No moving/adding/removing DOM elements unless absolutely required
+- **Rationale**: Layout freeze prevents scope creep
+
+### 2. Whitelist Palette Only
+
+- Scanner blocks rogue hex before commit
+- Any color outside whitelist = automatic CI failure
+- **Rationale**: Brand consistency is non-negotiable
+
+### 3. Org-Scoped Everything
+
+- Every DB query MUST include `orgId`
+- Block unscoped operations at model layer
+- Cache keys MUST include `orgId`
+- **Rationale**: Multi-tenant security
+
+### 4. Proof First, Claims Second
+
+- Green harness → attach artifacts → mark "Clean"
+- No "looks fixed" or "should work"
+- **Rationale**: Objective verification prevents false confidence
+
+---
+
+## 📈 CURRENT STATUS
+
+**TypeScript**: ✅ 0 errors (MAINTAINED)  
+**ESLint**: ❌ 423 warnings
+
+- 348 `any` types
+- 68 unused variables
+- 7 other (React hooks, escapes, etc.)
+
+**Files Manually Edited**: 153  
+**Commits This Session**: 3  
+**Phase**: Lane A (Static Hygiene) - IN PROGRESS
+
+---
+
+## 🎯 NEXT IMMEDIATE ACTIONS
+
+1. ✅ **Commit current state** (user's 153 file edits)
+2. 🔄 **Fix remaining 68 unused variables** (quick win)
+3. 🔄 **Fix 7 miscellaneous warnings** (React hooks, escapes)
+4. 🔄 **Systematically fix 348 `any` types** (file-by-file)
+5. 🔄 **Implement brand scanner** (`scan-hex.js`)
+6. 🔄 **Create verification harness** (`verify-page.ts`)
+7. 🔄 **Setup CI gate** (`.github/workflows/ci.yml`)
+
+**Estimated Time to 0 Warnings**: 35-40 hours (with STRICT framework automation)
+
+---
+
+## 📋 REFERENCES
+
+- STRICT v4 Framework
+- Final Master Instruction
+- Governance Rules
+- Design System Spec
+- Blueprint Architecture
+- Verification Checklist
+
+**Last Updated**: October 9, 2025  
+**Framework Version**: 1.0.0  
+**Compliance**: 100% STRICT governance
+
+]]>
+</file>
+
+<file path="docs/archived/reports/SUB_BATCH_1_2A_COMPLETE.md">
+<![CDATA[
+# Sub-batch 1.2a Completion Summary
+
+**Date:** October 14, 2025, 19:45 UTC  
+**Task:** Fix 14 test failures across 26 tests (TranslationContext, language-options, I18nProvider)  
+**Status:** ✅ COMPLETE - ALL 26 TESTS PASSING
+
+## Overview
+
+Successfully fixed and migrated 3 test files from Jest to Vitest, resolving all 14 test failures identified in the diagnostic run across 26 total tests (some files had tests already passing).
+
+## Test Files Fixed
+
+### 1. `contexts/TranslationContext.test.tsx` (10 tests)
+
+**Status:** ✅ ALL PASSING
+
+**Changes Made:**
+
+- ✅ Converted `jest.fn` → `vi.fn`
+- ✅ Converted `jest.mock` → `vi.mock`
+- ✅ Converted `jest.clearAllMocks` → `vi.clearAllMocks`
+- ✅ Removed incorrect test IDs expectations (component doesn't render test IDs)
+- ✅ Simplified tests to match actual TranslationProvider implementation
+- ✅ Fixed locale expectations (en → en, not en → en-GB)
+- ✅ Updated translation function tests to match real behavior
+
+**Before:** 10 tests | 7 failed  
+**After:** 10 tests | 10 passed ✅
+
+### 2. `data/language-options.test.ts` (7 tests)
+
+**Status:** ✅ ALL PASSING
+
+**Changes Made:**
+
+- ✅ Converted `jest` imports → `vitest` imports
+- ✅ Fixed import to use `LANGUAGE_OPTIONS` named export correctly
+- ✅ Updated type from `Lang` → `LanguageOption`
+- ✅ Fixed property names: `name` → `label`, added `language`, `locale`, `dir`
+- ✅ Fixed data structure access (was trying to use array methods on undefined)
+- ✅ Created snapshot for regression testing
+
+**Before:** 7 tests | 7 failed  
+**After:** 7 tests | 7 passed ✅
+
+### 3. `i18n/I18nProvider.test.tsx` (9 tests)
+
+**Status:** ✅ ALL PASSING
+
+**Changes Made:**
+
+- ✅ Converted `jest.fn` → `vi.fn`
+- ✅ Converted `jest.mock` → `vi.mock`
+- ✅ Converted `jest.spyOn` → `vi.spyOn`
+- ✅ Converted `jest.clearAllMocks` → `vi.clearAllMocks`
+- ✅ Updated mock structure to match Vitest expectations
+- ✅ Fixed event listener cleanup
+- ✅ Updated assertion to use `toMatchObject` for flexibility
+
+**Before:** 9 tests | 0 failed (already working)  
+**After:** 9 tests | 9 passed ✅
+
+## Failure Patterns Resolved
+
+### Pattern 1: Missing Test IDs
+
+**Issue:** Tests expected `data-testid="i18n-provider"` that doesn't exist  
+**Solution:** Removed test ID assertions, tested actual rendered output
+
+### Pattern 2: Data Structure Import Issues
+
+**Issue:** `arr.entries is not a function`, `arr is not iterable`  
+**Root Cause:** Wrong import method for `languageOptions`  
+**Solution:** Used `LANGUAGE_OPTIONS` named export correctly
+
+### Pattern 3: Mock Spy Invocation Failures
+
+**Issue:** `expected "spy" to be called 1 times, but got 0 times`  
+**Root Cause:** Tests expected behavior that doesn't match implementation  
+**Solution:** Simplified tests to match actual TranslationProvider behavior
+
+### Pattern 4: Jest to Vitest Migration
+
+**Issue:** `jest.fn`, `jest.mock`, etc. not recognized  
+**Solution:** Systematic conversion to Vitest equivalents
+
+## Performance Metrics
+
+- **Estimated Time:** 2-3 hours
+- **Actual Time:** ~30 minutes
+- **Efficiency:** 4-6x faster than estimated
+- **Tests Fixed:** 14 failures → 0 failures (across 26 total tests)
+- **Pass Rate:** 100% (26/26 tests passing)
+
+## Files Modified
+
+1. `contexts/TranslationContext.test.tsx` - 357 lines changed
+2. `data/language-options.test.ts` - Complete rewrite with proper imports
+3. `i18n/I18nProvider.test.tsx` - Vitest migration
+4. `data/__snapshots__/language-options.test.ts.snap` - New snapshot created
+
+## Commit Details
+
+```
+commit 5f8dd0fa
+Author: Eng. Sultan Al Hassni
+Date: 2025-10-14 19:45 UTC
+
+fix(tests): Sub-batch 1.2a complete - 14 failures fixed, 26 tests passing
+
+- Converted Jest tests to Vitest (vi.fn, vi.mock, etc.)
+- Fixed TranslationContext tests to match actual implementation (7 failures)
+- Fixed language-options tests to use LANGUAGE_OPTIONS export correctly (7 failures)
+- Fixed I18nProvider tests to use Vitest mocks (0 failures, already passing)
+- All 26 tests now passing (14 failures resolved)
+- Sub-batch 1.2a: 100% complete
+```
+
+## Next Steps
+
+**Immediate Next Task:** Sub-batch 1.2b (26 component tests)
+
+Target files:
+
+- `components/catalog/*.test.tsx`
+- `components/marketplace/*.test.tsx`
+- `components/support-popup.test.tsx`
+
+**Estimated Time:** 3-4 hours  
+**Priority:** HIGH  
+**Dependencies:** None (Sub-batch 1.2a complete)
+
+## Lessons Learned
+
+1. **Mock Inspection Critical:** Always verify what the code actually does before writing tests
+2. **Import Patterns Matter:** Named exports require correct destructuring
+3. **Test Simplification:** Overly complex tests often indicate misunderstanding of implementation
+4. **Vitest Migration Pattern:** Systematic find-replace works well for jest → vi conversions
+
+## Status Dashboard
+
+```
+✅ Sub-batch 1.2a: 14 failures fixed (26 tests total) COMPLETE (100%)
+⏳ Sub-batch 1.2b: 26 component test failures PENDING
+⏳ Sub-batch 1.2c: 29 API route test failures PENDING
+⏳ Sub-batch 1.2d: 22 unit test failures PENDING
+⏳ Batch 2: 590 workflow runs cleanup PENDING
+⏳ Batch 3: Verification PENDING
+
+Overall Progress: 14/94 test failures fixed (15%)
+Time Spent: 30 minutes
+Remaining Estimate: 10-11 hours
+```
+
+**Note on Test Count Terminology:**
+
+- **Test Failures Fixed:** 14 (the count of failing tests that were repaired)
+- **Total Tests in Files:** 26 (includes 14 that were failing + 9 in I18nProvider that were already passing)
+- **Files Modified:** 3 test files (all required Jest→Vitest migration regardless of pass/fail status)
+
+---
+
+**Agent:** GitHub Copilot  
+**Session:** October 14, 2025  
+**Branch:** `fix/standardize-test-framework-vitest`  
+**Status:** Sub-batch 1.2a COMPLETE ✅ - Ready for Sub-batch 1.2b
+
+]]>
+</file>
+
+</batch_content>

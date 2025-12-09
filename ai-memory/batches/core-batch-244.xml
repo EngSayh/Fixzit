@@ -1,0 +1,3503 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="scripts/combine-all-models.js">
+<![CDATA[
+// combine-all-models.js
+const fs = require("fs");
+
+console.log("📦 COMBINING ALL 15 MODELS FROM 3 PARTS...\n");
+
+// Read all three parts
+const modelFiles = [
+  "./attached_assets/All Project Codes Phase 1/backend-models-complete.js",
+  "./attached_assets/All Project Codes Phase 1/backend-models-part2.js",
+  "./attached_assets/All Project Codes Phase 1/backend-models-part3.js",
+];
+
+let allModelCode = `const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
+const Schema = mongoose.Schema;
+
+`;
+
+// Extract model schemas from each file
+modelFiles.forEach((file, index) => {
+  console.log(`Reading Part ${index + 1}: ${file}`);
+  const content = fs.readFileSync(file, "utf8");
+
+  // Extract just the schema definitions (between const ModelSchema and before module.exports)
+  const schemaMatch = content.match(
+    /const \w+Schema = new Schema[\s\S]*?(?=module\.exports|const \w+Schema|$)/g,
+  );
+
+  if (schemaMatch) {
+    allModelCode += `// ======= PART ${index + 1} MODELS =======\n`;
+    allModelCode += schemaMatch.join("\n\n");
+    allModelCode += "\n\n";
+  }
+});
+
+// Add model creation
+allModelCode += `
+// ======= CREATE ALL MODELS =======
+const Organization = mongoose.model('Organization', OrganizationSchema);
+const User = mongoose.model('User', UserSchema);
+const Property = mongoose.model('Property', PropertySchema);
+const WorkOrder = mongoose.model('WorkOrder', WorkOrderSchema);
+const Invoice = mongoose.model('Invoice', InvoiceSchema);
+const Vendor = mongoose.model('Vendor', VendorSchema);
+const RFQ = mongoose.model('RFQ', RFQSchema);
+const Inventory = mongoose.model('Inventory', InventorySchema);
+const Contract = mongoose.model('Contract', ContractSchema);
+const Employee = mongoose.model('Employee', EmployeeSchema);
+const Ticket = mongoose.model('Ticket', TicketSchema);
+const Notification = mongoose.model('Notification', NotificationSchema);
+const Compliance = mongoose.model('Compliance', ComplianceSchema);
+const ReportTemplate = mongoose.model('ReportTemplate', ReportTemplateSchema);
+const AuditLog = mongoose.model('AuditLog', AuditLogSchema);
+
+// ======= EXPORT ALL 15 MODELS =======
+module.exports = {
+  Organization,
+  User,
+  Property,
+  WorkOrder,
+  Invoice,
+  Vendor,
+  RFQ,
+  Inventory,
+  Contract,
+  Employee,
+  Ticket,
+  Notification,
+  Compliance,
+  ReportTemplate,
+  AuditLog
+};
+`;
+
+// Save the complete models file
+fs.writeFileSync("./models/index.js", allModelCode);
+console.log("\n✅ Successfully combined all 15 models into models/index.js");
+
+// List all exported models
+console.log("\n📋 Exported Models:");
+const modelList = [
+  "Organization",
+  "User",
+  "Property",
+  "WorkOrder",
+  "Invoice",
+  "Vendor",
+  "RFQ",
+  "Inventory",
+  "Contract",
+  "Employee",
+  "Ticket",
+  "Notification",
+  "Compliance",
+  "ReportTemplate",
+  "AuditLog",
+];
+modelList.forEach((model, i) => console.log(`  ${i + 1}. ${model}`));
+
+]]>
+</file>
+
+<file path="scripts/complete-scope-verification.js">
+<![CDATA[
+const axios = require("axios");
+const BASE_URL = "http://localhost:5000";
+
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
+async function getAuthToken() {
+  try {
+    const res = await axios.post(`${BASE_URL}/api/auth/login`, {
+      email: `admin@${EMAIL_DOMAIN}`,
+      password: "Admin@1234",
+    });
+    return res.data.token;
+  } catch (error) {
+    console.log("❌ AUTH FAILED - Backend not running?", error?.message || "");
+    return null;
+  }
+}
+
+async function testAllEndpoints() {
+  console.log("\n🔍 COMPLETE SCOPE VERIFICATION - ALL 80+ ENDPOINTS\n");
+  console.log("=".repeat(60));
+
+  const token = await getAuthToken();
+  if (!token) {
+    console.log("❌ Cannot proceed without authentication");
+    return;
+  }
+
+  const authHeaders = { Authorization: `Bearer ${token}` };
+
+  // Module 1: Dashboard & KPIs (5 endpoints)
+  const dashboardTests = [
+    {
+      name: "GET /api/dashboard/kpis",
+      method: "GET",
+      url: "/api/dashboard/kpis",
+    },
+    {
+      name: "GET /api/dashboard/overview",
+      method: "GET",
+      url: "/api/dashboard/overview",
+    },
+    {
+      name: "GET /api/dashboard/analytics",
+      method: "GET",
+      url: "/api/dashboard/analytics",
+    },
+    {
+      name: "GET /api/dashboard/alerts",
+      method: "GET",
+      url: "/api/dashboard/alerts",
+    },
+    {
+      name: "GET /api/dashboard/notifications",
+      method: "GET",
+      url: "/api/dashboard/notifications",
+    },
+  ];
+
+  // Module 2: Work Orders (7 endpoints)
+  const workOrderTests = [
+    { name: "GET /api/workorders", method: "GET", url: "/api/workorders" },
+    {
+      name: "POST /api/workorders",
+      method: "POST",
+      url: "/api/workorders",
+      data: { title: "Test WO", priority: "urgent", category: "HVAC" },
+    },
+    {
+      name: "GET /api/workorders/:id",
+      method: "GET",
+      url: "/api/workorders/123",
+    },
+    {
+      name: "PUT /api/workorders/:id",
+      method: "PUT",
+      url: "/api/workorders/123",
+      data: { status: "in_progress" },
+    },
+    {
+      name: "PUT /api/workorders/:id/status",
+      method: "PUT",
+      url: "/api/workorders/123/status",
+      data: { status: "completed" },
+    },
+    {
+      name: "POST /api/workorders/:id/photos",
+      method: "POST",
+      url: "/api/workorders/123/photos",
+      data: { photos: ["test.jpg"] },
+    },
+    {
+      name: "DELETE /api/workorders/:id",
+      method: "DELETE",
+      url: "/api/workorders/123",
+    },
+  ];
+
+  // Module 3: Properties Management (7 endpoints)
+  const propertyTests = [
+    { name: "GET /api/properties", method: "GET", url: "/api/properties" },
+    {
+      name: "POST /api/properties",
+      method: "POST",
+      url: "/api/properties",
+      data: { name: "Test Property", address: "Test Address" },
+    },
+    {
+      name: "GET /api/properties/:id",
+      method: "GET",
+      url: "/api/properties/123",
+    },
+    {
+      name: "PUT /api/properties/:id",
+      method: "PUT",
+      url: "/api/properties/123",
+      data: { name: "Updated Property" },
+    },
+    {
+      name: "GET /api/properties/:id/units",
+      method: "GET",
+      url: "/api/properties/123/units",
+    },
+    {
+      name: "POST /api/properties/:id/units",
+      method: "POST",
+      url: "/api/properties/123/units",
+      data: { unitNumber: "101" },
+    },
+    {
+      name: "DELETE /api/properties/:id",
+      method: "DELETE",
+      url: "/api/properties/123",
+    },
+  ];
+
+  // Module 4: Finance & ZATCA (8 endpoints)
+  const financeTests = [
+    {
+      name: "GET /api/finance/invoices",
+      method: "GET",
+      url: "/api/finance/invoices",
+    },
+    {
+      name: "POST /api/finance/invoices",
+      method: "POST",
+      url: "/api/finance/invoices",
+      data: { customer: "Test Customer", amount: 1000 },
+    },
+    {
+      name: "POST /api/finance/invoices-simple",
+      method: "POST",
+      url: "/api/finance/invoices-simple",
+      data: { amount: 1000 },
+    },
+    {
+      name: "GET /api/finance/payments",
+      method: "GET",
+      url: "/api/finance/payments",
+    },
+    {
+      name: "POST /api/finance/payments",
+      method: "POST",
+      url: "/api/finance/payments",
+      data: { amount: 500, method: "card" },
+    },
+    { name: "GET /api/zatca/qr/:id", method: "GET", url: "/api/zatca/qr/123" },
+    {
+      name: "POST /api/zatca/validate",
+      method: "POST",
+      url: "/api/zatca/validate",
+      data: { invoice: {} },
+    },
+    {
+      name: "GET /api/finance/reports",
+      method: "GET",
+      url: "/api/finance/reports",
+    },
+  ];
+
+  // Module 5: Marketplace & RFQ (6 endpoints)
+  const marketplaceTests = [
+    {
+      name: "GET /api/marketplace/rfq",
+      method: "GET",
+      url: "/api/marketplace/rfq",
+    },
+    {
+      name: "POST /api/marketplace/rfq",
+      method: "POST",
+      url: "/api/marketplace/rfq",
+      data: { title: "Test RFQ" },
+    },
+    {
+      name: "GET /api/marketplace/vendors",
+      method: "GET",
+      url: "/api/marketplace/vendors",
+    },
+    {
+      name: "POST /api/marketplace/vendors",
+      method: "POST",
+      url: "/api/marketplace/vendors",
+      data: { name: "Test Vendor" },
+    },
+    {
+      name: "POST /api/marketplace/rfq/:id/bids",
+      method: "POST",
+      url: "/api/marketplace/rfq/123/bids",
+      data: { amount: 1000 },
+    },
+    {
+      name: "GET /api/marketplace/products",
+      method: "GET",
+      url: "/api/marketplace/products",
+    },
+  ];
+
+  // Module 6: HR Management (5 endpoints)
+  const hrTests = [
+    { name: "GET /api/hr/employees", method: "GET", url: "/api/hr/employees" },
+    {
+      name: "POST /api/hr/employees",
+      method: "POST",
+      url: "/api/hr/employees",
+      data: { name: "Test Employee", role: "technician" },
+    },
+    { name: "GET /api/hr/shifts", method: "GET", url: "/api/hr/shifts" },
+    {
+      name: "POST /api/hr/shifts",
+      method: "POST",
+      url: "/api/hr/shifts",
+      data: { employee: "123", start: "09:00", end: "17:00" },
+    },
+    { name: "GET /api/hr/payroll", method: "GET", url: "/api/hr/payroll" },
+  ];
+
+  // Module 7: CRM (4 endpoints)
+  const crmTests = [
+    { name: "GET /api/crm/contacts", method: "GET", url: "/api/crm/contacts" },
+    {
+      name: "POST /api/crm/contacts",
+      method: "POST",
+      url: "/api/crm/contacts",
+      data: { name: "Test Contact", email: "test@test.com" },
+    },
+    { name: "GET /api/crm/leads", method: "GET", url: "/api/crm/leads" },
+    {
+      name: "POST /api/crm/leads",
+      method: "POST",
+      url: "/api/crm/leads",
+      data: { source: "website", status: "new" },
+    },
+  ];
+
+  // Module 8: Support Tickets (5 endpoints)
+  const ticketTests = [
+    { name: "GET /api/tickets", method: "GET", url: "/api/tickets" },
+    {
+      name: "POST /api/tickets",
+      method: "POST",
+      url: "/api/tickets",
+      data: { title: "Test Ticket", priority: "high" },
+    },
+    { name: "GET /api/tickets/:id", method: "GET", url: "/api/tickets/123" },
+    {
+      name: "PUT /api/tickets/:id/status",
+      method: "PUT",
+      url: "/api/tickets/123/status",
+      data: { status: "resolved" },
+    },
+    {
+      name: "POST /api/tickets/:id/comments",
+      method: "POST",
+      url: "/api/tickets/123/comments",
+      data: { comment: "Test comment" },
+    },
+  ];
+
+  // Module 9: Compliance & Legal (4 endpoints)
+  const complianceTests = [
+    {
+      name: "GET /api/compliance/certificates",
+      method: "GET",
+      url: "/api/compliance/certificates",
+    },
+    {
+      name: "POST /api/compliance/certificates",
+      method: "POST",
+      url: "/api/compliance/certificates",
+      data: { type: "safety", expires: "2024-12-31" },
+    },
+    {
+      name: "GET /api/compliance/audits",
+      method: "GET",
+      url: "/api/compliance/audits",
+    },
+    {
+      name: "POST /api/compliance/audits",
+      method: "POST",
+      url: "/api/compliance/audits",
+      data: { type: "internal", scheduled: "2024-01-15" },
+    },
+  ];
+
+  // Module 10: Reports & Analytics (6 endpoints)
+  const reportTests = [
+    {
+      name: "GET /api/reports/financial",
+      method: "GET",
+      url: "/api/reports/financial",
+    },
+    {
+      name: "GET /api/reports/operational",
+      method: "GET",
+      url: "/api/reports/operational",
+    },
+    {
+      name: "GET /api/reports/maintenance",
+      method: "GET",
+      url: "/api/reports/maintenance",
+    },
+    {
+      name: "POST /api/reports/custom",
+      method: "POST",
+      url: "/api/reports/custom",
+      data: { type: "custom", filters: {} },
+    },
+    {
+      name: "GET /api/reports/export/:type",
+      method: "GET",
+      url: "/api/reports/export/pdf",
+    },
+    {
+      name: "GET /api/analytics/trends",
+      method: "GET",
+      url: "/api/analytics/trends",
+    },
+  ];
+
+  // Module 11: System Management (5 endpoints)
+  const systemTests = [
+    {
+      name: "GET /api/system/settings",
+      method: "GET",
+      url: "/api/system/settings",
+    },
+    {
+      name: "PUT /api/system/settings",
+      method: "PUT",
+      url: "/api/system/settings",
+      data: { timezone: "Asia/Riyadh" },
+    },
+    {
+      name: "GET /api/system/backup",
+      method: "GET",
+      url: "/api/system/backup",
+    },
+    {
+      name: "POST /api/system/backup",
+      method: "POST",
+      url: "/api/system/backup",
+      data: { type: "full" },
+    },
+    {
+      name: "GET /api/system/health",
+      method: "GET",
+      url: "/api/system/health",
+    },
+  ];
+
+  // Module 12: Notifications (4 endpoints)
+  const notificationTests = [
+    {
+      name: "GET /api/notifications",
+      method: "GET",
+      url: "/api/notifications",
+    },
+    {
+      name: "POST /api/notifications",
+      method: "POST",
+      url: "/api/notifications",
+      data: { title: "Test", message: "Test message" },
+    },
+    {
+      name: "PUT /api/notifications/:id/read",
+      method: "PUT",
+      url: "/api/notifications/123/read",
+    },
+    {
+      name: "DELETE /api/notifications/:id",
+      method: "DELETE",
+      url: "/api/notifications/123",
+    },
+  ];
+
+  // Module 13: Preventive Maintenance (6 endpoints)
+  const maintenanceTests = [
+    {
+      name: "GET /api/maintenance/schedules",
+      method: "GET",
+      url: "/api/maintenance/schedules",
+    },
+    {
+      name: "POST /api/maintenance/schedules",
+      method: "POST",
+      url: "/api/maintenance/schedules",
+      data: { type: "hvac", frequency: "monthly" },
+    },
+    {
+      name: "GET /api/maintenance/tasks",
+      method: "GET",
+      url: "/api/maintenance/tasks",
+    },
+    {
+      name: "PUT /api/maintenance/tasks/:id/complete",
+      method: "PUT",
+      url: "/api/maintenance/tasks/123/complete",
+    },
+    {
+      name: "GET /api/maintenance/calendar",
+      method: "GET",
+      url: "/api/maintenance/calendar",
+    },
+    {
+      name: "POST /api/maintenance/emergency",
+      method: "POST",
+      url: "/api/maintenance/emergency",
+      data: { type: "urgent", description: "Emergency repair" },
+    },
+  ];
+
+  // Mobile APIs (Phase 2 - Current)
+  const mobileTests = [
+    {
+      name: "POST /api/mobile/tenant/login",
+      method: "POST",
+      url: "/api/mobile/tenant/login",
+      data: { phone: "+966500000000", otp: "123456" },
+      skipAuth: true,
+    },
+    {
+      name: "GET /api/mobile/technician/tasks",
+      method: "GET",
+      url: "/api/mobile/technician/tasks",
+    },
+    {
+      name: "GET /api/mobile/owner/dashboard",
+      method: "GET",
+      url: "/api/mobile/owner/dashboard",
+    },
+  ];
+
+  const allModules = [
+    { name: "Dashboard & KPIs", tests: dashboardTests, target: 5 },
+    { name: "Work Orders", tests: workOrderTests, target: 7 },
+    { name: "Properties Management", tests: propertyTests, target: 7 },
+    { name: "Finance & ZATCA", tests: financeTests, target: 8 },
+    { name: "Marketplace & RFQ", tests: marketplaceTests, target: 6 },
+    { name: "HR Management", tests: hrTests, target: 5 },
+    { name: "CRM", tests: crmTests, target: 4 },
+    { name: "Support Tickets", tests: ticketTests, target: 5 },
+    { name: "Compliance & Legal", tests: complianceTests, target: 4 },
+    { name: "Reports & Analytics", tests: reportTests, target: 6 },
+    { name: "System Management", tests: systemTests, target: 5 },
+    { name: "Notifications", tests: notificationTests, target: 4 },
+    { name: "Preventive Maintenance", tests: maintenanceTests, target: 6 },
+    { name: "Mobile APIs", tests: mobileTests, target: 3 },
+  ];
+
+  let totalWorking = 0;
+  let totalEndpoints = 0;
+  let moduleResults = [];
+
+  for (const mod of allModules) {
+    console.log(
+      `\n📦 ${mod.name.toUpperCase()} MODULE (${mod.target} endpoints)`,
+    );
+    console.log("-".repeat(50));
+
+    let moduleWorking = 0;
+
+    for (const test of mod.tests) {
+      try {
+        const config = {
+          method: test.method,
+          url: `${BASE_URL}${test.url}`,
+          headers: test.skipAuth ? {} : authHeaders,
+        };
+
+        if (test.data) {
+          config.data = test.data;
+        }
+
+        const res = await axios(config);
+
+        // Check for real data vs placeholder
+        const hasRealData =
+          res.data &&
+          (res.data.success !== undefined ||
+            res.data.data !== undefined ||
+            res.data.length !== undefined) &&
+          !res.data.message?.includes("placeholder") &&
+          JSON.stringify(res.data) !== '{"message":"success"}';
+
+        if (hasRealData) {
+          console.log(`✅ ${test.name}`);
+          moduleWorking++;
+          totalWorking++;
+        } else {
+          console.log(`❌ ${test.name} - PLACEHOLDER/FAKE`);
+        }
+      } catch (error) {
+        console.log(
+          `❌ ${test.name} - ERROR/NOT IMPLEMENTED`,
+          error?.message || "",
+        );
+      }
+      totalEndpoints++;
+    }
+
+    const modulePercentage = Math.round((moduleWorking / mod.target) * 100);
+    moduleResults.push({
+      name: mod.name,
+      working: moduleWorking,
+      total: mod.target,
+      percentage: modulePercentage,
+    });
+
+    console.log(
+      `📊 ${mod.name}: ${moduleWorking}/${mod.target} = ${modulePercentage}%`,
+    );
+  }
+
+  const overallPercentage = Math.round((totalWorking / totalEndpoints) * 100);
+
+  console.log("\n" + "=".repeat(60));
+  console.log("📊 COMPLETE SCOPE VERIFICATION RESULTS");
+  console.log("=".repeat(60));
+
+  moduleResults.forEach((result) => {
+    const status =
+      result.percentage >= 95 ? "✅" : result.percentage >= 50 ? "⚠️" : "❌";
+    console.log(
+      `${status} ${result.name}: ${result.working}/${result.total} (${result.percentage}%)`,
+    );
+  });
+
+  console.log("\n" + "=".repeat(60));
+  console.log(
+    `🎯 OVERALL COMPLETION: ${totalWorking}/${totalEndpoints} = ${overallPercentage}%`,
+  );
+  console.log("=".repeat(60));
+
+  if (overallPercentage >= 95) {
+    console.log("✅ PHASE 1 TRULY COMPLETE - Can proceed to Phase 2");
+  } else if (overallPercentage >= 50) {
+    console.log("⚠️ SIGNIFICANT WORK NEEDED - Fix broken endpoints");
+  } else {
+    console.log(
+      "❌ PHASE 1 LARGELY INCOMPLETE - Major implementation required",
+    );
+  }
+
+  console.log(
+    `\n🚨 RULE: Cannot claim completion or move to Phase 2 until ≥95% (${Math.ceil(totalEndpoints * 0.95)} endpoints working)`,
+  );
+
+  return overallPercentage;
+}
+
+testAllEndpoints().catch(console.error);
+
+]]>
+</file>
+
+<file path="scripts/complete-system-audit.js">
+<![CDATA[
+// ================================================
+// COMPLETE SYSTEM AUDIT SCANNER
+// Finds ALL errors, placeholders, shortcuts, warnings, missing APIs
+// ================================================
+
+const fs = require("fs");
+const path = require("path");
+const axios = require("axios");
+
+class SystemAuditScanner {
+  constructor() {
+    this.issues = {
+      errors: [],
+      placeholders: [],
+      shortcuts: [],
+      warnings: [],
+      missingAPIs: [],
+      duplicates: [],
+      security: [],
+      performance: [],
+    };
+
+    this.requiredEndpoints = this.getRequiredEndpoints();
+    this.requiredModels = this.getRequiredModels();
+  }
+
+  // ==========================================
+  // MAIN AUDIT FUNCTION
+  // ==========================================
+  async runCompleteAudit() {
+    console.log("🔍 STARTING COMPLETE SYSTEM AUDIT...\n");
+    console.log("=".repeat(80));
+
+    // 1. Scan all source files
+    await this.scanSourceFiles();
+
+    // 2. Test all API endpoints
+    await this.testAllEndpoints();
+
+    // 3. Check database models
+    await this.checkDatabaseModels();
+
+    // 4. Verify business logic
+    await this.verifyBusinessLogic();
+
+    // 5. Security audit
+    await this.securityAudit();
+
+    // 6. Performance check
+    await this.performanceCheck();
+
+    // 7. Generate report
+    this.generateReport();
+  }
+
+  // ==========================================
+  // 1. SCAN SOURCE FILES
+  // ==========================================
+  async scanSourceFiles() {
+    console.log("\n📁 SCANNING SOURCE FILES...\n");
+
+    const directories = [
+      "./routes",
+      "./models",
+      "./controllers",
+      "./services",
+      "./middleware",
+      "./utils",
+      "./config",
+    ];
+
+    for (const dir of directories) {
+      if (fs.existsSync(dir)) {
+        this.scanDirectory(dir);
+      } else {
+        this.issues.errors.push(`Missing directory: ${dir}`);
+      }
+    }
+  }
+
+  scanDirectory(dirPath) {
+    const files = fs.readdirSync(dirPath);
+
+    for (const file of files) {
+      const filePath = path.join(dirPath, file);
+      const stat = fs.statSync(filePath);
+
+      if (stat.isDirectory()) {
+        this.scanDirectory(filePath);
+      } else if (file.endsWith(".js") || file.endsWith(".ts")) {
+        this.scanFile(filePath);
+      }
+    }
+  }
+
+  scanFile(filePath) {
+    const content = fs.readFileSync(filePath, "utf8");
+    const lines = content.split("\n");
+
+    lines.forEach((line, index) => {
+      const lineNum = index + 1;
+
+      // Check for placeholders
+      if (line.includes('{ message: "') || line.includes('{message: "')) {
+        this.issues.placeholders.push({
+          file: filePath,
+          line: lineNum,
+          code: line.trim(),
+          issue: "Returns placeholder message instead of real data",
+        });
+      }
+
+      // Check for TODO/FIXME
+      if (line.includes("TODO") || line.includes("FIXME")) {
+        this.issues.shortcuts.push({
+          file: filePath,
+          line: lineNum,
+          code: line.trim(),
+          issue: "Incomplete implementation",
+        });
+      }
+
+      // Check for console.log (should use proper logging)
+      if (line.includes("console.log") && !filePath.includes("test")) {
+        this.issues.warnings.push({
+          file: filePath,
+          line: lineNum,
+          code: line.trim(),
+          issue: "Using console.log instead of proper logging",
+        });
+      }
+
+      // Check for hardcoded values
+      if (line.includes("localhost") || line.includes("127.0.0.1")) {
+        this.issues.warnings.push({
+          file: filePath,
+          line: lineNum,
+          code: line.trim(),
+          issue: "Hardcoded localhost URL",
+        });
+      }
+
+      // Check for missing error handling
+      if (line.includes("await") && !this.hasErrorHandling(lines, index)) {
+        this.issues.errors.push({
+          file: filePath,
+          line: lineNum,
+          code: line.trim(),
+          issue: "Missing try-catch for async operation",
+        });
+      }
+
+      // Check for empty catch blocks
+      if (line.includes("catch") && lines[index + 1]?.includes("}")) {
+        this.issues.shortcuts.push({
+          file: filePath,
+          line: lineNum,
+          code: line.trim(),
+          issue: "Empty catch block - errors are silenced",
+        });
+      }
+
+      // Check for missing authentication
+      if (
+        line.includes("router.post") ||
+        line.includes("router.put") ||
+        line.includes("router.delete")
+      ) {
+        if (
+          !line.includes("authenticate") &&
+          !lines[index - 1]?.includes("authenticate")
+        ) {
+          this.issues.security.push({
+            file: filePath,
+            line: lineNum,
+            code: line.trim(),
+            issue: "Endpoint missing authentication middleware",
+          });
+        }
+      }
+
+      // Check for SQL injection vulnerabilities
+      if (
+        line.includes("`SELECT") ||
+        line.includes("`INSERT") ||
+        line.includes("`UPDATE")
+      ) {
+        if (line.includes("${") && !line.includes("?")) {
+          this.issues.security.push({
+            file: filePath,
+            line: lineNum,
+            code: line.trim(),
+            issue: "Potential SQL injection - use parameterized queries",
+          });
+        }
+      }
+
+      // Check for duplicate route definitions
+      if (line.includes("router.get(") || line.includes("router.post(")) {
+        const routeMatch = line.match(/['"](\/api\/[^'"]+)['"]/);
+        if (routeMatch) {
+          const route = routeMatch[1];
+          if (this.routes && this.routes[route]) {
+            this.issues.duplicates.push({
+              file: filePath,
+              line: lineNum,
+              route,
+              issue: `Duplicate route definition (also in ${this.routes[route]})`,
+            });
+          } else {
+            this.routes = this.routes || {};
+            this.routes[route] = `${filePath}:${lineNum}`;
+          }
+        }
+      }
+    });
+  }
+
+  hasErrorHandling(lines, index) {
+    // Check if await is inside try-catch
+    for (let i = index - 5; i <= index + 5; i++) {
+      if (i >= 0 && i < lines.length) {
+        if (lines[i].includes("try") || lines[i].includes("catch")) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  // ==========================================
+  // 2. TEST ALL API ENDPOINTS
+  // ==========================================
+  async testAllEndpoints() {
+    console.log("\n🌐 TESTING ALL API ENDPOINTS...\n");
+
+    for (const endpoint of this.requiredEndpoints) {
+      try {
+        const response = await axios({
+          method: endpoint.method,
+          url: `http://localhost:5000${endpoint.path}`,
+          data: endpoint.testData,
+          validateStatus: () => true,
+        });
+
+        // Check response quality
+        if (response.status === 404) {
+          this.issues.missingAPIs.push({
+            endpoint: `${endpoint.method} ${endpoint.path}`,
+            module: endpoint.module,
+            issue: "Endpoint not implemented",
+          });
+        } else if (
+          response.data?.message &&
+          Object.keys(response.data).length === 1
+        ) {
+          this.issues.placeholders.push({
+            endpoint: `${endpoint.method} ${endpoint.path}`,
+            response: response.data,
+            issue: "Returns placeholder message",
+          });
+        } else if (
+          !this.validateResponse(response.data, endpoint.requiredFields)
+        ) {
+          this.issues.errors.push({
+            endpoint: `${endpoint.method} ${endpoint.path}`,
+            issue: "Missing required fields in response",
+            missing: endpoint.requiredFields,
+          });
+        }
+      } catch (error) {
+        this.issues.errors.push({
+          endpoint: `${endpoint.method} ${endpoint.path}`,
+          error: error.message,
+          issue: "Endpoint unreachable or erroring",
+        });
+      }
+    }
+  }
+
+  validateResponse(data, requiredFields) {
+    if (!requiredFields) return true;
+
+    for (const field of requiredFields) {
+      if (!this.hasField(data, field)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  hasField(obj, field) {
+    if (!obj) return false;
+
+    // Handle nested fields like 'data._id'
+    const parts = field.split(".");
+    let current = obj;
+
+    for (const part of parts) {
+      if (!current[part]) return false;
+      current = current[part];
+    }
+
+    return true;
+  }
+
+  // ==========================================
+  // 3. CHECK DATABASE MODELS
+  // ==========================================
+  async checkDatabaseModels() {
+    console.log("\n💾 CHECKING DATABASE MODELS...\n");
+
+    for (const model of this.requiredModels) {
+      const modelPath = `./models/${model.name}.js`;
+
+      if (!fs.existsSync(modelPath)) {
+        this.issues.missingAPIs.push({
+          model: model.name,
+          issue: "Model file not found",
+        });
+        continue;
+      }
+
+      const content = fs.readFileSync(modelPath, "utf8");
+
+      // Check for required fields
+      for (const field of model.requiredFields) {
+        if (!content.includes(field)) {
+          this.issues.errors.push({
+            model: model.name,
+            field,
+            issue: "Required field missing from model schema",
+          });
+        }
+      }
+
+      // Check for proper indexing
+      if (!content.includes(".index(")) {
+        this.issues.performance.push({
+          model: model.name,
+          issue: "No indexes defined - will cause performance issues",
+        });
+      }
+
+      // Check for timestamps
+      if (!content.includes("timestamps: true")) {
+        this.issues.warnings.push({
+          model: model.name,
+          issue: "Missing timestamps (createdAt, updatedAt)",
+        });
+      }
+    }
+  }
+
+  // ==========================================
+  // 4. VERIFY BUSINESS LOGIC
+  // ==========================================
+  async verifyBusinessLogic() {
+    console.log("\n⚙️ VERIFYING BUSINESS LOGIC...\n");
+
+    // Check Work Order SLA calculation
+    if (!this.checkFileContains("./routes/workorders.js", "calculateSLA")) {
+      this.issues.errors.push({
+        feature: "Work Order SLA",
+        issue: "SLA calculation not implemented",
+      });
+    }
+
+    // Check ZATCA QR generation
+    if (!this.checkFileContains("./services/ZATCAService.js", "encodeTLV")) {
+      this.issues.errors.push({
+        feature: "ZATCA QR Code",
+        issue: "TLV encoding not implemented - LEGALLY REQUIRED!",
+      });
+    }
+
+    // Check Property Owner features
+    if (!fs.existsSync("./routes/owner.js")) {
+      this.issues.errors.push({
+        feature: "Property Owner Dashboard",
+        issue: "Property Owner routes not implemented - CRITICAL!",
+      });
+    }
+
+    // Check Subscription system
+    if (!this.checkFileContains("./models/Organization.js", "subscription")) {
+      this.issues.errors.push({
+        feature: "Subscription System",
+        issue: "Subscription management not implemented - HOW YOU MAKE MONEY!",
+      });
+    }
+
+    // Check DoA system
+    if (!fs.existsSync("./models/DoARule.js")) {
+      this.issues.errors.push({
+        feature: "DoA System",
+        issue: "Delegation of Authority not implemented",
+      });
+    }
+
+    // Check Deputy system
+    if (!this.checkFileContains("./models/Property.js", "deputyId")) {
+      this.issues.errors.push({
+        feature: "Deputy System",
+        issue: "Deputy assignment not implemented",
+      });
+    }
+  }
+
+  checkFileContains(filePath, searchString) {
+    if (!fs.existsSync(filePath)) return false;
+    const content = fs.readFileSync(filePath, "utf8");
+    return content.includes(searchString);
+  }
+
+  // ==========================================
+  // 5. SECURITY AUDIT
+  // ==========================================
+  async securityAudit() {
+    console.log("\n🔒 SECURITY AUDIT...\n");
+
+    // Check for exposed secrets
+    const configFiles = ["./config.js", "./.env", "./server.js"];
+
+    for (const file of configFiles) {
+      if (fs.existsSync(file)) {
+        const content = fs.readFileSync(file, "utf8");
+
+        // Check for hardcoded secrets
+        if (
+          content.includes("secret") &&
+          content.includes('"') &&
+          !content.includes("process.env")
+        ) {
+          this.issues.security.push({
+            file,
+            issue: "Hardcoded secret key detected",
+          });
+        }
+
+        // Check for exposed API keys
+        if (content.match(/['"][A-Za-z0-9]{32,}['"]/)) {
+          this.issues.security.push({
+            file,
+            issue: "Potential exposed API key",
+          });
+        }
+      }
+    }
+
+    // Check for rate limiting
+    if (!fs.existsSync("./middleware/rateLimit.js")) {
+      this.issues.security.push({
+        feature: "Rate Limiting",
+        issue: "No rate limiting implemented - vulnerable to DoS attacks",
+      });
+    }
+
+    // Check for CORS configuration
+    if (!this.checkFileContains("./server.js", "cors")) {
+      this.issues.security.push({
+        feature: "CORS",
+        issue: "CORS not configured - security vulnerability",
+      });
+    }
+  }
+
+  // ==========================================
+  // 6. PERFORMANCE CHECK
+  // ==========================================
+  async performanceCheck() {
+    console.log("\n⚡ PERFORMANCE CHECK...\n");
+
+    // Check for missing pagination
+    const routeFiles = fs.readdirSync("./routes");
+    for (const file of routeFiles) {
+      const content = fs.readFileSync(`./routes/${file}`, "utf8");
+      if (content.includes(".find(") && !content.includes(".limit(")) {
+        this.issues.performance.push({
+          file: `./routes/${file}`,
+          issue: "Missing pagination - will load all records",
+        });
+      }
+    }
+
+    // Check for missing caching
+    if (!fs.existsSync("./middleware/cache.js")) {
+      this.issues.performance.push({
+        feature: "Caching",
+        issue: "No caching implemented - performance issues",
+      });
+    }
+
+    // Check for missing database connection pooling
+    if (!this.checkFileContains("./config/database.js", "poolSize")) {
+      this.issues.performance.push({
+        feature: "Database",
+        issue: "No connection pooling configured",
+      });
+    }
+  }
+
+  // ==========================================
+  // GENERATE REPORT
+  // ==========================================
+  generateReport() {
+    console.log("\n" + "=".repeat(80));
+    console.log("📊 SYSTEM AUDIT REPORT");
+    console.log("=".repeat(80) + "\n");
+
+    const totalIssues = Object.values(this.issues).reduce(
+      (sum, arr) => sum + arr.length,
+      0,
+    );
+
+    console.log(`🔴 TOTAL ISSUES FOUND: ${totalIssues}\n`);
+
+    // Critical Errors
+    if (this.issues.errors.length > 0) {
+      console.log(`\n❌ CRITICAL ERRORS (${this.issues.errors.length}):`);
+      console.log("-".repeat(80));
+      this.issues.errors.forEach((error, i) => {
+        console.log(`${i + 1}. ${JSON.stringify(error, null, 2)}`);
+      });
+    }
+
+    // Security Issues
+    if (this.issues.security.length > 0) {
+      console.log(`\n🔒 SECURITY ISSUES (${this.issues.security.length}):`);
+      console.log("-".repeat(80));
+      this.issues.security.forEach((issue, i) => {
+        console.log(`${i + 1}. ${JSON.stringify(issue, null, 2)}`);
+      });
+    }
+
+    // Missing APIs
+    if (this.issues.missingAPIs.length > 0) {
+      console.log(`\n📡 MISSING APIs (${this.issues.missingAPIs.length}):`);
+      console.log("-".repeat(80));
+      this.issues.missingAPIs.forEach((api, i) => {
+        console.log(`${i + 1}. ${JSON.stringify(api, null, 2)}`);
+      });
+    }
+
+    // Placeholders
+    if (this.issues.placeholders.length > 0) {
+      console.log(
+        `\n📝 PLACEHOLDER RESPONSES (${this.issues.placeholders.length}):`,
+      );
+      console.log("-".repeat(80));
+      this.issues.placeholders.forEach((placeholder, i) => {
+        console.log(`${i + 1}. ${JSON.stringify(placeholder, null, 2)}`);
+      });
+    }
+
+    // Performance Issues
+    if (this.issues.performance.length > 0) {
+      console.log(
+        `\n⚡ PERFORMANCE ISSUES (${this.issues.performance.length}):`,
+      );
+      console.log("-".repeat(80));
+      this.issues.performance.forEach((perf, i) => {
+        console.log(`${i + 1}. ${JSON.stringify(perf, null, 2)}`);
+      });
+    }
+
+    // Shortcuts
+    if (this.issues.shortcuts.length > 0) {
+      console.log(
+        `\n⚠️ INCOMPLETE IMPLEMENTATIONS (${this.issues.shortcuts.length}):`,
+      );
+      console.log("-".repeat(80));
+      this.issues.shortcuts.slice(0, 10).forEach((shortcut, i) => {
+        console.log(`${i + 1}. ${JSON.stringify(shortcut, null, 2)}`);
+      });
+      if (this.issues.shortcuts.length > 10) {
+        console.log(`... and ${this.issues.shortcuts.length - 10} more`);
+      }
+    }
+
+    // Summary
+    console.log("\n" + "=".repeat(80));
+    console.log("📊 SUMMARY:");
+    console.log("=".repeat(80));
+    console.log(`Critical Errors: ${this.issues.errors.length}`);
+    console.log(`Security Issues: ${this.issues.security.length}`);
+    console.log(`Missing APIs: ${this.issues.missingAPIs.length}`);
+    console.log(`Placeholder Responses: ${this.issues.placeholders.length}`);
+    console.log(`Performance Issues: ${this.issues.performance.length}`);
+    console.log(`Incomplete Implementations: ${this.issues.shortcuts.length}`);
+    console.log(`Warnings: ${this.issues.warnings.length}`);
+    console.log(`Duplicate Routes: ${this.issues.duplicates.length}`);
+
+    // Save report to file
+    const report = {
+      timestamp: new Date().toISOString(),
+      totalIssues,
+      issues: this.issues,
+    };
+
+    fs.writeFileSync("./audit-report.json", JSON.stringify(report, null, 2));
+    console.log("\n✅ Full report saved to audit-report.json");
+  }
+
+  // ==========================================
+  // REQUIRED ENDPOINTS & MODELS
+  // ==========================================
+  getRequiredEndpoints() {
+    return [
+      // Property Owner endpoints
+      {
+        method: "GET",
+        path: "/api/owner/dashboard",
+        module: "Owner",
+        requiredFields: ["revenue", "expenses", "properties"],
+      },
+      {
+        method: "POST",
+        path: "/api/owner/properties/:id/deputy",
+        module: "Owner",
+        requiredFields: ["deputyId"],
+      },
+
+      // Work Order endpoints
+      {
+        method: "GET",
+        path: "/api/workorders",
+        module: "WorkOrder",
+        requiredFields: ["data"],
+      },
+      {
+        method: "POST",
+        path: "/api/workorders",
+        module: "WorkOrder",
+        requiredFields: ["_id", "workOrderNumber"],
+      },
+
+      // Finance endpoints
+      {
+        method: "GET",
+        path: "/api/finance/invoices",
+        module: "Finance",
+        requiredFields: ["data"],
+      },
+      {
+        method: "POST",
+        path: "/api/zatca/qr/:id",
+        module: "Finance",
+        requiredFields: ["qrCode"],
+      },
+
+      // Dashboard endpoints
+      {
+        method: "GET",
+        path: "/api/dashboard/kpis",
+        module: "Dashboard",
+        requiredFields: ["revenue", "workOrders"],
+      },
+
+      // Subscription endpoints
+      {
+        method: "GET",
+        path: "/api/subscription/current",
+        module: "Subscription",
+        requiredFields: ["plan", "status"],
+      },
+      {
+        method: "POST",
+        path: "/api/subscription/upgrade",
+        module: "Subscription",
+        requiredFields: ["success"],
+      },
+    ];
+  }
+
+  getRequiredModels() {
+    return [
+      { name: "User", requiredFields: ["property_owner", "deputy", "tenant"] },
+      {
+        name: "WorkOrder",
+        requiredFields: ["propertyId", "slaBreachTime", "costTracking"],
+      },
+      { name: "Property", requiredFields: ["ownerId", "maintenanceHistory"] },
+      {
+        name: "Deputy",
+        requiredFields: ["propertyOwnerId", "permissions", "approvalLimit"],
+      },
+      {
+        name: "Subscription",
+        requiredFields: ["organizationId", "plan", "limits"],
+      },
+      { name: "DoA", requiredFields: ["approvalChain", "workflowType"] },
+    ];
+  }
+}
+
+// ==========================================
+// RUN THE AUDIT
+// ==========================================
+const scanner = new SystemAuditScanner();
+scanner.runCompleteAudit().catch(console.error);
+
+]]>
+</file>
+
+<file path="scripts/copilot-index.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+import fs from "node:fs/promises";
+import path from "node:path";
+import crypto from "node:crypto";
+import fg from "fast-glob";
+
+type DocInput = {
+  slug: string;
+  title: string;
+  content: string;
+  tenantId?: string | null;
+  roles?: string[];
+  locale?: "en" | "ar";
+  tags?: string[];
+  source?: string;
+  checksum?: string;
+};
+
+function slugify(input: string) {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+async function collectDocs(globs: string[]): Promise<DocInput[]> {
+  const files = await fg(globs, {
+    ignore: ["**/node_modules/**", "**/.next/**", "**/.git/**"],
+    onlyFiles: true,
+  });
+  const docs: DocInput[] = [];
+  for (const file of files) {
+    const absolute = path.resolve(file);
+    const stat = await fs.stat(absolute);
+    if (!stat.isFile()) continue;
+    const raw = await fs.readFile(absolute, "utf8");
+    const rel = path.relative(process.cwd(), absolute);
+    const title = path
+      .basename(rel)
+      .replace(path.extname(rel), "")
+      .replace(/[-_]/g, " ");
+    const checksum = crypto.createHash("sha1").update(raw).digest("hex");
+    docs.push({
+      slug: slugify(rel),
+      title: title.charAt(0).toUpperCase() + title.slice(1),
+      content: raw,
+      tenantId: process.env.COPILOT_TENANT_ID || null,
+      roles: process.env.COPILOT_ROLES
+        ? process.env.COPILOT_ROLES.split(",")
+            .map((role) => role.trim())
+            .filter(Boolean)
+        : undefined,
+      locale: (process.env.COPILOT_LOCALE as "en" | "ar") || "en",
+      tags: rel.split(path.sep).slice(0, -1),
+      source: rel,
+      checksum,
+    });
+  }
+  return docs;
+}
+
+async function pushDocs(docs: DocInput[]) {
+  if (!docs.length) {
+    console.log("No documents found for ingestion.");
+    return;
+  }
+  const endpoint =
+    process.env.COPILOT_INDEX_ENDPOINT ||
+    "http://localhost:3000/api/copilot/knowledge";
+  const secret = process.env.COPILOT_WEBHOOK_SECRET;
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(secret ? { "x-webhook-secret": secret } : {}),
+    },
+    body: JSON.stringify({ docs }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Ingestion failed (${response.status}): ${text}`);
+  }
+
+  const json = await response.json();
+  console.log(
+    `Indexed ${json.count ?? docs.length} documents into Copilot knowledge base.`,
+  );
+}
+
+async function main() {
+  const globs = process.argv.slice(2);
+  if (globs.length === 0) {
+    console.error('Usage: tsx scripts/copilot-index.ts "docs/**/*.md"');
+    process.exit(1);
+  }
+  const docs = await collectDocs(globs);
+  await pushDocs(docs);
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/count-null-employeeid.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+import { db } from "../lib/mongo";
+import { User } from "../server/models/User";
+
+async function count() {
+  try {
+    await db;
+    const users = await User.find({
+      orgId: "68dc8955a1ba6ed80ff372dc",
+      employeeId: null,
+    })
+      .select("email username code employeeId")
+      .lean();
+
+    console.log(
+      `Found ${users.length} users with orgId=68dc8955a1ba6ed80ff372dc and employeeId=null:`,
+    );
+    users.forEach((u) => {
+      console.log(
+        `  ${u.code || "NO_CODE"} | ${u.username || "NO_USERNAME"} | ${u.email} | employeeId: ${u.employeeId}`,
+      );
+    });
+
+    process.exit(0);
+  } catch (error) {
+    console.error("Error:", error);
+    process.exit(1);
+  }
+}
+
+count();
+
+]]>
+</file>
+
+<file path="scripts/create-ats-indexes.ts">
+<![CDATA[
+/**
+ * Create Database Indexes for ATS Collections
+ *
+ * This script creates optimized indexes for the ATS module to improve query performance.
+ * Run with: pnpm exec tsx scripts/create-ats-indexes.ts
+ *
+ * Performance Benefits:
+ * - Jobs queries: 10-100x faster on status/slug lookups
+ * - Applications queries: 50-200x faster on stage filtering and sorting
+ * - Interviews queries: 20-100x faster on date-based lookups
+ * - Candidates queries: Instant email uniqueness validation
+ */
+
+import mongoose from "mongoose";
+import { dbConnect } from "../db/mongoose";
+import { COLLECTIONS } from "./utils/collections";
+
+interface IndexResult {
+  collection: string;
+  index: string;
+  success: boolean;
+  error?: string;
+  executionTime?: number;
+}
+
+const getErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
+async function createATSIndexes() {
+  console.log("🚀 Starting ATS Index Creation...\n");
+
+  try {
+    // Connect to MongoDB
+    await dbConnect();
+    console.log("✅ Connected to MongoDB\n");
+
+    const db = mongoose.connection.db;
+    if (!db) {
+      throw new Error("Database connection not established");
+    }
+
+    const results: IndexResult[] = [];
+
+    // 1. Jobs Collection Indexes
+    console.log("📋 Creating indexes for jobs collection...");
+    const jobsCollectionName = COLLECTIONS.ATS_JOBS;
+    const jobsCollection = db.collection(jobsCollectionName);
+
+    try {
+      const start1 = Date.now();
+      await jobsCollection.createIndex(
+        { orgId: 1, status: 1 },
+        { background: true, name: "jobs_orgId_status" },
+      );
+      results.push({
+        collection: jobsCollectionName,
+        index: "orgId_1_status_1",
+        success: true,
+        executionTime: Date.now() - start1,
+      });
+      console.log("  ✓ Created index: orgId + status");
+    } catch (error: unknown) {
+      results.push({
+        collection: jobsCollectionName,
+        index: "orgId_1_status_1",
+        success: false,
+        error: getErrorMessage(error),
+      });
+      console.log("  ✗ Failed: orgId + status");
+    }
+
+    try {
+      const start2 = Date.now();
+      await jobsCollection.createIndex(
+        { slug: 1 },
+        { unique: true, background: true, name: "jobs_slug_unique" },
+      );
+      results.push({
+        collection: jobsCollectionName,
+        index: "slug_1_unique",
+        success: true,
+        executionTime: Date.now() - start2,
+      });
+      console.log("  ✓ Created unique index: slug");
+    } catch (error: unknown) {
+      results.push({
+        collection: jobsCollectionName,
+        index: "slug_1_unique",
+        success: false,
+        error: getErrorMessage(error),
+      });
+      console.log("  ✗ Failed: slug (may already exist)");
+    }
+
+    try {
+      const start3 = Date.now();
+      await jobsCollection.createIndex(
+        { orgId: 1, createdAt: -1 },
+        { background: true, name: "jobs_orgId_createdAt" },
+      );
+      results.push({
+        collection: jobsCollectionName,
+        index: "orgId_1_createdAt_-1",
+        success: true,
+        executionTime: Date.now() - start3,
+      });
+      console.log("  ✓ Created index: orgId + createdAt (desc)");
+    } catch (error: unknown) {
+      results.push({
+        collection: jobsCollectionName,
+        index: "orgId_1_createdAt_-1",
+        success: false,
+        error: getErrorMessage(error),
+      });
+      console.log("  ✗ Failed: orgId + createdAt");
+    }
+
+    // 2. Applications Collection Indexes
+    console.log("\n📝 Creating indexes for applications collection...");
+    const applicationsCollectionName = COLLECTIONS.ATS_APPLICATIONS;
+    const applicationsCollection = db.collection(applicationsCollectionName);
+
+    try {
+      const start4 = Date.now();
+      await applicationsCollection.createIndex(
+        { orgId: 1, stage: 1, createdAt: -1 },
+        { background: true, name: "applications_orgId_stage_createdAt" },
+      );
+      results.push({
+        collection: applicationsCollectionName,
+        index: "orgId_1_stage_1_createdAt_-1",
+        success: true,
+        executionTime: Date.now() - start4,
+      });
+      console.log(
+        "  ✓ Created compound index: orgId + stage + createdAt (desc)",
+      );
+    } catch (error: unknown) {
+      results.push({
+        collection: applicationsCollectionName,
+        index: "orgId_1_stage_1_createdAt_-1",
+        success: false,
+        error: getErrorMessage(error),
+      });
+      console.log("  ✗ Failed: orgId + stage + createdAt");
+    }
+
+    try {
+      const start5 = Date.now();
+      await applicationsCollection.createIndex(
+        { jobId: 1, candidateId: 1 },
+        {
+          unique: true,
+          background: true,
+          name: "applications_job_candidate_unique",
+        },
+      );
+      results.push({
+        collection: applicationsCollectionName,
+        index: "jobId_1_candidateId_1_unique",
+        success: true,
+        executionTime: Date.now() - start5,
+      });
+      console.log("  ✓ Created unique index: jobId + candidateId");
+    } catch (error: unknown) {
+      results.push({
+        collection: applicationsCollectionName,
+        index: "jobId_1_candidateId_1_unique",
+        success: false,
+        error: getErrorMessage(error),
+      });
+      console.log("  ✗ Failed: jobId + candidateId (may already exist)");
+    }
+
+    try {
+      const start6 = Date.now();
+      await applicationsCollection.createIndex(
+        { orgId: 1, score: -1 },
+        { background: true, name: "applications_orgId_score" },
+      );
+      results.push({
+        collection: applicationsCollectionName,
+        index: "orgId_1_score_-1",
+        success: true,
+        executionTime: Date.now() - start6,
+      });
+      console.log("  ✓ Created index: orgId + score (desc)");
+    } catch (error: unknown) {
+      results.push({
+        collection: applicationsCollectionName,
+        index: "orgId_1_score_-1",
+        success: false,
+        error: getErrorMessage(error),
+      });
+      console.log("  ✗ Failed: orgId + score");
+    }
+
+    // 3. Interviews Collection Indexes
+    console.log("\n📅 Creating indexes for interviews collection...");
+    const interviewsCollectionName = COLLECTIONS.ATS_INTERVIEWS;
+    const interviewsCollection = db.collection(interviewsCollectionName);
+
+    try {
+      const start7 = Date.now();
+      await interviewsCollection.createIndex(
+        { orgId: 1, scheduledAt: 1 },
+        { background: true, name: "interviews_orgId_scheduledAt" },
+      );
+      results.push({
+        collection: interviewsCollectionName,
+        index: "orgId_1_scheduledAt_1",
+        success: true,
+        executionTime: Date.now() - start7,
+      });
+      console.log("  ✓ Created index: orgId + scheduledAt");
+    } catch (error: unknown) {
+      results.push({
+        collection: interviewsCollectionName,
+        index: "orgId_1_scheduledAt_1",
+        success: false,
+        error: getErrorMessage(error),
+      });
+      console.log("  ✗ Failed: orgId + scheduledAt");
+    }
+
+    try {
+      const start8 = Date.now();
+      await interviewsCollection.createIndex(
+        { applicationId: 1, status: 1 },
+        { background: true, name: "interviews_application_status" },
+      );
+      results.push({
+        collection: interviewsCollectionName,
+        index: "applicationId_1_status_1",
+        success: true,
+        executionTime: Date.now() - start8,
+      });
+      console.log("  ✓ Created index: applicationId + status");
+    } catch (error: unknown) {
+      results.push({
+        collection: interviewsCollectionName,
+        index: "applicationId_1_status_1",
+        success: false,
+        error: getErrorMessage(error),
+      });
+      console.log("  ✗ Failed: applicationId + status");
+    }
+
+    try {
+      const start9 = Date.now();
+      await interviewsCollection.createIndex(
+        { orgId: 1, status: 1, scheduledAt: 1 },
+        { background: true, name: "interviews_orgId_status_scheduledAt" },
+      );
+      results.push({
+        collection: interviewsCollectionName,
+        index: "orgId_1_status_1_scheduledAt_1",
+        success: true,
+        executionTime: Date.now() - start9,
+      });
+      console.log("  ✓ Created compound index: orgId + status + scheduledAt");
+    } catch (error: unknown) {
+      results.push({
+        collection: interviewsCollectionName,
+        index: "orgId_1_status_1_scheduledAt_1",
+        success: false,
+        error: getErrorMessage(error),
+      });
+      console.log("  ✗ Failed: orgId + status + scheduledAt");
+    }
+
+    // 4. Candidates Collection Indexes
+    console.log("\n👤 Creating indexes for candidates collection...");
+    const candidatesCollectionName = COLLECTIONS.ATS_CANDIDATES;
+    const candidatesCollection = db.collection(candidatesCollectionName);
+
+    try {
+      const start10 = Date.now();
+      await candidatesCollection.createIndex(
+        { email: 1 },
+        { unique: true, background: true, name: "candidates_email_unique" },
+      );
+      results.push({
+        collection: candidatesCollectionName,
+        index: "email_1_unique",
+        success: true,
+        executionTime: Date.now() - start10,
+      });
+      console.log("  ✓ Created unique index: email");
+    } catch (error: unknown) {
+      results.push({
+        collection: candidatesCollectionName,
+        index: "email_1_unique",
+        success: false,
+        error: getErrorMessage(error),
+      });
+      console.log("  ✗ Failed: email (may already exist)");
+    }
+
+    try {
+      const start11 = Date.now();
+      await candidatesCollection.createIndex(
+        { orgId: 1, createdAt: -1 },
+        { background: true, name: "candidates_orgId_createdAt" },
+      );
+      results.push({
+        collection: candidatesCollectionName,
+        index: "orgId_1_createdAt_-1",
+        success: true,
+        executionTime: Date.now() - start11,
+      });
+      console.log("  ✓ Created index: orgId + createdAt (desc)");
+    } catch (error: unknown) {
+      results.push({
+        collection: candidatesCollectionName,
+        index: "orgId_1_createdAt_-1",
+        success: false,
+        error: getErrorMessage(error),
+      });
+      console.log("  ✗ Failed: orgId + createdAt");
+    }
+
+    // 5. ATS Settings Collection Indexes
+    console.log("\n⚙️  Creating indexes for ats_settings collection...");
+    const settingsCollectionName = COLLECTIONS.ATS_SETTINGS;
+    const settingsCollection = db.collection(settingsCollectionName);
+
+    try {
+      const start12 = Date.now();
+      await settingsCollection.createIndex(
+        { orgId: 1 },
+        { unique: true, background: true, name: "ats_settings_orgId_unique" },
+      );
+      results.push({
+        collection: settingsCollectionName,
+        index: "orgId_1_unique",
+        success: true,
+        executionTime: Date.now() - start12,
+      });
+      console.log("  ✓ Created unique index: orgId");
+    } catch (error: unknown) {
+      results.push({
+        collection: settingsCollectionName,
+        index: "orgId_1_unique",
+        success: false,
+        error: getErrorMessage(error),
+      });
+      console.log("  ✗ Failed: orgId (may already exist)");
+    }
+
+    // Summary
+    console.log("\n" + "=".repeat(60));
+    console.log("📊 Index Creation Summary:");
+    console.log("=".repeat(60));
+
+    const successful = results.filter((r) => r.success).length;
+    const failed = results.filter((r) => !r.success).length;
+
+    console.log(`\n✅ Successful: ${successful}`);
+    console.log(`❌ Failed: ${failed}`);
+
+    if (failed > 0) {
+      console.log("\n⚠️  Failed Indexes (likely already exist):");
+      results
+        .filter((r) => !r.success)
+        .forEach((r) => {
+          console.log(`  - ${r.collection}.${r.index}`);
+          if (r.error) {
+            console.log(`    Error: ${r.error}`);
+          }
+        });
+    }
+
+    const totalTime = results.reduce(
+      (sum, r) => sum + (r.executionTime || 0),
+      0,
+    );
+    console.log(`\n⏱️  Total execution time: ${totalTime}ms`);
+
+    console.log("\n✨ Index creation complete!\n");
+
+    // Close connection
+    await mongoose.connection.close();
+  } catch (error) {
+    console.error("\n❌ Fatal error creating indexes:", error);
+    process.exit(1);
+  }
+}
+
+// Run the script
+createATSIndexes()
+  .then(() => {
+    console.log("🎉 Script completed successfully");
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error("💥 Script failed:", error);
+    process.exit(1);
+  });
+
+]]>
+</file>
+
+<file path="scripts/create-demo-users.ts">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * Create missing demo users
+ */
+import { db } from "../lib/mongo";
+import { User } from "../server/models/User";
+import { hashPassword } from "../lib/auth";
+
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+
+// Safety: block accidental production/CI execution and require explicit opt-in
+const isProdLike =
+  process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike) {
+  console.error("❌ SEEDING BLOCKED: create-demo-users.ts cannot run in production/CI");
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== "1") {
+  console.error("❌ ALLOW_SEED=1 is required to run create-demo-users.ts (prevents accidental prod writes)");
+  process.exit(1);
+}
+
+const demoPhones = {
+  superadmin:
+    process.env.DEMO_SUPERADMIN_PHONE ||
+    process.env.NEXTAUTH_SUPERADMIN_FALLBACK_PHONE ||
+    "+966552233456",
+  manager: process.env.DEMO_MANAGER_PHONE || "+966552233456",
+  tenant: process.env.DEMO_TENANT_PHONE || "+966552233456",
+  vendor: process.env.DEMO_VENDOR_PHONE || "+966552233456",
+  emp001: process.env.DEMO_EMP001_PHONE || "+966552233456",
+  emp002: process.env.DEMO_EMP002_PHONE || "+966552233456",
+} as const;
+
+const newUsers = [
+  {
+    code: "USR-SUPERADMIN",
+    username: "superadmin",
+    email: `superadmin@${EMAIL_DOMAIN}`,
+
+    employeeId: "SUPER-001",
+    phone: demoPhones.superadmin,
+    orgId: "68dc8955a1ba6ed80ff372dc",
+    personal: {
+      firstName: "Super",
+      lastName: "Admin",
+      phone: demoPhones.superadmin,
+      address: { country: "SA" },
+    },
+    professional: {
+      role: "SUPER_ADMIN",
+      title: "Super Administrator",
+      department: "IT",
+    },
+    status: "ACTIVE",
+  },
+  {
+    code: "USR-MANAGER",
+    username: "manager",
+    email: `manager@${EMAIL_DOMAIN}`,
+    employeeId: "MGR-001",
+    phone: demoPhones.manager,
+    orgId: "68dc8955a1ba6ed80ff372dc",
+    personal: {
+      firstName: "Property",
+      lastName: "Manager",
+      phone: demoPhones.manager,
+      address: { country: "SA" },
+    },
+    professional: {
+      role: "PROPERTY_MANAGER",
+      title: "Property Manager",
+      department: "Operations",
+    },
+    status: "ACTIVE",
+  },
+  {
+    code: "USR-TENANT",
+    username: "tenant",
+    email: `tenant@${EMAIL_DOMAIN}`,
+    employeeId: "TENANT-001",
+    phone: demoPhones.tenant,
+    orgId: "68dc8955a1ba6ed80ff372dc",
+    personal: {
+      firstName: "Demo",
+      lastName: "Tenant",
+      phone: demoPhones.tenant,
+      address: { country: "SA" },
+    },
+    professional: {
+      role: "TENANT",
+      title: "Tenant",
+      department: "N/A",
+    },
+    status: "ACTIVE",
+  },
+  {
+    code: "USR-VENDOR",
+    username: "vendor",
+    email: `vendor@${EMAIL_DOMAIN}`,
+    employeeId: "VENDOR-001",
+    phone: demoPhones.vendor,
+    orgId: "68dc8955a1ba6ed80ff372dc",
+    personal: {
+      firstName: "Demo",
+      lastName: "Vendor",
+      phone: demoPhones.vendor,
+      address: { country: "SA" },
+    },
+    professional: {
+      role: "VENDOR",
+      title: "Vendor",
+      department: "N/A",
+    },
+    status: "ACTIVE",
+  },
+  {
+    code: "EMP001",
+    username: "EMP001",
+    email: `emp001@${EMAIL_DOMAIN}`,
+    employeeId: "EMP001",
+    phone: demoPhones.emp001,
+    orgId: "68dc8955a1ba6ed80ff372dc",
+    personal: {
+      firstName: "Employee",
+      lastName: "One",
+      phone: demoPhones.emp001,
+      address: { country: "SA" },
+  },
+  professional: {
+    role: "TEAM_MEMBER",
+    title: "Team Member",
+    department: "Operations",
+  },
+  status: "ACTIVE",
+},
+  {
+    code: "EMP002",
+    username: "EMP002",
+    email: `emp002@${EMAIL_DOMAIN}`,
+    employeeId: "EMP002",
+    phone: demoPhones.emp002,
+    orgId: "68dc8955a1ba6ed80ff372dc",
+    personal: {
+      firstName: "Employee",
+      lastName: "Two",
+      phone: demoPhones.emp002,
+      address: { country: "SA" },
+  },
+  professional: {
+    role: "TEAM_MEMBER",
+    title: "Team Member",
+    department: "Operations",
+  },
+  status: "ACTIVE",
+},
+];
+
+// SEC-051: Use environment variables (no hardcoded fallbacks)
+const BASE_PASSWORD =
+  process.env.SEED_PASSWORD ||
+  process.env.TEST_USER_PASSWORD ||
+  process.env.DEMO_DEFAULT_PASSWORD;
+if (!BASE_PASSWORD) {
+  throw new Error(
+    "DEMO_DEFAULT_PASSWORD/SEED_PASSWORD/TEST_USER_PASSWORD is required for create-demo-users.ts",
+  );
+}
+const DEMO_SUPERADMIN_PASSWORD =
+  process.env.DEMO_SUPERADMIN_PASSWORD || BASE_PASSWORD;
+const DEMO_DEFAULT_PASSWORD =
+  process.env.DEMO_DEFAULT_PASSWORD || BASE_PASSWORD;
+
+async function createUsers() {
+  try {
+    await db;
+    console.log("🌱 Creating missing demo users...\n");
+
+    const [hashedSuperAdminPassword, hashedDefaultPassword] = await Promise.all(
+      [hashPassword(DEMO_SUPERADMIN_PASSWORD), hashPassword(DEMO_DEFAULT_PASSWORD)],
+    );
+    let created = 0;
+
+    for (const userData of newUsers) {
+      const exists = await User.findOne({ email: userData.email });
+      if (exists) {
+        console.log(`⏭️  Skip: ${userData.email} (already exists)`);
+        continue;
+      }
+
+      try {
+        // Use insertOne to bypass validation plugins
+        const result = await User.collection.insertOne({
+          ...userData,
+          password:
+            userData.username === "superadmin"
+              ? hashedSuperAdminPassword
+              : hashedDefaultPassword,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          version: 1,
+          changeHistory: [],
+          tags: [],
+        });
+
+        if (result.acknowledged) {
+          console.log(
+            `✅ Created: ${userData.email} (${userData.professional.role})`,
+          );
+          created++;
+        }
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(`❌ Error creating ${userData.email}:`, message);
+      }
+    }
+
+    console.log(`\n📊 Created ${created} new users`);
+    // SEC-051: Don't log passwords to console - they may end up in CI logs
+    console.log("\n📝 All demo users should now be available:");
+    console.log(`   superadmin@${EMAIL_DOMAIN} / [DEMO_SUPERADMIN_PASSWORD]`);
+    console.log(`   admin@${EMAIL_DOMAIN} / [DEMO_DEFAULT_PASSWORD]`);
+    console.log(`   manager@${EMAIL_DOMAIN} / [DEMO_DEFAULT_PASSWORD]`);
+    console.log(`   tenant@${EMAIL_DOMAIN} / [DEMO_DEFAULT_PASSWORD]`);
+    console.log(`   vendor@${EMAIL_DOMAIN} / [DEMO_DEFAULT_PASSWORD]`);
+    console.log(`   EMP001 / [DEMO_DEFAULT_PASSWORD] (corporate)`);
+    console.log(`   EMP002 / [DEMO_DEFAULT_PASSWORD] (corporate)`);
+    console.log('\n💡 Set SHOW_DEMO_CREDS=true to display actual passwords');
+
+    process.exit(0);
+  } catch (error) {
+    console.error("❌ Error:", error);
+    process.exit(1);
+  }
+}
+
+createUsers();
+
+]]>
+</file>
+
+<file path="scripts/create-file.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * create-file.ts - Reliable file creation utility
+ */
+import fs from "fs";
+import path from "path";
+
+interface Options {
+  filePath: string;
+  content: string;
+  encoding: BufferEncoding;
+  overwrite: boolean;
+  backup: boolean;
+  dryRun: boolean;
+}
+
+function parseArgs(argv: string[]): Options {
+  const opts: Options = {
+    filePath: "",
+    content: "",
+    encoding: "utf8",
+    overwrite: false,
+    backup: false,
+    dryRun: false,
+  };
+
+  for (let i = 2; i < argv.length; i++) {
+    const arg = argv[i];
+    const next = () => argv[++i];
+
+    if (arg === "--path" || arg === "--file") opts.filePath = String(next());
+    else if (arg === "--content") opts.content = String(next());
+    else if (arg === "--encoding")
+      opts.encoding = String(next()) as BufferEncoding;
+    else if (arg === "--overwrite") opts.overwrite = true;
+    else if (arg === "--backup") opts.backup = true;
+    else if (arg === "--dry-run") opts.dryRun = true;
+    else if (!arg.startsWith("--") && !opts.filePath) opts.filePath = arg;
+  }
+
+  if (!opts.filePath) throw new Error("--path required");
+  return opts;
+}
+
+async function run() {
+  const opts = parseArgs(process.argv);
+  interface RunResult {
+    success: boolean;
+    filePath: string;
+    message?: string;
+    backupPath?: string;
+    bytesWritten?: number;
+  }
+
+  const result: RunResult = { success: false, filePath: opts.filePath };
+
+  try {
+    const exists = fs.existsSync(opts.filePath);
+
+    if (exists && !opts.overwrite) {
+      result.message = "File exists. Use --overwrite";
+      console.log(JSON.stringify(result));
+      process.exitCode = 1;
+      return;
+    }
+
+    if (opts.dryRun) {
+      result.message = "Dry-run: would create file";
+      result.success = true;
+      console.log(JSON.stringify(result));
+      return;
+    }
+
+    if (exists && opts.backup) {
+      fs.copyFileSync(opts.filePath, opts.filePath + ".bak");
+      result.backupPath = opts.filePath + ".bak";
+    }
+
+    fs.mkdirSync(path.dirname(opts.filePath), { recursive: true });
+    fs.writeFileSync(opts.filePath, opts.content, { encoding: opts.encoding });
+
+    result.success = true;
+    result.bytesWritten = opts.content.length;
+    result.message = exists ? "File overwritten" : "File created";
+    console.log(JSON.stringify(result, null, 2));
+  } catch (err: unknown) {
+    const error = err as { message?: string };
+    result.message = error?.message || String(err);
+    console.error(result.message);
+    process.exitCode = 1;
+    console.log(JSON.stringify(result));
+  }
+}
+
+run();
+
+]]>
+</file>
+
+<file path="scripts/create-project-text-index.js">
+<![CDATA[
+/**
+ * Canonical Projects text index creation.
+ * Delegates to shared createIndexes() to avoid drift.
+ *
+ * Run: pnpm tsx scripts/create-project-text-index.js
+ */
+
+require("dotenv/config");
+require("tsx/cjs");
+
+const { createIndexes } = require("../lib/db/collections.ts");
+const { disconnectFromDatabase } = require("../lib/mongodb-unified");
+
+async function main() {
+  console.log("🔍 Ensuring Projects text index via canonical createIndexes()");
+  await createIndexes();
+  console.log("✅ Index creation completed");
+}
+
+main()
+  .catch((error) => {
+    console.error("✗ Error:", error);
+    process.exit(1);
+  })
+  .finally(async () => {
+    try {
+      await disconnectFromDatabase();
+    } catch (err) {
+      console.warn("⚠️ Failed to disconnect cleanly", err);
+    }
+    console.log("✓ Connection closed");
+  });
+
+]]>
+</file>
+
+<file path="scripts/create-test-data.js">
+<![CDATA[
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
+require("dotenv").config();
+
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
+// Connect to MongoDB
+mongoose.connect(
+  process.env.MONGODB_URI || "mongodb://localhost:27017/fixzitsouq",
+);
+
+// Import models
+const User = require("./models/User");
+const Property = require("./models/Property");
+const WorkOrder = require("./models/WorkOrder");
+const Vendor = require("./models/Vendor");
+const Invoice = require("./models/Invoice");
+
+async function createTestData() {
+  try {
+    console.log("🚀 Creating test data...");
+
+    // Create admin user
+    const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD;
+    if (!DEFAULT_PASSWORD) {
+      console.error("❌ DEFAULT_PASSWORD environment variable is required");
+      console.error(
+        '💡 Set it with: export DEFAULT_PASSWORD="your-secure-password"',
+      );
+      process.exit(1);
+    }
+
+    const hashedPassword = await bcrypt.hash(DEFAULT_PASSWORD, 10);
+    const admin = await User.findOneAndUpdate(
+      { email: `admin@${EMAIL_DOMAIN}` },
+      {
+        email: `admin@${EMAIL_DOMAIN}`,
+        password: hashedPassword,
+        name: "Admin User",
+        role: "super_admin",
+        status: "active",
+        isActive: true,
+        phoneNumber: "+966501234567",
+      },
+      { upsert: true, new: true },
+    );
+    console.log("✅ Admin user created:", admin.email);
+
+    // Create test property
+    const property = await Property.findOneAndUpdate(
+      { name: "Riyadh Tower A" },
+      {
+        name: "Riyadh Tower A",
+        address: "123 King Fahd Road, Riyadh",
+        type: "commercial",
+        size: 10000,
+        units: 50,
+        status: "active",
+        tenantId: admin._id,
+        organizationId: admin._id,
+      },
+      { upsert: true, new: true },
+    );
+    console.log("✅ Test property created:", property.name);
+
+    // Create test work order
+    const workOrder = await WorkOrder.findOneAndUpdate(
+      { workOrderNumber: "WO-001" },
+      {
+        workOrderNumber: "WO-001",
+        title: "AC Maintenance Required",
+        description: "AC unit not cooling properly in Unit 301",
+        property: property._id,
+        tenantId: admin._id,
+        assignedTo: admin._id,
+        status: "open",
+        priority: "high",
+        category: "maintenance",
+      },
+      { upsert: true, new: true },
+    );
+    console.log("✅ Test work order created:", workOrder.workOrderNumber);
+
+    // Create test vendor
+    const vendor = await Vendor.findOneAndUpdate(
+      { name: "Al-Faisal Maintenance Co." },
+      {
+        name: "Al-Faisal Maintenance Co.",
+        contactPerson: "Ahmed Al-Faisal",
+        phone: "+966501234568",
+        category: "maintenance",
+        rating: 4.5,
+        status: "active",
+        services: ["HVAC", "Plumbing", "Electrical"],
+      },
+      { upsert: true, new: true },
+    );
+    console.log("✅ Test vendor created:", vendor.name);
+
+    // Create test invoice
+    const invoice = await Invoice.findOneAndUpdate(
+      { invoiceNumber: "INV-001" },
+      {
+        invoiceNumber: "INV-001",
+        customer: admin._id,
+        vendor: vendor._id,
+        items: [
+          {
+            description: "AC Repair Service",
+            quantity: 1,
+            unitPrice: 500,
+            total: 500,
+          },
+        ],
+        subtotal: 500,
+        tax: 75,
+        total: 575,
+        status: "pending",
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+      { upsert: true, new: true },
+    );
+    console.log("✅ Test invoice created:", invoice.invoiceNumber);
+
+    // Count all collections
+    const counts = {
+      users: await User.countDocuments(),
+      properties: await Property.countDocuments(),
+      workOrders: await WorkOrder.countDocuments(),
+      vendors: await Vendor.countDocuments(),
+      invoices: await Invoice.countDocuments(),
+    };
+
+    console.log("\n📊 Database Status:");
+    Object.entries(counts).forEach(([collection, count]) => {
+      console.log(`✅ ${collection}: ${count} documents`);
+    });
+
+    console.log("\n🎯 Test Credentials:");
+    console.log(`Email: admin@${EMAIL_DOMAIN}`);
+    console.log("Password: [REDACTED - check .env.local]");
+
+    mongoose.connection.close();
+    process.exit(0);
+  } catch (error) {
+    console.error("❌ Error creating test data:", error);
+    process.exit(1);
+  }
+}
+
+createTestData();
+
+]]>
+</file>
+
+<file path="scripts/create-text-indexes.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * MongoDB Text Indexes Setup Script
+ *
+ * Creates text indexes for search functionality across all collections
+ * Run this script after deployment or when database schema changes
+ *
+ * Usage: tsx scripts/create-text-indexes.ts
+ */
+
+import { MongoClient } from "mongodb";
+import * as dotenv from "dotenv";
+
+// Load environment variables
+dotenv.config({ path: ".env.local" });
+
+const MONGODB_URI = process.env.MONGODB_URI;
+const MONGODB_DB = process.env.MONGODB_DB || "fixzit";
+
+interface TextIndexDefinition {
+  collection: string;
+  fields: Record<string, "text">;
+  weights?: Record<string, number>;
+  name: string;
+  description: string;
+}
+
+// Define all text indexes needed for search functionality
+const TEXT_INDEXES: TextIndexDefinition[] = [
+  {
+    collection: "workorders",
+    fields: { title: "text", description: "text", code: "text" },
+    weights: { title: 10, code: 8, description: 5 },
+    name: "workorders_search_text",
+    description: "Work Orders search (title, description, code)",
+  },
+  {
+    collection: "properties",
+    fields: {
+      name: "text",
+      "address.street": "text",
+      "address.city": "text",
+      description: "text",
+    },
+    weights: {
+      name: 10,
+      "address.city": 8,
+      "address.street": 6,
+      description: 5,
+    },
+    name: "properties_search_text",
+    description: "Properties search (name, address, description)",
+  },
+  {
+    collection: "projects",
+    fields: { name: "text", description: "text" },
+    weights: { name: 10, description: 5 },
+    name: "projects_search_text",
+    description: "Projects search (name, description)",
+  },
+  {
+    collection: "products",
+    fields: { name: "text", description: "text", category: "text" },
+    weights: { name: 10, category: 7, description: 5 },
+    name: "marketplace_products_search_text",
+    description: "Marketplace products search (name, category, description)",
+  },
+  {
+    collection: "listings",
+    fields: { title: "text", description: "text", tags: "text" },
+    weights: { title: 10, tags: 7, description: 5 },
+    name: "marketplace_listings_search_text",
+    description: "Marketplace listings search (title, tags, description)",
+  },
+  {
+    collection: "knowledge_base",
+    fields: { question: "text", answer: "text", keywords: "text" },
+    weights: { question: 10, keywords: 8, answer: 5 },
+    name: "help_kb_search_text",
+    description: "Help/Knowledge Base search (question, answer, keywords)",
+  },
+  {
+    collection: "vendors",
+    fields: { name: "text", description: "text", services: "text" },
+    weights: { name: 10, services: 7, description: 5 },
+    name: "vendors_search_text",
+    description: "Vendors search (name, services, description)",
+  },
+  {
+    collection: "invoices",
+    fields: {
+      invoiceNumber: "text",
+      description: "text",
+      "items.description": "text",
+    },
+    weights: { invoiceNumber: 10, description: 5, "items.description": 3 },
+    name: "invoices_search_text",
+    description: "Invoices search (number, description, items)",
+  },
+  {
+    collection: "assets",
+    fields: {
+      name: "text",
+      description: "text",
+      serialNumber: "text",
+      model: "text",
+    },
+    weights: { name: 10, serialNumber: 8, model: 7, description: 5 },
+    name: "assets_search_text",
+    description: "Assets search (name, serial number, model, description)",
+  },
+  {
+    collection: "rfqs",
+    fields: { title: "text", description: "text", requirements: "text" },
+    weights: { title: 10, requirements: 7, description: 5 },
+    name: "rfqs_search_text",
+    description: "RFQs search (title, requirements, description)",
+  },
+];
+
+async function createTextIndexes() {
+  console.log("🚀 MongoDB Text Indexes Setup");
+  console.log("=".repeat(50));
+  console.log();
+
+  if (!MONGODB_URI) {
+    console.error("❌ MONGODB_URI environment variable is not set");
+    console.error("   Please configure it in .env.local file");
+    process.exit(1);
+  }
+
+  const client = new MongoClient(MONGODB_URI);
+
+  try {
+    console.log("🔗 Connecting to MongoDB...");
+    await client.connect();
+    console.log("✅ Connected to MongoDB Atlas");
+    console.log(`📊 Database: ${MONGODB_DB}`);
+    console.log();
+
+    const db = client.db(MONGODB_DB);
+
+    // Get list of existing collections
+    const existingCollections = await db.listCollections().toArray();
+    const collectionNames = existingCollections.map((c) => c.name);
+
+    console.log(`📁 Found ${collectionNames.length} existing collections`);
+    console.log();
+
+    let createdCount = 0;
+    let skippedCount = 0;
+    let errorCount = 0;
+
+    for (const indexDef of TEXT_INDEXES) {
+      console.log(`📝 Processing: ${indexDef.collection}`);
+      console.log(`   ${indexDef.description}`);
+
+      try {
+        // Check if collection exists
+        if (!collectionNames.includes(indexDef.collection)) {
+          console.log(
+            `   ⚠️  Collection doesn't exist yet - will be created on first insert`,
+          );
+          console.log(
+            `   ✅ Index will be created automatically when collection is populated`,
+          );
+          skippedCount++;
+          console.log();
+          continue;
+        }
+
+        const collection = db.collection(indexDef.collection);
+
+        // Check if text index already exists
+        const indexes = await collection.indexes();
+        const hasTextIndex = indexes.some(
+          (idx) =>
+            idx.name === indexDef.name ||
+            Object.values(idx.key || {}).includes("text"),
+        );
+
+        if (hasTextIndex) {
+          console.log(`   ✅ Text index already exists`);
+          skippedCount++;
+        } else {
+          // Create text index
+          await collection.createIndex(indexDef.fields, {
+            name: indexDef.name,
+            weights: indexDef.weights || {},
+            default_language: "english",
+            background: true,
+          });
+          console.log(`   ✅ Created text index: ${indexDef.name}`);
+          createdCount++;
+        }
+
+        // List all indexes for verification
+        const allIndexes = await collection.indexes();
+        console.log(`   📋 Total indexes: ${allIndexes.length}`);
+        allIndexes.forEach((idx) => {
+          const keyStr = JSON.stringify(idx.key);
+          console.log(`      - ${idx.name}: ${keyStr}`);
+        });
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(`   ❌ Error: ${message}`);
+        errorCount++;
+      }
+
+      console.log();
+    }
+
+    console.log("=".repeat(50));
+    console.log("📊 Summary:");
+    console.log(`   ✅ Created: ${createdCount} indexes`);
+    console.log(
+      `   ⏭️  Skipped: ${skippedCount} (already exist or collection not created)`,
+    );
+    console.log(`   ❌ Errors: ${errorCount}`);
+    console.log();
+
+    if (errorCount > 0) {
+      console.log("⚠️  Some indexes failed to create. Check errors above.");
+      process.exit(1);
+    } else {
+      console.log("✅ Text indexes setup complete!");
+      console.log();
+      console.log("📝 Next steps:");
+      console.log("   1. Test search functionality in each module");
+      console.log("   2. Run E2E tests: npm run test:e2e");
+      console.log("   3. Monitor search performance in production");
+      console.log("   4. Consider adding more indexes based on query patterns");
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("💥 Fatal error:", message);
+    console.error(error);
+    process.exit(1);
+  } finally {
+    await client.close();
+    console.log();
+    console.log("🔌 Disconnected from MongoDB");
+  }
+}
+
+// Run if called directly
+if (require.main === module) {
+  createTextIndexes().catch((error) => {
+    console.error("Unhandled error:", error);
+    process.exit(1);
+  });
+}
+
+export { createTextIndexes, TEXT_INDEXES };
+
+]]>
+</file>
+
+<file path="scripts/db_check.py">
+<![CDATA[
+# scripts/db_check.py
+from __future__ import annotations
+import os
+import sys
+import json
+from pathlib import Path
+
+import psycopg2
+from psycopg2.extras import DictCursor
+
+ROOT = Path(__file__).resolve().parents[1]
+ART = ROOT / "artifacts"
+ART.mkdir(exist_ok=True)
+
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+issues = []
+meta = {}
+
+if not DATABASE_URL:
+    (ART / "db-report.md").write_text(
+        "DATABASE_URL not set — skipping PostgreSQL checks.", encoding="utf-8"
+    )
+    print("[db] No DATABASE_URL — skip")
+    sys.exit(0)
+
+try:
+    con = psycopg2.connect(DATABASE_URL)
+    con.autocommit = True
+except Exception as e:
+    issues.append({"type": "connect", "message": f"Connection failed: {e}"})
+    (ART / "db-report.json").write_text(
+        json.dumps({"issues": issues}, indent=2), encoding="utf-8"
+    )
+    (ART / "db-report.md").write_text(
+        "\n".join(["# DB Integrity Report", f"❌ {issues[0]['message']}"]),
+        encoding="utf-8",
+    )
+    sys.exit(1)
+
+with con.cursor(cursor_factory=DictCursor) as cur:
+    # Version
+    cur.execute("select version();")
+    version_result = cur.fetchone()
+    meta["version"] = version_result[0] if version_result else "Unknown"
+
+    # NOT VALID constraints
+    cur.execute(
+        """
+        SELECT conrelid::regclass AS table, conname AS name, contype, convalidated
+        FROM pg_constraint
+        WHERE convalidated = false
+        """
+    )
+    not_valid = cur.fetchall()
+    for row in not_valid:
+        issues.append(
+            {
+                "type": "constraint:not_valid",
+                "message": f"NOT VALID constraint {row['name']} on {row['table']} (type {row['contype']})",
+            }
+        )
+
+    # Tables without primary key
+    cur.execute(
+        """
+        SELECT c.relname AS table
+        FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE c.relkind = 'r'
+          AND n.nspname NOT IN ('pg_catalog','information_schema')
+          AND NOT EXISTS (
+              SELECT 1 FROM pg_index i
+              WHERE i.indrelid = c.oid AND i.indisprimary
+          );
+        """
+    )
+    no_pk = cur.fetchall()
+    for row in no_pk:
+        issues.append(
+            {
+                "type": "table:no_primary_key",
+                "message": f"Table {row['table']} has no primary key",
+            }
+        )
+
+    # FKs without index on referencing columns (performance risk)
+    cur.execute(
+        """
+        SELECT conrelid::regclass AS table, conname AS fk_name, pg_get_constraintdef(oid) AS definition
+        FROM pg_constraint
+        WHERE contype = 'f'
+          AND NOT EXISTS (
+            SELECT 1 FROM pg_index i
+            WHERE i.indrelid = conrelid
+              AND (i.indkey::smallint[] @> conkey::smallint[])
+          );
+        """
+    )
+    fk_no_index = cur.fetchall()
+    for row in fk_no_index:
+        issues.append(
+            {
+                "type": "fk:no_index",
+                "message": f"FK {row['fk_name']} on {row['table']} has no supporting index",
+                "extra": row["definition"],
+            }
+        )
+
+con.close()
+
+report = {"db": "postgresql", "meta": meta, "issues": issues}
+(ART / "db-report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+
+lines = [
+    "# DB Integrity Report",
+    "Engine: PostgreSQL",
+    f"Version: {meta.get('version','?')}",
+    "",
+]
+if not issues:
+    lines.append("✅ DB checks OK")
+else:
+    lines.append(f"❌ Issues: {len(issues)}")
+    for it in issues:
+        msg = f"- **{it['type']}**: {it['message']}"
+        if it.get("extra"):
+            msg += f"\n  - {it['extra']}"
+        lines.append(msg)
+(ART / "db-report.md").write_text("\n".join(lines), encoding="utf-8")
+
+sys.exit(1 if issues else 0)
+
+]]>
+</file>
+
+<file path="scripts/dedup/consolidate.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+
+const DRY = process.argv.includes("--dry");
+console.log(DRY ? "DRY RUN - No changes will be made" : "APPLYING CHANGES");
+console.log("Consolidation script ready");
+
+]]>
+</file>
+
+<file path="scripts/dedup/rules.ts">
+<![CDATA[
+/**
+ * Maps duplicate file patterns to their canonical source paths.
+ *
+ * Example:
+ * {
+ *   'src/models/User.ts': '@/server/models/User.ts',
+ *   'db/models/User.ts': '@/server/models/User.ts'
+ * }
+ */
+export const GOLDEN: Record<string, string> = {};
+
+]]>
+</file>
+
+<file path="scripts/dedupe-merge.ts">
+<![CDATA[
+import fg from "fast-glob";
+import fs from "fs";
+import path from "path";
+import pc from "picocolors";
+
+type Mode = "scan" | "apply";
+const mode: Mode =
+  (process.argv.includes("--mode") &&
+    (process.argv[process.argv.indexOf("--mode") + 1] as Mode)) ||
+  "scan";
+
+const SRC = [
+  "app/**/*.{ts,tsx,js,jsx}",
+  "components/**/*.{ts,tsx,js,jsx}",
+  "src/**/*.{ts,tsx,js,jsx}",
+];
+
+function fingerprint(code: string) {
+  return code
+    .replace(/"[^"]*"|'[^']*'/g, '""')
+    .replace(/\s+/g, " ")
+    .replace(/\b(className|style|color)=[^ >]+/g, '$1=""');
+}
+
+(async () => {
+  const files = await fg(SRC, { dot: true });
+  const map = new Map<string, string[]>();
+  for (const f of files) {
+    const raw = fs.readFileSync(f, "utf8");
+    const key = fingerprint(raw);
+    const bucket = map.get(key) || [];
+    bucket.push(f);
+    map.set(key, bucket);
+  }
+
+  const dupGroups = [...map.values()].filter((l) => l.length > 1);
+  const reportPath = ".fixzit/dedupe-report.md";
+  fs.mkdirSync(".fixzit", { recursive: true });
+  let report = `# De-dupe Report\n\nFound ${dupGroups.length} duplicate groups.\n\n`;
+  for (const group of dupGroups) {
+    report +=
+      `## Group (${group.length} files)\n` +
+      group.map((g) => `- ${g}`).join("\n") +
+      "\n\n";
+  }
+  fs.writeFileSync(reportPath, report, "utf8");
+  console.log(pc.yellow(`Report written to ${reportPath}`));
+
+  if (mode === "apply") {
+    for (const group of dupGroups) {
+      const canonical = group.sort((a, b) => {
+        const pa = a.includes("components") ? 0 : 1;
+        const pb = b.includes("components") ? 0 : 1;
+        return pa - pb || a.length - b.length;
+      })[0];
+
+      for (const f of group) {
+        if (f === canonical) continue;
+        const rel = path
+          .relative(path.dirname(f), canonical)
+          .replace(/\\/g, "/");
+        const code = `export * from '${rel.startsWith(".") ? rel : "./" + rel}';\nexport { default } from '${rel.startsWith(".") ? rel : "./" + rel}';\n`;
+        fs.writeFileSync(f, code, "utf8");
+        console.log(
+          pc.green(`Rewired duplicate to canonical: ${f} -> ${canonical}`),
+        );
+      }
+    }
+    console.log(
+      pc.green("De-dupe apply complete (non-destructive re-exports)."),
+    );
+  }
+})();
+
+]]>
+</file>
+
+<file path="scripts/deploy-db-verify.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * Comprehensive Database Deployment Verification Script
+ *
+ * This script verifies the MongoDB deployment is ready for production:
+ * - Connection testing
+ * - Database operations verification
+ * - Performance checks
+ * - Data integrity validation
+ * - Multi-tenant scoping verification
+ */
+
+import {
+  connectToDatabase,
+  getDatabase,
+  checkDatabaseHealth,
+  disconnectFromDatabase,
+} from "@/lib/mongodb-unified";
+import { ObjectId } from "mongodb";
+import { COLLECTIONS } from "@/lib/db/collections";
+
+interface VerificationResult {
+  test: string;
+  passed: boolean;
+  duration: number;
+  error?: string;
+  details?: unknown;
+}
+
+class DatabaseVerifier {
+  private results: VerificationResult[] = [];
+
+  private async runTest(
+    testName: string,
+    testFn: () => Promise<unknown>,
+  ): Promise<void> {
+    const startTime = Date.now();
+    try {
+      console.log(`🧪 Testing: ${testName}...`);
+      const result = await testFn();
+      const duration = Date.now() - startTime;
+
+      this.results.push({
+        test: testName,
+        passed: true,
+        duration,
+        details: result,
+      });
+
+      console.log(`✅ ${testName} - ${duration}ms`);
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      this.results.push({
+        test: testName,
+        passed: false,
+        duration,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      console.log(`❌ ${testName} - Failed in ${duration}ms: ${error}`);
+    }
+  }
+
+  async verifyConnection(): Promise<void> {
+    await this.runTest("MongoDB Connection", async () => {
+      const connection = await connectToDatabase();
+      return {
+        state: connection.connection.readyState,
+        dbName: connection.connection.db?.databaseName,
+        host: connection.connection.host,
+        port: connection.connection.port,
+      };
+    });
+  }
+
+  async verifyHealthCheck(): Promise<void> {
+    await this.runTest("Database Health Check", async () => {
+      const isHealthy = await checkDatabaseHealth();
+      if (!isHealthy) throw new Error("Health check failed");
+
+      const db = await getDatabase();
+      const adminResult = await db.admin().ping();
+      return { ping: adminResult, healthy: isHealthy };
+    });
+  }
+
+  async verifyDatabaseOperations(): Promise<void> {
+    await this.runTest("Basic CRUD Operations", async () => {
+      const db = await getDatabase();
+      const testCollection = db.collection("_deployment_test");
+
+      // Create
+      const testDoc = {
+        _id: new ObjectId(),
+        testData: "deployment-verification",
+        timestamp: new Date(),
+        orgId: new ObjectId(), // Multi-tenant test
+      };
+
+      const insertResult = await testCollection.insertOne(testDoc);
+
+      // Read
+      const readResult = await testCollection.findOne({ _id: testDoc._id });
+      if (!readResult) throw new Error("Failed to read inserted document");
+
+      // Update
+      const updateResult = await testCollection.updateOne(
+        { _id: testDoc._id },
+        { $set: { updated: true, updatedAt: new Date() } },
+      );
+
+      // Delete (cleanup)
+      const deleteResult = await testCollection.deleteOne({ _id: testDoc._id });
+
+      return {
+        insert: insertResult.acknowledged,
+        read: !!readResult,
+        update: updateResult.modifiedCount === 1,
+        delete: deleteResult.deletedCount === 1,
+      };
+    });
+  }
+
+  async verifyIndexes(): Promise<void> {
+    await this.runTest("Index Verification", async () => {
+      const db = await getDatabase();
+
+      // Check common collections exist and have proper indexes
+      const collections = [
+        COLLECTIONS.USERS,
+        COLLECTIONS.PROPERTIES,
+        COLLECTIONS.WORK_ORDERS,
+        COLLECTIONS.TENANTS,
+      ];
+      const indexInfo: Record<string, unknown> = {};
+
+      for (const collName of collections) {
+        try {
+          const collection = db.collection(collName);
+          const indexes = await collection.indexes();
+          indexInfo[collName] = {
+            count: indexes.length,
+            indexes: indexes.map((idx) => idx.name),
+          };
+        } catch (_error) {
+          indexInfo[collName] = { error: "Collection not found or accessible" };
+        }
+      }
+
+      return indexInfo;
+    });
+  }
+
+  async verifyMultiTenancy(): Promise<void> {
+    await this.runTest("Multi-Tenant Data Isolation", async () => {
+      const db = await getDatabase();
+      const testCollection = db.collection("_tenant_test");
+
+      const tenant1Id = new ObjectId();
+      const tenant2Id = new ObjectId();
+
+      // Insert test data for two tenants
+      const tenant1Doc = {
+        orgId: tenant1Id,
+        data: "tenant1",
+        createdAt: new Date(),
+      };
+      const tenant2Doc = {
+        orgId: tenant2Id,
+        data: "tenant2",
+        createdAt: new Date(),
+      };
+
+      await testCollection.insertMany([tenant1Doc, tenant2Doc]);
+
+      // Verify isolation - each tenant should only see their data
+      const tenant1Count = await testCollection.countDocuments({
+        orgId: tenant1Id,
+      });
+      const tenant2Count = await testCollection.countDocuments({
+        orgId: tenant2Id,
+      });
+      const crossTenantCount = await testCollection.countDocuments({
+        orgId: tenant1Id,
+        data: "tenant2",
+      });
+
+      // Cleanup
+      await testCollection.deleteMany({
+        orgId: { $in: [tenant1Id, tenant2Id] },
+      });
+
+      if (crossTenantCount > 0) {
+        throw new Error("Multi-tenant isolation failed");
+      }
+
+      return {
+        tenant1Records: tenant1Count,
+        tenant2Records: tenant2Count,
+        crossTenantLeaks: crossTenantCount,
+        isolated: crossTenantCount === 0,
+      };
+    });
+  }
+
+  async verifyPerformance(): Promise<void> {
+    await this.runTest("Performance Benchmarks", async () => {
+      const db = await getDatabase();
+      const testCollection = db.collection("_perf_test");
+
+      // Insert performance test
+      const batchSize = 100;
+      const testDocs = Array.from({ length: batchSize }, (_, i) => ({
+        index: i,
+        orgId: new ObjectId(),
+        data: `performance-test-${i}`,
+        timestamp: new Date(),
+      }));
+
+      const insertStart = Date.now();
+      await testCollection.insertMany(testDocs);
+      const insertTime = Date.now() - insertStart;
+
+      // Query performance test
+      const queryStart = Date.now();
+      const results = await testCollection
+        .find({ data: { $regex: /^performance-test/ } })
+        .toArray();
+      const queryTime = Date.now() - queryStart;
+
+      // Cleanup
+      await testCollection.deleteMany({
+        data: { $regex: /^performance-test/ },
+      });
+
+      return {
+        insertedDocs: batchSize,
+        insertTime: `${insertTime}ms`,
+        insertRate: `${Math.round(batchSize / (insertTime / 1000))} docs/sec`,
+        queriedDocs: results.length,
+        queryTime: `${queryTime}ms`,
+        queryRate: `${Math.round(results.length / (queryTime / 1000))} docs/sec`,
+      };
+    });
+  }
+
+  async verifyEnvironmentConfig(): Promise<void> {
+    await this.runTest("Environment Configuration", async () => {
+      const config = {
+        mongoUri: !!process.env.MONGODB_URI,
+        mongoDb: process.env.MONGODB_DB || "default",
+        nodeEnv: process.env.NODE_ENV,
+        hasValidUri: process.env.MONGODB_URI?.startsWith("mongodb"),
+        connectionString: process.env.MONGODB_URI
+          ? process.env.MONGODB_URI.replace(/:[^:@]*@/, ":***@")
+          : "NOT_SET",
+      };
+
+      if (!config.mongoUri) {
+        throw new Error("MONGODB_URI environment variable not set");
+      }
+
+      if (!config.hasValidUri) {
+        throw new Error(
+          "MONGODB_URI does not appear to be a valid MongoDB connection string",
+        );
+      }
+
+      return config;
+    });
+  }
+
+  generateReport(): void {
+    console.log("\n" + "=".repeat(60));
+    console.log("📊 DATABASE DEPLOYMENT VERIFICATION REPORT");
+    console.log("=".repeat(60));
+
+    const totalTests = this.results.length;
+    const passedTests = this.results.filter((r) => r.passed).length;
+    const failedTests = totalTests - passedTests;
+    const totalTime = this.results.reduce((sum, r) => sum + r.duration, 0);
+
+    console.log(`\n📈 Summary:`);
+    console.log(`   Total Tests: ${totalTests}`);
+    console.log(`   Passed: ${passedTests} ✅`);
+    console.log(`   Failed: ${failedTests} ${failedTests > 0 ? "❌" : "✅"}`);
+    console.log(
+      `   Success Rate: ${Math.round((passedTests / totalTests) * 100)}%`,
+    );
+    console.log(`   Total Time: ${totalTime}ms`);
+
+    if (failedTests > 0) {
+      console.log(`\n❌ Failed Tests:`);
+      this.results
+        .filter((r) => !r.passed)
+        .forEach((result) => {
+          console.log(`   • ${result.test}: ${result.error}`);
+        });
+    }
+
+    console.log(`\n✅ Passed Tests:`);
+    this.results
+      .filter((r) => r.passed)
+      .forEach((result) => {
+        console.log(`   • ${result.test} (${result.duration}ms)`);
+      });
+
+    console.log("\n" + "=".repeat(60));
+
+    // Exit with appropriate code
+    if (failedTests > 0) {
+      console.log("❌ DEPLOYMENT VERIFICATION FAILED");
+      process.exit(1);
+    } else {
+      console.log("✅ DEPLOYMENT VERIFICATION PASSED");
+      process.exit(0);
+    }
+  }
+
+  async runAllVerifications(): Promise<void> {
+    console.log("🚀 Starting Database Deployment Verification...\n");
+
+    try {
+      await this.verifyEnvironmentConfig();
+      await this.verifyConnection();
+      await this.verifyHealthCheck();
+      await this.verifyDatabaseOperations();
+      await this.verifyIndexes();
+      await this.verifyMultiTenancy();
+      await this.verifyPerformance();
+    } finally {
+      // Always disconnect
+      try {
+        await disconnectFromDatabase();
+      } catch (error) {
+        console.log("Warning: Error during disconnect:", error);
+      }
+    }
+
+    this.generateReport();
+  }
+}
+
+// Run verification if called directly
+if (require.main === module) {
+  const verifier = new DatabaseVerifier();
+  verifier.runAllVerifications().catch((error) => {
+    console.error("💥 Verification failed:", error);
+    process.exit(1);
+  });
+}
+
+export { DatabaseVerifier };
+
+]]>
+</file>
+
+<file path="scripts/deployment/install-missing-packages.py">
+<![CDATA[
+#!/usr/bin/env python3
+"""
+Install Missing Packages
+Installs all packages identified as missing in import analysis
+"""
+
+import subprocess
+import sys
+
+# ANSI color codes
+CYAN = '\033[96m'
+GREEN = '\033[92m'
+YELLOW = '\033[93m'
+RED = '\033[91m'
+GRAY = '\033[90m'
+RESET = '\033[0m'
+
+def print_header(text):
+    print(f"\n{CYAN}{'=' * 40}")
+    print(text)
+    print(f"{'=' * 40}{RESET}\n")
+
+def install_package(package, dev=False):
+    """Install a single package using npm"""
+    cmd = ['npm', 'install']
+    if dev:
+        cmd.append('--save-dev')
+    cmd.extend([package, '--silent'])
+    
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=120
+        )
+        return result.returncode == 0
+    except subprocess.TimeoutExpired:
+        return False
+    except Exception:
+        return False
+
+def main():
+    # Production dependencies
+    prod_packages = [
+        "express",
+        "cors",
+        "helmet",
+        "express-rate-limit",
+        "express-mongo-sanitize",
+        "compression",
+        "morgan",
+        "cookie-parser",
+        "unified",
+        "isomorphic-dompurify",
+        "winston",
+        "validator",
+        "xss"
+    ]
+    
+    # Dev dependencies
+    dev_packages = [
+        "@jest/globals",
+        "jest-mock"
+    ]
+    
+    total_packages = len(prod_packages) + len(dev_packages)
+    installed = 0
+    failed = 0
+    
+    print_header("Installing Missing Packages")
+    
+    print(f"{YELLOW}Production packages to install: {len(prod_packages)}{RESET}")
+    print(f"{YELLOW}Dev packages to install: {len(dev_packages)}{RESET}\n")
+    
+    # Install production packages
+    print(f"{GREEN}Installing production packages...{RESET}")
+    print(f"{GRAY}{'---' * 13}{RESET}")
+    
+    for i, pkg in enumerate(prod_packages, 1):
+        print(f"  {GRAY}[{i}/{total_packages}] Installing {pkg}...{RESET}", end=' ', flush=True)
+        
+        if install_package(pkg, dev=False):
+            print(f"{GREEN}✅{RESET}")
+            installed += 1
+        else:
+            print(f"{RED}❌{RESET}")
+            print(f"    {RED}Error: Failed to install {pkg}{RESET}")
+            failed += 1
+    
+    print()
+    
+    # Install dev packages
+    print(f"{GREEN}Installing dev packages...{RESET}")
+    print(f"{GRAY}{'---' * 13}{RESET}")
+    
+    for i, pkg in enumerate(dev_packages, len(prod_packages) + 1):
+        print(f"  {GRAY}[{i}/{total_packages}] Installing {pkg}...{RESET}", end=' ', flush=True)
+        
+        if install_package(pkg, dev=True):
+            print(f"{GREEN}✅{RESET}")
+            installed += 1
+        else:
+            print(f"{RED}❌{RESET}")
+            print(f"    {RED}Error: Failed to install {pkg}{RESET}")
+            failed += 1
+    
+    # Summary
+    print_header("Installation Complete")
+    
+    print(f"{GREEN}✅ Installed: {installed} packages{RESET}")
+    if failed > 0:
+        print(f"{RED}❌ Failed: {failed} packages{RESET}")
+    print()
+    
+    if failed == 0:
+        print(f"{GREEN}🎉 All packages installed successfully!{RESET}\n")
+        sys.exit(0)
+    else:
+        print(f"{YELLOW}⚠️  Some packages failed to install{RESET}\n")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
+
+]]>
+</file>
+
+</batch_content>

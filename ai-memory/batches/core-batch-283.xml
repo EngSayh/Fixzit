@@ -1,0 +1,3840 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="tests/vitest.config.test.ts">
+<![CDATA[
+// @vitest-environment node
+/**
+ * Vitest configuration guardrails
+ *
+ * The repo now ships 3 configs:
+ * - vitest.config.ts            → client/server split
+ * - vitest.config.api.ts        → ui/api split for API-centric suites
+ * - vitest.config.models.ts     → isolated model tests (MongoMemoryServer)
+ *
+ * These assertions ensure each config keeps the expected include/exclude
+ * patterns, aliases, and environments as we evolve the test matrix.
+ */
+import { describe, it, expect } from "vitest";
+import { TextEncoder, TextDecoder } from "node:util";
+import path from "node:path";
+import baseConfig from "../vitest.config";
+import apiConfig from "../vitest.config.api";
+import modelsConfig from "../vitest.config.models";
+
+// Ensure esbuild invariants are satisfied in jsdom pools
+globalThis.TextEncoder = TextEncoder;
+globalThis.TextDecoder =
+  TextDecoder as unknown as typeof globalThis.TextDecoder;
+
+type AnyConfig = Record<string, any>;
+
+const toArray = <T>(v: unknown): T[] => {
+  if (v == null) return [];
+  return Array.isArray(v) ? (v as T[]) : [v as T];
+};
+
+const normalizeAlias = (
+  alias: unknown,
+): Array<{ find: string; replacement: string }> => {
+  if (!alias) return [];
+  if (Array.isArray(alias)) {
+    return alias.map((entry) => ({
+      find: String((entry as { find: unknown }).find),
+      replacement: String((entry as { replacement: unknown }).replacement),
+    }));
+  }
+  if (typeof alias === "object") {
+    return Object.entries(alias as Record<string, string>).map(
+      ([find, replacement]) => ({
+        find,
+        replacement: String(replacement),
+      }),
+    );
+  }
+  return [];
+};
+
+const resolveSetup = (setups: unknown, alias: unknown): string[] => {
+  const entries = normalizeAlias(alias);
+  return toArray<string>(setups)
+    .map((p) => {
+      const match = entries.find((a) => p.startsWith(a.find));
+      if (match) return path.resolve(p.replace(match.find, match.replacement));
+      if (
+        p.startsWith(".") ||
+        p.startsWith("tests") ||
+        p.startsWith("src") ||
+        p.startsWith("/")
+      ) {
+        return path.resolve(process.cwd(), p);
+      }
+      return "";
+    })
+    .filter(Boolean);
+};
+
+const expectProjectNames = (cfg: AnyConfig, names: string[]) => {
+  const projects = toArray<AnyConfig>(cfg?.test?.projects);
+  expect(projects.map((p) => p?.test?.name)).toEqual(
+    expect.arrayContaining(names),
+  );
+};
+
+describe("vitest.config.ts (client/server)", () => {
+  const projects = toArray<AnyConfig>(baseConfig?.test?.projects);
+
+  it("defines client/server projects with aliases", () => {
+    expectProjectNames(baseConfig, ["client", "server"]);
+    projects.forEach((p) => {
+      expect(
+        normalizeAlias(p?.resolve?.alias || baseConfig?.resolve?.alias),
+      ).toEqual(
+        expect.arrayContaining([expect.objectContaining({ find: "@" })]),
+      );
+    });
+  });
+
+  it("uses jsdom for client and node for server with sensible globs", () => {
+    const client = projects.find((p) => p?.test?.name === "client");
+    const server = projects.find((p) => p?.test?.name === "server");
+
+    expect(client?.test?.environment).toBe("jsdom");
+    expect(toArray(client?.test?.include).join(" ")).toContain("test");
+    expect(client?.test?.exclude).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("api"),
+        expect.stringContaining("server"),
+      ]),
+    );
+
+    expect(server?.test?.environment).toBe("node");
+    expect(toArray(server?.test?.include).join(" ")).toContain("api");
+    expect(server?.test?.exclude).toEqual(
+      expect.arrayContaining([expect.stringContaining("node_modules")]),
+    );
+  });
+});
+
+describe("vitest.config.api.ts (ui/api split)", () => {
+  const projects = toArray<AnyConfig>(apiConfig?.test?.projects);
+
+  it("retains @ alias and split environments", () => {
+    expectProjectNames(apiConfig, ["ui", "api"]);
+    const aliases = normalizeAlias(apiConfig?.resolve?.alias);
+    expect(aliases).toEqual(
+      expect.arrayContaining([expect.objectContaining({ find: "@" })]),
+    );
+
+    const ui = projects.find((p) => p?.test?.name === "ui");
+    const api = projects.find((p) => p?.test?.name === "api");
+    expect(ui?.test?.environment).toBe("jsdom");
+    expect(api?.test?.environment).toBe("node");
+  });
+
+  it("wires setup files to real paths", () => {
+    const setups = projects.flatMap((p) =>
+      resolveSetup(p?.test?.setupFiles, apiConfig?.resolve?.alias),
+    );
+    setups.forEach((p) => expect(p.startsWith(process.cwd())).toBe(true));
+  });
+});
+
+describe("vitest.config.models.ts (model-only)", () => {
+  it("runs in node with Mongo-focused setup and model glob", () => {
+    expect(modelsConfig?.test?.environment).toBe("node");
+    const include = toArray<string>(modelsConfig?.test?.include).join(",");
+    expect(include).toContain("tests/unit/models");
+    expect(modelsConfig?.test?.setupFiles).toEqual(
+      expect.arrayContaining(["./vitest.setup.ts"]),
+    );
+    expect(
+      resolveSetup(
+        modelsConfig?.test?.setupFiles,
+        modelsConfig?.resolve?.alias,
+      )[0],
+    ).toContain(path.join(process.cwd(), "vitest.setup.ts"));
+  });
+
+  it("exposes next/server alias override for stubs", () => {
+    const aliases = normalizeAlias(modelsConfig?.resolve?.alias);
+    expect(
+      aliases.some(
+        (a) =>
+          a.find === "next/server" &&
+          a.replacement.endsWith("tests/vitest-stubs/next-server.ts"),
+      ),
+    ).toBe(true);
+  });
+});
+
+]]>
+</file>
+
+<file path="tsconfig.editor.json">
+<![CDATA[
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "incremental": true,
+    "tsBuildInfoFile": ".tsbuildinfo-editor"
+  },
+  "include": [
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "components/**/*.ts",
+    "components/**/*.tsx",
+    "lib/**/*.ts",
+    "contexts/**/*.ts",
+    "contexts/**/*.tsx",
+    "hooks/**/*.ts",
+    "providers/**/*.ts",
+    "providers/**/*.tsx",
+    "types/**/*.ts",
+    "middleware.ts",
+    "auth.ts",
+    "auth.config.ts",
+    "next-env.d.ts",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next",
+    "dist",
+    "build",
+    "out",
+    "tests",
+    "qa",
+    "scripts",
+    "tools",
+    "services",
+    "server",
+    "jobs",
+    "models",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx"
+  ]
+}
+
+]]>
+</file>
+
+<file path="tsconfig.json">
+<![CDATA[
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "baseUrl": ".",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "downlevelIteration": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next",
+    "out",
+    "dist",
+    "build",
+    "coverage",
+    "playwright-report",
+    "test-results",
+    "public",
+    "qa",
+    "scripts",
+    "tools",
+    "tests",
+    "deployment"
+  ]
+}
+
+]]>
+</file>
+
+<file path="tsconfig.scripts.json">
+<![CDATA[
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "exclude": [
+    "node_modules",
+    ".next",
+    "out",
+    "dist",
+    "build",
+    "coverage",
+    "playwright-report",
+    "test-results"
+  ],
+  "include": [
+    "scripts/migrate-encrypt-finance-pii.ts"
+  ]
+}
+
+]]>
+</file>
+
+<file path="tsconfig.vitest.json">
+<![CDATA[
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": [
+    "tests",
+    "tests/**/*.ts",
+    "tests/**/*.tsx",
+    "tests/**/*.mts",
+    "tests/**/*.cts"
+  ],
+  "exclude": []
+}
+
+]]>
+</file>
+
+<file path="types/auth-session.ts">
+<![CDATA[
+/**
+ * Extended User Type with Fixzit-specific fields
+ * Aligned with JWT/session callback in auth.config.ts
+ */
+export interface ExtendedUser {
+  id: string;
+  email: string;
+  name: string;
+  role?: string;
+  orgId?: string;
+  tenantId?: string;
+  sellerId?: string;
+  // RBAC fields (STRICT v4.1) - must match auth.config.ts session callback
+  subRole?: string | null;
+  permissions?: string[];
+  roles?: string[];
+  isSuperAdmin?: boolean;
+}
+
+/**
+ * Authenticated Session Data
+ * Includes full RBAC metadata for client/server-side access control
+ */
+export interface AuthSession {
+  userId: string;
+  email: string;
+  name: string;
+  role: string;
+  orgId: string | null; // Organization ID for multi-tenant scoping
+  tenantId: string | null; // null when missing (e.g., SUPER_ADMIN or incomplete profile)
+  sellerId?: string; // For marketplace sellers
+  isAuthenticated: boolean;
+  // RBAC fields (STRICT v4.1) - for feature gating aligned with auth.config.ts
+  subRole: string | null; // Sub-role specialization (HR_OFFICER, FINANCE_OFFICER, etc.)
+  permissions: string[]; // Granular permission array
+  roles: string[]; // Role array for multi-role users
+  isSuperAdmin: boolean; // Super admin bypass flag
+}
+
+]]>
+</file>
+
+<file path="types/auth.ts">
+<![CDATA[
+/**
+ * Auth-related type definitions
+ * Provides typed DTOs for authentication flows to prevent schema drift
+ */
+
+import type { UserRoleType } from './user';
+
+/**
+ * Minimal user shape returned from MongoDB for auth operations.
+ * Use this instead of ad-hoc inline type casts in auth.config.ts
+ * to ensure consistent typing across OAuth and credentials flows.
+ */
+export interface AuthUserShape {
+  _id?: string;
+  orgId?: string | null;
+  isSuperAdmin?: boolean;
+  status?: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'PENDING';
+  role?: UserRoleType;
+  professional?: {
+    role?: string;
+  };
+}
+
+/**
+ * Extended user type for session/token propagation
+ */
+export interface ExtendedSessionUser {
+  id?: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+  role?: string;
+  orgId?: string | null;
+  isSuperAdmin?: boolean;
+  permissions?: string[];
+  roles?: string[];
+  rememberMe?: boolean;
+}
+
+/**
+ * Helper to safely extract role from AuthUserShape
+ * Prioritizes professional.role > role > fallback
+ */
+export function extractUserRole(
+  user: AuthUserShape | null,
+  fallback: UserRoleType | 'GUEST' = 'GUEST'
+): UserRoleType | 'GUEST' {
+  if (!user) return fallback;
+  return (user.professional?.role || user.role || fallback) as UserRoleType | 'GUEST';
+}
+
+]]>
+</file>
+
+<file path="types/auth.types.ts">
+<![CDATA[
+/**
+ * Authentication Types
+ * 
+ * CRITICAL: This file MUST NOT import from mongoose or any server models
+ * to prevent mongoose schemas from being bundled into client-side code.
+ * 
+ * @see https://github.com/vercel/next.js/issues/57792
+ */
+
+import type { Types } from 'mongoose';
+
+/**
+ * User document shape used in auth callbacks
+ * Mirrors UserDoc from server/models/User.ts without importing mongoose
+ */
+export interface AuthUserDoc {
+  _id: string | Types.ObjectId;
+  email: string;
+  password: string;
+  status?: string;
+  orgId?: string | { toString(): string } | null;
+  subscriptionPlan?: string;
+  isSuperAdmin?: boolean;
+  permissions?: string[];
+  roles?: Array<string | { toString(): string }>;
+  role?: string;
+  personal?: {
+    firstName?: string;
+    lastName?: string;
+  };
+  professional?: {
+    role?: string;
+  };
+  security?: {
+    locked?: boolean;
+    lockReason?: string;
+    lockTime?: Date;
+    loginAttempts?: number;
+    lastLogin?: Date;
+  };
+  emailVerifiedAt?: Date;
+}
+
+/**
+ * Extended user type for NextAuth session callbacks
+ */
+export type ExtendedAuthUser = {
+  id: string;
+  email?: string | null;
+  role?: string;
+  orgId?: string | null;
+  sessionId?: string | null;
+  rememberMe?: boolean;
+  isSuperAdmin?: boolean;
+  permissions?: string[];
+  roles?: string[];
+};
+
+]]>
+</file>
+
+<file path="types/common.ts">
+<![CDATA[
+// ============================================================================
+// COMPREHENSIVE TYPE DEFINITIONS FOR ESLINT 'ANY' ELIMINATION
+// ============================================================================
+// This file provides proper TypeScript types to replace all 'any' usage
+// across the codebase, achieving 100% type safety
+// ============================================================================
+
+import { Types } from "mongoose";
+
+// ============================================================================
+// API REQUEST/RESPONSE TYPES
+// ============================================================================
+
+export interface ApiRequest {
+  method?: string;
+  url: string;
+  headers: Record<string, string>;
+  body?: unknown;
+}
+
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+}
+
+export interface ApiError {
+  name: string;
+  message: string;
+  code?: string | number;
+  stack?: string;
+}
+
+// ============================================================================
+// DATABASE DOCUMENT TYPES
+// ============================================================================
+
+export interface MongoDocument {
+  _id?: Types.ObjectId;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface MongoFilter {
+  [key: string]: unknown;
+  $or?: Array<Record<string, unknown>>;
+  $and?: Array<Record<string, unknown>>;
+}
+
+export interface MongoUpdateOperator {
+  $set?: Record<string, unknown>;
+  $unset?: Record<string, unknown>;
+  $push?: Record<string, unknown>;
+  $pull?: Record<string, unknown>;
+  $inc?: Record<string, unknown>;
+}
+
+export interface MongoProjection {
+  [key: string]: 0 | 1 | { $meta?: string };
+}
+
+export interface MongoSortOrder {
+  [key: string]: 1 | -1 | { $meta?: string };
+}
+
+// ============================================================================
+// PAYTABS TYPES
+// ============================================================================
+
+export interface PayTabsConfig {
+  profileId: string;
+  serverKey: string;
+  clientKey: string;
+  region: string;
+  currency: string;
+}
+
+export interface PayTabsPaymentRequest {
+  tran_ref?: string;
+  cart_id: string;
+  cart_description: string;
+  cart_currency: string;
+  cart_amount: number;
+  customer_details: {
+    name: string;
+    email: string;
+    phone: string;
+    street1?: string;
+    city?: string;
+    state?: string;
+    country: string;
+    zip?: string;
+  };
+  return_url: string;
+  callback?: string;
+}
+
+export interface PayTabsPaymentResponse {
+  tran_ref: string;
+  tran_type: string;
+  cart_id: string;
+  cart_description: string;
+  cart_currency: string;
+  cart_amount: number;
+  payment_result: {
+    response_status: string;
+    response_code: string;
+    response_message: string;
+  };
+  redirect_url?: string;
+}
+
+export interface PayTabsCallbackData {
+  tran_ref: string;
+  cart_id: string;
+  cart_description: string;
+  cart_currency: string;
+  cart_amount: string;
+  tran_type: string;
+  payment_result: {
+    response_status: string;
+    response_code: string;
+    response_message: string;
+  };
+  payment_info?: {
+    payment_method?: string;
+    card_type?: string;
+    card_scheme?: string;
+  };
+}
+
+// ============================================================================
+// VALIDATION TYPES
+// ============================================================================
+
+export interface ValidationError {
+  path: string[];
+  message: string;
+  code?: string;
+}
+
+export interface ZodIssue {
+  path: (string | number)[];
+  message: string;
+  code: string;
+}
+
+// ============================================================================
+// QUERY PARAMETER TYPES
+// ============================================================================
+
+export interface PaginationParams {
+  page?: number | string;
+  limit?: number | string;
+  skip?: number | string;
+}
+
+export interface SearchParams extends PaginationParams {
+  q?: string;
+  search?: string;
+  query?: string;
+  filter?: string;
+  sort?: string;
+}
+
+export interface DateRangeParams {
+  startDate?: string | Date;
+  endDate?: string | Date;
+  from?: string | Date;
+  to?: string | Date;
+}
+
+// ============================================================================
+// FILE UPLOAD TYPES
+// ============================================================================
+
+export interface UploadedFile {
+  name: string;
+  type: string;
+  size: number;
+  arrayBuffer: () => Promise<ArrayBuffer>;
+}
+
+export interface FileUploadResult {
+  filename: string;
+  path: string;
+  url?: string;
+  size: number;
+  mimetype?: string;
+}
+
+// ============================================================================
+// HELPER TYPES FOR ANY ELIMINATION
+// ============================================================================
+
+/** Use for truly dynamic objects where structure is unknown */
+export type UnknownObject = Record<string, unknown>;
+
+/** Use for JSON-serializable data */
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+/** Use for error handling */
+export type ErrorLike =
+  | Error
+  | { message: string; name?: string; stack?: string };
+
+/** Use for callback functions when signature is truly unknown */
+export type UnknownFunction = (...args: Array<unknown>) => unknown;
+
+/** Use for React component props when specific props aren't known */
+export type UnknownProps = Record<string, unknown>;
+
+/** Use for form data */
+export type FormData = Record<
+  string,
+  string | number | boolean | File | null | undefined
+>;
+
+/** Use for query string parameters */
+export type QueryParams = Record<string, string | string[] | undefined>;
+
+/** Use for HTTP headers */
+export type HttpHeaders = Record<string, string | string[] | undefined>;
+
+// ============================================================================
+// TYPE GUARDS
+// ============================================================================
+
+export function isError(error: unknown): error is Error {
+  return error instanceof Error;
+}
+
+export function isErrorLike(error: unknown): error is ErrorLike {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof (error as Record<string, unknown>).message === "string"
+  );
+}
+
+export function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+export function isStringArray(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) && value.every((item) => typeof item === "string")
+  );
+}
+
+// ============================================================================
+// EXPORT ALL
+// ============================================================================
+
+const types = {
+  // Re-export all types for convenience
+};
+
+export default types;
+
+]]>
+</file>
+
+<file path="types/copilot.ts">
+<![CDATA[
+/**
+ * Centralized Fixzit AI Assistant Type Definitions
+ * Based on Blueprint Bible roles matrix and Design System specifications
+ * 
+ * 🔒 STRICT v4.1 COMPLIANT - Aligned with domain/fm/fm.behavior.ts canonical Role enum
+ */
+
+import { Role, SubRole } from "@/domain/fm/fm-lite";
+
+// Re-export canonical Role and SubRole from the single source of truth (client-safe)
+export { Role, SubRole };
+
+/**
+ * Legacy role type union - DEPRECATED
+ * Use Role enum from domain/fm/fm-lite.ts for client components
+ * or domain/fm/fm.behavior.ts for server components.
+ * 
+ * STRICT v4.1 Canonical Roles:
+ * - SUPER_ADMIN: Platform operator, cross-org access
+ * - ADMIN: Tenant admin, org-scoped full access (alias: CORPORATE_ADMIN)
+ * - CORPORATE_OWNER: Portfolio owner (alias: PROPERTY_OWNER, OWNER)
+ * - TEAM_MEMBER: Corporate staff (alias: MANAGEMENT, FINANCE, HR, EMPLOYEE)
+ *   - Requires SubRole for specialization: FINANCE_OFFICER, HR_OFFICER, SUPPORT_AGENT, OPERATIONS_MANAGER
+ * - TECHNICIAN: Field worker
+ * - PROPERTY_MANAGER: Manages subset of properties (alias: FM_MANAGER)
+ * - TENANT: End-user (alias: CUSTOMER)
+ * - VENDOR: External service provider
+ * - GUEST: Public visitor (alias: AUDITOR, VIEWER)
+ * 
+ * @deprecated Import { Role } from "@/domain/fm/fm-lite" for client-safe usage
+ */
+export type LegacyRole =
+  | "SUPER_ADMIN"
+  | "ADMIN"
+  | "CORPORATE_OWNER"
+  | "TEAM_MEMBER"
+  | "TECHNICIAN"
+  | "PROPERTY_MANAGER"
+  | "TENANT"
+  | "VENDOR"
+  | "GUEST"
+  // Legacy aliases (mapped to canonical roles above)
+  | "CORPORATE_ADMIN" // → ADMIN
+  | "MANAGEMENT" // → TEAM_MEMBER (requires SubRole)
+  | "FINANCE" // → TEAM_MEMBER + SubRole.FINANCE_OFFICER
+  | "HR" // → TEAM_MEMBER + SubRole.HR_OFFICER
+  | "CORPORATE_EMPLOYEE" // → TEAM_MEMBER
+  | "PROPERTY_OWNER" // → CORPORATE_OWNER
+  | "FM_MANAGER" // → PROPERTY_MANAGER
+  | "PROCUREMENT" // → TEAM_MEMBER
+  | "EMPLOYEE" // → TEAM_MEMBER
+  | "CUSTOMER" // → TENANT
+  | "OWNER" // → CORPORATE_OWNER
+  | "AUDITOR"; // → GUEST (least privilege)
+
+// Session profile with locale and directionality for RTL support
+export interface SessionProfile {
+  userId: string;
+  name: string;
+  email: string;
+  role: Role;
+  subRole?: SubRole; // STRICT v4.1: Sub-role for Team Member specialization
+  orgId: string | null;
+  locale: "en" | "ar";
+  dir: "ltr" | "rtl";
+}
+
+// Chat message structure
+export interface ChatMessage {
+  role: "user" | "assistant" | "system";
+  content: string;
+  intent?: Intent;
+  dataClass?: DataClass;
+  sources?: KnowledgeSource[];
+}
+
+// Intent classification for message routing
+export type Intent =
+  | "GENERAL"
+  | "PERSONAL"
+  | "APARTMENT_SEARCH"
+  | "DISPATCH"
+  | "UPLOAD_PHOTO"
+  | "APPROVE_QUOTATION"
+  | "OWNER_STATEMENTS"
+  | "SCHEDULE_VISIT"
+  | "CREATE_WORK_ORDER"
+  | "LIST_MY_TICKETS";
+
+// Data classification for RBAC enforcement
+export type DataClass =
+  | "PUBLIC"
+  | "TENANT_SCOPED"
+  | "OWNER_SCOPED"
+  | "ORG_FINANCIALS"
+  | "FINANCE"
+  | "HR"
+  | "INTERNAL"
+  | "SENSITIVE";
+
+// Session context for backend processing
+export interface SessionContext {
+  userId: string | null;
+  orgId: string | null;
+  role: Role;
+  subRole?: SubRole;
+  locale: "en" | "ar";
+  tenantId?: string;
+}
+
+// Knowledge base source for RAG
+export interface KnowledgeSource {
+  id: string;
+  title: string;
+  score: number;
+  source?: string;
+  excerpt?: string;
+}
+
+// Policy evaluation result
+export interface PolicyDecision {
+  allowed: boolean;
+  reason?: string;
+  dataClass?: DataClass;
+}
+
+// Tool execution result
+export interface ToolResult {
+  success: boolean;
+  data?: unknown;
+  error?: string;
+  requiresAuth?: boolean;
+}
+
+// Apartment search result (guest-safe)
+export interface ApartmentSearchResult {
+  unitId?: string; // Only for authenticated users
+  bedrooms: number;
+  bathrooms: number;
+  area: number;
+  rent: number;
+  currency: string;
+  city: string;
+  district?: string;
+  propertyName?: string;
+  available: boolean;
+  agentContact?: string; // Only for authenticated users
+  features?: string[];
+}
+
+// AI Assistant Enhancement Guide
+export interface AIAssistantEnhancement {
+  featureId: string;
+  description: string;
+  impact: "LOW" | "MEDIUM" | "HIGH";
+  effort: "LOW" | "MEDIUM" | "HIGH";
+  status: "PENDING" | "IN_PROGRESS" | "COMPLETED";
+}
+
+]]>
+</file>
+
+<file path="types/css.d.ts">
+<![CDATA[
+/**
+ * CSS Module Type Declarations
+ *
+ * This file provides TypeScript type declarations for CSS imports in the project.
+ * It prevents "Cannot find module" errors when importing CSS files.
+ */
+
+declare module "*.css" {
+  const content: { [className: string]: string };
+  export default content;
+}
+
+declare module "*.scss" {
+  const content: { [className: string]: string };
+  export default content;
+}
+
+declare module "*.sass" {
+  const content: { [className: string]: string };
+  export default content;
+}
+
+declare module "*.less" {
+  const content: { [className: string]: string };
+  export default content;
+}
+
+]]>
+</file>
+
+<file path="types/fm/enums.ts">
+<![CDATA[
+/**
+ * FM Module - Unified Enums
+ *
+ * Single source of truth for all FM-related enumerations
+ * Consolidates enums from domain/fm/fm.behavior.ts and other sources
+ */
+
+// =============================================================================
+// RBAC - ROLES
+// =============================================================================
+
+/**
+ * FM System Roles (from domain/fm/fm.behavior.ts)
+ * Defines all user roles in the FM system with hierarchical access
+ */
+export enum FMRole {
+  SUPER_ADMIN = "SUPER_ADMIN",
+  CORPORATE_ADMIN = "CORPORATE_ADMIN",
+  PROPERTY_OWNER = "PROPERTY_OWNER",
+  OWNER_DEPUTY = "OWNER_DEPUTY",
+  MANAGEMENT = "MANAGEMENT",
+  EMPLOYEE = "EMPLOYEE",
+  FINANCE = "FINANCE",
+  HR = "HR",
+  TECHNICIAN = "TECHNICIAN",
+  TENANT = "TENANT",
+  VENDOR = "VENDOR",
+  GUEST = "GUEST",
+}
+
+// =============================================================================
+// SUBSCRIPTION PLANS
+// =============================================================================
+
+/**
+ * Subscription Plans with feature limits
+ */
+export enum SubscriptionPlan {
+  FREE = "FREE",
+  PRO = "PRO",
+  ENTERPRISE = "ENTERPRISE",
+  CUSTOM = "CUSTOM",
+}
+
+// =============================================================================
+// FM MODULES
+// =============================================================================
+
+/**
+ * FM Module Identifiers (for permissions and navigation)
+ */
+export enum FMModule {
+  WORK_ORDERS = "workOrders",
+  VENDORS = "vendors",
+  TENANTS = "tenants",
+  PROPERTIES = "properties",
+  FINANCE = "finance",
+  SYSTEM = "system",
+  SUPPORT = "support",
+  ADMINISTRATION = "administration",
+  DASHBOARD = "dashboard",
+  REPORTS = "reports",
+  ASSETS = "assets",
+  MAINTENANCE = "maintenance",
+  COMPLIANCE = "compliance",
+}
+
+// =============================================================================
+// RBAC - ACTIONS
+// =============================================================================
+
+/**
+ * FM System Actions for permission checks
+ */
+export enum FMAction {
+  // Read operations
+  VIEW = "view",
+  VIEW_OWN = "view_own",
+  VIEW_ALL = "view_all",
+
+  // Write operations
+  CREATE = "create",
+  UPDATE = "update",
+  UPDATE_OWN = "update_own",
+  DELETE = "delete",
+  DELETE_OWN = "delete_own",
+
+  // Work Order specific
+  ASSIGN = "assign",
+  REASSIGN = "reassign",
+  START_WORK = "start_work",
+  COMPLETE_WORK = "complete_work",
+
+  // Approval workflow
+  REQUEST_APPROVAL = "request_approval",
+  APPROVE = "approve",
+  REJECT = "reject",
+
+  // Financial
+  ATTACH_QUOTE = "attach_quote",
+  POST_FINANCE = "post_finance",
+  VIEW_COST = "view_cost",
+
+  // Special
+  DELEGATE = "delegate",
+  ESCALATE = "escalate",
+  BULK_ASSIGN = "bulk_assign",
+  EXPORT = "export",
+
+  // Admin
+  MANAGE_ROLES = "manage_roles",
+  MANAGE_USERS = "manage_users",
+  CONFIGURE = "configure",
+}
+
+// =============================================================================
+// WORK ORDER ENUMS
+// =============================================================================
+
+/**
+ * Work Order Status - 11-state FSM
+ * @see types/fm/work-order.ts for complete type definitions
+ */
+export enum WOStatus {
+  NEW = "NEW",
+  ASSESSMENT = "ASSESSMENT",
+  ESTIMATE_PENDING = "ESTIMATE_PENDING",
+  QUOTATION_REVIEW = "QUOTATION_REVIEW",
+  PENDING_APPROVAL = "PENDING_APPROVAL",
+  APPROVED = "APPROVED",
+  IN_PROGRESS = "IN_PROGRESS",
+  WORK_COMPLETE = "WORK_COMPLETE",
+  QUALITY_CHECK = "QUALITY_CHECK",
+  FINANCIAL_POSTING = "FINANCIAL_POSTING",
+  CLOSED = "CLOSED",
+}
+
+/**
+ * Work Order Priority levels
+ */
+export enum WOPriority {
+  LOW = "LOW",
+  MEDIUM = "MEDIUM",
+  HIGH = "HIGH",
+  CRITICAL = "CRITICAL",
+}
+
+/**
+ * Work Order Categories
+ */
+export enum WOCategory {
+  GENERAL = "GENERAL",
+  MAINTENANCE = "MAINTENANCE",
+  PLUMBING = "PLUMBING",
+  ELECTRICAL = "ELECTRICAL",
+  HVAC = "HVAC",
+  CLEANING = "CLEANING",
+  SECURITY = "SECURITY",
+  LANDSCAPING = "LANDSCAPING",
+  INSPECTION = "INSPECTION",
+  IT = "IT",
+  OTHER = "OTHER",
+}
+
+// =============================================================================
+// PROPERTY & UNIT ENUMS
+// =============================================================================
+
+/**
+ * Property Types
+ */
+export enum PropertyType {
+  RESIDENTIAL = "RESIDENTIAL",
+  COMMERCIAL = "COMMERCIAL",
+  MIXED_USE = "MIXED_USE",
+  INDUSTRIAL = "INDUSTRIAL",
+}
+
+/**
+ * Property Status
+ */
+export enum PropertyStatus {
+  ACTIVE = "ACTIVE",
+  INACTIVE = "INACTIVE",
+  UNDER_MAINTENANCE = "UNDER_MAINTENANCE",
+  SOLD = "SOLD",
+}
+
+/**
+ * Unit Status
+ */
+export enum UnitStatus {
+  VACANT = "VACANT",
+  OCCUPIED = "OCCUPIED",
+  RESERVED = "RESERVED",
+  UNDER_MAINTENANCE = "UNDER_MAINTENANCE",
+}
+
+// =============================================================================
+// TENANT ENUMS
+// =============================================================================
+
+/**
+ * Tenancy Status
+ */
+export enum TenancyStatus {
+  ACTIVE = "ACTIVE",
+  EXPIRED = "EXPIRED",
+  PENDING = "PENDING",
+  TERMINATED = "TERMINATED",
+}
+
+/**
+ * Tenant Type
+ */
+export enum TenantType {
+  INDIVIDUAL = "INDIVIDUAL",
+  CORPORATE = "CORPORATE",
+  GOVERNMENT = "GOVERNMENT",
+}
+
+// =============================================================================
+// VENDOR ENUMS
+// =============================================================================
+
+/**
+ * Vendor Status
+ */
+export enum VendorStatus {
+  ACTIVE = "ACTIVE",
+  INACTIVE = "INACTIVE",
+  BLACKLISTED = "BLACKLISTED",
+  PENDING_APPROVAL = "PENDING_APPROVAL",
+}
+
+/**
+ * Vendor Type
+ */
+export enum VendorType {
+  CONTRACTOR = "CONTRACTOR",
+  SUPPLIER = "SUPPLIER",
+  SERVICE_PROVIDER = "SERVICE_PROVIDER",
+  CONSULTANT = "CONSULTANT",
+}
+
+// =============================================================================
+// FINANCE ENUMS
+// =============================================================================
+
+/**
+ * Invoice Status
+ */
+export enum InvoiceStatus {
+  DRAFT = "DRAFT",
+  SENT = "SENT",
+  PAID = "PAID",
+  OVERDUE = "OVERDUE",
+  CANCELLED = "CANCELLED",
+}
+
+/**
+ * Payment Status
+ */
+export enum PaymentStatus {
+  PENDING = "PENDING",
+  COMPLETED = "COMPLETED",
+  FAILED = "FAILED",
+  REFUNDED = "REFUNDED",
+}
+
+/**
+ * Payment Method
+ */
+export enum PaymentMethod {
+  CASH = "CASH",
+  BANK_TRANSFER = "BANK_TRANSFER",
+  CREDIT_CARD = "CREDIT_CARD",
+  CHECK = "CHECK",
+}
+
+/**
+ * Expense Category
+ */
+export enum ExpenseCategory {
+  MAINTENANCE_REPAIR = "MAINTENANCE_REPAIR",
+  UTILITIES = "UTILITIES",
+  PAYROLL = "PAYROLL",
+  SUPPLIES = "SUPPLIES",
+  INSURANCE = "INSURANCE",
+  TAXES = "TAXES",
+  PROFESSIONAL_FEES = "PROFESSIONAL_FEES",
+  OTHER = "OTHER",
+}
+
+// =============================================================================
+// NOTIFICATION ENUMS
+// =============================================================================
+
+/**
+ * Notification Type
+ */
+export enum NotificationType {
+  WORK_ORDER_CREATED = "WORK_ORDER_CREATED",
+  WORK_ORDER_ASSIGNED = "WORK_ORDER_ASSIGNED",
+  WORK_ORDER_UPDATED = "WORK_ORDER_UPDATED",
+  WORK_ORDER_COMPLETED = "WORK_ORDER_COMPLETED",
+  APPROVAL_REQUESTED = "APPROVAL_REQUESTED",
+  APPROVAL_APPROVED = "APPROVAL_APPROVED",
+  APPROVAL_REJECTED = "APPROVAL_REJECTED",
+  PAYMENT_DUE = "PAYMENT_DUE",
+  PAYMENT_RECEIVED = "PAYMENT_RECEIVED",
+  SLA_BREACH = "SLA_BREACH",
+  SYSTEM_ALERT = "SYSTEM_ALERT",
+}
+
+/**
+ * Notification Channel
+ */
+export enum NotificationChannel {
+  PUSH = "PUSH",
+  EMAIL = "EMAIL",
+  SMS = "SMS",
+  WHATSAPP = "WHATSAPP",
+  IN_APP = "IN_APP",
+}
+
+/**
+ * Notification Priority
+ */
+export enum NotificationPriority {
+  LOW = "LOW",
+  NORMAL = "NORMAL",
+  HIGH = "HIGH",
+  URGENT = "URGENT",
+}
+
+// =============================================================================
+// ASSET ENUMS
+// =============================================================================
+
+/**
+ * Asset Status
+ */
+export enum AssetStatus {
+  OPERATIONAL = "OPERATIONAL",
+  UNDER_MAINTENANCE = "UNDER_MAINTENANCE",
+  OUT_OF_SERVICE = "OUT_OF_SERVICE",
+  RETIRED = "RETIRED",
+}
+
+/**
+ * Asset Type
+ */
+export enum AssetType {
+  EQUIPMENT = "EQUIPMENT",
+  FIXTURE = "FIXTURE",
+  FURNITURE = "FURNITURE",
+  VEHICLE = "VEHICLE",
+  TECHNOLOGY = "TECHNOLOGY",
+  OTHER = "OTHER",
+}
+
+// =============================================================================
+// MAINTENANCE ENUMS
+// =============================================================================
+
+/**
+ * Maintenance Type
+ */
+export enum MaintenanceType {
+  PREVENTIVE = "PREVENTIVE",
+  CORRECTIVE = "CORRECTIVE",
+  PREDICTIVE = "PREDICTIVE",
+  EMERGENCY = "EMERGENCY",
+}
+
+/**
+ * Maintenance Frequency
+ */
+export enum MaintenanceFrequency {
+  DAILY = "DAILY",
+  WEEKLY = "WEEKLY",
+  MONTHLY = "MONTHLY",
+  QUARTERLY = "QUARTERLY",
+  SEMI_ANNUAL = "SEMI_ANNUAL",
+  ANNUAL = "ANNUAL",
+}
+
+// =============================================================================
+// REPORT ENUMS
+// =============================================================================
+
+/**
+ * Report Type
+ */
+export enum ReportType {
+  WORK_ORDERS = "WORK_ORDERS",
+  FINANCE = "FINANCE",
+  ASSETS = "ASSETS",
+  COMPLIANCE = "COMPLIANCE",
+  OCCUPANCY = "OCCUPANCY",
+  MAINTENANCE = "MAINTENANCE",
+  CUSTOM = "CUSTOM",
+}
+
+/**
+ * Report Format
+ */
+export enum ReportFormat {
+  PDF = "PDF",
+  EXCEL = "EXCEL",
+  CSV = "CSV",
+  JSON = "JSON",
+}
+
+/**
+ * Report Frequency
+ */
+export enum ReportFrequency {
+  DAILY = "DAILY",
+  WEEKLY = "WEEKLY",
+  MONTHLY = "MONTHLY",
+  QUARTERLY = "QUARTERLY",
+  ANNUAL = "ANNUAL",
+  ON_DEMAND = "ON_DEMAND",
+}
+
+]]>
+</file>
+
+<file path="types/fm/index.ts">
+<![CDATA[
+/**
+ * FM Module Types - Main Export
+ *
+ * Central export point for all FM-related types, interfaces, and enums
+ *
+ * Usage:
+ * ```typescript
+ * import { WorkOrder, WOStatus, FMRole } from '@/types/fm';
+ * ```
+ */
+
+// Work Order Types
+export type {
+  WorkOrderStatus,
+  WorkOrderPriority,
+  WorkOrderCategory,
+  WorkOrderUser,
+  WorkOrderPhoto,
+  WorkOrderComment,
+  WorkOrderTimeline,
+  WorkOrderProperty,
+  WorkOrderUnit,
+  WorkOrder,
+  WorkOrderFormData,
+  WorkOrderFilters,
+  WorkOrderStats,
+} from "./work-order";
+
+export {
+  WOStatus,
+  WOPriority,
+  WOCategory,
+  isFinalStatus,
+  toEnumStatus,
+  toUIStatus,
+  toEnumPriority,
+  toUIPriority,
+} from "./work-order";
+
+// All FM Enums
+export {
+  FMRole,
+  SubscriptionPlan,
+  FMModule,
+  FMAction,
+  PropertyType,
+  PropertyStatus,
+  UnitStatus,
+  TenancyStatus,
+  TenantType,
+  VendorStatus,
+  VendorType,
+  InvoiceStatus,
+  PaymentStatus,
+  PaymentMethod,
+  ExpenseCategory,
+  NotificationType,
+  NotificationChannel,
+  NotificationPriority,
+  AssetStatus,
+  AssetType,
+  MaintenanceType,
+  MaintenanceFrequency,
+  ReportType,
+  ReportFormat,
+  ReportFrequency,
+} from "./enums";
+
+]]>
+</file>
+
+<file path="types/fm/work-order.ts">
+<![CDATA[
+import type { ObjectId } from "mongodb";
+
+/**
+ * FM Module - Unified Work Order Types
+ *
+ * Single source of truth for all Work Order related types across:
+ * - Frontend UI components
+ * - Backend API handlers
+ * - Database models
+ * - Domain logic
+ *
+ * Consolidates types from:
+ * - types/work-orders.ts
+ * - lib/models/index.ts
+ * - domain/fm/fm.behavior.ts
+ */
+
+// =============================================================================
+// ENUMS
+// =============================================================================
+
+/**
+ * Work Order Status - 11-state FSM (from domain/fm/fm.behavior.ts)
+ * Represents complete lifecycle from creation to closure
+ */
+export enum WOStatus {
+  NEW = "NEW",
+  ASSESSMENT = "ASSESSMENT",
+  ESTIMATE_PENDING = "ESTIMATE_PENDING",
+  QUOTATION_REVIEW = "QUOTATION_REVIEW",
+  PENDING_APPROVAL = "PENDING_APPROVAL",
+  APPROVED = "APPROVED",
+  IN_PROGRESS = "IN_PROGRESS",
+  WORK_COMPLETE = "WORK_COMPLETE",
+  QUALITY_CHECK = "QUALITY_CHECK",
+  FINANCIAL_POSTING = "FINANCIAL_POSTING",
+  CLOSED = "CLOSED",
+}
+
+/**
+ * Work Order Priority levels
+ * Maps to SLA definitions in domain model
+ */
+export enum WOPriority {
+  LOW = "LOW",
+  MEDIUM = "MEDIUM",
+  HIGH = "HIGH",
+  CRITICAL = "CRITICAL",
+}
+
+/**
+ * Work Order Categories
+ */
+export enum WOCategory {
+  GENERAL = "GENERAL",
+  MAINTENANCE = "MAINTENANCE",
+  PLUMBING = "PLUMBING",
+  ELECTRICAL = "ELECTRICAL",
+  HVAC = "HVAC",
+  CLEANING = "CLEANING",
+  SECURITY = "SECURITY",
+  LANDSCAPING = "LANDSCAPING",
+  INSPECTION = "INSPECTION",
+  IT = "IT",
+  OTHER = "OTHER",
+}
+
+// =============================================================================
+// UI/FRONTEND TYPES (from types/work-orders.ts)
+// =============================================================================
+
+/**
+ * Work Order Status for UI components (lowercase variants)
+ * Maps to WOStatus enum but uses lowercase for backward compatibility
+ */
+export type WorkOrderStatus =
+  | "draft"
+  | "submitted"
+  | "approved"
+  | "open"
+  | "assigned"
+  | "in_progress"
+  | "on_hold"
+  | "completed"
+  | "cancelled"
+  | "closed";
+
+/**
+ * Work Order Priority for UI components
+ */
+export type WorkOrderPriority =
+  | "low"
+  | "medium"
+  | "high"
+  | "urgent"
+  | "emergency";
+
+/**
+ * Work Order Category for UI components
+ */
+export type WorkOrderCategory =
+  | "general"
+  | "maintenance"
+  | "plumbing"
+  | "electrical"
+  | "hvac"
+  | "cleaning"
+  | "security"
+  | "landscaping"
+  | "inspection"
+  | "it"
+  | "other";
+
+/**
+ * User associated with work order (minimal)
+ */
+export interface WorkOrderUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  avatar?: string;
+  role?: string;
+  email?: string;
+  phone?: string;
+}
+
+/**
+ * Work Order Photo attachment
+ */
+export interface WorkOrderPhoto {
+  id: string;
+  url: string;
+  thumbnailUrl?: string;
+  type?: "before" | "after" | "attachment";
+  caption?: string;
+  uploadedAt?: string;
+}
+
+/**
+ * Work Order Comment
+ */
+export interface WorkOrderComment {
+  id: string;
+  workOrderId: string;
+  comment: string;
+  type: "comment" | "internal";
+  createdAt: string;
+  user?: WorkOrderUser;
+}
+
+/**
+ * Work Order Timeline Event
+ */
+export interface WorkOrderTimeline {
+  id: string;
+  workOrderId: string;
+  action:
+    | "created"
+    | "assigned"
+    | "status_changed"
+    | "comment_added"
+    | "photo_uploaded"
+    | "priority_changed"
+    | "completed"
+    | "closed"
+    | "reopened"
+    | "updated"
+    | string;
+  description?: string;
+  performedAt: string;
+  user?: WorkOrderUser;
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Property reference in work order
+ */
+export interface WorkOrderProperty {
+  id: string;
+  name: string;
+  address: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+/**
+ * Unit reference in work order
+ */
+export interface WorkOrderUnit {
+  id: string;
+  unitNumber?: string;
+  floor?: string | number;
+  property?: string;
+}
+
+// =============================================================================
+// CORE WORK ORDER INTERFACE
+// =============================================================================
+
+/**
+ * Complete Work Order interface
+ * Combines UI and backend fields
+ */
+export interface WorkOrder {
+  // IDs
+  id: string;
+  _id?: string | ObjectId; // MongoDB compatibility
+  tenantId: string;
+  orgId?: string; // Frontend org context
+
+  // Identifiers
+  workOrderNumber?: string;
+  woNumber?: string;
+  code?: string;
+
+  // Core fields
+  title: string;
+  description: string;
+  status: WOStatus | WorkOrderStatus; // Support both enum and string
+  priority: WOPriority | WorkOrderPriority;
+  category?: WOCategory | WorkOrderCategory;
+
+  // Relationships
+  propertyId?: string;
+  property?: WorkOrderProperty;
+  unitId?: string;
+  unit?: WorkOrderUnit;
+
+  // Assignment
+  requesterId?: string;
+  requester?: WorkOrderUser;
+  /**
+   * @deprecated Use `assignedTo` instead. This field is kept for backward compatibility.
+   */
+  assigneeId?: string; // Legacy field (deprecated, use assignedTo)
+  assignedTo?: string; // Fixed: normalized field name for assignment
+  assignee?: WorkOrderUser;
+  technicianId?: string;
+  technician?: WorkOrderUser;
+  vendorId?: string; // Fixed: added for vendor RBAC filtering
+
+  // Dates/Times
+  scheduledAt?: Date | string;
+  scheduledDate?: string;
+  startedAt?: Date | string;
+  completedAt?: Date | string;
+  dueDate?: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+
+  // SLA
+  slaHours?: number;
+
+  // Financial
+  estimatedCost?: number;
+  actualCost?: number;
+  currency?: string;
+
+  // Attachments
+  photos?: WorkOrderPhoto[];
+  attachments?: string[];
+
+  // Activity
+  comments?: WorkOrderComment[];
+  timeline?: WorkOrderTimeline[];
+
+  // Additional metadata
+  location?: string;
+  tags?: string[];
+  metadata?: Record<string, unknown>;
+}
+
+// =============================================================================
+// FORM & UI HELPER TYPES
+// =============================================================================
+
+/**
+ * Work Order Form Data (for create/edit forms)
+ */
+export interface WorkOrderFormData {
+  title: string;
+  description: string;
+  category: WorkOrderCategory;
+  priority: WorkOrderPriority;
+  propertyId: string;
+  unitId?: string;
+  scheduledDate?: string;
+  assigneeId?: string;
+  estimatedCost?: number;
+  attachments?: string[];
+}
+
+/**
+ * Work Order Filters (for list views)
+ */
+export interface WorkOrderFilters {
+  status?: WorkOrderStatus[];
+  priority?: WorkOrderPriority[];
+  category?: WorkOrderCategory[];
+  propertyId?: string;
+  assigneeId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  search?: string;
+}
+
+/**
+ * Work Order Statistics (for dashboards)
+ */
+export interface WorkOrderStats {
+  total: number;
+  byStatus: Record<string, number>;
+  byPriority: Record<string, number>;
+  avgCompletionTime: number;
+  slaCompliance: number;
+  overdueCount: number;
+}
+
+// =============================================================================
+// TYPE GUARDS & UTILITIES
+// =============================================================================
+
+/**
+ * Check if status is a final state
+ */
+export function isFinalStatus(status: WOStatus | WorkOrderStatus): boolean {
+  const finalStates: (WOStatus | WorkOrderStatus)[] = [
+    WOStatus.CLOSED,
+    "closed",
+    "cancelled",
+    "completed",
+  ];
+  return finalStates.includes(status as WOStatus | WorkOrderStatus);
+}
+
+/**
+ * Convert UI status to enum status
+ */
+export function toEnumStatus(status: WorkOrderStatus): WOStatus {
+  const mapping: Record<WorkOrderStatus, WOStatus> = {
+    draft: WOStatus.NEW,
+    submitted: WOStatus.NEW,
+    approved: WOStatus.APPROVED,
+    open: WOStatus.ASSESSMENT,
+    assigned: WOStatus.ASSESSMENT,
+    in_progress: WOStatus.IN_PROGRESS,
+    on_hold: WOStatus.ASSESSMENT,
+    completed: WOStatus.WORK_COMPLETE,
+    cancelled: WOStatus.CLOSED,
+    closed: WOStatus.CLOSED,
+  };
+  return mapping[status] || WOStatus.NEW;
+}
+
+/**
+ * Convert enum status to UI status
+ */
+export function toUIStatus(status: WOStatus): WorkOrderStatus {
+  const mapping: Record<WOStatus, WorkOrderStatus> = {
+    [WOStatus.NEW]: "draft",
+    [WOStatus.ASSESSMENT]: "open",
+    [WOStatus.ESTIMATE_PENDING]: "open",
+    [WOStatus.QUOTATION_REVIEW]: "open",
+    [WOStatus.PENDING_APPROVAL]: "submitted",
+    [WOStatus.APPROVED]: "approved",
+    [WOStatus.IN_PROGRESS]: "in_progress",
+    [WOStatus.WORK_COMPLETE]: "completed",
+    [WOStatus.QUALITY_CHECK]: "completed",
+    [WOStatus.FINANCIAL_POSTING]: "completed",
+    [WOStatus.CLOSED]: "closed",
+  };
+  return mapping[status] || "draft";
+}
+
+/**
+ * Convert UI priority to enum priority
+ */
+export function toEnumPriority(priority: WorkOrderPriority): WOPriority {
+  const mapping: Record<WorkOrderPriority, WOPriority> = {
+    low: WOPriority.LOW,
+    medium: WOPriority.MEDIUM,
+    high: WOPriority.HIGH,
+    urgent: WOPriority.CRITICAL,
+    emergency: WOPriority.CRITICAL,
+  };
+  return mapping[priority] || WOPriority.MEDIUM;
+}
+
+/**
+ * Convert enum priority to UI priority
+ */
+export function toUIPriority(priority: WOPriority): WorkOrderPriority {
+  const mapping: Record<WOPriority, WorkOrderPriority> = {
+    [WOPriority.LOW]: "low",
+    [WOPriority.MEDIUM]: "medium",
+    [WOPriority.HIGH]: "high",
+    [WOPriority.CRITICAL]: "urgent",
+  };
+  return mapping[priority] || "medium";
+}
+
+]]>
+</file>
+
+<file path="types/google-maps.d.ts">
+<![CDATA[
+declare global {
+  interface Window {
+    initMap: () => void;
+    google: typeof google;
+  }
+}
+
+export {};
+
+]]>
+</file>
+
+<file path="types/index.ts">
+<![CDATA[
+/**
+ * Central export for all Fixzit types
+ */
+
+// Re-export property types
+export * from "./properties";
+
+// Re-export work order types (excluding conflicts with properties)
+export type {
+  WorkOrderStatus,
+  WorkOrderPriority,
+  WorkOrderCategory,
+  WorkOrderUser,
+  WorkOrderPhoto,
+  WorkOrderComment,
+  WorkOrderTimeline,
+  WorkOrderProperty,
+  WorkOrderUnit,
+  WorkOrder,
+  WorkOrderFormData,
+  WorkOrderFilters,
+  WorkOrderStats,
+  SortOption,
+} from "./work-orders";
+
+// Tenant configuration types
+export interface ITenantCopilotSettings {
+  enabled: boolean;
+  model?: string;
+  temperature?: number;
+  maxTokens?: number;
+  systemPrompt?: string;
+  features?: {
+    chatbot?: boolean;
+    autoSuggest?: boolean;
+    documentAnalysis?: boolean;
+  };
+}
+
+export interface ITenantOrgSettings {
+  name: string;
+  domain?: string;
+  locale?: string;
+  timezone?: string;
+  currency?: string;
+  features?: {
+    workOrders?: boolean;
+    properties?: boolean;
+    hr?: boolean;
+    finance?: boolean;
+    marketplace?: boolean;
+  };
+  branding?: {
+    logo?: string;
+    primaryColor?: string;
+    secondaryColor?: string;
+  };
+}
+
+]]>
+</file>
+
+<file path="types/jest-dom.d.ts">
+<![CDATA[
+// Ensure @testing-library/jest-dom matchers are available to TypeScript in all tests
+import "@testing-library/jest-dom";
+
+]]>
+</file>
+
+<file path="types/mongodb.ts">
+<![CDATA[
+/**
+ * MongoDB Type Definitions
+ *
+ * Provides type-safe interfaces for MongoDB operations,
+ * replacing `any` types throughout the codebase.
+ *
+ * @module types/mongodb
+ */
+
+import type { ObjectId } from "mongodb";
+
+/**
+ * MongoDB filter object for queries
+ * Represents the query criteria for find operations
+ */
+export type MongoFilter = Record<string, unknown>;
+
+/**
+ * MongoDB document with _id field
+ * Base interface for all MongoDB documents
+ */
+export interface MongoDocument {
+  _id: ObjectId | string;
+  [key: string]: unknown;
+}
+
+/**
+ * Generic API response with serialized MongoDB data
+ * Used when returning data from API routes
+ */
+export interface SerializedMongoDoc {
+  id: string;
+  [key: string]: unknown;
+}
+
+/**
+ * MongoDB query options
+ * Common options for find/aggregate operations
+ */
+export interface MongoQueryOptions {
+  limit?: number;
+  skip?: number;
+  sort?: Record<string, 1 | -1>;
+  projection?: Record<string, 0 | 1>;
+}
+
+/**
+ * Type guard to check if value is a MongoDB ObjectId
+ */
+export function isObjectId(value: unknown): value is ObjectId {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    "_bsontype" in value &&
+    value._bsontype === "ObjectID"
+  );
+}
+
+/**
+ * Serializes MongoDB document for API responses
+ * Converts _id to id and ensures JSON-serializable output
+ */
+export function serializeMongoDoc<T extends MongoDocument>(
+  doc: T,
+): SerializedMongoDoc {
+  const { _id, ...rest } = doc;
+  return {
+    id: String(_id),
+    ...rest,
+  };
+}
+
+]]>
+</file>
+
+<file path="types/mongoose-compat.ts">
+<![CDATA[
+import mongoose, {
+  type Model,
+  type HydratedDocument,
+  type Schema,
+} from "mongoose";
+
+/** Typed Model alias that fills Mongoose 8's generics once centrally. */
+export type MModel<TDoc> = Model<
+  TDoc, // TRawDocType
+  Record<string, never>, // TQueryHelpers
+  Record<string, never>, // TInstanceMethods
+  Record<string, never>, // TVirtuals
+  HydratedDocument<TDoc>, // THydratedDocumentType
+  Schema<TDoc> // TSchema
+>;
+
+/** Common statics used throughout Fixzit. Extend per-model if you need more. */
+export type CommonModelStatics<TDoc> = Pick<
+  MModel<TDoc>,
+  | "create"
+  | "find"
+  | "findById"
+  | "findByIdAndUpdate"
+  | "deleteMany"
+  | "aggregate"
+>;
+
+/** Safe factory to avoid union-callable issues from `models.X || model(...)`. */
+export function getModel<TDoc, TModel extends Model<TDoc> = MModel<TDoc>>(
+  name: string,
+  schema: Schema<TDoc>,
+): TModel {
+  return (
+    (mongoose.models[name] as TModel) ||
+    mongoose.model<TDoc, TModel>(name, schema)
+  );
+}
+
+]]>
+</file>
+
+<file path="types/mongoose-fix.d.ts">
+<![CDATA[
+/**
+ * Global type declarations to resolve Mongoose 8.x union type overload ambiguity
+ *
+ * Issue: Mongoose 8 has overloaded method signatures that TypeScript cannot disambiguate
+ * when models are exported without explicit Model<T> typing.
+ *
+ * This file provides type augmentations to bypass the issue globally.
+ *
+ * Affected methods: findOne, findOneAndUpdate, findById, find, create, etc.
+ * Files affected: 50+ API routes using Mongoose queries
+ *
+ * Reference: https://github.com/Automattic/mongoose/issues/13752
+ */
+
+import type {
+  Model as MongooseModel,
+  Document,
+  FilterQuery,
+  UpdateQuery,
+  QueryOptions,
+} from "mongoose";
+
+declare module "mongoose" {
+  // Simplify Model type to avoid requiring all 7 generic parameters
+  export type Model<
+    T,
+    TQueryHelpers = any,
+    TInstanceMethods = any,
+    TVirtuals = any,
+    THydratedDocumentType = any,
+    TSchema = any,
+    TRest = any,
+  > = MongooseModel<
+    T,
+    TQueryHelpers,
+    TInstanceMethods,
+    TVirtuals,
+    THydratedDocumentType,
+    TSchema,
+    TRest
+  >;
+
+  interface Model<T> {
+    findOneAndUpdate(
+      filter: FilterQuery<T>,
+      update: UpdateQuery<T> | Record<string, any>,
+      options?: QueryOptions<T> & {
+        upsert?: boolean;
+        new?: boolean;
+        runValidators?: boolean;
+      },
+    ): Promise<T | null>;
+
+    findOne(filter: FilterQuery<T>): Promise<T | null>;
+
+    find(filter: FilterQuery<T>): any;
+
+    findById(id: string | any): Promise<T | null>;
+
+    create(doc: Partial<T> | Partial<T>[]): Promise<T | T[]>;
+  }
+}
+
+export {};
+
+]]>
+</file>
+
+<file path="types/mongoose.d.ts">
+<![CDATA[
+/**
+ * Global Mongoose type augmentations removed.
+ * Use src/types/mongoose-compat.ts MModel<T> and getModel() instead.
+ */
+
+export {};
+
+]]>
+</file>
+
+<file path="types/next-auth.d.ts">
+<![CDATA[
+// TypeScript module augmentation for NextAuth
+// Extends the built-in session and JWT types with custom fields
+
+import "next-auth";
+import "next-auth/jwt";
+import type { UserRoleType } from "@/types/user";
+import type { SubscriptionPlan } from "@/config/navigation";
+
+type SessionRole = UserRoleType | "GUEST";
+type SessionPlan = SubscriptionPlan | "STARTER" | "PROFESSIONAL";
+
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string;
+      name?: string | null;
+      email?: string | null;
+      image?: string | null;
+      role: SessionRole;
+      subscriptionPlan: SessionPlan;
+      locale?: string;
+      orgId: string | null;
+      sessionId: string | null;
+      isSuperAdmin: boolean;
+      permissions: string[];
+      roles: string[];
+      tenantId?: string;
+      userId?: string;
+    };
+  }
+
+  interface User {
+    id: string;
+    role: SessionRole;
+    subscriptionPlan: SessionPlan;
+    locale?: string;
+    orgId: string | null;
+    sessionId: string | null;
+    isSuperAdmin?: boolean;
+    permissions?: string[];
+    roles?: string[];
+    tenantId?: string;
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    id: string;
+    role: SessionRole;
+    subscriptionPlan: SessionPlan;
+    locale?: string;
+    orgId: string | null;
+    isSuperAdmin?: boolean;
+    permissions?: string[];
+    roles?: string[];
+    tenantId?: string;
+  }
+}
+
+]]>
+</file>
+
+<file path="types/next-compat.d.ts">
+<![CDATA[
+/**
+ * Next.js Compatibility Type Declarations
+ *
+ * These references were moved here from next-env.d.ts which is auto-generated
+ * and should not be manually edited.
+ *
+ * @see https://nextjs.org/docs/app/api-reference/config/typescript
+ */
+
+/// <reference types="next/navigation-types/compat/navigation" />
+
+]]>
+</file>
+
+<file path="types/properties.ts">
+<![CDATA[
+import type { WorkOrderPriority, WorkOrderStatus } from "./work-orders";
+
+export type PropertyType =
+  | "residential"
+  | "commercial"
+  | "mixed"
+  | "industrial"
+  | "hospitality"
+  | "retail";
+
+export type PropertyStatus =
+  | "active"
+  | "maintenance"
+  | "vacant"
+  | "archived"
+  | "under_construction"
+  | "planned";
+
+export type UnitStatus =
+  | "occupied"
+  | "vacant"
+  | "reserved"
+  | "maintenance"
+  | "under_renovation"
+  | "offline";
+
+export type TenantStatus = "active" | "inactive" | "delinquent" | "prospect";
+
+export interface PropertyWorkOrderSummary {
+  id: string;
+  title?: string;
+  status: WorkOrderStatus;
+  priority: WorkOrderPriority;
+  category?: string;
+  dueDate?: string;
+  createdAt?: string;
+}
+
+export interface Unit {
+  id: string;
+  propertyId: string;
+  unitNumber: string;
+  type: string;
+  bedrooms: number;
+  bathrooms: number;
+  areaSqm: number;
+  rentAmount: number;
+  status: UnitStatus;
+  rentCurrency?: string;
+  floor?: string | number;
+  isLeaseExpiring?: boolean;
+  leaseExpiryDate?: string;
+  daysUntilExpiry?: number;
+  amenities?: string[];
+  features?: string[];
+  notes?: string;
+  currentTenantId?: string;
+  currentTenant?: Tenant;
+  orgId?: string;
+  createdBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Tenant {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone?: string;
+  nationalId?: string;
+  emergencyContact?: string;
+  emergencyPhone?: string;
+  moveInDate?: string;
+  moveOutDate?: string;
+  status: TenantStatus;
+  orgId?: string;
+  createdBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  currentUnit?: Unit;
+  totalPayments?: number;
+  outstandingBalance?: number;
+  avgRating?: number;
+  notes?: string;
+}
+
+export type DocumentCategory =
+  | "lease"
+  | "insurance"
+  | "maintenance"
+  | "compliance"
+  | "financial"
+  | "inspection"
+  | "floorplan"
+  | "photo"
+  | "legal"
+  | "other";
+
+export interface PropertyDocument {
+  id: string;
+  propertyId: string;
+  filename: string;
+  originalName: string;
+  url: string;
+  size: number;
+  mimeType: string;
+  category: DocumentCategory;
+  description?: string;
+  version?: string;
+  tags?: string[];
+  uploadedBy?: string;
+  uploadedAt?: string;
+  updatedAt?: string;
+  expiresAt?: string;
+  isPublic?: boolean;
+  orgId?: string;
+}
+
+export interface Lease {
+  id: string;
+  propertyId: string;
+  unitId: string;
+  tenantId: string;
+  startDate: string;
+  endDate: string;
+  rentAmount: number;
+  rentFrequency?: "monthly" | "quarterly" | "yearly";
+  depositAmount?: number;
+  status: "draft" | "active" | "pending" | "terminated" | "expired";
+  noticePeriodDays?: number;
+  isAutoRenew?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Property {
+  id: string;
+  name: string;
+  address: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postalCode?: string;
+  latitude?: number;
+  longitude?: number;
+  type: PropertyType;
+  status?: PropertyStatus;
+  description?: string;
+  amenities?: string[];
+  tags?: string[];
+  images?: string[];
+  totalUnits?: number;
+  occupiedUnits?: number;
+  vacantUnits?: number;
+  occupancyRate?: number;
+  monthlyRevenue?: number;
+  yearlyRevenue?: number;
+  maintenanceCosts?: number;
+  monthlyExpenses?: number;
+  netIncome?: number;
+  expiringLeases?: number;
+  squareFootage?: number;
+  yearBuilt?: number | string;
+  parkingSpaces?: number;
+  complianceStatus?: string;
+  lastInspectionDate?: string;
+  nextInspectionDate?: string;
+  rating?: number;
+  workOrders?: PropertyWorkOrderSummary[];
+  units?: Unit[];
+  tenants?: Tenant[];
+  documents?: PropertyDocument[];
+  leases?: Lease[];
+  managerId?: string;
+  managerName?: string;
+  orgId?: string;
+  createdBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface PropertyStats {
+  totalProperties: number;
+  totalUnits: number;
+  occupiedUnits: number;
+  vacantUnits: number;
+  overallOccupancyRate: number;
+  totalMonthlyRevenue: number;
+  averageRentPerUnit: number;
+  maintenanceCosts: number;
+  netIncome: number;
+  emergencyWorkOrders?: number;
+  openWorkOrders?: number;
+}
+
+export interface PropertyFilters {
+  search?: string;
+  type?: PropertyType[];
+  status?: UnitStatus[];
+  occupancyRange?: [number, number];
+  revenueRange?: [number, number];
+  location?: string;
+  city?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  amenities?: string[];
+  managerId?: string;
+  minUnits?: number;
+  maxUnits?: number;
+  tags?: string[];
+}
+
+export const PROPERTY_TYPE_CONFIG: Record<
+  PropertyType,
+  { label: string; icon: string; color: string; description: string }
+> = {
+  residential: {
+    label: "Residential",
+    icon: "🏠",
+    color: "bg-blue-100 text-blue-800",
+    description: "Apartments, villas, and multi-family properties",
+  },
+  commercial: {
+    label: "Commercial",
+    icon: "🏢",
+    color: "bg-purple-100 text-purple-800",
+    description: "Office towers, retail centers, and business parks",
+  },
+  mixed: {
+    label: "Mixed Use",
+    icon: "🏙️",
+    color: "bg-indigo-100 text-indigo-800",
+    description: "Properties with combined residential and commercial units",
+  },
+  industrial: {
+    label: "Industrial",
+    icon: "🏭",
+    color: "bg-orange-100 text-orange-800",
+    description: "Warehouses, logistics hubs, and manufacturing facilities",
+  },
+  hospitality: {
+    label: "Hospitality",
+    icon: "🏨",
+    color: "bg-emerald-100 text-emerald-800",
+    description: "Hotels, serviced apartments, and resorts",
+  },
+  retail: {
+    label: "Retail",
+    icon: "🛍️",
+    color: "bg-pink-100 text-pink-800",
+    description: "Shopping malls, souqs, and standalone retail stores",
+  },
+};
+
+export const UNIT_STATUS_CONFIG: Record<
+  UnitStatus,
+  {
+    label: string;
+    icon: string;
+    color: string;
+    bgColor: string;
+    description: string;
+  }
+> = {
+  occupied: {
+    label: "Occupied",
+    icon: "✅",
+    color: "text-green-800",
+    bgColor: "bg-green-100",
+    description: "Currently leased and occupied",
+  },
+  vacant: {
+    label: "Vacant",
+    icon: "🟦",
+    color: "text-blue-800",
+    bgColor: "bg-blue-100",
+    description: "Available and ready for leasing",
+  },
+  reserved: {
+    label: "Reserved",
+    icon: "📌",
+    color: "text-amber-800",
+    bgColor: "bg-amber-100",
+    description: "On hold for an incoming tenant",
+  },
+  maintenance: {
+    label: "Maintenance",
+    icon: "🛠️",
+    color: "text-red-800",
+    bgColor: "bg-red-100",
+    description: "Temporarily unavailable due to maintenance",
+  },
+  under_renovation: {
+    label: "Renovation",
+    icon: "🚧",
+    color: "text-yellow-800",
+    bgColor: "bg-yellow-100",
+    description: "Undergoing upgrades or refurbishment",
+  },
+  offline: {
+    label: "Offline",
+    icon: "⏸️",
+    color: "text-gray-700",
+    bgColor: "bg-gray-100",
+    description: "Temporarily offline or not rentable",
+  },
+};
+
+export const TENANT_STATUS_CONFIG: Record<
+  TenantStatus,
+  {
+    label: string;
+    icon: string;
+    color: string;
+    bgColor: string;
+    description: string;
+  }
+> = {
+  active: {
+    label: "Active",
+    icon: "🟢",
+    color: "text-emerald-800",
+    bgColor: "bg-emerald-100",
+    description: "Currently occupying a unit and in good standing",
+  },
+  inactive: {
+    label: "Inactive",
+    icon: "⚪",
+    color: "text-gray-700",
+    bgColor: "bg-gray-100",
+    description: "No longer occupying a unit",
+  },
+  delinquent: {
+    label: "Delinquent",
+    icon: "⚠️",
+    color: "text-red-800",
+    bgColor: "bg-red-100",
+    description: "Outstanding balance requires attention",
+  },
+  prospect: {
+    label: "Prospect",
+    icon: "📝",
+    color: "text-blue-800",
+    bgColor: "bg-blue-100",
+    description: "Lead or application in progress",
+  },
+};
+
+export const DOCUMENT_CATEGORY_CONFIG: Record<
+  DocumentCategory,
+  { label: string; icon: string }
+> = {
+  lease: { label: "Lease Agreements", icon: "📄" },
+  insurance: { label: "Insurance Policies", icon: "🛡️" },
+  maintenance: { label: "Maintenance Reports", icon: "🛠️" },
+  compliance: { label: "Compliance Certificates", icon: "✅" },
+  financial: { label: "Financial Records", icon: "💰" },
+  inspection: { label: "Inspection Reports", icon: "📋" },
+  floorplan: { label: "Floor Plans", icon: "📐" },
+  photo: { label: "Photos & Media", icon: "📸" },
+  legal: { label: "Legal Documents", icon: "⚖️" },
+  other: { label: "Other Documents", icon: "🗂️" },
+};
+
+export const VIEW_MODES = ["grid", "table", "map"] as const;
+export type ViewMode = (typeof VIEW_MODES)[number];
+
+export const PROPERTY_SORT_OPTIONS = [
+  { value: "created_at", label: "Recently Added" },
+  { value: "name", label: "Name (A-Z)" },
+  { value: "occupancy", label: "Occupancy Rate" },
+  { value: "revenue", label: "Monthly Revenue" },
+  { value: "units", label: "Number of Units" },
+  { value: "status", label: "Status" },
+] as const;
+
+export type PropertySortOption =
+  (typeof PROPERTY_SORT_OPTIONS)[number]["value"];
+
+]]>
+</file>
+
+<file path="types/souq/reviews.ts">
+<![CDATA[
+/**
+ * Souq Reviews Types
+ * @module types/souq/reviews
+ */
+
+export interface CreateReviewDto {
+  productId: string;
+  customerId: string;
+  customerName: string;
+  orderId?: string;
+  rating: number;
+  title: string;
+  content: string;
+  pros?: string[];
+  cons?: string[];
+  images?: ReviewImage[];
+}
+
+export interface UpdateReviewDto {
+  title?: string;
+  content?: string;
+  pros?: string[];
+  cons?: string[];
+  images?: ReviewImage[];
+}
+
+export interface ReviewImage {
+  url: string;
+  caption?: string;
+}
+
+export interface ReviewFilters {
+  rating?: number;
+  verifiedOnly?: boolean;
+  sortBy?: "recent" | "helpful" | "rating";
+  page?: number;
+  limit?: number;
+  status?: ReviewStatus;
+}
+
+export type ReviewStatus = "pending" | "published" | "rejected" | "flagged";
+
+export interface PaginatedReviews<T = Review> {
+  reviews: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface Review {
+  reviewId: string;
+  productId: string;
+  fsin: string;
+  customerId: string;
+  customerName: string;
+  isVerifiedPurchase: boolean;
+  orderId?: string;
+  rating: number;
+  title: string;
+  content: string;
+  pros: string[];
+  cons: string[];
+  images: ReviewImage[];
+  helpful: number;
+  notHelpful: number;
+  reportedCount: number;
+  reportReasons?: string[];
+  status: ReviewStatus;
+  sellerResponse?: SellerResponse;
+  moderationNotes?: string;
+  publishedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SellerResponse {
+  content: string;
+  respondedAt: Date;
+  respondedBy: string;
+}
+
+export interface ReviewStats {
+  averageRating: number;
+  totalReviews: number;
+  distribution: RatingDistribution;
+  verifiedPurchaseCount: number;
+  recentReviews: Review[];
+}
+
+export interface RatingDistribution {
+  1: number;
+  2: number;
+  3: number;
+  4: number;
+  5: number;
+}
+
+export interface RatingDistributionWithPercentage {
+  5: { count: number; percentage: number };
+  4: { count: number; percentage: number };
+  3: { count: number; percentage: number };
+  2: { count: number; percentage: number };
+  1: { count: number; percentage: number };
+}
+
+export interface SellerReviewStats {
+  averageRating: number;
+  totalReviews: number;
+  pendingResponses: number;
+  responseRate: number;
+  recentReviews: Review[];
+}
+
+export interface RatingAggregate {
+  averageRating: number;
+  totalReviews: number;
+  distribution: RatingDistribution;
+  verifiedPurchasePercentage: number;
+  lastUpdated: Date;
+}
+
+export interface SellerRatingAggregate {
+  averageRating: number;
+  totalReviews: number;
+  responseRate: number;
+  last30Days: {
+    averageRating: number;
+    totalReviews: number;
+  };
+}
+
+]]>
+</file>
+
+<file path="types/test-mocks.ts">
+<![CDATA[
+/**
+ * Test Mock Type Definitions
+ *
+ * Provides type-safe interfaces for test mocks,
+ * replacing `any` types in test files.
+ *
+ * @module types/test-mocks
+ */
+
+import type { Mock } from "vitest";
+
+/**
+ * Generic mock function that accepts any arguments
+ * and returns a specific type
+ */
+export type GenericMock<_TReturn = unknown> = Mock;
+
+/**
+ * MongoDB collection mock interface
+ * Represents a mocked MongoDB collection
+ */
+export interface MockMongoCollection<T = unknown> {
+  find: GenericMock;
+  findOne: GenericMock<T | null>;
+  insertOne: GenericMock;
+  insertMany: GenericMock;
+  updateOne: GenericMock;
+  updateMany: GenericMock;
+  deleteOne: GenericMock;
+  deleteMany: GenericMock;
+  aggregate: GenericMock;
+  countDocuments: GenericMock<number>;
+  distinct: GenericMock<unknown[]>;
+}
+
+/**
+ * Mock cursor for chaining MongoDB operations
+ */
+export interface MockMongoCursor {
+  toArray: GenericMock<unknown[]>;
+  limit: (_n: number) => MockMongoCursor;
+  skip: (_n: number) => MockMongoCursor;
+  sort: (_sortSpec: Record<string, 1 | -1>) => MockMongoCursor;
+  forEach: (_callback: (_doc: unknown) => void) => void;
+  [key: string]: unknown;
+}
+
+/**
+ * Mock Next.js request object
+ */
+export interface MockNextRequest {
+  url: string;
+  method: string;
+  headers: Map<string, string>;
+  nextUrl: {
+    searchParams: URLSearchParams;
+  };
+  json?: () => Promise<unknown>;
+  formData?: () => Promise<FormData>;
+}
+
+/**
+ * Mock Next.js response with json method
+ */
+export interface MockNextResponse {
+  status: number;
+  headers: Map<string, string>;
+  json: () => Promise<unknown>;
+}
+
+/**
+ * MongoDB document mock (generic structure)
+ */
+export interface MockMongoDoc {
+  _id: string | object;
+  [key: string]: unknown;
+}
+
+/**
+ * Error mock for testing error handlers
+ */
+export interface MockError {
+  message: string;
+  name: string;
+  code?: string | number;
+  stack?: string;
+  [key: string]: unknown;
+}
+
+]]>
+</file>
+
+<file path="types/user.ts">
+<![CDATA[
+/**
+ * Central User Role definitions for Fixzit platform
+ * Single source of truth for all user roles across the application
+ * 🔒 STRICT v4.1: 14-role matrix with specialized sub-roles (Finance/HR/Support/Ops Officers)
+ */
+
+export const UserRole = {
+  // Administrative Roles (4)
+  SUPER_ADMIN: "SUPER_ADMIN",
+  CORPORATE_ADMIN: "CORPORATE_ADMIN",
+  ADMIN: "ADMIN",
+  MANAGER: "MANAGER",
+  
+  // Facility Management Roles (3)
+  FM_MANAGER: "FM_MANAGER",
+  PROPERTY_MANAGER: "PROPERTY_MANAGER",
+  TECHNICIAN: "TECHNICIAN",
+  
+  // Business Function Roles (3) - Base roles
+  FINANCE: "FINANCE", // Finance module access
+  HR: "HR", // HR module access
+  PROCUREMENT: "PROCUREMENT",
+  
+  // Team Member base role (used for general staff, specializes via sub-roles)
+  TEAM_MEMBER: "TEAM_MEMBER", // General staff - use sub-roles for module access
+  
+  // PHASE-3 FIX: Specialized Sub-Roles (Team Member specializations)
+  // These provide granular access to Finance/HR/Support modules
+  FINANCE_OFFICER: "FINANCE_OFFICER", // Finance module only + reports
+  HR_OFFICER: "HR_OFFICER", // HR module + PII access + reports
+  SUPPORT_AGENT: "SUPPORT_AGENT", // Support + CRM + reports
+  OPERATIONS_MANAGER: "OPERATIONS_MANAGER", // Wider scope: WO + Properties + Support
+  
+  // Souq Marketplace Roles (2) - Moderator roles for marketplace
+  SOUQ_ADMIN: "SOUQ_ADMIN", // Full Souq admin access
+  MARKETPLACE_MODERATOR: "MARKETPLACE_MODERATOR", // Review/listing moderation
+  
+  // Property & External Roles (4)
+  OWNER: "OWNER",
+  TENANT: "TENANT",
+  VENDOR: "VENDOR",
+  AUDITOR: "AUDITOR",
+  CORPORATE_OWNER: "CORPORATE_OWNER",
+  
+  /**
+   * @deprecated Legacy roles - DO NOT USE for new code
+   * These are kept only for backward compatibility during migration.
+   * Use the STRICT v4 14-role matrix above instead.
+   *
+   * Migration guide:
+   * - EMPLOYEE → Use MANAGER or specific function role (HR, FINANCE, etc.)
+   * - SUPPORT → Use SUPPORT_AGENT sub-role
+   * - DISPATCHER → Use FM_MANAGER or PROPERTY_MANAGER
+   * - FINANCE_MANAGER → Use FINANCE or FINANCE_OFFICER
+   *
+   * These will be removed in a future major release.
+   * @see ROLE_ALIAS_MAP in domain/fm/fm-lite.ts for alias resolution
+   */
+  /** @deprecated Use MANAGER or specific function role instead */
+  EMPLOYEE: "EMPLOYEE",
+  /** @deprecated Use SUPPORT_AGENT sub-role instead */
+  SUPPORT: "SUPPORT",
+  /** @deprecated Use FM_MANAGER or PROPERTY_MANAGER instead */
+  DISPATCHER: "DISPATCHER",
+  /** @deprecated Use FINANCE or FINANCE_OFFICER instead */
+  FINANCE_MANAGER: "FINANCE_MANAGER",
+  /** @deprecated B2C portal roles - not part of STRICT v4 */
+  CUSTOMER: "CUSTOMER",
+  /** @deprecated View-only placeholder - not part of STRICT v4 */
+  VIEWER: "VIEWER",
+} as const;
+
+export type UserRoleType = (typeof UserRole)[keyof typeof UserRole];
+
+// Canonical STRICT v4 roles (14 base + sub-roles + property/external)
+export const CANONICAL_ROLES = [
+  UserRole.SUPER_ADMIN,
+  UserRole.CORPORATE_ADMIN,
+  UserRole.ADMIN,
+  UserRole.MANAGER,
+  UserRole.FM_MANAGER,
+  UserRole.PROPERTY_MANAGER,
+  UserRole.TECHNICIAN,
+  UserRole.TEAM_MEMBER, // Base role for staff, specializes via sub-roles
+  UserRole.FINANCE,
+  UserRole.HR,
+  UserRole.PROCUREMENT,
+  UserRole.FINANCE_OFFICER,
+  UserRole.HR_OFFICER,
+  UserRole.SUPPORT_AGENT,
+  UserRole.OPERATIONS_MANAGER,
+  UserRole.SOUQ_ADMIN,
+  UserRole.MARKETPLACE_MODERATOR,
+  UserRole.OWNER,
+  UserRole.TENANT,
+  UserRole.VENDOR,
+  UserRole.AUDITOR,
+  UserRole.CORPORATE_OWNER,
+] as const;
+
+// Legacy/Deprecated roles (kept for data migration compatibility only)
+export const LEGACY_ROLES = [
+  UserRole.EMPLOYEE,
+  UserRole.SUPPORT,
+  UserRole.DISPATCHER,
+  UserRole.FINANCE_MANAGER,
+  UserRole.CUSTOMER,
+  UserRole.VIEWER,
+] as const;
+
+// Preferred arrays for validation
+export const ALL_ROLES = CANONICAL_ROLES;
+export const ALL_ROLES_WITH_LEGACY = [...CANONICAL_ROLES, ...LEGACY_ROLES] as const;
+
+// 🔒 STRICT v4: Role categories for the 14-role matrix
+export const ADMIN_ROLES = [
+  UserRole.SUPER_ADMIN,
+  UserRole.CORPORATE_ADMIN,
+  UserRole.ADMIN,
+  UserRole.MANAGER,
+] as const;
+
+// 🔐 STRICT v4.1: Roles allowed to moderate content (reviews, posts, claims)
+// Centralized definition for consistency across Souq and other modules
+export const MODERATOR_ROLES = new Set([
+  UserRole.SUPER_ADMIN,
+  UserRole.CORPORATE_ADMIN,
+  UserRole.ADMIN,
+  // Souq-specific moderation roles (can be added when module creates them)
+  "SOUQ_ADMIN",
+  "MARKETPLACE_MODERATOR",
+] as const);
+
+// Helper to validate moderator access
+export const isModeratorRole = (role: string | undefined | null): boolean => {
+  if (!role) return false;
+  return MODERATOR_ROLES.has(role.toUpperCase() as never);
+};
+
+export const FM_ROLES = [
+  UserRole.FM_MANAGER,
+  UserRole.PROPERTY_MANAGER,
+  UserRole.TECHNICIAN,
+] as const;
+
+export const BUSINESS_ROLES = [
+  UserRole.FINANCE, // Finance module access
+  UserRole.HR, // HR module access
+  UserRole.PROCUREMENT,
+] as const;
+
+// PHASE-3 FIX: Specialized Team Member Sub-Roles
+// These roles have restricted module access with specialization
+export const TEAM_MEMBER_SUB_ROLES = [
+  UserRole.FINANCE_OFFICER, // Finance module only
+  UserRole.HR_OFFICER, // HR module + PII access
+  UserRole.SUPPORT_AGENT, // Support + CRM
+  UserRole.OPERATIONS_MANAGER, // Wider operational scope
+] as const;
+
+// Helper to check if a role is a specialized sub-role
+export const isSubRole = (role: UserRoleType): boolean =>
+  (TEAM_MEMBER_SUB_ROLES as readonly string[]).includes(role);
+
+// 🔐 STRICT v4.1: Souq Marketplace Moderator Roles
+// Roles allowed to moderate reviews, listings, claims, and ads
+export const SOUQ_MODERATOR_ROLES = new Set([
+  "SUPER_ADMIN",
+  "ADMIN",
+  "CORPORATE_ADMIN",
+  "SOUQ_ADMIN",
+  "MARKETPLACE_MODERATOR",
+] as const);
+
+// Helper to check if a role can moderate Souq content
+export const isSouqModeratorRole = (role: string | undefined | null): boolean =>
+  !!role && SOUQ_MODERATOR_ROLES.has(role.toUpperCase() as typeof SOUQ_MODERATOR_ROLES extends Set<infer T> ? T : never);
+
+export const PROPERTY_ROLES = [
+  UserRole.OWNER,
+  UserRole.TENANT,
+] as const;
+
+export const EXTERNAL_ROLES = [
+  UserRole.VENDOR,
+  UserRole.AUDITOR,
+] as const;
+
+/**
+ * @deprecated Legacy roles that should not be used in new code
+ * Use ROLE_ALIAS_MAP in domain/fm/fm-lite.ts for mapping these to STRICT v4 roles
+ */
+export const DEPRECATED_ROLES = [
+  UserRole.EMPLOYEE,
+  UserRole.SUPPORT,
+  UserRole.DISPATCHER,
+  UserRole.FINANCE_MANAGER,
+  UserRole.CUSTOMER,
+  UserRole.VIEWER,
+] as const;
+
+/** Helper to check if a role is deprecated and should trigger migration warning */
+export const isDeprecatedRole = (role: UserRoleType): boolean =>
+  (DEPRECATED_ROLES as readonly string[]).includes(role);
+
+/**
+ * User status values
+ */
+export const UserStatus = {
+  ACTIVE: "ACTIVE",
+  INACTIVE: "INACTIVE",
+  SUSPENDED: "SUSPENDED",
+  PENDING: "PENDING",
+} as const;
+
+export type UserStatusType = (typeof UserStatus)[keyof typeof UserStatus];
+
+]]>
+</file>
+
+<file path="types/vitest.d.ts">
+<![CDATA[
+/// <reference types="vitest/globals" />
+
+export {};
+
+]]>
+</file>
+
+<file path="types/web-push.d.ts">
+<![CDATA[
+declare module "web-push" {
+  interface PushSubscription {
+    endpoint: string;
+    keys?: {
+      p256dh?: string;
+      auth?: string;
+    };
+  }
+
+  interface SendNotificationOptions {
+    TTL?: number;
+    headers?: Record<string, string>;
+    vapidDetails?: {
+      subject?: string;
+      publicKey?: string;
+      privateKey?: string;
+    };
+    contentEncoding?: "aesgcm" | "aes128gcm";
+    urgency?: "very-low" | "low" | "normal" | "high";
+    topic?: string;
+    proxy?: string;
+    timeout?: number;
+  }
+
+  export function setVapidDetails(
+    subject: string,
+    publicKey: string,
+    privateKey: string,
+  ): void;
+  export function sendNotification(
+    subscription: PushSubscription,
+    payload?: string | Buffer,
+    options?: SendNotificationOptions,
+  ): Promise<{ statusCode: number; body: string }>;
+}
+
+]]>
+</file>
+
+<file path="types/work-orders/abilities.ts">
+<![CDATA[
+/**
+ * Work Order Ability Constants
+ *
+ * Used with requireAbility() middleware for RBAC enforcement
+ * These match the uppercase string literals expected by lib/auth-middleware.ts
+ */
+
+export const WOAbility = {
+  /** View/read work orders */
+  READ: "READ",
+  /** Create new work orders */
+  CREATE: "CREATE",
+  /** Edit/update work orders */
+  EDIT: "EDIT",
+  /** Update work order fields */
+  UPDATE: "UPDATE",
+  /** Delete work orders */
+  DELETE: "DELETE",
+  /** Assign work orders to users/vendors */
+  ASSIGN: "ASSIGN",
+  /** Export work order data */
+  EXPORT: "EXPORT",
+} as const;
+
+export type WOAbilityType = (typeof WOAbility)[keyof typeof WOAbility];
+
+]]>
+</file>
+
+<file path="types/work-orders.ts">
+<![CDATA[
+// Core work order types - removed dependency on missing lib file
+
+export type WorkOrderStatus =
+  | "draft"
+  | "submitted"
+  | "approved"
+  | "open"
+  | "assigned"
+  | "in_progress"
+  | "on_hold"
+  | "completed"
+  | "cancelled"
+  | "closed";
+
+export type WorkOrderPriority =
+  | "low"
+  | "medium"
+  | "high"
+  | "urgent"
+  | "emergency";
+
+export type WorkOrderCategory =
+  | "general"
+  | "maintenance"
+  | "plumbing"
+  | "electrical"
+  | "hvac"
+  | "cleaning"
+  | "security"
+  | "landscaping"
+  | "inspection"
+  | "it"
+  | "other";
+
+export interface WorkOrderUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  avatar?: string;
+  role?: string;
+  email?: string;
+  phone?: string;
+}
+
+export interface WorkOrderPhoto {
+  id: string;
+  url: string;
+  thumbnailUrl?: string;
+  type?: "before" | "after" | "attachment";
+  caption?: string;
+  uploadedAt?: string;
+}
+
+export interface WorkOrderComment {
+  id: string;
+  workOrderId: string;
+  comment: string;
+  type: "comment" | "internal";
+  createdAt: string;
+  user?: WorkOrderUser;
+}
+
+export interface WorkOrderTimeline {
+  id: string;
+  workOrderId: string;
+  action:
+    | "created"
+    | "assigned"
+    | "status_changed"
+    | "comment_added"
+    | "photo_uploaded"
+    | "priority_changed"
+    | "completed"
+    | "closed"
+    | "reopened"
+    | "updated"
+    | string;
+  description?: string;
+  performedAt: string;
+  user?: WorkOrderUser;
+  metadata?: Record<string, unknown>;
+}
+
+export interface WorkOrderProperty {
+  id: string;
+  name: string;
+  address: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+export interface WorkOrderUnit {
+  id: string;
+  unitNumber?: string;
+  floor?: string | number;
+  property?: string;
+}
+
+export interface WorkOrder {
+  id: string;
+  workOrderNumber?: string;
+  woNumber?: string;
+  title: string;
+  description: string;
+  status: WorkOrderStatus;
+  priority: WorkOrderPriority;
+  category: WorkOrderCategory;
+  property?: WorkOrderProperty | null;
+  unit?: WorkOrderUnit | null;
+  creator?: WorkOrderUser | null;
+  assignee?: WorkOrderUser | null;
+  timeline?: WorkOrderTimeline[];
+  comments?: WorkOrderComment[];
+  photos?: WorkOrderPhoto[];
+  dueDate?: string;
+  estimatedHours?: number;
+  estimatedCost?: number;
+  actualHours?: number;
+  actualCost?: number;
+  completedAt?: string;
+}
+
+export interface WorkOrderFormData {
+  title: string;
+  description: string;
+  category: WorkOrderCategory;
+  priority: WorkOrderPriority;
+  propertyId?: string;
+  unitId?: string;
+  dueDate?: string;
+  estimatedHours?: number;
+  estimatedCost?: number;
+  assignedTo?: string;
+  photos: File[];
+  tags?: string[];
+}
+
+export interface WorkOrderFilters {
+  search?: string;
+  status?: WorkOrderStatus[];
+  priority?: WorkOrderPriority[];
+  category?: WorkOrderCategory[];
+  propertyId?: string;
+  assignedTo?: string;
+  createdBy?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  tags?: string[];
+}
+
+export interface WorkOrderStats {
+  total: number;
+  open: number;
+  inProgress: number;
+  completed: number;
+  cancelled: number;
+  onHold: number;
+  assigned: number;
+  emergency: number;
+  overdue: number;
+  draft?: number;
+}
+
+export const CATEGORY_CONFIG: Record<
+  WorkOrderCategory,
+  { label: string; icon: string; color: string; description: string }
+> = {
+  general: {
+    label: "General",
+    icon: "🛠️",
+    color: "bg-gray-100 text-gray-800",
+    description: "General upkeep and non-specialized work orders",
+  },
+  maintenance: {
+    label: "Maintenance",
+    icon: "⚙️",
+    color: "bg-blue-100 text-blue-800",
+    description: "Preventive or scheduled maintenance tasks",
+  },
+  plumbing: {
+    label: "Plumbing",
+    icon: "🚿",
+    color: "bg-cyan-100 text-cyan-800",
+    description: "Pipes, fixtures, and water related issues",
+  },
+  electrical: {
+    label: "Electrical",
+    icon: "⚡",
+    color: "bg-yellow-100 text-yellow-800",
+    description: "Power outages, wiring, and electrical systems",
+  },
+  hvac: {
+    label: "HVAC",
+    icon: "❄️",
+    color: "bg-indigo-100 text-indigo-800",
+    description: "Heating, ventilation, and air conditioning",
+  },
+  cleaning: {
+    label: "Cleaning",
+    icon: "🧹",
+    color: "bg-green-100 text-green-800",
+    description: "Housekeeping and janitorial services",
+  },
+  security: {
+    label: "Security",
+    icon: "🛡️",
+    color: "bg-purple-100 text-purple-800",
+    description: "Security systems and access control",
+  },
+  landscaping: {
+    label: "Landscaping",
+    icon: "🌿",
+    color: "bg-emerald-100 text-emerald-800",
+    description: "Gardens, irrigation, and exterior areas",
+  },
+  inspection: {
+    label: "Inspection",
+    icon: "📋",
+    color: "bg-orange-100 text-orange-800",
+    description: "Routine or compliance inspections",
+  },
+  it: {
+    label: "IT & Networking",
+    icon: "💻",
+    color: "bg-pink-100 text-pink-800",
+    description: "Technology, networking, and smart building systems",
+  },
+  other: {
+    label: "Other",
+    icon: "📦",
+    color: "bg-gray-100 text-gray-800",
+    description: "Tasks that do not fit the predefined categories",
+  },
+};
+
+export const PRIORITY_CONFIG: Record<
+  WorkOrderPriority,
+  {
+    label: string;
+    icon: string;
+    color: string;
+    bgColor: string;
+    description: string;
+  }
+> = {
+  low: {
+    label: "Low",
+    icon: "🟢",
+    color: "text-emerald-800",
+    bgColor: "bg-emerald-100",
+    description: "Non-urgent tasks with flexible scheduling",
+  },
+  medium: {
+    label: "Medium",
+    icon: "🔵",
+    color: "text-blue-800",
+    bgColor: "bg-blue-100",
+    description: "Standard work orders requiring timely completion",
+  },
+  high: {
+    label: "High",
+    icon: "🟠",
+    color: "text-orange-800",
+    bgColor: "bg-orange-100",
+    description: "Important issues affecting operations",
+  },
+  urgent: {
+    label: "Urgent",
+    icon: "🔴",
+    color: "text-red-800",
+    bgColor: "bg-red-100",
+    description: "Needs immediate attention to prevent escalation",
+  },
+  emergency: {
+    label: "Emergency",
+    icon: "🚨",
+    color: "text-red-900",
+    bgColor: "bg-red-200",
+    description: "Critical issues impacting safety or critical services",
+  },
+};
+
+export const STATUS_CONFIG: Record<
+  WorkOrderStatus,
+  {
+    label: string;
+    icon: string;
+    color: string;
+    bgColor: string;
+    description: string;
+  }
+> = {
+  draft: {
+    label: "Draft",
+    icon: "📝",
+    color: "text-gray-700",
+    bgColor: "bg-gray-100",
+    description: "Work order drafted but not yet submitted",
+  },
+  submitted: {
+    label: "Submitted",
+    icon: "📨",
+    color: "text-blue-800",
+    bgColor: "bg-blue-100",
+    description: "Submitted for review or approval",
+  },
+  approved: {
+    label: "Approved",
+    icon: "✅",
+    color: "text-emerald-800",
+    bgColor: "bg-emerald-100",
+    description: "Approved and ready for scheduling",
+  },
+  open: {
+    label: "Open",
+    icon: "🔓",
+    color: "text-orange-800",
+    bgColor: "bg-orange-100",
+    description: "Awaiting assignment or planning",
+  },
+  assigned: {
+    label: "Assigned",
+    icon: "👤",
+    color: "text-purple-800",
+    bgColor: "bg-purple-100",
+    description: "Assigned to a technician or team",
+  },
+  in_progress: {
+    label: "In Progress",
+    icon: "⚡",
+    color: "text-blue-900",
+    bgColor: "bg-blue-100",
+    description: "Work is currently in progress",
+  },
+  on_hold: {
+    label: "On Hold",
+    icon: "⏸️",
+    color: "text-amber-800",
+    bgColor: "bg-amber-100",
+    description: "Paused awaiting parts, approvals, or dependencies",
+  },
+  completed: {
+    label: "Completed",
+    icon: "✅",
+    color: "text-green-800",
+    bgColor: "bg-green-100",
+    description: "Work has been completed and pending closure",
+  },
+  cancelled: {
+    label: "Cancelled",
+    icon: "❌",
+    color: "text-red-800",
+    bgColor: "bg-red-100",
+    description: "Work order cancelled and will not proceed",
+  },
+  closed: {
+    label: "Closed",
+    icon: "🔒",
+    color: "text-gray-800",
+    bgColor: "bg-gray-100",
+    description: "Work order closed and archived",
+  },
+};
+
+export const SORT_OPTIONS = [
+  { value: "created_at", label: "Newest first" },
+  { value: "updated_at", label: "Recently updated" },
+  { value: "priority", label: "Priority" },
+  { value: "due_date", label: "Due date" },
+  { value: "status", label: "Status" },
+  { value: "work_order_number", label: "Work order number" },
+] as const;
+
+export type SortOption = (typeof SORT_OPTIONS)[number]["value"];
+
+export const VIEW_MODES = ["grid", "table", "kanban"] as const;
+export type ViewMode = (typeof VIEW_MODES)[number];
+
+// Additional types can be added here as needed
+
+]]>
+</file>
+
+<file path="vercel.json">
+<![CDATA[
+{
+  "framework": "nextjs",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm build",
+  "outputDirectory": ".next",
+  "build": {
+    "env": {
+      "NODE_OPTIONS": "--max-old-space-size=8192"
+    }
+  },
+  "github": {
+    "enabled": true,
+    "autoAlias": true,
+    "silent": false
+  },
+  "regions": ["cdg1"]
+}
+
+]]>
+</file>
+
+<file path="vitest.config.api.ts">
+<![CDATA[
+import { defineConfig, defineProject } from "vitest/config";
+import path from "node:path";
+
+const baseExcludes = [
+  "node_modules/**",
+  "dist/**",
+  "coverage/**",
+  "**/e2e/**",
+  "e2e/**",
+  "qa/**",
+  "playwright/**",
+  "tests/unit/api/qa/log.route.playwright.test.ts",
+  // Exclude model tests that require MongoDB Memory Server (run those via test:models)
+  "tests/unit/models/**",
+];
+
+const sharedProjectConfig = {
+  globals: true,
+  reporters: ["default"],
+  pool: "threads",
+  testTimeout: 600000, // 10 minutes - MongoMemoryServer tests need extended timeout
+  hookTimeout: 120000, // 2 minutes - MongoDB Memory Server setup/teardown
+  teardownTimeout: 30000, // 30 seconds - cleanup connections
+  env: {
+    NEXTAUTH_SECRET: "test-secret",
+    AUTH_SECRET: "test-secret",
+    NEXTAUTH_URL: "http://localhost:3000",
+    SKIP_ENV_VALIDATION: "true",
+  },
+  server: {
+    deps: {
+      inline: ["next-auth", "next"],
+    },
+  },
+};
+
+const sharedViteConfig = {
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname),
+      "next/server": "next/server.js",
+    },
+  },
+};
+
+export default defineConfig({
+  ...sharedViteConfig,
+  test: {
+    projects: [
+      defineProject({
+        ...sharedViteConfig,
+        test: {
+          ...sharedProjectConfig,
+          name: "ui",
+          environment: "jsdom",
+          setupFiles: ["./tests/setup.ts"],
+          include: ["**/*.test.ts", "**/*.test.tsx"],
+          exclude: [...baseExcludes, "tests/**/api/**/*.test.{ts,tsx}"],
+        },
+      }),
+      defineProject({
+        ...sharedViteConfig,
+        test: {
+          ...sharedProjectConfig,
+          name: "api",
+          environment: "node",
+          setupFiles: ["./vitest.setup.ts"],
+          include: [
+            "tests/**/api/**/*.test.{ts,tsx}",
+            "tests/**/app/api/**/*.test.{ts,tsx}", // app router API tests
+          ],
+          exclude: baseExcludes,
+        },
+      }),
+    ],
+  },
+});
+
+]]>
+</file>
+
+<file path="vitest.config.models.ts">
+<![CDATA[
+import { defineConfig } from "vitest/config";
+import path from "node:path";
+
+export default defineConfig({
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname),
+      "next/server": path.resolve(
+        __dirname,
+        "tests/vitest-stubs/next-server.ts",
+      ),
+    },
+  },
+  test: {
+    globals: true,
+    environment: "node",
+    server: {
+      deps: {
+        inline: ["next-auth"],
+      },
+    },
+    env: {
+      NEXTAUTH_SECRET: "test-secret",
+      AUTH_SECRET: "test-secret",
+      NEXTAUTH_URL: "http://localhost:3000",
+      MONGOMS_PORT: "27028",
+    },
+    // Use the setup that starts MongoDB Memory Server and connects real mongoose
+    setupFiles: ["./vitest.setup.ts"],
+    // Only run model unit tests under this config to avoid running the full
+    // suite (which includes jsdom/API tests and mocked setups) while the
+    // MongoDB Memory Server is active.
+    include: ["tests/unit/models/**/*.test.{ts,tsx}"],
+    exclude: [
+      "node_modules/**",
+      "dist/**",
+      "coverage/**",
+      "**/e2e/**",
+      "e2e/**",
+      "qa/**",
+      "playwright/**",
+    ],
+    reporters: ["default"],
+    pool: "threads",
+    testTimeout: 30000,
+    hookTimeout: 15000,
+    teardownTimeout: 5000,
+  },
+});
+
+]]>
+</file>
+
+<file path="vitest.config.ts">
+<![CDATA[
+import { defineConfig, defineProject } from "vitest/config";
+import path from "node:path";
+
+const baseExcludes = [
+  "node_modules/**",
+  "dist/**",
+  "coverage/**",
+  "**/e2e/**",
+  "e2e/**",
+  "qa/**",
+  "playwright/**",
+  "tests/unit/api/qa/log.route.playwright.test.ts",
+  "tests/unit/contexts/TranslationContext (1).test.tsx",
+];
+
+const sharedProjectConfig = {
+  globals: true,
+  setupFiles: ["./vitest.setup.ts"], // MongoDB Memory Server for model tests (no mongoose mocks)
+  reporters: ["default"],
+  pool: "threads",
+  testTimeout: 600000, // 10 minutes - MongoMemoryServer initialization takes time
+  hookTimeout: 120000, // 2 minutes - beforeAll/afterAll with MongoDB setup
+  teardownTimeout: 30000, // 30 seconds - cleanup
+  env: {
+    NEXTAUTH_SECRET: "test-secret",
+    AUTH_SECRET: "test-secret",
+    NEXTAUTH_URL: "http://localhost:3000",
+    SKIP_ENV_VALIDATION: "true",
+  },
+  server: {
+    deps: {
+      inline: ["next-auth", "next"],
+    },
+  },
+};
+
+const sharedViteConfig = {
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname),
+      // Vitest (ESM) sometimes struggles to resolve the extensionless "next/server" entry.
+      "next/server": "next/server.js",
+    },
+  },
+};
+
+export default defineConfig({
+  ...sharedViteConfig,
+  test: {
+    projects: [
+      defineProject({
+        ...sharedViteConfig,
+        test: {
+          ...sharedProjectConfig,
+          name: "client",
+          environment: "jsdom",
+          env: {
+            ...sharedProjectConfig.env,
+            // Enable MongoMemoryServer for client/jsdom runs that exercise services
+            SKIP_GLOBAL_MONGO: "false",
+          },
+          include: ["**/*.test.ts", "**/*.test.tsx"],
+          exclude: [
+            ...baseExcludes,
+            "**/server/**/*.test.{ts,tsx}",
+            "tests/**/server/**/*.test.{ts,tsx}",
+            "tests/**/api/**/*.test.{ts,tsx}",
+            "tests/**/models/**/*.test.{ts,tsx}",
+            "tests/models/**/*.test.{ts,tsx}",
+            "tests/unit/middleware.test.ts",
+          ],
+        },
+      }),
+      defineProject({
+        ...sharedViteConfig,
+        test: {
+          ...sharedProjectConfig,
+          name: "server",
+          environment: "node",
+          include: [
+            "**/server/**/*.test.{ts,tsx}",
+            "tests/**/server/**/*.test.{ts,tsx}",
+            "tests/**/api/**/*.test.{ts,tsx}",
+            "tests/**/models/**/*.test.{ts,tsx}",
+            "tests/models/**/*.test.{ts,tsx}",
+            "tests/unit/middleware.test.ts",
+          ],
+          exclude: baseExcludes,
+        },
+      }),
+    ],
+  },
+});
+
+]]>
+</file>
+
+</batch_content>

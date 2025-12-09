@@ -1,0 +1,3758 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="lib/security/encryption.ts">
+<![CDATA[
+/**
+ * Field-Level Encryption Utility
+ * 
+ * Provides AES-256-GCM encryption for sensitive PII fields.
+ * Uses environment-based encryption keys with key rotation support.
+ * 
+ * SECURITY:
+ * - AES-256-GCM authenticated encryption (NIST recommended)
+ * - Unique IV (initialization vector) per encryption operation
+ * - Authentication tag prevents tampering
+ * - Key stored in environment variable (never in code)
+ * 
+ * COMPLIANCE:
+ * - GDPR Article 32: Security of processing (encryption at rest)
+ * - HIPAA: PHI encryption requirements
+ * - PCI DSS: Cardholder data encryption
+ * - ISO 27001: Cryptographic controls
+ * 
+ * USAGE:
+ *   import { encryptField, decryptField } from '@/lib/security/encryption';
+ *   
+ *   // Encrypt
+ *   const encrypted = encryptField('1234567890', 'nationalId');
+ *   
+ *   // Decrypt
+ *   const decrypted = decryptField(encrypted, 'nationalId');
+ * 
+ * @module lib/security/encryption
+ * 
+ * EDGE-001 FIX: Use conditional require to prevent Edge Runtime static analysis
+ * from detecting crypto import. The crypto module is only loaded when encryption
+ * functions are actually called (which only happens in Node.js runtime).
+ */
+
+// EDGE-001 FIX: Use a function to hide crypto import from static analysis
+// This prevents Next.js Edge Runtime from flagging the import at build time
+let cryptoModule: typeof import('crypto') | null = null;
+
+function loadCrypto(): typeof import('crypto') {
+  if (cryptoModule) return cryptoModule;
+  
+  // Use indirect require to avoid static analysis detection
+  // This only runs in Node.js runtime (API routes), never in Edge Runtime
+  const requireFn = typeof require !== 'undefined' ? require : null;
+  if (requireFn) {
+    const moduleName = 'cryp' + 'to'; // String concatenation prevents static analysis
+    cryptoModule = requireFn(moduleName);
+    return cryptoModule!;
+  }
+  
+  throw new Error(
+    'Crypto module not available. Encryption operations must run in Node.js runtime, not Edge Runtime.'
+  );
+}
+
+import { logger } from '@/lib/logger';
+
+// Algorithm configuration
+const ALGORITHM = 'aes-256-gcm';
+const IV_LENGTH = 16; // 128 bits
+const AUTH_TAG_LENGTH = 16; // 128 bits
+const SALT_LENGTH = 64; // 512 bits
+const KEY_LENGTH = 32; // 256 bits
+const ITERATIONS = 100000; // PBKDF2 iterations (OWASP recommendation)
+
+// Encryption key getter - reads dynamically to support test environment changes
+function getEncryptionKey(): string | undefined {
+  return process.env.ENCRYPTION_KEY || process.env.PII_ENCRYPTION_KEY;
+}
+
+// Version prefix for key rotation support
+const VERSION_PREFIX = 'v1';
+
+/**
+ * Validate encryption key is configured and has correct strength
+ * MAJOR FIX: Enforce 256-bit (32-byte) key strength for AES-256
+ * @throws {Error} If ENCRYPTION_KEY is not set or invalid
+ */
+function validateEncryptionKey(): void {
+  const encryptionKey = getEncryptionKey();
+  if (!encryptionKey) {
+    const error = 'ENCRYPTION_KEY environment variable not set. PII encryption disabled.';
+    
+    if (process.env.NODE_ENV === 'production') {
+      logger.error('encryption:key_missing', { 
+        error,
+        env: process.env.NODE_ENV,
+        fatal: true,
+      });
+      throw new Error(error);
+    } else {
+      logger.warn('encryption:key_missing', { 
+        error,
+        env: process.env.NODE_ENV,
+        warning: 'Using mock encryption in non-production',
+      });
+      return; // Allow mock encryption in non-prod
+    }
+  }
+  
+  // MAJOR FIX: Validate key strength (256-bit = 32 bytes when base64 decoded)
+  try {
+    const decoded = Buffer.from(encryptionKey, 'base64');
+    if (decoded.length < KEY_LENGTH) {
+      const error = `Invalid ENCRYPTION_KEY length: expected ${KEY_LENGTH} bytes (256-bit), got ${decoded.length} bytes`;
+      logger.error('encryption:key_invalid_length', {
+        error,
+        expectedBytes: KEY_LENGTH,
+        actualBytes: decoded.length,
+        env: process.env.NODE_ENV,
+      });
+      
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error(error);
+      }
+      // In non-prod, warn but allow weak keys for testing
+      logger.warn('encryption:weak_key_allowed', {
+        warning: 'Weak encryption key allowed in non-production',
+        env: process.env.NODE_ENV,
+      });
+    }
+  } catch (_decodeError) {
+    // Key is not valid base64, check raw length
+    if (encryptionKey.length < KEY_LENGTH) {
+      const error = `Invalid ENCRYPTION_KEY: must be at least ${KEY_LENGTH} characters or base64-encoded ${KEY_LENGTH} bytes`;
+      if (process.env.NODE_ENV === 'production') {
+        logger.error('encryption:key_format_error', { error });
+        throw new Error(error);
+      }
+    }
+  }
+}
+
+/**
+ * Derive encryption key from master key using PBKDF2
+ * @param masterKey - Master encryption key from environment
+ * @param salt - Salt for key derivation
+ * @returns Derived 256-bit encryption key
+ */
+function deriveKey(masterKey: string, salt: Buffer): Buffer {
+  const crypto = loadCrypto();
+  return crypto.pbkdf2Sync(
+    masterKey,
+    salt,
+    ITERATIONS,
+    KEY_LENGTH,
+    'sha256',
+  );
+}
+
+/**
+ * Encrypt a field value using AES-256-GCM
+ * 
+ * @param plaintext - Value to encrypt (string or number)
+ * @param fieldName - Field name for logging context
+ * @returns Encrypted value as base64 string with format: v1:salt:iv:authTag:ciphertext
+ * @throws {Error} If encryption fails
+ * 
+ * @example
+ * const encrypted = encryptField('1234567890', 'nationalId');
+ * // Returns: "v1:base64_salt:base64_iv:base64_tag:base64_ciphertext"
+ */
+export function encryptField(
+  plaintext: string | number | null | undefined,
+  fieldName: string,
+): string | null {
+  // Handle null/undefined
+  if (plaintext === null || plaintext === undefined || plaintext === '') {
+    return null;
+  }
+
+  // Validate key
+  validateEncryptionKey();
+
+  // Get encryption key dynamically
+  const encryptionKey = getEncryptionKey();
+
+  // Mock encryption in test/dev without key
+  if (!encryptionKey && process.env.NODE_ENV !== 'production') {
+    return `MOCK_ENCRYPTED:${String(plaintext)}`;
+  }
+
+  try {
+    // Get crypto module (EDGE-001 FIX: lazy-loaded via string concatenation to avoid static analysis)
+    const crypto = loadCrypto();
+    
+    // Convert to string
+    const plaintextStr = String(plaintext);
+
+    // Generate random salt and IV
+    const salt = crypto.randomBytes(SALT_LENGTH);
+    const iv = crypto.randomBytes(IV_LENGTH);
+
+    // Derive key from master key + salt
+    const key = deriveKey(encryptionKey!, salt);
+
+    // Create cipher
+    const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+
+    // Encrypt
+    let encrypted = cipher.update(plaintextStr, 'utf8', 'base64');
+    encrypted += cipher.final('base64');
+
+    // Get authentication tag
+    const authTag = cipher.getAuthTag();
+
+    // Combine: version:salt:iv:authTag:ciphertext
+    const result = [
+      VERSION_PREFIX,
+      salt.toString('base64'),
+      iv.toString('base64'),
+      authTag.toString('base64'),
+      encrypted,
+    ].join(':');
+
+    logger.info('encryption:field_encrypted', {
+      fieldName,
+      version: 'v1',
+      algorithm: ALGORITHM,
+      plaintextLength: plaintextStr.length,
+      encryptedLength: result.length,
+    });
+
+    return result;
+  } catch (error) {
+    logger.error('encryption:encrypt_failed', {
+      fieldName,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw new Error(`Failed to encrypt field ${fieldName}: ${error}`);
+  }
+}
+
+/**
+ * Decrypt a field value using AES-256-GCM
+ * 
+ * @param ciphertext - Encrypted value (format: v1:salt:iv:authTag:ciphertext)
+ * @param fieldName - Field name for logging context
+ * @returns Decrypted plaintext value
+ * @throws {Error} If decryption fails or authentication fails
+ * 
+ * @example
+ * const decrypted = decryptField('v1:base64_salt:...', 'nationalId');
+ * // Returns: "1234567890"
+ */
+export function decryptField(
+  ciphertext: string | null | undefined,
+  fieldName: string,
+): string | null {
+  // Handle null/undefined
+  if (ciphertext === null || ciphertext === undefined || ciphertext === '') {
+    return null;
+  }
+
+  // Validate key
+  validateEncryptionKey();
+
+  // Get encryption key dynamically
+  const encryptionKey = getEncryptionKey();
+
+  // Handle mock encryption
+  if (ciphertext.startsWith('MOCK_ENCRYPTED:')) {
+    return ciphertext.replace('MOCK_ENCRYPTED:', '');
+  }
+
+  // MAJOR FIX: Fail fast in non-prod when key is missing but data is real encrypted
+  if (!encryptionKey && process.env.NODE_ENV !== 'production') {
+    logger.warn('encryption:key_missing_decrypt', {
+      fieldName,
+      env: process.env.NODE_ENV,
+      warning: 'Cannot decrypt real ciphertext without key. Returning null.',
+    });
+    return null; // Return null instead of crashing in PBKDF2
+  }
+
+  try {
+    // Parse encrypted format: version:salt:iv:authTag:ciphertext
+    const parts = ciphertext.split(':');
+    
+    if (parts.length !== 5) {
+      throw new Error(`Invalid encrypted format: expected 5 parts, got ${parts.length}`);
+    }
+
+    const [version, saltB64, ivB64, authTagB64, encrypted] = parts;
+
+    // Verify version
+    if (version !== 'v1') {
+      throw new Error(`Unsupported encryption version: ${version}`);
+    }
+
+    // Decode components
+    const salt = Buffer.from(saltB64, 'base64');
+    const iv = Buffer.from(ivB64, 'base64');
+    const authTag = Buffer.from(authTagB64, 'base64');
+
+    // Derive key from master key + salt
+    const key = deriveKey(encryptionKey!, salt);
+
+    // Get crypto module (EDGE-001 FIX: lazy-loaded via string concatenation to avoid static analysis)
+    const crypto = loadCrypto();
+
+    // Create decipher
+    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+    decipher.setAuthTag(authTag);
+
+    // Decrypt
+    let decrypted = decipher.update(encrypted, 'base64', 'utf8');
+    decrypted += decipher.final('utf8');
+
+    logger.info('encryption:field_decrypted', {
+      fieldName,
+      version,
+      algorithm: ALGORITHM,
+      encryptedLength: ciphertext.length,
+      decryptedLength: decrypted.length,
+    });
+
+    return decrypted;
+  } catch (error) {
+    logger.error('encryption:decrypt_failed', {
+      fieldName,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw new Error(`Failed to decrypt field ${fieldName}: ${error}`);
+  }
+}
+
+/**
+ * Encrypt multiple fields in an object
+ * 
+ * @param obj - Object containing fields to encrypt
+ * @param fieldPaths - Array of dot-notation field paths (e.g., ['personal.nationalId', 'employment.salary'])
+ * @returns New object with encrypted fields
+ * 
+ * @example
+ * const encrypted = encryptFields(user, ['personal.nationalId', 'personal.passport']);
+ */
+export function encryptFields<T extends Record<string, unknown>>(
+  obj: T,
+  fieldPaths: string[],
+): T {
+  // Deep clone to prevent mutating nested objects in the original
+  const result = JSON.parse(JSON.stringify(obj)) as T;
+
+  for (const path of fieldPaths) {
+    const parts = path.split('.');
+    let current: Record<string, unknown> = result as Record<string, unknown>;
+
+    // Navigate to parent object
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (!current[parts[i]]) {
+        current[parts[i]] = {};
+      }
+      current = current[parts[i]] as Record<string, unknown>;
+    }
+
+    // Encrypt leaf value
+    const fieldName = parts[parts.length - 1];
+    const value = current[fieldName];
+    
+    // MINOR FIX: Prevent double encryption by checking if already encrypted
+    if (value !== null && value !== undefined && value !== '') {
+      if (typeof value === 'string' && isEncrypted(value)) {
+        // Already encrypted, skip to prevent double encryption
+        logger.info('encryption:skip_already_encrypted', {
+          path,
+          reason: 'Field already encrypted',
+        });
+        continue;
+      }
+      current[fieldName] = encryptField(
+        value as string | number | null | undefined,
+        path,
+      );
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Decrypt multiple fields in an object
+ * 
+ * @param obj - Object containing fields to decrypt
+ * @param fieldPaths - Array of dot-notation field paths
+ * @returns New object with decrypted fields
+ */
+export function decryptFields<T extends Record<string, unknown>>(
+  obj: T,
+  fieldPaths: string[],
+): T {
+  // Deep clone to prevent mutating nested objects in the original
+  const result = JSON.parse(JSON.stringify(obj)) as T;
+
+  for (const path of fieldPaths) {
+    const parts = path.split('.');
+    let current: Record<string, unknown> = result as Record<string, unknown>;
+
+    // Navigate to parent object
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (!current[parts[i]]) {
+        break; // Path doesn't exist, skip
+      }
+      current = current[parts[i]] as Record<string, unknown>;
+    }
+
+    // Decrypt leaf value
+    const fieldName = parts[parts.length - 1];
+    const value = current?.[fieldName];
+    
+    if (value && typeof value === 'string') {
+      try {
+        current[fieldName] = decryptField(value, path);
+      } catch (error) {
+        logger.warn('encryption:decrypt_field_failed', {
+          path,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Keep encrypted value on decrypt failure (don't break app)
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Check if a value is encrypted (starts with version prefix)
+ * @param value - Value to check
+ * @returns True if value appears to be encrypted
+ */
+export function isEncrypted(value: unknown): boolean {
+  return typeof value === 'string' && (
+    value.startsWith(VERSION_PREFIX) || 
+    value.startsWith('MOCK_ENCRYPTED:')
+  );
+}
+
+/**
+ * Generate a secure encryption key (for initial setup)
+ * @returns Base64-encoded 256-bit key
+ * 
+ * @example
+ * const key = generateEncryptionKey();
+ * console.log('Add to .env:', key);
+ */
+export function generateEncryptionKey(): string {
+  const crypto = loadCrypto();
+  const key = crypto.randomBytes(KEY_LENGTH);
+  return key.toString('base64');
+}
+
+// Export for testing
+export const __test__ = {
+  ALGORITHM,
+  IV_LENGTH,
+  AUTH_TAG_LENGTH,
+  VERSION_PREFIX,
+  validateEncryptionKey,
+  deriveKey,
+};
+
+]]>
+</file>
+
+<file path="lib/security/log-sanitizer.ts">
+<![CDATA[
+/**
+ * LOG-001 FIX: Log Sanitization Utility
+ *
+ * Prevents PII (Personally Identifiable Information) from leaking into client-side logs.
+ * Implements GDPR Article 5(c) data minimization principle.
+ *
+ * @module lib/security/log-sanitizer
+ */
+
+/**
+ * List of sensitive keys that should be redacted from logs
+ * Matches both camelCase and snake_case variations (normalized internally)
+ */
+const SENSITIVE_KEYS = new Set([
+  // Personal identifiers
+  "userid",
+  "user_id",
+  "identifier",
+  "loginidentifier",
+  "login",
+  "email",
+  "phone",
+  "phonenumber",
+  "phone_number",
+  "mobile",
+  "nationalid",
+  "national_id",
+  "passport",
+  "passportnumber",
+  "passport_number",
+  "iqamaid",
+  "iqama_id",
+  "ssn",
+  "social_security",
+
+  // Financial data
+  "iban",
+  "accountnumber",
+  "account_number",
+  "cardnumber",
+  "card_number",
+  "cvv",
+  "cvc",
+  "salary",
+  "basesalary",
+  "base_salary",
+  "bankaccount",
+  "bank_account",
+
+  // Authentication
+  "password",
+  "secret",
+  "token",
+  "apikey",
+  "api_key",
+  "accesstoken",
+  "access_token",
+  "refreshtoken",
+  "refresh_token",
+  "mfasecret",
+  "mfa_secret",
+  "otp",
+  "pin",
+  // HTTP Headers containing auth data
+  "authorization",
+  "cookie",
+  "setcookie",
+  "set_cookie",
+  "idtoken",
+  "id_token",
+  "sessionid",
+  "session_id",
+  "csrftoken",
+  "csrf_token",
+  "xsrftoken",
+  "xsrf_token",
+  // Additional auth header variants (custom APIs, proxies)
+  "xaccesstoken",
+  "x_access_token",
+  "authtoken",
+  "auth_token",
+  "bearertoken",
+  "bearer_token",
+  // Common HTTP header patterns
+  "xapikey",
+  "x_api_key",
+  "xauthtoken",
+  "x_auth_token",
+  "xforwardedfor",
+  "x_forwarded_for",
+  "xrealip",
+  "x_real_ip",
+  "proxyauthorization",
+  "proxy_authorization",
+
+  // Address details
+  "address",
+  "streetaddress",
+  "street_address",
+  "fulladdress",
+  "full_address",
+
+  // Names (optional - enable if needed)
+  // "name",
+  // "firstname",
+  // "first_name",
+  // "lastname",
+  // "last_name",
+]);
+
+/**
+ * PII value patterns to catch free-form data in non-sensitive keys
+ * 
+ * SECURITY: Patterns are bounded to prevent ReDoS attacks
+ * NOTE: Some patterns may have false positives - they are designed to be
+ * applied only when key-based filtering doesn't match, as a second layer
+ */
+const BASE_PII_PATTERNS: RegExp[] = [
+  /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i, // emails
+  // Phone pattern: tightened for minimal backtracking and fewer false positives
+  // - Only allows space or hyphen as separators (not parentheses which add backtracking)
+  // - Bounded to 8-15 total digits to match international phone formats
+  // - Word boundaries prevent partial matches inside longer strings
+  /\b\+?\d(?:[ -]?\d){7,14}\b/, // phone-like: digit + 7-14 more with optional space/hyphen
+  /^[A-Za-z0-9-_]{10,}\.(?:[A-Za-z0-9-_]{10,})\.(?:[A-Za-z0-9-_]{10,})$/, // JWT tokens (min 10 chars per segment)
+  /\b[A-Z]{2}\d{2}[A-Z0-9]{9,30}\b/, // IBAN-ish
+  /\b\d{13,19}\b/, // card-like digit runs
+  // Bearer tokens with prefix (Authorization header values)
+  /\bBearer\s+[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\b/i, // Bearer JWT
+  /\bBearer\s+[A-Za-z0-9._~-]{20,}\b/i, // Bearer opaque tokens
+  // Basic auth header values
+  /\bBasic\s+[A-Za-z0-9+/=]{10,}\b/i, // Basic auth base64
+  // Bare JWT tokens (no Bearer prefix) - three dot-separated base64url segments
+  /\b[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\b/, // Bare JWT
+  // Bare opaque tokens (API keys, session tokens, etc.)
+  /\b[A-Za-z0-9._~-]{32,}\b/, // Bare opaque tokens (min 32 chars)
+];
+
+/**
+ * Redaction marker for sanitized values
+ */
+const REDACTED = "[REDACTED]";
+
+/**
+ * Maximum depth to traverse when sanitizing to prevent runaway recursion
+ */
+const MAX_DEPTH = 10;
+
+const normalizeKey = (key: string) => key.toLowerCase().replace(/[-_]/g, "");
+const NORMALIZED_SENSITIVE_KEYS = new Set(
+  Array.from(SENSITIVE_KEYS).map((key) => normalizeKey(key)),
+);
+
+/**
+ * Check if a key should be redacted
+ * @param key - Object key to check
+ * @returns true if the key should be redacted
+ */
+function isSensitiveKey(key: string, extraKeys?: Set<string>): boolean {
+  const normalizedKey = normalizeKey(key);
+  return (
+    NORMALIZED_SENSITIVE_KEYS.has(normalizedKey) ||
+    (extraKeys?.has(normalizedKey) ?? false)
+  );
+}
+
+/**
+ * Type guard to check if value is a Record
+ */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function buildPatterns(extraPatterns?: RegExp[]): RegExp[] {
+  return [...BASE_PII_PATTERNS, ...(extraPatterns ?? [])];
+}
+
+type SanitizeOptions = {
+  patterns: RegExp[];
+  extraKeys: Set<string>;
+  seen: WeakSet<object>;
+};
+
+function sanitizeObject(
+  obj: Record<string, unknown>,
+  depth: number,
+  opts: SanitizeOptions,
+): Record<string, unknown> {
+  if (opts.seen.has(obj as object)) {
+    return { __truncated: "Circular reference" };
+  }
+
+  if (depth > MAX_DEPTH) {
+    return { __truncated: "Max depth exceeded" };
+  }
+
+  opts.seen.add(obj as object);
+
+  return Object.entries(obj).reduce<Record<string, unknown>>(
+    (acc, [key, value]) => {
+      acc[key] = sanitizeValueDeep(value, key, depth + 1, opts);
+      return acc;
+    },
+    {},
+  );
+}
+
+/**
+ * Sanitize any value recursively, redacting known sensitive keys or patterns
+ */
+function sanitizeValueDeep(
+  value: unknown,
+  fieldName: string | undefined,
+  depth: number,
+  opts: SanitizeOptions,
+): unknown {
+  if (depth > MAX_DEPTH) {
+    return { __truncated: "Max depth exceeded" };
+  }
+
+  if (fieldName && isSensitiveKey(fieldName, opts.extraKeys)) {
+    return REDACTED;
+  }
+
+  if (value === null || value === undefined) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    return opts.patterns.some((re) => re.test(value)) ? REDACTED : value;
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return value;
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  if (value instanceof Error) {
+    return sanitizeError(value);
+  }
+
+  if (Array.isArray(value)) {
+    if (opts.seen.has(value)) {
+      return { __truncated: "Circular reference" };
+    }
+    opts.seen.add(value);
+    return value.map((item) =>
+      sanitizeValueDeep(item, fieldName, depth + 1, opts),
+    );
+  }
+
+  if (isRecord(value)) {
+    return sanitizeObject(value as Record<string, unknown>, depth + 1, opts);
+  }
+
+  return value;
+}
+
+/**
+ * Recursively sanitize an object, redacting sensitive fields
+ * @param obj - Object to sanitize
+ * @param depth - Current recursion depth (max 10 to prevent stack overflow)
+ * @returns Sanitized copy of the object
+ */
+export function sanitizeLogParams<T extends Record<string, unknown>>(
+  obj: T,
+  depth = 0,
+  options?: {
+    extraKeys?: string[];
+    extraPatterns?: RegExp[];
+    seen?: WeakSet<object>;
+  },
+): Record<string, unknown> {
+  const extraKeysSet = new Set(
+    (options?.extraKeys ?? []).map((key) => normalizeKey(key)),
+  );
+  const seen = options?.seen ?? new WeakSet<object>();
+  const patterns = buildPatterns(options?.extraPatterns);
+
+  if (!isRecord(obj)) {
+    return {};
+  }
+
+  return sanitizeObject(obj, depth, { extraKeys: extraKeysSet, patterns, seen });
+}
+
+/**
+ * Sanitize a single value if it looks like PII
+ * Useful for sanitizing individual log parameters
+ * @param value - Value to check and potentially redact
+ * @param fieldName - Name of the field (for context)
+ * @returns Original value or REDACTED
+ */
+export function sanitizeValue(value: unknown, fieldName: string): unknown {
+  return sanitizeValueDeep(value, fieldName, 0, {
+    patterns: BASE_PII_PATTERNS,
+    extraKeys: new Set<string>(),
+    seen: new WeakSet<object>(),
+  });
+}
+
+/**
+ * Sanitize error object for logging
+ * Extracts safe error information without leaking stack traces in production
+ */
+export function sanitizeError(error: unknown): Record<string, unknown> {
+  if (error instanceof Error) {
+    return {
+      message: error.message,
+      name: error.name,
+      // Only include stack in development
+      ...(process.env.NODE_ENV === "development" && { stack: error.stack }),
+    };
+  }
+
+  if (isRecord(error)) {
+    return sanitizeLogParams(error);
+  }
+
+  return { message: String(error) };
+}
+
+export default {
+  sanitizeLogParams,
+  sanitizeValue,
+  sanitizeError,
+};
+
+]]>
+</file>
+
+<file path="lib/security/monitoring.ts">
+<![CDATA[
+/**
+ * Security event monitoring middleware
+ * Auto-generated by scripts/security/configure-monitoring.ts
+ */
+
+import { logger } from "@/lib/logger";
+import { redactIdentifier, hashIdentifier } from "@/lib/otp-utils";
+
+// Rate limit event tracking
+const rateLimitHits = new Map<string, number[]>();
+const corsViolations = new Map<string, number[]>();
+const authFailures = new Map<string, number[]>();
+
+const WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+const ALERT_THRESHOLDS = {
+  rateLimit: {
+    logLevel: "warn",
+    alertThreshold: 100,
+    destinations: ["console", "file", "webhook"],
+  },
+  cors: {
+    logLevel: "warn",
+    alertThreshold: 50,
+    destinations: ["console", "file"],
+  },
+  auth: {
+    logLevel: "error",
+    alertThreshold: 10,
+    destinations: ["console", "file", "webhook"],
+  },
+  mongodb: {
+    logLevel: "error",
+    alertThreshold: 5,
+    destinations: ["console", "file", "webhook"],
+  },
+};
+
+async function sendSentryAlert(eventType: string, payload: Record<string, unknown>): Promise<void> {
+  // Only attempt in server context with Sentry configured (avoid client bundles)
+  if (typeof window !== "undefined") return;
+  if (!process.env.SENTRY_DSN || process.env.NODE_ENV !== "production") return;
+
+  try {
+    const Sentry = await import("@sentry/nextjs").catch(() => null);
+    if (!Sentry) return;
+
+    Sentry.captureMessage(`[Security] ${eventType}`, {
+      level: "warning",
+      extra: payload,
+      tags: {
+        security_event: eventType,
+      },
+    });
+  } catch (error) {
+    // Avoid throwing from monitoring path
+    logger.error("[Security] Failed to send Sentry alert", {
+      eventType,
+      error: error instanceof Error ? error.message : error,
+    });
+  }
+}
+
+function cleanOldEntries(map: Map<string, number[]>, windowMs: number): void {
+  const cutoff = Date.now() - windowMs;
+  for (const [key, timestamps] of map.entries()) {
+    const filtered = timestamps.filter((t) => t > cutoff);
+    if (filtered.length === 0) {
+      map.delete(key);
+    } else {
+      map.set(key, filtered);
+    }
+  }
+}
+
+function trackEvent(
+  map: Map<string, number[]>,
+  key: string,
+  eventType: string,
+  threshold: number,
+): void {
+  cleanOldEntries(map, WINDOW_MS);
+
+  const timestamps = map.get(key) || [];
+  timestamps.push(Date.now());
+  map.set(key, timestamps);
+
+  // Alert only on FIRST threshold crossing to prevent spam
+  // (uses === instead of >= so alert fires exactly once per key per window)
+  if (timestamps.length === threshold) {
+    logger.warn(`[${eventType}] Alert threshold exceeded`, {
+      key,
+      count: timestamps.length,
+      windowMs: WINDOW_MS,
+      threshold,
+    });
+
+    // Send to Sentry for centralized monitoring (non-blocking)
+    void sendSentryAlert(eventType, {
+      key,
+      count: timestamps.length,
+      threshold,
+      windowMs: WINDOW_MS,
+    });
+
+    // Emit webhook if configured
+    if (process.env.SECURITY_ALERT_WEBHOOK) {
+      fetch(process.env.SECURITY_ALERT_WEBHOOK, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event: eventType,
+          key,
+          count: timestamps.length,
+          threshold,
+          timestamp: new Date().toISOString(),
+        }),
+      }).catch((err) => logger.error("[Webhook] Failed to send alert", err));
+    }
+  }
+}
+
+export function trackRateLimitHit(identifier: string, endpoint: string, orgId?: string): void {
+  // Use hashIdentifier for tracking key (better cardinality than 3-char truncation)
+  // This prevents collision issues where many users share same prefix (e.g., "use***")
+  // Salt is automatically loaded from MONITORING_HASH_SALT or LOG_HASH_SALT env vars
+  const hashedId = hashIdentifier(identifier);
+  // Include orgId in key for multi-tenant isolation (prevents cross-tenant event collapse)
+  const key = orgId 
+    ? `${orgId}:${hashedId}:${endpoint}`
+    : `global:${hashedId}:${endpoint}`;
+  trackEvent(
+    rateLimitHits,
+    key,
+    "RateLimit",
+    ALERT_THRESHOLDS.rateLimit.alertThreshold,
+  );
+
+  // Use redactIdentifier for human-readable logs (PII protection)
+  logger.warn("[RateLimit] Request blocked", {
+    orgId: orgId ?? "global",
+    identifier: redactIdentifier(identifier),
+    endpoint,
+    timestamp: new Date().toISOString(),
+  });
+}
+
+export function trackCorsViolation(origin: string, endpoint: string, orgId?: string): void {
+  // Include orgId in key for multi-tenant isolation
+  const key = orgId
+    ? `${orgId}:${origin}:${endpoint}`
+    : `global:${origin}:${endpoint}`;
+  trackEvent(corsViolations, key, "CORS", ALERT_THRESHOLDS.cors.alertThreshold);
+
+  logger.warn("[CORS] Origin blocked", {
+    orgId: orgId ?? "global",
+    origin,
+    endpoint,
+    timestamp: new Date().toISOString(),
+  });
+}
+
+export function trackAuthFailure(identifier: string, reason: string, orgId?: string): void {
+  // Use hashIdentifier for tracking key (better cardinality than 3-char truncation)
+  // This prevents collision issues where many users share same prefix (e.g., "use***")
+  // Salt is automatically loaded from MONITORING_HASH_SALT or LOG_HASH_SALT env vars
+  const hashedId = hashIdentifier(identifier);
+  // Include orgId in key for multi-tenant isolation
+  const key = orgId
+    ? `${orgId}:${hashedId}`
+    : `global:${hashedId}`;
+  trackEvent(
+    authFailures,
+    key,
+    "Auth",
+    ALERT_THRESHOLDS.auth.alertThreshold,
+  );
+
+  // Use redactIdentifier for human-readable logs (PII protection)
+  logger.error("[Auth] Authentication failed", {
+    orgId: orgId ?? "global",
+    identifier: redactIdentifier(identifier),
+    reason,
+    timestamp: new Date().toISOString(),
+  });
+}
+
+export function getSecurityMetrics() {
+  // Sum actual event counts, not just unique keys
+  const sumEvents = (map: Map<string, number[]>): number =>
+    [...map.values()].reduce((acc, timestamps) => acc + timestamps.length, 0);
+
+  return {
+    rateLimitHits: sumEvents(rateLimitHits),
+    corsViolations: sumEvents(corsViolations),
+    authFailures: sumEvents(authFailures),
+    // Also expose unique key counts for cardinality analysis
+    rateLimitUniqueKeys: rateLimitHits.size,
+    corsUniqueKeys: corsViolations.size,
+    authUniqueKeys: authFailures.size,
+    windowMs: WINDOW_MS,
+  };
+}
+
+/**
+ * Reset all monitoring state for test isolation.
+ * 
+ * ⚠️ TEST-ONLY: This function clears all tracking maps and should ONLY be used
+ * in test environments to prevent cross-test contamination. The monitoring maps
+ * are process-global, so without reset, tests can become order-dependent and flaky.
+ * 
+ * @example
+ * // In test file:
+ * import { __resetMonitoringStateForTests } from "@/lib/security/monitoring";
+ * beforeEach(() => __resetMonitoringStateForTests());
+ */
+export function __resetMonitoringStateForTests(): void {
+  if (process.env.NODE_ENV === "production") {
+    logger.error("[Security] __resetMonitoringStateForTests called in production - ignoring");
+    return;
+  }
+  rateLimitHits.clear();
+  corsViolations.clear();
+  authFailures.clear();
+}
+
+]]>
+</file>
+
+<file path="lib/security/s3-policy.ts">
+<![CDATA[
+import {
+  S3Client,
+  GetBucketEncryptionCommand,
+  GetBucketLifecycleConfigurationCommand,
+  GetBucketPolicyStatusCommand,
+} from "@aws-sdk/client-s3";
+
+/**
+ * Minimal S3 bucket policy/retention validation.
+ * Returns true if encryption and lifecycle calls succeed; false otherwise.
+ * Non-fatal: callers can decide whether to block on failure.
+ */
+export async function validateBucketPolicies(): Promise<boolean> {
+  try {
+    const bucket = process.env.AWS_S3_BUCKET;
+    const region = process.env.AWS_REGION;
+    if (!bucket || !region) return false;
+
+    const client = new S3Client({ region });
+
+    // Encryption check
+    await client.send(new GetBucketEncryptionCommand({ Bucket: bucket }));
+
+    // Lifecycle (retention) check
+    await client.send(
+      new GetBucketLifecycleConfigurationCommand({ Bucket: bucket }),
+    );
+
+    // Policy status (public access)
+    const policyStatus = await client.send(
+      new GetBucketPolicyStatusCommand({ Bucket: bucket }),
+    );
+    if (policyStatus.PolicyStatus?.IsPublic) return false;
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+]]>
+</file>
+
+<file path="lib/security/verify-secret-header.ts">
+<![CDATA[
+import { timingSafeEqual } from "crypto";
+import type { NextRequest } from "next/server";
+
+type HeaderSource = Pick<Headers, "get"> | NextRequest | Request;
+
+/**
+ * Verify a shared secret passed via header using a constant-time comparison.
+ * Returns false when the expected secret is missing.
+ */
+export function verifySecretHeader(
+  source: HeaderSource,
+  headerName: string,
+  expectedSecret?: string,
+): boolean {
+  if (!expectedSecret) return false;
+
+  const headers =
+    "get" in source ? source : ("headers" in source ? source.headers : undefined);
+  if (!headers) return false;
+
+  const provided = headers.get(headerName);
+  if (!provided || provided.length !== expectedSecret.length) {
+    return false;
+  }
+
+  try {
+    const providedBuffer = Buffer.from(provided, "utf-8");
+    const secretBuffer = Buffer.from(expectedSecret, "utf-8");
+    return timingSafeEqual(providedBuffer, secretBuffer);
+  } catch {
+    return false;
+  }
+}
+
+]]>
+</file>
+
+<file path="lib/server-auth-session.ts">
+<![CDATA[
+"use server";
+
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import type { AuthSession, ExtendedUser } from "@/types/auth-session";
+
+/**
+ * Server-side session helper (for Server Components and API routes)
+ * Kept separate from the client hook to avoid bundling ioredis into client builds.
+ */
+export async function getServerAuthSession(): Promise<AuthSession | null> {
+  const session = await auth();
+
+  if (!session?.user) {
+    return null;
+  }
+
+  const user = session.user as ExtendedUser;
+
+  // Warn if critical auth fields are missing rather than silently defaulting
+  if (!user.role) {
+    logger.warn(`[Auth] User ${user.id} missing role field`);
+  }
+  if (!user.orgId && user.role !== "SUPER_ADMIN") {
+    logger.warn(`[Auth] User ${user.id} missing orgId (role: ${user.role})`);
+  }
+  if (!user.tenantId && user.role !== "SUPER_ADMIN") {
+    logger.warn(`[Auth] User ${user.id} missing tenantId (role: ${user.role})`);
+  }
+
+  return {
+    userId: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role || "GUEST",
+    orgId: user.orgId || null, // Organization ID for tenant isolation
+    tenantId: user.tenantId || null, // Use null instead of empty string to distinguish from missing data
+    sellerId: user.sellerId,
+    isAuthenticated: true,
+    // RBAC fields (STRICT v4.1) - aligned with auth.config.ts JWT/session callbacks
+    subRole: user.subRole ?? null,
+    permissions: user.permissions ?? [],
+    roles: user.roles ?? [],
+    isSuperAdmin: Boolean(user.isSuperAdmin),
+  };
+}
+
+]]>
+</file>
+
+<file path="lib/sla.ts">
+<![CDATA[
+import { addMinutes } from "date-fns";
+
+export type WorkOrderPriority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+
+const SLA_MINUTES_MAP: Record<WorkOrderPriority, number> = {
+  LOW: 72 * 60, // 3 days
+  MEDIUM: 36 * 60, // 1.5 days
+  HIGH: 12 * 60, // 12 hours
+  CRITICAL: 4 * 60, // 4 hours
+};
+
+/**
+ * Returns the SLA resolution window in minutes for a work order priority.
+ * This function is used server side when persisting records and in
+ * verification scripts that seed the real Mongo database.
+ */
+export function computeSlaMinutes(priority: WorkOrderPriority): number {
+  return SLA_MINUTES_MAP[priority] ?? SLA_MINUTES_MAP.MEDIUM;
+}
+
+/**
+ * Calculates the due date for a work order by adding the SLA window to
+ * the provided start time. A new Date instance is always returned.
+ */
+export function computeDueAt(start: Date, slaMinutes: number): Date {
+  return addMinutes(start, slaMinutes);
+}
+
+/**
+ * Convenience helper that returns both the SLA window (minutes) and the
+ * computed due date for a work order priority. This keeps controller logic
+ * concise and guarantees consistent calculations across the app and QA
+ * tooling.
+ */
+export function resolveSlaTarget(
+  priority: WorkOrderPriority,
+  start: Date = new Date(),
+) {
+  const slaMinutes = computeSlaMinutes(priority);
+  return {
+    slaMinutes,
+    dueAt: computeDueAt(start, slaMinutes),
+  };
+}
+
+]]>
+</file>
+
+<file path="lib/sms-providers/index.ts">
+<![CDATA[
+/**
+ * SMS Provider Factory
+ *
+ * Factory for creating SMS providers based on configuration.
+ * 
+ * IMPORTANT: Taqnyat is the ONLY production SMS provider for Fixzit.
+ * - Taqnyat is CITC-compliant for Saudi Arabia
+ * - Mock provider is available for development/testing only
+ * 
+ * All other providers (Twilio, Unifonic, AWS SNS, Nexmo) have been removed.
+ */
+
+import { logger } from "@/lib/logger";
+import type {
+  SMSProvider,
+  SMSProviderType,
+  SMSProviderOptions,
+  SMSResult,
+  SMSStatusResult,
+  SMSDeliveryStatus,
+  BulkSMSResult,
+} from "./types";
+import { TaqnyatProvider, isTaqnyatConfigured } from "./taqnyat";
+
+// Re-export types for convenience
+export type {
+  SMSProvider,
+  SMSProviderType,
+  SMSProviderOptions,
+  SMSResult,
+  SMSStatusResult,
+  SMSDeliveryStatus,
+  BulkSMSResult,
+};
+
+// Re-export Taqnyat provider
+export { TaqnyatProvider, isTaqnyatConfigured, getTaqnyatProvider } from "./taqnyat";
+
+/**
+ * Environment configuration
+ */
+const SMS_PROVIDER = process.env.SMS_PROVIDER as SMSProviderType | undefined;
+const NODE_ENV = process.env.NODE_ENV || "development";
+const SMS_DEV_MODE_ENABLED =
+  process.env.SMS_DEV_MODE === "true" ||
+  (NODE_ENV !== "production" && process.env.SMS_DEV_MODE !== "false");
+
+/**
+ * Mock SMS Provider for development/testing
+ */
+class MockProvider implements SMSProvider {
+  readonly name: SMSProviderType = "mock";
+
+  isConfigured(): boolean {
+    return true;
+  }
+
+  async sendSMS(to: string, message: string): Promise<SMSResult> {
+    const mockId = `MOCK_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    logger.info(`[Mock SMS] To: ${to}, Message: ${message.substring(0, 50)}...`);
+    return {
+      success: true,
+      messageId: mockId,
+      provider: this.name,
+      to,
+      timestamp: new Date(),
+    };
+  }
+
+  async sendOTP(
+    to: string,
+    code: string,
+    expiresInMinutes: number = 5,
+  ): Promise<SMSResult> {
+    const message = `Your verification code is: ${code}. Valid for ${expiresInMinutes} minutes.`;
+    return this.sendSMS(to, message);
+  }
+
+  async sendBulk(recipients: string[], message: string): Promise<BulkSMSResult> {
+    const results = await Promise.all(
+      recipients.map((recipient) => this.sendSMS(recipient, message)),
+    );
+    const successful = results.filter((r) => r.success).length;
+    return {
+      total: recipients.length,
+      successful,
+      sent: successful,
+      failed: recipients.length - successful,
+      results,
+    };
+  }
+
+  async getStatus(messageId: string): Promise<SMSStatusResult | null> {
+    return {
+      status: "delivered",
+      messageId,
+      updatedAt: new Date(),
+      createdAt: new Date(),
+      sentAt: new Date(),
+    };
+  }
+
+  async testConfiguration(): Promise<boolean> {
+    return true;
+  }
+}
+
+/**
+ * Detect the best available provider
+ * Priority: Explicit config > Taqnyat > Mock
+ */
+function detectProvider(): SMSProviderType {
+  // If explicitly configured, use that
+  if (SMS_PROVIDER && ["taqnyat", "mock"].includes(SMS_PROVIDER)) {
+    return SMS_PROVIDER;
+  }
+
+  // In development mode, prefer mock unless Taqnyat is configured
+  if (SMS_DEV_MODE_ENABLED) {
+    if (isTaqnyatConfigured()) return "taqnyat";
+    return "mock";
+  }
+
+  // Production: use Taqnyat if configured
+  if (isTaqnyatConfigured()) {
+    logger.info("[SMS] Using Taqnyat provider (CITC-compliant for KSA)");
+    return "taqnyat";
+  }
+
+  // Fallback to mock if nothing configured
+  logger.warn("[SMS] No provider configured - using mock provider");
+  return "mock";
+}
+
+/**
+ * Create an SMS provider instance
+ * @param type Optional provider type (auto-detects if not specified)
+ * @param options Optional provider options
+ */
+export function createSMSProvider(
+  type?: SMSProviderType,
+  options?: SMSProviderOptions,
+): SMSProvider {
+  const providerType = type || detectProvider();
+
+  switch (providerType) {
+    case "taqnyat":
+      return new TaqnyatProvider(options);
+    case "mock":
+    default:
+      return new MockProvider();
+  }
+}
+
+/**
+ * Get the currently configured provider type
+ */
+export function getConfiguredProviderType(): SMSProviderType {
+  return detectProvider();
+}
+
+/**
+ * Get info about all available providers and their configuration status
+ */
+export function getProvidersInfo(): Record<
+  SMSProviderType,
+  { configured: boolean; recommended: boolean; notes: string }
+> {
+  return {
+    taqnyat: {
+      configured: isTaqnyatConfigured(),
+      recommended: true,
+      notes: "CITC-compliant - The ONLY production SMS provider for Fixzit",
+    },
+    mock: {
+      configured: true,
+      recommended: false,
+      notes: "Development/testing only - does not send real SMS",
+    },
+  };
+}
+
+// Default provider instance (lazy initialized)
+let defaultProvider: SMSProvider | null = null;
+
+/**
+ * Get the default SMS provider instance (singleton)
+ */
+export function getSMSProvider(): SMSProvider {
+  if (!defaultProvider) {
+    defaultProvider = createSMSProvider();
+  }
+  return defaultProvider;
+}
+
+/**
+ * Reset the default provider (useful for testing)
+ */
+export function resetSMSProvider(): void {
+  defaultProvider = null;
+}
+
+]]>
+</file>
+
+<file path="lib/sms-providers/phone-utils.ts">
+<![CDATA[
+/**
+ * Shared Phone Number Utilities for SMS Providers
+ *
+ * Centralized phone formatting and validation for Saudi Arabian numbers.
+ * Used by Unifonic, Twilio, and other SMS providers.
+ */
+
+/**
+ * Format phone number to E.164 format for Saudi Arabia (+966XXXXXXXXX)
+ * Handles common Saudi phone number formats:
+ * - Local: 05XXXXXXXX -> +9665XXXXXXXX
+ * - With country code: 9665XXXXXXXX -> +9665XXXXXXXX
+ * - International: 009665XXXXXXXX -> +9665XXXXXXXX
+ * - E.164: +9665XXXXXXXX -> +9665XXXXXXXX
+ */
+export function formatSaudiPhoneNumber(phone: string): string {
+  // Remove all spaces, dashes, and parentheses
+  const cleaned = phone.replace(/[\s\-()]/g, "");
+
+  // If already in E.164 format
+  if (cleaned.startsWith("+966")) {
+    return cleaned;
+  }
+
+  // Handle 00 prefix (international dialing)
+  if (cleaned.startsWith("00966")) {
+    return "+" + cleaned.substring(2);
+  }
+
+  // Handle just country code without +
+  if (cleaned.startsWith("966")) {
+    return "+" + cleaned;
+  }
+
+  // Handle local format with leading 0
+  if (cleaned.startsWith("0")) {
+    return "+966" + cleaned.substring(1);
+  }
+
+  // Assume local number without prefix
+  return "+966" + cleaned;
+}
+
+/**
+ * Validate Saudi phone number
+ *
+ * Saudi mobile numbers follow the pattern: +966 5XX XXX XXXX
+ * - Country code: +966
+ * - Mobile prefix: 5 (all Saudi mobile numbers start with 5)
+ * - Total digits after country code: 9
+ *
+ * @param phone - Phone number in any supported format
+ * @returns true if valid Saudi mobile number
+ */
+export function isValidSaudiPhone(phone: string): boolean {
+  const formatted = formatSaudiPhoneNumber(phone);
+  // Saudi mobile numbers start with +966 5 and have 9 digits total after country code
+  return /^\+9665\d{8}$/.test(formatted);
+}
+
+/**
+ * Validate and format a phone number
+ *
+ * @param phone - Phone number in any supported format
+ * @returns Object with formatted number and validation result
+ */
+export function validateAndFormatPhone(phone: string): {
+  formatted: string;
+  isValid: boolean;
+  error?: string;
+} {
+  const formatted = formatSaudiPhoneNumber(phone);
+  const isValid = isValidSaudiPhone(formatted);
+
+  return {
+    formatted,
+    isValid,
+    error: isValid ? undefined : `Invalid Saudi phone number format: ${phone}`,
+  };
+}
+
+/**
+ * Redact phone number for logging (privacy)
+ * Example: +966501234567 -> +966 5XX XXX X567
+ */
+export function redactPhoneNumber(phone: string): string {
+  const formatted = formatSaudiPhoneNumber(phone);
+  if (formatted.length < 8) return "***";
+
+  // Show country code, first digit, and last 4 digits
+  const countryCode = formatted.substring(0, 4); // +966
+  const firstDigit = formatted[4] || "X";
+  const lastFour = formatted.slice(-4);
+
+  return `${countryCode} ${firstDigit}XX XXX ${lastFour}`;
+}
+
+]]>
+</file>
+
+<file path="lib/sms-providers/taqnyat.ts">
+<![CDATA[
+/**
+ * Taqnyat SMS Provider
+ *
+ * CITC-compliant SMS provider for Saudi Arabia.
+ * This is the ONLY production SMS provider for Fixzit.
+ *
+ * API Reference: https://api.taqnyat.sa/
+ * - Base URL: https://api.taqnyat.sa/
+ * - Auth: Bearer Token
+ * - Max recipients per bulk: 1000
+ * - Phone format: International without 00 or + (e.g., 966500000000)
+ *
+ * Environment Variables:
+ * - TAQNYAT_BEARER_TOKEN: API authentication token
+ * - TAQNYAT_SENDER_NAME: Registered sender ID (default: "Fixzit")
+ */
+
+import { logger } from "@/lib/logger";
+import type {
+  SMSProvider,
+  SMSProviderType,
+  SMSProviderOptions,
+  SMSResult,
+  SMSStatusResult,
+  BulkSMSResult,
+} from "./types";
+
+// Taqnyat API configuration
+const TAQNYAT_BASE_URL = "https://api.taqnyat.sa";
+const TAQNYAT_BEARER_TOKEN = process.env.TAQNYAT_BEARER_TOKEN;
+const TAQNYAT_SENDER_NAME = process.env.TAQNYAT_SENDER_NAME || "Fixzit";
+const DEFAULT_TIMEOUT_MS = 30000;
+const MAX_BULK_RECIPIENTS = 1000;
+
+/**
+ * Check if Taqnyat is properly configured
+ */
+export function isTaqnyatConfigured(): boolean {
+  return Boolean(TAQNYAT_BEARER_TOKEN && TAQNYAT_SENDER_NAME);
+}
+
+/**
+ * Normalize phone number to Taqnyat format (international without 00 or +)
+ * e.g., +966500000000 -> 966500000000
+ */
+function normalizePhoneNumber(phone: string): string {
+  let normalized = phone.trim();
+
+  // Remove common prefixes
+  if (normalized.startsWith("+")) {
+    normalized = normalized.substring(1);
+  }
+  if (normalized.startsWith("00")) {
+    normalized = normalized.substring(2);
+  }
+
+  // Remove spaces and dashes
+  normalized = normalized.replace(/[\s-]/g, "");
+
+  // If starts with 0 and looks like Saudi number, add 966
+  if (normalized.startsWith("05") && normalized.length === 10) {
+    normalized = "966" + normalized.substring(1);
+  }
+
+  return normalized;
+}
+
+/**
+ * Taqnyat API response types
+ */
+interface TaqnyatSendResponse {
+  statusCode: number;
+  messageId?: string;
+  message?: string;
+  cost?: number;
+  currency?: string;
+  totalCount?: number;
+  msgCount?: number;
+  dateCreated?: string;
+}
+
+interface TaqnyatBalanceResponse {
+  statusCode: number;
+  balance?: number;
+  currency?: string;
+  message?: string;
+}
+
+interface TaqnyatSendersResponse {
+  statusCode: number;
+  senders?: Array<{
+    name: string;
+    status: string;
+  }>;
+  message?: string;
+}
+
+/**
+ * Taqnyat SMS Provider Implementation
+ */
+export class TaqnyatProvider implements SMSProvider {
+  readonly name: SMSProviderType = "taqnyat";
+  private readonly bearerToken: string;
+  private readonly senderName: string;
+  private readonly timeoutMs: number;
+  private readonly maxRetries: number;
+
+  constructor(options?: SMSProviderOptions) {
+    this.bearerToken = TAQNYAT_BEARER_TOKEN || "";
+    this.senderName = TAQNYAT_SENDER_NAME;
+    this.timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    this.maxRetries = options?.maxRetries ?? 2;
+  }
+
+  isConfigured(): boolean {
+    return isTaqnyatConfigured();
+  }
+
+  /**
+   * Make authenticated API request to Taqnyat
+   */
+  private async apiRequest<T>(
+    endpoint: string,
+    method: "GET" | "POST" = "GET",
+    body?: Record<string, unknown>,
+  ): Promise<T> {
+    const url = `${TAQNYAT_BASE_URL}${endpoint}`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+
+    try {
+      const response = await fetch(url, {
+        method,
+        headers: {
+          Authorization: `Bearer ${this.bearerToken}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: body ? JSON.stringify(body) : undefined,
+        signal: controller.signal,
+      });
+
+      const data = (await response.json()) as T;
+
+      if (!response.ok) {
+        logger.error("[Taqnyat] API error", {
+          endpoint,
+          status: response.status,
+          data,
+        });
+        throw new Error(`Taqnyat API error: ${response.status}`);
+      }
+
+      return data;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  /**
+   * Send a single SMS message
+   */
+  async sendSMS(to: string, message: string): Promise<SMSResult> {
+    if (!this.isConfigured()) {
+      logger.warn("[Taqnyat] Provider not configured");
+      return {
+        success: false,
+        error: "Taqnyat provider not configured",
+        provider: this.name,
+        to,
+        timestamp: new Date(),
+      };
+    }
+
+    const recipient = normalizePhoneNumber(to);
+
+    try {
+      const response = await this.apiRequest<TaqnyatSendResponse>(
+        "/v1/messages",
+        "POST",
+        {
+          recipients: [recipient],
+          body: message,
+          sender: this.senderName,
+        },
+      );
+
+      if (response.statusCode === 1 || response.statusCode === 200) {
+        logger.info("[Taqnyat] SMS sent successfully", {
+          to: recipient,
+          messageId: response.messageId,
+          cost: response.cost,
+        });
+
+        return {
+          success: true,
+          messageId: response.messageId,
+          provider: this.name,
+          to: recipient,
+          timestamp: new Date(),
+          rawResponse: response,
+        };
+      }
+
+      logger.error("[Taqnyat] SMS failed", { response });
+      return {
+        success: false,
+        error: response.message || "Unknown error",
+        provider: this.name,
+        to: recipient,
+        timestamp: new Date(),
+        rawResponse: response,
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      logger.error("[Taqnyat] SMS error", { error: errorMessage, to: recipient });
+
+      return {
+        success: false,
+        error: errorMessage,
+        provider: this.name,
+        to: recipient,
+        timestamp: new Date(),
+      };
+    }
+  }
+
+  /**
+   * Send an OTP verification code
+   */
+  async sendOTP(
+    to: string,
+    code: string,
+    expiresInMinutes: number = 5,
+  ): Promise<SMSResult> {
+    const message = `رمز التحقق الخاص بك هو: ${code}. صالح لمدة ${expiresInMinutes} دقائق.\nYour verification code is: ${code}. Valid for ${expiresInMinutes} minutes.`;
+    return this.sendSMS(to, message);
+  }
+
+  /**
+   * Send bulk SMS messages (max 1000 recipients per request)
+   */
+  async sendBulk(recipients: string[], message: string): Promise<BulkSMSResult> {
+    if (!this.isConfigured()) {
+      return {
+        total: recipients.length,
+        successful: 0,
+        sent: 0,
+        failed: recipients.length,
+        results: recipients.map((to) => ({
+          success: false,
+          error: "Taqnyat provider not configured",
+          provider: this.name,
+          to,
+          timestamp: new Date(),
+        })),
+      };
+    }
+
+    // Normalize all phone numbers
+    const normalizedRecipients = recipients.map(normalizePhoneNumber);
+
+    // Split into batches of MAX_BULK_RECIPIENTS
+    const batches: string[][] = [];
+    for (let i = 0; i < normalizedRecipients.length; i += MAX_BULK_RECIPIENTS) {
+      batches.push(normalizedRecipients.slice(i, i + MAX_BULK_RECIPIENTS));
+    }
+
+    const allResults: SMSResult[] = [];
+    let totalSuccessful = 0;
+    let totalFailed = 0;
+
+    for (const batch of batches) {
+      try {
+        const response = await this.apiRequest<TaqnyatSendResponse>(
+          "/v1/messages",
+          "POST",
+          {
+            recipients: batch,
+            body: message,
+            sender: this.senderName,
+          },
+        );
+
+        if (response.statusCode === 1 || response.statusCode === 200) {
+          totalSuccessful += batch.length;
+          batch.forEach((to) => {
+            allResults.push({
+              success: true,
+              messageId: response.messageId,
+              provider: this.name,
+              to,
+              timestamp: new Date(),
+            });
+          });
+        } else {
+          totalFailed += batch.length;
+          batch.forEach((to) => {
+            allResults.push({
+              success: false,
+              error: response.message || "Bulk send failed",
+              provider: this.name,
+              to,
+              timestamp: new Date(),
+            });
+          });
+        }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        totalFailed += batch.length;
+        batch.forEach((to) => {
+          allResults.push({
+            success: false,
+            error: errorMessage,
+            provider: this.name,
+            to,
+            timestamp: new Date(),
+          });
+        });
+      }
+    }
+
+    return {
+      total: recipients.length,
+      successful: totalSuccessful,
+      sent: totalSuccessful,
+      failed: totalFailed,
+      results: allResults,
+    };
+  }
+
+  /**
+   * Get message delivery status (not supported by Taqnyat basic API)
+   */
+  async getStatus(messageId: string): Promise<SMSStatusResult | null> {
+    // Taqnyat uses webhooks for delivery reports
+    // For now, return unknown status
+    return {
+      status: "unknown",
+      messageId,
+      updatedAt: new Date(),
+    };
+  }
+
+  /**
+   * Get account balance
+   */
+  async getBalance(): Promise<{ balance: number; currency: string } | null> {
+    if (!this.isConfigured()) {
+      return null;
+    }
+
+    try {
+      const response = await this.apiRequest<TaqnyatBalanceResponse>(
+        "/account/balance",
+        "GET",
+      );
+
+      if (response.statusCode === 1 || response.statusCode === 200) {
+        return {
+          balance: response.balance ?? 0,
+          currency: response.currency ?? "SAR",
+        };
+      }
+
+      logger.error("[Taqnyat] Failed to get balance", { response });
+      return null;
+    } catch (error) {
+      logger.error("[Taqnyat] Balance check error", { error });
+      return null;
+    }
+  }
+
+  /**
+   * Get registered senders
+   */
+  async getSenders(): Promise<Array<{ name: string; status: string }> | null> {
+    if (!this.isConfigured()) {
+      return null;
+    }
+
+    try {
+      const response = await this.apiRequest<TaqnyatSendersResponse>(
+        "/v1/messages/senders",
+        "GET",
+      );
+
+      if (response.statusCode === 1 || response.statusCode === 200) {
+        return response.senders ?? [];
+      }
+
+      return null;
+    } catch (error) {
+      logger.error("[Taqnyat] Senders fetch error", { error });
+      return null;
+    }
+  }
+
+  /**
+   * Test provider configuration
+   */
+  async testConfiguration(): Promise<boolean> {
+    try {
+      const balance = await this.getBalance();
+      return balance !== null;
+    } catch {
+      return false;
+    }
+  }
+}
+
+// Singleton instance
+let taqnyatInstance: TaqnyatProvider | null = null;
+
+/**
+ * Get the Taqnyat provider singleton instance
+ */
+export function getTaqnyatProvider(options?: SMSProviderOptions): TaqnyatProvider {
+  if (!taqnyatInstance) {
+    taqnyatInstance = new TaqnyatProvider(options);
+  }
+  return taqnyatInstance;
+}
+
+]]>
+</file>
+
+<file path="lib/sms-providers/types.ts">
+<![CDATA[
+/**
+ * SMS Provider Type Definitions
+ *
+ * Shared types for all SMS provider implementations.
+ * 
+ * IMPORTANT: Taqnyat is the ONLY production SMS provider for Fixzit.
+ * - Taqnyat is CITC-compliant for Saudi Arabia
+ * - Mock provider is available for development/testing only
+ */
+
+/**
+ * Supported SMS provider types
+ * - taqnyat: Production provider (CITC-compliant for KSA)
+ * - mock: Development/testing only
+ */
+export type SMSProviderType = "taqnyat" | "mock";
+
+/**
+ * SMS delivery status codes
+ */
+export type SMSDeliveryStatus =
+  | "queued"
+  | "sending"
+  | "sent"
+  | "delivered"
+  | "failed"
+  | "undelivered"
+  | "unknown";
+
+/**
+ * Result from sending an SMS
+ */
+export interface SMSResult {
+  success: boolean;
+  messageId?: string;
+  error?: string;
+  provider?: SMSProviderType;
+  to?: string;
+  timestamp?: Date;
+  /** Raw response from provider for debugging */
+  rawResponse?: unknown;
+}
+
+/**
+ * Result from checking SMS delivery status
+ */
+export interface SMSStatusResult {
+  status: SMSDeliveryStatus;
+  messageId?: string;
+  error?: string;
+  updatedAt?: Date;
+  createdAt?: Date;
+  sentAt?: Date;
+  errorCode?: string | number;
+  errorMessage?: string;
+}
+
+/**
+ * Result from sending bulk SMS messages
+ */
+export interface BulkSMSResult {
+  total?: number;
+  successful?: number;
+  failed: number;
+  /** Alias for successful - for backward compatibility */
+  sent: number;
+  results: SMSResult[];
+}
+
+/**
+ * Options for initializing an SMS provider
+ */
+export interface SMSProviderOptions {
+  /** Force development/mock mode */
+  devMode?: boolean;
+  /** Override default timeout in milliseconds */
+  timeoutMs?: number;
+  /** Maximum retry attempts */
+  maxRetries?: number;
+}
+
+/**
+ * SMS Provider Interface
+ *
+ * All SMS providers must implement this interface.
+ */
+export interface SMSProvider {
+  /** Provider name identifier */
+  readonly name: SMSProviderType;
+
+  /**
+   * Check if the provider is properly configured
+   */
+  isConfigured(): boolean;
+
+  /**
+   * Send a single SMS message
+   * @param to Recipient phone number (E.164 format preferred)
+   * @param message SMS message content
+   */
+  sendSMS(to: string, message: string): Promise<SMSResult>;
+
+  /**
+   * Send an OTP verification code
+   * @param to Recipient phone number
+   * @param code The OTP code to send
+   * @param expiresInMinutes How long the code is valid
+   */
+  sendOTP?(
+    to: string,
+    code: string,
+    expiresInMinutes?: number,
+  ): Promise<SMSResult>;
+
+  /**
+   * Send bulk SMS messages
+   * @param recipients Array of phone numbers
+   * @param message SMS message content
+   */
+  sendBulk?(recipients: string[], message: string): Promise<BulkSMSResult>;
+
+  /**
+   * Check delivery status of a sent message
+   * @param messageId The message ID from sendSMS result
+   */
+  getStatus?(messageId: string): Promise<SMSStatusResult | null>;
+
+  /**
+   * Test if the provider configuration is valid
+   */
+  testConfiguration?(): Promise<boolean>;
+}
+
+]]>
+</file>
+
+<file path="lib/sms.ts">
+<![CDATA[
+/**
+ * SMS Service - Taqnyat Integration for Saudi Market
+ *
+ * IMPORTANT: Taqnyat is the ONLY production SMS provider for Fixzit.
+ * - CITC-compliant for Saudi Arabia
+ * - All other providers have been removed
+ *
+ * Provides SMS functionality for notifications, OTP, and alerts.
+ * Supports Saudi Arabian phone number formats.
+ */
+
+import { logger } from "@/lib/logger";
+import {
+  executeWithRetry,
+  withTimeout,
+  getCircuitBreaker,
+} from "@/lib/resilience";
+import { SERVICE_RESILIENCE } from "@/config/service-timeouts";
+import {
+  formatSaudiPhoneNumber,
+  isValidSaudiPhone,
+} from "@/lib/sms-providers/phone-utils";
+import { TaqnyatProvider, isTaqnyatConfigured } from "@/lib/sms-providers";
+
+const NODE_ENV = process.env.NODE_ENV || "development";
+const SMS_DEV_MODE_ENABLED =
+  process.env.SMS_DEV_MODE === "true" ||
+  (NODE_ENV !== "production" && process.env.SMS_DEV_MODE !== "false");
+
+const taqnyatBreaker = getCircuitBreaker("taqnyat");
+const taqnyatResilience = SERVICE_RESILIENCE.taqnyat;
+
+interface SMSResult {
+  success: boolean;
+  messageSid?: string;
+  error?: string;
+}
+
+export type TaqnyatOperationLabel =
+  | "sms-send"
+  | "sms-status"
+  | "sms-config-test"
+  | "sms-balance";
+
+export async function withTaqnyatResilience<T>(
+  label: TaqnyatOperationLabel,
+  operation: () => Promise<T>,
+): Promise<T> {
+  const timeoutMs =
+    label === "sms-status"
+      ? taqnyatResilience.timeouts.statusMs
+      : taqnyatResilience.timeouts.smsSendMs;
+
+  return executeWithRetry(
+    () =>
+      taqnyatBreaker.run(() =>
+        withTimeout(() => operation(), {
+          timeoutMs,
+        }),
+      ),
+    {
+      maxAttempts: taqnyatResilience.retries.maxAttempts,
+      baseDelayMs: taqnyatResilience.retries.baseDelayMs,
+      label: `taqnyat-${label}`,
+    },
+  );
+}
+
+/**
+ * SMS provider options for org-specific configuration
+ */
+export interface SMSProviderOptions {
+  provider?: 'TAQNYAT' | 'LOCAL';
+  bearerToken?: string;
+  senderName?: string;
+}
+
+/**
+ * Send SMS via Taqnyat (the ONLY production SMS provider)
+ */
+export async function sendSMS(
+  to: string, 
+  message: string,
+  options?: SMSProviderOptions
+): Promise<SMSResult> {
+  const provider = options?.provider || 'TAQNYAT';
+  const formattedPhone = formatSaudiPhoneNumber(to);
+
+  if (!isValidSaudiPhone(formattedPhone)) {
+    const error = `Invalid Saudi phone number format: ${to}`;
+    logger.warn("[SMS] Invalid phone number", { to, formattedPhone, provider });
+    return { success: false, error };
+  }
+
+  if (!isTaqnyatConfigured() && !SMS_DEV_MODE_ENABLED) {
+    const error = "SMS provider Taqnyat not configured. Missing TAQNYAT_BEARER_TOKEN or TAQNYAT_SENDER_NAME.";
+    logger.warn("[SMS] Configuration missing", { to: formattedPhone, provider });
+    return { success: false, error };
+  }
+
+  if (SMS_DEV_MODE_ENABLED && !isTaqnyatConfigured()) {
+    const messageSid = `dev-taqnyat-${Date.now()}`;
+    logger.info("[SMS] Dev mode enabled - SMS not sent", {
+      to: formattedPhone,
+      preview: message,
+      messageSid,
+      provider,
+    });
+    return { success: true, messageSid };
+  }
+
+  try {
+    const taqnyatProvider = new TaqnyatProvider({
+      timeoutMs: taqnyatResilience.timeouts.smsSendMs,
+      maxRetries: taqnyatResilience.retries.maxAttempts,
+    });
+
+    const result = await withTaqnyatResilience("sms-send", () =>
+      taqnyatProvider.sendSMS(formattedPhone, message)
+    );
+
+    return {
+      success: result.success,
+      messageSid: result.messageId,
+      error: result.error,
+    };
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    const errorMessage = error.message;
+    logger.error("[SMS] Taqnyat send failed", {
+      error: errorMessage,
+      to: formattedPhone,
+    });
+
+    return {
+      success: false,
+      error: errorMessage,
+    };
+  }
+}
+
+/**
+ * Send OTP (One-Time Password) via SMS
+ */
+export async function sendOTP(to: string, code: string): Promise<SMSResult> {
+  const message = `رمز التحقق الخاص بك هو: ${code}. صالح لمدة 5 دقائق.
+Your Fixzit verification code is: ${code}. Valid for 5 minutes. Do not share this code.`;
+  return sendSMS(to, message);
+}
+
+/**
+ * Send bulk SMS (e.g., for marketing campaigns)
+ * Uses Taqnyat bulk API (max 1000 recipients per request)
+ */
+export async function sendBulkSMS(
+  recipients: string[],
+  message: string,
+  _options?: { delayMs?: number },
+): Promise<{ sent: number; failed: number; results: SMSResult[] }> {
+  if (!isTaqnyatConfigured() && !SMS_DEV_MODE_ENABLED) {
+    return {
+      sent: 0,
+      failed: recipients.length,
+      results: recipients.map(() => ({
+        success: false,
+        error: "Taqnyat not configured",
+      })),
+    };
+  }
+
+  if (SMS_DEV_MODE_ENABLED && !isTaqnyatConfigured()) {
+    logger.info("[SMS] Dev mode - bulk SMS simulated", {
+      total: recipients.length,
+    });
+    return {
+      sent: recipients.length,
+      failed: 0,
+      results: recipients.map(() => ({
+        success: true,
+        messageSid: `dev-bulk-${Date.now()}`,
+      })),
+    };
+  }
+
+  try {
+    const taqnyatProvider = new TaqnyatProvider();
+    const formattedRecipients = recipients.map(formatSaudiPhoneNumber);
+    
+    const result = await withTaqnyatResilience("sms-send", () =>
+      taqnyatProvider.sendBulk(formattedRecipients, message)
+    );
+
+    logger.info("[SMS] Bulk send completed", {
+      total: recipients.length,
+      sent: result.sent,
+      failed: result.failed,
+    });
+
+    return {
+      sent: result.sent,
+      failed: result.failed,
+      results: result.results.map(r => ({
+        success: r.success,
+        messageSid: r.messageId,
+        error: r.error,
+      })),
+    };
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    logger.error("[SMS] Bulk send failed", { error: error.message });
+    return {
+      sent: 0,
+      failed: recipients.length,
+      results: recipients.map(() => ({
+        success: false,
+        error: error.message,
+      })),
+    };
+  }
+}
+
+/**
+ * Get SMS delivery status
+ * Note: Taqnyat uses webhooks for delivery reports
+ */
+export async function getSMSStatus(messageSid: string): Promise<{
+  status: string;
+  dateCreated: Date;
+  dateSent?: Date;
+  errorCode?: number;
+  errorMessage?: string;
+} | null> {
+  if (!isTaqnyatConfigured()) {
+    logger.warn("[SMS] Cannot check status - Taqnyat not configured");
+    return null;
+  }
+
+  // Taqnyat uses webhooks for delivery status
+  // For now, return unknown status
+  void messageSid;
+  return {
+    status: "unknown",
+    dateCreated: new Date(),
+  };
+}
+
+/**
+ * Test SMS configuration
+ */
+export async function testSMSConfiguration(): Promise<boolean> {
+  if (!isTaqnyatConfigured()) {
+    logger.error("[SMS] Configuration test failed - missing credentials");
+    return false;
+  }
+
+  try {
+    const taqnyatProvider = new TaqnyatProvider();
+    const isValid = await withTaqnyatResilience("sms-config-test", () =>
+      taqnyatProvider.testConfiguration()
+    );
+
+    if (isValid) {
+      logger.info("[SMS] Configuration test passed (Taqnyat)");
+    } else {
+      logger.error("[SMS] Configuration test failed (Taqnyat)");
+    }
+    return isValid;
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    logger.error("[SMS] Configuration test failed", { error: error.message });
+    return false;
+  }
+}
+
+/**
+ * Get Taqnyat account balance
+ */
+export async function getSMSBalance(): Promise<{ balance: number; currency: string } | null> {
+  if (!isTaqnyatConfigured()) {
+    logger.warn("[SMS] Cannot check balance - Taqnyat not configured");
+    return null;
+  }
+
+  try {
+    const taqnyatProvider = new TaqnyatProvider();
+    return await withTaqnyatResilience("sms-balance", () =>
+      taqnyatProvider.getBalance()
+    );
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    logger.error("[SMS] Balance check failed", { error: error.message });
+    return null;
+  }
+}
+
+export function isSMSDevModeEnabled(): boolean {
+  return SMS_DEV_MODE_ENABLED;
+}
+
+export { formatSaudiPhoneNumber, isValidSaudiPhone };
+
+]]>
+</file>
+
+<file path="lib/souq/feature-flags.ts">
+<![CDATA[
+import { logger } from "@/lib/logger";
+/**
+ * Feature Flags for Fixzit Souq Marketplace
+ * Controls gradual rollout of advanced marketplace features
+ * @module lib/souq/feature-flags
+ */
+
+export type SouqFeatureFlag =
+  | "ads"
+  | "deals"
+  | "buy_box"
+  | "settlement"
+  | "returns_center"
+  | "brand_registry"
+  | "account_health"
+  | "fulfillment_by_fixzit"
+  | "a_to_z_claims"
+  | "sponsored_products"
+  | "auto_repricer"
+  | "reviews_qa";
+
+export interface SouqFeatureFlags {
+  ads: boolean; // Sponsored Products/Brands/Display ads
+  deals: boolean; // Lightning Deals, Event Deals, Coupons
+  buy_box: boolean; // Multi-seller Buy Box competition
+  settlement: boolean; // Payout cycles, fee schedules, invoicing
+  returns_center: boolean; // Self-service returns with RMAs
+  brand_registry: boolean; // Brand verification & IP protection
+  account_health: boolean; // Seller metrics, violations, appeals
+  fulfillment_by_fixzit: boolean; // FBF warehousing & shipping
+  a_to_z_claims: boolean; // Buyer-seller guarantee claims
+  sponsored_products: boolean; // CPC auction for search/PLP ads
+  auto_repricer: boolean; // Automated competitive pricing
+  reviews_qa: boolean; // Product reviews & Q&A system
+}
+
+/**
+ * Default feature flags - all OFF by default in production
+ * Enable via environment variables or admin console
+ */
+const DEFAULT_FLAGS: SouqFeatureFlags = {
+  ads: false,
+  deals: false,
+  buy_box: false,
+  settlement: false,
+  returns_center: false,
+  brand_registry: false,
+  account_health: false,
+  fulfillment_by_fixzit: false,
+  a_to_z_claims: false,
+  sponsored_products: false,
+  auto_repricer: false,
+  reviews_qa: false,
+};
+
+/**
+ * Load feature flags from environment variables
+ * Format: SOUQ_FEATURE_<FLAG_NAME>=true|false
+ */
+function loadFeatureFlagsFromEnv(): Partial<SouqFeatureFlags> {
+  const flags: Partial<SouqFeatureFlags> = {};
+
+  // Parse environment variables
+  if (typeof process !== "undefined" && process.env) {
+    Object.keys(DEFAULT_FLAGS).forEach((key) => {
+      const envKey = `SOUQ_FEATURE_${key.toUpperCase()}`;
+      const envValue = process.env[envKey];
+
+      if (envValue !== undefined) {
+        flags[key as SouqFeatureFlag] = envValue === "true" || envValue === "1";
+      }
+    });
+  }
+
+  return flags;
+}
+
+/**
+ * Current feature flags (merged with environment overrides)
+ */
+let currentFlags: SouqFeatureFlags = {
+  ...DEFAULT_FLAGS,
+  ...loadFeatureFlagsFromEnv(),
+};
+
+/**
+ * Check if a feature flag is enabled
+ * @param flag - Feature flag name
+ * @returns true if enabled, false otherwise
+ */
+export function isFeatureEnabled(flag: SouqFeatureFlag): boolean {
+  return currentFlags[flag] ?? false;
+}
+
+/**
+ * Get all current feature flags
+ * @returns Object with all feature flags and their states
+ */
+export function getAllFeatureFlags(): Readonly<SouqFeatureFlags> {
+  return { ...currentFlags };
+}
+
+/**
+ * Set a feature flag (for testing or admin console)
+ * WARNING: This mutates global state. Use only in tests or with proper authorization.
+ * @param flag - Feature flag name
+ * @param enabled - true to enable, false to disable
+ */
+export function setFeatureFlag(flag: SouqFeatureFlag, enabled: boolean): void {
+  currentFlags = {
+    ...currentFlags,
+    [flag]: enabled,
+  };
+}
+
+/**
+ * Reset all feature flags to defaults (for testing)
+ */
+export function resetFeatureFlags(): void {
+  currentFlags = {
+    ...DEFAULT_FLAGS,
+    ...loadFeatureFlagsFromEnv(),
+  };
+}
+
+/**
+ * Bulk set multiple feature flags
+ * @param flags - Object with flags to set
+ */
+export function setFeatureFlags(flags: Partial<SouqFeatureFlags>): void {
+  currentFlags = {
+    ...currentFlags,
+    ...flags,
+  };
+}
+
+/**
+ * Feature flag guard - throws if feature is disabled
+ * Use in API routes to enforce flag checks
+ * @param flag - Feature flag name
+ * @throws Error if feature is disabled
+ */
+export function requireFeature(flag: SouqFeatureFlag): void {
+  if (!isFeatureEnabled(flag)) {
+    throw new Error(
+      `Feature "${flag}" is not enabled. Contact your administrator to enable this feature.`,
+    );
+  }
+}
+
+/**
+ * Feature dependencies - some features require others to be enabled
+ */
+export const FEATURE_DEPENDENCIES: Record<SouqFeatureFlag, SouqFeatureFlag[]> =
+  {
+    ads: [], // No dependencies
+    deals: [], // No dependencies
+    buy_box: [], // No dependencies
+    settlement: [], // No dependencies
+    returns_center: [], // No dependencies
+    brand_registry: [], // No dependencies
+    account_health: [], // No dependencies
+    fulfillment_by_fixzit: [], // No dependencies
+    a_to_z_claims: ["returns_center"], // Claims require returns
+    sponsored_products: ["ads"], // Sponsored products is a subset of ads
+    auto_repricer: ["buy_box"], // Repricer only useful with Buy Box
+    reviews_qa: [], // No dependencies
+  };
+
+/**
+ * Check if all dependencies for a feature are enabled
+ * @param flag - Feature flag name
+ * @returns true if all dependencies are enabled, false otherwise
+ */
+export function areDependenciesEnabled(flag: SouqFeatureFlag): boolean {
+  const dependencies = FEATURE_DEPENDENCIES[flag] || [];
+  return dependencies.every((dep) => isFeatureEnabled(dep));
+}
+
+/**
+ * Get missing dependencies for a feature
+ * @param flag - Feature flag name
+ * @returns Array of missing dependency flag names
+ */
+export function getMissingDependencies(
+  flag: SouqFeatureFlag,
+): SouqFeatureFlag[] {
+  const dependencies = FEATURE_DEPENDENCIES[flag] || [];
+  return dependencies.filter((dep) => !isFeatureEnabled(dep));
+}
+
+/**
+ * Feature flag middleware for Next.js API routes
+ * @param flag - Feature flag to check
+ * @returns Middleware function
+ * @example
+ * export async function GET(req: Request) {
+ *   requireFeature('ads');
+ *   // ... rest of handler
+ * }
+ */
+export function createFeatureMiddleware(flag: SouqFeatureFlag) {
+  return () => {
+    requireFeature(flag);
+
+    // Check dependencies
+    if (!areDependenciesEnabled(flag)) {
+      const missing = getMissingDependencies(flag);
+      throw new Error(
+        `Feature "${flag}" requires the following features to be enabled: ${missing.join(", ")}`,
+      );
+    }
+  };
+}
+
+// Development helper: Log feature flags on startup
+if (process.env.NODE_ENV === "development") {
+  logger.info("🎛️  Souq Feature Flags:", { flags: currentFlags });
+}
+
+export default {
+  isFeatureEnabled,
+  getAllFeatureFlags,
+  setFeatureFlag,
+  setFeatureFlags,
+  resetFeatureFlags,
+  requireFeature,
+  areDependenciesEnabled,
+  getMissingDependencies,
+  createFeatureMiddleware,
+};
+
+]]>
+</file>
+
+<file path="lib/souq/fsin-generator.ts">
+<![CDATA[
+/**
+ * FSIN Generator - Fixzit Standard Item Number
+ * Generates unique 14-digit identifiers for products in Souq Marketplace
+ * Format: FSIN-12345678901234 (14 digits with check digit)
+ * @module lib/souq/fsin-generator
+ */
+
+import { randomBytes } from "crypto";
+import { ObjectId } from "mongodb";
+import { logger } from "@/lib/logger";
+
+export interface FSINMetadata {
+  fsin: string;
+  checkDigit: number;
+  prefix: string;
+  sequence: string;
+  generatedAt: Date;
+}
+
+/**
+ * FSIN Configuration
+ */
+const _FSIN_CONFIG = {
+  PREFIX: "FX", // Fixzit prefix (2 chars)
+  LENGTH: 14, // Total length including check digit
+  SEQUENCE_LENGTH: 11, // 11 digits for sequence
+  CHECK_DIGIT_LENGTH: 1, // 1 check digit
+} as const;
+
+/**
+ * Generate a random sequence for FSIN
+ * Uses cryptographically secure random number generation
+ * @returns 11-digit sequence as string
+ */
+function generateSequence(): string {
+  // Generate random bytes
+  const buffer = randomBytes(8);
+  const randomNumber = buffer.readBigUInt64BE(0);
+
+  // Convert to 11-digit string with leading zeros
+  const sequence = (randomNumber % BigInt(10 ** _FSIN_CONFIG.SEQUENCE_LENGTH))
+    .toString()
+    .padStart(_FSIN_CONFIG.SEQUENCE_LENGTH, "0");
+
+  return sequence;
+}
+
+/**
+ * Calculate check digit using Luhn algorithm (mod 10)
+ * Used for error detection in FSIN
+ * @param digits - String of digits to calculate check digit for
+ * @returns Check digit (0-9)
+ */
+function calculateCheckDigit(digits: string): number {
+  // Luhn algorithm
+  let sum = 0;
+  let isEven = false;
+
+  // Process from right to left
+  for (let i = digits.length - 1; i >= 0; i--) {
+    let digit = parseInt(digits[i], 10);
+
+    if (isEven) {
+      digit *= 2;
+      if (digit > 9) {
+        digit -= 9;
+      }
+    }
+
+    sum += digit;
+    isEven = !isEven;
+  }
+
+  // Check digit makes sum divisible by 10
+  const checkDigit = (10 - (sum % 10)) % 10;
+  return checkDigit;
+}
+
+/**
+ * Validate FSIN format and check digit
+ * @param fsin - FSIN string to validate
+ * @returns true if valid, false otherwise
+ */
+export function validateFSIN(fsin: string): boolean {
+  // Remove any whitespace or dashes
+  const cleaned = fsin.replace(/[\s-]/g, "");
+
+  // Check length
+  if (cleaned.length !== _FSIN_CONFIG.LENGTH) {
+    return false;
+  }
+
+  // Check prefix
+  if (!cleaned.startsWith(_FSIN_CONFIG.PREFIX)) {
+    return false;
+  }
+
+  // Extract components
+  const digitsOnly = cleaned.substring(_FSIN_CONFIG.PREFIX.length);
+
+  // Check if all characters are digits
+  if (!/^\d+$/.test(digitsOnly)) {
+    return false;
+  }
+
+  // Validate check digit
+  const providedCheckDigit = parseInt(digitsOnly[digitsOnly.length - 1], 10);
+  const sequenceDigits = digitsOnly.substring(0, digitsOnly.length - 1);
+  const calculatedCheckDigit = calculateCheckDigit(sequenceDigits);
+
+  return providedCheckDigit === calculatedCheckDigit;
+}
+
+/**
+ * Generate a new FSIN
+ * @returns FSIN metadata object
+ */
+export function generateFSIN(): FSINMetadata {
+  const sequence = generateSequence();
+  const checkDigit = calculateCheckDigit(sequence);
+  const fsin = `${_FSIN_CONFIG.PREFIX}${sequence}${checkDigit}`;
+
+  return {
+    fsin,
+    checkDigit,
+    prefix: _FSIN_CONFIG.PREFIX,
+    sequence,
+    generatedAt: new Date(),
+  };
+}
+
+/**
+ * Generate multiple FSINs
+ * Ensures no collisions within the batch
+ * @param count - Number of FSINs to generate
+ * @returns Array of FSIN metadata objects
+ */
+export function generateFSINBatch(count: number): FSINMetadata[] {
+  const fsins = new Set<string>();
+  const results: FSINMetadata[] = [];
+
+  let attempts = 0;
+  const maxAttempts = count * 10; // Prevent infinite loops
+
+  while (fsins.size < count && attempts < maxAttempts) {
+    const metadata = generateFSIN();
+
+    if (!fsins.has(metadata.fsin)) {
+      fsins.add(metadata.fsin);
+      results.push(metadata);
+    }
+
+    attempts++;
+  }
+
+  if (attempts >= maxAttempts) {
+    throw new Error(
+      `Failed to generate ${count} unique FSINs after ${maxAttempts} attempts`,
+    );
+  }
+
+  return results;
+}
+
+/**
+ * Format FSIN with dashes for display
+ * Format: FX-12345-67890-1
+ * @param fsin - FSIN string
+ * @returns Formatted FSIN
+ */
+export function formatFSIN(fsin: string): string {
+  const cleaned = fsin.replace(/[\s-]/g, "");
+
+  if (cleaned.length !== _FSIN_CONFIG.LENGTH) {
+    throw new Error(`Invalid FSIN length: ${cleaned.length}`);
+  }
+
+  // Format: FX-12345-67890-1
+  return `${cleaned.substring(0, 2)}-${cleaned.substring(2, 7)}-${cleaned.substring(7, 12)}-${cleaned.substring(12)}`;
+}
+
+/**
+ * Parse FSIN into components
+ * @param fsin - FSIN string
+ * @returns Parsed components or null if invalid
+ */
+export function parseFSIN(fsin: string): FSINMetadata | null {
+  if (!validateFSIN(fsin)) {
+    return null;
+  }
+
+  const cleaned = fsin.replace(/[\s-]/g, "");
+  const prefix = cleaned.substring(0, _FSIN_CONFIG.PREFIX.length);
+  const digitsOnly = cleaned.substring(_FSIN_CONFIG.PREFIX.length);
+  const sequence = digitsOnly.substring(0, digitsOnly.length - 1);
+  const checkDigit = parseInt(digitsOnly[digitsOnly.length - 1], 10);
+
+  return {
+    fsin: cleaned,
+    checkDigit,
+    prefix,
+    sequence,
+    generatedAt: new Date(), // Unknown for parsed FSINs
+  };
+}
+
+/**
+ * Generate FSIN with custom prefix (for testing or special cases)
+ * WARNING: Use only for testing. Production should use standard FX prefix.
+ * @param customPrefix - Custom 2-character prefix
+ * @returns FSIN metadata object
+ */
+export function generateFSINWithPrefix(customPrefix: string): FSINMetadata {
+  if (customPrefix.length !== 2) {
+    throw new Error("Custom prefix must be exactly 2 characters");
+  }
+
+  const sequence = generateSequence();
+  const checkDigit = calculateCheckDigit(sequence);
+  const fsin = `${customPrefix}${sequence}${checkDigit}`;
+
+  return {
+    fsin,
+    checkDigit,
+    prefix: customPrefix,
+    sequence,
+    generatedAt: new Date(),
+  };
+}
+
+/**
+ * Check if FSIN exists in database
+ * Queries SouqProduct model to verify uniqueness
+ * @param _fsin - FSIN to check
+ * @returns Promise<boolean> true if exists, false otherwise
+ * @throws Error if database query fails (prevents duplicate FSINs during outages)
+ */
+export async function fsinExists(_fsin: string, orgId: string): Promise<boolean> {
+  if (!orgId) {
+    throw new Error("orgId is required to check FSIN uniqueness (STRICT v4.1)");
+  }
+  if (!ObjectId.isValid(orgId)) {
+    throw new Error("Invalid orgId for FSIN uniqueness check");
+  }
+  const orgFilter = new ObjectId(orgId);
+  try {
+    const { SouqProduct } = await import("@/server/models/souq/Product");
+    const { connectDb } = await import("@/lib/mongodb-unified");
+
+    await connectDb();
+
+    const product = await SouqProduct.findOne({
+      fsin: _fsin,
+      $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+    })
+      .select("_id")
+      .lean();
+    return !!product;
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    // ✅ SECURITY FIX: Throw on DB errors to prevent duplicate FSINs during outages
+    // If we can't query the DB, we can't guarantee uniqueness - fail hard
+    logger.error(
+      "[FSIN] Database lookup failed - cannot verify uniqueness",
+      error as Error,
+      { fsin: _fsin },
+    );
+    throw new Error(
+      `FSIN uniqueness check failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
+  }
+}
+
+/**
+ * Generate unique FSIN with collision detection
+ * Retries if FSIN already exists in database
+ *
+ * ⚠️ RACE CONDITION: This check-then-insert pattern is NOT atomic.
+ * Two concurrent requests can both pass fsinExists() and insert the same FSIN.
+ *
+ * ✅ REQUIRED FIX: Add org-scoped unique index on SouqProduct.fsin field:
+ *    souqProductSchema.index({ orgId: 1, fsin: 1 }, { unique: true });
+ *
+ * Then handle duplicate key errors (code 11000) in product creation:
+ *    try { await SouqProduct.create({ fsin, ... }) }
+ *    catch (err) { if (err.code === 11000) retry with new FSIN }
+ *
+ * @param maxRetries - Maximum retry attempts (default: 5)
+ * @returns Promise<FSINMetadata>
+ */
+export async function generateUniqueFSIN(
+  orgId: string,
+  maxRetries = 5,
+): Promise<FSINMetadata> {
+  if (!orgId) {
+    throw new Error("orgId is required to generate a unique FSIN (STRICT v4.1)");
+  }
+  let attempts = 0;
+
+  while (attempts < maxRetries) {
+    const metadata = generateFSIN();
+
+    // Check if FSIN already exists
+    const exists = await fsinExists(metadata.fsin, orgId);
+
+    if (!exists) {
+      return metadata;
+    }
+
+    attempts++;
+  }
+
+  throw new Error(
+    `Failed to generate unique FSIN after ${maxRetries} attempts`,
+  );
+}
+
+// Export for testing
+export const _testing = {
+  generateSequence,
+  calculateCheckDigit,
+  FSIN_CONFIG: _FSIN_CONFIG,
+};
+
+export default {
+  generateFSIN,
+  generateFSINBatch,
+  generateUniqueFSIN,
+  validateFSIN,
+  formatFSIN,
+  parseFSIN,
+  fsinExists,
+};
+
+]]>
+</file>
+
+<file path="lib/souq/review-types.ts">
+<![CDATA[
+// Client-safe review types (no mongoose imports)
+
+export type SellerReview = {
+  reviewId: string;
+  productId?: string;
+  fsin?: string;
+  customerName: string;
+  isVerifiedPurchase: boolean;
+  rating: number;
+  title: string;
+  content: string;
+  pros?: string[];
+  cons?: string[];
+  images?: Array<{
+    url: string;
+    caption?: string;
+    uploadedAt: Date;
+  }>;
+  helpful: number;
+  notHelpful: number;
+  sellerResponse?: {
+    content: string;
+    respondedAt: Date;
+    respondedBy: string;
+  };
+  status: "pending" | "published" | "rejected" | "flagged";
+  moderationNotes?: string;
+  reportedCount?: number;
+  reportReasons?: string[];
+  createdAt: Date;
+  updatedAt: Date;
+  publishedAt?: Date;
+};
+
+]]>
+</file>
+
+<file path="lib/startup-checks.ts">
+<![CDATA[
+import { requireEnv, TEST_JWT_SECRET } from "./env";
+
+/**
+ * Startup Validation - Fail Fast on Missing/Invalid Configuration
+ *
+ * This module validates critical environment variables at application startup.
+ * Failures here should terminate the application before accepting any requests.
+ *
+ * IMPORTANT: Call validateStartup() from your app entry point (e.g., middleware.ts or layout.tsx)
+ */
+
+export function validateStartup(): void {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  try {
+    const jwtSecret = requireEnv("JWT_SECRET", {
+      testFallback: TEST_JWT_SECRET,
+    });
+    if (jwtSecret.length < 32) {
+      errors.push(
+        `JWT_SECRET must be at least 32 characters long. Current length: ${jwtSecret.length}`,
+      );
+    }
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    errors.push(error instanceof Error ? error.message : String(error));
+  }
+
+  // Payment gateway secrets - warn (or fail in production) when missing
+  const paytabsMissing =
+    !process.env.PAYTABS_SERVER_KEY || !process.env.PAYTABS_PROFILE_ID;
+  if (paytabsMissing) {
+    const msg =
+      "PayTabs gateway secrets missing (PAYTABS_SERVER_KEY, PAYTABS_PROFILE_ID)";
+    if (process.env.NODE_ENV === "production") {
+      errors.push(msg);
+    } else {
+      warnings.push(msg);
+    }
+  }
+
+  const tapMissing = !process.env.TAP_WEBHOOK_SECRET;
+  if (tapMissing) {
+    const msg = "Tap webhook secret missing (TAP_WEBHOOK_SECRET)";
+    if (process.env.NODE_ENV === "production") {
+      errors.push(msg);
+    } else {
+      warnings.push(msg);
+    }
+  }
+
+  // Throw all errors at once for comprehensive startup feedback
+  if (errors.length > 0) {
+    throw new Error(
+      `FATAL STARTUP ERRORS - Application cannot start:\n${errors.map((e, i) => `${i + 1}. ${e}`).join("\n")}\n\n` +
+        "Fix these configuration issues and restart the application.",
+    );
+  }
+
+  if (warnings.length > 0) {
+    for (const w of warnings) {
+      // eslint-disable-next-line no-console -- startup warnings are intentional for operators
+      console.warn(
+        `[Startup Warning] ${w}. Configure these secrets to enable payment callbacks.`,
+      );
+    }
+  }
+}
+
+/**
+ * Module-level flag to track if startup validation has been executed
+ */
+let startupValidated = false;
+
+/**
+ * Validates all critical environment variables and marks validation as complete
+ * Call this from your app entry point (e.g., middleware.ts or layout.tsx)
+ * @throws {Error} If any validation fails - should crash the application
+ */
+export function validateStartupAndMark(): void {
+  validateStartup();
+  startupValidated = true;
+}
+
+/**
+ * Get JWT secret with runtime enforcement
+ *
+ * This function ensures validateStartupAndMark() has been called before returning the secret.
+ * In development, it allows a dev fallback if startup validation has been run.
+ * In production, it requires a valid JWT_SECRET from environment variables.
+ *
+ * @returns JWT secret from environment or dev fallback (dev only, after validation)
+ * @throws {Error} If validateStartupAndMark() has not been called or JWT_SECRET is missing in production
+ */
+export function getJWTSecret(): string {
+  // Enforce that startup validation has been run
+  if (!startupValidated) {
+    throw new Error(
+      "FATAL: getJWTSecret() called before validateStartupAndMark() was executed. " +
+        "Call validateStartupAndMark() during application startup (e.g., in middleware.ts).",
+    );
+  }
+
+  return requireEnv("JWT_SECRET", { testFallback: TEST_JWT_SECRET });
+}
+
+]]>
+</file>
+
+<file path="lib/storage/s3.ts">
+<![CDATA[
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+  type PutObjectCommandInput,
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+
+const REGION = process.env.AWS_REGION || "us-east-1";
+const BUCKET = process.env.AWS_S3_BUCKET || "";
+const KMS_KEY_ID = process.env.AWS_S3_KMS_KEY_ID || "";
+
+type PresignedPut = {
+  url: string;
+  headers: Record<string, string>;
+};
+
+export function getS3Client() {
+  if (!BUCKET) throw new Error("AWS_S3_BUCKET not configured");
+  return new S3Client({ region: REGION });
+}
+
+export async function getPresignedGetUrl(
+  key: string,
+  expiresSeconds = 600,
+): Promise<string> {
+  const client = getS3Client();
+  const { GetObjectCommand } = await import("@aws-sdk/client-s3");
+  const getCmd = new GetObjectCommand({ Bucket: BUCKET, Key: key });
+  return await getSignedUrl(client, getCmd, { expiresIn: expiresSeconds });
+}
+
+function buildPutCommandInput(
+  key: string,
+  contentType: string,
+  metadata?: Record<string, string>,
+): PutObjectCommandInput {
+  const base: PutObjectCommandInput = {
+    Bucket: BUCKET,
+    Key: key,
+    ContentType: contentType,
+    Metadata: metadata,
+  };
+
+  if (KMS_KEY_ID) {
+    base.ServerSideEncryption = "aws:kms";
+    base.SSEKMSKeyId = KMS_KEY_ID;
+  } else {
+    base.ServerSideEncryption = "AES256";
+  }
+
+  return base;
+}
+
+export async function getPresignedPutUrl(
+  key: string,
+  contentType: string,
+  expiresSeconds = 600,
+  metadata?: Record<string, string>,
+): Promise<PresignedPut> {
+  const client = getS3Client();
+  const mergedMetadata = {
+    "av-status": "pending",
+    ...(metadata ?? {}),
+  };
+  const cmd = new PutObjectCommand(
+    buildPutCommandInput(key, contentType, mergedMetadata),
+  );
+  const url = await getSignedUrl(client, cmd, { expiresIn: expiresSeconds });
+
+  const headers: Record<string, string> = {
+    "Content-Type": contentType,
+    "x-amz-server-side-encryption": KMS_KEY_ID ? "aws:kms" : "AES256",
+    ...Object.entries(mergedMetadata).reduce(
+      (acc, [k, v]) => {
+        acc[`x-amz-meta-${k.toLowerCase()}`] = v;
+        return acc;
+      },
+      {} as Record<string, string>,
+    ),
+  };
+
+  if (KMS_KEY_ID) {
+    headers["x-amz-server-side-encryption-aws-kms-key-id"] = KMS_KEY_ID;
+  }
+
+  return { url, headers };
+}
+
+export async function putObjectBuffer(
+  key: string,
+  buffer: Buffer,
+  contentType: string,
+) {
+  const client = getS3Client();
+  const cmd = new PutObjectCommand({
+    ...buildPutCommandInput(key, contentType),
+    Body: buffer,
+  });
+  await client.send(cmd);
+}
+
+export async function deleteObject(key: string) {
+  const client = getS3Client();
+  const cmd = new DeleteObjectCommand({ Bucket: BUCKET, Key: key });
+  await client.send(cmd);
+}
+
+export function buildResumeKey(
+  tenantId: string | undefined | null,
+  fileName: string,
+) {
+  const safeTenant = (tenantId || "global").replace(/[^a-zA-Z0-9_-]/g, "-");
+  return `${safeTenant}/resumes/${fileName}`;
+}
+
+]]>
+</file>
+
+<file path="lib/subscription/featureGating.ts">
+<![CDATA[
+/**
+ * Subscription Feature Gating Utilities
+ * 
+ * Provides plan-based feature access control for both server-side and client-side.
+ * Used by navigation components, API routes, and UI elements to enforce subscription limits.
+ */
+
+// Plan hierarchy
+export const PLAN_LEVELS = {
+  BASIC: 1,
+  STANDARD: 1,
+  PREMIUM: 2,
+  ENTERPRISE: 3,
+} as const;
+
+export type PlanName = keyof typeof PLAN_LEVELS;
+
+// Feature definitions with minimum required plan
+export const FEATURE_REQUIREMENTS = {
+  // Core features (all plans)
+  workOrders: "BASIC",
+  properties: "BASIC",
+  units: "BASIC",
+  basicReports: "BASIC",
+  
+  // Premium features
+  finance: "PREMIUM",
+  invoicing: "PREMIUM",
+  hrManagement: "PREMIUM",
+  technicians: "PREMIUM",
+  approvals: "PREMIUM",
+  auditTrail: "PREMIUM",
+  advancedReports: "PREMIUM",
+  apiAccess: "PREMIUM",
+  
+  // Enterprise features
+  sso: "ENTERPRISE",
+  scim: "ENTERPRISE",
+  customSla: "ENTERPRISE",
+  dedicatedSupport: "ENTERPRISE",
+  whiteLabeling: "ENTERPRISE",
+  multiRegion: "ENTERPRISE",
+  complianceReports: "ENTERPRISE",
+} as const;
+
+export type FeatureName = keyof typeof FEATURE_REQUIREMENTS;
+
+// Module definitions with required features
+export const MODULE_REQUIREMENTS = {
+  fm: "BASIC",
+  workOrders: "BASIC",
+  properties: "BASIC",
+  finance: "PREMIUM",
+  hr: "PREMIUM",
+  compliance: "PREMIUM",
+  reports: "BASIC",
+  advancedReports: "PREMIUM",
+  integrations: "PREMIUM",
+  aqar: "BASIC",
+  souq: "BASIC",
+  crm: "PREMIUM",
+  admin: "BASIC", // All plans can access admin (but features within may be gated)
+} as const;
+
+export type ModuleName = keyof typeof MODULE_REQUIREMENTS;
+
+// Plan limits
+export const PLAN_LIMITS = {
+  BASIC: {
+    maxUsers: 5,
+    maxProperties: 10,
+    maxWorkOrdersPerMonth: 100,
+    maxStorageGB: 1,
+    supportLevel: "email",
+  },
+  STANDARD: {
+    maxUsers: 5,
+    maxProperties: 10,
+    maxWorkOrdersPerMonth: 100,
+    maxStorageGB: 1,
+    supportLevel: "email",
+  },
+  PREMIUM: {
+    maxUsers: 25,
+    maxProperties: 50,
+    maxWorkOrdersPerMonth: 1000,
+    maxStorageGB: 10,
+    supportLevel: "priority",
+  },
+  ENTERPRISE: {
+    maxUsers: -1, // Unlimited
+    maxProperties: -1,
+    maxWorkOrdersPerMonth: -1,
+    maxStorageGB: 100,
+    supportLevel: "dedicated",
+  },
+} as const;
+
+export type PlanLimits = (typeof PLAN_LIMITS)[keyof typeof PLAN_LIMITS];
+
+/**
+ * Check if a plan has access to a specific feature
+ */
+export function hasFeatureAccess(
+  userPlan: string | undefined | null,
+  feature: FeatureName
+): boolean {
+  const plan = normalizePlanName(userPlan);
+  const requiredPlan = FEATURE_REQUIREMENTS[feature] as PlanName;
+  
+  const userLevel = PLAN_LEVELS[plan] || 0;
+  const requiredLevel = PLAN_LEVELS[requiredPlan] || 999;
+  
+  return userLevel >= requiredLevel;
+}
+
+/**
+ * Check if a plan has access to a specific module
+ */
+export function hasModuleAccess(
+  userPlan: string | undefined | null,
+  module: ModuleName
+): boolean {
+  const plan = normalizePlanName(userPlan);
+  const requiredPlan = MODULE_REQUIREMENTS[module] as PlanName;
+  
+  const userLevel = PLAN_LEVELS[plan] || 0;
+  const requiredLevel = PLAN_LEVELS[requiredPlan] || 999;
+  
+  return userLevel >= requiredLevel;
+}
+
+/**
+ * Get all features available for a plan
+ */
+export function getAvailableFeatures(userPlan: string | undefined | null): FeatureName[] {
+  const plan = normalizePlanName(userPlan);
+  const userLevel = PLAN_LEVELS[plan] || 0;
+  
+  return (Object.entries(FEATURE_REQUIREMENTS) as [FeatureName, string][])
+    .filter(([, requiredPlan]) => {
+      const requiredLevel = PLAN_LEVELS[requiredPlan as PlanName] || 999;
+      return userLevel >= requiredLevel;
+    })
+    .map(([feature]) => feature);
+}
+
+/**
+ * Get all modules available for a plan
+ */
+export function getAvailableModules(userPlan: string | undefined | null): ModuleName[] {
+  const plan = normalizePlanName(userPlan);
+  const userLevel = PLAN_LEVELS[plan] || 0;
+  
+  return (Object.entries(MODULE_REQUIREMENTS) as [ModuleName, string][])
+    .filter(([, requiredPlan]) => {
+      const requiredLevel = PLAN_LEVELS[requiredPlan as PlanName] || 999;
+      return userLevel >= requiredLevel;
+    })
+    .map(([module]) => module);
+}
+
+/**
+ * Get plan limits
+ */
+export function getPlanLimits(userPlan: string | undefined | null): PlanLimits {
+  const plan = normalizePlanName(userPlan);
+  return PLAN_LIMITS[plan] || PLAN_LIMITS.BASIC;
+}
+
+/**
+ * Check if user is within a specific limit
+ */
+export function isWithinLimit(
+  userPlan: string | undefined | null,
+  limitType: keyof typeof PLAN_LIMITS.BASIC,
+  currentValue: number
+): boolean {
+  const limits = getPlanLimits(userPlan);
+  const limit = limits[limitType];
+  
+  // -1 means unlimited
+  if (typeof limit === "number" && limit === -1) return true;
+  if (typeof limit === "number") return currentValue <= limit;
+  
+  return true;
+}
+
+/**
+ * Get the minimum plan required for a feature
+ */
+export function getRequiredPlan(feature: FeatureName): PlanName {
+  return FEATURE_REQUIREMENTS[feature] as PlanName;
+}
+
+/**
+ * Get upgrade suggestion for a feature
+ */
+export function getUpgradeSuggestion(
+  userPlan: string | undefined | null,
+  feature: FeatureName
+): { canAccess: boolean; suggestedPlan?: PlanName; message: string } {
+  if (hasFeatureAccess(userPlan, feature)) {
+    return { canAccess: true, message: "Feature available" };
+  }
+  
+  const requiredPlan = getRequiredPlan(feature);
+  return {
+    canAccess: false,
+    suggestedPlan: requiredPlan,
+    message: `Upgrade to ${requiredPlan} to access this feature`,
+  };
+}
+
+/**
+ * Normalize plan name to standard format
+ */
+export function normalizePlanName(plan: string | undefined | null): PlanName {
+  if (!plan) return "BASIC";
+  
+  const normalized = plan.toUpperCase().trim();
+  
+  // Map aliases
+  const aliases: Record<string, PlanName> = {
+    FREE: "BASIC",
+    TRIAL: "BASIC",
+    STARTER: "BASIC",
+    PRO: "PREMIUM",
+    PROFESSIONAL: "PREMIUM",
+    BUSINESS: "PREMIUM",
+    CORPORATE: "ENTERPRISE",
+  };
+  
+  if (aliases[normalized]) {
+    return aliases[normalized];
+  }
+  
+  if (normalized in PLAN_LEVELS) {
+    return normalized as PlanName;
+  }
+  
+  return "BASIC";
+}
+
+/**
+ * Check if a subscription is active (not expired)
+ */
+export function isSubscriptionActive(
+  status: string | undefined | null,
+  activeUntil: Date | string | undefined | null
+): boolean {
+  // Check status
+  const activeStatuses = ["ACTIVE", "TRIAL"];
+  const normalizedStatus = status?.toUpperCase() || "";
+  
+  if (!activeStatuses.includes(normalizedStatus)) {
+    return false;
+  }
+  
+  // Check expiry date
+  if (activeUntil) {
+    const expiryDate = typeof activeUntil === "string" ? new Date(activeUntil) : activeUntil;
+    if (expiryDate < new Date()) {
+      return false;
+    }
+  }
+  
+  return true;
+}
+
+/**
+ * Calculate days until subscription expires
+ */
+export function daysUntilExpiry(activeUntil: Date | string | undefined | null): number | null {
+  if (!activeUntil) return null;
+  
+  const expiryDate = typeof activeUntil === "string" ? new Date(activeUntil) : activeUntil;
+  const now = new Date();
+  const diff = expiryDate.getTime() - now.getTime();
+  
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+}
+
+]]>
+</file>
+
+<file path="lib/swr/fetcher.ts">
+<![CDATA[
+/**
+ * Shared SWR fetcher utilities
+ *
+ * Use these instead of defining inline fetcher functions in components.
+ * This consolidates error handling and tenant ID header injection.
+ */
+
+import { logger } from "@/lib/logger";
+
+/**
+ * Basic fetcher for SWR - JSON response
+ */
+export async function fetcher<T = unknown>(url: string): Promise<T> {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const error = new Error("An error occurred while fetching the data.");
+    throw error;
+  }
+  return res.json();
+}
+
+/**
+ * Tenant-aware fetcher - injects x-tenant-id header
+ * Use with: useSWR([url, orgId], ([url, id]) => tenantFetcher(url, id))
+ */
+export async function tenantFetcher<T = unknown>(
+  url: string,
+  orgId: string
+): Promise<T> {
+  try {
+    const res = await fetch(url, {
+      headers: { "x-tenant-id": orgId },
+    });
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      const message =
+        typeof errorData?.error === "string"
+          ? errorData.error
+          : `Request failed: ${res.status}`;
+      throw new Error(message);
+    }
+    return res.json();
+  } catch (error) {
+    logger.error("Tenant fetcher error", error as Error, { url, orgId });
+    throw error;
+  }
+}
+
+/**
+ * POST fetcher for mutations
+ */
+export async function postFetcher<T = unknown, D = unknown>(
+  url: string,
+  { arg }: { arg: { data: D; orgId?: string } }
+): Promise<T> {
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+  };
+  if (arg.orgId) {
+    headers["x-tenant-id"] = arg.orgId;
+  }
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(arg.data),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    const message =
+      typeof errorData?.error === "string"
+        ? errorData.error
+        : `Request failed: ${res.status}`;
+    throw new Error(message);
+  }
+
+  return res.json();
+}
+
+]]>
+</file>
+
+<file path="lib/swr/index.ts">
+<![CDATA[
+/**
+ * SWR utilities index
+ */
+
+export { fetcher, tenantFetcher, postFetcher } from "./fetcher";
+
+]]>
+</file>
+
+<file path="lib/telemetry.ts">
+<![CDATA[
+import { logger } from "@/lib/logger";
+import type { NotificationPayload } from "@/lib/fm-notifications";
+
+type TelemetrySeverity = "info" | "warn" | "error";
+
+export interface NotificationTelemetryEvent {
+  notificationId: string;
+  event: NotificationPayload["event"];
+  status: NotificationPayload["status"];
+  attempted: number;
+  failed: number;
+  skipped: number;
+  issues: Array<{
+    userId: string;
+    channel: string;
+    type: string;
+    reason: string;
+  }>;
+  timestamp?: string;
+}
+
+function resolveSeverity(
+  status: NotificationPayload["status"],
+): TelemetrySeverity {
+  if (status === "failed") return "error";
+  if (status === "partial_failure") return "warn";
+  return "info";
+}
+
+async function postToWebhook(
+  event: NotificationTelemetryEvent,
+  severity: TelemetrySeverity,
+): Promise<void> {
+  const webhookUrl = process.env.NOTIFICATIONS_TELEMETRY_WEBHOOK;
+  if (!webhookUrl) return;
+
+  try {
+    const payload = {
+      ...event,
+      severity,
+      timestamp: event.timestamp || new Date().toISOString(),
+    };
+
+    await fetch(webhookUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.warn("[Telemetry] Failed to emit notification event", {
+      error,
+      notificationId: event.notificationId,
+    });
+  }
+}
+
+export async function emitNotificationTelemetry(
+  event: NotificationTelemetryEvent,
+): Promise<void> {
+  const severity = resolveSeverity(event.status);
+
+  const logContext = {
+    ...event,
+    severity,
+  };
+
+  if (severity === "error") {
+    logger.error(
+      "[Telemetry] Notification dispatch failure",
+      undefined,
+      logContext,
+    );
+  } else if (severity === "warn") {
+    logger.warn("[Telemetry] Notification partial failure", logContext);
+  } else {
+    logger.info("[Telemetry] Notification dispatch metrics", logContext);
+  }
+
+  await postToWebhook(event, severity);
+}
+
+]]>
+</file>
+
+</batch_content>

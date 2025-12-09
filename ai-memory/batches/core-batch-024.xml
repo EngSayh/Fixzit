@@ -1,0 +1,2679 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/fm/finance/reports/page.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect, useState, type ReactNode } from "react";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ExternalLink, Loader2, Plus } from "lucide-react";
+import { toast } from "sonner";
+import { logger } from "@/lib/logger";
+import { FmGuardedPage } from "@/components/fm/FmGuardedPage";
+
+type ReportJob = {
+  id: string;
+  name: string;
+  type: string;
+  format: string;
+  status: "queued" | "processing" | "ready" | "failed";
+  updatedAt?: string;
+  fileKey?: string;
+  createdAt?: string;
+  notes?: string;
+  clean?: boolean;
+};
+
+export default function ReportsPage() {
+  return (
+    <FmGuardedPage moduleId="finance">
+      {({ orgId, supportBanner }) => (
+        <ReportsContent orgId={orgId} supportBanner={supportBanner} />
+      )}
+    </FmGuardedPage>
+  );
+}
+
+type ReportsContentProps = {
+  orgId: string;
+  supportBanner?: ReactNode | null;
+};
+
+function ReportsContent({ orgId, supportBanner }: ReportsContentProps) {
+  const auto = useAutoTranslator("fm.reports");
+  const [jobs, setJobs] = useState<ReportJob[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  
+  const loadJobs = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/fm/reports?orgId=${encodeURIComponent(orgId)}`);
+      const data = await res.json();
+      if (res.ok && data?.success) {
+        setJobs(data.data || []);
+      }
+    } catch (error) {
+      logger.error("Failed to load report jobs", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadJobs();
+  }, [orgId]);
+
+  const handleReportCreated = (newJob: ReportJob) => {
+    setJobs((prev) => [newJob, ...prev]);
+  };
+
+  const handleDownload = async (id: string) => {
+    try {
+      setDownloadingId(id);
+      const res = await fetch(`/api/fm/reports/${id}/download`);
+      const data = await res.json();
+      if (!res.ok || !data?.success || !data.downloadUrl) {
+        throw new Error(data?.error || "Download unavailable");
+      }
+      window.open(data.downloadUrl, "_blank");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : auto("Download failed", "errors.downloadFailed");
+      toast.error(message);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="reports" />
+      {supportBanner}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            {auto("Reports", "header.title")}
+          </h1>
+          <p className="text-muted-foreground">
+            {auto("Analytics and reporting dashboard", "header.subtitle")}
+          </p>
+        </div>
+        <CreateReportDialog orgId={orgId} onCreated={handleReportCreated} />
+      </div>
+
+      <div className="bg-card rounded-2xl shadow-md border border-border p-8 text-center">
+        <h2 className="text-lg font-semibold text-foreground mb-2">
+          {auto("Reports & Analytics", "card.title")}
+        </h2>
+        <p className="text-muted-foreground mb-4">
+          {auto("Reports interface loads here.", "card.description")}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {auto("Connected to Reports API endpoints.", "card.footer")}
+        </p>
+      </div>
+
+      <div className="bg-card rounded-2xl shadow-md border border-border p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">
+              {auto("Recent report jobs", "list.title")}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {auto(
+                "Latest requests with download links when ready",
+                "list.subtitle",
+              )}
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadJobs}
+            disabled={loading}
+          >
+            {loading && <Loader2 className="w-4 h-4 me-2 animate-spin" />}
+            {auto("Refresh", "actions.refresh")}
+          </Button>
+        </div>
+
+        {jobs.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            {auto("No report jobs yet.", "list.empty")}
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {jobs.map((job) => (
+              <div
+                key={job.id}
+                className="flex items-center justify-between rounded-xl border border-border px-4 py-3"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-foreground font-semibold">
+                      {job.name}
+                    </span>
+                    <span className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground">
+                      {job.type} · {job.format.toUpperCase()}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {auto("Status", "fields.status")}: {job.status}
+                    {job.updatedAt
+                      ? ` · ${new Date(job.updatedAt).toLocaleString()}`
+                      : ""}
+                    {job.clean === false
+                      ? ` · ${auto("Failed scan", "status.scanFailed")}`
+                      : ""}
+                  </p>
+                  {job.notes && (
+                    <p className="text-[11px] text-muted-foreground">
+                      {job.notes}
+                    </p>
+                  )}
+                </div>
+                {job.status === "ready" && job.fileKey ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => void handleDownload(job.id)}
+                    disabled={downloadingId === job.id}
+                  >
+                    {downloadingId === job.id && (
+                      <Loader2 className="w-4 h-4 me-2 animate-spin" />
+                    )}
+                    <ExternalLink className="w-4 h-4 me-2" />
+                    {auto("Download", "actions.download")}
+                  </Button>
+                ) : (
+                  <span className="text-xs text-muted-foreground">
+                    {job.status === "failed"
+                      ? auto("Failed (scan or generation)", "status.failed")
+                      : auto("Processing", "status.processing")}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CreateReportDialog({
+  orgId,
+  onCreated,
+}: {
+  orgId: string;
+  onCreated: (job: ReportJob) => void;
+}) {
+  const auto = useAutoTranslator("fm.reports.create");
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [type, setType] = useState("financial_summary");
+  const [format, setFormat] = useState("pdf");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const reportTypes = [
+    { value: "financial_summary", label: auto("Financial Summary", "types.financialSummary") },
+    { value: "income_statement", label: auto("Income Statement", "types.incomeStatement") },
+    { value: "balance_sheet", label: auto("Balance Sheet", "types.balanceSheet") },
+    { value: "expense_report", label: auto("Expense Report", "types.expenseReport") },
+    { value: "budget_variance", label: auto("Budget Variance", "types.budgetVariance") },
+    { value: "invoice_aging", label: auto("Invoice Aging", "types.invoiceAging") },
+    { value: "payment_history", label: auto("Payment History", "types.paymentHistory") },
+  ];
+
+  const formats = [
+    { value: "pdf", label: "PDF" },
+    { value: "xlsx", label: "Excel (XLSX)" },
+    { value: "csv", label: "CSV" },
+  ];
+
+  const handleSubmit = async () => {
+    if (!name.trim()) {
+      toast.error(auto("Report name is required", "errors.nameRequired"));
+      return;
+    }
+
+    setIsSubmitting(true);
+    const toastId = toast.loading(auto("Creating report...", "toast.loading"));
+
+    try {
+      const response = await fetch("/api/fm/reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orgId,
+          name: name.trim(),
+          type,
+          format,
+          dateFrom: dateFrom || undefined,
+          dateTo: dateTo || undefined,
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.error || "Failed to create report");
+      }
+
+      toast.success(auto("Report job queued successfully", "toast.success"), {
+        id: toastId,
+      });
+      onCreated(data.data as ReportJob);
+      setOpen(false);
+      setName("");
+      setType("financial_summary");
+      setFormat("pdf");
+      setDateFrom("");
+      setDateTo("");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : auto("Failed to create report", "toast.error");
+      toast.error(message, { id: toastId });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <Plus className="w-4 h-4 me-2" />
+          {auto("Create Report", "trigger")}
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{auto("Generate New Report", "title")}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="report-name" className="text-sm font-medium">
+              {auto("Report Name", "fields.name")} *
+            </label>
+            <Input
+              id="report-name"
+              placeholder={auto("e.g. Q1 2024 Financial Summary", "fields.namePlaceholder")}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="report-type" className="text-sm font-medium">
+              {auto("Report Type", "fields.type")}
+            </label>
+            <Select value={type} onValueChange={setType} disabled={isSubmitting}>
+              <SelectTrigger id="report-type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {reportTypes.map((rt) => (
+                  <SelectItem key={rt.value} value={rt.value}>
+                    {rt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label htmlFor="report-format" className="text-sm font-medium">
+              {auto("Format", "fields.format")}
+            </label>
+            <Select value={format} onValueChange={setFormat} disabled={isSubmitting}>
+              <SelectTrigger id="report-format">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {formats.map((f) => (
+                  <SelectItem key={f.value} value={f.value}>
+                    {f.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="report-date-from" className="text-sm font-medium">
+                {auto("Date From", "fields.dateFrom")}
+              </label>
+              <Input
+                id="report-date-from"
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
+            <div>
+              <label htmlFor="report-date-to" className="text-sm font-medium">
+                {auto("Date To", "fields.dateTo")}
+              </label>
+              <Input
+                id="report-date-to"
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
+          </div>
+
+          <Button
+            onClick={handleSubmit}
+            disabled={isSubmitting || !name.trim()}
+            className="w-full"
+          >
+            {isSubmitting
+              ? auto("Creating...", "submit.loading")
+              : auto("Generate Report", "submit")}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/hr/directory/new/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+type EmployeeDraft = {
+  firstName: string;
+  lastName: string;
+  workEmail: string;
+  jobTitle: string;
+  department: string;
+  employmentType: string;
+  workModel: string;
+  reportsTo: string;
+  startDate: string;
+  phone: string;
+  compensationType: string;
+  salary: string;
+  notes: string;
+};
+
+const departments = [
+  "Operations",
+  "Facilities",
+  "Finance",
+  "Human Resources",
+  "Procurement",
+  "Technology",
+  "Legal",
+];
+
+const employmentTypes = ["Full-time", "Part-time", "Contract", "Internship"];
+const workModels = ["On-site", "Hybrid", "Remote"];
+const compensationTypes = ["Salary", "Hourly", "Contract"];
+
+const defaultDraft: EmployeeDraft = {
+  firstName: "",
+  lastName: "",
+  workEmail: "",
+  jobTitle: "",
+  department: "",
+  employmentType: "",
+  workModel: "On-site",
+  reportsTo: "",
+  startDate: "",
+  phone: "",
+  compensationType: "Salary",
+  salary: "",
+  notes: "",
+};
+
+export default function HRDirectoryCreatePage() {
+  const auto = useAutoTranslator("fm.hr.directory.new");
+  const { t } = useTranslation();
+  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({
+    moduleId: "hr",
+  });
+  const router = useRouter();
+  const [draft, setDraft] = useState<EmployeeDraft>(defaultDraft);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleChange = (field: keyof EmployeeDraft, value: string) => {
+    setDraft((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const resetForm = () => setDraft(defaultDraft);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSubmitting(true);
+    try {
+      const response = await fetch("/api/hr/employees", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(draft),
+      });
+
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || "Failed to create employee");
+      }
+
+      toast.success(auto("Employee added to directory", "toast.success"));
+      resetForm();
+      router.push("/fm/hr/directory");
+    } catch (_error) {
+      const description = _error instanceof Error ? _error.message : undefined;
+      toast.error(auto("Unable to create employee", "toast.error"), {
+        description,
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!hasOrgContext) {
+    return guard;
+  }
+
+  return (
+    <div className="space-y-8">
+      <ModuleViewTabs moduleId="hr" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t("fm.org.supportContext", "Support context: {{name}}", {
+            name: supportOrg.name,
+          })}
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <p className="text-sm text-muted-foreground uppercase tracking-wide">
+          {auto("HR / Directory", "breadcrumbs")}
+        </p>
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">
+            {auto("Add employee to directory", "header.title")}
+          </h1>
+          <p className="text-muted-foreground">
+            {auto(
+              "Capture onboarding details, reporting lines, and compensation visibility in one flow.",
+              "header.subtitle",
+            )}
+          </p>
+        </div>
+      </div>
+
+      <form className="space-y-6" onSubmit={handleSubmit}>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {auto("Profile basics", "sections.profile.title")}
+              </CardTitle>
+              <CardDescription>
+                {auto(
+                  "Used for the employee directory, approvals, and payroll integrations.",
+                  "sections.profile.description",
+                )}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">
+                    {auto("First name", "form.firstName.label")}
+                  </Label>
+                  <Input
+                    id="firstName"
+                    name="firstName"
+                    placeholder={auto("Nora", "form.firstName.placeholder")}
+                    value={draft.firstName}
+                    onChange={(event) =>
+                      handleChange("firstName", event.target.value)
+                    }
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">
+                    {auto("Last name", "form.lastName.label")}
+                  </Label>
+                  <Input
+                    id="lastName"
+                    name="lastName"
+                    placeholder={auto("Al Hashmi", "form.lastName.placeholder")}
+                    value={draft.lastName}
+                    onChange={(event) =>
+                      handleChange("lastName", event.target.value)
+                    }
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="workEmail">
+                  {auto("Work email", "form.workEmail.label")}
+                </Label>
+                <Input
+                  id="workEmail"
+                  name="workEmail"
+                  type="email"
+                  placeholder="nora.alhashmi@example.com"
+                  value={draft.workEmail}
+                  onChange={(event) =>
+                    handleChange("workEmail", event.target.value)
+                  }
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">
+                  {auto("Phone number", "form.phone.label")}
+                </Label>
+                <Input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  placeholder="+966 50 555 0102"
+                  value={draft.phone}
+                  onChange={(event) =>
+                    handleChange("phone", event.target.value)
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="reportsTo">
+                  {auto("Manager / Reports to", "form.reportsTo.label")}
+                </Label>
+                <Input
+                  id="reportsTo"
+                  name="reportsTo"
+                  placeholder={auto(
+                    "e.g. Mariam Al Nuaimi",
+                    "form.reportsTo.placeholder",
+                  )}
+                  value={draft.reportsTo}
+                  onChange={(event) =>
+                    handleChange("reportsTo", event.target.value)
+                  }
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {auto("Role details", "sections.role.title")}
+              </CardTitle>
+              <CardDescription>
+                {auto(
+                  "Appears in dashboards, workflows, and approval routing.",
+                  "sections.role.description",
+                )}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="jobTitle">
+                  {auto("Job title", "form.jobTitle.label")}
+                </Label>
+                <Input
+                  id="jobTitle"
+                  name="jobTitle"
+                  placeholder={auto(
+                    "Facilities Coordinator",
+                    "form.jobTitle.placeholder",
+                  )}
+                  value={draft.jobTitle}
+                  onChange={(event) =>
+                    handleChange("jobTitle", event.target.value)
+                  }
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>{auto("Department", "form.department.label")}</Label>
+                <Select
+                  value={draft.department}
+                  onValueChange={(value) => handleChange("department", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={auto(
+                        "Select department",
+                        "form.department.placeholder",
+                      )}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((department) => (
+                      <SelectItem key={department} value={department}>
+                        {department}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>
+                    {auto("Employment type", "form.employmentType.label")}
+                  </Label>
+                  <Select
+                    value={draft.employmentType}
+                    onValueChange={(value) =>
+                      handleChange("employmentType", value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={auto(
+                          "Select type",
+                          "form.employmentType.placeholder",
+                        )}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {employmentTypes.map((employmentType) => (
+                        <SelectItem key={employmentType} value={employmentType}>
+                          {employmentType}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>{auto("Work model", "form.workModel.label")}</Label>
+                  <Select
+                    value={draft.workModel}
+                    onValueChange={(value) => handleChange("workModel", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={auto(
+                          "Select model",
+                          "form.workModel.placeholder",
+                        )}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {workModels.map((workModel) => (
+                        <SelectItem key={workModel} value={workModel}>
+                          {workModel}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="startDate">
+                  {auto("Start date", "form.startDate.label")}
+                </Label>
+                <Input
+                  id="startDate"
+                  name="startDate"
+                  type="date"
+                  value={draft.startDate}
+                  onChange={(event) =>
+                    handleChange("startDate", event.target.value)
+                  }
+                  required
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {auto("Compensation & notes", "sections.compensation.title")}
+            </CardTitle>
+            <CardDescription>
+              {auto(
+                "This data helps payroll and finance teams forecast expenses and approvals.",
+                "sections.compensation.description",
+              )}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>
+                  {auto("Compensation type", "form.compensationType.label")}
+                </Label>
+                <Select
+                  value={draft.compensationType}
+                  onValueChange={(value) =>
+                    handleChange("compensationType", value)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={auto(
+                        "Select compensation type",
+                        "form.compensationType.placeholder",
+                      )}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {compensationTypes.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="salary">
+                  {auto("Base pay", "form.salary.label")}
+                </Label>
+                <Input
+                  id="salary"
+                  name="salary"
+                  type="number"
+                  min="0"
+                  step="100"
+                  placeholder="18000"
+                  value={draft.salary}
+                  onChange={(event) =>
+                    handleChange("salary", event.target.value)
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notes">
+                {auto("Notes & onboarding checklist", "form.notes.label")}
+              </Label>
+              <Textarea
+                id="notes"
+                name="notes"
+                rows={4}
+                placeholder={auto(
+                  "Entry permit ready, IT ticket submitted, add to payroll before 1 Dec.",
+                  "form.notes.placeholder",
+                )}
+                value={draft.notes}
+                onChange={(event) => handleChange("notes", event.target.value)}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="flex items-center justify-end gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.push("/fm/hr/directory")}
+            disabled={submitting}
+          >
+            {auto("Cancel", "actions.cancel")}
+          </Button>
+          <Button type="submit" disabled={submitting}>
+            {submitting
+              ? auto("Saving...", "actions.saving")
+              : auto("Create employee", "actions.submit")}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/hr/directory/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Search, Plus, Eye, Users } from "lucide-react";
+import ClientDate from "@/components/ClientDate";
+import { logger } from "@/lib/logger";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+
+type EmploymentStatus = "ACTIVE" | "INACTIVE" | "ON_LEAVE" | "TERMINATED";
+
+const EMPLOYMENT_STATUS_LABELS: Record<
+  EmploymentStatus,
+  { key: string; fallback: string }
+> = {
+  ACTIVE: { key: "hr.employees.status.active", fallback: "Active" },
+  INACTIVE: { key: "hr.employees.status.inactive", fallback: "Inactive" },
+  ON_LEAVE: { key: "hr.employees.status.onLeave", fallback: "On Leave" },
+  TERMINATED: { key: "hr.employees.status.terminated", fallback: "Terminated" },
+};
+
+interface EmployeeCompensation {
+  baseSalary?: number;
+  housingAllowance?: number;
+  transportAllowance?: number;
+  currency?: string;
+}
+
+interface Employee {
+  _id: string;
+  employeeCode: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  jobTitle: string;
+  departmentId?: string;
+  hireDate: string;
+  employmentStatus: EmploymentStatus;
+  compensation?: EmployeeCompensation;
+}
+
+export default function DirectoryPage() {
+  const auto = useAutoTranslator("fm.hr.directory");
+  const { t } = useTranslation();
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({
+    moduleId: "hr",
+  });
+  const router = useRouter();
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | EmploymentStatus>(
+    "all",
+  );
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!orgId) return;
+    void fetchEmployees();
+  }, [orgId]);
+
+  const fetchEmployees = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/hr/employees");
+      if (response.ok) {
+        const data = await response.json();
+        setEmployees(data.employees || []);
+      } else {
+        throw new Error(auto("Failed to load employees.", "errors.fetch"));
+      }
+    } catch (_error) {
+      logger.error("Error fetching employees:", _error);
+      setError(
+        _error instanceof Error
+          ? _error.message
+          : auto("Failed to load employees.", "errors.fetch"),
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const statusOptions: { value: EmploymentStatus; label: string }[] = useMemo(
+    () =>
+      (Object.keys(EMPLOYMENT_STATUS_LABELS) as EmploymentStatus[]).map(
+        (status) => {
+          const { key, fallback } = EMPLOYMENT_STATUS_LABELS[status];
+          return { value: status, label: t(key, fallback) };
+        },
+      ),
+    [t],
+  );
+
+  const filteredEmployees = employees.filter((employee) => {
+    const query = searchQuery.trim().toLowerCase();
+    const matchesSearch =
+      query.length === 0 ||
+      employee.employeeCode.toLowerCase().includes(query) ||
+      employee.firstName.toLowerCase().includes(query) ||
+      employee.lastName.toLowerCase().includes(query) ||
+      employee.jobTitle.toLowerCase().includes(query);
+
+    const matchesStatus =
+      statusFilter === "all" || employee.employmentStatus === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const formatSalary = (comp?: EmployeeCompensation) => {
+    if (!comp?.baseSalary) return t("common.notAvailable", "N/A");
+    return new Intl.NumberFormat("en-SA", {
+      style: "currency",
+      currency: comp.currency || "SAR",
+      minimumFractionDigits: 2,
+    }).format(comp.baseSalary);
+  };
+
+  const getStatusColor = (status: EmploymentStatus) => {
+    switch (status) {
+      case "ACTIVE":
+        return "bg-success/10 text-success-foreground border-success/40";
+      case "INACTIVE":
+        return "bg-muted text-muted-foreground border-border";
+      case "ON_LEAVE":
+        return "bg-warning/10 text-warning-foreground border-warning/40";
+      case "TERMINATED":
+        return "bg-destructive/10 text-destructive-foreground border-destructive/40";
+      default:
+        return "bg-muted text-muted-foreground border-border";
+    }
+  };
+
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="hr" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t("fm.org.supportContext", "Support context: {{name}}", {
+            name: supportOrg.name,
+          })}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <Users className="w-6 h-6 text-primary" />
+            <h1 className="text-2xl font-bold text-foreground">
+              {auto("Employee Directory", "header.title")}
+            </h1>
+          </div>
+          <p className="text-muted-foreground">
+            {auto("Browse and search employee information", "header.subtitle")}
+          </p>
+        </div>
+        <Button onClick={() => router.push("/fm/hr/directory/new")}>
+          <Plus className="w-4 h-4 me-2" />
+          {auto("Add Employee", "actions.addEmployee")}
+        </Button>
+      </div>
+
+      <div className="flex flex-col gap-4 md:flex-row">
+        <div className="relative flex-1">
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder={auto(
+              "Search by name, code, or job title...",
+              "search.placeholder",
+            )}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="ps-10"
+          />
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant={statusFilter === "all" ? "default" : "outline"}
+            onClick={() => setStatusFilter("all")}
+          >
+            {t("common.all", "All")}
+          </Button>
+          {statusOptions.map((option) => (
+            <Button
+              key={option.value}
+              variant={statusFilter === option.value ? "default" : "outline"}
+              onClick={() => setStatusFilter(option.value)}
+            >
+              {option.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      {error && (
+        <div className="flex flex-col gap-3 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive md:flex-row md:items-center md:justify-between">
+          <p>{error}</p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void fetchEmployees()}
+            disabled={loading}
+          >
+            {loading
+              ? auto("Retrying...", "errors.retrying")
+              : auto("Retry", "errors.retry")}
+          </Button>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Card key={i} className="animate-pulse">
+              <CardContent className="p-6">
+                <div className="h-4 bg-muted rounded w-3/4 mb-2" />
+                <div className="h-3 bg-muted rounded w-1/2" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : filteredEmployees.length === 0 ? (
+        <Card className="p-12 text-center">
+          <p className="text-muted-foreground">
+            {searchQuery || statusFilter !== "all"
+              ? auto("No employees found matching your criteria", "noResults")
+              : auto("No employees in the directory yet", "empty")}
+          </p>
+        </Card>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {filteredEmployees.map((employee) => (
+            <Card
+              key={employee._id}
+              className="hover:shadow-md transition-shadow"
+            >
+              <CardContent className="p-6 space-y-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="font-semibold text-lg">
+                      {employee.firstName} {employee.lastName}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {employee.employeeCode}
+                    </p>
+                  </div>
+                  <Badge className={getStatusColor(employee.employmentStatus)}>
+                    {t(
+                      EMPLOYMENT_STATUS_LABELS[employee.employmentStatus].key,
+                      EMPLOYMENT_STATUS_LABELS[employee.employmentStatus]
+                        .fallback,
+                    )}
+                  </Badge>
+                </div>
+
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">
+                      {t("hr.employees.jobTitle", "Job Title")}
+                    </span>
+                    <span className="font-medium">{employee.jobTitle}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">
+                      {t("hr.employees.hireDate", "Hire Date")}
+                    </span>
+                    <ClientDate date={employee.hireDate} format="date-only" />
+                  </div>
+                  {employee.email && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">
+                        {t("common.email", "Email")}
+                      </span>
+                      <span className="text-xs truncate max-w-[150px]">
+                        {employee.email}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">
+                      {t("hr.employees.salary", "Salary")}
+                    </span>
+                    <span className="font-medium">
+                      {formatSalary(employee.compensation)}
+                    </span>
+                  </div>
+                </div>
+
+                <Button variant="outline" size="sm" className="w-full">
+                  <Eye className="w-4 h-4 me-2" />
+                  {t("common.viewDetails", "View Details")}
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {!loading && filteredEmployees.length > 0 && (
+        <div className="text-center text-sm text-muted-foreground">
+          {auto("Showing {{count}} employees", "results.count", {
+            count: filteredEmployees.length,
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/hr/employees/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState, useEffect, useMemo } from "react";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Search, Plus, Eye } from "lucide-react";
+import ClientDate from "@/components/ClientDate";
+import { logger } from "@/lib/logger";
+
+type EmploymentStatus = "ACTIVE" | "INACTIVE" | "ON_LEAVE" | "TERMINATED";
+
+const EMPLOYMENT_STATUS_LABELS: Record<
+  EmploymentStatus,
+  { key: string; fallback: string }
+> = {
+  ACTIVE: { key: "hr.employees.status.active", fallback: "Active" },
+  INACTIVE: { key: "hr.employees.status.inactive", fallback: "Inactive" },
+  ON_LEAVE: { key: "hr.employees.status.onLeave", fallback: "On Leave" },
+  TERMINATED: { key: "hr.employees.status.terminated", fallback: "Terminated" },
+};
+
+interface EmployeeCompensation {
+  baseSalary?: number;
+  housingAllowance?: number;
+  transportAllowance?: number;
+  currency?: string;
+}
+
+interface Employee {
+  _id: string;
+  employeeCode: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  jobTitle: string;
+  departmentId?: string;
+  hireDate: string;
+  employmentStatus: EmploymentStatus;
+  compensation?: EmployeeCompensation;
+}
+
+export default function EmployeesPage() {
+  const { t } = useTranslation();
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({
+    moduleId: "hr",
+  });
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | EmploymentStatus>(
+    "all",
+  );
+
+  useEffect(() => {
+    if (!orgId) return;
+    void fetchEmployees();
+  }, [orgId]);
+
+  const fetchEmployees = async () => {
+    try {
+      const response = await fetch("/api/hr/employees");
+      if (response.ok) {
+        const data = await response.json();
+        setEmployees(data.employees || []);
+      }
+    } catch (_error) {
+      logger.error("Error fetching employees:", _error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const statusOptions: { value: EmploymentStatus; label: string }[] = useMemo(
+    () =>
+      (Object.keys(EMPLOYMENT_STATUS_LABELS) as EmploymentStatus[]).map(
+        (status) => {
+          const { key, fallback } = EMPLOYMENT_STATUS_LABELS[status];
+          return { value: status, label: t(key, fallback) };
+        },
+      ),
+    [t],
+  );
+
+  const filteredEmployees = employees.filter((employee) => {
+    const query = searchQuery.trim().toLowerCase();
+    const matchesSearch =
+      query.length === 0 ||
+      employee.employeeCode.toLowerCase().includes(query) ||
+      employee.firstName.toLowerCase().includes(query) ||
+      employee.lastName.toLowerCase().includes(query) ||
+      employee.jobTitle.toLowerCase().includes(query);
+
+    const matchesStatus =
+      statusFilter === "all" || employee.employmentStatus === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const formatSalary = (comp?: EmployeeCompensation) => {
+    if (!comp?.baseSalary) return t("common.notAvailable", "N/A");
+    return new Intl.NumberFormat("en-SA", {
+      style: "currency",
+      currency: comp.currency || "SAR",
+      minimumFractionDigits: 2,
+    }).format(comp.baseSalary);
+  };
+
+  const getStatusColor = (status: EmploymentStatus) => {
+    switch (status) {
+      case "ACTIVE":
+        return "bg-success/10 text-success-foreground border-success/40";
+      case "ON_LEAVE":
+        return "bg-warning/10 text-warning border-warning/40";
+      case "TERMINATED":
+      case "INACTIVE":
+      default:
+        return "bg-muted text-foreground border-border";
+    }
+  };
+
+  const formatEmploymentStatus = (status: EmploymentStatus) => {
+    const label = EMPLOYMENT_STATUS_LABELS[status];
+    return label ? t(label.key, label.fallback) : status;
+  };
+
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <ModuleViewTabs moduleId="hr" />
+        {supportOrg && (
+          <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+            {t("fm.org.supportContext", "Support context: {{name}}", {
+              name: supportOrg.name,
+            })}
+          </div>
+        )}
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
+            <p className="mt-4 text-muted-foreground">
+              {t("common.loading", "Loading...")}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="hr" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t("fm.org.supportContext", "Support context: {{name}}", {
+            name: supportOrg.name,
+          })}
+        </div>
+      )}
+
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">
+            {t("hr.employees.title", "Employee Directory")}
+          </h2>
+          <p className="text-muted-foreground mt-1">
+            {t("hr.employees.subtitle", "Manage your organization's employees")}
+          </p>
+        </div>
+        <Button className="bg-primary hover:bg-primary text-white">
+          <Plus className="h-4 w-4 me-2" />
+          {t("hr.employees.addNew", "Add Employee")}
+        </Button>
+      </div>
+
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder={t(
+                  "hr.employees.search",
+                  "Search by name, code, or department...",
+                )}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="ps-10"
+              />
+            </div>
+            <select
+              value={statusFilter}
+              onChange={(e) =>
+                setStatusFilter(e.target.value as EmploymentStatus | "all")
+              }
+              className="px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary/40 focus:border-primary"
+            >
+              <option value="all">
+                {t("hr.employees.filter.allStatus", "All Status")}
+              </option>
+              {statusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="text-sm text-muted-foreground">
+        {t("hr.employees.showing", "Showing")} {filteredEmployees.length}{" "}
+        {t("hr.employees.of", "of")} {employees.length}{" "}
+        {t("hr.employees.employees", "employees")}
+      </div>
+
+      <div className="grid grid-cols-1 gap-4">
+        {filteredEmployees.length === 0 ? (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <div className="text-muted-foreground text-5xl mb-4">👥</div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                {t("hr.employees.noResults", "No employees found")}
+              </h3>
+              <p className="text-muted-foreground">
+                {searchQuery || statusFilter !== "all"
+                  ? t(
+                      "hr.employees.noResultsFiltered",
+                      "Try adjusting your filters",
+                    )
+                  : t(
+                      "hr.employees.noResultsEmpty",
+                      "Start by adding your first employee",
+                    )}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          filteredEmployees.map((employee) => (
+            <Card
+              key={employee._id}
+              className="hover:shadow-md transition-shadow"
+            >
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-lg font-semibold text-foreground">
+                        {employee.firstName} {employee.lastName}
+                      </h3>
+                      <Badge
+                        className={getStatusColor(employee.employmentStatus)}
+                      >
+                        {formatEmploymentStatus(employee.employmentStatus)}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">
+                          {t("hr.employees.code", "Code")}:
+                        </span>
+                        <span className="ms-2 font-medium">
+                          {employee.employeeCode}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">
+                          {t("hr.employees.department", "Department")}:
+                        </span>
+                        <span className="ms-2 font-medium">
+                          {employee.departmentId ||
+                            t("common.notAvailable", "N/A")}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">
+                          {t("hr.employees.position", "Position")}:
+                        </span>
+                        <span className="ms-2 font-medium">
+                          {employee.jobTitle}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">
+                          {t("hr.employees.joinDate", "Join Date")}:
+                        </span>
+                        <span className="ms-2 font-medium">
+                          <ClientDate
+                            date={employee.hireDate}
+                            format="date-only"
+                          />
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">
+                          {t("hr.employees.compensation.base", "Base Salary")}:
+                        </span>
+                        <span className="ms-2 font-medium">
+                          {formatSalary(employee.compensation)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm">
+                    <Eye className="h-4 w-4 me-2" />
+                    {t("common.view", "View")}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/hr/leave/approvals/page.tsx">
+<![CDATA[
+"use client";
+
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import {
+  AlertCircle,
+  AlertTriangle,
+  Check,
+  Clock,
+  ListChecks,
+  UserCheck,
+  X,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { formatDistanceToNow } from "date-fns";
+import { useHrLeaveRequests } from "@/hooks/fm/useHrData";
+
+type ApprovalRequest = {
+  id: string;
+  requester: string;
+  team: string;
+  duration: string;
+  submittedAt: string;
+  coverageRisk: "low" | "medium" | "high";
+  notes?: string;
+};
+
+const playbooks = [
+  {
+    title: "Escalate to regional HRBP",
+    detail: "Use when coverage drops below 65% for any site.",
+    status: "ready",
+  },
+  {
+    title: "Auto-hold conflicting requests",
+    detail: "Applies to high-risk teams during Ramadan & Hajj windows.",
+    status: "in-flight",
+  },
+  {
+    title: "Sync to payroll accruals",
+    detail: "Push approvals to payroll to reserve balances.",
+    status: "planned",
+  },
+];
+
+export default function LeaveApprovalsHub() {
+  const auto = useAutoTranslator("fm.hr.leaveApprovals");
+  const { t } = useTranslation();
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({
+    moduleId: "hr",
+  });
+  const { requests, isLoading, error, refresh } = useHrLeaveRequests(
+    "PENDING",
+    orgId,
+  );
+
+  const queue: ApprovalRequest[] = useMemo(() => {
+    return requests.map((req) => {
+      const start = new Date(req.startDate);
+      const end = new Date(req.endDate);
+      const duration = `${req.numberOfDays} ${auto("days", "queue.days")} · ${start.toLocaleDateString()} – ${end.toLocaleDateString()}`;
+      const coverageRisk =
+        req.numberOfDays >= 7
+          ? "high"
+          : req.numberOfDays >= 4
+            ? "medium"
+            : "low";
+
+      return {
+        id: req._id,
+        requester: `${req.employeeId.firstName} ${req.employeeId.lastName}`,
+        team: req.employeeId.employeeCode ?? auto("Employee", "queue.employee"),
+        duration,
+        submittedAt: formatDistanceToNow(start, { addSuffix: true }),
+        coverageRisk,
+        notes: req.reason,
+      };
+    });
+  }, [auto, requests]);
+
+  const [selectedRequest, setSelectedRequest] =
+    useState<ApprovalRequest | null>(null);
+
+  useEffect(() => {
+    if (!selectedRequest && queue.length > 0) {
+      setSelectedRequest(queue[0]);
+    }
+  }, [queue, selectedRequest]);
+
+  const riskMeta: Record<
+    ApprovalRequest["coverageRisk"],
+    { label: string; className: string }
+  > = useMemo(
+    () => ({
+      high: {
+        label: auto("High coverage risk", "risk.high"),
+        className: "bg-destructive/15 text-destructive",
+      },
+      medium: {
+        label: auto("Medium risk", "risk.medium"),
+        className: "bg-warning/15 text-warning",
+      },
+      low: {
+        label: auto("Low risk", "risk.low"),
+        className: "bg-success/15 text-success",
+      },
+    }),
+    [auto],
+  );
+
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="hr" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t("fm.org.supportContext", "Support context: {{name}}", {
+            name: supportOrg.name,
+          })}
+        </div>
+      )}
+
+      <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            {auto("Approvals workbench", "header.kicker")}
+          </p>
+          <h1 className="text-3xl font-semibold text-foreground">
+            {auto("Leave approval queue", "header.title")}
+          </h1>
+          <p className="text-muted-foreground">
+            {auto(
+              "Triage requests with SLA and coverage context before they hit payroll or frontline staffing.",
+              "header.subtitle",
+            )}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => refresh()}>
+            <ListChecks className="me-2 h-4 w-4" />
+            {auto("Playbook settings", "actions.playbook")}
+          </Button>
+          <Button>
+            <UserCheck className="me-2 h-4 w-4" />
+            {auto("Assign reviewer", "actions.assign")}
+          </Button>
+        </div>
+      </header>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>{auto("Pending approvals", "queue.title")}</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {auto(
+                "Sort by SLA breach risk or staffing impact.",
+                "queue.subtitle",
+              )}
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {error ? (
+              <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-destructive">
+                <p className="flex items-center gap-2 font-medium">
+                  <AlertCircle className="h-4 w-4" />
+                  {auto("Failed to load pending approvals.", "queue.error")}
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-3"
+                  onClick={() => refresh()}
+                >
+                  {auto("Retry", "queue.retry")}
+                </Button>
+              </div>
+            ) : (
+              queue.map((request) => (
+                <button
+                  type="button"
+                  key={request.id}
+                  onClick={() => setSelectedRequest(request)}
+                  className={`w-full rounded-xl border p-4 text-start transition hover:border-primary ${
+                    selectedRequest?.id === request.id
+                      ? "border-primary bg-primary/5"
+                      : "border-border"
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-medium">
+                      {request.requester}{" "}
+                      <span className="text-muted-foreground">
+                        {request.id}
+                      </span>
+                    </p>
+                    <Badge className={riskMeta[request.coverageRisk].className}>
+                      {riskMeta[request.coverageRisk].label}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {request.team}
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                    <span className="inline-flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      {request.submittedAt}
+                    </span>
+                    <span>{request.duration}</span>
+                  </div>
+                  {request.notes && (
+                    <p className="mt-2 text-sm">{request.notes}</p>
+                  )}
+                </button>
+              ))
+            )}
+            {!isLoading && !error && queue.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                {auto("No pending approvals right now.", "queue.empty")}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{auto("Decision workspace", "detail.title")}</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {auto(
+                "Provide reasoning before syncing to payroll.",
+                "detail.subtitle",
+              )}
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {selectedRequest ? (
+              <>
+                <div>
+                  <p className="text-xs uppercase text-muted-foreground">
+                    {selectedRequest.id}
+                  </p>
+                  <h3 className="text-lg font-semibold">
+                    {selectedRequest.requester}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedRequest.team}
+                  </p>
+                </div>
+
+                <div className="rounded-lg bg-muted/60 p-3 text-sm text-muted-foreground">
+                  <p>{selectedRequest.duration}</p>
+                  <p>
+                    {auto("Submitted", "detail.submitted")}:{" "}
+                    {selectedRequest.submittedAt}
+                  </p>
+                </div>
+
+                <div className="space-y-2 rounded-lg border border-border/70 p-3 text-sm">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <AlertTriangle className="h-4 w-4 text-warning" />
+                    {auto("Coverage note", "detail.coverageNote")}
+                  </div>
+                  <p>{selectedRequest.notes}</p>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button className="flex-1" variant="outline">
+                    <X className="me-2 h-4 w-4" />
+                    {auto("Decline", "detail.decline")}
+                  </Button>
+                  <Button className="flex-1">
+                    <Check className="me-2 h-4 w-4" />
+                    {auto("Approve & sync", "detail.approve")}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {auto("Select a request to review.", "detail.empty")}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="border-dashed border-border/70">
+        <CardHeader>
+          <CardTitle>
+            {auto("Automation playbooks", "playbooks.title")}
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {auto(
+              "Documented guardrails for high-volume seasons.",
+              "playbooks.subtitle",
+            )}
+          </p>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-3">
+          {playbooks.map((playbook) => (
+            <div
+              key={playbook.title}
+              className="rounded-xl border border-border/70 p-4"
+            >
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                {playbook.status}
+              </p>
+              <h4 className="text-lg font-semibold">{playbook.title}</h4>
+              <p className="text-sm text-muted-foreground">{playbook.detail}</p>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/hr/leave/page.tsx">
+<![CDATA[
+"use client";
+
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import {
+  AlertCircle,
+  CalendarDays,
+  CalendarRange,
+  CheckCircle2,
+  Plane,
+  RefreshCw,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
+import { useMemo } from "react";
+import { useHrLeaveRequests } from "@/hooks/fm/useHrData";
+
+type LeaveRoadmapItem = {
+  title: string;
+  window: string;
+  detail: string;
+  status: "ready" | "in-flight" | "blocked";
+};
+
+const leaveRoadmap: LeaveRoadmapItem[] = [
+  {
+    title: "Ramadan peak coverage",
+    window: "Mar 1 – Apr 15",
+    detail: "Ensure minimum 70% staffing across contact center + field ops.",
+    status: "in-flight",
+  },
+  {
+    title: "Summer rotations",
+    window: "Jun 10 – Sep 5",
+    detail: "Lock team rotations + approvals by May 31.",
+    status: "ready",
+  },
+  {
+    title: "Critical teams policy rollout",
+    window: "Q3",
+    detail: "Introduce blackout dates for Facilities & Dispatch units.",
+    status: "blocked",
+  },
+];
+
+const leaveCoverageByTeam = [
+  { team: "Operations", coverage: 0.78, pending: 6 },
+  { team: "Facilities", coverage: 0.64, pending: 9 },
+  { team: "Support Center", coverage: 0.92, pending: 2 },
+  { team: "Vendors / Rovers", coverage: 0.57, pending: 11 },
+];
+
+const leaveTimelineTemplates = [
+  {
+    id: "a",
+    name: "Employee A",
+    team: "Operations",
+    offsetDays: 2,
+    durationDays: 6,
+    coverage: 0.68,
+  },
+  {
+    id: "b",
+    name: "Employee B",
+    team: "Facilities",
+    offsetDays: 5,
+    durationDays: 8,
+    coverage: 0.74,
+  },
+  {
+    id: "c",
+    name: "Employee C",
+    team: "Dispatch",
+    offsetDays: 9,
+    durationDays: 4,
+    coverage: 0.82,
+  },
+];
+
+export default function HrLeaveExperience() {
+  const auto = useAutoTranslator("fm.hr.leave");
+  const { t } = useTranslation();
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({
+    moduleId: "hr",
+  });
+  const { requests, isLoading, error, refresh } = useHrLeaveRequests(
+    undefined,
+    orgId,
+  );
+
+  const metrics = useMemo(() => {
+    const pending = requests.filter((req) => req.status === "PENDING");
+    const dayMs = 1000 * 60 * 60 * 24;
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const approvedThisWeek = requests.filter((req) => {
+      if (req.status !== "APPROVED") return false;
+      const approvalSource = req.approvalDate ?? req.updatedAt ?? req.startDate;
+      if (!approvalSource) return false;
+      const approvalDate = new Date(approvalSource);
+      const normalizedApproval = new Date(
+        approvalDate.getFullYear(),
+        approvalDate.getMonth(),
+        approvalDate.getDate(),
+      );
+      const diff = (today.getTime() - normalizedApproval.getTime()) / dayMs;
+      return diff >= 0 && diff <= 7;
+    });
+    const upcoming = requests.filter((req) => {
+      if (req.status !== "APPROVED") return false;
+      const start = new Date(req.startDate);
+      const diff = (start.getTime() - today.getTime()) / dayMs;
+      return diff >= 0 && diff <= 30;
+    });
+
+    return [
+      {
+        label: auto("Open Requests", "metrics.open"),
+        value: pending.length.toString(),
+        hint: auto("Awaiting approval", "metrics.open.hint"),
+        icon: CalendarDays,
+      },
+      {
+        label: auto("Approved this week", "metrics.approvedWeek"),
+        value: approvedThisWeek.length.toString(),
+        hint: auto("Rolling 7-day window", "metrics.approvedWeek.hint"),
+        icon: CheckCircle2,
+      },
+      {
+        label: auto("Upcoming PTO", "metrics.upcoming"),
+        value: upcoming.length.toString(),
+        hint: auto("Next 30 days", "metrics.upcoming.hint"),
+        icon: Plane,
+      },
+    ];
+  }, [auto, requests]);
+
+  const statusBadges: Record<
+    LeaveRoadmapItem["status"],
+    { label: string; className: string }
+  > = {
+    ready: {
+      label: auto("Ready", "roadmap.status.ready"),
+      className: "bg-success/15 text-success",
+    },
+    "in-flight": {
+      label: auto("In progress", "roadmap.status.inFlight"),
+      className: "bg-warning/15 text-warning",
+    },
+    blocked: {
+      label: auto("Needs attention", "roadmap.status.blocked"),
+      className: "bg-destructive/15 text-destructive",
+    },
+  };
+
+  const timelineEntries = useMemo(() => {
+    const formatter = new Intl.DateTimeFormat(undefined, {
+      month: "short",
+      day: "numeric",
+    });
+    const today = new Date();
+    return leaveTimelineTemplates.map((template, idx) => {
+      const start = new Date(today);
+      start.setDate(start.getDate() + template.offsetDays);
+      const end = new Date(start.getTime());
+      end.setDate(end.getDate() + template.durationDays);
+      const window = `${formatter.format(start)} – ${formatter.format(end)}`;
+      return {
+        id: `${template.id}-${idx}`,
+        name: template.name,
+        team: template.team,
+        window,
+        coverage: `${Math.round(template.coverage * 100)}%`,
+      };
+    });
+  }, []);
+
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="hr" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t("fm.org.supportContext", "Support context: {{name}}", {
+            name: supportOrg.name,
+          })}
+        </div>
+      )}
+
+      <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            {auto("Leave Management", "header.kicker")}
+          </p>
+          <h1 className="text-3xl font-semibold text-foreground">
+            {auto("Leave Planning Hub", "header.title")}
+          </h1>
+          <p className="text-muted-foreground">
+            {auto(
+              "Balance staffing coverage, approvals, and seasonal policies from a single workspace.",
+              "header.subtitle",
+            )}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => refresh()}>
+            <RefreshCw className="me-2 h-4 w-4" />
+            {auto("Refresh data", "actions.refresh")}
+          </Button>
+          <Button>
+            <CalendarRange className="me-2 h-4 w-4" />
+            {auto("Launch leave window", "actions.launchWindow")}
+          </Button>
+        </div>
+      </header>
+
+      {error ? (
+        <Card className="border-destructive bg-destructive/5">
+          <CardContent className="flex items-center gap-3 p-4 text-destructive">
+            <AlertCircle className="h-5 w-5" />
+            <div>
+              <p className="font-semibold">
+                {auto("Failed to load leave metrics.", "errors.load")}
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="mt-2"
+                onClick={() => refresh()}
+              >
+                {auto("Retry", "errors.retry")}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {metrics.map((metric) => (
+            <Card key={metric.label} className="border-border/70">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  {metric.label}
+                </CardTitle>
+                <metric.icon className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {isLoading ? "—" : metric.value}
+                </div>
+                <p className="text-xs text-muted-foreground">{metric.hint}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>{auto("Coverage monitor", "coverage.title")}</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {auto(
+                "Track which teams need faster approvals to protect SLAs.",
+                "coverage.subtitle",
+              )}
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {leaveCoverageByTeam.map((team) => (
+              <div key={team.team} className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <p className="font-medium">{team.team}</p>
+                  <span className="text-sm text-muted-foreground">
+                    {team.pending} {auto("pending", "coverage.pending")}
+                  </span>
+                </div>
+                <div className="h-2 rounded-full bg-muted">
+                  <div
+                    className={`h-2 rounded-full ${
+                      team.coverage >= 0.8
+                        ? "bg-success"
+                        : team.coverage >= 0.65
+                          ? "bg-warning"
+                          : "bg-destructive"
+                    }`}
+                    style={{ width: `${team.coverage * 100}%` }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {auto("Coverage target", "coverage.target")}:{" "}
+                  {Math.round(team.coverage * 100)}%
+                </p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="space-y-4">
+          <CardHeader>
+            <CardTitle>{auto("Roadmap", "roadmap.title")}</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {auto(
+                "Align HRBPs and team leads on upcoming leave programs.",
+                "roadmap.subtitle",
+              )}
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {leaveRoadmap.map((item) => (
+              <div
+                key={item.title}
+                className="rounded-lg border border-border/60 p-3"
+              >
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">{item.title}</h4>
+                  <Badge className={statusBadges[item.status].className}>
+                    {statusBadges[item.status].label}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">{item.window}</p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {item.detail}
+                </p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{auto("Next 14 days", "timeline.title")}</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {auto(
+              "Use these insights to rebalance staffing before a gap appears.",
+              "timeline.subtitle",
+            )}
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {timelineEntries.map((entry) => (
+            <div
+              key={entry.id}
+              className="flex flex-col gap-2 rounded-lg border border-border/60 p-4 md:flex-row md:items-center md:justify-between"
+            >
+              <div>
+                <p className="font-medium">{entry.name}</p>
+                <p className="text-sm text-muted-foreground">{entry.team}</p>
+              </div>
+              <div className="flex flex-1 items-center justify-between gap-4 text-sm text-muted-foreground md:justify-end">
+                <span className="flex items-center gap-2">
+                  <CalendarDays className="h-4 w-4" />
+                  {entry.window}
+                </span>
+                <span className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4" />
+                  {auto("Coverage", "timeline.coverage")}: {entry.coverage}
+                </span>
+                <Button variant="outline" size="sm">
+                  {auto("Review plan", "timeline.review")}
+                </Button>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card className="border-dashed border-border/70">
+        <CardHeader>
+          <CardTitle>
+            {auto("Integrations & next steps", "nextSteps.title")}
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {auto(
+              "Hook this hub to /api/hr/leaves plus payroll accruals to unlock automation.",
+              "nextSteps.subtitle",
+            )}
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+            <span className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1">
+              <Users className="h-3.5 w-3.5" />
+              {auto("Org staffing workbook", "nextSteps.staffing")}
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1">
+              <CalendarRange className="h-3.5 w-3.5" />
+              {auto("Peak window templates", "nextSteps.templates")}
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              {auto("SLA guardrails", "nextSteps.sla")}
+            </span>
+          </div>
+          <Separator />
+          <p className="text-xs text-muted-foreground">
+            {auto(
+              "Need real data? Wire the API client (services/hr/leave-service.ts) or import HRMS feed to hydrate this dashboard.",
+              "nextSteps.footer",
+            )}
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/hr/page.tsx">
+<![CDATA[
+"use client";
+
+import React from "react";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+export default function HRPage() {
+  const auto = useAutoTranslator("fm.hr");
+  const { t } = useTranslation();
+  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({
+    moduleId: "hr",
+  });
+
+  if (!hasOrgContext) {
+    return guard;
+  }
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="hr" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t("fm.org.supportContext", "Support context: {{name}}", {
+            name: supportOrg.name,
+          })}
+        </div>
+      )}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            {auto("Human Resources", "header.title")}
+          </h1>
+          <p className="text-muted-foreground">
+            {auto("Employee management and HR operations", "header.subtitle")}
+          </p>
+        </div>
+      </div>
+
+      <div className="bg-card rounded-2xl shadow-md border border-border p-8 text-center">
+        <h2 className="text-lg font-semibold text-foreground mb-2">
+          {auto("HR Management", "card.title")}
+        </h2>
+        <p className="text-muted-foreground mb-4">
+          {auto("Human resources interface loads here.", "card.description")}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {auto("Connected to HR API endpoints.", "card.footer")}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/hr/payroll/page.tsx">
+<![CDATA[
+"use client";
+
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { useHrPayrollRuns } from "@/hooks/fm/useHrData";
+import {
+  AlertCircle,
+  Banknote,
+  Calculator,
+  DollarSign,
+  FileSpreadsheet,
+  Gauge,
+  TrendingUp,
+  Users,
+} from "lucide-react";
+import { format } from "date-fns";
+
+const PAYROLL_STATUS_LABELS: Record<string, { fallback: string; id: string }> =
+  {
+    RECONCILED: { fallback: "Reconciled", id: "status.reconciled" },
+    READY: { fallback: "Ready", id: "status.ready" },
+    IN_PROGRESS: { fallback: "In Progress", id: "status.inProgress" },
+    DRAFT: { fallback: "Draft", id: "status.draft" },
+    APPROVAL: { fallback: "Awaiting approval", id: "status.approval" },
+  };
+
+export default function HrPayrollControlCenter() {
+  const auto = useAutoTranslator("fm.hr.payroll");
+  const { t } = useTranslation();
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({
+    moduleId: "hr",
+  });
+  const { runs, isLoading, error, refresh } = useHrPayrollRuns(
+    undefined,
+    orgId,
+  );
+  const translateStatus = (status?: string) => {
+    if (!status) return "";
+    const lookup = PAYROLL_STATUS_LABELS[status.toUpperCase()];
+    return lookup ? auto(lookup.fallback, lookup.id) : status.toLowerCase();
+  };
+
+  const varianceAlerts: Array<{
+    title: string;
+    detail: string;
+    severity: "warning" | "info";
+  }> = [
+    {
+      title: auto("Variance data coming soon", "variance.placeholder"),
+      detail: auto("Wire treasury sync to surface deltas.", "variance.detail"),
+      severity: "info",
+    },
+  ];
+
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="hr" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t("fm.org.supportContext", "Support context: {{name}}", {
+            name: supportOrg.name,
+          })}
+        </div>
+      )}
+
+      <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            {auto("Payroll Control", "header.kicker")}
+          </p>
+          <h1 className="text-3xl font-semibold text-foreground">
+            {auto("Payroll command center", "header.title")}
+          </h1>
+          <p className="text-muted-foreground">
+            {auto(
+              "Track run readiness, variances, and compliance tasks across all entities.",
+              "header.subtitle",
+            )}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => refresh()}>
+            <FileSpreadsheet className="me-2 h-4 w-4" />
+            {auto("Upload adjustments", "actions.adjustments")}
+          </Button>
+          <Button>
+            <Calculator className="me-2 h-4 w-4" />
+            {auto("Start payroll run", "actions.startRun")}
+          </Button>
+        </div>
+      </header>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {[
+          { label: "Employees in cycle", value: "1,248", icon: UsersIcon },
+          { label: "Total gross", value: "SAR 9.6M", icon: DollarSign },
+          { label: "Variance vs forecast", value: "+1.6%", icon: TrendingUp },
+          { label: "Compliance tasks", value: "3 pending", icon: Gauge },
+        ].map((metric) => (
+          <Card key={metric.label}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                {auto(metric.label, `metrics.${metric.label}`)}
+              </CardTitle>
+              <metric.icon className="h-4 w-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{metric.value}</div>
+              <p className="text-xs text-muted-foreground">
+                {auto("Updated 5 minutes ago", "metrics.updated")}
+              </p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>{auto("Cycle readiness", "cycles.title")}</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {auto(
+                "Monitor reconciliation status before triggering payouts.",
+                "cycles.subtitle",
+              )}
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {error ? (
+              <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-destructive">
+                <p className="flex items-center gap-2 font-medium">
+                  <AlertCircle className="h-4 w-4" />
+                  {auto("Unable to load payroll runs.", "cycles.error")}
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-3"
+                  onClick={() => refresh()}
+                >
+                  {auto("Retry", "cycles.retry")}
+                </Button>
+              </div>
+            ) : (
+              runs.map((cycle) => (
+                <div
+                  key={cycle._id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/70 p-4"
+                >
+                  <div>
+                    <p className="font-semibold">{cycle.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {auto("Payout", "cycles.payout")} ·{" "}
+                      {format(new Date(cycle.periodEnd), "PP")}
+                    </p>
+                  </div>
+                  <Badge
+                    variant={
+                      cycle.status === "RECONCILED" ? "default" : "secondary"
+                    }
+                  >
+                    {translateStatus(cycle.status)}
+                  </Badge>
+                  <span className="text-sm text-muted-foreground">
+                    {cycle.variance
+                      ? `${cycle.variance}%`
+                      : auto("Awaiting variance", "cycles.variancePending")}
+                  </span>
+                  <Button size="sm" variant="outline">
+                    {auto("Open run book", "cycles.openRun")}
+                  </Button>
+                </div>
+              ))
+            )}
+            {!isLoading && !error && runs.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                {auto("No payroll runs yet.", "cycles.empty")}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{auto("Variance alerts", "variance.title")}</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {auto(
+                "Escalate high movement before approvals.",
+                "variance.subtitle",
+              )}
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {varianceAlerts.map((alert) => (
+              <div
+                key={alert.title}
+                className="rounded-lg border border-border/70 p-3"
+              >
+                <div className="flex items-center gap-2">
+                  <AlertBadge
+                    severity={alert.severity}
+                    label={
+                      alert.severity === "warning"
+                        ? auto("Attention", "alerts.attention")
+                        : auto("Info", "alerts.info")
+                    }
+                  />
+                  <p className="font-medium">{alert.title}</p>
+                </div>
+                <p className="text-sm text-muted-foreground">{alert.detail}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="border-dashed border-border/70">
+        <CardHeader>
+          <CardTitle>{auto("Next steps", "actions.title")}</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {auto(
+              "Connect to /api/hr/payroll and treasury exports to automate this hub.",
+              "actions.subtitle",
+            )}
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-muted-foreground">
+          <div className="flex flex-wrap gap-3">
+            <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1">
+              <Banknote className="h-3.5 w-3.5" />
+              {auto("Treasury file mapping", "actions.treasury")}
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1">
+              <FileSpreadsheet className="h-3.5 w-3.5" />
+              {auto("Journal templates", "actions.journal")}
+            </span>
+          </div>
+          <Separator />
+          <p>
+            {auto(
+              "Once live, push approvals to /api/hr/payroll/runs to keep finance, HR, and compliance in sync.",
+              "actions.footer",
+            )}
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function UsersIcon(props: { className?: string }) {
+  return <Users className={props.className} />;
+}
+
+function AlertBadge({
+  severity,
+  label,
+}: {
+  severity: "warning" | "info";
+  label: string;
+}) {
+  const isWarning = severity === "warning";
+  return (
+    <Badge
+      className={
+        isWarning
+          ? "bg-warning/15 text-warning"
+          : "bg-muted text-muted-foreground"
+      }
+    >
+      {label}
+    </Badge>
+  );
+}
+
+]]>
+</file>
+
+</batch_content>

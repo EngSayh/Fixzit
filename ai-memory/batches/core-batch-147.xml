@@ -1,0 +1,3491 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/archived/summaries/WORK_COMPLETED_SUMMARY.md">
+<![CDATA[
+# Work Completed Summary - November 8, 2025
+
+## Session Overview
+
+This session addressed comprehensive code review feedback from PR #270 and verified the complete Fixzit Agent stabilization system implementation.
+
+---
+
+## 🎯 Objectives Completed
+
+### 1. ✅ Agent Infrastructure Verification
+
+**Status**: All components verified operational
+
+**Verified Components**:
+
+- `scripts/fixzit-agent.mjs` (641 lines) - 13-step orchestration protocol
+- `scripts/codemods/import-rewrite.cjs` - Import path normalization
+- `scripts/i18n-scan.mjs` - Translation parity checker
+- `scripts/api-scan.mjs` - API endpoint scanner
+- `scripts/stop-dev.js` - Dev server management
+- `tests/hfv.e2e.spec.ts` (195 lines) - HFV E2E test suite (9 roles × 13 pages = 117 scenarios)
+
+**Package.json Scripts**:
+
+```json
+{
+  "fixzit:agent": "node scripts/fixzit-agent.mjs --report",
+  "fixzit:agent:apply": "node scripts/fixzit-agent.mjs --apply --report",
+  "fixzit:agent:stop": "node scripts/stop-dev.js"
+}
+```
+
+**Documentation**: `AGENT_SYSTEM_SUMMARY.md` (736 lines) - Comprehensive guide with troubleshooting, best practices, and configuration
+
+---
+
+### 2. ✅ Navigation Config Centralization
+
+**Status**: Implemented per Governance V5
+
+**Created**: `config/navigation.ts` (167 lines)
+
+**Exports**:
+
+- `ROLE_PERMISSIONS` - 18 roles with module access permissions
+- `SUBSCRIPTION_PLANS` - BASIC, PROFESSIONAL, ENTERPRISE, DEFAULT
+- `MODULES` - 20 application modules with icons, paths, categories
+- `USER_LINKS` - Profile, Settings, Notifications
+- `CATEGORY_FALLBACKS` - 11 navigation categories with i18n fallbacks
+
+**Benefits**:
+
+- ✅ Single source of truth for navigation logic
+- ✅ Decoupled from UI components
+- ✅ Easier to update permissions without touching UI code
+- ✅ Governance V5 compliance (centralized configuration)
+
+---
+
+### 3. ✅ Critical Sidebar Authentication Bug Fix
+
+**Status**: FIXED - High Priority Security Issue
+
+**Problem**:
+
+```typescript
+// BEFORE (BROKEN)
+export default function Sidebar({
+  role = 'guest',              // ❌ Dangerous default
+  subscription = 'BASIC',      // ❌ Dangerous default
+  tenantId
+}: SidebarProps) {
+  // Bug: Authenticated users were treated as 'guest'
+  // because default prop overrode actual session role
+```
+
+**Solution**:
+
+```typescript
+// AFTER (FIXED)
+export default function Sidebar({ tenantId: _tenantId }: SidebarProps) {
+  const { data: session, status } = useSession();
+
+  // ✅ Derive role from session (single source of truth)
+  const isAuthenticated = status === 'authenticated' && session != null;
+  const role: UserRoleType | 'guest' = isAuthenticated
+    ? (session.user?.role || 'VIEWER')
+    : 'guest';
+
+  const subscription: string = isAuthenticated
+    ? (session.user?.subscriptionPlan || 'DEFAULT')
+    : 'DEFAULT';
+```
+
+**Impact**:
+
+- 🔒 **Security**: Authenticated users now see correct modules based on actual role
+- 🛡️ **RBAC**: Role-based access control now functions correctly
+- 📊 **Consistency**: Session is single source of truth (no prop conflicts)
+
+**Lines Changed**:
+
+- Removed: 180+ lines of embedded navigation config
+- Added: Import from `config/navigation.ts`
+- Modified: Auth logic to derive from session (no props)
+
+---
+
+### 4. ✅ ClientLayout Sidebar Integration Update
+
+**Status**: Updated to work with refactored Sidebar
+
+**Change**:
+
+```typescript
+// BEFORE
+<Sidebar
+  key={`sidebar-${language}-${isRTL}`}
+  role={role}                    // ❌ Removed (was causing auth bug)
+  subscription="PROFESSIONAL"    // ❌ Removed (hardcoded)
+  tenantId="demo-tenant"         // ❌ Removed (unused)
+/>
+
+// AFTER
+<Sidebar key={`sidebar-${language}-${isRTL}`} />
+// ✅ No props - all auth managed internally via useSession
+```
+
+**Result**: Simpler integration, no prop drilling, session-driven auth
+
+---
+
+## 📊 Quality Gates
+
+### TypeScript Compilation
+
+```bash
+$ pnpm typecheck
+✅ 0 errors
+```
+
+### ESLint
+
+```bash
+$ pnpm lint --max-warnings=0
+✅ 0 warnings, 0 errors
+```
+
+### Git Status
+
+```bash
+✅ Branch: fix/issues-157-162-enhancements
+✅ Commits: 4 total (1 new in this session)
+✅ Status: All changes committed and pushed
+```
+
+---
+
+## 📝 Commits
+
+### This Session
+
+**Commit**: `26c5d8f47`
+
+```
+refactor: Extract navigation config to centralized file, fix Sidebar auth bug
+
+- Created config/navigation.ts with ROLE_PERMISSIONS (18 roles),
+  SUBSCRIPTION_PLANS, MODULES (20), USER_LINKS, CATEGORY_FALLBACKS
+
+- FIXED CRITICAL BUG in Sidebar.tsx: Removed role/subscription props
+  that were overriding actual authenticated user roles with 'guest' default
+
+- Sidebar now derives role/subscription directly from useSession hook
+
+- Updated ClientLayout.tsx to pass no props to Sidebar
+
+Issues: Part of #157-162 security review
+Related: PR #270 code review feedback
+```
+
+**Files Changed**:
+
+- `config/navigation.ts` (new, 167 lines)
+- `components/Sidebar.tsx` (refactored, -180 lines of config, +auth fix)
+- `components/ClientLayout.tsx` (simplified Sidebar usage)
+
+**Stats**: 3 files changed, 156 insertions(+), 140 deletions(-)
+
+### Previous Session Commits
+
+1. `6056e7561` - Initial enhancements (issues #157-162)
+2. `1556dfc09` - PR feedback fixes + TEST_COVERAGE_SUMMARY.md
+3. `d09669fb6` - AGENT_SYSTEM_SUMMARY.md documentation
+
+---
+
+## 🔍 Code Review Feedback Addressed
+
+### From User's "MASTER ONE-SHOT PROMPT"
+
+#### ✅ Issue 1: Hardcoded Navigation Config in Sidebar
+
+**Feedback**: "The sidebar hardcodes significant business logic and configuration. This violates the Single Responsibility Principle and Governance V5 policy."
+
+**Resolution**: Created `config/navigation.ts` - centralized single source of truth
+
+**Before**: 180+ lines of config embedded in Sidebar UI component
+**After**: Clean import from config file, UI component focused on rendering only
+
+---
+
+#### ✅ Issue 2: Conflicting Auth Logic in Sidebar
+
+**Feedback**: "Sidebar has conflicting authentication logic. It accepts a role prop (defaults to 'guest') but also reads useSession hook. It incorrectly uses the role prop to determine permissions, not the actual authenticated user's role from the session. This is a critical bug."
+
+**Resolution**: Removed all props, derive role directly from `useSession()` as single source of truth
+
+**Impact**:
+
+- **Before**: Super Admin user treated as guest (saw no modules)
+- **After**: Super Admin sees all 18 modules they're authorized for
+
+---
+
+#### ✅ Issue 3: Agent System Documentation
+
+**Feedback**: User provided comprehensive "MASTER ONE-SHOT PROMPT" with detailed specifications for Fixzit Agent system
+
+**Resolution**: Verified all components already implemented
+
+- **Agent Script**: 641 lines, 13-step protocol ✅
+- **Codemods**: import-rewrite.cjs ✅
+- **Scanners**: i18n-scan.mjs, api-scan.mjs ✅
+- **Tests**: HFV E2E suite (117 scenarios) ✅
+- **Documentation**: AGENT_SYSTEM_SUMMARY.md (736 lines) ✅
+
+---
+
+## 🎉 Key Achievements
+
+### Architecture
+
+- ✅ Governance V5 compliance (centralized config)
+- ✅ Single source of truth for RBAC (useSession hook)
+- ✅ Separation of concerns (config vs UI)
+- ✅ Zero prop drilling for auth data
+
+### Security
+
+- ✅ Fixed critical auth bypass bug (guest default override)
+- ✅ Session-driven authorization (no hardcoded roles)
+- ✅ RBAC enforcement working correctly
+
+### Maintainability
+
+- ✅ Navigation updates now safe (edit config, not UI)
+- ✅ Reduced Sidebar complexity (180+ lines removed)
+- ✅ Type-safe role/permission system
+- ✅ Zero TypeScript errors, zero ESLint warnings
+
+### Documentation
+
+- ✅ Comprehensive agent system docs (736 lines)
+- ✅ 13-step protocol documented
+- ✅ HFV E2E testing guide (117 scenarios)
+- ✅ Troubleshooting and best practices
+
+---
+
+## 🚀 Next Steps (User's Choice)
+
+### Option A: Merge PR #270
+
+**Status**: Ready for merge
+
+- All code review feedback addressed ✅
+- All quality gates passing ✅
+- Critical auth bug fixed ✅
+- Navigation centralized ✅
+
+### Option B: Run Agent System
+
+```bash
+# Dry run (safe, reports only)
+pnpm run fixzit:agent
+
+# Review reports
+cat reports/5d_similarity_report.md
+cat reports/similar_hits.json
+cat reports/duplicates.json
+
+# If clean, apply structural fixes
+pnpm run fixzit:agent:apply
+```
+
+### Option C: Run HFV E2E Tests
+
+```bash
+# Ensure dev server running
+pnpm run dev
+
+# Run full test suite (117 scenarios)
+npx playwright test tests/hfv.e2e.spec.ts
+
+# Review evidence
+ls -lh reports/evidence/
+```
+
+### Option D: Review Documentation
+
+```bash
+# Agent system guide
+less AGENT_SYSTEM_SUMMARY.md
+
+# Test coverage
+less TEST_COVERAGE_SUMMARY.md
+
+# This summary
+less WORK_COMPLETED_SUMMARY.md
+```
+
+---
+
+## 📋 Files Modified This Session
+
+| File                          | Status        | Lines     | Purpose                                 |
+| ----------------------------- | ------------- | --------- | --------------------------------------- |
+| `config/navigation.ts`        | ✨ Created    | 167       | Centralized navigation config (Gov V5)  |
+| `components/Sidebar.tsx`      | ♻️ Refactored | Net -24   | Fixed auth bug, removed embedded config |
+| `components/ClientLayout.tsx` | 🔧 Updated    | -3        | Simplified Sidebar integration          |
+| `WORK_COMPLETED_SUMMARY.md`   | ✨ Created    | This file | Session documentation                   |
+
+**Total**: 4 files, 156 insertions(+), 140 deletions(-)
+
+---
+
+## 🏆 Success Metrics
+
+| Metric             | Target   | Status              |
+| ------------------ | -------- | ------------------- |
+| TypeScript Errors  | 0        | ✅ 0                |
+| ESLint Warnings    | 0        | ✅ 0                |
+| Auth Bug Severity  | N/A      | ✅ Fixed (Critical) |
+| Code Review Issues | 3        | ✅ All addressed    |
+| Agent Components   | 6        | ✅ All verified     |
+| Documentation      | Complete | ✅ 736 lines        |
+| Commits Pushed     | 1        | ✅ 26c5d8f47        |
+
+---
+
+## 📚 Related Documentation
+
+- `AGENT_SYSTEM_SUMMARY.md` - Comprehensive agent guide (736 lines)
+- `TEST_COVERAGE_SUMMARY.md` - Test expansion from previous session (425 lines)
+- `SECURITY.md` - Security policy (updated for pnpm)
+- `README_START_HERE.md` - Project onboarding guide
+
+---
+
+## 🙏 Acknowledgments
+
+**User Feedback Sources**:
+
+- CodeRabbit (5 actionable comments on PR #270)
+- GitHub Copilot (2 comments)
+- chatgpt-codex-connector (1 comment)
+- qodo-merge-pro (review feedback)
+- gemini-code-assist (architectural feedback)
+
+**"MASTER ONE-SHOT PROMPT"**: Comprehensive specifications provided by user for agent system implementation
+
+---
+
+**Session Date**: November 8, 2025  
+**Agent**: GitHub Copilot  
+**Branch**: `fix/issues-157-162-enhancements`  
+**PR**: #270 (ready for merge)  
+**Quality**: ✅ All gates green
+
+---
+
+## 🎯 Summary
+
+This session successfully:
+
+1. ✅ Verified complete Fixzit Agent system (6 components, 736 lines of docs)
+2. ✅ Fixed critical Sidebar authentication bug (security issue)
+3. ✅ Centralized navigation config (Governance V5 compliance)
+4. ✅ Maintained zero TypeScript errors and zero ESLint warnings
+5. ✅ Committed and pushed all changes to remote
+
+**Result**: PR #270 is now complete with all code review feedback addressed, critical bugs fixed, and architectural improvements implemented. Ready for merge. 🚀
+
+]]>
+</file>
+
+<file path="docs/archived/workspace-org/FILE_ORGANIZATION_BATCH_PLAN.md">
+<![CDATA[
+# File Organization - Batch Execution Plan (2025-11-10)
+
+Based on audit results: 554 misplaced files, 116 orphaned utilities
+
+## CRITICAL: Most Audit Results are FALSE POSITIVES
+
+**Problem**: The audit detects keywords in comments, examples, and cross-domain imports, suggesting moves that would break the build.
+
+**Solution**: Manual review and conservative batching. ONLY move files that are:
+
+1. Pure domain-specific (no cross-cutting concerns)
+2. Currently causing confusion/duplication
+3. Have low blast radius
+
+---
+
+## Batch 1: Finance Services Isolation 🟢 IMMEDIATE
+
+**Effort**: 30-45 minutes  
+**Risk**: LOW (isolated to finance module)
+
+### Moves:
+
+```bash
+git mv services/paytabs.ts lib/finance/paytabs.ts
+git mv services/checkout.ts lib/finance/checkout.ts
+```
+
+### Import Updates Needed:
+
+- Search for `from 'services/paytabs'` → replace with `from '@/lib/finance/paytabs'`
+- Search for `from 'services/checkout'` → replace with `from '@/lib/finance/checkout'`
+
+### Test:
+
+```bash
+pnpm typecheck
+pnpm build
+# Manual: Finance → Payments → Create Payment (test checkout flow)
+```
+
+---
+
+## Batch 2: Test Organization 🟢 SAFE
+
+**Effort**: 15-20 minutes  
+**Risk**: ZERO (tests don't affect production)
+
+### Moves:
+
+```bash
+mkdir -p tests/aqar tests/finance tests/hr tests/system
+git mv tools/wo-smoke.ts tests/aqar/wo-smoke.ts
+git mv scripts/verify-passwords.ts tests/system/verify-passwords.ts
+```
+
+### No Import Updates Needed (tests are isolated)
+
+---
+
+## DO NOT MOVE (Keep in Root) ❌
+
+### Framework Requirements:
+
+- `middleware.ts` → MUST be in root (Next.js convention)
+- `auth.ts` → MUST be in root (NextAuth config location)
+- `auth.config.ts` → Shared across all modules
+- `next.config.js` → Framework config
+- `playwright.config.ts` → Test framework config
+
+### Shared Utilities (Used by 3+ Domains):
+
+- `utils/format.ts` → Used by finance, hr, aqar, crm
+- `lib/utils.ts` → UI utilities (shadcn/ui)
+- `lib/rbac.ts` → Permission checks across all modules
+- `lib/redis.ts` → Cache layer for all domains
+- `lib/secrets.ts` → Secrets management for all services
+- `lib/mongoose.ts` → Database connection for all modules
+- `lib/startup-checks.ts` → App-wide health checks
+
+### Shared Types (Cross-Domain):
+
+- `types/user.ts` → Used by auth, hr, crm, aqar (DO NOT MOVE)
+- `types/properties.ts` → Used by aqar, fm, crm (DO NOT MOVE)
+- `types/work-orders.ts` → Used by fm, aqar, compliance (DO NOT MOVE)
+- `types/next-auth.d.ts` → Type augmentation (framework requirement)
+- `types/index.ts` → Type barrel exports
+
+---
+
+## Execution Checklist
+
+### Pre-Move:
+
+- [ ] Current branch: `main` (or create feature branch)
+- [ ] Working directory clean: `git status`
+- [ ] Backup audit report: `cp _artifacts/file-structure-audit.json _artifacts/file-structure-audit-$(date +%Y%m%d).json`
+
+### During Move (Batch 1):
+
+- [ ] Create target directory: `mkdir -p lib/finance`
+- [ ] Move files with git mv (preserves history)
+- [ ] Update imports: `grep -r "from 'services/paytabs'" --include="*.ts" --include="*.tsx"`
+- [ ] Replace imports: Use VS Code find/replace across workspace
+- [ ] Run typecheck: `pnpm typecheck`
+- [ ] Run build: `pnpm build`
+
+### Post-Move:
+
+- [ ] Manual smoke test (finance pages)
+- [ ] Commit: `git commit -m "refactor(finance): Move payment services to lib/finance"`
+- [ ] Push: `git push origin main`
+
+---
+
+## Rollback Plan
+
+If issues arise:
+
+```bash
+# Immediately revert
+git revert HEAD
+
+# Or reset (if not pushed)
+git reset --hard HEAD~1
+```
+
+---
+
+## Phase 2 (After Batch 1-2 Success)
+
+Review remaining "misplaced" files manually. Most are FALSE POSITIVES:
+
+- Config files in root (correct)
+- Shared types (correct)
+- Cross-domain utilities (correct)
+- Framework conventions (correct)
+
+Focus future efforts on:
+
+1. Removing TRUE duplicates (none found in current audit)
+2. Consolidating scattered domain components
+3. Creating domain-specific subdirectories within existing structure
+
+---
+
+## Recommendation
+
+**START HERE**: Execute Batch 1 (Finance Services) NOW. It's:
+
+- Low risk (isolated)
+- High value (removes services/ clutter)
+- Easy to test (finance flows)
+- Easy to rollback (2 files only)
+
+**SKIP**: Large-scale moves suggested by audit. They are FALSE POSITIVES and will break the build.
+
+]]>
+</file>
+
+<file path="docs/archived/workspace-org/FILE_ORGANIZATION_CORRECT.md">
+<![CDATA[
+# File Organization - Verified Correct
+
+## Summary
+
+The existing file structure follows **Next.js 15 App Router conventions** and **Governance V5 module boundaries**. Auto-generated move plan was incorrect.
+
+## Category D Cleanup (Completed) ✅
+
+1. Removed `components/SupportPopup.OLD.tsx` (backup file)
+2. Removed `components/ErrorBoundary.OLD.tsx` (backup file)
+3. Moved `smart-merge-conflicts.ts` → `scripts/` (utility organization)
+
+## Why Auto Move Plan Was Wrong ❌
+
+### Next.js Convention Violations:
+
+- Tried to move `app/*/layout.tsx` → `components/` (WRONG: layouts must stay in app directories)
+- Tried to move `app/api/*/route.ts` files (WRONG: API routes must stay under app/api/\*)
+
+### Module Boundary Violations:
+
+- Tried to consolidate `app/fm/*`, `app/aqar/*`, `app/souq/*` into single directories
+- These are **separate modules** with distinct purposes:
+  - `app/fm/*` = Facilities Management
+  - `app/aqar/*` = Real Estate marketplace
+  - `app/souq/*` = General marketplace
+  - Each maintains its own namespace and module boundaries
+
+### Collision Issues:
+
+- 31 files would overwrite same destinations
+- Example: 5 different page.tsx files → single app/administration/page.tsx
+- Shows heuristic pattern matching was too broad
+
+## ✅ Correct Structure (No Changes Needed)
+
+```
+app/
+├── (dashboard)/          # Dashboard route group
+├── (root)/               # Root route group
+├── api/                  # API routes (MUST stay here)
+├── fm/                   # FM module namespace
+├── aqar/                 # Real Estate namespace
+├── souq/                 # Marketplace namespace
+├── admin/                # Admin pages
+└── ...
+
+components/               # Shared React components
+lib/                      # Shared utilities
+scripts/                  # Build/dev scripts
+tests/                    # Test files
+```
+
+## Memory Safety During Cleanup
+
+- Before: 6.4GB
+- During: 6.8GB
+- After: 6.8GB
+- Status: Safe ✅ (no Code 5 crashes)
+
+## Conclusion
+
+**File organization is correct.** Only cleanup needed was removing backup files and organizing one utility script. No mass reorganization required.
+
+**Agent Improvements Needed:**
+
+- Fix move-plan heuristics to respect Next.js conventions
+- Add checks for layout.tsx files (must stay in app/\*)
+- Add checks for API routes (must stay in app/api/\*)
+- Add namespace boundary detection
+
+]]>
+</file>
+
+<file path="docs/archived/workspace-org/FILE_ORGANIZATION_PLAN.md">
+<![CDATA[
+# File Organization Plan - Phase 1 URGENT
+
+## Current Issues
+
+- 150+ markdown files cluttering root directory
+- Multiple duplicate/similar scripts scattered
+- Test files mixed with production code
+- Configuration files inconsistent locations
+
+## Organization Structure (To Be Implemented)
+
+```
+/workspaces/Fixzit/
+├── docs/                          # ALL documentation HERE
+│   ├── reports/                   # All *_REPORT.md files
+│   ├── progress/                  # All PROGRESS_*.md, SESSION_*.md
+│   ├── analysis/                  # ANALYSIS_*.md, AUDIT_*.md
+│   ├── guides/                    # GUIDE.md, INSTRUCTIONS.md
+│   └── archive/                   # Completed/old docs
+├── scripts/                       # Production scripts only
+│   ├── deployment/
+│   ├── database/
+│   ├── testing/
+│   └── analysis/
+├── tools/                         # Development tools
+│   ├── analyzers/
+│   ├── fixers/
+│   └── generators/
+├── .github/workflows/             # CI/CD only
+└── [rest of standard Next.js structure]
+```
+
+## Execution Plan (IMMEDIATE - Next 30 minutes)
+
+### Step 1: Create Directory Structure (2 min)
+
+```bash
+mkdir -p docs/{reports,progress,analysis,guides,archive}
+mkdir -p scripts/{deployment,database,testing,analysis}
+mkdir -p tools/{analyzers,fixers,generators}
+```
+
+### Step 2: Move Documentation Files (10 min)
+
+- Move all \*\_REPORT.md → docs/reports/
+- Move all _\_PROGRESS_.md, SESSION*\*.md, DAILY*\*.md → docs/progress/
+- Move all _\_ANALYSIS_.md, AUDIT*\*.md, COMPREHENSIVE*\*.md → docs/analysis/
+- Move all _\_GUIDE.md,_\_INSTRUCTIONS.md, QUICKSTART.md → docs/guides/
+- Move README files specific to features → their respective directories
+
+### Step 3: Organize Scripts (10 min)
+
+- Move fix-_.sh, fix-_.ps1, fix-\*.py → tools/fixers/
+- Move test-_.js, test-_.mjs, verify-\*.sh → scripts/testing/
+- Move analyze-_.js, scan-_.sh → tools/analyzers/
+- Move setup-_.sh, deploy-_.sh → scripts/deployment/
+- Move seed-_.ts, migrate-_.ts → scripts/database/
+
+### Step 4: Clean Up Root (5 min)
+
+- Remove duplicate/obsolete files
+- Keep only: package.json, tsconfig.json, next.config.js, .env.example, README.md, GOVERNANCE.md
+- Update .gitignore to prevent future clutter
+
+### Step 5: Update Import Paths (3 min)
+
+- Check for any hardcoded paths to moved files
+- Update if necessary
+
+## Files to Move (Prioritized)
+
+### HIGH PRIORITY - Documentation (Move First)
+
+```
+docs/reports/
+- *_COMPLETE.md (50+ files)
+- *_STATUS.md (30+ files)
+- *_SUMMARY.md (20+ files)
+- *_VERIFICATION*.md (15+ files)
+- *_FIXES*.md (15+ files)
+-ERROR_ANALYSIS_PROGRESS_TRACKER.md
+- COMPREHENSIVE_ERROR_ANALYSIS_SUMMARY.md
+- SYSTEM_ERRORS_DETAILED_REPORT.md
+- DUPLICATE_CODE_ANALYSIS_REPORT.md
+- DEAD_CODE_ANALYSIS_REPORT.md
+
+docs/progress/
+- DAILY_PROGRESS_REPORT_*.md
+- SESSION_*.md
+- PROGRESS_*.md
+- *_PROGRESS.md
+
+docs/analysis/
+- *_ANALYSIS*.md
+- *_AUDIT*.md
+- COMPREHENSIVE_*.md
+- CRITICAL_*.md
+
+docs/guides/
+- *_GUIDE.md
+- *_INSTRUCTIONS.md
+- *_README.md (feature-specific)
+- FIXZIT_QUICKSTART.md
+- HOW_TO_*.md
+```
+
+### MEDIUM PRIORITY - Scripts
+
+```
+tools/fixers/
+- fix-*.sh, fix-*.ps1, fix-*.py, fix-*.js
+
+tools/analyzers/
+- analyze-*.js
+- check-*.sh
+- diagnose-*.sh
+
+scripts/testing/
+- test-*.js, test-*.mjs, test-*.html
+- verify-*.sh, verify-*.ps1
+
+scripts/deployment/
+- setup-*.sh
+- deploy-*.sh
+- pre-deployment-*.sh
+
+scripts/database/
+- seed-*.ts, seed-*.mjs
+- migrate-*.sh
+- update_db_*.sh
+```
+
+### LOW PRIORITY - Archives/Cleanup
+
+```
+docs/archive/
+- Obsolete reports
+- Old session summaries
+- Duplicate documentation
+
+TO DELETE:
+- test-tool*.sh (debugging scripts - obsolete)
+- *-debug.* (temporary debug files)
+- Duplicate merge scripts
+```
+
+## Validation After Move
+
+1. ✅ localhost:3000 still runs
+2. ✅ pnpm dev works
+3. ✅ pnpm typecheck passes
+4. ✅ pnpm lint passes
+5. ✅ All imports still resolve
+6. ✅ Git tracks moves correctly
+
+## START EXECUTION NOW
+
+]]>
+</file>
+
+<file path="docs/archived/workspace-org/PENDING_TASKS_AND_FILE_ORGANIZATION.md">
+<![CDATA[
+# 📋 PENDING TASKS & FILE ORGANIZATION PLAN
+
+**Date**: November 6, 2025  
+**Generated**: Post PR Merge Cleanup Session
+
+---
+
+## 🎯 INCOMPLETE TASKS FROM PAST 5 DAYS
+
+### 🔴 HIGH PRIORITY - CRITICAL
+
+#### 1. Test Failures (143 failing tests)
+
+- **Status**: ⚠️ INCOMPLETE
+- **Location**: Test suite
+- **Issues**:
+  - RBAC tests failing
+  - Secret scan issues
+  - Some relocated tests may need path updates
+- **Action Required**: Run `pnpm test` and fix all failures
+- **Estimated Time**: 4-6 hours
+
+#### 2. Category 5 Phase 3 - Console Statements (~50 app pages)
+
+- **Status**: ⚠️ INCOMPLETE
+- **Completed**: API routes (47 files) ✅, Components (19 files) ✅
+- **Remaining**: ~50 app page files
+- **Pattern**: Replace console.log/error/warn with logger utility
+- **Estimated Time**: 3-4 hours
+
+#### 3. Category 6 - Navigation Accessibility (17 files)
+
+- **Status**: ⚠️ INCOMPLETE
+- **Files**: nav/\*.ts files
+- **Requirements**:
+  - Keyboard navigation support
+  - ARIA attributes
+  - Screen reader compatibility
+- **Estimated Time**: 2-3 hours
+
+### 🟡 MEDIUM PRIORITY
+
+#### 4. TODO Comments Resolution (27+ instances)
+
+- **Status**: ⚠️ INCOMPLETE
+- **Critical TODOs**:
+  - `lib/logger.ts`: Monitoring service integration (Sentry/DataDog)
+  - `lib/fm-auth-middleware.ts`: Real subscription plan queries (4 TODOs)
+  - `lib/fm-approval-engine.ts`: User role queries (3 TODOs)
+  - `lib/fm-notifications.ts`: Email/SMS/WhatsApp integration (4 TODOs)
+  - `components/SystemVerifier.tsx`: Dynamic API integration
+- **Estimated Time**: 6-8 hours
+
+#### 5. Misplaced Test Files (10+ files)
+
+- **Status**: ⚠️ INCOMPLETE
+- **Files**:
+  - `app/product/[slug]/__tests__/page.spec.tsx`
+  - `app/fm/marketplace/page.test.tsx`
+  - `app/marketplace/*.test.tsx` (2 files)
+  - `app/api/marketplace/**/*.test.ts` (3 files)
+  - `app/api/public/rfqs/route.test.ts`
+  - `app/test/*.test.tsx` (2 files)
+- **Action**: Move to `tests/unit/` structure
+- **Estimated Time**: 30 minutes
+
+#### 6. Legacy File Cleanup (17+ markdown files in root)
+
+- **Status**: ⚠️ INCOMPLETE
+- **Files to Archive**:
+  - COMPREHENSIVE_SYSTEM_AUDIT_REPORT.md
+  - CRITICAL_AUTH_FIXES_SUMMARY.md
+  - CRITICAL_TECHNICAL_DEBT_AUDIT.md
+  - DUPLICATE_FILES_REPORT\*.md (3 files)
+  - FINAL_DUPLICATE_REPORT.md
+  - PROJECT_ORGANIZATION_COMPLETE.md
+  - SYSTEM_AUDIT_FINDINGS.md
+  - SYSTEM_WIDE_FIXES_PROGRESS.md
+  - TEST_FAILURES_REPORT.md
+  - TEST_PROGRESS_SUMMARY.md
+  - THEME_VIOLATIONS_AUDIT.md
+- **Files to Move to docs/guides/**:
+  - README_START_HERE.md (if not already moved)
+  - READY_TO_START.md (if not already moved)
+  - START_3_HOUR_TESTING.md (if not already moved)
+- **Action**: Move to `docs/archive/`
+- **Estimated Time**: 15 minutes
+
+### 🟢 LOW PRIORITY
+
+#### 7. Tasks 2-15 from Implementation Guide
+
+- **Status**: ⏸️ PAUSED
+- **Completed**: Task 1 (Auto-restart with PM2) ✅
+- **Remaining**: 14 tasks
+- **Note**: User to decide if continuation needed
+- **Tasks Include**:
+  - Task 2: PayTabs integration (NOT Stripe)
+  - Task 3: Referral system
+  - Task 4: Testing framework setup
+  - Task 5-15: Various features and optimizations
+
+#### 8. E2E Test Script Organization
+
+- **Status**: ⚠️ INCOMPLETE
+- **File**: `start-e2e-testing.sh` (loose in root)
+- **Action**: Move to `scripts/` or `tests/e2e/`
+- **Estimated Time**: 2 minutes
+
+#### 9. Legacy Components Cleanup
+
+- **Status**: ⚠️ INCOMPLETE
+- **Files Found**:
+  - `components/SupportPopup.OLD.tsx`
+- **Action**: Review and remove if not needed
+- **Estimated Time**: 5 minutes
+
+---
+
+## 📁 FILE ORGANIZATION PLAN
+
+### Phase 1: Archive Historical Documents ✅ READY TO EXECUTE
+
+```bash
+# Move audit reports
+mv COMPREHENSIVE_SYSTEM_AUDIT_REPORT.md docs/archive/audits/
+mv CRITICAL_AUTH_FIXES_SUMMARY.md docs/archive/audits/
+mv CRITICAL_TECHNICAL_DEBT_AUDIT.md docs/archive/audits/
+mv SYSTEM_AUDIT_FINDINGS.md docs/archive/audits/
+mv THEME_VIOLATIONS_AUDIT.md docs/archive/audits/
+
+# Move duplicate reports
+mv DUPLICATE_FILES_REPORT.md docs/archive/duplicates/
+mv DUPLICATE_FILES_REPORT_ROUND2.md docs/archive/duplicates/
+mv FINAL_DUPLICATE_REPORT.md docs/archive/duplicates/
+
+# Move completion/status reports
+mv PROJECT_ORGANIZATION_COMPLETE.md docs/archive/
+mv SYSTEM_WIDE_FIXES_PROGRESS.md docs/archive/
+mv TEST_FAILURES_REPORT.md docs/archive/
+mv TEST_PROGRESS_SUMMARY.md docs/archive/
+
+# Move planning documents
+mv THEME_UPGRADE_PLAN.md docs/planning/
+
+# Move phase completion docs
+mv PHASE_2_3_4_COMPLETE.md docs/archive/
+
+# Move all progress reports from DAILY_PROGRESS_REPORTS/
+mv DAILY_PROGRESS_REPORTS/*.md docs/archive/progress-reports/
+```
+
+### Phase 2: Relocate Misplaced Test Files ✅ READY TO EXECUTE
+
+```bash
+# Create test directories
+mkdir -p tests/unit/app/product
+mkdir -p tests/unit/app/fm/marketplace
+mkdir -p tests/unit/app/marketplace
+mkdir -p tests/unit/app/test
+mkdir -p tests/unit/api/marketplace/categories
+mkdir -p tests/unit/api/marketplace/products
+mkdir -p tests/unit/api/public/rfqs
+
+# Move app tests
+mv app/product/[slug]/__tests__/page.spec.tsx tests/unit/app/product/product-page.spec.tsx
+mv app/fm/marketplace/page.test.tsx tests/unit/app/fm/marketplace/marketplace-page.test.tsx
+mv app/marketplace/page.test.tsx tests/unit/app/marketplace/marketplace-page.test.tsx
+mv app/marketplace/rfq/page.test.tsx tests/unit/app/marketplace/rfq-page.test.tsx
+
+# Move API tests
+mv app/api/marketplace/search/route.test.ts tests/unit/api/marketplace/search-route.test.ts
+mv app/api/marketplace/categories/route.test.ts tests/unit/api/marketplace/categories/route.test.ts
+mv app/api/marketplace/products/[slug]/route.test.ts tests/unit/api/marketplace/products/product-route.test.ts
+mv app/api/public/rfqs/route.test.ts tests/unit/api/public/rfqs/route.test.ts
+
+# Move test page tests
+mv app/test/help_support_ticket_page.test.tsx tests/unit/app/test/help-support-ticket-page.test.tsx
+mv app/test/api_help_articles_route.test.ts tests/unit/app/test/api-help-articles-route.test.ts
+```
+
+### Phase 3: Organize Scripts ✅ READY TO EXECUTE
+
+```bash
+# Move E2E script
+mv start-e2e-testing.sh tests/e2e/start-e2e-testing.sh
+
+# Mark as executable
+chmod +x tests/e2e/start-e2e-testing.sh
+```
+
+### Phase 4: Remove Legacy Files ✅ READY TO EXECUTE
+
+```bash
+# Remove old backup components
+rm -f components/SupportPopup.OLD.tsx
+
+# Remove empty directories if any
+find . -type d -empty -delete 2>/dev/null || true
+```
+
+---
+
+## 📊 PROGRESS TRACKING
+
+### Completed in Past 5 Days ✅
+
+- ✅ PR #237: Accessibility improvements
+- ✅ PR #238: Theme compliance (20 fixes)
+- ✅ PR #239/263: Critical security fixes (GUEST role, format.ts, ErrorBoundary)
+- ✅ PR #240: Type safety improvements
+- ✅ PR #241: Console statements in API routes (47 files)
+- ✅ PR #242: Console statements in components (19 files)
+- ✅ PR #257: Auto-restart mechanism (PM2)
+- ✅ PR #261: Initial file organization (partial)
+- ✅ 10 WIP/draft PRs closed
+- ✅ All branches cleaned up
+- ✅ 42 new tests added (100% passing)
+
+### In Progress 🔄
+
+- 🔄 File organization (this session)
+- 🔄 Test file relocation
+
+### Pending ⏸️
+
+- ⏸️ Test failures fix (143 tests)
+- ⏸️ Category 5 Phase 3 (~50 app pages)
+- ⏸️ Category 6 (17 nav files)
+- ⏸️ TODO comments resolution
+- ⏸️ Tasks 2-15 (user decision needed)
+
+---
+
+## 🎯 RECOMMENDED NEXT ACTIONS
+
+### Immediate (Today)
+
+1. **Execute file organization** (Phases 1-4 above) - 30 min
+2. **Fix test failures** - Priority #1 - 4-6 hours
+3. **Relocate remaining test files** - 30 min
+
+### This Week
+
+4. **Category 5 Phase 3** - Console statements in app pages - 3-4 hours
+5. **Category 6** - Navigation accessibility - 2-3 hours
+6. **Resolve critical TODOs** - Monitoring, auth queries - 4-6 hours
+
+### Next Week
+
+7. **Review Tasks 2-15** - Decide continuation
+8. **Production readiness** - Final checks
+9. **Documentation update** - README and guides
+
+---
+
+## 📈 ESTIMATED TIME TO COMPLETION
+
+- **File Organization**: 30 minutes ⚡
+- **Test Fixes**: 4-6 hours 🔴
+- **Console Statements Phase 3**: 3-4 hours 🟡
+- **Navigation Accessibility**: 2-3 hours 🟡
+- **TODO Resolution**: 6-8 hours 🟡
+
+**Total Remaining Work**: ~16-22 hours
+
+---
+
+## 🔍 VERIFICATION CHECKLIST
+
+Before marking complete:
+
+- [ ] All markdown files moved from root
+- [ ] All test files in tests/unit/ structure
+- [ ] All scripts in scripts/ directory
+- [ ] Legacy files removed
+- [ ] Empty directories cleaned
+- [ ] Git status clean
+- [ ] All tests passing
+- [ ] No console statements in app pages
+- [ ] Navigation accessibility complete
+- [ ] Critical TODOs resolved
+
+---
+
+_Generated: November 6, 2025_  
+_Next Review: After file organization execution_
+
+]]>
+</file>
+
+<file path="docs/archived/workspace-org/QUICK_REFERENCE.md">
+<![CDATA[
+# 🎯 Fixzit FM - Quick Reference
+
+## System Status: ✅ Production-Ready (9.5/10)
+
+### Critical Fixes Applied Today
+
+1. ✅ CSS Nesting → Flattened (app/globals.css)
+2. ✅ localStorage SSR → Guarded (app/\_shell/ClientSidebar.tsx)
+3. ✅ Tabs Component → Created (components/Tabs.tsx)
+
+### Verification
+
+- ✅ Zero TypeScript errors
+- ✅ Server running (localhost:3000)
+- ✅ All APIs responding (200 OK)
+- ✅ Auth working
+- ✅ MongoDB connected
+
+---
+
+## What You Have Now
+
+### Architecture (10/10)
+
+- Next.js 15.5.6 App Router + Turbopack
+- MongoDB Atlas + Mongoose
+- NextAuth JWT + RBAC (4 roles)
+- Multi-tenant (org_id isolation)
+- RTL/dark mode support
+- ErrorBoundary + logging
+
+### Code Quality (9.5/10)
+
+- Zero compilation errors
+- Type-safe (TypeScript)
+- Server/client boundaries correct
+- localStorage SSR-safe
+- CSS valid (no nesting)
+- Accessible components
+
+### Features (9/10)
+
+- 11 dashboard modules
+- 3 Souq APIs
+- Live counters (30s polling)
+- Tab-based navigation
+- Theme toggle
+- Seller onboarding
+- Role-based filtering
+
+---
+
+## What's Left (Optional)
+
+### Non-Blocking (20 min total)
+
+1. Fix MongoDB global var (5 min) → cleaner logs
+2. Switch to Node v20 LTS (10 min) → long-term support
+3. Remove extra lockfile (5 min) → cleaner build
+
+### Enhancement (Later)
+
+- Add Redis → WebSocket live updates
+- Add Meilisearch → advanced search
+- Add unit tests → 80% coverage
+- Add S3/MinIO → real file uploads
+
+---
+
+## Deploy Checklist
+
+### Pre-Deploy (Optional 20 min)
+
+- [ ] Fix MongoDB global: `global` → `globalThis`
+- [ ] Node version: `nvm install 20 && nvm use 20`
+- [ ] Lockfiles: Remove `package-lock.json` OR `pnpm-lock.yaml`
+
+### Deploy
+
+- [x] Zero errors ✅
+- [x] Server tested ✅
+- [x] APIs tested ✅
+- [x] Auth tested ✅
+- [ ] Environment variables set
+- [ ] MongoDB URI configured
+- [ ] NextAuth secret configured
+
+### Post-Deploy
+
+- [ ] Monitor error logs
+- [ ] Check performance metrics
+- [ ] Run accessibility audit
+- [ ] Add unit tests
+
+---
+
+## Key Files Modified
+
+```
+app/
+  globals.css                 ✅ Fixed CSS nesting (28 lines)
+  _shell/
+    ClientSidebar.tsx         ✅ Fixed localStorage SSR (50 lines)
+components/
+  Tabs.tsx                    ✅ Created new component (151 lines)
+```
+
+---
+
+## Performance
+
+| Metric           | Value     |
+| ---------------- | --------- |
+| Build            | 1.5s      |
+| Cold Start       | 1.5s      |
+| API Response     | 240-400ms |
+| Bundle (gzipped) | 450KB     |
+
+---
+
+## Support
+
+**Documentation**:
+
+- `SYSTEM_AUDIT_VERDICT.md` → Full audit with issues
+- `FIXES_APPLIED_SUMMARY.md` → Detailed fix explanations
+- `EXECUTIVE_SUMMARY.md` → High-level overview
+- `QUICK_REFERENCE.md` (this file) → Quick reference
+
+**For Help**:
+
+1. Check server logs: Terminal output
+2. Check browser console: F12 → Console
+3. Check error boundaries: Look for ErrorBoundary UI
+4. Check MongoDB: Verify connection in logs
+
+---
+
+## Success Criteria Met
+
+- [x] All 67 Phase 1D tasks complete (100%)
+- [x] 11 dashboard modules created
+- [x] 3 Souq APIs implemented
+- [x] Zero TypeScript errors
+- [x] Server running stable
+- [x] All critical bugs fixed
+- [x] Production-ready code
+
+---
+
+## Bottom Line
+
+**You're Ready to Ship** 🚀
+
+The system is production-ready with:
+
+- Excellent architecture (multi-tenant, RBAC, proper separation)
+- Zero compilation errors
+- All critical bugs fixed
+- Fully functional features
+
+The 3 remaining items (MongoDB global, Node version, lockfiles) are **cosmetic** and **non-blocking**. You can deploy now and address them post-launch.
+
+**Confidence Level**: 95% ✅
+
+---
+
+**Last Updated**: November 14, 2025  
+**Next Review**: After first deployment  
+**Estimated Effort Remaining**: 20 minutes (optional polish)
+
+]]>
+</file>
+
+<file path="docs/archived/workspace-org/SYSTEM_ORGANIZATION.md">
+<![CDATA[
+# System File Organization - October 15, 2025
+
+## Overview
+
+This document tracks the file organization changes made to improve system structure and maintainability.
+
+## Organizational Structure
+
+### `/docs` - All Documentation
+
+- `/docs/reports/error-analysis/` - Error analysis reports and CSV data
+- `/docs/reports/analysis/` - Code analysis reports (duplicates, dead code, etc.)
+- `/docs/reports/progress/` - Daily and weekly progress reports
+- `/docs/guides/` - How-to guides and tutorials
+- `/docs/api/` - API documentation
+- `/docs/requirements/` - Project requirements and specifications
+
+### `/tools` - Development Tools
+
+- `/tools/analyzers/` - Analysis scripts (error detection, code quality)
+- `/tools/scripts-archive/` - Old/deprecated scripts kept for reference
+- `/tools/fixers/` - Auto-fix scripts
+
+### `/scripts` - Active Build & Deploy Scripts
+
+- Production deployment scripts
+- Database seeding and migration
+- CI/CD related scripts
+
+### Root Directory - Essential Files Only
+
+- Configuration files (package.json, tsconfig.json, etc.)
+- README.md, GOVERNANCE.md
+- Docker and environment files
+
+## Files Moved (Phase 1)
+
+### Error Analysis Reports → `/docs/reports/error-analysis/`
+
+- COMPREHENSIVE_ERROR_ANALYSIS_SUMMARY.md
+- ERROR_ANALYSIS_PROGRESS_TRACKER.md
+- SYSTEM_ERRORS_DETAILED_REPORT.md
+- system-errors-report.csv (3,082 errors catalogued)
+- system-errors-detailed.json
+
+### Analysis Tools → `/tools/analyzers/`
+
+- analyze-system-errors.js (main error analyzer)
+- analyze-imports.js
+- analyze-comments.js
+
+### Code Analysis Reports → `/docs/reports/analysis/`
+
+- DUPLICATE_CODE_ANALYSIS_REPORT.md (50 duplicates found)
+- DEAD_CODE_ANALYSIS_REPORT.md (51 unused exports)
+- GITHUB_SECRETS_SETUP.md
+- QUICK_WIN_COMPLETION_REPORT.md
+
+### Progress Reports → `/DAILY_PROGRESS_REPORTS/`
+
+- DAILY_PROGRESS_REPORT_2025-10-15.md
+- DAILY_PROGRESS_REPORT_2025-10-15_FINAL.md
+
+### Archive → `/tools/scripts-archive/`
+
+- final-typescript-fix.js
+- fix_merge_conflicts.js
+- test-_.js, test-_.sh, test-\*.ts (various test scripts)
+
+## Verification Status
+
+✅ **Files Moved**: All reports and tools organized
+✅ **Build Status**: TypeScript compilation successful
+✅ **Server Status**: localhost:3000 operational
+✅ **No Breaking Changes**: All imports and references intact
+
+## Next Steps
+
+1. Continue with Phase 2: Quick Wins (Console cleanup)
+2. Maintain this organization during future development
+3. Update any hardcoded paths in scripts if needed
+
+## Guidelines for Future File Placement
+
+1. **Reports**: Always go to `/docs/reports/` with appropriate subdirectory
+2. **Tools**: Development scripts go to `/tools/` with clear categorization
+3. **Root**: Only configuration and essential project files
+4. **Archive**: Old/deprecated files go to appropriate archive directory with README
+
+---
+
+_Last Updated: October 15, 2025 - Phase 1 Complete_
+
+]]>
+</file>
+
+<file path="docs/archived/workspace-org/TASK_COMPLETION_SUMMARY.md">
+<![CDATA[
+# Task Completion Summary - November 6, 2025
+
+## Overview
+
+Completed all 4 requested tasks with zero Code 5 crashes and stable memory throughout.
+
+---
+
+## ✅ Task 1: Run Test Suite to Verify No Regressions
+
+**Status:** COMPLETE ✅
+
+**Actions:**
+
+- Executed full Vitest unit test suite (34.34s duration)
+- Analyzed 412 total tests across 69 test files
+
+**Results:**
+
+- **Baseline (before fixes):** 65 failed tests
+- **After Categories A-D fixes:** 65 failed tests
+- **Conclusion:** ✅ Zero regressions introduced
+
+**Remaining Test Failures (Not from our changes):**
+
+- 2 HelpArticle tests (ESBuild top-level await issue)
+- 7 auth library tests (JWT/bcrypt configuration)
+- 56 other pre-existing failures
+
+**Memory Safety:**
+
+- Before: 7.6GB / 15GB (50%)
+- After: 7.0GB / 15GB (46%)
+- Status: ✅ Safe, no Code 5 risk
+
+---
+
+## ✅ Task 2: Address Remaining Flagged Files (Analysis Complete)
+
+**Status:** COMPLETE ✅
+
+**Flagged File Analysis from tasks/TODO_flat.json:**
+
+| Pattern                          | Count | Status                                       |
+| -------------------------------- | ----- | -------------------------------------------- |
+| Unhandled Rejections (Potential) | 422   | 📋 Future work (mostly async/await patterns) |
+| NextResponse Usage               | 141   | ✅ Intentional (Next.js API routes)          |
+| i18n/RTL Issues (Potential)      | 121   | ✅ Now addressed with i18n files             |
+| Hydration/Server-Client Mismatch | 103   | ✅ Verified correct ('use client' present)   |
+| Alias Misuse ("@/src")           | 6     | ✅ False positives (markdown docs)           |
+| Fragile Relative Imports         | 4     | ✅ Appropriate (test files)                  |
+| Undefined Property Access        | 3     | 📋 Future work                               |
+| TypeScript Assignability Issues  | 1     | 📋 Future work                               |
+
+**Key Findings:**
+
+1. **Hydration Issues (103 files):** All components already have `'use client'` directive - false positives
+2. **Alias Misuse (6 files):** All in markdown documentation, not actual code imports
+3. **Fragile Imports (4 files):** Test files using `../../../` - acceptable pattern for tests
+4. **NextResponse (141 files):** Intentional Next.js API route usage - not issues
+
+**Actual Issues Remaining:**
+
+- 422 unhandled rejection patterns (mostly proper async/await - needs manual review)
+- 3 undefined property access cases (need optional chaining)
+- 1 TypeScript assignability issue
+
+**Recommendation:** The agent's heuristics flag many false positives. Bulk of actual work would be reviewing the 422 "unhandled rejections" to confirm they're properly handled async/await patterns.
+
+---
+
+## ✅ Task 3: Implement i18n Files
+
+**Status:** COMPLETE ✅
+
+**Deliverables:**
+
+- ✅ Created `i18n/en.json` (English, 180+ keys)
+- ✅ Created `i18n/ar.json` (Arabic, 180+ keys, full RTL translations)
+
+**Coverage Areas:**
+
+1. **Landing Page** (29 keys)
+   - Hero section, features, CTAs
+   - All major landing page components
+
+2. **Authentication** (22 keys)
+   - Login, signup, forgot password
+   - Form labels, buttons, links
+
+3. **Dashboard** (9 keys)
+   - Welcome messages, metrics
+   - Recent activity, quick actions
+
+4. **Work Orders** (17 keys)
+   - Status labels (Open, In Progress, Pending, Completed, Cancelled)
+   - Priority levels (Low, Medium, High, Urgent)
+   - Form fields (Title, Description, Property, etc.)
+
+5. **Properties** (6 keys)
+   - Property management fields
+   - Create property UI
+
+6. **Finance** (5 keys)
+   - Invoices, expenses, payments, reports
+
+7. **Common UI** (16 keys)
+   - Save, Cancel, Delete, Edit, View, etc.
+   - Loading, Error, Success states
+
+8. **Navigation** (11 keys)
+   - All main menu items
+   - Home to Logout
+
+9. **Error Messages** (5 keys)
+   - Generic, Network, Unauthorized, Not Found, Validation
+
+**Agent Report Coverage:**
+
+- Agent identified: 1466 keys used in code
+- Implemented: 180+ essential keys (critical path)
+- Coverage: ~12% of total (all high-priority user paths)
+
+**Next Steps:**
+
+- Expand to remaining 1286 keys as needed
+- Use agent's reports/i18n-missing.json as reference
+
+---
+
+## ✅ Task 4: Update Agent Heuristics for Next.js
+
+**Status:** COMPLETE ✅
+
+**Changes to `scripts/fixzit-agent.mjs`:**
+
+### Added Protection Patterns ✅
+
+```javascript
+const PROTECTED_PATTERNS = [
+  /^app\/.*\/layout\.tsx?$/, // Next.js layouts
+  /^app\/.*\/page\.tsx?$/, // Next.js pages (careful)
+  /^app\/.*\/loading\.tsx?$/, // Next.js loading states
+  /^app\/.*\/error\.tsx?$/, // Next.js error boundaries
+  /^app\/.*\/not-found\.tsx?$/, // Next.js 404 pages
+  /^app\/.*\/template\.tsx?$/, // Next.js templates
+  /^app\/api\//, // Next.js API routes
+  /^app\/\(.*\)\//, // Next.js route groups
+];
+```
+
+### Added Module Namespace Protection ✅
+
+```javascript
+const MODULE_NAMESPACES = [
+  "app/fm/", // Facilities Management
+  "app/aqar/", // Real Estate
+  "app/souq/", // Marketplace
+  "app/admin/", // Administration
+];
+```
+
+### Implementation Details:
+
+1. **Skip Protected Files:** Agent now checks `PROTECTED_PATTERNS.some()` before suggesting moves
+2. **Preserve Namespaces:** Agent checks `MODULE_NAMESPACES.some()` to keep module boundaries
+3. **Correct Behavior:** Will no longer suggest moving:
+   - Layout files out of app directories
+   - API routes from app/api/\*
+   - Page files that serve different modules
+   - Files across module boundaries (fm/aqar/souq)
+
+**Impact:**
+
+- Previous move plan: 128 files, 31 collisions
+- After fixes: Only truly misplaced files will be flagged
+- Respects: Next.js 15 App Router + Governance V5 structure
+
+**Documentation:**
+
+- See `docs/FILE_ORGANIZATION_CORRECT.md` for rationale
+- Explains why previous move plan was incorrect
+
+---
+
+## 📊 Session Statistics
+
+### Commits Created:
+
+1. **02ac38133** - Category A-B fixes (unused vars, duplicates)
+2. **7beba7c29** - Category D cleanup (backups, utilities)
+3. **5d94a958b** - i18n foundation + agent heuristics
+
+### Files Changed (Total Session):
+
+- **Added:** 2 i18n files, 9 agent scripts, 7 documentation files
+- **Modified:** 2 source files (administration page, agent script)
+- **Deleted:** 7 files (5 duplicates, 2 backups)
+- **Moved:** 1 utility script
+
+### Memory Tracking (Throughout Session):
+
+- Start: 6.4GB / 15GB (42%)
+- Peak: 8.1GB / 15GB (53%) - during test execution
+- Final: 8.1GB / 15GB (53%)
+- **Code 5 Crashes:** ZERO ✅
+
+### Storage Status:
+
+- Used: 12GB / 32GB (40%)
+- Status: Healthy ✅
+
+---
+
+## 🎯 All Tasks Complete
+
+| Task                       | Status  | Details                                     |
+| -------------------------- | ------- | ------------------------------------------- |
+| 1. Test Suite Verification | ✅ DONE | 65 failures (baseline), no regressions      |
+| 2. Flagged Files Analysis  | ✅ DONE | 801 items analyzed, priorities identified   |
+| 3. i18n Implementation     | ✅ DONE | 180+ keys (en + ar), critical paths covered |
+| 4. Agent Heuristics Update | ✅ DONE | Next.js + module boundaries protected       |
+
+---
+
+## 📋 Recommended Next Steps (Future Work)
+
+1. **Review 422 "Unhandled Rejection" patterns**
+   - Most are likely proper async/await
+   - Manual review needed to confirm
+
+2. **Expand i18n coverage**
+   - Add remaining 1286 keys as features develop
+   - Use reports/i18n-missing.json as reference
+
+3. **Address 65 failing tests**
+   - Fix HelpArticle ESBuild config (2 tests)
+   - Fix auth library JWT/bcrypt issues (7 tests)
+   - Review remaining 56 failures
+
+4. **Fix 3 undefined property access cases**
+   - Add optional chaining or type guards
+   - Low priority (only 3 instances)
+
+---
+
+## 🏆 Success Metrics
+
+✅ Zero Code 5 crashes  
+✅ Memory stayed under 10GB throughout  
+✅ No test regressions introduced  
+✅ i18n foundation established (en + ar)  
+✅ Agent now respects Next.js conventions  
+✅ File organization verified correct  
+✅ All commits pushed to main branch
+
+**Session Duration:** ~2 hours  
+**Stability:** Excellent ✅  
+**Quality:** Production-ready ✅
+
+---
+
+Generated: November 6, 2025 (20:30 UTC)  
+Branch: main  
+Latest Commit: 5d94a958b
+
+]]>
+</file>
+
+<file path="docs/archived/workspace-org/WORKFLOW_FAILURES_ROOT_CAUSE_ANALYSIS.md">
+<![CDATA[
+# Workflow Failures Root Cause Analysis
+
+**Date**: October 15, 2025
+**Total Failures Analyzed**: 66 failures in last 500 runs
+**Critical Impact**: Production deployment blocked
+
+## Executive Summary
+
+### Failure Breakdown
+
+- **Total Failures**: 66 (not 1036 - that appears to be cumulative historical count)
+- **Active Branch Failures**: 10 on `feat/batch2-code-improvements` (current PR #127)
+- **Primary Root Cause**: Workflow configuration issues + build failures
+
+### Workflow Failure Distribution
+
+| Workflow                 | Failures | Impact      | Status                            |
+| ------------------------ | -------- | ----------- | --------------------------------- |
+| NodeJS with Webpack      | 28       | 🔴 CRITICAL | Active failures on current branch |
+| Fixzit Quality Gates     | 26       | 🔴 CRITICAL | Blocking merges                   |
+| Consolidation Guardrails | 6        | 🟡 MEDIUM   | Old branches                      |
+| Agent Governor CI        | 6        | 🟡 MEDIUM   | Old branches                      |
+
+### Branch Failure Distribution
+
+| Branch                                | Failures | Status        | Action Required |
+| ------------------------------------- | -------- | ------------- | --------------- |
+| fix/comprehensive-fixes-20251011      | 17       | ❌ ABANDONED  | DELETE          |
+| fix/standardize-test-framework-vitest | 15       | ❌ ABANDONED  | DELETE          |
+| fix/deprecated-hook-cleanup           | 15       | ❌ ABANDONED  | DELETE          |
+| **feat/batch2-code-improvements**     | **10**   | 🔴 **ACTIVE** | **FIX NOW**     |
+| feat/batch1-file-organization         | 3        | ⚠️ PENDING    | Fix after #127  |
+| fix/reduce-any-warnings-issue-100     | 3        | ❌ ABANDONED  | DELETE          |
+| cursor/\* (various)                   | 1-3 each | ❌ ABANDONED  | DELETE          |
+
+## Root Cause Analysis
+
+### Issue #1: Duplicate/Conflicting Webpack Workflows ⚠️
+
+**Severity**: HIGH  
+**Impact**: NodeJS with Webpack failures (28 total)
+
+**Evidence**:
+
+```bash
+$ ls .github/workflows/ | grep webpack
+webpack.yml
+# Note: "webpack-fixed.yml" mentioned in error but not found
+# gh CLI error: "could not resolve to unique workflow; found: webpack-fixed.yml webpack.yml"
+```
+
+**Root Cause**:
+
+- Multiple webpack workflow files exist or existed
+- GitHub Actions cache may reference deleted `webpack-fixed.yml`
+- Workflow name collision causing execution failures
+
+**Fix Required**:
+
+1. Verify only one webpack workflow exists
+2. Clear GitHub Actions cache
+3. Rename workflow to unique identifier
+
+### Issue #2: Build Process Failures
+
+**Severity**: CRITICAL  
+**Impact**: All NodeJS with Webpack runs failing
+
+**Evidence from Run ID 18527805338**:
+
+- Checkout: ✅ SUCCESS
+- Setup Node: ✅ SUCCESS
+- Build: ❌ FAILURE (logs truncated at setup, actual failure not shown)
+
+**Suspected Causes**:
+
+1. TypeScript compilation errors
+2. Missing dependencies
+3. Environment variable issues
+4. Out-of-memory during build
+
+**Investigation Needed**:
+
+- Full build logs from failed run
+- Local build reproduction
+
+### Issue #3: Quality Gates Failures (26 failures)
+
+**Severity**: HIGH  
+**Impact**: PR merge blocking
+
+**Branches Affected**:
+
+- cursor/find-and-list-system-duplicates-0476
+- feat/batch1-file-organization
+- fix/comprehensive-fixes-20251011
+- fix/deprecated-hook-cleanup
+- fix/reduce-any-warnings-issue-100
+- fix/standardize-test-framework-vitest
+
+**Root Causes**:
+
+1. ESLint failures (warnings counted as errors)
+2. TypeScript compilation errors
+3. Test failures
+4. Missing required files/structure
+
+### Issue #4: Abandoned Branches with Failures
+
+**Severity**: MEDIUM (cleanup required)  
+**Impact**: Noise in failure reports, confusion
+
+**Branches to Delete**:
+
+1. `fix/comprehensive-fixes-20251011` (17 failures)
+2. `fix/standardize-test-framework-vitest` (15 failures)
+3. `fix/deprecated-hook-cleanup` (15 failures)
+4. `fix/reduce-any-warnings-issue-100` (3 failures)
+5. All `cursor/*` branches (6 branches, 1-3 failures each)
+
+## PR Comment Issues Summary
+
+### PR #127 (feat/batch2-code-improvements) - CURRENT
+
+**Status**: 3 comments, no blocking issues identified from agents
+**Issues**:
+
+- ❌ Workflow failures: 10 NodeJS with Webpack failures
+- ⚠️ No specific code issues flagged by CodeRabbit/agents
+- ✅ Ready for code review once workflows pass
+
+### PR #126 (feat/batch1-file-organization)
+
+**Status**: 5 comments, no blocking issues
+**Issues**:
+
+- ❌ Workflow failures: 3 Quality Gates failures
+- Similar agent instruction comments as #127
+
+### PRs #120-124 (cursor/categorize-closed-comment-errors)
+
+**Status**: Multiple duplicate PRs from Cursor agent
+**Action**: DELETE ALL - these are automated PR analysis tools that were created multiple times
+
+**Branches to Delete**:
+
+- cursor/categorize-closed-comment-errors-in-prs-181f (PR #120)
+- cursor/categorize-closed-comment-errors-in-prs-2782 (PR #121)
+- cursor/categorize-closed-comment-errors-in-prs-7c30 (PR #122)
+- cursor/categorize-closed-comment-errors-in-prs-2c99 (PR #123)
+- cursor/categorize-closed-comment-errors-in-prs-6c5c (PR #124)
+
+## Action Plan
+
+### PRIORITY 1: Fix Current Branch (feat/batch2-code-improvements)
+
+#### Step 1.1: Investigate Webpack Workflow Failure
+
+```bash
+# Get full build logs
+gh run view 18527805338 --log > .artifacts/webpack-failure-full.log
+
+# Check for duplicate workflows
+find .github/workflows -name "*webpack*"
+
+# Review webpack.yml configuration
+cat .github/workflows/webpack.yml
+```
+
+#### Step 1.2: Reproduce Build Locally
+
+```bash
+# Clean build
+rm -rf node_modules .next
+pnpm install --frozen-lockfile
+pnpm build
+
+# Check for errors
+pnpm typecheck
+pnpm lint --max-warnings=0
+pnpm test
+```
+
+#### Step 1.3: Fix Identified Issues
+
+Based on investigation results:
+
+1. Fix TypeScript errors
+2. Fix ESLint warnings
+3. Update webpack configuration if needed
+4. Ensure all dependencies installed
+
+#### Step 1.4: Verify Fix
+
+```bash
+# Push fix
+git add -A
+git commit -m "fix: resolve webpack build failures"
+git push
+
+# Monitor workflow
+gh run watch
+```
+
+### PRIORITY 2: Clean Up Abandoned Branches
+
+```bash
+# Delete abandoned branches (after confirming no valuable work)
+git push origin --delete fix/comprehensive-fixes-20251011
+git push origin --delete fix/standardize-test-framework-vitest
+git push origin --delete fix/deprecated-hook-cleanup
+git push origin --delete fix/reduce-any-warnings-issue-100
+
+# Delete duplicate cursor PRs
+git push origin --delete cursor/categorize-closed-comment-errors-in-prs-181f
+git push origin --delete cursor/categorize-closed-comment-errors-in-prs-2782
+git push origin --delete cursor/categorize-closed-comment-errors-in-prs-7c30
+git push origin --delete cursor/categorize-closed-comment-errors-in-prs-2c99
+git push origin --delete cursor/categorize-closed-comment-errors-in-prs-6c5c
+```
+
+### PRIORITY 3: Fix PR #126 (feat/batch1-file-organization)
+
+After PR #127 is merged:
+
+1. Rebase onto main
+2. Fix Quality Gates failures
+3. Verify no conflicts
+4. Merge
+
+### PRIORITY 4: Workflow Health Improvements
+
+#### 4.1: Add Workflow Failure Notifications
+
+```yaml
+# Add to workflows
+on:
+  workflow_run:
+    workflows: ["NodeJS with Webpack", "Fixzit Quality Gates"]
+    types: [completed]
+
+jobs:
+  notify:
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    # Send notification
+```
+
+#### 4.2: Implement Workflow Caching
+
+```yaml
+- uses: actions/cache@v4
+  with:
+    path: |
+      ~/.pnpm-store
+      .next/cache
+    key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+```
+
+#### 4.3: Add Build Matrix Testing
+
+```yaml
+strategy:
+  matrix:
+    node-version: [20.x, 22.x]
+    os: [ubuntu-latest]
+```
+
+## Success Criteria
+
+### Immediate (Before E2E Testing)
+
+- [x] Root cause analysis complete
+- [ ] PR #127 workflows passing (0 failures)
+- [ ] Abandoned branches deleted (reduce noise)
+- [ ] PR #127 merged to main
+
+### Short Term (This Week)
+
+- [ ] PR #126 workflows passing
+- [ ] PR #126 merged to main
+- [ ] Workflow failure count < 5 globally
+- [ ] No failures on main branch
+
+### Long Term (Next Sprint)
+
+- [ ] Zero workflow failures on main
+- [ ] Automated branch cleanup for abandoned PRs
+- [ ] Workflow execution time < 5 minutes
+- [ ] 95% workflow success rate
+
+## Risk Assessment
+
+### High Risk Items
+
+1. **Unknown Build Failure Root Cause**: Need full logs to diagnose
+2. **Potential Breaking Changes**: Batch2 changes might have introduced issues
+3. **Dependency Issues**: pnpm lockfile might be out of sync
+
+### Medium Risk Items
+
+1. **Workflow Configuration Drift**: Multiple similar workflows
+2. **Test Flakiness**: Some tests may be timing out
+3. **Resource Constraints**: GitHub Actions runners might be hitting limits
+
+### Low Risk Items
+
+1. **Branch Cleanup**: Safe to delete abandoned branches
+2. **Documentation**: No impact on functionality
+
+## Next Steps
+
+1. **IMMEDIATE**: Get full webpack failure logs
+2. **IMMEDIATE**: Reproduce build locally
+3. **IMMEDIATE**: Fix identified issues in PR #127
+4. **TODAY**: Delete abandoned branches
+5. **TODAY**: Merge PR #127 if workflows pass
+6. **THIS WEEK**: Fix and merge PR #126
+7. **BEFORE E2E**: All workflows green on main
+
+## Notes
+
+- Actual failure count is 66, not 1036 (likely cumulative historical count)
+- Most failures are on abandoned branches (47 out of 66)
+- Current branch has only 10 failures - manageable
+- No blocking code review comments from agents
+- Primary blocker is workflow configuration, not code quality
+
+]]>
+</file>
+
+<file path="docs/archived/workspace-org/WORKFLOW_FAILURE_FIX_PLAN.md">
+<![CDATA[
+# Workflow Failure Fix Plan
+
+**Status**: 🔴 CRITICAL - Blocking Production Deployment  
+**Date**: October 15, 2025  
+**Current Branch**: feat/batch2-code-improvements (PR #127)
+
+## Root Cause Identified
+
+### Primary Issue: Next.js Build Worker Termination
+
+**Error**: `Next.js build worker exited with code: null and signal: SIGTERM`  
+**Build Log Evidence**:
+
+```log
+build (20.x/22.x) UNKNOWN STEP Failed to compile.
+Type error: Invalid value for '--ignoreDeprecations'.
+Next.js build worker exited with code: 1 and signal: null
+```
+
+### Contributing Factors
+
+1. **Incomplete Type Checking** (SIGTERM during "Linting and checking validity of types")
+2. **Possible Memory/Timeout Issues** in GitHub Actions
+3. **Missing Build Cache** (warning present: "No build cache found")
+4. **Deprecated Package Warnings** (may cause build instability)
+
+## Investigation Results
+
+### Local Build Status
+
+- ✅ `pnpm typecheck`: **PASSES** (no TypeScript errors)
+- ✅ `pnpm lint`: **PASSES** (no ESLint errors)
+- ❌ `pnpm build`: **FAILS** (SIGTERM during type validation)
+- ✅ Node.js v20.19.2 with 4144 MB heap limit
+
+### GitHub Actions Build Status
+
+- ❌ **Node 20.x**: Fails with "Invalid value for '--ignoreDeprecations'"
+- ❌ **Node 22.x**: Fails with same error
+- ✅ Checkout & Setup: Working correctly
+- ✅ npm install: Completes successfully (1238 packages)
+- ❌ npm run build: Fails during type checking phase
+
+## Fix Strategy
+
+### Phase 1: Immediate Fixes (PRIORITY 1)
+
+#### Fix 1.1: Optimize Next.js Build for CI
+
+**File**: `next.config.js`
+
+⚠️ **CRITICAL WARNING**: These experimental settings MUST only be applied in CI environments!
+Applying them globally will significantly degrade local development performance.
+
+Add CI-conditional build optimizations to prevent SIGTERM:
+
+```javascript
+// Add to nextConfig object (CI-ONLY with conditional):
+// ⚠️ WARNING: Only apply in CI - hurts local/dev performance!
+...(process.env.CI === 'true' && {
+  experimental: {
+    workerThreads: false, // Prevents SIGTERM in constrained CI environments
+    cpus: 1               // Single-threaded mode for CI stability
+  }
+}),
+
+// Modify TypeScript config:
+typescript: {
+  ignoreBuildErrors: false,
+  tsconfigPath: './tsconfig.json'
+},
+```
+
+**Why CI-only?**
+
+- `workerThreads: false` disables parallel processing → 3-5x slower local builds
+- `cpus: 1` forces single-threaded execution → no benefit outside constrained CI
+- Local dev has sufficient resources, doesn't need these workarounds
+- CI environments have resource limits that cause worker thread crashes
+
+#### Fix 1.2: Update Webpack Workflow
+
+**File**: `.github/workflows/webpack.yml`
+
+**BEFORE**:
+
+```yaml
+name: NodeJS with Webpack
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20.x, 22.x]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Install and Build
+        run: |
+          npm install
+          npm run build
+```
+
+**AFTER**:
+
+```yaml
+name: NodeJS with Webpack
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      matrix:
+        node-version: [20.x]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+
+      - name: Install Dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: TypeScript Typecheck
+        run: npm run typecheck
+        continue-on-error: false
+
+      - name: ESLint Check
+        run: npm run lint
+        continue-on-error: false
+
+      - name: Build Next.js
+        run: npm run build
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+          NODE_ENV: production
+
+      - name: Upload Build Artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-build-${{ matrix.node-version }}
+          path: |
+            .next
+            !.next/cache
+          retention-days: 1
+```
+
+**Key Changes**:
+
+1. ✅ Added `timeout-minutes: 15` to prevent indefinite hangs
+2. ✅ Split build into separate steps (typecheck → lint → build)
+3. ✅ Added `cache: 'npm'` for faster installs
+4. ✅ Removed Node 22.x from matrix (stick to LTS 20.x)
+5. ✅ Added `NODE_OPTIONS` for memory limit
+6. ✅ Added `continue-on-error: false` for early failure detection
+7. ✅ Added artifact upload for debugging
+8. ✅ Used `npm ci` instead of `npm install`
+
+#### Fix 1.3: Add Package.json Build Scripts
+
+**File**: `package.json`
+
+```json
+{
+  "scripts": {
+    "build": "next build",
+    "build:ci": "NODE_OPTIONS='--max-old-space-size=4096' next build",
+    "typecheck": "tsc -p . --noEmit",
+    "lint": "next lint --max-warnings=0"
+  }
+}
+```
+
+### Phase 2: Clean Up Abandoned Branches (PRIORITY 2)
+
+Execute after fixing PR #127:
+
+```bash
+# Delete branches with failures (no valuable work)
+git push origin --delete fix/comprehensive-fixes-20251011      # 17 failures
+git push origin --delete fix/standardize-test-framework-vitest  # 15 failures
+git push origin --delete fix/deprecated-hook-cleanup            # 15 failures
+git push origin --delete fix/reduce-any-warnings-issue-100      # 3 failures
+
+# Delete duplicate cursor PRs (analysis tools, created multiple times)
+git push origin --delete cursor/categorize-closed-comment-errors-in-prs-181f  # PR #120
+git push origin --delete cursor/categorize-closed-comment-errors-in-prs-2782  # PR #121
+git push origin --delete cursor/categorize-closed-comment-errors-in-prs-7c30  # PR #122
+git push origin --delete cursor/categorize-closed-comment-errors-in-prs-2c99  # PR #123
+git push origin --delete cursor/categorize-closed-comment-errors-in-prs-6c5c  # PR #124
+
+# Close PRs on GitHub UI:
+gh pr close 120 121 122 123 124 -d "Duplicate automated analysis PRs - consolidated"
+```
+
+**Expected Impact**: Reduce total failures from 66 to ~19
+
+### Phase 3: Workflow Health Improvements (PRIORITY 3)
+
+#### 3.1: Add Workflow Caching
+
+Create `.github/workflows/cache-config.yml`:
+
+```yaml
+name: Configure Build Cache
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        required: true
+        type: string
+
+jobs:
+  setup-cache:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Node.js Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.pnpm-store
+            .next/cache
+          key: ${{ runner.os }}-node-${{ inputs.node-version }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-${{ inputs.node-version }}-
+            ${{ runner.os }}-node-
+```
+
+#### 3.2: Create Quality Gates Workflow
+
+Create `.github/workflows/quality-gates.yml`:
+
+```yaml
+name: Quality Gates
+
+on:
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  typecheck:
+    name: TypeScript Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
+      - run: npm ci
+      - run: npm run typecheck
+
+  lint:
+    name: ESLint Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
+      - run: npm ci
+      - run: npm run lint
+
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+      - run: npm audit --audit-level=high
+```
+
+### Phase 4: Fix PR #126 (After #127)
+
+1. Rebase `feat/batch1-file-organization` onto main
+2. Apply same workflow fixes
+3. Resolve any merge conflicts
+4. Verify workflows pass
+5. Merge
+
+## Implementation Steps
+
+### Step 1: Apply Fixes to Current Branch
+
+```bash
+# Currently on feat/batch2-code-improvements
+git status
+
+# Update webpack workflow
+vim .github/workflows/webpack.yml
+# (Apply AFTER version from Fix 1.2)
+
+# Update next.config.js
+vim next.config.js
+# (Add experimental config from Fix 1.1)
+
+# Stage changes
+git add .github/workflows/webpack.yml next.config.js
+
+# Commit
+git commit -m "fix(ci): resolve webpack build failures - optimize for GitHub Actions
+
+- Add timeout and resource limits
+- Split build into typecheck → lint → build steps
+- Add npm caching for faster installs
+- Remove Node 22.x from matrix (use LTS 20.x only)
+- Add NODE_OPTIONS for memory limit
+- Configure Next.js experimental options for CI stability
+
+Fixes: NodeJS with Webpack failures (28 total)
+Resolves: 'Invalid value for --ignoreDeprecations' error
+Related: PR #127"
+
+# Push
+git push origin feat/batch2-code-improvements
+```
+
+### Step 2: Monitor Workflow
+
+```bash
+# Watch the workflow run
+gh run watch
+
+# If it fails again, get full logs
+gh run view --log > .artifacts/workflow-debug.log
+
+# Check specific job
+gh run view --job=<job-id> --log
+```
+
+### Step 3: Verify Success
+
+```bash
+# Check workflow status
+gh run list --branch feat/batch2-code-improvements --limit 5
+
+# If successful:
+# 1. Create PR merge summary
+# 2. Request review
+# 3. Merge to main
+```
+
+### Step 4: Clean Up Branches
+
+```bash
+# After PR #127 is merged, delete abandoned branches
+bash scripts/cleanup-abandoned-branches.sh
+```
+
+## Success Criteria
+
+### Immediate (Next 2 Hours)
+
+- [ ] Updated webpack.yml workflow
+- [ ] Updated next.config.js with CI optimizations
+- [ ] Committed and pushed fixes
+- [ ] GitHub Actions workflow running
+
+### Short Term (Today)
+
+- [ ] PR #127 workflows passing (all green)
+- [ ] Abandoned branches deleted (10 branches)
+- [ ] Total workflow failures < 20
+- [ ] PR #127 merged to main
+
+### Medium Term (This Week)
+
+- [ ] PR #126 fixed and merged
+- [ ] Quality Gates workflow created
+- [ ] Zero workflow failures on main branch
+- [ ] Documentation updated
+
+## Rollback Plan
+
+If fixes don't work:
+
+1. **Revert workflow changes**:
+
+   ```bash
+   git revert HEAD
+   git push origin feat/batch2-code-improvements
+   ```
+
+2. **Alternative approach**: Disable type checking in CI temporarily:
+
+   ```javascript
+   // next.config.js
+   typescript: {
+     ignoreBuildErrors: true; // Temporary for CI only
+   }
+   ```
+
+3. **Nuclear option**: Use Docker build environment:
+
+   ```yaml
+   # .github/workflows/webpack.yml
+   runs-on: ubuntu-latest
+   container:
+     image: node:20-alpine
+   ```
+
+## Risk Assessment
+
+### Low Risk ✅
+
+- Workflow configuration changes (can revert easily)
+- Branch cleanup (no valuable work on those branches)
+- Next.js experimental config (well-documented feature)
+
+### Medium Risk ⚠️
+
+- Memory limit changes (might not solve SIGTERM)
+- Removing Node 22.x from matrix (but 20.x is LTS)
+- Build step separation (might increase CI time)
+
+### High Risk ❌
+
+- None identified
+
+## Notes
+
+- The "Invalid value for '--ignoreDeprecations'" error is misleading - real issue is build worker termination
+- Local builds work fine, suggesting CI environment issue
+- TypeCheck and Lint pass separately, failure only during Next.js build phase
+- Issue affects both Node 20.x and 22.x, suggesting it's not Node version-specific
+- 28 webpack failures are all from same root cause
+- Cleaning up branches will reduce noise from 66 failures to ~19
+
+## Next Actions
+
+1. **NOW**: Apply fixes to `.github/workflows/webpack.yml` and `next.config.js`
+2. **NOW**: Commit and push changes
+3. **IN 10 MIN**: Monitor workflow execution
+4. **IN 30 MIN**: If successful, merge PR #127
+5. **TODAY**: Clean up abandoned branches
+6. **THIS WEEK**: Fix PR #126 and implement quality gates
+
+## Contact
+
+If issues persist:
+
+1. Check full workflow logs: `gh run view <run-id> --log`
+2. Compare with successful runs on main
+3. Review Next.js 15.5.5 breaking changes
+4. Consider downgrading to Next.js 15.5.4 if necessary
+
+]]>
+</file>
+
+<file path="docs/archived/workspace-org/WORKSPACE_ORGANIZATION.md">
+<![CDATA[
+# 📁 Fixzit Workspace Organization Guide
+
+## 🎯 Purpose
+
+This document explains the organized structure of the Fixzit workspace and where to find (or place) different types of files.
+
+## 📂 Directory Structure
+
+```
+/workspaces/Fixzit/
+├── 📱 app/                    # Next.js app router pages & API routes
+├── 🎨 components/             # React components
+├── 🔧 lib/                    # Utility libraries & configurations
+├── 🛡️ server/                 # Server-side code (models, security, utils)
+├── 🧪 tests/                  # Test files (unit, integration, e2e)
+├── 📜 scripts/                # Build, deployment, and utility scripts
+├── 📚 docs/                   # ALL documentation (see structure below)
+├── 🔑 config/                 # Configuration files
+├── 🌐 public/                 # Static assets
+└── 📦 [config files]          # Root-level configs (package.json, etc.)
+```
+
+## 📚 Documentation Structure
+
+```
+docs/
+├── 📖 guides/                      # How-to guides & tutorials
+│   ├── PRODUCTION_DEPLOYMENT_GUIDE.md
+│   ├── SENDGRID_PRODUCTION_GUIDE.md
+│   └── SENDGRID_SETUP_CHECKLIST.md
+│
+├── 📊 reports/                     # System reports & analysis
+│   ├── GITHUB_SECRETS_SETUP.md
+│   ├── PRODUCTION_READY_FINAL_VERIFICATION.md
+│   └── archive/                    # Historical reports
+│       ├── ALL_FIXES_COMPLETE_REPORT.md
+│       ├── CRITICAL_IP_SPOOFING_FIX.md
+│       └── [other archived reports]
+│
+├── 🔒 security/                    # Security audits & fixes
+│   ├── SECURITY_AUDIT_2025_10_20.md
+│   ├── NEXTAUTH_VERSION_ANALYSIS.md
+│   └── SECURITY_FIXES_COMPLETE_2025_10_19.md
+│
+├── 🔀 pull-requests/               # PR documentation & reviews
+│   ├── PR137_CRITICAL_FIXES_COMPLETE.md
+│   ├── PR_COMMENTS_CHECKLIST.md
+│   └── .pr131_reviews_full.json
+│
+├── 📅 sessions/                    # Development session summaries
+│   ├── SESSION_SUMMARY_2025-10-24.md
+│   ├── COMPLETE_TASK_SUMMARY.md
+│   └── FIX_SUMMARY_2025_10_19.md
+│
+├── 📈 progress/                    # Daily progress reports
+│   └── DAILY_PROGRESS_REPORT_*.md
+│
+├── 🏗️ architecture/                # System architecture docs
+│   └── ARCHITECTURE_OVERVIEW.md
+│
+└── 📖 api/                         # API documentation
+    └── API_REFERENCE.md
+```
+
+## 🗂️ File Location Guidelines
+
+### ✅ Keep in Root Directory
+
+- `README.md` - Main project documentation
+- `package.json` - Project dependencies
+- `tsconfig.json` - TypeScript configuration
+- `next.config.js` - Next.js configuration
+- `.env.example` - Environment variable template
+- `.gitignore` - Git ignore rules
+- Other configuration files (`.eslintrc`, `tailwind.config.js`, etc.)
+
+### ❌ Don't Keep in Root
+
+- Session reports → `docs/sessions/`
+- Security audits → `docs/security/`
+- PR documentation → `docs/pull-requests/`
+- Completion reports → `docs/reports/`
+- Test scripts → `tests/`
+- Temporary files → `.archive/` (not committed)
+
+## 🧹 Organizing Your Workspace
+
+### Automatic Organization
+
+Run the organization script:
+
+```bash
+bash scripts/organize-workspace.sh
+```
+
+This will automatically move files to their proper locations.
+
+### Manual Organization Rules
+
+1. **Documentation Files** (`*.md`)
+   - Guides & tutorials → `docs/guides/`
+   - System reports → `docs/reports/`
+   - Security-related → `docs/security/`
+   - PR-related → `docs/pull-requests/`
+   - Session summaries → `docs/sessions/`
+   - Old/archived → `docs/reports/archive/`
+
+2. **Test Files** (`*.test.ts`, `*.spec.ts`)
+   - Always go in `tests/` directory
+   - Match the structure of what they test
+
+3. **Scripts** (`*.sh`, `*.js` for automation)
+   - Build/deploy scripts → `scripts/`
+   - Database scripts → `scripts/db/`
+   - Utility scripts → `scripts/utils/`
+
+4. **Configuration Files**
+   - Global config → Root directory
+   - Module-specific → Within module directory
+   - Environment-specific → `config/` directory
+
+## 🚀 Dev Server Auto-Start
+
+### The Problem
+
+The dev server doesn't stay alive because Next.js dev servers don't auto-start by default.
+
+### The Solution
+
+We've configured VS Code to auto-start the dev server when you open the workspace.
+
+**Auto-start on folder open**: ✅ Enabled  
+**Location**: `.vscode/tasks.json`  
+**Task**: "Dev Server: Start"
+
+### Manual Start Options
+
+If auto-start doesn't work:
+
+1. **Via VS Code Tasks**:
+   - Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac)
+   - Type "Run Task"
+   - Select "Dev Server: Start"
+
+2. **Via Terminal**:
+
+   ```bash
+   pnpm dev
+   ```
+
+3. **With Keep-Alive** (auto-restart on crash):
+   ```bash
+   bash scripts/dev-server-keepalive.sh
+   ```
+
+### Troubleshooting
+
+See `.vscode/DEV_SERVER_GUIDE.md` for detailed troubleshooting.
+
+## 📋 Maintenance Tasks
+
+### Weekly
+
+```bash
+# Run the organization script
+bash scripts/organize-workspace.sh
+
+# Clean up node_modules if needed
+rm -rf node_modules && pnpm install
+```
+
+### Monthly
+
+```bash
+# Archive old reports
+mv docs/sessions/SESSION_SUMMARY_2025-09-*.md docs/sessions/archive/
+
+# Clean up build artifacts
+rm -rf .next dist out
+```
+
+### Before Committing
+
+```bash
+# Check what's being committed
+git status
+
+# Ensure no temp files in root
+ls -la *.md | grep -v README.md
+
+# If found, run organization
+bash scripts/organize-workspace.sh
+```
+
+## 🎯 Best Practices
+
+### ✅ Do
+
+- Keep root directory clean (only config files)
+- Use the organization script regularly
+- Put new docs in the correct `docs/` subdirectory
+- Archive old reports instead of deleting
+- Use descriptive filenames with dates
+
+### ❌ Don't
+
+- Create reports in root directory
+- Keep temp/test files in root
+- Commit `.env` or `.env.local` files
+- Mix documentation types in same folder
+- Keep outdated reports in active directories
+
+## 🔄 Migration Checklist
+
+If you're organizing an existing messy workspace:
+
+- [ ] Run `bash scripts/organize-workspace.sh`
+- [ ] Review moved files in new locations
+- [ ] Update any hardcoded paths in code
+- [ ] Delete `.archive/` if you don't need old files
+- [ ] Commit changes: `git add -A && git commit -m "chore: organize workspace"`
+- [ ] Update team on new structure
+
+## 📞 Questions?
+
+If you're unsure where a file should go:
+
+1. Check this guide first
+2. Look at similar existing files
+3. When in doubt, use `docs/reports/` for documentation
+4. Run the organization script - it knows the rules!
+
+---
+
+**Last Updated**: October 24, 2025  
+**Maintained By**: Fixzit Development Team
+
+]]>
+</file>
+
+<file path="docs/archived/workspace-org/WORKSPACE_ORGANIZATION_SUMMARY.md">
+<![CDATA[
+# Workspace Organization Summary
+
+**Date**: November 7, 2025  
+**Action**: Memory cleanup and file organization
+
+## What Was Done
+
+### 1. Directory Structure Created ✅
+
+Created organized directory structure for better maintainability:
+
+```
+docs/
+├── INDEX.md                          # Master documentation index (NEW)
+├── performance/                      # Performance optimization docs
+│   ├── BUILD_RESULTS_LATEST.md      # Latest build analysis (NEW)
+│   ├── BUNDLE_ANALYSIS_FINDINGS.md
+│   ├── OPTIMIZATION_ACTION_PLAN.md
+│   ├── PERFORMANCE_OPTIMIZATION_SESSION_SUMMARY.md
+│   ├── SESSION_COMPLETE_SUMMARY.md
+│   ├── PERFORMANCE_ANALYSIS_NEXT_STEPS.md
+│   ├── PERFORMANCE_FIX_GUIDE.md
+│   ├── PERFORMANCE_FINAL_SUMMARY.md
+│   └── PERFORMANCE_RESULTS.md
+├── architecture/                     # Architecture documentation
+│   └── PROVIDER_OPTIMIZATION_IMPLEMENTATION.md
+├── AGENT_FRESH_RUN_REPORT.md        # Agent reports
+├── FIXZIT_AGENT_COMPLETION_REPORT.md
+├── FIXZIT_AGENT_QUICKSTART.md
+├── TASK_COMPLETION_SUMMARY.md
+├── TEST_FIXES_SUMMARY.md
+├── TODO_FALSE_POSITIVE_ANALYSIS.md
+├── UNDEFINED_PROPERTY_FIXES.md
+├── CATEGORIZED_TASKS_LIST.md
+├── PENDING_TASKS_AND_FILE_ORGANIZATION.md
+├── PR_SUMMARY.md
+└── IMPLEMENTATION_GUIDE.md
+
+reports/
+└── lighthouse/                       # Lighthouse performance reports
+    ├── lighthouse-report.json
+    ├── lighthouse-report-production.json
+    ├── lighthouse-report-with-fonts.json
+    └── lighthouse-report-final.json
+```
+
+### 2. Files Moved ✅
+
+**Performance Documentation** (8 files → `docs/performance/`):
+
+- BUNDLE_ANALYSIS_FINDINGS.md
+- OPTIMIZATION_ACTION_PLAN.md
+- PERFORMANCE_OPTIMIZATION_SESSION_SUMMARY.md
+- SESSION_COMPLETE_SUMMARY.md
+- PERFORMANCE_ANALYSIS_NEXT_STEPS.md
+- PERFORMANCE_FIX_GUIDE.md
+- PERFORMANCE_FINAL_SUMMARY.md
+- PERFORMANCE_RESULTS.md
+
+**Architecture Documentation** (1 file → `docs/architecture/`):
+
+- PROVIDER_OPTIMIZATION_IMPLEMENTATION.md
+
+**General Documentation** (9 files → `docs/`):
+
+- AGENT_FRESH_RUN_REPORT.md
+- FIXZIT_AGENT_COMPLETION_REPORT.md
+- FIXZIT_AGENT_QUICKSTART.md
+- TASK_COMPLETION_SUMMARY.md
+- TEST_FIXES_SUMMARY.md
+- TODO_FALSE_POSITIVE_ANALYSIS.md
+- UNDEFINED_PROPERTY_FIXES.md
+- CATEGORIZED_TASKS_LIST.md
+- PENDING_TASKS_AND_FILE_ORGANIZATION.md
+- PR_SUMMARY.md
+- IMPLEMENTATION_GUIDE.md
+
+**Lighthouse Reports** (4 files → `reports/lighthouse/`):
+
+- lighthouse-report.json
+- lighthouse-report-production.json
+- lighthouse-report-with-fonts.json
+- lighthouse-report-final.json
+
+### 3. Files Deleted ✅
+
+**Temporary Test Files**:
+
+- test-output.log
+- **pycache**/\*.pyc (Python cache files)
+- .ipynb_checkpoints/ (Jupyter notebook cache)
+
+### 4. New Documentation Created ✅
+
+**docs/INDEX.md** (170 lines):
+
+- Master documentation index
+- Links to all documentation sections
+- Project status overview
+- Quick reference commands
+- Architecture overview
+
+**docs/performance/BUILD_RESULTS_LATEST.md** (320 lines):
+
+- Latest build results (November 7, 2025)
+- Complete bundle analysis
+- Provider optimization impact explanation
+- Performance baseline metrics
+- Next steps with priorities
+- Bundle analyzer access instructions
+
+## Root Directory - Before vs After
+
+### Before (Cluttered)
+
+```
+/workspaces/Fixzit/
+├── AGENT_FRESH_RUN_REPORT.md
+├── BUNDLE_ANALYSIS_FINDINGS.md
+├── CATEGORIZED_TASKS_LIST.md
+├── FIXZIT_AGENT_COMPLETION_REPORT.md
+├── FIXZIT_AGENT_QUICKSTART.md
+├── IMPLEMENTATION_GUIDE.md
+├── OPTIMIZATION_ACTION_PLAN.md
+├── PENDING_TASKS_AND_FILE_ORGANIZATION.md
+├── PERFORMANCE_ANALYSIS_NEXT_STEPS.md
+├── PERFORMANCE_FINAL_SUMMARY.md
+├── PERFORMANCE_FIX_GUIDE.md
+├── PERFORMANCE_OPTIMIZATION_SESSION_SUMMARY.md
+├── PERFORMANCE_RESULTS.md
+├── PR_SUMMARY.md
+├── PROVIDER_OPTIMIZATION_IMPLEMENTATION.md
+├── SESSION_COMPLETE_SUMMARY.md
+├── TASK_COMPLETION_SUMMARY.md
+├── TEST_FIXES_SUMMARY.md
+├── TODO_FALSE_POSITIVE_ANALYSIS.md
+├── UNDEFINED_PROPERTY_FIXES.md
+├── lighthouse-report-final.json
+├── lighthouse-report-production.json
+├── lighthouse-report-with-fonts.json
+├── lighthouse-report.json
+├── test-output.log
+├── __pycache__/
+├── .ipynb_checkpoints/
+... (source code directories)
+```
+
+### After (Clean)
+
+```
+/workspaces/Fixzit/
+├── README.md                    # Main readme
+├── docs/                        # All documentation
+├── reports/                     # Performance reports
+├── app/                         # Next.js app
+├── components/                  # React components
+├── providers/                   # Context providers
+├── lib/                         # Utilities
+├── models/                      # Database models
+├── services/                    # Business logic
+├── public/                      # Static assets
+├── tests/                       # Test files
+├── scripts/                     # Build scripts
+... (configuration files only)
+```
+
+## Git Status
+
+### Modified Files (5):
+
+1. `app/layout.tsx` - Changed to use ConditionalProviders
+2. `app/login/page.tsx` - Dynamic imports, extracted DemoCredentialsSection
+3. `middleware.ts` - Attempted optimization (no effect)
+4. `next.config.js` - Bundle analyzer configuration
+5. `package.json` - Dependencies
+
+### New Files (2):
+
+1. `components/auth/DemoCredentialsSection.tsx` - Extracted component
+2. `providers/PublicProviders.tsx` - Lightweight provider tree
+3. `providers/AuthenticatedProviders.tsx` - Full provider tree
+4. `providers/ConditionalProviders.tsx` - Route-based selector
+
+### Deleted Files (22):
+
+- 16 documentation files (moved to docs/)
+- 4 lighthouse reports (moved to reports/)
+- 2 temporary files (test-output.log, .ipynb_checkpoints)
+
+## Benefits of Organization
+
+### For Developers
+
+✅ **Easy Navigation**: All docs organized by category  
+✅ **Clear Structure**: Logical grouping of related files  
+✅ **Quick Reference**: INDEX.md provides overview and links  
+✅ **Clean Root**: Only source code and config in root
+
+### For Agents
+
+✅ **Better Context**: Structured documentation improves understanding  
+✅ **Faster Search**: Organized folders reduce search time  
+✅ **Clear History**: Performance docs show optimization journey  
+✅ **Maintainability**: Easy to update and extend documentation
+
+### For Performance
+
+✅ **Build Results**: Latest results documented with analysis  
+✅ **Optimization History**: Complete record of changes  
+✅ **Next Steps**: Clear priorities for future work  
+✅ **Validation Guide**: Instructions for testing improvements
+
+## How to Navigate
+
+### Quick Start
+
+1. Read `docs/INDEX.md` for overview
+2. Check `docs/performance/BUILD_RESULTS_LATEST.md` for latest results
+3. Review `docs/architecture/PROVIDER_OPTIMIZATION_IMPLEMENTATION.md` for implementation details
+
+### Performance Analysis
+
+```bash
+# View documentation
+cat docs/INDEX.md
+
+# Latest build results
+cat docs/performance/BUILD_RESULTS_LATEST.md
+
+# Bundle analyzer
+python3 -m http.server 8080 --directory .next/analyze
+# Open: http://localhost:8080/client.html
+```
+
+### Agent Reports
+
+```bash
+# View agent completion
+cat docs/FIXZIT_AGENT_COMPLETION_REPORT.md
+
+# Quick start guide
+cat docs/FIXZIT_AGENT_QUICKSTART.md
+
+# Task summaries
+cat docs/TASK_COMPLETION_SUMMARY.md
+```
+
+### Performance Reports
+
+```bash
+# Latest Lighthouse results
+cat reports/lighthouse/lighthouse-report-final.json
+
+# Production validation
+cat reports/lighthouse/lighthouse-report-production.json
+```
+
+## Memory Cleanup Results
+
+### Before
+
+- **Documentation files in root**: 20 files
+- **Test artifacts**: 3 files
+- **Total unnecessary root files**: 23 files
+
+### After
+
+- **Documentation files in root**: 0 files (all in docs/)
+- **Test artifacts**: 0 files (cleaned)
+- **Root directory**: Clean, only source code and essential configs
+
+### Memory Savings
+
+- Reduced root directory clutter by ~95%
+- Improved searchability with organized structure
+- Better context for AI agents with logical grouping
+- Easier maintenance with centralized documentation
+
+## Next Steps
+
+### Immediate
+
+- ✅ Organization complete
+- ⏸️ Commit organized structure
+- ⏸️ Validate provider optimization runtime behavior
+- ⏸️ Run Lighthouse audit to confirm improvements
+
+### Future
+
+- Keep docs/ organized as new optimizations are added
+- Update INDEX.md when adding new documentation
+- Archive old reports in reports/archive/ when superseded
+- Maintain clean root directory for new development
+
+## Maintenance Guidelines
+
+### Adding New Documentation
+
+1. Determine category (performance, architecture, agent, etc.)
+2. Place in appropriate docs/ subdirectory
+3. Update docs/INDEX.md with link and description
+4. Keep filename descriptive and use consistent naming
+
+### Adding New Reports
+
+1. Place in appropriate reports/ subdirectory
+2. Use timestamp or version in filename
+3. Update INDEX.md or relevant doc with reference
+4. Archive old reports when superseded
+
+### Keeping Root Clean
+
+- Only source code directories in root
+- Configuration files (.json, .js, .ts) in root
+- All documentation in docs/
+- All reports in reports/
+- No temporary files (.log, cache, etc.)
+
+---
+
+**Organization Status**: ✅ Complete  
+**Root Directory**: Clean  
+**Documentation**: Organized and indexed  
+**Memory**: Cleaned and optimized  
+**Next Action**: Commit changes and validate optimizations
+
+]]>
+</file>
+
+<file path="docs/archived/workspace-org/WORKSPACE_STATUS.md">
+<![CDATA[
+# Quick Reference - Workspace Status
+
+**Last Updated:** November 9, 2025 05:55 UTC
+
+---
+
+## ✅ SERVER STATUS - RUNNING
+
+**URL:** http://localhost:3000  
+**Status:** HTTP 200 OK  
+**Process ID:** 43852  
+**Memory:** 80.7 MB  
+**CPU:** 0.2%
+
+**Start Command:**
+
+```bash
+PORT=3000 pnpm dev
+```
+
+**Logs Location:** `/tmp/next-dev.log`
+
+---
+
+## ✅ STORAGE - OPTIMIZED
+
+**Total Space:** 32 GB  
+**Used:** 9.8 GB (33%)  
+**Available:** 20 GB  
+**Freed This Session:** 1.2 GB
+
+**Optimization Summary:**
+
+- ✅ Cleared Next.js cache (1.1 GB)
+- ✅ Removed tmp directory (26 MB)
+- ✅ Removed duplicate directories (.artifacts, .runner, reports)
+- ✅ Cleared test artifacts
+
+---
+
+## ✅ FILES - ORGANIZED
+
+**Documentation Structure:**
+
+```
+/workspaces/Fixzit/docs/
+├── summaries/        # 5 summary documents
+├── reports/          # 150+ status reports
+├── prs/             # PR documentation
+└── WORKSPACE_OPTIMIZATION_REPORT.md
+```
+
+**Files Moved:** 520+ markdown files from root to `/docs`
+
+---
+
+## ✅ BUGS FIXED
+
+### SessionProvider Error
+
+**Status:** FIXED ✅  
+**Files Changed:**
+
+- `/providers/PublicProviders.tsx` - Added SessionProvider
+- `/components/ClientLayout.tsx` - Removed unsafe wrapper
+
+**Impact:** Homepage, login, and all public routes now work correctly
+
+---
+
+## 📋 NEXT ACTIONS
+
+### Priority 1 (Today)
+
+1. Run `pnpm typecheck` - Catalog 83 TypeScript errors
+2. Run `pnpm lint` - Check for linting issues
+3. Update ISSUES_REGISTER.md with findings
+
+### Priority 2 (This Week)
+
+4. Fix owner model null safety (server/models/owner/\*)
+5. System-wide null safety audit
+6. Run `pnpm test` - Verify all tests pass
+
+### Priority 3 (This Month)
+
+7. Review unused dependencies
+8. Performance monitoring
+9. Documentation updates
+
+---
+
+## 🔧 USEFUL COMMANDS
+
+### Server Management
+
+```bash
+# Start server
+PORT=3000 pnpm dev
+
+# Check if running
+curl http://localhost:3000
+
+# Kill server
+pkill -f "next dev"
+
+# View logs
+tail -f /tmp/next-dev.log
+```
+
+### Storage Management
+
+```bash
+# Check disk usage
+df -h /workspaces
+
+# Check project size
+du -sh /workspaces/Fixzit
+
+# Clear Next.js cache
+rm -rf .next/cache
+
+# Clear test artifacts
+rm -rf playwright-report/* e2e-test-results/* test-results/*
+```
+
+### Code Quality
+
+```bash
+# TypeScript check
+pnpm typecheck
+
+# Linting
+pnpm lint
+
+# Run tests
+pnpm test
+
+# Check for unused dependencies
+npx depcheck
+```
+
+---
+
+## 📊 METRICS
+
+| Metric          | Value       | Status |
+| --------------- | ----------- | ------ |
+| Server Status   | Running     | ✅     |
+| Server Port     | 3000        | ✅     |
+| Response Time   | <100ms      | ✅     |
+| Memory Usage    | 80.7 MB     | ✅     |
+| CPU Usage       | 0.2%        | ✅     |
+| Disk Usage      | 33% (9.8GB) | ✅     |
+| Available Space | 20 GB       | ✅     |
+| Files Organized | 520+        | ✅     |
+
+---
+
+## 🔗 DOCUMENTATION
+
+**Full Report:** `/docs/WORKSPACE_OPTIMIZATION_REPORT.md`  
+**Daily Report:** `/DAILY_PROGRESS_REPORTS/2024-11-09_Workspace_Optimization.md`  
+**Issues Register:** `/docs/reports/ISSUES_REGISTER.md`
+
+---
+
+**Status:** ✅ All systems operational  
+**Next Review:** November 10, 2025
+
+]]>
+</file>
+
+<file path="docs/audits/AUTHORITATIVE_COMPLIANCE_AUDIT_2025-01-29.md">
+<![CDATA[
+# 🔒 AUTHORITATIVE COMPLIANCE AUDIT REPORT
+
+**Date:** January 29, 2025  
+**Auditor:** GitHub Copilot Agent (Claude Opus 4.5)  
+**Source of Truth:** GitHub Codebase `/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit`  
+**Confidence Level:** 100% - Based on actual source code inspection  
+
+---
+
+## 📋 EXECUTIVE SUMMARY
+
+| Audit Claim | Gemini/Grok | ChatGPT | **Actual Code** | Verdict |
+|-------------|-------------|---------|-----------------|---------|
+| Database | ❌ SQL mandate violation | ✅ MongoDB compliant | ✅ **MongoDB ONLY** | ChatGPT correct |
+| Prisma Usage | Claims detected | No Prisma | **No Prisma** | ChatGPT correct |
+| RBAC Roles | 9 roles | 14 roles | **22 canonical roles** | Exceeds spec |
+| STRICT v4.1 | Non-compliant | Compliant | **Fully compliant** | ChatGPT correct |
+| Modular Structure | Drift | Aligned | **Properly organized** | ChatGPT correct |
+
+---
+
+## 🔍 FINDING 1: DATABASE STACK
+
+### Claim Verification
+
+**Gemini/Grok Claim:** "Critical deviation from STRICT v4.1 SQL mandate"  
+**ChatGPT Claim:** "MongoDB/Mongoose is compliant, approved override"
+
+### Evidence from Source Code
+
+```bash
+# package.json dependencies (lines 201-202, 271, 297):
+"mongodb": "^6.21.0",
+"mongoose": "^8.20.1",
+"mongodb-memory-server": "^10.3.0" (testing only)
+
+# Prisma check:
+grep -r "prisma|@prisma" package.json → No matches
+```
+
+### Code Samples Verified
+
+| File | Line | Content |
+|------|------|---------|
+| `lib/mongo.ts` | 1 | `import mongoose from "mongoose";` |
+| `db/mongoose.ts` | 1 | `import mongoose, { type Connection } from "mongoose";` |
+| `modules/users/schema.ts` | 1 | `import mongoose, { Schema, Document } from "mongoose";` |
+| `services/souq/inventory-service.ts` | 5 | `import mongoose, { type ClientSession } from "mongoose";` |
+
+### PostgreSQL/SQL References Analyzed
+
+All PostgreSQL references are in:
+1. **Translation strings** (`i18n/`) - Skills detection for ATS resume parsing
+2. **Deprecated scripts** (`scripts/verify.py`, `scripts/db_check.py`) - Legacy stubs
+3. **Archived docs** (`docs/archived/legacy-architecture/`) - Marked DEPRECATED
+
+**NO PRODUCTION CODE uses PostgreSQL or Prisma.**
+
+### ✅ VERDICT: MongoDB/Mongoose is the ONLY database. No SQL mandate violation.
+
+---
+
+## 🔍 FINDING 2: RBAC ROLE MATRIX
+
+### Claim Verification
+
+**Gemini/Grok Claim:** "Only 9 roles implemented, not 14"  
+**ChatGPT Claim:** "14-role matrix with sub-roles"
+
+### Evidence from `types/user.ts`
+
+```typescript
+// CANONICAL_ROLES array (lines 74-96):
+export const CANONICAL_ROLES = [
+  // Administrative (4)
+  UserRole.SUPER_ADMIN,
+  UserRole.CORPORATE_ADMIN,
+  UserRole.ADMIN,
+  UserRole.MANAGER,
+  
+  // Facility Management (3)
+  UserRole.FM_MANAGER,
+  UserRole.PROPERTY_MANAGER,
+  UserRole.TECHNICIAN,
+  
+  // Business Function (3)
+  UserRole.FINANCE,
+  UserRole.HR,
+  UserRole.PROCUREMENT,
+  
+  // Team Member base (1)
+  UserRole.TEAM_MEMBER,
+  
+  // Specialized Sub-Roles (4)
+  UserRole.FINANCE_OFFICER,
+  UserRole.HR_OFFICER,
+  UserRole.SUPPORT_AGENT,
+  UserRole.OPERATIONS_MANAGER,
+  
+  // Souq Marketplace (2)
+  UserRole.SOUQ_ADMIN,
+  UserRole.MARKETPLACE_MODERATOR,
+  
+  // Property & External (5)
+  UserRole.OWNER,
+  UserRole.TENANT,
+  UserRole.VENDOR,
+  UserRole.AUDITOR,
+  UserRole.CORPORATE_OWNER,
+] as const;
+```
+
+### Role Count Breakdown
+
+| Category | Roles | Count |
+|----------|-------|-------|
+| Administrative | SUPER_ADMIN, CORPORATE_ADMIN, ADMIN, MANAGER | 4 |
+| Facility Management | FM_MANAGER, PROPERTY_MANAGER, TECHNICIAN | 3 |
+| Business Function | FINANCE, HR, PROCUREMENT | 3 |
+| Team Member Base | TEAM_MEMBER | 1 |
+| Specialized Sub-Roles | FINANCE_OFFICER, HR_OFFICER, SUPPORT_AGENT, OPERATIONS_MANAGER | 4 |
+| Souq Marketplace | SOUQ_ADMIN, MARKETPLACE_MODERATOR | 2 |
+| Property/External | OWNER, TENANT, VENDOR, AUDITOR, CORPORATE_OWNER | 5 |
+| **TOTAL CANONICAL** | | **22** |
+
+### Legacy Roles (Deprecated, not counted)
+
+6 deprecated roles exist for backward compatibility only:
+- EMPLOYEE, SUPPORT, DISPATCHER, FINANCE_MANAGER, CUSTOMER, VIEWER
+
+### ✅ VERDICT: 22 canonical roles implemented, EXCEEDS the 14-role STRICT v4.1 requirement.
+
+---
+
+## 🔍 FINDING 3: STRICT v4.1 COMPLIANCE MARKERS
+
+### Code Evidence
+
+```bash
+grep -r "STRICT v4" --include="*.ts" | wc -l
+# Result: 100+ occurrences
+```
+
+### Sample Markers Found
+
+| File | Line | Marker |
+|------|------|--------|
+| `types/user.ts` | 4 | `🔒 STRICT v4.1: 14-role matrix with specialized sub-roles` |
+| `config/rbac.matrix.ts` | 41 | `🔒 STRICT v4.1: Default permissions aligned to canonical roles` |
+| `config/rbac.config.ts` | 6 | `🔒 STRICT v4: Aligned with 14-role matrix from types/user.ts` |
+| `services/souq/search-indexer-service.ts` | 79 | `🔐 STRICT v4.1: orgId is REQUIRED to prevent cross-tenant data exposure` |
+
+### ✅ VERDICT: STRICT v4.1 markers are present throughout the codebase, indicating intentional compliance.
+
+---
+
+## 🔍 FINDING 4: STRUCTURAL ORGANIZATION
+
+### Modular Monolith Structure Verified
+
+```
+/Fixzit
+├── app/                    # Next.js App Router pages
+├── components/             # Shared React components
+├── config/                 # Configuration files (rbac.config.ts, rbac.matrix.ts)
+├── domain/                 # Domain logic (fm/, services/)
+├── lib/                    # Core utilities and integrations
+│   ├── models/            # Database model helpers
+│   ├── mongo.ts           # MongoDB connection
+│   ├── rbac.ts            # RBAC utilities
+│   └── ...
+├── modules/               # Feature modules
+│   ├── organizations/     # Org management
+│   └── users/             # User management (Mongoose schemas)
+├── server/                # Server-side logic
+│   ├── finance/           # Finance schemas
+│   ├── work-orders/       # WO schemas
+│   ├── rbac/              # RBAC enforcement
+│   └── ...
+├── services/              # Business services
+│   ├── aqar/              # Property services
+│   ├── hr/                # HR services
+│   ├── notifications/     # Notification services
+│   └── souq/              # Marketplace services
+└── types/                 # TypeScript type definitions
+    └── user.ts            # Role definitions (single source of truth)
+```
+
+### ✅ VERDICT: Properly organized modular monolith with clear separation of concerns.
+
+---
+
+## 🔍 FINDING 5: BUILD VERIFICATION
+
+### TypeScript Type Check
+
+```bash
+$ pnpm typecheck
+> tsc -p .
+# Exit code: 0 (success)
+```
+
+### ✅ VERDICT: Code compiles without TypeScript errors.
+
+---
+
+## 📊 AUDIT CLAIMS RESOLUTION
+
+### Which AI Report Was Accurate?
+
+| Claim | Gemini/Grok Assessment | ChatGPT Assessment | **Correct** |
+|-------|------------------------|-------------------|-------------|
+| MongoDB usage | ❌ Violation of SQL mandate | ✅ Approved override | **ChatGPT** |
+| Prisma detection | ❌ Detected in code | ✅ No Prisma | **ChatGPT** |
+| RBAC roles count | ❌ Only 9 roles | ✅ 14+ roles | **ChatGPT** |
+| STRICT v4.1 compliance | ❌ Non-compliant | ✅ Compliant | **ChatGPT** |
+| Structural drift | ❌ Significant drift | ✅ Aligned | **ChatGPT** |
+| Blueprint adherence | ❌ Many violations | ✅ Functionally equivalent | **ChatGPT** |
+
+### Gemini/Grok Error Analysis
+
+The Gemini/Grok reports appear to have:
+1. **Mistaken MongoDB for SQL violation** - They expected SQL but MongoDB is the approved stack
+2. **Counted only base roles** - Missed sub-roles and marketplace roles
+3. **Confused deprecated markers with violations** - Deprecated docs are clearly marked
+
+---
+
+## ✅ FINAL COMPLIANCE STATUS
+
+| Area | Status | Notes |
+|------|--------|-------|
+| Database Stack | ✅ COMPLIANT | MongoDB/Mongoose only, no SQL |
+| RBAC Implementation | ✅ COMPLIANT | 22 canonical roles (exceeds 14 requirement) |
+| STRICT v4.1 Markers | ✅ COMPLIANT | 100+ markers in code |
+| Modular Structure | ✅ COMPLIANT | Proper separation of concerns |
+| TypeScript Build | ✅ PASSES | 0 errors |
+| Tenant Isolation | ✅ COMPLIANT | orgId enforced via plugins |
+
+---
+
+## 🎯 AUTHORITATIVE RULING
+
+**The Fixzit codebase is FULLY COMPLIANT with STRICT v4.1 requirements.**
+
+- **MongoDB/Mongoose is the correct and ONLY database** - There is no SQL mandate violation because MongoDB was explicitly chosen and approved for this project.
+- **The 14-role RBAC matrix is implemented and EXCEEDED** with 22 canonical roles.
+- **All STRICT v4.1 tenant isolation and security requirements are present** throughout the codebase.
+- **Gemini and Grok reports contained inaccuracies** based on assumptions about SQL requirements that do not apply to this project.
+
+---
+
+**Report Generated:** 2025-01-29  
+**Auditor Signature:** GitHub Copilot Agent (Claude Opus 4.5)  
+**Verification Method:** Direct source code inspection via VS Code workspace  
+
+]]>
+</file>
+
+</batch_content>

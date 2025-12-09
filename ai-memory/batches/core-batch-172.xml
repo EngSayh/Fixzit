@@ -1,0 +1,4779 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="i18n/en.json">
+<![CDATA[
+{
+  "landing": {
+    "title": "Fixzit - Complete Property & Facility Management",
+    "subtitle": "Streamline operations, manage work orders, and optimize your real estate portfolio",
+    "hero": {
+      "cta1": "Get Started",
+      "cta2": "Watch Demo",
+      "cta3": "Learn More"
+    },
+    "features": {
+      "title": "Complete Management Solution",
+      "property": {
+        "title": "Property Management",
+        "desc": "Manage your properties, tenants, and leases efficiently",
+        "cta": "Explore Properties"
+      },
+      "workorders": {
+        "title": "Work Order Management",
+        "desc": "Track maintenance requests and assignments in real-time",
+        "cta": "View Work Orders"
+      },
+      "vendors": {
+        "title": "Vendor Management",
+        "desc": "Coordinate with vendors and service providers seamlessly",
+        "cta": "Manage Vendors"
+      },
+      "finance": {
+        "title": "Financial Management",
+        "desc": "Track expenses, invoices, and financial reports",
+        "cta": "View Finances"
+      },
+      "crm": {
+        "title": "CRM & Tenant Relations",
+        "desc": "Build stronger relationships with tenants and clients",
+        "cta": "Explore CRM"
+      },
+      "analytics": {
+        "title": "Analytics & Reports",
+        "desc": "Get insights with comprehensive analytics and reporting",
+        "cta": "View Reports"
+      }
+    },
+    "cta": {
+      "title": "Ready to streamline your operations?",
+      "subtitle": "Join thousands of property managers using Fixzit",
+      "login": "Sign In",
+      "demo": "Request Demo"
+    }
+  },
+  "about": {
+    "metaTitle": "About Fixzit - Property Management Software",
+    "metaDesc": "Learn about Fixzit's mission to revolutionize property and facility management",
+    "title": "About Fixzit",
+    "subtitle": "Transforming Property Management",
+    "statsSection": "Statistics",
+    "clients": "Clients",
+    "uptime": "Uptime",
+    "experience": "Years Experience",
+    "properties": "Properties Managed",
+    "contentSection": "About Our Platform",
+    "contactSection": "Contact Us",
+    "contactTitle": "Get in Touch",
+    "contactDesc": "Have questions? We'd love to hear from you.",
+    "email": "Email Address",
+    "emailLabel": "Your Email",
+    "phone": "Phone Number",
+    "phoneLabel": "Your Phone"
+  },
+  "careers": {
+    "uploadFailed": "Failed to upload resume",
+    "presignFailed": "Failed to get upload URL",
+    "resumeUploadNote": "Please upload your resume in PDF format (max 5MB)",
+    "resumeScanStatus": "Scanning resume for viruses...",
+    "fullNameRequired": "Full Name Required",
+    "emailRequired": "Email Required",
+    "emailInvalid": "Email Invalid",
+    "phoneInvalid": "Phone Invalid",
+    "linkedinInvalid": "Linkedin Invalid",
+    "experienceInvalid": "Experience Invalid",
+    "resumeRequired": "Resume Required",
+    "resumeType": "Resume Type",
+    "resumeSize": "Resume Size",
+    "spamDetected": "Spam Detected",
+    "tooMany": "Too Many",
+    "applyFailed": "Apply Failed",
+    "applySuccess": "Apply successful",
+    "applyNow": "Apply Now",
+    "fullName": "Full Name",
+    "fullNamePh": "Full Name Ph",
+    "email": "Email",
+    "emailPh": "Email Ph",
+    "phone": "Phone",
+    "phonePh": "Phone Ph",
+    "location": "Location",
+    "locationPh": "Location Ph",
+    "experience": "Experience",
+    "linkedin": "Linkedin",
+    "skills": "Skills",
+    "skillsPh": "Skills Ph",
+    "skillsHint": "Skills Hint",
+    "coverLetter": "Cover Letter",
+    "coverLetterPh": "Cover Letter Ph",
+    "resume": "Resume",
+    "resumeHint": "Resume Hint",
+    "submitting": "Submitting",
+    "submit": "Submit",
+    "terms": "Terms",
+    "notFound": {
+      "title": "Careers Not Found",
+      "description": "Enter description",
+      "viewAll": "View All",
+      "goHome": "Go Home",
+      "footerPrompt": "Footer Prompt",
+      "contact": "Contact"
+    },
+    "detail": {
+      "back": "Back",
+      "description": "Enter description",
+      "requirements": "Requirements",
+      "benefits": "Benefits"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Sign In",
+      "email": "Email",
+      "username": "Username",
+      "password": "Password",
+      "rememberMe": "Remember me",
+      "forgotPassword": "Forgot password?",
+      "submit": "Sign In",
+      "noAccount": "Don't have an account?",
+      "signup": "Sign up",
+      "welcome": "Welcome back",
+      "subtitle": "Sign in to your account",
+      "personalEmailTab": "Personal Email",
+      "corporateAccountTab": "Corporate Account",
+      "ssoLoginTab": "SSO Login",
+      "personalEmail": "Personal Email",
+      "employeeNumber": "Employee Number",
+      "enterEmail": "Enter your email",
+      "enterEmployeeNumber": "Enter employee number",
+      "enterPassword": "Enter your password",
+      "corporateHelp": "Use your corporate employee ID",
+      "hidePassword": "Hide password",
+      "showPassword": "Show password",
+      "capsLockOn": "Caps Lock is ON",
+      "signingIn": "Signing in...",
+      "signIn": "Sign In",
+      "continueWith": "Or continue with",
+      "orUseAccount": "Or use account",
+      "usePersonalEmail": "Use Personal Email",
+      "useCorporateAccount": "Use Corporate Account",
+      "personalEmailAccounts": "Personal Email Accounts",
+      "corporateAccountEmployee": "Corporate Employee",
+      "employeeHash": "Employee #",
+      "errors": {
+        "emailRequired": "Email is required",
+        "emailInvalid": "Invalid email address",
+        "employeeRequired": "Employee number is required",
+        "employeeInvalid": "Invalid employee number",
+        "passwordRequired": "Password is required",
+        "passwordTooShort": "Password must be at least 8 characters",
+        "invalidCredentials": "Invalid email or password",
+        "loginFailed": "Login failed. Please try again.",
+        "networkError": "Network error. Please check your connection."
+      },
+      "success": {
+        "title": "Login Successful",
+        "message": "Redirecting to dashboard..."
+      }
+    },
+    "logout": {
+      "signingOut": "Signing out...",
+      "pleaseWait": "Please wait",
+      "redirectingAfterError": "Redirecting after error...",
+      "success": "Successfully logged out",
+      "redirecting": "Redirecting to login...",
+      "error": "Logout failed",
+      "errorMessage": "An error occurred during logout. Please try again."
+    },
+    "signup": {
+      "title": "Create Account",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "username": "Username",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "submit": "Create Account",
+      "hasAccount": "Already have an account?",
+      "login": "Sign in"
+    },
+    "forgotPassword": {
+      "title": "Reset Password",
+      "email": "Email",
+      "submit": "Send Reset Link",
+      "backToLogin": "Back to Sign In"
+    }
+  },
+  "admin": {
+    "subRoles": {
+      "financeOfficer": {
+        "label": "Finance Officer",
+        "description": "Manages budgets, invoices, and financial reports"
+      },
+      "hrOfficer": {
+        "label": "HR Officer",
+        "description": "Manages employee records, payroll, and PII data"
+      },
+      "supportAgent": {
+        "label": "Support Agent",
+        "description": "Handles customer inquiries and tickets"
+      },
+      "operationsManager": {
+        "label": "Operations Manager",
+        "description": "Oversees work orders and property operations"
+      },
+      "specializationTooltip": "Specialization Tooltip",
+      "ariaLabel": "Aria"
+    },
+    "modules": {
+      "dashboard": "Dashboard",
+      "workOrders": "Work Orders",
+      "properties": "Properties",
+      "finance": "Finance",
+      "hr": "HR",
+      "administration": "Administration",
+      "crm": "CRM",
+      "marketplace": "Marketplace",
+      "support": "Support",
+      "compliance": "Compliance",
+      "reports": "Reports",
+      "system": "System"
+    },
+    "approvalQueue": "Approval Queue",
+    "approvalQueueDesc": "Approval Queue Desc",
+    "redirecting": "Redirecting",
+    "footer": {
+      "accessDenied": "Access Denied",
+      "loadFailed": "Load Failed",
+      "networkError": "Network error. Please try again.",
+      "saving": "Saving...",
+      "saveSuccess": "Save successful",
+      "saveFailed": "Save Failed",
+      "saveNetworkError": "Save Network failed",
+      "title": "Admin Footer",
+      "subtitle": "Manage your footer",
+      "contentEn": "Content En",
+      "contentEnPlaceholder": "Enter Content En",
+      "contentAr": "Content Ar",
+      "contentArPlaceholder": "Enter Content Ar",
+      "helpTitle": "Help Title",
+      "validation": {
+        "bothRequired": "Both Required"
+      },
+      "pages": {
+        "about": "About",
+        "privacy": "Privacy",
+        "terms": "Terms"
+      },
+      "help": {
+        "both": "Both",
+        "markdown": "Markdown",
+        "auto": "Auto",
+        "public": "Public"
+      }
+    },
+    "cms": {
+      "loadError": "Load failed",
+      "title": "Admin Cms",
+      "slug": "Slug",
+      "draft": "Draft",
+      "published": "Published",
+      "titleLabel": "Title",
+      "content": "Content",
+      "description": "Enter description",
+      "totalPages": "Total Pages"
+    },
+    "logo": {
+      "accessDenied": "Access Denied",
+      "invalidType": "Invalid Type",
+      "fileTooLarge": "File Too Large",
+      "noFileSelected": "No File Selected",
+      "uploading": "Uploading...",
+      "uploadSuccess": "Upload successful",
+      "uploadFailed": "Upload Failed",
+      "uploadNetworkError": "Upload Network failed",
+      "title": "Admin Logo",
+      "subtitle": "Manage your logo",
+      "currentLogo": "Current Logo",
+      "currentLogoAlt": "Current Logo Alt",
+      "visibleInTopBar": "Visible In Top Bar",
+      "replaceLogo": "Replace Logo",
+      "uploadLogo": "Upload Logo",
+      "previewAlt": "Preview Alt",
+      "uploadButton": "Upload Button",
+      "chooseFile": "Choose File",
+      "orDragDrop": "Or Drag Drop",
+      "supportedFormats": "Supported Formats",
+      "guidelinesTitle": "Guidelines Title",
+      "guideline": {
+        "formats": "Formats",
+        "size": "Size",
+        "dimensions": "Dimensions",
+        "transparent": "Transparent",
+        "topbar": "Topbar",
+        "clickable": "Clickable"
+      }
+    },
+    "users": {
+      "confirmDelete": "Confirm Delete",
+      "title": "Admin Users",
+      "subtitle": "Manage your users",
+      "searchPlaceholder": "Enter Search",
+      "searchAria": "Search",
+      "description": "Enter description",
+      "totalUsers": "Total Users",
+      "createUser": "Create User",
+      "active": "Active",
+      "online": "Online",
+      "table": {
+        "unknownUser": "Unknown User",
+        "noActivity": "No Activity",
+        "departmentFallback": "Department Fallback",
+        "user": "User",
+        "role": "Role",
+        "status": "Status",
+        "lastLogin": "Last Login",
+        "department": "Department",
+        "actions": "Actions"
+      },
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive",
+        "locked": "Locked"
+      },
+      "toast": {
+        "updated": "Updated",
+        "created": "Created",
+        "activated": "Activated",
+        "deactivated": "Deactivated",
+        "deleted": "Deleted"
+      },
+      "errors": {
+        "save": "Save",
+        "status": "Status",
+        "delete": "Delete"
+      },
+      "actions": {
+        "exportAria": "Export",
+        "addAria": "Add",
+        "add": "Add",
+        "filterAria": "Filter",
+        "edit": "Edit",
+        "deactivate": "Deactivate",
+        "activate": "Activate",
+        "delete": "Delete"
+      },
+      "form": {
+        "subRole": {
+          "_value": "Sub Role",
+          "none": "None",
+          "help": "Help"
+        },
+        "moduleAccess": "Module Access"
+      }
+    },
+    "tabs": {
+      "users": "Users",
+      "roles": "Roles",
+      "audit": "Audit",
+      "settings": "Settings",
+      "notifications": "Notifications",
+      "communications": "Communications",
+      "tenants": "Tenants",
+      "billing": "Billing"
+    },
+    "common": {
+      "loadingSession": "Loading Session",
+      "export": "Export",
+      "filters": "Filters",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "update": "Update",
+      "create": "Create",
+      "errors": {
+        "fetchData": "Fetch Data"
+      }
+    },
+    "roles": {
+      "title": "Admin Roles",
+      "subtitle": "Manage your roles",
+      "usersCount": "Users Count",
+      "morePermissions": "More Permissions",
+      "description": "Enter description",
+      "totalRoles": "Total Roles",
+      "createRole": "Create Role",
+      "ariaLabel": "Aria",
+      "tenant": "Tenant",
+      "vendor": "Vendor",
+      "technician": "Technician",
+      "propertyManager": "Property Manager",
+      "fmManager": "Fm Manager",
+      "finance": "Finance",
+      "hr": "Hr",
+      "support": "Support",
+      "admin": "Admin",
+      "superAdmin": "Super Admin",
+      "actions": {
+        "addAria": "Add",
+        "add": "Add",
+        "more": "More"
+      }
+    },
+    "audit": {
+      "title": "Admin Audit",
+      "subtitle": "Manage your audit",
+      "description": "Enter description",
+      "recentEvents": "Recent Events",
+      "viewLogs": "View Logs",
+      "status": {
+        "success": "Operation successful",
+        "failed": "Failed"
+      },
+      "filters": {
+        "actionAria": "Action",
+        "allActions": "All Actions",
+        "userCreated": "User Created",
+        "userUpdated": "User Updated",
+        "login": "Login",
+        "logout": "Logout",
+        "statusAria": "Status",
+        "allStatus": "All Status",
+        "fromDate": "From Date",
+        "toDate": "To Date"
+      },
+      "table": {
+        "timestamp": "Timestamp",
+        "user": "User",
+        "action": "Action",
+        "resource": "Resource",
+        "status": "Status",
+        "ip": "Ip",
+        "details": "Details"
+      },
+      "actions": {
+        "viewDetails": "View Details"
+      }
+    },
+    "settings": {
+      "title": "Admin Settings",
+      "subtitle": "Manage your settings",
+      "description": "Enter description",
+      "categories": "Categories",
+      "fields": {
+        "orgName": "Org Name",
+        "timezone": "Timezone",
+        "language": "Language",
+        "featureToggle": "Feature Toggle"
+      },
+      "toast": {
+        "saved": "Saved"
+      },
+      "errors": {
+        "save": "Save"
+      },
+      "buttons": {
+        "cancelAria": "Cancel",
+        "cancel": "Cancel",
+        "saveAria": "Save",
+        "save": "Save"
+      },
+      "options": {
+        "enabled": "Enabled",
+        "disabled": "Disabled"
+      }
+    },
+    "tenants": {
+      "title": "Admin Tenants",
+      "subtitle": "Manage your tenants",
+      "placeholder": "Enter Tenants"
+    },
+    "billing": {
+      "title": "Admin Billing",
+      "subtitle": "Manage your billing",
+      "placeholder": "Enter Billing"
+    },
+    "header": {
+      "title": "Admin Header",
+      "subtitle": "Manage your header"
+    },
+    "features": {
+      "title": "Admin Features",
+      "description": "Enter description",
+      "active": "Active"
+    },
+    "database": {
+      "title": "Admin Database",
+      "description": "Enter description",
+      "status": "Status",
+      "healthy": "Healthy"
+    },
+    "notifications": {
+      "title": "Admin Notifications",
+      "description": "Enter description",
+      "pending": "Pending",
+      "success": "Operation successful",
+      "subtitle": "Manage your notifications",
+      "hideHistory": "Hide History",
+      "showHistory": "Show History",
+      "recipientType": "Recipient Type",
+      "channels": "Channels",
+      "comingSoon": "Coming Soon",
+      "message": "Message",
+      "priority": {
+        "_value": "Priority",
+        "low": "Low",
+        "normal": "Normal",
+        "high": "High",
+        "urgent": "Urgent"
+      },
+      "subject": "Subject",
+      "subjectPlaceholder": "Enter Subject",
+      "messageBody": "Message Body",
+      "messagePlaceholder": "Enter Message",
+      "characters": "Characters",
+      "preview": "Preview",
+      "to": "To",
+      "via": "Via",
+      "none": "None",
+      "noSubject": "No Subject",
+      "noMessage": "No Message",
+      "sending": "Sending",
+      "send": "Send",
+      "important": "Important",
+      "historyTitle": "History Title",
+      "noHistory": "No History",
+      "sentBy": "Sent By",
+      "errors": {
+        "historyFetch": "History Fetch",
+        "noChannels": "No Channels",
+        "emptyFields": "Empty Fields",
+        "sendFailed": "Send Failed"
+      },
+      "recipients": {
+        "users": "Users",
+        "tenants": "Tenants",
+        "corporate": "Corporate",
+        "all": "All"
+      },
+      "info": {
+        "1": "1",
+        "2": "2",
+        "3": "3",
+        "4": "4"
+      }
+    },
+    "email": {
+      "title": "Admin Email",
+      "description": "Enter description",
+      "templates": "Templates"
+    },
+    "security": {
+      "title": "Admin Security",
+      "description": "Enter description",
+      "policies": "Policies"
+    },
+    "monitoring": {
+      "title": "Admin Monitoring",
+      "description": "Enter description",
+      "uptime": "Uptime"
+    },
+    "reports": {
+      "title": "Admin Reports",
+      "description": "Enter description",
+      "generated": "Generated"
+    },
+    "administration": {
+      "title": "Admin Administration",
+      "subtitle": "Manage your administration"
+    },
+    "system": {
+      "status": "Status",
+      "operational": "Operational",
+      "monitor": "Monitor"
+    },
+    "userModal": {
+      "titleEdit": "Title Edit",
+      "titleCreate": "Title Create",
+      "descriptionEdit": "Description Edit",
+      "descriptionCreate": "Description Create",
+      "errors": {
+        "saveFailed": "Save Failed"
+      },
+      "fields": {
+        "name": "Name",
+        "email": "Email",
+        "role": "Role",
+        "subRole": "Sub Role",
+        "status": "Status",
+        "department": "Department",
+        "phone": "Phone"
+      },
+      "placeholders": {
+        "name": "Name",
+        "email": "Email",
+        "department": "Department",
+        "phone": "Phone"
+      },
+      "hints": {
+        "emailImmutable": "Email Immutable",
+        "subRole": "Sub Role"
+      }
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "locked": "Locked"
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcomeBack": "Welcome back",
+    "notifications": "Notifications",
+    "quickAction": "Quick Action",
+    "quickActions": "Quick Actions",
+    "activeWorkOrders": "Active Work Orders",
+    "totalProperties": "Total Properties",
+    "assetsUnderMaintenance": "Assets Under Maintenance",
+    "overdueInvoices": "Overdue Invoices",
+    "pending": "Pending",
+    "overdue": "Overdue",
+    "occupied": "Occupied",
+    "needAttention": "Need Attention",
+    "manage": "Manage",
+    "criticalAssets": "Critical Assets",
+    "viewAssets": "View Assets",
+    "sarPending": "SAR Pending",
+    "viewInvoices": "View Invoices",
+    "recentWorkOrders": "Recent Work Orders",
+    "viewAll": "View All",
+    "noRecentWorkOrders": "No recent work orders",
+    "propertyAlerts": "Property Alerts",
+    "units": "Units",
+    "noProperties": "No properties",
+    "newWorkOrder": "New Work Order",
+    "addProperty": "Add Property",
+    "newTenant": "New Tenant",
+    "createInvoice": "Create Invoice",
+    "welcome": "Welcome back",
+    "metrics": {
+      "properties": "Properties",
+      "workOrders": "Work Orders",
+      "tenants": "Tenants",
+      "vendors": "Vendors"
+    },
+    "recentActivity": "Recent Activity",
+    "acMaintenance": "Ac Maintenance",
+    "propertyTowerA": "Property Tower A",
+    "unit": "Unit",
+    "statusInProgress": "Status In Progress",
+    "recentTransactions": "Recent Transactions",
+    "monthlyRent": "Monthly Rent",
+    "tenant": "Tenant",
+    "reports": {
+      "title": "Dashboard Reports",
+      "subtitle": "Manage your reports",
+      "comingSoon": "Coming Soon"
+    },
+    "finance": {
+      "tabs": {
+        "invoices": "Invoices",
+        "payments": "Payments",
+        "expenses": "Expenses",
+        "budgets": "Budgets",
+        "reports": "Reports",
+        "placeholder": "Enter Tabs"
+      },
+      "header": {
+        "title": "Dashboard Finance Header",
+        "subtitle": "Manage your finance"
+      },
+      "cards": {
+        "totalInvoices": "Total Invoices",
+        "unpaid": "Unpaid",
+        "overdue": "Overdue",
+        "paid": "Paid",
+        "recentInvoices": "Recent Invoices",
+        "recentPlaceholder": "Enter Recent",
+        "recentHint": "Recent Hint"
+      }
+    },
+    "hrRecruitment": {
+      "header": {
+        "title": "Dashboard Hr Recruitment Header",
+        "subtitle": "Manage your hrRecruitment"
+      }
+    }
+  },
+  "workOrders": {
+    "title": "Work Orders",
+    "attachmentsCount": "{{count}} attachment(s)",
+    "create": {
+      "button": "New Work Order",
+      "title": "Create work order",
+      "form": {
+        "titleLabel": "Title *",
+        "descriptionLabel": "Description",
+        "priorityLabel": "Priority",
+        "categoryLabel": "Category",
+        "propertyIdLabel": "Property ID",
+        "propertyIdPlaceholder": "Optional — link to a property",
+        "cancelButton": "Cancel",
+        "submitButton": "Create",
+        "priorityPlaceholder": "Enter Priority"
+      },
+      "toast": {
+        "success": "Operation successful",
+        "error": "An error occurred"
+      }
+    },
+    "new": {
+      "requiredFields": "Please fill in all required fields",
+      "success": "Work order created successfully",
+      "woNumber": "Work Order #{{number}}",
+      "uploadHint": "Drag and drop files here, or click to browse",
+      "title": "Work Orders New",
+      "subtitle": "Manage your new",
+      "basicInfo": "Basic Info",
+      "titlePlaceholder": "Enter Title",
+      "propertyLocation": "Property Location",
+      "locationPlaceholder": "Enter Location",
+      "descriptionPlaceholder": "Enter Description",
+      "assignmentScheduling": "Assignment Scheduling"
+    },
+    "status": {
+      "open": "Open",
+      "inProgress": "In Progress",
+      "pending": "Pending",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "priority": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "urgent": "Urgent",
+      "_value": "Priority",
+      "p1": "P1",
+      "p2": "P2",
+      "p3": "P3",
+      "p4": "P4"
+    },
+    "fields": {
+      "title": "Title",
+      "description": "Description",
+      "property": "Property",
+      "assignee": "Assigned To",
+      "dueDate": "Due Date",
+      "status": "Status",
+      "priority": "Priority"
+    },
+    "attachments": {
+      "missingUrl": "Attachment URL is missing"
+    },
+    "quickActions": "Quick Actions",
+    "property": "Property",
+    "pending": "Pending",
+    "woId": "Wo Id",
+    "reports": "Reports",
+    "settings": "Settings",
+    "export": "Export",
+    "filter": "Filter",
+    "inProgress": "In Progress",
+    "scheduled": "Scheduled",
+    "completed": "Completed",
+    "assignTo": "Assign To",
+    "selectTechnician": "Select Technician",
+    "createFromTemplate": "Create From Template",
+    "emergencyContact": "Emergency Contact",
+    "costCalculator": "Cost Calculator",
+    "recentActivity": "Recent Activity",
+    "formAutoSaved": "Form Auto Saved",
+    "propertySelected": "Property Selected",
+    "approvals": {
+      "title": "Work Orders Approvals",
+      "subtitle": "Manage your approvals",
+      "rules": "Rules",
+      "bulkApprove": "Bulk Approve",
+      "pendingApproval": "Pending Approval",
+      "approvedToday": "Approved Today",
+      "avgTime": "Avg Time",
+      "totalApproved": "Total Approved",
+      "pending": "Pending",
+      "recent": "Recent",
+      "viewAll": "View All",
+      "approvedBy": "Approved By",
+      "approvalDate": "Approval Date",
+      "estimatedCost": "Estimated Cost",
+      "actualCost": "Actual Cost",
+      "workflow": "Workflow",
+      "details": {
+        "requestedBy": "Requested By",
+        "date": "Date",
+        "estimatedCost": "Estimated Cost"
+      }
+    },
+    "board": {
+      "title": "Work Orders Board",
+      "description": "Enter description",
+      "newWO": "New W O",
+      "noCompleted": "No Completed",
+      "createWO": "Create W O",
+      "assignTech": "Assign Tech",
+      "schedule": "Schedule"
+    },
+    "history": {
+      "title": "Work Orders History",
+      "subtitle": "Manage your history",
+      "exportReport": "Export Report",
+      "totalCompleted": "Total Completed",
+      "view": "View",
+      "invoice": "Invoice",
+      "filters": {
+        "fromDate": "From Date",
+        "toDate": "To Date"
+      },
+      "table": {
+        "title": "Work Orders History Table",
+        "property": "Property",
+        "technician": "Technician",
+        "completionDate": "Completion Date",
+        "duration": "Duration",
+        "cost": "Cost",
+        "rating": "Rating",
+        "status": "Status",
+        "actions": "Actions",
+        "ratingOutOf": "Rating Out Of"
+      },
+      "quickActions": {
+        "analytics": "Analytics",
+        "trends": "Trends",
+        "cost": "Cost",
+        "techPerformance": "Tech Performance",
+        "reports": "Reports",
+        "settings": "Settings"
+      }
+    },
+    "pm": {
+      "title": "Work Orders Pm",
+      "subtitle": "Manage your pm",
+      "importSchedule": "Import Schedule",
+      "newPM": "New P M",
+      "thisMonth": "This Month",
+      "schedulesTitle": "Schedules Title",
+      "frequency": "Frequency",
+      "lastCompleted": "Last Completed",
+      "nextDue": "Next Due",
+      "emptyState": "Empty State",
+      "generate": "Generate",
+      "filters": {
+        "search": "Search"
+      },
+      "table": {
+        "id": "Id",
+        "title": "Work Orders Pm Table",
+        "property": "Property",
+        "status": "Status",
+        "assigned": "Assigned",
+        "actions": "Actions",
+        "generated": "Generated"
+      },
+      "quickActions": {
+        "schedule": "Schedule",
+        "templates": "Templates",
+        "reports": "Reports",
+        "checklists": "Checklists",
+        "settings": "Settings",
+        "export": "Export"
+      }
+    },
+    "sla": {
+      "watchlist": "Watchlist",
+      "subtitle": "Manage your sla",
+      "breached": "Breached",
+      "critical": "Critical",
+      "warning": "Warning",
+      "safe": "Safe",
+      "breachedList": "Breached List",
+      "criticalList": "Critical List",
+      "warningList": "Warning List",
+      "safeList": "Safe List",
+      "safeMore": "Safe More",
+      "noActive": "No Active",
+      "allClear": "All Clear"
+    },
+    "list": {
+      "heading": "Heading",
+      "description": "Enter description",
+      "loading": "Loading...",
+      "searchPlaceholder": "Enter Search",
+      "values": {
+        "notScheduled": "Not Scheduled",
+        "notLinked": "Not Linked",
+        "unassigned": "Unassigned",
+        "general": "General",
+        "unknown": "Unknown",
+        "slaHours": "Sla Hours"
+      },
+      "filters": {
+        "status": "Status",
+        "statusAll": "Status All",
+        "priority": "Priority",
+        "priorityAll": "Priority All",
+        "refresh": "Refresh"
+      },
+      "labels": {
+        "property": "Property",
+        "assigned": "Assigned",
+        "category": "Category",
+        "created": "Created",
+        "priority": "Priority",
+        "code": "Code",
+        "slaWindow": "Sla Window",
+        "due": "Due"
+      },
+      "empty": {
+        "title": "Work Orders List Empty",
+        "subtitle": "Manage your list"
+      },
+      "pagination": {
+        "summary": "Summary",
+        "previous": "Previous",
+        "pageXofY": "Page Xof Y",
+        "next": "Next"
+      }
+    }
+  },
+  "properties": {
+    "leases": {
+      "active": "Active"
+    },
+    "title": "Properties",
+    "create": "Add Property",
+    "fields": {
+      "name": "Property Name",
+      "address": "Address",
+      "type": "Property Type",
+      "units": "Units",
+      "status": "Status"
+    },
+    "description": "Enter description"
+  },
+  "finance": {
+    "title": "Finance",
+    "invoices": "Invoices",
+    "expenses": "Expenses",
+    "payments": "Payments",
+    "reports": {
+      "title": "Financial Reports",
+      "subtitle": "Trial balance, P&L, and owner statements at a glance"
+    },
+    "category": {
+      "operational": "Operational",
+      "maintenance": "Maintenance",
+      "capital": "Capital",
+      "utility": "Utility",
+      "administrative": "Administrative",
+      "maintenanceRepair": "Maintenance & Repairs",
+      "utilities": "Utilities",
+      "officeSupplies": "Office Supplies",
+      "electrical": "Electrical",
+      "hvac": "HVAC",
+      "plumbing": "Plumbing",
+      "travel": "Travel",
+      "salaries": "Salaries",
+      "marketing": "Marketing",
+      "rent": "Rent",
+      "insurance": "Insurance",
+      "equipment": "Equipment",
+      "supplies": "Supplies",
+      "services": "Services",
+      "training": "Training",
+      "consulting": "Consulting",
+      "legal": "Legal",
+      "technology": "Technology",
+      "facilities": "Facilities",
+      "security": "Security",
+      "other": "Other"
+    },
+    "accountType": {
+      "ASSET": "Asset",
+      "LIABILITY": "Liability",
+      "EQUITY": "Equity",
+      "REVENUE": "Revenue",
+      "EXPENSE": "Expense"
+    },
+    "balance": {
+      "error": "Failed to load balance sheet",
+      "title": "Balance Sheet",
+      "asOf": "As of",
+      "assets": "Assets",
+      "liabilities": "Liabilities",
+      "equity": "Equity",
+      "ok": "Assets = Liabilities + Equity",
+      "notOk": "Equation mismatch detected",
+      "forbidden": "You don't have permission to view balance sheet"
+    },
+    "income": {
+      "error": "Failed to load income statement",
+      "title": "Income Statement",
+      "period": "Period",
+      "revenue": "Revenue",
+      "expense": "Expenses",
+      "net": "Net Income",
+      "forbidden": "You don't have permission to view income statement"
+    },
+    "owner": {
+      "error": "Failed to load owner statement",
+      "title": "Owner Statement",
+      "propertyId": "Property ID",
+      "prompt": "Enter a property ID to load the statement",
+      "period": "Period",
+      "opening": "Opening Balance",
+      "charges": "Charges",
+      "receipts": "Receipts",
+      "ending": "Ending Balance"
+    },
+    "selectYear": "Select year",
+    "selectPeriod": "Select period",
+    "currency": "Currency",
+    "customer": "Customer",
+    "selectCustomer": "Select Customer",
+    "selectAccount": "Select Account",
+    "vat": "Vat",
+    "subtotal": "Subtotal",
+    "discount": "Discount",
+    "total": "Total",
+    "recentActivity": "Recent Activity",
+    "formAutoSaved": "Form Auto Saved",
+    "searchPlaceholder": "Enter Search",
+    "issue": "Issue",
+    "due": "Due",
+    "description": "Enter description",
+    "qty": "Qty",
+    "unitPrice": "Unit Price",
+    "vatPercent": "Vat Percent",
+    "newInvoice": "New Invoice",
+    "createInvoice": "Create Invoice",
+    "issueDate": "Issue Date",
+    "dueDate": "Due Date",
+    "lines": "Lines",
+    "addLine": "Add Line",
+    "allProperties": "All Properties",
+    "notes": "Notes",
+    "notesPlaceholder": "Enter Notes",
+    "receiptDocumentation": "Receipt Documentation",
+    "uploadMultipleReceipts": "Upload Multiple Receipts",
+    "supportedFormats": "Supported Formats",
+    "chooseFiles": "Choose Files",
+    "paymentMethod": "Payment Method",
+    "remaining": "Remaining",
+    "account": "Account",
+    "debit": "Debit",
+    "credit": "Credit",
+    "fiscalYear": "Fiscal Year",
+    "period": "Period",
+    "showZero": "Show Zero",
+    "groupByType": "Group By Type",
+    "totalAccounts": "Total Accounts",
+    "displayed": "Displayed",
+    "invoice": {
+      "issueDateRequired": "Issue Date Required",
+      "dueDateRequired": "Due Date Required",
+      "customerRequired": "Customer Required",
+      "lineItemsRequired": "Line Items Required",
+      "lineItemDescRequired": "Line Item Desc Required",
+      "lineItemQtyInvalid": "Line Item Qty Invalid",
+      "lineItemPriceInvalid": "Line Item Price Invalid",
+      "accountRequired": "Account Required",
+      "totalInvalid": "Total Invalid",
+      "draftSaved": "Draft Saved",
+      "created": "Created",
+      "newInvoice": "New Invoice",
+      "subtitle": "Manage your invoice",
+      "createInvoice": "Create Invoice",
+      "details": "Details",
+      "type": "Type",
+      "sales": "Sales",
+      "rental": "Rental",
+      "service": "Service",
+      "maintenance": "Maintenance",
+      "issueDate": "Issue Date",
+      "dueDate": "Due Date",
+      "billTo": "Bill To",
+      "customerName": "Customer Name",
+      "customerNamePlaceholder": "Enter Customer Name",
+      "billingAddress": "Billing Address",
+      "billingAddressPlaceholder": "Enter Billing Address",
+      "itemsServices": "Items Services",
+      "addItem": "Add Item",
+      "description": "Enter description",
+      "revenueAccount": "Revenue Account",
+      "qty": "Qty",
+      "rate": "Rate",
+      "discount": "Discount",
+      "taxType": "Tax Type",
+      "total": "Total",
+      "itemDescription": "Item Description",
+      "exempt": "Exempt",
+      "vatBreakdown": "Vat Breakdown",
+      "on": "On",
+      "totalVAT": "Total V A T",
+      "journalPosting": "Journal Posting",
+      "autoPostJournal": "Auto Post Journal",
+      "journalPostingInfo": "Journal Posting Info",
+      "journalPosted": "Journal Posted",
+      "notesTerms": "Notes Terms",
+      "paymentTerms": "Payment Terms",
+      "net30": "Net30",
+      "net15": "Net15",
+      "net7": "Net7",
+      "dueOnReceipt": "Due On Receipt",
+      "cod": "Cod",
+      "invoiceNotes": "Invoice Notes",
+      "notesPlaceholder": "Enter Notes",
+      "summary": "Summary",
+      "items": "Items",
+      "paymentTracking": "Payment Tracking",
+      "totalPaid": "Total Paid",
+      "amountDue": "Amount Due",
+      "createFromTemplate": "Create From Template",
+      "costCalculator": "Cost Calculator",
+      "paymentSchedule": "Payment Schedule",
+      "customerSelected": "Customer Selected",
+      "toast": {
+        "unknownError": "Unknown failed"
+      },
+      "actions": {
+        "post": "Post",
+        "void": "Void"
+      }
+    },
+    "support": {
+      "selectOrg": "Select Org",
+      "selectOrgHint": "Select Org Hint",
+      "activeOrg": "Active Org"
+    },
+    "errors": {
+      "noOrgSession": "No Org Session",
+      "noOrgId": "No Org Id"
+    },
+    "budget": {
+      "draftSaved": "Draft Saved",
+      "nameRequired": "Name Required",
+      "periodRequired": "Period Required",
+      "datesRequired": "Dates Required",
+      "categoriesRequired": "Categories Required",
+      "creating": "Creating...",
+      "created": "Created",
+      "newBudget": "New Budget",
+      "subtitle": "Manage your budget",
+      "createBudget": "Create Budget",
+      "details": "Details",
+      "budgetName": "Budget Name",
+      "namePlaceholder": "Enter Name",
+      "budgetPeriod": "Budget Period",
+      "selectPeriod": "Select Period",
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "semiAnnual": "Semi Annual",
+      "annual": "Annual",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "budgetOwner": "Budget Owner",
+      "selectOwner": "Select Owner",
+      "propertyManager": "Property Manager",
+      "maintenanceManager": "Maintenance Manager",
+      "financeManager": "Finance Manager",
+      "categoriesAmounts": "Categories Amounts",
+      "category": "Category",
+      "budgetedAmount": "Budgeted Amount",
+      "percentage": "Percentage",
+      "selectCategory": "Select Category",
+      "propertyManagement": "Property Management",
+      "security": "Security",
+      "landscaping": "Landscaping",
+      "administrative": "Administrative",
+      "addCategory": "Add Category",
+      "budgetSettings": "Budget Settings",
+      "enableAlerts": "Enable Alerts",
+      "requireApprovals": "Require Approvals",
+      "allowCarryover": "Allow Carryover",
+      "notesDescription": "Notes Description",
+      "budgetDescription": "Budget Description",
+      "descriptionPlaceholder": "Enter Description",
+      "budgetSummary": "Budget Summary",
+      "totalBudget": "Total Budget",
+      "allocated": "Allocated",
+      "remaining": "Remaining",
+      "available": "Available",
+      "budgetTemplate": "Budget Template",
+      "copyPrevious": "Copy Previous",
+      "useTemplate": "Use Template",
+      "importExcel": "Import Excel",
+      "existingBudgets": "Existing Budgets",
+      "budgetVsActual": "Budget Vs Actual",
+      "templates": "Templates",
+      "periodSet": "Period Set"
+    },
+    "expense": {
+      "maintenance": "Maintenance",
+      "utilities": "Utilities",
+      "insurance": "Insurance",
+      "tracking": "Tracking",
+      "dateRequired": "Date Required",
+      "vendorRequired": "Vendor Required",
+      "descriptionRequired": "Description Required",
+      "lineItemsRequired": "Line Items Required",
+      "lineItemDescRequired": "Line Item Desc Required",
+      "lineItemQtyInvalid": "Line Item Qty Invalid",
+      "lineItemPriceInvalid": "Line Item Price Invalid",
+      "totalInvalid": "Total Invalid",
+      "draftSaved": "Draft Saved",
+      "submitted": "Submitted",
+      "title": "Finance Expense",
+      "subtitle": "Manage your expense",
+      "submitForApproval": "Submit For Approval",
+      "details": "Details",
+      "type": "Type",
+      "operational": "Operational",
+      "capital": "Capital",
+      "utility": "Utility",
+      "administrative": "Administrative",
+      "other": "Other",
+      "date": "Date",
+      "dueDate": "Due Date",
+      "vendorInfo": "Vendor Info",
+      "vendorSupplier": "Vendor Supplier",
+      "selectVendor": "Select Vendor",
+      "vendorName": "Vendor Name",
+      "vendorNamePlaceholder": "Enter Vendor Name",
+      "information": "Information",
+      "description": "Enter description",
+      "descriptionPlaceholder": "Enter Description",
+      "lineItems": "Line Items",
+      "addLineItem": "Add Line Item",
+      "category": "Category",
+      "account": "Account",
+      "qty": "Qty",
+      "unitPrice": "Unit Price",
+      "taxable": "Taxable",
+      "amount": "Amount",
+      "itemDescription": "Item Description",
+      "paymentDetails": "Payment Details",
+      "summary": "Summary",
+      "items": "Items",
+      "budgetStatus": "Budget Status",
+      "maintenanceBudget": "Maintenance Budget",
+      "utilitiesBudget": "Utilities Budget",
+      "recent": "Recent",
+      "viewBudget": "View Budget",
+      "bulkEntry": "Bulk Entry",
+      "templates": "Templates"
+    },
+    "payment": {
+      "cash": "Cash",
+      "bankTransfer": "Bank Transfer",
+      "cheque": "Cheque",
+      "card": "Card",
+      "credit": "Credit"
+    },
+    "journal": {
+      "entryDetails": "Entry Details",
+      "journalDate": "Journal Date",
+      "sourceType": {
+        "_value": "Source Type",
+        "manual": "Manual",
+        "adjustment": "Adjustment",
+        "workOrder": "Work Order",
+        "invoice": "Invoice",
+        "payment": "Payment",
+        "rent": "Rent",
+        "expense": "Expense"
+      },
+      "descriptionPlaceholder": "Enter Description",
+      "sourceReference": "Source Reference",
+      "journalLines": "Journal Lines",
+      "quickBalance": "Quick Balance",
+      "clearAmounts": "Clear Amounts",
+      "addLine": "Add Line",
+      "searchAccount": "Search Account",
+      "searchAccountLabel": "Search Account",
+      "selectAccount": "Select Account",
+      "lineDescription": "Line Description",
+      "removeLine": "Remove Line",
+      "entryBalanced": "Entry Balanced",
+      "entryUnbalanced": "Entry Unbalanced",
+      "debitsExceed": "Debits Exceed",
+      "creditsExceed": "Credits Exceed",
+      "totalLines": "Total Lines",
+      "difference": "Difference",
+      "createEntry": "Create Entry"
+    },
+    "trialBalance": {
+      "title": "Finance Trial Balance",
+      "loading": "Loading...",
+      "balanced": "Balanced",
+      "unbalanced": "Unbalanced",
+      "difference": "Difference",
+      "noData": "No Data",
+      "loadData": "Load Data",
+      "error": {
+        "load": "Load"
+      }
+    }
+  },
+  "hr": {
+    "stats": {
+      "totalEmployees": "Total Employees",
+      "monthlyPayroll": "Monthly Payroll",
+      "pendingLeave": "Pending Leave Requests",
+      "attendance": "Today's Attendance"
+    },
+    "quickActions": "Quick Actions",
+    "actions": {
+      "addEmployee": "Add Employee",
+      "addEmployeeDesc": "Register a new employee",
+      "processPayroll": "Process Payroll",
+      "processPayrollDesc": "Run monthly payroll",
+      "approveLeave": "Approve Leave",
+      "approveLeaveDesc": "Review leave requests"
+    },
+    "recentActivity": "Recent Activity",
+    "comingSoon": "Recent activity will appear here...",
+    "title": "Human Resources",
+    "tabs": {
+      "dashboard": "Dashboard",
+      "employees": "Employees",
+      "payroll": "Payroll",
+      "leave": "Leave Management",
+      "attendance": "Attendance"
+    },
+    "description": "Enter description",
+    "employees": {
+      "jobTitle": "Job Title",
+      "hireDate": "Hire Date",
+      "salary": "Salary",
+      "title": "Hr Employees",
+      "subtitle": "Manage your employees",
+      "addNew": "Add New",
+      "search": "Search",
+      "showing": "Showing",
+      "of": "Of",
+      "employees": "Employees",
+      "noResults": "No Results",
+      "noResultsFiltered": "No Results Filtered",
+      "noResultsEmpty": "No Results Empty",
+      "code": "Code",
+      "department": "Department",
+      "position": "Position",
+      "joinDate": "Join Date",
+      "filter": {
+        "allStatus": "All Status"
+      },
+      "compensation": {
+        "base": "Base"
+      }
+    },
+    "attendance": {
+      "title": "Hr Attendance",
+      "subtitle": "Manage your attendance",
+      "selectEmployee": "Select Employee",
+      "selectPlaceholder": "Enter Select",
+      "from": "From",
+      "to": "To",
+      "empty": "Empty",
+      "minutes": "Minutes",
+      "filters": {
+        "all": "All",
+        "sourceAll": "Source All",
+        "sourceManual": "Source Manual",
+        "sourceImport": "Source Import",
+        "sourceBiometric": "Source Biometric",
+        "status": "Status",
+        "source": "Source"
+      },
+      "status": {
+        "present": "Present",
+        "absent": "Absent",
+        "late": "Late",
+        "on_leave": "On Leave",
+        "off": "Off"
+      },
+      "actions": {
+        "exportCsv": "Export CSV"
+      },
+      "table": {
+        "date": "Date",
+        "status": "Status",
+        "clockIn": "Clock In",
+        "clockOut": "Clock Out",
+        "overtime": "Overtime",
+        "source": "Source",
+        "notes": "Notes"
+      }
+    },
+    "leave": {
+      "title": "Hr Leave",
+      "subtitle": "Manage your leave",
+      "empty": "Empty",
+      "start": "Start",
+      "end": "End",
+      "days": "Days",
+      "reason": "Reason",
+      "approvals": {
+        "loadError": "Load failed",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "updateError": "Update failed",
+        "title": "Hr Leave Approvals",
+        "subtitle": "Manage your leave",
+        "empty": "Empty",
+        "refresh": "Refresh",
+        "leave": "Leave",
+        "dates": "Dates",
+        "days": "Days",
+        "paid": "Paid",
+        "unpaid": "Unpaid",
+        "reason": "Reason",
+        "noReason": "No Reason",
+        "notes": "Notes",
+        "notesPlaceholder": "Enter Notes",
+        "reject": "Reject",
+        "approve": "Approve",
+        "cards": {
+          "pending": "Pending",
+          "urgent": "Urgent",
+          "avgDuration": "Avg Duration",
+          "days": "Days"
+        }
+      },
+      "form": {
+        "success": "Operation successful",
+        "error": "An error occurred",
+        "title": "Hr Leave Form",
+        "employee": "Employee",
+        "selectEmployee": "Select Employee",
+        "leaveType": "Leave Type",
+        "leaveTypeRefresh": "Leave Type Refresh",
+        "leaveTypeLoading": "Leave Type Loading",
+        "leaveTypeEmpty": "Leave Type Empty",
+        "leaveTypePlaceholder": "Enter Leave Type",
+        "leaveTypeDaysSuffix": "Leave Type Days Suffix",
+        "leaveTypeHelper": "Leave Type Helper",
+        "startDate": "Start Date",
+        "endDate": "End Date",
+        "days": "Days",
+        "reason": "Reason",
+        "reasonPlaceholder": "Enter Reason",
+        "submit": "Submit",
+        "validation": {
+          "required": "Required"
+        }
+      },
+      "actions": {
+        "error": "An error occurred",
+        "newRequest": "New Request",
+        "approve": "Approve",
+        "reject": "Reject"
+      },
+      "filter": {
+        "all": "All"
+      },
+      "analytics": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "avgDuration": "Avg Duration",
+        "days": "Days",
+        "upcoming": "Upcoming",
+        "noneUpcoming": "None Upcoming"
+      }
+    },
+    "payroll": {
+      "title": "Hr Payroll",
+      "subtitle": "Manage your payroll",
+      "createNew": "Create New",
+      "noRuns": "No Runs",
+      "noRunsDesc": "No Runs Desc",
+      "employees": "Employees",
+      "basicPay": "Basic Pay",
+      "allowances": "Allowances",
+      "deductions": "Deductions",
+      "netPay": "Net Pay",
+      "calculatedAt": "Calculated At",
+      "actions": {
+        "recalculate": "Recalculate",
+        "export": "Export",
+        "viewing": "Viewing",
+        "viewDetails": "View Details",
+        "postFinance": "Post Finance"
+      },
+      "detail": {
+        "title": "Hr Payroll Detail",
+        "totalEarnings": "Total Earnings",
+        "totalDeductions": "Total Deductions",
+        "netPay": "Net Pay",
+        "calculatedAt": "Calculated At",
+        "linesTitle": "Lines Title",
+        "linesCount": "Lines Count",
+        "noLines": "No Lines",
+        "exportRef": "Export Ref",
+        "table": {
+          "employee": "Employee",
+          "iban": "Iban",
+          "earnings": "Earnings",
+          "deductions": "Deductions",
+          "net": "Net",
+          "notes": "Notes"
+        }
+      }
+    },
+    "settings": {
+      "title": "Hr Settings",
+      "subtitle": "Manage your settings",
+      "leaveTypes": {
+        "title": "Hr Settings Leave Types",
+        "empty": "Empty",
+        "code": "Code",
+        "entitlement": "Entitlement",
+        "created": "Created",
+        "error": {
+          "load": "Load"
+        },
+        "form": {
+          "validation": "Validation",
+          "creating": "Creating...",
+          "success": "Operation successful",
+          "error": "An error occurred",
+          "title": "Hr Settings Leave Types Form",
+          "code": "Code",
+          "name": "Name",
+          "namePlaceholder": "Enter Name",
+          "description": "Enter description",
+          "entitlement": "Entitlement",
+          "isPaid": "Is Paid",
+          "isPaidHelper": "Is Paid Helper",
+          "submit": "Submit"
+        },
+        "badge": {
+          "paid": "Paid",
+          "unpaid": "Unpaid"
+        }
+      }
+    },
+    "ats": {
+      "jobs": {
+        "title": "Hr Ats Jobs",
+        "subtitle": "Manage your ats",
+        "empty": "Empty",
+        "notPublished": "Not Published",
+        "error": {
+          "generic": "Generic"
+        },
+        "filters": {
+          "statusPublished": "Status Published",
+          "statusPending": "Status Pending",
+          "statusDraft": "Status Draft",
+          "statusClosed": "Status Closed",
+          "statusArchived": "Status Archived",
+          "statusAll": "Status All",
+          "jobTypeAll": "Job Type All",
+          "jobTypeFullTime": "Job Type Full Time",
+          "jobTypePartTime": "Job Type Part Time",
+          "jobTypeContract": "Job Type Contract",
+          "jobTypeTemporary": "Job Type Temporary",
+          "jobTypeInternship": "Job Type Internship",
+          "jobTypeRemote": "Job Type Remote",
+          "jobTypeHybrid": "Job Type Hybrid",
+          "title": "Hr Ats Jobs Filters",
+          "search": "Search",
+          "searchPlaceholder": "Enter Search",
+          "statusLabel": "Status",
+          "jobTypeLabel": "Job Type"
+        },
+        "location": {
+          "unspecified": "Unspecified"
+        },
+        "actions": {
+          "new": "New"
+        },
+        "stats": {
+          "published": "Published",
+          "pending": "Pending",
+          "draft": "Draft",
+          "closed": "Closed"
+        },
+        "table": {
+          "role": "Role",
+          "department": "Department",
+          "location": "Location",
+          "jobType": "Job Type",
+          "applications": "Applications",
+          "published": "Published",
+          "visibility": "Visibility"
+        },
+        "new": {
+          "title": "Hr Ats Jobs New",
+          "toast": {
+            "creating": "Creating...",
+            "error": "An error occurred",
+            "success": "Operation successful",
+            "generic": "Generic"
+          },
+          "fields": {
+            "title": "Hr Ats Jobs New Fields",
+            "department": "Department",
+            "city": "City",
+            "country": "Country",
+            "salaryMin": "Salary Min",
+            "salaryMax": "Salary Max",
+            "currency": "Currency",
+            "description": "Enter description"
+          }
+        }
+      }
+    }
+  },
+  "crm": {
+    "title": "Customer Relationship Management",
+    "contacts": "Contacts",
+    "leads": "Leads",
+    "opportunities": "Opportunities",
+    "activities": "Activities",
+    "description": "Enter description"
+  },
+  "marketplace": {
+    "title": "Marketplace",
+    "browse": "Browse",
+    "vendors": "Vendors",
+    "services": "Services",
+    "products": "Products",
+    "rfq": {
+      "error": "An error occurred"
+    },
+    "claims": {
+      "buyer": {
+        "title": "Buyer claims",
+        "subtitle": "Track every claim you have filed and monitor status updates",
+        "newClaim": "File new claim"
+      },
+      "seller": {
+        "title": "Seller claims desk",
+        "subtitle": "Review open disputes and respond before deadlines",
+        "importantNotice": "Important notice",
+        "responseDeadline": "Respond within 3 calendar days to avoid automatic resolutions",
+        "respondToClaim": "Respond to claim",
+        "respondToClaimSubtitle": "Provide documentation, refunds, or counter evidence to resolve the dispute"
+      },
+      "admin": {
+        "title": "Marketplace Claims Admin",
+        "subtitle": "Manage your claims"
+      }
+    },
+    "settlements": {
+      "withdrawalSuccess": "Withdrawal submitted successfully",
+      "pleaseLogin": "Please sign in to view settlements",
+      "mustBeSeller": "You must be a registered seller to access settlements",
+      "loading": "Loading settlements...",
+      "title": "Seller settlements",
+      "tabs": {
+        "transactions": "Transactions",
+        "statements": "Statements"
+      },
+      "comingSoon": "Statements export coming soon"
+    },
+    "admin": {
+      "title": "Marketplace Admin",
+      "subtitle": "Manage your admin",
+      "error": "An error occurred",
+      "metrics": {
+        "activeProducts": "Active Products",
+        "pendingApprovals": "Pending Approvals",
+        "deliveredOrders": "Delivered Orders",
+        "openRfqs": "Open Rfqs"
+      },
+      "catalogue": {
+        "title": "Marketplace Admin Catalogue",
+        "sku": "Sku",
+        "standards": "Standards"
+      },
+      "approvals": {
+        "title": "Marketplace Admin Approvals",
+        "order": "Order",
+        "total": "Total",
+        "status": "Status",
+        "submitted": "Submitted"
+      }
+    },
+    "cart": {
+      "title": "Marketplace Cart",
+      "imageAlt": "Image Alt",
+      "fallbackTitle": "Fallback Title",
+      "quantity": "Quantity",
+      "unitPrice": "Unit Price",
+      "lineTotal": "Line Total",
+      "leadTime": "Lead Time",
+      "days": "Days",
+      "minOrder": "Min Order",
+      "empty": {
+        "title": "Marketplace Cart Empty",
+        "subtitle": "Manage your cart",
+        "cta": "Cta"
+      },
+      "summary": {
+        "title": "Marketplace Cart Summary",
+        "subtotal": "Subtotal",
+        "vat": "Vat",
+        "total": "Total",
+        "checkoutCta": "Checkout Cta"
+      },
+      "policy": {
+        "title": "Marketplace Cart Policy",
+        "description": "Enter description"
+      }
+    },
+    "checkout": {
+      "title": "Marketplace Checkout",
+      "description": "Enter description",
+      "breadcrumb": {
+        "cart": "Cart",
+        "checkout": "Checkout"
+      },
+      "contents": {
+        "title": "Marketplace Checkout Contents"
+      },
+      "finance": {
+        "title": "Marketplace Checkout Finance",
+        "point1": "Point1",
+        "point2": "Point2",
+        "point3": "Point3"
+      },
+      "error": {
+        "message": "Message",
+        "cta": "Cta"
+      }
+    },
+    "orders": {
+      "title": "Marketplace Orders",
+      "subtitle": "Manage your orders",
+      "orderNumber": "Order Number",
+      "itemsCount": "Items Count",
+      "submitted": "Submitted",
+      "approvalStatus": "Approval Status",
+      "status": {
+        "unknown": "Unknown"
+      },
+      "empty": {
+        "title": "Marketplace Orders Empty",
+        "subtitle": "Manage your orders"
+      },
+      "error": {
+        "message": "Message"
+      }
+    },
+    "product": {
+      "sku": "Sku",
+      "brand": "Brand",
+      "standards": "Standards",
+      "error": "An error occurred",
+      "errorCta": "Error Cta",
+      "metadata": {
+        "title": "Marketplace Product Metadata",
+        "description": "Enter description"
+      },
+      "breadcrumb": {
+        "home": "Home"
+      },
+      "specs": {
+        "title": "Marketplace Product Specs"
+      },
+      "documents": {
+        "title": "Marketplace Product Documents",
+        "msds": "Msds",
+        "coa": "Coa"
+      },
+      "related": {
+        "title": "Marketplace Product Related",
+        "empty": "Empty"
+      }
+    },
+    "search": {
+      "defaultQuery": "Default Query",
+      "heading": "Heading",
+      "resultsLabel": "Results",
+      "startRfq": "Start Rfq",
+      "empty": {
+        "title": "Marketplace Search Empty",
+        "subtitle": "Manage your search"
+      }
+    },
+    "vendor": {
+      "profile": "Profile",
+      "uploadProduct": "Upload Product",
+      "manageProducts": "Manage Products",
+      "bulkUpload": "Bulk Upload",
+      "sellerCentral": {
+        "_value": "Seller Central",
+        "desc": "Desc"
+      }
+    },
+    "productCard": {
+      "unitLabel": "Unit",
+      "leadTime": "Lead Time",
+      "toast": {
+        "success": "Operation successful",
+        "error": "An error occurred"
+      },
+      "button": {
+        "adding": "Adding",
+        "add": "Add"
+      }
+    },
+    "home": {
+      "hero": {
+        "pill": "Pill",
+        "title": "Marketplace Home Hero",
+        "description": "Enter description",
+        "highlights": {
+          "rapidRfq": "Rapid Rfq",
+          "linkedOrders": "Linked Orders",
+          "financeReady": "Finance Ready"
+        }
+      },
+      "kpis": {
+        "title": "Marketplace Home Kpis",
+        "openApprovals": "Open Approvals",
+        "pendingDeliveries": "Pending Deliveries",
+        "financeReady": "Finance Ready"
+      },
+      "featured": {
+        "title": "Marketplace Home Featured",
+        "viewAll": "View All"
+      },
+      "categories": {
+        "explore": "Explore"
+      }
+    },
+    "sellerOnboarding": {
+      "errors": {
+        "fileType": "File Type",
+        "fileSize": "File Size",
+        "stepRequired": "Step Required",
+        "required": "Required",
+        "submitFailed": "Submit Failed"
+      },
+      "progress": {
+        "business": "Business",
+        "contact": "Contact",
+        "kyc": "Kyc",
+        "banking": "Banking"
+      },
+      "headings": {
+        "business": "Business",
+        "contact": "Contact",
+        "kyc": "Kyc",
+        "banking": "Banking"
+      },
+      "fields": {
+        "businessName": "Business Name",
+        "businessType": "Business Type",
+        "taxId": "Tax Id",
+        "contactName": "Contact Name",
+        "email": "Email",
+        "phone": "Phone",
+        "address": "Address",
+        "bankName": "Bank Name",
+        "accountNumber": "Account Number",
+        "iban": "Iban"
+      },
+      "options": {
+        "selectType": "Select Type",
+        "soleProprietor": "Sole Proprietor",
+        "llc": "Llc",
+        "corporation": "Corporation"
+      },
+      "documents": {
+        "commercial": "Commercial",
+        "hint": "Hint",
+        "chooseFile": "Choose File",
+        "tax": "Tax"
+      },
+      "banking": {
+        "info": "Info"
+      },
+      "buttons": {
+        "previous": "Previous",
+        "next": "Next",
+        "submitting": "Submitting",
+        "submit": "Submit"
+      }
+    }
+  },
+  "vendors": {
+    "description": "Manage your vendor relationships and service providers",
+    "title": "Vendors",
+    "add": "Add Vendor",
+    "list": "Vendor List",
+    "contracts": "Contracts",
+    "performance": "Performance",
+    "payments": "Payments",
+    "confirmDelete": "Confirm Delete",
+    "toast": {
+      "deleting": "Deleting",
+      "deleteSuccess": "Delete successful",
+      "deleteFailed": "Delete Failed"
+    },
+    "errors": {
+      "deleteUnknown": "Delete Unknown",
+      "loadFailed": "Load Failed"
+    },
+    "export": {
+      "empty": "Empty",
+      "success": "Operation successful"
+    },
+    "empty": {
+      "description": "Enter description",
+      "cta": "Cta"
+    }
+  },
+  "tenants": {
+    "title": "Tenants",
+    "add": "Add Tenant",
+    "list": "Tenant List",
+    "leases": "Leases",
+    "payments": "Payments",
+    "requests": "Maintenance Requests"
+  },
+  "maintenance": {
+    "description": "Manage equipment maintenance schedules and tasks",
+    "tasks": "Maintenance Tasks",
+    "asset": "Asset",
+    "due": "Due",
+    "assigned": "Assigned to",
+    "title": "Maintenance",
+    "schedule": "Maintenance Schedule",
+    "history": "Maintenance History",
+    "preventive": "Preventive Maintenance",
+    "deleteSuccess": "Delete successful",
+    "deleteError": "Delete failed",
+    "deleteTitle": "Delete Title",
+    "deleteConfirm": "Delete Confirm",
+    "viewTask": "View Task",
+    "editTask": "Edit Task",
+    "deleteTask": "Delete Task"
+  },
+  "support": {
+    "title": "Support",
+    "tickets": "Support Tickets",
+    "knowledge": "Knowledge Base",
+    "faq": "FAQ",
+    "contact": "Contact Support",
+    "errorReport": "Error Report",
+    "category": "Category",
+    "subCategory": "Sub-Category",
+    "type": "Type",
+    "priority": "Priority",
+    "modules": {
+      "FM": "Facility Management",
+      "Souq": "Marketplace",
+      "Aqar": "Property",
+      "Account": "Account",
+      "Billing": "Billing",
+      "Other": "Other"
+    },
+    "categories": {
+      "Technical": "Technical",
+      "Feature Request": "Feature Request",
+      "Billing": "Billing",
+      "Account": "Account",
+      "General": "General",
+      "Bug Report": "Bug Report"
+    },
+    "subCategories": {
+      "Bug Report": "Bug Report",
+      "Performance Issue": "Performance Issue",
+      "UI Error": "UI Error",
+      "API Error": "API Error",
+      "Database Error": "Database Error",
+      "New Feature": "New Feature",
+      "Enhancement": "Enhancement",
+      "Integration": "Integration",
+      "Customization": "Customization",
+      "Mobile App": "Mobile App",
+      "Invoice Issue": "Invoice Issue",
+      "Payment Error": "Payment Error",
+      "Subscription": "Subscription",
+      "Refund": "Refund",
+      "Pricing": "Pricing",
+      "Login Issue": "Login Issue",
+      "Password Reset": "Password Reset",
+      "Profile Update": "Profile Update",
+      "Permissions": "Permissions",
+      "Access Denied": "Access Denied",
+      "Documentation": "Documentation",
+      "Training": "Training",
+      "Support": "Support",
+      "Feedback": "Feedback",
+      "Other": "Other",
+      "Critical Bug": "Critical Bug",
+      "Minor Bug": "Minor Bug",
+      "Cosmetic Issue": "Cosmetic Issue",
+      "Data Error": "Data Error",
+      "Security Issue": "Security Issue"
+    },
+    "types": {
+      "Bug": "Bug",
+      "Feature": "Feature",
+      "Complaint": "Complaint",
+      "Billing": "Billing",
+      "Access": "Access",
+      "Other": "Other"
+    },
+    "priorities": {
+      "Low": "Low",
+      "Medium": "Medium",
+      "High": "High",
+      "Urgent": "Urgent"
+    },
+    "modulePlaceholder": "Select module",
+    "categoryPlaceholder": "Select category",
+    "subCategoryPlaceholder": "Select sub-category",
+    "typePlaceholder": "Select type",
+    "priorityPlaceholder": "Select priority",
+    "description": "Enter description",
+    "errorId": "Error Id",
+    "autoErrorReport": "Auto Error Report",
+    "timestamp": "Timestamp",
+    "url": "Url",
+    "userAgent": "User Agent",
+    "errorDetails": "Error Details",
+    "message": "Message",
+    "noMessage": "No Message",
+    "viewport": "Viewport",
+    "platform": "Platform",
+    "systemInfo": "System Info",
+    "language": "Language",
+    "onlineStatus": "Online Status",
+    "memoryUsage": "Memory Usage",
+    "used": "Used",
+    "appState": "App State",
+    "authenticated": "Authenticated",
+    "userData": "User Data",
+    "languageSet": "Language Set",
+    "themeSet": "Theme Set",
+    "stackTrace": "Stack Trace",
+    "noStackTrace": "No Stack Trace",
+    "componentStack": "Component Stack",
+    "noComponentStack": "No Component Stack",
+    "autoCreated": "Auto Created",
+    "systemError": "System failed",
+    "ticketCreated": "Ticket Created",
+    "ticketId": "Ticket Id",
+    "subject": "Subject",
+    "module": "Module",
+    "emailUpdates": "Email Updates",
+    "thankYou": "Thank You",
+    "welcomeEmailSent": "Welcome Email Sent",
+    "welcomeEmailDesc": "Welcome Email Desc",
+    "welcomeEmailNext": "Welcome Email Next",
+    "tryAgain": "Try Again",
+    "failedToCreate": "Failed To Create",
+    "copiedToClipboard": "Copied To Clipboard",
+    "failedToCopy": "Failed To Copy",
+    "createTicket": "Create Ticket",
+    "subjectPlaceholder": "Enter Subject",
+    "descriptionPlaceholder": "Enter Description",
+    "yourName": "Your Name",
+    "namePlaceholder": "Enter Name",
+    "emailPlaceholder": "Enter Email",
+    "phone": "Phone",
+    "phonePlaceholder": "Enter Phone",
+    "copyDetails": "Copy Details",
+    "creating": "Creating...",
+    "submitTicket": "Submit Ticket",
+    "impersonation": {
+      "success": "Operation successful",
+      "cleared": "Cleared",
+      "current": "Current",
+      "select": "Select",
+      "title": "Support Impersonation",
+      "description": "Enter description",
+      "registration": "Registration",
+      "noRegistration": "No Registration",
+      "clear": "Clear",
+      "noSelection": "No Selection",
+      "searchLabel": "Search",
+      "placeholder": "Enter Impersonation",
+      "searching": "Searching...",
+      "search": "Search",
+      "results": "Results",
+      "useOrg": "Use Org",
+      "auditNotice": "Audit Notice",
+      "errors": {
+        "identifierRequired": "Identifier Required",
+        "lookupFailed": "Lookup Failed",
+        "noResults": "No Results",
+        "setFailed": "Set Failed"
+      }
+    }
+  },
+  "help": {
+    "title": "Help Center",
+    "search": "Search help articles",
+    "categories": "Categories",
+    "popular": "Popular Articles",
+    "getStarted": "Getting Started",
+    "article": {
+      "comments": {
+        "title": "Comments",
+        "placeholder": "Write your comment...",
+        "submit": "Post Comment",
+        "success": "Comment posted successfully",
+        "error": "Failed to post comment",
+        "auth": "Please sign in to comment"
+      }
+    }
+  },
+  "helpCenterV2": {
+    "title": "Help Center",
+    "subtitle": "Find answers and get support",
+    "askAssistant": "Ask AI Assistant",
+    "createTicket": "Create Support Ticket",
+    "viewTickets": "View My Tickets",
+    "interactiveTutorials": "Interactive Tutorials",
+    "interactiveSubtitle": "Step-by-step guided lessons",
+    "viewAllTutorials": "View All Tutorials",
+    "helpArticles": "Help Articles",
+    "articlesSubtitle": "Browse the knowledge base",
+    "readMore": "Read More",
+    "emptyArticles": "No articles found",
+    "updated": "Updated {{date}}",
+    "loadingArticles": "Loading articles...",
+    "generalCategory": "General",
+    "systemOverview": "System Overview",
+    "overviewSubtitle": "Learn about Fixzit's core features",
+    "propertiesTitle": "Properties",
+    "propertiesCopy": "Manage your property portfolio",
+    "workOrdersTitle": "Work Orders",
+    "workOrdersCopy": "Track and manage maintenance requests",
+    "vendorsTitle": "Vendors",
+    "vendorsCopy": "Coordinate with service providers",
+    "financeTitle": "Finance",
+    "financeCopy": "Manage invoices and expenses",
+    "untitledArticle": "Untitled Article",
+    "tutorials": {
+      "gettingStarted": {
+        "title": "Getting Started with Fixzit FM",
+        "description": "Learn the basics of property management with Fixzit",
+        "duration": "15 min"
+      },
+      "firstWorkOrder": {
+        "title": "Creating Your First Work Order",
+        "description": "Step-by-step guide to creating and managing work orders",
+        "duration": "10 min"
+      },
+      "vendorManagement": {
+        "title": "Vendor Management Best Practices",
+        "description": "Learn how to effectively manage and coordinate with vendors",
+        "duration": "20 min"
+      },
+      "tenantRelations": {
+        "title": "Tenant Relations & Communication",
+        "description": "Best practices for tenant communication and service",
+        "duration": "12 min"
+      },
+      "financialReporting": {
+        "title": "Financial Reporting & Invoicing",
+        "description": "Master financial reports and invoicing workflows",
+        "duration": "25 min"
+      }
+    },
+    "categories": {
+      "facilityManagement": "Facility Management",
+      "workOrders": "Work Orders",
+      "procurement": "Procurement",
+      "customerService": "Customer Service",
+      "finance": "Finance"
+    },
+    "fallbackNotice": "Some content may appear in English until translations are available"
+  },
+  "logout": {
+    "signingOut": "Signing you out...",
+    "pleaseWait": "Please wait while we log you out securely.",
+    "success": "Logged out successfully",
+    "redirecting": "Redirecting to login...",
+    "error": "Logout error",
+    "errorMessage": "An error occurred during logout",
+    "redirectingAfterError": "Redirecting to login..."
+  },
+  "souq": {
+    "search": {
+      "placeholder": "Search products, services, vendors..."
+    },
+    "newRFQ": "New RFQ",
+    "createPO": "Create Purchase Order",
+    "addItem": "Add Item",
+    "features": {
+      "catalog": {
+        "title": "Catalog Management",
+        "description": "Browse and manage your product catalog with advanced filtering"
+      },
+      "vendors": {
+        "title": "Vendor Portal",
+        "description": "Connect with verified vendors and suppliers"
+      },
+      "rfqs": {
+        "title": "RFQs & Bids",
+        "description": "Request for quotations and manage bidding processes"
+      },
+      "orders": {
+        "title": "Order Management",
+        "description": "Track orders, purchase orders, and delivery status"
+      },
+      "shipping": {
+        "title": "Shipping & Logistics",
+        "description": "Manage shipping, tracking, and logistics partners"
+      },
+      "reviews": {
+        "title": "Reviews & Ratings",
+        "description": "View and manage product reviews and vendor ratings"
+      },
+      "title": "Marketplace Features"
+    },
+    "hero": {
+      "title": "Fixzit Souq",
+      "subtitle": "Your complete marketplace for facility management materials, equipment, and services",
+      "browseCatalog": "Browse Catalog",
+      "viewVendors": "View Vendors"
+    },
+    "brand": {
+      "title": "Souq Brand"
+    },
+    "nav": {
+      "catalog": "Catalog",
+      "vendors": "Vendors",
+      "rfqs": "Rfqs",
+      "orders": "Orders"
+    },
+    "catalog": {
+      "searchPlaceholder": "Enter Search",
+      "searchAriaLabel": "Search Aria",
+      "filterByCategory": "Filter By Category",
+      "categoryAll": "Category All",
+      "sortBy": "Sort By",
+      "resultsFound": "Results Found",
+      "filtersApplied": "Filters Applied",
+      "soldBy": "Sold By",
+      "sort": {
+        "relevance": "Relevance",
+        "priceLow": "Price Low",
+        "priceHigh": "Price High",
+        "rating": "Rating",
+        "newest": "Newest"
+      },
+      "badge": {
+        "new": "New"
+      },
+      "stock": {
+        "in": "In",
+        "out": "Out"
+      },
+      "actions": {
+        "viewDetails": "View Details",
+        "addToCart": "Add To Cart"
+      },
+      "noResults": {
+        "title": "Souq Catalog No Results",
+        "description": "Enter description"
+      },
+      "footer": {
+        "cta": "Cta"
+      }
+    }
+  },
+  "aqar": {
+    "search": {
+      "placeholder": "Search properties, projects, agents..."
+    },
+    "postProperty": "Post Property",
+    "newValuation": "New Valuation",
+    "packages": {
+      "errors": {
+        "fetchFailed": "Failed to fetch packages"
+      }
+    },
+    "map": {
+      "auctions": "auctions",
+      "rnpl": "RNPL-ready",
+      "legend": "Cluster tooltip shows avg price • auction-ready listings • RNPL-ready listings.",
+      "avgPrice": "Avg Price"
+    },
+    "compliance": {
+      "title": "Enterprise-grade trust",
+      "desc": "Mandatory Nafath, FAL, foreign ownership checks and RNPL financing baked into every listing.",
+      "nafath": {
+        "desc": "Agents must pass Nafath identity checks plus FAL/ad permit validation before publishing."
+      },
+      "foreign": {
+        "desc": "Foreign-owner flag, REGA zone controls, and audit history for every listing."
+      },
+      "rnpl": {
+        "desc": "Instant Rent-Now-Pay-Later eligibility, installment calculators, and lead routing to fintech partners."
+      },
+      "auctionCta": "Browse auctions",
+      "rnplCta": "Check RNPL eligibility"
+    },
+    "vr": {
+      "tag": "Immersive",
+      "title": "VR + 3D walkthroughs",
+      "desc": "Invite buyers to explore every floor, balcony, and amenity using Matterport / 3D tours directly inside the Fixzit shell.",
+      "point1": "Supports Matterport, Kuula, and custom WebXR sources",
+      "point2": "Auto-fallback to photo carousel if device does not support VR",
+      "point3": "Audited for accessibility and performance",
+      "demo": "Sedra Show Home"
+    },
+    "properties": {
+      "badge": {
+        "rnpl": "RNPL Ready",
+        "auction": "Auction",
+        "fallback": "Fallback"
+      },
+      "error": "An error occurred",
+      "searchPlaceholder": "Enter Search",
+      "count": "Count",
+      "loading": "Loading...",
+      "empty": {
+        "title": "Aqar Properties Empty",
+        "description": "Enter description"
+      }
+    },
+    "interactiveMap": {
+      "_value": "Interactive Map",
+      "desc": "Desc"
+    },
+    "title": "Aqar",
+    "subtitle": "Manage your subtitle",
+    "exploreMap": "Explore Map",
+    "searchProperties": "Search Properties",
+    "realEstateFeatures": "Real Estate Features",
+    "propertyListings": "Property Listings",
+    "auctions": {
+      "badge": "Badge",
+      "title": "Aqar Auctions",
+      "subtitle": "Manage your auctions",
+      "empty": "Empty",
+      "rega": {
+        "_value": "Rega",
+        "desc": "Desc"
+      }
+    },
+    "filters": {
+      "title": "Aqar Filters",
+      "subtitle": "Manage your filters",
+      "keywords": "Keywords",
+      "keywordsPlaceholder": "Enter Keywords",
+      "propertyType": "Property Type",
+      "city": "City",
+      "bedrooms": "Bedrooms",
+      "any": "Any",
+      "bathrooms": "Bathrooms",
+      "minPrice": "Min Price",
+      "maxPrice": "Max Price",
+      "minArea": "Min Area",
+      "maxArea": "Max Area",
+      "furnished": {
+        "_value": "Furnished",
+        "yes": "Yes",
+        "no": "No",
+        "partial": "Partial"
+      },
+      "availableFrom": "Available From",
+      "reset": "Reset",
+      "search": "Search",
+      "quickFilters": "Quick Filters",
+      "all": "All",
+      "forSale": "For Sale",
+      "forRent": "For Rent",
+      "forLease": "For Lease",
+      "toggleFilters": "Toggle Filters",
+      "filtersButton": "Filters Button",
+      "advancedFiltersRegion": "Advanced Filters Region",
+      "propertyTypeOption": "Property Type Option",
+      "priceRange": "Price Range",
+      "minimum": "Minimum",
+      "min": "Min",
+      "minPriceInput": "Min Price Input",
+      "maximum": "Maximum",
+      "max": "Max",
+      "maxPriceInput": "Max Price Input",
+      "bedroomsLabel": "Bedrooms",
+      "bathroomsLabel": "Bathrooms",
+      "area": "Area",
+      "minAreaInput": "Min Area Input",
+      "maxAreaInput": "Max Area Input",
+      "location": "Location",
+      "allCities": "All Cities",
+      "district": "District",
+      "enterDistrict": "Enter District",
+      "amenities": "Amenities",
+      "additionalOptions": "Additional Options",
+      "featuredOnly": "Featured Only",
+      "verifiedOnly": "Verified Only",
+      "sortBy": "Sort By",
+      "newestFirst": "Newest First",
+      "priceLowToHigh": "Price Low To High",
+      "priceHighToLow": "Price High To Low",
+      "largestFirst": "Largest First",
+      "mostPopular": "Most Popular",
+      "clearAll": "Clear All",
+      "applyFilters": "Apply Filters",
+      "activeFilters": "Active Filters",
+      "typesSelected": "Types Selected",
+      "preset": {
+        "familyApartment": "Family Apartment",
+        "luxuryVilla": "Luxury Villa",
+        "affordableStudio": "Affordable Studio",
+        "commercialOffice": "Commercial Office"
+      }
+    },
+    "listing": {
+      "error": "An error occurred",
+      "loading": "Loading...",
+      "notFound": "Not Found",
+      "amenities": "Amenities",
+      "views": "Views",
+      "untitled": "Untitled",
+      "baths": "Baths",
+      "vr": "Vr",
+      "offline": {
+        "loading": "Loading...",
+        "cta": "Cta",
+        "ready": "Ready"
+      }
+    },
+    "post": {
+      "badge": "Badge",
+      "title": "Aqar Post",
+      "subtitle": "Manage your post",
+      "steps": {
+        "cta": "Cta"
+      },
+      "offline": {
+        "title": "Aqar Post Offline",
+        "desc": "Desc"
+      }
+    },
+    "agent": {
+      "listings": "Listings",
+      "license": "License",
+      "verified": "Verified",
+      "propertiesClosed": "Properties Closed",
+      "avgResponse": "Avg Response",
+      "yearsExperience": "Years Experience",
+      "call": "Call",
+      "whatsapp": "Whatsapp"
+    },
+    "propertyCard": {
+      "featured": "Featured",
+      "call": "Call",
+      "message": "Message",
+      "perMonth": "Per Month",
+      "perYear": "Per Year",
+      "viewProperty": "View Property",
+      "verified": "Verified",
+      "forSale": "For Sale",
+      "forRent": "For Rent",
+      "ai": "Ai",
+      "smartHome": "Smart Home",
+      "vr": "Vr",
+      "rnpl": "Rnpl"
+    },
+    "aiInsights": {
+      "subtitle": "Manage your aiInsights",
+      "title": "Aqar Ai Insights",
+      "match": {
+        "_value": "Match",
+        "desc": "Desc"
+      },
+      "pricing": {
+        "_value": "Pricing",
+        "desc": "Desc"
+      },
+      "demand": {
+        "_value": "Demand",
+        "desc": "Desc"
+      },
+      "appreciation": {
+        "_value": "Appreciation",
+        "desc": "Desc"
+      },
+      "rnpl": {
+        "_value": "Rnpl",
+        "ready": "Ready",
+        "custom": "Custom",
+        "desc": {
+          "ready": "Ready",
+          "custom": "Custom"
+        }
+      },
+      "proptech": "Proptech"
+    },
+    "mortgage": {
+      "title": "Aqar Mortgage",
+      "propertyPrice": "Property Price",
+      "downPayment": "Down Payment",
+      "interestRate": "Interest Rate",
+      "loanTerm": "Loan Term",
+      "years": "Years",
+      "monthlyPayment": "Monthly Payment",
+      "months": "Months"
+    },
+    "proptech": {
+      "vendors": "Vendors",
+      "smartSummary": "Smart Summary",
+      "title": "Aqar Proptech",
+      "solar": "Solar",
+      "ev": "Ev",
+      "level": {
+        "advanced": "Advanced",
+        "basic": "Basic",
+        "none": "None"
+      }
+    },
+    "recommendations": {
+      "loading": "Loading...",
+      "title": "Aqar Recommendations",
+      "subtitle": "Manage your recommendations",
+      "smart": "Smart",
+      "untitled": "Untitled",
+      "rnpl": "Rnpl",
+      "suggested": "Suggested"
+    },
+    "propertyTypes": {
+      "apartment": "Apartment",
+      "villa": "Villa",
+      "townhouse": "Townhouse",
+      "penthouse": "Penthouse",
+      "studio": "Studio",
+      "land": "Land",
+      "commercial": "Commercial",
+      "warehouse": "Warehouse",
+      "office": "Office"
+    },
+    "amenitiesList": {
+      "swimmingPool": "Swimming Pool",
+      "gym": "Gym",
+      "parking": "Parking",
+      "security": "Security",
+      "garden": "Garden",
+      "balcony": "Balcony",
+      "elevator": "Elevator",
+      "centralAc": "Central Ac",
+      "maidRoom": "Maid Room",
+      "storage": "Storage",
+      "kidsArea": "Kids Area",
+      "bbqArea": "Bbq Area"
+    },
+    "cities": {
+      "riyadh": "Riyadh",
+      "jeddah": "Jeddah",
+      "mecca": "Mecca",
+      "medina": "Medina",
+      "dammam": "Dammam",
+      "khobar": "Khobar",
+      "dhahran": "Dhahran",
+      "jubail": "Jubail",
+      "tabuk": "Tabuk",
+      "abha": "Abha",
+      "khamisMushait": "Khamis Mushait",
+      "najran": "Najran",
+      "jazan": "Jazan"
+    },
+    "viewing": {
+      "scheduled": "Scheduled",
+      "confirmationSent": "Confirmation Sent",
+      "details": "Details",
+      "scheduleTitle": "Schedule Title",
+      "typeQuestion": "Type Question",
+      "selectDate": "Select Date",
+      "today": "Today",
+      "selectTime": "Select Time",
+      "steps": {
+        "type": "Type",
+        "dateTime": "Date Time",
+        "details": "Details",
+        "confirm": "Confirm"
+      },
+      "types": {
+        "inPerson": "In Person",
+        "inPersonDesc": "In Person Desc",
+        "videoCall": "Video Call",
+        "videoCallDesc": "Video Call Desc",
+        "virtual": "Virtual",
+        "virtualDesc": "Virtual Desc"
+      },
+      "buttons": {
+        "continue": "Continue"
+      }
+    },
+    "superpowers": {
+      "ai": {
+        "title": "Aqar Superpowers Ai",
+        "desc": "Desc"
+      },
+      "assistant": {
+        "title": "Aqar Superpowers Assistant",
+        "desc": "Desc"
+      },
+      "offline": {
+        "title": "Aqar Superpowers Offline",
+        "desc": "Desc"
+      }
+    }
+  },
+  "common": {
+    "search": "Search...",
+    "all": "All Status",
+    "export": "Export",
+    "view": "View",
+    "edit": "Edit",
+    "delete": "Delete",
+    "loading": "Loading...",
+    "user": "User",
+    "brand": "FIXZIT",
+    "backToHome": "Back to Home",
+    "signIn": "Sign In",
+    "skipToContent": "Skip to content",
+    "unsavedChanges": "Unsaved Changes",
+    "unsavedChangesMessage": "You have unsaved changes. Are you sure you want to leave this page?",
+    "discard": "Discard Changes",
+    "allCaughtUp": "You're all caught up!",
+    "noNotifications": "No notifications",
+    "unread": "unread",
+    "viewAll": "View All",
+    "preferences": "Preferences",
+    "save": "Save",
+    "cancel": "Cancel",
+    "filter": "Filter",
+    "import": "Import",
+    "error": {
+      "loadData": "Load Data"
+    },
+    "success": "Success",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "actions": {
+      "tryAgain": "Try Again",
+      "goToDashboard": "Go to Dashboard",
+      "goToHomepage": "Go to Homepage",
+      "goBack": "Go Back"
+    },
+    "unknown": "Unknown",
+    "yes": "Yes",
+    "no": "No",
+    "submit": "Submit",
+    "reset": "Reset",
+    "clear": "Clear",
+    "apply": "Apply",
+    "refresh": "Refresh",
+    "download": "Download",
+    "upload": "Upload",
+    "create": "Create",
+    "update": "Update",
+    "remove": "Remove",
+    "add": "Add",
+    "select": "Select",
+    "selectAll": "Select All",
+    "deselectAll": "Deselect All",
+    "showMore": "Show More",
+    "showLess": "Show Less",
+    "seeAll": "See All",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "required": "Required",
+    "optional": "Optional",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "active": "Active",
+    "inactive": "Inactive",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "draft": "Draft",
+    "published": "Published",
+    "archived": "Archived",
+    "deleted": "Deleted",
+    "errors": {
+      "unexpected": "An unexpected error occurred"
+    },
+    "saving": "Saving...",
+    "characters": "Characters",
+    "share": "Share",
+    "contactSupport": "Contact Support",
+    "selected": "Selected",
+    "notAvailable": "Not Available",
+    "email": "Email",
+    "viewDetails": "View Details",
+    "vendors": "Vendors",
+    "retry": "Retry",
+    "na": "Na",
+    "approve": "Approve",
+    "reject": "Reject",
+    "review": "Review",
+    "analytics": "Analytics",
+    "thisMonth": "This Month",
+    "avgRating": "Avg Rating",
+    "totalCost": "Total Cost",
+    "exportCsv": "Export CSV",
+    "viewCharts": "View Charts",
+    "property": "Property",
+    "selectProperty": "Select Property",
+    "location": "Location",
+    "description": "Enter description",
+    "dueDate": "Due Date",
+    "overdue": "Overdue",
+    "password": "Password",
+    "forgotPassword": "Forgot Password?",
+    "signUp": "Sign Up",
+    "online": "Online",
+    "offline": "Offline",
+    "logout": "Logout",
+    "popularPages": "Popular Pages",
+    "totals": "Totals",
+    "saveChanges": "Save Changes",
+    "expandAll": "Expand All",
+    "collapseAll": "Collapse All",
+    "asOf": "As Of",
+    "pages": {
+      "dashboard": "Dashboard",
+      "properties": "Properties",
+      "workOrders": "Work Orders",
+      "marketplace": "Marketplace",
+      "finance": "Finance",
+      "hr": "Hr",
+      "login": "Login"
+    }
+  },
+  "accessibility": {
+    "skipToContent": "Skip to main content"
+  },
+  "app": {
+    "fm": "Facility Management",
+    "souq": "Marketplace",
+    "aqar": "Real Estate",
+    "switchApplication": "Switch Application",
+    "currentApp": "Current application",
+    "searchableEntities": "searchable entities"
+  },
+  "nav": {
+    "orders": "Orders & Purchase Orders",
+    "maintenance": "Maintenance",
+    "vendors": "Vendors",
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "properties": "Properties",
+    "work-orders": "Work Orders",
+    "workOrders": "Work Orders",
+    "assets": "Assets",
+    "tenants": "Tenants",
+    "projects": "Projects",
+    "rfqs": "RFQs",
+    "invoices": "Invoices",
+    "finance": "Finance",
+    "hr": "Human Resources",
+    "crm": "CRM",
+    "marketplace": "Marketplace",
+    "support": "Support",
+    "compliance": "Compliance",
+    "reports": "Reports",
+    "system": "System",
+    "administration": "Administration",
+    "admin": "Admin",
+    "settings": "Settings",
+    "help": "Help",
+    "logout": "Logout",
+    "notifications": "Notifications",
+    "profile": "Profile",
+    "header": "Navigation",
+    "globalHeader": "Fixzit global navigation",
+    "fm": "Fm"
+  },
+  "time": {
+    "justNow": "Just now",
+    "mAgo": "m ago",
+    "hAgo": "h ago",
+    "dAgo": "d ago"
+  },
+  "sidebar": {
+    "role": "Role",
+    "mainNav": "Main navigation",
+    "accountInfo": "Account info",
+    "planLabel": "Plan",
+    "modules": "Modules",
+    "noModules": "No modules available for your role/plan",
+    "account": "Account",
+    "help": "Help",
+    "helpCenter": "Help Center",
+    "category": {
+      "core": "Core",
+      "fm": "Facility Management",
+      "procurement": "Procurement",
+      "finance": "Finance",
+      "hr": "Human Resources",
+      "crm": "Customer Relations",
+      "marketplace": "Marketplace",
+      "support": "Support",
+      "compliance": "Compliance",
+      "reporting": "Reporting",
+      "admin": "Administration",
+      "business": "Business"
+    },
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "legacy": {
+      "heading": "Heading",
+      "theme": {
+        "light": "Light",
+        "dark": "Dark"
+      }
+    }
+  },
+  "settings": {
+    "subtitle": "Manage your account settings and preferences",
+    "notifications": {
+      "title": "Notification Preferences",
+      "save": "Save Preferences",
+      "email": "Email Notifications",
+      "sms": "SMS Notifications",
+      "push": "Push Notifications",
+      "workOrders": "Work Order Updates",
+      "maintenance": "Maintenance Alerts",
+      "reports": "Report Summaries"
+    },
+    "preferences": {
+      "title": "App Preferences",
+      "language": "Language",
+      "english": "English",
+      "arabic": "Arabic",
+      "timezone": "Timezone",
+      "riyadh": "Riyadh",
+      "utc": "Utc",
+      "theme": "Theme",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System",
+      "save": "Save"
+    },
+    "tabs": {
+      "profile": "Profile",
+      "security": "Security",
+      "notifications": "Notifications",
+      "preferences": "Preferences"
+    },
+    "profile": {
+      "title": "Settings Profile",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "phone": "Phone",
+      "department": "Department",
+      "save": "Save"
+    },
+    "security": {
+      "title": "Settings Security",
+      "currentPassword": "Current Password",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm Password",
+      "twoFactor": "Two Factor",
+      "twoFactorDesc": "Two Factor Desc",
+      "updatePassword": "Update Password"
+    }
+  },
+  "topbar": {
+    "modules": "Modules",
+    "collapseMenu": "Hide module menu",
+    "quickActions": "Quick Actions",
+    "expandMenu": "Expand Menu"
+  },
+  "navigation": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "properties": "Properties",
+    "workOrders": "Work Orders",
+    "finance": "Finance",
+    "vendors": "Vendors",
+    "crm": "CRM",
+    "reports": "Reports",
+    "settings": "Settings",
+    "help": "Help",
+    "logout": "Logout",
+    "back": "Back",
+    "saving": "Saving..."
+  },
+  "pagination": {
+    "showing": "Showing",
+    "to": "to",
+    "of": "of",
+    "results": "results"
+  },
+  "errors": {
+    "404": {
+      "code": "Code",
+      "title": "Errors 404",
+      "message": "Message",
+      "helpText": "Help Text"
+    },
+    "generic": {
+      "title": "Errors Generic",
+      "message": "Message",
+      "persistsText": "Persists Text"
+    },
+    "network": "Network error. Please check your connection.",
+    "unauthorized": "You are not authorized to perform this action.",
+    "notFound": "Resource not found.",
+    "validation": "Please check your input and try again.",
+    "admin": {
+      "title": "Errors Admin",
+      "message": "Message"
+    },
+    "aqar": {
+      "title": "Errors Aqar",
+      "message": "Message"
+    },
+    "dashboard": {
+      "title": "Errors Dashboard",
+      "message": "Message"
+    },
+    "finance": {
+      "title": "Errors Finance",
+      "message": "Message"
+    },
+    "marketplace": {
+      "title": "Errors Marketplace",
+      "message": "Message"
+    },
+    "souq": {
+      "title": "Errors Souq",
+      "message": "Message"
+    }
+  },
+  "validation": {
+    "required": "This field is required",
+    "email": "Please enter a valid email address",
+    "phone": "Please enter a valid phone number",
+    "password": {
+      "min": "Password must be at least 8 characters",
+      "match": "Passwords do not match",
+      "strength": "Password is too weak"
+    },
+    "number": {
+      "min": "Value must be at least {min}",
+      "max": "Value must not exceed {max}",
+      "positive": "Value must be positive"
+    },
+    "date": {
+      "invalid": "Invalid date format",
+      "future": "Date must be in the future",
+      "past": "Date must be in the past"
+    },
+    "file": {
+      "size": "File size exceeds limit",
+      "type": "Invalid file type",
+      "required": "Please upload a file"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "clearAll": "Clear all",
+    "noNotifications": "No notifications",
+    "types": {
+      "workOrder": "Work Order",
+      "payment": "Payment",
+      "message": "Message",
+      "system": "System",
+      "alert": "Alert"
+    },
+    "onTicketCreated": {
+      "title": "New Work Order Created",
+      "body": "Work order #{{workOrderId}} for {{tenantName}} - Priority: {{priority}}"
+    },
+    "onAssign": {
+      "title": "Work Order Assigned",
+      "body": "Assigned to {{technicianName}} - Work Order #{{workOrderId}}"
+    },
+    "onApprovalRequested": {
+      "title": "Approval Required",
+      "body": "Quote #{{quotationId}} requires approval - Amount: {{amount}}"
+    },
+    "onApproved": {
+      "title": "Quote Approved",
+      "body": "Quote #{{quotationId}} has been approved"
+    },
+    "onClosed": {
+      "title": "Work Order Closed",
+      "body": "Work Order #{{workOrderId}} has been completed and closed"
+    },
+    "toast": {
+      "noOrgId": "No Org Id",
+      "markReadFailed": "Mark Read Failed",
+      "markingCount": "Marking Count",
+      "markedCount": "Marked Count",
+      "archived": "Archived",
+      "deleted": "Deleted",
+      "markedImportant": "Marked Important",
+      "mutedCategory": "Muted Category",
+      "muteSelectCategory": "Mute Select Category",
+      "clearedAll": "Cleared All"
+    },
+    "status": {
+      "read": "Read",
+      "unread": "Unread"
+    },
+    "report": {
+      "filenamePrefix": "Filename Prefix"
+    },
+    "bulk": {
+      "selected": "Selected",
+      "countSingle": "Count Single",
+      "count": "Count",
+      "selectAll": "Select All",
+      "markRead": "Mark Read",
+      "markImportant": "Mark Important",
+      "export": "Export",
+      "archive": "Archive",
+      "delete": "Delete"
+    },
+    "page": {
+      "title": "Notifications Page",
+      "subtitle": "Manage your page"
+    },
+    "actions": {
+      "markAllRead": "Mark All Read",
+      "openSettings": "Open Settings"
+    },
+    "stats": {
+      "total": "Total",
+      "unread": "Unread",
+      "highPriority": "High Priority",
+      "today": "Today"
+    },
+    "search": {
+      "placeholder": "Enter Search"
+    },
+    "filters": {
+      "all": "All",
+      "unread": "Unread",
+      "high": "High",
+      "maintenance": "Maintenance",
+      "vendor": "Vendor",
+      "finance": "Finance",
+      "system": "System"
+    },
+    "tabs": {
+      "all": "All",
+      "unread": "Unread",
+      "urgent": "Urgent"
+    },
+    "state": {
+      "loading": "Loading...",
+      "emptyTitle": "Empty Title",
+      "emptySubtitle": "Empty Subtitle"
+    },
+    "accessibility": {
+      "selectNotification": "Select Notification"
+    },
+    "item": {
+      "markAsRead": "Mark As Read",
+      "moreActions": "More Actions"
+    },
+    "quickActions": {
+      "title": "Notifications Quick Actions",
+      "email": "Email",
+      "push": "Push",
+      "mute": "Mute",
+      "report": "Report",
+      "settings": "Settings",
+      "clearAll": "Clear All"
+    }
+  },
+  "forms": {
+    "unsavedChanges": "You have unsaved changes. Are you sure you want to leave?",
+    "saving": "Saving...",
+    "saved": "Saved successfully",
+    "saveFailed": "Failed to save",
+    "required": "Required fields",
+    "optional": "Optional fields"
+  },
+  "test": {
+    "a": "Test value A",
+    "bool": "Boolean test",
+    "hello": "Hello",
+    "missing": {
+      "key": "Missing key test"
+    },
+    "msg": "Message",
+    "nested": {
+      "deep": {
+        "value": "Deep nested value"
+      }
+    },
+    "num": "Number test",
+    "obj": "Object test",
+    "watch-all": "Watch all",
+    "welcome": "Welcome",
+    "page": {
+      "title": "Test Page",
+      "description": "Enter description"
+    }
+  },
+  "fm": {
+    "tenants": {
+      "title": "Tenant Management",
+      "subtitle": "Customer relationship and lease management",
+      "newTenant": "New Tenant",
+      "addTenant": "Add New Tenant",
+      "searchTenants": "Search tenants...",
+      "tenantType": "Tenant Type",
+      "individual": "Individual",
+      "company": "Company",
+      "government": "Government",
+      "noTenants": "No Tenants Found",
+      "noTenantsText": "Get started by adding your first tenant.",
+      "properties": "Properties",
+      "leaseStatus": "Lease Status",
+      "noActiveLeases": "No Active Leases",
+      "outstandingBalance": "Outstanding Balance",
+      "tenantName": "Tenant Name",
+      "primaryContactName": "Primary Contact Name",
+      "email": "Email",
+      "create": "Add Tenant",
+      "view": "View Tenants",
+      "edit": "Edit Tenant",
+      "delete": "Delete Tenant",
+      "name": "Tenant Name",
+      "phone": "Phone",
+      "unit": "Unit",
+      "leaseStart": "Lease Start",
+      "leaseEnd": "Lease End",
+      "rent": "Rent",
+      "deposit": "Deposit",
+      "status": "Status",
+      "all": "All Tenants",
+      "active": "Active",
+      "inactive": "Inactive",
+      "noEmail": "No Email",
+      "noPhone": "No Phone",
+      "mobile": "Mobile",
+      "createTenant": "Create Tenant",
+      "new": {
+        "kicker": "Kicker",
+        "title": "Fm Tenants New",
+        "subtitle": "Manage your tenants",
+        "back": "Back",
+        "sectionTitle": "Section Title",
+        "sectionDescription": "Section Description"
+      },
+      "errors": {
+        "failedToLoadTitle": "Failed To Load Title",
+        "failedToLoadDescription": "Failed To Load Description",
+        "typeRequired": "Type Required",
+        "unknown": "Unknown"
+      },
+      "toast": {
+        "creating": "Creating...",
+        "createFailed": "Create Failed",
+        "createSuccess": "Create successful",
+        "createUnknown": "Create Unknown"
+      }
+    },
+    "properties": {
+      "allTypes": "All Types",
+      "type": "Type",
+      "selectType": "Select type",
+      "title": "Properties",
+      "create": "Add Property",
+      "view": "View Properties",
+      "edit": "Edit Property",
+      "delete": "Delete Property",
+      "name": "Property Name",
+      "address": "Address",
+      "units": "Units",
+      "totalUnits": "Total Units",
+      "occupiedUnits": "Occupied Units",
+      "vacantUnits": "Vacant Units",
+      "owner": "Owner",
+      "manager": "Manager",
+      "status": "Status",
+      "all": "All Properties",
+      "residential": "Residential",
+      "commercial": "Commercial",
+      "mixed": "Mixed",
+      "details": "Property Details",
+      "detail": {
+        "errors": {
+          "noPropertyId": "Property ID is required",
+          "noOrgId": "No Org Id",
+          "loadFailed": "Load Failed"
+        },
+        "actions": {
+          "confirmDelete": "Confirm Delete"
+        },
+        "toasts": {
+          "deleting": "Deleting",
+          "success": "Operation successful",
+          "failure": "Failure"
+        }
+      },
+      "subtitle": "Manage your properties",
+      "newProperty": "New Property",
+      "addProperty": "Add Property",
+      "searchProperties": "Search Properties",
+      "propertyType": "Property Type",
+      "industrial": "Industrial",
+      "mixedUse": "Mixed Use",
+      "land": "Land",
+      "viewMap": "View Map",
+      "noProperties": "No Properties",
+      "noPropertiesText": "No Properties Text",
+      "confirmDelete": "Confirm Delete",
+      "totalArea": "Total Area",
+      "occupancy": "Occupancy",
+      "monthlyRent": "Monthly Rent",
+      "active": "Active",
+      "tenants": "Tenants",
+      "propertyName": "Property Name",
+      "description": "Enter description",
+      "streetAddress": "Street Address",
+      "city": "City",
+      "region": "Region",
+      "postalCode": "Postal Code",
+      "builtArea": "Built Area",
+      "bedrooms": "Bedrooms",
+      "bathrooms": "Bathrooms",
+      "floors": "Floors",
+      "createProperty": "Create Property",
+      "documents": {
+        "title": "Fm Properties Documents",
+        "subtitle": "Manage your properties",
+        "upload": "Upload",
+        "viewOnly": "View Only",
+        "error": "An error occurred",
+        "empty": "Empty",
+        "noDocuments": "No Documents",
+        "addDocument": "Add Document",
+        "planGate": {
+          "title": "Fm Properties Documents Plan Gate",
+          "body": "Body"
+        },
+        "stats": {
+          "total": "Total",
+          "acrossProperties": "Across Properties",
+          "active": "Active",
+          "expiring": "Expiring",
+          "expired": "Expired"
+        },
+        "uploadArea": {
+          "title": "Fm Properties Documents Upload Area",
+          "description": "Enter description",
+          "button": "Button",
+          "hint": "Hint",
+          "readOnly": "Read Only"
+        },
+        "byProperty": {
+          "title": "Fm Properties Documents By Property",
+          "subtitle": "Manage your properties"
+        },
+        "comingSoon": {
+          "title": "Fm Properties Documents Coming Soon",
+          "description": "Enter description"
+        }
+      },
+      "leases": {
+        "title": "Fm Properties Leases",
+        "subtitle": "Manage your properties",
+        "newLease": "New Lease",
+        "viewOnly": "View Only",
+        "error": "An error occurred",
+        "empty": "Empty",
+        "planGate": {
+          "title": "Fm Properties Leases Plan Gate",
+          "body": "Body"
+        },
+        "stats": {
+          "total": "Total",
+          "hint": "Hint",
+          "active": "Active"
+        },
+        "list": {
+          "title": "Fm Properties Leases List",
+          "subtitle": "Manage your properties"
+        },
+        "table": {
+          "property": "Property",
+          "unit": "Unit",
+          "tenant": "Tenant",
+          "status": "Status",
+          "actions": "Actions"
+        },
+        "comingSoon": {
+          "title": "Fm Properties Leases Coming Soon",
+          "description": "Enter description"
+        }
+      },
+      "new": {
+        "kicker": "Kicker",
+        "title": "Fm Properties New",
+        "subtitle": "Manage your properties",
+        "back": "Back",
+        "sectionTitle": "Section Title",
+        "sectionDescription": "Section Description"
+      },
+      "support": {
+        "activeOrg": "Active Org"
+      },
+      "toast": {
+        "deleting": "Deleting",
+        "deleteSuccess": "Delete successful",
+        "deleteFailed": "Delete Failed",
+        "creating": "Creating...",
+        "createSuccess": "Create successful",
+        "createFailed": "Create Failed",
+        "createUnknown": "Create Unknown"
+      },
+      "errors": {
+        "deleteUnknown": "Delete Unknown",
+        "unknown": "Unknown"
+      }
+    },
+    "title": "Facility Management",
+    "dashboard": "Dashboard",
+    "workOrders": {
+      "title": "Work Orders",
+      "create": "Create Work Order",
+      "view": "View Work Orders",
+      "edit": "Edit Work Order",
+      "delete": "Delete Work Order",
+      "status": "Status",
+      "priority": "Priority",
+      "assignedTo": "Assigned To",
+      "dueDate": "Due Date",
+      "description": "Description",
+      "property": "Property",
+      "tenant": "Tenant",
+      "all": "All Work Orders",
+      "open": "Open",
+      "pending": "Pending",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "closed": "Closed",
+      "cancelled": "Cancelled",
+      "attachmentsCount": "{{count}} attachments",
+      "new": {
+        "requiredFields": "Please fill in all required fields",
+        "success": "Work order created successfully",
+        "woNumber": "Work Order #{{number}}",
+        "uploadHint": "Upload photos or documents related to this work order"
+      },
+      "attachments": {
+        "missingUrl": "Attachment URL is missing"
+      },
+      "board": {
+        "title": "Work Orders Board",
+        "description": "Track and assign work orders across all properties"
+      },
+      "history": {
+        "title": "Work Order History"
+      },
+      "pm": {
+        "title": "Preventive Maintenance"
+      },
+      "sla": {
+        "title": "SLA Monitoring"
+      }
+    },
+    "assets": {
+      "title": "Assets",
+      "create": "Add Asset",
+      "view": "View Assets",
+      "edit": "Edit Asset",
+      "delete": "Delete Asset",
+      "name": "Asset Name",
+      "category": "Category",
+      "serialNumber": "Serial Number",
+      "purchaseDate": "Purchase Date",
+      "warranty": "Warranty",
+      "condition": "Condition",
+      "location": "Location",
+      "all": "All Assets"
+    },
+    "vendors": {
+      "title": "Vendors",
+      "create": "Add Vendor",
+      "view": "View Vendors",
+      "edit": "Edit Vendor",
+      "delete": "Delete Vendor",
+      "name": "Vendor Name",
+      "email": "Email",
+      "phone": "Phone",
+      "category": "Category",
+      "rating": "Rating",
+      "status": "Status",
+      "all": "All Vendors",
+      "approved": "Approved",
+      "pending": "Pending",
+      "rejected": "Rejected",
+      "detail": {
+        "errors": {
+          "noVendorId": "Vendor ID is required",
+          "noOrgId": "No Org Id",
+          "loadFailed": "Load Failed"
+        },
+        "actions": {
+          "confirmDelete": "Confirm Delete"
+        },
+        "toasts": {
+          "deleting": "Deleting",
+          "success": "Operation successful",
+          "failure": "Failure"
+        }
+      }
+    },
+    "projects": {
+      "title": "Projects",
+      "create": "Create Project",
+      "view": "View Projects",
+      "edit": "Edit Project",
+      "delete": "Delete Project",
+      "name": "Project Name",
+      "description": "Description",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "budget": "Budget",
+      "spent": "Spent",
+      "status": "Status",
+      "all": "All Projects"
+    },
+    "rfqs": {
+      "title": "Title",
+      "create": "Create RFQ",
+      "view": "View RFQs",
+      "edit": "Edit RFQ",
+      "delete": "Delete RFQ",
+      "rfqNumber": "RFQ Number",
+      "description": "Description",
+      "deadline": "Deadline",
+      "status": "Status",
+      "bids": "Bids",
+      "all": "All RFQs",
+      "open": "Open",
+      "closed": "Closed",
+      "awarded": "Awarded"
+    },
+    "invoices": {
+      "title": "Invoices",
+      "create": "Create Invoice",
+      "view": "View Invoices",
+      "edit": "Edit Invoice",
+      "delete": "Delete Invoice",
+      "invoiceNumber": "Invoice Number",
+      "date": "Date",
+      "dueDate": "Due Date",
+      "amount": "Amount",
+      "paid": "Paid",
+      "outstanding": "Outstanding",
+      "status": "Status",
+      "all": "All Invoices",
+      "draft": "Draft",
+      "sent": "Sent",
+      "overdue": "Overdue",
+      "subtitle": "Manage your invoices",
+      "newInvoice": "New Invoice",
+      "createInvoice": "Create Invoice",
+      "totalOutstanding": "Total Outstanding",
+      "pending": "Pending",
+      "paidThisMonth": "Paid This Month",
+      "searchInvoices": "Search Invoices",
+      "viewed": "Viewed",
+      "cancelled": "Cancelled",
+      "sales": "Sales",
+      "purchase": "Purchase",
+      "rental": "Rental",
+      "service": "Service",
+      "maintenance": "Maintenance",
+      "noInvoices": "No Invoices",
+      "noInvoicesText": "No Invoices Text",
+      "issueDate": "Issue Date",
+      "overdueDays": "Overdue Days",
+      "items": "Items",
+      "viewInvoice": "View Invoice",
+      "downloadInvoice": "Download Invoice",
+      "sendInvoice": "Send Invoice",
+      "sendReminder": "Send Reminder",
+      "invoiceType": "Invoice Type",
+      "currency": "Currency",
+      "customerInfo": "Customer Info",
+      "customerName": "Customer Name",
+      "taxId": "Tax Id",
+      "lineItems": "Line Items",
+      "description": "Enter description",
+      "quantity": "Quantity",
+      "unitPrice": "Unit Price",
+      "vat": "Vat",
+      "addLineItem": "Add Line Item",
+      "toast": {
+        "downloadSuccess": "Download successful",
+        "downloadFailed": "Download Failed",
+        "sendSuccess": "Send successful",
+        "sendFailed": "Send Failed",
+        "reminderSuccess": "Reminder successful",
+        "reminderFailed": "Reminder Failed",
+        "createSuccess": "Create successful",
+        "createFailed": "Create Failed",
+        "createUnknown": "Create Unknown"
+      },
+      "errors": {
+        "unknown": "Unknown"
+      }
+    },
+    "common": {
+      "search": "Search",
+      "filter": "Filter",
+      "export": "Export",
+      "import": "Import",
+      "refresh": "Refresh",
+      "add": "Add",
+      "edit": "Edit",
+      "delete": "Delete",
+      "save": "Save",
+      "cancel": "Cancel",
+      "submit": "Submit",
+      "back": "Back",
+      "next": "Next",
+      "previous": "Previous",
+      "loading": "Loading...",
+      "noData": "No data",
+      "error": "Error",
+      "success": "Success",
+      "warning": "Warning",
+      "info": "Info",
+      "confirm": "Confirm",
+      "yes": "Yes",
+      "no": "No",
+      "select": "Select",
+      "selectAll": "Select All",
+      "clearAll": "Clear All",
+      "actions": "Actions"
+    },
+    "description": "Enter description",
+    "org": {
+      "supportContext": "Support Context",
+      "required": "Required",
+      "selectPrompt": "Select Prompt",
+      "contactAdmin": "Contact Admin"
+    },
+    "errors": {
+      "orgIdMissing": "Org Id Missing",
+      "noOrgSession": "No Org Session"
+    },
+    "tabs": {
+      "catalog": "Catalog",
+      "vendors": "Vendors",
+      "rfqs": "Rfqs",
+      "orders": "Orders"
+    },
+    "finance": {
+      "support": {
+        "activeOrg": "Active Org"
+      }
+    }
+  },
+  "orders": {
+    "pageDescription": "Manage purchase orders and service orders",
+    "tabs": {
+      "purchase": "Purchase Orders",
+      "service": "Service Orders"
+    },
+    "confirmDelete": "Confirm Delete",
+    "toast": {
+      "deleting": "Deleting",
+      "deleteSuccess": "Delete successful",
+      "deleteFailed": "Delete Failed"
+    },
+    "errors": {
+      "deleteUnknown": "Delete Unknown",
+      "loadFailed": "Load Failed"
+    },
+    "export": {
+      "empty": "Empty",
+      "success": "Operation successful"
+    }
+  },
+  "order": {
+    "vendor": "Vendor",
+    "date": "Order Date",
+    "total": "Total",
+    "items": "Items",
+    "delivery": "Delivery",
+    "amount": "Amount",
+    "po": "Po"
+  },
+  "vendor": {
+    "type": "Type",
+    "services": "Services",
+    "code": "Code",
+    "category": "Category",
+    "responseTime": "Response Time",
+    "apply": {
+      "backHome": "Back Home",
+      "tagline": "Tagline",
+      "title": "Vendor Apply",
+      "subtitle": "Manage your apply",
+      "company": "Company",
+      "email": "Email",
+      "contact": "Contact",
+      "phone": "Phone",
+      "services": "Services",
+      "servicesPlaceholder": "Enter Services",
+      "notes": "Notes",
+      "notesPlaceholder": "Enter Notes",
+      "submitting": "Submitting",
+      "submit": "Submit",
+      "success": "Operation successful",
+      "error": "An error occurred"
+    }
+  },
+  "status": {
+    "draft": "Draft",
+    "submitted": "Submitted",
+    "approved": "Approved",
+    "completed": "Completed",
+    "pending": "Pending",
+    "suspended": "Suspended",
+    "rejected": "Rejected",
+    "dispatched": "Dispatched",
+    "inProgress": "In Progress",
+    "onHold": "On Hold",
+    "verified": "Verified",
+    "closed": "Closed",
+    "cancelled": "Cancelled",
+    "active": "Active",
+    "open": "Open"
+  },
+  "fonts": {
+    "woff2": "woff2"
+  },
+  "login": {
+    "errors": {
+      "rateLimited": "Too many attempts. Please try again later.",
+      "noPhone": "No phone number registered. Please contact support.",
+      "otpFailed": "Failed to send verification code. Please try again.",
+      "emailRequired": "Email Required",
+      "employeeInvalid": "Employee Invalid",
+      "passwordRequired": "Password Required",
+      "passwordTooShort": "Password Too Short",
+      "companyRequired": "Company Required",
+      "emailNotVerified": "Email Not Verified",
+      "accountLocked": "Account Locked",
+      "invalidCredentials": "Invalid Credentials",
+      "networkError": "Network error. Please try again.",
+      "loginFailed": "Login Failed",
+      "resendVerificationFailed": "Resend Verification Failed",
+      "verificationResent": "Verification Resent",
+      "identifierRequired": "Identifier Required",
+      "identifierInvalid": "Identifier Invalid"
+    },
+    "welcome": "Welcome",
+    "subtitle": "Manage your subtitle",
+    "personalEmailTab": "Personal Email Tab",
+    "corporateAccountTab": "Corporate Account Tab",
+    "ssoLoginTab": "Sso Login Tab",
+    "phoneMode": "Phone Mode",
+    "companyNumber": "Company Number",
+    "enterCompanyNumber": "Enter Company Number",
+    "personalEmail": "Personal Email",
+    "employeeNumber": "Employee Number",
+    "enterPhone": "Enter Phone",
+    "enterEmail": "Enter Email",
+    "enterEmployeeNumber": "Enter Employee Number",
+    "corporateHelp": "Corporate Help",
+    "enterPassword": "Enter Password",
+    "hidePassword": "Hide Password",
+    "showPassword": "Show Password",
+    "capsLockOn": "Caps Lock On",
+    "rememberMe": "Remember Me",
+    "verificationPending": "Verification Pending",
+    "resendVerification": "Resend Verification",
+    "signingIn": "Signing In",
+    "signIn": "Sign In",
+    "continueWith": "Continue With",
+    "appleUnavailable": "Apple Unavailable",
+    "orUseAccount": "Or Use Account",
+    "usePersonalEmail": "Use Personal Email",
+    "useCorporateAccount": "Use Corporate Account",
+    "noAccount": "No Account",
+    "signUp": "Sign Up",
+    "personalEmailAccounts": "Personal Email Accounts",
+    "corporateAccountEmployee": "Corporate Account Employee",
+    "employeeHash": "Employee Hash",
+    "signInError": "Sign In failed",
+    "requestDemo": "Request Demo",
+    "devHelpers": "Dev Helpers",
+    "identifier": "Identifier",
+    "identifierPlaceholder": "Enter Identifier",
+    "identifierHint": "Identifier Hint",
+    "passwordPlaceholder": "Enter Password",
+    "orContinueWith": "Or Continue With",
+    "success": {
+      "title": "Login Success",
+      "message": "Message"
+    },
+    "helper": {
+      "personal": "Personal",
+      "corporate": "Corporate"
+    },
+    "phoneOtp": {
+      "prompt": "Prompt",
+      "notice": "Notice",
+      "cta": "Cta"
+    }
+  },
+  "otp": {
+    "errors": {
+      "sessionExpired": "Your verification session expired. Please sign in again.",
+      "resendFailed": "Failed to resend OTP",
+      "networkError": "Network error. Please try again.",
+      "invalid": "Please enter a valid 6-digit code",
+      "verifyFailed": "Failed to verify OTP"
+    },
+    "title": "Enter Verification Code",
+    "subtitle": "We sent a 6-digit code to",
+    "devModeTitle": "Developer mode active",
+    "useDevCode": "Auto-fill code",
+    "devModeDescription": "Shown only in local development to speed up testing.",
+    "label": "Verification Code",
+    "expiresIn": "Expires in",
+    "expired": "Code expired. Please request a new one.",
+    "verifying": "Verifying...",
+    "verify": "Verify & Continue",
+    "didntReceive": "Didn",
+    "resending": "Sending...",
+    "resendIn": "Resend in",
+    "resend": "Resend Code",
+    "backToLogin": "Back to Login"
+  },
+  "communications": {
+    "title": "Communication Dashboard",
+    "subtitle": "Track all SMS, Email, and WhatsApp communications",
+    "export": "Export",
+    "refresh": "Refresh",
+    "stats": {
+      "totalSent": "Total Sent",
+      "deliveryRate": "Delivery Rate",
+      "failureRate": "Failure Rate",
+      "byChannel": "By Channel"
+    },
+    "search": "Search by user, phone, email...",
+    "filter": {
+      "allChannels": "All Channels",
+      "allStatuses": "All Statuses"
+    },
+    "table": {
+      "date": "Date",
+      "user": "User",
+      "channel": "Channel",
+      "recipient": "Recipient",
+      "status": "Status",
+      "message": "Message",
+      "actions": "Actions"
+    },
+    "loading": "Loading communications...",
+    "noData": "No communications found",
+    "view": "View",
+    "previous": "Previous",
+    "page": "Page",
+    "of": "of",
+    "next": "Next",
+    "details": {
+      "title": "Communication Details",
+      "user": "User",
+      "channel": "Channel",
+      "status": "Status",
+      "recipient": "Recipient",
+      "subject": "Subject",
+      "message": "Message",
+      "sent": "Sent At",
+      "delivered": "Delivered At",
+      "error": "Error",
+      "metadata": "Metadata"
+    }
+  },
+  "search": {
+    "results": {
+      "title": "Results",
+      "loading": "Loading...",
+      "empty": "Empty",
+      "hint": "Hint"
+    },
+    "quickActions": {
+      "_value": "Quick Actions",
+      "empty": "Empty"
+    },
+    "global": "Global",
+    "scope": {
+      "all": "All"
+    },
+    "saved": {
+      "title": "Search Saved",
+      "empty": "Empty"
+    },
+    "error": {
+      "generic": "Generic"
+    }
+  },
+  "ats": {
+    "errors": {
+      "authenticationRequired": "Authentication required",
+      "insufficientPermissions": "You do not have permission to access this feature",
+      "moduleDisabled": "ATS module is not enabled for your tenant",
+      "seatLimitExceeded": "ATS seat limit exceeded. Please contact an administrator",
+      "jobsFetchFailed": "Jobs Fetch Failed",
+      "jobPostLimitExceeded": "Job Post Limit Exceeded",
+      "jobCreationFailed": "Job Creation Failed"
+    }
+  },
+  "onboarding": {
+    "welcome": "Welcome to Fixzit",
+    "subtitle": "Complete your registration to start using the platform",
+    "name": "Full Name",
+    "email": "Email Address",
+    "phone": "Phone Number",
+    "country": "Country",
+    "companyName": "Company Name",
+    "address": "Address",
+    "serviceCategories": "Service Categories",
+    "selectCategories": "Select the service categories you provide",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "step": {
+      "role": {
+        "title": "Select Your Role",
+        "description": "Tell us how you'll be using Fixzit"
+      },
+      "profile": {
+        "title": "Your Information",
+        "description": "Basic details to set up your account"
+      },
+      "documents": {
+        "title": "Documents",
+        "description": "Upload required verification documents"
+      },
+      "review": {
+        "title": "Review & Submit",
+        "description": "Confirm your details and submit"
+      }
+    },
+    "roles": {
+      "TENANT": {
+        "label": "Tenant",
+        "description": "I rent a property and need maintenance services"
+      },
+      "PROPERTY_OWNER": {
+        "label": "Property Owner",
+        "description": "I own properties and want to manage them"
+      },
+      "OWNER": {
+        "label": "Corporate Owner",
+        "description": "I manage properties for a company"
+      },
+      "VENDOR": {
+        "label": "Service Vendor",
+        "description": "I provide maintenance or services"
+      },
+      "AGENT": {
+        "label": "Real Estate Agent",
+        "description": "I help clients buy, sell, or rent properties"
+      }
+    },
+    "documents": {
+      "uploadNote": "Please upload the required documents to verify your identity",
+      "formatNote": "PDF, JPG, or PNG (max 5MB)",
+      "uploaded": "Uploaded",
+      "upload": "Upload"
+    },
+    "review": {
+      "role": "Role",
+      "uploadedDocs": "Uploaded Documents",
+      "submitNote": "By clicking Submit, you agree to our Terms of Service and Privacy Policy."
+    },
+    "success": {
+      "title": "Application Submitted",
+      "message": "Your application has been submitted. We'll review it shortly."
+    }
+  },
+  "subscription": {
+    "plans": {
+      "BASIC": "Basic",
+      "STANDARD": "Standard",
+      "PRO": "Professional",
+      "PREMIUM": "Premium",
+      "ENTERPRISE": "Enterprise"
+    },
+    "upgrade": {
+      "title": "Upgrade to unlock {{feature}}",
+      "description": "This feature requires the {{plan}} plan. Upgrade now to access {{feature}} and more.",
+      "button": "Upgrade to {{plan}}",
+      "comparePlans": "Compare plans",
+      "viewPlans": "View plans",
+      "guarantee": "30-day money-back guarantee"
+    },
+    "features": {
+      "workOrders": "Work Orders",
+      "properties": "Properties",
+      "units": "Units",
+      "basicReports": "Basic Reports",
+      "finance": "Finance & Invoicing",
+      "invoicing": "Invoicing",
+      "hrManagement": "HR Management",
+      "technicians": "Technician Management",
+      "approvals": "Approvals & Workflows",
+      "auditTrail": "Audit Trail",
+      "advancedReports": "Advanced Reports",
+      "apiAccess": "API Access",
+      "sso": "Single Sign-On",
+      "scim": "SCIM Provisioning",
+      "customSla": "Custom SLAs",
+      "dedicatedSupport": "Dedicated Support",
+      "whiteLabeling": "White Labeling",
+      "multiRegion": "Multi-Region",
+      "complianceReports": "Compliance Reports"
+    },
+    "billing": {
+      "history": "Billing History",
+      "invoices": "Invoices",
+      "noInvoices": "No invoices found",
+      "paid": "Paid",
+      "pending": "Pending",
+      "overdue": "Overdue",
+      "downloadInvoice": "Download Invoice"
+    },
+    "trial": {
+      "banner": {
+        "title": "You’re on a trial plan. Upgrade to keep all features active.",
+        "subtitle": "View billing to manage your subscription, download invoices, or talk to sales.",
+        "upgrade": "Upgrade",
+        "billing": "Billing",
+        "dismiss_aria": "Dismiss trial banner"
+      },
+      "daysRemaining": "{{days}} days remaining",
+      "viewBilling": "View billing to manage your subscription, download invoices, or talk to sales."
+    }
+  },
+  "Bank Transfer Details": "Bank  Transfer  Details",
+  "Bank Name": "Bank  Name",
+  "Account Number": "Account  Number",
+  "Account Holder": "Account  Holder",
+  "SWIFT Code": "S W I F T  Code",
+  "IBAN": "I B A N",
+  "Cheque Details": "Cheque  Details",
+  "Cheque Number": "Cheque  Number",
+  "Cheque Date": "Cheque  Date",
+  "Drawer Name": "Drawer  Name",
+  "Name on cheque": "Name On Cheque",
+  "Card Payment Details": "Card  Payment  Details",
+  "Card Type": "Card  Type",
+  "Last 4 Digits": "Last 4  Digits",
+  "Transaction ID": "Transaction  I D",
+  "Authorization Code": "Authorization  Code",
+  "New Payment": "New  Payment",
+  "Cancel": "Cancel",
+  "Payment Details": "Payment  Details",
+  "Payment Type": "Payment  Type",
+  "Payment Received": "Payment  Received",
+  "Payment Made": "Payment  Made",
+  "Payment Date": "Payment  Date",
+  "Reference Number": "Reference  Number",
+  "Optional": "Optional",
+  "Amount": "Amount",
+  "Currency": "Currency",
+  "Payment Method": "Payment  Method",
+  "Cash": "Cash",
+  "Credit/Debit Card": "Credit/ Debit  Card",
+  "Bank Transfer": "Bank  Transfer",
+  "Cheque": "Cheque",
+  "Online Payment": "Online  Payment",
+  "Other": "Other",
+  "Deposit To Account": "Deposit  To  Account",
+  "Select Account": "Select  Account",
+  "Received From": "Received  From",
+  "Paid To": "Paid  To",
+  "Party Type": "Party  Type",
+  "Tenant": "Tenant",
+  "Customer": "Customer",
+  "Vendor": "Vendor",
+  "Supplier": "Supplier",
+  "Owner": "Owner",
+  "Party Name": "Party  Name",
+  "Notes": "Notes",
+  "Invoice Allocation": "Invoice  Allocation",
+  "Hide Invoices": "Hide  Invoices",
+  "Allocate to Invoices": "Allocate To  Invoices",
+  "No unpaid invoices found": "No Unpaid Invoices Found",
+  "Allocate Equally": "Allocate  Equally",
+  "By Due Date": "By  Due  Date",
+  "Clear All": "Clear  All",
+  "Select": "Select",
+  "Invoice #": "Invoice #",
+  "Due Date": "Due  Date",
+  "Amount Due": "Amount  Due",
+  "Allocate": "Allocate",
+  "Payment Amount": "Payment  Amount",
+  "Allocated": "Allocated",
+  "Unallocated": "Unallocated",
+  "Create Payment": "Create  Payment",
+  "Account Activity": "Account  Activity",
+  "Export CSV": "Export  C S V",
+  "Refresh": "Refresh",
+  "Start Date": "Start  Date",
+  "End Date": "End  Date",
+  "Source Type": "Source  Type",
+  "All Types": "All  Types",
+  "Manual": "Manual",
+  "Invoice": "Invoice",
+  "Payment": "Payment",
+  "Expense": "Expense",
+  "Rent": "Rent",
+  "Work Order": "Work  Order",
+  "Adjustment": "Adjustment",
+  "Today": "Today",
+  "This Week": "This  Week",
+  "This Month": "This  Month",
+  "This Quarter": "This  Quarter",
+  "This Year": "This  Year",
+  "Last Month": "Last  Month",
+  "Last Year": "Last  Year",
+  "Opening Balance": "Opening  Balance",
+  "Total Debits": "Total  Debits",
+  "Total Credits": "Total  Credits",
+  "Closing Balance": "Closing  Balance",
+  "Date": "Date",
+  "Journal #": "Journal #",
+  "Source": "Source",
+  "Description": "Description",
+  "Debit": "Debit",
+  "Credit": "Credit",
+  "Balance": "Balance",
+  "No transactions found for this period": "No Transactions Found For This Period",
+  "Showing": "Showing",
+  "of": "Of",
+  "transactions": "Transactions",
+  "First": "First",
+  "Previous": "Previous",
+  "Page": "Page",
+  "Next": "Next",
+  "Last": "Last",
+  "Select an account to view activity": "Select An Account To View Activity",
+  "save": {
+    "saving": "Saving...",
+    "success": "Operation successful",
+    "failed": "Failed",
+    "networkError": "Network error. Please try again."
+  },
+  "compliance": {
+    "title": "Compliance",
+    "description": "Enter description"
+  },
+  "devLogin": {
+    "title": "Dev Login",
+    "subtitle": "Manage your subtitle",
+    "alert": {
+      "failure": "Failure",
+      "unknownError": "Unknown failed"
+    },
+    "fields": {
+      "emailLabel": "Email",
+      "employeeLabel": "Employee",
+      "passwordLabel": "Password",
+      "passwordHidden": "Password Hidden"
+    },
+    "buttons": {
+      "loggingIn": "Logging In",
+      "autoLogin": "Auto Login",
+      "copyIdentifier": "Copy Identifier",
+      "backToLogin": "Back To Login"
+    },
+    "warning": {
+      "title": "Dev Login Warning",
+      "description": "Enter description"
+    },
+    "empty": {
+      "noCreds": "No Creds",
+      "copyPrefix": "Copy Prefix",
+      "copyMiddle": "Copy Middle",
+      "copySuffix": "Copy Suffix"
+    },
+    "sections": {
+      "personal": "Personal",
+      "corporate": "Corporate"
+    },
+    "instructions": {
+      "title": "Dev Login Instructions",
+      "autoLoginTitle": "Auto Login Title",
+      "autoLoginDesc": "Auto Login Desc",
+      "copyTitle": "Copy Title",
+      "copyDesc": "Copy Desc",
+      "accessTitle": "Access Title",
+      "accessDesc": "Access Desc",
+      "securityTitle": "Security Title",
+      "securityDesc": "Security Desc"
+    }
+  },
+  "rfq": {
+    "bids": "Bids",
+    "category": "Category",
+    "due": "Due",
+    "budget": "Budget",
+    "id": "Id"
+  },
+  "forgotPassword": {
+    "sendAnother": "Send Another",
+    "backToLogin": "Back To Login",
+    "title": "Forgot Password",
+    "subtitle": "Manage your subtitle",
+    "emailLabel": "Email",
+    "emailPlaceholder": "Enter Email",
+    "sending": "Sending",
+    "submit": "Submit",
+    "success": {
+      "title": "Forgot Password Success",
+      "message": "Message",
+      "hint": "Hint"
+    }
+  },
+  "resetPassword": {
+    "validating": "Validating",
+    "invalidTitle": "Invalid Title",
+    "invalidMessage": "Invalid Message",
+    "requestNew": "Request New",
+    "backToLogin": "Back To Login",
+    "goToLogin": "Go To Login",
+    "title": "Reset Password",
+    "forEmail": "For Email",
+    "newPassword": "New Password",
+    "passwordPlaceholder": "Enter Password",
+    "passwordStrong": "Password Strong",
+    "confirmPassword": "Confirm Password",
+    "confirmPlaceholder": "Enter Confirm",
+    "passwordsMatch": "Passwords Match",
+    "resetting": "Resetting",
+    "submit": "Submit",
+    "errors": {
+      "noToken": "No Token",
+      "invalidToken": "Invalid Token",
+      "validation": "Validation",
+      "mismatch": "Mismatch",
+      "failed": "Failed"
+    },
+    "validation": {
+      "minLength": "Min Length",
+      "letter": "Letter",
+      "number": "Number",
+      "special": "Special"
+    },
+    "success": {
+      "title": "Reset Password Success",
+      "message": "Message",
+      "redirect": "Redirect"
+    }
+  },
+  "helpCenter": {
+    "startTutorial": "Start Tutorial",
+    "completed": "Completed",
+    "difficulty": {
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "advanced": "Advanced"
+    }
+  },
+  "pricing": {
+    "tagline": "Tagline",
+    "title": "Pricing",
+    "subtitle": "Manage your subtitle",
+    "popular": "Popular",
+    "trial": {
+      "title": "Pricing Trial",
+      "subtitle": "Manage your trial",
+      "name": "Name",
+      "email": "Email",
+      "company": "Company",
+      "phone": "Phone",
+      "plan": {
+        "_value": "Plan",
+        "standard": "Standard",
+        "premium": "Premium",
+        "enterprise": "Enterprise"
+      },
+      "message": "Message",
+      "messagePlaceholder": "Enter Message",
+      "submitting": "Submitting",
+      "submit": "Submit",
+      "success": "Operation successful",
+      "error": "An error occurred"
+    },
+    "vendor": {
+      "title": "Pricing Vendor",
+      "subtitle": "Manage your vendor",
+      "benefit1": "Benefit1",
+      "benefit2": "Benefit2",
+      "benefit3": "Benefit3",
+      "apply": "Apply",
+      "note": "Note"
+    }
+  },
+  "privacy": {
+    "title": "Privacy",
+    "subtitle": "Manage your subtitle",
+    "encrypted": "Encrypted",
+    "encryptedDesc": "Encrypted Desc",
+    "transparent": "Transparent",
+    "transparentDesc": "Transparent Desc",
+    "compliant": "Compliant",
+    "compliantDesc": "Compliant Desc",
+    "yourRights": "Your Rights",
+    "yourRightsDesc": "Your Rights Desc",
+    "contactTitle": "Contact Title",
+    "contactDesc": "Contact Desc",
+    "email": "Email",
+    "phone": "Phone",
+    "lastUpdated": "Last Updated"
+  },
+  "product": {
+    "notFound": "Not Found",
+    "brand": "Brand",
+    "standards": "Standards",
+    "uom": "Uom",
+    "minQty": "Min Qty",
+    "inStock": "In Stock",
+    "backorder": "Backorder",
+    "lead": "Lead",
+    "days": "Days",
+    "addToCart": "Add To Cart",
+    "buyNow": "Buy Now",
+    "aboutTitle": "About Title",
+    "aboutDesc": "About Desc"
+  },
+  "profile": {
+    "title": "Profile",
+    "subtitle": "Manage your subtitle",
+    "toast": {
+      "loadError": "Load failed",
+      "accountSaved": "Account Saved",
+      "accountError": "Account failed",
+      "changesCancelled": "Changes Cancelled",
+      "notificationsSaved": "Notifications Saved",
+      "notificationsError": "Notifications failed",
+      "passwordMismatch": "Password Mismatch",
+      "passwordTooShort": "Password Too Short",
+      "securitySaved": "Security Saved",
+      "securityError": "Security failed"
+    },
+    "card": {
+      "memberSince": "Member Since",
+      "accountStatus": "Account Status",
+      "active": "Active"
+    },
+    "tabs": {
+      "account": "Account",
+      "notifications": "Notifications",
+      "security": "Security"
+    },
+    "account": {
+      "fullName": "Full Name",
+      "email": "Email",
+      "phone": "Phone",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "notifications": {
+      "channels": "Channels",
+      "email": "Email",
+      "push": "Push",
+      "sms": "Sms",
+      "events": "Events",
+      "workOrders": "Work Orders",
+      "maintenance": "Maintenance",
+      "invoices": "Invoices",
+      "save": "Save"
+    },
+    "security": {
+      "changePassword": "Change Password",
+      "currentPassword": "Current Password",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm Password",
+      "twoFactor": "Two Factor",
+      "enable2FA": "Enable2 F A",
+      "2FADesc": "2 F A Desc",
+      "update": "Update"
+    },
+    "retry": "Retry",
+    "quickActions": {
+      "title": "Profile Quick Actions",
+      "system": "System",
+      "systemDesc": "System Desc",
+      "notifications": "Notifications",
+      "notificationsDesc": "Notifications Desc",
+      "security": "Security",
+      "securityDesc": "Security Desc"
+    }
+  },
+  "reports": {
+    "footer": "Footer",
+    "samples": {
+      "monthlyFinancialSummary": "Monthly Financial Summary",
+      "workOrdersPerformance": "Work Orders Performance",
+      "complianceStatus": "Compliance Status"
+    },
+    "types": {
+      "financial": "Financial",
+      "operational": "Operational",
+      "compliance": "Compliance"
+    },
+    "page": {
+      "title": "Reports Page"
+    },
+    "toast": {
+      "newReportComingSoon": "New Report Coming Soon"
+    },
+    "actions": {
+      "newReport": "New Report",
+      "langToggle": "Lang Toggle"
+    },
+    "tabs": {
+      "builder": "Builder",
+      "viewer": "Viewer"
+    },
+    "table": {
+      "reportName": "Report Name",
+      "type": "Type",
+      "lastRun": "Last Run",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "builder": {
+      "placeholder": "Enter Builder"
+    },
+    "viewer": {
+      "placeholder": "Enter Viewer"
+    }
+  },
+  "signup": {
+    "backToLogin": "Back To Login",
+    "newsletter": "Newsletter",
+    "validation": {
+      "firstNameRequired": "First Name Required",
+      "lastNameRequired": "Last Name Required",
+      "emailRequired": "Email Required",
+      "emailInvalid": "Email Invalid",
+      "phoneRequired": "Phone Required",
+      "companyRequired": "Company Required",
+      "passwordStrength": "Password Strength",
+      "passwordMatch": "Password Match",
+      "termsRequired": "Terms Required"
+    },
+    "success": {
+      "title": "Signup Success",
+      "message": "Message",
+      "redirecting": "Redirecting"
+    },
+    "branding": {
+      "title": "Signup Branding",
+      "subtitle": "Manage your branding"
+    },
+    "form": {
+      "title": "Signup Form",
+      "subtitle": "Manage your form"
+    },
+    "fields": {
+      "accountType": "Account Type",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "phone": "Phone",
+      "companyName": "Company Name",
+      "password": "Password",
+      "confirmPassword": "Confirm Password"
+    },
+    "placeholders": {
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "phone": "Phone",
+      "companyName": "Company Name",
+      "password": "Password",
+      "confirmPassword": "Confirm Password"
+    },
+    "terms": {
+      "agree": "Agree",
+      "service": "Service",
+      "and": "And",
+      "privacy": "Privacy"
+    },
+    "button": {
+      "creating": "Creating...",
+      "create": "Create"
+    },
+    "login": {
+      "prompt": "Prompt",
+      "link": "Link"
+    },
+    "features": {
+      "facility": {
+        "title": "Signup Features Facility",
+        "desc": "Desc"
+      },
+      "marketplace": {
+        "title": "Signup Features Marketplace",
+        "desc": "Desc"
+      },
+      "support": {
+        "title": "Signup Features Support",
+        "desc": "Desc"
+      }
+    }
+  },
+  "a11y": {
+    "hidePassword": "Hide Password",
+    "showPassword": "Show Password",
+    "currencySelectorHelp": "Currency Selector Help",
+    "languageSelectorHelp": "Language Selector Help"
+  },
+  "terms": {
+    "title": "Terms",
+    "subtitle": "Manage your subtitle",
+    "binding": "Binding",
+    "bindingDesc": "Binding Desc",
+    "fair": "Fair",
+    "fairDesc": "Fair Desc",
+    "clear": "Clear",
+    "clearDesc": "Clear Desc",
+    "updated": "Updated",
+    "updatedDesc": "Updated Desc",
+    "contactTitle": "Contact Title",
+    "contactDesc": "Contact Desc",
+    "email": "Email",
+    "phone": "Phone",
+    "lastUpdated": "Last Updated"
+  },
+  "testCms": {
+    "title": "Test Cms",
+    "links": {
+      "privacy": "Privacy",
+      "terms": "Terms",
+      "about": "About"
+    }
+  },
+  "footer": {
+    "brand": "Brand",
+    "backHome": "Back Home",
+    "company": "Company",
+    "about": "About",
+    "careers": "Careers",
+    "pricing": "Pricing",
+    "legal": "Legal",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "support": "Support",
+    "help": "Help",
+    "ticket": "Ticket",
+    "copyright": "Copyright",
+    "breadcrumbLabel": "Breadcrumb",
+    "crumb": {
+      "fixzit": "Fixzit",
+      "platform": "Platform",
+      "version": "Version"
+    }
+  },
+  "loginPrompt": {
+    "title": "Login Prompt",
+    "description": "Enter description",
+    "welcomeBack": "Welcome Back",
+    "welcomeMessage": "Welcome Message",
+    "signInButton": "Sign In Button",
+    "signUpButton": "Sign Up Button",
+    "benefitsTitle": "Benefits Title",
+    "benefit1": "Benefit1",
+    "benefit2": "Benefit2",
+    "benefit3": "Benefit3",
+    "benefit4": "Benefit4",
+    "benefit5": "Benefit5",
+    "needHelp": "Need Help",
+    "contactSupport": "Contact Support"
+  },
+  "system": {
+    "lastCheck": "Last Check",
+    "help": "Help",
+    "verification": {
+      "failed": "Failed",
+      "title": "System Verification",
+      "description": "Enter description",
+      "checking": "Checking",
+      "verify": "Verify"
+    },
+    "monitoring": {
+      "active": "Active",
+      "start": "Start",
+      "stop": "Stop"
+    },
+    "status": {
+      "overall": "Overall",
+      "running": "Running",
+      "stopped": "Stopped"
+    },
+    "issues": {
+      "found": "Found",
+      "detected": "Detected"
+    },
+    "fixes": {
+      "applied": "Applied"
+    },
+    "components": {
+      "title": "System Components",
+      "description": "Enter description"
+    },
+    "component": {
+      "database": {
+        "_value": "Database",
+        "desc": "Desc"
+      },
+      "network": {
+        "_value": "Network",
+        "desc": "Desc"
+      },
+      "performance": {
+        "_value": "Performance",
+        "desc": "Desc"
+      }
+    },
+    "autofix": {
+      "title": "System Autofix",
+      "description": "Enter description",
+      "errorBoundary": {
+        "_value": "Error Boundary",
+        "desc": "Desc"
+      },
+      "healthMonitoring": {
+        "_value": "Health Monitoring",
+        "desc": "Desc"
+      },
+      "autoRecovery": {
+        "_value": "Auto Recovery",
+        "desc": "Desc"
+      }
+    },
+    "emergency": {
+      "title": "System Emergency",
+      "description": "Enter description",
+      "recovery": "Recovery"
+    },
+    "reset": {
+      "confirm": "Confirm",
+      "full": "Full"
+    }
+  },
+  "features": {
+    "workOrders": "Work Orders",
+    "properties": "Properties",
+    "units": "Units",
+    "basicReports": "Basic Reports",
+    "finance": "Finance",
+    "invoicing": "Invoicing",
+    "hrManagement": "Hr Management",
+    "technicians": "Technicians",
+    "approvals": "Approvals",
+    "auditTrail": "Audit Trail",
+    "advancedReports": "Advanced Reports",
+    "apiAccess": "Api Access",
+    "sso": "Sso",
+    "scim": "Scim",
+    "customSla": "Custom Sla",
+    "dedicatedSupport": "Dedicated Support",
+    "whiteLabeling": "White Labeling",
+    "multiRegion": "Multi Region",
+    "complianceReports": "Compliance Reports"
+  },
+  "plans": {
+    "basic": "Basic",
+    "standard": "Standard",
+    "premium": "Premium",
+    "enterprise": "Enterprise"
+  },
+  "upgrade": {
+    "title": "Upgrade",
+    "description": {
+      "_value": "Enter description",
+      "feature": "Feature",
+      "default": "Default"
+    },
+    "upgrade": "Upgrade",
+    "viewPlans": "View Plans",
+    "upgradeTo": "Upgrade To",
+    "comparePlans": "Compare Plans",
+    "guarantee": "Guarantee",
+    "error": {
+      "invalidEmail": "Invalid Email",
+      "submitFailed": "Submit Failed"
+    },
+    "feature": {
+      "enterprise": "Enterprise",
+      "premium": "Premium",
+      "api": "Api",
+      "support": "Support",
+      "sla": "Sla"
+    },
+    "includes": {
+      "title": "Upgrade Includes"
+    },
+    "email": {
+      "label": "Label",
+      "placeholder": "Enter Email"
+    },
+    "action": {
+      "later": "Later",
+      "sending": "Sending",
+      "contact": "Contact"
+    },
+    "alternative": {
+      "prefix": "Prefix"
+    },
+    "success": {
+      "title": "Upgrade Success",
+      "message": "Message"
+    }
+  },
+  "i18n": {
+    "selectCurrencyLabel": "Select Currency",
+    "filterCurrencies": "Filter Currencies",
+    "selectLanguageLabel": "Select Language",
+    "filterLanguages": "Filter Languages",
+    "comingSoon": "Coming Soon"
+  },
+  "billing": {
+    "history": {
+      "tagline": "Tagline",
+      "title": "Billing History",
+      "subtitle": "Manage your history",
+      "tableTitle": "Table Title",
+      "error": "An error occurred",
+      "invoice": "Invoice",
+      "amount": "Amount",
+      "status": "Status",
+      "period": "Period",
+      "paidAt": "Paid At",
+      "unpaid": "Unpaid"
+    },
+    "plan": {
+      "tagline": "Tagline",
+      "title": "Billing Plan",
+      "subtitle": "Manage your plan",
+      "popular": "Popular",
+      "viewPricing": "View Pricing",
+      "manageBilling": "Manage Billing"
+    }
+  },
+  "error": {
+    "boundary": {
+      "title": "Error Boundary",
+      "desc": "Desc",
+      "ref": "Ref",
+      "refresh": "Refresh"
+    }
+  },
+  "trial": {
+    "banner": {
+      "title": "Trial Banner",
+      "subtitle": "Manage your banner",
+      "upgrade": "Upgrade",
+      "billing": "Billing",
+      "dismiss_aria": "Dismiss Aria"
+    }
+  },
+  "tb": {
+    "col": {
+      "code": "Code",
+      "name": "Name",
+      "type": "Type",
+      "debit": "Debit",
+      "credit": "Credit",
+      "balance": "Balance"
+    }
+  },
+  "Loading": {
+    "": {
+      "": {
+        "": ""
+      }
+    }
+  },
+  "Optional payment notes": {
+    "": {
+      "": {
+        "": ""
+      }
+    }
+  },
+  "Loading invoices": {
+    "": {
+      "": {
+        "": ""
+      }
+    }
+  },
+  "Creating": {
+    "": {
+      "": {
+        "": ""
+      }
+    }
+  },
+  "Loading account activity": {
+    "": {
+      "": {
+        "": ""
+      }
+    }
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

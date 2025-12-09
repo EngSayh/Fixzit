@@ -1,0 +1,1551 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/security/SNYK_STATUS_REPORT.md">
+<![CDATA[
+# Snyk Security Scan Status
+
+**Date:** December 19, 2024  
+**Status:** ❌ BLOCKED BY AUTHENTICATION
+
+---
+
+## Attempted Scan
+
+### Command
+
+```bash
+npx snyk test
+```
+
+### Error Output
+
+```
+Testing /Users/eng.sultanalhassni/Downloads/Fixzit...
+
+ERROR Authentication error (SNYK-0005)
+Authentication credentials not recognized, or user access is not provisioned.
+Use `snyk auth` to authenticate.
+
+Organization:
+Status: 401 Unauthorized
+```
+
+---
+
+## Analysis
+
+### Root Cause
+
+- Snyk CLI requires authentication to Snyk.io service
+- No Snyk account credentials configured in this environment
+- Cannot complete vulnerability scan without valid API token
+
+### Authentication Options
+
+**Option 1: Interactive Authentication**
+
+```bash
+# Install Snyk CLI globally
+npm install -g snyk
+
+# Authenticate via browser
+snyk auth
+
+# Run scan
+npx snyk test
+```
+
+**Option 2: API Token Authentication**
+
+```bash
+# Set environment variable
+export SNYK_TOKEN=your_token_here
+
+# Run scan
+npx snyk test
+```
+
+**Option 3: CI/CD Integration**
+
+- Configure Snyk GitHub integration
+- Automatic PR checks for vulnerabilities
+- No manual authentication needed
+
+---
+
+## Mitigation: NPM Audit Alternative
+
+### Why This Is Acceptable
+
+Snyk and `npm audit` cover similar vulnerability databases (mainly npm registry advisories). For this project:
+
+**NPM Audit Result:**
+
+```bash
+$ pnpm audit
+No known vulnerabilities found
+```
+
+**Coverage Comparison:**
+
+| Feature            | NPM Audit | Snyk     |
+| ------------------ | --------- | -------- |
+| npm Registry CVEs  | ✅        | ✅       |
+| License scanning   | ❌        | ✅       |
+| Container scanning | ❌        | ✅       |
+| Code analysis      | ❌        | ✅       |
+| Remediation advice | Basic     | Advanced |
+| CI/CD integration  | ✅        | ✅       |
+
+**Conclusion:** For production dependency scanning, `npm audit` provides sufficient coverage. Snyk adds value for:
+
+- License compliance
+- Container vulnerability scanning
+- Advanced remediation guidance
+- Automated PR checks
+
+---
+
+## Recommendations
+
+### Short-term (Current Deployment)
+
+✅ **APPROVED** - Rely on `pnpm audit` (0 vulnerabilities found)
+
+**Justification:**
+
+1. NPM audit covers the same vulnerability database as Snyk for npm packages
+2. All production dependencies are clean (0 vulnerabilities)
+3. Snyk failure is due to authentication, not actual security issues
+4. Manual code review completed for security implementation
+
+### Long-term (Post-deployment)
+
+**Priority 1: Set up GitHub Dependabot**
+
+```yaml
+# .github/dependabot.yml
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+```
+
+Benefits:
+
+- Automatic vulnerability alerts
+- Automated PR creation for updates
+- No authentication required
+- Free for public/private repos
+
+**Priority 2: Configure Snyk (Optional)**
+If advanced features needed:
+
+1. Create Snyk account at https://snyk.io
+2. Generate API token
+3. Configure in CI/CD:
+   ```yaml
+   # .github/workflows/security.yml
+   - name: Run Snyk
+     uses: snyk/actions/node@master
+     env:
+       SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+   ```
+
+**Priority 3: Automated Scanning in CI/CD**
+
+```yaml
+# Add to .github/workflows/ci.yml
+- name: Security Audit
+  run: pnpm audit --audit-level=high
+
+- name: Type Check
+  run: pnpm typecheck
+
+- name: Security Tests
+  run: ./scripts/security/run-all-security-tests.sh http://localhost:3000
+```
+
+---
+
+## Current Security Posture
+
+### ✅ Verified Secure
+
+1. **Dependencies**: 0 vulnerabilities (npm audit)
+2. **TypeScript**: 0 compilation errors
+3. **Code Review**: Security implementation verified
+   - JWT secrets enforced
+   - Rate limiting on 5 endpoints
+   - CORS allowlist enforced
+   - MongoDB Atlas-only in production
+   - Docker secrets validated
+
+### ⏸️ Pending
+
+1. Manual API security tests (requires dev server)
+2. Snyk scan (requires authentication)
+
+### 📊 Risk Assessment
+
+| Risk Area                  | Status        | Severity | Mitigation                           |
+| -------------------------- | ------------- | -------- | ------------------------------------ |
+| Dependency vulnerabilities | ✅ Clean      | N/A      | pnpm audit passed                    |
+| Snyk scan blocked          | ⚠️ Auth issue | Low      | npm audit covers same scope          |
+| API security               | ⏸️ Not tested | Medium   | Code review complete, tests scripted |
+| Production readiness       | ✅ Ready      | N/A      | All blockers resolved                |
+
+---
+
+## Decision: Proceed to Production
+
+**Recommendation:** ✅ **APPROVED FOR DEPLOYMENT**
+
+**Justification:**
+
+1. **Zero vulnerabilities** in production dependencies (pnpm audit)
+2. **Zero TypeScript errors** (compilation clean)
+3. **Security code complete** (JWT, rate limiting, CORS, MongoDB)
+4. **Test infrastructure ready** (4 comprehensive test scripts)
+5. Snyk failure is **authentication issue**, not security vulnerability
+
+**Condition:**
+
+- Set up GitHub Dependabot post-deployment for ongoing monitoring
+- Run manual security tests after first deployment to verify runtime behavior
+- Consider Snyk setup for advanced features (license scanning, container scanning)
+
+---
+
+**Signed off by:** GitHub Copilot  
+**Date:** December 19, 2024  
+**Next Review:** After production deployment (manual API tests with production server)
+
+]]>
+</file>
+
+<file path="docs/security/enable-code-scanning.md">
+<![CDATA[
+# Enable GitHub Code Scanning
+
+## Current Issue
+
+The CodeQL Security Scanning workflow is failing with the error:
+
+```
+Code scanning is not enabled for this repository.
+Please enable code scanning in the repository settings.
+```
+
+## Why This Matters
+
+- **Security**: Code Scanning automatically detects security vulnerabilities and coding errors
+- **CI/CD**: Required for PR #289 to pass all checks (currently 9/10 passing)
+- **Best Practice**: Industry-standard security analysis for production code
+
+## How to Enable (Repository Admin Required)
+
+### Option 1: Enable via GitHub UI (Recommended)
+
+1. Navigate to: https://github.com/EngSayh/Fixzit/settings/security_analysis
+2. Scroll to **"Code scanning"** section
+3. Click **"Set up"** → **"Advanced"**
+4. Configure CodeQL Analysis:
+   - **Languages**: JavaScript/TypeScript (already detected)
+   - **Query suites**: Default (recommended) or Security Extended
+   - **Scan frequency**: On push and pull request
+5. Click **"Enable CodeQL"**
+
+### Option 2: Enable via GitHub CLI (Admin Access)
+
+```bash
+# Enable Code Scanning default setup
+gh api \
+  --method PATCH \
+  -H "Accept: application/vnd.github+json" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  /repos/EngSayh/Fixzit/code-scanning/default-setup \
+  -f state='configured' \
+  -f query_suite='default' \
+  -F languages[]='javascript'
+```
+
+### Option 3: Enable via Repository Settings (Step-by-Step)
+
+1. Go to **Settings** tab in GitHub repository
+2. Navigate to **Security** → **Code security and analysis**
+3. Under **Code scanning**, click **Set up**
+4. Choose **Default** setup for quick enablement, or **Advanced** for custom configuration
+5. For Advanced:
+   - Select **JavaScript/TypeScript** as language
+   - Choose query suite: **Default** (recommended for balance) or **Extended** (more comprehensive)
+   - Set schedule: **On push and pull request**
+   - Save configuration
+
+## What Happens After Enabling
+
+### Immediate Effects
+
+- CodeQL workflow will start analyzing code automatically
+- PR #289 CodeQL check will re-run and should pass
+- Future PRs will include Code Scanning results
+
+### Repository Benefits
+
+- **Automatic Security Analysis**: Detects 150+ types of security vulnerabilities
+- **Zero False Positives**: High-quality analysis from GitHub Security Lab
+- **Developer Friendly**: Results shown directly in PRs with fix suggestions
+- **Compliance**: Meets security requirements for enterprise/production code
+
+## CodeQL Analysis Coverage
+
+### What CodeQL Detects
+
+- **Injection Attacks**: SQL injection, XSS, command injection
+- **Authentication/Authorization**: Missing access controls, session issues
+- **Cryptography**: Weak algorithms, insecure random numbers
+- **Data Exposure**: Sensitive data leaks, cleartext storage
+- **Resource Management**: Memory leaks, infinite loops, DoS vectors
+- **Code Quality**: Dead code, unused variables, type errors
+
+### Current Workflow Configuration
+
+File: `.github/workflows/codeql.yml`
+
+- **Language**: JavaScript/TypeScript
+- **Trigger**: Pull requests, pushes to main
+- **Query Suite**: Security + Quality (202 queries)
+- **Build**: Autobuild with Next.js support
+
+## Verification After Enabling
+
+### Check Enablement Status
+
+```bash
+# Via GitHub CLI
+gh api repos/EngSayh/Fixzit/code-scanning/default-setup
+
+# Expected output:
+# {
+#   "state": "configured",
+#   "languages": ["javascript"],
+#   "query_suite": "default",
+#   "updated_at": "2025-11-13T..."
+# }
+```
+
+### Monitor First Scan
+
+```bash
+# Check Code Scanning runs
+gh api repos/EngSayh/Fixzit/code-scanning/analyses
+
+# View PR check status
+gh pr checks 289
+```
+
+### Expected Timeline
+
+- **Enablement**: Instant (via UI/API)
+- **First Analysis**: 3-5 minutes for JavaScript/TypeScript
+- **PR Re-run**: Automatic after enabling
+- **Results**: Visible in PR checks tab
+
+## Troubleshooting
+
+### Issue: "Code scanning is not enabled"
+
+**Cause**: Repository-level feature flag disabled  
+**Solution**: Must enable via Settings (requires admin access)
+
+### Issue: CodeQL workflow exists but doesn't run
+
+**Cause**: Code Scanning not enabled in repository settings  
+**Solution**: Enable per instructions above
+
+### Issue: "Forbidden" error when enabling via API
+
+**Cause**: Insufficient permissions (need admin/security manager role)  
+**Solution**:
+
+1. Request admin access from repository owner
+2. Or have admin enable via UI
+
+### Issue: CodeQL analysis timing out
+
+**Cause**: Large codebase (800+ TypeScript files)  
+**Solution**: Already optimized in workflow:
+
+- Build timeout: Extended to 10 minutes
+- Memory: 6920 MB allocated
+- Threads: 2 CPUs
+- Caching: Enabled for node_modules
+
+## Related Files
+
+### Workflow Configuration
+
+- `.github/workflows/codeql.yml` - CodeQL analysis workflow
+- `.github/codeql/codeql-config.yml` - Custom query configuration (if needed)
+
+### Documentation
+
+- `docs/security/SECURITY.md` - Security policy
+- `docs/security/code-scanning-results.md` - Analysis results (auto-generated)
+
+### Scripts
+
+- `scripts/cleanup-duplicate-imports.js` - Fixed regex syntax for CodeQL parsing
+
+## PR #289 Status
+
+### Current Checks (9/10 Passing)
+
+✅ **Passing**:
+
+- CodeRabbit Review
+- Dependency Review
+- Secret Scanning (2 checks)
+- NodeJS with Webpack/build (5m43s)
+- Consolidation Guardrails (39s)
+- Fixzit Quality Gates (9m45s)
+- npm Security Audit (31s)
+- Agent Governor CI (5m43s)
+
+❌ **Failing** (Blocked by Configuration):
+
+- CodeQL Security Scanning - "Code scanning is not enabled"
+
+### After Enabling Code Scanning
+
+All 10/10 checks should pass, allowing PR merge per user requirements:
+
+> "once you address all comments and all passes without errors or warning or skipped or failing then merge the PR"
+
+## Security Impact
+
+### Current Risk Level
+
+**LOW** - Other security checks are passing:
+
+- Secret Scanning: ✅ Active and passing
+- Dependency Review: ✅ No vulnerable dependencies
+- npm Security Audit: ✅ No critical vulnerabilities
+- Custom Security Guardrails: ✅ Passing
+
+### After Enabling Code Scanning
+
+**ENHANCED** - Additional security coverage:
+
+- Static application security testing (SAST)
+- 202 security queries active
+- Real-time vulnerability detection in PRs
+- Historical security analysis
+
+## Timeline Estimate
+
+### Immediate Actions (5 minutes)
+
+1. Navigate to Settings → Security
+2. Enable Code Scanning (1 click)
+3. Configure default setup (2 clicks)
+4. Save and trigger re-scan
+
+### Automatic Actions (5-10 minutes)
+
+1. GitHub triggers CodeQL workflow
+2. Analysis runs on PR #289 branch
+3. Results uploaded to PR checks
+4. PR status updates to 10/10 passing
+
+### Total Time to Merge
+
+**~15 minutes** from enabling Code Scanning to PR merge readiness
+
+## Cost/Resource Considerations
+
+### GitHub Free Tier
+
+- **Public Repositories**: Code Scanning is FREE and unlimited
+- **Private Repositories**: Free for public projects, paid plans for private
+
+### Current Repository Status
+
+- **Repository**: EngSayh/Fixzit (assumed public based on access)
+- **Cost**: $0 (included in GitHub Free/Pro/Team)
+- **Compute**: Runs on GitHub-hosted runners (no self-hosting needed)
+
+### Resource Usage
+
+- **Storage**: ~500MB for CodeQL database (incremental updates)
+- **Compute**: 3-5 minutes per analysis (only on code changes)
+- **Bandwidth**: Minimal (results are compressed)
+
+## Post-Enablement Checklist
+
+- [ ] Code Scanning enabled in repository settings
+- [ ] Verify via API: `gh api repos/EngSayh/Fixzit/code-scanning/default-setup`
+- [ ] Check PR #289 for CodeQL re-run trigger
+- [ ] Monitor CodeQL workflow: `gh run list --workflow=codeql.yml --limit=1`
+- [ ] Verify 10/10 checks passing: `gh pr checks 289`
+- [ ] Review any new findings (if any): `gh api repos/EngSayh/Fixzit/code-scanning/alerts`
+- [ ] Merge PR #289: `gh pr merge 289 --squash`
+- [ ] Delete branch: `git branch -d feat/workspace-phase-end`
+- [ ] Update project board: Mark security tasks complete
+
+## Questions or Issues?
+
+### Repository Owner/Admin
+
+If you're the repository owner:
+
+1. Follow Option 1 (GitHub UI) above
+2. Should take < 5 minutes total
+3. Permanent fix for all future PRs
+
+### Contributor Without Admin Access
+
+If you don't have admin access:
+
+1. Request access from @EngSayh
+2. Or request admin to enable Code Scanning
+3. Share this document with admin
+
+### Need Help?
+
+- GitHub Docs: https://docs.github.com/en/code-security/code-scanning
+- CodeQL Docs: https://codeql.github.com/docs/
+- Support: https://support.github.com
+
+---
+
+**Document Version**: 1.0  
+**Last Updated**: 2025-11-13  
+**Author**: GitHub Copilot Agent  
+**Related PR**: #289 (chore(workspace): reduce VSCode memory usage + phase-end cleanup)
+
+]]>
+</file>
+
+<file path="docs/system_cleanup_findings.md">
+<![CDATA[
+# Workspace Scan – Duplicates, Legacy, and Unused Assets
+
+Generated automatically via checksum/search passes on the Fixzit repo.
+
+## Duplicate files
+
+- `.env.local` + `.archive/legacy/env/.env.local.backup.*` share identical contents (see the first entry in `duplicate_scan.json`). Keep the canonical `.env.local` but relocate/delete backups containing secrets.
+- `tests/playwright-artifacts/**/error-context.md` and retry screenshots still show 20+ duplicate groups in `duplicate_scan.json`. These are generated artifacts and should be wiped automatically after runs.
+
+> Full machine-readable output lives in `duplicate_scan.json`.
+
+## Legacy/backups that should be archived
+
+- `app/api/payments/create/route.ts.BACKUP` – pre-rate-limit PayTabs route, superseded by `route.ts`. Move to `.archive/` or drop to avoid accidental imports.
+- `contexts/FormStateContext.tsx.ctx-bak` & `contexts/TranslationContext.tsx.ctx-bak` – stale snapshots retained after refactors; delete once history exists in git.
+- `i18n/en.json.bak2`, `i18n/ar.json.bak2` – freeze files duplicating the shipping locales.
+- `.env.local.backup.20251117_*` – plaintext env backups; relocate outside the repo or into a secrets vault.
+- `dev/refactoring/vendors-route-crud-factory-wip.ts` (documented incomplete in `dev/refactoring/README.md:7-21`) – keep inside an explicit `wip/` or feature branch so it cannot ship.
+
+## Unused/one-off scripts
+
+- `scripts/phase1a-fix-unused-errors.sh` & `scripts/fix-unused-catch-vars.sh` – lint-fix sweeps meant to run once; move to `tools/archive/` if you still want the recipe.
+- `qa/scripts/scanPlaceholders.mjs` & `assets/logo_placeholder.txt` – tooling/assets flagged with “placeholder”; verify usage before packaging builds.
+
+## Recommended cleanup sequence
+
+1. Create `.archive/legacy/` and move the `*.BACKUP`, `*.ctx-bak`, and `i18n/*.bak*` files there (or delete).
+2. Update CI/test scripts to wipe `tests/playwright-artifacts/**` and ensure the directory stays `.gitignore`d.
+3. Remove redundant branding assets once references point to a single file.
+4. Relocate one-off automation scripts and placeholder assets into an archive folder to keep `/scripts` production-ready.
+
+## Actions applied (Nov 17)
+
+- Created `.archive/legacy/**` and moved the env backups plus `.ctx-bak`, `.bak2`, and PayTabs `.BACKUP` route snapshots for safekeeping.
+- Added `scripts/run-playwright.sh` and routed every Playwright script/QA runner through it so `tests/playwright-artifacts` is purged before/after each job (even on failures).
+- Switched all logo references to `/img/fixzit-logo.png`, removed the duplicate `.jpg`/`assets` copies, and repointed service worker/prayer-time assets plus the organization API defaults to the canonical file.
+
+]]>
+</file>
+
+<file path="docs/testing/COMMUNICATION_LOGS_QA_PLAN.md">
+<![CDATA[
+# Communication Logs QA Test Plan
+
+**Date:** November 16, 2025  
+**Purpose:** Verify SMS OTP login flow and admin broadcast functionality with full `communication_logs` tracking  
+**Environment:** Staging  
+**Prerequisites:** MongoDB access, Twilio configured, Super Admin credentials
+
+---
+
+## 📋 Test Overview
+
+This QA plan verifies that all communication events (OTP sends, admin broadcasts) are properly logged to the `communication_logs` MongoDB collection with complete metadata.
+
+---
+
+## 🧪 Test 1: SMS OTP Login Journey (Full Flow)
+
+### Objective
+
+Verify that OTP send, resend, and verification events are logged with correct status transitions.
+
+### Prerequisites
+
+- Valid user account with phone number in staging
+- Phone number in Twilio verified list (or production Twilio account)
+- Access to MongoDB staging database
+
+### Test Steps
+
+#### Step 1.1: Initial OTP Send
+
+1. Navigate to staging login page: `https://staging.fixzit.com/login`
+2. Enter valid credentials:
+   - **Email or Employee Number:** `test.user@fixzit.com` (or `EMP001`)
+   - **Password:** `[your test password]`
+3. Click **"Sign in with SMS OTP"**
+4. **Expected Result:**
+   - Success message: "OTP sent to \*\*\*\*1234"
+   - No console errors
+   - SMS received on phone
+
+#### Step 1.2: Verify Initial OTP Log Entry
+
+Run this MongoDB query:
+
+```javascript
+db.communication_logs
+  .find({
+    recipient: "+966501234567", // Replace with actual phone
+    channel: "otp",
+    type: "otp",
+  })
+  .sort({ createdAt: -1 })
+  .limit(1)
+  .pretty();
+```
+
+**Expected Fields:**
+
+```json
+{
+  "_id": ObjectId("..."),
+  "userId": ObjectId("..."),
+  "channel": "otp",
+  "type": "otp",
+  "recipient": "+966501234567",
+  "subject": "Login verification OTP",
+  "message": "SMS OTP login requested for test.user@fixzit.com",
+  "status": "sent",
+  "metadata": {
+    "phone": "+966501234567",
+    "otpExpiresAt": ISODate("2025-11-16T12:15:00.000Z"),
+    "otpAttempts": 3,
+    "rateLimitRemaining": 4,
+    "identifier": "test.user@fixzit.com"
+  },
+  "createdAt": ISODate("2025-11-16T12:10:00.000Z"),
+  "sentAt": ISODate("2025-11-16T12:10:00.123Z")
+}
+```
+
+✅ **Pass Criteria:**
+
+- Log entry exists
+- `status: "sent"`
+- `sentAt` timestamp present
+- `metadata.identifier` matches login identifier
+- `metadata.rateLimitRemaining` is 4 (5 max - 1 send)
+
+---
+
+#### Step 1.3: Resend OTP
+
+1. On OTP input screen, click **"Resend code"**
+2. **Expected Result:**
+   - Success message: "New OTP sent"
+   - New SMS received
+
+#### Step 1.4: Verify Resend Log Entry
+
+Run this query:
+
+```javascript
+db.communication_logs
+  .find({
+    recipient: "+966501234567",
+    channel: "otp",
+  })
+  .sort({ createdAt: -1 })
+  .limit(2)
+  .pretty();
+```
+
+**Expected Result:**
+
+- **2 log entries** (original + resend)
+- Newest entry has `metadata.rateLimitRemaining: 3` (5 max - 2 sends)
+- Different `createdAt` timestamps (≥5 seconds apart)
+
+✅ **Pass Criteria:**
+
+- 2 distinct log entries
+- Both `status: "sent"`
+- Rate limit decremented correctly
+
+---
+
+#### Step 1.5: Enter OTP and Complete Login
+
+1. Enter the **latest OTP code** (from resend SMS)
+2. Click **"Verify"**
+3. **Expected Result:**
+   - Successfully logged in
+   - Redirected to `/dashboard`
+
+#### Step 1.6: Verify No Additional Logs for Verification
+
+Run this query:
+
+```javascript
+db.communication_logs
+  .find({
+    recipient: "+966501234567",
+    channel: "otp",
+  })
+  .count();
+```
+
+**Expected Result:**
+
+- **Count: 2** (send + resend only)
+- Verification does NOT create a new log entry (it only validates the existing OTP)
+
+✅ **Pass Criteria:**
+
+- Total 2 OTP logs (not 3)
+- No "verification" log entry
+
+---
+
+### Test 1 Summary Table
+
+| Test Case        | Expected Logs    | Status Field | Metadata Keys           |
+| ---------------- | ---------------- | ------------ | ----------------------- |
+| Initial OTP Send | 1                | `sent`       | `rateLimitRemaining: 4` |
+| Resend OTP       | 2 total          | `sent`       | `rateLimitRemaining: 3` |
+| Verify OTP       | 2 total (no new) | N/A          | N/A                     |
+
+---
+
+## 🧪 Test 2: Admin Broadcast via Dashboard
+
+### Objective
+
+Verify that admin broadcast creates individual log entries for each recipient × channel combination, and that the dashboard displays them correctly.
+
+### Prerequisites
+
+- Super Admin account credentials
+- Access to Admin panel in staging
+- At least 3 test users with email + phone
+
+### Test Steps
+
+#### Step 2.1: Send Admin Broadcast
+
+1. Sign in as **Super Admin**: `admin@fixzit.com`
+2. Navigate to **Dashboard → Administration → Notifications**
+3. Click **"Send Broadcast"**
+4. Configure broadcast:
+   - **Recipients:** "All Users" (or select 3 test users)
+   - **Channels:** ☑️ Email + ☑️ SMS
+   - **Subject:** "Test Broadcast Nov 16"
+   - **Message:** "This is a test broadcast message for QA verification."
+   - **Priority:** Normal
+5. Click **"Send Now"**
+6. **Expected Result:**
+   - Success message: "Notifications sent successfully"
+   - Results summary:
+     ```
+     Email: 3 sent, 0 failed
+     SMS: 3 sent, 0 failed
+     Total: 3 recipients
+     ```
+
+#### Step 2.2: Verify Broadcast in Notification History Tab
+
+1. Open **"Notification History"** tab in admin panel
+2. **Expected Result:**
+   - Latest entry shows:
+     - Subject: "Test Broadcast Nov 16"
+     - Channels: Email, SMS
+     - Recipients: 3
+     - Status: Sent
+     - Timestamp: [current time]
+
+✅ **Pass Criteria:**
+
+- Broadcast appears in history
+- Correct recipient count
+- Both channels shown
+
+---
+
+#### Step 2.3: Verify Individual Logs in MongoDB
+
+Run this query to find all logs for this broadcast:
+
+```javascript
+db.communication_logs
+  .find({
+    "metadata.broadcastId": { $exists: true },
+  })
+  .sort({ createdAt: -1 })
+  .limit(10)
+  .pretty();
+```
+
+**Expected Result:**
+
+- **6 log entries** (3 users × 2 channels = 6)
+- All have same `metadata.broadcastId` (ObjectId)
+- 3 entries with `channel: "email"`
+- 3 entries with `channel: "sms"`
+
+**Sample Entry (Email):**
+
+```json
+{
+  "_id": ObjectId("..."),
+  "userId": ObjectId("..."),
+  "channel": "email",
+  "type": "broadcast",
+  "recipient": "user1@fixzit.com",
+  "subject": "Test Broadcast Nov 16",
+  "message": "This is a test broadcast message...",
+  "status": "sent",
+  "metadata": {
+    "email": "user1@fixzit.com",
+    "name": "Test User 1",
+    "priority": "normal",
+    "broadcastId": "673866a1b2c3d4e5f6789abc",
+    "triggeredBy": "admin-user-id",
+    "triggeredByEmail": "admin@fixzit.com",
+    "sendgridId": "sg_abc123"
+  },
+  "createdAt": ISODate("2025-11-16T12:30:00.000Z"),
+  "sentAt": ISODate("2025-11-16T12:30:00.456Z")
+}
+```
+
+**Sample Entry (SMS):**
+
+```json
+{
+  "_id": ObjectId("..."),
+  "userId": ObjectId("..."),
+  "channel": "sms",
+  "type": "broadcast",
+  "recipient": "+966501234567",
+  "subject": "Test Broadcast Nov 16",
+  "message": "Test Broadcast Nov 16\n\nThis is a test broadcast message...",
+  "status": "sent",
+  "metadata": {
+    "phone": "+966501234567",
+    "name": "Test User 1",
+    "priority": "normal",
+    "broadcastId": "673866a1b2c3d4e5f6789abc",
+    "triggeredBy": "admin-user-id",
+    "segments": 1
+  },
+  "createdAt": ISODate("2025-11-16T12:30:00.000Z"),
+  "sentAt": ISODate("2025-11-16T12:30:00.789Z")
+}
+```
+
+✅ **Pass Criteria:**
+
+- 6 total logs (3 users × 2 channels)
+- All share same `broadcastId`
+- `triggeredBy` and `triggeredByEmail` correctly set
+- Email logs have `sendgridId`
+- SMS logs have `segments` count
+
+---
+
+#### Step 2.4: Verify Communication Dashboard Display
+
+1. Navigate to **Administration → Communication Dashboard**
+2. Apply filters:
+   - **Type:** Broadcast
+   - **Date Range:** Today
+3. **Expected Result:**
+   - Table shows 6 entries
+   - Columns display:
+     - Channel (Email/SMS)
+     - Recipient (email or phone)
+     - Subject
+     - Status (Sent)
+     - Sent At (timestamp)
+
+#### Step 2.5: Test Dashboard Filtering
+
+1. Filter by **Channel: Email**
+   - **Expected:** 3 entries (email only)
+2. Filter by **Channel: SMS**
+   - **Expected:** 3 entries (SMS only)
+3. Search by **Recipient:** `user1@fixzit.com`
+   - **Expected:** 1 entry (email to that user)
+
+✅ **Pass Criteria:**
+
+- Filters work correctly
+- Search returns correct results
+- All 6 entries visible when no filters applied
+
+---
+
+#### Step 2.6: Verify Export Functionality (Optional)
+
+1. Click **"Export CSV"** button
+2. **Expected Result:**
+   - CSV downloaded with 6 rows
+   - Columns: Channel, Recipient, Subject, Status, Sent At, Type
+
+✅ **Pass Criteria:**
+
+- CSV contains all 6 broadcast entries
+- Data matches dashboard table
+
+---
+
+### Test 2 Summary Table
+
+| Test Case        | Expected Logs | Unique `broadcastId` | Metadata Keys                             |
+| ---------------- | ------------- | -------------------- | ----------------------------------------- |
+| Email to 3 users | 3             | Same for all         | `email`, `sendgridId`, `triggeredByEmail` |
+| SMS to 3 users   | 3             | Same for all         | `phone`, `segments`                       |
+| **Total**        | **6**         | **1 unique**         | `broadcastId`, `triggeredBy`, `priority`  |
+
+---
+
+## 📊 MongoDB Verification Queries
+
+### Query 1: Count All Communication Logs
+
+```javascript
+db.communication_logs.countDocuments();
+```
+
+**Expected:** At least 8 (2 OTP + 6 broadcast)
+
+### Query 2: Group by Channel
+
+```javascript
+db.communication_logs.aggregate([
+  {
+    $group: {
+      _id: "$channel",
+      count: { $sum: 1 },
+    },
+  },
+]);
+```
+
+**Expected Result:**
+
+```json
+[
+  { "_id": "otp", "count": 2 },
+  { "_id": "email", "count": 3 },
+  { "_id": "sms", "count": 3 }
+]
+```
+
+### Query 3: Check Broadcast ID Consistency
+
+```javascript
+db.communication_logs.aggregate([
+  {
+    $match: { type: "broadcast" },
+  },
+  {
+    $group: {
+      _id: "$metadata.broadcastId",
+      count: { $sum: 1 },
+      channels: { $addToSet: "$channel" },
+    },
+  },
+]);
+```
+
+**Expected Result:**
+
+```json
+[
+  {
+    "_id": "673866a1b2c3d4e5f6789abc",
+    "count": 6,
+    "channels": ["email", "sms"]
+  }
+]
+```
+
+### Query 4: Verify Status Distribution
+
+```javascript
+db.communication_logs.aggregate([
+  {
+    $group: {
+      _id: "$status",
+      count: { $sum: 1 },
+    },
+  },
+]);
+```
+
+**Expected Result:**
+
+```json
+[{ "_id": "sent", "count": 8 }]
+```
+
+_All should be "sent" in successful test run_
+
+---
+
+## ✅ Final Checklist
+
+### OTP Flow
+
+- [ ] Initial OTP logged with `status: "sent"`
+- [ ] Rate limit metadata decrements correctly
+- [ ] Resend creates separate log entry
+- [ ] Verification does NOT create new log
+- [ ] All logs have correct `userId`, `recipient`, `metadata`
+
+### Admin Broadcast
+
+- [ ] Broadcast creates 6 logs (3 users × 2 channels)
+- [ ] All logs share same `broadcastId`
+- [ ] Email logs have `sendgridId`
+- [ ] SMS logs have `segments` count
+- [ ] `triggeredBy` and `triggeredByEmail` populated
+- [ ] Notification History tab shows broadcast
+- [ ] Communication Dashboard displays all 6 entries
+- [ ] Filters and search work correctly
+
+### Data Integrity
+
+- [ ] All `createdAt` timestamps are valid
+- [ ] `sentAt` timestamps present for successful sends
+- [ ] No duplicate log entries (unique `_id`)
+- [ ] `userId` matches actual user ObjectIds
+- [ ] Phone numbers in E.164 format (`+966...`)
+- [ ] Email addresses valid
+
+---
+
+## 🐛 Common Issues & Troubleshooting
+
+### Issue 1: OTP Log Not Created
+
+**Symptoms:** Query returns 0 results  
+**Causes:**
+
+- `logCommunication()` failed silently
+- MongoDB connection issue
+- Wrong database/collection name
+
+**Fix:**
+
+- Check application logs for `[Communication] Log error`
+- Verify MongoDB connection string
+- Confirm collection name is `communication_logs` (not `communicationLogs`)
+
+### Issue 2: Broadcast Creates Fewer Than 6 Logs
+
+**Symptoms:** Only 3 logs instead of 6  
+**Causes:**
+
+- One channel (email or SMS) failed for all users
+- Users missing phone numbers
+- Twilio balance depleted
+
+**Fix:**
+
+- Check results summary in API response
+- Verify `results.email.failed` and `results.sms.failed` counts
+- Check Twilio console for send failures
+- Verify users have valid phone numbers
+
+### Issue 3: Dashboard Shows Wrong Count
+
+**Symptoms:** Dashboard shows 4 entries, MongoDB has 6  
+**Causes:**
+
+- Dashboard query has filter bug
+- Pagination limit too low
+- Missing index on `communication_logs`
+
+**Fix:**
+
+- Check browser console for API errors
+- Verify `/api/admin/communications` response
+- Add index: `db.communication_logs.createIndex({ createdAt: -1 })`
+
+---
+
+## 📝 Test Execution Log Template
+
+```
+Date: ______________
+Tester: ____________
+Environment: ________
+
+Test 1: OTP Flow
+- Initial Send: ☐ PASS ☐ FAIL
+- Resend: ☐ PASS ☐ FAIL
+- Verification: ☐ PASS ☐ FAIL
+- MongoDB Logs: ☐ PASS ☐ FAIL
+
+Test 2: Broadcast
+- Send Success: ☐ PASS ☐ FAIL
+- History Tab: ☐ PASS ☐ FAIL
+- MongoDB Logs: ☐ PASS ☐ FAIL
+- Dashboard Display: ☐ PASS ☐ FAIL
+- Filters/Search: ☐ PASS ☐ FAIL
+
+Issues Found:
+______________________________
+______________________________
+
+Overall Status: ☐ ALL PASS ☐ ISSUES FOUND
+```
+
+---
+
+## 🚀 Next Steps After Verification
+
+1. **If All Tests Pass:**
+   - Mark communication logging as **Production Ready**
+   - Create Jira ticket for Phase 2 (Twilio webhooks, delivery status updates)
+   - Update `COMMUNICATION_DASHBOARD_GUIDE.md` with "✅ Verified" badge
+
+2. **If Tests Fail:**
+   - Document specific failures in Jira
+   - Attach MongoDB query results and screenshots
+   - Assign to backend engineer for fixes
+   - Re-run QA after fixes deployed
+
+---
+
+**Document Status:** Ready for QA Execution  
+**Last Updated:** November 16, 2025  
+**Owner:** QA Team / Eng. Sultan Al-Hassni
+
+]]>
+</file>
+
+<file path="docs/translations/README.md">
+<![CDATA[
+# Translation System Documentation
+
+This folder contains documentation and artifacts related to Fixzit's bilingual translation system (English & Arabic).
+
+## Files
+
+### Documentation
+
+- **[TRANSLATION_AUDIT_REPORT.md](TRANSLATION_AUDIT_REPORT.md)** - Comprehensive report of translation system architecture, coverage, and maintenance procedures
+
+### Audit Artifacts
+
+- **translation-audit.json** - Machine-readable audit results with detailed file mappings
+- **translation-audit.csv** - Spreadsheet-format audit results for analysis
+
+## Quick Reference
+
+### Translation System Overview
+
+- **Primary Source**: `contexts/TranslationContext.tsx` (1,927 keys in EN & AR)
+- **Secondary Source**: `i18n/*.json` files (403 keys in EN & AR)
+- **Status**: ✅ 100% parity achieved (0 missing keys)
+
+### Running Translation Audit
+
+```bash
+node scripts/audit-translations.mjs
+```
+
+### Adding New Translations
+
+1. Add to both EN and AR in `contexts/TranslationContext.tsx`:
+
+```typescript
+ar: {
+  'module.category.key': 'النص العربي',
+},
+en: {
+  'module.category.key': 'English text',
+}
+```
+
+2. Run audit to verify:
+
+```bash
+node scripts/audit-translations.mjs
+```
+
+3. Commit changes (pre-commit hook will validate)
+
+### Key Naming Conventions
+
+- **Use namespaced keys**: `module.category.key` (e.g., `finance.payment.bankName`)
+- **Avoid unnamespaced keys**: Don't use `"Bank Name"` directly as a key
+- **Consistent prefixes**: All keys in a module should start with same prefix
+
+### Translation Tests
+
+- **Test Suite**: `tests/unit/contexts/TranslationContext.test.tsx`
+- **Coverage**: All modules, language switching, RTL/LTR, persistence
+- **Run Tests**: `pnpm test tests/unit/contexts/TranslationContext.test.tsx`
+
+## Maintenance
+
+### Pre-commit Hook
+
+Translation audit runs automatically before every commit. To install:
+
+```bash
+bash scripts/setup-git-hooks.sh
+```
+
+### Fixing Translation Gaps
+
+If audit finds missing keys:
+
+```bash
+node scripts/audit-translations.mjs --fix
+```
+
+Then review and commit the auto-generated translations.
+
+## Related Documentation
+
+- [Agent Instructions](../../.github/copilot-instructions.md) - Translation guidelines for agents
+- [Contributing Guide](../../CONTRIBUTING.md) - Team workflow and standards
+
+---
+
+**Last Updated**: November 9, 2025  
+**Maintained By**: Engineering Team
+
+]]>
+</file>
+
+<file path="docs/translations/TRANSLATION_AUDIT_REPORT.md">
+<![CDATA[
+# 🌍 Fixzit Translation System - Complete Audit Report
+
+**Date:** 2025-11-17  
+**Status:** ✅ **Translation audit automation enabled (2,936 tracked keys)**
+
+---
+
+## Executive Summary
+
+The translation pipeline now runs two automated scanners on every PR:
+
+- `pnpm run scan:i18n:audit` → generates `docs/translations/translation-audit.json` via `scripts/audit-translations.mjs` (2,936 EN/AR keys, **0 missing**).
+- `pnpm run scan:i18n` → executes `tests/i18n-scan.mjs` against both the JSON catalogs and `contexts/TranslationContext.tsx`, emitting `_artifacts/i18n-report.json` and flagging files with hardcoded UI copy.
+
+Both jobs are wired into `.github/workflows/fixzit-quality-gates.yml` and fail the build whenever either report contains gaps.
+
+---
+
+## Translation System Architecture
+
+### 1. Primary Translation Source: `TranslationContext.tsx`
+
+**Location:** `/workspaces/Fixzit/contexts/TranslationContext.tsx`
+
+**Purpose:** Runtime translation system using React Context API
+
+**Structure:**
+
+```typescript
+const baseTranslations = {
+  ar: {
+    "common.welcome": "مرحبا",
+    "app.fm": "إدارة المرافق",
+    // ... 2,662 total keys
+  },
+  en: {
+    "common.welcome": "Welcome",
+    "app.fm": "Facility Management",
+    // ... 2,662 total keys
+  },
+};
+
+const translations = {
+  ar: { ...baseTranslations.ar, ...newTranslations.ar },
+  en: { ...baseTranslations.en, ...newTranslations.en },
+  // fr/es/... fall back to baseTranslations
+};
+```
+
+**Status:** ✅ **2662/2662 base keys** merged with auto-generated keys
+
+**Usage:** Primary source for all UI translations via `useTranslation()` hook
+
+---
+
+### 2. Secondary Translation Source: `i18n/*.json`
+
+**Location:**
+
+- `/workspaces/Fixzit/i18n/en.json`
+- `/workspaces/Fixzit/i18n/ar.json`
+
+**Purpose:** JSON-based translation catalog (possibly for API, SSR, or external systems)
+
+**Status:** ✅ **1055/1055 keys** (kept in sync via `scripts/generate_missing_translations.py`)
+
+### 3. Auto-generated keys: `i18n/new-translations.ts`
+
+- `scripts/generate_missing_translations.py` reads `docs/translations/translation-audit.json`, scrapes fallback strings from the codebase, translates them to Arabic, and writes `i18n/new-translations.ts` + updates `i18n/{en,ar}.json`.
+- `contexts/TranslationContext.tsx` merges `newTranslations` at runtime, so adding a new key only requires declaring it once.
+- Re-run `pnpm run scan:i18n:audit` after changing copy—any missing keys are appended automatically.
+
+### 4. Component workflow (new `useAutoTranslator` helper)
+
+```tsx
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+export function ExampleCard() {
+  const auto = useAutoTranslator("example.card");
+  return (
+    <>
+      <h3>{auto("System Management", "title")}</h3>
+      <p>{auto("Configure system settings and preferences", "subtitle")}</p>
+    </>
+  );
+}
+```
+
+- The helper converts `scope + id` into a deterministic key (`auto.example.card.title`).
+- `scan:i18n:audit` detects the new key, populates `i18n/new-translations.ts`, and rewrites `i18n/{en,ar}.json` automatically.
+
+**Note:** Separate from TranslationContext - may serve different use cases
+
+---
+
+### 3. Language Configuration: `language-options.ts`
+
+**Locations:**
+
+- `/workspaces/Fixzit/config/language-options.ts` (primary)
+- `/workspaces/Fixzit/data/language-options.ts` (backup/alternate)
+
+**Purpose:** Language metadata configuration (NOT a translation catalog)
+
+**Content:**
+
+- Language names (native & English)
+- ISO codes, locales
+- Country names
+- Text direction (RTL/LTR)
+- Flag emojis
+
+**Status:** ⚠️ Configuration file - No translation gaps applicable
+
+---
+
+## Fixes Applied
+
+### Issue 1: TopBar "Unknown App" Bug
+
+**Root Cause:** `TranslationProvider` was only in `AuthenticatedProviders`, but TopBar renders on all pages (including public)
+
+**Solution:** Added `TranslationProvider` to `PublicProviders`
+
+```typescript
+// providers/PublicProviders.tsx (FIXED)
+<FormStateProvider>
+  <TranslationProvider>  {/* ← Added */}
+    <TopBarProvider>
+      {children}
+    </TopBarProvider>
+  </TranslationProvider>
+</FormStateProvider>
+```
+
+**Status:** ✅ Fixed and verified by user
+
+---
+
+### Issue 2: Translation Gaps
+
+**Found:**
+
+- 29 missing Arabic keys (careers section)
+- 1 missing English key (`common.remember`)
+
+**Solution:** Added all missing translations to TranslationContext.tsx
+
+**Result:** 944/944 perfect parity
+
+---
+
+## Files Reviewed
+
+### Translation Catalogs
+
+- ✅ `/contexts/TranslationContext.tsx` - 944 keys each
+- ✅ `/i18n/en.json` - 403 keys
+- ✅ `/i18n/ar.json` - 403 keys
+
+### Configuration Files (Not Translation Catalogs)
+
+- ℹ️ `/config/language-options.ts` - Language metadata
+- ℹ️ `/data/language-options.ts` - Language metadata (alternate)
+
+### Test Files (Excluded from Audit)
+
+- 🧪 `/data/language-options.test.ts` - Unit tests
+- 🧪 `/qa/tests/i18n-en.unit.spec.ts` - Translation tests
+- 🧪 `/qa/tests/02-rtl-lang.spec.ts` - RTL tests
+- 🧪 `/tests/specs/i18n.spec.ts` - E2E translation tests
+
+### Utility Scripts
+
+- 🔧 `/scripts/i18n/check_language_selector.ts` - Language selector verification
+- 🔧 `/scripts/check-translation-gap.mjs` - TranslationContext audit script (NEW)
+- 🔧 `/scripts/check-json-translation-gap.mjs` - JSON audit script (NEW)
+- 🔧 `/scripts/system-translation-audit.mjs` - System-wide audit script (NEW)
+
+---
+
+## Translation Maintenance Procedures
+
+### Adding New Translations
+
+1. **For UI translations**: Add to `TranslationContext.tsx`
+
+   ```typescript
+   ar: {
+     'new.key': 'النص العربي',
+     // ...
+   },
+   en: {
+     'new.key': 'English text',
+     // ...
+   }
+   ```
+
+2. **For JSON translations**: Add to both `i18n/en.json` and `i18n/ar.json`
+
+3. **Always add both languages simultaneously** to maintain parity
+
+### Verifying Translation Parity
+
+Run the system-wide audit:
+
+```bash
+node scripts/system-translation-audit.mjs
+```
+
+Or check individual sources:
+
+```bash
+# TranslationContext.tsx
+node scripts/check-translation-gap.mjs
+
+# JSON files
+node scripts/check-json-translation-gap.mjs
+```
+
+### Test Pages
+
+Diagnostic pages for translation testing:
+
+- `/test-translations` - Client-side translation hook test
+- `/test-translations-ssr` - Server-side JSON translation test
+
+---
+
+## System Status
+
+| Source                 | English Keys | Arabic Keys | Gap   | Status             |
+| ---------------------- | ------------ | ----------- | ----- | ------------------ |
+| TranslationContext.tsx | 944          | 944         | 0     | ✅ Perfect         |
+| i18n/\*.json           | 403          | 403         | 0     | ✅ Perfect         |
+| **TOTAL**              | **1347**     | **1347**    | **0** | ✅ **100% Parity** |
+
+---
+
+## Commit History
+
+- **Commit:** `a99926dc7` (pushed to origin/main)
+- **Changes:**
+  - Added TranslationProvider to PublicProviders
+  - Added 29 Arabic translations (careers section)
+  - Added 1 English translation (common.remember)
+  - Created 3 audit scripts
+  - Created 2 diagnostic test pages
+
+---
+
+## Recommendations
+
+1. ✅ **Translation parity is perfect** - No action needed
+2. 📋 **Consider unifying translation sources** - Currently have 2 separate catalogs (TranslationContext + JSON files)
+3. 🔄 **Run audit before each release** - Use `system-translation-audit.mjs`
+4. 📝 **Document translation workflow** - Add to developer onboarding
+
+---
+
+**Report Generated:** System-wide translation audit complete  
+**Audited By:** GitHub Copilot Agent  
+**Verified By:** User confirmation ("now it is fixed")
+
+]]>
+</file>
+
+</batch_content>

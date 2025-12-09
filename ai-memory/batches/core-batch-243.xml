@@ -1,0 +1,3342 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="scripts/analyze-vercel-secrets.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * Analyze Vercel secrets and provide recommendations
+ * Run: pnpm exec tsx scripts/analyze-vercel-secrets.ts
+ */
+
+// Secrets currently in Vercel (from vercel env ls)
+const _vercelSecrets = [
+  "Next_Auth_Secret",
+  "GOOGLE_MAPS_API_KEY",
+  "SEND_GRID",
+  "GOOGLE_CLIENT_SECRET",
+  "GOOGLE_CLIENT_ID",
+  "NEXT_PUBLIC_REQUIRE_SMS_OTP",
+  "NEXTAUTH_REQUIRE_SMS_OTP",
+  "MEILI_MASTER_KEY",
+  "MEILI_HOST",
+  "ZATCA_SELLER_ADDRESS",
+  "ZATCA_VAT_NUMBER",
+  "ZATCA_SELLER_NAME",
+  "ZATCA_ENVIRONMENT",
+  "ZATCA_API_SECRET",
+  "ZATCA_API_KEY",
+  "NOTIFICATIONS_TELEMETRY_WEBHOOK",
+  "WHATSAPP_PHONE_NUMBER_ID",
+  "WHATSAPP_BUSINESS_API_KEY",
+  "NOTIFICATIONS_SMOKE_PHONE",
+  "NOTIFICATIONS_SMOKE_EMAIL",
+  "NOTIFICATIONS_SMOKE_NAME",
+  "NOTIFICATIONS_SMOKE_USER_ID",
+  "NEXTAUTH_SUPERADMIN_FALLBACK_PHONE",
+  "MARKETPLACE_ENABLED",
+  "DEFAULT_ORG_ID",
+  "TEST_ORG_ID",
+  "PUBLIC_ORG_ID",
+  "FIREBASE_ADMIN_PRIVATE_KEY",
+  "FIREBASE_ADMIN_CLIENT_EMAIL",
+  "FIREBASE_ADMIN_PROJECT_ID",
+  "TWILIO_PHONE_NUMBER",
+  "TWILIO_AUTH_TOKEN",
+  "TWILIO_ACCOUNT_SID",
+  "SENDGRID_FROM_NAME",
+  "SENDGRID_FROM_EMAIL",
+  "SENDGRID_API_KEY",
+  "NEXTAUTH_URL",
+  "NEXTAUTH_SECRET",
+  "MONGODB_URI",
+];
+
+// Required secrets from codebase analysis
+const requiredSecrets = {
+  "🔴 CRITICAL - App will break": {
+    MONGODB_URI: { status: "configured", note: "Database connection" },
+    NEXTAUTH_SECRET: { status: "configured", note: "Session signing" },
+    NEXTAUTH_URL: { status: "configured", note: "Auth base URL" },
+    JWT_SECRET: {
+      status: "missing",
+      note: "JWT token signing",
+      howToGet: "Run: openssl rand -hex 32",
+    },
+    INTERNAL_API_SECRET: {
+      status: "missing",
+      note: "Server-to-server auth",
+      howToGet: "Run: openssl rand -base64 32",
+    },
+  },
+
+  "🟡 HIGH PRIORITY - Major features broken": {
+    OPENAI_API_KEY: {
+      status: "missing",
+      note: "AI Copilot, Help Q&A",
+      howToGet: "Get from https://platform.openai.com/api-keys",
+    },
+    AWS_S3_BUCKET: {
+      status: "missing",
+      note: "File uploads (resumes, attachments)",
+      howToGet: "Create AWS S3 bucket or use Vercel Blob",
+    },
+    AWS_REGION: {
+      status: "missing",
+      note: "S3 region (e.g., us-east-1)",
+      howToGet: "Set to your AWS region",
+    },
+    AWS_ACCESS_KEY_ID: {
+      status: "missing",
+      note: "AWS credentials",
+      howToGet: "From AWS IAM console",
+    },
+    AWS_SECRET_ACCESS_KEY: {
+      status: "missing",
+      note: "AWS credentials",
+      howToGet: "From AWS IAM console",
+    },
+    PAYTABS_PROFILE_ID: {
+      status: "missing",
+      note: "Payment processing",
+      howToGet: "From PayTabs dashboard",
+    },
+    PAYTABS_SERVER_KEY: {
+      status: "missing",
+      note: "Payment processing",
+      howToGet: "From PayTabs dashboard",
+    },
+    PAYTABS_CLIENT_KEY: {
+      status: "missing",
+      note: "Payment processing",
+      howToGet: "From PayTabs dashboard",
+    },
+    TAP_SECRET_KEY: {
+      status: "missing",
+      note: "Alternative payment",
+      howToGet: "From Tap dashboard",
+    },
+    TAP_PUBLIC_KEY: {
+      status: "missing",
+      note: "Alternative payment",
+      howToGet: "From Tap dashboard",
+    },
+  },
+
+  "🟢 MEDIUM - Features work but degraded": {
+    NEXT_PUBLIC_APP_URL: {
+      status: "missing",
+      note: "Public app URL",
+      howToGet: "Set to: https://fixzit.co",
+    },
+    BASE_URL: {
+      status: "missing",
+      note: "Email links, referrals",
+      howToGet: "Set to: https://fixzit.co",
+    },
+    PUBLIC_BASE_URL: {
+      status: "missing",
+      note: "Public links",
+      howToGet: "Set to: https://fixzit.co",
+    },
+    APP_URL: {
+      status: "missing",
+      note: "App URL",
+      howToGet: "Set to: https://fixzit.co",
+    },
+    REDIS_URL: {
+      status: "missing",
+      note: "Caching, rate limiting",
+      howToGet: "Use Upstash Redis or disable",
+    },
+    CRON_SECRET: {
+      status: "missing",
+      note: "Background jobs",
+      howToGet: "Run: openssl rand -hex 32",
+    },
+    FILE_SIGNING_SECRET: {
+      status: "missing",
+      note: "Secure file URLs",
+      howToGet: "Run: openssl rand -hex 32",
+    },
+    LOG_HASH_SALT: {
+      status: "missing",
+      note: "Privacy protection",
+      howToGet: "Run: openssl rand -hex 32",
+    },
+    COPILOT_MODEL: {
+      status: "missing",
+      note: "AI model selection",
+      howToGet: "Set to: gpt-4o-mini",
+    },
+    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: {
+      status: "missing",
+      note: "Maps on client",
+      howToGet: "Copy from GOOGLE_MAPS_API_KEY or create new",
+    },
+  },
+
+  "⚪ OPTIONAL - Nice to have": {
+    SENTRY_DSN: {
+      status: "missing",
+      note: "Error tracking",
+      howToGet: "From Sentry.io dashboard",
+    },
+    DATADOG_API_KEY: {
+      status: "missing",
+      note: "Monitoring",
+      howToGet: "From Datadog dashboard",
+    },
+    ARAMEX_ACCOUNT_NUMBER: {
+      status: "missing",
+      note: "Shipping integration",
+      howToGet: "From Aramex account",
+    },
+    ARAMEX_USERNAME: {
+      status: "missing",
+      note: "Shipping integration",
+      howToGet: "From Aramex account",
+    },
+    ARAMEX_PASSWORD: {
+      status: "missing",
+      note: "Shipping integration",
+      howToGet: "From Aramex account",
+    },
+    SMSA_USERNAME: {
+      status: "missing",
+      note: "Shipping integration",
+      howToGet: "From SMSA account",
+    },
+    SPL_API_KEY: {
+      status: "missing",
+      note: "Shipping integration",
+      howToGet: "From SPL account",
+    },
+    ATS_ENABLED: {
+      status: "missing",
+      note: "Enable ATS module",
+      howToGet: "Set to: true",
+    },
+    WO_ENABLED: {
+      status: "missing",
+      note: "Enable Work Orders",
+      howToGet: "Set to: true",
+    },
+    INVOICE_ENABLED: {
+      status: "missing",
+      note: "Enable Invoicing",
+      howToGet: "Set to: true",
+    },
+    PROPERTY_ENABLED: {
+      status: "missing",
+      note: "Enable Properties",
+      howToGet: "Set to: true",
+    },
+  },
+
+  "✅ CONFIGURED": {
+    MONGODB_URI: { status: "configured", note: "MongoDB Atlas connection" },
+    NEXTAUTH_SECRET: { status: "configured", note: "NextAuth signing key" },
+    NEXTAUTH_URL: { status: "configured", note: "Auth base URL" },
+    GOOGLE_CLIENT_ID: { status: "configured", note: "Google OAuth" },
+    GOOGLE_CLIENT_SECRET: { status: "configured", note: "Google OAuth" },
+    SENDGRID_API_KEY: { status: "configured", note: "Email service" },
+    SENDGRID_FROM_EMAIL: { status: "configured", note: "Sender email" },
+    SENDGRID_FROM_NAME: { status: "configured", note: "Sender name" },
+    TWILIO_ACCOUNT_SID: { status: "configured", note: "SMS service" },
+    TWILIO_AUTH_TOKEN: { status: "configured", note: "SMS auth" },
+    TWILIO_PHONE_NUMBER: { status: "configured", note: "SMS sender" },
+    GOOGLE_MAPS_API_KEY: { status: "configured", note: "Maps API" },
+    MEILI_HOST: { status: "configured", note: "Search engine" },
+    MEILI_MASTER_KEY: { status: "configured", note: "Search auth" },
+    ZATCA_API_KEY: { status: "configured", note: "Saudi e-invoicing" },
+    ZATCA_API_SECRET: { status: "configured", note: "ZATCA auth" },
+    ZATCA_SELLER_NAME: { status: "configured", note: "Business name" },
+    ZATCA_VAT_NUMBER: { status: "configured", note: "VAT number" },
+    ZATCA_SELLER_ADDRESS: { status: "configured", note: "Business address" },
+    ZATCA_ENVIRONMENT: { status: "configured", note: "ZATCA env" },
+    FIREBASE_ADMIN_PROJECT_ID: {
+      status: "configured",
+      note: "Push notifications",
+    },
+    FIREBASE_ADMIN_CLIENT_EMAIL: {
+      status: "configured",
+      note: "Firebase auth",
+    },
+    FIREBASE_ADMIN_PRIVATE_KEY: { status: "configured", note: "Firebase key" },
+    PUBLIC_ORG_ID: { status: "configured", note: "Organization ID" },
+    TEST_ORG_ID: { status: "configured", note: "Test org" },
+    DEFAULT_ORG_ID: { status: "configured", note: "Default org" },
+    MARKETPLACE_ENABLED: { status: "configured", note: "Marketplace module" },
+    NOTIFICATIONS_SMOKE_USER_ID: {
+      status: "configured",
+      note: "Test notifications",
+    },
+    NOTIFICATIONS_SMOKE_NAME: { status: "configured", note: "Test name" },
+    NOTIFICATIONS_SMOKE_EMAIL: { status: "configured", note: "Test email" },
+    NOTIFICATIONS_SMOKE_PHONE: { status: "configured", note: "Test phone" },
+    NOTIFICATIONS_TELEMETRY_WEBHOOK: {
+      status: "configured",
+      note: "Metrics webhook",
+    },
+    WHATSAPP_BUSINESS_API_KEY: { status: "configured", note: "WhatsApp API" },
+    WHATSAPP_PHONE_NUMBER_ID: { status: "configured", note: "WhatsApp sender" },
+    NEXTAUTH_REQUIRE_SMS_OTP: { status: "configured", note: "SMS OTP enabled" },
+    NEXT_PUBLIC_REQUIRE_SMS_OTP: {
+      status: "configured",
+      note: "Client SMS OTP",
+    },
+    NEXTAUTH_SUPERADMIN_FALLBACK_PHONE: {
+      status: "configured",
+      note: "Admin phone",
+    },
+  },
+};
+
+console.log("═".repeat(70));
+console.log("🔍 VERCEL SECRETS ANALYSIS");
+console.log("═".repeat(70));
+console.log();
+
+// Print each category
+for (const [category, secrets] of Object.entries(requiredSecrets)) {
+  if (category === "✅ CONFIGURED") {
+    // Skip configured for now
+    continue;
+  }
+
+  console.log(`\n${category}`);
+  console.log("─".repeat(70));
+
+  for (const [key, info] of Object.entries(secrets)) {
+    console.log(`\n  🔑 ${key}`);
+    console.log(`     📝 ${info.note}`);
+    if (info.howToGet) {
+      console.log(`     💡 How to get: ${info.howToGet}`);
+    }
+  }
+}
+
+// Print configured secrets
+console.log("\n\n✅ ALREADY CONFIGURED ON VERCEL");
+console.log("─".repeat(70));
+const configured = Object.entries(requiredSecrets["✅ CONFIGURED"]);
+console.log(`\n  Total: ${configured.length} secrets`);
+console.log(`\n  ${configured.map(([k]) => k).join(", ")}`);
+
+console.log("\n\n" + "═".repeat(70));
+console.log("📊 SUMMARY");
+console.log("═".repeat(70));
+
+const critical = Object.keys(
+  requiredSecrets["🔴 CRITICAL - App will break"],
+).filter(
+  (k) =>
+    requiredSecrets["🔴 CRITICAL - App will break"][k].status === "missing",
+).length;
+
+const high = Object.keys(
+  requiredSecrets["🟡 HIGH PRIORITY - Major features broken"],
+).length;
+const medium = Object.keys(
+  requiredSecrets["🟢 MEDIUM - Features work but degraded"],
+).length;
+const optional = Object.keys(
+  requiredSecrets["⚪ OPTIONAL - Nice to have"],
+).length;
+const total = configured.length;
+
+console.log(`\n  ✅ Configured: ${total}`);
+console.log(`  🔴 Critical Missing: ${critical}`);
+console.log(`  🟡 High Priority Missing: ${high}`);
+console.log(`  🟢 Medium Priority Missing: ${medium}`);
+console.log(`  ⚪ Optional Missing: ${optional}`);
+
+console.log("\n\n" + "═".repeat(70));
+console.log("🚀 QUICK SETUP COMMANDS");
+console.log("═".repeat(70));
+
+console.log("\n# Critical secrets (required immediately):");
+console.log("vercel env add JWT_SECRET production");
+console.log("vercel env add INTERNAL_API_SECRET production");
+
+console.log("\n# High priority (for major features):");
+console.log("vercel env add OPENAI_API_KEY production");
+console.log("vercel env add AWS_S3_BUCKET production");
+console.log("vercel env add AWS_REGION production");
+console.log("vercel env add AWS_ACCESS_KEY_ID production");
+console.log("vercel env add AWS_SECRET_ACCESS_KEY production");
+
+console.log("\n# URLs (recommended):");
+console.log("vercel env add NEXT_PUBLIC_APP_URL production");
+console.log("vercel env add BASE_URL production");
+console.log("vercel env add PUBLIC_BASE_URL production");
+console.log("vercel env add APP_URL production");
+
+console.log("\n# Feature flags (enable modules):");
+console.log("vercel env add ATS_ENABLED production");
+console.log("vercel env add WO_ENABLED production");
+console.log("vercel env add INVOICE_ENABLED production");
+console.log("vercel env add PROPERTY_ENABLED production");
+
+console.log("\n# Payment (if needed):");
+console.log("vercel env add PAYTABS_PROFILE_ID production");
+console.log("vercel env add PAYTABS_SERVER_KEY production");
+console.log("vercel env add PAYTABS_CLIENT_KEY production");
+
+console.log("\n\n" + "═".repeat(70));
+console.log("⚠️  IMPORTANT NOTES");
+console.log("═".repeat(70));
+console.log(`
+1. JWT_SECRET and INTERNAL_API_SECRET are CRITICAL
+   - Without these, authentication may fail
+   - Generate: openssl rand -hex 32
+
+2. AWS S3 is needed for file uploads
+   - Resumes, work order attachments
+   - Alternative: Use Vercel Blob Storage
+
+3. OPENAI_API_KEY enables AI features
+   - AI Copilot, Help Q&A
+   - Get from: https://platform.openai.com/api-keys
+
+4. URLs should all be set to: https://fixzit.co
+   - This fixes email links, OAuth redirects, etc.
+
+5. Payment gateways (PayTabs/Tap) optional
+   - Only needed for e-commerce features
+   - Get credentials from respective dashboards
+
+6. After adding secrets, redeploy:
+   vercel --cwd Fixzit --prod --yes
+`);
+
+console.log("═".repeat(70));
+
+]]>
+</file>
+
+<file path="scripts/api-smoke-tests.ts">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * API Smoke Tests - Verify critical endpoints after TypeScript cleanup
+ * Tests all major API routes to ensure no runtime errors from type casts
+ * Accepts 200-299 (success) and 401 (auth required) as passing
+ */
+
+const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
+
+interface TestResult {
+  endpoint: string;
+  status: number;
+  success: boolean;
+  error?: string;
+  responseTime: number;
+}
+
+const results: TestResult[] = [];
+
+async function testEndpoint(endpoint: string): Promise<TestResult> {
+  const startTime = Date.now();
+  const url = `${BASE_URL}${endpoint}`;
+
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    const responseTime = Date.now() - startTime;
+    // Accept 200-299 success codes OR 401 (auth required, which is expected)
+    const success =
+      (response.status >= 200 && response.status < 300) ||
+      response.status === 401;
+
+    return {
+      endpoint,
+      status: response.status,
+      success,
+      responseTime,
+    };
+  } catch (error) {
+    return {
+      endpoint,
+      status: 0,
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+      responseTime: Date.now() - startTime,
+    };
+  }
+}
+
+async function runSmokeTests() {
+  console.log("🔍 Starting API Smoke Tests...\n");
+  console.log(`Base URL: ${BASE_URL}\n`);
+
+  // Critical endpoints to test (all major modules from TypeScript cleanup)
+  const endpoints = [
+    "/api/properties",
+    "/api/work-orders",
+    "/api/finance/invoices",
+    "/api/finance/expenses",
+    "/api/souq/products",
+    "/api/souq/listings",
+    "/api/crm/contacts",
+    "/api/hr/employees",
+    "/api/rfqs",
+    "/api/projects",
+    "/api/vendors",
+  ];
+
+  // Run tests
+  for (const endpoint of endpoints) {
+    const result = await testEndpoint(endpoint);
+    results.push(result);
+
+    const statusEmoji = result.success
+      ? result.status === 401
+        ? "🔐"
+        : "✅"
+      : "❌";
+    const statusText =
+      result.status === 401 ? "AUTH" : result.success ? "OK" : "FAIL";
+
+    console.log(
+      `${statusEmoji} ${endpoint.padEnd(35)} ${statusText.padEnd(8)} ${result.status} (${result.responseTime}ms)`,
+    );
+
+    if (result.error) {
+      console.log(`   Error: ${result.error}`);
+    }
+  }
+
+  // Summary
+  console.log("\n" + "=".repeat(80));
+  console.log("📊 Test Summary");
+  console.log("=".repeat(80));
+
+  const successful = results.filter(
+    (r) => r.success && r.status !== 401,
+  ).length;
+  const authRequired = results.filter((r) => r.status === 401).length;
+  const failed = results.filter((r) => !r.success).length;
+  const total = results.length;
+
+  console.log(`\nTotal Endpoints: ${total}`);
+  console.log(
+    `✅ Success: ${successful} (${Math.round((successful / total) * 100)}%)`,
+  );
+  console.log(
+    `🔐 Auth Required: ${authRequired} (${Math.round((authRequired / total) * 100)}%)`,
+  );
+  console.log(`❌ Failed: ${failed} (${Math.round((failed / total) * 100)}%)`);
+
+  const avgResponseTime = Math.round(
+    results.reduce((sum, r) => sum + r.responseTime, 0) / results.length,
+  );
+  console.log(`\n⏱️  Average Response Time: ${avgResponseTime}ms`);
+
+  // Show actual failures (excluding 401 auth)
+  if (failed > 0) {
+    console.log("\n" + "=".repeat(80));
+    console.log("❌ Failed Endpoints:");
+    console.log("=".repeat(80));
+    results
+      .filter((r) => !r.success)
+      .forEach((r) => {
+        console.log(`\n${r.endpoint} (${r.status})`);
+        if (r.error) {
+          console.log(`Error: ${r.error}`);
+        }
+      });
+  }
+
+  console.log("\n" + "=".repeat(80));
+  console.log(
+    failed === 0
+      ? "✅ All API smoke tests passed!"
+      : `❌ ${failed} endpoint(s) failed`,
+  );
+  console.log("=".repeat(80) + "\n");
+
+  // Exit with success if no actual failures (401 is acceptable)
+  process.exit(failed > 0 ? 1 : 0);
+}
+
+// Run tests
+runSmokeTests().catch((error) => {
+  console.error("❌ Smoke tests crashed:", error);
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/artifacts/fixzit-verify.json">
+<![CDATA[
+{
+  "timestamp": "2025-09-03T09:30:52.531999",
+  "stats": {
+    "total_checks": 6,
+    "passed": 10,
+    "failed": 2,
+    "warnings": 1
+  },
+  "errors": ["Database error: 0", "Pages directory not found"],
+  "warnings": ["Services directory not found"],
+  "passes": [
+    "Package installed: streamlit",
+    "Package installed: pandas",
+    "Package installed: psycopg2",
+    "Package installed: bcrypt",
+    "Package installed: plotly",
+    "Package installed: folium",
+    "DATABASE_URL environment variable found",
+    "Navigation for 'admin': 97 pages",
+    "Navigation for 'manager': 75 pages",
+    "Navigation for 'tenant': 28 pages"
+  ],
+  "status": "FAIL"
+}
+
+]]>
+</file>
+
+<file path="scripts/artifacts/fixzit-verify.md">
+<![CDATA[
+# Fixzit Verification Report
+
+**Generated**: 2025-09-03 09:30:52
+
+## Summary
+
+- **Status**: ❌ FAIL
+- **Passed**: 11
+- **Failed**: 2
+- **Warnings**: 1
+
+## Errors
+
+- ❌ Database error: 0
+- ❌ Pages directory not found
+
+## Warnings
+
+- ⚠️ Services directory not found
+
+## Passed Checks
+
+- ✅ Package installed: streamlit
+- ✅ Package installed: pandas
+- ✅ Package installed: psycopg2
+- ✅ Package installed: bcrypt
+- ✅ Package installed: plotly
+- ✅ Package installed: folium
+- ✅ DATABASE_URL environment variable found
+- ✅ Navigation for 'admin': 97 pages
+- ✅ Navigation for 'manager': 75 pages
+- ✅ Navigation for 'tenant': 28 pages
+- ✅ JSON report: artifacts/fixzit-verify.json
+
+]]>
+</file>
+
+<file path="scripts/assess-system.ts">
+<![CDATA[
+import fg from "fast-glob";
+import fs from "fs";
+import pc from "picocolors";
+
+console.log(pc.cyan("\n=== COMPREHENSIVE SYSTEM ASSESSMENT ===\n"));
+
+const patterns = [
+  "**/*.{ts,tsx,js,jsx}",
+  "!node_modules/**",
+  "!.next/**",
+  "!_artifacts/**",
+  "!packages/**",
+];
+const files = await fg(patterns);
+
+console.log(pc.yellow("1. Code Statistics:"));
+console.log(`   - Source files: ${files.length}`);
+
+let totalLines = 0;
+let commentedLines = 0;
+let todoComments = 0;
+
+for (const f of files) {
+  const code = fs.readFileSync(f, "utf8");
+  const lines = code.split("\n");
+  totalLines += lines.length;
+  commentedLines += lines.filter((l) => l.trim().startsWith("//")).length;
+  todoComments += (
+    code.match(/\/\/.*TODO|\/\/.*FIXME|\/\*.*TODO.*\*\//gi) || []
+  ).length;
+}
+
+console.log(`   - Total lines: ${totalLines.toLocaleString()}`);
+console.log(`   - Comment lines: ${commentedLines.toLocaleString()}`);
+console.log(`   - TODO/FIXME comments: ${todoComments}`);
+
+console.log(pc.yellow("\n2. Import Pattern Analysis:"));
+let legacySrcImports = 0;
+let modernLibImports = 0;
+
+for (const f of files) {
+  const code = fs.readFileSync(f, "utf8");
+  legacySrcImports += (code.match(/from ['"]@\/src\//g) || []).length;
+  modernLibImports += (code.match(/from ['"]@\/lib\//g) || []).length;
+}
+
+console.log(`   - Legacy @/src/ imports: ${legacySrcImports}`);
+console.log(`   - Modern @/lib/ imports: ${modernLibImports}`);
+
+console.log(pc.yellow("\n3. Dead Code Indicators:"));
+let commentedCode = 0;
+
+for (const f of files) {
+  const code = fs.readFileSync(f, "utf8");
+  const lines = code.split("\n");
+  commentedCode += lines.filter((l) => {
+    const t = l.trim();
+    return (
+      t.startsWith("// ") &&
+      (t.includes("function") || t.includes("const ") || t.includes("export"))
+    );
+  }).length;
+}
+
+console.log(`   - Commented-out code lines: ${commentedCode}`);
+
+console.log(pc.yellow("\n4. MongoDB Pattern Check:"));
+let directMongoClient = 0;
+let legacyMongoose = 0;
+
+for (const f of files) {
+  const code = fs.readFileSync(f, "utf8");
+  if (code.includes("MongoClient.connect(")) directMongoClient++;
+  if (code.includes("mongoose.connect(") && !f.includes("lib/mongo"))
+    legacyMongoose++;
+}
+
+console.log(`   - Direct MongoClient.connect(): ${directMongoClient}`);
+console.log(`   - Scattered mongoose.connect(): ${legacyMongoose}`);
+
+console.log(pc.green("\n=== Assessment complete ===\n"));
+
+]]>
+</file>
+
+<file path="scripts/auth-debug.ts">
+<![CDATA[
+import path from 'path';
+import dotenv from 'dotenv';
+import { z } from 'zod';
+
+dotenv.config({ path: path.resolve(process.cwd(), '.env.test') });
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
+async function main() {
+  // Use Object.defineProperty to allow setting NODE_ENV in scripts
+  Object.defineProperty(process.env, 'NODE_ENV', {
+    value: 'development',
+    writable: true,
+    configurable: true,
+  });
+  const { connectToDatabase } = await import('../lib/mongodb-unified');
+  const { authConfig } = await import('../auth.config');
+  const { User } = await import('../server/models/User');
+  const bcrypt = await import('bcryptjs');
+  const { logger } = await import('../lib/logger');
+  const REQUIRE_SMS_OTP = process.env.NEXTAUTH_REQUIRE_SMS_OTP !== 'false';
+  const LoginSchema = z
+    .object({
+      identifier: z.string().trim().min(1, 'Email or employee number is required'),
+      password: z.string().min(1, 'Password is required'),
+      otpToken: z.string().trim().min(1, 'OTP verification token is required').optional(),
+      rememberMe: z.union([z.boolean(), z.string(), z.undefined()]).transform(val => {
+        if (typeof val === 'boolean') return val;
+        if (val === 'on' || val === 'true' || val === '1') return true;
+        return false;
+      }).optional().default(false),
+    })
+    .superRefine((data, ctx) => {
+      if (REQUIRE_SMS_OTP && !data.otpToken) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['otpToken'],
+          message: 'OTP verification is required. Please enter the latest code.',
+        });
+      }
+    })
+    .transform((data, ctx) => {
+      const idRaw = data.identifier.trim();
+      const emailOk = z.string().email().safeParse(idRaw).success;
+      const empUpper = idRaw.toUpperCase();
+      const empOk = /^EMP[-A-Z0-9]+$/.test(empUpper);
+
+      let loginIdentifier = '';
+      let loginType: 'personal' | 'corporate';
+
+      if (emailOk) {
+        loginIdentifier = idRaw.toLowerCase();
+        loginType = 'personal';
+      } else if (empOk) {
+        loginIdentifier = empUpper;
+        loginType = 'corporate';
+      } else {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['identifier'],
+          message: 'Enter a valid email address or employee number (e.g., EMP001)',
+        });
+        return z.NEVER;
+      }
+
+      return {
+        loginIdentifier,
+        loginType,
+        password: data.password,
+        otpToken: data.otpToken || null,
+        rememberMe: data.rememberMe,
+      };
+    });
+
+  console.log('env NEXTAUTH_REQUIRE_SMS_OTP:', process.env.NEXTAUTH_REQUIRE_SMS_OTP);
+  logger.error('logger test error output');
+  await connectToDatabase();
+  const user = await User.findOne({ email: `test-admin@${EMAIL_DOMAIN}` }).lean();
+  console.log('user record:', {
+    exists: Boolean(user),
+    status: user?.status,
+    username: user?.username,
+    passwordPrefix: typeof user?.password === 'string' ? user.password.slice(0, 7) : null,
+  });
+  if (user?.password) {
+    console.log('password matches:', await bcrypt.compare('Test@1234', user.password));
+  }
+  if (user?._id) {
+    try {
+      const updateResult = await User.updateOne({ _id: user._id }, { $set: { 'security.lastLogin': new Date() } });
+      console.log('lastLogin update result:', updateResult);
+    } catch (err) {
+      console.error('lastLogin update error:', err);
+    }
+  }
+  const parsed = LoginSchema.safeParse({ identifier: `test-admin@${EMAIL_DOMAIN}`, password: 'Test@1234', rememberMe: 'on' });
+  console.log('schema valid:', parsed.success, parsed.success ? parsed.data : parsed.error.flatten());
+  const cred = (authConfig.providers as any[]).find((p: any) => p.id === 'credentials');
+  console.log('cred provider keys:', cred ? Object.keys(cred) : null);
+  if (cred?.authorize) {
+    console.log('authorize snippet:', cred.authorize.toString().slice(0, 200));
+  }
+  if (cred?.options?.authorize) {
+    console.log('options authorize snippet:', cred.options.authorize.toString().slice(0, 200));
+  }
+  const res = await cred.authorize({ identifier: `test-admin@${EMAIL_DOMAIN}`, password: 'Test@1234', rememberMe: 'on' }, {} as any);
+  console.log('authorize result:', res);
+  const resOptions = await cred.options.authorize({ identifier: `test-admin@${EMAIL_DOMAIN}`, password: 'Test@1234', rememberMe: 'on' }, {} as any);
+  console.log('options authorize result:', resOptions);
+}
+
+main().catch(err => {
+  console.error(err);
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/backfill-souq-ad-bids-orgid.ts">
+<![CDATA[
+/**
+ * Backfill orgId on souq_ad_bids from parent campaigns
+ *
+ * Usage:
+ *   DRY_RUN=false pnpm ts-node scripts/backfill-souq-ad-bids-orgid.ts
+ *
+ * Defaults to DRY_RUN=true to prevent accidental writes. Set DRY_RUN=false to apply updates.
+ */
+
+import { getDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+
+async function main() {
+  const db = await getDatabase();
+  const bids = db.collection("souq_ad_bids");
+  const campaigns = db.collection("souq_campaigns");
+
+  const dryRun = (process.env.DRY_RUN ?? "true").toLowerCase() !== "false";
+
+  // Ensure index to support org-scoped lookups
+  await bids.createIndex(
+    { orgId: 1, campaignId: 1, bidId: 1 },
+    { name: "org_campaign_bid" },
+  );
+
+  const campaignCursor = campaigns.find(
+    { orgId: { $exists: true } },
+    { projection: { campaignId: 1, orgId: 1 } },
+  );
+
+  let scanned = 0;
+  let candidates = 0;
+  let updated = 0;
+
+  for await (const campaign of campaignCursor) {
+    scanned += 1;
+    const campaignId = campaign.campaignId;
+    const orgId = campaign.orgId;
+    if (!campaignId || !orgId) continue;
+
+    const filter = {
+      campaignId,
+      $or: [{ orgId: { $exists: false } }, { orgId: null }],
+    };
+
+    const count = await bids.countDocuments(filter);
+    if (count === 0) continue;
+    candidates += count;
+
+    if (dryRun) {
+      logger.info(`[DRY RUN] Would backfill ${count} bids for ${campaignId}`, {
+        campaignId,
+        orgId,
+      });
+      continue;
+    }
+
+    const res = await bids.updateMany(filter, { $set: { orgId } });
+    updated += res.modifiedCount;
+    logger.info(`[Backfill] Updated ${res.modifiedCount} bids`, {
+      campaignId,
+      orgId,
+    });
+  }
+
+  logger.info("[Backfill] Complete", { scanned, candidates, updated, dryRun });
+}
+
+main()
+  .then(() => {
+    logger.info("[Backfill] Done");
+    if (process.env.EXIT_ON_COMPLETE !== "false") process.exit(0);
+  })
+  .catch((error) => {
+    logger.error("[Backfill] Failed", error as Error);
+    if (process.env.EXIT_ON_COMPLETE !== "false") process.exit(1);
+  });
+
+]]>
+</file>
+
+<file path="scripts/backfill-subscription-periods.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * Backfill current_period_start/current_period_end for existing subscriptions.
+ *
+ * Heuristic:
+ * - Use next_billing_date (if present) as period end.
+ * - Else use current_period_end (if already set), else createdAt + cycle length.
+ * - Derive period start by subtracting cycle length (30 days monthly, 365 days annual) from period end.
+ *
+ * Notes:
+ * - Does not alter amount or billing_history.
+ * - Safe to re-run; skips documents that already have both fields.
+ */
+
+import mongoose from "mongoose";
+import Subscription from "@/server/models/Subscription";
+import { config } from "dotenv";
+import path from "path";
+
+async function main() {
+  const envPath = path.resolve(process.cwd(), ".env.local");
+  config({ path: envPath });
+  const uri = process.env.MONGODB_URI || process.env.DATABASE_URL;
+  if (!uri) {
+    throw new Error("MONGODB_URI/DATABASE_URL is required");
+  }
+
+  await mongoose.connect(uri);
+  const batchSize = 200;
+
+  const cursor = Subscription.find({
+    $or: [{ current_period_start: { $exists: false } }, { current_period_end: { $exists: false } }],
+  })
+    .sort({ _id: 1 })
+    .cursor();
+
+  let processed = 0;
+  let updated = 0;
+
+  for await (const sub of cursor) {
+    processed += 1;
+
+    const billingCycle = (sub.billing_cycle || "MONTHLY").toUpperCase();
+    const cycleDays = billingCycle === "ANNUAL" ? 365 : 30;
+    const existingEnd =
+      (sub as any).current_period_end ||
+      sub.next_billing_date ||
+      sub.updatedAt ||
+      sub.createdAt;
+    const periodEnd = new Date(existingEnd);
+    const periodStart =
+      (sub as any).current_period_start ||
+      new Date(periodEnd.getTime() - cycleDays * 24 * 60 * 60 * 1000);
+
+    // Only update missing fields
+    const update: Record<string, Date> = {};
+    if (!(sub as any).current_period_start) update.current_period_start = periodStart;
+    if (!(sub as any).current_period_end) update.current_period_end = periodEnd;
+
+    if (Object.keys(update).length > 0) {
+      await Subscription.updateOne({ _id: sub._id }, { $set: update }).exec();
+      updated += 1;
+    }
+
+    if (processed % batchSize === 0) {
+      console.log(`Processed ${processed}, updated ${updated}`);
+    }
+  }
+
+  console.log(`Done. Processed ${processed}, updated ${updated}`);
+  await mongoose.disconnect();
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/check-api-auth.ts">
+<![CDATA[
+/**
+ * CI guard: fail if any API route file under app/api is missing an auth/guard
+ * and is not explicitly allowlisted as public.
+ */
+import fs from "node:fs";
+import path from "node:path";
+import fg from "fast-glob";
+import {
+  PUBLIC_API_PREFIXES,
+  DEV_API_PREFIXES,
+} from "../config/routes/public";
+
+const ROOT = path.resolve(__dirname, "..");
+const ROUTE_GLOB = "app/api/**/route.ts";
+
+const GUARD_REGEX =
+  /(createCrudHandlers|requireAbility|requireSuperAdmin|getSessionUser|auth\(|getUserFromToken|requireAuth|withAuthRbac|requirePermission|getOrgContext|validateSession|isAuthenticated|requireSubscription|requireFmAbility|requireFmPermission|resolveMarketplaceContext|resolveCopilotSession|atsRBAC|resolveRequestSession|getServerSession|verifySecretHeader)/i;
+
+const ALLOWLIST_EXCEPTIONS = new Set<string>([
+  "/api/auth/[...nextauth]",
+]);
+
+const matchesRoute = (pathname: string, route: string): boolean => {
+  if (pathname === route) return true;
+  if (pathname.startsWith(route)) {
+    const nextChar = pathname[route.length];
+    if (nextChar === "/" || nextChar === undefined) return true;
+  }
+  return false;
+};
+
+const isPublicApi = (pathname: string): boolean =>
+  PUBLIC_API_PREFIXES.some((r) => matchesRoute(pathname, r)) ||
+  ALLOWLIST_EXCEPTIONS.has(pathname);
+
+const isDevApi = (pathname: string): boolean =>
+  DEV_API_PREFIXES.some((r) => matchesRoute(pathname, r));
+
+const toRoutePath = (file: string): string => {
+  const normalized = file.replace(/\\/g, "/");
+  const withoutApp = normalized.replace(/^app\//, "");
+  return `/${withoutApp.replace(/\/route\.ts$/, "")}`;
+};
+
+const main = () => {
+  const files = fg.sync(ROUTE_GLOB, { cwd: ROOT });
+  const missing: string[] = [];
+
+  for (const file of files) {
+    const fullPath = path.join(ROOT, file);
+    const content = fs.readFileSync(fullPath, "utf8");
+    const routePath = toRoutePath(file);
+
+    if (GUARD_REGEX.test(content)) continue;
+    if (isPublicApi(routePath)) continue;
+    if (isDevApi(routePath)) continue;
+
+    missing.push(routePath);
+  }
+
+  if (missing.length) {
+    console.error(
+      "🚫 Found API routes without auth/guard and not in public allowlist:",
+    );
+    for (const route of missing) {
+      console.error(` - ${route}`);
+    }
+    console.error(
+      `Add an auth wrapper (e.g., requireAbility/requireSuperAdmin/getSessionUser) or add an explicit public allowlist entry in config/routes/public.ts if intentional.`,
+    );
+    process.exit(1);
+  } else {
+    console.log("✅ All API routes are guarded or explicitly allowlisted.");
+  }
+};
+
+main();
+
+]]>
+</file>
+
+<file path="scripts/check-codes.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * List all users by code
+ */
+import { db } from "../lib/mongo";
+import { User } from "../server/models/User";
+
+async function listUsers() {
+  try {
+    await db;
+    console.log("👥 Checking specific codes...\n");
+
+    const codes = [
+      "TEST-ADMIN",
+      "TEST-OWNER",
+      "TEST-EMPLOYEE",
+      "TEST-TECHNICIAN",
+      "TEST-PROPERTY-MANAGER",
+      "TEST-TENANT",
+      "TEST-VENDOR",
+      "TEST-VIEWER",
+    ];
+
+    for (const code of codes) {
+      const user = await User.findOne({ code })
+        .select("code username email professional.role status")
+        .lean();
+      if (user) {
+        console.log(
+          `✅ ${code.padEnd(25)} ${user.username?.padEnd(25)} ${user.email?.padEnd(40)} ${user.professional?.role || "NO_ROLE"}`,
+        );
+      } else {
+        console.log(`❌ ${code.padEnd(25)} NOT FOUND`);
+      }
+    }
+
+    process.exit(0);
+  } catch (error) {
+    console.error("❌ Error:", error);
+    process.exit(1);
+  }
+}
+
+listUsers();
+
+]]>
+</file>
+
+<file path="scripts/check-db-users.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * Script to check MongoDB connection and list users using unified connector + COLLECTIONS.
+ */
+
+import { config } from "dotenv";
+import { resolve } from "path";
+import { getDatabase, disconnectFromDatabase } from "../lib/mongodb-unified";
+import { COLLECTIONS } from "../lib/db/collections";
+
+// Load env (prefer .env.local)
+config({ path: resolve(process.cwd(), ".env.local") });
+config();
+
+async function checkDatabase() {
+  try {
+    console.log("🔍 Checking MongoDB connection...\n");
+
+    const db = await getDatabase();
+    const mongoUri = process.env.MONGODB_URI;
+    console.log("📡 Connected to MongoDB");
+    if (mongoUri) {
+      console.log("URI:", mongoUri.replace(/:[^:@]+@/, ":****@"));
+    }
+    console.log("Database:", db.databaseName);
+
+    // List a sample of users
+    console.log("\n👥 Fetching users from database...\n");
+    const users = await db
+      .collection(COLLECTIONS.USERS)
+      .find({})
+      .project({ email: 1, name: 1, phone: 1, role: 1, orgId: 1, createdAt: 1 })
+      .limit(20)
+      .toArray();
+
+    if (!users.length) {
+      console.log("⚠️  No users found in database");
+    } else {
+      console.log(`Found ${users.length} user(s):\n`);
+      users.forEach((user, index) => {
+        console.log(`${index + 1}. ${user.name || "Unnamed User"}`);
+        console.log(`   Email: ${user.email || "N/A"}`);
+        console.log(`   Phone: ${user.phone || "N/A"}`);
+        console.log(`   Role: ${user.role || "N/A"}`);
+        console.log(`   Org: ${user.orgId || user.organizationId || "N/A"}`);
+        console.log(
+          `   Created: ${user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}`,
+        );
+        console.log("");
+      });
+    }
+
+    // Check credentials collection presence/count
+    console.log("\n🔐 Checking credentials collection...\n");
+    const collections = await db.listCollections().toArray();
+    const hasCredentials = collections.some((c) => c.name === COLLECTIONS.CREDENTIALS);
+    if (hasCredentials) {
+      const credentialsCount = await db.collection(COLLECTIONS.CREDENTIALS).countDocuments();
+      console.log(`✅ Found ${credentialsCount} credential(s) in database`);
+    } else {
+      console.log("⚠️  No credentials collection found");
+    }
+
+    // List all collections
+    console.log("\n📚 Available collections:");
+    collections.forEach((col) => console.log(`   - ${col.name}`));
+
+    console.log("\n✅ Completed DB check.");
+  } catch (error: unknown) {
+    const err = error as Error & { code?: string | number };
+    console.error("\n❌ Error:", err.message);
+    process.exit(1);
+  } finally {
+    await disconnectFromDatabase();
+    console.log("\n👋 Disconnected from MongoDB");
+  }
+}
+
+checkDatabase();
+
+]]>
+</file>
+
+<file path="scripts/check-demo-users.ts">
+<![CDATA[
+#!/usr/bin/env node
+import { db } from "../lib/mongo";
+import { User } from "../server/models/User";
+import { getDemoEmail } from "../lib/config/demo-users";
+
+const demoEmails = [
+  getDemoEmail("superadmin"),
+  getDemoEmail("admin"),
+  getDemoEmail("manager"),
+  getDemoEmail("tenant"),
+  getDemoEmail("vendor"),
+];
+
+async function checkUsers() {
+  try {
+    await db;
+    console.log("🔍 Checking demo users in database...\n");
+
+    for (const email of demoEmails) {
+      const user = await User.findOne({ email }).select(
+        "email professional.role status isActive passwordHash",
+      );
+
+      if (user) {
+        console.log(`✅ ${email}`);
+        console.log(`   Role: ${user.professional?.role || "N/A"}`);
+        console.log(`   Status: ${user.status || "N/A"}`);
+        // TODO(type-safety): Verify User schema has isActive field
+        const userFlags = user as {
+          isActive?: boolean;
+          password?: unknown;
+          passwordHash?: unknown;
+        };
+        console.log(
+          `   isActive: ${userFlags.isActive !== undefined ? userFlags.isActive : "N/A"}`,
+        );
+        // TODO(type-safety): User schema has 'password' not 'passwordHash'
+        console.log(
+          `   Has password: ${Boolean(userFlags.password ?? userFlags.passwordHash)}`,
+        );
+      } else {
+        console.log(`❌ ${email} - NOT FOUND`);
+      }
+      console.log("");
+    }
+
+    // Check corporate users
+    console.log("🏢 Checking corporate users...\n");
+    const corpUsers = await User.find({
+      employeeNumber: { $in: ["EMP001", "EMP002"] },
+    }).select("employeeNumber email professional.role status");
+
+    if (corpUsers.length > 0) {
+      corpUsers.forEach((user) => {
+        console.log(`✅ ${user.employeeNumber} (${user.email})`);
+        console.log(`   Role: ${user.professional?.role || "N/A"}`);
+      });
+    } else {
+      console.log("❌ No corporate users found");
+    }
+
+    process.exit(0);
+  } catch (error) {
+    console.error("❌ Error:", error);
+    process.exit(1);
+  }
+}
+
+checkUsers();
+
+]]>
+</file>
+
+<file path="scripts/check-e2e-env.js">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * CI/local preflight: ensure required secrets/env are present before running Playwright/QA
+ */
+
+const required = ["NEXTAUTH_SECRET", "AUTH_SECRET", "FIXZIT_TEST_ADMIN_PASSWORD"];
+const missing = required.filter((key) => !process.env[key]);
+
+if (missing.length) {
+  console.error("❌ Missing required env vars for E2E/QA:");
+  missing.forEach((key) => console.error(` - ${key}`));
+  process.exit(1);
+}
+
+console.log("✅ Required E2E/QA env vars present.");
+
+]]>
+</file>
+
+<file path="scripts/check-mock-flags.js">
+<![CDATA[
+#!/usr/bin/env node
+
+/**
+ * Prevent mock/stubbed APIs from being enabled in production or CI environments.
+ * Fails the build if any guarded mock flags are set to a truthy value.
+ */
+
+const BOOL_TRUE = ["true", "1", "yes", "y", "on"];
+const MOCK_FLAGS = [
+  "VENDOR_ASSIGNMENTS_API_MOCKS",
+  "NEXT_PUBLIC_VENDOR_ASSIGNMENTS_API_MOCKS",
+];
+
+const strictEnv =
+  process.env.NODE_ENV === "production" ||
+  process.env.CI === "true" ||
+  process.env.CHECK_MOCK_FLAGS === "true";
+
+if (!strictEnv) {
+  console.log(
+    "[mock-flags] Skipped (NODE_ENV is not production and CI is not true).",
+  );
+  process.exit(0);
+}
+
+const offenders = MOCK_FLAGS.filter((flag) => {
+  const value = process.env[flag];
+  if (!value) return false;
+  return BOOL_TRUE.includes(String(value).toLowerCase());
+});
+
+if (offenders.length > 0) {
+  console.error(
+    `[mock-flags] Blocked: mock feature flags must be false in production/CI. Offenders: ${offenders.join(
+      ", ",
+    )}`,
+  );
+  process.exit(1);
+}
+
+console.log("[mock-flags] OK: no production mock flags enabled.");
+
+]]>
+</file>
+
+<file path="scripts/check-no-wildcard-perms.js">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * Prevent regression: disallow permissions:['*'] in tests/seeds.
+ */
+const fg = require("fast-glob");
+const fs = require("node:fs");
+
+const PATTERN = /permissions\s*:\s*\[\s*['"]\*\s*['"]\s*\]/;
+const globs = ["tests/**/*.{ts,js,tsx}", "scripts/**/*.{ts,js,tsx}"];
+
+const offenders = [];
+
+for (const file of fg.sync(globs, { dot: false })) {
+  if (file.includes("check-no-wildcard-perms")) continue;
+  const content = fs.readFileSync(file, "utf8");
+
+  let inBlock = false;
+  const lines = content.split(/\r?\n/);
+  const hasWildcard = lines.some((line) => {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("/*")) inBlock = true;
+    if (inBlock) {
+      if (trimmed.includes("*/")) inBlock = false;
+      return false;
+    }
+    if (trimmed.startsWith("//") || trimmed.startsWith("*")) return false;
+    return PATTERN.test(line);
+  });
+
+  if (hasWildcard) {
+    offenders.push(file);
+  }
+}
+
+if (offenders.length) {
+  console.error("❌ Found wildcard permissions in tests/seeds:");
+  offenders.forEach((f) => console.error(` - ${f}`));
+  process.exit(1);
+}
+
+console.log("✅ No wildcard permissions detected in tests/seeds.");
+
+]]>
+</file>
+
+<file path="scripts/check-production-db.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * Script to check MongoDB production database using unified connector and COLLECTIONS.
+ * Safeguarded by ALLOW_PROD_DB=1 and explicit MONGODB_URI.
+ */
+
+import { config } from "dotenv";
+import { resolve } from "path";
+import { getDatabase, disconnectFromDatabase } from "../lib/mongodb-unified";
+import { COLLECTIONS } from "../lib/db/collections";
+
+config({ path: resolve(process.cwd(), ".env.local") });
+config();
+
+async function checkProductionDatabase() {
+  try {
+    if (process.env.ALLOW_PROD_DB !== "1") {
+      console.error(
+        "❌ Refusing to run: set ALLOW_PROD_DB=1 and provide MONGODB_URI explicitly.",
+      );
+      process.exit(1);
+    }
+
+    const mongoUri = process.env.MONGODB_URI;
+    if (!mongoUri) {
+      console.error(
+        "❌ MONGODB_URI not set. Provide the URI via environment variable.",
+      );
+      process.exit(1);
+    }
+
+    console.log("🔍 Checking MongoDB connection...\n");
+    console.log("URI:", mongoUri.replace(/:[^:@]+@/, ":****@")); // hide password
+
+    const db = await getDatabase();
+    console.log("✅ Connected to MongoDB successfully!\n");
+    console.log("Database:", db.databaseName);
+
+    // List all collections
+    console.log("📚 Available collections in production:");
+    const collections = await db.listCollections().toArray();
+    console.log(`Found ${collections.length} collections\n`);
+
+    // Auth-related collections
+    const authCollections = collections.filter(
+      (c) =>
+        c.name.includes("user") ||
+        c.name.includes("account") ||
+        c.name.includes("credential") ||
+        c.name.includes("session"),
+    );
+    console.log("🔐 Auth-related collections:");
+    authCollections.forEach((col) => console.log(`   ✓ ${col.name}`));
+    console.log("");
+
+    // Users summary
+    const userCount = await db.collection(COLLECTIONS.USERS).countDocuments();
+    console.log(`👥 Total users in production: ${userCount}\n`);
+
+    if (userCount > 0) {
+      console.log("📋 Fetching user details...\n");
+      console.log("=".repeat(80));
+
+      const users = await db
+        .collection(COLLECTIONS.USERS)
+        .find({})
+        .sort({ createdAt: -1 })
+        .limit(50)
+        .toArray();
+
+      users.forEach((user, index) => {
+        console.log(`\n${index + 1}. ${user.name || "Unnamed User"}`);
+        console.log(`   📧 Email: ${user.email || "N/A"}`);
+        console.log(`   📱 Phone: ${user.phone || "N/A"}`);
+        console.log(`   👤 Role: ${user.role || "N/A"}`);
+        console.log(`   🏢 Organization: ${user.orgId || user.organizationId || "N/A"}`);
+        console.log(`   🆔 User ID: ${user._id}`);
+        console.log(
+          `   📅 Created: ${user.createdAt ? new Date(user.createdAt).toLocaleString() : "N/A"}`,
+        );
+      });
+    }
+
+    // Accounts (NextAuth)
+    console.log("\n" + "=".repeat(80));
+    console.log("\n🔐 Checking NextAuth accounts/credentials...\n");
+
+    const accountCount = await db.collection(COLLECTIONS.ACCOUNTS).countDocuments();
+    console.log(`Found ${accountCount} account(s) in '${COLLECTIONS.ACCOUNTS}' collection`);
+
+    if (accountCount > 0) {
+      const accounts = await db
+        .collection(COLLECTIONS.ACCOUNTS)
+        .find({ provider: "credentials" })
+        .limit(10)
+        .toArray();
+
+      console.log(`\nCredentials-based accounts: ${accounts.length}`);
+
+      for (const account of accounts) {
+        const user = await db
+          .collection(COLLECTIONS.USERS)
+          .findOne({ _id: account.userId });
+        if (user) {
+          console.log(`\n   📧 ${user.email}`);
+          console.log(`   👤 Name: ${user.name || "N/A"}`);
+          console.log(`   🔐 Provider: ${account.provider}`);
+        }
+      }
+    }
+
+    // Users with password hashes
+    console.log("\n" + "=".repeat(80));
+    console.log("\n🔑 Checking for password hashes in users...\n");
+
+    const usersWithPassword = await db
+      .collection(COLLECTIONS.USERS)
+      .find({ password: { $exists: true } })
+      .limit(5)
+      .toArray();
+
+    if (usersWithPassword.length > 0) {
+      console.log(
+        `✅ Found ${usersWithPassword.length} user(s) with password field:`,
+      );
+      usersWithPassword.forEach((user: { email: string; password?: string }) => {
+        console.log(`\n   📧 Email: ${user.email}`);
+        console.log(
+          `   🔐 Has password: ${user.password ? "Yes (hashed)" : "No"}`,
+        );
+        console.log(
+          `   🔐 Hash preview: ${
+            user.password ? user.password.substring(0, 20) + "..." : "N/A"
+          }`,
+        );
+      });
+    } else {
+      console.log("⚠️  No users found with password field in users collection");
+      console.log(
+        "   This means passwords might be in a separate collection or OAuth only",
+      );
+    }
+
+    // Summary
+    console.log("\n" + "=".repeat(80));
+    console.log("\n📊 PRODUCTION DATABASE SUMMARY:\n");
+    console.log(`   Total Collections: ${collections.length}`);
+    console.log(`   Total Users: ${userCount}`);
+    console.log(`   NextAuth Accounts: ${accountCount}`);
+    console.log(`   Users with Passwords: ${usersWithPassword.length}`);
+
+    console.log("\n💡 LOGIN INFORMATION NOT SHOWN (guarded).");
+    console.log(
+      "   - To audit auth data, run with explicit queries and appropriate approvals.",
+    );
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error("\n❌ Error:", err.message);
+    process.exit(1);
+  } finally {
+    await disconnectFromDatabase();
+    console.log("\n👋 Disconnected from MongoDB");
+  }
+}
+
+checkProductionDatabase();
+
+]]>
+</file>
+
+<file path="scripts/check-required-env.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * Quick sanity check for required local environment variables.
+ *
+ * Fails fast when MARKETPLACE_ENABLED is missing so developers
+ * do not waste time debugging 501 responses from marketplace APIs.
+ */
+
+import fs from "fs";
+import path from "path";
+import dotenv from "dotenv";
+
+const cwd = process.cwd();
+const envFiles = [".env.local", ".env"];
+
+for (const file of envFiles) {
+  const fullPath = path.join(cwd, file);
+  if (fs.existsSync(fullPath)) {
+    dotenv.config({ path: fullPath, override: false });
+  }
+}
+
+const issues: string[] = [];
+
+if (typeof process.env.MARKETPLACE_ENABLED === "undefined") {
+  issues.push("MARKETPLACE_ENABLED is not set.");
+} else if (process.env.MARKETPLACE_ENABLED !== "true") {
+  issues.push(
+    `MARKETPLACE_ENABLED is currently "${process.env.MARKETPLACE_ENABLED}". Set it to "true" to enable marketplace routes.`,
+  );
+}
+
+if (issues.length > 0) {
+  console.error("\nEnvironment validation failed:\n");
+  for (const issue of issues) {
+    console.error(` • ${issue}`);
+  }
+  console.error(
+    "\nFix: add `MARKETPLACE_ENABLED=true` to your local `.env` file.",
+  );
+  console.error(
+    "See docs/guides/READY_TO_START.md for the full checklist, then re-run `pnpm check:env`.",
+  );
+  process.exit(1);
+}
+
+console.log("✅ Environment check passed: MARKETPLACE_ENABLED=true");
+
+]]>
+</file>
+
+<file path="scripts/check-rtl-logical.js">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * Guards critical i18n components against LTR-only Tailwind utilities.
+ * Scans TopBar + selector surfaces for classes like text-left, ml-*, etc.
+ */
+const { execSync } = require("node:child_process");
+const { readFileSync } = require("node:fs");
+
+const PATTERNS = [
+  "components/topbar/*.ts",
+  "components/topbar/*.tsx",
+  "components/topbar/**/*.ts",
+  "components/topbar/**/*.tsx",
+  "components/i18n/*.ts",
+  "components/i18n/*.tsx",
+  "components/i18n/**/*.ts",
+  "components/i18n/**/*.tsx",
+  "components/TopBar.tsx",
+  "app/hr/**/*.ts",
+  "app/hr/**/*.tsx",
+  "app/fm/**/*.ts",
+  "app/fm/**/*.tsx",
+  "app/dashboard/hr/**/*.ts",
+  "app/dashboard/hr/**/*.tsx",
+  "app/dashboard/**/*.ts",
+  "app/dashboard/**/*.tsx",
+  "components/admin/**/*.ts",
+  "components/admin/**/*.tsx",
+  "app/_shell/**/*.ts",
+  "app/_shell/**/*.tsx",
+  "app/layout.tsx",
+  "app/marketplace/**/*.ts",
+  "app/marketplace/**/*.tsx",
+  "app/souq/**/*.ts",
+  "app/souq/**/*.tsx",
+  "components/seller/**/*.ts",
+  "components/seller/**/*.tsx",
+  "components/souq/**/*.ts",
+  "components/souq/**/*.tsx",
+];
+
+const BANNED_RULES = [
+  {
+    regex: /\btext-left\b/,
+    message: "Use text-start/text-end instead of text-left.",
+  },
+  {
+    regex: /\btext-right\b/,
+    message:
+      "Use text-start/text-end instead of text-right (or text-end for numbers).",
+  },
+  {
+    regex: /\bml-(?:\d+|auto)\b/,
+    message: "Use ms-* logical margin utilities instead of ml-*.",
+  },
+  {
+    regex: /\bmr-(?:\d+|auto)\b/,
+    message: "Use me-* logical margin utilities instead of mr-*.",
+  },
+  {
+    regex: /\bpl-(?:\d+|auto)\b/,
+    message: "Use ps-* logical padding utilities instead of pl-*.",
+  },
+  {
+    regex: /\bpr-(?:\d+|auto)\b/,
+    message: "Use pe-* logical padding utilities instead of pr-*.",
+  },
+  { regex: /\bleft-\d+/, message: "Use start-* utilities instead of left-*." },
+  { regex: /\bright-\d+/, message: "Use end-* utilities instead of right-*." },
+];
+
+function listFiles(patterns) {
+  const args = patterns.map((p) => `'${p}'`).join(" ");
+  const output = execSync(`git ls-files ${args}`, {
+    stdio: ["pipe", "pipe", "ignore"],
+  }).toString();
+  return output
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+const files = listFiles(PATTERNS);
+if (files.length === 0) {
+  process.exit(0);
+}
+
+const violations = [];
+for (const file of files) {
+  const content = readFileSync(file, "utf8");
+  const lines = content.split(/\r?\n/);
+  lines.forEach((line, idx) => {
+    BANNED_RULES.forEach((rule) => {
+      if (rule.regex.test(line)) {
+        violations.push({
+          file,
+          line: idx + 1,
+          message: rule.message,
+          snippet: line.trim(),
+        });
+      }
+    });
+  });
+}
+
+if (violations.length) {
+  console.error("❌ RTL logical lint failed. Replace the flagged utilities:");
+  for (const violation of violations) {
+    console.error(
+      `  - ${violation.file}:${violation.line} → ${violation.message}`,
+    );
+    console.error(`      ${violation.snippet}`);
+  }
+  process.exit(1);
+}
+
+console.log(
+  "✅ RTL logical lint passed — no LTR-only utilities found in critical components.",
+);
+
+]]>
+</file>
+
+<file path="scripts/check-seed-guards.js">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * Guardrail: ensure all seed scripts block prod/CI and require ALLOW_SEED=1.
+ *
+ * Scans scripts/** for files beginning with "seed" (js/ts/mjs/ps1) and fails
+ * if either guard is missing.
+ */
+
+const fs = require("node:fs");
+const path = require("node:path");
+
+const ROOT = path.resolve(__dirname, "..");
+const EXTENSIONS = new Set([".js", ".ts", ".mjs", ".ps1"]);
+const targets = [];
+const failures = [];
+
+function walk(dir) {
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (entry.name === "node_modules" || entry.name === ".git") continue;
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      walk(fullPath);
+    } else if (entry.isFile()) {
+      const ext = path.extname(entry.name);
+      if (entry.name.startsWith("seed") && EXTENSIONS.has(ext)) {
+        targets.push(fullPath);
+      }
+    }
+  }
+}
+
+walk(path.join(ROOT, "scripts"));
+
+for (const file of targets) {
+  const content = fs.readFileSync(file, "utf8");
+  const hasAllowSeed =
+    content.includes("ALLOW_SEED") || /\$env:ALLOW_SEED/i.test(content);
+  const hasProdGuard =
+    /NODE_ENV\s*===\s*['"]production['"]/.test(content) ||
+    /process\.env\.CI\s*===\s*['"]true['"]/.test(content) ||
+    /\$env:NODE_ENV\s*-eq\s*"production"/i.test(content) ||
+    /\$env:CI\s*-eq\s*"true"/i.test(content);
+
+  const reasons = [];
+  if (!hasAllowSeed) reasons.push("missing ALLOW_SEED guard");
+  if (!hasProdGuard) reasons.push("missing production/CI guard");
+
+  if (reasons.length > 0) {
+    failures.push(`${path.relative(ROOT, file)} -> ${reasons.join(", ")}`);
+  }
+}
+
+if (failures.length > 0) {
+  console.error("❌ Seed guard check failed:");
+  failures.forEach((f) => console.error(` - ${f}`));
+  process.exit(1);
+}
+
+console.log("✅ All seed scripts enforce prod/CI + ALLOW_SEED guards.");
+
+]]>
+</file>
+
+<file path="scripts/check-tenant-role-drift.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * Guardrail: fail if demo/test seeds drift from tenancy or STRICT v4.1 roles.
+ *
+ * - Blocks hard-coded org IDs in seed/config files.
+ * - Ensures demo role definitions use the canonical role set.
+ *
+ * Usage:
+ *   pnpm tsx scripts/check-tenant-role-drift.ts
+ */
+
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+export const HARD_CODED_ORG = '68dc8955a1ba6ed80ff372dc';
+
+// STRICT v4.1 canonical roles (base + staff sub-roles we allow in seeds)
+export const ALLOWED_ROLES = new Set([
+  'SUPER_ADMIN',
+  'CORPORATE_ADMIN',
+  'MANAGEMENT',
+  'FINANCE',
+  'FINANCE_OFFICER',
+  'HR',
+  'HR_OFFICER',
+  'SUPPORT',
+  'OPS',
+  'CORPORATE_EMPLOYEE',
+  'PROPERTY_OWNER',
+  'TECHNICIAN',
+  'TENANT',
+  'END_USER',
+]);
+
+// Files to police
+export const FILES = [
+  'lib/config/demo-users.ts',
+  'scripts/seed-demo-users.ts',
+  'scripts/create-demo-users.ts',
+  'scripts/seed-test-users.ts',
+  'scripts/seed-e2e-test-users.ts',
+];
+
+type Finding = { file: string; message: string };
+
+export async function findHardCodedOrg(file: string): Promise<Finding[]> {
+  const contents = await fs.readFile(file, 'utf-8');
+  return contents.includes(HARD_CODED_ORG)
+    ? [{ file, message: `Hard-coded org id "${HARD_CODED_ORG}" found.` }]
+    : [];
+}
+
+export async function findRoleDrift(file: string): Promise<Finding[]> {
+  const contents = await fs.readFile(file, 'utf-8');
+  const roleMatches = Array.from(
+    contents.matchAll(/\brole\s*:\s*["'`]([^"'`]+)["'`]/g),
+  ).map((m) => m[1]);
+  const badRoles = roleMatches.filter((role) => !ALLOWED_ROLES.has(role));
+  if (badRoles.length === 0) return [];
+  const unique = Array.from(new Set(badRoles));
+  return [
+    {
+      file,
+      message: `Non-canonical roles detected: ${unique.join(
+        ', ',
+      )}. Allowed: ${Array.from(ALLOWED_ROLES).join(', ')}`,
+    },
+  ];
+}
+
+export async function runDriftCheck(): Promise<Finding[]> {
+  const findings: Finding[] = [];
+  for (const rel of FILES) {
+    const file = path.resolve(process.cwd(), rel);
+    try {
+      const [orgIssues, roleIssues] = await Promise.all([
+        findHardCodedOrg(file),
+        findRoleDrift(file),
+      ]);
+      findings.push(...orgIssues, ...roleIssues);
+    } catch (err) {
+      findings.push({ file: rel, message: `Failed to scan file: ${err}` });
+    }
+  }
+
+  return findings;
+}
+
+async function main() {
+  try {
+    const findings = await runDriftCheck();
+    if (findings.length > 0) {
+      console.error('❌ Tenant/role drift detected:');
+      findings.forEach((f) => console.error(`- ${f.file}: ${f.message}`));
+      process.exit(1);
+    }
+
+    console.log('✅ No hard-coded org IDs or role drift found in seed/config files.');
+  } catch (err) {
+    console.error(err);
+    process.exit(1);
+  }
+}
+
+const invokedDirectly = (() => {
+  const argvPath = process.argv[1];
+  if (!argvPath) return false;
+  return pathToFileURL(argvPath).href === import.meta.url;
+})();
+
+if (invokedDirectly) {
+  // eslint-disable-next-line no-console
+  main();
+}
+
+]]>
+</file>
+
+<file path="scripts/check-translation-parity.ts">
+<![CDATA[
+/**
+ * Check translation parity across locales and report detailed diagnostics
+ * Usage: npx tsx scripts/check-translation-parity.ts [--format=json|text] [--domain=<name>]
+ *
+ * This script analyzes all modular translation sources and reports:
+ * - Per-domain key count mismatches
+ * - Missing keys in each locale
+ * - Total coverage statistics
+ * - Baseline comparisons for CI
+ */
+
+import * as fs from "fs";
+import * as path from "path";
+import type {
+  TranslationBundle,
+  FlatTranslationMap,
+} from "../i18n/dictionaries/types";
+import { newTranslations } from "../i18n/new-translations";
+
+const SOURCES_DIR = path.join(__dirname, "../i18n/sources");
+
+interface DomainParity {
+  domain: string;
+  enCount: number;
+  arCount: number;
+  diff: number;
+  missingInEn: string[];
+  missingInAr: string[];
+  duplicates: string[];
+  enKeys: string[];
+  arKeys: string[];
+}
+
+interface ParityReport {
+  timestamp: string;
+  totalDomains: number;
+  totalEnKeys: number;
+  totalArKeys: number;
+  domainsWithIssues: number;
+  catalogIssues: number;
+  domainDetails: DomainParity[];
+  catalogParity: CatalogParity[];
+  summary: {
+    perfectParity: number;
+    minorDrift: number; // < 5 keys diff
+    majorDrift: number; // >= 5 keys diff
+    totalMissingEn: number;
+    totalMissingAr: number;
+  };
+}
+
+interface CatalogParity {
+  locale: "en" | "ar";
+  expectedCount: number;
+  actualCount: number;
+  missingKeys: string[];
+  extraKeys: string[];
+}
+
+/**
+ * Parse command-line arguments
+ */
+function parseArgs(): { format: "json" | "text"; domain?: string } {
+  const args = process.argv.slice(2);
+  let format: "json" | "text" = "text";
+  let domain: string | undefined;
+
+  for (const arg of args) {
+    if (arg.startsWith("--format=")) {
+      const value = arg.split("=")[1];
+      if (value === "json" || value === "text") {
+        format = value;
+      }
+    } else if (arg.startsWith("--domain=")) {
+      domain = arg.split("=")[1];
+    }
+  }
+
+  return { format, domain };
+}
+
+/**
+ * Load and analyze a single domain file
+ */
+function analyzeDomain(domain: string, filePath: string): DomainParity | null {
+  try {
+    const content = fs.readFileSync(filePath, "utf-8");
+    const bundle: TranslationBundle = JSON.parse(content);
+
+    const enKeys = new Set(Object.keys(bundle.en || {}));
+    const arKeys = new Set(Object.keys(bundle.ar || {}));
+
+    const missingInAr = [...enKeys].filter((k) => !arKeys.has(k));
+    const missingInEn = [...arKeys].filter((k) => !enKeys.has(k));
+
+    // Check for duplicate keys (case-insensitive)
+    const enLowerMap = new Map<string, string[]>();
+    for (const key of enKeys) {
+      const lower = key.toLowerCase();
+      if (!enLowerMap.has(lower)) {
+        enLowerMap.set(lower, []);
+      }
+      enLowerMap.get(lower)!.push(key);
+    }
+
+    const duplicates: string[] = [];
+    for (const [, keys] of enLowerMap) {
+      if (keys.length > 1) {
+        duplicates.push(...keys);
+      }
+    }
+
+    return {
+      domain,
+      enCount: enKeys.size,
+      arCount: arKeys.size,
+      diff: enKeys.size - arKeys.size,
+      missingInEn,
+      missingInAr,
+      duplicates,
+      enKeys: [...enKeys],
+      arKeys: [...arKeys],
+    };
+  } catch (err) {
+    console.error(`❌ Failed to analyze ${domain}:`, err);
+    return null;
+  }
+}
+
+/**
+ * Generate comprehensive parity report
+ */
+function generateReport(domainFilter?: string): ParityReport {
+  if (!fs.existsSync(SOURCES_DIR)) {
+    console.error(`❌ Sources directory not found: ${SOURCES_DIR}`);
+    process.exit(1);
+  }
+
+  const files = fs
+    .readdirSync(SOURCES_DIR)
+    .filter((f) => f.endsWith(".translations.json"))
+    .filter((f) => !domainFilter || f.startsWith(domainFilter))
+    .sort();
+
+  if (files.length === 0) {
+    console.error(`❌ No translation files found in ${SOURCES_DIR}`);
+    process.exit(1);
+  }
+
+  const domainDetails: DomainParity[] = [];
+  let totalEnKeys = 0;
+  let totalArKeys = 0;
+  let totalMissingEn = 0;
+  let totalMissingAr = 0;
+  let perfectParity = 0;
+  let minorDrift = 0;
+  let majorDrift = 0;
+  const allEnKeys = new Set<string>();
+  const allArKeys = new Set<string>();
+
+  for (const file of files) {
+    const domain = file.replace(".translations.json", "");
+    const filePath = path.join(SOURCES_DIR, file);
+    const analysis = analyzeDomain(domain, filePath);
+
+    if (!analysis) continue;
+
+    domainDetails.push(analysis);
+    totalEnKeys += analysis.enCount;
+    totalArKeys += analysis.arCount;
+    totalMissingEn += analysis.missingInEn.length;
+    totalMissingAr += analysis.missingInAr.length;
+    analysis.enKeys.forEach((key) => allEnKeys.add(key));
+    analysis.arKeys.forEach((key) => allArKeys.add(key));
+
+    const absDiff = Math.abs(analysis.diff);
+    if (absDiff === 0) {
+      perfectParity++;
+    } else if (absDiff < 5) {
+      minorDrift++;
+    } else {
+      majorDrift++;
+    }
+  }
+
+  const catalogParity = computeCatalogParity(allEnKeys, allArKeys);
+  const catalogIssues = catalogParity.filter(
+    (c) =>
+      c.missingKeys.length > 0 ||
+      c.extraKeys.length > 0 ||
+      c.expectedCount !== c.actualCount,
+  ).length;
+
+  return {
+    timestamp: new Date().toISOString(),
+    totalDomains: domainDetails.length,
+    totalEnKeys,
+    totalArKeys,
+    domainsWithIssues: minorDrift + majorDrift,
+    catalogIssues,
+    domainDetails,
+    catalogParity,
+    summary: {
+      perfectParity,
+      minorDrift,
+      majorDrift,
+      totalMissingEn,
+      totalMissingAr,
+    },
+  };
+}
+
+function computeCatalogParity(
+  allEnKeys: Set<string>,
+  allArKeys: Set<string>,
+): CatalogParity[] {
+  const locales: Array<{
+    keySet: Set<string>;
+    locale: "en" | "ar";
+    catalog: FlatTranslationMap;
+  }> = [
+    { keySet: allEnKeys, locale: "en", catalog: newTranslations.en },
+    { keySet: allArKeys, locale: "ar", catalog: newTranslations.ar },
+  ];
+
+  return locales.map(({ keySet, locale, catalog }) => {
+    const catalogKeys = new Set(Object.keys(catalog ?? {}));
+    const missingKeys = [...keySet].filter((key) => !catalogKeys.has(key));
+    const extraKeys = [...catalogKeys].filter((key) => !keySet.has(key));
+    return {
+      locale,
+      expectedCount: keySet.size,
+      actualCount: catalogKeys.size,
+      missingKeys,
+      extraKeys,
+    };
+  });
+}
+
+/**
+ * Print report in human-readable text format
+ */
+function printTextReport(
+  report: ParityReport,
+  showDetails: boolean = true,
+): void {
+  console.log(
+    "\n═══════════════════════════════════════════════════════════════════════",
+  );
+  console.log("                    TRANSLATION PARITY REPORT");
+  console.log(
+    "═══════════════════════════════════════════════════════════════════════\n",
+  );
+
+  console.log(`📅 Generated: ${new Date(report.timestamp).toLocaleString()}`);
+  console.log(`📂 Analyzed: ${report.totalDomains} domain files\n`);
+
+  console.log("📊 OVERALL STATISTICS\n");
+  console.log(
+    `   Total English keys:     ${report.totalEnKeys.toLocaleString()}`,
+  );
+  console.log(
+    `   Total Arabic keys:      ${report.totalArKeys.toLocaleString()}`,
+  );
+  console.log(
+    `   Overall difference:     ${(report.totalEnKeys - report.totalArKeys).toLocaleString()} keys`,
+  );
+  console.log(
+    `   Coverage:               ${((Math.min(report.totalEnKeys, report.totalArKeys) / Math.max(report.totalEnKeys, report.totalArKeys)) * 100).toFixed(2)}%\n`,
+  );
+
+  console.log("🎯 DOMAIN PARITY BREAKDOWN\n");
+  console.log(
+    `   ✅ Perfect parity:      ${report.summary.perfectParity} domains (${((report.summary.perfectParity / report.totalDomains) * 100).toFixed(1)}%)`,
+  );
+  console.log(
+    `   ⚠️  Minor drift (<5):   ${report.summary.minorDrift} domains (${((report.summary.minorDrift / report.totalDomains) * 100).toFixed(1)}%)`,
+  );
+  console.log(
+    `   ❌ Major drift (≥5):    ${report.summary.majorDrift} domains (${((report.summary.majorDrift / report.totalDomains) * 100).toFixed(1)}%)\n`,
+  );
+
+  console.log("📁 CATALOG SYNC STATUS\n");
+  for (const locale of report.catalogParity) {
+    const icon =
+      locale.missingKeys.length === 0 &&
+      locale.extraKeys.length === 0 &&
+      locale.expectedCount === locale.actualCount
+        ? "✅"
+        : "⚠️";
+    const diff = locale.actualCount - locale.expectedCount;
+    console.log(
+      `   ${icon} ${locale.locale.toUpperCase()} catalog: expected ${locale.expectedCount.toLocaleString()} keys, found ${locale.actualCount.toLocaleString()} (${diff >= 0 ? "+" : ""}${diff})`,
+    );
+    if (locale.missingKeys.length > 0) {
+      console.log(
+        `      Missing keys (${locale.missingKeys.length}): ${locale.missingKeys.slice(0, 3).join(", ")}${locale.missingKeys.length > 3 ? ` (+${locale.missingKeys.length - 3} more)` : ""}`,
+      );
+    }
+    if (locale.extraKeys.length > 0) {
+      console.log(
+        `      Extra keys (${locale.extraKeys.length}): ${locale.extraKeys.slice(0, 3).join(", ")}${locale.extraKeys.length > 3 ? ` (+${locale.extraKeys.length - 3} more)` : ""}`,
+      );
+    }
+  }
+  console.log("");
+
+  if (report.domainsWithIssues > 0 && showDetails) {
+    console.log("⚠️  DOMAINS WITH PARITY ISSUES\n");
+    console.log(
+      "   Domain                                      EN      AR      Diff    Missing",
+    );
+    console.log("   ─".repeat(85));
+
+    // Sort by absolute difference (largest first)
+    const issuesOnly = report.domainDetails
+      .filter((d) => d.diff !== 0)
+      .sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
+
+    for (const domain of issuesOnly.slice(0, 25)) {
+      const icon = Math.abs(domain.diff) >= 5 ? "❌" : "⚠️ ";
+      const diffStr = domain.diff > 0 ? `+${domain.diff}` : String(domain.diff);
+      const missingInfo =
+        domain.missingInEn.length > 0
+          ? `${domain.missingInEn.length} in EN`
+          : `${domain.missingInAr.length} in AR`;
+
+      console.log(
+        `   ${icon} ${domain.domain.padEnd(40)} ${String(domain.enCount).padStart(6)} ${String(domain.arCount).padStart(6)} ${diffStr.padStart(8)}  ${missingInfo}`,
+      );
+
+      // Show sample missing keys for major drift
+      if (
+        Math.abs(domain.diff) >= 5 &&
+        (domain.missingInEn.length > 0 || domain.missingInAr.length > 0)
+      ) {
+        if (domain.missingInEn.length > 0) {
+          console.log(
+            `      Missing in EN: ${domain.missingInEn.slice(0, 3).join(", ")}${domain.missingInEn.length > 3 ? ` (+${domain.missingInEn.length - 3} more)` : ""}`,
+          );
+        }
+        if (domain.missingInAr.length > 0) {
+          console.log(
+            `      Missing in AR: ${domain.missingInAr.slice(0, 3).join(", ")}${domain.missingInAr.length > 3 ? ` (+${domain.missingInAr.length - 3} more)` : ""}`,
+          );
+        }
+      }
+    }
+
+    if (issuesOnly.length > 25) {
+      console.log(
+        `\n   ... and ${issuesOnly.length - 25} more domains with parity issues`,
+      );
+    }
+
+    console.log(
+      "\n   💡 Use --domain=<name> to see detailed key-level analysis for a specific domain",
+    );
+  }
+
+  // Check for duplicates
+  const domainsWithDuplicates = report.domainDetails.filter(
+    (d) => d.duplicates.length > 0,
+  );
+  if (domainsWithDuplicates.length > 0) {
+    console.log("\n\n⚠️  CASE-INSENSITIVE DUPLICATE KEYS DETECTED\n");
+    for (const domain of domainsWithDuplicates) {
+      console.log(`   ${domain.domain}: ${domain.duplicates.join(", ")}`);
+    }
+  }
+
+  console.log(
+    "\n═══════════════════════════════════════════════════════════════════════\n",
+  );
+
+  // Exit with error code if issues found
+  if (report.domainsWithIssues > 0 || report.catalogIssues > 0) {
+    console.log(
+      "⚠️  Parity issues detected. These should be reviewed before deployment.\n",
+    );
+
+    // Provide actionable next steps
+    console.log("📋 RECOMMENDED ACTIONS:\n");
+    console.log("   1. Review missing keys in major drift domains");
+    console.log("   2. Add missing translations to appropriate locale");
+    console.log(
+      "   3. Run: pnpm i18n:build (regenerates dictionaries + new-translations.ts)",
+    );
+    console.log(
+      "   4. Re-run this check to verify sources and catalog stay in sync\n",
+    );
+
+    process.exit(1);
+  } else {
+    console.log(
+      "✅ All domains have perfect parity, and catalog files match the modular sources!\n",
+    );
+  }
+}
+
+/**
+ * Print detailed analysis for a specific domain
+ */
+function printDomainDetail(report: ParityReport, domainName: string): void {
+  const domain = report.domainDetails.find((d) => d.domain === domainName);
+
+  if (!domain) {
+    console.error(`❌ Domain not found: ${domainName}`);
+    process.exit(1);
+  }
+
+  console.log(
+    `\n═══════════════════════════════════════════════════════════════════════`,
+  );
+  console.log(`                    DOMAIN: ${domainName}`);
+  console.log(
+    `═══════════════════════════════════════════════════════════════════════\n`,
+  );
+
+  console.log(`📊 Statistics:`);
+  console.log(`   English keys:  ${domain.enCount}`);
+  console.log(`   Arabic keys:   ${domain.arCount}`);
+  console.log(
+    `   Difference:    ${domain.diff > 0 ? "+" : ""}${domain.diff}\n`,
+  );
+
+  if (domain.missingInAr.length > 0) {
+    console.log(`❌ Missing in Arabic (${domain.missingInAr.length} keys):\n`);
+    for (const key of domain.missingInAr) {
+      console.log(`   - ${key}`);
+    }
+    console.log("");
+  }
+
+  if (domain.missingInEn.length > 0) {
+    console.log(`❌ Missing in English (${domain.missingInEn.length} keys):\n`);
+    for (const key of domain.missingInEn) {
+      console.log(`   - ${key}`);
+    }
+    console.log("");
+  }
+
+  if (domain.duplicates.length > 0) {
+    console.log(
+      `⚠️  Case-insensitive duplicates (${domain.duplicates.length} keys):\n`,
+    );
+    for (const key of domain.duplicates) {
+      console.log(`   - ${key}`);
+    }
+    console.log("");
+  }
+
+  if (domain.diff === 0 && domain.duplicates.length === 0) {
+    console.log(`✅ Perfect parity - no issues detected!\n`);
+  }
+
+  console.log(
+    `═══════════════════════════════════════════════════════════════════════\n`,
+  );
+}
+
+/**
+ * Print report in JSON format (for CI consumption)
+ */
+function printJsonReport(report: ParityReport): void {
+  console.log(JSON.stringify(report, null, 2));
+}
+
+// Main execution
+const { format, domain } = parseArgs();
+const report = generateReport(domain);
+
+if (format === "json") {
+  printJsonReport(report);
+} else if (domain) {
+  printDomainDetail(report, domain);
+} else {
+  printTextReport(report);
+}
+
+]]>
+</file>
+
+<file path="scripts/check-usernames.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * List all users by username
+ */
+import { db } from "../lib/mongo";
+import { User } from "../server/models/User";
+
+async function listUsers() {
+  try {
+    await db;
+    console.log("👥 Checking specific usernames...\n");
+
+    const usernames = [
+      "test-admin",
+      "test-owner",
+      "test-employee",
+      "test-technician",
+      "test-property-manager",
+      "test-tenant",
+      "test-vendor",
+      "test-viewer",
+    ];
+
+    for (const username of usernames) {
+      const user = await User.findOne({ username })
+        .select("code username email professional.role status")
+        .lean();
+      if (user) {
+        console.log(
+          `✅ ${username.padEnd(25)} ${user.email?.padEnd(40)} ${user.professional?.role || "NO_ROLE"}`,
+        );
+      } else {
+        console.log(`❌ ${username.padEnd(25)} NOT FOUND`);
+      }
+    }
+
+    process.exit(0);
+  } catch (error) {
+    console.error("❌ Error:", error);
+    process.exit(1);
+  }
+}
+
+listUsers();
+
+]]>
+</file>
+
+<file path="scripts/check-vercel-env.ts">
+<![CDATA[
+/**
+ * Check which environment variables are available on Vercel production
+ */
+
+const envVars = {
+  // Core Authentication
+  MONGODB_URI: !!process.env.MONGODB_URI,
+  NEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,
+  NEXTAUTH_URL: !!process.env.NEXTAUTH_URL,
+  AUTH_TRUST_HOST: !!process.env.AUTH_TRUST_HOST,
+  JWT_SECRET: !!process.env.JWT_SECRET,
+  INTERNAL_API_SECRET: !!process.env.INTERNAL_API_SECRET,
+
+  // OAuth
+  GOOGLE_CLIENT_ID: !!process.env.GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET: !!process.env.GOOGLE_CLIENT_SECRET,
+
+  // Email
+  SENDGRID_API_KEY: !!process.env.SENDGRID_API_KEY,
+  SENDGRID_FROM_EMAIL: !!process.env.SENDGRID_FROM_EMAIL,
+  SENDGRID_FROM_NAME: !!process.env.SENDGRID_FROM_NAME,
+
+  // SMS
+  TWILIO_ACCOUNT_SID: !!process.env.TWILIO_ACCOUNT_SID,
+  TWILIO_AUTH_TOKEN: !!process.env.TWILIO_AUTH_TOKEN,
+  TWILIO_PHONE_NUMBER: !!process.env.TWILIO_PHONE_NUMBER,
+
+  // Storage
+  AWS_S3_BUCKET: !!process.env.AWS_S3_BUCKET,
+  AWS_REGION: !!process.env.AWS_REGION,
+  AWS_ACCESS_KEY_ID: !!process.env.AWS_ACCESS_KEY_ID,
+  AWS_SECRET_ACCESS_KEY: !!process.env.AWS_SECRET_ACCESS_KEY,
+
+  // Search
+  MEILI_HOST: !!process.env.MEILI_HOST,
+  MEILI_MASTER_KEY: !!process.env.MEILI_MASTER_KEY,
+
+  // Payment - PayTabs
+  PAYTABS_PROFILE_ID: !!process.env.PAYTABS_PROFILE_ID,
+  PAYTABS_SERVER_KEY: !!process.env.PAYTABS_SERVER_KEY,
+  PAYTABS_CLIENT_KEY: !!process.env.PAYTABS_CLIENT_KEY,
+
+  // Payment - Tap
+  TAP_SECRET_KEY: !!process.env.TAP_SECRET_KEY,
+  TAP_PUBLIC_KEY: !!process.env.TAP_PUBLIC_KEY,
+
+  // ZATCA
+  ZATCA_API_KEY: !!process.env.ZATCA_API_KEY,
+  ZATCA_API_SECRET: !!process.env.ZATCA_API_SECRET,
+  ZATCA_SELLER_NAME: !!process.env.ZATCA_SELLER_NAME,
+  ZATCA_VAT_NUMBER: !!process.env.ZATCA_VAT_NUMBER,
+
+  // AI
+  OPENAI_API_KEY: !!process.env.OPENAI_API_KEY,
+  COPILOT_MODEL: !!process.env.COPILOT_MODEL,
+
+  // Maps
+  GOOGLE_MAPS_API_KEY: !!process.env.GOOGLE_MAPS_API_KEY,
+  NEXT_PUBLIC_GOOGLE_MAPS_API_KEY:
+    !!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+
+  // URLs
+  NEXT_PUBLIC_APP_URL: !!process.env.NEXT_PUBLIC_APP_URL,
+  BASE_URL: !!process.env.BASE_URL,
+  PUBLIC_BASE_URL: !!process.env.PUBLIC_BASE_URL,
+  APP_URL: !!process.env.APP_URL,
+
+  // Redis
+  REDIS_URL: !!process.env.REDIS_URL,
+  REDIS_PASSWORD: !!process.env.REDIS_PASSWORD,
+
+  // Feature Flags
+  ATS_ENABLED: !!process.env.ATS_ENABLED,
+  MARKETPLACE_ENABLED: !!process.env.MARKETPLACE_ENABLED,
+  WO_ENABLED: !!process.env.WO_ENABLED,
+
+  // Org IDs
+  PUBLIC_ORG_ID: !!process.env.PUBLIC_ORG_ID,
+  TEST_ORG_ID: !!process.env.TEST_ORG_ID,
+  DEFAULT_ORG_ID: !!process.env.DEFAULT_ORG_ID,
+
+  // Firebase
+  FIREBASE_ADMIN_PROJECT_ID: !!process.env.FIREBASE_ADMIN_PROJECT_ID,
+  FIREBASE_ADMIN_CLIENT_EMAIL: !!process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
+  FIREBASE_ADMIN_PRIVATE_KEY: !!process.env.FIREBASE_ADMIN_PRIVATE_KEY,
+
+  // Notifications
+  NOTIFICATIONS_SMOKE_USER_ID: !!process.env.NOTIFICATIONS_SMOKE_USER_ID,
+  NOTIFICATIONS_TELEMETRY_WEBHOOK:
+    !!process.env.NOTIFICATIONS_TELEMETRY_WEBHOOK,
+  WHATSAPP_BUSINESS_API_KEY: !!process.env.WHATSAPP_BUSINESS_API_KEY,
+  WHATSAPP_PHONE_NUMBER_ID: !!process.env.WHATSAPP_PHONE_NUMBER_ID,
+
+  // Monitoring
+  SENTRY_DSN: !!process.env.SENTRY_DSN,
+  DATADOG_API_KEY: !!process.env.DATADOG_API_KEY,
+
+  // Background Jobs
+  CRON_SECRET: !!process.env.CRON_SECRET,
+
+  // Security
+  FILE_SIGNING_SECRET: !!process.env.FILE_SIGNING_SECRET,
+  LOG_HASH_SALT: !!process.env.LOG_HASH_SALT,
+  MONITORING_HASH_SALT: !!process.env.MONITORING_HASH_SALT,
+
+  // Shipping
+  ARAMEX_ACCOUNT_NUMBER: !!process.env.ARAMEX_ACCOUNT_NUMBER,
+  ARAMEX_USERNAME: !!process.env.ARAMEX_USERNAME,
+  SMSA_USERNAME: !!process.env.SMSA_USERNAME,
+  SPL_API_KEY: !!process.env.SPL_API_KEY,
+};
+
+console.log("Environment Variables Status:\n");
+console.log("✅ = Configured (exists)");
+console.log("❌ = Missing (not set)\n");
+
+const categories = {
+  "🔐 Core Authentication (CRITICAL)": [
+    "MONGODB_URI",
+    "NEXTAUTH_SECRET",
+    "NEXTAUTH_URL",
+    "AUTH_TRUST_HOST",
+    "JWT_SECRET",
+    "INTERNAL_API_SECRET",
+  ],
+  "🌐 OAuth": ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"],
+  "📧 Email": ["SENDGRID_API_KEY", "SENDGRID_FROM_EMAIL", "SENDGRID_FROM_NAME"],
+  "📱 SMS": ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_PHONE_NUMBER"],
+  "☁️ Storage (AWS S3)": [
+    "AWS_S3_BUCKET",
+    "AWS_REGION",
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY",
+  ],
+  "🔍 Search": ["MEILI_HOST", "MEILI_MASTER_KEY"],
+  "💳 Payment - PayTabs": [
+    "PAYTABS_PROFILE_ID",
+    "PAYTABS_SERVER_KEY",
+    "PAYTABS_CLIENT_KEY",
+  ],
+  "💰 Payment - Tap": ["TAP_SECRET_KEY", "TAP_PUBLIC_KEY"],
+  "🇸🇦 ZATCA": [
+    "ZATCA_API_KEY",
+    "ZATCA_API_SECRET",
+    "ZATCA_SELLER_NAME",
+    "ZATCA_VAT_NUMBER",
+  ],
+  "🤖 AI": ["OPENAI_API_KEY", "COPILOT_MODEL"],
+  "🗺️ Maps": ["GOOGLE_MAPS_API_KEY", "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"],
+  "🌍 URLs": ["NEXT_PUBLIC_APP_URL", "BASE_URL", "PUBLIC_BASE_URL", "APP_URL"],
+  "⚡ Redis": ["REDIS_URL", "REDIS_PASSWORD"],
+  "🎚️ Feature Flags": ["ATS_ENABLED", "MARKETPLACE_ENABLED", "WO_ENABLED"],
+  "🏢 Organization": ["PUBLIC_ORG_ID", "TEST_ORG_ID", "DEFAULT_ORG_ID"],
+  "🔥 Firebase": [
+    "FIREBASE_ADMIN_PROJECT_ID",
+    "FIREBASE_ADMIN_CLIENT_EMAIL",
+    "FIREBASE_ADMIN_PRIVATE_KEY",
+  ],
+  "🔔 Notifications": [
+    "NOTIFICATIONS_SMOKE_USER_ID",
+    "NOTIFICATIONS_TELEMETRY_WEBHOOK",
+    "WHATSAPP_BUSINESS_API_KEY",
+    "WHATSAPP_PHONE_NUMBER_ID",
+  ],
+  "📊 Monitoring": ["SENTRY_DSN", "DATADOG_API_KEY"],
+  "⏱️ Jobs": ["CRON_SECRET"],
+  "🔒 Security": ["FILE_SIGNING_SECRET", "LOG_HASH_SALT", "MONITORING_HASH_SALT"],
+  "📦 Shipping": [
+    "ARAMEX_ACCOUNT_NUMBER",
+    "ARAMEX_USERNAME",
+    "SMSA_USERNAME",
+    "SPL_API_KEY",
+  ],
+};
+
+let totalConfigured = 0;
+let totalMissing = 0;
+
+for (const [category, vars] of Object.entries(categories)) {
+  console.log(`\n${category}`);
+  console.log("─".repeat(50));
+
+  for (const varName of vars) {
+    const status = envVars[varName];
+    const icon = status ? "✅" : "❌";
+    console.log(`  ${icon} ${varName}`);
+
+    if (status) totalConfigured++;
+    else totalMissing++;
+  }
+}
+
+console.log("\n" + "═".repeat(50));
+console.log(`\n📊 Summary:`);
+console.log(`   ✅ Configured: ${totalConfigured}`);
+console.log(`   ❌ Missing: ${totalMissing}`);
+console.log(
+  `   📈 Coverage: ${Math.round((totalConfigured / (totalConfigured + totalMissing)) * 100)}%\n`,
+);
+
+if (totalMissing > 0) {
+  console.log("⚠️  Missing variables may cause features to fail!");
+}
+
+]]>
+</file>
+
+<file path="scripts/check-weak-passwords.js">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * Fails on weak hardcoded passwords (password123/admin123/Test@1234).
+ * Scans source files (js/ts/tsx/json/md/yml/ps1) excluding common build/output dirs.
+ */
+
+const fs = require("node:fs");
+const path = require("node:path");
+const fg = require("fast-glob");
+
+const ROOT = process.cwd();
+const WEAK_PATTERN = /(password123|admin123|Test@1234)/gi;
+const EXT_GLOB = "**/*.{js,ts,tsx,jsx,json,yml,yaml,mjs,ps1}";
+const IGNORE = [
+  "**/node_modules/**",
+  "**/.next/**",
+  "**/playwright-report/**",
+  "**/tests/playwright-report/**",
+  "**/_artifacts/**",
+  "**/.git/**",
+  "**/dist/**",
+  "**/build/**",
+  "**/out/**",
+  "**/.turbo/**",
+  "**/coverage/**",
+  "**/docs/**",
+  "**/tests/**",
+  "**/qa/**",
+  "scripts/check-weak-passwords.js",
+  "scripts/check-seed-guards.js",
+  "scripts/testing/**",
+];
+
+async function main() {
+  const files = await fg(EXT_GLOB, {
+    cwd: ROOT,
+    ignore: IGNORE,
+    dot: false,
+  });
+
+  const failures = [];
+
+  for (const rel of files) {
+    const base = path.basename(rel);
+    if (rel.startsWith("scripts/")) {
+      const isSeed = base.startsWith("seed");
+      const isSuperadminFix = base === "fix-superadmin-password.js";
+      if (!isSeed && !isSuperadminFix) {
+        continue;
+      }
+    }
+    const abs = path.join(ROOT, rel);
+    const stat = fs.statSync(abs);
+    if (stat.size > 2 * 1024 * 1024) continue; // skip huge files
+    const text = fs.readFileSync(abs, "utf8");
+    const matches = [...text.matchAll(WEAK_PATTERN)].map((m) => m[0]);
+    if (matches.length > 0) {
+      failures.push(`${rel} -> ${Array.from(new Set(matches)).join(", ")}`);
+    }
+  }
+
+  if (failures.length > 0) {
+    console.error("❌ Weak password literals found:");
+    failures.forEach((f) => console.error(` - ${f}`));
+    process.exit(1);
+  }
+
+  console.log("✅ No weak password literals found.");
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/ci/verify-prod-env.js">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * CI guardrail: fail fast in production/preview pipelines when unsafe flags or missing secrets are detected.
+ */
+
+const violations = [];
+const warnings = [];
+
+const env = process.env;
+// Only validate in actual production/preview deployments (Vercel), not in CI test builds
+const isProdDeploy = env.VERCEL_ENV === 'production' || env.VERCEL_ENV === 'preview';
+const tapConfigured = Boolean(env.TAP_PUBLIC_KEY) && Boolean(env.TAP_WEBHOOK_SECRET);
+const paytabsConfigured = Boolean(env.PAYTABS_PROFILE_ID) && Boolean(env.PAYTABS_SERVER_KEY);
+
+// Redis is required for BullMQ queues (activation retries, ZATCA compliance)
+// Support both REDIS_URL and BULLMQ_REDIS_URL for compatibility with different configs
+const redisConfigured = Boolean(env.REDIS_URL || env.BULLMQ_REDIS_URL);
+
+// ZATCA (Saudi e-invoicing) configuration required for Finance/ZATCA domain
+const zatcaConfigured = Boolean(env.ZATCA_API_KEY) && Boolean(env.ZATCA_SELLER_NAME) &&
+                        Boolean(env.ZATCA_VAT_NUMBER) && Boolean(env.ZATCA_SELLER_ADDRESS);
+
+if (!isProdDeploy) {
+  console.log('[verify-prod-env] Skipping validation (not a Vercel production/preview deployment)');
+  process.exit(0);
+}
+
+function requireFalse(name, msg) {
+  if (env[name] === 'true') {
+    violations.push(msg || `${name} must be false in production`);
+  }
+}
+function warnIfMissing(name, msg) {
+  if (!env[name]) {
+    warnings.push(msg || `${name} is missing; related features will be disabled`);
+  }
+}
+
+requireFalse('SKIP_ENV_VALIDATION', 'SKIP_ENV_VALIDATION must be false in production');
+requireFalse('DISABLE_MONGODB_FOR_BUILD', 'DISABLE_MONGODB_FOR_BUILD must be false in production');
+
+// SECURITY: Validate critical auth secrets in both production and preview
+// Preview deployments should also be secure to prevent accidental data exposure
+{
+  // NEXTAUTH_SECRET (or AUTH_SECRET) is required for session signing
+  // Without this, JWTs cannot be signed/verified securely
+  const authSecretConfigured = Boolean(env.NEXTAUTH_SECRET || env.AUTH_SECRET);
+  if (!authSecretConfigured) {
+    violations.push(
+      `NEXTAUTH_SECRET (or AUTH_SECRET) is required in ${env.VERCEL_ENV} for secure session signing. ` +
+      'Generate a secure value with: openssl rand -base64 32'
+    );
+  }
+  
+  // Warn if using known placeholder values (defense in depth)
+  const secretValue = env.NEXTAUTH_SECRET || env.AUTH_SECRET || '';
+  const insecurePlaceholders = [
+    'your-secret-key',
+    'your-secret-key-here',
+    'change-me',
+    'supersecret',
+    'supersecretjwt',
+    'secret',
+    'test',
+  ];
+  if (insecurePlaceholders.some(p => secretValue.toLowerCase().includes(p))) {
+    violations.push(
+      'NEXTAUTH_SECRET contains a known insecure placeholder value. ' +
+      'Replace with a cryptographically secure random string: openssl rand -base64 32'
+    );
+  }
+
+  if (!tapConfigured && !paytabsConfigured) {
+    warnings.push(
+      'No payment provider configured: set PayTabs (PAYTABS_PROFILE_ID, PAYTABS_SERVER_KEY) or Tap (TAP_PUBLIC_KEY, TAP_WEBHOOK_SECRET)',
+    );
+  }
+
+  // ZATCA e-invoicing is REQUIRED when PayTabs is configured (Saudi operations)
+  // Without these, PayTabs callbacks WILL fail after successful payments
+  // Only check if PayTabs is configured, since ZATCA clearance is triggered by PayTabs webhooks
+  if (paytabsConfigured && !zatcaConfigured) {
+    violations.push(
+      'ZATCA e-invoicing not configured but PayTabs is enabled: set ZATCA_API_KEY, ZATCA_SELLER_NAME, ' +
+      'ZATCA_VAT_NUMBER, ZATCA_SELLER_ADDRESS. PayTabs callbacks will fail without these. ' +
+      `Configure these in Vercel Environment Variables before deploying to ${env.VERCEL_ENV}.`
+    );
+  }
+
+  // Redis is REQUIRED for background queues that use requireRedisConnection()
+  // Workers call requireRedisConnection() which throws if missing - align CI with runtime behavior
+  // This applies regardless of PayTabs config since workers crash on startup without Redis
+  // For preview: make it a warning since CI doesn't have Redis configured
+  // For production: keep as violation since workers WILL crash without Redis
+  if (!redisConfigured) {
+    const redisMsg = 'Redis not configured (REDIS_URL or BULLMQ_REDIS_URL). ' +
+      'Background queues (package activation retries, ZATCA compliance retries) require Redis and will crash without it. ' +
+      `Configure Redis in Vercel Environment Variables before deploying to ${env.VERCEL_ENV}.`;
+    
+    if (env.VERCEL_ENV === 'production') {
+      violations.push(redisMsg);
+    } else {
+      // Preview deployments: warn but don't block (CI may not have Redis secrets)
+      warnings.push(redisMsg);
+    }
+  }
+}
+
+if (violations.length > 0) {
+  console.error('❌ Production env validation failed:');
+  for (const v of violations) console.error(` - ${v}`);
+  process.exit(1);
+}
+
+if (warnings.length > 0) {
+  console.warn('⚠️ Production env warnings (non-blocking):');
+  for (const w of warnings) console.warn(` - ${w}`);
+  console.log('✅ Production env guardrails passed with warnings.');
+  process.exit(0);
+}
+
+console.log('✅ Production env guardrails passed.');
+
+]]>
+</file>
+
+<file path="scripts/cleanup/cleanup-orphan-workorders.ts">
+<![CDATA[
+import "dotenv/config";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { WorkOrder } from "@/server/models/WorkOrder";
+import { deleteObject } from "@/lib/storage/s3";
+import { logger } from "@/lib/logger";
+
+const DAYS_OLD = Number(process.env.ORPHAN_WO_DAYS ?? "7");
+
+async function cleanup() {
+  await connectToDatabase();
+  const cutoff = new Date(Date.now() - DAYS_OLD * 24 * 60 * 60 * 1000);
+
+  const orphans = await WorkOrder.find({
+    status: "DRAFT",
+    createdAt: { $lte: cutoff },
+  })
+    .select({ attachments: 1 })
+    .lean();
+
+  let woDeleted = 0;
+  let attachmentDeletes = 0;
+  let attachmentFailures = 0;
+
+  type OrphanWorkOrder = {
+    _id?: unknown;
+    attachments?: Array<{ key?: string }>;
+  };
+
+  for (const wo of orphans as OrphanWorkOrder[]) {
+    const attachments = wo.attachments ?? [];
+    const keys = attachments.map((a) => a.key).filter(Boolean) as string[];
+    if (keys.length) {
+      const results = await Promise.allSettled(
+        keys.map((k) => deleteObject(k)),
+      );
+      attachmentDeletes += results.filter(
+        (r) => r.status === "fulfilled",
+      ).length;
+      attachmentFailures += results.filter(
+        (r) => r.status === "rejected",
+      ).length;
+    }
+    await WorkOrder.deleteOne({ _id: wo._id });
+    woDeleted += 1;
+  }
+
+  logger.info("Cleanup summary", {
+    cutoff: cutoff.toISOString(),
+    draftsDeleted: woDeleted,
+    attachmentDeletes,
+    attachmentFailures,
+  });
+}
+
+cleanup()
+  .then(() => process.exit(0))
+  .catch((err) => {
+    logger.error("Cleanup error", err);
+    process.exit(1);
+  });
+
+]]>
+</file>
+
+<file path="scripts/cleanup-duplicate-imports.js">
+<![CDATA[
+#!/usr/bin/env node
+
+// cleanup-duplicate-imports.js
+// Remove duplicate authenticate imports from enhancedAuth
+
+const fs = require("fs");
+const path = require("path");
+
+console.log("🧹 CLEANING UP DUPLICATE IMPORTS...\n");
+
+const routesDir = path.join(process.cwd(), "routes");
+const files = fs.readdirSync(routesDir).filter((f) => f.endsWith(".js"));
+
+let cleanedCount = 0;
+
+files.forEach((file) => {
+  const filePath = path.join(routesDir, file);
+  let content = fs.readFileSync(filePath, "utf8");
+  const originalContent = content;
+
+  // Check if file has both imports
+  const hasAuthImport = content.includes(
+    "const authenticate = require('../middleware/auth')",
+  );
+  const hasEnhancedAuthImport = content.includes(
+    "require('../middleware/enhancedAuth')",
+  );
+
+  if (hasAuthImport && hasEnhancedAuthImport) {
+    console.log(`🔴 ${file} - Has duplicate imports!`);
+
+    // Remove the enhancedAuth import line entirely
+    content = content.replace(
+      /.*require\(['"]\.\.\/middleware\/enhancedAuth['"]\).*\n/g,
+      "",
+    );
+
+    // Remove any references to ensureTenantIsolation since we're removing that import
+    content = content.replace(/router\.use\(ensureTenantIsolation\);\n?/g, "");
+    content = content.replace(/ensureTenantIsolation,?\s*/g, "");
+
+    // Clean up any extra newlines
+    content = content.replace(/\n{3,}/g, "\n\n");
+
+    if (content !== originalContent) {
+      fs.writeFileSync(filePath, content);
+      console.log(`✅ ${file} - Removed duplicate imports`);
+      cleanedCount++;
+    }
+  } else if (hasEnhancedAuthImport && !hasAuthImport) {
+    console.log(`⚠️  ${file} - Only has enhancedAuth import, converting...`);
+
+    // Convert enhancedAuth import to regular auth import
+    content = content.replace(
+      /const\s*\{\s*authenticate[^}]*\}\s*=\s*require\(['"]\.\.\/middleware\/enhancedAuth['"]\);?/g,
+      "const authenticate = require('../middleware/auth');",
+    );
+
+    // Remove ensureTenantIsolation usage
+    content = content.replace(/router\.use\(ensureTenantIsolation\);\n?/g, "");
+    content = content.replace(/ensureTenantIsolation,?\s*/g, "");
+
+    if (content !== originalContent) {
+      fs.writeFileSync(filePath, content);
+      console.log(`✅ ${file} - Converted to standard auth import`);
+      cleanedCount++;
+    }
+  }
+});
+
+console.log(`\n📊 CLEANED UP ${cleanedCount} FILES\n`);
+console.log("🚀 Ready to restart server!\n");
+
+]]>
+</file>
+
+<file path="scripts/cleanup-test-users.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * Clean up test users (@test.fixzit.co)
+ */
+import { db } from "../lib/mongo";
+import { User } from "../server/models/User";
+
+async function cleanup() {
+  try {
+    await db;
+    console.log("🧹 Cleaning up test users...");
+
+    // Delete by email pattern
+    const result1 = await User.deleteMany({
+      email: { $regex: /@test\.fixzit\.co$/ },
+    });
+
+    // Delete by orgId with null employeeId (old test users)
+    const result2 = await User.deleteMany({
+      orgId: "68dc8955a1ba6ed80ff372dc",
+      employeeId: null,
+    });
+
+    console.log(
+      `✅ Deleted ${result1.deletedCount + result2.deletedCount} test users`,
+    );
+    process.exit(0);
+  } catch (error) {
+    console.error("❌ Error:", error);
+    process.exit(1);
+  }
+}
+
+cleanup();
+
+]]>
+</file>
+
+<file path="scripts/clear-test-data.ts">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * Clear Test Database Script
+ * 
+ * WARNING: This script will delete ALL data from test collections.
+ * Use with caution and only on test/development databases.
+ * 
+ * Usage:
+ *   NODE_ENV=test npm run clear-test-data
+ *   or
+ *   ts-node scripts/clear-test-data.ts
+ */
+
+import mongoose from 'mongoose';
+import { config } from 'dotenv';
+import { existsSync } from 'fs';
+import { resolve } from 'path';
+
+// Load environment variables from .env.local or .env
+const envLocalPath = resolve(process.cwd(), '.env.local');
+const envPath = resolve(process.cwd(), '.env');
+
+if (existsSync(envLocalPath)) {
+  config({ path: envLocalPath });
+} else if (existsSync(envPath)) {
+  config({ path: envPath });
+} else {
+  config();
+}
+
+const MONGODB_URI = process.env.MONGODB_URI;
+
+if (!MONGODB_URI) {
+  console.error('❌ Error: MONGODB_URI environment variable is not set');
+  process.exit(1);
+}
+
+// Safety check: Only allow on test/dev databases
+const isSafeDatabase = 
+  MONGODB_URI.includes('test') || 
+  MONGODB_URI.includes('dev') || 
+  MONGODB_URI.includes('localhost') ||
+  process.env.NODE_ENV === 'test' ||
+  process.env.NODE_ENV === 'development';
+
+if (!isSafeDatabase) {
+  console.error('❌ Error: This script can only be run on test/dev databases');
+  console.error('   Database must contain "test", "dev", or "localhost" in URI');
+  console.error('   Or NODE_ENV must be "test" or "development"');
+  process.exit(1);
+}
+
+async function clearTestData() {
+  try {
+    console.log('🔌 Connecting to MongoDB...');
+    console.log(`   Database: ${MONGODB_URI.split('@')[1] || 'localhost'}`);
+    
+    await mongoose.connect(MONGODB_URI);
+    
+    const db = mongoose.connection.db;
+    const collections = await db.listCollections().toArray();
+    
+    console.log(`\n📊 Found ${collections.length} collections\n`);
+    
+    let totalDeleted = 0;
+    const results: { collection: string; deleted: number }[] = [];
+    
+    for (const collectionInfo of collections) {
+      const collectionName = collectionInfo.name;
+      
+      // Skip system collections
+      if (collectionName.startsWith('system.')) {
+        console.log(`⏭️  Skipping system collection: ${collectionName}`);
+        continue;
+      }
+      
+      try {
+        const collection = db.collection(collectionName);
+        const count = await collection.countDocuments();
+        
+        if (count === 0) {
+          console.log(`✓ ${collectionName}: already empty`);
+          continue;
+        }
+        
+        const result = await collection.deleteMany({});
+        totalDeleted += result.deletedCount || 0;
+        
+        results.push({
+          collection: collectionName,
+          deleted: result.deletedCount || 0
+        });
+        
+        console.log(`🗑️  ${collectionName}: deleted ${result.deletedCount} documents`);
+      } catch (error) {
+        console.error(`❌ Error clearing ${collectionName}:`, error);
+      }
+    }
+    
+    console.log('\n' + '='.repeat(60));
+    console.log('📈 Summary:');
+    console.log('='.repeat(60));
+    console.log(`Total collections processed: ${results.length}`);
+    console.log(`Total documents deleted: ${totalDeleted}`);
+    
+    if (results.length > 0) {
+      console.log('\nTop collections by documents deleted:');
+      results
+        .sort((a, b) => b.deleted - a.deleted)
+        .slice(0, 10)
+        .forEach(({ collection, deleted }) => {
+          console.log(`  - ${collection}: ${deleted.toLocaleString()}`);
+        });
+    }
+    
+    console.log('\n✅ Database cleanup completed successfully');
+    
+  } catch (error) {
+    console.error('❌ Error during cleanup:', error);
+    process.exit(1);
+  } finally {
+    await mongoose.disconnect();
+    console.log('\n🔌 Disconnected from MongoDB');
+  }
+}
+
+// Confirmation prompt in interactive mode
+async function promptConfirmation(): Promise<boolean> {
+  if (process.env.CI || process.env.SKIP_CONFIRMATION === 'true') {
+    return true;
+  }
+  
+  const readline = require('readline').createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+  
+  return new Promise((resolve) => {
+    readline.question(
+      '\n⚠️  WARNING: This will delete ALL data from the test database.\n' +
+      '   Type "YES" to confirm: ',
+      (answer: string) => {
+        readline.close();
+        resolve(answer.trim() === 'YES');
+      }
+    );
+  });
+}
+
+// Main execution
+(async () => {
+  console.log('🧹 Test Database Cleanup Script');
+  console.log('='.repeat(60));
+  
+  const confirmed = await promptConfirmation();
+  
+  if (!confirmed) {
+    console.log('\n❌ Cleanup cancelled by user');
+    process.exit(0);
+  }
+  
+  await clearTestData();
+  process.exit(0);
+})();
+
+]]>
+</file>
+
+<file path="scripts/codemods/update-mongodb-imports.ts">
+<![CDATA[
+import fg from "fast-glob";
+import fs from "fs";
+import recast from "recast";
+import * as typescriptParser from "recast/parsers/typescript";
+
+const files = await fg(["**/*.{ts,tsx,js,jsx}", "!node_modules/**"]);
+
+for (const f of files) {
+  const code = fs.readFileSync(f, "utf8");
+  if (!/mongodb/.test(code)) continue;
+
+  const ast = recast.parse(code, { parser: typescriptParser });
+  let changed = false;
+
+  recast.visit(ast, {
+    visitImportDeclaration(p) {
+      const s = p.value.source.value as string;
+      if (/mongodb/.test(s)) {
+        p.value.source.value = "@/lib/db";
+        p.value.specifiers = [
+          recast.types.builders.importSpecifier(
+            recast.types.builders.identifier("collection"),
+          ),
+          recast.types.builders.importSpecifier(
+            recast.types.builders.identifier("withOrg"),
+          ),
+        ];
+        changed = true;
+      }
+      this.traverse(p);
+    },
+  });
+
+  if (changed) {
+    fs.writeFileSync(f, recast.print(ast).code, "utf8");
+    console.log(`Rewired Mongo import in ${f}`);
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

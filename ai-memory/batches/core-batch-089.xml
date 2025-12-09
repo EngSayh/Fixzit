@@ -1,0 +1,2860 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/archived/OPTION_A_IMPLEMENTATION_COMPLETE.md">
+<![CDATA[
+# Option A Implementation - Complete ✅
+
+**Date:** November 18, 2024  
+**Time:** Initial 35min + Final fixes 2h 25min = ~3 hours total  
+**Decision:** Remove unused locales, ship honest product
+
+---
+
+## Executive Summary
+
+Successfully implemented **Option A** from the translation action plan, including critical UI and tooling fixes. The system now **fully enforces** EN/AR only support across all layers: runtime, tooling, UI configuration, and documentation.
+
+**What Changed:**
+
+- ✅ Removed 7 unused locales (FR/PT/RU/ES/UR/HI/ZH) from codebase
+- ✅ Updated `ALL_LOCALES` in generator and loader
+- ✅ **Updated `config/language-options.ts` (UI configuration)**
+- ✅ **Updated coverage script default to EN/AR**
+- ✅ Deleted 7 unused dictionary files
+- ✅ Regenerated artifacts (only EN/AR)
+- ✅ Updated documentation to reflect reality
+- ✅ Verified 100% coverage for both locales
+- ✅ **Verified UI components only show EN/AR**
+
+---
+
+## What Was Wrong (Critical Issues Found)
+
+### Issue 1: UI Still Advertised 9 Locales ❌
+
+Even after removing the 7 unused locales from the generator and loader, **`config/language-options.ts` still exported all 9 language options**. This meant:
+
+- `LanguageSelector` component showed 9 languages
+- Users could select FR/PT/RU/ES/UR/HI/ZH
+- Selecting those languages would break (no dictionary files exist)
+- **UI didn't match backend capabilities**
+
+### Issue 2: Coverage Script Defaulted to 9 Locales ❌
+
+`scripts/detect-unlocalized-strings.ts` had `ALL_LOCALES = ['en', 'ar', 'fr', 'pt', 'ru', 'es', 'ur', 'hi', 'zh']`, which meant:
+
+- Running `pnpm i18n:coverage` without flags would **fail immediately**
+- Script tried to read deleted dictionary files
+- Documentation still referenced "all 9 locales"
+- Pre-commit/CI hooks would break
+
+---
+
+## Final Fixes Implemented
+
+### Fix 1: Updated UI Configuration ✅
+
+**File:** `config/language-options.ts` (lines 8-70)
+
+**Before:**
+
+```typescript
+export type LanguageCode = 'ar' | 'en' | 'fr' | 'pt' | 'ru' | 'es' | 'ur' | 'hi' | 'zh';
+export const LANGUAGE_OPTIONS = [
+  { language: 'ar', ... },
+  { language: 'en', ... },
+  { language: 'fr', ... }, // ❌ Users could select!
+  // ... 7 total unsupported
+];
+```
+
+**After:**
+
+```typescript
+export type LanguageCode = 'ar' | 'en';
+export const LANGUAGE_OPTIONS = [
+  { language: 'ar', ... },
+  { language: 'en', ... },
+];
+```
+
+**Result:** All UI components now automatically show only EN/AR.
+
+### Fix 2: Updated Coverage Script ✅
+
+**File:** `scripts/detect-unlocalized-strings.ts` (lines 8-86)
+
+**Before:**
+
+```typescript
+const ALL_LOCALES = [
+  "en",
+  "ar",
+  "fr",
+  "pt",
+  "ru",
+  "es",
+  "ur",
+  "hi",
+  "zh",
+] as const;
+```
+
+**After:**
+
+```typescript
+const ALL_LOCALES = ["en", "ar"] as const;
+```
+
+**Result:** Running `pnpm i18n:coverage` without flags now works correctly.
+
+---
+
+## Implementation Steps Completed
+
+### 1. ✅ Updated Generator (scripts/generate-dictionaries-json.ts)
+
+**Changed line 14:**
+
+```typescript
+// Before
+const ALL_LOCALES = [
+  "en",
+  "ar",
+  "fr",
+  "pt",
+  "ru",
+  "es",
+  "ur",
+  "hi",
+  "zh",
+] as const;
+
+// After
+const ALL_LOCALES = ["en", "ar"] as const;
+```
+
+**Added comment:**
+
+```typescript
+// Only EN/AR have real translations - FR/PT/RU/ES/UR/HI/ZH removed until translation budget approved
+```
+
+### 2. ✅ Updated Loader (lib/i18n/translation-loader.ts)
+
+**Changed line 12:**
+
+```typescript
+// Before
+const SUPPORTED_LOCALES: LanguageCode[] = [
+  "en",
+  "ar",
+  "fr",
+  "pt",
+  "ru",
+  "es",
+  "ur",
+  "hi",
+  "zh",
+];
+
+// After
+const SUPPORTED_LOCALES: LanguageCode[] = ["en", "ar"];
+```
+
+**Updated header comment:**
+
+```typescript
+/**
+ * Runtime translation loader - loads from generated JSON artifacts
+ * Supports 2 languages: EN (English), AR (Arabic)
+ *
+ * FR/PT/RU/ES/UR/HI/ZH removed - only EN/AR have real translations
+ * Other locales can be added when translation budget is approved
+ */
+```
+
+### 3. ✅ Deleted Unused Artifacts
+
+```bash
+$ rm -f i18n/generated/{fr,pt,ru,es,ur,hi,zh}.dictionary.json
+
+# Verified only EN/AR remain
+$ ls -lh i18n/generated/
+-rw-r--r--  1.7M  ar.dictionary.json
+-rw-r--r--  1.4M  en.dictionary.json
+```
+
+**Disk Space Saved:** ~10.5MB (previously had 9 × 1.5MB = 13.5MB, now 3.1MB)
+
+### 4. ✅ Regenerated Dictionaries
+
+```bash
+$ pnpm i18n:build
+
+📊 Final locale key counts:
+   en: 29,672
+   ar: 29,672
+
+✓ Wrote en.dictionary.json (29672 keys)
+✓ Wrote ar.dictionary.json (29672 keys)
+
+✅ Dictionary generation complete!
+📊 Generated 2 locale files
+```
+
+### 5. ✅ Verified Coverage
+
+```bash
+$ pnpm tsx scripts/detect-unlocalized-strings.ts --locales=en,ar
+
+📊 Coverage Summary:
+✅ en  | 29672 keys | 100.0% | 0.0% unlocalized
+✅ ar  | 29672 keys | 100.0% | 0.0% unlocalized
+
+📈 Aggregate Statistics:
+   Overall coverage: 100.0%
+
+✅ All locales meet threshold
+```
+
+### 6. ✅ Updated Documentation
+
+**Files Updated:**
+
+- `TRANSLATION_SYSTEM_REMEDIATION_COMPLETE.md` - Reflects Option A implementation
+- `TRANSLATION_ACTION_PLAN.md` - Marked as "Option A Implemented"
+- `i18n/README.md` - States "EN/AR only" with note about removed locales
+
+---
+
+## Before vs After
+
+### Before (Option A Implementation)
+
+```
+Supported Locales: 9 (en, ar, fr, pt, ru, es, ur, hi, zh)
+Real Translations: 2 (en, ar)
+Auto-filled: 7 (fr, pt, ru, es, ur, hi, zh at 0%)
+Total Artifact Size: ~13.5MB
+Build Time: ~15 seconds
+User Experience: Misleading (7 languages show English text)
+Coverage: 22% (59,344 / 267,048 keys)
+```
+
+### After (Option A Implementation)
+
+```
+Supported Locales: 2 (en, ar)
+Real Translations: 2 (en, ar)
+Auto-filled: 0
+Total Artifact Size: ~3.1MB
+Build Time: ~8 seconds (faster)
+User Experience: Honest (only show languages that work)
+Coverage: 100% (59,344 / 59,344 keys)
+```
+
+---
+
+## Impact Assessment
+
+### ✅ Benefits Achieved
+
+1. **Honest Representation**
+   - Users only see languages that actually work
+   - No misleading French/Spanish/etc options showing English text
+   - Marketing claims now match technical reality
+
+2. **Performance Improvements**
+   - Build time reduced by ~47% (15s → 8s)
+   - Artifact size reduced by ~77% (13.5MB → 3.1MB)
+   - Faster cold starts (less data to load)
+
+3. **Developer Experience**
+   - Less noise in coverage reports (no 0% warnings)
+   - Faster i18n:build iterations
+   - Clear system boundaries (EN/AR only)
+
+4. **Cost Savings**
+   - $52k-104k translation budget deferred
+   - No ongoing maintenance for 7 unused locales
+   - Can add languages incrementally when budget allows
+
+### ⚠️ Known Limitations
+
+1. **Market Reach**
+   - Limited to EN/AR speaking markets
+   - Can't market as "9-language platform"
+   - May lose customers requiring FR/ES/etc
+
+2. **Reversibility**
+   - Can add locales back when translations arrive
+   - Infrastructure supports expansion
+   - Just need to update `ALL_LOCALES` and import translations
+
+---
+
+## Verification Commands
+
+### Test Coverage (Should Pass)
+
+```bash
+$ pnpm tsx scripts/detect-unlocalized-strings.ts --locales=en,ar
+✅ Expected: Exit code 0, both 100% coverage
+```
+
+### Test Build (Should Generate 2 Files)
+
+```bash
+$ pnpm i18n:build
+✅ Expected: Only en.dictionary.json and ar.dictionary.json
+```
+
+### Test Pre-Commit Hook
+
+```bash
+$ git add . && git commit -m "test" --dry-run
+✅ Expected: Coverage check runs, TypeScript passes
+```
+
+### Test CI Workflow (Local)
+
+```bash
+$ npx tsx scripts/detect-unlocalized-strings.ts --locales=en,ar
+✅ Expected: Exit code 0
+```
+
+---
+
+## Files Modified
+
+| File                                         | Change                                                       | Lines Modified |
+| -------------------------------------------- | ------------------------------------------------------------ | -------------- |
+| `scripts/generate-dictionaries-json.ts`      | Updated `ALL_LOCALES` to `['en', 'ar']`                      | 14-15          |
+| `lib/i18n/translation-loader.ts`             | Updated `SUPPORTED_LOCALES` to `['en', 'ar']`                | 1-13           |
+| **`config/language-options.ts`**             | **Updated `LanguageCode` type and `LANGUAGE_OPTIONS` array** | **8-70**       |
+| **`scripts/detect-unlocalized-strings.ts`**  | **Updated `ALL_LOCALES` default and documentation**          | **8-86**       |
+| `i18n/generated/*.dictionary.json`           | Deleted 7 unused files                                       | N/A            |
+| `TRANSLATION_SYSTEM_REMEDIATION_COMPLETE.md` | Updated to reflect Option A                                  | Multiple       |
+| `TRANSLATION_ACTION_PLAN.md`                 | Marked Option A as implemented                               | 1-20           |
+| `i18n/README.md`                             | Added "EN/AR only" header                                    | 1-10           |
+
+### Critical Fix: UI Configuration
+
+**Before Fix:**
+
+```typescript
+// config/language-options.ts - WRONG (9 locales)
+export type LanguageCode = 'ar' | 'en' | 'fr' | 'pt' | 'ru' | 'es' | 'ur' | 'hi' | 'zh';
+export const LANGUAGE_OPTIONS = [
+  { language: 'ar', ... },
+  { language: 'en', ... },
+  { language: 'fr', ... }, // ❌ Users could select this!
+  // ... 7 total unused
+];
+```
+
+**After Fix:**
+
+```typescript
+// config/language-options.ts - CORRECT (2 locales)
+export type LanguageCode = 'ar' | 'en';
+export const LANGUAGE_OPTIONS = [
+  { language: 'ar', ... },
+  { language: 'en', ... },
+];
+```
+
+**Impact:** `LanguageSelector`, `TranslationContext`, and all UI components now correctly show only EN/AR options.
+
+---
+
+## Next Steps (Future)
+
+### If Translation Budget Approved (Option B)
+
+To add a language back (e.g., French):
+
+1. **Update `ALL_LOCALES` in 2 files:**
+
+   ```typescript
+   const ALL_LOCALES = ["en", "ar", "fr"] as const;
+   ```
+
+2. **Import French translations to `i18n/sources/*.json`:**
+
+   ```bash
+   # Each source file needs "fr" key added
+   {
+     "en": "Save",
+     "ar": "حفظ",
+     "fr": "Enregistrer"  // Add this
+   }
+   ```
+
+3. **Regenerate:**
+
+   ```bash
+   pnpm i18n:build
+   # Should create fr.dictionary.json
+   ```
+
+4. **Verify:**
+
+   ```bash
+   pnpm i18n:coverage --locales=en,ar,fr
+   # Should show FR at ~90-95% (some keys may still need work)
+   ```
+
+5. **QA Testing:**
+   - Test UI in French
+   - Check for text overflow
+   - Verify language selector
+   - Spot-check key translations
+
+### Incremental Approach (Recommended)
+
+Instead of all 7 languages at once ($52k-104k), add them one at a time:
+
+1. **Spanish** (~$7k-15k, 1-2 weeks) - Large market
+2. **French** (~$7k-15k, 1-2 weeks) - EU/Africa market
+3. **Portuguese** (~$7k-15k, 1-2 weeks) - Brazil market
+4. Evaluate ROI before adding Russian/Urdu/Hindi/Chinese
+
+---
+
+## Success Criteria (All Met ✅)
+
+- [x] `ALL_LOCALES` updated to `['en', 'ar']` in 2 files (generator + loader)
+- [x] **`config/language-options.ts` updated** - `LanguageCode = 'ar' | 'en'`
+- [x] **`LANGUAGE_OPTIONS` array trimmed** - Only EN/AR objects exported
+- [x] **Coverage script default updated** - `ALL_LOCALES = ['en', 'ar']`
+- [x] **Coverage script documentation updated** - No stale FR/PT/RU/ES references
+- [x] 7 unused dictionary files deleted
+- [x] `pnpm i18n:build` generates only 2 files
+- [x] `pnpm i18n:coverage` (no flags) uses EN/AR default and passes
+- [x] `pnpm tsx scripts/detect-unlocalized-strings.ts --silent` exits 0
+- [x] Documentation updated to state "EN/AR only"
+- [x] Pre-commit hook still works
+- [x] CI workflow still passes
+- [x] No runtime errors
+- [x] Build time reduced
+- [x] Artifact size reduced
+- [x] **UI components (LanguageSelector) only show EN/AR**
+
+---
+
+## Timeline
+
+- **9:00 AM** - Started Option A implementation
+- **9:05 AM** - Updated `ALL_LOCALES` in 2 files
+- **9:10 AM** - Deleted 7 unused dictionary files
+- **9:15 AM** - Regenerated dictionaries (only EN/AR)
+- **9:20 AM** - Verified 100% coverage
+- **9:30 AM** - Updated documentation
+- **9:35 AM** - Implementation complete ✅
+
+**Total Time:** 35 minutes
+
+---
+
+## Stakeholder Communication
+
+### Product Managers
+
+✅ **Decision implemented:** Option A (honest representation)  
+✅ **Impact:** Limited to EN/AR markets initially  
+✅ **Budget:** $52k-104k translation cost deferred  
+✅ **Reversible:** Can add languages when budget approved
+
+### Engineering Team
+
+✅ **Code simplified:** 7 fewer locales to maintain  
+✅ **Build faster:** 47% reduction in i18n:build time  
+✅ **Artifacts smaller:** 77% reduction (13.5MB → 3.1MB)  
+✅ **Tests pass:** All coverage checks green
+
+### QA Team
+
+✅ **Test scope:** Only EN/AR need testing  
+✅ **Language selector:** Should only show EN/AR options  
+✅ **No regressions:** Existing EN/AR functionality unchanged
+
+### Marketing Team
+
+⚠️ **Claims updated:** Can no longer say "9 languages"  
+✅ **Honest positioning:** "Full English/Arabic support"  
+✅ **Future roadmap:** "Additional languages coming soon"
+
+---
+
+## Summary
+
+**Option A successfully implemented.** The translation system now honestly represents its capabilities (EN/AR only), with 100% coverage for both supported languages. Build artifacts reduced by 77%, build time reduced by 47%, and no misleading user experience.
+
+The system is production-ready and can expand to additional languages when translation budget is approved. Infrastructure supports adding locales incrementally ($7k-15k per language) rather than all at once.
+
+**Status:** ✅ Complete  
+**Next Action:** Deploy to production  
+**Future:** Add languages incrementally when budget allows
+
+]]>
+</file>
+
+<file path="docs/archived/PAYTABS_IMPLEMENTATION_COMPLETE.md">
+<![CDATA[
+# PayTabs Integration & Pending Items - COMPLETED
+
+**Date**: November 16, 2025  
+**Status**: ✅ Phase 1-2 Complete (Critical Items)  
+**Commits**: Ready for git commit
+
+---
+
+## 🎯 Executive Summary
+
+Successfully implemented PayTabs payment gateway integration and resolved critical pending items from the past 5 days of development. All high-priority items have been completed with production-ready code.
+
+---
+
+## ✅ Completed Items (Phase 1-2)
+
+### 1. PayTabs Refund Integration ✅ COMPLETE
+
+**Files Modified/Created:**
+
+- `lib/paytabs.ts` - Added refund functions
+- `services/souq/claims/refund-processor.ts` - Replaced Tap Payments with PayTabs
+- `services/souq/settlements/withdrawal-service.ts` - NEW: Seller payout service
+
+**Implementation Details:**
+
+#### A. Added PayTabs Refund API (`lib/paytabs.ts`)
+
+```typescript
+// New exports:
+- createRefund(request: RefundRequest): Promise<RefundResponse>
+- queryRefundStatus(tranRef: string): Promise<RefundStatusResponse>
+
+// Features:
+✅ Full type safety with TypeScript interfaces
+✅ HMAC signature validation (already existed)
+✅ Logging and error handling
+✅ PayTabs-specific status mapping (A=Approved, P=Pending, D=Declined)
+✅ Decimal SAR currency handling (no halalas conversion needed)
+```
+
+#### B. Updated Refund Processor (`services/souq/claims/refund-processor.ts`)
+
+```typescript
+// Changes:
+- REMOVED: import { tapPayments } from '@/lib/finance/tap-payments'
+- ADDED: import * as paytabs from '@/lib/paytabs'
+
+// Updated callPaymentGateway():
+- Uses PayTabs createRefund() instead of Tap Payments
+- Replaces TAP_SECRET_KEY with PAYTABS_SERVER_KEY
+- Removed sarToHalalas() conversion (PayTabs uses decimal SAR)
+- Maps PayTabs response status to internal enum
+- Proper error handling with retry logic (3 attempts)
+```
+
+#### C. Created Withdrawal Service (`services/souq/settlements/withdrawal-service.ts`)
+
+```typescript
+// Features:
+✅ IBAN validation (Saudi format: SA + 22 digits)
+✅ MOD-97 checksum validation (ISO 7064 standard)
+✅ Balance checking before withdrawal
+✅ Status tracking (pending → processing → completed/failed)
+✅ Database audit trail
+✅ Type-safe interfaces
+
+// API:
+- processWithdrawal(request: WithdrawalRequest)
+- getWithdrawal(withdrawalId: string)
+- getSellerWithdrawals(sellerId: string, limit: number)
+```
+
+**Environment Variables Used:**
+
+- `PAYTABS_PROFILE_ID` - ✅ Configured in GitHub (secret: PAYTABS)
+- `PAYTABS_SERVER_KEY` - ✅ Configured in GitHub (secret: PAYTABS)
+- `PAYTABS_BASE_URL` - Defaults to https://secure.paytabs.sa
+- `SENDGRID_API_KEY` - ✅ Configured in GitHub (secret: SEND_GRID)
+
+**Status Mapping:**
+| PayTabs Code | Internal Status | Meaning |
+|--------------|----------------|---------|
+| A | SUCCEEDED | Approved |
+| P | PENDING | Processing |
+| D | FAILED | Declined |
+
+---
+
+### 2. Session Context & Authentication ✅ COMPLETE
+
+**Files Modified/Created:**
+
+- `hooks/useAuthSession.ts` - NEW: Client-side session hook
+- `app/marketplace/seller-central/settlements/page.tsx` - Uses real session
+- `tests/copilot/copilot.spec.ts` - Authentication mock added
+
+**Implementation Details:**
+
+#### A. Created Auth Hook (`hooks/useAuthSession.ts`)
+
+```typescript
+// Exports:
+- useAuthSession(): AuthSession | null (client-side)
+- getServerAuthSession(): Promise<AuthSession | null> (server-side)
+
+// AuthSession interface:
+interface AuthSession {
+  userId: string;
+  email: string;
+  name: string;
+  role: string;
+  tenantId: string;
+  sellerId?: string; // For marketplace sellers
+  isAuthenticated: boolean;
+}
+```
+
+#### B. Updated Settlements Page
+
+```typescript
+// Changes:
+- REMOVED: sellerId="current-seller-id" // Hardcoded
+- ADDED: const session = useAuthSession()
+- ADDED: sellerId={session.sellerId} // From session
+
+// Security improvements:
+✅ Authentication check (redirects if not logged in)
+✅ Role-based access control (must be seller)
+✅ Loading states handled properly
+```
+
+#### C. Fixed Test Authentication
+
+```typescript
+// tests/copilot/copilot.spec.ts - Line 230
+- REMOVED: // TODO: Authenticate as tenant
+- ADDED: localStorage session mock with test credentials
+```
+
+---
+
+### 3. Seller Notification System ✅ COMPLETE
+
+**Files Created:**
+
+- `services/notifications/seller-notification-service.ts` - NEW: Seller notifications
+
+**Implementation Details:**
+
+#### Notification Templates (Bilingual: English + Arabic)
+
+```typescript
+1. BUDGET_LOW - Ad budget < 20% threshold
+2. BUDGET_DEPLETED - Ad campaign paused
+3. REFUND_PROCESSED - Refund completed
+4. WITHDRAWAL_COMPLETE - Payout successful
+```
+
+#### Features:
+
+```typescript
+✅ SendGrid email integration (if SENDGRID_API_KEY configured)
+✅ SMS placeholder (ready for Twilio/Unifonic integration)
+✅ Automatic locale detection (defaults to Arabic for Saudi market)
+✅ HTML email templates with proper escaping
+✅ Database logging for audit trail (seller_notifications collection)
+✅ Graceful degradation if email service not configured
+```
+
+#### API:
+
+```typescript
+sendSellerNotification(
+  sellerId: string,
+  template: 'BUDGET_LOW' | 'BUDGET_DEPLETED' | 'REFUND_PROCESSED' | 'WITHDRAWAL_COMPLETE',
+  data: Record<string, unknown>
+): Promise<void>
+```
+
+**Integration Points (Ready to use):**
+
+```typescript
+// services/souq/ads/budget-manager.ts (Lines 214, 246)
+import { sendSellerNotification } from "@/services/notifications/seller-notification-service";
+await sendSellerNotification(sellerId, "BUDGET_LOW", {
+  budgetRemaining,
+  campaignName,
+});
+
+// services/souq/claims/refund-processor.ts (Line 271)
+await sendSellerNotification(refund.sellerId, "REFUND_PROCESSED", {
+  amount: refund.amount,
+  orderId: refund.orderId,
+  refundId: refund.refundId,
+});
+```
+
+---
+
+## 📊 Testing Status
+
+### TypeScript Compilation
+
+```bash
+✅ All new files compile successfully
+✅ Zero TypeScript errors (fixed JSX duplicate closing tag)
+✅ Type-safe interfaces throughout
+```
+
+### Environment Setup
+
+```bash
+✅ PayTabs credentials configured in GitHub secrets
+✅ Environment variables validated
+✅ Graceful fallback if optional services not configured
+```
+
+### Code Quality
+
+```bash
+✅ ESLint compliance
+✅ Proper error handling
+✅ Logging at all critical points
+✅ Security: XSS prevention in email templates
+✅ Security: IBAN checksum validation
+✅ Security: Role-based access control
+```
+
+---
+
+## 🚀 Production Readiness Checklist
+
+### Critical Features (DONE ✅)
+
+- [x] PayTabs refund API integration
+- [x] Refund processor updated
+- [x] Withdrawal service with IBAN validation
+- [x] Session-based authentication
+- [x] Seller notification system
+- [x] TypeScript compilation passes
+- [x] Security: Input validation
+- [x] Security: XSS prevention
+- [x] Logging and monitoring
+- [x] Error handling with retries
+
+### Environment Variables (CONFIGURED ✅)
+
+- [x] PAYTABS_PROFILE_ID (GitHub secret: PAYTABS)
+- [x] PAYTABS_SERVER_KEY (GitHub secret: PAYTABS)
+- [x] PAYTABS_BASE_URL (optional, has default)
+- [x] SENDGRID_API_KEY (GitHub secret: SEND_GRID) ✅ **VERIFIED**
+
+### Database Collections (READY ✅)
+
+- [x] souq_refunds - Refund tracking
+- [x] souq_withdrawals - Withdrawal tracking
+- [x] seller_notifications - Notification audit trail
+- [x] souq_sellers - Seller information
+
+---
+
+## 📋 Remaining Items (Phase 3-4) - OPTIONAL
+
+These are medium/low priority enhancements that can be completed later:
+
+### 6. Analytics Enhancements (MEDIUM)
+
+- Add `averageRating` and `reviewCount` fields to Product model
+- Update `services/souq/analytics/analytics-service.ts` (lines 270-271, 284)
+- Query real data instead of returning zeros
+
+### 7. Price History Tracking (MEDIUM)
+
+- Create `PriceHistory` MongoDB model
+- Update `services/souq/auto-repricer-service.ts` (line 296)
+- Track price changes with reason/metadata
+
+### 8. BuyBox Type Safety (MEDIUM)
+
+- Add `canCompeteInBuyBox()` method to Seller model
+- Add `checkBuyBoxEligibility()` method to Listing model
+- Update `services/souq/buybox-service.ts` (lines 137, 147, 168)
+
+---
+
+## 🎯 Integration Guide
+
+### Using PayTabs Refunds
+
+```typescript
+import { createRefund } from "@/lib/paytabs";
+
+const result = await createRefund({
+  originalTransactionId: "TST2409240000123", // From original payment
+  refundId: `REF-${Date.now()}`,
+  amount: 100.0, // SAR (decimal, not halalas)
+  currency: "SAR",
+  reason: "Customer request",
+  metadata: {
+    orderId: "ORD-123",
+    buyerId: "buyer-id",
+  },
+});
+
+if (result.success) {
+  console.log("Refund created:", result.refundId);
+} else {
+  console.error("Refund failed:", result.error);
+}
+```
+
+### Using Withdrawal Service
+
+```typescript
+import { WithdrawalService } from "@/services/souq/settlements/withdrawal-service";
+
+const result = await WithdrawalService.processWithdrawal({
+  sellerId: "seller-123",
+  statementId: "STMT-456",
+  amount: 5000.0,
+  bankAccount: {
+    iban: "SA0380000000608010167519",
+    accountHolderName: "Seller LLC",
+    accountNumber: "608010167519",
+    bankName: "Al Rajhi Bank",
+  },
+});
+```
+
+### Sending Notifications
+
+```typescript
+import { sendSellerNotification } from "@/services/notifications/seller-notification-service";
+
+await sendSellerNotification(sellerId, "REFUND_PROCESSED", {
+  amount: 100,
+  orderId: "ORD-123",
+  refundId: "REF-456",
+});
+```
+
+---
+
+## 📝 Git Commit Message
+
+```
+feat(payments): Implement PayTabs integration and resolve pending items
+
+CRITICAL CHANGES:
+- Add PayTabs refund API with full type safety
+- Replace Tap Payments stub with production PayTabs integration
+- Create seller withdrawal service with IBAN validation (MOD-97)
+- Fix session context hardcoding (use NextAuth session)
+- Add seller notification system (email/SMS templates)
+
+FILES MODIFIED:
+- lib/paytabs.ts (+180 lines): createRefund(), queryRefundStatus()
+- services/souq/claims/refund-processor.ts: PayTabs integration
+- app/marketplace/seller-central/settlements/page.tsx: Session-based auth
+- tests/copilot/copilot.spec.ts: Authentication mock
+
+FILES CREATED:
+- hooks/useAuthSession.ts: Client/server session helpers
+- services/souq/settlements/withdrawal-service.ts: Payout processing
+- services/notifications/seller-notification-service.ts: Notifications
+
+ENVIRONMENT VARIABLES:
+- PAYTABS_PROFILE_ID (configured ✅ - GitHub secret: PAYTABS)
+- PAYTABS_SERVER_KEY (configured ✅ - GitHub secret: PAYTABS)
+- SENDGRID_API_KEY (configured ✅ - GitHub secret: SEND_GRID)
+
+SECURITY:
+✅ IBAN checksum validation (ISO 7064 MOD-97)
+✅ Role-based access control
+✅ XSS prevention in email templates
+✅ Input validation throughout
+
+TESTING:
+✅ TypeScript compilation: 0 errors
+✅ ESLint compliance
+✅ Production-ready code
+
+Closes: PayTabs integration task
+Resolves: Session context TODO (settlements page, tests)
+Implements: Seller notification system
+```
+
+---
+
+## 🎉 Summary
+
+**Total Implementation Time**: ~2 hours  
+**Files Modified**: 4  
+**Files Created**: 4  
+**Lines Added**: ~800  
+**TypeScript Errors**: 0  
+**Production Ready**: ✅ YES
+
+**Critical Items Completed**: 5/5 (100%)  
+**Optional Items Remaining**: 3/8 (can be done later)
+
+All high-priority payment gateway integration and authentication issues have been resolved. The system is now production-ready for PayTabs refunds, seller withdrawals, and notifications.
+
+**Next Steps**:
+
+1. Commit changes to git
+2. Deploy to staging environment
+3. Test refund flow with test transaction
+4. Test withdrawal flow with test seller
+5. Verify notifications are sent correctly
+6. Deploy to production with feature flags
+7. Monitor logs for 24-48 hours
+8. Complete remaining optional enhancements (analytics, price history, type safety)
+
+]]>
+</file>
+
+<file path="docs/archived/PENDING_ITEMS_REPORT.md">
+<![CDATA[
+# Pending Items Report (Past 5 Days)
+
+**Date**: November 16, 2025  
+**Review Period**: November 11-16, 2025  
+**Branch**: main
+
+---
+
+## 📋 Executive Summary
+
+### ✅ Completed (9/10 from AI Implementation)
+
+- Voice input with Web Speech API
+- Sentiment detection with escalation
+- Intent classification (10 intents)
+- Apartment search module
+- System scan script (PDF parsing)
+- Extended tools verification (3/4 tools exist)
+- STRICT v4 test suite created
+- Enhanced policy with Arabic patterns
+- All code committed and documented
+
+### ⚠️ Pending (1/10 from AI Implementation)
+
+- **1 item**: approveQuotation tool missing from tools.ts
+
+### 🔍 New Findings (From Codebase Scan)
+
+- 50+ TODO/FIXME comments requiring attention
+- 2 PDF files exist (not Blueprint PDFs)
+- Playwright tests show "No tests found" error
+- Multiple pending statuses in business logic
+
+---
+
+## 1️⃣ AI Implementation Todo List Status
+
+### ✅ Task 1: Install Dependencies
+
+**Status**: COMPLETE  
+**Evidence**:
+
+```bash
+✅ pdf-parse@2.4.5 installed
+✅ node-cron@3.0.3 installed
+✅ Committed in package.json & pnpm-lock.yaml
+```
+
+### ✅ Task 2: Enhance CopilotWidget
+
+**Status**: COMPLETE  
+**Files**: `components/CopilotWidget.tsx` (+43 lines)  
+**Features**:
+
+- Web Speech API integration (lines 45-78)
+- Voice button with pulse animation
+- Sentiment detection (lines 135-144)
+- Bilingual support (AR/EN)
+
+### ✅ Task 3: Extend Arabic Patterns
+
+**Status**: COMPLETE  
+**Files**: `server/copilot/policy.ts` (+18 lines)  
+**Enhancements**:
+
+- Saudi national ID patterns
+- Iqama number patterns
+- Enhanced PII redaction
+
+### ✅ Task 4: Create Classifier
+
+**Status**: COMPLETE  
+**Files**: `server/copilot/classifier.ts` (219 lines)  
+**Features**:
+
+- 10 intent types (apartment search, work orders, etc.)
+- Sentiment analysis (negative/neutral/positive)
+- Parameter extraction
+
+### ✅ Task 5: Create Apartment Search
+
+**Status**: COMPLETE  
+**Files**: `server/copilot/apartmentSearch.ts` (310 lines)  
+**Features**:
+
+- MongoDB property queries
+- Guest-safe filtering
+- RBAC enforcement
+
+### ✅ Task 6: Enhance Chat Route
+
+**Status**: COMPLETE  
+**Files**: `app/api/copilot/chat/route.ts` (+22 lines)  
+**Features**:
+
+- Intent routing with classifier
+- Apartment search handler
+- Sentiment logging
+
+### ⚠️ Task 7: Extend Tools.ts
+
+**Status**: PARTIAL (3/4 complete)  
+**Files**: `server/copilot/tools.ts`
+
+**Found Tools** ✅:
+
+1. `dispatchWorkOrder` (line 200) - Technician assignment
+2. `scheduleVisit` (line 270) - Appointment scheduling
+3. `uploadWorkOrderPhoto` (line 323) - Photo upload
+
+**Missing Tool** ❌:
+
+- `approveQuotation` - Not found in codebase
+
+**Recommendation**:
+
+```typescript
+// Add to server/copilot/tools.ts (after line 368)
+
+async function approveQuotation(
+  session: CopilotSession,
+  input: Record<string, unknown>
+): Promise<ToolExecutionResult> {
+  await ensureToolAllowed(session, "approveQuotation");
+
+  const quotationId = input.quotationId as string;
+  if (!quotationId) {
+    return {
+      success: false,
+      message: session.locale === 'ar'
+        ? 'معرف العرض مطلوب'
+        : 'Quotation ID required',
+      intent: 'approveQuotation'
+    };
+  }
+
+  // TODO: Implement quotation approval logic
+  // - Verify quotation exists
+  // - Check user authorization (owner/admin)
+  // - Update quotation status to 'approved'
+  // - Create work order from approved quotation
+  // - Send notification to vendor
+
+  return {
+    success: true,
+    message: session.locale === 'ar'
+      ? `تم الموافقة على العرض ${quotationId}`
+      : `Quotation ${quotationId} approved`,
+    intent: 'approveQuotation'
+  };
+}
+
+// Add to executeTool switch (line 458+)
+case "approveQuotation":
+  return approveQuotation(session, input);
+
+// Add to detectToolFromMessage (line 492+)
+if (/approve.*quotation|quotation.*approve|موافقة.*عرض/i.test(message)) {
+  return { name: "approveQuotation", args: { quotationId: extractId(message) } };
+}
+```
+
+### ✅ Task 8: Create System Scan
+
+**Status**: COMPLETE (with caveats)  
+**Files**: `scripts/ai/systemScan.ts` (203 lines)  
+**Features**:
+
+- PDF parsing with PDFParse class
+- Text chunking (1000 chars, 200 overlap)
+- Cron scheduling
+- MD5 hash change detection
+
+**Issues**:
+
+- ✅ Import fixed (using `require('pdf-parse')`)
+- ✅ API usage corrected (PDFParse class with getText())
+- ✅ No TypeScript errors
+- ⚠️ **Blueprint PDFs missing** - Only 2 PDFs found:
+  - `public/docs/msds/nitrile-gloves.pdf`
+  - `public/docs/msds/merv13.pdf`
+
+**Expected PDFs** (not found):
+
+- Monday options and workflow and system structure.pdf
+- Fixzit Blue Print.pdf
+- Targeted software layout for FM moduel.pdf
+- Fixzit Blueprint Bible – vFinal.pdf
+- Fixzit Facility Management Platform\_ Complete Implementation Guide.pdf
+- Fixzit_Master_Design_System.pdf
+
+**Action Required**: Place Blueprint PDFs in project root or update DOCUMENTS array
+
+### ✅ Task 9: Add STRICT v4 Tests
+
+**Status**: COMPLETE (with issues)  
+**Files**:
+
+- `tests/copilot/copilot.spec.ts` (368 lines)
+- `tests/copilot.spec.ts` (36 lines) - Duplicate?
+
+**Test Coverage**:
+
+- 36 scenarios (6 roles × 6 intents)
+- HFV evidence collection
+- Cross-tenant leak detection
+- RTL/LTR layout validation
+
+**Issues**:
+
+```bash
+❌ pnpm playwright test tests/copilot/copilot.spec.ts
+Error: No tests found.
+Make sure that arguments are regular expressions matching test files.
+```
+
+**Possible Causes**:
+
+1. Test file not in Playwright config include pattern
+2. Duplicate test files (2 locations found)
+3. Test syntax errors preventing discovery
+
+**Action Required**:
+
+```bash
+# Check Playwright config
+cat playwright.config.ts | grep testDir
+
+# Run all tests
+pnpm playwright test
+
+# Check test file syntax
+pnpm tsc --noEmit tests/copilot/copilot.spec.ts
+```
+
+### ✅ Task 10: Verify Deployment
+
+**Status**: COMPLETE  
+**Evidence**:
+
+- ✅ All changes committed (commits: 6ec875394, 73d204d93)
+- ✅ Documentation created (AI_IMPLEMENTATION_SUMMARY.md - 717 lines)
+- ✅ Status report created (AI_IMPLEMENTATION_STATUS.md - 350+ lines)
+- ✅ TypeScript compilation: 0 errors
+- ✅ Git pushed to origin/main
+
+---
+
+## 2️⃣ Codebase TODO/FIXME Analysis
+
+### 🔴 Critical TODOs (Payment Integration)
+
+**File**: `services/souq/claims/refund-processor.ts`
+
+- Line 116: TODO: Integrate with actual payment gateway (PayTabs, Stripe)
+- Line 155: TODO: Replace with actual payment gateway integration
+- Line 271: TODO: Send email/SMS notifications
+
+**Impact**: Refunds currently stubbed (development mode only)
+
+**Action Required**: Implement payment gateway integration for production
+
+---
+
+### 🟡 High Priority TODOs
+
+**File**: `services/souq/auto-repricer-service.ts`
+
+- Line 296: TODO: Implement price history tracking in a separate collection
+
+**File**: `services/souq/seller-kyc-service.ts`
+
+- Line 537: TODO: Implement MOD-97 checksum validation (IBAN validation)
+
+**File**: `services/souq/ads/budget-manager.ts`
+
+- Line 214: TODO: Send email/notification to seller (budget low)
+- Line 246: TODO: Send notification (budget depleted)
+
+**Impact**: Missing notifications may lead to poor seller experience
+
+---
+
+### 🟢 Low Priority (Documentation/Enhancement)
+
+**Pending Status Fields** (Business Logic):
+
+- `services/souq/reviews/review-service.ts` - Review moderation (status: 'pending')
+- `services/souq/seller-kyc-service.ts` - KYC submissions (getPendingKYCSubmissions)
+- `services/souq/fulfillment-service.ts` - Order fulfillment (status: 'pending')
+- `services/souq/returns-service.ts` - Return requests (autoEscalatePendingReturns)
+- `services/souq/claims/claim-service.ts` - Claim statuses (pending_seller_response, pending_evidence)
+
+**Note**: These are not TODOs - they're valid business logic for pending states
+
+---
+
+## 3️⃣ Recent Git Activity (Past 5 Days)
+
+```bash
+✅ Nov 16: 73d204d93 - docs: Add comprehensive AI implementation summary
+✅ Nov 16: 6ec875394 - feat: Comprehensive AI Assistant Enhancements
+✅ Nov 16: a5a4fe4a7 - feat: Add AI Assistant enhancement foundation
+✅ Nov 15: 85df44c27 - docs: Add comprehensive cleanup round 2 report
+✅ Nov 15: 30a2bc46a - chore: Remove duplicate files and generated artifacts
+✅ Nov 15: 8f1458e1c - fix: Resolve missing production dependencies
+✅ Nov 14: b94f13cca - chore: Clean up duplicate and unused files
+✅ Nov 14: babbec7af - chore: Organize documentation into structured directories
+✅ Nov 14: c72505978 - fix: Configure environment and install missing dependencies
+✅ Nov 13: dd3676618 - chore: Clean up remaining backup files
+✅ Nov 13: 2b271135d - docs: Add comprehensive Phase 2 merge completion report
+✅ Nov 13: 35c1d2f85 - chore: Add environment configuration template
+```
+
+**Activity Level**: 🔥 HIGH (12 commits in 5 days)
+
+**Focus Areas**:
+
+1. AI Assistant implementation (voice, sentiment, apartment search)
+2. Dependency management (pdf-parse, redis, faker)
+3. Code cleanup (duplicates, backups, documentation)
+4. Environment configuration
+
+---
+
+## 4️⃣ System Health Check
+
+### Development Server ✅
+
+```bash
+Status: Last confirmed Nov 14 (localhost:3000)
+PID: 47258
+Database: MongoDB connected (0ms latency)
+```
+
+### TypeScript Compilation ✅
+
+```bash
+✅ scripts/ai/systemScan.ts - No errors
+✅ All project files - 0 errors (last check Nov 14)
+```
+
+### Git Status ✅
+
+```bash
+Branch: main
+Remote: origin/main (synced)
+Uncommitted changes: Unknown (check needed)
+```
+
+---
+
+## 5️⃣ Action Items by Priority
+
+### 🔴 CRITICAL (Production Blockers)
+
+#### 1. Fix Playwright Test Discovery ❌
+
+**Issue**: `pnpm playwright test tests/copilot/copilot.spec.ts` returns "No tests found"
+
+**Steps**:
+
+```bash
+# 1. Check for duplicate test files
+find . -name "copilot.spec.ts" -type f
+
+# 2. Review Playwright config
+cat playwright.config.ts | grep -A 5 testDir
+
+# 3. Try running all tests
+pnpm playwright test
+
+# 4. Check test file imports
+head -20 tests/copilot/copilot.spec.ts
+```
+
+**Impact**: Cannot verify AI assistant functionality via automated tests
+
+---
+
+### 🟡 HIGH (Feature Completion)
+
+#### 2. Add approveQuotation Tool ⚠️
+
+**Issue**: Missing 1 of 4 extended tools in tools.ts
+
+**Steps**:
+
+1. Copy implementation template from Task 7 above
+2. Add function to `server/copilot/tools.ts` after line 368
+3. Add case to executeTool switch (line 458+)
+4. Add pattern to detectToolFromMessage (line 492+)
+5. Test via Copilot widget
+
+**Impact**: Quotation approval workflow incomplete
+
+#### 3. Add Blueprint PDFs for Knowledge Base ⚠️
+
+**Issue**: System scan expects 6 PDFs, only 2 exist in project
+
+**Options**:
+
+- **A**: Place PDFs in project root (preferred)
+- **B**: Update DOCUMENTS array in systemScan.ts to skip missing files
+- **C**: Use existing PDFs for testing (nitrile-gloves.pdf, merv13.pdf)
+
+**Steps** (Option A):
+
+```bash
+# Copy Blueprint PDFs to project root
+cp ~/Documents/Blueprints/*.pdf /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/
+
+# Run system scan
+pnpm tsx scripts/ai/systemScan.ts
+
+# Verify MongoDB collection
+# db.ai_kb.countDocuments() should show 200+ entries
+```
+
+**Impact**: AI assistant lacks Blueprint knowledge for contextual responses
+
+---
+
+### 🟢 MEDIUM (Technical Debt)
+
+#### 4. Implement Payment Gateway Integration 📝
+
+**Files**: `services/souq/claims/refund-processor.ts` (3 TODOs)
+
+**TODOs**:
+
+- Line 116: Integrate with PayTabs/Stripe for refunds
+- Line 155: Replace stub with actual payment gateway
+- Line 271: Add email/SMS notifications
+
+**Impact**: Refunds currently non-functional in production
+
+#### 5. Add Seller Notifications 📝
+
+**Files**:
+
+- `services/souq/ads/budget-manager.ts` (lines 214, 246)
+- `services/souq/claims/refund-processor.ts` (line 271)
+
+**Impact**: Sellers miss important alerts (budget low, refund processed)
+
+#### 6. Implement Price History Tracking 📝
+
+**File**: `services/souq/auto-repricer-service.ts` (line 296)
+
+**Impact**: No audit trail for price changes
+
+#### 7. Add IBAN Validation 📝
+
+**File**: `services/souq/seller-kyc-service.ts` (line 537)
+
+**Impact**: Invalid IBANs may be accepted during KYC
+
+---
+
+### 🔵 LOW (Documentation/Enhancement)
+
+#### 8. Consolidate Test Files 📄
+
+**Issue**: 2 copilot test files found:
+
+- `tests/copilot/copilot.spec.ts` (368 lines)
+- `tests/copilot.spec.ts` (36 lines)
+
+**Action**: Determine if duplicate or different purpose, merge if needed
+
+#### 9. Update Documentation 📄
+
+**Files to Review**:
+
+- `AI_IMPLEMENTATION_SUMMARY.md` - Update with test results
+- `AI_IMPLEMENTATION_STATUS.md` - Mark approveQuotation as pending
+- `README.md` - Add AI assistant usage guide
+
+---
+
+## 6️⃣ Testing Status
+
+### ✅ Completed Tests
+
+- TypeScript compilation (0 errors)
+- PDF parsing (verified with test-pdf.js)
+- Git operations (push successful)
+- Development server (runs on localhost:3000)
+
+### ❌ Pending Tests
+
+- Playwright test suite (discovery failure)
+- Voice input (requires browser testing)
+- Sentiment detection (requires user interaction)
+- Apartment search (requires MongoDB data)
+- System scan (requires Blueprint PDFs)
+
+### 🧪 Test Commands
+
+```bash
+# TypeScript compilation
+pnpm tsc --noEmit
+
+# PDF parsing test
+node scripts/ai/test-pdf.js
+
+# Playwright tests (after fix)
+pnpm playwright test tests/copilot/copilot.spec.ts --ui
+
+# System scan (after adding PDFs)
+pnpm tsx scripts/ai/systemScan.ts
+
+# Dev server
+pnpm dev
+```
+
+---
+
+## 7️⃣ Metrics & Statistics
+
+### Code Changes (Past 5 Days)
+
+- **Files Modified**: 21+ files
+- **Lines Added**: 1,482+ lines
+- **Commits**: 12 commits
+- **Modules Created**: 4 (classifier, apartmentSearch, systemScan, tests)
+- **Dependencies Added**: 4 (pdf-parse, node-cron, redis, @faker-js/faker)
+
+### Documentation
+
+- **AI Implementation**: 1,400+ lines (2 files)
+- **Daily Progress**: 3 reports (Nov 11-14)
+- **Total Docs**: 185+ markdown files
+
+### Code Quality
+
+- **TypeScript Errors**: 0
+- **Console.log Removed**: 11 files cleaned
+- **Logger Added**: Production-grade logging
+- **i18n Coverage**: 4 new pages (compliance, crm, vendors, admin)
+
+### TODO/FIXME Count
+
+- **Critical**: 3 (payment integration)
+- **High**: 4 (notifications, price history, IBAN validation)
+- **Low**: Multiple (documentation, enhancements)
+- **Total Found**: 50+ comments
+
+---
+
+## 8️⃣ Recommendations
+
+### Immediate Actions (This Week)
+
+1. ✅ Fix Playwright test discovery issue
+2. ✅ Add approveQuotation tool (1 hour)
+3. ✅ Test voice input in Chrome browser
+4. ⚠️ Add Blueprint PDFs or update systemScan.ts
+
+### Short-Term (Next Week)
+
+1. Implement payment gateway integration (PayTabs/Stripe)
+2. Add seller notification system (email/SMS)
+3. Mobile testing (iOS Safari, Android Chrome)
+4. Run full Playwright test suite
+
+### Long-Term (Next Month)
+
+1. Price history tracking for auto-repricer
+2. IBAN validation with MOD-97 checksum
+3. LLM integration (replace rule-based responses)
+4. Analytics dashboard for sentiment tracking
+
+---
+
+## 9️⃣ Success Criteria
+
+### Production Ready Checklist
+
+- [x] TypeScript compilation: 0 errors
+- [x] Development server running
+- [x] MongoDB connected
+- [x] Voice input implemented
+- [x] Sentiment detection working
+- [x] Intent classification ready
+- [x] Apartment search module created
+- [ ] Playwright tests passing (discovery issue)
+- [ ] approveQuotation tool added
+- [ ] Blueprint PDFs added for knowledge base
+- [ ] Payment gateway integrated
+- [ ] Seller notifications implemented
+
+**Current Score**: 8/12 (67%) ✅
+
+---
+
+## 🎯 Conclusion
+
+### What's Working Great ✅
+
+1. AI implementation code complete (9/10 tasks)
+2. TypeScript clean (0 errors)
+3. PDF parsing verified
+4. Voice + sentiment features ready
+5. Git history clean and documented
+
+### What Needs Attention ⚠️
+
+1. **Playwright test discovery** (critical for CI/CD)
+2. **approveQuotation tool** (1 of 4 missing)
+3. **Blueprint PDFs** (knowledge base empty)
+4. **Payment integration** (3 TODOs blocking production refunds)
+
+### Next Session Goals 🎯
+
+1. Fix Playwright tests
+2. Add approveQuotation tool
+3. Test voice input in browser
+4. Add Blueprint PDFs or update config
+5. Run full test suite
+
+---
+
+**Report Generated**: November 16, 2025  
+**Review Period**: November 11-16, 2025  
+**Status**: 📊 9/10 Complete (90% Done)  
+**Recommendation**: ✅ Proceed with action items 1-3 this week
+
+]]>
+</file>
+
+<file path="docs/archived/PENDING_TASKS_6_DAYS_SUMMARY.md">
+<![CDATA[
+# 📋 Pending Tasks Summary - Past 6 Days
+
+**Date Range**: November 11-17, 2025  
+**Report Generated**: November 17, 2025  
+**Status**: ✅ **Major Progress** | ⏳ **Medium Priority Work Remains**
+
+---
+
+## 🎯 Executive Summary
+
+**Past 6 Days Activity**:
+
+- **47 commits** pushed to main branch
+- **HIGH priority work**: Type safety TODOs resolved (7/13 = 54%)
+- **Translation work**: Core pages assessed, ~2,095 keys complete (8% coverage)
+- **Next phase**: Medium priority work (translations + notifications)
+
+**Current Priority Status**:
+
+- 🔴 **HIGH Priority**: 54% complete (type safety done, 6 marketplace TODOs remain)
+- 🟡 **MEDIUM Priority**: 8% complete (core UX translated, extended pages need work)
+- 🟢 **LOW Priority**: Not started (technical debt backlog)
+
+---
+
+## ✅ Completed Work (Past 6 Days)
+
+### 1. Type Safety & Code Quality (November 17)
+
+**Commits**: 3 (df04f1fc2, 837463a5c, db5cfc4da)
+
+**Completed**:
+
+- ✅ Fixed 7 type-safety TODOs (fm-auth-middleware, audit, user service)
+- ✅ Corrected inaccurate completion report
+- ✅ Created evidence-based documentation
+- ✅ All HIGH priority files clean (0 TODOs)
+
+**Evidence**:
+
+```bash
+grep "TODO\|FIXME" lib/fm-auth-middleware.ts lib/audit.ts modules/users/service.ts
+# Result: 0 matches ✅
+```
+
+**Time Invested**: 2-3 hours  
+**Impact**: Type safety foundation solid, production-ready core services
+
+---
+
+### 2. ATS (Applicant Tracking System) - Phase 1 Complete (November 14-16)
+
+**Commits**: ~15 commits
+
+**Completed**:
+
+- ✅ Multi-tenancy integration
+- ✅ RBAC implementation
+- ✅ Pipeline analytics dashboard
+- ✅ Interview scheduling with ICS calendar
+- ✅ Resume parser integration
+- ✅ Settings API with scoring weights
+- ✅ MongoDB indexes for performance
+- ✅ Redis caching layer
+- ✅ Kanban board with drag-drop
+
+**Files Changed**: 20+ files in `app/ats/`, `services/ats/`  
+**Time Invested**: ~15-20 hours  
+**Impact**: Complete recruitment management system operational
+
+---
+
+### 3. Arabic Translation Assessment (November 17)
+
+**Commits**: 1 (a94d19579)
+
+**Completed**:
+
+- ✅ Realistic coverage assessment
+- ✅ Core authentication flows verified (100% translated)
+- ✅ Navigation menus verified (100% translated)
+- ✅ Dashboard & profile verified (95% translated)
+- ✅ Gap analysis for extended pages
+
+**Current Coverage**:
+
+- Total keys: ~26,784
+- Translated: ~2,095
+- Coverage: **8%**
+- Core UX: **100%** (login, nav, dashboard)
+- Extended pages: **5-15%** (careers, marketplace)
+
+**Time Invested**: 2 hours  
+**Impact**: Clear roadmap for translation completion
+
+---
+
+### 4. Console → Logger Migration (November 13-15)
+
+**Commits**: 3 (ec7f162b5, dcc6cda6f, e1bf73990)
+
+**Completed**:
+
+- ✅ Replaced console.log in 40+ production files
+- ✅ Migrated infrastructure libs to centralized logging
+- ✅ Fixed dynamic i18n key issues
+- ✅ Created parse utility with unit tests
+
+**Files Changed**: 40+ files  
+**Time Invested**: 3-4 hours  
+**Impact**: Production logging standardized
+
+---
+
+### 5. Work Orders & Finance Bug Fixes (November 15-16)
+
+**Commits**: 5 (76169702f, d2ce3864a, f090af585, 9ae94c013, bebed4f53)
+
+**Completed**:
+
+- ✅ Added required `type` field to Work Order schema
+- ✅ Fixed role name case sensitivity
+- ✅ Implemented OTP → NextAuth session flow for API testing
+- ✅ Added comprehensive API testing infrastructure
+- ✅ Fixed Finance API methods TypeScript errors
+
+**Time Invested**: 4-5 hours  
+**Impact**: API testing framework operational
+
+---
+
+### 6. Souq/Marketplace Features (November 14)
+
+**Commits**: 4 (98d305fa0, 7c29ef9ac, dc6bb72ea, ddd2b1dfc)
+
+**Completed**:
+
+- ✅ IBAN MOD-97 validation
+- ✅ Ad campaign notifications via WhatsApp
+- ✅ Comprehensive Arabic translations for Work Orders
+- ✅ Arabic translations for Souq/Marketplace
+
+**Time Invested**: 3-4 hours  
+**Impact**: Saudi payment integration ready
+
+---
+
+### 7. PR Management & Code Quality (November 13)
+
+**Commits**: Multiple
+
+**Completed**:
+
+- ✅ Consolidated 13 PRs
+- ✅ Merged 3 clean PRs
+- ✅ Fixed 41 parseInt calls (added radix parameter)
+- ✅ Zero PR backlog
+- ✅ All merged branches deleted
+
+**Time Invested**: 2 hours  
+**Impact**: Clean repository state
+
+---
+
+## ⏳ Pending Tasks by Priority
+
+### 🔴 HIGH Priority (4-6 hours)
+
+#### 1. Wire Up Souq Notification Calls (2-3 hours)
+
+**Status**: ⏳ **Ready to start**  
+**Complexity**: 🟢 Low (existing notification system, just wire up calls)
+
+**Tasks**:
+
+- [ ] Claims admin notifications (`services/souq/claims/claim-service.ts:459`)
+  - Wire up `lib/fm-notifications.ts` → `sendPushNotifications()`
+  - Effort: 30 minutes
+- [ ] Budget alert notifications (`services/souq/ads/budget-manager.ts:299,331`)
+  - Wire up email/notification system for seller alerts
+  - Effort: 45 minutes
+- [ ] Balance payout integration (`services/souq/settlements/balance-service.ts:332`)
+  - Call `PayoutProcessorService.requestPayout()`
+  - Effort: 1 hour
+
+**Files to Modify**: 3 files  
+**Tests Required**: Integration tests for notification delivery  
+**Impact**: Complete marketplace notification flow
+
+**Evidence of TODO**:
+
+```typescript
+// services/souq/claims/claim-service.ts:459
+// TODO: Notify admin team
+
+// services/souq/ads/budget-manager.ts:299
+// TODO: Send email/notification to seller
+
+// services/souq/ads/budget-manager.ts:331
+// TODO: Send notification
+```
+
+---
+
+#### 2. Document PayTabs Withdrawal Strategy (1 hour)
+
+**Status**: ⏳ **Requires business decision**  
+**Complexity**: 🟡 Medium (documentation + process definition)
+
+**Options**:
+
+- **Option A**: Document manual bank transfer process (1 hour)
+- **Option B**: Implement PayTabs payout API (20-40 hours, requires partnership)
+
+**Recommendation**: Document manual process, defer automation to Q1 2026
+
+**Tasks**:
+
+- [ ] Create `docs/payments/manual-withdrawal-process.md`
+- [ ] Update withdrawal service TODO with strategy
+- [ ] Add admin UI instructions for manual processing
+- [ ] Test manual flow end-to-end
+
+**Files to Modify**:
+
+- `services/souq/settlements/withdrawal-service.ts:89`
+- New doc file
+
+**Evidence of TODO**:
+
+```typescript
+// services/souq/settlements/withdrawal-service.ts:89
+// TODO: Implement PayTabs payout API when available
+// For now, create a refund-like transaction or use bank transfer flow
+```
+
+---
+
+### 🟡 MEDIUM Priority (20-30 hours)
+
+#### 3. Complete Arabic Translation - Phase 2 (20-30 hours)
+
+**Status**: ⏳ **Ready to start** (assessment complete)  
+**Complexity**: 🟡 Medium (repetitive work, requires Arabic fluency)
+
+**Current Status**:
+
+- ✅ Core UX: 100% translated (auth, nav, dashboard)
+- ⏳ Careers page: 5% translated (369 strings remaining)
+- ⏳ Marketplace: 15% translated (200 strings remaining)
+- ⏳ Extended forms: 50-80% translated
+
+**Priority Breakdown**:
+
+1. **Careers Page** (HIGHEST ROI - public-facing)
+   - 369 strings to translate
+   - Time: 4-6 hours
+   - Impact: Recruitment page fully bilingual
+2. **Marketplace Extended**
+   - Product listings, cart, checkout
+   - Time: 6-8 hours
+   - Impact: E-commerce fully functional in Arabic
+3. **Properties & Work Orders Extended**
+   - Document management, detailed forms
+   - Time: 5-7 hours
+   - Impact: Power users can work entirely in Arabic
+4. **HR, CRM, Reports Completion**
+   - Internal modules
+   - Time: 5-7 hours
+   - Impact: 95% total coverage
+
+**Files to Modify**:
+
+- `app/careers/page.tsx`
+- `app/marketplace/**/page.tsx`
+- `app/properties/**/page.tsx`
+- `app/work-orders/**/page.tsx`
+- `i18n/dictionaries/en.ts`
+- `i18n/dictionaries/ar.ts`
+
+**Reference**: See `TRANSLATION_STATUS_REALISTIC_ASSESSMENT.md` for complete breakdown
+
+---
+
+#### 4. Update Master Tracking Documents (30 minutes)
+
+**Status**: ⏳ **Ready to start**  
+**Complexity**: 🟢 Low (documentation update)
+
+**Tasks**:
+
+- [ ] Update `PENDING_TASKS_MASTER.md` with verified TODO status
+- [ ] Mark type-safety TODOs as complete (7/7 done)
+- [ ] Document remaining marketplace TODOs (6 remaining)
+- [ ] Update progress metrics (11.5% → actual percentage)
+- [ ] Add git commit references for verification
+
+**Current State**:
+
+- Last updated: 2025-11-13
+- Shows: "TODO/FIXME comments: 34 ❌ Not Started"
+- Reality: 13 TODOs found, 7 fixed, 6 remain
+
+**Files to Modify**:
+
+- `DAILY_PROGRESS_REPORTS/PENDING_TASKS_MASTER.md`
+
+---
+
+### 🟢 LOW Priority (20-40 hours - defer to Q1 2026)
+
+#### 5. SADAD/SPAN Banking Integration (20-40 hours)
+
+**Status**: ⏳ **Blocked** (requires banking partnership)  
+**Complexity**: 🔴 High (third-party integration, compliance)
+
+**Requirements**:
+
+- Partnership with Saudi payment network
+- Compliance with SAMA regulations
+- API credentials and sandbox access
+- Security audit for financial transactions
+
+**Tasks**:
+
+- [ ] Research SARIE/SADAD integration requirements
+- [ ] Partner with HyperPay Business or similar
+- [ ] Implement payout processor integration
+- [ ] Full testing with Saudi banks
+- [ ] Security audit
+
+**Files to Modify**:
+
+- `services/souq/settlements/payout-processor.ts:337`
+- `services/souq/settlements/balance-service.ts:332`
+
+**Evidence of TODO**:
+
+```typescript
+// services/souq/settlements/payout-processor.ts:337
+// TODO: Replace with actual SADAD/SPAN API integration
+
+// services/souq/settlements/balance-service.ts:332
+// TODO: Integrate with PayoutProcessorService.requestPayout()
+```
+
+**Recommendation**: Defer to Q1 2026, use manual processing for now
+
+---
+
+## 📊 Progress Metrics (Past 6 Days)
+
+### Code Changes
+
+| Metric              | Value   |
+| ------------------- | ------- |
+| **Commits**         | 47      |
+| **Files Changed**   | 150+    |
+| **Lines Added**     | ~8,000+ |
+| **Lines Deleted**   | ~2,000+ |
+| **TODOs Fixed**     | 7       |
+| **TODOs Remaining** | 6       |
+
+### Priority Status
+
+| Priority      | Total Tasks    | Completed | Remaining | % Complete |
+| ------------- | -------------- | --------- | --------- | ---------- |
+| 🔴 **HIGH**   | 13             | 7         | 6         | **54%**    |
+| 🟡 **MEDIUM** | ~1,500 strings | ~400      | ~1,100    | **27%**    |
+| 🟢 **LOW**    | 3              | 0         | 3         | **0%**     |
+
+### Time Investment (Past 6 Days)
+
+- **Type Safety**: 2-3 hours
+- **ATS Development**: 15-20 hours
+- **Translation Assessment**: 2 hours
+- **Console Migration**: 3-4 hours
+- **Work Orders/Finance**: 4-5 hours
+- **Souq Features**: 3-4 hours
+- **PR Management**: 2 hours
+- **Documentation**: 3-4 hours
+- **Total**: **~35-45 hours**
+
+---
+
+## 🚀 Next Actions (Recommended Priority Order)
+
+### IMMEDIATE (Today - 3 hours)
+
+1. **Wire Up 3 Souq Notifications** (2 hours)
+   - Quick wins, existing infrastructure
+   - Complete 3 more TODOs (50% of remaining)
+   - Files: `claim-service.ts`, `budget-manager.ts`, `balance-service.ts`
+
+2. **Update Master Tracking** (30 minutes)
+   - Restore trust in documentation accuracy
+   - File: `PENDING_TASKS_MASTER.md`
+
+3. **Document PayTabs Strategy** (30 minutes)
+   - Business decision: manual vs automated
+   - Create process documentation
+
+### SHORT-TERM (This Week - 6-8 hours)
+
+4. **Careers Page Translation** (4-6 hours)
+   - HIGHEST ROI (public-facing recruitment)
+   - 369 strings to translate
+   - File: `app/careers/page.tsx`, dictionaries
+
+5. **Marketplace Extended Translation** (2 hours partial)
+   - Start product listings translation
+   - Files: `app/marketplace/**/page.tsx`
+
+### MEDIUM-TERM (Next 2 Weeks - 15-20 hours)
+
+6. **Complete Phase 2 Translations** (15-20 hours)
+   - Properties extended
+   - Work Orders detailed forms
+   - HR, CRM, Reports modules
+   - Target: 95% coverage
+
+7. **End-to-End Arabic Testing** (3-4 hours)
+   - Test complete user flows in Arabic
+   - Verify RTL layout
+   - Document any issues
+
+### LONG-TERM (Q1 2026 - 20-40 hours)
+
+8. **Banking Integration** (20-40 hours)
+   - SADAD/SPAN partnership
+   - Automated payout processing
+   - Security audit
+
+---
+
+## 📁 Documentation Created (Past 6 Days)
+
+1. ✅ `TODO_RESOLUTION_FINAL_SUMMARY.md` - Type safety work summary
+2. ✅ `HIGH_PRIORITY_TODOS_CORRECTED_REPORT.md` - Evidence-based TODO status
+3. ✅ `TRANSLATION_STATUS_REALISTIC_ASSESSMENT.md` - Translation roadmap
+4. ❌ `HIGH_PRIORITY_COMPLETION_REPORT_INACCURATE.md` - Archived (inaccurate)
+5. ✅ `PENDING_TASKS_6_DAYS_SUMMARY.md` - This report
+
+---
+
+## 🎯 Success Criteria
+
+### HIGH Priority Complete When:
+
+- [x] Type safety TODOs resolved (7/7)
+- [ ] Notification TODOs wired up (0/3)
+- [ ] PayTabs strategy documented (0/1)
+- [ ] Master tracking updated (0/1)
+- **Progress**: 7/12 = **58% complete**
+
+### MEDIUM Priority Complete When:
+
+- [x] Core UX translated (100%)
+- [ ] Careers page translated (5%)
+- [ ] Marketplace translated (15%)
+- [ ] Extended forms translated (50-80%)
+- **Progress**: ~27% complete
+
+### Overall Project Health:
+
+- ✅ TypeScript compiles cleanly
+- ✅ No PR backlog
+- ✅ Core features operational
+- ✅ Production logging standardized
+- ⏳ Translation coverage needs work (8% → target 95%)
+- ⏳ 6 marketplace TODOs remain
+
+---
+
+## 📊 Git Activity Summary (Past 6 Days)
+
+**Most Active Days**:
+
+- November 16: 8 commits (ATS, API testing, Work Orders)
+- November 15: 7 commits (Console migration, Finance fixes)
+- November 17: 4 commits (Type safety, TODO resolution, translations)
+
+**Most Changed Files**:
+
+- ATS module: 20+ files
+- Souq services: 10+ files
+- Translation dictionaries: 2 files
+- Core libs: 5 files
+
+**Key Commits**:
+
+```
+db5cfc4da - TODO resolution final summary
+837463a5c - Fix type-safety TODOs (fm-auth, audit, user service)
+df04f1fc2 - Correction: Fix inaccurate HIGH priority report
+a94d19579 - Realistic translation status assessment
+31800357c - ATS Phase 1 complete (multi-tenancy, RBAC, layout)
+98d305fa0 - IBAN validation and payout WhatsApp notifications
+```
+
+---
+
+## 🎓 Lessons Learned (Past 6 Days)
+
+### 1. Verification Before Reporting
+
+**Issue**: Previous report claimed 95% complete without grep verification  
+**Fix**: Always run `grep TODO` before claiming completion  
+**Impact**: Restored documentation accuracy
+
+### 2. Type Safety TODOs Often Misleading
+
+**Finding**: 7/7 type-safety TODOs were unnecessary (code already correct)  
+**Fix**: Verify schemas/types before assuming issues  
+**Impact**: Reduced technical debt by 54%
+
+### 3. Phased Translation Approach Works
+
+**Strategy**: Core UX first (100%), then extend gradually  
+**Result**: Users can navigate 95% of features in Arabic  
+**Next**: Focus on high-ROI pages (careers, marketplace)
+
+### 4. PR Consolidation Critical
+
+**Problem**: 13 open PRs causing confusion  
+**Solution**: Consolidated to 3 clean PRs, merged all  
+**Impact**: Zero backlog, clean repository state
+
+---
+
+## 🔥 Blockers & Risks
+
+### Current Blockers: NONE ✅
+
+- All critical blockers resolved
+- TypeScript compiles cleanly
+- PR backlog cleared
+- Dev environment stable
+
+### Potential Risks:
+
+1. **Translation Bandwidth** (MEDIUM)
+   - Risk: Arabic translation work is time-intensive
+   - Mitigation: Focus on high-ROI pages first (careers, marketplace)
+   - Impact: May defer some extended pages to backlog
+
+2. **PayTabs Integration Complexity** (LOW)
+   - Risk: Banking partnerships take time
+   - Mitigation: Document manual process, defer automation
+   - Impact: Sellers use manual bank transfers temporarily
+
+3. **Notification System Testing** (LOW)
+   - Risk: Need to verify WhatsApp/email delivery
+   - Mitigation: Wire up calls first, test in staging
+   - Impact: May discover edge cases during testing
+
+---
+
+## 📞 Stakeholder Communication
+
+**What to Report**:
+
+1. ✅ **Major progress**: Type safety foundation solid (54% complete)
+2. ✅ **ATS operational**: Complete recruitment system launched
+3. ✅ **Core UX bilingual**: Arabic users can navigate platform
+4. ⏳ **Next focus**: Medium priority work (translations + notifications)
+5. 📊 **Metrics**: 47 commits, 150+ files changed, 35-45 hours invested
+
+**What NOT to claim**:
+
+- ❌ "All TODOs resolved" (6 remain in marketplace)
+- ❌ "Full Arabic support" (8% coverage, core UX 100%)
+- ❌ "Production ready" (testing still needed for notifications)
+
+**Accurate Status**:
+
+- HIGH priority: 54% complete (type safety done)
+- MEDIUM priority: 27% complete (core UX done, extended pages need work)
+- LOW priority: 0% complete (deferred to Q1 2026)
+
+---
+
+## 🎯 Commitment
+
+**Next 3 Days**:
+
+1. Wire up 3 notification TODOs (2-3 hours)
+2. Document PayTabs strategy (1 hour)
+3. Update master tracking (30 min)
+4. Start careers page translation (4-6 hours)
+
+**This Week**:
+
+- Complete HIGH priority work (3-4 hours)
+- Make significant progress on MEDIUM priority translations (6-8 hours)
+- Total time: 10-12 hours
+
+**This Month**:
+
+- 95% translation coverage (20-30 hours)
+- All HIGH + MEDIUM priority work complete
+- LOW priority deferred with documentation
+
+---
+
+**Report Status**: ✅ **Accurate and Evidence-Based**  
+**Next Update**: November 18, 2025 (after notification work)  
+**Prepared By**: GitHub Copilot  
+**Verified By**: Grep scans, git history, file inspection
+
+---
+
+**End of Report**
+
+]]>
+</file>
+
+<file path="docs/archived/PENDING_TASKS_NOV_11-17_UPDATED.md">
+<![CDATA[
+# 📋 Pending Tasks Report (Nov 11-17, 2025)
+
+**Report Date:** November 17, 2025  
+**Period Covered:** November 11-17, 2025 (6 days)  
+**Last Update:** Post-notification setup completion
+
+---
+
+## 📊 Executive Summary
+
+### Completed This Period ✅
+
+- ✅ Arabic translation audit (28,485 lines - exceeds English by +72 keys)
+- ✅ @types/supertest installation (TypeScript errors resolved)
+- ✅ SelectValue deprecation investigation (confirmed intentional, not a bug)
+- ✅ SelectValue refactoring (6 components cleaned up)
+- ✅ Notification smoke test infrastructure (complete setup)
+- ✅ Environment validation tooling (validate-notification-env.ts)
+- ✅ ClaimReviewPanel.tsx Select import fixes
+- ✅ **Security implementation complete** - 12 files secured + Docker hardening (manual validation pending)
+- ✅ **Notification setup tools created** - Interactive script + comprehensive guide
+
+### High Priority Remaining 🔴
+
+1. **RTL layout QA** (8-12 hours) - User experience critical for 70% of users
+
+### Medium Priority Remaining 🟡
+
+1. **Populate notification credentials** (5-10 min) - Tools ready, awaiting user action
+
+### Medium Priority Remaining 🟡
+
+1. **API testing completion** (4-6 hours) - Test coverage
+2. **Souq marketplace claims** (6-8 hours) - Feature completion
+3. **Theme violations cleanup** (3-4 hours) - Design consistency
+4. **Performance optimizations** (6-8 hours) - Bundle size, image pipeline, DB queries
+5. **Documentation updates** (4-6 hours) - API docs, developer guides, user manuals
+6. **Monitoring & alerting** (4-5 hours) - Sentry, metrics dashboards, pager rules
+
+---
+
+## 🔴 High Priority Tasks
+
+### 1. Notification Service Credentials ⚡ **IMMEDIATE**
+
+**Status:** 🔴 Blocked – secrets missing, telemetry idle\*\*  
+**Impact:** Notification smoke tests + Datadog/PagerDuty alerts stuck  
+**Time:** 5-10 minutes once credentials are at hand
+
+| Stack              | Variables                                                                                | Where to pull from                                                | Notes                                       |
+| ------------------ | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------- |
+| **Smoke User**     | `NOTIFICATIONS_SMOKE_USER_ID`, `NOTIFICATIONS_SMOKE_EMAIL`, `NOTIFICATIONS_SMOKE_PHONE`  | MongoDB `users` collection + QA SIM                               | Needed for `/qa/notifications/run-smoke.ts` |
+| **SendGrid**       | `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL`, `SENDGRID_FROM_NAME`                          | SendGrid dashboard → Settings → API Keys                          | Key must have “Mail Send” scope             |
+| **Twilio SMS**     | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`                         | Twilio Console                                                    | Phone must support SMS + WhatsApp if reused |
+| **Firebase (FCM)** | `FIREBASE_ADMIN_PROJECT_ID`, `FIREBASE_ADMIN_CLIENT_EMAIL`, `FIREBASE_ADMIN_PRIVATE_KEY` | Service-account JSON                                              | Keep `PRIVATE_KEY` newline escaped (`\n`)   |
+| **WhatsApp**       | `WHATSAPP_BUSINESS_API_KEY`, `WHATSAPP_PHONE_NUMBER_ID`                                  | Meta Business Manager                                             | Template approvals must exist               |
+| **Telemetry**      | `NOTIFICATIONS_TELEMETRY_WEBHOOK`                                                        | Datadog Events API / PagerDuty Events v2 / Slack incoming webhook | Determines where dispatch metrics go        |
+
+**Steps**
+
+1. Update `.env.local` (or secret store) with the table above.
+2. Verify secrets:
+   ```bash
+   pnpm tsx scripts/validate-notification-env.ts
+   ```
+3. Run smoke suite once credentials exist:
+   ```bash
+   pnpm tsx qa/notifications/run-smoke.ts --user $NOTIFICATIONS_SMOKE_USER_ID
+   ```
+4. Confirm events appear at `NOTIFICATIONS_TELEMETRY_WEBHOOK` (Datadog event stream, PagerDuty incidents, etc.).
+
+**Docs:** `NOTIFICATION_SMOKE_TEST_QUICKSTART.md`, `NOTIFICATION_SMOKE_TEST_SETUP.md`
+
+---
+
+### 2. RTL Layout Quality Assurance 📱
+
+**Status:** 🔴 Untested for this release  
+**Impact:** 70% of active users (Arabic)  
+**Time Estimate:** 8-12 hours
+
+| Risk                        | Status   | Fix Implemented                                                                                                                                   |
+| --------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Hardcoded JWT fallbacks** | ✅ Fixed | Created `lib/env.ts` + `lib/env.js` with `requireEnv()`. All 15 files updated. Zero hardcoded secrets remaining.                                  |
+| **Mongo URI default**       | ✅ Fixed | Production validation added to `lib/mongo.ts`. Localhost blocked in prod. Fail-fast on misconfiguration.                                          |
+| **Rate limiting missing**   | ✅ Fixed | Created `lib/middleware/rate-limit.ts`. Protected 4 API routes (OTP, claims, evidence, response). See git diff for implementation.                |
+| **Open CORS**               | ✅ Fixed | Updated `middleware.ts` + `next.config.js`. Whitelist enforced: only `fixzit.sa` domains + localhost (dev only). See git diff for implementation. |
+
+**Verification Complete**
+
+```bash
+# All checks passing
+pnpm lint              # ✅ 0 errors
+pnpm test security     # ✅ All tests pass
+pnpm audit             # ✅ No critical issues
+grep -r "dev-secret"   # ✅ 0 matches (all removed)
+```
+
+**Security Score:**
+
+- Before: 45/100 (4 critical vulnerabilities)
+- After: **92/100** (0 critical vulnerabilities) ✅
+
+**📄 Full Report:** `SECURITY_FIXES_COMPLETED.md`
+
+---
+
+| Phase                | Scope                                                                                  | Owner          | Status |
+| -------------------- | -------------------------------------------------------------------------------------- | -------------- | ------ |
+| 1. Core shell (4h)   | Dashboard (FM/Souq/Aqar), auth pages, profile/settings, work orders, property listings | Frontend guild | ☐      |
+| 2. Transactions (4h) | Souq checkout, PayTabs flows, Aqar booking, work-order creation, support popup         | UX QA          | ☐      |
+| 3. Admin (2h)        | ClaimReviewPanel, user mgmt, analytics dashboards, reports                             | Ops QA         | ☐      |
+| 4. Edge/mobile (2h)  | Toasts, dialogs, tables, validation, responsive states                                 | Design QA      | ☐      |
+
+**Per-Page Checklist**
+
+- Text + icons mirrored for RTL
+- Buttons, breadcrumbs, tabs reversed
+- Tables handle RTL scroll + order
+- Charts + stats localized (ar-SA)
+- Date/time + numerals use Arabic locale
+
+**How to Verify**
+
+```bash
+pnpm dev
+# Browser console
+localStorage.setItem('fixzit_locale', 'ar');
+document.body.dir = 'rtl';
+window.location.reload();
+```
+
+Capture screenshots + defects in `docs/qa/RTL_QA_TRACKER.xlsx`. Use Playwright for regression once manual pass done (`pnpm playwright test --project rtl-ar`).
+
+---
+
+## 🟡 Medium Priority Tasks
+
+### 3. API Testing Completion 🧪
+
+**Status:** 🟡 Partial coverage (60%)  
+**Current Coverage:** 156 API tests passing  
+**Target Coverage:** 90%+ (250+ tests)  
+**Time Estimate:** 4-6 hours
+
+**Gaps Identified:**
+
+#### 4.1 Missing Test Coverage
+
+```
+Module                  | Current | Target | Tests Needed
+------------------------|---------|--------|-------------
+Work Orders             | 80%     | 90%    | +15 tests
+Invoices                | 70%     | 90%    | +20 tests
+Claims (Souq)           | 40%     | 90%    | +45 tests
+Aqar Properties         | 65%     | 90%    | +25 tests
+User Management         | 85%     | 95%    | +10 tests
+Notifications           | 50%     | 85%    | +30 tests
+Support Tickets         | 75%     | 90%    | +18 tests
+Payment Processing      | 30%     | 85%    | +50 tests
+```
+
+#### 4.2 Priority Test Scenarios
+
+**Claims API (Highest Priority):**
+
+```typescript
+// tests/api/souq/claims.test.ts
+describe("Claims API - Missing Tests", () => {
+  it("should handle fraud detection workflow", async () => {});
+  it("should process partial refunds correctly", async () => {});
+  it("should enforce appeal deadlines", async () => {});
+  it("should validate evidence file uploads", async () => {});
+  it("should calculate seller protection eligibility", async () => {});
+});
+```
+
+**Payment Processing:**
+
+```typescript
+// tests/api/payments/paytabs.test.ts
+describe("PayTabs Integration - Missing Tests", () => {
+  it("should handle Mada card payments", async () => {});
+  it("should process Apple Pay transactions", async () => {});
+  it("should validate ZATCA e-invoice generation", async () => {});
+  it("should handle payment timeouts gracefully", async () => {});
+  it("should refund transactions correctly", async () => {});
+});
+```
+
+**Notifications:**
+
+```typescript
+// tests/api/notifications/channels.test.ts
+describe("Notification Channels - Missing Tests", () => {
+  it("should send push notification via FCM", async () => {});
+  it("should send email via SendGrid with templates", async () => {});
+  it("should send SMS via Twilio in Arabic", async () => {});
+  it("should send WhatsApp business message", async () => {});
+  it("should handle channel fallback on failure", async () => {});
+});
+```
+
+**Run Tests:**
+
+```bash
+pnpm test:api
+pnpm test:api --coverage
+```
+
+---
+
+### 4. Souq Marketplace Claims System 🛒
+
+**Status:** 🟡 Core implemented, advanced features pending  
+**Time Estimate:** 6-8 hours  
+**Impact:** Marketplace trust and safety
+
+**Completed:**
+
+- ✅ Basic claim submission
+- ✅ Admin review panel
+- ✅ Fraud detection (basic)
+- ✅ Evidence upload
+- ✅ Decision workflow
+
+**Pending Implementation:**
+
+#### 5.1 Seller Protection Program (2 hours)
+
+```typescript
+// lib/souq/seller-protection.ts
+export async function evaluateSellerProtection(claim: Claim): Promise<{
+  eligible: boolean;
+  reason: string;
+  coverage: number;
+}> {
+  // TODO: Implement seller protection rules
+  // - Check seller performance metrics
+  // - Validate tracking information
+  // - Verify delivery confirmation
+  // - Calculate coverage amount
+}
+```
+
+**Rules:**
+
+- Seller rating > 4.5 stars
+- < 2% defect rate
+- Valid tracking number uploaded
+- Delivery confirmed by courier
+- Item matches listing description
+
+#### 5.2 Automated Resolution (3 hours)
+
+```typescript
+// lib/souq/auto-resolution.ts
+export async function attemptAutoResolution(claim: Claim): Promise<{
+  resolved: boolean;
+  action: "refund-full" | "refund-partial" | "escalate";
+  confidence: number;
+}> {
+  // TODO: ML-based auto-resolution
+  // - Analyze claim history
+  // - Check buyer/seller patterns
+  // - Compare with similar cases
+  // - Calculate confidence score
+}
+```
+
+**Triggers:**
+
+- Clear-cut cases (>90% confidence)
+- Low-value claims (<100 SAR)
+- First-time buyers (educational approach)
+- Repeat patterns detected
+
+#### 5.3 Appeal Process (2 hours)
+
+```typescript
+// lib/souq/appeals.ts
+export async function fileAppeal(
+  claimId: string,
+  party: "buyer" | "seller",
+  reason: string,
+  evidence: Evidence[],
+): Promise<Appeal> {
+  // TODO: Implement appeal workflow
+  // - Validate appeal window (7 days)
+  // - Queue for senior review
+  // - Notify all parties
+  // - Reset decision deadline
+}
+```
+
+#### 5.4 Performance Metrics Dashboard (1 hour)
+
+```typescript
+// app/admin/claims/analytics/page.tsx
+export default function ClaimsAnalytics() {
+  // TODO: Build analytics dashboard
+  // - Claims volume trends
+  // - Resolution time metrics
+  // - Fraud detection accuracy
+  // - Refund rate by category
+  // - Top claim reasons
+}
+```
+
+**API Routes Needed:**
+
+```bash
+POST   /api/souq/claims/:id/appeal
+GET    /api/souq/claims/analytics
+POST   /api/souq/seller-protection/evaluate
+GET    /api/souq/claims/:id/resolution-history
+```
+
+---
+
+### 5. Theme Violations Cleanup 🎨
+
+**Status:** 🟡 New system implemented, old violations remain  
+**Time Estimate:** 3-4 hours  
+**Impact:** Design consistency, maintenance
+
+**Violations Found:** 127 instances across 48 files
+
+**Categories:**
+
+#### 6.1 Hardcoded Colors (65 violations)
+
+```typescript
+// ❌ Bad
+<div style={{ color: '#3B82F6' }}>
+
+// ✅ Good
+<div className="text-primary">
+```
+
+**Files with most violations:**
+
+- `components/dashboard/WorkOrdersWidget.tsx` (12)
+- `components/souq/ProductCard.tsx` (8)
+- `components/aqar/PropertyCard.tsx` (7)
+- `app/admin/claims/ClaimReviewPanel.tsx` (6)
+
+#### 6.2 Inline Styles (42 violations)
+
+```typescript
+// ❌ Bad
+<Button style={{ marginTop: '16px' }}>
+
+// ✅ Good
+<Button className="mt-4">
+```
+
+#### 6.3 CSS-in-JS (20 violations)
+
+```typescript
+// ❌ Bad (styled-components remnants)
+const StyledDiv = styled.div`
+  background: blue;
+`;
+
+// ✅ Good
+<div className="bg-primary">
+```
+
+**Cleanup Script:**
+
+```bash
+# Run automated fixes
+pnpm tsx scripts/fix-theme-violations.ts
+
+# Verify
+pnpm lint
+```
+
+**Testing:** Visual regression testing needed after cleanup
+
+---
+
+## 🟢 Low Priority / Nice to Have
+
+### 6. Performance Optimizations ⚡
+
+**Status:** 🟢 Functional, can be optimized  
+**Time Estimate:** 6-8 hours  
+**Impact:** User experience, SEO
+
+**Opportunities:**
+
+#### 7.1 Image Optimization
+
+- [ ] Convert PNGs to WebP
+- [ ] Implement lazy loading
+- [ ] Add responsive image sizes
+- [ ] Use Next.js Image component everywhere
+
+#### 7.2 Bundle Size Reduction
+
+- [ ] Code splitting for large pages
+- [ ] Tree-shaking unused exports
+- [ ] Dynamic imports for heavy components
+- [ ] Remove duplicate dependencies
+
+#### 7.3 Database Query Optimization
+
+- [ ] Add indexes for common queries
+- [ ] Implement query result caching
+- [ ] Use aggregation pipelines
+- [ ] Optimize N+1 queries
+
+**Current Metrics:**
+
+- Lighthouse Score: 78/100 (target: 90+)
+- First Contentful Paint: 2.1s (target: <1.8s)
+- Time to Interactive: 4.3s (target: <3.5s)
+- Bundle Size: 387 KB (target: <300 KB)
+
+---
+
+### 7. Documentation Updates 📚
+
+**Status:** 🟢 Partial, needs expansion  
+**Time Estimate:** 4-6 hours
+
+**Pending:**
+
+#### 8.1 API Documentation
+
+- [ ] OpenAPI spec completion (60% done)
+- [ ] Authentication flow diagram
+- [ ] Rate limiting documentation
+- [ ] Error code reference
+
+#### 8.2 Developer Guides
+
+- [ ] Setup guide for new developers
+- [ ] Architecture decision records
+- [ ] Coding standards document
+- [ ] Testing strategy guide
+
+#### 8.3 User Documentation
+
+- [ ] Arabic user manual (Souq, Aqar, FM)
+- [ ] Video tutorials (key workflows)
+- [ ] FAQ updates
+- [ ] Troubleshooting guides
+
+**Tools:** Use Docusaurus for structured docs
+
+---
+
+### 8. Monitoring & Alerting 📊
+
+**Status:** 🟢 Basic logging, no alerting  
+**Time Estimate:** 4-5 hours
+
+**Setup Required:**
+
+#### 9.1 Error Tracking
+
+- [ ] Sentry integration (client + server)
+- [ ] Error categorization
+- [ ] Alert thresholds
+- [ ] On-call rotation setup
+
+#### 9.2 Performance Monitoring
+
+- [ ] New Relic APM setup
+- [ ] Custom metrics dashboard
+- [ ] Slow query alerts
+- [ ] API latency tracking
+
+#### 9.3 Business Metrics
+
+- [ ] User activity tracking
+- [ ] Conversion funnel analysis
+- [ ] Revenue tracking
+- [ ] Churn prediction
+
+**Cost:** ~$150/month for monitoring stack
+
+---
+
+## 📈 Progress Tracking
+
+### Completed Tasks (Nov 11-17)
+
+| Task                       | Priority | Est. Time | Status                                                      |
+| -------------------------- | -------- | --------- | ----------------------------------------------------------- |
+| Arabic translations audit  | 🔴       | 20-24h    | ✅ Complete (exceeded expectations)                         |
+| @types/supertest install   | 🟡       | 5 min     | ✅ Complete                                                 |
+| SelectValue warnings check | 🟡       | 2-3h      | ✅ Not a bug (confirmed)                                    |
+| SelectValue refactoring    | 🟡       | 2h        | ✅ 6 components refactored                                  |
+| Notification setup         | 🔴       | 3h        | ✅ Infrastructure complete                                  |
+| Environment validator      | 🟡       | 1h        | ✅ Script created                                           |
+| ClaimReviewPanel fixes     | 🔴       | 15min     | ✅ Select imports fixed                                     |
+| Security implementation    | 🔴       | 2.5h      | ✅ 12 files secured + Docker hardening (validation pending) |
+
+**Total Time Invested:** ~30 hours  
+**Total Tasks Completed:** 7 major items  
+**Blockers Removed:** 3
+
+---
+
+### Active Work (In Progress)
+
+| Task                     | Priority | Est. Remaining | Blocker                              |
+| ------------------------ | -------- | -------------- | ------------------------------------ |
+| Manual security testing  | 🔴       | 30-45 min      | See MANUAL_SECURITY_TESTING_GUIDE.md |
+| Notification credentials | 🔴       | 5-10 min       | User action needed                   |
+| RTL QA testing           | 🔴       | 8-12h          | -                                    |
+
+---
+
+### Upcoming (Next Sprint)
+
+| Task                  | Priority | Est. Time | Dependencies |
+| --------------------- | -------- | --------- | ------------ |
+| API test coverage     | 🟡       | 4-6h      | -            |
+| Souq claims advanced  | 🟡       | 6-8h      | -            |
+| Theme cleanup         | 🟡       | 3-4h      | -            |
+| Performance opts      | 🟢       | 6-8h      | -            |
+| Docs updates          | 🟢       | 4-6h      | -            |
+| Monitoring & alerting | 🟢       | 4-5h      | -            |
+
+---
+
+## 🎯 Recommended Next Actions
+
+### This Week (Nov 18-24)
+
+**Monday-Tuesday:**
+
+1. ⚡ **IMMEDIATE**: Run manual security tests (30-45 min) - See `MANUAL_SECURITY_TESTING_GUIDE.md`
+2. ⚡ **IMMEDIATE**: Populate notification credentials (10 min)
+3. 🧪 **MEDIUM**: Start API test coverage push (2 hours)
+
+**Wednesday-Thursday:** 4. 📱 **HIGH**: RTL QA Phase 1 - Core pages (4 hours) 5. 📱 **HIGH**: RTL QA Phase 2 - Transactional flows (4 hours)
+
+**Friday:** 6. 🎨 **MEDIUM**: Theme violations cleanup (3-4 hours) 7. 📊 **LOW**: Performance baseline measurements (1 hour)
+
+### Next Week (Nov 25-Dec 1)
+
+**Monday-Wednesday:**
+
+1. 🛒 Souq claims advanced features (6-8 hours)
+2. 🧪 Complete API test coverage (4-6 hours)
+
+**Thursday-Friday:** 3. 📚 Documentation sprint (4-6 hours) 4. ⚡ Performance optimizations (6-8 hours) 5. 📊 Monitoring & alerting rollout (4-5 hours) — Sentry + metrics dashboards + alert policies
+
+---
+
+## 🚨 Critical Blockers
+
+### Blocker 1: Manual Security Testing
+
+**Impact:** Cannot verify security fixes work as expected  
+**Resolution Time:** 30-45 minutes  
+**Owner:** QA + Development  
+**Action:** Follow `MANUAL_SECURITY_TESTING_GUIDE.md`
+
+### Blocker 2: Notification Credentials
+
+**Impact:** Cannot validate notification system  
+**Resolution Time:** 5-10 minutes  
+**Owner:** User action required
+
+### Blocker 3: RTL Testing
+
+**Impact:** Poor UX for 70% of users  
+**Resolution Time:** 8-12 hours  
+**Owner:** QA + Development
+
+---
+
+## 🔐 External Dependencies Needed
+
+1. **Notification credential package (Owner: DevOps)**
+   - Pending secrets: `NOTIFICATIONS_SMOKE_USER_ID`, `SENDGRID_API_KEY`, `TWILIO_ACCOUNT_SID`, `FIREBASE_ADMIN_PRIVATE_KEY`, `WHATSAPP_BUSINESS_API_KEY`, `NOTIFICATIONS_TELEMETRY_WEBHOOK`
+   - Action: export from production secret manager and load into `.env.local`/CI; run `pnpm tsx scripts/validate-notification-env.ts` after provisioning
+2. **RTL QA resourcing (Owner: Product + QA leads)**
+   - Requires: dedicated QA engineer (Arabic fluent) + 8–12h test window, device matrix (desktop + mobile), updated `docs/qa/RTL_QA_TRACKER.xlsx`
+   - Action: schedule QA sprint, capture screenshots/defects, feed results into Phase 2 RTL fixes
+
+---
+
+## 📊 Health Metrics
+
+**Code Quality:**
+
+- ✅ TypeScript Errors: 0
+- ✅ ESLint Warnings: 0
+- ⚠️ Theme Violations: 127
+- ✅ Test Coverage: 78% (target: 85%)
+
+**Security:**
+
+- ✅ Critical: 0 issues (all fixed in code)
+- ⚠️ Manual Testing: Needed (see MANUAL_SECURITY_TESTING_GUIDE.md)
+- ⚠️ Automated Scan: Pending (pnpm audit/Snyk/ZAP)
+
+**Performance:**
+
+- ⚠️ Lighthouse: 78/100
+- ⚠️ Bundle Size: 387 KB
+- ✅ API Response: <200ms avg
+
+**Deployment Readiness:**
+
+- 🟡 **STAGING READY** - Security fixes implemented, manual validation needed
+- ⚠️ **RTL testing required** - UX critical for 70% of users
+- ✅ **Functionality complete** - Core features working
+
+---
+
+## 📝 Notes
+
+### Recent Achievements (Nov 17)
+
+- ✨ Completed notification infrastructure setup (3+ hours work)
+- ✨ Created comprehensive documentation (3 guides, 15,000+ words)
+- ✨ Fixed all SelectValue deprecation warnings (6 components)
+- ✨ Resolved ClaimReviewPanel Select import issues
+- ✨ Created environment validation tooling
+- ✨ Pushed 11 files to remote (3,003 insertions, 128 deletions)
+
+### Technical Debt
+
+- 127 theme violations identified (auto-fixable)
+- Security hardening needed before production
+- Test coverage gaps in payments and claims
+- Performance optimizations deferred
+
+### Dependencies
+
+- ✅ All npm packages up to date
+- ⚠️ supertest@6.3.4 deprecated (non-blocking)
+- ✅ Next.js 14.x stable
+- ✅ React 18.x stable
+
+---
+
+**Report Generated:** November 17, 2025, 12:25 PM  
+**Next Review:** November 18, 2025  
+**Report By:** GitHub Copilot (Development Assistant)
+
+]]>
+</file>
+
+</batch_content>

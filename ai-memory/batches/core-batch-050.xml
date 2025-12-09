@@ -1,0 +1,3037 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="components/onboarding/OnboardingWizard.tsx">
+<![CDATA[
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { cn } from "@/lib/utils";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Upload,
+  User,
+  Building2,
+  FileText,
+  CheckCircle,
+} from "lucide-react";
+import { toast } from "sonner";
+
+export type OnboardingRole = "TENANT" | "PROPERTY_OWNER" | "OWNER" | "VENDOR" | "AGENT";
+
+export interface OnboardingWizardProps {
+  role?: OnboardingRole;
+  caseId?: string;
+  initialStep?: number;
+  onComplete?: (caseId: string) => void;
+  className?: string;
+}
+
+interface StepConfig {
+  id: string;
+  title: string;
+  titleAr: string;
+  description: string;
+  descriptionAr: string;
+  icon: React.ElementType;
+}
+
+const STEPS: StepConfig[] = [
+  {
+    id: "role",
+    title: "Select Your Role",
+    titleAr: "اختر دورك",
+    description: "Tell us how you'll be using Fixzit",
+    descriptionAr: "أخبرنا كيف ستستخدم فيكزت",
+    icon: User,
+  },
+  {
+    id: "profile",
+    title: "Your Information",
+    titleAr: "معلوماتك",
+    description: "Basic details to set up your account",
+    descriptionAr: "التفاصيل الأساسية لإعداد حسابك",
+    icon: Building2,
+  },
+  {
+    id: "documents",
+    title: "Documents",
+    titleAr: "المستندات",
+    description: "Upload required verification documents",
+    descriptionAr: "تحميل مستندات التحقق المطلوبة",
+    icon: FileText,
+  },
+  {
+    id: "review",
+    title: "Review & Submit",
+    titleAr: "مراجعة وإرسال",
+    description: "Confirm your details and submit",
+    descriptionAr: "تأكيد تفاصيلك وإرسال",
+    icon: CheckCircle,
+  },
+];
+
+const ROLE_OPTIONS: Array<{
+  value: OnboardingRole;
+  label: string;
+  labelAr: string;
+  description: string;
+  descriptionAr: string;
+}> = [
+  {
+    value: "TENANT",
+    label: "Tenant",
+    labelAr: "مستأجر",
+    description: "I rent a property and need maintenance services",
+    descriptionAr: "أنا أستأجر عقاراً وأحتاج خدمات الصيانة",
+  },
+  {
+    value: "PROPERTY_OWNER",
+    label: "Property Owner",
+    labelAr: "مالك عقار",
+    description: "I own properties and want to manage them",
+    descriptionAr: "أملك عقارات وأريد إدارتها",
+  },
+  {
+    value: "OWNER",
+    label: "Corporate Owner",
+    labelAr: "مالك مؤسسي",
+    description: "I manage properties for a company",
+    descriptionAr: "أدير عقارات لشركة",
+  },
+  {
+    value: "VENDOR",
+    label: "Service Vendor",
+    labelAr: "مقدم خدمات",
+    description: "I provide maintenance or services",
+    descriptionAr: "أقدم خدمات الصيانة أو غيرها",
+  },
+  {
+    value: "AGENT",
+    label: "Real Estate Agent",
+    labelAr: "وكيل عقاري",
+    description: "I help clients buy, sell, or rent properties",
+    descriptionAr: "أساعد العملاء في شراء أو بيع أو استئجار العقارات",
+  },
+];
+
+const REQUIRED_DOCS: Record<OnboardingRole, string[]> = {
+  TENANT: ["National ID/Iqama", "Lease Agreement"],
+  PROPERTY_OWNER: ["National ID/Iqama", "Property Deed"],
+  OWNER: ["Commercial Registration", "Authorization Letter", "National ID/Iqama"],
+  VENDOR: ["Commercial Registration", "VAT Certificate", "Trade License"],
+  AGENT: ["National ID/Iqama", "REGA License"],
+};
+
+export default function OnboardingWizard({
+  role: initialRole,
+  caseId: existingCaseId,
+  initialStep = 1,
+  onComplete,
+  className,
+}: OnboardingWizardProps) {
+  const { t, isRTL } = useTranslation();
+  const router = useRouter();
+  const { data: session } = useSession();
+
+  // State
+  const [currentStep, setCurrentStep] = useState(initialStep);
+  const [isLoading, setIsLoading] = useState(false);
+  const [caseId, setCaseId] = useState(existingCaseId);
+
+  // Form data
+  const [selectedRole, setSelectedRole] = useState<OnboardingRole | undefined>(initialRole);
+  const [basicInfo, setBasicInfo] = useState({
+    name: (session?.user as { name?: string })?.name || "",
+    email: (session?.user as { email?: string })?.email || "",
+    phone: "",
+    companyName: "",
+    address: "",
+    country: "SA",
+  });
+  const [payload, setPayload] = useState<Record<string, unknown>>({});
+  const [uploadedDocs, setUploadedDocs] = useState<Record<string, string>>({});
+
+  // Load existing case data
+  const loadCaseData = useCallback(async (id: string) => {
+    try {
+      const res = await fetch(`/api/onboarding/${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedRole(data.role);
+        setBasicInfo((prev) => ({ ...prev, ...data.basic_info }));
+        setPayload(data.payload || {});
+        setCurrentStep(data.current_step || 1);
+        if (Array.isArray(data.documents)) {
+          const map: Record<string, string> = {};
+          for (const doc of data.documents) {
+            if (typeof doc === "string") {
+              map[doc] = doc;
+            } else if (doc?.documentType && doc?.documentId) {
+              map[doc.documentType] = doc.documentId;
+            }
+          }
+          setUploadedDocs(map);
+        }
+      }
+    } catch (_error) {
+      // Silent fail - case data will be loaded on retry
+    }
+  }, [session?.user]);
+
+  useEffect(() => {
+    if (existingCaseId) {
+      loadCaseData(existingCaseId);
+    }
+  }, [existingCaseId, loadCaseData]);
+
+  const progress = (currentStep / STEPS.length) * 100;
+
+  const validateProfileStep = useCallback(() => {
+    if (!basicInfo.name.trim()) {
+      toast.error(isRTL ? "الرجاء إدخال الاسم" : "Please enter your name");
+      return false;
+    }
+    const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+    if (!emailPattern.test(basicInfo.email.trim())) {
+      toast.error(isRTL ? "الرجاء إدخال بريد إلكتروني صالح" : "Please enter a valid email");
+      return false;
+    }
+    if (
+      (selectedRole === "OWNER" || selectedRole === "VENDOR") &&
+      !basicInfo.companyName.trim()
+    ) {
+      toast.error(isRTL ? "اسم الشركة مطلوب" : "Company name is required");
+      return false;
+    }
+    if (basicInfo.phone.trim()) {
+      const phonePattern = /^\+?\d{7,15}$/;
+      if (!phonePattern.test(basicInfo.phone.trim())) {
+        toast.error(isRTL ? "الرجاء إدخال رقم هاتف صالح" : "Please enter a valid phone number");
+        return false;
+      }
+    }
+    return true;
+  }, [basicInfo, isRTL, selectedRole]);
+
+  const ensureRequiredDocs = useCallback(() => {
+    if (!selectedRole) return true;
+    const requiredDocs = REQUIRED_DOCS[selectedRole] || [];
+    const missingDocs = requiredDocs.filter((doc) => !uploadedDocs[doc]);
+    if (missingDocs.length > 0) {
+      toast.error(
+        isRTL
+          ? "يرجى تحميل جميع المستندات المطلوبة قبل الإرسال"
+          : "Please upload all required documents before submitting",
+      );
+      return false;
+    }
+    return true;
+  }, [isRTL, selectedRole, uploadedDocs]);
+
+  // Navigate between steps
+  const nextStep = useCallback(async () => {
+    if (currentStep === 1 && !selectedRole) {
+      toast.error(isRTL ? "الرجاء اختيار دورك" : "Please select your role");
+      return;
+    }
+
+    if (currentStep === 1 && !caseId) {
+      if (!validateProfileStep()) return;
+      // Create case on first step completion
+      setIsLoading(true);
+      try {
+        const res = await fetch("/api/onboarding/initiate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            role: selectedRole,
+            basic_info: {
+              name: basicInfo.name || session?.user?.name || "User",
+              email: basicInfo.email || session?.user?.email || "",
+            },
+            country: basicInfo.country,
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Failed to initiate onboarding");
+        }
+
+        const data = await res.json();
+        setCaseId(data.id);
+        setCurrentStep(2);
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Failed to start onboarding"
+        );
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    // Validate profile before moving past profile/doc steps
+    if (currentStep === 2 && !validateProfileStep()) {
+      return;
+    }
+
+    // Save progress for subsequent steps
+    if (caseId) {
+      setIsLoading(true);
+      try {
+        const res = await fetch(`/api/onboarding/${caseId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            basic_info: basicInfo,
+            payload,
+            current_step: currentStep + 1,
+          }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || "Failed to save progress");
+        }
+        setCurrentStep((s) => Math.min(s + 1, STEPS.length));
+      } catch (_error) {
+        toast.error(
+          isRTL ? "فشل في حفظ التقدم" : "Failed to save progress",
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  }, [currentStep, selectedRole, caseId, basicInfo, payload, session, isRTL, validateProfileStep]);
+
+  const prevStep = useCallback(() => {
+    setCurrentStep((s) => Math.max(s - 1, 1));
+  }, []);
+
+  // Submit final step
+  const handleSubmit = useCallback(async () => {
+    if (!caseId) return;
+    if (!validateProfileStep()) return;
+    if (!ensureRequiredDocs()) return;
+
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/onboarding/${caseId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "SUBMITTED",
+          current_step: 4,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to submit");
+      }
+
+      toast.success(
+        isRTL
+          ? "تم إرسال طلبك بنجاح. سنراجعه قريباً."
+          : "Your application has been submitted. We'll review it shortly."
+      );
+
+      if (onComplete) {
+        onComplete(caseId);
+      } else {
+        router.push("/dashboard");
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to submit application"
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, [caseId, isRTL, onComplete, router, validateProfileStep, ensureRequiredDocs]);
+
+  // Document upload handler
+  const handleDocUpload = async (docType: string, file: File) => {
+    if (!caseId) return;
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error(
+        isRTL ? "حجم الملف يتجاوز 5 ميغابايت" : "File size exceeds 5MB limit",
+      );
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("documentType", docType);
+
+    try {
+      const res = await fetch(
+        `/api/onboarding/${caseId}/documents/request-upload`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            documentType: docType,
+            fileName: file.name,
+            mimeType: file.type,
+          }),
+        }
+      );
+
+      if (res.ok) {
+        const { uploadUrl, documentId } = await res.json();
+        // Upload to presigned URL (S3)
+        const uploadRes = await fetch(uploadUrl, {
+          method: "PUT",
+          body: file,
+          headers: { "Content-Type": file.type },
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error("upload_failed");
+        }
+
+        // Confirm upload
+        await fetch(`/api/onboarding/${caseId}/documents/confirm-upload`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ documentId }),
+        });
+
+        setUploadedDocs((prev) => ({ ...prev, [docType]: documentId }));
+        toast.success(
+          isRTL ? `تم تحميل ${docType} بنجاح` : `${docType} uploaded successfully`
+        );
+      }
+    } catch (_error) {
+      toast.error(isRTL ? "فشل تحميل المستند" : "Failed to upload document");
+    }
+  };
+
+  // Step content renderers
+  const renderRoleStep = () => (
+    <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-2">
+        {ROLE_OPTIONS.map((option) => (
+          <Card
+            key={option.value}
+            className={cn(
+              "cursor-pointer transition-all hover:border-primary/50",
+              selectedRole === option.value && "border-primary ring-2 ring-primary/20"
+            )}
+            onClick={() => setSelectedRole(option.value)}
+          >
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">
+                {isRTL ? option.labelAr : option.label}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                {isRTL ? option.descriptionAr : option.description}
+              </p>
+            </CardContent>
+            {selectedRole === option.value && (
+              <div className="absolute top-3 end-3">
+                <Check className="h-5 w-5 text-primary" />
+              </div>
+            )}
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderProfileStep = () => (
+    <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="name">{t("onboarding.name", "Full Name")}</Label>
+          <Input
+            id="name"
+            value={basicInfo.name}
+            onChange={(e) => setBasicInfo((prev) => ({ ...prev, name: e.target.value }))}
+            placeholder={isRTL ? "الاسم الكامل" : "Enter your full name"}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="email">{t("onboarding.email", "Email")}</Label>
+          <Input
+            id="email"
+            type="email"
+            value={basicInfo.email}
+            onChange={(e) => setBasicInfo((prev) => ({ ...prev, email: e.target.value }))}
+            placeholder={isRTL ? "البريد الإلكتروني" : "Enter your email"}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="phone">{t("onboarding.phone", "Phone Number")}</Label>
+          <Input
+            id="phone"
+            type="tel"
+            value={basicInfo.phone}
+            onChange={(e) => setBasicInfo((prev) => ({ ...prev, phone: e.target.value }))}
+            placeholder={isRTL ? "رقم الهاتف" : "+966 5XX XXX XXXX"}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="country">{t("onboarding.country", "Country")}</Label>
+          <Select
+            value={basicInfo.country}
+            onValueChange={(value) => setBasicInfo((prev) => ({ ...prev, country: value }))}
+          >
+            <SelectTrigger id="country">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="SA">{isRTL ? "المملكة العربية السعودية" : "Saudi Arabia"}</SelectItem>
+              <SelectItem value="AE">{isRTL ? "الإمارات العربية المتحدة" : "UAE"}</SelectItem>
+              <SelectItem value="KW">{isRTL ? "الكويت" : "Kuwait"}</SelectItem>
+              <SelectItem value="BH">{isRTL ? "البحرين" : "Bahrain"}</SelectItem>
+              <SelectItem value="OM">{isRTL ? "عمان" : "Oman"}</SelectItem>
+              <SelectItem value="QA">{isRTL ? "قطر" : "Qatar"}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {(selectedRole === "OWNER" || selectedRole === "VENDOR") && (
+        <div className="space-y-2">
+          <Label htmlFor="companyName">
+            {t("onboarding.companyName", "Company Name")}
+          </Label>
+          <Input
+            id="companyName"
+            value={basicInfo.companyName}
+            onChange={(e) => setBasicInfo((prev) => ({ ...prev, companyName: e.target.value }))}
+            placeholder={isRTL ? "اسم الشركة" : "Enter company name"}
+          />
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <Label htmlFor="address">{t("onboarding.address", "Address")}</Label>
+        <Textarea
+          id="address"
+          value={basicInfo.address}
+          onChange={(e) => setBasicInfo((prev) => ({ ...prev, address: e.target.value }))}
+          placeholder={isRTL ? "العنوان" : "Enter your address"}
+          rows={2}
+        />
+      </div>
+
+      {selectedRole === "VENDOR" && (
+        <div className="space-y-2">
+          <Label>{t("onboarding.serviceCategories", "Service Categories")}</Label>
+          <p className="text-sm text-muted-foreground">
+            {isRTL
+              ? "اختر فئات الخدمات التي تقدمها"
+              : "Select the service categories you provide"}
+          </p>
+          {/* Service category multi-select would go here */}
+        </div>
+      )}
+    </div>
+  );
+
+  const renderDocumentsStep = () => {
+    const requiredDocs = selectedRole ? REQUIRED_DOCS[selectedRole] : [];
+
+    return (
+      <div className="space-y-6">
+        <p className="text-sm text-muted-foreground">
+          {isRTL
+            ? "يرجى تحميل المستندات المطلوبة للتحقق من هويتك"
+            : "Please upload the required documents to verify your identity"}
+        </p>
+
+        <div className="space-y-4">
+          {requiredDocs.map((docType) => (
+            <Card key={docType} className="p-4">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium">{docType}</p>
+                    <p className="text-xs text-muted-foreground">
+                      PDF, JPG, or PNG (max 5MB)
+                    </p>
+                  </div>
+                </div>
+                <div>
+                  {uploadedDocs[docType] ? (
+                    <div className="flex items-center gap-2 text-success">
+                      <Check className="h-4 w-4" />
+                      <span className="text-sm">{isRTL ? "تم التحميل" : "Uploaded"}</span>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer">
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleDocUpload(docType, file);
+                        }}
+                      />
+                      <Button variant="outline" size="sm" asChild>
+                        <span>
+                          <Upload className="h-4 w-4 me-2" />
+                          {isRTL ? "تحميل" : "Upload"}
+                        </span>
+                      </Button>
+                    </label>
+                  )}
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderReviewStep = () => (
+    <div className="space-y-6">
+      <div className="rounded-lg border p-4 space-y-4">
+        <div>
+          <h4 className="font-medium text-sm text-muted-foreground">
+            {isRTL ? "الدور" : "Role"}
+          </h4>
+          <p className="font-medium">
+            {ROLE_OPTIONS.find((r) => r.value === selectedRole)?.[isRTL ? "labelAr" : "label"]}
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div>
+            <h4 className="font-medium text-sm text-muted-foreground">
+              {isRTL ? "الاسم" : "Name"}
+            </h4>
+            <p>{basicInfo.name}</p>
+          </div>
+          <div>
+            <h4 className="font-medium text-sm text-muted-foreground">
+              {isRTL ? "البريد الإلكتروني" : "Email"}
+            </h4>
+            <p>{basicInfo.email}</p>
+          </div>
+          <div>
+            <h4 className="font-medium text-sm text-muted-foreground">
+              {isRTL ? "الهاتف" : "Phone"}
+            </h4>
+            <p>{basicInfo.phone || "-"}</p>
+          </div>
+          <div>
+            <h4 className="font-medium text-sm text-muted-foreground">
+              {isRTL ? "البلد" : "Country"}
+            </h4>
+            <p>{basicInfo.country}</p>
+          </div>
+        </div>
+
+        {basicInfo.companyName && (
+          <div>
+            <h4 className="font-medium text-sm text-muted-foreground">
+              {isRTL ? "الشركة" : "Company"}
+            </h4>
+            <p>{basicInfo.companyName}</p>
+          </div>
+        )}
+
+        <div>
+          <h4 className="font-medium text-sm text-muted-foreground">
+            {isRTL ? "المستندات المحملة" : "Uploaded Documents"}
+          </h4>
+          <p>
+            {Object.keys(uploadedDocs).length} / {selectedRole ? REQUIRED_DOCS[selectedRole].length : 0}
+          </p>
+        </div>
+      </div>
+
+      <p className="text-sm text-muted-foreground">
+        {isRTL
+          ? "بالنقر على إرسال، أنت توافق على شروط الخدمة وسياسة الخصوصية."
+          : "By clicking Submit, you agree to our Terms of Service and Privacy Policy."}
+      </p>
+    </div>
+  );
+
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 1:
+        return renderRoleStep();
+      case 2:
+        return renderProfileStep();
+      case 3:
+        return renderDocumentsStep();
+      case 4:
+        return renderReviewStep();
+      default:
+        return null;
+    }
+  };
+
+  const currentStepConfig = STEPS[currentStep - 1];
+  const StepIcon = currentStepConfig?.icon || User;
+
+  return (
+    <div className={cn("max-w-2xl mx-auto", className)}>
+      {/* Progress */}
+      <div className="mb-8">
+        <Progress value={progress} className="h-2" />
+        <div className="flex justify-between mt-2">
+          {STEPS.map((step, index) => {
+            const Icon = step.icon;
+            const stepNum = index + 1;
+            const isActive = currentStep === stepNum;
+            const isCompleted = currentStep > stepNum;
+
+            return (
+              <div
+                key={step.id}
+                className={cn(
+                  "flex flex-col items-center gap-1",
+                  isActive && "text-primary",
+                  isCompleted && "text-success",
+                  !isActive && !isCompleted && "text-muted-foreground"
+                )}
+              >
+                <div
+                  className={cn(
+                    "w-8 h-8 rounded-full flex items-center justify-center border-2",
+                    isActive && "border-primary bg-primary/10",
+                    isCompleted && "border-success bg-success text-success-foreground",
+                    !isActive && !isCompleted && "border-muted"
+                  )}
+                >
+                  {isCompleted ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+                </div>
+                <span className="text-xs hidden sm:block">
+                  {isRTL ? step.titleAr : step.title}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Step Content */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <StepIcon className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle>
+                {isRTL ? currentStepConfig.titleAr : currentStepConfig.title}
+              </CardTitle>
+              <CardDescription>
+                {isRTL ? currentStepConfig.descriptionAr : currentStepConfig.description}
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>{renderStepContent()}</CardContent>
+      </Card>
+
+      {/* Navigation */}
+      <div className="flex justify-between mt-6">
+        <Button
+          variant="outline"
+          onClick={prevStep}
+          disabled={currentStep === 1 || isLoading}
+        >
+          {isRTL ? (
+            <>
+              <ChevronRight className="h-4 w-4 me-2" />
+              {t("onboarding.previous", "السابق")}
+            </>
+          ) : (
+            <>
+              <ChevronLeft className="h-4 w-4 me-2" />
+              {t("onboarding.previous", "Previous")}
+            </>
+          )}
+        </Button>
+
+        {currentStep < STEPS.length ? (
+          <Button onClick={nextStep} disabled={isLoading}>
+            {isLoading && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
+            {t("onboarding.next", isRTL ? "التالي" : "Next")}
+            {isRTL ? (
+              <ChevronLeft className="h-4 w-4 ms-2" />
+            ) : (
+              <ChevronRight className="h-4 w-4 ms-2" />
+            )}
+          </Button>
+        ) : (
+          <Button onClick={handleSubmit} disabled={isLoading}>
+            {isLoading && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
+            {t("onboarding.submit", isRTL ? "إرسال" : "Submit")}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/seller/advertising/PerformanceReport.tsx">
+<![CDATA[
+"use client";
+
+import { useState, useEffect } from "react";
+import {
+  Download,
+  Calendar,
+  TrendingUp,
+  TrendingDown,
+  ArrowUpDown,
+} from "lucide-react";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { logger } from "@/lib/logger";
+
+interface PerformanceData {
+  date: string;
+  impressions: number;
+  clicks: number;
+  spend: number;
+}
+
+interface KeywordPerformance {
+  keyword: string;
+  campaignName: string;
+  impressions: number;
+  clicks: number;
+  ctr: number;
+  avgCpc: number;
+  spend: number;
+  conversions: number;
+  acos: number;
+  roas: number;
+}
+
+interface ProductPerformance {
+  productId: string;
+  productName: string;
+  campaignName: string;
+  impressions: number;
+  clicks: number;
+  ctr: number;
+  conversions: number;
+  revenue: number;
+  acos: number;
+}
+
+type DatePreset = "today" | "yesterday" | "last7" | "last30" | "custom";
+type SortField = keyof KeywordPerformance | keyof ProductPerformance;
+type SortDirection = "asc" | "desc";
+
+interface PerformanceReportProps {
+  campaignId?: string; // Optional: filter by specific campaign
+}
+
+export function PerformanceReport({ campaignId }: PerformanceReportProps) {
+  const [datePreset, setDatePreset] = useState<DatePreset>("last7");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [performanceData, setPerformanceData] = useState<PerformanceData[]>([]);
+  const [keywordData, setKeywordData] = useState<KeywordPerformance[]>([]);
+  const [productData, setProductData] = useState<ProductPerformance[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeView, setActiveView] = useState<"keywords" | "products">(
+    "keywords",
+  );
+  const [sortField, setSortField] = useState<SortField>("impressions");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 50;
+  const auto = useAutoTranslator("seller.advertising.performance");
+  const datePresets = [
+    { value: "today", label: auto("Today", "filters.today") },
+    { value: "yesterday", label: auto("Yesterday", "filters.yesterday") },
+    { value: "last7", label: auto("Last 7 Days", "filters.last7") },
+    { value: "last30", label: auto("Last 30 Days", "filters.last30") },
+    { value: "custom", label: auto("Custom", "filters.custom") },
+  ] as const;
+
+  useEffect(() => {
+    const dates = calculateDateRange(datePreset);
+    setStartDate(dates.start);
+    setEndDate(dates.end);
+  }, [datePreset]);
+
+  useEffect(() => {
+    if (startDate && endDate) {
+      loadPerformanceData();
+    }
+  }, [startDate, endDate, campaignId]);
+
+  const calculateDateRange = (preset: DatePreset) => {
+    const today = new Date();
+    const start = new Date();
+    const end = new Date();
+
+    switch (preset) {
+      case "today":
+        break;
+      case "yesterday":
+        start.setDate(today.getDate() - 1);
+        end.setDate(today.getDate() - 1);
+        break;
+      case "last7":
+        start.setDate(today.getDate() - 7);
+        break;
+      case "last30":
+        start.setDate(today.getDate() - 30);
+        break;
+      default:
+        return { start: "", end: "" };
+    }
+
+    return {
+      start: start.toISOString().split("T")[0],
+      end: end.toISOString().split("T")[0],
+    };
+  };
+
+  const loadPerformanceData = async () => {
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (startDate) params.append("start", startDate);
+      if (endDate) params.append("end", endDate);
+      if (campaignId) params.append("campaignId", campaignId);
+
+      const queryString = params.toString();
+      const response = await fetch(
+        `/api/souq/ads/reports${queryString ? `?${queryString}` : ""}`,
+      );
+      if (!response.ok) throw new Error("Failed to load performance data");
+
+      const payload = await response.json();
+      const report = payload.data || {};
+
+      setPerformanceData(report.timeseries || []);
+      setKeywordData(report.keywords || []);
+      setProductData(report.products || []);
+    } catch (error) {
+      logger.error("Failed to load performance data", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("desc");
+    }
+  };
+
+  const getSortedData = () => {
+    const data =
+      activeView === "keywords" ? [...keywordData] : [...productData];
+
+    data.sort((a, b) => {
+      const aValue = a[sortField as keyof typeof a];
+      const bValue = b[sortField as keyof typeof b];
+
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
+      }
+
+      return sortDirection === "asc"
+        ? String(aValue).localeCompare(String(bValue))
+        : String(bValue).localeCompare(String(aValue));
+    });
+
+    return data;
+  };
+
+  const exportToCSV = () => {
+    const data = activeView === "keywords" ? keywordData : productData;
+    const headers = Object.keys(data[0] || {}).join(",");
+    const rows = data.map((row) => Object.values(row).join(",")).join("\n");
+    const csv = `${headers}\n${rows}`;
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `campaign-report-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+  };
+
+  const paginatedData = getSortedData().slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage,
+  );
+
+  const totalPages = Math.ceil(getSortedData().length / rowsPerPage);
+
+  const SortableHeader = ({
+    field,
+    children,
+  }: {
+    field: SortField;
+    children: React.ReactNode;
+  }) => (
+    <th
+      onClick={() => handleSort(field)}
+      className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+    >
+      <div className="flex items-center gap-1">
+        {children}
+        <ArrowUpDown className="w-4 h-4" />
+      </div>
+    </th>
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Date Range Selector */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-gray-600" />
+            <span className="text-sm font-medium text-gray-700">
+              {auto("Date Range:", "filters.dateRangeLabel")}
+            </span>
+          </div>
+
+          <div className="flex gap-2">
+            {datePresets.map((preset) => (
+              <button
+                key={preset.value}
+                onClick={() => setDatePreset(preset.value as DatePreset)}
+                className={`px-4 py-2 text-sm rounded-lg transition-colors ${
+                  datePreset === preset.value
+                    ? "bg-primary text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+
+          {datePreset === "custom" && (
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg"
+              />
+              <span className="text-gray-500">{auto("to", "filters.to")}</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg"
+              />
+            </div>
+          )}
+
+          <button
+            onClick={exportToCSV}
+            className="ms-auto inline-flex items-center gap-2 px-4 py-2 bg-success text-white rounded-lg hover:bg-success-dark transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            {auto("Export CSV", "actions.exportCsv")}
+          </button>
+        </div>
+      </div>
+
+      {/* Performance Charts */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          {auto("Performance Over Time", "sections.performanceOverTime")}
+        </h3>
+
+        {isLoading ? (
+          <div className="text-center py-12 text-gray-500">
+            {auto("Loading chart data...", "state.loadingCharts")}
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Simple text-based chart visualization */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">
+                  {auto("Impressions & Clicks", "charts.impressionsClicks")}
+                </span>
+                <div className="flex items-center gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-primary/90 rounded"></div>
+                    <span className="text-gray-600">
+                      {auto("Impressions", "metrics.impressions")}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-success/90 rounded"></div>
+                    <span className="text-gray-600">
+                      {auto("Clicks", "metrics.clicks")}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-7 gap-2">
+                {performanceData.slice(-7).map((data, index) => (
+                  <div key={index} className="text-center">
+                    <div className="text-xs text-gray-500 mb-1">
+                      {new Date(data.date).toLocaleDateString("en-US", {
+                        weekday: "short",
+                      })}
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <div
+                        className="bg-primary/90 rounded"
+                        style={{
+                          height: `${(data.impressions / 5000) * 80}px`,
+                        }}
+                        title={auto(
+                          "{{count}} impressions",
+                          "metrics.impressionsTooltip",
+                        ).replace("{{count}}", String(data.impressions))}
+                      ></div>
+                      <div className="text-xs text-gray-600">
+                        {data.impressions}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">
+                  {auto("Daily Spend", "charts.dailySpend")}
+                </span>
+                <span className="text-sm text-gray-600">
+                  {auto(
+                    "Total: {{amount}} SAR",
+                    "charts.dailySpendTotal",
+                  ).replace(
+                    "{{amount}}",
+                    performanceData
+                      .reduce((sum, d) => sum + d.spend, 0)
+                      .toFixed(2),
+                  )}
+                </span>
+              </div>
+              <div className="grid grid-cols-7 gap-2">
+                {performanceData.slice(-7).map((data, index) => (
+                  <div key={index} className="text-center">
+                    <div className="text-xs text-gray-500 mb-1">
+                      {new Date(data.date).toLocaleDateString("en-US", {
+                        weekday: "short",
+                      })}
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <div
+                        className="bg-destructive/90 rounded"
+                        style={{ height: `${(data.spend / 100) * 80}px` }}
+                        title={auto(
+                          "{{amount}} SAR",
+                          "metrics.spendTooltip",
+                        ).replace("{{amount}}", data.spend.toFixed(2))}
+                      ></div>
+                      <div className="text-xs text-gray-600">
+                        {data.spend.toFixed(0)}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Performance Tables */}
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        {/* Tab Headers */}
+        <div className="flex border-b border-gray-200">
+          <button
+            onClick={() => {
+              setActiveView("keywords");
+              setCurrentPage(1);
+            }}
+            className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${
+              activeView === "keywords"
+                ? "text-primary border-b-2 border-primary bg-primary/10"
+                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+            }`}
+          >
+            {auto("Keyword Performance", "tables.keywordsTab")}
+          </button>
+          <button
+            onClick={() => {
+              setActiveView("products");
+              setCurrentPage(1);
+            }}
+            className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${
+              activeView === "products"
+                ? "text-primary border-b-2 border-primary bg-primary/10"
+                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+            }`}
+          >
+            {auto("Product Performance", "tables.productsTab")}
+          </button>
+        </div>
+
+        {/* Keyword Performance Table */}
+        {activeView === "keywords" && (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <SortableHeader field="keyword">
+                    {auto("Keyword", "tables.headers.keyword")}
+                  </SortableHeader>
+                  <SortableHeader field="campaignName">
+                    {auto("Campaign", "tables.headers.campaign")}
+                  </SortableHeader>
+                  <SortableHeader field="impressions">
+                    {auto("Impressions", "tables.headers.impressions")}
+                  </SortableHeader>
+                  <SortableHeader field="clicks">
+                    {auto("Clicks", "tables.headers.clicks")}
+                  </SortableHeader>
+                  <SortableHeader field="ctr">
+                    {auto("CTR", "tables.headers.ctr")}
+                  </SortableHeader>
+                  <SortableHeader field="avgCpc">
+                    {auto("Avg CPC", "tables.headers.avgCpc")}
+                  </SortableHeader>
+                  <SortableHeader field="spend">
+                    {auto("Spend", "tables.headers.spend")}
+                  </SortableHeader>
+                  <SortableHeader field="conversions">
+                    {auto("Conversions", "tables.headers.conversions")}
+                  </SortableHeader>
+                  <SortableHeader field="acos">
+                    {auto("ACOS", "tables.headers.acos")}
+                  </SortableHeader>
+                  <SortableHeader field="roas">
+                    {auto("ROAS", "tables.headers.roas")}
+                  </SortableHeader>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {paginatedData.map((row, index) => {
+                  const data = row as KeywordPerformance;
+                  return (
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                        {data.keyword}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {data.campaignName}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {data.impressions.toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {data.clicks.toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        <div className="flex items-center gap-1">
+                          {data.ctr.toFixed(2)}%
+                          {data.ctr > 2 ? (
+                            <TrendingUp className="w-4 h-4 text-success" />
+                          ) : (
+                            <TrendingDown className="w-4 h-4 text-destructive" />
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {data.avgCpc.toFixed(2)} SAR
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {data.spend.toFixed(2)} SAR
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {data.conversions}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        <span
+                          className={`px-2 py-1 rounded ${
+                            data.acos < 20
+                              ? "bg-green-100 text-green-800"
+                              : data.acos < 30
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {data.acos.toFixed(1)}%
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {data.roas.toFixed(2)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Product Performance Table */}
+        {activeView === "products" && (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <SortableHeader field="productId">
+                    {auto("Product ID", "tables.headers.productId")}
+                  </SortableHeader>
+                  <SortableHeader field="productName">
+                    {auto("Product Name", "tables.headers.productName")}
+                  </SortableHeader>
+                  <SortableHeader field="campaignName">
+                    {auto("Campaign", "tables.headers.campaign")}
+                  </SortableHeader>
+                  <SortableHeader field="impressions">
+                    {auto("Impressions", "tables.headers.impressions")}
+                  </SortableHeader>
+                  <SortableHeader field="clicks">
+                    {auto("Clicks", "tables.headers.clicks")}
+                  </SortableHeader>
+                  <SortableHeader field="ctr">
+                    {auto("CTR", "tables.headers.ctr")}
+                  </SortableHeader>
+                  <SortableHeader field="conversions">
+                    {auto("Conversions", "tables.headers.conversions")}
+                  </SortableHeader>
+                  <SortableHeader field="revenue">
+                    {auto("Revenue", "tables.headers.revenue")}
+                  </SortableHeader>
+                  <SortableHeader field="acos">
+                    {auto("ACOS", "tables.headers.acos")}
+                  </SortableHeader>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {paginatedData.map((row, index) => {
+                  const data = row as ProductPerformance;
+                  return (
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-sm font-mono text-gray-900">
+                        {data.productId}
+                      </td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                        {data.productName}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {data.campaignName}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {data.impressions.toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {data.clicks.toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        <div className="flex items-center gap-1">
+                          {data.ctr.toFixed(2)}%
+                          {data.ctr > 2 ? (
+                            <TrendingUp className="w-4 h-4 text-success" />
+                          ) : (
+                            <TrendingDown className="w-4 h-4 text-destructive" />
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {data.conversions}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {data.revenue.toFixed(2)} SAR
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        <span
+                          className={`px-2 py-1 rounded ${
+                            data.acos < 20
+                              ? "bg-green-100 text-green-800"
+                              : data.acos < 30
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {data.acos.toFixed(1)}%
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
+            <p className="text-sm text-gray-600">
+              {auto(
+                "Showing {{start}} to {{end}} of {{total}} results",
+                "pagination.summary",
+              )
+                .replace(
+                  "{{start}}",
+                  String((currentPage - 1) * rowsPerPage + 1),
+                )
+                .replace(
+                  "{{end}}",
+                  String(
+                    Math.min(currentPage * rowsPerPage, getSortedData().length),
+                  ),
+                )
+                .replace("{{total}}", String(getSortedData().length))}
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {auto("Previous", "pagination.previous")}
+              </button>
+              <div className="flex gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  const page = i + 1;
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-4 py-2 text-sm rounded-lg transition-colors ${
+                        currentPage === page
+                          ? "bg-primary text-white"
+                          : "border border-gray-300 hover:bg-gray-50"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                onClick={() =>
+                  setCurrentPage(Math.min(totalPages, currentPage + 1))
+                }
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {auto("Next", "pagination.next")}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/seller/analytics/CustomerInsightsCard.tsx">
+<![CDATA[
+"use client";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Legend,
+  Tooltip,
+} from "recharts";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+interface CustomerInsightsData {
+  acquisition: {
+    newCustomers: number;
+    sources: Record<string, number>;
+  };
+  retention: {
+    repeatCustomerRate: number;
+    averageLifetimeValue: number;
+  };
+  geography: {
+    topCities: Array<{ city: string; count: number }>;
+    topRegions: Array<{ region: string; count: number }>;
+  };
+  demographics: {
+    ageGroups: Record<string, number>;
+  };
+}
+
+interface CustomerInsightsCardProps {
+  data: CustomerInsightsData | null;
+  isLoading?: boolean;
+}
+
+const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
+
+export function CustomerInsightsCard({
+  data,
+  isLoading,
+}: CustomerInsightsCardProps) {
+  const auto = useAutoTranslator("seller.analytics.customerInsights");
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("en", {
+      style: "currency",
+      currency: "SAR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{auto("Customer Insights", "title")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-80 flex items-center justify-center">
+            <div className="text-muted-foreground">
+              {auto("Loading customer data...", "state.loading")}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!data) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{auto("Customer Insights", "title")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-80 flex items-center justify-center">
+            <div className="text-muted-foreground">
+              {auto("No customer data available", "state.empty")}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Prepare geography data for pie chart
+  const geographyData = data.geography.topCities.slice(0, 5).map((city) => ({
+    name: city.city,
+    value: city.count,
+  }));
+
+  // Prepare demographics data for pie chart
+  const demographicsData = Object.entries(data.demographics.ageGroups).map(
+    ([age, count]) => ({
+      name: age,
+      value: count,
+    }),
+  );
+
+  return (
+    <div className="space-y-4">
+      {/* Key Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              {auto("Customer Acquisition", "sections.acquisition.title")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <div className="text-sm text-muted-foreground">
+                  {auto("New Customers", "sections.acquisition.newCustomers")}
+                </div>
+                <div className="text-3xl font-bold">
+                  {data.acquisition.newCustomers}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-sm font-medium">
+                  {auto("Sources", "sections.acquisition.sources")}
+                </div>
+                {Object.entries(data.acquisition.sources).map(
+                  ([source, count]) => (
+                    <div key={source} className="flex justify-between text-sm">
+                      <span className="text-muted-foreground capitalize">
+                        {source}
+                      </span>
+                      <span className="font-medium">{count}</span>
+                    </div>
+                  ),
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              {auto("Customer Retention", "sections.retention.title")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <div className="text-sm text-muted-foreground">
+                  {auto(
+                    "Repeat Customer Rate",
+                    "sections.retention.repeatRate",
+                  )}
+                </div>
+                <div className="text-3xl font-bold">
+                  {data.retention.repeatCustomerRate.toFixed(1)}%
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">
+                  {auto("Avg Lifetime Value", "sections.retention.ltv")}
+                </div>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(data.retention.averageLifetimeValue)}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Geography Distribution */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">
+            {auto("Customer Geography", "sections.geography.title")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <h4 className="text-sm font-medium mb-2">
+                {auto("Top Cities", "sections.geography.topCities")}
+              </h4>
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={geographyData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) =>
+                      `${name} ${((percent || 0) * 100).toFixed(0)}%`
+                    }
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {geographyData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium mb-2">
+                {auto("Top Regions", "sections.geography.topRegions")}
+              </h4>
+              <div className="space-y-2">
+                {data.geography.topRegions.slice(0, 5).map((region, index) => (
+                  <div key={region.region} className="flex items-center gap-2">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs">
+                      {index + 1}
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium">{region.region}</div>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {region.count}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Demographics */}
+      {demographicsData.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              {auto("Customer Demographics", "sections.demographics.title")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie
+                  data={demographicsData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) =>
+                    `${name} ${((percent || 0) * 100).toFixed(0)}%`
+                  }
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {demographicsData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/seller/analytics/ProductPerformanceTable.tsx">
+<![CDATA[
+"use client";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+interface TopProduct {
+  productId: string;
+  title: string;
+  unitsSold: number;
+  revenue: number;
+  conversionRate: number;
+}
+
+interface UnderperformingProduct {
+  productId: string;
+  title: string;
+  views: number;
+  conversionRate: number;
+  recommendation: string;
+}
+
+interface ProductPerformanceData {
+  topProducts: TopProduct[];
+  lowStockCount: number;
+  underperformingProducts: UnderperformingProduct[];
+}
+
+interface ProductPerformanceTableProps {
+  data: ProductPerformanceData | null;
+  isLoading?: boolean;
+}
+
+export function ProductPerformanceTable({
+  data,
+  isLoading,
+}: ProductPerformanceTableProps) {
+  const auto = useAutoTranslator("seller.analytics.productPerformance");
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("en", {
+      style: "currency",
+      currency: "SAR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{auto("Product Performance", "title")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-80 flex items-center justify-center">
+            <div className="text-muted-foreground">
+              {auto("Loading product data...", "state.loading")}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!data || data.topProducts.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{auto("Product Performance", "title")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-80 flex items-center justify-center">
+            <div className="text-muted-foreground">
+              {auto("No product data available", "state.empty")}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Top Products */}
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            {auto("Top Selling Products", "sections.topProducts.title")}
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {auto(
+              "Your best performing products by revenue",
+              "sections.topProducts.subtitle",
+            )}
+          </p>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>
+                  {auto("Product", "sections.topProducts.columns.product")}
+                </TableHead>
+                <TableHead className="text-end">
+                  {auto("Units Sold", "sections.topProducts.columns.unitsSold")}
+                </TableHead>
+                <TableHead className="text-end">
+                  {auto("Revenue", "sections.topProducts.columns.revenue")}
+                </TableHead>
+                <TableHead className="text-end">
+                  {auto(
+                    "Conversion",
+                    "sections.topProducts.columns.conversion",
+                  )}
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.topProducts.map((product, index) => (
+                <TableRow key={product.productId}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-medium">
+                        {index + 1}
+                      </div>
+                      <div className="font-medium">{product.title}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-end">
+                    {product.unitsSold}
+                  </TableCell>
+                  <TableCell className="text-end font-medium">
+                    {formatCurrency(product.revenue)}
+                  </TableCell>
+                  <TableCell className="text-end">
+                    {product.conversionRate.toFixed(2)}%
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Underperforming Products */}
+      {data.underperformingProducts.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {auto(
+                "Products Needing Attention",
+                "sections.underperforming.title",
+              )}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {auto(
+                "Products with low conversion rates and recommendations",
+                "sections.underperforming.subtitle",
+              )}
+            </p>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>
+                    {auto(
+                      "Product",
+                      "sections.underperforming.columns.product",
+                    )}
+                  </TableHead>
+                  <TableHead className="text-end">
+                    {auto("Views", "sections.underperforming.columns.views")}
+                  </TableHead>
+                  <TableHead className="text-end">
+                    {auto(
+                      "Conversion",
+                      "sections.underperforming.columns.conversion",
+                    )}
+                  </TableHead>
+                  <TableHead>
+                    {auto(
+                      "Recommendation",
+                      "sections.underperforming.columns.recommendation",
+                    )}
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.underperformingProducts.slice(0, 5).map((product) => (
+                  <TableRow key={product.productId}>
+                    <TableCell className="font-medium">
+                      {product.title}
+                    </TableCell>
+                    <TableCell className="text-end">{product.views}</TableCell>
+                    <TableCell className="text-end text-orange-600">
+                      {product.conversionRate.toFixed(2)}%
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {product.recommendation}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Low Stock Alert */}
+      {data.lowStockCount > 0 && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardHeader>
+            <CardTitle className="text-orange-900">
+              {auto("Low Stock Alert", "lowStock.title")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-orange-800">
+              {auto(
+                "{{count}} products are running low on stock. Review your inventory to avoid missed sales.",
+                "lowStock.message",
+                {
+                  count: data.lowStockCount,
+                },
+              )}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/seller/analytics/SalesChart.tsx">
+<![CDATA[
+"use client";
+
+import { useMemo } from "react";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
+import type { TooltipProps } from "recharts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+interface DailyRevenue {
+  date: string;
+  revenue: number;
+}
+
+type RevenueTooltipDatum = {
+  date: string;
+  revenue: number;
+};
+
+interface SalesData {
+  revenue: {
+    total: number;
+    previousPeriod: number;
+    trend: number;
+    daily: DailyRevenue[];
+  };
+  orders: {
+    total: number;
+    previousPeriod: number;
+    trend: number;
+  };
+  averageOrderValue: {
+    current: number;
+    previousPeriod: number;
+    trend: number;
+  };
+  conversionRate: {
+    current: number;
+    previousPeriod: number;
+    trend: number;
+  };
+}
+
+interface SalesChartProps {
+  data: SalesData | null;
+  isLoading?: boolean;
+  period: string;
+}
+
+export function SalesChart({
+  data,
+  isLoading,
+  period: _period,
+}: SalesChartProps) {
+  const auto = useAutoTranslator("seller.analytics.salesChart");
+  const chartData = useMemo(() => {
+    if (!data?.revenue.daily) return [];
+
+    return data.revenue.daily.map((item) => ({
+      date: new Date(item.date).toLocaleDateString("en", {
+        month: "short",
+        day: "numeric",
+      }),
+      revenue: item.revenue,
+    }));
+  }, [data]);
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("en", {
+      style: "currency",
+      currency: "SAR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  const formatTrend = (trend: number) => {
+    const sign = trend >= 0 ? "+" : "";
+    return `${sign}${trend.toFixed(1)}%`;
+  };
+  const renderTooltipContent = (props: TooltipProps<number, string>) => {
+    const { active, payload } = props as {
+      active?: boolean;
+      payload?: Array<{ payload: RevenueTooltipDatum }>;
+    };
+    if (!active || !payload?.length) {
+      return null;
+    }
+
+    const datum = payload[0]?.payload as RevenueTooltipDatum | undefined;
+    if (!datum) {
+      return null;
+    }
+
+    return (
+      <div className="rounded-lg border bg-background p-2 shadow-sm">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="flex flex-col">
+            <span className="text-[0.70rem] uppercase text-muted-foreground">
+              {auto("Date", "tooltip.date")}
+            </span>
+            <span className="font-bold text-muted-foreground">
+              {datum.date}
+            </span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[0.70rem] uppercase text-muted-foreground">
+              {auto("Revenue", "tooltip.revenue")}
+            </span>
+            <span className="font-bold">{formatCurrency(datum.revenue)}</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{auto("Sales Performance", "title")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-80 flex items-center justify-center">
+            <div className="text-muted-foreground">
+              {auto("Loading sales data...", "state.loading")}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!data) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{auto("Sales Performance", "title")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-80 flex items-center justify-center">
+            <div className="text-muted-foreground">
+              {auto("No sales data available", "state.empty")}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{auto("Sales Performance", "title")}</CardTitle>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+          <div>
+            <div className="text-sm text-muted-foreground">
+              {auto("Total Revenue", "metrics.totalRevenue")}
+            </div>
+            <div className="text-2xl font-bold">
+              {formatCurrency(data.revenue.total)}
+            </div>
+            <div
+              className={`text-sm ${data.revenue.trend >= 0 ? "text-green-600" : "text-red-600"}`}
+            >
+              {formatTrend(data.revenue.trend)}
+            </div>
+          </div>
+          <div>
+            <div className="text-sm text-muted-foreground">
+              {auto("Total Orders", "metrics.totalOrders")}
+            </div>
+            <div className="text-2xl font-bold">{data.orders.total}</div>
+            <div
+              className={`text-sm ${data.orders.trend >= 0 ? "text-green-600" : "text-red-600"}`}
+            >
+              {formatTrend(data.orders.trend)}
+            </div>
+          </div>
+          <div>
+            <div className="text-sm text-muted-foreground">
+              {auto("Avg Order Value", "metrics.avgOrderValue")}
+            </div>
+            <div className="text-2xl font-bold">
+              {formatCurrency(data.averageOrderValue.current)}
+            </div>
+            <div
+              className={`text-sm ${data.averageOrderValue.trend >= 0 ? "text-green-600" : "text-red-600"}`}
+            >
+              {formatTrend(data.averageOrderValue.trend)}
+            </div>
+          </div>
+          <div>
+            <div className="text-sm text-muted-foreground">
+              {auto("Conversion Rate", "metrics.conversionRate")}
+            </div>
+            <div className="text-2xl font-bold">
+              {data.conversionRate.current.toFixed(2)}%
+            </div>
+            <div
+              className={`text-sm ${data.conversionRate.trend >= 0 ? "text-green-600" : "text-red-600"}`}
+            >
+              {formatTrend(data.conversionRate.trend)}
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <ResponsiveContainer width="100%" height={300}>
+          <AreaChart data={chartData}>
+            <defs>
+              <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
+                <stop offset="95%" stopColor="#8884d8" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+            <XAxis dataKey="date" className="text-xs" tick={{ fontSize: 12 }} />
+            <YAxis
+              className="text-xs"
+              tick={{ fontSize: 12 }}
+              tickFormatter={formatCurrency}
+            />
+            <Tooltip content={renderTooltipContent} />
+            <Legend
+              formatter={(value) =>
+                value === "revenue"
+                  ? auto("Revenue", "chart.legend.revenue")
+                  : value
+              }
+            />
+            <Area
+              type="monotone"
+              dataKey="revenue"
+              stroke="#8884d8"
+              fillOpacity={1}
+              fill="url(#colorRevenue)"
+              name={auto("Revenue", "chart.legend.revenue")}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/seller/analytics/TrafficAnalytics.tsx">
+<![CDATA[
+"use client";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
+import type { TooltipProps } from "recharts";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+interface DailyPageView {
+  date: string;
+  views: number;
+}
+
+interface TrafficAnalyticsData {
+  pageViews: {
+    total: number;
+    daily: DailyPageView[];
+  };
+  sources: {
+    direct: number;
+    search: number;
+    social: number;
+    referral: number;
+    paid: number;
+  };
+  engagement: {
+    avgSessionDuration: number;
+    avgPagesPerSession: number;
+    bounceRate: number;
+  };
+  devices: {
+    desktop: number;
+    mobile: number;
+    tablet: number;
+  };
+}
+
+interface TrafficAnalyticsProps {
+  data: TrafficAnalyticsData | null;
+  isLoading?: boolean;
+}
+
+type PageViewDatum = {
+  date: string;
+  views: number;
+};
+
+const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
+
+export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
+  const auto = useAutoTranslator("seller.analytics.traffic");
+  const formatDuration = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${minutes}m ${secs}s`;
+  };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{auto("Traffic Analytics", "title")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-80 flex items-center justify-center">
+            <div className="text-muted-foreground">
+              {auto("Loading traffic data...", "state.loading")}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!data) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{auto("Traffic Analytics", "title")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-80 flex items-center justify-center">
+            <div className="text-muted-foreground">
+              {auto("No traffic data available", "state.empty")}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Prepare traffic sources data
+  const sourcesData = Object.entries(data.sources).map(([name, value]) => ({
+    name: name.charAt(0).toUpperCase() + name.slice(1),
+    value,
+  }));
+
+  // Prepare device data
+  const devicesData = Object.entries(data.devices).map(([name, value]) => ({
+    name: name.charAt(0).toUpperCase() + name.slice(1),
+    value,
+  }));
+
+  // Prepare daily page views
+  const dailyData = data.pageViews.daily.map((item) => ({
+    date: new Date(item.date).toLocaleDateString("en", {
+      month: "short",
+      day: "numeric",
+    }),
+    views: item.views,
+  }));
+
+  const renderPageViewsTooltip = (props: TooltipProps<number, string>) => {
+    const { active, payload } = props as {
+      active?: boolean;
+      payload?: Array<{ payload: PageViewDatum }>;
+    };
+    if (!active || !payload?.length) {
+      return null;
+    }
+
+    const datum = payload[0]?.payload as PageViewDatum | undefined;
+    if (!datum) {
+      return null;
+    }
+
+    return (
+      <div className="rounded-lg border bg-background p-2 shadow-sm">
+        <div className="grid gap-2">
+          <div className="flex flex-col">
+            <span className="text-[0.70rem] uppercase text-muted-foreground">
+              {datum.date}
+            </span>
+            <span className="font-bold">
+              {datum.views.toLocaleString()} {auto("views", "tooltip.views")}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Key Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">
+              {auto("Total Page Views", "metrics.totalPageViews")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {data.pageViews.total.toLocaleString()}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">
+              {auto("Avg Session Duration", "metrics.avgSessionDuration")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {formatDuration(data.engagement.avgSessionDuration)}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">
+              {auto("Pages Per Session", "metrics.pagesPerSession")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {data.engagement.avgPagesPerSession.toFixed(1)}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">
+              {auto("Bounce Rate", "metrics.bounceRate")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {data.engagement.bounceRate.toFixed(1)}%
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Page Views Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            {auto("Page Views Over Time", "charts.pageViews")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={dailyData}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis
+                dataKey="date"
+                className="text-xs"
+                tick={{ fontSize: 12 }}
+              />
+              <YAxis className="text-xs" tick={{ fontSize: 12 }} />
+              <Tooltip content={renderPageViewsTooltip} />
+              <Bar
+                dataKey="views"
+                fill="#8884d8"
+                name={auto("Page Views", "charts.pageViews")}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Traffic Sources and Devices */}
+      <div className="grid md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>{auto("Traffic Sources", "charts.sources")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={sourcesData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) =>
+                    `${name} ${((percent || 0) * 100).toFixed(0)}%`
+                  }
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {sourcesData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{auto("Device Breakdown", "charts.devices")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={devicesData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) =>
+                    `${name} ${((percent || 0) * 100).toFixed(0)}%`
+                  }
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {devicesData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/seller/health/HealthScore.tsx">
+<![CDATA[
+"use client";
+
+import { Card } from "@/components/ui/card";
+import { TrendingUp, TrendingDown, Minus, AlertTriangle } from "lucide-react";
+
+interface Props {
+  score: number;
+  status: "excellent" | "good" | "fair" | "poor" | "critical";
+  trend: "improving" | "stable" | "declining";
+  isAtRisk: boolean;
+}
+
+export default function HealthScore({ score, status, trend, isAtRisk }: Props) {
+  const getStatusColor = () => {
+    switch (status) {
+      case "excellent":
+        return "text-green-600";
+      case "good":
+        return "text-primary";
+      case "fair":
+        return "text-yellow-600";
+      case "poor":
+        return "text-orange-600";
+      case "critical":
+        return "text-red-600";
+    }
+  };
+
+  const getStatusBg = () => {
+    switch (status) {
+      case "excellent":
+        return "bg-green-50";
+      case "good":
+        return "bg-primary/10";
+      case "fair":
+        return "bg-yellow-50";
+      case "poor":
+        return "bg-orange-50";
+      case "critical":
+        return "bg-red-50";
+    }
+  };
+
+  const getTrendIcon = () => {
+    switch (trend) {
+      case "improving":
+        return <TrendingUp className="w-5 h-5 text-success" />;
+      case "declining":
+        return <TrendingDown className="w-5 h-5 text-destructive" />;
+      case "stable":
+        return <Minus className="w-5 h-5 text-gray-600" />;
+    }
+  };
+
+  const getStatusLabel = () => {
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
+
+  return (
+    <Card className={`p-8 ${getStatusBg()}`}>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {/* Score Circle */}
+        <div className="flex items-center justify-center">
+          <div className="relative">
+            <svg className="w-40 h-40 transform -rotate-90">
+              <circle
+                cx="80"
+                cy="80"
+                r="70"
+                stroke="currentColor"
+                strokeWidth="12"
+                fill="transparent"
+                className="text-gray-200"
+              />
+              <circle
+                cx="80"
+                cy="80"
+                r="70"
+                stroke="currentColor"
+                strokeWidth="12"
+                fill="transparent"
+                strokeDasharray={`${2 * Math.PI * 70}`}
+                strokeDashoffset={`${2 * Math.PI * 70 * (1 - score / 100)}`}
+                className={getStatusColor()}
+                strokeLinecap="round"
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center">
+                <div className={`text-4xl font-bold ${getStatusColor()}`}>
+                  {score}
+                </div>
+                <div className="text-sm text-gray-600">Score</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Status Details */}
+        <div className="md:col-span-2 flex flex-col justify-center">
+          <div className="mb-4">
+            <div className="flex items-center gap-3 mb-2">
+              <h2 className={`text-3xl font-bold ${getStatusColor()}`}>
+                {getStatusLabel()} Health
+              </h2>
+              {isAtRisk && (
+                <AlertTriangle className="w-6 h-6 text-destructive" />
+              )}
+            </div>
+            <div className="flex items-center gap-2 text-gray-600">
+              {getTrendIcon()}
+              <span className="capitalize">{trend}</span>
+              <span className="text-gray-400">•</span>
+              <span>Last 30 days</span>
+            </div>
+          </div>
+
+          <div className="space-y-2 text-gray-700">
+            {status === "excellent" && (
+              <p>
+                Your account is in excellent standing. Keep up the great work!
+              </p>
+            )}
+            {status === "good" && (
+              <p>
+                Your account is performing well. Continue to maintain these
+                standards.
+              </p>
+            )}
+            {status === "fair" && (
+              <p>
+                Your account needs improvement in some areas. Review the metrics
+                below.
+              </p>
+            )}
+            {status === "poor" && (
+              <p className="font-medium">
+                Your account is at risk. Immediate action required to avoid
+                suspension.
+              </p>
+            )}
+            {status === "critical" && (
+              <p className="font-bold text-destructive">
+                Critical: Your account may be suspended soon. Take immediate
+                action.
+              </p>
+            )}
+          </div>
+
+          {isAtRisk && (
+            <div className="mt-4 p-4 bg-destructive/10 border border-red-300 rounded-lg">
+              <p className="text-sm text-destructive-dark">
+                <strong>Account at Risk:</strong> Your performance is below
+                target thresholds. Please review the recommendations tab for
+                specific actions to improve.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/seller/health/MetricCard.tsx">
+<![CDATA[
+"use client";
+
+import { Card } from "@/components/ui/card";
+import { Info } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+interface Props {
+  title: string;
+  value: number;
+  count: number;
+  target: number;
+  format: "percentage" | "number";
+  tooltip: string;
+}
+
+export default function MetricCard({
+  title,
+  value,
+  count,
+  target,
+  format,
+  tooltip,
+}: Props) {
+  const isGood = value <= target;
+  const isWarning = value > target && value <= target * 1.5;
+
+  const getColor = () => {
+    if (isGood) return "text-green-600";
+    if (isWarning) return "text-yellow-600";
+    return "text-red-600";
+  };
+
+  const getBgColor = () => {
+    if (isGood) return "bg-green-50";
+    if (isWarning) return "bg-yellow-50";
+    return "bg-red-50";
+  };
+
+  const formatValue = (val: number) => {
+    if (format === "percentage") {
+      return `${val.toFixed(2)}%`;
+    }
+    return val.toLocaleString();
+  };
+
+  return (
+    <Card className={`p-6 ${getBgColor()}`}>
+      <div className="flex items-start justify-between mb-2">
+        <h3 className="text-sm font-medium text-gray-700">{title}</h3>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger>
+              <Info className="w-4 h-4 text-gray-400" />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="max-w-xs">{tooltip}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+
+      <div className={`text-3xl font-bold ${getColor()} mb-2`}>
+        {formatValue(value)}
+      </div>
+
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-gray-600">{count} of orders</span>
+        <span className={`font-medium ${getColor()}`}>
+          Target: {formatValue(target)}
+        </span>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="mt-4 w-full bg-gray-200 rounded-full h-2">
+        <div
+          className={`h-2 rounded-full transition-all ${
+            isGood ? "bg-green-500" : isWarning ? "bg-yellow-500" : "bg-red-500"
+          }`}
+          style={{ width: `${Math.min(100, (value / (target * 2)) * 100)}%` }}
+        />
+      </div>
+    </Card>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/seller/health/RecommendationsPanel.tsx">
+<![CDATA[
+"use client";
+
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CheckCircle, Lightbulb } from "lucide-react";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+interface Props {
+  recommendations: string[];
+  healthStatus: "excellent" | "good" | "fair" | "poor" | "critical";
+}
+
+export default function RecommendationsPanel({
+  recommendations,
+  healthStatus,
+}: Props) {
+  const auto = useAutoTranslator("seller.health.recommendations");
+  const getPriorityColor = (index: number) => {
+    if (index === 0) return "border-red-300 bg-red-50";
+    if (index === 1) return "border-orange-300 bg-orange-50";
+    return "border-primary/30 bg-primary/10";
+  };
+
+  const getPriorityLabel = (index: number) => {
+    if (index === 0) return auto("High Priority", "priority.high");
+    if (index === 1) return auto("Medium Priority", "priority.medium");
+    return auto("Low Priority", "priority.low");
+  };
+
+  if (healthStatus === "excellent" && recommendations.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4">
+          <CheckCircle className="w-8 h-8 text-success" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          {auto("Excellent Performance!", "state.excellent.title")}
+        </h3>
+        <p className="text-gray-600">
+          {auto(
+            "Your account is in excellent standing. No immediate actions required.",
+            "state.excellent.description",
+          )}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-2">
+          {auto("Recommendations", "header.title")}
+        </h2>
+        <p className="text-gray-600">
+          {auto(
+            "Follow these recommendations to improve your account health and performance.",
+            "header.description",
+          )}
+        </p>
+      </div>
+
+      {healthStatus === "critical" && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertDescription>
+            <strong>{auto("Urgent Action Required:", "alert.title")} </strong>
+            {auto(
+              "Your account health is critical. Complete the high-priority actions immediately to avoid account suspension.",
+              "alert.message",
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="space-y-4">
+        {recommendations.map((recommendation, index) => (
+          <div
+            key={index}
+            className={`p-4 rounded-lg border-2 ${getPriorityColor(index)}`}
+          >
+            <div className="flex items-start gap-3">
+              <Lightbulb className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs font-semibold text-gray-700 uppercase">
+                    {getPriorityLabel(index)}
+                  </span>
+                </div>
+                <p className="text-gray-800">{recommendation}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* General Tips */}
+      <div className="mt-8 p-6 bg-primary/5 rounded-lg">
+        <h3 className="font-semibold text-gray-900 mb-3">
+          {auto("General Best Practices", "tips.title")}
+        </h3>
+        <ul className="space-y-2 text-sm text-gray-700">
+          <li className="flex items-start gap-2">
+            <CheckCircle className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+            <span>
+              {auto(
+                "Ship orders on time and provide accurate tracking information",
+                "tips.shipOnTime",
+              )}
+            </span>
+          </li>
+          <li className="flex items-start gap-2">
+            <CheckCircle className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+            <span>
+              {auto(
+                "Respond to customer messages within 24 hours",
+                "tips.respondQuickly",
+              )}
+            </span>
+          </li>
+          <li className="flex items-start gap-2">
+            <CheckCircle className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+            <span>
+              {auto(
+                "Maintain accurate product listings with clear descriptions and images",
+                "tips.accurateListings",
+              )}
+            </span>
+          </li>
+          <li className="flex items-start gap-2">
+            <CheckCircle className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+            <span>
+              {auto(
+                "Only cancel orders when absolutely necessary",
+                "tips.cancelRarely",
+              )}
+            </span>
+          </li>
+          <li className="flex items-start gap-2">
+            <CheckCircle className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+            <span>
+              {auto(
+                "Ensure product quality to minimize returns",
+                "tips.quality",
+              )}
+            </span>
+          </li>
+          <li className="flex items-start gap-2">
+            <CheckCircle className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+            <span>
+              {auto(
+                "Follow all marketplace policies and guidelines",
+                "tips.policies",
+              )}
+            </span>
+          </li>
+        </ul>
+      </div>
+
+      {/* Contact Support */}
+      <div className="mt-6 text-center">
+        <p className="text-sm text-gray-600">
+          {auto("Need help improving your metrics?", "support.prompt")}{" "}
+          <a href="/support" className="text-primary hover:underline">
+            {auto("Contact Seller Support", "support.cta")}
+          </a>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+</batch_content>

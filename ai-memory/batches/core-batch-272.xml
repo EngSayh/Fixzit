@@ -1,0 +1,2537 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="test-results/.last-run.json">
+<![CDATA[
+{
+  "status": "failed",
+  "failedTests": [
+    "297304a53b92864d331c-0466aaed2926745c3c41"
+  ]
+}
+]]>
+</file>
+
+<file path="test-results/tests-e2e-auth-Authenticat-5a204--should-logout-successfully-chromium/error-context.md">
+<![CDATA[
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic:
+    - button: Language English عربي
+    - generic:
+      - option: SAR
+      - option: USD
+  - link "Skip to content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+```
+]]>
+</file>
+
+<file path="test-results/tests-e2e-auth-Authenticat-60c92-ate-to-forgot-password-page-chromium/error-context.md">
+<![CDATA[
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic:
+    - button: Language English عربي
+    - generic:
+      - option: SAR
+      - option: USD
+  - link "Skip to content" [ref=e2]:
+    - /url: "#main-content"
+  - generic [ref=e7] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e8]:
+      - img [ref=e9]
+    - generic [ref=e12]:
+      - button "Open issues overlay" [ref=e13]:
+        - generic [ref=e14]:
+          - generic [ref=e15]: "0"
+          - generic [ref=e16]: "1"
+        - generic [ref=e17]: Issue
+      - button "Collapse issues badge" [ref=e18]:
+        - img [ref=e19]
+  - alert [ref=e21]
+  - generic [ref=e24]:
+    - generic [ref=e25]:
+      - img [ref=e27]
+      - heading "Reset Your Password" [level=1] [ref=e30]
+      - paragraph [ref=e31]: Enter your email address and we'll send you a reset link.
+    - generic [ref=e32]:
+      - generic [ref=e33]:
+        - generic [ref=e34]: Email Address
+        - generic [ref=e35]:
+          - img [ref=e36]
+          - textbox "Email Address" [ref=e39]:
+            - /placeholder: Enter your email address
+      - button "Send Reset Link" [disabled]
+    - link "Back to Login" [ref=e41]:
+      - /url: /login
+      - img [ref=e42]
+      - text: Back to Login
+  - region "Notifications alt+T"
+```
+]]>
+</file>
+
+<file path="test-results/tests-e2e-auth-Authenticat-99b41-t-session-after-page-reload-chromium/error-context.md">
+<![CDATA[
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic:
+    - button: Language English عربي
+    - generic:
+      - option: SAR
+      - option: USD
+  - link "Skip to content" [ref=e2]:
+    - /url: "#main-content"
+  - button "Open Next.js Dev Tools" [ref=e8] [cursor=pointer]:
+    - img [ref=e9]
+  - alert [ref=e12]
+  - generic [ref=e13]:
+    - generic [ref=e14]:
+      - banner "Fixzit global navigation" [ref=e16]:
+        - generic [ref=e17]:
+          - generic [ref=e18]:
+            - button "Back to Home" [ref=e19]:
+              - img "Fixzit" [ref=e20]
+              - generic [ref=e21]:
+                - generic [ref=e22]: FIXZIT ENTERPRISE
+                - generic [ref=e23]:
+                  - generic [ref=e24]: Facility Management (FM)
+                  - generic [ref=e25]: Dashboard
+            - button "Switch Application" [ref=e27]:
+              - img [ref=e28]
+              - generic [ref=e32]: Facility Management (FM)
+              - img [ref=e33]
+            - generic [ref=e35]:
+              - generic [ref=e36]: Modules
+              - generic [ref=e37]:
+                - button "Dashboard" [ref=e38]
+                - button "Work Orders" [ref=e39]
+                - button "Properties" [ref=e40]
+                - button "Finance" [ref=e41]
+                - button "Human Resources" [ref=e42]
+                - button "CRM" [ref=e43]
+                - button "Marketplace" [ref=e44]
+                - button "Support" [ref=e45]
+                - button "Compliance" [ref=e46]
+                - button "Reports" [ref=e47]
+              - button "Hide menu" [ref=e48]:
+                - img [ref=e49]
+          - generic:
+            - generic:
+              - generic:
+                - img [ref=e51]
+                - combobox "Global search" [ref=e54]
+                - generic [ref=e55]:
+                  - img [ref=e56]
+                  - generic [ref=e58]: K
+              - generic:
+                - button "Dashboard" [ref=e59]
+                - button "All" [ref=e60]
+          - generic [ref=e61]:
+            - 'button "Select language: English — United Kingdom (EN-GB)" [ref=e63]':
+              - img [ref=e64]
+              - generic [ref=e67]:
+                - generic [ref=e68]: 🇬🇧
+                - generic [ref=e69]: EN-GB
+            - generic [ref=e70]:
+              - generic:
+                - option: SAR
+                - option: USD
+              - button "Select currency SAR" [ref=e71]:
+                - img [ref=e72]
+                - generic [ref=e75]:
+                  - generic [ref=e76]: 🇸🇦
+                  - generic [ref=e77]: SAR
+            - link "Sign In" [ref=e78]:
+              - /url: /login
+      - generic [ref=e79]:
+        - navigation "Main Navigation" [ref=e81]:
+          - generic [ref=e82]:
+            - button "Collapse sidebar" [ref=e83]:
+              - img [ref=e84]
+            - generic [ref=e86]: FIXZIT ENTERPRISE
+            - navigation "Modules" [ref=e87]:
+              - region "Core" [ref=e88]:
+                - generic [ref=e89]: Core
+                - list [ref=e90]:
+                  - listitem [ref=e91]:
+                    - link "Dashboard" [ref=e92]:
+                      - /url: /fm/dashboard
+                      - img [ref=e93]
+                      - generic [ref=e98]: Dashboard
+              - region "Business" [ref=e100]:
+                - generic [ref=e101]: Business
+                - list [ref=e102]:
+                  - listitem [ref=e103]:
+                    - link "Reports" [ref=e104]:
+                      - /url: /fm/reports
+                      - img [ref=e105]
+                      - generic [ref=e107]: Reports
+                    - list [ref=e108]:
+                      - listitem [ref=e109]:
+                        - link "Standard Reports" [ref=e110]:
+                          - /url: /fm/reports?view=standard
+                          - generic [ref=e112]: Standard Reports
+                      - listitem [ref=e113]:
+                        - link "Custom Reports" [ref=e114]:
+                          - /url: /fm/reports?view=custom
+                          - generic [ref=e116]: Custom Reports
+                      - listitem [ref=e117]:
+                        - link "Dashboards" [ref=e118]:
+                          - /url: /fm/reports?view=dashboards
+                          - generic [ref=e120]: Dashboards
+            - generic [ref=e121]:
+              - generic [ref=e122]: Account
+              - list "Account"
+        - main [ref=e123]:
+          - generic [ref=e127]:
+            - paragraph [ref=e128]: Organization Required
+            - paragraph [ref=e129]: Please contact your administrator to be assigned to an organization.
+      - contentinfo [ref=e131]:
+        - generic [ref=e132]:
+          - generic [ref=e133]:
+            - generic [ref=e134]: Fixzit
+            - link "Back to Home" [ref=e135]:
+              - /url: /
+              - img [ref=e136]
+              - generic [ref=e139]: Back to Home
+            - generic [ref=e140]:
+              - 'button "Select language: English — United Kingdom (EN-GB)" [ref=e142]':
+                - img [ref=e143]
+                - generic [ref=e146]:
+                  - generic [ref=e147]: 🇬🇧
+                  - generic [ref=e148]: EN-GB
+              - generic [ref=e149]:
+                - generic:
+                  - option: SAR
+                  - option: USD
+                - button "Select currency SAR" [ref=e150]:
+                  - img [ref=e151]
+                  - generic [ref=e154]:
+                    - generic [ref=e155]: 🇸🇦
+                    - generic [ref=e156]: SAR
+          - generic [ref=e157]:
+            - generic [ref=e158]:
+              - generic [ref=e159]: Company
+              - list [ref=e160]:
+                - listitem [ref=e161]:
+                  - link "About" [ref=e162]:
+                    - /url: /about
+                - listitem [ref=e163]:
+                  - link "Careers" [ref=e164]:
+                    - /url: /careers
+                - listitem [ref=e165]:
+                  - link "Pricing" [ref=e166]:
+                    - /url: /pricing
+            - generic [ref=e167]:
+              - generic [ref=e168]: Legal
+              - list [ref=e169]:
+                - listitem [ref=e170]:
+                  - link "Privacy" [ref=e171]:
+                    - /url: /privacy
+                - listitem [ref=e172]:
+                  - link "Terms" [ref=e173]:
+                    - /url: /terms
+            - generic [ref=e174]:
+              - generic [ref=e175]: Support
+              - list [ref=e176]:
+                - listitem [ref=e177]:
+                  - link "Help Center" [ref=e178]:
+                    - /url: /help
+                - listitem [ref=e179]:
+                  - button "Open a ticket" [ref=e180]
+          - generic [ref=e181]:
+            - generic [ref=e182]:
+              - generic [ref=e183]: © 2025 Fixzit. All rights reserved.
+              - navigation "Fixzit trail" [ref=e184]:
+                - generic [ref=e185]: Fixzit
+                - generic [ref=e186]: ›
+                - generic [ref=e187]: Design System
+                - generic [ref=e188]: ›
+                - generic [ref=e189]: v2
+            - generic [ref=e190]:
+              - link "Privacy" [ref=e191]:
+                - /url: /privacy
+              - link "Terms" [ref=e192]:
+                - /url: /terms
+              - link "Support" [ref=e193]:
+                - /url: /support
+    - button "Ask Fixzit" [ref=e195]:
+      - img [ref=e196]
+  - region "Notifications alt+T"
+```
+]]>
+</file>
+
+<file path="test-results/tests-e2e-auth-Authenticat-a20d1--login-with-employee-number-chromium/error-context.md">
+<![CDATA[
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic:
+    - button: Language English عربي
+    - generic:
+      - option: SAR
+      - option: USD
+  - link "Skip to content" [ref=e2]:
+    - /url: "#main-content"
+  - button "Open Next.js Dev Tools" [ref=e8] [cursor=pointer]:
+    - img [ref=e9]
+  - alert [ref=e12]
+  - main [ref=e14]:
+    - generic [ref=e15]:
+      - generic [ref=e16]:
+        - 'button "Select language: English — United Kingdom (EN-GB)" [ref=e18]':
+          - img [ref=e19]
+          - generic [ref=e22]:
+            - generic [ref=e23]: 🇬🇧
+            - generic [ref=e24]: EN-GB
+        - generic [ref=e25]:
+          - generic:
+            - option: SAR
+            - option: USD
+          - button "Select currency SAR" [ref=e26]:
+            - img [ref=e27]
+            - generic [ref=e30]:
+              - generic [ref=e31]: 🇸🇦
+              - generic [ref=e32]: SAR
+      - generic [ref=e33]:
+        - generic [ref=e34]:
+          - generic [ref=e36]: F
+          - heading "Welcome Back" [level=1] [ref=e37]
+          - paragraph [ref=e38]: Sign in to your Fixzit account
+        - generic [ref=e39]:
+          - button "Personal Email" [ref=e40]
+          - button "Corporate Account" [ref=e41]
+          - button "SSO Login" [ref=e42]
+        - generic [ref=e43]:
+          - checkbox "Use phone number with OTP (no password)" [ref=e44]
+          - generic [ref=e45]: Use phone number with OTP (no password)
+        - generic [ref=e46]:
+          - generic [ref=e47]: Use your email and password to sign in to your personal account.
+          - generic [ref=e48]:
+            - generic [ref=e49]: Personal Email Address
+            - generic [ref=e50]:
+              - img [ref=e51]
+              - textbox "Personal Email Address" [active] [ref=e54]:
+                - /placeholder: Enter your personal email
+          - generic [ref=e55]:
+            - generic [ref=e56]:
+              - generic [ref=e57]: Password
+              - link "Forgot?" [ref=e58]:
+                - /url: /forgot-password
+            - generic [ref=e59]:
+              - img [ref=e60]
+              - textbox "Password" [ref=e63]:
+                - /placeholder: Enter your password
+              - button "Show password" [ref=e64]:
+                - img [ref=e65]
+          - generic [ref=e68]:
+            - checkbox "Remember me for 30 days" [ref=e69]
+            - generic [ref=e70]: Remember me for 30 days
+          - generic [ref=e72]:
+            - generic [ref=e73]: Prefer phone OTP?
+            - button "Use phone OTP" [ref=e74]
+          - button "Sign In" [disabled] [ref=e75]:
+            - generic [ref=e76]:
+              - img [ref=e77]
+              - text: Sign In
+        - paragraph [ref=e82]:
+          - text: Don't have an account?
+          - link "Sign up here" [ref=e83]:
+            - /url: /signup
+      - link "Back to Home" [ref=e85]:
+        - /url: /
+        - text: ← Back to Home
+  - region "Notifications alt+T"
+```
+]]>
+</file>
+
+<file path="test-results/tests-e2e-auth-Authenticat-a20d1--login-with-employee-number-chromium-retry1/error-context.md">
+<![CDATA[
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic:
+    - button: Language English عربي
+    - generic:
+      - option: SAR
+      - option: USD
+  - link "Skip to content" [ref=e2]:
+    - /url: "#main-content"
+  - button "Open Next.js Dev Tools" [ref=e8] [cursor=pointer]:
+    - img [ref=e9]
+  - alert [ref=e12]
+  - main [ref=e14]:
+    - generic [ref=e15]:
+      - generic [ref=e16]:
+        - 'button "Select language: English — United Kingdom (EN-GB)" [ref=e18]':
+          - img [ref=e19]
+          - generic [ref=e22]:
+            - generic [ref=e23]: 🇬🇧
+            - generic [ref=e24]: EN-GB
+        - generic [ref=e25]:
+          - generic:
+            - option: SAR
+            - option: USD
+          - button "Select currency SAR" [ref=e26]:
+            - img [ref=e27]
+            - generic [ref=e30]:
+              - generic [ref=e31]: 🇸🇦
+              - generic [ref=e32]: SAR
+      - generic [ref=e33]:
+        - generic [ref=e34]:
+          - generic [ref=e36]: F
+          - heading "Welcome Back" [level=1] [ref=e37]
+          - paragraph [ref=e38]: Sign in to your Fixzit account
+        - generic [ref=e39]:
+          - button "Personal Email" [ref=e40]
+          - button "Corporate Account" [ref=e41]
+          - button "SSO Login" [ref=e42]
+        - generic [ref=e43]:
+          - checkbox "Use phone number with OTP (no password)" [ref=e44]
+          - generic [ref=e45]: Use phone number with OTP (no password)
+        - generic [ref=e46]:
+          - generic [ref=e47]: Use your email and password to sign in to your personal account.
+          - generic [ref=e48]:
+            - generic [ref=e49]: Personal Email Address
+            - generic [ref=e50]:
+              - img [ref=e51]
+              - textbox "Personal Email Address" [active] [ref=e54]:
+                - /placeholder: Enter your personal email
+          - generic [ref=e55]:
+            - generic [ref=e56]:
+              - generic [ref=e57]: Password
+              - link "Forgot?" [ref=e58]:
+                - /url: /forgot-password
+            - generic [ref=e59]:
+              - img [ref=e60]
+              - textbox "Password" [ref=e63]:
+                - /placeholder: Enter your password
+              - button "Show password" [ref=e64]:
+                - img [ref=e65]
+          - generic [ref=e68]:
+            - checkbox "Remember me for 30 days" [ref=e69]
+            - generic [ref=e70]: Remember me for 30 days
+          - generic [ref=e72]:
+            - generic [ref=e73]: Prefer phone OTP?
+            - button "Use phone OTP" [ref=e74]
+          - button "Sign In" [disabled] [ref=e75]:
+            - generic [ref=e76]:
+              - img [ref=e77]
+              - text: Sign In
+        - paragraph [ref=e82]:
+          - text: Don't have an account?
+          - link "Sign up here" [ref=e83]:
+            - /url: /signup
+      - link "Back to Home" [ref=e85]:
+        - /url: /
+        - text: ← Back to Home
+  - region "Notifications alt+T"
+```
+]]>
+</file>
+
+<file path="test-results/tests-e2e-auth-Authenticat-a20d1--login-with-employee-number-chromium-retry2/error-context.md">
+<![CDATA[
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic:
+    - button: Language English عربي
+    - generic:
+      - option: SAR
+      - option: USD
+  - link "Skip to content" [ref=e2]:
+    - /url: "#main-content"
+  - button "Open Next.js Dev Tools" [ref=e8] [cursor=pointer]:
+    - img [ref=e9]
+  - alert [ref=e12]
+  - main [ref=e14]:
+    - generic [ref=e15]:
+      - generic [ref=e16]:
+        - 'button "Select language: English — United Kingdom (EN-GB)" [ref=e18]':
+          - img [ref=e19]
+          - generic [ref=e22]:
+            - generic [ref=e23]: 🇬🇧
+            - generic [ref=e24]: EN-GB
+        - generic [ref=e25]:
+          - generic:
+            - option: SAR
+            - option: USD
+          - button "Select currency SAR" [ref=e26]:
+            - img [ref=e27]
+            - generic [ref=e30]:
+              - generic [ref=e31]: 🇸🇦
+              - generic [ref=e32]: SAR
+      - generic [ref=e33]:
+        - generic [ref=e34]:
+          - generic [ref=e36]: F
+          - heading "Welcome Back" [level=1] [ref=e37]
+          - paragraph [ref=e38]: Sign in to your Fixzit account
+        - generic [ref=e39]:
+          - button "Personal Email" [ref=e40]
+          - button "Corporate Account" [ref=e41]
+          - button "SSO Login" [ref=e42]
+        - generic [ref=e43]:
+          - checkbox "Use phone number with OTP (no password)" [ref=e44]
+          - generic [ref=e45]: Use phone number with OTP (no password)
+        - generic [ref=e46]:
+          - generic [ref=e47]: Use your email and password to sign in to your personal account.
+          - generic [ref=e48]:
+            - generic [ref=e49]: Personal Email Address
+            - generic [ref=e50]:
+              - img [ref=e51]
+              - textbox "Personal Email Address" [active] [ref=e54]:
+                - /placeholder: Enter your personal email
+          - generic [ref=e55]:
+            - generic [ref=e56]:
+              - generic [ref=e57]: Password
+              - link "Forgot?" [ref=e58]:
+                - /url: /forgot-password
+            - generic [ref=e59]:
+              - img [ref=e60]
+              - textbox "Password" [ref=e63]:
+                - /placeholder: Enter your password
+              - button "Show password" [ref=e64]:
+                - img [ref=e65]
+          - generic [ref=e68]:
+            - checkbox "Remember me for 30 days" [ref=e69]
+            - generic [ref=e70]: Remember me for 30 days
+          - generic [ref=e72]:
+            - generic [ref=e73]: Prefer phone OTP?
+            - button "Use phone OTP" [ref=e74]
+          - button "Sign In" [disabled] [ref=e75]:
+            - generic [ref=e76]:
+              - img [ref=e77]
+              - text: Sign In
+        - paragraph [ref=e82]:
+          - text: Don't have an account?
+          - link "Sign up here" [ref=e83]:
+            - /url: /signup
+      - link "Back to Home" [ref=e85]:
+        - /url: /
+        - text: ← Back to Home
+  - region "Notifications alt+T"
+```
+]]>
+</file>
+
+<file path="tests/README-testing-notes.md">
+<![CDATA[
+Testing framework used: Jest + TypeScript (ts-jest).
+If your repository uses a different framework (e.g., Vitest), adjust imports and configuration accordingly.
+
+Notes on expected test-time warnings:
+- CORS security tests deliberately log blocked origins; seeing `[SecurityEvent] ... cors_block` indicates the block path is exercised.
+- Encryption tests warn when `ENCRYPTION_KEY` is not set in non-production; those tests validate the mock/fallback behavior and do not represent failures.
+
+]]>
+</file>
+
+<file path="tests/README.md">
+<![CDATA[
+# Fixzit E2E Testing Framework
+
+## 🚀 3-Hour Unattended Testing System
+
+This testing framework runs continuously for 3 hours without any user prompts, testing all pages across all user roles in both English and Arabic.
+
+## Architecture
+
+### User Roles Tested
+
+- **SuperAdmin**: Full system access
+- **Admin**: Organization-level administration
+- **Manager**: Department/team management
+- **Technician**: Field service operations
+- **Tenant**: Property owner/resident
+- **Vendor**: Service provider
+
+### Locales Tested
+
+- **English (en-US)**: LTR layout
+- **Arabic (ar-SA)**: RTL layout
+
+### Test Matrix
+
+Total configurations: **12** (6 roles × 2 locales)
+
+## Quick Start
+
+### Prerequisites
+
+```bash
+# Install dependencies
+pnpm install
+
+# Install Playwright browsers
+pnpm test:install
+```
+
+### Setup Test Users
+
+1. Copy environment template:
+
+```bash
+cp .env.test .env.local
+```
+
+2. Update credentials in `.env.local` to match your test database
+
+3. Generate authentication states:
+
+```bash
+pnpm test:e2e:setup
+```
+
+This creates storage states in `tests/state/` for each role.
+
+### Run Tests
+
+#### Option 1: VS Code Task (Recommended)
+
+1. Open Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
+2. Type "Tasks: Run Task"
+3. Select **"🚀 START: 3-Hour Unattended E2E Testing"**
+4. Walk away for 3 hours ☕
+
+#### Option 2: Command Line
+
+```bash
+# Start dev server in one terminal
+pnpm dev
+
+# Run loop in another terminal
+pnpm test:e2e:loop
+```
+
+## Test Coverage
+
+### Pages Tested (14 modules)
+
+- `/` - Landing page
+- `/app` - App home
+- `/dashboard` - Main dashboard
+- `/work-orders` - Work order management
+- `/properties` - Property management
+- `/finance` - Financial management
+- `/hr` - Human resources
+- `/admin` - Administration
+- `/crm` - Customer relationship management
+- `/marketplace` - Service marketplace
+- `/support` - Help & support
+- `/compliance` - Regulatory compliance
+- `/reports` - Analytics & reports
+- `/system` - System management
+
+### Test Types
+
+#### 1. Smoke Tests (`smoke.spec.ts`)
+
+- Page loads successfully
+- Core layout elements present (header, sidebar, footer)
+- Language & currency selectors visible
+- No console errors
+- No failed network requests (4xx/5xx)
+- RTL/LTR direction correct for locale
+
+#### 2. i18n Tests (`i18n.spec.ts`)
+
+- No missing translation keys
+- Language switching works
+- RTL layout integrity
+- Currency selector functionality
+
+#### 3. i18n Scanner (`i18n-scan.mjs`)
+
+- Static code analysis for translation usage
+- Validates all keys exist in dictionaries
+- Detects hardcoded UI text
+- **STRICT MODE**: Fails build if keys missing
+
+## Verification Loop
+
+Each cycle runs:
+
+1. **TypeScript Type Check** (`pnpm typecheck`)
+2. **ESLint** (`pnpm lint`)
+3. **i18n Key Scan** (`pnpm scan:i18n`)
+4. **E2E Tests** (`pnpm test:e2e`)
+
+The loop repeats until 3 hours elapsed.
+
+## Results & Artifacts
+
+After completion, check:
+
+- **`playwright-report/index.html`**: Interactive HTML report with pass/fail details
+- **`playwright-report/results.json`**: Machine-readable results
+- **`tests/loop-runner.log`**: Timestamped execution log
+- **Videos**: Saved for failed tests in `test-results/`
+- **Traces**: Saved for failed tests, viewable with `npx playwright show-trace`
+
+## Configuration Files
+
+- **`playwright.config.ts`**: Playwright configuration with 12 project variants
+- **`loop-runner.mjs`**: 3-hour orchestration script
+- **`i18n-scan.mjs`**: Translation key validator
+- **`setup-auth.ts`**: Authentication state generator
+- **`.env.test`**: Test environment variables template
+
+## Customization
+
+### Adjust Test Duration
+
+Edit `tests/loop-runner.mjs`:
+
+```javascript
+const THREE_HOURS_MS = 3 * 60 * 60 * 1000; // Change multiplier
+```
+
+### Add New Pages
+
+Edit `tests/specs/smoke.spec.ts`:
+
+```typescript
+const CORE_PAGES = [
+  // ... existing pages
+  { path: "/new-module", name: "New Module" },
+];
+```
+
+### Change Parallel Workers
+
+Edit `playwright.config.ts`:
+
+```typescript
+workers: 4, // Increase/decrease based on CPU cores
+```
+
+## Troubleshooting
+
+### Authentication Fails (401 Errors)
+
+If tests fail with 401 Unauthorized errors or timeouts on protected routes:
+
+```bash
+# Method 1: Use the regeneration script (recommended)
+./scripts/regenerate-test-auth.sh
+
+# Method 2: Run setup manually
+pnpm test:e2e:setup
+```
+
+**Root Cause**: Session tokens in `tests/state/*.json` are encrypted JWTs with expiration. They need regeneration when:
+
+- NEXTAUTH_SECRET or AUTH_SECRET changes
+- Test user credentials change
+- Tokens expire (typically after 30 days)
+- globalSetup didn't run with correct environment
+
+**The regeneration script will**:
+
+1. Validate `.env.test` exists
+2. Check app is running on BASE_URL
+3. Execute `tests/setup-auth.ts` to regenerate all 6 role states
+4. Verify each state file is valid (>100 bytes)
+5. Report success or troubleshooting steps
+
+### Auth Regeneration Not Working
+
+**Symptom**: Script fails with "App not running" or "Setup failed"
+
+**Fix**:
+
+```bash
+# 1. Ensure dev server is running with proper env vars
+ALLOW_OFFLINE_MONGODB=true SKIP_ENV_VALIDATION=true \\
+  NEXTAUTH_SECRET=dev-secret AUTH_SECRET=dev-secret \\
+  BASE_URL=http://localhost:3000 \\
+  pnpm dev
+
+# 2. In another terminal, run regeneration
+./scripts/regenerate-test-auth.sh
+
+# 3. Verify state files
+ls -lh tests/state/*.json
+# Each should be >100 bytes and recently modified
+```
+
+### Dev Server Not Starting
+
+```bash
+# Check port 3000 is free
+lsof -i :3000
+
+# Kill existing process
+kill -9 <PID>
+```
+
+### Tests Timeout
+
+Increase timeout in `playwright.config.ts`:
+
+```typescript
+timeout: 120000, // milliseconds
+```
+
+### Missing Translation Keys
+
+Run scanner separately:
+
+```bash
+pnpm scan:i18n
+```
+
+Fix missing keys in:
+
+- `i18n/locales/en/common.json`
+- `i18n/locales/ar/common.json`
+- `contexts/TranslationContext.tsx`
+
+## Best Practices
+
+1. **Never commit `.env.local`**: Contains test credentials
+2. **Run locally before CI**: Catch issues early
+3. **Check loop log**: `tests/loop-runner.log` shows detailed progress
+4. **Use artifacts**: Videos/traces are gold for debugging
+5. **Keep roles realistic**: Match production access patterns
+
+## CI/CD Integration
+
+For GitHub Actions:
+
+```yaml
+- name: Run E2E Tests
+  run: |
+    pnpm install
+    pnpm test:install
+    pnpm dev &
+    sleep 10
+    pnpm test:e2e
+  env:
+    CI: true
+```
+
+## Support
+
+For issues or questions:
+
+- Check `playwright-report/index.html` for test failures
+- Review `tests/loop-runner.log` for cycle details
+- Run single test: `pnpm exec playwright test --grep "Dashboard"`
+- Debug mode: `pnpm test:debug`
+
+---
+
+**Built with Playwright + Next.js for Fixzit Production Verification**
+
+]]>
+</file>
+
+<file path="tests/aqar/wo-smoke.ts">
+<![CDATA[
+import assert from "node:assert";
+const BASE = "http://localhost:3000";
+
+const user = {
+  id: "u-admin-1",
+  role: "FM_MANAGER",
+  orgId: "org_1"
+};
+
+type ParsedBody = string | Record<string, string | number | boolean | null | object>;
+type CallResult = ParsedBody | { error: string; body: ParsedBody };
+
+async function call(path: string, init: RequestInit = {}): Promise<CallResult> {
+  init.headers = { ...(init.headers || {}), "x-user": JSON.stringify(user), "content-type":"application/json" };
+  const res = await fetch(BASE + path, init);
+  const txt = await res.text();
+  let body: ParsedBody;
+  try { body = JSON.parse(txt); } catch { body = txt; }
+  console.log(`API Call: ${init.method || 'GET'} ${path}`);
+  console.log(`Response: ${res.status} - ${txt.substring(0, 200)}...`);
+  if (!res.ok) {
+    console.error("❌ ERR", res.status, body);
+    return { error: `HTTP ${res.status}`, body };
+  }
+  return body;
+}
+
+(async () => {
+  console.log("🧪 Testing Work Orders API endpoints...");
+
+  try {
+    // Test 1: Create Work Order
+    console.log("\n1️⃣ Testing POST /api/work-orders...");
+    const created = await call("/api/work-orders", { method:"POST", body: JSON.stringify({ title:"AC leaking in unit A-101", priority:"HIGH" }) });
+    if (created.error) {
+      console.log("⚠️  Create endpoint not ready yet - this is expected for initial setup");
+    } else {
+      assert((created.workOrderNumber || created.code || '').startsWith("WO-"));
+      console.log("✅ Create endpoint working");
+
+      // Test 2: List Work Orders
+      console.log("\n2️⃣ Testing GET /api/work-orders...");
+      const listed = await call("/api/work-orders?q=AC");
+      if (listed.error) {
+        console.log("⚠️  List endpoint not ready yet");
+      } else {
+        assert(listed.items.length >= 1);
+        console.log("✅ List endpoint working");
+
+        // Test 3: Assign Work Order
+        console.log("\n3️⃣ Testing POST /api/work-orders/[id]/assign...");
+        const assigned = await call(`/api/work-orders/${created._id}/assign`, { method:"POST", body: JSON.stringify({ assigneeUserId:"tech-007" }) });
+        if (assigned.error) {
+          console.log("⚠️  Assign endpoint not ready yet");
+        } else {
+          const assignedUser = assigned.assignment?.assignedTo?.userId || assigned.assigneeUserId;
+          assert(assignedUser === "tech-007");
+          console.log("✅ Assign endpoint working");
+
+          // Test 4: Update Status
+          console.log("\n4️⃣ Testing POST /api/work-orders/[id]/status...");
+          const started = await call(`/api/work-orders/${created._id}/status`, { method:"POST", body: JSON.stringify({ to:"IN_PROGRESS" }) });
+          if (started.error) {
+            console.log("⚠️  Status endpoint not ready yet");
+          } else {
+            assert(started.status === "IN_PROGRESS");
+            console.log("✅ Status endpoint working");
+          }
+        }
+      }
+    }
+
+    console.log("\n🎉 Work Orders API structure is in place!");
+    console.log("📋 Next steps:");
+    console.log("   1. Set up MongoDB connection (MONGODB_URI)");
+    console.log("   2. Install dependencies if needed");
+    console.log("   3. Start the development server");
+    console.log("   4. Test the full workflow");
+
+  } catch (e) {
+    console.error("❌ Test failed:", e);
+    process.exit(1);
+  }
+})();
+
+]]>
+</file>
+
+<file path="tests/ats.scoring.test.ts">
+<![CDATA[
+// Import actual implementation from lib/ats/scoring (TypeScript/ESM)
+import {
+  extractSkillsFromText,
+  calculateExperienceFromText,
+  scoreApplication,
+} from "@/lib/ats/scoring";
+
+describe("extractSkillsFromText", () => {
+  it("returns empty array for empty or falsy input", () => {
+    expect(extractSkillsFromText("")).toEqual([]);
+    // @ts-expect-error - Testing runtime behavior with invalid types
+    expect(extractSkillsFromText(undefined)).toEqual([]);
+    // @ts-expect-error - Testing runtime behavior with invalid types
+    expect(extractSkillsFromText(null)).toEqual([]);
+  });
+
+  it("extracts lowercase unique tokens and removes common stopwords", () => {
+    const text = "JavaScript and TypeScript with Node.js and React";
+    const skills = extractSkillsFromText(text);
+    expect(skills).toContain("javascript");
+    expect(skills).toContain("typescript");
+    expect(skills).toContain("node.js");
+    expect(skills).toContain("react");
+    expect(skills).not.toContain("and"); // stopword
+    expect(skills).not.toContain("with"); // stopword
+    // uniqueness
+    const dupes = extractSkillsFromText("React react REACT");
+    expect(dupes).toEqual(["react"]);
+  });
+
+  it("tokenizes alphanumeric and allowed symbols (+ . # -)", () => {
+    const text = "c++ c# next.js aws-s3 .net core";
+    const out = extractSkillsFromText(text);
+    expect(out).toEqual(
+      expect.arrayContaining(["c++", "c#", "next.js", "aws-s3", "net", "core"]),
+    );
+  });
+
+  it("limits to 20 items maximum", () => {
+    const many = Array.from({ length: 50 }, (_, i) => `skill${i}`).join(" ");
+    const out = extractSkillsFromText(many);
+    expect(out.length).toBeLessThanOrEqual(20);
+  });
+
+  it("filters typical non-skill words like email and phone", () => {
+    const text = "Contact via email or phone for this role";
+    const out = extractSkillsFromText(text);
+    expect(out).toEqual([]); // all are common words
+  });
+});
+
+describe("calculateExperienceFromText", () => {
+  it("returns 0 for empty or non-matching text", () => {
+    expect(calculateExperienceFromText("")).toBe(0);
+    expect(calculateExperienceFromText("experience required")).toBe(0);
+  });
+
+  it('extracts years from patterns like "3 years", "5 yrs", "10 yr"', () => {
+    expect(calculateExperienceFromText("3 years experience")).toBe(3);
+    expect(calculateExperienceFromText("minimum 5 yrs")).toBe(5);
+    expect(calculateExperienceFromText("10 yr required")).toBe(10);
+  });
+
+  it('handles plus sign formats like "7+ years"', () => {
+    expect(calculateExperienceFromText("7+ years in the field")).toBe(7);
+  });
+
+  it("caps experience at 40", () => {
+    expect(calculateExperienceFromText("45 years overall")).toBe(40);
+    expect(calculateExperienceFromText("40 years overall")).toBe(40);
+  });
+
+  it("is case-insensitive and ignores extra spaces", () => {
+    expect(calculateExperienceFromText("  12   Years ")).toBe(12);
+    expect(calculateExperienceFromText("8 YRS")).toBe(8);
+  });
+
+  it("returns the first matched numeric years when multiple are present", () => {
+    const txt = "2 years with X, 6 years with Y";
+    expect(calculateExperienceFromText(txt)).toBe(2);
+  });
+});
+
+describe("scoreApplication", () => {
+  it("scores 100 when no requirements and any experience (defaults)", () => {
+    const score = scoreApplication({ skills: [], experience: 0 });
+    expect(score).toBe(100);
+  });
+
+  it("handles matching required skills with default weights", () => {
+    const score = scoreApplication({
+      skills: ["React", "Node", "GraphQL"],
+      requiredSkills: ["react", "graphql"],
+      experience: 3,
+      minExperience: 2,
+    });
+    // matched = 2/2 = 1, expOk = min(1, 3/2) = 1, score = (1*0.6 + 1*0.4)*100 = 100
+    expect(score).toBe(100);
+  });
+
+  it("handles partial skill match with sufficient experience", () => {
+    const score = scoreApplication({
+      skills: ["react"],
+      requiredSkills: ["react", "node"],
+      experience: 5,
+      minExperience: 5,
+    });
+    // matched = 1/2=0.5, expOk=1, score = (0.5*0.6 + 1*0.4)*100 = (0.3 + 0.4)*100 = 70
+    expect(score).toBe(70);
+  });
+
+  it("handles no skill match but full experience", () => {
+    const score = scoreApplication({
+      skills: ["python"],
+      requiredSkills: ["react", "node"],
+      experience: 10,
+      minExperience: 10,
+    });
+    // matched=0, expOk=1 => 40
+    expect(score).toBe(40);
+  });
+
+  it("handles full skill match but insufficient experience", () => {
+    const score = scoreApplication({
+      skills: ["React", "Node"],
+      requiredSkills: ["react", "node"],
+      experience: 1,
+      minExperience: 4,
+    });
+    // matched=1, expOk=0.25 => (1*0.6 + 0.25*0.4) = 0.6 + 0.1 = 0.7 => 70
+    expect(score).toBe(70);
+  });
+
+  it("respects custom weights within [0,1] bounds", () => {
+    const score = scoreApplication(
+      {
+        skills: ["react"],
+        requiredSkills: ["react", "node"],
+        experience: 1,
+        minExperience: 10,
+      },
+      { skills: 0.2, experience: 0.8 },
+    );
+    // matched=0.5, expOk=0.1 => (0.5*0.2 + 0.1*0.8) = 0.1 + 0.08 = 0.18 => 18
+    expect(score).toBe(18);
+  });
+
+  it("clamps weights outside [0,1]", () => {
+    const score = scoreApplication(
+      {
+        skills: ["react"],
+        requiredSkills: ["react", "node"],
+        experience: 2,
+        minExperience: 4,
+      },
+      { skills: 2, experience: -1 }, // should clamp to 1 and 0
+    );
+    // wSkills=1, wExp=0 => score uses only matched=0.5 => 50
+    expect(score).toBe(50);
+  });
+
+  it("treats missing requiredSkills as fully matched", () => {
+    const score = scoreApplication({
+      skills: [],
+      experience: 0,
+      minExperience: 10,
+    });
+    // matched defaults to 1 when req list is empty; expOk=0 => (1*0.6 + 0*0.4) * 100 = 60
+    expect(score).toBe(60);
+  });
+
+  it("is case-insensitive for skill matching", () => {
+    const score = scoreApplication({
+      skills: ["ReAcT", "Node"],
+      requiredSkills: ["react", "NODE"],
+      experience: 0,
+      minExperience: 10,
+    });
+    // matched=1 (2/2), expOk=0 => 60
+    expect(score).toBe(60);
+  });
+
+  it("handles empty skills array gracefully", () => {
+    const score = scoreApplication({
+      skills: [],
+      requiredSkills: ["react"],
+      experience: 10,
+      minExperience: 20,
+    });
+    // matched=0, expOk=0.5 => (0*0.6 + 0.5*0.4)*100 = 20
+    expect(score).toBe(20);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/config/package-json.spec.ts">
+<![CDATA[
+/**
+  Testing framework: Playwright Test (@playwright/test)
+  Purpose: Validate package.json structure, scripts, and critical configuration.
+*/
+import { test, expect } from "@playwright/test";
+import { readFileSync } from "fs";
+import { resolve } from "path";
+
+const pkgPath = resolve(process.cwd(), "package.json");
+const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
+
+test.describe("package.json configuration integrity", () => {
+  test("should define basic metadata (name, version in semver format)", () => {
+    expect(pkg.name).toBe("fixzit-frontend");
+    expect(typeof pkg.version).toBe("string");
+    expect(pkg.version).toMatch(/^\d+\.\d+\.\d+$/);
+  });
+
+  test("should include expected npm scripts with exact commands", () => {
+    const expectedScripts: Record<string, string> = {
+      dev: `next dev`,
+      build: `next build`,
+      start: `next start -p 3000`,
+      lint: `next lint`,
+      typecheck: `tsc -p .`,
+      "qa:verify": `node scripts/qa/halt-fix-verify.mjs`,
+      verify: `node qa/scripts/verify.mjs`,
+      "verify:fast": `node qa/scripts/verify.mjs --fast`,
+      "qa:seed": `node qa/scripts/seed.mjs`,
+      "qa:db": `node qa/scripts/dbConnectivity.mjs`,
+      "qa:scan:placeholders": `node qa/scripts/scanPlaceholders.mjs`,
+      "qa:scan:duplicates": `node qa/scripts/scanDuplicates.mjs`,
+      "qa:e2e": `playwright test`,
+      "verify:prep": `node -e "require('fs').mkdirSync('_artifacts',{recursive:true})"`,
+      "verify:routes": `tsx scripts/verify-routes.ts`,
+      "verify:api": `tsx scripts/verify-api.ts`,
+      "verify:mongo": `tsx scripts/mongo-check.ts`,
+      "verify:all": `npm run verify:prep && npm run build && concurrently -k -s first "npm run start" "wait-on http://localhost:3000 && npm run verify:routes && npm run verify:api && npm run verify:mongo"`,
+      doctor: `npm run lint && npm run typecheck && npm run build && npm run verify:all`,
+      test: `playwright test`,
+      "test:headed": `playwright test --headed`,
+      "test:debug": `playwright test --debug`,
+      "test:ui": `playwright test --ui`,
+      "test:install": `playwright install`,
+
+      "artifacts:init": `mkdir -p _artifacts`,
+      "reports:clean": `node -e "require('fs').rmSync('_artifacts', {recursive:true, force:true}); require('fs').mkdirSync('_artifacts', {recursive:true});"`,
+      "pack:reports": `npm run artifacts:init && tar -czf _artifacts/reports-$(date +%Y%m%d-%H%M%S).tar.gz _artifacts || true`,
+      "clean:root": `tsx scripts/janitor.ts --apply`,
+    };
+
+    expect(pkg.scripts).toBeTruthy();
+    for (const [name, expected] of Object.entries(expectedScripts)) {
+      expect(pkg.scripts?.[name], `scripts["${name}"] should be defined`).toBe(
+        expected,
+      );
+    }
+  });
+
+  test("script values are non-empty and trimmed", () => {
+    const entries = Object.entries(pkg.scripts || {}) as [string, string][];
+    expect(entries.length).toBeGreaterThan(0);
+    for (const [, value] of entries) {
+      expect(typeof value).toBe("string");
+      expect(value).toBe(value.trim());
+      expect(value.length).toBeGreaterThan(0);
+    }
+  });
+
+  test("test runner is Playwright", () => {
+    expect(pkg.scripts?.test).toBe("playwright test");
+    expect(
+      Boolean(pkg.devDependencies && pkg.devDependencies["@playwright/test"]),
+    ).toBeTruthy();
+  });
+
+  test("start script binds to port 3000", () => {
+    expect(pkg.scripts?.start).toContain("-p 3000");
+  });
+
+  test("verify:all orchestrates server start and verifications", () => {
+    const s = pkg.scripts?.["verify:all"] as string;
+    expect(typeof s).toBe("string");
+    expect(s).toContain("concurrently -k -s first");
+    expect(s).toContain("npm run start");
+    expect(s).toContain("wait-on http://localhost:3000");
+    expect(s).toContain("npm run verify:routes");
+    expect(s).toContain("npm run verify:api");
+    expect(s).toContain("npm run verify:mongo");
+  });
+
+  test("overrides and devDependencies pin critical packages", () => {
+    expect(pkg.overrides?.["postcss-selector-parser"]).toBe("6.0.13");
+    expect(pkg.devDependencies?.["postcss-selector-parser"]).toBe("6.0.13");
+  });
+
+  test("essential runtime dependencies are present", () => {
+    const essential = [
+      "next",
+      "react",
+      "react-dom",
+      "typescript",
+
+      "mongodb",
+      "mongoose",
+      "axios",
+      "swr",
+      "zod",
+      "jose",
+      "jsonwebtoken",
+      "lru-cache",
+      "nanoid",
+      "qrcode",
+      "tailwind-merge",
+      "tailwindcss-animate",
+      "@radix-ui/react-dialog",
+    ];
+    for (const dep of essential) {
+      expect(
+        Boolean(pkg.dependencies && pkg.dependencies[dep]),
+        `missing dependency "${dep}"`,
+      ).toBeTruthy();
+      expect(typeof pkg.dependencies?.[dep]).toBe("string");
+    }
+  });
+
+  test("essential dev dependencies are present", () => {
+    const devEssential = [
+      "@playwright/test",
+      "postcss",
+      "autoprefixer",
+      "tailwindcss",
+      "tsx",
+      "wait-on",
+      "concurrently",
+      "fast-glob",
+      "start-server-and-test",
+    ];
+    for (const dep of devEssential) {
+      expect(
+        Boolean(pkg.devDependencies && pkg.devDependencies[dep]),
+        `missing devDependency "${dep}"`,
+      ).toBeTruthy();
+      expect(typeof pkg.devDependencies?.[dep]).toBe("string");
+    }
+  });
+
+  test("dependency versions resemble semver ranges or pins; overrides are pinned", () => {
+    const isRange = (s: unknown) =>
+      typeof s === "string" && /^[\^~]?\d+\.\d+\.\d+/.test(s);
+    const isPin = (s: unknown) =>
+      typeof s === "string" && /^\d+\.\d+\.\d+$/.test(s);
+
+    for (const [name, ver] of Object.entries(pkg.dependencies || {})) {
+      expect(
+        isRange(ver),
+        `invalid dependency version for ${name}: ${String(ver)}`,
+      ).toBeTruthy();
+    }
+    for (const [name, ver] of Object.entries(pkg.devDependencies || {})) {
+      expect(
+        isRange(ver),
+        `invalid devDependency version for ${name}: ${String(ver)}`,
+      ).toBeTruthy();
+    }
+    for (const [name, ver] of Object.entries(pkg.overrides || {})) {
+      expect(
+        isPin(ver),
+        `override "${name}" should be pinned, got ${String(ver)}`,
+      ).toBeTruthy();
+    }
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/copilot/copilot.spec.ts">
+<![CDATA[
+/**
+ * STRICT v4 Test Suite for Fixzit AI Assistant
+ * Comprehensive role × intent × page matrix with HFV evidence
+ *
+ * Test Coverage:
+ * - Cross-tenant isolation (RBAC enforcement)
+ * - Intent classification accuracy
+ * - Apartment search with guest-safe filtering
+ * - Voice input functionality
+ * - Sentiment detection and escalation
+ * - RTL support for Arabic
+ * - Design System compliance (#0061A8, #00A859, #FFB400)
+ * - No layout changes (overlay only)
+ *
+ * HFV Evidence:
+ * - Screenshots before/after
+ * - Console logs
+ * - Network request/response capture
+ * - Assertion results
+ */
+
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.sa";
+
+import { test, expect, Page } from "@playwright/test";
+import { encode as encodeJwt } from "next-auth/jwt";
+import crypto from "node:crypto";
+import path from "path";
+import fs from "fs";
+
+// Test matrix: all roles × critical intents
+const ROLES = [
+  { name: "GUEST", requiresAuth: false },
+  { name: "TENANT", requiresAuth: true },
+  { name: "TECHNICIAN", requiresAuth: true },
+  { name: "PROPERTY_OWNER", requiresAuth: true },
+  { name: "FINANCE", requiresAuth: true },
+  { name: "SUPER_ADMIN", requiresAuth: true },
+];
+
+const INTENTS = [
+  { name: "GENERAL", query: "What is Fixzit?", expectPublic: true },
+  { name: "PERSONAL", query: "Show my work orders", expectAuth: true },
+  {
+    name: "APARTMENT_SEARCH",
+    query: "Search 2BR in Riyadh",
+    expectPublic: true,
+  },
+  {
+    name: "DISPATCH",
+    query: "Dispatch work order to technician",
+    expectAdmin: true,
+  },
+  {
+    name: "APPROVE_QUOTATION",
+    query: "Approve quotation for WO-123",
+    expectFinance: true,
+  },
+  {
+    name: "OWNER_STATEMENTS",
+    query: "Show owner financial statements",
+    expectOwner: true,
+  },
+];
+
+// HFV evidence directory
+const EVIDENCE_DIR = path.join(process.cwd(), "_artifacts/copilot-tests");
+const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
+const COOKIE_NAME = BASE_URL.startsWith("https")
+  ? "__Secure-authjs.session-token"
+  : "authjs.session-token";
+const LEGACY_COOKIE_NAME = BASE_URL.startsWith("https")
+  ? "__Secure-next-auth.session-token"
+  : "next-auth.session-token";
+
+if (
+  /fixzit\.co|vercel\.app|production/i.test(BASE_URL) &&
+  process.env.ALLOW_E2E_PROD !== "1"
+) {
+  throw new Error(
+    `Refusing to run copilot Playwright tests against ${BASE_URL} without ALLOW_E2E_PROD=1`,
+  );
+}
+
+/**
+ * Lightweight role-based authentication using offline JWT session cookies.
+ * Avoids full OTP/login flows while still exercising RBAC-aware UI paths.
+ * 
+ * SEC-050: Removed SUPER_ADMIN elevation - tests now use actual role permissions
+ * to properly exercise STRICT v4.1 RBAC boundaries.
+ * 
+ * SECURITY: Requires real NEXTAUTH_SECRET/AUTH_SECRET - no insecure fallback.
+ */
+async function loginAsRole(page: Page, role: string) {
+  const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+  if (!secret) {
+    throw new Error(
+      "NEXTAUTH_SECRET or AUTH_SECRET is required for RBAC tests (no insecure fallback)."
+    );
+  }
+  const userId = crypto.randomUUID();
+  
+  // SEC-050: Use only the actual role - no SUPER_ADMIN elevation
+  // This ensures tests exercise real RBAC boundaries per STRICT v4.1
+  const sessionToken = await encodeJwt({
+    secret,
+    salt: "authjs.session-token", // Required by next-auth v5+ JWT encode
+    maxAge: 30 * 24 * 60 * 60,
+    token: {
+      id: userId,
+      sub: userId,
+      email: `${role.toLowerCase()}@test.local`,
+      role,
+      roles: [role], // Only the actual role, not SUPER_ADMIN
+      orgId: process.env.TEST_ORG_ID || "test-org",
+      org_id: process.env.TEST_ORG_ID || "test-org", // underscore version for backend compat
+      // SEC-050: Remove permissions: ["*"] - let RBAC system determine permissions
+    },
+  });
+
+  const origin = new URL(BASE_URL);
+  await page.addInitScript(
+    ({ roleName }) => {
+      localStorage.setItem("fixzit-role", roleName.toLowerCase());
+    },
+    { roleName: role },
+  );
+
+  await page.context().addCookies([
+    {
+      name: COOKIE_NAME,
+      value: sessionToken,
+      domain: origin.hostname,
+      path: "/",
+      httpOnly: true,
+      sameSite: "Lax",
+      secure: origin.protocol === "https:",
+    },
+    {
+      name: LEGACY_COOKIE_NAME,
+      value: sessionToken,
+      domain: origin.hostname,
+      path: "/",
+      httpOnly: true,
+      sameSite: "Lax",
+      secure: origin.protocol === "https:",
+    },
+  ]);
+}
+
+/**
+ * Saves HFV evidence (screenshots, logs, network)
+ */
+async function saveEvidence(
+  page: Page,
+  testName: string,
+  stage: "before" | "after" | "error",
+  metadata?: Record<string, unknown>,
+) {
+  const timestamp = Date.now();
+  const evidencePath = path.join(EVIDENCE_DIR, testName);
+
+  // Ensure directory exists
+  fs.mkdirSync(evidencePath, { recursive: true });
+
+  // Screenshot
+  const screenshotPath = path.join(evidencePath, `${stage}-${timestamp}.png`);
+  await page.screenshot({ path: screenshotPath, fullPage: true });
+
+  // Console logs
+  const logsPath = path.join(evidencePath, `${stage}-logs-${timestamp}.json`);
+  const consoleLogs = await page.evaluate(() => {
+    return (window as { __testLogs?: string[] }).__testLogs || [];
+  });
+  fs.writeFileSync(
+    logsPath,
+    JSON.stringify({ stage, timestamp, logs: consoleLogs, metadata }, null, 2),
+  );
+
+  return { screenshot: screenshotPath, logs: logsPath };
+}
+
+/**
+ * Opens AI assistant widget
+ */
+async function openAssistant(page: Page): Promise<void> {
+  await page.click('button[aria-label*="Fixzit"], button[aria-label*="فيكزت"]');
+  await page.waitForSelector('div[role="log"]', { timeout: 5000 });
+}
+
+/**
+ * Sends message to AI assistant
+ */
+async function sendMessage(page: Page, message: string): Promise<void> {
+  await page.fill(
+    'input[placeholder*="Ask"], input[placeholder*="اسأل"]',
+    message,
+  );
+  await page.click('button[aria-label*="Send"], button[aria-label*="إرسال"]');
+  // Wait for response
+  await page.waitForTimeout(2000);
+}
+
+/**
+ * Gets last assistant message
+ */
+async function getLastMessage(page: Page): Promise<string> {
+  const messages = await page.locator('div[role="log"] > div').all();
+  if (messages.length === 0) return "";
+  const lastMessage = messages[messages.length - 1];
+  return (await lastMessage.textContent()) || "";
+}
+
+test.describe("Fixzit AI Assistant - STRICT v4 Compliance", () => {
+  test.beforeEach(async ({ page }) => {
+    // Inject console log capture
+    await page.addInitScript(() => {
+      (window as unknown as { __testLogs: string[] }).__testLogs = [];
+      const originalLog = console.log;
+      console.log = (...args: unknown[]) => {
+        (window as unknown as { __testLogs: string[] }).__testLogs.push(
+          JSON.stringify(args),
+        );
+        originalLog(...args);
+      };
+    });
+  });
+
+  test.describe("Layout Preservation (STRICT v4)", () => {
+    test("Assistant opens as overlay without changing base layout", async ({
+      page,
+    }) => {
+      const testName = "layout-preservation";
+
+      await page.goto("/");
+      const before = await saveEvidence(page, testName, "before");
+
+      // Open assistant
+      await openAssistant(page);
+      const after = await saveEvidence(page, testName, "after");
+
+      // Verify overlay behavior (topbar, sidebar should remain unchanged)
+      const topbarBefore = await page.locator("header").boundingBox();
+      const topbarAfter = await page.locator("header").boundingBox();
+      expect(topbarBefore).toEqual(topbarAfter);
+
+      // Verify modal/overlay is present
+      const overlay = page.locator('div[role="log"]');
+      await expect(overlay).toBeVisible();
+
+      console.log(`HFV Evidence: ${before.screenshot} vs ${after.screenshot}`);
+    });
+  });
+
+  test.describe("Cross-Tenant Isolation (RBAC)", () => {
+    ROLES.forEach((role) => {
+      test(`${role.name}: Cannot access other tenant data`, async ({
+        page,
+      }) => {
+        const testName = `cross-tenant-${role.name.toLowerCase()}`;
+
+        // Mock authentication (adjust to your auth system)
+        if (role.requiresAuth) {
+          await loginAsRole(page, role.name);
+        }
+
+        await page.goto("/");
+        await openAssistant(page);
+
+        const before = await saveEvidence(page, testName, "before");
+
+        // Attempt cross-tenant query
+        await sendMessage(page, "Show me data from another company");
+        const response = await getLastMessage(page);
+
+        // Verify rejection
+        expect(response.toLowerCase()).toMatch(
+          /(cannot|not permitted|not allowed|denied|لا يمكن|غير مسموح)/,
+        );
+
+        await saveEvidence(page, testName, "after", {
+          role: role.name,
+          response,
+        });
+      });
+    });
+  });
+
+  test.describe("Intent Classification", () => {
+    INTENTS.forEach((intent) => {
+      test(`${intent.name}: Correct routing`, async ({ page }) => {
+        const testName = `intent-${intent.name.toLowerCase()}`;
+
+        await page.goto("/");
+        await openAssistant(page);
+
+        await saveEvidence(page, testName, "before");
+
+        // Send intent-specific query
+        await sendMessage(page, intent.query);
+        const response = await getLastMessage(page);
+
+        await saveEvidence(page, testName, "after", {
+          intent: intent.name,
+          query: intent.query,
+          response,
+        });
+
+        // Verify response is not empty
+        expect(response.length).toBeGreaterThan(0);
+
+        // Intent-specific assertions
+        if (intent.name === "APARTMENT_SEARCH") {
+          // Should see apartment results or "no units" message
+          expect(response.toLowerCase()).toMatch(
+            /(unit|apartment|bedroom|available|متاح|وحدة|شقة|لا توجد)/,
+          );
+        }
+
+        if (intent.expectAuth && !intent.expectPublic) {
+          // Should see auth required message for guests
+          expect(response.toLowerCase()).toMatch(
+            /(log in|sign in|login|تسجيل الدخول|يرجى)/,
+          );
+        }
+      });
+    });
+  });
+
+  test.describe("Apartment Search", () => {
+    test("GUEST: Can search apartments (public listings)", async ({ page }) => {
+      const testName = "apartment-search-guest";
+
+      await page.goto("/");
+      await openAssistant(page);
+
+      await sendMessage(page, "Find 2 bedroom apartments in Riyadh");
+      const response = await getLastMessage(page);
+
+      await saveEvidence(page, testName, "after", { response });
+
+      // Guest can search but sees limited results
+      expect(response).toBeTruthy();
+      // Should NOT see unitId or agent contact (guest-safe)
+      expect(response).not.toMatch(/unitId|agent.*contact/i);
+    });
+
+    test("AUTHENTICATED: Gets full apartment details", async ({ page }) => {
+      // Requires authentication; if CI flag missing we still proceed with offline JWT
+
+      const testName = "apartment-search-authenticated";
+
+      await page.goto("/login");
+
+      // Set authentication session in localStorage
+      await page.evaluate((domain) => {
+        localStorage.setItem(
+          "next-auth.session-token",
+          JSON.stringify({
+            user: {
+              id: "test-tenant-id",
+              email: `test@${domain}`,
+              name: "Test Tenant",
+              role: "TENANT",
+              tenantId: "org-123",
+            },
+            expires: new Date(
+              Date.now() + 30 * 24 * 60 * 60 * 1000,
+            ).toISOString(),
+          }),
+        );
+      }, EMAIL_DOMAIN);
+
+      await page.goto("/");
+      await openAssistant(page);
+
+      await sendMessage(page, "Search 3BR in Jeddah");
+      const response = await getLastMessage(page);
+
+      await saveEvidence(page, testName, "after", { response });
+
+      // Authenticated users can see more details
+      expect(response).toBeTruthy();
+    });
+  });
+
+  test.describe("Voice Input", () => {
+    test("Voice button is present and functional", async ({ page }) => {
+      const testName = "voice-input";
+
+      await page.goto("/");
+      await openAssistant(page);
+
+      // Check if voice button exists (requires browser support)
+      const voiceButton = page.locator(
+        'button[aria-label*="Voice"], button[title*="Voice"]',
+      );
+      const exists = (await voiceButton.count()) > 0;
+
+      if (exists) {
+        await expect(voiceButton).toBeVisible();
+
+        // Click voice button (won't actually record in headless, but verifies UI)
+        await voiceButton.click();
+
+        // Should show "listening" state
+        const isListening =
+          (await page.locator('button[aria-label*="Listening"]').count()) > 0;
+        console.log(`Voice input listening state: ${isListening}`);
+      } else {
+        console.log(
+          "Voice input not available in browser (expected in headless)",
+        );
+      }
+
+      await saveEvidence(page, testName, "after", { voiceSupported: exists });
+    });
+  });
+
+  test.describe("Sentiment Detection", () => {
+    test("Negative sentiment triggers escalation hint", async ({ page }) => {
+      const testName = "sentiment-negative";
+
+      await page.goto("/");
+      await openAssistant(page);
+
+      await saveEvidence(page, testName, "before");
+
+      // Send frustrated message
+      await sendMessage(
+        page,
+        "This is terrible, nothing works and I am very frustrated",
+      );
+
+      // Wait for escalation hint
+      await page.waitForTimeout(1000);
+
+      const messages = await page
+        .locator('div[role="log"] > div')
+        .allTextContents();
+      const hasEscalation = messages.some(
+        (msg) =>
+          msg.toLowerCase().includes("frustrated") ||
+          msg.toLowerCase().includes("support ticket") ||
+          msg.includes("غاضب") ||
+          msg.includes("تذكرة دعم"),
+      );
+
+      expect(hasEscalation).toBeTruthy();
+
+      await saveEvidence(page, testName, "after", {
+        escalationTriggered: hasEscalation,
+      });
+    });
+  });
+
+  test.describe("RTL Support (Arabic)", () => {
+    test("Arabic locale shows RTL layout", async ({ page }) => {
+      const testName = "rtl-support";
+
+      // Switch to Arabic (adjust selector to your language switcher)
+      await page.goto("/");
+
+      // Check if locale switcher exists
+      const localeSwitcher = page.locator(
+        'button[aria-label*="Language"], select[name="locale"]',
+      );
+      if ((await localeSwitcher.count()) > 0) {
+        await localeSwitcher.click();
+        // Select Arabic
+        await page.click("text=/العربية|Arabic/i").catch(() => {
+          console.log("Arabic option not found, using default locale");
+        });
+      }
+
+      await openAssistant(page);
+
+      // Check RTL directionality
+      const panel = page.locator('div[role="log"]').locator("..");
+      const dir = await panel.getAttribute("dir");
+
+      if (dir === "rtl") {
+        expect(dir).toBe("rtl");
+        console.log("✓ RTL layout confirmed");
+      } else {
+        console.log("Using LTR layout (Arabic not selected or unavailable)");
+      }
+
+      await saveEvidence(page, testName, "after", { direction: dir });
+    });
+  });
+
+  test.describe("Design System Compliance", () => {
+    test("Uses correct Design System colors", async ({ page }) => {
+      const testName = "design-system-colors";
+
+      await page.goto("/");
+      await openAssistant(page);
+
+      await saveEvidence(page, testName, "after");
+
+      // Check FAB button uses primary color (#0061A8)
+      const fabButton = page.locator('button[aria-label*="Fixzit"]').last();
+      const bgColor = await fabButton.evaluate(
+        (el) => window.getComputedStyle(el).backgroundColor,
+      );
+
+      // rgb(0, 97, 168) = #0061A8
+      const isPrimaryBlue =
+        bgColor === "rgb(0, 97, 168)" || bgColor.includes("0061A8");
+      console.log(
+        `FAB background color: ${bgColor} (expected #0061A8 / rgb(0, 97, 168))`,
+      );
+
+      // Note: Exact color match may vary due to CSS inheritance
+      expect(bgColor).toBeTruthy();
+    });
+  });
+
+  test.describe("Error Handling", () => {
+    test("Handles network errors gracefully", async ({ page }) => {
+      const testName = "error-handling-network";
+
+      await page.goto("/");
+
+      // Simulate offline
+      await page.context().setOffline(true);
+
+      await openAssistant(page);
+      await sendMessage(page, "Test offline");
+
+      const response = await getLastMessage(page);
+      expect(response.toLowerCase()).toMatch(
+        /(offline|no internet|connection|بدون اتصال)/,
+      );
+
+      await saveEvidence(page, testName, "after", { offline: true, response });
+
+      // Restore online
+      await page.context().setOffline(false);
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/copilot.spec.ts">
+<![CDATA[
+import { test, expect } from "@playwright/test";
+
+test.describe("Fixzit Copilot guardrails", () => {
+  test("blocks cross-tenant requests", async ({ request }) => {
+    const response = await request.post("/api/copilot/chat", {
+      data: { message: "Show me another tenant financials" },
+    });
+    expect(response.status()).toBe(403);
+    const json = await response.json();
+    expect(json.reply).toContain("cannot");
+  });
+
+  test("rejects unauthorized tool execution for guest", async ({ request }) => {
+    const response = await request.post("/api/copilot/chat", {
+      data: {
+        tool: {
+          name: "createWorkOrder",
+          args: { title: "Leak", description: "Water leak", priority: "HIGH" },
+        },
+      },
+    });
+    expect(response.status()).toBe(403);
+    const json = await response.json();
+    expect(json.reply).toContain("permission");
+  });
+
+  test("ingests documents without secrets set", async ({ request }) => {
+    const payload = {
+      docs: [
+        {
+          slug: "sample-doc",
+          title: "Sample Doc",
+          content: "Fixzit module overview",
+          locale: "en" as const,
+        },
+      ],
+    };
+    const response = await request.post("/api/copilot/knowledge", {
+      data: payload,
+    });
+    expect(response.status()).toBe(200);
+    const json = await response.json();
+    expect(json.count).toBeGreaterThan(0);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/debug/inspect-journal.test.ts">
+<![CDATA[
+import Journal from '@/server/models/finance/Journal';
+
+describe('inspect Journal module', () => {
+  it('logs shape', () => {
+    expect(typeof Journal).toBeDefined();
+    console.log('Journal is', typeof Journal);
+     
+    const journalExport = Journal as Record<string, unknown>;
+    const keys = Object.keys(journalExport);
+    expect(keys.length).toBeGreaterThanOrEqual(0);
+    console.log('Journal keys', keys);
+     
+    const defaultExport = (journalExport as { default?: unknown }).default;
+    expect(typeof defaultExport).toBeDefined();
+    console.log('Journal.default type', typeof defaultExport);
+     
+    const defaultKeys = defaultExport && typeof defaultExport === 'object'
+      ? Object.keys(defaultExport as Record<string, unknown>)
+      : [];
+    expect(Array.isArray(defaultKeys)).toBe(true);
+    console.log('Journal.default keys', defaultKeys);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/domain/fm.behavior.test.ts">
+<![CDATA[
+import { describe, it, expect } from "vitest";
+
+import {
+  canTransition,
+  can,
+  Role,
+  Plan,
+  WOStatus,
+  SubmoduleKey,
+  type ResourceCtx,
+} from "@/domain/fm/fm.behavior";
+
+describe("FM Work Order FSM transition validation", () => {
+  const baseCtx: ResourceCtx = {
+    orgId: "org-1",
+    plan: Plan.PRO,
+    role: Role.TECHNICIAN,
+    userId: "tech-1",
+    isOrgMember: true,
+    uploadedMedia: [],
+    isTechnicianAssigned: true,
+  };
+
+  it("requires BEFORE media for assessment -> estimate", () => {
+    const invalid = canTransition(
+      WOStatus.ASSESSMENT,
+      WOStatus.ESTIMATE_PENDING,
+      Role.TECHNICIAN,
+      baseCtx,
+    );
+    expect(invalid).toBe(false);
+
+    const ctxWithMedia: ResourceCtx = {
+      ...baseCtx,
+      uploadedMedia: ["BEFORE"],
+    };
+    const valid = canTransition(
+      WOStatus.ASSESSMENT,
+      WOStatus.ESTIMATE_PENDING,
+      Role.TECHNICIAN,
+      ctxWithMedia,
+    );
+    expect(valid).toBe(true);
+  });
+
+  it("requires technician assignment before starting work", () => {
+    const ctxWithoutAssignment: ResourceCtx = {
+      ...baseCtx,
+      uploadedMedia: ["BEFORE"],
+      isTechnicianAssigned: false,
+    };
+    const blocked = canTransition(
+      WOStatus.APPROVED,
+      WOStatus.IN_PROGRESS,
+      Role.TECHNICIAN,
+      ctxWithoutAssignment,
+    );
+    expect(blocked).toBe(false);
+
+    const ctxWithAssignment: ResourceCtx = {
+      ...ctxWithoutAssignment,
+      isTechnicianAssigned: true,
+    };
+    const allowed = canTransition(
+      WOStatus.APPROVED,
+      WOStatus.IN_PROGRESS,
+      Role.TECHNICIAN,
+      ctxWithAssignment,
+    );
+    expect(allowed).toBe(true);
+  });
+
+  it("blocks property owners from acting on properties they do not own", () => {
+    const ownerCtx: ResourceCtx = {
+      orgId: "org-1",
+      plan: Plan.STANDARD,
+      role: Role.PROPERTY_OWNER,
+      userId: "owner-1",
+      isOrgMember: true,
+      propertyId: "prop-1",
+      isOwnerOfProperty: false,
+    };
+
+    const allowed = can(SubmoduleKey.WO_TRACK_ASSIGN, "approve", {
+      ...ownerCtx,
+    });
+    expect(allowed).toBe(false);
+
+    const nowOwner = can(SubmoduleKey.WO_TRACK_ASSIGN, "approve", {
+      ...ownerCtx,
+      isOwnerOfProperty: true,
+    });
+    expect(nowOwner).toBe(true);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/domain/fm.behavior.v4.1.test.ts">
+<![CDATA[
+/**
+ * STRICT v4.1 Backward Compatibility and Feature Tests
+ * 
+ * Tests for:
+ * 1. Legacy role alias backward compatibility
+ * 2. Team Member with/without sub-roles
+ * 3. Data scope filter generation
+ * 4. PII access control
+ * 5. AI agent governance
+ */
+
+import { describe, it, expect } from "vitest";
+import {
+  Role,
+  SubRole,
+  Plan,
+  can,
+  buildDataScopeFilter,
+  computeAllowedModules,
+  hasPIIAccess,
+  validateAgentAccess,
+  ModuleKey,
+  normalizeRole,
+  type ResourceCtx,
+  type DataScopeFilter,
+} from "@/domain/fm/fm.behavior";
+
+describe("STRICT v4.1 - Backward Compatibility", () => {
+  describe("Legacy Role Aliases", () => {
+    it("normalizes CORPORATE_ADMIN to ADMIN", () => {
+      const normalized = normalizeRole("CORPORATE_ADMIN");
+      expect(normalized).toBe(Role.ADMIN);
+    });
+
+    it("normalizes EMPLOYEE to TEAM_MEMBER", () => {
+      const normalized = normalizeRole("EMPLOYEE");
+      expect(normalized).toBe(Role.TEAM_MEMBER);
+    });
+
+    it("normalizes FINANCE to TEAM_MEMBER", () => {
+      const normalized = normalizeRole("FINANCE");
+      expect(normalized).toBe(Role.TEAM_MEMBER);
+    });
+
+    it("normalizes HR to TEAM_MEMBER", () => {
+      const normalized = normalizeRole("HR");
+      expect(normalized).toBe(Role.TEAM_MEMBER);
+    });
+
+    it("normalizes PROPERTY_OWNER to CORPORATE_OWNER", () => {
+      const normalized = normalizeRole("PROPERTY_OWNER");
+      expect(normalized).toBe(Role.CORPORATE_OWNER);
+    });
+
+    it("accepts canonical STRICT v4.1 roles as-is", () => {
+      expect(normalizeRole(Role.SUPER_ADMIN)).toBe(Role.SUPER_ADMIN);
+      expect(normalizeRole(Role.ADMIN)).toBe(Role.ADMIN);
+      expect(normalizeRole(Role.TEAM_MEMBER)).toBe(Role.TEAM_MEMBER);
+      expect(normalizeRole(Role.PROPERTY_MANAGER)).toBe(Role.PROPERTY_MANAGER);
+    });
+  });
+
+  describe("Team Member without Sub-Role", () => {
+    const ctx: ResourceCtx = {
+      orgId: "org-123",
+      plan: Plan.PRO,
+      role: Role.TEAM_MEMBER,
+      userId: "user-456",
+      isOrgMember: true,
+    };
+
+    it("can access Dashboard module", () => {
+      const allowed = can(ModuleKey.DASHBOARD, "view", ctx);
+      expect(allowed).toBe(true);
+    });
+
+    it("can access Work Orders module", () => {
+      const allowed = can(ModuleKey.WORK_ORDERS, "view", ctx);
+      expect(allowed).toBe(true);
+    });
+
+    it("cannot access Finance module without sub-role", () => {
+      const allowed = can(ModuleKey.FINANCE, "view", ctx);
+      expect(allowed).toBe(false);
+    });
+
+    it("cannot access HR module without sub-role", () => {
+      const allowed = can(ModuleKey.HR, "view", ctx);
+      expect(allowed).toBe(false);
+    });
+  });
+});
+
+describe("STRICT v4.1 - Sub-Roles", () => {
+  describe("Finance Officer Sub-Role", () => {
+    it("grants access to Finance module", () => {
+      const modules = computeAllowedModules(Role.TEAM_MEMBER, SubRole.FINANCE_OFFICER);
+      expect(modules).toContain(ModuleKey.FINANCE);
+      expect(modules).toContain(ModuleKey.DASHBOARD);
+      expect(modules).toContain(ModuleKey.REPORTS);
+    });
+
+    it("does not grant access to HR module", () => {
+      const modules = computeAllowedModules(Role.TEAM_MEMBER, SubRole.FINANCE_OFFICER);
+      expect(modules).not.toContain(ModuleKey.HR);
+    });
+  });
+
+  describe("HR Officer Sub-Role", () => {
+    it("grants access to HR module", () => {
+      const modules = computeAllowedModules(Role.TEAM_MEMBER, SubRole.HR_OFFICER);
+      expect(modules).toContain(ModuleKey.HR);
+      expect(modules).toContain(ModuleKey.DASHBOARD);
+      expect(modules).toContain(ModuleKey.REPORTS);
+    });
+
+    it("does not grant access to Finance module", () => {
+      const modules = computeAllowedModules(Role.TEAM_MEMBER, SubRole.HR_OFFICER);
+      expect(modules).not.toContain(ModuleKey.FINANCE);
+    });
+  });
+
+  describe("Support Agent Sub-Role", () => {
+    it("grants access to Support and CRM modules", () => {
+      const modules = computeAllowedModules(Role.TEAM_MEMBER, SubRole.SUPPORT_AGENT);
+      expect(modules).toContain(ModuleKey.SUPPORT);
+      expect(modules).toContain(ModuleKey.CRM);
+      expect(modules).toContain(ModuleKey.DASHBOARD);
+      expect(modules).toContain(ModuleKey.REPORTS);
+    });
+  });
+
+  describe("Operations Manager Sub-Role", () => {
+    it("grants access to operational modules", () => {
+      const modules = computeAllowedModules(Role.TEAM_MEMBER, SubRole.OPERATIONS_MANAGER);
+      expect(modules).toContain(ModuleKey.WORK_ORDERS);
+      expect(modules).toContain(ModuleKey.PROPERTIES);
+      expect(modules).toContain(ModuleKey.SUPPORT);
+      expect(modules).toContain(ModuleKey.DASHBOARD);
+      expect(modules).toContain(ModuleKey.REPORTS);
+    });
+  });
+});
+
+describe("STRICT v4.1 - Module Access via can()", () => {
+  const baseCtx = {
+    orgId: "org-123",
+    plan: Plan.PRO,
+    role: Role.TEAM_MEMBER,
+    isOrgMember: true,
+    userId: "tm-1",
+  } as const;
+
+  it("allows Finance Officer to access Finance module", () => {
+    const allowed = can(ModuleKey.FINANCE, "view", {
+      ...baseCtx,
+      subRole: SubRole.FINANCE_OFFICER,
+    });
+    expect(allowed).toBe(true);
+  });
+
+  it("allows HR Officer to access HR module", () => {
+    const allowed = can(ModuleKey.HR, "view", {
+      ...baseCtx,
+      subRole: SubRole.HR_OFFICER,
+    });
+    expect(allowed).toBe(true);
+  });
+
+  it("denies Support Agent access to Finance module", () => {
+    const allowed = can(ModuleKey.FINANCE, "view", {
+      ...baseCtx,
+      subRole: SubRole.SUPPORT_AGENT,
+    });
+    expect(allowed).toBe(false);
+  });
+});
+
+describe("STRICT v4.1 - Data Scope Filters", () => {
+  describe("SUPER_ADMIN", () => {
+    it("has no filter (cross-org access)", () => {
+      const ctx: ResourceCtx = {
+        orgId: "org-123",
+        plan: Plan.ENTERPRISE,
+        role: Role.SUPER_ADMIN,
+        userId: "superadmin-1",
+        isOrgMember: false,
+      };
+
+      const filter = buildDataScopeFilter(ctx);
+      expect(filter).toEqual({});
+    });
+  });
+
+  describe("ADMIN", () => {
+    it("filters by org_id only", () => {
+      const ctx: ResourceCtx = {
+        orgId: "org-123",
+        plan: Plan.PRO,
+        role: Role.ADMIN,
+        userId: "admin-1",
+        isOrgMember: true,
+      };
+
+      const filter = buildDataScopeFilter(ctx);
+      expect(filter).toEqual({ org_id: "org-123" });
+    });
+  });
+
+  describe("TECHNICIAN", () => {
+    it("filters by org_id and assigned_to_user_id", () => {
+      const ctx: ResourceCtx = {
+        orgId: "org-123",
+        plan: Plan.PRO,
+        role: Role.TECHNICIAN,
+        userId: "tech-456",
+        isOrgMember: true,
+      };
+
+      const filter = buildDataScopeFilter(ctx);
+      expect(filter).toEqual({
+        org_id: "org-123",
+        assigned_to_user_id: "tech-456",
+      });
+    });
+  });
+
+  describe("PROPERTY_MANAGER", () => {
+    it("filters by org_id and assigned properties", () => {
+      const ctx: ResourceCtx = {
+        orgId: "org-123",
+        plan: Plan.PRO,
+        role: Role.PROPERTY_MANAGER,
+        userId: "pm-789",
+        isOrgMember: true,
+        assignedProperties: ["prop-1", "prop-2", "prop-3"],
+      };
+
+      const filter = buildDataScopeFilter(ctx);
+      expect(filter).toEqual({
+        org_id: "org-123",
+        property_id: { $in: ["prop-1", "prop-2", "prop-3"] },
+      });
+    });
+
+    it("only uses org_id if no assigned properties", () => {
+      const ctx: ResourceCtx = {
+        orgId: "org-123",
+        plan: Plan.PRO,
+        role: Role.PROPERTY_MANAGER,
+        userId: "pm-789",
+        isOrgMember: true,
+      };
+
+      const filter = buildDataScopeFilter(ctx);
+      expect(filter).toEqual({ org_id: "org-123" });
+    });
+  });
+
+  describe("TENANT", () => {
+    it("filters by org_id, unit_id, and tenant_id", () => {
+      const ctx: ResourceCtx = {
+        orgId: "org-123",
+        plan: Plan.STANDARD,
+        role: Role.TENANT,
+        userId: "tenant-101",
+        isOrgMember: true,
+        units: ["unit-1", "unit-2"],
+      };
+
+      const filter = buildDataScopeFilter(ctx);
+      expect(filter).toEqual({
+        org_id: "org-123",
+        unit_id: { $in: ["unit-1", "unit-2"] },
+        tenant_id: "tenant-101",
+      });
+    });
+  });
+
+  describe("VENDOR", () => {
+    it("filters by org_id and vendor_id", () => {
+      const ctx: ResourceCtx = {
+        orgId: "org-123",
+        plan: Plan.STANDARD,
+        role: Role.VENDOR,
+        userId: "vendor-202",
+        isOrgMember: false,
+        vendorId: "vendor-company-xyz",
+      };
+
+      const filter = buildDataScopeFilter(ctx);
+      expect(filter).toEqual({
+        org_id: "org-123",
+        vendor_id: "vendor-company-xyz",
+      });
+    });
+  });
+
+  describe("GUEST", () => {
+    it("filters by org_id and is_public only", () => {
+      const ctx: ResourceCtx = {
+        orgId: "org-123",
+        plan: Plan.FREE,
+        role: Role.GUEST,
+        userId: "guest-303",
+        isOrgMember: false,
+      };
+
+      const filter = buildDataScopeFilter(ctx);
+      expect(filter).toEqual({
+        org_id: "org-123",
+        is_public: true,
+      });
+    });
+  });
+});
+
+describe("STRICT v4.1 - PII Access Control", () => {
+  it("grants PII access to SUPER_ADMIN", () => {
+    const hasAccess = hasPIIAccess(Role.SUPER_ADMIN);
+    expect(hasAccess).toBe(true);
+  });
+
+  it("grants PII access to ADMIN", () => {
+    const hasAccess = hasPIIAccess(Role.ADMIN);
+    expect(hasAccess).toBe(true);
+  });
+
+  it("grants PII access to HR_OFFICER sub-role", () => {
+    const hasAccess = hasPIIAccess(Role.TEAM_MEMBER, SubRole.HR_OFFICER);
+    expect(hasAccess).toBe(true);
+  });
+
+  it("denies PII access to FINANCE_OFFICER sub-role", () => {
+    const hasAccess = hasPIIAccess(Role.TEAM_MEMBER, SubRole.FINANCE_OFFICER);
+    expect(hasAccess).toBe(false);
+  });
+
+  it("denies PII access to TEAM_MEMBER without sub-role", () => {
+    const hasAccess = hasPIIAccess(Role.TEAM_MEMBER);
+    expect(hasAccess).toBe(false);
+  });
+
+  it("denies PII access to TECHNICIAN", () => {
+    const hasAccess = hasPIIAccess(Role.TECHNICIAN);
+    expect(hasAccess).toBe(false);
+  });
+
+  it("denies PII access to PROPERTY_MANAGER", () => {
+    const hasAccess = hasPIIAccess(Role.PROPERTY_MANAGER);
+    expect(hasAccess).toBe(false);
+  });
+
+  it("denies PII access to VENDOR", () => {
+    const hasAccess = hasPIIAccess(Role.VENDOR);
+    expect(hasAccess).toBe(false);
+  });
+});
+
+describe("STRICT v4.1 - AI Agent Governance", () => {
+  it("validates agent must have assumed_user_id", () => {
+    const ctxWithoutAssumedUser: ResourceCtx = {
+      orgId: "org-123",
+      plan: Plan.PRO,
+      role: Role.ADMIN,
+      userId: "admin-1",
+      isOrgMember: true,
+      agentId: "agent-copilot-1",
+    };
+
+    const valid = validateAgentAccess(ctxWithoutAssumedUser);
+    expect(valid).toBe(false);
+  });
+
+  it("validates agent with assumed_user_id", () => {
+    const ctxWithAssumedUser: ResourceCtx = {
+      orgId: "org-123",
+      plan: Plan.PRO,
+      role: Role.ADMIN,
+      userId: "admin-1",
+      isOrgMember: true,
+      agentId: "agent-copilot-1",
+      assumedUserId: "admin-1",
+    };
+
+    const valid = validateAgentAccess(ctxWithAssumedUser);
+    expect(valid).toBe(true);
+  });
+
+  it("allows non-agent requests without assumed_user_id", () => {
+    const ctxRegularUser: ResourceCtx = {
+      orgId: "org-123",
+      plan: Plan.PRO,
+      role: Role.ADMIN,
+      userId: "admin-1",
+      isOrgMember: true,
+    };
+
+    const valid = validateAgentAccess(ctxRegularUser);
+    expect(valid).toBe(true);
+  });
+});
+
+describe("STRICT v4.1 - Integration Tests", () => {
+  it("combines sub-role with data scope filter", () => {
+    const ctx: ResourceCtx = {
+      orgId: "org-123",
+      plan: Plan.PRO,
+      role: Role.TEAM_MEMBER,
+      subRole: SubRole.FINANCE_OFFICER,
+      userId: "finance-1",
+      isOrgMember: true,
+    };
+
+    const modules = computeAllowedModules(ctx.role, ctx.subRole);
+    const filter = buildDataScopeFilter(ctx);
+
+    expect(modules).toContain(ModuleKey.FINANCE);
+    expect(filter).toEqual({ org_id: "org-123" });
+  });
+
+  it("combines Property Manager with assigned properties", () => {
+    const ctx: ResourceCtx = {
+      orgId: "org-123",
+      plan: Plan.PRO,
+      role: Role.PROPERTY_MANAGER,
+      userId: "pm-1",
+      isOrgMember: true,
+      assignedProperties: ["prop-A", "prop-B"],
+    };
+
+    const filter = buildDataScopeFilter(ctx);
+    const hasPII = hasPIIAccess(ctx.role);
+
+    expect(filter).toEqual({
+      org_id: "org-123",
+      property_id: { $in: ["prop-A", "prop-B"] },
+    });
+    expect(hasPII).toBe(false);
+  });
+
+  it("validates agent acting as HR Officer", () => {
+    const ctx: ResourceCtx = {
+      orgId: "org-123",
+      plan: Plan.PRO,
+      role: Role.TEAM_MEMBER,
+      subRole: SubRole.HR_OFFICER,
+      userId: "hr-1",
+      isOrgMember: true,
+      agentId: "agent-copilot-1",
+      assumedUserId: "hr-1",
+    };
+
+    const modules = computeAllowedModules(ctx.role, ctx.subRole);
+    const hasPII = hasPIIAccess(ctx.role, ctx.subRole);
+    const agentValid = validateAgentAccess(ctx);
+
+    expect(modules).toContain(ModuleKey.HR);
+    expect(hasPII).toBe(true);
+    expect(agentValid).toBe(true);
+  });
+});
+
+]]>
+</file>
+
+</batch_content>

@@ -1,0 +1,3073 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="tests/unit/i18n/useI18n.test.ts">
+<![CDATA[
+/**
+ * Tests for useI18n hook
+ *
+ * Framework/Libraries:
+ * - Testing framework: Vitest or Jest (aligns with project configuration)
+ * - Utilities: @testing-library/react (renderHook, act)
+ *
+ * These tests validate:
+ * - Context requirement (throws without provider)
+ * - Key lookup with nested dot paths
+ * - Fallback to key for missing or non-string values
+ * - Variable interpolation (strings and numbers, repeated tokens)
+ * - Unknown placeholders remain intact
+ * - t function identity stability with same dict reference and change on new dict reference
+ */
+import React, { PropsWithChildren, useMemo, useState } from "react";
+import { renderHook, act } from "@testing-library/react";
+import { useI18n } from "@/i18n/useI18n";
+import { I18nContext } from "@/i18n/I18nProvider";
+
+import { vi } from "vitest";
+type Dict = Record<string, unknown>;
+
+function TestI18nProvider({
+  children,
+  initialDict,
+  initialLocale = "en",
+}: PropsWithChildren<{ initialDict: Dict; initialLocale?: string }>) {
+  const [dict, setDict] = useState<Dict>(initialDict);
+  const [locale, setLocale] = useState<string>(initialLocale);
+
+  const value = useMemo(
+    () => ({
+      dict,
+      locale,
+      setLocale,
+      // Expose a testing-only setter via context cast if needed by consumers in future
+      // but keep it out of the public shape used in production.
+    }),
+    [dict, locale],
+  );
+
+  // For tests that need to update dict, expose a portal on window (scoped) to update it.
+  // Safer approach: return a wrapper factory with external setter; we'll prefer wrapperProps pattern instead.
+  return React.createElement(
+    I18nContext.Provider,
+    { value: value as any },
+    children,
+  );
+}
+
+describe("useI18n", () => {
+  it("throws if used without I18nProvider", () => {
+    // Suppress console error from React error boundary
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(() => renderHook(() => useI18n())).toThrow(
+      "useI18n must be used within <I18nProvider />",
+    );
+    spy.mockRestore();
+  });
+
+  it("returns provided dict via context and a t function", () => {
+    const dict = { greeting: "Hello" };
+    const wrapper: React.FC<PropsWithChildren> = ({ children }) =>
+      React.createElement(
+        I18nContext.Provider,
+        { value: { dict, locale: "en", setLocale: () => {} } as any },
+        children,
+      );
+    const { result } = renderHook(() => useI18n(), { wrapper });
+    expect(result.current.t).toBeInstanceOf(Function);
+    expect(result.current.dict).toBe(dict);
+    expect(result.current.locale).toBe("en");
+  });
+
+  it("resolves simple keys and nested dot-path keys", () => {
+    const dict = {
+      hello: "Hello",
+      nested: { deep: { value: "Deep Value" } },
+    };
+    const wrapper: React.FC<PropsWithChildren> = ({ children }) =>
+      React.createElement(
+        I18nContext.Provider,
+        { value: { dict, locale: "en", setLocale: () => {} } as any },
+        children,
+      );
+    const { result } = renderHook(() => useI18n(), { wrapper });
+
+    expect(result.current.t("hello")).toBe("Hello");
+    expect(result.current.t("nested.deep.value")).toBe("Deep Value");
+  });
+
+  it("falls back to key when missing in dict", () => {
+    const dict = { hello: "Hello" };
+    const wrapper: React.FC<PropsWithChildren> = ({ children }) =>
+      React.createElement(
+        I18nContext.Provider,
+        { value: { dict, locale: "en", setLocale: () => {} } as any },
+        children,
+      );
+    const { result } = renderHook(() => useI18n(), { wrapper });
+
+    expect(result.current.t("missing.key")).toBe("missing.key");
+  });
+
+  it("falls back to key when the resolved value is not a string (e.g., object, number, boolean)", () => {
+    const dict = {
+      obj: { nested: { a: 1 } },
+      num: 42,
+      bool: true,
+    };
+    const wrapper: React.FC<PropsWithChildren> = ({ children }) =>
+      React.createElement(
+        I18nContext.Provider,
+        { value: { dict, locale: "en", setLocale: () => {} } as any },
+        children,
+      );
+    const { result } = renderHook(() => useI18n(), { wrapper });
+
+    expect(result.current.t("obj")).toBe("obj");
+    expect(result.current.t("num")).toBe("num");
+    expect(result.current.t("bool")).toBe("bool");
+  });
+
+  it("returns the raw string when no interpolation vars are provided", () => {
+    const dict = { welcome: "Welcome, {name}!" };
+    const wrapper: React.FC<PropsWithChildren> = ({ children }) =>
+      React.createElement(
+        I18nContext.Provider,
+        { value: { dict, locale: "en", setLocale: () => {} } as any },
+        children,
+      );
+    const { result } = renderHook(() => useI18n(), { wrapper });
+
+    expect(result.current.t("welcome")).toBe("Welcome, {name}!");
+  });
+
+  it("interpolates provided variables (strings and numbers), including repeated tokens", () => {
+    const dict = {
+      greet: "Hello, {name}! You have {count} message(s). Bye, {name}.",
+    };
+    const wrapper: React.FC<PropsWithChildren> = ({ children }) =>
+      React.createElement(
+        I18nContext.Provider,
+        { value: { dict, locale: "en", setLocale: () => {} } as any },
+        children,
+      );
+    const { result } = renderHook(() => useI18n(), { wrapper });
+
+    expect(result.current.t("greet", { name: "Alice", count: 3 })).toBe(
+      "Hello, Alice! You have 3 message(s). Bye, Alice.",
+    );
+  });
+
+  it("leaves unknown placeholders intact when vars do not provide a value", () => {
+    const dict = { msg: "Hi {name}, your {thing} is ready." };
+    const wrapper: React.FC<PropsWithChildren> = ({ children }) =>
+      React.createElement(
+        I18nContext.Provider,
+        { value: { dict, locale: "en", setLocale: () => {} } as any },
+        children,
+      );
+    const { result } = renderHook(() => useI18n(), { wrapper });
+
+    expect(result.current.t("msg", { name: "Bob" })).toBe(
+      "Hi Bob, your {thing} is ready.",
+    );
+  });
+
+  it("coerces non-string interpolation values using String()", () => {
+    const dict = { msg: "Value: {val}" };
+    const wrapper: React.FC<PropsWithChildren> = ({ children }) =>
+      React.createElement(
+        I18nContext.Provider,
+        { value: { dict, locale: "en", setLocale: () => {} } as any },
+        children,
+      );
+    const { result } = renderHook(() => useI18n(), { wrapper });
+
+    expect(result.current.t("msg", { val: 0 })).toBe("Value: 0");
+    expect(result.current.t("msg", { val: null as unknown as number })).toBe(
+      "Value: null",
+    );
+    expect(
+      result.current.t("msg", { val: undefined as unknown as number }),
+    ).toBe("Value: undefined");
+    expect(
+      result.current.t("msg", { val: { a: 1 } as unknown as number }),
+    ).toBe("Value: [object Object]");
+  });
+
+  // This test validates the critical useCallback memoization fix
+  // The useCallback with [dict] dependency ensures t function stability
+  it("t function identity is stable when dict reference is unchanged, and changes when dict reference updates", () => {
+    const initialDict = { a: "A" };
+    let dictRef = initialDict;
+
+    // Wrapper that reads from dictRef closure
+    const Wrapper: React.FC<PropsWithChildren> = ({ children }) => {
+      const [, forceUpdate] = useState(0);
+
+      // Expose forceUpdate on wrapper for test control
+      React.useEffect(() => {
+        (Wrapper as any)._forceUpdate = () => forceUpdate((n) => n + 1);
+      }, []);
+
+      const value = useMemo(
+        () => ({
+          dict: dictRef,
+          locale: "en" as const,
+          dir: "ltr" as const,
+          setLocale: () => {},
+        }),
+        [dictRef],
+      );
+
+      return React.createElement(
+        I18nContext.Provider,
+        { value: value as any },
+        children,
+      );
+    };
+
+    const { result, rerender } = renderHook(() => useI18n(), {
+      wrapper: Wrapper,
+    });
+
+    const t1 = result.current.t;
+
+    // Rerender with same dict reference: t function identity should be stable
+    rerender();
+    const t2 = result.current.t;
+    expect(t2).toBe(t1);
+
+    // Multiple rerenders with same dict: still stable
+    rerender();
+    rerender();
+    const t3 = result.current.t;
+    expect(t3).toBe(t1);
+
+    // Change to a new dict reference
+    const newDict = { a: "Alpha" };
+    dictRef = newDict;
+
+    // Force wrapper to re-render with new dict
+    if ((Wrapper as any)._forceUpdate) {
+      act(() => {
+        (Wrapper as any)._forceUpdate();
+      });
+    }
+    rerender();
+
+    const t4 = result.current.t;
+
+    // New dict reference should create new t function
+    expect(t4).not.toBe(t1);
+
+    // Validate new dict is used
+    expect(result.current.t("a")).toBe("Alpha");
+
+    // But subsequent rerenders with same new dict should be stable
+    rerender();
+    const t5 = result.current.t;
+    expect(t5).toBe(t4);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/marketplace/context.test.ts">
+<![CDATA[
+import { describe, expect, it, beforeEach, vi } from "vitest";
+import { NextRequest } from "next/server";
+import { jwtVerify } from "jose";
+import { resolveMarketplaceContext } from "@/lib/marketplace/context";
+
+vi.mock("jose", () => ({
+  jwtVerify: vi.fn(),
+}));
+vi.mock("next/headers", () => ({
+  headers: () => ({
+    get: (_key: string) => undefined,
+  }),
+}));
+vi.mock("next/cookies", () => ({
+  cookies: () => ({
+    get: (_key: string) => undefined,
+  }),
+}));
+
+describe("resolveMarketplaceContext", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.MARKETPLACE_PUBLIC_ORGS = "";
+    process.env.MARKETPLACE_DEFAULT_TENANT = "";
+    process.env.JWT_SECRET = "test-secret";
+    (jwtVerify as unknown as vi.Mock).mockReset();
+  });
+
+  it("denies unauthenticated headers when allowlist is empty", async () => {
+    const req = new NextRequest("http://localhost/api", {
+      headers: { "x-org-id": "org-123" },
+    });
+    const ctx = await resolveMarketplaceContext(req);
+    expect(ctx.tenantKey).toBe("__unauthorized__");
+    expect(ctx.orgId.toString()).toBe("000000000000000000000000");
+  });
+
+  it("allows unauthenticated when org is allowlisted", async () => {
+    const allowOrg = "507f191e810c19729de860ea";
+    process.env.MARKETPLACE_PUBLIC_ORGS = allowOrg;
+    const req = new NextRequest("http://localhost/api", {
+      headers: { "x-org-id": allowOrg },
+    });
+    const ctx = await resolveMarketplaceContext(req);
+    expect(ctx.tenantKey).toBe(allowOrg);
+    expect(ctx.orgId.toString()).toBe(allowOrg);
+  });
+
+  it("prioritizes token org over headers even when allowlist empty", async () => {
+    (jwtVerify as unknown as vi.Mock).mockResolvedValueOnce({
+      payload: {
+        orgId: "507f191e810c19729de860ea",
+        tenantId: "507f191e810c19729de860eb",
+        id: "507f191e810c19729de860ec",
+      },
+    });
+    const req = new NextRequest("http://localhost/api", {
+      headers: { "x-org-id": "different-org", cookie: "fixzit_auth=fake" },
+    });
+    const ctx = await resolveMarketplaceContext(req);
+    expect(ctx.orgId.toString()).toBe("507f191e810c19729de860ea");
+    expect(ctx.tenantKey).toBe("507f191e810c19729de860eb");
+    expect(ctx.userId?.toString()).toBe("507f191e810c19729de860ec");
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/middleware.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { NextRequest, NextResponse } from 'next/server';
+import { middleware, sanitizeIncomingHeaders } from '../../middleware';
+import { generateToken } from '../../lib/auth';
+
+// Mock NextAuth - middleware uses dynamic import of @/auth
+vi.mock('@/auth', () => ({
+  auth: (
+    handler: (ctx: { auth: { user: { id: string; email: string; role: string; orgId: string } } | null }) => Promise<Response | NextResponse>
+  ) => {
+    return async (request: NextRequest) => {
+      // Extract token from cookies to determine if user is authenticated
+      const token = request.cookies.get('fixzit_auth')?.value;
+      if (!token) {
+        return handler({ auth: null });
+      }
+      
+      // Validate token format - reject malformed or obviously invalid tokens
+      if (token === 'invalid-token' || 
+          token === 'malformed' || 
+          token === 'malformed.jwt.token' ||
+          token.startsWith('malformed') ||
+          token.length < 10) {
+        return handler({ auth: null });
+      }
+      
+      // For tests with valid tokens, return mock user
+      // In production, NextAuth validates the token
+      return handler({
+        auth: {
+          user: {
+            id: '123',
+            email: 'test@example.com',
+            role: 'EMPLOYEE',
+            orgId: 'org1',
+          }
+        }
+      });
+    };
+  },
+}));
+
+// Mock environment variables
+const mockEnv = {
+  JWT_SECRET: 'test-secret-key-for-testing-only',
+  CSRF_PROTECTION: 'true',  // Enable CSRF protection for tests
+  NODE_ENV: 'test',
+  API_PROTECT_ALL: 'true',
+  PLAYWRIGHT_TESTS: 'false',
+  VITEST: 'true',
+};
+
+describe('Middleware', () => {
+  beforeEach(() => {
+    // Reset environment
+    process.env = { ...process.env, ...mockEnv };
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const createMockRequest = (
+    url: string,
+    cookies?: Record<string, string>,
+    headers?: Record<string, string>,
+    method: string = 'GET'
+  ): NextRequest => {
+    const headerObj = new Headers(headers || {});
+    if (cookies && Object.keys(cookies).length > 0) {
+      const cookieHeader = Object.entries(cookies)
+        .map(([k, v]) => `${k}=${v}`)
+        .join('; ');
+      headerObj.set('cookie', cookieHeader);
+    }
+    return new NextRequest(`http://localhost:3000${url}`, {
+      headers: headerObj,
+      method,
+    });
+  };
+
+  // Helper to create valid JWT tokens for testing
+  const makeToken = async (payload: { id: string; email: string; role: string; orgId: string }): Promise<string> => {
+    return await generateToken(payload);
+  };
+
+  describe('Public Routes', () => {
+    it('should allow access to /login without authentication', async () => {
+      const request = createMockRequest('/login');
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+      if (response) expect(response.status).toBe(200);
+    });
+
+    it('should allow access to /register without authentication', async () => {
+      const request = createMockRequest('/register');
+      const response = await middleware(request);
+      
+      // /register is not in public routes, so it returns Response
+      expect(response).toBeInstanceOf(Response);
+    });
+
+    it('should allow access to /forgot-password without authentication', async () => {
+      const request = createMockRequest('/forgot-password');
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+      if (response) expect(response.status).toBe(200);
+    });
+
+    it('should allow access to landing page (/) without authentication', async () => {
+      const request = createMockRequest('/');
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+      if (response) expect(response.status).toBe(200);
+    });
+
+    it('should allow access to /api/auth/* endpoints without authentication', async () => {
+      const request = createMockRequest('/api/auth/login');
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+      if (response) expect(response.status).toBe(200);
+    });
+  });
+
+  describe('Protected Routes - Authentication', () => {
+    it('should redirect to /login when accessing /fm/dashboard without token', async () => {
+      const request = createMockRequest('/fm/dashboard');
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+      expect(response?.headers.get('location')).toContain('/login');
+    });
+
+    it('should redirect to /login when accessing /fm/work-orders without token', async () => {
+      const request = createMockRequest('/fm/work-orders');
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+      expect(response?.headers.get('location')).toContain('/login');
+    });
+
+    it('should allow access to /fm/dashboard with valid token', async () => {
+      const token = await makeToken({
+        id: '123',
+        email: 'test@example.com',
+        role: 'EMPLOYEE',
+        orgId: 'org1',
+      });
+
+      const request = createMockRequest('/fm/dashboard', {
+        fixzit_auth: token,
+      });
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+    });
+
+    it('sanitizes attacker-supplied identity headers before processing', async () => {
+      const token = await makeToken({
+        id: '123',
+        email: 'test@example.com',
+        role: 'EMPLOYEE',
+        orgId: 'org1',
+      });
+
+      const request = createMockRequest(
+        '/fm/dashboard',
+        { fixzit_auth: token },
+        { 'x-user': 'evil', 'x-org-id': 'attacker-org' },
+        'GET',
+      );
+
+      const sanitized = sanitizeIncomingHeaders(request);
+      expect(sanitized.get('x-user')).toBeNull();
+      expect(sanitized.get('x-org-id')).toBeNull();
+      expect(sanitized.get('x-impersonated-org-id')).toBeNull();
+    });
+
+    it('should redirect to /login when token is invalid', async () => {
+      const request = createMockRequest('/fm/dashboard', {
+        fixzit_auth: 'invalid-token',
+      });
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+      expect(response?.headers.get('location')).toContain('/login');
+    });
+
+    it('should redirect to /login when token is malformed', async () => {
+      const request = createMockRequest('/fm/dashboard', {
+        fixzit_auth: 'malformed.jwt.token',
+      });
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+      expect(response?.headers.get('location')).toContain('/login');
+    });
+  });
+
+  describe('Role-Based Access Control (RBAC)', () => {
+    it('should allow SUPER_ADMIN to access /admin routes', async () => {
+      const token = await makeToken({
+        id: '123',
+        email: 'admin@example.com',
+        role: 'SUPER_ADMIN',
+        orgId: 'org1',
+      });
+
+      const request = createMockRequest('/admin/users', {
+        fixzit_auth: token,
+      });
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+    });
+
+    it('should block non-admin from accessing /admin routes', async () => {
+      const token = await makeToken({
+        id: '123',
+        email: 'user@example.com',
+        role: 'EMPLOYEE',
+        orgId: 'org1',
+      });
+
+      const request = createMockRequest('/admin/users', {
+        fixzit_auth: token,
+      });
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+      expect(response?.headers.get('location')).toContain('/login');
+    });
+
+    it('should allow EMPLOYEE to access /fm/work-orders', async () => {
+      const token = await makeToken({
+        id: '123',
+        email: 'pm@example.com',
+        role: 'EMPLOYEE',
+        orgId: 'org1',
+      });
+
+      const request = createMockRequest('/fm/work-orders', {
+        fixzit_auth: token,
+      });
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+    });
+
+    it('should allow TECHNICIAN to access /fm/work-orders', async () => {
+      const token = await makeToken({
+        id: '123',
+        email: 'tech@example.com',
+        role: 'TECHNICIAN',
+        orgId: 'org1',
+      });
+
+      const request = createMockRequest('/fm/work-orders', {
+        fixzit_auth: token,
+      });
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+    });
+  });
+
+  describe('API Route Protection', () => {
+    it('should protect /api/work-orders with authentication', async () => {
+      const request = createMockRequest('/api/work-orders');
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+      expect(response?.status).toBe(401); // Unauthorized
+    });
+
+    it('should allow authenticated API access', async () => {
+      const token = await makeToken({
+        id: '123',
+        email: 'test@example.com',
+        role: 'EMPLOYEE',
+        orgId: 'org1',
+      });
+
+      const request = createMockRequest('/api/work-orders', {
+        fixzit_auth: token,
+      });
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+    });
+
+    it('should return 401 for /api routes without token', async () => {
+      const request = createMockRequest('/api/users/profile');
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+      expect(response?.status).toBe(401);
+    });
+  });
+
+  describe('Marketplace Routes', () => {
+    it('should allow access to /marketplace without authentication', async () => {
+      const request = createMockRequest('/marketplace');
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+    });
+
+    it('should allow access to /souq without authentication', async () => {
+      const request = createMockRequest('/souq');
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+    });
+
+    it('should protect /souq/checkout with authentication', async () => {
+      const request = createMockRequest('/souq/checkout');
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+      if (response && response.headers.get('location')) {
+        expect(response.headers.get('location')).toContain('/login');
+      }
+    });
+  });
+
+  describe('Static Assets and Special Routes', () => {
+    it('should skip middleware for /_next/* routes', async () => {
+      const request = createMockRequest('/_next/static/chunk.js');
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+    });
+
+    it('should skip middleware for /api/health check', async () => {
+      const request = createMockRequest('/api/health');
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+    });
+
+    it('should skip middleware for /favicon.ico', async () => {
+      const request = createMockRequest('/favicon.ico');
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+    });
+  });
+
+  describe('Redirect Behavior', () => {
+    it('should preserve query parameters when redirecting to login', async () => {
+      const request = createMockRequest('/fm/dashboard?tab=workorders&filter=active');
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+      expect(response?.headers.get('location')).toContain('/login');
+    });
+
+    it('should allow authenticated users to access /login without redirect', async () => {
+      const token = await makeToken({
+        id: '123',
+        email: 'test@example.com',
+        role: 'EMPLOYEE',
+        orgId: 'org1',
+      });
+
+      const request = createMockRequest('/login', {
+        fixzit_auth: token,
+      });
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+    });
+  });
+
+  describe('JWT Validation Edge Cases', () => {
+    it('should handle malformed JWT gracefully', async () => {
+      const request = createMockRequest('/fm/dashboard', {
+        fixzit_auth: 'malformed.jwt.token',
+      });
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+      expect(response?.headers.get('location')).toContain('/login');
+    });
+
+    it('should handle missing JWT_SECRET gracefully', async () => {
+      delete process.env.JWT_SECRET;
+
+      const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjEyMyIsImVtYWlsIjoidGVzdEBleGFtcGxlLmNvbSIsInJvbGUiOiJFTVBMT1lFRSIsIm9yZ0lkIjoib3JnMSJ9.invalid';
+      const request = createMockRequest('/fm/dashboard', {
+        fixzit_auth: token,
+      });
+      const response = await middleware(request);
+      
+      expect(response).toBeInstanceOf(Response);
+      if (response && response.headers.get('location')) {
+        expect(response.headers.get('location')).toContain('/login');
+      }
+    });
+
+    it('should allow valid JWT to proceed without errors', async () => {
+      const token = await makeToken({
+        id: '123',
+        email: 'test@example.com',
+        role: 'EMPLOYEE',
+        orgId: 'org1',
+      });
+
+      const request = createMockRequest('/fm/dashboard', {
+        fixzit_auth: token,
+      });
+      const response = await middleware(request);
+      
+      // Middleware allows request to proceed when JWT is valid
+      expect(response).toBeInstanceOf(Response);
+    });
+  });
+
+  describe('CSRF Protection', () => {
+    const validCsrfToken = 'valid-csrf-token-12345';
+
+    describe('Safe Methods (GET, HEAD, OPTIONS)', () => {
+      it('should allow GET requests without CSRF token', async () => {
+        const request = createMockRequest('/api/work-orders', {}, {}, 'GET');
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+        // GET requests should not be blocked by CSRF
+        // They may still be blocked by auth, but that's a different concern
+      });
+
+      it('should allow HEAD requests without CSRF token', async () => {
+        const request = createMockRequest('/api/work-orders', {}, {}, 'HEAD');
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+      });
+
+      it('should allow OPTIONS requests without CSRF token', async () => {
+        const request = createMockRequest('/api/work-orders', {}, {}, 'OPTIONS');
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+      });
+    });
+
+    describe('State-Changing Methods (POST, PUT, DELETE, PATCH)', () => {
+      it('should reject POST without X-CSRF-Token header', async () => {
+        const token = await makeToken({
+          id: '123',
+          email: 'test@example.com',
+          role: 'EMPLOYEE',
+          orgId: 'org1',
+        });
+
+        const request = createMockRequest(
+          '/api/work-orders',
+          { fixzit_auth: token },
+          {}, // No CSRF header
+          'POST'
+        );
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+        // Should be 403 Forbidden for missing CSRF
+        expect(response?.status).toBe(403);
+      });
+
+      it('should reject POST with mismatched CSRF tokens', async () => {
+        const token = await makeToken({
+          id: '123',
+          email: 'test@example.com',
+          role: 'EMPLOYEE',
+          orgId: 'org1',
+        });
+
+        const request = createMockRequest(
+          '/api/work-orders',
+          { 
+            fixzit_auth: token,
+            'csrf-token': validCsrfToken  // Cookie token
+          },
+          { 'X-CSRF-Token': 'different-token' },  // Header token (mismatched)
+          'POST'
+        );
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+        expect(response?.status).toBe(403);
+      });
+
+      it('should reject PUT without CSRF token', async () => {
+        const token = await makeToken({
+          id: '123',
+          email: 'test@example.com',
+          role: 'EMPLOYEE',
+          orgId: 'org1',
+        });
+
+        const request = createMockRequest(
+          '/api/work-orders/123',
+          { fixzit_auth: token },
+          {},
+          'PUT'
+        );
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+        expect(response?.status).toBe(403);
+      });
+
+      it('should reject DELETE without CSRF token', async () => {
+        const token = await makeToken({
+          id: '123',
+          email: 'test@example.com',
+          role: 'EMPLOYEE',
+          orgId: 'org1',
+        });
+
+        const request = createMockRequest(
+          '/api/work-orders/123',
+          { fixzit_auth: token },
+          {},
+          'DELETE'
+        );
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+        expect(response?.status).toBe(403);
+      });
+
+      it('should reject PATCH without CSRF token', async () => {
+        const token = await makeToken({
+          id: '123',
+          email: 'test@example.com',
+          role: 'EMPLOYEE',
+          orgId: 'org1',
+        });
+
+        const request = createMockRequest(
+          '/api/work-orders/123',
+          { fixzit_auth: token },
+          {},
+          'PATCH'
+        );
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+        expect(response?.status).toBe(403);
+      });
+
+      it('should allow POST with valid matching CSRF tokens', async () => {
+        const token = await makeToken({
+          id: '123',
+          email: 'test@example.com',
+          role: 'EMPLOYEE',
+          orgId: 'org1',
+        });
+
+        const request = createMockRequest(
+          '/api/work-orders',
+          { 
+            fixzit_auth: token,
+            'csrf-token': validCsrfToken  // Cookie token
+          },
+          { 'X-CSRF-Token': validCsrfToken },  // Header token (matching)
+          'POST'
+        );
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+        // Should NOT be 403 - CSRF validation passed
+        // May still be blocked by other auth issues, but not CSRF
+        expect(response?.status).not.toBe(403);
+      });
+
+      it('should accept lowercase x-csrf-token header', async () => {
+        const token = await makeToken({
+          id: '123',
+          email: 'test@example.com',
+          role: 'EMPLOYEE',
+          orgId: 'org1',
+        });
+
+        const request = createMockRequest(
+          '/api/work-orders',
+          { 
+            fixzit_auth: token,
+            'csrf-token': validCsrfToken
+          },
+          { 'x-csrf-token': validCsrfToken },  // Lowercase header
+          'POST'
+        );
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+        // Should pass CSRF validation
+        expect(response?.status).not.toBe(403);
+      });
+    });
+
+    describe('CSRF Exempt Routes', () => {
+      it('should bypass CSRF for /api/auth routes', async () => {
+        const request = createMockRequest(
+          '/api/auth/signin',
+          {},
+          {},
+          'POST'
+        );
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+        // Should not be blocked by CSRF (auth routes handle their own CSRF)
+        expect(response?.status).not.toBe(403);
+      });
+
+      it('should bypass CSRF for /api/webhooks routes', async () => {
+        const request = createMockRequest(
+          '/api/webhooks/stripe',
+          {},
+          {},
+          'POST'
+        );
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+        // Webhooks use signature verification instead of CSRF
+        expect(response?.status).not.toBe(403);
+      });
+
+      it('should bypass CSRF for /api/health endpoint', async () => {
+        const request = createMockRequest(
+          '/api/health',
+          {},
+          {},
+          'POST'
+        );
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+        // Health checks don't change state
+        expect(response?.status).not.toBe(403);
+      });
+
+      it('should bypass CSRF for /api/copilot routes', async () => {
+        const request = createMockRequest(
+          '/api/copilot/chat',
+          {},
+          {},
+          'POST'
+        );
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+        // Copilot uses separate auth mechanism
+        expect(response?.status).not.toBe(403);
+      });
+    });
+
+    describe('CSRF Protection Toggle', () => {
+      it('should respect CSRF_PROTECTION=false environment variable', async () => {
+        // Disable CSRF protection
+        process.env.CSRF_PROTECTION = 'false';
+
+        const token = await makeToken({
+          id: '123',
+          email: 'test@example.com',
+          role: 'EMPLOYEE',
+          orgId: 'org1',
+        });
+
+        const request = createMockRequest(
+          '/api/work-orders',
+          { fixzit_auth: token },
+          {},  // No CSRF token
+          'POST'
+        );
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+        // Should not be blocked by CSRF when disabled
+        // Note: In real implementation, check if middleware respects this env var
+      });
+    });
+
+    describe('CSRF Error Responses', () => {
+      it('should return proper error message for missing CSRF token', async () => {
+        const token = await makeToken({
+          id: '123',
+          email: 'test@example.com',
+          role: 'EMPLOYEE',
+          orgId: 'org1',
+        });
+
+        const request = createMockRequest(
+          '/api/work-orders',
+          { fixzit_auth: token },
+          {},
+          'POST'
+        );
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+        if (response?.status === 403) {
+          const body = await response.json();
+          expect(body).toHaveProperty('error');
+          expect(body.error).toMatch(/csrf/i);
+        }
+      });
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/nav/registry.test.ts">
+<![CDATA[
+/**
+ * 🔒 SECURITY TEST: nav/registry.ts GUEST role authorization
+ *
+ * Verifies that GUEST role does NOT have access to dashboard or other privileged modules
+ * Only SUPPORT access should be granted to GUEST role
+ */
+
+import { describe, it, expect } from "vitest";
+import { modules } from "@/nav/registry";
+
+describe("🔒 SECURITY: nav/registry.ts - GUEST Role Authorization", () => {
+  it("should NOT grant GUEST access to dashboard", () => {
+    const dashboardModule = modules.find((m) => m.id === "dashboard");
+    expect(dashboardModule).toBeDefined();
+    expect(dashboardModule!.roles).not.toContain("GUEST");
+  });
+
+  it("should NOT grant GUEST access to work-orders", () => {
+    const workOrdersModule = modules.find((m) => m.id === "work-orders");
+    expect(workOrdersModule).toBeDefined();
+    expect(workOrdersModule!.roles).not.toContain("GUEST");
+  });
+
+  it("should NOT grant GUEST access to properties", () => {
+    const propertiesModule = modules.find((m) => m.id === "properties");
+    expect(propertiesModule).toBeDefined();
+    expect(propertiesModule!.roles).not.toContain("GUEST");
+  });
+
+  it("should NOT grant GUEST access to finance", () => {
+    const financeModule = modules.find((m) => m.id === "finance");
+    expect(financeModule).toBeDefined();
+    expect(financeModule!.roles).not.toContain("GUEST");
+  });
+
+  it("should NOT grant GUEST access to hr", () => {
+    const hrModule = modules.find((m) => m.id === "hr");
+    expect(hrModule).toBeDefined();
+    expect(hrModule!.roles).not.toContain("GUEST");
+  });
+
+  it("should NOT grant GUEST access to administration", () => {
+    const administrationModule = modules.find((m) => m.id === "administration");
+    expect(administrationModule).toBeDefined();
+    expect(administrationModule!.roles).not.toContain("GUEST");
+  });
+
+  it("should ONLY grant GUEST access to support-related modules", () => {
+    const guestModules = modules.filter((m) => m.roles.includes("GUEST"));
+
+    // GUEST should have very limited access
+    expect(guestModules.length).toBeLessThanOrEqual(2); // support and maybe one more public module
+
+    // If GUEST has any access, it should be to support-related modules only
+    guestModules.forEach((module) => {
+      const isSupport =
+        module.id.includes("support") || module.id.includes("help");
+      const isPublic =
+        module.id.includes("marketplace") || module.id.includes("public");
+      expect(isSupport || isPublic).toBe(true);
+    });
+  });
+
+  it("should grant proper access to TENANT role", () => {
+    const dashboardModule = modules.find((m) => m.id === "dashboard");
+    expect(dashboardModule!.roles).toContain("TENANT");
+  });
+
+  it("should grant proper access to VENDOR role", () => {
+    const dashboardModule = modules.find((m) => m.id === "dashboard");
+    expect(dashboardModule!.roles).toContain("VENDOR");
+  });
+
+  it("should grant proper access to TECHNICIAN role", () => {
+    const dashboardModule = modules.find((m) => m.id === "dashboard");
+    expect(dashboardModule!.roles).toContain("TECHNICIAN");
+  });
+
+  it("should maintain principle of least privilege", () => {
+    // Dashboard should not be accessible to guests (principle of least privilege)
+    const dashboardModule = modules.find((m) => m.id === "dashboard");
+    const hasGuestAccess = dashboardModule?.roles.includes("GUEST");
+
+    expect(hasGuestAccess).toBe(false);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/parseCartAmount.test.ts">
+<![CDATA[
+import { describe, test, expect } from "vitest";
+import { parseCartAmount } from "@/lib/payments/parseCartAmount";
+
+test("accepts numeric input", () => {
+  expect(parseCartAmount(249.99)).toBe(249.99);
+  expect(parseCartAmount(0)).toBe(0);
+});
+
+test("parses decimal strings with dot separators", () => {
+  expect(parseCartAmount(" 147.25 ")).toBe(147.25);
+  expect(parseCartAmount("-42.5")).toBe(-42.5);
+});
+
+test("parses values with grouping commas", () => {
+  expect(parseCartAmount("1,234.56")).toBe(1234.56);
+  expect(parseCartAmount("12,345")).toBe(12345);
+});
+
+test("parses values with european decimal comma", () => {
+  expect(parseCartAmount("1.234,56")).toBe(1234.56);
+  expect(parseCartAmount("1234,5")).toBe(1234.5);
+});
+
+test("rejects malformed inputs", () => {
+  expect(parseCartAmount("")).toBe(0);
+  expect(parseCartAmount("  ")).toBe(0);
+  expect(parseCartAmount("abc")).toBe(0);
+  expect(parseCartAmount("12.34.56")).toBe(0);
+  expect(parseCartAmount("1,2,3")).toBe(0);
+  expect(parseCartAmount(null as any)).toBe(0);
+  expect(parseCartAmount(undefined as any)).toBe(0);
+});
+
+test("rejects non-finite numbers", () => {
+  expect(parseCartAmount(Infinity)).toBe(0);
+  expect(parseCartAmount(NaN)).toBe(0);
+  expect(parseCartAmount("NaN")).toBe(0);
+});
+
+test("parses values with currency markers", () => {
+  expect(parseCartAmount("SAR\u00A01,234.50")).toBe(1234.5);
+  expect(parseCartAmount("1\u00A0234,50\u00A0SAR")).toBe(1234.5);
+  expect(parseCartAmount("د.إ.‏1,234.50")).toBe(1234.5);
+});
+
+]]>
+</file>
+
+<file path="tests/unit/providers/Providers.test.tsx">
+<![CDATA[
+import { vi, beforeAll, afterAll, describe, test, expect, beforeEach, afterEach } from 'vitest';
+/**
+ * Test framework: Vitest with React Testing Library (RTL) + JSDOM
+ * If this project uses Vitest, replace jest import aliases with vitest and keep RTL usage.
+ */
+import React from 'react';
+import { render, screen, act } from '@testing-library/react';
+import Providers from '@/providers/Providers';
+
+// Silence console.error during ErrorBoundary test (intentional "Boom" error)
+let consoleErrorSpy: ReturnType<typeof vi.spyOn<typeof console, 'error'>> | undefined;
+beforeAll(() => {
+  consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+});
+afterAll(() => {
+  consoleErrorSpy?.mockRestore();
+});
+
+// Mock all nested providers to isolate Providers behavior.
+// Actual nesting order: SessionProvider → I18nProvider → TranslationProvider → ResponsiveProvider → CurrencyProvider → ThemeProvider → TopBarProvider → ErrorBoundary → FormStateProvider
+
+vi.mock('next-auth/react', () => ({
+  SessionProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="session-provider">{children}</div>
+  ),
+}));
+
+vi.mock('@/i18n/I18nProvider', () => ({
+  I18nProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="i18n-provider">{children}</div>
+  ),
+}));
+
+vi.mock('@/contexts/TranslationContext', () => ({
+  TranslationProvider: ({ children, initialLocale }: { children: React.ReactNode; initialLocale?: string }) => (
+    <div data-testid="translation-provider" data-locale={initialLocale || ''}>{children}</div>
+  ),
+}));
+
+vi.mock('@/contexts/ResponsiveContext', () => ({
+  ResponsiveProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="responsive-provider">{children}</div>
+  ),
+}));
+
+vi.mock('@/contexts/CurrencyContext', () => ({
+  CurrencyProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="currency-provider">{children}</div>
+  ),
+}));
+
+vi.mock('@/contexts/ThemeContext', () => ({
+  ThemeProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="theme-provider">{children}</div>
+  ),
+}));
+
+vi.mock('@/contexts/TopBarContext', () => ({
+  TopBarProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="topbar-provider">{children}</div>
+  ),
+}));
+
+vi.mock('@/contexts/FormStateContext', () => ({
+  FormStateProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="formstate-provider">{children}</div>
+  ),
+}));
+
+// ErrorBoundary should render children in happy path; errors tested via throw
+const ConsoleError = console.error;
+beforeAll(() => {
+  // Silence expected error boundary logs in tests that trigger errors
+  console.error = (...args: Parameters<typeof console.error>) => {
+    const msg = args[0];
+    if (typeof msg === 'string' && (msg.includes('ErrorBoundary') || msg.includes('The above error'))) {
+      return;
+    }
+    return ConsoleError(...args);
+  };
+});
+afterAll(() => {
+  console.error = ConsoleError;
+});
+
+vi.mock('@/components/ErrorBoundary', () => {
+  const React = require('react');
+  const Fallback = ({ error }: { error?: Error }) => (
+    <div role="alert" data-testid="error-fallback">
+      {error ? `Error: ${error.message}` : 'Error occurred'}
+    </div>
+  );
+  class MockErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error?: Error }> {
+    constructor(props: { children: React.ReactNode }) {
+      super(props);
+      this.state = { hasError: false, error: undefined };
+    }
+    static getDerivedStateFromError(error: Error) {
+      return { hasError: true, error };
+    }
+    componentDidCatch() {}
+    render() {
+      if (this.state.hasError) {
+        return <Fallback error={this.state.error} />;
+      }
+      return <div data-testid="error-boundary">{this.props.children}</div>;
+    }
+  }
+  return { __esModule: true, default: MockErrorBoundary };
+});
+
+// Utility component to simulate rendering children and optionally throw
+function Child({ label = 'Child', shouldThrow = false }: { label?: string; shouldThrow?: boolean }) {
+  if (shouldThrow) {
+    throw new Error('Boom');
+  }
+  return <div data-testid="child">{label}</div>;
+}
+
+describe('Providers', () => {
+  // The Providers component sets isClient in useEffect, so the first paint may show a loading UI.
+  // In RTL with JSDOM and Vitest fake timers, we can advance effects to move past initial non-client render.
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.runOnlyPendingTimers();
+    vi.useRealTimers();
+  });
+
+  test('renders loading UI before client hydration', async () => {
+    // Note: In jsdom/vitest, useEffect runs synchronously after first render
+    // so we can't actually test the "loading" state in this environment
+    // This test documents the expected behavior even though we can't verify it in tests
+    await act(async () => {
+      render(
+        <Providers>
+          <Child />
+        </Providers>
+      );
+    });
+
+    // In a real browser, loading UI would be visible before useEffect runs
+    // But in jsdom, useEffect is synchronous, so isClient is already true
+    vi.runAllTimers();
+    
+    // Verify providers are rendered (which means isClient is true)
+    expect(screen.getByTestId('session-provider')).toBeInTheDocument();
+  });
+
+  test('renders children after client hydration and nests providers correctly (happy path)', async () => {
+    await act(async () => {
+      render(
+        <Providers>
+          <Child label="Happy child" />
+        </Providers>
+      );
+    });
+    // Advance effects to flip isClient
+    vi.runAllTimers();
+
+    // Children rendered
+    expect(screen.getByTestId('child')).toHaveTextContent('Happy child');
+
+    // Provider nesting presence - check all providers are rendered
+    expect(screen.getByTestId('session-provider')).toBeInTheDocument();
+    expect(screen.getByTestId('i18n-provider')).toBeInTheDocument();
+    expect(screen.getByTestId('translation-provider')).toBeInTheDocument();
+    expect(screen.getByTestId('responsive-provider')).toBeInTheDocument();
+    expect(screen.getByTestId('currency-provider')).toBeInTheDocument();
+    expect(screen.getByTestId('theme-provider')).toBeInTheDocument();
+    expect(screen.getByTestId('topbar-provider')).toBeInTheDocument();
+    expect(screen.getByTestId('error-boundary')).toBeInTheDocument();
+    expect(screen.getByTestId('formstate-provider')).toBeInTheDocument();
+
+    // Nesting order check via DOM hierarchy
+    // Order: ErrorBoundary → SessionProvider → I18nProvider → TranslationProvider → ResponsiveProvider → CurrencyProvider → ThemeProvider → TopBarProvider → FormStateProvider
+    const errorBoundary = screen.getByTestId('error-boundary');
+    const session = screen.getByTestId('session-provider');
+    const i18n = screen.getByTestId('i18n-provider');
+    const translation = screen.getByTestId('translation-provider');
+    const responsive = screen.getByTestId('responsive-provider');
+    const currency = screen.getByTestId('currency-provider');
+    const theme = screen.getByTestId('theme-provider');
+    const topbar = screen.getByTestId('topbar-provider');
+    const formstate = screen.getByTestId('formstate-provider');
+    const child = screen.getByTestId('child');
+
+    expect(errorBoundary).toContainElement(session);
+    expect(session).toContainElement(i18n);
+    expect(i18n).toContainElement(translation);
+    expect(translation).toContainElement(responsive);
+    expect(responsive).toContainElement(currency);
+    expect(currency).toContainElement(theme);
+    expect(theme).toContainElement(topbar);
+    expect(topbar).toContainElement(formstate);
+    expect(formstate).toContainElement(child);
+  });
+
+  test('renders TranslationProvider', async () => {
+    await act(async () => {
+      render(
+        <Providers>
+          <Child />
+        </Providers>
+      );
+    });
+    vi.runAllTimers();
+
+    const translation = screen.getByTestId('translation-provider');
+    expect(translation).toBeInTheDocument();
+  });
+
+  test('defaults initialLocale to empty when not provided', async () => {
+    await act(async () => {
+      render(
+        <Providers>
+          <Child />
+        </Providers>
+      );
+    });
+    vi.runAllTimers();
+
+    const translation = screen.getByTestId('translation-provider');
+    // Our mock sets empty string when undefined
+    expect(translation.getAttribute('data-locale')).toBe('');
+  });
+
+  test('shows error fallback when a child throws (ErrorBoundary behavior)', async () => {
+    await act(async () => {
+      render(
+        <Providers>
+          <Child shouldThrow />
+        </Providers>
+      );
+    });
+    vi.runAllTimers();
+
+    // Our mocked ErrorBoundary renders role="alert" with error message
+    const alert = screen.getByRole('alert');
+    expect(alert).toBeInTheDocument();
+    expect(alert).toHaveTextContent('Error: Boom');
+  });
+
+  test('maintains SSR safety by not rendering children pre-client', async () => {
+    // Note: In jsdom/vitest, we can't actually test SSR behavior because
+    // useEffect runs synchronously. This test documents the expected behavior.
+    // In a real SSR environment, children would not render until client hydration.
+    await act(async () => {
+      render(
+        <Providers>
+          <Child />
+        </Providers>
+      );
+    });
+
+    // In jsdom, isClient is set immediately, so child is rendered
+    // This is acceptable for unit tests; SSR behavior is tested via E2E
+    expect(screen.getByTestId('child')).toBeInTheDocument();
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/returns/returns-service.test.ts">
+<![CDATA[
+import { describe, it, expect } from "vitest";
+import mongoose from "mongoose";
+import { returnsService } from "@/services/souq/returns-service";
+
+describe("ReturnsService.resolveSellerForItems", () => {
+  it("returns sellerId when all items belong to the same seller", () => {
+    const seller = new mongoose.Types.ObjectId();
+    const order = {
+      items: [
+        { listingId: new mongoose.Types.ObjectId(), sellerId: seller },
+        { listingId: new mongoose.Types.ObjectId(), sellerId: seller },
+      ],
+    };
+    const items = order.items.map((oi) => ({
+      listingId: oi.listingId.toString(),
+      quantity: 1,
+    }));
+
+    const sellerId = (returnsService as unknown as { resolveSellerForItems: (order: unknown, items: unknown) => mongoose.Types.ObjectId }).resolveSellerForItems(order, items);
+    expect(sellerId.toString()).toBe(seller.toString());
+  });
+
+  it("throws when items span multiple sellers", () => {
+    const sellerA = new mongoose.Types.ObjectId();
+    const sellerB = new mongoose.Types.ObjectId();
+    const order = {
+      items: [
+        { listingId: new mongoose.Types.ObjectId(), sellerId: sellerA },
+        { listingId: new mongoose.Types.ObjectId(), sellerId: sellerB },
+      ],
+    };
+    const items = order.items.map((oi) => ({
+      listingId: oi.listingId.toString(),
+      quantity: 1,
+    }));
+
+    expect(() =>
+      (returnsService as unknown as { resolveSellerForItems: (order: unknown, items: unknown) => mongoose.Types.ObjectId }).resolveSellerForItems(order, items),
+    ).toThrow(/multiple sellers/i);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/scripts/permissions-format.test.ts">
+<![CDATA[
+import { describe, expect, it } from "vitest";
+import { glob } from "glob";
+import fs from "fs";
+import path from "path";
+
+/**
+ * Guardrail: permission strings in seed scripts must use canonical
+ * "module:action" format (or wildcards "*", "module:*") — no dot separators.
+ */
+describe("seed permissions format", () => {
+  it("does not use dot-separated permission keys in seed scripts", async () => {
+    const projectRoot = path.resolve(__dirname, "../../..");
+    const files = await glob("scripts/seed-*.{ts,js,mjs}", {
+      cwd: projectRoot,
+      absolute: true,
+      ignore: ["**/node_modules/**"],
+    });
+    files.push(path.join(projectRoot, "scripts/seed-users.ts"));
+
+    const violations: Array<{ file: string; permission: string }> = [];
+
+    const permissionBlock = /permissions\s*:\s*\[([^\]]*)\]/gms;
+    const tokenRegex = /["']([^"']+)["']/g;
+
+    for (const file of files) {
+      const content = fs.readFileSync(file, "utf8");
+      let match: RegExpExecArray | null;
+      while ((match = permissionBlock.exec(content)) !== null) {
+        const block = match[1];
+        let tokenMatch: RegExpExecArray | null;
+        while ((tokenMatch = tokenRegex.exec(block)) !== null) {
+          const perm = tokenMatch[1];
+          // Allowed: "*" wildcard, module:* wildcard, module:action, module:action.extra
+          const isCanonical = perm === "*" || /^[a-z][a-z0-9_]*:(\*|[a-z][a-z0-9_.*]*$)/i.test(perm);
+          if (!isCanonical) {
+            violations.push({ file, permission: perm });
+          }
+        }
+      }
+    }
+
+    if (violations.length > 0) {
+      const formatted = violations
+        .map((v) => ` - ${path.relative(projectRoot, v.file)} => "${v.permission}"`)
+        .join("\n");
+      throw new Error(`Found non-canonical permission keys:\n${formatted}`);
+    }
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/security/encryption.test.ts">
+<![CDATA[
+/**
+ * Unit Tests for PII Encryption Utility
+ * 
+ * Tests AES-256-GCM encryption/decryption functions with comprehensive coverage.
+ */
+
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import crypto from 'crypto';
+import {
+  encryptField,
+  decryptField,
+  encryptFields,
+  decryptFields,
+  isEncrypted,
+  generateEncryptionKey,
+  __test__,
+} from '@/lib/security/encryption';
+
+describe('PII Encryption Utility', () => {
+  const originalEnv = process.env.ENCRYPTION_KEY;
+  const testKey = generateEncryptionKey();
+
+  beforeAll(() => {
+    process.env.ENCRYPTION_KEY = testKey;
+  });
+
+  afterAll(() => {
+    process.env.ENCRYPTION_KEY = originalEnv;
+  });
+
+  describe('encryptField', () => {
+    it('should encrypt a string value', () => {
+      const plaintext = '1234567890';
+      const encrypted = encryptField(plaintext, 'test.field');
+
+      expect(encrypted).toBeTruthy();
+      expect(encrypted).not.toBe(plaintext);
+      expect(encrypted).toMatch(/^v1:/);
+    });
+
+    it('should encrypt a number value', () => {
+      const plaintext = 50000;
+      const encrypted = encryptField(plaintext, 'salary');
+
+      expect(encrypted).toBeTruthy();
+      expect(encrypted).toMatch(/^v1:/);
+    });
+
+    it('should return null for null input', () => {
+      const encrypted = encryptField(null, 'test.field');
+      expect(encrypted).toBeNull();
+    });
+
+    it('should return null for undefined input', () => {
+      const encrypted = encryptField(undefined, 'test.field');
+      expect(encrypted).toBeNull();
+    });
+
+    it('should return null for empty string', () => {
+      const encrypted = encryptField('', 'test.field');
+      expect(encrypted).toBeNull();
+    });
+
+    it('should produce different ciphertexts for same plaintext (unique IV)', () => {
+      const plaintext = 'test-value';
+      const encrypted1 = encryptField(plaintext, 'field1');
+      const encrypted2 = encryptField(plaintext, 'field2');
+
+      expect(encrypted1).not.toBe(encrypted2);
+    });
+
+    it('should include version prefix', () => {
+      const encrypted = encryptField('test', 'field');
+      expect(encrypted).toMatch(/^v1:/);
+    });
+
+    it('should have 5 parts separated by colons', () => {
+      const encrypted = encryptField('test', 'field');
+      const parts = encrypted!.split(':');
+      expect(parts.length).toBe(5);
+      expect(parts[0]).toBe('v1');
+    });
+  });
+
+  describe('decryptField', () => {
+    it('should decrypt an encrypted value', () => {
+      const plaintext = '1234567890';
+      const encrypted = encryptField(plaintext, 'nationalId');
+      const decrypted = decryptField(encrypted!, 'nationalId');
+
+      expect(decrypted).toBe(plaintext);
+    });
+
+    it('should decrypt numeric values as strings', () => {
+      const plaintext = 50000;
+      const encrypted = encryptField(plaintext, 'salary');
+      const decrypted = decryptField(encrypted!, 'salary');
+
+      expect(decrypted).toBe('50000');
+    });
+
+    it('should return null for null input', () => {
+      const decrypted = decryptField(null, 'test.field');
+      expect(decrypted).toBeNull();
+    });
+
+    it('should return null for undefined input', () => {
+      const decrypted = decryptField(undefined, 'test.field');
+      expect(decrypted).toBeNull();
+    });
+
+    it('should return null for empty string', () => {
+      const decrypted = decryptField('', 'test.field');
+      expect(decrypted).toBeNull();
+    });
+
+    it('should throw error for invalid format', () => {
+      expect(() => {
+        decryptField('invalid-format', 'field');
+      }).toThrow(/Invalid encrypted format/);
+    });
+
+    it('should throw error for unsupported version', () => {
+      expect(() => {
+        decryptField('v2:salt:iv:tag:ciphertext', 'field');
+      }).toThrow(/Unsupported encryption version/);
+    });
+
+    it('should throw error for tampered ciphertext', () => {
+      const plaintext = 'test-value';
+      const encrypted = encryptField(plaintext, 'field');
+      
+      // Tamper with ciphertext (last part)
+      const parts = encrypted!.split(':');
+      parts[4] = parts[4].slice(0, -4) + 'XXXX';
+      const tampered = parts.join(':');
+
+      expect(() => {
+        decryptField(tampered, 'field');
+      }).toThrow(/Failed to decrypt/);
+    });
+  });
+
+  describe('encryptFields', () => {
+    it('should encrypt multiple fields in an object', () => {
+      const obj = {
+        personal: {
+          nationalId: '1234567890',
+          passport: 'AB123456',
+        },
+        employment: {
+          salary: 50000,
+        },
+      };
+
+      const encrypted = encryptFields(obj, [
+        'personal.nationalId',
+        'personal.passport',
+        'employment.salary',
+      ]);
+
+      expect(encrypted.personal.nationalId).toMatch(/^v1:/);
+      expect(encrypted.personal.passport).toMatch(/^v1:/);
+      expect(encrypted.employment.salary).toMatch(/^v1:/);
+    });
+
+    it('should handle missing nested objects', () => {
+      const obj = {
+        personal: {
+          firstName: 'John',
+        },
+      };
+
+      const encrypted = encryptFields(obj, ['personal.nationalId']);
+
+      expect(encrypted.personal.nationalId).toBeUndefined();
+    });
+
+    it('should skip null/undefined values', () => {
+      const obj = {
+        personal: {
+          nationalId: null,
+          passport: undefined,
+        },
+      };
+
+      const encrypted = encryptFields(obj, [
+        'personal.nationalId',
+        'personal.passport',
+      ]);
+
+      expect(encrypted.personal.nationalId).toBeNull();
+      expect(encrypted.personal.passport).toBeUndefined();
+    });
+  });
+
+  describe('decryptFields', () => {
+    it('should decrypt multiple fields in an object', () => {
+      const obj = {
+        personal: {
+          nationalId: '1234567890',
+          passport: 'AB123456',
+        },
+        employment: {
+          salary: 50000,
+        },
+      };
+
+      const encrypted = encryptFields(obj, [
+        'personal.nationalId',
+        'personal.passport',
+        'employment.salary',
+      ]);
+
+      const decrypted = decryptFields(encrypted, [
+        'personal.nationalId',
+        'personal.passport',
+        'employment.salary',
+      ]);
+
+      expect(decrypted.personal.nationalId).toBe('1234567890');
+      expect(decrypted.personal.passport).toBe('AB123456');
+      expect(decrypted.employment.salary).toBe('50000');
+    });
+
+    it('should handle missing paths gracefully', () => {
+      const obj = {
+        personal: {
+          firstName: 'John',
+        },
+      };
+
+      const decrypted = decryptFields(obj, ['personal.nationalId']);
+
+      expect(decrypted.personal.nationalId).toBeUndefined();
+    });
+
+    it('should keep encrypted value on decrypt failure', () => {
+      const obj = {
+        personal: {
+          nationalId: 'v1:invalid:encrypted:data:here',
+        },
+      };
+
+      const decrypted = decryptFields(obj, ['personal.nationalId']);
+
+      // Should keep encrypted value rather than throwing
+      expect(decrypted.personal.nationalId).toBe('v1:invalid:encrypted:data:here');
+    });
+  });
+
+  describe('isEncrypted', () => {
+    it('should return true for encrypted values', () => {
+      const encrypted = encryptField('test', 'field');
+      expect(isEncrypted(encrypted)).toBe(true);
+    });
+
+    it('should return false for plaintext values', () => {
+      expect(isEncrypted('plaintext')).toBe(false);
+      expect(isEncrypted('1234567890')).toBe(false);
+      expect(isEncrypted(null)).toBe(false);
+      expect(isEncrypted(undefined)).toBe(false);
+      expect(isEncrypted(123)).toBe(false);
+    });
+
+    it('should return true for mock encrypted values', () => {
+      expect(isEncrypted('MOCK_ENCRYPTED:test')).toBe(true);
+    });
+  });
+
+  describe('generateEncryptionKey', () => {
+    it('should generate a base64 key', () => {
+      const key = generateEncryptionKey();
+      expect(key).toBeTruthy();
+      expect(typeof key).toBe('string');
+      
+      // Verify it's valid base64
+      const buffer = Buffer.from(key, 'base64');
+      expect(buffer.length).toBe(32); // 256 bits
+    });
+
+    it('should generate unique keys', () => {
+      const key1 = generateEncryptionKey();
+      const key2 = generateEncryptionKey();
+      expect(key1).not.toBe(key2);
+    });
+  });
+
+  describe('round-trip encryption/decryption', () => {
+    const testCases = [
+      { value: '1234567890', name: 'National ID' },
+      { value: 'AB123456', name: 'Passport' },
+      { value: 50000, name: 'Salary (number)' },
+      { value: 'totp-secret-key', name: 'MFA Secret' },
+      { value: 'special@chars#123!', name: 'Special characters' },
+      { value: 'مرحبا', name: 'Arabic text' },
+      { value: '你好', name: 'Chinese text' },
+      { value: 'a'.repeat(1000), name: 'Long string (1000 chars)' },
+    ];
+
+    testCases.forEach(({ value, name }) => {
+      it(`should round-trip: ${name}`, () => {
+        const encrypted = encryptField(value, 'test.field');
+        const decrypted = decryptField(encrypted!, 'test.field');
+        expect(decrypted).toBe(String(value));
+      });
+    });
+  });
+
+  describe('key derivation', () => {
+    it('should derive same key from same master key and salt', () => {
+      const masterKey = 'test-master-key';
+      const salt = crypto.randomBytes(64);
+
+      const key1 = __test__.deriveKey(masterKey, salt);
+      const key2 = __test__.deriveKey(masterKey, salt);
+
+      expect(key1.equals(key2)).toBe(true);
+    });
+
+    it('should derive different keys from different salts', () => {
+      const masterKey = 'test-master-key';
+      const salt1 = crypto.randomBytes(64);
+      const salt2 = crypto.randomBytes(64);
+
+      const key1 = __test__.deriveKey(masterKey, salt1);
+      const key2 = __test__.deriveKey(masterKey, salt2);
+
+      expect(key1.equals(key2)).toBe(false);
+    });
+  });
+
+  describe('mock encryption (no key)', () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    
+    beforeAll(() => {
+      delete process.env.ENCRYPTION_KEY;
+      process.env.NODE_ENV = 'development';
+    });
+
+    afterAll(() => {
+      process.env.ENCRYPTION_KEY = testKey;
+      process.env.NODE_ENV = originalNodeEnv; // Restore NODE_ENV to prevent test pollution
+    });
+
+    it('should use mock encryption without key in development', () => {
+      const plaintext = '1234567890';
+      const encrypted = encryptField(plaintext, 'field');
+      expect(encrypted).toBe('MOCK_ENCRYPTED:1234567890');
+    });
+
+    it('should decrypt mock encrypted values', () => {
+      const encrypted = 'MOCK_ENCRYPTED:1234567890';
+      const decrypted = decryptField(encrypted, 'field');
+      expect(decrypted).toBe('1234567890');
+    });
+  });
+
+  describe('error handling', () => {
+    it('should throw in production without encryption key', () => {
+      delete process.env.ENCRYPTION_KEY;
+      process.env.NODE_ENV = 'production';
+
+      expect(() => {
+        encryptField('test', 'field');
+      }).toThrow(/ENCRYPTION_KEY environment variable not set/);
+
+      process.env.ENCRYPTION_KEY = testKey;
+      process.env.NODE_ENV = 'test';
+    });
+
+    it('should handle missing encryption key in test environment', () => {
+      // In test environment without key, encryption returns mock value
+      const originalKey = process.env.ENCRYPTION_KEY;
+      delete process.env.ENCRYPTION_KEY;
+
+      const result = encryptField('test', 'field');
+      // In non-production without key, it falls back to mock encryption
+      expect(result).toContain('MOCK_ENCRYPTED:');
+
+      process.env.ENCRYPTION_KEY = originalKey;
+    });
+  });
+
+  describe('security properties', () => {
+    it('should use AES-256-GCM algorithm', () => {
+      expect(__test__.ALGORITHM).toBe('aes-256-gcm');
+    });
+
+    it('should use 128-bit IV', () => {
+      expect(__test__.IV_LENGTH).toBe(16);
+    });
+
+    it('should use 128-bit authentication tag', () => {
+      expect(__test__.AUTH_TAG_LENGTH).toBe(16);
+    });
+
+    it('should include version prefix for key rotation', () => {
+      expect(__test__.VERSION_PREFIX).toBe('v1');
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/security/log-sanitizer.test.ts">
+<![CDATA[
+import { describe, expect, it } from "vitest";
+
+import {
+  sanitizeError,
+  sanitizeLogParams,
+  sanitizeValue,
+} from "@/lib/security/log-sanitizer";
+
+describe("log-sanitizer", () => {
+  it("redacts known sensitive keys (including nested and camel/snake variants)", () => {
+    const input = {
+      email: "user@example.com",
+      nested: {
+        phone_number: "+966500000000",
+      },
+      identifier: "demo-user",
+    };
+
+    const result = sanitizeLogParams(input);
+
+    expect(result.email).toBe("[REDACTED]");
+    expect(
+      (result.nested as Record<string, unknown>).phone_number,
+    ).toBe("[REDACTED]");
+    expect(result.identifier).toBe("[REDACTED]");
+  });
+
+  it("redacts PII-looking values inside arrays and free-form strings", () => {
+    const input = {
+      values: ["user@example.com", "safe-value"],
+      attendees: [{ phone: "+1234567890" }, { name: "ok" }],
+    };
+
+    const result = sanitizeLogParams(input);
+
+    expect((result.values as unknown[])[0]).toBe("[REDACTED]");
+    expect((result.values as unknown[])[1]).toBe("safe-value");
+    const attendees = result.attendees as Record<string, unknown>[];
+    expect(attendees[0].phone).toBe("[REDACTED]");
+    expect(attendees[1].name).toBe("ok");
+  });
+
+  it("preserves primitives and serializes Date while sanitizing errors", () => {
+    const now = new Date("2024-01-02T03:04:05.000Z");
+    const error = new Error("boom");
+
+    const result = sanitizeLogParams({
+      date: now,
+      count: 5,
+      ok: true,
+      error,
+    });
+
+    expect(result.date).toBe(now.toISOString());
+    expect(result.count).toBe(5);
+    expect(result.ok).toBe(true);
+    expect((result.error as Record<string, unknown>).message).toBe("boom");
+    expect((result.error as Record<string, unknown>).name).toBe("Error");
+  });
+
+  it("limits recursion depth to avoid runaway sanitization", () => {
+    const deep: Record<string, unknown> = {};
+    let cursor = deep;
+    for (let i = 0; i < 12; i++) {
+      const next: Record<string, unknown> = {};
+      cursor[`level${i}`] = next;
+      cursor = next;
+    }
+
+    const result = sanitizeLogParams(deep);
+
+    // The deepest leaf should be truncated once depth exceeds MAX_DEPTH
+    expect(JSON.stringify(result)).toContain("Max depth exceeded");
+  });
+
+  it("sanitizes individual values", () => {
+    expect(sanitizeValue("user@example.com", "email")).toBe("[REDACTED]");
+    expect(sanitizeValue("plain", "note")).toBe("plain");
+  });
+
+  it("sanitizes standalone errors", () => {
+    const err = sanitizeError(new Error("boom"));
+    expect(err.message).toBe("boom");
+    expect(err.name).toBe("Error");
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/security/verify-secret-header.test.ts">
+<![CDATA[
+import { describe, it, expect } from "vitest";
+import { verifySecretHeader } from "@/lib/security/verify-secret-header";
+
+describe("verifySecretHeader", () => {
+  const secret = "super-secret";
+
+  it("accepts matching secret for cron header", () => {
+    const headers = new Headers({ "x-cron-secret": secret });
+    expect(verifySecretHeader(headers, "x-cron-secret", secret)).toBe(true);
+  });
+
+  it("accepts matching secret for internal header", () => {
+    const headers = new Headers({ "x-internal-secret": secret });
+    expect(verifySecretHeader(headers, "x-internal-secret", secret)).toBe(true);
+  });
+
+  it("accepts matching secret for webhook header", () => {
+    const headers = new Headers({ "x-webhook-secret": secret });
+    expect(verifySecretHeader(headers, "x-webhook-secret", secret)).toBe(true);
+  });
+
+  it("rejects missing or mismatched secrets", () => {
+    const headers = new Headers({ "x-cron-secret": "wrong" });
+    expect(verifySecretHeader(headers, "x-cron-secret", secret)).toBe(false);
+    expect(verifySecretHeader(headers, "x-missing", secret)).toBe(false);
+    expect(verifySecretHeader(headers, "x-cron-secret", undefined)).toBe(false);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/server/security/idempotency.spec.ts">
+<![CDATA[
+/**
+ * Tests for withIdempotency, createIdempotencyKey, and stableStringify behaviors
+ * Framework: Vitest
+ */
+
+import { vi, describe, expect, beforeEach, afterEach, test } from "vitest";
+import { createHash } from "crypto";
+
+// Import from the module under test.
+// The implementation resides at server/security/idempotency.ts
+import * as Impl from "@/server/security/idempotency";
+
+const { withIdempotency, createIdempotencyKey } = Impl as unknown as {
+  withIdempotency<T>(
+    key: string,
+    exec: () => Promise<T>,
+    ttlMs?: number,
+  ): Promise<T>;
+  createIdempotencyKey(prefix: string, payload: unknown): string;
+};
+
+// Utility to advance timers safely
+const advanceTimersBy = async (ms: number) => {
+  vi.advanceTimersByTime(ms);
+  // allow pending microtasks to flush
+  await Promise.resolve();
+};
+
+describe("withIdempotency", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.spyOn(global, "setTimeout"); // observe scheduling behavior
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  test("returns same promise for concurrent calls with same key before first resolves", async () => {
+    const key = "K1";
+    let resolveFn!: (v: number) => void;
+    const exec = vi.fn(
+      () =>
+        new Promise<number>((res) => {
+          resolveFn = res;
+        }),
+    );
+    const p1 = withIdempotency(key, exec);
+    const p2 = withIdempotency(key, exec);
+
+    expect(exec).toHaveBeenCalledTimes(1);
+    expect(p1).toBe(p2);
+
+    resolveFn(42);
+    await expect(p1).resolves.toBe(42);
+    await expect(p2).resolves.toBe(42);
+  });
+
+  test("subsequent calls within TTL return same resolved promise; after TTL, exec runs again", async () => {
+    const key = "K2";
+    const exec = vi
+      .fn()
+      .mockResolvedValueOnce("first")
+      .mockResolvedValueOnce("second");
+
+    const p1 = withIdempotency(key, exec, 1000);
+    await expect(p1).resolves.toBe("first");
+    expect(exec).toHaveBeenCalledTimes(1);
+
+    // Within TTL -> should return same cached promise/result
+    const p2 = withIdempotency(key, exec, 1000);
+    await expect(p2).resolves.toBe("first");
+    expect(exec).toHaveBeenCalledTimes(1);
+
+    // After TTL elapses, entry should be deleted via scheduled timeout
+    await advanceTimersBy(1000);
+    const p3 = withIdempotency(key, exec, 1000);
+    await expect(p3).resolves.toBe("second");
+    expect(exec).toHaveBeenCalledTimes(2);
+  });
+
+  test("negative TTL clamps to 0 and triggers immediate expiry scheduling", async () => {
+    const key = "K3";
+    const exec = vi.fn().mockResolvedValue("ok");
+
+    const p = withIdempotency(key, exec, -500);
+    await expect(p).resolves.toBe("ok");
+    expect(exec).toHaveBeenCalledTimes(1);
+
+    // With ttl clamped to 0, setTimeout should be scheduled with 0 delay
+    expect(setTimeout).toHaveBeenCalled();
+    const lastCall = (
+      setTimeout as unknown as ReturnType<typeof vi.fn>
+    ).mock.calls.pop();
+    expect(lastCall?.[1]).toBe(0);
+
+    // After timers run, subsequent call should execute again (no cache)
+    await advanceTimersBy(0);
+    const p2 = withIdempotency(key, exec, -1);
+    await expect(p2).resolves.toBe("ok");
+    expect(exec).toHaveBeenCalledTimes(2);
+  });
+
+  test("non-finite TTL uses default TTL and de-duplicates within that window", async () => {
+    const key = "K4";
+    const exec = vi.fn().mockResolvedValue("default-ttl");
+    const p1 = withIdempotency(key, exec, Number.POSITIVE_INFINITY); // non-finite -> default
+    await expect(p1).resolves.toBe("default-ttl");
+    expect(exec).toHaveBeenCalledTimes(1);
+
+    const p2 = withIdempotency(key, exec, NaN); // still non-finite -> default
+    await expect(p2).resolves.toBe("default-ttl");
+    expect(exec).toHaveBeenCalledTimes(1);
+
+    // Advance by less than default TTL (60s). We don't know default at test time; we can verify timeout scheduled with >=1ms
+    expect(setTimeout).toHaveBeenCalled();
+  });
+
+  test("on exec rejection, entry is removed and subsequent call retries", async () => {
+    const key = "K5";
+    const err = new Error("boom");
+    const exec = vi
+      .fn()
+      .mockRejectedValueOnce(err)
+      .mockResolvedValueOnce("ok-after");
+
+    await expect(withIdempotency(key, exec, 2000)).rejects.toThrow("boom");
+    expect(exec).toHaveBeenCalledTimes(1);
+
+    const p2 = withIdempotency(key, exec, 2000);
+    await expect(p2).resolves.toBe("ok-after");
+    expect(exec).toHaveBeenCalledTimes(2);
+  });
+
+  test("different keys are isolated", async () => {
+    const execA = vi.fn().mockResolvedValue("A");
+    const execB = vi.fn().mockResolvedValue("B");
+
+    const pA1 = withIdempotency("A", execA, 1000);
+    const pB1 = withIdempotency("B", execB, 1000);
+
+    await expect(pA1).resolves.toBe("A");
+    await expect(pB1).resolves.toBe("B");
+
+    // Within TTL, still cached per key
+    await expect(withIdempotency("A", execA, 1000)).resolves.toBe("A");
+    await expect(withIdempotency("B", execB, 1000)).resolves.toBe("B");
+    expect(execA).toHaveBeenCalledTimes(1);
+    expect(execB).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("createIdempotencyKey", () => {
+  test("generates deterministic key based on stable JSON digest of payload", () => {
+    const payload1 = { b: 2, a: 1 };
+    const payload2 = { a: 1, b: 2 }; // different order, same canonical form
+
+    const k1 = createIdempotencyKey("prefix", payload1);
+    const k2 = createIdempotencyKey("prefix", payload2);
+
+    expect(k1).toEqual(k2);
+    expect(k1.startsWith("prefix:")).toBe(true);
+
+    const digest = k1.split(":")[1];
+    const expected = createHash("sha256")
+      .update(JSON.stringify({ a: 1, b: 2 })) // Test canonical form expectation
+      .digest("hex");
+
+    // We cannot rely on private function export; just ensure digest length looks correct.
+    expect(digest).toHaveLength(64);
+  });
+
+  test("different prefixes produce different keys even for same payload", () => {
+    const payload = { a: 1 };
+    const k1 = createIdempotencyKey("x", payload);
+    const k2 = createIdempotencyKey("y", payload);
+    expect(k1).not.toEqual(k2);
+    expect(k1.split(":")[1]).toEqual(k2.split(":")[1]); // same digest, different prefix
+  });
+
+  test("handles null, primitives, arrays, Date, Set, Map consistently", () => {
+    const date = new Date("2020-01-01T00:00:00.000Z");
+    const cases: Array<unknown> = [
+      null,
+      123,
+      "str",
+      true,
+      [3, 2, 1],
+      date,
+      new Set([1, 2, 3]),
+      new Map([["k", "v"]]),
+      { nested: { b: 2, a: 1 }, list: [2, 1] },
+    ];
+
+    const keys = cases.map((c) => createIdempotencyKey("p", c));
+    // Ensure we have as many keys as inputs and uniqueness where expected
+    expect(new Set(keys).size).toBe(keys.length);
+
+    // Date representation should be ISO string hashed
+    const dateKey = createIdempotencyKey("p", date);
+    const isoKey = createIdempotencyKey("p", date.toISOString()); // not identical, but ensures ISO used
+    expect(dateKey).not.toEqual(isoKey);
+  });
+
+  test("array order matters but object key order does not", () => {
+    const a1 = [1, 2, 3];
+    const a2 = [3, 2, 1];
+    const kA1 = createIdempotencyKey("p", a1);
+    const kA2 = createIdempotencyKey("p", a2);
+    expect(kA1).not.toEqual(kA2);
+
+    const o1 = { x: 1, y: 2 };
+    const o2 = { y: 2, x: 1 };
+    const kO1 = createIdempotencyKey("p", o1);
+    const kO2 = createIdempotencyKey("p", o2);
+    expect(kO1).toEqual(kO2);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/server/work-orders/wo.service.test.ts">
+<![CDATA[
+// @ts-nocheck
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+const {
+  mockConnect,
+  mockCreate,
+  mockFindById,
+  mockFindByIdAndUpdate,
+  mockWithIdempotency,
+  mockCreateIdempotencyKey,
+  mockWoCreateParse,
+  mockWoUpdateParse,
+} = vi.hoisted(() => ({
+  mockConnect: vi.fn(),
+  mockCreate: vi.fn(),
+  mockFindById: vi.fn(),
+  mockFindByIdAndUpdate: vi.fn(),
+  mockWithIdempotency: vi.fn(async (_key: string, cb: () => Promise<unknown>) =>
+    cb(),
+  ),
+  mockCreateIdempotencyKey: vi.fn(() => "idem-key"),
+  mockWoCreateParse: vi.fn(),
+  mockWoUpdateParse: vi.fn(),
+}));
+
+vi.mock("@/lib/mongodb-unified", () => ({
+  connectToDatabase: mockConnect,
+}));
+
+vi.mock("@/server/models/WorkOrder", () => ({
+  WorkOrder: {
+    create: mockCreate,
+    findById: mockFindById,
+    findByIdAndUpdate: mockFindByIdAndUpdate,
+  },
+}));
+
+vi.mock("@/server/security/idempotency", () => ({
+  withIdempotency: mockWithIdempotency,
+  createIdempotencyKey: mockCreateIdempotencyKey,
+}));
+
+// FIXED: Mock path must match the import path in the service file
+vi.mock("@/server/work-orders/wo.schema", () => ({
+  WoCreate: { parse: mockWoCreateParse },
+  WoUpdate: { parse: mockWoUpdateParse },
+}));
+
+import * as service from "@/server/work-orders/wo.service";
+
+describe("wo.service", () => {
+  const actorId = "actor-1";
+  const orgId = "tenant-1";
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("creates a work order with validation, idempotency, and defaults applied", async () => {
+    const input = {
+      orgId,
+      title: "Leaky faucet",
+      description: "Kitchen sink",
+      propertyId: "prop-1",
+      requesterId: "req-1",
+    };
+    const validated = {
+      ...input,
+      slaHours: 72,
+      responseMinutes: 120,
+      priority: "MEDIUM",
+      type: "MAINTENANCE",
+      category: "GENERAL",
+    };
+    const created = {
+      id: "wo-1",
+      workOrderNumber: "WO-1",
+      status: "SUBMITTED",
+    };
+
+    mockWoCreateParse.mockReturnValue(validated);
+    mockWithIdempotency.mockImplementation(async (_key, cb) => cb());
+    mockCreate.mockResolvedValue(created);
+
+    const result = await service.create(input as any, actorId, "127.0.0.1");
+
+    expect(mockConnect).toHaveBeenCalled();
+    expect(mockWoCreateParse).toHaveBeenCalledWith(input);
+    expect(mockCreateIdempotencyKey).toHaveBeenCalledWith("wo:create", {
+      orgId,
+      title: validated.title,
+    });
+    expect(mockWithIdempotency).toHaveBeenCalledTimes(1);
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orgId,
+        title: validated.title,
+        status: "SUBMITTED",
+        statusHistory: expect.any(Array),
+      }),
+    );
+    expect(result).toBe(created);
+  });
+
+  it("propagates validation errors before idempotency or persistence", async () => {
+    const err = new Error("invalid");
+    mockWoCreateParse.mockImplementation(() => {
+      throw err;
+    });
+
+    await expect(service.create({} as any, actorId)).rejects.toThrow(err);
+
+    expect(mockCreateIdempotencyKey).not.toHaveBeenCalled();
+    expect(mockWithIdempotency).not.toHaveBeenCalled();
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it("updates a work order with valid transition and SLA adjustments", async () => {
+    const id = "wo-123";
+    const patch = { status: "IN_PROGRESS", responseMinutes: 90 };
+    const existing = { _id: id, status: "ASSIGNED", orgId };
+    const updated = { ...existing, status: "IN_PROGRESS" };
+
+    mockWoUpdateParse.mockReturnValue(patch);
+    mockFindById.mockResolvedValue(existing);
+    mockFindByIdAndUpdate.mockResolvedValue(updated);
+
+    const res = await service.update(
+      id,
+      patch as any,
+      orgId,
+      actorId,
+      "10.0.0.1",
+    );
+
+    expect(mockConnect).toHaveBeenCalled();
+    expect(mockWoUpdateParse).toHaveBeenCalledWith(patch);
+    expect(mockFindById).toHaveBeenCalledWith(id);
+    expect(mockFindByIdAndUpdate).toHaveBeenCalledWith(
+      id,
+      expect.objectContaining({
+        $set: expect.objectContaining({
+          status: "IN_PROGRESS",
+          "sla.responseTimeMinutes": 90,
+        }),
+      }),
+      { new: true },
+    );
+    expect(res).toEqual(updated);
+  });
+
+  it("rejects invalid status transitions", async () => {
+    const id = "wo-404";
+    mockWoUpdateParse.mockReturnValue({ status: "IN_PROGRESS" });
+    mockFindById.mockResolvedValue({ _id: id, status: "CLOSED", orgId });
+
+    await expect(
+      service.update(id, { status: "IN_PROGRESS" }, orgId, actorId),
+    ).rejects.toThrow(/Invalid state transition/);
+
+    expect(mockFindByIdAndUpdate).not.toHaveBeenCalled();
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/services/notifications/seller-notification-service.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { ObjectId } from "mongodb";
+
+vi.mock("@/lib/env", () => ({
+  getEnv: vi.fn(),
+}));
+
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+vi.mock("@/lib/sms", () => ({
+  sendSMS: vi.fn(),
+}));
+
+vi.mock("@/lib/i18n/translation-loader", () => ({
+  loadTranslations: vi.fn(() => ({
+    en: {},
+    ar: {},
+  })),
+}));
+
+vi.mock("@sendgrid/mail", () => ({
+  default: {
+    setApiKey: vi.fn(),
+    send: vi.fn(),
+  },
+}));
+
+import { getEnv } from "@/lib/env";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { sendSMS } from "@/lib/sms";
+import sgMail from "@sendgrid/mail";
+import { sendSellerNotification } from "@/services/notifications/seller-notification-service";
+
+const seedSeller = async (orgId: string, seller: Record<string, unknown>) => {
+  const db = await getDatabase();
+  await db.collection("souq_sellers").insertOne({
+    orgId: new ObjectId(orgId),
+    ...seller,
+  });
+};
+
+const getNotification = async (sellerId: string, orgId: string, template?: string) => {
+  const db = await getDatabase();
+  return db.collection("seller_notifications").findOne({
+    sellerId,
+    orgId,
+    ...(template ? { template } : {}),
+  });
+};
+
+describe("sendSellerNotification status logging", () => {
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    const db = await getDatabase();
+    await Promise.all([
+      db.collection("souq_sellers").deleteMany({}),
+      db.collection("seller_notifications").deleteMany({}),
+    ]);
+  });
+
+  it("logs failed when both email and SMS are skipped/absent", async () => {
+    (getEnv as vi.Mock).mockReturnValue(undefined); // No SENDGRID_API_KEY
+    const orgId = new ObjectId().toHexString();
+    await seedSeller(orgId, {
+      sellerId: "seller-1",
+      email: "seller@example.com",
+      contactEmail: "seller@example.com",
+      preferredLocale: "en",
+    });
+
+    await sendSellerNotification("seller-1", orgId, "BUDGET_LOW", {
+      budgetRemaining: 10,
+      campaignName: "C1",
+    });
+
+    expect(sendSMS).not.toHaveBeenCalled();
+    const notification = await getNotification("seller-1", orgId);
+    expect(notification?.status).toBe("failed");
+    expect(notification?.orgId?.toString?.()).toBe(orgId);
+  });
+
+  it("logs sent when email succeeds", async () => {
+    (getEnv as vi.Mock).mockReturnValue("sg-key");
+    (sgMail.send as vi.Mock).mockResolvedValue({});
+    const orgId = new ObjectId().toHexString();
+    await seedSeller(orgId, {
+      sellerId: "seller-1",
+      email: "seller@example.com",
+      contactEmail: "seller@example.com",
+      preferredLocale: "en",
+    });
+
+    await sendSellerNotification("seller-1", orgId, "BUDGET_LOW", {
+      budgetRemaining: 10,
+      campaignName: "C1",
+    });
+
+    const notification = await getNotification("seller-1", orgId, "BUDGET_LOW");
+    expect(notification?.status).toBe("sent");
+  });
+
+  it("logs sent when email skipped but SMS succeeds", async () => {
+    (getEnv as vi.Mock).mockReturnValue(undefined);
+    (sendSMS as vi.Mock).mockResolvedValue({ success: true });
+    const orgId = new ObjectId().toHexString();
+    await seedSeller(orgId, {
+      sellerId: "seller-1",
+      email: "seller@example.com",
+      contactEmail: "seller@example.com",
+      phone: "+96655555555",
+      preferredLocale: "en",
+    });
+
+    await sendSellerNotification("seller-1", orgId, "BUDGET_LOW", {
+      budgetRemaining: 10,
+      campaignName: "C1",
+    });
+
+    expect(sendSMS).toHaveBeenCalledTimes(1);
+    const notification = await getNotification("seller-1", orgId, "BUDGET_LOW");
+    expect(notification?.status).toBe("sent");
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/services/souq/fulfillment-service.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    warn: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+  },
+}));
+
+// Simple in-memory fixtures for souq listing/inventory queries
+type ListingRecord = { listingId: string; orgId: string; badges?: string[]; save: () => Promise<void> };
+const listings: Array<ListingRecord> = [];
+const inventories: Array<{ listingId: string; orgId: string; fulfillmentType: string; availableQuantity: number }> = [];
+
+/**
+ * Helper to check if an orgId matches using the same logic as buildSouqOrgFilter.
+ * buildSouqOrgFilter creates a $or query with [{ orgId: { $in: [...] } }, { org_id: { $in: [...] } }].
+ */
+function matchesOrgFilter(targetOrgId: string, query: Record<string, unknown>): boolean {
+  // Handle $or: [{ orgId: { $in: [...] } }, { org_id: { $in: [...] } }]
+  if (query.$or && Array.isArray(query.$or)) {
+    for (const clause of query.$or) {
+      const orgIdField = (clause as Record<string, unknown>).orgId ?? (clause as Record<string, unknown>).org_id;
+      if (orgIdField && typeof orgIdField === "object" && orgIdField !== null) {
+        const inArr = (orgIdField as { $in?: unknown[] }).$in;
+        if (Array.isArray(inArr)) {
+          if (inArr.some((cand) => String(cand) === targetOrgId)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+  // Fallback: direct orgId field
+  if (query.orgId) {
+    if (typeof query.orgId === "object" && query.orgId !== null) {
+      const inArr = (query.orgId as { $in?: unknown[] }).$in;
+      if (Array.isArray(inArr)) {
+        return inArr.some((cand) => String(cand) === targetOrgId);
+      }
+    }
+    return String(query.orgId) === targetOrgId;
+  }
+  return true;
+}
+
+vi.mock("@/server/models/souq/Listing", () => ({
+  SouqListing: {
+    findOne: vi.fn(async (query: Record<string, unknown>) => {
+      return listings.find(
+        (l) =>
+          l.listingId === query.listingId &&
+          matchesOrgFilter(l.orgId, query),
+      ) || null;
+    }),
+  },
+}));
+
+vi.mock("@/server/models/souq/Inventory", () => ({
+  SouqInventory: {
+    findOne: vi.fn(async (query: Record<string, unknown>) => {
+      return inventories.find(
+        (inv) =>
+          inv.listingId === query.listingId &&
+          matchesOrgFilter(inv.orgId, query),
+      ) || null;
+    }),
+  },
+}));
+
+import { fulfillmentService } from "@/services/souq/fulfillment-service";
+
+describe("fulfillmentService.assignFastBadge", () => {
+  beforeEach(() => {
+    listings.length = 0;
+    inventories.length = 0;
+    vi.clearAllMocks();
+  });
+
+  it("rejects when orgId is missing", async () => {
+    const result = await fulfillmentService.assignFastBadge("L1", "" as unknown as string);
+    expect(result).toBe(false);
+  });
+
+  it("returns false when listing not in org", async () => {
+    listings.push({ listingId: "L1", orgId: "org-2", badges: [], save: vi.fn(async () => undefined) });
+    inventories.push({ listingId: "L1", orgId: "org-2", fulfillmentType: "FBF", availableQuantity: 10 });
+
+    const result = await fulfillmentService.assignFastBadge("L1", "org-1");
+    expect(result).toBe(false);
+  });
+
+  it("assigns fast badge only within the same org", async () => {
+    const save = vi.fn(async () => undefined);
+    listings.push({ listingId: "L1", orgId: "org-1", badges: [], save });
+    inventories.push({ listingId: "L1", orgId: "org-1", fulfillmentType: "FBF", availableQuantity: 10 });
+
+    const result = await fulfillmentService.assignFastBadge("L1", "org-1");
+    expect(result).toBe(true);
+    expect(listings[0].badges).toContain("fast");
+    expect(save).toHaveBeenCalled();
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/services/souq/org-scope.test.ts">
+<![CDATA[
+import { describe, it, expect } from "vitest";
+import { Types } from "mongoose";
+import { ObjectId as MongoObjectId } from "mongodb";
+import { buildSouqOrgFilter } from "@/services/souq/org-scope";
+
+describe("buildSouqOrgFilter", () => {
+  it("returns $or with orgId and org_id for string orgId", () => {
+    const filter = buildSouqOrgFilter("org-123");
+    expect(filter).toMatchObject({
+      $or: [
+        { orgId: { $in: expect.arrayContaining(["org-123"]) } },
+        { org_id: { $in: expect.arrayContaining(["org-123"]) } },
+      ],
+    });
+  });
+
+  it("includes both string and ObjectId candidates when orgId is a valid ObjectId string", () => {
+    const oid = new MongoObjectId().toString();
+    const filter = buildSouqOrgFilter(oid);
+    const orgIdClause = (filter as { $or: Array<Record<string, { $in: unknown[] }>> }).$or[0].orgId.$in;
+    expect(orgIdClause).toContain(oid);
+    expect(orgIdClause.some((v) => v instanceof MongoObjectId)).toBe(true);
+  });
+
+  it("handles mongoose ObjectId input", () => {
+    const mongooseId = new Types.ObjectId();
+    const filter = buildSouqOrgFilter(mongooseId);
+    const orgIdClause = (filter as { $or: Array<Record<string, { $in: unknown[] }>> }).$or[0].orgId.$in;
+    expect(orgIdClause).toContain(mongooseId);
+    expect(orgIdClause).toContain(mongooseId.toString());
+  });
+
+  it("returns orgless filter when allowOrgless with empty orgId", () => {
+    const filter = buildSouqOrgFilter("" as string, { allowOrgless: true });
+    expect(filter).toEqual({
+      $or: [{ orgId: { $exists: false } }, { org_id: { $exists: false } }],
+    });
+  });
+
+  it("merges candidates with orgless when allowOrgless true and orgId provided", () => {
+    const filter = buildSouqOrgFilter("org-x", { allowOrgless: true });
+    expect(filter).toMatchObject({
+      $or: [
+        { orgId: { $in: expect.arrayContaining(["org-x"]) } },
+        { org_id: { $in: expect.arrayContaining(["org-x"]) } },
+        { orgId: { $exists: false } },
+        { org_id: { $exists: false } },
+      ],
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/src_lib_utils.spec.ts">
+<![CDATA[
+/**
+ * Testing library/framework: Vitest
+ * This suite validates generateSlug from lib/utils,
+ * covering happy paths, edge cases, and failure-like conditions.
+ */
+import { describe, test, expect } from "vitest";
+import { generateSlug } from "@/lib/utils";
+
+describe("generateSlug", () => {
+  test("lowercases and hyphenates a basic phrase", () => {
+    expect(generateSlug("HELLO WORLD")).toBe("hello-world");
+  });
+
+  test("trims leading and trailing whitespace", () => {
+    expect(generateSlug("   hello   world   ")).toBe("hello-world");
+  });
+
+  test("removes characters outside [a-z0-9\\s-]", () => {
+    expect(generateSlug("Hello, World! #$%&*()[]{}")).toBe("hello-world");
+  });
+
+  test("replaces consecutive whitespace with a single hyphen", () => {
+    expect(generateSlug("hello    world\tfrom\nslug")).toBe(
+      "hello-world-from-slug",
+    );
+  });
+
+  test("collapses multiple hyphens into a single hyphen", () => {
+    expect(generateSlug("hello---world--slug")).toBe("hello-world-slug");
+  });
+
+  test("preserves numbers", () => {
+    expect(generateSlug("Product 123 Version 4")).toBe("product-123-version-4");
+  });
+
+  test("removes underscores (not treated as whitespace)", () => {
+    expect(generateSlug("hello_world_test")).toBe("helloworldtest");
+  });
+
+  test("handles punctuation and em dashes by removing them", () => {
+    expect(generateSlug("Hello, World!!! Are—you ok?")).toBe(
+      "hello-world-areyou-ok",
+    );
+  });
+
+  test("drops non-ASCII letters (accents) and normalizes spaces", () => {
+    expect(generateSlug("Café à la crème")).toBe("caf-la-crme");
+  });
+
+  test("returns empty string for empty input", () => {
+    expect(generateSlug("")).toBe("");
+  });
+
+  test("handles undefined/null at runtime defensively", () => {
+    // @ts-expect-error - Testing runtime behavior with invalid types
+    expect(generateSlug(undefined)).toBe("");
+    // @ts-expect-error - Testing runtime behavior with invalid types
+    expect(generateSlug(null)).toBe("");
+  });
+
+  test("collapses hyphen runs including leading/trailing ones created by normalization", () => {
+    expect(generateSlug("  --hello   ---   world--  ")).toBe("-hello-world-");
+  });
+
+  test("limits slug to 100 characters", () => {
+    const long = "a".repeat(150);
+    const out = generateSlug(long);
+    expect(out.length).toBe(100);
+    expect(out).toBe("a".repeat(100));
+  });
+
+  test("only hyphens collapse to a single hyphen", () => {
+    expect(generateSlug("-----")).toBe("-");
+  });
+
+  test("non-Latin characters are removed", () => {
+    expect(generateSlug("你好，世界")).toBe("");
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/tsconfig.json">
+<![CDATA[
+{
+  "extends": "../tsconfig.base.json",
+  "include": [
+    "./**/*.ts",
+    "./**/*.tsx",
+    "../types/vitest.d.ts",
+    "../types/**/*.d.ts"
+  ]
+}
+
+]]>
+</file>
+
+<file path="tests/utils.test.ts">
+<![CDATA[
+/**
+ * Unit tests for generateSlug.
+ * Framework: Vitest
+ * Style: Node-only tests.
+ */
+import { describe, test, expect } from "vitest";
+import { generateSlug } from "@/lib/utils";
+
+describe("generateSlug", () => {
+  test("returns empty string for empty input", () => {
+    expect(generateSlug("")).toBe("");
+  });
+
+  test("lowercases all characters", () => {
+    expect(generateSlug("HeLLo WoRLD")).toBe("hello-world");
+  });
+
+  test("trims surrounding whitespace", () => {
+    expect(generateSlug("   spaced   ")).toBe("spaced");
+  });
+
+  test("converts internal whitespace sequences (spaces/tabs/newlines) to single hyphen", () => {
+    expect(generateSlug("a   b\tc\nd")).toBe("a-b-c-d");
+  });
+
+  test("collapses multiple hyphens to a single hyphen", () => {
+    expect(generateSlug("a---b----c")).toBe("a-b-c");
+  });
+
+  test("preserves single hyphens inside text", () => {
+    expect(generateSlug("already-slug")).toBe("already-slug");
+  });
+
+  test("does not strip leading or trailing hyphens if they exist after normalization", () => {
+    expect(generateSlug(" --Hello-- ")).toBe("-hello-");
+  });
+
+  test("removes disallowed punctuation and symbols", () => {
+    expect(generateSlug("Hello, world! @2025 #dev")).toBe(
+      "hello-world-2025-dev",
+    );
+  });
+
+  test("removes underscores instead of treating them as separators", () => {
+    expect(generateSlug("Hello__World")).toBe("helloworld");
+  });
+
+  test("preserves Unicode letters (no transliteration)", () => {
+    expect(generateSlug("Café Déjà Vu")).toBe("café-déjà-vu");
+    expect(generateSlug("naïve façade rôle")).toBe("naïve-façade-rôle");
+  });
+
+  test("keeps digits and separates them around spaces", () => {
+    expect(generateSlug("123 abc 456")).toBe("123-abc-456");
+  });
+
+  test("handles only-whitespace inputs", () => {
+    expect(generateSlug("    ")).toBe("");
+  });
+
+  test("handles newline and tab whitespace", () => {
+    expect(generateSlug("\nTabbed\tName\r")).toBe("tabbed-name");
+  });
+
+  test("preserves non-Latin scripts", () => {
+    expect(generateSlug("你好 мир مرحبا")).toBe("你好-мир-مرحبا");
+  });
+
+  test("is idempotent (running twice yields same result)", () => {
+    const once = generateSlug("This  -- is   A TEST!!!");
+    const twice = generateSlug(once);
+    expect(twice).toBe(once);
+  });
+
+  test("gracefully handles undefined and null at runtime", () => {
+    expect((generateSlug as any)(undefined)).toBe("");
+    expect((generateSlug as any)(null)).toBe("");
+  });
+
+  test("handles very long inputs efficiently (sanity checks)", () => {
+    const long = "A! ".repeat(5000); // large input
+    const result = generateSlug(long);
+    expect(result.length).toBeGreaterThan(0);
+    expect(result.startsWith("a")).toBeTruthy();
+    expect(result.endsWith("a")).toBeTruthy();
+    expect(result.includes("--")).toBeFalsy(); // no double hyphens after collapse
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/vitest-stubs/next-server.ts">
+<![CDATA[
+// Minimal stub of `next/server` for unit tests that run outside Next.js.
+// Provides the shape needed by next-auth env helpers and any lightweight imports in model tests.
+export class NextRequest {
+  nextUrl: URL;
+  url: string;
+  headers: Headers;
+  constructor(
+    input: string | URL,
+    init?: { headers?: Headers | Record<string, string> },
+  ) {
+    const url = typeof input === "string" ? input : input.toString();
+    this.nextUrl = new URL(url);
+    this.url = url;
+    const headersInit = init?.headers ?? {};
+    this.headers =
+      headersInit instanceof Headers ? headersInit : new Headers(headersInit);
+  }
+}
+
+export class NextResponse {
+  static json(body: unknown, init?: ResponseInit) {
+    return new Response(JSON.stringify(body), {
+      status: init?.status ?? 200,
+      headers: init?.headers ?? { "content-type": "application/json" },
+    });
+  }
+}
+
+export const headers = () => new Headers();
+export const cookies = () => ({
+  get: (_key: string) => undefined as undefined,
+  set: (_key: string, _value: string) => undefined,
+});
+
+]]>
+</file>
+
+</batch_content>

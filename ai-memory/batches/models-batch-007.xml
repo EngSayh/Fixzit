@@ -1,0 +1,2913 @@
+
+You are the "Fixzit Memory Builder" for category: "models".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "models",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="server/models/finance/ChartAccount.ts">
+<![CDATA[
+/**
+ * ChartAccount Model
+ *
+ * Defines the Chart of Accounts (COA) structure for double-entry bookkeeping.
+ * Tailored for Saudi Arabian FM/Aqar marketplace with VAT compliance.
+ *
+ * Account Types:
+ * - ASSET: Cash, AR, inventory, prepaid, fixed assets
+ * - LIABILITY: AP, accrued expenses, deposits, loans
+ * - EQUITY: Owner capital, retained earnings
+ * - REVENUE: Rent income, service fees, commissions
+ * - EXPENSE: Maintenance, utilities, salaries, depreciation
+ *
+ * Features:
+ * - Multi-tenant isolation (orgId)
+ * - Hierarchical structure (parent/child accounts)
+ * - Active/inactive control
+ * - Opening balance support
+ * - Audit trail
+ */
+
+import { Schema, model, models, Types } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+import { ensureMongoConnection } from "@/server/lib/db";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
+import { auditPlugin } from "@/server/plugins/auditPlugin";
+
+ensureMongoConnection();
+
+type LocalizedName = { en?: string; ar?: string };
+
+export interface IChartAccount {
+  _id: Types.ObjectId;
+  orgId: Types.ObjectId; // Added by tenantIsolationPlugin
+  accountCode: string; // e.g., "1100", "4200", "6300"
+  accountName: string; // e.g., "Cash - Operating Account"
+  accountType: "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE";
+  // Add aliases for common property names
+  code: string; // Alias for accountCode
+  name?: string | LocalizedName; // Alias for accountName
+  type: "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE"; // Alias for accountType
+  parentId?: Types.ObjectId; // For hierarchical COA (e.g., 1100 under 1000)
+  description?: string;
+  isActive: boolean;
+  isSystemAccount: boolean; // Cannot be deleted if true (e.g., Cash, AR, AP)
+  normalBalance: "DEBIT" | "CREDIT"; // Natural balance side
+  balance: number; // Current balance (calculated from ledger)
+  openingBalance?: number; // Opening balance for fiscal year
+  currency: string;
+  taxable?: boolean; // Subject to VAT
+  vatRate?: number; // Default VAT rate (e.g., 15 for Saudi Arabia)
+  createdBy: Types.ObjectId;
+  updatedBy: Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const ChartAccountSchema = new Schema<IChartAccount>(
+  {
+    // orgId will be added by tenantIsolationPlugin
+    accountCode: {
+      type: String,
+      required: true,
+      trim: true,
+      uppercase: true,
+      match: /^[0-9]{4,6}$/, // e.g., "1100", "420001"
+    },
+    code: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      match: /^[0-9]{4,6}$/,
+    },
+    accountName: { type: String, required: true, trim: true },
+    name: {
+      en: { type: String, trim: true },
+      ar: { type: String, trim: true },
+    },
+    accountType: {
+      type: String,
+      required: true,
+      enum: ["ASSET", "LIABILITY", "EQUITY", "REVENUE", "EXPENSE"],
+      index: true,
+    },
+    parentId: { type: Schema.Types.ObjectId, ref: "ChartAccount" },
+    description: { type: String, trim: true },
+    isActive: { type: Boolean, default: true, index: true, alias: "active" },
+    isSystemAccount: { type: Boolean, default: false },
+    normalBalance: {
+      type: String,
+      required: true,
+      enum: ["DEBIT", "CREDIT"],
+    },
+    balance: { type: Number, default: 0 },
+    openingBalance: { type: Number },
+    currency: { type: String, default: "SAR" },
+    taxable: { type: Boolean, default: false },
+    vatRate: { type: Number, default: 0 }, // 0-100 percentage
+  },
+  { timestamps: true },
+);
+
+ChartAccountSchema.pre("validate", function (next) {
+  if (!this.code && this.accountCode) {
+    this.code = this.accountCode;
+  }
+  if (!this.accountCode && this.code) {
+    this.accountCode = this.code;
+  }
+
+  const normalizeName = (): LocalizedName => {
+    if (!this.name) return {};
+    if (typeof this.name === "string") {
+      return { en: this.name };
+    }
+    return this.name;
+  };
+
+  const name = normalizeName();
+
+  if (!this.accountName && name.en) {
+    this.accountName = name.en;
+  }
+
+  if (!name.en && this.accountName) {
+    name.en = this.accountName;
+  }
+
+  this.name = name;
+
+  next();
+});
+
+// Apply plugins BEFORE indexes
+ChartAccountSchema.plugin(tenantIsolationPlugin);
+ChartAccountSchema.plugin(auditPlugin);
+
+// All indexes MUST be tenant-scoped
+ChartAccountSchema.index(
+  { orgId: 1, accountCode: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+); // Unique per org
+ChartAccountSchema.index(
+  { orgId: 1, code: 1 },
+  {
+    unique: true,
+    sparse: true,
+    partialFilterExpression: { orgId: { $exists: true } },
+  },
+);
+ChartAccountSchema.index({ orgId: 1, accountType: 1, isActive: 1 });
+ChartAccountSchema.index({ orgId: 1, parentId: 1 });
+ChartAccountSchema.index({ orgId: 1, accountName: "text" }); // For search
+
+// Virtual: Is parent account
+ChartAccountSchema.virtual("isParent").get(function (this: IChartAccount) {
+  return !this.parentId;
+});
+
+ChartAccountSchema.virtual("type").get(function (this: IChartAccount) {
+  return this.accountType;
+});
+
+// Method: Get full account path (e.g., "1000 › 1100 › 1110")
+ChartAccountSchema.methods.getAccountPath = async function (): Promise<string> {
+  const path: string[] = [this.accountCode];
+  type AccountDoc = { accountCode: string; parentId?: unknown };
+  let current = this as unknown as AccountDoc;
+
+  while (current.parentId) {
+    const parent = (await model("ChartAccount").findById(
+      current.parentId,
+    )) as AccountDoc | null;
+    if (!parent) break;
+    path.unshift(parent.accountCode);
+    current = parent;
+  }
+
+  return path.join(" › ");
+};
+
+// Static: Get account hierarchy tree
+ChartAccountSchema.statics.getHierarchy = async function (
+  orgId: Types.ObjectId,
+) {
+  const accounts = await this.find({ orgId, isActive: true }).sort({
+    accountCode: 1,
+  });
+
+  interface AccountTreeNode {
+    _id: Types.ObjectId;
+    accountCode: string;
+    accountName: string;
+    accountType: string;
+    parentId?: Types.ObjectId;
+    children: AccountTreeNode[];
+    [key: string]: unknown;
+  }
+
+  const tree: AccountTreeNode[] = [];
+  const map: Map<string, AccountTreeNode> = new Map();
+
+  interface ChartAccountDoc extends IChartAccount {
+    _id: Types.ObjectId;
+    toObject: () => Record<string, unknown>;
+  }
+
+  // First pass: Create map
+  accounts.forEach((acc: ChartAccountDoc) => {
+    const node = {
+      ...acc.toObject(),
+      children: [],
+    } as unknown as AccountTreeNode;
+    map.set(acc._id.toString(), node);
+  });
+
+  // Second pass: Build tree
+  accounts.forEach((acc: ChartAccountDoc) => {
+    const node = map.get(acc._id.toString());
+    if (acc.parentId) {
+      const parent = map.get(acc.parentId.toString());
+      if (parent && node) {
+        parent.children.push(node);
+      } else if (node) {
+        tree.push(node); // Orphan account (parent deleted)
+      }
+    } else if (node) {
+      tree.push(node); // Root account
+    }
+  });
+
+  return tree;
+};
+
+// Pre-save validation: Normal balance must match account type
+ChartAccountSchema.pre("save", function (next) {
+  const expectedBalance: Record<string, "DEBIT" | "CREDIT"> = {
+    ASSET: "DEBIT",
+    EXPENSE: "DEBIT",
+    LIABILITY: "CREDIT",
+    EQUITY: "CREDIT",
+    REVENUE: "CREDIT",
+  };
+
+  if (this.isNew && this.normalBalance !== expectedBalance[this.accountType]) {
+    return next(
+      new Error(
+        `Account type ${this.accountType} must have normal balance ${expectedBalance[this.accountType]}`,
+      ),
+    );
+  }
+
+  next();
+});
+
+// Pre-remove validation: Cannot delete system accounts or accounts with children
+ChartAccountSchema.pre(
+  "deleteOne",
+  { document: true, query: false },
+  async function (next) {
+    if (this.isSystemAccount) {
+      return next(new Error("Cannot delete system account"));
+    }
+
+    const childCount = await model("ChartAccount").countDocuments({
+      orgId: this.orgId,
+      parentId: this._id,
+    });
+
+    if (childCount > 0) {
+      return next(new Error("Cannot delete account with child accounts"));
+    }
+
+    next();
+  },
+);
+
+const ChartAccountModel = getModel<IChartAccount>(
+  "ChartAccount",
+  ChartAccountSchema,
+);
+
+export default ChartAccountModel;
+
+]]>
+</file>
+
+<file path="server/models/finance/EscrowAccount.ts">
+<![CDATA[
+/**
+ * EscrowAccount Model
+ *
+ * Represents funds held in escrow for Aqar bookings and Marketplace orders.
+ * Tracks lifecycle from creation through funding, release, refund, or failure with
+ * tenant isolation and audit history.
+ */
+
+import { Schema, Types } from "mongoose";
+import { ensureMongoConnection } from "@/server/lib/db";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
+import { auditPlugin } from "@/server/plugins/auditPlugin";
+import { getModel, MModel } from "@/types/mongoose-compat";
+
+ensureMongoConnection();
+
+export const EscrowState = {
+  CREATED: "CREATED",
+  FUNDED: "FUNDED",
+  RELEASE_REQUESTED: "RELEASE_REQUESTED",
+  RELEASED: "RELEASED",
+  REFUND_REQUESTED: "REFUND_REQUESTED",
+  REFUNDED: "REFUNDED",
+  FAILED: "FAILED",
+  CANCELLED: "CANCELLED",
+  EXPIRED: "EXPIRED",
+} as const;
+
+export const EscrowSource = {
+  AQAR_BOOKING: "AQAR_BOOKING",
+  MARKETPLACE_ORDER: "MARKETPLACE_ORDER",
+} as const;
+
+export type EscrowStateValue = (typeof EscrowState)[keyof typeof EscrowState];
+export type EscrowSourceValue =
+  (typeof EscrowSource)[keyof typeof EscrowSource];
+
+export interface IEscrowAuditTrailEntry {
+  at: Date;
+  action:
+    | "created"
+    | "funded"
+    | "release_requested"
+    | "released"
+    | "refund_requested"
+    | "refunded"
+    | "failed"
+    | "cancelled";
+  actorId?: Types.ObjectId;
+  actorType?: "SYSTEM" | "USER";
+  reason?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface IEscrowAccount {
+  _id: Types.ObjectId;
+  orgId: Types.ObjectId;
+  escrowNumber: string;
+  source: EscrowSourceValue;
+  sourceId: Types.ObjectId;
+  buyerId?: Types.ObjectId;
+  sellerId?: Types.ObjectId;
+  currency: string;
+  expectedAmount: number;
+  fundedAmount: number;
+  releasedAmount: number;
+  refundedAmount: number;
+  holdAmount: number;
+  status: EscrowStateValue;
+  releasePolicy?: {
+    autoReleaseAt?: Date;
+    requiresReview?: boolean;
+    expiresAt?: Date;
+    riskHold?: boolean;
+  };
+  bookingId?: Types.ObjectId;
+  orderId?: Types.ObjectId;
+  payoutRequestId?: Types.ObjectId;
+  settlementId?: Types.ObjectId;
+  notes?: string;
+  idempotencyKeys?: string[];
+  auditTrail: IEscrowAuditTrailEntry[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const EscrowAccountSchema = new Schema<IEscrowAccount>(
+  {
+    orgId: { type: Schema.Types.ObjectId, required: true, index: true },
+    escrowNumber: { type: String, required: true, unique: true, index: true },
+    source: {
+      type: String,
+      enum: Object.values(EscrowSource),
+      required: true,
+      index: true,
+    },
+    sourceId: { type: Schema.Types.ObjectId, required: true, index: true },
+    buyerId: { type: Schema.Types.ObjectId, ref: "User", index: true },
+    sellerId: { type: Schema.Types.ObjectId, ref: "User", index: true },
+    currency: { type: String, required: true, default: "SAR", uppercase: true },
+    expectedAmount: { type: Number, required: true, min: 0 },
+    fundedAmount: { type: Number, required: true, default: 0, min: 0 },
+    releasedAmount: { type: Number, required: true, default: 0, min: 0 },
+    refundedAmount: { type: Number, required: true, default: 0, min: 0 },
+    holdAmount: { type: Number, required: true, default: 0, min: 0 },
+    status: {
+      type: String,
+      enum: Object.values(EscrowState),
+      required: true,
+      default: EscrowState.CREATED,
+      index: true,
+    },
+    releasePolicy: {
+      autoReleaseAt: { type: Date },
+      requiresReview: { type: Boolean, default: false },
+      expiresAt: { type: Date },
+      riskHold: { type: Boolean, default: false },
+    },
+    bookingId: { type: Schema.Types.ObjectId, ref: "AqarBooking", index: true },
+    orderId: { type: Schema.Types.ObjectId, ref: "SouqOrder", index: true },
+    payoutRequestId: {
+      type: Schema.Types.ObjectId,
+      ref: "SouqPayoutRequest",
+      index: true,
+    },
+    settlementId: {
+      type: Schema.Types.ObjectId,
+      ref: "SouqSettlement",
+      index: true,
+    },
+    notes: { type: String },
+    idempotencyKeys: { type: [String], default: [] },
+    auditTrail: {
+      type: [
+        {
+          at: { type: Date, required: true, default: () => new Date() },
+          action: {
+            type: String,
+            required: true,
+            enum: [
+              "created",
+              "funded",
+              "release_requested",
+              "released",
+              "refund_requested",
+              "refunded",
+              "failed",
+              "cancelled",
+            ],
+          },
+          actorId: { type: Schema.Types.ObjectId, ref: "User" },
+          actorType: { type: String, enum: ["SYSTEM", "USER"] },
+          reason: { type: String },
+          metadata: { type: Schema.Types.Mixed },
+        },
+      ],
+      default: [],
+    },
+  },
+  { timestamps: true, collection: "finance_escrow_accounts" },
+);
+
+EscrowAccountSchema.plugin(tenantIsolationPlugin);
+EscrowAccountSchema.plugin(auditPlugin);
+
+EscrowAccountSchema.index(
+  { orgId: 1, source: 1, sourceId: 1 },
+  { unique: true },
+);
+EscrowAccountSchema.index({
+  orgId: 1,
+  status: 1,
+  "releasePolicy.autoReleaseAt": 1,
+});
+EscrowAccountSchema.index({ orgId: 1, buyerId: 1 });
+EscrowAccountSchema.index({ orgId: 1, sellerId: 1 });
+
+export const EscrowAccount = getModel<IEscrowAccount, MModel<IEscrowAccount>>(
+  "EscrowAccount",
+  EscrowAccountSchema,
+);
+
+]]>
+</file>
+
+<file path="server/models/finance/EscrowRelease.ts">
+<![CDATA[
+/**
+ * EscrowRelease Model
+ *
+ * Tracks release requests from escrow, their approval state, and linkage
+ * to the underlying escrow transactions.
+ */
+
+import { Schema, Types } from "mongoose";
+import { ensureMongoConnection } from "@/server/lib/db";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
+import { auditPlugin } from "@/server/plugins/auditPlugin";
+import { getModel, MModel } from "@/types/mongoose-compat";
+
+ensureMongoConnection();
+
+export const EscrowReleaseStatus = {
+  REQUESTED: "REQUESTED",
+  APPROVED: "APPROVED",
+  RELEASED: "RELEASED",
+  REJECTED: "REJECTED",
+  FAILED: "FAILED",
+  REFUNDED: "REFUNDED",
+  CANCELLED: "CANCELLED",
+} as const;
+
+export type EscrowReleaseStatusValue =
+  (typeof EscrowReleaseStatus)[keyof typeof EscrowReleaseStatus];
+
+export interface IEscrowRelease {
+  _id: Types.ObjectId;
+  orgId: Types.ObjectId;
+  escrowAccountId: Types.ObjectId;
+  requestedBy?: Types.ObjectId;
+  approvedBy?: Types.ObjectId;
+  releaseTransactionId?: Types.ObjectId;
+  refundTransactionId?: Types.ObjectId;
+  amount: number;
+  currency: string;
+  status: EscrowReleaseStatusValue;
+  scheduledFor?: Date;
+  requestedAt: Date;
+  releasedAt?: Date;
+  notes?: string;
+  autoRelease?: boolean;
+  reason?: string;
+  riskFlags?: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const EscrowReleaseSchema = new Schema<IEscrowRelease>(
+  {
+    orgId: { type: Schema.Types.ObjectId, required: true, index: true },
+    escrowAccountId: {
+      type: Schema.Types.ObjectId,
+      ref: "EscrowAccount",
+      required: true,
+      index: true,
+    },
+    requestedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    approvedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    releaseTransactionId: {
+      type: Schema.Types.ObjectId,
+      ref: "EscrowTransaction",
+    },
+    refundTransactionId: {
+      type: Schema.Types.ObjectId,
+      ref: "EscrowTransaction",
+    },
+    amount: { type: Number, required: true, min: 0 },
+    currency: { type: String, required: true, default: "SAR", uppercase: true },
+    status: {
+      type: String,
+      enum: Object.values(EscrowReleaseStatus),
+      default: EscrowReleaseStatus.REQUESTED,
+      required: true,
+      index: true,
+    },
+    scheduledFor: { type: Date },
+    requestedAt: {
+      type: Date,
+      required: true,
+      default: () => new Date(),
+      index: true,
+    },
+    releasedAt: { type: Date },
+    notes: { type: String },
+    autoRelease: { type: Boolean, default: false },
+    reason: { type: String },
+    riskFlags: { type: [String], default: [] },
+  },
+  { timestamps: true, collection: "finance_escrow_releases" },
+);
+
+EscrowReleaseSchema.plugin(tenantIsolationPlugin);
+EscrowReleaseSchema.plugin(auditPlugin);
+
+EscrowReleaseSchema.index({ orgId: 1, escrowAccountId: 1, status: 1 });
+EscrowReleaseSchema.index({ orgId: 1, scheduledFor: 1, status: 1 });
+
+export const EscrowRelease = getModel<IEscrowRelease, MModel<IEscrowRelease>>(
+  "EscrowRelease",
+  EscrowReleaseSchema,
+);
+
+]]>
+</file>
+
+<file path="server/models/finance/EscrowTransaction.ts">
+<![CDATA[
+/**
+ * EscrowTransaction Model
+ *
+ * Represents money movement into or out of an escrow account.
+ * Used for funding, releases, refunds, and adjustments with idempotency keys.
+ */
+
+import { Schema, Types } from "mongoose";
+import { ensureMongoConnection } from "@/server/lib/db";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
+import { auditPlugin } from "@/server/plugins/auditPlugin";
+import { getModel, MModel } from "@/types/mongoose-compat";
+
+ensureMongoConnection();
+
+export const EscrowTransactionType = {
+  FUND: "FUND",
+  RELEASE: "RELEASE",
+  REFUND: "REFUND",
+  ADJUSTMENT: "ADJUSTMENT",
+} as const;
+
+export const EscrowTransactionStatus = {
+  PENDING: "PENDING",
+  SUCCEEDED: "SUCCEEDED",
+  FAILED: "FAILED",
+  REVERSED: "REVERSED",
+} as const;
+
+export type EscrowTransactionTypeValue =
+  (typeof EscrowTransactionType)[keyof typeof EscrowTransactionType];
+export type EscrowTransactionStatusValue =
+  (typeof EscrowTransactionStatus)[keyof typeof EscrowTransactionStatus];
+
+export interface IEscrowTransaction {
+  _id: Types.ObjectId;
+  orgId: Types.ObjectId;
+  escrowAccountId: Types.ObjectId;
+  type: EscrowTransactionTypeValue;
+  status: EscrowTransactionStatusValue;
+  amount: number;
+  currency: string;
+  idempotencyKey?: string;
+  externalRef?: string;
+  provider?: "PAYTABS" | "SADAD" | "SPAN" | "MANUAL" | "UNKNOWN";
+  reason?: string;
+  failureReason?: string;
+  metadata?: Record<string, unknown>;
+  createdAt: Date;
+  updatedAt: Date;
+  executedAt?: Date;
+  initiatedBy?: Types.ObjectId;
+}
+
+const EscrowTransactionSchema = new Schema<IEscrowTransaction>(
+  {
+    orgId: { type: Schema.Types.ObjectId, required: true, index: true },
+    escrowAccountId: {
+      type: Schema.Types.ObjectId,
+      ref: "EscrowAccount",
+      required: true,
+      index: true,
+    },
+    type: {
+      type: String,
+      enum: Object.values(EscrowTransactionType),
+      required: true,
+      index: true,
+    },
+    status: {
+      type: String,
+      enum: Object.values(EscrowTransactionStatus),
+      required: true,
+      default: EscrowTransactionStatus.PENDING,
+      index: true,
+    },
+    amount: { type: Number, required: true, min: 0 },
+    currency: { type: String, required: true, default: "SAR", uppercase: true },
+    idempotencyKey: { type: String, index: true },
+    externalRef: { type: String },
+    provider: {
+      type: String,
+      enum: ["PAYTABS", "SADAD", "SPAN", "MANUAL", "UNKNOWN"],
+      default: "UNKNOWN",
+    },
+    reason: { type: String },
+    failureReason: { type: String },
+    metadata: { type: Schema.Types.Mixed },
+    executedAt: { type: Date },
+    initiatedBy: { type: Schema.Types.ObjectId, ref: "User" },
+  },
+  { timestamps: true, collection: "finance_escrow_transactions" },
+);
+
+EscrowTransactionSchema.plugin(tenantIsolationPlugin);
+EscrowTransactionSchema.plugin(auditPlugin);
+
+EscrowTransactionSchema.index(
+  { orgId: 1, idempotencyKey: 1 },
+  { unique: true, sparse: true },
+);
+EscrowTransactionSchema.index({ orgId: 1, escrowAccountId: 1, createdAt: -1 });
+
+export const EscrowTransaction = getModel<
+  IEscrowTransaction,
+  MModel<IEscrowTransaction>
+>("EscrowTransaction", EscrowTransactionSchema);
+
+]]>
+</file>
+
+<file path="server/models/finance/Expense.ts">
+<![CDATA[
+/**
+ * Expense Model - Finance Pack Phase 2
+ *
+ * Tracks business expenses with approval workflow, receipt management,
+ * and integration with Chart of Accounts and Work Orders.
+ *
+ * Features:
+ * - Multi-level approval workflow
+ * - Receipt/attachment management
+ * - Category and GL account mapping
+ * - WO/Project/Property linking
+ * - Reimbursement tracking
+ * - Budget tracking and alerts
+ * - VAT calculation
+ */
+
+import { Schema, model, models, Types, Document } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+import { ensureMongoConnection } from "@/server/lib/db";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
+import { auditPlugin } from "@/server/plugins/auditPlugin";
+
+ensureMongoConnection();
+
+// ============================================================================
+// ENUMS & CONSTANTS
+// ============================================================================
+
+export const ExpenseType = {
+  OPERATIONAL: "OPERATIONAL", // Day-to-day operations
+  MAINTENANCE: "MAINTENANCE", // Repairs and maintenance
+  CAPITAL: "CAPITAL", // Capital expenditure
+  REIMBURSEMENT: "REIMBURSEMENT", // Employee reimbursement
+  UTILITY: "UTILITY", // Utilities (water, electricity, etc.)
+  ADMINISTRATIVE: "ADMINISTRATIVE", // Admin costs
+  OTHER: "OTHER",
+} as const;
+
+export const ExpenseStatus = {
+  DRAFT: "DRAFT", // Created but not submitted
+  SUBMITTED: "SUBMITTED", // Submitted for approval
+  APPROVED: "APPROVED", // Approved
+  REJECTED: "REJECTED", // Rejected
+  PAID: "PAID", // Payment made
+  CANCELLED: "CANCELLED", // Cancelled
+} as const;
+
+export const ExpenseCategory = {
+  MAINTENANCE_REPAIR: "MAINTENANCE_REPAIR",
+  UTILITIES: "UTILITIES",
+  INSURANCE: "INSURANCE",
+  PROPERTY_TAX: "PROPERTY_TAX",
+  MANAGEMENT_FEES: "MANAGEMENT_FEES",
+  SECURITY: "SECURITY",
+  LANDSCAPING: "LANDSCAPING",
+  CLEANING: "CLEANING",
+  HVAC: "HVAC",
+  PLUMBING: "PLUMBING",
+  ELECTRICAL: "ELECTRICAL",
+  OFFICE_SUPPLIES: "OFFICE_SUPPLIES",
+  TRAVEL: "TRAVEL",
+  MARKETING: "MARKETING",
+  LEGAL_PROFESSIONAL: "LEGAL_PROFESSIONAL",
+  OTHER: "OTHER",
+} as const;
+
+export const PaymentMethod = {
+  CASH: "CASH",
+  CARD: "CARD",
+  BANK_TRANSFER: "BANK_TRANSFER",
+  CHEQUE: "CHEQUE",
+  CREDIT: "CREDIT",
+  REIMBURSEMENT: "REIMBURSEMENT",
+} as const;
+
+// ============================================================================
+// INTERFACES
+// ============================================================================
+
+export interface IExpenseApproval {
+  level: number; // Approval level (1, 2, 3...)
+  approverRole: string; // Required role for this level
+  approverId?: Types.ObjectId; // Who approved (if approved)
+  approverName?: string; // Denormalized name
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  reviewedAt?: Date;
+  comments?: string;
+}
+
+export interface IExpenseLineItem {
+  description: string;
+  category: keyof typeof ExpenseCategory;
+  accountId?: Types.ObjectId; // GL Account from COA
+  accountCode?: string; // Denormalized account code
+  quantity: number;
+  unitPrice: number;
+  amount: number; // quantity * unitPrice
+  taxable: boolean;
+  taxRate: number; // VAT rate (e.g., 0.15 for 15%)
+  taxAmount: number;
+}
+
+export interface IReceipt {
+  fileName: string;
+  fileUrl: string;
+  fileType: string; // image/jpeg, application/pdf, etc.
+  fileSize: number; // in bytes
+  uploadedAt: Date;
+  uploadedBy: Types.ObjectId;
+}
+
+export interface IBudgetTracking {
+  budgetId?: Types.ObjectId;
+  budgetCategory?: string;
+  budgetedAmount?: number;
+  spentAmount?: number; // Before this expense
+  remainingAmount?: number;
+  exceedsBudget: boolean;
+}
+
+export interface IExpense extends Document {
+  // Core fields
+  orgId: Types.ObjectId; // Added by tenantIsolationPlugin
+  expenseNumber: string; // Auto-generated: EXP-YYYYMM-####
+
+  // Classification
+  expenseType: keyof typeof ExpenseType;
+  status: keyof typeof ExpenseStatus;
+
+  // Financial details
+  lineItems: IExpenseLineItem[];
+  subtotal: number; // Sum of line item amounts
+  totalTax: number; // Sum of tax amounts
+  totalAmount: number; // subtotal + totalTax
+  currency: string; // SAR, USD, etc.
+
+  // Dates
+  expenseDate: Date; // When expense was incurred
+  dueDate?: Date; // When payment is due
+  submittedAt?: Date;
+  approvedAt?: Date;
+  paidAt?: Date;
+
+  // Approval workflow
+  approvals: IExpenseApproval[];
+  currentApprovalLevel: number;
+  requiresApproval: boolean;
+
+  // Vendor/Payee
+  vendorId?: Types.ObjectId;
+  vendorName: string;
+  vendorType?: "VENDOR" | "EMPLOYEE" | "CONTRACTOR" | "OTHER";
+
+  // Payment details
+  paymentMethod?: keyof typeof PaymentMethod;
+  paymentId?: Types.ObjectId; // Reference to Payment record
+  paymentReference?: string; // External payment reference
+
+  // Receipts and attachments
+  receipts: IReceipt[];
+  attachments?: string[]; // Additional document URLs
+
+  // Context/References
+  propertyId?: Types.ObjectId;
+  unitId?: Types.ObjectId;
+  workOrderId?: Types.ObjectId;
+  projectId?: Types.ObjectId;
+
+  // Accounting integration
+  journalId?: Types.ObjectId; // Reference to Journal entry
+
+  // Budget tracking
+  budgetTracking?: IBudgetTracking;
+
+  // Reimbursement (if expense type is REIMBURSEMENT)
+  isReimbursement: boolean;
+  reimbursementTo?: Types.ObjectId; // Employee to reimburse
+  reimbursementStatus?: "PENDING" | "APPROVED" | "PAID";
+
+  // Metadata
+  description: string;
+  notes?: string;
+  tags?: string[];
+  internalReference?: string; // PO number, contract number, etc.
+
+  // Audit fields added by auditPlugin
+  createdBy: Types.ObjectId;
+  updatedBy?: Types.ObjectId;
+  version: number;
+
+  // Methods
+  submit(): Promise<void>;
+  approve(approverId: Types.ObjectId, comments?: string): Promise<void>;
+  reject(approverId: Types.ObjectId, reason: string): Promise<void>;
+  markAsPaid(paymentId: Types.ObjectId): Promise<void>;
+}
+
+// ============================================================================
+// SCHEMA DEFINITION
+// ============================================================================
+
+const ExpenseSchema = new Schema<IExpense>(
+  {
+    // orgId will be added by tenantIsolationPlugin
+
+    expenseNumber: {
+      type: String,
+      required: true,
+      index: true,
+    },
+
+    expenseType: {
+      type: String,
+      enum: Object.values(ExpenseType),
+      required: true,
+      index: true,
+    },
+
+    status: {
+      type: String,
+      enum: Object.values(ExpenseStatus),
+      default: ExpenseStatus.DRAFT,
+      index: true,
+    },
+
+    lineItems: [
+      {
+        description: { type: String, required: true },
+        category: {
+          type: String,
+          enum: Object.values(ExpenseCategory),
+          required: true,
+          index: true,
+        },
+        accountId: { type: Schema.Types.ObjectId, ref: "ChartAccount" },
+        accountCode: String,
+        quantity: { type: Number, required: true, min: 0 },
+        unitPrice: { type: Number, required: true, min: 0 },
+        amount: { type: Number, required: true, min: 0 },
+        taxable: { type: Boolean, default: true },
+        taxRate: { type: Number, default: 0.15 }, // 15% VAT for Saudi Arabia
+        taxAmount: { type: Number, default: 0 },
+      },
+    ],
+
+    subtotal: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+
+    totalTax: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+
+    totalAmount: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+
+    currency: {
+      type: String,
+      default: "SAR",
+      uppercase: true,
+    },
+
+    expenseDate: {
+      type: Date,
+      required: true,
+      index: true,
+    },
+
+    dueDate: Date,
+    submittedAt: Date,
+    approvedAt: Date,
+    paidAt: Date,
+
+    approvals: [
+      {
+        level: { type: Number, required: true },
+        approverRole: { type: String, required: true },
+        approverId: { type: Schema.Types.ObjectId, ref: "User" },
+        approverName: String,
+        status: {
+          type: String,
+          enum: ["PENDING", "APPROVED", "REJECTED"],
+          default: "PENDING",
+        },
+        reviewedAt: Date,
+        comments: String,
+      },
+    ],
+
+    currentApprovalLevel: {
+      type: Number,
+      default: 0,
+    },
+
+    requiresApproval: {
+      type: Boolean,
+      default: true,
+    },
+
+    vendorId: {
+      type: Schema.Types.ObjectId,
+      ref: "ServiceProvider",
+      index: true,
+    },
+
+    vendorName: {
+      type: String,
+      required: true,
+    },
+
+    vendorType: {
+      type: String,
+      enum: ["VENDOR", "EMPLOYEE", "CONTRACTOR", "OTHER"],
+    },
+
+    paymentMethod: {
+      type: String,
+      enum: Object.values(PaymentMethod),
+    },
+
+    paymentId: {
+      type: Schema.Types.ObjectId,
+      ref: "Payment",
+      index: true,
+    },
+
+    paymentReference: String,
+
+    receipts: [
+      {
+        fileName: { type: String, required: true },
+        fileUrl: { type: String, required: true },
+        fileType: { type: String, required: true },
+        fileSize: { type: Number, required: true },
+        uploadedAt: { type: Date, default: Date.now },
+        uploadedBy: {
+          type: Schema.Types.ObjectId,
+          ref: "User",
+          required: true,
+        },
+      },
+    ],
+
+    attachments: [String],
+
+    propertyId: {
+      type: Schema.Types.ObjectId,
+      ref: "Property",
+      index: true,
+    },
+
+    unitId: {
+      type: Schema.Types.ObjectId,
+      ref: "Unit",
+    },
+
+    workOrderId: {
+      type: Schema.Types.ObjectId,
+      ref: "WorkOrder",
+      index: true,
+    },
+
+    projectId: {
+      type: Schema.Types.ObjectId,
+      ref: "Project",
+      index: true,
+    },
+
+    journalId: {
+      type: Schema.Types.ObjectId,
+      ref: "Journal",
+      index: true,
+    },
+
+    budgetTracking: {
+      budgetId: { type: Schema.Types.ObjectId, ref: "Budget" },
+      budgetCategory: String,
+      budgetedAmount: Number,
+      spentAmount: Number,
+      remainingAmount: Number,
+      exceedsBudget: { type: Boolean, default: false },
+    },
+
+    isReimbursement: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+
+    reimbursementTo: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+
+    reimbursementStatus: {
+      type: String,
+      enum: ["PENDING", "APPROVED", "PAID"],
+    },
+
+    description: {
+      type: String,
+      required: true,
+    },
+
+    notes: String,
+    tags: [String],
+    internalReference: String,
+
+    // createdBy, updatedBy, version added by auditPlugin
+  },
+  {
+    timestamps: true,
+    collection: "finance_expenses",
+  },
+);
+
+// ============================================================================
+// PLUGINS
+// ============================================================================
+
+ExpenseSchema.plugin(tenantIsolationPlugin);
+ExpenseSchema.plugin(auditPlugin);
+
+// ============================================================================
+// INDEXES
+// ============================================================================
+
+// Compound tenant-scoped unique index
+ExpenseSchema.index(
+  { orgId: 1, expenseNumber: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
+
+// Query indexes (tenant-scoped)
+ExpenseSchema.index({ orgId: 1, expenseDate: -1 });
+ExpenseSchema.index({ orgId: 1, status: 1, expenseDate: -1 });
+ExpenseSchema.index({ orgId: 1, expenseType: 1, expenseDate: -1 });
+ExpenseSchema.index({ orgId: 1, vendorId: 1, expenseDate: -1 });
+ExpenseSchema.index({ orgId: 1, workOrderId: 1 });
+ExpenseSchema.index({ orgId: 1, projectId: 1 });
+ExpenseSchema.index({ orgId: 1, currentApprovalLevel: 1, status: 1 });
+
+// Search index (tenant-scoped)
+ExpenseSchema.index({
+  orgId: 1,
+  expenseNumber: "text",
+  description: "text",
+  vendorName: "text",
+  notes: "text",
+});
+
+// ============================================================================
+// HOOKS
+// ============================================================================
+
+// Pre-save: Auto-generate expense number and calculate totals
+ExpenseSchema.pre("save", async function (next) {
+  // Generate expense number
+  if (this.isNew && !this.expenseNumber) {
+    const now = new Date();
+    const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+    const Expense = this.constructor as typeof import("mongoose").Model;
+    const lastExpense = await Expense.findOne({
+      orgId: this.orgId,
+      expenseNumber: new RegExp(`^EXP-${yearMonth}-`),
+    }).sort({ expenseNumber: -1 });
+
+    let nextNum = 1;
+    if (lastExpense?.expenseNumber) {
+      const match = lastExpense.expenseNumber.match(/-(\d+)$/);
+      if (match) nextNum = parseInt(match[1], 10) + 1;
+    }
+
+    this.expenseNumber = `EXP-${yearMonth}-${String(nextNum).padStart(4, "0")}`;
+  }
+
+  // Calculate line item amounts and taxes
+  this.lineItems.forEach((item) => {
+    item.amount = item.quantity * item.unitPrice;
+    if (item.taxable) {
+      item.taxAmount = item.amount * item.taxRate;
+    } else {
+      item.taxAmount = 0;
+    }
+  });
+
+  // Calculate totals
+  this.subtotal = this.lineItems.reduce((sum, item) => sum + item.amount, 0);
+  this.totalTax = this.lineItems.reduce((sum, item) => sum + item.taxAmount, 0);
+  this.totalAmount = this.subtotal + this.totalTax;
+
+  next();
+});
+
+// ============================================================================
+// INSTANCE METHODS
+// ============================================================================
+
+/**
+ * Submit expense for approval
+ */
+ExpenseSchema.methods.submit = function () {
+  if (this.status !== ExpenseStatus.DRAFT) {
+    throw new Error("Only draft expenses can be submitted");
+  }
+
+  if (this.lineItems.length === 0) {
+    throw new Error("Cannot submit expense with no line items");
+  }
+
+  this.status = ExpenseStatus.SUBMITTED;
+  this.submittedAt = new Date();
+  this.currentApprovalLevel = 1;
+};
+
+/**
+ * Approve expense at current level
+ */
+ExpenseSchema.methods.approve = function (
+  approverId: Types.ObjectId,
+  approverName: string,
+  comments?: string,
+) {
+  const currentApproval = this.approvals.find(
+    (a: IExpenseApproval) => a.level === this.currentApprovalLevel,
+  );
+
+  if (!currentApproval) {
+    throw new Error("No approval pending at current level");
+  }
+
+  if (currentApproval.status !== "PENDING") {
+    throw new Error("Approval already processed");
+  }
+
+  currentApproval.status = "APPROVED";
+  currentApproval.approverId = approverId;
+  currentApproval.approverName = approverName;
+  currentApproval.reviewedAt = new Date();
+  currentApproval.comments = comments;
+
+  // Check if there are more approval levels
+  const nextLevel = this.currentApprovalLevel + 1;
+  const hasNextLevel = this.approvals.some(
+    (a: IExpenseApproval) => a.level === nextLevel,
+  );
+
+  if (hasNextLevel) {
+    this.currentApprovalLevel = nextLevel;
+  } else {
+    // All approvals complete
+    this.status = ExpenseStatus.APPROVED;
+    this.approvedAt = new Date();
+  }
+};
+
+/**
+ * Reject expense
+ */
+ExpenseSchema.methods.reject = function (
+  approverId: Types.ObjectId,
+  approverName: string,
+  comments: string,
+) {
+  const currentApproval = this.approvals.find(
+    (a: IExpenseApproval) => a.level === this.currentApprovalLevel,
+  );
+
+  if (!currentApproval) {
+    throw new Error("No approval pending at current level");
+  }
+
+  currentApproval.status = "REJECTED";
+  currentApproval.approverId = approverId;
+  currentApproval.approverName = approverName;
+  currentApproval.reviewedAt = new Date();
+  currentApproval.comments = comments;
+
+  this.status = ExpenseStatus.REJECTED;
+};
+
+/**
+ * Mark as paid
+ */
+ExpenseSchema.methods.markAsPaid = function (
+  paymentId: Types.ObjectId,
+  paymentReference?: string,
+) {
+  if (this.status !== ExpenseStatus.APPROVED) {
+    throw new Error("Only approved expenses can be marked as paid");
+  }
+
+  this.status = ExpenseStatus.PAID;
+  this.paymentId = paymentId;
+  this.paymentReference = paymentReference;
+  this.paidAt = new Date();
+};
+
+/**
+ * Add receipt
+ */
+ExpenseSchema.methods.addReceipt = function (
+  fileName: string,
+  fileUrl: string,
+  fileType: string,
+  fileSize: number,
+  uploadedBy: Types.ObjectId,
+) {
+  this.receipts.push({
+    fileName,
+    fileUrl,
+    fileType,
+    fileSize,
+    uploadedAt: new Date(),
+    uploadedBy,
+  });
+};
+
+// ============================================================================
+// STATIC METHODS
+// ============================================================================
+
+/**
+ * Get pending approvals for a user role
+ */
+ExpenseSchema.statics.getPendingApprovals = function (
+  orgId: Types.ObjectId,
+  approverRole: string,
+) {
+  return this.find({
+    orgId,
+    status: ExpenseStatus.SUBMITTED,
+    "approvals.approverRole": approverRole,
+    "approvals.status": "PENDING",
+  }).sort({ submittedAt: 1 });
+};
+
+/**
+ * Get expenses by category for reporting
+ */
+ExpenseSchema.statics.getByCategory = async function (
+  orgId: Types.ObjectId,
+  startDate: Date,
+  endDate: Date,
+) {
+  const expenses = await this.find({
+    orgId,
+    expenseDate: { $gte: startDate, $lte: endDate },
+    status: { $in: [ExpenseStatus.APPROVED, ExpenseStatus.PAID] },
+  });
+
+  const byCategory: Record<string, number> = {};
+
+  for (const expense of expenses) {
+    for (const item of expense.lineItems) {
+      if (!byCategory[item.category]) {
+        byCategory[item.category] = 0;
+      }
+      byCategory[item.category] += item.amount + item.taxAmount;
+    }
+  }
+
+  return byCategory;
+};
+
+/**
+ * Get expense summary
+ */
+ExpenseSchema.statics.getSummary = async function (
+  orgId: Types.ObjectId,
+  startDate: Date,
+  endDate: Date,
+) {
+  const expenses = await this.find({
+    orgId,
+    expenseDate: { $gte: startDate, $lte: endDate },
+    status: { $in: [ExpenseStatus.APPROVED, ExpenseStatus.PAID] },
+  });
+
+  return {
+    totalExpenses: expenses.reduce(
+      (sum: number, e: IExpense) => sum + e.totalAmount,
+      0,
+    ),
+    totalTax: expenses.reduce(
+      (sum: number, e: IExpense) => sum + e.totalTax,
+      0,
+    ),
+    count: expenses.length,
+    byType: expenses.reduce(
+      (acc: Record<string, number>, e: IExpense) => {
+        acc[e.expenseType] = (acc[e.expenseType] || 0) + e.totalAmount;
+        return acc;
+      },
+      {} as Record<string, number>,
+    ),
+    byVendor: expenses.reduce(
+      (acc: Record<string, number>, e: IExpense) => {
+        acc[e.vendorName] = (acc[e.vendorName] || 0) + e.totalAmount;
+        return acc;
+      },
+      {} as Record<string, number>,
+    ),
+  };
+};
+
+// ============================================================================
+// MODEL EXPORT
+// ============================================================================
+
+export const Expense = getModel<IExpense>("Expense", ExpenseSchema);
+
+]]>
+</file>
+
+<file path="server/models/finance/FxRate.ts">
+<![CDATA[
+import mongoose, { Schema } from "mongoose";
+import { ensureMongoConnection } from "@/server/lib/db";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
+import { auditPlugin } from "@/server/plugins/auditPlugin";
+
+ensureMongoConnection();
+
+const FxRateSchema = new Schema({
+  date: { type: Date, required: true },
+  baseCurrency: { type: String, required: true },
+  quoteCurrency: { type: String, required: true },
+  rate: { type: Number, required: true },
+  source: { type: String, default: "polygon" },
+});
+
+tenantIsolationPlugin(FxRateSchema);
+auditPlugin(FxRateSchema);
+FxRateSchema.index(
+  { orgId: 1, date: 1, baseCurrency: 1, quoteCurrency: 1 },
+  { unique: true },
+);
+
+export const FxRate =
+  mongoose.models.FxRate || mongoose.model("FxRate", FxRateSchema);
+export default FxRate;
+
+]]>
+</file>
+
+<file path="server/models/finance/Journal.ts">
+<![CDATA[
+/**
+ * Journal Model
+ *
+ * Records all financial journal entries in the general ledger.
+ * Each journal entry represents a financial transaction with balanced debits and credits.
+ *
+ * Journal Entry Structure:
+ * - Header: journalNumber, date, description, source
+ * - Lines: Multiple debit/credit entries that must balance
+ * - Status: DRAFT, POSTED, VOID
+ *
+ * Features:
+ * - Multi-tenant isolation (orgId)
+ * - Immutable once posted (can only void)
+ * - Automatic balance validation (debits = credits)
+ * - Source tracking (WO, Invoice, Payment, Manual)
+ * - Audit trail
+ */
+
+import { Schema, model, models, Types } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+import Decimal from "decimal.js";
+import { ensureMongoConnection } from "@/server/lib/db";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
+import { auditPlugin } from "@/server/plugins/auditPlugin";
+
+ensureMongoConnection();
+
+export interface IJournalLine {
+  lineNumber: number;
+  accountId: Types.ObjectId;
+  accountCode?: string; // Denormalized for reporting
+  accountName?: string; // Denormalized for reporting
+  description?: string;
+  debit: number;
+  credit: number;
+  propertyId?: Types.ObjectId;
+  unitId?: Types.ObjectId;
+  ownerId?: Types.ObjectId;
+  tenantId?: Types.ObjectId;
+  vendorId?: Types.ObjectId;
+}
+
+export interface IJournalPosting {
+  accountId: Types.ObjectId;
+  debitMinor?: Types.Decimal128;
+  creditMinor?: Types.Decimal128;
+  currency: string;
+  fxRate?: number;
+  memo?: string;
+  dimensions?: Record<string, unknown>;
+}
+
+export interface IJournal {
+  _id: Types.ObjectId;
+  orgId: Types.ObjectId;
+  journalNumber: string; // e.g., "JE-2025-001"
+  number?: string; // Alias for journalNumber (finance pack)
+  journalDate: Date;
+  date?: Date; // Alias for journalDate
+  postingDate?: Date;
+  description: string;
+  sourceType:
+    | "WORK_ORDER"
+    | "INVOICE"
+    | "PAYMENT"
+    | "RENT"
+    | "EXPENSE"
+    | "ADJUSTMENT"
+    | "MANUAL";
+  sourceId?: Types.ObjectId; // Reference to source document
+  sourceNumber?: string; // Denormalized for reporting
+  status: "DRAFT" | "POSTED" | "VOID";
+  lines: IJournalLine[];
+  postings?: IJournalPosting[];
+  totalDebit: number;
+  totalCredit: number;
+  isBalanced: boolean;
+  voidedAt?: Date;
+  voidedBy?: Types.ObjectId;
+  voidReason?: string;
+  type?: "STANDARD" | "ADJUSTMENT" | "REVERSAL" | "CLOSING";
+  postedBy?: Types.ObjectId;
+  postedAt?: Date;
+  reversalOf?: Types.ObjectId;
+  reversedBy?: Types.ObjectId;
+  fiscalYear: number;
+  fiscalPeriod: number; // 1-12 for months
+  createdBy: Types.ObjectId;
+  updatedBy: Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const JournalLineSchema = new Schema<IJournalLine>(
+  {
+    lineNumber: { type: Number, required: true },
+    accountId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: "ChartAccount",
+      index: true,
+    },
+    accountCode: { type: String },
+    accountName: { type: String },
+    description: { type: String, trim: true },
+    debit: { type: Number, required: true, default: 0, min: 0 },
+    credit: { type: Number, required: true, default: 0, min: 0 },
+    propertyId: { type: Schema.Types.ObjectId, ref: "Property" },
+    unitId: { type: Schema.Types.ObjectId, ref: "Unit" },
+    ownerId: { type: Schema.Types.ObjectId, ref: "Owner" },
+    tenantId: { type: Schema.Types.ObjectId, ref: "Tenant" },
+    vendorId: { type: Schema.Types.ObjectId, ref: "Vendor" },
+  },
+  { _id: false },
+);
+
+const JournalPostingSchema = new Schema<IJournalPosting>(
+  {
+    accountId: {
+      type: Schema.Types.ObjectId,
+      ref: "ChartAccount",
+      required: true,
+    },
+    debitMinor: {
+      type: Schema.Types.Decimal128,
+      default: () => Types.Decimal128.fromString("0"),
+    },
+    creditMinor: {
+      type: Schema.Types.Decimal128,
+      default: () => Types.Decimal128.fromString("0"),
+    },
+    currency: { type: String, required: true },
+    fxRate: { type: Number, default: 1 },
+    memo: { type: String },
+    dimensions: { type: Schema.Types.Mixed },
+  },
+  { _id: false },
+);
+
+const JournalSchema = new Schema<IJournal>(
+  {
+    // orgId will be added by tenantIsolationPlugin
+    journalNumber: {
+      type: String,
+      required: true,
+      trim: true,
+      uppercase: true,
+      alias: "number",
+      // Unique per org - see compound index below
+    },
+    journalDate: { type: Date, required: true, index: true, alias: "date" },
+    postingDate: { type: Date },
+    type: {
+      type: String,
+      enum: ["STANDARD", "ADJUSTMENT", "REVERSAL", "CLOSING"],
+      default: "STANDARD",
+    },
+    description: { type: String, required: true, trim: true },
+    sourceType: {
+      type: String,
+      required: true,
+      enum: [
+        "WORK_ORDER",
+        "INVOICE",
+        "PAYMENT",
+        "RENT",
+        "EXPENSE",
+        "ADJUSTMENT",
+        "MANUAL",
+      ],
+      index: true,
+    },
+    sourceId: { type: Schema.Types.ObjectId, index: true },
+    sourceNumber: { type: String, trim: true },
+    status: {
+      type: String,
+      required: true,
+      enum: ["DRAFT", "POSTED", "VOID"],
+      default: "DRAFT",
+      index: true,
+    },
+    postings: { type: [JournalPostingSchema], default: [] },
+    lines: {
+      type: [JournalLineSchema],
+      required: false,
+      default: [],
+      validate: {
+        validator: function (lines: IJournalLine[]) {
+          if (!lines || lines.length === 0) return true;
+          return lines.length >= 2; // Minimum 2 lines (debit + credit)
+        },
+        message: "Journal entry must have at least 2 lines",
+      },
+    },
+    totalDebit: { type: Number, default: 0 },
+    totalCredit: { type: Number, default: 0 },
+    isBalanced: { type: Boolean, default: false, index: true },
+    voidedAt: { type: Date },
+    voidedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    voidReason: { type: String, trim: true },
+    reversalOf: { type: Schema.Types.ObjectId, ref: "Journal" },
+    reversedBy: { type: Schema.Types.ObjectId, ref: "Journal" },
+    postedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    postedAt: { type: Date },
+    fiscalYear: { type: Number, required: true, index: true },
+    fiscalPeriod: {
+      type: Number,
+      required: true,
+      min: 1,
+      max: 12,
+      index: true,
+    },
+  },
+  { timestamps: true },
+);
+
+// Apply plugins BEFORE indexes
+JournalSchema.plugin(tenantIsolationPlugin);
+JournalSchema.plugin(auditPlugin);
+
+// All indexes MUST be tenant-scoped
+JournalSchema.index(
+  { orgId: 1, journalNumber: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
+JournalSchema.index({ orgId: 1, journalDate: -1, status: 1 });
+JournalSchema.index({ orgId: 1, sourceType: 1, sourceId: 1 });
+JournalSchema.index({ orgId: 1, fiscalYear: 1, fiscalPeriod: 1, status: 1 });
+JournalSchema.index({ orgId: 1, status: 1, isBalanced: 1 });
+JournalSchema.index({ orgId: 1, reversalOf: 1 });
+
+// Pre-save: Calculate totals and validate balance
+JournalSchema.pre("save", function (next) {
+  /**
+   * PRECISION FIX: Use Decimal.js for exact double-entry bookkeeping
+   *
+   * Problem: JavaScript floating-point arithmetic can cause rounding errors:
+   * Example: 100.33 + 200.67 + 300.00 = 601.0000000000001 (not 601.00)
+   *
+   * Solution: Use Decimal.js for exact arithmetic, then convert to number for storage
+   *
+   * Critical: Accounting integrity requires EXACT balance (debits = credits)
+   * The old tolerance check (diff < 0.01) was a workaround for precision bugs
+   *
+   * @see https://github.com/MikeMcl/decimal.js
+   * @see PR #283 qodo-merge-pro review
+   */
+
+  // Calculate totals with Decimal.js (exact precision)
+  const debitValues = this.lines.length
+    ? this.lines.map((l: { debit?: number }) => l.debit || 0)
+    : [0];
+  const creditValues = this.lines.length
+    ? this.lines.map((l: { credit?: number }) => l.credit || 0)
+    : [0];
+  const totalDebit = Decimal.sum(...debitValues);
+  const totalCredit = Decimal.sum(...creditValues);
+
+  // Convert to number for storage (rounded to 2 decimal places)
+  this.totalDebit = totalDebit.toDP(2).toNumber();
+  this.totalCredit = totalCredit.toDP(2).toNumber();
+
+  // Check balance with EXACT comparison (no tolerance needed)
+  this.isBalanced = totalDebit.equals(totalCredit);
+
+  // Each line must have either debit OR credit (not both)
+  const invalidLines = this.lines.filter(
+    (line) =>
+      (line.debit > 0 && line.credit > 0) ||
+      (line.debit === 0 && line.credit === 0),
+  );
+
+  if (invalidLines.length > 0) {
+    return next(
+      new Error(
+        "Each journal line must have either debit OR credit (not both or neither)",
+      ),
+    );
+  }
+
+  // Set fiscal year/period from journal date if not set
+  if (!this.fiscalYear || !this.fiscalPeriod) {
+    const date = this.journalDate || new Date();
+    this.fiscalYear = date.getFullYear();
+    this.fiscalPeriod = date.getMonth() + 1;
+  }
+
+  next();
+});
+
+// Pre-save: Generate journal number if new
+JournalSchema.pre("save", async function (next) {
+  if (this.isNew && !this.journalNumber) {
+    const year = this.journalDate.getFullYear();
+    const month = String(this.journalDate.getMonth() + 1).padStart(2, "0");
+
+    // Count existing journals for this org/year
+    const count = await model("Journal").countDocuments({
+      orgId: this.orgId,
+      journalDate: {
+        $gte: new Date(`${year}-01-01`),
+        $lt: new Date(`${year + 1}-01-01`),
+      },
+    });
+
+    const sequence = String(count + 1).padStart(4, "0");
+    this.journalNumber = `JE-${year}${month}-${sequence}`;
+  }
+
+  next();
+});
+
+// Pre-save: Prevent modification of posted journals
+JournalSchema.pre("save", async function (next) {
+  if (this.isNew) return next();
+
+  // Use the registered model to avoid type narrowing on the document instance
+  const JournalModel = model<IJournal>("Journal");
+  const existing = await JournalModel.findById(this._id)
+    .select("status")
+    .lean();
+  if (existing?.status === "POSTED" && this.isModified()) {
+    if (this.status === "VOID") {
+      return next();
+    }
+    return next(new Error("Posted journals cannot be modified"));
+  }
+
+  next();
+});
+
+// Method: Post journal entry (mark as posted and ready for ledger processing)
+JournalSchema.methods.post = async function (): Promise<IJournal> {
+  if (this.status !== "DRAFT") {
+    throw new Error("Only draft journals can be posted");
+  }
+
+  if (!this.isBalanced) {
+    throw new Error("Cannot post unbalanced journal entry");
+  }
+
+  this.status = "POSTED";
+  this.postingDate = new Date();
+
+  await this.save();
+
+  // FUTURE: Update ChartAccount balances via LedgerEntry model
+  // This will be implemented when the full double-entry accounting system is activated.
+  // Currently handled by postingService.ts which creates LedgerEntry records.
+
+  return this as unknown as IJournal;
+};
+
+// Method: Void journal entry
+JournalSchema.methods.void = async function (
+  userId: Types.ObjectId,
+  reason: string,
+): Promise<IJournal> {
+  if (this.status !== "POSTED") {
+    throw new Error("Only posted journals can be voided");
+  }
+
+  this.status = "VOID";
+  this.voidedAt = new Date();
+  this.voidedBy = userId;
+  this.voidReason = reason;
+
+  await this.save();
+
+  // Note: Reversing journal entry is created by the postingService.voidJournal method
+
+  return this as unknown as IJournal;
+};
+
+// Static: Get unbalanced journals
+JournalSchema.statics.getUnbalanced = async function (orgId: Types.ObjectId) {
+  return this.find({ orgId, status: "DRAFT", isBalanced: false }).sort({
+    journalDate: -1,
+  });
+};
+
+// Static: Get posted journals for period
+JournalSchema.statics.getForPeriod = async function (
+  orgId: Types.ObjectId,
+  year: number,
+  period: number,
+) {
+  return this.find({
+    orgId,
+    fiscalYear: year,
+    fiscalPeriod: period,
+    status: "POSTED",
+  }).sort({ journalDate: -1 });
+};
+
+const JournalModel = getModel<IJournal>("Journal", JournalSchema);
+
+export default JournalModel;
+
+]]>
+</file>
+
+<file path="server/models/finance/LedgerEntry.ts">
+<![CDATA[
+/**
+ * LedgerEntry Model
+ *
+ * Individual ledger postings derived from journal entries.
+ * Each journal line creates one ledger entry.
+ * Used for account balance calculations and financial reporting.
+ *
+ * Features:
+ * - Multi-tenant isolation (orgId)
+ * - Linked to journal entries (immutable)
+ * - Fast balance queries per account
+ * - Property/owner/tenant/vendor tracking
+ * - Audit trail
+ */
+
+import { Schema, Types, type FilterQuery } from "mongoose";
+import type { HydratedDocument } from "mongoose";
+import {
+  getModel,
+  MModel,
+  CommonModelStatics,
+} from "@/types/mongoose-compat";
+import { ensureMongoConnection } from "@/server/lib/db";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
+import { auditPlugin } from "@/server/plugins/auditPlugin";
+
+ensureMongoConnection();
+
+export interface ILedgerEntry {
+  _id: Types.ObjectId;
+  orgId: Types.ObjectId;
+  journalId: Types.ObjectId;
+  journalNumber: string;
+  journalDate: Date;
+  date?: Date;
+  postingDate: Date;
+  accountId: Types.ObjectId;
+  accountCode: string;
+  accountName: string;
+  accountType: "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE";
+  description: string;
+  debit: number;
+  credit: number;
+  debitMinor?: Types.Decimal128;
+  creditMinor?: Types.Decimal128;
+  baseDebitMinor?: Types.Decimal128;
+  baseCreditMinor?: Types.Decimal128;
+  baseCurrency?: string;
+  currency?: string;
+  fxRate?: number;
+  balanceMinor?: Types.Decimal128;
+  balance: number; // Running balance for this account
+  dimensions?: Record<string, unknown>;
+  isReversal?: boolean;
+  propertyId?: Types.ObjectId;
+  unitId?: Types.ObjectId;
+  ownerId?: Types.ObjectId;
+  tenantId?: Types.ObjectId;
+  vendorId?: Types.ObjectId;
+  fiscalYear: number;
+  fiscalPeriod: number;
+  createdBy: Types.ObjectId;
+  updatedBy: Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface TrialBalanceEntry {
+  accountId: Types.ObjectId;
+  accountCode: string;
+  accountName: string;
+  accountType: "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE";
+  debit: number;
+  credit: number;
+  balance: number;
+}
+
+export interface AccountActivityEntry
+  extends Omit<ILedgerEntry, "journalId" | "createdAt" | "updatedAt"> {
+  journalId?:
+    | {
+        journalNumber: string;
+        sourceType: string;
+        sourceNumber: string;
+      }
+    | Types.ObjectId;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export type ILedgerEntryModel = MModel<ILedgerEntry> &
+  CommonModelStatics<ILedgerEntry> & {
+    getAccountBalance(
+      orgId: Types.ObjectId,
+      accountId: Types.ObjectId,
+      asOfDate?: Date,
+    ): Promise<number>;
+    getTrialBalance(
+      orgId: Types.ObjectId,
+      fiscalYear: number,
+      fiscalPeriod: number,
+    ): Promise<TrialBalanceEntry[]>;
+    getAccountActivity(
+      orgId: Types.ObjectId,
+      accountId: Types.ObjectId,
+      startDate: Date,
+      endDate: Date,
+    ): Promise<AccountActivityEntry[]>;
+  };
+
+const LedgerEntrySchema = new Schema<ILedgerEntry>(
+  {
+    // Keep orgId explicit so indexes & queries are schema-aware
+    orgId: { type: Schema.Types.ObjectId, required: true, index: true },
+
+    journalId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: "Journal",
+      index: true,
+    },
+    journalNumber: { type: String, required: true, trim: true },
+    journalDate: { type: Date, required: true, index: true },
+    date: { type: Date, required: true, index: true },
+    postingDate: { type: Date, required: true, index: true },
+    accountId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: "ChartAccount",
+      index: true,
+    },
+    accountCode: { type: String, required: true, trim: true, uppercase: true },
+    accountName: { type: String, required: true, trim: true },
+    accountType: {
+      type: String,
+      required: true,
+      enum: ["ASSET", "LIABILITY", "EQUITY", "REVENUE", "EXPENSE"],
+      index: true,
+    },
+    description: { type: String, required: true, trim: true },
+    debit: { type: Number, required: true, default: 0, min: 0 },
+    credit: { type: Number, required: true, default: 0, min: 0 },
+    debitMinor: {
+      type: Schema.Types.Decimal128,
+      default: () => Types.Decimal128.fromString("0"),
+    },
+    creditMinor: {
+      type: Schema.Types.Decimal128,
+      default: () => Types.Decimal128.fromString("0"),
+    },
+    baseDebitMinor: {
+      type: Schema.Types.Decimal128,
+      default: () => Types.Decimal128.fromString("0"),
+    },
+    baseCreditMinor: {
+      type: Schema.Types.Decimal128,
+      default: () => Types.Decimal128.fromString("0"),
+    },
+    baseCurrency: { type: String, default: "SAR" },
+    currency: { type: String, default: "SAR" },
+    fxRate: { type: Number, default: 1 },
+    balanceMinor: {
+      type: Schema.Types.Decimal128,
+      default: () => Types.Decimal128.fromString("0"),
+    },
+    balance: { type: Number, required: true, default: 0 },
+    dimensions: { type: Schema.Types.Mixed },
+    isReversal: { type: Boolean, default: false },
+    propertyId: { type: Schema.Types.ObjectId, ref: "Property", index: true },
+    unitId: { type: Schema.Types.ObjectId, ref: "Unit" },
+    ownerId: { type: Schema.Types.ObjectId, ref: "Owner", index: true },
+    tenantId: { type: Schema.Types.ObjectId, ref: "Tenant", index: true },
+    vendorId: { type: Schema.Types.ObjectId, ref: "Vendor", index: true },
+    fiscalYear: { type: Number, required: true, index: true },
+    fiscalPeriod: {
+      type: Number,
+      required: true,
+      min: 1,
+      max: 12,
+      index: true,
+    },
+  },
+  { timestamps: true },
+);
+
+LedgerEntrySchema.pre("validate", function (next) {
+  if (!this.date) {
+    this.date = this.journalDate || this.postingDate || new Date();
+  }
+  next();
+});
+
+// Apply plugins BEFORE indexes
+LedgerEntrySchema.plugin(tenantIsolationPlugin);
+LedgerEntrySchema.plugin(auditPlugin);
+
+// All indexes MUST be tenant-scoped
+LedgerEntrySchema.index({ orgId: 1, accountId: 1, postingDate: -1 }); // account history
+LedgerEntrySchema.index({
+  orgId: 1,
+  accountId: 1,
+  fiscalYear: 1,
+  fiscalPeriod: 1,
+}); // period balances
+LedgerEntrySchema.index({ orgId: 1, journalId: 1 }); // journal lookup
+LedgerEntrySchema.index({ orgId: 1, propertyId: 1, postingDate: -1 }); // property reports
+LedgerEntrySchema.index({ orgId: 1, ownerId: 1, postingDate: -1 }); // owner statements
+LedgerEntrySchema.index({
+  orgId: 1,
+  fiscalYear: 1,
+  fiscalPeriod: 1,
+  accountType: 1,
+}); // statements
+LedgerEntrySchema.index({ orgId: 1, accountId: 1, date: 1 });
+LedgerEntrySchema.index({ orgId: 1, "dimensions.propertyId": 1, date: -1 });
+LedgerEntrySchema.index({ orgId: 1, "dimensions.ownerId": 1, date: -1 });
+
+// Pre-save: Validate debit/credit exclusivity
+LedgerEntrySchema.pre(
+  "save",
+  function (this: HydratedDocument<ILedgerEntry>, next) {
+    if (
+      (this.debit > 0 && this.credit > 0) ||
+      (this.debit === 0 && this.credit === 0)
+    ) {
+      return next(
+        new Error(
+          "Ledger entry must have either debit OR credit (not both or neither)",
+        ),
+      );
+    }
+    next();
+  },
+);
+
+// Static: Get account balance at date
+LedgerEntrySchema.statics.getAccountBalance = async function (
+  orgId: Types.ObjectId,
+  accountId: Types.ObjectId,
+  asOfDate?: Date,
+): Promise<number> {
+  const filter: FilterQuery<ILedgerEntry> = {
+    orgId,
+    accountId,
+  } as FilterQuery<ILedgerEntry>;
+  if (asOfDate)
+    (filter as unknown as { postingDate: { $lte: Date } }).postingDate = {
+      $lte: asOfDate,
+    };
+
+  const result = await this.aggregate<{
+    totalDebit: number;
+    totalCredit: number;
+  }>([
+    { $match: filter },
+    {
+      $group: {
+        _id: null,
+        totalDebit: { $sum: "$debit" },
+        totalCredit: { $sum: "$credit" },
+      },
+    },
+  ]);
+
+  if (result.length === 0) return 0;
+  return result[0].totalDebit - result[0].totalCredit;
+};
+
+// Static: Get account balances for period (for trial balance)
+LedgerEntrySchema.statics.getTrialBalance = async function (
+  orgId: Types.ObjectId,
+  fiscalYear: number,
+  fiscalPeriod: number,
+): Promise<TrialBalanceEntry[]> {
+  return this.aggregate<TrialBalanceEntry>([
+    {
+      $match: {
+        orgId,
+        fiscalYear,
+        fiscalPeriod: { $lte: fiscalPeriod },
+      },
+    },
+    {
+      $group: {
+        _id: {
+          accountId: "$accountId",
+          accountCode: "$accountCode",
+          accountName: "$accountName",
+          accountType: "$accountType",
+        },
+        totalDebit: { $sum: "$debit" },
+        totalCredit: { $sum: "$credit" },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        accountId: "$_id.accountId",
+        accountCode: "$_id.accountCode",
+        accountName: "$_id.accountName",
+        accountType: "$_id.accountType",
+        debit: "$totalDebit",
+        credit: "$totalCredit",
+        balance: { $subtract: ["$totalDebit", "$totalCredit"] },
+      },
+    },
+    { $sort: { accountCode: 1 } },
+  ]);
+};
+
+// Static: Get account activity for period
+LedgerEntrySchema.statics.getAccountActivity = async function (
+  orgId: Types.ObjectId,
+  accountId: Types.ObjectId,
+  startDate: Date,
+  endDate: Date,
+): Promise<AccountActivityEntry[]> {
+  const results = await this.find(
+    { orgId, accountId, postingDate: { $gte: startDate, $lte: endDate } },
+    null,
+    { sort: { postingDate: -1, createdAt: -1 } },
+  )
+    .populate("journalId", "journalNumber sourceType sourceNumber")
+    .lean();
+
+  return results as AccountActivityEntry[];
+};
+
+export const LedgerEntryModel = getModel<ILedgerEntry>(
+  "LedgerEntry",
+  LedgerEntrySchema,
+) as ILedgerEntryModel;
+export const LedgerEntry = LedgerEntryModel;
+
+export type LedgerEntryDoc = HydratedDocument<ILedgerEntry>;
+export default LedgerEntryModel;
+
+]]>
+</file>
+
+<file path="server/models/finance/Payment.ts">
+<![CDATA[
+/**
+ * Payment Model - Finance Pack Phase 2
+ *
+ * Tracks payments received from tenants/customers and payments made to vendors/suppliers.
+ * Integrates with Journal/Ledger for double-entry bookkeeping.
+ *
+ * Features:
+ * - Multi-method support (cash, card, bank transfer, cheque)
+ * - Bank reconciliation tracking
+ * - Receipt generation and attachment
+ * - Payment splitting across multiple invoices
+ * - Refund and reversal support
+ * - Integration with Chart of Accounts
+ */
+
+import { Schema, model, models, Types, Document } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+import Decimal from "decimal.js";
+import { ensureMongoConnection } from "@/server/lib/db";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
+import { auditPlugin } from "@/server/plugins/auditPlugin";
+
+ensureMongoConnection();
+
+// ============================================================================
+// ENUMS & CONSTANTS
+// ============================================================================
+
+export const PaymentType = {
+  RECEIVED: "RECEIVED", // Payment received from customer/tenant
+  MADE: "MADE", // Payment made to vendor/supplier
+} as const;
+
+export const PaymentMethod = {
+  CASH: "CASH",
+  CARD: "CARD",
+  BANK_TRANSFER: "BANK_TRANSFER",
+  CHEQUE: "CHEQUE",
+  ONLINE: "ONLINE",
+  OTHER: "OTHER",
+} as const;
+
+export const PaymentStatus = {
+  DRAFT: "DRAFT", // Created but not posted
+  POSTED: "POSTED", // Posted to ledger
+  CLEARED: "CLEARED", // Cleared in bank (reconciled)
+  BOUNCED: "BOUNCED", // Cheque bounced
+  CANCELLED: "CANCELLED", // Cancelled before posting
+  REFUNDED: "REFUNDED", // Payment refunded
+} as const;
+
+// ============================================================================
+// INTERFACES
+// ============================================================================
+
+export interface IPaymentAllocation {
+  invoiceId: Types.ObjectId; // Reference to Invoice
+  invoiceNumber: string; // Denormalized for reporting
+  amount: number; // Amount allocated to this invoice
+  appliedAt: Date; // When allocation was applied
+}
+
+export interface IBankDetails {
+  bankName?: string;
+  accountNumber?: string;
+  accountHolder?: string;
+  swiftCode?: string;
+  iban?: string;
+}
+
+export interface IChequeDetails {
+  chequeNumber: string;
+  chequeDate: Date;
+  bankName: string;
+  drawerName?: string; // Name on cheque
+}
+
+export interface ICardDetails {
+  cardType?: string; // Visa, Mastercard, etc.
+  last4Digits?: string;
+  transactionId?: string;
+  authorizationCode?: string;
+}
+
+export interface IReconciliation {
+  isReconciled: boolean;
+  reconciledAt?: Date;
+  reconciledBy?: Types.ObjectId; // User who reconciled
+  bankStatementDate?: Date;
+  bankStatementReference?: string;
+  notes?: string;
+}
+
+export interface IPayment extends Document {
+  // Core fields
+  orgId: Types.ObjectId; // Added by tenantIsolationPlugin
+  paymentNumber: string; // Auto-generated: PAY-YYYYMM-####
+  paymentType: keyof typeof PaymentType;
+
+  // Financial details
+  amount: number; // Total payment amount
+  currency: string; // SAR, USD, etc.
+  exchangeRate?: number; // If different from base currency
+
+  // Payment method
+  paymentMethod: keyof typeof PaymentMethod;
+  paymentDate: Date; // Date payment was made/received
+
+  // Status
+  status: keyof typeof PaymentStatus;
+
+  // Party details
+  partyType: "TENANT" | "CUSTOMER" | "VENDOR" | "SUPPLIER" | "OWNER" | "OTHER";
+  partyId?: Types.ObjectId; // Reference to party (if applicable)
+  partyName: string; // Denormalized party name
+
+  // Allocation to invoices
+  allocations: IPaymentAllocation[];
+  unallocatedAmount: number; // Amount not yet allocated
+
+  // Method-specific details
+  bankDetails?: IBankDetails;
+  chequeDetails?: IChequeDetails;
+  cardDetails?: ICardDetails;
+
+  // Bank reconciliation
+  reconciliation: IReconciliation;
+
+  // Accounting integration
+  journalId?: Types.ObjectId; // Reference to Journal entry
+  cashAccountId?: Types.ObjectId; // Which cash/bank account was used
+
+  // Reference documents
+  referenceNumber?: string; // External reference (PO, invoice, etc.)
+  receiptUrl?: string; // Link to receipt/proof
+  attachments?: string[]; // Additional documents
+
+  // Context
+  propertyId?: Types.ObjectId;
+  unitId?: Types.ObjectId;
+  workOrderId?: Types.ObjectId;
+
+  // Refund tracking
+  isRefund: boolean;
+  originalPaymentId?: Types.ObjectId; // If this is a refund
+  refundReason?: string;
+
+  // Metadata
+  notes?: string;
+  tags?: string[];
+
+  // Audit fields added by auditPlugin
+  createdBy: Types.ObjectId;
+  updatedBy?: Types.ObjectId;
+
+  // Instance methods
+  allocateToInvoice(
+    invoiceId: Types.ObjectId | string,
+    invoiceNumber: string,
+    amount: number,
+  ): void;
+  reconcile(
+    reconciledBy: Types.ObjectId,
+    bankStatementDate: Date,
+    bankStatementReference: string,
+    notes?: string,
+  ): void;
+  reverse(reversedBy: Types.ObjectId, reason: string): Promise<IPayment>;
+  version: number;
+}
+
+// ============================================================================
+// SCHEMA DEFINITION
+// ============================================================================
+
+const PaymentSchema = new Schema<IPayment>(
+  {
+    // orgId will be added by tenantIsolationPlugin
+
+    paymentNumber: {
+      type: String,
+      required: true,
+      index: true,
+    },
+
+    paymentType: {
+      type: String,
+      enum: Object.values(PaymentType),
+      required: true,
+      index: true,
+    },
+
+    amount: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    currency: {
+      type: String,
+      default: "SAR",
+      uppercase: true,
+    },
+
+    exchangeRate: {
+      type: Number,
+      default: 1,
+    },
+
+    paymentMethod: {
+      type: String,
+      enum: Object.values(PaymentMethod),
+      required: true,
+      index: true,
+    },
+
+    paymentDate: {
+      type: Date,
+      required: true,
+      index: true,
+    },
+
+    status: {
+      type: String,
+      enum: Object.values(PaymentStatus),
+      default: PaymentStatus.DRAFT,
+      index: true,
+    },
+
+    partyType: {
+      type: String,
+      enum: ["TENANT", "CUSTOMER", "VENDOR", "SUPPLIER", "OWNER", "OTHER"],
+      required: true,
+      index: true,
+    },
+
+    partyId: {
+      type: Schema.Types.ObjectId,
+      index: true,
+    },
+
+    partyName: {
+      type: String,
+      required: true,
+    },
+
+    allocations: [
+      {
+        invoiceId: { type: Schema.Types.ObjectId, required: true, index: true },
+        invoiceNumber: { type: String, required: true },
+        amount: { type: Number, required: true, min: 0 },
+        appliedAt: { type: Date, default: Date.now },
+      },
+    ],
+
+    unallocatedAmount: {
+      type: Number,
+      default: 0,
+    },
+
+    bankDetails: {
+      bankName: String,
+      accountNumber: String,
+      accountHolder: String,
+      swiftCode: String,
+      iban: String,
+    },
+
+    chequeDetails: {
+      chequeNumber: String,
+      chequeDate: Date,
+      bankName: String,
+      drawerName: String,
+    },
+
+    cardDetails: {
+      cardType: String,
+      last4Digits: String,
+      transactionId: String,
+      authorizationCode: String,
+    },
+
+    reconciliation: {
+      isReconciled: { type: Boolean, default: false },
+      reconciledAt: Date,
+      reconciledBy: { type: Schema.Types.ObjectId, ref: "User" },
+      bankStatementDate: Date,
+      bankStatementReference: String,
+      notes: String,
+    },
+
+    journalId: {
+      type: Schema.Types.ObjectId,
+      ref: "Journal",
+      index: true,
+    },
+
+    cashAccountId: {
+      type: Schema.Types.ObjectId,
+      ref: "ChartAccount",
+      index: true,
+    },
+
+    referenceNumber: {
+      type: String,
+      index: true,
+    },
+
+    receiptUrl: String,
+    attachments: [String],
+
+    propertyId: {
+      type: Schema.Types.ObjectId,
+      ref: "Property",
+      index: true,
+    },
+
+    unitId: {
+      type: Schema.Types.ObjectId,
+      ref: "Unit",
+    },
+
+    workOrderId: {
+      type: Schema.Types.ObjectId,
+      ref: "WorkOrder",
+    },
+
+    isRefund: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+
+    originalPaymentId: {
+      type: Schema.Types.ObjectId,
+      ref: "Payment",
+    },
+
+    refundReason: String,
+
+    notes: String,
+    tags: [String],
+
+    // createdBy, updatedBy, version added by auditPlugin
+  },
+  {
+    timestamps: true,
+    collection: "finance_payments",
+  },
+);
+
+// ============================================================================
+// PLUGINS
+// ============================================================================
+
+PaymentSchema.plugin(tenantIsolationPlugin);
+PaymentSchema.plugin(auditPlugin);
+
+// ============================================================================
+// INDEXES
+// ============================================================================
+
+// Compound tenant-scoped unique index for payment number
+PaymentSchema.index(
+  { orgId: 1, paymentNumber: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
+
+// Query indexes (tenant-scoped)
+PaymentSchema.index({ orgId: 1, paymentDate: -1 });
+PaymentSchema.index({ orgId: 1, status: 1, paymentDate: -1 });
+PaymentSchema.index({ orgId: 1, paymentType: 1, paymentDate: -1 });
+PaymentSchema.index({ orgId: 1, partyId: 1, paymentDate: -1 });
+PaymentSchema.index({ orgId: 1, "reconciliation.isReconciled": 1 });
+PaymentSchema.index({ orgId: 1, journalId: 1 });
+
+// Search index (tenant-scoped)
+PaymentSchema.index({
+  orgId: 1,
+  paymentNumber: "text",
+  partyName: "text",
+  referenceNumber: "text",
+  notes: "text",
+});
+
+// ============================================================================
+// HOOKS
+// ============================================================================
+
+// Pre-save: Auto-generate payment number
+PaymentSchema.pre("save", async function (next) {
+  if (this.isNew && !this.paymentNumber) {
+    const now = new Date();
+    const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+    // Find highest number for this month
+    const Payment = this.constructor as typeof import("mongoose").Model;
+    const lastPayment = await Payment.findOne({
+      orgId: this.orgId,
+      paymentNumber: new RegExp(`^PAY-${yearMonth}-`),
+    }).sort({ paymentNumber: -1 });
+
+    let nextNum = 1;
+    if (lastPayment?.paymentNumber) {
+      const match = lastPayment.paymentNumber.match(/-(\d+)$/);
+      if (match) nextNum = parseInt(match[1], 10) + 1;
+    }
+
+    this.paymentNumber = `PAY-${yearMonth}-${String(nextNum).padStart(4, "0")}`;
+  }
+
+  // Calculate unallocated amount
+  const totalAllocated = Decimal.sum(
+    ...this.allocations.map((a: { amount?: number }) => a.amount || 0),
+  );
+  this.unallocatedAmount = new Decimal(this.amount || 0)
+    .minus(totalAllocated)
+    .toDP(2)
+    .toNumber();
+
+  next();
+});
+
+// ============================================================================
+// INSTANCE METHODS
+// ============================================================================
+
+/**
+ * Allocate payment to an invoice
+ */
+PaymentSchema.methods.allocateToInvoice = function (
+  invoiceId: Types.ObjectId,
+  invoiceNumber: string,
+  amount: number,
+) {
+  if (amount <= 0) {
+    throw new Error("Allocation amount must be positive");
+  }
+
+  if (amount > this.unallocatedAmount) {
+    throw new Error(
+      `Cannot allocate ${amount}. Only ${this.unallocatedAmount} unallocated.`,
+    );
+  }
+
+  this.allocations.push({
+    invoiceId,
+    invoiceNumber,
+    amount,
+    appliedAt: new Date(),
+  });
+
+  const totalAllocated = Decimal.sum(
+    ...this.allocations.map((a: { amount?: number }) => a.amount || 0),
+  );
+  this.unallocatedAmount = new Decimal(this.amount || 0)
+    .minus(totalAllocated)
+    .toDP(2)
+    .toNumber();
+};
+
+/**
+ * Mark payment as reconciled
+ */
+PaymentSchema.methods.reconcile = function (
+  reconciledBy: Types.ObjectId,
+  bankStatementDate: Date,
+  bankStatementReference: string,
+  notes?: string,
+) {
+  this.reconciliation = {
+    isReconciled: true,
+    reconciledAt: new Date(),
+    reconciledBy,
+    bankStatementDate,
+    bankStatementReference,
+    notes,
+  };
+
+  if (this.status === PaymentStatus.POSTED) {
+    this.status = PaymentStatus.CLEARED;
+  }
+};
+
+// ============================================================================
+// STATIC METHODS
+// ============================================================================
+
+/**
+ * Get unreconciled payments
+ */
+PaymentSchema.statics.getUnreconciled = function (
+  orgId: Types.ObjectId,
+  paymentMethod?: keyof typeof PaymentMethod,
+) {
+  const query: Record<string, unknown> = {
+    orgId,
+    "reconciliation.isReconciled": false,
+    status: PaymentStatus.POSTED,
+  };
+
+  if (paymentMethod) {
+    query.paymentMethod = paymentMethod;
+  }
+
+  return this.find(query).sort({ paymentDate: 1 });
+};
+
+/**
+ * Get payments by party
+ */
+PaymentSchema.statics.getByParty = function (
+  orgId: Types.ObjectId,
+  partyId: Types.ObjectId,
+  startDate?: Date,
+  endDate?: Date,
+) {
+  const query: Record<string, unknown> = { orgId, partyId };
+
+  if (startDate || endDate) {
+    query.paymentDate = {};
+    if (startDate) (query.paymentDate as Record<string, Date>).$gte = startDate;
+    if (endDate) (query.paymentDate as Record<string, Date>).$lte = endDate;
+  }
+
+  return this.find(query).sort({ paymentDate: -1 });
+};
+
+/**
+ * Get cash flow summary
+ */
+PaymentSchema.statics.getCashFlowSummary = async function (
+  orgId: Types.ObjectId,
+  startDate: Date,
+  endDate: Date,
+) {
+  const payments = await this.find({
+    orgId,
+    paymentDate: { $gte: startDate, $lte: endDate },
+    status: { $in: [PaymentStatus.POSTED, PaymentStatus.CLEARED] },
+  });
+
+  const summary = {
+    received: 0,
+    made: 0,
+    net: 0,
+    byMethod: {} as Record<string, { received: number; made: number }>,
+  };
+
+  for (const payment of payments) {
+    const amount = payment.amount;
+
+    if (payment.paymentType === PaymentType.RECEIVED) {
+      summary.received += amount;
+    } else {
+      summary.made += amount;
+    }
+
+    if (!summary.byMethod[payment.paymentMethod]) {
+      summary.byMethod[payment.paymentMethod] = { received: 0, made: 0 };
+    }
+
+    if (payment.paymentType === PaymentType.RECEIVED) {
+      summary.byMethod[payment.paymentMethod].received += amount;
+    } else {
+      summary.byMethod[payment.paymentMethod].made += amount;
+    }
+  }
+
+  summary.net = summary.received - summary.made;
+
+  return summary;
+};
+
+// ============================================================================
+// MODEL EXPORT
+// ============================================================================
+
+export const Payment = getModel<IPayment>("Payment", PaymentSchema);
+
+]]>
+</file>
+
+<file path="server/models/finance/TapTransaction.ts">
+<![CDATA[
+import {
+  Schema,
+  type InferSchemaType,
+  type Model,
+  type Document,
+  Types,
+} from "mongoose";
+import { getModel } from "@/types/mongoose-compat";
+import { ensureMongoConnection } from "@/server/lib/db";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
+
+ensureMongoConnection();
+
+const TapTransactionSchema = new Schema(
+  {
+    orgId: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      index: true,
+    },
+    userId: { type: String, index: true },
+    chargeId: { type: String, required: true, unique: true },
+    orderId: { type: String },
+    invoiceId: { type: Schema.Types.ObjectId, ref: "Invoice" },
+    paymentId: { type: Schema.Types.ObjectId, ref: "Payment" },
+    correlationId: { type: String, index: true },
+    status: { type: String, index: true },
+    currency: { type: String, default: "SAR" },
+    amountHalalas: { type: Number },
+    amountSAR: { type: Number },
+    redirectUrl: { type: String },
+    expiresAt: { type: Date },
+    metadata: { type: Schema.Types.Mixed },
+    tapMetadata: { type: Schema.Types.Mixed },
+    rawCharge: { type: Schema.Types.Mixed },
+    requestContext: {
+      type: Schema.Types.Mixed,
+      default: {},
+    },
+    paymentContext: {
+      partyType: String,
+      partyId: String,
+      partyName: String,
+      propertyId: String,
+      unitId: String,
+      notes: String,
+    },
+    lastEventAt: { type: Date },
+    events: [
+      {
+        type: {
+          type: String,
+        },
+        status: { type: String },
+        at: { type: Date, default: Date.now },
+        payload: { type: Schema.Types.Mixed },
+      },
+    ],
+    refunds: [
+      {
+        refundId: { type: String },
+        status: { type: String },
+        amountHalalas: { type: Number },
+        amountSAR: { type: Number },
+        currency: { type: String },
+        reason: { type: String },
+        processedAt: { type: Date },
+      },
+    ],
+  },
+  {
+    timestamps: true,
+    collection: "finance_tap_transactions",
+  },
+);
+
+TapTransactionSchema.plugin(tenantIsolationPlugin);
+
+TapTransactionSchema.index({ orgId: 1, createdAt: -1 });
+TapTransactionSchema.index({ status: 1, updatedAt: -1 });
+
+export type TapTransactionDoc = InferSchemaType<typeof TapTransactionSchema> &
+  Document & {
+    orgId: Types.ObjectId;
+  };
+
+export const TapTransaction: Model<TapTransactionDoc> =
+  getModel<TapTransactionDoc>("TapTransaction", TapTransactionSchema);
+
+]]>
+</file>
+
+</batch_content>

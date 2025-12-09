@@ -1,0 +1,3257 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path=".copilot/action-plan/AUDIT_STATUS_TRACKER.md">
+<![CDATA[
+# 🔒 COMPREHENSIVE AUDIT ACTION PLAN - EXECUTION STATUS TRACKER
+
+> **Generated**: 2025-11-25  
+> **Last Reviewed**: 2025-11-29  
+> **Last Updated**: 2025-11-29 (Status tracking added)
+> **DRI**: GitHub Copilot Agent  
+> **Branch**: main
+> **Build Status**: ✅ PASSING
+
+---
+
+## 📊 EXECUTION STATUS SUMMARY
+
+| Priority | Total | ✅ Done | 🔄 In Progress | ⏳ Pending | ❌ N/A |
+|----------|-------|---------|----------------|------------|--------|
+| P0 Critical | 10 | 10 | 0 | 0 | 0 |
+| P1 High | 16 | 9 | 0 | 5 | 2 |
+| P2 Medium | 18 | 0 | 0 | 18 | 0 |
+| P3 Low | 7 | 0 | 0 | 7 | 0 |
+| **TOTAL** | **51** | **19** | **0** | **30** | **2** |
+
+**Completion Rate**: 37% (19/51 issues resolved)
+
+---
+
+## ✅ P0 CRITICAL - ALL COMPLETED
+
+| ID | Issue | Status | DRI | Completed | Files |
+|----|-------|--------|-----|-----------|-------|
+| SEC-001 | PII Encryption Bypass via findOneAndUpdate | ✅ DONE | Copilot | 2025-11-25 | `server/models/User.ts`, `server/models/hr.models.ts` |
+| SEC-002 | Aqar Lead/Booking PII Unencrypted | ✅ DONE | Copilot | 2025-11-25 | `models/aqarBooking.model.ts` |
+| SEC-003 | Tenant Context Global Leakage Risk | ✅ DONE | Copilot | 2025-11-25 | `server/plugins/tenantIsolation.ts` |
+| SEC-004 | Missing HR Role Guards | ✅ DONE | Copilot | 2025-11-25 | `lib/auth/role-guards.ts` |
+| SEC-005 | Audit Trail Blind Spot | ✅ DONE | Copilot | 2025-11-25 | `server/audit/withAudit.ts` |
+| DATA-001 | Aqar Models Missing tenantIsolationPlugin | ✅ DONE | Copilot | 2025-11-25 | `models/aqarBooking.model.ts`, `models/aqarBoost.model.ts`, `models/aqar/Listing.ts` |
+| DATA-002 | PayrollLine baseSalary Not Encrypted | ✅ DONE | Copilot | 2025-11-25 | `server/models/hr.models.ts` |
+| DATA-003 | Booking Derived Fields Bypass | ✅ DONE | Copilot | 2025-11-25 | `models/aqarBooking.model.ts` |
+| ERR-001 | OOPS handling (reclassified) | ✅ DONE | Copilot | 2025-11-25 | Various |
+| PERF-010 | Build optimization (reclassified) | ✅ DONE | Copilot | 2025-11-25 | Various |
+
+**P0 Execution Report**: [FIX_EXECUTION_REPORT_P0.md](./FIX_EXECUTION_REPORT_P0.md)
+
+---
+
+## ⚠️ P1 HIGH - 9/16 COMPLETED
+
+| ID | Issue | Status | DRI | Completed | Files |
+|----|-------|--------|-----|-----------|-------|
+| SEC-006 | IDOR Risk in crud-factory.ts | ✅ DONE | Copilot | 2025-11-26 | `lib/api/crud-factory.ts` |
+| SEC-007 | Unsafe Email Link Injection | ✅ DONE | Copilot | 2025-11-26 | `services/notifications/fm-notification-engine.ts` |
+| SEC-008 | Company Code Enumeration | ✅ MITIGATED | Copilot | 2025-11-26 | Already has rate limiting |
+| DATA-004 | Incomplete Encryption Coverage Pattern | ✅ DONE | Copilot | 2025-11-26 | `server/plugins/encryptionPlugin.ts` (created) |
+| LOG-001 | PII in Client Logs | ✅ DONE | Copilot | 2025-11-26 | `lib/security/log-sanitizer.ts`, `hooks/useAdminData.ts` |
+| LOG-002 | Console.error Exposes Details | ❌ N/A | - | 2025-11-26 | File not found at specified path |
+| BIZ-001 | Lead State Machine Invalid Transitions | ✅ DONE | Copilot | 2025-11-26 | `models/aqar/Lead.ts` |
+| TEST-001 | Missing Encryption Integration Tests | ✅ DONE | Copilot | 2025-11-29 | `tests/integration/security/encryption-lifecycle.test.ts` (26 tests) |
+| TEST-002 | Missing Tenant Isolation Tests | ✅ DONE | Copilot | 2025-11-29 | `tests/integration/security/tenant-isolation.test.ts` (30 tests) |
+| BIZ-002 | Booking Cancellation Policy | ⏳ PENDING | - | - | `models/aqarBooking.model.ts` |
+| BIZ-003 | Payment State Validation | ⏳ PENDING | - | - | Payment models |
+| DATA-005 | Missing Indexes for Common Queries | ⏳ PENDING | - | - | Various models |
+| PERF-001 | Missing Index on inquirerPhone | ⏳ PENDING | - | - | `models/aqar/Lead.ts` |
+| DOC-003 | API Documentation Gaps | ⏳ PENDING | - | - | `docs/` |
+| ERR-002 | Error Boundary Coverage | ❌ N/A | - | - | Already implemented |
+| ERR-003 | Retry Logic Improvements | ⏳ PENDING | - | - | Various services |
+
+**P1 Execution Report**: [FIX_EXECUTION_REPORT_P1.md](./FIX_EXECUTION_REPORT_P1.md)
+
+---
+
+## 📋 P2 MEDIUM - 0/18 COMPLETED
+
+| ID | Issue | Status | DRI | Target |
+|----|-------|--------|-----|--------|
+| DOC-001 | Deprecated Owner Portal Architecture Doc | ⏳ PENDING | - | Week 2 |
+| DOC-002 | Missing RBAC Role Matrix | ⏳ PENDING | - | Week 2 |
+| PERF-002 | N+1 Query in Dashboard | ⏳ PENDING | - | Week 2 |
+| PERF-003 | Cache Implementation | ⏳ PENDING | - | Week 2 |
+| TEST-003 | E2E Coverage Gaps | ⏳ PENDING | - | Week 2 |
+| TEST-004 | Mocking Strategy Improvements | ⏳ PENDING | - | Week 2 |
+| BIZ-004 | Contract Validation Rules | ⏳ PENDING | - | Week 2 |
+| BIZ-005 | Invoice Numbering Sequence | ⏳ PENDING | - | Week 2 |
+| DATA-006 | Schema Versioning | ⏳ PENDING | - | Week 2 |
+| DATA-007 | Soft Delete Implementation | ⏳ PENDING | - | Week 2 |
+| SEC-009 | Session Timeout Configuration | ⏳ PENDING | - | Week 2 |
+| SEC-010 | Password Policy Enforcement | ⏳ PENDING | - | Week 2 |
+| LOG-003 | Structured Logging Consistency | ⏳ PENDING | - | Week 2 |
+| LOG-004 | Log Retention Policy | ⏳ PENDING | - | Week 2 |
+| ERR-004 | Global Error Handler Improvements | ⏳ PENDING | - | Week 2 |
+| ERR-005 | Validation Error Messages | ⏳ PENDING | - | Week 2 |
+| PERF-004 | Image Optimization | ⏳ PENDING | - | Week 2 |
+| PERF-005 | Bundle Size Analysis | ⏳ PENDING | - | Week 2 |
+
+---
+
+## 📝 P3 LOW - 0/7 COMPLETED
+
+| ID | Issue | Status | DRI | Target |
+|----|-------|--------|-----|--------|
+| DOC-004 | Code Comment Cleanup | ⏳ PENDING | - | Week 3 |
+| DOC-005 | README Updates | ⏳ PENDING | - | Week 3 |
+| TEST-005 | Snapshot Test Updates | ⏳ PENDING | - | Week 3 |
+| PERF-006 | Font Loading Optimization | ⏳ PENDING | - | Week 3 |
+| PERF-007 | Prefetch Strategy | ⏳ PENDING | - | Week 3 |
+| BIZ-006 | Notification Preferences | ⏳ PENDING | - | Week 3 |
+| DATA-008 | Archive Strategy | ⏳ PENDING | - | Week 3 |
+
+---
+
+## 🔄 VERIFICATION COMMANDS
+
+```bash
+# After each fix
+pnpm lint
+pnpm tsc --noEmit
+pnpm test
+pnpm build
+
+# Security-specific tests
+pnpm test tests/integration/security/
+pnpm test tests/unit/security/
+
+# Run encryption lifecycle tests
+pnpm test tests/integration/security/encryption-lifecycle.test.ts
+
+# Run tenant isolation tests
+pnpm test tests/integration/security/tenant-isolation.test.ts
+
+# Generate coverage
+pnpm test:coverage
+```
+
+---
+
+## 📅 EXECUTION TIMELINE
+
+### Week 1 (Completed)
+- ✅ All P0 Critical issues (10/10)
+- ✅ P1 Security fixes (SEC-006, SEC-007, SEC-008)
+- ✅ P1 Logging fixes (LOG-001)
+- ✅ P1 Business logic fixes (BIZ-001)
+- ✅ P1 Data pattern fixes (DATA-004)
+- ✅ P1 Testing fixes (TEST-001, TEST-002)
+
+### Week 2 (Planned)
+- ⏳ Remaining P1 issues (5 pending)
+- ⏳ Start P2 Medium issues
+
+### Week 3 (Planned)
+- ⏳ Complete P2 issues
+- ⏳ P3 Low issues
+
+---
+
+## 📁 EXECUTION REPORTS INDEX
+
+| Report | Description | Created |
+|--------|-------------|---------|
+| [FIX_EXECUTION_REPORT_P0.md](./FIX_EXECUTION_REPORT_P0.md) | P0 Critical fixes summary | 2025-11-25 |
+| [FIX_EXECUTION_REPORT_P1.md](./FIX_EXECUTION_REPORT_P1.md) | P1 High fixes summary | 2025-11-26 |
+
+---
+
+## 🔍 VALIDATION CHECKLIST
+
+Before merging fixes:
+
+- [ ] TypeScript compilation passes (`pnpm tsc --noEmit`)
+- [ ] ESLint passes (`pnpm lint`)
+- [ ] All tests pass (`pnpm test`)
+- [ ] Production build succeeds (`pnpm build`)
+- [ ] Security tests pass (`pnpm test tests/integration/security/`)
+- [ ] No new console warnings in browser
+- [ ] Manual testing of affected features
+
+---
+
+**Last Build Verification**: 2025-11-29
+**Build Result**: ✅ 180+ routes compiled successfully
+
+
+]]>
+</file>
+
+<file path=".copilot/action-plan/COMPREHENSIVE_AUDIT_ACTION_PLAN.md">
+<![CDATA[
+# 🔒 COMPREHENSIVE SECURITY & CODE QUALITY AUDIT - ACTION PLAN
+
+> **Generated**: 2025-11-25  
+> **Last reviewed**: 2025-11-29 (validate against current main)  
+> **DRI / Sprint**: Assign owner + target sprint before execution  
+> **Rating**: Deep Dive Analysis (100/100)  
+> **Agent**: GitHub Copilot (Claude Opus 4.5 Preview)  
+> **Workspace**: Fixzit Enterprise Platform
+
+---
+
+## 📊 EXECUTIVE SUMMARY
+
+| Category | P0 (Critical) | P1 (High) | P2 (Medium) | P3 (Low) | Total |
+|----------|---------------|-----------|-------------|----------|-------|
+| Security/RBAC/Auth | 5 | 3 | 2 | 1 | **11** |
+| Data/Schema/DB | 3 | 4 | 2 | 0 | **9** |
+| Business Logic | 1 | 3 | 4 | 2 | **10** |
+| Testing/QA | 0 | 2 | 3 | 1 | **6** |
+| Error/Logging | 1 | 2 | 2 | 0 | **5** |
+| Docs/Process | 0 | 1 | 3 | 2 | **6** |
+| Performance | 0 | 1 | 2 | 1 | **4** |
+| **TOTAL** | **10** | **16** | **18** | **7** | **51** |
+
+---
+
+## 🚨 P0: CRITICAL ISSUES (Fix Within 24 Hours)
+
+> **Execution guardrails:** Re-verify referenced file paths and current schema shapes before applying code snippets to avoid drift. Record DRI and ETA when starting each item.
+
+### SEC-001: PII Encryption Bypass via findOneAndUpdate
+**Category**: `Security/RBAC/Auth`  
+**Severity**: 🔴 P0 CRITICAL  
+**Labels**: `copilot:ready`, `owner:backend`, `flag:governance_violation`, `compliance:GDPR`
+
+**Problem**: Employee/User PII encryption only triggers on `pre('save')` hooks. Mongoose `findOneAndUpdate()`, `updateOne()`, `updateMany()` bypass these hooks, storing plaintext PII.
+
+**Affected Files**:
+- `/Fixzit/server/models/User.ts` (Lines 276-320)
+- `/Fixzit/server/models/hr.models.ts` (Lines 353-394, 920-988)
+
+**Root Cause**: Mongoose document middleware (`pre('save')`) doesn't execute for query middleware operations.
+
+**Fix**:
+```typescript
+// Add to User.ts, hr.models.ts after existing pre('save') hooks
+
+// =====================================================================
+// PRE-UPDATE HOOKS: Encrypt PII on findOneAndUpdate operations
+// GDPR Article 32: Security of processing (encryption at rest)
+// =====================================================================
+
+UserSchema.pre('findOneAndUpdate', async function(next) {
+  const update: any = this.getUpdate() || {};
+  const $set = update.$set || update;
+  
+  for (const [path] of Object.entries(ENCRYPTED_FIELDS)) {
+    const parts = path.split('.');
+    let current = $set;
+    
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (!current?.[parts[i]]) break;
+      current = current[parts[i]];
+    }
+    
+    const field = parts[parts.length - 1];
+    const value = current?.[field];
+    
+    if (value && typeof value === 'string' && !isEncrypted(value)) {
+      if (!update.$set) update.$set = {};
+      // Navigate to set the encrypted value
+      let target = update.$set;
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (!target[parts[i]]) target[parts[i]] = {};
+        target = target[parts[i]];
+      }
+      target[field] = encryptField(value, path);
+      
+      logger.info('user:pii_encrypted_update', {
+        action: 'pre_findOneAndUpdate_encrypt',
+        fieldPath: path,
+      });
+    }
+  }
+  
+  this.setUpdate(update);
+  next();
+});
+
+UserSchema.pre('updateOne', UserSchema.pre('findOneAndUpdate'));
+UserSchema.pre('updateMany', UserSchema.pre('findOneAndUpdate'));
+```
+
+**Verification**:
+```bash
+# 1. Write integration test
+pnpm test tests/unit/security/encryption-update-hooks.test.ts
+
+# 2. Manual verification
+# Create user, then update via findOneAndUpdate, check DB for encrypted value
+```
+
+---
+
+### SEC-002: Aqar Lead/Booking PII Unencrypted
+**Category**: `Security/RBAC/Auth`  
+**Severity**: 🔴 P0 CRITICAL  
+**Labels**: `copilot:ready`, `owner:backend`, `flag:governance_violation`, `compliance:GDPR`
+
+**Problem**: `inquirerNationalId`, `inquirerPhone`, `guestNationalId`, `guestPhone` stored in plaintext without encryption or `select: false`.
+
+**Affected Files**:
+- `/Fixzit/models/aqar/Lead.ts` (Lines 59, 130)
+- `/Fixzit/models/aqar/Booking.ts` (Lines 48-50, 125-126)
+
+**Fix**:
+```typescript
+// Lead.ts - Add to schema definition
+inquirerPhone: { type: String, required: true, select: false },
+inquirerNationalId: { type: String, select: false },
+
+// Booking.ts - Add to schema definition  
+guestPhone: { type: String, select: false },
+guestNationalId: { type: String, select: false },
+
+// Add encryption hooks (same pattern as User.ts)
+const AQAR_LEAD_ENCRYPTED_FIELDS = {
+  'inquirerPhone': 'Inquirer Phone',
+  'inquirerNationalId': 'Inquirer National ID',
+} as const;
+
+LeadSchema.pre('save', async function(next) {
+  // ... encryption logic using encryptField()
+});
+
+LeadSchema.pre('findOneAndUpdate', async function(next) {
+  // ... update encryption logic
+});
+```
+
+**Verification**:
+```bash
+pnpm test tests/unit/models/aqar/lead-pii.test.ts
+pnpm test tests/unit/models/aqar/booking-pii.test.ts
+```
+
+---
+
+### SEC-003: Tenant Context Global Leakage Risk
+**Category**: `Security/RBAC/Auth`  
+**Severity**: 🔴 P0 CRITICAL  
+**Labels**: `copilot:ready`, `owner:backend`, `flag:governance_violation`
+
+**Problem**: `tenantIsolation.ts` maintains mutable `currentTenantContext` alongside `AsyncLocalStorage`, risking cross-request leakage in serverless/concurrent environments.
+
+**File**: `/Fixzit/server/plugins/tenantIsolation.ts` (Lines 17-39)
+
+**Current Code**:
+```typescript
+const tenantStorage = new AsyncLocalStorage<TenantContext>();
+let currentTenantContext: TenantContext = {}; // ❌ GLOBAL MUTABLE STATE
+
+export function setTenantContext(context: TenantContext) {
+  const merged = { ...getTenantContext(), ...context };
+  tenantStorage.enterWith(merged);
+  currentTenantContext = merged; // ❌ Race condition in concurrent requests
+}
+```
+
+**Fix**:
+```typescript
+const tenantStorage = new AsyncLocalStorage<TenantContext>();
+
+// Remove global fallback - enforce AsyncLocalStorage only
+export function getTenantContext(): TenantContext {
+  const stored = tenantStorage.getStore();
+  if (!stored) {
+    logger.warn('tenant_context_missing', {
+      action: 'get_tenant_context',
+      warning: 'No tenant context in ALS - returning empty (safe default)',
+    });
+    return {}; // Return empty, not a stale global
+  }
+  return stored;
+}
+
+export function setTenantContext(context: TenantContext) {
+  const current = tenantStorage.getStore() ?? {};
+  const merged = { ...current, ...context };
+  tenantStorage.enterWith(merged);
+  // ❌ REMOVE: currentTenantContext = merged;
+  
+  if (context.isSuperAdmin && context.assumedOrgId) {
+    logger.info('superadmin_tenant_context', { /* ... audit */ });
+  }
+}
+```
+
+**Verification**:
+```bash
+# Concurrent request test
+pnpm test tests/integration/tenant-isolation-concurrent.test.ts
+```
+
+---
+
+### SEC-004: Missing HR Role Guards (canViewPayroll, canEditPayroll)
+**Category**: `Security/RBAC/Auth`  
+**Severity**: 🔴 P0 CRITICAL  
+**Labels**: `copilot:ready`, `owner:backend`, `flag:rbac_gap`
+
+**Problem**: No dedicated role guards for payroll access. HR_MANAGER can view/edit payroll without explicit guards.
+
+**File**: `/Fixzit/lib/auth/role-guards.ts`
+
+**Fix**:
+```typescript
+// Add after canManageOwnerGroups
+
+// 🔒 STRICT v4: HR Payroll access limited to HR Manager + Corporate Admin
+export const canViewPayroll = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.HR_MANAGER,
+  ],
+  ["HR_ADMIN"],
+);
+
+export const canEditPayroll = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.HR_MANAGER,
+  ],
+  ["HR_ADMIN"],
+);
+
+// 🔒 STRICT v4: Payroll approval requires Corporate Admin+
+export const canApprovePayroll = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+  ],
+  [],
+);
+
+// 🔒 STRICT v4: Employee PII access (compensation, bank details)
+export const canViewEmployeePII = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.HR_MANAGER,
+    UserRole.FINANCE_OFFICER,
+  ],
+  ["HR_ADMIN", "FINANCE_ADMIN"],
+);
+```
+
+**Apply Guards**:
+```typescript
+// /Fixzit/app/api/hr/payroll/route.ts
+import { canViewPayroll, canEditPayroll } from '@/lib/auth/role-guards';
+
+export async function GET(req: Request) {
+  const session = await getServerSession();
+  if (!canViewPayroll(session?.user?.role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  // ...
+}
+```
+
+---
+
+### SEC-005: Audit Trail Blind Spot (Missing orgId)
+**Category**: `Error/Logging/Monitoring`  
+**Severity**: 🔴 P0 CRITICAL  
+**Labels**: `copilot:ready`, `owner:backend`, `flag:audit_gap`
+
+**Problem**: `withAudit.ts` skips logging entirely when `orgId` is missing, creating forensic blind spots.
+
+**File**: `/Fixzit/lib/middleware/withAudit.ts` (Lines 137-146)
+
+**Current Code**:
+```typescript
+const orgId = session!.user.orgId as string;
+if (!orgId || orgId.trim() === "") {
+  logger.error("[Audit] CRITICAL: orgId missing...");
+  return res;  // ❌ Skips audit entirely
+}
+```
+
+**Fix**:
+```typescript
+const orgId = session?.user?.orgId ?? 'UNKNOWN_ORG';
+const isOrgMissing = !session?.user?.orgId || session.user.orgId.trim() === "";
+
+// Always log, even with missing org - use sentinel value
+const auditPayload = {
+  userId: session?.user?.id ?? 'UNKNOWN_USER',
+  orgId,
+  orgMissing: isOrgMissing,
+  action,
+  endpoint: pathname,
+  timestamp: new Date().toISOString(),
+  severity: isOrgMissing ? 'HIGH' : 'INFO',
+};
+
+if (isOrgMissing) {
+  logger.warn('audit:org_missing', auditPayload);
+} else {
+  logger.info('audit:action', auditPayload);
+}
+
+// Continue processing - don't skip audit
+```
+
+---
+
+### DATA-001: Aqar Models Missing tenantIsolationPlugin
+**Category**: `Data/Schema/DB`  
+**Severity**: 🔴 P0 CRITICAL  
+**Labels**: `copilot:ready`, `owner:backend`, `flag:multi_tenancy_gap`
+
+**Problem**: Aqar marketplace models (Lead, Booking, Listing, etc.) have `orgId` field but DON'T use `tenantIsolationPlugin`, allowing cross-tenant data access.
+
+**Affected Files**:
+- `/Fixzit/models/aqar/Lead.ts`
+- `/Fixzit/models/aqar/Booking.ts`
+- `/Fixzit/models/aqar/Listing.ts`
+- `/Fixzit/models/aqar/Project.ts`
+- `/Fixzit/models/aqar/SavedSearch.ts`
+- `/Fixzit/models/aqar/Favorite.ts`
+
+**Fix** (apply to ALL Aqar models):
+```typescript
+// Lead.ts - Add import and plugin
+import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
+
+// Before model export
+LeadSchema.plugin(tenantIsolationPlugin, { 
+  strict: true, 
+  collectionName: 'aqar_leads' 
+});
+```
+
+**Verification**:
+```bash
+# Grep for models without plugin
+grep -r "orgId.*required.*true" models/aqar/*.ts | xargs -I {} grep -L "tenantIsolationPlugin" {}
+```
+
+---
+
+### DATA-002: PayrollLine baseSalary Not Encrypted
+**Category**: `Data/Schema/DB`  
+**Severity**: 🔴 P0 CRITICAL  
+**Labels**: `copilot:ready`, `owner:backend`, `flag:compliance_violation`
+
+**Problem**: PayrollLine embedded subdocument has `baseSalary` in plaintext. Only IBAN is encrypted in PayrollRunSchema.pre('save').
+
+**File**: `/Fixzit/server/models/hr.models.ts` (Lines 800-850)
+
+**Current**: Only `line.iban` encrypted in PayrollRun pre-save hook.
+
+**Fix**:
+```typescript
+// Expand encryption to cover all sensitive PayrollLine fields
+const PAYROLL_LINE_ENCRYPTED_FIELDS = [
+  'iban',
+  'baseSalary',
+  'housingAllowance', 
+  'transportAllowance',
+  'netPay',
+] as const;
+
+PayrollRunSchema.pre("save", async function (this: PayrollRunDoc, next) {
+  try {
+    const encryptedLines = await Promise.all((this.lines || []).map(async (line) => {
+      const encrypted = { ...line };
+      
+      for (const field of PAYROLL_LINE_ENCRYPTED_FIELDS) {
+        const value = (encrypted as any)[field];
+        if (value !== undefined && value !== null && !isEncrypted(String(value))) {
+          (encrypted as any)[field] = encryptField(String(value), `payroll.${field}`);
+        }
+      }
+      
+      return encrypted;
+    }));
+    
+    this.lines = encryptedLines;
+    // ... rest of totals calculation
+```
+
+---
+
+### DATA-003: Booking Derived Fields Bypass on findOneAndUpdate
+**Category**: `Business Logic/Validation`  
+**Severity**: 🔴 P0 CRITICAL  
+**Labels**: `copilot:ready`, `owner:backend`, `flag:data_integrity`
+
+**Problem**: Booking `nights`, `totalPrice`, `platformFee`, `hostPayout` calculated in `pre('validate')` but `findOneAndUpdate` bypasses this, causing inconsistent financial data.
+
+**File**: `/Fixzit/models/aqar/Booking.ts` (Lines 129-159)
+
+**Fix**:
+```typescript
+BookingSchema.pre('findOneAndUpdate', async function() {
+  const update: any = this.getUpdate() || {};
+  const $set = update.$set || update;
+  
+  // If dates are being updated, recalculate derived fields
+  if ($set.checkInDate || $set.checkOutDate || $set.pricePerNight) {
+    const current = await this.model.findOne(this.getQuery())
+      .select('checkInDate checkOutDate pricePerNight')
+      .lean();
+    
+    const checkIn = $set.checkInDate 
+      ? new Date($set.checkInDate) 
+      : current?.checkInDate;
+    const checkOut = $set.checkOutDate 
+      ? new Date($set.checkOutDate) 
+      : current?.checkOutDate;
+    const pricePerNight = $set.pricePerNight ?? current?.pricePerNight ?? 0;
+    
+    if (checkIn && checkOut) {
+      const nights = Math.ceil(
+        (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      
+      if (nights < 1) {
+        throw new Error('Check-out must be after check-in');
+      }
+      
+      const totalPrice = nights * pricePerNight;
+      const platformFee = Math.round(totalPrice * 0.15);
+      const hostPayout = totalPrice - platformFee;
+      
+      if (!update.$set) update.$set = {};
+      update.$set.nights = nights;
+      update.$set.totalPrice = totalPrice;
+      update.$set.platformFee = platformFee;
+      update.$set.hostPayout = hostPayout;
+    }
+  }
+  
+  this.setUpdate(update);
+});
+```
+
+---
+
+## ⚠️ P1: HIGH PRIORITY ISSUES (Fix Within 72 Hours)
+
+### SEC-006: IDOR Risk in crud-factory.ts
+**Category**: `Security/RBAC/Auth`  
+**Severity**: 🟠 P1 HIGH  
+**Labels**: `copilot:ready`, `owner:backend`
+
+**File**: `/Fixzit/lib/crud-factory.ts` (Lines 429-435)
+
+**Problem**: Query trusts `user.orgId` without validating against entity's tenant or enforcing plugin-level filters.
+
+**Fix**: Add explicit orgId validation before query:
+```typescript
+// Validate user has orgId (non-SuperAdmin)
+if (user.role !== "SUPER_ADMIN" && !user.orgId) {
+  return NextResponse.json({ error: 'Forbidden: Missing organization' }, { status: 403 });
+}
+
+const query: Record<string, unknown> = { _id: context.params.id };
+if (user.role !== "SUPER_ADMIN") {
+  query.orgId = new Types.ObjectId(user.orgId);
+}
+```
+
+---
+
+### SEC-007: Unsafe Email Link Injection
+**Category**: `Security/RBAC/Auth`  
+**Severity**: 🟠 P1 HIGH  
+**Labels**: `copilot:ready`, `owner:backend`
+
+**File**: `/Fixzit/server/services/fm-notification-engine.ts` (Lines 878-882)
+
+**Problem**: Email templates inject `escapedLink` controlled by `safeLink` boolean. If mis-evaluated, enables phishing.
+
+**Fix**:
+```typescript
+// Strict URL allowlist validation
+const ALLOWED_LINK_DOMAINS = [
+  'fixzit.co',
+  'fixzit.sa',
+  'localhost:3000', // dev only
+];
+
+function validateEmailLink(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return ALLOWED_LINK_DOMAINS.some(domain => 
+      parsed.hostname === domain || parsed.hostname.endsWith(`.${domain}`)
+    );
+  } catch {
+    return false;
+  }
+}
+
+// In template
+const safeLink = link && validateEmailLink(link);
+```
+
+---
+
+### SEC-008: Company Code Enumeration Attack Surface
+**Category**: `Security/RBAC/Auth`  
+**Severity**: 🟠 P1 HIGH  
+**Labels**: `copilot:ready`, `owner:backend`
+
+**File**: `/Fixzit/app/(auth)/login/page.tsx` (Lines 282-295)
+
+**Problem**: `companyCode` in auth flow without rate limiting enables enumeration attacks.
+
+**Fix**: Implement rate limiting in login API:
+```typescript
+// /Fixzit/app/api/auth/[...nextauth]/route.ts
+import { rateLimit } from '@/lib/rate-limit';
+
+const loginLimiter = rateLimit({
+  interval: 15 * 60 * 1000, // 15 minutes
+  uniqueTokenPerInterval: 500,
+});
+
+// In authorize callback
+const rateLimitKey = `login:${identifier}:${companyCode ?? 'none'}`;
+const { success } = await loginLimiter.check(10, rateLimitKey);
+if (!success) {
+  throw new Error('Too many login attempts. Try again in 15 minutes.');
+}
+```
+
+---
+
+### DATA-004: Incomplete Encryption Coverage Pattern
+**Category**: `Data/Schema/DB`  
+**Severity**: 🟠 P1 HIGH  
+**Labels**: `copilot:ready`, `owner:backend`, `flag:refactor_opportunity`
+
+**Problem**: Encryption logic duplicated across User.ts, hr.models.ts. Should be centralized as a reusable plugin.
+
+**Fix**: Create `/Fixzit/server/plugins/encryptionPlugin.ts`:
+```typescript
+import { Schema } from 'mongoose';
+import { encryptField, decryptField, isEncrypted } from '@/lib/security/encryption';
+import { logger } from '@/lib/logger';
+
+interface EncryptionPluginOptions {
+  fields: Record<string, string>; // { 'path.to.field': 'Display Name' }
+}
+
+export function encryptionPlugin(schema: Schema, options: EncryptionPluginOptions) {
+  const { fields } = options;
+  
+  // Pre-save encryption
+  schema.pre('save', async function(next) {
+    for (const [path, name] of Object.entries(fields)) {
+      // ... encryption logic (centralized)
+    }
+    next();
+  });
+  
+  // Pre-update encryption
+  schema.pre('findOneAndUpdate', async function(next) {
+    // ... update encryption logic (centralized)
+    next();
+  });
+  
+  // Post-find decryption
+  schema.post('find', function(docs: any[]) {
+    docs.forEach(doc => decryptFields(doc, fields));
+  });
+  
+  schema.post('findOne', function(doc: any) {
+    decryptFields(doc, fields);
+  });
+}
+
+// Usage:
+// UserSchema.plugin(encryptionPlugin, { 
+//   fields: { 'personal.nationalId': 'National ID', ... } 
+// });
+```
+
+---
+
+### LOG-001: PII in Client Logs
+**Category**: `Error/Logging/Monitoring`  
+**Severity**: 🟠 P1 HIGH  
+**Labels**: `copilot:ready`, `owner:frontend`
+
+**File**: `/Fixzit/hooks/useAdminData.ts` (Lines 38-45)
+
+**Problem**: Client-side logs expose admin query params potentially containing user IDs.
+
+**Fix**:
+```typescript
+// Create sanitizer utility
+function sanitizeLogParams(params: Record<string, unknown>): Record<string, unknown> {
+  const sensitiveKeys = ['userId', 'email', 'phone', 'nationalId', 'iban'];
+  const sanitized = { ...params };
+  
+  for (const key of sensitiveKeys) {
+    if (sanitized[key]) {
+      sanitized[key] = '[REDACTED]';
+    }
+  }
+  
+  return sanitized;
+}
+
+// In hook
+logger.info("Fetching users", { params: sanitizeLogParams(params) });
+```
+
+---
+
+### LOG-002: Console.error Exposes Internal Details
+**Category**: `Error/Logging/Monitoring`  
+**Severity**: 🟠 P1 HIGH  
+**Labels**: `copilot:ready`, `owner:frontend`
+
+**File**: `/Fixzit/hooks/useProperties.ts` (Lines 31-41)
+
+**Problem**: `console.error` logs response status/statusText in production.
+
+**Fix**:
+```typescript
+if (!res.ok) {
+  const payload = await res.json().catch(() => ({}));
+  
+  // Only log details in development
+  if (process.env.NODE_ENV === 'development') {
+    console.error('[useProperties] API error:', {
+      status: res.status,
+      statusText: res.statusText,
+    });
+  }
+  
+  // Throw user-friendly error
+  throw new Error(payload.message || 'Failed to fetch properties');
+}
+```
+
+---
+
+### BIZ-001: Lead State Machine Allows Invalid Transitions
+**Category**: `Business Logic/Validation`  
+**Severity**: 🟠 P1 HIGH  
+**Labels**: `copilot:ready`, `owner:backend`
+
+**File**: `/Fixzit/models/aqar/Lead.ts` (Lines 180-220)
+
+**Problem**: `scheduleViewing` checks some states but other methods allow any transition.
+
+**Fix**: Add comprehensive state machine:
+```typescript
+const LEAD_STATE_TRANSITIONS: Record<LeadStatus, LeadStatus[]> = {
+  [LeadStatus.NEW]: [LeadStatus.CONTACTED, LeadStatus.SPAM],
+  [LeadStatus.CONTACTED]: [LeadStatus.QUALIFIED, LeadStatus.LOST, LeadStatus.SPAM],
+  [LeadStatus.QUALIFIED]: [LeadStatus.VIEWING, LeadStatus.NEGOTIATING, LeadStatus.LOST],
+  [LeadStatus.VIEWING]: [LeadStatus.NEGOTIATING, LeadStatus.LOST],
+  [LeadStatus.NEGOTIATING]: [LeadStatus.WON, LeadStatus.LOST],
+  [LeadStatus.WON]: [], // Terminal
+  [LeadStatus.LOST]: [], // Terminal
+  [LeadStatus.SPAM]: [], // Terminal
+};
+
+function validateTransition(from: LeadStatus, to: LeadStatus): void {
+  const allowed = LEAD_STATE_TRANSITIONS[from] || [];
+  if (!allowed.includes(to)) {
+    throw new Error(`Invalid transition: ${from} → ${to}`);
+  }
+}
+
+// Apply in methods
+LeadSchema.methods.markAsWon = async function(userId: mongoose.Types.ObjectId) {
+  validateTransition(this.status, LeadStatus.WON);
+  this.status = LeadStatus.WON;
+  // ...
+};
+```
+
+---
+
+### TEST-001: Missing Integration Tests for Encryption
+**Category**: `Testing/QA`  
+**Severity**: 🟠 P1 HIGH  
+**Labels**: `copilot:ready`, `owner:qa`
+
+**Problem**: No tests verify encryption works across save/update/find operations.
+
+**Fix**: Create `/Fixzit/tests/integration/security/encryption-lifecycle.test.ts`:
+```typescript
+describe('PII Encryption Lifecycle', () => {
+  describe('User Model', () => {
+    it('encrypts nationalId on save()', async () => { /* ... */ });
+    it('encrypts nationalId on findOneAndUpdate()', async () => { /* ... */ });
+    it('decrypts nationalId on find()', async () => { /* ... */ });
+    it('prevents double encryption', async () => { /* ... */ });
+  });
+  
+  describe('Employee Model', () => {
+    it('encrypts IBAN on save()', async () => { /* ... */ });
+    it('encrypts baseSalary on findOneAndUpdate()', async () => { /* ... */ });
+  });
+  
+  describe('PayrollRun Model', () => {
+    it('encrypts line.iban on save()', async () => { /* ... */ });
+    it('encrypts line.baseSalary on save()', async () => { /* ... */ });
+  });
+});
+```
+**Acceptance criteria:** provide fixtures for Org A/B; assert encrypted-at-rest on save and findOneAndUpdate, decrypted on find/findOne, and no double-encrypt across repeated updates.
+
+---
+
+### TEST-002: Missing Tenant Isolation Tests
+**Category**: `Testing/QA`  
+**Severity**: 🟠 P1 HIGH  
+**Labels**: `copilot:ready`, `owner:qa`
+
+**Problem**: No tests verify cross-tenant data access is prevented.
+
+**Fix**: Create `/Fixzit/tests/integration/security/tenant-isolation.test.ts`:
+```typescript
+describe('Tenant Isolation', () => {
+  it('prevents Org A from reading Org B leads', async () => { /* ... */ });
+  it('scopes Employee queries to orgId', async () => { /* ... */ });
+  it('Super Admin can access cross-tenant with audit', async () => { /* ... */ });
+  it('handles concurrent requests without context bleed', async () => { /* ... */ });
+});
+```
+**Acceptance criteria:** seeded tenants A/B; assert 403/empty when cross-tenant; allow SUPER_ADMIN with audit log; include concurrent requests to validate AsyncLocalStorage isolation.
+
+---
+
+## 📋 P2: MEDIUM PRIORITY ISSUES (Fix Within 1 Week)
+
+### DOC-001: Deprecated Owner Portal Architecture Doc
+**Category**: `Docs/Process`  
+**Severity**: 🟡 P2 MEDIUM  
+**Labels**: `copilot:ready`, `owner:docs`
+
+**File**: `/Fixzit/docs/owner-portal-architecture.md`
+
+**Problem**: Still references Prisma despite MongoDB-only stack.
+
+**Fix**: Add deprecation notice or update to reflect Mongoose.
+
+---
+
+### DOC-002: Missing RBAC Role Matrix
+**Category**: `Docs/Process`  
+**Severity**: 🟡 P2 MEDIUM  
+**Labels**: `copilot:ready`, `owner:docs`
+
+**Problem**: No central document mapping all 14 roles to permissions.
+
+**Fix**: Create `/Fixzit/docs/security/RBAC_ROLE_MATRIX.md` with complete mapping.
+
+---
+
+### PERF-001: Missing Index on aqar_leads.inquirerPhone
+**Category**: `Performance`  
+**Severity**: 🟡 P2 MEDIUM  
+**Labels**: `copilot:ready`, `owner:backend`
+
+**File**: `/Fixzit/models/aqar/Lead.ts`
+
+**Fix**: Add compound index for common query patterns:
+```typescript
+LeadSchema.index({ orgId: 1, inquirerPhone: 1 });
+LeadSchema.index({ orgId: 1, recipientId: 1, createdAt: -1 });
+```
+
+---
+
+(Additional P2/P3 issues continue in similar format...)
+
+---
+
+## 🔧 IMPLEMENTATION PRIORITY ORDER
+
+### Phase 1: Critical Security (Days 1-2)
+1. SEC-001: PII Encryption Update Hooks
+2. SEC-002: Aqar PII Encryption
+3. SEC-003: Tenant Context Leakage
+4. DATA-001: Aqar tenantIsolationPlugin
+5. DATA-002: PayrollLine Encryption
+
+### Phase 2: Data Integrity (Days 3-4)
+6. DATA-003: Booking Derived Fields
+7. SEC-004: HR Role Guards
+8. SEC-005: Audit Blind Spots
+9. BIZ-001: Lead State Machine
+
+### Phase 3: Hardening (Days 5-7)
+10. SEC-006: IDOR Prevention
+11. SEC-007: Email Link Validation
+12. SEC-008: Rate Limiting
+13. LOG-001/002: Log Sanitization
+
+### Phase 4: Testing & Docs (Week 2)
+14. TEST-001/002: Integration Tests
+15. DOC-001/002: Documentation Updates
+16. DATA-004: Encryption Plugin Refactor
+
+---
+
+## 📁 ACTION FILES INDEX
+
+| Issue ID | File Path | Category |
+|----------|-----------|----------|
+| SEC-001 | `fix-security-user-encryption-update.md` | Security |
+| SEC-002 | `fix-security-aqar-pii-encryption.md` | Security |
+| SEC-003 | `fix-security-tenant-context-leak.md` | Security |
+| SEC-004 | `fix-security-hr-role-guards.md` | Security |
+| SEC-005 | `fix-logging-audit-blind-spot.md` | Logging |
+| SEC-006 | `fix-security-idor-crud-factory.md` | Security |
+| SEC-007 | `fix-security-email-link-validation.md` | Security |
+| SEC-008 | `fix-security-rate-limiting.md` | Security |
+| DATA-001 | `fix-data-aqar-tenant-isolation.md` | Data |
+| DATA-002 | `fix-data-payroll-encryption.md` | Data |
+| DATA-003 | `fix-data-booking-derived-fields.md` | Data |
+| DATA-004 | `fix-data-encryption-plugin.md` | Data |
+| LOG-001 | `fix-logging-client-pii.md` | Logging |
+| LOG-002 | `fix-logging-error-exposure.md` | Logging |
+| BIZ-001 | `fix-business-lead-state-machine.md` | Business |
+| TEST-001 | `fix-testing-encryption-integration.md` | Testing |
+| TEST-002 | `fix-testing-tenant-isolation.md` | Testing |
+| DOC-001 | `fix-docs-owner-portal-deprecation.md` | Docs |
+| DOC-002 | `fix-docs-rbac-matrix.md` | Docs |
+| PERF-001 | `fix-perf-aqar-indexes.md` | Performance |
+
+---
+
+## ✅ VERIFICATION CHECKLIST
+
+```bash
+# Run after each fix
+pnpm lint
+pnpm tsc --noEmit
+pnpm test
+pnpm build
+
+# Security-specific verification
+pnpm test tests/integration/security/
+pnpm test tests/unit/security/
+
+# Generate coverage report
+pnpm test:coverage --reporter=lcov
+
+# Quick re-scan checklist before executing items
+# 1) Confirm file paths still exist / unchanged (aqar models, hr routes, payroll).
+# 2) Re-run rg for orgId/org_id, tenantIsolationPlugin, and encrypted fields.
+# 3) Assign DRI + due date per item; update "Last reviewed" above after changes.
+# 4) For test items, add acceptance criteria and fixtures before implementation.
+```
+
+---
+
+**END OF ACTION PLAN**
+
+]]>
+</file>
+
+<file path=".copilot/action-plan/FIX_EXECUTION_REPORT_P0.md">
+<![CDATA[
+# P0 Critical Fix Execution Report
+
+**Execution Date:** 2025-11-25
+**Executed By:** GitHub Copilot (Claude Opus 4.5 Preview)
+**Build Status:** ✅ PASSED
+
+---
+
+## Summary
+
+Successfully executed **ALL 10 P0 Critical Fixes** across security, data isolation, and RBAC categories.
+
+| Fix ID | Issue | Status | Files Modified |
+|--------|-------|--------|----------------|
+| SEC-001 | PII Encryption Bypass via findOneAndUpdate | ✅ FIXED | `server/models/User.ts`, `server/models/hr.models.ts` |
+| SEC-002 | Aqar Booking PII Unencrypted | ✅ FIXED | `models/aqarBooking.model.ts` |
+| SEC-003 | Tenant Context Global Leakage | ✅ FIXED | `server/plugins/tenantIsolation.ts` |
+| SEC-004 | Missing HR Role Guards | ✅ FIXED | `lib/auth/role-guards.ts` |
+| SEC-005 | Audit Trail Blind Spot | ✅ FIXED | `server/audit/withAudit.ts` |
+| DATA-001 | Aqar Models Missing tenantIsolationPlugin | ✅ FIXED | `models/aqarBooking.model.ts`, `models/aqarBoost.model.ts`, `models/aqar/Listing.ts` |
+| DATA-002 | PayrollLine baseSalary Unencrypted | ✅ FIXED | `server/models/hr.models.ts` |
+| DATA-003 | Booking Derived Field Recalculation | ✅ FIXED | `models/aqarBooking.model.ts` |
+
+---
+
+## Detailed Fix Descriptions
+
+### SEC-001: PII Encryption Bypass via findOneAndUpdate
+
+**Problem:** Mongoose `pre('save')` hooks don't execute for `findOneAndUpdate()`, `updateOne()`, or `updateMany()` operations, allowing PII fields to be stored unencrypted.
+
+**Solution:** Added `pre('findOneAndUpdate')`, `pre('updateOne')`, and `pre('updateMany')` hooks to:
+- `/server/models/User.ts` - Encrypts `personal.nationalId`, `personal.passport`, `employment.salary`, `security.mfa.secret`
+- `/server/models/hr.models.ts` (Employee) - Encrypts `compensation.baseSalary`, `compensation.housingAllowance`, `compensation.transportAllowance`, `bankDetails.iban`, `bankDetails.accountNumber`
+
+**Code Pattern Applied:**
+```typescript
+Schema.pre('findOneAndUpdate', function(next) {
+  const update = this.getUpdate() as Record<string, any>;
+  const updateData = update.$set ?? update;
+  
+  for (const [path, fieldName] of Object.entries(ENCRYPTED_FIELDS)) {
+    const value = updateData[path];
+    if (value !== undefined && !isEncrypted(String(value))) {
+      if (update.$set) {
+        update.$set[path] = encryptField(String(value), path);
+      } else {
+        update[path] = encryptField(String(value), path);
+      }
+    }
+  }
+  next();
+});
+```
+
+---
+
+### SEC-002: Aqar Booking PII Unencrypted
+
+**Problem:** Guest PII fields (`guestNationalId`, `guestPhone`) stored in plaintext in Aqar Booking collection.
+
+**Solution:** Added PII encryption middleware to `models/aqarBooking.model.ts`:
+- `pre('save')` hook for encryption on create
+- `pre('findOneAndUpdate')` hook for encryption on updates
+- `post('find')`, `post('findOne')`, `post('findOneAndUpdate')` hooks for decryption on read
+
+**Compliance:** GDPR Article 32 (Security of Processing)
+
+---
+
+### SEC-003: Tenant Context Global Leakage Risk
+
+**Problem:** `currentTenantContext` global variable alongside `AsyncLocalStorage` creates risk of cross-request data leakage in serverless environments (Vercel Edge, AWS Lambda).
+
+**Solution:** Removed global state entirely in `server/plugins/tenantIsolation.ts`:
+
+**Before:**
+```typescript
+let currentTenantContext: TenantContext = {};
+// ...
+export function getTenantContext(): TenantContext {
+  return getStoredContext() ?? currentTenantContext;
+}
+```
+
+**After:**
+```typescript
+// SEC-003 FIX: Uses ONLY AsyncLocalStorage, no global fallback
+export function getTenantContext(): TenantContext {
+  return getStoredContext();
+}
+```
+
+Also removed global state updates from `setTenantContext()`, `clearTenantContext()`, `withTenantContext()`, and `withoutTenantFilter()`.
+
+---
+
+### SEC-004: Missing HR Role Guards
+
+**Problem:** No dedicated RBAC guards for payroll access control. Anyone with Finance access could potentially view/edit payroll data.
+
+**Solution:** Added 5 new role guards to `lib/auth/role-guards.ts`:
+
+| Guard | Allowed Roles | Purpose |
+|-------|---------------|---------|
+| `canViewPayroll` | SUPER_ADMIN, CORPORATE_ADMIN, HR, HR_OFFICER, FINANCE, FINANCE_OFFICER | Read-only payroll access |
+| `canEditPayroll` | SUPER_ADMIN, CORPORATE_ADMIN, HR | Modify payroll data |
+| `canDeletePayroll` | SUPER_ADMIN, CORPORATE_ADMIN | Delete payroll records |
+| `canApprovePayrollHR` | SUPER_ADMIN, CORPORATE_ADMIN, HR | HR approval for payroll runs |
+| `canApprovePayrollFinance` | SUPER_ADMIN, CORPORATE_ADMIN, FINANCE, FINANCE_OFFICER | Finance sign-off |
+
+**Compliance:** SOX Section 404, Saudi Labor Law Article 90
+
+---
+
+### DATA-001: Aqar Models Missing tenantIsolationPlugin
+
+**Problem:** Aqar Marketplace models (Listing, Booking, Boost) missing `tenantIsolationPlugin`, risking cross-tenant data access.
+
+**Solution:** Applied `tenantIsolationPlugin` to:
+- `models/aqarBooking.model.ts`
+- `models/aqarBoost.model.ts`
+- `models/aqar/Listing.ts`
+
+All models now have:
+- Automatic `orgId` injection from tenant context
+- Automatic query filtering by `orgId`
+- Super Admin bypass with audit logging
+
+---
+
+### DATA-003: Booking Derived Field Recalculation
+
+**Problem:** `findOneAndUpdate()` bypasses `pre('validate')` hook, causing derived fields (`nights`, `reservedNights`, `totalPrice`, `platformFee`, `hostPayout`) to become stale.
+
+**Solution:** Added `pre('findOneAndUpdate')` hook to `models/aqarBooking.model.ts` that:
+1. Detects when `checkInDate` or `checkOutDate` are being updated
+2. Recalculates `nights` count
+3. Regenerates `reservedNights` array (UTC date-only values)
+4. Recomputes `totalPrice`, `platformFee`, `hostPayout` based on new nights
+
+**Note:** Partial date updates (only checkInDate OR checkOutDate) should be handled at service layer for safety.
+
+---
+
+### SEC-005: Audit Trail Blind Spot (Missing orgId)
+
+**Problem:** Audit logging was completely skipped when `orgId` was missing from session, creating blind spots in security monitoring.
+
+**Solution:** Modified `server/audit/withAudit.ts` to:
+1. Log with sentinel value `__MISSING_ORG_ID__` instead of skipping
+2. Emit warning with user context for security monitoring
+3. Add `orgIdMissing: boolean` flag to audit context for dashboards
+
+**Before:**
+```typescript
+if (!orgId || orgId.trim() === "") {
+  logger.error("CRITICAL: orgId missing - skipping audit log");
+  // Skip audit logging
+}
+```
+
+**After:**
+```typescript
+const orgIdMissing = !rawOrgId || rawOrgId.trim() === "";
+const orgId = orgIdMissing ? "__MISSING_ORG_ID__" : rawOrgId;
+
+if (orgIdMissing) {
+  logger.warn("[Audit] SEC-005: orgId missing - logging with sentinel", {...});
+}
+// Always proceed with audit logging
+await AuditLogModel.log({ orgId, orgIdMissing, ... });
+```
+
+**Compliance:** SOC 2, ISO 27001 (audit completeness)
+
+---
+
+### DATA-002: PayrollLine baseSalary Unencrypted
+
+**Problem:** PayrollLine `baseSalary`, `housingAllowance`, and `transportAllowance` fields stored in plaintext, violating Saudi Labor Law Article 52 (salary confidentiality).
+
+**Solution:** Extended PayrollRun encryption in `server/models/hr.models.ts`:
+- Added encryption for `baseSalary`, `housingAllowance`, `transportAllowance` in pre-save hook
+- Added decryption in post-find hooks (converts encrypted strings back to numbers)
+
+**Encryption Flow:**
+```typescript
+// Pre-save: Encrypt numeric salaries as strings
+if (typeof baseSalary === 'number' && baseSalary > 0) {
+  baseSalary = encryptField(String(baseSalary), 'payroll.baseSalary');
+}
+
+// Post-find: Decrypt back to numbers
+if (isEncrypted(line.baseSalary)) {
+  line.baseSalary = Number(decryptField(line.baseSalary, 'payroll.baseSalary'));
+}
+```
+
+**Compliance:** Saudi Labor Law Article 52, GDPR Article 32
+
+---
+
+## Verification Performed
+
+1. **TypeScript Compilation:** `pnpm tsc --noEmit` - ✅ PASSED
+2. **ESLint:** `pnpm lint` - ✅ PASSED  
+3. **Production Build:** `pnpm build` - ✅ PASSED (180+ routes)
+
+---
+
+## All P0 Issues Resolved
+
+✅ All 10 P0 Critical issues have been fixed and verified.
+
+---
+
+## Next Steps
+
+1. Run integration tests for tenant isolation: `pnpm test tests/integration/tenant-isolation-concurrent.test.ts`
+2. Run encryption tests: `pnpm test tests/unit/security/encryption-update-hooks.test.ts`
+3. Execute P1 HIGH priority fixes (16 issues)
+4. Update action plan metadata to reflect completion status
+
+]]>
+</file>
+
+<file path=".copilot/action-plan/FIX_EXECUTION_REPORT_P1.md">
+<![CDATA[
+# P1 HIGH Priority Fix Execution Report
+
+**Execution Date:** 2025-11-26
+**Executed By:** GitHub Copilot (Claude Opus 4.5 Preview)
+**Build Status:** ✅ PASSED
+
+---
+
+## Summary
+
+Successfully executed **7 P1 HIGH Priority Fixes** across security, logging, business logic, and refactoring categories.
+
+| Fix ID | Issue | Status | Files Modified/Created |
+|--------|-------|--------|------------------------|
+| SEC-006 | IDOR Risk in crud-factory.ts | ✅ FIXED | `lib/api/crud-factory.ts` |
+| SEC-007 | Unsafe Email Link Injection | ✅ FIXED | `services/notifications/fm-notification-engine.ts` |
+| SEC-008 | Company Code Enumeration | ✅ ALREADY MITIGATED | `app/api/auth/otp/send/route.ts` (verified) |
+| LOG-001 | PII in Client Logs | ✅ FIXED | `lib/security/log-sanitizer.ts` (created), `hooks/useAdminData.ts` |
+| LOG-002 | Console.error Exposes Details | ✅ N/A | File does not exist at specified location |
+| BIZ-001 | Lead State Machine Invalid Transitions | ✅ FIXED | `models/aqar/Lead.ts` |
+| DATA-004 | Incomplete Encryption Coverage Pattern | ✅ FIXED | `server/plugins/encryptionPlugin.ts` (created) |
+
+---
+
+## Detailed Fix Descriptions
+
+### SEC-006: IDOR Risk in crud-factory.ts
+
+**Problem:** Query accepted raw string IDs without validation, allowing potential query operator injection (e.g., `{ $or: [...] }`) that could bypass tenant isolation.
+
+**Solution:** Added MongoDB ObjectId validation and conversion:
+
+1. Created `isValidObjectId()` helper function that:
+   - Validates string format using `Types.ObjectId.isValid()`
+   - Confirms roundtrip conversion matches (prevents operator injection)
+
+2. Applied validation to all single-entity handlers:
+   - `GET /api/[entity]/:id`
+   - `PUT /api/[entity]/:id`
+   - `DELETE /api/[entity]/:id`
+
+3. Returns 400 Bad Request for invalid IDs (truncated in logs for safety)
+
+**Code Pattern:**
+```typescript
+function isValidObjectId(id: string): boolean {
+  return Types.ObjectId.isValid(id) && new Types.ObjectId(id).toString() === id;
+}
+
+// In handler:
+if (!isValidObjectId(entityId)) {
+  return createSecureResponse({ error: "Invalid ID format" }, 400, req);
+}
+
+const query = { _id: new Types.ObjectId(entityId) };
+```
+
+---
+
+### SEC-007: Unsafe Email Link Injection
+
+**Problem:** `sanitizeUrl()` only blocked `javascript:` and `data:` protocols but allowed any external URL in email notifications, enabling phishing attacks.
+
+**Solution:** Implemented domain allowlist validation:
+
+1. Created `ALLOWED_LINK_DOMAINS` array:
+   - `fixzit.co`, `fixzit.sa` (production)
+   - `app.fixzit.co`, `app.fixzit.sa` (app subdomains)
+   - `localhost` (development only)
+
+2. Enhanced `sanitizeUrl()` to:
+   - Parse URL and extract hostname
+   - Check against allowlist (including subdomain matching)
+   - Log blocked URLs for security monitoring
+   - Return empty string for untrusted URLs
+
+**Compliance:** OWASP Unvalidated Redirects and Forwards
+
+---
+
+### SEC-008: Company Code Enumeration Attack Surface
+
+**Status:** ✅ ALREADY MITIGATED
+
+**Verification:** Confirmed that `/api/auth/otp/send/route.ts` already:
+1. Uses IP-based rate limiting (`enforceRateLimit`)
+2. Uses identifier+companyCode composite rate limiting via `buildOtpKey()`
+3. Returns generic error messages to prevent enumeration
+
+**Evidence:**
+```typescript
+const otpKey = buildOtpKey(loginIdentifier, normalizedCompanyCode);
+const rateLimitResult = checkRateLimit(otpKey);
+```
+
+---
+
+### LOG-001: PII in Client Logs
+
+**Problem:** Client-side hooks logged query params that might contain user IDs, emails, or other PII.
+
+**Solution:** Created centralized log sanitization utility:
+
+1. Created `/lib/security/log-sanitizer.ts` with:
+   - `SENSITIVE_KEYS` set (50+ patterns for PII fields)
+   - `sanitizeLogParams()` - Recursively redacts sensitive fields
+   - `sanitizeValue()` - Single value redaction
+   - `sanitizeError()` - Error object sanitization
+
+2. Updated `hooks/useAdminData.ts` to use sanitizer:
+   - `useUsers()` - Sanitizes search params
+   - `useRoles()` - Sanitizes params
+   - `useAuditLogs()` - Sanitizes params
+   - `useCreateUser()` - Sanitizes user data (redacts email)
+
+**Compliance:** GDPR Article 5(c) Data Minimization
+
+---
+
+### LOG-002: Console.error Exposes Internal Details
+
+**Status:** ✅ N/A
+
+**Finding:** The file `/Fixzit/hooks/useProperties.ts` does not exist at the path specified in the audit. The actual file at `/Fixzit/hooks/fm/useProperties.ts` uses the logger properly without console.error calls exposing internal details.
+
+---
+
+### BIZ-001: Lead State Machine Allows Invalid Transitions
+
+**Problem:** Lead model methods allowed arbitrary state transitions (e.g., NEW → WON directly), violating business logic and potentially corrupting CRM data.
+
+**Solution:** Implemented comprehensive state machine:
+
+1. Created `LEAD_STATE_TRANSITIONS` map defining valid transitions:
+```typescript
+const LEAD_STATE_TRANSITIONS: Record<LeadStatus, LeadStatus[]> = {
+  NEW: [CONTACTED, QUALIFIED, SPAM],
+  CONTACTED: [QUALIFIED, VIEWING, LOST, SPAM],
+  QUALIFIED: [VIEWING, NEGOTIATING, LOST],
+  VIEWING: [NEGOTIATING, QUALIFIED, LOST],
+  NEGOTIATING: [WON, LOST, VIEWING],
+  WON: [], // Terminal
+  LOST: [], // Terminal
+  SPAM: [], // Terminal
+};
+```
+
+2. Created `validateTransition()` function that throws descriptive errors
+
+3. Applied validation to all state-changing methods:
+   - `assign()` - Validates NEW → CONTACTED
+   - `scheduleViewing()` - Validates * → VIEWING
+   - `completeViewing()` - Validates VIEWING → NEGOTIATING
+   - `markAsWon()` - Validates NEGOTIATING → WON
+   - `markAsLost()` - Validates * → LOST (from non-terminal states)
+   - `markAsSpam()` - Validates * → SPAM (from early states)
+
+---
+
+### DATA-004: Incomplete Encryption Coverage Pattern
+
+**Problem:** Encryption logic was duplicated across User.ts, hr.models.ts, and other models, making maintenance error-prone.
+
+**Solution:** Created centralized encryption plugin at `/server/plugins/encryptionPlugin.ts`:
+
+1. **Features:**
+   - Configurable field mapping via options
+   - Automatic encryption on `save()`, `findOneAndUpdate()`, `updateOne()`, `updateMany()`
+   - Automatic decryption on `find()`, `findOne()`, `findOneAndUpdate()`
+   - Nested field support via dot notation
+   - Idempotent (won't double-encrypt)
+   - Optional operation logging
+
+2. **Usage Example:**
+```typescript
+import { encryptionPlugin } from '@/server/plugins/encryptionPlugin';
+
+UserSchema.plugin(encryptionPlugin, {
+  fields: {
+    'personal.nationalId': 'National ID',
+    'personal.passport': 'Passport Number',
+    'bankDetails.iban': 'IBAN',
+  }
+});
+```
+
+3. **Benefits:**
+   - Single source of truth for encryption logic
+   - Reduced code duplication
+   - Easier auditing and updates
+   - Consistent encryption across all models
+
+---
+
+## Verification Performed
+
+1. **TypeScript Compilation:** `pnpm tsc --noEmit` - ✅ PASSED
+2. **ESLint:** `pnpm lint` - ✅ PASSED
+3. **Production Build:** `pnpm build` - ✅ PASSED (180+ routes)
+4. **File Error Check:** All modified files have no TypeScript errors
+
+---
+
+## Files Modified
+
+| File | Type | Changes |
+|------|------|---------|
+| `lib/api/crud-factory.ts` | Modified | Added ObjectId validation, imported Types |
+| `services/notifications/fm-notification-engine.ts` | Modified | Added URL domain allowlist |
+| `lib/security/log-sanitizer.ts` | Created | New PII sanitization utility |
+| `hooks/useAdminData.ts` | Modified | Applied log sanitization |
+| `models/aqar/Lead.ts` | Modified | Added state machine validation |
+| `server/plugins/encryptionPlugin.ts` | Created | New centralized encryption plugin |
+
+---
+
+## Remaining P1 Issues
+
+The following P1 issues were not addressed in this batch and should be prioritized:
+
+| Fix ID | Issue | Notes |
+|--------|-------|-------|
+| TEST-001 | Missing Integration Tests for Encryption | Requires test file creation |
+| TEST-002 | Missing Tenant Isolation Tests | Requires test file creation |
+| PERF-001 | Missing Index on inquirerPhone | Listed as P2 in action plan |
+
+---
+
+## Next Steps
+
+1. Create integration tests for encryption lifecycle (TEST-001)
+2. Create tenant isolation tests (TEST-002)
+3. Execute P2 MEDIUM priority fixes (18 issues)
+4. Execute P3 LOW priority fixes (7 issues)
+5. Update master action plan with completion status
+
+---
+
+## Compliance Summary
+
+| Standard | Issues Addressed |
+|----------|-----------------|
+| OWASP Top 10 | SEC-006 (IDOR), SEC-007 (Injection) |
+| GDPR Article 5 | LOG-001 (Data Minimization) |
+| GDPR Article 32 | DATA-004 (Encryption at rest) |
+| CRM Best Practices | BIZ-001 (State Machine) |
+
+]]>
+</file>
+
+<file path=".copilot/action-plan/FIX_EXECUTION_REPORT_P1_TESTS.md">
+<![CDATA[
+# P1 Test Fixes Completion Report
+
+**Date:** 2025-11-29  
+**Status:** ✅ ALL P1 TESTS COMPLETE  
+**Agent:** GitHub Copilot
+
+---
+
+## Executive Summary
+
+All P1 HIGH priority test fixes have been successfully implemented and verified. This completes the P1 phase of the security audit remediation.
+
+### Test Results Summary
+- **Encryption Lifecycle Tests:** 26/26 PASSED ✅
+- **Tenant Isolation Tests:** 30/30 PASSED ✅
+- **Full Security Test Suite:** 68/68 PASSED ✅
+- **Production Build:** PASSED ✅
+- **ESLint:** PASSED ✅
+
+---
+
+## TEST-001: Encryption Lifecycle Integration Tests
+
+### Status: ✅ COMPLETE
+
+**File Created:** `tests/integration/security/encryption-lifecycle.test.ts`
+
+**Test Coverage (26 Tests):**
+
+1. **Encryption Utilities**
+   - `encryptField` produces ciphertext with iv
+   - `decryptField` recovers original plaintext
+   - `isEncrypted` correctly identifies encrypted data
+   - Encryption is NOT deterministic (different ciphertexts for same input)
+   - Empty strings are handled gracefully
+   - Round-trip encryption maintains data integrity
+
+2. **Encryption Plugin**
+   - Initializes without errors
+   - Returns valid plugin configuration
+   - Schema modification functions exist
+   - Hook registrations are present
+
+3. **Schema Integration**
+   - Plugin integrates with Mongoose schemas
+   - encryptedFields option is recognized
+   - Multiple field encryption is supported
+   - Non-existent field paths are handled
+
+4. **Update Operations**
+   - $set operations encrypt sensitive fields
+   - $unset preserves encryption metadata
+   - findOneAndUpdate triggers encryption
+   - updateMany respects field encryption
+   - Mixed encrypted/plaintext updates work correctly
+
+5. **Edge Cases**
+   - Very long strings are encrypted successfully
+   - Unicode content is preserved through encryption
+   - Special characters are handled
+   - Null/undefined values don't cause errors
+   - Concurrent encryption operations don't interfere
+
+6. **Compliance Verification (GDPR/Security)**
+   - Encryption uses AES-256-GCM algorithm
+   - IV is unique per encryption
+   - Ciphertext is base64 encoded for storage
+   - No plaintext remnants in encrypted output
+   - Decryption fails gracefully with wrong key
+
+---
+
+## TEST-002: Tenant Isolation Integration Tests
+
+### Status: ✅ COMPLETE
+
+**File Created:** `tests/integration/security/tenant-isolation.test.ts`
+
+**Test Coverage (30 Tests):**
+
+1. **Tenant Context Management**
+   - Tenant context can be set and retrieved
+   - Nested contexts maintain isolation
+   - Context is cleared after execution
+   - Missing tenant context throws appropriate error
+   - Default context behavior is secure
+
+2. **withTenantContext**
+   - Executes function within tenant context
+   - Async operations maintain context
+   - Errors don't leak tenant information
+   - Context is restored after error
+   - Nested tenant contexts are isolated
+
+3. **Super Admin Access**
+   - Super admin can access all tenant data
+   - Super admin queries are logged
+   - Super admin cannot modify tenant context
+   - Audit trail is created for super admin actions
+
+4. **Cross-Tenant Access Prevention**
+   - Direct tenant ID injection is blocked
+   - Query parameter manipulation is detected
+   - URL path traversal is prevented
+   - Hidden form fields don't bypass isolation
+   - API responses don't leak tenant IDs
+
+5. **Concurrent Request Isolation**
+   - Parallel requests maintain separate contexts
+   - Race conditions don't cause context bleeding
+   - High load doesn't compromise isolation
+   - Context cleanup is atomic
+   - No global state pollution
+
+6. **SEC-003: Global State Leakage**
+   - AsyncLocalStorage prevents request bleeding
+   - Module-level variables are tenant-scoped
+   - Singleton patterns don't share tenant data
+   - Cached data is tenant-isolated
+   - Error states don't expose other tenant data
+
+7. **Compliance Verification**
+   - Tenant ID is logged in all operations
+   - Cross-tenant queries are audited
+   - Isolation violations trigger alerts
+   - RBAC respects tenant boundaries
+   - Data export is tenant-scoped
+
+---
+
+## Verification Results
+
+### TypeScript Compilation
+```
+✅ PASSED - No type errors
+```
+
+### ESLint
+```
+✅ PASSED - No linting errors
+```
+
+### Vitest Test Execution
+```
+Test Suite: tests/security/
+├── cors.test.ts          ✅ PASSED
+└── rate-limiting.test.ts ✅ PASSED
+
+Test Suite: tests/integration/security/
+├── encryption-lifecycle.test.ts ✅ 26/26 PASSED
+└── tenant-isolation.test.ts     ✅ 30/30 PASSED
+
+Total: 68 tests passed (4 files)
+```
+
+### Production Build
+```
+✅ PASSED - 180+ routes compiled successfully
+✅ No build-time errors or warnings
+```
+
+---
+
+## P1 Phase Complete Status
+
+| ID | Issue | Status | Notes |
+|----|-------|--------|-------|
+| SEC-006 | IDOR via tenantId override | ✅ DONE | crud-factory.ts modified |
+| SEC-007 | Email link injection | ✅ DONE | URL sanitization added |
+| SEC-008 | Error stack exposure | ✅ DONE | Already mitigated |
+| LOG-001 | PII in logs | ✅ DONE | log-sanitizer.ts created |
+| LOG-002 | Correlation ID missing | N/A | logContext.ts not found |
+| BIZ-001 | Lead transition validation | ✅ DONE | State machine added |
+| DATA-004 | PII encryption | ✅ DONE | encryptionPlugin.ts enhanced |
+| TEST-001 | Encryption tests | ✅ DONE | 26 tests created |
+| TEST-002 | Tenant isolation tests | ✅ DONE | 30 tests created |
+
+**P1 Completion: 9/9 (100%)**
+
+---
+
+## Next Steps
+
+The P1 HIGH priority phase is now complete. The next phase will address:
+
+### P2 MEDIUM Priority (18 issues)
+- DOC-001 through DOC-007: Documentation updates
+- PERF-001 through PERF-006: Database indexes
+- ERR-001 through ERR-005: Error boundaries
+
+### P3 LOW Priority (7 issues)
+- CODE-001 through CODE-007: Code quality improvements
+
+---
+
+## Files Changed This Session
+
+1. **Created:**
+   - `tests/integration/security/encryption-lifecycle.test.ts` - 26 tests
+   - `tests/integration/security/tenant-isolation.test.ts` - 30 tests
+   - `.copilot/action-plan/AUDIT_STATUS_TRACKER.md` - Status tracking
+   - `.copilot/action-plan/FIX_EXECUTION_REPORT_P1_TESTS.md` - This report
+
+2. **Modified:**
+   - `.copilot/action-plan/AUDIT_STATUS_TRACKER.md` - Updated test details
+
+---
+
+**Report Generated:** 2025-11-29  
+**Agent:** GitHub Copilot  
+**Status:** P0 + P1 = 100% COMPLETE
+
+]]>
+</file>
+
+<file path=".copilot/action-plan/README.md">
+<![CDATA[
+# 📋 FIXZIT ACTION PLAN - QUICK REFERENCE
+
+> **Generated**: 2025-11-25  
+> **Total Issues**: 51 (10 P0, 16 P1, 18 P2, 7 P3)  
+> **Agent**: GitHub Copilot
+
+---
+
+## 🚨 IMMEDIATE ACTIONS (P0 - Fix Today)
+
+| ID | Issue | File | Est. Time |
+|----|-------|------|-----------|
+| **SEC-001** | PII Encryption bypass via findOneAndUpdate | `server/models/User.ts`, `hr.models.ts` | 2-4h |
+| **SEC-002** | Aqar Lead/Booking PII unencrypted | `models/aqar/Lead.ts`, `Booking.ts` | 3-4h |
+| **SEC-003** | Tenant context global leakage | `server/plugins/tenantIsolation.ts` | 2-3h |
+| **SEC-004** | Missing HR role guards | `lib/auth/role-guards.ts` | 1-2h |
+| **SEC-005** | Audit blind spot (missing orgId) | `lib/middleware/withAudit.ts` | 1h |
+| **DATA-001** | Aqar models missing tenantIsolationPlugin | `models/aqar/*.ts` (10 files) | 2-3h |
+| **DATA-002** | PayrollLine baseSalary not encrypted | `server/models/hr.models.ts` | 2-3h |
+| **DATA-003** | Booking derived fields bypass | `models/aqar/Booking.ts` | 2-3h |
+
+---
+
+## 📁 Fix Files Available
+
+Located in `.copilot/action-plan/fixes/`:
+
+1. ✅ `fix-security-encryption-update-hooks.md` - SEC-001
+2. ✅ `fix-data-aqar-tenant-isolation.md` - DATA-001
+3. ✅ `fix-security-tenant-context-leak.md` - SEC-003
+4. ✅ `fix-security-hr-role-guards.md` - SEC-004
+
+---
+
+## 🔧 Quick Commands
+
+```bash
+# Verify fixes don't break build
+pnpm lint && pnpm tsc --noEmit && pnpm build
+
+# Run security tests
+pnpm test tests/integration/security/
+pnpm test tests/unit/security/
+
+# Check for missing tenant isolation
+grep -r "tenantIsolationPlugin" models/aqar/*.ts | wc -l
+# Should be 10+ after fix
+
+# Check for encryption hooks
+grep -r "pre('findOneAndUpdate'" server/models/
+# Should show User.ts and hr.models.ts after fix
+```
+
+---
+
+## 📊 Categories at a Glance
+
+| Category | P0 | P1 | P2 | P3 | Total |
+|----------|----|----|----|----|-------|
+| Security/RBAC | 5 | 3 | 2 | 1 | **11** |
+| Data/Schema | 3 | 4 | 2 | 0 | **9** |
+| Business Logic | 1 | 3 | 4 | 2 | **10** |
+| Testing/QA | 0 | 2 | 3 | 1 | **6** |
+| Error/Logging | 1 | 2 | 2 | 0 | **5** |
+| Docs/Process | 0 | 1 | 3 | 2 | **6** |
+| Performance | 0 | 1 | 2 | 1 | **4** |
+
+---
+
+## 📝 Full Documentation
+
+- **Main Report**: `COMPREHENSIVE_AUDIT_ACTION_PLAN.md`
+- **JSON Metadata**: `issues-metadata.json`
+- **Individual Fixes**: `fixes/*.md`
+
+---
+
+## ✅ Done Checklist
+
+- [ ] SEC-001: Add pre('findOneAndUpdate') encryption hooks
+- [ ] SEC-002: Encrypt Aqar PII fields
+- [ ] SEC-003: Remove global tenant context fallback
+- [ ] SEC-004: Add HR role guards
+- [ ] SEC-005: Fix audit blind spot
+- [ ] DATA-001: Add tenantIsolationPlugin to Aqar models
+- [ ] DATA-002: Encrypt PayrollLine salary fields
+- [ ] DATA-003: Add Booking pre('findOneAndUpdate') hook
+- [ ] Run integration tests
+- [ ] Deploy to staging
+- [ ] Security review
+
+---
+
+**Next**: Start with SEC-003 (tenant context) as it's a dependency for DATA-001.
+
+]]>
+</file>
+
+<file path=".copilot/action-plan/fixes/fix-data-aqar-tenant-isolation.md">
+<![CDATA[
+# fix-data-aqar-tenant-isolation.md
+
+## Issue: DATA-001 - Aqar Models Missing tenantIsolationPlugin
+
+### Priority: P0 CRITICAL
+### Category: Data/Schema/DB
+### Labels: `copilot:ready`, `owner:backend`, `flag:multi_tenancy_gap`
+
+---
+
+## Problem Statement
+
+Aqar marketplace models (Lead, Booking, Listing, Project, SavedSearch, Favorite, etc.) have `orgId` field but DON'T use `tenantIsolationPlugin`, allowing potential cross-tenant data access.
+
+## Affected Files
+
+1. `/Fixzit/models/aqar/Lead.ts`
+2. `/Fixzit/models/aqar/Booking.ts`
+3. `/Fixzit/models/aqar/Listing.ts`
+4. `/Fixzit/models/aqar/Project.ts`
+5. `/Fixzit/models/aqar/SavedSearch.ts`
+6. `/Fixzit/models/aqar/Favorite.ts`
+7. `/Fixzit/models/aqar/MarketingRequest.ts`
+8. `/Fixzit/models/aqar/Package.ts`
+9. `/Fixzit/models/aqar/Boost.ts`
+10. `/Fixzit/models/aqar/Payment.ts`
+
+## Root Cause
+
+The Aqar models were created with `orgId` fields for multi-tenancy but the `tenantIsolationPlugin` was not applied. This plugin automatically:
+- Scopes all queries to the current tenant's `orgId`
+- Adds `orgId` to documents on creation
+- Prevents cross-tenant data access
+
+## Fix Implementation
+
+### Step 1: Update Lead.ts
+
+```typescript
+// Add import at top of file
+import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
+
+// Add before model export (before `const Lead = getModel...`)
+LeadSchema.plugin(tenantIsolationPlugin, { 
+  strict: true, 
+  collectionName: 'aqar_leads' 
+});
+```
+
+### Step 2: Update Booking.ts
+
+```typescript
+// Add import at top of file
+import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
+
+// Add before model export
+BookingSchema.plugin(tenantIsolationPlugin, { 
+  strict: true, 
+  collectionName: 'aqar_bookings' 
+});
+```
+
+### Step 3: Update Listing.ts
+
+```typescript
+// Add import at top of file
+import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
+
+// Add before model export
+ListingSchema.plugin(tenantIsolationPlugin, { 
+  strict: true, 
+  collectionName: 'aqar_listings' 
+});
+```
+
+### Step 4: Update Project.ts
+
+```typescript
+// Add import at top of file
+import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
+
+// Add before model export
+ProjectSchema.plugin(tenantIsolationPlugin, { 
+  strict: true, 
+  collectionName: 'aqar_projects' 
+});
+```
+
+### Step 5: Update SavedSearch.ts
+
+```typescript
+// Add import at top of file
+import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
+
+// Add before model export
+SavedSearchSchema.plugin(tenantIsolationPlugin, { 
+  strict: true, 
+  collectionName: 'aqar_saved_searches' 
+});
+```
+
+### Step 6: Update Favorite.ts
+
+```typescript
+// Add import at top of file
+import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
+
+// Add before model export
+FavoriteSchema.plugin(tenantIsolationPlugin, { 
+  strict: true, 
+  collectionName: 'aqar_favorites' 
+});
+```
+
+### Step 7: Update MarketingRequest.ts
+
+```typescript
+// Add import at top of file
+import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
+
+// Add before model export
+MarketingRequestSchema.plugin(tenantIsolationPlugin, { 
+  strict: true, 
+  collectionName: 'aqar_marketing_requests' 
+});
+```
+
+### Step 8: Update Package.ts
+
+```typescript
+// Add import at top of file
+import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
+
+// Add before model export (if model has orgId - check schema)
+// NOTE: If Package is global platform config, do NOT add this plugin
+// Check if orgId exists in schema first
+PackageSchema.plugin(tenantIsolationPlugin, { 
+  strict: true, 
+  collectionName: 'aqar_packages' 
+});
+```
+
+### Step 9: Update Boost.ts
+
+```typescript
+// Add import at top of file
+import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
+
+// Add before model export
+BoostSchema.plugin(tenantIsolationPlugin, { 
+  strict: true, 
+  collectionName: 'aqar_boosts' 
+});
+```
+
+### Step 10: Update Payment.ts
+
+```typescript
+// Add import at top of file
+import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
+
+// Add before model export
+PaymentSchema.plugin(tenantIsolationPlugin, { 
+  strict: true, 
+  collectionName: 'aqar_payments' 
+});
+```
+
+## Batch Edit Script
+
+For efficiency, run this script to apply changes:
+
+```bash
+#!/bin/bash
+# apply-tenant-isolation.sh
+
+AQAR_MODELS_DIR="/Fixzit/models/aqar"
+
+for model in Lead Booking Listing Project SavedSearch Favorite MarketingRequest Boost Payment; do
+  FILE="$AQAR_MODELS_DIR/$model.ts"
+  
+  # Check if import already exists
+  if ! grep -q "tenantIsolationPlugin" "$FILE"; then
+    # Add import after mongoose import
+    sed -i '' '/^import.*mongoose/a\
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
+' "$FILE"
+    
+    echo "Added import to $FILE"
+  fi
+done
+
+echo "Done. Manually add schema.plugin() calls before model exports."
+```
+
+## Verification Steps
+
+### 1. Verify All Models Have Plugin
+
+```bash
+# Should return all 10 Aqar model files
+grep -l "tenantIsolationPlugin" models/aqar/*.ts
+
+# Should return empty (no models missing the plugin)
+for f in models/aqar/*.ts; do
+  if ! grep -q "tenantIsolationPlugin" "$f"; then
+    echo "MISSING: $f"
+  fi
+done
+```
+
+### 2. Create Integration Test
+
+Create `/Fixzit/tests/integration/security/aqar-tenant-isolation.test.ts`:
+
+```typescript
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { AqarLead, AqarBooking, AqarListing } from '@/models/aqar';
+import { setTenantContext, clearTenantContext } from '@/server/plugins/tenantIsolation';
+import { connectTestDB, disconnectTestDB } from '@/tests/utils/db';
+import mongoose from 'mongoose';
+
+const ORG_A = new mongoose.Types.ObjectId();
+const ORG_B = new mongoose.Types.ObjectId();
+
+describe('Aqar Tenant Isolation', () => {
+  beforeAll(async () => {
+    await connectTestDB();
+  });
+
+  afterAll(async () => {
+    await disconnectTestDB();
+  });
+
+  beforeEach(() => {
+    clearTenantContext();
+  });
+
+  describe('Lead Model', () => {
+    it('prevents Org A from reading Org B leads', async () => {
+      // Create lead for Org B
+      setTenantContext({ orgId: ORG_B.toString() });
+      const orgBLead = await AqarLead.create({
+        orgId: ORG_B,
+        source: 'LISTING_INQUIRY',
+        inquirerName: 'Test User',
+        inquirerPhone: '+966500000000',
+        recipientId: new mongoose.Types.ObjectId(),
+        intent: 'BUY',
+      });
+
+      // Try to access from Org A context
+      setTenantContext({ orgId: ORG_A.toString() });
+      const leads = await AqarLead.find({});
+      
+      // Should not see Org B's lead
+      expect(leads.find(l => l._id.equals(orgBLead._id))).toBeUndefined();
+
+      // Cleanup
+      setTenantContext({ orgId: ORG_B.toString() });
+      await AqarLead.deleteOne({ _id: orgBLead._id });
+    });
+
+    it('automatically adds orgId on create', async () => {
+      setTenantContext({ orgId: ORG_A.toString() });
+      
+      const lead = await AqarLead.create({
+        source: 'PHONE_CALL',
+        inquirerName: 'Auto Org Test',
+        inquirerPhone: '+966500000001',
+        recipientId: new mongoose.Types.ObjectId(),
+        intent: 'RENT',
+      });
+
+      expect(lead.orgId.toString()).toBe(ORG_A.toString());
+
+      await AqarLead.deleteOne({ _id: lead._id });
+    });
+  });
+
+  describe('Booking Model', () => {
+    it('scopes queries to current tenant', async () => {
+      setTenantContext({ orgId: ORG_A.toString() });
+      const bookingA = await AqarBooking.create({
+        orgId: ORG_A,
+        listingId: new mongoose.Types.ObjectId(),
+        guestId: new mongoose.Types.ObjectId(),
+        hostId: new mongoose.Types.ObjectId(),
+        checkInDate: new Date(),
+        checkOutDate: new Date(Date.now() + 86400000),
+        nights: 1,
+        pricePerNight: 500,
+        totalPrice: 500,
+        platformFee: 75,
+        hostPayout: 425,
+        adults: 2,
+      });
+
+      setTenantContext({ orgId: ORG_B.toString() });
+      const bookingB = await AqarBooking.create({
+        orgId: ORG_B,
+        listingId: new mongoose.Types.ObjectId(),
+        guestId: new mongoose.Types.ObjectId(),
+        hostId: new mongoose.Types.ObjectId(),
+        checkInDate: new Date(),
+        checkOutDate: new Date(Date.now() + 86400000),
+        nights: 1,
+        pricePerNight: 500,
+        totalPrice: 500,
+        platformFee: 75,
+        hostPayout: 425,
+        adults: 2,
+      });
+
+      // Org A should only see their booking
+      setTenantContext({ orgId: ORG_A.toString() });
+      const orgABookings = await AqarBooking.find({});
+      expect(orgABookings.length).toBe(1);
+      expect(orgABookings[0]._id.equals(bookingA._id)).toBe(true);
+
+      // Cleanup
+      setTenantContext({ orgId: ORG_A.toString() });
+      await AqarBooking.deleteOne({ _id: bookingA._id });
+      setTenantContext({ orgId: ORG_B.toString() });
+      await AqarBooking.deleteOne({ _id: bookingB._id });
+    });
+  });
+
+  describe('Super Admin Access', () => {
+    it('allows Super Admin cross-tenant access with audit', async () => {
+      // Create data in both orgs
+      setTenantContext({ orgId: ORG_A.toString() });
+      await AqarLead.create({
+        source: 'EMAIL',
+        inquirerName: 'Org A Lead',
+        inquirerPhone: '+966500000002',
+        recipientId: new mongoose.Types.ObjectId(),
+        intent: 'BUY',
+      });
+
+      setTenantContext({ orgId: ORG_B.toString() });
+      await AqarLead.create({
+        source: 'EMAIL',
+        inquirerName: 'Org B Lead',
+        inquirerPhone: '+966500000003',
+        recipientId: new mongoose.Types.ObjectId(),
+        intent: 'BUY',
+      });
+
+      // Super Admin with skipTenantFilter
+      setTenantContext({ 
+        isSuperAdmin: true, 
+        userId: 'super-admin-123',
+        skipTenantFilter: true 
+      });
+      
+      const allLeads = await AqarLead.find({});
+      expect(allLeads.length).toBeGreaterThanOrEqual(2);
+
+      // Cleanup
+      await AqarLead.deleteMany({});
+    });
+  });
+});
+```
+
+### 3. Run Tests
+
+```bash
+# Run tenant isolation tests
+pnpm test tests/integration/security/aqar-tenant-isolation.test.ts
+
+# Run full test suite
+pnpm test
+```
+
+### 4. Check for Cross-Tenant Queries in Existing Code
+
+```bash
+# Find any raw MongoDB queries that might bypass tenant isolation
+grep -r "\.collection\." app/api/aqar/ services/aqar/
+
+# Find any aggregate() calls (may need tenant filtering)
+grep -r "\.aggregate\(" app/api/aqar/ services/aqar/
+```
+
+## Migration Notes
+
+### Existing Data
+
+If existing data in production has missing `orgId` fields:
+
+```javascript
+// MongoDB migration script
+db.aqar_leads.updateMany(
+  { orgId: { $exists: false } },
+  { $set: { orgId: ObjectId("DEFAULT_ORG_ID_HERE") } }
+);
+
+// Similar for other collections
+db.aqar_bookings.updateMany(
+  { orgId: { $exists: false } },
+  { $set: { orgId: ObjectId("DEFAULT_ORG_ID_HERE") } }
+);
+```
+
+### API Route Updates
+
+Ensure all Aqar API routes set tenant context before queries:
+
+```typescript
+// Example: /app/api/aqar/leads/route.ts
+import { setTenantContext } from '@/server/plugins/tenantIsolation';
+
+export async function GET(req: Request) {
+  const session = await getServerSession();
+  
+  // Set tenant context BEFORE any queries
+  setTenantContext({ 
+    orgId: session?.user?.orgId,
+    userId: session?.user?.id,
+    isSuperAdmin: session?.user?.role === 'SUPER_ADMIN',
+  });
+  
+  // Now queries are automatically scoped
+  const leads = await AqarLead.find({});
+  // ...
+}
+```
+
+## Related Issues
+
+- SEC-003: Tenant Context Leakage (fix global state issue first)
+- SEC-006: IDOR in crud-factory (similar pattern)
+
+## Compliance
+
+- ✅ Multi-tenant data isolation
+- ✅ GDPR Article 5: Purpose limitation (data segregation)
+- ✅ SOC 2 CC6.1: Logical access controls
+
+]]>
+</file>
+
+<file path=".copilot/action-plan/fixes/fix-security-encryption-update-hooks.md">
+<![CDATA[
+# fix-security-encryption-update-hooks.md
+
+## Issue: SEC-001 - PII Encryption Bypass via findOneAndUpdate
+
+### Priority: P0 CRITICAL
+### Category: Security/RBAC/Auth
+### Labels: `copilot:ready`, `owner:backend`, `flag:governance_violation`, `compliance:GDPR`
+
+---
+
+## Problem Statement
+
+Employee/User PII encryption only triggers on `pre('save')` hooks. Mongoose `findOneAndUpdate()`, `updateOne()`, `updateMany()` bypass these hooks, potentially storing plaintext PII in the database.
+
+## Affected Files
+
+1. `/Fixzit/server/models/User.ts` - Lines 276-320
+2. `/Fixzit/server/models/hr.models.ts` - Lines 353-394 (Employee), 920-988 (PayrollRun)
+
+## Root Cause
+
+Mongoose document middleware (`pre('save')`) doesn't execute for query middleware operations. This is a fundamental Mongoose architecture decision that requires explicit handling.
+
+## Fix Implementation
+
+### Step 1: Add helper function for update encryption
+
+Add this utility function near the top of both files (or in a shared utility):
+
+```typescript
+/**
+ * Encrypt PII fields in update payload for query middleware
+ * @param update - The update object from this.getUpdate()
+ * @param fields - Record of field paths to encrypt
+ * @returns Modified update object with encrypted fields
+ */
+function encryptUpdatePayload(
+  update: Record<string, any>,
+  fields: Record<string, string>
+): Record<string, any> {
+  const $set = update.$set || update;
+  
+  for (const [path] of Object.entries(fields)) {
+    const parts = path.split('.');
+    let current = $set;
+    
+    // Navigate to the field
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (!current?.[parts[i]]) break;
+      current = current[parts[i]];
+    }
+    
+    const field = parts[parts.length - 1];
+    const value = current?.[field];
+    
+    // Encrypt if value exists and not already encrypted
+    if (value && typeof value === 'string' && !isEncrypted(value)) {
+      // Ensure $set exists
+      if (!update.$set) update.$set = {};
+      
+      // Navigate to set encrypted value in $set
+      let target = update.$set;
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (!target[parts[i]]) target[parts[i]] = {};
+        target = target[parts[i]];
+      }
+      target[field] = encryptField(value, path);
+      
+      logger.info('pii:encrypted_on_update', {
+        action: 'pre_update_encrypt',
+        fieldPath: path,
+      });
+    }
+  }
+  
+  return update;
+}
+```
+
+### Step 2: Add pre-update hooks to User.ts
+
+Add after the existing `UserSchema.post('findOneAndUpdate', ...)` hook (around line 360):
+
+```typescript
+// =====================================================================
+// PRE-UPDATE HOOKS: Encrypt PII on findOneAndUpdate/updateOne operations
+// GDPR Article 32: Security of processing (encryption at rest)
+// =====================================================================
+
+UserSchema.pre('findOneAndUpdate', async function(next) {
+  try {
+    const update = this.getUpdate() || {};
+    const encryptedUpdate = encryptUpdatePayload(update, ENCRYPTED_FIELDS);
+    this.setUpdate(encryptedUpdate);
+    next();
+  } catch (error) {
+    logger.error('user:update_encryption_failed', {
+      action: 'pre_findOneAndUpdate_encrypt',
+      error: error instanceof Error ? error.message : String(error),
+    });
+    next(error as Error);
+  }
+});
+
+UserSchema.pre('updateOne', async function(next) {
+  try {
+    const update = this.getUpdate() || {};
+    const encryptedUpdate = encryptUpdatePayload(update, ENCRYPTED_FIELDS);
+    this.setUpdate(encryptedUpdate);
+    next();
+  } catch (error) {
+    logger.error('user:update_encryption_failed', {
+      action: 'pre_updateOne_encrypt',
+      error: error instanceof Error ? error.message : String(error),
+    });
+    next(error as Error);
+  }
+});
+
+UserSchema.pre('updateMany', async function(next) {
+  try {
+    const update = this.getUpdate() || {};
+    const encryptedUpdate = encryptUpdatePayload(update, ENCRYPTED_FIELDS);
+    this.setUpdate(encryptedUpdate);
+    next();
+  } catch (error) {
+    logger.error('user:update_encryption_failed', {
+      action: 'pre_updateMany_encrypt',
+      error: error instanceof Error ? error.message : String(error),
+    });
+    next(error as Error);
+  }
+});
+```
+
+### Step 3: Add pre-update hooks to hr.models.ts (Employee)
+
+Add after the `EmployeeSchema.post('findOneAndUpdate', ...)` hook (around line 420):
+
+```typescript
+// =====================================================================
+// PRE-UPDATE HOOKS: Encrypt Employee PII on update operations
+// GDPR Article 32 / Saudi Labor Law Article 52 compliance
+// =====================================================================
+
+EmployeeSchema.pre('findOneAndUpdate', async function(next) {
+  try {
+    const update = this.getUpdate() || {};
+    const encryptedUpdate = encryptUpdatePayload(update, EMPLOYEE_ENCRYPTED_FIELDS);
+    this.setUpdate(encryptedUpdate);
+    next();
+  } catch (error) {
+    logger.error('employee:update_encryption_failed', {
+      action: 'pre_findOneAndUpdate_encrypt',
+      error: error instanceof Error ? error.message : String(error),
+    });
+    next(error as Error);
+  }
+});
+
+EmployeeSchema.pre('updateOne', async function(next) {
+  try {
+    const update = this.getUpdate() || {};
+    const encryptedUpdate = encryptUpdatePayload(update, EMPLOYEE_ENCRYPTED_FIELDS);
+    this.setUpdate(encryptedUpdate);
+    next();
+  } catch (error) {
+    logger.error('employee:update_encryption_failed', {
+      action: 'pre_updateOne_encrypt',
+      error: error instanceof Error ? error.message : String(error),
+    });
+    next(error as Error);
+  }
+});
+```
+
+## Verification Steps
+
+### 1. Create Integration Test
+
+Create `/Fixzit/tests/integration/security/encryption-update-hooks.test.ts`:
+
+```typescript
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { User } from '@/server/models/User';
+import { Employee } from '@/server/models/hr.models';
+import { isEncrypted } from '@/lib/security/encryption';
+import { connectTestDB, disconnectTestDB } from '@/tests/utils/db';
+
+describe('PII Encryption on Update Operations', () => {
+  beforeAll(async () => {
+    await connectTestDB();
+  });
+
+  afterAll(async () => {
+    await disconnectTestDB();
+  });
+
+  describe('User Model', () => {
+    it('encrypts nationalId on findOneAndUpdate', async () => {
+      // Create user
+      const user = await User.create({
+        email: 'test@example.com',
+        password: 'hashed',
+        personal: { firstName: 'Test' },
+      });
+
+      // Update via findOneAndUpdate
+      await User.findOneAndUpdate(
+        { _id: user._id },
+        { 'personal.nationalId': '1234567890' }
+      );
+
+      // Check raw DB value is encrypted
+      const rawDoc = await User.collection.findOne({ _id: user._id });
+      expect(isEncrypted(rawDoc?.personal?.nationalId)).toBe(true);
+
+      // Clean up
+      await User.deleteOne({ _id: user._id });
+    });
+
+    it('encrypts nationalId on updateOne', async () => {
+      const user = await User.create({
+        email: 'test2@example.com',
+        password: 'hashed',
+      });
+
+      await User.updateOne(
+        { _id: user._id },
+        { $set: { 'personal.nationalId': '0987654321' } }
+      );
+
+      const rawDoc = await User.collection.findOne({ _id: user._id });
+      expect(isEncrypted(rawDoc?.personal?.nationalId)).toBe(true);
+
+      await User.deleteOne({ _id: user._id });
+    });
+
+    it('prevents double encryption', async () => {
+      const user = await User.create({
+        email: 'test3@example.com',
+        password: 'hashed',
+        personal: { nationalId: '1111111111' }, // Encrypted on save
+      });
+
+      // Get the encrypted value
+      const rawBefore = await User.collection.findOne({ _id: user._id });
+      const encryptedBefore = rawBefore?.personal?.nationalId;
+
+      // Update same field with same value (already encrypted)
+      await User.findOneAndUpdate(
+        { _id: user._id },
+        { 'personal.firstName': 'Updated' } // Different field
+      );
+
+      // Verify nationalId wasn't double-encrypted
+      const rawAfter = await User.collection.findOne({ _id: user._id });
+      expect(rawAfter?.personal?.nationalId).toBe(encryptedBefore);
+
+      await User.deleteOne({ _id: user._id });
+    });
+  });
+
+  describe('Employee Model', () => {
+    it('encrypts IBAN on findOneAndUpdate', async () => {
+      const employee = await Employee.create({
+        orgId: '507f1f77bcf86cd799439011',
+        employeeCode: 'EMP001',
+        firstName: 'Test',
+        lastName: 'Employee',
+        jobTitle: 'Developer',
+        hireDate: new Date(),
+      });
+
+      await Employee.findOneAndUpdate(
+        { _id: employee._id },
+        { 'bankDetails.iban': 'SA0380000000608010167519' }
+      );
+
+      const rawDoc = await Employee.collection.findOne({ _id: employee._id });
+      expect(isEncrypted(rawDoc?.bankDetails?.iban)).toBe(true);
+
+      await Employee.deleteOne({ _id: employee._id });
+    });
+  });
+});
+```
+
+### 2. Run Tests
+
+```bash
+# Run the new integration test
+pnpm test tests/integration/security/encryption-update-hooks.test.ts
+
+# Run all security tests
+pnpm test tests/integration/security/
+pnpm test tests/unit/security/
+```
+
+### 3. Manual Verification
+
+```bash
+# Connect to MongoDB and verify encrypted values
+mongosh "$MONGODB_URI" --eval "
+  db.users.findOne({ email: 'test@example.com' }, { 'personal.nationalId': 1 })
+"
+# Should show: { personal: { nationalId: 'v1:...:...:...:...' } }
+```
+
+## Rollback Plan
+
+If issues occur, remove the `pre('findOneAndUpdate')`, `pre('updateOne')`, `pre('updateMany')` hooks. Existing data encryption via `pre('save')` will continue working.
+
+## Related Issues
+
+- SEC-002: Aqar PII Encryption (same pattern needed)
+- DATA-002: PayrollLine Encryption (same pattern needed)
+- DATA-004: Encryption Plugin Refactor (consolidate this logic)
+
+## Compliance
+
+- ✅ GDPR Article 32: Security of processing
+- ✅ Saudi Labor Law Article 52: Salary confidentiality
+- ✅ ISO 27001 A.10.1.1: Cryptographic controls
+
+]]>
+</file>
+
+<file path=".copilot/action-plan/fixes/fix-security-hr-role-guards.md">
+<![CDATA[
+# fix-security-hr-role-guards.md
+
+## Issue: SEC-004 - Missing HR Role Guards (canViewPayroll, canEditPayroll)
+
+### Priority: P0 CRITICAL
+### Category: Security/RBAC/Auth
+### Labels: `copilot:ready`, `owner:backend`, `flag:rbac_gap`
+
+---
+
+## Problem Statement
+
+No dedicated role guards exist for payroll and HR data access. The current implementation allows any authenticated user with HR_MANAGER role to access sensitive payroll data without explicit permission checks.
+
+## Affected Files
+
+1. `/Fixzit/lib/auth/role-guards.ts` - Missing guards
+2. `/Fixzit/app/api/hr/payroll/**` - API routes without guards
+3. `/Fixzit/app/api/hr/employees/**` - API routes without PII guards
+
+## Root Cause
+
+Role guards were created for Finance and CRM but not extended to cover HR-specific permissions like payroll access and employee PII viewing.
+
+## Fix Implementation
+
+### Step 1: Add HR Role Guards to `/Fixzit/lib/auth/role-guards.ts`
+
+Add after the existing `canManageOwnerGroups` function:
+
+```typescript
+// =====================================================================
+// HR MODULE ROLE GUARDS
+// STRICT v4: HR access limited by principle of least privilege
+// =====================================================================
+
+/**
+ * 🔒 STRICT v4: View payroll data
+ * Limited to HR Manager, Finance Officer, and Admin roles
+ * 
+ * Use case: Viewing payroll runs, reports, employee compensation summaries
+ */
+export const canViewPayroll = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.HR_MANAGER,
+    UserRole.FINANCE_OFFICER,
+  ],
+  ["HR_ADMIN", "PAYROLL_ADMIN"],
+);
+
+/**
+ * 🔒 STRICT v4: Edit payroll data
+ * More restrictive than view - requires HR Manager or above
+ * 
+ * Use case: Creating/modifying payroll runs, adjusting line items
+ */
+export const canEditPayroll = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.HR_MANAGER,
+  ],
+  ["HR_ADMIN", "PAYROLL_ADMIN"],
+);
+
+/**
+ * 🔒 STRICT v4: Approve payroll for processing
+ * Requires dual control - only Corporate Admin+ can approve
+ * 
+ * Use case: Final approval before bank export/payment processing
+ */
+export const canApprovePayroll = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+  ],
+  [], // No legacy roles - strict compliance
+);
+
+/**
+ * 🔒 STRICT v4: Export payroll to bank format
+ * Requires same level as approval - sensitive financial operation
+ * 
+ * Use case: Generating WPS files, bank payment files
+ */
+export const canExportPayroll = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE_OFFICER,
+  ],
+  ["FINANCE_ADMIN"],
+);
+
+/**
+ * 🔒 STRICT v4: View employee PII (compensation, bank details)
+ * Limited to HR and Finance roles with legitimate need
+ * 
+ * Use case: Viewing salary, IBAN, national ID
+ * NOTE: These fields are encrypted - this guard controls decrypted access
+ */
+export const canViewEmployeePII = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.HR_MANAGER,
+    UserRole.FINANCE_OFFICER,
+  ],
+  ["HR_ADMIN", "FINANCE_ADMIN"],
+);
+
+/**
+ * 🔒 STRICT v4: Edit employee PII
+ * More restrictive - only HR Manager or above
+ * 
+ * Use case: Updating bank details, salary changes
+ */
+export const canEditEmployeePII = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.HR_MANAGER,
+  ],
+  ["HR_ADMIN"],
+);
+
+/**
+ * 🔒 STRICT v4: Manage HR recruitment (ATS)
+ * HR Manager and Hiring Managers
+ * 
+ * Use case: Job postings, candidate management, interview scheduling
+ */
+export const canManageRecruitment = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.HR_MANAGER,
+    UserRole.HIRING_MANAGER,
+  ],
+  ["HR_ADMIN", "RECRUITING_ADMIN"],
+);
+
+/**
+ * 🔒 STRICT v4: Convert candidates to employees
+ * Requires HR Manager approval
+ * 
+ * Use case: Hiring workflow completion, onboarding initiation
+ */
+export const canConvertCandidates = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.HR_MANAGER,
+  ],
+  ["HR_ADMIN"],
+);
+
+/**
+ * 🔒 STRICT v4: View leave and attendance records
+ * HR, Managers, and the employee themselves (self-service)
+ * 
+ * Use case: Leave requests, attendance reports
+ */
+export const canViewAttendance = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.HR_MANAGER,
+    UserRole.MANAGER,
+    UserRole.FM_MANAGER,
+  ],
+  ["HR_ADMIN"],
+);
+
+/**
+ * 🔒 STRICT v4: Approve leave requests
+ * HR Manager and direct managers
+ * 
+ * Use case: Leave approval workflow
+ */
+export const canApproveLeave = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.HR_MANAGER,
+    UserRole.MANAGER,
+    UserRole.FM_MANAGER,
+  ],
+  ["HR_ADMIN"],
+);
+
+/**
+ * 🔒 STRICT v4: Manage performance reviews
+ * HR and direct managers
+ * 
+ * Use case: Performance review creation, KPI setting, ratings
+ */
+export const canManagePerformance = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.HR_MANAGER,
+    UserRole.MANAGER,
+  ],
+  ["HR_ADMIN"],
+);
+```
+
+### Step 2: Export New Guards
+
+Update the file exports if using named exports pattern:
+
+```typescript
+// At end of file or in exports section
+export {
+  // ... existing exports
+  canViewPayroll,
+  canEditPayroll,
+  canApprovePayroll,
+  canExportPayroll,
+  canViewEmployeePII,
+  canEditEmployeePII,
+  canManageRecruitment,
+  canConvertCandidates,
+  canViewAttendance,
+  canApproveLeave,
+  canManagePerformance,
+};
+```
+
+### Step 3: Apply Guards to Payroll API Routes
+
+Update `/Fixzit/app/api/hr/payroll/route.ts`:
+
+```typescript
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/auth';
+import { canViewPayroll, canEditPayroll } from '@/lib/auth/role-guards';
+import { PayrollRun } from '@/server/models/hr.models';
+import { setTenantContext } from '@/server/plugins/tenantIsolation';
+
+export async function GET(req: Request) {
+  const session = await getServerSession(authOptions);
+  
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  
+  // 🔒 RBAC check
+  if (!canViewPayroll(session.user.role)) {
+    return NextResponse.json(
+      { error: 'Forbidden: Insufficient permissions to view payroll' }, 
+      { status: 403 }
+    );
+  }
+  
+  setTenantContext({ orgId: session.user.orgId });
+  
+  const payrollRuns = await PayrollRun.find({})
+    .sort({ periodStart: -1 })
+    .lean();
+  
+  return NextResponse.json(payrollRuns);
+}
+
+export async function POST(req: Request) {
+  const session = await getServerSession(authOptions);
+  
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  
+  // 🔒 RBAC check - editing requires higher permission
+  if (!canEditPayroll(session.user.role)) {
+    return NextResponse.json(
+      { error: 'Forbidden: Insufficient permissions to create payroll' }, 
+      { status: 403 }
+    );
+  }
+  
+  setTenantContext({ orgId: session.user.orgId });
+  
+  const body = await req.json();
+  const payrollRun = await PayrollRun.create({
+    ...body,
+    createdBy: session.user.id,
+  });
+  
+  return NextResponse.json(payrollRun, { status: 201 });
+}
+```
+
+### Step 4: Apply Guards to Employee PII Routes
+
+Update `/Fixzit/app/api/hr/employees/[id]/route.ts`:
+
+```typescript
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/auth';
+import { canViewEmployeePII, canEditEmployeePII } from '@/lib/auth/role-guards';
+import { Employee } from '@/server/models/hr.models';
+import { setTenantContext } from '@/server/plugins/tenantIsolation';
+
+export async function GET(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
+  const session = await getServerSession(authOptions);
+  
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  
+  setTenantContext({ orgId: session.user.orgId });
+  
+  const url = new URL(req.url);
+  const includePII = url.searchParams.get('includePII') === 'true';
+  
+  // 🔒 RBAC check for PII access
+  if (includePII && !canViewEmployeePII(session.user.role)) {
+    return NextResponse.json(
+      { error: 'Forbidden: Insufficient permissions to view employee PII' }, 
+      { status: 403 }
+    );
+  }
+  
+  // Build projection based on permissions
+  const projection = includePII 
+    ? {} // All fields including encrypted PII
+    : { 
+        'compensation.baseSalary': 0,
+        'compensation.housingAllowance': 0,
+        'bankDetails': 0,
+      };
+  
+  const employee = await Employee.findById(params.id)
+    .select(projection)
+    .lean();
+  
+  if (!employee) {
+    return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
+  }
+  
+  return NextResponse.json(employee);
+}
+
+export async function PATCH(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
+  const session = await getServerSession(authOptions);
+  
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  
+  const body = await req.json();
+  
+  // 🔒 Check if updating PII fields
+  const piiFields = ['compensation', 'bankDetails'];
+  const isUpdatingPII = piiFields.some(field => field in body);
+  
+  if (isUpdatingPII && !canEditEmployeePII(session.user.role)) {
+    return NextResponse.json(
+      { error: 'Forbidden: Insufficient permissions to edit employee PII' }, 
+      { status: 403 }
+    );
+  }
+  
+  setTenantContext({ orgId: session.user.orgId });
+  
+  const employee = await Employee.findByIdAndUpdate(
+    params.id,
+    { ...body, updatedBy: session.user.id },
+    { new: true, runValidators: true }
+  );
+  
+  if (!employee) {
+    return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
+  }
+  
+  return NextResponse.json(employee);
+}
+```
+
+## Verification Steps
+
+### 1. Create Unit Tests
+
+Create `/Fixzit/tests/unit/auth/hr-role-guards.test.ts`:
+
+```typescript
+import { describe, it, expect } from 'vitest';
+import {
+  canViewPayroll,
+  canEditPayroll,
+  canApprovePayroll,
+  canViewEmployeePII,
+  canEditEmployeePII,
+  canManageRecruitment,
+} from '@/lib/auth/role-guards';
+
+describe('HR Role Guards', () => {
+  describe('canViewPayroll', () => {
+    it('allows SUPER_ADMIN', () => {
+      expect(canViewPayroll('SUPER_ADMIN')).toBe(true);
+    });
+    
+    it('allows HR_MANAGER', () => {
+      expect(canViewPayroll('HR_MANAGER')).toBe(true);
+    });
+    
+    it('allows FINANCE_OFFICER', () => {
+      expect(canViewPayroll('FINANCE_OFFICER')).toBe(true);
+    });
+    
+    it('denies EMPLOYEE', () => {
+      expect(canViewPayroll('EMPLOYEE')).toBe(false);
+    });
+    
+    it('denies TECHNICIAN', () => {
+      expect(canViewPayroll('TECHNICIAN')).toBe(false);
+    });
+    
+    it('denies undefined role', () => {
+      expect(canViewPayroll(undefined)).toBe(false);
+    });
+  });
+  
+  describe('canEditPayroll', () => {
+    it('allows HR_MANAGER', () => {
+      expect(canEditPayroll('HR_MANAGER')).toBe(true);
+    });
+    
+    it('denies FINANCE_OFFICER (view-only)', () => {
+      expect(canEditPayroll('FINANCE_OFFICER')).toBe(false);
+    });
+  });
+  
+  describe('canApprovePayroll', () => {
+    it('allows CORPORATE_ADMIN', () => {
+      expect(canApprovePayroll('CORPORATE_ADMIN')).toBe(true);
+    });
+    
+    it('denies HR_MANAGER (dual control)', () => {
+      expect(canApprovePayroll('HR_MANAGER')).toBe(false);
+    });
+  });
+  
+  describe('canViewEmployeePII', () => {
+    it('allows HR_MANAGER', () => {
+      expect(canViewEmployeePII('HR_MANAGER')).toBe(true);
+    });
+    
+    it('allows FINANCE_OFFICER', () => {
+      expect(canViewEmployeePII('FINANCE_OFFICER')).toBe(true);
+    });
+    
+    it('denies MANAGER', () => {
+      expect(canViewEmployeePII('MANAGER')).toBe(false);
+    });
+  });
+  
+  describe('canEditEmployeePII', () => {
+    it('allows HR_MANAGER', () => {
+      expect(canEditEmployeePII('HR_MANAGER')).toBe(true);
+    });
+    
+    it('denies FINANCE_OFFICER', () => {
+      expect(canEditEmployeePII('FINANCE_OFFICER')).toBe(false);
+    });
+  });
+});
+```
+
+### 2. Create API Integration Tests
+
+Create `/Fixzit/tests/integration/api/hr/payroll-rbac.test.ts`:
+
+```typescript
+import { describe, it, expect } from 'vitest';
+import { createMockRequest, createMockSession } from '@/tests/utils/mocks';
+
+describe('Payroll API RBAC', () => {
+  describe('GET /api/hr/payroll', () => {
+    it('returns 403 for EMPLOYEE role', async () => {
+      const req = createMockRequest('GET', '/api/hr/payroll');
+      const session = createMockSession({ role: 'EMPLOYEE' });
+      
+      // Mock getServerSession
+      vi.mocked(getServerSession).mockResolvedValue(session);
+      
+      const response = await GET(req);
+      expect(response.status).toBe(403);
+    });
+    
+    it('returns 200 for HR_MANAGER role', async () => {
+      const req = createMockRequest('GET', '/api/hr/payroll');
+      const session = createMockSession({ role: 'HR_MANAGER' });
+      
+      vi.mocked(getServerSession).mockResolvedValue(session);
+      
+      const response = await GET(req);
+      expect(response.status).toBe(200);
+    });
+  });
+  
+  describe('POST /api/hr/payroll', () => {
+    it('returns 403 for FINANCE_OFFICER (view-only)', async () => {
+      const req = createMockRequest('POST', '/api/hr/payroll', { name: 'Test' });
+      const session = createMockSession({ role: 'FINANCE_OFFICER' });
+      
+      vi.mocked(getServerSession).mockResolvedValue(session);
+      
+      const response = await POST(req);
+      expect(response.status).toBe(403);
+    });
+  });
+});
+```
+
+### 3. Run Tests
+
+```bash
+# Run unit tests
+pnpm test tests/unit/auth/hr-role-guards.test.ts
+
+# Run integration tests
+pnpm test tests/integration/api/hr/payroll-rbac.test.ts
+
+# Run all auth tests
+pnpm test tests/unit/auth/ tests/integration/api/hr/
+```
+
+### 4. Manual Verification
+
+```bash
+# Test with different role tokens
+# As EMPLOYEE - should get 403
+curl -X GET "http://localhost:3000/api/hr/payroll" \
+  -H "Authorization: Bearer $EMPLOYEE_TOKEN"
+
+# As HR_MANAGER - should get 200
+curl -X GET "http://localhost:3000/api/hr/payroll" \
+  -H "Authorization: Bearer $HR_MANAGER_TOKEN"
+
+# As FINANCE_OFFICER - should get 200 for view, 403 for edit
+curl -X GET "http://localhost:3000/api/hr/payroll" \
+  -H "Authorization: Bearer $FINANCE_TOKEN"
+
+curl -X POST "http://localhost:3000/api/hr/payroll" \
+  -H "Authorization: Bearer $FINANCE_TOKEN" \
+  -d '{"name":"Test"}' # Should get 403
+```
+
+## RBAC Matrix Summary
+
+| Role | View Payroll | Edit Payroll | Approve Payroll | View PII | Edit PII |
+|------|-------------|--------------|-----------------|----------|----------|
+| SUPER_ADMIN | ✅ | ✅ | ✅ | ✅ | ✅ |
+| CORPORATE_ADMIN | ✅ | ✅ | ✅ | ✅ | ✅ |
+| HR_MANAGER | ✅ | ✅ | ❌ | ✅ | ✅ |
+| FINANCE_OFFICER | ✅ | ❌ | ❌ | ✅ | ❌ |
+| MANAGER | ❌ | ❌ | ❌ | ❌ | ❌ |
+| EMPLOYEE | ❌ | ❌ | ❌ | ❌ | ❌ |
+| TECHNICIAN | ❌ | ❌ | ❌ | ❌ | ❌ |
+
+## Related Issues
+
+- SEC-001: PII Encryption (guards control access to encrypted data)
+- DATA-002: PayrollLine Encryption (financial data protected)
+
+## Compliance
+
+- ✅ Principle of Least Privilege
+- ✅ Separation of Duties (HR can't approve own payroll)
+- ✅ Saudi Labor Law Article 52 (salary confidentiality)
+- ✅ SOC 2 CC6.1 (logical access controls)
+
+]]>
+</file>
+
+</batch_content>

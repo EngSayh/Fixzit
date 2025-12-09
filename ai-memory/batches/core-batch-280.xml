@@ -1,0 +1,2851 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="tests/services/reviews/review-service.test.ts">
+<![CDATA[
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { Types } from "mongoose";
+import { ObjectId as MongoObjectId } from "mongodb";
+import { reviewService } from "@/services/souq/reviews/review-service";
+import { SouqReview } from "@/server/models/souq/Review";
+import { SouqProduct } from "@/server/models/souq/Product";
+
+// Capture queries for assertion
+const queries: unknown[] = [];
+
+// Chainable mock for SouqReview.find
+function makeFindMock(returnValue: unknown) {
+  return vi.fn((query: unknown) => {
+    queries.push(query);
+    const chain = {
+      sort: vi.fn(() => chain),
+      skip: vi.fn(() => chain),
+      limit: vi.fn(() => chain),
+      lean: vi.fn(() => Promise.resolve(returnValue)),
+    };
+    return chain;
+  });
+}
+
+describe("reviewService org scoping", () => {
+  const orgId = "507f1f77bcf86cd799439011";
+  const orgObjectId = new Types.ObjectId(orgId);
+  const orgMongoObjectId = new MongoObjectId(orgId);
+  const productId = new Types.ObjectId().toHexString();
+
+  beforeEach(() => {
+    queries.length = 0;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("scopes getProductReviews by orgId and productId variants", async () => {
+    vi.spyOn(SouqReview, "find").mockImplementation(
+      makeFindMock([{ reviewId: "r1" }]) as unknown as typeof SouqReview.find,
+    );
+    vi.spyOn(SouqReview, "countDocuments").mockResolvedValue(1 as never);
+
+    const result = await reviewService.getProductReviews(productId, orgId, {
+      page: 1,
+      limit: 5,
+    });
+
+    expect(result.reviews.length).toBe(1);
+    const query = queries[0] as Record<string, unknown>;
+    expect(query.productId).toEqual({ $in: [productId, expect.any(Types.ObjectId)] });
+    // buildSouqOrgFilter now includes string, MongoObjectId, and Types.ObjectId variants
+    expect(query.$or).toEqual([
+      { orgId: { $in: [orgId, orgMongoObjectId, orgObjectId] } },
+      { org_id: { $in: [orgId, orgMongoObjectId, orgObjectId] } },
+    ]);
+  });
+
+  it("scopes getSellerReviews by orgId", async () => {
+    const sellerProducts = [{ _id: new Types.ObjectId() }];
+    vi.spyOn(SouqProduct, "find").mockImplementation(() => {
+      const chain = {
+        select: vi.fn(() => chain),
+        lean: vi.fn(() => Promise.resolve(sellerProducts)),
+      };
+      return chain as unknown as ReturnType<typeof SouqProduct.find>;
+    });
+    vi.spyOn(SouqReview, "find").mockImplementation(
+      makeFindMock([]) as unknown as typeof SouqReview.find,
+    );
+    vi.spyOn(SouqReview, "countDocuments").mockResolvedValue(0 as never);
+
+    await reviewService.getSellerReviews(orgId, new Types.ObjectId().toHexString(), {
+      page: 1,
+      limit: 10,
+    });
+
+    const query = queries[0] as Record<string, unknown>;
+    // buildSouqOrgFilter now includes string, MongoObjectId, and Types.ObjectId variants
+    expect(query.$or).toEqual([
+      { orgId: { $in: [orgId, orgMongoObjectId, orgObjectId] } },
+      { org_id: { $in: [orgId, orgMongoObjectId, orgObjectId] } },
+    ]);
+    expect(query.productId).toEqual({ $in: sellerProducts.map((p) => p._id) });
+  });
+
+  it("scopes getReviewById by orgId", async () => {
+    vi.spyOn(SouqReview, "findOne").mockImplementation(
+      (query: unknown) => {
+        queries.push(query);
+        return Promise.resolve(null) as never;
+      },
+    );
+
+    await reviewService.getReviewById("REV-1", orgId);
+
+    const query = queries[0] as Record<string, unknown>;
+    expect(query.reviewId).toBe("REV-1");
+    // buildSouqOrgFilter now includes string, MongoObjectId, and Types.ObjectId variants
+    expect(query.$or).toEqual([
+      { orgId: { $in: [orgId, orgMongoObjectId, orgObjectId] } },
+      { org_id: { $in: [orgId, orgMongoObjectId, orgObjectId] } },
+    ]);
+  });
+});
+
+describe("reviewService RBAC moderation enforcement", () => {
+  const orgId = "507f1f77bcf86cd799439011";
+  const moderatorId = new Types.ObjectId().toHexString();
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("approveReview rejects non-moderator roles", async () => {
+    await expect(
+      reviewService.approveReview("REV-1", orgId, moderatorId, "TENANT"),
+    ).rejects.toThrow("Unauthorized: Moderator role required");
+  });
+
+  it("rejectReview rejects non-moderator roles", async () => {
+    await expect(
+      reviewService.rejectReview("REV-1", orgId, moderatorId, "CORPORATE_EMPLOYEE", "spam"),
+    ).rejects.toThrow("Unauthorized: Moderator role required");
+  });
+
+  it("flagReview rejects non-moderator roles", async () => {
+    await expect(
+      reviewService.flagReview("REV-1", orgId, moderatorId, "PROPERTY_OWNER", "inappropriate"),
+    ).rejects.toThrow("Unauthorized: Moderator role required");
+  });
+
+  it("approveReview allows ADMIN role", async () => {
+    const mockReview = {
+      reviewId: "REV-1",
+      status: "pending",
+      productId: new Types.ObjectId(),
+      save: vi.fn().mockResolvedValue(undefined),
+    };
+    vi.spyOn(SouqReview, "findOne").mockResolvedValue(mockReview as never);
+    vi.spyOn(SouqProduct, "updateOne").mockResolvedValue({ modifiedCount: 1 } as never);
+    vi.spyOn(SouqReview, "aggregate").mockResolvedValue([
+      { _id: mockReview.productId, totalReviews: 1, totalRating: 5 },
+    ] as never);
+
+    const result = await reviewService.approveReview("REV-1", orgId, moderatorId, "ADMIN");
+
+    expect(result.status).toBe("published");
+    expect(mockReview.save).toHaveBeenCalled();
+  });
+
+  it("approveReview allows SUPER_ADMIN role", async () => {
+    const mockReview = {
+      reviewId: "REV-2",
+      status: "pending",
+      productId: new Types.ObjectId(),
+      save: vi.fn().mockResolvedValue(undefined),
+    };
+    vi.spyOn(SouqReview, "findOne").mockResolvedValue(mockReview as never);
+    vi.spyOn(SouqProduct, "updateOne").mockResolvedValue({ modifiedCount: 1 } as never);
+    vi.spyOn(SouqReview, "aggregate").mockResolvedValue([
+      { _id: mockReview.productId, totalReviews: 1, totalRating: 4 },
+    ] as never);
+
+    const result = await reviewService.approveReview("REV-2", orgId, moderatorId, "SUPER_ADMIN");
+
+    expect(result.status).toBe("published");
+  });
+
+  it("flagReview requires reason", async () => {
+    await expect(
+      reviewService.flagReview("REV-1", orgId, moderatorId, "ADMIN", ""),
+    ).rejects.toThrow("Flag reason is required");
+  });
+});
+
+describe("reviewService cross-tenant isolation", () => {
+  const orgA = "507f1f77bcf86cd799439011";
+  const orgB = "507f1f77bcf86cd799439022";
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("getReviewById returns null for review in different org", async () => {
+    // Review exists in orgA but we query with orgB
+    vi.spyOn(SouqReview, "findOne").mockResolvedValue(null as never);
+
+    const result = await reviewService.getReviewById("REV-1", orgB);
+
+    expect(result).toBeNull();
+  });
+
+  it("approveReview throws when review not found in caller's org", async () => {
+    vi.spyOn(SouqReview, "findOne").mockResolvedValue(null as never);
+
+    await expect(
+      reviewService.approveReview("REV-CROSS", orgB, "mod-1", "ADMIN"),
+    ).rejects.toThrow("Review not found");
+  });
+
+  it("rejectReview throws when review not found in caller's org", async () => {
+    vi.spyOn(SouqReview, "findOne").mockResolvedValue(null as never);
+
+    await expect(
+      reviewService.rejectReview("REV-CROSS", orgB, "mod-1", "ADMIN", "spam"),
+    ).rejects.toThrow("Review not found");
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/services/search-indexer-service.test.ts">
+<![CDATA[
+/**
+ * Search Indexer Service Tests
+ *
+ * Tests for Meilisearch indexing operations:
+ * - Full product reindex
+ * - Full seller reindex
+ * - Incremental listing updates
+ * - Delete from index
+ * - Error handling and resilience
+ */
+
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
+
+// Hoist mock functions
+const { mockDeleteDocuments, mockAddDocuments, mockDeleteDocument, mockIndex } = vi.hoisted(() => ({
+  mockDeleteDocuments: vi.fn().mockResolvedValue({ taskUid: 1 }),
+  mockAddDocuments: vi.fn().mockResolvedValue({ taskUid: 2 }),
+  mockDeleteDocument: vi.fn().mockResolvedValue({ taskUid: 3 }),
+  mockIndex: vi.fn(),
+}));
+
+// Setup mockIndex return value after hoisting
+mockIndex.mockReturnValue({
+  deleteDocuments: mockDeleteDocuments,
+  addDocuments: mockAddDocuments,
+  deleteDocument: mockDeleteDocument,
+});
+
+vi.mock("@/lib/meilisearch", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/meilisearch")>(
+    "@/lib/meilisearch",
+  );
+  return {
+    ...actual,
+    searchClient: {
+      index: mockIndex,
+    },
+  };
+});
+
+// Mock resilience wrapper - just execute the callback
+vi.mock("@/lib/meilisearch-resilience", () => ({
+  withMeiliResilience: vi.fn((_name, _type, callback) => callback()),
+}));
+
+// Mock logger
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+// Import after mocks
+import { INDEXES } from "@/lib/meilisearch";
+import { SearchIndexerService } from "@/services/souq/search-indexer-service";
+import { logger } from "@/lib/logger";
+import { withMeiliResilience } from "@/lib/meilisearch-resilience";
+
+describe("SearchIndexerService", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockIndex.mockReturnValue({
+      deleteDocuments: mockDeleteDocuments,
+      addDocuments: mockAddDocuments,
+      deleteDocument: mockDeleteDocument,
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  describe("deleteFromIndex", () => {
+    it("should delete a product from the search index", async () => {
+      await SearchIndexerService.deleteFromIndex("FSIN123", { orgId: "ORG1" });
+
+      expect(mockIndex).toHaveBeenCalledWith(INDEXES.PRODUCTS);
+      expect(mockDeleteDocument).toHaveBeenCalledWith("ORG1_FSIN123");
+      expect(logger.info).toHaveBeenCalledWith(
+        "[SearchIndexer] Deleted product from search: FSIN123",
+        expect.objectContaining({
+          action: "deleteFromIndex",
+          component: "SearchIndexerService",
+          fsin: "FSIN123",
+          compositeId: "ORG1_FSIN123",
+          orgId: "ORG1",
+        }),
+      );
+    });
+
+    it("should throw on delete error", async () => {
+      mockDeleteDocument.mockRejectedValueOnce(new Error("Delete failed"));
+
+      await expect(
+        SearchIndexerService.deleteFromIndex("FSIN123", { orgId: "ORG1" })
+      ).rejects.toThrow("Delete failed");
+      expect(logger.error).toHaveBeenCalled();
+    });
+  });
+
+  describe("updateListing", () => {
+    it("should warn when listing is not found", async () => {
+      // The fetchListingById is private but we can test behavior
+      // When no listing exists, it should log warning
+      vi.spyOn(
+        SearchIndexerService as unknown as {
+          fetchListingById: (id: string, orgId?: string) => Promise<null>;
+        },
+        "fetchListingById"
+      ).mockResolvedValue(null);
+
+      await SearchIndexerService.updateListing("NONEXISTENT", {
+        orgId: "ORG1",
+      });
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining("Listing not found"),
+        expect.any(Object)
+      );
+      expect(mockAddDocuments).not.toHaveBeenCalled();
+    });
+
+    it("should delete inactive listings from index", async () => {
+      const mockListing = {
+        listingId: "L1",
+        productId: "P1",
+        sellerId: "S1",
+        orgId: "ORG1",
+        price: 100,
+        quantity: 10,
+        status: "inactive", // Not active
+        fulfillmentMethod: "FBF",
+        shippingOption: "standard",
+        createdAt: new Date().toISOString(),
+      };
+
+      vi.spyOn(
+        SearchIndexerService as unknown as {
+          fetchListingById: (id: string, orgId?: string) => Promise<typeof mockListing>;
+        },
+        "fetchListingById"
+      ).mockResolvedValue(mockListing);
+
+      const deleteFromIndexSpy = vi.spyOn(
+        SearchIndexerService,
+        "deleteFromIndex"
+      );
+      deleteFromIndexSpy.mockResolvedValue();
+
+      await SearchIndexerService.updateListing("L1", { orgId: "ORG1" });
+
+      expect(deleteFromIndexSpy).toHaveBeenCalledWith("P1", {
+        orgId: "ORG1",
+      });
+    });
+
+    it("should scope listing fetch by org when provided", async () => {
+      const mockListing = {
+        listingId: "L1",
+        productId: "P1",
+        sellerId: "S1",
+        price: 100,
+        quantity: 10,
+        status: "inactive",
+        fulfillmentMethod: "FBF",
+        shippingOption: "standard",
+        createdAt: new Date().toISOString(),
+      };
+
+      const fetchListingSpy = vi.spyOn(
+        SearchIndexerService as unknown as {
+          fetchListingById: (
+            id: string,
+            orgId?: string,
+          ) => Promise<typeof mockListing>;
+        },
+        "fetchListingById",
+      );
+      fetchListingSpy.mockResolvedValue(mockListing);
+
+      await SearchIndexerService.updateListing("L1", { orgId: "ORG1" });
+
+      expect(fetchListingSpy).toHaveBeenCalledWith("L1", "ORG1");
+    });
+
+    it("should update active listing in search index", async () => {
+      const mockListing = {
+        listingId: "L1",
+        productId: "P1",
+        sellerId: "S1",
+        orgId: "ORG1",
+        price: 100,
+        quantity: 10,
+        status: "active",
+        fulfillmentMethod: "FBF",
+        shippingOption: "standard",
+        createdAt: new Date().toISOString(),
+      };
+
+      vi.spyOn(
+        SearchIndexerService as unknown as {
+          fetchListingById: (id: string, orgId?: string) => Promise<typeof mockListing>;
+        },
+        "fetchListingById"
+      ).mockResolvedValue(mockListing);
+
+      vi.spyOn(
+        SearchIndexerService as unknown as { transformListingsToDocuments: (l: unknown[]) => Promise<[{fsin: string}]> },
+        "transformListingsToDocuments"
+      ).mockResolvedValue([{ fsin: "P1" }]);
+
+      await SearchIndexerService.updateListing("L1", { orgId: "ORG1" });
+
+      expect(mockAddDocuments).toHaveBeenCalledWith([{ fsin: "P1" }]);
+      expect(logger.info).toHaveBeenCalledWith(
+        "[SearchIndexer] Updated listing in search: L1",
+        expect.objectContaining({
+          action: "updateListing",
+          component: "SearchIndexerService",
+          listingId: "L1",
+          orgId: "ORG1",
+        }),
+      );
+    });
+  });
+
+  describe("fullReindexProducts", () => {
+    it("should clear index when starting reindex", async () => {
+      // Mock to return empty listings immediately
+      vi.spyOn(
+        SearchIndexerService as unknown as {
+          fetchActiveListings: (
+            o: number,
+            l: number,
+            orgId?: string,
+          ) => Promise<[]>;
+        },
+        "fetchActiveListings"
+      ).mockResolvedValue([]);
+
+      const result = await SearchIndexerService.fullReindexProducts({ orgId: "ORG1" });
+
+      expect(mockIndex).toHaveBeenCalledWith(INDEXES.PRODUCTS);
+      expect(mockDeleteDocuments).toHaveBeenCalledWith({ filter: 'orgId = "ORG1"' });
+      expect(result).toEqual({ indexed: 0, errors: 0 });
+      expect(logger.info).toHaveBeenCalledWith(
+        "[SearchIndexer] Starting full product reindex for org: ORG1...",
+        expect.objectContaining({
+          component: "SearchIndexerService",
+          action: "fullReindexProducts",
+          orgId: "ORG1",
+        }),
+      );
+    });
+
+    it("should scope product reindex by org when provided", async () => {
+      const fetchListingsSpy = vi.spyOn(
+        SearchIndexerService as unknown as {
+          fetchActiveListings: (
+            o: number,
+            l: number,
+            orgId?: string,
+          ) => Promise<[]>;
+        },
+        "fetchActiveListings",
+      ).mockResolvedValue([]);
+
+      await SearchIndexerService.fullReindexProducts({ orgId: "ORG1" });
+
+      expect(fetchListingsSpy).toHaveBeenCalledWith(
+        0,
+        SearchIndexerService.BATCH_SIZE,
+        "ORG1",
+      );
+    });
+
+    it("should throw on critical index setup failure", async () => {
+      mockDeleteDocuments.mockRejectedValueOnce(new Error("Critical failure"));
+
+      await expect(
+        SearchIndexerService.fullReindexProducts({ orgId: "ORG1" })
+      ).rejects.toThrow("Critical failure");
+    });
+
+    it("should process batches and track errors", async () => {
+      const templateListing = {
+        price: 100,
+        quantity: 10,
+        status: "active",
+        fulfillmentMethod: "FBF",
+        shippingOption: "standard",
+        createdAt: new Date().toISOString(),
+      };
+      const listingBatch1 = Array.from(
+        { length: SearchIndexerService.BATCH_SIZE },
+        (_item, idx) => ({
+          ...templateListing,
+          listingId: `L1-${idx}`,
+          productId: `P1-${idx}`,
+          sellerId: `S1-${idx}`,
+        }),
+      );
+      const listingBatch2 = Array.from(
+        { length: SearchIndexerService.BATCH_SIZE },
+        (_item, idx) => ({
+          ...templateListing,
+          listingId: `L2-${idx}`,
+          productId: `P2-${idx}`,
+          sellerId: `S2-${idx}`,
+        }),
+      );
+
+      const fetchListingsSpy = vi.spyOn(
+        SearchIndexerService as unknown as {
+          fetchActiveListings: (
+            o: number,
+            l: number,
+            orgId?: string,
+          ) => Promise<typeof listingBatch1>;
+        },
+        "fetchActiveListings"
+      );
+      fetchListingsSpy
+        .mockResolvedValueOnce(listingBatch1)
+        .mockResolvedValueOnce(listingBatch2)
+        .mockResolvedValueOnce([]);
+
+      const transformListingsSpy = vi.spyOn(
+        SearchIndexerService as unknown as {
+          transformListingsToDocuments: (l: typeof listingBatch1) => Promise<Array<{ fsin: string }>>;
+        },
+        "transformListingsToDocuments"
+      );
+      transformListingsSpy
+        .mockResolvedValueOnce([{ fsin: "P1" }])
+        .mockResolvedValueOnce([{ fsin: "P2" }]);
+
+      mockAddDocuments.mockRejectedValueOnce(new Error("batch-1-failure"));
+      mockAddDocuments.mockResolvedValueOnce({ taskUid: 4 });
+
+      const result = await SearchIndexerService.fullReindexProducts({ orgId: "ORG1" });
+
+      expect(fetchListingsSpy).toHaveBeenNthCalledWith(
+        1,
+        0,
+        SearchIndexerService.BATCH_SIZE,
+        "ORG1",
+      );
+      expect(fetchListingsSpy).toHaveBeenNthCalledWith(
+        2,
+        SearchIndexerService.BATCH_SIZE,
+        SearchIndexerService.BATCH_SIZE,
+        "ORG1",
+      );
+      expect(fetchListingsSpy).toHaveBeenNthCalledWith(
+        3,
+        SearchIndexerService.BATCH_SIZE * 2,
+        SearchIndexerService.BATCH_SIZE,
+        "ORG1",
+      );
+      expect(transformListingsSpy).toHaveBeenCalledTimes(2);
+      expect(mockAddDocuments).toHaveBeenCalledTimes(2);
+      expect(result).toEqual({ indexed: 1, errors: 1 });
+      expect(logger.error).toHaveBeenCalledWith(
+        "[SearchIndexer] Failed to index batch",
+        expect.any(Error),
+        expect.objectContaining({
+          component: "SearchIndexerService",
+          action: "fullReindexProducts",
+          offset: 0,
+        })
+      );
+    });
+
+    // Remaining pagination/resilience edge cases are covered in e2e flows.
+  });
+
+  describe("fullReindexSellers", () => {
+    it("should clear seller index when starting reindex", async () => {
+      vi.spyOn(
+        SearchIndexerService as unknown as {
+          fetchActiveSellers: (
+            o: number,
+            l: number,
+            orgId?: string,
+          ) => Promise<[]>;
+        },
+        "fetchActiveSellers"
+      ).mockResolvedValue([]);
+
+      const result = await SearchIndexerService.fullReindexSellers({ orgId: "ORG1" });
+
+      expect(mockIndex).toHaveBeenCalledWith(INDEXES.SELLERS);
+      expect(mockDeleteDocuments).toHaveBeenCalledWith({ filter: 'orgId = "ORG1"' });
+      expect(result).toEqual({ indexed: 0, errors: 0 });
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.stringContaining("Starting full seller reindex for org: ORG1"),
+        expect.any(Object),
+      );
+    });
+
+    it("should scope seller reindex by org when provided", async () => {
+      const fetchSellersSpy = vi.spyOn(
+        SearchIndexerService as unknown as {
+          fetchActiveSellers: (
+            o: number,
+            l: number,
+            orgId?: string,
+          ) => Promise<[]>;
+        },
+        "fetchActiveSellers",
+      ).mockResolvedValue([]);
+
+      await SearchIndexerService.fullReindexSellers({ orgId: "ORG1" });
+
+      expect(fetchSellersSpy).toHaveBeenCalledWith(
+        0,
+        SearchIndexerService.BATCH_SIZE,
+        "ORG1",
+      );
+    });
+
+    it("should clear seller index with resilience and track batch errors", async () => {
+      const templateSeller = {
+        tradeName: "Seller",
+        accountHealth: { overall: 90, onTimeShippingRate: 98, odr: 1 },
+        ratings: { overall: 4.8, totalOrders: 100 },
+        badges: [],
+        status: "active",
+        createdAt: new Date().toISOString(),
+      };
+      const sellersBatch1 = Array.from(
+        { length: SearchIndexerService.BATCH_SIZE },
+        (_item, idx) => ({
+          ...templateSeller,
+          sellerId: `S1-${idx}`,
+        }),
+      );
+      const sellersBatch2 = Array.from(
+        { length: SearchIndexerService.BATCH_SIZE },
+        (_item, idx) => ({
+          ...templateSeller,
+          sellerId: `S2-${idx}`,
+        }),
+      );
+
+      const fetchSellersSpy = vi.spyOn(
+        SearchIndexerService as unknown as {
+          fetchActiveSellers: (
+            o: number,
+            l: number,
+            orgId?: string,
+          ) => Promise<typeof sellersBatch1>;
+        },
+        "fetchActiveSellers"
+      );
+      fetchSellersSpy
+        .mockResolvedValueOnce(sellersBatch1)
+        .mockResolvedValueOnce(sellersBatch2)
+        .mockResolvedValueOnce([]);
+
+      const transformSellersSpy = vi.spyOn(
+        SearchIndexerService as unknown as {
+          transformSellersToDocuments: (s: typeof sellersBatch1) => Array<{ sellerId: string }>;
+        },
+        "transformSellersToDocuments"
+      );
+      transformSellersSpy.mockReturnValueOnce([{ sellerId: "S1" }]);
+      transformSellersSpy.mockReturnValueOnce([{ sellerId: "S2" }]);
+
+      mockAddDocuments.mockRejectedValueOnce(new Error("seller-batch-failure"));
+      mockAddDocuments.mockResolvedValueOnce({ taskUid: 5 });
+
+      const result = await SearchIndexerService.fullReindexSellers({ orgId: "ORG1" });
+
+      expect(withMeiliResilience).toHaveBeenCalledWith(
+        "sellers-clear-org",
+        "index",
+        expect.any(Function)
+      );
+      expect(withMeiliResilience).toHaveBeenCalledWith(
+        "sellers-batch-index",
+        "index",
+        expect.any(Function)
+      );
+      expect(fetchSellersSpy).toHaveBeenNthCalledWith(
+        1,
+        0,
+        SearchIndexerService.BATCH_SIZE,
+        "ORG1",
+      );
+      expect(fetchSellersSpy).toHaveBeenNthCalledWith(
+        2,
+        SearchIndexerService.BATCH_SIZE,
+        SearchIndexerService.BATCH_SIZE,
+        "ORG1",
+      );
+      expect(fetchSellersSpy).toHaveBeenNthCalledWith(
+        3,
+        SearchIndexerService.BATCH_SIZE * 2,
+        SearchIndexerService.BATCH_SIZE,
+        "ORG1",
+      );
+      expect(mockAddDocuments).toHaveBeenCalledTimes(2);
+      expect(result).toEqual({ indexed: 1, errors: 1 });
+      expect(logger.error).toHaveBeenCalledWith(
+        "[SearchIndexer] Failed to index seller batch",
+        expect.any(Error),
+        expect.objectContaining({
+          component: "SearchIndexerService",
+          action: "fullReindexSellers",
+          offset: 0,
+        })
+      );
+    });
+
+    // Remaining pagination/resilience edge cases are covered in e2e flows.
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/services/seller-kyc-service.test.ts">
+<![CDATA[
+import { describe, it, expect, vi, afterEach, beforeAll } from "vitest";
+import { Types } from "mongoose";
+import { nanoid } from "nanoid";
+
+// Hoist mock setup
+const { mockAddJob } = vi.hoisted(() => ({
+  mockAddJob: vi.fn(async () => undefined),
+}));
+
+// Mock external dependencies
+vi.mock("@/lib/queues/setup", () => ({
+  addJob: mockAddJob,
+  QUEUE_NAMES: { NOTIFICATIONS: "notifications", KYC: "kyc" },
+}));
+
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+// Import models after mocks
+import { SouqSeller } from "@/server/models/souq/Seller";
+
+// Deferred service import
+let sellerKYCService: typeof import("@/services/souq/seller-kyc-service").sellerKYCService;
+
+// Test fixture ObjectId for consistent test data
+const testOrgId = new Types.ObjectId();
+
+/**
+ * Helper to create a minimal seller for KYC testing
+ */
+async function seedPendingSeller({
+  orgId = testOrgId,
+  kycStatus = "pending",
+} = {}) {
+  const sellerId = new Types.ObjectId();
+  
+  await SouqSeller.create({
+    _id: sellerId,
+    sellerId: `SEL-${nanoid(8)}`,
+    orgId,
+    legalName: `Seller-${nanoid(6)}`,
+    tradeName: `Trade-${nanoid(6)}`,
+    crNumber: `CR-${nanoid(8)}`,
+    vatNumber: `VAT-${nanoid(8)}`,
+    registrationType: "company",
+    country: "SA",
+    city: "Riyadh",
+    address: "123 Test Street",
+    contactEmail: `contact-${nanoid(4)}@test.com`,
+    contactPhone: "+966500000001",
+    kycStatus: {
+      status: kycStatus,
+      step: "company_info",
+      companyInfoComplete: false,
+      documentsComplete: false,
+      bankDetailsComplete: false,
+    },
+    accountHealth: {
+      orderDefectRate: 0,
+      lateShipmentRate: 0,
+      cancellationRate: 0,
+      validTrackingRate: 100,
+      onTimeDeliveryRate: 100,
+      score: 100,
+      status: "excellent",
+      lastCalculated: new Date(),
+    },
+    tier: "professional",
+    tierEffectiveFrom: new Date(),
+    autoRepricerSettings: { enabled: false, rules: {} },
+  });
+
+  return { sellerId: sellerId.toString(), orgId: orgId.toString() };
+}
+
+afterEach(async () => {
+  await SouqSeller.deleteMany({});
+  vi.clearAllMocks();
+});
+
+beforeAll(async () => {
+  ({ sellerKYCService } = await import("@/services/souq/seller-kyc-service"));
+});
+
+describe("sellerKYCService", () => {
+  describe("startKYCProcess", () => {
+    it("should initialize KYC process for new seller", async () => {
+      if (sellerKYCService.startKYCProcess) {
+        const companyInfo = {
+          businessName: "Test Business",
+          crNumber: "CR-12345678",
+          businessType: "company" as const,
+          industry: "retail",
+          description: "Test company description",
+          contactEmail: "test@test.com",
+          contactPhone: "+966501234567",
+          businessAddress: {
+            street: "123 Test St",
+            city: "Riyadh",
+            state: "Riyadh",
+            postalCode: "12345",
+            country: "SA",
+          },
+        };
+
+        const result = await sellerKYCService.startKYCProcess(companyInfo);
+        
+        expect(result).toHaveProperty("sellerId");
+        expect(result.kycStatus).toBe("pending");
+      }
+    });
+  });
+
+  describe("submitDocument", () => {
+    it("should accept valid document submission", async () => {
+      const { sellerId } = await seedPendingSeller({ kycStatus: "pending" });
+      
+      if (sellerKYCService.submitDocument) {
+        const document = {
+          type: "commercialRegistration" as const,
+          fileUrl: "https://example.com/cr.pdf",
+          fileType: "pdf" as const,
+        };
+
+        const result = await sellerKYCService.submitDocument(sellerId, document);
+        
+        expect(result.success).toBe(true);
+      }
+    });
+
+    it("should reject invalid document type", async () => {
+      const { sellerId } = await seedPendingSeller({ kycStatus: "pending" });
+      
+      if (sellerKYCService.submitDocument) {
+        const document = {
+          type: "invalid" as "commercialRegistration",
+          fileUrl: "https://example.com/file.pdf",
+          fileType: "pdf" as const,
+        };
+
+        await expect(
+          sellerKYCService.submitDocument(sellerId, document)
+        ).rejects.toThrow();
+      }
+    });
+  });
+
+  describe("verifyDocument", () => {
+    it("should mark document as verified", async () => {
+      const { sellerId, orgId } = await seedPendingSeller({ kycStatus: "in_review" });
+      
+      // Add a document to the seller first - type must match what's expected in the model
+      // The service looks for documents by DOCUMENT_TYPE_MAP[key] where key is "commercialRegistration" -> "cr"
+      await SouqSeller.findByIdAndUpdate(sellerId, {
+        documents: [{
+          type: "cr", // stored type
+          url: "https://example.com/cr.pdf",
+          uploadedAt: new Date(),
+          verified: false,
+        }]
+      });
+
+      if (sellerKYCService.verifyDocument) {
+        // verifyDocument takes documentType as "commercialRegistration" (the key, not the stored type)
+        await sellerKYCService.verifyDocument({
+          sellerId,
+          documentType: "commercialRegistration", // This maps to "cr" internally
+          approved: true,
+          verifiedBy: "admin-user-123",
+          orgId,
+        });
+        
+        const seller = await SouqSeller.findById(sellerId);
+        const doc = seller?.documents?.find(d => d.type === "cr");
+        expect(doc?.verified).toBe(true);
+      }
+    });
+
+    it("should reject document with reason", async () => {
+      const { sellerId, orgId } = await seedPendingSeller({ kycStatus: "in_review" });
+      
+      // Add a document to the seller first
+      await SouqSeller.findByIdAndUpdate(sellerId, {
+        documents: [{
+          type: "cr", // stored type
+          url: "https://example.com/cr.pdf",
+          uploadedAt: new Date(),
+          verified: false,
+        }]
+      });
+      
+      if (sellerKYCService.verifyDocument) {
+        await sellerKYCService.verifyDocument({
+          sellerId,
+          documentType: "commercialRegistration", // This maps to "cr" internally
+          approved: false,
+          verifiedBy: "admin-user-123",
+          rejectionReason: "Document expired",
+          orgId,
+        });
+        
+        const seller = await SouqSeller.findById(sellerId);
+        const doc = seller?.documents?.find(d => d.type === "cr");
+        expect(doc?.verified).toBe(false);
+        expect(doc?.rejectionReason).toBe("Document expired");
+      }
+    });
+  });
+
+  describe("getKYCStatus", () => {
+    it("should return current KYC status", async () => {
+      const { sellerId, orgId } = await seedPendingSeller({ kycStatus: "pending" });
+      
+      if (sellerKYCService.getKYCStatus) {
+        const result = await sellerKYCService.getKYCStatus(sellerId, orgId.toString());
+        
+        // Service returns {status, step, companyInfoComplete, documentsComplete, bankDetailsComplete}
+        expect(result.status).toBe("pending");
+        expect(result).toHaveProperty("step");
+        expect(result).toHaveProperty("companyInfoComplete");
+        expect(result).toHaveProperty("documentsComplete");
+        expect(result).toHaveProperty("bankDetailsComplete");
+      }
+    });
+
+    it("should throw for non-existent seller", async () => {
+      const fakeSellerId = new Types.ObjectId().toString();
+      
+      if (sellerKYCService.getKYCStatus) {
+        // Service throws "Seller not found" for non-existent sellers
+        await expect(
+          sellerKYCService.getKYCStatus(fakeSellerId, testOrgId.toString())
+        ).rejects.toThrow("Seller not found");
+      }
+    });
+  });
+
+  describe("approveKYC", () => {
+    it("should approve seller KYC", async () => {
+      const { sellerId, orgId } = await seedPendingSeller({ kycStatus: "under_review" });
+      
+      if (sellerKYCService.approveKYC) {
+        // approveKYC returns void
+        await sellerKYCService.approveKYC(sellerId, orgId.toString(), "admin-user-123");
+        
+        const seller = await SouqSeller.findById(sellerId);
+        expect(seller?.kycStatus?.status).toBe("approved");
+        expect(seller?.isActive).toBe(true);
+      }
+    });
+
+    it("should send notification on approval", async () => {
+      const { sellerId, orgId } = await seedPendingSeller({ kycStatus: "under_review" });
+      
+      if (sellerKYCService.approveKYC) {
+        await sellerKYCService.approveKYC(sellerId, orgId.toString(), "admin-user-123");
+        
+        // Should send approval email and welcome guide
+        expect(mockAddJob).toHaveBeenCalled();
+      }
+    });
+  });
+
+  describe("rejectKYC", () => {
+    it("should reject seller KYC with reason", async () => {
+      const { sellerId, orgId } = await seedPendingSeller({ kycStatus: "under_review" });
+      
+      if (sellerKYCService.rejectKYC) {
+        // rejectKYC takes (sellerId, rejectedBy, reason) and returns void
+        await sellerKYCService.rejectKYC(
+          sellerId,
+          orgId.toString(),
+          "admin-user-123",
+          "Documents do not match business registration"
+        );
+        
+        const seller = await SouqSeller.findById(sellerId);
+        expect(seller?.kycStatus?.status).toBe("rejected");
+        expect(seller?.kycStatus?.rejectionReason).toBe("Documents do not match business registration");
+      }
+    });
+  });
+
+  describe("getPendingKYCSubmissions", () => {
+    it("should return pending KYC applications", async () => {
+      await seedPendingSeller({ kycStatus: "in_review" });
+      await seedPendingSeller({ kycStatus: "in_review" });
+      await seedPendingSeller({ kycStatus: "approved" });
+      
+      if (sellerKYCService.getPendingKYCSubmissions) {
+        const queue = await sellerKYCService.getPendingKYCSubmissions(testOrgId.toString());
+        
+        expect(queue.length).toBe(2);
+        expect(queue[0]).toHaveProperty("sellerId");
+        expect(queue[0]).toHaveProperty("waitingDays");
+      }
+    });
+  });
+
+  describe("validateCRNumber", () => {
+    it("should validate Saudi CR number format", async () => {
+      if (sellerKYCService.validateCRNumber) {
+        const validCR = "1010123456"; // 10 digits starting with 10
+        const invalidCR = "123456";
+        
+        await expect(sellerKYCService.validateCRNumber(validCR)).resolves.toBe(true);
+        await expect(sellerKYCService.validateCRNumber(invalidCR)).rejects.toThrow();
+      }
+    });
+  });
+
+  describe("validateVATNumber", () => {
+    it("should validate Saudi VAT number format", async () => {
+      if (sellerKYCService.validateVATNumber) {
+        const validVAT = "300012345678901"; // 15 digits
+        const invalidVAT = "12345";
+        
+        expect(sellerKYCService.validateVATNumber(validVAT)).toBe(true);
+        expect(sellerKYCService.validateVATNumber(invalidVAT)).toBe(false);
+      }
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/services/settlements/legacy-org.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { SettlementCalculatorService } from "@/services/souq/settlements/settlement-calculator";
+import type { Filter } from "mongodb";
+
+type FindCall = { collection: string; filter: unknown };
+type UpdateCall = { collection: string; filter: unknown };
+
+const findCalls: FindCall[] = [];
+const updateCalls: UpdateCall[] = [];
+
+// Queued responses for collection.find calls
+const findResponses: Record<string, Array<unknown[]>> = {
+  souq_orders: [],
+  souq_settlements: [],
+};
+
+// Optional findOne responses
+const findOneResponses: Record<string, Array<unknown>> = {
+  souq_settlements: [],
+};
+
+const hasOrgScope = (filter: Record<string, unknown>): boolean =>
+  "$or" in filter || "orgId" in filter || "org_id" in filter;
+
+// Mock Mongo collection
+const makeCollection = (name: string) => ({
+  find: vi.fn((filter: unknown) => {
+    findCalls.push({ collection: name, filter });
+    const response = findResponses[name]?.shift?.() ?? [];
+    return {
+      toArray: async () => response as unknown[],
+    };
+  }),
+  findOne: vi.fn((filter: unknown) => {
+    findCalls.push({ collection: name, filter });
+    return (findOneResponses[name]?.shift?.() ?? null) as unknown;
+  }),
+  updateOne: vi.fn((filter: unknown) => {
+    updateCalls.push({ collection: name, filter });
+    return Promise.resolve({ matchedCount: 1, modifiedCount: 1 });
+  }),
+  insertOne: vi.fn(),
+});
+
+// Mock connectDb to return a fake db with collection factory
+vi.mock("@/lib/mongodb-unified", () => ({
+  connectDb: vi.fn(async () => ({
+    connection: {
+      db: {
+        collection: (name: string) => makeCollection(name),
+      },
+    },
+  })),
+}));
+
+describe("SettlementCalculatorService - legacy org_id support", () => {
+  beforeEach(() => {
+    findCalls.length = 0;
+    updateCalls.length = 0;
+    findResponses.souq_orders = [];
+    findResponses.souq_settlements = [];
+    findOneResponses.souq_settlements = [];
+  });
+
+  it("includes legacy org_id documents in calculatePeriodSettlement queries", async () => {
+    const now = new Date();
+    findResponses.souq_orders.push([
+      {
+        _id: "order1",
+        orgId: "507f1f77bcf86cd799439011",
+        items: [{ sellerId: "507f1f77bcf86cd799439012", subtotal: 100 }],
+        deliveredAt: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000),
+        status: "delivered",
+      },
+      {
+        _id: "order2",
+        org_id: "507f1f77bcf86cd799439011", // legacy field
+        orgId: undefined,
+        items: [{ sellerId: "507f1f77bcf86cd799439012", subtotal: 200 }],
+        deliveredAt: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000),
+        status: "delivered",
+      },
+    ]);
+
+    const result = await SettlementCalculatorService.calculatePeriodSettlement(
+      "507f1f77bcf86cd799439012",
+      "507f1f77bcf86cd799439011",
+      new Date(now.getTime() - 86400000),
+      new Date(now.getTime() + 86400000),
+    );
+
+    // Assert filter uses $or for orgId/org_id
+    const filter = (findCalls[0]?.filter ?? {}) as Record<string, unknown>;
+    expect(hasOrgScope(filter)).toBe(true);
+    expect(result.totalOrders).toBeGreaterThan(0);
+  });
+
+  it("scopes releaseReserves updates with org filter including legacy org_id", async () => {
+    const now = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000);
+    findResponses.souq_orders.push([
+      {
+        _id: "order3",
+        org_id: "507f1f77bcf86cd799439011",
+        items: [{ sellerId: "507f1f77bcf86cd799439012", subtotal: 150 }],
+        deliveredAt: now,
+        status: "delivered",
+      },
+    ]);
+
+    const released = await SettlementCalculatorService.releaseReserves(
+      "507f1f77bcf86cd799439012",
+      "507f1f77bcf86cd799439011",
+    );
+
+    const findFilter = (findCalls[0]?.filter ?? {}) as Record<string, unknown>;
+    const updateFilter = (updateCalls[0]?.filter ?? {}) as Record<string, unknown>;
+    expect(hasOrgScope(findFilter)).toBe(true);
+    expect(hasOrgScope(updateFilter)).toBe(true);
+    expect(released).toBeGreaterThan(0);
+  });
+
+  it("includes legacy org_id in seller summary aggregation paths", async () => {
+    const past = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
+    // availableOrders, reservedOrders, pendingOrders
+    findResponses.souq_orders.push(
+      [
+        {
+          _id: "orderA",
+          org_id: "507f1f77bcf86cd799439011",
+          items: [{ sellerId: "507f1f77bcf86cd799439012", subtotal: 120 }],
+          deliveredAt: past,
+          status: "delivered",
+        },
+      ],
+      [
+        {
+          _id: "orderB",
+          orgId: "507f1f77bcf86cd799439011",
+          items: [{ sellerId: "507f1f77bcf86cd799439012", subtotal: 80 }],
+          deliveredAt: new Date(),
+          status: "delivered",
+        },
+      ],
+      [
+        {
+          _id: "orderC",
+          org_id: "507f1f77bcf86cd799439011",
+          items: [{ sellerId: "507f1f77bcf86cd799439012", subtotal: 60 }],
+          status: "pending",
+        },
+      ],
+    );
+
+    // paid statements
+    findResponses.souq_settlements.push([
+      { summary: { netPayout: 100 } },
+    ]);
+    findOneResponses.souq_settlements.push({ paidAt: new Date() });
+
+    const summary = await SettlementCalculatorService.getSellerSummary(
+      "507f1f77bcf86cd799439012",
+      "507f1f77bcf86cd799439011",
+    );
+
+    expect(findCalls.some((c) => c.collection === "souq_orders" && hasOrgScope(c.filter as Record<string, unknown>))).toBe(true);
+    expect(findCalls.some((c) => c.collection === "souq_settlements")).toBe(true);
+    expect(summary.totalEarnings).toBeGreaterThanOrEqual(0);
+    expect(summary.availableBalance).toBeGreaterThanOrEqual(0);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/services/souq/settlements/balance-service.test.ts">
+<![CDATA[
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { ObjectId } from "mongodb";
+
+let transactions: any[] = [];
+let orders: any[] = [];
+const balances = new Map<string, any>();
+let orderMatch: any = {};
+
+const keyFor = (sellerId: any, orgId: any) =>
+  `${sellerId?.toString?.() ?? sellerId}-${orgId?.toString?.() ?? orgId}`;
+
+vi.mock("@/lib/mongodb-unified", () => ({
+  connectDb: vi.fn(async () => ({
+    connection: {
+      db: {
+        collection: (name: string) => {
+          if (name === "souq_transactions") {
+            return {
+              insertOne: vi.fn(async (doc: any) => {
+                transactions.push({ ...doc });
+                return { acknowledged: true };
+              }),
+              aggregate: vi.fn((pipeline: any[]) => ({
+                toArray: async () => {
+                  const match = pipeline.find((p) => p.$match)?.$match ?? {};
+                  const filtered = transactions.filter((t) => {
+                    const sellerMatches =
+                      !match.sellerId ||
+                      t.sellerId?.toString?.() === match.sellerId?.toString?.();
+                    const orgMatches =
+                      !match.orgId ||
+                      t.orgId?.toString?.() === match.orgId?.toString?.();
+                    return sellerMatches && orgMatches;
+                  });
+                  const totals = filtered.reduce<Record<string, number>>((acc, txn) => {
+                    acc[txn.type] = (acc[txn.type] ?? 0) + (txn.amount ?? 0);
+                    return acc;
+                  }, {});
+                  return Object.entries(totals).map(([type, total]) => ({
+                    _id: type,
+                    total,
+                    count: filtered.filter((f) => f.type === type).length,
+                  }));
+                },
+              })),
+              find: (query: any) => {
+                const filtered = transactions.filter((t) => {
+                  const sellerMatches =
+                    !query.sellerId ||
+                    t.sellerId?.toString?.() === query.sellerId?.toString?.();
+                  const orgMatches =
+                    !query.orgId ||
+                    t.orgId?.toString?.() === query.orgId?.toString?.();
+                  return sellerMatches && orgMatches;
+                });
+                return {
+                  sort: () => ({
+                    toArray: async () => filtered,
+                  }),
+                };
+              },
+              countDocuments: vi.fn(async (query: any) => {
+                return transactions.filter(
+                  (t) =>
+                    (!query.sellerId || t.sellerId?.toString?.() === query.sellerId?.toString?.()) &&
+                    (!query.orgId || t.orgId?.toString?.() === query.orgId?.toString?.()),
+                ).length;
+              }),
+            };
+          }
+          if (name === "souq_orders") {
+            const aggregatePending = () => ({
+              toArray: async () => {
+                const pendingStatuses = ["pending", "processing", "shipped"];
+                const total = orders.reduce((sum, order) => {
+                  if (!pendingStatuses.includes(order.status)) return sum;
+                  const items = Array.isArray(order.items) ? order.items : [];
+                  const sellerItems = items.filter((item: any) =>
+                    orderMatch.sellerId
+                      ? item.sellerId?.toString?.() === orderMatch.sellerId?.toString?.()
+                      : true,
+                  );
+                  const subtotal = sellerItems.reduce((s: number, item: any) => {
+                    if (typeof item.subtotal === "number") return s + item.subtotal;
+                    const price = typeof item.pricePerUnit === "number" ? item.pricePerUnit : 0;
+                    const qty = typeof item.quantity === "number" ? item.quantity : 1;
+                    return s + price * qty;
+                  }, 0);
+                  return sum + subtotal;
+                }, 0);
+                return total ? [{ _id: null, total }] : [];
+              },
+            });
+            return {
+              aggregate: vi.fn((pipeline: any[]) => {
+                orderMatch = pipeline.find((p) => p.$match)?.$match ?? {};
+                return aggregatePending();
+              }),
+              find: () => ({
+                toArray: async () => orders.slice(),
+              }),
+            };
+          }
+          if (name === "souq_seller_balances") {
+            return {
+              createIndex: vi.fn(async () => ({})),
+              findOne: vi.fn(async (query: any) => {
+                const direct = balances.get(keyFor(query.sellerId, query.orgId));
+                if (direct) return direct;
+                for (const value of balances.values()) {
+                  if (
+                    value.sellerId?.toString?.() === query.sellerId?.toString?.() &&
+                    value.orgId?.toString?.() === query.orgId?.toString?.()
+                  ) {
+                    return value;
+                  }
+                }
+                // If any balance exists, return first to emulate fallback doc read (tests only)
+                if (balances.size > 0) {
+                  return balances.values().next().value;
+                }
+                return null;
+              }),
+              insertOne: vi.fn(async (doc: any) => {
+                balances.set(keyFor(doc.sellerId, doc.orgId), { ...doc });
+                return { acknowledged: true };
+              }),
+              updateOne: vi.fn(async (filter: any, update: any) => {
+                const key = keyFor(filter.sellerId, filter.orgId);
+                const current = balances.get(key);
+                if (!current) return { modifiedCount: 0 };
+                if (
+                  (filter.available !== undefined && current.available !== filter.available) ||
+                  (filter.reserved !== undefined && current.reserved !== filter.reserved)
+                ) {
+                  return { modifiedCount: 0 };
+                }
+                const next = { ...current };
+                if (update.$set) {
+                  Object.assign(next, update.$set);
+                }
+                if (update.$inc) {
+                  for (const [k, v] of Object.entries(update.$inc)) {
+                    // @ts-ignore
+                    next[k] = (next[k] ?? 0) + (v as number);
+                  }
+                }
+                balances.set(key, next);
+                return { modifiedCount: 1 };
+              }),
+            };
+          }
+          throw new Error(`Unexpected collection ${name}`);
+        },
+      },
+      getClient: () => ({
+        startSession: () => ({
+          withTransaction: async (cb: () => Promise<void>) => cb(),
+          endSession: async () => {},
+        }),
+      }),
+    },
+  })),
+}));
+
+vi.mock("@/lib/redis", () => ({
+  getCache: vi.fn(async () => null),
+  setCache: vi.fn(async () => {}),
+  invalidateCacheKey: vi.fn(async () => {}),
+  CacheTTL: { FIVE_MINUTES: 300 },
+}));
+
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    warn: vi.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+import { SellerBalanceService } from "@/services/souq/settlements/balance-service";
+
+const orgId = new ObjectId();
+const sellerObj = new ObjectId();
+const sellerStr = sellerObj.toString();
+
+describe("SellerBalanceService.getBalance", () => {
+  beforeEach(() => {
+    transactions = [];
+    orders = [];
+    balances.clear();
+    orderMatch = {};
+  });
+
+  it("computes pending with ObjectId sellerId", async () => {
+    transactions.push({ sellerId: sellerObj, orgId, type: "sale", amount: 100 });
+    orders.push({ orgId, items: [{ sellerId: sellerObj, pricePerUnit: 20, quantity: 2 }], status: "pending", pricing: {} });
+    balances.set(keyFor(sellerObj.toString(), orgId.toString()), {
+      sellerId: sellerObj.toString(),
+      orgId: orgId.toString(),
+      available: 100,
+      reserved: 0,
+      totalEarnings: 100,
+      updatedAt: new Date(),
+    });
+    const balance = await SellerBalanceService.getBalance(sellerObj.toString(), orgId.toString());
+    expect(balance.available).toBe(100);
+    expect(balance.pending).toBe(40);
+  });
+
+  it("computes pending with string sellerId", async () => {
+    transactions.push({ sellerId: sellerStr, orgId, type: "sale", amount: 50 });
+    orders.push({ orgId, items: [{ sellerId: sellerStr, pricePerUnit: 10, quantity: 1 }], status: "processing", pricing: {} });
+    balances.set(keyFor(sellerStr, orgId.toString()), {
+      sellerId: sellerStr,
+      orgId: orgId.toString(),
+      available: 50,
+      reserved: 0,
+      totalEarnings: 50,
+      updatedAt: new Date(),
+    });
+    const balance = await SellerBalanceService.getBalance(sellerStr, orgId.toString());
+    expect(balance.available).toBe(50);
+    expect(balance.pending).toBe(10);
+  });
+});
+
+describe("SellerBalanceService.recordTransaction validation", () => {
+  beforeEach(() => {
+    transactions = [];
+    orders = [];
+    balances.clear();
+    orderMatch = {};
+    balances.set(keyFor(sellerStr, orgId.toString()), {
+      sellerId: sellerStr,
+      orgId: orgId.toString(),
+      available: 100,
+      reserved: 20,
+      totalEarnings: 100,
+      updatedAt: new Date(),
+    });
+  });
+
+  it("rejects reserve_release that exceeds reserved", async () => {
+    await expect(
+      SellerBalanceService.recordTransaction({
+        sellerId: sellerStr,
+        orgId: orgId.toString(),
+        type: "reserve_release",
+        amount: 30, // exceeds reserved 20
+        description: "over release",
+      }),
+    ).rejects.toThrow(/Cannot release more than reserved/);
+  });
+
+  it("rejects positive withdrawal/fees", async () => {
+    await expect(
+      SellerBalanceService.recordTransaction({
+        sellerId: sellerStr,
+        orgId: orgId.toString(),
+        type: "withdrawal",
+        amount: 10, // must be negative
+        description: "bad sign",
+      }),
+    ).rejects.toThrow(/withdrawal amount must be negative/i);
+  });
+
+  it("nets refunds against earnings", async () => {
+    await SellerBalanceService.recordTransaction({
+      sellerId: sellerStr,
+      orgId: orgId.toString(),
+      type: "refund",
+      amount: -40,
+      description: "order refund",
+    });
+    const balanceAfter = balances.get(keyFor(sellerStr, orgId.toString()));
+    expect(balanceAfter.available).toBe(60); // 100 - 40
+    expect(balanceAfter.totalEarnings).toBe(60); // 100 - 40
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/services/souq/settlements/payout-processor.test.ts">
+<![CDATA[
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { ObjectId } from "mongodb";
+
+// Mock db wiring
+const mockPayouts: any[] = [];
+const mockBatches: any[] = [];
+const appliedUpdates: any[] = [];
+
+vi.mock("@/lib/mongodb-unified", () => ({
+  connectDb: vi.fn(async () => ({
+    connection: {
+      db: {
+        collection: (name: string) => {
+          if (name === "souq_payouts") {
+            return {
+              findOne: vi.fn(async (filter: any) =>
+                mockPayouts.find(
+                  (p) =>
+                    p.payoutId === filter.payoutId &&
+                    String(p.orgId) === String(filter.orgId),
+                ) || null,
+              ),
+              find: vi.fn((filter: any) => ({
+                toArray: vi.fn(async () => mockPayouts.filter((p) => p.payoutId === "P1")),
+              })),
+              updateOne: vi.fn(async (filter: any, update: any) => {
+                const idx = mockPayouts.findIndex(
+                  (p) =>
+                    p.payoutId === filter.payoutId &&
+                    String(p.orgId) === String(filter.orgId),
+                );
+                if (idx >= 0) {
+                  mockPayouts[idx] = { ...mockPayouts[idx], ...update.$set };
+                  appliedUpdates.push({ filter, update });
+                }
+              }),
+            };
+          }
+          if (name === "souq_payout_batches") {
+            return {
+              insertOne: vi.fn(async (doc: any) => {
+                mockBatches.push(doc);
+              }),
+              updateOne: vi.fn(async (filter: any, update: any) => {
+                const idx = mockBatches.findIndex(
+                  (b) =>
+                    b.batchId === filter.batchId &&
+                    String(b.orgId) === String(filter.orgId),
+                );
+                if (idx >= 0) {
+                  mockBatches[idx] = { ...mockBatches[idx], ...update.$set };
+                }
+              }),
+            };
+          }
+          throw new Error(`Unexpected collection: ${name}`);
+        },
+      },
+    },
+  })),
+  // Backwards-compat exports used in ensureMongoConnection paths
+  connectToDatabase: vi.fn(async () => ({})),
+  ensureMongoConnection: vi.fn(() => {}),
+}));
+
+// Keep mocking minimal; actual service imported below
+import { PayoutProcessorService } from "@/services/souq/settlements/payout-processor";
+
+const orgA = new ObjectId();
+const orgB = new ObjectId();
+
+describe("PayoutProcessorService.processBatchPayouts", () => {
+  beforeEach(() => {
+    mockPayouts.length = 0;
+    mockBatches.length = 0;
+    appliedUpdates.length = 0;
+    vi.spyOn(PayoutProcessorService as any, "executeBankTransfer").mockResolvedValue({
+      success: true,
+      transactionId: "TXN-TEST",
+    });
+    mockPayouts.push(
+      { payoutId: "P1", orgId: orgA, status: "pending", retryCount: 0, amount: 100 },
+      { payoutId: "P2", orgId: orgB, status: "pending", retryCount: 0, amount: 200 },
+      { payoutId: "P3", orgId: orgA, status: "processing", retryCount: 0, amount: 50 },
+    );
+  });
+
+  it("returns empty batch when no pending payouts exist for org", async () => {
+    mockPayouts.length = 0;
+    const batch = await PayoutProcessorService.processBatchPayouts(String(orgA), new Date());
+    expect(batch.totalPayouts).toBe(0);
+    expect(batch.payouts).toEqual([]);
+  });
+
+  it("processes only payouts for the requested org and stamps batch with orgId", async () => {
+    const processSpy = vi
+      .spyOn(PayoutProcessorService, "processPayout")
+      .mockImplementation(async (payoutId: string, orgId: string) => {
+        const target = mockPayouts.find(
+          (p) => p.payoutId === payoutId && String(p.orgId) === String(orgId),
+        );
+        if (target) {
+          target.status = "completed";
+        }
+        return target as any;
+      });
+
+    const batch = await PayoutProcessorService.processBatchPayouts(String(orgA), new Date());
+
+    expect(batch.orgId.toString()).toBe(orgA.toString());
+    expect(batch.totalPayouts).toBe(1);
+    expect(batch.payouts).toEqual(["P1"]);
+    expect(processSpy).toHaveBeenCalledTimes(1);
+    expect(processSpy).toHaveBeenCalledWith("P1", expect.anything());
+
+    // Ensure batch record stored orgId
+    expect(mockBatches[0].orgId.toString()).toBe(orgA.toString());
+  });
+
+  it("increments failedPayouts when processPayout returns failed", async () => {
+    vi.spyOn(PayoutProcessorService, "processPayout").mockResolvedValue({
+      payoutId: "P1",
+      orgId: orgA,
+      status: "failed",
+    } as any);
+
+    const batch = await PayoutProcessorService.processBatchPayouts(
+      String(orgA),
+      new Date(),
+    );
+
+    expect(batch.totalPayouts).toBe(1);
+    expect(batch.successfulPayouts).toBe(0);
+    expect(batch.failedPayouts).toBe(1);
+  });
+
+  it("retries failed transfer and succeeds on third attempt", async () => {
+    const transferSpy = vi
+      .spyOn(PayoutProcessorService as any, "executeBankTransfer")
+      .mockResolvedValueOnce({ success: false, errorMessage: "bank down" })
+      .mockResolvedValueOnce({ success: false, errorMessage: "bank down" })
+      .mockResolvedValue({ success: true, transactionId: "TXN-RETRY" });
+
+    vi.spyOn(PayoutProcessorService, "processPayout").mockImplementation(
+      async (payoutId: string, orgId: string) => {
+        const target = mockPayouts.find(
+          (p) =>
+            p.payoutId === payoutId && String(p.orgId) === String(orgId),
+        );
+        if (!target) throw new Error("not found");
+        // simulate three attempts
+        let result: any;
+        result = await (PayoutProcessorService as any).executeBankTransfer(target);
+        result = await (PayoutProcessorService as any).executeBankTransfer(target);
+        result = await (PayoutProcessorService as any).executeBankTransfer(target);
+        target.status = result.success ? "completed" : "pending";
+        return target as any;
+      },
+    );
+
+    const batch = await PayoutProcessorService.processBatchPayouts(
+      String(orgA),
+      new Date(),
+    );
+
+    expect(batch.totalPayouts).toBe(1);
+    expect(transferSpy).toHaveBeenCalledTimes(3);
+    const p1 = mockPayouts.find((p) => p.payoutId === "P1");
+    expect(p1?.status).toBe("completed");
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/setup-auth.ts">
+<![CDATA[
+import { chromium, FullConfig, BrowserContext } from '@playwright/test';
+import { mkdir, writeFile } from 'fs/promises';
+import { encode as encodeJwt } from 'next-auth/jwt';
+import { randomBytes } from 'crypto';
+import type { ObjectId } from 'mongodb';
+import fetch from 'node-fetch';
+import { isTruthy } from '@/lib/utils/env';
+import { buildSessionClaims, resolveOrgId } from './e2e/utils/session-claims';
+
+/**
+ * Playwright global auth setup
+ * - Prefers real API session minting via /api/auth/test/session
+ * - Falls back to minting a JWT directly from MongoDB user data
+ * - Keeps offline/test shortcuts for CI flexibility
+ */
+type RoleConfig = {
+  name: string;
+  identifierEnv: string;
+  passwordEnv: string;
+  phoneEnv?: string;
+  companyCodeEnv?: string;
+  statePath: string;
+};
+
+const SESSION_COOKIE_PATTERNS = ['session', 'next-auth'];
+const OFFLINE_ORG_ID = resolveOrgId();
+const resolvedNextAuthSecret = (() => {
+  const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+  if (!secret) {
+    throw new Error(
+      'NEXTAUTH_SECRET or AUTH_SECRET is required for Playwright auth setup (no insecure fallback).',
+    );
+  }
+  process.env.NEXTAUTH_SECRET = secret;
+  process.env.AUTH_SECRET = secret;
+  return secret;
+})();
+
+async function globalSetup(config: FullConfig) {
+  console.log('\n🔐 Setting up authentication states for all roles (OTP flow)...\n');
+
+  const baseURL = config.projects[0].use.baseURL || process.env.BASE_URL || 'http://localhost:3000';
+  let offlineMode = isTruthy(process.env.ALLOW_OFFLINE_MONGODB);
+  const testModeDirect = process.env.PLAYWRIGHT_TESTS === 'true';
+  const nextAuthSecret = resolvedNextAuthSecret;
+
+  console.log(`📍 Base URL: ${baseURL}`);
+  console.log(`🗄️  Database Mode: ${offlineMode ? 'Offline (Mock Sessions)' : 'Online (Real MongoDB)'}`);
+  console.log(`🔑 Using NextAuth Secret: ${nextAuthSecret.substring(0, 10)}...`);
+
+  const baseOrigin = (() => {
+    try {
+      return new URL(baseURL).origin;
+    } catch {
+      return 'http://localhost:3000';
+    }
+  })();
+  const cookieName = baseOrigin.startsWith('https') ? '__Secure-authjs.session-token' : 'authjs.session-token';
+  const legacyCookieName = baseOrigin.startsWith('https') ? '__Secure-next-auth.session-token' : 'next-auth.session-token';
+  const sessionSalt = cookieName;
+
+  const roles: RoleConfig[] = [
+    { name: 'SuperAdmin', identifierEnv: 'TEST_SUPERADMIN_IDENTIFIER', passwordEnv: 'TEST_SUPERADMIN_PASSWORD', phoneEnv: 'TEST_SUPERADMIN_PHONE', statePath: 'tests/state/superadmin.json' },
+    { name: 'Admin', identifierEnv: 'TEST_ADMIN_IDENTIFIER', passwordEnv: 'TEST_ADMIN_PASSWORD', phoneEnv: 'TEST_ADMIN_PHONE', statePath: 'tests/state/admin.json' },
+    { name: 'Manager', identifierEnv: 'TEST_MANAGER_IDENTIFIER', passwordEnv: 'TEST_MANAGER_PASSWORD', phoneEnv: 'TEST_MANAGER_PHONE', statePath: 'tests/state/manager.json' },
+    { name: 'Technician', identifierEnv: 'TEST_TECHNICIAN_IDENTIFIER', passwordEnv: 'TEST_TECHNICIAN_PASSWORD', phoneEnv: 'TEST_TECHNICIAN_PHONE', statePath: 'tests/state/technician.json' },
+    { name: 'Tenant', identifierEnv: 'TEST_TENANT_IDENTIFIER', passwordEnv: 'TEST_TENANT_PASSWORD', phoneEnv: 'TEST_TENANT_PHONE', statePath: 'tests/state/tenant.json' },
+    { name: 'Vendor', identifierEnv: 'TEST_VENDOR_IDENTIFIER', passwordEnv: 'TEST_VENDOR_PASSWORD', phoneEnv: 'TEST_VENDOR_PHONE', statePath: 'tests/state/vendor.json' },
+  ];
+
+  const missing = roles.flatMap(role => {
+    const missingVars: string[] = [];
+    if (!process.env[role.identifierEnv]) missingVars.push(role.identifierEnv);
+    if (!process.env[role.passwordEnv]) missingVars.push(role.passwordEnv);
+    return missingVars;
+  });
+
+  if (missing.length > 0 && !offlineMode) {
+    console.warn('\n⚠️  Missing required login credentials; falling back to OFFLINE MODE.\n');
+    console.warn('Missing vars:\n' + missing.map(v => `   - ${v}`).join('\n'));
+    console.warn('Set ALLOW_OFFLINE_MONGODB=true to silence this warning, or provide credentials in .env.test.');
+    offlineMode = true;
+  }
+
+  await mkdir('tests/state', { recursive: true });
+  const browser = await chromium.launch();
+
+  if (offlineMode) {
+    console.warn('\n⚠️  OFFLINE MODE - Creating mock JWT session cookies (for CI/CD without database)\n');
+    console.warn('⚠️  These sessions bypass real authentication and should NOT be used in production!\n');
+
+    for (const role of roles) {
+      const context = await browser.newContext();
+      try {
+        const normalizedRole = role.name === 'SuperAdmin' ? 'SUPER_ADMIN' : role.name.toUpperCase();
+        const claims = buildSessionClaims({
+          role: normalizedRole,
+          email: process.env[role.identifierEnv] || `${role.name.toLowerCase()}@offline.test`,
+          orgId: OFFLINE_ORG_ID,
+          userId: randomBytes(12).toString('hex'),
+        });
+
+        const token = await encodeJwt({
+          secret: nextAuthSecret,
+          maxAge: 30 * 24 * 60 * 60,
+          salt: sessionSalt,
+          token: claims,
+        });
+
+        const { hostname } = new URL(baseOrigin);
+        await context.addCookies([
+          { name: cookieName, value: token, domain: hostname, path: '/', httpOnly: true, sameSite: 'Lax', secure: baseOrigin.startsWith('https') },
+          { name: legacyCookieName, value: token, domain: hostname, path: '/', httpOnly: true, sameSite: 'Lax', secure: baseOrigin.startsWith('https') },
+        ]);
+
+        const state = await context.storageState();
+        const origins = Array.isArray(state.origins) ? state.origins : [];
+        const filteredOrigins = origins.filter(origin => origin.origin !== baseOrigin);
+        filteredOrigins.push({ origin: baseOrigin, localStorage: [{ name: 'fixzit-role', value: normalizedRole.toLowerCase() }] });
+        state.origins = filteredOrigins;
+        await writeFile(role.statePath, JSON.stringify(state, null, 2), 'utf-8');
+        console.log(`  ✅ ${role.name} - Offline session created`);
+      } catch (err) {
+        console.error(`❌ Failed to create offline session for ${role.name}:`, err);
+      } finally {
+        await context.close();
+      }
+    }
+    await browser.close();
+    console.log('\n✅ Offline auth states ready (mock JWT sessions for CI/CD)\n');
+    return;
+  }
+
+  if (testModeDirect) {
+    console.warn('\n⚠️  PLAYWRIGHT_TESTS=true - Creating direct session cookies (bypass OTP) for E2E stability\n');
+    for (const role of roles) {
+      const context = await browser.newContext();
+      try {
+        const normalizedRole = role.name === 'SuperAdmin' ? 'SUPER_ADMIN' : role.name.toUpperCase();
+        const isSuperAdmin = normalizedRole === 'SUPER_ADMIN';
+        const userId = randomBytes(12).toString('hex');
+
+        const token = await encodeJwt({
+          secret: nextAuthSecret,
+          maxAge: 30 * 24 * 60 * 60,
+          salt: sessionSalt,
+          token: {
+            name: `${role.name} (E2E)`,
+            email: process.env[role.identifierEnv] || `${role.name.toLowerCase()}@e2e.test`,
+            id: userId,
+            role: normalizedRole,
+            roles: [normalizedRole],
+            orgId: OFFLINE_ORG_ID,
+            org_id: OFFLINE_ORG_ID,
+            isSuperAdmin,
+            sub: userId,
+          },
+        });
+
+        const { hostname } = new URL(baseOrigin);
+        await context.addCookies([
+          { name: cookieName, value: token, domain: hostname, path: '/', httpOnly: true, sameSite: 'Lax', secure: baseOrigin.startsWith('https') },
+          { name: legacyCookieName, value: token, domain: hostname, path: '/', httpOnly: true, sameSite: 'Lax', secure: baseOrigin.startsWith('https') },
+        ]);
+
+        const state = await context.storageState();
+        const origins = Array.isArray(state.origins) ? state.origins : [];
+        const filteredOrigins = origins.filter(origin => origin.origin !== baseOrigin);
+        filteredOrigins.push({ origin: baseOrigin, localStorage: [{ name: 'fixzit-role', value: normalizedRole.toLowerCase() }] });
+        state.origins = filteredOrigins;
+        await writeFile(role.statePath, JSON.stringify(state, null, 2), 'utf-8');
+        console.log(`  ✅ ${role.name} - Direct session created (test mode)`);
+      } catch (err) {
+        console.error(`❌ Failed to create test session for ${role.name}:`, err);
+      } finally {
+        await context.close();
+      }
+    }
+    await browser.close();
+    console.log('\n✅ Test-mode auth states ready (direct session cookies)\n');
+    return;
+  }
+
+  console.log('🗄️  PRODUCTION MODE - Authenticating with real MongoDB and OTP flow (short-circuited to session minting)\n');
+  // Fail fast if app/DB are not reachable. Allow opt-out via PLAYWRIGHT_SKIP_SERVICE_CHECK for intentional offline runs.
+  const skipChecks = process.env.PLAYWRIGHT_SKIP_SERVICE_CHECK === 'true';
+  if (!skipChecks) {
+    await ensureServices({ baseURL, requireServer: true });
+  }
+  const mongo = await getMongo();
+  if (!skipChecks) {
+    await ensureServices({ baseURL, requireServer: true, requireDb: true, mongo });
+  }
+
+  for (const role of roles) {
+    const context = await browser.newContext();
+    try {
+      const identifier = process.env[role.identifierEnv]!;
+      const normalizedRole = role.name === 'SuperAdmin' ? 'SUPER_ADMIN' : role.name.toUpperCase();
+      let sessionToken: string | undefined;
+      let appliedOrgId: string | undefined;
+
+      // First try the test/session API to mirror real Auth.js cookie issuance
+      try {
+        const resp = await context.request.post(`${baseURL}/api/auth/test/session`, {
+          headers: { 'Content-Type': 'application/json' },
+          data: {
+            email: identifier,
+            orgId: process.env.PUBLIC_ORG_ID || process.env.DEFAULT_ORG_ID || process.env.TEST_ORG_ID,
+          },
+          timeout: 20000,
+        });
+        if (resp.ok()) {
+          const json = await resp.json().catch(() => ({}));
+          sessionToken = (json as { sessionToken?: string }).sessionToken;
+          appliedOrgId = (json as { appliedOrgId?: string }).appliedOrgId;
+        } else {
+          console.warn(`⚠️  ${role.name} test/session returned ${resp.status()}; falling back to DB minting`);
+        }
+      } catch (err) {
+        console.warn(`⚠️  ${role.name} test/session request failed; falling back to DB minting`, err);
+      }
+
+      // Fallback: mint directly from MongoDB user
+      if (!sessionToken) {
+        const minted = await mintSessionFromDb(identifier, nextAuthSecret, sessionSalt, mongo, {
+          fallbackOrgId: process.env.PUBLIC_ORG_ID || process.env.DEFAULT_ORG_ID || process.env.TEST_ORG_ID,
+        });
+        sessionToken = minted.sessionToken;
+        appliedOrgId = minted.orgId;
+      }
+
+      if (!sessionToken) {
+        throw new Error(`Failed to mint session for ${role.name}: missing sessionToken`);
+      }
+
+      const { hostname } = new URL(baseOrigin);
+      await context.addCookies([
+        { name: cookieName, value: sessionToken, domain: hostname, path: '/', httpOnly: true, sameSite: 'Lax', secure: baseOrigin.startsWith('https') },
+        { name: legacyCookieName, value: sessionToken, domain: hostname, path: '/', httpOnly: true, sameSite: 'Lax', secure: baseOrigin.startsWith('https') },
+      ]);
+
+      await ensureSessionCookie(context, baseURL);
+
+      const state = await context.storageState();
+      const origins = Array.isArray(state.origins) ? state.origins : [];
+      const filteredOrigins = origins.filter(origin => origin.origin !== baseOrigin);
+      filteredOrigins.push({
+        origin: baseOrigin,
+        localStorage: [
+          { name: 'fixzit-role', value: normalizedRole.toLowerCase() },
+          ...(appliedOrgId ? [{ name: 'fixzit-org', value: appliedOrgId }] : []),
+        ],
+      });
+      state.origins = filteredOrigins;
+      await writeFile(role.statePath, JSON.stringify(state, null, 2), 'utf-8');
+      console.log(`✅ ${role.name} - Session prepared (state saved to ${role.statePath})`);
+    } catch (error) {
+      console.error(`❌ Failed to authenticate ${role.name}:`, error);
+    } finally {
+      await context.close().catch(() => {});
+    }
+  }
+
+  await browser.close();
+  if (cachedMongo) {
+    await cachedMongo.disconnect().catch(() => {});
+    cachedMongo = null;
+  }
+  console.log('\n✅ Authentication setup complete\n');
+}
+
+export default globalSetup;
+
+type EnsureServicesOpts = { baseURL: string; requireServer?: boolean; requireDb?: boolean; mongo?: MongoModule };
+
+async function ensureServices(opts: EnsureServicesOpts) {
+  const { baseURL, requireServer, requireDb, mongo } = opts;
+
+  if (requireServer) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 7000);
+    try {
+      const resp = await fetch(baseURL, { method: 'HEAD', signal: controller.signal });
+      if (!resp.ok) {
+        throw new Error(`Server responded with status ${resp.status} ${resp.statusText}`);
+      }
+    } catch (err) {
+      throw new Error(
+        `App server not reachable at ${baseURL}. Start the Next.js server before running e2e. Underlying error: ${String(err)}`
+      );
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  if (requireDb) {
+    const connectionReady = mongo?.connection?.readyState === 1;
+    if (!connectionReady) {
+      throw new Error(
+        "MongoDB connection is not established. Ensure MONGODB_URI/MONGODB_DB are configured and the database is reachable before running e2e."
+      );
+    }
+  }
+}
+
+async function ensureSessionCookie(context: BrowserContext, baseURL: string, timeoutMs = 5000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const cookies = await context.cookies(baseURL);
+    const hasSession = cookies.some((cookie) =>
+      SESSION_COOKIE_PATTERNS.some((pattern) => cookie.name.includes(pattern))
+    );
+    if (hasSession) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  throw new Error('Auth session cookie was not detected before timeout');
+}
+
+let cachedMongo: MongoModule | null = null;
+type MongoModule = typeof import('mongoose');
+
+async function getMongo(): Promise<MongoModule> {
+  if (cachedMongo && cachedMongo.connection?.readyState !== 0) {
+    return cachedMongo;
+  }
+  const mongooseImport = await import('mongoose');
+  const mongoose = (mongooseImport as unknown as { default?: MongoModule }).default || (mongooseImport as MongoModule);
+  const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/fixzit_test';
+  const dbName = process.env.MONGODB_DB || 'fixzit_test';
+  await mongoose.connect(uri, { dbName });
+  cachedMongo = mongoose;
+  return mongoose;
+}
+
+async function mintSessionFromDb(
+  email: string,
+  secret: string,
+  sessionSalt: string,
+  mongo: MongoModule,
+  opts: { fallbackOrgId?: string },
+) {
+  const db = mongo.connection?.db;
+  if (!db) {
+    throw new Error('MongoDB connection is not established for test session minting');
+  }
+
+  const user = await db.collection('users').findOne<{ 
+    _id: ObjectId;
+    email: string;
+    orgId?: ObjectId | string;
+    professional?: { role?: string | null; subRole?: string | null };
+    isSuperAdmin?: boolean;
+    permissions?: string[];
+    roles?: Array<string | ObjectId>;
+  }>({ email: email.toLowerCase() });
+
+  if (!user) {
+    throw new Error(`User ${email} not found in MongoDB for test session minting`);
+  }
+
+  const orgId = (user.orgId as ObjectId | undefined)?.toString?.() || opts.fallbackOrgId || '000000000000000000000001';
+  const role = user.professional?.role || 'ADMIN';
+  const isSuperAdmin = Boolean(user.isSuperAdmin);
+  const permissions = Array.isArray(user.permissions) ? user.permissions.filter(Boolean) : [];
+  const roles = Array.isArray(user.roles) && user.roles.length > 0
+    ? user.roles.map(r => (typeof r === 'string' ? r : r?.toString?.() || '')).filter(Boolean)
+    : (isSuperAdmin ? ['SUPER_ADMIN', role] : [role]);
+
+  const userId = (user._id as ObjectId).toString();
+
+  const sessionToken = await encodeJwt({
+    secret,
+    maxAge: 30 * 24 * 60 * 60,
+    salt: sessionSalt,
+    token: {
+      id: userId,
+      sub: userId,
+      email: user.email,
+      role,
+      roles,
+      orgId,
+      org_id: orgId,
+      isSuperAdmin,
+      permissions,
+    },
+  });
+
+  return { sessionToken, orgId, role, roles, permissions };
+}
+
+]]>
+</file>
+
+<file path="tests/setup.ts">
+<![CDATA[
+import React from 'react';
+import { render } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { vi } from 'vitest';
+import { requireEnv } from '@/lib/env';
+
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
+// Hide Mongoose's "Jest + jsdom" warning noise
+process.env.SUPPRESS_JEST_WARNINGS = 'true';
+
+// Mock Next.js environment for comprehensive testing
+const globalAny = globalThis as any;
+globalAny.Request = globalAny.Request || class Request {};
+globalAny.Response = globalAny.Response || class Response {};
+globalAny.fetch = globalAny.fetch || vi.fn();
+
+// ============================================
+// 1. MOCK MONGOOSE (Fixes "reading 'Mixed'" error)
+// ============================================
+vi.mock('mongoose', async (importOriginal) => {
+  const original = await importOriginal<typeof import('mongoose')>();
+
+  type AnyDoc = Record<string, any>;
+  type IdLike = { toString(): string } | string | number | undefined;
+  type QueryValue = any;
+  type QueryFilter = Record<string, QueryValue>;
+  
+  type ModelInstance = AnyDoc & {
+    _id?: IdLike;
+    isNew?: boolean;
+    validateSync: () => unknown;
+    populate: () => Promise<ModelInstance>;
+    toObject: () => AnyDoc;
+    toJSON: () => AnyDoc;
+    lean: () => Promise<AnyDoc>;
+    exec: () => Promise<ModelInstance>;
+    save: () => Promise<ModelInstance>;
+    lines?: Array<{ debit?: number; credit?: number }>;
+    status?: string;
+    journalDate?: Date;
+    totalDebit?: number;
+    totalCredit?: number;
+    isBalanced?: boolean;
+    fiscalYear?: number;
+    fiscalPeriod?: number;
+  };
+
+  const storeByModel = new Map<string, Map<string, AnyDoc>>();
+  const mkId = () => (original.Types?.ObjectId ? new original.Types.ObjectId() : { toString: () => `${Date.now()}${Math.random()}` });
+
+  const matchQuery = (doc: AnyDoc, query: QueryFilter) => {
+    if (!query || Object.keys(query).length === 0) return true;
+    return Object.entries(query).every(([k, v]) => {
+      if (v && v._bsontype === 'ObjectID') return doc[k]?.toString() === v.toString();
+      if (v && typeof v === 'object' && (v as { $in?: unknown[] }).$in) {
+        const values = (v as { $in: unknown[] }).$in;
+        return values.map((x) => (x as { toString?: () => string })?.toString?.() ?? String(x)).includes(doc[k]?.toString());
+      }
+      if (v && typeof v === 'object' && ('$gte' in v || '$lte' in v)) {
+        const val = doc[k];
+        if (v.$gte !== undefined && val < v.$gte) return false;
+        if (v.$lte !== undefined && val > v.$lte) return false;
+        return true;
+      }
+      return doc[k] === v || doc[k]?.toString?.() === v?.toString?.();
+    });
+  };
+
+  const applyUpdate = (update: AnyDoc) => {
+    if (!update) return {};
+    if (update.$set) return update.$set;
+    if (update.$unset) return {};
+    return update;
+  };
+
+	  function populateQueryHelpers<T extends AnyDoc>(obj: T): T {
+	    const target = obj as AnyDoc;
+	    target.populate = vi.fn().mockReturnValue(target);
+	    target.select = vi.fn().mockReturnValue(target);
+	    target.lean = vi.fn().mockResolvedValue(target);
+	    return target as T;
+	  }
+
+  class MockSchema {
+    static Types = original.Schema?.Types || original.Types || { ObjectId: Object };
+    paths: Record<string, unknown>;
+    virtuals: Record<string, unknown>;
+    options: Record<string, unknown>;
+    methods: Record<string, unknown>;
+    statics: Record<string, unknown>;
+    constructor(public definition: AnyDoc = {}, opts: AnyDoc = {}) {
+      this.options = opts;
+      this.paths = {};
+      this.virtuals = {};
+      this.methods = {};
+      this.statics = {};
+    }
+    add = vi.fn();
+    index = vi.fn();
+    pre = vi.fn();
+    post = vi.fn();
+    plugin = vi.fn();
+    virtual = vi.fn(() => ({ get: vi.fn(), set: vi.fn() }));
+    set = vi.fn();
+    path = vi.fn(() => ({ options: {} }));
+    indexes = vi.fn(() => []);
+  }
+
+  const makeModel = (name: string) => {
+    const store = storeByModel.get(name) || new Map<string, AnyDoc>();
+    storeByModel.set(name, store);
+
+    class Model {
+      static modelName = name;
+      static schema = new MockSchema();
+      static Types = original.Types;
+
+      constructor(data: AnyDoc = {}) {
+        const self = this as unknown as ModelInstance;
+        Object.assign(self, data);
+        self.isNew = !data?._id;
+        self.validateSync = vi.fn(() => undefined);
+        self.populate = vi.fn(async () => self);
+        self.toObject = vi.fn(() => ({ ...self }));
+        self.toJSON = vi.fn(() => ({ ...self }));
+        self.lean = vi.fn(async () => (self.toObject ? self.toObject() : { ...self }));
+        self.exec = vi.fn(async () => self);
+        self.save = vi.fn(async () => {
+          const id = self._id || mkId();
+          self._id = id;
+          const existing = store.get(id.toString());
+          if (name && /journal/i.test(name) && existing && existing.status === 'POSTED') {
+            if (self.status === 'VOID') {
+              // allow voiding a posted journal
+            } else {
+              const currentSnapshot = JSON.stringify({ ...self, save: undefined, validateSync: undefined });
+              const existingSnapshot = JSON.stringify(existing);
+              if (currentSnapshot !== existingSnapshot) {
+                throw new Error('Posted journals cannot be modified');
+              }
+            }
+          }
+          if (name && /journal/i.test(name) && Array.isArray(self.lines)) {
+            const totalDebit = self.lines.reduce((sum: number, l) => sum + (l.debit || 0), 0);
+            const totalCredit = self.lines.reduce((sum: number, l) => sum + (l.credit || 0), 0);
+            self.totalDebit = totalDebit;
+            self.totalCredit = totalCredit;
+            self.isBalanced = Math.abs(totalDebit - totalCredit) < 0.01;
+            if (!self.fiscalYear || !self.fiscalPeriod) {
+              const d = self.journalDate ? new Date(self.journalDate) : new Date();
+              self.fiscalYear = d.getFullYear();
+              self.fiscalPeriod = d.getMonth() + 1;
+            }
+          }
+          store.set(id.toString(), { ...self });
+          self.isNew = false;
+          return self;
+        });
+      }
+
+      static async create(data: AnyDoc) {
+        const inst = new Model(data);
+        await (inst as unknown as ModelInstance).save();
+        return inst;
+      }
+
+      static find(query: AnyDoc = {}) {
+        const results = Array.from(store.values())
+          .filter((d) => matchQuery(d, query))
+          .map((d) => new Model(d));
+        
+        // Type query result array with helper methods
+        interface QueryHelpers {
+          exec: () => Promise<ModelInstance[]>;
+          lean: () => Promise<AnyDoc[]>;
+          limit: (n: number) => ModelInstance[] & QueryHelpers;
+          sort: () => ModelInstance[] & QueryHelpers;
+          toArray: () => Promise<ModelInstance[]>;
+        }
+        const arr = results as ModelInstance[] & QueryHelpers;
+        
+        arr.exec = async () => arr;
+        arr.lean = async () => (arr as unknown as ModelInstance[]).map((i) => i.toObject());
+        arr.limit = (n: number) => {
+          arr.splice(n);
+          return arr;
+        };
+        arr.sort = () => arr;
+        arr.toArray = async () => arr;
+        populateQueryHelpers(arr);
+        return arr;
+      }
+
+      static findOne(query: AnyDoc = {}) {
+        const found = Array.from(store.values()).find((d) => matchQuery(d, query));
+        if (!found) {
+          const queryObj: AnyDoc = {};
+          queryObj.lean = vi.fn(async () => null);
+          queryObj.exec = vi.fn(async () => null);
+          queryObj.populate = vi.fn().mockReturnValue(queryObj);
+          queryObj.select = vi.fn().mockReturnValue(queryObj);
+          return queryObj;
+        }
+        const instance = new Model(found);
+        const self = instance as unknown as ModelInstance;
+        self.lean = vi.fn(async () => self.toObject());
+	        self.exec = vi.fn(async () => self);
+        self.populate = vi.fn().mockReturnValue(instance);
+        self.select = vi.fn().mockReturnValue(instance);
+        return instance;
+      }
+
+      static async findById(id: AnyDoc) {
+        const key = id?.toString?.() ?? String(id);
+        const found = store.get(key);
+        return found ? new Model(found) : null;
+      }
+
+      static findOneAndUpdate(filter: AnyDoc, update: AnyDoc, options?: AnyDoc) {
+        const entry = Array.from(store.entries()).find(([, v]) => matchQuery(v, filter));
+        let value: ModelInstance | null = null;
+        if (entry) {
+          const updated = { ...entry[1], ...applyUpdate(update) };
+          store.set(entry[0], updated);
+          value = new Model(updated) as unknown as ModelInstance;
+        } else if (options?.upsert) {
+          const id = mkId().toString();
+          const updated = { ...applyUpdate(update), _id: id };
+          store.set(id, updated);
+          value = new Model(updated) as unknown as ModelInstance;
+        }
+        const res: AnyDoc = { value };
+        res.exec = async () => res;
+        res.lean = async () => (value ? value.toObject() : null);
+        return res;
+      }
+
+      static findOneAndDelete(filter: AnyDoc) {
+        const entry = Array.from(store.entries()).find(([, v]) => matchQuery(v, filter));
+        let value: ModelInstance | null = null;
+        if (entry) {
+          store.delete(entry[0]);
+          value = new Model(entry[1]) as unknown as ModelInstance;
+        }
+        const res: AnyDoc = { value };
+        res.exec = async () => res;
+        res.lean = async () => (value ? value.toObject() : null);
+        return res;
+      }
+
+      static async findByIdAndUpdate(id: AnyDoc, update: AnyDoc) {
+        const key = id?.toString?.() ?? String(id);
+        const existing = store.get(key);
+        if (!existing) return null;
+        const updated = { ...existing, ...applyUpdate(update) };
+        store.set(key, updated);
+        return new Model(updated);
+      }
+
+      static async updateOne(filter: AnyDoc, update: AnyDoc) {
+        const entry = Array.from(store.entries()).find(([, v]) => matchQuery(v, filter));
+        if (entry) {
+          const updated = { ...entry[1], ...applyUpdate(update) };
+          store.set(entry[0], updated);
+          return { modifiedCount: 1 };
+        }
+        return { modifiedCount: 0 };
+      }
+
+  static async updateMany(filter: AnyDoc, update: AnyDoc) {
+        const updated: string[] = [];
+        Array.from(store.entries()).forEach(([key, value]) => {
+          if (matchQuery(value, filter)) {
+            const next = { ...value, ...applyUpdate(update) };
+            store.set(key, next);
+            updated.push(key);
+          }
+        });
+        return { modifiedCount: updated.length, matchedCount: updated.length };
+      }
+
+  static async deleteOne(filter: AnyDoc) {
+        const entry = Array.from(store.entries()).find(([, v]) => matchQuery(v, filter));
+        if (entry) {
+          store.delete(entry[0]);
+          return { deletedCount: 1 };
+        }
+        return { deletedCount: 0 };
+      }
+
+  static async deleteMany(filter: AnyDoc) {
+        const toDelete = Array.from(store.entries()).filter(([, v]) => matchQuery(v, filter));
+        toDelete.forEach(([k]) => store.delete(k));
+        return { deletedCount: toDelete.length };
+      }
+
+  static async countDocuments(filter: AnyDoc = {}) {
+        const count = Array.from(store.values()).filter((d) => matchQuery(d, filter)).length;
+        return count;
+      }
+
+      static aggregate() {
+        return {
+          exec: async () => [],
+        };
+      }
+
+  static async getAccountBalance(orgId: AnyDoc, accountId: AnyDoc) {
+        const entries = Array.from(store.values()).filter((e) => {
+          const accountMatch = e.accountId?.toString?.() === accountId?.toString?.();
+          const orgMatch = !orgId || e.orgId?.toString?.() === orgId?.toString?.();
+          return accountMatch && orgMatch;
+        });
+        if (entries.length === 0) return 0;
+        const last = entries[entries.length - 1];
+        if (typeof last.balance === 'number') return last.balance;
+       return entries.reduce((sum, en: AnyDoc) => {
+          const acctType = en.accountType;
+          if (acctType === 'REVENUE' || acctType === 'LIABILITY' || acctType === 'EQUITY') {
+            return sum + (en.credit || 0) - (en.debit || 0);
+          }
+          return sum + (en.debit || 0) - (en.credit || 0);
+        }, 0);
+      }
+    }
+
+    return Model;
+  };
+
+  const mocked: AnyDoc = {
+    ...original,
+    connect: vi.fn(async (..._args: any[]) => ({ connection: mocked.connection })),
+    createConnection: (uri: string, options?: Record<string, unknown>) => original.createConnection?.(uri, options),
+    disconnect: vi.fn(async () => {}),
+    connection: {
+      readyState: 1,
+      on: vi.fn(),
+      once: vi.fn(),
+      close: vi.fn(),
+      db: {
+        collection: vi.fn(() => ({
+          findOneAndUpdate: vi.fn(),
+          findOne: vi.fn(),
+          find: vi.fn(() => ({
+            sort: vi.fn().mockReturnThis(),
+            limit: vi.fn().mockReturnThis(),
+            toArray: vi.fn(() => Promise.resolve([])),
+          })),
+          deleteMany: vi.fn(() => Promise.resolve({ deletedCount: 0 })),
+        })),
+        admin: vi.fn(() => ({
+          ping: vi.fn(() => Promise.resolve()),
+        })),
+      },
+    },
+    Schema: original.Schema ?? MockSchema,
+    Types: original.Types,
+    model: vi.fn((name: string) => {
+      if (!mocked.models[name]) {
+        mocked.models[name] = makeModel(name);
+      }
+      return mocked.models[name];
+    }),
+    models: {} as Record<string, unknown>,
+  };
+
+  mocked.default = mocked;
+  return mocked as typeof import('mongoose');
+});
+// ============================================
+// 1.5. MOCK USER MODEL (for auth tests)
+// ============================================
+vi.mock('@/modules/users/schema', () => {
+  const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+  const makeDefaultUser = () => ({
+    _id: '1',
+    code: 'USR-001',
+    username: 'superadmin',
+    email: `superadmin@${EMAIL_DOMAIN}`,
+    password: '$2b$10$igvySIqTp4AO9Hwg0c5fOOZUDAbDFAwsfBM3IlbQBs6GReiw1lG2W', // bcrypt hash of 'admin123'
+    personal: { firstName: 'System', lastName: 'Administrator' },
+    professional: { role: 'SUPER_ADMIN' },
+    status: 'ACTIVE',
+    tenantId: 'demo-tenant',
+    orgId: 'demo-tenant',
+  });
+
+  const inactiveUser = () => ({
+    _id: '99',
+    code: 'USR-099',
+    username: 'inactive',
+    email: 'inactive@x.com',
+    password: '$2b$10$igvySIqTp4AO9Hwg0c5fOOZUDAbDFAwsfBM3IlbQBs6GReiw1lG2W',
+    personal: { firstName: 'Inactive', lastName: 'User' },
+    professional: { role: 'USER' },
+    status: 'SUSPENDED',
+    tenantId: 'demo-tenant',
+    orgId: 'demo-tenant',
+  });
+
+  return {
+    __esModule: true,
+    User: {
+      findOne: vi.fn(async (query: Record<string, unknown>) => {
+        // Inactive user for auth tests
+        if (query.email === 'inactive@x.com' || query.username === 'inactive') {
+          return inactiveUser();
+        }
+        
+        // Default superadmin user
+        if (query.email === `superadmin@${EMAIL_DOMAIN}` || query.username === 'superadmin') {
+          return makeDefaultUser();
+        }
+        
+        // For getUserFromToken test - user by _id
+        if (query._id === '42') {
+          return {
+            _id: '42',
+            email: 'ok@x.com',
+            username: 'okuser',
+            password: '$2b$10$igvySIqTp4AO9Hwg0c5fOOZUDAbDFAwsfBM3IlbQBs6GReiw1lG2W',
+            personal: { firstName: 'Ok', lastName: 'User' },
+            professional: { role: 'ADMIN' },
+            status: 'ACTIVE',
+            tenantId: 'tenant-42',
+            orgId: 'tenant-42',
+          };
+        }
+        
+        // Not found
+        return null;
+      }),
+      findById: vi.fn(async (id: string) => {
+        if (id === '42') {
+          return {
+            _id: '42',
+            email: 'ok@x.com',
+            username: 'okuser',
+            password: '$2b$10$igvySIqTp4AO9Hwg0c5fOOZUDAbDFAwsfBM3IlbQBs6GReiw1lG2W',
+            personal: { firstName: 'Ok', lastName: 'User' },
+            professional: { role: 'ADMIN' },
+            status: 'ACTIVE',
+            tenantId: 'tenant-42',
+            orgId: 'tenant-42',
+          };
+        }
+        if (id === '1') {
+          return makeDefaultUser();
+        }
+        if (id === '99') {
+          return inactiveUser();
+        }
+        return null;
+      }),
+      create: vi.fn(async (data: Record<string, unknown>) => ({ _id: 'new-id', ...data })),
+      updateOne: vi.fn(async () => ({ modifiedCount: 1 })),
+      deleteOne: vi.fn(async () => ({ deletedCount: 1 })),
+    },
+  };
+});
+
+// ============================================
+// 2. MOCK NEXT-AUTH
+// ============================================
+vi.mock('next-auth/react', () => {
+  const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+  return {
+  useSession: vi.fn(() => ({
+    data: {
+      user: {
+        id: 'test-user-id',
+        email: `admin@${EMAIL_DOMAIN}`,
+        name: 'Test Admin',
+        role: 'SUPER_ADMIN',
+        orgId: 'test-org-id',
+      },
+      expires: '9999-12-31T23:59:59.999Z',
+    },
+    status: 'authenticated',
+    update: vi.fn(),
+  })),
+  SessionProvider: ({ children }: { children: React.ReactNode }) => 
+    React.createElement(React.Fragment, null, children),
+  signIn: vi.fn(),
+  signOut: vi.fn(),
+  getCsrfToken: vi.fn(() => Promise.resolve('mock-csrf-token')),
+  getProviders: vi.fn(() => Promise.resolve({})),
+  getSession: vi.fn(() => Promise.resolve({
+    user: {
+      id: 'test-user-id',
+      email: `admin@${EMAIL_DOMAIN}`,
+      name: 'Test Admin',
+      role: 'SUPER_ADMIN',
+      orgId: 'test-org-id',
+    },
+    expires: '9999-12-31T23:59:59.999Z',
+  })),
+}});
+
+// Mock next/navigation
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    refresh: vi.fn(),
+    pathname: '/',
+    query: {},
+  }),
+  usePathname: () => '/',
+  useSearchParams: () => new URLSearchParams(),
+  useParams: () => ({}),
+  notFound: vi.fn(),
+  redirect: vi.fn(),
+  permanentRedirect: vi.fn(),
+}));
+
+// Mock fetch globally for SWR and API route tests
+global.fetch = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+  const urlStr = typeof url === 'string' ? url : url instanceof URL ? url.toString() : url.url;
+  const method = init?.method || 'GET';
+  
+  // Return generic success responses to prevent test timeouts
+  const response = {
+    ok: true,
+    status: 200,
+    statusText: 'OK',
+    headers: new Headers({ 'content-type': 'application/json' }),
+    json: async () => ({
+      items: [],
+      page: 1,
+      limit: 10,
+      total: 0,
+      message: `Mocked ${method} ${urlStr}`,
+    }),
+    text: async () => JSON.stringify({ items: [], page: 1, total: 0 }),
+    blob: async () => new Blob(),
+    arrayBuffer: async () => new ArrayBuffer(0),
+    clone: function() { return this; },
+  } as Response;
+  
+  return Promise.resolve(response);
+}) as unknown as typeof fetch;
+
+// Mock NextRequest for API route tests
+vi.mock('next/server', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('next/server')>();
+  
+  return {
+    ...actual,
+    NextRequest: vi.fn().mockImplementation((url: string | URL | Request, init?: RequestInit) => {
+      const urlObj = typeof url === 'string' ? new URL(url, 'http://localhost:3000') : url instanceof URL ? url : new URL((url as Request).url);
+      
+      return {
+        url: urlObj.toString(),
+        nextUrl: {
+          href: urlObj.toString(),
+          origin: urlObj.origin,
+          protocol: urlObj.protocol,
+          username: urlObj.username,
+          password: urlObj.password,
+          host: urlObj.host,
+          hostname: urlObj.hostname,
+          port: urlObj.port,
+          pathname: urlObj.pathname,
+          search: urlObj.search,
+          searchParams: urlObj.searchParams,
+          hash: urlObj.hash,
+        },
+        headers: new Headers(init?.headers),
+        method: init?.method || 'GET',
+        body: init?.body,
+        cookies: {
+          get: vi.fn((name: string) => ({ name, value: 'mock-cookie-value' })),
+          getAll: vi.fn(() => []),
+          set: vi.fn(),
+          delete: vi.fn(),
+          has: vi.fn(() => false),
+        },
+        geo: undefined,
+        ip: '127.0.0.1',
+        json: async () => (init?.body ? JSON.parse(init.body as string) : {}),
+        text: async () => (init?.body ? String(init.body) : ''),
+        formData: async () => new FormData(),
+        arrayBuffer: async () => new ArrayBuffer(0),
+        blob: async () => new Blob(),
+        clone: function() { return this; },
+      };
+    }),
+  };
+});
+
+// Mock IntersectionObserver for UI tests
+global.IntersectionObserver = vi.fn().mockImplementation(() => ({
+  observe: vi.fn(),
+  unobserve: vi.fn(),
+  disconnect: vi.fn(),
+}));
+
+// Mock ResizeObserver for UI tests
+global.ResizeObserver = vi.fn().mockImplementation(() => ({
+  observe: vi.fn(),
+  unobserve: vi.fn(),
+  disconnect: vi.fn(),
+}));
+
+// Mock matchMedia for responsive tests (only in browser/jsdom environment)
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: vi.fn().mockImplementation(query => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+}
+
+// Mock environment variables with secure defaults
+if (!process.env.NODE_ENV) {
+  Object.defineProperty(process.env, 'NODE_ENV', { value: 'test', writable: true });
+}
+
+// NODE_ENV already set above
+process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3000';
+process.env.MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/fixzit_test';
+// Using real MongoDB for all test environments
+process.env.JWT_SECRET = requireEnv('JWT_SECRET', {
+  testFallback: 'test-secret-key-for-jest-tests-minimum-32-characters-long',
+});
+process.env.NEXTAUTH_SECRET =
+  process.env.NEXTAUTH_SECRET || 'test-nextauth-secret-for-jest-tests-minimum-32-characters-long';
+process.env.NEXTAUTH_URL = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+
+// Mock crypto for secure random generation in tests
+if (typeof globalThis.crypto === 'undefined') {
+  const { webcrypto } = require('crypto');
+  globalThis.crypto = webcrypto as Crypto;
+}
+
+// Global error handler for unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+// ============================================
+// 3. CUSTOM RENDER WITH PROVIDERS
+// ============================================
+// This wraps all components with necessary providers for testing
+const mockSession = {
+  user: {
+    id: 'test-user-id',
+    email: `admin@${EMAIL_DOMAIN}`,
+    name: 'Test Admin',
+    role: 'SUPER_ADMIN',
+    orgId: 'test-org-id',
+  },
+  expires: '9999-12-31T23:59:59.999Z',
+};
+
+// Note: Import providers dynamically to avoid circular dependencies
+const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
+  // We use the mocked SessionProvider from next-auth/react above
+  const { SessionProvider } = require('next-auth/react');
+  
+  // Wrap with TranslationProvider if available
+  try {
+    const { TranslationProvider } = require('@/contexts/TranslationContext');
+    return React.createElement(
+      SessionProvider,
+      { session: mockSession },
+      React.createElement(TranslationProvider, null, children)
+    );
+  } catch {
+    // If TranslationProvider doesn't exist or fails, just use SessionProvider
+    return React.createElement(
+      SessionProvider,
+      { session: mockSession },
+      children
+    );
+  }
+};
+
+const customRender = (ui: React.ReactElement, options = {}) =>
+  render(ui, { wrapper: AllTheProviders, ...options });
+
+// Re-export everything from @testing-library/react
+export * from '@testing-library/react';
+// Override the render method with our custom one
+export { customRender as render };
+
+]]>
+</file>
+
+</batch_content>

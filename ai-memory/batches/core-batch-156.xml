@@ -1,0 +1,3970 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/guides/DEVELOPMENT_SPRINT_SCHEDULE.md">
+<![CDATA[
+# Development Sprint Schedule
+
+## S3 Uploads + FM Module APIs - Q4 2025
+
+**Status:** 🔴 **CRITICAL PRIORITY** - 294 Days Technical Debt  
+**Total Duration:** 8 weeks (Dec 2, 2025 - Jan 24, 2026)  
+**Team Size:** 5 engineers (2 backend, 1 frontend, 1 security, 1 QA)  
+**Budget:** $94,000 (development) + $2,500/month (AWS infrastructure)
+
+---
+
+## 🎯 Program Overview
+
+### Critical Path Items
+
+1. **S3 Upload Infrastructure** - 294 days overdue (CRITICAL)
+2. **FM Module APIs** - 279 days overdue (CRITICAL)
+
+### Business Impact
+
+- **Revenue Risk:** $50K/month (marketplace seller onboarding blocked)
+- **Compliance Risk:** GDPR/CCPA violations (PII handling)
+- **Customer Churn Risk:** ATS + FM modules non-functional
+- **Security Risk:** Insecure file handling
+
+### Success Criteria
+
+- [ ] KYC document uploads functional in production
+- [ ] Resume uploads functional in production
+- [ ] 6 FM Module API endpoints live
+- [ ] 90%+ test coverage on all new code
+- [ ] Zero security vulnerabilities
+- [ ] < 1% error rate in production
+
+---
+
+## 📅 Sprint 1: S3 Upload Infrastructure (2 Weeks)
+
+**Dates:** December 2-13, 2025  
+**Team:** 2 Backend Engineers, 1 Security Engineer, 1 QA Engineer  
+**Goal:** Replace mock uploads with production S3 implementation
+
+### Week 1: Infrastructure & API (Dec 2-6)
+
+#### Monday (Dec 2) - Environment Setup
+
+**Owners:** Backend Engineer 1 + Backend Engineer 2
+
+**Tasks:**
+
+- [ ] 🔴 Create AWS S3 bucket (fixzit-uploads-prod)
+  - Enable versioning
+  - Configure AES-256 encryption
+  - Block all public access
+  - Set up lifecycle rules (90-day Glacier transition)
+  - **Acceptance:** Bucket created, encrypted, no public access
+
+- [ ] 🔴 Configure IAM roles/policies
+  - Least privilege policy for Lambda
+  - App server S3 PutObject permissions
+  - CloudWatch logging permissions
+  - **Acceptance:** IAM policies validated by security team
+
+- [ ] 🟠 Set up CloudWatch dashboards
+  - S3 request metrics
+  - Lambda execution metrics
+  - Error rate monitoring
+  - **Acceptance:** Dashboards display real-time data
+
+**Deliverables:**
+
+- S3 bucket operational
+- IAM policies documented
+- CloudWatch monitoring active
+
+---
+
+#### Tuesday (Dec 3) - Virus Scanning Lambda
+
+**Owner:** Security Engineer
+
+**Tasks:**
+
+- [ ] 🔴 Deploy ClamAV Lambda function
+  - Runtime: Node.js 18.x
+  - Memory: 1024MB
+  - Timeout: 60s
+  - Layer: ClamAV definitions (AWS Marketplace)
+  - **Acceptance:** Lambda scans test file successfully
+
+- [ ] 🔴 Configure S3 event triggers
+  - Trigger on PUT events (uploads/\* prefix)
+  - Pass object key to Lambda
+  - **Acceptance:** Lambda triggered on file upload
+
+- [ ] 🔴 Set up SNS alert topic
+  - Topic: fixzit-virus-alerts
+  - Subscribers: ops@fixzit.com
+  - Test notification
+  - **Acceptance:** Email received on infected file upload
+
+- [ ] 🟠 Implement quarantine workflow
+  - Move infected files to quarantine/ prefix
+  - Delete from uploads/ prefix
+  - Log to audit system
+  - **Acceptance:** Infected test file quarantined
+
+**Deliverables:**
+
+- Virus scanning operational
+- Alerts configured
+- Quarantine workflow tested
+
+---
+
+#### Wednesday (Dec 4) - Pre-signed URL API
+
+**Owner:** Backend Engineer 1
+
+**Tasks:**
+
+- [ ] 🔴 Implement `/api/upload/presigned-url` endpoint
+  - Request validation (file type, size, category)
+  - Generate 15-min expiry URL
+  - Return fileKey for tracking
+  - **Acceptance:** Postman test passes
+
+- [ ] 🔴 Add file type validation
+  - Whitelist: PDF, PNG, JPG only
+  - MIME type verification
+  - Client + server validation
+  - **Acceptance:** Invalid file type rejected
+
+- [ ] 🔴 Add size limit enforcement
+  - Max 10MB for images
+  - Max 25MB for PDFs
+  - Clear error messages
+  - **Acceptance:** Oversized file rejected
+
+- [ ] 🟠 Implement rate limiting
+  - 10 requests/min per user
+  - Redis cache for counter
+  - 429 response for exceeded limit
+  - **Acceptance:** Rate limit enforced
+
+**Deliverables:**
+
+- API endpoint functional
+- Validation working
+- Rate limiting active
+
+---
+
+#### Thursday (Dec 5) - Audit Logging & Testing
+
+**Owner:** Backend Engineer 2
+
+**Tasks:**
+
+- [ ] 🔴 Implement audit logging
+  - Log all upload attempts
+  - Capture userId, tenantId, fileKey, IP, user-agent
+  - Store in AuditLog collection
+  - **Acceptance:** All uploads logged
+
+- [ ] 🔴 Write unit tests
+  - API endpoint tests (90% coverage)
+  - File validation tests
+  - Rate limiting tests
+  - **Acceptance:** 90%+ coverage, all tests passing
+
+- [ ] 🟠 Write integration tests
+  - End-to-end S3 upload flow
+  - Virus scanning workflow
+  - Error scenarios
+  - **Acceptance:** Integration tests pass
+
+- [ ] 🟡 Load testing
+  - 1000 requests/min
+  - Monitor API latency (< 200ms p95)
+  - Monitor S3 throughput
+  - **Acceptance:** No degradation at 1000 req/min
+
+**Deliverables:**
+
+- Audit logging complete
+- Unit tests passing
+- Integration tests passing
+- Load test results documented
+
+---
+
+#### Friday (Dec 6) - Security Review
+
+**Owner:** Security Engineer + Backend Engineer 1
+
+**Tasks:**
+
+- [ ] 🔴 Security audit
+  - IAM policy review (least privilege)
+  - Encryption validation (at rest + in transit)
+  - Access control verification
+  - **Acceptance:** No security findings
+
+- [ ] 🔴 Penetration testing
+  - Test file type bypass
+  - Test size limit bypass
+  - Test rate limit bypass
+  - Test unauthorized access
+  - **Acceptance:** All attacks mitigated
+
+- [ ] 🟠 Compliance review
+  - GDPR requirements verified
+  - CCPA requirements verified
+  - Data retention policies documented
+  - **Acceptance:** Compliance officer sign-off
+
+**Deliverables:**
+
+- Security audit report
+- Penetration test results
+- Compliance documentation
+
+---
+
+### Week 2: Client Integration & Launch (Dec 9-13)
+
+#### Monday (Dec 9) - KYC Upload Component
+
+**Owner:** Backend Engineer 1 + Frontend Engineer
+
+**Tasks:**
+
+- [ ] 🔴 Update `DocumentUploadForm.tsx`
+  - Replace `setTimeout()` mock with S3 upload
+  - Add progress indicator (0-100%)
+  - Implement retry logic (3 attempts)
+  - **Acceptance:** KYC upload works in staging
+
+- [ ] 🔴 Add error handling
+  - Network failure recovery
+  - S3 error handling
+  - User-friendly error messages
+  - **Acceptance:** Error scenarios handled gracefully
+
+- [ ] 🟠 Update UI/UX
+  - Upload progress bar
+  - Success/failure notifications
+  - File preview after upload
+  - **Acceptance:** UX reviewed by product team
+
+**Deliverables:**
+
+- KYC upload functional
+- Error handling complete
+- UI/UX approved
+
+---
+
+#### Tuesday (Dec 10) - ATS Resume Upload
+
+**Owner:** Backend Engineer 2
+
+**Tasks:**
+
+- [ ] 🔴 Update `application-intake.ts`
+  - Replace `setTimeout()` mock with S3 upload
+  - Save fileKey to Application model
+  - Trigger resume parser (async)
+  - **Acceptance:** Resume upload works in staging
+
+- [ ] 🔴 Integrate resume parser
+  - Queue resume parsing job
+  - Extract candidate details
+  - Store structured data
+  - **Acceptance:** Resume parsed successfully
+
+- [ ] 🟠 Add resume preview
+  - Download from S3 (pre-signed URL)
+  - Render PDF in browser
+  - **Acceptance:** Resume preview works
+
+**Deliverables:**
+
+- Resume upload functional
+- Resume parser integrated
+- Preview feature working
+
+---
+
+#### Wednesday (Dec 11) - E2E Testing
+
+**Owner:** QA Engineer
+
+**Tasks:**
+
+- [ ] 🔴 KYC upload E2E tests
+  - Test full seller onboarding flow
+  - Upload identity document
+  - Upload business license
+  - Verify in admin panel
+  - **Acceptance:** E2E tests pass
+
+- [ ] 🔴 Resume upload E2E tests
+  - Test job application flow
+  - Upload resume
+  - Verify in ATS dashboard
+  - **Acceptance:** E2E tests pass
+
+- [ ] 🟠 Error scenario testing
+  - Network failure during upload
+  - Invalid file type
+  - Oversized file
+  - Virus detected
+  - **Acceptance:** All errors handled
+
+**Deliverables:**
+
+- E2E test suite passing
+- Error scenarios documented
+
+---
+
+#### Thursday (Dec 12) - Staging Deployment
+
+**Owner:** Backend Engineer 1 + Backend Engineer 2
+
+**Tasks:**
+
+- [ ] 🔴 Deploy to staging
+  - Deploy API changes
+  - Deploy client changes
+  - Run smoke tests
+  - **Acceptance:** Staging deployment successful
+
+- [ ] 🔴 Staging validation
+  - Test KYC upload
+  - Test resume upload
+  - Monitor error rates
+  - **Acceptance:** < 1% error rate
+
+- [ ] 🟠 Performance testing
+  - 100 concurrent uploads
+  - Monitor latency
+  - Monitor S3 throughput
+  - **Acceptance:** No performance degradation
+
+**Deliverables:**
+
+- Staging deployment complete
+- Validation tests passed
+- Performance benchmarks documented
+
+---
+
+#### Friday (Dec 13) - Production Launch
+
+**Owner:** Full Team
+
+**Tasks:**
+
+- [ ] 🔴 Production deployment (blue-green)
+  - Deploy to production
+  - Gradual rollout: 10% → 50% → 100%
+  - Monitor error rates
+  - **Acceptance:** Production deployment successful
+
+- [ ] 🔴 Post-deployment monitoring
+  - Monitor upload success rate (target: > 98%)
+  - Monitor API latency (target: < 200ms p95)
+  - Monitor virus scan success
+  - **Acceptance:** All metrics within target
+
+- [ ] 🟠 Documentation
+  - API documentation (OpenAPI spec)
+  - Developer guide
+  - Runbook for ops team
+  - **Acceptance:** Documentation published
+
+- [ ] 🟡 Retrospective
+  - What went well
+  - What needs improvement
+  - Action items for Sprint 2
+  - **Acceptance:** Retrospective completed
+
+**Deliverables:**
+
+- S3 uploads live in production
+- Monitoring dashboards active
+- Documentation complete
+- Retrospective notes published
+
+---
+
+## 📅 Sprint 2: FM Module APIs - Week 1-2 (4 Weeks)
+
+**Dates:** December 16, 2025 - January 10, 2026  
+**Team:** 2 Backend Engineers, 1 Frontend Engineer, 1 QA Engineer  
+**Goal:** Implement 3 high-priority FM APIs (Reports, Schedules, Users)
+
+### Week 1: Reports API (Dec 16-20)
+
+#### API 1: Asset Reports (`GET /api/fm/reports/assets`)
+
+**Owner:** Backend Engineer 1
+
+**Requirements:**
+
+- [ ] Query parameters: `startDate`, `endDate`, `assetType`, `status`, `organizationId`
+- [ ] Response: Array of asset summaries (totalAssets, byType, byStatus, byLocation)
+- [ ] Aggregation pipeline: MongoDB aggregation with $group, $match, $sort
+- [ ] Caching: Redis cache (15 min TTL)
+- [ ] Export: CSV/PDF download option
+- [ ] **Acceptance:** API returns accurate asset counts, < 500ms response time
+
+**Implementation Steps:**
+
+1. Define OpenAPI spec
+2. Create `/api/fm/reports/assets` endpoint
+3. Implement MongoDB aggregation query
+4. Add Redis caching
+5. Write unit tests (90% coverage)
+6. Write integration tests
+7. Load test (100 req/min)
+
+**Deliverables:**
+
+- API endpoint functional
+- Unit tests passing
+- Integration tests passing
+- OpenAPI spec documented
+
+---
+
+#### API 2: Maintenance Reports (`GET /api/fm/reports/maintenance`)
+
+**Owner:** Backend Engineer 2
+
+**Requirements:**
+
+- [ ] Query parameters: `startDate`, `endDate`, `maintenanceType`, `status`, `priority`
+- [ ] Response: Maintenance summary (total tasks, completed, pending, overdue)
+- [ ] Metrics: Average completion time, SLA compliance rate
+- [ ] Caching: Redis cache (10 min TTL)
+- [ ] Export: CSV/PDF download option
+- [ ] **Acceptance:** API returns maintenance metrics, < 500ms response time
+
+**Implementation Steps:**
+
+1. Define OpenAPI spec
+2. Create `/api/fm/reports/maintenance` endpoint
+3. Implement aggregation query
+4. Calculate SLA compliance
+5. Add Redis caching
+6. Write unit tests
+7. Write integration tests
+
+**Deliverables:**
+
+- API endpoint functional
+- Tests passing
+- Documentation complete
+
+---
+
+#### API 3: Cost Reports (`GET /api/fm/reports/costs`)
+
+**Owner:** Backend Engineer 1
+
+**Requirements:**
+
+- [ ] Query parameters: `startDate`, `endDate`, `costCategory`, `organizationId`
+- [ ] Response: Cost breakdown (labor, materials, vendor, utilities)
+- [ ] Metrics: Total spend, spend by category, variance from budget
+- [ ] Caching: Redis cache (30 min TTL)
+- [ ] Export: CSV/Excel download
+- [ ] **Acceptance:** API returns financial data, < 500ms response time
+
+**Implementation Steps:**
+
+1. Define OpenAPI spec
+2. Create `/api/fm/reports/costs` endpoint
+3. Implement cost aggregation
+4. Calculate budget variance
+5. Add caching
+6. Write tests
+
+**Deliverables:**
+
+- API functional
+- Tests passing
+- Documentation complete
+
+---
+
+### Week 2: Schedules API (Dec 23-27)
+
+#### API 4: Preventive Maintenance Schedules (`GET /api/fm/schedules/pm`)
+
+**Owner:** Backend Engineer 2
+
+**Requirements:**
+
+- [ ] Query parameters: `assetId`, `frequency`, `status`, `startDate`, `endDate`
+- [ ] Response: Array of scheduled PM tasks (asset, frequency, lastCompleted, nextDue)
+- [ ] Filtering: By asset type, location, frequency (daily/weekly/monthly)
+- [ ] Sorting: By nextDue, priority
+- [ ] **Acceptance:** API returns PM schedule, < 300ms response time
+
+**Implementation Steps:**
+
+1. Define OpenAPI spec
+2. Create `/api/fm/schedules/pm` endpoint
+3. Implement query with filters
+4. Calculate nextDue dates
+5. Write tests
+
+**Deliverables:**
+
+- API functional
+- Tests passing
+- Documentation complete
+
+---
+
+#### API 5: Work Order Schedules (`POST /api/fm/schedules/work-orders`)
+
+**Owner:** Backend Engineer 1
+
+**Requirements:**
+
+- [ ] Request body: `workOrderId`, `scheduledDate`, `assignedTo`, `priority`
+- [ ] Response: Created schedule object
+- [ ] Validation: Check technician availability, asset availability
+- [ ] Conflict detection: Prevent double-booking
+- [ ] Notifications: Send email/SMS to assigned technician
+- [ ] **Acceptance:** API creates schedule, validates conflicts, < 200ms response time
+
+**Implementation Steps:**
+
+1. Define OpenAPI spec
+2. Create `/api/fm/schedules/work-orders` endpoint
+3. Implement conflict detection
+4. Send notifications
+5. Write tests
+
+**Deliverables:**
+
+- API functional
+- Tests passing
+- Documentation complete
+
+---
+
+### Week 3: Users API (Dec 30 - Jan 3)
+
+#### API 6: FM Users Management (`GET/POST/PATCH /api/fm/users`)
+
+**Owner:** Backend Engineer 2
+
+**Requirements:**
+
+- [ ] `GET /api/fm/users`: List all FM module users (technicians, managers, admins)
+- [ ] `POST /api/fm/users`: Create new FM user with role assignment
+- [ ] `PATCH /api/fm/users/:id`: Update user details, role, permissions
+- [ ] Filtering: By role, status, organization
+- [ ] Pagination: 50 users per page
+- [ ] Authorization: Admin-only access
+- [ ] **Acceptance:** CRUD operations work, < 200ms response time
+
+**Implementation Steps:**
+
+1. Define OpenAPI spec
+2. Create user management endpoints
+3. Implement role-based access control
+4. Add audit logging
+5. Write tests
+
+**Deliverables:**
+
+- CRUD endpoints functional
+- RBAC working
+- Tests passing
+
+---
+
+### Week 4: Integration Testing & Launch (Jan 6-10)
+
+#### Monday-Wednesday (Jan 6-8) - E2E Testing
+
+**Owner:** QA Engineer
+
+**Tasks:**
+
+- [ ] 🔴 E2E test suite for all 6 APIs
+  - Reports API tests (asset, maintenance, cost)
+  - Schedules API tests (PM, work order)
+  - Users API tests (CRUD operations)
+  - **Acceptance:** All E2E tests pass
+
+- [ ] 🔴 Integration testing
+  - Test API interactions (e.g., schedule WO → update asset)
+  - Test caching behavior
+  - Test error scenarios
+  - **Acceptance:** Integration tests pass
+
+- [ ] 🟠 Performance testing
+  - 500 requests/min load test
+  - Concurrent API calls
+  - Monitor database query performance
+  - **Acceptance:** All APIs < 500ms p95
+
+**Deliverables:**
+
+- E2E test suite passing
+- Performance benchmarks documented
+
+---
+
+#### Thursday (Jan 9) - Staging Deployment
+
+**Owner:** Backend Engineer 1 + Backend Engineer 2
+
+**Tasks:**
+
+- [ ] 🔴 Deploy to staging
+  - Deploy all 6 API endpoints
+  - Run smoke tests
+  - Validate caching
+  - **Acceptance:** Staging deployment successful
+
+- [ ] 🔴 Staging validation
+  - Test all APIs manually
+  - Review CloudWatch metrics
+  - Check database indexes
+  - **Acceptance:** All APIs functional
+
+**Deliverables:**
+
+- Staging deployment complete
+- Validation tests passed
+
+---
+
+#### Friday (Jan 10) - Production Launch
+
+**Owner:** Full Team
+
+**Tasks:**
+
+- [ ] 🔴 Production deployment
+  - Deploy to production (blue-green)
+  - Gradual rollout: 25% → 100%
+  - Monitor error rates
+  - **Acceptance:** Production deployment successful
+
+- [ ] 🔴 Post-deployment monitoring
+  - Monitor API latency
+  - Monitor error rates
+  - Monitor cache hit rates
+  - **Acceptance:** All metrics healthy
+
+- [ ] 🟠 Documentation
+  - Publish API documentation
+  - Update developer portal
+  - Create user guides
+  - **Acceptance:** Documentation published
+
+- [ ] 🟡 Retrospective
+  - Sprint 2 review
+  - Lessons learned
+  - Action items
+  - **Acceptance:** Retrospective completed
+
+**Deliverables:**
+
+- 6 FM APIs live in production
+- Documentation complete
+- Retrospective notes published
+
+---
+
+## 📅 Sprint 3: FM Module APIs - Week 2 (2 Weeks)
+
+**Dates:** January 13-24, 2026  
+**Team:** 2 Backend Engineers, 1 Frontend Engineer, 1 QA Engineer  
+**Goal:** Implement 3 remaining FM APIs (Integrations, Roles, Budgets)
+
+### Week 1: Integrations API (Jan 13-17)
+
+#### API 7: External System Integrations (`GET/POST /api/fm/integrations`)
+
+**Owner:** Backend Engineer 1
+
+**Requirements:**
+
+- [ ] `GET /api/fm/integrations`: List all configured integrations (SAP, Oracle, etc.)
+- [ ] `POST /api/fm/integrations`: Configure new integration
+- [ ] Request body: `systemName`, `apiEndpoint`, `authType`, `credentials`
+- [ ] Validation: Test connection before saving
+- [ ] Encryption: Store credentials encrypted (AWS KMS)
+- [ ] **Acceptance:** Integration config works, credentials encrypted
+
+**Implementation Steps:**
+
+1. Define OpenAPI spec
+2. Create integration endpoints
+3. Implement credential encryption
+4. Add connection testing
+5. Write tests
+
+**Deliverables:**
+
+- Integration API functional
+- Tests passing
+- Documentation complete
+
+---
+
+#### API 8: Webhook Management (`POST /api/fm/webhooks`)
+
+**Owner:** Backend Engineer 2
+
+**Requirements:**
+
+- [ ] `POST /api/fm/webhooks`: Register webhook endpoint
+- [ ] Request body: `url`, `events`, `secret`
+- [ ] Events: `work_order_created`, `asset_updated`, `maintenance_completed`
+- [ ] Validation: Verify webhook URL responds
+- [ ] Security: HMAC signature verification
+- [ ] **Acceptance:** Webhooks fire on events
+
+**Implementation Steps:**
+
+1. Define OpenAPI spec
+2. Create webhook registration endpoint
+3. Implement event emitters
+4. Add HMAC signing
+5. Write tests
+
+**Deliverables:**
+
+- Webhook API functional
+- Tests passing
+
+---
+
+### Week 2: Roles & Budgets APIs (Jan 20-24)
+
+#### API 9: Role Management (`GET/POST/PATCH /api/fm/roles`)
+
+**Owner:** Backend Engineer 1
+
+**Requirements:**
+
+- [ ] `GET /api/fm/roles`: List all FM module roles (admin, manager, technician, viewer)
+- [ ] `POST /api/fm/roles`: Create custom role
+- [ ] Request body: `roleName`, `permissions[]`
+- [ ] Permissions: Granular (create_wo, edit_asset, view_reports, etc.)
+- [ ] **Acceptance:** RBAC working, custom roles functional
+
+**Implementation Steps:**
+
+1. Define OpenAPI spec
+2. Create role management endpoints
+3. Implement permission checking
+4. Write tests
+
+**Deliverables:**
+
+- Role API functional
+- Tests passing
+
+---
+
+#### API 10: Budget Management (`GET/POST/PATCH /api/fm/budgets`)
+
+**Owner:** Backend Engineer 2
+
+**Requirements:**
+
+- [ ] `GET /api/fm/budgets`: List all budgets (by category, department, date range)
+- [ ] `POST /api/fm/budgets`: Create new budget
+- [ ] Request body: `category`, `amount`, `startDate`, `endDate`, `organizationId`
+- [ ] Tracking: Track spend vs. budget in real-time
+- [ ] Alerts: Send alert when 80% budget consumed
+- [ ] **Acceptance:** Budget tracking works, alerts fire
+
+**Implementation Steps:**
+
+1. Define OpenAPI spec
+2. Create budget endpoints
+3. Implement spend tracking
+4. Add alert system
+5. Write tests
+
+**Deliverables:**
+
+- Budget API functional
+- Alerts working
+- Tests passing
+
+---
+
+#### Final Testing & Documentation (Jan 23-24)
+
+**Owner:** QA Engineer
+
+**Tasks:**
+
+- [ ] 🔴 E2E tests for APIs 7-10
+- [ ] 🔴 Integration testing
+- [ ] 🔴 Performance testing
+- [ ] 🟠 Documentation review
+- [ ] 🟡 Final deployment to production
+
+**Deliverables:**
+
+- All 10 FM APIs live
+- Documentation complete
+- Project closed
+
+---
+
+## 👥 Team Assignments
+
+### Backend Engineer 1 (Lead)
+
+**Responsibilities:**
+
+- S3 pre-signed URL API
+- KYC upload integration
+- FM Reports API (Assets, Costs)
+- FM Schedules API (Work Orders)
+- FM Integrations API
+- FM Roles API
+
+**Skillset Required:**
+
+- Node.js + TypeScript
+- AWS S3 + IAM
+- MongoDB aggregation pipelines
+- REST API design
+- Redis caching
+
+---
+
+### Backend Engineer 2
+
+**Responsibilities:**
+
+- ATS resume upload integration
+- Audit logging system
+- FM Reports API (Maintenance)
+- FM Schedules API (PM)
+- FM Users API
+- FM Webhooks API
+- FM Budgets API
+
+**Skillset Required:**
+
+- Node.js + TypeScript
+- MongoDB + Mongoose
+- WebSocket/webhook systems
+- Job queues (Bull/BullMQ)
+- Event-driven architecture
+
+---
+
+### Security Engineer
+
+**Responsibilities:**
+
+- S3 bucket security configuration
+- IAM policies (least privilege)
+- Virus scanning Lambda function
+- Encryption validation (at rest + in transit)
+- Security audit & penetration testing
+- GDPR/CCPA compliance review
+
+**Skillset Required:**
+
+- AWS security best practices
+- Lambda + ClamAV
+- Encryption (AES-256, TLS 1.3)
+- OWASP Top 10 mitigation
+- Compliance frameworks (GDPR, CCPA)
+
+---
+
+### Frontend Engineer
+
+**Responsibilities:**
+
+- KYC upload UI/UX (progress bar, error handling)
+- Resume preview feature
+- File upload component (reusable)
+- Error state design
+- Accessibility (WCAG 2.1 AA)
+
+**Skillset Required:**
+
+- React + TypeScript
+- Next.js 15
+- TailwindCSS
+- File upload libraries
+- Browser APIs (Fetch, Blob)
+
+---
+
+### QA Engineer
+
+**Responsibilities:**
+
+- E2E test suite (Playwright)
+- Integration testing
+- Performance/load testing
+- Staging validation
+- Production smoke tests
+- Test documentation
+
+**Skillset Required:**
+
+- Playwright/Cypress
+- API testing (Postman/Newman)
+- Load testing (k6/Artillery)
+- Test automation
+- CI/CD pipelines
+
+---
+
+## 💰 Budget Breakdown
+
+### Development Costs (8 Weeks)
+
+| Role                    | Weekly Hours | Hourly Rate | Duration | Total        |
+| ----------------------- | ------------ | ----------- | -------- | ------------ |
+| **Backend Engineer 1**  | 40           | $100        | 8 weeks  | $32,000      |
+| **Backend Engineer 2**  | 40           | $100        | 8 weeks  | $32,000      |
+| **Frontend Engineer**   | 40           | $90         | 2 weeks  | $7,200       |
+| **Security Engineer**   | 40           | $150        | 2 weeks  | $12,000      |
+| **QA Engineer**         | 40           | $80         | 8 weeks  | $25,600      |
+| **Engineering Manager** | 10           | $120        | 8 weeks  | $9,600       |
+| **TOTAL LABOR**         |              |             |          | **$118,400** |
+
+### Infrastructure Costs (First Year)
+
+| Service                       | Monthly Cost | Annual Cost |
+| ----------------------------- | ------------ | ----------- |
+| **AWS S3 Storage**            | $85          | $1,020      |
+| **AWS Lambda (Virus Scan)**   | $10          | $120        |
+| **Redis Cache (ElastiCache)** | $50          | $600        |
+| **CloudWatch Logs**           | $20          | $240        |
+| **AWS KMS (Encryption)**      | $10          | $120        |
+| **SNS Alerts**                | $5           | $60         |
+| **TOTAL INFRASTRUCTURE**      | **$180**     | **$2,160**  |
+
+### Total Project Cost
+
+- **Development:** $118,400 (one-time)
+- **Infrastructure (Year 1):** $2,160
+- **TOTAL:** **$120,560**
+
+---
+
+## ✅ Success Criteria
+
+### Sprint 1 (S3 Uploads)
+
+- [ ] KYC uploads working in production
+- [ ] Resume uploads working in production
+- [ ] Virus scanning operational (< 0.01% infected files)
+- [ ] 98%+ upload success rate
+- [ ] < 5s average upload time
+- [ ] Zero security vulnerabilities
+- [ ] GDPR/CCPA compliant
+
+### Sprint 2 (FM APIs 1-6)
+
+- [ ] 6 API endpoints live in production
+- [ ] < 500ms p95 latency
+- [ ] 99.9% uptime
+- [ ] 90%+ test coverage
+- [ ] API documentation published
+- [ ] Zero critical bugs
+
+### Sprint 3 (FM APIs 7-10)
+
+- [ ] 4 additional API endpoints live
+- [ ] All 10 FM APIs operational
+- [ ] Integration tests passing
+- [ ] Developer documentation complete
+- [ ] User guides published
+
+### Overall Program Success
+
+- [ ] 294-day technical debt eliminated
+- [ ] Marketplace seller onboarding functional
+- [ ] ATS module operational
+- [ ] FM module 100% API coverage
+- [ ] Customer satisfaction > 4.5/5
+- [ ] Zero P1/P2 production incidents
+
+---
+
+## 🚨 Risk Management
+
+### Risk 1: AWS Service Outages
+
+**Probability:** LOW | **Impact:** HIGH  
+**Mitigation:** Multi-region S3 replication + fallback to local storage
+
+### Risk 2: Scope Creep
+
+**Probability:** MEDIUM | **Impact:** HIGH  
+**Mitigation:** Strict sprint boundaries, defer non-critical features to backlog
+
+### Risk 3: Team Availability (Holiday Season)
+
+**Probability:** HIGH | **Impact:** MEDIUM  
+**Mitigation:** Front-load critical work to Dec 2-20, minimal work Dec 23-27
+
+### Risk 4: Integration Complexity (FM APIs)
+
+**Probability:** MEDIUM | **Impact:** MEDIUM  
+**Mitigation:** Allocate 20% buffer time, daily standups to identify blockers early
+
+### Risk 5: Production Deployment Issues
+
+**Probability:** LOW | **Impact:** HIGH  
+**Mitigation:** Blue-green deployments, gradual rollouts, 24/7 on-call rotation
+
+---
+
+## 📊 Progress Tracking
+
+### Weekly Standup (Monday 9am PST)
+
+- Review previous week's deliverables
+- Identify blockers
+- Adjust sprint plan if needed
+
+### Daily Async Updates (Slack #fm-sprint-2025)
+
+- What did you complete yesterday?
+- What will you work on today?
+- Any blockers?
+
+### Sprint Reviews (End of Each Sprint)
+
+- Demo to stakeholders
+- Gather feedback
+- Retrospective (what went well, what to improve)
+
+### Metrics Dashboard (Real-Time)
+
+- Sprint velocity (story points/week)
+- Bug count (P1/P2/P3)
+- Test coverage %
+- API latency (p50/p95/p99)
+- Deployment frequency
+
+---
+
+## 📞 Escalation Path
+
+**Level 1:** Engineering team resolves (< 4 hours)  
+**Level 2:** Engineering Manager escalates to CTO (< 24 hours)  
+**Level 3:** CTO escalates to CEO (> 24 hours or critical business impact)
+
+**On-Call Rotation (Starting Jan 13):**
+
+- Week 1: Backend Engineer 1
+- Week 2: Backend Engineer 2
+- Week 3: Backend Engineer 1
+- Week 4: Backend Engineer 2
+
+---
+
+**Schedule Created:** November 20, 2025  
+**Program Start:** December 2, 2025  
+**Program End:** January 24, 2026  
+**Status:** ⏳ **AWAITING EXECUTIVE APPROVAL**
+
+**Next Steps:**
+
+1. ✅ Executive sign-off required
+2. ✅ Team assignment confirmed
+3. ✅ Budget approval ($120K)
+4. ⏳ Kickoff meeting scheduled (Dec 2, 9am PST)
+5. ⏳ Sprint 1 begins
+
+]]>
+</file>
+
+<file path="docs/guides/E2E_TESTING_QUICK_START.md">
+<![CDATA[
+# 🚀 E2E Testing Quick Start Guide
+
+## Ready to Test? Start Here! 👇
+
+### 1. Start the Dev Server
+
+```bash
+cd /workspaces/Fixzit
+pnpm dev
+```
+
+**Server URL:** <http://localhost:3000> (or 3001/3002 if port in use)
+
+---
+
+### 2. Verify Authentication Works
+
+Test Super Admin login:
+
+```bash
+curl -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"superadmin@fixzit.co","password":"admin123"}'
+```
+
+**Expected Response:**
+
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": "...",
+    "email": "superadmin@fixzit.co",
+    "role": "super_admin",
+    "orgId": "..."
+  }
+}
+```
+
+---
+
+### 3. Test All 14 Users (Quick Verification)
+
+Copy and paste this entire block:
+
+```bash
+# Test all 14 users
+for email in \
+  "superadmin@fixzit.co" \
+  "corp.admin@fixzit.co" \
+  "property.manager@fixzit.co" \
+  "ops.dispatcher@fixzit.co" \
+  "supervisor@fixzit.co" \
+  "tech.internal@fixzit.co" \
+  "vendor.admin@fixzit.co" \
+  "vendor.tech@fixzit.co" \
+  "tenant.resident@fixzit.co" \
+  "owner.landlord@fixzit.co" \
+  "finance.manager@fixzit.co" \
+  "hr.manager@fixzit.co" \
+  "helpdesk.agent@fixzit.co" \
+  "auditor.compliance@fixzit.co"
+do
+  echo "Testing: $email"
+  curl -s -X POST http://localhost:3000/api/auth/login \
+    -H "Content-Type: application/json" \
+    -d "{\"email\":\"$email\",\"password\":\"Password123\"}" | \
+    jq -r 'if .token then "✅ SUCCESS" else "❌ FAILED: " + .error end'
+  echo ""
+done
+```
+
+**Expected:** All users should show ✅ SUCCESS
+
+---
+
+### 4. Begin Browser E2E Testing
+
+#### Open Browser
+
+Navigate to: **<http://localhost:3000/login>**
+
+#### Testing Checklist (50 minutes per user)
+
+**📋 For Each User:**
+
+1. **Login** (5 min)
+   - [ ] Enter credentials
+   - [ ] Click login button
+   - [ ] Verify successful redirect to dashboard
+   - [ ] Screenshot: Login success
+
+2. **Dashboard** (10 min)
+   - [ ] Page loads without errors
+   - [ ] Role-specific widgets visible
+   - [ ] Data displays correctly
+   - [ ] Screenshot: Dashboard view
+
+3. **Navigation** (10 min)
+   - [ ] All menu items accessible
+   - [ ] Sidebar navigation works
+   - [ ] TopBar links functional
+   - [ ] No 404 or 403 errors
+   - [ ] Screenshot: Navigation menu
+
+4. **Core Features** (20 min)
+   - [ ] Role-specific actions available
+   - [ ] Forms submit successfully
+   - [ ] Data CRUD operations work
+   - [ ] Permissions enforced
+   - [ ] Screenshot: Key feature pages
+
+5. **Permissions** (3 min)
+   - [ ] Can access allowed pages
+   - [ ] Cannot access restricted pages
+   - [ ] Proper error messages shown
+   - [ ] Screenshot: Permission denied (if applicable)
+
+6. **Logout** (2 min)
+   - [ ] Logout button works
+   - [ ] Redirected to login
+   - [ ] Session cleared
+   - [ ] Cannot access protected pages
+
+#### Document Results
+
+After each user, update `docs/testing/E2E_TEST_RESULTS.md`:
+
+```markdown
+### [User Role] - [Email]
+
+- **Status:** ✅ Pass / ⚠️ Issues Found / ❌ Failed
+- **Issues:**
+  1. [Severity] Brief description
+  2. [Severity] Brief description
+- **Screenshots:** [Folder/User-Role/]
+- **Notes:** Any observations
+```
+
+---
+
+### 5. Testing Order (Recommended)
+
+#### Session 1 (4 hours) - Admin & Management
+
+1. Super Admin (<superadmin@fixzit.co>)
+2. Corporate Admin (<corp.admin@fixzit.co>)
+3. Property Manager (<property.manager@fixzit.co>)
+4. Operations Dispatcher (<ops.dispatcher@fixzit.co>)
+5. Supervisor (<supervisor@fixzit.co>)
+
+#### Session 2 (4 hours) - Operational Roles
+
+6. Internal Technician (<tech.internal@fixzit.co>)
+7. Vendor Admin (<vendor.admin@fixzit.co>)
+8. Vendor Technician (<vendor.tech@fixzit.co>)
+9. Tenant/Resident (<tenant.resident@fixzit.co>)
+10. Owner/Landlord (<owner.landlord@fixzit.co>)
+
+#### Session 3 (3.5 hours) - Support & Compliance
+
+11. Finance Manager (<finance.manager@fixzit.co>)
+12. HR Manager (<hr.manager@fixzit.co>)
+13. Helpdesk Agent (<helpdesk.agent@fixzit.co>)
+14. Auditor/Compliance (<auditor.compliance@fixzit.co>)
+
+---
+
+### 6. Issue Tracking Template
+
+When you find an issue:
+
+```markdown
+#### Issue #[N]: [Brief Title]
+
+- **Severity:** Critical / High / Medium / Low
+- **User Role:** [Role that encountered issue]
+- **Location:** [Page/Component]
+- **Description:** [Detailed description]
+- **Steps to Reproduce:**
+  1. Step 1
+  2. Step 2
+  3. Step 3
+- **Expected:** [What should happen]
+- **Actual:** [What actually happened]
+- **Screenshot:** [Path to screenshot]
+- **Error Message:** [If any]
+```
+
+---
+
+### 7. Useful Commands
+
+```bash
+# Check MongoDB
+docker ps | grep mongo
+
+# View dev server logs
+tail -f /tmp/nextjs-dev.log
+
+# Check server health
+curl http://localhost:3000/api/qa/health
+
+# Restart dev server
+pkill -f "next dev" && pnpm dev
+
+# Run tests
+pnpm test
+
+# Type check
+pnpm typecheck
+
+# Lint
+pnpm lint
+```
+
+---
+
+### 8. Credentials Reference
+
+**All users:** Password `Password123`
+
+| #   | Email                          | Role                  | Organization     |
+| --- | ------------------------------ | --------------------- | ---------------- |
+| 1   | <superadmin@fixzit.co>         | super_admin           | platform-org-001 |
+| 2   | <corp.admin@fixzit.co>         | corporate_admin       | acme-corp-001    |
+| 3   | <property.manager@fixzit.co>   | property_manager      | acme-corp-001    |
+| 4   | <ops.dispatcher@fixzit.co>     | operations_dispatcher | acme-corp-001    |
+| 5   | <supervisor@fixzit.co>         | supervisor            | acme-corp-001    |
+| 6   | <tech.internal@fixzit.co>      | technician_internal   | acme-corp-001    |
+| 7   | <vendor.admin@fixzit.co>       | vendor_admin          | acme-corp-001    |
+| 8   | <vendor.tech@fixzit.co>        | vendor_technician     | acme-corp-001    |
+| 9   | <tenant.resident@fixzit.co>    | tenant_resident       | acme-corp-001    |
+| 10  | <owner.landlord@fixzit.co>     | owner_landlord        | acme-corp-001    |
+| 11  | <finance.manager@fixzit.co>    | finance_manager       | acme-corp-001    |
+| 12  | <hr.manager@fixzit.co>         | hr_manager            | acme-corp-001    |
+| 13  | <helpdesk.agent@fixzit.co>     | helpdesk_agent        | acme-corp-001    |
+| 14  | <auditor.compliance@fixzit.co> | auditor_compliance    | acme-corp-001    |
+
+---
+
+### 9. Success Criteria
+
+**Before declaring Phase 5 complete:**
+
+- [ ] All 14 users can successfully login
+- [ ] All 14 users can access their dashboards
+- [ ] Role-specific features work for each user
+- [ ] Permissions properly enforced
+- [ ] No critical or high severity blocking bugs
+- [ ] All results documented in docs/testing/E2E_TEST_RESULTS.md
+- [ ] Screenshots captured for each user
+- [ ] Issues categorized and prioritized
+
+---
+
+### 10. Documentation Files
+
+- **Testing Plan:** `docs/guides/E2E_TESTING_PLAN.md`
+- **Test Results:** `docs/testing/E2E_TEST_RESULTS.md`
+- **Blockers Fixed:** `docs/archived/E2E_TESTING_BLOCKERS_RESOLVED.md`
+- **Session Report:** `docs/archived/progress/PHASE5_AUTH_DEBUG_SESSION.md`
+- **Session Summary:** `/PHASE5_SESSION_SUMMARY.md`
+- **This Guide:** `/E2E_TESTING_QUICK_START.md`
+
+---
+
+## 🎯 You Are Here
+
+✅ Phase 1-4: Complete (File org, console cleanup, type safety, error elimination)  
+✅ Phase 5 Infrastructure: Complete (MongoDB, users, docs)  
+✅ Phase 5 Authentication: Complete (5 critical bugs fixed)  
+🔄 Phase 5 E2E Testing: **READY TO BEGIN** ⬅️ YOU ARE HERE  
+⏳ Phase 6: Final Verification (Pending)
+
+---
+
+## 🚦 Ready? Let's Go
+
+**Start with Step 1 above** ☝️
+
+Good luck with the testing! 🚀
+
+---
+
+**Need Help?**
+
+- All authentication bugs are fixed ✅
+- Test users are seeded and ready ✅
+- Documentation is comprehensive ✅
+- You've got this! 💪
+
+]]>
+</file>
+
+<file path="docs/guides/FIXZIT_QUICKSTART.md">
+<![CDATA[
+# Fixzit Governance System - Quick Start
+
+## Commands
+
+```bash
+# Build review packs
+npm run fixzit:pack:landing
+
+# Scan for duplicates
+npm run fixzit:dedupe:scan
+cat .fixzit/dedupe-report.md
+
+# Apply de-dupe (after review)
+npm run fixzit:dedupe:apply
+
+# Migrate MongoDB imports
+npm run fixzit:mongo:migrate
+
+# Run verification gates
+npm run fixzit:verify
+```
+
+## Workflow
+
+1. **Scan duplicates**: `npm run fixzit:dedupe:scan`
+2. **Build pack**: `npm run fixzit:pack:landing`
+3. **Claude review**: Drag `.fixzit/packs/landing-hydration/` into Claude
+4. **Verify**: `npm run fixzit:verify`
+5. **Commit with artifacts**: `git add .fixzit/artifacts/`
+
+## Documentation
+
+- `GOVERNANCE.md` - Non-negotiable rules
+- `CLAUDE_PROMPTS.md` - Prompt templates
+- `fixzit.pack.yaml` - Pack configurations
+
+]]>
+</file>
+
+<file path="docs/guides/GITHUB_SECRETS_SETUP_GUIDE.md">
+<![CDATA[
+# GitHub Secrets Setup Guide for Fixzit
+
+**Created**: October 16, 2025  
+**Status**: 🚀 Production Ready  
+**Purpose**: Configure GitHub repository secrets for CI/CD automation and secure credential management
+
+---
+
+## 📋 Overview
+
+This guide provides step-by-step instructions to configure all required GitHub repository secrets for the Fixzit application. These secrets enable:
+
+- ✅ Automated CI/CD deployments
+- ✅ Secure credential management
+- ✅ E2E test automation
+- ✅ Production environment configuration
+
+---
+
+## 🔐 Required Secrets
+
+### 1. Core Database & Authentication
+
+| Secret Name   | Description                          | Required | Example Value                                        |
+| ------------- | ------------------------------------ | -------- | ---------------------------------------------------- |
+| `MONGODB_URI` | MongoDB Atlas connection string      | ✅ Yes   | `mongodb+srv://user:pass@cluster.mongodb.net/fixzit` |
+| `MONGODB_DB`  | Database name                        | ✅ Yes   | `fixzit`                                             |
+| `JWT_SECRET`  | JWT token signing secret (32+ chars) | ✅ Yes   | Generate: `openssl rand -hex 32`                     |
+
+### 2. Payment Gateway (PayTabs - Saudi Arabia)
+
+| Secret Name          | Description                 | Required    | Example Value          |
+| -------------------- | --------------------------- | ----------- | ---------------------- |
+| `PAYTABS_PROFILE_ID` | PayTabs merchant profile ID | ✅ Yes      | `your_profile_id_here` |
+| `PAYTABS_SERVER_KEY` | PayTabs server API key      | ✅ Yes      | `your_server_key_here` |
+| `PAYTABS_CLIENT_KEY` | PayTabs client-side key     | 📋 Optional | `your_client_key_here` |
+
+### 3. AWS Services
+
+| Secret Name             | Description                | Required    | Example Value          |
+| ----------------------- | -------------------------- | ----------- | ---------------------- |
+| `AWS_ACCESS_KEY_ID`     | AWS access key for S3/SES  | 📋 Optional | `AKIA...`              |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret access key      | 📋 Optional | `wJalrXUtn...`         |
+| `AWS_REGION`            | AWS region                 | 📋 Optional | `me-south-1` (Bahrain) |
+| `AWS_S3_BUCKET`         | S3 bucket for file uploads | 📋 Optional | `fixzit-uploads`       |
+
+### 4. Email Services
+
+| Secret Name        | Description                       | Required    | Example Value           |
+| ------------------ | --------------------------------- | ----------- | ----------------------- |
+| `SENDGRID_API_KEY` | SendGrid API key                  | 📋 Optional | `SG.xxx...`             |
+| `EMAIL_HOST`       | SMTP host (if not using SendGrid) | 📋 Optional | `smtp.gmail.com`        |
+| `EMAIL_USER`       | SMTP username                     | 📋 Optional | `your_email@domain.com` |
+| `EMAIL_PASS`       | SMTP password                     | 📋 Optional | `app_specific_password` |
+
+### 5. SMS Services (Twilio)
+
+| Secret Name           | Description         | Required    | Example Value     |
+| --------------------- | ------------------- | ----------- | ----------------- |
+| `TWILIO_ACCOUNT_SID`  | Twilio account SID  | 📋 Optional | `AC...`           |
+| `TWILIO_AUTH_TOKEN`   | Twilio auth token   | 📋 Optional | `auth_token_here` |
+| `TWILIO_PHONE_NUMBER` | Twilio phone number | 📋 Optional | `+966xxxxxxxxx`   |
+
+### 6. Monitoring & Error Tracking
+
+| Secret Name       | Description               | Required    | Example Value               |
+| ----------------- | ------------------------- | ----------- | --------------------------- |
+| `SENTRY_DSN`      | Sentry error tracking DSN | 📋 Optional | `https://xxx@sentry.io/xxx` |
+| `DATADOG_API_KEY` | Datadog API key           | 📋 Optional | `api_key_here`              |
+
+### 7. Public Environment Variables
+
+| Secret Name                       | Description                       | Required    | Example Value       |
+| --------------------------------- | --------------------------------- | ----------- | ------------------- |
+| `NEXT_PUBLIC_APP_URL`             | Application public URL            | ✅ Yes      | `https://fixzit.sa` |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Google Maps API key (client-side) | 📋 Optional | `AIza...`           |
+
+---
+
+## 🚀 Setup Instructions
+
+### Method 1: Using GitHub Web Interface (Recommended)
+
+1. **Navigate to Repository Settings**:
+   - Go to `https://github.com/EngSayh/Fixzit`
+   - Click **Settings** → **Secrets and variables** → **Actions**
+
+2. **Add Repository Secrets**:
+   - Click **New repository secret**
+   - Enter **Name** (exactly as shown in tables above)
+   - Enter **Secret** value
+   - Click **Add secret**
+
+3. **Repeat** for all required secrets
+
+### Method 2: Using GitHub CLI (gh)
+
+```bash
+# Prerequisites
+gh auth login
+
+# Add secrets one by one
+gh secret set MONGODB_URI --body "mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@YOUR_CLUSTER.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit"
+
+gh secret set MONGODB_DB --body "fixzit"
+
+gh secret set JWT_SECRET --body "$(openssl rand -hex 32)"
+
+gh secret set PAYTABS_PROFILE_ID --body "your_profile_id_here"
+
+gh secret set PAYTABS_SERVER_KEY --body "your_server_key_here"
+
+gh secret set NEXT_PUBLIC_APP_URL --body "https://fixzit.sa"
+
+# Add optional secrets as needed
+gh secret set AWS_ACCESS_KEY_ID --body "your_aws_key"
+gh secret set AWS_SECRET_ACCESS_KEY --body "your_aws_secret"
+```
+
+### Method 3: Using Environment File (Batch Upload)
+
+Create a temporary file `secrets.txt` (DO NOT COMMIT):
+
+```bash
+# Create secrets file
+cat > /tmp/secrets.txt << 'EOF'
+MONGODB_URI=mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@YOUR_CLUSTER.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit
+MONGODB_DB=fixzit
+JWT_SECRET=your_32_plus_character_jwt_secret_here
+PAYTABS_PROFILE_ID=your_profile_id
+PAYTABS_SERVER_KEY=your_server_key
+NEXT_PUBLIC_APP_URL=https://fixzit.sa
+EOF
+
+# Upload all secrets
+while IFS='=' read -r key value; do
+  gh secret set "$key" --body "$value"
+done < /tmp/secrets.txt
+
+# Remove secrets file immediately
+rm /tmp/secrets.txt
+```
+
+---
+
+## ✅ Verification
+
+### 1. List All Secrets
+
+```bash
+# List configured secrets (values are hidden)
+gh secret list
+```
+
+### 2. Test in GitHub Actions
+
+Create a test workflow `.github/workflows/test-secrets.yml`:
+
+```yaml
+name: Test Secrets Configuration
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Test MongoDB Connection
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          MONGODB_DB: ${{ secrets.MONGODB_DB }}
+        run: |
+          node test_mongodb.js
+
+      - name: Verify Secrets Exist
+        run: |
+          echo "Checking required secrets..."
+          if [ -z "${{ secrets.MONGODB_URI }}" ]; then
+            echo "❌ MONGODB_URI not set"
+            exit 1
+          fi
+          echo "✅ MONGODB_URI is configured"
+
+          if [ -z "${{ secrets.JWT_SECRET }}" ]; then
+            echo "❌ JWT_SECRET not set"
+            exit 1
+          fi
+          echo "✅ JWT_SECRET is configured"
+
+          echo "✅ All required secrets are configured"
+```
+
+### 3. Run E2E Tests with Secrets
+
+```bash
+# Trigger E2E tests that use secrets
+gh workflow run e2e-tests.yml
+```
+
+---
+
+## 🔧 Current Configuration
+
+### ✅ Configured Locally (.env.local)
+
+The following secrets are currently configured in `.env.local` (not committed to git):
+
+```bash
+MONGODB_URI=mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@YOUR_CLUSTER.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit
+MONGODB_DB=fixzit
+```
+
+> **⚠️ SECURITY NOTE**: The actual MongoDB credentials should NEVER be committed to the repository. Replace `YOUR_USERNAME`, `YOUR_PASSWORD`, and `YOUR_CLUSTER` with your real values only in `.env.local` and GitHub Secrets.
+
+### 📋 Action Required
+
+**You need to manually add these secrets to GitHub** because the GitHub CLI doesn't have permission to manage secrets in this repository. Follow **Method 1 (Web Interface)** above.
+
+---
+
+## 📚 GitHub Actions Workflow Examples
+
+### Example 1: Deploy to Production
+
+```yaml
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          MONGODB_DB: ${{ secrets.MONGODB_DB }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+        run: npm run build
+
+      - name: Deploy to GoDaddy
+        env:
+          DEPLOY_KEY: ${{ secrets.GODADDY_DEPLOY_KEY }}
+        run: |
+          # Add deployment commands here
+          echo "Deploying to GoDaddy..."
+```
+
+### Example 2: Run E2E Tests
+
+```yaml
+name: E2E Tests
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright
+        run: npx playwright install --with-deps
+
+      - name: Run E2E tests
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          MONGODB_DB: ${{ secrets.MONGODB_DB }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: npm run test:e2e
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+```
+
+---
+
+## 🔒 Security Best Practices
+
+### ✅ DO
+
+- ✅ Generate strong random secrets: `openssl rand -hex 32`
+- ✅ Use GitHub Secrets for all sensitive data
+- ✅ Rotate secrets regularly (every 90 days)
+- ✅ Use different secrets for dev/staging/production
+- ✅ Limit secret access to required workflows only
+- ✅ Review GitHub Actions logs for accidental secret exposure
+
+### ❌ DON'T
+
+- ❌ Never commit secrets to `.env.local` or `.env`
+- ❌ Never log secret values in GitHub Actions
+- ❌ Don't use the same secrets across multiple projects
+- ❌ Don't share secrets via email or chat
+- ❌ Don't use weak or predictable secrets
+
+---
+
+## 📖 Reference Documentation
+
+- [GitHub Actions Secrets](https://docs.github.com/en/actions/security-guides/encrypted-secrets)
+- [MongoDB Atlas Connection Strings](https://www.mongodb.com/docs/atlas/driver-connection/)
+- [Next.js Environment Variables](https://nextjs.org/docs/app/building-your-application/configuring/environment-variables)
+- [PayTabs Integration](https://site.paytabs.com/en/documentation/)
+
+---
+
+## 🆘 Troubleshooting
+
+### Issue: "gh secret set" returns 403 Forbidden
+
+**Cause**: GitHub CLI doesn't have permission to manage secrets in this repository.
+
+**Solution**: Use Method 1 (Web Interface) instead.
+
+### Issue: Secrets not available in workflow
+
+**Cause**: Secrets are only available to workflows from the same repository.
+
+**Solution**: Ensure workflow is triggered from the same repository.
+
+### Issue: MongoDB connection fails in GitHub Actions
+
+**Cause**: MongoDB Atlas IP whitelist doesn't include GitHub Actions IPs.
+
+**Solution**:
+
+1. Go to MongoDB Atlas → Network Access
+2. Add `0.0.0.0/0` (allow from anywhere) for GitHub Actions
+3. Or use specific GitHub Actions IP ranges
+
+---
+
+## ✅ Completion Checklist
+
+- [ ] All required secrets added to GitHub repository
+- [ ] MongoDB connection tested from GitHub Actions
+- [ ] E2E tests pass with GitHub Secrets
+- [ ] Deployment workflow configured
+- [ ] Secrets rotation schedule established
+- [ ] Team members have appropriate access levels
+- [ ] `.env.local` never committed to git (.gitignore verified)
+- [ ] Documentation updated with any project-specific secrets
+
+---
+
+**Next Steps**:
+
+1. Add all secrets to GitHub repository (Method 1 recommended)
+2. Run verification workflow
+3. Test deployment with secrets
+4. Document any additional project-specific secrets
+5. Set up secret rotation reminders (90 days)
+
+---
+
+**Report Generated**: October 16, 2025  
+**Status**: ✅ Ready for Implementation  
+**Maintainer**: Eng. Sultan Al Hassni (@EngSayh)
+
+]]>
+</file>
+
+<file path="docs/guides/GODADDY_DEPLOYMENT_GUIDE.md">
+<![CDATA[
+# Direct GoDaddy Deployment Guide for Fixzit
+
+## Why Deploy Directly to GoDaddy?
+
+✅ **You own the hosting** - Already paying for it, why pay elsewhere?  
+✅ **Full control** - No third-party limitations  
+✅ **Cost effective** - Use what you're already paying for  
+✅ **Direct domain connection** - No DNS complexity
+
+## GoDaddy Hosting Types & Compatibility
+
+### 1. **Shared Hosting** ❌ (NOT COMPATIBLE)
+
+- **Does NOT support Node.js**
+- Only supports PHP, HTML, static files
+- **Solution**: Upgrade to VPS or use static export
+
+### 2. **VPS Hosting** ✅ (RECOMMENDED)
+
+- **Supports Node.js** fully
+- Full server control with SSH access
+- Can install any dependencies
+- **This guide assumes VPS**
+
+### 3. **Dedicated Server** ✅ (BEST)
+
+- Same as VPS but more powerful
+- Same setup process as VPS
+
+### 4. **cPanel Hosting** ⚠️ (LIMITED)
+
+- Some plans support Node.js apps
+- Limited control, uses Node.js Selector
+- Not ideal for Next.js
+
+---
+
+## Deployment Options for GoDaddy
+
+### Option A: Direct VPS Deployment (Full Next.js)
+
+**Best if you have**: GoDaddy VPS or Dedicated Server
+
+#### What You'll Deploy
+
+- Full Next.js 15 application with API routes
+- Server-side rendering (SSR)
+- Dynamic features
+- MongoDB connection
+- File uploads, real-time features
+
+#### Requirements
+
+- ✅ Node.js 18+ installed on server
+- ✅ SSH access to your GoDaddy server
+- ✅ PM2 or systemd for process management
+- ✅ Nginx as reverse proxy
+- ✅ MongoDB (either on same server or external)
+
+---
+
+### Option B: Static Export (For Shared Hosting)
+
+**Best if you have**: GoDaddy Shared Hosting (cPanel)
+
+#### What You'll Deploy
+
+- Static HTML/CSS/JS files
+- No server-side rendering
+- No API routes (need external backend)
+- Just the frontend
+
+#### Limitations
+
+- ❌ No dynamic server-side features
+- ❌ No API routes in Next.js
+- ❌ No authentication through NextAuth
+- ✅ Fast and simple
+- ✅ Works on any hosting
+
+---
+
+## FULL GUIDE: Deploy to GoDaddy VPS
+
+### Step 1: Check Your GoDaddy Hosting Type
+
+**Log in to GoDaddy**:
+
+1. Go to: <https://account.godaddy.com/products>
+2. Find your hosting plan
+3. Look for:
+   - "VPS Hosting" or "Virtual Private Server" ✅
+   - "Dedicated Server" ✅
+   - "Web Hosting" or "cPanel" ❌
+
+**If you have VPS or Dedicated**, continue below.  
+**If you have Shared Hosting**, scroll to "Static Export Option"
+
+---
+
+### Step 2: Connect to Your GoDaddy VPS
+
+#### Get Your SSH Credentials
+
+1. Go to GoDaddy → My Products → VPS Hosting
+2. Click "Manage"
+3. Find SSH access details:
+   - **IP Address**: e.g., 123.45.67.89
+   - **Username**: Usually `root` or your username
+   - **Port**: Usually 22
+
+#### Connect via SSH
+
+```bash
+# From your MacBook Terminal
+ssh root@YOUR_SERVER_IP
+
+# Or if custom port
+ssh -p 2222 root@YOUR_SERVER_IP
+```
+
+If you need to set up SSH key authentication:
+
+```bash
+# On your MacBook, generate SSH key if you don't have one
+ssh-keygen -t ed25519 -C "your_email@example.com"
+
+# Copy public key to server
+ssh-copy-id root@YOUR_SERVER_IP
+```
+
+---
+
+### Step 3: Prepare Your GoDaddy Server
+
+Once connected via SSH, run these commands:
+
+#### Update System
+
+```bash
+# For Ubuntu/Debian
+sudo apt update && sudo apt upgrade -y
+
+# For CentOS/RHEL
+sudo yum update -y
+```
+
+#### Install Node.js 18+
+
+```bash
+# For Ubuntu/Debian
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# Verify installation
+node --version  # Should show v20.x.x
+npm --version
+```
+
+#### Install Git
+
+```bash
+sudo apt-get install -y git
+
+# Or for CentOS
+sudo yum install -y git
+```
+
+#### Install PM2 (Process Manager)
+
+```bash
+sudo npm install -g pm2
+```
+
+#### Install Nginx (Reverse Proxy)
+
+```bash
+# Ubuntu/Debian
+sudo apt-get install -y nginx
+
+# CentOS/RHEL
+sudo yum install -y nginx
+
+# Start and enable Nginx
+sudo systemctl start nginx
+sudo systemctl enable nginx
+```
+
+---
+
+### Step 4: Set Up MongoDB
+
+#### Option A: MongoDB on Same Server
+
+```bash
+# Install MongoDB
+wget -qO - https://www.mongodb.org/static/pgp/server-7.0.asc | sudo apt-key add -
+echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+sudo apt-get update
+sudo apt-get install -y mongodb-org
+
+# Start MongoDB
+sudo systemctl start mongod
+sudo systemctl enable mongod
+
+# Create database user
+mongosh
+> use fixzit
+> db.createUser({
+    user: "fixzituser",
+    pwd: "your_secure_password",
+    roles: ["readWrite"]
+  })
+> exit
+```
+
+#### Option B: Use MongoDB Atlas (Recommended)
+
+- Go to: <https://www.mongodb.com/cloud/atlas>
+- Create free cluster
+- Get connection string: `mongodb+srv://user:pass@cluster.mongodb.net/fixzit`
+
+---
+
+### Step 5: Deploy Your Application
+
+#### Create Application Directory
+
+```bash
+cd /var/www
+sudo mkdir fixzit
+sudo chown $USER:$USER fixzit
+cd fixzit
+```
+
+#### Clone Your Repository
+
+```bash
+# Using HTTPS
+git clone https://github.com/EngSayh/Fixzit.git .
+
+# Or using SSH (if you set up deploy keys)
+git clone git@github.com:EngSayh/Fixzit.git .
+```
+
+#### Install Dependencies
+
+```bash
+npm install
+```
+
+#### Configure Environment Variables
+
+```bash
+# Create .env.local
+nano .env.local
+```
+
+Add your environment variables:
+
+```env
+# MongoDB
+MONGODB_URI=mongodb://fixzituser:your_secure_password@localhost:27017/fixzit
+# Or if using Atlas:
+# MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/fixzit
+
+# NextAuth
+NEXTAUTH_URL=https://yourdomain.com
+NEXTAUTH_SECRET=your_very_long_random_secret_key_here
+
+# AWS S3 (if using)
+AWS_ACCESS_KEY_ID=your_access_key
+AWS_SECRET_ACCESS_KEY=your_secret_key
+AWS_REGION=us-east-1
+AWS_S3_BUCKET=your-bucket-name
+
+# Add any other environment variables from your env.example
+```
+
+Press `Ctrl+X`, then `Y`, then `Enter` to save.
+
+#### ⚠️ Security Warning: Protect Your Environment Variables
+
+**IMPORTANT**: Never commit `.env.local` to version control!
+
+1. **Verify `.gitignore`**: Ensure `.env.local` is listed in your `.gitignore` file. Add it if missing:
+
+   ```bash
+   echo ".env.local" >> .gitignore
+   ```
+
+2. **Restrict file permissions**: Make the file readable only by the owner:
+
+   ```bash
+   chmod 600 .env.local
+   ```
+
+3. **Use strong secrets**: Generate random secrets with a secure tool:
+
+   ```bash
+   # Generate a secure secret (use this for NEXTAUTH_SECRET)
+   openssl rand -base64 32
+   ```
+
+4. **Separate credentials**: Use different passwords/keys for production and development. Never reuse production credentials in development environments.
+
+#### Build the Application
+
+```bash
+npm run build
+```
+
+This should complete successfully on the VPS (it has better resources than Codespaces).
+
+---
+
+### Step 6: Configure PM2 to Run Your App
+
+#### Create PM2 Ecosystem File
+
+```bash
+nano ecosystem.config.js
+```
+
+Add this configuration:
+
+```javascript
+module.exports = {
+  apps: [
+    {
+      name: "fixzit",
+      script: "npm",
+      args: "start",
+      cwd: "/var/www/fixzit",
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: "1G",
+      env: {
+        NODE_ENV: "production",
+        PORT: 3000,
+      },
+    },
+  ],
+};
+```
+
+#### Start Your Application
+
+```bash
+pm2 start ecosystem.config.js
+pm2 save
+pm2 startup
+```
+
+The last command will output a command to run - **copy and run it**.
+
+#### Check App Status
+
+```bash
+pm2 status
+pm2 logs fixzit
+```
+
+Your app is now running on port 3000!
+
+---
+
+### Step 7: Configure Nginx as Reverse Proxy
+
+#### Create Nginx Configuration
+
+```bash
+sudo nano /etc/nginx/sites-available/fixzit
+```
+
+Add this configuration (replace `yourdomain.com` with your actual domain):
+
+```nginx
+server {
+    listen 80;
+    server_name yourdomain.com www.yourdomain.com;
+
+    # Rate limiting
+    limit_req_zone $binary_remote_addr zone=general:10m rate=10r/s;
+    limit_req zone=general burst=20 nodelay;
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+
+    # Logs
+    access_log /var/log/nginx/fixzit_access.log;
+    error_log /var/log/nginx/fixzit_error.log;
+
+    # Proxy to Next.js
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+
+        # Timeouts
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+
+    # Static files with caching
+    location /_next/static {
+        proxy_pass http://localhost:3000;
+        proxy_cache_valid 200 365d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # Public files
+    location /public {
+        proxy_pass http://localhost:3000;
+        proxy_cache_valid 200 1h;
+    }
+}
+```
+
+#### Enable the Site
+
+```bash
+# Create symlink
+sudo ln -s /etc/nginx/sites-available/fixzit /etc/nginx/sites-enabled/
+
+# Remove default site
+sudo rm /etc/nginx/sites-enabled/default
+
+# Test configuration
+sudo nginx -t
+
+# Reload Nginx
+sudo systemctl reload nginx
+```
+
+---
+
+### Step 8: Point Your GoDaddy Domain to VPS
+
+#### Get Your VPS IP Address
+
+```bash
+curl ifconfig.me
+# Note this IP address, e.g., 123.45.67.89
+```
+
+#### Update DNS Records in GoDaddy
+
+1. Go to: <https://dnsmanagement.godaddy.com>
+2. Find your domain
+3. Click "DNS" or "Manage DNS"
+4. Update/Add these records:
+
+   ```
+   Type: A
+   Name: @
+   Value: YOUR_VPS_IP_ADDRESS (e.g., 123.45.67.89)
+   TTL: 600 (10 minutes)
+
+   Type: A
+   Name: www
+   Value: YOUR_VPS_IP_ADDRESS (e.g., 123.45.67.89)
+   TTL: 600
+   ```
+
+5. Save changes
+
+**DNS propagation takes 10-60 minutes**. You can check progress:
+
+```bash
+# On your MacBook
+dig yourdomain.com
+nslookup yourdomain.com
+```
+
+---
+
+### Step 9: Set Up SSL Certificate (HTTPS)
+
+#### Install Certbot
+
+```bash
+sudo apt-get install -y certbot python3-certbot-nginx
+```
+
+#### Get SSL Certificate
+
+```bash
+sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+```
+
+Follow the prompts:
+
+- Enter your email
+- Agree to terms
+- Choose to redirect HTTP to HTTPS (option 2)
+
+#### Auto-Renewal
+
+Certbot automatically sets up renewal. Test it:
+
+```bash
+sudo certbot renew --dry-run
+```
+
+**Your site is now live with HTTPS!** 🎉
+
+---
+
+### Step 10: Set Up Automatic Deployments
+
+#### Option A: Manual Deployment Script
+
+Create a deployment script on your server:
+
+```bash
+nano /var/www/fixzit/deploy.sh
+```
+
+Add:
+
+```bash
+#!/bin/bash
+set -e
+
+echo "🚀 Deploying Fixzit..."
+
+# Pull latest code
+cd /var/www/fixzit
+git pull origin main
+
+# Install dependencies
+npm install
+
+# Build
+npm run build
+
+# Restart app
+pm2 restart fixzit
+
+echo "✅ Deployment complete!"
+```
+
+Make it executable:
+
+```bash
+chmod +x /var/www/fixzit/deploy.sh
+```
+
+To deploy updates:
+
+```bash
+cd /var/www/fixzit
+./deploy.sh
+```
+
+---
+
+#### Option B: GitHub Actions Auto-Deploy
+
+Create `.github/workflows/deploy-godaddy.yml` in your repository:
+
+```yaml
+name: Deploy to GoDaddy VPS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /var/www/fixzit
+            git pull origin main
+            npm install
+            npm run build
+            pm2 restart fixzit
+```
+
+**Set up deploy key and GitHub secrets**:
+
+⚠️ **Security Best Practice**: Never use your personal SSH key for automation. Create a dedicated deploy key instead.
+
+1. **Generate a dedicated deploy key** (on your local machine):
+
+   ```bash
+   # Create a dedicated key pair for deployment
+   ssh-keygen -t ed25519 -f ~/.ssh/deploy_key -C "fixzit-deploy"
+   # Press Enter when prompted for passphrase (no passphrase for CI/CD)
+   ```
+
+2. **Copy the public key to your VPS**:
+
+   ```bash
+   # Copy the public key
+   cat ~/.ssh/deploy_key.pub
+
+   # SSH to your VPS and add it to authorized_keys
+   ssh root@YOUR_VPS_IP
+   mkdir -p ~/.ssh
+   chmod 700 ~/.ssh
+   echo "YOUR_PUBLIC_KEY_HERE" >> ~/.ssh/authorized_keys
+   chmod 600 ~/.ssh/authorized_keys
+   exit
+   ```
+
+3. **Add secrets to GitHub**:
+   - Go to: <https://github.com/EngSayh/Fixzit/settings/secrets/actions>
+   - Add these secrets:
+     - `VPS_HOST`: Your VPS IP address
+     - `VPS_USERNAME`: Usually `root` or your deploy user
+     - `DEPLOY_SSH_KEY`: The **private** deploy key (from `~/.ssh/deploy_key`, NOT your personal key)
+
+   ```bash
+   # Display the private key to copy to GitHub Secrets
+   cat ~/.ssh/deploy_key
+   ```
+
+4. **Security notes**:
+   - ⚠️ Never use personal SSH keys (`~/.ssh/id_ed25519`) for automation
+   - 🔒 The deploy key should only have access to the deployment server
+   - 🔄 Rotate the deploy key periodically (every 90-180 days)
+   - 🗑️ Revoke the key immediately if compromised
+
+Now every push to `main` will auto-deploy securely! 🚀
+
+---
+
+## Quick Reference Commands
+
+### On Your VPS
+
+```bash
+# View app status
+pm2 status
+
+# View logs
+pm2 logs fixzit
+
+# Restart app
+pm2 restart fixzit
+
+# Deploy updates manually
+cd /var/www/fixzit && ./deploy.sh
+
+# Check Nginx status
+sudo systemctl status nginx
+
+# Reload Nginx config
+sudo systemctl reload nginx
+```
+
+### Troubleshooting
+
+```bash
+# Check if port 3000 is listening
+netstat -tlnp | grep 3000
+
+# Check Nginx error logs
+sudo tail -f /var/log/nginx/fixzit_error.log
+
+# Check PM2 logs
+pm2 logs fixzit --lines 100
+
+# Check MongoDB status
+sudo systemctl status mongod
+```
+
+---
+
+## Cost Comparison
+
+| Service                       | Monthly Cost         | Build Time          | Setup Complexity |
+| ----------------------------- | -------------------- | ------------------- | ---------------- |
+| **GoDaddy VPS** (your option) | $5-20 (already paid) | Fast on VPS         | Medium           |
+| **Vercel**                    | Free tier / $20+     | Very fast           | Easy             |
+| **AWS EC2**                   | $5-50+               | Depends on instance | Complex          |
+| **DigitalOcean**              | $6-40                | Fast                | Medium           |
+
+**Bottom line**: If you already have GoDaddy VPS, use it! No additional cost.
+
+---
+
+## What Type of GoDaddy Hosting Do You Have?
+
+Please tell me:
+
+1. **What GoDaddy plan do you have?** (VPS, Shared, Dedicated)
+2. **Do you have SSH access?** (Can you log in via terminal?)
+3. **What's your domain name?** (so I can help configure DNS)
+
+Based on your answers, I'll give you the exact steps for your situation! 🎯
+
+]]>
+</file>
+
+<file path="docs/guides/GOOGLE_MAPS_API_SETUP.md">
+<![CDATA[
+# Google Maps API Key Setup
+
+## API Key Received
+
+```
+[REDACTED - API Key stored in GitHub Secrets and .env.local]
+```
+
+## Setup Instructions
+
+### 1. Add to GitHub Secrets (Manual)
+
+Since GitHub CLI cannot set secrets from Codespaces, please add manually:
+
+1. Go to: <https://github.com/EngSayh/Fixzit/settings/secrets/actions>
+2. Click "New repository secret"
+3. Name: `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
+4. Value: `[Your Google Maps API Key]`
+5. Click "Add secret"
+
+### 2. Add to Local Environment
+
+For local development, create `.env.local` (if not exists):
+
+```bash
+# In /workspaces/Fixzit directory
+cp env.example .env.local
+```
+
+Then add to `.env.local`:
+
+```bash
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=[Your_Google_Maps_API_Key]
+GOOGLE_MAPS_API_KEY=[Your_Google_Maps_API_Key]
+```
+
+### 3. Restart Dev Server
+
+After adding to `.env.local`:
+
+```bash
+# Find and kill the current dev server process
+ps aux | grep "pnpm dev"
+kill <PID>
+
+# Start fresh
+pnpm dev
+```
+
+### 4. Enable Required Google Maps APIs
+
+Make sure these APIs are enabled in your Google Cloud Console:
+
+- ✅ Maps JavaScript API
+- ✅ Places API
+- ✅ Geocoding API
+- ✅ Directions API (if using routing)
+- ✅ Distance Matrix API (if calculating distances)
+
+Visit: <https://console.cloud.google.com/apis/library>
+
+### 5. Set API Key Restrictions (Recommended for Security)
+
+In Google Cloud Console:
+
+**Application Restrictions:**
+
+- HTTP referrers (websites)
+- Add: `http://localhost:3000/*`
+- Add: `https://yourdomain.com/*`
+
+**API Restrictions:**
+
+- Restrict to: Maps JavaScript API, Places API, Geocoding API
+
+## Component Using Google Maps
+
+The key is used in:
+
+- `components/GoogleMap.tsx` - Main map component
+- Property location selection
+- Asset location tracking
+- Work order location mapping
+
+## Verification
+
+After setup, test the map component:
+
+1. Navigate to any page with map (e.g., Properties)
+2. Check browser console for errors
+3. Map should load without "For development purposes only" watermark
+
+## Security Notes
+
+- ✅ API key saved to GitHub Secrets (secure)
+- ✅ Not committed to git
+- ⚠️ Add domain restrictions in Google Cloud Console
+- ⚠️ Monitor usage at: <https://console.cloud.google.com/apis/dashboard>
+
+## Troubleshooting
+
+**Map shows "For development purposes only":**
+
+- API key not loaded properly
+- Check `.env.local` exists and has correct key
+- Restart dev server
+
+**Map doesn't load at all:**
+
+- Check browser console for errors
+- Verify APIs are enabled in Google Cloud Console
+- Check API key restrictions
+
+**"This API key is not authorized":**
+
+- Add current domain to allowed referrers
+- Remove API restrictions temporarily for testing
+
+]]>
+</file>
+
+<file path="docs/guides/GOOGLE_OAUTH_PRODUCTION_READY.md">
+<![CDATA[
+# Google OAuth Configuration - Production Ready ✅
+
+**Date**: November 21, 2025  
+**Status**: ✅ Production Ready  
+**Priority**: HIGH (Required for OAuth authentication)
+
+---
+
+## 🎯 Problem Statement
+
+Google OAuth credentials were added to **GitHub Secrets** but the application was still showing warnings:
+
+```
+⚠️  Google OAuth not configured. Only credentials authentication will be available.
+```
+
+**Root Cause**: GitHub Secrets only apply in CI/CD environments. Local development and Playwright tests need credentials in environment files (`.env.local` and `.env.test`).
+
+---
+
+## ✅ Solution Implemented
+
+### 1. **Enhanced Environment File Templates**
+
+**Files Updated:**
+
+- `.env.example` - Added detailed Google OAuth documentation
+- `.env.test.example` - Added authentication section with Google OAuth
+
+**Improvements:**
+
+- ✅ Clear instructions on where to get credentials
+- ✅ Explanation of redirect URIs
+- ✅ Warning that both credentials must be set together
+- ✅ Documentation that credentials are optional but recommended
+
+### 2. **Playwright Configuration Enhancement**
+
+**File**: `playwright.config.ts`
+
+**Changes:**
+
+```typescript
+// Added dotenv import and loading
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+
+// Load .env.test automatically
+const envPath = path.resolve(process.cwd(), '.env.test');
+dotenv.config({ path: envPath });
+
+// Pass credentials to webServer
+webServer: {
+  env: {
+    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
+    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',
+    SKIP_ENV_VALIDATION: process.env.CI ? 'false' : 'true',
+    // ... other env vars
+  }
+}
+```
+
+**Benefits:**
+
+- ✅ Automatically loads `.env.test` for Playwright
+- ✅ Passes Google credentials to test server
+- ✅ Removes warning logs during tests
+- ✅ Works in both local and CI environments
+
+### 3. **Improved Auth Configuration Logging**
+
+**File**: `auth.config.ts`
+
+**Changes:**
+
+```typescript
+// Better validation messages
+if (!GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_SECRET) {
+  if (process.env.NODE_ENV === "production") {
+    logger.warn("⚠️  [PRODUCTION] Google OAuth not configured.");
+    logger.warn(
+      "   Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to enable OAuth login.",
+    );
+  } else {
+    logger.info("ℹ️  Google OAuth not configured (optional).");
+    logger.info(
+      "   To enable: Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env.local",
+    );
+  }
+} else if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+  // Partial config - error
+  logger.error("❌ Google OAuth partial configuration detected!");
+  logger.error(
+    "   Both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set together.",
+  );
+} else {
+  // Fully configured
+  logger.info("✅ Google OAuth configured successfully.");
+}
+```
+
+**Benefits:**
+
+- ✅ Clear distinction between dev/production
+- ✅ Helpful error messages with solutions
+- ✅ Success confirmation when properly configured
+- ✅ Explains that credentials are optional
+
+### 4. **GitHub Actions E2E Test Workflow**
+
+**File**: `.github/workflows/e2e-tests.yml` (NEW)
+
+**Features:**
+
+- ✅ Runs Playwright tests in CI
+- ✅ Uses GitHub Secrets for credentials
+- ✅ Sets up test MongoDB container
+- ✅ Uploads test reports and error artifacts
+- ✅ Posts results to PR comments
+- ✅ Runs in parallel for different projects
+
+**Environment Variables:**
+
+```yaml
+env:
+  GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+  GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+  NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+  MONGODB_URI: mongodb://localhost:27017/fixzit_test
+  NODE_ENV: test
+  CI: "true"
+```
+
+### 5. **Automated Setup Script**
+
+**File**: `scripts/setup-google-oauth.sh` (NEW)
+
+**Features:**
+
+- ✅ Interactive credential entry
+- ✅ Validates credential format
+- ✅ Creates backups before modifying files
+- ✅ Updates both `.env.local` and `.env.test`
+- ✅ Verifies configuration after setup
+- ✅ Color-coded output for clarity
+
+**Usage:**
+
+```bash
+./scripts/setup-google-oauth.sh
+```
+
+### 6. **Comprehensive Documentation**
+
+**Files Created:**
+
+- `docs/GOOGLE_OAUTH_SETUP.md` - Full setup guide (step-by-step)
+- `GOOGLE_OAUTH_SETUP.md` - Quick start guide
+
+**Coverage:**
+
+- ✅ How to get Google OAuth credentials
+- ✅ Step-by-step setup instructions
+- ✅ Local environment configuration
+- ✅ GitHub Secrets configuration
+- ✅ Verification steps
+- ✅ Troubleshooting guide
+- ✅ Security best practices
+
+---
+
+## 📋 Required Actions
+
+### For Local Development
+
+**Option 1: Automated (Recommended)**
+
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+./scripts/setup-google-oauth.sh
+```
+
+**Option 2: Manual**
+
+1. Copy your Google OAuth credentials from Google Cloud Console
+2. Add to `.env.local`:
+   ```bash
+   GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+   GOOGLE_CLIENT_SECRET=GOCSPX-your-client-secret
+   ```
+3. Add to `.env.test` (same credentials)
+4. Restart dev server: `pnpm dev`
+
+### For CI/CD (Already Done ✅)
+
+GitHub Secrets are already configured:
+
+- ✅ `GOOGLE_CLIENT_ID`
+- ✅ `GOOGLE_CLIENT_SECRET`
+
+These will automatically be used by the E2E test workflow.
+
+---
+
+## 🧪 Verification Steps
+
+### Local Development
+
+```bash
+# 1. Start dev server
+pnpm dev
+
+# Expected output:
+# ✅ Google OAuth configured successfully.
+
+# 2. Visit login page
+open http://localhost:3000/login
+
+# 3. Verify "Sign in with Google" button appears
+```
+
+### Playwright Tests
+
+```bash
+# 1. Run smoke tests
+pnpm exec playwright test tests/specs/smoke.spec.ts --project="Mobile:AR:Tenant"
+
+# Expected: No OAuth warning in console
+# Previous: ⚠️  Google OAuth not configured.
+# Now:      ✅ Google OAuth configured successfully.
+```
+
+### GitHub Actions
+
+1. Push code or open PR
+2. E2E test workflow runs automatically
+3. Check workflow logs for:
+   ```
+   ✅ Google OAuth configured successfully.
+   ```
+
+---
+
+## 🔒 Security Enhancements
+
+### Environment Variable Validation
+
+- ✅ Startup validation for required secrets
+- ✅ Clear error messages with resolution steps
+- ✅ Separate validation for CI vs development
+- ✅ Optional OAuth (credentials-only auth still works)
+
+### Best Practices Applied
+
+- ✅ Separate dev/test/prod credentials
+- ✅ `.env.local` and `.env.test` in `.gitignore`
+- ✅ GitHub Secrets for CI/CD
+- ✅ No hardcoded credentials in source code
+- ✅ Credential format validation in setup script
+
+---
+
+## 📊 Impact Summary
+
+### Before
+
+```
+❌ Local dev: OAuth warnings
+❌ Playwright tests: OAuth warnings
+❌ Unclear how to configure OAuth
+❌ GitHub Secrets ignored in local env
+❌ No automated setup process
+❌ Manual documentation needed
+```
+
+### After
+
+```
+✅ Local dev: Clean startup (no warnings)
+✅ Playwright tests: Clean execution
+✅ Clear setup documentation
+✅ GitHub Secrets work in CI
+✅ Automated setup script available
+✅ Comprehensive troubleshooting guide
+✅ Production-ready configuration
+```
+
+---
+
+## 📝 Files Modified/Created
+
+### Modified
+
+1. `.env.example` - Enhanced Google OAuth documentation
+2. `.env.test.example` - Added authentication section
+3. `playwright.config.ts` - Load .env.test automatically
+4. `auth.config.ts` - Improved validation and logging
+
+### Created
+
+1. `.github/workflows/e2e-tests.yml` - E2E test workflow
+2. `scripts/setup-google-oauth.sh` - Automated setup script
+3. `docs/GOOGLE_OAUTH_SETUP.md` - Full setup guide
+4. `GOOGLE_OAUTH_SETUP.md` - Quick start guide
+5. `GOOGLE_OAUTH_PRODUCTION_READY.md` - This document
+
+---
+
+## 🎯 Next Steps
+
+### Immediate (Required)
+
+1. ✅ Run setup script: `./scripts/setup-google-oauth.sh`
+2. ✅ Verify local dev: `pnpm dev`
+3. ✅ Verify tests: `pnpm exec playwright test`
+
+### Optional (Recommended)
+
+1. ✅ Create separate Google Cloud projects for dev/prod
+2. ✅ Set up OAuth consent screen branding
+3. ✅ Add production redirect URIs
+4. ✅ Enable OAuth audit logging
+5. ✅ Set up credential rotation schedule
+
+---
+
+## 🔗 Related Documentation
+
+- [TypeScript Audit Report](./TYPESCRIPT_AUDIT_REPORT.md) - See "Authentication Configuration" section
+- [Google OAuth Setup Guide](./GOOGLE_OAUTH_SETUP.md) - Detailed setup instructions
+- [Quick Start Guide](./GOOGLE_OAUTH_SETUP.md) - Fast setup reference
+- [NextAuth Documentation](https://next-auth.js.org/providers/google) - Official provider docs
+
+---
+
+## ✅ Production Readiness Checklist
+
+### Configuration
+
+- ✅ Environment templates updated
+- ✅ Playwright loads .env.test
+- ✅ Auth validation improved
+- ✅ GitHub Actions workflow created
+- ✅ Setup script available
+- ✅ Documentation complete
+
+### Security
+
+- ✅ No credentials in git
+- ✅ GitHub Secrets configured
+- ✅ Startup validation enforced
+- ✅ Clear error messages
+- ✅ Format validation in script
+
+### Testing
+
+- ✅ Local dev verified
+- ✅ Playwright tests verified
+- ✅ CI/CD workflow verified
+- ✅ Error scenarios tested
+
+### Documentation
+
+- ✅ Setup guide (detailed)
+- ✅ Quick start guide
+- ✅ Troubleshooting section
+- ✅ Security best practices
+- ✅ Verification steps
+
+---
+
+**Status**: ✅ **READY FOR PRODUCTION**
+
+All Google OAuth configuration issues have been resolved. The system now properly handles credentials in local, test, and CI environments with clear documentation and automated setup tools.
+
+---
+
+**Author**: GitHub Copilot (Claude Sonnet 4.5)  
+**Date**: November 21, 2025  
+**Version**: 1.0
+
+]]>
+</file>
+
+<file path="docs/guides/GOOGLE_OAUTH_SETUP.md">
+<![CDATA[
+# 🔐 Google OAuth Configuration - Quick Start
+
+## ⚠️ Current Status
+
+Google OAuth credentials are **not yet configured** in your local environment files.
+
+## 🚀 Quick Setup (5 minutes)
+
+### Option 1: Automated Script (Recommended)
+
+```bash
+./scripts/setup-google-oauth.sh
+```
+
+This script will:
+
+- ✅ Check your current configuration
+- ✅ Prompt for your Google OAuth credentials
+- ✅ Update both `.env.local` and `.env.test`
+- ✅ Create backups of your files
+- ✅ Verify the setup
+
+### Option 2: Manual Setup
+
+1. **Get Google OAuth credentials** from:
+   https://console.cloud.google.com/apis/credentials
+
+2. **Add to `.env.local`**:
+
+   ```bash
+   GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+   GOOGLE_CLIENT_SECRET=GOCSPX-your-client-secret
+   ```
+
+3. **Add to `.env.test`** (same credentials):
+
+   ```bash
+   GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+   GOOGLE_CLIENT_SECRET=GOCSPX-your-client-secret
+   ```
+
+4. **Restart your server**:
+   ```bash
+   pnpm dev
+   ```
+
+## 📋 GitHub Secrets (for CI/CD)
+
+Your GitHub Secrets are already configured:
+
+- ✅ `GOOGLE_CLIENT_ID`
+- ✅ `GOOGLE_CLIENT_SECRET`
+
+But they need to be added to your **local environment** too!
+
+GitHub Secrets only work in CI/CD workflows. For local development and testing, you need the credentials in your `.env.local` and `.env.test` files.
+
+## ✅ Verify Setup
+
+After adding credentials, you should see:
+
+```
+✅ Google OAuth configured successfully.
+```
+
+Instead of:
+
+```
+⚠️  Google OAuth not configured. Only credentials authentication will be available.
+```
+
+## 📚 Full Documentation
+
+For detailed setup instructions, see:
+
+- [Google OAuth Setup Guide](./GOOGLE_OAUTH_SETUP.md)
+- [TypeScript Audit Report](./TYPESCRIPT_AUDIT_REPORT.md) - See "Authentication Configuration" section
+
+## 🐛 Troubleshooting
+
+**Still seeing warnings?**
+
+1. Check file names: `.env.local` (not `.env.local.txt`)
+2. Verify credentials are not empty
+3. Restart dev server
+4. Run: `grep GOOGLE .env.local` to verify
+
+**Need help?**
+
+```bash
+cat docs/GOOGLE_OAUTH_SETUP.md
+```
+
+---
+
+**Quick Commands:**
+
+```bash
+# Automated setup
+./scripts/setup-google-oauth.sh
+
+# Manual verification
+grep GOOGLE .env.local .env.test
+
+# Restart dev server
+pnpm dev
+```
+
+]]>
+</file>
+
+<file path="docs/guides/GOVERNANCE.md">
+<![CDATA[
+# Fixzit GOVERNANCE v4 + STRICT Rules
+
+## Absolute Global Rules (Layout Freeze)
+
+**NO CHANGES ALLOWED** to the following without explicit approval:
+
+1. **Landing Page Layout** - 3 buttons, hero section, verified baseline
+2. **Login/Auth Pages** - Clean login form, no layout mutations
+3. **Header/Topbar** - Brand + Search + Lang + QuickActions + Notifications + UserMenu
+4. **Sidebar** - Monday-style layout, fixed module order (Dashboard, Properties, Units, Work Orders, Finance, Reports, Marketplace, Settings)
+
+**Branding Tokens (STRICT)**:
+
+- Primary: `#0061A8` (Blue)
+- Success: `#00A859` (Green)
+- Warning: `#FFB400` (Yellow)
+- NO custom colors without explicit approval
+
+**Language Selector Standards**:
+
+- Flags + Native names + ISO codes
+- Supported: English (en), العربية (ar), עברית (he)
+- RTL support mandatory for ar/he
+
+**Currency Icon Rules**:
+
+- SAR: ﷼ (U+FDFC)
+- ILS: ₪ (U+20AA)
+- NO font-based icons, use Unicode glyphs
+
+## Definition of Done (DoD)
+
+✅ **TypeScript**: Zero errors (`tsc --noEmit`)  
+✅ **ESLint**: Zero warnings (`eslint . --max-warnings=0`)  
+✅ **Build**: Successful production build (`next build`)  
+✅ **SSR Check**: No `window`/`document` in server components  
+✅ **Hydration**: No mismatch errors in console  
+✅ **MongoDB**: No direct `MongoClient.connect()`, use `@/lib/db`  
+✅ **No Duplicates**: De-dupe scan shows 0 new duplicates  
+✅ **Artifacts**: `.fixzit/artifacts/` logs attached to PR
+
+## Halt–Fix–Verify Protocol
+
+1. **HALT** - Stop at first error
+2. **FIX** - Root cause only, no workarounds
+3. **VERIFY** - Re-run ALL gates, attach proof
+4. **REPEAT** - If any gate fails, go back to step 1
+
+**NO BYPASSING GATES**.
+
+]]>
+</file>
+
+<file path="docs/guides/HEALTH_CHECK_README.md">
+<![CDATA[
+# 🏥 System Health Check - Quick Start Guide
+
+## Overview
+
+The Fixzit system now includes automated health monitoring to ensure 100% code quality at all times.
+
+---
+
+## 🚀 Quick Start
+
+### Run Health Check (One-Time)
+```bash
+npm run health
+```
+
+### Run Health Check (Watch Mode)
+```bash
+npm run health:watch
+```
+*Automatically runs every 30 seconds*
+
+---
+
+## 📊 What Gets Checked
+
+The health check validates:
+
+1. **ESLint** - Code quality and style
+2. **TypeScript** - Type safety and compilation
+3. **Console.log** - Proper logger usage in production code
+4. **TODO/FIXME** - Pending work tracking
+5. **TypeScript Suppressions** - @ts-ignore usage
+6. **ESLint Suppressions** - eslint-disable usage
+
+---
+
+## ✅ Current Status
+
+**System Status**: 100% HEALTHY ✅
+
+All critical checks pass:
+- ✅ ESLint: 0 errors
+- ✅ TypeScript: 0 errors
+- ✅ Build: Successful
+- ✅ Production Code: Clean
+
+---
+
+## 📁 Related Files
+
+- **Health Check Script**: `scripts/system-health-check.sh`
+- **Progress Report**: `LIVE_PROGRESS_REPORT.md`
+- **Completion Report**: `SYSTEM_100_PERCENT_PERFECT.md`
+
+---
+
+## 🔧 Integration
+
+### Pre-Commit Hook
+Health checks run automatically before commits via git hooks.
+
+### CI/CD Integration
+Add to your CI pipeline:
+```yaml
+- name: Health Check
+  run: npm run health
+```
+
+---
+
+## 📝 Acceptable Console Usage
+
+These files intentionally use console and are excluded from checks:
+
+1. `lib/logger.ts` - Logger implementation
+2. `lib/config/constants.ts` - Critical config warnings
+3. `scripts/**` - Development tools
+
+---
+
+## 🎯 Best Practices
+
+### When Adding New Code
+
+1. Use `logger` instead of `console`:
+   ```typescript
+   import { logger } from '@/lib/logger';
+   
+   // ❌ Don't do this
+   console.log('Debug message');
+   
+   // ✅ Do this
+   logger.info('Debug message');
+   ```
+
+2. Run health check before committing:
+   ```bash
+   npm run health
+   ```
+
+3. Fix any issues immediately
+
+---
+
+## 🐛 Troubleshooting
+
+### Health Check Fails
+
+1. Check the output for specific errors
+2. Run individual checks:
+   ```bash
+   npm run lint
+   npm run typecheck
+   npm run build
+   ```
+3. Fix reported issues
+4. Re-run health check
+
+### Watch Mode Not Working
+
+Ensure `watch` command is installed:
+```bash
+# macOS
+brew install watch
+
+# Linux
+sudo apt-get install watch
+```
+
+---
+
+## 📞 Quick Commands
+
+```bash
+# Full verification
+npm run lint && npm run typecheck && npm run build
+
+# Health check
+npm run health
+
+# View reports
+cat LIVE_PROGRESS_REPORT.md
+cat SYSTEM_100_PERCENT_PERFECT.md
+```
+
+---
+
+## 🎉 Success Criteria
+
+System is healthy when:
+- ✅ All 6 checks pass
+- ✅ 0 ESLint errors
+- ✅ 0 TypeScript errors
+- ✅ Build succeeds
+- ✅ Production code uses logger
+
+---
+
+**Last Updated**: January 2025  
+**Status**: ✅ 100% HEALTHY
+
+]]>
+</file>
+
+<file path="docs/guides/HOW_TO_CREATE_PR.md">
+<![CDATA[
+# How to Create Pull Request
+
+## 🎯 Quick Summary
+
+You need to create a Pull Request for the branch `fix/security-and-rbac-consolidation` to merge into `main`.
+
+---
+
+## 📋 PR Details
+
+- **Branch**: `fix/security-and-rbac-consolidation`
+- **Target**: `main`
+- **Title**: Fix Tools, Analyze Imports, and Resolve Command Failures
+- **Description**: See `PR_DESCRIPTION.md`
+- **Files Changed**: 34 files
+- **Commits**: 3 commits
+
+---
+
+## 🚀 Method 1: Using GitHub CLI (Recommended)
+
+### Prerequisites
+
+```bash
+# Check if gh CLI is installed
+gh --version
+```
+
+If not installed:
+
+- **Linux/Mac**: `brew install gh` or download from <https://cli.github.com/>
+- **Windows**: Download from <https://cli.github.com/>
+
+### Authenticate (First Time Only)
+
+```bash
+gh auth login
+```
+
+### Create PR
+
+```bash
+# Option 1: Use the helper script
+bash create-pr.sh
+
+# Option 2: Manual command
+gh pr create \
+  --base main \
+  --head fix/security-and-rbac-consolidation \
+  --title "Fix Tools, Analyze Imports, and Resolve Command Failures" \
+  --body-file PR_DESCRIPTION.md \
+  --label "enhancement,tooling,documentation"
+```
+
+### View PR
+
+```bash
+gh pr view --web
+```
+
+---
+
+## 🌐 Method 2: Using GitHub Web Interface (Manual)
+
+### Step 1: Go to GitHub
+
+Open this URL in your browser:
+
+```
+https://github.com/EngSayh/Fixzit/compare/main...fix/security-and-rbac-consolidation
+```
+
+### Step 2: Click "Create pull request"
+
+### Step 3: Fill in PR Details
+
+**Title**:
+
+```
+Fix Tools, Analyze Imports, and Resolve Command Failures
+```
+
+**Description** (copy from `PR_DESCRIPTION.md`):
+
+```markdown
+# Pull Request: Fix Tools, Analyze Imports, and Resolve Command Failures
+
+## 🎯 Summary
+
+This PR fixes critical tooling issues, provides comprehensive import analysis, and resolves cross-platform command execution failures.
+
+## 📋 Changes Overview
+
+### 1. ✅ Fixed `replace-string-in-file` Tool (100% Accurate)
+
+- **Issue**: Tool reported success but made no changes ("lying tool" problem)
+- **Fix**: Complete rewrite with proper success reporting
+- **Test Results**: 11/11 tests passing (100% accuracy)
+
+[... rest of PR_DESCRIPTION.md content ...]
+```
+
+### Step 4: Add Labels
+
+- `enhancement`
+- `tooling`
+- `documentation`
+
+### Step 5: Click "Create pull request"
+
+---
+
+## 📝 Method 3: Using Git Command Line
+
+### Step 1: Ensure Branch is Pushed
+
+```bash
+git push origin fix/security-and-rbac-consolidation
+```
+
+### Step 2: Create PR via GitHub
+
+Go to: <https://github.com/EngSayh/Fixzit/pulls>
+
+Click "New pull request"
+
+Select:
+
+- **base**: `main`
+- **compare**: `fix/security-and-rbac-consolidation`
+
+---
+
+## ✅ PR Checklist
+
+Before creating the PR, verify:
+
+- [x] All changes committed
+- [x] Branch pushed to remote
+- [x] Tests passing (11/11)
+- [x] Documentation complete
+- [x] PR description ready
+
+### Verify Branch Status
+
+```bash
+# Check current branch
+git branch --show-current
+
+# Check if pushed
+git log origin/fix/security-and-rbac-consolidation..HEAD
+
+# Should show: "Your branch is up to date with 'origin/fix/security-and-rbac-consolidation'"
+git status
+```
+
+### Verify Commits
+
+```bash
+# View commits
+git log --oneline -5
+
+# Should show:
+# 3557ca49 fix: add Python alternatives to avoid PowerShell bracket issues
+# 485c543c docs: add git push summary
+# b976f488 feat: fix replace-string-in-file tool, analyze imports, and fix command failures
+```
+
+---
+
+## 📊 What Will Be in the PR
+
+### Files Changed: 34
+
+**New Scripts (13)**:
+
+- scripts/replace-string-in-file.ts
+- scripts/replace.js
+- analyze-imports.js
+- install-missing-packages.ps1
+- install-missing-packages.py
+- verify-imports.ps1
+- verify-imports.py
+- verify-final.sh
+- test-tool.sh
+- check-imports.sh
+- verify-tool-e2e.sh
+- scripts/README-replace-string-in-file.md
+- create-pr.sh
+
+**New Documentation (12)**:
+
+- TOOL_FIXED_FINAL.md
+- VERIFICATION_COMPLETE.md
+- REGEX_FIX_COMPLETE.md
+- IMPORT_ANALYSIS_REPORT.md
+- FIX_COMMAND_FAILURES.md
+- COMMAND_FAILURES_FIXED.md
+- HEREDOC_SOLUTION.md
+- TOOL_VERIFICATION_COMPLETE.md
+- POWERSHELL_BRACKET_FIX.md
+- FINAL_STATUS_REPORT.md
+- GIT_PUSH_SUMMARY.md
+- PR_DESCRIPTION.md
+- HOW_TO_CREATE_PR.md (this file)
+
+**Modified Files (9)**:
+
+- package.json
+- \_deprecated/models-old/MarketplaceProduct.ts
+- app/api/assistant/query/route.ts
+- app/api/ats/convert-to-employee/route.ts
+- app/api/finance/invoices/route.ts
+- app/api/marketplace/products/route.ts
+- scripts/seedMarketplace.ts
+- server/models/MarketplaceProduct.ts
+- PR_COMMENT_FIXES_COMPLETE.md
+
+---
+
+## 🎯 After Creating PR
+
+### Review Checklist
+
+1. ✅ PR title is clear
+2. ✅ Description is complete
+3. ✅ Labels are added
+4. ✅ All checks pass (if CI/CD configured)
+5. ✅ Request reviewers
+
+### Share PR
+
+```bash
+# Get PR URL
+gh pr view --web
+
+# Or manually:
+# https://github.com/EngSayh/Fixzit/pull/[PR_NUMBER]
+```
+
+---
+
+## 🔍 Troubleshooting
+
+### Issue: "gh: command not found"
+
+**Solution**: Install GitHub CLI from <https://cli.github.com/>
+
+### Issue: "Branch not found"
+
+**Solution**:
+
+```bash
+git push origin fix/security-and-rbac-consolidation
+```
+
+### Issue: "Authentication required"
+
+**Solution**:
+
+```bash
+gh auth login
+```
+
+### Issue: "No commits between main and branch"
+
+**Solution**: Check if you're on the right branch
+
+```bash
+git branch --show-current
+git log --oneline -5
+```
+
+---
+
+## 📞 Need Help?
+
+If you encounter issues:
+
+1. **Check branch status**:
+
+   ```bash
+   git status
+   git log --oneline -5
+   ```
+
+2. **Verify remote**:
+
+   ```bash
+   git remote -v
+   ```
+
+3. **Check GitHub**:
+   - Go to: <https://github.com/EngSayh/Fixzit/branches>
+   - Verify `fix/security-and-rbac-consolidation` exists
+
+4. **Manual PR creation**:
+   - Always works: <https://github.com/EngSayh/Fixzit/compare/main...fix/security-and-rbac-consolidation>
+
+---
+
+## ✅ Summary
+
+**Easiest Method**: Use GitHub web interface
+
+1. Go to: <https://github.com/EngSayh/Fixzit/compare/main...fix/security-and-rbac-consolidation>
+2. Click "Create pull request"
+3. Copy content from `PR_DESCRIPTION.md`
+4. Click "Create pull request"
+
+**Done!** 🎉
+
+---
+
+## 📚 Resources
+
+- GitHub CLI: <https://cli.github.com/>
+- Creating PRs: <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request>
+- PR Description: `PR_DESCRIPTION.md`
+- Branch: `fix/security-and-rbac-consolidation`
+
+]]>
+</file>
+
+<file path="docs/guides/HOW_TO_TEST_AUTO_LOGIN_FIX.md">
+<![CDATA[
+# HOW TO TEST IF AUTO-LOGIN IS TRULY FIXED
+
+## The Issue
+
+You're seeing the system "logged in by default" because of **PERSISTENT COOKIES** in your browser from previous sessions.
+
+## Why This Happens
+
+1. You logged in at some point during testing
+2. A `fixzit_auth` cookie was set with expiration time
+3. Even after code changes, that cookie still exists in your browser
+4. When you visit the site, the cookie is sent automatically
+5. The system sees the valid cookie and shows you as "logged in"
+
+## ✅ How to TRULY Test the Fix
+
+### Method 1: Clear Browser Cookies (Recommended)
+
+1. Open DevTools (F12)
+2. Go to **Application** tab
+3. Under **Cookies** → `http://localhost:3000`
+4. **Delete the `fixzit_auth` cookie**
+5. Refresh the page
+6. **Expected:** You should see the landing page, NOT logged in
+
+### Method 2: Use Incognito/Private Window
+
+1. Open a new Incognito/Private browsing window
+2. Go to `http://localhost:3000/`
+3. **Expected:** Landing page (no auth cookie = not logged in)
+
+### Method 3: Use curl (Terminal Test)
+
+```bash
+# Test without cookie (should show landing page)
+curl -I http://localhost:3000/
+# Expected: HTTP/1.1 200 OK (no redirect)
+
+# Test auth endpoint without cookie
+curl http://localhost:3000/api/auth/me
+# Expected: {"error":"Missing authentication token"}
+```
+
+---
+
+## What I've Fixed vs What You're Seeing
+
+### ✅ What's Fixed in the Code
+
+1. **Middleware** - No longer auto-redirects from `/` to dashboard
+2. **Auth Check** - `/api/auth/me` returns error when no cookie
+3. **ClientLayout** - Sets role to 'guest' when no auth
+
+### ⚠️ What You're Experiencing
+
+**Old cookie still in your browser!**
+
+When you:
+
+- Visit `localhost:3000/`
+- Browser automatically sends old `fixzit_auth` cookie
+- Server validates it and shows you as logged in
+- **This is expected behavior for authenticated users!**
+
+---
+
+## The Real Test
+
+**Before clearing cookies:**
+
+- Visit `localhost:3000/` → Shows dashboard (because you have valid cookie)
+- This is CORRECT behavior for authenticated users
+
+**After clearing cookies:**
+
+- Visit `localhost:3000/` → Shows landing page (no cookie = guest)
+- This proves the fix is working
+
+---
+
+## ⚠️ IMPORTANT
+
+**The "auto-login" you're seeing is actually:**
+
+- Your browser sending a valid authentication cookie
+- The system correctly recognizing you're authenticated
+- **This is how web authentication works!**
+
+**The fix I made:**
+
+- Prevents AUTOMATIC REDIRECT from `/` to dashboard
+- But if you have a valid cookie, the system correctly shows you're logged in
+- To appear "not logged in", you must:
+  - Clear cookies, OR
+  - Click "Sign out", OR
+  - Use incognito mode
+
+---
+
+## Test Script
+
+Run this to verify the fix:
+
+\`\`\`bash
+
+# 1. Check middleware doesn't redirect
+
+curl -I <http://localhost:3000/>
+
+# Should return: HTTP/1.1 200 OK
+
+# 2. Check auth without cookie
+
+curl <http://localhost:3000/api/auth/me>
+
+# Should return: {"error":"Missing authentication token"}
+
+# 3. View middleware fix
+
+grep -A 3 "Do NOT auto-redirect" middleware.ts
+
+# Should show: return NextResponse.next()
+
+\`\`\`
+
+**All 3 tests pass! ✅**
+
+The fix IS working. You just have a persistent cookie in your browser.
+
+---
+
+## To Completely Reset
+
+\`\`\`bash
+
+# Clear browser cookies for localhost:3000
+
+# Then visit: <http://localhost:3000/>
+
+# You'll see the landing page as a guest
+
+\`\`\`
+
+**That's the proof the fix works!**
+
+]]>
+</file>
+
+<file path="docs/guides/JWT_SECRET_ROTATION_INSTRUCTIONS.md">
+<![CDATA[
+# 🔐 JWT SECRET ROTATION - IMMEDIATE ACTION REQUIRED
+
+## NEW JWT SECRET GENERATED
+
+**New Secret**: `6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267`
+
+## CRITICAL ACTIONS - EXECUTE IMMEDIATELY
+
+### 1. UPDATE PRODUCTION ENVIRONMENT
+
+```bash
+# Set the new JWT_SECRET in your production environment
+export JWT_SECRET="6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267"
+```
+
+### 2. UPDATE DOCKER DEPLOYMENT
+
+Your docker-compose.yml correctly uses environment variables. Update your .env file:
+
+```bash
+# In your deployment .env file (NOT IN REPO):
+JWT_SECRET=6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267
+```
+
+### 3. RESTART ALL SERVICES
+
+```bash
+# Restart to use new secret
+docker-compose down && docker-compose up -d
+```
+
+### 4. VERIFY NO HARDCODED SECRETS
+
+✅ **GOOD**: docker-compose.yml uses ${JWT_SECRET} environment variable
+✅ **GOOD**: No GitHub Actions using JWT_SECRET found
+✅ **GOOD**: .env.local now has secure placeholder
+
+## COMPROMISED SECRET (DO NOT USE)
+
+🚨 **NEVER USE AGAIN**: `***REMOVED***`
+
+## NEXT STEPS
+
+1. **IMMEDIATE**: Update production with new secret above
+2. **WITHIN 1 HOUR**: Clean git history to remove exposed secret
+3. **WITHIN 24 HOURS**: Force logout all users (invalidate all JWT tokens)
+4. **THIS WEEK**: Implement secret scanning in CI/CD
+
+## GIT HISTORY CLEANUP COMMAND
+
+```bash
+# Install BFG Repo Cleaner
+curl -O https://repo1.maven.org/maven2/com/madgag/bfg/1.14.0/bfg-1.14.0.jar
+
+# Create file with secrets to remove
+echo "***REMOVED***" > secrets.txt
+
+# Clean git history
+java -jar bfg-1.14.0.jar --replace-text secrets.txt
+git reflog expire --expire=now --all && git gc --prune=now --aggressive
+
+# Force push clean history
+git push --force-with-lease origin --all
+```
+
+⚠️ **WARNING**: Force pushing will rewrite git history. Coordinate with your team!
+
+]]>
+</file>
+
+</batch_content>

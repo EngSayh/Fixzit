@@ -1,0 +1,1402 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="_artifacts/copilot-tests/intent-apartment_search/after-logs-1764688227802.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1764688227802,
+  "logs": [
+    "[\"[Fast Refresh] rebuilding\"]",
+    "[\"[Fast Refresh] done in 763ms\"]"
+  ],
+  "metadata": {
+    "intent": "APARTMENT_SEARCH",
+    "query": "Search 2BR in Riyadh",
+    "response": "Working on it…"
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-apartment_search/after-logs-1764838625089.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1764838625089,
+  "logs": [],
+  "metadata": {
+    "intent": "APARTMENT_SEARCH",
+    "query": "Search 2BR in Riyadh",
+    "response": "Hi! I can help you learn about Fixzit.\n\nI can:\n• Explain how the system works\n• Answer questions about features\n• Help you get started\n\nTo create maintenance tickets, access specific data, or perform actions, please sign in or register for an account."
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-apartment_search/after-logs-1765004762970.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765004762970,
+  "logs": [
+    "[\"[Fast Refresh] rebuilding\"]"
+  ],
+  "metadata": {
+    "intent": "APARTMENT_SEARCH",
+    "query": "Search 2BR in Riyadh",
+    "response": "No available units match your criteria. I can help you search with different parameters."
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-apartment_search/after-logs-1765182305556.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765182305556,
+  "logs": [
+    "[\"[Fast Refresh] rebuilding\"]",
+    "[\"[Fast Refresh] rebuilding\"]"
+  ],
+  "metadata": {
+    "intent": "APARTMENT_SEARCH",
+    "query": "Search 2BR in Riyadh",
+    "response": "Working on it…"
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-apartment_search/after-logs-1765192475165.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765192475165,
+  "logs": [],
+  "metadata": {
+    "intent": "APARTMENT_SEARCH",
+    "query": "Search 2BR in Riyadh",
+    "response": "No available units match your criteria. I can help you search with different parameters."
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-apartment_search/before-logs-1764264930321.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1764264930321,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-apartment_search/before-logs-1764688225503.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1764688225503,
+  "logs": [
+    "[\"[Fast Refresh] rebuilding\"]",
+    "[\"[Fast Refresh] done in 763ms\"]"
+  ]
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-apartment_search/before-logs-1764838622821.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1764838622821,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-apartment_search/before-logs-1765004760396.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1765004760396,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-apartment_search/before-logs-1765182303273.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1765182303273,
+  "logs": [
+    "[\"[Fast Refresh] rebuilding\"]"
+  ]
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-apartment_search/before-logs-1765192472866.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1765192472866,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-approve_quotation/after-logs-1764264942479.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1764264942479,
+  "logs": [],
+  "metadata": {
+    "intent": "APPROVE_QUOTATION",
+    "query": "Approve quotation for WO-123",
+    "response": "Hi! I can help you learn about Fixzit.\n\nI can:\n• Explain how the system works\n• Answer questions about features\n• Help you get started\n\nTo create maintenance tickets, access specific data, or perform actions, please sign in or register for an account."
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-approve_quotation/after-logs-1764838632438.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1764838632438,
+  "logs": [],
+  "metadata": {
+    "intent": "APPROVE_QUOTATION",
+    "query": "Approve quotation for WO-123",
+    "response": "Hi! I can help you learn about Fixzit.\n\nI can:\n• Explain how the system works\n• Answer questions about features\n• Help you get started\n\nTo create maintenance tickets, access specific data, or perform actions, please sign in or register for an account."
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-approve_quotation/after-logs-1765003393311.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765003393311,
+  "logs": [
+    "[\"[Fast Refresh] done in 1765003388220ms\"]",
+    "[\"[Fast Refresh] rebuilding\"]"
+  ],
+  "metadata": {
+    "intent": "APPROVE_QUOTATION",
+    "query": "Approve quotation for WO-123",
+    "response": "Working on it…"
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-approve_quotation/after-logs-1765004776398.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765004776398,
+  "logs": [],
+  "metadata": {
+    "intent": "APPROVE_QUOTATION",
+    "query": "Approve quotation for WO-123",
+    "response": "A valid quotation ID is required"
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-approve_quotation/after-logs-1765182315823.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765182315823,
+  "logs": [],
+  "metadata": {
+    "intent": "APPROVE_QUOTATION",
+    "query": "Approve quotation for WO-123",
+    "response": "Failed to execute 'json' on 'Response': Unexpected end of JSON input"
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-approve_quotation/after-logs-1765192484413.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765192484413,
+  "logs": [],
+  "metadata": {
+    "intent": "APPROVE_QUOTATION",
+    "query": "Approve quotation for WO-123",
+    "response": "A valid quotation ID is required"
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-approve_quotation/before-logs-1764264940232.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1764264940232,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-approve_quotation/before-logs-1764838630173.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1764838630173,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-approve_quotation/before-logs-1765003390594.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1765003390594,
+  "logs": [
+    "[\"[Fast Refresh] done in 1765003388220ms\"]",
+    "[\"[Fast Refresh] rebuilding\"]"
+  ]
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-approve_quotation/before-logs-1765004774166.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1765004774166,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-approve_quotation/before-logs-1765182313525.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1765182313525,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-approve_quotation/before-logs-1765192482117.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1765192482117,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-dispatch/after-logs-1764264938015.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1764264938015,
+  "logs": [
+    "[\"[Fast Refresh] rebuilding\"]",
+    "[\"[Fast Refresh] done in 168ms\"]",
+    "[\"[Fast Refresh] rebuilding\"]",
+    "[\"[Fast Refresh] done in 235ms\"]"
+  ],
+  "metadata": {
+    "intent": "DISPATCH",
+    "query": "Dispatch work order to technician",
+    "response": "Hi! I can help you learn about Fixzit.\n\nI can:\n• Explain how the system works\n• Answer questions about features\n• Help you get started\n\nTo create maintenance tickets, access specific data, or perform actions, please sign in or register for an account."
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-dispatch/after-logs-1764838629005.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1764838629005,
+  "logs": [],
+  "metadata": {
+    "intent": "DISPATCH",
+    "query": "Dispatch work order to technician",
+    "response": "Hi! I can help you learn about Fixzit.\n\nI can:\n• Explain how the system works\n• Answer questions about features\n• Help you get started\n\nTo create maintenance tickets, access specific data, or perform actions, please sign in or register for an account."
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-dispatch/after-logs-1765003376108.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765003376108,
+  "logs": [
+    "[\"[Fast Refresh] done in 1765003367318ms\"]",
+    "[\"[Fast Refresh] rebuilding\"]",
+    "[\"[Fast Refresh] done in 8167ms\"]",
+    "[\"[Fast Refresh] rebuilding\"]"
+  ],
+  "metadata": {
+    "intent": "DISPATCH",
+    "query": "Dispatch work order to technician",
+    "response": "Working on it…"
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-dispatch/after-logs-1765004771674.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765004771674,
+  "logs": [],
+  "metadata": {
+    "intent": "DISPATCH",
+    "query": "Dispatch work order to technician",
+    "response": "Based on available documents: Title: Sample DocSourcesSample Doc"
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-dispatch/after-logs-1765182311706.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765182311706,
+  "logs": [],
+  "metadata": {
+    "intent": "DISPATCH",
+    "query": "Dispatch work order to technician",
+    "response": "Failed to execute 'json' on 'Response': Unexpected end of JSON input"
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-dispatch/after-logs-1765192479412.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765192479412,
+  "logs": [],
+  "metadata": {
+    "intent": "DISPATCH",
+    "query": "Dispatch work order to technician",
+    "response": ""
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-dispatch/before-logs-1764264935774.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1764264935774,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-dispatch/before-logs-1764688232148.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1764688232148,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-dispatch/before-logs-1764838626776.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1764838626776,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-dispatch/before-logs-1765003373449.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1765003373449,
+  "logs": [
+    "[\"[Fast Refresh] done in 1765003367318ms\"]",
+    "[\"[Fast Refresh] rebuilding\"]"
+  ]
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-dispatch/before-logs-1765004769426.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1765004769426,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-dispatch/before-logs-1765182309410.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1765182309410,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-dispatch/before-logs-1765192477158.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1765192477158,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-general/after-logs-1764264924422.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1764264924422,
+  "logs": [],
+  "metadata": {
+    "intent": "GENERAL",
+    "query": "What is Fixzit?",
+    "response": "Hi! I can help you learn about Fixzit.\n\nI can:\n• Explain how the system works\n• Answer questions about features\n• Help you get started\n\nTo create maintenance tickets, access specific data, or perform actions, please sign in or register for an account."
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-general/after-logs-1764688212491.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1764688212491,
+  "logs": [
+    "[\"[Fast Refresh] rebuilding\"]"
+  ],
+  "metadata": {
+    "intent": "GENERAL",
+    "query": "What is Fixzit?",
+    "response": "Working on it…"
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-general/after-logs-1764838618191.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1764838618191,
+  "logs": [],
+  "metadata": {
+    "intent": "GENERAL",
+    "query": "What is Fixzit?",
+    "response": "Hi! I can help you learn about Fixzit.\n\nI can:\n• Explain how the system works\n• Answer questions about features\n• Help you get started\n\nTo create maintenance tickets, access specific data, or perform actions, please sign in or register for an account."
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-general/after-logs-1765003268856.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765003268856,
+  "logs": [
+    "[\"[Fast Refresh] rebuilding\"]",
+    "[\"[Fast Refresh] done in 618ms\"]",
+    "[\"[Fast Refresh] rebuilding\"]"
+  ],
+  "metadata": {
+    "intent": "GENERAL",
+    "query": "What is Fixzit?",
+    "response": "Working on it…"
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-general/after-logs-1765004747607.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765004747607,
+  "logs": [
+    "[\"[Fast Refresh] rebuilding\"]"
+  ],
+  "metadata": {
+    "intent": "GENERAL",
+    "query": "What is Fixzit?",
+    "response": "Working on it…"
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-general/after-logs-1765182296680.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765182296680,
+  "logs": [],
+  "metadata": {
+    "intent": "GENERAL",
+    "query": "What is Fixzit?",
+    "response": "Failed to execute 'json' on 'Response': Unexpected end of JSON input"
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-general/after-logs-1765192464561.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765192464561,
+  "logs": [],
+  "metadata": {
+    "intent": "GENERAL",
+    "query": "What is Fixzit?",
+    "response": "Based on available documents: Title: Sample DocSourcesSample Doc"
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-general/before-logs-1764264922151.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1764264922151,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-general/before-logs-1764688210286.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1764688210286,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-general/before-logs-1764838615926.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1764838615926,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-general/before-logs-1765003266586.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1765003266586,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-general/before-logs-1765004745230.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1765004745230,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-general/before-logs-1765182294407.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1765182294407,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-general/before-logs-1765192462262.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1765192462262,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-owner_statements/after-logs-1764264946596.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1764264946596,
+  "logs": [
+    "[\"[Fast Refresh] rebuilding\"]",
+    "[\"[Fast Refresh] done in 139ms\"]"
+  ],
+  "metadata": {
+    "intent": "OWNER_STATEMENTS",
+    "query": "Show owner financial statements",
+    "response": "Hi! I can help you learn about Fixzit.\n\nI can:\n• Explain how the system works\n• Answer questions about features\n• Help you get started\n\nTo create maintenance tickets, access specific data, or perform actions, please sign in or register for an account."
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-owner_statements/after-logs-1764838635871.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1764838635871,
+  "logs": [],
+  "metadata": {
+    "intent": "OWNER_STATEMENTS",
+    "query": "Show owner financial statements",
+    "response": "Hi! I can help you learn about Fixzit.\n\nI can:\n• Explain how the system works\n• Answer questions about features\n• Help you get started\n\nTo create maintenance tickets, access specific data, or perform actions, please sign in or register for an account."
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-owner_statements/after-logs-1765003412404.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765003412404,
+  "logs": [
+    "[\"[Fast Refresh] done in 1765003408687ms\"]",
+    "[\"[Fast Refresh] rebuilding\"]"
+  ],
+  "metadata": {
+    "intent": "OWNER_STATEMENTS",
+    "query": "Show owner financial statements",
+    "response": "Working on it…"
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-owner_statements/after-logs-1765004780899.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765004780899,
+  "logs": [],
+  "metadata": {
+    "intent": "OWNER_STATEMENTS",
+    "query": "Show owner financial statements",
+    "response": "I could not locate the requested detail in the current knowledge base. Please review the help center or raise a ticket."
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-owner_statements/after-logs-1765182320757.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765182320757,
+  "logs": [],
+  "metadata": {
+    "intent": "OWNER_STATEMENTS",
+    "query": "Show owner financial statements",
+    "response": "Failed to execute 'json' on 'Response': Unexpected end of JSON input"
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-owner_statements/after-logs-1765192488394.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765192488394,
+  "logs": [],
+  "metadata": {
+    "intent": "OWNER_STATEMENTS",
+    "query": "Show owner financial statements",
+    "response": "I could not locate the requested detail in the current knowledge base. Please review the help center or raise a ticket."
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-owner_statements/before-logs-1764264944343.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1764264944343,
+  "logs": [
+    "[\"[Fast Refresh] rebuilding\"]",
+    "[\"[Fast Refresh] done in 139ms\"]"
+  ]
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-owner_statements/before-logs-1764838633621.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1764838633621,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-owner_statements/before-logs-1765003410122.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1765003410122,
+  "logs": [
+    "[\"[Fast Refresh] done in 1765003408687ms\"]",
+    "[\"[Fast Refresh] rebuilding\"]"
+  ]
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-owner_statements/before-logs-1765004778636.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1765004778636,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-owner_statements/before-logs-1765182318475.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1765182318475,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-owner_statements/before-logs-1765192486118.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1765192486118,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-personal/after-logs-1764264928209.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1764264928209,
+  "logs": [
+    "[\"[Fast Refresh] rebuilding\"]",
+    "[\"[Fast Refresh] done in 125ms\"]",
+    "[\"[Fast Refresh] rebuilding\"]",
+    "[\"[Fast Refresh] done in 103ms\"]"
+  ],
+  "metadata": {
+    "intent": "PERSONAL",
+    "query": "Show my work orders",
+    "response": "Hi! I can help you learn about Fixzit.\n\nI can:\n• Explain how the system works\n• Answer questions about features\n• Help you get started\n\nTo create maintenance tickets, access specific data, or perform actions, please sign in or register for an account."
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-personal/after-logs-1764688220696.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1764688220696,
+  "logs": [
+    "[\"[Fast Refresh] rebuilding\"]",
+    "[\"[Fast Refresh] done in 608ms\"]",
+    "[\"[Fast Refresh] rebuilding\"]"
+  ],
+  "metadata": {
+    "intent": "PERSONAL",
+    "query": "Show my work orders",
+    "response": "Working on it…"
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-personal/after-logs-1764838621639.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1764838621639,
+  "logs": [],
+  "metadata": {
+    "intent": "PERSONAL",
+    "query": "Show my work orders",
+    "response": "Hi! I can help you learn about Fixzit.\n\nI can:\n• Explain how the system works\n• Answer questions about features\n• Help you get started\n\nTo create maintenance tickets, access specific data, or perform actions, please sign in or register for an account."
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-personal/after-logs-1765004756050.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765004756050,
+  "logs": [
+    "[\"[Fast Refresh] rebuilding\"]",
+    "[\"[Fast Refresh] done in 887ms\"]"
+  ],
+  "metadata": {
+    "intent": "PERSONAL",
+    "query": "Show my work orders",
+    "response": "Working on it…"
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-personal/after-logs-1765182300909.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765182300909,
+  "logs": [],
+  "metadata": {
+    "intent": "PERSONAL",
+    "query": "Show my work orders",
+    "response": "Failed to execute 'json' on 'Response': Unexpected end of JSON input"
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-personal/after-logs-1765192470195.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765192470195,
+  "logs": [],
+  "metadata": {
+    "intent": "PERSONAL",
+    "query": "Show my work orders",
+    "response": "I could not locate the requested detail in the current knowledge base. Please review the help center or raise a ticket."
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-personal/before-logs-1764264925864.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1764264925864,
+  "logs": [
+    "[\"[Fast Refresh] rebuilding\"]",
+    "[\"[Fast Refresh] done in 125ms\"]"
+  ]
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-personal/before-logs-1764688218387.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1764688218387,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-personal/before-logs-1764838619370.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1764838619370,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-personal/before-logs-1765004753768.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1765004753768,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-personal/before-logs-1765182298607.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1765182298607,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/intent-personal/before-logs-1765192467950.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1765192467950,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/layout-preservation/after-logs-1764264912185.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1764264912185,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/layout-preservation/after-logs-1764517812560.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1764517812560,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/layout-preservation/after-logs-1764688192878.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1764688192878,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/layout-preservation/after-logs-1764838607101.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1764838607101,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/layout-preservation/after-logs-1765003250678.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765003250678,
+  "logs": [
+    "[\"[Fast Refresh] rebuilding\"]"
+  ]
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/layout-preservation/after-logs-1765004725982.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765004725982,
+  "logs": [
+    "[\"[Fast Refresh] rebuilding\"]"
+  ]
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/layout-preservation/after-logs-1765182253466.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765182253466,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/layout-preservation/after-logs-1765192404366.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765192404366,
+  "logs": [
+    "[\"[Fast Refresh] rebuilding\"]"
+  ]
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/layout-preservation/before-logs-1764264911112.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1764264911112,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/layout-preservation/before-logs-1764517810955.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1764517810955,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/layout-preservation/before-logs-1764688191768.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1764688191768,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/layout-preservation/before-logs-1764838606006.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1764838606006,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/layout-preservation/before-logs-1765003249513.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1765003249513,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/layout-preservation/before-logs-1765004724793.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1765004724793,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/layout-preservation/before-logs-1765182252751.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1765182252751,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/layout-preservation/before-logs-1765192403658.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1765192403658,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/rtl-support/after-logs-1764264958858.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1764264958858,
+  "logs": [
+    "[\"[Fast Refresh] rebuilding\"]",
+    "[\"[Fast Refresh] done in 201ms\"]"
+  ],
+  "metadata": {
+    "direction": null
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/rtl-support/after-logs-1764838650998.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1764838650998,
+  "logs": [],
+  "metadata": {
+    "direction": null
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/rtl-support/after-logs-1765182341547.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765182341547,
+  "logs": [],
+  "metadata": {
+    "direction": null
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/rtl-support/after-logs-1765192510662.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765192510662,
+  "logs": [],
+  "metadata": {
+    "direction": null
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/sentiment-negative/after-logs-1764264956997.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1764264956997,
+  "logs": [],
+  "metadata": {
+    "escalationTriggered": true
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/sentiment-negative/after-logs-1764838649740.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1764838649740,
+  "logs": [],
+  "metadata": {
+    "escalationTriggered": true
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/sentiment-negative/after-logs-1765182339724.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765182339724,
+  "logs": [],
+  "metadata": {
+    "escalationTriggered": true
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/sentiment-negative/after-logs-1765192508399.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765192508399,
+  "logs": [],
+  "metadata": {
+    "escalationTriggered": true
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/sentiment-negative/before-logs-1764264953789.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1764264953789,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/sentiment-negative/before-logs-1764838646505.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1764838646505,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/sentiment-negative/before-logs-1765182336423.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1765182336423,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/sentiment-negative/before-logs-1765192505112.json">
+<![CDATA[
+{
+  "stage": "before",
+  "timestamp": 1765192505112,
+  "logs": []
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/voice-input/after-logs-1764264951860.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1764264951860,
+  "logs": [
+    "[\"[Fast Refresh] rebuilding\"]",
+    "[\"[Fast Refresh] done in 112ms\"]"
+  ],
+  "metadata": {
+    "voiceSupported": true
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/voice-input/after-logs-1764838645236.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1764838645236,
+  "logs": [],
+  "metadata": {
+    "voiceSupported": true
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/voice-input/after-logs-1765004804780.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765004804780,
+  "logs": [
+    "[\"[Fast Refresh] rebuilding\"]",
+    "[\"[Fast Refresh] rebuilding\"]"
+  ],
+  "metadata": {
+    "voiceSupported": true
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/voice-input/after-logs-1765182334612.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765182334612,
+  "logs": [],
+  "metadata": {
+    "voiceSupported": true
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/copilot-tests/voice-input/after-logs-1765192502923.json">
+<![CDATA[
+{
+  "stage": "after",
+  "timestamp": 1765192502923,
+  "logs": [],
+  "metadata": {
+    "voiceSupported": true
+  }
+}
+]]>
+</file>
+
+</batch_content>

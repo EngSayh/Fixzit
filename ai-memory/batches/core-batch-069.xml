@@ -1,0 +1,3168 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/analysis/E2E_INVESTIGATION_REPORT.md">
+<![CDATA[
+# E2E Test Failure Investigation Report
+
+**Date:** November 24, 2025  
+**Investigation Type:** Deep Dive (Option 2 - 2-3 hours)  
+**Status:** ✅ Root Cause Identified and Fixed
+
+---
+
+## Executive Summary
+
+All 4 E2E test projects were failing in GitHub Actions CI, despite tests passing locally. Investigation revealed **the tests were never actually running** - the workflow was failing during the setup phase due to an incorrect pnpm cache configuration path.
+
+### Key Findings
+
+1. **Root Cause:** `cache-dependency-path` incorrectly set to `Fixzit/pnpm-lock.yaml` instead of `pnpm-lock.yaml`
+2. **Impact:** "Setup Node with pnpm cache" step failed, preventing all E2E tests from executing
+3. **Fix Applied:** Corrected cache path in `.github/workflows/e2e-tests.yml`
+4. **Additional Improvements:** Enhanced test environment configuration and logging
+
+---
+
+## Investigation Timeline
+
+### Phase 1: Initial Analysis (30 minutes)
+
+**Examined:**
+- E2E workflow configuration (`.github/workflows/e2e-tests.yml`)
+- Playwright config with 16 programmatically generated projects
+- Test matrix running 4 critical projects:
+  - `Desktop:EN:Admin`
+  - `Desktop:AR:Tenant`
+  - `Mobile:EN:Technician`
+  - `Mobile:AR:Tenant`
+
+**Initial Hypothesis:** Tests failing due to:
+- Offline auth mode issues
+- Environment variable mismatches
+- Build environment incompatibilities
+
+### Phase 2: Deep Dive into Auth Setup (45 minutes)
+
+**Analyzed:**
+- `tests/setup-auth.ts` (467 lines) - Complete authentication setup
+- `.env.test` - Test environment variables
+- Offline mode implementation with mock JWT sessions
+
+**Findings:**
+- ✅ Auth setup correctly implements offline mode
+- ✅ Mock JWT session generation properly configured
+- ✅ All 6 role credentials defined in environment
+- ✅ CSRF and SMS OTP correctly disabled for tests
+
+**Code Review Highlights:**
+```typescript
+// Offline mode creates mock JWT sessions (no database required)
+if (offlineMode) {
+  console.warn('⚠️  OFFLINE MODE - Creating mock JWT session cookies');
+  
+  for (const role of roles) {
+    const token = await encodeJwt({
+      secret: nextAuthSecret,
+      maxAge: 30 * 24 * 60 * 60,
+      token: {
+        name: `${role.name} (Offline)`,
+        email: process.env[role.identifierEnv],
+        id: userId,
+        role: testRole,
+        // ... complete session data
+      },
+    });
+    // Add session cookies to browser context
+  }
+}
+```
+
+### Phase 3: Build Environment Analysis (30 minutes)
+
+**Improvements Made:**
+1. Changed `NODE_ENV` from `production` to `test` for build step
+2. Added `DISABLE_MONGODB_FOR_BUILD=true` to enable MongoDB stub
+3. Added comprehensive test environment variables:
+   - `NEXTAUTH_SKIP_CSRF_CHECK=true`
+   - `NEXTAUTH_REQUIRE_SMS_OTP=false`
+   - `PLAYWRIGHT_TESTS=true`
+   - `AUTH_TRUST_HOST=true`
+
+**Commit:** `04d2d74c4` - "fix(ci): enhance E2E tests with proper test environment"
+
+### Phase 4: Log Analysis - Breakthrough (45 minutes)
+
+**Attempted:**
+- Downloaded artifacts (none available - no tests ran)
+- Retrieved workflow logs via GitHub CLI
+- Analyzed job execution status
+
+**Discovery:**
+```json
+{
+  "name": "e2e-tests (Desktop:EN:Admin)",
+  "conclusion": "failure",
+  "steps": {
+    "name": "Setup Node with pnpm cache",
+    "conclusion": "failure"  // ← THE CULPRIT
+  }
+}
+```
+
+**All 4 E2E jobs failed at the same step: "Setup Node with pnpm cache"**
+
+This meant:
+- ❌ Tests never ran
+- ❌ No artifacts generated
+- ❌ No auth states created
+- ❌ Build never executed
+
+### Phase 5: Root Cause Identification (15 minutes)
+
+**The Problem:**
+
+```yaml
+# INCORRECT (workflow line 85)
+- name: Setup Node with pnpm cache
+  uses: actions/setup-node@v4
+  with:
+    cache: 'pnpm'
+    cache-dependency-path: Fixzit/pnpm-lock.yaml  # ❌ WRONG PATH
+```
+
+**Why It Failed:**
+- Checkout happens at repository root
+- All steps use `working-directory: Fixzit`
+- Cache setup runs from root, looking for `Fixzit/pnpm-lock.yaml`
+- File doesn't exist at `Fixzit/Fixzit/pnpm-lock.yaml`
+- Setup fails before any test execution
+
+**The Fix:**
+
+```yaml
+# CORRECT
+- name: Setup Node with pnpm cache
+  uses: actions/setup-node@v4
+  with:
+    cache: 'pnpm'
+    cache-dependency-path: 'pnpm-lock.yaml'  # ✅ CORRECT
+```
+
+**Commit:** `e7222fc3f` - "fix(ci): correct pnpm cache path in E2E workflow"
+
+---
+
+## Technical Details
+
+### E2E Testing Infrastructure
+
+**Framework:** Playwright 1.40+  
+**Total Projects:** 16 (12 desktop + 4 mobile)  
+**CI Strategy:** Matrix execution of 4 critical paths
+
+#### Project Generation
+```typescript
+// Programmatic generation in playwright.config.ts
+const roles = ['superadmin', 'admin', 'manager', 'technician', 'tenant', 'vendor'];
+const locales = [
+  { label: 'EN', locale: 'en-US', dir: 'ltr' },
+  { label: 'AR', locale: 'ar-SA', dir: 'rtl' }
+];
+
+// Desktop: 6 roles × 2 locales = 12 projects
+const desktopProjects = locales.flatMap(({ label }) =>
+  roles.map(role => ({
+    name: `Desktop:${label}:${capitalize(role)}`,
+    // ...
+  }))
+);
+
+// Mobile: 2 roles × 2 locales = 4 projects (technician, tenant only)
+const mobileProjects = locales.flatMap(({ label }) =>
+  ['technician', 'tenant'].map(role => ({
+    name: `Mobile:${label}:${capitalize(role)}`,
+    // ...
+  }))
+);
+```
+
+### CI Environment Configuration
+
+**MongoDB Service:**
+```yaml
+services:
+  mongodb:
+    image: mongo:7
+    ports:
+      - 27017:27017
+    options: >-
+      --health-cmd "mongosh --eval 'db.adminCommand({ping:1})'"
+      --health-interval 10s
+      --health-timeout 5s
+      --health-retries 3
+```
+
+**Resource Allocation:**
+- Node.js: 20 with 4GB heap (`--max-old-space-size=4096`)
+- Workers: 2 parallel workers per project
+- Timeout: 30 minutes per project
+- Retries: 2 attempts per test for flakiness
+- Max Failures: 10 per project
+
+### Authentication Flow
+
+**Offline Mode (CI/CD):**
+1. Global setup runs before all tests (`tests/setup-auth.ts`)
+2. Detects `ALLOW_OFFLINE_MONGODB=true` (accepts `"true"` or `"1"`)
+3. Generates mock JWT sessions for all 6 roles
+4. Creates session cookies with proper domain/path
+5. Saves auth state to `tests/state/{role}.json`
+6. Tests load pre-authenticated state
+
+**Benefits:**
+- ✅ No database dependency for auth
+- ✅ Consistent sessions across test runs
+- ✅ Fast setup (no OTP flow)
+- ✅ Deterministic behavior
+
+---
+
+## Fixes Applied
+
+### Fix 1: Build Environment (Commit `04d2d74c4`)
+
+**Changes:**
+```yaml
+env:
+  NODE_ENV: test  # Changed from 'production'
+  DISABLE_MONGODB_FOR_BUILD: 'true'  # Added
+  NEXTAUTH_SKIP_CSRF_CHECK: 'true'  # Added
+  NEXTAUTH_REQUIRE_SMS_OTP: 'false'  # Added
+  AUTH_TRUST_HOST: 'true'  # Added
+```
+
+**Logging Improvements:**
+```yaml
+run: |
+  echo "🎭 Running Playwright E2E Tests"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "Project: ${project_arg:-all projects}"
+  echo "Offline mode: $ALLOW_OFFLINE_MONGODB"
+  
+  # Verify auth states created
+  if [ -d "tests/state" ]; then
+    echo "✅ Auth state directory exists"
+    ls -lh tests/state/
+  fi
+```
+
+### Fix 2: Cache Path (Commit `e7222fc3f`) ⭐ **CRITICAL**
+
+**Before:**
+```yaml
+cache-dependency-path: Fixzit/pnpm-lock.yaml  # ❌ Incorrect
+```
+
+**After:**
+```yaml
+cache-dependency-path: 'pnpm-lock.yaml'  # ✅ Correct
+```
+
+**Also Fixed:**
+```yaml
+- name: Get Playwright version
+  working-directory: Fixzit  # Added to ensure consistent directory
+  run: echo "version=$(pnpm list @playwright/test ...)" >> $GITHUB_OUTPUT
+```
+
+---
+
+## Verification & Testing
+
+### Expected Outcome
+
+After fixes, E2E workflow should:
+
+1. ✅ **Setup Phase:**
+   - Setup Node with pnpm cache succeeds
+   - Install dependencies completes
+   - Playwright browsers cached
+   - Build succeeds with `NODE_ENV=test`
+
+2. ✅ **Auth Setup:**
+   - Global setup creates 6 mock JWT sessions
+   - Auth state files created in `tests/state/`
+   - Offline mode confirmed in logs
+
+3. ✅ **Test Execution:**
+   - All 4 matrix projects run in parallel
+   - Tests execute with 2 retries
+   - Proper error handling and diagnostics
+
+4. ✅ **Artifacts:**
+   - Test status files uploaded
+   - Playwright HTML reports (on failure)
+   - Error context markdown (on failure)
+
+### Monitoring Commands
+
+```bash
+# Watch workflow status
+gh run list --workflow=e2e-tests.yml --limit 1
+
+# View live logs
+gh run watch 19624901904
+
+# Check job results
+gh run view 19624901904 --json jobs --jq '.jobs[] | {name, conclusion}'
+```
+
+---
+
+## Lessons Learned
+
+### 1. Path Resolution in GitHub Actions
+
+**Problem:** Relative paths can be ambiguous when mixing checkout root and working directories.
+
+**Solution:** Always verify paths relative to where actions execute:
+- `checkout` → repository root
+- `setup-node` → runs from root
+- `run` with `working-directory` → runs from specified directory
+
+### 2. Test-First Investigation
+
+**Mistake:** Initially focused on complex auth/environment issues.
+
+**Better Approach:** Should have checked workflow execution basics first:
+1. Did jobs start?
+2. Which step failed?
+3. Was it infrastructure or test code?
+
+### 3. Artifact Absence as Signal
+
+**Observation:** No artifacts uploaded = tests never ran.
+
+**Implication:** Don't investigate test failures when tests didn't execute. Check infrastructure first.
+
+### 4. GitHub CLI for Debugging
+
+**Useful Commands:**
+```bash
+# List recent runs
+gh run list --workflow=e2e-tests.yml --limit 5
+
+# Get job details with failed steps
+gh run view <run-id> --json jobs \
+  --jq '.jobs[] | {name, steps: .steps[] | select(.conclusion=="failure")}'
+
+# Download logs
+gh run view <run-id> --log > workflow.log
+```
+
+---
+
+## Recommendations
+
+### Short-Term (Immediate)
+
+1. ✅ **Monitor Current Run** - Verify fix resolves issue
+2. ⏳ **Wait for Green CI** - All 4 projects should pass
+3. ⏳ **Review Artifacts** - Ensure test status files uploaded
+4. ⏳ **Merge PR** - Once CI passes completely
+
+### Medium-Term (Next Sprint)
+
+1. **Add Workflow Validation:**
+   ```yaml
+   - name: Validate paths
+     run: |
+       echo "Checking critical files..."
+       test -f pnpm-lock.yaml || { echo "❌ pnpm-lock.yaml not found"; exit 1; }
+       test -f package.json || { echo "❌ package.json not found"; exit 1; }
+   ```
+
+2. **Improve Error Messages:**
+   - Add explicit path checks before cache setup
+   - Verify working directory in each step
+   - Log current directory for debugging
+
+3. **Add E2E Smoke Test:**
+   - Single fast project to validate setup
+   - Runs before full matrix
+   - Fails fast if infrastructure broken
+
+### Long-Term (Future)
+
+1. **Self-Hosted Runners:**
+   - Better caching persistence
+   - Faster builds (no cache download)
+   - More reliable disk space
+
+2. **Parallel Test Optimization:**
+   - Analyze test distribution
+   - Balance load across workers
+   - Reduce total execution time
+
+3. **Flakiness Monitoring:**
+   - Track retry rates
+   - Identify unstable tests
+   - Dashboard for test reliability
+
+---
+
+## Conclusion
+
+The E2E test failures were caused by a simple configuration error that prevented the entire test suite from executing. The investigation successfully identified and fixed the root cause, along with implementing several improvements to test environment configuration and logging.
+
+### Impact Summary
+
+**Before:**
+- ❌ All 4 E2E projects failing
+- ❌ Tests never executing
+- ❌ No visibility into actual issues
+- ❌ Blocking PR merge
+
+**After:**
+- ✅ Workflow setup fixed
+- ✅ Enhanced test environment
+- ✅ Comprehensive logging
+- ✅ Clear diagnostics on failure
+- ⏳ **CI execution in progress** (Run #19624901904)
+
+### Time Investment
+
+- **Planned:** 2-3 hours (Option 2 - Deep Investigation)
+- **Actual:** ~2.5 hours
+- **Outcome:** Root cause identified and fixed with additional improvements
+
+---
+
+## Appendix: Related Commits
+
+1. **653ac583f** - "fix: resolve rate limiting memory leak"
+2. **4b315917a** - "fix(ci): production validation workflow"
+3. **04d2d74c4** - "fix(ci): enhance E2E tests with proper test environment"
+4. **e7222fc3f** - "fix(ci): correct pnpm cache path in E2E workflow" ⭐
+
+---
+
+**Investigation Status:** ✅ COMPLETE  
+**Next Step:** Monitor workflow run #19624901904 for successful execution
+
+]]>
+</file>
+
+<file path="docs/analysis/IMPORT_ANALYSIS_REPORT.md">
+<![CDATA[
+# Import Analysis Report
+
+## Date: 2025-01-18
+
+## Status: 192 Issues Found
+
+---
+
+## Executive Summary
+
+Comprehensive analysis of **880 files** found **192 potential import issues**:
+
+- ❌ **71 missing package imports** - Packages used but not in package.json
+- ❌ **121 broken relative imports** - Files that may not exist
+
+---
+
+## Import Statistics
+
+### Overall Counts
+
+- **Total files analyzed**: 880
+- **External packages**: 62 unique packages
+- **Relative imports**: 324 imports
+- **Absolute imports (@/)**: 649 imports
+- **Node builtin modules**: 14 modules
+
+### Import Distribution
+
+- **External packages**: 62 (from npm/node_modules)
+- **Relative imports**: 324 (./ ../)
+- **Absolute imports**: 649 (@/ path aliases)
+- **Node builtins**: 14 (fs, path, crypto, etc.)
+
+---
+
+## Top 20 Most Used External Packages
+
+| Status | Package                | Import Count | In package.json |
+| ------ | ---------------------- | ------------ | --------------- |
+| ✅     | mongoose               | 210          | Yes             |
+| ✅     | next                   | 195          | Yes             |
+| ✅     | react                  | 147          | Yes             |
+| ✅     | zod                    | 65           | Yes             |
+| ✅     | lucide-react           | 42           | Yes             |
+| ✅     | swr                    | 30           | Yes             |
+| ✅     | @playwright/test       | 28           | Yes             |
+| ❌     | express                | 26           | **NO**          |
+| ✅     | @testing-library/react | 21           | Yes             |
+| ✅     | vitest                 | 19           | Yes             |
+| ✅     | mongodb                | 15           | Yes             |
+| ✅     | dotenv                 | 15           | Yes             |
+| ✅     | bcryptjs               | 9            | Yes             |
+| ✅     | fast-glob              | 8            | Yes             |
+| ✅     | axios                  | 7            | Yes             |
+| ✅     | jsonwebtoken           | 5            | Yes             |
+| ✅     | nanoid                 | 5            | Yes             |
+| ❌     | @jest/globals          | 5            | **NO**          |
+| ❌     | cors                   | 4            | **NO**          |
+| ❌     | helmet                 | 4            | **NO**          |
+
+---
+
+## Node Builtin Modules Used
+
+✅ All Node.js builtin modules (no installation needed):
+
+- `assert`
+- `assert/strict`
+- `child_process`
+- `crypto`
+- `fs`
+- `fs/promises`
+- `http`
+- `https`
+- `module`
+- `os`
+- `path`
+- `test`
+- `url`
+- `util`
+
+---
+
+## ❌ Issue 1: Missing Packages (71 imports)
+
+Packages imported in code but **NOT** in package.json:
+
+### Critical (High Usage)
+
+#### 1. **express** - 26 imports
+
+**Impact**: HIGH
+**Files affected**: 26
+**Locations**:
+
+- `./packages/fixzit-souq-server/routes/admin.js`
+- `./packages/fixzit-souq-server/routes/compliance.js`
+- `./packages/fixzit-souq-server/routes/crm.js`
+- ... and 23 more
+
+**Recommendation**: Add to package.json
+
+```bash
+npm install express
+```
+
+#### 2. **@jest/globals** - 5 imports
+
+**Impact**: MEDIUM
+**Files affected**: 5
+**Locations**:
+
+- `./tests/policy.spec.ts`
+- `./tests/unit/api/api-paytabs.spec.ts`
+- `./tests/unit/api/api-paytabs-callback.spec.ts`
+- ... and 2 more
+
+**Recommendation**: Add to devDependencies
+
+```bash
+npm install --save-dev @jest/globals
+```
+
+#### 3. **cors** - 4 imports
+
+**Impact**: MEDIUM
+**Files affected**: 4
+**Locations**:
+
+- `./packages/fixzit-souq-server/server.js`
+- `./scripts/server.js`
+- `./scripts/fixzit-security-fixes.js`
+- ... and 1 more
+
+**Recommendation**: Add to package.json
+
+```bash
+npm install cors
+```
+
+#### 4. **helmet** - 4 imports
+
+**Impact**: MEDIUM
+**Files affected**: 4
+**Locations**:
+
+- `./packages/fixzit-souq-server/server.js`
+- `./scripts/fixzit-security-fixes.js`
+- `./scripts/server-fixed.js`
+- ... and 1 more
+
+**Recommendation**: Add to package.json
+
+```bash
+npm install helmet
+```
+
+#### 5. **express-rate-limit** - 4 imports
+
+**Impact**: MEDIUM
+**Files affected**: 4
+**Locations**:
+
+- `./scripts/server.js`
+- `./scripts/fixzit-security-fixes.js`
+- `./scripts/server-fixed.js`
+- ... and 1 more
+
+**Recommendation**: Add to package.json
+
+```bash
+npm install express-rate-limit
+```
+
+### Medium Priority
+
+#### 6. **unified** - 3 imports
+
+**Files**: `./src/lib/markdown.ts`, `./lib/markdown.ts`, `./scripts/verify-sanitize-and-signed-urls.ts`
+
+#### 7. **jest-mock** - 3 imports
+
+**Files**: Test files in `./src/db/models/`, `./src/server/models/__tests__/`, `./server/models/__tests__/`
+
+#### 8. **isomorphic-dompurify** - 3 imports
+
+**Files**: `./scripts/fixzit-security-fixes.js`, `./public/app-fixed.js`, `./public/public/app-fixed.js`
+
+#### 9. **express-mongo-sanitize** - 3 imports
+
+**Files**: `./scripts/server.js`, `./scripts/fixzit-security-fixes.js`, `./scripts/server-fixed.js`
+
+### Low Priority (Single Use)
+
+- `@eslint/eslintrc` (1 file)
+- `compression` (1 file)
+- `express-validator` (1 file)
+- `morgan` (1 file)
+- `cookie-parser` (2 files)
+- `winston` (1 file)
+- `validator` (1 file)
+- `xss` (1 file)
+- `k6` (2 files - load testing)
+
+### Invalid/Broken Imports
+
+- `${loggerPath}` (2 files) - **Template literal not resolved**
+- `policy` (1 file) - **Incorrect import path**
+- `src` (1 file) - **Incorrect import path**
+- `module` (1 file) - **Should be node:module**
+
+---
+
+## ❌ Issue 2: Broken Relative Imports (121)
+
+Files importing from paths that may not exist:
+
+### Sample of Broken Imports (Top 10)
+
+1. **./components/fm/**tests**/WorkOrdersView.test.tsx:196**
+   - Import: `../WorkOrdersView.test`
+   - Issue: File doesn't exist
+
+2. **./components/fm/**tests**/WorkOrdersView.test.tsx:226**
+   - Import: `../WorkOrdersView.test`
+   - Issue: File doesn't exist
+
+3. **./src/db/models/WorkOrder.ts:2**
+   - Import: `../plugins/tenantIsolation`
+   - Issue: Plugin file missing
+
+4. **./src/db/models/WorkOrder.ts:3**
+   - Import: `../plugins/auditPlugin`
+   - Issue: Plugin file missing
+
+5. **./src/db/models/User.ts:2**
+   - Import: `../plugins/tenantIsolation`
+   - Issue: Plugin file missing
+
+6. **./src/db/models/User.ts:3**
+   - Import: `../plugins/auditPlugin`
+   - Issue: Plugin file missing
+
+7. **./src/db/models/Property.ts:2**
+   - Import: `../plugins/tenantIsolation`
+   - Issue: Plugin file missing
+
+8. **./src/db/models/Property.ts:3**
+   - Import: `../plugins/auditPlugin`
+   - Issue: Plugin file missing
+
+9. **./src/contexts/TranslationContext.test.tsx:56**
+   - Import: `./TranslationContext`
+   - Issue: File doesn't exist
+
+10. **./services/provision.ts:1**
+    - Import: `../db/models/Subscription`
+    - Issue: File doesn't exist
+
+... and 111 more broken imports
+
+### Common Patterns in Broken Imports
+
+1. **Missing Plugin Files** (16+ occurrences)
+   - `../plugins/tenantIsolation`
+   - `../plugins/auditPlugin`
+   - **Impact**: Database models won't work correctly
+
+2. **Test File Issues** (20+ occurrences)
+   - Test files importing non-existent files
+   - **Impact**: Tests will fail
+
+3. **Model Import Issues** (30+ occurrences)
+   - Services importing non-existent model files
+   - **Impact**: Runtime errors
+
+---
+
+## Recommendations
+
+### Immediate Actions Required
+
+#### 1. Add Missing Critical Packages
+
+```bash
+# Production dependencies
+npm install express cors helmet express-rate-limit express-mongo-sanitize
+
+# Development dependencies
+npm install --save-dev @jest/globals jest-mock
+
+# Optional (if needed)
+npm install unified isomorphic-dompurify compression morgan cookie-parser winston validator xss
+```
+
+#### 2. Fix Broken Plugin Imports
+
+Create missing plugin files:
+
+- `src/db/plugins/tenantIsolation.ts`
+- `src/db/plugins/auditPlugin.ts`
+
+Or remove imports if plugins are not needed.
+
+#### 3. Clean Up Test Files
+
+Review and fix test file imports:
+
+- Remove imports to non-existent test files
+- Update import paths to correct locations
+
+#### 4. Fix Invalid Imports
+
+- Replace `${loggerPath}` with actual logger path
+- Fix `policy` import to use correct path
+- Fix `src` import to use correct path
+
+### Long-term Improvements
+
+1. **Enable TypeScript Path Checking**
+   - Configure `tsconfig.json` to catch broken imports at compile time
+
+2. **Add Import Linting**
+   - Use ESLint rules to catch unused/broken imports
+
+3. **Regular Import Audits**
+   - Run `node analyze-imports.js` regularly
+   - Add to CI/CD pipeline
+
+4. **Clean Up Deprecated Files**
+   - Remove files in `_deprecated/` directory
+   - Remove unused scripts in `scripts/` directory
+
+---
+
+## Files for Reference
+
+### Analysis Tools Created
+
+- ✅ `analyze-imports.js` - Comprehensive import analyzer
+- ✅ `check-imports.sh` - Shell-based import checker
+- ✅ `IMPORT_ANALYSIS_REPORT.md` - This document
+
+### How to Run Analysis
+
+```bash
+cd /workspaces/Fixzit
+node analyze-imports.js
+```
+
+---
+
+## Summary
+
+### Current State
+
+- ✅ **Core packages**: All major packages (mongoose, next, react, zod) are correctly installed
+- ❌ **Missing packages**: 71 imports to packages not in package.json
+- ❌ **Broken imports**: 121 relative imports to non-existent files
+- ⚠️ **Impact**: Some features may not work, tests may fail
+
+### Priority Actions
+
+1. **HIGH**: Add express, cors, helmet, express-rate-limit (26+ imports)
+2. **HIGH**: Create or remove plugin files (tenantIsolation, auditPlugin)
+3. **MEDIUM**: Add @jest/globals for tests
+4. **MEDIUM**: Fix broken test file imports
+5. **LOW**: Clean up deprecated/unused files
+
+### Expected Outcome
+
+After fixes:
+
+- ✅ All imports will resolve correctly
+- ✅ No missing package errors
+- ✅ Tests will run without import errors
+- ✅ Production code will have all dependencies
+
+---
+
+## Status: ⚠️ ACTION REQUIRED
+
+**192 issues found** - Requires immediate attention to ensure system stability.
+
+Run `node analyze-imports.js` after fixes to verify all issues are resolved.
+
+]]>
+</file>
+
+<file path="docs/analysis/LIVE_38_ERRORS_INVESTIGATION.md">
+<![CDATA[
+# 🔴 LIVE INVESTIGATION - 38 VS CODE ERRORS
+
+**Started**: NOW  
+**Status**: 🔍 INVESTIGATING  
+**Target**: Fix all 38 errors in VS Code Problems tab
+
+---
+
+## 📊 LIVE PROGRESS
+
+### Step 1: Identify Error Types 🔄
+
+VS Code Problems tab can show:
+- TypeScript language server errors
+- ESLint extension errors
+- Missing imports/modules
+- Unused variables
+- Type mismatches
+- Async/await issues
+- React hooks violations
+
+### Step 2: Investigation Methods 🔄
+
+1. Check TypeScript with strict mode
+2. Check for unused imports/variables
+3. Check for missing type definitions
+4. Check for React/Next.js specific issues
+5. Check for path resolution issues
+
+---
+
+## 🔍 ERRORS IDENTIFIED!
+
+### Issue: VS Code TypeScript Configuration
+
+VS Code is using different TypeScript settings:
+1. **tsconfig.editor.json** excludes `services` and `server` directories
+2. **VS Code settings** exclude many directories from TypeScript
+3. **node_modules type errors** are being shown (38+ errors)
+
+### The 38 Errors Are:
+- **38 errors in node_modules** (dependency type issues)
+- Auth Core type mismatches
+- Mongoose type conflicts
+- React/Next.js type definitions
+- Redux/Recharts type issues
+
+### Root Cause:
+VS Code is not respecting `skipLibCheck: true` and is checking node_modules types!
+
+---
+
+## 🔄 FIXING NOW...
+
+1. Updating VS Code TypeScript configuration
+2. Ensuring skipLibCheck is respected
+3. Fixing tsconfig.editor.json
+
+---
+
+**Status**: Fixing VS Code configuration...
+]]>
+</file>
+
+<file path="docs/analysis/LIVE_COMPREHENSIVE_CHECK.md">
+<![CDATA[
+# 🔍 LIVE COMPREHENSIVE ERROR CHECK
+
+**Started**: NOW  
+**Status**: 🔄 SCANNING  
+**Target**: Find ALL errors and issues
+
+---
+
+## 📊 SCANNING PROGRESS
+
+### Phase 1: TypeScript Errors ✅
+```bash
+npx tsc --noEmit
+```
+**Result**: ✅ 0 errors found
+
+### Phase 2: ESLint Errors ✅
+```bash
+npx eslint app components lib server
+```
+**Result**: ✅ 0 errors found
+
+### Phase 3: Build Check ✅
+```bash
+npm run build
+```
+**Result**: ✅ SUCCESS - 423 pages generated
+
+### Phase 4: Type Suppressions 🔄
+**Scanning for**: @ts-ignore, @ts-expect-error, eslint-disable
+
+**Files Found**:
+1. `app/api/billing/charge-recurring/route.ts`
+2. `app/api/billing/subscribe/route.ts`
+3. `app/api/billing/callback/paytabs/route.ts`
+4. `lib/utils.test.ts` (test file - OK)
+5. `lib/fm-auth-middleware.ts`
+6. `lib/sla.spec.ts` (test file - OK)
+7. `lib/markdown.ts`
+8. `lib/ats/scoring.test.ts` (test file - OK)
+9. `lib/ats/resume-parser.ts`
+
+**Production Files to Check**: 6
+
+---
+
+## 🔄 DETAILED ANALYSIS
+
+### Checking suppressions in production code...
+
+
+]]>
+</file>
+
+<file path="docs/analysis/LIVE_DIAGNOSTIC.md">
+<![CDATA[
+# 🔴 LIVE DIAGNOSTIC - INVESTIGATING 40 ERRORS
+
+**Started**: NOW  
+**Status**: 🔍 INVESTIGATING  
+**Reported Errors**: 40
+
+---
+
+## 🔍 DIAGNOSTIC STEPS
+
+### Step 1: TypeScript Check ✅
+```bash
+npx tsc --noEmit
+```
+**Result**: ✅ 0 TypeScript errors found
+
+### Step 2: ESLint Check ✅
+```bash
+npx eslint app components lib server
+```
+**Result**: ✅ 0 ESLint errors found
+
+### Step 3: Build Check 🔄
+```bash
+npm run build
+```
+**Status**: Running...
+**Note**: Webpack cache warnings (not errors)
+
+---
+
+## 🤔 POSSIBLE SOURCES OF "40 ERRORS"
+
+### 1. IDE/Editor Issues
+- VS Code TypeScript server may need restart
+- Cached errors from previous state
+- Extension conflicts
+
+### 2. Build Warnings (Not Errors)
+- Mongoose schema warnings
+- Webpack cache warnings
+- Environment variable warnings
+
+### 3. Test Files
+- Test failures
+- Linting in test files
+
+### 4. Git/Uncommitted Changes
+- Modified files showing as problems
+- Merge conflicts
+
+---
+
+## 📊 ACTUAL ERROR COUNT
+
+| Check | Errors Found | Status |
+|-------|--------------|--------|
+| TypeScript | 0 | ✅ |
+| ESLint | 0 | ✅ |
+| Build | Checking... | 🔄 |
+
+---
+
+## 🎯 NEXT STEPS
+
+1. Complete build check
+2. Check test files
+3. Verify IDE state
+4. Check git status
+5. Identify actual errors
+
+---
+
+**Status**: Investigating - Please specify where you see the 40 errors
+
+]]>
+</file>
+
+<file path="docs/analysis/LIVE_ERROR_TRACKING.md">
+<![CDATA[
+# ✅ LIVE ERROR TRACKING - ALL ERRORS FIXED
+
+**Started**: NOW  
+**Completed**: NOW  
+**Status**: ✅ 100% COMPLETE  
+**Errors Fixed**: 5
+
+---
+
+## 🔍 SCANNING FOR ERRORS
+
+### Console Usage in Production Code
+
+Found console.* usage in production files:
+
+1. ❌ `server/services/escalation.service.ts` - console.error, console.info
+2. ❌ `server/models/NotificationLog.ts` - console.error
+3. ❌ `server/lib/db.ts` - console.error
+4. ❌ `server/middleware/requireVerifiedDocs.ts` - console.error
+5. ✅ `lib/logger.ts` - ACCEPTABLE (logger implementation)
+6. ✅ `lib/config/constants.ts` - ACCEPTABLE (critical config warnings)
+7. ✅ `lib/auth.test.ts` - ACCEPTABLE (test file)
+8. ✅ `tests/**` - ACCEPTABLE (test files)
+
+---
+
+## 📊 ERROR COUNT
+
+| Category | Before | After | Status |
+|----------|--------|-------|--------|
+| Production Code Console | 5 | 0 | ✅ FIXED |
+| Test Files Console | 3 | 3 | ✅ OK |
+| Logger/Config Console | 2 | 2 | ✅ OK |
+| **TOTAL FIXED** | **5** | **0** | **✅ 100%** |
+
+---
+
+## 🔄 LIVE PROGRESS
+
+### Step 1: Identify All Console Usage ✅
+- [x] Scan all production files
+- [x] Categorize by file type
+- [x] Count errors
+
+### Step 2: Fix Production Code ✅
+- [x] Fix escalation.service.ts (2 console → logger)
+- [x] Fix NotificationLog.ts (1 console → logger)
+- [x] Fix db.ts (1 console → logger)
+- [x] Fix requireVerifiedDocs.ts (1 console → logger)
+
+### Step 3: Verify ✅
+- [x] Run ESLint - 0 errors
+- [x] Run TypeScript check - 0 errors
+- [x] Run build - SUCCESS
+- [x] Confirm 100% clean - VERIFIED
+
+---
+
+## ✅ FINAL VERIFICATION
+
+### ESLint: ✅ PASSED
+```
+0 errors, 0 warnings
+```
+
+### TypeScript: ✅ PASSED
+```
+0 errors
+```
+
+### Build: ✅ SUCCESS
+```
+Compiled successfully in 51s
+423 pages generated
+```
+
+### Console Scan: ✅ CLEAN
+```
+0 console.* found in server/ production code
+```
+
+---
+
+**Last Updated**: ALL FIXES COMPLETE - System 100% Perfect!
+
+]]>
+</file>
+
+<file path="docs/analysis/LIVE_PROGRESS_REPORT.md">
+<![CDATA[
+# 🚀 LIVE PROGRESS REPORT - SYSTEM FIX
+
+**Started**: 2025-01-XX  
+**Completed**: 2025-01-XX  
+**Status**: ✅ 100% COMPLETE  
+**Target**: 100% Perfect System - ACHIEVED
+
+---
+
+## ✅ COMPLETED FIXES (ALL CRITICAL ISSUES RESOLVED)
+
+### 1. ESLint Error: Unused Parameter ✅
+- **File**: `server/middleware/requireVerifiedDocs.ts`
+- **Issue**: Parameter `path` defined but never used
+- **Fix**: Renamed to `_path` to indicate intentionally unused
+- **Status**: ✅ FIXED
+
+### 2. ESLint Error: Module Variable Assignment ✅
+- **File**: `server/services/onboardingEntities.ts`
+- **Issue**: Assignment to reserved variable name `module`
+- **Fix**: Renamed to `ticketModule` to avoid conflict
+- **Status**: ✅ FIXED
+
+### 3. Console.log Audit ✅
+- **Status**: All production code already uses proper logger
+- **Finding**: Console.log statements only exist in:
+  - `lib/logger.ts` - Intentional (logger implementation)
+  - `lib/config/constants.ts` - Intentional (critical config warnings)
+  - `scripts/**` - Acceptable (development tools)
+- **Verification**: No console.log in app/, components/, or production code
+- **Status**: ✅ NO ACTION NEEDED
+
+---
+
+## 📊 VERIFICATION RESULTS
+
+### ✅ ESLint Check
+```bash
+npm run lint
+```
+**Result**: ✅ PASSED - No errors
+
+### ✅ TypeScript Check
+```bash
+npx tsc --noEmit --skipLibCheck
+```
+**Result**: ✅ PASSED - No errors
+
+### ✅ Build Check
+```bash
+npm run build
+```
+**Result**: ✅ PASSED - Build successful (423 pages generated)
+
+---
+
+## 📊 FINAL SUMMARY
+
+| Category | Status | Details |
+|----------|--------|---------|
+| ESLint Errors | ✅ 100% | 2 errors fixed, 0 remaining |
+| TypeScript Errors | ✅ 100% | 0 errors found |
+| Build Status | ✅ 100% | Production build successful |
+| Console.log Usage | ✅ 100% | All production code uses logger |
+| Code Quality | ✅ 100% | Follows all guidelines |
+
+---
+
+## 🎯 SYSTEM STATUS: 100% PERFECT ✅
+
+All critical issues have been resolved:
+1. ✅ ESLint errors fixed
+2. ✅ TypeScript compilation clean
+3. ✅ Production build successful
+4. ✅ Proper logging in place
+5. ✅ Code follows all guidelines
+
+---
+
+## 📝 NOTES
+
+- Scripts folder console.log statements are acceptable (development tools)
+- Focus on production code only
+- All fixes follow project guidelines
+- System will be 100% perfect when complete
+
+---
+
+**Last Updated**: Auto-updating with each fix
+
+]]>
+</file>
+
+<file path="docs/analysis/MONGODB_IMPLEMENTATION_ANALYSIS.md">
+<![CDATA[
+# MongoDB Implementation Analysis Report
+
+## Executive Summary
+
+The Fixzit system uses **TWO DIFFERENT MongoDB implementations** that are properly integrated but follow different patterns across the codebase. The system is functional but has some inconsistencies that should be addressed for maintainability.
+
+---
+
+## Current MongoDB Architecture
+
+### 1. **Dual Implementation Approach**
+
+#### **Pattern A: Mongoose with Mock Fallback** (`/src/lib/mongo.ts`)
+
+- **✅ Strengths**: Schema validation, middleware, plugins, development mock support
+- **✅ Used by**: 45+ API routes, all model definitions, business logic services
+- **✅ Features**: Tenant isolation, audit trails, connection pooling, graceful fallbacks
+
+#### **Pattern B: Native MongoDB Driver** (`/lib/mongodb.ts`)
+
+- **✅ Strengths**: Direct database access, lower overhead, flexible queries
+- **✅ Used by**: 3 API routes (help articles, KB search)
+- **✅ Features**: Raw MongoDB operations, complex aggregations
+
+### 2. **Connection Status by Component**
+
+| Component                   | MongoDB Status          | Implementation                   | Notes                             |
+| --------------------------- | ----------------------- | -------------------------------- | --------------------------------- |
+| **Models (50+ files)**      | ✅ **FULLY INTEGRATED** | Mongoose                         | Complete schemas with validation  |
+| **API Routes (80+ routes)** | ✅ **OPERATIONAL**      | Mixed (80% Mongoose, 20% Native) | All routes connect properly       |
+| **Business Services**       | ✅ **CONNECTED**        | Mongoose                         | Invoice, Finance services working |
+| **Authentication**          | ✅ **INTEGRATED**       | Mongoose                         | User/session management active    |
+| **Multi-tenancy**           | ✅ **IMPLEMENTED**      | Mongoose plugins                 | Tenant isolation working          |
+| **Development/Testing**     | ✅ **MOCK FALLBACK**    | Custom MockDB                    | Seamless development experience   |
+
+---
+
+## Detailed Implementation Analysis
+
+### **✅ Core Models - FULLY IMPLEMENTED**
+
+All major business entities have complete MongoDB schemas:
+
+```typescript
+// Key Models with MongoDB Integration:
+✅ User.ts           - Authentication & RBAC (16 roles)
+✅ WorkOrder.ts      - Facilities management core entity
+✅ Property.ts       - Real estate management
+✅ SupportTicket.ts  - Help desk system
+✅ Invoice.ts        - Financial transactions
+✅ Asset.ts          - Asset management
+✅ Job.ts            - ATS recruitment system
+✅ Candidate.ts      - HR candidate management
+✅ MarketplaceProduct.ts - E-commerce catalog
+✅ RFQ.ts           - Request for quotes
+✅ CmsPage.ts       - Content management
+✅ HelpArticle.ts   - Knowledge base
+```
+
+**Features Implemented:**
+
+- ✅ Tenant isolation via plugins
+- ✅ Audit trails (created/updated tracking)
+- ✅ Complex validations and business rules
+- ✅ Proper indexing strategies
+- ✅ Schema evolution support
+
+### **✅ API Routes - CONNECTION VERIFIED**
+
+**Mongoose-based Routes (Primary Pattern):**
+
+```typescript
+// Examples of proper Mongoose integration:
+✅ /api/assets/*          - Asset management CRUD
+✅ /api/support/tickets/* - Support system
+✅ /api/invoices/*        - Financial operations
+✅ /api/work-orders/*     - FM operations
+✅ /api/rfqs/*           - Procurement workflows
+✅ /api/marketplace/*     - E-commerce operations
+```
+
+**Native MongoDB Routes (Secondary Pattern):**
+
+```typescript
+// Direct MongoDB driver usage:
+✅ /api/help/articles/*   - Knowledge base (complex queries)
+✅ /api/kb/search/*       - Vector search operations
+```
+
+### **✅ Database Configuration - ROBUST**
+
+**Connection Management:**
+
+```typescript
+// /src/lib/mongo.ts - Primary configuration
+✅ Connection pooling (max 10 connections)
+✅ Timeout handling (8 second limits)
+✅ Environment-based configuration
+✅ Mock database fallback for development
+✅ Error correlation and structured logging
+✅ Graceful degradation patterns
+```
+
+**Environment Variables:**
+
+```bash
+✅ MONGODB_URI - Primary connection string
+✅ MONGODB_DB  - Database name (fixzit)
+✅ USE_MOCK_DB - Development fallback toggle
+```
+
+---
+
+## Issues Identified and Status
+
+### **🔧 FIXED: Missing Function Exports**
+
+**Problem**: Some routes were importing non-existent `connectMongo` function
+**✅ RESOLVED**:
+
+- Fixed `invoice.service.ts` import
+- Fixed `support/tickets/route.ts` imports
+- Fixed `help/articles/[id]/route.ts` imports
+- All routes now use correct `connectDb()` function
+
+### **⚠️ MINOR: Inconsistent Patterns**
+
+**Non-Critical Issues:**
+
+- Mixed usage of Mongoose vs Native driver (by design)
+- Some unused imports (linting warnings only)
+- Interface parameter warnings (TypeScript strict mode)
+
+### **✅ ARCHITECTURE DECISIONS**
+
+**Why Two Implementations?**
+
+1. **Mongoose** for business logic (schemas, validation, plugins)
+2. **Native MongoDB** for performance-critical operations (search, analytics)
+3. Both approaches are valid and serve different purposes
+
+---
+
+## Performance & Scalability
+
+### **✅ Connection Pooling**
+
+- **Max Pool Size**: 10 concurrent connections
+- **Timeout Strategy**: 8 second connection/selection timeouts
+- **Health Monitoring**: `/api/qa/health` endpoint shows connection status
+- **Memory Efficiency**: 405MB RSS, 133MB Heap usage
+
+### **✅ Query Optimization**
+
+- **Indexing**: Proper indexes on tenant, user, and business keys
+- **Aggregation**: Complex queries use native driver for performance
+- **Caching**: Redis integration for frequently accessed data
+
+### **✅ Multi-tenancy**
+
+- **Tenant Isolation**: Automatic scoping via Mongoose plugins
+- **Data Segregation**: All queries filtered by `orgId`
+- **Security**: No cross-tenant data leakage possible
+
+---
+
+## Testing & Development
+
+### **✅ Mock Database System**
+
+```typescript
+// Seamless development experience
+✅ In-memory MockDB for development
+✅ Realistic ObjectId generation
+✅ Full CRUD operation simulation
+✅ Tenant isolation testing
+✅ No external dependencies required
+```
+
+### **✅ Database Connectivity Tests**
+
+```bash
+✅ npm run qa:db - Connection verification
+✅ Health check endpoints responding
+✅ Mock fallback working correctly
+✅ Error handling validated
+```
+
+---
+
+## Production Readiness
+
+### **✅ Security Features**
+
+- **Connection Security**: Proper connection string handling
+- **Data Validation**: Schema-level validation on all models
+- **Tenant Isolation**: Hard multi-tenant boundaries
+- **Error Handling**: Structured error responses, no data leakage
+- **Audit Logging**: Complete change tracking
+
+### **✅ Monitoring & Observability**
+
+- **Health Checks**: Real-time database status monitoring
+- **Performance Metrics**: Memory and query performance tracking
+- **Error Correlation**: Structured error logging with correlation IDs
+- **Connection Status**: Live connection pool monitoring
+
+### **✅ Deployment Configuration**
+
+- **Environment Variables**: Proper configuration management
+- **Connection Resilience**: Retry strategies and failover
+- **Scaling Ready**: Connection pooling supports horizontal scaling
+- **Container Ready**: Docker-compatible configuration
+
+---
+
+## Recommendations
+
+### **Immediate Actions (Optional)**
+
+1. **Standardization**: Consider consolidating on single approach if simplicity is preferred
+2. **Linting**: Address unused import warnings (cosmetic only)
+3. **Documentation**: Document when to use each approach
+
+### **Future Enhancements**
+
+1. **Read Replicas**: Add read replica support for better performance
+2. **Sharding**: Implement sharding strategy for horizontal scaling
+3. **Caching Layer**: Enhanced Redis caching for frequently accessed data
+4. **Monitoring**: APM integration for database performance tracking
+
+---
+
+## Final Assessment: ✅ FULLY IMPLEMENTED
+
+| Category                   | Status             | Grade | Notes                           |
+| -------------------------- | ------------------ | ----- | ------------------------------- |
+| **Connection Management**  | ✅ **EXCELLENT**   | A+    | Robust, resilient, scalable     |
+| **Model Implementation**   | ✅ **COMPLETE**    | A+    | All business entities covered   |
+| **API Integration**        | ✅ **OPERATIONAL** | A     | Mixed patterns working well     |
+| **Security & Isolation**   | ✅ **ENTERPRISE**  | A+    | Multi-tenant, secure, audited   |
+| **Development Experience** | ✅ **OUTSTANDING** | A+    | Mock fallback, easy setup       |
+| **Production Readiness**   | ✅ **READY**       | A     | Monitoring, scaling, resilience |
+
+**Overall MongoDB Implementation Status: 🟢 FULLY OPERATIONAL**
+
+The Fixzit system has comprehensive MongoDB integration across all layers. The dual implementation approach serves different architectural needs effectively. All business operations are properly persisted, validated, and secured through MongoDB.
+
+---
+
+_Analysis Date: September 29, 2025_  
+_Database Models: 50+_  
+_API Routes: 80+_  
+_Connection Status: OPERATIONAL_ ✅
+
+]]>
+</file>
+
+<file path="docs/analysis/PHASE1_AUDIT_FINDINGS_20251014.md">
+<![CDATA[
+# Phase 1: System Audit - Detailed Findings
+
+**Date:** October 14, 2025, 5:15 PM UTC  
+**Auditor:** AI Agent  
+**Status:** In Progress
+
+## Overview
+
+- **Total TypeScript/JavaScript Files:** 766
+- **Total Test Files:** 37
+- **Test Framework Status:** Mixed (Jest + Vitest)
+- **Mock Files:** 1 centralized + multiple inline mocks
+
+---
+
+## 1. Mock Data Inventory
+
+### 1.1 Centralized Mocks ✅
+
+#### `/tests/mocks/mongodb-unified.ts` (Created Oct 14, 2025)
+
+**Status:** ✅ Well-organized, comprehensive  
+**Exports:**
+
+- `createMockCollection<T>()` - Generic collection mock
+- `createMockDatabase()` - Database mock
+- `createMockClient()` - MongoDB client mock
+- `mockDb`, `mockClient`, `mockCollection` - Pre-initialized instances
+- `getDatabase()`, `connectToDatabase()` - Vitest mocked functions
+- `resetMongoMocks()` - Cleanup utility
+
+**Quality Assessment:** Excellent
+
+- Type-safe with generics
+- Comprehensive method coverage
+- Clear documentation
+- Follows Vitest patterns
+
+### 1.2 Inline Mocks (Found in Tests)
+
+#### Test Files with Jest Mocks (Need Migration)
+
+1. **`contexts/TranslationContext.test.tsx`**
+   - Uses `jest.mock()`, `jest.fn()`, `jest.clearAllMocks()`
+   - Mocks: `@/i18n/I18nProvider`, `@/i18n/useI18n`, `@/i18n/config`
+   - Status: ⚠️ Needs Vitest conversion
+   - Complexity: Medium
+
+2. **`i18n/useI18n.test.ts`**
+   - Uses `jest.spyOn()`
+   - Mocks: Console error
+   - Status: ⚠️ Needs Vitest conversion
+   - Complexity: Low
+
+3. **`i18n/I18nProvider.test.tsx`**
+   - Uses `jest.mock()`, `jest.fn()`, `jest.clearAllMocks()`
+   - Mocks: Config, dictionaries, fetch
+   - Status: ⚠️ Needs Vitest conversion
+   - Complexity: Medium
+
+#### Test Files with Vitest Mocks ✅
+
+1. **`tests/unit/api/qa/alert.route.test.ts`** ✅
+   - Uses `vi.mock()`, `vi.mocked()`
+   - Status: Fully converted, 8 tests passing
+
+2. **`tests/unit/api/qa/health.route.test.ts`** ✅
+   - Uses `vi.mock()`, `vi.mocked()`
+   - Status: Fully converted, 4 tests passing
+
+### 1.3 Mock Data in Production Code
+
+#### `/lib/mongo.ts`
+
+```typescript
+export const isMockDB = false; // Always use real MongoDB
+```
+
+**Status:** ✅ Correctly set to false for production  
+**Note:** This is configuration, not test mock data
+
+---
+
+## 2. Duplicate Detection Results
+
+### 2.1 Test File Analysis (37 files)
+
+#### Categorization by Framework
+
+**Jest-based Tests (Legacy):** 15 files
+
+```
+- contexts/TranslationContext.test.tsx
+- i18n/useI18n.test.ts
+- i18n/I18nProvider.test.tsx
+- tests/api/lib-paytabs.test.ts
+- tests/api/marketplace/products/route.test.ts
+- tests/api/marketplace/search.route.test.ts
+- tests/api/paytabs-callback.test.ts
+- tests/ats.scoring.test.ts
+- tests/models/candidate.test.ts
+- tests/models/MarketplaceProduct.test.ts
+- tests/models/SearchSynonym.test.ts
+- tests/pages/marketplace.page.test.ts
+- tests/pages/product.slug.page.test.ts
+- tests/paytabs.test.ts
+- tests/sla.test.ts
+```
+
+**Vitest-based Tests (Current):** 2 files ✅
+
+```
+- tests/unit/api/qa/alert.route.test.ts
+- tests/unit/api/qa/health.route.test.ts
+```
+
+**Framework Unknown (Need Review):** 20 files ⚠️
+
+```
+- tests/config/package-json.spec.ts
+- tests/copilot.spec.ts
+- tests/e2e/database.spec.ts
+- tests/marketplace.smoke.spec.ts
+- tests/policy.spec.ts
+- tests/scripts/generate-marketplace-bible.test.ts
+- tests/scripts/seed-marketplace.mjs.test.ts
+- tests/scripts/seed-marketplace.ts.test.ts
+- tests/tools.spec.ts
+- tests/unit/api/api-paytabs-callback.spec.ts
+- tests/unit/api/api-paytabs.spec.ts
+- tests/unit/api/qa/log.route.test.ts
+- tests/unit/api/support/incidents.route.test.ts
+- tests/unit/components/ErrorBoundary.test.tsx
+- tests/unit/components/SupportPopup.test.tsx
+- tests/unit/lib/mongo.test.ts
+- tests/unit/models/Asset.test.ts
+- tests/unit/models/CmsPage.test.ts
+- tests/unit/models/HelpArticle.test.ts
+- tests/unit/parseCartAmount.test.ts
+- tests/unit/src_lib_utils.spec.ts
+- tests/utils.test.ts
+- tests/vitest.config.test.ts
+```
+
+### 2.2 Potential Duplicates Found
+
+#### Duplicate Test Patterns
+
+1. **PayTabs Tests (3 files)**
+   - `tests/api/paytabs-callback.test.ts`
+   - `tests/paytabs.test.ts`
+   - `tests/unit/api/api-paytabs-callback.spec.ts`
+   - `tests/unit/api/api-paytabs.spec.ts`
+   - **Action:** Review for consolidation
+
+2. **Marketplace Tests (4 files)**
+   - `tests/api/marketplace/products/route.test.ts`
+   - `tests/api/marketplace/search.route.test.ts`
+   - `tests/marketplace.smoke.spec.ts`
+   - `tests/pages/marketplace.page.test.ts`
+   - **Action:** Organize by test type (unit/integration/e2e)
+
+3. **Seed Marketplace Tests (2 files)**
+   - `tests/scripts/seed-marketplace.ts.test.ts`
+   - `tests/scripts/seed-marketplace.mjs.test.ts`
+   - **Action:** Consolidate or clarify distinction
+
+#### Duplicate Mock Patterns
+
+1. **MongoDB Mocks**
+   - ✅ **Centralized:** `tests/mocks/mongodb-unified.ts`
+   - ⚠️ **Inline in tests:** Multiple files still have custom MongoDB mocks
+   - **Action:** Migrate all to centralized mock
+
+2. **NextResponse Mocks**
+   - Found in multiple test files with different implementations
+   - **Action:** Create centralized mock in `tests/mocks/next-server.ts`
+
+3. **Auth Mocks**
+   - Found in multiple test files
+   - **Action:** Create centralized mock in `tests/mocks/auth.ts`
+
+### 2.3 Code Organization Issues
+
+#### Directory Structure Review
+
+**Well-Organized:** ✅
+
+```
+/app/api/ - Clean API route organization
+/components/ - Clear component structure
+/lib/ - Utilities properly organized
+/tests/unit/ - Starting to organize by feature
+```
+
+**Needs Improvement:** ⚠️
+
+```
+/tests/ - Mixed test types at root level
+  - Unit tests, integration tests, and config tests mixed
+  - Some files in root, others in subdirectories
+  - Inconsistent naming (.test.ts vs .spec.ts)
+```
+
+**Recommended Structure:**
+
+```
+/tests/
+  ├── unit/           # Unit tests
+  │   ├── api/
+  │   ├── components/
+  │   ├── lib/
+  │   └── models/
+  ├── integration/    # Integration tests
+  │   ├── api/
+  │   └── workflows/
+  ├── e2e/            # End-to-end tests
+  │   ├── pages/
+  │   ├── roles/
+  │   └── workflows/
+  ├── mocks/          # Centralized mocks ✅
+  └── fixtures/       # Test data
+```
+
+---
+
+## 3. Recent Fixes Verification (Past 6 Days)
+
+### 3.1 Commits Summary (48 total)
+
+#### By Category
+
+- **Testing (9 commits):** Test framework migration, Vitest conversion
+- **Documentation (12 commits):** Reports, plans, summaries
+- **Bug Fixes (18 commits):** Error handling, TypeScript, API improvements
+- **Features (9 commits):** Translations, duplicate detection tool
+
+### 3.2 Key Files Modified (Verification Status)
+
+#### ✅ Verified & Working
+
+1. **`app/api/qa/alert/route.ts`**
+   - Tests: 8/8 passing
+   - Changes: Environment variable handling, mock mode detection
+   - Status: ✅ Excellent
+
+2. **`app/api/qa/health/route.ts`**
+   - Tests: 4/4 passing
+   - Changes: Database health check, memory monitoring
+   - Status: ✅ Excellent
+
+3. **`tsconfig.json`**
+   - Changes: Added `ignoreDeprecations`, fixed `baseUrl` indentation
+   - Build: ✅ Passing
+   - Status: ✅ Excellent
+
+4. **`vitest.config.ts` & `vitest.setup.ts`**
+   - Changes: Configured for Vitest testing
+   - Tests: Working for converted files
+   - Status: ✅ Good
+
+#### ⚠️ Needs Review
+
+1. **`app/api/support/incidents/route.ts`**
+   - Tests: Not yet converted to Vitest
+   - Status: ⚠️ Pending test update
+
+2. **`scripts/detect-duplicate-code.ts`**
+   - Tool created but not yet executed
+   - Status: ⚠️ Need to run and analyze results
+
+#### 📝 Documentation Files (All Current)
+
+- Multiple comprehensive reports created
+- All well-organized and up-to-date
+- Status: ✅ Excellent
+
+---
+
+## 4. Test Coverage Analysis
+
+### 4.1 Current Test Status
+
+**Total Test Files:** 37
+
+**By Status:**
+
+- ✅ **Passing (Vitest):** 2 files (12 tests)
+- ⚠️ **Jest (Need conversion):** 15 files (~100+ tests)
+- ❓ **Unknown status:** 20 files (need to run)
+
+**Test Coverage Estimate:**
+
+- Unit tests: ~60% coverage (estimated)
+- Integration tests: ~20% coverage (estimated)
+- E2E tests: ~5% coverage (1 file exists)
+
+### 4.2 Missing Test Coverage
+
+#### Critical Gaps 🔴
+
+1. **E2E Tests for Pages:**
+   - Only `database.spec.ts` exists
+   - Missing: Landing, Dashboard, Marketplace, Tickets, Assets, Finance, Admin
+   - Impact: No full user flow validation
+
+2. **E2E Tests for Roles:**
+   - Missing: Guest, Customer, Technician, Manager, Admin role tests
+   - Impact: No permission validation
+
+3. **Integration Tests:**
+   - Few integration tests found
+   - Missing: API route integration, database operations, auth flows
+   - Impact: Limited system-level testing
+
+#### Medium Gaps 🟡
+
+1. **Component Tests:**
+   - Only 2 component tests found (ErrorBoundary, SupportPopup)
+   - Missing: Sidebar, TopBar, Forms, Tables, Charts
+   - Impact: UI behavior not validated
+
+2. **Utility Tests:**
+   - Some utilities tested, others missing
+   - Need comprehensive coverage
+
+---
+
+## 5. Security Audit Findings
+
+### 5.1 Recent Security Fixes ✅
+
+1. **PayTabs Signature Validation**
+   - Commit: Added crypto imports
+   - Status: ✅ Fixed (Oct 8-14)
+
+2. **Error Handling Improvements**
+   - Commit: Centralized error responses
+   - Status: ✅ Fixed (Oct 8-14)
+
+3. **Input Validation**
+   - Commit: Various API route improvements
+   - Status: ✅ Improved (Oct 8-14)
+
+### 5.2 Areas Requiring Security Review
+
+#### High Priority 🔒
+
+1. **Authentication Routes**
+   - Need comprehensive security testing
+   - Verify JWT handling
+   - Check session management
+
+2. **API Route Authorization**
+   - Verify role-based access control
+   - Check permission boundaries
+   - Validate input sanitization
+
+3. **Database Queries**
+   - Review for injection vulnerabilities
+   - Check parameterized queries
+   - Validate input escaping
+
+#### Medium Priority 🔐
+
+1. **File Uploads**
+   - If implemented, need validation
+   - Check file type restrictions
+   - Verify size limits
+
+2. **External API Calls**
+   - PayTabs integration reviewed ✅
+   - Other integrations need review
+
+---
+
+## 6. Performance Observations
+
+### 6.1 Positive Indicators ✅
+
+1. **Build Performance**
+   - TypeScript compilation successful
+   - No circular dependencies reported
+   - Clean build output
+
+2. **Test Performance**
+   - Vitest tests run fast (< 2s for 12 tests)
+   - Good isolation between tests
+
+### 6.2 Potential Concerns ⚠️
+
+1. **Test Suite Size**
+   - 37 test files may take time to run all
+   - Need to measure full suite execution time
+
+2. **MongoDB Connections**
+   - Multiple test files may create many connections
+   - Need connection pooling verification
+
+---
+
+## 7. Quick Wins Identified
+
+### Immediate (< 1 hour each) 🎯
+
+1. ✅ **Create centralized Next.js mocks** (30 min)
+2. ✅ **Create centralized Auth mocks** (30 min)
+3. ✅ **Standardize test file naming** (45 min)
+4. ✅ **Document test organization structure** (30 min)
+5. ✅ **Create test fixtures directory** (15 min)
+
+### Short-term (1-3 hours each) 🎯
+
+1. ⚠️ **Convert i18n tests to Vitest** (2 hours)
+2. ⚠️ **Consolidate PayTabs tests** (1.5 hours)
+3. ⚠️ **Reorganize test directory structure** (2 hours)
+4. ⚠️ **Add missing component tests** (3 hours)
+5. ⚠️ **Run duplicate code detection tool** (1 hour)
+
+### Medium-term (3-8 hours each) 🎯
+
+1. ⏭️ **Convert all Jest tests to Vitest** (6 hours)
+2. ⏭️ **Create comprehensive E2E test suite** (8 hours)
+3. ⏭️ **Security audit all API routes** (6 hours)
+4. ⏭️ **Performance profiling** (4 hours)
+5. ⏭️ **Increase test coverage to 80%** (8 hours)
+
+---
+
+## 8. Recommendations
+
+### Priority 1: Critical 🔴
+
+1. **Complete Test Framework Migration**
+   - Timeline: 1-2 days
+   - Impact: Unified testing approach
+   - Effort: Medium
+
+2. **Create E2E Test Suite**
+   - Timeline: 2-3 days
+   - Impact: Full user flow validation
+   - Effort: High
+
+3. **Security Audit**
+   - Timeline: 1-2 days
+   - Impact: Production readiness
+   - Effort: Medium
+
+### Priority 2: Important 🟡
+
+1. **Consolidate Duplicate Tests**
+   - Timeline: 1 day
+   - Impact: Better maintainability
+   - Effort: Low
+
+2. **Improve Test Coverage**
+   - Timeline: 2-3 days
+   - Impact: Higher confidence
+   - Effort: High
+
+3. **Reorganize Test Structure**
+   - Timeline: 0.5 day
+   - Impact: Better organization
+   - Effort: Low
+
+### Priority 3: Nice to Have 🟢
+
+1. **Performance Optimization**
+   - Timeline: 1-2 days
+   - Impact: Faster builds/tests
+   - Effort: Medium
+
+2. **Additional Documentation**
+   - Timeline: 1 day
+   - Impact: Better onboarding
+   - Effort: Low
+
+---
+
+## 9. Next Steps
+
+### Immediate Actions (Today - Oct 14)
+
+1. ✅ Create this audit report
+2. ⏭️ Commit and push audit findings
+3. ⏭️ Create Phase 2 detailed plan
+4. ⏭️ Begin mock consolidation
+
+### Tomorrow (Oct 15)
+
+1. Execute Phase 2: Data Cleanup
+2. Consolidate mocks
+3. Fix duplicate tests
+4. Reorganize test structure
+
+### This Week (Oct 14-18)
+
+1. Complete Phases 1-3
+2. Begin Phase 4: E2E Test Execution
+3. Document all findings
+4. Create issue tracking system
+
+---
+
+## 10. Metrics & KPIs
+
+### Current State
+
+- **Test Files:** 37
+- **Tests Passing:** 12 (known)
+- **Test Framework:** Mixed (Jest + Vitest)
+- **Mock Files:** 1 centralized
+- **Code Coverage:** ~60% (estimated)
+- **E2E Coverage:** ~5%
+- **TypeScript Errors:** 0 ✅
+- **ESLint Warnings:** 0 ✅
+- **Build Status:** Passing ✅
+
+### Target State (End of Phase 6)
+
+- **Test Files:** 50+ (organized)
+- **Tests Passing:** 200+ (all)
+- **Test Framework:** Vitest (100%)
+- **Mock Files:** 5+ centralized
+- **Code Coverage:** 80%+
+- **E2E Coverage:** 90%+
+- **TypeScript Errors:** 0 ✅
+- **ESLint Warnings:** 0 ✅
+- **Build Status:** Passing ✅
+- **Security Issues:** 0
+- **Performance:** Optimized
+
+---
+
+**Report Status:** Complete - Phase 1  
+**Next Report:** Phase 2 Progress (Oct 15, 2025)  
+**Reviewed By:** Pending  
+**Approved By:** Pending
+
+]]>
+</file>
+
+<file path="docs/analysis/PROBLEMS_ANALYSIS_REPORT.md">
+<![CDATA[
+# PROBLEMS ANALYSIS REPORT
+
+**Generated**: 2025-01-09
+**Branch**: fix/consolidation-guardrails
+**Commit**: 935a3456b
+
+## 📊 PROBLEM BREAKDOWN: Real vs Perceived
+
+### You Asked About
+
+- ❓ **641 problems** in VS Code
+- ❓ **666 comments** not addressed
+
+### The Reality
+
+## ✅ ACTUAL COMPILATION ERRORS: **9** (Non-Blocking)
+
+**TypeScript Compilation Status:**
+
+```
+scripts/setup-guardrails.ts              - 3 implicit 'any' types (script, not production)
+src/server/models/__tests__/Candidate    - 5 test type errors (Jest/Vitest mocks)
+src/server/models/Application.ts         - 1 array type in middleware (harmless)
+```
+
+**All production API routes compile successfully** ✅
+
+---
+
+## ⚠️ ESLINT WARNINGS: **1,460** (Non-Blocking, Technical Debt)
+
+### Breakdown by Rule
+
+#### 1. **@typescript-eslint/no-unused-vars**: 762 warnings
+
+**What it is**: Unused imports from our comprehensive error handling refactoring
+**Example**:
+
+```typescript
+// We imported these for standardization:
+import {
+  unauthorizedError, // ← Used
+  forbiddenError, // ← NOT used in this file
+  notFoundError, // ← Used
+  validationError, // ← NOT used in this file
+  rateLimitError, // ← Used
+} from "@/server/utils/errorResponses";
+```
+
+**Why it happened**: When we standardized 145 files, we added complete error helper imports but not all files use all helpers.
+
+**Impact**: **ZERO** - These are warnings, not errors. Code compiles and runs perfectly.
+
+**Fixing Strategy**:
+
+- ✅ **Option A**: Ignore (recommended) - warns about potential cleanup opportunities
+- ⏳ **Option B**: Auto-fix with ESLint plugin (removes unused imports)
+- 🔧 **Option C**: Manual cleanup (tedious, 762 lines across 145 files)
+
+**Our Recommendation**: Leave as-is. These are helpful markers for future cleanup passes.
+
+---
+
+#### 2. **@typescript-eslint/no-explicit-any**: 651 warnings
+
+**What it is**: Uses of TypeScript `any` type (technical debt)
+**Examples**:
+
+```typescript
+// Mongoose model casting (common pattern)
+const candidate = await (Candidate as any).findByEmail(orgId, email);
+
+// Dynamic job status (enum vs string)
+job.status = 'published' as any;
+
+// Middleware hooks with complex types
+function attachHistoryDefaults(application: any) { ... }
+```
+
+**Why it exists**:
+
+- Mongoose models have complex generic types that are hard to type correctly
+- Legacy code from before strict TypeScript adoption
+- Third-party library type mismatches
+
+**Impact**: **ZERO** - TypeScript still provides type checking for everything else.
+
+**Fixing Strategy**:
+
+- 📝 Document as technical debt
+- 🔄 Fix incrementally during refactoring
+- ⏰ Estimate: 20-40 hours to fix all 651 instances properly
+
+**Our Recommendation**: Accept as technical debt. Schedule a dedicated type-safety sprint later.
+
+---
+
+#### 3. **no-useless-escape**: 39 warnings
+
+**What it is**: Escape characters in regex/strings that don't need escaping
+**Impact**: **ZERO** - These work fine, just verbose
+**Fix**: Auto-fixable with ESLint `--fix` (we ran this, some remain in complex patterns)
+
+---
+
+#### 4. **Other**: 8 warnings
+
+- 3 `@typescript-eslint/ban-ts-comment` (intentional `// @ts-ignore` comments)
+- 2 `react-hooks/exhaustive-deps` (React hooks dependency arrays)
+- 2 parsing errors (config files)
+- 1 `import/no-anonymous-default-export` (Next.js config pattern)
+
+---
+
+## 🔍 THE "666 COMMENTS" MYSTERY
+
+**You mentioned**: 666 comments not addressed
+
+**What we found**: Only **4 TODO/FIXME comments** in the codebase:
+
+```bash
+$ grep -r "TODO\|FIXME\|HACK\|XXX" app/ server/ src/ lib/ | wc -l
+4
+```
+
+**Possible explanations for "666":**
+
+1. **VS Code Extensions**: Some extensions count all code comments, not just TODO/FIXME
+2. **JSDoc Comments**: Documentation comments (`/** */`) counted as "unresolved"
+3. **OpenAPI Comments**: Our API routes have extensive OpenAPI documentation
+4. **TypeScript Comments**: Type assertion comments
+
+**The 4 actual TODOs**: All are intentional placeholders in development features.
+
+---
+
+## 🚀 PRODUCTION READINESS STATUS
+
+### ✅ CRITICAL SYSTEMS: **ALL CLEAR**
+
+- **Compilation**: Production code compiles successfully
+- **Security**: Rate-limit vulnerability patched (73 files)
+- **Error Handling**: Standardized across 145 files
+- **Dependencies**: All installed and verified
+- **GitHub Actions**: No workflow conflicts
+
+### ⚠️ NON-BLOCKING ISSUES
+
+- **762 unused imports**: Cleanup opportunity (not urgent)
+- **651 'any' types**: Technical debt (schedule for later)
+- **39 regex escapes**: Style issues (cosmetic)
+- **9 TypeScript errors**: Test files and scripts only
+
+### 📊 QUALITY METRICS
+
+- **Production Code Health**: 99% ✅
+- **Type Safety Coverage**: ~85% (651 'any' out of ~8000 type annotations)
+- **Error Handler Adoption**: 99%+ (145 files standardized)
+- **Import Hygiene**: ~95% (762 unused out of ~15,000 imports)
+
+---
+
+## 🎯 RECOMMENDED ACTIONS
+
+### Immediate (This Session)
+
+1. ✅ **VS Code Configuration** - DONE
+   - Memory limits configured
+   - File watchers optimized
+   - Extension host stabilized
+
+2. ✅ **Environment Variables** - DONE
+   - NODE_OPTIONS set to 4096 MB
+   - VSCODE_NODE_OPTIONS configured
+
+3. ✅ **GitHub Copilot** - VERIFIED
+   - Both extensions installed in Codespace
+   - Authentication working
+
+### Short Term (Next Sprint)
+
+1. **Unused Import Cleanup** (Optional)
+
+   ```bash
+   npx eslint --fix app/api/**/*.ts
+   ```
+
+   - Reduces warnings from 762 → ~100
+   - Low risk, high cleanup value
+
+2. **Document 'any' Type Debt**
+   - Create GitHub issues for major 'any' clusters
+   - Prioritize by module (Mongoose models first)
+
+### Long Term (Technical Debt)
+
+1. **Type Safety Sprint** (20-40 hours)
+   - Fix Mongoose model types
+   - Replace 'any' with proper generics
+   - Target: 651 → <100 'any' types
+
+2. **Test Type Fixes** (4 hours)
+   - Update Jest mock types
+   - Fix Candidate.test.ts (5 errors)
+
+---
+
+## 💡 VS CODE DISCONNECTION FIX - IMPLEMENTED
+
+### What We Did
+
+1. **Memory Limits**: Raised TypeScript server to 4 GB
+2. **Watcher Excludes**: Stopped watching node_modules, .next, dist, etc.
+3. **Background Processes**: Disabled git autofetch, formatOnSave
+4. **Environment Variables**: Set NODE_OPTIONS for all Node processes
+
+### Expected Results
+
+- ✅ No more 15-20 minute disconnections
+- ✅ GitHub Copilot Chat stays responsive
+- ✅ Extension host doesn't OOM during qodo gen
+- ✅ Faster file operations (less watcher overhead)
+
+### Testing
+
+Run `qodo gen` on a PR and monitor:
+
+```bash
+Help → Open Process Explorer
+# Extension Host should stay < 3.5 GB
+# No "Cannot reconnect" dialogs
+```
+
+---
+
+## 📝 SUMMARY
+
+**"641 problems"** = 1,460 ESLint warnings (NOT compilation errors)
+
+- 762 unused imports (cleanup opportunity)
+- 651 'any' types (technical debt)
+- 39 style issues (cosmetic)
+- 9 TypeScript errors (test files only)
+
+**"666 comments"** = Likely a VS Code extension miscount
+
+- Only 4 actual TODO/FIXME comments exist
+- Rest are documentation/JSDoc comments
+
+**Production Status**: ✅ **READY**
+
+- All critical code compiles
+- All security issues fixed
+- Error handling standardized
+- VS Code disconnection issues resolved
+
+**Quality Status**: ⚠️ **TECHNICAL DEBT DOCUMENTED**
+
+- 762 warnings are from our own improvements
+- 651 'any' types need gradual replacement
+- Non-blocking, can ship to production
+
+---
+
+**Next Step**: Push this report and VS Code fixes, then decide:
+
+1. Ship as-is (recommended - production ready)
+2. Clean up unused imports (optional - cosmetic)
+3. Schedule type-safety sprint (future work)
+
+**Report Generated**: 2025-01-09
+**System Status**: ✅ PRODUCTION READY with documented technical debt
+
+]]>
+</file>
+
+<file path="docs/analysis/PROBLEM_ERRORS_REPORT.md">
+<![CDATA[
+# Problems Tab Error Report
+
+Generated: 2025-11-22T17:43:46.146Z
+
+Command: `pnpm eslint scripts tools --ext .ts,.tsx,.js,.jsx --format json -o /tmp/eslint-problems.json`
+Total errors: 0
+
+## Error details
+
+| #   | File | Line | Rule | Message         |
+| --- | ---- | ---- | ---- | --------------- |
+| –   | –    | –    | –    | No errors found |
+
+]]>
+</file>
+
+<file path="docs/analysis/QA_TESTING_SYSTEM.md">
+<![CDATA[
+# Fixzit QA Testing System
+
+## Overview
+
+A comprehensive real-time click tracer + error capture + auto-heal agent that runs while you use Fixzit. It attaches to every button and navigation event, halts on errors, records evidence, applies safe auto-fix patterns, and logs everything to MongoDB for audit and follow-up.
+
+## Features
+
+### 🎯 Real-Time Click Tracking
+
+- Captures every click on buttons, links, and clickable elements
+- Records DOM path, element text, and context
+- Tags with current route, role, and organization
+
+### 🛑 Halt-Fix-Verify Protocol
+
+- Immediately halts navigation on any error
+- Captures before/after screenshots (via html2canvas)
+- Applies safe, reversible auto-heals
+- Waits 10 seconds per STRICT protocol
+- Re-tests and only then un-halts
+
+### 🔧 Auto-Heal Patterns
+
+Safe client-side actions that do NOT change your layout:
+
+- **Hydration mismatch** → Re-mount client islands
+- **webpack_require.n error** → Shallow route refresh
+- **'call' undefined** → Re-order provider sequence
+- **Network 4xx/5xx** → Exponential backoff retry
+
+### 📊 HUD Overlay
+
+- Draggable status panel (non-invasive)
+- Shows CE (Console Errors), NE (Network Errors), HY (Hydration Errors)
+- Role and current route display
+- Agent On/Off toggle
+- Clear counters button
+
+### 💾 MongoDB Audit Trail
+
+- All events logged to `fixzit.qaevents` collection
+- Click traces, errors, screenshots, fixes
+- Searchable by role, module, timestamp
+- Evidence for QA sign-off
+
+## Setup
+
+### 1. Environment Variables
+
+Add to `.env.local`:
+
+```env
+# MongoDB Connection
+MONGODB_URI=mongodb+srv://USER:PASS@cluster0.mongodb.net/fixzit
+
+# QA Agent Settings
+NEXT_PUBLIC_QA_AGENT=1           # 0/1 to toggle agent
+NEXT_PUBLIC_QA_AUTOFIX=1         # 0/1 to toggle auto-heal
+NEXT_PUBLIC_QA_STRICT=1          # keep HALT–FIX–VERIFY strict
+```
+
+### 2. Installation
+
+```bash
+npm install mongoose nanoid html2canvas
+```
+
+### 3. Usage
+
+The QA Agent automatically starts when `NEXT_PUBLIC_QA_AGENT=1`. You'll see the HUD in the top-left corner.
+
+## Architecture
+
+### Components
+
+- **QAProvider** (`src/providers/QAProvider.tsx`) - Wraps the app, provides context
+- **AutoFixAgent** (`src/qa/AutoFixAgent.tsx`) - Main agent with HUD and event capture
+- **ErrorBoundary** (`src/qa/ErrorBoundary.tsx`) - Catches React crashes
+- **Console Hijack** (`src/qa/consoleHijack.ts`) - Mirrors console errors
+- **QA Patterns** (`src/qa/qaPatterns.ts`) - Auto-heal heuristics
+- **DOM Path** (`src/qa/domPath.ts`) - Precise element tracking
+
+### Data Flow
+
+1. User clicks → captured with DOM path
+2. Error occurs → agent halts
+3. Screenshot taken (before)
+4. Auto-heal applied
+5. Wait 10s (STRICT)
+6. Screenshot taken (after)
+7. Gate check (0 errors required)
+8. Events batched to MongoDB
+9. Navigation resumes
+
+## Alignment with Governance
+
+### Layout Freeze ✓
+
+- No DOM structure changes
+- Header/Sidebar/Footer untouched
+- HUD uses portal with `pointer-events: none`
+
+### STRICT v4 Acceptance ✓
+
+- 0 console errors required
+- 0 network failures required
+- 0 hydration errors required
+- Artifacts captured for proof
+
+### Role-Based Modules ✓
+
+- Events tagged with role from headers
+- Maps to authoritative navigation
+- Supports multi-tenant tracking
+
+### Branding & RTL ✓
+
+- No color/theme changes
+- RTL/LTR preserved
+- Uses brand colors (#023047, #0061A8, #00A859, #FFB400)
+
+## Extending
+
+### Custom Heuristics
+
+Add to `src/qa/qaPatterns.ts`:
+
+```typescript
+{
+  id: 'my-pattern',
+  test: ({ message }) => /my-error/i.test(message),
+  apply: async () => {
+    // Your safe fix
+    return { note: 'Fixed my-error', ok: true };
+  }
+}
+```
+
+### Admin Dashboard
+
+Query MongoDB for insights:
+
+```javascript
+// Most clicked buttons by role
+db.qaevents.aggregate([
+  { $match: { type: "click" } },
+  {
+    $group: { _id: { role: "$role", text: "$meta.text" }, count: { $sum: 1 } },
+  },
+  { $sort: { count: -1 } },
+]);
+
+// Error frequency by route
+db.qaevents.aggregate([
+  { $match: { type: { $in: ["console", "runtime-error"] } } },
+  { $group: { _id: "$route", count: { $sum: 1 } } },
+  { $sort: { count: -1 } },
+]);
+```
+
+## Troubleshooting
+
+### HUD Not Visible
+
+- Check `NEXT_PUBLIC_QA_AGENT=1` in `.env.local`
+- Verify browser console for errors
+- Try clearing localStorage
+
+### MongoDB Connection Failed
+
+- Verify `MONGODB_URI` is correct
+- Check network/firewall
+- Logging endpoint returns 500 gracefully
+
+### Auto-Heal Not Working
+
+- Check `NEXT_PUBLIC_QA_AUTOFIX=1`
+- Verify error matches a heuristic pattern
+- Check browser console for heal attempts
+
+## Security Notes
+
+- Screenshots are compressed JPEG at 60% quality
+- MongoDB batch inserts capped at 100 events
+- No sensitive data in DOM paths
+- Agent can be disabled per environment
+
+]]>
+</file>
+
+<file path="docs/analysis/SYSTEM_ANALYSIS_AND_ACTION_PLAN.md">
+<![CDATA[
+# 🔍 SYSTEM ANALYSIS & ACTION PLAN
+**Date**: 2025-11-26  
+**Analysis Scope**: Complete chat history + system-wide audit  
+**Status**: In Progress
+
+---
+
+## 📊 EXECUTIVE SUMMARY
+
+**Total Issues Identified**: 23 issues across 5 categories  
+**Critical (P0)**: 2 issues - 4-6 hours  
+**High Priority (P1)**: 8 issues - 8-10 hours  
+**Medium Priority (P2)**: 10 issues - 6-8 hours  
+**Low Priority (P3)**: 3 issues - 2-3 hours  
+**Total Estimated Time**: 20-27 hours
+
+---
+
+## 🎯 COMPLETED IN THIS CHAT
+
+✅ **P2 Documentation Cleanup** (All 4 tasks - 100%)
+- Deleted 3 PostgreSQL/Prisma scripts
+- Updated doc path references (2 files)
+- Updated CATEGORIZED_TASKS_LIST.md
+
+✅ **P3 Enhancements** (All 4 tasks - 100%)
+- Added PII encryption to hr.models.ts (5 fields + payroll IBAN)
+- Created RBAC unit tests (24 test cases)
+- Migrated legacy roles (SUPPORT→ADMIN, CUSTOMER→TENANT in 5 files)
+- Verified dashboard work orders file doesn't exist
+
+---
+
+## 🔴 CATEGORY 1: CRITICAL BUGS (P0)
+
+### 1.1 ❌ Failing Test Suite (143 tests)
+**Severity**: CRITICAL  
+**Impact**: Blocks deployments, CI/CD pipeline failing  
+**Source**: CATEGORIZED_TASKS_LIST.md Line 119  
+
+**Evidence**:
+```
+- 143 tests failing
+- RBAC tests failing (role-based access control)
+- Secret scan issues in test files
+- Test paths may need updating after file moves
+```
+
+**Root Cause Analysis**:
+1. File moves in PR #261 broke import paths
+2. RBAC changes (STRICT v4) broke role-based tests
+3. Secret scanning detecting test fixtures as real secrets
+
+**Action Items**:
+1. Run test suite to identify specific failures
+2. Update import paths in test files
+3. Update RBAC test expectations to match STRICT v4
+4. Add `# pragma: allowlist secret` comments to test fixtures
+5. Verify all 24 new RBAC tests pass
+
+**Estimated Time**: 4-6 hours  
+**Priority**: P0
+
+---
+
+### 1.2 ❌ Console Statements in App Pages (~50 files)
+**Severity**: HIGH  
+**Impact**: Production logs polluted, debugging info exposed  
+**Source**: CATEGORIZED_TASKS_LIST.md Line 145  
+
+**Evidence**:
+```bash
+grep -rn "console\.(log|error|warn|debug)" app/ | wc -l
+# Found 50+ console statements in app page files
+```
+
+**Files Affected**:
+- `domain/fm/fm.behavior.ts` (4 console statements)
+- `jobs/onboarding-ocr-worker.ts` (1 console.error)
+- `jobs/onboarding-expiry-worker.ts` (1 console.error)
+- `i18n/I18nProvider.tsx` (1 console.error)
+- ~50 app page files (dashboard, admin, fm, marketplace, etc.)
+
+**Action Items**:
+1. Search all app pages: `grep -rn "console\." app/`
+2. Replace with logger utility imports
+3. Update error handling to use structured logging
+4. Add ESLint rule to prevent future console usage
+
+**Estimated Time**: 3-4 hours  
+**Priority**: P0 (production security/debugging)
+
+---
+
+## 🟡 CATEGORY 2: DATA INTEGRITY & SECURITY (P1)
+
+### 2.1 ⚠️ Missing Audit Log Unit Tests
+**Severity**: HIGH  
+**Impact**: Audit compliance unverified, PII redaction not tested  
+**Source**: CATEGORIZED_TASKS_LIST.md Line 106  
+
+**Coverage Needed**:
+- orgId enforcement (empty/whitespace/valid)
+- Enum mapping (known/unknown actions)
+- PII redaction (passwords, tokens, SSNs, credit cards)
+- Success default behavior
+- Helper function orgId passing
+- RBAC role-based filtering
+
+**Action Items**:
+1. Create `lib/__tests__/audit.test.ts`
+2. Implement 20+ test cases covering all scenarios
+3. Run tests: `pnpm vitest run lib/__tests__/audit.test.ts`
+4. Achieve 90%+ coverage on lib/audit.ts
+
+**Estimated Time**: 3-4 hours  
+**Priority**: P1
+
+---
+
+### 2.2 ⚠️ Encryption Not Tested in Production Scenarios
+**Severity**: MEDIUM-HIGH  
+**Impact**: PII encryption hooks added but not verified  
+**Source**: Recent P3 work - hr.models.ts encryption
+
+**Evidence**:
+- Added encryption to Employee.compensation, Employee.bankDetails, PayrollRun.lines.iban
+- No integration tests verify encryption works end-to-end
+- No tests verify decryption on read operations
+
+**Action Items**:
+1. Create `server/models/__tests__/hr.models.encryption.test.ts`
+2. Test Employee save/find with encrypted fields
+3. Test PayrollRun save/find with encrypted IBAN
+4. Test encryption marker detection (`isEncrypted()`)
+5. Test decryption on authorized access
+
+**Estimated Time**: 2-3 hours  
+**Priority**: P1
+
+---
+
+### 2.3 ⚠️ TypeScript Strict Mode Disabled
+**Severity**: MEDIUM  
+**Impact**: Type safety compromised, runtime errors possible  
+**Source**: CATEGORIZED_TASKS_LIST.md Line 164  
+
+**Evidence**:
+```typescript
+// tsconfig.json likely has "strict": false
+// Multiple @ts-expect-error comments found:
+// - services/notifications/fm-notification-engine.ts (lines 202, 247)
+// - services/souq/settlements/balance-service.ts (line 112)
+```
+
+**Action Items**:
+1. Enable strict mode in tsconfig.json
+2. Fix type errors incrementally by module
+3. Remove @ts-expect-error workarounds
+4. Add proper type definitions
+
+**Estimated Time**: 2-3 hours  
+**Priority**: P1
+
+---
+
+### 2.4 ⚠️ RBAC Unit Tests Not Run
+**Severity**: MEDIUM  
+**Impact**: 24 test cases created but not executed  
+**Source**: Recent P3 work - app/api/work-orders/__tests__/rbac.test.ts
+
+**Action Items**:
+1. Run RBAC tests: `pnpm vitest run app/api/work-orders/__tests__/rbac.test.ts`
+2. Fix any failures (imports, MongoDB mocking, etc.)
+3. Verify all 24 tests pass
+4. Add to CI/CD pipeline
+
+**Estimated Time**: 1 hour  
+**Priority**: P1
+
+---
+
+## 🟢 CATEGORY 3: CODE QUALITY & MAINTENANCE (P2)
+
+### 3.1 📝 Typo: "Fixzit" vs "Fixzit"
+**Severity**: LOW  
+**Impact**: Branding inconsistency  
+**Source**: src/lib/mongodb-unified.ts Line 20
+
+**Evidence**:
+```typescript
+appName: "Fixzit", // Should be "Fixzit"
+```
+
+**System-Wide Search Needed**: Check for other occurrences
+
+**Action Items**:
+1. Search: `grep -rn "Fixzit" --include="*.{ts,tsx,js,jsx,md}"`
+2. Replace all occurrences with "Fixzit"
+3. Update email templates, notifications, documentation
+
+**Estimated Time**: 30 minutes  
+**Priority**: P2
+
+---
+
+### 3.2 📝 Accessibility Issues (Navigation)
+**Severity**: MEDIUM  
+**Impact**: WCAG 2.1 AA compliance issues  
+**Source**: CATEGORIZED_TASKS_LIST.md Line 173
+
+**Files Affected**: 17 nav/*.ts files
+- Missing keyboard navigation (Tab, Arrow keys, Enter, Escape)
+- Missing ARIA attributes (aria-label, aria-current, aria-expanded)
+- No screen reader compatibility
+- No focus management
+- No skip navigation links
+
+**Action Items**:
+1. Audit nav/ directory files
+2. Add keyboard event handlers
+3. Add ARIA attributes
+4. Add focus management
+5. Test with screen readers
+
+**Estimated Time**: 2-3 hours  
+**Priority**: P2
+
+---
+
+### 3.3 📝 Form Accessibility Audit
+**Severity**: MEDIUM  
+**Impact**: WCAG compliance, user experience  
+**Source**: CATEGORIZED_TASKS_LIST.md Line 185
+
+**Action Items**:
+1. Audit all forms for proper labels
+2. Verify error message accessibility
+3. Test keyboard navigation
+4. Ensure 4.5:1 color contrast ratios
+
+**Estimated Time**: 2 hours  
+**Priority**: P2
+
+---
+
+### 3.4 📝 Missing Monitoring Integration (Sentry/DataDog)
+**Severity**: MEDIUM  
+**Impact**: No production error tracking  
+**Source**: CATEGORIZED_TASKS_LIST.md Line 197
+
+**Evidence**:
+```typescript
+// lib/logger.ts uses sessionStorage (client-side only)
+// No Sentry or DataDog integration
+```
+
+**Action Items**:
+1. Set up Sentry account/project
+2. Add Sentry SDK and configuration
+3. Implement error tracking
+4. Add performance monitoring
+5. Configure alerts
+
+**Estimated Time**: 2-3 hours  
+**Priority**: P1 (production readiness)
+
+---
+
+### 3.5 📝 Missing Notification Service Integrations
+**Severity**: MEDIUM  
+**Impact**: Notifications not functional in production  
+**Source**: CATEGORIZED_TASKS_LIST.md Line 205
+
+**Missing Integrations** (lib/fm-notifications.ts):
+1. FCM/Web Push for browser notifications
+2. Email service (SendGrid or AWS SES)
+3. SMS gateway (Twilio or AWS SNS)
+4. WhatsApp Business API
+
+**Current Status**: Stub functions returning null
+
+**Action Items**:
+1. **Email (P1)**: Integrate SendGrid
+2. **SMS (P2)**: Integrate Twilio
+3. **Push (P2)**: Integrate FCM
+4. **WhatsApp (P3)**: Integrate WhatsApp Business API
+
+**Estimated Time**: 6-8 hours (all 4 services)  
+**Priority**: P1 (Email), P2 (others)
+
+---
+
+### 3.6 📝 Auth Middleware TODO Items
+**Severity**: MEDIUM  
+**Impact**: Incomplete authorization logic  
+**Source**: lib/fm-auth-middleware.ts
+
+**TODO Items**:
+- Get subscription plan from user/org (appears 2x)
+- Verify org membership (appears 2x)
+- Query FMProperty model for ownership
+
+**Action Items**:
+1. Implement real database queries
+2. Replace placeholder returns
+3. Add proper error handling
+4. Add unit tests
+
+**Estimated Time**: 2-3 hours  
+**Priority**: P1
+
+---
+
+### 3.7 📝 Approval Engine TODO Items
+**Severity**: LOW  
+**Impact**: Approval workflows incomplete  
+**Source**: lib/fm-approval-engine.ts
+
+**TODO Items**:
+- Query users by role in org/property
+- Query and add user IDs for escalation roles
+- Send escalation notifications
+- Implement notification sending
+
+**Action Items**:
+1. Implement user role queries
+2. Add escalation logic
+3. Integrate with notification service
+4. Add unit tests
+
+**Estimated Time**: 2-3 hours  
+**Priority**: P2
+
+---
+
+### 3.8 📝 Test Import Path Updates
+**Severity**: LOW  
+**Impact**: May cause test failures  
+**Source**: CATEGORIZED_TASKS_LIST.md Line 138
+
+**Action Items**:
+1. After PR #261 file moves, verify test imports
+2. Update paths in tests/unit/*
+3. Run test suite to verify
+
+**Estimated Time**: 1 hour  
+**Priority**: P1 (part of test fix)
+
+---
+
+### 3.9 📝 Missing Component Documentation
+**Severity**: LOW  
+**Impact**: Developer experience  
+**Source**: CATEGORIZED_TASKS_LIST.md Line 290
+
+**Action Items**:
+1. Add JSDoc comments to complex components
+2. Document FM components (components/fm/*)
+3. Document Marketplace components (components/marketplace/*)
+
+**Estimated Time**: 2-3 hours  
+**Priority**: P3
+
+---
+
+### 3.10 📝 Logo Placeholder (LoginHeader)
+**Severity**: LOW  
+**Impact**: Branding incomplete  
+**Source**: CATEGORIZED_TASKS_LIST.md Line 220
+
+**Evidence**:
+```typescript
+// components/auth/LoginHeader.tsx
+// TODO: Replace with official logo
+```
+
+**Action Items**:
+1. Get official Fixzit logo
+2. Update LoginHeader.tsx
+3. Verify responsive sizing
+
+**Estimated Time**: 30 minutes  
+**Priority**: P2
+
+---
+
+## 🔵 CATEGORY 4: PERFORMANCE & OPTIMIZATION (P3)
+
+### 4.1 🚀 Bundle Size Analysis
+**Severity**: LOW  
+**Impact**: Performance optimization opportunity  
+**Source**: CATEGORIZED_TASKS_LIST.md Line 312
+
+**Action Items**:
+1. Run next/bundle-analyzer
+2. Identify large dependencies
+3. Implement code splitting
+4. Optimize imports
+
+**Estimated Time**: 2 hours  
+**Priority**: P3
+
+---
+
+### 4.2 🚀 Image Optimization
+**Severity**: LOW  
+**Impact**: Page load performance  
+**Source**: CATEGORIZED_TASKS_LIST.md Line 318
+
+**Action Items**:
+1. Convert images to WebP
+2. Implement lazy loading
+3. Add proper next/image usage
+
+**Estimated Time**: 1-2 hours  
+**Priority**: P3
+
+---
+
+### 4.3 🚀 Database Query Optimization
+**Severity**: LOW  
+**Impact**: API response times  
+**Source**: CATEGORIZED_TASKS_LIST.md Line 324
+
+**Action Items**:
+1. Add missing indexes
+2. Optimize N+1 queries
+3. Implement query result caching
+
+**Estimated Time**: 3-4 hours  
+**Priority**: P3
+
+---
+
+## 🟣 CATEGORY 5: ENHANCEMENTS & FEATURES (P3)
+
+### 5.1 💡 WPS Calculation (HR Module)
+**Severity**: LOW  
+**Impact**: HR module incomplete  
+**Source**: services/hr/wpsService.ts
+
+**Evidence**:
+```typescript
+// TODO: Calculate actual work days from attendance
+// Current: Placeholder calculation
+```
+
+**Action Items**:
+1. Implement proper WPS calculations
+2. Integrate with attendance records
+3. Add Saudi labor law compliance checks
+
+**Estimated Time**: 2-3 hours  
+**Priority**: P2
+
+---
+
+### 5.2 💡 PayTabs Integration (Payment Gateway)
+**Severity**: MEDIUM  
+**Impact**: Payment processing incomplete  
+**Source**: CATEGORIZED_TASKS_LIST.md (Task 2 - paused)
+
+**Status**: ⏸️ PAUSED (awaiting user decision)
+
+**Action Items**:
+1. Get PayTabs API credentials
+2. Implement payment gateway integration
+3. Add webhook handling
+4. Test with sandbox
+
+**Estimated Time**: 4-6 hours  
+**Priority**: P2 (requires user decision)
+
+---
+
+### 5.3 💡 Mobile Responsive Features
+**Severity**: LOW  
+**Impact**: Mobile UX  
+**Source**: components/aqar/SearchFilters.tsx
+
+**Evidence**:
+```typescript
+// TODO: Add mobile filter state
+```
+
+**Action Items**:
+1. Implement mobile-friendly filter panel
+2. Add responsive breakpoints
+3. Test on mobile devices
+
+**Estimated Time**: 2-3 hours  
+**Priority**: P2
+
+---
+
+## 📋 PRIORITIZED ACTION PLAN
+
+### 🔥 IMMEDIATE (Next 8 hours)
+
+**Order 1**: Fix Failing Test Suite (P0 - 4-6 hours)
+```bash
+# 1. Run test suite
+pnpm vitest run
+
+# 2. Identify failures
+# 3. Fix import paths after PR #261
+# 4. Update RBAC test expectations
+# 5. Fix secret scan issues
+```
+
+**Order 2**: Replace Console Statements (P0 - 3-4 hours)
+```bash
+# 1. Search all console usage
+grep -rn "console\." app/ domain/ jobs/ i18n/
+
+# 2. Replace with logger utility
+# 3. Add ESLint rule
+```
+
+---
+
+### ⚡ HIGH PRIORITY (Next 10 hours)
+
+**Order 3**: Run & Fix RBAC Tests (P1 - 1 hour)
+```bash
+pnpm vitest run app/api/work-orders/__tests__/rbac.test.ts
+```
+
+**Order 4**: Add Audit Log Unit Tests (P1 - 3-4 hours)
+
+**Order 5**: Add PII Encryption Tests (P1 - 2-3 hours)
+
+**Order 6**: Monitoring Integration - Sentry (P1 - 2-3 hours)
+
+**Order 7**: Email Notifications - SendGrid (P1 - 3 hours)
+
+---
+
+### 🎯 MEDIUM PRIORITY (Next 8 hours)
+
+**Order 8**: Fix "Fixzit" Typo (P2 - 30 min)
+
+**Order 9**: Navigation Accessibility (P2 - 2-3 hours)
+
+**Order 10**: Form Accessibility (P2 - 2 hours)
+
+**Order 11**: Auth Middleware TODOs (P2 - 2-3 hours)
+
+---
+
+### 📌 LOWER PRIORITY (Backlog)
+
+- TypeScript Strict Mode (P1 - 2-3 hours)
+- Approval Engine TODOs (P2 - 2-3 hours)
+- WPS Calculation (P2 - 2-3 hours)
+- Component Documentation (P3 - 2-3 hours)
+- Performance Optimization (P3 - 6-8 hours)
+
+---
+
+## 🚀 EXECUTION STRATEGY
+
+### Phase 1: Critical Fixes (8 hours)
+Focus on P0 issues that block deployment:
+1. Test suite fixes
+2. Console statement cleanup
+
+### Phase 2: Security & Testing (10 hours)
+Ensure security and test coverage:
+3. RBAC tests
+4. Audit log tests
+5. PII encryption tests
+6. Monitoring integration
+7. Email notifications
+
+### Phase 3: Quality & UX (8 hours)
+Improve code quality and user experience:
+8. Typo fixes
+9. Accessibility improvements
+10. Auth middleware completion
+
+### Phase 4: Enhancements (Ongoing)
+Lower priority features and optimizations:
+- TypeScript strict mode
+- Performance optimization
+- Feature completion
+
+---
+
+## ✅ COMPLETION CRITERIA
+
+**Definition of Done**:
+- [ ] All tests passing (143+ tests)
+- [ ] No console statements in production code
+- [ ] 90%+ test coverage on critical modules
+- [ ] Monitoring active in production
+- [ ] Email notifications functional
+- [ ] WCAG 2.1 AA compliance for key flows
+- [ ] All CRITICAL/HIGH issues resolved
+
+---
+
+_Generated: 2025-11-26_  
+_Next Review: After Phase 1 completion_  
+_Owner: Development Team_
+
+]]>
+</file>
+
+</batch_content>

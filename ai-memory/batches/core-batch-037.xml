@@ -1,0 +1,2149 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/notifications/page.tsx">
+<![CDATA[
+"use client";
+
+import React, { useMemo, useState, useEffect } from "react";
+import { Check, CheckCheck, Filter, Search, MoreVertical } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
+import useSWR from "swr";
+import type { NotificationDoc } from "@/lib/models";
+import ClientDate from "@/components/ClientDate";
+import { useTranslation } from "@/contexts/TranslationContext";
+
+import { logger } from "@/lib/logger";
+
+/**
+ * Formats a translated toast/message string that needs a dynamic count placeholder.
+ * Centralizing this logic ensures we always run numbers through translators without duplicating string.replace calls.
+ */
+const formatCountMessage = (
+  formatter: (_value: string) => string,
+  count: number,
+) => formatter(String(count));
+
+const PRIORITY_TRANSLATIONS = {
+  high: { key: "notifications.priority.high", fallback: "HIGH" },
+  medium: { key: "notifications.priority.medium", fallback: "MEDIUM" },
+  low: { key: "notifications.priority.low", fallback: "LOW" },
+} as const;
+
+const CATEGORY_TRANSLATIONS = {
+  maintenance: {
+    key: "notifications.category.maintenance",
+    fallback: "Maintenance",
+  },
+  vendor: { key: "notifications.category.vendor", fallback: "Vendor" },
+  finance: { key: "notifications.category.finance", fallback: "Finance" },
+  system: { key: "notifications.category.system", fallback: "System" },
+} as const;
+
+export default function NotificationsPage() {
+  const { data: session } = useSession();
+  const { t } = useTranslation();
+  const orgId = session?.user?.orgId;
+  const [selectedTab, setSelectedTab] = useState("all");
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [selectedNotifications, setSelectedNotifications] = useState<
+    Set<string>
+  >(new Set());
+  const [selectAll, setSelectAll] = useState(false);
+  const [todayDateString, setTodayDateString] = useState("");
+
+  useEffect(() => {
+    setTodayDateString(new Date().toDateString());
+  }, []);
+
+  const fetcher = (url: string) => {
+    if (!orgId) {
+      return Promise.reject(
+        new Error(t("notifications.toast.noOrgId", "No organization ID found")),
+      );
+    }
+    return fetch(url, {
+      headers: { "x-tenant-id": orgId },
+    })
+      .then((r) => r.json())
+      .catch((error) => {
+        logger.error("Notifications fetch error", error);
+        throw error;
+      });
+  };
+
+  const { data, mutate, isLoading } = useSWR<{ items: NotificationDoc[] }>(
+    orgId ? "/api/notifications" : null,
+    fetcher,
+  );
+  const notificationItems = data?.items;
+
+  const notifications = useMemo(() => {
+    return Array.isArray(notificationItems) ? notificationItems : [];
+  }, [notificationItems]);
+
+  /**
+   * Returns the localized label for a notification priority code.
+   * Falls back to the uppercase raw value so the UI is never blank.
+   */
+  const formatPriorityChip = (priority: string) => {
+    const normalized = priority?.toLowerCase?.() as
+      | keyof typeof PRIORITY_TRANSLATIONS
+      | undefined;
+    const translation = normalized
+      ? PRIORITY_TRANSLATIONS[normalized]
+      : undefined;
+    if (translation) {
+      return t(translation.key, translation.fallback);
+    }
+    return priority?.toUpperCase?.() ?? priority;
+  };
+
+  /**
+   * Returns the localized label for a notification category key.
+   * If a key is missing in the dictionaries we fall back to the original category text.
+   */
+  const formatCategoryChip = (category: string) => {
+    const normalized = category?.toLowerCase?.() as
+      | keyof typeof CATEGORY_TRANSLATIONS
+      | undefined;
+    const translation = normalized
+      ? CATEGORY_TRANSLATIONS[normalized]
+      : undefined;
+    return translation ? t(translation.key, translation.fallback) : category;
+  };
+
+  /**
+   * Generates the localized label for the read/unread badge.
+   */
+  const formatStatusLabel = (read: boolean) =>
+    read
+      ? t("notifications.status.read", "Read")
+      : t("notifications.status.unread", "Unread");
+
+  /**
+   * Maps priority codes to tailwind utility classes so the chips stay consistent across the view.
+   */
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case "high":
+        return "bg-destructive/10 text-destructive-foreground border-destructive/20";
+      case "medium":
+        return "bg-warning/10 text-warning-foreground border-warning/20";
+      case "low":
+        return "bg-success/10 text-success-foreground border-success/20";
+      default:
+        return "bg-muted text-foreground border-border";
+    }
+  };
+
+  /**
+   * Emoji-based icon mapping for notification types.
+   * We stick to emoji to avoid yet another icon font download on this heavy page.
+   */
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case "work-order":
+        return "🔧";
+      case "vendor":
+        return "👥";
+      case "payment":
+        return "💰";
+      case "maintenance":
+        return "🛠️";
+      case "system":
+        return "⚙️";
+      default:
+        return "📢";
+    }
+  };
+
+  /**
+   * Returns the badge color palette for each notification category.
+   * This keeps the summary chips and table rows in sync.
+   */
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case "maintenance":
+        return "bg-primary/10 text-primary-foreground border-primary/20";
+      case "vendor":
+        return "bg-secondary/10 text-secondary border-secondary/30";
+      case "finance":
+        return "bg-success/10 text-success-foreground border-success/20";
+      case "system":
+        return "bg-muted text-foreground border-border";
+      default:
+        return "bg-muted text-foreground border-border";
+    }
+  };
+
+  const filteredNotifications = useMemo(() => {
+    return notifications.filter((notif: NotificationDoc) => {
+      const matchesSearch =
+        notif.title.toLowerCase().includes(search.toLowerCase()) ||
+        notif.message.toLowerCase().includes(search.toLowerCase());
+
+      let matchesTab = true;
+      switch (selectedTab) {
+        case "unread":
+          matchesTab = !notif.read;
+          break;
+        case "urgent":
+          matchesTab = notif.priority === "high";
+          break;
+        case "all":
+        default:
+          matchesTab = true;
+          break;
+      }
+
+      const matchesFilter =
+        filter === "all" ||
+        notif.category === filter ||
+        (filter === "unread" && !notif.read) ||
+        (filter === "high" && notif.priority === "high");
+
+      return matchesSearch && matchesTab && matchesFilter;
+    });
+  }, [notifications, search, selectedTab, filter]);
+
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedNotifications(new Set());
+    } else {
+      setSelectedNotifications(
+        new Set(
+          filteredNotifications.map((n: NotificationDoc) => String(n.id || "")),
+        ),
+      );
+    }
+    setSelectAll(!selectAll);
+  };
+
+  const handleSelectNotification = (notifId: string) => {
+    const newSelected = new Set(selectedNotifications);
+    if (newSelected.has(notifId)) {
+      newSelected.delete(notifId);
+    } else {
+      newSelected.add(notifId);
+    }
+    setSelectedNotifications(newSelected);
+    setSelectAll(newSelected.size === filteredNotifications.length);
+  };
+
+  const unreadCount = useMemo(
+    () => notifications.filter((n: NotificationDoc) => !n.read).length,
+    [notifications],
+  );
+  const urgentCount = useMemo(
+    () =>
+      notifications.filter((n: NotificationDoc) => n.priority === "high")
+        .length,
+    [notifications],
+  );
+
+  const tabCounts = useMemo(() => {
+    const allFiltered = notifications.filter((notif: NotificationDoc) => {
+      const matchesSearch =
+        notif.title.toLowerCase().includes(search.toLowerCase()) ||
+        notif.message.toLowerCase().includes(search.toLowerCase());
+      const matchesFilter =
+        filter === "all" ||
+        notif.category === filter ||
+        (filter === "unread" && !notif.read) ||
+        (filter === "high" && notif.priority === "high");
+      return matchesSearch && matchesFilter;
+    });
+
+    return {
+      all: allFiltered.length,
+      unread: unreadCount,
+      urgent: urgentCount,
+    };
+  }, [notifications, search, filter, unreadCount, urgentCount]);
+
+  const requireOrgId = () => {
+    if (!orgId) {
+      toast.error(t("notifications.toast.noOrgId", "No organization ID found"));
+      return false;
+    }
+    return true;
+  };
+
+  const markAsRead = async (id: string) => {
+    if (!requireOrgId()) {
+      return;
+    }
+
+    try {
+      await fetch(`/api/notifications/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tenant-id": orgId!,
+        },
+        body: JSON.stringify({ read: true }),
+      });
+      mutate();
+    } catch (error) {
+      logger.error("Error marking notification as read:", error);
+      toast.error(
+        t(
+          "notifications.toast.markReadFailed",
+          "Failed to mark notification as read",
+        ),
+      );
+    }
+  };
+
+  const markAllAsRead = async () => {
+    if (!requireOrgId()) {
+      return;
+    }
+
+    const unreadIds = notifications
+      .filter((n: NotificationDoc) => !n.read)
+      .map((n: NotificationDoc) => String(n.id || ""));
+    if (unreadIds.length > 0) {
+      const toastId = toast.loading(
+        formatCountMessage(
+          (count) =>
+            t(
+              "notifications.toast.markingCount",
+              "Marking {{count}} notifications as read...",
+            ).replace("{{count}}", count),
+          unreadIds.length,
+        ),
+      );
+
+      try {
+        await fetch("/api/notifications/bulk", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-tenant-id": orgId!,
+          },
+          body: JSON.stringify({
+            action: "mark-read",
+            notificationIds: unreadIds,
+          }),
+        });
+        toast.success(
+          formatCountMessage(
+            (count) =>
+              t(
+                "notifications.toast.markedCount",
+                "Marked {{count}} notifications as read",
+              ).replace("{{count}}", count),
+            unreadIds.length,
+          ),
+          { id: toastId },
+        );
+        mutate();
+      } catch (error) {
+        logger.error("Error marking notifications as read:", error);
+        toast.error(
+          t(
+            "notifications.toast.markReadFailed",
+            "Failed to mark notifications as read",
+          ),
+          { id: toastId },
+        );
+      }
+    }
+  };
+
+  const bulkMarkAsRead = async () => {
+    if (!requireOrgId()) {
+      return;
+    }
+
+    const selectedIds = Array.from(selectedNotifications);
+    if (selectedIds.length > 0) {
+      const toastId = toast.loading(
+        formatCountMessage(
+          (count) =>
+            t(
+              "notifications.toast.markingCount",
+              "Marking {{count}} notifications as read...",
+            ).replace("{{count}}", count),
+          selectedIds.length,
+        ),
+      );
+
+      try {
+        await fetch("/api/notifications/bulk", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-tenant-id": orgId!,
+          },
+          body: JSON.stringify({
+            action: "mark-read",
+            notificationIds: selectedIds,
+          }),
+        });
+        toast.success(
+          formatCountMessage(
+            (count) =>
+              t(
+                "notifications.toast.markedCount",
+                "Marked {{count}} notifications as read",
+              ).replace("{{count}}", count),
+            selectedIds.length,
+          ),
+          { id: toastId },
+        );
+        mutate();
+        setSelectedNotifications(new Set());
+        setSelectAll(false);
+      } catch (error) {
+        logger.error("Error marking notifications as read:", error);
+        toast.error(
+          t(
+            "notifications.toast.markReadFailed",
+            "Failed to mark notifications as read",
+          ),
+          { id: toastId },
+        );
+      }
+    }
+  };
+
+  const archiveNotifications = async () => {
+    const selectedIds = Array.from(selectedNotifications);
+    if (selectedIds.length > 0) {
+      toast.success(
+        formatCountMessage(
+          (count) =>
+            t(
+              "notifications.toast.archived",
+              "Archived {{count}} notifications",
+            ).replace("{{count}}", count),
+          selectedIds.length,
+        ),
+      );
+      setSelectedNotifications(new Set());
+      setSelectAll(false);
+    }
+  };
+
+  const deleteNotifications = async () => {
+    const selectedIds = Array.from(selectedNotifications);
+    if (selectedIds.length > 0) {
+      toast.success(
+        formatCountMessage(
+          (count) =>
+            t(
+              "notifications.toast.deleted",
+              "Deleted {{count}} notifications",
+            ).replace("{{count}}", count),
+          selectedIds.length,
+        ),
+      );
+      setSelectedNotifications(new Set());
+      setSelectAll(false);
+    }
+  };
+
+  const exportNotifications = () => {
+    const selectedIds = Array.from(selectedNotifications);
+    if (selectedIds.length > 0) {
+      const selectedData = filteredNotifications
+        .filter((n: NotificationDoc) =>
+          selectedIds.includes(String(n.id || "")),
+        )
+        .map((notif: NotificationDoc) => ({
+          id: String(notif.id || ""),
+          title: notif.title,
+          message: notif.message,
+          priority: notif.priority,
+          category: notif.category,
+          read: notif.read,
+          timestamp: notif.timestamp,
+        }));
+
+      const blob = new Blob([JSON.stringify(selectedData, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${t("notifications.report.filenamePrefix", "notification-report-")}${
+        new Date().toISOString().split("T")[0]
+      }.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  const markAsImportant = async () => {
+    const selectedIds = Array.from(selectedNotifications);
+    if (selectedIds.length > 0) {
+      toast.success(
+        formatCountMessage(
+          (count) =>
+            t(
+              "notifications.toast.markedImportant",
+              "Marked {{count}} notifications as important",
+            ).replace("{{count}}", count),
+          selectedIds.length,
+        ),
+      );
+      setSelectedNotifications(new Set());
+      setSelectAll(false);
+    }
+  };
+
+  const handleEmailSettings = () => {
+    window.open("/settings?tab=notifications", "_blank");
+  };
+
+  const handlePushNotifications = () => {
+    window.open("/settings?tab=preferences", "_blank");
+  };
+
+  const handleMuteCategories = () => {
+    if (filter !== "all" && filter !== "unread" && filter !== "high") {
+      toast.success(
+        t(
+          "notifications.toast.mutedCategory",
+          "Muted notifications for category: {{category}}",
+        ).replace("{{category}}", formatCategoryChip(filter)),
+      );
+    } else {
+      toast.info(
+        t(
+          "notifications.toast.muteSelectCategory",
+          "Please select a specific category first to mute it",
+        ),
+      );
+    }
+  };
+
+  const handleNotificationReport = () => {
+    const reportData = {
+      total: notifications.length,
+      unread: unreadCount,
+      urgent: urgentCount,
+      byCategory: {
+        maintenance: notifications.filter(
+          (n: NotificationDoc) => n.category === "maintenance",
+        ).length,
+        vendor: notifications.filter(
+          (n: NotificationDoc) => n.category === "vendor",
+        ).length,
+        finance: notifications.filter(
+          (n: NotificationDoc) => n.category === "finance",
+        ).length,
+        system: notifications.filter(
+          (n: NotificationDoc) => n.category === "system",
+        ).length,
+      },
+      generatedAt: new Date().toISOString(),
+    };
+
+    const blob = new Blob([JSON.stringify(reportData, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${t("notifications.report.filenamePrefix", "notification-report-")}${
+      new Date().toISOString().split("T")[0]
+    }.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleSettings = () => {
+    window.open("/settings", "_blank");
+  };
+
+  const handleClearAll = () => {
+    toast.success(
+      t("notifications.toast.clearedAll", "All notifications cleared"),
+    );
+  };
+
+  const formatSelectionSummary = () => {
+    if (selectedNotifications.size > 0) {
+      return t(
+        "notifications.bulk.selected",
+        "{{selected}} of {{total}} selected",
+      )
+        .replace("{{selected}}", String(selectedNotifications.size))
+        .replace("{{total}}", String(filteredNotifications.length));
+    }
+    if (filteredNotifications.length === 1) {
+      return t("notifications.bulk.countSingle", "1 notification");
+    }
+    return t("notifications.bulk.count", "{{count}} notifications").replace(
+      "{{count}}",
+      String(filteredNotifications.length),
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            {t("notifications.page.title", "Notifications")}
+          </h1>
+          <p className="text-muted-foreground">
+            {t(
+              "notifications.page.subtitle",
+              "Stay updated with all system notifications and alerts",
+            )}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            className="btn-secondary"
+            onClick={markAllAsRead}
+            disabled={unreadCount === 0}
+          >
+            <CheckCheck size={16} className="me-2" />
+            {t("notifications.actions.markAllRead", "Mark All Read")} (
+            {unreadCount})
+          </button>
+          <button className="btn-primary" onClick={handleSettings}>
+            <Filter size={16} className="me-2" />
+            {t("notifications.actions.openSettings", "Settings")}
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                {t("notifications.stats.total", "Total Notifications")}
+              </p>
+              <p className="text-2xl font-bold text-primary">
+                {notifications.length}
+              </p>
+            </div>
+            <div className="text-primary">📢</div>
+          </div>
+        </div>
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                {t("notifications.stats.unread", "Unread")}
+              </p>
+              <p className="text-2xl font-bold text-destructive">
+                {unreadCount}
+              </p>
+            </div>
+            <div className="text-[hsl(var(--destructive)) / 0.1]">🔴</div>
+          </div>
+        </div>
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                {t("notifications.stats.highPriority", "High Priority")}
+              </p>
+              <p className="text-2xl font-bold text-warning">
+                {
+                  notifications.filter(
+                    (n: NotificationDoc) => n.priority === "high",
+                  ).length
+                }
+              </p>
+            </div>
+            <div className="text-warning">⚠️</div>
+          </div>
+        </div>
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                {t("notifications.stats.today", "Today")}
+              </p>
+              <p className="text-2xl font-bold text-success">
+                {todayDateString
+                  ? notifications.filter(
+                      (n: NotificationDoc) =>
+                        new Date(n.timestamp).toDateString() ===
+                        todayDateString,
+                    ).length
+                  : 0}
+              </p>
+            </div>
+            <div className="text-success">📅</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="flex flex-wrap gap-4">
+          <div className="flex-1 min-w-48">
+            <div className="relative">
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder={t(
+                  "notifications.search.placeholder",
+                  "Search notifications...",
+                )}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full ps-10 pe-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+            </div>
+          </div>
+          <div className="flex-1 min-w-48">
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+            >
+              <option value="all">
+                {t("notifications.filters.all", "All Notifications")}
+              </option>
+              <option value="unread">
+                {t("notifications.filters.unread", "Unread Only")}
+              </option>
+              <option value="high">
+                {t("notifications.filters.high", "High Priority")}
+              </option>
+              <option value="maintenance">
+                {t("notifications.filters.maintenance", "Maintenance")}
+              </option>
+              <option value="vendor">
+                {t("notifications.filters.vendor", "Vendor")}
+              </option>
+              <option value="finance">
+                {t("notifications.filters.finance", "Finance")}
+              </option>
+              <option value="system">
+                {t("notifications.filters.system", "System")}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div className="flex border-b border-border mt-4">
+          <button
+            onClick={() => setSelectedTab("all")}
+            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+              selectedTab === "all"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {t("notifications.tabs.all", "All")} ({tabCounts.all})
+          </button>
+          <button
+            onClick={() => setSelectedTab("unread")}
+            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+              selectedTab === "unread"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {t("notifications.tabs.unread", "Unread")} ({tabCounts.unread})
+          </button>
+          <button
+            onClick={() => setSelectedTab("urgent")}
+            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors relative ${
+              selectedTab === "urgent"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {t("notifications.tabs.urgent", "Urgent")} ({tabCounts.urgent})
+            {tabCounts.urgent > 0 && (
+              <span className="absolute -top-1 -end-1 w-2 h-2 bg-destructive/20 rounded-full"></span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="space-y-4">
+          {isLoading ? (
+            <div className="text-center py-8">
+              <div className="text-muted-foreground mb-2">⏳</div>
+              <p className="text-muted-foreground">
+                {t("notifications.state.loading", "Loading notifications...")}
+              </p>
+            </div>
+          ) : filteredNotifications.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="text-muted-foreground mb-2">📭</div>
+              <p className="text-muted-foreground">
+                {t("notifications.state.emptyTitle", "No notifications found")}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {t(
+                  "notifications.state.emptySubtitle",
+                  "You're all caught up!",
+                )}
+              </p>
+            </div>
+          ) : (
+            filteredNotifications.map((notif: NotificationDoc) => (
+              <div
+                key={String(notif.id || "")}
+                className={`p-4 rounded-2xl border transition-all hover:shadow-md ${
+                  notif.read
+                    ? "bg-card border-border"
+                    : "bg-primary/10 border-primary/20"
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3 flex-1">
+                    <input
+                      type="checkbox"
+                      checked={selectedNotifications.has(
+                        String(notif.id || ""),
+                      )}
+                      onChange={() =>
+                        handleSelectNotification(String(notif.id || ""))
+                      }
+                      className="mt-1 h-4 w-4 text-primary focus:ring-primary border-border rounded"
+                      aria-label={t(
+                        "notifications.accessibility.selectNotification",
+                        "Select notification",
+                      )}
+                    />
+                    <div className="text-xl">{getTypeIcon(notif.type)}</div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3
+                          className={`font-medium ${notif.read ? "text-foreground" : "text-primary"}`}
+                        >
+                          {notif.title}
+                        </h3>
+                        {!notif.read && (
+                          <div className="w-2 h-2 bg-primary/20 rounded-full"></div>
+                        )}
+                        <span
+                          className={`px-2 py-1 text-xs font-semibold rounded-full border ${getPriorityColor(notif.priority)}`}
+                        >
+                          {formatPriorityChip(notif.priority)}
+                        </span>
+                        <span
+                          className={`px-2 py-1 text-xs font-semibold rounded-full border ${getCategoryColor(notif.category)}`}
+                        >
+                          {formatCategoryChip(notif.category)}
+                        </span>
+                      </div>
+                      <p
+                        className={`text-sm ${notif.read ? "text-muted-foreground" : "text-primary"}`}
+                      >
+                        {notif.message}
+                      </p>
+                      <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                        <span>
+                          <ClientDate date={notif.timestamp} format="medium" />
+                        </span>
+                        <span>•</span>
+                        <span>{formatStatusLabel(notif.read)}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {!notif.read && (
+                      <button
+                        onClick={() => markAsRead(String(notif.id || ""))}
+                        className="p-1 text-primary hover:text-primary hover:bg-primary/10 rounded"
+                        title={t(
+                          "notifications.item.markAsRead",
+                          "Mark as read",
+                        )}
+                        aria-label={t(
+                          "notifications.item.markAsRead",
+                          "Mark as read",
+                        )}
+                      >
+                        <Check size={16} />
+                      </button>
+                    )}
+                    <button
+                      className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded"
+                      aria-label={t(
+                        "notifications.item.moreActions",
+                        "More actions",
+                      )}
+                    >
+                      <MoreVertical size={16} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {filteredNotifications.length > 0 && (
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-muted-foreground">
+                {formatSelectionSummary()}
+              </span>
+              {selectedNotifications.size === 0 && (
+                <button
+                  onClick={handleSelectAll}
+                  className="px-3 py-1 text-sm bg-secondary text-secondary-foreground rounded-2xl hover:bg-secondary/90 transition-colors"
+                >
+                  {t("notifications.bulk.selectAll", "Select All")}
+                </button>
+              )}
+              {selectedNotifications.size > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={bulkMarkAsRead}
+                    className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
+                  >
+                    {t("notifications.bulk.markRead", "Mark as Read")} (
+                    {selectedNotifications.size})
+                  </button>
+                  <button
+                    onClick={markAsImportant}
+                    className="px-3 py-1 text-sm bg-warning text-white rounded hover:bg-warning transition-colors"
+                  >
+                    {t("notifications.bulk.markImportant", "Mark Important")} (
+                    {selectedNotifications.size})
+                  </button>
+                  <button
+                    onClick={exportNotifications}
+                    className="px-3 py-1 text-sm bg-secondary text-secondary-foreground rounded hover:bg-secondary/90 transition-colors"
+                  >
+                    {t("notifications.bulk.export", "Export")} (
+                    {selectedNotifications.size})
+                  </button>
+                  <button
+                    onClick={archiveNotifications}
+                    className="px-3 py-1 text-sm bg-success text-white rounded hover:bg-success transition-colors"
+                  >
+                    {t("notifications.bulk.archive", "Archive")} (
+                    {selectedNotifications.size})
+                  </button>
+                  <button
+                    onClick={deleteNotifications}
+                    className="px-3 py-1 text-sm bg-destructive text-destructive-foreground rounded hover:bg-destructive/90 transition-colors"
+                  >
+                    {t("notifications.bulk.delete", "Delete")} (
+                    {selectedNotifications.size})
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="card">
+        <h3 className="text-lg font-semibold mb-4">
+          {t("notifications.quickActions.title", "Quick Actions")}
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <button
+            onClick={handleEmailSettings}
+            className="btn-ghost text-center hover:bg-primary/10 transition-colors"
+          >
+            <div className="text-2xl mb-2">📧</div>
+            <div className="text-sm font-medium">
+              {t("notifications.quickActions.email", "Email Settings")}
+            </div>
+          </button>
+          <button
+            onClick={handlePushNotifications}
+            className="btn-ghost text-center hover:bg-success/10 transition-colors"
+          >
+            <div className="text-2xl mb-2">📱</div>
+            <div className="text-sm font-medium">
+              {t("notifications.quickActions.push", "Push Notifications")}
+            </div>
+          </button>
+          <button
+            onClick={handleMuteCategories}
+            className="btn-ghost text-center hover:bg-accent/10 transition-colors"
+          >
+            <div className="text-2xl mb-2">🔕</div>
+            <div className="text-sm font-medium">
+              {t("notifications.quickActions.mute", "Mute Categories")}
+            </div>
+          </button>
+          <button
+            onClick={handleNotificationReport}
+            className="btn-ghost text-center hover:bg-secondary/10 transition-colors"
+          >
+            <div className="text-2xl mb-2">📊</div>
+            <div className="text-sm font-medium">
+              {t("notifications.quickActions.report", "Notification Report")}
+            </div>
+          </button>
+          <button
+            onClick={handleSettings}
+            className="btn-ghost text-center hover:bg-muted transition-colors"
+          >
+            <div className="text-2xl mb-2">⚙️</div>
+            <div className="text-sm font-medium">
+              {t("notifications.quickActions.settings", "Settings")}
+            </div>
+          </button>
+          <button
+            onClick={handleClearAll}
+            className="btn-ghost text-center hover:bg-destructive/10 transition-colors"
+          >
+            <div className="text-2xl mb-2">🗑️</div>
+            <div className="text-sm font-medium">
+              {t("notifications.quickActions.clearAll", "Clear All")}
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/page.tsx">
+<![CDATA[
+"use client";
+
+import React from "react";
+import Link from "next/link";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { useTranslation } from "@/contexts/TranslationContext";
+import landingTranslations from "@/i18n/sources/landing.translations.json";
+
+const LANDING_TRANSLATIONS = landingTranslations as {
+  en: Record<string, string>;
+  ar: Record<string, string>;
+};
+
+const resolveLandingKey = (id?: string) => {
+  if (!id) {
+    return null;
+  }
+  return id.startsWith("landing.") ? id : `landing.${id}`;
+};
+
+const getLandingFallback = (
+  locale: string,
+  id: string | undefined,
+  fallback: string,
+) => {
+  const key = resolveLandingKey(id);
+  if (!key) {
+    return fallback;
+  }
+
+  const bucket = locale.toLowerCase().startsWith("ar")
+    ? LANDING_TRANSLATIONS.ar
+    : LANDING_TRANSLATIONS.en;
+  return bucket?.[key] ?? fallback;
+};
+
+export default function LandingPage() {
+  const auto = useAutoTranslator("landing");
+  const { locale } = useTranslation();
+  const resolvedLocale = locale || "en-US";
+
+  const translate = (
+    fallback: string,
+    id?: string,
+    params?: Record<string, string | number>,
+  ) => {
+    return auto(getLandingFallback(resolvedLocale, id, fallback), id, params);
+  };
+
+  const heroHighlights = [
+    {
+      id: "rapid-rfq",
+      text: translate("Rapid RFQ", "hero.highlights.rapidRfq"),
+    },
+    {
+      id: "linked-orders",
+      text: translate(
+        "Work Order linked orders",
+        "hero.highlights.linkedOrders",
+      ),
+    },
+    {
+      id: "finance-ready",
+      text: translate("Finance ready invoices", "hero.highlights.financeReady"),
+    },
+  ];
+
+  const modules = [
+    {
+      id: "work-orders",
+      title: translate("Work Orders", "modules.workOrders.title"),
+      description: translate(
+        "Complete lifecycle tracking: new, in progress, completed, overdue with SLA timers and photo documentation.",
+        "modules.workOrders.description",
+      ),
+    },
+    {
+      id: "properties",
+      title: translate("Properties", "modules.properties.title"),
+      description: translate(
+        "Units, assets, leases, owners and tenants with health status per property.",
+        "modules.properties.description",
+      ),
+    },
+    {
+      id: "finance",
+      title: translate("Finance", "modules.finance.title"),
+      description: translate(
+        "Invoices, receipts, expenses and ZATCA-ready billing aligned with Fixzit finance flows.",
+        "modules.finance.description",
+      ),
+    },
+    {
+      id: "hr",
+      title: translate("HR", "modules.hr.title"),
+      description: translate(
+        "Technicians, supervisors, shifts and skills matrix with clean status chips.",
+        "modules.hr.description",
+      ),
+    },
+    {
+      id: "crm-support",
+      title: translate("CRM & Support", "modules.crm.title"),
+      description: translate(
+        "Tickets, SLAs and CSAT in a unified shell, ready for channels and bots.",
+        "modules.crm.description",
+      ),
+    },
+    {
+      id: "souq",
+      title: translate("Fixzit Souq", "modules.souq.title"),
+      description: translate(
+        "Vendor onboarding, catalogs and orders using your existing Souq logic in a calmer UI.",
+        "modules.souq.description",
+      ),
+    },
+  ];
+
+  return (
+    <div className="flex flex-col min-h-[calc(100vh-4rem)]">
+      <section className="fxz-hero">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14 flex flex-col lg:flex-row items-center gap-10">
+          <div className="flex-1 space-y-6">
+            <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+              {translate(
+                "Facility Management · Marketplaces · Saudi-first",
+                "hero.tagline",
+              )}
+            </p>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold leading-tight text-foreground">
+              {translate("Operate properties with calm.", "hero.title.line1")}{" "}
+              <br />
+              {translate("Move money with confidence.", "hero.title.line2")}
+            </h1>
+            <p className="text-sm sm:text-base text-muted-foreground max-w-xl">
+              {translate(
+                "A unified platform for Work Orders, Properties, Finance, HR and Souq — designed for Saudi facility management teams with Vision 2030 standards.",
+                "hero.description",
+              )}
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/signup"
+                role="button"
+                className="fxz-btn-primary px-4 py-2 text-sm font-medium"
+              >
+                {translate("Get Started", "hero.actions.getStarted")}
+              </Link>
+              <Link
+                href="/login"
+                className="fxz-btn-primary px-4 py-2 text-sm font-medium"
+              >
+                {translate("Sign in", "hero.actions.signIn")}
+              </Link>
+              <Link
+                href="/help"
+                className="fxz-btn-outline px-4 py-2 text-sm font-medium"
+              >
+                {translate("Book a live demo", "hero.actions.bookDemo")}
+              </Link>
+              <Link
+                href="/pricing"
+                className="fxz-btn-ghost px-4 py-2 text-sm font-medium border border-primary text-primary hover:bg-primary/10"
+              >
+                {translate("Pricing & Free Trial", "hero.actions.pricing")}
+              </Link>
+              <Link
+                href="/vendor/apply"
+                className="fxz-btn-ghost px-4 py-2 text-sm font-medium border border-secondary text-secondary hover:bg-secondary/10"
+              >
+                {translate("Apply as Vendor", "hero.actions.vendorApply")}
+              </Link>
+            </div>
+            <div className="mt-6 flex flex-wrap items-center gap-3 text-sm font-semibold">
+              {heroHighlights.map((highlight) => (
+                <span
+                  key={highlight.id}
+                  className="rounded-full bg-white/20 px-4 py-2"
+                >
+                  {highlight.text}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex-1 w-full">
+            <div className="fxz-card p-4 sm:p-5">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold">
+                    {translate(
+                      "Complete facility management suite",
+                      "hero.preview.title",
+                    )}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {translate(
+                      "Everything you need to manage properties, work orders, vendors, and finances in one unified platform.",
+                      "hero.preview.description",
+                    )}
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10">
+                      <svg
+                        className="h-3 w-3 text-primary"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">
+                        {translate(
+                          "Real-time work order tracking",
+                          "hero.preview.feature1",
+                        )}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {translate(
+                          "Monitor status, SLAs, and team performance",
+                          "hero.preview.feature1.desc",
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="mt-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10">
+                      <svg
+                        className="h-3 w-3 text-primary"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">
+                        {translate(
+                          "Vendor & procurement management",
+                          "hero.preview.feature2",
+                        )}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {translate(
+                          "RFQs, purchase orders, and vendor ratings",
+                          "hero.preview.feature2.desc",
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="mt-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10">
+                      <svg
+                        className="h-3 w-3 text-primary"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">
+                        {translate(
+                          "ZATCA-compliant invoicing",
+                          "hero.preview.feature3",
+                        )}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {translate(
+                          "Automated billing with Saudi e-invoicing standards",
+                          "hero.preview.feature3.desc",
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="modules"
+        className="py-10 bg-[hsl(var(--section-alt))] flex-1"
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-semibold mb-1">
+              {translate(
+                "Everything your FM operation needs — connected",
+                "modules.title",
+              )}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {translate(
+                "Professional, integrated, and Saudi-first: one platform for Work Orders, Properties, Finance, HR and Souq.",
+                "modules.subtitle",
+              )}
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {modules.map((module) => (
+              <div key={module.id} className="fxz-card p-4">
+                <h3 className="font-semibold mb-1">{module.title}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {module.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/pricing/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import { Check, ArrowRight, Send, Phone, Mail, Building2 } from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+
+type TrialFormState = {
+  name: string;
+  email: string;
+  company: string;
+  phone: string;
+  plan: string;
+  message: string;
+};
+
+const plans = [
+  {
+    id: "standard",
+    name: "Standard",
+    price: "SR 0 / trial",
+    description: "Core FM, Work Orders, Properties",
+    features: ["Work Orders", "Properties & Units", "Basic Reports", "Email support"],
+    cta: "Start free trial",
+  },
+  {
+    id: "premium",
+    name: "Premium",
+    price: "SR 899 / month",
+    description: "Finance + HR + Approvals + Analytics",
+    features: [
+      "All Standard features",
+      "Finance & Invoicing",
+      "HR & Technicians",
+      "Approvals & Audit trail",
+      "Priority support",
+    ],
+    highlight: true,
+    cta: "Book a demo",
+  },
+  {
+    id: "enterprise",
+    name: "Enterprise",
+    price: "Talk to us",
+    description: "SSO, Advanced compliance, Custom SLAs",
+    features: [
+      "All Premium features",
+      "SSO & SCIM",
+      "Dedicated onboarding",
+      "Custom SLAs & training",
+    ],
+    cta: "Talk to sales",
+  },
+];
+
+export default function PricingPage() {
+  const { t } = useTranslation();
+  const [form, setForm] = useState<TrialFormState>({
+    name: "",
+    email: "",
+    company: "",
+    phone: "",
+    plan: "standard",
+    message: "",
+  });
+  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [error, setError] = useState<string | null>(null);
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus("submitting");
+    setError(null);
+    try {
+      const res = await fetch("/api/trial-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to submit request");
+      }
+      setStatus("success");
+    } catch (err) {
+      setStatus("error");
+      setError(err instanceof Error ? err.message : "Submission failed");
+    }
+  };
+
+  const update = (key: keyof TrialFormState, value: string) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
+        <div className="text-center space-y-3">
+          <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
+            {t("pricing.tagline", "Plans & Trials")}
+          </p>
+          <h1 className="text-3xl sm:text-4xl font-semibold">
+            {t("pricing.title", "Choose the right Fixzit plan for your team")}
+          </h1>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            {t(
+              "pricing.subtitle",
+              "Start with a free trial, then upgrade when you're ready. All plans include secure onboarding and bilingual support.",
+            )}
+          </p>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-3">
+          {plans.map((plan) => (
+            <div
+              key={plan.id}
+              className={`rounded-2xl border p-6 shadow-sm bg-card ${
+                plan.highlight ? "border-primary shadow-primary/10" : "border-border"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-xl font-semibold">{plan.name}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {plan.description}
+                  </p>
+                </div>
+                {plan.highlight && (
+                  <span className="text-xs font-semibold px-3 py-1 rounded-full bg-primary/10 text-primary">
+                    {t("pricing.popular", "Popular")}
+                  </span>
+                )}
+              </div>
+              <div className="text-2xl font-semibold mb-4">{plan.price}</div>
+              <ul className="space-y-2 mb-6 text-sm">
+                {plan.features.map((feature) => (
+                  <li key={feature} className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-success" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+              <Button
+                className="w-full flex items-center justify-center gap-2"
+                variant={plan.highlight ? "default" : "outline"}
+                onClick={() => update("plan", plan.id)}
+              >
+                {plan.cta}
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid gap-8 lg:grid-cols-2 items-start">
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <h2 className="text-xl font-semibold mb-2">
+              {t("pricing.trial.title", "Request a free trial or demo")}
+            </h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              {t(
+                "pricing.trial.subtitle",
+                "Tell us a bit about your organization and we will activate your Fixzit workspace.",
+              )}
+            </p>
+            <form className="space-y-4" onSubmit={onSubmit}>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <Send className="h-4 w-4" />
+                    {t("pricing.trial.name", "Full name")}
+                  </label>
+                  <Input
+                    required
+                    value={form.name}
+                    onChange={(e) => update("name", e.target.value)}
+                    placeholder="Sara Al-Mutairi"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    {t("pricing.trial.email", "Work email")}
+                  </label>
+                  <Input
+                    type="email"
+                    required
+                    value={form.email}
+                    onChange={(e) => update("email", e.target.value)}
+                    placeholder="you@company.com"
+                  />
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    {t("pricing.trial.company", "Company")}
+                  </label>
+                  <Input
+                    required
+                    value={form.company}
+                    onChange={(e) => update("company", e.target.value)}
+                    placeholder="Fixzit Holdings"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <Phone className="h-4 w-4" />
+                    {t("pricing.trial.phone", "Phone (optional)")}
+                  </label>
+                  <Input
+                    value={form.phone}
+                    onChange={(e) => update("phone", e.target.value)}
+                    placeholder="+966 5x xxx xxxx"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  {t("pricing.trial.plan", "Preferred plan")}
+                </label>
+                <select
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={form.plan}
+                  onChange={(e) => update("plan", e.target.value)}
+                >
+                  <option value="standard">{t("pricing.trial.plan.standard", "Standard")}</option>
+                  <option value="premium">{t("pricing.trial.plan.premium", "Premium")}</option>
+                  <option value="enterprise">{t("pricing.trial.plan.enterprise", "Enterprise")}</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  {t("pricing.trial.message", "Use case or requirements")}
+                </label>
+                <Textarea
+                  value={form.message}
+                  onChange={(e) => update("message", e.target.value)}
+                  placeholder={t(
+                    "pricing.trial.messagePlaceholder",
+                    "Tell us about your properties, workflows, or integrations you need.",
+                  )}
+                  rows={4}
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <Button
+                  type="submit"
+                  disabled={status === "submitting"}
+                  className="flex items-center gap-2"
+                >
+                  {status === "submitting"
+                    ? t("pricing.trial.submitting", "Submitting...")
+                    : t("pricing.trial.submit", "Submit request")}
+                </Button>
+                {status === "success" && (
+                  <span className="text-sm text-success">
+                    {t("pricing.trial.success", "Thank you! We will contact you shortly.")}
+                  </span>
+                )}
+                {status === "error" && (
+                  <span className="text-sm text-destructive">
+                    {error ||
+                      t(
+                        "pricing.trial.error",
+                        "Something went wrong. Please try again.",
+                      )}
+                  </span>
+                )}
+              </div>
+            </form>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-4">
+            <h3 className="text-lg font-semibold">
+              {t("pricing.vendor.title", "Vendors: get listed on Fixzit Souq")}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {t(
+                "pricing.vendor.subtitle",
+                "Apply to join as a verified vendor. We’ll review your documents and invite you to the marketplace.",
+              )}
+            </p>
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-success" />
+                <span>{t("pricing.vendor.benefit1", "Feature your services to FM teams")}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-success" />
+                <span>{t("pricing.vendor.benefit2", "Submit quotes and manage RFQs")}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-success" />
+                <span>{t("pricing.vendor.benefit3", "Track settlements and payouts")}</span>
+              </div>
+            </div>
+            <Button asChild variant="outline">
+              <a href="/vendor/apply" className="flex items-center gap-2">
+                {t("pricing.vendor.apply", "Apply as vendor")}
+                <ArrowRight className="h-4 w-4" />
+              </a>
+            </Button>
+            <div className="text-xs text-muted-foreground">
+              {t(
+                "pricing.vendor.note",
+                "Need an invite instead? Super Admins can invite vendors directly from the marketplace settings.",
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/privacy/page.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { Shield, Lock, Eye, FileText, Mail, Phone } from "lucide-react";
+import { renderMarkdownSanitized } from "@/lib/markdown";
+import { EMAIL_DOMAINS as EMAILS } from "@/lib/config/domains";
+import { logger } from "@/lib/logger";
+
+/**
+ * Default privacy policy content shown when CMS content is not available or not published.
+ * Defined at module level to prevent recreation on each render.
+ */
+const DEFAULT_PRIVACY_CONTENT = `# Privacy Policy
+
+**Last Updated:** October 16, 2025
+
+## Introduction
+Welcome to Fixzit Enterprise. We protect your privacy and secure your personal information.
+
+## Information We Collect
+- Personal information (name, email, phone)
+- Corporate ID and employee information  
+- Usage data and analytics
+- Work order and property data
+
+## How We Use Your Information
+For service delivery, account management, communication, analytics, security, and legal compliance.
+
+## Data Security
+Industry-standard security: encryption, access controls, regular audits, 24/7 monitoring.
+
+## Your Rights
+Access, correct, delete, export your data, and opt-out of marketing communications.
+
+## Contact
+For privacy inquiries: ${EMAILS.privacy} | Phone: +966 XX XXX XXXX`;
+
+/**
+ * Privacy Policy Page (Public View)
+ *
+ * Displays privacy policy content managed through CMS admin interface.
+ * Fetches from /api/cms/pages/privacy and falls back to default content.
+ * Supports RTL languages and responsive design.
+ *
+ * @returns Privacy policy page with hero, info cards, content, and contact sections
+ */
+export default function PrivacyPage() {
+  const { t, isRTL } = useTranslation();
+  const [content, setContent] = useState<string>("");
+  const [renderedContent, setRenderedContent] = useState<string>("");
+  const [title, setTitle] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+
+  const loadPrivacyPolicy = useCallback(async () => {
+    try {
+      const response = await fetch("/api/cms/pages/privacy");
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.status === "PUBLISHED") {
+          setTitle(data.title);
+          setContent(data.content);
+        } else {
+          setTitle(t("privacy.title", "Privacy Policy"));
+          setContent(DEFAULT_PRIVACY_CONTENT);
+        }
+      } else {
+        setTitle(t("privacy.title", "Privacy Policy"));
+        setContent(DEFAULT_PRIVACY_CONTENT);
+      }
+    } catch (err) {
+      logger.error(
+        "Error fetching privacy policy",
+        err instanceof Error ? err : new Error(String(err)),
+        { route: "/privacy" },
+      );
+      setTitle(t("privacy.title", "Privacy Policy"));
+      setContent(DEFAULT_PRIVACY_CONTENT);
+    } finally {
+      setLoading(false);
+    }
+  }, [t]);
+
+  useEffect(() => {
+    loadPrivacyPolicy();
+  }, [loadPrivacyPolicy]);
+
+  // Render markdown to HTML when content changes
+  useEffect(() => {
+    if (content) {
+      renderMarkdownSanitized(content)
+        .then((html) => {
+          setRenderedContent(html);
+        })
+        .catch((err) => {
+          logger.error(
+            "Error rendering markdown",
+            err instanceof Error ? err : new Error(String(err)),
+            { route: "/privacy", action: "render-markdown" },
+          );
+          // Fallback to plain text wrapped in paragraphs
+          setRenderedContent(
+            `<div class="prose max-w-none"><p>${content.replace(/\n/g, "</p><p>")}</p></div>`,
+          );
+        });
+    }
+  }, [content]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-muted flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">
+            {t("common.loading", "Loading...")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`min-h-screen bg-gradient-to-b from-white to-gray-50 ${isRTL ? "rtl" : "ltr"}`}
+    >
+      {/* Hero Section */}
+      <section className="bg-gradient-to-r from-[hsl(var(--primary))] via-[hsl(var(--primary))] to-[hsl(var(--success))] text-white py-12">
+        <div className="mx-auto max-w-7xl px-4 lg:px-6">
+          <div className="flex items-center gap-4 mb-4">
+            <Shield className="w-12 h-12" />
+            <h1 className="text-4xl font-bold">{title}</h1>
+          </div>
+          <p className="text-xl opacity-90">
+            {t(
+              "privacy.subtitle",
+              "Your privacy is our priority. Learn how we protect and manage your data.",
+            )}
+          </p>
+        </div>
+      </section>
+
+      {/* Quick Info Cards */}
+      <section className="py-8 bg-card shadow-sm">
+        <div className="mx-auto max-w-7xl px-4 lg:px-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="flex items-center gap-3 p-4 bg-primary/10 rounded-2xl">
+              <Lock className="w-8 h-8 text-primary flex-shrink-0" />
+              <div>
+                <div className="font-semibold text-foreground">
+                  {t("privacy.encrypted", "Encrypted")}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {t("privacy.encryptedDesc", "End-to-end encryption")}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-4 bg-success/10 rounded-2xl">
+              <Eye className="w-8 h-8 text-success flex-shrink-0" />
+              <div>
+                <div className="font-semibold text-foreground">
+                  {t("privacy.transparent", "Transparent")}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {t("privacy.transparentDesc", "Clear data usage")}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-4 bg-secondary/10 rounded-2xl">
+              <Shield className="w-8 h-8 text-secondary-foreground flex-shrink-0" />
+              <div>
+                <div className="font-semibold text-foreground">
+                  {t("privacy.compliant", "Compliant")}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {t("privacy.compliantDesc", "GDPR & CCPA certified")}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-4 bg-accent/10 rounded-2xl">
+              <FileText className="w-8 h-8 text-accent-foreground flex-shrink-0" />
+              <div>
+                <div className="font-semibold text-foreground">
+                  {t("privacy.yourRights", "Your Rights")}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {t("privacy.yourRightsDesc", "Full data control")}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Main Content */}
+      <section className="py-12">
+        <div className="mx-auto max-w-4xl px-4 lg:px-6">
+          <div className="bg-card rounded-2xl shadow-md border border-border p-8 md:p-12">
+            <article className="prose prose-lg max-w-none text-start prose-headings:text-foreground prose-a:text-primary prose-strong:text-foreground">
+              <div dangerouslySetInnerHTML={{ __html: renderedContent }} />
+            </article>
+          </div>
+        </div>
+      </section>
+
+      {/* Contact Section */}
+      <section className="py-12 bg-muted">
+        <div className="mx-auto max-w-4xl px-4 lg:px-6">
+          <div className="bg-card rounded-2xl shadow-md border border-border p-8">
+            <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-3">
+              <Mail className="w-6 h-6 text-primary" />
+              {t("privacy.contactTitle", "Privacy Questions?")}
+            </h2>
+            <p className="text-foreground mb-6">
+              {t(
+                "privacy.contactDesc",
+                "Contact our Privacy Officer for questions about privacy practices or to exercise your rights.",
+              )}
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="flex items-start gap-3">
+                <Mail className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-1" />
+                <div>
+                  <div className="font-semibold text-foreground mb-1">
+                    {t("privacy.email", "Email")}
+                  </div>
+                  <a
+                    href={`mailto:${EMAILS.privacy}`}
+                    className="text-primary hover:text-primary/90"
+                  >
+                    {EMAILS.privacy}
+                  </a>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <Phone className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-1" />
+                <div>
+                  <div className="font-semibold text-foreground mb-1">
+                    {t("privacy.phone", "Phone")}
+                  </div>
+                  <a
+                    href="tel:+966XXXXXXXX"
+                    className="text-primary hover:text-primary/90"
+                  >
+                    +966 XX XXX XXXX
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-border">
+              <p className="text-sm text-muted-foreground">
+                {t("privacy.lastUpdated", "Last Updated")}:{" "}
+                <span className="font-semibold">October 16, 2025</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/product/[slug]/page.tsx">
+<![CDATA[
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState, use } from "react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { logger } from "@/lib/logger";
+
+interface Product {
+  title?: string | { en?: string };
+  brand?: string;
+  standards?: string[];
+  buy?: {
+    price?: number;
+    currency?: string;
+    leadDays?: number;
+    uom?: string;
+    minQty?: number;
+  };
+  stock?: {
+    onHand?: number;
+    reserved?: number;
+  };
+  [key: string]: unknown;
+}
+
+interface ApiResponse {
+  data?: {
+    product?: Product;
+  };
+  product?: Product;
+  [key: string]: unknown;
+}
+
+async function fetchPdp(slug: string) {
+  try {
+    const res = await fetch(`/api/marketplace/products/${slug}`, {
+      cache: "no-store",
+      credentials: "include",
+    } as RequestInit);
+    return res.json();
+  } catch (error) {
+    logger.error("Product PDP fetch error:", { error });
+    throw error;
+  }
+}
+
+export default function ProductPage(props: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { t } = useTranslation();
+  const params = use(props.params); // Use React 19's use() hook to unwrap the Promise
+  const [data, setData] = useState<ApiResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchPdp(params.slug)
+      .then((result) => {
+        setData(result);
+        setLoading(false);
+      })
+      .catch((error) => {
+        logger.error("Failed to load product", { error, slug: params.slug });
+        setLoading(false);
+      });
+  }, [params.slug]);
+  if (loading || !data) {
+    return <div className="p-6">{t("common.loading", "Loading...")}</div>;
+  }
+
+  const p = data?.data?.product || data?.product;
+  const bb = p
+    ? {
+        price: p?.buy?.price ?? null,
+        currency: p?.buy?.currency ?? "SAR",
+        inStock: (p?.stock?.onHand ?? 0) - (p?.stock?.reserved ?? 0) > 0,
+        leadDays: p?.buy?.leadDays ?? 3,
+      }
+    : null;
+
+  if (!p) {
+    return <div className="p-6">{t("product.notFound", "Not found")}</div>;
+  }
+
+  return (
+    <div className="mx-auto max-w-[1200px] px-4 py-8 grid grid-cols-12 gap-8">
+      <div className="col-span-12 md:col-span-6">
+        <div className="aspect-square bg-muted rounded overflow-hidden" />
+      </div>
+      <div className="col-span-12 md:col-span-6 space-y-4">
+        <h1 className="text-2xl font-semibold">
+          {typeof p?.title === "object" && p.title?.en
+            ? p.title.en
+            : typeof p?.title === "string"
+              ? p.title
+              : ""}
+        </h1>
+        <ul className="list-disc ps-5 text-sm text-foreground">
+          {[
+            { key: t("product.brand", "Brand"), value: p?.brand },
+            {
+              key: t("product.standards", "Standards"),
+              value: Array.isArray(p?.standards)
+                ? p?.standards.join(", ")
+                : undefined,
+            },
+            { key: t("product.uom", "UOM"), value: p?.buy?.uom },
+            { key: t("product.minQty", "Min Qty"), value: p?.buy?.minQty },
+          ]
+            .filter(
+              (a) =>
+                a?.value !== undefined &&
+                a?.value !== null &&
+                String(a.value).trim() !== "",
+            )
+            .slice(0, 6)
+            .map((a) => (
+              <li key={a.key}>
+                <b>{a.key}:</b> {String(a.value)}
+              </li>
+            ))}
+        </ul>
+        <div className="border rounded p-4">
+          <div className="text-2xl font-bold">
+            {bb?.price?.toLocaleString()} {bb?.currency}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {bb?.inStock
+              ? t("product.inStock", "In Stock")
+              : t("product.backorder", "Backorder")}{" "}
+            · {t("product.lead", "Lead")} {bb?.leadDays}{" "}
+            {t("product.days", "days")}
+          </div>
+          <div className="flex gap-2 mt-3">
+            <Link
+              href="/cart"
+              className="px-4 py-2 bg-primary text-white rounded hover:opacity-90"
+            >
+              {t("product.addToCart", "Add to Cart")}
+            </Link>
+            <Link
+              href="/orders/new?mode=buy-now"
+              className="px-4 py-2 bg-warning text-black rounded hover:opacity-90"
+            >
+              {t("product.buyNow", "Buy Now (PO)")}
+            </Link>
+          </div>
+        </div>
+      </div>
+      <section className="col-span-12">
+        <h3 className="text-lg font-semibold mb-2">
+          {t("product.aboutTitle", "About this item")}
+        </h3>
+        <p className="text-sm text-foreground">
+          {t(
+            "product.aboutDesc",
+            "Technical data sheets (MSDS/COA), installation notes, and compliance info.",
+          )}
+        </p>
+      </section>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+</batch_content>

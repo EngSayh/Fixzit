@@ -1,0 +1,2875 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/marketplace/seller-central/analytics/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState, useEffect } from "react";
+import { logger } from "@/lib/logger";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SalesChart } from "@/components/seller/analytics/SalesChart";
+import { ProductPerformanceTable } from "@/components/seller/analytics/ProductPerformanceTable";
+import { CustomerInsightsCard } from "@/components/seller/analytics/CustomerInsightsCard";
+import { TrafficAnalytics } from "@/components/seller/analytics/TrafficAnalytics";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+type Period = "last_7_days" | "last_30_days" | "last_90_days" | "ytd";
+
+interface SalesData {
+  revenue: {
+    total: number;
+    previousPeriod: number;
+    trend: number;
+    daily: Array<{ date: string; revenue: number }>;
+  };
+  orders: {
+    total: number;
+    previousPeriod: number;
+    trend: number;
+  };
+  averageOrderValue: {
+    current: number;
+    previousPeriod: number;
+    trend: number;
+  };
+  conversionRate: {
+    current: number;
+    previousPeriod: number;
+    trend: number;
+  };
+}
+
+interface ProductPerformanceData {
+  topProducts: Array<{
+    productId: string;
+    title: string;
+    unitsSold: number;
+    revenue: number;
+    conversionRate: number;
+  }>;
+  lowStockCount: number;
+  underperformingProducts: Array<{
+    productId: string;
+    title: string;
+    views: number;
+    conversionRate: number;
+    recommendation: string;
+  }>;
+}
+
+interface CustomerInsightsData {
+  acquisition: {
+    newCustomers: number;
+    sources: Record<string, number>;
+  };
+  retention: {
+    repeatCustomerRate: number;
+    averageLifetimeValue: number;
+  };
+  geography: {
+    topCities: Array<{ city: string; count: number }>;
+    topRegions: Array<{ region: string; count: number }>;
+  };
+  demographics: {
+    ageGroups: Record<string, number>;
+  };
+}
+
+interface TrafficAnalyticsData {
+  pageViews: {
+    total: number;
+    daily: Array<{ date: string; views: number }>;
+  };
+  sources: {
+    direct: number;
+    search: number;
+    social: number;
+    referral: number;
+    paid: number;
+  };
+  engagement: {
+    avgSessionDuration: number;
+    avgPagesPerSession: number;
+    bounceRate: number;
+  };
+  devices: {
+    desktop: number;
+    mobile: number;
+    tablet: number;
+  };
+}
+
+interface AnalyticsData {
+  sales: SalesData;
+  products: ProductPerformanceData;
+  customers: CustomerInsightsData;
+  traffic: TrafficAnalyticsData;
+}
+
+const formatTrendValue = (value: number) => {
+  if (!Number.isFinite(value)) {
+    return "0%";
+  }
+  const prefix = value > 0 ? "+" : "";
+  return `${prefix}${value.toFixed(1)}%`;
+};
+
+export default function AnalyticsPage() {
+  const auto = useAutoTranslator("marketplace.sellerCentral.analytics");
+  const PERIOD_LABELS: Record<Period, string> = {
+    last_7_days: auto("Last 7 Days", "periods.last7"),
+    last_30_days: auto("Last 30 Days", "periods.last30"),
+    last_90_days: auto("Last 90 Days", "periods.last90"),
+    ytd: auto("Year to Date", "periods.ytd"),
+  };
+  const [period, setPeriod] = useState<Period>("last_30_days");
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "sales" | "products" | "customers" | "traffic"
+  >("overview");
+  const [data, setData] = useState<AnalyticsData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchAnalytics() {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch(
+          `/api/souq/analytics/dashboard?period=${period}`,
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            auto("Failed to fetch analytics data", "errors.fetch"),
+          );
+        }
+
+        const result = await response.json();
+
+        if (result.success) {
+          setData({
+            sales: result.sales,
+            products: result.products,
+            customers: result.customers,
+            traffic: result.traffic,
+          });
+        } else {
+          throw new Error(
+            result.error || auto("Unknown error occurred", "errors.unknown"),
+          );
+        }
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : auto("An error occurred", "errors.generic"),
+        );
+        logger.error("Analytics fetch error", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchAnalytics();
+  }, [period]);
+
+  const handleExportCSV = async () => {
+    const analytics = data;
+    if (!analytics) {
+      logger.warn("Tried to export analytics before data loaded", { period });
+      alert(
+        auto(
+          "Analytics data is still loading. Please try again in a moment.",
+          "alerts.dataLoading",
+        ),
+      );
+      return;
+    }
+
+    try {
+      const { exportToCSV } = await import("@/lib/export-utils");
+      const { sales, customers } = analytics;
+
+      // Prepare export data from current analytics
+      const exportData = [
+        {
+          metric: auto("Total Revenue", "export.totalRevenue"),
+          value: `${sales.revenue.total.toFixed(2)} SAR`,
+          trend: formatTrendValue(sales.revenue.trend),
+        },
+        {
+          metric: auto("Total Orders", "export.totalOrders"),
+          value: sales.orders.total.toString(),
+          trend: formatTrendValue(sales.orders.trend),
+        },
+        {
+          metric: auto("Average Order Value", "export.avgOrderValue"),
+          value: `${sales.averageOrderValue.current.toFixed(2)} SAR`,
+          trend: formatTrendValue(sales.averageOrderValue.trend),
+        },
+        {
+          metric: auto("New Customers", "export.newCustomers"),
+          value: customers.acquisition.newCustomers.toString(),
+          trend: auto("N/A", "export.notAvailable"),
+        },
+        {
+          metric: auto("Conversion Rate", "export.conversionRate"),
+          value: `${sales.conversionRate.current.toFixed(2)}%`,
+          trend: formatTrendValue(sales.conversionRate.trend),
+        },
+      ];
+
+      const filename = `analytics-${period}-${new Date().toISOString().split("T")[0]}.csv`;
+      exportToCSV(exportData, filename, [
+        { key: "metric", label: auto("Metric", "export.table.metric") },
+        { key: "value", label: auto("Value", "export.table.value") },
+        { key: "trend", label: auto("Trend", "export.table.trend") },
+      ]);
+
+      logger.info("Analytics exported to CSV", { period, filename });
+    } catch (error) {
+      logger.error("Failed to export CSV", { error });
+      alert(
+        auto("Failed to export data. Please try again.", "alerts.exportFailed"),
+      );
+    }
+  };
+
+  const handleExportPDF = async () => {
+    const analytics = data;
+    if (!analytics) {
+      logger.warn("Tried to export analytics before data loaded", {
+        period,
+        format: "pdf",
+      });
+      alert(
+        auto(
+          "Analytics data is still loading. Please try again in a moment.",
+          "alerts.dataLoading",
+        ),
+      );
+      return;
+    }
+
+    try {
+      const { exportToPDF } = await import("@/lib/export-utils");
+      const { sales, customers } = analytics;
+
+      // Prepare export data
+      const exportData = [
+        {
+          metric: auto("Total Revenue", "export.totalRevenue"),
+          value: `${sales.revenue.total.toFixed(2)} SAR`,
+          trend: formatTrendValue(sales.revenue.trend),
+        },
+        {
+          metric: auto("Total Orders", "export.totalOrders"),
+          value: String(sales.orders.total),
+          trend: formatTrendValue(sales.orders.trend),
+        },
+        {
+          metric: auto("Average Order Value", "export.avgOrderValue"),
+          value: `${sales.averageOrderValue.current.toFixed(2)} SAR`,
+          trend: formatTrendValue(sales.averageOrderValue.trend),
+        },
+        {
+          metric: auto("New Customers", "export.newCustomers"),
+          value: String(customers.acquisition.newCustomers),
+          trend: auto("N/A", "export.notAvailable"),
+        },
+        {
+          metric: auto("Conversion Rate", "export.conversionRate"),
+          value: `${sales.conversionRate.current.toFixed(2)}%`,
+          trend: formatTrendValue(sales.conversionRate.trend),
+        },
+      ];
+
+      const filename = `analytics-${period}-${new Date().toISOString().split("T")[0]}.pdf`;
+      await exportToPDF(
+        exportData,
+        [
+          { key: "metric", label: auto("Metric", "export.table.metric") },
+          { key: "value", label: auto("Value", "export.table.value") },
+          { key: "trend", label: auto("Trend", "export.table.trend") },
+        ],
+        filename,
+        {
+          title: auto("Analytics Dashboard Export", "export.pdf.title"),
+          subtitle: `${auto("Period:", "export.pdf.subtitle")} ${period.replace("_", " ")}`,
+          orientation: "portrait",
+        },
+      );
+
+      logger.info("Analytics exported to PDF", { period, filename });
+    } catch (error) {
+      logger.error("Failed to export PDF", { error });
+      alert(
+        auto("Failed to export data. Please try again.", "alerts.exportFailed"),
+      );
+    }
+  };
+
+  const tabs = [
+    { id: "overview" as const, label: auto("Overview", "tabs.overview") },
+    { id: "sales" as const, label: auto("Sales", "tabs.sales") },
+    { id: "products" as const, label: auto("Products", "tabs.products") },
+    { id: "customers" as const, label: auto("Customers", "tabs.customers") },
+    { id: "traffic" as const, label: auto("Traffic", "tabs.traffic") },
+  ];
+
+  return (
+    <div className="container mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">
+            {auto("Analytics Dashboard", "header.title")}
+          </h1>
+          <p className="text-muted-foreground">
+            {auto(
+              "Monitor your store performance and customer insights",
+              "header.subtitle",
+            )}
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-2">
+          {/* Period Selector */}
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value as Period)}
+            className="px-4 py-2 border rounded-lg bg-background"
+          >
+            {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
+              <option key={p} value={p}>
+                {PERIOD_LABELS[p]}
+              </option>
+            ))}
+          </select>
+
+          {/* Export Buttons */}
+          <button
+            onClick={handleExportCSV}
+            className="px-4 py-2 border rounded-lg hover:bg-accent"
+          >
+            {auto("Export CSV", "actions.exportCsv")}
+          </button>
+          <button
+            onClick={handleExportPDF}
+            className="px-4 py-2 border rounded-lg hover:bg-accent"
+          >
+            {auto("Export PDF", "actions.exportPdf")}
+          </button>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="border-b">
+        <nav className="flex gap-4">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as typeof activeTab)}
+              className={`px-4 py-2 border-b-2 transition-colors ${
+                activeTab === tab.id
+                  ? "border-primary text-primary font-medium"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Error State */}
+      {error && (
+        <Card className="border-red-200 bg-destructive/5">
+          <CardHeader>
+            <CardTitle className="text-destructive-dark">
+              {auto("Error Loading Analytics", "errors.title")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-destructive-dark">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 bg-destructive text-white rounded-lg hover:bg-destructive-dark"
+            >
+              {auto("Retry", "actions.retry")}
+            </button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Content */}
+      {!error && (
+        <>
+          {activeTab === "overview" && (
+            <div className="space-y-6">
+              <SalesChart
+                data={data?.sales ?? null}
+                isLoading={isLoading}
+                period={period}
+              />
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <ProductPerformanceTable
+                    data={data?.products ?? null}
+                    isLoading={isLoading}
+                  />
+                </div>
+                <div>
+                  <CustomerInsightsCard
+                    data={data?.customers ?? null}
+                    isLoading={isLoading}
+                  />
+                </div>
+              </div>
+              <TrafficAnalytics
+                data={data?.traffic ?? null}
+                isLoading={isLoading}
+              />
+            </div>
+          )}
+
+          {activeTab === "sales" && (
+            <SalesChart
+              data={data?.sales ?? null}
+              isLoading={isLoading}
+              period={period}
+            />
+          )}
+
+          {activeTab === "products" && (
+            <ProductPerformanceTable
+              data={data?.products ?? null}
+              isLoading={isLoading}
+            />
+          )}
+
+          {activeTab === "customers" && (
+            <CustomerInsightsCard
+              data={data?.customers ?? null}
+              isLoading={isLoading}
+            />
+          )}
+
+          {activeTab === "traffic" && (
+            <TrafficAnalytics
+              data={data?.traffic ?? null}
+              isLoading={isLoading}
+            />
+          )}
+        </>
+      )}
+
+      {/* Empty State for Loading */}
+      {isLoading && !data && (
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">
+              {auto("Loading analytics data...", "state.loading")}
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/marketplace/seller-central/claims/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import ClaimList from "@/components/souq/claims/ClaimList";
+import ClaimDetails from "@/components/souq/claims/ClaimDetails";
+import ResponseForm from "@/components/souq/claims/ResponseForm";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, AlertCircle } from "lucide-react";
+import { useI18n } from "@/i18n/useI18n";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+type ViewMode = "list" | "details" | "respond";
+
+interface ClaimResponseContext {
+  claimId: string;
+  claimNumber: string;
+  claimType: string;
+  claimAmount: number;
+  description: string;
+}
+
+export default function SellerClaimsPage() {
+  const { t } = useI18n();
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [selectedClaimId, setSelectedClaimId] = useState<string | null>(null);
+  const [showResponseDialog, setShowResponseDialog] = useState(false);
+  const [claimForResponse, setClaimForResponse] =
+    useState<ClaimResponseContext | null>(null);
+
+  const handleSelectClaim = (claimId: string) => {
+    setSelectedClaimId(claimId);
+    setViewMode("details");
+  };
+
+  const handleBackToList = () => {
+    setViewMode("list");
+    setSelectedClaimId(null);
+  };
+
+  const handleRespondToClaim = () => {
+    if (!selectedClaimId) {
+      return;
+    }
+    // Fetch claim details and show response form
+    setShowResponseDialog(true);
+    // In a real app, fetch claim details here
+    setClaimForResponse({
+      claimId: selectedClaimId,
+      claimNumber: "CLM-12345",
+      claimType: "item-not-received",
+      claimAmount: 250,
+      description: "Customer claims item was not received",
+    });
+  };
+
+  const handleResponseSuccess = () => {
+    setShowResponseDialog(false);
+    setViewMode("list");
+    // Refresh the claims list
+  };
+
+  const hasSelectedClaim = typeof selectedClaimId === "string";
+  const claimIdForDetails = hasSelectedClaim ? selectedClaimId : undefined;
+
+  return (
+    <div className="container mx-auto py-8 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          {viewMode !== "list" && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleBackToList}
+              aria-label={t("common.back") || "Back"}
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+          )}
+          <div>
+            <h1 className="text-3xl font-bold">
+              {t("marketplace.claims.seller.title")}
+            </h1>
+            <p className="text-muted-foreground">
+              {t("marketplace.claims.seller.subtitle")}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Important Notice */}
+      <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          <span className="font-semibold">
+            {t("marketplace.claims.seller.importantNotice")}
+          </span>{" "}
+          {t("marketplace.claims.seller.responseDeadline")}
+        </AlertDescription>
+      </Alert>
+
+      {/* Content */}
+      {viewMode === "list" && (
+        <ClaimList view="seller" onSelectClaim={handleSelectClaim} />
+      )}
+
+      {viewMode === "details" && claimIdForDetails && (
+        <ClaimDetails
+          claimId={claimIdForDetails}
+          userRole="seller"
+          onActionRequired={handleRespondToClaim}
+        />
+      )}
+
+      {/* Response Dialog */}
+      <Dialog open={showResponseDialog} onOpenChange={setShowResponseDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {t("marketplace.claims.seller.respondToClaim")}
+            </DialogTitle>
+            <DialogDescription>
+              {t("marketplace.claims.seller.respondToClaimSubtitle")}
+            </DialogDescription>
+          </DialogHeader>
+          {claimForResponse?.claimId && (
+            <ResponseForm
+              claimId={claimForResponse.claimId}
+              claimDetails={claimForResponse}
+              onSuccess={handleResponseSuccess}
+              onCancel={() => setShowResponseDialog(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/marketplace/seller-central/health/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState, useEffect } from "react";
+import { Card } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import MetricCard from "@/components/seller/health/MetricCard";
+import HealthScore from "@/components/seller/health/HealthScore";
+import ViolationsList from "@/components/seller/health/ViolationsList";
+import RecommendationsPanel from "@/components/seller/health/RecommendationsPanel";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+interface HealthSummary {
+  current: {
+    odr: { rate: number; count: number; target: number };
+    lsr: { rate: number; count: number; target: number };
+    cr: { rate: number; count: number; target: number };
+    rr: { rate: number; count: number; target: number };
+    healthScore: number;
+    status: "excellent" | "good" | "fair" | "poor" | "critical";
+    isAtRisk: boolean;
+  };
+  trend: "improving" | "stable" | "declining";
+  recentViolations: Array<{
+    type: string;
+    severity: string;
+    description: string;
+    action: string;
+    date: string;
+    resolved: boolean;
+  }>;
+  recommendations: string[];
+}
+
+export default function AccountHealthPage() {
+  const auto = useAutoTranslator("marketplace.sellerCentral.health");
+  const [summary, setSummary] = useState<HealthSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [period, setPeriod] = useState<
+    "last_7_days" | "last_30_days" | "last_90_days"
+  >("last_30_days");
+
+  useEffect(() => {
+    fetchHealthSummary();
+  }, [period]);
+
+  const fetchHealthSummary = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(
+        `/api/souq/seller-central/health/summary?period=${period}`,
+      );
+      if (!response.ok)
+        throw new Error(auto("Failed to fetch health summary", "errors.fetch"));
+      const { success: _success, ...payload } = await response.json();
+      setSummary(payload);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : auto("Unknown error", "errors.unknown"),
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">
+            {auto("Loading account health...", "state.loading")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !summary) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Alert variant="destructive">
+          <AlertDescription>
+            {error || auto("Failed to load account health", "errors.load")}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          {auto("Account Health", "header.title")}
+        </h1>
+        <p className="text-gray-600">
+          {auto(
+            "Monitor your seller performance metrics and maintain excellent account standing.",
+            "header.subtitle",
+          )}
+        </p>
+      </div>
+
+      {/* At-Risk Warning */}
+      {summary.current.isAtRisk && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertDescription>
+            <strong>{auto("Action Required:", "alerts.atRisk.title")} </strong>
+            {auto(
+              "Your account health is at risk. Please review the recommendations below to improve your metrics.",
+              "alerts.atRisk.description",
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Period Selector */}
+      <div className="flex justify-end mb-6">
+        <select
+          value={period}
+          onChange={(e) => setPeriod(e.target.value as typeof period)}
+          className="px-4 py-2 border border-gray-300 rounded-md"
+        >
+          <option value="last_7_days">
+            {auto("Last 7 Days", "periods.last7")}
+          </option>
+          <option value="last_30_days">
+            {auto("Last 30 Days", "periods.last30")}
+          </option>
+          <option value="last_90_days">
+            {auto("Last 90 Days", "periods.last90")}
+          </option>
+        </select>
+      </div>
+
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="overview">
+            {auto("Overview", "tabs.overview")}
+          </TabsTrigger>
+          <TabsTrigger value="violations">
+            {auto("Violations", "tabs.violations")}
+          </TabsTrigger>
+          <TabsTrigger value="recommendations">
+            {auto("Recommendations", "tabs.recommendations")}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          {/* Health Score */}
+          <HealthScore
+            score={summary.current.healthScore}
+            status={summary.current.status}
+            trend={summary.trend}
+            isAtRisk={summary.current.isAtRisk}
+          />
+
+          {/* Metrics Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <MetricCard
+              title={auto("Order Defect Rate", "metrics.odr.title")}
+              value={summary.current.odr.rate}
+              count={summary.current.odr.count}
+              target={summary.current.odr.target}
+              format="percentage"
+              tooltip={auto(
+                "Percentage of orders with negative feedback, A-to-Z claims, or chargebacks",
+                "metrics.odr.tooltip",
+              )}
+            />
+            <MetricCard
+              title={auto("Late Shipment Rate", "metrics.lsr.title")}
+              value={summary.current.lsr.rate}
+              count={summary.current.lsr.count}
+              target={summary.current.lsr.target}
+              format="percentage"
+              tooltip={auto(
+                "Percentage of orders shipped after the expected ship date",
+                "metrics.lsr.tooltip",
+              )}
+            />
+            <MetricCard
+              title={auto("Cancellation Rate", "metrics.cr.title")}
+              value={summary.current.cr.rate}
+              count={summary.current.cr.count}
+              target={summary.current.cr.target}
+              format="percentage"
+              tooltip={auto(
+                "Percentage of seller-initiated cancellations",
+                "metrics.cr.tooltip",
+              )}
+            />
+            <MetricCard
+              title={auto("Return Rate", "metrics.rr.title")}
+              value={summary.current.rr.rate}
+              count={summary.current.rr.count}
+              target={summary.current.rr.target}
+              format="percentage"
+              tooltip={auto(
+                "Percentage of delivered orders that were returned",
+                "metrics.rr.tooltip",
+              )}
+            />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="violations">
+          <Card className="p-6">
+            <ViolationsList violations={summary.recentViolations} />
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="recommendations">
+          <Card className="p-6">
+            <RecommendationsPanel
+              recommendations={summary.recommendations}
+              healthStatus={summary.current.status}
+            />
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/marketplace/seller-central/kyc/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState, useEffect } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CheckCircle, Circle, AlertCircle } from "lucide-react";
+import CompanyInfoForm from "@/components/seller/kyc/CompanyInfoForm";
+import DocumentUploadForm from "@/components/seller/kyc/DocumentUploadForm";
+import BankDetailsForm from "@/components/seller/kyc/BankDetailsForm";
+import KYCProgress from "@/components/seller/kyc/KYCProgress";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+type Step = "company_info" | "documents" | "bank_details" | "verification";
+
+interface KYCStatus {
+  status: "not_started" | "pending" | "under_review" | "approved" | "rejected";
+  currentStep: Step;
+  completedSteps: Step[];
+  companyInfoCompleted: boolean;
+  documentsCompleted: boolean;
+  bankDetailsCompleted: boolean;
+  rejectionReason?: string;
+}
+
+export default function SellerKYCPage() {
+  const auto = useAutoTranslator("marketplace.sellerCentral.kyc");
+  const [currentStep, setCurrentStep] = useState<Step>("company_info");
+  const [kycStatus, setKYCStatus] = useState<KYCStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchKYCStatus();
+  }, []);
+
+  const fetchKYCStatus = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/souq/seller-central/kyc/status");
+      if (!response.ok)
+        throw new Error(
+          auto("Failed to fetch KYC status", "errors.fetchStatus"),
+        );
+      const { success: _success, ...status } = await response.json();
+      setKYCStatus(status);
+      setCurrentStep(status.currentStep || "company_info");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : auto("Unknown error", "errors.unknown"),
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStepComplete = async (step: Step, data: unknown) => {
+    try {
+      const response = await fetch("/api/souq/seller-central/kyc/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ step, data }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(
+          error.message || auto("Failed to submit KYC", "errors.submit"),
+        );
+      }
+
+      const result = await response.json();
+
+      // Move to next step
+      if (result.nextStep && result.nextStep !== "verification") {
+        setCurrentStep(result.nextStep as Step);
+      }
+
+      // Refresh status
+      await fetchKYCStatus();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : auto("Unknown error", "errors.unknown"),
+      );
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">
+            {auto("Loading KYC status...", "state.loading")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // KYC Approved
+  if (kycStatus?.status === "approved") {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card className="max-w-2xl mx-auto p-8 text-center">
+          <CheckCircle className="w-16 h-16 text-success mx-auto mb-4" />
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {auto("KYC Approved!", "approved.title")}
+          </h1>
+          <p className="text-gray-600 mb-6">
+            {auto(
+              "Your seller account has been verified and approved. You can now start listing products.",
+              "approved.description",
+            )}
+          </p>
+          <Button
+            onClick={() =>
+              (window.location.href = "/marketplace/seller-central")
+            }
+          >
+            {auto("Go to Seller Dashboard", "approved.cta")}
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  // KYC Rejected
+  if (kycStatus?.status === "rejected") {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card className="max-w-2xl mx-auto p-8">
+          <div className="text-center mb-6">
+            <AlertCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              {auto("KYC Rejected", "rejected.title")}
+            </h1>
+            <p className="text-gray-600">
+              {auto(
+                "Your KYC submission was rejected. Please review the reason and resubmit.",
+                "rejected.subtitle",
+              )}
+            </p>
+          </div>
+
+          {kycStatus.rejectionReason && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertDescription>
+                <strong>
+                  {auto("Rejection Reason:", "rejected.reasonLabel")}{" "}
+                </strong>
+                {kycStatus.rejectionReason}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <Button
+            onClick={() => {
+              setKYCStatus({ ...kycStatus, status: "pending" });
+              setCurrentStep("company_info");
+            }}
+            className="w-full"
+          >
+            {auto("Resubmit KYC", "rejected.cta")}
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  // KYC Under Review
+  if (kycStatus?.status === "under_review") {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card className="max-w-2xl mx-auto p-8 text-center">
+          <Circle className="w-16 h-16 text-warning mx-auto mb-4 animate-pulse" />
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {auto("Under Review", "underReview.title")}
+          </h1>
+          <p className="text-gray-600 mb-6">
+            {auto(
+              "Your KYC submission is currently being reviewed by our team. This typically takes 24-48 hours.",
+              "underReview.description",
+            )}
+          </p>
+          <p className="text-sm text-gray-500">
+            {auto(
+              "We'll notify you via email once the review is complete.",
+              "underReview.notice",
+            )}
+          </p>
+        </Card>
+      </div>
+    );
+  }
+
+  // KYC Form
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {auto("Seller Verification (KYC)", "form.title")}
+          </h1>
+          <p className="text-gray-600">
+            {auto(
+              "Complete the following steps to verify your seller account and start selling.",
+              "form.subtitle",
+            )}
+          </p>
+        </div>
+
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        <KYCProgress
+          currentStep={currentStep}
+          completedSteps={kycStatus?.completedSteps || []}
+        />
+
+        <Card className="p-6 mt-6">
+          {currentStep === "company_info" && (
+            <CompanyInfoForm
+              onSubmit={(data) => handleStepComplete("company_info", data)}
+            />
+          )}
+
+          {currentStep === "documents" && (
+            <DocumentUploadForm
+              onSubmit={(data) => handleStepComplete("documents", data)}
+              onBack={() => setCurrentStep("company_info")}
+            />
+          )}
+
+          {currentStep === "bank_details" && (
+            <BankDetailsForm
+              onSubmit={(data) => handleStepComplete("bank_details", data)}
+              onBack={() => setCurrentStep("documents")}
+            />
+          )}
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/marketplace/seller-central/page.tsx">
+<![CDATA[
+"use client";
+
+import Link from "next/link";
+import {
+  LineChart,
+  Megaphone,
+  Tag,
+  MessageSquare,
+  Receipt,
+  Activity,
+  ShieldCheck,
+} from "lucide-react";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+type ToolConfig = {
+  id: string;
+  titleKey: string;
+  subtitleKey: string;
+  fallbackTitle: string;
+  fallbackSubtitle: string;
+  href: string;
+  icon: typeof LineChart;
+  badge?: string;
+};
+
+const SELLER_TOOLS: ToolConfig[] = [
+  {
+    id: "analytics",
+    titleKey: "analytics.title",
+    subtitleKey: "analytics.subtitle",
+    fallbackTitle: "Analytics & Insights",
+    fallbackSubtitle:
+      "Monitor revenue, orders, and customer journeys in real time.",
+    href: "/marketplace/seller-central/analytics",
+    icon: LineChart,
+    badge: "Live",
+  },
+  {
+    id: "advertising",
+    titleKey: "advertising.title",
+    subtitleKey: "advertising.subtitle",
+    fallbackTitle: "Advertising Studio",
+    fallbackSubtitle:
+      "Launch Sponsored Products and monitor campaign performance.",
+    href: "/marketplace/seller-central/advertising",
+    icon: Megaphone,
+  },
+  {
+    id: "pricing",
+    titleKey: "pricing.title",
+    subtitleKey: "pricing.subtitle",
+    fallbackTitle: "Pricing & Promotions",
+    fallbackSubtitle: "Optimize price ladders and run marketplace promotions.",
+    href: "/marketplace/seller-central/pricing",
+    icon: Tag,
+  },
+  {
+    id: "reviews",
+    titleKey: "reviews.title",
+    subtitleKey: "reviews.subtitle",
+    fallbackTitle: "Reviews & Feedback",
+    fallbackSubtitle: "Respond to customers and improve product reputation.",
+    href: "/marketplace/seller-central/reviews",
+    icon: MessageSquare,
+  },
+  {
+    id: "settlements",
+    titleKey: "settlements.title",
+    subtitleKey: "settlements.subtitle",
+    fallbackTitle: "Settlements & Payouts",
+    fallbackSubtitle: "Track deposits, fees, and reconciliation.",
+    href: "/marketplace/seller-central/settlements",
+    icon: Receipt,
+  },
+  {
+    id: "health",
+    titleKey: "health.title",
+    subtitleKey: "health.subtitle",
+    fallbackTitle: "Account Health & KYC",
+    fallbackSubtitle: "Complete compliance tasks and resolve account flags.",
+    href: "/marketplace/seller-central/health",
+    icon: ShieldCheck,
+  },
+  {
+    id: "claims",
+    titleKey: "claims.title",
+    subtitleKey: "claims.subtitle",
+    fallbackTitle: "Claims & Disputes",
+    fallbackSubtitle: "Manage support tickets for damaged or missing orders.",
+    href: "/marketplace/seller-central/claims",
+    icon: Activity,
+  },
+  {
+    id: "kyc",
+    titleKey: "kyc.title",
+    subtitleKey: "kyc.subtitle",
+    fallbackTitle: "KYC Status",
+    fallbackSubtitle: "Review onboarding progress and submit documents.",
+    href: "/marketplace/seller-central/kyc",
+    icon: ShieldCheck,
+  },
+];
+
+export default function SellerCentralHome() {
+  const auto = useAutoTranslator("marketplace.sellerCentral.dashboard");
+
+  return (
+    <div className="min-h-screen bg-muted">
+      <div className="max-w-6xl mx-auto px-4 py-10 space-y-8">
+        <header className="space-y-3 text-center md:text-start">
+          <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
+            {auto("Seller Central", "header.kicker")}
+          </p>
+          <h1 className="text-3xl font-bold text-foreground">
+            {auto("Operate your marketplace business", "header.title")}
+          </h1>
+          <p className="text-muted-foreground max-w-3xl">
+            {auto(
+              "Access analytics, advertising, pricing, reviews, settlements, and compliance workflows from a single control center.",
+              "header.subtitle",
+            )}
+          </p>
+        </header>
+
+        <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {SELLER_TOOLS.map((tool) => {
+            const Icon = tool.icon;
+            return (
+              <Link
+                key={tool.id}
+                href={tool.href}
+                className="group rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="rounded-2xl bg-primary/10 p-3 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition">
+                    <Icon className="h-5 w-5" aria-hidden />
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-foreground text-lg">
+                        {auto(tool.fallbackTitle, tool.titleKey)}
+                      </h3>
+                      {tool.badge && (
+                        <span className="rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
+                          {tool.badge}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {auto(tool.fallbackSubtitle, tool.subtitleKey)}
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </section>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/marketplace/seller-central/pricing/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState, useEffect } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import {
+  TrendingUp,
+  TrendingDown,
+  Award,
+  DollarSign,
+  RefreshCw,
+} from "lucide-react";
+import PricingRuleCard from "@/components/seller/pricing/PricingRuleCard";
+import CompetitorAnalysis from "@/components/seller/pricing/CompetitorAnalysis";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+interface RepricerSettings {
+  enabled: boolean;
+  rules: Record<
+    string,
+    {
+      enabled: boolean;
+      minPrice: number;
+      maxPrice: number;
+      targetPosition: "win" | "competitive";
+      undercut: number;
+      protectMargin: boolean;
+    }
+  >;
+  defaultRule?: {
+    enabled: boolean;
+    minPrice: number;
+    maxPrice: number;
+    targetPosition: "win" | "competitive";
+    undercut: number;
+    protectMargin: boolean;
+  };
+}
+
+interface Listing {
+  _id: string;
+  fsin: string;
+  title: string;
+  sku: string;
+  price: number;
+  buyBoxWinner: boolean;
+  buyBoxScore: number;
+  lastPriceChange?: Date;
+}
+
+export default function PricingDashboardPage() {
+  const auto = useAutoTranslator("marketplace.sellerCentral.pricing");
+  const [settings, setSettings] = useState<RepricerSettings | null>(null);
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [repricing, setRepricing] = useState(false);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [settingsRes, listingsRes] = await Promise.all([
+        fetch("/api/souq/repricer/settings"),
+        fetch("/api/souq/inventory"), // Get seller's listings
+      ]);
+
+      if (!settingsRes.ok)
+        throw new Error(
+          auto("Failed to fetch settings", "errors.fetchSettings"),
+        );
+      if (!listingsRes.ok)
+        throw new Error(
+          auto("Failed to fetch listings", "errors.fetchListings"),
+        );
+
+      const settingsData = await settingsRes.json();
+      const listingsData = await listingsRes.json();
+
+      setSettings(settingsData.settings);
+      setListings(listingsData.listings || []);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : auto("Unknown error", "errors.unknown"),
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleAutoRepricer = async (enabled: boolean) => {
+    try {
+      if (!settings) return;
+
+      const newSettings = { ...settings, enabled };
+
+      const response = await fetch("/api/souq/repricer/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ settings: newSettings }),
+      });
+
+      if (!response.ok)
+        throw new Error(
+          auto("Failed to update settings", "errors.updateSettings"),
+        );
+
+      setSettings(newSettings);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : auto("Unknown error", "errors.unknown"),
+      );
+    }
+  };
+
+  const handleRunRepricing = async () => {
+    try {
+      setRepricing(true);
+      const response = await fetch("/api/souq/repricer/run", {
+        method: "POST",
+      });
+
+      if (!response.ok)
+        throw new Error(auto("Failed to run repricing", "errors.runRepricing"));
+
+      const data = await response.json();
+
+      // Refresh listings after repricing
+      await fetchData();
+
+      alert(
+        auto(
+          "Repricing complete: {{count}} listings updated",
+          "alerts.repricingComplete",
+        ).replace("{{count}}", String(data.result.repriced)),
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : auto("Unknown error", "errors.unknown"),
+      );
+    } finally {
+      setRepricing(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">
+            {auto("Loading pricing dashboard...", "state.loading")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  const buyBoxWinners = listings.filter((l) => l.buyBoxWinner).length;
+  const avgBuyBoxScore =
+    listings.length > 0
+      ? listings.reduce((sum, l) => sum + l.buyBoxScore, 0) / listings.length
+      : 0;
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          {auto("Pricing Dashboard", "header.title")}
+        </h1>
+        <p className="text-gray-600">
+          {auto(
+            "Manage your pricing strategy and monitor Buy Box performance.",
+            "header.subtitle",
+          )}
+        </p>
+      </div>
+
+      {/* Auto-Repricer Toggle */}
+      <Card className="p-6 mb-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              {auto("Auto-Repricer", "autoRepricer.title")}
+            </h2>
+            <p className="text-sm text-gray-600">
+              {auto(
+                "Automatically adjust prices every 15 minutes to stay competitive",
+                "autoRepricer.description",
+              )}
+            </p>
+          </div>
+          <div className="flex items-center gap-4">
+            <Button
+              onClick={handleRunRepricing}
+              disabled={repricing || !settings?.enabled}
+              variant="outline"
+            >
+              <RefreshCw
+                className={`w-4 h-4 me-2 ${repricing ? "animate-spin" : ""}`}
+              />
+              {repricing
+                ? auto("Repricing...", "autoRepricer.repricing")
+                : auto("Run Now", "autoRepricer.runNow")}
+            </Button>
+            <Switch
+              checked={settings?.enabled || false}
+              onCheckedChange={handleToggleAutoRepricer}
+            />
+          </div>
+        </div>
+      </Card>
+
+      {/* Key Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-medium text-gray-600">
+              {auto("Total Listings", "metrics.totalListings")}
+            </h3>
+            <DollarSign className="w-5 h-5 text-primary" />
+          </div>
+          <p className="text-3xl font-bold text-gray-900">{listings.length}</p>
+        </Card>
+
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-medium text-gray-600">
+              {auto("Buy Box Winners", "metrics.buyBoxWinners")}
+            </h3>
+            <Award className="w-5 h-5 text-warning" />
+          </div>
+          <div className="flex items-baseline gap-2">
+            <p className="text-3xl font-bold text-gray-900">{buyBoxWinners}</p>
+            <span className="text-sm text-gray-600">
+              (
+              {listings.length > 0
+                ? ((buyBoxWinners / listings.length) * 100).toFixed(0)
+                : 0}
+              %)
+            </span>
+          </div>
+        </Card>
+
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-medium text-gray-600">
+              {auto("Avg Buy Box Score", "metrics.avgScore")}
+            </h3>
+            <TrendingUp className="w-5 h-5 text-success" />
+          </div>
+          <p className="text-3xl font-bold text-gray-900">
+            {avgBuyBoxScore.toFixed(0)}
+          </p>
+        </Card>
+      </div>
+
+      {/* Listings Table */}
+      <Card className="p-6 mb-6">
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">
+          {auto("Your Listings", "listings.title")}
+        </h2>
+
+        {listings.length === 0 ? (
+          <p className="text-center text-gray-600 py-8">
+            {auto(
+              "No active listings found. Create a listing to start selling.",
+              "listings.empty",
+            )}
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-start py-3 px-4 font-medium text-gray-700">
+                    {auto("Product", "listings.columns.product")}
+                  </th>
+                  <th className="text-start py-3 px-4 font-medium text-gray-700">
+                    {auto("SKU", "listings.columns.sku")}
+                  </th>
+                  <th className="text-start py-3 px-4 font-medium text-gray-700">
+                    {auto("Price", "listings.columns.price")}
+                  </th>
+                  <th className="text-start py-3 px-4 font-medium text-gray-700">
+                    {auto("Buy Box", "listings.columns.buyBox")}
+                  </th>
+                  <th className="text-start py-3 px-4 font-medium text-gray-700">
+                    {auto("Score", "listings.columns.score")}
+                  </th>
+                  <th className="text-start py-3 px-4 font-medium text-gray-700">
+                    {auto("Last Change", "listings.columns.lastChange")}
+                  </th>
+                  <th className="text-start py-3 px-4 font-medium text-gray-700">
+                    {auto("Actions", "listings.columns.actions")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {listings.map((listing) => (
+                  <tr key={listing._id} className="border-b border-gray-100">
+                    <td className="py-3 px-4">
+                      <div className="font-medium text-gray-900">
+                        {listing.title}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {listing.fsin}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-gray-700">{listing.sku}</td>
+                    <td className="py-3 px-4">
+                      <div className="font-semibold text-gray-900">
+                        {auto(
+                          "SAR {{price}}",
+                          "listings.row.priceValue",
+                        ).replace("{{price}}", listing.price.toFixed(2))}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      {listing.buyBoxWinner ? (
+                        <Badge className="bg-warning/10 text-warning-foreground">
+                          <Award className="w-3 h-3 me-1" />
+                          {auto("Winner", "listings.badges.winner")}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline">
+                          {auto("Not Winning", "listings.badges.notWinning")}
+                        </Badge>
+                      )}
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">
+                          {listing.buyBoxScore}
+                        </span>
+                        {listing.buyBoxScore >= 80 ? (
+                          <TrendingUp className="w-4 h-4 text-success" />
+                        ) : listing.buyBoxScore >= 50 ? (
+                          <TrendingUp className="w-4 h-4 text-warning" />
+                        ) : (
+                          <TrendingDown className="w-4 h-4 text-destructive" />
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-sm text-gray-600">
+                      {listing.lastPriceChange
+                        ? new Date(listing.lastPriceChange).toLocaleDateString()
+                        : auto("Never", "listings.row.never")}
+                    </td>
+                    <td className="py-3 px-4">
+                      <Button variant="ghost" size="sm">
+                        {auto("View Details", "listings.actions.view")}
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      {/* Pricing Rules */}
+      {settings && (
+        <Card className="p-6 mb-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            {auto("Pricing Rules", "rules.title")}
+          </h2>
+          <PricingRuleCard settings={settings} onUpdate={setSettings} />
+        </Card>
+      )}
+
+      {/* Competitor Analysis */}
+      {listings.length > 0 && (
+        <Card className="p-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            {auto("Competitor Analysis", "analysis.title")}
+          </h2>
+          <CompetitorAnalysis fsin={listings[0].fsin} />
+        </Card>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/marketplace/seller-central/reviews/page.tsx">
+<![CDATA[
+/**
+ * Seller Reviews Dashboard - Manage and respond to product reviews
+ * @route /marketplace/seller-central/reviews
+ */
+
+import React from "react";
+import { Metadata } from "next";
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
+import { reviewService } from "@/services/souq/reviews/review-service";
+import { SellerReviewsDashboard } from "@/components/marketplace/seller-central/SellerReviewsDashboard";
+import type { IReview } from "@/server/models/souq/Review";
+import type { SellerReview } from "@/lib/souq/review-types";
+
+export const metadata: Metadata = {
+  title: "Product Reviews | Seller Central",
+  description: "Manage and respond to product reviews",
+};
+
+export default async function SellerReviewsPage({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | string[] | undefined };
+}) {
+  const session = await auth();
+  if (!session?.user) {
+    redirect("/login?callbackUrl=/marketplace/seller-central/reviews");
+  }
+
+  // 🔐 STRICT v4.1: Require orgId for tenant isolation
+  const orgId = (session.user as { orgId?: string }).orgId;
+  if (!orgId) {
+    redirect("/login?error=organization_required");
+  }
+
+  const params = searchParams ?? {};
+  const page = parseInt((params.page as string) || "1", 10);
+  const status = (params.status as string) || "published";
+
+  // Fetch seller reviews
+  const reviewsData = await reviewService.getSellerReviews(orgId, session.user.id, {
+    page,
+    limit: 20,
+    status: status as "pending" | "published" | "rejected" | "flagged",
+  });
+
+  // Get seller stats
+  const stats = await reviewService.getSellerReviewStats(orgId, session.user.id);
+
+  const toClientReview = (review: IReview): SellerReview => ({
+    reviewId: review.reviewId,
+    productId: review.productId?.toString?.(),
+    fsin: review.fsin,
+    customerName: review.customerName,
+    isVerifiedPurchase: review.isVerifiedPurchase,
+    rating: review.rating,
+    title: review.title,
+    content: review.content,
+    pros: review.pros,
+    cons: review.cons,
+    images: review.images,
+    helpful: review.helpful,
+    notHelpful: review.notHelpful,
+    sellerResponse: review.sellerResponse
+      ? {
+          content: review.sellerResponse.content,
+          respondedAt: review.sellerResponse.respondedAt,
+          respondedBy: review.sellerResponse.respondedBy.toString(),
+        }
+      : undefined,
+    status: review.status,
+    moderationNotes: review.moderationNotes,
+    reportedCount: review.reportedCount,
+    reportReasons: review.reportReasons,
+    createdAt: review.createdAt,
+    updatedAt: review.updatedAt,
+    publishedAt: review.publishedAt,
+  });
+
+  const clientReviews = reviewsData.reviews.map(toClientReview);
+
+  return (
+    <SellerReviewsDashboard
+      stats={{
+        averageRating: stats.averageRating,
+        totalReviews: stats.totalReviews,
+        responseRate: stats.responseRate,
+        pendingResponses: stats.pendingResponses,
+      }}
+      reviews={clientReviews}
+      totalPages={reviewsData.totalPages}
+      page={page}
+      status={status as "published" | "pending" | "flagged"}
+    />
+  );
+}
+
+]]>
+</file>
+
+<file path="app/marketplace/seller-central/settlements/page.tsx">
+<![CDATA[
+"use client";
+
+/**
+ * Seller Settlements Page
+ * Main dashboard for seller payouts and balance
+ */
+
+import React, { useState, useEffect } from "react";
+import { BalanceOverview } from "@/components/seller/settlements/BalanceOverview";
+import { TransactionHistory } from "@/components/seller/settlements/TransactionHistory";
+import { WithdrawalForm } from "@/components/seller/settlements/WithdrawalForm";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuthSession } from "@/hooks/useAuthSession";
+import { useI18n } from "@/i18n/useI18n";
+import { logger } from "@/lib/logger";
+
+export default function SellerSettlementsPage() {
+  const { t } = useI18n();
+  const session = useAuthSession();
+  const [balance, setBalance] = useState({
+    available: 0,
+    reserved: 0,
+    pending: 0,
+    totalEarnings: 0,
+    lastPayoutDate: undefined,
+    nextPayoutDate: undefined,
+  });
+  const [loading, setLoading] = useState(true);
+  const [showWithdrawalForm, setShowWithdrawalForm] = useState(false);
+
+  useEffect(() => {
+    fetchBalance();
+  }, []);
+
+  const fetchBalance = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/souq/settlements/balance");
+      if (response.ok) {
+        const data = await response.json();
+        setBalance(data.balance);
+      }
+    } catch (error) {
+      logger.error("Error fetching balance", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleWithdrawalSuccess = () => {
+    setShowWithdrawalForm(false);
+    fetchBalance();
+    alert(t("marketplace.settlements.withdrawalSuccess"));
+  };
+
+  // Check authentication and seller role
+  if (!session?.isAuthenticated) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="text-center py-12">
+          <p className="text-destructive">
+            {t("marketplace.settlements.pleaseLogin")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session.sellerId) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="text-center py-12">
+          <p className="text-destructive">
+            {t("marketplace.settlements.mustBeSeller")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="text-center py-12">
+          <p className="text-gray-500">
+            {t("marketplace.settlements.loading")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-6">
+      <h1 className="text-3xl font-bold mb-6">
+        {t("marketplace.settlements.title")}
+      </h1>
+
+      {/* Balance Overview */}
+      <div className="mb-6">
+        <BalanceOverview
+          balance={balance}
+          onWithdraw={() => setShowWithdrawalForm(!showWithdrawalForm)}
+        />
+      </div>
+
+      {/* Withdrawal Form (if triggered) */}
+      {showWithdrawalForm && (
+        <div className="mb-6">
+          <WithdrawalForm
+            sellerId={session.sellerId}
+            availableBalance={balance.available}
+            statementId={`STMT-${Date.now()}`}
+            onSuccess={handleWithdrawalSuccess}
+          />
+        </div>
+      )}
+
+      {/* Tabs */}
+      <Tabs defaultValue="transactions" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="transactions">
+            {t("marketplace.settlements.tabs.transactions")}
+          </TabsTrigger>
+          <TabsTrigger value="statements">
+            {t("marketplace.settlements.tabs.statements")}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="transactions" className="mt-6">
+          <TransactionHistory sellerId={session.sellerId} />
+        </TabsContent>
+
+        <TabsContent value="statements" className="mt-6">
+          <div className="text-center py-12 text-gray-500">
+            <p>{t("marketplace.settlements.comingSoon")}</p>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/marketplace/vendor/page.tsx">
+<![CDATA[
+import { logger } from "@/lib/logger";
+import VendorCatalogueManager from "@/components/marketplace/VendorCatalogueManager";
+import { serverFetchJsonWithTenant } from "@/lib/marketplace/serverFetch";
+
+interface Category {
+  slug: string;
+  name?: { en?: string };
+}
+
+interface Product {
+  id: string;
+  title: { en: string };
+  sku: string;
+  status: string;
+  buy: { price: number; currency: string; uom: string };
+  [key: string]: unknown;
+}
+
+export default async function VendorPortalPage() {
+  try {
+    const [categoriesResponse, productsResponse] = await Promise.all([
+      serverFetchJsonWithTenant<{ data: Category[] }>(
+        "/api/marketplace/categories",
+      ),
+      serverFetchJsonWithTenant<{ data: Product[] }>(
+        "/api/marketplace/vendor/products",
+      ),
+    ]);
+
+    const _departments = categoriesResponse.data.map((category) => ({
+      slug: category.slug,
+      name: category.name?.en ?? category.slug,
+    }));
+
+    const products = productsResponse.data;
+
+    return (
+      <div className="min-h-screen bg-muted flex flex-col">
+        <main className="mx-auto max-w-7xl px-4 py-8">
+          <VendorCatalogueManager
+            categories={_departments}
+            initialProducts={products}
+          />
+        </main>
+      </div>
+    );
+  } catch (error) {
+    logger.error("Failed to load vendor portal data", { error });
+    return (
+      <div className="min-h-screen bg-muted flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-destructive">
+            Failed to load vendor data. Please try again later.
+          </p>
+        </div>
+      </div>
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/marketplace/vendor/portal/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import {
+  Package,
+  Upload,
+  BarChart3,
+  Settings,
+  AlertCircle,
+  CheckCircle,
+} from "lucide-react";
+import { useSession } from "next-auth/react";
+import { useTranslation } from "@/contexts/TranslationContext";
+
+interface VendorStats {
+  totalProducts: number;
+  activeProducts: number;
+  pendingApproval: number;
+  totalRevenue: number;
+  monthlyOrders: number;
+}
+
+export default function VendorPortalPage() {
+  const { t } = useTranslation();
+  const { data: session } = useSession();
+  const [stats, setStats] = useState<VendorStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const orgId = session?.user?.orgId;
+        if (!orgId) {
+          throw new Error("Organization ID not found");
+        }
+        const response = await fetch(
+          `/api/org/${orgId}/marketplace/vendor/stats`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              "x-tenant-id": orgId,
+            },
+          },
+        );
+        if (!response.ok) throw new Error("Failed to fetch stats");
+        const data = await response.json();
+        setStats(data.stats);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error");
+      } finally {
+        setLoading(false);
+      }
+    }
+    if (session?.user?.orgId) {
+      fetchStats();
+    }
+  }, [session]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">
+            {t("common.loading", "Loading...")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-muted flex flex-col">
+      <div className="mx-auto max-w-7xl px-4 py-8">
+        {/* Header */}
+        <header className="mb-8">
+          <h1 className="text-3xl font-bold text-foreground">
+            {t("marketplace.vendor.profile", "Vendor Portal")}
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Manage your products, track performance, and grow your business
+          </p>
+        </header>
+
+        {/* Error Alert */}
+        {error && (
+          <div className="mb-6 rounded-2xl bg-destructive/10 border border-destructive/20 p-4 flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 text-destructive" />
+            <p className="text-sm text-destructive-foreground">{error}</p>
+          </div>
+        )}
+
+        {/* Stats Cards */}
+        {stats && (
+          <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
+            <div className="rounded-2xl bg-card p-6 shadow-sm border border-border">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium text-muted-foreground">
+                  Total Products
+                </p>
+                <Package className="h-5 w-5 text-primary" />
+              </div>
+              <p className="text-3xl font-bold text-foreground">
+                {stats.totalProducts}
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-card p-6 shadow-sm border border-border">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium text-muted-foreground">
+                  Active Products
+                </p>
+                <CheckCircle className="h-5 w-5 text-success" />
+              </div>
+              <p className="text-3xl font-bold text-success">
+                {stats.activeProducts}
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-card p-6 shadow-sm border border-border">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium text-muted-foreground">
+                  Pending Approval
+                </p>
+                <AlertCircle className="h-5 w-5 text-warning" />
+              </div>
+              <p className="text-3xl font-bold text-warning">
+                {stats.pendingApproval}
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-card p-6 shadow-sm border border-border">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium text-muted-foreground">
+                  Monthly Orders
+                </p>
+                <BarChart3 className="h-5 w-5 text-primary" />
+              </div>
+              <p className="text-3xl font-bold text-foreground">
+                {stats.monthlyOrders}
+              </p>
+            </div>
+          </section>
+        )}
+
+        {/* Quick Actions */}
+        <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {/* Upload Product */}
+          <Link
+            href="/marketplace/vendor/products/upload"
+            className="group rounded-2xl bg-card p-6 shadow-sm border border-border hover:shadow-lg transition-all hover:-translate-y-1"
+          >
+            <div className="flex items-start gap-4">
+              <div className="rounded-2xl bg-primary/10 p-3 group-hover:bg-primary transition-colors">
+                <Upload className="h-6 w-6 text-primary group-hover:text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-foreground mb-1">
+                  {t("marketplace.vendor.uploadProduct", "Upload Product")}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Add new products to your catalogue with images and
+                  specifications
+                </p>
+              </div>
+            </div>
+          </Link>
+
+          {/* Manage Products */}
+          <Link
+            href="/marketplace/vendor"
+            className="group rounded-2xl bg-card p-6 shadow-sm border border-border hover:shadow-lg transition-all hover:-translate-y-1"
+          >
+            <div className="flex items-start gap-4">
+              <div className="rounded-2xl bg-success/10 p-3 group-hover:bg-success transition-colors">
+                <Package className="h-6 w-6 text-success group-hover:text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-foreground mb-1">
+                  {t("marketplace.vendor.manageProducts", "Manage Products")}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Edit existing products, update prices, and manage inventory
+                </p>
+              </div>
+            </div>
+          </Link>
+
+          {/* Bulk Upload */}
+          <Link
+            href="/marketplace/vendor/products/upload?mode=bulk"
+            className="group rounded-2xl bg-card p-6 shadow-sm border border-border hover:shadow-lg transition-all hover:-translate-y-1"
+          >
+            <div className="flex items-start gap-4">
+              <div className="rounded-2xl bg-warning/10 p-3 group-hover:bg-warning transition-colors">
+                <Upload className="h-6 w-6 text-warning group-hover:text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-foreground mb-1">
+                  {t("marketplace.vendor.bulkUpload", "Bulk Upload")}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Upload multiple products at once using CSV template
+                </p>
+              </div>
+            </div>
+          </Link>
+
+          {/* Seller Central */}
+          <Link
+            href="/marketplace/seller-central"
+            className="group rounded-2xl bg-card p-6 shadow-sm border border-border hover:shadow-lg transition-all hover:-translate-y-1"
+          >
+            <div className="flex items-start gap-4">
+              <div className="rounded-2xl bg-primary/10 p-3 group-hover:bg-primary transition-colors">
+                <Settings className="h-6 w-6 text-primary group-hover:text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-foreground mb-1">
+                  {t("marketplace.vendor.sellerCentral", "Seller Central Apps")}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {t(
+                    "marketplace.vendor.sellerCentral.desc",
+                    "Jump into analytics, advertising, pricing, and compliance tools.",
+                  )}
+                </p>
+              </div>
+            </div>
+          </Link>
+        </section>
+
+        {/* Help Section */}
+        <section className="mt-8 rounded-2xl bg-gradient-to-r from-primary to-success p-6 text-white">
+          <h3 className="text-xl font-semibold mb-2">
+            Need Help Getting Started?
+          </h3>
+          <p className="text-white/90 mb-4">
+            Check out our vendor guide to learn how to optimize your product
+            listings and increase sales.
+          </p>
+          <Link
+            href="/support"
+            className="inline-flex items-center gap-2 rounded-2xl bg-card px-4 py-2 text-sm font-semibold text-primary hover:bg-muted transition-colors"
+          >
+            View Vendor Guide
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </Link>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/marketplace/vendor/products/upload/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import Image from "next/image";
+import { X, Image as ImageIcon } from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import toast, { Toaster } from "react-hot-toast";
+import { FormWithNavigation } from "@/components/ui/navigation-buttons";
+
+import { logger } from "@/lib/logger";
+import { nanoid } from "nanoid";
+
+interface ProductImage {
+  id: string;
+  file: File;
+  preview: string;
+  role: "GALLERY" | "THUMBNAIL";
+}
+
+export default function VendorProductUploadPage() {
+  const router = useRouter();
+  const { t } = useTranslation();
+  const { data: session } = useSession();
+  const [loading, setLoading] = useState(false);
+  const [images, setImages] = useState<ProductImage[]>([]);
+
+  const [formData, setFormData] = useState({
+    titleEn: "",
+    titleAr: "",
+    sku: "",
+    brand: "",
+    summary: "",
+    description: "",
+    category: "",
+    price: "",
+    currency: "SAR",
+    uom: "EA",
+    minQty: "1",
+    leadDays: "7",
+    stock: "0",
+    standards: "",
+    specifications: "",
+  });
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const newImages: ProductImage[] = files.map((file, index) => ({
+      id: nanoid(),
+      file,
+      preview: URL.createObjectURL(file),
+      role: index === 0 ? "THUMBNAIL" : "GALLERY",
+    }));
+    setImages([...images, ...newImages]);
+  };
+
+  const removeImage = (index: number) => {
+    const newImages = [...images];
+    URL.revokeObjectURL(newImages[index].preview);
+    newImages.splice(index, 1);
+    setImages(newImages);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.titleEn || !formData.sku || !formData.price) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    if (images.length === 0) {
+      toast.error("Please upload at least one product image");
+      return;
+    }
+
+    const orgId = session?.user?.orgId;
+    if (!orgId) {
+      toast.error("Organization ID not found");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Step 1: Upload images
+      const uploadedImages = await Promise.all(
+        images.map(async (img) => {
+          const imageFormData = new FormData();
+          imageFormData.append("file", img.file);
+          imageFormData.append("role", img.role);
+
+          const res = await fetch(
+            `/api/org/${orgId}/marketplace/vendor/upload-image`,
+            {
+              method: "POST",
+              headers: {
+                "x-tenant-id": orgId,
+              },
+              body: imageFormData,
+            },
+          );
+
+          if (!res.ok) {
+            const errorData = await res
+              .json()
+              .catch(() => ({ message: "Image upload failed" }));
+            throw new Error(errorData.message || "Image upload failed");
+          }
+          const data = await res.json();
+          return {
+            url: data.url,
+            role: img.role,
+            alt: formData.titleEn,
+          };
+        }),
+      ).catch((error) => {
+        logger.error("Failed to upload one or more images", { error });
+        throw new Error(`Image upload failed: ${error.message}`);
+      });
+
+      // Step 2: Create product
+      const product = {
+        slug: formData.sku.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+        sku: formData.sku,
+        title: {
+          en: formData.titleEn,
+          ar: formData.titleAr || formData.titleEn,
+        },
+        brand: formData.brand,
+        summary: formData.summary,
+        description: formData.description,
+        category: formData.category,
+        media: uploadedImages,
+        buy: {
+          price: parseFloat(formData.price),
+          currency: formData.currency,
+          uom: formData.uom,
+          minQty: parseInt(formData.minQty, 10),
+          leadDays: parseInt(formData.leadDays, 10),
+        },
+        stock: {
+          onHand: parseInt(formData.stock, 10),
+          reserved: 0,
+        },
+        standards: formData.standards
+          ? formData.standards.split(",").map((s) => s.trim())
+          : [],
+        specifications: formData.specifications
+          ? JSON.parse(formData.specifications)
+          : {},
+        status: "PENDING_APPROVAL",
+      };
+
+      const response = await fetch(
+        `/api/org/${orgId}/marketplace/vendor/products`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-tenant-id": orgId,
+          },
+          body: JSON.stringify(product),
+        },
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to create product");
+      }
+
+      toast.success("Product uploaded successfully! Pending admin approval.");
+
+      setTimeout(() => {
+        router.push("/marketplace/vendor");
+      }, 2000);
+    } catch (error) {
+      logger.error("Upload error:", error);
+      toast.error(error instanceof Error ? error.message : "Upload failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-muted flex flex-col">
+      <Toaster position="top-right" />
+
+      <div className="mx-auto max-w-4xl px-4 py-8">
+        {/* Header */}
+        <header className="mb-8">
+          <h1 className="text-3xl font-bold text-foreground">
+            {t("marketplace.vendor.uploadProduct", "Upload Product")}
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Add a new product to your catalogue
+          </p>
+        </header>
+
+        <FormWithNavigation
+          onSubmit={handleSubmit}
+          saving={loading}
+          showBack
+          showHome
+          position="both"
+        >
+          {/* Basic Information */}
+          <div className="rounded-2xl bg-card p-6 shadow-sm border border-border">
+            <h2 className="text-lg font-semibold text-foreground mb-4">
+              Basic Information
+            </h2>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Product Title (English) *
+                </label>
+                <input
+                  type="text"
+                  value={formData.titleEn}
+                  onChange={(e) =>
+                    setFormData({ ...formData, titleEn: e.target.value })
+                  }
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Product Title (Arabic)
+                </label>
+                <input
+                  type="text"
+                  value={formData.titleAr}
+                  onChange={(e) =>
+                    setFormData({ ...formData, titleAr: e.target.value })
+                  }
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
+                  dir="rtl"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  SKU *
+                </label>
+                <input
+                  type="text"
+                  value={formData.sku}
+                  onChange={(e) =>
+                    setFormData({ ...formData, sku: e.target.value })
+                  }
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Brand
+                </label>
+                <input
+                  type="text"
+                  value={formData.brand}
+                  onChange={(e) =>
+                    setFormData({ ...formData, brand: e.target.value })
+                  }
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Summary
+                </label>
+                <textarea
+                  value={formData.summary}
+                  onChange={(e) =>
+                    setFormData({ ...formData, summary: e.target.value })
+                  }
+                  rows={2}
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
+                  rows={4}
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Images */}
+          <div className="rounded-2xl bg-card p-6 shadow-sm border border-border">
+            <h2 className="text-lg font-semibold text-foreground mb-4">
+              Product Images *
+            </h2>
+
+            <div className="grid gap-4 grid-cols-2 md:grid-cols-4 mb-4">
+              {images.map((img, index) => (
+                <div
+                  key={img.id}
+                  className="relative aspect-square rounded-2xl border border-border overflow-hidden"
+                >
+                  <Image
+                    src={img.preview}
+                    alt="Product"
+                    fill
+                    className="object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(index)}
+                    className="absolute top-2 end-2 rounded-full bg-destructive/80 p-1 text-white hover:bg-destructive"
+                  >
+                    <X size={16} />
+                  </button>
+                  {index === 0 && (
+                    <span className="absolute bottom-2 start-2 rounded bg-primary px-2 py-1 text-xs font-medium text-white">
+                      Main
+                    </span>
+                  )}
+                </div>
+              ))}
+
+              <label className="aspect-square rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-muted transition-colors">
+                <ImageIcon className="h-8 w-8 text-muted-foreground mb-2" />
+                <span className="text-sm text-muted-foreground">Add Image</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+              </label>
+            </div>
+
+            <p className="text-sm text-muted-foreground">
+              Upload up to 8 images. First image will be the main product image.
+            </p>
+          </div>
+
+          {/* Pricing & Inventory */}
+          <div className="rounded-2xl bg-card p-6 shadow-sm border border-border">
+            <h2 className="text-lg font-semibold text-foreground mb-4">
+              Pricing & Inventory
+            </h2>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Price *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.price}
+                  onChange={(e) =>
+                    setFormData({ ...formData, price: e.target.value })
+                  }
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Currency
+                </label>
+                <select
+                  value={formData.currency}
+                  onChange={(e) =>
+                    setFormData({ ...formData, currency: e.target.value })
+                  }
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
+                >
+                  <option value="SAR">SAR</option>
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                  <option value="AED">AED</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Unit of Measure
+                </label>
+                <select
+                  value={formData.uom}
+                  onChange={(e) =>
+                    setFormData({ ...formData, uom: e.target.value })
+                  }
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
+                >
+                  <option value="EA">Each (EA)</option>
+                  <option value="BOX">Box</option>
+                  <option value="KG">Kilogram (KG)</option>
+                  <option value="M">Meter (M)</option>
+                  <option value="L">Liter (L)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Minimum Quantity
+                </label>
+                <input
+                  type="number"
+                  value={formData.minQty}
+                  onChange={(e) =>
+                    setFormData({ ...formData, minQty: e.target.value })
+                  }
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Lead Time (days)
+                </label>
+                <input
+                  type="number"
+                  value={formData.leadDays}
+                  onChange={(e) =>
+                    setFormData({ ...formData, leadDays: e.target.value })
+                  }
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Stock Quantity
+                </label>
+                <input
+                  type="number"
+                  value={formData.stock}
+                  onChange={(e) =>
+                    setFormData({ ...formData, stock: e.target.value })
+                  }
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Technical Details */}
+          <div className="rounded-2xl bg-card p-6 shadow-sm border border-border">
+            <h2 className="text-lg font-semibold text-foreground mb-4">
+              Technical Details
+            </h2>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Standards (comma-separated)
+                </label>
+                <input
+                  type="text"
+                  value={formData.standards}
+                  onChange={(e) =>
+                    setFormData({ ...formData, standards: e.target.value })
+                  }
+                  placeholder="e.g., ASTM, BS EN, ISO 9001"
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Specifications (JSON format)
+                </label>
+                <textarea
+                  value={formData.specifications}
+                  onChange={(e) =>
+                    setFormData({ ...formData, specifications: e.target.value })
+                  }
+                  placeholder='{"Material": "Steel", "Size": "100mm", "Weight": "5kg"}'
+                  rows={4}
+                  className="w-full rounded-2xl border border-border px-3 py-2 font-mono text-sm focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+              </div>
+            </div>
+          </div>
+        </FormWithNavigation>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/marketplace/vendors/new/page.tsx">
+<![CDATA[
+export { default } from "@/app/fm/marketplace/vendors/new/page";
+export * from "@/app/fm/marketplace/vendors/new/page";
+
+]]>
+</file>
+
+<file path="app/marketplace/vendors/template.tsx">
+<![CDATA[
+import { ReactNode } from "react";
+import { OrgContextGate } from "@/components/fm/OrgContextGate";
+
+interface MarketplaceVendorsTemplateProps {
+  children: ReactNode;
+}
+
+/**
+ * Applies the org guard to marketplace vendor management pages.
+ */
+export default function MarketplaceVendorsTemplate({
+  children,
+}: MarketplaceVendorsTemplateProps) {
+  return <OrgContextGate>{children}</OrgContextGate>;
+}
+
+]]>
+</file>
+
+<file path="app/not-found.tsx">
+<![CDATA[
+export default function NotFound() {
+  return (
+    <div className="flex h-screen flex-col items-center justify-center gap-4 bg-slate-50 px-6 text-center">
+      <div className="text-4xl font-semibold text-slate-900">404</div>
+      <div className="text-lg text-slate-600">Page not found</div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+</batch_content>

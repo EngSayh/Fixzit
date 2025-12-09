@@ -1,0 +1,2735 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/signup/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Eye,
+  EyeOff,
+  UserPlus,
+  Mail,
+  Lock,
+  Building2,
+  Phone,
+  Globe,
+  ArrowLeft,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { BrandLogoWithCard } from "@/components/brand";
+
+// ✅ FIXED: Import config instead of redefining
+import { SIGNUP_USER_TYPES } from "@/config/signup.config";
+import { STORAGE_KEYS, APP_DEFAULTS } from "@/config/constants";
+
+// ✅ FIXED: Import standard components instead of custom dropdowns
+import LanguageSelector from "@/components/i18n/LanguageSelector";
+import CurrencySelector from "@/components/i18n/CurrencySelector";
+
+export default function SignupPage() {
+  const { t } = useTranslation();
+
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    companyName: "",
+    userType: "personal",
+    password: "",
+    confirmPassword: "",
+    termsAccepted: false,
+    newsletter: true,
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  // ✅ REMOVED: showLangDropdown, showCurrencyDropdown, selectedLang, selectedCurrency state
+  // Standard components handle their own state internally
+
+  const router = useRouter();
+
+  // ✅ REMOVED: useEffect for loading preferences - components handle internally
+  // ✅ REMOVED: handleLanguageChange - LanguageSelector handles internally
+  // ✅ REMOVED: handleCurrencyChange - CurrencySelector handles internally
+
+  // Handle input changes
+  const handleChange = (field: string, value: string | boolean) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+    // Clear errors when user starts typing
+    if (error) setError("");
+  };
+
+  // Form validation
+  const validateForm = () => {
+    const passwordStrength = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/;
+    if (!formData.firstName.trim())
+      return t("signup.validation.firstNameRequired", "First name is required");
+    if (!formData.lastName.trim())
+      return t("signup.validation.lastNameRequired", "Last name is required");
+    if (!formData.email.trim())
+      return t("signup.validation.emailRequired", "Email is required");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
+      return t("signup.validation.emailInvalid", "Please enter a valid email");
+    if (!formData.phone.trim())
+      return t("signup.validation.phoneRequired", "Phone number is required");
+    if (formData.userType === "corporate" && !formData.companyName.trim())
+      return t(
+        "signup.validation.companyRequired",
+        "Company name is required for corporate accounts",
+      );
+    if (!passwordStrength.test(formData.password))
+      return t(
+        "signup.validation.passwordStrength",
+        "Password must be at least 8 characters and include letters, numbers, and symbols",
+      );
+    if (formData.password !== formData.confirmPassword)
+      return t("signup.validation.passwordMatch", "Passwords do not match");
+    if (!formData.termsAccepted)
+      return t(
+        "signup.validation.termsRequired",
+        "Please accept the terms and conditions",
+      );
+    return null;
+  };
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // ✅ FIXED: Get language/currency from localStorage (managed by standard components)
+      const preferredLanguage =
+        localStorage.getItem(STORAGE_KEYS.language) || APP_DEFAULTS.language;
+      const preferredCurrency =
+        localStorage.getItem(STORAGE_KEYS.currency) || APP_DEFAULTS.currency;
+
+      const signupData = {
+        ...formData,
+        fullName: `${formData.firstName} ${formData.lastName}`,
+        preferredLanguage,
+        preferredCurrency,
+      };
+
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(signupData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Signup failed");
+      }
+
+      if (data.ok) {
+        setSuccess(true);
+        // Redirect to login after 2 seconds
+        setTimeout(() => {
+          router.push("/login");
+        }, 2000);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Signup failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (success) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-brand-500 via-success to-accent flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="bg-card text-card-foreground rounded-2xl shadow-2xl p-8 text-center">
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 bg-success/10 dark:bg-success/20 rounded-full flex items-center justify-center">
+                <CheckCircle className="w-8 h-8 text-success" />
+              </div>
+            </div>
+            <h2 className="text-2xl font-bold text-foreground mb-2">
+              {t("signup.success.title", "Account Created Successfully!")}
+            </h2>
+            <p className="text-muted-foreground mb-6">
+              {t(
+                "signup.success.message",
+                "Welcome to Fixzit Enterprise! Your account has been created. Please check your email to verify your account, then sign in.",
+              )}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {t(
+                "signup.success.redirecting",
+                "Redirecting you to the login page...",
+              )}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-brand-500 via-success to-accent flex">
+      {/* Left Panel - Branding */}
+      <div className="hidden lg:flex lg:w-1/2 flex-col justify-center items-center p-12 text-white">
+        <div className="max-w-md text-center">
+          <div className="mb-8">
+            <div className="flex justify-center mb-6">
+              <BrandLogoWithCard 
+                size="xl" 
+                alt="Fixzit Logo"
+                fetchOrgLogo={false}
+                data-testid="signup-logo"
+              />
+            </div>
+            <h1 className="text-4xl font-bold mb-4">
+              {t("signup.branding.title", "Join Fixzit Enterprise")}
+            </h1>
+            <p className="text-xl text-white/90 mb-8">
+              {t(
+                "signup.branding.subtitle",
+                "Create your account and start managing your facilities and marketplace operations",
+              )}
+            </p>
+          </div>
+
+          <div className="space-y-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white/20 rounded-2xl">
+                <Building2 size={24} />
+              </div>
+              <div>
+                <h3 className="font-semibold">
+                  {t("signup.features.facility.title", "Facility Management")}
+                </h3>
+                <p className="text-white/80 text-sm">
+                  {t(
+                    "signup.features.facility.desc",
+                    "Streamline your operations",
+                  )}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white/20 rounded-2xl">
+                <Globe size={24} />
+              </div>
+              <div>
+                <h3 className="font-semibold">
+                  {t("signup.features.marketplace.title", "Marketplace")}
+                </h3>
+                <p className="text-white/80 text-sm">
+                  {t(
+                    "signup.features.marketplace.desc",
+                    "Connect with trusted vendors",
+                  )}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white/20 rounded-2xl">
+                <Phone size={24} />
+              </div>
+              <div>
+                <h3 className="font-semibold">
+                  {t("signup.features.support.title", "Support")}
+                </h3>
+                <p className="text-white/80 text-sm">
+                  {t("signup.features.support.desc", "24/7 customer service")}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Panel - Signup Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          {/* Top Bar with Language and Currency */}
+          <div className="flex items-center justify-between mb-8">
+            {/* ✅ FIXED: Use standard LanguageSelector and CurrencySelector components */}
+            <div className="flex items-center gap-2">
+              <LanguageSelector variant="compact" />
+              <CurrencySelector variant="compact" />
+            </div>
+
+            <Link
+              href="/login"
+              className="text-white/80 hover:text-white text-sm flex items-center gap-1"
+            >
+              <ArrowLeft size={14} />
+              {t("signup.backToLogin", "Back to Login")}
+            </Link>
+          </div>
+
+          {/* Signup Form */}
+          <div className="bg-card text-card-foreground rounded-2xl shadow-2xl p-8">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-foreground mb-2">
+                {t("signup.form.title", "Create Your Account")}
+              </h2>
+              <p className="text-muted-foreground">
+                {t(
+                  "signup.form.subtitle",
+                  "Join Fixzit Enterprise today. We'll send a verification email after signup.",
+                )}
+              </p>
+            </div>
+
+            <form onSubmit={onSubmit} className="space-y-6">
+              {/* User Type Selection */}
+              <div>
+                <Label
+                  htmlFor="userType"
+                  className="block text-sm font-medium text-foreground mb-2"
+                >
+                  {t("signup.fields.accountType", "Account Type")}
+                </Label>
+                <Select
+                  value={formData.userType}
+                  onValueChange={(value) => handleChange("userType", value)}
+                >
+                  <SelectTrigger className="h-12">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {/* ✅ FIXED: Use imported SIGNUP_USER_TYPES with t() for labels */}
+                    {SIGNUP_USER_TYPES.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {t(type.labelKey)} - {t(type.descriptionKey)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Name Fields */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label
+                    htmlFor="firstName"
+                    className="block text-sm font-medium text-foreground mb-2"
+                  >
+                    {t("signup.fields.firstName", "First Name")} *
+                  </Label>
+                  <Input
+                    id="firstName"
+                    type="text"
+                    placeholder={t(
+                      "signup.placeholders.firstName",
+                      "Enter your first name",
+                    )}
+                    value={formData.firstName}
+                    onChange={(e) => handleChange("firstName", e.target.value)}
+                    className="h-12"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label
+                    htmlFor="lastName"
+                    className="block text-sm font-medium text-foreground mb-2"
+                  >
+                    {t("signup.fields.lastName", "Last Name")} *
+                  </Label>
+                  <Input
+                    id="lastName"
+                    type="text"
+                    placeholder={t(
+                      "signup.placeholders.lastName",
+                      "Enter your last name",
+                    )}
+                    value={formData.lastName}
+                    onChange={(e) => handleChange("lastName", e.target.value)}
+                    className="h-12"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Email Field */}
+              <div>
+                <Label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-foreground mb-2"
+                >
+                  {t("signup.fields.email", "Email Address")} *
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute start-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder={t(
+                      "signup.placeholders.email",
+                      "Enter your email address",
+                    )}
+                    value={formData.email}
+                    onChange={(e) => handleChange("email", e.target.value)}
+                    className="ps-10 h-12"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Phone Field */}
+              <div>
+                <Label
+                  htmlFor="phone"
+                  className="block text-sm font-medium text-foreground mb-2"
+                >
+                  {t("signup.fields.phone", "Phone Number")} *
+                </Label>
+                <div className="relative">
+                  <Phone className="absolute start-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder={t(
+                      "signup.placeholders.phone",
+                      "+966 XX XXX XXXX",
+                    )}
+                    value={formData.phone}
+                    onChange={(e) => handleChange("phone", e.target.value)}
+                    className="ps-10 h-12"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Company Name (for corporate accounts) */}
+              {formData.userType === "corporate" && (
+                <div>
+                  <Label
+                    htmlFor="companyName"
+                    className="block text-sm font-medium text-foreground mb-2"
+                  >
+                    {t("signup.fields.companyName", "Company Name")} *
+                  </Label>
+                  <div className="relative">
+                    <Building2 className="absolute start-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      id="companyName"
+                      type="text"
+                      placeholder={t(
+                        "signup.placeholders.companyName",
+                        "Enter your company name",
+                      )}
+                      value={formData.companyName}
+                      onChange={(e) =>
+                        handleChange("companyName", e.target.value)
+                      }
+                      className="ps-10 h-12"
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Password Fields */}
+              <div className="space-y-4">
+                <div>
+                  <Label
+                    htmlFor="password"
+                    className="block text-sm font-medium text-foreground mb-2"
+                  >
+                    {t("signup.fields.password", "Password")} *
+                  </Label>
+                  <div className="relative">
+                    <Lock className="absolute start-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder={t(
+                        "signup.placeholders.password",
+                        "Create a strong password",
+                      )}
+                      value={formData.password}
+                      onChange={(e) => handleChange("password", e.target.value)}
+                      className="ps-10 pe-10 h-12"
+                      required
+                      minLength={8}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute end-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      aria-label={
+                        showPassword
+                          ? t("a11y.hidePassword", "Hide password")
+                          : t("a11y.showPassword", "Show password")
+                      }
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <Label
+                    htmlFor="confirmPassword"
+                    className="block text-sm font-medium text-foreground mb-2"
+                  >
+                    {t("signup.fields.confirmPassword", "Confirm Password")} *
+                  </Label>
+                  <div className="relative">
+                    <Lock
+                      className="absolute start-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                    <Input
+                      id="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder={t(
+                        "signup.placeholders.confirmPassword",
+                        "Confirm your password",
+                      )}
+                      value={formData.confirmPassword}
+                      onChange={(e) =>
+                        handleChange("confirmPassword", e.target.value)
+                      }
+                      className="ps-10 pe-10 h-12"
+                      required
+                      minLength={8}
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
+                      className="absolute end-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      aria-label={
+                        showConfirmPassword
+                          ? t("a11y.hidePassword", "Hide password")
+                          : t("a11y.showPassword", "Show password")
+                      }
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Error Message */}
+              {error && (
+                <div className="flex items-center gap-2 p-3 bg-destructive/10 dark:bg-destructive/10 border border-border rounded-2xl text-destructive dark:text-destructive">
+                  <AlertCircle className="h-5 w-5" />
+                  <span className="text-sm">{error}</span>
+                </div>
+              )}
+
+              {/* Terms and Newsletter */}
+              <div className="space-y-3">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.termsAccepted}
+                    onChange={(e) =>
+                      handleChange("termsAccepted", e.target.checked)
+                    }
+                    className="mt-1 h-4 w-4 text-primary border-border rounded focus:ring-primary"
+                    required
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    {t("signup.terms.agree", "I agree to the")}{" "}
+                    <Link
+                      href="/terms"
+                      className="text-primary hover:text-primary transition-colors"
+                    >
+                      {t("signup.terms.service", "Terms of Service")}
+                    </Link>{" "}
+                    {t("signup.terms.and", "and")}{" "}
+                    <Link
+                      href="/privacy"
+                      className="text-primary hover:text-primary transition-colors"
+                    >
+                      {t("signup.terms.privacy", "Privacy Policy")}
+                    </Link>
+                    *
+                  </span>
+                </label>
+
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.newsletter}
+                    onChange={(e) =>
+                      handleChange("newsletter", e.target.checked)
+                    }
+                    className="mt-1 h-4 w-4 text-primary border-border rounded focus:ring-primary"
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    {t(
+                      "signup.newsletter",
+                      "I'd like to receive updates and promotional emails about Fixzit Enterprise",
+                    )}
+                  </span>
+                </label>
+              </div>
+
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold transition-colors"
+              >
+                {loading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    {t("signup.button.creating", "Creating Account...")}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <UserPlus className="h-5 w-5" />
+                    {t("signup.button.create", "Create Account")}
+                  </div>
+                )}
+              </Button>
+            </form>
+
+            {/* Login Link */}
+            <div className="mt-6 text-center">
+              <p className="text-muted-foreground">
+                {t("signup.login.prompt", "Already have an account?")}{" "}
+                <Link
+                  href="/login"
+                  className="text-primary hover:text-primary font-medium transition-colors"
+                >
+                  {t("signup.login.link", "Sign in here")}
+                </Link>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/souq/catalog/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import {
+  Search,
+  Filter,
+  ShoppingCart,
+  Heart,
+  Star,
+  User,
+  LogIn,
+} from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useTranslation } from "@/contexts/TranslationContext";
+
+interface Product {
+  id: string;
+  name: string;
+  category: string;
+  price: string;
+  originalPrice?: string;
+  rating: number;
+  reviews: number;
+  image: string;
+  vendor: string;
+  inStock: boolean;
+  isNew?: boolean;
+  discount?: number;
+}
+
+const SAMPLE_PRODUCTS: Product[] = [
+  {
+    id: "1",
+    name: "Steel Rebar 12mm",
+    category: "Construction Materials",
+    price: "SAR 2,450",
+    originalPrice: "SAR 2,650",
+    rating: 4.5,
+    reviews: 128,
+    image: "/img/logo.jpg",
+    vendor: "SteelCorp Ltd",
+    inStock: true,
+    discount: 8,
+  },
+  {
+    id: "2",
+    name: "LED Light Fixtures 60W",
+    category: "Electrical",
+    price: "SAR 185",
+    originalPrice: "SAR 220",
+    rating: 4.2,
+    reviews: 89,
+    image: "/img/logo.jpg",
+    vendor: "LightTech Solutions",
+    inStock: true,
+    discount: 16,
+    isNew: true,
+  },
+  {
+    id: "3",
+    name: "Safety Equipment Set",
+    category: "Safety & PPE",
+    price: "SAR 450",
+    originalPrice: "SAR 520",
+    rating: 4.8,
+    reviews: 234,
+    image: "/img/logo.jpg",
+    vendor: "SafetyFirst Inc",
+    inStock: true,
+    discount: 13,
+  },
+  {
+    id: "4",
+    name: "HVAC System Complete",
+    category: "Mechanical",
+    price: "SAR 8,900",
+    rating: 4.6,
+    reviews: 67,
+    image: "/img/logo.jpg",
+    vendor: "ClimateTech Pro",
+    inStock: true,
+  },
+  {
+    id: "5",
+    name: "Office Furniture Bundle",
+    category: "Furniture",
+    price: "SAR 3,200",
+    originalPrice: "SAR 3,800",
+    rating: 4.3,
+    reviews: 156,
+    image: "/img/logo.jpg",
+    vendor: "Workspace Solutions",
+    inStock: false,
+    discount: 16,
+  },
+  {
+    id: "6",
+    name: "Security Camera System",
+    category: "Security",
+    price: "SAR 1,250",
+    rating: 4.7,
+    reviews: 203,
+    image: "/img/logo.jpg",
+    vendor: "SecureGuard Systems",
+    inStock: true,
+  },
+];
+
+export default function CatalogPage() {
+  const router = useRouter();
+  const { t } = useTranslation();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [sortBy, setSortBy] = useState("relevance");
+
+  const filteredProducts = SAMPLE_PRODUCTS.filter((product) => {
+    const matchesSearch =
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.category.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory =
+      selectedCategory === "all" || product.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const categories = [
+    "all",
+    ...Array.from(new Set(SAMPLE_PRODUCTS.map((p) => p.category))),
+  ];
+
+  const handleAddToCart = (_productId: string) => {
+    // Redirect to login if not authenticated
+    router.push("/login?redirect=/souq/catalog&action=add-to-cart");
+  };
+
+  const handleViewDetails = (productId: string) => {
+    // Allow viewing details without login
+    router.push(`/souq/catalog/${productId}`);
+  };
+
+  return (
+    <div className="min-h-screen bg-muted flex flex-col">
+      {/* Header */}
+      <div className="bg-card shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-4">
+              <Link href="/souq" className="text-2xl font-bold text-success">
+                {t("souq.brand.title", "Fixzit Souq")}
+              </Link>
+              <div className="hidden md:flex items-center gap-6 text-sm">
+                <Link
+                  href="/souq/catalog"
+                  className="text-muted-foreground hover:text-success"
+                >
+                  {t("souq.nav.catalog", "Catalog")}
+                </Link>
+                <Link
+                  href="/souq/vendors"
+                  className="text-muted-foreground hover:text-success"
+                >
+                  {t("souq.nav.vendors", "Vendors")}
+                </Link>
+                <Link
+                  href="/souq/rfqs"
+                  className="text-muted-foreground hover:text-success"
+                >
+                  {t("souq.nav.rfqs", "RFQs")}
+                </Link>
+                <Link
+                  href="/souq/orders"
+                  className="text-muted-foreground hover:text-success"
+                >
+                  {t("souq.nav.orders", "Orders")}
+                </Link>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <Link
+                href="/login"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:text-success"
+              >
+                <User className="w-4 h-4" />
+                {t("common.signIn", "Sign In")}
+              </Link>
+              <Link
+                href="/login"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-success text-white rounded-2xl hover:bg-success/90"
+              >
+                <LogIn className="w-4 h-4" />
+                {t("common.signUp", "Sign Up")}
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Search and Filters */}
+        <div className="mb-6">
+          <div className="flex flex-col md:flex-row gap-4 mb-4">
+            <div className="flex-1 relative">
+              <Search
+                className="absolute start-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5"
+                aria-hidden="true"
+              />
+              <input
+                type="text"
+                placeholder={t(
+                  "souq.catalog.searchPlaceholder",
+                  "Search products, categories, or vendors...",
+                )}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full ps-10 pe-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-success focus:border-transparent"
+                aria-label={t(
+                  "souq.catalog.searchAriaLabel",
+                  "Search products, categories, or vendors",
+                )}
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-success focus:border-transparent"
+                aria-label={t(
+                  "souq.catalog.filterByCategory",
+                  "Filter by category",
+                )}
+              >
+                {categories.map((category) => (
+                  <option key={category} value={category}>
+                    {category === "all"
+                      ? t("souq.catalog.categoryAll", "All Categories")
+                      : category}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-success focus:border-transparent"
+                aria-label={t("souq.catalog.sortBy", "Sort products by")}
+              >
+                <option value="relevance">
+                  {t("souq.catalog.sort.relevance", "Relevance")}
+                </option>
+                <option value="price-low">
+                  {t("souq.catalog.sort.priceLow", "Price: Low to High")}
+                </option>
+                <option value="price-high">
+                  {t("souq.catalog.sort.priceHigh", "Price: High to Low")}
+                </option>
+                <option value="rating">
+                  {t("souq.catalog.sort.rating", "Highest Rated")}
+                </option>
+                <option value="newest">
+                  {t("souq.catalog.sort.newest", "Newest First")}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <span>
+              {filteredProducts.length}{" "}
+              {t("souq.catalog.resultsFound", "results found")}
+            </span>
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4" />
+              <span>{t("souq.catalog.filtersApplied", "Filters applied")}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Product Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredProducts.map((product) => (
+            <div
+              key={product.id}
+              className="bg-card rounded-2xl shadow-md border border-border overflow-hidden hover:shadow-lg transition-shadow"
+            >
+              <div className="relative w-full h-48">
+                <Image
+                  src={product.image}
+                  alt={product.name}
+                  fill
+                  className="object-cover"
+                />
+
+                {/* Badges */}
+                <div className="absolute top-2 start-2 flex flex-col gap-1">
+                  {product.isNew && (
+                    <span className="bg-primary/20 text-white text-xs px-2 py-1 rounded">
+                      {t("souq.catalog.badge.new", "New")}
+                    </span>
+                  )}
+                  {product.discount && (
+                    <span className="bg-destructive/20 text-white text-xs px-2 py-1 rounded">
+                      -{product.discount}%
+                    </span>
+                  )}
+                </div>
+
+                <button className="absolute top-2 end-2 p-2 bg-card rounded-full shadow-md hover:bg-muted">
+                  <Heart className="w-4 h-4 text-muted-foreground hover:text-destructive" />
+                </button>
+              </div>
+
+              <div className="p-4">
+                <h3 className="font-semibold text-foreground mb-1 line-clamp-2">
+                  {product.name}
+                </h3>
+                <p className="text-sm text-muted-foreground mb-2">
+                  {product.category}
+                </p>
+
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-1">
+                    <Star className="w-4 h-4 fill-warning text-accent" />
+                    <span className="text-sm font-medium">
+                      {product.rating}
+                    </span>
+                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    ({product.reviews})
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-bold text-foreground">
+                      {product.price}
+                    </span>
+                    {product.originalPrice && (
+                      <span className="text-sm text-muted-foreground line-through">
+                        {product.originalPrice}
+                      </span>
+                    )}
+                  </div>
+                  <span
+                    className={`text-xs px-2 py-1 rounded-full ${
+                      product.inStock
+                        ? "bg-success/10 text-success-foreground"
+                        : "bg-destructive/10 text-destructive-foreground"
+                    }`}
+                  >
+                    {product.inStock
+                      ? t("souq.catalog.stock.in", "In Stock")
+                      : t("souq.catalog.stock.out", "Out of Stock")}
+                  </span>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleViewDetails(product.id)}
+                    className="flex-1 px-3 py-2 bg-muted text-foreground rounded-2xl hover:bg-muted transition-colors text-sm"
+                  >
+                    {t("souq.catalog.actions.viewDetails", "View Details")}
+                  </button>
+                  <button
+                    onClick={() => handleAddToCart(product.id)}
+                    disabled={!product.inStock}
+                    className={`flex-1 px-3 py-2 rounded-2xl transition-colors text-sm ${
+                      product.inStock
+                        ? "bg-success text-white hover:bg-success/90"
+                        : "bg-muted text-muted-foreground cursor-not-allowed"
+                    }`}
+                  >
+                    <ShoppingCart className="w-4 h-4 inline me-1" />
+                    {t("souq.catalog.actions.addToCart", "Add to Cart")}
+                  </button>
+                </div>
+
+                <div className="mt-2 text-xs text-muted-foreground">
+                  {t("souq.catalog.soldBy", "Sold by:")} {product.vendor}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* No Results */}
+        {filteredProducts.length === 0 && (
+          <div className="text-center py-12">
+            <div className="text-muted-foreground mb-4">
+              <Search className="w-12 h-12 mx-auto" />
+            </div>
+            <h3 className="text-lg font-medium text-foreground mb-2">
+              {t("souq.catalog.noResults.title", "No products found")}
+            </h3>
+            <p className="text-muted-foreground">
+              {t(
+                "souq.catalog.noResults.description",
+                "Try adjusting your search criteria or browse all categories",
+              )}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="bg-card border-t mt-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="text-center text-sm text-muted-foreground">
+            <p>
+              {t(
+                "souq.catalog.footer.cta",
+                "Browse our catalog freely. Sign in to add to cart, place orders, and access exclusive deals.",
+              )}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/souq/error.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect } from "react";
+import { RefreshCw, Home, Store } from "lucide-react";
+import Link from "next/link";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
+
+/**
+ * Souq Error Boundary
+ *
+ * STRICT v4 COMPLIANCE:
+ * - Uses semantic color tokens
+ * - Supports RTL via TranslationContext
+ * - Logs errors via centralized logger
+ */
+export default function SouqError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  const { t, isRTL } = useTranslation();
+
+  useEffect(() => {
+    logger.error("Souq error caught by error boundary", {
+      error: error.message,
+      digest: error.digest,
+      stack: error.stack,
+      component: "app/souq/error.tsx",
+    });
+  }, [error]);
+
+  return (
+    <div
+      className="min-h-[60vh] flex flex-col items-center justify-center px-4"
+      dir={isRTL ? "rtl" : "ltr"}
+    >
+      <div className="max-w-md w-full text-center">
+        <div className="mb-6">
+          <div className="w-16 h-16 mx-auto bg-destructive/10 rounded-full flex items-center justify-center">
+            <Store className="w-8 h-8 text-destructive" />
+          </div>
+        </div>
+
+        <h1 className="text-xl font-bold text-foreground mb-2">
+          {t("errors.souq.title", "Souq Error")}
+        </h1>
+        <p className="text-muted-foreground mb-6">
+          {t(
+            "errors.souq.message",
+            "There was a problem loading Souq. Please try again."
+          )}
+        </p>
+
+        {process.env.NODE_ENV === "development" && (
+          <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-3 text-start mb-6">
+            <p className="text-sm font-mono text-destructive break-all">
+              {error.message}
+            </p>
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Button onClick={reset} variant="default">
+            <RefreshCw className="w-4 h-4 me-2" />
+            {t("common.actions.tryAgain", "Try Again")}
+          </Button>
+
+          <Button asChild variant="outline">
+            <Link href="/dashboard">
+              <Home className="w-4 h-4 me-2" />
+              {t("common.actions.goToDashboard", "Dashboard")}
+            </Link>
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/souq/layout.tsx">
+<![CDATA[
+export default function SouqLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="mx-auto max-w-7xl px-4 lg:px-6 py-6">
+      <div className="flex-1 min-w-0">{children}</div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/souq/page.tsx">
+<![CDATA[
+"use client";
+
+import Link from "next/link";
+import {
+  Package,
+  Users,
+  FileText,
+  ClipboardList,
+  Truck,
+  Star,
+} from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
+
+export default function SouqPage() {
+  const { isRTL, t } = useTranslation();
+
+  // Translate feature items
+  const SOUQ_FEATURES_TRANSLATED = [
+    {
+      title: t("souq.features.catalog.title", "Catalog Management"),
+      icon: Package,
+      description: t(
+        "souq.features.catalog.description",
+        "Browse and manage your product catalog with advanced filtering",
+      ),
+      link: "/souq/catalog",
+    },
+    {
+      title: t("souq.features.vendors.title", "Vendor Portal"),
+      icon: Users,
+      description: t(
+        "souq.features.vendors.description",
+        "Connect with verified vendors and suppliers",
+      ),
+      link: "/souq/vendors",
+    },
+    {
+      title: t("souq.features.rfqs.title", "RFQs & Bids"),
+      icon: FileText,
+      description: t(
+        "souq.features.rfqs.description",
+        "Request for quotations and manage bidding processes",
+      ),
+      link: "/souq/rfqs",
+    },
+    {
+      title: t("souq.features.orders.title", "Order Management"),
+      icon: ClipboardList,
+      description: t(
+        "souq.features.orders.description",
+        "Track orders, purchase orders, and delivery status",
+      ),
+      link: "/souq/orders",
+    },
+    {
+      title: t("souq.features.shipping.title", "Shipping & Logistics"),
+      icon: Truck,
+      description: t(
+        "souq.features.shipping.description",
+        "Manage shipping, tracking, and logistics partners",
+      ),
+      link: "/souq/shipping",
+    },
+    {
+      title: t("souq.features.reviews.title", "Reviews & Ratings"),
+      icon: Star,
+      description: t(
+        "souq.features.reviews.description",
+        "View and manage product reviews and vendor ratings",
+      ),
+      link: "/souq/reviews",
+    },
+  ];
+
+  return (
+    <div className={`min-h-screen flex flex-col ${isRTL ? "rtl" : "ltr"}`}>
+      {/* Hero Section */}
+      <section className="bg-gradient-to-br from-success to-accent text-white py-20 px-4 text-center">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-4xl md:text-6xl font-bold mb-6">
+            {t("souq.hero.title", "Fixzit Souq")}
+          </h1>
+          <p className="text-xl mb-8 text-white/90 max-w-3xl mx-auto">
+            {t(
+              "souq.hero.subtitle",
+              "Your complete marketplace for facility management materials, equipment, and services",
+            )}
+          </p>
+          <div
+            className={`flex flex-wrap gap-4 justify-center ${isRTL ? "flex-row-reverse" : ""}`}
+          >
+            <Link
+              href="/souq/catalog"
+              className="px-6 py-3 bg-card hover:bg-muted text-success font-semibold rounded-2xl transition-colors"
+            >
+              {t("souq.hero.browseCatalog", "Browse Catalog")}
+            </Link>
+            <Link
+              href="/souq/vendors"
+              className="px-6 py-3 bg-white/20 hover:bg-white/30 text-white font-semibold rounded-2xl transition-colors"
+            >
+              {t("souq.hero.viewVendors", "View Vendors")}
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Grid */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-3xl font-bold text-center mb-12 text-foreground">
+            {t("souq.features.title", "Marketplace Features")}
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {SOUQ_FEATURES_TRANSLATED.map((feature) => {
+              const Icon = feature.icon;
+              return (
+                <Link
+                  key={feature.title}
+                  href={feature.link}
+                  className="bg-card p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow border border-border group"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-success/10 rounded-2xl group-hover:bg-success/20 transition-colors">
+                      <Icon className="h-6 w-6 text-success" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold mb-2 text-foreground group-hover:text-success">
+                        {feature.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {feature.description}
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/souq/search/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import SearchBar from "@/components/souq/SearchBar";
+import SearchFilters from "@/components/souq/SearchFilters";
+import { Grid, List, ChevronLeft, ChevronRight } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { logger } from "@/lib/logger";
+
+interface Product {
+  fsin: string;
+  title: string;
+  brand: string;
+  price: number;
+  rating: number;
+  totalReviews: number;
+  imageUrl: string;
+  inStock: boolean;
+  badges: string[];
+  sellerName: string;
+}
+
+interface SearchResponse {
+  hits: Product[];
+  totalHits: number;
+  totalPages: number;
+  page: number;
+  facets: {
+    categories: Record<string, number>;
+    subcategories: Record<string, number>;
+    ratings: Record<string, number>;
+    badges: Record<string, number>;
+    priceRanges: Record<string, number>;
+  };
+  processingTimeMs: number;
+}
+
+export default function SearchPage() {
+  const searchParams = useSearchParams();
+  const params = searchParams ?? new URLSearchParams();
+  const auto = useAutoTranslator("souq.search");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [sortBy, setSortBy] = useState("relevance");
+  const [results, setResults] = useState<SearchResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Get query params
+  const query = params.get("q") || "";
+  const page = parseInt(params.get("page") || "1");
+  const category = params.get("category");
+  const minPrice = params.get("minPrice");
+  const maxPrice = params.get("maxPrice");
+  const minRating = params.get("minRating");
+  const badges = params.get("badges");
+
+  // Fetch search results
+  useEffect(() => {
+    const fetchResults = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const params = new URLSearchParams();
+        if (query) params.append("q", query);
+        if (category) params.append("category", category);
+        if (minPrice) params.append("minPrice", minPrice);
+        if (maxPrice) params.append("maxPrice", maxPrice);
+        if (minRating) params.append("minRating", minRating);
+        if (badges) params.append("badges", badges);
+        params.append("sort", sortBy);
+        params.append("page", page.toString());
+        params.append("limit", "20");
+
+        const response = await fetch(`/api/souq/search?${params.toString()}`);
+
+        if (!response.ok)
+          throw new Error(auto("Search failed", "errors.searchFailed"));
+
+        const data = await response.json();
+        setResults(data.data);
+      } catch (err) {
+        logger.error("Search failed", err, {
+          component: "SouqSearchPage",
+          action: "fetchResults",
+          query,
+          category,
+        });
+        setError(
+          auto(
+            "Failed to load search results. Please try again.",
+            "errors.loadFailed",
+          ),
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchResults();
+  }, [
+    query,
+    page,
+    category,
+    minPrice,
+    maxPrice,
+    minRating,
+    badges,
+    sortBy,
+    auto,
+  ]);
+
+  // Handle sort change
+  const handleSortChange = (newSort: string) => {
+    setSortBy(newSort);
+  };
+
+  // Handle pagination
+  const handlePageChange = (newPage: number) => {
+    if (!searchParams) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", newPage.toString());
+    window.location.href = `/souq/search?${params.toString()}`;
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <SearchBar initialQuery={query} />
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex gap-8">
+          {/* Filters Sidebar */}
+          <aside className="hidden lg:block w-64 flex-shrink-0">
+            <SearchFilters facets={results?.facets} />
+          </aside>
+
+          {/* Main Content */}
+          <main className="flex-1">
+            {/* Results Header */}
+            <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  {loading ? (
+                    <div className="h-6 w-48 bg-gray-200 animate-pulse rounded"></div>
+                  ) : results ? (
+                    <p className="text-sm text-gray-600">
+                      {auto("{{count}} results", "results.count").replace(
+                        "{{count}}",
+                        results.totalHits.toLocaleString(),
+                      )}
+                      {query &&
+                        auto(' for "{{query}}"', "results.forQuery").replace(
+                          "{{query}}",
+                          query,
+                        )}
+                      {results.processingTimeMs && (
+                        <span className="text-gray-400">
+                          {auto(
+                            " ({{time}}ms)",
+                            "results.processingTime",
+                          ).replace(
+                            "{{time}}",
+                            String(results.processingTimeMs),
+                          )}
+                        </span>
+                      )}
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="flex items-center gap-4">
+                  {/* Sort Dropdown */}
+                  <select
+                    value={sortBy}
+                    onChange={(e) => handleSortChange(e.target.value)}
+                    className="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:border-transparent"
+                  >
+                    <option value="relevance">
+                      {auto("Most Relevant", "sort.relevance")}
+                    </option>
+                    <option value="price_asc">
+                      {auto("Price: Low to High", "sort.priceAsc")}
+                    </option>
+                    <option value="price_desc">
+                      {auto("Price: High to Low", "sort.priceDesc")}
+                    </option>
+                    <option value="rating">
+                      {auto("Highest Rated", "sort.rating")}
+                    </option>
+                    <option value="newest">
+                      {auto("Newest First", "sort.newest")}
+                    </option>
+                  </select>
+
+                  {/* View Toggle */}
+                  <div className="flex border border-gray-300 rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => setViewMode("grid")}
+                      className={`p-2 ${
+                        viewMode === "grid"
+                          ? "bg-primary/10 text-primary"
+                          : "bg-white text-gray-600 hover:bg-gray-50"
+                      }`}
+                    >
+                      <Grid className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => setViewMode("list")}
+                      className={`p-2 ${
+                        viewMode === "list"
+                          ? "bg-primary/10 text-primary"
+                          : "bg-white text-gray-600 hover:bg-gray-50"
+                      }`}
+                    >
+                      <List className="h-5 w-5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Loading State */}
+            {loading && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {[...Array(8)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="bg-white rounded-lg border border-gray-200 p-4 animate-pulse"
+                  >
+                    <div className="aspect-square bg-gray-200 rounded-lg mb-4"></div>
+                    <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
+                    <div className="h-6 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Error State */}
+            {error && (
+              <div className="bg-destructive/5 border border-red-200 rounded-lg p-6 text-center">
+                <p className="text-destructive">{error}</p>
+              </div>
+            )}
+
+            {/* No Results */}
+            {!loading && !error && results && results.hits.length === 0 && (
+              <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  {auto("No results found", "noResults.title")}
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  {auto(
+                    "Try adjusting your search or filters to find what you're looking for",
+                    "noResults.description",
+                  )}
+                </p>
+                <div className="text-sm text-gray-500">
+                  <p className="mb-2">
+                    {auto("Suggestions:", "noResults.suggestions.title")}
+                  </p>
+                  <ul className="space-y-1">
+                    <li>
+                      •{" "}
+                      {auto(
+                        "Check your spelling",
+                        "noResults.suggestions.spelling",
+                      )}
+                    </li>
+                    <li>
+                      •{" "}
+                      {auto(
+                        "Try more general keywords",
+                        "noResults.suggestions.general",
+                      )}
+                    </li>
+                    <li>
+                      •{" "}
+                      {auto(
+                        "Remove some filters",
+                        "noResults.suggestions.filters",
+                      )}
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {/* Results Grid */}
+            {!loading && !error && results && results.hits.length > 0 && (
+              <>
+                <div
+                  className={
+                    viewMode === "grid"
+                      ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                      : "space-y-4"
+                  }
+                >
+                  {results.hits.map((product) => (
+                    <ProductCard
+                      key={product.fsin}
+                      product={product}
+                      viewMode={viewMode}
+                    />
+                  ))}
+                </div>
+
+                {/* Pagination */}
+                {results.totalPages > 1 && (
+                  <div className="mt-8 flex items-center justify-center gap-2">
+                    <button
+                      onClick={() => handlePageChange(page - 1)}
+                      disabled={page <= 1}
+                      className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </button>
+
+                    <div className="flex gap-2">
+                      {[...Array(Math.min(5, results.totalPages))].map(
+                        (_, i) => {
+                          const pageNum = i + 1;
+                          return (
+                            <button
+                              key={pageNum}
+                              onClick={() => handlePageChange(pageNum)}
+                              className={`px-4 py-2 rounded-lg ${
+                                page === pageNum
+                                  ? "bg-primary text-white"
+                                  : "border border-gray-300 hover:bg-gray-50"
+                              }`}
+                            >
+                              {pageNum}
+                            </button>
+                          );
+                        },
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => handlePageChange(page + 1)}
+                      disabled={page >= results.totalPages}
+                      className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </main>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Product Card Component
+function ProductCard({
+  product,
+  viewMode,
+}: {
+  product: Product;
+  viewMode: "grid" | "list";
+}) {
+  const auto = useAutoTranslator("souq.search");
+  const currency = auto("SAR", "currency");
+
+  if (viewMode === "list") {
+    return (
+      <Link
+        href={`/souq/products/${product.fsin}`}
+        className="block bg-white rounded-lg border border-gray-200 p-4 hover:shadow-lg transition-shadow"
+      >
+        <div className="flex gap-4">
+          <div className="w-32 h-32 flex-shrink-0">
+            <Image
+              src={product.imageUrl || "/placeholder-product.png"}
+              alt={product.title}
+              width={128}
+              height={128}
+              className="w-full h-full object-cover rounded-lg"
+            />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-semibold text-gray-900 mb-1">
+              {product.title}
+            </h3>
+            <p className="text-sm text-gray-600 mb-2">{product.brand}</p>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center">
+                <span className="text-warning">★</span>
+                <span className="text-sm font-medium ms-1">
+                  {product.rating.toFixed(1)}
+                </span>
+              </div>
+              <span className="text-sm text-gray-500">
+                ({product.totalReviews})
+              </span>
+            </div>
+            <div className="flex items-center gap-2 mb-2">
+              {product.badges.map((badge) => (
+                <span
+                  key={badge}
+                  className="inline-block px-2 py-1 text-xs font-medium bg-primary/5 text-primary rounded"
+                >
+                  {badge}
+                </span>
+              ))}
+            </div>
+            <div className="flex items-center justify-between">
+              <p className="text-2xl font-bold text-gray-900">
+                {product.price.toFixed(2)}{" "}
+                <span className="text-sm">{currency}</span>
+              </p>
+              {!product.inStock && (
+                <span className="text-sm text-destructive font-medium">
+                  {auto("Out of Stock", "product.outOfStock")}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </Link>
+    );
+  }
+
+  return (
+    <Link
+      href={`/souq/products/${product.fsin}`}
+      className="block bg-white rounded-lg border border-gray-200 p-4 hover:shadow-lg transition-shadow"
+    >
+      <div className="aspect-square mb-4 relative">
+        <Image
+          src={product.imageUrl || "/placeholder-product.png"}
+          alt={product.title}
+          fill
+          className="object-cover rounded-lg"
+        />
+      </div>
+      <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2 h-12">
+        {product.title}
+      </h3>
+      <p className="text-sm text-gray-600 mb-2">{product.brand}</p>
+      <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center">
+          <span className="text-warning">★</span>
+          <span className="text-sm font-medium ms-1">
+            {product.rating.toFixed(1)}
+          </span>
+        </div>
+        <span className="text-sm text-gray-500">({product.totalReviews})</span>
+      </div>
+      <p className="text-xl font-bold text-gray-900 mb-2">
+        {product.price.toFixed(2)} <span className="text-sm">{currency}</span>
+      </p>
+      {!product.inStock && (
+        <span className="text-sm text-destructive font-medium">
+          {auto("Out of Stock", "product.outOfStock")}
+        </span>
+      )}
+    </Link>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/souq/vendors/page.tsx">
+<![CDATA[
+"use client";
+
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+export default function VendorsPage() {
+  const auto = useAutoTranslator("souq.vendors");
+
+  return (
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            {auto("Vendors", "header.title")}
+          </h1>
+          <p className="text-muted-foreground">
+            {auto("Manage approved suppliers and vendors", "header.subtitle")}
+          </p>
+        </div>
+        <button className="px-4 py-2 bg-success text-white rounded-2xl hover:bg-success/90 transition-colors">
+          {auto("Add Vendor", "actions.add")}
+        </button>
+      </div>
+
+      <div className="bg-card rounded-2xl shadow-md border border-border">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-muted border-b border-border">
+              <tr>
+                <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {auto("Vendor Name", "table.vendor")}
+                </th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {auto("Category", "table.category")}
+                </th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {auto("Rating", "table.rating")}
+                </th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {auto("Status", "table.status")}
+                </th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {auto("Actions", "table.actions")}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-card divide-y divide-border">
+              <tr>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-medium text-foreground">
+                    Al-Rashid Steel Co.
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {auto("Since {{year}}", "table.since").replace(
+                      "{{year}}",
+                      "2018",
+                    )}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                  {auto(
+                    "Construction Materials",
+                    "table.categories.construction",
+                  )}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center">
+                    <span className="text-sm text-foreground">4.8</span>
+                    <span className="ms-1 text-accent">★</span>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-success/10 text-success">
+                    {auto("Active", "status.active")}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <button className="text-primary hover:text-primary">
+                    {auto("View", "actions.view")}
+                  </button>
+                </td>
+              </tr>
+
+              <tr>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-medium text-foreground">
+                    Saudi Electric Supply
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {auto("Since {{year}}", "table.since").replace(
+                      "{{year}}",
+                      "2020",
+                    )}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                  {auto("Electrical Equipment", "table.categories.electrical")}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center">
+                    <span className="text-sm text-foreground">4.5</span>
+                    <span className="ms-1 text-accent">★</span>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-success/10 text-success">
+                    {auto("Active", "status.active")}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <button className="text-primary hover:text-primary">
+                    {auto("View", "actions.view")}
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/support/escalations/new/page.tsx">
+<![CDATA[
+export { default } from "@/app/fm/support/escalations/new/page";
+export * from "@/app/fm/support/escalations/new/page";
+
+]]>
+</file>
+
+<file path="app/support/my-tickets/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import useSWR from "swr";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
+import { TableSkeleton } from "@/components/skeletons";
+import ClientDate from "@/components/ClientDate";
+import { logger } from "@/lib/logger";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+interface TicketMessage {
+  from: string;
+  text: string;
+  timestamp: string;
+  byRole?: string;
+  at?: string;
+}
+
+interface Ticket {
+  id: string;
+  code: string;
+  subject: string;
+  status: string;
+  priority: string;
+  createdAt: string;
+  module?: string;
+  type?: string;
+  messages?: TicketMessage[];
+}
+
+export default function MyTicketsPage() {
+  const { data: session } = useSession();
+  const userId = session?.user?.id;
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const auto = useAutoTranslator("support.myTickets");
+
+  const fetcher = (url: string) => {
+    // Auth cookie is sent automatically by browser
+    // Backend extracts user from session
+    return fetch(url)
+      .then((r) => r.json())
+      .catch((error) => {
+        logger.error("Support tickets fetch error", error);
+        throw error;
+      });
+  };
+
+  const { data, mutate, isLoading } = useSWR(
+    userId ? "/api/support/tickets/my" : null,
+    fetcher,
+  );
+
+  if (!session) {
+    return <TableSkeleton rows={5} />;
+  }
+
+  if (!userId) {
+    return (
+      <p className="text-destructive">
+        {auto("Error: No user ID found in session", "errors.noUser")}
+      </p>
+    );
+  }
+
+  const sendReply = async () => {
+    if (!selectedTicket || !replyText.trim()) {
+      toast.error(auto("Please enter a reply message.", "toast.missingReply"));
+      return;
+    }
+
+    const toastId = toast.loading(auto("Sending reply...", "toast.sending"));
+
+    try {
+      const res = await fetch(
+        `/api/support/tickets/${selectedTicket.id}/reply`,
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            // Auth cookie sent automatically by browser
+          },
+          body: JSON.stringify({ text: replyText }),
+        },
+      );
+
+      if (res.ok) {
+        toast.success(auto("Reply sent successfully", "toast.sent"), {
+          id: toastId,
+        });
+        setReplyText("");
+        await mutate();
+        // Refresh selected ticket
+        const ticketRes = await fetch(
+          `/api/support/tickets/${selectedTicket.id}`,
+        );
+        if (ticketRes.ok) {
+          setSelectedTicket(await ticketRes.json());
+        }
+      } else {
+        const error = await res.json();
+        toast.error(
+          `${auto("Failed to send reply", "toast.failed")} ${error.error || auto("Please try again.", "toast.retry")}`,
+          { id: toastId },
+        );
+      }
+    } catch (error) {
+      logger.error("Error sending reply:", error);
+      toast.error(
+        auto("An error occurred. Please try again.", "toast.genericError"),
+        { id: toastId },
+      );
+    }
+  };
+
+  return (
+    <div className="mx-auto max-w-6xl p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            {auto("My Support Tickets", "header.title")}
+          </h1>
+          <p className="text-muted-foreground">
+            {auto("View and manage your support requests", "header.subtitle")}
+          </p>
+        </div>
+        <button
+          onClick={() => {
+            const footer = document.querySelector("footer");
+            const supportBtn = footer?.querySelector("button");
+            supportBtn?.click();
+          }}
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 transition-colors"
+        >
+          {auto("New Ticket", "actions.newTicket")}
+        </button>
+      </div>
+
+      {isLoading ? (
+        <TableSkeleton rows={5} />
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Tickets List */}
+          <div className="lg:col-span-1">
+            <div className="bg-card rounded-2xl shadow-md border border-border">
+              <div className="p-4 border-b border-border">
+                <h2 className="font-semibold text-foreground">
+                  {auto("Your Tickets", "tickets.list.title")}
+                </h2>
+              </div>
+              <div className="divide-y divide-border">
+                {data?.items?.length === 0 ? (
+                  <p className="p-4 text-muted-foreground text-center">
+                    {auto("No tickets yet", "tickets.list.empty")}
+                  </p>
+                ) : (
+                  data?.items?.map((ticket: Ticket) => (
+                    <div
+                      key={ticket.id}
+                      onClick={() => setSelectedTicket(ticket)}
+                      className={`p-4 cursor-pointer hover:bg-muted ${
+                        selectedTicket?.id === ticket.id ? "bg-primary/10" : ""
+                      }`}
+                    >
+                      <div className="flex justify-between items-start mb-1">
+                        <p className="font-medium text-foreground text-sm">
+                          {ticket.code}
+                        </p>
+                        <span
+                          className={`text-xs px-2 py-1 rounded-full ${
+                            ticket.status === "New"
+                              ? "bg-primary/10 text-primary"
+                              : ticket.status === "Open"
+                                ? "bg-accent/10 text-accent-foreground"
+                                : ticket.status === "Waiting"
+                                  ? "bg-secondary/10 text-secondary"
+                                  : ticket.status === "Resolved"
+                                    ? "bg-success/10 text-success"
+                                    : "bg-muted text-foreground"
+                          }`}
+                        >
+                          {ticket.status}
+                        </span>
+                      </div>
+                      <p className="text-sm font-medium text-foreground">
+                        {ticket.subject}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        <ClientDate
+                          date={ticket.createdAt}
+                          format="date-only"
+                        />
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Ticket Details */}
+          <div className="lg:col-span-2">
+            {selectedTicket ? (
+              <div className="bg-card rounded-2xl shadow-md border border-border">
+                <div className="p-4 border-b border-border">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h2 className="font-semibold text-foreground">
+                        {selectedTicket.subject}
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedTicket.code} • {selectedTicket.module} •{" "}
+                        {selectedTicket.type}
+                      </p>
+                    </div>
+                    <span
+                      className={`text-xs px-3 py-1 rounded-full ${
+                        selectedTicket.priority === "Urgent"
+                          ? "bg-destructive/10 text-destructive"
+                          : selectedTicket.priority === "High"
+                            ? "bg-warning/10 text-warning-foreground"
+                            : selectedTicket.priority === "Medium"
+                              ? "bg-accent/10 text-accent-foreground"
+                              : "bg-muted text-foreground"
+                      }`}
+                    >
+                      {auto(
+                        "{{priority}} Priority",
+                        "tickets.details.priority",
+                      ).replace("{{priority}}", selectedTicket.priority)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Messages */}
+                <div className="p-4 max-h-96 overflow-y-auto">
+                  {selectedTicket.messages?.map((msg, index: number) => (
+                    <div
+                      key={`msg-${index}`}
+                      className={`mb-4 ${msg.byRole === "ADMIN" ? "ms-8" : ""}`}
+                    >
+                      <div
+                        className={`p-3 rounded-2xl ${
+                          msg.byRole === "ADMIN"
+                            ? "bg-primary/10 border border-primary/30"
+                            : "bg-muted border border-border"
+                        }`}
+                      >
+                        <div className="flex justify-between items-start mb-1">
+                          <p className="text-xs font-medium text-muted-foreground">
+                            {msg.byRole === "ADMIN"
+                              ? auto("Support Team", "tickets.messages.support")
+                              : auto("You", "tickets.messages.you")}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            <ClientDate
+                              date={msg.at || msg.timestamp}
+                              format="medium"
+                            />
+                          </p>
+                        </div>
+                        <p className="text-sm text-foreground">{msg.text}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Reply */}
+                {selectedTicket.status !== "Closed" && (
+                  <div className="p-4 border-t border-border">
+                    <textarea
+                      aria-label={auto(
+                        "Type your reply to this support ticket",
+                        "tickets.reply.aria",
+                      )}
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      placeholder={auto(
+                        "Type your reply...",
+                        "tickets.reply.placeholder",
+                      )}
+                      className="w-full px-3 py-2 border border-border rounded-2xl h-24"
+                    />
+                    <button
+                      onClick={sendReply}
+                      className="mt-2 px-4 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90"
+                    >
+                      {auto("Send Reply", "tickets.reply.send")}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="bg-card rounded-2xl shadow-md border border-border p-8 text-center">
+                <p className="text-muted-foreground">
+                  {auto(
+                    "Select a ticket to view details",
+                    "tickets.details.emptyState",
+                  )}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/support/page.tsx">
+<![CDATA[
+"use client";
+
+import { useTranslation } from "@/contexts/TranslationContext";
+
+export default function Page() {
+  const { t } = useTranslation();
+
+  return (
+    <div className="space-y-2">
+      <h1 className="text-2xl font-bold">{t("support.title", "Support")}</h1>
+      <p>
+        {t("support.description", "Coming online – UI wired, API scaffolded.")}
+      </p>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/support/template.tsx">
+<![CDATA[
+import { ReactNode } from "react";
+import { OrgContextGate } from "@/components/fm/OrgContextGate";
+
+interface SupportTemplateProps {
+  children: ReactNode;
+}
+
+/**
+ * Applies the org guard to support center routes that alias FM Support.
+ */
+export default function SupportTemplate({ children }: SupportTemplateProps) {
+  return <OrgContextGate>{children}</OrgContextGate>;
+}
+
+]]>
+</file>
+
+<file path="app/support/tickets/new/page.tsx">
+<![CDATA[
+export { default } from "@/app/fm/support/tickets/new/page";
+export * from "@/app/fm/support/tickets/new/page";
+
+]]>
+</file>
+
+<file path="app/system/page.tsx">
+<![CDATA[
+"use client";
+
+import SystemVerifier from "@/components/SystemVerifier";
+
+export default function SystemPage() {
+  return (
+    <div className="min-h-screen bg-muted flex flex-col">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <SystemVerifier />
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/terms/page.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { FileText, Scale, AlertCircle, Mail, Phone } from "lucide-react";
+import { renderMarkdownSanitized } from "@/lib/markdown";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
+
+import { logger } from "@/lib/logger";
+/**
+ * Default terms of service content shown when CMS content is not available or not published.
+ */
+const DEFAULT_TERMS_CONTENT = `# Terms of Service
+
+**Last Updated:** October 24, 2025
+
+## Agreement to Terms
+By accessing and using Fixzit Enterprise ("Service"), you agree to be bound by these Terms of Service.
+
+## Use of Service
+### Acceptable Use
+- Use the Service only for lawful purposes
+- Maintain the security of your account credentials
+- Do not interfere with or disrupt the Service
+- Do not attempt to gain unauthorized access
+
+### Prohibited Activities
+- Violating laws or regulations
+- Infringing intellectual property rights
+- Distributing malware or harmful code
+- Engaging in fraudulent activities
+- Harassing or abusing other users
+
+## User Accounts
+### Registration
+- Provide accurate and complete information
+- Maintain the security of your password
+- Notify us immediately of any unauthorized access
+
+### Account Termination
+We reserve the right to suspend or terminate accounts that violate these terms.
+
+## Intellectual Property
+All content, features, and functionality are owned by Fixzit Enterprise and protected by international copyright, trademark, and other intellectual property laws.
+
+## Service Availability
+- We strive for 99.9% uptime but do not guarantee uninterrupted access
+- Scheduled maintenance will be announced in advance
+- We are not liable for service disruptions beyond our control
+
+## Data and Privacy
+Your use of the Service is also governed by our Privacy Policy. We collect and use data as described in that policy.
+
+## Limitation of Liability
+Fixzit Enterprise shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of the Service.
+
+## Indemnification
+You agree to indemnify and hold harmless Fixzit Enterprise from any claims arising from your use of the Service or violation of these terms.
+
+## Modifications to Terms
+We reserve the right to modify these terms at any time. Continued use of the Service constitutes acceptance of modified terms.
+
+## Governing Law
+These terms are governed by the laws of the United Arab Emirates.
+
+## Dispute Resolution
+Any disputes shall be resolved through:
+1. Good faith negotiation
+2. Mediation
+3. Binding arbitration in Dubai, UAE
+
+## Contact
+For questions about these terms:
+- Email: ${EMAIL_DOMAINS.legal}
+- Phone: +966 XX XXX XXXX
+
+## Severability
+If any provision of these terms is found to be unenforceable, the remaining provisions will continue in full force and effect.`;
+
+/**
+ * Terms of Service Page (Public View)
+ *
+ * Displays terms of service managed through CMS admin interface.
+ * Fetches from /api/cms/pages/terms and falls back to default content.
+ * Supports RTL languages and responsive design.
+ *
+ * @returns Terms page with hero, info cards, content, and contact sections
+ */
+export default function TermsPage() {
+  const { t, isRTL } = useTranslation();
+  const [content, setContent] = useState<string>("");
+  const [renderedContent, setRenderedContent] = useState<string>("");
+  const [title, setTitle] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+
+  const loadTermsContent = useCallback(async () => {
+    try {
+      const response = await fetch("/api/cms/pages/terms");
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.status === "PUBLISHED") {
+          setTitle(data.title);
+          setContent(data.content);
+        } else {
+          setTitle(t("terms.title", "Terms of Service"));
+          setContent(DEFAULT_TERMS_CONTENT);
+        }
+      } else {
+        setTitle(t("terms.title", "Terms of Service"));
+        setContent(DEFAULT_TERMS_CONTENT);
+      }
+    } catch (err) {
+      logger.error(
+        "Error fetching terms content",
+        err instanceof Error ? err : new Error(String(err)),
+        { route: "/terms" },
+      );
+      setTitle(t("terms.title", "Terms of Service"));
+      setContent(DEFAULT_TERMS_CONTENT);
+    } finally {
+      setLoading(false);
+    }
+  }, [t]);
+
+  useEffect(() => {
+    loadTermsContent();
+  }, [loadTermsContent]);
+
+  // Render markdown to HTML when content changes
+  useEffect(() => {
+    if (content) {
+      renderMarkdownSanitized(content)
+        .then((html) => {
+          setRenderedContent(html);
+        })
+        .catch((err) => {
+          logger.error(
+            "Error rendering markdown",
+            err instanceof Error ? err : new Error(String(err)),
+            { route: "/terms", action: "render-markdown" },
+          );
+          // Fallback to plain text wrapped in paragraphs
+          setRenderedContent(
+            `<div class="prose max-w-none"><p>${content.replace(/\n/g, "</p><p>")}</p></div>`,
+          );
+        });
+    }
+  }, [content]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-muted flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">
+            {t("common.loading", "Loading...")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`min-h-screen bg-gradient-to-b from-white to-gray-50 ${isRTL ? "rtl" : "ltr"}`}
+    >
+      {/* Hero Section */}
+      <section className="bg-gradient-to-r from-primary via-primary to-success text-white py-12">
+        <div className="mx-auto max-w-7xl px-4 lg:px-6">
+          <div
+            className={`flex items-center gap-4 mb-4 ${isRTL ? "flex-row-reverse" : ""}`}
+          >
+            <Scale className="w-12 h-12" />
+            <h1 className="text-4xl font-bold">{title}</h1>
+          </div>
+          <p className="text-xl opacity-90">
+            {t(
+              "terms.subtitle",
+              "Please read these terms carefully before using our services.",
+            )}
+          </p>
+        </div>
+      </section>
+
+      {/* Quick Info Cards */}
+      <section className="py-8 bg-card shadow-sm">
+        <div className="mx-auto max-w-7xl px-4 lg:px-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="flex items-center gap-3 p-4 bg-primary/10 rounded-2xl">
+              <FileText className="w-8 h-8 text-primary flex-shrink-0" />
+              <div>
+                <div className="font-semibold text-foreground">
+                  {t("terms.binding", "Legally Binding")}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {t("terms.bindingDesc", "Enforceable agreement")}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-4 bg-success/10 rounded-2xl">
+              <Scale className="w-8 h-8 text-success flex-shrink-0" />
+              <div>
+                <div className="font-semibold text-foreground">
+                  {t("terms.fair", "Fair Terms")}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {t("terms.fairDesc", "Balanced rights")}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-4 bg-secondary/10 rounded-2xl">
+              <AlertCircle className="w-8 h-8 text-secondary-foreground flex-shrink-0" />
+              <div>
+                <div className="font-semibold text-foreground">
+                  {t("terms.clear", "Clear Language")}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {t("terms.clearDesc", "Easy to understand")}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-4 bg-accent/10 rounded-2xl">
+              <FileText className="w-8 h-8 text-accent-foreground flex-shrink-0" />
+              <div>
+                <div className="font-semibold text-foreground">
+                  {t("terms.updated", "Regularly Updated")}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {t("terms.updatedDesc", "Kept current")}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Main Content */}
+      <section className="py-12">
+        <div className="mx-auto max-w-4xl px-4 lg:px-6">
+          <div className="bg-card rounded-2xl shadow-md border border-border p-8 md:p-12">
+            <article className="prose prose-lg max-w-none text-start prose-headings:text-foreground prose-a:text-primary prose-strong:text-foreground">
+              <div dangerouslySetInnerHTML={{ __html: renderedContent }} />
+            </article>
+          </div>
+        </div>
+      </section>
+
+      {/* Contact Section */}
+      <section className="py-12 bg-muted">
+        <div className="mx-auto max-w-4xl px-4 lg:px-6">
+          <div className="bg-card rounded-2xl shadow-md border border-border p-8">
+            <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-3">
+              <Mail className="w-6 h-6 text-primary" />
+              {t("terms.contactTitle", "Questions About Terms?")}
+            </h2>
+            <p className="text-foreground mb-6">
+              {t(
+                "terms.contactDesc",
+                "Contact our legal team for clarification about these terms of service.",
+              )}
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="flex items-start gap-3">
+                <Mail className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-1" />
+                <div>
+                  <div className="font-semibold text-foreground mb-1">
+                    {t("terms.email", "Email")}
+                  </div>
+                  <a
+                    href={`mailto:${EMAIL_DOMAINS.legal}`}
+                    className="text-primary hover:text-primary/90"
+                  >
+                    {EMAIL_DOMAINS.legal}
+                  </a>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <Phone className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-1" />
+                <div>
+                  <div className="font-semibold text-foreground mb-1">
+                    {t("terms.phone", "Phone")}
+                  </div>
+                  <a
+                    href="tel:+966XXXXXXXX"
+                    className="text-primary hover:text-primary/90"
+                  >
+                    +966 XX XXX XXXX
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-border">
+              <p className="text-sm text-muted-foreground">
+                {t("terms.lastUpdated", "Last Updated")}:{" "}
+                <span className="font-semibold">October 24, 2025</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/test/page.tsx">
+<![CDATA[
+"use client";
+
+import { useTranslation } from "@/contexts/TranslationContext";
+
+export default function TestPage() {
+  const { t } = useTranslation();
+
+  return (
+    <div className="p-6 space-y-2">
+      <h1 className="text-2xl font-bold">
+        {t("test.page.title", "Test Page")}
+      </h1>
+      <p className="text-muted-foreground">
+        {t("test.page.description", "This is a simple test page.")}
+      </p>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/test-cms/page.tsx">
+<![CDATA[
+"use client";
+
+import Link from "next/link";
+import { useTranslation } from "@/contexts/TranslationContext";
+
+export default function TestCMS() {
+  const { t } = useTranslation();
+
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">
+        {t("testCms.title", "CMS Test Links")}
+      </h1>
+      <div className="space-y-2">
+        <Link
+          href="/cms/privacy"
+          className="block text-primary hover:underline"
+        >
+          {t("testCms.links.privacy", "Privacy Policy")}
+        </Link>
+        <Link href="/cms/terms" className="block text-primary hover:underline">
+          {t("testCms.links.terms", "Terms of Service")}
+        </Link>
+        <Link href="/cms/about" className="block text-primary hover:underline">
+          {t("testCms.links.about", "About Us")}
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+</batch_content>

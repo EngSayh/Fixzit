@@ -1,0 +1,3252 @@
+
+You are the "Fixzit Memory Builder" for category: "routes".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "routes",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/api/admin/favicon/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { PlatformSettings } from "@/server/models/PlatformSettings";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { writeFile, mkdir, copyFile, unlink } from "fs/promises";
+import path from "path";
+import { existsSync } from "fs";
+import { logger } from "@/lib/logger";
+import { exec } from "child_process";
+import { promisify } from "util";
+
+const execAsync = promisify(exec);
+
+interface PlatformSettingsDocument {
+  faviconUrl?: string;
+  faviconFileName?: string;
+  faviconFileSize?: number;
+  faviconMimeType?: string;
+  updatedAt?: Date;
+  [key: string]: unknown;
+}
+
+/**
+ * POST /api/admin/favicon
+ * Super Admin only endpoint to upload platform favicon
+ * Accepts multipart/form-data with 'favicon' file field
+ * Validates: file type (image/png, image/x-icon, image/svg+xml), size (<1MB)
+ * 
+ * If PNG is uploaded, it will be converted to ICO format using ImageMagick
+ * The favicon.ico is placed in public/ for Next.js to serve automatically
+ */
+export async function POST(request: NextRequest) {
+  try {
+    // Authentication & Authorization
+    const user = await getSessionUser(request);
+
+    // SUPER_ADMIN only
+    if (user.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { error: "Forbidden - SUPER_ADMIN access required" },
+        { status: 403 },
+      );
+    }
+
+    await connectToDatabase();
+
+    // Parse multipart form data
+    const formData = await request.formData();
+    const faviconFile = formData.get("favicon") as File | null;
+
+    if (!faviconFile) {
+      return NextResponse.json(
+        { error: "No favicon file provided" },
+        { status: 400 },
+      );
+    }
+
+    // Validate file type
+    const allowedTypes = [
+      "image/png",
+      "image/x-icon",
+      "image/vnd.microsoft.icon",
+      "image/ico",
+      "image/svg+xml",
+    ];
+    if (!allowedTypes.includes(faviconFile.type)) {
+      return NextResponse.json(
+        { error: "Invalid file type. Allowed: PNG, ICO, SVG" },
+        { status: 400 },
+      );
+    }
+
+    // Validate file size (1MB max for favicon)
+    const maxSize = 1 * 1024 * 1024; // 1MB
+    if (faviconFile.size > maxSize) {
+      return NextResponse.json(
+        { error: "File too large. Maximum size: 1MB for favicons" },
+        { status: 400 },
+      );
+    }
+
+    // Generate unique filename
+    const timestamp = Date.now();
+    // Sanitize extension to prevent path traversal (security fix from PR #416 feedback)
+    const rawExtension = faviconFile.name.split(".").pop()?.toLowerCase() || "png";
+    const allowedExtensions = ["png", "ico", "svg", "jpg", "jpeg", "gif", "webp"];
+    const extension = allowedExtensions.includes(rawExtension) ? rawExtension : "png";
+    const tempFileName = `favicon-${timestamp}.${extension}`;
+
+    // Define storage paths
+    const uploadDir = path.join(process.cwd(), "public", "uploads", "favicons");
+    const tempFilePath = path.join(uploadDir, tempFileName);
+    const finalFaviconPath = path.join(process.cwd(), "public", "favicon.ico");
+
+    // Create directory if it doesn't exist
+    if (!existsSync(uploadDir)) {
+      await mkdir(uploadDir, { recursive: true });
+    }
+
+    // Convert File to Buffer and save temporarily
+    const bytes = await faviconFile.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    await writeFile(tempFilePath, buffer);
+
+    let faviconUrl = "/favicon.ico";
+
+    // If PNG, convert to ICO format using ImageMagick
+    if (faviconFile.type === "image/png") {
+      try {
+        // Try to use ImageMagick to convert PNG to ICO (multiple sizes)
+        await execAsync(
+          `magick "${tempFilePath}" -resize 32x32 -background none -gravity center -extent 32x32 "${finalFaviconPath}"`
+        );
+        logger.info("[Favicon] Converted PNG to ICO using ImageMagick");
+      } catch {
+        // If ImageMagick not available, just copy as-is and let browser handle it
+        logger.warn("[Favicon] ImageMagick not available, using PNG directly");
+        await copyFile(tempFilePath, finalFaviconPath);
+      }
+    } else if (extension === "ico") {
+      // ICO file, copy directly to public/favicon.ico
+      await copyFile(tempFilePath, finalFaviconPath);
+    } else if (extension === "svg") {
+      // SVG file, store it and reference in metadata
+      const svgPath = path.join(process.cwd(), "public", `favicon-${timestamp}.svg`);
+      await copyFile(tempFilePath, svgPath);
+      faviconUrl = `/favicon-${timestamp}.svg`;
+    }
+
+    // Clean up temp file
+    try {
+      await unlink(tempFilePath);
+    } catch {
+      // Ignore cleanup errors
+    }
+
+    // Update or create platform settings
+    const settings = await PlatformSettings.findOneAndUpdate(
+      { orgId: user.orgId },
+      {
+        faviconUrl,
+        faviconStorageKey: finalFaviconPath,
+        faviconFileName: faviconFile.name,
+        faviconMimeType: faviconFile.type,
+        faviconFileSize: faviconFile.size,
+        updatedBy: user.id,
+        updatedAt: new Date(),
+      },
+      {
+        upsert: true,
+        new: true,
+        runValidators: true,
+      },
+    );
+
+    const settingsTyped = settings as unknown as PlatformSettingsDocument;
+    return NextResponse.json({
+      success: true,
+      data: {
+        faviconUrl: settingsTyped.faviconUrl || faviconUrl,
+        fileName: settingsTyped.faviconFileName,
+        fileSize: settingsTyped.faviconFileSize,
+        mimeType: settingsTyped.faviconMimeType,
+        updatedAt: settingsTyped.updatedAt,
+      },
+      message: "Favicon uploaded successfully. Changes may take a moment to appear in browser.",
+    });
+  } catch (error) {
+    // Handle authentication errors specifically
+    if (error instanceof Error && error.message.includes("No valid token")) {
+      return NextResponse.json(
+        { error: "Unauthorized - Authentication required" },
+        { status: 401 },
+      );
+    }
+
+    logger.error("[POST /api/admin/favicon] Error", error);
+    return NextResponse.json(
+      { error: "Failed to upload favicon" },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * GET /api/admin/favicon
+ * Super Admin only endpoint to get current favicon settings
+ */
+export async function GET(request: NextRequest) {
+  try {
+    // Authentication & Authorization
+    const user = await getSessionUser(request);
+
+    // SUPER_ADMIN only
+    if (user.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { error: "Forbidden - SUPER_ADMIN access required" },
+        { status: 403 },
+      );
+    }
+
+    await connectToDatabase();
+
+    const settings = (await PlatformSettings.findOne({
+      orgId: user.orgId,
+    })) as unknown as PlatformSettingsDocument | null;
+
+    const faviconData = settings
+      ? {
+          faviconUrl: settings.faviconUrl,
+          faviconFileName: settings.faviconFileName,
+          faviconFileSize: settings.faviconFileSize,
+          faviconMimeType: settings.faviconMimeType,
+          updatedAt: settings.updatedAt,
+        }
+      : null;
+
+    if (!faviconData || !faviconData.faviconUrl) {
+      // Return default favicon
+      return NextResponse.json({
+        faviconUrl: "/favicon.ico",
+        fileName: "favicon.ico (default)",
+        fileSize: null,
+        mimeType: "image/x-icon",
+        updatedAt: null,
+        isDefault: true,
+      });
+    }
+
+    return NextResponse.json({
+      faviconUrl: faviconData.faviconUrl,
+      fileName: faviconData.faviconFileName,
+      fileSize: faviconData.faviconFileSize,
+      mimeType: faviconData.faviconMimeType,
+      updatedAt: faviconData.updatedAt,
+      isDefault: false,
+    });
+  } catch (error) {
+    // Handle authentication errors specifically
+    if (error instanceof Error && error.message.includes("No valid token")) {
+      return NextResponse.json(
+        { error: "Unauthorized - Authentication required" },
+        { status: 401 },
+      );
+    }
+
+    logger.error("[GET /api/admin/favicon] Error", error);
+    return NextResponse.json(
+      { error: "Failed to fetch favicon settings" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/admin/footer/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { FooterContent } from "@/server/models/FooterContent";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+
+interface FooterDocument {
+  page: string;
+  contentEn: string;
+  contentAr: string;
+  updatedAt: Date | null;
+  updatedBy?: string | null;
+  [key: string]: unknown;
+}
+
+/**
+ * POST /api/admin/footer
+ * Super Admin only endpoint to update footer content
+ * Body: { page: 'about' | 'privacy' | 'terms', contentEn: string, contentAr: string }
+ */
+export async function POST(request: NextRequest) {
+  try {
+    // Authentication & Authorization
+    const user = await getSessionUser(request);
+
+    // SUPER_ADMIN only
+    if (user.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { error: "Forbidden - SUPER_ADMIN access required" },
+        { status: 403 },
+      );
+    }
+
+    await connectToDatabase();
+
+    const body = await request.json();
+    const { page, contentEn, contentAr } = body;
+
+    // Validation
+    if (!page || !["about", "privacy", "terms"].includes(page)) {
+      return NextResponse.json(
+        { error: "Invalid page. Must be one of: about, privacy, terms" },
+        { status: 400 },
+      );
+    }
+
+    if (typeof contentEn !== "string" || typeof contentAr !== "string") {
+      return NextResponse.json(
+        { error: "Both contentEn and contentAr must be strings" },
+        { status: 400 },
+      );
+    }
+
+    // Upsert footer content (create if not exists, update if exists)
+    const footerContent = await FooterContent.findOneAndUpdate(
+      { page },
+      {
+        $set: {
+          page,
+          contentEn,
+          contentAr,
+          updatedBy: user.id,
+          updatedAt: new Date(),
+        },
+      },
+      {
+        upsert: true,
+        new: true,
+        runValidators: true,
+      },
+    );
+
+    const footerTyped = footerContent as unknown as FooterDocument;
+    return NextResponse.json({
+      success: true,
+      data: {
+        page: footerTyped.page,
+        contentEn: footerTyped.contentEn,
+        contentAr: footerTyped.contentAr,
+        updatedAt: footerTyped.updatedAt,
+        updatedBy: footerTyped.updatedBy ?? null,
+      },
+    });
+  } catch (error) {
+    // Handle authentication errors specifically
+    if (error instanceof Error && error.message.includes("No valid token")) {
+      return NextResponse.json(
+        { error: "Unauthorized - Authentication required" },
+        { status: 401 },
+      );
+    }
+
+    logger.error("[POST /api/admin/footer] Error", error as Error);
+    return NextResponse.json(
+      { error: "Failed to update footer content" },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * GET /api/admin/footer?page=about
+ * Super Admin only endpoint to fetch footer content for editing
+ * Query: page (optional, returns all if not specified)
+ */
+export async function GET(request: NextRequest) {
+  try {
+    // Authentication & Authorization
+    const user = await getSessionUser(request);
+
+    // SUPER_ADMIN only
+    if (user.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { error: "Forbidden - SUPER_ADMIN access required" },
+        { status: 403 },
+      );
+    }
+
+    await connectToDatabase();
+
+    const { searchParams } = new URL(request.url);
+    const page = searchParams.get("page");
+
+    if (page) {
+      // Get specific page
+      if (!["about", "privacy", "terms"].includes(page)) {
+        return NextResponse.json(
+          { error: "Invalid page. Must be one of: about, privacy, terms" },
+          { status: 400 },
+        );
+      }
+
+      const footerContent = await FooterContent.findOne({ page }).lean();
+
+      if (!footerContent) {
+        // Return default empty content
+        return NextResponse.json({
+          page,
+          contentEn: "",
+          contentAr: "",
+          updatedAt: null,
+          updatedBy: null,
+        });
+      }
+
+      return NextResponse.json(footerContent);
+    }
+
+    // Get all footer pages
+    const allContent = (await FooterContent.find(
+      {},
+    ).lean()) as unknown as FooterDocument[];
+
+    // Ensure all three pages exist (return defaults if missing)
+    const pages = ["about", "privacy", "terms"];
+    const result = pages.map((p: string) => {
+      const existing = allContent.find((c) => c.page === p);
+      return (
+        existing || {
+          page: p,
+          contentEn: "",
+          contentAr: "",
+          updatedAt: null,
+          updatedBy: null,
+        }
+      );
+    });
+
+    return NextResponse.json({ data: result });
+  } catch (error) {
+    // Handle authentication errors specifically
+    if (error instanceof Error && error.message.includes("No valid token")) {
+      return NextResponse.json(
+        { error: "Unauthorized - Authentication required" },
+        { status: 401 },
+      );
+    }
+
+    logger.error("[GET /api/admin/footer] Error", error as Error);
+    return NextResponse.json(
+      { error: "Failed to fetch footer content" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/admin/logo/upload/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { PlatformSettings } from "@/server/models/PlatformSettings";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { writeFile, mkdir } from "fs/promises";
+import path from "path";
+import { existsSync } from "fs";
+import { logger } from "@/lib/logger";
+
+interface PlatformSettingsDocument {
+  logoUrl?: string;
+  logoFileName?: string;
+  logoFileSize?: number;
+  logoMimeType?: string;
+  updatedAt?: Date;
+  [key: string]: unknown;
+}
+
+/**
+ * POST /api/admin/logo/upload
+ * Super Admin only endpoint to upload platform logo
+ * Accepts multipart/form-data with 'logo' file field
+ * Validates: file type (image/png, image/jpeg, image/svg+xml), size (<5MB)
+ */
+export async function POST(request: NextRequest) {
+  try {
+    // Authentication & Authorization
+    const user = await getSessionUser(request);
+
+    // SUPER_ADMIN only
+    if (user.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { error: "Forbidden - SUPER_ADMIN access required" },
+        { status: 403 },
+      );
+    }
+
+    await connectToDatabase();
+
+    // Parse multipart form data
+    const formData = await request.formData();
+    const logoFile = formData.get("logo") as File | null;
+
+    if (!logoFile) {
+      return NextResponse.json(
+        { error: "No logo file provided" },
+        { status: 400 },
+      );
+    }
+
+    // Validate file type
+    const allowedTypes = [
+      "image/png",
+      "image/jpeg",
+      "image/jpg",
+      "image/svg+xml",
+      "image/webp",
+    ];
+    if (!allowedTypes.includes(logoFile.type)) {
+      return NextResponse.json(
+        { error: `Invalid file type. Allowed: ${allowedTypes.join(", ")}` },
+        { status: 400 },
+      );
+    }
+
+    // Validate file size (5MB max)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (logoFile.size > maxSize) {
+      return NextResponse.json(
+        { error: `File too large. Maximum size: ${maxSize / (1024 * 1024)}MB` },
+        { status: 400 },
+      );
+    }
+
+    // Generate unique filename
+    const timestamp = Date.now();
+    const extension = logoFile.name.split(".").pop();
+    const fileName = `logo-${timestamp}.${extension}`;
+
+    // Define storage path (public/uploads/logos/)
+    const uploadDir = path.join(process.cwd(), "public", "uploads", "logos");
+    const filePath = path.join(uploadDir, fileName);
+    const publicUrl = `/uploads/logos/${fileName}`;
+
+    // Create directory if it doesn't exist
+    if (!existsSync(uploadDir)) {
+      await mkdir(uploadDir, { recursive: true });
+    }
+
+    // Convert File to Buffer and save
+    const bytes = await logoFile.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    await writeFile(filePath, buffer);
+
+    // Update or create platform settings
+    const settings = await PlatformSettings.findOneAndUpdate(
+      { orgId: user.orgId },
+      {
+        logoUrl: publicUrl,
+        logoStorageKey: filePath,
+        logoFileName: logoFile.name,
+        logoMimeType: logoFile.type,
+        logoFileSize: logoFile.size,
+        updatedBy: user.id,
+        updatedAt: new Date(),
+      },
+      {
+        upsert: true,
+        new: true,
+        runValidators: true,
+      },
+    );
+
+    const settingsTyped = settings as unknown as PlatformSettingsDocument;
+    return NextResponse.json({
+      success: true,
+      data: {
+        logoUrl: settingsTyped.logoUrl,
+        fileName: settingsTyped.logoFileName,
+        fileSize: settingsTyped.logoFileSize,
+        mimeType: settingsTyped.logoMimeType,
+        updatedAt: settingsTyped.updatedAt,
+      },
+    });
+  } catch (error) {
+    // Handle authentication errors specifically
+    if (error instanceof Error && error.message.includes("No valid token")) {
+      return NextResponse.json(
+        { error: "Unauthorized - Authentication required" },
+        { status: 401 },
+      );
+    }
+
+    logger.error("[POST /api/admin/logo/upload] Error", error);
+    return NextResponse.json(
+      { error: "Failed to upload logo" },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * GET /api/admin/logo
+ * Super Admin only endpoint to get current logo settings
+ */
+export async function GET(request: NextRequest) {
+  try {
+    // Authentication & Authorization
+    const user = await getSessionUser(request);
+
+    // SUPER_ADMIN only
+    if (user.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { error: "Forbidden - SUPER_ADMIN access required" },
+        { status: 403 },
+      );
+    }
+
+    await connectToDatabase();
+
+    const settings = (await PlatformSettings.findOne({
+      orgId: user.orgId,
+    })) as unknown as PlatformSettingsDocument | null;
+
+    const logoData = settings
+      ? {
+          logoUrl: settings.logoUrl,
+          logoFileName: settings.logoFileName,
+          logoFileSize: settings.logoFileSize,
+          logoMimeType: settings.logoMimeType,
+          updatedAt: settings.updatedAt,
+        }
+      : null;
+
+    if (!logoData || !logoData.logoUrl) {
+      return NextResponse.json({
+        logoUrl: null,
+        fileName: null,
+        fileSize: null,
+        mimeType: null,
+        updatedAt: null,
+      });
+    }
+
+    return NextResponse.json({
+      logoUrl: logoData.logoUrl,
+      fileName: logoData.logoFileName,
+      fileSize: logoData.logoFileSize,
+      mimeType: logoData.logoMimeType,
+      updatedAt: logoData.updatedAt,
+    });
+  } catch (error) {
+    // Handle authentication errors specifically
+    if (error instanceof Error && error.message.includes("No valid token")) {
+      return NextResponse.json(
+        { error: "Unauthorized - Authentication required" },
+        { status: 401 },
+      );
+    }
+
+    logger.error("[GET /api/admin/logo] Error", error);
+    return NextResponse.json(
+      { error: "Failed to fetch logo settings" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/admin/notifications/config/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+
+/**
+ * GET /api/admin/notifications/config
+ * Returns notification service configuration status
+ * SUPER_ADMIN only
+ */
+export async function GET(_request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (session.user.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { error: "Forbidden - SUPER_ADMIN only" },
+        { status: 403 },
+      );
+    }
+
+    // Check SMS configuration (Twilio)
+    const smsConfigured = Boolean(
+      process.env.TWILIO_ACCOUNT_SID &&
+        process.env.TWILIO_AUTH_TOKEN &&
+        process.env.TWILIO_PHONE_NUMBER,
+    );
+
+    // Check WhatsApp configuration (Twilio)
+    const whatsappConfigured = Boolean(
+      process.env.TWILIO_ACCOUNT_SID &&
+        process.env.TWILIO_AUTH_TOKEN &&
+        process.env.TWILIO_WHATSAPP_NUMBER,
+    );
+
+    // Check Email configuration
+    const emailConfigured = Boolean(
+      process.env.SENDGRID_API_KEY || process.env.SMTP_HOST,
+    );
+    const emailProvider = process.env.SENDGRID_API_KEY
+      ? "SendGrid"
+      : process.env.SMTP_HOST
+        ? "SMTP"
+        : undefined;
+
+    // Mask sensitive data for display
+    const maskValue = (value: string | undefined): string | undefined => {
+      if (!value) return undefined;
+      if (value.length <= 8) return "****";
+      return value.slice(0, 4) + "****" + value.slice(-4);
+    };
+
+    const response = {
+      sms: {
+        configured: smsConfigured,
+        accountSid: maskValue(process.env.TWILIO_ACCOUNT_SID),
+        phoneNumber: process.env.TWILIO_PHONE_NUMBER,
+      },
+      whatsapp: {
+        configured: whatsappConfigured,
+        phoneNumber: process.env.TWILIO_WHATSAPP_NUMBER,
+      },
+      email: {
+        configured: emailConfigured,
+        provider: emailProvider,
+      },
+    };
+
+    logger.info("[NotificationConfig] Config status retrieved", {
+      sms: smsConfigured,
+      whatsapp: whatsappConfigured,
+      email: emailConfigured,
+    });
+
+    return NextResponse.json(response);
+  } catch (error) {
+    logger.error("[NotificationConfig] Error retrieving config", error as Error);
+    return NextResponse.json(
+      { error: "Failed to retrieve configuration" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/admin/notifications/history/route.ts">
+<![CDATA[
+/**
+ * Admin Notification History API
+ * GET /api/admin/notifications/history
+ *
+ * Fetch notification history for audit and tracking
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { COLLECTIONS } from "@/lib/db/collections";
+import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { ObjectId } from "mongodb";
+
+export async function GET(req: NextRequest) {
+  try {
+    // Authentication check
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    // Super admin check
+    if (session.user.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { success: false, error: "Forbidden: Super Admin access required" },
+        { status: 403 },
+      );
+    }
+
+    const orgIdString =
+      (session.user as { orgId?: string; tenantId?: string }).orgId ||
+      (session.user as { tenantId?: string }).tenantId ||
+      "";
+    if (!orgIdString) {
+      return NextResponse.json(
+        { success: false, error: "Missing organization context" },
+        { status: 400 },
+      );
+    }
+
+    const orgId = ObjectId.isValid(orgIdString) ? new ObjectId(orgIdString) : null;
+    if (!orgId) {
+      return NextResponse.json(
+        { success: false, error: "Invalid organization context" },
+        { status: 400 },
+      );
+    }
+
+    // Rate limiting with org-aware key
+    const rlKey = buildOrgAwareRateLimitKey(req, orgIdString, session.user.id ?? null);
+    const rl = await smartRateLimit(rlKey, 100, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    // Get query parameters
+    const searchParams = req.nextUrl.searchParams;
+    const limitParam = Number.parseInt(searchParams.get("limit") || "", 10);
+    const skipParam = Number.parseInt(searchParams.get("skip") || "", 10);
+
+    const limit = Math.min(
+      Number.isFinite(limitParam) && limitParam > 0 ? limitParam : 50,
+      100,
+    );
+    const skip = Number.isFinite(skipParam) && skipParam >= 0 ? skipParam : 0;
+
+    // Get database connection
+    const db = await getDatabase();
+
+    // Scope to orgId to prevent cross-tenant access; Super Admin is still org-bound
+    const notifications = await db
+      .collection(COLLECTIONS.ADMIN_NOTIFICATIONS)
+      .find({ orgId })
+      .sort({ sentAt: -1 })
+      .limit(limit)
+      .skip(skip)
+      .toArray();
+
+    const total = await db
+      .collection(COLLECTIONS.ADMIN_NOTIFICATIONS)
+      .countDocuments({ orgId });
+
+    logger.info("[Admin Notification] History fetched", {
+      user: session.user.email,
+      orgId: orgIdString,
+      count: notifications.length,
+      total,
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: notifications,
+      pagination: {
+        total,
+        limit,
+        skip,
+        hasMore: skip + notifications.length < total,
+      },
+    });
+  } catch (error) {
+    logger.error("[Admin Notification] History fetch failed", error as Error);
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to fetch history",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/admin/notifications/send/route.ts">
+<![CDATA[
+/**
+ * Admin Notification Broadcast API
+ * POST /api/admin/notifications/send
+ *
+ * Allows super admins to send notifications via Email, SMS, or WhatsApp
+ * to users, tenants, or corporate groups
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { ObjectId, type Document, type Filter } from "mongodb";
+import { auth } from "@/auth";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
+import { sendEmail } from "@/lib/email";
+import { sendSMS } from "@/lib/sms";
+import { logCommunication } from "@/lib/communication-logger";
+import { logger } from "@/lib/logger";
+
+interface NotificationRequest {
+  recipients: {
+    type: "users" | "tenants" | "corporate" | "all";
+    ids?: string[]; // Specific user/tenant IDs, or empty for "all"
+  };
+  channels: ("email" | "sms" | "whatsapp")[];
+  subject: string;
+  message: string;
+  priority: "low" | "normal" | "high" | "urgent";
+  scheduledAt?: string; // ISO timestamp for scheduled delivery
+}
+
+export async function POST(req: NextRequest) {
+  const logPromises: Promise<void>[] = [];
+  const enqueueLog = (entry: Parameters<typeof logCommunication>[0]) => {
+    logPromises.push(
+      logCommunication(entry)
+        .then((result) => {
+          if (!result.success) {
+            logger.warn("[Admin Notification] Communication log failed", {
+              error: result.error,
+              channel: entry.channel,
+              recipient: entry.recipient,
+            });
+          }
+        })
+        .catch((error) => {
+          logger.error(
+            "[Admin Notification] Communication log error",
+            error as Error,
+            {
+              channel: entry.channel,
+              recipient: entry.recipient,
+            },
+          );
+        }),
+    );
+  };
+  const flushLogs = async () => {
+    if (logPromises.length > 0) {
+      await Promise.allSettled(logPromises);
+    }
+  };
+
+  try {
+    // Authentication check
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    // Super admin or delegated permission check
+    const sessionUser = session.user as {
+      role?: string;
+      permissions?: string[];
+      roles?: string[];
+    };
+    const role = sessionUser.role || "GUEST";
+    const permissions = sessionUser.permissions || [];
+    const hasBroadcastPermission =
+      permissions.includes("notifications.broadcast") ||
+      permissions.includes("notifications.*");
+    // Check authorization: single role field OR roles array (normalized to uppercase)
+    // 🔒 STRICT v4.1: ADMIN is canonical, CORPORATE_ADMIN is legacy alias
+    const isAuthorizedRole =
+      role === "SUPER_ADMIN" ||
+      role === "ADMIN" ||
+      role === "CORPORATE_ADMIN" || // Legacy alias for ADMIN
+      (Array.isArray(sessionUser.roles) &&
+        (sessionUser.roles.includes("SUPER_ADMIN") || sessionUser.roles.includes("ADMIN")));
+    const isSuperAdmin =
+      role === "SUPER_ADMIN" ||
+      (Array.isArray(sessionUser.roles) && sessionUser.roles.includes("SUPER_ADMIN"));
+
+    if (!isAuthorizedRole && !hasBroadcastPermission) {
+      logger.warn("[Admin Notification] Broadcast denied for user", {
+        role,
+        permissionsCount: permissions.length,
+        userEmail: session.user.email,
+      });
+      return NextResponse.json(
+        { success: false, error: "Forbidden: broadcast permission required" },
+        { status: 403 },
+      );
+    }
+
+    // Parse request body
+    const body: NotificationRequest = await req.json();
+    const { recipients, channels, subject, message, priority, scheduledAt } =
+      body;
+
+    // Validation
+    if (!recipients?.type || !channels?.length || !subject || !message) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Missing required fields: recipients, channels, subject, message",
+        },
+        { status: 400 },
+      );
+    }
+
+    let scheduledDate: Date | null = null;
+    if (scheduledAt) {
+      const parsed = Date.parse(scheduledAt);
+      if (Number.isNaN(parsed)) {
+        return NextResponse.json(
+          { success: false, error: "Invalid scheduledAt timestamp" },
+          { status: 400 },
+        );
+      }
+      scheduledDate = new Date(parsed);
+    }
+
+    // Get database connection
+    const db = await getDatabase();
+    const broadcastId = new ObjectId();
+
+    const triggeredBy =
+      (session.user as { id?: string }).id || session.user.email || "unknown";
+    const senderEmail: string | undefined = session.user.email ?? undefined;
+    const orgIdString =
+      (session.user as { orgId?: string; tenantId?: string }).orgId ||
+      (session.user as { tenantId?: string }).tenantId ||
+      "";
+    const orgId = ObjectId.isValid(orgIdString)
+      ? new ObjectId(orgIdString)
+      : null;
+
+    if (!orgId) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized: org context required" },
+        { status: 401 },
+      );
+    }
+
+    const orgFilter = { orgId };
+
+    // Fetch recipient contacts based on type
+    let targetContacts: Array<{
+      id: string;
+      name: string;
+      email?: string;
+      phone?: string;
+    }> = [];
+
+    const buildRecipientQuery = (ids?: string[]): Filter<Document> | null => {
+      if (!ids?.length) {
+        return {};
+      }
+
+      const objectIds = ids
+        .map((id) => {
+          try {
+            return new ObjectId(id);
+          } catch (error) {
+            logger.warn("[Admin Notification] Invalid recipient id provided", {
+              id,
+              error,
+            });
+            return null;
+          }
+        })
+        .filter((value): value is ObjectId => value !== null);
+
+      if (!objectIds.length) {
+        return null;
+      }
+
+      return { _id: { $in: objectIds } };
+    };
+
+    if (recipients.type === "users") {
+      const query = buildRecipientQuery(recipients.ids);
+      if (recipients.ids?.length && query === null) {
+        return NextResponse.json(
+          { success: false, error: "Invalid user recipient IDs" },
+          { status: 400 },
+        );
+      }
+
+      // SECURITY: Always scope to orgId to prevent cross-tenant exposure (even for super admins)
+      const users = await db
+        .collection(COLLECTIONS.USERS)
+        .find({
+          orgId,
+          ...(query ?? {}),
+        })
+        .toArray();
+      targetContacts = users.map((u) => ({
+        id: u._id.toString(),
+        name: u.name || u.email,
+        email: u.email,
+        phone: u.phone,
+      }));
+    } else if (recipients.type === "tenants") {
+      const query = buildRecipientQuery(recipients.ids);
+      if (recipients.ids?.length && query === null) {
+        return NextResponse.json(
+          { success: false, error: "Invalid tenant recipient IDs" },
+          { status: 400 },
+        );
+      }
+
+      // SECURITY: Always scope to orgId to prevent cross-tenant exposure (even for super admins)
+      const tenants = await db
+        .collection(COLLECTIONS.TENANTS)
+        .find({
+          orgId,
+          ...(query ?? {}),
+        })
+        .toArray();
+      targetContacts = tenants.map((t) => ({
+        id: t._id.toString(),
+        name: t.name,
+        email: t.email || t.contactEmail,
+        phone: t.phone || t.contactPhone,
+      }));
+    } else if (recipients.type === "corporate") {
+      const query = buildRecipientQuery(recipients.ids);
+      if (recipients.ids?.length && query === null) {
+        return NextResponse.json(
+          { success: false, error: "Invalid corporate recipient IDs" },
+          { status: 400 },
+        );
+      }
+
+      const corps = await db
+        .collection(COLLECTIONS.ORGANIZATIONS)
+        .find(
+          query ?? (!isSuperAdmin && orgFilter.orgId ? { _id: orgFilter.orgId } : {}),
+        )
+        .toArray();
+      targetContacts = corps.map((c) => ({
+        id: c._id.toString(),
+        name: c.name,
+        email: c.contactEmail,
+        phone: c.contactPhone,
+      }));
+    } else if (recipients.type === "all") {
+      // Fetch all users; non-super-admins are scoped to their org
+      const users = await db
+        .collection(COLLECTIONS.USERS)
+        .find(!isSuperAdmin && orgFilter.orgId ? { orgId: orgFilter.orgId } : {})
+        .toArray();
+      targetContacts = users.map((u) => ({
+        id: u._id.toString(),
+        name: u.name || u.email,
+        email: u.email,
+        phone: u.phone,
+      }));
+    }
+
+    if (targetContacts.length === 0) {
+      logger.warn("[Admin Notification] No recipients found for broadcast", {
+        recipients,
+        orgId,
+      });
+      return NextResponse.json(
+        { success: false, error: "No recipients found", results: { totalRecipients: 0 } },
+        { status: 404 },
+      );
+    }
+
+    // Send notifications
+    const results = {
+      email: { sent: 0, failed: 0 },
+      sms: { sent: 0, failed: 0 },
+      whatsapp: { sent: 0, failed: 0 },
+      totalRecipients: targetContacts.length,
+    };
+
+    const smsBody = `${subject}\n\n${message}`;
+
+    for (const contact of targetContacts) {
+      // Email
+      if (channels.includes("email") && contact.email) {
+        try {
+          const emailResult = await sendEmail(contact.email, subject, message);
+          if (emailResult.success) {
+            results.email.sent++;
+          } else {
+            results.email.failed++;
+            logger.error("[Admin Notification] Email failed", {
+              email: contact.email,
+              error: emailResult.error,
+            });
+          }
+          enqueueLog({
+            orgId: orgId.toString(), // SECURITY: Include orgId for tenant isolation (SEC-003)
+            userId: contact.id,
+            channel: "email",
+            type: "broadcast",
+            recipient: contact.email,
+            subject,
+            message,
+            status: emailResult.success ? "sent" : "failed",
+            errorMessage: emailResult.success ? undefined : emailResult.error,
+            metadata: {
+              email: contact.email,
+              name: contact.name,
+              priority: priority || "normal",
+              broadcastId: broadcastId.toString(),
+              triggeredBy,
+              sendgridId: emailResult.messageId,
+              triggeredByEmail: senderEmail,
+            },
+          });
+        } catch (error) {
+          logger.error("[Admin Notification] Email failed", {
+            error,
+            email: contact.email,
+          });
+          results.email.failed++;
+          enqueueLog({
+            orgId: orgId.toString(), // SECURITY: Include orgId for tenant isolation (SEC-003)
+            userId: contact.id,
+            channel: "email",
+            type: "broadcast",
+            recipient: contact.email,
+            subject,
+            message,
+            status: "failed",
+            errorMessage:
+              error instanceof Error ? error.message : String(error),
+            metadata: {
+              email: contact.email,
+              name: contact.name,
+              priority: priority || "normal",
+              broadcastId: broadcastId.toString(),
+              triggeredBy,
+              triggeredByEmail: senderEmail,
+            },
+          });
+        }
+      }
+
+      // SMS
+      if (channels.includes("sms") && contact.phone) {
+        try {
+          const smsResult = await sendSMS(contact.phone, smsBody);
+          if (smsResult.success) {
+            results.sms.sent++;
+          } else {
+            results.sms.failed++;
+            logger.error("[Admin Notification] SMS failed", {
+              phone: contact.phone,
+              error: smsResult.error,
+            });
+          }
+          enqueueLog({
+            orgId: orgId.toString(), // SECURITY: Include orgId for tenant isolation (SEC-003)
+            userId: contact.id,
+            channel: "sms",
+            type: "broadcast",
+            recipient: contact.phone,
+            subject,
+            message: smsBody,
+            status: smsResult.success ? "sent" : "failed",
+            errorMessage: smsResult.success ? undefined : smsResult.error,
+            metadata: {
+              phone: contact.phone,
+              name: contact.name,
+              priority: priority || "normal",
+              broadcastId: broadcastId.toString(),
+              triggeredBy,
+              segments: Math.max(1, Math.ceil(smsBody.length / 160)),
+            },
+          });
+        } catch (error) {
+          logger.error("[Admin Notification] SMS failed", {
+            error,
+            phone: contact.phone,
+          });
+          results.sms.failed++;
+          enqueueLog({
+            orgId: orgId.toString(), // SECURITY: Include orgId for tenant isolation (SEC-003)
+            userId: contact.id,
+            channel: "sms",
+            type: "broadcast",
+            recipient: contact.phone,
+            subject,
+            message: smsBody,
+            status: "failed",
+            errorMessage:
+              error instanceof Error ? error.message : String(error),
+            metadata: {
+              phone: contact.phone,
+              name: contact.name,
+              priority: priority || "normal",
+              broadcastId: broadcastId.toString(),
+              triggeredBy,
+            },
+          });
+        }
+      }
+
+      // WhatsApp via WhatsApp Business API
+      if (channels.includes("whatsapp") && contact.phone) {
+        try {
+          const { sendWhatsAppTextMessage, isWhatsAppEnabled } = await import(
+            "@/lib/integrations/whatsapp"
+          );
+
+          if (!isWhatsAppEnabled()) {
+            logger.warn("[Admin Notification] WhatsApp not configured", {
+              phone: contact.phone,
+            });
+            results.whatsapp.failed++;
+            enqueueLog({
+              orgId: orgId.toString(), // SECURITY: Include orgId for tenant isolation (SEC-003)
+              userId: contact.id,
+              channel: "whatsapp",
+              type: "broadcast",
+              recipient: contact.phone,
+              subject,
+              message,
+              status: "failed",
+              errorMessage:
+                "WhatsApp Business API not configured. Add WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_ACCESS_TOKEN, WHATSAPP_BUSINESS_ACCOUNT_ID to environment.",
+              metadata: {
+                phone: contact.phone,
+                name: contact.name,
+                priority: priority || "normal",
+                broadcastId: broadcastId.toString(),
+                triggeredBy,
+              },
+            });
+          } else {
+            const result = await sendWhatsAppTextMessage({
+              to: contact.phone,
+              message: `${subject}\n\n${message}`,
+            });
+
+            if (result.success) {
+              results.whatsapp.sent++;
+              enqueueLog({
+                orgId: orgId.toString(), // SECURITY: Include orgId for tenant isolation (SEC-003)
+                userId: contact.id,
+                channel: "whatsapp",
+                type: "broadcast",
+                recipient: contact.phone,
+                subject,
+                message,
+                status: "sent",
+                metadata: {
+                  phone: contact.phone,
+                  name: contact.name,
+                  priority: priority || "normal",
+                  broadcastId: broadcastId.toString(),
+                  triggeredBy,
+                  messageId: result.messageId,
+                },
+              });
+            } else {
+              results.whatsapp.failed++;
+              enqueueLog({
+                orgId: orgId.toString(), // SECURITY: Include orgId for tenant isolation (SEC-003)
+                userId: contact.id,
+                channel: "whatsapp",
+                type: "broadcast",
+                recipient: contact.phone,
+                subject,
+                message,
+                status: "failed",
+                errorMessage: result.error || "Unknown error",
+                metadata: {
+                  phone: contact.phone,
+                  name: contact.name,
+                  priority: priority || "normal",
+                  broadcastId: broadcastId.toString(),
+                  triggeredBy,
+                },
+              });
+            }
+          }
+        } catch (error) {
+          logger.error("[Admin Notification] WhatsApp failed", {
+            error,
+            phone: contact.phone,
+          });
+          results.whatsapp.failed++;
+        }
+      }
+    }
+
+    // Log notification in database
+    await db.collection(COLLECTIONS.ADMIN_NOTIFICATIONS).insertOne({
+      _id: broadcastId,
+      orgId,
+      senderId: session.user.id,
+      senderEmail: session.user.email,
+      recipients: {
+        type: recipients.type,
+        ids: recipients.ids || [],
+        count: targetContacts.length,
+      },
+      channels,
+      subject,
+      message,
+      priority: priority || "normal",
+      scheduledAt: scheduledDate,
+      sentAt: new Date(),
+      results,
+      status: "sent",
+      createdAt: new Date(),
+    });
+
+    logger.info("[Admin Notification] Broadcast sent", {
+      sender: session.user.email,
+      recipients: recipients.type,
+      channels,
+      results,
+      broadcastId: broadcastId.toString(),
+    });
+
+    await flushLogs();
+
+    return NextResponse.json({
+      success: true,
+      message: "Notifications sent successfully",
+      results,
+    });
+  } catch (error) {
+    logger.error("[Admin Notification] Send failed", error as Error);
+    await flushLogs();
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to send notifications",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/admin/notifications/test/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
+
+// Lazy load Twilio to avoid import errors if not configured
+async function getTwilioClient() {
+  if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
+    return null;
+  }
+  const twilio = await import("twilio");
+  return twilio.default(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+}
+
+const TestNotificationSchema = z.object({
+  phoneNumber: z.string().min(10).regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format"),
+  channel: z.enum(["sms", "whatsapp"]),
+  message: z.string().min(1).max(1600),
+});
+
+/**
+ * POST /api/admin/notifications/test
+ * Send a test SMS or WhatsApp message
+ * SUPER_ADMIN only
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user || session.user.role !== "SUPER_ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const parseResult = TestNotificationSchema.safeParse(body);
+
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: parseResult.error.issues.map((i) => i.message).join(", ") },
+        { status: 400 }
+      );
+    }
+
+    const { phoneNumber, channel, message } = parseResult.data;
+
+    // Ensure phone number has country code
+    const formattedPhone = phoneNumber.startsWith("+") ? phoneNumber : `+${phoneNumber}`;
+
+    if (channel === "sms") {
+      // Send SMS via Twilio
+      if (!process.env.TWILIO_PHONE_NUMBER) {
+        return NextResponse.json({ error: "SMS not configured - missing TWILIO_PHONE_NUMBER" }, { status: 400 });
+      }
+
+      const client = await getTwilioClient();
+      if (!client) {
+        return NextResponse.json({ error: "Twilio not configured" }, { status: 400 });
+      }
+
+      const result = await client.messages.create({
+        body: message,
+        from: process.env.TWILIO_PHONE_NUMBER,
+        to: formattedPhone,
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: `SMS sent successfully to ${formattedPhone}`,
+        messageId: result.sid,
+        status: result.status,
+      });
+    } else if (channel === "whatsapp") {
+      // Check for Twilio WhatsApp first
+      if (process.env.TWILIO_WHATSAPP_NUMBER) {
+        const client = await getTwilioClient();
+        if (!client) {
+          return NextResponse.json({ error: "Twilio not configured" }, { status: 400 });
+        }
+
+        const whatsappFrom = process.env.TWILIO_WHATSAPP_NUMBER.startsWith("whatsapp:")
+          ? process.env.TWILIO_WHATSAPP_NUMBER
+          : `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`;
+
+        const result = await client.messages.create({
+          body: message,
+          from: whatsappFrom,
+          to: `whatsapp:${formattedPhone}`,
+        });
+
+        return NextResponse.json({
+          success: true,
+          message: `WhatsApp message sent successfully to ${formattedPhone}`,
+          messageId: result.sid,
+          status: result.status,
+        });
+      }
+
+      // Check for Meta WhatsApp Business API
+      if (process.env.WHATSAPP_BUSINESS_API_KEY && process.env.WHATSAPP_PHONE_NUMBER_ID) {
+        const response = await fetch(
+          `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${process.env.WHATSAPP_BUSINESS_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              messaging_product: "whatsapp",
+              to: formattedPhone.replace("+", ""),
+              type: "text",
+              text: { body: message },
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          return NextResponse.json(
+            { error: `WhatsApp API error: ${JSON.stringify(errorData)}` },
+            { status: 400 }
+          );
+        }
+
+        const result = await response.json();
+        return NextResponse.json({
+          success: true,
+          message: `WhatsApp message sent successfully to ${formattedPhone}`,
+          messageId: result.messages?.[0]?.id,
+        });
+      }
+
+      return NextResponse.json({ error: "WhatsApp not configured" }, { status: 400 });
+    }
+
+    return NextResponse.json({ error: "Invalid channel" }, { status: 400 });
+  } catch (error) {
+    logger.error("Error sending test notification", error instanceof Error ? error : new Error(String(error)));
+    return NextResponse.json(
+      { error: `Failed to send notification: ${error instanceof Error ? error.message : "Unknown error"}` },
+      { status: 500 }
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/admin/price-tiers/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import PriceTier from "@/server/models/PriceTier";
+import Module from "@/server/models/Module";
+import { getUserFromToken } from "@/lib/auth";
+import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rateLimit";
+import { createSecureResponse } from "@/server/security/headers";
+import {
+  createErrorResponse,
+  zodValidationError,
+  rateLimitError,
+} from "@/server/utils/errorResponses";
+import { z } from "zod";
+
+const priceTierSchema = z.object({
+  moduleCode: z.string().min(1),
+  seatsMin: z.number().min(1),
+  seatsMax: z.number().min(1),
+  pricePerSeatMonthly: z.number().min(0).optional(),
+  flatMonthly: z.number().min(0).optional(),
+  currency: z.string().min(1).default("USD"),
+  region: z.string().optional(),
+  isGlobal: z.boolean().optional(),
+});
+
+async function authenticateAdmin(req: NextRequest) {
+  const token = req.headers
+    .get("authorization")
+    ?.replace("Bearer ", "")
+    ?.trim();
+  if (!token) {
+    throw new Error("Authentication required");
+  }
+
+  const user = await getUserFromToken(token);
+  if (!user) {
+    throw new Error("Invalid token");
+  }
+
+  if (!["SUPER_ADMIN"].includes(user.role)) {
+    throw new Error("Admin access required");
+  }
+
+  return user;
+}
+
+/**
+ * @openapi
+ * /api/admin/price-tiers:
+ *   get:
+ *     summary: admin/price-tiers operations
+ *     tags: [admin]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(req: NextRequest) {
+  try {
+    const user = await authenticateAdmin(req);
+
+    const orgId =
+      (user as { orgId?: string; tenantId?: string }).orgId ||
+      (user as { tenantId?: string }).tenantId ||
+      null;
+
+    // Rate limiting (org-aware) after successful auth
+    const key = buildOrgAwareRateLimitKey(req, orgId, user.id ?? null);
+    const rl = await smartRateLimit(key, 100, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    // Optional includeGlobal=true to merge shared tiers with org-scoped tiers
+    const includeGlobal = req.nextUrl.searchParams.get("includeGlobal") === "true";
+    const query = includeGlobal && orgId
+      ? { $or: [{ orgId }, { isGlobal: true }] }
+      : orgId
+        ? { orgId }
+        : includeGlobal
+          ? { isGlobal: true }
+          : {};
+
+    await connectToDatabase();
+    const rows = await PriceTier.find(query)
+      .populate("moduleId", "code name")
+      .lean();
+    return createSecureResponse(rows, 200, req);
+  } catch (error: unknown) {
+    // Check for specific authentication errors
+    if (error instanceof Error) {
+      if (error.message === "Authentication required") {
+        return createErrorResponse("Authentication required", 401);
+      }
+      if (error.message === "Invalid token") {
+        return createErrorResponse("Invalid token", 401);
+      }
+      if (error.message === "Admin access required") {
+        return createErrorResponse("Admin access required", 403);
+      }
+    }
+    logger.error(
+      "Price tier fetch failed:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createErrorResponse("Internal server error", 500);
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const user = await authenticateAdmin(req);
+
+    const orgId =
+      (user as { orgId?: string; tenantId?: string }).orgId ||
+      (user as { tenantId?: string }).tenantId ||
+      null;
+
+    // Rate limiting for admin operations (org-aware)
+    const key = buildOrgAwareRateLimitKey(req, orgId, user.id ?? null);
+    const rl = await smartRateLimit(key, 20, 60_000); // 20 requests per minute
+    if (!rl.allowed) {
+      return createErrorResponse("Rate limit exceeded", 429, req);
+    }
+
+    await connectToDatabase();
+    const body = priceTierSchema.parse(await req.json());
+
+    const isGlobalRequested = body.isGlobal === true;
+    const isSuperAdmin = user.role === "SUPER_ADMIN";
+    if (isGlobalRequested && !isSuperAdmin) {
+      return createErrorResponse("Global tiers require SUPER_ADMIN", 403, req);
+    }
+    const isGlobal = isSuperAdmin && isGlobalRequested;
+
+    // body: { moduleCode, seatsMin, seatsMax, pricePerSeatMonthly, flatMonthly, currency, region }
+    const mod = await Module.findOne({ code: body.moduleCode });
+    if (!mod) return createErrorResponse("MODULE_NOT_FOUND", 400, req);
+
+    const doc = await PriceTier.findOneAndUpdate(
+      {
+        moduleId: mod._id,
+        seatsMin: body.seatsMin,
+        seatsMax: body.seatsMax,
+        currency: body.currency || "USD",
+        ...(isGlobal ? { isGlobal: true } : orgId ? { orgId } : {}),
+      },
+      {
+        ...body,
+        moduleId: mod._id,
+        orgId: isGlobal ? undefined : orgId,
+        isGlobal,
+        updatedBy: user.id,
+        updatedAt: new Date(),
+      },
+      { upsert: true, new: true },
+    );
+    return createSecureResponse(doc, 201, req);
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      return zodValidationError(error);
+    }
+    // Check for specific authentication errors
+    if (error instanceof Error) {
+      if (error.message === "Authentication required") {
+        return createErrorResponse("Authentication required", 401);
+      }
+      if (error.message === "Invalid token") {
+        return createErrorResponse("Invalid token", 401);
+      }
+      if (error.message === "Admin access required") {
+        return createErrorResponse("Admin access required", 403);
+      }
+    }
+    logger.error(
+      "Price tier creation failed:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createErrorResponse("Internal server error", 500);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/admin/route-aliases/workflow/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+
+import { auth } from "@/auth";
+import {
+  readAliasWorkflow,
+  upsertAliasWorkflow,
+  AliasWorkflowMap,
+} from "@/lib/routes/workflowStore";
+
+export async function GET() {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "SUPER_ADMIN") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const map = readAliasWorkflow();
+  return NextResponse.json(map satisfies AliasWorkflowMap);
+}
+
+export async function POST(request: NextRequest) {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "SUPER_ADMIN") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  try {
+    const body = await request.json();
+    const { aliasFile, owner, resolved } = body as {
+      aliasFile?: string;
+      owner?: string;
+      resolved?: boolean;
+    };
+
+    if (!aliasFile) {
+      return NextResponse.json(
+        { error: "aliasFile is required" },
+        { status: 400 },
+      );
+    }
+
+    const entry = upsertAliasWorkflow(aliasFile, {
+      owner: owner ?? "",
+      resolved: resolved ?? false,
+    });
+
+    return NextResponse.json(entry);
+  } catch (_error) {
+    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/admin/route-metrics/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import path from "path";
+import { existsSync, readdirSync } from "fs";
+
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import {
+  generateRouteAliasMetrics,
+  readRouteAliasMetrics,
+  saveRouteAliasMetrics,
+  enrichRouteAliasMetrics,
+} from "@/lib/routes/aliasMetrics";
+import { loadRouteHealthData } from "@/lib/routes/routeHealth";
+import { postRouteMetricsWebhook } from "@/lib/routes/webhooks";
+
+const HISTORY_DIR = path.join(process.cwd(), "reports/route-metrics/history");
+const HISTORY_LIMIT = 60;
+
+function readHistorySnapshots(limit = HISTORY_LIMIT) {
+  if (!existsSync(HISTORY_DIR)) {
+    return [];
+  }
+
+  const files = readdirSync(HISTORY_DIR)
+    .filter((file) => file.endsWith(".json"))
+    .sort()
+    .slice(-limit);
+
+  return files
+    .map((file) => {
+      const snapshot = readRouteAliasMetrics(path.join(HISTORY_DIR, file));
+      if (!snapshot) return null;
+      const { aliasFiles, duplicateAliases } = snapshot.totals;
+      const duplicateRate =
+        aliasFiles > 0 ? (duplicateAliases / aliasFiles) * 100 : 0;
+      return {
+        generatedAt: snapshot.generatedAt,
+        aliasFiles,
+        duplicateAliases,
+        duplicateRate,
+        artifact: file,
+      };
+    })
+    .filter(Boolean) as Array<{
+    generatedAt: string;
+    aliasFiles: number;
+    duplicateAliases: number;
+    duplicateRate: number;
+    artifact: string;
+  }>;
+}
+
+export async function GET(request: NextRequest) {
+  const jsonPath = path.join(process.cwd(), "_artifacts/route-aliases.json");
+  const refresh = request.nextUrl.searchParams.get("refresh") === "1";
+  const historyRequested = request.nextUrl.searchParams.get("history") === "1";
+
+  try {
+    const session = await auth();
+    const role = session?.user?.role;
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (role !== "SUPER_ADMIN") {
+      logger.warn("Route metrics access denied", { role });
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    if (historyRequested) {
+      const history = readHistorySnapshots();
+      return NextResponse.json({ history });
+    }
+
+    if (!refresh) {
+      const cached = readRouteAliasMetrics(jsonPath);
+      if (cached) {
+        return NextResponse.json(cached);
+      }
+      logger.info("Route metrics cache missing, regenerating", { jsonPath });
+    } else {
+      logger.info("Route metrics refresh requested", { jsonPath });
+    }
+
+    const routeHealth = await loadRouteHealthData();
+    const metrics = enrichRouteAliasMetrics(generateRouteAliasMetrics(), {
+      routeHealth,
+    });
+    try {
+      saveRouteAliasMetrics(jsonPath, metrics);
+    } catch (saveError) {
+      logger.warn("Unable to persist route metrics artifact", {
+        error: saveError,
+      });
+    }
+
+    const duplicationRate =
+      metrics.totals.aliasFiles > 0
+        ? (metrics.totals.duplicateAliases / metrics.totals.aliasFiles) * 100
+        : 0;
+    if (duplicationRate <= 5) {
+      await postRouteMetricsWebhook({
+        duplicationRate,
+        generatedAt: metrics.generatedAt,
+        aliasFiles: metrics.totals.aliasFiles,
+      });
+    }
+
+    return NextResponse.json(metrics);
+  } catch (error) {
+    logger.error("Error generating route metrics", error as Error);
+    return NextResponse.json(
+      { error: "Failed to load route metrics" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/admin/sms/route.ts">
+<![CDATA[
+import { randomUUID } from "crypto";
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { SMSMessage, SMSStatus, TSMSStatus } from "@/server/models/SMSMessage";
+import {
+  getSMSQueue,
+  getSMSQueueStats,
+  retryFailedMessages,
+  enqueueExistingSMS,
+  removePendingSMSJobs,
+} from "@/lib/queues/sms-queue";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
+
+/**
+ * GET /api/admin/sms
+ *
+ * Get SMS messages with filters (Super Admin only)
+ * Query params:
+ * - status: Filter by status (PENDING, QUEUED, SENT, DELIVERED, FAILED, EXPIRED)
+ * - type: Filter by type (OTP, NOTIFICATION, ALERT, MARKETING, TRANSACTIONAL)
+ * - orgId: Filter by organization (superadmin can see all)
+ * - search: Search by phone number
+ * - from: Start date (ISO)
+ * - to: End date (ISO)
+ * - slaBreached: Filter by SLA breach status
+ * - limit: Number of results (default 50, max 500)
+ * - skip: Skip for pagination
+ * - includeStats: Include aggregate statistics
+ * - includeQueueStats: Include BullMQ queue statistics
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const correlationId = request.headers.get("x-correlation-id") || randomUUID();
+    const clientIp = getClientIP(request);
+    const rl = await smartRateLimit(`/api/admin/sms:${clientIp}:GET`, 30, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check if user is Super Admin
+    if (session.user.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { error: "Forbidden - Super Admin access required" },
+        { status: 403 }
+      );
+    }
+
+    await connectToDatabase();
+
+    const { searchParams } = request.nextUrl;
+    const status = searchParams.get("status") as TSMSStatus | null;
+    const type = searchParams.get("type");
+    const orgId = searchParams.get("orgId");
+    const search = searchParams.get("search");
+    const from = searchParams.get("from");
+    const to = searchParams.get("to");
+    const slaBreached = searchParams.get("slaBreached");
+    const includeStats = searchParams.get("includeStats") === "true";
+    const includeQueueStats = searchParams.get("includeQueueStats") === "true";
+
+    let limit = parseInt(searchParams.get("limit") || "50", 10);
+    let skip = parseInt(searchParams.get("skip") || "0", 10);
+
+    limit = Math.min(Math.max(1, limit), 500);
+    skip = Math.max(0, skip);
+
+    // Build query
+    const query: Record<string, unknown> = {};
+
+    if (status && SMSStatus.includes(status)) {
+      query.status = status;
+    }
+    if (type) {
+      query.type = type;
+    }
+    if (orgId) {
+      query.orgId = orgId;
+    }
+    if (search) {
+      query.to = { $regex: search, $options: "i" };
+    }
+    if (from || to) {
+      query.createdAt = {};
+      if (from) (query.createdAt as Record<string, Date>).$gte = new Date(from);
+      if (to) (query.createdAt as Record<string, Date>).$lte = new Date(to);
+    }
+    if (slaBreached === "true") {
+      query.slaBreached = true;
+    } else if (slaBreached === "false") {
+      query.slaBreached = false;
+    }
+
+    logger.info("[Admin SMS] Query start", { by: session.user.email, orgId, correlationId, limit, skip });
+
+    // Fetch messages
+    const [messages, total] = await Promise.all([
+      SMSMessage.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      SMSMessage.countDocuments(query),
+    ]);
+
+    const response: Record<string, unknown> = {
+      messages,
+      total,
+      limit,
+      skip,
+      hasMore: skip + messages.length < total,
+    };
+
+    // Include aggregate stats if requested
+    if (includeStats) {
+      const statusCounts = await SMSMessage.getStatusCounts(orgId || undefined, { allowGlobal: true });
+      const slaBreachCount = await SMSMessage.getSLABreachCount(
+        orgId || undefined,
+        new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24 hours
+        { allowGlobal: true }
+      );
+      response.stats = {
+        statusCounts,
+        slaBreachCount24h: slaBreachCount,
+      };
+    }
+
+    // Include queue stats if requested
+    if (includeQueueStats) {
+      const queueStats = await getSMSQueueStats();
+      response.queueStats = queueStats;
+    }
+
+    logger.info("[Admin SMS] Query complete", {
+      by: session.user.email,
+      orgId,
+      correlationId,
+      limit,
+      skip,
+      total,
+    });
+
+    const res = NextResponse.json(response);
+    res.headers.set("X-RateLimit-Limit", "30");
+    res.headers.set("X-RateLimit-Remaining", rl.remaining.toString());
+    return res;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[Admin SMS] GET failed", { error: errorMessage });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * POST /api/admin/sms
+ *
+ * Actions on SMS messages (Super Admin only)
+ * Body:
+ * - action: "retry" | "retry-all-failed" | "cancel"
+ * - messageId: For single message actions
+ * - orgId: For org-scoped actions
+ */
+const ActionSchema = z.object({
+  action: z.enum(["retry", "retry-all-failed", "cancel"]),
+  messageId: z.string().optional(),
+  orgId: z.string().optional(),
+  limit: z.number().int().min(1).max(500).optional(),
+});
+
+export async function POST(request: NextRequest) {
+  try {
+    const correlationId = request.headers.get("x-correlation-id") || randomUUID();
+    const clientIp = getClientIP(request);
+    const rl = await smartRateLimit(`/api/admin/sms:${clientIp}:POST`, 15, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (session.user.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { error: "Forbidden - Super Admin access required" },
+        { status: 403 }
+      );
+    }
+
+    await connectToDatabase();
+
+    const body = await request.json();
+    const parsed = ActionSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid request", details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    const { action, messageId, orgId, limit } = parsed.data;
+
+    switch (action) {
+      case "retry": {
+        if (!messageId) {
+          return NextResponse.json(
+            { error: "messageId required for retry action" },
+            { status: 400 }
+          );
+        }
+
+        const message = await SMSMessage.findById(messageId);
+        if (!message) {
+          return NextResponse.json(
+            { error: "Message not found" },
+            { status: 404 }
+          );
+        }
+
+        if (!message.orgId) {
+          return NextResponse.json(
+            { error: "orgId missing on message; cannot retry without tenant scope" },
+            { status: 400 }
+          );
+        }
+
+        const queue = getSMSQueue();
+        const nextStatus = queue ? "QUEUED" : "PENDING";
+
+        await SMSMessage.findByIdAndUpdate(messageId, {
+          status: nextStatus,
+          retryCount: 0,
+          nextRetryAt: new Date(),
+          lastError: null,
+          lastErrorCode: null,
+        });
+
+        // Ensure no stale jobs exist before re-queueing
+        await removePendingSMSJobs(messageId);
+
+        await enqueueExistingSMS({
+          _id: message._id,
+          to: message.to,
+          message: message.message,
+          type: message.type,
+          priority: message.priority,
+          orgId: message.orgId,
+          userId: message.userId,
+          referenceType: message.referenceType,
+          referenceId: message.referenceId,
+          metadata: message.metadata as Record<string, unknown> | undefined,
+          maxRetries: message.maxRetries,
+          retryCount: message.retryCount,
+        }, { attempts: message.maxRetries ?? 1 });
+
+        logger.info("[Admin SMS] Manual retry triggered", {
+          messageId,
+          by: session.user.email,
+          correlationId,
+        });
+
+        return NextResponse.json({
+          success: true,
+          message: "Message queued for retry",
+        });
+      }
+
+      case "retry-all-failed": {
+        if (!orgId) {
+          return NextResponse.json(
+            { error: "orgId is required to retry failed messages" },
+            { status: 400 }
+          );
+        }
+
+        const retriedCount = await retryFailedMessages(orgId, limit || 100);
+
+        logger.info("[Admin SMS] Bulk retry triggered", {
+          orgId,
+          retriedCount,
+          by: session.user.email,
+          correlationId,
+        });
+
+        return NextResponse.json({
+          success: true,
+          retriedCount,
+        });
+      }
+
+      case "cancel": {
+        if (!messageId) {
+          return NextResponse.json(
+            { error: "messageId required for cancel action" },
+            { status: 400 }
+          );
+        }
+
+        const message = await SMSMessage.findById(messageId);
+        if (!message) {
+          return NextResponse.json(
+            { error: "Message not found" },
+            { status: 404 }
+          );
+        }
+
+        if (message.status === "SENT" || message.status === "DELIVERED") {
+          return NextResponse.json(
+            { error: "Cannot cancel already sent/delivered message" },
+            { status: 400 }
+          );
+        }
+
+        // 🚫 FIXED: Remove all pending BullMQ jobs to prevent post-cancel delivery
+        const removedJobs = await removePendingSMSJobs(messageId);
+
+        // Set expiresAt to now to ensure date-based expiry covers edge cases
+        await SMSMessage.findByIdAndUpdate(messageId, {
+          status: "EXPIRED",
+          expiresAt: new Date(),
+        });
+
+        logger.info("[Admin SMS] Message cancelled", {
+          messageId,
+          removedJobs,
+          by: session.user.email,
+          correlationId,
+        });
+
+        return NextResponse.json({
+          success: true,
+          message: "Message cancelled",
+        });
+      }
+
+      default:
+        return NextResponse.json(
+          { error: "Unknown action" },
+          { status: 400 }
+        );
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[Admin SMS] POST failed", { error: errorMessage });
+    const res = NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+    return res;
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/admin/sms/settings/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { SMSSettings } from "@/server/models/SMSSettings";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
+
+/**
+ * GET /api/admin/sms/settings
+ *
+ * Get SMS settings (Super Admin only)
+ * Query params:
+ * - orgId: Get org-specific settings (optional, defaults to global)
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (session.user.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { error: "Forbidden - Super Admin access required" },
+        { status: 403 }
+      );
+    }
+
+    await connectToDatabase();
+
+    const { searchParams } = request.nextUrl;
+    const orgId = searchParams.get("orgId");
+
+    // Ensure global settings exist
+    await SMSSettings.ensureGlobalSettings();
+
+    // Get effective settings (merged with global)
+    const effectiveSettings = await SMSSettings.getEffectiveSettings(orgId || undefined);
+
+    // Also get raw settings for the requested scope
+    const rawSettings = orgId
+      ? await SMSSettings.getOrgSettings(orgId)
+      : await SMSSettings.getGlobalSettings();
+
+    return NextResponse.json({
+      effective: effectiveSettings,
+      raw: rawSettings,
+      isGlobal: !orgId,
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[Admin SMS Settings] GET failed", { error: errorMessage });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * PUT /api/admin/sms/settings
+ *
+ * Update SMS settings (Super Admin only)
+ */
+const SLAConfigSchema = z.object({
+  type: z.enum(["OTP", "NOTIFICATION", "ALERT", "MARKETING", "TRANSACTIONAL"]),
+  priority: z.enum(["LOW", "NORMAL", "HIGH", "CRITICAL"]),
+  targetDeliveryMs: z.number().min(1000).max(86400000),
+  maxRetries: z.number().min(0).max(10),
+  expiresAfterMs: z.number().min(60000).max(604800000), // 1 min to 7 days
+});
+
+const ProviderConfigSchema = z.object({
+  provider: z.enum(["TWILIO", "UNIFONIC", "AWS_SNS", "NEXMO", "LOCAL"]),
+  enabled: z.boolean(),
+  priority: z.number().min(1).max(10),
+  accountId: z.string().optional(),
+  fromNumber: z.string().optional(),
+  region: z.string().optional(),
+  rateLimit: z.number().optional(),
+  costPerMessage: z.number().optional(),
+  supportedTypes: z.array(z.enum(["OTP", "NOTIFICATION", "ALERT", "MARKETING", "TRANSACTIONAL"])).optional(),
+});
+
+const UpdateSettingsSchema = z.object({
+  orgId: z.string().optional(), // null = global settings
+  slaConfigs: z.array(SLAConfigSchema).optional(),
+  providers: z.array(ProviderConfigSchema).optional(),
+  defaultProvider: z.enum(["TWILIO", "UNIFONIC", "AWS_SNS", "NEXMO", "LOCAL"]).optional(),
+  defaultMaxRetries: z.number().min(0).max(10).optional(),
+  defaultExpiresAfterMs: z.number().min(60000).max(604800000).optional(),
+  globalRateLimitPerMinute: z.number().min(1).max(1000).optional(),
+  globalRateLimitPerHour: z.number().min(1).max(10000).optional(),
+  slaBreachNotifyEmails: z.array(z.string().email()).optional(),
+  slaBreachNotifyWebhook: z.string().url().optional().nullable(),
+  dailyReportEnabled: z.boolean().optional(),
+  dailyReportEmails: z.array(z.string().email()).optional(),
+  queueEnabled: z.boolean().optional(),
+  retryEnabled: z.boolean().optional(),
+  deliveryWebhookEnabled: z.boolean().optional(),
+});
+
+export async function PUT(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (session.user.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { error: "Forbidden - Super Admin access required" },
+        { status: 403 }
+      );
+    }
+
+    await connectToDatabase();
+
+    const body = await request.json();
+    const parsed = UpdateSettingsSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid request", details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    const { orgId, ...updates } = parsed.data;
+
+    // Determine if updating global or org-specific settings
+    const isGlobal = !orgId;
+
+    // Use findOneAndUpdate with upsert for atomic operation
+    const filter = isGlobal ? { isGlobal: true } : { orgId };
+    
+    // Build update document
+    const updateFields: Record<string, unknown> = {
+      ...updates,
+      updatedBy: session.user.email,
+    };
+
+    // Handle nullable webhook
+    if (updates.slaBreachNotifyWebhook === null) {
+      updateFields.slaBreachNotifyWebhook = undefined;
+    }
+
+    // Set isGlobal if creating global settings
+    if (isGlobal) {
+      updateFields.isGlobal = true;
+    }
+
+    const settings = await SMSSettings.findOneAndUpdate(
+      filter,
+      { $set: updateFields },
+      { new: true, upsert: true }
+    );
+
+    logger.info("[Admin SMS Settings] Updated", {
+      isGlobal,
+      orgId,
+      by: session.user.email,
+      updates: Object.keys(updates),
+    });
+
+    return NextResponse.json({
+      success: true,
+      settings,
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[Admin SMS Settings] PUT failed", { error: errorMessage });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/admin/sms/settings
+ *
+ * Delete org-specific settings (falls back to global) (Super Admin only)
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (session.user.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { error: "Forbidden - Super Admin access required" },
+        { status: 403 }
+      );
+    }
+
+    await connectToDatabase();
+
+    const { searchParams } = request.nextUrl;
+    const orgId = searchParams.get("orgId");
+
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Cannot delete global settings. Use PUT to reset values." },
+        { status: 400 }
+      );
+    }
+
+    const result = await SMSSettings.deleteOne({ orgId, isGlobal: false });
+
+    if (result.deletedCount === 0) {
+      return NextResponse.json(
+        { error: "Org settings not found" },
+        { status: 404 }
+      );
+    }
+
+    logger.info("[Admin SMS Settings] Deleted org settings", {
+      orgId,
+      by: session.user.email,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Org settings deleted, will use global defaults",
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[Admin SMS Settings] DELETE failed", { error: errorMessage });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/admin/testing-users/[id]/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { TestingUser, TestingUserStatus, TestingUserRole, TTestingUserRole, TTestingUserStatus } from "@/server/models/TestingUser";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
+import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
+
+interface RouteParams {
+  params: Promise<{ id: string }>;
+}
+
+/**
+ * GET /api/admin/testing-users/[id]
+ *
+ * Get a specific testing user (Super Admin only)
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: RouteParams
+) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (session.user.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { error: "Forbidden - Super Admin access required" },
+        { status: 403 }
+      );
+    }
+
+    const { id } = await params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+    }
+
+    await connectToDatabase();
+
+    const user = await TestingUser.findById(id)
+      .select("-passwordHash")
+      .lean();
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ user });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[Admin Testing Users] GET by ID failed", { error: errorMessage });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * PUT /api/admin/testing-users/[id]
+ *
+ * Update a testing user (Super Admin only)
+ */
+const UpdateTestingUserSchema = z.object({
+  displayName: z.string().min(1).max(100).optional(),
+  role: z.enum(TestingUserRole as unknown as [string, ...string[]]).optional() as z.ZodOptional<z.ZodType<TTestingUserRole>>,
+  status: z.enum(TestingUserStatus as unknown as [string, ...string[]]).optional() as z.ZodOptional<z.ZodType<TTestingUserStatus>>,
+  statusReason: z.string().max(500).optional(),
+  purpose: z.string().min(10).max(500).optional(),
+  orgId: z.string().optional().nullable(),
+  expiresAt: z.string().datetime().optional().nullable(),
+  allowedIPs: z.array(z.string()).optional(),
+  allowedEnvironments: z.array(z.string()).optional(),
+  notes: z.string().max(1000).optional().nullable(),
+  requirePasswordChange: z.boolean().optional(),
+});
+
+export async function PUT(
+  request: NextRequest,
+  { params }: RouteParams
+) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (session.user.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { error: "Forbidden - Super Admin access required" },
+        { status: 403 }
+      );
+    }
+
+    const { id } = await params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+    }
+
+    await connectToDatabase();
+
+    const body = await request.json();
+    const parsed = UpdateTestingUserSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid request", details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    const data = parsed.data;
+
+    const user = await TestingUser.findById(id);
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Build update
+    const update: Record<string, unknown> = {};
+
+    if (data.displayName !== undefined) update.displayName = data.displayName;
+    if (data.role !== undefined) update.role = data.role;
+    if (data.purpose !== undefined) update.purpose = data.purpose;
+    if (data.orgId !== undefined) update.orgId = data.orgId || undefined;
+    if (data.expiresAt !== undefined) update.expiresAt = data.expiresAt ? new Date(data.expiresAt) : undefined;
+    if (data.allowedIPs !== undefined) update.allowedIPs = data.allowedIPs;
+    if (data.allowedEnvironments !== undefined) update.allowedEnvironments = data.allowedEnvironments;
+    if (data.notes !== undefined) update.notes = data.notes || undefined;
+    if (data.requirePasswordChange !== undefined) update.requirePasswordChange = data.requirePasswordChange;
+
+    // Handle status change
+    if (data.status !== undefined && data.status !== user.status) {
+      update.status = data.status;
+      update.statusReason = data.statusReason || `Changed by ${session.user.email}`;
+      update.statusChangedAt = new Date();
+      update.statusChangedBy = session.user.email;
+    }
+
+    const updatedUser = await TestingUser.findByIdAndUpdate(
+      id,
+      { $set: update },
+      { new: true }
+    ).select("-passwordHash");
+
+    logger.info("[Admin Testing Users] Updated", {
+      userId: id,
+      updates: Object.keys(update),
+      by: session.user.email,
+    });
+
+    return NextResponse.json({
+      success: true,
+      user: updatedUser,
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[Admin Testing Users] PUT failed", { error: errorMessage });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/admin/testing-users/[id]
+ *
+ * Delete a testing user (Super Admin only)
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: RouteParams
+) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (session.user.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { error: "Forbidden - Super Admin access required" },
+        { status: 403 }
+      );
+    }
+
+    const { id } = await params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+    }
+
+    await connectToDatabase();
+
+    const user = await TestingUser.findById(id);
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    await TestingUser.findByIdAndDelete(id);
+
+    logger.info("[Admin Testing Users] Deleted", {
+      userId: id,
+      email: user.email,
+      by: session.user.email,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Testing user deleted",
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[Admin Testing Users] DELETE failed", { error: errorMessage });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * PATCH /api/admin/testing-users/[id]
+ *
+ * Special actions on a testing user (Super Admin only)
+ * Body:
+ * - action: "reset-password" | "regenerate-password" | "enable" | "disable"
+ */
+const PatchActionSchema = z.object({
+  action: z.enum(["reset-password", "regenerate-password", "enable", "disable"]),
+  password: z.string().min(12).optional(), // For reset-password
+});
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: RouteParams
+) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (session.user.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { error: "Forbidden - Super Admin access required" },
+        { status: 403 }
+      );
+    }
+
+    const { id } = await params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+    }
+
+    await connectToDatabase();
+
+    const body = await request.json();
+    const parsed = PatchActionSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid request", details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    const { action, password } = parsed.data;
+
+    const user = await TestingUser.findById(id);
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    switch (action) {
+      case "reset-password": {
+        if (!password) {
+          return NextResponse.json(
+            { error: "Password required for reset-password action" },
+            { status: 400 }
+          );
+        }
+        const passwordHash = await bcrypt.hash(password, 12);
+        await TestingUser.findByIdAndUpdate(id, {
+          passwordHash,
+          passwordLastChanged: new Date(),
+          requirePasswordChange: false,
+        });
+
+        logger.info("[Admin Testing Users] Password reset", {
+          userId: id,
+          by: session.user.email,
+        });
+
+        return NextResponse.json({
+          success: true,
+          message: "Password has been reset",
+        });
+      }
+
+      case "regenerate-password": {
+        const newPassword = TestingUser.generateSecurePassword();
+        const passwordHash = await bcrypt.hash(newPassword, 12);
+        await TestingUser.findByIdAndUpdate(id, {
+          passwordHash,
+          passwordLastChanged: new Date(),
+          requirePasswordChange: false,
+        });
+
+        logger.info("[Admin Testing Users] Password regenerated", {
+          userId: id,
+          by: session.user.email,
+        });
+
+        return NextResponse.json({
+          success: true,
+          temporaryPassword: newPassword,
+          message: "Save this password - it will not be shown again",
+        });
+      }
+
+      case "enable": {
+        if (user.status === "ACTIVE") {
+          return NextResponse.json(
+            { error: "User is already active" },
+            { status: 400 }
+          );
+        }
+
+        await TestingUser.findByIdAndUpdate(id, {
+          status: "ACTIVE",
+          statusReason: `Enabled by ${session.user.email}`,
+          statusChangedAt: new Date(),
+          statusChangedBy: session.user.email || undefined,
+        });
+
+        logger.info("[Admin Testing Users] Enabled", {
+          userId: id,
+          by: session.user.email,
+        });
+
+        return NextResponse.json({
+          success: true,
+          message: "User has been enabled",
+        });
+      }
+
+      case "disable": {
+        if (user.status === "DISABLED") {
+          return NextResponse.json(
+            { error: "User is already disabled" },
+            { status: 400 }
+          );
+        }
+
+        await TestingUser.findByIdAndUpdate(id, {
+          status: "DISABLED",
+          statusReason: `Disabled by ${session.user.email}`,
+          statusChangedAt: new Date(),
+          statusChangedBy: session.user.email || undefined,
+        });
+
+        logger.info("[Admin Testing Users] Disabled", {
+          userId: id,
+          by: session.user.email,
+        });
+
+        return NextResponse.json({
+          success: true,
+          message: "User has been disabled",
+        });
+      }
+
+      default:
+        return NextResponse.json(
+          { error: "Unknown action" },
+          { status: 400 }
+        );
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[Admin Testing Users] PATCH failed", { error: errorMessage });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/admin/testing-users/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { TestingUser, TestingUserStatus, TestingUserRole, TTestingUserRole, TTestingUserStatus } from "@/server/models/TestingUser";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
+
+/**
+ * GET /api/admin/testing-users
+ *
+ * List testing users (Super Admin only)
+ * Query params:
+ * - status: Filter by status
+ * - orgId: Filter by organization
+ * - search: Search by email or username
+ * - limit: Number of results (default 50, max 200)
+ * - skip: Skip for pagination
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (session.user.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { error: "Forbidden - Super Admin access required" },
+        { status: 403 }
+      );
+    }
+
+    await connectToDatabase();
+
+    const { searchParams } = request.nextUrl;
+    const status = searchParams.get("status") as TTestingUserStatus | null;
+    const orgId = searchParams.get("orgId");
+    const search = searchParams.get("search");
+
+    let limit = parseInt(searchParams.get("limit") || "50", 10);
+    let skip = parseInt(searchParams.get("skip") || "0", 10);
+
+    limit = Math.min(Math.max(1, limit), 200);
+    skip = Math.max(0, skip);
+
+    // Build query
+    const query: Record<string, unknown> = {};
+
+    if (status && TestingUserStatus.includes(status)) {
+      query.status = status;
+    }
+    if (orgId) {
+      query.orgId = orgId;
+    }
+    if (search) {
+      query.$or = [
+        { email: { $regex: search, $options: "i" } },
+        { username: { $regex: search, $options: "i" } },
+        { displayName: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Fetch users (exclude password hash)
+    const [users, total] = await Promise.all([
+      TestingUser.find(query)
+        .select("-passwordHash -loginHistory")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      TestingUser.countDocuments(query),
+    ]);
+
+    // Get counts by status
+    const statusCounts = await TestingUser.aggregate([
+      { $group: { _id: "$status", count: { $sum: 1 } } },
+    ]);
+
+    const counts: Record<string, number> = {};
+    for (const s of TestingUserStatus) {
+      counts[s] = 0;
+    }
+    for (const item of statusCounts) {
+      counts[item._id] = item.count;
+    }
+
+    return NextResponse.json({
+      users,
+      total,
+      limit,
+      skip,
+      hasMore: skip + users.length < total,
+      statusCounts: counts,
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[Admin Testing Users] GET failed", { error: errorMessage });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * POST /api/admin/testing-users
+ *
+ * Create a new testing user (Super Admin only)
+ */
+const CreateTestingUserSchema = z.object({
+  email: z.string().email(),
+  username: z.string().min(3).max(50).regex(/^[a-z0-9_-]+$/i),
+  displayName: z.string().min(1).max(100),
+  role: z.enum(TestingUserRole as unknown as [string, ...string[]]) as z.ZodType<TTestingUserRole>,
+  password: z.string().min(12).optional(), // Auto-generate if not provided
+  purpose: z.string().min(10).max(500),
+  orgId: z.string().optional(),
+  expiresAt: z.string().datetime().optional(),
+  allowedIPs: z.array(z.string()).optional(),
+  allowedEnvironments: z.array(z.string()).optional(),
+  notes: z.string().max(1000).optional(),
+});
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (session.user.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { error: "Forbidden - Super Admin access required" },
+        { status: 403 }
+      );
+    }
+
+    await connectToDatabase();
+
+    const body = await request.json();
+    const parsed = CreateTestingUserSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid request", details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    const data = parsed.data;
+
+    // Check if email or username already exists
+    const existing = await TestingUser.findOne({
+      $or: [
+        { email: data.email.toLowerCase() },
+        { username: data.username.toLowerCase() },
+      ],
+    });
+
+    if (existing) {
+      return NextResponse.json(
+        { error: "Email or username already exists" },
+        { status: 409 }
+      );
+    }
+
+    // Generate password if not provided
+    const password = data.password || TestingUser.generateSecurePassword();
+
+    const testingUser = await TestingUser.createTestingUser({
+      email: data.email,
+      username: data.username,
+      displayName: data.displayName,
+      role: data.role,
+      password,
+      purpose: data.purpose,
+      createdBy: session.user.email || session.user.id,
+      orgId: data.orgId,
+      expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined,
+      allowedIPs: data.allowedIPs,
+      allowedEnvironments: data.allowedEnvironments,
+      notes: data.notes,
+    });
+
+    logger.info("[Admin Testing Users] Created", {
+      userId: testingUser._id.toString(),
+      email: testingUser.email,
+      role: testingUser.role,
+      by: session.user.email,
+    });
+
+    // Return user with temporary password (only shown once)
+    return NextResponse.json({
+      success: true,
+      user: {
+        _id: testingUser._id.toString(),
+        email: testingUser.email,
+        username: testingUser.username,
+        displayName: testingUser.displayName,
+        role: testingUser.role,
+        status: testingUser.status,
+        purpose: testingUser.purpose,
+        createdAt: testingUser.createdAt,
+      },
+      // Only return password if it was auto-generated
+      temporaryPassword: !data.password ? password : undefined,
+      message: !data.password
+        ? "Save this password - it will not be shown again"
+        : "User created with provided password",
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[Admin Testing Users] POST failed", { error: errorMessage });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

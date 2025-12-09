@@ -1,0 +1,3174 @@
+
+You are the "Fixzit Memory Builder" for category: "routes".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "routes",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/api/aqar/support/chatbot/route.ts">
+<![CDATA[
+import crypto from "crypto";
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectDb } from "@/lib/mongo";
+import { AqarListing } from "@/server/models/aqar";
+import { PricingInsightsService } from "@/services/aqar/pricing-insights-service";
+import type { IListing } from "@/server/models/aqar/Listing";
+import { Types, Model } from "mongoose";
+import { z } from "zod";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { getClientIP } from "@/server/security/headers";
+
+export const runtime = "nodejs";
+
+const listingModel = AqarListing as unknown as Model<IListing>;
+
+// AUDIT-2025-12-08: Added Zod schema for input validation
+const chatbotRequestSchema = z.object({
+  message: z.string().min(1).max(2000),
+  listingId: z.string().optional(),
+});
+
+export async function POST(request: NextRequest) {
+  const correlationId = crypto.randomUUID();
+  try {
+    // AUDIT-2025-12-08: Added rate limiting - 30 requests per minute per IP
+    const ip = getClientIP(request);
+    const rl = await smartRateLimit(`aqar:chatbot:${ip}`, 30, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded", correlationId },
+        { status: 429 },
+      );
+    }
+
+    // AUDIT-2025-12-08: Zod validation with max length
+    const parseResult = chatbotRequestSchema.safeParse(await request.json());
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: parseResult.error.issues[0]?.message || "Invalid request" },
+        { status: 400 },
+      );
+    }
+    const body = parseResult.data;
+    const message = body.message.trim();
+
+    await connectDb();
+    let listing: (IListing & { _id: Types.ObjectId }) | null = null;
+    if (body.listingId && Types.ObjectId.isValid(body.listingId)) {
+      const listingDoc = await listingModel
+        .findById(body.listingId)
+        .select(
+          "title price city neighborhood amenities rnplEligible immersive proptech pricingInsights intent propertyType orgId",
+        )
+        .lean();
+      listing = listingDoc as (IListing & { _id: Types.ObjectId }) | null;
+    }
+
+    const reply = await buildReply(message, listing);
+
+    return NextResponse.json({ correlationId, ...reply });
+  } catch (error) {
+    logger.error("AQAR_CHATBOT_FAILED", {
+      error: (error as Error)?.message ?? String(error),
+      stack: (error as Error)?.stack,
+      correlationId,
+    });
+    return NextResponse.json(
+      { error: "Chatbot unavailable", correlationId },
+      { status: 500 },
+    );
+  }
+}
+
+async function buildReply(
+  message: string,
+  listing: (IListing & { _id: Types.ObjectId }) | null,
+) {
+  const lower = message.toLowerCase();
+  const wantsPricing = /price|سعر|cost/.test(lower);
+  const wantsFinancing = /finance|rnpl|تمويل/.test(lower);
+  const wantsTour = /vr|ar|tour|جولة/.test(lower);
+  const wantsVisit = /visit|موعد|schedule/.test(lower);
+
+  const context: Record<string, unknown> = {
+    listingId: listing?._id.toHexString(),
+    title: listing?.title,
+  };
+
+  if (!listing) {
+    const generic = buildGenericReply(message);
+    return {
+      reply: generic.reply,
+      intent: generic.intent,
+      actions: generic.actions,
+      context,
+    };
+  }
+
+  if (wantsPricing) {
+    const pricing = listing.pricingInsights?.pricePerSqm
+      ? listing.pricingInsights
+      : await PricingInsightsService.updateListingInsights(
+          listing._id.toHexString(),
+        );
+    const price = listing.price?.amount
+      ? `${listing.price.amount.toLocaleString()} ﷼`
+      : "—";
+    const pricePerSqm = pricing?.pricePerSqm
+      ? `${pricing.pricePerSqm.toLocaleString()} ﷼/م²`
+      : "—";
+    const appreciation = pricing?.projectedAppreciationPct
+      ? `${pricing.projectedAppreciationPct.toFixed(1)}٪`
+      : "—";
+    return {
+      reply: `السعر المطلوب حاليًا ${price}، وسعر المتر ${pricePerSqm}. التوقع المستقبلي للنمو ${appreciation} بناءً على نشاط الحي. يمكننا مشاركة تقرير PDF إذا رغبت.`,
+      intent: "pricing",
+      actions: ["send_pricing_report", "schedule_consultation"],
+      context,
+    };
+  }
+
+  if (wantsFinancing && listing.rnplEligible) {
+    return {
+      reply:
+        "العقار مؤهل لبرنامج Rent-Now-Pay-Later (RNPL). نستطيع إصدار عرض تقسيط شهري مع حسبة زكاة وزاتكا خلال 4 ساعات. هل ترغب أن يتواصل فريق التمويل؟",
+      intent: "financing",
+      actions: ["start_rnpl_precheck"],
+      context,
+    };
+  }
+
+  if (wantsTour && listing.immersive?.vrTour?.url) {
+    return {
+      reply:
+        "‏يوجد لدينا جولة VR / AR محدثة. أرسلنا رابط التجربة على بريدك ويمكنك تفعيل وضع الواقع المعزز من الموبايل.",
+      intent: "immersive",
+      actions: ["open_vr_tour"],
+      context: { ...context, vrUrl: listing.immersive.vrTour.url },
+    };
+  }
+
+  if (wantsVisit) {
+    return {
+      reply:
+        "يسعدنا ترتيب موعد معاينة ميدانية. أخبرني بالوقت المناسب لك أو استخدم أداة جدولة الزيارات في صفحة العقار.",
+      intent: "viewing",
+      actions: ["open_viewing_scheduler"],
+      context,
+    };
+  }
+
+  if (
+    listing.proptech?.smartHomeLevel &&
+    listing.proptech.smartHomeLevel !== "NONE"
+  ) {
+    return {
+      reply:
+        "العقار مزود ببنية منزل ذكي (تحكم بالإضاءة، أقفال رقمية، ومستشعرات طاقة). يمكننا مشاركة كتيب المتكامل إذا رغبت.",
+      intent: "proptech",
+      actions: ["send_proptech_brochure"],
+      context,
+    };
+  }
+
+  const fallback = buildGenericReply(message);
+  return {
+    reply: fallback.reply,
+    intent: fallback.intent,
+    actions: fallback.actions,
+    context,
+  };
+}
+
+function buildGenericReply(message: string) {
+  if (/foreign|أجنبي/.test(message.toLowerCase())) {
+    return {
+      reply:
+        "لدينا فريق مختص بملكية الأجانب ومناطق REGA الجديدة ابتداءً من يناير 2026. أرسل لنا نسخة الجواز لنقوم بالمطابقة.",
+      intent: "compliance",
+      actions: ["start_foreign_ownership_check"],
+    };
+  }
+  return {
+    reply:
+      "تم تسجيل سؤالك وسيقوم وكيل Fixzit بالتواصل معك خلال دقائق. يمكنني الإجابة عن الأسعار، التمويل، أو الحجوزات إن رغبت.",
+    intent: "general",
+    actions: ["handoff_to_agent"],
+  };
+}
+
+]]>
+</file>
+
+<file path="app/api/assets/[id]/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Asset } from "@/server/models/Asset";
+import { z } from "zod";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { Types } from "mongoose";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import {
+  zodValidationError,
+  rateLimitError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+
+const updateAssetSchema = z.object({
+  name: z.string().min(1).optional(),
+  description: z.string().optional(),
+  type: z
+    .enum([
+      "HVAC",
+      "ELECTRICAL",
+      "PLUMBING",
+      "SECURITY",
+      "ELEVATOR",
+      "GENERATOR",
+      "FIRE_SYSTEM",
+      "IT_EQUIPMENT",
+      "VEHICLE",
+      "OTHER",
+    ])
+    .optional(),
+  category: z.string().min(1).optional(),
+  manufacturer: z.string().optional(),
+  model: z.string().optional(),
+  serialNumber: z.string().optional(),
+  propertyId: z.string().min(1).optional(),
+  location: z
+    .object({
+      building: z.string().optional(),
+      floor: z.string().optional(),
+      room: z.string().optional(),
+      coordinates: z
+        .object({
+          lat: z.number(),
+          lng: z.number(),
+        })
+        .optional(),
+    })
+    .optional(),
+  specs: z
+    .object({
+      capacity: z.string().optional(),
+      powerRating: z.string().optional(),
+      voltage: z.string().optional(),
+      current: z.string().optional(),
+      frequency: z.string().optional(),
+      dimensions: z.string().optional(),
+      weight: z.string().optional(),
+    })
+    .optional(),
+  status: z
+    .enum(["ACTIVE", "MAINTENANCE", "OUT_OF_SERVICE", "DECOMMISSIONED"])
+    .optional(),
+  criticality: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]).optional(),
+  tags: z.array(z.string()).optional(),
+});
+
+/**
+ * Retrieve an asset by ID for the authenticated user's tenant.
+ *
+ * Authenticates the requester, ensures the database is ready, and returns the matching asset document as JSON.
+ *
+ * @param params.id - The asset's MongoDB `_id`.
+ * @returns A NextResponse containing the asset on success, or a JSON error with an appropriate HTTP status:
+ * - 401 Unauthorized when authentication fails
+ * - 404 Asset not found when no matching asset exists for the tenant
+ * - 400 Invalid asset id for malformed IDs
+ * - 500 Internal server error for other failures
+ */
+/**
+ * @openapi
+ * /api/assets/[id]:
+ *   get:
+ *     summary: assets/[id] operations
+ *     tags: [assets]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const user = await getSessionUser(req);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+    await connectToDatabase();
+
+    if (!params?.id || !Types.ObjectId.isValid(params.id)) {
+      return createSecureResponse({ error: "Invalid asset id" }, 400, req);
+    }
+    const orgCandidates =
+      Types.ObjectId.isValid(user.orgId) ? [user.orgId, new Types.ObjectId(user.orgId)] : [user.orgId];
+    const asset = await Asset.findOne({
+      _id: params.id,
+      orgId: { $in: orgCandidates },
+    });
+
+    if (!asset) {
+      return createSecureResponse({ error: "Asset not found" }, 404, req);
+    }
+
+    return createSecureResponse(asset, 200, req);
+  } catch (error: unknown) {
+    const name =
+      error && typeof error === "object" && "name" in error ? error.name : "";
+    if (name === "CastError") {
+      return createSecureResponse({ error: "Invalid asset id" }, 400, req);
+    }
+    return createSecureResponse({ error: "Internal server error" }, 500, req);
+  }
+}
+
+/**
+ * Partially updates an existing asset belonging to the authenticated user's tenant.
+ *
+ * Validates the request body against `updateAssetSchema`, applies the changes, sets `updatedBy`
+ * to the current user, and returns the updated asset document. Authentication is required.
+ *
+ * Possible responses:
+ * - 200: Updated asset JSON
+ * - 401: Unauthorized (no valid session)
+ * - 404: Asset not found (no matching asset for the id and tenant)
+ * - 422: Validation failed (Zod validation errors)
+ * - 400: Invalid asset id (malformed id)
+ * - 500: Internal server error
+ *
+ * @param params.id - The asset id to update
+ * @returns The HTTP response containing the updated asset or an error payload with an appropriate status code.
+ */
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const user = await getSessionUser(req);
+    await connectToDatabase();
+
+    const data = updateAssetSchema.parse(await req.json());
+
+    const asset = await Asset.findOneAndUpdate(
+      { _id: params.id, orgId: user.orgId },
+      { $set: { ...data, updatedBy: user.id } },
+      { new: true },
+    );
+
+    if (!asset) {
+      return createSecureResponse({ error: "Asset not found" }, 404, req);
+    }
+
+    return createSecureResponse(asset, 200, req);
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      return zodValidationError(error, req);
+    }
+    const name =
+      error && typeof error === "object" && "name" in error ? error.name : "";
+    if (name === "CastError") {
+      return createSecureResponse({ error: "Invalid asset id" }, 400, req);
+    }
+    return createSecureResponse({ error: "Internal server error" }, 500, req);
+  }
+}
+
+/**
+ * Soft-deletes an asset by marking it "DECOMMISSIONED".
+ *
+ * Authenticates the requester, then updates the asset with the given `id` (scoped to the requester's tenant)
+ * setting `status` to `"DECOMMISSIONED"` and `updatedBy` to the current user id.
+ *
+ * @param params.id - Asset id from the route (used to look up and update the asset)
+ * @returns A NextResponse JSON result:
+ * - 200 with `{ success: true }` when the asset is successfully updated
+ * - 401 when the requester is not authenticated
+ * - 404 when no matching asset is found for the tenant
+ * - 500 with an error message for other failures
+ */
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const user = await getSessionUser(req);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+    await connectToDatabase();
+
+    const asset = await Asset.findOneAndUpdate(
+      { _id: params.id, orgId: user.orgId },
+      { $set: { status: "DECOMMISSIONED", updatedBy: user.id } },
+      { new: true },
+    );
+
+    if (!asset) {
+      return createSecureResponse({ error: "Asset not found" }, 404, req);
+    }
+
+    return createSecureResponse({ success: true }, 200, req);
+  } catch (error: unknown) {
+    const name =
+      error && typeof error === "object" && "name" in error ? error.name : "";
+    if (name === "CastError") {
+      return createSecureResponse({ error: "Invalid asset id" }, 400, req);
+    }
+    return createSecureResponse({ error: "Internal server error" }, 500, req);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/assets/route.ts">
+<![CDATA[
+/**
+ * Assets API Routes - Refactored with CRUD Factory
+ * BEFORE: 203 lines of duplicated boilerplate
+ * AFTER: ~90 lines using reusable factory
+ * REDUCTION: 56% less code
+ */
+
+import { createCrudHandlers } from "@/lib/api/crud-factory";
+import { Asset } from "@/server/models/Asset";
+import { z } from "zod";
+
+/**
+ * Asset Creation Schema
+ */
+const createAssetSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  type: z.enum([
+    "HVAC",
+    "ELECTRICAL",
+    "PLUMBING",
+    "SECURITY",
+    "ELEVATOR",
+    "GENERATOR",
+    "FIRE_SYSTEM",
+    "IT_EQUIPMENT",
+    "VEHICLE",
+    "OTHER",
+  ]),
+  category: z.string().min(1),
+  manufacturer: z.string().optional(),
+  model: z.string().optional(),
+  serialNumber: z.string().optional(),
+  propertyId: z.string().min(1),
+  location: z
+    .object({
+      building: z.string().optional(),
+      floor: z.string().optional(),
+      room: z.string().optional(),
+      coordinates: z
+        .object({
+          lat: z.number(),
+          lng: z.number(),
+        })
+        .optional(),
+    })
+    .optional(),
+  specs: z
+    .object({
+      capacity: z.string().optional(),
+      powerRating: z.string().optional(),
+      voltage: z.string().optional(),
+      current: z.string().optional(),
+      frequency: z.string().optional(),
+      dimensions: z.string().optional(),
+      weight: z.string().optional(),
+    })
+    .optional(),
+  purchase: z
+    .object({
+      date: z.string().optional(),
+      cost: z.number().optional(),
+      supplier: z.string().optional(),
+      warranty: z
+        .object({
+          period: z.number().optional(),
+          expiry: z.string().optional(),
+          terms: z.string().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  status: z
+    .enum(["ACTIVE", "MAINTENANCE", "OUT_OF_SERVICE", "DECOMMISSIONED"])
+    .optional(),
+  criticality: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]).optional(),
+  tags: z.array(z.string()).optional(),
+});
+
+/**
+ * Build Asset Filter
+ */
+function buildAssetFilter(searchParams: URLSearchParams, orgId: string) {
+  const filter: Record<string, unknown> = { orgId };
+
+  const assetType = searchParams.get("type");
+  if (
+    assetType &&
+    [
+      "HVAC",
+      "ELECTRICAL",
+      "PLUMBING",
+      "SECURITY",
+      "ELEVATOR",
+      "GENERATOR",
+      "FIRE_SYSTEM",
+      "IT_EQUIPMENT",
+      "VEHICLE",
+      "OTHER",
+    ].includes(assetType)
+  ) {
+    filter.type = assetType;
+  }
+
+  const status = searchParams.get("status");
+  if (
+    status &&
+    ["ACTIVE", "MAINTENANCE", "OUT_OF_SERVICE", "DECOMMISSIONED"].includes(
+      status,
+    )
+  ) {
+    filter.status = status;
+  }
+
+  const propertyId = searchParams.get("propertyId");
+  if (propertyId) {
+    filter.propertyId = propertyId;
+  }
+
+  const search = searchParams.get("search");
+  if (search) {
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    filter.$or = [
+      { name: { $regex: escapedSearch, $options: "i" } },
+      { code: { $regex: escapedSearch, $options: "i" } },
+      { description: { $regex: escapedSearch, $options: "i" } },
+      { manufacturer: { $regex: escapedSearch, $options: "i" } },
+      { model: { $regex: escapedSearch, $options: "i" } },
+      { serialNumber: { $regex: escapedSearch, $options: "i" } },
+    ];
+  }
+
+  return filter;
+}
+
+/**
+ * Export CRUD Handlers
+ */
+export const { GET, POST } = createCrudHandlers({
+  Model: Asset,
+  createSchema: createAssetSchema,
+  entityName: "asset",
+  generateCode: () =>
+    `AST-${crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase()}`,
+  defaultSort: { createdAt: -1 },
+  searchFields: [
+    "name",
+    "code",
+    "description",
+    "manufacturer",
+    "model",
+    "serialNumber",
+  ],
+  buildFilter: buildAssetFilter,
+});
+
+]]>
+</file>
+
+<file path="app/api/assistant/query/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { HelpArticle } from "@/server/models/HelpArticle";
+import { WorkOrder } from "@/server/models/WorkOrder";
+import {
+  getSessionUser,
+  type SessionUser,
+} from "@/server/middleware/withAuthRbac";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+import { logger } from "@/lib/logger";
+
+const BodySchema = z.object({
+  question: z.string().min(1),
+});
+
+type Citation = { title: string; slug: string };
+
+/**
+ * WorkOrder Database Document Shape
+ * Represents minimal fields needed for assistant ticket operations
+ */
+interface WorkOrderItem {
+  workOrderNumber: string;
+  title: string;
+  status: string;
+}
+
+/**
+ * HelpArticle Database Document Shape
+ * Represents KB articles returned from MongoDB text search
+ */
+interface HelpArticleDoc {
+  title: string; // Article title for display
+  slug: string; // URL-friendly identifier
+  content?: string; // Markdown/text content for snippets
+}
+
+/**
+ * Parse Natural Language for New Ticket Creation
+ *
+ * Supports two formats:
+ * 1. Slash command: /new-ticket title:"Fix AC" desc:"Not working" priority:HIGH
+ * 2. Natural language: "Create a work order for broken AC"
+ *
+ * @param question - User's question string
+ * @returns Parsed ticket details or null if not a ticket creation request
+ *
+ * @example
+ * parseNewTicket('/new-ticket title:"AC Repair"')
+ * // Returns: { title: "AC Repair", description: undefined, priority: "MEDIUM", ... }
+ *
+ * parseNewTicket('open ticket for broken elevator')
+ * // Returns: { title: "open ticket for broken elevator", priority: "MEDIUM", ... }
+ */
+function parseNewTicket(question: string) {
+  const isSlash = question.trim().toLowerCase().startsWith("/new-ticket");
+  const isNatural = /\b(create|open)\b.*\b(work *order|ticket)\b/i.test(
+    question,
+  );
+  if (!isSlash && !isNatural) return null;
+
+  const get = (key: string) => {
+    const m = question.match(new RegExp(`${key}:("([^"]+)"|([^ ]+))`, "i"));
+    if (!m) return undefined;
+    return (m[2] || m[3])?.trim();
+  };
+
+  const title =
+    get("title") ||
+    question.replace(/^ *\/new-ticket */i, "").trim() ||
+    "General request";
+  const description = get("desc") || get("description");
+  const priority = (get("priority") || "MEDIUM").toUpperCase();
+  const propertyId = get("propertyId");
+  const unitId = get("unitId");
+  return { title, description, priority, propertyId, unitId } as const;
+}
+
+/**
+ * Check if Query is Requesting User's Ticket List
+ *
+ * Matches patterns like:
+ * - "/my-tickets" (slash command)
+ * - "show my tickets"
+ * - "list my work orders"
+ *
+ * @param question - User's question string
+ * @returns true if user wants to see their ticket list
+ */
+function isMyTickets(question: string) {
+  return (
+    question.trim().toLowerCase().startsWith("/my-tickets") ||
+    /\b(my|list)\b.*\b(tickets|work *orders)\b/i.test(question)
+  );
+}
+
+/**
+ * @openapi
+ * /api/assistant/query:
+ *   post:
+ *     summary: assistant/query operations
+ *     tags: [assistant]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  try {
+    await connectToDatabase(); // ensure DB/init (real or mock)
+  } catch (error) {
+    logger.warn(
+      "[Assistant] Database connection failed, continuing without DB",
+      { error },
+    );
+  }
+
+  let user: SessionUser | null = null;
+  try {
+    user = await getSessionUser(req);
+  } catch {
+    user = null; // allow public help queries without actions
+  }
+
+  // Rate limiting: Authenticated users must have org context; anonymous users are allowed but share IP bucket
+  if (user && !user.orgId) {
+    logger.error("[Assistant] Authenticated user missing orgId - denying to preserve tenant isolation", {
+      userId: user.id,
+    });
+    return createSecureResponse({ error: "Missing organization context" }, 400, req);
+  }
+
+  const orgId = user?.orgId ?? null;
+  const userId = user?.id ?? null;
+  const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, orgId, userId), 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  let body: z.infer<typeof BodySchema>;
+  try {
+    body = BodySchema.parse(await req.json());
+  } catch {
+    return createSecureResponse({ error: "Invalid request" }, 400, req);
+  }
+
+  const q = body.question.trim();
+
+  /**
+   * TOOL 1: Create New Ticket/Work Order
+   *
+   * When user requests ticket creation (via slash command or natural language),
+   * we parse the intent, validate authentication, and create a work order in the database.
+   *
+   * Flow:
+   * 1. Parse ticket details from question
+   * 2. Verify user authentication
+   * 3. Generate unique work order code
+   * 4. Create WorkOrder document with status history
+   * 5. Return confirmation message
+   */
+  const createArgs = parseNewTicket(q);
+  if (createArgs) {
+    if (!user) {
+      return NextResponse.json({
+        answer: "Please sign in to create a work order.",
+        citations: [],
+      });
+    }
+    if (!createArgs.propertyId) {
+      return NextResponse.json({
+        answer: "Please specify a propertyId when creating a work order.",
+        citations: [],
+      });
+    }
+    try {
+      const allowedPriorities = ["LOW", "MEDIUM", "HIGH", "URGENT", "CRITICAL"];
+      const priority = allowedPriorities.includes(createArgs.priority)
+        ? createArgs.priority
+        : "MEDIUM";
+      const now = new Date();
+      const wo = await WorkOrder.create({
+        orgId: user.orgId,
+        title: createArgs.title,
+        description: createArgs.description || "No description provided",
+        priority,
+        category: "GENERAL",
+        type: "MAINTENANCE",
+        location: {
+          propertyId: createArgs.propertyId,
+          unitNumber: createArgs.unitId,
+        },
+        requester: {
+          userId: user.id,
+          type: "TENANT",
+          name: user.id,
+          contactInfo: {
+            email: (user as { email?: string }).email,
+          },
+        },
+        status: "SUBMITTED",
+        statusHistory: [
+          {
+            fromStatus: "DRAFT",
+            toStatus: "SUBMITTED",
+            changedBy: user.id,
+            changedAt: now,
+            notes: "Created via assistant",
+          },
+        ],
+        createdBy: user.id,
+      });
+      const answer = `Created work order ${(wo as unknown as WorkOrderItem).workOrderNumber} – "${wo.title}" with priority ${wo.priority}.`;
+      return NextResponse.json({ answer, citations: [] as Citation[] });
+    } catch (_e: unknown) {
+      const errorMsg = _e instanceof Error ? _e.message : "unknown error";
+      return NextResponse.json({
+        answer: `Could not create work order: ${errorMsg}`,
+        citations: [] as Citation[],
+      });
+    }
+  }
+
+  /**
+   * TOOL 2: List User's Tickets
+   *
+   * Retrieves user's recent work orders when requested via:
+   * - "/my-tickets" command
+   * - Natural language like "show my tickets"
+   *
+   * Returns up to 5 most recent work orders with code, title, and status.
+   * Requires authentication - anonymous users receive a sign-in prompt.
+   */
+  if (isMyTickets(q)) {
+    if (!user) {
+      return NextResponse.json({
+        answer: "Please sign in to view your tickets.",
+        citations: [],
+      });
+    }
+    const items = await WorkOrder.find({
+      orgId: user.orgId,
+      "requester.userId": user.id,
+    })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select(["workOrderNumber", "title", "status"])
+      .lean();
+    const lines = items.map(
+      (it) =>
+        `• ${(it as WorkOrderItem).workOrderNumber}: ${it.title} – ${it.status}`,
+    );
+    const answer = lines.length
+      ? `Your recent work orders:\n${lines.join("\n")}`
+      : "You have no work orders yet.";
+    return NextResponse.json({ answer, citations: [] as Citation[] });
+  }
+
+  /**
+   * TOOL 3: Knowledge Base Search
+   *
+   * When question doesn't match specific tools, we search the Help Article KB
+   * using MongoDB text search for relevant documentation.
+   *
+   * Search Strategy:
+   * 1. Try MongoDB $text search for indexed content
+   * 2. Fallback: Simple title/content substring matching
+   * 3. Return top 5 articles with citations
+   *
+   * NOTE: KB articles can be public (no orgId) or tenant-specific
+   * If user is authenticated, we include their org's articles + public articles
+   * If anonymous, only public articles are returned
+   */
+  let docs: HelpArticleDoc[] = [];
+  // SEC-001: Scope KB search to user's org or public articles
+  const kbFilter: Record<string, unknown> = { status: "PUBLISHED" };
+  if (user?.orgId) {
+    // Authenticated: user's org articles + public (no orgId) articles
+    kbFilter.$or = [{ orgId: user.orgId }, { orgId: { $exists: false } }];
+  } else {
+    // Anonymous: only public articles
+    kbFilter.orgId = { $exists: false };
+  }
+  try {
+    docs =
+      (await HelpArticle.find({ ...kbFilter, $text: { $search: q } })
+        .sort?.({ updatedAt: -1 })
+        .limit?.(5)) || [];
+  } catch {
+    // Fallback: simple title match in mock mode
+    try {
+      docs =
+        (await HelpArticle.find(kbFilter)
+          .sort?.({ updatedAt: -1 })
+          .limit?.(20)) || [];
+      const s = q.toLowerCase();
+      docs = docs
+        .filter(
+          (d) =>
+            (d.title || "").toLowerCase().includes(s) ||
+            (d.content || "").toLowerCase().includes(s),
+        )
+        .slice(0, 5);
+    } catch (error) {
+      logger.warn("[Assistant] Help article search failed", {
+        error,
+        query: q,
+      });
+    }
+  }
+
+  const citations: Citation[] = (docs || [])
+    .map((d: HelpArticleDoc) => ({ title: d.title, slug: d.slug }))
+    .slice(0, 5);
+  let answer = "";
+  if (docs?.length) {
+    const d0 = docs[0];
+    const firstPara = (d0.content || "").split(/\n\n+/)[0]?.trim() || d0.title;
+    answer = `${firstPara}\n\nI included related help articles below.`;
+  } else {
+    answer =
+      "I could not find a specific article for that yet. Try rephrasing or ask about work orders, properties, invoices, or approvals.";
+  }
+
+  return NextResponse.json({ answer, citations });
+}
+
+]]>
+</file>
+
+<file path="app/api/ats/analytics/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Application } from "@/server/models/Application";
+import { Job } from "@/server/models/Job";
+import { Interview } from "@/server/models/ats/Interview";
+import { atsRBAC } from "@/lib/ats/rbac";
+import { getCached, CacheTTL } from "@/lib/redis";
+import { Types } from "mongoose";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
+
+/**
+ * GET /api/ats/analytics - Get recruitment pipeline analytics
+ */
+export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  try {
+    await connectToDatabase();
+
+    const runAggregate = async <T>(aggResult: unknown): Promise<T[]> => {
+      const maybe = aggResult as {
+        allowDiskUse?: (flag: boolean) => Promise<T[]>;
+      };
+      if (maybe && typeof maybe.allowDiskUse === "function") {
+        return (await maybe.allowDiskUse(true)) ?? [];
+      }
+      return (await (aggResult as Promise<T[]>)) ?? [];
+    };
+
+    // RBAC: Check permissions for reading analytics
+    const authResult = await atsRBAC(req, ["applications:read"]);
+    if (!authResult.authorized) {
+      return authResult.response;
+    }
+    const { orgId } = authResult;
+
+    const { searchParams } = new URL(req.url);
+    const periodParam = searchParams.get("period") || "30"; // days
+    const jobId = searchParams.get("jobId");
+
+    const period = Number.parseInt(periodParam, 10);
+    if (!Number.isFinite(period) || period < 1 || period > 365) {
+      return NextResponse.json(
+        { success: false, error: "Invalid period parameter. Use 1-365 days." },
+        { status: 400 },
+      );
+    }
+
+    if (jobId && !Types.ObjectId.isValid(jobId)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid jobId parameter" },
+        { status: 400 },
+      );
+    }
+
+    // Cache key: analytics:{orgId}:{period}:{jobId}
+    const cacheKey = `analytics:${orgId}:${period}${jobId ? `:${jobId}` : ""}`;
+
+    // Use cached data if available (5 minutes TTL)
+    const analytics = await getCached(
+      cacheKey,
+      CacheTTL.FIVE_MINUTES,
+      async () => {
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - period);
+
+        // Build filter
+        const filter: Record<string, unknown> = {
+          orgId,
+          createdAt: { $gte: startDate },
+        };
+        if (jobId) filter.jobId = new Types.ObjectId(jobId);
+
+        // Get applications by stage
+        // allowDiskUse prevents memory overflow for large orgs
+        const applicationsByStage = await runAggregate<{ _id: string; count: number }>(
+          Application.aggregate([
+            { $match: filter },
+            { $group: { _id: "$stage", count: { $sum: 1 } } },
+            { $sort: { _id: 1 } },
+          ]),
+        );
+
+        // Get total applications
+        const totalApplications = await Application.countDocuments(filter);
+
+        // Get applications over time for the requested period
+        // NOTE: Previously had hard-coded { $limit: 30 } which truncated data for longer periods
+        // Now returns all days within the filter's date range
+        const applicationsOverTime = await runAggregate<{ _id: string; count: number }>(
+          Application.aggregate([
+            { $match: filter },
+            {
+              $group: {
+                _id: {
+                  $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
+                },
+                count: { $sum: 1 },
+              },
+            },
+            { $sort: { _id: 1 } },
+            // Removed { $limit: 30 } - full period data now returned
+          ]),
+        );
+
+        // Get conversion rates
+        const stageTransitions = await runAggregate<{
+          _id: null;
+          applied: number;
+          screening: number;
+          interview: number;
+          offer: number;
+          hired: number;
+          rejected: number;
+        }>(
+          Application.aggregate([
+            { $match: filter },
+            {
+              $group: {
+                _id: null,
+                applied: {
+                  $sum: { $cond: [{ $eq: ["$stage", "applied"] }, 1, 0] },
+                },
+                screening: {
+                  $sum: { $cond: [{ $eq: ["$stage", "screening"] }, 1, 0] },
+                },
+                interview: {
+                  $sum: { $cond: [{ $eq: ["$stage", "interview"] }, 1, 0] },
+                },
+                offer: {
+                  $sum: { $cond: [{ $eq: ["$stage", "offer"] }, 1, 0] },
+                },
+                hired: {
+                  $sum: { $cond: [{ $eq: ["$stage", "hired"] }, 1, 0] },
+                },
+                rejected: {
+                  $sum: { $cond: [{ $eq: ["$stage", "rejected"] }, 1, 0] },
+                },
+              },
+            },
+          ]),
+        );
+
+        const stages = stageTransitions[0] || {};
+        const conversionRates = {
+          appliedToScreening:
+            stages.applied > 0
+              ? ((stages.screening / stages.applied) * 100).toFixed(1)
+              : "0",
+          screeningToInterview:
+            stages.screening > 0
+              ? ((stages.interview / stages.screening) * 100).toFixed(1)
+              : "0",
+          interviewToOffer:
+            stages.interview > 0
+              ? ((stages.offer / stages.interview) * 100).toFixed(1)
+              : "0",
+          offerToHired:
+            stages.offer > 0
+              ? ((stages.hired / stages.offer) * 100).toFixed(1)
+              : "0",
+          overallConversion:
+            stages.applied > 0
+              ? ((stages.hired / stages.applied) * 100).toFixed(1)
+              : "0",
+        };
+
+        // Get average time in stage
+        const avgTimeInStage = await runAggregate<{
+          _id: string;
+          avgDays: number;
+        }>(
+          Application.aggregate([
+            { $match: filter },
+            {
+              $project: {
+                stage: 1,
+                timeInStage: {
+                  $divide: [
+                    { $subtract: [new Date(), "$createdAt"] },
+                    1000 * 60 * 60 * 24, // Convert to days
+                  ],
+                },
+              },
+            },
+            {
+              $group: {
+                _id: "$stage",
+                avgDays: { $avg: "$timeInStage" },
+              },
+            },
+          ]),
+        );
+
+        // Get top performing jobs
+        // FIXED: Use consistent filter with jobId if provided (was previously org-wide only)
+        // FIXED: Output shape now matches declared type (jobTitle instead of job.title)
+        const topJobsFilter: Record<string, unknown> = {
+          orgId,
+          createdAt: { $gte: startDate },
+        };
+        if (jobId) topJobsFilter.jobId = new Types.ObjectId(jobId);
+
+        const topJobs = await runAggregate<{
+          _id: Types.ObjectId;
+          applicationsCount: number;
+          avgScore: number;
+          jobTitle: string;
+        }>(
+          Application.aggregate([
+            { $match: topJobsFilter },
+            {
+              $group: {
+                _id: "$jobId",
+                applicationsCount: { $sum: 1 },
+                avgScore: { $avg: "$score" },
+              },
+            },
+            { $sort: { applicationsCount: -1 } },
+            { $limit: 5 },
+            {
+              $lookup: {
+                from: "jobs",
+                localField: "_id",
+                foreignField: "_id",
+                as: "job",
+              },
+            },
+            { $unwind: "$job" },
+            {
+              $project: {
+                jobTitle: "$job.title",
+                applicationsCount: 1,
+                avgScore: { $round: ["$avgScore", 1] },
+              },
+            },
+          ]),
+        );
+
+        // Get interview statistics
+        const interviewStats = await runAggregate<{
+          _id: string;
+          count: number;
+        }>(
+          Interview.aggregate([
+            { $match: { orgId, createdAt: { $gte: startDate } } },
+            {
+              $group: {
+                _id: "$status",
+                count: { $sum: 1 },
+              },
+            },
+          ]),
+        );
+
+        const totalInterviews = await Interview.countDocuments({
+          orgId,
+          createdAt: { $gte: startDate },
+        });
+
+        // Get active jobs count
+        const activeJobs = await Job.countDocuments({
+          orgId,
+          status: "published",
+        });
+
+        return {
+          period,
+          summary: {
+            totalApplications,
+            activeJobs,
+            totalInterviews,
+            hiredCount: stages.hired || 0,
+          },
+          applicationsByStage: applicationsByStage.map(
+            (item: { _id: string; count: number }) => ({
+              stage: item._id,
+              count: item.count,
+            }),
+          ),
+          applicationsOverTime: applicationsOverTime.map(
+            (item: { _id: string; count: number }) => ({
+              date: item._id,
+              count: item.count,
+            }),
+          ),
+          conversionRates,
+          avgTimeInStage: avgTimeInStage.map(
+            (item: { _id: string; avgDays: number }) => ({
+              stage: item._id,
+              avgDays: Math.round(item.avgDays * 10) / 10,
+            }),
+          ),
+          topJobs,
+          interviewStats: interviewStats.map(
+            (item: { _id: string; count: number }) => ({
+              status: item._id,
+              count: item.count,
+            }),
+          ),
+        };
+      },
+    );
+
+    return NextResponse.json({
+      success: true,
+      data: analytics,
+    });
+  } catch (error) {
+    logger.error(
+      "Analytics fetch error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return NextResponse.json(
+      { success: false, error: "Failed to fetch analytics" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/ats/applications/[id]/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Application } from "@/server/models/Application";
+import {
+  atsRBAC,
+  canAccessResource,
+  isValidStageTransition,
+  ALLOWED_STAGE_TRANSITIONS,
+} from "@/lib/ats/rbac";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { notFoundError, rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
+
+/**
+ * @openapi
+ * /api/ats/applications/[id]:
+ *   get:
+ *     summary: ats/applications/[id] operations
+ *     tags: [ats]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  // Rate limiting
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  try {
+    await connectToDatabase();
+
+    // RBAC: Check permissions
+    const authResult = await atsRBAC(req, ["applications:read"]);
+    if (!authResult.authorized) {
+      return authResult.response;
+    }
+    const { orgId, isSuperAdmin } = authResult;
+
+    const application = await Application.findById((await params).id)
+      .populate("jobId")
+      .populate("candidateId")
+      .lean();
+
+    if (!application) return notFoundError("Application");
+
+    // Resource ownership check
+    if (!canAccessResource(orgId, application.orgId, isSuperAdmin)) {
+      return notFoundError("Application");
+    }
+
+    return NextResponse.json({ success: true, data: application });
+  } catch (error) {
+    logger.error(
+      "Application fetch error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse(
+      { error: "Failed to fetch application" },
+      500,
+      req,
+    );
+  }
+}
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  try {
+    await connectToDatabase();
+    const body = await req.json();
+
+    // RBAC: Check permissions
+    const authResult = await atsRBAC(req, [
+      "applications:update",
+      "applications:stage-transition",
+    ]);
+    if (!authResult.authorized) {
+      return authResult.response;
+    }
+    const { userId, orgId, isSuperAdmin } = authResult;
+
+    const application = await Application.findById((await params).id);
+    if (!application) return notFoundError("Application");
+
+    // Resource ownership check
+    if (!canAccessResource(orgId, application.orgId, isSuperAdmin)) {
+      return notFoundError("Application");
+    }
+
+    // Stage transition guard (state machine)
+    if (body.stage && body.stage !== application.stage) {
+      const oldStage = application.stage;
+
+      if (!isValidStageTransition(oldStage, body.stage)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Invalid stage transition: ${oldStage} → ${body.stage}`,
+            allowedTransitions: ALLOWED_STAGE_TRANSITIONS[oldStage] || [],
+          },
+          { status: 400 },
+        );
+      }
+
+      application.stage = body.stage;
+      application.history.push({
+        action: `stage_change:${oldStage}->${body.stage}`,
+        by: userId,
+        at: new Date(),
+        details: body.reason,
+      });
+    }
+    if (typeof body.score === "number" && body.score !== application.score) {
+      const oldScore = application.score;
+      application.score = body.score;
+      application.history.push({
+        action: "score_updated",
+        by: userId,
+        at: new Date(),
+        details: `Score changed from ${oldScore} to ${body.score}`,
+      });
+    }
+    if (body.note) {
+      application.notes.push({
+        author: userId,
+        text: body.note,
+        createdAt: new Date(),
+        isPrivate: !!body.isPrivate,
+      });
+    }
+    if (Array.isArray(body.flags)) application.flags = body.flags;
+    if (Array.isArray(body.reviewers)) application.reviewers = body.reviewers;
+
+    await application.save();
+    return NextResponse.json({ success: true, data: application });
+  } catch (error) {
+    logger.error(
+      "Application update error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse(
+      { error: "Failed to update application" },
+      500,
+      req,
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/ats/applications/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Application } from "@/server/models/Application";
+import { atsRBAC } from "@/lib/ats/rbac";
+import { Types } from "mongoose";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
+
+/**
+ * GET /api/ats/applications - List applications with filtering
+ */
+export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  try {
+    await connectToDatabase();
+
+    // RBAC: Check permissions for reading applications
+    const authResult = await atsRBAC(req, ["applications:read"]);
+    if (!authResult.authorized) {
+      return authResult.response;
+    }
+    const { orgId } = authResult;
+
+    const { searchParams } = new URL(req.url);
+    const jobId = searchParams.get("jobId");
+    const stage = searchParams.get("stage");
+    const candidateId = searchParams.get("candidateId");
+    const pageParam = searchParams.get("page");
+    const limitParam = searchParams.get("limit");
+
+    const page = pageParam ? Number.parseInt(pageParam, 10) : 1;
+    const limitRaw = limitParam ? Number.parseInt(limitParam, 10) : 50;
+
+    if (!Number.isFinite(page) || page < 1) {
+      return NextResponse.json(
+        { success: false, error: "Invalid page parameter" },
+        { status: 400 },
+      );
+    }
+
+    if (!Number.isFinite(limitRaw) || limitRaw < 1) {
+      return NextResponse.json(
+        { success: false, error: "Invalid limit parameter" },
+        { status: 400 },
+      );
+    }
+
+    const limit = Math.min(limitRaw, 100);
+
+    const filter: Record<string, unknown> = { orgId };
+    if (jobId) {
+      if (!Types.ObjectId.isValid(jobId)) {
+        return NextResponse.json(
+          { success: false, error: "Invalid jobId parameter" },
+          { status: 400 },
+        );
+      }
+      filter.jobId = new Types.ObjectId(jobId);
+    }
+    if (stage && stage !== "all") filter.stage = stage;
+    if (candidateId) {
+      if (!Types.ObjectId.isValid(candidateId)) {
+        return NextResponse.json(
+          { success: false, error: "Invalid candidateId parameter" },
+          { status: 400 },
+        );
+      }
+      filter.candidateId = new Types.ObjectId(candidateId);
+    }
+
+    const applications = await Application.find(filter)
+      .populate("jobId", "title department location")
+      .populate(
+        "candidateId",
+        "firstName lastName email phone skills experience",
+      )
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean();
+
+    const total = await Application.countDocuments(filter);
+
+    return NextResponse.json({
+      success: true,
+      data: applications,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
+  } catch (error) {
+    logger.error(
+      "Applications list error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return NextResponse.json(
+      { success: false, error: "Failed to fetch applications" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/ats/convert-to-employee/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Application } from "@/server/models/Application";
+import { Candidate } from "@/server/models/Candidate";
+import { Job } from "@/server/models/Job";
+import { Employee } from "@/server/models/hr.models";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import {
+  notFoundError,
+  validationError,
+  rateLimitError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+import { atsRBAC } from "@/lib/ats/rbac";
+import type { ATSPermission } from "@/lib/ats/permissions";
+
+interface JobDocument {
+  code?: string;
+  title?: string;
+  startDate?: Date | string;
+  departmentId?: string;
+  employmentType?: string;
+  salaryRange?: { min?: number; max?: number };
+  currency?: string;
+  _id?: { toString?: () => string } | string;
+  [key: string]: unknown;
+}
+
+/**
+ * @openapi
+ * /api/ats/convert-to-employee:
+ *   get:
+ *     summary: ats/convert-to-employee operations
+ *     tags: [ats]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  try {
+    // Enforce ATS RBAC (requires application update/stage-transition)
+    const required: ATSPermission[] = [
+      "applications:update",
+      "applications:stage-transition",
+    ];
+    const authz = await atsRBAC(req, required);
+    if (!authz.authorized) {
+      return authz.response;
+    }
+    const { userId, orgId, isSuperAdmin } = authz;
+
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, orgId ?? null, userId), 60, 60_000);
+    if (!rl.allowed) return rateLimitError();
+
+    await connectToDatabase();
+
+    const { applicationId } = await req.json();
+    if (!applicationId) return validationError("applicationId is required");
+
+    const app = await Application.findById(applicationId).lean();
+    if (!app) return notFoundError("Application");
+
+    // Verify org authorization (only Super Admin via ATS RBAC can access cross-org)
+    if (app.orgId !== orgId && !isSuperAdmin) {
+      return createSecureResponse({ error: "Forbidden" }, 403, req);
+    }
+
+    if (app.stage !== "hired")
+      return validationError("Application status must be hired");
+
+    const [cand, job] = await Promise.all([
+      Candidate.findById(app.candidateId).lean(),
+      Job.findById(app.jobId).lean(),
+    ]);
+    if (!cand || !job) return validationError("Candidate or Job missing");
+
+    const existing = await Employee.findOne({
+      orgId: app.orgId,
+      email: cand.email,
+      isDeleted: false,
+    }).lean();
+    if (existing)
+      return NextResponse.json({
+        success: true,
+        data: existing,
+        message: "Employee already exists",
+      });
+
+    const jobTyped = job as unknown as JobDocument;
+    const employeeCode = `ATS-${(jobTyped.code || jobTyped.title || "NEW").slice(0, 4).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
+    const hireDate = jobTyped.startDate
+      ? new Date(jobTyped.startDate)
+      : new Date();
+
+    const employee = await Employee.create({
+      orgId,
+      employeeCode,
+      firstName: cand.firstName,
+      lastName: cand.lastName,
+      email: cand.email,
+      phone: cand.phone,
+      jobTitle: jobTyped.title || "Employee",
+      departmentId: jobTyped.departmentId,
+      employmentType: jobTyped.employmentType || "FULL_TIME",
+      employmentStatus: "ACTIVE",
+      hireDate,
+      compensation: {
+        baseSalary: jobTyped.salaryRange?.min || jobTyped.salaryRange?.max || 0,
+        currency: jobTyped.currency || "SAR",
+      },
+      meta: {
+        source: "ats",
+        jobId: jobTyped._id?.toString?.() || String(jobTyped._id),
+        applicationId: app._id.toString(),
+        convertedBy: userId || "system",
+      },
+    });
+    return NextResponse.json({ success: true, data: employee });
+  } catch (error) {
+    logger.error(
+      "Convert to employee error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse(
+      { error: "Failed to convert to employee" },
+      500,
+      req,
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/ats/interviews/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Interview } from "@/server/models/ats/Interview";
+import { Application } from "@/server/models/Application";
+import { atsRBAC } from "@/lib/ats/rbac";
+import { Types } from "mongoose";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
+
+/**
+ * GET /api/ats/interviews - List interviews with filtering
+ */
+export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  try {
+    await connectToDatabase();
+
+    // RBAC: Check permissions for reading interviews
+    const authResult = await atsRBAC(req, ["interviews:read"]);
+    if (!authResult.authorized) {
+      return authResult.response;
+    }
+    const { orgId } = authResult;
+
+    const { searchParams } = new URL(req.url);
+    const jobId = searchParams.get("jobId");
+    const applicationId = searchParams.get("applicationId");
+    const candidateId = searchParams.get("candidateId");
+    const status = searchParams.get("status");
+    const stage = searchParams.get("stage");
+    const from = searchParams.get("from"); // Date filter
+    const to = searchParams.get("to");
+    const pageParam = searchParams.get("page");
+    const limitParam = searchParams.get("limit");
+
+    const page = pageParam ? Number.parseInt(pageParam, 10) : 1;
+    const limitRaw = limitParam ? Number.parseInt(limitParam, 10) : 50;
+
+    if (!Number.isFinite(page) || page < 1) {
+      return NextResponse.json(
+        { success: false, error: "Invalid page parameter" },
+        { status: 400 },
+      );
+    }
+
+    if (!Number.isFinite(limitRaw) || limitRaw < 1) {
+      return NextResponse.json(
+        { success: false, error: "Invalid limit parameter" },
+        { status: 400 },
+      );
+    }
+
+    const limit = Math.min(limitRaw, 100);
+
+    const filter: Record<string, unknown> = { orgId };
+    if (jobId) {
+      if (!Types.ObjectId.isValid(jobId)) {
+        return NextResponse.json(
+          { success: false, error: "Invalid jobId parameter" },
+          { status: 400 },
+        );
+      }
+      filter.jobId = new Types.ObjectId(jobId);
+    }
+    if (applicationId) {
+      if (!Types.ObjectId.isValid(applicationId)) {
+        return NextResponse.json(
+          { success: false, error: "Invalid applicationId parameter" },
+          { status: 400 },
+        );
+      }
+      filter.applicationId = new Types.ObjectId(applicationId);
+    }
+    if (candidateId) {
+      if (!Types.ObjectId.isValid(candidateId)) {
+        return NextResponse.json(
+          { success: false, error: "Invalid candidateId parameter" },
+          { status: 400 },
+        );
+      }
+      filter.candidateId = new Types.ObjectId(candidateId);
+    }
+    if (status && status !== "all") filter.status = status;
+    if (stage && stage !== "all") filter.stage = stage;
+
+    // Date range filter
+    if (from || to) {
+      const scheduledAt: Record<string, Date> = {};
+      if (from) {
+        const fromDate = new Date(from);
+        if (Number.isNaN(fromDate.getTime())) {
+          return NextResponse.json(
+            { success: false, error: "Invalid from date" },
+            { status: 400 },
+          );
+        }
+        scheduledAt.$gte = fromDate;
+      }
+      if (to) {
+        const toDate = new Date(to);
+        if (Number.isNaN(toDate.getTime())) {
+          return NextResponse.json(
+            { success: false, error: "Invalid to date" },
+            { status: 400 },
+          );
+        }
+        scheduledAt.$lte = toDate;
+      }
+      filter.scheduledAt = scheduledAt;
+    }
+
+    const interviews = await Interview.find(filter)
+      .select(
+        "jobId candidateId applicationId scheduledAt duration stage status feedback interviewers location notes createdAt updatedAt",
+      )
+      .populate("jobId", "title department")
+      .populate("candidateId", "firstName lastName email phone")
+      .populate("applicationId", "stage score")
+      .sort({ scheduledAt: 1 }) // Upcoming first
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean();
+
+    const total = await Interview.countDocuments(filter);
+
+    return NextResponse.json({
+      success: true,
+      data: interviews,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
+  } catch (error) {
+    logger.error(
+      "Interviews list error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return NextResponse.json(
+      { success: false, error: "Failed to fetch interviews" },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * POST /api/ats/interviews - Create new interview
+ */
+const INTERVIEW_STAGES = [
+  "screening",
+  "technical",
+  "hr",
+  "final",
+  "panel",
+] as const;
+const INTERVIEW_STATUSES = [
+  "scheduled",
+  "completed",
+  "cancelled",
+  "rescheduled",
+  "no-show",
+] as const;
+
+export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  try {
+    await connectToDatabase();
+    const body = await req.json();
+
+    // RBAC: Check permissions for creating interviews
+    const authResult = await atsRBAC(req, ["interviews:create"]);
+    if (!authResult.authorized) {
+      return authResult.response;
+    }
+    const { userId, orgId } = authResult;
+
+    // Validate required fields
+    if (!body.applicationId || !body.scheduledAt) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Missing required fields: applicationId, scheduledAt",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (!Types.ObjectId.isValid(body.applicationId)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid applicationId" },
+        { status: 400 },
+      );
+    }
+
+    const application = await Application.findOne({
+      _id: body.applicationId,
+      orgId,
+    })
+      .select("jobId candidateId orgId")
+      .lean();
+
+    if (!application) {
+      return NextResponse.json(
+        { success: false, error: "Application not found" },
+        { status: 404 },
+      );
+    }
+
+    const scheduledAt = new Date(body.scheduledAt);
+    if (Number.isNaN(scheduledAt.getTime())) {
+      return NextResponse.json(
+        { success: false, error: "Invalid scheduledAt date" },
+        { status: 400 },
+      );
+    }
+
+    const stageValue =
+      body.stage && INTERVIEW_STAGES.includes(body.stage)
+        ? body.stage
+        : "screening";
+    const statusValue =
+      body.status && INTERVIEW_STATUSES.includes(body.status)
+        ? body.status
+        : "scheduled";
+    const duration =
+      typeof body.duration === "number" && body.duration > 0
+        ? body.duration
+        : 60;
+    const interviewers = Array.isArray(body.interviewers)
+      ? body.interviewers
+      : [];
+    const metadata =
+      typeof body.metadata === "object" && body.metadata !== null
+        ? body.metadata
+        : {};
+    const feedback =
+      typeof body.feedback === "object" && body.feedback !== null
+        ? body.feedback
+        : undefined;
+
+    const interviewPayload: Record<string, unknown> = {
+      applicationId: new Types.ObjectId(application._id),
+      jobId: application.jobId,
+      candidateId: application.candidateId,
+      interviewers,
+      stage: stageValue,
+      status: statusValue,
+      scheduledAt,
+      duration,
+      location: body.location,
+      meetingUrl: body.meetingUrl,
+      notes: body.notes,
+      metadata,
+      orgId,
+      createdBy: userId,
+    };
+
+    if (feedback) {
+      interviewPayload.feedback = feedback;
+    }
+
+    const interview = await Interview.create(interviewPayload);
+
+    return NextResponse.json(
+      { success: true, data: interview },
+      { status: 201 },
+    );
+  } catch (error) {
+    logger.error(
+      "Interview creation error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return NextResponse.json(
+      { success: false, error: "Failed to create interview" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/ats/jobs/[id]/apply/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Job } from "@/server/models/Job";
+import {
+  submitApplicationFromForm,
+  ApplicationSubmissionError,
+} from "@/server/services/ats/application-intake";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
+import { logger } from "@/lib/logger";
+import { Types } from "mongoose";
+
+interface JobWithScreening {
+  _id: string | Types.ObjectId;
+  orgId?: string | Types.ObjectId | null;
+  status?: string;
+  visibility?: string;
+  skills?: string[];
+  requirements?: string[];
+  screeningRules?: unknown;
+  [key: string]: unknown;
+}
+
+/**
+ * @openapi
+ * /api/ats/jobs/[id]/apply:
+ *   post:
+ *     summary: ats/jobs/[id]/apply operations
+ *     tags: [ats]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  const clientIp = getClientIP(req);
+  // SECURITY: Use distributed rate limiting (Redis) to prevent cross-instance bypass
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  try {
+    await connectToDatabase();
+
+    const formData = await req.formData();
+    const job = await Job.findById(params.id).lean();
+
+    if (!job) {
+      return NextResponse.json(
+        { success: false, error: "Job not found" },
+        { status: 404 },
+      );
+    }
+
+    const skillsRaw = String(formData.get("skills") || "");
+    const skills = skillsRaw
+      ? skillsRaw
+          .split(",")
+          .map((skill) => skill.trim())
+          .filter(Boolean)
+      : [];
+
+    const experienceRaw = String(formData.get("experience") || "").trim();
+    const experienceYears = experienceRaw
+      ? Number.parseInt(experienceRaw, 10)
+      : undefined;
+    const resumeFile = formData.get("resume") as File | null;
+    const resumePayload =
+      resumeFile && resumeFile.size > 0
+        ? {
+            buffer: Buffer.from(await resumeFile.arrayBuffer()),
+            filename: resumeFile.name,
+            mimeType: resumeFile.type,
+            size: resumeFile.size,
+          }
+        : undefined;
+    const resumeKey = (formData.get("resumeKey") as string | null) || undefined;
+    const resumeUrl = (formData.get("resumeUrl") as string | null) || undefined;
+    const resumeMimeType =
+      (formData.get("resumeMimeType") as string | null) || undefined;
+    const resumeSizeRaw =
+      (formData.get("resumeSize") as string | null) || undefined;
+    const resumeSize = resumeSizeRaw ? Number(resumeSizeRaw) : undefined;
+
+    const phoneE164 = String(formData.get("phoneE164") || "").trim();
+
+    const jobTyped = job as unknown as JobWithScreening;
+    const normalizedJob = {
+      ...jobTyped,
+      screeningRules: jobTyped.screeningRules ?? undefined,
+    };
+
+    try {
+      const result = await submitApplicationFromForm({
+        job: normalizedJob,
+        resumeFile: resumePayload,
+        resumeKey,
+        resumeUrl,
+        resumeMimeType,
+        resumeSize,
+        source: "careers",
+        fields: {
+          firstName: (formData.get("firstName") as string | null) || undefined,
+          lastName: (formData.get("lastName") as string | null) || undefined,
+          fullName: (formData.get("fullName") as string | null) || undefined,
+          email: (formData.get("email") as string | null) || undefined,
+          phone:
+            phoneE164 || (formData.get("phone") as string | null) || undefined,
+          location: (formData.get("location") as string | null) || undefined,
+          coverLetter:
+            (formData.get("coverLetter") as string | null) || undefined,
+          skills,
+          experience: Number.isFinite(experienceYears ?? NaN)
+            ? experienceYears
+            : undefined,
+          linkedin: (formData.get("linkedin") as string | null) || undefined,
+          consent: String(formData.get("consent") || "true") === "true",
+        },
+      });
+
+      return NextResponse.json(
+        {
+          success: true,
+          data: {
+            applicationId: result.applicationId,
+            status: result.stage,
+            score: result.score,
+          },
+        },
+        { status: 201 },
+      );
+    } catch (error) {
+      if (error instanceof ApplicationSubmissionError) {
+        return NextResponse.json(
+          { success: false, error: error.message },
+          { status: error.status },
+        );
+      }
+      throw error;
+    }
+  } catch (error) {
+    logger.error(
+      "Job application error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return NextResponse.json(
+      { success: false, error: "Failed to submit application" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/ats/jobs/[id]/publish/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Job } from "@/server/models/Job";
+import { atsRBAC, canAccessResource } from "@/lib/ats/rbac";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import {
+  notFoundError,
+  validationError,
+  rateLimitError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
+
+/**
+ * @openapi
+ * /api/ats/jobs/[id]/publish:
+ *   get:
+ *     summary: ats/jobs/[id]/publish operations
+ *     tags: [ats]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  // Rate limiting
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  try {
+    await connectToDatabase();
+
+    // RBAC: Check permissions
+    const authResult = await atsRBAC(req, ["jobs:publish"]);
+    if (!authResult.authorized) {
+      return authResult.response;
+    }
+    const { orgId, isSuperAdmin } = authResult;
+
+    const job = await Job.findById((await params).id);
+    if (!job) return notFoundError("Job");
+
+    // Resource ownership check
+    if (!canAccessResource(orgId, job.orgId, isSuperAdmin)) {
+      return notFoundError("Job");
+    }
+    if (job.status === "published")
+      return validationError("Job is already published");
+
+    await job.publish();
+    return NextResponse.json({
+      success: true,
+      data: job,
+      message: "Job published successfully",
+    });
+  } catch (error) {
+    logger.error(
+      "Job publish error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse({ error: "Failed to publish job" }, 500, req);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/ats/jobs/public/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Job } from "@/server/models/Job";
+import { logger } from "@/lib/logger";
+import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getCached, CacheTTL } from "@/lib/redis";
+
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 20;
+const MAX_CACHE_KEY_SEGMENT = 64; // Limit cache key segment length to prevent Redis key bloat
+
+const escapeRegex = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * Clamp and normalize a string for use in cache keys.
+ * Prevents cache key bloat from unbounded user input (e.g., long search strings).
+ * 
+ * @param value - The input string to normalize
+ * @param maxLen - Maximum length (default: MAX_CACHE_KEY_SEGMENT)
+ * @returns Normalized string safe for cache keys
+ */
+const normalizeCacheKeySegment = (value: string, maxLen = MAX_CACHE_KEY_SEGMENT): string => {
+  if (!value) return "";
+  // Clamp length and replace colons (cache key delimiter) with underscores
+  return value.slice(0, maxLen).replace(/:/g, "_").toLowerCase();
+};
+
+const parsePositiveInt = (
+  value: string | null,
+  field: string,
+  { defaultValue, max }: { defaultValue: number; max?: number },
+): number => {
+  if (value === null || value === undefined || value === "") {
+    return defaultValue;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    throw new Error(`Invalid ${field}`);
+  }
+
+  if (max) {
+    return Math.min(parsed, max);
+  }
+
+  return parsed;
+};
+
+/**
+ * GET /api/ats/jobs/public - Get published jobs for public job board
+ * No authentication required - public endpoint
+ */
+export async function GET(req: NextRequest) {
+  // Security: Only allow configured orgs for public job board
+  // Do NOT accept arbitrary orgId from query params to prevent cross-tenant enumeration
+  const orgId = process.env.PUBLIC_JOBS_ORG_ID || process.env.PLATFORM_ORG_ID;
+
+  // Rate limiting (higher limit for public endpoint) - use org-aware key for tenant isolation
+  const rl = await smartRateLimit(
+    buildOrgAwareRateLimitKey(req, orgId ?? null, null),
+    100,
+    60_000
+  );
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  try {
+    await connectToDatabase();
+
+    const { searchParams } = new URL(req.url);
+
+    if (!orgId) {
+      logger.error("[ATS/Public] No PUBLIC_JOBS_ORG_ID or PLATFORM_ORG_ID configured");
+      return NextResponse.json(
+        {
+          error: "Service not configured",
+          message: "Public job board is not available.",
+        },
+        { status: 503 },
+      );
+    }
+
+    const search = (searchParams.get("search") || "").trim();
+    const department = (searchParams.get("department") || "").trim();
+    const location = (searchParams.get("location") || "").trim();
+    const jobType = (searchParams.get("jobType") || "").trim();
+    let page: number;
+    let limit: number;
+
+    try {
+      page = parsePositiveInt(searchParams.get("page"), "page", {
+        defaultValue: DEFAULT_PAGE,
+      });
+      limit = parsePositiveInt(searchParams.get("limit"), "limit", {
+        defaultValue: DEFAULT_LIMIT,
+        max: 50,
+      });
+    } catch (err) {
+      return NextResponse.json(
+        { error: "Validation failed", message: (err as Error).message },
+        { status: 400 },
+      );
+    }
+
+    const skip = (page - 1) * limit;
+
+    // CACHE KEY: Use normalized (lowercased, clamped to 64 chars) segments to prevent Redis key bloat
+    // QUERY: Use sanitized but unclamped original input to preserve search fidelity
+    // This ensures cache correctness while not truncating user's actual search terms
+    const cacheSearch = normalizeCacheKeySegment(search);
+    const cacheDepartment = normalizeCacheKeySegment(department);
+    const cacheLocation = normalizeCacheKeySegment(location);
+    const cacheJobType = normalizeCacheKeySegment(jobType);
+
+    // Query terms: trim and escape but preserve original case and full length for accurate matching
+    // Only clamp to reasonable max (256 chars) to prevent regex DoS, not for cache key safety
+    const MAX_QUERY_LENGTH = 256;
+    const querySearch = search.slice(0, MAX_QUERY_LENGTH);
+    const queryDepartment = department.slice(0, MAX_QUERY_LENGTH);
+    const queryLocation = location.slice(0, MAX_QUERY_LENGTH);
+    const queryJobType = jobType.slice(0, MAX_QUERY_LENGTH);
+
+    // Cache key with normalized segments to prevent Redis key bloat from unbounded user input
+    // Security: Clamp search/filter lengths to prevent cache churn attacks
+    const cacheKey = `public-jobs:${orgId}:${cacheSearch}:${cacheDepartment}:${cacheLocation}:${cacheJobType}:${page}:${limit}`;
+
+    // Use cached data if available (15 minutes TTL)
+    const result = await getCached(
+      cacheKey,
+      CacheTTL.FIFTEEN_MINUTES,
+      async () => {
+        // Build query for published AND publicly visible jobs only
+        // This prevents internal-only job postings from appearing on public feeds
+        const query: Record<string, unknown> = { 
+          status: "published", 
+          visibility: "public",
+          orgId 
+        };
+        const andFilters: Record<string, unknown>[] = [];
+
+        // Search across title and description (using full query input for accuracy)
+        if (querySearch) {
+          const regex = new RegExp(escapeRegex(querySearch), "i");
+          query.$or = [
+            { title: regex },
+            { description: regex },
+            { skills: regex },
+            { tags: regex },
+          ];
+        }
+
+        // Filter by department - use lowercase for index-friendly equality matching
+        // Assumes department values are normalized to lowercase on write
+        // Falls back to case-insensitive regex if exact match fails (for legacy data)
+        if (queryDepartment) {
+          query.department = { $regex: `^${escapeRegex(queryDepartment)}$`, $options: 'i' };
+        }
+
+        // Filter by location (using full query input for accuracy)
+        if (queryLocation) {
+          const locationRegex = new RegExp(escapeRegex(queryLocation), "i");
+          andFilters.push({
+            $or: [
+              { "location.city": locationRegex },
+              { "location.country": locationRegex },
+              { "location.mode": locationRegex },
+            ],
+          });
+        }
+
+        // Filter by job type - use lowercase for index-friendly matching
+        // Assumes jobType values are normalized to lowercase on write
+        // Falls back to case-insensitive regex if exact match fails (for legacy data)
+        if (queryJobType) {
+          query.jobType = { $regex: `^${escapeRegex(queryJobType)}$`, $options: 'i' };
+        }
+
+        if (andFilters.length) {
+          query.$and = andFilters;
+        }
+
+        // Fetch jobs with pagination
+        const [jobs, totalCount] = await Promise.all([
+          Job.find(query)
+            .select(
+              "title description department location jobType skills tags salaryRange slug createdAt requirements responsibilities benefits",
+            )
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean(),
+          Job.countDocuments(query),
+        ]);
+
+        return {
+          data: jobs,
+          pagination: {
+            page,
+            limit,
+            total: totalCount,
+            pages: Math.ceil(totalCount / limit),
+          },
+        };
+      },
+    );
+
+    return NextResponse.json({
+      success: true,
+      ...result,
+    });
+  } catch (error: unknown) {
+    logger.error("Error fetching public jobs", error as Error);
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json(
+      { error: "Internal server error", message },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/ats/jobs/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Job } from "@/server/models/Job";
+import { generateSlug } from "@/lib/utils";
+import { atsRBAC } from "@/lib/ats/rbac";
+import { getServerTranslation } from "@/lib/i18n/server";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
+/**
+ * @openapi
+ * /api/ats/jobs:
+ *   get:
+ *     summary: ats/jobs operations
+ *     tags: [ats]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  try {
+    await connectToDatabase();
+
+    // RBAC: Check permissions for reading jobs
+    const authResult = await atsRBAC(req, ["jobs:read"]);
+    if (!authResult.authorized) {
+      return authResult.response;
+    }
+    const { orgId } = authResult;
+
+    const { searchParams } = new URL(req.url);
+    const q = searchParams.get("q") || "";
+    const status = searchParams.get("status") || "published";
+    // REMOVED: const orgId = searchParams.get('orgId') - SECURITY VIOLATION
+    const department = searchParams.get("department");
+    const location = searchParams.get("location");
+    const jobType = searchParams.get("jobType");
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = Math.min(
+      parseInt(searchParams.get("limit") || "20", 10),
+      100,
+    );
+
+    const filter: Record<string, unknown> = { orgId };
+    if (status !== "all") filter.status = status;
+    if (department) filter.department = department;
+    if (location) filter["location.city"] = location;
+    if (jobType) filter.jobType = jobType;
+    if (q) filter.$text = { $search: q };
+
+    const jobs = await Job.find(
+      filter,
+      q ? { score: { $meta: "textScore" } } : {},
+    )
+      .sort(
+        q
+          ? { score: { $meta: "textScore" } }
+          : { publishedAt: -1, createdAt: -1 },
+      )
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean();
+
+    const total = await Job.countDocuments(filter);
+
+    return NextResponse.json({
+      success: true,
+      data: jobs,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
+  } catch (error) {
+    logger.error(
+      "Jobs list error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    const t = await getServerTranslation(req);
+    return NextResponse.json(
+      { success: false, error: t("ats.errors.jobsFetchFailed") },
+      { status: 500 },
+    );
+  }
+}
+
+export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  try {
+    await connectToDatabase();
+    const body = await req.json();
+
+    // RBAC: Check permissions for creating jobs
+    const authResult = await atsRBAC(req, ["jobs:create"]);
+    if (!authResult.authorized) {
+      return authResult.response;
+    }
+    const { userId, orgId, atsModule } = authResult;
+
+    if (!body?.title) {
+      return NextResponse.json(
+        { success: false, error: "Job title is required" },
+        { status: 400 },
+      );
+    }
+
+    const jobPostLimit = atsModule?.jobPostLimit ?? Number.MAX_SAFE_INTEGER;
+    const shouldEnforceLimit =
+      Number.isFinite(jobPostLimit) && jobPostLimit !== Number.MAX_SAFE_INTEGER;
+    if (shouldEnforceLimit) {
+      const activeJobCount = await Job.countDocuments({
+        orgId,
+        status: { $in: ["pending", "published"] },
+      });
+
+      if (activeJobCount >= jobPostLimit) {
+        const t = await getServerTranslation(req);
+        return NextResponse.json(
+          {
+            success: false,
+            error: t("ats.errors.jobPostLimitExceeded"),
+            limit: jobPostLimit,
+            count: activeJobCount,
+          },
+          { status: 403 },
+        );
+      }
+    }
+
+    const baseSlug = generateSlug(body.title);
+    let slug = baseSlug;
+    let counter = 1;
+    while (await Job.findOne({ orgId, slug })) {
+      slug = `${baseSlug}-${counter++}`;
+    }
+
+    const job = await Job.create({
+      ...body,
+      orgId,
+      slug,
+      postedBy: userId,
+      status: body.status || "draft",
+    });
+    return NextResponse.json({ success: true, data: job }, { status: 201 });
+  } catch (error) {
+    logger.error(
+      "Job creation error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    const t = await getServerTranslation(req);
+    return NextResponse.json(
+      { success: false, error: t("ats.errors.jobCreationFailed") },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/ats/moderation/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Job } from "@/server/models/Job";
+import { getUserFromToken } from "@/lib/auth";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import {
+  notFoundError,
+  validationError,
+  rateLimitError,
+  unauthorizedError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
+
+/**
+ * @openapi
+ * /api/ats/moderation:
+ *   get:
+ *     summary: ats/moderation operations
+ *     tags: [ats]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function PUT(req: NextRequest) {
+  // Rate limiting
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  try {
+    await connectToDatabase();
+    const body = await req.json();
+    const authHeader = req.headers.get("authorization") || "";
+    const token = authHeader?.startsWith("Bearer ")
+      ? authHeader.slice(7)
+      : authHeader;
+    const user = token ? await getUserFromToken(token) : null;
+
+    // Enforce authentication for moderation actions
+    if (!user?.id) {
+      return unauthorizedError("Authentication required for moderation");
+    }
+
+    const { jobId, action } = body;
+    if (!jobId || !["approve", "reject"].includes(action))
+      return validationError("Invalid request");
+
+    const job = await Job.findById(jobId);
+    if (!job) return notFoundError("Job");
+
+    if (action === "approve") {
+      job.status = "published";
+      job.publishedAt = new Date();
+      await job.save();
+    } else {
+      job.status = "closed";
+      await job.save();
+    }
+
+    return NextResponse.json({ success: true, data: job });
+  } catch (error) {
+    logger.error(
+      "Moderation error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse({ error: "Failed to moderate job" }, 500, req);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/ats/public-post/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Job } from "@/server/models/Job";
+import { generateSlug } from "@/lib/utils";
+import { z } from "zod";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
+
+const publicJobSchema = z.object({
+  title: z.string().min(3, "Title must be at least 3 characters").max(200),
+  department: z.string().optional(),
+  jobType: z
+    .enum(["full-time", "part-time", "contract", "temporary", "internship"])
+    .optional(),
+  location: z
+    .object({
+      city: z.string().optional(),
+      country: z.string().optional(),
+      mode: z.enum(["onsite", "remote", "hybrid"]).optional(),
+    })
+    .optional(),
+  salaryRange: z
+    .object({
+      min: z.number().min(0),
+      max: z.number().min(0),
+      currency: z.string().default("SAR"),
+    })
+    .optional(),
+  description: z.string().optional(),
+  requirements: z.array(z.string()).optional(),
+  benefits: z.array(z.string()).optional(),
+  skills: z.array(z.string()).optional(),
+  tags: z.array(z.string()).optional(),
+});
+
+/**
+ * @openapi
+ * /api/ats/public-post:
+ *   post:
+ *     summary: ats/public-post operations
+ *     tags: [ats]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  try {
+    await connectToDatabase();
+    const body = await req.json();
+
+    const validation = publicJobSchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Validation failed",
+          details: validation.error.format(),
+        },
+        { status: 400 },
+      );
+    }
+
+    const validatedBody = validation.data;
+
+    if (process.env.ATS_ENABLED !== "true") {
+      return createSecureResponse({ error: "Feature not available" }, 501, req);
+    }
+
+    const platformOrg = process.env.PLATFORM_ORG_ID || "fixzit-platform";
+
+    const baseSlug = generateSlug(validatedBody.title || "job");
+    let slug = baseSlug;
+    let counter = 1;
+    while (await Job.findOne({ orgId: platformOrg, slug }))
+      slug = `${baseSlug}-${counter++}`;
+    const job = await Job.create({
+      orgId: platformOrg,
+      title: validatedBody.title,
+      department: validatedBody.department || "General",
+      jobType: validatedBody.jobType || "full-time",
+      location: validatedBody.location || {
+        city: "",
+        country: "",
+        mode: "onsite",
+      },
+      salaryRange: validatedBody.salaryRange || {
+        min: 0,
+        max: 0,
+        currency: "SAR",
+      },
+      description: validatedBody.description || "",
+      requirements: validatedBody.requirements || [],
+      benefits: validatedBody.benefits || [],
+      skills: validatedBody.skills || [],
+      tags: validatedBody.tags || [],
+      status: "pending",
+      visibility: "public",
+      slug,
+      postedBy: "public",
+    });
+    return NextResponse.json({ success: true, data: job }, { status: 201 });
+  } catch (error) {
+    logger.error(
+      "Public post error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse({ error: "Failed to submit job" }, 500, req);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/ats/settings/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { AtsSettings } from "@/server/models/AtsSettings";
+import { logger } from "@/lib/logger";
+import { atsRBAC } from "@/lib/ats/rbac";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+
+/**
+ * GET /api/ats/settings - Get ATS settings for organization
+ */
+export async function GET(req: NextRequest) {
+  try {
+    await connectToDatabase();
+
+    // RBAC: Check permissions for reading settings
+    const authResult = await atsRBAC(req, ["settings:read"]);
+    if (!authResult.authorized) {
+      return authResult.response;
+    }
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, authResult.orgId ?? null, authResult.userId), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    const { orgId } = authResult;
+    let settings = await AtsSettings.findOne({ orgId })
+      .select("scoringWeights knockoutRules alerts createdAt updatedAt")
+      .lean();
+
+    if (!settings) {
+      // Create default settings if not found
+      const newSettings = await AtsSettings.findOrCreateForOrg(orgId);
+      settings = newSettings.toObject ? newSettings.toObject() : newSettings;
+    }
+
+    if (!settings) {
+      return NextResponse.json(
+        { error: "Failed to create or retrieve settings" },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        scoringWeights: settings.scoringWeights,
+        knockoutRules: settings.knockoutRules,
+        alerts: settings.alerts || [],
+        createdAt: settings.createdAt,
+        updatedAt: settings.updatedAt,
+      },
+    });
+  } catch (error: unknown) {
+    logger.error("Error fetching ATS settings", error as Error);
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json(
+      { error: "Internal server error", message },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * PATCH /api/ats/settings - Update ATS settings
+ */
+export async function PATCH(req: NextRequest) {
+  try {
+    await connectToDatabase();
+
+    // RBAC: Check permissions for updating settings
+    const authResult = await atsRBAC(req, ["settings:update"]);
+    if (!authResult.authorized) {
+      return authResult.response;
+    }
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, authResult.orgId ?? null, authResult.userId), 30, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    const { orgId } = authResult;
+    const body = await req.json();
+    const { scoringWeights, knockoutRules, alerts } = body;
+
+    // Validation
+    if (scoringWeights) {
+      const { skills, experience, culture, education } = scoringWeights;
+      const total =
+        (skills || 0) + (experience || 0) + (culture || 0) + (education || 0);
+
+      if (Math.abs(total - 1) > 0.01) {
+        return NextResponse.json(
+          {
+            error: "Validation failed",
+            message: "Scoring weights must sum to 1.0 (100%)",
+          },
+          { status: 400 },
+        );
+      }
+
+      if (
+        skills < 0 ||
+        skills > 1 ||
+        experience < 0 ||
+        experience > 1 ||
+        culture < 0 ||
+        culture > 1 ||
+        education < 0 ||
+        education > 1
+      ) {
+        return NextResponse.json(
+          {
+            error: "Validation failed",
+            message: "Each weight must be between 0 and 1",
+          },
+          { status: 400 },
+        );
+      }
+    }
+
+    if (knockoutRules?.minYears !== undefined && knockoutRules.minYears < 0) {
+      return NextResponse.json(
+        {
+          error: "Validation failed",
+          message: "Minimum years cannot be negative",
+        },
+        { status: 400 },
+      );
+    }
+
+    const settings = await AtsSettings.findOrCreateForOrg(orgId);
+
+    // Update fields
+    if (scoringWeights) {
+      const currentWeights = settings.scoringWeights || {
+        skills: 0.6,
+        experience: 0.3,
+        culture: 0.05,
+        education: 0.05,
+      };
+      settings.scoringWeights = {
+        skills: scoringWeights.skills ?? currentWeights.skills,
+        experience: scoringWeights.experience ?? currentWeights.experience,
+        culture: scoringWeights.culture ?? currentWeights.culture,
+        education: scoringWeights.education ?? currentWeights.education,
+      };
+    }
+
+    if (knockoutRules) {
+      const currentRules = settings.knockoutRules || {
+        minYears: 0,
+        requiredSkills: [],
+        autoRejectMissingExperience: false,
+        autoRejectMissingSkills: true,
+      };
+      settings.knockoutRules = {
+        minYears: knockoutRules.minYears ?? currentRules.minYears,
+        requiredSkills:
+          knockoutRules.requiredSkills ?? currentRules.requiredSkills,
+        autoRejectMissingExperience:
+          knockoutRules.autoRejectMissingExperience ??
+          currentRules.autoRejectMissingExperience,
+        autoRejectMissingSkills:
+          knockoutRules.autoRejectMissingSkills ??
+          currentRules.autoRejectMissingSkills,
+      };
+    }
+
+    if (alerts) {
+      settings.alerts = alerts;
+    }
+
+    await settings.save();
+
+    return NextResponse.json({
+      success: true,
+      message: "Settings updated successfully",
+      data: {
+        scoringWeights: settings.scoringWeights,
+        knockoutRules: settings.knockoutRules,
+        alerts: settings.alerts,
+        updatedAt: settings.updatedAt,
+      },
+    });
+  } catch (error: unknown) {
+    logger.error("Error updating ATS settings", error as Error);
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json(
+      { error: "Internal server error", message },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/auth/force-logout/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from 'next/server';
+
+export const runtime = 'nodejs';
+
+// Helper function for domain detection (reserved for future secure cookie handling)
+function _isIp(hostname: string): boolean {
+  return /^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname);
+}
+
+/**
+ * Test-friendly logout endpoint that force-expire all auth cookies.
+ * This complements NextAuth's signOut handler and ensures httpOnly
+ * cookies minted by test helpers are cleared.
+ */
+export async function POST(req: NextRequest) {
+  const url = req.nextUrl;
+  const host = url.hostname;
+  const isHttps = url.protocol === 'https:';
+
+  const cookieNames = [
+    'authjs.session-token',
+    '__Secure-authjs.session-token',
+    'next-auth.session-token',
+    '__Secure-next-auth.session-token',
+    'authjs.callback-url',
+    'next-auth.callback-url',
+    'authjs.csrf-token',
+    'next-auth.csrf-token',
+    'fxz.access',
+    'fxz.refresh',
+    'fxz.otp',
+  ];
+
+  const response = NextResponse.json({ ok: true });
+  const expires = new Date(0);
+
+  const domains = [undefined, host].filter(Boolean) as (string | undefined)[];
+
+  for (const name of cookieNames) {
+    const secure = name.startsWith('__Secure-') || isHttps;
+    const baseOptions = {
+      path: '/',
+      httpOnly: true,
+      sameSite: 'lax' as const,
+      secure,
+      expires,
+    };
+
+    for (const domain of domains) {
+      response.cookies.set(name, '', {
+        ...baseOptions,
+        ...(domain ? { domain } : {}),
+      });
+    }
+  }
+
+  return response;
+}
+
+]]>
+</file>
+
+</batch_content>

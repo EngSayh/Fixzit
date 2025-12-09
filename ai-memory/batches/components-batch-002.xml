@@ -1,0 +1,3075 @@
+
+You are the "Fixzit Memory Builder" for category: "components".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "components",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="tests/unit/app/fm/work-orders/page.test.tsx">
+<![CDATA[
+import React from "react";
+import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+import WorkOrdersPage from "@/app/fm/work-orders/page";
+
+const mockUseSupportOrg = vi.fn();
+const workOrdersViewSpy = vi.fn();
+
+vi.mock("@/components/fm/ModuleViewTabs", () => ({
+  __esModule: true,
+  default: ({ moduleId }: { moduleId: string }) => (
+    <div data-testid="module-tabs">{moduleId}</div>
+  ),
+}));
+
+vi.mock("@/components/fm/WorkOrdersView", () => ({
+  __esModule: true,
+  WorkOrdersView: (props: { orgId?: string }) => {
+    workOrdersViewSpy(props);
+    return <div data-testid="work-orders-view">org:{props.orgId}</div>;
+  },
+}));
+
+vi.mock("@/contexts/SupportOrgContext", () => ({
+  useSupportOrg: () => mockUseSupportOrg(),
+}));
+
+vi.mock("@/contexts/TranslationContext", () => ({
+  useTranslation: () => ({
+    t: (key: string, fallback?: string, vars?: Record<string, unknown>) => {
+      if (vars?.name) {
+        return (fallback ?? key).replace("{{name}}", String(vars.name));
+      }
+      return fallback ?? key;
+    },
+  }),
+}));
+
+describe("app/fm/work-orders/page", () => {
+  beforeEach(() => {
+    mockUseSupportOrg.mockReset();
+    workOrdersViewSpy.mockReset();
+  });
+
+  it("renders org guard prompt when no organization selected", () => {
+    mockUseSupportOrg.mockReturnValue({
+      effectiveOrgId: null,
+      canImpersonate: true,
+      supportOrg: null,
+    });
+
+    render(<WorkOrdersPage />);
+
+    expect(screen.getByText("Organization Required")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Please select an organization from the top bar to continue.",
+      ),
+    ).toBeInTheDocument();
+    expect(workOrdersViewSpy).not.toHaveBeenCalled();
+  });
+
+  it("passes org context to WorkOrdersView and shows support banner", () => {
+    mockUseSupportOrg.mockReturnValue({
+      effectiveOrgId: "org-abc",
+      canImpersonate: true,
+      supportOrg: { name: "Acme Corp" },
+    });
+
+    render(<WorkOrdersPage />);
+
+    expect(screen.getByTestId("module-tabs")).toHaveTextContent("workOrders");
+    expect(screen.getByText("Support context: Acme Corp")).toBeInTheDocument();
+    expect(screen.getByTestId("work-orders-view")).toHaveTextContent(
+      "org:org-abc",
+    );
+    expect(workOrdersViewSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ orgId: "org-abc" }),
+    );
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/app/help_support_ticket_page.test.tsx">
+<![CDATA[
+/**
+ * Tests for SupportTicketPage
+ *
+ * Test framework: Vitest + React Testing Library + user-event + jest-dom (jsdom environment)
+ */
+
+import { vi, describe, expect, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
+import '@testing-library/jest-dom/vitest';
+import React from 'react';
+import { render, screen, waitFor, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+// Increase timeout for this suite due to heavier user interactions
+vi.setConfig({ testTimeout: 30000 });
+
+vi.mock('next-auth/react', () => ({
+  useSession: () => ({ data: null, status: 'unauthenticated' }),
+}));
+
+// Simplify navigation wrapper to avoid router side‑effects in tests
+vi.mock('@/components/ui/navigation-buttons', () => ({
+  FormWithNavigation: ({ children, onSubmit }: { children: React.ReactNode; onSubmit: React.FormEventHandler<HTMLFormElement> }) => (
+    <form onSubmit={onSubmit}>{children}</form>
+  ),
+}));
+
+// IMPORTANT: Adjust this import path to the actual component path in your repo.
+// The snippet shows the component definition only; if it's under `app/help/support/page.tsx`,
+// or similar, change accordingly. For now, we import from a relative inline path assumption.
+import SupportTicketPage from '@/app/help/support-ticket/page';
+
+// Helpers to mock global APIs
+const originalFetch = global.fetch;
+const originalAlert = global.alert as unknown as ReturnType<typeof vi.fn> | undefined;
+const originalConsoleError = console.error;
+let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+
+beforeAll(() => {
+  // Silence noisy act() warnings while still surfacing real errors
+  consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation((...args: Parameters<typeof console.error>) => {
+    const [first] = args;
+    if (typeof first === 'string' && first.includes('act(...')) return;
+    originalConsoleError(...args);
+  });
+});
+
+afterAll(() => {
+  consoleErrorSpy.mockRestore();
+});
+
+beforeEach(() => {
+  // jsdom doesn't implement alert; we mock it
+  // @ts-ignore
+  global.alert = vi.fn();
+  // Default fetch mock resolves with ok=true
+  // @ts-ignore
+  global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: 't_123' }) });
+});
+
+afterEach(() => {
+  // @ts-ignore
+  global.fetch = originalFetch;
+  if (originalAlert) {
+    // @ts-ignore
+    global.alert = originalAlert;
+  } else {
+    // @ts-ignore
+    delete global.alert;
+  }
+  vi.clearAllMocks();
+});
+
+async function fillRequiredFields(user = userEvent.setup()) {
+  const subject = screen.getByLabelText(/subject \*/i);
+  const description = screen.getByLabelText(/description \*/i);
+  const name = screen.getByLabelText(/your name \*/i);
+  const email = screen.getByLabelText(/email \*/i);
+
+  await user.clear(subject);
+  await user.type(subject, 'App crashes on login');
+
+  await user.clear(description);
+  await user.type(description, 'Steps to reproduce: 1) Open app 2) Click login 3) Crash');
+
+  await user.clear(name);
+  await user.type(name, 'Jane Tester');
+
+  await user.clear(email);
+  await user.type(email, 'jane@example.com');
+
+  return user;
+}
+
+const renderPage = async () => {
+  await act(async () => {
+    render(<SupportTicketPage />);
+  });
+};
+
+describe('SupportTicketPage', () => {
+  test('renders all core fields and default selects', async () => {
+    await renderPage();
+
+    // Headings and description
+    expect(screen.getByRole('heading', { name: /create support ticket/i })).toBeInTheDocument();
+    expect(screen.getByText(/our support team will get back to you within 24 hours/i)).toBeInTheDocument();
+
+    // Required inputs
+    expect(screen.getByLabelText(/subject \*/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/description \*/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/your name \*/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/email \*/i)).toBeInTheDocument();
+
+    // Optional phone
+    expect(screen.getByLabelText(/phone \(optional\)/i)).toBeInTheDocument();
+
+    // Module default FM
+    const moduleSelect = screen.getByLabelText(/module/i) as HTMLSelectElement;
+    expect(moduleSelect).toBeInTheDocument();
+    expect(moduleSelect.value).toBe('FM');
+
+    // Type default Bug
+    const typeSelect = screen.getByLabelText(/^type$/i) as HTMLSelectElement;
+    expect(typeSelect.value).toBe('Bug');
+
+    // Priority default Medium
+    const prioritySelect = screen.getByLabelText(/priority/i) as HTMLSelectElement;
+    expect(prioritySelect.value).toBe('Medium');
+
+    // Submit button
+    expect(screen.getByRole('button', { name: /submit ticket/i })).toBeInTheDocument();
+  });
+
+  test('allows selecting different module, type, and priority values', async () => {
+    await renderPage();
+    const user = userEvent.setup();
+
+    const moduleSelect = screen.getByLabelText(/module/i);
+    await user.selectOptions(moduleSelect, 'Billing');
+    expect((moduleSelect as HTMLSelectElement).value).toBe('Billing');
+
+    const typeSelect = screen.getByLabelText(/^type$/i);
+    await user.selectOptions(typeSelect, 'Feature');
+    expect((typeSelect as HTMLSelectElement).value).toBe('Feature');
+
+    const prioritySelect = screen.getByLabelText(/priority/i);
+    await user.selectOptions(prioritySelect, 'High');
+    expect((prioritySelect as HTMLSelectElement).value).toBe('High');
+  });
+
+  test('submits successfully with required fields and resets form, shows success alert', async () => {
+    await renderPage();
+
+    const user = userEvent.setup();
+    await fillRequiredFields(user);
+
+    // Optional phone provided
+    const phone = screen.getByLabelText(/phone \(optional\)/i);
+    await user.type(phone, '+966 55 555 5555');
+
+    // Change some selects to non-defaults to assert payload mapping
+    await user.selectOptions(screen.getByLabelText(/module/i), 'Souq');
+    await user.selectOptions(screen.getByLabelText(/^type$/i), 'Complaint');
+    await user.selectOptions(screen.getByLabelText(/priority/i), 'Urgent');
+
+    const submit = screen.getByRole('button', { name: /submit ticket/i });
+    await user.click(submit);
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    // Verify request details
+    const lastCall = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(lastCall[0]).toBe('/api/support/tickets');
+    const options = lastCall[1];
+    expect(options.method).toBe('POST');
+    expect(options.headers['Content-Type']).toBe('application/json');
+
+    const body = JSON.parse(options.body);
+    expect(body).toMatchObject({
+      subject: 'App crashes on login',
+      module: 'Souq',
+      type: 'Complaint',
+      priority: 'Urgent',
+      category: 'General',
+      subCategory: 'Other',
+      text: expect.stringContaining('Steps to reproduce'),
+      requester: {
+        name: 'Jane Tester',
+        email: 'jane@example.com',
+        phone: '+966 55 555 5555',
+      },
+    });
+
+    // Success alert
+    await waitFor(() => {
+      expect(global.alert).toHaveBeenCalledWith(
+        expect.stringMatching(/support ticket created successfully/i)
+      );
+    });
+
+    // Form should reset to defaults
+    expect((screen.getByLabelText(/subject \*/i) as HTMLInputElement).value).toBe('');
+    expect((screen.getByLabelText(/description \*/i) as HTMLTextAreaElement).value).toBe('');
+    expect((screen.getByLabelText(/your name \*/i) as HTMLInputElement).value).toBe('');
+    expect((screen.getByLabelText(/email \*/i) as HTMLInputElement).value).toBe('');
+    expect((screen.getByLabelText(/phone \(optional\)/i) as HTMLInputElement).value).toBe('');
+
+    expect((screen.getByLabelText(/module/i) as HTMLSelectElement).value).toBe('FM');
+    expect((screen.getByLabelText(/^type$/i) as HTMLSelectElement).value).toBe('Bug');
+    expect((screen.getByLabelText(/priority/i) as HTMLSelectElement).value).toBe('Medium');
+
+    // Button returns to normal state
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /submit ticket/i })).toBeEnabled();
+    });
+  });
+
+  test('omits phone from payload when left empty (sends undefined)', async () => {
+    await renderPage();
+    const user = userEvent.setup();
+    await fillRequiredFields(user);
+
+    const submit = screen.getByRole('button', { name: /submit ticket/i });
+    await user.click(submit);
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    const [, options] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    const body = JSON.parse(options.body);
+    expect(body.requester).toBeDefined();
+    expect(body.requester.phone).toBeUndefined();
+  });
+
+  test('shows error alert and re-enables button when fetch fails (non-2xx)', async () => {
+    // @ts-ignore
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: false, json: async () => ({}) });
+
+    await renderPage();
+    const user = userEvent.setup();
+    await fillRequiredFields(user);
+
+    const submit = screen.getByRole('button', { name: /submit ticket/i });
+    await user.click(submit);
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      expect(global.alert).toHaveBeenCalledWith(
+        'There was an error submitting your ticket. Please try again.'
+      );
+    });
+
+    // Button should be re-enabled and label restored
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /submit ticket/i })).toBeEnabled()
+    );
+  });
+
+  test('shows error alert if fetch throws', async () => {
+    // @ts-ignore
+    (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('network down'));
+
+    await renderPage();
+    const user = await fillRequiredFields();
+
+    await user.click(screen.getByRole('button', { name: /submit ticket/i }));
+
+    await waitFor(() => {
+      expect(global.alert).toHaveBeenCalledWith(
+        'There was an error submitting your ticket. Please try again.'
+      );
+    });
+  });
+
+  test('does not submit when required fields are missing (native required validation)', async () => {
+    await renderPage();
+    const user = userEvent.setup();
+
+    // Only fill subject to simulate missing others
+    await user.type(screen.getByLabelText(/subject \*/i), 'Partial input');
+    const submit = screen.getByRole('button', { name: /submit ticket/i });
+    await user.click(submit);
+
+    // Native form required should prevent submission; fetch should not be called
+    await waitFor(() => {
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+  });
+
+  test('button shows "Submitting..." while request is in-flight', async () => {
+    // Create a deferred promise to control resolution timing
+    let resolveFn: (v?: unknown) => void;
+    const pending = new Promise(res => { resolveFn = res; });
+    // @ts-ignore
+    (global.fetch as ReturnType<typeof vi.fn>).mockImplementationOnce(() => pending);
+
+    await renderPage();
+    const user = await fillRequiredFields();
+
+    const button = screen.getByRole('button', { name: /submit ticket/i });
+    await user.click(button);
+
+    // While pending, button should reflect submitting state and be disabled
+    expect(button).toBeDisabled();
+    expect(button).toHaveTextContent(/submitting/i);
+
+    // Resolve the promise to complete request
+    // @ts-ignore
+    resolveFn({ ok: true, json: async () => ({ id: 't_456' }) });
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /submit ticket/i })).toBeEnabled();
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/app/logout/page.test.tsx">
+<![CDATA[
+import React from 'react';
+import { render, screen, waitFor, act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import LogoutPage from '@/app/logout/page';
+
+// Mock Next.js navigation
+const mockPush = vi.fn();
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: mockPush, replace: vi.fn(), refresh: vi.fn() }),
+  usePathname: () => '/logout',
+}));
+
+// Mock next-auth
+vi.mock('next-auth/react', () => ({
+  signOut: vi.fn(() => Promise.resolve({ url: '/login' })),
+  useSession: () => ({ data: null, status: 'unauthenticated' }),
+}));
+
+// Mock TranslationContext
+vi.mock('@/contexts/TranslationContext', () => ({
+  useTranslation: () => ({
+    t: (key: string, fallback?: string) => fallback || key,
+    locale: 'en',
+    direction: 'ltr',
+  }),
+}));
+
+// Mock lucide-react icons
+vi.mock('lucide-react', () => ({
+  LogOut: () => <span data-testid="mock-logout-icon">LogoutIcon</span>,
+  Loader2: ({ className }: { className?: string }) => (
+    <span data-testid="logout-spinner" className={className}>LoaderIcon</span>
+  ),
+  CheckCircle: ({ className }: { className?: string }) => (
+    <span data-testid="logout-success" className={className}>CheckIcon</span>
+  ),
+  XCircle: ({ className }: { className?: string }) => (
+    <span data-testid="logout-error" className={className}>XIcon</span>
+  ),
+}));
+
+// Mock brand component
+vi.mock('@/components/brand', () => ({
+  BrandLogo: ({ className, 'data-testid': testId }: { className?: string; 'data-testid'?: string }) => (
+    <div data-testid={testId || 'brand-logo'} className={className}>MockBrandLogo</div>
+  ),
+}));
+
+// Mock logger
+vi.mock('@/lib/logger', () => ({
+  logger: {
+    warn: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+// Setup localStorage mock
+const localStorageMock = (() => {
+  let store: Record<string, string> = {};
+  return {
+    getItem: vi.fn((key: string) => store[key] ?? null),
+    setItem: vi.fn((key: string, value: string) => { store[key] = value; }),
+    removeItem: vi.fn((key: string) => { delete store[key]; }),
+    clear: vi.fn(() => { store = {}; }),
+    key: vi.fn((i: number) => Object.keys(store)[i] ?? null),
+    get length() { return Object.keys(store).length; },
+  };
+})();
+
+// Setup sessionStorage mock
+const sessionStorageMock = {
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+  key: vi.fn(),
+  length: 0,
+};
+
+Object.defineProperty(window, 'localStorage', { value: localStorageMock, writable: true });
+Object.defineProperty(window, 'sessionStorage', { value: sessionStorageMock, writable: true });
+
+describe('LogoutPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    localStorageMock.clear();
+    mockPush.mockClear();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('renders the logout page', async () => {
+    await act(async () => {
+      render(<LogoutPage />);
+    });
+    
+    // Should show brand logo
+    expect(screen.getByTestId('logout-logo')).toBeInTheDocument();
+  });
+
+  it('displays the spinner while processing', async () => {
+    await act(async () => {
+      render(<LogoutPage />);
+    });
+    
+    expect(screen.getByTestId('logout-spinner')).toBeInTheDocument();
+  });
+
+  it('applies proper styling to the container', async () => {
+    let container: HTMLElement;
+    await act(async () => {
+      const result = render(<LogoutPage />);
+      container = result.container;
+    });
+    
+    // Check that the logout-page test ID exists
+    expect(screen.getByTestId('logout-page')).toBeInTheDocument();
+  });
+
+  it('shows processing state initially', async () => {
+    await act(async () => {
+      render(<LogoutPage />);
+    });
+    
+    expect(screen.getByText('Signing you out...')).toBeInTheDocument();
+    expect(screen.getByText('Please wait while we log you out securely.')).toBeInTheDocument();
+  });
+
+  describe('Regression: Storage Guard', () => {
+    it('clears sessionStorage on mount', async () => {
+      await act(async () => {
+        render(<LogoutPage />);
+      });
+      
+      // Wait for any effects to run
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(100);
+      });
+      
+      expect(sessionStorageMock.clear).toHaveBeenCalled();
+    });
+  });
+
+  describe('Accessibility', () => {
+    it('has proper semantic structure with data-testid', async () => {
+      await act(async () => {
+        render(<LogoutPage />);
+      });
+      
+      // Brand logo should be present (commonly for screen reader users to identify the app)
+      expect(screen.getByTestId('logout-logo')).toBeInTheDocument();
+      expect(screen.getByTestId('logout-page')).toBeInTheDocument();
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/app/marketplace/marketplace-page.test.tsx">
+<![CDATA[
+/**
+ * @file Marketplace homepage test
+ * @description Verifies Marketplace page rendering with mocked server data fetch
+ * Testing framework: Vitest
+ */
+
+import React from "react";
+import { render, screen } from "@testing-library/react";
+import { vi } from "vitest";
+
+// ✅ FIX: Mock the server fetch utility to prevent real API calls
+vi.mock("@/lib/marketplace/serverFetch", () => ({
+  serverFetchJsonWithTenant: vi.fn().mockImplementation(async (url: string) => {
+    // This mock intercepts the component's fetch calls
+    if (url.includes("/api/marketplace/categories")) {
+      return {
+        data: [
+          { _id: "cat1", slug: "test-category", name: { en: "Test Category" } },
+        ],
+      };
+    }
+    if (url.includes("/api/marketplace/products")) {
+      return {
+        data: {
+          items: [
+            {
+              _id: "p1",
+              slug: "featured-product",
+              title: { en: "Featured Product" },
+              buy: { price: 100, currency: "SAR", uom: "unit" },
+              stock: { onHand: 10, reserved: 0 },
+            },
+          ],
+        },
+      };
+    }
+    if (url.includes("/api/marketplace/search")) {
+      return {
+        data: {
+          items: [
+            {
+              _id: "p2",
+              slug: "category-product",
+              title: { en: "Category Product" },
+              buy: { price: 50, currency: "SAR", uom: "unit" },
+              stock: { onHand: 5, reserved: 0 },
+            },
+          ],
+        },
+      };
+    }
+    return { data: { items: [] } };
+  }),
+}));
+
+// Mock ProductCard component to simplify assertions
+vi.mock("@/components/marketplace/ProductCard", () => ({
+  __esModule: true,
+  default: ({ product }: { product: { title: { en?: string } } }) => (
+    <div data-testid="product-card">{product.title.en}</div>
+  ),
+}));
+
+// Import after mocks so the module uses mocked dependencies
+import MarketplacePage from "@/app/marketplace/page";
+
+describe("MarketplacePage", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("renders without crashing and shows marketplace content", async () => {
+    // ✅ FIX: Await the Server Component to resolve
+    const PageComponent = await MarketplacePage();
+    render(PageComponent);
+
+    // Check that the main hero content is rendered
+    expect(
+      screen.getByText(/Facilities, MRO & Construction Marketplace/i),
+    ).toBeInTheDocument();
+
+    // Check that featured section header is rendered
+    expect(
+      screen.getByText("Featured for your organisation"),
+    ).toBeInTheDocument();
+
+    // Check that data from our mock fetch is rendered (use getAllByTestId since we have multiple product cards)
+    const productCards = screen.getAllByTestId("product-card");
+    expect(productCards.length).toBeGreaterThan(0);
+    expect(productCards[0]).toHaveTextContent("Featured Product");
+  });
+
+  it("displays Live Operational KPIs section", async () => {
+    // ✅ FIX: Await the Server Component
+    const PageComponent = await MarketplacePage();
+    render(PageComponent);
+
+    expect(screen.getByText(/Live Operational KPIs/i)).toBeInTheDocument();
+
+    // Check the KPIs are rendered - use more specific selectors to avoid collision with hero section
+    expect(
+      screen.getByRole("heading", { name: /Live Operational KPIs/i }),
+    ).toBeInTheDocument();
+
+    // Look for the numeric values instead of potentially duplicate text
+    const kpiSection = screen
+      .getByText(/Live Operational KPIs/i)
+      .closest("div");
+    expect(kpiSection).toBeInTheDocument();
+  });
+
+  it("renders category carousels with products", async () => {
+    // ✅ FIX: Await the Server Component
+    const PageComponent = await MarketplacePage();
+    render(PageComponent);
+
+    // Check that category section is rendered
+    expect(screen.getByText("Test Category")).toBeInTheDocument();
+
+    // Check that category products are rendered
+    expect(screen.getByText("Category Product")).toBeInTheDocument();
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/app/marketplace/rfq-page.test.tsx">
+<![CDATA[
+/**
+ * Tests for app/marketplace/rfq/page.tsx (MarketplaceRFQPage)
+ * Updated to match server-side data fetching implementation.
+ */
+import { vi, describe, test, expect, beforeEach } from 'vitest';
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
+
+vi.mock('@/lib/marketplace/serverFetch', () => ({
+  serverFetchJsonWithTenant: vi.fn()
+}));
+
+vi.mock('@/lib/i18n/server', () => ({
+  getServerI18n: vi.fn().mockResolvedValue({
+    t: (key: string, fallback?: string) => fallback ?? key
+  })
+}));
+
+vi.mock('@/components/marketplace/RFQBoard', () => ({
+  __esModule: true,
+  default: ({
+    categories,
+    initialRfqs,
+  }: {
+    categories: Array<{ slug: string; name: Record<string, string> }>;
+    initialRfqs: Array<{ title: string }>;
+  }) => (
+    <div data-testid="RFQBoard">
+      <span data-testid="categories-count">{categories?.length ?? 0}</span>
+      <span data-testid="rfqs-count">{initialRfqs?.length ?? 0}</span>
+      <div data-testid="rfq-titles">{initialRfqs?.map((r) => r.title).join('|')}</div>
+    </div>
+  )
+}));
+
+import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
+import MarketplaceRFQPage from '@/app/marketplace/rfq/page';
+
+const mockServerFetch = serverFetchJsonWithTenant as unknown as ReturnType<typeof vi.fn>;
+
+const sampleCategories = [
+  { slug: 'hvac', name: { en: 'HVAC' } },
+  { slug: 'electrical', name: { en: 'Electrical' } }
+];
+
+const sampleRfqs = [
+  { id: '1', title: 'HVAC Upgrade', status: 'BIDDING', currency: 'SAR', createdAt: '2025-01-01' },
+  { id: '2', title: 'Electrical Audit', status: 'PUBLISHED', currency: 'SAR', createdAt: '2025-02-01' }
+];
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
+describe('MarketplaceRFQPage - server data flow', () => {
+  test('renders RFQBoard with categories and rfqs from server', async () => {
+    mockServerFetch
+      .mockResolvedValueOnce({ data: sampleCategories })
+      .mockResolvedValueOnce({ data: sampleRfqs });
+
+    const ui = await MarketplaceRFQPage();
+    render(ui as React.ReactElement);
+
+    expect(screen.getByTestId('RFQBoard')).toBeInTheDocument();
+    expect(screen.getByTestId('categories-count')).toHaveTextContent('2');
+    expect(screen.getByTestId('rfqs-count')).toHaveTextContent('2');
+    expect(screen.getByTestId('rfq-titles')).toHaveTextContent('HVAC Upgrade');
+    expect(screen.getByTestId('rfq-titles')).toHaveTextContent('Electrical Audit');
+
+    expect(mockServerFetch).toHaveBeenNthCalledWith(1, '/api/marketplace/categories');
+    expect(mockServerFetch).toHaveBeenNthCalledWith(2, '/api/marketplace/rfq');
+  });
+
+  test('renders error state when fetch fails', async () => {
+    mockServerFetch.mockRejectedValueOnce(new Error('fail'));
+
+    const ui = await MarketplaceRFQPage();
+    render(ui as React.ReactElement);
+
+    expect(
+      screen.getByText('Failed to load RFQ data. Please try again later.')
+    ).toBeInTheDocument();
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/app/profile/page.test.tsx">
+<![CDATA[
+import React from "react";
+import { render, screen, waitFor, act, fireEvent } from "@testing-library/react";
+import { describe, it, beforeEach, afterEach, vi, expect } from "vitest";
+
+// Mock translation context
+vi.mock("@/contexts/TranslationContext", () => ({
+  useTranslation: () => ({
+    t: (_key: string, fallback?: string) => fallback || _key,
+    isRTL: false,
+  }),
+}));
+
+// Mock next/link for testing environment
+vi.mock("next/link", () => ({
+  default: ({ href, children }: { href: string; children: React.ReactNode }) => (
+    <a href={href}>{children}</a>
+  ),
+}));
+
+// Silence toast notifications
+vi.mock("react-hot-toast", () => ({
+  __esModule: true,
+  default: { success: vi.fn(), error: vi.fn() },
+  Toaster: () => null,
+}));
+
+import ProfilePage from "@/app/profile/page";
+
+const originalEnv = { ...process.env };
+
+describe("ProfilePage", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env = { ...originalEnv, NODE_ENV: "test" };
+  });
+
+  afterEach(() => {
+    process.env = { ...originalEnv };
+  });
+
+  it("renders fetched profile data on success", async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        user: {
+          name: "Jane Doe",
+          email: "jane@example.com",
+          phone: "123",
+          role: "Manager",
+          joinDate: "Feb 2024",
+        },
+      }),
+    }) as unknown as typeof fetch;
+
+    await act(async () => {
+      render(<ProfilePage />);
+    });
+
+    expect(await screen.findByText("Jane Doe")).toBeInTheDocument();
+    expect(await screen.findByText("jane@example.com")).toBeInTheDocument();
+  });
+
+  it("shows retry UI and avoids admin fallback in production on fetch failure", async () => {
+    process.env.NODE_ENV = "production";
+    const fetchMock = vi.fn();
+    fetchMock
+      .mockRejectedValueOnce(new Error("fail"))
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          user: {
+            name: "Recovered User",
+            email: "recovered@example.com",
+            role: "User",
+            joinDate: "Mar 2024",
+          },
+        }),
+      });
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    await act(async () => {
+      render(<ProfilePage />);
+    });
+
+    // Error banner with retry CTA
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Failed to load profile data");
+    expect(screen.queryByText("Admin User")).not.toBeInTheDocument();
+
+    // Retry triggers a second fetch and loads data
+    await act(async () => {
+      fireEvent.click(screen.getByText("Retry"));
+    });
+
+    expect(await screen.findByText("Recovered User")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/components/ClientLayout.test.tsx">
+<![CDATA[
+/**
+ * Unit Test: ClientLayout Component
+ * Tests authentication handling, route protection, and layout rendering
+ */
+
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import React from "react";
+import ClientLayout from "@/components/ClientLayout";
+
+// Use vi.hoisted to declare mocks before the hoisted vi.mock calls
+const { mockUseSession, mockUseTranslation } = vi.hoisted(() => ({
+  mockUseSession: vi.fn(() => ({
+    data: null,
+    status: "unauthenticated",
+  })),
+  mockUseTranslation: vi.fn(() => ({
+    language: "en",
+    isRTL: false,
+    t: (key: string) => key,
+  })),
+}));
+
+// Mock Next.js navigation
+vi.mock("next/navigation", () => ({
+  usePathname: vi.fn(() => "/"),
+  useRouter: vi.fn(() => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    back: vi.fn(),
+  })),
+}));
+
+// Mock NextAuth
+vi.mock("next-auth/react", () => ({
+  useSession: mockUseSession,
+}));
+
+// Mock translation context
+vi.mock("@/contexts/TranslationContext", () => ({
+  useTranslation: mockUseTranslation,
+}));
+
+// Mock TopBarContext to avoid "useTopBar must be used within TopBarProvider" error
+vi.mock("@/contexts/TopBarContext", () => ({
+  TopBarProvider: ({ children }: { children: React.ReactNode }) => children,
+  useTopBar: vi.fn(() => ({
+    title: "",
+    subtitle: "",
+    actions: [],
+    setTitle: vi.fn(),
+    setSubtitle: vi.fn(),
+    setActions: vi.fn(),
+    resetTopBar: vi.fn(),
+  })),
+}));
+
+// Mock TopBar to avoid TooltipProvider dependency
+vi.mock("@/components/TopBar", () => ({
+  default: () => React.createElement("div", { "data-testid": "mock-topbar" }, "TopBar"),
+}));
+
+// Mock Sidebar to avoid complex dependencies
+vi.mock("@/components/Sidebar", () => ({
+  default: () => React.createElement("div", { "data-testid": "mock-sidebar" }, "Sidebar"),
+}));
+
+// Mock dynamic imports
+vi.mock("next/dynamic", () => ({
+  default: (fn: () => Promise<unknown>) => {
+    const Component = () => null;
+    Component.displayName = "DynamicComponent";
+    return Component;
+  },
+}));
+
+// Mock next/link to avoid act warnings from Link state updates
+vi.mock("next/link", () => ({
+  __esModule: true,
+  default: ({ href, children }: { href: string; children: React.ReactNode }) =>
+    React.createElement("a", { href }, children),
+}));
+
+describe("ClientLayout", () => {
+  beforeEach(() => {
+    // Clear all mocks before each test
+    vi.clearAllMocks();
+    mockUseSession.mockReturnValue({
+      data: null,
+      status: "unauthenticated",
+    });
+    mockUseTranslation.mockReturnValue({
+      language: "en",
+      isRTL: false,
+      t: (key: string) => key,
+    });
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should render children", () => {
+    render(
+      <ClientLayout>
+        <div data-testid="test-content">Test Content</div>
+      </ClientLayout>,
+    );
+
+    expect(screen.getByTestId("test-content")).toBeInTheDocument();
+  });
+
+  it("should handle unauthenticated state", async () => {
+    mockUseSession.mockReturnValue({
+      data: null,
+      status: "unauthenticated",
+    });
+
+    render(
+      <ClientLayout>
+        <div>Content</div>
+      </ClientLayout>,
+    );
+
+    // Should render without crashing
+    await waitFor(() => {
+      expect(screen.getByText("Content")).toBeInTheDocument();
+    });
+  });
+
+  it("should handle authenticated state", async () => {
+    mockUseSession.mockReturnValue({
+      data: { user: { id: "123", role: "ADMIN" } },
+      status: "authenticated",
+    });
+
+    render(
+      <ClientLayout>
+        <div>Protected Content</div>
+      </ClientLayout>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Protected Content")).toBeInTheDocument();
+    });
+  });
+
+  it("should handle loading state", async () => {
+    mockUseSession.mockReturnValue({
+      data: null,
+      status: "loading",
+    });
+
+    render(
+      <ClientLayout>
+        <div>Content</div>
+      </ClientLayout>,
+    );
+
+    // Should render without errors during loading
+    expect(screen.getByText("Content")).toBeInTheDocument();
+  });
+
+  it("should handle RTL language", async () => {
+    mockUseTranslation.mockReturnValue({
+      language: "ar",
+      isRTL: true,
+      t: (key: string) => key,
+    });
+
+    render(
+      <ClientLayout>
+        <div>محتوى</div>
+      </ClientLayout>,
+    );
+
+    // Should render RTL content
+    expect(screen.getByText("محتوى")).toBeInTheDocument();
+  });
+
+  it("should not crash when SessionProvider is unavailable", () => {
+    mockUseSession.mockImplementation(() => {
+      throw new Error("SessionProvider not available");
+    });
+
+    const originalError = console.error;
+    console.error = vi.fn();
+    // Expect a throw so we are explicit about current behavior
+    expect(() => {
+      render(
+        <ClientLayout>
+          <div>Content</div>
+        </ClientLayout>,
+      );
+    }).toThrow("SessionProvider not available");
+    console.error = originalError;
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/components/FlagIcon.accessibility.test.tsx">
+<![CDATA[
+/**
+ * Test framework/library:
+ * - Assumes Jest (or Vitest) + @testing-library/react with jsdom environment.
+ * - Uses Testing Library best practices for React component testing.
+ */
+import React from "react";
+import { render, screen } from "@testing-library/react";
+
+/**
+ * Import the FlagIcon component directly
+ */
+import { FlagIcon } from "@/components/FlagIcon";
+
+describe("FlagIcon", () => {
+  describe("common SVG attributes", () => {
+    it("renders an SVG with correct viewBox and role for GB", () => {
+      const { container } = render(<FlagIcon code="gb" />);
+      const svg = container.querySelector("svg");
+      expect(svg).toBeTruthy();
+      expect(svg).toHaveAttribute("viewBox", "0 0 24 16");
+      expect(svg).toHaveAttribute("role", "img");
+    });
+
+    it("renders an SVG with correct viewBox and role for SA", () => {
+      const { container } = render(<FlagIcon code="sa" />);
+      const svg = container.querySelector("svg");
+      expect(svg).toBeTruthy();
+      expect(svg).toHaveAttribute("viewBox", "0 0 24 16");
+      expect(svg).toHaveAttribute("role", "img");
+    });
+
+    it("applies the provided className", () => {
+      const { container } = render(
+        <FlagIcon code="gb" className="flag-icon test-class" />,
+      );
+      const svg = container.querySelector("svg");
+      expect(svg).toHaveAttribute(
+        "class",
+        expect.stringContaining("flag-icon"),
+      );
+      expect(svg).toHaveAttribute(
+        "class",
+        expect.stringContaining("test-class"),
+      );
+    });
+  });
+
+  describe("title and aria-hidden behaviour", () => {
+    it("uses default title when none provided (GB) and hides from a11y with aria-hidden", () => {
+      const { container } = render(<FlagIcon code="gb" />);
+      const svg = container.querySelector("svg");
+      // aria-hidden should be true when no explicit title is provided
+      expect(svg).toHaveAttribute("aria-hidden", "true");
+      // The <title> element should contain the default title
+      expect(container.querySelector("title")?.textContent).toBe(
+        "United Kingdom",
+      );
+      // Because aria-hidden is true, it should not be in the accessible tree
+      expect(screen.queryByRole("img")).toBeNull();
+    });
+
+    it("uses default title when none provided (SA) and hides from a11y with aria-hidden", () => {
+      const { container } = render(<FlagIcon code="sa" />);
+      const svg = container.querySelector("svg");
+      expect(svg).toHaveAttribute("aria-hidden", "true");
+      expect(container.querySelector("title")?.textContent).toBe(
+        "Saudi Arabia",
+      );
+      expect(screen.queryByRole("img")).toBeNull();
+    });
+
+    it("uses provided non-empty title and sets aria-hidden=false", () => {
+      const { container } = render(
+        <FlagIcon code="gb" title="Custom GB Flag" />,
+      );
+      const svg = container.querySelector("svg");
+      expect(svg).toHaveAttribute("aria-hidden", "false");
+      expect(container.querySelector("title")?.textContent).toBe(
+        "Custom GB Flag",
+      );
+      // With aria-hidden=false, role should be queryable
+      expect(screen.getByRole("img")).toBeInTheDocument();
+    });
+
+    it("handles empty-string title as an explicit value: aria-hidden becomes true and title remains empty", () => {
+      const { container } = render(<FlagIcon code="sa" title="" />);
+      const svg = container.querySelector("svg");
+      // \!title when title === "" is true -> aria-hidden="true"
+      expect(svg).toHaveAttribute("aria-hidden", "true");
+      // Nullish coalescing keeps empty string ("" is not null/undefined)
+      expect(container.querySelector("title")?.textContent).toBe("");
+    });
+  });
+
+  describe("SA rendering specifics", () => {
+    it("renders the green background and white emblem for SA", () => {
+      const { container } = render(<FlagIcon code="sa" />);
+      const rects = Array.from(container.querySelectorAll("rect"));
+      const paths = Array.from(container.querySelectorAll("path"));
+
+      // Background
+      expect(
+        rects.some(
+          (r) =>
+            r.getAttribute("fill") === "#006C35" &&
+            r.getAttribute("width") === "24" &&
+            r.getAttribute("height") === "16",
+        ),
+      ).toBe(true);
+      // Emblem path
+      expect(
+        paths.some(
+          (p) =>
+            p.getAttribute("fill") === "#fff" &&
+            (p.getAttribute("d") || "").includes("M6 6h12v2H6z"),
+        ),
+      ).toBe(true);
+    });
+  });
+
+  describe("GB rendering specifics", () => {
+    it("renders the navy background for GB", () => {
+      const { container } = render(<FlagIcon code="gb" />);
+      const navyRect = Array.from(container.querySelectorAll("rect")).find(
+        (r) =>
+          r.getAttribute("fill") === "#012169" &&
+          r.getAttribute("width") === "24" &&
+          r.getAttribute("height") === "16",
+      );
+      expect(navyRect).toBeTruthy();
+    });
+
+    it("renders white and red diagonal crosses and central bars", () => {
+      const { container } = render(<FlagIcon code="gb" />);
+      const paths = Array.from(container.querySelectorAll("path"));
+      const rects = Array.from(container.querySelectorAll("rect"));
+
+      // White diagonals
+      expect(
+        paths.some(
+          (p) =>
+            p.getAttribute("stroke") === "#fff" &&
+            p.getAttribute("stroke-width") === "3",
+        ),
+      ).toBe(true);
+
+      // Red diagonals
+      expect(
+        paths.some(
+          (p) =>
+            p.getAttribute("stroke") === "#C8102E" &&
+            p.getAttribute("stroke-width") === "1.6",
+        ),
+      ).toBe(true);
+
+      // Central white and red bars (vertical + horizontal)
+      const whiteBars = rects.filter((r) => r.getAttribute("fill") === "#fff");
+      const redBars = rects.filter((r) => r.getAttribute("fill") === "#C8102E");
+
+      // Expect at least the specific bars described in implementation to be present
+      expect(
+        whiteBars.some(
+          (r) =>
+            r.getAttribute("x") === "10" &&
+            r.getAttribute("width") === "4" &&
+            r.getAttribute("height") === "16",
+        ),
+      ).toBe(true);
+      expect(
+        whiteBars.some(
+          (r) =>
+            r.getAttribute("y") === "6" &&
+            r.getAttribute("width") === "24" &&
+            r.getAttribute("height") === "4",
+        ),
+      ).toBe(true);
+
+      expect(
+        redBars.some(
+          (r) =>
+            r.getAttribute("x") === "11" &&
+            r.getAttribute("width") === "2" &&
+            r.getAttribute("height") === "16",
+        ),
+      ).toBe(true);
+      expect(
+        redBars.some(
+          (r) =>
+            r.getAttribute("y") === "7" &&
+            r.getAttribute("width") === "24" &&
+            r.getAttribute("height") === "2",
+        ),
+      ).toBe(true);
+    });
+  });
+
+  describe("focusable attribute", () => {
+    it("is set to false for accessibility consistency", () => {
+      const { container } = render(<FlagIcon code="gb" />);
+      const svg = container.querySelector("svg");
+      expect(svg).toHaveAttribute("focusable", "false");
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/components/JobApplicationForm.fallback.test.tsx">
+<![CDATA[
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  beforeAll,
+  vi,
+} from "vitest";
+import React from "react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+
+vi.mock("@/contexts/TranslationContext", () => ({
+  useTranslation: () => ({
+    t: (_key: string, fallback?: string) => fallback || _key,
+  }),
+}));
+
+const pushMock = vi.fn();
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: pushMock }),
+}));
+
+const toast = { success: vi.fn(), error: vi.fn() };
+vi.mock("react-hot-toast", () => ({
+  __esModule: true,
+  default: toast,
+}));
+
+let JobApplicationForm: React.ComponentType;
+beforeAll(async () => {
+  ({ JobApplicationForm } = await import(
+    "@/components/careers/JobApplicationForm"
+  ));
+});
+
+describe("JobApplicationForm presign fallback", () => {
+  beforeEach(() => {
+    vi.useRealTimers();
+    vi.clearAllMocks();
+    global.fetch = vi.fn();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("submits using direct form payload when presign returns 403", async () => {
+    const fetchMock = global.fetch as unknown as vi.Mock;
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 403,
+      json: vi.fn().mockResolvedValue({}),
+      text: vi.fn().mockResolvedValue("forbidden"),
+    });
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 201,
+      json: vi.fn().mockResolvedValue({ success: true }),
+    });
+
+    render(<JobApplicationForm jobId="job-1" />);
+
+    fireEvent.change(screen.getByTestId("fullName"), {
+      target: { value: "Jane Doe" },
+    });
+    fireEvent.change(screen.getByTestId("email"), {
+      target: { value: "jane@example.com" },
+    });
+    const file = new File(["resume"], "resume.pdf", {
+      type: "application/pdf",
+    });
+    fireEvent.change(screen.getByTestId("resume"), {
+      target: { files: [file] },
+    });
+
+    fireEvent.submit(screen.getByTestId("job-apply-form"));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "/api/files/resumes/presign",
+      expect.any(Object),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "/api/careers/apply",
+      expect.objectContaining({
+        method: "POST",
+      }),
+    );
+    const secondCallBody = (fetchMock.mock.calls[1][1] as RequestInit)?.body;
+    expect(secondCallBody).toBeInstanceOf(FormData);
+    expect(screen.queryByTestId("general-error")).toBeNull();
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/components/SupportPopup.test.tsx">
+<![CDATA[
+/**
+ * Tests for SupportPopup component
+ * Framework: Vitest
+ * Library: @testing-library/react, @testing-library/jest-dom
+ */
+import React from "react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { vi, describe, test, expect, beforeEach, afterEach } from "vitest";
+// Note: @ts-expect-error annotations in this file are used only to mock clipboard APIs in jsdom.
+
+// Using path mapping for cleaner imports
+import SupportPopup from "@/components/SupportPopup";
+
+// Utilities for jsdom environment
+const origAlert = window.alert;
+const origClipboard = navigator.clipboard;
+const origFetch = global.fetch;
+const origGetItem = window.localStorage.getItem;
+const origSetItem = window.localStorage.setItem;
+const origRemoveItem = window.localStorage.removeItem;
+
+beforeEach(() => {
+  // jsdom localStorage is available; ensure deterministic state
+  const store = new Map();
+  window.localStorage.getItem = vi.fn((key) =>
+    store.has(key) ? store.get(key) : null,
+  );
+  window.localStorage.setItem = vi.fn((key, value) => {
+    store.set(key, value);
+  });
+  window.localStorage.removeItem = vi.fn((key) => {
+    store.delete(key);
+  });
+  window.alert = vi.fn();
+  // @ts-expect-error: partial clipboard mock
+  navigator.clipboard = { writeText: vi.fn().mockResolvedValue(undefined) };
+  global.fetch = vi.fn();
+});
+
+afterEach(() => {
+  window.alert = origAlert;
+  // @ts-expect-error: restore
+  navigator.clipboard = origClipboard;
+  global.fetch = origFetch as any;
+  window.localStorage.getItem = origGetItem;
+  window.localStorage.setItem = origSetItem;
+  window.localStorage.removeItem = origRemoveItem;
+  vi.clearAllMocks();
+});
+
+function typeInto(selectorText: string, value: string) {
+  const input = screen.getByLabelText(selectorText) as
+    | HTMLInputElement
+    | HTMLTextAreaElement;
+  fireEvent.change(input, { target: { value } });
+  return input;
+}
+
+describe("SupportPopup - rendering and validation", () => {
+  test("disables Submit Ticket and Copy details when subject and description are empty", () => {
+    render(<SupportPopup open={true} onClose={vi.fn()} />);
+    const copyBtn = screen.getByRole("button", { name: /copy details/i });
+    const submitBtn = screen.getByTestId("submit-btn") as HTMLButtonElement;
+    expect(copyBtn).toBeDisabled();
+    expect(submitBtn).toBeDisabled();
+  });
+
+  test("enables Copy details when subject is provided", () => {
+    render(<SupportPopup open={true} onClose={vi.fn()} />);
+    typeInto("Subject *", "A subject");
+    const copyBtn = screen.getByRole("button", { name: /copy details/i });
+    expect(copyBtn).toBeEnabled();
+  });
+
+  test("enables Submit Ticket when both subject and description are provided", () => {
+    render(<SupportPopup open={true} onClose={vi.fn()} />);
+    typeInto("Subject *", "Login fails");
+    typeInto("Description *", "Cannot login using SSO.");
+    const submitBtn = screen.getByTestId("submit-btn") as HTMLButtonElement;
+    expect(submitBtn).toBeEnabled();
+  });
+
+  test("shows guest-only fields when x-user is not in localStorage", () => {
+    render(<SupportPopup open={true} onClose={vi.fn()} />);
+    expect(screen.getByLabelText(/your name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/email \*/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/phone \(optional\)/i)).toBeInTheDocument();
+  });
+
+  test("hides guest-only fields when x-user exists", () => {
+    window.localStorage.setItem("x-user", "u123");
+    render(<SupportPopup open={true} onClose={vi.fn()} />);
+    expect(screen.queryByLabelText(/your name/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/email \*/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText(/phone \(optional\)/i),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("SupportPopup - errorDetails auto-population", () => {
+  const errorDetails = {
+    errorId: "err-42",
+    timestamp: "2025-01-01T00:00:00Z",
+    url: "https://app.example.com/path",
+    userAgent: "Mozilla/5.0",
+    viewport: "1200x800",
+    system: {
+      platform: "web",
+      language: "en-US",
+      onLine: true,
+      memory: { used: 104857600 },
+    },
+    localStorage: {
+      hasAuth: false,
+      hasUser: true,
+      hasLang: true,
+      hasTheme: false,
+    },
+    error: {
+      name: "TypeError",
+      message: "Cannot read properties of undefined (reading 'x')",
+      stack: "stack trace...",
+      componentStack: "component stack...",
+    },
+  };
+
+  test("pre-populates subject, priority, type, module and description", () => {
+    render(
+      <SupportPopup
+        open={true}
+        onClose={vi.fn()}
+        errorDetails={errorDetails}
+      />,
+    );
+    const subjectInput = screen.getByLabelText("Subject *") as HTMLInputElement;
+    expect(subjectInput.value).toMatch(
+      /^System Error: TypeError - Cannot read properties of undefined/,
+    );
+    const priority = screen.getByLabelText("Priority") as HTMLSelectElement;
+    const type = screen.getByLabelText("Type") as HTMLSelectElement;
+    const moduleSel = screen.getByLabelText("Module") as HTMLSelectElement;
+    expect(priority.value).toBe("High");
+    expect(type.value).toBe("Bug");
+    expect(moduleSel.value).toBe("Other");
+
+    const desc = screen.getByLabelText("Description *") as HTMLTextAreaElement;
+    expect(desc.value).toContain("Automated Error Report");
+    expect(desc.value).toContain("Error ID: `err-42`");
+    expect(desc.value).toContain("Type: TypeError");
+    expect(desc.value).toContain("Stack Trace:");
+  });
+});
+
+describe("SupportPopup - copy details", () => {
+  test("copies subject when description is empty", async () => {
+    render(<SupportPopup open={true} onClose={vi.fn()} />);
+    typeInto("Subject *", "Subject only");
+    const copyBtn = screen.getByRole("button", { name: /copy details/i });
+    fireEvent.click(copyBtn);
+    await waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        "Subject only",
+      );
+      expect(window.alert).toHaveBeenCalledWith("Details copied to clipboard");
+    });
+  });
+
+  test("copies description when provided", async () => {
+    render(<SupportPopup open={true} onClose={vi.fn()} />);
+    typeInto("Subject *", "S");
+    typeInto("Description *", "Full details...");
+    const copyBtn = screen.getByRole("button", { name: /copy details/i });
+    fireEvent.click(copyBtn);
+    await waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        "Full details...",
+      );
+    });
+  });
+
+  test("silently ignores clipboard errors", async () => {
+    // Intentional override of mock for error testing
+    navigator.clipboard.writeText = vi
+      .fn()
+      .mockRejectedValue(new Error("Clipboard denied"));
+    render(<SupportPopup open={true} onClose={vi.fn()} />);
+    typeInto("Subject *", "X");
+    const copyBtn = screen.getByRole("button", { name: /copy details/i });
+    fireEvent.click(copyBtn);
+    await waitFor(() => {
+      expect(window.alert).not.toHaveBeenCalledWith(
+        "Details copied to clipboard",
+      );
+    });
+  });
+});
+
+describe("SupportPopup - submission flow", () => {
+  function setupForm({ loggedIn = false } = {}) {
+    if (loggedIn) {
+      window.localStorage.setItem("x-user", "user-token");
+    }
+    const onClose = vi.fn();
+    render(<SupportPopup open={true} onClose={onClose} />);
+    typeInto("Subject *", "Issue creating invoice");
+    typeInto("Description *", "Detailed repro steps...");
+
+    if (!loggedIn) {
+      typeInto("Your Name *", "Guest User");
+      typeInto("Email *", "guest@example.com");
+      typeInto("Phone (optional)", "+123456789");
+    }
+
+    const submitBtn = screen.getByTestId("submit-btn") as HTMLButtonElement;
+    return { onClose, submitBtn };
+  }
+
+  test("shows loading state and posts payload for guest users (includes requester)", async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ code: "TCK-1001" }),
+    });
+
+    const { onClose, submitBtn } = setupForm({ loggedIn: false });
+
+    fireEvent.click(submitBtn);
+    // Button should enter loading state
+    expect(submitBtn.disabled).toBe(true);
+    expect(submitBtn.textContent).toMatch(/creating ticket/i);
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    const [url, init] = (global.fetch as ReturnType<typeof vi.fn>).mock
+      .calls[0] as [string, any];
+    expect(url).toBe("/api/support/tickets");
+    expect(init?.method).toBe("POST");
+    expect(init?.headers).toMatchObject({ "content-type": "application/json" });
+    const body = JSON.parse(init.body as string);
+    // Required fields
+    expect(body).toMatchObject({
+      subject: "Issue creating invoice",
+      type: "Bug",
+      priority: "Medium",
+      category: "Technical",
+      subCategory: "Bug Report",
+      module: "Other",
+    });
+    // Guest-only requester payload
+    expect(body.requester).toMatchObject({
+      name: "Guest User",
+      email: "guest@example.com",
+      phone: "+123456789",
+    });
+
+    // Success alert and closing
+    await waitFor(() => {
+      expect(window.alert).toHaveBeenCalledWith(
+        expect.stringContaining("Support Ticket Created Successfully"),
+      );
+      expect(window.alert).toHaveBeenCalledWith(
+        expect.stringContaining("Ticket ID: TCK-1001"),
+      );
+      expect(onClose).toHaveBeenCalled();
+    });
+  });
+
+  test("does not include requester for logged-in users, still succeeds", async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ code: "TCK-2002" }),
+    });
+
+    const { onClose, submitBtn } = setupForm({ loggedIn: true });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalled();
+    });
+
+    const [, init] = (global.fetch as ReturnType<typeof vi.fn>).mock
+      .calls[0] as [string, any];
+    const body = JSON.parse(init.body as string);
+    expect(body.requester).toBeUndefined();
+
+    await waitFor(() => {
+      expect(window.alert).toHaveBeenCalledWith(
+        expect.stringContaining("Ticket ID: TCK-2002"),
+      );
+      expect(onClose).toHaveBeenCalled();
+    });
+  });
+
+  test("handles API error gracefully and resets button state", async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: async () => ({ error: "server error" }),
+    });
+
+    const { submitBtn } = setupForm({ loggedIn: false });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(window.alert).toHaveBeenCalledWith(
+        expect.stringMatching(/Failed to create ticket/i),
+      );
+    });
+
+    // Button should be reset
+    expect(submitBtn.disabled).toBe(false);
+    expect(submitBtn.textContent).toMatch(/submit ticket/i);
+  });
+
+  test("handles network rejection and resets button state", async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error("Network down"),
+    );
+
+    const { submitBtn } = setupForm({ loggedIn: false });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(window.alert).toHaveBeenCalledWith(
+        expect.stringContaining("Network down"),
+      );
+    });
+
+    expect(submitBtn.disabled).toBe(false);
+    expect(submitBtn.textContent).toMatch(/submit ticket/i);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/components/__tests__/TopBar.test.tsx">
+<![CDATA[
+import React from "react";
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeEach,
+  afterEach,
+  beforeAll,
+  afterAll,
+  Mock,
+} from "vitest";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from "@testing-library/react";
+import "@testing-library/jest-dom";
+import { SessionProvider, signOut } from "next-auth/react";
+import TopBar from "@/components/TopBar";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import { TranslationProvider } from "@/contexts/TranslationContext";
+// Stub TranslationProvider/useTranslation to avoid i18n context errors in unit tests
+vi.mock("@/contexts/TranslationContext", () => {
+  const React = require("react");
+
+  // Translation map for test labels
+  const translations: Record<string, string> = {
+    "common.backToHome": "Go to home",
+    "nav.globalHeader": "Fixzit global navigation",
+    "nav.notifications": "Toggle notifications",
+    "nav.profile": "Toggle user menu",
+    "nav.settings": "Settings",
+    "common.brand": "Fixzit",
+    "common.signIn": "Sign In",
+    "common.search": "Search",
+    "common.unsavedChanges": "Unsaved Changes",
+    "common.unsavedChangesMessage":
+      "You have unsaved changes. Do you want to discard them?",
+    "common.cancel": "Cancel",
+    "common.discardChanges": "Discard Changes",
+    "common.unread": "unread",
+    "common.noNotifications": "All caught up",
+    "common.preferences": "Preferences",
+    "common.logout": "Sign Out",
+    "notifications.title": "Notifications",
+    "notifications.empty": "No new notifications",
+    "notifications.filters.all": "All",
+    "notifications.filters.maintenance": "Work Orders",
+    "notifications.filters.finance": "Finance",
+    "notifications.filters.system": "System",
+    "user.menu": "User Menu",
+    "user.signOut": "Sign Out",
+    "time.justNow": "Just now",
+    "time.minutesAgo": "{{count}} minutes ago",
+    "time.hoursAgo": "{{count}} hours ago",
+    "time.daysAgo": "{{count}} days ago",
+  };
+
+  return {
+    TranslationProvider: ({ children }: { children: React.ReactNode }) => (
+      <>{children}</>
+    ),
+    useTranslation: () => ({
+      language: "en",
+      locale: "en",
+      setLanguage: vi.fn(),
+      setLocale: vi.fn(),
+      t: (key: string, fallback?: string) =>
+        translations[key] || fallback || key,
+      isRTL: false,
+    }),
+  };
+});
+import { ResponsiveProvider } from "@/contexts/ResponsiveContext";
+import { FormStateProvider } from "@/contexts/FormStateContext";
+import { useRouter, usePathname } from "next/navigation";
+// Provide a lightweight i18n hook so TranslationProvider doesn't throw
+vi.mock("@/i18n/useI18n", () => {
+  const translations: Record<string, string> = {
+    "common.backToHome": "Go to home",
+    "nav.globalHeader": "Fixzit global navigation",
+    "common.brand": "Fixzit",
+    "common.signIn": "Sign In",
+    "common.search": "Search",
+  };
+
+  return {
+    useI18n: () => ({
+      locale: "en",
+      dir: "ltr",
+      setLocale: vi.fn(),
+      t: (key: string, fallback?: string) =>
+        translations[key] || fallback || key,
+    }),
+  };
+});
+
+// Mock Next.js navigation
+vi.mock("next/navigation", () => ({
+  useRouter: vi.fn(),
+  usePathname: vi.fn(),
+}));
+
+// Mock next-auth/react hooks
+vi.mock("next-auth/react", async () => {
+  const actual = await vi.importActual("next-auth/react");
+  const mockSignOut = vi.fn(async () => {});
+  return {
+    ...actual,
+    useSession: vi.fn(() => ({
+      data: {
+        user: {
+          id: "test-user-id",
+          email: "test@example.com",
+          name: "Test User",
+        },
+        expires: "2025-12-31",
+      },
+      status: "authenticated",
+    })),
+    signOut: mockSignOut,
+    SessionProvider: ({ children }: { children: React.ReactNode }) => (
+      <>{children}</>
+    ),
+  };
+});
+
+// Mock Next.js Image component
+vi.mock("next/image", () => ({
+  default: ({ src, alt, ...props }: any) => (
+    <img src={src} alt={alt} {...props} />
+  ),
+}));
+
+// Mock Portal component
+vi.mock("../Portal", () => ({
+  default: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
+}));
+
+// Mock child components
+vi.mock("@/components/i18n/LanguageSelector", () => ({
+  default: () => <div data-testid="language-selector">Language Selector</div>,
+}));
+
+vi.mock("@/components/i18n/CurrencySelector", () => ({
+  default: () => <div data-testid="currency-selector">Currency Selector</div>,
+}));
+
+vi.mock("@/components/topbar/AppSwitcher", () => ({
+  default: () => <div data-testid="app-switcher">App Switcher</div>,
+}));
+
+vi.mock("@/components/topbar/GlobalSearch", () => ({
+  default: () => <div data-testid="global-search">Global Search</div>,
+}));
+
+vi.mock("@/components/topbar/QuickActions", () => ({
+  default: () => <div data-testid="quick-actions">Quick Actions</div>,
+}));
+
+vi.mock("@/components/topbar/TopMegaMenu", () => ({
+  TopMegaMenu: () => <div data-testid="mega-menu">Mega Menu</div>,
+}));
+
+vi.mock("@/contexts/TopBarContext", () => {
+  const React = require("react");
+  const mockValue = {
+    app: "fm",
+    appLabelKey: "app.fm",
+    appFallbackLabel: "Facility Management (FM)",
+    appSearchEntities: [],
+    module: "dashboard",
+    moduleLabelKey: "nav.dashboard",
+    moduleFallbackLabel: "Dashboard",
+    searchPlaceholderKey: "search.placeholders.dashboard",
+    searchPlaceholderFallback: "Search…",
+    searchEntities: [],
+    quickActions: [],
+    savedSearches: [],
+    navKey: "dashboard",
+    megaMenuCollapsed: false,
+    setMegaMenuCollapsed: vi.fn(),
+    setApp: vi.fn(),
+  };
+  const TopBarContext = React.createContext(mockValue);
+  return {
+    TopBarContext,
+    TopBarProvider: ({ children }: { children: React.ReactNode }) => (
+      <TopBarContext.Provider value={mockValue}>
+        {children}
+      </TopBarContext.Provider>
+    ),
+    useTopBar: () => mockValue,
+  };
+});
+
+// Mock session
+const mockSession: any = {
+  user: {
+    id: "test-user-id",
+    email: "test@example.com",
+    name: "Test User",
+    role: "ADMIN",
+    orgId: "test-org-id",
+    sessionId: "test-session-id",
+    isSuperAdmin: false,
+    permissions: [] as string[],
+    roles: [] as string[],
+    subscriptionPlan: "BASIC",
+  },
+  expires: "2025-12-31",
+};
+
+// Mock ResponsiveContext for tests
+vi.mock("@/contexts/ResponsiveContext", () => ({
+  ResponsiveProvider: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
+  useResponsive: vi.fn(() => ({
+    isMobile: false,
+    isTablet: false,
+    isDesktop: true,
+    screenSize: "desktop",
+    isRTL: false,
+    setRTL: vi.fn(),
+  })),
+}));
+
+// Helper function to wrap component with providers and ensure all effects are flushed
+const renderWithProviders = async (
+  component: React.ReactElement,
+  options = {},
+) => {
+  let utils;
+  await act(async () => {
+    utils = render(
+      <SessionProvider session={mockSession}>
+        <TranslationProvider>
+          <ResponsiveProvider>
+            <TooltipProvider>
+              <FormStateProvider>{component}</FormStateProvider>
+            </TooltipProvider>
+          </ResponsiveProvider>
+        </TranslationProvider>
+      </SessionProvider>,
+      options,
+    );
+  });
+  return utils!;
+};
+
+// Silence act warnings to keep output clean; real updates are already wrapped via renderWithProviders
+const originalConsoleError = console.error;
+let consoleErrorSpy:
+  | ReturnType<typeof vi.spyOn<typeof console, "error">>
+  | undefined;
+beforeAll(() => {
+  consoleErrorSpy = vi
+    .spyOn(console, "error")
+    .mockImplementation((...args: Parameters<typeof console.error>) => {
+      const [first] = args;
+      if (typeof first === "string" && first.includes("act(...")) {
+        return;
+      }
+      originalConsoleError(...args);
+    });
+});
+
+afterAll(() => {
+  consoleErrorSpy?.mockRestore();
+});
+
+describe("TopBar Component", () => {
+  let mockRouter: any;
+  let mockPush: any;
+
+  beforeEach(() => {
+    mockPush = vi.fn();
+    mockRouter = {
+      push: mockPush,
+      replace: vi.fn(),
+      refresh: vi.fn(),
+    } as Partial<AppRouterInstance>;
+    (useRouter as Mock).mockReturnValue(mockRouter);
+    (usePathname as Mock).mockReturnValue("/dashboard");
+
+    // Mock fetch API with proper responses
+    global.fetch = vi.fn((url: string) => {
+      if (url.includes("/api/organization/settings")) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({ name: "Test Organization", logo: "/logo.jpg" }),
+        });
+      }
+      if (url.includes("/api/notifications")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([]),
+        });
+      }
+      return Promise.resolve({
+        ok: false,
+        status: 404,
+        json: () => Promise.resolve({ error: "Not found" }),
+      });
+    }) as unknown as typeof fetch;
+
+    // Reset localStorage
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe("Basic Rendering", () => {
+    it("should render the TopBar component", async () => {
+      await renderWithProviders(<TopBar />);
+      expect(screen.getByRole("banner")).toBeInTheDocument();
+    });
+
+    it("should render the logo", async () => {
+      await renderWithProviders(<TopBar />);
+      // The logo could be either the organization logo or the fallback placeholder
+      const logoButton = screen.getByLabelText("Go to home");
+      expect(logoButton).toBeInTheDocument();
+    });
+
+    it("should render the brand text", async () => {
+      await renderWithProviders(<TopBar />);
+      // Organization name is fetched; fallback brand used when no org name
+      expect(
+        screen.getByText((text) => /fixzit|test organization/i.test(text)),
+      ).toBeInTheDocument();
+    });
+
+    it("should render all major sections", async () => {
+      await renderWithProviders(<TopBar />);
+      expect(screen.getByTestId("app-switcher")).toBeInTheDocument();
+      expect(screen.getByTestId("global-search")).toBeInTheDocument();
+      expect(screen.getByTestId("quick-actions")).toBeInTheDocument();
+    });
+  });
+
+  describe("Logo Navigation", () => {
+    it("should navigate to FM dashboard when logo is clicked by authenticated user", async () => {
+      await renderWithProviders(<TopBar />);
+
+      const logoButton = screen.getByLabelText("Go to home");
+      fireEvent.click(logoButton);
+
+      // Authenticated users are redirected to /fm/dashboard, not /
+      await waitFor(() => {
+        expect(mockPush).toHaveBeenCalledWith("/fm/dashboard");
+      });
+    });
+
+    // Note: Unsaved changes dialog tests removed as they require form registration
+    // which is not the responsibility of TopBar but of individual forms
+  });
+
+  describe("Authentication", () => {
+    it("should display authenticated UI when session exists", async () => {
+      await renderWithProviders(<TopBar />);
+
+      await waitFor(() => {
+        // Should show quick actions and notifications for authenticated users
+        expect(screen.getByTestId("quick-actions")).toBeInTheDocument();
+      });
+    });
+
+    it("should fetch organization settings when authenticated", async () => {
+      await renderWithProviders(<TopBar />);
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          "/api/organization/settings",
+          expect.objectContaining({
+            credentials: "include",
+          }),
+        );
+      });
+    });
+  });
+
+  describe("Notifications", () => {
+    it("should render notification bell button for authenticated users", async () => {
+      await renderWithProviders(<TopBar />);
+
+      // Wait for auth verification to complete
+      await waitFor(() => {
+        expect(
+          screen.getByLabelText(/toggle notifications/i),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("should toggle notification dropdown when bell is clicked", async () => {
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ authenticated: true }),
+      });
+
+      await renderWithProviders(<TopBar />);
+
+      // Wait for auth verification
+      const bellButton = await screen.findByLabelText(/toggle notifications/i);
+      fireEvent.click(bellButton);
+
+      // Notification panel should appear
+      await waitFor(() => {
+        expect(screen.getByText(/notifications/i)).toBeInTheDocument();
+      });
+    });
+
+    it("should fetch notifications when dropdown opens for authenticated users", async () => {
+      (global.fetch as any)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ authenticated: true }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            items: [
+              {
+                id: "1",
+                title: "Test Notification",
+                message: "Test message",
+                timestamp: new Date().toISOString(),
+                read: false,
+                priority: "high",
+                category: "system",
+                type: "alert",
+              },
+            ],
+          }),
+        });
+
+      await renderWithProviders(<TopBar />);
+
+      // Wait for auth check and bell button to appear
+      const bellButton = await screen.findByLabelText(/toggle notifications/i);
+      fireEvent.click(bellButton);
+
+      // Wait for notifications fetch
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          "/api/notifications?limit=5&read=false",
+          expect.objectContaining({
+            credentials: "include",
+          }),
+        );
+      });
+    });
+
+    it("should show loading state while fetching notifications", async () => {
+      (global.fetch as any)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ authenticated: true }),
+        })
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve) =>
+              setTimeout(
+                () => resolve({ ok: true, json: async () => ({ items: [] }) }),
+                100,
+              ),
+            ),
+        );
+
+      await renderWithProviders(<TopBar />);
+
+      const bellButton = await screen.findByLabelText(/toggle notifications/i);
+      fireEvent.click(bellButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/loading/i)).toBeInTheDocument();
+      });
+    });
+
+    it("should show empty state when no notifications", async () => {
+      (global.fetch as any)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ authenticated: true }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [] }),
+        });
+
+      await renderWithProviders(<TopBar />);
+
+      const bellButton = await screen.findByLabelText(/toggle notifications/i);
+      fireEvent.click(bellButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/all caught up/i)).toBeInTheDocument();
+      });
+    });
+
+    it("should close notification dropdown when clicking outside", async () => {
+      await renderWithProviders(<TopBar />);
+
+      const bellButton = await screen.findByLabelText(/toggle notifications/i);
+      fireEvent.click(bellButton);
+
+      // Click outside
+      fireEvent.mouseDown(document.body);
+
+      await waitFor(() => {
+        expect(
+          screen.queryByRole("dialog", { name: /notifications/i }),
+        ).not.toBeInTheDocument();
+      });
+    });
+
+    it("should close notification dropdown on Escape key", async () => {
+      await renderWithProviders(<TopBar />);
+
+      const bellButton = await screen.findByLabelText(/toggle notifications/i);
+      fireEvent.click(bellButton);
+
+      // Press Escape
+      fireEvent.keyDown(document, { key: "Escape" });
+
+      await waitFor(() => {
+        expect(
+          screen.queryByRole("dialog", { name: /notifications/i }),
+        ).not.toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("User Menu", () => {
+    it("should render user menu button", async () => {
+      await renderWithProviders(<TopBar />);
+      const userButton = await screen.findByLabelText(/toggle user menu/i);
+      expect(userButton).toBeInTheDocument();
+    });
+
+    it("should toggle user menu dropdown when clicked", async () => {
+      await renderWithProviders(<TopBar />);
+
+      const userButton = await screen.findByLabelText(/toggle user menu/i);
+      fireEvent.click(userButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/settings/i)).toBeInTheDocument();
+      });
+    });
+
+    it("should show language and currency selectors in TopBar (always visible)", async () => {
+      // Language and currency selectors are now always visible in TopBar,
+      // not inside the user menu dropdown
+      await renderWithProviders(<TopBar />);
+
+      // They should be visible without clicking user menu
+      expect(screen.getByTestId("language-selector")).toBeInTheDocument();
+      expect(screen.getByTestId("currency-selector")).toBeInTheDocument();
+    });
+
+    it("should handle sign out correctly", async () => {
+      await renderWithProviders(<TopBar />);
+
+      const userButton = await screen.findByLabelText(/toggle user menu/i);
+      fireEvent.click(userButton);
+
+      const signOutButton = screen.getByText(/sign out/i);
+      fireEvent.click(signOutButton);
+
+      await waitFor(() => {
+        expect(mockPush).toHaveBeenCalledWith("/logout");
+      });
+      expect(signOut).not.toHaveBeenCalled();
+    });
+
+    it("should close user menu when clicking outside", async () => {
+      await renderWithProviders(<TopBar />);
+
+      const userButton = await screen.findByLabelText(/toggle user menu/i);
+      fireEvent.click(userButton);
+
+      // Click outside
+      fireEvent.mouseDown(document.body);
+
+      await waitFor(() => {
+        expect(screen.queryByText(/settings/i)).not.toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("Unsaved Changes Dialog", () => {
+    it("does not render unsaved dialog when no forms are registered", async () => {
+      await renderWithProviders(<TopBar />);
+      // With no registered forms, TopBar should not surface an unsaved-changes dialog
+      expect(screen.queryByText(/unsaved/i)).not.toBeInTheDocument();
+    });
+
+    it("renders baseline layout without unsaved prompt by default", async () => {
+      await renderWithProviders(<TopBar />);
+      expect(screen.getByRole("banner")).toBeInTheDocument();
+    });
+  });
+
+  describe("Responsive Behavior", () => {
+    it("should render responsive layout correctly", async () => {
+      await renderWithProviders(<TopBar />);
+
+      // TopBar should render without errors
+      expect(screen.getByRole("banner")).toBeInTheDocument();
+    });
+
+    it("should adapt layout for RTL languages", async () => {
+      // RTL support is handled by ResponsiveContext
+      await renderWithProviders(<TopBar />);
+
+      // TopBar should render without errors in RTL mode
+      expect(screen.getByRole("banner")).toBeInTheDocument();
+    });
+  });
+
+  describe("Route Change Handling", () => {
+    it("should close all dropdowns when route changes", async () => {
+      const { rerender } = await renderWithProviders(<TopBar />);
+
+      // Open notification dropdown
+      const bellButton = screen.getByLabelText(/notifications/i);
+      fireEvent.click(bellButton);
+
+      // Simulate route change
+      (usePathname as Mock).mockReturnValue("/settings");
+      rerender(
+        <SessionProvider session={mockSession}>
+          <TranslationProvider>
+            <ResponsiveProvider>
+              <TooltipProvider>
+                <FormStateProvider>
+                  <TopBar />
+                </FormStateProvider>
+              </TooltipProvider>
+            </ResponsiveProvider>
+          </TranslationProvider>
+        </SessionProvider>,
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.queryByRole("region", { name: /notifications/i }),
+        ).not.toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("Accessibility", () => {
+    it("should have proper ARIA labels", async () => {
+      await renderWithProviders(<TopBar />);
+
+      expect(screen.getByLabelText("Go to home")).toBeInTheDocument();
+
+      // Use async queries for elements that appear after auth verification
+      await expect(
+        screen.findByLabelText(/toggle notifications/i),
+      ).resolves.toBeInTheDocument();
+      await expect(
+        screen.findByLabelText(/toggle user menu/i),
+      ).resolves.toBeInTheDocument();
+    });
+
+    it("should be keyboard navigable", async () => {
+      await renderWithProviders(<TopBar />);
+
+      const logoButton = screen.getByLabelText("Go to home");
+      // Check that the button is in the accessibility tree and can receive focus
+      expect(logoButton).toBeInTheDocument();
+      expect(logoButton.tagName.toLowerCase()).toBe("button");
+    });
+
+    it("should close dropdowns on Escape key", async () => {
+      await renderWithProviders(<TopBar />);
+
+      const bellButton = await screen.findByLabelText(/toggle notifications/i);
+      fireEvent.click(bellButton);
+
+      fireEvent.keyDown(document, { key: "Escape" });
+
+      await waitFor(() => {
+        expect(
+          screen.queryByRole("dialog", { name: /notifications/i }),
+        ).not.toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("Error Handling", () => {
+    it("should handle notification fetch errors gracefully", async () => {
+      (global.fetch as any)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ authenticated: true }),
+        })
+        .mockRejectedValueOnce(new Error("Network error"));
+
+      await renderWithProviders(<TopBar />);
+
+      const bellButton = await screen.findByLabelText(/toggle notifications/i);
+      fireEvent.click(bellButton);
+
+      // Should show empty state instead of error
+      await waitFor(() => {
+        expect(screen.getByText(/all caught up/i)).toBeInTheDocument();
+      });
+    });
+
+    it("should handle save errors in unsaved changes dialog", async () => {
+      // Skipped - unsaved changes now require explicit form registration
+      // This test relied on DOM-based detection which has been refactored
+    });
+  });
+
+  describe("Role Prop", () => {
+    it("should render TopBar without role prop", async () => {
+      await renderWithProviders(<TopBar />);
+      expect(screen.getByRole("banner")).toBeInTheDocument();
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/components/aqar/ContactActions.test.tsx">
+<![CDATA[
+import React from "react";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { ContactActions } from "@/components/aqar/ContactActions";
+
+const ORIGINAL_LOCATION = window.location;
+
+// Mock the translation context
+vi.mock("@/contexts/TranslationContext", () => ({
+  useTranslation: () => ({
+    t: (key: string, fallback: string) => fallback || key,
+    isRTL: false,
+  }),
+}));
+
+// Mock lucide-react icons
+vi.mock("lucide-react", () => ({
+  Phone: () => <div data-testid="phone-icon" />,
+  MessageSquare: () => <div data-testid="whatsapp-icon" />,
+}));
+
+beforeAll(() => {
+  Object.defineProperty(window, "location", {
+    value: {
+      ...ORIGINAL_LOCATION,
+      assign: vi.fn(),
+      replace: vi.fn(),
+      href: "",
+    },
+    writable: true,
+  });
+});
+
+afterAll(() => {
+  Object.defineProperty(window, "location", {
+    value: ORIGINAL_LOCATION,
+    writable: true,
+  });
+});
+
+describe("ContactActions", () => {
+  describe("Full Variant (Buttons)", () => {
+    it("renders call and whatsapp buttons with correct text", () => {
+      render(<ContactActions phone="0501234567" variant="full" />);
+      expect(screen.getByLabelText("Call agent")).toBeInTheDocument();
+      expect(screen.getByText("Call")).toBeInTheDocument();
+      expect(screen.getByLabelText("WhatsApp agent")).toBeInTheDocument();
+      expect(screen.getByText("WhatsApp")).toBeInTheDocument();
+    });
+
+    it("sanitizes hrefs for call and whatsapp links, preserving leading plus", () => {
+      render(
+        <ContactActions
+          phone="+966 (050) 123-4567"
+          whatsapp="050 987 6543"
+          variant="full"
+        />,
+      );
+
+      const callLink = screen.getByLabelText("Call agent") as HTMLAnchorElement;
+      const waLink = screen.getByLabelText(
+        "WhatsApp agent",
+      ) as HTMLAnchorElement;
+
+      expect(callLink.href).toBe("tel:+9660501234567");
+      expect(waLink.href).toBe("https://wa.me/0509876543");
+    });
+
+    it("falls back to phone for whatsapp link if whatsapp number is missing", () => {
+      render(<ContactActions phone="+966 555 111 222" variant="full" />);
+      const waLink = screen.getByLabelText(
+        "WhatsApp agent",
+      ) as HTMLAnchorElement;
+      expect(waLink.href).toBe("https://wa.me/+966555111222");
+    });
+
+    it("stops event propagation when clicked", () => {
+      const parentClickHandler = vi.fn();
+      render(
+        <div onClick={parentClickHandler}>
+          <ContactActions phone="0501234567" variant="full" />
+        </div>,
+      );
+
+      fireEvent.click(screen.getByText("Call"));
+      fireEvent.click(screen.getByText("WhatsApp"));
+
+      expect(parentClickHandler).not.toHaveBeenCalled();
+    });
+
+    it("calls optional callbacks when provided", () => {
+      const onPhoneClick = vi.fn();
+      const onWhatsAppClick = vi.fn();
+
+      render(
+        <ContactActions
+          phone="0501234567"
+          variant="full"
+          onPhoneClick={onPhoneClick}
+          onWhatsAppClick={onWhatsAppClick}
+        />,
+      );
+
+      fireEvent.click(screen.getByText("Call"));
+      fireEvent.click(screen.getByText("WhatsApp"));
+
+      expect(onPhoneClick).toHaveBeenCalledTimes(1);
+      expect(onWhatsAppClick).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("Icon Variant", () => {
+    it("renders call and whatsapp icons", () => {
+      render(<ContactActions phone="0501234567" variant="icon" />);
+      expect(screen.getByLabelText("Call agent")).toBeInTheDocument();
+      expect(screen.getByTestId("phone-icon")).toBeInTheDocument();
+      expect(screen.getByLabelText("Message agent")).toBeInTheDocument();
+      expect(screen.getByTestId("whatsapp-icon")).toBeInTheDocument();
+    });
+
+    it("sanitizes hrefs for call and whatsapp icon links", () => {
+      render(
+        <ContactActions
+          phone="(050) 123-4567"
+          whatsapp=" 050 987 6543 "
+          variant="icon"
+        />,
+      );
+
+      const callLink = screen.getByLabelText("Call agent") as HTMLAnchorElement;
+      const waLink = screen.getByLabelText(
+        "Message agent",
+      ) as HTMLAnchorElement;
+
+      expect(callLink.href).toBe("tel:0501234567");
+      expect(waLink.href).toBe("https://wa.me/0509876543");
+    });
+
+    it("stops event propagation when icons are clicked", () => {
+      const parentClickHandler = vi.fn();
+      render(
+        <div onClick={parentClickHandler}>
+          <ContactActions phone="0501234567" variant="icon" />
+        </div>,
+      );
+
+      fireEvent.click(screen.getByLabelText("Call agent"));
+      fireEvent.click(screen.getByLabelText("Message agent"));
+
+      expect(parentClickHandler).not.toHaveBeenCalled();
+    });
+
+    it("has correct security attributes on WhatsApp link", () => {
+      render(<ContactActions phone="0501234567" variant="icon" />);
+      const waLink = screen.getByLabelText(
+        "Message agent",
+      ) as HTMLAnchorElement;
+
+      expect(waLink.target).toBe("_blank");
+      expect(waLink.rel).toBe("noopener noreferrer");
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/components/brand/BrandLogo.test.tsx">
+<![CDATA[
+import { vi, describe, test, expect, beforeEach, afterEach } from 'vitest';
+import React from 'react';
+import { render, screen, waitFor, act } from '@testing-library/react';
+import { BrandLogo, BrandLogoWithCard } from '@/components/brand/BrandLogo';
+
+// Mock fetch for org logo tests - save original for proper restoration
+const originalFetch = global.fetch;
+const mockFetch = vi.fn();
+
+// Mock Next.js Image (we're in test env so native img is used, but mock for completeness)
+vi.mock('next/image', () => ({
+  default: ({ src, alt, width, height, className, onError, priority, 'data-testid': testId }: {
+    src: string;
+    alt: string;
+    width: number;
+    height: number;
+    className?: string;
+    onError?: () => void;
+    priority?: boolean;
+    'data-testid'?: string;
+  }) => (
+    <img
+      src={src}
+      alt={alt}
+      width={width}
+      height={height}
+      className={className}
+      onError={onError}
+      data-priority={priority}
+      data-testid={testId}
+    />
+  ),
+}));
+
+describe('BrandLogo', () => {
+  const renderLogo = (props: React.ComponentProps<typeof BrandLogo> = {}) =>
+    render(<BrandLogo fetchOrgLogo={false} {...props} />);
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    global.fetch = mockFetch; // Set mock before each test
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ logo: '/org-logo.png' }),
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    global.fetch = originalFetch; // Restore original fetch after each test
+  });
+
+  describe('Size Presets', () => {
+    test('renders with default md size preset', () => {
+      renderLogo();
+      const img = screen.getByTestId('brand-logo');
+      
+      // Default md size: 48x48
+      expect(img).toHaveAttribute('width', '48');
+      expect(img).toHaveAttribute('height', '48');
+      expect(img.className).toContain('w-12');
+      expect(img.className).toContain('h-12');
+    });
+
+    test('renders with xs size preset', () => {
+      renderLogo({ size: 'xs' });
+      const img = screen.getByTestId('brand-logo');
+      
+      expect(img).toHaveAttribute('width', '24');
+      expect(img).toHaveAttribute('height', '24');
+      expect(img.className).toContain('w-6');
+      expect(img.className).toContain('h-6');
+    });
+
+    test('renders with lg size preset', () => {
+      renderLogo({ size: 'lg' });
+      const img = screen.getByTestId('brand-logo');
+      
+      expect(img).toHaveAttribute('width', '64');
+      expect(img).toHaveAttribute('height', '64');
+      expect(img.className).toContain('w-16');
+      expect(img.className).toContain('h-16');
+    });
+
+    test('renders with 2xl size preset', () => {
+      renderLogo({ size: '2xl' });
+      const img = screen.getByTestId('brand-logo');
+      
+      expect(img).toHaveAttribute('width', '120');
+      expect(img).toHaveAttribute('height', '120');
+      expect(img.className).toContain('w-[120px]');
+      expect(img.className).toContain('h-[120px]');
+    });
+  });
+
+  describe('Custom Dimensions (Regression: audit fix)', () => {
+    test('customWidth overrides size preset width attribute', () => {
+      renderLogo({ size: 'md', width: 100 });
+      const img = screen.getByTestId('brand-logo');
+      
+      expect(img).toHaveAttribute('width', '100');
+      expect(img).toHaveAttribute('height', '48');
+    });
+
+    test('customHeight overrides size preset height attribute', () => {
+      renderLogo({ size: 'md', height: 100 });
+      const img = screen.getByTestId('brand-logo');
+      
+      expect(img).toHaveAttribute('width', '48');
+      expect(img).toHaveAttribute('height', '100');
+    });
+
+    test('both customWidth and customHeight override size preset', () => {
+      renderLogo({ size: 'xs', width: 200, height: 150 });
+      const img = screen.getByTestId('brand-logo');
+      
+      expect(img).toHaveAttribute('width', '200');
+      expect(img).toHaveAttribute('height', '150');
+    });
+
+    test('custom dimensions work with any size preset', () => {
+      const { rerender } = renderLogo({ size: '2xl', width: 50, height: 50 });
+      let img = screen.getByTestId('brand-logo');
+      
+      expect(img).toHaveAttribute('width', '50');
+      expect(img).toHaveAttribute('height', '50');
+
+      rerender(<BrandLogo fetchOrgLogo={false} size="xs" width={300} height={300} />);
+      img = screen.getByTestId('brand-logo');
+      
+      expect(img).toHaveAttribute('width', '300');
+      expect(img).toHaveAttribute('height', '300');
+    });
+  });
+
+  describe('Logo Variants', () => {
+    test('applies rounded corners by default', () => {
+      renderLogo();
+      const img = screen.getByTestId('brand-logo');
+      
+      expect(img.className).toContain('rounded-2xl');
+    });
+
+    test('rounded can be disabled', () => {
+      renderLogo({ rounded: false });
+      const img = screen.getByTestId('brand-logo');
+      
+      expect(img.className).not.toContain('rounded');
+    });
+
+    test('applies card variant styles', () => {
+      renderLogo({ variant: 'card' });
+      const img = screen.getByTestId('brand-logo');
+      
+      expect(img.className).toContain('bg-card');
+      expect(img.className).toContain('shadow-lg');
+    });
+
+    test('applies additional className', () => {
+      renderLogo({ className: 'custom-class another-class' });
+      const img = screen.getByTestId('brand-logo');
+      
+      expect(img.className).toContain('custom-class');
+      expect(img.className).toContain('another-class');
+    });
+  });
+
+  describe('Logo Sources', () => {
+    test('uses default logo when fetchOrgLogo is false', () => {
+      renderLogo({ fetchOrgLogo: false });
+      const img = screen.getByTestId('brand-logo');
+      
+      expect(img).toHaveAttribute('src', '/img/fixzit-logo.png');
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    test('uses custom logoUrl when provided', () => {
+      renderLogo({ logoUrl: '/custom-logo.png' });
+      const img = screen.getByTestId('brand-logo');
+      
+      expect(img).toHaveAttribute('src', '/custom-logo.png');
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    test('fetches org logo when fetchOrgLogo is true', async () => {
+      await act(async () => {
+        render(<BrandLogo fetchOrgLogo={true} />);
+      });
+      
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          '/api/organization/settings',
+          expect.objectContaining({
+            cache: 'force-cache',
+          })
+        );
+      });
+    });
+
+    test('updates logo src when org logo is fetched', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ logo: '/fetched-org-logo.png' }),
+      });
+
+      await act(async () => {
+        render(<BrandLogo fetchOrgLogo={true} />);
+      });
+      
+      await waitFor(() => {
+        const img = screen.getByTestId('brand-logo');
+        expect(img).toHaveAttribute('src', '/fetched-org-logo.png');
+      });
+    });
+
+    test('keeps default logo when fetch fails', async () => {
+      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+
+      await act(async () => {
+        render(<BrandLogo fetchOrgLogo={true} />);
+      });
+      
+      await waitFor(() => {
+        const img = screen.getByTestId('brand-logo');
+        expect(img).toHaveAttribute('src', '/img/fixzit-logo.png');
+      });
+    });
+  });
+
+  describe('Accessibility', () => {
+    test('uses default alt text', () => {
+      renderLogo();
+      const img = screen.getByTestId('brand-logo');
+      
+      expect(img).toHaveAttribute('alt', 'Fixzit');
+    });
+
+    test('uses custom alt text when provided', () => {
+      renderLogo({ alt: 'Company Logo' });
+      const img = screen.getByTestId('brand-logo');
+      
+      expect(img).toHaveAttribute('alt', 'Company Logo');
+    });
+
+    test('uses custom data-testid', () => {
+      renderLogo({ 'data-testid': 'custom-logo' });
+      
+      expect(screen.getByTestId('custom-logo')).toBeInTheDocument();
+    });
+  });
+
+  describe('Error Handling', () => {
+    test('calls onError callback when image fails to load', () => {
+      const handleError = vi.fn();
+      renderLogo({ onError: handleError });
+      const img = screen.getByTestId('brand-logo');
+      
+      act(() => {
+        img.dispatchEvent(new Event('error'));
+      });
+      
+      expect(handleError).toHaveBeenCalled();
+    });
+  });
+});
+
+describe('BrandLogoWithCard', () => {
+  test('wraps BrandLogo in a card container', () => {
+    render(<BrandLogoWithCard data-testid="card-logo" />);
+    
+    const logo = screen.getByTestId('card-logo');
+    const container = logo.parentElement;
+    
+    expect(container).toHaveClass('bg-card');
+    expect(container).toHaveClass('rounded-2xl');
+    expect(container).toHaveClass('shadow-lg');
+  });
+
+  test('uses xl size by default', () => {
+    render(<BrandLogoWithCard />);
+    const img = screen.getByTestId('brand-logo');
+    
+    expect(img).toHaveAttribute('width', '80');
+    expect(img).toHaveAttribute('height', '80');
+  });
+
+  test('accepts custom size', () => {
+    render(<BrandLogoWithCard size="sm" />);
+    const img = screen.getByTestId('brand-logo');
+    
+    expect(img).toHaveAttribute('width', '32');
+    expect(img).toHaveAttribute('height', '32');
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/components/fm/__tests__/FmGuardedPage.test.tsx">
+<![CDATA[
+import React from "react";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { render, screen } from "@testing-library/react";
+import "@testing-library/jest-dom";
+import { FmGuardedPage } from "@/components/fm/FmGuardedPage";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+
+vi.mock("@/components/fm/useFmOrgGuard", () => ({
+  useFmOrgGuard: vi.fn(),
+}));
+
+const mockUseFmOrgGuard = useFmOrgGuard as unknown as vi.Mock;
+
+afterEach(() => {
+  vi.clearAllMocks();
+});
+
+describe("FmGuardedPage", () => {
+  it("renders guard UI when org context is missing", () => {
+    mockUseFmOrgGuard.mockReturnValue({
+      hasOrgContext: false,
+      orgId: null,
+      supportOrg: null,
+      supportBanner: null,
+      guard: <div data-testid="guard-ui">guard</div>,
+    });
+
+    render(
+      <FmGuardedPage moduleId="dashboard">
+        {() => <div data-testid="child">child</div>}
+      </FmGuardedPage>,
+    );
+
+    expect(screen.getByTestId("guard-ui")).toBeInTheDocument();
+    expect(screen.queryByTestId("child")).not.toBeInTheDocument();
+  });
+
+  it("renders children when org context is present and passes guard context through", () => {
+    mockUseFmOrgGuard.mockReturnValue({
+      hasOrgContext: true,
+      orgId: "org-123",
+      supportOrg: { name: "Support Org" },
+      supportBanner: <div data-testid="banner">support banner</div>,
+      guard: <div>guard</div>,
+    });
+
+    render(
+      <FmGuardedPage moduleId="marketplace">
+        {(ctx) => (
+          <div>
+            <div data-testid="child">child</div>
+            <div data-testid="org-id">{ctx.orgId}</div>
+            <div data-testid="banner-prop">{ctx.supportBanner}</div>
+          </div>
+        )}
+      </FmGuardedPage>,
+    );
+
+    expect(screen.getByTestId("child")).toBeInTheDocument();
+    expect(screen.getByTestId("org-id")).toHaveTextContent("org-123");
+    expect(screen.getByTestId("banner-prop")).toBeInTheDocument();
+  });
+});
+
+]]>
+</file>
+
+</batch_content>

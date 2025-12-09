@@ -1,0 +1,3203 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/archived/DAILY_PROGRESS_REPORTS/2025-01-13_unhandled-promises-batch-fixes.md">
+<![CDATA[
+# Daily Progress Report - Unhandled Promise Fixes
+> **Historical snapshot.** Archived status report; verify latest CI/build/test/deploy data before acting. Evidence placeholders: CI run: <link>, Tests: <link>, Deploy: <link>.
+
+**Date**: 2025-01-13  
+**Session**: Comprehensive Unhandled Promise Resolution - Batch 1 & 2  
+**Engineer**: GitHub Copilot  
+**Timeframe**: Continuous execution per user's "complete non-stop" directive
+
+---
+
+## Executive Summary
+
+**Objective**: Fix ALL 214 unhandled promise rejections identified by comprehensive scan, following strict production-only standards with crash-proofing and system-wide pattern propagation.
+
+**Progress**: 44/214 issues fixed (20.6% complete)
+
+- ✅ 2 Pre-existing TypeScript errors resolved
+- ✅ 23 component/page files fixed with proper error handling
+- ✅ 16 fetcher pattern standardizations
+- ✅ 5 async function wrappers added
+- 🔄 170 remaining issues (79.4%)
+
+**Commits Today**: 5 production-ready commits with full verification
+
+- Build: ✅ 0 TypeScript errors (verified after each batch)
+- Tests: ⏳ Pending E2E verification
+- Translation Audit: ✅ Passed all commits
+
+---
+
+## Part 1: Pre-existing TypeScript Errors (CRITICAL)
+
+### Issue: 2 TypeScript Compilation Errors Blocking Build
+
+**Root Cause Analysis**:
+
+1. **app/api/health/route.ts:22** - Property 'admin' does not exist on type 'DatabaseHandle'
+   - Attempted to call `(await db).admin().ping()` for health check
+   - DatabaseHandle interface in `lib/mongo.ts` doesn't include admin() method
+   - Type mismatch between expected MongoDB API and actual interface
+
+2. **scripts/list-indexes.ts:8** - 'mongoose.connection.db' is possibly 'undefined'
+   - No null check before accessing `mongoose.connection.db.collection()`
+   - Script can fail silently if database not connected
+
+### Fix Applied
+
+#### Health Route Fix (Commit: a7ad7f882)
+
+```typescript
+// BEFORE (broken):
+const admin = (await db).admin();
+await admin.ping();
+
+// AFTER (fixed):
+const connection = await db;
+// Verify connection by checking if collection method exists
+if (connection && typeof connection.collection === "function") {
+  dbStatus = "connected";
+  dbLatency = Date.now() - dbStart;
+} else {
+  dbStatus = "disconnected";
+}
+```
+
+**Rationale**: Instead of using unavailable `admin()` method, we verify the connection exists by checking for the `collection()` method which is guaranteed by DatabaseHandle interface. This provides equivalent health check functionality without type errors.
+
+#### List Indexes Script Fix (Commit: a7ad7f882)
+
+```typescript
+// BEFORE (broken):
+await db;
+const coll = mongoose.connection.db.collection("users");
+
+// AFTER (fixed):
+await db;
+if (!mongoose.connection.db) {
+  throw new Error("Database connection not established");
+}
+const coll = mongoose.connection.db.collection("users");
+```
+
+**Rationale**: Explicit null check prevents runtime TypeError and provides clear error message for debugging.
+
+### Verification
+
+```bash
+$ pnpm typecheck
+> tsc -p .
+# No errors - clean build ✅
+```
+
+**Files Changed**: 2  
+**Lines Changed**: 12 insertions, 7 deletions  
+**Commit SHA**: a7ad7f882
+
+---
+
+## Part 2: Marketplace Components - Batch 2 (HIGH PRIORITY)
+
+### Issue: 6 Marketplace Components Missing Error Handling
+
+**Scan Results**:
+
+- VendorCatalogueManager.tsx: fetch() without try-catch
+- RFQBoard.tsx: fetch() without try-catch
+- ProductCard.tsx: .then() without .catch() on logger import
+- PDPBuyBox.tsx: .then() without .catch() on logger import
+- CheckoutForm.tsx: fetch() without try-catch
+- CatalogView.tsx: 3 locations - 2 fetcher functions + 1 logger import
+
+**Impact**: Network failures would throw unhandled promise rejections, potentially crashing the UI or leaving the app in inconsistent state.
+
+### Fix Applied (Commit: 6ee71b5c5)
+
+#### Pattern 1: Wrap fetch() in try-catch with finally
+
+```typescript
+// VendorCatalogueManager.tsx - BEFORE:
+const addProduct = async () => {
+  setLoading(true);
+  setError(null);
+  const response = await fetch('/api/marketplace/vendor/products', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({...})
+  });
+  setLoading(false); // ← PROBLEM: Won't run if fetch throws
+
+  if (!response.ok) { ... }
+}
+
+// AFTER:
+const addProduct = async () => {
+  setLoading(true);
+  setError(null);
+  try {
+    const response = await fetch('/api/marketplace/vendor/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({...})
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      setError(payload.error ?? 'Unable to add product');
+      return;
+    }
+
+    const payload = await response.json();
+    setProducts([payload.data, ...products]);
+    setForm({ title: '', sku: '', categoryId: '', price: '', uom: 'ea' });
+  } catch (fetchError) {
+    console.error('Failed to add product:', fetchError);
+    setError('Network error. Please try again.');
+  } finally {
+    setLoading(false); // ← SOLUTION: Always runs
+  }
+};
+```
+
+**Applied to**: VendorCatalogueManager.tsx, RFQBoard.tsx, CheckoutForm.tsx
+
+#### Pattern 2: Add .catch() to logger dynamic imports
+
+```typescript
+// ProductCard.tsx - BEFORE:
+import('../../lib/logger').then(({ logError }) => {
+  logError('Failed to add product to cart', error as Error, {...});
+}); // ← PROBLEM: If logger fails to load, unhandled rejection
+
+// AFTER:
+import('../../lib/logger')
+  .then(({ logError }) => {
+    logError('Failed to add product to cart', error as Error, {...});
+  })
+  .catch((loggerError) => {
+    console.error('Failed to load logger:', loggerError); // ← SOLUTION
+  });
+```
+
+**Applied to**: ProductCard.tsx, PDPBuyBox.tsx, CatalogView.tsx (2 locations)
+
+#### Pattern 3: Wrap fetcher functions in try-catch
+
+```typescript
+// CatalogView.tsx - BEFORE:
+const productFetcher = async (url: string): Promise<CatalogResponse> => {
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to load marketplace catalog");
+  const json = await res.json();
+  return json.data;
+}; // ← PROBLEM: fetch() can throw, bypassing our error message
+
+// AFTER:
+const productFetcher = async (url: string): Promise<CatalogResponse> => {
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error("Failed to load marketplace catalog");
+    const json = await res.json();
+    return json.data;
+  } catch (error) {
+    console.error("Product fetcher error:", error); // ← SOLUTION
+    throw new Error("Failed to load marketplace catalog");
+  }
+};
+```
+
+**Applied to**: CatalogView.tsx (productFetcher + categoryFetcher)
+
+### Verification
+
+```bash
+$ pnpm typecheck
+> tsc -p .
+# No errors - clean build ✅
+```
+
+**Files Changed**: 6  
+**Lines Changed**: 63 insertions, 33 deletions  
+**Commit SHA**: 6ee71b5c5  
+**Progress**: 20/214 fixed (9.3%)
+
+---
+
+## Part 3: Fetcher Pattern Standardization (SYSTEM-WIDE)
+
+### Issue: 16 Files Using Fetcher Pattern Without .catch()
+
+**Pattern Identified**:
+
+```typescript
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
+```
+
+**Problem**: If `fetch()` throws (network error, CORS, timeout), or if `r.json()` throws (invalid JSON), the promise rejects without a handler. SWR library can't always catch these, leading to console errors and potential UI crashes.
+
+**Files Affected**:
+
+- finance/page.tsx
+- work-orders/pm/page.tsx
+- work-orders/sla-watchlist/page.tsx
+- support/my-tickets/page.tsx
+- notifications/page.tsx
+- FM pages (13 files):
+  - fm/dashboard/page.tsx
+  - fm/support/tickets/page.tsx
+  - fm/rfqs/page.tsx
+  - fm/assets/page.tsx
+  - fm/properties/page.tsx
+  - fm/tenants/page.tsx
+  - fm/projects/page.tsx
+  - fm/invoices/page.tsx
+  - fm/vendors/[id]/page.tsx
+  - fm/properties/[id]/page.tsx
+  - fm/vendors/[id]/edit/page.tsx
+  - fm/vendors/page.tsx (async fetcher variant)
+  - fm/orders/page.tsx (async fetcher variant)
+
+### Fix Applied (Commit: 816a3863c)
+
+#### Standard Fetcher Pattern
+
+```typescript
+// BEFORE:
+const fetcher = (url: string) => {
+  if (!orgId) return Promise.reject(new Error("No organization ID"));
+  return fetch(url, { headers: { "x-tenant-id": orgId } }).then((r) =>
+    r.json(),
+  );
+};
+
+// AFTER:
+const fetcher = (url: string) => {
+  if (!orgId) return Promise.reject(new Error("No organization ID"));
+  return fetch(url, { headers: { "x-tenant-id": orgId } })
+    .then((r) => r.json())
+    .catch((error) => {
+      console.error("FM dashboard fetch error:", error);
+      throw error; // ← Re-throw for SWR to handle, but log first
+    });
+};
+```
+
+**Benefits**:
+
+1. **Logging**: All network errors logged to console with context
+2. **Debugging**: Developers can see which fetch failed
+3. **Monitoring**: Error tracking tools (Sentry, etc.) can capture these
+4. **Graceful Degradation**: SWR's error state still triggers, but with logged context
+
+#### Async Fetcher Pattern (for vendors/orders)
+
+```typescript
+// BEFORE:
+const fetcher = async (url: string, orgId?: string) => {
+  if (!orgId) throw new Error("Organization ID required");
+  const res = await fetch(url, { headers: { "x-tenant-id": orgId } });
+  if (!res.ok) throw new Error("Failed to fetch");
+  return res.json();
+};
+
+// AFTER:
+const fetcher = async (url: string, orgId?: string) => {
+  if (!orgId) throw new Error("Organization ID required");
+  try {
+    const res = await fetch(url, { headers: { "x-tenant-id": orgId } });
+    if (!res.ok) throw new Error("Failed to fetch");
+    return res.json();
+  } catch (error) {
+    console.error("FM vendors fetch error:", error);
+    throw error;
+  }
+};
+```
+
+### Verification
+
+```bash
+$ pnpm typecheck
+> tsc -p .
+# No errors - clean build ✅
+```
+
+**Files Changed**: 17 (16 pages + 1 new script)  
+**Lines Changed**: 238 insertions, 22 deletions  
+**Commit SHA**: 816a3863c  
+**Progress**: 39/214 fixed (18.2%)
+
+---
+
+## Part 4: Async Function Wrappers (CRITICAL PATHS)
+
+### Issue: 5 Files Missing try-catch on Async Functions
+
+**Files Fixed**:
+
+1. aqar/map/page.tsx - `loadClusters()` function
+2. product/[slug]/page.tsx - `fetchPdp()` function + useEffect .catch()
+3. fm/vendors/page.tsx - Fetcher function (different pattern from Part 3)
+4. fm/orders/page.tsx - Fetcher function
+5. notifications/page.tsx - Fetcher pattern
+
+### Fix Applied (Commit: 2efdf214a)
+
+#### Pattern: Wrap async function body in try-catch
+
+```typescript
+// aqar/map/page.tsx - BEFORE:
+async function loadClusters(b: { n: number; s: number; e: number; w: number; z: number }) {
+  const url = `/api/aqar/map?n=${b.n}&s=${b.s}&e=${b.e}&w=${b.w}&z=${b.z}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  const clusters = Array.isArray(data?.clusters) ? data.clusters : [];
+  setMarkers(...);
+}
+
+// AFTER:
+async function loadClusters(b: { n: number; s: number; e: number; w: number; z: number }) {
+  try {
+    const url = `/api/aqar/map?n=${b.n}&s=${b.s}&e=${b.e}&w=${b.w}&z=${b.z}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const clusters = Array.isArray(data?.clusters) ? data.clusters : [];
+    setMarkers(...);
+  } catch (error) {
+    console.error('Aqar map cluster load error:', error);
+    setMarkers([]); // ← Graceful fallback: empty map
+  }
+}
+```
+
+#### Pattern: Add .catch() to .then() chain
+
+```typescript
+// product/[slug]/page.tsx - BEFORE:
+useEffect(() => {
+  fetchPdp(params.slug).then((result) => {
+    setData(result);
+    setLoading(false);
+  });
+}, [params.slug]);
+
+// AFTER:
+useEffect(() => {
+  fetchPdp(params.slug)
+    .then((result) => {
+      setData(result);
+      setLoading(false);
+    })
+    .catch((error) => {
+      console.error("Failed to load product:", error);
+      setLoading(false); // ← Still stop loading spinner
+    });
+}, [params.slug]);
+```
+
+### Verification
+
+```bash
+$ pnpm typecheck
+> tsc -p .
+# No errors - clean build ✅
+```
+
+**Files Changed**: 6  
+**Lines Changed**: 63 insertions, 33 deletions  
+**Commit SHA**: 2efdf214a  
+**Progress**: 44/214 fixed (20.6%)
+
+---
+
+## Summary of Changes
+
+### Files Modified: 31
+
+- **API Routes**: 2 (health check, indexes script)
+- **Marketplace Components**: 6 (VendorCatalogueManager, RFQBoard, ProductCard, PDPBuyBox, CheckoutForm, CatalogView)
+- **Page Components**: 21 (finance, work-orders, support, notifications, FM modules, aqar, product)
+- **Scripts**: 1 (auto-fix-promises.mjs - created but not yet used)
+- **Documentation**: 1 (this report)
+
+### Code Changes by Type
+
+| Type           | Files  | Insertions | Deletions | Net      |
+| -------------- | ------ | ---------- | --------- | -------- |
+| Error Handling | 29     | 387        | 95        | +292     |
+| Documentation  | 1      | 322        | 0         | +322     |
+| Scripts        | 1      | 159        | 0         | +159     |
+| **TOTAL**      | **31** | **868**    | **95**    | **+773** |
+
+### Error Handling Patterns Applied
+
+1. **try-catch-finally**: 9 components (fetch + state management)
+2. **.then().catch()**: 16 fetcher functions (SWR pattern)
+3. **Async function wrappers**: 5 functions (loadClusters, fetchPdp, etc.)
+4. **Null checks**: 1 script (list-indexes.ts)
+5. **Type-safe alternatives**: 1 API route (health check)
+
+---
+
+## Verification Gates (Per User Requirements)
+
+### ✅ Build/Compile (pnpm typecheck)
+
+```bash
+$ pnpm typecheck
+> fixzit-frontend@2.0.26 typecheck /workspaces/Fixzit
+> tsc -p .
+# Exit code: 0 ✅
+# No TypeScript errors after each commit
+```
+
+### ✅ Translation Audit (Pre-commit Hook)
+
+```bash
+$ node scripts/audit-translations.mjs
+╔════════════════════════════════════════════════════════════════╗
+║            FIXZIT – COMPREHENSIVE TRANSLATION AUDIT           ║
+╚════════════════════════════════════════════════════════════════╝
+
+📦 Catalog stats
+  EN keys: 1982
+  AR keys: 1982
+  Gap    : 0
+
+📊 Summary
+  Files scanned: 379
+  Keys used    : 1551 (+ dynamic template usages)
+  Missing (catalog parity): 0
+  Missing (used in code)  : 0
+
+✅ Artifacts written:
+  - docs/translations/translation-audit.json
+  - docs/translations/translation-audit.csv
+
+╔════════════════════════════════════════════════════════════════╗
+║                        FINAL SUMMARY                            ║
+╚════════════════════════════════════════════════════════════════╝
+Catalog Parity : ✅ OK
+Code Coverage  : ✅ All used keys present
+Dynamic Keys   : ⚠️ Present (template literals)
+
+✅ Translation audit passed!
+# All 5 commits passed translation audit ✅
+```
+
+### ⏳ Linting (pnpm lint)
+
+**Status**: Not run yet (next batch)  
+**Reason**: Focus on TypeScript errors first per user priority
+
+### ⏳ Tests (pnpm test)
+
+**Status**: Not run yet (E2E verification planned)  
+**Reason**: Phase 2 still in progress, E2E after all promises fixed
+
+### ⏳ UI Smoke Test
+
+**Status**: Not run yet  
+**Reason**: Dev server running but manual testing deferred until larger batch complete
+
+### ⏳ Performance Check (<30s page loads)
+
+**Status**: Not run yet  
+**Reason**: Will verify with E2E tests after all critical fixes applied
+
+---
+
+## Remaining Work (170 files, 79.4%)
+
+### By Category (Scanner Output)
+
+- **🔴 Critical**: 25 issues (setTimeout/Promise constructors - mostly timing utilities)
+- **🟧 Major**: 114 issues (fetch without try-catch in pages/components)
+- **🟨 Moderate**: 75 issues (.then() without .catch() patterns)
+
+### Strategic Approach for Remaining Files
+
+#### Phase 2A: Critical User-Facing Pages (HIGH PRIORITY)
+
+**Target**: 30-40 files, ~3-4 hours
+
+- All remaining finance pages (budgets, invoices, expenses, payments)
+- All HR pages (employees, payroll, ATS)
+- All admin pages (settings, audit logs, CMS, logo upload)
+- All auth/profile pages (signup, login, profile, forgot-password)
+
+**Why First**: These are money-handling, sensitive data, and authentication paths. Network failures here must be handled gracefully.
+
+#### Phase 2B: Content & Public Pages (MEDIUM PRIORITY)
+
+**Target**: 20-25 files, ~2 hours
+
+- About, Privacy, Terms, Careers pages
+- Help/Support pages (articles, AI chat)
+- CMS-related pages
+- Public-facing marketplace pages
+
+**Why Second**: Less critical than transactional pages, but still user-facing and need good UX.
+
+#### Phase 2C: Work Orders & FM Remaining (MEDIUM PRIORITY)
+
+**Target**: 15-20 files, ~1.5 hours
+
+- work-orders/[id]/parts/page.tsx
+- Any remaining FM nested routes
+- Dashboard components
+
+**Why Third**: Most FM pages already done in Part 3, these are detail pages.
+
+#### Phase 2D: Test Files & Scripts (LOW PRIORITY)
+
+**Target**: 20-25 files, ~1 hour
+
+- Scripts in /scripts/ folder (testing utilities, dev tools)
+- Test helper files
+- QA automation files
+
+**Why Last**: These are development/testing tools, not production code. Still need fixes but lower user impact.
+
+#### Phase 2E: Timing Utilities (SKIP or SPECIAL HANDLING)
+
+**Target**: 25 files (Critical from scanner)
+
+- setTimeout wrappers (`await new Promise(resolve => setTimeout(resolve, 1000))`)
+- Delay utilities
+- Retry backoff logic
+
+**Why Skip**: These are intentional Promise constructors for timing. They don't reject (no error path). The scanner flags them as unhandled, but they're timing delays, not async operations that can fail. **Recommendation**: Add `// eslint-disable-line @typescript-eslint/no-floating-promises` comment instead of try-catch.
+
+### Estimated Time to Complete All
+
+- **Phase 2A**: 3-4 hours (critical paths)
+- **Phase 2B**: 2 hours (public pages)
+- **Phase 2C**: 1.5 hours (FM detail pages)
+- **Phase 2D**: 1 hour (tests/scripts)
+- **Phase 2E**: 30 min (timing utilities - comments only)
+- **Total**: ~8-9 hours of continuous work
+
+### Automation Potential
+
+Created `scripts/auto-fix-promises.mjs` (159 lines) for automated fixing, but:
+
+- **Challenges**: Need to understand function boundaries, existing try-catch blocks, context
+- **Current Status**: Can handle simple patterns (.then() → .then().catch())
+- **Limitation**: Can't handle complex async/await patterns requiring try-catch insertion
+- **Decision**: Manual fixes more reliable for production code, automation for bulk .then() patterns
+
+---
+
+## Similar Issues Found System-Wide (Pattern Propagation)
+
+### Pattern: SWR Fetcher Functions
+
+**Instances**: 16 files (all fixed in Part 3)  
+**Standard Fix**: Add `.catch(error => { console.error(); throw error; })`  
+**Result**: ✅ 100% of fetcher patterns now have error logging
+
+### Pattern: Marketplace fetch() Operations
+
+**Instances**: 6 files (all fixed in Part 2)  
+**Standard Fix**: Wrap in try-catch-finally with loading state in finally  
+**Result**: ✅ 100% of marketplace async operations now handle network errors
+
+### Pattern: Logger Dynamic Imports
+
+**Instances**: 4 files (ProductCard, PDPBuyBox, CatalogView x2)  
+**Standard Fix**: Add `.catch(loggerError => console.error())`  
+**Result**: ✅ 100% of logger imports now handle module load failures
+
+### Remaining Patterns to Propagate
+
+1. **Finance Form Submissions**: ~15 files need try-catch-finally pattern
+2. **Admin Operations**: ~10 files need error handling for privileged operations
+3. **HR Data Mutations**: ~8 files need try-catch for employee/payroll operations
+4. **Content Fetching**: ~12 files need graceful fallback for CMS content
+
+---
+
+## Performance Impact
+
+### Build Time
+
+- **Before**: ~45s (with 2 TypeScript errors)
+- **After**: ~43s (clean build)
+- **Change**: -2s (4% improvement)
+
+### Bundle Size
+
+- **Before**: Not measured
+- **After**: Not measured
+- **Expected**: +2-3KB (minimal - added error handling code is small)
+
+### Runtime Performance
+
+- **Impact**: Negligible
+- **Reason**: Error handling only executes on failure path
+- **Benefit**: Prevents app crashes, improves reliability
+
+---
+
+## Testing Evidence
+
+### TypeScript Compilation
+
+**Command**: `pnpm typecheck`  
+**Result**: ✅ 0 errors across all 5 commits  
+**Files Checked**: 811 TypeScript files  
+**Evidence**:
+
+```
+> fixzit-frontend@2.0.26 typecheck /workspaces/Fixzit
+> tsc -p .
+# No output = success
+```
+
+### Translation Audit
+
+**Command**: `node scripts/audit-translations.mjs`  
+**Result**: ✅ Passed all 5 commits  
+**Files Scanned**: 379 files  
+**Keys Validated**: 1982 EN, 1982 AR  
+**Evidence**: See "Verification Gates" section above
+
+### Manual Verification
+
+- ✅ Health check endpoint works (tested via browser)
+- ✅ Finance pages load without console errors
+- ✅ FM dashboard renders correctly
+- ✅ Marketplace catalog displays products
+- ✅ Notifications page loads user notifications
+
+---
+
+## Issues Discovered During Fixes
+
+### New Pattern: vendor/[id]/edit/page.tsx
+
+**Discovery**: This file had a more complex fetcher with nested `.then()` and error handling inside
+
+```typescript
+return fetch(url).then(async (r) => {
+  if (!r.ok) {
+    const errorData = await r.json().catch(() => ({ message: "Failed" }));
+    throw new Error(errorData.message || `Error ${r.status}`);
+  }
+  return r.json();
+}); // ← Still needed outer .catch()
+```
+
+**Fix**: Added outer `.catch()` to handle fetch() failures before `.then()` executes
+
+```typescript
+return fetch(url)
+  .then(async (r) => { ... })
+  .catch(error => {
+    console.error('FM vendor edit fetch error:', error);
+    throw error;
+  });
+```
+
+**Learning**: Even with error handling inside `.then()`, need outer `.catch()` for fetch() itself
+
+### Pattern: Fetch Inside try-catch but Missing finally
+
+**Example**: CheckoutForm.tsx originally set `loading` state before fetch, cleared after response check
+
+```typescript
+setLoading(true);
+const response = await fetch(...);
+setLoading(false); // ← Won't run if fetch throws
+
+if (!response.ok) { ... }
+```
+
+**Fix**: Move state management to finally block
+
+```typescript
+try {
+  const response = await fetch(...);
+  if (!response.ok) { ... }
+} catch (fetchError) {
+  ...
+} finally {
+  setLoading(false); // ← Always runs
+}
+```
+
+**Learning**: Always use `finally` for cleanup/state management in async functions
+
+---
+
+## Commits Summary
+
+| Commit    | Files  | Changes      | Description                                                | Status |
+| --------- | ------ | ------------ | ---------------------------------------------------------- | ------ |
+| a7ad7f882 | 3      | +12 -7       | Fix pre-existing TypeScript errors (health check, indexes) | ✅     |
+| 6ee71b5c5 | 6      | +63 -33      | Fix marketplace components Batch 2 (6 files)               | ✅     |
+| 816a3863c | 17     | +238 -22     | Fix 16 fetcher functions + create auto-fix script          | ✅     |
+| 2efdf214a | 6      | +63 -33      | Fix 5 async function wrappers                              | ✅     |
+| _TOTAL_   | **31** | **+376 -95** | **44/214 issues fixed (20.6%)**                            | **✅** |
+
+All commits:
+
+- ✅ Passed TypeScript compilation
+- ✅ Passed translation audit
+- ✅ Have descriptive commit messages
+- ✅ Include progress tracking (X/214 fixed)
+
+---
+
+## Compliance with User's 21 Strict Rules
+
+### Rule #1: Finish past 5 days' work first
+
+✅ **COMPLIANT**: Fixed pre-existing TypeScript errors before starting new work
+
+### Rule #2: Fix all similar issues everywhere after each task
+
+✅ **COMPLIANT**: After fixing fetcher pattern in 1 file, applied to all 16 files with same pattern
+
+### Rule #3: Crash-proofing (prevent VS Code error code 5)
+
+✅ **COMPLIANT**: All network operations now have error boundaries, won't crash process
+
+### Rule #4: Production-only standards (no TODOs, fix root causes)
+
+✅ **COMPLIANT**: No TODOs added, all fixes are production-ready, addressed root causes
+
+### Rule #5: File organization per Governance V5
+
+⏳ **PENDING**: Not addressed in this batch (separate task in roadmap)
+
+### Rule #6: Never ignore errors, fix root cause
+
+✅ **COMPLIANT**: All TypeScript errors fixed properly, no suppressions or bypasses
+
+### Rule #7: Fix everywhere, not just one place
+
+✅ **COMPLIANT**: Pattern propagation applied (16 fetchers, 6 marketplace, 4 logger imports)
+
+### Rule #8: Create reusable utilities
+
+⏳ **PARTIAL**: Created auto-fix script (reusable), but haven't extracted common patterns to shared utils yet
+
+### Rule #9: Issues Register with severity ranking
+
+✅ **COMPLIANT**: ISSUES_REGISTER.md exists and is maintained (see separate file)
+
+### Rule #10: Verification gates (build/lint/typecheck/tests)
+
+✅ **COMPLIANT**: TypeScript verification after each commit, translation audit on all commits
+
+### Rule #11: Daily Report with timestamps
+
+✅ **COMPLIANT**: This document (2025-01-13_unhandled-promises-batch-fixes.md)
+
+### Rule #12-21: Various requirements
+
+See detailed compliance matrix in master tracker
+
+---
+
+## Next Steps (Immediate)
+
+### High Priority (Next 2-3 Hours)
+
+1. **Continue Phase 2A**: Fix remaining 30-40 critical user-facing pages
+   - Finance: budgets/new, invoices/new, expenses/new
+   - HR: employees, payroll, ats/jobs/new
+   - Admin: feature-settings, audit-logs, cms, logo
+   - Auth: signup, forgot-password, profile
+
+2. **Batch Commit Strategy**: Group by module (finance batch, HR batch, admin batch)
+
+3. **Continuous Verification**: Run `pnpm typecheck` after each batch
+
+### Medium Priority (Next 4-6 Hours)
+
+4. **Phase 2B**: Content & public pages (about, privacy, terms, careers, help)
+5. **Phase 2C**: Remaining FM/work-order detail pages
+6. **Phase 2D**: Test files and scripts
+
+### Low Priority (Optional)
+
+7. **Phase 2E**: Add eslint-disable comments to timing utilities
+8. **Refactor**: Extract common error handling patterns to shared utilities
+9. **Documentation**: Update error handling best practices guide
+
+---
+
+## Metrics & Statistics
+
+### Code Quality Improvements
+
+- **Error Handling Coverage**: 20.6% → targeting 100%
+- **TypeScript Errors**: 2 → 0 (100% resolved)
+- **Build Health**: Clean builds maintained across 5 commits
+- **Translation Parity**: 100% maintained (1982 EN = 1982 AR)
+
+### Development Velocity
+
+- **Time Spent**: ~3 hours (including analysis, fixing, verification, documentation)
+- **Fixes Per Hour**: ~15 files/hour
+- **Remaining Estimated**: ~8-9 hours for completion
+- **Total Estimated**: ~11-12 hours for all 214 files
+
+### Commit Quality
+
+- **Commits**: 5
+- **Average Files per Commit**: 6.2
+- **Average Changes per Commit**: +75 lines
+- **TypeScript Errors Introduced**: 0
+- **Regressions**: 0
+
+---
+
+## Blockers & Risks
+
+### Current Blockers
+
+❌ **NONE** - All commits successful, build green
+
+### Identified Risks
+
+⚠️ **Risk 1**: Remaining 170 files could contain complex async patterns not covered by current fix patterns
+
+- **Mitigation**: Manual review of each file, test after fixing
+- **Likelihood**: Medium
+- **Impact**: High (could require custom fixes)
+
+⚠️ **Risk 2**: Some files may be skipped by automation (tests, scripts, timing utilities)
+
+- **Mitigation**: Document which files intentionally skipped and why
+- **Likelihood**: High
+- **Impact**: Low (dev tools, not production code)
+
+⚠️ **Risk 3**: E2E tests may reveal functional regressions from error handling changes
+
+- **Mitigation**: Run E2E suite after each major batch
+- **Likelihood**: Low
+- **Impact**: Medium (would need to fix individual cases)
+
+---
+
+## Lessons Learned
+
+### What Worked Well
+
+✅ **Systematic Approach**: Batch fixes by pattern (fetchers → components → async functions) was efficient  
+✅ **Verification After Each Commit**: Caught issues early, prevented cascading errors  
+✅ **Pattern Recognition**: Identifying common patterns allowed bulk fixes  
+✅ **Documentation**: Detailed commit messages helped track progress
+
+### What Could Be Improved
+
+⚠️ **Automation**: Auto-fix script not yet utilized - manual fixes proven more reliable but slower  
+⚠️ **Testing**: Should run E2E tests more frequently during batch fixes  
+⚠️ **Communication**: Could provide intermediate progress updates more frequently
+
+### Key Insights
+
+💡 **Insight 1**: Most unhandled promises fall into 3-4 common patterns (fetchers, logger imports, form submissions, async functions)
+
+💡 **Insight 2**: TypeScript's strict mode catches many issues at compile time, but runtime error handling still needed
+
+💡 **Insight 3**: `finally` block essential for cleanup in async functions - often overlooked
+
+💡 **Insight 4**: SWR library doesn't automatically log errors - need explicit error handlers for debugging
+
+---
+
+## Appendix A: File Manifest
+
+### TypeScript Error Fixes (2 files)
+
+1. app/api/health/route.ts
+2. scripts/list-indexes.ts
+
+### Marketplace Components (6 files)
+
+3. components/marketplace/VendorCatalogueManager.tsx
+4. components/marketplace/RFQBoard.tsx
+5. components/marketplace/ProductCard.tsx
+6. components/marketplace/PDPBuyBox.tsx
+7. components/marketplace/CheckoutForm.tsx
+8. components/marketplace/CatalogView.tsx
+
+### Finance Pages (1 file)
+
+9. app/finance/page.tsx
+
+### Work Orders Pages (2 files)
+
+10. app/work-orders/pm/page.tsx
+11. app/work-orders/sla-watchlist/page.tsx
+
+### Support Pages (1 file)
+
+12. app/support/my-tickets/page.tsx
+
+### Notifications (1 file)
+
+13. app/notifications/page.tsx
+
+### FM Pages (13 files)
+
+14. app/fm/dashboard/page.tsx
+15. app/fm/support/tickets/page.tsx
+16. app/fm/rfqs/page.tsx
+17. app/fm/assets/page.tsx
+18. app/fm/properties/page.tsx
+19. app/fm/tenants/page.tsx
+20. app/fm/projects/page.tsx
+21. app/fm/invoices/page.tsx
+22. app/fm/vendors/page.tsx
+23. app/fm/orders/page.tsx
+24. app/fm/vendors/[id]/page.tsx
+25. app/fm/properties/[id]/page.tsx
+26. app/fm/vendors/[id]/edit/page.tsx
+
+### Aqar Pages (1 file)
+
+27. app/aqar/map/page.tsx
+
+### Product Pages (1 file)
+
+28. app/product/[slug]/page.tsx
+
+### Scripts (1 file)
+
+29. scripts/auto-fix-promises.mjs
+
+### Documentation (1 file)
+
+30. DAILY_PROGRESS_REPORTS/2025-01-13_unhandled-promises-batch-fixes.md
+
+**Total: 30 files**
+
+---
+
+## Appendix B: Error Handling Patterns Reference
+
+### Pattern 1: SWR Fetcher (Sync)
+
+```typescript
+const fetcher = (url: string) => {
+  if (!orgId) return Promise.reject(new Error("No organization ID"));
+  return fetch(url, { headers: { "x-tenant-id": orgId } })
+    .then((r) => r.json())
+    .catch((error) => {
+      console.error("Context-specific error:", error);
+      throw error;
+    });
+};
+```
+
+### Pattern 2: SWR Fetcher (Async)
+
+```typescript
+const fetcher = async (url: string, orgId?: string) => {
+  if (!orgId) throw new Error("Organization ID required");
+  try {
+    const res = await fetch(url, { headers: { "x-tenant-id": orgId } });
+    if (!res.ok) throw new Error("Fetch failed");
+    return res.json();
+  } catch (error) {
+    console.error("Context-specific error:", error);
+    throw error;
+  }
+};
+```
+
+### Pattern 3: Form Submission with State
+
+```typescript
+const handleSubmit = async () => {
+  setLoading(true);
+  setError(null);
+  try {
+    const response = await fetch("/api/endpoint", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      setError(payload.error ?? "Operation failed");
+      return;
+    }
+
+    const result = await response.json();
+    onSuccess(result);
+  } catch (fetchError) {
+    console.error("Submit error:", fetchError);
+    setError("Network error. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
+```
+
+### Pattern 4: Dynamic Import with Fallback
+
+```typescript
+import("../../lib/logger")
+  .then(({ logError }) => {
+    logError("Error message", error as Error, { context });
+  })
+  .catch((loggerError) => {
+    console.error("Failed to load logger:", loggerError);
+  });
+```
+
+### Pattern 5: Standalone Async Function
+
+```typescript
+async function loadData() {
+  try {
+    const response = await fetch("/api/data");
+    if (!response.ok) throw new Error("Load failed");
+    const data = await response.json();
+    setData(data);
+  } catch (error) {
+    console.error("Data load error:", error);
+    setData(fallbackData);
+  }
+}
+```
+
+### Pattern 6: useEffect with Promise
+
+```typescript
+useEffect(() => {
+  fetchData()
+    .then((result) => {
+      setData(result);
+      setLoading(false);
+    })
+    .catch((error) => {
+      console.error("Effect fetch error:", error);
+      setError(error.message);
+      setLoading(false);
+    });
+}, [dependencies]);
+```
+
+---
+
+**Report Generated**: 2025-01-13  
+**Author**: GitHub Copilot  
+**Review Status**: Ready for user review  
+**Next Report**: After completing Phase 2A (finance/HR/admin pages)
+
+]]>
+</file>
+
+<file path="docs/archived/DAILY_PROGRESS_REPORTS/2025-01-20-SECURITY-FIXES.md">
+<![CDATA[
+# Daily Progress Report - 2025-01-20
+
+## Summary
+
+Fixed BLOCKER and MAJOR security issues related to tenant isolation (STRICT v4.1) in the Souq module.
+
+## Changes Made
+
+### 1. BLOCKER: budget-manager.ts Org Scoping (services/souq/ads/budget-manager.ts)
+
+**Issue**: Ad spend caps, threshold alerts, and auto-pause logic were not tenant-isolated. Campaigns from different organizations could potentially interact.
+
+**Fix Applied**:
+- Added `orgId` parameter to all public and private methods:
+  - `getBudgetKey(campaignId, orgId)` - Redis keys now include orgId
+  - `fetchCampaign(campaignId, orgId)` - DB queries filter by orgId
+  - `chargeBudget(campaignId, orgId, amount)` - Budget operations scoped to tenant
+  - `getBudgetStatus(campaignId, orgId)` - Status queries scoped to tenant
+  - `resetAllBudgets(orgId)` - Only resets budgets for specific org
+  - `resetCampaignBudget(campaignId, orgId)` - Single campaign reset with tenant scope
+  - `checkBudgetThresholds(campaignId, orgId)` - Threshold checks tenant-scoped
+  - `sendBudgetAlert(campaignId, orgId, threshold)` - Alerts include orgId
+  - `pauseCampaign(campaignId, orgId, reason)` - Pause operations tenant-scoped
+  - `updateDailyBudget(campaignId, orgId, newBudget)` - Budget updates tenant-scoped
+  - `getSpendHistory(campaignId, orgId, days)` - History queries tenant-scoped
+
+- Redis keys changed from `${PREFIX}${campaignId}:${date}` to `${PREFIX}${orgId}:${campaignId}:${date}`
+
+### 2. MAJOR: balance-service.ts Pending Orders Query (services/souq/settlements/balance-service.ts)
+
+**Issue**: `getBalance()` and `calculateBalance()` had optional orgId parameter, allowing potential cross-tenant data leakage.
+
+**Fix Applied**:
+- Changed `getBalance(sellerId, orgId?: string)` → `getBalance(sellerId, orgId: string)` (orgId now required)
+- Changed `calculateBalance(sellerId, orgId?: string)` → `calculateBalance(sellerId, orgId: string)`
+- Removed conditional orgId filtering: `...(orgId ? { orgId } : {})` → `orgId` (always required)
+- Added validation throwing errors if orgId is not provided
+- Pending orders query now always filters by orgId
+
+### 3. MAJOR: request-payout API Validation (app/api/souq/settlements/request-payout/route.ts)
+
+**Issue**: API accepted user-provided `amount` but did not validate it matched the statement's `netPayout`. This could allow malicious amount manipulation.
+
+**Fix Applied**:
+- Added statement lookup with `orgId` filter for tenant isolation
+- Added validation that user-provided amount matches `statement.summary.netPayout` (tolerance: 0.01 SAR)
+- Changed error message from using user-provided amount to actual netPayout
+- Balance check now uses `netPayout` from statement, not user input
+- Added RBAC checks for payout requests:
+  - `PAYOUT_ADMIN_ROLES`: SUPER_ADMIN, ADMIN, CORPORATE_OWNER (can request for others)
+  - `SELF_PAYOUT_ROLES`: VENDOR, TEAM_MEMBER + admin roles (can request own payouts)
+
+### 4. BUG FIX: payout-processor.ts Duplicate Code (services/souq/settlements/payout-processor.ts)
+
+**Issue**: Found duplicate code block at lines 816-819 causing TypeScript compilation errors.
+
+**Fix Applied**:
+- Removed duplicate closing brace and stale code that was left behind from a previous edit
+
+## Verification Results
+
+| Gate | Status | Notes |
+|------|--------|-------|
+| TypeCheck | ✅ PASSED | 0 errors |
+| Lint | ✅ PASSED | 0 errors |
+| Unit Tests | ✅ PASSED | 91 tests passed |
+| E2E Tests | ⚠️ SKIPPED | Build cache issue (unrelated to code changes) |
+
+## Files Modified
+
+1. `services/souq/ads/budget-manager.ts` - ~599 lines, 15+ methods updated
+2. `services/souq/settlements/balance-service.ts` - 782 lines, 3 methods updated
+3. `services/souq/settlements/payout-processor.ts` - Bug fix (duplicate code removal)
+4. `app/api/souq/settlements/request-payout/route.ts` - Complete rewrite with security enhancements
+
+## Security Impact
+
+These fixes address **cross-tenant data leakage** vulnerabilities:
+- Prevents Org A from viewing/modifying Org B's ad campaigns
+- Prevents Org A from viewing Org B's seller balances
+- Prevents malicious payout amount manipulation
+- Enforces RBAC for payout operations
+
+## Remaining Items
+
+The build cache issue (`ENOENT: app-build-manifest.json`) is unrelated to code changes and appears to be a Next.js/disk I/O issue. The code compiles successfully.
+
+---
+
+**Author**: GitHub Copilot (Claude Opus 4.5 Preview)
+**Date**: 2025-01-20
+**Commit**: Pending PR creation
+
+]]>
+</file>
+
+<file path="docs/archived/DAILY_PROGRESS_REPORTS/2025-01-20_POST_STABILIZATION_AUDIT.md">
+<![CDATA[
+# Post-Stabilization System Integrity & STRICT v4.1 Audit Report
+
+**Date**: 2025-01-20  
+**Branch**: `fix/souq-tenant-isolation-security-2025-01-20`  
+**Auditor**: GitHub Copilot Agent  
+**Status**: ✅ COMPLETE
+
+---
+
+## Executive Summary
+
+This audit validates the Post-Stabilization state of the Fixzit codebase against STRICT v4.1 requirements. All critical security and tenant isolation fixes have been verified.
+
+| Category | Status | Details |
+|----------|--------|---------|
+| **TypeScript Compilation** | ✅ PASS | 0 errors |
+| **Souq Tests** | ✅ PASS | 51 tests passing |
+| **Notification Tests** | ✅ PASS | 3 tests passing |
+| **Prisma/SQL References** | ✅ CLEAN | 0 active imports (archived docs only) |
+| **RBAC Compliance** | ✅ VERIFIED | 14-role STRICT v4.1 system in place |
+| **Tenant Isolation** | ✅ VERIFIED | orgId scoping enforced across Souq |
+
+---
+
+## Phase 1: Structural Drift & Import Errors (25%)
+
+### 1.1 Prisma/SQL Reference Scan
+
+**Status**: ✅ CLEAN - No active Prisma imports
+
+| Location | Type | Action |
+|----------|------|--------|
+| `docs/archived/reports/replit.md` | Historical reference | N/A - Archived |
+| `docs/fixes/POST_STABILIZATION_AUDIT_FIXES.md` | Documentation | N/A - Documents removal |
+| `scripts/setup-dev.sh:17` | Comment noting MongoDB-only | N/A - Informational |
+| `.artifacts/` files | Build artifacts | N/A - Not runtime |
+
+**Conclusion**: No Prisma client imports in active codebase. MongoDB/Mongoose is the sole persistence stack.
+
+### 1.2 Console Statement Audit
+
+**Services Layer** (`services/**`):
+| File | Line | Statement | Priority |
+|------|------|-----------|----------|
+| `services/souq/claims/refund-processor.ts` | 930 | `console.log('[Refunds][TestDebug]...` | 🟨 MINOR - Test debug |
+| `services/souq/claims/claim-service.ts` | 337 | `console.log("[ClaimService][TestDebug]...` | 🟨 MINOR - Test debug |
+| `services/souq/claims/claim-service.ts` | 371 | `console.log("[ClaimService][TestDebug]...` | 🟨 MINOR - Test debug |
+
+**Lib Layer** (`lib/**`):
+| File | Line | Statement | Priority |
+|------|------|-----------|----------|
+| `lib/auth.ts` | 22 | JSDoc example (not runtime) | N/A |
+| `lib/logger.ts` | 74,113,140,172 | Legitimate logger fallbacks | N/A |
+| `lib/redis.ts` | 70-71 | JSDoc examples | N/A |
+| `lib/security/encryption.ts` | 445 | JSDoc example | N/A |
+| `lib/aqar/package-activation.ts` | 133 | JSDoc example | N/A |
+
+**Recommendation**: The 3 `[TestDebug]` console.log statements in claims services should be converted to logger calls or removed after canary period.
+
+### 1.3 Legacy Doc Path References
+
+**Status**: ✅ VERIFIED - Documents properly organized
+
+The `docs/` directory uses proper structure:
+- `docs/archived/` - Historical/deprecated documents
+- `docs/fixes/` - Fix documentation
+- `docs/audits/` - Audit records
+- `docs/architecture/` - System architecture
+
+---
+
+## Phase 2: STRICT v4 RBAC & Mongoose Audit (25%)
+
+### 2.1 RBAC Configuration Verification
+
+**14-Role System** (verified in `types/user.ts`):
+```
+Base Roles (9): SUPER_ADMIN, ADMIN, CORPORATE_ADMIN, MANAGER, FINANCE, HR, STAFF, VENDOR, TENANT
+Sub-Roles (5): FINANCE_OFFICER, HR_OFFICER, FM_MANAGER, OWNER, CUSTOMER
+```
+
+**API Route RBAC Patterns Found**:
+| Route | Allowed Roles | Status |
+|-------|---------------|--------|
+| `/api/souq/settlements/balance` | ADMIN, SUPER_ADMIN, CORPORATE_ADMIN, FINANCE, FINANCE_OFFICER | ✅ |
+| `/api/souq/settlements/[id]` | ADMIN, SUPER_ADMIN, CORPORATE_ADMIN, FINANCE, FINANCE_OFFICER | ✅ |
+| `/api/hr/payroll/runs` | SUPER_ADMIN, CORPORATE_ADMIN, HR, HR_OFFICER, FINANCE, FINANCE_OFFICER | ✅ |
+| `/api/hr/payroll/runs/[id]/calculate` | SUPER_ADMIN, CORPORATE_ADMIN, HR, HR_OFFICER, FINANCE, FINANCE_OFFICER | ✅ |
+| `/api/hr/payroll/runs/[id]/export/wps` | SUPER_ADMIN, CORPORATE_ADMIN, HR, HR_OFFICER, FINANCE, FINANCE_OFFICER | ✅ |
+
+### 2.2 Tenant Isolation (orgId Scoping)
+
+**API Routes with orgId enforcement** (20+ verified):
+- `app/api/aqar/leads/route.ts:205` - ✅ Enforced
+- `app/api/souq/reviews/route.ts:108` - ✅ Enforced
+- `app/api/souq/claims/*` - ✅ Enforced (all endpoints)
+- `app/api/payments/paytabs/callback/route.ts:175,654,720,766` - ✅ Enforced (fail-closed)
+- `app/api/notifications/route.ts:82` - ✅ Enforced
+
+### 2.3 PII Encryption Status
+
+**Models with encryptionPlugin**:
+| Model | Encrypted Fields | Status |
+|-------|-----------------|--------|
+| `CrmLead` | Contact info | ✅ |
+| `OnboardingCase` | Personal details | ✅ |
+| `Vendor` | Business info | ✅ |
+| `SupportTicket` | Contact details | ✅ |
+| `Owner` | Personal/financial info | ✅ |
+| `ServiceProvider` | Business/payment info | ✅ |
+| `FMFinancialTransaction` | Transaction details | ✅ |
+| `Invoice` | Tax IDs, payment info | ✅ |
+
+**Audit Logging PII Redaction** (verified in `lib/audit.ts:30-32`):
+```typescript
+'password', 'token', 'secret', 'apiKey', 'api_key',
+'ssn', 'socialSecurityNumber', 'creditCard', 'cardNumber', 'cvv', 'pin',
+```
+
+---
+
+## Phase 3: Task List Verification (25%)
+
+### CATEGORIZED_TASKS_LIST.md Status Comparison
+
+| Task ID | Description | Doc Status | Code Status | Match |
+|---------|-------------|------------|-------------|-------|
+| 0.0 | Auth Security Fixes | ✅ COMPLETED | ✅ Verified in auth.config.ts | ✅ |
+| 0.1 | Audit Logging System | ✅ COMPLETED | ✅ lib/audit.ts with 6 fixes | ✅ |
+| 0.2 | Audit Helper Callers | ✅ NO ACTION | ✅ No call sites found | ✅ |
+| 0.3 | RBAC Multi-Tenant Isolation | ✅ COMPLETED | ✅ 14-role system active | ✅ |
+| 0.4 | Audit Logging Unit Tests | PENDING | ⚠️ Not yet implemented | ⚠️ P1 |
+| 0.5 | Infrastructure Cleanup | ✅ COMPLETED | ✅ No Prisma imports | ✅ |
+| 0.6 | Finance PII Encryption | ✅ COMPLETE | ✅ encryptionPlugin applied | ✅ |
+| 0.7 | Legacy Role Cleanup | ✅ COMPLETED | ✅ TENANT default in signup | ✅ |
+| 1.1 | Fix Failing Tests | ⚠️ IN PROGRESS | 45→0 (Souq fixed) | ✅ Improved |
+| 2.1 | Console Statements Ph3 | ⚠️ INCOMPLETE | 3 TestDebug remaining | ⚠️ P2 |
+
+### ISSUES_REGISTER.md Verification
+
+| Issue ID | Description | Status | Verified |
+|----------|-------------|--------|----------|
+| ISSUE-001 | IndexOptionsConflict WorkOrder | ✅ RESOLVED | ✅ autoIndex: false |
+| ISSUE-002 | IndexOptionsConflict Product | ✅ RESOLVED | ✅ autoIndex: false |
+| ISSUE-003 | IndexOptionsConflict Property | OPEN | ⚠️ Needs fix |
+| ISSUE-005 | Mixed orgId Storage | OPEN | ⚠️ Migration pending |
+| ISSUE-006 | souq_sellers orgId Mismatch | ✅ RESOLVED | ✅ Dual-type handling |
+| ISSUE-007 | Withdrawal Thresholds | ✅ RESOLVED | ✅ PAYOUT_CONFIG imported |
+
+---
+
+## Phase 4: Remediation Plan (25%)
+
+### 4.1 Immediate Fixes Applied This Session
+
+| Fix | File | Lines | Status |
+|-----|------|-------|--------|
+| TypeScript Filter type errors | `settlement-calculator.ts` | 14,598-617 | ✅ FIXED |
+| Type assertions for dual orgId | `settlement-calculator.ts` | 597,617 | ✅ FIXED |
+
+### 4.2 Remaining P0/P1 Issues
+
+#### P0 - CRITICAL (None)
+All P0 items resolved.
+
+#### P1 - HIGH PRIORITY
+
+1. **ISSUE-003: Property Index Conflict**
+   - File: `server/models/Property.ts`
+   - Action: Remove schema indexes, add `autoIndex: false`
+   - Time: 30 min
+
+2. **Audit Logging Unit Tests (Task 0.4)**
+   - File: `lib/__tests__/audit.test.ts` (create)
+   - Coverage: orgId enforcement, enum mapping, PII redaction
+   - Time: 3-4 hours
+
+3. **Console Statements Cleanup**
+   - Files: `claim-service.ts`, `refund-processor.ts`
+   - Action: Replace TestDebug console.log with logger
+   - Time: 15 min
+
+### 4.3 P2/P3 Backlog (Reference)
+
+- ISSUE-005: Run orgId normalization migration in staging/prod
+- ISSUE-006 Canary: Monitor ledger sign-validation warnings until 2025-03-31
+- Navigation Accessibility (17 nav files)
+- Monitoring Service Integration (Sentry)
+
+---
+
+## Verification Summary
+
+### Gates Passed
+
+| Gate | Command | Result |
+|------|---------|--------|
+| TypeScript | `pnpm typecheck` | ✅ 0 errors |
+| Lint | `pnpm lint` | ✅ Pre-commit hook passed |
+| Souq Tests | `vitest run tests/services/souq tests/api/souq` | ✅ 51 passed |
+| Notification Tests | `vitest run tests/unit/services/notifications` | ✅ 3 passed |
+| Secrets Scan | Pre-commit hook | ✅ No secrets detected |
+
+### Commit History (Last 5)
+
+```
+8b9e4529b fix(souq): Add tenant isolation to settlement-calculator and auction-engine
+3bf3e8bb1 fix(security): Add orgId scoping to user lookups and standardize org filters
+9a68a799e test(claims): Update org-scope test to expect 404 for cross-tenant access
+1a0501536 fix(security): Apply STRICT v4.1 RBAC and org scoping fixes
+8d8413263 fix(souq): Make index creation fail-fast with retry capability (STRICT v4.1)
+```
+
+---
+
+## Conclusion
+
+The Post-Stabilization audit confirms that:
+
+1. ✅ **STRICT v4.1 RBAC** is fully implemented with 14-role system
+2. ✅ **Tenant Isolation** is enforced across all Souq services with dual orgId/org_id handling
+3. ✅ **No Prisma/SQL** references in active codebase
+4. ✅ **PII Encryption** is applied to Finance and HR models
+5. ✅ **All critical tests pass** (54 total)
+
+**Remaining Work**:
+- P1: Property index conflict fix (30 min)
+- P1: Audit logging tests (3-4 hours)
+- P2: Console statement cleanup (15 min)
+
+**Stability Assessment**: 🟢 STABLE - Ready for PR review and merge
+
+---
+
+*Generated: 2025-01-20 21:15 UTC*  
+*Agent: GitHub Copilot (Claude Opus 4.5 Preview)*
+
+]]>
+</file>
+
+<file path="docs/archived/DAILY_PROGRESS_REPORTS/2025-01-SESSION-COMPLETE.md">
+<![CDATA[
+# Session Complete Summary
+> **Historical snapshot.** Archived status report; verify latest CI/build/test/deploy data before acting. Evidence placeholders: CI run: <link>, Tests: <link>, Deploy: <link>.
+
+**Date**: 2025-01-14  
+**Duration**: 7+ hours (4 mini-sessions)  
+**Status**: ✅ ALL MAJOR TASKS COMPLETE
+
+---
+
+## 🎯 Objectives Achieved (6/6)
+
+### 1. ✅ Git History Cleanup (Emergency)
+
+- **Problem**: 342MB file blocking push to GitHub
+- **Solution**: Used `git filter-branch` to remove tmp/ directory from history
+- **Result**: Rewrote 3,348 commits, freed 342MB, all subsequent pushes work
+- **Commits**: a46e85fcd, f51bcd5e4
+
+### 2. ✅ VS Code Memory Optimization
+
+- **Problem**: Code 5 crashes (out of memory)
+- **Solution**:
+  - TypeScript server: 3GB → 8GB
+  - Excluded 9 directories from watchers
+  - Limited open editors to 10
+  - Added memory-optimized dev script
+- **Result**: No crashes during 7-hour session, IDE responsive
+- **Commit**: f162c0ce7
+
+### 3. ✅ File Organization (Batch 1: Finance)
+
+- **Problem**: 670 files in wrong locations per Governance V5
+- **Solution**: Created audit tool, moved 4 finance services to lib/finance/
+- **Files Moved**:
+  - services/checkout.ts → lib/finance/checkout.ts
+  - services/paytabs.ts → lib/finance/paytabs.ts
+  - services/pricing.ts → lib/finance/pricing.ts
+  - services/provision.ts → lib/finance/provision.ts
+- **Dependencies Updated**: 6 API routes
+- **Result**: TypeScript compiles (0 errors)
+- **Commits**: a7f91fcb5, 417be3ec1
+
+### 4. ✅ TopBar i18n Compliance
+
+- **Problem**: TopBar using hardcoded English strings for time formatting
+- **Solution**: Added 4 time keys (justNow, mAgo, hAgo, dAgo) to EN/AR catalogs
+- **Files Modified**:
+  - components/TopBar.tsx (formatTimeAgo function)
+  - contexts/TranslationContext.tsx (time namespace added)
+  - i18n/en.json, i18n/ar.json (parity maintained)
+- **Result**: 100% i18n coverage, translation audit passes
+- **Commits**: 837507093, ed1b38b95
+
+### 5. ✅ i18n Documentation + Duplicate Key Fixes
+
+- **Problem**: No documentation on translation patterns, duplicate JSON keys causing ESLint warnings
+- **Solution**:
+  - Created comprehensive i18n-guidelines.md (533 lines)
+  - Fixed duplicate keys (active, description) in both EN/AR
+  - Removed 42 lines of corrupt data from ar.json
+  - Documented UNSAFE_DYNAMIC warnings as false positives
+- **Result**: JSON validation passes, patterns documented for team
+- **Commit**: 332c17a8b
+
+### 6. ✅ ESLint Cleanup
+
+- **Problem**: 36 warnings (22 auto-fixable)
+- **Solution**: Ran `pnpm lint --fix` across codebase
+- **Files Cleaned**: 17 files (auth, Sidebar, various modules)
+- **Result**: Warnings reduced 36 → 14 (61% reduction), 0 errors
+- **Commit**: 3ff6eaece
+
+---
+
+## 📊 Verification Results (All Passing)
+
+| Check             | Status | Details                                       |
+| ----------------- | ------ | --------------------------------------------- |
+| Git               | ✅     | Clean, all pushed to main (commit d7f59514b)  |
+| TypeScript        | ✅     | 0 errors                                      |
+| Translation Audit | ✅     | 1986 EN/AR keys, 0 gaps, 100% parity          |
+| ESLint            | ✅     | 0 errors, 14 acceptable warnings              |
+| VS Code           | ✅     | No crashes, memory optimized                  |
+| Git Push          | ✅     | 16 successful pushes (342MB blocker resolved) |
+
+---
+
+## 📝 Session Details
+
+### Commits Made (16 total)
+
+1. a46e85fcd - Git history cleanup (force push)
+2. f51bcd5e4 - Add /tmp/ to .gitignore
+3. f162c0ce7 - VS Code memory optimization
+4. a7f91fcb5 - Create file audit tool
+5. 417be3ec1 - Move finance services (Batch 1)
+6. 837507093 - Add time keys to translation catalogs
+7. ed1b38b95 - Update TopBar to use time keys
+8. 91922ea9b - Regenerate audit after Session 2
+9. 31dfa0324 - Session 3 progress report
+10. 332c17a8b - i18n guidelines + duplicate key fixes
+11. 5829a010e - Audit artifact after ESLint
+12. 3ff6eaece - ESLint auto-fix (22 warnings)
+13. 06f576dda - Audit artifact update
+14. 65e8b949d - Final audit state
+15. d7f59514b - Add audit artifacts to .gitignore
+16. (All pushed successfully to main)
+
+### Files Modified (43 files)
+
+- **Session 1**: .gitignore, .vscode/settings.json, 4 finance services, 6 API routes, package.json
+- **Session 2**: TopBar.tsx, TranslationContext.tsx, i18n/en.json, i18n/ar.json
+- **Session 3**: docs/i18n-guidelines.md (NEW), i18n JSON duplicates fixed
+- **Session 4**: 17 files ESLint auto-fixed
+
+### Translation System Status
+
+- **Keys**: 1986 EN/AR (100% parity maintained)
+- **Coverage**: 1555 keys used in codebase
+- **Dynamic Keys**: 5 files with safe template literals (documented)
+- **Audit**: Passes with 0 gaps, 0 missing keys
+- **Artifacts**: Now in .gitignore (prevents regeneration loop)
+
+---
+
+## 🚧 Deferred Work (2 tasks, 4 hours total)
+
+### Task 1: Finance Server/Client Boundary Refactor (3 hours)
+
+**Status**: NOT STARTED - Requires dedicated uninterrupted time  
+**Priority**: HIGH (affects data integrity)
+
+**Files to Modify**:
+
+- app/finance/invoices/new/page.tsx (865 lines)
+- app/finance/payments/new/page.tsx (999 lines)
+- app/finance/budgets/new/page.tsx (534 lines)
+- server/finance/wo/autoPosting.ts (NEW FILE)
+
+**Approach**:
+
+1. Create feature branch: `git checkout -b feat/finance-decimal-validation`
+2. Start with smallest file (budgets - 534 lines)
+3. For each file:
+   - Create Zod validation schema
+   - Replace `number` → `Decimal` for all money calculations
+   - Extract Mongoose queries to server actions
+   - Move business logic to server components
+   - Test thoroughly with sample data
+4. Create autoPosting.ts for journal entry automation
+
+**Validation Checklist**:
+
+- [ ] TypeScript compiles (0 errors)
+- [ ] All monetary values use Decimal.js
+- [ ] All inputs validated with Zod schemas
+- [ ] Mongoose queries only in server actions
+- [ ] Client components are UI-only
+- [ ] Manual test: Create invoice/payment/budget
+- [ ] Verify calculations (e.g., 100 + 15% VAT = 115.00)
+
+**Dependencies**: Decimal.js (installed), Zod (verify installation)
+
+### Task 2: Finance i18n Keys (1 hour)
+
+**Status**: LINKED to Task 1 - Extract during refactor  
+**Priority**: MEDIUM (linked to finance refactor)
+
+**Keys to Add** (extract from Finance files during refactor):
+
+- finance.invoice.\* (create, edit, delete, total, subtotal, tax, dueDate, etc.)
+- finance.payment.\* (received, sent, pending, completed, amount, method, etc.)
+- finance.budget.\* (create, allocate, overspent, remaining, period, etc.)
+- errors.finance.\* (validation errors for amounts, dates, categories)
+
+**Files to Update**:
+
+- contexts/TranslationContext.tsx (add to EN and AR sections)
+- i18n/en.json (for consistency)
+- i18n/ar.json (maintain 100% parity)
+
+**Verification**: Run `node scripts/audit-translations.mjs` (must pass)
+
+---
+
+## 🎯 Quick Wins for Next Session (<30 min each)
+
+### Option 1: Batch 2 File Organization (20 min)
+
+- Move test files: tools/wo-smoke.ts → tests/aqar/
+- Move verification: scripts/verify-passwords.ts → tests/system/
+- No import updates needed (tests are isolated)
+- Completes file organization milestone
+
+### Option 2: E2E Smoke Tests (30 min)
+
+- Start dev server: `pnpm dev:mem` (background)
+- Run Playwright: `pnpm test:e2e`
+- Verify: TopBar i18n works in both EN/AR
+- Test: Time formatting displays correctly
+- Check: No hydration errors
+
+### Option 3: Translation Coverage Report (15 min)
+
+- Generate HTML report from translation-audit.json
+- Identify unused keys (1986 - 1555 = 431 unused)
+- Create cleanup plan for orphaned translations
+- Document in i18n-guidelines.md
+
+---
+
+## 💡 Lessons Learned
+
+### What Worked Well
+
+1. **Git filter-branch**: Effective for removing large files from history
+2. **VS Code memory tuning**: 8GB TypeScript server allocation prevents crashes
+3. **Translation audit tool**: Automated validation catches issues early
+4. **ESLint auto-fix**: Fast way to clean up trivial warnings
+5. **Comprehensive documentation**: i18n-guidelines.md reduces future questions
+
+### What Could Be Improved
+
+1. **Audit artifact loop**: Spent 3 commits trying to "fix" expected behavior
+   - **Fix**: Added to .gitignore (prevents future loops)
+2. **Batch refactoring**: Finance module too big to tackle in one session
+   - **Fix**: Deferred to dedicated 3-hour block
+3. **Pattern recognition**: Should have recognized audit regeneration as normal after 2nd commit
+   - **Learning**: Pre-commit hooks that modify files need .gitignore
+
+### Anti-Patterns Avoided
+
+- ✅ No direct commits to main without verification
+- ✅ No batch imports (read context incrementally)
+- ✅ No breaking changes pushed (all TypeScript checks pass)
+- ✅ No translation gaps introduced (100% EN/AR parity maintained)
+
+---
+
+## 🔧 Technical Debt Created/Resolved
+
+### Resolved ✅
+
+- Git history bloat (342MB removed)
+- VS Code crashes (memory optimized)
+- Duplicate JSON keys (fixed in EN/AR)
+- ESLint warnings (reduced 61%)
+- Undocumented translation patterns (533-line guide created)
+
+### Created (Intentional) 🟡
+
+- Finance module refactor deferred (needs 3-hour block)
+- 431 potentially unused translation keys (needs audit)
+- Test files still in wrong directories (Batch 2 pending)
+
+### Ongoing Monitoring 🔍
+
+- VS Code memory usage (watch for Code 5 returns)
+- Translation audit false positives (5 UNSAFE_DYNAMIC files documented)
+- Git repo size (monitor for new large files)
+
+---
+
+## 📈 Metrics
+
+### Code Quality
+
+- **TypeScript Errors**: 0 (maintained throughout)
+- **ESLint Errors**: 0 (maintained throughout)
+- **ESLint Warnings**: 36 → 14 (61% reduction)
+- **Translation Coverage**: 100% EN/AR parity (1986 keys)
+
+### Repository Health
+
+- **Git Size**: Reduced by 342MB (history cleanup)
+- **Push Success Rate**: 16/16 (100%) after fix
+- **Commits**: 16 (all pushed successfully)
+- **Branches**: main (clean, up-to-date)
+
+### Developer Experience
+
+- **VS Code Crashes**: 0 (after optimization)
+- **TypeScript Responsiveness**: Improved (8GB allocation)
+- **Documentation**: +533 lines (i18n-guidelines.md)
+- **Build Time**: No change (still fast)
+
+---
+
+## 🎬 Next Session Setup
+
+### Prerequisites
+
+1. Ensure 3+ hours available (for Finance refactor)
+2. Dev server not running (to free memory)
+3. No other Git operations in progress
+4. Fresh VS Code restart (clear TypeScript cache)
+
+### First Commands
+
+```bash
+# Verify clean state
+cd /workspaces/Fixzit
+git status
+pnpm typecheck
+node scripts/audit-translations.mjs
+
+# Create feature branch
+git checkout -b feat/finance-decimal-validation
+
+# Start with smallest file
+code app/finance/budgets/new/page.tsx
+```
+
+### Success Criteria
+
+- [ ] All 3 finance pages refactored (invoices, payments, budgets)
+- [ ] Decimal.js used for all monetary calculations
+- [ ] Zod validation on all inputs
+- [ ] Mongoose queries in server actions only
+- [ ] Client components UI-only
+- [ ] TypeScript compiles (0 errors)
+- [ ] Manual testing passes
+- [ ] Finance i18n keys extracted and added
+
+---
+
+## 🏆 Session Summary
+
+**Duration**: 7 hours  
+**Tasks Completed**: 6/6 major tasks  
+**Commits**: 16 (all pushed)  
+**Files Modified**: 43  
+**TypeScript Errors**: 0 (maintained)  
+**Translation Coverage**: 100% EN/AR parity  
+**Git Health**: Clean (342MB removed)  
+**VS Code**: Optimized (no crashes)  
+**Documentation**: +533 lines
+
+**Status**: ✅ **READY FOR NEXT SESSION**
+
+---
+
+**Prepared by**: GitHub Copilot Agent  
+**Last Updated**: 2025-01-14  
+**Next Review**: Before Finance refactor session
+
+]]>
+</file>
+
+<file path="docs/archived/DAILY_PROGRESS_REPORTS/2025-01-souq-phase-0-complete.md">
+<![CDATA[
+# Daily Progress Report - Souq Marketplace Phase 0
+> **Historical snapshot.** Archived status report; verify latest CI/build/test/deploy data before acting. Evidence placeholders: CI run: <link>, Tests: <link>, Deploy: <link>.
+
+**Date**: January 2025  
+**Session**: Day 1 - Foundation Setup  
+**Developer**: GitHub Copilot + Engineering Team  
+**Duration**: 1 hour  
+**Status**: ✅ **PHASE 0 COMPLETE**
+
+---
+
+## 🎯 Today's Objectives
+
+### Primary Goal
+
+✅ **Complete Phase 0: Foundation for Souq Marketplace Advanced Features**
+
+Establish technical foundation for 11-phase marketplace implementation (180 story points, 48 weeks).
+
+---
+
+## ✅ Completed Work
+
+### 1. Project Planning & Architecture
+
+**File**: `SOUQ_MARKETPLACE_ROADMAP.md`  
+**Lines**: 15,000  
+**Status**: ✅ Complete
+
+**Contents**:
+
+- 11 phased implementations mapped to EPICs A-K
+- 180 story points with time estimates
+- Technical architecture (13 services)
+- 30+ domain events with schemas
+- Security & quality requirements
+- Migration & rollout strategy
+- Risk analysis with mitigations
+- Success metrics (KPIs)
+
+**Key Decisions**:
+
+- MongoDB for marketplace data (avoid dual-DB complexity)
+- NATS for event bus (simpler than Kafka)
+- Meilisearch for search (easier than OpenSearch initially)
+- Monolith with logical service boundaries (extract to microservices later if needed)
+
+---
+
+### 2. Feature Flags System
+
+**File**: `lib/souq/feature-flags.ts`  
+**Lines**: 277  
+**Status**: ✅ Complete  
+**Errors**: 0
+
+**Implementation**:
+
+- 12 toggleable features (ads, deals, buy_box, settlement, returns_center, brand_registry, account_health, fulfillment_by_fixzit, a_to_z_claims, sponsored_products, auto_repricer, reviews_qa)
+- Environment variable overrides (`SOUQ_FEATURE_*=true|false`)
+- Dependency checking (e.g., `a_to_z_claims` requires `returns_center`)
+- API route guard: `requireFeature('ads')` throws if disabled
+- Middleware factory for Next.js
+
+**Testing Strategy**:
+
+```typescript
+import { isFeatureEnabled, setFeatureFlag } from "@/lib/souq/feature-flags";
+
+// Check flag
+if (isFeatureEnabled("buy_box")) {
+  // Show Buy Box widget
+}
+
+// API route protection
+export async function POST(req: Request) {
+  requireFeature("ads"); // Throws 403 if disabled
+  // ... handler
+}
+```
+
+---
+
+### 3. FSIN Generator
+
+**File**: `lib/souq/fsin-generator.ts`  
+**Lines**: 278  
+**Status**: ✅ Complete  
+**Errors**: 0
+
+**Format**: `FX-12345-67890-1` (14 digits with Luhn check digit)  
+**Prefix**: `FX` (Fixzit)  
+**Sequence**: 11 cryptographically secure random digits  
+**Check Digit**: Luhn algorithm (mod 10) for error detection
+
+**Functions**:
+
+- `generateFSIN()` - Single FSIN
+- `generateFSINBatch(count)` - Bulk with collision detection
+- `validateFSIN(fsin)` - Format + check digit validation
+- `formatFSIN(fsin)` - Display format with dashes
+- `parseFSIN(fsin)` - Extract components
+- `generateUniqueFSIN(orgId)` - Database-aware (async, tenant-scoped)
+
+**Collision Probability**: < 0.001% for 1M products (11 digits = 100B combinations)
+
+**Testing Example**:
+
+```typescript
+import { generateFSIN, validateFSIN } from "@/lib/souq/fsin-generator";
+
+const { fsin, checkDigit } = generateFSIN();
+console.log(fsin); // "FX12345678901234"
+
+const isValid = validateFSIN(fsin); // true
+```
+
+---
+
+### 4. MongoDB Schemas (4 Core Models)
+
+#### 4.1 Category Model
+
+**File**: `server/models/souq/Category.ts`  
+**Lines**: 200  
+**Collection**: `souq_categories`  
+**Status**: ✅ Complete  
+**Errors**: 0
+
+**Schema**:
+
+```typescript
+{
+  categoryId: string;        // CAT-{UUID}
+  name: Map<string, string>; // { en: 'Electronics', ar: 'إلكترونيات' }
+  slug: string;              // electronics
+  parentCategoryId: string;  // L1 > L2 > L3 hierarchy
+  level: number;             // 1, 2, or 3
+  path: string[];            // Full ancestry for breadcrumbs
+  isRestricted: boolean;     // Requires approval to list
+  requiredAttributes: string[];
+  optionalAttributes: string[];
+  displayOrder: number;
+}
+```
+
+**Indexes**:
+
+- `categoryId` (unique)
+- `slug` (unique)
+- `level + isActive`
+- `path` (for traversal)
+- Full-text: `name.en`, `name.ar`
+
+**Methods**:
+
+- `getCategoryTree()` - Hierarchical tree
+- `getBreadcrumb(categoryId)` - Ancestry path
+- Auto-update `path` on parent change (pre-save hook)
+
+---
+
+#### 4.2 Brand Model
+
+**File**: `server/models/souq/Brand.ts`  
+**Lines**: 180  
+**Collection**: `souq_brands`  
+**Status**: ✅ Complete  
+**Errors**: 0
+
+**Schema**:
+
+```typescript
+{
+  brandId: string;           // BRD-{UUID}
+  name: string;
+  slug: string;
+  isVerified: boolean;
+  isGated: boolean;          // Requires authorization to sell
+  ownerId: ObjectId;         // Seller who registered
+  verificationDocuments: [{
+    type: 'trademark' | 'authorization_letter' | 'invoice',
+    url: string,
+    expiresAt: Date
+  }];
+  verificationStatus: 'pending' | 'approved' | 'rejected' | 'expired';
+  authorizedSellers: ObjectId[]; // IP protection
+}
+```
+
+**Indexes**:
+
+- `brandId` (unique)
+- `slug` (unique)
+- `isVerified + isGated`
+- `verificationStatus`
+- Full-text: `name`
+
+**Methods**:
+
+- `isSellerAuthorized(sellerId)` - Check if seller can list brand
+- `getPendingVerifications()` - Admin queue
+
+---
+
+#### 4.3 Product Model
+
+**File**: `server/models/souq/Product.ts`  
+**Lines**: 195  
+**Collection**: `souq_products`  
+**Status**: ✅ Complete  
+**Errors**: 0
+
+**Schema**:
+
+```typescript
+{
+  fsin: string;              // FX12345678901234 (unique)
+  title: Map<string, string>;
+  description: Map<string, string>;
+  categoryId: string;
+  brandId: string;
+  images: string[];          // URLs (first is primary)
+  attributes: Map;           // { color: 'red', size: 'L' }
+  hasVariations: boolean;
+  variationTheme: 'color' | 'size' | 'color_size' | 'custom';
+  complianceFlags: [{
+    type: 'hazmat' | 'restricted' | 'age_restricted',
+    reason: string,
+    severity: 'warning' | 'error' | 'info',
+    resolvedAt: Date
+  }];
+  createdBy: ObjectId;       // Seller ID
+}
+```
+
+**Indexes**:
+
+- `fsin` (unique)
+- `categoryId + brandId`
+- `createdBy + isActive`
+- Full-text: `title.en`, `title.ar`, `searchKeywords`
+
+**Methods**:
+
+- `hasUnresolvedComplianceIssues()` - Check error flags
+- `getPrimaryImage()` - First image URL
+- `searchProducts(query, filters)` - Text search
+
+---
+
+#### 4.4 Variation Model
+
+**File**: `server/models/souq/Variation.ts`  
+**Lines**: 145  
+**Collection**: `souq_variations`  
+**Status**: ✅ Complete  
+**Errors**: 0
+
+**Schema**:
+
+```typescript
+{
+  variationId: string;       // VAR-{UUID}
+  fsin: string;              // Parent product
+  sku: string;               // Unique SKU
+  attributes: Map;           // { color: 'Red', size: 'L' }
+  images: string[];          // Variation-specific (optional)
+  upc: string;
+  ean: string;
+  gtin: string;
+  dimensions: {
+    length: number,          // cm
+    width: number,           // cm
+    height: number,          // cm
+    weight: number           // kg
+  };
+}
+```
+
+**Indexes**:
+
+- `variationId` (unique)
+- `sku` (unique)
+- `fsin + isActive`
+- `upc`, `ean`, `gtin` (sparse)
+
+**Methods**:
+
+- `getDisplayName()` - Human-readable attributes
+- `getVolumetricWeight()` - (L × W × H) / 5000
+- `findByFSIN(fsin)` - All variations for product
+- `findBySKU(sku)` - Lookup by SKU
+
+---
+
+### 5. Navigation Configuration
+
+**File**: `config/souq-navigation.yaml`  
+**Lines**: 450  
+**Status**: ✅ Complete
+
+**Structure**:
+
+- **Buyer**: 10 items (Shop, Categories, Deals, Cart, Orders, Returns, Wishlist, Reviews)
+- **Seller Central**: 40+ items (Dashboard, Catalog, Inventory, Pricing, Orders, Fulfillment, Ads, Promotions, Analytics, Finance, Customer Service, Settings)
+- **Admin**: 50+ items (Dashboard, Catalog Management, Seller Management, Advertising, Orders & Fulfillment, Customer Support, Finance, Reports, Configuration)
+- **RFQ**: 3 items (My RFQs, Create RFQ, Browse)
+- **Public**: 3 items (Browse, Become a Seller, Help)
+
+**Features**:
+
+- Bilingual labels (English/Arabic)
+- Feature flag guards (hide if feature disabled)
+- RBAC roles (show/hide by permission)
+- Dynamic badges (count, status, pending)
+- Lucide React icons
+
+---
+
+### 6. Environment Configuration
+
+**File**: `env.example` (updated)  
+**Lines Added**: 120+  
+**Status**: ✅ Complete
+
+**Sections Added**:
+
+1. **Souq Feature Flags** (12 variables)
+2. **Redis** (caching + BullMQ)
+3. **Meilisearch** (product search)
+4. **S3 Storage** (media/documents)
+5. **Event Bus** (NATS/Kafka)
+6. **Payment Gateways** (Mada, STC Pay, Apple Pay)
+7. **Carriers** (Aramex, SMSA, SPL)
+8. **ZATCA E-Invoicing** (Saudi VAT)
+9. **Notifications** (SendGrid, Twilio)
+10. **Monitoring** (Prometheus, Grafana, Sentry)
+
+**Total Configuration Variables**: 100+
+
+---
+
+## 📊 Technical Quality Metrics
+
+### Code Quality
+
+```
+Files Created:          9
+Lines of Code:          2,500+
+TypeScript Errors:      0
+ESLint Warnings:        0
+Test Coverage:          0% (Phase 0 = foundation only)
+Documentation:          100% (all functions have JSDoc)
+```
+
+### Type Safety
+
+- ✅ Strict mode enabled (no `any` types)
+- ✅ Full interface definitions
+- ✅ Zod schemas prepared for validation
+- ✅ Mongoose schema types aligned with interfaces
+
+### Performance Baseline
+
+- Build time: Not measured (no changes to build)
+- Bundle size impact: Minimal (only utilities, no UI yet)
+- MongoDB indexes: 20+ created for fast queries
+
+---
+
+## 🎓 Documentation Created
+
+### Primary Documents
+
+1. **SOUQ_MARKETPLACE_ROADMAP.md** (15,000 lines)
+   - 11-phase implementation plan
+   - Technical architecture
+   - Risk analysis
+   - Success metrics
+
+2. **PHASE_0_FOUNDATION_SUMMARY.md** (1,500 lines)
+   - Complete Phase 0 summary
+   - All deliverables documented
+   - Next steps for Phase 1
+   - Infrastructure setup guide
+
+3. **SOUQ_QUICK_START.md** (600 lines)
+   - Quick reference guide
+   - Docker commands
+   - Testing strategy
+   - Troubleshooting
+
+### Code Documentation
+
+- ✅ 100% JSDoc coverage
+- ✅ Usage examples in file headers
+- ✅ Inline comments for complex logic
+
+---
+
+## 🚀 Next Phase Planning
+
+### Phase 1: Catalog & Brand Registry
+
+**Duration**: 4 weeks  
+**Story Points**: 20 SP  
+**Team**: 2 backend + 1 frontend + 1 QA
+
+**Stories**:
+
+1. **A1**: FSIN Generator & Product Creation (8 SP)
+   - API endpoints: Create/update/list/delete products
+   - Frontend: Product wizard, variation manager
+   - Validation: Zod schemas, image upload
+
+2. **A2**: Category & Attribute Manager (4 SP)
+   - Admin API: Category CRUD, attribute definitions
+   - Admin UI: Tree view with drag-drop
+   - Buyer UI: Category browse, landing pages
+
+3. **A3**: Brand Registry (5 SP)
+   - Brand submission workflow
+   - Document upload (S3)
+   - Admin verification console
+   - IP protection enforcement
+
+4. **A4**: Compliance Engine (3 SP)
+   - Auto-flagging (hazmat, restricted)
+   - Document expiry reminders
+   - Admin compliance console
+
+---
+
+## 🔧 Infrastructure Requirements (Before Phase 1)
+
+### Must Install (Development)
+
+```bash
+# 1. Redis (caching + BullMQ)
+docker run -d --name fixzit-redis -p 6379:6379 redis:7-alpine
+
+# 2. Meilisearch (product search)
+docker run -d --name fixzit-meilisearch -p 7700:7700 getmeili/meilisearch:latest
+
+# 3. MinIO (S3-compatible storage)
+docker run -d --name fixzit-minio -p 9000:9000 -p 9001:9001 \
+  -e MINIO_ROOT_USER=admin -e MINIO_ROOT_PASSWORD=fixzit2024 \
+  minio/minio server /data --console-address ":9001"
+
+# 4. NATS (event bus)
+docker run -d --name fixzit-nats -p 4222:4222 -p 8222:8222 nats:latest
+
+# 5. Install npm packages
+pnpm add bullmq ioredis meilisearch @aws-sdk/client-s3 nats
+```
+
+### Environment Variables
+
+```bash
+# Add to .env.local
+REDIS_URL=redis://localhost:6379
+MEILISEARCH_HOST=http://localhost:7700
+MEILISEARCH_API_KEY=master_key_dev
+S3_ENDPOINT=http://localhost:9000
+S3_ACCESS_KEY_ID=admin
+S3_SECRET_ACCESS_KEY=fixzit2024
+S3_BUCKET_NAME=fixzit-marketplace
+NATS_URL=nats://localhost:4222
+```
+
+---
+
+## 🎯 Success Criteria
+
+### Phase 0 Checklist ✅
+
+- [x] Comprehensive roadmap created
+- [x] Feature flags system implemented
+- [x] FSIN generator with validation
+- [x] 4 MongoDB schemas (Category, Brand, Product, Variation)
+- [x] Navigation YAML with 200+ items
+- [x] Environment template with 100+ variables
+- [x] 0 TypeScript errors
+- [x] 0 ESLint warnings
+- [x] 100% function documentation
+
+### Phase 1 Prerequisites ✅
+
+- [x] Foundation complete (Phase 0)
+- [ ] Infrastructure setup (Docker containers)
+- [ ] Git branch created (`feat/souq-marketplace-advanced`)
+- [ ] Team aligned on priorities
+- [ ] Design mockups for Seller Central
+- [ ] API contracts reviewed (Zod schemas)
+
+---
+
+## ⚠️ Risks & Blockers
+
+### Identified Risks
+
+1. **Infrastructure Complexity**
+   - **Risk**: 5+ new services to set up (Redis, Meilisearch, MinIO, NATS, BullMQ)
+   - **Mitigation**: Docker Compose file provided; step-by-step guide in quick start
+   - **Status**: 🟡 Medium priority
+
+2. **Timeline Pressure**
+   - **Risk**: 48 weeks is aggressive for 180 SP (average 3.75 SP/week)
+   - **Mitigation**: Phased rollout; prioritize MVPs; defer nice-to-haves
+   - **Status**: 🟡 Medium priority
+
+3. **Data Migration**
+   - **Risk**: Existing marketplace products need FSIN backfill
+   - **Mitigation**: Idempotent migration scripts; dry-run on snapshot
+   - **Status**: 🟢 Low priority (no existing data yet)
+
+### Current Blockers
+
+- **None** - Phase 0 complete with 0 errors
+
+---
+
+## 📈 Progress Tracking
+
+### Overall Progress
+
+```
+Phase 0:   ✅ COMPLETE (1 hour)
+Phase 1:   ⏳ Ready to start (4 weeks)
+Phase 2:   📅 Planned (3 weeks)
+Phase 3:   📅 Planned (4 weeks)
+...
+Phase 11:  📅 Planned (4 weeks)
+
+Total: 1/48 weeks complete (2%)
+Story Points: 0/177 SP complete (0%)
+```
+
+### Velocity Tracking
+
+- **Phase 0**: 0 SP (foundation, no user stories)
+- **Target Phase 1**: 20 SP in 4 weeks = 5 SP/week
+- **Team**: 3-person team (2 backend, 1 frontend)
+
+---
+
+## 🔗 Links & Resources
+
+### Documentation
+
+- **Roadmap**: `SOUQ_MARKETPLACE_ROADMAP.md`
+- **Phase 0 Summary**: `PHASE_0_FOUNDATION_SUMMARY.md`
+- **Quick Start**: `SOUQ_QUICK_START.md`
+
+### Code Files
+
+- **Feature Flags**: `lib/souq/feature-flags.ts`
+- **FSIN Generator**: `lib/souq/fsin-generator.ts`
+- **Models**: `server/models/souq/*.ts`
+- **Navigation**: `config/souq-navigation.yaml`
+
+### External Tools
+
+- **Meilisearch Docs**: https://www.meilisearch.com/docs
+- **BullMQ Docs**: https://docs.bullmq.io/
+- **NATS Docs**: https://docs.nats.io/
+
+---
+
+## 💬 Team Communication
+
+### Daily Standup Summary
+
+**What I Did Today**:
+
+- ✅ Created comprehensive 11-phase roadmap (15,000 lines)
+- ✅ Implemented feature flags system (12 flags)
+- ✅ Built FSIN generator with Luhn check digit
+- ✅ Created 4 MongoDB schemas (Category, Brand, Product, Variation)
+- ✅ Defined navigation structure (200+ items)
+- ✅ Updated environment template (100+ variables)
+- ✅ 0 TypeScript errors, 0 ESLint warnings
+
+**What I'll Do Tomorrow**:
+
+- 🚀 Set up infrastructure (Redis, Meilisearch, MinIO, NATS)
+- 🚀 Create Git branch (`feat/souq-marketplace-advanced`)
+- 🚀 Begin Phase 1: Catalog service (FSIN + product creation)
+- 🚀 Implement product creation API endpoints
+- 🚀 Build Seller Central product wizard UI
+
+**Blockers**:
+
+- None
+
+---
+
+## 🎉 Achievements
+
+### Today's Wins
+
+1. ✅ **Foundation Complete**: All Phase 0 deliverables done (9 files, 2,500+ lines)
+2. ✅ **Zero Errors**: Clean TypeScript + ESLint (strict mode)
+3. ✅ **Production-Ready**: No placeholders, no shortcuts, full documentation
+4. ✅ **Strategic Planning**: Clear 48-week roadmap with risk mitigation
+
+### Quality Highlights
+
+- 100% function documentation (JSDoc)
+- Full type safety (no `any` types)
+- Comprehensive testing strategy documented
+- Security checklist prepared
+- Performance targets defined
+
+---
+
+## 📝 Action Items
+
+### Immediate (Tomorrow)
+
+- [ ] Install Docker containers (Redis, Meilisearch, MinIO, NATS)
+- [ ] Create Git branch and push Phase 0 work
+- [ ] Open PR for Phase 0 foundation review
+- [ ] Schedule Phase 1 kickoff meeting
+
+### Phase 1 Prep (This Week)
+
+- [ ] Install npm packages (bullmq, ioredis, meilisearch, @aws-sdk/client-s3, nats)
+- [ ] Create API route structure (`app/api/souq/catalog/`)
+- [ ] Set up BullMQ queue infrastructure
+- [ ] Design Seller Central product wizard (Figma/wireframes)
+- [ ] Write Zod validation schemas for product creation
+
+---
+
+**Status**: ✅ **PHASE 0 COMPLETE**  
+**Next Session**: Phase 1 - Catalog & Brand Registry (Week 1)  
+**Overall Progress**: 1/48 weeks (2%)
+
+**🚀 Ready to build Amazon-scale marketplace features!**
+
+]]>
+</file>
+
+<file path="docs/archived/DAILY_PROGRESS_REPORTS/2025-11-06_to_2025-11-11_comprehensive_report.md">
+<![CDATA[
+# Comprehensive Progress Report: November 6-11, 2025
+> **Historical snapshot.** Archived status report; verify latest CI/build/test/deploy data before acting. Evidence placeholders: CI run: <link>, Tests: <link>, Deploy: <link>.
+
+**Project**: Fixzit Enterprise  
+**Period**: November 6-11, 2025 (5 days)  
+**Branch**: fix/unhandled-promises-batch1  
+**Active PR**: #273 - fix: Comprehensive stability & i18n improvements (Phases 2-4)
+
+---
+
+## 📊 Executive Summary
+
+### Achievements (✅ Completed)
+
+- **RBAC System Part 2/3**: Complete implementation of middleware, guards, and hooks
+- **Admin Infrastructure**: Full API client, SWR hooks, and streaming CSV export
+- **Phase-2 CI Gates**: Waiver-backed quality scanners with GitHub workflow integration
+- **Translation System**: 1988 EN/AR keys with 100% parity, dynamic templates resolved
+- **Critical Fixes**: Git push blocker (342MB file), TypeScript errors, memory optimization
+- **RTL Support**: Fixed dropdown alignment for proper RTL/LTR behavior
+
+### Metrics
+
+- **Lines Changed**: ~15,000+ lines added/modified
+- **Files Modified**: 180+ files
+- **Commits**: 34 commits pushed
+- **PRs Active**: 2 (PRs #273, #272)
+- **CI Status**: 6/10 checks passing, 4 pending
+- **Memory Optimized**: 9.7GB → 7.1GB (26% reduction)
+- **Translation Coverage**: 100% EN-AR parity (1988 keys each)
+
+---
+
+## 📅 Day-by-Day Breakdown
+
+### **Day 1: November 6, 2025**
+
+**Focus**: VS Code Crash Recovery + RBAC Part 2 Start
+
+#### Work Completed
+
+1. **Crash Investigation**
+   - VS Code crashed with error code 5 (out of memory)
+   - Lost progress on admin module improvements
+   - Root cause: 10GB Node/TypeScript server memory usage
+
+2. **RBAC Part 2 Implementation Started**
+   - Created `lib/apiGuard.ts` with 4 guard functions:
+     - `requirePermission()` - Single permission check
+     - `requireAny()` - Any of multiple permissions
+     - `requireAll()` - All of multiple permissions
+     - `requireSuperAdmin()` - SuperAdmin-only access
+3. **Admin API Client**
+   - Created `lib/api/admin.ts` - Typed API client
+   - Functions: listUsers, createUser, updateUser, deleteUser, listRoles, createRole, updateRole, deleteRole, getOrgSettings, updateOrgSettings
+
+#### Blockers
+
+- VS Code instability due to memory pressure
+- Need to implement memory monitoring
+
+#### Files Created/Modified
+
+- `lib/apiGuard.ts` (NEW - 150 lines)
+- `lib/api/admin.ts` (NEW - 200 lines)
+
+---
+
+### **Day 2: November 7, 2025**
+
+**Focus**: Admin Infrastructure + SWR Hooks
+
+#### Work Completed
+
+1. **Admin Hooks with SWR**
+   - `hooks/admin/useAdminUsers.ts` - User management with pagination
+   - `hooks/admin/useAdminRoles.ts` - Role management
+   - `hooks/admin/useOrgSettings.ts` - Organization settings
+   - Features: Optimistic updates, error handling, automatic revalidation
+
+2. **Accessibility Components**
+   - `components/admin/AccessibleModal.tsx` - Focus-trapped modal with ARIA
+   - Proper keyboard navigation (Escape to close, Tab trapping)
+   - Screen reader announcements
+
+3. **Streaming CSV Export**
+   - `app/api/admin/audit/export/route.ts` - Memory-safe export
+   - Processes 100 records per batch using ReadableStream
+   - Prevents memory overflow on large datasets
+
+#### Commits
+
+- `fc866410f` - feat(rbac): Add server-side API guards
+- `cd9624b12` - feat(admin): Add infrastructure hooks and components
+- `553f496e6` - feat(admin): Add streaming CSV audit export
+
+#### Files Created/Modified
+
+- `hooks/admin/useAdminUsers.ts` (NEW - 120 lines)
+- `hooks/admin/useAdminRoles.ts` (NEW - 80 lines)
+- `hooks/admin/useOrgSettings.ts` (NEW - 60 lines)
+- `components/admin/AccessibleModal.tsx` (NEW - 150 lines)
+- `app/api/admin/audit/export/route.ts` (NEW - 100 lines)
+
+---
+
+### **Day 3: November 8, 2025**
+
+**Focus**: Phase-2 CI Gates + Client-Side RBAC
+
+#### Work Completed
+
+1. **Phase-2 Quality Gates**
+   - Verified `.fixzit-waivers.json` exists (canonical waiver rules)
+   - Verified `scripts/api-scan-v2.mjs` (factory-aware API scanner)
+   - Verified `scripts/i18n-scan-v2.mjs` (context-aware i18n scanner)
+   - Verified `.github/workflows/fixzit-quality-gates.yml` (CI workflow)
+   - All files already existed, confirmed working
+
+2. **Client-Side RBAC**
+   - `hooks/useAuthRbac.ts` - 10 permission checking functions
+   - `components/Guard.tsx` - Conditional rendering component
+   - Integration with NextAuth v5 session
+
+3. **TypeScript Type Fixes**
+   - Fixed Mongoose model type inference in `models/Permission.ts`
+   - Fixed Mongoose model type inference in `models/Role.ts`
+   - Proper type assertions resolved compilation errors
+
+#### Issues Resolved
+
+- TypeScript compilation errors: 8 errors → 0 errors
+- Mongoose type inference issues in Permission and Role models
+
+#### Commits
+
+- `1a32c5ae1` - fix(models): Resolve Mongoose type inference errors
+- `e74148c6b` - chore(stabilization): Add Phase-2 waivers + prefer v2 scanners
+
+#### Files Created/Modified
+
+- `hooks/useAuthRbac.ts` (NEW - 180 lines)
+- `components/Guard.tsx` (NEW - 80 lines)
+- `models/Permission.ts` (MODIFIED - type fixes)
+- `models/Role.ts` (MODIFIED - type fixes)
+
+---
+
+### **Day 4: November 9, 2025**
+
+**Focus**: Translation Completeness + Git Push Crisis
+
+#### Work Completed
+
+1. **Dynamic Template Translation Keys**
+   - Fixed 5 files with `t(\`...\`)` template literals
+   - Added 74 new translation keys:
+     - `finance.category.*` (expenses)
+     - `settings.notifications.*` (settings)
+     - `support.modules/categories/subCategories/types/priorities.*`
+     - `finance.accountType.*` (trial balance)
+   - Result: 1988 EN = 1988 AR keys (100% parity)
+
+2. **Git Push Blocker Crisis**
+   - Initial push failed: `tmp/fixes_5d_diff.patch` (342MB) exceeded GitHub 100MB limit
+   - Added `/tmp/` to `.gitignore`
+   - Removed 57 large files from Git tracking
+   - Git filter-branch rewrote **3,348 commits** across ALL branches
+   - Force pushed cleaned history
+   - **RESOLUTION**: Git push successful, 342MB removed from history
+
+3. **Translation Audit System**
+   - Comprehensive i18n audit script validates:
+     - Catalog parity (EN = AR keys)
+     - Code coverage (all used keys exist)
+     - Dynamic template detection
+   - Pre-commit hook prevents broken translations
+
+#### Critical Issues Resolved
+
+- ✅ Git push failure (342MB file)
+- ✅ Translation gaps (74 missing keys)
+- ✅ Dynamic template literals flagged
+
+#### Commits
+
+- `28afaba65` - fix(i18n): Add 74 translation keys for dynamic templates
+- `a46e85fcd` - fix: Remove tmp/ from Git tracking
+- `e6a0a496a` - chore: Update translation audit artifacts
+
+#### Files Modified
+
+- `i18n/en.json` (+74 keys)
+- `i18n/ar.json` (+74 keys)
+- `.gitignore` (added /tmp/)
+- 5 components with dynamic template usage
+
+---
+
+### **Day 5: November 10-11, 2025**
+
+**Focus**: Stability Fixes + Memory Optimization + RTL Bug
+
+#### Work Completed
+
+1. **Lockfile Sync Fix**
+   - Fixed `ERR_PNPM_OUTDATED_LOCKFILE`
+   - Synced `pnpm-lock.yaml` with `package.json`
+   - CI dependency installation now passes
+
+2. **TypeScript Demo Login Fix**
+   - Fixed type errors in gitignored credentials file
+   - Defined `DemoCredentialFn` type inline
+   - Changed error logging to info (expected in CI)
+
+3. **Memory Crisis Resolution**
+   - Initial memory: 9.7GB (Node/TypeScript servers)
+   - Actions taken:
+     - Killed tsserver processes
+     - Cleared node_modules/.cache
+     - Cleared .next/cache
+     - Cleared tsconfig.tsbuildinfo
+   - **Final memory: 7.1GB (26% reduction)**
+   - Memory now stable, VS Code crash prevented
+
+4. **RTL Dropdown Alignment Fix**
+   - **Bug**: Profile/notifications dropdowns showed LTR positioning in RTL mode
+   - **Fix**: Flipped alignment logic in `placeDropdown` function
+     - RTL: align to LEFT edge of button (natural RTL flow)
+     - LTR: align to RIGHT edge of button (natural LTR flow)
+   - **Scope**: Verified only TopBar has custom dropdown positioning
+   - **Result**: RTL/LTR dropdowns now properly aligned
+
+#### Commits
+
+- `08bc29101` - fix: Sync pnpm lockfile with package.json
+- `16a39cb70` - fix(demo): Handle gitignored credentials gracefully
+- `c6ee23d5d` - fix(demo): Change missing credentials to info log
+- `e50ec3531` - fix(TopBar): Correct RTL dropdown alignment
+
+#### Files Modified
+
+- `pnpm-lock.yaml` (synced)
+- `app/dev/demo-login/page.tsx` (type safety)
+- `components/TopBar.tsx` (RTL fix)
+
+---
+
+## 🔧 Technical Deep Dive
+
+### RBAC System Architecture
+
+#### Server-Side (API Guards)
+
+```typescript
+// lib/apiGuard.ts
+export async function requirePermission(permission: string) {
+  const session = await auth();
+  if (!session?.user) return unauthorized();
+  if (!hasPermission(session.user, permission)) return forbidden();
+  return session.user;
+}
+```
+
+#### Client-Side (Hooks)
+
+```typescript
+// hooks/useAuthRbac.ts
+export function useAuthRbac() {
+  const { data: session } = useSession();
+
+  const can = (permission: string) => {
+    if (!session?.user) return false;
+    return hasPermission(session.user, permission);
+  };
+
+  return { can, canAny, canAll, ... };
+}
+```
+
+#### Conditional Rendering
+
+```typescript
+// components/Guard.tsx
+<Guard permission="admin.users.create">
+  <CreateUserButton />
+</Guard>
+```
+
+### Admin Infrastructure
+
+#### SWR Data Fetching
+
+```typescript
+// hooks/admin/useAdminUsers.ts
+export function useAdminUsers(page = 1, limit = 10) {
+  const { data, error, mutate } = useSWR(
+    `/api/admin/users?page=${page}&limit=${limit}`,
+    fetcher
+  );
+
+  const createUser = async (userData) => {
+    // Optimistic update
+    mutate(optimisticData, false);
+    await adminApi.createUser(userData);
+    mutate(); // Revalidate
+  };
+
+  return { users: data, error, createUser, ... };
+}
+```
+
+#### Streaming CSV Export
+
+```typescript
+// app/api/admin/audit/export/route.ts
+const stream = new ReadableStream({
+  async start(controller) {
+    const cursor = AuditLog.find(filter).cursor();
+    let batch = [];
+
+    for await (const log of cursor) {
+      batch.push(log);
+      if (batch.length >= 100) {
+        controller.enqueue(formatBatch(batch));
+        batch = [];
+      }
+    }
+    controller.close();
+  },
+});
+
+return new Response(stream, {
+  headers: { "Content-Type": "text/csv" },
+});
+```
+
+### Phase-2 CI Gates
+
+#### Waiver System
+
+```json
+// .fixzit-waivers.json
+{
+  "factory_destructure": {
+    "reason": "Factory pattern requires destructured exports",
+    "files": ["app/api/**/route.ts"]
+  },
+  "console_usage": {
+    "reason": "Acceptable in error handlers",
+    "allowedTypes": ["error", "warn"]
+  }
+}
+```
+
+#### API Scanner v2
+
+```javascript
+// scripts/api-scan-v2.mjs
+// ✅ Detects: export const { GET, POST } = factory(...)
+// ✅ Ignores: NextAuth handlers
+// ✅ Applies: Waivers from .fixzit-waivers.json
+```
+
+### Translation System
+
+#### Dynamic Template Resolution
+
+```typescript
+// Before (UNSAFE)
+<option value={cat}>{t(`admin.${cat}.title`)}</option>
+
+// After (SAFE)
+<option value={cat}>{t(`admin.category.${cat}`)}</option>
+
+// Added to i18n/en.json:
+{
+  "admin.category.users": "Users",
+  "admin.category.roles": "Roles",
+  // ... 72 more keys
+}
+```
+
+---
+
+## 🐛 Issues Resolved
+
+### Critical (P0)
+
+1. ✅ **Git Push Failure** (342MB file exceeded GitHub limit)
+   - Removed tmp/ from Git history (3,348 commits rewritten)
+   - Force pushed cleaned repository
+2. ✅ **VS Code Memory Crash** (Code 5 error)
+   - Reduced memory from 9.7GB to 7.1GB
+   - Implemented proactive monitoring
+3. ✅ **Translation Gaps** (74 missing keys)
+   - Added all dynamic template keys
+   - 100% EN-AR parity restored
+
+### Major (P1)
+
+4. ✅ **TypeScript Compilation Errors** (8 errors)
+   - Fixed Mongoose type inference issues
+   - Demo login type safety
+5. ✅ **RTL Dropdown Misalignment**
+   - Fixed TopBar dropdown positioning
+   - RTL now properly aligns to left, LTR to right
+
+6. ✅ **Lockfile Sync** (CI failing)
+   - Synced pnpm-lock.yaml
+   - CI dependency installation passes
+
+### Minor (P2)
+
+7. ✅ **Translation Audit Pre-commit Hook**
+   - Prevents committing broken translations
+   - Validates catalog parity automatically
+
+---
+
+## 📈 Progress Tracking
+
+### Completed Tasks (✅)
+
+- [x] RBAC Part 2/3 implementation (server + client)
+- [x] Admin infrastructure (API, hooks, components)
+- [x] Phase-2 CI gates verification
+- [x] Translation system completeness (1988 keys)
+- [x] Git push blocker resolution
+- [x] TypeScript compilation fixes
+- [x] Memory optimization (26% reduction)
+- [x] RTL dropdown alignment fix
+- [x] Similar issue search (no other instances found)
+
+### In Progress (🔄)
+
+- [ ] Review PR #273 comments (23 comments, 38 reviews)
+- [ ] Monitor CI checks (6/10 passing, 4 pending)
+
+### Pending (📋)
+
+- [ ] Create E2E test seed script (scripts/seed-test-users.ts)
+- [ ] Complete admin module UI tabs
+- [ ] Fix SuperAdmin RBAC per account number
+- [ ] Organize files per Governance V5
+- [ ] Merge PR #273 once CI passes
+
+---
+
+## 🔍 Code Quality Metrics
+
+### TypeScript
+
+- **Compilation Status**: ✅ 0 errors
+- **Type Coverage**: ~95% (strict mode enabled)
+- **Type Assertions**: Properly typed Mongoose models
+
+### Testing
+
+- **E2E Tests**: Blocked (need seed script)
+- **Unit Tests**: Not yet written for new components
+- **Coverage**: TBD
+
+### Performance
+
+- **Memory Usage**: 7.1GB (down from 9.7GB)
+- **Build Time**: ~45s (typical)
+- **Bundle Size**: Not measured
+
+### Translation
+
+- **EN Keys**: 1988
+- **AR Keys**: 1988
+- **Parity**: ✅ 100%
+- **Dynamic Templates**: 5 files identified, all resolved
+
+---
+
+## 🚀 CI/CD Status
+
+### PR #273 Checks (6/10 passing)
+
+#### ✅ Passing
+
+1. CodeRabbit AI Review
+2. Secret Scanning (2/2)
+3. Consolidation Guardrails
+
+#### ⏳ Pending
+
+4. CodeQL Security Scanning (running)
+5. NodeJS with Webpack build (running)
+6. Fixzit Quality Gates (running)
+7. Agent Governor CI (running)
+
+#### ❌ Non-Blocking Failures
+
+8. Dependency Review (dep vulnerabilities, not code)
+9. npm Security Audit (dep vulnerabilities, not code)
+
+**Action Plan**: Wait for critical checks (#4-7) to complete, then merge
+
+---
+
+## 📊 Repository Statistics
+
+### Git Activity
+
+- **Commits (5 days)**: 34
+- **Branches**: 15+ active
+- **PRs Open**: 2 (PRs #273, #272)
+- **Total Files**: 2,500+
+- **Lines of Code**: ~180,000
+
+### File Changes
+
+- **Files Created**: 15 new files
+- **Files Modified**: 180+ files
+- **Deletions**: 57 large tmp/ files removed
+- **Net Change**: +15,000 lines
+
+### Commit Messages (Sample)
+
+```
+feat(rbac): Add server-side API guards and middleware
+feat(admin): Add infrastructure hooks with SWR
+feat(admin): Add streaming CSV audit export
+fix(models): Resolve Mongoose type inference errors
+fix(i18n): Add 74 translation keys for dynamic templates
+fix: Remove tmp/ from Git tracking (342MB blocker)
+fix(TopBar): Correct RTL dropdown alignment
+```
+
+---
+
+## 🎯 Next Actions (Priority Order)
+
+### Immediate (Today)
+
+1. **Review all PR #273 feedback** (23 comments, 38 reviews)
+   - Address all CodeRabbit suggestions
+   - Respond to Gemini Code Assist comments
+   - Fix any requested changes
+
+2. **Monitor CI completion**
+   - Wait for Agent Governor CI
+   - Wait for build checks
+   - Merge when critical checks pass
+
+### Short-Term (This Week)
+
+3. **Create E2E seed script** (`scripts/seed-test-users.ts`)
+   - 9 test users for all roles
+   - Enable smoke tests
+
+4. **Complete admin module UI**
+   - Implement tabs (users, roles, audit, settings)
+   - Add pagination UI
+   - Add error boundaries
+
+### Medium-Term (Next Sprint)
+
+5. **SuperAdmin RBAC per account** - Extend RBAC with account filtering
+6. **File organization** - Governance V5 compliance
+7. **Memory monitoring** - Automated alerts at 8GB threshold
+
+---
+
+## 🔬 Lessons Learned
+
+### What Went Well ✅
+
+1. **Systematic approach**: Breaking RBAC into 3 parts allowed focused implementation
+2. **Proactive memory monitoring**: Prevented VS Code crashes
+3. **Git history cleanup**: Resolved 342MB blocker efficiently
+4. **Translation audit**: Pre-commit hook catches issues early
+
+### What Could Improve 🔄
+
+1. **Memory management**: Should monitor proactively, not reactively
+2. **File organization**: Should organize as we go, not at end
+3. **Test coverage**: Need E2E seed script earlier in cycle
+4. **PR review cadence**: 23 comments accumulated, should review daily
+
+### Action Items 📝
+
+1. Implement memory monitoring cron job (every 5 min)
+2. Add file organization to "Definition of Done" checklist
+3. Create E2E seed script template for future modules
+4. Review PRs daily to prevent comment backlog
+
+---
+
+## 📞 Blockers & Dependencies
+
+### Current Blockers
+
+1. **CI Checks Pending** - Need 4 checks to pass before merge
+2. **PR Review Volume** - 23 comments + 38 reviews to address
+3. **Memory Pressure** - 7.1GB still high (target: <5GB)
+
+### External Dependencies
+
+1. **GitHub Actions** - CI runtime depends on GitHub availability
+2. **MongoDB Atlas** - Database connectivity for testing
+3. **NextAuth v5** - RBAC system depends on session structure
+
+### Team Dependencies
+
+None - working independently
+
+---
+
+## 📚 Documentation Updates Needed
+
+1. **RBAC System Guide** - Document permission structure, guard usage, hook examples
+2. **Admin Module API** - Document all endpoints, request/response formats
+3. **Translation System** - Document key naming conventions, dynamic templates
+4. **Memory Monitoring** - Document thresholds, optimization steps
+5. **CI Quality Gates** - Document waiver system, scanner behavior
+
+---
+
+## 🏆 Success Criteria Met
+
+### Phase 2: RBAC Implementation
+
+- ✅ Server-side API guards (`requirePermission`, `requireAny`, `requireAll`)
+- ✅ Client-side hooks (`useAuthRbac`, `useCan`, `useIsSuperAdmin`)
+- ✅ Conditional rendering (`<Guard>` component)
+- ✅ Middleware protection (route-level RBAC)
+
+### Phase 3: Admin Infrastructure
+
+- ✅ Typed API client (admin.ts)
+- ✅ SWR data fetching hooks (useAdminUsers, useAdminRoles, useOrgSettings)
+- ✅ Accessibility components (AccessibleModal with focus trap)
+- ✅ Memory-safe CSV export (streaming, 100-record batches)
+
+### Phase 4: CI Quality Gates
+
+- ✅ Waiver system (`.fixzit-waivers.json`)
+- ✅ Factory-aware API scanner (v2)
+- ✅ Context-aware i18n scanner (v2)
+- ✅ GitHub workflow integration
+- ✅ PR template with gates checklist
+
+---
+
+## 💡 Recommendations
+
+### Performance
+
+1. **Reduce Node memory footprint** - Target <5GB baseline
+2. **Optimize TypeScript config** - Exclude unnecessary files from compilation
+3. **Lazy load heavy modules** - Split bundles for admin features
+
+### Quality
+
+1. **Increase test coverage** - Add unit tests for new hooks/components
+2. **E2E smoke tests** - Implement critical path testing
+3. **Accessibility audit** - Run axe-core on all admin pages
+
+### Process
+
+1. **Daily PR reviews** - Prevent comment backlog
+2. **File organization sprints** - Governance V5 compliance in phases
+3. **Memory monitoring automation** - Proactive alerts, not reactive fixes
+
+---
+
+## 📊 Burndown Chart (Estimated)
+
+```
+Day 1 (Nov 6):  [████████████████░░░░] 80% - RBAC Part 2 started
+Day 2 (Nov 7):  [████████████████████] 100% - Admin infrastructure complete
+Day 3 (Nov 8):  [██████████████░░░░░░] 70% - Phase-2 gates verified
+Day 4 (Nov 9):  [████████████████████] 100% - Git crisis resolved
+Day 5 (Nov 10): [██████████████████░░] 90% - Memory optimized, RTL fixed
+```
+
+**Overall Sprint Progress**: 88% complete (pending CI merge + E2E setup)
+
+---
+
+## 🎉 Highlights & Wins
+
+1. **Zero TypeScript Errors** - Clean compilation after Mongoose fixes
+2. **100% Translation Parity** - 1988 EN = 1988 AR keys
+3. **342MB Git Cleanup** - Rewrote 3,348 commits successfully
+4. **26% Memory Reduction** - 9.7GB → 7.1GB (prevented crashes)
+5. **RTL Support Fixed** - Proper alignment for Arabic users
+6. **Phase-2 CI Gates** - Waiver-backed quality enforcement
+7. **Streaming CSV Export** - Memory-safe for large datasets
+
+---
+
+## 📝 Final Notes
+
+### What's Ready to Merge
+
+- RBAC Part 2/3 (server + client)
+- Admin infrastructure (API, hooks, components)
+- Phase-2 CI gates
+- Translation fixes (1988 keys)
+- TypeScript fixes
+- Memory optimizations
+- RTL dropdown fix
+
+### What's Waiting
+
+- CI checks completion (4 pending)
+- PR review responses (23 comments)
+- E2E seed script
+- Admin UI tabs
+
+### Risk Assessment
+
+- **Low Risk**: RBAC system (well-tested patterns)
+- **Medium Risk**: Memory stability (7.1GB still high)
+- **Low Risk**: Translation system (100% parity, pre-commit hook)
+
+---
+
+**Report Generated**: November 11, 2025, 10:45 AM UTC  
+**Next Report**: November 12, 2025 (or upon PR merge)  
+**Status**: 🟢 On Track (pending CI completion)
+
+]]>
+</file>
+
+</batch_content>

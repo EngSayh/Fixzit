@@ -1,0 +1,3713 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="public/assets/js/header-footer.js">
+<![CDATA[
+(async function () {
+  async function inject(id, file) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const res = await fetch(file);
+    el.innerHTML = await res.text();
+  }
+  await inject("site-header", "partials_header.html");
+  const footerInjected = inject("site-footer", "partials_footer.html");
+  const sidebar = document.getElementById("site-sidebar");
+  if (sidebar) {
+    const res = await fetch("partials_sidebar.html");
+    sidebar.innerHTML = await res.text();
+  }
+
+  // language toggles (header + footer)
+  const apply = (lang) => window.FXZ.setLang(lang);
+  const hdr = document.getElementById("lang-toggle");
+  if (hdr)
+    hdr.addEventListener("click", () =>
+      apply(document.documentElement.lang === "ar" ? "en" : "ar"),
+    );
+  await footerInjected;
+  const ftr = document.getElementById("lang-toggle-footer");
+  if (ftr)
+    ftr.addEventListener("click", () =>
+      apply(document.documentElement.lang === "ar" ? "en" : "ar"),
+    );
+
+  // profile dropdown
+  const btn = document.getElementById("profile-btn");
+  const menu = document.getElementById("profile-menu");
+  if (btn && menu) {
+    btn.addEventListener("click", () => menu.classList.toggle("hidden"));
+    document.addEventListener("click", (e) => {
+      if (!menu.contains(e.target) && !btn.contains(e.target))
+        menu.classList.add("hidden");
+    });
+  }
+})();
+
+]]>
+</file>
+
+<file path="public/assets/js/i18n.js">
+<![CDATA[
+window.FXZ_I18N = {
+  en: {
+    "buttons.lang": "عربي",
+    "buttons.login": "Login",
+    "buttons.signUp": "Create Account",
+    "footer.rights": "All rights reserved.",
+    "nav.dashboard": "Dashboard",
+    "nav.workOrders": "Work Orders",
+    "nav.properties": "Properties",
+    "nav.finance": "Finance",
+    "nav.hr": "HR",
+    "nav.crm": "CRM",
+    "nav.fixzitSouq": "Fixzit Souq",
+    "nav.reports": "Reports",
+    "nav.support": "Support",
+    "fm.tabs.catalog": "Catalog",
+    "fm.tabs.vendors": "Vendors",
+    "fm.tabs.rfqs": "RFQs & Bids",
+    "fm.tabs.orders": "Orders & POs",
+  },
+  ar: {
+    "buttons.lang": "English",
+    "buttons.login": "دخول",
+    "buttons.signUp": "إنشاء حساب",
+    "footer.rights": "جميع الحقوق محفوظة.",
+    "nav.dashboard": "لوحة التحكم",
+    "nav.workOrders": "أوامر العمل",
+    "nav.properties": "العقارات",
+    "nav.finance": "المالية",
+    "nav.hr": "الموارد البشرية",
+    "nav.crm": "العلاقات",
+    "nav.fixzitSouq": "سوق فيكزت",
+    "nav.reports": "التقارير",
+    "nav.support": "الدعم",
+    "fm.tabs.catalog": "الكتالوج",
+    "fm.tabs.vendors": "الموردون",
+    "fm.tabs.rfqs": "طلبات التسعير والعطاءات",
+    "fm.tabs.orders": "الطلبات وأوامر الشراء",
+  },
+};
+
+]]>
+</file>
+
+<file path="public/js/hijri-calendar-mobile.js">
+<![CDATA[
+/**
+ * Hijri Calendar Integration for Mobile - Saudi Market Optimization
+ * Fixzit Souq Enterprise Platform
+ */
+
+class HijriCalendarMobile {
+  constructor() {
+    this.currentLanguage = localStorage.getItem("fxz.lang") || "en";
+    this.preferHijri = localStorage.getItem("calendar_preference") === "hijri";
+    this.init();
+  }
+
+  init() {
+    this.setupDateDisplays();
+    this.addCalendarToggle();
+    this.updateAllDates();
+  }
+
+  /**
+   * Convert Gregorian to Hijri date
+   * Using Umm al-Qura calendar system used in Saudi Arabia
+   */
+  gregorianToHijri(date) {
+    // Simplified Hijri conversion - for production use Islamic calendar libraries
+    const gregorianYear = date.getFullYear();
+    const gregorianMonth = date.getMonth() + 1;
+    const gregorianDay = date.getDate();
+
+    // Approximate conversion (use proper Islamic calendar library in production)
+    const hijriYear = Math.floor((gregorianYear - 579) * 1.030684);
+    const hijriMonth = Math.floor((gregorianMonth + 8) % 12) + 1;
+    const hijriDay = gregorianDay;
+
+    return {
+      year: hijriYear,
+      month: hijriMonth,
+      day: hijriDay,
+      monthName: this.getHijriMonthName(hijriMonth),
+      yearName: this.formatHijriYear(hijriYear),
+    };
+  }
+
+  /**
+   * Get Hijri month names in Arabic and English
+   */
+  getHijriMonthName(month) {
+    const months = {
+      ar: [
+        "محرم",
+        "صفر",
+        "ربيع الأول",
+        "ربيع الثاني",
+        "جمادى الأولى",
+        "جمادى الثانية",
+        "رجب",
+        "شعبان",
+        "رمضان",
+        "شوال",
+        "ذو القعدة",
+        "ذو الحجة",
+      ],
+      en: [
+        "Muharram",
+        "Safar",
+        "Rabi' al-Awwal",
+        "Rabi' al-Thani",
+        "Jumada al-Awwal",
+        "Jumada al-Thani",
+        "Rajab",
+        "Sha'ban",
+        "Ramadan",
+        "Shawwal",
+        "Dhul Qi'dah",
+        "Dhul Hijjah",
+      ],
+    };
+
+    return {
+      ar: months.ar[month - 1] || months.ar[0],
+      en: months.en[month - 1] || months.en[0],
+    };
+  }
+
+  /**
+   * Format Hijri year with Arabic numerals if needed
+   */
+  formatHijriYear(year) {
+    const arabicNumerals = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
+
+    if (this.currentLanguage === "ar") {
+      return year
+        .toString()
+        .split("")
+        .map((digit) => arabicNumerals[parseInt(digit, 10)])
+        .join("");
+    }
+
+    return year.toString();
+  }
+
+  /**
+   * Format complete date string
+   */
+  formatDate(date, options = {}) {
+    const gregorian = {
+      day: date.getDate(),
+      month: date.getMonth() + 1,
+      year: date.getFullYear(),
+      monthName: date.toLocaleDateString(
+        this.currentLanguage === "ar" ? "ar-SA" : "en-US",
+        { month: "long" },
+      ),
+    };
+
+    const hijri = this.gregorianToHijri(date);
+
+    if (options.hijriOnly) {
+      return this.formatHijriDate(hijri);
+    }
+
+    if (options.gregorianOnly) {
+      return this.formatGregorianDate(gregorian);
+    }
+
+    // Dual format - show both calendars
+    return this.formatDualDate(gregorian, hijri);
+  }
+
+  formatHijriDate(hijri) {
+    if (this.currentLanguage === "ar") {
+      return `${this.formatHijriYear(hijri.day)} ${hijri.monthName.ar} ${this.formatHijriYear(hijri.year)} هـ`;
+    } else {
+      return `${hijri.day} ${hijri.monthName.en} ${hijri.year} AH`;
+    }
+  }
+
+  formatGregorianDate(gregorian) {
+    if (this.currentLanguage === "ar") {
+      const arabicNumerals = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
+      const arabicDay = gregorian.day
+        .toString()
+        .split("")
+        .map((d) => arabicNumerals[parseInt(d, 10)])
+        .join("");
+      const arabicYear = gregorian.year
+        .toString()
+        .split("")
+        .map((d) => arabicNumerals[parseInt(d, 10)])
+        .join("");
+      return `${arabicDay} ${gregorian.monthName} ${arabicYear} م`;
+    } else {
+      return `${gregorian.day} ${gregorian.monthName} ${gregorian.year}`;
+    }
+  }
+
+  formatDualDate(gregorian, hijri) {
+    const gregorianStr = this.formatGregorianDate(gregorian);
+    const hijriStr = this.formatHijriDate(hijri);
+
+    if (this.currentLanguage === "ar") {
+      return `${hijriStr} (${gregorianStr})`;
+    } else {
+      return `${gregorianStr} (${hijriStr})`;
+    }
+  }
+
+  /**
+   * Setup date displays throughout the application
+   */
+  setupDateDisplays() {
+    // Find all date elements
+    document.querySelectorAll("[data-date]").forEach((element) => {
+      const dateStr = element.getAttribute("data-date");
+      const date = dateStr ? new Date(dateStr) : new Date();
+      this.updateDateElement(element, date);
+    });
+
+    // Setup current date displays
+    document.querySelectorAll(".current-date").forEach((element) => {
+      this.updateDateElement(element, new Date());
+    });
+  }
+
+  /**
+   * Update a single date element
+   */
+  updateDateElement(element, date) {
+    const options = {
+      hijriOnly: element.classList.contains("hijri-only"),
+      gregorianOnly: element.classList.contains("gregorian-only"),
+    };
+
+    const formattedDate = this.formatDate(date, options);
+    element.textContent = formattedDate;
+
+    // Add proper text direction
+    if (this.currentLanguage === "ar") {
+      element.setAttribute("dir", "rtl");
+    } else {
+      element.setAttribute("dir", "ltr");
+    }
+  }
+
+  /**
+   * Add calendar preference toggle
+   */
+  addCalendarToggle() {
+    const toggle = document.createElement("button");
+    toggle.className = "calendar-toggle mobile-calendar-btn";
+    toggle.innerHTML = `
+            <span class="calendar-icon">📅</span>
+            <span class="calendar-text" data-en="Calendar: ${this.preferHijri ? "Hijri" : "Gregorian"}" 
+                  data-ar="التقويم: ${this.preferHijri ? "هجري" : "ميلادي"}">${this.preferHijri ? "Hijri" : "Gregorian"}</span>
+        `;
+
+    toggle.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 97, 168, 0.9);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 10px 16px;
+            font-size: 12px;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+            min-height: 44px;
+            touch-action: manipulation;
+        `;
+
+    // RTL positioning
+    if (this.currentLanguage === "ar") {
+      toggle.style.right = "auto";
+      toggle.style.left = "20px";
+    }
+
+    toggle.addEventListener("click", () => this.toggleCalendarPreference());
+    document.body.appendChild(toggle);
+
+    this.calendarToggle = toggle;
+  }
+
+  /**
+   * Toggle between Hijri and Gregorian calendar preference
+   */
+  toggleCalendarPreference() {
+    this.preferHijri = !this.preferHijri;
+    localStorage.setItem(
+      "calendar_preference",
+      this.preferHijri ? "hijri" : "gregorian",
+    );
+
+    // Update toggle button
+    const text = this.preferHijri
+      ? this.currentLanguage === "ar"
+        ? "التقويم: هجري"
+        : "Calendar: Hijri"
+      : this.currentLanguage === "ar"
+        ? "التقويم: ميلادي"
+        : "Calendar: Gregorian";
+
+    this.calendarToggle.querySelector(".calendar-text").textContent = text;
+
+    // Update all date displays
+    this.updateAllDates();
+
+    // Haptic feedback on mobile
+    if ("vibrate" in navigator) {
+      navigator.vibrate(50);
+    }
+  }
+
+  /**
+   * Update all date displays in the page
+   */
+  updateAllDates() {
+    this.setupDateDisplays();
+
+    // Trigger custom event for other components
+    document.dispatchEvent(
+      new CustomEvent("calendarPreferenceChanged", {
+        detail: {
+          preferHijri: this.preferHijri,
+          language: this.currentLanguage,
+        },
+      }),
+    );
+  }
+
+  /**
+   * Update language preference
+   */
+  setLanguage(language) {
+    this.currentLanguage = language;
+    this.updateAllDates();
+
+    // Update toggle button position for RTL
+    if (this.calendarToggle) {
+      if (language === "ar") {
+        this.calendarToggle.style.right = "auto";
+        this.calendarToggle.style.left = "20px";
+      } else {
+        this.calendarToggle.style.left = "auto";
+        this.calendarToggle.style.right = "20px";
+      }
+    }
+  }
+
+  /**
+   * Get important Islamic dates for the current year
+   */
+  getIslamicHolidays(year = new Date().getFullYear()) {
+    // This would typically come from a proper Islamic calendar API
+    // For demo purposes, showing approximate dates
+    return {
+      ramadan: this.currentLanguage === "ar" ? "شهر رمضان المبارك" : "Ramadan",
+      eid_fitr:
+        this.currentLanguage === "ar" ? "عيد الفطر المبارك" : "Eid al-Fitr",
+      hajj: this.currentLanguage === "ar" ? "موسم الحج" : "Hajj Season",
+      eid_adha:
+        this.currentLanguage === "ar" ? "عيد الأضحى المبارك" : "Eid al-Adha",
+      muharram:
+        this.currentLanguage === "ar"
+          ? "رأس السنة الهجرية"
+          : "Islamic New Year",
+    };
+  }
+
+  /**
+   * Add special styling for Islamic holidays
+   */
+  highlightIslamicDates() {
+    const holidays = this.getIslamicHolidays();
+    // Implementation would highlight relevant dates in calendar widgets
+    console.log("Islamic holidays for current year:", holidays);
+  }
+
+  /**
+   * Cleanup when component is destroyed
+   */
+  destroy() {
+    if (this.calendarToggle) {
+      this.calendarToggle.remove();
+    }
+
+    document.removeEventListener(
+      "calendarPreferenceChanged",
+      this.updateAllDates,
+    );
+  }
+}
+
+// Saudi-specific mobile date utilities
+class SaudiMobileUtils {
+  static formatBusinessHours(openTime, closeTime, language = "en") {
+    const times = {
+      ar: {
+        am: "ص",
+        pm: "م",
+        closed: "مغلق",
+        open: "مفتوح",
+        hours: "ساعات العمل",
+      },
+      en: {
+        am: "AM",
+        pm: "PM",
+        closed: "Closed",
+        open: "Open",
+        hours: "Business Hours",
+      },
+    };
+
+    const t = times[language] || times.en;
+    return `${t.hours}: ${openTime} ${t.am} - ${closeTime} ${t.pm}`;
+  }
+
+  static formatSaudiPhone(phone) {
+    // Format Saudi phone numbers properly
+    const cleaned = phone.replace(/\D/g, "");
+    if (cleaned.startsWith("966")) {
+      return `+966 ${cleaned.slice(3, 5)} ${cleaned.slice(5, 8)} ${cleaned.slice(8)}`;
+    }
+    return phone;
+  }
+
+  static formatSaudiAddress(address, language = "en") {
+    // Add proper Arabic address formatting
+    if (language === "ar") {
+      return address.split(",").reverse().join("، ");
+    }
+    return address;
+  }
+
+  static getSaudiPaymentMethods() {
+    return [
+      { id: "mada", name: "مدى", name_en: "Mada", icon: "💳" },
+      { id: "stcpay", name: "STC Pay", name_en: "STC Pay", icon: "📱" },
+      { id: "applepay", name: "Apple Pay", name_en: "Apple Pay", icon: "🍎" },
+      {
+        id: "googlepay",
+        name: "Google Pay",
+        name_en: "Google Pay",
+        icon: "🤖",
+      },
+      { id: "visa", name: "فيزا", name_en: "Visa", icon: "💳" },
+      {
+        id: "mastercard",
+        name: "ماستركارد",
+        name_en: "Mastercard",
+        icon: "💳",
+      },
+    ];
+  }
+}
+
+// Auto-initialize on DOM load
+document.addEventListener("DOMContentLoaded", () => {
+  window.hijriCalendar = new HijriCalendarMobile();
+
+  // Listen for language changes
+  document.addEventListener("languageChanged", (e) => {
+    if (window.hijriCalendar) {
+      window.hijriCalendar.setLanguage(e.detail.language);
+    }
+  });
+});
+
+// Export for module systems
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { HijriCalendarMobile, SaudiMobileUtils };
+}
+
+]]>
+</file>
+
+<file path="public/js/saudi-mobile-optimizations.js">
+<![CDATA[
+/**
+ * Saudi Mobile Optimizations for Fixzit Souq
+ * Network performance, cultural adaptations, and mobile-specific features
+ */
+
+class SaudiMobileOptimizer {
+  constructor() {
+    this.networkInfo = null;
+    this.isSlowConnection = false;
+    this.culturalPreferences = this.loadCulturalPreferences();
+    this.init();
+  }
+
+  init() {
+    this.detectNetworkConditions();
+    this.setupPerformanceOptimizations();
+    this.applyCulturalAdaptations();
+    this.setupMobilePaymentSupport();
+    this.initializeOfflineSupport();
+    this.setupAccessibilityFeatures();
+  }
+
+  /**
+   * Detect network conditions common in Saudi Arabia
+   */
+  detectNetworkConditions() {
+    if ("connection" in navigator) {
+      this.networkInfo = navigator.connection;
+      this.isSlowConnection =
+        this.networkInfo.effectiveType === "slow-2g" ||
+        this.networkInfo.effectiveType === "2g" ||
+        this.networkInfo.downlink < 1.5;
+
+      // Listen for network changes
+      this.networkInfo.addEventListener("change", () => {
+        this.handleNetworkChange();
+      });
+    }
+
+    // Detect if user is on mobile data vs WiFi
+    if (this.networkInfo?.type) {
+      const isMobileData = ["cellular", "3g", "4g", "5g"].includes(
+        this.networkInfo.type,
+      );
+      if (isMobileData) {
+        this.enableDataSavingMode();
+      }
+    }
+  }
+
+  /**
+   * Handle network condition changes
+   */
+  handleNetworkChange() {
+    const wasSlowConnection = this.isSlowConnection;
+    this.isSlowConnection =
+      this.networkInfo.effectiveType === "slow-2g" ||
+      this.networkInfo.effectiveType === "2g" ||
+      this.networkInfo.downlink < 1.5;
+
+    if (this.isSlowConnection && !wasSlowConnection) {
+      this.enableLowBandwidthMode();
+      this.showNetworkNotification("slow");
+    } else if (!this.isSlowConnection && wasSlowConnection) {
+      this.disableLowBandwidthMode();
+      this.showNetworkNotification("fast");
+    }
+  }
+
+  /**
+   * Enable low bandwidth optimizations
+   */
+  enableLowBandwidthMode() {
+    document.body.classList.add("low-bandwidth-mode");
+
+    // Reduce image quality
+    document.querySelectorAll("img[data-src]").forEach((img) => {
+      const lowQualitySrc = img.dataset.lowQuality || img.dataset.src;
+      img.src = lowQualitySrc;
+    });
+
+    // Defer non-critical resources
+    this.deferNonCriticalResources();
+
+    // Reduce animation complexity
+    document.documentElement.style.setProperty("--transition-duration", "0.1s");
+  }
+
+  /**
+   * Disable low bandwidth mode when connection improves
+   */
+  disableLowBandwidthMode() {
+    document.body.classList.remove("low-bandwidth-mode");
+    document.documentElement.style.removeProperty("--transition-duration");
+  }
+
+  /**
+   * Enable data saving features
+   */
+  enableDataSavingMode() {
+    // Preload only critical resources
+    document.querySelectorAll('link[rel="prefetch"]').forEach((link) => {
+      link.remove();
+    });
+
+    // Compress text content if supported
+    if ("CompressionStream" in window) {
+      // Implementation for text compression
+    }
+  }
+
+  /**
+   * Defer loading of non-critical resources
+   */
+  deferNonCriticalResources() {
+    // Defer loading of images below the fold
+    const images = document.querySelectorAll('img[loading="lazy"]');
+    images.forEach((img) => {
+      img.loading = "lazy";
+    });
+
+    // Defer analytics and tracking scripts
+    const scripts = document.querySelectorAll("script[data-defer]");
+    scripts.forEach((script) => {
+      script.defer = true;
+    });
+  }
+
+  /**
+   * Apply Saudi cultural adaptations
+   */
+  applyCulturalAdaptations() {
+    // Saudi color preferences
+    document.documentElement.style.setProperty("--saudi-green", "#006C35");
+    document.documentElement.style.setProperty("--gold-accent", "#C98036");
+    document.documentElement.style.setProperty("--heritage-brown", "#8B4513");
+
+    // Prayer time considerations
+    this.setupPrayerTimeAdaptations();
+
+    // Weekend adjustments (Friday-Saturday in Saudi)
+    this.setupSaudiWeekendHandling();
+
+    // Cultural number formatting
+    this.setupNumberFormatting();
+  }
+
+  /**
+   * Setup prayer time-aware features
+   */
+  setupPrayerTimeAdaptations() {
+    // This would integrate with prayer time APIs
+    const prayerTimes = this.getPrayerTimes();
+
+    // Adjust notification timing to avoid prayer times
+    if (prayerTimes) {
+      this.scheduleRespectfulNotifications(prayerTimes);
+    }
+  }
+
+  /**
+   * Get prayer times (mock implementation)
+   */
+  getPrayerTimes() {
+    // In production, this would call a prayer times API
+    return {
+      fajr: "05:30",
+      dhuhr: "12:15",
+      asr: "15:45",
+      maghrib: "18:20",
+      isha: "19:50",
+    };
+  }
+
+  /**
+   * Schedule notifications to be respectful of prayer times
+   */
+  scheduleRespectfulNotifications(prayerTimes) {
+    // Avoid sending notifications during prayer times
+    const now = new Date();
+    const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+
+    const avoidTimes = Object.values(prayerTimes);
+    const shouldAvoidNotification = avoidTimes.some((prayerTime) => {
+      const prayerMinutes = this.timeToMinutes(prayerTime);
+      const currentMinutes = this.timeToMinutes(currentTime);
+      return Math.abs(currentMinutes - prayerMinutes) < 15; // 15 minute buffer
+    });
+
+    if (shouldAvoidNotification) {
+      // Delay notification by 20 minutes
+      setTimeout(
+        () => {
+          // Reschedule notification
+          this.scheduleRespectfulNotifications(prayerTimes);
+        },
+        20 * 60 * 1000,
+      );
+    }
+  }
+
+  /**
+   * Convert time string to minutes
+   */
+  timeToMinutes(timeString) {
+    const [hours, minutes] = timeString.split(":").map(Number);
+    return hours * 60 + minutes;
+  }
+
+  /**
+   * Setup Saudi weekend handling (Friday-Saturday)
+   */
+  setupSaudiWeekendHandling() {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+
+    // Friday = 5, Saturday = 6 (weekend in Saudi)
+    if (dayOfWeek === 5 || dayOfWeek === 6) {
+      document.body.classList.add("saudi-weekend");
+
+      // Show weekend greeting
+      this.showWeekendGreeting();
+    }
+  }
+
+  /**
+   * Show appropriate weekend greeting
+   */
+  showWeekendGreeting() {
+    const language = localStorage.getItem("fxz.lang") || "en";
+    const greeting =
+      language === "ar" ? "عطلة نهاية أسبوع مباركة" : "Blessed Weekend";
+
+    // Could show as a subtle notification or header message
+    console.log("Weekend greeting:", greeting);
+  }
+
+  /**
+   * Setup Arabic/English number formatting
+   */
+  setupNumberFormatting() {
+    const language = localStorage.getItem("fxz.lang") || "en";
+
+    // Format numbers according to locale
+    document.querySelectorAll("[data-number]").forEach((element) => {
+      const number = parseFloat(element.dataset.number);
+      if (!isNaN(number)) {
+        if (language === "ar") {
+          element.textContent = this.formatArabicNumber(number);
+        } else {
+          element.textContent = number.toLocaleString("en-US");
+        }
+      }
+    });
+  }
+
+  /**
+   * Format numbers with Arabic numerals
+   */
+  formatArabicNumber(number) {
+    const arabicNumerals = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
+    return number
+      .toString()
+      .split("")
+      .map((digit) =>
+        /\d/.test(digit) ? arabicNumerals[parseInt(digit, 10)] : digit,
+      )
+      .join("");
+  }
+
+  /**
+   * Setup mobile payment method support
+   */
+  setupMobilePaymentSupport() {
+    const supportedMethods = [
+      "mada",
+      "stcpay",
+      "applepay",
+      "googlepay",
+      "samsungpay",
+    ];
+
+    // Detect available payment methods
+    if ("PaymentRequest" in window) {
+      const paymentMethods = [
+        {
+          supportedMethods: "basic-card",
+          data: {
+            supportedNetworks: ["mada", "visa", "mastercard"],
+            supportedTypes: ["debit", "credit"],
+          },
+        },
+      ];
+
+      // Check for STC Pay
+      if ("stcpay" in window || navigator.userAgent.includes("STCPay")) {
+        paymentMethods.push({
+          supportedMethods: "stcpay",
+        });
+      }
+
+      // Store supported methods for later use
+      this.supportedPaymentMethods = paymentMethods;
+    }
+  }
+
+  /**
+   * Initialize offline support features
+   */
+  initializeOfflineSupport() {
+    // Cache critical data for offline use
+    if ("caches" in window) {
+      this.cacheOfflineData();
+    }
+
+    // Setup offline notifications
+    window.addEventListener("online", () => {
+      this.showConnectivityStatus("online");
+      this.syncOfflineData();
+    });
+
+    window.addEventListener("offline", () => {
+      this.showConnectivityStatus("offline");
+    });
+  }
+
+  /**
+   * Cache critical data for offline access
+   */
+  async cacheOfflineData() {
+    const cache = await caches.open("saudi-mobile-offline");
+    const criticalUrls = [
+      "/api/user/profile",
+      "/api/properties/my-properties",
+      "/api/work-orders/urgent",
+    ];
+
+    try {
+      await cache.addAll(criticalUrls);
+    } catch (error) {
+      console.warn("Failed to cache offline data:", error);
+    }
+  }
+
+  /**
+   * Show connectivity status to user
+   */
+  showConnectivityStatus(status) {
+    const language = localStorage.getItem("fxz.lang") || "en";
+    const messages = {
+      online: {
+        en: "Connected - Data synced",
+        ar: "متصل - تم مزامنة البيانات",
+      },
+      offline: {
+        en: "Offline mode - Limited functionality",
+        ar: "وضع عدم الاتصال - وظائف محدودة",
+      },
+    };
+
+    const message = messages[status][language];
+    this.showToast(message, status === "online" ? "success" : "warning");
+  }
+
+  /**
+   * Sync data when coming back online
+   */
+  async syncOfflineData() {
+    // Implementation to sync any offline changes
+    const offlineData = localStorage.getItem("offlineChanges");
+    if (offlineData) {
+      try {
+        const changes = JSON.parse(offlineData);
+        // Send changes to server
+        await this.sendOfflineChanges(changes);
+        localStorage.removeItem("offlineChanges");
+      } catch (error) {
+        console.error("Failed to sync offline data:", error);
+      }
+    }
+  }
+
+  /**
+   * Setup accessibility features for Arabic and mobile
+   */
+  setupAccessibilityFeatures() {
+    // Voice navigation in Arabic
+    if ("speechSynthesis" in window) {
+      this.setupArabicVoiceNavigation();
+    }
+
+    // High contrast mode
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)");
+    if (prefersDark.matches) {
+      document.body.classList.add("high-contrast");
+    }
+
+    // Font scaling
+    this.setupFontScaling();
+  }
+
+  /**
+   * Setup Arabic voice navigation
+   */
+  setupArabicVoiceNavigation() {
+    const voices = speechSynthesis.getVoices();
+    const arabicVoice = voices.find((voice) => voice.lang.startsWith("ar"));
+
+    if (arabicVoice) {
+      window.arabicVoice = arabicVoice;
+      console.log("Arabic voice navigation available");
+    }
+  }
+
+  /**
+   * Setup font scaling for accessibility
+   */
+  setupFontScaling() {
+    const preferredFontSize = localStorage.getItem("font-scale") || "1";
+    document.documentElement.style.setProperty(
+      "--font-scale",
+      preferredFontSize,
+    );
+
+    // Add font scaling controls
+    const fontControls = document.createElement("div");
+    fontControls.className = "font-controls";
+    fontControls.innerHTML = `
+            <button onclick="adjustFontSize(-0.1)" aria-label="Decrease font size">A-</button>
+            <button onclick="adjustFontSize(0.1)" aria-label="Increase font size">A+</button>
+        `;
+
+    // Position at top of page
+    fontControls.style.cssText = `
+            position: fixed;
+            top: 50px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 5px;
+        `;
+
+    document.body.appendChild(fontControls);
+  }
+
+  /**
+   * Show toast notification
+   */
+  showToast(message, type = "info") {
+    const toast = document.createElement("div");
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+
+    toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: ${type === "success" ? "#6E4D2C" : type === "warning" ? "#C98036" : "#B46B2F"};
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            z-index: 10000;
+            animation: slideDown 0.3s ease;
+        `;
+
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+      toast.style.animation = "slideUp 0.3s ease";
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
+  }
+
+  /**
+   * Show network condition notification
+   */
+  showNetworkNotification(condition) {
+    const language = localStorage.getItem("fxz.lang") || "en";
+    const messages = {
+      slow: {
+        en: "Slow connection detected - Optimizing experience",
+        ar: "تم اكتشاف اتصال بطيء - جاري تحسين التجربة",
+      },
+      fast: {
+        en: "Connection improved - Full features available",
+        ar: "تحسن الاتصال - جميع الميزات متاحة",
+      },
+    };
+
+    this.showToast(
+      messages[condition][language],
+      condition === "slow" ? "warning" : "success",
+    );
+  }
+
+  /**
+   * Load cultural preferences
+   */
+  loadCulturalPreferences() {
+    return {
+      calendar: localStorage.getItem("calendar_preference") || "dual",
+      language: localStorage.getItem("fxz.lang") || "en",
+      theme: localStorage.getItem("theme_preference") || "auto",
+      notifications:
+        localStorage.getItem("notification_preferences") || "respectful",
+    };
+  }
+
+  /**
+   * Cleanup resources
+   */
+  destroy() {
+    if (this.networkInfo) {
+      this.networkInfo.removeEventListener("change", this.handleNetworkChange);
+    }
+
+    window.removeEventListener("online", this.showConnectivityStatus);
+    window.removeEventListener("offline", this.showConnectivityStatus);
+  }
+}
+
+// Global font adjustment function
+window.adjustFontSize = function (delta) {
+  const currentScale =
+    parseFloat(
+      getComputedStyle(document.documentElement).getPropertyValue(
+        "--font-scale",
+      ),
+    ) || 1;
+  const newScale = Math.min(Math.max(currentScale + delta, 0.8), 1.4); // Limit between 0.8 and 1.4
+
+  document.documentElement.style.setProperty("--font-scale", newScale);
+  localStorage.setItem("font-scale", newScale.toString());
+
+  // Haptic feedback
+  if ("vibrate" in navigator) {
+    navigator.vibrate(30);
+  }
+};
+
+// Auto-initialize
+document.addEventListener("DOMContentLoaded", () => {
+  window.saudiMobileOptimizer = new SaudiMobileOptimizer();
+});
+
+// Export for module systems
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = SaudiMobileOptimizer;
+}
+
+]]>
+</file>
+
+<file path="public/js/secure-utils.js">
+<![CDATA[
+// Secure utility functions for XSS prevention
+class SecureUtils {
+  // Safe HTML sanitization without external dependencies
+  static sanitizeHTML(dirty) {
+    if (typeof dirty !== "string") return "";
+
+    // Basic HTML entity encoding
+    return dirty
+      .replace(/&/g, "&")
+      .replace(/</g, "<")
+      .replace(/>/g, ">")
+      .replace(/"/g, '"')
+      .replace(/'/g, "&#x27;")
+      .replace(/\//g, "&#x2F;");
+  }
+
+  // Safe element update without innerHTML
+  static safeUpdateElement(element, content) {
+    if (!element) return;
+
+    // Clear existing content
+    while (element.firstChild) {
+      element.removeChild(element.firstChild);
+    }
+
+    // Add sanitized text content
+    if (typeof content === "string") {
+      element.textContent = content;
+    } else if (
+      content instanceof DocumentFragment ||
+      content instanceof Element
+    ) {
+      element.appendChild(content);
+    }
+  }
+
+  // Create safe HTML elements
+  static createElement(tag, options = {}) {
+    const element = document.createElement(tag);
+
+    if (options.className) {
+      element.className = options.className;
+    }
+
+    if (options.textContent) {
+      element.textContent = options.textContent;
+    }
+
+    if (options.attributes) {
+      Object.keys(options.attributes).forEach((attr) => {
+        element.setAttribute(attr, options.attributes[attr]);
+      });
+    }
+
+    return element;
+  }
+
+  // Safe form input sanitization
+  static sanitizeFormInputs(form) {
+    const inputs = form.querySelectorAll("input, textarea, select");
+    inputs.forEach((input) => {
+      if (input.type !== "password" && input.type !== "file") {
+        input.value = this.sanitizeHTML(input.value);
+      }
+    });
+  }
+
+  // Secure cookie-based token storage
+  static getAuthToken() {
+    // Check authentication via API call instead of localStorage
+    return fetch("/api/auth/check", {
+      credentials: "include",
+    }).then((res) => res.json());
+  }
+
+  static clearAuth() {
+    return fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
+    });
+  }
+}
+
+// Export for use in other scripts
+window.SecureUtils = SecureUtils;
+
+]]>
+</file>
+
+<file path="public/manifest.json">
+<![CDATA[
+{
+  "name": "Fixzit Souq - Enterprise Facility Management",
+  "short_name": "Fixzit Souq",
+  "name_ar": "فكسيت سوق - إدارة المرافق للمؤسسات",
+  "short_name_ar": "فكسيت سوق",
+  "description": "Complete enterprise facility management platform for Saudi market with Arabic support",
+  "description_ar": "منصة شاملة لإدارة مرافق المؤسسات للسوق السعودي مع الدعم العربي",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#B46B2F",
+  "background_color": "#f8fafc",
+  "lang": "en",
+  "dir": "auto",
+  "categories": ["business", "productivity", "utilities", "finance"],
+  "keywords": [
+    "facility management",
+    "property management",
+    "maintenance",
+    "Saudi Arabia",
+    "إدارة المرافق",
+    "إدارة العقارات",
+    "صيانة",
+    "السعودية"
+  ],
+
+  "icons": [
+    {
+      "src": "/assets/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+
+  "shortcuts": [
+    {
+      "name": "Properties",
+      "name_ar": "العقارات",
+      "short_name": "Properties",
+      "short_name_ar": "العقارات",
+      "description": "Manage your properties",
+      "description_ar": "إدارة العقارات الخاصة بك",
+      "url": "/properties",
+      "icons": [
+        {
+          "src": "/assets/icons/properties-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Work Orders",
+      "name_ar": "أوامر العمل",
+      "short_name": "Orders",
+      "short_name_ar": "الأوامر",
+      "description": "View and manage work orders",
+      "description_ar": "عرض وإدارة أوامر العمل",
+      "url": "/work-orders",
+      "icons": [
+        {
+          "src": "/assets/icons/orders-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Marketplace",
+      "name_ar": "السوق",
+      "short_name": "Market",
+      "short_name_ar": "السوق",
+      "description": "Browse marketplace services",
+      "description_ar": "تصفح خدمات السوق",
+      "url": "/marketplace",
+      "icons": [
+        {
+          "src": "/assets/icons/marketplace-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Financial Reports",
+      "name_ar": "التقارير المالية",
+      "short_name": "Finance",
+      "short_name_ar": "المالية",
+      "description": "View financial reports and analytics",
+      "description_ar": "عرض التقارير المالية والتحليلات",
+      "url": "/reports/financial",
+      "icons": [
+        {
+          "src": "/assets/icons/finance-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+
+  "share_target": {
+    "action": "/share-target",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "documents",
+          "accept": [
+            "image/*",
+            "application/pdf",
+            ".doc",
+            ".docx",
+            ".xls",
+            ".xlsx"
+          ]
+        }
+      ]
+    }
+  },
+
+  "file_handlers": [
+    {
+      "action": "/file-handler",
+      "accept": {
+        "application/pdf": [".pdf"],
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [
+          ".docx"
+        ],
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [
+          ".xlsx"
+        ],
+        "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"]
+      }
+    }
+  ],
+
+  "protocol_handlers": [
+    {
+      "protocol": "web+fixzitsouq",
+      "url": "/handle-protocol?url=%s"
+    }
+  ],
+
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+
+  "launch_handler": {
+    "client_mode": "auto"
+  },
+
+  "handle_links": "preferred",
+
+  "capture_links": "existing-client-navigate",
+
+  "prefer_related_applications": false,
+
+  "related_applications": [
+    {
+      "platform": "play",
+      "url": "https://play.google.com/store/apps/details?id=com.fixzitsouq.enterprise",
+      "id": "com.fixzitsouq.enterprise"
+    },
+    {
+      "platform": "itunes",
+      "url": "https://apps.apple.com/sa/app/fixzit-souq-enterprise/id123456789",
+      "id": "123456789"
+    }
+  ],
+
+  "screenshots": [
+    {
+      "src": "/assets/screenshots/mobile-dashboard-en.png",
+      "sizes": "320x640",
+      "type": "image/png",
+      "platform": "narrow",
+      "label": "Dashboard - Properties and Work Orders"
+    },
+    {
+      "src": "/assets/screenshots/mobile-dashboard-ar.png",
+      "sizes": "320x640",
+      "type": "image/png",
+      "platform": "narrow",
+      "label": "لوحة التحكم - العقارات وأوامر العمل",
+      "lang": "ar"
+    },
+    {
+      "src": "/assets/screenshots/desktop-analytics.png",
+      "sizes": "1280x800",
+      "type": "image/png",
+      "platform": "wide",
+      "label": "Analytics Dashboard - Financial Reports"
+    },
+    {
+      "src": "/assets/screenshots/mobile-marketplace.png",
+      "sizes": "320x640",
+      "type": "image/png",
+      "platform": "narrow",
+      "label": "Marketplace - Service Providers"
+    }
+  ],
+
+  "display_override": ["window-controls-overlay", "minimal-ui", "browser"],
+
+  "custom": {
+    "saudi_market": {
+      "hijri_calendar_support": true,
+      "zatca_integration": true,
+      "payment_methods": ["mada", "stcpay", "applepay", "googlepay"],
+      "language_preference": "dual",
+      "rtl_primary": true,
+      "cultural_colors": {
+        "primary": "#B46B2F",
+        "saudi_green": "#006C35",
+        "gold_accent": "#C98036",
+        "heritage_brown": "#8B4513"
+      }
+    },
+    "mobile_optimizations": {
+      "network_aware": true,
+      "offline_capabilities": true,
+      "touch_optimized": true,
+      "gesture_navigation": true,
+      "arabic_keyboard_support": true
+    },
+    "accessibility": {
+      "screen_reader_arabic": true,
+      "high_contrast_support": true,
+      "font_scaling": true,
+      "voice_navigation": true
+    }
+  }
+}
+
+]]>
+</file>
+
+<file path="public/prayer-times.js">
+<![CDATA[
+// Prayer Times Mobile Component for Saudi Users
+// Fixzit Souq - Saudi Cultural Integration
+
+class SaudiPrayerTimes {
+  constructor() {
+    this.currentLocation = null;
+    this.prayerTimes = null;
+    this.isEnabled = localStorage.getItem("prayerTimesEnabled") === "true";
+    this.userPreferences = this.loadUserPreferences();
+    this.setupLocationServices();
+  }
+
+  loadUserPreferences() {
+    const defaults = {
+      madhab: "shafi", // Shafi school prevalent in Saudi
+      calculationMethod: "UmmAlQura", // Saudi calculation method
+      notifications: true,
+      language: "ar",
+      hijriAdjustment: 0,
+    };
+
+    const saved = localStorage.getItem("prayerPreferences");
+    return saved ? { ...defaults, ...JSON.parse(saved) } : defaults;
+  }
+
+  saveUserPreferences() {
+    localStorage.setItem(
+      "prayerPreferences",
+      JSON.stringify(this.userPreferences),
+    );
+  }
+
+  async setupLocationServices() {
+    // Default to Riyadh if location not available
+    this.currentLocation = {
+      latitude: 24.7136,
+      longitude: 46.6753,
+      timezone: "Asia/Riyadh",
+      city: "الرياض",
+    };
+
+    if ("geolocation" in navigator) {
+      try {
+        const position = await this.getCurrentPosition();
+        this.currentLocation = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          timezone: "Asia/Riyadh",
+          city: await this.getCityName(
+            position.coords.latitude,
+            position.coords.longitude,
+          ),
+        };
+        this.calculatePrayerTimes();
+      } catch (error) {
+        console.log("Location access denied, using Riyadh as default");
+        this.calculatePrayerTimes();
+      }
+    } else {
+      this.calculatePrayerTimes();
+    }
+  }
+
+  getCurrentPosition() {
+    return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 600000, // 10 minutes
+      });
+    });
+  }
+
+  async getCityName(lat, lon) {
+    // Simplified city detection for Saudi cities
+    const saudiCities = [
+      { name: "الرياض", lat: 24.7136, lon: 46.6753 },
+      { name: "جدة", lat: 21.4858, lon: 39.1925 },
+      { name: "مكة المكرمة", lat: 21.3891, lon: 39.8579 },
+      { name: "المدينة المنورة", lat: 24.5247, lon: 39.5692 },
+      { name: "الدمام", lat: 26.4207, lon: 50.0888 },
+      { name: "تبوك", lat: 28.3838, lon: 36.555 },
+      { name: "بريدة", lat: 26.326, lon: 43.975 },
+      { name: "الطائف", lat: 21.2703, lon: 40.4106 },
+    ];
+
+    let closestCity = saudiCities[0]; // Default to Riyadh
+    let minDistance = Infinity;
+
+    saudiCities.forEach((city) => {
+      const distance = this.calculateDistance(lat, lon, city.lat, city.lon);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestCity = city;
+      }
+    });
+
+    return closestCity.name;
+  }
+
+  calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  calculatePrayerTimes() {
+    const now = new Date();
+    const { latitude, longitude } = this.currentLocation;
+
+    // Simplified prayer time calculation for demo
+    // In production, you would use a proper library like adhan.js
+    const times = this.getBasicPrayerTimes(latitude, longitude, now);
+
+    this.prayerTimes = {
+      fajr: times.fajr,
+      dhuhr: times.dhuhr,
+      asr: times.asr,
+      maghrib: times.maghrib,
+      isha: times.isha,
+      date: now.toDateString(),
+      hijriDate: this.getHijriDate(now),
+    };
+
+    this.scheduleNotifications();
+    this.updateUI();
+  }
+
+  getBasicPrayerTimes(lat, lon, date) {
+    // Basic calculation for demo purposes
+    // Real implementation would use proper Islamic astronomical calculations
+    const sunrise = new Date(date);
+    sunrise.setHours(6, 0, 0, 0);
+
+    const noon = new Date(date);
+    noon.setHours(12, 0, 0, 0);
+
+    const sunset = new Date(date);
+    sunset.setHours(18, 30, 0, 0);
+
+    return {
+      fajr: new Date(sunrise.getTime() - 90 * 60000), // 1.5 hours before sunrise
+      dhuhr: new Date(noon.getTime() + 15 * 60000), // 15 minutes after noon
+      asr: new Date(noon.getTime() + 4 * 3600000), // 4 hours after noon
+      maghrib: new Date(sunset.getTime() + 3 * 60000), // 3 minutes after sunset
+      isha: new Date(sunset.getTime() + 90 * 60000), // 1.5 hours after sunset
+    };
+  }
+
+  getHijriDate(gregorianDate) {
+    // Simplified Hijri date for demo
+    // Real implementation would use proper Hijri calendar conversion
+    const hijriMonths = [
+      "محرم",
+      "صفر",
+      "ربيع الأول",
+      "ربيع الثاني",
+      "جمادى الأولى",
+      "جمادى الثانية",
+      "رجب",
+      "شعبان",
+      "رمضان",
+      "شوال",
+      "ذو القعدة",
+      "ذو الحجة",
+    ];
+
+    // Approximate conversion (for demo only)
+    const hijriYear = 1446; // Current approximate Hijri year
+    const month = hijriMonths[gregorianDate.getMonth() % 12];
+    const day = gregorianDate.getDate();
+
+    return `${day} ${month} ${hijriYear}`;
+  }
+
+  scheduleNotifications() {
+    if (!this.userPreferences.notifications || !("Notification" in window))
+      return;
+
+    // Request notification permission
+    if (Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+
+    if (Notification.permission === "granted") {
+      Object.entries(this.prayerTimes).forEach(([prayer, time]) => {
+        if (time instanceof Date && time > new Date()) {
+          this.scheduleNotification(prayer, time);
+        }
+      });
+    }
+  }
+
+  scheduleNotification(prayer, time) {
+    const now = new Date();
+    const timeDiff = time.getTime() - now.getTime();
+
+    if (timeDiff > 0) {
+      setTimeout(() => {
+        const prayerNames = {
+          fajr: "الفجر",
+          dhuhr: "الظهر",
+          asr: "العصر",
+          maghrib: "المغرب",
+          isha: "العشاء",
+        };
+
+        const notification = new Notification("وقت الصلاة", {
+          body: `حان وقت صلاة ${prayerNames[prayer]}`,
+          icon: "/img/fixzit-logo.png",
+          tag: `prayer-${prayer}`,
+          dir: "rtl",
+          lang: "ar",
+        });
+
+        // Auto close after 5 seconds
+        setTimeout(() => notification.close(), 5000);
+
+        // Vibrate for mobile users
+        if ("vibrate" in navigator) {
+          navigator.vibrate([500, 200, 500]);
+        }
+      }, timeDiff);
+    }
+  }
+
+  updateUI() {
+    const container = document.getElementById("prayerTimesContainer");
+    if (!container) return;
+
+    const prayerNames = {
+      fajr: "الفجر",
+      dhuhr: "الظهر",
+      asr: "العصر",
+      maghrib: "المغرب",
+      isha: "العشاء",
+    };
+
+    const html = `
+            <div class="prayer-times-widget">
+                <div class="prayer-header">
+                    <div class="prayer-city">${this.currentLocation.city}</div>
+                    <div class="prayer-date">${this.prayerTimes.hijriDate}</div>
+                </div>
+                <div class="prayer-times-grid">
+                    ${Object.entries(this.prayerTimes)
+                      .filter(([key]) => prayerNames[key])
+                      .map(
+                        ([key, time]) => `
+                            <div class="prayer-time-item ${this.getNextPrayer() === key ? "next-prayer" : ""}">
+                                <div class="prayer-name">${prayerNames[key]}</div>
+                                <div class="prayer-time">${this.formatTime(time)}</div>
+                            </div>
+                        `,
+                      )
+                      .join("")}
+                </div>
+                <div class="prayer-footer">
+                    <button class="prayer-settings-btn" onclick="prayerTimes.toggleSettings()">
+                        ⚙️ الإعدادات
+                    </button>
+                </div>
+            </div>
+        `;
+
+    container.innerHTML = html;
+  }
+
+  formatTime(date) {
+    if (!(date instanceof Date)) return "";
+    return date.toLocaleTimeString("ar-SA", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  }
+
+  getNextPrayer() {
+    const now = new Date();
+    const prayers = ["fajr", "dhuhr", "asr", "maghrib", "isha"];
+
+    for (const prayer of prayers) {
+      if (this.prayerTimes[prayer] > now) {
+        return prayer;
+      }
+    }
+    return "fajr"; // Next day's Fajr
+  }
+
+  toggleSettings() {
+    const settingsModal = document.getElementById("prayerSettingsModal");
+    if (settingsModal) {
+      settingsModal.classList.toggle("hidden");
+    }
+  }
+
+  enable() {
+    this.isEnabled = true;
+    localStorage.setItem("prayerTimesEnabled", "true");
+    this.calculatePrayerTimes();
+  }
+
+  disable() {
+    this.isEnabled = false;
+    localStorage.setItem("prayerTimesEnabled", "false");
+    const container = document.getElementById("prayerTimesContainer");
+    if (container) container.innerHTML = "";
+  }
+
+  // Mobile-specific methods
+  handleMobileOrientation() {
+    // Adjust prayer times display for mobile orientation changes
+    setTimeout(() => {
+      this.updateUI();
+    }, 100);
+  }
+
+  getMobileWidgetHTML() {
+    if (!this.isEnabled || !this.prayerTimes) return "";
+
+    const nextPrayer = this.getNextPrayer();
+    const nextTime = this.prayerTimes[nextPrayer];
+    const prayerNames = {
+      fajr: "الفجر",
+      dhuhr: "الظهر",
+      asr: "العصر",
+      maghrib: "المغرب",
+      isha: "العشاء",
+    };
+
+    return `
+            <div class="mobile-prayer-widget">
+                <div class="next-prayer">
+                    <span class="next-prayer-name">${prayerNames[nextPrayer]}</span>
+                    <span class="next-prayer-time">${this.formatTime(nextTime)}</span>
+                </div>
+            </div>
+        `;
+  }
+}
+
+// Export for use in main application
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = SaudiPrayerTimes;
+} else {
+  window.SaudiPrayerTimes = SaudiPrayerTimes;
+}
+
+]]>
+</file>
+
+<file path="public/simple-app.js">
+<![CDATA[
+// Simple React App - No external dependencies
+// 🔐 Email domain comes from window for rebranding; falls back to generic demo domain.
+const EMAIL_DOMAIN = window.EMAIL_DOMAIN || window.__EMAIL_DOMAIN__ || "example.com";
+console.log("App.js loading...");
+
+// Wait for React to load
+function initializeApp() {
+  if (!window.React || !window.ReactDOM) {
+    console.log("Waiting for React...");
+    setTimeout(initializeApp, 100);
+    return;
+  }
+
+  console.log("React loaded, initializing app...");
+
+  const { Component, createElement } = React;
+  const { createRoot } = ReactDOM;
+
+  class FixzitApp extends Component {
+    constructor(props) {
+      super(props);
+      this.state = {
+        user: null,
+        currentView: "dashboard",
+      };
+    }
+
+    componentDidMount() {
+      console.log("App mounted");
+      // Auto login for demo
+      this.setState({
+        user: {
+          name: "Demo User",
+          email: `demo@${EMAIL_DOMAIN}`,
+          role: "admin",
+        },
+      });
+    }
+
+    renderNavigation() {
+      const { currentView } = this.state;
+      const menuItems = [
+        { id: "dashboard", label: "Dashboard", icon: "📊" },
+        { id: "properties", label: "Properties", icon: "🏢" },
+        { id: "workorders", label: "Work Orders", icon: "🔧" },
+        { id: "finance", label: "Finance", icon: "💰" },
+        { id: "marketplace", label: "Marketplace", icon: "🛒" },
+        { id: "hr", label: "HR", icon: "👥" },
+        { id: "tickets", label: "Support", icon: "🎫" },
+        { id: "compliance", label: "Compliance", icon: "📋" },
+        { id: "reports", label: "Reports", icon: "📈" },
+      ];
+
+      return createElement(
+        "nav",
+        { className: "sidebar" },
+        createElement(
+          "div",
+          { className: "nav-header" },
+          createElement("h2", null, "Fixzit Souq"),
+          createElement("span", null, this.state.user?.name || "User"),
+        ),
+        createElement(
+          "ul",
+          { className: "nav-menu" },
+          menuItems.map((item) =>
+            createElement(
+              "li",
+              {
+                key: item.id,
+                className: currentView === item.id ? "active" : "",
+                onClick: () => this.setState({ currentView: item.id }),
+              },
+              createElement("span", { className: "icon" }, item.icon),
+              createElement("span", null, item.label),
+            ),
+          ),
+        ),
+        createElement(
+          "button",
+          {
+            className: "logout-btn",
+            onClick: () => this.setState({ user: null }),
+          },
+          "Logout",
+        ),
+      );
+    }
+
+    renderDashboard() {
+      return createElement(
+        "div",
+        { className: "dashboard" },
+        createElement("h1", null, "Fixzit Souq Dashboard"),
+        createElement(
+          "div",
+          { className: "stats-grid" },
+          createElement(
+            "div",
+            { className: "stat-card" },
+            createElement("h3", null, "Properties"),
+            createElement("div", { className: "stat-number" }, "45"),
+            createElement(
+              "div",
+              { className: "stat-label" },
+              "Total Properties",
+            ),
+          ),
+          createElement(
+            "div",
+            { className: "stat-card" },
+            createElement("h3", null, "Work Orders"),
+            createElement("div", { className: "stat-number" }, "12"),
+            createElement("div", { className: "stat-label" }, "Open Orders"),
+          ),
+          createElement(
+            "div",
+            { className: "stat-card" },
+            createElement("h3", null, "Revenue"),
+            createElement("div", { className: "stat-number" }, "125,000 SAR"),
+            createElement("div", { className: "stat-label" }, "This Month"),
+          ),
+          createElement(
+            "div",
+            { className: "stat-card" },
+            createElement("h3", null, "Compliance"),
+            createElement("div", { className: "stat-number" }, "98%"),
+            createElement(
+              "div",
+              { className: "stat-label" },
+              "ZATCA Compliant",
+            ),
+          ),
+        ),
+      );
+    }
+
+    renderContent() {
+      const { currentView } = this.state;
+
+      switch (currentView) {
+        case "dashboard":
+          return this.renderDashboard();
+        default:
+          return createElement(
+            "div",
+            { className: "content-section" },
+            createElement(
+              "h1",
+              null,
+              currentView.charAt(0).toUpperCase() + currentView.slice(1),
+            ),
+            createElement(
+              "p",
+              null,
+              `${currentView} module is ready for implementation.`,
+            ),
+          );
+      }
+    }
+
+    renderLogin() {
+      return createElement(
+        "div",
+        { className: "login-container" },
+        createElement(
+          "div",
+          { className: "login-form" },
+          createElement("h2", null, "Fixzit Souq Login"),
+          createElement("p", null, "Demo Mode - Click to continue"),
+          createElement(
+            "button",
+            {
+              onClick: () =>
+                this.setState({
+                  user: {
+                    name: "Demo User",
+                    email: `demo@${EMAIL_DOMAIN}`,
+                    role: "admin",
+                  },
+                }),
+            },
+            "Enter Demo",
+          ),
+        ),
+      );
+    }
+
+    render() {
+      const { user } = this.state;
+
+      if (!user) {
+        return this.renderLogin();
+      }
+
+      return createElement(
+        "div",
+        { className: "app" },
+        this.renderNavigation(),
+        createElement(
+          "main",
+          { className: "main-content" },
+          this.renderContent(),
+        ),
+      );
+    }
+  }
+
+  // Mount the app
+  const root = createRoot(document.getElementById("root"));
+  root.render(createElement(FixzitApp));
+
+  console.log("App rendered successfully");
+}
+
+// Start initialization
+initializeApp();
+
+]]>
+</file>
+
+<file path="public/styles.css">
+<![CDATA[
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --primary: #b46b2f;
+  --primary-dark: #8c4d1f;
+  --accent: #d68b4a;
+  --success: #6e4d2c;
+  --warning: #c98036;
+  --danger: #e74c3c;
+}
+
+body {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Arabic", Arial,
+    sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* RTL Support */
+html[dir="rtl"] {
+  font-family:
+    "Noto Sans Arabic",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+}
+
+html[dir="rtl"] .sidebar {
+  right: 0;
+  left: auto;
+}
+
+html[dir="rtl"] .menu-item {
+  flex-direction: row-reverse;
+  text-align: right;
+}
+
+/* Landing Page */
+.landing-page {
+  display: none;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #1e3c72 100%);
+  padding: 2rem 1rem;
+  color: white;
+}
+
+.landing-page.active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.landing-container {
+  max-width: 1400px;
+  width: 100%;
+  text-align: center;
+}
+
+.landing-header {
+  margin-bottom: 4rem;
+}
+
+.logo-box {
+  width: 100px;
+  height: 100px;
+  background: white;
+  border-radius: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  font-weight: bold;
+  color: var(--primary);
+  margin-bottom: 2rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.landing-header h1 {
+  font-size: 4rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.subtitle {
+  font-size: 1.8rem;
+  color: #a0c4ff;
+  margin-bottom: 0.5rem;
+}
+
+.tagline {
+  font-size: 1.2rem;
+  color: #c0d8ff;
+}
+
+.landing-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  max-width: 1000px;
+  margin: 0 auto 5rem auto;
+}
+
+.landing-buttons button {
+  padding: 2.5rem;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.landing-buttons button:hover {
+  transform: translateY(-8px) scale(1.05);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.btn-yellow {
+  background: linear-gradient(135deg, #c98036, #d68b4a);
+  color: white;
+}
+
+.btn-white {
+  background: white;
+  color: #333;
+}
+
+.btn-blue {
+  background: linear-gradient(135deg, #b46b2f, #3a2a1f);
+  color: white;
+}
+
+.landing-buttons button span {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.landing-buttons button h3 {
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.landing-buttons button p {
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+.features-title h2 {
+  font-size: 2.5rem;
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 2rem;
+  margin-bottom: 5rem;
+}
+
+.feature-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 2rem;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.feature-card:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-5px);
+}
+
+.feature-card span {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.feature-card h3 {
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+}
+
+.feature-card p {
+  color: #c0d8ff;
+  margin-bottom: 1.5rem;
+}
+
+.feature-stat {
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  color: #c98036;
+  font-weight: bold;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 2rem;
+  margin-bottom: 5rem;
+}
+
+.metric {
+  text-align: center;
+}
+
+.metric-value {
+  font-size: 3rem;
+  font-weight: bold;
+  color: #c98036;
+  margin-bottom: 0.5rem;
+}
+
+.metric-label {
+  color: #c0d8ff;
+}
+
+.landing-footer {
+  text-align: center;
+  color: #c0d8ff;
+  padding: 2rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Login Screen */
+.login-screen {
+  display: none;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  position: relative;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-screen.active {
+  display: flex;
+}
+
+.back-btn {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.login-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  padding: 48px;
+  width: 480px;
+  max-width: 90%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.logo {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #b46b2f, #3a2a1f);
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 36px;
+  font-weight: bold;
+  margin-bottom: 16px;
+}
+
+.login-card h2 {
+  margin: 0 0 8px 0;
+  color: #333;
+}
+
+.subtitle-login {
+  color: #666;
+  margin-bottom: 32px;
+}
+
+.login-modes {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  background: white;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.mode-btn.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.login-form {
+  margin-bottom: 24px;
+}
+
+.login-form input {
+  width: 100%;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.login-form input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(0, 97, 168, 0.1);
+}
+
+.login-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.login-btn:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0, 97, 168, 0.2);
+}
+
+.social-login {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.social-btn {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.social-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.social-btn.apple {
+  background: black;
+  color: white;
+  border-color: black;
+}
+
+/* Main App */
+.main-app {
+  display: none;
+  height: 100vh;
+  background: #f5f6fa;
+  flex-direction: column;
+}
+
+.main-app.active {
+  display: flex;
+}
+
+.topbar {
+  height: 60px;
+  background: var(--primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  gap: 1rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.menu-toggle {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background 0.3s ease;
+}
+
+.menu-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.module-tabs {
+  display: flex;
+  gap: 8px;
+  margin-left: 24px;
+}
+
+.topbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.topbar-right button {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 8px;
+  transition: background 0.3s ease;
+}
+
+.topbar-right button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.main-layout {
+  display: flex;
+  flex: 1;
+  background: #f5f6fa;
+}
+
+.sidebar {
+  width: 250px;
+  background: white;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+  transition: width 0.3s ease;
+  overflow-y: auto;
+}
+
+.sidebar.collapsed {
+  width: 60px;
+}
+
+.menu {
+  padding: 1rem;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 4px;
+  text-decoration: none;
+  color: #333;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.menu-item:hover {
+  background: #f8f9fa;
+  color: var(--primary);
+}
+
+.menu-item.active {
+  background: rgba(0, 97, 168, 0.1);
+  color: var(--primary);
+  border-left: 3px solid var(--primary);
+}
+
+.menu-item span {
+  font-size: 20px;
+  width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.content {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+.footer {
+  background: white;
+  padding: 1rem;
+  text-align: center;
+  border-top: 1px solid #ddd;
+  color: #666;
+}
+
+.footer a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+/* Dashboard Specific Styles */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.kpi-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.kpi-label {
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.kpi-value {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.kpi-change {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.kpi-change.positive {
+  color: var(--success);
+}
+
+.kpi-change.negative {
+  color: var(--danger);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .landing-header h1 {
+    font-size: 2.5rem;
+  }
+
+  .landing-buttons {
+    grid-template-columns: 1fr;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    width: 60px;
+  }
+
+  .module-tabs {
+    display: none;
+  }
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+]]>
+</file>
+
+<file path="public/sw.js">
+<![CDATA[
+// Service Worker for Mobile Performance Optimization with Arabic RTL Support
+// Fixzit Souq Enterprise Platform - Saudi Market Optimized
+
+const CACHE_NAME = "fixzit-souq-v1.1.0";
+const STATIC_CACHE = "fixzit-static-v1.1.0";
+const DYNAMIC_CACHE = "fixzit-dynamic-v1.1.0";
+const IMAGE_CACHE = "fixzit-images-v1.1.0";
+const ARABIC_CACHE = "fixzit-arabic-v1.1.0";
+const FONT_CACHE = "fixzit-fonts-v1.1.0";
+
+const swTranslations = {
+  en: {
+    "sw.offline.title": "Offline - Fixzit Souq",
+    "sw.offline.heading": "You're Offline",
+    "sw.offline.message":
+      "Please check your internet connection and try again. Fixzit Souq requires an internet connection to function properly.",
+    "sw.offline.button": "Try Again",
+    "sw.offline.subtitle": "Enterprise facilities platform",
+    "sw.offline.short": "Offline",
+  },
+  ar: {
+    "sw.offline.title": "غير متصل - فكسيت سوق",
+    "sw.offline.heading": "أنت غير متصل",
+    "sw.offline.message":
+      "يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى. تتطلب فكسيت سوق اتصالاً بالإنترنت للعمل بشكل صحيح.",
+    "sw.offline.button": "حاول مرة أخرى",
+    "sw.offline.subtitle": "منصة إدارة المرافق للمؤسسات",
+    "sw.offline.short": "غير متصل",
+  },
+};
+
+const getSwLocale = (lang = "") =>
+  lang.toLowerCase().startsWith("ar") ? "ar" : "en";
+
+const swTranslate = (locale, key, fallback) => {
+  const dict = swTranslations[locale] || swTranslations.en;
+  return dict[key] || fallback;
+};
+
+// Assets to cache immediately - Enhanced for Arabic Support
+const STATIC_ASSETS = [
+  "/",
+  "/landing.html",
+  "/index.html",
+  "/marketplace",
+  "/manifest.json",
+  "/img/fixzit-logo.png",
+  "/assets/logo.svg",
+];
+
+// Arabic-specific assets
+const ARABIC_ASSETS = [
+  "https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@300;400;500;600;700&family=Tajawal:wght@300;400;500;700&display=swap",
+];
+
+// Saudi-specific optimizations
+const SAUDI_NETWORK_CONFIG = {
+  lowBandwidth: true,
+  compressImages: true,
+  prefetchCritical: true,
+  rtlOptimized: true,
+};
+
+// Enhanced cache strategies with Arabic and Saudi optimizations
+const CACHE_STRATEGIES = {
+  // Static assets - Cache first
+  static: [
+    /\.(js|css|png|jpg|jpeg|gif|svg|woff2?|ttf|eot)$/,
+    /\/static\//,
+    /\/assets\//,
+  ],
+
+  // Arabic fonts - Cache first with longer TTL
+  fonts: [
+    /fonts\.googleapis\.com/,
+    /fonts\.gstatic\.com/,
+    /\.(woff2?|ttf|eot|otf)$/,
+  ],
+
+  // API calls - Network first with fallback
+  api: [/\/api\//, /\/auth\//, /\/ar\//],
+
+  // Pages - Stale while revalidate with Arabic support
+  pages: [
+    /\/dashboard/,
+    /\/properties/,
+    /\/work-orders/,
+    /\/finance/,
+    /\/marketplace/,
+    /\/ar\//,
+  ],
+
+  // Arabic content - Special handling
+  arabic: [/\/ar\//, /arabic/, /rtl/],
+};
+
+// Install event - cache static and Arabic assets
+self.addEventListener("install", (event) => {
+  console.log("[SW] Installing service worker with Arabic support");
+
+  event.waitUntil(
+    Promise.all([
+      // Cache static assets
+      caches.open(STATIC_CACHE).then((cache) => {
+        console.log("[SW] Caching static assets");
+        return cache.addAll(STATIC_ASSETS);
+      }),
+      // Cache Arabic fonts and assets
+      caches.open(FONT_CACHE).then((cache) => {
+        console.log("[SW] Caching Arabic fonts");
+        return cache.addAll(ARABIC_ASSETS).catch((error) => {
+          console.warn("[SW] Arabic fonts caching failed, continuing:", error);
+        });
+      }),
+    ])
+      .then(() => {
+        console.log("[SW] All assets cached successfully");
+        return self.skipWaiting();
+      })
+      .catch((error) => {
+        console.error("[SW] Failed to cache assets:", error);
+      }),
+  );
+});
+
+// Activate event - clean up old caches with Arabic support
+self.addEventListener("activate", (event) => {
+  console.log("[SW] Activating service worker with Arabic support");
+
+  const validCaches = [
+    STATIC_CACHE,
+    DYNAMIC_CACHE,
+    IMAGE_CACHE,
+    ARABIC_CACHE,
+    FONT_CACHE,
+  ];
+
+  event.waitUntil(
+    caches
+      .keys()
+      .then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            if (!validCaches.includes(cacheName)) {
+              console.log("[SW] Deleting old cache:", cacheName);
+              return caches.delete(cacheName);
+            }
+          }),
+        );
+      })
+      .then(() => {
+        console.log("[SW] Service worker activated with Arabic support");
+        return self.clients.claim();
+      }),
+  );
+});
+
+// Fetch event - handle requests with different strategies
+self.addEventListener("fetch", (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // Skip non-GET requests
+  if (request.method !== "GET") {
+    return;
+  }
+
+  // Skip Chrome extension requests
+  if (url.protocol === "chrome-extension:") {
+    return;
+  }
+
+  event.respondWith(handleRequest(request));
+});
+
+// Enhanced request handler with Arabic and Saudi optimizations
+async function handleRequest(request) {
+  const url = new URL(request.url);
+  const path = url.pathname;
+
+  try {
+    // Arabic fonts - Cache first with longer TTL
+    if (isFontAsset(path)) {
+      return await fontCacheStrategy(request);
+    }
+
+    // Static assets - Cache first strategy
+    if (isStaticAsset(path)) {
+      return await cacheFirstStrategy(request, STATIC_CACHE);
+    }
+
+    // Images - Cache first with optimization
+    if (isImage(path)) {
+      return await imageStrategy(request);
+    }
+
+    // Arabic content - Special handling
+    if (isArabicContent(path)) {
+      return await arabicContentStrategy(request);
+    }
+
+    // API calls - Network first strategy
+    if (isApiCall(path)) {
+      return await networkFirstStrategy(request, DYNAMIC_CACHE);
+    }
+
+    // Pages - Stale while revalidate
+    if (isPage(path)) {
+      return await staleWhileRevalidateStrategy(request, DYNAMIC_CACHE);
+    }
+
+    // Default - Network with cache fallback
+    return await networkWithCacheFallback(request);
+  } catch (error) {
+    console.error("[SW] Request failed:", error);
+    return await getOfflineFallback(request);
+  }
+}
+
+// Cache first strategy for static assets
+async function cacheFirstStrategy(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  const cachedResponse = await cache.match(request);
+
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+
+  try {
+    const networkResponse = await fetch(request);
+    if (networkResponse.ok) {
+      cache.put(request, networkResponse.clone());
+    }
+    return networkResponse;
+  } catch (error) {
+    console.error("[SW] Network request failed:", error);
+    throw error;
+  }
+}
+
+// Network first strategy for API calls
+async function networkFirstStrategy(request, cacheName) {
+  try {
+    const networkResponse = await fetch(request);
+
+    if (networkResponse.ok) {
+      const cache = await caches.open(cacheName);
+      cache.put(request, networkResponse.clone());
+    }
+
+    return networkResponse;
+  } catch (error) {
+    console.log("[SW] Network failed, trying cache:", request.url);
+    const cache = await caches.open(cacheName);
+    const cachedResponse = await cache.match(request);
+
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+
+    throw error;
+  }
+}
+
+// Stale while revalidate strategy for pages
+async function staleWhileRevalidateStrategy(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  const cachedResponse = await cache.match(request);
+
+  // Always fetch in background to update cache
+  const fetchPromise = fetch(request)
+    .then((networkResponse) => {
+      if (networkResponse.ok) {
+        cache.put(request, networkResponse.clone());
+      }
+      return networkResponse;
+    })
+    .catch((error) => {
+      console.error("[SW] Background fetch failed:", error);
+    });
+
+  // Return cached version immediately if available
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+
+  // Otherwise wait for network
+  return fetchPromise;
+}
+
+// Optimized image strategy
+async function imageStrategy(request) {
+  const cache = await caches.open(IMAGE_CACHE);
+  const cachedResponse = await cache.match(request);
+
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+
+  try {
+    const networkResponse = await fetch(request);
+
+    if (networkResponse.ok) {
+      // Cache images aggressively for mobile performance
+      cache.put(request, networkResponse.clone());
+    }
+
+    return networkResponse;
+  } catch (error) {
+    // Return placeholder image for failed image requests
+    return new Response(
+      '<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#f3f4f6"/><text x="50%" y="50%" font-family="Arial" font-size="14" fill="#9ca3af" text-anchor="middle" dominant-baseline="central">Image not available</text></svg>',
+      {
+        headers: {
+          "Content-Type": "image/svg+xml",
+          "Cache-Control": "max-age=86400",
+        },
+      },
+    );
+  }
+}
+
+// Network with cache fallback
+async function networkWithCacheFallback(request) {
+  try {
+    const networkResponse = await fetch(request);
+
+    if (networkResponse.ok) {
+      const cache = await caches.open(DYNAMIC_CACHE);
+      cache.put(request, networkResponse.clone());
+    }
+
+    return networkResponse;
+  } catch (error) {
+    const cache = await caches.open(DYNAMIC_CACHE);
+    const cachedResponse = await cache.match(request);
+
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+
+    throw error;
+  }
+}
+
+// Enhanced offline fallback with full Arabic support
+async function getOfflineFallback(request) {
+  const url = new URL(request.url);
+
+  // Check language preference
+  const isArabicPath =
+    url.pathname.includes("/ar/") || url.pathname.includes("arabic");
+  const userLanguage = await getUserLanguagePreference();
+  const shouldShowArabic = isArabicPath || userLanguage === "ar";
+
+  // Return cached version if available
+  const cache = await caches.open(DYNAMIC_CACHE);
+  const cachedResponse = await cache.match(request);
+
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+
+  // Return appropriate offline page
+  if (request.mode === "navigate") {
+    const offlinePage = shouldShowArabic
+      ? getArabicOfflinePage()
+      : getBilingualOfflinePage();
+    return new Response(offlinePage, {
+      headers: {
+        "Content-Type": "text/html",
+        "Cache-Control": "no-cache",
+      },
+    });
+  }
+
+  const shortLabel = swTranslate(
+    shouldShowArabic ? "ar" : "en",
+    "sw.offline.short",
+    "Offline",
+  );
+  return new Response(shortLabel, { status: 503 });
+}
+
+// Get user language preference from cache or default
+async function getUserLanguagePreference() {
+  try {
+    const cache = await caches.open(DYNAMIC_CACHE);
+    const langResponse = await cache.match("/language-preference");
+    if (langResponse) {
+      const lang = await langResponse.text();
+      return lang === "ar" ? "ar" : "en";
+    }
+  } catch (error) {
+    console.log("[SW] Could not determine language preference");
+  }
+  return "en";
+}
+
+// Arabic-optimized offline page
+function getArabicOfflinePage() {
+  const locale = "ar";
+  return `
+    <!DOCTYPE html>
+    <html lang="ar" dir="rtl">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${swTranslate(locale, "sw.offline.title", "غير متصل - فكسيت سوق")}</title>
+      <style>
+        body { 
+          font-family: 'Tajawal', 'Noto Sans Arabic', -apple-system, BlinkMacSystemFont, sans-serif;
+          margin: 0; padding: 40px 20px; background: #f8fafc;
+          display: flex; align-items: center; justify-content: center;
+          min-height: 100vh; text-align: center; direction: rtl;
+        }
+        .offline-container {
+          max-width: 400px; background: white; padding: 40px;
+          border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .offline-icon { font-size: 64px; margin-bottom: 20px; }
+        h1 { color: #1e293b; margin-bottom: 16px; font-family: 'Tajawal', sans-serif; }
+        p { color: #64748b; margin-bottom: 24px; line-height: 1.8; }
+        button {
+          background: #B46B2F; color: white; border: none;
+          padding: 12px 24px; border-radius: 8px; font-weight: 500;
+          cursor: pointer; transition: background 0.2s;
+          min-height: 44px; touch-action: manipulation;
+          font-family: 'Tajawal', sans-serif;
+        }
+        button:hover { background: #004d86; }
+        .subtitle { font-size: 14px; color: #64748b; margin-top: 16px; }
+      </style>
+    </head>
+    <body>
+      <div class="offline-container">
+        <div class="offline-icon">📱</div>
+        <h1>${swTranslate(locale, "sw.offline.heading", "أنت غير متصل")}</h1>
+        <p>${swTranslate(locale, "sw.offline.message", "يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى. تتطلب فكسيت سوق اتصالاً بالإنترنت للعمل بشكل صحيح.")}</p>
+        <button onclick="window.location.reload()">${swTranslate(locale, "sw.offline.button", "حاول مرة أخرى")}</button>
+        <p class="subtitle">${swTranslate(locale, "sw.offline.subtitle", "منصة إدارة المرافق للمؤسسات")}</p>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+// Bilingual offline page
+function getBilingualOfflinePage() {
+  const enLocale = "en";
+  const arLocale = "ar";
+  return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${swTranslate(enLocale, "sw.offline.title", "Offline - Fixzit Souq")}</title>
+      <style>
+        body { 
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Tajawal', sans-serif;
+          margin: 0; padding: 40px 20px; background: #f8fafc;
+          display: flex; align-items: center; justify-content: center;
+          min-height: 100vh; text-align: center;
+        }
+        .offline-container {
+          max-width: 500px; background: white; padding: 40px;
+          border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .offline-icon { font-size: 64px; margin-bottom: 20px; }
+        h1 { color: #1e293b; margin-bottom: 16px; }
+        p { color: #64748b; margin-bottom: 24px; line-height: 1.6; }
+        button {
+          background: #B46B2F; color: white; border: none;
+          padding: 12px 24px; border-radius: 8px; font-weight: 500;
+          cursor: pointer; transition: background 0.2s;
+          min-height: 44px; touch-action: manipulation; margin: 0 8px;
+        }
+        button:hover { background: #004d86; }
+        .arabic { 
+          direction: rtl; font-family: 'Tajawal', 'Noto Sans Arabic', sans-serif; 
+          margin-top: 32px; padding-top: 32px; border-top: 1px solid #e2e8f0;
+        }
+        .arabic p { line-height: 1.8; }
+      </style>
+    </head>
+    <body>
+      <div class="offline-container">
+        <div class="offline-icon">📱</div>
+        <h1>${swTranslate(enLocale, "sw.offline.heading", "You're Offline")}</h1>
+        <p>${swTranslate(enLocale, "sw.offline.message", "Please check your internet connection and try again. Fixzit Souq requires an internet connection to function properly.")}</p>
+        <button onclick="window.location.reload()">${swTranslate(enLocale, "sw.offline.button", "Try Again")}</button>
+        
+        <div class="arabic">
+          <h1>${swTranslate(arLocale, "sw.offline.heading", "أنت غير متصل")}</h1>
+          <p>${swTranslate(arLocale, "sw.offline.message", "يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى. تتطلب فكسيت سوق اتصالاً بالإنترنت للعمل بشكل صحيح.")}</p>
+          <button onclick="window.location.reload()">${swTranslate(arLocale, "sw.offline.button", "حاول مرة أخرى")}</button>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+// Enhanced helper functions with Arabic support
+function isStaticAsset(path) {
+  return CACHE_STRATEGIES.static.some((pattern) => pattern.test(path));
+}
+
+function isImage(path) {
+  return /\.(png|jpg|jpeg|gif|svg|webp|avif)$/i.test(path);
+}
+
+function isApiCall(path) {
+  return CACHE_STRATEGIES.api.some((pattern) => pattern.test(path));
+}
+
+function isPage(path) {
+  return (
+    CACHE_STRATEGIES.pages.some((pattern) => pattern.test(path)) ||
+    path === "/" ||
+    path.endsWith(".html")
+  );
+}
+
+function isFontAsset(path) {
+  return CACHE_STRATEGIES.fonts.some((pattern) => pattern.test(path));
+}
+
+function isArabicContent(path) {
+  return CACHE_STRATEGIES.arabic.some((pattern) => pattern.test(path));
+}
+
+// Font cache strategy for Arabic fonts
+async function fontCacheStrategy(request) {
+  const cache = await caches.open(FONT_CACHE);
+  const cachedResponse = await cache.match(request);
+
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+
+  try {
+    const networkResponse = await fetch(request);
+    if (networkResponse.ok) {
+      // Cache fonts for longer periods
+      const responseHeaders = new Headers(networkResponse.headers);
+      responseHeaders.set("Cache-Control", "max-age=31536000"); // 1 year
+      const modifiedResponse = new Response(networkResponse.body, {
+        status: networkResponse.status,
+        statusText: networkResponse.statusText,
+        headers: responseHeaders,
+      });
+      cache.put(request, modifiedResponse.clone());
+      return modifiedResponse;
+    }
+    return networkResponse;
+  } catch (error) {
+    console.error("[SW] Font request failed:", error);
+    throw error;
+  }
+}
+
+// Arabic content strategy
+async function arabicContentStrategy(request) {
+  const cache = await caches.open(ARABIC_CACHE);
+  const cachedResponse = await cache.match(request);
+
+  // Background update for Arabic content
+  const fetchPromise = fetch(request)
+    .then((networkResponse) => {
+      if (networkResponse.ok) {
+        cache.put(request, networkResponse.clone());
+      }
+      return networkResponse;
+    })
+    .catch((error) => {
+      console.log("[SW] Arabic content fetch failed:", error);
+    });
+
+  // Return cached version immediately if available
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+
+  // Otherwise wait for network
+  return fetchPromise;
+}
+
+// Background sync for mobile performance
+self.addEventListener("sync", (event) => {
+  if (event.tag === "background-sync") {
+    event.waitUntil(
+      // Perform background sync operations
+      performBackgroundSync(),
+    );
+  }
+});
+
+async function performBackgroundSync() {
+  try {
+    console.log("[SW] Performing background sync");
+
+    // Update critical cache entries
+    const cache = await caches.open(DYNAMIC_CACHE);
+    const requests = await cache.keys();
+
+    for (const request of requests) {
+      try {
+        const response = await fetch(request);
+        if (response.ok) {
+          await cache.put(request, response);
+        }
+      } catch (error) {
+        console.log("[SW] Background sync failed for:", request.url);
+      }
+    }
+
+    console.log("[SW] Background sync completed");
+  } catch (error) {
+    console.error("[SW] Background sync error:", error);
+  }
+}
+
+// Enhanced push notifications with Arabic support
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
+
+  event.waitUntil(handlePushNotification(event.data.json()));
+});
+
+async function handlePushNotification(data) {
+  const userLanguage = await getUserLanguagePreference();
+  const isArabic = userLanguage === "ar";
+
+  // Use Arabic content if available and preferred
+  const title = isArabic && data.title_ar ? data.title_ar : data.title;
+  const body = isArabic && data.body_ar ? data.body_ar : data.body;
+
+  const options = {
+    body: body,
+    icon: "/img/fixzit-logo.png",
+    badge: "/assets/logo.svg",
+    vibrate: [200, 100, 200],
+    tag: data.tag || "default",
+    data: { ...data.data, language: userLanguage },
+    dir: isArabic ? "rtl" : "ltr",
+    lang: isArabic ? "ar" : "en",
+    actions: isArabic && data.actions_ar ? data.actions_ar : data.actions || [],
+    requireInteraction: true,
+    silent: false,
+    timestamp: Date.now(),
+  };
+
+  return self.registration.showNotification(title, options);
+}
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  event.waitUntil(clients.openWindow(event.notification.data.url || "/"));
+});
+
+// Saudi-specific network optimizations
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "LANGUAGE_CHANGED") {
+    const language = event.data.language;
+    // Cache language preference
+    caches.open(DYNAMIC_CACHE).then((cache) => {
+      cache.put("/language-preference", new Response(language));
+    });
+  }
+
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
+// Saudi mobile network optimizations
+self.addEventListener("online", () => {
+  console.log("[SW] Network connection restored - Saudi optimized");
+  // Preload critical Arabic content when back online
+  preloadArabicContent();
+});
+
+self.addEventListener("offline", () => {
+  console.log("[SW] Network connection lost - activating offline mode");
+});
+
+// Preload Arabic content for better performance
+async function preloadArabicContent() {
+  const cache = await caches.open(ARABIC_CACHE);
+  const arabicUrls = ["/ar/dashboard", "/ar/properties", "/ar/marketplace"];
+
+  arabicUrls.forEach((url) => {
+    fetch(url)
+      .then((response) => {
+        if (response.ok) {
+          cache.put(url, response);
+        }
+      })
+      .catch((error) => {
+        console.log("[SW] Arabic content preload failed for:", url);
+      });
+  });
+}
+
+console.log(
+  "[SW] Service worker with Arabic and Saudi optimizations loaded successfully",
+);
+console.log("[SW] RTL support: ✓");
+console.log("[SW] Arabic fonts caching: ✓");
+console.log("[SW] Saudi network optimizations: ✓");
+console.log("[SW] Bilingual push notifications: ✓");
+
+]]>
+</file>
+
+<file path="public/ui-bootstrap.js">
+<![CDATA[
+// UI Bootstrap - Fixes Missing Components
+(function () {
+  // Prevent duplicate initialization
+  if (window.__uiBoot) return;
+  window.__uiBoot = true;
+
+  const translations = {
+    en: {
+      "nav.dashboard": "Dashboard",
+      "nav.properties": "Properties",
+      "nav.workOrders": "Work Orders",
+      "nav.reports": "Reports",
+      "nav.tenants": "Tenants",
+      "sidebar.toggle": "Toggle Sidebar",
+      "footer.brand": "Fixzit Enterprise",
+      "footer.about": "About Us",
+      "footer.features": "Features",
+      "footer.contact": "Contact",
+      "footer.solutions": "Solutions",
+      "footer.propertyManagement": "Property Management",
+      "footer.workOrders": "Work Orders",
+      "footer.financialTracking": "Financial Tracking",
+      "footer.support": "Support",
+      "footer.helpCenter": "Help Center",
+      "footer.documentation": "Documentation",
+      "footer.training": "Training",
+      "footer.copyright": "© 2024 Fixzit Enterprise. All rights reserved.",
+      "login.invalid": "Invalid credentials. Please try again.",
+    },
+    ar: {
+      "nav.dashboard": "لوحة التحكم",
+      "nav.properties": "العقارات",
+      "nav.workOrders": "أوامر العمل",
+      "nav.reports": "التقارير",
+      "nav.tenants": "المستأجرون",
+      "sidebar.toggle": "تبديل الشريط الجانبي",
+      "footer.brand": "فيكزيت إنتربرايز",
+      "footer.about": "من نحن",
+      "footer.features": "المميزات",
+      "footer.contact": "تواصل معنا",
+      "footer.solutions": "الحلول",
+      "footer.propertyManagement": "إدارة العقارات",
+      "footer.workOrders": "أوامر العمل",
+      "footer.financialTracking": "المتابعة المالية",
+      "footer.support": "الدعم",
+      "footer.helpCenter": "مركز المساعدة",
+      "footer.documentation": "التوثيق",
+      "footer.training": "التدريب",
+      "footer.copyright": "© 2024 فيكزيت إنتربرايز. جميع الحقوق محفوظة.",
+      "login.invalid": "بيانات اعتماد غير صحيحة. حاول مرة أخرى.",
+    },
+  };
+
+  function getLocale() {
+    const docLang = document.documentElement.lang || navigator.language || "en";
+    return docLang.toLowerCase().startsWith("ar") ? "ar" : "en";
+  }
+
+  const locale = getLocale();
+
+  function translate(key, fallback) {
+    const dict = translations[locale] || translations.en;
+    return dict[key] || fallback;
+  }
+
+  // View Management Functions
+  window.showLogin = function () {
+    const modal = document.getElementById("loginModal");
+    if (modal) modal.classList.add("show");
+  };
+
+  window.closeLogin = function () {
+    const modal = document.getElementById("loginModal");
+    if (modal) modal.classList.remove("show");
+  };
+
+  window.showApp = function () {
+    const landing = document.getElementById("landingPage");
+    const mainApp = document.getElementById("mainApp");
+
+    if (landing) landing.classList.remove("active");
+    if (mainApp) mainApp.classList.add("active");
+
+    closeLogin();
+    if (window.loadDashboard) loadDashboard();
+  };
+
+  window.showLanding = function () {
+    const landing = document.getElementById("landingPage");
+    const mainApp = document.getElementById("mainApp");
+
+    if (landing) landing.classList.add("active");
+    if (mainApp) mainApp.classList.remove("active");
+  };
+
+  // Sidebar Toggle
+  window.toggleSidebar = function () {
+    const sidebar = document.getElementById("sidebar");
+    const mainContent = document.querySelector(".main-content");
+
+    if (sidebar) {
+      sidebar.classList.toggle("collapsed");
+    }
+    if (mainContent) {
+      mainContent.classList.toggle("expanded");
+    }
+  };
+
+  // Dynamic Header Management
+  window.showModule = function (moduleName) {
+    // Update nav tabs
+    document.querySelectorAll(".nav-tab").forEach((tab) => {
+      tab.classList.remove("active");
+    });
+
+    if (event && event.target) {
+      event.target.classList.add("active");
+    }
+
+    // Update page title
+    const titles = {
+      dashboard: translate("nav.dashboard", "Dashboard"),
+      properties: translate("nav.properties", "Properties"),
+      workorders: translate("nav.workOrders", "Work Orders"),
+      reports: translate("nav.reports", "Reports"),
+      tenants: translate("nav.tenants", "Tenants"),
+    };
+
+    const pageTitle = document.querySelector(".page-title");
+    if (pageTitle) {
+      pageTitle.textContent = titles[moduleName] || moduleName;
+    }
+
+    // Load module content
+    const loaders = {
+      dashboard: window.loadDashboard,
+      properties: window.loadProperties,
+      workorders: window.loadWorkOrders,
+      reports: window.loadReports,
+      tenants: window.loadTenants,
+    };
+
+    const loader = loaders[moduleName] || loaders.dashboard;
+    if (loader) loader();
+  };
+
+  // Navigation function alias
+  window.navigateTo = window.showModule;
+
+  // Backend Login Function
+  // Note: Default parameters are for testing only, not production use
+  window.loginToBackend = async function (
+    email = "admin@test.com",
+    password = "",
+  ) {
+    try {
+      const response = await fetch(
+        `${window.API_URL || "http://localhost:5000"}/api/auth/login`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        },
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.token) {
+          localStorage.setItem("token", data.token);
+          return true;
+        }
+      }
+      return false;
+    } catch (error) {
+      console.error("Login failed:", error);
+      return true; // Allow demo mode
+    }
+  };
+
+  // DOM Ready Handler
+  document.addEventListener("DOMContentLoaded", function () {
+    console.log("🚀 UI Bootstrap initialized");
+
+    // Set initial view state - show landing page only
+    showLanding();
+
+    // Inject Sidebar Toggle Button
+    const navLeft = document.querySelector(".nav-left");
+    if (navLeft && !document.querySelector(".sidebar-toggle")) {
+      const toggleBtn = document.createElement("button");
+      toggleBtn.className = "sidebar-toggle";
+      toggleBtn.innerHTML = "☰";
+      toggleBtn.onclick = toggleSidebar;
+      toggleBtn.title = translate("sidebar.toggle", "Toggle Sidebar");
+      toggleBtn.style.marginRight = "15px";
+      navLeft.insertBefore(toggleBtn, navLeft.firstChild);
+      console.log("✅ Sidebar toggle added");
+    }
+
+    // Inject Global Footer
+    if (!document.querySelector(".site-footer")) {
+      const footer = document.createElement("footer");
+      footer.className = "app-footer site-footer";
+      footer.innerHTML = `
+                <div class="footer-content">
+                    <div class="footer-section">
+                        <h4>${translate("footer.brand", "Fixzit Enterprise")}</h4>
+                        <ul>
+                            <li><a href="#">${translate("footer.about", "About Us")}</a></li>
+                            <li><a href="#">${translate("footer.features", "Features")}</a></li>
+                            <li><a href="#">${translate("footer.contact", "Contact")}</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-section">
+                        <h4>${translate("footer.solutions", "Solutions")}</h4>
+                        <ul>
+                            <li><a href="#">${translate("footer.propertyManagement", "Property Management")}</a></li>
+                            <li><a href="#">${translate("footer.workOrders", "Work Orders")}</a></li>
+                            <li><a href="#">${translate("footer.financialTracking", "Financial Tracking")}</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-section">
+                        <h4>${translate("footer.support", "Support")}</h4>
+                        <ul>
+                            <li><a href="#">${translate("footer.helpCenter", "Help Center")}</a></li>
+                            <li><a href="#">${translate("footer.documentation", "Documentation")}</a></li>
+                            <li><a href="#">${translate("footer.training", "Training")}</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="footer-bottom">
+                    <p>${translate("footer.copyright", "© 2024 Fixzit Enterprise. All rights reserved.")}</p>
+                </div>
+            `;
+      document.body.appendChild(footer);
+      console.log("✅ Footer added");
+    }
+
+    // Wire Login Form
+    const loginForm = document.getElementById("loginForm");
+    if (loginForm) {
+      loginForm.addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        const email =
+          document.getElementById("loginEmail")?.value || "admin@test.com";
+        const password = document.getElementById("loginPassword")?.value || ""; // No default password for security
+
+        try {
+          const success = await loginToBackend(email, password);
+          if (success) {
+            showApp();
+            console.log("✅ Login successful");
+          } else {
+            alert(
+              translate(
+                "login.invalid",
+                "Invalid credentials. Please try again.",
+              ),
+            );
+          }
+        } catch (error) {
+          console.error("Login error:", error);
+          // Allow demo mode to proceed
+          showApp();
+        }
+      });
+      console.log("✅ Login form wired");
+    }
+
+    // Wire Modal Close Events
+    const loginModal = document.getElementById("loginModal");
+    if (loginModal) {
+      loginModal.addEventListener("click", function (e) {
+        if (e.target === loginModal) {
+          closeLogin();
+        }
+      });
+    }
+
+    console.log("🎉 All UI components ready!");
+  });
+})();
+
+]]>
+</file>
+
+</batch_content>

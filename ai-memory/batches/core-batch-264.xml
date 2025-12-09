@@ -1,0 +1,2942 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="services/souq/ads/campaign-service.ts">
+<![CDATA[
+/**
+ * Ad Campaign Service
+ *
+ * CRUD operations for advertising campaigns:
+ * - Create campaigns (Sponsored Products, Sponsored Brands)
+ * - Manage targeting (keywords, categories, products)
+ * - Set bidding strategies (manual, automatic)
+ * - Schedule campaigns
+ * - Track performance metrics
+ */
+
+import { nanoid } from "nanoid";
+import { logger } from "@/lib/logger";
+
+const MIN_BID_SAR = 0.05;
+const MIN_DAILY_BUDGET_SAR = 10;
+
+type KeywordMatchType = "exact" | "phrase" | "broad";
+type KeywordTargetInput =
+  | string
+  | {
+      value: string;
+      matchType?: KeywordMatchType;
+    };
+
+interface CreateCampaignInput {
+  orgId: string; // Required for tenant isolation (STRICT v4.1)
+  sellerId: string;
+  name: string;
+  type: "sponsored_products" | "sponsored_brands" | "product_display";
+  dailyBudget: number;
+  startDate: Date;
+  endDate?: Date;
+  biddingStrategy: "manual" | "automatic";
+  defaultBid?: number; // For automatic bidding
+  targeting: CampaignTargeting;
+  products: string[]; // FSINs to advertise
+}
+
+interface CampaignTargeting {
+  type: "keyword" | "category" | "product" | "automatic";
+  keywords?: KeywordTargetInput[]; // Keyword strings or structured values
+  categories?: string[]; // For category targeting
+  targetProducts?: string[]; // Competitor ASINs for product targeting
+  products?: string[]; // Legacy alias for targetProducts
+  matchType?: KeywordMatchType; // Legacy fallback when keywords array is string[]
+}
+
+interface UpdateCampaignInput {
+  name?: string;
+  dailyBudget?: number;
+  startDate?: Date;
+  endDate?: Date;
+  status?: "active" | "paused" | "ended";
+  biddingStrategy?: "manual" | "automatic";
+  defaultBid?: number;
+}
+
+interface Campaign {
+  campaignId: string;
+  orgId: string; // Required for tenant isolation (STRICT v4.1)
+  sellerId: string;
+  name: string;
+  type: "sponsored_products" | "sponsored_brands" | "product_display";
+  status: "active" | "paused" | "ended";
+  dailyBudget: number;
+  spentToday: number;
+  startDate: Date;
+  endDate?: Date;
+  biddingStrategy: "manual" | "automatic";
+  defaultBid?: number;
+  targeting: CampaignTargeting;
+  products: string[];
+  bids: AdBid[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface AdBid {
+  bidId: string;
+  campaignId: string;
+  orgId: string; // Required for tenant isolation (STRICT v4.1)
+  targetType: "keyword" | "category" | "product" | "asin";
+  targetValue: string;
+  bidAmount: number;
+  productId: string;
+  status: "active" | "paused";
+  createdAt: Date;
+  matchType?: KeywordMatchType;
+}
+
+export class CampaignService {
+  private static assertBudget(
+    num: number,
+    field = "dailyBudget",
+    min = MIN_DAILY_BUDGET_SAR,
+  ): void {
+    if (!Number.isFinite(num) || num < min) {
+      throw new Error(`${field} must be at least ${min} SAR`);
+    }
+  }
+
+  private static assertDates(startDate: Date, endDate?: Date): void {
+    if (!(startDate instanceof Date) || Number.isNaN(startDate.getTime())) {
+      throw new Error("Invalid start date");
+    }
+    if (endDate) {
+      if (!(endDate instanceof Date) || Number.isNaN(endDate.getTime())) {
+        throw new Error("Invalid end date");
+      }
+      if (endDate < startDate) {
+        throw new Error("End date must be on or after start date");
+      }
+    }
+  }
+
+  private static ensureOwnership<T extends { sellerId: string }>(
+    doc: T | null,
+    sellerId: string,
+    action: string,
+  ): T {
+    if (!doc) {
+      throw new Error(`Campaign not found for ${action}`);
+    }
+    if (doc.sellerId !== sellerId) {
+      throw new Error("Forbidden: campaign does not belong to seller");
+    }
+    return doc;
+  }
+
+  /**
+   * Create new ad campaign
+   */
+  static async createCampaign(input: CreateCampaignInput): Promise<Campaign> {
+    // Validation
+    this.assertBudget(input.dailyBudget);
+    this.assertDates(input.startDate, input.endDate);
+
+    if (input.products.length === 0) {
+      throw new Error("At least one product must be selected");
+    }
+
+    const effectiveDefaultBid =
+      input.defaultBid !== undefined
+        ? input.defaultBid
+        : input.biddingStrategy === "manual"
+          ? MIN_BID_SAR
+          : undefined;
+    if (
+      input.biddingStrategy === "automatic" ||
+      input.biddingStrategy === "manual"
+    ) {
+      if (
+        effectiveDefaultBid === undefined ||
+        effectiveDefaultBid < MIN_BID_SAR
+      ) {
+        throw new Error(
+          `Default bid required and must be at least ${MIN_BID_SAR} SAR`,
+        );
+      }
+    }
+
+    // Generate campaign ID
+    const campaignId = `camp_${nanoid(12)}`;
+
+    // Create bids based on targeting
+    const bids = await this.generateBids(
+      campaignId,
+      input.targeting,
+      input.products,
+      effectiveDefaultBid as number,
+      input.orgId,
+    );
+
+    const campaign: Campaign = {
+      campaignId,
+      orgId: input.orgId, // Required for tenant isolation (STRICT v4.1)
+      sellerId: input.sellerId,
+      name: input.name,
+      type: input.type,
+      status: "active",
+      dailyBudget: input.dailyBudget,
+      spentToday: 0,
+      startDate: input.startDate,
+      endDate: input.endDate,
+      biddingStrategy: input.biddingStrategy,
+      defaultBid: effectiveDefaultBid,
+      targeting: input.targeting,
+      products: input.products,
+      bids,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    // Save to database
+    const { getDatabase } = await import("@/lib/mongodb-unified");
+    const db = await getDatabase();
+
+    await db.collection("souq_campaigns").insertOne(campaign);
+    await db.collection("souq_ad_bids").insertMany(bids);
+
+    logger.info(`[CampaignService] Created campaign: ${campaignId}`);
+
+    return campaign;
+  }
+
+  /**
+   * Update campaign
+   */
+  static async updateCampaign(
+    campaignId: string,
+    updates: UpdateCampaignInput,
+    sellerId: string,
+    orgId: string, // Required for tenant isolation (STRICT v4.1)
+  ): Promise<Campaign> {
+    const { getDatabase } = await import("@/lib/mongodb-unified");
+    const db = await getDatabase();
+
+    const campaign = await db
+      .collection<Campaign>("souq_campaigns")
+      .findOne({ campaignId, orgId });
+
+    const existingCampaign = this.ensureOwnership(campaign, sellerId, "update");
+
+    const nextBiddingStrategy =
+      updates.biddingStrategy ?? existingCampaign.biddingStrategy;
+    const nextDefaultBid =
+      updates.defaultBid ?? existingCampaign.defaultBid ?? MIN_BID_SAR;
+    if (
+      nextBiddingStrategy === "automatic" ||
+      nextBiddingStrategy === "manual"
+    ) {
+      if (nextDefaultBid < MIN_BID_SAR) {
+        throw new Error(
+          `Default bid must be at least ${MIN_BID_SAR} SAR for ${nextBiddingStrategy} bidding`,
+        );
+      }
+    }
+
+    const nextDailyBudget = updates.dailyBudget ?? existingCampaign.dailyBudget;
+    this.assertBudget(nextDailyBudget);
+
+    const nextStartDate = updates.startDate ?? existingCampaign.startDate;
+    const nextEndDate = updates.endDate ?? existingCampaign.endDate;
+    this.assertDates(nextStartDate, nextEndDate);
+
+    const updateDoc = {
+      ...updates,
+      updatedAt: new Date(),
+    };
+
+    await db
+      .collection("souq_campaigns")
+      .updateOne({ campaignId, orgId }, { $set: updateDoc });
+
+    const updated = await db
+      .collection<Campaign>("souq_campaigns")
+      .findOne({ campaignId, orgId });
+
+    if (!updated) {
+      throw new Error(`Campaign not found after update: ${campaignId}`);
+    }
+
+    logger.info(`[CampaignService] Updated campaign: ${campaignId}`);
+
+    return updated;
+  }
+
+  /**
+   * Delete campaign
+   */
+  static async deleteCampaign(
+    campaignId: string,
+    sellerId: string,
+    orgId: string, // Required for tenant isolation (STRICT v4.1)
+  ): Promise<void> {
+    const { getDatabase } = await import("@/lib/mongodb-unified");
+    const db = await getDatabase();
+
+    const campaign = await db
+      .collection<Campaign>("souq_campaigns")
+      .findOne({ campaignId, orgId });
+    this.ensureOwnership(campaign, sellerId, "delete");
+
+    // Delete bids scoped to campaign
+    await db.collection("souq_ad_bids").deleteMany({ campaignId, orgId });
+
+    // Delete campaign scoped by orgId
+    await db.collection("souq_campaigns").deleteOne({ campaignId, orgId });
+
+    logger.info(`[CampaignService] Deleted campaign: ${campaignId}`);
+  }
+
+  /**
+   * Get campaign by ID
+   */
+  static async getCampaign(campaignId: string, orgId: string): Promise<Campaign | null> {
+    const { getDatabase } = await import("@/lib/mongodb-unified");
+    const db = await getDatabase();
+
+    const campaign = await db
+      .collection("souq_campaigns")
+      .findOne({ campaignId, orgId });
+
+    if (!campaign) return null;
+
+    // Fetch bids
+    const bids = await db
+      .collection<AdBid>("souq_ad_bids")
+      .find({ campaignId, orgId })
+      .toArray();
+
+    // Type assertion: MongoDB document structure matches Campaign interface
+    // The spread operator creates a new object with all campaign properties plus bids
+    return {
+      ...campaign,
+      bids,
+    } as unknown as Campaign;
+  }
+
+  /**
+   * List campaigns for seller
+   */
+  static async listCampaigns(
+    sellerId: string,
+    orgId: string, // Required for tenant isolation (STRICT v4.1)
+    filters?: {
+      status?: "active" | "paused" | "ended";
+      type?: "sponsored_products" | "sponsored_brands" | "product_display";
+    },
+  ): Promise<Campaign[]> {
+    const { getDatabase } = await import("@/lib/mongodb-unified");
+    const db = await getDatabase();
+
+    const query: Record<string, unknown> = { sellerId, orgId };
+
+    if (filters?.status) query.status = filters.status;
+    if (filters?.type) query.type = filters.type;
+
+    const campaigns = await db
+      .collection("souq_campaigns")
+      .find(query)
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    // Fetch bids for each campaign
+    const campaignsWithBids = await Promise.all(
+      campaigns.map(async (campaign) => {
+        const campaignId = (campaign as unknown as { campaignId: string })
+          .campaignId;
+        const bids = await db
+          .collection<AdBid>("souq_ad_bids")
+          .find({ campaignId, orgId })
+          .toArray();
+
+        // Type assertion: MongoDB document structure matches Campaign interface
+        return {
+          ...campaign,
+          bids,
+        } as unknown as Campaign;
+      }),
+    );
+
+    return campaignsWithBids;
+  }
+
+  /**
+   * Get campaign performance stats
+   */
+  static async getCampaignStats(
+    campaignId: string,
+    sellerId: string,
+    orgId: string, // Required for tenant isolation (STRICT v4.1)
+  ): Promise<{
+    impressions: number;
+    clicks: number;
+    conversions: number;
+    spend: number;
+    revenue: number;
+    ctr: number;
+    avgCpc: number;
+    acos: number; // Advertising Cost of Sales
+    roas: number; // Return on Ad Spend
+  }> {
+    const { getDatabase } = await import("@/lib/mongodb-unified");
+    const db = await getDatabase();
+
+    const campaign = await db
+      .collection<Campaign>("souq_campaigns")
+      .findOne({ campaignId, orgId });
+    this.ensureOwnership(campaign, sellerId, "stats");
+
+    // Aggregate stats from all bids in campaign
+    // 🔐 STRICT v4.1: All queries must include orgId for tenant isolation
+    const bids = await db
+      .collection("souq_ad_bids")
+      .find({ campaignId, orgId })
+      .toArray();
+
+    const bidIds = bids.map((b) => b.bidId);
+
+    const stats = await db
+      .collection("souq_ad_stats")
+      .find({ bidId: { $in: bidIds }, orgId })
+      .toArray();
+
+    const totals = stats.reduce(
+      (acc, stat) => ({
+        impressions: acc.impressions + (stat.impressions || 0),
+        clicks: acc.clicks + (stat.clicks || 0),
+        conversions: acc.conversions + (stat.conversions || 0),
+        spend: acc.spend + (stat.spend || 0),
+        revenue: acc.revenue + (stat.revenue || 0),
+      }),
+      { impressions: 0, clicks: 0, conversions: 0, spend: 0, revenue: 0 },
+    );
+
+    const ctr =
+      totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : 0;
+    const avgCpc = totals.clicks > 0 ? totals.spend / totals.clicks : 0;
+    const acos = totals.revenue > 0 ? (totals.spend / totals.revenue) * 100 : 0;
+    const roas = totals.spend > 0 ? totals.revenue / totals.spend : 0;
+
+    return {
+      ...totals,
+      ctr: Math.round(ctr * 100) / 100,
+      avgCpc: Math.round(avgCpc * 100) / 100,
+      acos: Math.round(acos * 100) / 100,
+      roas: Math.round(roas * 100) / 100,
+    };
+  }
+
+  /**
+   * Update bid amount for specific target
+   */
+  static async updateBid(
+    bidId: string,
+    newBidAmount: number,
+    orgId: string,
+    sellerId: string,
+  ): Promise<void> {
+    if (newBidAmount < MIN_BID_SAR) {
+      throw new Error(`Bid amount must be at least ${MIN_BID_SAR} SAR`);
+    }
+
+    const { getDatabase } = await import("@/lib/mongodb-unified");
+    const db = await getDatabase();
+
+    const bid = await db
+      .collection<AdBid>("souq_ad_bids")
+      .findOne({ bidId, orgId });
+    if (!bid) {
+      throw new Error("Bid not found or missing orgId");
+    }
+
+    const campaign = await db
+      .collection<Campaign>("souq_campaigns")
+      .findOne({ campaignId: bid.campaignId, orgId });
+    this.ensureOwnership(campaign, sellerId, "update bid");
+
+    const result = await db
+      .collection("souq_ad_bids")
+      .updateOne({ bidId, orgId }, { $set: { bidAmount: newBidAmount } });
+    if (result.matchedCount === 0) {
+      throw new Error("Bid not found or not updated");
+    }
+
+    logger.info(`[CampaignService] Updated bid ${bidId}: ${newBidAmount} SAR`);
+  }
+
+  /**
+   * Pause/resume bid
+   */
+  static async toggleBid(
+    bidId: string,
+    status: "active" | "paused",
+    orgId: string,
+    sellerId: string,
+  ): Promise<void> {
+    const { getDatabase } = await import("@/lib/mongodb-unified");
+    const db = await getDatabase();
+
+    const bid = await db
+      .collection<AdBid>("souq_ad_bids")
+      .findOne({ bidId, orgId });
+    if (!bid) {
+      throw new Error("Bid not found or missing orgId");
+    }
+
+    const campaign = await db
+      .collection<Campaign>("souq_campaigns")
+      .findOne({ campaignId: bid.campaignId, orgId });
+    this.ensureOwnership(campaign, sellerId, "toggle bid");
+
+    const result = await db
+      .collection("souq_ad_bids")
+      .updateOne({ bidId, orgId }, { $set: { status } });
+    if (result.matchedCount === 0) {
+      throw new Error("Bid not found or not updated");
+    }
+
+    logger.info(`[CampaignService] Bid ${bidId} status: ${status}`);
+  }
+
+  /**
+   * Add new keyword to campaign
+   */
+  static async addKeyword(
+    campaignId: string,
+    keyword: string,
+    bidAmount: number,
+    productId: string,
+    matchType: KeywordMatchType = "broad",
+    orgId: string,
+    sellerId: string,
+  ): Promise<AdBid> {
+    if (bidAmount < MIN_BID_SAR) {
+      throw new Error(`Bid amount must be at least ${MIN_BID_SAR} SAR`);
+    }
+
+    const bidId = `bid_${nanoid(12)}`;
+
+    const { getDatabase } = await import("@/lib/mongodb-unified");
+    const db = await getDatabase();
+
+    const campaign = await db
+      .collection<Campaign>("souq_campaigns")
+      .findOne({ campaignId, orgId });
+    this.ensureOwnership(campaign, sellerId, "add keyword");
+
+    const bid: AdBid = {
+      bidId,
+      campaignId,
+      targetType: "keyword",
+      targetValue: keyword.toLowerCase(),
+      bidAmount,
+      productId,
+      status: "active",
+      createdAt: new Date(),
+      matchType,
+      orgId,
+    };
+
+    await db.collection("souq_ad_bids").insertOne(bid);
+
+    logger.info(
+      `[CampaignService] Added keyword "${keyword}" to campaign ${campaignId}`,
+    );
+
+    return bid;
+  }
+
+  /**
+   * Generate bids based on targeting strategy
+   */
+  private static async generateBids(
+    campaignId: string,
+    targeting: CampaignTargeting,
+    products: string[],
+    defaultBid: number,
+    orgId: string,
+  ): Promise<AdBid[]> {
+    const bids: AdBid[] = [];
+
+    if (targeting.type === "keyword" && targeting.keywords?.length) {
+      // Create bid for each keyword-product combination
+      for (const keywordEntry of targeting.keywords) {
+        const keywordValue =
+          typeof keywordEntry === "string" ? keywordEntry : keywordEntry.value;
+        if (!keywordValue) continue;
+
+        const normalizedKeyword = keywordValue.trim().toLowerCase();
+        if (!normalizedKeyword) continue;
+
+        const entryMatchType =
+          typeof keywordEntry === "string" ? undefined : keywordEntry.matchType;
+        const matchType = entryMatchType ?? targeting.matchType ?? "broad";
+
+        for (const productId of products) {
+          bids.push({
+            bidId: `bid_${nanoid(12)}`,
+            campaignId,
+            targetType: "keyword",
+            targetValue: normalizedKeyword,
+            matchType,
+            bidAmount: defaultBid,
+            productId,
+            status: "active",
+            createdAt: new Date(),
+            orgId,
+          });
+        }
+      }
+    } else if (targeting.type === "category" && targeting.categories) {
+      // Create bid for each category-product combination
+      for (const category of targeting.categories) {
+        for (const productId of products) {
+          bids.push({
+            bidId: `bid_${nanoid(12)}`,
+            campaignId,
+            targetType: "category",
+            targetValue: category,
+            bidAmount: defaultBid,
+            productId,
+            status: "active",
+            createdAt: new Date(),
+            orgId,
+          });
+        }
+      }
+    } else if (targeting.type === "product") {
+      // Product/ASIN targeting (for PDP ads)
+      const targetProducts =
+        targeting.targetProducts ?? targeting.products ?? [];
+
+      for (const targetProductId of targetProducts) {
+        const sanitizedTarget = targetProductId?.trim();
+        if (!sanitizedTarget) continue;
+
+        for (const productId of products) {
+          bids.push({
+            bidId: `bid_${nanoid(12)}`,
+            campaignId,
+            targetType: "asin",
+            targetValue: sanitizedTarget,
+            bidAmount: defaultBid,
+            productId,
+            status: "active",
+            createdAt: new Date(),
+            orgId,
+          });
+        }
+      }
+    } else if (targeting.type === "automatic") {
+      // Automatic targeting (match all relevant searches)
+      // Generate bids for product's category and auto-discovered keywords
+      const { getDatabase } = await import("@/lib/mongodb-unified");
+      const db = await getDatabase();
+
+      for (const productId of products) {
+        const product = await db
+          .collection("souq_products")
+          .findOne({ fsin: productId, orgId });
+
+        if (product) {
+          // Category bid
+          bids.push({
+            bidId: `bid_${nanoid(12)}`,
+            campaignId,
+            targetType: "category",
+            targetValue: product.category,
+            bidAmount: defaultBid,
+            productId,
+            status: "active",
+            createdAt: new Date(),
+            orgId,
+          });
+
+          // Brand keyword bid
+          if (product.brand) {
+            bids.push({
+              bidId: `bid_${nanoid(12)}`,
+              campaignId,
+              targetType: "keyword",
+              targetValue: product.brand.toLowerCase(),
+              matchType: "phrase",
+              bidAmount: defaultBid,
+              productId,
+              status: "active",
+              createdAt: new Date(),
+              orgId,
+            });
+          }
+        }
+      }
+    }
+
+    return bids;
+  }
+
+  static async getPerformanceReport(params: {
+    sellerId: string;
+    orgId: string; // Required for tenant isolation (STRICT v4.1)
+    campaignId?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<{
+    timeseries: Array<{
+      date: string;
+      impressions: number;
+      clicks: number;
+      conversions: number;
+      spend: number;
+    }>;
+    keywords: Array<{
+      keyword: string;
+      campaignName: string;
+      impressions: number;
+      clicks: number;
+      ctr: number;
+      avgCpc: number;
+      spend: number;
+      conversions: number;
+      acos: number;
+      roas: number;
+    }>;
+    products: Array<{
+      productId: string;
+      productName: string;
+      campaignName: string;
+      impressions: number;
+      clicks: number;
+      ctr: number;
+      conversions: number;
+      revenue: number;
+      acos: number;
+    }>;
+  }> {
+    const { getDatabase } = await import("@/lib/mongodb-unified");
+    const db = await getDatabase();
+
+    const now = new Date();
+    const defaultStart = new Date(now);
+    defaultStart.setDate(defaultStart.getDate() - 7);
+
+    const parseDate = (value?: string, fallback?: Date) => {
+      if (!value) return fallback ? new Date(fallback) : undefined;
+      const parsed = new Date(value);
+      return isNaN(parsed.getTime())
+        ? fallback
+          ? new Date(fallback)
+          : undefined
+        : parsed;
+    };
+
+    let start = parseDate(params.startDate, defaultStart) ?? defaultStart;
+    let end = parseDate(params.endDate, now) ?? now;
+
+    if (start > end) {
+      const tmp = start;
+      start = end;
+      end = tmp;
+    }
+
+    // 🔐 STRICT v4.1: All queries must include orgId for tenant isolation
+    if (!params.orgId) {
+      throw new Error('orgId is required for getPerformanceReport (STRICT v4.1 tenant isolation)');
+    }
+    const campaignQuery: Record<string, unknown> = {
+      sellerId: params.sellerId,
+      orgId: params.orgId, // Required for tenant isolation
+    };
+    if (params.campaignId) {
+      campaignQuery.campaignId = params.campaignId;
+    }
+
+    const campaigns = await db
+      .collection("souq_campaigns")
+      .find(campaignQuery)
+      .toArray();
+
+    if (campaigns.length === 0) {
+      return { timeseries: [], keywords: [], products: [] };
+    }
+
+    const campaignIds = campaigns.map((c) => c.campaignId);
+    const campaignNameMap = new Map(
+      campaigns.map((c) => [c.campaignId, c.name]),
+    );
+
+    const bids = await db
+      .collection("souq_ad_bids")
+      .find({ campaignId: { $in: campaignIds }, orgId: params.orgId })
+      .toArray();
+
+    if (bids.length === 0) {
+      return { timeseries: [], keywords: [], products: [] };
+    }
+
+    const bidIds = bids.map((b) => b.bidId);
+    const rawStats = await db
+      .collection("souq_ad_stats")
+      .find({ bidId: { $in: bidIds }, orgId: params.orgId })
+      .toArray();
+
+    const stats = rawStats.map((stat: Record<string, unknown>) => ({
+      bidId: String(stat.bidId ?? ""),
+      impressions: typeof stat.impressions === "number" ? stat.impressions : 0,
+      clicks: typeof stat.clicks === "number" ? stat.clicks : 0,
+      spend: typeof stat.spend === "number" ? stat.spend : 0,
+      conversions: typeof stat.conversions === "number" ? stat.conversions : 0,
+      revenue: typeof stat.revenue === "number" ? stat.revenue : 0,
+    }));
+
+    const statsMap = new Map(stats.map((stat) => [stat.bidId, stat]));
+
+    const keywordData = bids
+      .filter((bid) => bid.targetType === "keyword")
+      .map((bid) => {
+        const stat = statsMap.get(bid.bidId);
+        const impressions = stat?.impressions ?? 0;
+        const clicks = stat?.clicks ?? 0;
+        const spend = stat?.spend ?? 0;
+        const conversions = stat?.conversions ?? 0;
+        const revenue = stat?.revenue ?? 0;
+        return {
+          keyword: bid.targetValue,
+          campaignName: campaignNameMap.get(bid.campaignId) || bid.campaignId,
+          impressions,
+          clicks,
+          ctr: impressions > 0 ? (clicks / impressions) * 100 : 0,
+          avgCpc: clicks > 0 ? spend / clicks : 0,
+          spend,
+          conversions,
+          acos: revenue > 0 ? (spend / revenue) * 100 : 0,
+          roas: spend > 0 ? revenue / spend : 0,
+        };
+      })
+      .sort((a, b) => b.impressions - a.impressions);
+
+    const productBids = bids.filter(
+      (bid) => bid.targetType === "product" || bid.targetType === "asin",
+    );
+    const productFsins = Array.from(
+      new Set(productBids.map((b) => b.productId).filter(Boolean)),
+    );
+
+    let productNameMap: Map<string, string> = new Map();
+    if (productFsins.length > 0) {
+      const products = await db
+        .collection("souq_products")
+        .find(
+          { fsin: { $in: productFsins }, orgId: params.orgId },
+          { projection: { fsin: 1, title: 1, name: 1 } },
+        )
+        .toArray();
+      productNameMap = new Map(
+        products.map((product) => [
+          product.fsin,
+          product.title || product.name || product.fsin,
+        ]),
+      );
+    }
+
+    const productData = productBids
+      .map((bid) => {
+        const stat = statsMap.get(bid.bidId);
+        const impressions = stat?.impressions ?? 0;
+        const clicks = stat?.clicks ?? 0;
+        const conversions = stat?.conversions ?? 0;
+        const revenue = stat?.revenue ?? 0;
+        const spend = stat?.spend ?? 0;
+        return {
+          productId: bid.productId,
+          productName: productNameMap.get(bid.productId) || bid.productId,
+          campaignName: campaignNameMap.get(bid.campaignId) || bid.campaignId,
+          impressions,
+          clicks,
+          ctr: impressions > 0 ? (clicks / impressions) * 100 : 0,
+          conversions,
+          revenue,
+          acos: revenue > 0 ? (spend / revenue) * 100 : 0,
+        };
+      })
+      .sort((a, b) => b.impressions - a.impressions);
+
+    const match: Record<string, unknown> = {
+      campaignId: { $in: campaignIds },
+      orgId: params.orgId, // Required for tenant isolation (STRICT v4.1)
+      timestamp: {
+        $gte: start,
+        $lte: end,
+      },
+    };
+
+    const timeseries = (await db
+      .collection("souq_ad_events")
+      .aggregate([
+        { $match: match },
+        {
+          $project: {
+            eventType: 1,
+            cpc: 1,
+            day: {
+              $dateToString: {
+                format: "%Y-%m-%d",
+                date: "$timestamp",
+                timezone: "UTC",
+              },
+            },
+          },
+        },
+        {
+          $group: {
+            _id: { day: "$day", type: "$eventType" },
+            count: { $sum: 1 },
+            spend: {
+              $sum: {
+                $cond: [{ $eq: ["$eventType", "click"] }, "$cpc", 0],
+              },
+            },
+          },
+        },
+        {
+          $group: {
+            _id: "$_id.day",
+            impressions: {
+              $sum: {
+                $cond: [{ $eq: ["$_id.type", "impression"] }, "$count", 0],
+              },
+            },
+            clicks: {
+              $sum: {
+                $cond: [{ $eq: ["$_id.type", "click"] }, "$count", 0],
+              },
+            },
+            conversions: {
+              $sum: {
+                $cond: [{ $eq: ["$_id.type", "conversion"] }, "$count", 0],
+              },
+            },
+            spend: {
+              $sum: {
+                $cond: [{ $eq: ["$_id.type", "click"] }, "$spend", 0],
+              },
+            },
+          },
+        },
+        { $sort: { _id: 1 } },
+        {
+          $project: {
+            _id: 0,
+            date: "$_id",
+            impressions: 1,
+            clicks: 1,
+            conversions: 1,
+            spend: 1,
+          },
+        },
+      ])
+      .toArray()) as Array<{
+      date: string;
+      impressions: number;
+      clicks: number;
+      conversions: number;
+      spend: number;
+    }>;
+
+    return {
+      timeseries,
+      keywords: keywordData,
+      products: productData,
+    };
+  }
+}
+
+]]>
+</file>
+
+<file path="services/souq/analytics/analytics-service.ts">
+<![CDATA[
+/**
+ * Analytics Service
+ * Provides seller analytics and insights for Souq Marketplace
+ * - Sales metrics (revenue, orders, conversion)
+ * - Product performance (top sellers, views, ratings)
+ * - Customer insights (acquisition, retention, geography)
+ * - Traffic analytics (sources, engagement, bounce rate)
+ */
+
+import { connectDb } from "@/lib/mongodb-unified";
+import { SouqOrder } from "@/server/models/souq/Order";
+import type { IOrder } from "@/server/models/souq/Order";
+import { SouqProduct } from "@/server/models/souq/Product";
+import mongoose from "mongoose";
+import { buildSouqOrgFilter } from "@/services/souq/org-scope";
+
+type SouqOrderItem = IOrder["items"][number] & {
+  price?: number;
+  sellerId?: IOrder["items"][number]["sellerId"] | string;
+};
+
+type SellerOrderSummary = {
+  createdAt: IOrder["createdAt"];
+  status?: IOrder["status"];
+  items?: SouqOrderItem[];
+};
+
+export interface ISalesMetrics {
+  revenue: {
+    total: number;
+    trend: number; // % change from previous period
+    daily: Array<{ date: string; amount: number }>;
+  };
+  orders: {
+    total: number;
+    trend: number;
+    completed: number;
+    cancelled: number;
+    returned: number;
+  };
+  conversion: {
+    rate: number;
+    trend: number;
+    views: number;
+    addToCart: number;
+    purchases: number;
+  };
+  averageOrderValue: {
+    current: number;
+    trend: number;
+  };
+  period: string;
+  calculatedAt: Date;
+}
+
+export interface IProductPerformance {
+  topProducts: Array<{
+    productId: string;
+    title: string;
+    revenue: number;
+    unitsSold: number;
+    views: number;
+    conversionRate: number;
+    averageRating: number;
+    reviewCount: number;
+  }>;
+  lowStock: Array<{
+    productId: string;
+    title: string;
+    currentStock: number;
+    averageDailySales: number;
+    daysUntilStockout: number;
+  }>;
+  underperforming: Array<{
+    productId: string;
+    title: string;
+    views: number;
+    conversionRate: number;
+    recommendedActions: string[];
+  }>;
+  period: string;
+}
+
+export interface ICustomerInsights {
+  acquisition: {
+    newCustomers: number;
+    trend: number;
+    sources: Array<{ source: string; count: number; percentage: number }>;
+  };
+  retention: {
+    repeatCustomerRate: number;
+    trend: number;
+    averageOrdersPerCustomer: number;
+    lifetimeValue: number;
+  };
+  geography: {
+    topCities: Array<{ city: string; customers: number; revenue: number }>;
+    topRegions: Array<{ region: string; customers: number; revenue: number }>;
+  };
+  demographics: {
+    ageGroups: Array<{ range: string; count: number; percentage: number }>;
+  };
+  period: string;
+}
+
+export interface ITrafficAnalytics {
+  pageViews: {
+    total: number;
+    trend: number;
+    daily: Array<{ date: string; views: number; uniqueVisitors: number }>;
+  };
+  sources: {
+    direct: number;
+    search: number;
+    social: number;
+    referral: number;
+    paid: number;
+  };
+  engagement: {
+    averageSessionDuration: number; // seconds
+    pagesPerSession: number;
+    bounceRate: number; // %
+  };
+  deviceBreakdown: {
+    desktop: number;
+    mobile: number;
+    tablet: number;
+  };
+  period: string;
+}
+
+class AnalyticsService {
+  /**
+   * Calculate comprehensive sales metrics
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   */
+  async getSalesMetrics(
+    orgId: string,
+    sellerId: string,
+    period:
+      | "last_7_days"
+      | "last_30_days"
+      | "last_90_days"
+      | "ytd" = "last_30_days",
+  ): Promise<ISalesMetrics> {
+    // 🔐 STRICT v4.1: orgId is ALWAYS required for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required for getSalesMetrics (STRICT v4.1 tenant isolation)');
+    }
+    await this.ensureConnection();
+    const { startDate, endDate, previousStartDate, previousEndDate } =
+      this.getPeriodDates(period);
+    const sellerObjectId = this.toObjectId(sellerId);
+    const sellerIdStr = sellerObjectId.toString();
+    const orgFilter = buildSouqOrgFilter(orgId) as Record<string, unknown>;
+
+    // Current period orders - 🔐 STRICT v4.1: Include org filter
+    const currentOrders = await SouqOrder.find({
+      "items.sellerId": sellerObjectId,
+      createdAt: { $gte: startDate, $lte: endDate },
+      ...orgFilter,
+    });
+
+    // Previous period orders for trend calculation - 🔐 STRICT v4.1: Include org filter
+    const previousOrders = await SouqOrder.find({
+      "items.sellerId": sellerObjectId,
+      createdAt: { $gte: previousStartDate, $lt: previousEndDate },
+      ...orgFilter,
+    });
+
+    const currentRevenue = currentOrders.reduce(
+      (sum, order) =>
+        sum + this.calculateSellerOrderRevenue(order, sellerIdStr),
+      0,
+    );
+
+    const previousRevenue = previousOrders.reduce(
+      (sum, order) =>
+        sum + this.calculateSellerOrderRevenue(order, sellerIdStr),
+      0,
+    );
+
+    const revenueTrend = this.calculateTrend(currentRevenue, previousRevenue);
+
+    // Revenue by day
+    const dailyRevenue = this.groupByDay(
+      currentOrders,
+      sellerIdStr,
+      startDate,
+      endDate,
+    );
+
+    // Order statistics
+    const completedOrders = currentOrders.filter((order) =>
+      this.allSellerItemsDelivered(order, sellerIdStr),
+    ).length;
+    const cancelledOrders = currentOrders.filter((order) =>
+      this.hasSellerItemStatus(order, sellerIdStr, "cancelled"),
+    ).length;
+    const returnedOrders = currentOrders.filter((order) =>
+      this.hasSellerItemStatus(order, sellerIdStr, "returned"),
+    ).length;
+
+    const ordersTrend = this.calculateTrend(
+      currentOrders.length,
+      previousOrders.length,
+    );
+
+    // Conversion metrics (simplified - would integrate with real analytics)
+    const estimatedViews = currentOrders.length * 50; // Rough estimate: 1 order per 50 views
+    const estimatedAddToCart = currentOrders.length * 5; // 1 order per 5 carts
+
+    const conversionRate =
+      estimatedViews > 0 ? (currentOrders.length / estimatedViews) * 100 : 0;
+    const previousConversionRate =
+      previousOrders.length > 0
+        ? (previousOrders.length / (previousOrders.length * 50)) * 100
+        : 0;
+    const conversionTrend = this.calculateTrend(
+      conversionRate,
+      previousConversionRate,
+    );
+
+    // Average Order Value
+    const aov =
+      currentOrders.length > 0 ? currentRevenue / currentOrders.length : 0;
+    const previousAov =
+      previousOrders.length > 0 ? previousRevenue / previousOrders.length : 0;
+    const aovTrend = this.calculateTrend(aov, previousAov);
+
+    return {
+      revenue: {
+        total: currentRevenue,
+        trend: revenueTrend,
+        daily: dailyRevenue,
+      },
+      orders: {
+        total: currentOrders.length,
+        trend: ordersTrend,
+        completed: completedOrders,
+        cancelled: cancelledOrders,
+        returned: returnedOrders,
+      },
+      conversion: {
+        rate: conversionRate,
+        trend: conversionTrend,
+        views: estimatedViews,
+        addToCart: estimatedAddToCart,
+        purchases: currentOrders.length,
+      },
+      averageOrderValue: {
+        current: aov,
+        trend: aovTrend,
+      },
+      period,
+      calculatedAt: new Date(),
+    };
+  }
+
+  /**
+   * Get product performance analytics
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   */
+  async getProductPerformance(
+    orgId: string,
+    sellerId: string,
+    period: "last_7_days" | "last_30_days" | "last_90_days" = "last_30_days",
+  ): Promise<IProductPerformance> {
+    // 🔐 STRICT v4.1: orgId is ALWAYS required for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required for getProductPerformance (STRICT v4.1 tenant isolation)');
+    }
+    await this.ensureConnection();
+    const { startDate, endDate } = this.getPeriodDates(period);
+    const sellerObjectId = this.toObjectId(sellerId);
+    const sellerIdStr = sellerObjectId.toString();
+    const orgFilter = buildSouqOrgFilter(orgId) as Record<string, unknown>;
+
+    // Get all orders in period - 🔐 STRICT v4.1: Include org filter
+    const orders = await SouqOrder.find({
+      "items.sellerId": sellerObjectId,
+      createdAt: { $gte: startDate, $lte: endDate },
+      status: { $nin: ["cancelled", "refunded"] },
+      ...orgFilter,
+    });
+
+    // Aggregate product performance
+    const productStats = new Map<
+      string,
+      {
+        revenue: number;
+        unitsSold: number;
+        orders: number;
+      }
+    >();
+
+    orders.forEach((order) => {
+      const sellerItems = this.getSellerItems(order, sellerIdStr);
+      sellerItems.forEach((item) => {
+        const productId = item.productId?.toString();
+        if (!productId) return;
+        const existing = productStats.get(productId) || {
+          revenue: 0,
+          unitsSold: 0,
+          orders: 0,
+        };
+
+        productStats.set(productId, {
+          revenue: existing.revenue + this.getItemSubtotal(item),
+          unitsSold: existing.unitsSold + (item.quantity || 0),
+          orders: existing.orders + 1,
+        });
+      });
+    });
+
+    // Get product details - 🔐 STRICT v4.1: Include org filter
+    const productIdValues = Array.from(productStats.keys());
+    const productIds = productIdValues.map(
+      (id) => new mongoose.Types.ObjectId(id),
+    );
+    const products =
+      productIds.length > 0
+        ? await SouqProduct.find({
+            _id: { $in: productIds },
+            createdBy: sellerObjectId,
+            ...orgFilter,
+          })
+        : [];
+
+    // Build top products list
+    const topProducts = products
+      .map((product) => {
+        const stats = productStats.get(product._id.toString()) || {
+          revenue: 0,
+          unitsSold: 0,
+          orders: 0,
+        };
+        const views = stats.orders * 20; // Estimate: 1 order per 20 views
+        const conversionRate = views > 0 ? (stats.orders / views) * 100 : 0;
+
+        return {
+          productId: product._id.toString(),
+          title: product.title.en || product.title.ar || "Unknown",
+          revenue: stats.revenue,
+          unitsSold: stats.unitsSold,
+          views,
+          conversionRate,
+          averageRating: product.averageRating || 0,
+          reviewCount: product.reviewCount || 0,
+        };
+      })
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 10);
+
+    // Low stock alerts - Query SouqListing model for actual stock levels
+    const lowStock: Array<{
+      productId: string;
+      title: string;
+      currentStock: number;
+      averageDailySales: number;
+      daysUntilStockout: number;
+    }> = [];
+
+    // Query listings for stock data
+    const SouqListing = (await import("@/server/models/souq/Listing")).default;
+    const alertStartDate = new Date();
+    alertStartDate.setDate(
+      alertStartDate.getDate() -
+        (period === "last_7_days" ? 7 : period === "last_90_days" ? 90 : 30),
+    );
+
+    // 🔐 STRICT v4.1: Org-scope the listing query to prevent cross-tenant reads
+    const listingOrgFilter = buildSouqOrgFilter(orgId);
+    const listings = await SouqListing.find({
+      sellerId,
+      status: "active",
+      stockQuantity: { $lte: 10 }, // Low stock threshold
+      ...listingOrgFilter,
+    } as mongoose.FilterQuery<typeof SouqListing>).select("productId stockQuantity");
+
+    for (const listing of listings) {
+      const product = products.find(
+        (p) => p._id.toString() === listing.productId.toString(),
+      );
+      if (product) {
+        const stats = productStats.get(product._id.toString()) || {
+          revenue: 0,
+          unitsSold: 0,
+          orders: 0,
+        };
+        const daysRange =
+          period === "last_7_days" ? 7 : period === "last_90_days" ? 90 : 30;
+        const averageDailySales = stats.unitsSold / Math.max(daysRange, 1);
+        const daysUntilStockout =
+          averageDailySales > 0
+            ? Math.floor(listing.stockQuantity / averageDailySales)
+            : 999;
+
+        if (daysUntilStockout <= 7) {
+          // Alert if < 7 days of stock
+          lowStock.push({
+            productId: product._id.toString(),
+            title: product.title.en || product.title.ar || "Unknown",
+            currentStock: listing.stockQuantity,
+            averageDailySales,
+            daysUntilStockout,
+          });
+        }
+      }
+    }
+
+    // Identify underperforming products (low conversion)
+    const underperforming = products
+      .map((product) => {
+        const stats = productStats.get(product._id.toString()) || {
+          revenue: 0,
+          unitsSold: 0,
+          orders: 0,
+        };
+        const views = stats.orders * 20;
+        const conversionRate = views > 0 ? (stats.orders / views) * 100 : 0;
+
+        const recommendations: string[] = [];
+
+        if (conversionRate < 2) recommendations.push("Improve product images");
+        if (!product.description || typeof product.description === "object")
+          recommendations.push("Add detailed description");
+
+        return {
+          productId: product._id.toString(),
+          title: product.title.en || product.title.ar || "Unknown",
+          views,
+          conversionRate,
+          recommendedActions: recommendations,
+        };
+      })
+      .filter((p) => p.conversionRate < 3 && p.recommendedActions.length > 0)
+      .sort((a, b) => a.conversionRate - b.conversionRate)
+      .slice(0, 5);
+
+    return {
+      topProducts,
+      lowStock,
+      underperforming,
+      period,
+    };
+  }
+
+  /**
+   * Get customer insights and demographics
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   */
+  async getCustomerInsights(
+    orgId: string,
+    sellerId: string,
+    period: "last_7_days" | "last_30_days" | "last_90_days" = "last_30_days",
+  ): Promise<ICustomerInsights> {
+    // 🔐 STRICT v4.1: orgId is ALWAYS required for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required for getCustomerInsights (STRICT v4.1 tenant isolation)');
+    }
+    await this.ensureConnection();
+    const { startDate, endDate, previousStartDate, previousEndDate } =
+      this.getPeriodDates(period);
+    const sellerObjectId = this.toObjectId(sellerId);
+    const sellerIdStr = sellerObjectId.toString();
+    const orgFilter = buildSouqOrgFilter(orgId) as Record<string, unknown>;
+
+    // Get orders for current and previous period - 🔐 STRICT v4.1: Include org filter
+    const currentOrders = await SouqOrder.find({
+      "items.sellerId": sellerObjectId,
+      createdAt: { $gte: startDate, $lte: endDate },
+      ...orgFilter,
+    });
+
+    const previousOrders = await SouqOrder.find({
+      "items.sellerId": sellerObjectId,
+      createdAt: { $gte: previousStartDate, $lt: previousEndDate },
+      ...orgFilter,
+    });
+
+    // Customer acquisition
+    const currentCustomerIds = new Set(
+      currentOrders.map((o) => o.customerId.toString()),
+    );
+    const previousCustomerIds = new Set(
+      previousOrders.map((o) => o.customerId.toString()),
+    );
+
+    const newCustomers = Array.from(currentCustomerIds).filter(
+      (id) => !previousCustomerIds.has(id),
+    ).length;
+    const previousNewCustomers = previousCustomerIds.size;
+    const acquisitionTrend = this.calculateTrend(
+      newCustomers,
+      previousNewCustomers,
+    );
+
+    // Acquisition sources (simplified - would integrate with real analytics)
+    const sources = [
+      {
+        source: "Direct",
+        count: Math.floor(newCustomers * 0.4),
+        percentage: 40,
+      },
+      {
+        source: "Search",
+        count: Math.floor(newCustomers * 0.3),
+        percentage: 30,
+      },
+      {
+        source: "Social Media",
+        count: Math.floor(newCustomers * 0.2),
+        percentage: 20,
+      },
+      {
+        source: "Referral",
+        count: Math.floor(newCustomers * 0.1),
+        percentage: 10,
+      },
+    ];
+
+    // Retention metrics
+    const repeatCustomers = Array.from(currentCustomerIds).filter((id) =>
+      previousCustomerIds.has(id),
+    ).length;
+    const repeatCustomerRate =
+      currentCustomerIds.size > 0
+        ? (repeatCustomers / currentCustomerIds.size) * 100
+        : 0;
+    const previousRepeatRate =
+      previousCustomerIds.size > 0
+        ? (previousOrders.filter((o) =>
+            previousCustomerIds.has(o.customerId.toString()),
+          ).length /
+            previousCustomerIds.size) *
+          100
+        : 0;
+    const retentionTrend = this.calculateTrend(
+      repeatCustomerRate,
+      previousRepeatRate,
+    );
+
+    const averageOrdersPerCustomer =
+      currentCustomerIds.size > 0
+        ? currentOrders.length / currentCustomerIds.size
+        : 0;
+    const totalRevenue = currentOrders.reduce(
+      (sum, order) =>
+        sum + this.calculateSellerOrderRevenue(order, sellerIdStr),
+      0,
+    );
+    const lifetimeValue =
+      currentCustomerIds.size > 0 ? totalRevenue / currentCustomerIds.size : 0;
+
+    // Geography (simplified - would use real location data)
+    const topCities = [
+      {
+        city: "Riyadh",
+        customers: Math.floor(currentCustomerIds.size * 0.35),
+        revenue: totalRevenue * 0.35,
+      },
+      {
+        city: "Jeddah",
+        customers: Math.floor(currentCustomerIds.size * 0.25),
+        revenue: totalRevenue * 0.25,
+      },
+      {
+        city: "Dammam",
+        customers: Math.floor(currentCustomerIds.size * 0.15),
+        revenue: totalRevenue * 0.15,
+      },
+      {
+        city: "Mecca",
+        customers: Math.floor(currentCustomerIds.size * 0.12),
+        revenue: totalRevenue * 0.12,
+      },
+      {
+        city: "Medina",
+        customers: Math.floor(currentCustomerIds.size * 0.13),
+        revenue: totalRevenue * 0.13,
+      },
+    ];
+
+    const topRegions = [
+      {
+        region: "Central",
+        customers: Math.floor(currentCustomerIds.size * 0.4),
+        revenue: totalRevenue * 0.4,
+      },
+      {
+        region: "Western",
+        customers: Math.floor(currentCustomerIds.size * 0.35),
+        revenue: totalRevenue * 0.35,
+      },
+      {
+        region: "Eastern",
+        customers: Math.floor(currentCustomerIds.size * 0.2),
+        revenue: totalRevenue * 0.2,
+      },
+      {
+        region: "Northern",
+        customers: Math.floor(currentCustomerIds.size * 0.05),
+        revenue: totalRevenue * 0.05,
+      },
+    ];
+
+    // Demographics (simplified)
+    const ageGroups = [
+      {
+        range: "18-24",
+        count: Math.floor(currentCustomerIds.size * 0.15),
+        percentage: 15,
+      },
+      {
+        range: "25-34",
+        count: Math.floor(currentCustomerIds.size * 0.35),
+        percentage: 35,
+      },
+      {
+        range: "35-44",
+        count: Math.floor(currentCustomerIds.size * 0.3),
+        percentage: 30,
+      },
+      {
+        range: "45-54",
+        count: Math.floor(currentCustomerIds.size * 0.15),
+        percentage: 15,
+      },
+      {
+        range: "55+",
+        count: Math.floor(currentCustomerIds.size * 0.05),
+        percentage: 5,
+      },
+    ];
+
+    return {
+      acquisition: {
+        newCustomers,
+        trend: acquisitionTrend,
+        sources,
+      },
+      retention: {
+        repeatCustomerRate,
+        trend: retentionTrend,
+        averageOrdersPerCustomer,
+        lifetimeValue,
+      },
+      geography: {
+        topCities,
+        topRegions,
+      },
+      demographics: {
+        ageGroups,
+      },
+      period,
+    };
+  }
+
+  /**
+   * Get traffic and engagement analytics
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   */
+  async getTrafficAnalytics(
+    orgId: string,
+    sellerId: string,
+    period: "last_7_days" | "last_30_days" | "last_90_days" = "last_30_days",
+  ): Promise<ITrafficAnalytics> {
+    // 🔐 STRICT v4.1: orgId is ALWAYS required for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required for getTrafficAnalytics (STRICT v4.1 tenant isolation)');
+    }
+    await this.ensureConnection();
+    const { startDate, endDate, previousStartDate, previousEndDate } =
+      this.getPeriodDates(period);
+    const sellerObjectId = this.toObjectId(sellerId);
+    const orgFilter = buildSouqOrgFilter(orgId) as Record<string, unknown>;
+
+    // Get orders to estimate traffic (in production, would use real analytics data) - 🔐 STRICT v4.1: Include org filter
+    const currentOrders = await SouqOrder.find({
+      "items.sellerId": sellerObjectId,
+      createdAt: { $gte: startDate, $lte: endDate },
+      ...orgFilter,
+    });
+
+    const previousOrders = await SouqOrder.find({
+      "items.sellerId": sellerObjectId,
+      createdAt: { $gte: previousStartDate, $lt: previousEndDate },
+      ...orgFilter,
+    });
+
+    // Estimate page views (rough approximation)
+    const estimatedViews = currentOrders.length * 30; // 1 order per 30 views
+    const previousViews = previousOrders.length * 30;
+    const viewsTrend = this.calculateTrend(estimatedViews, previousViews);
+
+    // Daily page views
+    const days = Math.ceil(
+      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+    );
+    const dailyViews = [];
+    const viewsPerDay = Math.floor(estimatedViews / days);
+
+    for (let i = 0; i < days; i++) {
+      const date = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
+      dailyViews.push({
+        date: date.toISOString().split("T")[0],
+        views: viewsPerDay + Math.floor(Math.random() * viewsPerDay * 0.2), // Add variance
+        uniqueVisitors: Math.floor(viewsPerDay * 0.6), // 60% unique visitors
+      });
+    }
+
+    // Traffic sources
+    const sources = {
+      direct: Math.floor(estimatedViews * 0.35),
+      search: Math.floor(estimatedViews * 0.3),
+      social: Math.floor(estimatedViews * 0.2),
+      referral: Math.floor(estimatedViews * 0.1),
+      paid: Math.floor(estimatedViews * 0.05),
+    };
+
+    // Engagement metrics
+    const engagement = {
+      averageSessionDuration: 180 + Math.floor(Math.random() * 120), // 3-5 minutes
+      pagesPerSession: 3.5 + Math.random() * 1.5, // 3.5-5 pages
+      bounceRate: 35 + Math.floor(Math.random() * 15), // 35-50%
+    };
+
+    // Device breakdown
+    const deviceBreakdown = {
+      desktop: Math.floor(estimatedViews * 0.4),
+      mobile: Math.floor(estimatedViews * 0.5),
+      tablet: Math.floor(estimatedViews * 0.1),
+    };
+
+    return {
+      pageViews: {
+        total: estimatedViews,
+        trend: viewsTrend,
+        daily: dailyViews,
+      },
+      sources,
+      engagement,
+      deviceBreakdown,
+      period,
+    };
+  }
+
+  /**
+   * Get complete analytics dashboard data
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   */
+  async getDashboard(
+    orgId: string,
+    sellerId: string,
+    period:
+      | "last_7_days"
+      | "last_30_days"
+      | "last_90_days"
+      | "ytd" = "last_30_days",
+  ) {
+    // 🔐 STRICT v4.1: orgId is ALWAYS required for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required for getDashboard (STRICT v4.1 tenant isolation)');
+    }
+    const [sales, products, customers, traffic] = await Promise.all([
+      this.getSalesMetrics(orgId, sellerId, period),
+      this.getProductPerformance(
+        orgId,
+        sellerId,
+        period === "ytd" ? "last_90_days" : period,
+      ),
+      this.getCustomerInsights(
+        orgId,
+        sellerId,
+        period === "ytd" ? "last_90_days" : period,
+      ),
+      this.getTrafficAnalytics(
+        orgId,
+        sellerId,
+        period === "ytd" ? "last_90_days" : period,
+      ),
+    ]);
+
+    return {
+      sales,
+      products,
+      customers,
+      traffic,
+      period,
+      generatedAt: new Date(),
+    };
+  }
+
+  /**
+   * Calculate percentage trend
+   */
+  private calculateTrend(current: number, previous: number): number {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return ((current - previous) / previous) * 100;
+  }
+
+  private async ensureConnection(): Promise<void> {
+    await connectDb();
+  }
+
+  private toObjectId(id: string): mongoose.Types.ObjectId {
+    return new mongoose.Types.ObjectId(id);
+  }
+
+  /**
+   * Get period date ranges
+   */
+  private getPeriodDates(
+    period: "last_7_days" | "last_30_days" | "last_90_days" | "ytd",
+  ) {
+    const now = new Date();
+    let startDate: Date;
+    const endDate = now;
+
+    switch (period) {
+      case "last_7_days":
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case "last_30_days":
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case "last_90_days":
+        startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        break;
+      case "ytd":
+        startDate = new Date(now.getFullYear(), 0, 1); // Jan 1st
+        break;
+      default:
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    }
+
+    // Calculate previous period
+    const periodLength = endDate.getTime() - startDate.getTime();
+    const previousEndDate = new Date(startDate.getTime() - 1);
+    const previousStartDate = new Date(
+      previousEndDate.getTime() - periodLength,
+    );
+
+    return {
+      startDate,
+      endDate,
+      previousStartDate,
+      previousEndDate,
+    };
+  }
+
+  /**
+   * Group orders by day for charting
+   */
+  private groupByDay(
+    orders: SellerOrderSummary[],
+    sellerIdStr: string,
+    startDate: Date,
+    endDate: Date,
+  ) {
+    const days = Math.ceil(
+      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+    );
+    const dailyData: Array<{ date: string; amount: number }> = [];
+
+    for (let i = 0; i < days; i++) {
+      const date = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
+      const dateStr = date.toISOString().split("T")[0];
+
+      const dayOrders = orders.filter((order) => {
+        const orderDate = new Date(order.createdAt).toISOString().split("T")[0];
+        return orderDate === dateStr;
+      });
+
+      const amount = dayOrders.reduce(
+        (sum, order) =>
+          sum + this.calculateSellerOrderRevenue(order, sellerIdStr),
+        0,
+      );
+
+      dailyData.push({ date: dateStr, amount });
+    }
+
+    return dailyData;
+  }
+
+  private getSellerItems(
+    order: SellerOrderSummary,
+    sellerIdStr: string,
+  ): SouqOrderItem[] {
+    if (!Array.isArray(order.items)) return [];
+    return order.items.filter((item): item is SouqOrderItem => {
+      const rawSellerId = item?.sellerId;
+      if (!rawSellerId) return false;
+      const value =
+        typeof rawSellerId === "string" ? rawSellerId : rawSellerId.toString();
+      return value === sellerIdStr;
+    });
+  }
+
+  private getItemSubtotal(item: SouqOrderItem): number {
+    if (typeof item.subtotal === "number") return item.subtotal;
+    const price =
+      typeof item.pricePerUnit === "number"
+        ? item.pricePerUnit
+        : typeof item.price === "number"
+          ? item.price
+          : 0;
+    const quantity = typeof item.quantity === "number" ? item.quantity : 0;
+    return price * quantity;
+  }
+
+  private calculateSellerOrderRevenue(
+    order: SellerOrderSummary,
+    sellerIdStr: string,
+  ): number {
+    const sellerItems = this.getSellerItems(order, sellerIdStr);
+    return sellerItems
+      .filter((item) => !this.isCancelledOrReturned(item, order.status))
+      .reduce((sum, item) => sum + this.getItemSubtotal(item), 0);
+  }
+
+  private hasSellerItemStatus(
+    order: SellerOrderSummary,
+    sellerIdStr: string,
+    statuses: string | string[],
+  ): boolean {
+    const targetStatuses = Array.isArray(statuses) ? statuses : [statuses];
+    const normalizedTargets = targetStatuses.map((status) =>
+      status.toLowerCase(),
+    );
+    return this.getSellerItems(order, sellerIdStr).some((item) => {
+      const itemStatus = this.normalizeItemStatus(item.status, order.status);
+      return normalizedTargets.includes(itemStatus);
+    });
+  }
+
+  private allSellerItemsDelivered(
+    order: SellerOrderSummary,
+    sellerIdStr: string,
+  ): boolean {
+    const sellerItems = this.getSellerItems(order, sellerIdStr);
+    if (sellerItems.length === 0) return false;
+    return sellerItems.every(
+      (item) =>
+        this.normalizeItemStatus(item.status, order.status) === "delivered",
+    );
+  }
+
+  private isCancelledOrReturned(
+    item: SouqOrderItem,
+    orderStatus?: IOrder["status"],
+  ): boolean {
+    const status = this.normalizeItemStatus(item.status, orderStatus);
+    return status === "cancelled" || status === "returned";
+  }
+
+  private normalizeItemStatus(itemStatus?: unknown, fallback?: string): string {
+    const status =
+      typeof itemStatus === "string" && itemStatus.length > 0
+        ? itemStatus
+        : (fallback ?? "");
+    return status.toLowerCase();
+  }
+}
+
+export const analyticsService = new AnalyticsService();
+
+]]>
+</file>
+
+<file path="services/souq/auto-repricer-service.ts">
+<![CDATA[
+/**
+ * Auto-Repricer Service - Automatically adjusts seller prices to win Buy Box
+ * @module services/souq/auto-repricer-service
+ */
+
+import { SouqListing } from "@/server/models/souq/Listing";
+import { SouqSeller } from "@/server/models/souq/Seller";
+import { BuyBoxService } from "./buybox-service";
+import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
+import { logger } from "@/lib/logger";
+import { Types } from "mongoose";
+
+interface RepricerRule {
+  enabled: boolean;
+  minPrice: number;
+  maxPrice: number;
+  targetPosition: "win" | "competitive"; // 'win' = always try to win, 'competitive' = stay within range
+  undercut: number; // Amount to undercut competitor (e.g., 0.01 SAR)
+  protectMargin: boolean; // Don't drop below minPrice even if losing Buy Box
+}
+
+interface RepricerSettings {
+  enabled: boolean;
+  rules: Record<string, RepricerRule>; // Key = listingId or FSIN
+  defaultRule?: RepricerRule;
+}
+
+type OfferIdentifier = {
+  id: string;
+  price: number;
+};
+
+const TARGET_POSITIONS = new Set<RepricerRule["targetPosition"]>([
+  "win",
+  "competitive",
+]);
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function normalizeListingId(value: unknown): string | null {
+  if (typeof value === "string" && value.length > 0) {
+    return value;
+  }
+
+  if (!isPlainObject(value)) {
+    return null;
+  }
+
+  if (typeof value.id === "string" && value.id.length > 0) {
+    return value.id;
+  }
+
+  const rawId = value._id;
+  if (typeof rawId === "string" && rawId.length > 0) {
+    return rawId;
+  }
+  if (isPlainObject(rawId) && typeof rawId.toString === "function") {
+    return rawId.toString();
+  }
+
+  return null;
+}
+
+function toOfferIdentifier(value: unknown): OfferIdentifier | null {
+  if (!isPlainObject(value)) {
+    return null;
+  }
+  const id = normalizeListingId(value);
+  const priceValue = value.price;
+  if (id && typeof priceValue === "number" && Number.isFinite(priceValue)) {
+    return { id, price: priceValue };
+  }
+  return null;
+}
+
+function isRepricerRule(value: unknown): value is RepricerRule {
+  if (!isPlainObject(value)) {
+    return false;
+  }
+  const candidate = value as Partial<RepricerRule>;
+  return (
+    typeof candidate.enabled === "boolean" &&
+    typeof candidate.minPrice === "number" &&
+    typeof candidate.maxPrice === "number" &&
+    typeof candidate.undercut === "number" &&
+    typeof candidate.protectMargin === "boolean" &&
+    typeof candidate.targetPosition === "string" &&
+    TARGET_POSITIONS.has(
+      candidate.targetPosition as RepricerRule["targetPosition"],
+    )
+  );
+}
+
+function isRepricerSettings(value: unknown): value is RepricerSettings {
+  if (!isPlainObject(value)) {
+    return false;
+  }
+  const candidate = value as Partial<RepricerSettings>;
+  if (typeof candidate.enabled !== "boolean") {
+    return false;
+  }
+  if (!candidate.rules || !isPlainObject(candidate.rules)) {
+    return false;
+  }
+  const rulesRecord = candidate.rules as Record<string, unknown>;
+  if (!Object.values(rulesRecord).every(isRepricerRule)) {
+    return false;
+  }
+  if (candidate.defaultRule && !isRepricerRule(candidate.defaultRule)) {
+    return false;
+  }
+  return true;
+}
+
+export class AutoRepricerService {
+  /**
+   * Run auto-repricer for a single seller
+   * This is called by the background worker every 15 minutes
+   * @param sellerId - The seller ID to reprice
+   * @param orgId - 🔐 Required tenant context - prevents cross-tenant repricing
+   */
+  static async repriceSeller(sellerId: string, orgId: string): Promise<{
+    repriced: number;
+    errors: number;
+    listings: Array<{ listingId: string; oldPrice: number; newPrice: number }>;
+  }> {
+    // 🔐 Require orgId for tenant isolation
+    if (!orgId) {
+      throw new Error("orgId is required for auto-repricer to ensure tenant isolation");
+    }
+
+    const sellerObjectId = Types.ObjectId.isValid(sellerId)
+      ? new Types.ObjectId(sellerId)
+      : null;
+    const sellerQuery = [
+      sellerObjectId ? { _id: sellerObjectId } : null,
+      { sellerId },
+    ].filter(Boolean) as Array<Record<string, unknown>>;
+
+    // 🔐 Always scope seller query by orgId to prevent cross-tenant access
+    const seller = await SouqSeller.findOne({ 
+      $or: sellerQuery,
+      orgId, // 🔐 Tenant isolation
+    });
+    
+    // 🔐 REMOVED: Dangerous fallback `findOne()` that could pick any tenant's seller
+    // 🔐 REMOVED: Stub seller creation without orgId that violated multi-tenancy
+    if (!seller) {
+      logger.warn("[AutoRepricer] Seller not found in tenant", { sellerId, orgId });
+      return { repriced: 0, errors: 0, listings: [] };
+    }
+
+    // Check if seller has repricer enabled
+    const rawSettings = seller.autoRepricerSettings;
+    if (!isRepricerSettings(rawSettings) || !rawSettings.enabled) {
+      if (rawSettings && !isRepricerSettings(rawSettings)) {
+        logger.warn("[AutoRepricer] Seller has invalid settings; skipping", {
+          sellerId,
+        });
+      }
+      return { repriced: 0, errors: 0, listings: [] };
+    }
+    const settings = rawSettings;
+
+    // Get all active listings for this seller
+    // 🔐 Scope by orgId to prevent cross-tenant listing access
+    const listings = await SouqListing.find({
+      sellerId,
+      orgId, // 🔐 Tenant isolation
+      status: "active",
+      availableQuantity: { $gt: 0 },
+    });
+
+    const results: Array<{
+      listingId: string;
+      oldPrice: number;
+      newPrice: number;
+    }> = [];
+    let repriced = 0;
+    let errors = 0;
+
+    for (const listing of listings) {
+      try {
+        // Get rule for this listing (specific rule or default)
+        const rule = this.resolveRule(
+          settings,
+          listing._id.toString(),
+          listing.fsin,
+        );
+
+        if (!rule?.enabled) {
+          continue;
+        }
+
+        // Get current Buy Box winner
+        const rawWinner = await BuyBoxService.calculateBuyBoxWinner(
+          listing.fsin,
+          seller.orgId?.toString?.() ?? orgId,
+        );
+        const winner = toOfferIdentifier(rawWinner);
+
+        // Get all competing offers
+        const rawOffers = await BuyBoxService.getProductOffers(listing.fsin, {
+          condition: listing.condition,
+          orgId: seller.orgId?.toString?.() ?? orgId,
+        });
+        const offers = Array.isArray(rawOffers)
+          ? this.normalizeOffers(rawOffers)
+          : [];
+
+        // Calculate optimal price
+        const newPrice = this.calculateOptimalPrice(
+          listing.price,
+          winner,
+          offers,
+          rule,
+          listing._id.toString(),
+        );
+
+        // Only update if price changed
+        if (newPrice !== listing.price) {
+          const oldPrice = listing.price;
+          listing.price = newPrice;
+          listing.lastPriceChange = new Date();
+          await listing.save();
+
+          // Trigger Buy Box recalculation
+          await BuyBoxService.recalculateBuyBoxForProduct(
+            listing.fsin,
+            seller.orgId?.toString?.() ?? orgId,
+          );
+
+          // Track price history
+          const PriceHistory = (
+            await import("@/server/models/souq/PriceHistory")
+          ).default;
+          const change = newPrice - oldPrice;
+          const changePercent = (change / oldPrice) * 100;
+
+          // Calculate 7-day average sales before change
+          const SouqOrder = (await import("@/server/models/souq/Order"))
+            .default;
+          const sevenDaysAgo = new Date();
+          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+          // 🔐 SECURITY FIX: Scope order count by orgId
+          const recentOrders = await SouqOrder.countDocuments({
+            listingId: listing._id.toString(),
+            orgId,
+            createdAt: { $gte: sevenDaysAgo },
+            status: { $in: ["completed", "shipped", "delivered"] },
+          });
+
+          // 🔐 SECURITY FIX: Include orgId in price history
+          await PriceHistory.create({
+            listingId: listing._id.toString(),
+            sellerId,
+            orgId,
+            productId: listing.fsin,
+            oldPrice,
+            newPrice,
+            change,
+            changePercent,
+            reason: "auto_repricer",
+            competitorPrice: offers[0]?.price,
+            competitorListingId: offers[0]?.id,
+            autoRepricerRule: `${rule.targetPosition}-${rule.undercut}`,
+            salesBefore: recentOrders / 7, // Average per day
+            createdAt: new Date(),
+          });
+
+          // Log price change
+          await addJob(QUEUE_NAMES.NOTIFICATIONS, "price_change_notification", {
+            sellerId,
+            orgId, // 🔐 Use the validated orgId parameter
+            listingId: listing._id.toString(),
+            fsin: listing.fsin,
+            oldPrice,
+            newPrice,
+            reason: "auto_repricer",
+          });
+
+          results.push({
+            listingId: listing._id.toString(),
+            oldPrice,
+            newPrice,
+          });
+          repriced++;
+        }
+      } catch (_error) {
+        const error =
+          _error instanceof Error ? _error : new Error(String(_error));
+        void error;
+        logger.error("[AutoRepricer] Failed to reprice listing", error, {
+          sellerId,
+          listingId: listing._id.toString(),
+        });
+        errors++;
+      }
+    }
+
+    return { repriced, errors, listings: results };
+  }
+
+  /**
+   * Calculate optimal price based on competition and rules
+   */
+  private static calculateOptimalPrice(
+    currentPrice: number,
+    winner: OfferIdentifier | null,
+    offers: OfferIdentifier[],
+    rule: RepricerRule,
+    currentListingId: string,
+  ): number {
+    // If we're already the winner and target is 'competitive', no need to change
+    if (
+      winner &&
+      winner.id === currentListingId &&
+      rule.targetPosition === "competitive"
+    ) {
+      return currentPrice;
+    }
+
+    // Find lowest competing price (excluding our own listing)
+    const competingPrices = offers
+      .filter((offer) => offer.id !== currentListingId)
+      .map((offer) => offer.price)
+      .sort((a, b) => a - b);
+
+    if (competingPrices.length === 0) {
+      // No competition: raise price toward the configured maximum while respecting minimums.
+      const soloPrice = Math.max(rule.minPrice, rule.maxPrice);
+      return Math.round(soloPrice * 100) / 100;
+    }
+
+    const lowestCompetitorPrice = competingPrices[0];
+
+    let targetPrice: number;
+
+    if (rule.targetPosition === "win") {
+      // Try to win Buy Box by undercutting lowest competitor
+      targetPrice = lowestCompetitorPrice - rule.undercut;
+    } else {
+      // Stay competitive but don't necessarily win
+      // Price within 5% of lowest competitor
+      targetPrice = lowestCompetitorPrice * 1.05;
+    }
+
+    // Apply min/max constraints
+    targetPrice = Math.max(rule.minPrice, Math.min(rule.maxPrice, targetPrice));
+
+    // Protect margin: don't drop below minPrice even if losing
+    if (rule.protectMargin && targetPrice < rule.minPrice) {
+      targetPrice = rule.minPrice;
+    }
+
+    // Round to 2 decimal places
+    return Math.round(targetPrice * 100) / 100;
+  }
+
+  /**
+   * Enable auto-repricer for a seller
+   * @param sellerId - The seller ID
+   * @param settings - Repricer settings
+   * @param orgId - 🔐 Required tenant context
+   */
+  static async enableAutoRepricer(
+    sellerId: string,
+    settings: RepricerSettings,
+    orgId: string,
+  ): Promise<void> {
+    if (!orgId) {
+      throw new Error("orgId is required to enable auto-repricer");
+    }
+    
+    // 🔐 Scope by orgId to prevent cross-tenant modification
+    const seller = await SouqSeller.findOne({ _id: sellerId, orgId });
+    if (!seller) {
+      throw new Error("Seller not found in tenant");
+    }
+
+    if (!isRepricerSettings(settings)) {
+      throw new Error("Invalid repricer settings payload");
+    }
+
+    seller.autoRepricerSettings = settings;
+    await seller.save();
+
+    // Trigger immediate repricing with orgId
+    await this.repriceSeller(sellerId, orgId);
+  }
+
+  /**
+   * Disable auto-repricer for a seller
+   * @param sellerId - The seller ID
+   * @param orgId - 🔐 Required tenant context
+   */
+  static async disableAutoRepricer(sellerId: string, orgId: string): Promise<void> {
+    if (!orgId) {
+      throw new Error("orgId is required to disable auto-repricer");
+    }
+    
+    // 🔐 Scope by orgId to prevent cross-tenant modification
+    const seller = await SouqSeller.findOne({ _id: sellerId, orgId });
+    if (!seller) {
+      throw new Error("Seller not found in tenant");
+    }
+
+    const settings = isRepricerSettings(seller.autoRepricerSettings)
+      ? seller.autoRepricerSettings
+      : null;
+
+    if (settings) {
+      settings.enabled = false;
+      seller.autoRepricerSettings = settings;
+      await seller.save();
+    }
+  }
+
+  /**
+   * Update repricer rule for a specific listing
+   * @param sellerId - The seller ID
+   * @param listingId - The listing ID
+   * @param rule - The repricer rule
+   * @param orgId - 🔐 Required tenant context
+   */
+  static async updateListingRule(
+    sellerId: string,
+    listingId: string,
+    rule: RepricerRule,
+    orgId: string,
+  ): Promise<void> {
+    if (!orgId) {
+      throw new Error("orgId is required to update listing rule");
+    }
+    
+    // 🔐 Scope by orgId to prevent cross-tenant modification
+    const seller = await SouqSeller.findOne({ _id: sellerId, orgId });
+    if (!seller) {
+      throw new Error("Seller not found in tenant");
+    }
+
+    const settings = isRepricerSettings(seller.autoRepricerSettings)
+      ? seller.autoRepricerSettings
+      : {
+          enabled: true,
+          rules: {},
+        };
+
+    settings.rules[listingId] = rule;
+    seller.autoRepricerSettings = settings;
+    await seller.save();
+  }
+
+  /**
+   * Get repricer settings for a seller
+   * @param sellerId - The seller ID
+   * @param orgId - 🔐 Required tenant context
+   */
+  static async getRepricerSettings(
+    sellerId: string,
+    orgId: string,
+  ): Promise<RepricerSettings | null> {
+    if (!orgId) {
+      throw new Error("orgId is required to get repricer settings");
+    }
+    
+    // 🔐 Scope by orgId to prevent cross-tenant access
+    const seller = await SouqSeller.findOne({ _id: sellerId, orgId });
+    if (!seller) {
+      return null;
+    }
+
+    return isRepricerSettings(seller.autoRepricerSettings)
+      ? seller.autoRepricerSettings
+      : null;
+  }
+
+  /**
+   * Background job: Reprice all sellers with auto-repricer enabled for a specific tenant
+   * Called every 15 minutes by BullMQ worker
+   * @param orgId - 🔐 Required tenant context - if not provided, will process each tenant separately
+   */
+  static async repriceAllSellers(orgId?: string): Promise<{
+    total: number;
+    processed: number;
+    totalRepriced: number;
+    totalErrors: number;
+  }> {
+    // 🔐 If orgId provided, only process that tenant
+    // 🔐 If not provided, iterate per-tenant to maintain isolation
+    const baseFilter: Record<string, unknown> = {
+      "autoRepricerSettings.enabled": true,
+      status: "active",
+    };
+    
+    if (orgId) {
+      baseFilter.orgId = orgId;
+    }
+
+    const sellers = await SouqSeller.find(baseFilter);
+
+    let processed = 0;
+    let totalRepriced = 0;
+    let totalErrors = 0;
+
+    for (const seller of sellers) {
+      try {
+        // 🔐 Pass seller's orgId to maintain tenant isolation per-seller
+        const sellerOrgId = seller.orgId?.toString();
+        if (!sellerOrgId) {
+          logger.warn("[AutoRepricer] Skipping seller without orgId", {
+            sellerId: seller._id.toString(),
+          });
+          totalErrors++;
+          continue;
+        }
+        
+        const result = await this.repriceSeller(seller._id.toString(), sellerOrgId);
+        totalRepriced += result.repriced;
+        totalErrors += result.errors;
+        processed++;
+      } catch (_error) {
+        const error =
+          _error instanceof Error ? _error : new Error(String(_error));
+        void error;
+        logger.error("[AutoRepricer] Failed to reprice seller", error, {
+          sellerId: seller._id.toString(),
+        });
+        totalErrors++;
+      }
+    }
+
+    return {
+      total: sellers.length,
+      processed,
+      totalRepriced,
+      totalErrors,
+    };
+  }
+
+  /**
+   * Get price history for a listing
+   * 🔐 SECURITY: orgId required for tenant isolation
+   */
+  static async getPriceHistory(
+    listingId: string,
+    orgId: string,
+    days: number = 30,
+  ): Promise<Array<{ date: Date; price: number; reason: string }>> {
+    if (!orgId) {
+      throw new Error("orgId is required for tenant-scoped operation");
+    }
+
+    const PriceHistory = (await import("@/server/models/souq/PriceHistory"))
+      .default;
+
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // 🔐 SECURITY FIX: Scope price history by orgId
+    const history = await PriceHistory.find({
+      listingId,
+      orgId,
+      createdAt: { $gte: startDate },
+    })
+      .sort({ createdAt: 1 })
+      .select({ createdAt: 1, newPrice: 1, reason: 1 })
+      .lean<{ createdAt: Date; newPrice: number; reason: string }[]>()
+      .exec();
+
+    return history.map((entry) => ({
+      date: entry.createdAt,
+      price: entry.newPrice,
+      reason: entry.reason,
+    }));
+  }
+
+  /**
+   * Get competitor price analysis for a listing
+   */
+  static async getCompetitorAnalysis(
+    fsin: string,
+    orgId: string,
+  ): Promise<{
+    lowestPrice: number;
+    highestPrice: number;
+    averagePrice: number;
+    medianPrice: number;
+    totalOffers: number;
+    priceDistribution: Array<{ range: string; count: number }>;
+  }> {
+    if (!orgId) {
+      throw new Error("orgId is required for competitor analysis");
+    }
+    const rawOffers = await BuyBoxService.getProductOffers(fsin, {
+      orgId,
+    });
+    const offers = Array.isArray(rawOffers)
+      ? this.normalizeOffers(rawOffers)
+      : [];
+    const prices = offers.map((offer) => offer.price).sort((a, b) => a - b);
+
+    if (prices.length === 0) {
+      return {
+        lowestPrice: 0,
+        highestPrice: 0,
+        averagePrice: 0,
+        medianPrice: 0,
+        totalOffers: 0,
+        priceDistribution: [],
+      };
+    }
+
+    const lowestPrice = prices[0];
+    const highestPrice = prices[prices.length - 1];
+    const averagePrice =
+      prices.reduce((sum, price) => sum + price, 0) / prices.length;
+    const medianPrice = prices[Math.floor(prices.length / 2)];
+
+    // Calculate price distribution (buckets)
+    const range = highestPrice - lowestPrice;
+    const bucketSize = range / 5; // 5 buckets
+    const priceDistribution = [];
+
+    for (let i = 0; i < 5; i++) {
+      const min = lowestPrice + bucketSize * i;
+      const max = lowestPrice + bucketSize * (i + 1);
+      const count = prices.filter((p) => p >= min && p < max).length;
+      priceDistribution.push({
+        range: `${min.toFixed(2)} - ${max.toFixed(2)}`,
+        count,
+      });
+    }
+
+    return {
+      lowestPrice,
+      highestPrice,
+      averagePrice,
+      medianPrice,
+      totalOffers: prices.length,
+      priceDistribution,
+    };
+  }
+
+  private static resolveRule(
+    settings: RepricerSettings,
+    listingId: string,
+    fsin: string,
+  ): RepricerRule | null {
+    const rules = settings.rules || {};
+    return rules[listingId] || rules[fsin] || settings.defaultRule || null;
+  }
+
+  private static normalizeOffers(rawOffers: unknown[]): OfferIdentifier[] {
+    return rawOffers
+      .map(toOfferIdentifier)
+      .filter((offer): offer is OfferIdentifier => offer !== null);
+  }
+}
+
+]]>
+</file>
+
+<file path="services/souq/buybox-service.ts">
+<![CDATA[
+/**
+ * Buy Box Algorithm - Determines which seller wins the Buy Box for a product
+ * @module services/souq/buybox-service
+ */
+
+import { SouqListing, type IListing } from "@/server/models/souq/Listing";
+import { SouqSeller } from "@/server/models/souq/Seller";
+import type { ISeller } from "@/server/models/souq/Seller";
+import { buildSouqOrgFilter } from "@/services/souq/org-scope";
+import type { FilterQuery } from "mongoose";
+
+// Type for listing with populated sellerId (lean query result)
+interface IListingPopulated {
+  _id: unknown;
+  listingId: string;
+  sellerId: ISeller;
+  fsin: string;
+  price: number;
+  fulfillmentMethod: "fbf" | "fbm";
+  status: string;
+  buyBoxEligible: boolean;
+  availableQuantity: number;
+  metrics: {
+    orderCount: number;
+    cancelRate: number;
+    defectRate: number;
+    onTimeShipRate: number;
+    customerRating: number;
+    priceCompetitiveness: number;
+  };
+  condition?: string;
+}
+
+// Alias for clarity - BuyBoxCandidate is an IListingPopulated
+type BuyBoxCandidate = IListingPopulated;
+
+export class BuyBoxService {
+  /**
+   * Calculate Buy Box winner for a given FSIN
+   */
+  static async calculateBuyBoxWinner(
+    fsin: string,
+    orgId: string,
+  ): Promise<IListingPopulated | null> {
+    const orgFilter = buildSouqOrgFilter(orgId) as FilterQuery<IListing>;
+    const listings = await SouqListing.find({ fsin, ...orgFilter } as FilterQuery<IListing>)
+      .populate("sellerId")
+      .lean();
+
+    let typedListings = (listings as unknown as BuyBoxCandidate[]).filter(
+      (listing) =>
+        listing.status === "active" &&
+        listing.buyBoxEligible &&
+        listing.availableQuantity > 0,
+    );
+
+    if (typedListings.length === 0) {
+      const fallbackListings = await SouqListing.find({ fsin, ...orgFilter } as FilterQuery<IListing>)
+        .populate("sellerId")
+        .lean();
+      typedListings = (fallbackListings as unknown as BuyBoxCandidate[]).filter(
+        (listing) =>
+          listing.status === "active" &&
+          listing.buyBoxEligible !== false &&
+          (listing.availableQuantity ?? 0) > 0,
+      );
+      if (typedListings.length === 0) {
+        if (process.env.VITEST === "true") {
+          // orgId-lint-ignore: Test-only unscoped fallback for minimal test fixtures
+          const unscoped = await SouqListing.find({ fsin } as FilterQuery<IListing>)
+            .populate("sellerId")
+            .lean();
+          typedListings = (unscoped as unknown as BuyBoxCandidate[]).filter(
+            (listing) =>
+              listing.status === "active" &&
+              listing.buyBoxEligible !== false &&
+              (listing.availableQuantity ?? 0) > 0,
+          );
+        }
+      }
+      if (typedListings.length === 0) {
+        return null;
+      }
+    }
+
+    if (typedListings.length === 1) {
+      return typedListings[0];
+    }
+
+    const scoredListings = await Promise.all(
+      typedListings.map(async (listing) => {
+        const score = await this.calculateBuyBoxScore(listing, orgId);
+        return { listing, score };
+      }),
+    );
+
+    scoredListings.sort((a, b) => {
+      if (b.score !== a.score) {
+        return b.score - a.score;
+      }
+      // Both listings have price property from BuyBoxCandidate
+      return a.listing.price - b.listing.price;
+    });
+
+    return scoredListings[0].listing;
+  }
+
+  /**
+   * Calculate Buy Box score for a listing
+   */
+  private static async calculateBuyBoxScore(
+    candidate: BuyBoxCandidate,
+    orgId: string,
+  ): Promise<number> {
+    const { metrics, price, fulfillmentMethod, sellerId } = candidate;
+
+    let score = 0;
+
+    // 1. Price (35% weight)
+    const avgPrice = await this.getAveragePrice(candidate.fsin, orgId);
+    const priceScore =
+      avgPrice > 0 ? ((avgPrice - price) / avgPrice) * 100 : 50;
+    score += Math.max(0, Math.min(100, priceScore)) * 0.35;
+
+    // 2. On-Time Ship Rate (25% weight)
+    score += metrics.onTimeShipRate * 0.25;
+
+    // 3. Order Defect Rate (20% weight) - inverted
+    score += (100 - metrics.defectRate) * 0.2;
+
+    // 4. Customer Rating (10% weight)
+    score += (metrics.customerRating / 5) * 100 * 0.1;
+
+    // 5. Cancel Rate (10% weight) - inverted
+    score += (100 - metrics.cancelRate) * 0.1;
+
+    // Bonuses
+    if (fulfillmentMethod === "fbf") {
+      score += 5;
+    }
+
+    if (metrics.orderCount > 100) {
+      score += 3;
+    }
+
+    const sellerAccountHealth =
+      sellerId && typeof sellerId === "object" && "accountHealth" in sellerId
+        ? (sellerId as { accountHealth?: { status?: string } }).accountHealth
+        : undefined;
+
+    if (sellerAccountHealth?.status === "excellent") {
+      score += 2;
+    }
+
+    return Math.min(100, score);
+  }
+
+  /**
+   * Get average price for FSIN from active listings with stock
+   */
+  private static async getAveragePrice(fsin: string, orgId: string): Promise<number> {
+    const orgFilter = buildSouqOrgFilter(orgId) as FilterQuery<IListing>;
+    const result = await SouqListing.aggregate([
+      {
+        $match: {
+          fsin,
+          status: "active",
+          availableQuantity: { $gt: 0 },
+          ...orgFilter,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          avgPrice: { $avg: "$price" },
+        },
+      },
+    ]);
+
+    return result.length > 0 && result[0].avgPrice ? result[0].avgPrice : 0;
+  }
+
+  /**
+   * Update Buy Box eligibility for all listings of a seller
+   */
+  static async updateSellerListingsEligibility(
+    sellerId: string,
+    orgId: string,
+  ): Promise<void> {
+    const orgFilter = buildSouqOrgFilter(orgId) as FilterQuery<ISeller>;
+    const seller = await SouqSeller.findOne({
+      _id: sellerId,
+      ...orgFilter,
+    }).select("orgId");
+    if (!seller) {
+      return;
+    }
+    const sellerOrgId = orgId || (seller as { orgId?: unknown })?.orgId;
+    if (!sellerOrgId) {
+      return;
+    }
+
+    // Check if seller can compete in Buy Box (uses type-safe method)
+    const canCompete =
+      typeof (seller as { canCompeteInBuyBox?: () => boolean }).canCompeteInBuyBox ===
+      "function"
+        ? (seller as { canCompeteInBuyBox: () => boolean }).canCompeteInBuyBox()
+        : false;
+
+    const listings = await SouqListing.find({
+      sellerId,
+      status: "active",
+      ...(buildSouqOrgFilter(sellerOrgId as string) as FilterQuery<IListing>),
+    } as FilterQuery<IListing>);
+
+    for (const listing of listings) {
+      if (canCompete) {
+        // Check listing eligibility (uses type-safe method)
+        await listing.checkBuyBoxEligibility();
+      } else {
+        listing.buyBoxEligible = false;
+        listing.buyBoxScore = 0;
+      }
+      await listing.save();
+    }
+  }
+
+  /**
+   * Recalculate Buy Box for all listings of a product
+   */
+  static async recalculateBuyBoxForProduct(fsin: string, orgId: string): Promise<void> {
+    const orgFilter = buildSouqOrgFilter(orgId) as FilterQuery<IListing>;
+    const listings = await SouqListing.find({
+      fsin,
+      status: "active",
+      availableQuantity: { $gt: 0 },
+      ...orgFilter,
+    }).populate("sellerId");
+
+    for (const listing of listings) {
+      // Check listing eligibility (uses type-safe method)
+      await listing.checkBuyBoxEligibility();
+      await listing.save();
+    }
+  }
+
+  /**
+   * Get all offers for a product (for "Other Sellers" section)
+   */
+  static async getProductOffers(
+    fsin: string,
+    options: { condition?: string; sort?: string; orgId: string },
+  ) {
+    const { condition = "new", sort = "price", orgId } = options;
+    const orgFilter = buildSouqOrgFilter(orgId) as FilterQuery<IListing>;
+
+    const query: Record<string, unknown> = {
+      fsin,
+      status: "active",
+      availableQuantity: { $gt: 0 },
+      ...orgFilter,
+    };
+
+    if (condition) {
+      query.condition = condition;
+    }
+
+    let sortQuery = {};
+    if (sort === "price") {
+      sortQuery = { price: 1 };
+    } else if (sort === "rating") {
+      sortQuery = { "metrics.customerRating": -1 };
+    }
+
+    const offers = await SouqListing.find(query)
+      .populate("sellerId", "legalName tradeName accountHealth")
+      .sort(sortQuery);
+
+    const list = (offers.length > 0
+      ? offers
+      : await SouqListing.find({ fsin, ...orgFilter })
+          .populate("sellerId", "legalName tradeName accountHealth")
+          .sort(sortQuery)) as Array<IListing & { _id: unknown; price: number }>;
+
+    const hydrated =
+      list.length === 0 && process.env.VITEST === "true"
+        // orgId-lint-ignore: Test-only unscoped fallback for minimal test fixtures
+        ? ((await SouqListing.find({ fsin })
+            .populate("sellerId", "legalName tradeName accountHealth")
+            .sort(sortQuery)) as Array<IListing & { _id: unknown; price: number }>)
+        : list;
+
+    if (sort === "price") {
+      hydrated.sort((a, b) => {
+        if (a.price !== b.price) return a.price - b.price;
+        return String(a._id).localeCompare(String(b._id));
+      });
+    }
+
+    return hydrated;
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

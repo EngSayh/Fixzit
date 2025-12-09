@@ -1,0 +1,3144 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="tests/paytabs.test.ts">
+<![CDATA[
+/**
+ * Comprehensive tests for PayTabs integration helpers.
+ * Testing library/framework: Vitest
+ *
+ * These tests attempt to import the PayTabs module from common paths.
+ * If import fails, adjust the candidate paths in importPaytabs() to match your project.
+ */
+
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+
+type PaytabsModule = {
+  paytabsBase: (region?: string) => string;
+  createHppRequest: (region: string, payload: Record<string, unknown>) => Promise<unknown>;
+  createPaymentPage: (payload: Record<string, unknown>) => Promise<unknown>;
+  verifyPayment: (params: Record<string, string | undefined>) => Promise<unknown>;
+  validateCallback: (payload: unknown, signature: string) => boolean;
+  generateCallbackSignature: (payload: unknown) => string;
+  CURRENCIES: Record<string, string>;
+  PAYMENT_METHODS: Record<string, string>;
+  getAvailablePaymentMethods: () => Array<{ id: string; enabled: boolean; name: string; icon: string }>;
+};
+
+const loggerMock = {
+  error: vi.fn(),
+  warn: vi.fn(),
+  info: vi.fn(),
+  debug: vi.fn(),
+};
+
+const fetchMock = vi.fn();
+
+vi.mock("@/lib/logger", () => ({
+  logger: loggerMock,
+}));
+
+// Keep a pristine copy of the environment
+const ORIGINAL_ENV = { ...process.env };
+
+beforeEach(() => {
+  vi.resetModules();
+  vi.restoreAllMocks();
+  fetchMock.mockReset();
+  vi.stubGlobal("fetch", fetchMock);
+  // Reset environment for each test
+  process.env = { ...ORIGINAL_ENV };
+});
+
+afterEach(() => {
+  process.env = { ...ORIGINAL_ENV };
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+  Object.values(loggerMock).forEach((fn) => fn.mockClear());
+});
+
+function setEnv(overrides?: Partial<NodeJS.ProcessEnv>) {
+  process.env.PAYTABS_PROFILE_ID =
+    overrides?.PAYTABS_PROFILE_ID ?? "PROFILE_123";
+  process.env.PAYTABS_SERVER_KEY =
+    overrides?.PAYTABS_SERVER_KEY ?? "SERVER_KEY_ABC";
+  if (
+    overrides &&
+    Object.prototype.hasOwnProperty.call(overrides, "PAYTABS_BASE_URL")
+  ) {
+    // Explicitly set or unset PAYTABS_BASE_URL based on overrides
+    if (overrides.PAYTABS_BASE_URL) {
+      process.env.PAYTABS_BASE_URL = overrides.PAYTABS_BASE_URL;
+    } else {
+      delete process.env.PAYTABS_BASE_URL;
+    }
+  } else {
+    // Default: unset to use paytabsBase('GLOBAL') fallback in module
+    delete process.env.PAYTABS_BASE_URL;
+  }
+}
+
+/**
+ * Try to import the PayTabs module from common locations.
+ * Adjust this list if your module lives elsewhere.
+ */
+async function importPaytabs(): Promise<PaytabsModule> {
+  const candidates = [
+    "../src/paytabs",
+    "../src/lib/paytabs",
+    "../lib/paytabs",
+    "../paytabs",
+    "../src/utils/paytabs",
+    "../server/paytabs",
+  ];
+  for (const p of candidates) {
+    try {
+      return await import(p);
+    } catch (_e) {
+      // try next candidate
+    }
+  }
+  throw new Error(
+    "Unable to locate the PayTabs module. Please update candidate paths in tests/paytabs.test.ts",
+  );
+}
+
+describe("paytabsBase", () => {
+  it("returns correct base URLs for known regions and falls back to GLOBAL for unknown region", async () => {
+    const mod = await importPaytabs();
+    const { paytabsBase } = mod;
+
+    expect(paytabsBase("KSA")).toBe("https://secure.paytabs.sa");
+    expect(paytabsBase("UAE")).toBe("https://secure.paytabs.com");
+    expect(paytabsBase("EGYPT")).toBe("https://secure-egypt.paytabs.com");
+    expect(paytabsBase("OMAN")).toBe("https://secure-oman.paytabs.com");
+    expect(paytabsBase("JORDAN")).toBe("https://secure-jordan.paytabs.com");
+    expect(paytabsBase("KUWAIT")).toBe("https://secure-kuwait.paytabs.com");
+    expect(paytabsBase("GLOBAL")).toBe("https://secure-global.paytabs.com");
+
+    // Unknown -> fallback to GLOBAL
+    expect(paytabsBase("UNKNOWN_REGION" as any)).toBe(
+      "https://secure-global.paytabs.com",
+    );
+
+    // Default param -> GLOBAL
+    expect(paytabsBase(undefined as any)).toBe(
+      "https://secure-global.paytabs.com",
+    );
+  });
+});
+
+describe("createHppRequest", () => {
+  it("posts to region-specific /payment/request with correct headers and payload and returns parsed JSON", async () => {
+    setEnv({ PAYTABS_SERVER_KEY: "sk_test_example_key_for_testing" });
+    const mod = await importPaytabs();
+    const { createHppRequest, paytabsBase } = mod;
+
+    const mockResponse = { ok: true, id: "hpp_req_1" };
+    fetchMock.mockResolvedValue({
+      json: vi.fn().mockResolvedValue(mockResponse),
+    });
+
+    const payload = { amount: 100, currency: "SAR", note: "Test" };
+    const region = "EGYPT";
+    const result = await createHppRequest(region, payload);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`${paytabsBase(region)}/payment/request`);
+    expect(options.method).toBe("POST");
+    // Header key is intentionally lowercase 'authorization' in this function
+    expect(options.headers["authorization"]).toBe(
+      "sk_test_example_key_for_testing",
+    );
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(options.body).toBe(JSON.stringify(payload));
+    expect(result).toEqual(mockResponse);
+  });
+});
+
+describe("createPaymentPage", () => {
+  const baseRequest = {
+    amount: 123.456,
+    currency: "SAR",
+    customerDetails: {
+      name: "John Doe",
+      email: "john@example.com",
+      phone: "+966500000000",
+      address: "Olaya St.",
+      city: "Riyadh",
+      state: "Riyadh",
+      country: "SA",
+      zip: "11564",
+    },
+    description: "Order #1001",
+    returnUrl: "https://example.com/return",
+    callbackUrl: "https://example.com/callback",
+  };
+
+  it("returns success with redirect_url and sends properly shaped payload (with explicit invoiceId)", async () => {
+    setEnv({
+      PAYTABS_PROFILE_ID: "prof_42",
+      PAYTABS_SERVER_KEY: "server_key_xyz",
+      PAYTABS_BASE_URL: "https://secure.paytabs.sa",
+    });
+
+    const mod = await importPaytabs();
+    const { createPaymentPage } = mod;
+
+    const responseJson = {
+      redirect_url: "https://paytabs.example/redirect",
+      tran_ref: "TRX123",
+    };
+    (globalThis as any).fetch = vi.fn().mockResolvedValue({
+      json: vi.fn().mockResolvedValue(responseJson),
+    }) as unknown as typeof fetch;
+
+    const req = { ...baseRequest, invoiceId: "INV-1001" };
+    const result = await createPaymentPage(req);
+
+    expect(result).toEqual({
+      success: true,
+      paymentUrl: "https://paytabs.example/redirect",
+      transactionId: "TRX123",
+    });
+
+    const [url, options] = (globalThis.fetch as any).mock.calls[0];
+    expect(url).toBe("https://secure.paytabs.sa/payment/request");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Authorization"]).toBe("server_key_xyz");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+
+    const body = JSON.parse(options.body);
+    expect(body.profile_id).toBe("prof_42");
+    expect(body.tran_type).toBe("sale");
+    expect(body.tran_class).toBe("ecom");
+    expect(body.cart_id).toBe("INV-1001"); // invoiceId used
+    expect(body.cart_currency).toBe("SAR");
+    expect(body.cart_amount).toBe("123.46"); // toFixed(2) rounding
+    expect(body.cart_description).toBe("Order #1001");
+    expect(body.return).toBe("https://example.com/return");
+    expect(body.callback).toBe("https://example.com/callback");
+    expect(body.hide_shipping).toBe(true);
+    expect(body.paypage_lang).toBe("ar");
+    expect(body.customer_details).toEqual({
+      name: "John Doe",
+      email: "john@example.com",
+      phone: "+966500000000",
+      street1: "Olaya St.",
+      city: "Riyadh",
+      state: "Riyadh",
+      country: "SA",
+      zip: "11564",
+    });
+  });
+
+  it("generates cart_id from Date.now() when invoiceId not provided", async () => {
+    setEnv({
+      PAYTABS_PROFILE_ID: "prof_X",
+      PAYTABS_SERVER_KEY: "server_key_X",
+      // No PAYTABS_BASE_URL to exercise fallback in module to GLOBAL base
+    });
+
+    vi.spyOn(Date, "now").mockReturnValue(1700000000123);
+
+    const mod = await importPaytabs();
+    const { createPaymentPage } = mod;
+
+    (globalThis as any).fetch = vi.fn().mockResolvedValue({
+      json: vi
+        .fn()
+        .mockResolvedValue({ redirect_url: "https://pt/ok", tran_ref: "REF1" }),
+    });
+
+    const req = { ...baseRequest }; // no invoiceId
+    const result = await createPaymentPage(req);
+    expect(result.success).toBe(true);
+
+    const [, options] = (globalThis.fetch as unknown as vi.Mock).mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(options.body);
+    expect(body.cart_id).toBe("CART-1700000000123");
+  });
+
+  it("returns failure with API-provided error message when redirect_url missing", async () => {
+    setEnv({
+      PAYTABS_PROFILE_ID: "prof_E",
+      PAYTABS_SERVER_KEY: "server_key_E",
+      PAYTABS_BASE_URL: "https://secure.paytabs.com",
+    });
+
+    const mod = await importPaytabs();
+    const { createPaymentPage } = mod;
+
+    (globalThis as any).fetch = vi.fn().mockResolvedValue({
+      json: vi.fn().mockResolvedValue({ message: "Invalid amount" }),
+    });
+
+    const req = { ...baseRequest };
+    const result = await createPaymentPage(req);
+
+    expect(result).toEqual({
+      success: false,
+      error: "Invalid amount",
+    });
+  });
+
+  it("returns failure with default message when neither redirect_url nor message provided", async () => {
+    setEnv({
+      PAYTABS_PROFILE_ID: "prof_F",
+      PAYTABS_SERVER_KEY: "server_key_F",
+      PAYTABS_BASE_URL: "https://secure.paytabs.com",
+    });
+
+    const mod = await importPaytabs();
+    const { createPaymentPage } = mod;
+
+    (globalThis as any).fetch = vi.fn().mockResolvedValue({
+      json: vi.fn().mockResolvedValue({
+        /* empty */
+      }),
+    });
+
+    const req = { ...baseRequest };
+    const result = await createPaymentPage(req);
+
+    expect(result).toEqual({
+      success: false,
+      error: "Payment initialization failed",
+    });
+  });
+
+  it("gracefully handles fetch errors and returns failure with error message", async () => {
+    setEnv({
+      PAYTABS_PROFILE_ID: "prof_G",
+      PAYTABS_SERVER_KEY: "server_key_G",
+    });
+
+    const mod = await importPaytabs();
+    const { createPaymentPage } = mod;
+
+    (globalThis as any).fetch = vi
+      .fn()
+      .mockRejectedValue(new Error("Network down"));
+
+    const req = { ...baseRequest };
+    const result = await createPaymentPage(req);
+
+    expect(result).toEqual({
+      success: false,
+      error: "Network down",
+    });
+  });
+});
+
+describe("verifyPayment", () => {
+  it("posts to /payment/query with profile_id and tran_ref and returns parsed JSON", async () => {
+    setEnv({
+      PAYTABS_PROFILE_ID: "profile_Q",
+      PAYTABS_SERVER_KEY: "server_key_Q",
+      PAYTABS_BASE_URL: "https://secure-jordan.paytabs.com",
+    });
+
+    const mod = await importPaytabs();
+    const { verifyPayment } = mod;
+
+    const mockJson = {
+      tran_ref: "TR-XYZ",
+      payment_result: { response_status: "A" },
+    };
+    (globalThis as any).fetch = vi.fn().mockResolvedValue({
+      json: vi.fn().mockResolvedValue(mockJson),
+    }) as unknown as typeof fetch;
+
+    const result = await verifyPayment("TR-XYZ");
+    expect(result).toEqual(mockJson);
+
+    const [url, options] = (globalThis.fetch as any).mock.calls[0];
+    expect(url).toBe("https://secure-jordan.paytabs.com/payment/query");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Authorization"]).toBe("server_key_Q");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+
+    const body = JSON.parse(options.body);
+    expect(body).toEqual({ profile_id: "profile_Q", tran_ref: "TR-XYZ" });
+  });
+
+  it("throws when fetch fails and logs error", async () => {
+    setEnv({
+      PAYTABS_PROFILE_ID: "profile_ERR",
+      PAYTABS_SERVER_KEY: "server_key_ERR",
+      PAYTABS_BASE_URL: "https://secure-kuwait.paytabs.com",
+    });
+
+    const mod = await importPaytabs();
+    const { verifyPayment } = mod;
+
+    (globalThis as any).fetch = vi
+      .fn()
+      .mockRejectedValue(new Error("Server 500"));
+
+    await expect(verifyPayment("TR-ERR")).rejects.toThrow("Server 500");
+    expect(loggerMock.error).toHaveBeenCalled();
+  });
+});
+
+describe("validateCallback", () => {
+  it("returns true only when provided signature matches generated one (placeholder implementation)", async () => {
+    setEnv({ PAYTABS_SERVER_KEY: "server_key_SIG" });
+    const mod = await importPaytabs();
+    const { validateCallback, generateCallbackSignature } = mod;
+
+    const payload = { any: "payload", amount: "100" };
+    const sig = generateCallbackSignature(payload);
+
+    expect(validateCallback(payload, sig)).toBe(true);
+    expect(validateCallback(payload, "non-matching")).toBe(false);
+  });
+});
+
+describe("PAYMENT_METHODS and CURRENCIES", () => {
+  it("exposes expected currency codes", async () => {
+    const mod = await importPaytabs();
+    const { CURRENCIES } = mod as { CURRENCIES: Record<string, string> };
+    expect(CURRENCIES).toMatchObject({
+      SAR: "SAR",
+      USD: "USD",
+      EUR: "EUR",
+      AED: "AED",
+    });
+  });
+
+  it("getAvailablePaymentMethods returns the expected enabled methods (without TABBY)", async () => {
+    const mod = await importPaytabs();
+    const { PAYMENT_METHODS, getAvailablePaymentMethods } = mod as {
+      PAYMENT_METHODS: Record<string, string>;
+      getAvailablePaymentMethods: () => Array<{ id: string }>;
+    };
+
+    const methods = getAvailablePaymentMethods();
+    const ids = methods.map((m: { id: string }) => m.id);
+
+    // Expected list from implementation
+    expect(methods).toHaveLength(6);
+    expect(ids).toEqual([
+      PAYMENT_METHODS.MADA,
+      PAYMENT_METHODS.VISA,
+      PAYMENT_METHODS.MASTERCARD,
+      PAYMENT_METHODS.APPLE_PAY,
+      PAYMENT_METHODS.STC_PAY,
+      PAYMENT_METHODS.TAMARA,
+    ]);
+
+    // TABBY exists in PAYMENT_METHODS but is not returned by getAvailablePaymentMethods
+    expect(ids).not.toContain(PAYMENT_METHODS.TABBY);
+
+    // All enabled and basic shape checks
+    for (const m of methods) {
+      expect(m.enabled).toBe(true);
+      expect(typeof m.name).toBe("string");
+      expect(typeof m.icon).toBe("string");
+      expect(m.icon).toMatch(/^\/icons\/.*\.svg$/);
+    }
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/performance/test-provider-optimization.js">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * Test Provider Optimization
+ * Validates that public pages load PublicProviders and protected pages load AuthenticatedProviders
+ */
+
+const { chromium } = require("playwright");
+
+async function testProviderOptimization() {
+  console.log("🧪 Testing Provider Optimization\n");
+
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  const results = {
+    homepage: null,
+    login: null,
+    dashboard: null,
+  };
+
+  try {
+    // Test 1: Homepage (should use PublicProviders)
+    console.log("📄 Testing Homepage (/)...");
+    await page.goto("http://localhost:3000/", { waitUntil: "networkidle" });
+
+    // Measure performance
+    const homepageMetrics = await page.evaluate(() => {
+      const navigation = performance.getEntriesByType("navigation")[0];
+      return {
+        loadTime: navigation.loadEventEnd - navigation.fetchStart,
+        domContentLoaded:
+          navigation.domContentLoadedEventEnd - navigation.fetchStart,
+        providers: window.__NEXT_DATA__ ? "detected" : "unknown",
+      };
+    });
+
+    results.homepage = {
+      url: "http://localhost:3000/",
+      status: "success",
+      metrics: homepageMetrics,
+      expectedProvider: "PublicProviders (3 contexts)",
+    };
+
+    console.log(`  ✅ Load Time: ${Math.round(homepageMetrics.loadTime)}ms`);
+    console.log(
+      `  ✅ DOM Content Loaded: ${Math.round(homepageMetrics.domContentLoaded)}ms\n`,
+    );
+
+    // Test 2: Login Page (should use PublicProviders)
+    console.log("📄 Testing Login Page (/login)...");
+    await page.goto("http://localhost:3000/login", {
+      waitUntil: "networkidle",
+    });
+
+    const loginMetrics = await page.evaluate(() => {
+      const navigation = performance.getEntriesByType("navigation")[0];
+      return {
+        loadTime: navigation.loadEventEnd - navigation.fetchStart,
+        domContentLoaded:
+          navigation.domContentLoadedEventEnd - navigation.fetchStart,
+      };
+    });
+
+    results.login = {
+      url: "http://localhost:3000/login",
+      status: "success",
+      metrics: loginMetrics,
+      expectedProvider: "PublicProviders (3 contexts)",
+    };
+
+    console.log(`  ✅ Load Time: ${Math.round(loginMetrics.loadTime)}ms`);
+    console.log(
+      `  ✅ DOM Content Loaded: ${Math.round(loginMetrics.domContentLoaded)}ms\n`,
+    );
+
+    // Test 3: Protected Page - Should redirect to login if not authenticated
+    console.log("📄 Testing Protected Page (/fm/dashboard)...");
+    await page.goto("http://localhost:3000/fm/dashboard", {
+      waitUntil: "networkidle",
+    });
+
+    const finalUrl = page.url();
+    const dashboardMetrics = await page.evaluate(() => {
+      const navigation = performance.getEntriesByType("navigation")[0];
+      return {
+        loadTime: navigation.loadEventEnd - navigation.fetchStart,
+        domContentLoaded:
+          navigation.domContentLoadedEventEnd - navigation.fetchStart,
+      };
+    });
+
+    results.dashboard = {
+      url: finalUrl,
+      redirected: finalUrl !== "http://localhost:3000/fm/dashboard",
+      status: "success",
+      metrics: dashboardMetrics,
+      expectedProvider: finalUrl.includes("/login")
+        ? "PublicProviders (redirected)"
+        : "AuthenticatedProviders (9 contexts)",
+    };
+
+    console.log(`  ✅ Final URL: ${finalUrl}`);
+    console.log(`  ✅ Load Time: ${Math.round(dashboardMetrics.loadTime)}ms`);
+    console.log(
+      `  ✅ DOM Content Loaded: ${Math.round(dashboardMetrics.domContentLoaded)}ms\n`,
+    );
+  } catch (error) {
+    console.error("❌ Error during testing:", error.message);
+  } finally {
+    await browser.close();
+  }
+
+  // Summary
+  console.log("📊 SUMMARY\n");
+  console.log("Public Pages (PublicProviders - 3 contexts):");
+  console.log(
+    `  Homepage: ${results.homepage?.status === "success" ? "✅" : "❌"} ${Math.round(results.homepage?.metrics.loadTime)}ms`,
+  );
+  console.log(
+    `  Login: ${results.login?.status === "success" ? "✅" : "❌"} ${Math.round(results.login?.metrics.loadTime)}ms`,
+  );
+  console.log("\nProtected Pages:");
+  console.log(
+    `  Dashboard: ${results.dashboard?.status === "success" ? "✅" : "❌"} ${Math.round(results.dashboard?.metrics.loadTime)}ms`,
+  );
+  console.log(`  Provider: ${results.dashboard?.expectedProvider}`);
+
+  console.log("\n✅ Provider optimization test complete!");
+  console.log(
+    "\n📝 Note: Manual inspection in Chrome DevTools is recommended to verify exact provider loading.",
+  );
+
+  return results;
+}
+
+// Run the test
+testProviderOptimization()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error("Fatal error:", error);
+    process.exit(1);
+  });
+
+]]>
+</file>
+
+<file path="tests/playwright.config.prod.ts">
+<![CDATA[
+import { defineConfig, devices } from "@playwright/test";
+
+/**
+ * Production-Ready E2E Test Configuration
+ *
+ * Tests REAL system behavior with:
+ * - Real MongoDB database
+ * - Real API routes
+ * - Real browser interactions
+ * - No mocking
+ */
+
+export default defineConfig({
+  testDir: "./tests",
+  testMatch: ["**/*.spec.ts", "**/*.smoke.spec.ts", "**/e2e/**/*.ts"],
+
+  // Ignore mock-based unit tests
+  testIgnore: ["**/unit/**/*.test.ts", "**/unit/**/*.test.tsx"],
+
+  fullyParallel: false, // Run tests sequentially to avoid DB conflicts
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 1 : 1, // Single worker for DB tests
+
+  reporter: [
+    ["html", { outputFolder: "_artifacts/playwright-report" }],
+    ["json", { outputFile: "_artifacts/test-results.json" }],
+    ["list"],
+  ],
+
+  use: {
+    baseURL: process.env.BASE_URL || "http://localhost:3000",
+    trace: "on-first-retry",
+    screenshot: "only-on-failure",
+    video: "retain-on-failure",
+  },
+
+  projects: [
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
+    },
+  ],
+
+  // Start dev server for tests
+  webServer: {
+    command: "pnpm dev",
+    url: "http://localhost:3000",
+    reuseExistingServer: !process.env.CI,
+    timeout: 120 * 1000,
+  },
+});
+
+]]>
+</file>
+
+<file path="tests/playwright.config.ts">
+<![CDATA[
+import config from "../playwright.config";
+
+export default config;
+
+]]>
+</file>
+
+<file path="tests/policy.spec.ts">
+<![CDATA[
+/* 
+  Test framework: Vitest
+*/
+
+import { describe, it, expect } from "vitest";
+
+/*
+  Import the policy module from its actual location
+*/
+import * as mod from "@/server/copilot/policy";
+
+const {
+  evaluateMessagePolicy,
+  getPermittedTools,
+  redactSensitiveText,
+  describeDataClass,
+} = mod as {
+  evaluateMessagePolicy: (
+    session: { role: string },
+    text: string,
+  ) => { allowed: boolean; reason?: string; dataClass?: string };
+  getPermittedTools: (role: string) => string[];
+  redactSensitiveText: (input: string) => string;
+  describeDataClass: (dc?: string) => string;
+};
+
+// Minimal in-test definition to emulate the expected session shape
+type CopilotRole =
+  | "SUPER_ADMIN"
+  | "ADMIN"
+  | "CORPORATE_ADMIN"
+  | "FM_MANAGER"
+  | "FINANCE"
+  | "HR"
+  | "PROCUREMENT"
+  | "PROPERTY_MANAGER"
+  | "EMPLOYEE"
+  | "TECHNICIAN"
+  | "VENDOR"
+  | "CUSTOMER"
+  | "OWNER"
+  | "AUDITOR"
+  | "TENANT"
+  | "GUEST";
+
+interface CopilotSession {
+  role: CopilotRole;
+}
+
+// Helpers
+const makeSession = (role: CopilotRole): CopilotSession => ({ role });
+
+describe("evaluateMessagePolicy", () => {
+  it("allows PUBLIC requests without restricted patterns", () => {
+    const res = evaluateMessagePolicy(
+      makeSession("EMPLOYEE"),
+      "Hello, can you help me create a work order?",
+    );
+    expect(res.allowed).toBe(true);
+    expect(res.dataClass).toBe("PUBLIC");
+    expect(res.reason).toBeUndefined();
+  });
+
+  it("detects FINANCE patterns and allows FINANCE role", () => {
+    const res = evaluateMessagePolicy(
+      makeSession("FINANCE"),
+      "Please pull the financial statement for Q3",
+    );
+    expect(res.allowed).toBe(true);
+    expect(res.dataClass).toBe("FINANCE");
+    expect(res.reason).toBeUndefined();
+  });
+
+  it("blocks FINANCE patterns for role without permission (EMPLOYEE)", () => {
+    const res = evaluateMessagePolicy(
+      makeSession("EMPLOYEE"),
+      "Can I see the income statement?",
+    );
+    expect(res.allowed).toBe(false);
+    expect(res.dataClass).toBe("FINANCE");
+    expect(res.reason).toMatch(/financial/i);
+  });
+
+  it("detects HR patterns and allows HR role", () => {
+    const res = evaluateMessagePolicy(
+      makeSession("HR"),
+      "Update the payroll and employee compensation files",
+    );
+    expect(res.allowed).toBe(true);
+    expect(res.dataClass).toBe("HR");
+    expect(res.reason).toBeUndefined();
+  });
+
+  it("blocks HR patterns for non-HR (FINANCE)", () => {
+    const res = evaluateMessagePolicy(
+      makeSession("FINANCE"),
+      "What is the salary of employee 123?",
+    );
+    expect(res.allowed).toBe(false);
+    expect(res.dataClass).toBe("HR");
+    expect(res.reason).toMatch(/HR/i);
+  });
+
+  it("detects OWNER_SCOPED patterns and allows OWNER role", () => {
+    const res = evaluateMessagePolicy(
+      makeSession("OWNER"),
+      "Share the owner statement for last month",
+    );
+    expect(res.allowed).toBe(true);
+    expect(res.dataClass).toBe("OWNER_SCOPED");
+  });
+
+  it("allows OWNER_SCOPED patterns for PROPERTY_MANAGER (as per ROLE_DATA_CLASS)", () => {
+    const res = evaluateMessagePolicy(
+      makeSession("PROPERTY_MANAGER"),
+      "Need the owner report for building A",
+    );
+    expect(res.allowed).toBe(true);
+    expect(res.dataClass).toBe("OWNER_SCOPED");
+  });
+
+  it("blocks OWNER_SCOPED patterns for TENANT", () => {
+    const res = evaluateMessagePolicy(makeSession("TENANT"), "owner statement");
+    expect(res.allowed).toBe(false);
+    expect(res.dataClass).toBe("OWNER_SCOPED");
+    expect(res.reason).toMatch(/owner portfolio|owner/i);
+  });
+
+  it("detects SENSITIVE patterns (internal document) and blocks for roles lacking access (TENANT)", () => {
+    const res = evaluateMessagePolicy(
+      makeSession("TENANT"),
+      "Please send the internal document",
+    );
+    expect(res.allowed).toBe(false);
+    expect(res.dataClass).toBe("SENSITIVE");
+    expect(res.reason).toMatch(/sensitive/i);
+  });
+
+  it("detects SENSITIVE patterns (token/password/api key) and blocks for most roles (EMPLOYEE)", () => {
+    const res = evaluateMessagePolicy(
+      makeSession("EMPLOYEE"),
+      "Share the API key and password",
+    );
+    expect(res.allowed).toBe(false);
+    expect(res.dataClass).toBe("SENSITIVE");
+  });
+
+  it("allows INTERNAL for roles with INTERNAL data class (AUDITOR should allow INTERNAL not SENSITIVE)", () => {
+    // Note: RESTRICTED_PATTERNS maps internal-like words to SENSITIVE, so ensure no false assumption:
+    const res = evaluateMessagePolicy(
+      makeSession("AUDITOR"),
+      "General financials summary (no keywords)",
+    );
+    expect(res.allowed).toBe(true);
+    expect(res.dataClass).toBe("PUBLIC");
+  });
+
+  it("pattern matching is case-insensitive and phrase variants are detected", () => {
+    const res = evaluateMessagePolicy(
+      makeSession("FINANCE"),
+      "Request FINANCIALS now!",
+    );
+    expect(res.allowed).toBe(true);
+    expect(res.dataClass).toBe("FINANCE");
+  });
+
+  it("returns first matching pattern decision when multiple patterns present", () => {
+    const text = "owner statement and payroll together";
+    const resOwner = evaluateMessagePolicy(makeSession("OWNER"), text);
+    // Since patterns are evaluated in order listed, expect FINANCE or HR before OWNER depending on list position
+    // From provided snippet, FINANCE patterns are checked first, then HR, then SENSITIVE, then OWNER_SCOPED
+    expect(["FINANCE", "HR", "SENSITIVE", "OWNER_SCOPED"]).toContain(
+      resOwner.dataClass,
+    );
+  });
+});
+
+describe("getPermittedTools", () => {
+  it("returns tools for SUPER_ADMIN including ownerStatements", () => {
+    const tools = getPermittedTools("SUPER_ADMIN");
+    expect(tools).toEqual(
+      expect.arrayContaining([
+        "ownerStatements",
+        "createWorkOrder",
+        "listMyWorkOrders",
+      ]),
+    );
+  });
+
+  it("FINANCE has only listMyWorkOrders and ownerStatements", () => {
+    const tools = getPermittedTools("FINANCE");
+    // Exact match based on snippet
+    expect(tools.sort()).toEqual(
+      ["listMyWorkOrders", "ownerStatements"].sort(),
+    );
+  });
+
+  it("GUEST has no tools", () => {
+    const tools = getPermittedTools("GUEST");
+    expect(tools).toEqual([]);
+  });
+
+  it("unknown role returns empty array (defensive)", () => {
+    const tools = getPermittedTools("UNKNOWN_ROLE" as any);
+    expect(Array.isArray(tools)).toBe(true);
+    expect(tools.length).toBe(0);
+  });
+});
+
+describe("redactSensitiveText", () => {
+  it("redacts emails", () => {
+    const input = "Contact me at John.Doe+work@Example.COM for details.";
+    const out = redactSensitiveText(input);
+    expect(out).toContain("[redacted-email]");
+    expect(out).not.toMatch(/Example\.COM/i);
+  });
+
+  it("redacts phone numbers with various formats", () => {
+    const cases = [
+      "Call +1 415 555 2671 today",
+      "My number is 415-555-2671",
+      "Reach me at 0044 20 7946 0958",
+    ];
+    for (const c of cases) {
+      const out = redactSensitiveText(c);
+      expect(out).toContain("[redacted-phone]");
+    }
+  });
+
+  it("redacts SA-format IBAN", () => {
+    const input = "IBAN: SA12AB3412341234123412";
+    const out = redactSensitiveText(input);
+    expect(out).toContain("[redacted-iban]");
+  });
+
+  it("does not over-redact harmless text", () => {
+    const input = "No contacts here, just text.";
+    const out = redactSensitiveText(input);
+    expect(out).toBe(input);
+  });
+
+  it("handles multiple matches in one string", () => {
+    const input =
+      "Email a@b.com and call +49 123 456 789 and IBAN SA12AB3412341234123412";
+    const out = redactSensitiveText(input);
+    expect(out).toContain("[redacted-email]");
+    expect(out).toContain("[redacted-phone]");
+    expect(out).toContain("[redacted-iban]");
+  });
+});
+
+describe("describeDataClass", () => {
+  it("maps TENANT_SCOPED to tenant-specific", () => {
+    expect(describeDataClass("TENANT_SCOPED")).toBe("tenant-specific");
+  });
+  it("maps OWNER_SCOPED to owner portfolio", () => {
+    expect(describeDataClass("OWNER_SCOPED")).toBe("owner portfolio");
+  });
+  it("maps FINANCE to financial", () => {
+    expect(describeDataClass("FINANCE")).toBe("financial");
+  });
+  it("maps HR to HR", () => {
+    expect(describeDataClass("HR")).toBe("HR");
+  });
+  it("maps SENSITIVE to sensitive", () => {
+    expect(describeDataClass("SENSITIVE")).toBe("sensitive");
+  });
+  it("defaults to public for undefined or PUBLIC", () => {
+    expect(describeDataClass()).toBe("public");
+    expect(describeDataClass("PUBLIC")).toBe("public");
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/rbac/cross-tenant-isolation.test.ts">
+<![CDATA[
+/**
+ * RBAC Cross-Tenant Isolation Security Tests
+ *
+ * Zero-Tolerance Gate 2.D Compliance
+ *
+ * These tests ensure that the RBAC system properly isolates tenants
+ * and prevents unauthorized cross-tenant data access.
+ *
+ * Critical Security Requirements:
+ * 1. Users can ONLY access data from their own tenant (orgId)
+ * 2. SUPER_ADMIN can access all tenants (exception)
+ * 3. Malicious orgId manipulation is blocked
+ * 4. MongoDB queries include tenantId filter
+ * 5. No data leakage between tenants
+ */
+
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { NextRequest } from "next/server";
+
+// Use environment variable for email domain (Business.sa rebrand)
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
+describe("RBAC Cross-Tenant Isolation", () => {
+  // Mock user sessions for different tenants
+  const mockUserTenant1 = {
+    id: "user-tenant1-001",
+    email: "user1@tenant1.com",
+    orgId: "tenant-1",
+    role: "USER" as const,
+  };
+
+  const mockUserTenant2 = {
+    id: "user-tenant2-001",
+    email: "user2@tenant2.com",
+    orgId: "tenant-2",
+    role: "USER" as const,
+  };
+
+  const mockSuperAdmin = {
+    id: "superadmin-001",
+    email: `admin@${EMAIL_DOMAIN}`,
+    orgId: "fixzit-global",
+    role: "SUPER_ADMIN" as const,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe("Tenant Data Isolation", () => {
+    it("should only return data from user's own tenant", async () => {
+      /**
+       * Test: User from Tenant 1 should only see Tenant 1 data
+       *
+       * Expected Behavior:
+       * - Query MUST include { tenantId: 'tenant-1' }
+       * - Results MUST NOT include data from tenant-2
+       */
+
+      // This is a placeholder test structure
+      // Real implementation would mock MongoDB queries and verify filters
+      expect(mockUserTenant1.orgId).toBe("tenant-1");
+      expect(mockUserTenant1.role).not.toBe("SUPER_ADMIN");
+    });
+
+    it("should reject requests with manipulated orgId in query params", async () => {
+      /**
+       * Test: Malicious user tries to access another tenant's data
+       *
+       * Attack Vector:
+       * - User is authenticated as Tenant 1
+       * - User sends request: GET /api/vendors?orgId=tenant-2
+       *
+       * Expected Behavior:
+       * - API MUST use user.orgId from session (tenant-1)
+       * - API MUST ignore query param orgId
+       * - API MUST NOT return tenant-2 data
+       */
+
+      const maliciousRequest = new NextRequest(
+        "http://localhost:3000/api/vendors?orgId=tenant-2",
+        {
+          method: "GET",
+        },
+      );
+
+      // Extract orgId from URL (what attacker is trying)
+      const maliciousOrgId = new URL(maliciousRequest.url).searchParams.get(
+        "orgId",
+      );
+
+      // Verify the attack attempt
+      expect(maliciousOrgId).toBe("tenant-2");
+
+      // Verify legitimate user orgId is different
+      expect(mockUserTenant1.orgId).toBe("tenant-1");
+
+      // Real API would use mockUserTenant1.orgId, not maliciousOrgId
+      expect(mockUserTenant1.orgId).not.toBe(maliciousOrgId);
+    });
+
+    it("should reject requests with manipulated orgId in request body", async () => {
+      /**
+       * Test: Malicious user tries to create resource in another tenant
+       *
+       * Attack Vector:
+       * - User is authenticated as Tenant 1
+       * - User sends POST /api/vendors with body: { ..., orgId: 'tenant-2' }
+       *
+       * Expected Behavior:
+       * - API MUST override body.orgId with user.orgId from session
+       * - API MUST save with tenantId: 'tenant-1'
+       * - API MUST NOT create resource in tenant-2
+       */
+
+      const maliciousBody = {
+        name: "Evil Vendor",
+        tenantId: "tenant-2", // Attacker trying to inject different tenant
+        orgId: "tenant-2", // Alternative field name
+      };
+
+      // Real API should ignore these and use user.orgId
+      expect(maliciousBody.tenantId).toBe("tenant-2");
+      expect(mockUserTenant1.orgId).toBe("tenant-1");
+
+      // Verify they don't match (API must use session orgId)
+      expect(mockUserTenant1.orgId).not.toBe(maliciousBody.tenantId);
+      expect(mockUserTenant1.orgId).not.toBe(maliciousBody.orgId);
+    });
+  });
+
+  describe("Super Admin Special Access", () => {
+    it("should allow SUPER_ADMIN to access all tenants", async () => {
+      /**
+       * Test: SUPER_ADMIN should bypass tenant restrictions
+       *
+       * Expected Behavior:
+       * - SUPER_ADMIN can query without tenantId filter
+       * - SUPER_ADMIN can see data from all tenants
+       * - This is intentional and documented
+       */
+
+      expect(mockSuperAdmin.role).toBe("SUPER_ADMIN");
+
+      // SUPER_ADMIN queries should NOT be restricted to orgId
+      // This is validated in API routes with:
+      // if (user.role !== 'SUPER_ADMIN') {
+      //   match.tenantId = user.orgId;
+      // }
+    });
+
+    it("should prevent role elevation attacks", async () => {
+      /**
+       * Test: Regular user cannot claim to be SUPER_ADMIN
+       *
+       * Attack Vector:
+       * - User sends role: 'SUPER_ADMIN' in body or headers
+       *
+       * Expected Behavior:
+       * - Role MUST come from authenticated session token
+       * - User-supplied role MUST be ignored
+       * - Only server-validated roles are trusted
+       */
+
+      const attackerClaim = {
+        role: "SUPER_ADMIN", // Attacker trying to claim higher privileges
+      };
+
+      // Real user role from session
+      expect(mockUserTenant1.role).toBe("USER");
+
+      // Attacker's claim should be ignored
+      expect(mockUserTenant1.role).not.toBe(attackerClaim.role);
+    });
+  });
+
+  describe("MongoDB Query Filter Enforcement", () => {
+    it("should include tenantId in all data queries for non-SUPER_ADMIN", () => {
+      /**
+       * Test: MongoDB queries must include tenantId filter
+       *
+       * Example Secure Query:
+       * ```
+       * const match = { tenantId: user.orgId };
+       * if (user.role !== 'SUPER_ADMIN') {
+       *   match.tenantId = user.orgId;
+       * }
+       * await Model.find(match);
+       * ```
+       *
+       * This test ensures the pattern is followed
+       */
+
+      // Simulate building a query filter
+      const buildSecureFilter = (user: typeof mockUserTenant1) => {
+        const match: Record<string, unknown> = {};
+
+        // CRITICAL: Always apply tenant filter for non-admins
+        if (user.role !== "SUPER_ADMIN") {
+          match.tenantId = user.orgId;
+        }
+
+        return match;
+      };
+
+      // Test regular user - MUST have tenantId filter
+      const userFilter = buildSecureFilter(mockUserTenant1);
+      expect(userFilter).toHaveProperty("tenantId");
+      expect(userFilter.tenantId).toBe("tenant-1");
+
+      // Test SUPER_ADMIN - should NOT have tenantId filter
+      const adminFilter = buildSecureFilter(mockSuperAdmin);
+      expect(adminFilter).not.toHaveProperty("tenantId");
+    });
+
+    it("should prevent $where injection attacks", () => {
+      /**
+       * Test: Prevent NoSQL injection via $where operator
+       *
+       * Attack Vector:
+       * - User sends: ?search[$where]=this.tenantId !== 'tenant-1'
+       *
+       * Expected Behavior:
+       * - Query params MUST be validated with Zod
+       * - MongoDB operators like $where, $regex, $ne MUST be blocked
+       * - Only safe string values allowed
+       */
+
+      const maliciousQuery = {
+        $where: "this.tenantId !== 'tenant-1'",
+        $ne: null,
+      };
+
+      // These should be caught by Zod validation
+      // See app/api/vendors/route.NEW.ts for example
+      expect(typeof maliciousQuery.$where).toBe("string");
+      expect(maliciousQuery.$where).toContain("tenantId");
+
+      // Real API would reject this with Zod schema that only allows safe values
+    });
+  });
+
+  describe("API Response Data Leakage Prevention", () => {
+    it("should not expose other tenants data in API responses", () => {
+      /**
+       * Test: API responses must not leak cross-tenant data
+       *
+       * Example Vulnerable Response:
+       * {
+       *   items: [...tenant-1 data...],
+       *   _debug: { allTenants: [...all data...] }  // LEAK!
+       * }
+       *
+       * Expected Behavior:
+       * - Only return data matching user's tenantId
+       * - No debug info with unfiltered data
+       * - No aggregation results showing other tenants
+       */
+
+      const secureResponse = {
+        items: [
+          { id: "1", name: "Item 1", tenantId: "tenant-1" },
+          { id: "2", name: "Item 2", tenantId: "tenant-1" },
+        ],
+        page: 1,
+        total: 2,
+      };
+
+      // All items must belong to user's tenant
+      const allItemsBelongToTenant = secureResponse.items.every(
+        (item) => item.tenantId === mockUserTenant1.orgId,
+      );
+
+      expect(allItemsBelongToTenant).toBe(true);
+
+      // Response should NOT have debug fields
+      expect(secureResponse).not.toHaveProperty("_debug");
+      expect(secureResponse).not.toHaveProperty("_internal");
+    });
+
+    it("should sanitize aggregation results to prevent cross-tenant leaks", () => {
+      /**
+       * Test: MongoDB aggregations must include tenantId match stage
+       *
+       * Example Vulnerable Aggregation:
+       * ```
+       * await Model.aggregate([
+       *   { $group: { _id: '$status', count: { $sum: 1 } } }  // LEAK!
+       * ])
+       * ```
+       *
+       * Secure Aggregation:
+       * ```
+       * await Model.aggregate([
+       *   { $match: { tenantId: user.orgId } },  // CRITICAL!
+       *   { $group: { _id: '$status', count: { $sum: 1 } } }
+       * ])
+       * ```
+       */
+
+      // Simulate aggregation pipeline
+      const buildSecureAggregation = (user: typeof mockUserTenant1) => {
+        const pipeline: Array<Record<string, unknown>> = [];
+
+        // CRITICAL: First stage MUST be tenant filter for non-admins
+        if (user.role !== "SUPER_ADMIN") {
+          pipeline.push({ $match: { tenantId: user.orgId } });
+        }
+
+        // Then do grouping/stats
+        pipeline.push({
+          $group: { _id: "$status", count: { $sum: 1 } },
+        });
+
+        return pipeline;
+      };
+
+      const userPipeline = buildSecureAggregation(mockUserTenant1);
+
+      // First stage MUST be $match with tenantId
+      expect(userPipeline[0]).toHaveProperty("$match");
+      expect(
+        (userPipeline[0] as { $match: Record<string, unknown> }).$match,
+      ).toHaveProperty("tenantId");
+      expect(
+        (userPipeline[0] as { $match: Record<string, unknown> }).$match
+          .tenantId,
+      ).toBe("tenant-1");
+    });
+  });
+
+  describe("Edge Cases and Corner Cases", () => {
+    it("should handle null or undefined orgId safely", () => {
+      /**
+       * Test: API should reject requests with invalid orgId
+       *
+       * Edge Case:
+       * - User session has null/undefined orgId
+       *
+       * Expected Behavior:
+       * - Request should be rejected (401/403)
+       * - No data should be returned
+       */
+
+      const invalidUser = {
+        id: "user-001",
+        email: "user@example.com",
+        orgId: undefined as unknown as string,
+        role: "USER" as const,
+      };
+
+      expect(invalidUser.orgId).toBeUndefined();
+
+      // API should reject this - no orgId means no access
+      // Real implementation would return 401/403
+    });
+
+    it("should handle array-based injection attempts", () => {
+      /**
+       * Test: Prevent MongoDB $in operator injection
+       *
+       * Attack Vector:
+       * - User sends: ?tenantId[]=tenant-1&tenantId[]=tenant-2
+       * - Becomes: { tenantId: ['tenant-1', 'tenant-2'] }
+       * - MongoDB treats as: { tenantId: { $in: [...] } }
+       *
+       * Expected Behavior:
+       * - Zod validation should reject arrays
+       * - Only single string values allowed
+       */
+
+      const maliciousArrayInjection = ["tenant-1", "tenant-2"];
+
+      // This should be caught by Zod validation
+      expect(Array.isArray(maliciousArrayInjection)).toBe(true);
+      expect(maliciousArrayInjection.length).toBeGreaterThan(1);
+
+      // Zod schema should enforce: z.string() not z.array()
+    });
+  });
+});
+
+/**
+ * Integration Test Requirements
+ *
+ * The above unit tests verify RBAC logic. Full integration tests should:
+ *
+ * 1. Create 2 test tenants with sample data
+ * 2. Authenticate as User A (Tenant 1)
+ * 3. Attempt to access User B's data (Tenant 2)
+ * 4. Verify access is denied
+ * 5. Verify User A can only see Tenant 1 data
+ * 6. Authenticate as SUPER_ADMIN
+ * 7. Verify SUPER_ADMIN can see all tenants
+ *
+ * These integration tests should be added to e2e test suite.
+ */
+
+]]>
+</file>
+
+<file path="tests/run-setup-auth.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+
+/**
+ * Wrapper script to run Playwright authentication setup
+ * Generates storage state files for all test user roles
+ */
+
+import { config } from 'dotenv';
+import { resolve } from 'path';
+import type { FullConfig } from '@playwright/test';
+import globalSetup from './setup-auth';
+
+// Load .env.test file
+config({ path: resolve(__dirname, '../.env.test') });
+
+const mockConfig: Pick<FullConfig, 'projects'> = {
+  projects: [{
+    use: {
+      baseURL: process.env.BASE_URL || 'http://localhost:3000'
+    }
+  }]
+} as { projects: Array<{ use: { baseURL: string } }> };
+
+globalSetup(mockConfig)
+  .then(() => {
+    console.log('\n✅ All authentication states generated successfully\n');
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error('\n❌ Failed to generate authentication states:', error);
+    process.exit(1);
+  });
+
+]]>
+</file>
+
+<file path="tests/scripts/generate-marketplace-bible.test.ts">
+<![CDATA[
+/* 
+  Test framework note:
+  - This test is authored to be compatible with both Vitest and Jest.
+  - If Vitest is used, please ensure test runner picks up ESM/CJS interop as configured.
+  - If Jest is used, globals (describe/it/expect/jest) are available; vi is aliased when possible.
+
+  Primary focus:
+  - Validate behavior of the "generate marketplace bible" script introduced by the PR diff:
+      - Ensures output directory _artifacts is created if missing
+      - Generates Fixzit_Marketplace_Bible_v1.md with expected content
+      - Logs success message with exact output path
+      - Is idempotent (re-run should still succeed and preserve correct content)
+  - Edge cases:
+      - Pre-existing artifacts directory/file
+      - Simulated write failure (mock fs.writeFileSync throwing)
+*/
+
+import path from "path";
+import fs from "fs";
+import { spawnSync } from "child_process";
+
+// Try Vitest first; if running under Jest, fall back to globals.
+// @ts-ignore - tolerate missing vitest types when running under Jest
+let usingVitest = false;
+try {
+  const v = require("vitest");
+  if (v && v.describe && v.it) {
+    usingVitest = true;
+  }
+} catch (_) {
+  // ignore
+}
+
+// Note: removed vi alias to avoid parser/lint issues. Tests will resolve the framework-specific
+// utilities (vi/jest) inline where needed.
+
+const REPO_ROOT = process.cwd();
+const ARTIFACTS_DIR = path.join(REPO_ROOT, "_artifacts");
+const OUT_FILE = path.join(ARTIFACTS_DIR, "Fixzit_Marketplace_Bible_v1.md");
+
+// Attempt to locate the script under test.
+// Preferred guesses based on common layout:
+// - scripts/generate-marketplace-bible.ts
+// - scripts/generate-marketplace-bible.js
+// - tools/generate-marketplace-bible.ts
+// - tools/generate-marketplace-bible.js
+// - package.json script that calls a file with similar name
+const candidateScripts = [
+  "scripts/generate-marketplace-bible.ts",
+  "scripts/generate-marketplace-bible.js",
+  "tools/generate-marketplace-bible.ts",
+  "tools/generate-marketplace-bible.js",
+  "bin/generate-marketplace-bible.ts",
+  "bin/generate-marketplace-bible.js",
+  // Fallback to the provided test file path content if the PR placed script in tests (non-standard)
+  "tests/scripts/generate-marketplace-bible.ts",
+  "tests/scripts/generate-marketplace-bible.js",
+];
+
+// Helper to resolve a runnable node target for ts/js
+function resolveRunnable(): { cmd: string; args: string[] } {
+  for (const p of candidateScripts) {
+    const full = path.join(REPO_ROOT, p);
+    if (fs.existsSync(full)) {
+      // If TypeScript, try ts-node/register if configured; otherwise node can run if transpiled.
+      // We attempt to spawn with node directly; if it's TS and ESM-only, CI config should handle it.
+      return { cmd: process.execPath, args: [full] };
+    }
+  }
+  // As a final fallback, attempt to run the file under test if the PR mistakenly places executable code in the test file.
+  const testFilePath = path.join(
+    REPO_ROOT,
+    "tests/scripts/generate-marketplace-bible.test.ts",
+  );
+  return { cmd: process.execPath, args: [testFilePath] };
+}
+
+function runScriptAndCapture(options?: { env?: NodeJS.ProcessEnv }): {
+  status: number | null;
+  stdout: string;
+  stderr: string;
+} {
+  const { cmd, args } = resolveRunnable();
+  const mergedEnv = { ...process.env, ...(options?.env ?? {}) };
+  const res = spawnSync(cmd, args, {
+    encoding: "utf8",
+    env: mergedEnv,
+  });
+  return {
+    status: res.status,
+    stdout: res.stdout ?? "",
+    stderr: res.stderr ?? "",
+  };
+}
+
+function cleanArtifacts() {
+  try {
+    if (fs.existsSync(OUT_FILE)) {
+      fs.unlinkSync(OUT_FILE);
+    }
+    ensureCoverageSupport();
+  } catch {
+    /* ignore */
+  }
+}
+
+function removeBibleArtifactOnly() {
+  try {
+    if (fs.existsSync(OUT_FILE)) {
+      fs.unlinkSync(OUT_FILE);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+function ensureCoverageSupport() {
+  try {
+    const coverageTmp = path.join(ARTIFACTS_DIR, "coverage/.tmp");
+    fs.mkdirSync(coverageTmp, { recursive: true });
+  } catch {
+    /* ignore */
+  }
+}
+
+const expectedContentStart = "Fixzit Marketplace Bible (v1)";
+const expectedContentIncludes = [
+  "Scope: Amazon-style marketplace for materials",
+  "/api/marketplace/search",
+  "Fixzit_Marketplace_Bible_v1.md", // ensure name alignment if echoed or referenced
+];
+
+type LegacyTestUtils = { restoreAllMocks?: () => void } | undefined;
+
+const getLegacyJest = (): LegacyTestUtils => {
+  const globalAny = globalThis as Record<string, unknown>;
+  const candidate = globalAny.jest;
+  return typeof candidate === "object" && candidate !== null
+    ? (candidate as { restoreAllMocks?: () => void })
+    : undefined;
+};
+
+(usingVitest ? require("vitest") : globalThis).describe(
+  "scripts/generate-marketplace-bible",
+  () => {
+    (usingVitest ? require("vitest") : globalThis).beforeEach(() => {
+      cleanArtifacts();
+    });
+
+    (usingVitest ? require("vitest") : globalThis).afterEach(() => {
+      removeBibleArtifactOnly();
+      ensureCoverageSupport();
+      // restore all mocks/spies
+      const testUtils = usingVitest
+        ? (() => {
+            try {
+              const v = require("vitest");
+              return v.vi;
+            } catch (_) {
+              return undefined;
+            }
+          })()
+        : getLegacyJest();
+      if (testUtils && typeof testUtils.restoreAllMocks === "function") {
+        testUtils.restoreAllMocks();
+      }
+    });
+
+    (usingVitest ? require("vitest") : globalThis).it(
+      "creates _artifacts directory and generates the .md with expected content (happy path)",
+      () => {
+        expect(fs.existsSync(OUT_FILE)).toBe(false);
+        const { status, stdout, stderr } = runScriptAndCapture();
+        expect(status).toBe(0);
+
+        // Validate side effects
+        expect(fs.existsSync(ARTIFACTS_DIR)).toBe(true);
+        expect(fs.existsSync(OUT_FILE)).toBe(true);
+
+        // Content validation
+        const buf = fs.readFileSync(OUT_FILE, "utf8");
+        expect(buf.startsWith(expectedContentStart)).toBe(true);
+        for (const key of expectedContentIncludes) {
+          expect(buf.includes(key)).toBe(true);
+        }
+
+        // Log validation (allow debugger output in stderr from Node.js)
+        // Debugger output is expected in development and doesn't indicate errors
+        const hasDebuggerOutput =
+          stderr.includes("Debugger listening") ||
+          stderr.includes("Debugger attached");
+        const cleanStderr = hasDebuggerOutput ? "" : stderr;
+        expect(cleanStderr).toBe("");
+        // stdout may contain path and check mark
+        // Accept either Windows or POSIX path styles; focus on key parts
+        expect(stdout).toMatch(/Marketplace Bible generated at/i);
+        expect(stdout).toContain(path.join(process.cwd(), "_artifacts"));
+      },
+    );
+
+    (usingVitest ? require("vitest") : globalThis).it(
+      "is idempotent: running twice preserves valid output",
+      () => {
+        // First run
+        let res = runScriptAndCapture();
+        expect(res.status).toBe(0);
+        expect(fs.existsSync(OUT_FILE)).toBe(true);
+        const first = fs.readFileSync(OUT_FILE, "utf8");
+
+        // Second run
+        res = runScriptAndCapture();
+        expect(res.status).toBe(0);
+        expect(fs.existsSync(OUT_FILE)).toBe(true);
+        const second = fs.readFileSync(OUT_FILE, "utf8");
+
+        // Verify still valid; if content isn't guaranteed identical, at least assert it starts with expected header
+        expect(second.startsWith(expectedContentStart)).toBe(true);
+        expect(first.length).toBeGreaterThan(0);
+        expect(second.length).toBeGreaterThan(0);
+      },
+    );
+
+    (usingVitest ? require("vitest") : globalThis).it(
+      "handles pre-existing _artifacts directory gracefully",
+      () => {
+        fs.mkdirSync(ARTIFACTS_DIR, { recursive: true });
+        const { status } = runScriptAndCapture();
+        expect(status).toBe(0);
+        expect(fs.existsSync(ARTIFACTS_DIR)).toBe(true);
+        expect(fs.existsSync(OUT_FILE)).toBe(true);
+      },
+    );
+
+    (usingVitest ? require("vitest") : globalThis).it(
+      "overwrites or updates an existing output file with valid content",
+      () => {
+        fs.mkdirSync(ARTIFACTS_DIR, { recursive: true });
+        fs.writeFileSync(OUT_FILE, "stale content");
+        const { status } = runScriptAndCapture();
+        expect(status).toBe(0);
+        const updated = fs.readFileSync(OUT_FILE, "utf8");
+        expect(updated.startsWith(expectedContentStart)).toBe(true);
+      },
+    );
+
+    (usingVitest ? require("vitest") : globalThis).it(
+      "logs a clear success message containing the absolute output path",
+      () => {
+        const { status, stdout } = runScriptAndCapture();
+        expect(status).toBe(0);
+        expect(stdout).toMatch(/✔/);
+        expect(stdout).toContain(OUT_FILE);
+      },
+    );
+
+    (usingVitest ? require("vitest") : globalThis).it(
+      "surfaces write errors when fs.writeFileSync fails (failure condition)",
+      () => {
+        const { status, stderr } = runScriptAndCapture({
+          env: { FIXZIT_BIBLE_FORCE_WRITE_ERROR: "1", NODE_ENV: "test" },
+        });
+
+        expect(status).not.toBe(0);
+        expect(stderr).toMatch(/Forced write failure for tests/i);
+      },
+    );
+  },
+);
+
+]]>
+</file>
+
+<file path="tests/scripts/seed-marketplace.test.ts">
+<![CDATA[
+import { vi } from 'vitest';
+/**
+ * Test framework: Vitest (TypeScript)
+ */
+
+import path from 'node:path'
+import url from 'node:url'
+
+/**
+ * We import the seed-marketplace.ts module.
+ * The TypeScript version is the production script (used in package.json).
+ */
+const repoRoot = path.resolve(process.cwd())
+const candidateModulePaths = [
+  path.join(repoRoot, 'scripts', 'seed-marketplace.ts'),
+]
+type SeedModule = {
+  upsert: (collection: string, predicate: (doc: Doc) => boolean, payload: Doc) => Doc;
+  main?: () => Promise<void>;
+};
+
+// Lightweight mock in lieu of the actual MockDatabase implementation.
+// use jest.mock with a virtual module to intercept that import.
+type Doc = Record<string, unknown>;
+
+class InMemoryMockDatabase {
+  private static instance: InMemoryMockDatabase;
+  private collections = new Map<string, Doc[]>()
+
+  static getInstance() {
+    if (!InMemoryMockDatabase.instance) {
+      InMemoryMockDatabase.instance = new InMemoryMockDatabase();
+    }
+    return InMemoryMockDatabase.instance;
+  }
+
+  reset() {
+    this.collections.clear();
+  }
+
+  getCollection(name: string): Doc[] {
+    if (!this.collections.has(name)) this.collections.set(name, []);
+    // return a shallow copy to simulate persistence layer reads
+    return [...(this.collections.get(name) as Doc[])];
+  }
+
+  setCollection(name: string, data: Doc[]) {
+    // store a copy to avoid external mutation
+    this.collections.set(name, data.map(d => ({ ...d })));
+  }
+}
+
+declare global {
+  // Used by the marketplace seed script to share the mock database
+  // eslint-disable-next-line no-var
+  var __FIXZIT_MARKETPLACE_DB_MOCK__: typeof InMemoryMockDatabase | undefined;
+}
+
+// Mock the MockDatabase module used by the seeding script.
+// We need to ensure our mock path matches what Node resolves at runtime from that module.
+vi.mock('@/server/database', () => {
+  return {
+    MockDatabase: InMemoryMockDatabase,
+  }
+})
+
+// Capture console output
+
+let consoleSpy: ReturnType<typeof vi.spyOn>
+
+beforeEach(() => {
+  // Reset the singleton state between tests
+  InMemoryMockDatabase.getInstance().reset()
+  globalThis.__FIXZIT_MARKETPLACE_DB_MOCK__ = InMemoryMockDatabase
+  consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+})
+
+afterEach(() => {
+  consoleSpy.mockRestore()
+  delete globalThis.__FIXZIT_MARKETPLACE_DB_MOCK__
+})
+
+async function importTargetModule(): Promise<SeedModule> {
+  for (const p of candidateModulePaths) {
+    try {
+      // Use file URL for ESM imports if needed
+      const fileUrl = url.pathToFileURL(p).href
+       
+      const imported = await import(fileUrl)
+      if (imported && typeof imported.upsert === 'function') {
+        return imported as SeedModule;
+      }
+    } catch (e) {
+      // continue to next candidate
+    }
+  }
+  throw new Error('Could not import seeding module. Please ensure scripts/seed-marketplace.mjs exists.')
+}
+
+describe('seed-marketplace script', () => {
+  test('upsert inserts when no match and sets timestamps and _id', async () => {
+    const mod = await importTargetModule()
+    const db = InMemoryMockDatabase.getInstance()
+
+    const before = db.getCollection('searchsynonyms')
+    expect(before).toHaveLength(0)
+
+    const created = mod.upsert(
+      'searchsynonyms',
+      (x: Doc) => x.locale === 'en' && x.term === 'ac filter',
+      { locale: 'en', term: 'ac filter', synonyms: ['hvac filter'] }
+    )
+
+    const after = db.getCollection('searchsynonyms')
+    expect(after).toHaveLength(1)
+    expect(created as Partial<Doc>).toMatchObject({
+      locale: 'en',
+      term: 'ac filter',
+      synonyms: ['hvac filter'],
+    })
+    expect(created).toHaveProperty('_id')
+    expect(typeof created._id).toBe('string')
+    expect(created).toHaveProperty('createdAt')
+    expect(created).toHaveProperty('updatedAt')
+    expect(new Date((created as { createdAt?: string }).createdAt ?? '').getTime()).toBeGreaterThan(0)
+    expect(new Date((created as { updatedAt?: string }).updatedAt ?? '').getTime()).toBeGreaterThan(0)
+  })
+
+  test('upsert updates when match exists and preserves createdAt while refreshing updatedAt', async () => {
+    const mod = await importTargetModule()
+    const db = InMemoryMockDatabase.getInstance()
+
+    const first = mod.upsert(
+      'searchsynonyms',
+      (x: Doc) => x.locale === 'en' && x.term === 'ac filter',
+      { locale: 'en', term: 'ac filter', synonyms: ['hvac filter'] }
+    )
+
+    // Advance the clock artificially by replacing Date.now (keeps test runner stable)
+    const originalNow = Date.now
+
+    try {
+      const t0 = Date.now()
+      vi.spyOn(Date, 'now').mockReturnValue(t0 + 5_000)
+
+      const updated = mod.upsert(
+        'searchsynonyms',
+        (x: Doc) => x.locale === 'en' && x.term === 'ac filter',
+        { synonyms: ['hvac filter', 'air filter'] } // partial update payload
+      )
+
+      expect((updated as { _id?: unknown })._id).toBe((first as { _id?: unknown })._id)
+      expect((updated as { createdAt?: unknown }).createdAt).toEqual((first as { createdAt?: unknown }).createdAt)
+      // Use >= since timestamps can be equal in fast execution (mocked time + 5s still may match)
+      expect(new Date((updated as { updatedAt?: string }).updatedAt ?? '').getTime())
+        .toBeGreaterThanOrEqual(new Date((first as { updatedAt?: string }).updatedAt ?? '').getTime())
+      expect((updated as { synonyms?: unknown }).synonyms).toEqual(['hvac filter', 'air filter'])
+      expect((updated as { term?: unknown }).term).toBe('ac filter') // unchanged
+      expect((updated as { locale?: unknown }).locale).toBe('en')
+    } finally {
+      if (typeof (Date.now as unknown as { mockRestore?: () => void }).mockRestore === 'function') {
+        (Date.now as unknown as { mockRestore: () => void }).mockRestore();
+      }
+      // ensure Date.now restored in all environments
+      Date.now = originalNow
+    }
+  })
+
+  test('main() seeds the expected synonyms and product for demo-tenant', async () => {
+    const mod = await importTargetModule()
+    const db = InMemoryMockDatabase.getInstance()
+
+    // The module calls main() on import in the provided snippet.
+    // If the module did not auto-execute, call it explicitly to seed.
+    if (typeof mod.main === 'function') {
+      // Reset first to ensure a clean run
+      db.reset()
+      consoleSpy.mockClear()
+      await mod.main()
+    }
+
+    const synonyms = db.getCollection('searchsynonyms')
+    const products = db.getCollection('marketplaceproducts')
+
+    // Verify two specific synonym entries exist
+    const enAc = synonyms.find(x => x.locale === 'en' && x.term === 'ac filter') as Doc
+    const arPaint = synonyms.find(x => x.locale === 'ar' && x.term === 'دهان') as Doc
+
+    expect(enAc).toBeTruthy()
+    expect((enAc as { synonyms?: unknown[] }).synonyms).toEqual(
+      expect.arrayContaining(['hvac filter', 'air filter', 'فلتر مكيف'])
+    )
+
+    expect(arPaint).toBeTruthy()
+    expect((arPaint as { synonyms?: unknown[] }).synonyms).toEqual(
+      expect.arrayContaining(['طلاء', 'paint', 'painter'])
+    )
+
+    // Verify product
+    const product = products.find(
+      x => x.slug === 'portland-cement-type-1-2-50kg' && x.tenantId === 'demo-tenant'
+    ) as Doc | undefined
+    expect(product).toBeTruthy()
+    expect(product).toMatchObject({
+      tenantId: 'demo-tenant',
+      sku: 'CEM-001-50',
+      slug: 'portland-cement-type-1-2-50kg',
+      title: expect.objectContaining({ en: 'Portland Cement Type I/II — 50kg' }),
+      brand: 'Fixzit Materials',
+      prices: [{ currency: 'SAR', listPrice: 16.5 }],
+      inventories: [{ onHand: 200, leadDays: 2 }],
+      rating: { avg: 4.6, count: 123 },
+    })
+    expect(Array.isArray(product.images)).toBe(true)
+    expect(product.searchable).toEqual(
+      expect.objectContaining({ en: expect.stringContaining('Portland Cement') })
+    )
+    expect((product as { _id?: unknown })._id).toBeDefined()
+    expect((product as { createdAt?: unknown }).createdAt).toBeDefined()
+    expect((product as { updatedAt?: unknown }).updatedAt).toBeDefined()
+
+    // Verify console side effect
+  })
+
+  test('idempotency: running main() twice should update existing docs, not create duplicates', async () => {
+    const mod = await importTargetModule()
+    const db = InMemoryMockDatabase.getInstance()
+
+    db.reset()
+    consoleSpy.mockClear()
+    if (typeof mod.main === 'function') {
+      await mod.main()
+      await mod.main()
+    }
+
+    const synonyms = db.getCollection('searchsynonyms')
+    const products = db.getCollection('marketplaceproducts')
+
+    // Expect exactly two synonyms entries (en/ac filter and ar/دهان) and one product
+    const enMatches = synonyms.filter(x => x.locale === 'en' && x.term === 'ac filter')
+    const arMatches = synonyms.filter(x => x.locale === 'ar' && x.term === 'دهان')
+    const productMatches = products.filter(x => x.slug === 'portland-cement-type-1-2-50kg' && x.tenantId === 'demo-tenant')
+
+    expect(enMatches).toHaveLength(1)
+    expect(arMatches).toHaveLength(1)
+    expect(productMatches).toHaveLength(1)
+  })
+
+  test('upsert handles predicates that throw by propagating the error', async () => {
+    const mod = await importTargetModule()
+    const db = InMemoryMockDatabase.getInstance()
+    db.reset()
+
+    // First insert a record so the predicate is actually called during upsert's find phase
+    mod.upsert('searchsynonyms', () => false, { term: 'test', locale: 'en', synonyms: [] })
+
+    expect(() => mod.upsert('searchsynonyms', () => { throw new Error('bad predicate') }, { foo: 'bar' }))
+      .toThrow('bad predicate')
+  })
+})
+
+]]>
+</file>
+
+<file path="tests/security/cors.test.ts">
+<![CDATA[
+/**
+ * CORS Security Tests
+ * Verifies that CORS allowlist works correctly
+ */
+
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
+import { isOriginAllowed, parseOrigins } from "@/lib/security/cors-allowlist";
+
+vi.mock("@/lib/monitoring/security-events", () => ({
+  logSecurityEvent: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+describe("CORS Security Tests", () => {
+  describe("Production CORS", () => {
+    beforeAll(() => {
+      vi.stubEnv("NODE_ENV", "production");
+    });
+
+    afterAll(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it("should allow production origins", () => {
+      expect(isOriginAllowed("https://fixzit.sa")).toBe(true);
+      expect(isOriginAllowed("https://www.fixzit.sa")).toBe(true);
+      expect(isOriginAllowed("https://app.fixzit.sa")).toBe(true);
+      expect(isOriginAllowed("https://dashboard.fixzit.sa")).toBe(true);
+    });
+
+    it("should block unauthorized origins", () => {
+      expect(isOriginAllowed("https://evil.com")).toBe(false);
+      expect(isOriginAllowed("http://malicious.site")).toBe(false);
+    });
+
+    it("should block localhost in production", () => {
+      expect(isOriginAllowed("http://localhost:3000")).toBe(false);
+      expect(isOriginAllowed("http://127.0.0.1:3000")).toBe(false);
+    });
+
+    it("should reject null origin in production", () => {
+      expect(isOriginAllowed(null)).toBe(false);
+    });
+  });
+
+  describe("Development CORS", () => {
+    beforeAll(() => {
+      vi.stubEnv("NODE_ENV", "development");
+    });
+
+    afterAll(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it("should allow localhost in development", () => {
+      expect(isOriginAllowed("http://localhost:3000")).toBe(true);
+      expect(isOriginAllowed("http://localhost:3001")).toBe(true);
+    });
+
+    it("should allow null origin in development (same-origin)", () => {
+      expect(isOriginAllowed(null)).toBe(true);
+    });
+
+    it("should still allow production origins in development", () => {
+      expect(isOriginAllowed("https://fixzit.sa")).toBe(true);
+    });
+  });
+
+  describe("CORS parseOrigins validation", () => {
+    it("should reject invalid URLs", () => {
+      vi.stubEnv("NODE_ENV", "development");
+      const origins = parseOrigins(
+        "not-a-url, http://valid.com , missing-scheme",
+      );
+      expect(origins).toEqual(["http://valid.com"]);
+      vi.unstubAllEnvs();
+    });
+
+    it("should reject non-http(s) protocols", () => {
+      vi.stubEnv("NODE_ENV", "development");
+      const origins = parseOrigins(
+        "ftp://example.com,https://good.com,file:///tmp/test",
+      );
+      expect(origins).toEqual(["https://good.com"]);
+      vi.unstubAllEnvs();
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/security/log-sanitizer.test.ts">
+<![CDATA[
+/**
+ * Log Sanitizer Tests
+ * 
+ * Tests the REAL implementation (no mocks) to catch regex regressions
+ * and ensure PII patterns are properly redacted.
+ */
+
+import { describe, it, expect } from "vitest";
+import {
+  sanitizeLogParams,
+  sanitizeValue,
+  sanitizeError,
+} from "@/lib/security/log-sanitizer";
+import { redactIdentifier } from "@/lib/otp-utils";
+
+describe("Log Sanitizer - Real Implementation Tests", () => {
+  describe("sanitizeLogParams", () => {
+    it("should redact sensitive keys regardless of value format", () => {
+      const input = {
+        email: "user@example.com",
+        phone: "+966501234567",
+        password: "super-secret-123",
+        apiKey: "sk_live_abc123xyz",
+        token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.payload.signature",
+        userId: "user-12345",
+        normalField: "visible-data",
+      };
+
+      const result = sanitizeLogParams(input);
+
+      expect(result.email).toBe("[REDACTED]");
+      expect(result.phone).toBe("[REDACTED]");
+      expect(result.password).toBe("[REDACTED]");
+      expect(result.apiKey).toBe("[REDACTED]");
+      expect(result.token).toBe("[REDACTED]");
+      expect(result.userId).toBe("[REDACTED]");
+      expect(result.normalField).toBe("visible-data");
+    });
+
+    it("should redact snake_case variations of sensitive keys", () => {
+      const input = {
+        user_id: "user-12345",
+        api_key: "sk_test_abc",
+        access_token: "token123",
+        phone_number: "+966501234567",
+        national_id: "1234567890",
+      };
+
+      const result = sanitizeLogParams(input);
+
+      expect(result.user_id).toBe("[REDACTED]");
+      expect(result.api_key).toBe("[REDACTED]");
+      expect(result.access_token).toBe("[REDACTED]");
+      expect(result.phone_number).toBe("[REDACTED]");
+      expect(result.national_id).toBe("[REDACTED]");
+    });
+
+    it("should redact auth header keys", () => {
+      const input = {
+        authorization: "Bearer eyJhbG...",
+        cookie: "session=abc123",
+        "set-cookie": "session=xyz789; HttpOnly",
+        csrf_token: "csrf-token-value",
+        session_id: "session-123",
+      };
+
+      const result = sanitizeLogParams(input);
+
+      expect(result.authorization).toBe("[REDACTED]");
+      expect(result.cookie).toBe("[REDACTED]");
+      expect(result["set-cookie"]).toBe("[REDACTED]");
+      expect(result.csrf_token).toBe("[REDACTED]");
+      expect(result.session_id).toBe("[REDACTED]");
+    });
+
+    it("should handle nested objects", () => {
+      const input = {
+        user: {
+          email: "test@example.com",
+          profile: {
+            name: "John Doe",
+            phone: "+966501234567",
+          },
+        },
+        metadata: {
+          requestId: "req-123",
+        },
+      };
+
+      const result = sanitizeLogParams(input);
+
+      expect((result.user as Record<string, unknown>).email).toBe("[REDACTED]");
+      expect(
+        ((result.user as Record<string, unknown>).profile as Record<string, unknown>).phone
+      ).toBe("[REDACTED]");
+      expect(
+        ((result.user as Record<string, unknown>).profile as Record<string, unknown>).name
+      ).toBe("John Doe");
+      expect((result.metadata as Record<string, unknown>).requestId).toBe("req-123");
+    });
+
+    it("should handle arrays", () => {
+      const input = {
+        emails: ["user1@example.com", "user2@example.com"],
+        data: [
+          { email: "nested@example.com", name: "User" },
+        ],
+      };
+
+      const result = sanitizeLogParams(input);
+
+      // Emails in arrays should be redacted if they match patterns
+      expect(Array.isArray(result.emails)).toBe(true);
+      expect(Array.isArray(result.data)).toBe(true);
+    });
+
+    it("should handle circular references gracefully", () => {
+      const obj: Record<string, unknown> = { name: "test" };
+      obj.self = obj;
+
+      expect(() => sanitizeLogParams(obj)).not.toThrow();
+      const result = sanitizeLogParams(obj);
+      expect(result.name).toBe("test");
+    });
+
+    it("should handle max depth gracefully", () => {
+      // Create a deeply nested object
+      let deep: Record<string, unknown> = { value: "deep" };
+      for (let i = 0; i < 15; i++) {
+        deep = { nested: deep };
+      }
+
+      expect(() => sanitizeLogParams(deep)).not.toThrow();
+    });
+  });
+
+  describe("sanitizeValue - PII Pattern Detection", () => {
+    it("should redact email patterns in non-sensitive fields", () => {
+      const result = sanitizeValue("Contact me at user@example.com", "message");
+      expect(result).toBe("[REDACTED]");
+    });
+
+    it("should redact phone-like patterns", () => {
+      // International format
+      expect(sanitizeValue("+966501234567", "data")).toBe("[REDACTED]");
+      // With spaces
+      expect(sanitizeValue("+966 50 123 4567", "data")).toBe("[REDACTED]");
+      // With dashes
+      expect(sanitizeValue("050-123-4567", "data")).toBe("[REDACTED]");
+    });
+
+    it("should redact JWT tokens", () => {
+      const jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signature123";
+      expect(sanitizeValue(jwt, "data")).toBe("[REDACTED]");
+    });
+
+    it("should redact Bearer tokens", () => {
+      const bearer = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.payload.sig";
+      expect(sanitizeValue(bearer, "data")).toBe("[REDACTED]");
+    });
+
+    it("should redact Basic auth tokens", () => {
+      const basic = "Basic dXNlcm5hbWU6cGFzc3dvcmQ=";
+      expect(sanitizeValue(basic, "data")).toBe("[REDACTED]");
+    });
+
+    it("should redact IBAN-like patterns", () => {
+      const iban = "SA0380000000608010167519";
+      expect(sanitizeValue(iban, "data")).toBe("[REDACTED]");
+    });
+
+    it("should redact card-like digit sequences", () => {
+      const cardNumber = "4111111111111111";
+      expect(sanitizeValue(cardNumber, "data")).toBe("[REDACTED]");
+    });
+
+    it("should NOT redact short non-PII strings", () => {
+      expect(sanitizeValue("hello", "greeting")).toBe("hello");
+      expect(sanitizeValue("12345", "code")).toBe("12345");
+      expect(sanitizeValue("test-value", "field")).toBe("test-value");
+    });
+
+    it("should preserve non-string values", () => {
+      expect(sanitizeValue(12345, "count")).toBe(12345);
+      expect(sanitizeValue(true, "flag")).toBe(true);
+      expect(sanitizeValue(null, "empty")).toBe(null);
+      expect(sanitizeValue(undefined, "missing")).toBe(undefined);
+    });
+  });
+
+  describe("sanitizeError", () => {
+    it("should extract safe error information", () => {
+      const error = new Error("Test error message");
+      const result = sanitizeError(error);
+
+      expect(result.message).toBe("Test error message");
+      expect(result.name).toBe("Error");
+    });
+
+    it("should handle non-Error objects", () => {
+      const result = sanitizeError({ code: 500, message: "Server error" });
+      expect(result.code).toBe(500);
+      expect(result.message).toBe("Server error");
+    });
+
+    it("should handle string errors", () => {
+      const result = sanitizeError("Something went wrong");
+      expect(result.message).toBe("Something went wrong");
+    });
+
+    it("should redact PII in error messages", () => {
+      const error = new Error("Failed for user user@example.com");
+      const result = sanitizeError(error);
+      // The error message itself isn't redacted (intentional for debugging)
+      // but if nested objects have PII keys, they should be
+      expect(result.message).toBe("Failed for user user@example.com");
+    });
+  });
+
+  describe("redactIdentifier", () => {
+    it("should redact email addresses showing first 3 chars", () => {
+      const result = redactIdentifier("user@example.com");
+      expect(result).not.toBe("user@example.com");
+      expect(result).toBe("use***");
+    });
+
+    it("should redact IP addresses showing first 3 chars", () => {
+      const result = redactIdentifier("192.168.1.100");
+      expect(result).not.toBe("192.168.1.100");
+      expect(result).toBe("192***");
+    });
+
+    it("should redact generic identifiers showing first 3 chars", () => {
+      const result = redactIdentifier("EMP-12345-ABC");
+      expect(result).not.toBe("EMP-12345-ABC");
+      expect(result).toBe("EMP***");
+    });
+
+    it("should handle empty strings", () => {
+      expect(redactIdentifier("")).toBe("***");
+    });
+
+    it("should handle short identifiers (2 chars)", () => {
+      const result = redactIdentifier("AB");
+      // Short identifiers (<= 3 chars) return "***"
+      expect(result).toBe("***");
+    });
+    
+    it("should handle identifiers with exactly 3 chars", () => {
+      const result = redactIdentifier("ABC");
+      expect(result).toBe("***");
+    });
+    
+    it("should handle identifiers with 4 chars", () => {
+      const result = redactIdentifier("ABCD");
+      expect(result).toBe("ABC***");
+    });
+  });
+
+  describe("ReDoS Protection - Bounded Patterns", () => {
+    it("should not hang on pathological phone inputs", () => {
+      // This would cause catastrophic backtracking with unbounded patterns
+      const pathological = "0".repeat(100);
+      const start = Date.now();
+      sanitizeValue(pathological, "data");
+      const elapsed = Date.now() - start;
+      expect(elapsed).toBeLessThan(100); // Should complete quickly
+    });
+
+    it("should not hang on pathological JWT-like inputs", () => {
+      const pathological = "a".repeat(50) + "." + "b".repeat(50) + "." + "c".repeat(50);
+      const start = Date.now();
+      sanitizeValue(pathological, "data");
+      const elapsed = Date.now() - start;
+      expect(elapsed).toBeLessThan(100);
+    });
+
+    it("should not hang on nested object with many fields", () => {
+      const bigObject: Record<string, string> = {};
+      for (let i = 0; i < 1000; i++) {
+        bigObject[`field${i}`] = `value${i}`;
+      }
+      const start = Date.now();
+      sanitizeLogParams(bigObject);
+      const elapsed = Date.now() - start;
+      expect(elapsed).toBeLessThan(1000); // Should complete within 1s
+    });
+  });
+
+  describe("Edge Cases", () => {
+    it("should handle Date objects", () => {
+      const input = { timestamp: new Date("2025-01-15T00:00:00Z") };
+      const result = sanitizeLogParams(input);
+      expect(typeof result.timestamp).toBe("string");
+      expect(result.timestamp).toContain("2025");
+    });
+
+    it("should handle symbols and functions gracefully", () => {
+      const input = {
+        name: "test",
+        // These shouldn't crash the sanitizer
+      };
+      expect(() => sanitizeLogParams(input)).not.toThrow();
+    });
+
+    it("should handle very long strings", () => {
+      const longString = "a".repeat(10000);
+      const input = { data: longString };
+      expect(() => sanitizeLogParams(input)).not.toThrow();
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/security/monitoring.test.ts">
+<![CDATA[
+/**
+ * Security Monitoring Tests
+ * 
+ * Tests the security monitoring module which tracks rate limits,
+ * CORS violations, and authentication failures.
+ */
+
+import { describe, it, expect, vi, beforeEach, afterEach, Mock } from "vitest";
+
+// Mock dependencies
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+// Mock log-sanitizer (used by monitoring.ts for redactIdentifier internally)
+vi.mock("@/lib/security/log-sanitizer", () => ({
+  sanitizeValue: vi.fn((value: string) => "[REDACTED]"),
+}));
+
+// Mock fetch for webhook tests
+const mockFetch = vi.fn();
+global.fetch = mockFetch as unknown as typeof fetch;
+
+describe("Security Monitoring", () => {
+  let trackRateLimitHit: (identifier: string, endpoint: string) => void;
+  let trackCorsViolation: (origin: string, endpoint: string) => void;
+  let trackAuthFailure: (identifier: string, reason: string) => void;
+  let getSecurityMetrics: () => Record<string, number>;
+  let logger: { info: Mock; warn: Mock; error: Mock };
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    vi.resetModules();
+    
+    // Clear environment variable
+    delete process.env.SECURITY_ALERT_WEBHOOK;
+    
+    mockFetch.mockResolvedValue(new Response(null, { status: 200 }));
+
+    // Import fresh modules
+    const monitoringModule = await import("@/lib/security/monitoring");
+    trackRateLimitHit = monitoringModule.trackRateLimitHit;
+    trackCorsViolation = monitoringModule.trackCorsViolation;
+    trackAuthFailure = monitoringModule.trackAuthFailure;
+    getSecurityMetrics = monitoringModule.getSecurityMetrics;
+
+    const loggerModule = await import("@/lib/logger");
+    logger = loggerModule.logger as unknown as { info: Mock; warn: Mock; error: Mock };
+  });
+
+  afterEach(() => {
+    vi.resetModules();
+    delete process.env.SECURITY_ALERT_WEBHOOK;
+  });
+
+  describe("trackRateLimitHit", () => {
+    it("should track rate limit hits", async () => {
+      const identifier = "user@example.com";
+      const endpoint = "/api/test";
+
+      trackRateLimitHit(identifier, endpoint);
+
+      const metrics = getSecurityMetrics();
+      expect(metrics.rateLimitHits).toBeGreaterThanOrEqual(1);
+    });
+
+    it("should log warnings after verbose threshold", async () => {
+      const identifier = "user@example.com";
+      const endpoint = "/api/test";
+
+      // Hit the verbose logging threshold (5 hits)
+      for (let i = 0; i < 5; i++) {
+        trackRateLimitHit(identifier, endpoint);
+      }
+
+      // Should have logged at least one warning
+      expect(logger.warn).toHaveBeenCalled();
+    });
+  });
+
+  describe("trackCorsViolation", () => {
+    it("should track CORS violations", async () => {
+      const origin = "https://attacker-site.com";
+      const endpoint = "/api/secure";
+
+      trackCorsViolation(origin, endpoint);
+
+      const metrics = getSecurityMetrics();
+      expect(metrics.corsViolations).toBeGreaterThanOrEqual(1);
+    });
+
+    it("should log warnings after verbose threshold", async () => {
+      const origin = "https://evil-domain.com";
+      const endpoint = "/api/data";
+
+      // Hit the verbose logging threshold (5 hits)
+      for (let i = 0; i < 5; i++) {
+        trackCorsViolation(origin, endpoint);
+      }
+
+      // Should have logged at least one warning
+      expect(logger.warn).toHaveBeenCalled();
+    });
+  });
+
+  describe("trackAuthFailure", () => {
+    it("should track authentication failures", async () => {
+      const userId = "admin@company.com";
+      const reason = "Invalid password";
+
+      trackAuthFailure(userId, reason);
+
+      const metrics = getSecurityMetrics();
+      expect(metrics.authFailures).toBeGreaterThanOrEqual(1);
+    });
+
+    it("should log errors after verbose threshold", async () => {
+      const userId = "admin@company.com";
+      const reason = "Invalid credentials";
+
+      // Hit the verbose logging threshold (5 hits)
+      for (let i = 0; i < 5; i++) {
+        trackAuthFailure(userId, reason);
+      }
+
+      // Should have logged at least one error
+      expect(logger.error).toHaveBeenCalled();
+    });
+  });
+
+  describe("getSecurityMetrics", () => {
+    it("should return metrics object", async () => {
+      const metrics = getSecurityMetrics();
+
+      expect(metrics).toHaveProperty("rateLimitHits");
+      expect(metrics).toHaveProperty("corsViolations");
+      expect(metrics).toHaveProperty("authFailures");
+      expect(metrics).toHaveProperty("windowMs");
+    });
+
+    it("should track multiple event types independently", async () => {
+      trackRateLimitHit("user@a.com", "/api/rate");
+      trackCorsViolation("https://bad.com", "/api/cors");
+      trackAuthFailure("user@b.com", "expired");
+
+      const metrics = getSecurityMetrics();
+
+      expect(metrics.rateLimitHits).toBeGreaterThanOrEqual(1);
+      expect(metrics.corsViolations).toBeGreaterThanOrEqual(1);
+      expect(metrics.authFailures).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe("Webhook Alerts", () => {
+    it("should send webhook when rate limit threshold is exceeded", async () => {
+      process.env.SECURITY_ALERT_WEBHOOK = "https://hooks.example.com/alert";
+
+      vi.resetModules();
+      const monitoringModule = await import("@/lib/security/monitoring");
+      
+      const identifier = "test-user@domain.com";
+      const endpoint = "/api/auth";
+
+      // Trigger exactly threshold number of hits (100 for rate limit)
+      for (let i = 0; i < 100; i++) {
+        monitoringModule.trackRateLimitHit(identifier, endpoint);
+      }
+
+      // Webhook should be called when threshold is hit
+      expect(mockFetch).toHaveBeenCalled();
+    });
+  });
+});
+
+describe("Monitoring Module Exports", () => {
+  it("should export trackRateLimitHit", async () => {
+    const monitoring = await import("@/lib/security/monitoring");
+    expect(monitoring.trackRateLimitHit).toBeDefined();
+    expect(typeof monitoring.trackRateLimitHit).toBe("function");
+  });
+
+  it("should export trackCorsViolation", async () => {
+    const monitoring = await import("@/lib/security/monitoring");
+    expect(monitoring.trackCorsViolation).toBeDefined();
+    expect(typeof monitoring.trackCorsViolation).toBe("function");
+  });
+
+  it("should export trackAuthFailure", async () => {
+    const monitoring = await import("@/lib/security/monitoring");
+    expect(monitoring.trackAuthFailure).toBeDefined();
+    expect(typeof monitoring.trackAuthFailure).toBe("function");
+  });
+
+  it("should export getSecurityMetrics", async () => {
+    const monitoring = await import("@/lib/security/monitoring");
+    expect(monitoring.getSecurityMetrics).toBeDefined();
+    expect(typeof monitoring.getSecurityMetrics).toBe("function");
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/security/rate-limiting.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { rateLimit } from "@/server/security/rateLimit";
+
+describe("rateLimit helper", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("allows requests up to the limit and blocks subsequent calls", () => {
+    const key = "rate:test";
+    const first = rateLimit(key, 3, 1_000);
+    const second = rateLimit(key, 3, 1_000);
+    const third = rateLimit(key, 3, 1_000);
+    const fourth = rateLimit(key, 3, 1_000);
+
+    expect(first.allowed).toBe(true);
+    expect(second.allowed).toBe(true);
+    expect(third.allowed).toBe(true);
+    expect(fourth.allowed).toBe(false);
+    expect(fourth.remaining).toBe(0);
+  });
+
+  it("resets the window after the configured duration", () => {
+    const key = "rate:window";
+    rateLimit(key, 2, 500);
+    rateLimit(key, 2, 500);
+
+    const blocked = rateLimit(key, 2, 500);
+    expect(blocked.allowed).toBe(false);
+
+    vi.advanceTimersByTime(501);
+
+    const afterReset = rateLimit(key, 2, 500);
+    expect(afterReset.allowed).toBe(true);
+    expect(afterReset.remaining).toBe(1);
+  });
+
+  it("isolates counters per key", () => {
+    const alpha = rateLimit("rate:alpha", 1, 1_000);
+    const beta = rateLimit("rate:beta", 1, 1_000);
+
+    expect(alpha.allowed).toBe(true);
+    expect(beta.allowed).toBe(true);
+
+    const alphaBlocked = rateLimit("rate:alpha", 1, 1_000);
+    const betaStillAllowed = rateLimit("rate:beta", 1, 1_000);
+
+    expect(alphaBlocked.allowed).toBe(false);
+    expect(betaStillAllowed.allowed).toBe(false); // beta hit its own limit separately
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/server/copilot/approveQuotation.test.ts">
+<![CDATA[
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { Types } from "mongoose";
+
+const mockRecordAudit = vi.fn();
+const mockFMQuotation = {
+  findOne: vi.fn(),
+  findOneAndUpdate: vi.fn(),
+};
+const mockFMApproval = {
+  findOne: vi.fn(),
+  findByIdAndUpdate: vi.fn(),
+};
+const mockUser = {
+  findById: vi.fn(),
+};
+const mockWorkOrder = {
+  findById: vi.fn(),
+};
+const mockJobQueue = {
+  enqueue: vi.fn(),
+};
+
+const leanResult = <T>(data: T) => ({
+  lean: vi.fn().mockResolvedValue(data),
+});
+
+// Lightweight mocks to avoid real DB connections or networking in the tool handler
+vi.mock("@/lib/mongo", () => ({ db: Promise.resolve() }));
+vi.mock("@/server/copilot/audit", () => ({ recordAudit: mockRecordAudit }));
+vi.mock("@/domain/fm/fm.behavior", () => ({ FMQuotation: mockFMQuotation }));
+vi.mock("@/server/models/FMApproval", () => ({ FMApproval: mockFMApproval }));
+vi.mock("@/server/models/User", () => ({ User: mockUser }));
+vi.mock("@/server/models/WorkOrder", () => ({ WorkOrder: mockWorkOrder }));
+vi.mock("@/lib/jobs/queue", () => ({ JobQueue: mockJobQueue }));
+
+const baseSession = {
+  tenantId: "org-123",
+  userId: "507f1f77bcf86cd799439011",
+  role: "FINANCE" as const,
+  locale: "en" as const,
+  email: "finance@test.local",
+  name: "Finance User",
+};
+
+describe("Copilot approveQuotation tool", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("rejects invalid quotation IDs and records audit", async () => {
+    const { executeTool } = await import("@/server/copilot/tools");
+    const result = await executeTool(
+      "approveQuotation",
+      { quotationId: "not-an-id" },
+      baseSession,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toMatch(/valid quotation/i);
+    expect(mockRecordAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "DENIED", intent: "approveQuotation" }),
+    );
+    expect(mockFMQuotation.findOne).not.toHaveBeenCalled();
+  });
+
+  it("denies approval when no workflow (FMApproval) exists", async () => {
+    const quotationId = new Types.ObjectId().toString();
+    const { executeTool } = await import("@/server/copilot/tools");
+
+    mockFMQuotation.findOne.mockReturnValue(
+      leanResult({
+        _id: new Types.ObjectId(quotationId),
+        org_id: baseSession.tenantId,
+        status: "PENDING",
+      }),
+    );
+    mockFMApproval.findOne.mockReturnValue(leanResult(null));
+
+    const result = await executeTool(
+      "approveQuotation",
+      { quotationId },
+      baseSession,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toMatch(/approval workflow/i);
+    expect(mockRecordAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "DENIED", intent: "approveQuotation" }),
+    );
+    expect(mockFMQuotation.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+
+  it("approves a quotation, updates status, and audits success", async () => {
+    const quotationId = new Types.ObjectId().toString();
+    const { executeTool } = await import("@/server/copilot/tools");
+
+    mockFMQuotation.findOne.mockReturnValue(
+      leanResult({
+        _id: new Types.ObjectId(quotationId),
+        org_id: baseSession.tenantId,
+        status: "PENDING",
+      }),
+    );
+    mockFMQuotation.findOneAndUpdate.mockReturnValue(
+      leanResult({
+        _id: new Types.ObjectId(quotationId),
+        org_id: baseSession.tenantId,
+        status: "APPROVED",
+      }),
+    );
+    mockFMApproval.findOne.mockReturnValue(
+      leanResult({
+        _id: new Types.ObjectId(),
+        status: "PENDING",
+        approverId: new Types.ObjectId(baseSession.userId),
+        stages: [{ approvers: [baseSession.userId], status: "PENDING" }],
+      }),
+    );
+
+    const result = await executeTool(
+      "approveQuotation",
+      { quotationId },
+      baseSession,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual({ quotationId, status: "approved" });
+    expect(mockFMQuotation.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        _id: expect.any(Types.ObjectId),
+        org_id: baseSession.tenantId,
+      }),
+    );
+    expect(mockFMQuotation.findOneAndUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        _id: expect.any(Types.ObjectId),
+        org_id: baseSession.tenantId,
+      }),
+      expect.objectContaining({
+        $set: expect.objectContaining({ status: "APPROVED" }),
+      }),
+      expect.objectContaining({ new: true }),
+    );
+    expect(mockRecordAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "SUCCESS",
+        intent: "approveQuotation",
+      }),
+    );
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/server/copilot/dispatchWorkOrder.test.ts">
+<![CDATA[
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+const mockWorkOrder = {
+  findOne: vi.fn(),
+  findByIdAndUpdate: vi.fn(),
+};
+
+vi.mock("@/lib/mongo", () => ({ db: Promise.resolve() }));
+vi.mock("@/server/models/WorkOrder", () => ({ WorkOrder: mockWorkOrder }));
+
+const baseSession = {
+  tenantId: "org-123",
+  userId: "user-123",
+  role: "ADMIN" as const,
+  locale: "en" as const,
+  email: "admin@test.local",
+  name: "Admin User",
+};
+
+describe("Copilot dispatchWorkOrder tool", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("blocks dispatch for terminal statuses", async () => {
+    const { executeTool } = await import("@/server/copilot/tools");
+    mockWorkOrder.findOne.mockResolvedValue({
+      _id: "wo-1",
+      orgId: baseSession.tenantId,
+      status: "CLOSED",
+      workOrderNumber: "WO-1",
+    });
+
+    await expect(
+      executeTool("dispatchWorkOrder", { workOrderId: "wo-1" }, baseSession),
+    ).rejects.toThrow(/status/i);
+    expect(mockWorkOrder.findByIdAndUpdate).not.toHaveBeenCalled();
+  });
+
+  it("returns early when no assignment change is requested", async () => {
+    const { executeTool } = await import("@/server/copilot/tools");
+    mockWorkOrder.findOne.mockResolvedValue({
+      _id: "wo-2",
+      orgId: baseSession.tenantId,
+      status: "ASSIGNED",
+      workOrderNumber: "WO-2",
+      assignment: { assignedTo: { userId: "tech-1" } },
+    });
+
+    const result = await executeTool(
+      "dispatchWorkOrder",
+      { workOrderId: "wo-2", assigneeUserId: "tech-1" },
+      baseSession,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.message).toMatch(/no assignment changes/i);
+    expect(mockWorkOrder.findByIdAndUpdate).not.toHaveBeenCalled();
+  });
+
+  it("assigns and promotes SUBMITTED to ASSIGNED when a new assignee is provided", async () => {
+    const { executeTool } = await import("@/server/copilot/tools");
+    mockWorkOrder.findOne.mockResolvedValue({
+      _id: "wo-3",
+      orgId: baseSession.tenantId,
+      status: "SUBMITTED",
+      workOrderNumber: "WO-3",
+      assignment: { assignedTo: {} },
+    });
+    mockWorkOrder.findByIdAndUpdate.mockResolvedValue({
+      _id: "wo-3",
+      workOrderNumber: "WO-3",
+      status: "ASSIGNED",
+      assignment: { assignedTo: { userId: "tech-9" } },
+    });
+
+    const result = await executeTool(
+      "dispatchWorkOrder",
+      { workOrderId: "wo-3", assigneeUserId: "tech-9" },
+      baseSession,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data).toMatchObject({
+      status: "ASSIGNED",
+      assigneeUserId: "tech-9",
+    });
+    expect(mockWorkOrder.findByIdAndUpdate).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        $set: expect.objectContaining({
+          "assignment.assignedTo.userId": "tech-9",
+          status: "ASSIGNED",
+          "assignment.assignedBy": baseSession.userId,
+          "assignment.assignedAt": expect.any(Date),
+        }),
+      }),
+      expect.objectContaining({ new: true }),
+    );
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/server/copilot/scheduleVisit.test.ts">
+<![CDATA[
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+const mockWorkOrder = {
+  findOne: vi.fn(),
+  findByIdAndUpdate: vi.fn(),
+};
+
+vi.mock("@/lib/mongo", () => ({ db: Promise.resolve() }));
+vi.mock("@/server/models/WorkOrder", () => ({ WorkOrder: mockWorkOrder }));
+
+const baseSession = {
+  tenantId: "org-123",
+  userId: "user-123",
+  role: "ADMIN" as const,
+  locale: "en" as const,
+  email: "admin@test.local",
+  name: "Admin User",
+};
+
+describe("Copilot scheduleVisit tool", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("does not extend resolution deadline when scheduling later than existing SLA", async () => {
+    const { executeTool } = await import("@/server/copilot/tools");
+    const existingDeadline = new Date("2025-01-01T00:00:00Z");
+    const requestedDate = new Date("2025-02-01T00:00:00Z");
+
+    mockWorkOrder.findOne.mockResolvedValue({
+      _id: "wo-10",
+      orgId: baseSession.tenantId,
+      status: "SUBMITTED",
+      workOrderNumber: "WO-10",
+      assignment: {},
+      sla: { resolutionDeadline: existingDeadline },
+    });
+    mockWorkOrder.findByIdAndUpdate.mockResolvedValue({
+      _id: "wo-10",
+      workOrderNumber: "WO-10",
+      status: "SUBMITTED",
+      sla: { resolutionDeadline: existingDeadline },
+    });
+
+    const result = await executeTool(
+      "scheduleVisit",
+      { workOrderId: "wo-10", scheduledFor: requestedDate },
+      baseSession,
+    );
+
+    expect(result.success).toBe(true);
+    expect(mockWorkOrder.findByIdAndUpdate).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        $set: expect.objectContaining({
+          "assignment.scheduledDate": requestedDate,
+          "sla.resolutionDeadline": existingDeadline,
+        }),
+      }),
+      expect.objectContaining({ new: true }),
+    );
+  });
+
+  it("returns early when schedule and SLA already match requested date", async () => {
+    const { executeTool } = await import("@/server/copilot/tools");
+    const requestedDate = new Date("2025-03-03T10:00:00Z");
+
+    mockWorkOrder.findOne.mockResolvedValue({
+      _id: "wo-11",
+      orgId: baseSession.tenantId,
+      status: "ASSIGNED",
+      workOrderNumber: "WO-11",
+      assignment: { scheduledDate: requestedDate },
+      sla: { resolutionDeadline: requestedDate },
+    });
+
+    const result = await executeTool(
+      "scheduleVisit",
+      { workOrderId: "wo-11", scheduledFor: requestedDate },
+      baseSession,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.message).toMatch(/already up to date/i);
+    expect(mockWorkOrder.findByIdAndUpdate).not.toHaveBeenCalled();
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/server/copilot/uploadWorkOrderPhoto.test.ts">
+<![CDATA[
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+const mockFs = {
+  mkdir: vi.fn(),
+  writeFile: vi.fn(),
+};
+const mockWorkOrder = {
+  findOne: vi.fn(),
+  findOneAndUpdate: vi.fn(),
+};
+const leanResult = <T>(data: T) => ({
+  select: vi.fn().mockReturnThis(),
+  lean: vi.fn().mockResolvedValue(data),
+});
+
+vi.mock("fs", () => ({
+  promises: mockFs,
+  default: { promises: mockFs },
+}));
+vi.mock("@/lib/mongo", () => ({ db: Promise.resolve() }));
+vi.mock("@/server/models/WorkOrder", () => ({ WorkOrder: mockWorkOrder }));
+
+const baseSession = {
+  tenantId: "org-123",
+  userId: "user-123",
+  role: "ADMIN" as const,
+  locale: "en" as const,
+  email: "admin@test.local",
+  name: "Admin User",
+};
+
+const validBuffer = Buffer.from("test");
+
+describe("Copilot uploadWorkOrderPhoto tool", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockFs.mkdir.mockResolvedValue(undefined);
+    mockFs.writeFile.mockResolvedValue(undefined);
+    mockWorkOrder.findOne.mockReturnValue(
+      leanResult({
+        _id: "wo-1",
+        workOrderNumber: "WO-1",
+        attachments: [],
+      }),
+    );
+    mockWorkOrder.findOneAndUpdate.mockResolvedValue({
+      _id: "wo-1",
+      workOrderNumber: "WO-1",
+      attachments: [{ name: "file.png" }],
+    });
+  });
+
+  it("rejects unsupported mime types", async () => {
+    const { executeTool } = await import("@/server/copilot/tools");
+
+    await expect(
+      executeTool(
+        "uploadWorkOrderPhoto",
+        {
+          workOrderId: "wo-1",
+          fileName: "file.exe",
+          mimeType: "application/x-msdownload",
+          buffer: validBuffer,
+        },
+        baseSession,
+      ),
+    ).rejects.toThrow(/unsupported file type/i);
+    expect(mockWorkOrder.findOne).not.toHaveBeenCalled();
+    expect(mockFs.writeFile).not.toHaveBeenCalled();
+  });
+
+  it("rejects uploads over the size limit", async () => {
+    const { executeTool } = await import("@/server/copilot/tools");
+    const largeBuffer = Buffer.alloc(11 * 1024 * 1024);
+
+    await expect(
+      executeTool(
+        "uploadWorkOrderPhoto",
+        {
+          workOrderId: "wo-1",
+          fileName: "big.png",
+          mimeType: "image/png",
+          buffer: largeBuffer,
+        },
+        baseSession,
+      ),
+    ).rejects.toThrow(/too large/i);
+    expect(mockWorkOrder.findOne).not.toHaveBeenCalled();
+    expect(mockFs.writeFile).not.toHaveBeenCalled();
+  });
+
+  it("enforces an attachment count limit", async () => {
+    const { executeTool } = await import("@/server/copilot/tools");
+    mockWorkOrder.findOne.mockReturnValue(
+      leanResult({
+        _id: "wo-1",
+        workOrderNumber: "WO-1",
+        attachments: new Array(20).fill({}),
+      }),
+    );
+
+    await expect(
+      executeTool(
+        "uploadWorkOrderPhoto",
+        {
+          workOrderId: "wo-1",
+          fileName: "file.png",
+          mimeType: "image/png",
+          buffer: validBuffer,
+        },
+        baseSession,
+      ),
+    ).rejects.toThrow(/attachment limit/i);
+    expect(mockFs.writeFile).not.toHaveBeenCalled();
+    expect(mockWorkOrder.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+
+  it("stores a valid attachment and updates the work order", async () => {
+    const { executeTool } = await import("@/server/copilot/tools");
+
+    const result = await executeTool(
+      "uploadWorkOrderPhoto",
+      {
+        workOrderId: "wo-1",
+        fileName: "file.png",
+        mimeType: "image/png",
+        buffer: validBuffer,
+      },
+      baseSession,
+    );
+
+    expect(result.success).toBe(true);
+    expect(mockFs.mkdir).toHaveBeenCalled();
+    expect(mockFs.writeFile).toHaveBeenCalled();
+    expect(mockWorkOrder.findOneAndUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ _id: "wo-1", orgId: baseSession.tenantId }),
+      expect.objectContaining({ $push: expect.any(Object) }),
+      expect.objectContaining({ new: true }),
+    );
+  });
+});
+
+]]>
+</file>
+
+</batch_content>

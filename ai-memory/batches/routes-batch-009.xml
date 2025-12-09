@@ -1,0 +1,3178 @@
+
+You are the "Fixzit Memory Builder" for category: "routes".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "routes",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/api/fm/finance/budgets/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { ModuleKey } from "@/domain/fm/fm.behavior";
+import { FMAction } from "@/types/fm/enums";
+import { FMErrors } from "@/app/api/fm/errors";
+import { requireFmPermission } from "@/app/api/fm/permissions";
+import { resolveTenantId, buildTenantFilter, isCrossTenantMode } from "@/app/api/fm/utils/tenant";
+
+type BudgetDocument = {
+  _id: ObjectId;
+  orgId: string; // AUDIT-2025-11-26: Changed from org_id to orgId for consistency
+  name: string;
+  department: string;
+  allocated: number;
+  currency: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type BudgetPayload = {
+  name?: string;
+  department?: string;
+  allocated?: number;
+  currency?: string;
+};
+
+const COLLECTION = "fm_budgets";
+
+const sanitizePayload = (payload: BudgetPayload) => {
+  const sanitized: BudgetPayload = {};
+  if (payload.name) sanitized.name = payload.name.trim();
+  if (payload.department) sanitized.department = payload.department.trim();
+  if (
+    typeof payload.allocated === "number" &&
+    Number.isFinite(payload.allocated)
+  ) {
+    sanitized.allocated = payload.allocated;
+  }
+  if (payload.currency)
+    sanitized.currency = payload.currency.trim().toUpperCase();
+  return sanitized;
+};
+
+const validatePayload = (payload: BudgetPayload): string | null => {
+  if (!payload.name) return "Name is required";
+  if (!payload.department) return "Department is required";
+  if (typeof payload.allocated !== "number" || payload.allocated <= 0)
+    return "Allocated amount must be > 0";
+  if (!payload.currency) return "Currency is required";
+  return null;
+};
+
+const mapBudget = (doc: BudgetDocument) => ({
+  id: doc._id.toString(),
+  name: doc.name,
+  department: doc.department,
+  allocated: doc.allocated,
+  currency: doc.currency,
+  createdAt: doc.createdAt,
+  updatedAt: doc.updatedAt,
+});
+
+export async function GET(req: NextRequest) {
+  try {
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.FINANCE,
+      action: FMAction.VIEW,
+    });
+    if (actor instanceof NextResponse) return actor;
+
+    // AUDIT-2025-11-26: Pass Super Admin context for proper audit logging
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(searchParams.get("limit") || "20", 10)),
+    );
+    const q = searchParams.get("q");
+
+    const query: Record<string, unknown> = { ...buildTenantFilter(tenantId) }; // AUDIT-2025-11-27: Handle cross-tenant mode
+    // SEC-001 FIX: Use $and pattern for search to prevent overwriting role-based filters
+    if (q) {
+      const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const expression = { $regex: escaped, $options: "i" } as Record<
+        string,
+        unknown
+      >;
+      // Use $and to combine org filter with search filter
+      query.$and = [{ $or: [{ name: expression }, { department: expression }] }];
+    }
+
+    const db = await getDatabase();
+    const collection = db.collection<BudgetDocument>(COLLECTION);
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await Promise.all([
+      collection
+        .find(query)
+        .sort({ updatedAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .toArray(),
+      collection.countDocuments(query),
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      data: items.map(mapBudget),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    logger.error("FM Budgets API - GET error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.FINANCE,
+      action: FMAction.CREATE,
+    });
+    if (actor instanceof NextResponse) return actor;
+
+    // AUDIT-2025-11-26: Pass Super Admin context for proper audit logging
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    // AUDIT-2025-11-27: Reject cross-tenant mode for POST (must specify explicit tenant)
+    if (isCrossTenantMode(tenantId)) {
+      return NextResponse.json(
+        { success: false, error: "Super Admin must specify tenant context for budget creation" },
+        { status: 400 }
+      );
+    }
+
+    const payload = sanitizePayload(await req.json());
+    const validationError = validatePayload(payload);
+    if (validationError) {
+      return NextResponse.json(
+        { success: false, error: validationError },
+        { status: 400 },
+      );
+    }
+
+    const now = new Date();
+    const doc: BudgetDocument = {
+      _id: new ObjectId(),
+      orgId: tenantId, // AUDIT-2025-11-26: Changed from org_id
+      name: payload.name!,
+      department: payload.department!,
+      allocated: payload.allocated!,
+      currency: payload.currency || "SAR",
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const db = await getDatabase();
+    const collection = db.collection<BudgetDocument>(COLLECTION);
+    await collection.insertOne(doc);
+
+    return NextResponse.json(
+      { success: true, data: mapBudget(doc) },
+      { status: 201 },
+    );
+  } catch (error) {
+    logger.error("FM Budgets API - POST error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/fm/finance/expenses/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { ModuleKey } from "@/domain/fm/fm.behavior";
+import { FMAction } from "@/types/fm/enums";
+import { requireFmPermission } from "@/app/api/fm/permissions";
+import { resolveTenantId, buildTenantFilter, isCrossTenantMode } from "@/app/api/fm/utils/tenant";
+import { FMErrors } from "@/app/api/fm/errors";
+
+type ExpenseStatus = "pending" | "approved" | "rejected";
+
+type ExpenseDocument = {
+  _id: ObjectId;
+  orgId: string; // AUDIT-2025-11-26: Changed from org_id to orgId for consistency
+  vendor: string;
+  category: string;
+  amount: number;
+  currency: string;
+  description?: string;
+  status: ExpenseStatus;
+  createdBy?: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type ExpensePayload = {
+  vendor?: string;
+  category?: string;
+  amount?: number;
+  currency?: string;
+  description?: string;
+};
+
+const COLLECTION = "fm_expenses";
+
+const sanitizePayload = (payload: ExpensePayload): ExpensePayload => {
+  const sanitized: ExpensePayload = {};
+  if (payload.vendor) sanitized.vendor = payload.vendor.trim();
+  if (payload.category) sanitized.category = payload.category.trim();
+  if (typeof payload.amount === "number" && Number.isFinite(payload.amount)) {
+    sanitized.amount = payload.amount;
+  }
+  if (payload.currency)
+    sanitized.currency = payload.currency.trim().toUpperCase();
+  if (payload.description) sanitized.description = payload.description.trim();
+  return sanitized;
+};
+
+const validatePayload = (payload: ExpensePayload): string | null => {
+  if (!payload.vendor) return "Vendor is required";
+  if (!payload.category) return "Category is required";
+  if (typeof payload.amount !== "number" || payload.amount <= 0)
+    return "Amount must be greater than 0";
+  if (!payload.currency) return "Currency is required";
+  return null;
+};
+
+const mapExpense = (doc: ExpenseDocument) => ({
+  id: doc._id.toString(),
+  vendor: doc.vendor,
+  category: doc.category,
+  amount: doc.amount,
+  currency: doc.currency,
+  description: doc.description,
+  status: doc.status,
+  createdAt: doc.createdAt,
+  updatedAt: doc.updatedAt,
+});
+
+export async function GET(req: NextRequest) {
+  try {
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.FINANCE,
+      action: FMAction.VIEW,
+    });
+    if (actor instanceof NextResponse) return actor;
+
+    // AUDIT-2025-11-26: Pass Super Admin context for proper audit logging
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    const { searchParams } = new URL(req.url);
+    const q = searchParams.get("q");
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(searchParams.get("limit") || "50", 10)),
+    );
+
+    // AUDIT-2025-11-27: Use buildTenantFilter to handle cross-tenant mode for Super Admins
+    const query: Record<string, unknown> = { ...buildTenantFilter(tenantId) };
+    // SEC-002 FIX: Use $and pattern for search to prevent overwriting role-based filters
+    if (q) {
+      const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = { $regex: escaped, $options: "i" };
+      // Use $and to combine org filter with search filter
+      query.$and = [{ $or: [
+        { vendor: regex },
+        { category: regex },
+        { description: regex },
+      ] }];
+    }
+
+    const db = await getDatabase();
+    const collection = db.collection<ExpenseDocument>(COLLECTION);
+    const items = await collection
+      .find(query)
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .toArray();
+
+    return NextResponse.json({ success: true, data: items.map(mapExpense) });
+  } catch (error) {
+    logger.error("FM Expenses API - GET error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.FINANCE,
+      action: FMAction.CREATE,
+    });
+    if (actor instanceof NextResponse) return actor;
+
+    // AUDIT-2025-11-26: Pass Super Admin context for proper audit logging
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    // AUDIT-2025-11-27: Reject cross-tenant mode for POST (must specify explicit tenant)
+    if (isCrossTenantMode(tenantId)) {
+      return NextResponse.json(
+        { success: false, error: "Super Admin must specify tenant context for expense creation" },
+        { status: 400 }
+      );
+    }
+
+    const payload = sanitizePayload(await req.json());
+    const validationError = validatePayload(payload);
+    if (validationError) {
+      return NextResponse.json(
+        { success: false, error: validationError },
+        { status: 400 },
+      );
+    }
+
+    const now = new Date();
+    const doc: ExpenseDocument = {
+      _id: new ObjectId(),
+      orgId: tenantId, // AUDIT-2025-11-26: Changed from org_id
+      vendor: payload.vendor!,
+      category: payload.category!,
+      amount: payload.amount!,
+      currency: payload.currency || "SAR",
+      description: payload.description,
+      status: "pending",
+      createdBy: actor.userId,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const db = await getDatabase();
+    const collection = db.collection<ExpenseDocument>(COLLECTION);
+    await collection.insertOne(doc);
+
+    return NextResponse.json(
+      { success: true, data: mapExpense(doc) },
+      { status: 201 },
+    );
+  } catch (error) {
+    logger.error("FM Expenses API - POST error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/fm/inspections/vendor-assignments/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+
+const VENDOR_ASSIGNMENTS_API_ENABLED =
+  process.env.VENDOR_ASSIGNMENTS_API_ENABLED === "true";
+const VENDOR_ASSIGNMENTS_API_MOCKS =
+  process.env.VENDOR_ASSIGNMENTS_API_MOCKS === "true" ||
+  process.env.NODE_ENV !== "production";
+
+type VendorAssignmentsMode =
+  | "disabled"
+  | "mock"
+  | "flagged-mock"
+  | "pending-real";
+
+const resolveVendorAssignmentsMode = (): VendorAssignmentsMode => {
+  if (!VENDOR_ASSIGNMENTS_API_ENABLED && !VENDOR_ASSIGNMENTS_API_MOCKS) {
+    return "disabled";
+  }
+
+  if (VENDOR_ASSIGNMENTS_API_ENABLED && !VENDOR_ASSIGNMENTS_API_MOCKS) {
+    return "pending-real";
+  }
+
+  if (VENDOR_ASSIGNMENTS_API_ENABLED && VENDOR_ASSIGNMENTS_API_MOCKS) {
+    return "flagged-mock";
+  }
+
+  return "mock";
+};
+
+interface VendorAssignment {
+  inspectionId: string;
+  propertyId: string;
+  vendorId: string;
+  vendorName: string;
+  trade: string;
+  scheduledDate?: Date;
+  status: "scheduled" | "in-progress" | "completed" | "cancelled";
+}
+
+/**
+ * GET /api/fm/inspections/vendor-assignments
+ *
+ * Get vendor assignments for inspections
+ *
+ * Query params:
+ * - propertyId: filter by property (optional)
+ * - status: filter by status (optional)
+ * - limit: max results (default 100)
+ *
+ * @returns Array of vendor assignments with aggregated statistics
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check if user has FM permissions
+    // 🔒 SECURITY FIX: Include FM-specific roles per UserRole enum
+    const userRole = session.user.role;
+    const allowedRoles = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN", "MANAGER", "FM_MANAGER", "PROPERTY_MANAGER"];
+
+    if (!session.user.isSuperAdmin && !allowedRoles.includes(userRole || "")) {
+      return NextResponse.json(
+        { error: "Forbidden: Insufficient permissions" },
+        { status: 403 },
+      );
+    }
+
+    const searchParams = request.nextUrl.searchParams;
+    const propertyId = searchParams.get("propertyId");
+    const status = searchParams.get("status");
+    const limit = parseInt(searchParams.get("limit") || "100");
+
+    const mode = resolveVendorAssignmentsMode();
+
+    if (mode === "disabled") {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Vendor assignments API disabled",
+          note: "Set VENDOR_ASSIGNMENTS_API_MOCKS=true to enable mock responses while FMInspection integration is wired.",
+        },
+        { status: 503 },
+      );
+    }
+
+    if (mode === "pending-real") {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Vendor assignments data source not implemented yet",
+          note: "Leave VENDOR_ASSIGNMENTS_API_ENABLED=false or enable VENDOR_ASSIGNMENTS_API_MOCKS=true until FMInspection-backed assignments are available.",
+        },
+        { status: 501 },
+      );
+    }
+
+    // Real FMInspection integration not wired yet; allow mock payloads only when flags permit.
+    const usingMockData = mode === "mock" || mode === "flagged-mock";
+
+    // For now, return mock data structure
+    // In production, this would query from FMInspection or similar collection
+    const assignments: VendorAssignment[] = [
+      {
+        inspectionId: "INS-001",
+        propertyId: propertyId || "PROP-001",
+        vendorId: "VEND-001",
+        vendorName: "AC Masters Co.",
+        trade: "HVAC",
+        scheduledDate: new Date("2025-11-25"),
+        status: "scheduled",
+      },
+      {
+        inspectionId: "INS-002",
+        propertyId: propertyId || "PROP-002",
+        vendorId: "VEND-002",
+        vendorName: "Electrical Solutions",
+        trade: "Electrical",
+        scheduledDate: new Date("2025-11-26"),
+        status: "scheduled",
+      },
+      {
+        inspectionId: "INS-003",
+        propertyId: propertyId || "PROP-003",
+        vendorId: "VEND-003",
+        vendorName: "Plumbing Pros",
+        trade: "Plumbing",
+        scheduledDate: new Date("2025-11-27"),
+        status: "scheduled",
+      },
+    ];
+
+    // Filter by status if provided
+    let filteredAssignments = assignments;
+    if (status && status !== "all") {
+      filteredAssignments = assignments.filter((a) => a.status === status);
+    }
+
+    // Calculate statistics
+    const stats = {
+      total: filteredAssignments.length,
+      scheduled: filteredAssignments.filter((a) => a.status === "scheduled")
+        .length,
+      inProgress: filteredAssignments.filter((a) => a.status === "in-progress")
+        .length,
+      completed: filteredAssignments.filter((a) => a.status === "completed")
+        .length,
+      uniqueVendors: new Set(filteredAssignments.map((a) => a.vendorId)).size,
+      uniqueTrades: new Set(filteredAssignments.map((a) => a.trade)).size,
+    };
+
+    return NextResponse.json({
+      success: true,
+      source: usingMockData ? "mock" : "database",
+      assignments: filteredAssignments.slice(0, limit),
+      stats,
+      note:
+        mode === "flagged-mock"
+          ? "VENDOR_ASSIGNMENTS_API_ENABLED is true but using mock data until FMInspection integration is completed."
+          : "Mock vendor assignments payload. Set VENDOR_ASSIGNMENTS_API_MOCKS=true only in non-production or after integration is ready.",
+    });
+  } catch (error) {
+    logger.error("Vendor assignments API error", error as Error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * POST /api/fm/inspections/vendor-assignments
+ *
+ * Create a new vendor assignment for an inspection
+ *
+ * Body: {
+ *   inspectionId: string,
+ *   propertyId: string,
+ *   vendorId: string,
+ *   trade: string,
+ *   scheduledDate?: string
+ * }
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check if user has FM write permissions
+    // 🔒 SECURITY FIX: Include FM-specific roles per UserRole enum
+    const userRole = session.user.role;
+    const allowedRoles = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN", "MANAGER", "FM_MANAGER", "PROPERTY_MANAGER"];
+
+    if (!session.user.isSuperAdmin && !allowedRoles.includes(userRole || "")) {
+      return NextResponse.json(
+        { error: "Forbidden: Insufficient permissions" },
+        { status: 403 },
+      );
+    }
+
+    const body = await request.json();
+    const { inspectionId, propertyId, vendorId, trade, scheduledDate } = body;
+
+    const mode = resolveVendorAssignmentsMode();
+    if (mode === "disabled") {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Vendor assignments API disabled",
+          note: "Set VENDOR_ASSIGNMENTS_API_MOCKS=true to allow mock creation responses while FMInspection integration is wired.",
+        },
+        { status: 503 },
+      );
+    }
+
+    if (mode === "pending-real") {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Vendor assignments persistence not implemented yet",
+          note: "Disable VENDOR_ASSIGNMENTS_API_ENABLED or enable VENDOR_ASSIGNMENTS_API_MOCKS=true to use mock assignments until FMInspection-backed storage is available.",
+        },
+        { status: 501 },
+      );
+    }
+
+    const usingMockData = mode === "mock" || mode === "flagged-mock";
+
+    // Validate required fields
+    if (!inspectionId || !propertyId || !vendorId || !trade) {
+      return NextResponse.json(
+        {
+          error:
+            "Missing required fields: inspectionId, propertyId, vendorId, trade",
+        },
+        { status: 400 },
+      );
+    }
+
+    // In production, this would:
+    // 1. Verify inspection exists
+    // 2. Verify vendor exists and has required trade certification
+    // 3. Check vendor availability
+    // 4. Create assignment record
+    // 5. Send notification to vendor
+
+    const assignment: VendorAssignment = {
+      inspectionId,
+      propertyId,
+      vendorId,
+      vendorName: `Vendor ${vendorId}`, // Would be fetched from DB
+      trade,
+      scheduledDate: scheduledDate ? new Date(scheduledDate) : undefined,
+      status: "scheduled",
+    };
+
+    logger.info("Vendor assignment created", {
+      inspectionId,
+      vendorId,
+      trade,
+      createdBy: session.user.id,
+    });
+
+    return NextResponse.json(
+      {
+        success: true,
+        source: usingMockData ? "mock" : "database",
+        assignment,
+        message: "Vendor assigned successfully",
+        note:
+          mode === "flagged-mock"
+            ? "VENDOR_ASSIGNMENTS_API_ENABLED is true but using mock data until FMInspection integration is completed."
+            : "Mock vendor assignment created. Enable VENDOR_ASSIGNMENTS_API_MOCKS=true explicitly while integration is pending.",
+      },
+      { status: 201 },
+    );
+  } catch (error) {
+    logger.error("Create vendor assignment error", error as Error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/fm/marketplace/listings/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { ModuleKey } from "@/domain/fm/fm.behavior";
+import { FMAction } from "@/types/fm/enums";
+import { requireFmPermission } from "@/app/api/fm/permissions";
+import { resolveTenantId, buildTenantFilter, isCrossTenantMode } from "@/app/api/fm/utils/tenant";
+import { FMErrors } from "@/app/api/fm/errors";
+
+type ListingDocument = {
+  _id: ObjectId;
+  orgId: string; // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+  title: string;
+  sku: string;
+  fsin?: string;
+  category: string;
+  price: number;
+  stock: number;
+  description?: string;
+  compliance: string[];
+  status: "draft" | "pending_review";
+  createdBy?: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type ListingPayload = {
+  title?: string;
+  sku?: string;
+  fsin?: string;
+  category?: string;
+  price?: number;
+  stock?: number;
+  description?: string;
+  compliance?: string[];
+};
+
+const COLLECTION = "fm_marketplace_listings";
+
+const sanitizePayload = (payload: ListingPayload): ListingPayload => {
+  const sanitized: ListingPayload = {};
+  if (payload.title) sanitized.title = payload.title.trim();
+  if (payload.sku) sanitized.sku = payload.sku.trim();
+  if (payload.fsin) sanitized.fsin = payload.fsin.trim();
+  if (payload.category) sanitized.category = payload.category.trim();
+  if (typeof payload.price === "number" && Number.isFinite(payload.price)) {
+    sanitized.price = payload.price;
+  }
+  if (typeof payload.stock === "number" && Number.isFinite(payload.stock)) {
+    sanitized.stock = payload.stock;
+  }
+  if (payload.description) sanitized.description = payload.description.trim();
+  if (Array.isArray(payload.compliance))
+    sanitized.compliance = payload.compliance.map((c) => c.trim());
+  return sanitized;
+};
+
+const validatePayload = (payload: ListingPayload): string | null => {
+  if (!payload.title) return "Title is required";
+  if (!payload.sku) return "SKU is required";
+  if (!payload.category) return "Category is required";
+  if (typeof payload.price !== "number" || payload.price <= 0)
+    return "Price must be greater than 0";
+  if (typeof payload.stock !== "number" || payload.stock < 0)
+    return "Stock must be zero or greater";
+  if (!payload.compliance || payload.compliance.length === 0)
+    return "Compliance checklist must be confirmed";
+  return null;
+};
+
+const mapListing = (doc: ListingDocument) => ({
+  id: doc._id.toString(),
+  title: doc.title,
+  sku: doc.sku,
+  fsin: doc.fsin,
+  category: doc.category,
+  price: doc.price,
+  stock: doc.stock,
+  description: doc.description,
+  compliance: doc.compliance,
+  status: doc.status,
+  createdAt: doc.createdAt,
+});
+
+// FUNC-002 FIX: Add GET route for listing marketplace items
+export async function GET(req: NextRequest) {
+  try {
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.MARKETPLACE,
+      action: FMAction.VIEW,
+    });
+    if (actor instanceof NextResponse) return actor;
+
+    // AUDIT-2025-11-29: Pass Super Admin context for proper audit logging
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(searchParams.get("limit") || "20", 10)),
+    );
+    const q = searchParams.get("q");
+    const category = searchParams.get("category");
+    const status = searchParams.get("status");
+
+    // AUDIT-2025-11-29: Use buildTenantFilter for cross-tenant support
+    const query: Record<string, unknown> = { ...buildTenantFilter(tenantId) };
+    
+    // Use $and to combine filters
+    const filters: Record<string, unknown>[] = [];
+    
+    if (q) {
+      const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = { $regex: escaped, $options: "i" };
+      filters.push({ $or: [{ title: regex }, { sku: regex }, { description: regex }] });
+    }
+    
+    if (category) {
+      query.category = category;
+    }
+    
+    if (status) {
+      query.status = status;
+    }
+    
+    if (filters.length > 0) {
+      query.$and = filters;
+    }
+
+    const db = await getDatabase();
+    const collection = db.collection<ListingDocument>(COLLECTION);
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await Promise.all([
+      collection
+        .find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .toArray(),
+      collection.countDocuments(query),
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      data: items.map(mapListing),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    logger.error("FM Marketplace Listings API - GET error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.MARKETPLACE,
+      action: FMAction.CREATE,
+    });
+    if (actor instanceof NextResponse) return actor;
+
+    // AUDIT-2025-11-29: Pass Super Admin context for proper audit logging
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    // AUDIT-2025-11-29: Reject cross-tenant mode for POST (must specify explicit tenant)
+    if (isCrossTenantMode(tenantId)) {
+      return NextResponse.json(
+        { success: false, error: "Super Admin must specify tenant context for listing creation" },
+        { status: 400 }
+      );
+    }
+
+    const payload = sanitizePayload(await req.json());
+    const validationError = validatePayload(payload);
+    if (validationError) {
+      return NextResponse.json(
+        { success: false, error: validationError },
+        { status: 400 },
+      );
+    }
+
+    const now = new Date();
+    const doc: ListingDocument = {
+      _id: new ObjectId(),
+      orgId: tenantId, // AUDIT-2025-11-29: Changed from org_id
+      title: payload.title!,
+      sku: payload.sku!,
+      fsin: payload.fsin,
+      category: payload.category!,
+      price: payload.price!,
+      stock: payload.stock ?? 0,
+      description: payload.description,
+      compliance: payload.compliance || [],
+      status: "pending_review",
+      createdBy: actor.userId,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const db = await getDatabase();
+    const collection = db.collection<ListingDocument>(COLLECTION);
+    await collection.insertOne(doc);
+
+    return NextResponse.json(
+      { success: true, data: mapListing(doc) },
+      { status: 201 },
+    );
+  } catch (error) {
+    logger.error("FM Marketplace Listings API - POST error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/fm/marketplace/orders/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { ModuleKey } from "@/domain/fm/fm.behavior";
+import { FMAction } from "@/types/fm/enums";
+import { requireFmPermission } from "@/app/api/fm/permissions";
+import { resolveTenantId, buildTenantFilter, isCrossTenantMode } from "@/app/api/fm/utils/tenant";
+import { FMErrors } from "@/app/api/fm/errors";
+
+type OrderItem = {
+  description: string;
+  quantity: number;
+  unitCost: number;
+  deliveryNeed?: string;
+};
+
+type OrderDocument = {
+  _id: ObjectId;
+  orgId: string; // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+  requester: string;
+  department: string;
+  justification: string;
+  items: OrderItem[];
+  total: number;
+  status: "pending_approval" | "submitted";
+  createdBy?: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type OrderPayload = {
+  requester?: string;
+  department?: string;
+  justification?: string;
+  items?: OrderItem[];
+};
+
+const COLLECTION = "fm_marketplace_orders";
+
+const sanitizePayload = (payload: OrderPayload): OrderPayload => {
+  const sanitized: OrderPayload = {};
+  if (payload.requester) sanitized.requester = payload.requester.trim();
+  if (payload.department) sanitized.department = payload.department.trim();
+  if (payload.justification)
+    sanitized.justification = payload.justification.trim();
+  if (Array.isArray(payload.items)) {
+    sanitized.items = payload.items.map((item) => ({
+      description: (item.description || "").trim(),
+      deliveryNeed: item.deliveryNeed ? item.deliveryNeed.trim() : undefined,
+      quantity: Number(item.quantity) || 0,
+      unitCost: Number(item.unitCost) || 0,
+    }));
+  }
+  return sanitized;
+};
+
+const validatePayload = (payload: OrderPayload): string | null => {
+  if (!payload.requester) return "Requester is required";
+  if (!payload.department) return "Department is required";
+  if (!payload.justification || payload.justification.length < 10)
+    return "Justification is too short";
+  if (!payload.items || !payload.items.length)
+    return "At least one line item is required";
+  const invalidItem = payload.items.find(
+    (item) => !item.description || item.quantity <= 0 || item.unitCost < 0,
+  );
+  if (invalidItem)
+    return "Each line requires description, quantity > 0, and non-negative unit cost";
+  return null;
+};
+
+const mapOrder = (doc: OrderDocument) => ({
+  id: doc._id.toString(),
+  requester: doc.requester,
+  department: doc.department,
+  justification: doc.justification,
+  items: doc.items,
+  total: doc.total,
+  status: doc.status,
+  createdAt: doc.createdAt,
+});
+
+// FUNC-003 FIX: Add GET route for listing marketplace orders
+export async function GET(req: NextRequest) {
+  try {
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.MARKETPLACE,
+      action: FMAction.VIEW,
+    });
+    if (actor instanceof NextResponse) return actor;
+
+    // AUDIT-2025-11-29: Pass Super Admin context for proper audit logging
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(searchParams.get("limit") || "20", 10)),
+    );
+    const q = searchParams.get("q");
+    const status = searchParams.get("status");
+    const department = searchParams.get("department");
+
+    // AUDIT-2025-11-29: Use buildTenantFilter for cross-tenant support
+    const query: Record<string, unknown> = { ...buildTenantFilter(tenantId) };
+    
+    // Use $and to combine filters
+    const filters: Record<string, unknown>[] = [];
+    
+    if (q) {
+      const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = { $regex: escaped, $options: "i" };
+      filters.push({ $or: [{ requester: regex }, { department: regex }, { justification: regex }] });
+    }
+    
+    if (status) {
+      query.status = status;
+    }
+    
+    if (department) {
+      query.department = department;
+    }
+    
+    if (filters.length > 0) {
+      query.$and = filters;
+    }
+
+    const db = await getDatabase();
+    const collection = db.collection<OrderDocument>(COLLECTION);
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await Promise.all([
+      collection
+        .find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .toArray(),
+      collection.countDocuments(query),
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      data: items.map(mapOrder),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    logger.error("FM Marketplace Orders API - GET error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.MARKETPLACE,
+      action: FMAction.CREATE,
+    });
+    if (actor instanceof NextResponse) return actor;
+
+    // AUDIT-2025-11-29: Pass Super Admin context for proper audit logging
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    // AUDIT-2025-11-29: Reject cross-tenant mode for POST (must specify explicit tenant)
+    if (isCrossTenantMode(tenantId)) {
+      return NextResponse.json(
+        { success: false, error: "Super Admin must specify tenant context for order creation" },
+        { status: 400 }
+      );
+    }
+
+    const payload = sanitizePayload(await req.json());
+    const validationError = validatePayload(payload);
+    if (validationError) {
+      return NextResponse.json(
+        { success: false, error: validationError },
+        { status: 400 },
+      );
+    }
+
+    const total = payload.items!.reduce(
+      (sum, item) => sum + item.quantity * item.unitCost,
+      0,
+    );
+    const now = new Date();
+    const doc: OrderDocument = {
+      _id: new ObjectId(),
+      orgId: tenantId, // AUDIT-2025-11-29: Changed from org_id
+      requester: payload.requester!,
+      department: payload.department!,
+      justification: payload.justification!,
+      items: payload.items!,
+      total,
+      status: "pending_approval",
+      createdBy: actor.userId,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const db = await getDatabase();
+    const collection = db.collection<OrderDocument>(COLLECTION);
+    await collection.insertOne(doc);
+
+    return NextResponse.json(
+      { success: true, data: mapOrder(doc) },
+      { status: 201 },
+    );
+  } catch (error) {
+    logger.error("FM Marketplace Orders API - POST error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/fm/marketplace/vendors/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { ModuleKey } from "@/domain/fm/fm.behavior";
+import { FMAction } from "@/types/fm/enums";
+import { requireFmPermission } from "@/app/api/fm/permissions";
+import { resolveTenantId, buildTenantFilter, isCrossTenantMode } from "@/app/api/fm/utils/tenant";
+import { FMErrors } from "@/app/api/fm/errors";
+
+type Contact = {
+  name: string;
+  title?: string;
+  email: string;
+  phone?: string;
+};
+
+type VendorDocument = {
+  _id: ObjectId;
+  orgId: string; // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+  companyName: string;
+  registrationNumber: string;
+  website?: string;
+  categories?: string;
+  coverageAreas?: string;
+  deliverySla?: string;
+  notes?: string;
+  contacts: Contact[];
+  status: "pending_review" | "approved";
+  createdBy?: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type VendorPayload = {
+  companyName?: string;
+  registrationNumber?: string;
+  website?: string;
+  categories?: string;
+  coverageAreas?: string;
+  deliverySla?: string;
+  notes?: string;
+  contacts?: Contact[];
+};
+
+const COLLECTION = "fm_marketplace_vendors";
+
+const sanitizePayload = (payload: VendorPayload): VendorPayload => {
+  const sanitized: VendorPayload = {};
+  if (payload.companyName) sanitized.companyName = payload.companyName.trim();
+  if (payload.registrationNumber)
+    sanitized.registrationNumber = payload.registrationNumber.trim();
+  if (payload.website) sanitized.website = payload.website.trim();
+  if (payload.categories) sanitized.categories = payload.categories.trim();
+  if (payload.coverageAreas)
+    sanitized.coverageAreas = payload.coverageAreas.trim();
+  if (payload.deliverySla) sanitized.deliverySla = payload.deliverySla.trim();
+  if (payload.notes) sanitized.notes = payload.notes.trim();
+  if (Array.isArray(payload.contacts)) {
+    sanitized.contacts = payload.contacts.map((c) => ({
+      name: (c.name || "").trim(),
+      title: c.title?.trim(),
+      email: (c.email || "").trim().toLowerCase(),
+      phone: c.phone?.trim(),
+    }));
+  }
+  return sanitized;
+};
+
+const validatePayload = (payload: VendorPayload): string | null => {
+  if (!payload.companyName) return "Company name is required";
+  if (!payload.registrationNumber) return "Registration number is required";
+  if (!payload.contacts || payload.contacts.length === 0)
+    return "At least one contact is required";
+  const invalid = payload.contacts.find(
+    (c) => !c.name || !c.email.includes("@"),
+  );
+  if (invalid) return "Each contact requires a name and valid email";
+  return null;
+};
+
+const mapVendor = (doc: VendorDocument) => ({
+  id: doc._id.toString(),
+  companyName: doc.companyName,
+  registrationNumber: doc.registrationNumber,
+  website: doc.website,
+  categories: doc.categories,
+  coverageAreas: doc.coverageAreas,
+  deliverySla: doc.deliverySla,
+  notes: doc.notes,
+  contacts: doc.contacts,
+  status: doc.status,
+  createdAt: doc.createdAt,
+});
+
+// FUNC-001 FIX: Add GET route for listing vendors
+export async function GET(req: NextRequest) {
+  try {
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.MARKETPLACE,
+      action: FMAction.VIEW,
+    });
+    if (actor instanceof NextResponse) return actor;
+
+    // AUDIT-2025-11-29: Pass Super Admin context for proper audit logging
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(searchParams.get("limit") || "20", 10)),
+    );
+    const q = searchParams.get("q");
+    const status = searchParams.get("status");
+
+    // AUDIT-2025-11-29: Use buildTenantFilter for cross-tenant support
+    const query: Record<string, unknown> = { ...buildTenantFilter(tenantId) };
+    
+    // Use $and to combine filters
+    const filters: Record<string, unknown>[] = [];
+    
+    if (q) {
+      const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = { $regex: escaped, $options: "i" };
+      filters.push({ $or: [{ companyName: regex }, { categories: regex }] });
+    }
+    
+    if (status) {
+      query.status = status;
+    }
+    
+    if (filters.length > 0) {
+      query.$and = filters;
+    }
+
+    const db = await getDatabase();
+    const collection = db.collection<VendorDocument>(COLLECTION);
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await Promise.all([
+      collection
+        .find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .toArray(),
+      collection.countDocuments(query),
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      data: items.map(mapVendor),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    logger.error("FM Marketplace Vendors API - GET error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.MARKETPLACE,
+      action: FMAction.CREATE,
+    });
+    if (actor instanceof NextResponse) return actor;
+
+    // AUDIT-2025-11-29: Pass Super Admin context for proper audit logging
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    // AUDIT-2025-11-29: Reject cross-tenant mode for POST (must specify explicit tenant)
+    if (isCrossTenantMode(tenantId)) {
+      return NextResponse.json(
+        { success: false, error: "Super Admin must specify tenant context for vendor creation" },
+        { status: 400 }
+      );
+    }
+
+    const payload = sanitizePayload(await req.json());
+    const validationError = validatePayload(payload);
+    if (validationError) {
+      return NextResponse.json(
+        { success: false, error: validationError },
+        { status: 400 },
+      );
+    }
+
+    const now = new Date();
+    const doc: VendorDocument = {
+      _id: new ObjectId(),
+      orgId: tenantId, // AUDIT-2025-11-29: Changed from org_id
+      companyName: payload.companyName!,
+      registrationNumber: payload.registrationNumber!,
+      website: payload.website,
+      categories: payload.categories,
+      coverageAreas: payload.coverageAreas,
+      deliverySla: payload.deliverySla,
+      notes: payload.notes,
+      contacts: payload.contacts || [],
+      status: "pending_review",
+      createdBy: actor.userId,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const db = await getDatabase();
+    const collection = db.collection<VendorDocument>(COLLECTION);
+    await collection.insertOne(doc);
+
+    return NextResponse.json(
+      { success: true, data: mapVendor(doc) },
+      { status: 201 },
+    );
+  } catch (error) {
+    logger.error("FM Marketplace Vendors API - POST error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/fm/permissions.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+// RBAC-DRIFT-FIX: Import from fm.types.ts (complete RBAC definitions)
+// instead of fm.behavior.ts (truncated, WO/Property only)
+import {
+  ROLE_ACTIONS,
+  PLAN_GATES,
+  Role,
+  ModuleKey,
+  SubmoduleKey,
+  Action,
+  Plan,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+  computeAllowedModules,
+} from "@/domain/fm/fm.types";
+import { FMErrors } from "./errors";
+import {
+  getSessionUser,
+  UnauthorizedError,
+  type SessionUser,
+} from "@/server/middleware/withAuthRbac";
+import { fmErrorContext } from "./errors";
+import { connectDb } from "@/lib/mongo";
+import { Organization } from "@/server/models/Organization";
+
+type PermissionOptions = {
+  module?: ModuleKey;
+  submodule?: SubmoduleKey;
+  action?: Action;
+};
+
+type PermissionSuccess = SessionUser & {
+  fmRole: Role;
+  fmSubRole?: SubRole;
+  plan: Plan;
+  userId?: string;
+};
+
+const PLAN_ALIAS_MAP: Record<string, Plan> = {
+  STARTER: Plan.STARTER,
+  BASIC: Plan.STARTER,
+  STANDARD: Plan.STANDARD,
+  PROFESSIONAL: Plan.PRO,
+  PRO: Plan.PRO,
+  PREMIUM: Plan.PRO,
+  ENTERPRISE: Plan.ENTERPRISE,
+  ENTERPRISE_PLUS: Plan.ENTERPRISE,
+  ENTERPRISE_GROWTH: Plan.ENTERPRISE,
+};
+
+// SEC-003 FIX: Use STARTER as default (least privilege principle)
+// Previously Plan.STANDARD granted features the user may not have paid for
+const DEFAULT_PLAN = Plan.STARTER;
+
+const normalizePlan = (plan?: string | null): Plan => {
+  if (!plan) return DEFAULT_PLAN;
+  const key = plan.toUpperCase().replace(/[\s-]+/g, "_");
+  return (
+    PLAN_ALIAS_MAP[key] ?? (Plan as Record<string, Plan>)[key] ?? DEFAULT_PLAN
+  );
+};
+
+const resolveOrgContext = async (
+  orgId: string,
+  userId?: string | null,
+): Promise<{ plan: Plan; isOrgMember: boolean }> => {
+  try {
+    await connectDb();
+    const org = await Organization.findOne({ orgId });
+    if (!org) {
+      return { plan: DEFAULT_PLAN, isOrgMember: false };
+    }
+
+    const subscriptionPlan =
+      org.subscription?.plan ?? (org as { plan?: string }).plan ?? undefined;
+    const plan = normalizePlan(subscriptionPlan);
+
+    const isOrgMember =
+      !!userId &&
+      Array.isArray(org.members) &&
+      org.members.some(
+        (member) =>
+          member &&
+          typeof member === "object" &&
+          typeof member.userId === "string" &&
+          member.userId === userId,
+      );
+
+    return { plan, isOrgMember };
+  } catch (_error) {
+    return { plan: DEFAULT_PLAN, isOrgMember: false };
+  }
+};
+
+const hasModuleAccess = (role: Role, module?: ModuleKey, subRole?: SubRole): boolean => {
+  if (!module) return true;
+  
+  // PARITY: Use computeAllowedModules for complete sub-role handling
+  // This handles Finance, HR, Support, Ops sub-roles correctly
+  const allowedModules = computeAllowedModules(role, subRole);
+  return allowedModules.includes(module);
+};
+
+const hasSubmoduleAccess = (
+  role: Role,
+  plan: Plan,
+  submodule?: SubmoduleKey,
+): boolean => {
+  if (!submodule) return true;
+  const planGate = PLAN_GATES[plan]?.[submodule];
+  if (!planGate) return false;
+  return Boolean(ROLE_ACTIONS[role]?.[submodule]);
+};
+
+const hasActionAccess = (
+  role: Role,
+  submodule: SubmoduleKey,
+  action?: Action,
+): boolean => {
+  if (!action) return true;
+  const actions = ROLE_ACTIONS[role]?.[submodule];
+  return actions ? actions.includes(action) : false;
+};
+
+export async function requireFmPermission(
+  req: NextRequest,
+  options: PermissionOptions,
+): Promise<PermissionSuccess | NextResponse> {
+  try {
+    const errorContext = fmErrorContext(req);
+    const sessionUser = await getSessionUser(req);
+    const rawRole = sessionUser.role;
+    const fmSubRole =
+      normalizeSubRole((sessionUser as { subRole?: string | null }).subRole) ??
+      inferSubRoleFromRole(rawRole);
+    const fmRole = normalizeRole(rawRole);
+
+    // MT-ORG GUARD: Require tenant/org context
+    if (!sessionUser.orgId || String(sessionUser.orgId).trim() === "") {
+      return FMErrors.unauthorized(
+        "Organization context is required for FM permissions",
+        errorContext,
+      );
+    }
+
+    if (!fmRole) {
+      return FMErrors.forbidden(
+        "Role is not authorized for FM module",
+        errorContext,
+      );
+    }
+
+    const plan = normalizePlan(sessionUser.subscriptionPlan);
+    const { plan: orgPlan, isOrgMember } = await resolveOrgContext(
+      String(sessionUser.orgId),
+      sessionUser.id ? String(sessionUser.id) : undefined,
+    );
+    const effectivePlan = orgPlan ?? plan;
+
+    if (!sessionUser.isSuperAdmin) {
+      if (!isOrgMember) {
+        return FMErrors.forbidden(
+          "User is not a member of this organization",
+          errorContext,
+        );
+      }
+
+      // SEC-001 FIX: Pass subRole to hasModuleAccess for TEAM_MEMBER sub-role enforcement
+      if (!hasModuleAccess(fmRole, options.module, fmSubRole)) {
+        return FMErrors.forbidden("Module access denied", errorContext);
+      }
+
+      if (!hasSubmoduleAccess(fmRole, effectivePlan, options.submodule)) {
+        return FMErrors.forbidden(
+          "Submodule not enabled for this role/plan",
+          errorContext,
+        );
+      }
+
+      if (
+        options.submodule &&
+        !hasActionAccess(fmRole, options.submodule, options.action)
+      ) {
+        return FMErrors.forbidden(
+          "Insufficient permissions for requested action",
+          errorContext,
+        );
+      }
+    }
+
+    return {
+      ...sessionUser,
+      fmRole,
+      fmSubRole: fmSubRole ?? undefined,
+      plan: effectivePlan,
+      userId: sessionUser.id,
+    };
+  } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return FMErrors.unauthorized(
+        "Authentication required",
+        fmErrorContext(req),
+      );
+    }
+    return FMErrors.internalError("Internal server error", fmErrorContext(req));
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/fm/properties/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { unwrapFindOneResult } from "@/lib/mongoUtils.server";
+import { logger } from "@/lib/logger";
+// RBAC-DRIFT-FIX: Import from fm.types.ts (canonical RBAC source)
+import { ModuleKey, SubmoduleKey } from "@/domain/fm/fm.types";
+import { FMAction } from "@/types/fm/enums";
+import { FMErrors } from "@/app/api/fm/errors";
+import { requireFmPermission } from "@/app/api/fm/permissions";
+import { resolveTenantId } from "../utils/tenant";
+
+type PropertyDocument = {
+  _id: ObjectId;
+  orgId: string; // AUDIT-2025-11-26: Changed from org_id to orgId for consistency
+  name: string;
+  code?: string;
+  type?: string;
+  status?: string;
+  lease_status?: string;
+  address?: Record<string, unknown> | null;
+  metadata?: Record<string, unknown>;
+  area?: number;
+  floors?: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type PropertyPayload = {
+  name?: string;
+  code?: string;
+  type?: string;
+  status?: string;
+  leaseStatus?: string;
+  address?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+  area?: number;
+  floors?: number;
+};
+
+const COLLECTION_NAME = "properties";
+
+const normalizeListParam = (value: string | null) =>
+  value
+    ?.split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const mapProperty = (doc: PropertyDocument) => ({
+  id: doc._id.toString(),
+  name: doc.name,
+  code: doc.code,
+  type: doc.type,
+  status: doc.status,
+  leaseStatus: doc.lease_status,
+  address: doc.address ?? null,
+  metadata: doc.metadata ?? {},
+  area: doc.area ?? null,
+  floors: doc.floors ?? null,
+  createdAt: doc.createdAt,
+  updatedAt: doc.updatedAt,
+});
+
+export async function GET(req: NextRequest) {
+  try {
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.PROPERTIES,
+      submodule: SubmoduleKey.PROP_LIST,
+      action: FMAction.VIEW,
+    });
+    if (actor instanceof NextResponse) return actor;
+    // AUDIT-2025-11-26: Pass Super Admin context for proper audit logging
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(searchParams.get("limit") || "20", 10)),
+    );
+    const statuses = normalizeListParam(searchParams.get("status"));
+    const leaseStatuses = normalizeListParam(searchParams.get("leaseStatus"));
+    const types = normalizeListParam(searchParams.get("type"));
+    const q = searchParams.get("q");
+
+    const query: Record<string, unknown> = { orgId: tenantId }; // AUDIT-2025-11-26: Changed from org_id
+    
+    // Use $and to combine multiple filter conditions
+    const andFilters: Record<string, unknown>[] = [];
+
+    // RBAC-009: Role-based property filtering per STRICT v4.1
+    // AUDIT-2025-11-26: Removed broken TENANT filtering (tenants use work-orders, not property list)
+    // TENANTs should NOT have direct property list access - they access via work orders
+    if (actor.role === "TENANT") {
+      return NextResponse.json(
+        { error: "Tenants do not have direct property list access" },
+        { status: 403 }
+      );
+    }
+    
+    // AUDIT-2025-11-26: Support owner roles (corporate/owner)
+    // STRICT v4.1: CORPORATE_OWNER is the canonical role (OWNER is legacy alias)
+    if (actor.role === "CORPORATE_OWNER") {
+      const ownedProperties = (actor as { ownedProperties?: string[] }).ownedProperties || [];
+      if (ownedProperties.length === 0) {
+        // Owners with no properties see empty list, not error
+        return NextResponse.json({
+          success: true,
+          data: [],
+          pagination: { page, limit, total: 0, totalPages: 0 },
+        });
+      }
+      query._id = { $in: ownedProperties.map(id => {
+        try { return new ObjectId(id); } catch { return id; }
+      }) };
+    }
+    
+    // AUDIT-2025-11-26: Added PROPERTY_MANAGER filtering
+    if (actor.role === "PROPERTY_MANAGER") {
+      const assignedProperties = (actor as { assignedProperties?: string[] }).assignedProperties || [];
+      if (assignedProperties.length > 0) {
+        query._id = { $in: assignedProperties.map(id => {
+          try { return new ObjectId(id); } catch { return id; }
+        }) };
+      }
+    }
+    
+    if (statuses?.length) {
+      query.status = { $in: statuses };
+    }
+
+    if (leaseStatuses?.length) {
+      query.lease_status = { $in: leaseStatuses };
+    }
+
+    if (types?.length) {
+      query.type = { $in: types };
+    }
+
+    if (q) {
+      // Escape special regex characters to prevent injection
+      const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const expression = { $regex: escapedQ, $options: "i" } as Record<
+        string,
+        unknown
+      >;
+      // FIX: Add search to $and filters instead of overwriting $or
+      andFilters.push({
+        $or: [
+          { name: expression },
+          { code: expression },
+          { "address.city": expression },
+          { "address.state": expression },
+        ]
+      });
+    }
+    
+    // Apply $and filters if any exist
+    if (andFilters.length > 0) {
+      query.$and = andFilters;
+    }
+
+    const db = await getDatabase();
+    const collection = db.collection<PropertyDocument>(COLLECTION_NAME);
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await Promise.all([
+      collection
+        .find(query)
+        .sort({ updatedAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .toArray(),
+      collection.countDocuments(query),
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      data: items.map(mapProperty),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    logger.error("FM Properties API - GET error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+const generatePropertyCode = () => {
+  const now = new Date();
+  const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const random = String(Math.floor(Math.random() * 9000) + 1000);
+  return `PROP-${stamp}-${random}`;
+};
+
+const sanitizePayload = (payload: PropertyPayload) => {
+  const sanitized: PropertyPayload = {};
+  if (payload.name) {
+    sanitized.name = payload.name.trim();
+  }
+  if (payload.code) {
+    sanitized.code = payload.code.trim().toUpperCase();
+  }
+  if (payload.type) {
+    sanitized.type = payload.type.trim();
+  }
+  if (payload.status) {
+    sanitized.status = payload.status.trim();
+  }
+  if (payload.leaseStatus) {
+    sanitized.leaseStatus = payload.leaseStatus.trim();
+  }
+  if (payload.address && typeof payload.address === "object") {
+    sanitized.address = payload.address;
+  }
+  if (payload.metadata && typeof payload.metadata === "object") {
+    sanitized.metadata = payload.metadata;
+  }
+  if (typeof payload.area === "number") {
+    sanitized.area = payload.area;
+  }
+  if (typeof payload.floors === "number") {
+    sanitized.floors = payload.floors;
+  }
+  return sanitized;
+};
+
+export async function POST(req: NextRequest) {
+  try {
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.PROPERTIES,
+      submodule: SubmoduleKey.PROP_LIST,
+      action: FMAction.CREATE,
+    });
+    if (actor instanceof NextResponse) return actor;
+    // AUDIT-2025-11-26: Pass Super Admin context for proper audit logging
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    const body = sanitizePayload(await req.json().catch(() => ({})));
+    if (!body.name) {
+      return FMErrors.validationError("Property name is required");
+    }
+    if (!body.type) {
+      return FMErrors.validationError("Property type is required");
+    }
+
+    const db = await getDatabase();
+    const collection = db.collection<PropertyDocument>(COLLECTION_NAME);
+
+    const now = new Date();
+    const propertyCode = body.code || generatePropertyCode();
+
+    const existingCode = await collection.findOne({
+      orgId: tenantId, // AUDIT-2025-11-26: Changed from org_id
+      code: propertyCode,
+    });
+    if (existingCode) {
+      return FMErrors.conflict("Property code already exists");
+    }
+
+    const document: PropertyDocument = {
+      _id: new ObjectId(),
+      orgId: tenantId, // AUDIT-2025-11-26: Changed from org_id
+      name: body.name,
+      code: propertyCode,
+      type: body.type,
+      status: body.status ?? "Active",
+      lease_status: body.leaseStatus ?? "Vacant",
+      address: body.address ?? null,
+      metadata: body.metadata ?? {},
+      area: body.area,
+      floors: body.floors,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await collection.insertOne(document);
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: mapProperty(document),
+        message: "Property created successfully",
+      },
+      { status: 201 },
+    );
+  } catch (error) {
+    logger.error("FM Properties API - POST error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.PROPERTIES,
+      submodule: SubmoduleKey.PROP_LIST,
+      action: FMAction.UPDATE,
+    });
+    if (actor instanceof NextResponse) return actor;
+    // AUDIT-2025-11-26: Pass Super Admin context for proper audit logging
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    const { searchParams } = new URL(req.url);
+    const propertyId = searchParams.get("id");
+    if (!propertyId) {
+      return FMErrors.validationError("Property id is required");
+    }
+    if (!ObjectId.isValid(propertyId)) {
+      return FMErrors.invalidId("property");
+    }
+
+    const payload = sanitizePayload(await req.json().catch(() => ({})));
+    if (!Object.keys(payload).length) {
+      return FMErrors.validationError("At least one field is required");
+    }
+
+    const db = await getDatabase();
+    const collection = db.collection<PropertyDocument>(COLLECTION_NAME);
+
+    if (payload.code) {
+      const duplicate = await collection.findOne({
+        orgId: tenantId, // AUDIT-2025-11-26: Changed from org_id
+        code: payload.code,
+        _id: { $ne: new ObjectId(propertyId) },
+      });
+      if (duplicate) {
+        return FMErrors.conflict("Property code already exists");
+      }
+    }
+
+    const now = new Date();
+    const update: Partial<PropertyDocument> = {
+      updatedAt: now,
+    };
+
+    if (payload.name) update.name = payload.name;
+    if (payload.code) update.code = payload.code;
+    if (payload.type) update.type = payload.type;
+    if (payload.status) update.status = payload.status;
+    if (payload.leaseStatus) update.lease_status = payload.leaseStatus;
+    if (payload.address) update.address = payload.address;
+    if (payload.metadata) update.metadata = payload.metadata;
+    if (typeof payload.area === "number") update.area = payload.area;
+    if (typeof payload.floors === "number") update.floors = payload.floors;
+
+    const result = await collection.findOneAndUpdate(
+      { _id: new ObjectId(propertyId), orgId: tenantId }, // AUDIT-2025-11-26: Changed from org_id
+      { $set: update },
+      { returnDocument: "after" },
+    );
+
+    const updated = unwrapFindOneResult(result);
+    if (!updated) {
+      return FMErrors.notFound("Property");
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: mapProperty(updated),
+      message: "Property updated successfully",
+    });
+  } catch (error) {
+    logger.error("FM Properties API - PATCH error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.PROPERTIES,
+      submodule: SubmoduleKey.PROP_LIST,
+      action: FMAction.DELETE,
+    });
+    if (actor instanceof NextResponse) return actor;
+    // AUDIT-2025-11-26: Pass Super Admin context for proper audit logging
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    const { searchParams } = new URL(req.url);
+    const propertyId = searchParams.get("id");
+    if (!propertyId) {
+      return FMErrors.validationError("Property id is required");
+    }
+    if (!ObjectId.isValid(propertyId)) {
+      return FMErrors.invalidId("property");
+    }
+
+    const db = await getDatabase();
+    const collection = db.collection<PropertyDocument>(COLLECTION_NAME);
+    const result = await collection.findOneAndDelete({
+      _id: new ObjectId(propertyId),
+      orgId: tenantId, // AUDIT-2025-11-26: Changed from org_id
+    });
+
+    const deleted = unwrapFindOneResult(result);
+    if (!deleted) {
+      return FMErrors.notFound("Property");
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Property deleted successfully",
+    });
+  } catch (error) {
+    logger.error("FM Properties API - DELETE error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/fm/reports/[id]/download/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { ModuleKey } from "@/domain/fm/fm.behavior";
+import { FMAction } from "@/types/fm/enums";
+import { requireFmPermission } from "@/app/api/fm/permissions";
+import { resolveTenantId } from "@/app/api/fm/utils/tenant";
+import { FMErrors } from "@/app/api/fm/errors";
+import { getPresignedGetUrl } from "@/lib/storage/s3";
+
+const COLLECTION = "fm_report_jobs";
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.REPORTS,
+      action: FMAction.EXPORT,
+    });
+    if (actor instanceof NextResponse) return actor;
+
+    const isSuperAdmin = actor.isSuperAdmin === true;
+
+    // AUDIT-2025-11-29: Added RBAC context for proper tenant resolution
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      { isSuperAdmin, userId: actor.id, allowHeaderOverride: isSuperAdmin }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    const id = params.id;
+    if (!ObjectId.isValid(id)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid report id" },
+        { status: 400 },
+      );
+    }
+
+    const db = await getDatabase();
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+    const job = await db
+      .collection(COLLECTION)
+      .findOne({ _id: new ObjectId(id), orgId: tenantId });
+    if (!job) {
+      return NextResponse.json(
+        { success: false, error: "Report not found" },
+        { status: 404 },
+      );
+    }
+    if (job.status !== "ready" || !job.fileKey) {
+      return NextResponse.json(
+        { success: false, error: "Report not ready" },
+        { status: 409 },
+      );
+    }
+
+    const downloadUrl = await getPresignedGetUrl(job.fileKey, 600);
+    return NextResponse.json({
+      success: true,
+      downloadUrl,
+      fileKey: job.fileKey,
+      mime: job.fileMime || "text/csv",
+    });
+  } catch (error) {
+    logger.error("FM Reports download error", error as Error, {
+      id: params.id,
+    });
+    return FMErrors.internalError();
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/fm/reports/process/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import type { ModifyResult, WithId } from "mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { unwrapFindOneResult } from "@/lib/mongoUtils.server";
+import { logger } from "@/lib/logger";
+import { ModuleKey } from "@/domain/fm/fm.behavior";
+import { FMAction } from "@/types/fm/enums";
+import { requireFmPermission } from "@/app/api/fm/permissions";
+import { resolveTenantId } from "@/app/api/fm/utils/tenant";
+import { FMErrors } from "@/app/api/fm/errors";
+import { getPresignedGetUrl, putObjectBuffer } from "@/lib/storage/s3";
+import { scanS3Object } from "@/lib/security/av-scan";
+import { generateReport } from "@/lib/reports/generator";
+import { validateBucketPolicies } from "@/lib/security/s3-policy";
+
+type ReportJob = {
+  _id: { toString(): string };
+  orgId: string; // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+  name: string;
+  type: string;
+  format: string;
+  startDate?: string;
+  endDate?: string;
+  notes?: string;
+  status: "queued" | "processing" | "ready" | "failed";
+  fileKey?: string;
+  fileMime?: string;
+  clean?: boolean;
+};
+
+interface ReportJobDocument extends ReportJob {
+  [key: string]: unknown;
+}
+
+const COLLECTION = "fm_report_jobs";
+
+/**
+ * POST /api/fm/reports/process
+ *
+ * Worker endpoint to claim and process queued report jobs atomically.
+ * Uses findOneAndUpdate for race-safe job claiming (up to 5 jobs per request).
+ *
+ * Note: Jobs that remain in 'processing' status after worker crashes should be
+ * recovered by a separate cleanup job that resets status back to 'queued' based
+ * on updatedAt timestamp (e.g., older than 10 minutes).
+ *
+ * @security Requires FM REPORTS/EXPORT permission
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.REPORTS,
+      action: FMAction.EXPORT,
+    });
+    if (actor instanceof NextResponse) return actor;
+
+    const isSuperAdmin = actor.isSuperAdmin === true;
+
+    // AUDIT-2025-11-29: Added RBAC context for proper tenant resolution
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      { isSuperAdmin, userId: actor.id, allowHeaderOverride: isSuperAdmin }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    const db = await getDatabase();
+
+    const policiesOk = await validateBucketPolicies();
+    if (!policiesOk) {
+      return NextResponse.json(
+        { success: false, error: "Bucket policy/encryption invalid" },
+        { status: 503 },
+      );
+    }
+    const collection = db.collection<ReportJob>(COLLECTION);
+    const queued: ReportJobDocument[] = [];
+    while (queued.length < 5) {
+      // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+      const claimResult = (await collection.findOneAndUpdate(
+        { orgId: tenantId, status: "queued" },
+        { $set: { status: "processing", updatedAt: new Date() } },
+        { sort: { updatedAt: 1, _id: 1 }, returnDocument: "after" },
+      )) as ModifyResult<ReportJob> | null;
+      const claim = unwrapFindOneResult(
+        claimResult as ModifyResult<ReportJob> | WithId<ReportJob> | null,
+      ) as ReportJobDocument | null;
+      if (!claim) break;
+      queued.push(claim);
+    }
+
+    if (!queued.length) {
+      return NextResponse.json({
+        success: true,
+        processed: 0,
+        message: "No queued jobs",
+      });
+    }
+
+    let processed = 0;
+    for (const job of queued) {
+      const jobDoc = job;
+      const id = String(jobDoc._id);
+      const key = `${tenantId}/reports/${id}.csv`;
+
+      try {
+        const report = await generateReport({
+          id,
+          name: jobDoc.name,
+          type: jobDoc.type,
+          format: "csv",
+          dateRange: `${jobDoc.startDate || ""}-${jobDoc.endDate || ""}`,
+          notes: jobDoc.notes,
+        });
+
+        await putObjectBuffer(key, report.buffer, report.mime);
+        const clean = await scanS3Object(key).catch(() => false);
+        await collection.updateOne(
+          { _id: jobDoc._id },
+          {
+            $set: {
+              status: clean ? "ready" : "failed",
+              fileKey: key,
+              fileMime: report.mime,
+              fileSize: report.size,
+              clean,
+              updatedAt: new Date(),
+              notes: clean ? jobDoc.notes : "AV scan failed",
+            },
+          },
+        );
+        processed += 1;
+      } catch (err) {
+        logger.error("FM Reports worker failed to process job", err as Error, {
+          jobId: id,
+        });
+        await collection.updateOne(
+          { _id: jobDoc._id },
+          {
+            $set: {
+              status: "failed",
+              updatedAt: new Date(),
+              notes: `Error: ${String(err)}`,
+            },
+          },
+        );
+      }
+    }
+
+    // Provide presigned URLs for the newly processed jobs
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+    const ready = await collection
+      .find({ orgId: tenantId, status: "ready" })
+      .sort({ updatedAt: -1 })
+      .limit(5)
+      .toArray();
+    const urls = await Promise.all(
+      ready.map(async (job) => {
+        const jobReady = job as ReportJobDocument;
+        const fileKey = jobReady.fileKey;
+        return {
+          id: String(jobReady._id),
+          fileKey,
+          downloadUrl: fileKey ? await getPresignedGetUrl(fileKey, 600) : null,
+        };
+      }),
+    );
+
+    return NextResponse.json({ success: true, processed, ready: urls });
+  } catch (error) {
+    logger.error("FM Reports worker API - POST error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/fm/reports/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from 'next/server';
+import { ObjectId } from 'mongodb';
+import { getDatabase } from '@/lib/mongodb-unified';
+import { logger } from '@/lib/logger';
+import { ModuleKey } from '@/domain/fm/fm.behavior';
+import { requireFmPermission } from '@/app/api/fm/permissions';
+import { FMAction } from '@/types/fm/enums';
+import { resolveTenantId, buildTenantFilter, isCrossTenantMode } from '@/app/api/fm/utils/tenant';
+import { FMErrors } from '@/app/api/fm/errors';
+
+type ReportJobDocument = {
+  _id: ObjectId;
+  orgId: string; // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+  name: string;
+  type: string;
+  format: string;
+  dateRange: string;
+  startDate?: string;
+  endDate?: string;
+  notes?: string;
+  status: 'queued' | 'processing' | 'ready' | 'failed';
+  fileKey?: string;
+  fileMime?: string;
+  createdBy?: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type ReportPayload = {
+  title?: string;
+  reportType?: string;
+  dateRange?: string;
+  startDate?: string;
+  endDate?: string;
+  format?: string;
+  notes?: string;
+};
+
+const COLLECTION = 'fm_report_jobs';
+
+const sanitizePayload = (payload: ReportPayload): ReportPayload => {
+  const sanitized: ReportPayload = {};
+  if (payload.title) sanitized.title = payload.title.trim();
+  if (payload.reportType) sanitized.reportType = payload.reportType.trim();
+  if (payload.dateRange) sanitized.dateRange = payload.dateRange.trim();
+  if (payload.startDate) sanitized.startDate = payload.startDate.trim();
+  if (payload.endDate) sanitized.endDate = payload.endDate.trim();
+  if (payload.format) sanitized.format = payload.format.trim().toLowerCase();
+  if (payload.notes) sanitized.notes = payload.notes.trim();
+  return sanitized;
+};
+
+const validatePayload = (payload: ReportPayload): string | null => {
+  if (!payload.title) return 'Report title is required';
+  if (!payload.reportType) return 'Report type is required';
+  if (!payload.dateRange) return 'Date range is required';
+  if (!payload.format) return 'Format is required';
+  if (payload.dateRange === 'custom') {
+    if (!payload.startDate || !payload.endDate) return 'Start and end dates are required for custom range';
+    if (new Date(payload.endDate) < new Date(payload.startDate)) return 'End date cannot be before start date';
+  }
+  return null;
+};
+
+const mapJob = (doc: ReportJobDocument) => ({
+  id: doc._id.toString(),
+  name: doc.name,
+  type: doc.type,
+  format: doc.format,
+  dateRange: doc.dateRange,
+  startDate: doc.startDate,
+  endDate: doc.endDate,
+  notes: doc.notes,
+  status: doc.status,
+  fileKey: doc.fileKey,
+  fileMime: doc.fileMime,
+  createdAt: doc.createdAt,
+  updatedAt: doc.updatedAt,
+});
+
+export async function GET(req: NextRequest) {
+  try {
+    const actor = await requireFmPermission(req, { module: ModuleKey.FINANCE, action: FMAction.EXPORT });
+    if (actor instanceof NextResponse) return actor;
+
+    // AUDIT-2025-11-29: Pass Super Admin context for proper audit logging
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
+    );
+    if ('error' in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    const db = await getDatabase();
+    const collection = db.collection<ReportJobDocument>(COLLECTION);
+    // AUDIT-2025-11-29: Use buildTenantFilter for cross-tenant support
+    const jobs = await collection.find({ ...buildTenantFilter(tenantId) }).sort({ createdAt: -1 }).limit(50).toArray();
+
+    return NextResponse.json({ success: true, data: jobs.map(mapJob) });
+  } catch (error) {
+    logger.error('FM Reports API - GET error', error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const actor = await requireFmPermission(req, { module: ModuleKey.FINANCE, action: FMAction.EXPORT });
+    if (actor instanceof NextResponse) return actor;
+
+    // AUDIT-2025-11-29: Pass Super Admin context for proper audit logging
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
+    );
+    if ('error' in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    // AUDIT-2025-11-29: Reject cross-tenant mode for POST (must specify explicit tenant)
+    if (isCrossTenantMode(tenantId)) {
+      return NextResponse.json(
+        { success: false, error: 'Super Admin must specify tenant context for report creation' },
+        { status: 400 }
+      );
+    }
+
+    const payload = sanitizePayload(await req.json());
+    const validationError = validatePayload(payload);
+    if (validationError) {
+      return NextResponse.json({ success: false, error: validationError }, { status: 400 });
+    }
+
+    const now = new Date();
+    const doc: ReportJobDocument = {
+      _id: new ObjectId(),
+      orgId: tenantId, // AUDIT-2025-11-29: Changed from org_id
+      name: payload.title!,
+      type: payload.reportType!,
+      format: payload.format || 'pdf',
+      dateRange: payload.dateRange || 'month',
+      startDate: payload.startDate,
+      endDate: payload.endDate,
+      notes: payload.notes,
+      status: 'queued',
+      createdBy: actor.userId,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const db = await getDatabase();
+    const collection = db.collection<ReportJobDocument>(COLLECTION);
+    await collection.insertOne(doc);
+
+    return NextResponse.json({ success: true, data: mapJob(doc) }, { status: 201 });
+  } catch (error) {
+    logger.error('FM Reports API - POST error', error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/fm/reports/schedules/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from 'next/server';
+import { ObjectId } from 'mongodb';
+import { getDatabase } from '@/lib/mongodb-unified';
+import { logger } from '@/lib/logger';
+import { ModuleKey } from '@/domain/fm/fm.behavior';
+import { requireFmPermission } from '@/app/api/fm/permissions';
+import { FMAction } from '@/types/fm/enums';
+import { resolveTenantId, buildTenantFilter, isCrossTenantMode } from '@/app/api/fm/utils/tenant';
+import { FMErrors } from '@/app/api/fm/errors';
+
+type ScheduleDocument = {
+  _id: ObjectId;
+  orgId: string; // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+  name: string;
+  type: string;
+  frequency: string;
+  format: string;
+  recipients: string[];
+  startDate: string;
+  status: 'active' | 'paused';
+  createdBy?: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type SchedulePayload = {
+  title?: string;
+  reportType?: string;
+  frequency?: string;
+  format?: string;
+  recipients?: string;
+  startDate?: string;
+};
+
+const COLLECTION = 'fm_report_schedules';
+
+const sanitizePayload = (payload: SchedulePayload): SchedulePayload => {
+  const sanitized: SchedulePayload = {};
+  if (payload.title) sanitized.title = payload.title.trim();
+  if (payload.reportType) sanitized.reportType = payload.reportType.trim();
+  if (payload.frequency) sanitized.frequency = payload.frequency.trim();
+  if (payload.format) sanitized.format = payload.format.trim().toLowerCase();
+  if (payload.recipients) sanitized.recipients = payload.recipients.trim();
+  if (payload.startDate) sanitized.startDate = payload.startDate.trim();
+  return sanitized;
+};
+
+const validatePayload = (payload: SchedulePayload): string | null => {
+  if (!payload.title) return 'Schedule name is required';
+  if (!payload.reportType) return 'Report type is required';
+  if (!payload.frequency) return 'Frequency is required';
+  if (!payload.format) return 'Format is required';
+  if (!payload.recipients) return 'Recipients are required';
+  if (!payload.startDate) return 'Start date is required';
+  return null;
+};
+
+const mapSchedule = (doc: ScheduleDocument) => ({
+  id: doc._id.toString(),
+  name: doc.name,
+  type: doc.type,
+  frequency: doc.frequency,
+  format: doc.format,
+  recipients: doc.recipients,
+  startDate: doc.startDate,
+  status: doc.status,
+  createdAt: doc.createdAt,
+  updatedAt: doc.updatedAt,
+});
+
+export async function GET(req: NextRequest) {
+  try {
+    const actor = await requireFmPermission(req, { module: ModuleKey.FINANCE, action: FMAction.EXPORT });
+    if (actor instanceof NextResponse) return actor;
+
+    // AUDIT-2025-11-29: Pass Super Admin context for proper audit logging
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
+    );
+    if ('error' in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    const db = await getDatabase();
+    const collection = db.collection<ScheduleDocument>(COLLECTION);
+    // AUDIT-2025-11-29: Use buildTenantFilter for cross-tenant support
+    const schedules = await collection.find({ ...buildTenantFilter(tenantId) }).sort({ createdAt: -1 }).limit(50).toArray();
+
+    return NextResponse.json({ success: true, data: schedules.map(mapSchedule) });
+  } catch (error) {
+    logger.error('FM Report Schedules API - GET error', error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const actor = await requireFmPermission(req, { module: ModuleKey.FINANCE, action: FMAction.EXPORT });
+    if (actor instanceof NextResponse) return actor;
+
+    // AUDIT-2025-11-29: Pass Super Admin context for proper audit logging
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
+    );
+    if ('error' in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    // AUDIT-2025-11-29: Reject cross-tenant mode for POST (must specify explicit tenant)
+    if (isCrossTenantMode(tenantId)) {
+      return NextResponse.json(
+        { success: false, error: 'Super Admin must specify tenant context for schedule creation' },
+        { status: 400 }
+      );
+    }
+
+    const payload = sanitizePayload(await req.json());
+    const validationError = validatePayload(payload);
+    if (validationError) {
+      return NextResponse.json({ success: false, error: validationError }, { status: 400 });
+    }
+
+    const recipientList = payload.recipients!
+      .split(',')
+      .map((r) => r.trim())
+      .filter(Boolean);
+
+    const now = new Date();
+    const doc: ScheduleDocument = {
+      _id: new ObjectId(),
+      orgId: tenantId, // AUDIT-2025-11-29: Changed from org_id
+      name: payload.title!,
+      type: payload.reportType!,
+      frequency: payload.frequency || 'monthly',
+      format: payload.format || 'pdf',
+      recipients: recipientList,
+      startDate: payload.startDate!,
+      status: 'active',
+      createdBy: actor.userId,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const db = await getDatabase();
+    const collection = db.collection<ScheduleDocument>(COLLECTION);
+    await collection.insertOne(doc);
+
+    return NextResponse.json({ success: true, data: mapSchedule(doc) }, { status: 201 });
+  } catch (error) {
+    logger.error('FM Report Schedules API - POST error', error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/fm/support/escalations/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { ModuleKey } from "@/domain/fm/fm.behavior";
+import { FMAction } from "@/types/fm/enums";
+import { requireFmPermission } from "@/app/api/fm/permissions";
+import { resolveTenantId, isCrossTenantMode } from "@/app/api/fm/utils/tenant";
+import { FMErrors } from "@/app/api/fm/errors";
+
+type EscalationDocument = {
+  _id: ObjectId;
+  orgId: string; // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+  incidentId: string;
+  service: string;
+  areas?: string;
+  severity: string;
+  detectedAt?: string;
+  summary: string;
+  symptoms: string;
+  mitigation?: string;
+  blockers?: string;
+  executiveBrief?: string;
+  stakeholders?: string;
+  preferredChannel: string;
+  requiresDowntime: boolean;
+  needsCustomerComms: boolean;
+  legalReview: boolean;
+  status: "submitted" | "acked";
+  createdBy?: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type EscalationPayload = Partial<EscalationDocument>;
+
+const COLLECTION = "fm_support_escalations";
+
+const sanitizePayload = (payload: EscalationPayload): EscalationPayload => ({
+  incidentId: payload.incidentId?.trim(),
+  service: payload.service?.trim(),
+  areas: payload.areas?.trim(),
+  severity: payload.severity?.trim(),
+  detectedAt: payload.detectedAt?.trim(),
+  summary: payload.summary?.trim(),
+  symptoms: payload.symptoms?.trim(),
+  mitigation: payload.mitigation?.trim(),
+  blockers: payload.blockers?.trim(),
+  executiveBrief: payload.executiveBrief?.trim(),
+  stakeholders: payload.stakeholders?.trim(),
+  preferredChannel: payload.preferredChannel?.trim(),
+  requiresDowntime: Boolean(payload.requiresDowntime),
+  needsCustomerComms: Boolean(payload.needsCustomerComms),
+  legalReview: Boolean(payload.legalReview),
+});
+
+const validatePayload = (payload: EscalationPayload): string | null => {
+  if (!payload.incidentId) return "Incident ID is required";
+  if (!payload.service) return "Service is required";
+  if (!payload.summary || payload.summary.length < 20)
+    return "Summary must be at least 20 characters";
+  if (!payload.symptoms || payload.symptoms.length < 10)
+    return "Symptoms are required";
+  if (!payload.severity) return "Severity is required";
+  if (!payload.preferredChannel) return "Preferred channel is required";
+  return null;
+};
+
+export async function POST(req: NextRequest) {
+  try {
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.SUPPORT,
+      action: FMAction.CREATE,
+    });
+    if (actor instanceof NextResponse) return actor;
+
+    // AUDIT-2025-11-29: Pass Super Admin context for proper audit logging
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    // AUDIT-2025-11-29: Reject cross-tenant mode for POST (must specify explicit tenant)
+    if (isCrossTenantMode(tenantId)) {
+      return NextResponse.json(
+        { success: false, error: "Super Admin must specify tenant context for escalation creation" },
+        { status: 400 }
+      );
+    }
+
+    const payload = sanitizePayload(await req.json());
+    const validationError = validatePayload(payload);
+    if (validationError) {
+      return NextResponse.json(
+        { success: false, error: validationError },
+        { status: 400 },
+      );
+    }
+
+    const now = new Date();
+    const doc: EscalationDocument = {
+      _id: new ObjectId(),
+      orgId: tenantId, // AUDIT-2025-11-29: Changed from org_id
+      incidentId: payload.incidentId!,
+      service: payload.service!,
+      areas: payload.areas,
+      severity: payload.severity || "critical",
+      detectedAt: payload.detectedAt,
+      summary: payload.summary!,
+      symptoms: payload.symptoms!,
+      mitigation: payload.mitigation,
+      blockers: payload.blockers,
+      executiveBrief: payload.executiveBrief,
+      stakeholders: payload.stakeholders,
+      preferredChannel: payload.preferredChannel || "bridge",
+      requiresDowntime: Boolean(payload.requiresDowntime),
+      needsCustomerComms: Boolean(payload.needsCustomerComms),
+      legalReview: Boolean(payload.legalReview),
+      status: "submitted",
+      createdBy: actor.userId,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const db = await getDatabase();
+    const collection = db.collection<EscalationDocument>(COLLECTION);
+    await collection.insertOne(doc);
+
+    return NextResponse.json(
+      { success: true, data: { id: doc._id.toString() } },
+      { status: 201 },
+    );
+  } catch (error) {
+    logger.error("FM Support Escalations API - POST error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/fm/support/tickets/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { ModuleKey } from "@/domain/fm/fm.behavior";
+import { FMAction } from "@/types/fm/enums";
+import { requireFmPermission } from "@/app/api/fm/permissions";
+import { resolveTenantId, isCrossTenantMode } from "@/app/api/fm/utils/tenant";
+import { FMErrors } from "@/app/api/fm/errors";
+
+type TicketDocument = {
+  _id: ObjectId;
+  orgId: string; // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+  requesterName: string;
+  requesterEmail: string;
+  requesterPhone?: string;
+  module: string;
+  priority: string;
+  subject: string;
+  summary: string;
+  steps?: string;
+  environment?: string;
+  ccList?: string[];
+  notifyCustomer: boolean;
+  shareStatusPage: boolean;
+  status: "open" | "acknowledged";
+  createdBy?: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type TicketPayload = {
+  requesterName?: string;
+  requesterEmail?: string;
+  requesterPhone?: string;
+  module?: string;
+  priority?: string;
+  subject?: string;
+  summary?: string;
+  steps?: string;
+  environment?: string;
+  ccList?: string;
+  notifyCustomer?: boolean;
+  shareStatusPage?: boolean;
+};
+
+const COLLECTION = "fm_support_tickets";
+
+const sanitizePayload = (payload: TicketPayload): TicketPayload => ({
+  requesterName: payload.requesterName?.trim(),
+  requesterEmail: payload.requesterEmail?.trim().toLowerCase(),
+  requesterPhone: payload.requesterPhone?.trim(),
+  module: payload.module?.trim(),
+  priority: payload.priority?.trim(),
+  subject: payload.subject?.trim(),
+  summary: payload.summary?.trim(),
+  steps: payload.steps?.trim(),
+  environment: payload.environment?.trim(),
+  ccList: payload.ccList?.trim(),
+  notifyCustomer: Boolean(payload.notifyCustomer),
+  shareStatusPage: Boolean(payload.shareStatusPage),
+});
+
+const validatePayload = (payload: TicketPayload): string | null => {
+  if (!payload.requesterName) return "Requester name is required";
+  if (!payload.requesterEmail || !payload.requesterEmail.includes("@"))
+    return "Valid email is required";
+  if (!payload.module) return "Module is required";
+  if (!payload.priority) return "Priority is required";
+  if (!payload.subject) return "Subject is required";
+  if (!payload.summary || payload.summary.length < 20)
+    return "Summary must be at least 20 characters";
+  return null;
+};
+
+export async function POST(req: NextRequest) {
+  try {
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.SUPPORT,
+      action: FMAction.CREATE,
+    });
+    if (actor instanceof NextResponse) return actor;
+
+    // AUDIT-2025-11-29: Pass Super Admin context for proper audit logging
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    // AUDIT-2025-11-29: Reject cross-tenant mode for POST (must specify explicit tenant)
+    if (isCrossTenantMode(tenantId)) {
+      return NextResponse.json(
+        { success: false, error: "Super Admin must specify tenant context for ticket creation" },
+        { status: 400 }
+      );
+    }
+
+    const payload = sanitizePayload(await req.json());
+    const validationError = validatePayload(payload);
+    if (validationError) {
+      return NextResponse.json(
+        { success: false, error: validationError },
+        { status: 400 },
+      );
+    }
+
+    const ccList = payload.ccList
+      ? payload.ccList
+          .split(",")
+          .map((email) => email.trim())
+          .filter(Boolean)
+      : [];
+
+    const now = new Date();
+    const doc: TicketDocument = {
+      _id: new ObjectId(),
+      orgId: tenantId, // AUDIT-2025-11-29: Changed from org_id
+      requesterName: payload.requesterName!,
+      requesterEmail: payload.requesterEmail!,
+      requesterPhone: payload.requesterPhone,
+      module: payload.module!,
+      priority: payload.priority || "medium",
+      subject: payload.subject!,
+      summary: payload.summary!,
+      steps: payload.steps,
+      environment: payload.environment,
+      ccList,
+      notifyCustomer: Boolean(payload.notifyCustomer),
+      shareStatusPage: Boolean(payload.shareStatusPage),
+      status: "open",
+      createdBy: actor.userId,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const db = await getDatabase();
+    const collection = db.collection<TicketDocument>(COLLECTION);
+    await collection.insertOne(doc);
+
+    return NextResponse.json(
+      { success: true, data: { id: doc._id.toString() } },
+      { status: 201 },
+    );
+  } catch (error) {
+    logger.error("FM Support Tickets API - POST error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/fm/system/integrations/[id]/toggle/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { unwrapFindOneResult } from "@/lib/mongoUtils.server";
+import { logger } from "@/lib/logger";
+import { FMErrors } from "@/app/api/fm/errors";
+import { requireFmPermission } from "@/app/api/fm/permissions";
+import { resolveTenantId } from "@/app/api/fm/utils/tenant";
+import { ModuleKey } from "@/domain/fm/fm.behavior";
+import { FMAction } from "@/types/fm/enums";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+
+type IntegrationDocument = {
+  _id: ObjectId;
+  orgId: string; // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+  integrationId: string;
+  status: "connected" | "disconnected";
+  updatedAt: Date;
+  createdAt: Date;
+};
+
+const COLLECTION = "fm_integrations";
+
+const mapIntegration = (doc: IntegrationDocument) => ({
+  id: doc.integrationId,
+  status: doc.status,
+  updatedAt: doc.updatedAt,
+});
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  const integrationId = params.id;
+  if (!integrationId) {
+    return NextResponse.json(
+      { success: false, error: "Missing integration id" },
+      { status: 400 },
+    );
+  }
+
+  try {
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.FINANCE,
+      action: FMAction.UPDATE,
+    });
+    if (actor instanceof NextResponse) return actor;
+
+    const isSuperAdmin = actor.isSuperAdmin === true;
+
+    // AUDIT-2025-11-29: Added RBAC context for proper tenant resolution
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      { isSuperAdmin, userId: actor.id, allowHeaderOverride: isSuperAdmin }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, actor.orgId, actor.id), 30, 60_000);
+    if (!rl.allowed) return rateLimitError();
+
+    const db = await getDatabase();
+    const collection = db.collection<IntegrationDocument>(COLLECTION);
+    const now = new Date();
+
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+    const existing = await collection.findOne({
+      orgId: tenantId,
+      integrationId,
+    });
+    const nextStatus =
+      existing?.status === "connected" ? "disconnected" : "connected";
+
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+    const result = await collection.findOneAndUpdate(
+      { orgId: tenantId, integrationId },
+      {
+        $set: {
+          status: nextStatus,
+          updatedAt: now,
+        },
+        $setOnInsert: {
+          _id: new ObjectId(),
+          createdAt: now,
+        },
+      },
+      { upsert: true, returnDocument: "after" },
+    );
+
+    const doc = unwrapFindOneResult(result as IntegrationDocument | null | undefined);
+    if (!doc) {
+      return FMErrors.internalError();
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: mapIntegration(doc as IntegrationDocument),
+    });
+  } catch (error) {
+    logger.error("FM Integrations toggle API error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

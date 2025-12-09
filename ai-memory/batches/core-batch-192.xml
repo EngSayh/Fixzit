@@ -1,0 +1,2127 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="i18n/sources/employeeAssistanceProgram.translations.json">
+<![CDATA[
+{
+  "en": {
+    "employeeAssistanceProgram.access": "الوصول لبرنامج المساعدة",
+    "employeeAssistanceProgram.assistance": "مساعدة الموظفين",
+    "employeeAssistanceProgram.availability": "توفر برنامج المساعدة",
+    "employeeAssistanceProgram.awareness": "الوعي ببرنامج المساعدة",
+    "employeeAssistanceProgram.confidential": "الدعم السري",
+    "employeeAssistanceProgram.counseling": "استشارة برنامج المساعدة",
+    "employeeAssistanceProgram.crisis": "التدخل في الأزمات",
+    "employeeAssistanceProgram.eap": "برنامج مساعدة الموظفين",
+    "employeeAssistanceProgram.family": "القضايا العائلية",
+    "employeeAssistanceProgram.financial": "الاستشارة المالية",
+    "employeeAssistanceProgram.followUp": "الدعم المتابع",
+    "employeeAssistanceProgram.health": "دعم الصحة",
+    "employeeAssistanceProgram.legal": "المساعدة القانونية",
+    "employeeAssistanceProgram.personal": "القضايا الشخصية",
+    "employeeAssistanceProgram.program": "خدمات برنامج المساعدة",
+    "employeeAssistanceProgram.referral": "خدمات الإحالة",
+    "employeeAssistanceProgram.resources": "موارد برنامج المساعدة",
+    "employeeAssistanceProgram.services": "خدمات برنامج المساعدة",
+    "employeeAssistanceProgram.support": "دعم الموظفين",
+    "employeeAssistanceProgram.utilization": "استخدام برنامج المساعدة",
+    "employeeAssistanceProgram.wellness": "دعم الصحة",
+    "employeeAssistanceProgram.work": "قضايا العمل"
+  },
+  "ar": {
+    "employeeAssistanceProgram.access": "الوصول لبرنامج المساعدة",
+    "employeeAssistanceProgram.assistance": "مساعدة الموظفين",
+    "employeeAssistanceProgram.availability": "توفر برنامج المساعدة",
+    "employeeAssistanceProgram.awareness": "الوعي ببرنامج المساعدة",
+    "employeeAssistanceProgram.confidential": "الدعم السري",
+    "employeeAssistanceProgram.counseling": "استشارة برنامج المساعدة",
+    "employeeAssistanceProgram.crisis": "التدخل في الأزمات",
+    "employeeAssistanceProgram.eap": "برنامج مساعدة الموظفين",
+    "employeeAssistanceProgram.family": "القضايا العائلية",
+    "employeeAssistanceProgram.financial": "الاستشارة المالية",
+    "employeeAssistanceProgram.followUp": "الدعم المتابع",
+    "employeeAssistanceProgram.health": "دعم الصحة",
+    "employeeAssistanceProgram.legal": "المساعدة القانونية",
+    "employeeAssistanceProgram.personal": "القضايا الشخصية",
+    "employeeAssistanceProgram.program": "خدمات برنامج المساعدة",
+    "employeeAssistanceProgram.referral": "خدمات الإحالة",
+    "employeeAssistanceProgram.resources": "موارد برنامج المساعدة",
+    "employeeAssistanceProgram.services": "خدمات برنامج المساعدة",
+    "employeeAssistanceProgram.support": "دعم الموظفين",
+    "employeeAssistanceProgram.utilization": "استخدام برنامج المساعدة",
+    "employeeAssistanceProgram.wellness": "دعم الصحة",
+    "employeeAssistanceProgram.work": "قضايا العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/employeeBenefits.translations.json">
+<![CDATA[
+{
+  "en": {
+    "employeeBenefits.allowance": "Allowance",
+    "employeeBenefits.benefits": "Benefits",
+    "employeeBenefits.bonus": "Bonus",
+    "employeeBenefits.childcare": "Childcare",
+    "employeeBenefits.commission": "Commission",
+    "employeeBenefits.dental": "Dental Insurance",
+    "employeeBenefits.education": "Education Assistance",
+    "employeeBenefits.flexible": "Flexible Schedule",
+    "employeeBenefits.gym": "Gym Membership",
+    "employeeBenefits.health": "Health Insurance",
+    "employeeBenefits.holiday": "Holidays",
+    "employeeBenefits.housing": "Housing Allowance",
+    "employeeBenefits.life": "Life Insurance",
+    "employeeBenefits.meal": "Meal Allowance",
+    "employeeBenefits.package": "Benefits Package",
+    "employeeBenefits.paidLeave": "Paid Leave",
+    "employeeBenefits.pension": "Pension",
+    "employeeBenefits.personal": "Personal Days",
+    "employeeBenefits.remote": "Remote Work",
+    "employeeBenefits.retirement": "Retirement Plan",
+    "employeeBenefits.savings": "401k",
+    "employeeBenefits.sick": "Sick Days",
+    "employeeBenefits.transportation": "Transportation Allowance",
+    "employeeBenefits.vision": "Vision Insurance",
+    "employeeBenefits.wellness": "Wellness Program"
+  },
+  "ar": {
+    "employeeBenefits.allowance": "البدل",
+    "employeeBenefits.benefits": "المزايا",
+    "employeeBenefits.bonus": "المكافأة",
+    "employeeBenefits.childcare": "رعاية الأطفال",
+    "employeeBenefits.commission": "العمولة",
+    "employeeBenefits.dental": "تأمين الأسنان",
+    "employeeBenefits.education": "المساعدة التعليمية",
+    "employeeBenefits.flexible": "جدول مرن",
+    "employeeBenefits.gym": "عضوية النادي الرياضي",
+    "employeeBenefits.health": "التأمين الصحي",
+    "employeeBenefits.holiday": "العطلات",
+    "employeeBenefits.housing": "بدل السكن",
+    "employeeBenefits.life": "التأمين على الحياة",
+    "employeeBenefits.meal": "بدل الوجبات",
+    "employeeBenefits.package": "حزمة المزايا",
+    "employeeBenefits.paidLeave": "إجازة مدفوعة",
+    "employeeBenefits.pension": "المعاش",
+    "employeeBenefits.personal": "الأيام الشخصية",
+    "employeeBenefits.remote": "العمل عن بعد",
+    "employeeBenefits.retirement": "خطة التقاعد",
+    "employeeBenefits.savings": "401k",
+    "employeeBenefits.sick": "أيام المرض",
+    "employeeBenefits.transportation": "بدل النقل",
+    "employeeBenefits.vision": "تأمين النظر",
+    "employeeBenefits.wellness": "برنامج العافية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/employeeEngagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "employeeEngagement.activities": "Engagement Activities",
+    "employeeEngagement.advocacy": "Employee Advocacy",
+    "employeeEngagement.assessment": "Engagement Assessment",
+    "employeeEngagement.commitment": "Employee Commitment",
+    "employeeEngagement.culture": "Engagement Culture",
+    "employeeEngagement.employee": "Employee Engagement",
+    "employeeEngagement.engagement": "Engagement Strategy",
+    "employeeEngagement.feedback": "Employee Feedback",
+    "employeeEngagement.improvement": "Engagement Improvement",
+    "employeeEngagement.initiatives": "Engagement Initiatives",
+    "employeeEngagement.involvement": "Employee Involvement",
+    "employeeEngagement.loyalty": "Employee Loyalty",
+    "employeeEngagement.measurement": "Engagement Measurement",
+    "employeeEngagement.metrics": "Engagement Metrics",
+    "employeeEngagement.morale": "Employee Morale",
+    "employeeEngagement.motivation": "Employee Motivation",
+    "employeeEngagement.participation": "Employee Participation",
+    "employeeEngagement.programs": "Engagement Programs",
+    "employeeEngagement.retention": "Employee Retention",
+    "employeeEngagement.satisfaction": "Employee Satisfaction",
+    "employeeEngagement.survey": "Engagement Survey",
+    "employeeEngagement.voice": "Employee Voice"
+  },
+  "ar": {
+    "employeeEngagement.activities": "أنشطة الإشراك",
+    "employeeEngagement.advocacy": "مناصرة الموظفين",
+    "employeeEngagement.assessment": "تقييم الإشراك",
+    "employeeEngagement.commitment": "التزام الموظفين",
+    "employeeEngagement.culture": "ثقافة الإشراك",
+    "employeeEngagement.employee": "إشراك الموظفين",
+    "employeeEngagement.engagement": "استراتيجية الإشراك",
+    "employeeEngagement.feedback": "ملاحظات الموظفين",
+    "employeeEngagement.improvement": "تحسين الإشراك",
+    "employeeEngagement.initiatives": "مبادرات الإشراك",
+    "employeeEngagement.involvement": "إشراك الموظفين",
+    "employeeEngagement.loyalty": "ولاء الموظفين",
+    "employeeEngagement.measurement": "قياس الإشراك",
+    "employeeEngagement.metrics": "مقاييس الإشراك",
+    "employeeEngagement.morale": "معنويات الموظفين",
+    "employeeEngagement.motivation": "تحفيز الموظفين",
+    "employeeEngagement.participation": "مشاركة الموظفين",
+    "employeeEngagement.programs": "برامج الإشراك",
+    "employeeEngagement.retention": "الاحتفاظ بالموظفين",
+    "employeeEngagement.satisfaction": "رضا الموظفين",
+    "employeeEngagement.survey": "مسح الإشراك",
+    "employeeEngagement.voice": "صوت الموظفين"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/employeePerformance.translations.json">
+<![CDATA[
+{
+  "en": {
+    "employeePerformance.analytics": "Performance Analytics",
+    "employeePerformance.appraisals": "Performance Appraisals",
+    "employeePerformance.calibration": "Performance Calibration",
+    "employeePerformance.coaching": "Performance Coaching",
+    "employeePerformance.developmentPlans": "Development Plans",
+    "employeePerformance.evaluation": "Performance Evaluation",
+    "employeePerformance.feedback": "Continuous Feedback",
+    "employeePerformance.goals": "Goal Management",
+    "employeePerformance.kpi": "KPI Management",
+    "employeePerformance.nineBox": "9-Box Grid",
+    "employeePerformance.objectives": "Objectives Management",
+    "employeePerformance.okr": "OKR Management",
+    "employeePerformance.oneOnOne": "One-on-One Meetings",
+    "employeePerformance.performance": "Employee Performance",
+    "employeePerformance.pip": "Performance Improvement Plans",
+    "employeePerformance.potential": "Potential Assessment",
+    "employeePerformance.recognitionPrograms": "Performance Recognition",
+    "employeePerformance.reporting": "Performance Reporting",
+    "employeePerformance.reviews": "Performance Reviews",
+    "employeePerformance.successionPlanning": "Succession Planning",
+    "employeePerformance.talentReview": "Talent Review"
+  },
+  "ar": {
+    "employeePerformance.analytics": "تحليلات الأداء",
+    "employeePerformance.appraisals": "تقييمات الأداء",
+    "employeePerformance.calibration": "معايرة الأداء",
+    "employeePerformance.coaching": "تدريب الأداء",
+    "employeePerformance.developmentPlans": "خطط التطوير",
+    "employeePerformance.evaluation": "تقييم الأداء",
+    "employeePerformance.feedback": "التغذية الراجعة المستمرة",
+    "employeePerformance.goals": "إدارة الأهداف",
+    "employeePerformance.kpi": "إدارة مؤشرات الأداء الرئيسية",
+    "employeePerformance.nineBox": "شبكة 9 مربعات",
+    "employeePerformance.objectives": "إدارة الأهداف",
+    "employeePerformance.okr": "إدارة OKR",
+    "employeePerformance.oneOnOne": "اجتماعات فردية",
+    "employeePerformance.performance": "أداء الموظفين",
+    "employeePerformance.pip": "خطط تحسين الأداء",
+    "employeePerformance.potential": "تقييم الإمكانات",
+    "employeePerformance.recognitionPrograms": "تقدير الأداء",
+    "employeePerformance.reporting": "تقارير الأداء",
+    "employeePerformance.reviews": "تقييمات الأداء",
+    "employeePerformance.successionPlanning": "تخطيط التعاقب",
+    "employeePerformance.talentReview": "مراجعة المواهب"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/employeeRelations.translations.json">
+<![CDATA[
+{
+  "en": {
+    "employeeRelations.agreement": "Labor Agreement",
+    "employeeRelations.arbitration": "Arbitration",
+    "employeeRelations.collective": "Collective Bargaining",
+    "employeeRelations.communication": "Communication",
+    "employeeRelations.complaint": "Complaint",
+    "employeeRelations.conduct": "Conduct",
+    "employeeRelations.conflict": "Conflict Resolution",
+    "employeeRelations.discipline": "Discipline",
+    "employeeRelations.dispute": "Dispute Resolution",
+    "employeeRelations.engagement": "Employee Engagement",
+    "employeeRelations.grievance": "Grievance",
+    "employeeRelations.investigation": "Investigation",
+    "employeeRelations.labor": "Labor Relations",
+    "employeeRelations.mediation": "Mediation",
+    "employeeRelations.negotiation": "Negotiation",
+    "employeeRelations.policy": "Policy",
+    "employeeRelations.procedure": "Procedure",
+    "employeeRelations.relations": "Employee Relations",
+    "employeeRelations.responsibilities": "Responsibilities",
+    "employeeRelations.rights": "Employee Rights",
+    "employeeRelations.satisfaction": "Employee Satisfaction",
+    "employeeRelations.union": "Union Relations"
+  },
+  "ar": {
+    "employeeRelations.agreement": "اتفاقية العمل",
+    "employeeRelations.arbitration": "التحكيم",
+    "employeeRelations.collective": "المفاوضة الجماعية",
+    "employeeRelations.communication": "الاتصال",
+    "employeeRelations.complaint": "التظلم",
+    "employeeRelations.conduct": "السلوك",
+    "employeeRelations.conflict": "حل النزاعات",
+    "employeeRelations.discipline": "الانضباط",
+    "employeeRelations.dispute": "حل النزاعات",
+    "employeeRelations.engagement": "مشاركة الموظفين",
+    "employeeRelations.grievance": "الشكوى",
+    "employeeRelations.investigation": "التحقيق",
+    "employeeRelations.labor": "علاقات العمل",
+    "employeeRelations.mediation": "الوساطة",
+    "employeeRelations.negotiation": "التفاوض",
+    "employeeRelations.policy": "السياسة",
+    "employeeRelations.procedure": "الإجراء",
+    "employeeRelations.relations": "علاقات الموظفين",
+    "employeeRelations.responsibilities": "المسؤوليات",
+    "employeeRelations.rights": "حقوق الموظفين",
+    "employeeRelations.satisfaction": "رضا الموظفين",
+    "employeeRelations.union": "علاقات النقابات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/employeeResourceGroups.translations.json">
+<![CDATA[
+{
+  "en": {
+    "employeeResourceGroups.activities": "أنشطة مجموعات موارد الموظفين",
+    "employeeResourceGroups.advocacy": "دعم الموظف",
+    "employeeResourceGroups.affinity": "مجموعات الانتماء",
+    "employeeResourceGroups.belonging": "الانتماء للمجتمع",
+    "employeeResourceGroups.community": "مجتمع الموظفين",
+    "employeeResourceGroups.diversity": "مجموعات التنوع",
+    "employeeResourceGroups.erg": "مجموعات موارد الموظفين",
+    "employeeResourceGroups.events": "فعاليات مجموعات موارد الموظفين",
+    "employeeResourceGroups.groups": "مجموعات الموارد",
+    "employeeResourceGroups.impact": "تأثير مجموعات موارد الموظفين",
+    "employeeResourceGroups.inclusion": "شبكات الشمولية",
+    "employeeResourceGroups.initiatives": "مبادرات مجموعات موارد الموظفين",
+    "employeeResourceGroups.leadership": "قيادة مجموعات موارد الموظفين",
+    "employeeResourceGroups.measurement": "قياس مجموعات موارد الموظفين",
+    "employeeResourceGroups.membership": "عضوية مجموعات موارد الموظفين",
+    "employeeResourceGroups.networks": "شبكات الموظفين",
+    "employeeResourceGroups.orgSupport": "دعم المنظمة",
+    "employeeResourceGroups.programs": "برامج مجموعات موارد الموظفين",
+    "employeeResourceGroups.representation": "تمثيل المجموعة",
+    "employeeResourceGroups.resources": "موارد مجموعات موارد الموظفين",
+    "employeeResourceGroups.support": "دعم الأقران",
+    "employeeResourceGroups.voice": "صوت الموظف"
+  },
+  "ar": {
+    "employeeResourceGroups.activities": "أنشطة مجموعات موارد الموظفين",
+    "employeeResourceGroups.advocacy": "دعم الموظف",
+    "employeeResourceGroups.affinity": "مجموعات الانتماء",
+    "employeeResourceGroups.belonging": "الانتماء للمجتمع",
+    "employeeResourceGroups.community": "مجتمع الموظفين",
+    "employeeResourceGroups.diversity": "مجموعات التنوع",
+    "employeeResourceGroups.erg": "مجموعات موارد الموظفين",
+    "employeeResourceGroups.events": "فعاليات مجموعات موارد الموظفين",
+    "employeeResourceGroups.groups": "مجموعات الموارد",
+    "employeeResourceGroups.impact": "تأثير مجموعات موارد الموظفين",
+    "employeeResourceGroups.inclusion": "شبكات الشمولية",
+    "employeeResourceGroups.initiatives": "مبادرات مجموعات موارد الموظفين",
+    "employeeResourceGroups.leadership": "قيادة مجموعات موارد الموظفين",
+    "employeeResourceGroups.measurement": "قياس مجموعات موارد الموظفين",
+    "employeeResourceGroups.membership": "عضوية مجموعات موارد الموظفين",
+    "employeeResourceGroups.networks": "شبكات الموظفين",
+    "employeeResourceGroups.orgSupport": "دعم المنظمة",
+    "employeeResourceGroups.programs": "برامج مجموعات موارد الموظفين",
+    "employeeResourceGroups.representation": "تمثيل المجموعة",
+    "employeeResourceGroups.resources": "موارد مجموعات موارد الموظفين",
+    "employeeResourceGroups.support": "دعم الأقران",
+    "employeeResourceGroups.voice": "صوت الموظف"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/employeeWellbeing.translations.json">
+<![CDATA[
+{
+  "en": {
+    "employeeWellbeing.balance": "Work-Life Balance",
+    "employeeWellbeing.burnout": "Burnout Prevention",
+    "employeeWellbeing.counseling": "Counseling",
+    "employeeWellbeing.eap": "Employee Assistance Program",
+    "employeeWellbeing.emotional": "Emotional Wellbeing",
+    "employeeWellbeing.ergonomics": "Ergonomics",
+    "employeeWellbeing.fitness": "Fitness Program",
+    "employeeWellbeing.flexibility": "Work Flexibility",
+    "employeeWellbeing.gym": "Gym Membership",
+    "employeeWellbeing.health": "Health",
+    "employeeWellbeing.hybrid": "Hybrid Work",
+    "employeeWellbeing.meditation": "Meditation",
+    "employeeWellbeing.mental": "Mental Health",
+    "employeeWellbeing.mindfulness": "Mindfulness",
+    "employeeWellbeing.nutrition": "Nutrition",
+    "employeeWellbeing.physical": "Physical Health",
+    "employeeWellbeing.remote": "Remote Work",
+    "employeeWellbeing.stress": "Stress Management",
+    "employeeWellbeing.support": "Employee Support",
+    "employeeWellbeing.therapy": "Therapy",
+    "employeeWellbeing.wellbeing": "Employee Wellbeing",
+    "employeeWellbeing.wellness": "Wellness"
+  },
+  "ar": {
+    "employeeWellbeing.balance": "التوازن بين العمل والحياة",
+    "employeeWellbeing.burnout": "الوقاية من الإرهاق",
+    "employeeWellbeing.counseling": "الاستشارة",
+    "employeeWellbeing.eap": "برنامج مساعدة الموظفين",
+    "employeeWellbeing.emotional": "الرفاهية العاطفية",
+    "employeeWellbeing.ergonomics": "بيئة العمل",
+    "employeeWellbeing.fitness": "برنامج اللياقة",
+    "employeeWellbeing.flexibility": "مرونة العمل",
+    "employeeWellbeing.gym": "عضوية النادي الرياضي",
+    "employeeWellbeing.health": "الصحة",
+    "employeeWellbeing.hybrid": "العمل الهجين",
+    "employeeWellbeing.meditation": "التأمل",
+    "employeeWellbeing.mental": "الصحة النفسية",
+    "employeeWellbeing.mindfulness": "اليقظة الذهنية",
+    "employeeWellbeing.nutrition": "التغذية",
+    "employeeWellbeing.physical": "الصحة البدنية",
+    "employeeWellbeing.remote": "العمل عن بعد",
+    "employeeWellbeing.stress": "إدارة التوتر",
+    "employeeWellbeing.support": "دعم الموظفين",
+    "employeeWellbeing.therapy": "العلاج",
+    "employeeWellbeing.wellbeing": "رفاهية الموظفين",
+    "employeeWellbeing.wellness": "العافية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/employees.translations.json">
+<![CDATA[
+{
+  "en": {
+    "employees": "Employees"
+  },
+  "ar": {
+    "employees": "الموظفين"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/employment.translations.json">
+<![CDATA[
+{
+  "en": {
+    "employment.applicant": "Applicant",
+    "employment.candidate": "Candidate",
+    "employment.contract": "Contract",
+    "employment.contractor": "Contractor",
+    "employment.employee": "Employee",
+    "employment.employees": "Employees",
+    "employment.employer": "Employer",
+    "employment.employment1": "Employment",
+    "employment.freelance": "Freelance",
+    "employment.freelancer": "Freelancer",
+    "employment.fullTime": "Full-time",
+    "employment.hire": "Hire",
+    "employment.hiring": "Hiring",
+    "employment.interview": "Interview",
+    "employment.jobDescription": "Job Description",
+    "employment.jobPosting": "Job Posting",
+    "employment.onboarding": "Onboarding",
+    "employment.partTime": "Part-time",
+    "employment.permanent": "Permanent",
+    "employment.personnel": "Personnel",
+    "employment.probation": "Probation",
+    "employment.probationPeriod": "Probation Period",
+    "employment.recruiter": "Recruiter",
+    "employment.recruitment": "Recruitment",
+    "employment.resignation": "Resignation",
+    "employment.staff": "Staff",
+    "employment.temporary": "Temporary",
+    "employment.termination": "Termination",
+    "employment.workforce": "Workforce"
+  },
+  "ar": {
+    "employment.applicant": "متقدم",
+    "employment.candidate": "مرشح",
+    "employment.contract": "عقد",
+    "employment.contractor": "مقاول",
+    "employment.employee": "موظف",
+    "employment.employees": "موظفون",
+    "employment.employer": "صاحب العمل",
+    "employment.employment1": "التوظيف",
+    "employment.freelance": "عمل حر",
+    "employment.freelancer": "مستقل",
+    "employment.fullTime": "دوام كامل",
+    "employment.hire": "توظيف",
+    "employment.hiring": "التوظيف",
+    "employment.interview": "مقابلة",
+    "employment.jobDescription": "وصف الوظيفة",
+    "employment.jobPosting": "إعلان وظيفي",
+    "employment.onboarding": "التأهيل",
+    "employment.partTime": "دوام جزئي",
+    "employment.permanent": "دائم",
+    "employment.personnel": "الموظفون",
+    "employment.probation": "الاختبار",
+    "employment.probationPeriod": "فترة الاختبار",
+    "employment.recruiter": "مسؤول التوظيف",
+    "employment.recruitment": "التوظيف",
+    "employment.resignation": "استقالة",
+    "employment.staff": "الموظفون",
+    "employment.temporary": "مؤقت",
+    "employment.termination": "إنهاء",
+    "employment.workforce": "القوى العاملة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/endpointSecurity.translations.json">
+<![CDATA[
+{
+  "en": {
+    "endpointSecurity.antimalware": "Anti-Malware",
+    "endpointSecurity.antivirus": "Antivirus Protection",
+    "endpointSecurity.behavioral": "Behavioral Analysis",
+    "endpointSecurity.blacklisting": "Application Blacklisting",
+    "endpointSecurity.compliance": "Compliance Monitoring",
+    "endpointSecurity.device": "Device Control",
+    "endpointSecurity.edr": "Endpoint Detection & Response",
+    "endpointSecurity.encryption": "Disk Encryption",
+    "endpointSecurity.endpoint": "Endpoint Security",
+    "endpointSecurity.firewall": "Host Firewall",
+    "endpointSecurity.inventory": "Asset Inventory",
+    "endpointSecurity.isolation": "Application Isolation",
+    "endpointSecurity.patch": "Patch Management",
+    "endpointSecurity.quarantine": "Threat Quarantine",
+    "endpointSecurity.remediation": "Automated Remediation",
+    "endpointSecurity.reporting": "Endpoint Reporting",
+    "endpointSecurity.sandboxing": "Sandboxing",
+    "endpointSecurity.threat": "Threat Prevention",
+    "endpointSecurity.usb": "USB Control",
+    "endpointSecurity.whitelisting": "Application Whitelisting",
+    "endpointSecurity.xdr": "Extended Detection & Response"
+  },
+  "ar": {
+    "endpointSecurity.antimalware": "مكافحة البرمجيات الخبيثة",
+    "endpointSecurity.antivirus": "الحماية من الفيروسات",
+    "endpointSecurity.behavioral": "التحليل السلوكي",
+    "endpointSecurity.blacklisting": "القائمة السوداء للتطبيقات",
+    "endpointSecurity.compliance": "مراقبة الامتثال",
+    "endpointSecurity.device": "التحكم في الأجهزة",
+    "endpointSecurity.edr": "الكشف والاستجابة لنقاط النهاية",
+    "endpointSecurity.encryption": "تشفير القرص",
+    "endpointSecurity.endpoint": "أمن نقاط النهاية",
+    "endpointSecurity.firewall": "جدار حماية المضيف",
+    "endpointSecurity.inventory": "جرد الأصول",
+    "endpointSecurity.isolation": "عزل التطبيقات",
+    "endpointSecurity.patch": "إدارة التصحيحات",
+    "endpointSecurity.quarantine": "عزل التهديدات",
+    "endpointSecurity.remediation": "المعالجة التلقائية",
+    "endpointSecurity.reporting": "تقارير نقاط النهاية",
+    "endpointSecurity.sandboxing": "العزل في بيئة محمية",
+    "endpointSecurity.threat": "منع التهديدات",
+    "endpointSecurity.usb": "التحكم في USB",
+    "endpointSecurity.whitelisting": "القائمة البيضاء للتطبيقات",
+    "endpointSecurity.xdr": "الكشف والاستجابة الممتدة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/energy.translations.json">
+<![CDATA[
+{
+  "en": {
+    "energy.conservation": "Conservation",
+    "energy.consumption": "Consumption",
+    "energy.currentReading": "Current Reading",
+    "energy.efficiency": "Efficiency",
+    "energy.electricity": "Electricity",
+    "energy.electricityBill": "Electricity Bill",
+    "energy.electricityMeter": "Electricity Meter",
+    "energy.energy1": "Energy",
+    "energy.energyConsumption": "Energy Consumption",
+    "energy.energyEfficiency": "Energy Efficiency",
+    "energy.energyManagement": "Energy Management",
+    "energy.energySaving": "Energy Saving",
+    "energy.energyUsage": "Energy Usage",
+    "energy.gasMeter": "Gas Meter",
+    "energy.meter": "Meter",
+    "energy.meterReading": "Meter Reading",
+    "energy.meters": "Meters",
+    "energy.offPeakHours": "Off-Peak Hours",
+    "energy.peakHours": "Peak Hours",
+    "energy.power": "Power",
+    "energy.powerConsumption": "Power Consumption",
+    "energy.previousReading": "Previous Reading",
+    "energy.reading": "Reading",
+    "energy.renewable": "Renewable",
+    "energy.renewableEnergy": "Renewable Energy",
+    "energy.solar": "Solar",
+    "energy.solarPanel": "Solar Panel",
+    "energy.solarPower": "Solar Power",
+    "energy.usage": "Usage",
+    "energy.utilities": "Utilities",
+    "energy.utility": "Utility",
+    "energy.utilityBill": "Utility Bill",
+    "energy.waterBill": "Water Bill",
+    "energy.waterMeter": "Water Meter"
+  },
+  "ar": {
+    "energy.conservation": "الحفاظ",
+    "energy.consumption": "الاستهلاك",
+    "energy.currentReading": "القراءة الحالية",
+    "energy.efficiency": "الكفاءة",
+    "energy.electricity": "الكهرباء",
+    "energy.electricityBill": "فاتورة الكهرباء",
+    "energy.electricityMeter": "عداد الكهرباء",
+    "energy.energy1": "الطاقة",
+    "energy.energyConsumption": "استهلاك الطاقة",
+    "energy.energyEfficiency": "كفاءة الطاقة",
+    "energy.energyManagement": "إدارة الطاقة",
+    "energy.energySaving": "توفير الطاقة",
+    "energy.energyUsage": "استخدام الطاقة",
+    "energy.gasMeter": "عداد الغاز",
+    "energy.meter": "عداد",
+    "energy.meterReading": "قراءة العداد",
+    "energy.meters": "عدادات",
+    "energy.offPeakHours": "ساعات خارج الذروة",
+    "energy.peakHours": "ساعات الذروة",
+    "energy.power": "الطاقة",
+    "energy.powerConsumption": "استهلاك الطاقة",
+    "energy.previousReading": "القراءة السابقة",
+    "energy.reading": "قراءة",
+    "energy.renewable": "متجددة",
+    "energy.renewableEnergy": "الطاقة المتجددة",
+    "energy.solar": "شمسي",
+    "energy.solarPanel": "لوحة شمسية",
+    "energy.solarPower": "الطاقة الشمسية",
+    "energy.usage": "الاستخدام",
+    "energy.utilities": "المرافق",
+    "energy.utility": "مرفق",
+    "energy.utilityBill": "فاتورة المرافق",
+    "energy.waterBill": "فاتورة المياه",
+    "energy.waterMeter": "عداد المياه"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/energyManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "energyManagement.assessment": "Energy Assessment",
+    "energyManagement.audit": "Energy Audit",
+    "energyManagement.baseline": "Energy Baseline",
+    "energyManagement.biomass": "Biomass Energy",
+    "energyManagement.conservation": "Energy Conservation",
+    "energyManagement.consumption": "Energy Consumption",
+    "energyManagement.demand": "Energy Demand",
+    "energyManagement.efficiency": "Energy Efficiency",
+    "energyManagement.energy": "Energy Management",
+    "energyManagement.geothermal": "Geothermal Energy",
+    "energyManagement.grid": "Energy Grid",
+    "energyManagement.hydro": "Hydro Energy",
+    "energyManagement.monitoring": "Energy Monitoring",
+    "energyManagement.optimization": "Energy Optimization",
+    "energyManagement.renewable": "Renewable Energy",
+    "energyManagement.reporting": "Energy Reporting",
+    "energyManagement.savings": "Energy Savings",
+    "energyManagement.solar": "Solar Energy",
+    "energyManagement.storage": "Energy Storage",
+    "energyManagement.supply": "Energy Supply",
+    "energyManagement.target": "Energy Target",
+    "energyManagement.wind": "Wind Energy"
+  },
+  "ar": {
+    "energyManagement.assessment": "تقييم الطاقة",
+    "energyManagement.audit": "تدقيق الطاقة",
+    "energyManagement.baseline": "خط الأساس للطاقة",
+    "energyManagement.biomass": "طاقة الكتلة الحيوية",
+    "energyManagement.conservation": "الحفاظ على الطاقة",
+    "energyManagement.consumption": "استهلاك الطاقة",
+    "energyManagement.demand": "الطلب على الطاقة",
+    "energyManagement.efficiency": "كفاءة الطاقة",
+    "energyManagement.energy": "إدارة الطاقة",
+    "energyManagement.geothermal": "الطاقة الحرارية الأرضية",
+    "energyManagement.grid": "شبكة الطاقة",
+    "energyManagement.hydro": "الطاقة المائية",
+    "energyManagement.monitoring": "مراقبة الطاقة",
+    "energyManagement.optimization": "تحسين الطاقة",
+    "energyManagement.renewable": "الطاقة المتجددة",
+    "energyManagement.reporting": "تقارير الطاقة",
+    "energyManagement.savings": "توفير الطاقة",
+    "energyManagement.solar": "الطاقة الشمسية",
+    "energyManagement.storage": "تخزين الطاقة",
+    "energyManagement.supply": "إمدادات الطاقة",
+    "energyManagement.target": "هدف الطاقة",
+    "energyManagement.wind": "طاقة الرياح"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/energyManagementSystem.translations.json">
+<![CDATA[
+{
+  "en": {
+    "energyManagementSystem.battery": "Battery Storage",
+    "energyManagementSystem.consumption": "Energy Consumption",
+    "energyManagementSystem.cost": "Energy Cost",
+    "energyManagementSystem.demand": "Demand Management",
+    "energyManagementSystem.distribution": "Power Distribution",
+    "energyManagementSystem.efficiency": "Energy Efficiency",
+    "energyManagementSystem.energy": "Energy Management",
+    "energyManagementSystem.generation": "Power Generation",
+    "energyManagementSystem.grid": "Grid",
+    "energyManagementSystem.load": "Load Management",
+    "energyManagementSystem.metering": "Energy Metering",
+    "energyManagementSystem.microgrid": "Microgrid",
+    "energyManagementSystem.monitoring": "Energy Monitoring",
+    "energyManagementSystem.offpeak": "Off-Peak",
+    "energyManagementSystem.peak": "Peak Demand",
+    "energyManagementSystem.renewable": "Renewable Energy",
+    "energyManagementSystem.savings": "Energy Savings",
+    "energyManagementSystem.solar": "Solar",
+    "energyManagementSystem.submetering": "Sub-metering",
+    "energyManagementSystem.tariff": "Tariff",
+    "energyManagementSystem.wind": "Wind"
+  },
+  "ar": {
+    "energyManagementSystem.battery": "تخزين البطاريات",
+    "energyManagementSystem.consumption": "استهلاك الطاقة",
+    "energyManagementSystem.cost": "تكلفة الطاقة",
+    "energyManagementSystem.demand": "إدارة الطلب",
+    "energyManagementSystem.distribution": "توزيع الطاقة",
+    "energyManagementSystem.efficiency": "كفاءة الطاقة",
+    "energyManagementSystem.energy": "إدارة الطاقة",
+    "energyManagementSystem.generation": "توليد الطاقة",
+    "energyManagementSystem.grid": "الشبكة الكهربائية",
+    "energyManagementSystem.load": "إدارة الأحمال",
+    "energyManagementSystem.metering": "قياس الطاقة",
+    "energyManagementSystem.microgrid": "الشبكات المصغرة",
+    "energyManagementSystem.monitoring": "مراقبة الطاقة",
+    "energyManagementSystem.offpeak": "خارج الذروة",
+    "energyManagementSystem.peak": "ذروة الطلب",
+    "energyManagementSystem.renewable": "الطاقة المتجددة",
+    "energyManagementSystem.savings": "توفير الطاقة",
+    "energyManagementSystem.solar": "الطاقة الشمسية",
+    "energyManagementSystem.submetering": "العدادات الفرعية",
+    "energyManagementSystem.tariff": "التعرفة",
+    "energyManagementSystem.wind": "طاقة الرياح"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/engineering.translations.json">
+<![CDATA[
+{
+  "en": {
+    "engineering.analysis": "Engineering Analysis",
+    "engineering.automation": "Automation",
+    "engineering.bridges": "Bridge Design",
+    "engineering.calculations": "Engineering Calculations",
+    "engineering.cfd": "CFD Analysis",
+    "engineering.chemical": "Chemical Engineering",
+    "engineering.civil": "Civil Engineering",
+    "engineering.codes": "Design Codes",
+    "engineering.concrete": "Concrete Structures",
+    "engineering.controls": "Control Systems",
+    "engineering.dams": "Dam Design",
+    "engineering.drainage": "Drainage Systems",
+    "engineering.drawings": "Engineering Drawings",
+    "engineering.electrical": "Electrical Engineering",
+    "engineering.environmental": "Environmental Engineering",
+    "engineering.equipment": "Equipment Selection",
+    "engineering.fem": "FEM Analysis",
+    "engineering.fire": "Fire Protection",
+    "engineering.foundations": "Foundation Design",
+    "engineering.geotechnical": "Geotechnical Engineering",
+    "engineering.hvac": "HVAC Systems",
+    "engineering.hydraulics": "Hydraulics",
+    "engineering.infrastructure": "Infrastructure Design",
+    "engineering.instrumentation": "Instrumentation",
+    "engineering.lighting": "Lighting Design",
+    "engineering.load": "Load Analysis",
+    "engineering.mechanical": "Mechanical Engineering",
+    "engineering.permits": "Engineering Permits",
+    "engineering.pipelines": "Pipeline Design",
+    "engineering.piping": "Piping Design",
+    "engineering.plant": "Plant Design",
+    "engineering.plumbing": "Plumbing Systems",
+    "engineering.power": "Power Distribution",
+    "engineering.process": "Process Engineering",
+    "engineering.quality": "Quality Control",
+    "engineering.reports": "Engineering Reports",
+    "engineering.roads": "Road Design",
+    "engineering.seismic": "Seismic Design",
+    "engineering.specifications": "Technical Specifications",
+    "engineering.standards": "Engineering Standards",
+    "engineering.steel": "Steel Structures",
+    "engineering.structural": "Structural Engineering",
+    "engineering.testing": "Testing & Commissioning",
+    "engineering.transportation": "Transportation Engineering",
+    "engineering.tunnels": "Tunnel Design",
+    "engineering.water": "Water Resources",
+    "engineering.wind": "Wind Analysis"
+  },
+  "ar": {
+    "engineering.analysis": "التحليل الهندسي",
+    "engineering.automation": "الأتمتة",
+    "engineering.bridges": "تصميم الجسور",
+    "engineering.calculations": "الحسابات الهندسية",
+    "engineering.cfd": "تحليل ديناميكا الموائع الحسابية",
+    "engineering.chemical": "الهندسة الكيميائية",
+    "engineering.civil": "الهندسة المدنية",
+    "engineering.codes": "أكواد التصميم",
+    "engineering.concrete": "الهياكل الخرسانية",
+    "engineering.controls": "أنظمة التحكم",
+    "engineering.dams": "تصميم السدود",
+    "engineering.drainage": "أنظمة الصرف",
+    "engineering.drawings": "الرسومات الهندسية",
+    "engineering.electrical": "الهندسة الكهربائية",
+    "engineering.environmental": "الهندسة البيئية",
+    "engineering.equipment": "اختيار المعدات",
+    "engineering.fem": "تحليل العناصر المحدودة",
+    "engineering.fire": "الحماية من الحريق",
+    "engineering.foundations": "تصميم الأساسات",
+    "engineering.geotechnical": "الهندسة الجيوتقنية",
+    "engineering.hvac": "أنظمة التدفئة والتهوية",
+    "engineering.hydraulics": "الهيدروليكا",
+    "engineering.infrastructure": "تصميم البنية التحتية",
+    "engineering.instrumentation": "أجهزة القياس",
+    "engineering.lighting": "تصميم الإضاءة",
+    "engineering.load": "تحليل الأحمال",
+    "engineering.mechanical": "الهندسة الميكانيكية",
+    "engineering.permits": "التصاريح الهندسية",
+    "engineering.pipelines": "تصميم خطوط الأنابيب",
+    "engineering.piping": "تصميم الأنابيب",
+    "engineering.plant": "تصميم المصنع",
+    "engineering.plumbing": "أنظمة السباكة",
+    "engineering.power": "توزيع الطاقة",
+    "engineering.process": "هندسة العمليات",
+    "engineering.quality": "مراقبة الجودة",
+    "engineering.reports": "التقارير الهندسية",
+    "engineering.roads": "تصميم الطرق",
+    "engineering.seismic": "التصميم الزلزالي",
+    "engineering.specifications": "المواصفات الفنية",
+    "engineering.standards": "المعايير الهندسية",
+    "engineering.steel": "الهياكل الفولاذية",
+    "engineering.structural": "الهندسة الإنشائية",
+    "engineering.testing": "الاختبار والتشغيل",
+    "engineering.transportation": "هندسة النقل",
+    "engineering.tunnels": "تصميم الأنفاق",
+    "engineering.water": "الموارد المائية",
+    "engineering.wind": "تحليل الرياح"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/enterpriseApiManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "enterpriseApiManagement.analytics": "API Analytics",
+    "enterpriseApiManagement.api": "API Management",
+    "enterpriseApiManagement.authentication": "API Authentication",
+    "enterpriseApiManagement.authorization": "API Authorization",
+    "enterpriseApiManagement.caching": "API Caching",
+    "enterpriseApiManagement.design": "API Design",
+    "enterpriseApiManagement.development": "API Development",
+    "enterpriseApiManagement.documentation": "API Documentation",
+    "enterpriseApiManagement.gateway": "API Gateway",
+    "enterpriseApiManagement.keys": "API Keys",
+    "enterpriseApiManagement.lifecycle": "API Lifecycle",
+    "enterpriseApiManagement.monitoring": "API Monitoring",
+    "enterpriseApiManagement.oauth": "OAuth",
+    "enterpriseApiManagement.openapi": "OpenAPI/Swagger",
+    "enterpriseApiManagement.portal": "Developer Portal",
+    "enterpriseApiManagement.publishing": "API Publishing",
+    "enterpriseApiManagement.quota": "Quota Management",
+    "enterpriseApiManagement.security": "API Security",
+    "enterpriseApiManagement.specification": "API Specification",
+    "enterpriseApiManagement.throttling": "Rate Limiting",
+    "enterpriseApiManagement.tokens": "Access Tokens",
+    "enterpriseApiManagement.versioning": "API Versioning"
+  },
+  "ar": {
+    "enterpriseApiManagement.analytics": "تحليلات واجهة برمجة التطبيقات",
+    "enterpriseApiManagement.api": "إدارة واجهة برمجة التطبيقات",
+    "enterpriseApiManagement.authentication": "مصادقة واجهة برمجة التطبيقات",
+    "enterpriseApiManagement.authorization": "تفويض واجهة برمجة التطبيقات",
+    "enterpriseApiManagement.caching": "التخزين المؤقت لواجهة برمجة التطبيقات",
+    "enterpriseApiManagement.design": "تصميم واجهة برمجة التطبيقات",
+    "enterpriseApiManagement.development": "تطوير واجهة برمجة التطبيقات",
+    "enterpriseApiManagement.documentation": "توثيق واجهة برمجة التطبيقات",
+    "enterpriseApiManagement.gateway": "بوابة واجهة برمجة التطبيقات",
+    "enterpriseApiManagement.keys": "مفاتيح واجهة برمجة التطبيقات",
+    "enterpriseApiManagement.lifecycle": "دورة حياة واجهة برمجة التطبيقات",
+    "enterpriseApiManagement.monitoring": "مراقبة واجهة برمجة التطبيقات",
+    "enterpriseApiManagement.oauth": "OAuth",
+    "enterpriseApiManagement.openapi": "OpenAPI/Swagger",
+    "enterpriseApiManagement.portal": "بوابة المطورين",
+    "enterpriseApiManagement.publishing": "نشر واجهة برمجة التطبيقات",
+    "enterpriseApiManagement.quota": "إدارة الحصة",
+    "enterpriseApiManagement.security": "أمان واجهة برمجة التطبيقات",
+    "enterpriseApiManagement.specification": "مواصفات واجهة برمجة التطبيقات",
+    "enterpriseApiManagement.throttling": "الحد من المعدل",
+    "enterpriseApiManagement.tokens": "رموز الوصول",
+    "enterpriseApiManagement.versioning": "إصدار واجهة برمجة التطبيقات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/enterpriseArchitecture.translations.json">
+<![CDATA[
+{
+  "en": {
+    "enterpriseArchitecture.application": "Application Architecture",
+    "enterpriseArchitecture.architecture": "Enterprise Architecture",
+    "enterpriseArchitecture.assessment": "Architecture Assessment",
+    "enterpriseArchitecture.business": "Business Architecture",
+    "enterpriseArchitecture.capability": "Business Capability",
+    "enterpriseArchitecture.data": "Data Architecture",
+    "enterpriseArchitecture.domain": "Architecture Domain",
+    "enterpriseArchitecture.framework": "EA Framework",
+    "enterpriseArchitecture.governance": "Architecture Governance",
+    "enterpriseArchitecture.maturity": "Architecture Maturity",
+    "enterpriseArchitecture.metamodel": "Architecture Metamodel",
+    "enterpriseArchitecture.modeling": "Architecture Modeling",
+    "enterpriseArchitecture.pattern": "Architecture Pattern",
+    "enterpriseArchitecture.principle": "Architecture Principle",
+    "enterpriseArchitecture.repository": "Architecture Repository",
+    "enterpriseArchitecture.roadmap": "Architecture Roadmap",
+    "enterpriseArchitecture.stakeholder": "Architecture Stakeholder",
+    "enterpriseArchitecture.standard": "Architecture Standard",
+    "enterpriseArchitecture.technology": "Technology Architecture",
+    "enterpriseArchitecture.togaf": "TOGAF",
+    "enterpriseArchitecture.viewpoint": "Architecture Viewpoint",
+    "enterpriseArchitecture.zachman": "Zachman Framework"
+  },
+  "ar": {
+    "enterpriseArchitecture.application": "بنية التطبيق",
+    "enterpriseArchitecture.architecture": "بنية المؤسسة",
+    "enterpriseArchitecture.assessment": "تقييم البنية",
+    "enterpriseArchitecture.business": "بنية الأعمال",
+    "enterpriseArchitecture.capability": "قدرة الأعمال",
+    "enterpriseArchitecture.data": "بنية البيانات",
+    "enterpriseArchitecture.domain": "مجال البنية",
+    "enterpriseArchitecture.framework": "إطار بنية المؤسسة",
+    "enterpriseArchitecture.governance": "حوكمة البنية",
+    "enterpriseArchitecture.maturity": "نضج البنية",
+    "enterpriseArchitecture.metamodel": "نموذج البنية الوصفي",
+    "enterpriseArchitecture.modeling": "نمذجة البنية",
+    "enterpriseArchitecture.pattern": "نمط البنية",
+    "enterpriseArchitecture.principle": "مبدأ البنية",
+    "enterpriseArchitecture.repository": "مستودع البنية",
+    "enterpriseArchitecture.roadmap": "خارطة طريق البنية",
+    "enterpriseArchitecture.stakeholder": "صاحب المصلحة في البنية",
+    "enterpriseArchitecture.standard": "معيار البنية",
+    "enterpriseArchitecture.technology": "بنية التكنولوجيا",
+    "enterpriseArchitecture.togaf": "TOGAF",
+    "enterpriseArchitecture.viewpoint": "وجهة نظر البنية",
+    "enterpriseArchitecture.zachman": "إطار Zachman"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/enterpriseAssetLifecycle.translations.json">
+<![CDATA[
+{
+  "en": {
+    "enterpriseAssetLifecycle.acquisition": "Asset Acquisition",
+    "enterpriseAssetLifecycle.alm": "ALM",
+    "enterpriseAssetLifecycle.analytics": "Asset Analytics",
+    "enterpriseAssetLifecycle.asset": "Asset Lifecycle Management",
+    "enterpriseAssetLifecycle.commissioning": "Asset Commissioning",
+    "enterpriseAssetLifecycle.decommissioning": "Asset Decommissioning",
+    "enterpriseAssetLifecycle.deployment": "Asset Deployment",
+    "enterpriseAssetLifecycle.disposal": "Asset Disposal",
+    "enterpriseAssetLifecycle.installation": "Asset Installation",
+    "enterpriseAssetLifecycle.lifecycle": "Asset Lifecycle",
+    "enterpriseAssetLifecycle.maintenance": "Asset Maintenance",
+    "enterpriseAssetLifecycle.modification": "Asset Modification",
+    "enterpriseAssetLifecycle.monitoring": "Asset Monitoring",
+    "enterpriseAssetLifecycle.operation": "Asset Operation",
+    "enterpriseAssetLifecycle.optimization": "Asset Optimization",
+    "enterpriseAssetLifecycle.performance": "Asset Performance",
+    "enterpriseAssetLifecycle.planning": "Asset Planning",
+    "enterpriseAssetLifecycle.procurement": "Asset Procurement",
+    "enterpriseAssetLifecycle.retirement": "Asset Retirement",
+    "enterpriseAssetLifecycle.tracking": "Asset Tracking",
+    "enterpriseAssetLifecycle.upgrade": "Asset Upgrade",
+    "enterpriseAssetLifecycle.utilization": "Asset Utilization"
+  },
+  "ar": {
+    "enterpriseAssetLifecycle.acquisition": "الحصول على الأصول",
+    "enterpriseAssetLifecycle.alm": "إدارة دورة حياة الأصول",
+    "enterpriseAssetLifecycle.analytics": "تحليلات الأصول",
+    "enterpriseAssetLifecycle.asset": "إدارة دورة حياة الأصول",
+    "enterpriseAssetLifecycle.commissioning": "تشغيل الأصول",
+    "enterpriseAssetLifecycle.decommissioning": "إيقاف تشغيل الأصول",
+    "enterpriseAssetLifecycle.deployment": "نشر الأصول",
+    "enterpriseAssetLifecycle.disposal": "التخلص من الأصول",
+    "enterpriseAssetLifecycle.installation": "تثبيت الأصول",
+    "enterpriseAssetLifecycle.lifecycle": "دورة حياة الأصول",
+    "enterpriseAssetLifecycle.maintenance": "صيانة الأصول",
+    "enterpriseAssetLifecycle.modification": "تعديل الأصول",
+    "enterpriseAssetLifecycle.monitoring": "مراقبة الأصول",
+    "enterpriseAssetLifecycle.operation": "تشغيل الأصول",
+    "enterpriseAssetLifecycle.optimization": "تحسين الأصول",
+    "enterpriseAssetLifecycle.performance": "أداء الأصول",
+    "enterpriseAssetLifecycle.planning": "تخطيط الأصول",
+    "enterpriseAssetLifecycle.procurement": "شراء الأصول",
+    "enterpriseAssetLifecycle.retirement": "تقاعد الأصول",
+    "enterpriseAssetLifecycle.tracking": "تتبع الأصول",
+    "enterpriseAssetLifecycle.upgrade": "ترقية الأصول",
+    "enterpriseAssetLifecycle.utilization": "استخدام الأصول"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/enterpriseContentManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "enterpriseContentManagement.access": "التحكم في الوصول",
+    "enterpriseContentManagement.archiving": "أرشفة المحتوى",
+    "enterpriseContentManagement.capture": "التقاط المحتوى",
+    "enterpriseContentManagement.collaboration": "التعاون في المحتوى",
+    "enterpriseContentManagement.compliance": "امتثال المحتوى",
+    "enterpriseContentManagement.content": "إدارة المحتوى",
+    "enterpriseContentManagement.disposal": "التخلص من المحتوى",
+    "enterpriseContentManagement.distribution": "توزيع المحتوى",
+    "enterpriseContentManagement.ecm": "إدارة محتوى المؤسسة",
+    "enterpriseContentManagement.enterprise": "محتوى المؤسسة",
+    "enterpriseContentManagement.governance": "حوكمة المحتوى",
+    "enterpriseContentManagement.integration": "تكامل إدارة محتوى المؤسسة",
+    "enterpriseContentManagement.lifecycle": "دورة حياة المحتوى",
+    "enterpriseContentManagement.migration": "ترحيل المحتوى",
+    "enterpriseContentManagement.platform": "منصة إدارة محتوى المؤسسة",
+    "enterpriseContentManagement.repository": "مستودع المحتوى",
+    "enterpriseContentManagement.retention": "الاحتفاظ بالمحتوى",
+    "enterpriseContentManagement.retrieval": "استرجاع المحتوى",
+    "enterpriseContentManagement.security": "أمن المحتوى",
+    "enterpriseContentManagement.solution": "حل إدارة محتوى المؤسسة",
+    "enterpriseContentManagement.storage": "تخزين المحتوى",
+    "enterpriseContentManagement.workflow": "سير عمل المحتوى"
+  },
+  "ar": {
+    "enterpriseContentManagement.access": "التحكم في الوصول",
+    "enterpriseContentManagement.archiving": "أرشفة المحتوى",
+    "enterpriseContentManagement.capture": "التقاط المحتوى",
+    "enterpriseContentManagement.collaboration": "التعاون في المحتوى",
+    "enterpriseContentManagement.compliance": "امتثال المحتوى",
+    "enterpriseContentManagement.content": "إدارة المحتوى",
+    "enterpriseContentManagement.disposal": "التخلص من المحتوى",
+    "enterpriseContentManagement.distribution": "توزيع المحتوى",
+    "enterpriseContentManagement.ecm": "إدارة محتوى المؤسسة",
+    "enterpriseContentManagement.enterprise": "محتوى المؤسسة",
+    "enterpriseContentManagement.governance": "حوكمة المحتوى",
+    "enterpriseContentManagement.integration": "تكامل إدارة محتوى المؤسسة",
+    "enterpriseContentManagement.lifecycle": "دورة حياة المحتوى",
+    "enterpriseContentManagement.migration": "ترحيل المحتوى",
+    "enterpriseContentManagement.platform": "منصة إدارة محتوى المؤسسة",
+    "enterpriseContentManagement.repository": "مستودع المحتوى",
+    "enterpriseContentManagement.retention": "الاحتفاظ بالمحتوى",
+    "enterpriseContentManagement.retrieval": "استرجاع المحتوى",
+    "enterpriseContentManagement.security": "أمن المحتوى",
+    "enterpriseContentManagement.solution": "حل إدارة محتوى المؤسسة",
+    "enterpriseContentManagement.storage": "تخزين المحتوى",
+    "enterpriseContentManagement.workflow": "سير عمل المحتوى"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/enterpriseContractLifecycle.translations.json">
+<![CDATA[
+{
+  "en": {
+    "enterpriseContractLifecycle.amendments": "Contract Amendments",
+    "enterpriseContractLifecycle.analytics": "Contract Analytics",
+    "enterpriseContractLifecycle.approval": "Contract Approval",
+    "enterpriseContractLifecycle.authoring": "Contract Authoring",
+    "enterpriseContractLifecycle.clauses": "Clause Library",
+    "enterpriseContractLifecycle.clm": "CLM",
+    "enterpriseContractLifecycle.collaboration": "Contract Collaboration",
+    "enterpriseContractLifecycle.compliance": "Contract Compliance",
+    "enterpriseContractLifecycle.contract": "Contract Management",
+    "enterpriseContractLifecycle.execution": "Contract Execution",
+    "enterpriseContractLifecycle.lifecycle": "Contract Lifecycle",
+    "enterpriseContractLifecycle.milestones": "Contract Milestones",
+    "enterpriseContractLifecycle.negotiation": "Contract Negotiation",
+    "enterpriseContractLifecycle.obligations": "Obligation Management",
+    "enterpriseContractLifecycle.redlining": "Contract Redlining",
+    "enterpriseContractLifecycle.renewals": "Contract Renewals",
+    "enterpriseContractLifecycle.repository": "Contract Repository",
+    "enterpriseContractLifecycle.signatures": "Electronic Signatures",
+    "enterpriseContractLifecycle.storage": "Contract Storage",
+    "enterpriseContractLifecycle.templates": "Contract Templates",
+    "enterpriseContractLifecycle.termination": "Contract Termination"
+  },
+  "ar": {
+    "enterpriseContractLifecycle.amendments": "تعديلات العقود",
+    "enterpriseContractLifecycle.analytics": "تحليلات العقود",
+    "enterpriseContractLifecycle.approval": "الموافقة على العقود",
+    "enterpriseContractLifecycle.authoring": "تأليف العقود",
+    "enterpriseContractLifecycle.clauses": "مكتبة البنود",
+    "enterpriseContractLifecycle.clm": "إدارة دورة حياة العقود",
+    "enterpriseContractLifecycle.collaboration": "التعاون في العقود",
+    "enterpriseContractLifecycle.compliance": "الامتثال للعقود",
+    "enterpriseContractLifecycle.contract": "إدارة العقود",
+    "enterpriseContractLifecycle.execution": "تنفيذ العقود",
+    "enterpriseContractLifecycle.lifecycle": "دورة حياة العقود",
+    "enterpriseContractLifecycle.milestones": "معالم العقود",
+    "enterpriseContractLifecycle.negotiation": "التفاوض على العقود",
+    "enterpriseContractLifecycle.obligations": "إدارة الالتزامات",
+    "enterpriseContractLifecycle.redlining": "تعديل العقود",
+    "enterpriseContractLifecycle.renewals": "تجديد العقود",
+    "enterpriseContractLifecycle.repository": "مستودع العقود",
+    "enterpriseContractLifecycle.signatures": "التوقيعات الإلكترونية",
+    "enterpriseContractLifecycle.storage": "تخزين العقود",
+    "enterpriseContractLifecycle.templates": "قوالب العقود",
+    "enterpriseContractLifecycle.termination": "إنهاء العقود"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/enterpriseDataGovernance.translations.json">
+<![CDATA[
+{
+  "en": {
+    "enterpriseDataGovernance.accuracy": "Data Accuracy",
+    "enterpriseDataGovernance.catalog": "Data Catalog",
+    "enterpriseDataGovernance.completeness": "Data Completeness",
+    "enterpriseDataGovernance.consistency": "Data Consistency",
+    "enterpriseDataGovernance.custodians": "Data Custodians",
+    "enterpriseDataGovernance.data": "Data Governance",
+    "enterpriseDataGovernance.dictionary": "Data Dictionary",
+    "enterpriseDataGovernance.framework": "Governance Framework",
+    "enterpriseDataGovernance.glossary": "Business Glossary",
+    "enterpriseDataGovernance.governance": "Data Governance",
+    "enterpriseDataGovernance.integrity": "Data Integrity",
+    "enterpriseDataGovernance.lineage": "Data Lineage",
+    "enterpriseDataGovernance.metadata": "Metadata Management",
+    "enterpriseDataGovernance.ownership": "Data Ownership",
+    "enterpriseDataGovernance.policies": "Data Policies",
+    "enterpriseDataGovernance.procedures": "Data Procedures",
+    "enterpriseDataGovernance.quality": "Data Quality",
+    "enterpriseDataGovernance.standards": "Data Standards",
+    "enterpriseDataGovernance.stewards": "Data Stewards",
+    "enterpriseDataGovernance.stewardship": "Data Stewardship",
+    "enterpriseDataGovernance.timeliness": "Data Timeliness",
+    "enterpriseDataGovernance.validity": "Data Validity"
+  },
+  "ar": {
+    "enterpriseDataGovernance.accuracy": "دقة البيانات",
+    "enterpriseDataGovernance.catalog": "كتالوج البيانات",
+    "enterpriseDataGovernance.completeness": "اكتمال البيانات",
+    "enterpriseDataGovernance.consistency": "اتساق البيانات",
+    "enterpriseDataGovernance.custodians": "أمناء البيانات",
+    "enterpriseDataGovernance.data": "حوكمة البيانات",
+    "enterpriseDataGovernance.dictionary": "قاموس البيانات",
+    "enterpriseDataGovernance.framework": "إطار الحوكمة",
+    "enterpriseDataGovernance.glossary": "مسرد الأعمال",
+    "enterpriseDataGovernance.governance": "حوكمة البيانات",
+    "enterpriseDataGovernance.integrity": "سلامة البيانات",
+    "enterpriseDataGovernance.lineage": "نسب البيانات",
+    "enterpriseDataGovernance.metadata": "إدارة البيانات الوصفية",
+    "enterpriseDataGovernance.ownership": "ملكية البيانات",
+    "enterpriseDataGovernance.policies": "سياسات البيانات",
+    "enterpriseDataGovernance.procedures": "إجراءات البيانات",
+    "enterpriseDataGovernance.quality": "جودة البيانات",
+    "enterpriseDataGovernance.standards": "معايير البيانات",
+    "enterpriseDataGovernance.stewards": "المشرفون على البيانات",
+    "enterpriseDataGovernance.stewardship": "الإشراف على البيانات",
+    "enterpriseDataGovernance.timeliness": "توقيت البيانات",
+    "enterpriseDataGovernance.validity": "صحة البيانات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/enterpriseDataIntegration.translations.json">
+<![CDATA[
+{
+  "en": {
+    "enterpriseDataIntegration.adapters": "Data Adapters",
+    "enterpriseDataIntegration.api": "API Integration",
+    "enterpriseDataIntegration.batch": "Batch Processing",
+    "enterpriseDataIntegration.cdc": "Change Data Capture",
+    "enterpriseDataIntegration.connectors": "Data Connectors",
+    "enterpriseDataIntegration.elt": "ELT",
+    "enterpriseDataIntegration.etl": "ETL",
+    "enterpriseDataIntegration.extract": "Data Extraction",
+    "enterpriseDataIntegration.integration": "Data Integration",
+    "enterpriseDataIntegration.load": "Data Loading",
+    "enterpriseDataIntegration.mapping": "Data Mapping",
+    "enterpriseDataIntegration.middleware": "Integration Middleware",
+    "enterpriseDataIntegration.migration": "Data Migration",
+    "enterpriseDataIntegration.monitoring": "Integration Monitoring",
+    "enterpriseDataIntegration.orchestration": "Pipeline Orchestration",
+    "enterpriseDataIntegration.pipeline": "Data Pipeline",
+    "enterpriseDataIntegration.realtime": "Real-Time Integration",
+    "enterpriseDataIntegration.replication": "Data Replication",
+    "enterpriseDataIntegration.scheduling": "Job Scheduling",
+    "enterpriseDataIntegration.streaming": "Stream Processing",
+    "enterpriseDataIntegration.transform": "Data Transformation"
+  },
+  "ar": {
+    "enterpriseDataIntegration.adapters": "محولات البيانات",
+    "enterpriseDataIntegration.api": "تكامل واجهة برمجة التطبيقات",
+    "enterpriseDataIntegration.batch": "المعالجة الدفعية",
+    "enterpriseDataIntegration.cdc": "التقاط تغيير البيانات",
+    "enterpriseDataIntegration.connectors": "موصلات البيانات",
+    "enterpriseDataIntegration.elt": "الاستخراج والتحميل والتحويل",
+    "enterpriseDataIntegration.etl": "الاستخراج والتحويل والتحميل",
+    "enterpriseDataIntegration.extract": "استخراج البيانات",
+    "enterpriseDataIntegration.integration": "تكامل البيانات",
+    "enterpriseDataIntegration.load": "تحميل البيانات",
+    "enterpriseDataIntegration.mapping": "تعيين البيانات",
+    "enterpriseDataIntegration.middleware": "البرمجيات الوسيطة للتكامل",
+    "enterpriseDataIntegration.migration": "ترحيل البيانات",
+    "enterpriseDataIntegration.monitoring": "مراقبة التكامل",
+    "enterpriseDataIntegration.orchestration": "تنسيق خطوط الأنابيب",
+    "enterpriseDataIntegration.pipeline": "خط أنابيب البيانات",
+    "enterpriseDataIntegration.realtime": "التكامل في الوقت الفعلي",
+    "enterpriseDataIntegration.replication": "تكرار البيانات",
+    "enterpriseDataIntegration.scheduling": "جدولة المهام",
+    "enterpriseDataIntegration.streaming": "معالجة التدفق",
+    "enterpriseDataIntegration.transform": "تحويل البيانات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/enterpriseKnowledge.translations.json">
+<![CDATA[
+{
+  "en": {
+    "enterpriseKnowledge.analytics": "Knowledge Analytics",
+    "enterpriseKnowledge.approval": "Content Approval",
+    "enterpriseKnowledge.articles": "Knowledge Articles",
+    "enterpriseKnowledge.authoring": "Content Authoring",
+    "enterpriseKnowledge.base": "Knowledge Base",
+    "enterpriseKnowledge.categorization": "Content Categorization",
+    "enterpriseKnowledge.collaboration": "Knowledge Collaboration",
+    "enterpriseKnowledge.creation": "Content Creation",
+    "enterpriseKnowledge.discovery": "Knowledge Discovery",
+    "enterpriseKnowledge.km": "KM",
+    "enterpriseKnowledge.knowledge": "Knowledge Management",
+    "enterpriseKnowledge.organization": "Content Organization",
+    "enterpriseKnowledge.publication": "Content Publication",
+    "enterpriseKnowledge.repository": "Knowledge Repository",
+    "enterpriseKnowledge.retention": "Knowledge Retention",
+    "enterpriseKnowledge.retrieval": "Information Retrieval",
+    "enterpriseKnowledge.review": "Content Review",
+    "enterpriseKnowledge.search": "Knowledge Search",
+    "enterpriseKnowledge.sharing": "Knowledge Sharing",
+    "enterpriseKnowledge.tagging": "Content Tagging",
+    "enterpriseKnowledge.taxonomy": "Taxonomy Management",
+    "enterpriseKnowledge.transfer": "Knowledge Transfer"
+  },
+  "ar": {
+    "enterpriseKnowledge.analytics": "تحليلات المعرفة",
+    "enterpriseKnowledge.approval": "الموافقة على المحتوى",
+    "enterpriseKnowledge.articles": "مقالات المعرفة",
+    "enterpriseKnowledge.authoring": "تأليف المحتوى",
+    "enterpriseKnowledge.base": "قاعدة المعرفة",
+    "enterpriseKnowledge.categorization": "تصنيف المحتوى",
+    "enterpriseKnowledge.collaboration": "التعاون في المعرفة",
+    "enterpriseKnowledge.creation": "إنشاء المحتوى",
+    "enterpriseKnowledge.discovery": "اكتشاف المعرفة",
+    "enterpriseKnowledge.km": "إدارة المعرفة",
+    "enterpriseKnowledge.knowledge": "إدارة المعرفة",
+    "enterpriseKnowledge.organization": "تنظيم المحتوى",
+    "enterpriseKnowledge.publication": "نشر المحتوى",
+    "enterpriseKnowledge.repository": "مستودع المعرفة",
+    "enterpriseKnowledge.retention": "الاحتفاظ بالمعرفة",
+    "enterpriseKnowledge.retrieval": "استرجاع المعلومات",
+    "enterpriseKnowledge.review": "مراجعة المحتوى",
+    "enterpriseKnowledge.search": "البحث في المعرفة",
+    "enterpriseKnowledge.sharing": "مشاركة المعرفة",
+    "enterpriseKnowledge.tagging": "وسم المحتوى",
+    "enterpriseKnowledge.taxonomy": "إدارة التصنيف",
+    "enterpriseKnowledge.transfer": "نقل المعرفة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/enterpriseMasterData.translations.json">
+<![CDATA[
+{
+  "en": {
+    "enterpriseMasterData.analytics": "MDM Analytics",
+    "enterpriseMasterData.cleansing": "Data Cleansing",
+    "enterpriseMasterData.customer": "Customer Master Data",
+    "enterpriseMasterData.deduplication": "Data Deduplication",
+    "enterpriseMasterData.employee": "Employee Master Data",
+    "enterpriseMasterData.enrichment": "Data Enrichment",
+    "enterpriseMasterData.golden": "Golden Records",
+    "enterpriseMasterData.governance": "MDM Governance",
+    "enterpriseMasterData.hierarchy": "Hierarchy Management",
+    "enterpriseMasterData.master": "Master Data Management",
+    "enterpriseMasterData.matching": "Data Matching",
+    "enterpriseMasterData.mdm": "MDM",
+    "enterpriseMasterData.merging": "Data Merging",
+    "enterpriseMasterData.product": "Product Master Data",
+    "enterpriseMasterData.records": "Master Records",
+    "enterpriseMasterData.relationships": "Relationship Management",
+    "enterpriseMasterData.standardization": "Data Standardization",
+    "enterpriseMasterData.synchronization": "Data Synchronization",
+    "enterpriseMasterData.validation": "Data Validation",
+    "enterpriseMasterData.vendor": "Vendor Master Data",
+    "enterpriseMasterData.workflow": "MDM Workflow"
+  },
+  "ar": {
+    "enterpriseMasterData.analytics": "تحليلات البيانات الرئيسية",
+    "enterpriseMasterData.cleansing": "تنظيف البيانات",
+    "enterpriseMasterData.customer": "بيانات العملاء الرئيسية",
+    "enterpriseMasterData.deduplication": "إزالة تكرار البيانات",
+    "enterpriseMasterData.employee": "بيانات الموظفين الرئيسية",
+    "enterpriseMasterData.enrichment": "إثراء البيانات",
+    "enterpriseMasterData.golden": "السجلات الذهبية",
+    "enterpriseMasterData.governance": "حوكمة البيانات الرئيسية",
+    "enterpriseMasterData.hierarchy": "إدارة التسلسل الهرمي",
+    "enterpriseMasterData.master": "إدارة البيانات الرئيسية",
+    "enterpriseMasterData.matching": "مطابقة البيانات",
+    "enterpriseMasterData.mdm": "إدارة البيانات الرئيسية",
+    "enterpriseMasterData.merging": "دمج البيانات",
+    "enterpriseMasterData.product": "بيانات المنتجات الرئيسية",
+    "enterpriseMasterData.records": "السجلات الرئيسية",
+    "enterpriseMasterData.relationships": "إدارة العلاقات",
+    "enterpriseMasterData.standardization": "توحيد البيانات",
+    "enterpriseMasterData.synchronization": "مزامنة البيانات",
+    "enterpriseMasterData.validation": "التحقق من صحة البيانات",
+    "enterpriseMasterData.vendor": "بيانات البائعين الرئيسية",
+    "enterpriseMasterData.workflow": "سير عمل إدارة البيانات الرئيسية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/enterpriseReporting.translations.json">
+<![CDATA[
+{
+  "en": {
+    "enterpriseReporting.adhoc": "Ad-hoc Reporting",
+    "enterpriseReporting.benchmarking": "Performance Benchmarking",
+    "enterpriseReporting.comparison": "Comparative Analysis",
+    "enterpriseReporting.distribution": "Report Distribution",
+    "enterpriseReporting.drilldown": "Drill-Down Analysis",
+    "enterpriseReporting.embedded": "Embedded Analytics",
+    "enterpriseReporting.enterprise": "Enterprise Reporting",
+    "enterpriseReporting.export": "Report Export",
+    "enterpriseReporting.filters": "Report Filters",
+    "enterpriseReporting.hierarchy": "Data Hierarchy",
+    "enterpriseReporting.indicators": "Key Performance Indicators",
+    "enterpriseReporting.kpi": "KPI Dashboards",
+    "enterpriseReporting.metrics": "Business Metrics",
+    "enterpriseReporting.parameters": "Report Parameters",
+    "enterpriseReporting.reporting": "Enterprise Reporting",
+    "enterpriseReporting.scheduled": "Scheduled Reports",
+    "enterpriseReporting.scorecards": "Performance Scorecards",
+    "enterpriseReporting.selfservice": "Self-Service BI",
+    "enterpriseReporting.subscriptions": "Report Subscriptions",
+    "enterpriseReporting.tools": "BI Tools",
+    "enterpriseReporting.trending": "Trend Analysis",
+    "enterpriseReporting.variance": "Variance Analysis"
+  },
+  "ar": {
+    "enterpriseReporting.adhoc": "التقارير المخصصة",
+    "enterpriseReporting.benchmarking": "قياس الأداء",
+    "enterpriseReporting.comparison": "التحليل المقارن",
+    "enterpriseReporting.distribution": "توزيع التقرير",
+    "enterpriseReporting.drilldown": "التحليل التفصيلي",
+    "enterpriseReporting.embedded": "التحليلات المضمنة",
+    "enterpriseReporting.enterprise": "تقارير المؤسسة",
+    "enterpriseReporting.export": "تصدير التقرير",
+    "enterpriseReporting.filters": "مرشحات التقرير",
+    "enterpriseReporting.hierarchy": "تسلسل البيانات",
+    "enterpriseReporting.indicators": "مؤشرات الأداء الرئيسية",
+    "enterpriseReporting.kpi": "لوحات معلومات مؤشرات الأداء الرئيسية",
+    "enterpriseReporting.metrics": "مقاييس الأعمال",
+    "enterpriseReporting.parameters": "معلمات التقرير",
+    "enterpriseReporting.reporting": "تقارير المؤسسة",
+    "enterpriseReporting.scheduled": "التقارير المجدولة",
+    "enterpriseReporting.scorecards": "بطاقات الأداء",
+    "enterpriseReporting.selfservice": "ذكاء الأعمال الخدمة الذاتية",
+    "enterpriseReporting.subscriptions": "اشتراكات التقرير",
+    "enterpriseReporting.tools": "أدوات ذكاء الأعمال",
+    "enterpriseReporting.trending": "تحليل الاتجاه",
+    "enterpriseReporting.variance": "تحليل التباين"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/enterpriseResourceManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "enterpriseResourceManagement.allocation": "Resource Allocation",
+    "enterpriseResourceManagement.analytics": "Resource Analytics",
+    "enterpriseResourceManagement.availability": "Resource Availability",
+    "enterpriseResourceManagement.balancing": "Resource Balancing",
+    "enterpriseResourceManagement.booking": "Resource Booking",
+    "enterpriseResourceManagement.capacity": "Capacity Planning",
+    "enterpriseResourceManagement.competencies": "Competency Management",
+    "enterpriseResourceManagement.costs": "Resource Costing",
+    "enterpriseResourceManagement.demand": "Resource Demand",
+    "enterpriseResourceManagement.forecast": "Resource Forecasting",
+    "enterpriseResourceManagement.leveling": "Resource Leveling",
+    "enterpriseResourceManagement.optimization": "Resource Optimization",
+    "enterpriseResourceManagement.planning": "Resource Planning",
+    "enterpriseResourceManagement.pool": "Resource Pool",
+    "enterpriseResourceManagement.rates": "Resource Rates",
+    "enterpriseResourceManagement.resource": "Resource Management",
+    "enterpriseResourceManagement.roles": "Role Management",
+    "enterpriseResourceManagement.scheduling": "Resource Scheduling",
+    "enterpriseResourceManagement.skills": "Skills Management",
+    "enterpriseResourceManagement.timesheet": "Timesheet Management",
+    "enterpriseResourceManagement.tracking": "Resource Tracking",
+    "enterpriseResourceManagement.utilization": "Resource Utilization"
+  },
+  "ar": {
+    "enterpriseResourceManagement.allocation": "تخصيص الموارد",
+    "enterpriseResourceManagement.analytics": "تحليلات الموارد",
+    "enterpriseResourceManagement.availability": "توافر الموارد",
+    "enterpriseResourceManagement.balancing": "موازنة الموارد",
+    "enterpriseResourceManagement.booking": "حجز الموارد",
+    "enterpriseResourceManagement.capacity": "تخطيط القدرات",
+    "enterpriseResourceManagement.competencies": "إدارة الكفاءات",
+    "enterpriseResourceManagement.costs": "تكلفة الموارد",
+    "enterpriseResourceManagement.demand": "طلب الموارد",
+    "enterpriseResourceManagement.forecast": "التنبؤ بالموارد",
+    "enterpriseResourceManagement.leveling": "تسوية الموارد",
+    "enterpriseResourceManagement.optimization": "تحسين الموارد",
+    "enterpriseResourceManagement.planning": "تخطيط الموارد",
+    "enterpriseResourceManagement.pool": "مجموعة الموارد",
+    "enterpriseResourceManagement.rates": "أسعار الموارد",
+    "enterpriseResourceManagement.resource": "إدارة الموارد",
+    "enterpriseResourceManagement.roles": "إدارة الأدوار",
+    "enterpriseResourceManagement.scheduling": "جدولة الموارد",
+    "enterpriseResourceManagement.skills": "إدارة المهارات",
+    "enterpriseResourceManagement.timesheet": "إدارة جداول الوقت",
+    "enterpriseResourceManagement.tracking": "تتبع الموارد",
+    "enterpriseResourceManagement.utilization": "استخدام الموارد"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/enterpriseResourcePlanning.translations.json">
+<![CDATA[
+{
+  "en": {
+    "enterpriseResourcePlanning.accountsPayable": "Accounts Payable",
+    "enterpriseResourcePlanning.accountsReceivable": "Accounts Receivable",
+    "enterpriseResourcePlanning.assetManagement": "Asset Management",
+    "enterpriseResourcePlanning.budgetingForecasting": "Budgeting & Forecasting",
+    "enterpriseResourcePlanning.businessIntelligence": "Business Intelligence",
+    "enterpriseResourcePlanning.cashManagement": "Cash Management",
+    "enterpriseResourcePlanning.customerManagement": "Customer Management",
+    "enterpriseResourcePlanning.demandPlanning": "Demand Planning",
+    "enterpriseResourcePlanning.description": "Integrated business process management",
+    "enterpriseResourcePlanning.financialManagement": "Financial Management",
+    "enterpriseResourcePlanning.financialReporting": "Financial Reporting",
+    "enterpriseResourcePlanning.fixedAssets": "Fixed Assets",
+    "enterpriseResourcePlanning.generalLedger": "General Ledger",
+    "enterpriseResourcePlanning.humanCapitalManagement": "Human Capital Management",
+    "enterpriseResourcePlanning.intercompanyAccounting": "Intercompany Accounting",
+    "enterpriseResourcePlanning.inventoryManagement": "Inventory Management",
+    "enterpriseResourcePlanning.maintenanceManagement": "Maintenance Management",
+    "enterpriseResourcePlanning.manufacturingExecution": "Manufacturing Execution",
+    "enterpriseResourcePlanning.multiCurrencyManagement": "Multi-Currency Management",
+    "enterpriseResourcePlanning.payroll": "Payroll",
+    "enterpriseResourcePlanning.performanceManagement": "Performance Management",
+    "enterpriseResourcePlanning.procurement": "Procurement",
+    "enterpriseResourcePlanning.productionPlanning": "Production Planning",
+    "enterpriseResourcePlanning.projectAccounting": "Project Accounting",
+    "enterpriseResourcePlanning.projectManagement": "Project Management",
+    "enterpriseResourcePlanning.qualityManagement": "Quality Management",
+    "enterpriseResourcePlanning.reportingAnalytics": "Reporting & Analytics",
+    "enterpriseResourcePlanning.resourceManagement": "Resource Management",
+    "enterpriseResourcePlanning.salesOrderManagement": "Sales Order Management",
+    "enterpriseResourcePlanning.serviceManagement": "Service Management",
+    "enterpriseResourcePlanning.supplyChainManagement": "Supply Chain Management",
+    "enterpriseResourcePlanning.talentManagement": "Talent Management",
+    "enterpriseResourcePlanning.timeAttendance": "Time & Attendance",
+    "enterpriseResourcePlanning.timeSheetManagement": "Time Sheet Management",
+    "enterpriseResourcePlanning.title": "Enterprise Resource Planning",
+    "enterpriseResourcePlanning.warehouseManagement": "Warehouse Management"
+  },
+  "ar": {
+    "enterpriseResourcePlanning.accountsPayable": "الحسابات الدائنة",
+    "enterpriseResourcePlanning.accountsReceivable": "الحسابات المدينة",
+    "enterpriseResourcePlanning.assetManagement": "إدارة الأصول",
+    "enterpriseResourcePlanning.budgetingForecasting": "إعداد الميزانيات والتنبؤ",
+    "enterpriseResourcePlanning.businessIntelligence": "ذكاء الأعمال",
+    "enterpriseResourcePlanning.cashManagement": "إدارة النقد",
+    "enterpriseResourcePlanning.customerManagement": "إدارة العملاء",
+    "enterpriseResourcePlanning.demandPlanning": "تخطيط الطلب",
+    "enterpriseResourcePlanning.description": "إدارة متكاملة لعمليات الأعمال",
+    "enterpriseResourcePlanning.financialManagement": "الإدارة المالية",
+    "enterpriseResourcePlanning.financialReporting": "التقارير المالية",
+    "enterpriseResourcePlanning.fixedAssets": "الأصول الثابتة",
+    "enterpriseResourcePlanning.generalLedger": "دفتر الأستاذ العام",
+    "enterpriseResourcePlanning.humanCapitalManagement": "إدارة رأس المال البشري",
+    "enterpriseResourcePlanning.intercompanyAccounting": "المحاسبة بين الشركات",
+    "enterpriseResourcePlanning.inventoryManagement": "إدارة المخزون",
+    "enterpriseResourcePlanning.maintenanceManagement": "إدارة الصيانة",
+    "enterpriseResourcePlanning.manufacturingExecution": "تنفيذ التصنيع",
+    "enterpriseResourcePlanning.multiCurrencyManagement": "إدارة العملات المتعددة",
+    "enterpriseResourcePlanning.payroll": "الرواتب",
+    "enterpriseResourcePlanning.performanceManagement": "إدارة الأداء",
+    "enterpriseResourcePlanning.procurement": "المشتريات",
+    "enterpriseResourcePlanning.productionPlanning": "تخطيط الإنتاج",
+    "enterpriseResourcePlanning.projectAccounting": "محاسبة المشاريع",
+    "enterpriseResourcePlanning.projectManagement": "إدارة المشاريع",
+    "enterpriseResourcePlanning.qualityManagement": "إدارة الجودة",
+    "enterpriseResourcePlanning.reportingAnalytics": "التقارير والتحليلات",
+    "enterpriseResourcePlanning.resourceManagement": "إدارة الموارد",
+    "enterpriseResourcePlanning.salesOrderManagement": "إدارة أوامر المبيعات",
+    "enterpriseResourcePlanning.serviceManagement": "إدارة الخدمات",
+    "enterpriseResourcePlanning.supplyChainManagement": "إدارة سلسلة التوريد",
+    "enterpriseResourcePlanning.talentManagement": "إدارة المواهب",
+    "enterpriseResourcePlanning.timeAttendance": "الدوام والحضور",
+    "enterpriseResourcePlanning.timeSheetManagement": "إدارة الجداول الزمنية",
+    "enterpriseResourcePlanning.title": "تخطيط موارد المؤسسة",
+    "enterpriseResourcePlanning.warehouseManagement": "إدارة المستودعات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/enterpriseServices.translations.json">
+<![CDATA[
+{
+  "en": {
+    "enterpriseServices.analytics": "Service Analytics",
+    "enterpriseServices.articles": "Knowledge Articles",
+    "enterpriseServices.automation": "Service Automation",
+    "enterpriseServices.catalog": "Service Catalog",
+    "enterpriseServices.changes": "Change Management",
+    "enterpriseServices.desk": "Service Desk",
+    "enterpriseServices.enterprise": "Enterprise Services",
+    "enterpriseServices.escalation": "Ticket Escalation",
+    "enterpriseServices.feedback": "Service Feedback",
+    "enterpriseServices.helpdesk": "Help Desk",
+    "enterpriseServices.incidents": "Incident Management",
+    "enterpriseServices.knowledge": "Knowledge Base",
+    "enterpriseServices.problems": "Problem Management",
+    "enterpriseServices.reporting": "Service Reporting",
+    "enterpriseServices.requests": "Service Requests",
+    "enterpriseServices.routing": "Ticket Routing",
+    "enterpriseServices.satisfaction": "Customer Satisfaction",
+    "enterpriseServices.self": "Self-Service Portal",
+    "enterpriseServices.service": "Service Management",
+    "enterpriseServices.services": "Enterprise Services",
+    "enterpriseServices.sla": "SLA Management",
+    "enterpriseServices.ticketing": "Ticket Management"
+  },
+  "ar": {
+    "enterpriseServices.analytics": "تحليلات الخدمة",
+    "enterpriseServices.articles": "مقالات المعرفة",
+    "enterpriseServices.automation": "أتمتة الخدمة",
+    "enterpriseServices.catalog": "كتالوج الخدمات",
+    "enterpriseServices.changes": "إدارة التغييرات",
+    "enterpriseServices.desk": "مكتب الخدمة",
+    "enterpriseServices.enterprise": "خدمات المؤسسة",
+    "enterpriseServices.escalation": "تصعيد التذاكر",
+    "enterpriseServices.feedback": "ملاحظات الخدمة",
+    "enterpriseServices.helpdesk": "مكتب المساعدة",
+    "enterpriseServices.incidents": "إدارة الحوادث",
+    "enterpriseServices.knowledge": "قاعدة المعرفة",
+    "enterpriseServices.problems": "إدارة المشكلات",
+    "enterpriseServices.reporting": "تقارير الخدمة",
+    "enterpriseServices.requests": "طلبات الخدمة",
+    "enterpriseServices.routing": "توجيه التذاكر",
+    "enterpriseServices.satisfaction": "رضا العملاء",
+    "enterpriseServices.self": "بوابة الخدمة الذاتية",
+    "enterpriseServices.service": "إدارة الخدمة",
+    "enterpriseServices.services": "خدمات المؤسسة",
+    "enterpriseServices.sla": "إدارة اتفاقية مستوى الخدمة",
+    "enterpriseServices.ticketing": "إدارة التذاكر"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/entertainmentProduction.translations.json">
+<![CDATA[
+{
+  "en": {
+    "entertainmentProduction.audienceAnalytics": "Audience Analytics",
+    "entertainmentProduction.budgeting": "Budgeting",
+    "entertainmentProduction.callSheetManagement": "Call Sheet Management",
+    "entertainmentProduction.castingManagement": "Casting Management",
+    "entertainmentProduction.colorGrading": "Color Grading",
+    "entertainmentProduction.crewManagement": "Crew Management",
+    "entertainmentProduction.description": "Film, TV and entertainment production management",
+    "entertainmentProduction.distributionManagement": "Distribution Management",
+    "entertainmentProduction.editingSuite": "Editing Suite",
+    "entertainmentProduction.equipmentRental": "Equipment Rental",
+    "entertainmentProduction.locationScouting": "Location Scouting",
+    "entertainmentProduction.marketingPromotion": "Marketing & Promotion",
+    "entertainmentProduction.musicComposition": "Music Composition",
+    "entertainmentProduction.platformDistribution": "Platform Distribution",
+    "entertainmentProduction.postProduction": "Post-Production",
+    "entertainmentProduction.preProduction": "Pre-Production",
+    "entertainmentProduction.productionScheduling": "Production Scheduling",
+    "entertainmentProduction.rightsManagement": "Rights Management",
+    "entertainmentProduction.royaltyTracking": "Royalty Tracking",
+    "entertainmentProduction.scriptDevelopment": "Script Development",
+    "entertainmentProduction.setManagement": "Set Management",
+    "entertainmentProduction.shootingSchedule": "Shooting Schedule",
+    "entertainmentProduction.soundDesign": "Sound Design",
+    "entertainmentProduction.title": "Entertainment Production",
+    "entertainmentProduction.visualEffects": "Visual Effects (VFX)"
+  },
+  "ar": {
+    "entertainmentProduction.audienceAnalytics": "تحليلات الجمهور",
+    "entertainmentProduction.budgeting": "إعداد الميزانية",
+    "entertainmentProduction.callSheetManagement": "إدارة جداول الاستدعاء",
+    "entertainmentProduction.castingManagement": "إدارة اختيار الممثلين",
+    "entertainmentProduction.colorGrading": "معايرة الألوان",
+    "entertainmentProduction.crewManagement": "إدارة الطاقم",
+    "entertainmentProduction.description": "إدارة إنتاج الأفلام والتلفزيون والترفيه",
+    "entertainmentProduction.distributionManagement": "إدارة التوزيع",
+    "entertainmentProduction.editingSuite": "جناح المونتاج",
+    "entertainmentProduction.equipmentRental": "تأجير المعدات",
+    "entertainmentProduction.locationScouting": "استكشاف المواقع",
+    "entertainmentProduction.marketingPromotion": "التسويق والترويج",
+    "entertainmentProduction.musicComposition": "التأليف الموسيقي",
+    "entertainmentProduction.platformDistribution": "التوزيع على المنصات",
+    "entertainmentProduction.postProduction": "ما بعد الإنتاج",
+    "entertainmentProduction.preProduction": "ما قبل الإنتاج",
+    "entertainmentProduction.productionScheduling": "جدولة الإنتاج",
+    "entertainmentProduction.rightsManagement": "إدارة الحقوق",
+    "entertainmentProduction.royaltyTracking": "تتبع الإتاوات",
+    "entertainmentProduction.scriptDevelopment": "تطوير السيناريو",
+    "entertainmentProduction.setManagement": "إدارة الموقع",
+    "entertainmentProduction.shootingSchedule": "جدول التصوير",
+    "entertainmentProduction.soundDesign": "تصميم الصوت",
+    "entertainmentProduction.title": "إنتاج الترفيه",
+    "entertainmentProduction.visualEffects": "المؤثرات البصرية (VFX)"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/environmental.translations.json">
+<![CDATA[
+{
+  "en": {
+    "environmental.air": "Air Quality",
+    "environmental.assessment": "Environmental Assessment",
+    "environmental.audit": "Environmental Audit",
+    "environmental.biodiversity": "Biodiversity",
+    "environmental.biomass": "Biomass Energy",
+    "environmental.carbon": "Carbon Footprint",
+    "environmental.cleanup": "Environmental Cleanup",
+    "environmental.climate": "Climate Change",
+    "environmental.coastal": "Coastal Management",
+    "environmental.compliance": "Regulatory Compliance",
+    "environmental.composting": "Composting",
+    "environmental.conservation": "Conservation",
+    "environmental.contamination": "Contamination Assessment",
+    "environmental.description": "Manage environmental operations and compliance",
+    "environmental.ecosystem": "Ecosystem Management",
+    "environmental.efficiency": "Energy Efficiency",
+    "environmental.effluent": "Effluent Treatment",
+    "environmental.emission": "Emission Monitoring",
+    "environmental.forestry": "Forestry",
+    "environmental.geothermal": "Geothermal",
+    "environmental.green": "Green Building",
+    "environmental.hazardous": "Hazardous Waste",
+    "environmental.hydro": "Hydroelectric",
+    "environmental.impact": "Impact Analysis",
+    "environmental.landfill": "Landfill Management",
+    "environmental.leed": "LEED Certification",
+    "environmental.marine": "Marine Conservation",
+    "environmental.monitoring": "Environmental Monitoring",
+    "environmental.offset": "Carbon Offset",
+    "environmental.permit": "Environmental Permits",
+    "environmental.pollution": "Pollution Control",
+    "environmental.recycling": "Recycling Programs",
+    "environmental.remediation": "Site Remediation",
+    "environmental.renewable": "Renewable Energy",
+    "environmental.reporting": "Environmental Reporting",
+    "environmental.restoration": "Habitat Restoration",
+    "environmental.sampling": "Sample Collection",
+    "environmental.soil": "Soil Analysis",
+    "environmental.solar": "Solar Energy",
+    "environmental.study": "Environmental Study",
+    "environmental.sustainability": "Sustainability",
+    "environmental.testing": "Environmental Testing",
+    "environmental.title": "Environmental Services",
+    "environmental.toxic": "Toxic Waste",
+    "environmental.waste": "Waste Management",
+    "environmental.water": "Water Quality",
+    "environmental.wetland": "Wetland Protection",
+    "environmental.wildlife": "Wildlife Management",
+    "environmental.wind": "Wind Energy"
+  },
+  "ar": {
+    "environmental.air": "جودة الهواء",
+    "environmental.assessment": "التقييم البيئي",
+    "environmental.audit": "التدقيق البيئي",
+    "environmental.biodiversity": "التنوع البيولوجي",
+    "environmental.biomass": "طاقة الكتلة الحيوية",
+    "environmental.carbon": "البصمة الكربونية",
+    "environmental.cleanup": "التنظيف البيئي",
+    "environmental.climate": "تغير المناخ",
+    "environmental.coastal": "الإدارة الساحلية",
+    "environmental.compliance": "الامتثال التنظيمي",
+    "environmental.composting": "التسميد",
+    "environmental.conservation": "الحفظ",
+    "environmental.contamination": "تقييم التلوث",
+    "environmental.description": "إدارة العمليات والامتثال البيئي",
+    "environmental.ecosystem": "إدارة النظام البيئي",
+    "environmental.efficiency": "كفاءة الطاقة",
+    "environmental.effluent": "معالجة المياه العادمة",
+    "environmental.emission": "مراقبة الانبعاثات",
+    "environmental.forestry": "الغابات",
+    "environmental.geothermal": "الطاقة الحرارية الأرضية",
+    "environmental.green": "المباني الخضراء",
+    "environmental.hazardous": "النفايات الخطرة",
+    "environmental.hydro": "الطاقة الكهرومائية",
+    "environmental.impact": "تحليل التأثير",
+    "environmental.landfill": "إدارة مكب النفايات",
+    "environmental.leed": "شهادة LEED",
+    "environmental.marine": "الحفاظ على البحار",
+    "environmental.monitoring": "المراقبة البيئية",
+    "environmental.offset": "تعويض الكربون",
+    "environmental.permit": "التصاريح البيئية",
+    "environmental.pollution": "مكافحة التلوث",
+    "environmental.recycling": "برامج إعادة التدوير",
+    "environmental.remediation": "إصلاح الموقع",
+    "environmental.renewable": "الطاقة المتجددة",
+    "environmental.reporting": "التقارير البيئية",
+    "environmental.restoration": "استعادة الموائل",
+    "environmental.sampling": "جمع العينات",
+    "environmental.soil": "تحليل التربة",
+    "environmental.solar": "الطاقة الشمسية",
+    "environmental.study": "الدراسة البيئية",
+    "environmental.sustainability": "الاستدامة",
+    "environmental.testing": "الاختبار البيئي",
+    "environmental.title": "الخدمات البيئية",
+    "environmental.toxic": "النفايات السامة",
+    "environmental.waste": "إدارة النفايات",
+    "environmental.water": "جودة المياه",
+    "environmental.wetland": "حماية الأراضي الرطبة",
+    "environmental.wildlife": "إدارة الحياة البرية",
+    "environmental.wind": "طاقة الرياح"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/environmentalManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "environmentalManagement.assessment": "Environmental Assessment",
+    "environmentalManagement.audit": "Environmental Audit",
+    "environmentalManagement.carbon": "Carbon Footprint",
+    "environmentalManagement.certification": "Environmental Certification",
+    "environmentalManagement.climate": "Climate Action",
+    "environmentalManagement.compliance": "Environmental Compliance",
+    "environmentalManagement.conservation": "Conservation",
+    "environmentalManagement.emission": "Emissions",
+    "environmentalManagement.ems": "Environmental Management",
+    "environmentalManagement.energy": "Energy Efficiency",
+    "environmentalManagement.environmental": "Environmental",
+    "environmentalManagement.esg": "ESG",
+    "environmentalManagement.green": "Green Initiative",
+    "environmentalManagement.impact": "Environmental Impact",
+    "environmentalManagement.iso14001": "ISO 14001",
+    "environmentalManagement.pollution": "Pollution Prevention",
+    "environmentalManagement.recycling": "Recycling",
+    "environmentalManagement.regulation": "Environmental Regulation",
+    "environmentalManagement.renewable": "Renewable Energy",
+    "environmentalManagement.report": "Environmental Report",
+    "environmentalManagement.sustainability": "Sustainability",
+    "environmentalManagement.waste": "Waste Management"
+  },
+  "ar": {
+    "environmentalManagement.assessment": "التقييم البيئي",
+    "environmentalManagement.audit": "التدقيق البيئي",
+    "environmentalManagement.carbon": "البصمة الكربونية",
+    "environmentalManagement.certification": "الاعتماد البيئي",
+    "environmentalManagement.climate": "العمل المناخي",
+    "environmentalManagement.compliance": "الامتثال البيئي",
+    "environmentalManagement.conservation": "الحفاظ",
+    "environmentalManagement.emission": "الانبعاثات",
+    "environmentalManagement.ems": "الإدارة البيئية",
+    "environmentalManagement.energy": "كفاءة الطاقة",
+    "environmentalManagement.environmental": "البيئي",
+    "environmentalManagement.esg": "ESG",
+    "environmentalManagement.green": "المبادرة الخضراء",
+    "environmentalManagement.impact": "الأثر البيئي",
+    "environmentalManagement.iso14001": "ISO 14001",
+    "environmentalManagement.pollution": "منع التلوث",
+    "environmentalManagement.recycling": "إعادة التدوير",
+    "environmentalManagement.regulation": "التنظيم البيئي",
+    "environmentalManagement.renewable": "الطاقة المتجددة",
+    "environmentalManagement.report": "التقرير البيئي",
+    "environmentalManagement.sustainability": "الاستدامة",
+    "environmentalManagement.waste": "إدارة النفايات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/environmentalMgmt.translations.json">
+<![CDATA[
+{
+  "en": {
+    "environmentalMgmt.assessment": "Environmental Assessment",
+    "environmentalMgmt.audit": "Environmental Audit",
+    "environmentalMgmt.certification": "Environmental Certification",
+    "environmentalMgmt.compliance": "Environmental Compliance",
+    "environmentalMgmt.conservation": "Environmental Conservation",
+    "environmentalMgmt.emissions": "Emissions Management",
+    "environmentalMgmt.ems": "Environmental Management System",
+    "environmentalMgmt.environmental": "Environmental Management",
+    "environmentalMgmt.footprint": "Environmental Footprint",
+    "environmentalMgmt.hazardous": "Hazardous Waste",
+    "environmentalMgmt.impact": "Environmental Impact",
+    "environmentalMgmt.monitoring": "Environmental Monitoring",
+    "environmentalMgmt.policy": "Environmental Policy",
+    "environmentalMgmt.pollution": "Pollution Control",
+    "environmentalMgmt.protection": "Environmental Protection",
+    "environmentalMgmt.recycling": "Recycling",
+    "environmentalMgmt.regulation": "Environmental Regulation",
+    "environmentalMgmt.remediation": "Environmental Remediation",
+    "environmentalMgmt.reporting": "Environmental Reporting",
+    "environmentalMgmt.restoration": "Environmental Restoration",
+    "environmentalMgmt.sustainability": "Environmental Sustainability",
+    "environmentalMgmt.waste": "Waste Management"
+  },
+  "ar": {
+    "environmentalMgmt.assessment": "التقييم البيئي",
+    "environmentalMgmt.audit": "التدقيق البيئي",
+    "environmentalMgmt.certification": "الشهادة البيئية",
+    "environmentalMgmt.compliance": "الامتثال البيئي",
+    "environmentalMgmt.conservation": "الحفاظ على البيئة",
+    "environmentalMgmt.emissions": "إدارة الانبعاثات",
+    "environmentalMgmt.ems": "نظام الإدارة البيئية",
+    "environmentalMgmt.environmental": "الإدارة البيئية",
+    "environmentalMgmt.footprint": "البصمة البيئية",
+    "environmentalMgmt.hazardous": "النفايات الخطرة",
+    "environmentalMgmt.impact": "التأثير البيئي",
+    "environmentalMgmt.monitoring": "المراقبة البيئية",
+    "environmentalMgmt.policy": "السياسة البيئية",
+    "environmentalMgmt.pollution": "مكافحة التلوث",
+    "environmentalMgmt.protection": "حماية البيئة",
+    "environmentalMgmt.recycling": "إعادة التدوير",
+    "environmentalMgmt.regulation": "التنظيم البيئي",
+    "environmentalMgmt.remediation": "الإصلاح البيئي",
+    "environmentalMgmt.reporting": "إعداد التقارير البيئية",
+    "environmentalMgmt.restoration": "الترميم البيئي",
+    "environmentalMgmt.sustainability": "الاستدامة البيئية",
+    "environmentalMgmt.waste": "إدارة النفايات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/environmentalServices.translations.json">
+<![CDATA[
+{
+  "en": {
+    "environmentalServices.airQualityMonitoring": "Air Quality Monitoring",
+    "environmentalServices.carbonFootprint": "Carbon Footprint Analysis",
+    "environmentalServices.complianceAudits": "Compliance Audits",
+    "environmentalServices.contaminationControl": "Contamination Control",
+    "environmentalServices.description": "Environmental management and sustainability services",
+    "environmentalServices.emissionsTracking": "Emissions Tracking",
+    "environmentalServices.energyEfficiency": "Energy Efficiency",
+    "environmentalServices.environmentalAssessment": "Environmental Assessment",
+    "environmentalServices.greenBuildingCertification": "Green Building Certification",
+    "environmentalServices.hazardousWaste": "Hazardous Waste",
+    "environmentalServices.impactStudies": "Impact Studies",
+    "environmentalServices.noiseAssessment": "Noise Assessment",
+    "environmentalServices.pollutionControl": "Pollution Control",
+    "environmentalServices.recyclingPrograms": "Recycling Programs",
+    "environmentalServices.regulatoryReporting": "Regulatory Reporting",
+    "environmentalServices.remediationServices": "Remediation Services",
+    "environmentalServices.renewableEnergy": "Renewable Energy",
+    "environmentalServices.riskAssessment": "Risk Assessment",
+    "environmentalServices.siteCleanup": "Site Cleanup",
+    "environmentalServices.siteInvestigation": "Site Investigation",
+    "environmentalServices.soilTesting": "Soil Testing",
+    "environmentalServices.sustainabilityPlanning": "Sustainability Planning",
+    "environmentalServices.title": "Environmental Services",
+    "environmentalServices.wasteManagement": "Waste Management",
+    "environmentalServices.waterTesting": "Water Testing"
+  },
+  "ar": {
+    "environmentalServices.airQualityMonitoring": "مراقبة جودة الهواء",
+    "environmentalServices.carbonFootprint": "تحليل البصمة الكربونية",
+    "environmentalServices.complianceAudits": "تدقيق الامتثال",
+    "environmentalServices.contaminationControl": "مكافحة التلوث",
+    "environmentalServices.description": "خدمات الإدارة البيئية والاستدامة",
+    "environmentalServices.emissionsTracking": "تتبع الانبعاثات",
+    "environmentalServices.energyEfficiency": "كفاءة الطاقة",
+    "environmentalServices.environmentalAssessment": "التقييم البيئي",
+    "environmentalServices.greenBuildingCertification": "شهادة البناء الأخضر",
+    "environmentalServices.hazardousWaste": "النفايات الخطرة",
+    "environmentalServices.impactStudies": "دراسات الأثر",
+    "environmentalServices.noiseAssessment": "تقييم الضوضاء",
+    "environmentalServices.pollutionControl": "مكافحة التلوث",
+    "environmentalServices.recyclingPrograms": "برامج إعادة التدوير",
+    "environmentalServices.regulatoryReporting": "التقارير التنظيمية",
+    "environmentalServices.remediationServices": "خدمات المعالجة",
+    "environmentalServices.renewableEnergy": "الطاقة المتجددة",
+    "environmentalServices.riskAssessment": "تقييم المخاطر",
+    "environmentalServices.siteCleanup": "تنظيف الموقع",
+    "environmentalServices.siteInvestigation": "التحقيق في الموقع",
+    "environmentalServices.soilTesting": "اختبار التربة",
+    "environmentalServices.sustainabilityPlanning": "تخطيط الاستدامة",
+    "environmentalServices.title": "الخدمات البيئية",
+    "environmentalServices.wasteManagement": "إدارة النفايات",
+    "environmentalServices.waterTesting": "اختبار المياه"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/environmentalSustainability.translations.json">
+<![CDATA[
+{
+  "en": {
+    "environmentalSustainability.assessment": "Impact Assessment",
+    "environmentalSustainability.carbon": "Carbon Footprint",
+    "environmentalSustainability.certification": "Green Certification",
+    "environmentalSustainability.climate": "Climate Action",
+    "environmentalSustainability.compliance": "Environmental Compliance",
+    "environmentalSustainability.conservation": "Conservation",
+    "environmentalSustainability.eco": "Eco-Friendly",
+    "environmentalSustainability.emissions": "Emissions",
+    "environmentalSustainability.energy": "Energy Efficiency",
+    "environmentalSustainability.environmental": "Environmental Sustainability",
+    "environmentalSustainability.green": "Green Initiatives",
+    "environmentalSustainability.impact": "Environmental Impact",
+    "environmentalSustainability.initiatives": "Green Initiatives",
+    "environmentalSustainability.leed": "LEED",
+    "environmentalSustainability.pollution": "Pollution Control",
+    "environmentalSustainability.program": "Sustainability Program",
+    "environmentalSustainability.recycling": "Recycling",
+    "environmentalSustainability.renewable": "Renewable Energy",
+    "environmentalSustainability.reporting": "Sustainability Reporting",
+    "environmentalSustainability.sustainability": "Sustainability",
+    "environmentalSustainability.waste": "Waste Reduction",
+    "environmentalSustainability.water": "Water Conservation"
+  },
+  "ar": {
+    "environmentalSustainability.assessment": "تقييم التأثير",
+    "environmentalSustainability.carbon": "البصمة الكربونية",
+    "environmentalSustainability.certification": "الشهادة الخضراء",
+    "environmentalSustainability.climate": "العمل المناخي",
+    "environmentalSustainability.compliance": "الامتثال البيئي",
+    "environmentalSustainability.conservation": "الحفاظ",
+    "environmentalSustainability.eco": "صديق للبيئة",
+    "environmentalSustainability.emissions": "الانبعاثات",
+    "environmentalSustainability.energy": "كفاءة الطاقة",
+    "environmentalSustainability.environmental": "الاستدامة البيئية",
+    "environmentalSustainability.green": "مبادرات خضراء",
+    "environmentalSustainability.impact": "التأثير البيئي",
+    "environmentalSustainability.initiatives": "المبادرات الخضراء",
+    "environmentalSustainability.leed": "ليد",
+    "environmentalSustainability.pollution": "مكافحة التلوث",
+    "environmentalSustainability.program": "برنامج الاستدامة",
+    "environmentalSustainability.recycling": "إعادة التدوير",
+    "environmentalSustainability.renewable": "الطاقة المتجددة",
+    "environmentalSustainability.reporting": "تقارير الاستدامة",
+    "environmentalSustainability.sustainability": "الاستدامة",
+    "environmentalSustainability.waste": "الحد من النفايات",
+    "environmentalSustainability.water": "الحفاظ على المياه"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/equipment.translations.json">
+<![CDATA[
+{
+  "en": {
+    "equipment.appliance": "Appliance",
+    "equipment.appliances": "Appliances",
+    "equipment.asset": "Asset",
+    "equipment.assetManagement": "Asset Management",
+    "equipment.assetNumber": "Asset Number",
+    "equipment.assets": "Assets",
+    "equipment.assetTag": "Asset Tag",
+    "equipment.brand": "Brand",
+    "equipment.calibration": "Calibration",
+    "equipment.condition": "Condition",
+    "equipment.device": "Device",
+    "equipment.devices": "Devices",
+    "equipment.disposed": "Disposed",
+    "equipment.equipment1": "Equipment",
+    "equipment.equipmentList": "Equipment List",
+    "equipment.fixture": "Fixture",
+    "equipment.fixtures": "Fixtures",
+    "equipment.installationDate": "Installation Date",
+    "equipment.lastCalibration": "Last Calibration",
+    "equipment.machinery": "Machinery",
+    "equipment.manufacturer": "Manufacturer",
+    "equipment.mileage": "Mileage",
+    "equipment.modelNumber": "Model Number",
+    "equipment.nextCalibration": "Next Calibration",
+    "equipment.nonOperational": "Non-Operational",
+    "equipment.operatingHours": "Operating Hours",
+    "equipment.operational": "Operational",
+    "equipment.outOfWarranty": "Out of Warranty",
+    "equipment.purchaseDate": "Purchase Date",
+    "equipment.replacement": "Replacement",
+    "equipment.retired": "Retired",
+    "equipment.serialNumber": "Serial Number",
+    "equipment.serviceDue": "Service Due",
+    "equipment.serviceHistory": "Service History",
+    "equipment.tool": "Tool",
+    "equipment.tools": "Tools",
+    "equipment.underMaintenance": "Under Maintenance",
+    "equipment.underWarranty": "Under Warranty",
+    "equipment.upgrade": "Upgrade",
+    "equipment.warranty": "Warranty",
+    "equipment.warrantyExpiry": "Warranty Expiry"
+  },
+  "ar": {
+    "equipment.appliance": "جهاز منزلي",
+    "equipment.appliances": "أجهزة منزلية",
+    "equipment.asset": "أصل",
+    "equipment.assetManagement": "إدارة الأصول",
+    "equipment.assetNumber": "رقم الأصل",
+    "equipment.assets": "أصول",
+    "equipment.assetTag": "علامة الأصل",
+    "equipment.brand": "العلامة التجارية",
+    "equipment.calibration": "معايرة",
+    "equipment.condition": "الحالة",
+    "equipment.device": "جهاز",
+    "equipment.devices": "أجهزة",
+    "equipment.disposed": "تم التخلص منه",
+    "equipment.equipment1": "معدات",
+    "equipment.equipmentList": "قائمة المعدات",
+    "equipment.fixture": "تركيبة",
+    "equipment.fixtures": "تركيبات",
+    "equipment.installationDate": "تاريخ التركيب",
+    "equipment.lastCalibration": "آخر معايرة",
+    "equipment.machinery": "آلات",
+    "equipment.manufacturer": "الشركة المصنعة",
+    "equipment.mileage": "المسافة المقطوعة",
+    "equipment.modelNumber": "رقم الطراز",
+    "equipment.nextCalibration": "المعايرة القادمة",
+    "equipment.nonOperational": "غير عامل",
+    "equipment.operatingHours": "ساعات التشغيل",
+    "equipment.operational": "قيد التشغيل",
+    "equipment.outOfWarranty": "خارج الضمان",
+    "equipment.purchaseDate": "تاريخ الشراء",
+    "equipment.replacement": "استبدال",
+    "equipment.retired": "متقاعد",
+    "equipment.serialNumber": "الرقم التسلسلي",
+    "equipment.serviceDue": "موعد الخدمة",
+    "equipment.serviceHistory": "سجل الخدمة",
+    "equipment.tool": "أداة",
+    "equipment.tools": "أدوات",
+    "equipment.underMaintenance": "تحت الصيانة",
+    "equipment.underWarranty": "تحت الضمان",
+    "equipment.upgrade": "ترقية",
+    "equipment.warranty": "الضمان",
+    "equipment.warrantyExpiry": "انتهاء الضمان"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/error.translations.json">
+<![CDATA[
+{
+  "en": {
+    "error.boundary.desc": "We're sorry, an unexpected error occurred",
+    "error.boundary.ref": "Reference #",
+    "error.boundary.refresh": "Refresh Page",
+    "error.boundary.title": "Something went wrong"
+  },
+  "ar": {
+    "error.boundary.desc": "نعتذر، حدث خطأ غير متوقع",
+    "error.boundary.ref": "رقم المرجع",
+    "error.boundary.refresh": "تحديث الصفحة",
+    "error.boundary.title": "حدث خطأ ما"
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

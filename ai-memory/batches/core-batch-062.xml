@@ -1,0 +1,2406 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/NOTIFICATION_SMOKE_TEST_SETUP.md">
+<![CDATA[
+# 🔔 Notification Smoke Test Setup Guide
+
+Complete guide for configuring and running end-to-end notification smoke tests across all channels (Push, Email, SMS, WhatsApp).
+
+---
+
+## 📋 Table of Contents
+
+1. [Prerequisites](#prerequisites)
+2. [Environment Configuration](#environment-configuration)
+3. [Service-Specific Setup](#service-specific-setup)
+4. [Running Smoke Tests](#running-smoke-tests)
+5. [Troubleshooting](#troubleshooting)
+6. [CI/CD Integration](#cicd-integration)
+
+---
+
+## 🔧 Prerequisites
+
+### Required Services Account Setup
+
+Before running smoke tests, you'll need accounts and API keys for:
+
+- ✅ **MongoDB** - Running locally or Atlas (for storing FCM tokens)
+- 🔥 **Firebase** - For Push Notifications ([console.firebase.google.com](https://console.firebase.google.com))
+- 📧 **SendGrid** - For Email ([app.sendgrid.com](https://app.sendgrid.com))
+- 📱 **Twilio** - For SMS ([console.twilio.com](https://console.twilio.com))
+- 💬 **WhatsApp Business API** - For WhatsApp (via Meta or Twilio)
+
+### Test User Requirements
+
+1. **MongoDB User Document** with valid `fcmTokens` array (for push testing)
+2. **Valid Email Address** (for email testing)
+3. **Valid Phone Number** in E.164 format (for SMS/WhatsApp testing)
+
+---
+
+## ⚙️ Environment Configuration
+
+### Step 1: Copy Environment Template
+
+The `.env.local` file has been pre-configured with all notification variables. Fill in your credentials:
+
+```bash
+# Open .env.local in your editor
+code .env.local
+```
+
+### Step 2: Configure Common Smoke Test Settings
+
+```bash
+# === SMOKE TEST CONFIGURATION ===
+# User ID from your MongoDB users collection
+NOTIFICATIONS_SMOKE_USER_ID=507f1f77bcf86cd799439011
+
+# Recipient name (for display in notifications)
+NOTIFICATIONS_SMOKE_NAME=Ops On-Call
+
+# Valid email address to receive test emails
+NOTIFICATIONS_SMOKE_EMAIL=your-email@example.com
+
+# Phone number in E.164 format (+[country code][number])
+NOTIFICATIONS_SMOKE_PHONE=+966501234567
+
+# Optional: Test work order data
+NOTIFICATIONS_SMOKE_WORKORDER_ID=WO-TEST-001
+NOTIFICATIONS_SMOKE_TENANT=Test Tenant Co.
+```
+
+---
+
+## 🔥 Service-Specific Setup
+
+### 1. Firebase Cloud Messaging (Push Notifications)
+
+#### Get Credentials
+
+1. Go to [Firebase Console](https://console.firebase.google.com)
+2. Select your project (or create new one)
+3. Navigate to **Project Settings** ⚙️ → **Service Accounts**
+4. Click **"Generate New Private Key"**
+5. Download the JSON file
+
+#### Configure in `.env.local`
+
+```bash
+FIREBASE_ADMIN_PROJECT_ID=your-project-id
+FIREBASE_ADMIN_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com
+FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYOUR_MULTI_LINE_KEY_HERE\n-----END PRIVATE KEY-----\n"
+```
+
+⚠️ **Important:** Keep the `\n` newline characters in the private key string!
+
+#### Prepare MongoDB User Document
+
+Your test user **must** have FCM tokens in MongoDB:
+
+```javascript
+// MongoDB users collection
+{
+  "_id": ObjectId("507f1f77bcf86cd799439011"),
+  "email": "test@example.com",
+  "fcmTokens": [
+    "dXYZ123abc...",  // Token from your mobile/web app
+    "eFGH456def..."
+  ]
+}
+```
+
+**How to get FCM tokens:**
+
+- Use Firebase SDK in your mobile/web app
+- Call `messaging.getToken()` to get device token
+- Store in user document via your app's token registration endpoint
+
+---
+
+### 2. SendGrid (Email Notifications)
+
+#### Get API Key
+
+1. Go to [SendGrid Dashboard](https://app.sendgrid.com)
+2. Navigate to **Settings** → **API Keys**
+3. Click **"Create API Key"**
+4. Name: `Fixzit Notifications`
+5. Permissions: **Mail Send** (Full Access)
+6. Copy the generated key immediately (shown only once!)
+
+#### Configure in `.env.local`
+
+```bash
+SENDGRID_API_KEY=SG.XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+SENDGRID_FROM_EMAIL=noreply@fixzit.co
+SENDGRID_FROM_NAME=Fixzit Notifications
+```
+
+#### Verify Sender Identity
+
+**Important:** SendGrid requires sender verification!
+
+1. Go to **Settings** → **Sender Authentication**
+2. Option A: **Single Sender Verification** (quick, for testing)
+   - Add `noreply@fixzit.co`
+   - Verify via email link
+3. Option B: **Domain Authentication** (production-ready)
+   - Authenticate your domain with DNS records
+   - Allows any `@fixzit.co` address
+
+---
+
+### 3. Twilio (SMS Notifications)
+
+#### Get Credentials
+
+1. Go to [Twilio Console](https://console.twilio.com)
+2. Navigate to **Account Info** (on dashboard)
+3. Copy:
+   - **Account SID** (starts with `AC...`)
+   - **Auth Token** (click to reveal)
+4. Go to **Phone Numbers** → **Manage** → **Active Numbers**
+5. Copy your **Twilio Phone Number**
+
+#### Configure in `.env.local`
+
+```bash
+TWILIO_ACCOUNT_SID=ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+TWILIO_AUTH_TOKEN=your_32_character_auth_token_here
+TWILIO_PHONE_NUMBER=+15551234567
+```
+
+#### Phone Number Format
+
+- **Must be E.164 format:** `+[country code][number]`
+- **Examples:**
+  - US: `+15551234567`
+  - Saudi Arabia: `+966501234567`
+  - UK: `+447700900123`
+
+#### Trial Account Limitations
+
+If using Twilio trial account:
+
+- Can only send to **verified phone numbers**
+- Add `NOTIFICATIONS_SMOKE_PHONE` to **Verified Caller IDs** in console
+- Messages will have "Sent from your Twilio trial account" prefix
+
+---
+
+### 4. WhatsApp Business API
+
+#### Option A: Meta WhatsApp Business Platform
+
+1. Go to [Meta Business Suite](https://business.facebook.com)
+2. Navigate to **WhatsApp** → **API Setup**
+3. Get:
+   - **Phone Number ID**
+   - **WhatsApp Business API Key**
+
+```bash
+WHATSAPP_BUSINESS_API_KEY=EAAxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+WHATSAPP_PHONE_NUMBER_ID=123456789012345
+```
+
+#### Option B: Twilio WhatsApp API (Easier)
+
+1. Go to [Twilio Console](https://console.twilio.com)
+2. Navigate to **Messaging** → **Try it out** → **Send a WhatsApp message**
+3. Join sandbox via WhatsApp: Send code to `+1 415 523 8886`
+4. Use same Twilio credentials as SMS:
+
+```bash
+# Reuse Twilio credentials
+TWILIO_ACCOUNT_SID=ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+TWILIO_AUTH_TOKEN=your_auth_token_here
+
+# WhatsApp-specific
+WHATSAPP_PHONE_NUMBER_ID=whatsapp:+14155238886
+```
+
+#### WhatsApp Template Messages
+
+WhatsApp requires **pre-approved templates** for business messages. For testing:
+
+- Use Twilio Sandbox (allows freeform messages to joined users)
+- Or create/approve templates in Meta Business Manager
+
+---
+
+## 🚀 Running Smoke Tests
+
+### Basic Usage
+
+```bash
+# Test specific channels
+pnpm tsx qa/notifications/run-smoke.ts --channel email
+pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms
+pnpm tsx qa/notifications/run-smoke.ts --channel push --channel email --channel sms --channel whatsapp
+
+# Test all configured channels
+pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms --channel whatsapp --channel push
+```
+
+### Channel-Specific Tests
+
+#### Email Only
+
+```bash
+pnpm tsx qa/notifications/run-smoke.ts --channel email
+```
+
+**Expected Output:**
+
+```
+Running Fixzit notification smoke test
+Channels: email
+Recipient: { userId: '507f...', email: 'test@example.com', phone: undefined }
+Notification smoke test complete: {
+  attempted: 1,
+  succeeded: 1,
+  failed: 0,
+  skipped: 0,
+  issues: []
+}
+```
+
+#### SMS + WhatsApp
+
+```bash
+pnpm tsx qa/notifications/run-smoke.ts --channel sms --channel whatsapp
+```
+
+#### Push Notifications Only
+
+```bash
+pnpm tsx qa/notifications/run-smoke.ts --channel push
+```
+
+⚠️ **Note:** Push requires valid `fcmTokens` in MongoDB user document!
+
+### Validation Before Running
+
+The script validates environment variables before running:
+
+```bash
+# Missing credentials will produce clear errors:
+❌ Missing required env vars for selected channels:
+- email: SENDGRID_API_KEY, SENDGRID_FROM_EMAIL
+- sms: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER
+```
+
+### Expected Test Output
+
+Successful smoke test output structure:
+
+```json
+{
+  "attempted": 3, // Channels attempted
+  "succeeded": 3, // Successful sends
+  "failed": 0, // Failed sends
+  "skipped": 0, // Skipped (missing config)
+  "issues": [] // Error details (if any)
+}
+```
+
+---
+
+## 🔍 Troubleshooting
+
+### Common Issues
+
+#### 1. Email Not Received
+
+**Problem:** `succeeded: 1` but no email in inbox
+
+**Solutions:**
+
+- ✅ Check spam/junk folder
+- ✅ Verify sender identity in SendGrid
+- ✅ Check SendGrid Activity Feed for delivery status
+- ✅ Verify `SENDGRID_FROM_EMAIL` matches verified sender
+
+**Verify in SendGrid:**
+
+```
+Dashboard > Activity Feed > Search for NOTIFICATIONS_SMOKE_EMAIL
+```
+
+#### 2. SMS Not Sent (Twilio Trial)
+
+**Problem:** `failed: 1` with "unverified number" error
+
+**Solutions:**
+
+- ✅ Add `NOTIFICATIONS_SMOKE_PHONE` to Twilio Verified Caller IDs
+- ✅ Upgrade to paid Twilio account
+- ✅ Ensure phone number is E.164 format (`+966...` not `05...`)
+
+#### 3. Push Notification Failed
+
+**Problem:** `skipped: 1` or `failed: 1` for push channel
+
+**Solutions:**
+
+- ✅ Ensure user document has `fcmTokens` array in MongoDB
+- ✅ Verify Firebase credentials are correct
+- ✅ Check `FIREBASE_ADMIN_PRIVATE_KEY` has `\n` preserved
+- ✅ Ensure FCM token is valid (tokens expire after ~60 days)
+
+**Verify MongoDB:**
+
+```javascript
+// In MongoDB shell or Compass
+db.users.findOne({ _id: ObjectId("507f1f77bcf86cd799439011") });
+// Should have: fcmTokens: ["dXYZ...", ...]
+```
+
+#### 4. WhatsApp Sandbox Not Working
+
+**Problem:** WhatsApp messages not delivered
+
+**Solutions:**
+
+- ✅ Join Twilio WhatsApp sandbox (send code to `+1 415 523 8886`)
+- ✅ Wait 1-2 minutes after joining before testing
+- ✅ Use `whatsapp:+14155238886` format for sandbox number
+- ✅ Check Twilio logs for delivery status
+
+#### 5. Environment Variables Not Loaded
+
+**Problem:** "Missing required env vars" even though `.env.local` is populated
+
+**Solutions:**
+
+- ✅ Ensure `.env.local` is in project root (next to `package.json`)
+- ✅ Restart terminal/IDE after editing `.env.local`
+- ✅ Check for syntax errors (no spaces around `=`)
+- ✅ Use `dotenv/config` at top of script (already included)
+
+**Verify environment loading:**
+
+```bash
+# Print loaded env vars (without sensitive values)
+node -e "require('dotenv/config'); console.log(Object.keys(process.env).filter(k => k.includes('SENDGRID')))"
+```
+
+---
+
+## 🏗️ CI/CD Integration
+
+### GitHub Actions Example
+
+```yaml
+name: Notification Smoke Tests
+
+on:
+  push:
+    branches: [main, develop]
+  schedule:
+    - cron: "0 8 * * *" # Daily at 8 AM UTC
+
+jobs:
+  smoke-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run notification smoke tests
+        env:
+          # Common
+          NOTIFICATIONS_SMOKE_USER_ID: ${{ secrets.SMOKE_USER_ID }}
+          NOTIFICATIONS_SMOKE_NAME: "CI Smoke Test"
+          NOTIFICATIONS_SMOKE_EMAIL: ${{ secrets.SMOKE_EMAIL }}
+          NOTIFICATIONS_SMOKE_PHONE: ${{ secrets.SMOKE_PHONE }}
+
+          # Firebase
+          FIREBASE_ADMIN_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_ADMIN_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+          FIREBASE_ADMIN_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
+
+          # SendGrid
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          SENDGRID_FROM_EMAIL: ${{ secrets.SENDGRID_FROM_EMAIL }}
+          SENDGRID_FROM_NAME: "Fixzit CI"
+
+          # Twilio
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_PHONE_NUMBER: ${{ secrets.TWILIO_PHONE_NUMBER }}
+
+          # WhatsApp
+          WHATSAPP_BUSINESS_API_KEY: ${{ secrets.WHATSAPP_API_KEY }}
+          WHATSAPP_PHONE_NUMBER_ID: ${{ secrets.WHATSAPP_PHONE_ID }}
+        run: |
+          pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms --channel whatsapp --channel push
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: smoke-test-results
+          path: |
+            smoke-test-output.log
+```
+
+### Setting GitHub Secrets
+
+```bash
+# Navigate to: Repository > Settings > Secrets and variables > Actions
+# Add each secret:
+
+SMOKE_USER_ID=507f1f77bcf86cd799439011
+SMOKE_EMAIL=ops-oncall@fixzit.co
+SMOKE_PHONE=+966501234567
+
+FIREBASE_PROJECT_ID=fixzit-prod
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@fixzit-prod.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n
+
+SENDGRID_API_KEY=SG.XXXXXXXXXXXXXXXX
+SENDGRID_FROM_EMAIL=noreply@fixzit.co
+
+TWILIO_ACCOUNT_SID=ACXXXXXXXXXXXXXXXX
+TWILIO_AUTH_TOKEN=your_auth_token
+TWILIO_PHONE_NUMBER=+15551234567
+
+WHATSAPP_API_KEY=EAAxxxxxxxxxxxx
+WHATSAPP_PHONE_ID=123456789012345
+```
+
+---
+
+## 📊 Monitoring & Alerts
+
+### Optional: Send Results to Monitoring Service
+
+Configure telemetry webhook in `.env.local`:
+
+```bash
+# Datadog Events API
+NOTIFICATIONS_TELEMETRY_WEBHOOK=https://api.datadoghq.com/api/v1/events?api_key=YOUR_KEY
+
+# PagerDuty Events API
+NOTIFICATIONS_TELEMETRY_WEBHOOK=https://events.pagerduty.com/v2/enqueue
+```
+
+The smoke test script will POST results in this format:
+
+```json
+{
+  "timestamp": "2025-11-17T14:30:00Z",
+  "test": "notification-smoke",
+  "status": "success",
+  "metrics": {
+    "attempted": 4,
+    "succeeded": 4,
+    "failed": 0,
+    "skipped": 0
+  },
+  "channels": ["push", "email", "sms", "whatsapp"],
+  "duration_ms": 3450
+}
+```
+
+---
+
+## ✅ Quick Start Checklist
+
+- [ ] MongoDB running locally or connection to Atlas configured
+- [ ] Test user created in MongoDB with valid `fcmTokens` (for push)
+- [ ] Firebase project created, service account JSON downloaded
+- [ ] SendGrid account created, API key generated, sender verified
+- [ ] Twilio account created, phone number purchased, credentials copied
+- [ ] WhatsApp Business API configured (or Twilio sandbox joined)
+- [ ] `.env.local` populated with all credentials
+- [ ] `NOTIFICATIONS_SMOKE_*` variables set with valid test recipient
+- [ ] Ran: `pnpm tsx qa/notifications/run-smoke.ts --channel email` (first test)
+- [ ] Verified email received in inbox
+- [ ] Ran full test: `pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms --channel whatsapp --channel push`
+- [ ] All channels show `succeeded: 1` in output
+
+---
+
+## 📚 Additional Resources
+
+### Official Documentation
+
+- **Firebase Admin SDK:** [firebase.google.com/docs/admin/setup](https://firebase.google.com/docs/admin/setup)
+- **SendGrid API:** [docs.sendgrid.com/api-reference](https://docs.sendgrid.com/api-reference)
+- **Twilio SMS API:** [twilio.com/docs/sms](https://www.twilio.com/docs/sms)
+- **WhatsApp Business API:** [developers.facebook.com/docs/whatsapp](https://developers.facebook.com/docs/whatsapp)
+- **Twilio WhatsApp API:** [twilio.com/docs/whatsapp](https://www.twilio.com/docs/whatsapp)
+
+### Internal Documentation
+
+- `lib/integrations/notifications/README.md` - Notification system architecture
+- `lib/fm-notifications.ts` - Type definitions and interfaces
+- `scripts/notifications-smoke.ts` - Smoke test script source code
+
+---
+
+## 🆘 Support
+
+If you encounter issues not covered in this guide:
+
+1. **Check Logs:** The script outputs detailed error messages
+2. **Service Status Pages:**
+   - Firebase: [status.firebase.google.com](https://status.firebase.google.com)
+   - SendGrid: [status.sendgrid.com](https://status.sendgrid.com)
+   - Twilio: [status.twilio.com](https://status.twilio.com)
+3. **Contact Team:** `#engineering-support` Slack channel
+4. **Create Issue:** [github.com/fixzit/fixzit/issues](https://github.com/fixzit/fixzit/issues)
+
+---
+
+**Last Updated:** November 17, 2025  
+**Version:** 1.0.0  
+**Maintained By:** Engineering Team
+
+]]>
+</file>
+
+<file path="docs/ORG_GUARD_STATUS.md">
+<![CDATA[
+# Org-Guard Implementation Status
+
+**Last Updated:** November 18, 2025  
+**Total FM Pages:** 75  
+**Pages with Org Guard:** 75 (**100%**)  
+**Owner:** Engineering Team
+
+Every FM entry point now pulls the shared `useOrgGuard`/`useFmOrgGuard` hook so support users cannot hit a tenant-specific screen without selecting an org, and every guarded page renders the unified support banner for impersonation context.
+
+---
+
+## Snapshot – Module Coverage
+
+| Module / Area                                                  | Total Pages | Guarded | Coverage | Notes                                                                                   |
+| -------------------------------------------------------------- | ----------- | ------- | -------- | --------------------------------------------------------------------------------------- |
+| Finance (budgets/expenses/payments/invoices/reports)           | 13          | 13      | **100%** | Includes `/fm/invoices/*` proxy routes and finance landing.                             |
+| Properties (list/detail/new/units/leases/inspections/docs)     | 12          | 12      | **100%** | Details, inspections, documents, and leasing consoles now block without context.        |
+| Compliance                                                     | 4           | 4       | **100%** | Landing + audits/contracts creation flows gated.                                        |
+| CRM                                                            | 3           | 3       | **100%** | Accounts + leads new forms now carry the guard and tenant headers.                      |
+| Work Orders                                                    | 6           | 6       | **100%** | Previously completed; kept for completeness.                                            |
+| HR                                                             | 8           | 8       | **100%** | Previously completed.                                                                   |
+| Marketplace                                                    | 4           | 4       | **100%** | Previously completed.                                                                   |
+| Finance-Adjacent (Assets, Maintenance, Projects, RFQs, Orders) | 5           | 5       | **100%** | All non-module pages now reuse `useOrgGuard`.                                           |
+| Support                                                        | 3           | 3       | **100%** | Landing + tickets/escalations share the guard.                                          |
+| System                                                         | 3           | 3       | **100%** | Landing + roles/invites/integrations aligned.                                           |
+| Administration / Dashboard / Global shell                      | 5           | 5       | **100%** | `/fm/page`, `/fm/dashboard`, `/fm/admin`, `/fm/orders`, `/fm/administration/*` guarded. |
+| Tenants                                                        | 2           | 2       | **100%** | Completed earlier; tests referenced below.                                              |
+| Vendors                                                        | 3           | 3       | **100%** | Completed earlier.                                                                      |
+
+---
+
+## Highlights
+
+- **Uniform hook usage:** All FM routes call either `useFmOrgGuard({ moduleId })` or `useOrgGuard()`. `useFmOrgGuard` now exposes `supportBanner`, so pages no longer roll their own impersonation notice.
+- **Finance guard regression:** `tests/unit/app/fm/finance/budgets/new/page.test.tsx`, `tests/unit/app/fm/finance/expenses/new/page.test.tsx`, `tests/unit/app/fm/finance/payments/new/page.test.tsx`, and `tests/unit/app/fm/invoices/new/page.test.tsx` keep every finance creation flow org-aware.
+- **SupportOrgSwitcher coverage:** `tests/unit/components/support/SupportOrgSwitcher.test.tsx` simulates the impersonation flow, so CI fails the moment the switcher regresses.
+- **Shared fetch headers:** Any page that posts data (orders, CRM, compliance, admin assets, finance invoices, etc.) now injects `x-tenant-id` from the guard’s `orgId` before hitting internal APIs.
+- **Admin + system coverage:** `/fm/administration`, `/fm/system`, `/fm/orders`, `/fm/assets`, `/fm/maintenance`, `/fm/projects`, `/fm/rfqs`, `/fm/support`, and `/fm/finance` landing screens all block until an org is selected to prevent cross-tenant data leaks during support impersonation.
+
+---
+
+## Verification & Tooling
+
+### Automated Tests
+
+| Suite                                                    | Command                                                                                                                                                                                                                      |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Work Orders guard + view                                 | `pnpm vitest run tests/unit/components/fm/__tests__/WorkOrdersView.test.tsx tests/unit/app/fm/work-orders/page.test.tsx`                                                                                                     |
+| Tenants & Vendors guard regression                       | `pnpm vitest run tests/unit/app/fm/tenants/page.test.tsx tests/unit/app/fm/vendors/page.test.tsx`                                                                                                                            |
+| Finance "new" flows (budgets/expenses/payments/invoices) | `pnpm vitest run tests/unit/app/fm/finance/budgets/new/page.test.tsx tests/unit/app/fm/finance/expenses/new/page.test.tsx tests/unit/app/fm/finance/payments/new/page.test.tsx tests/unit/app/fm/invoices/new/page.test.tsx` |
+| SupportOrgSwitcher impersonation                         | `pnpm vitest run tests/unit/components/support/SupportOrgSwitcher.test.tsx`                                                                                                                                                  |
+
+The finance suites (Test 0e in the smoke log) assert:
+
+- Guard placeholder renders when `hasOrgContext` is false.
+- When `orgId` exists, the layout renders and form submission posts with the shared `x-tenant-id` header.
+- Support banner wiring stays intact so support agents always see the impersonation context.
+
+### Static Sweep
+
+```bash
+for f in $(find app/fm -name 'page.tsx'); do
+  if ! rg -q "useFmOrgGuard|useOrgGuard" "$f"; then
+    echo "❌ Missing guard: $f"
+  fi
+done
+```
+
+> Current result: no hits (all 75 routes contain the guard hooks or proxy comment).
+
+### Smoke Tests
+
+- `docs/SMOKE_TEST_ORG_GUARDS.md` covers manual SupportOrgSwitcher + guard prompt verification.
+- `SMOKE_TEST_EXECUTION_LOG.md` has been updated with the finance suite run (Test 0e) and should continue to log any additional vitest or Playwright runs.
+
+---
+
+## Implementation Patterns
+
+```tsx
+// Tab-aware page
+const { hasOrgContext, guard, supportBanner, orgId } = useFmOrgGuard({
+  moduleId: "properties",
+});
+if (!hasOrgContext) return guard;
+
+return (
+  <div className="space-y-6">
+    {supportBanner}
+    <ModuleViewTabs moduleId="properties" />
+    {/* page content that uses orgId */}
+  </div>
+);
+```
+
+```tsx
+// Standalone page (no module tabs)
+const { orgId, guard, supportBanner } = useOrgGuard();
+if (!orgId) {
+  return (
+    <div className="space-y-6">
+      {supportBanner}
+      {guard}
+    </div>
+  );
+}
+```
+
+---
+
+## Remaining Follow-Ups
+
+1. **Manual E2E:** Finish the SupportOrgSwitcher + guard smoke test (Test 1 in the execution log) once seeded orgs are available.
+2. **Additional regression suites:**
+   - Add lightweight guard tests for one of the non-finance modules touched today (`projects` or `rfqs`) to keep coverage diverse.
+   - Expand finance creation tests to assert validation/Toast flows once API mocks settle.
+3. **CI wiring:** Gate deployments by running the static sweep above and the targeted vitest suites inside the CI workflow (`verify-org-guards` job).
+4. **Monitoring hook usage:** Consider a lint rule or codemod to enforce `useOrgGuard` on future `/fm/**/page.tsx` additions.
+
+With guards now landed everywhere, the remaining risk is around untested fetch behavior and manual support flows rather than missing prompts.
+
+]]>
+</file>
+
+<file path="docs/PAGE_CONSOLIDATION_STRATEGY.md">
+<![CDATA[
+# Page Consolidation Strategy
+
+## Executive Summary
+
+The Fixzit codebase has **14 high-priority duplicate page structures** that need consolidation. This document provides a detailed migration strategy for merging duplicate pages while preserving functionality and improving maintainability.
+
+---
+
+## Problem Statement
+
+### Current Issues
+
+1. **FM Duplication**: 11 feature areas duplicated between `/app/*` and `/app/fm/*`
+2. **Marketplace Split**: Two separate e-commerce implementations (`/app/marketplace` vs `/app/souq`)
+3. **Vendor Fragmentation**: Three different vendor management interfaces
+4. **Dashboard Confusion**: Multiple dashboard implementations
+
+### Impact
+
+- ❌ **Code Duplication**: ~50% code redundancy across FM pages
+- ❌ **Maintenance Burden**: Bug fixes need to be applied twice
+- ❌ **Inconsistent UX**: Different behavior for same features
+- ❌ **Confusion**: Users don't know which interface to use
+
+---
+
+## Consolidation Priority Matrix
+
+### Priority 1: FM vs Main Pages (Week 2-3)
+
+**Impact**: High | **Effort**: Medium | **Risk**: Medium
+
+| Current Structure                                                        | Consolidated Target              | Pages Affected |
+| ------------------------------------------------------------------------ | -------------------------------- | -------------- |
+| `/app/properties/*` + `/app/fm/properties/*`                             | `/app/(dashboard)/properties/*`  | 13 pages       |
+| `/app/finance/*` + `/app/fm/finance/*`                                   | `/app/(dashboard)/finance/*`     | 9 pages        |
+| `/app/work-orders/*` + `/app/fm/maintenance/*` + `/app/fm/work-orders/*` | `/app/(dashboard)/maintenance/*` | 15 pages       |
+| `/app/dashboard/*` + `/app/fm/dashboard/*`                               | `/app/(dashboard)/page.tsx`      | 2 pages        |
+| `/app/reports/*` + `/app/fm/reports/*`                                   | `/app/(dashboard)/reports/*`     | 2 pages        |
+| `/app/system/*` + `/app/fm/system/*`                                     | `/app/admin/system/*`            | 2 pages        |
+| `/app/compliance/*` + `/app/fm/compliance/*`                             | `/app/(dashboard)/compliance/*`  | 2 pages        |
+| `/app/support/*` + `/app/fm/support/*`                                   | `/app/(dashboard)/support/*`     | 4 pages        |
+| `/app/vendors/*` + `/app/fm/vendors/*`                                   | `/app/(dashboard)/vendors/*`     | 2 pages        |
+| `/app/crm/*` + `/app/fm/crm/*`                                           | `/app/(dashboard)/crm/*`         | 2 pages        |
+| `/app/hr/*` + `/app/fm/hr/*`                                             | `/app/(dashboard)/hr/*`          | 3 pages        |
+
+**Total**: 56 pages → 28 consolidated pages
+
+### Priority 2: Marketplace Consolidation (Week 3)
+
+**Impact**: High | **Effort**: Low | **Risk**: Low
+
+| Current Structure                    | Consolidated Target              | Pages Affected |
+| ------------------------------------ | -------------------------------- | -------------- |
+| `/app/marketplace/*` + `/app/souq/*` | `/app/(dashboard)/marketplace/*` | 23 pages       |
+
+### Priority 3: Vendor Interface Unification (Week 4)
+
+**Impact**: Medium | **Effort**: Low | **Risk**: Low
+
+| Current Structure                                                          | Consolidated Target | Pages Affected |
+| -------------------------------------------------------------------------- | ------------------- | -------------- |
+| `/app/vendors/*` + `/app/marketplace/vendor/*` + `/app/vendor/dashboard/*` | `/app/vendor/*`     | 6 pages        |
+
+---
+
+## Consolidation Strategy: FM vs Main Pages
+
+### Approach: Role-Based View Switching
+
+Instead of duplicating pages, use a **context-based approach** to render different views based on user role.
+
+### Implementation Pattern
+
+#### Step 1: Create Unified Context
+
+```typescript
+// contexts/ModuleContext.tsx
+'use client';
+
+import { createContext, useContext, ReactNode } from 'react';
+import { useSession } from 'next-auth/react';
+
+type ModuleMode = 'standard' | 'fm' | 'admin';
+
+interface ModuleContextValue {
+  mode: ModuleMode;
+  isFM: boolean;
+  isAdmin: boolean;
+  switchMode: (mode: ModuleMode) => void;
+}
+
+const ModuleContext = createContext<ModuleContextValue | undefined>(undefined);
+
+export function ModuleProvider({ children }: { children: ReactNode }) {
+  const { data: session } = useSession();
+
+  // Determine mode from user role
+  const mode: ModuleMode = session?.user?.role === 'FM_MANAGER'
+    ? 'fm'
+    : session?.user?.role === 'ADMIN'
+      ? 'admin'
+      : 'standard';
+
+  const value = {
+    mode,
+    isFM: mode === 'fm',
+    isAdmin: mode === 'admin',
+    switchMode: (newMode: ModuleMode) => {
+      // Store preference in user settings
+      // This allows manual switching if user has multiple roles
+    }
+  };
+
+  return (
+    <ModuleContext.Provider value={value}>
+      {children}
+    </ModuleContext.Provider>
+  );
+}
+
+export function useModule() {
+  const context = useContext(ModuleContext);
+  if (!context) throw new Error('useModule must be used within ModuleProvider');
+  return context;
+}
+```
+
+#### Step 2: Consolidate Properties Pages
+
+**Before** (Duplicate):
+
+```
+/app/properties/page.tsx (Standard)
+/app/fm/properties/page.tsx (FM)
+```
+
+**After** (Consolidated):
+
+```typescript
+// app/(dashboard)/properties/page.tsx
+
+import { PropertiesStandardView } from '@/components/properties/StandardView';
+import { PropertiesFMView } from '@/components/properties/FMView';
+import { useModule } from '@/contexts/ModuleContext';
+
+export default function PropertiesPage() {
+  const { mode } = useModule();
+
+  if (mode === 'fm') {
+    return <PropertiesFMView />;
+  }
+
+  return <PropertiesStandardView />;
+}
+```
+
+#### Step 3: Component Refactoring
+
+Extract shared logic into hooks:
+
+```typescript
+// hooks/useProperties.ts
+
+export function useProperties() {
+  const { mode } = useModule();
+
+  const fetchProperties = async () => {
+    const endpoint = mode === "fm" ? "/api/fm/properties" : "/api/properties";
+
+    return fetch(endpoint).then((r) => r.json());
+  };
+
+  // Shared logic here
+
+  return {
+    properties: data?.properties || [],
+    loading,
+    error,
+    refetch,
+  };
+}
+```
+
+Use in both views:
+
+```typescript
+// components/properties/StandardView.tsx
+export function PropertiesStandardView() {
+  const { properties, loading } = useProperties();
+
+  return (
+    <div>
+      {/* Standard UI */}
+    </div>
+  );
+}
+
+// components/properties/FMView.tsx
+export function PropertiesFMView() {
+  const { properties, loading } = useProperties();
+
+  return (
+    <div>
+      {/* FM-specific UI with asset focus */}
+    </div>
+  );
+}
+```
+
+---
+
+## Consolidation Strategy: Marketplace vs Souq
+
+### Approach: Public vs Authenticated Views
+
+**Souq** appears to be the public-facing store, while **Marketplace** is the internal procurement system.
+
+### Solution: Unified Structure with Access Control
+
+```
+/app/(dashboard)/marketplace/*  - Authenticated procurement
+/app/store/*                    - Public e-commerce (renamed from souq)
+```
+
+### Implementation Pattern
+
+#### Step 1: Rename Public Store
+
+```bash
+# Migration commands
+mv app/souq app/store
+```
+
+#### Step 2: Update Routes
+
+```typescript
+// app/store/page.tsx (Public Store)
+export default async function PublicStorePage() {
+  // No authentication required
+  const products = await getPublicProducts();
+
+  return <PublicStoreLayout products={products} />;
+}
+
+// app/(dashboard)/marketplace/page.tsx (Internal Procurement)
+import { requireAuth } from '@/lib/auth-utils';
+
+export default async function MarketplacePage() {
+  await requireAuth(); // Require authentication
+
+  const products = await getInternalCatalog();
+
+  return <InternalMarketplaceLayout products={products} />;
+}
+```
+
+#### Step 3: Share Product Components
+
+```typescript
+// components/marketplace/ProductCard.tsx
+interface ProductCardProps {
+  product: Product;
+  variant: 'public' | 'internal';
+}
+
+export function ProductCard({ product, variant }: ProductCardProps) {
+  const showInternalPricing = variant === 'internal';
+  const showPublicReviews = variant === 'public';
+
+  return (
+    <div className="product-card">
+      {/* Shared UI with conditional features */}
+    </div>
+  );
+}
+```
+
+---
+
+## Consolidation Strategy: Vendor Management
+
+### Current Problem
+
+Three separate vendor interfaces:
+
+1. `/app/vendors/*` - Vendor list/management
+2. `/app/marketplace/vendor/*` - Vendor portal/products
+3. `/app/vendor/dashboard/*` - Individual vendor dashboard
+
+### Solution: Unified Vendor System
+
+```
+/app/vendor/*                    - Vendor Portal (for vendors to manage their account)
+/app/(dashboard)/vendors/*       - Admin Vendor Management (for admins)
+```
+
+### Implementation Pattern
+
+#### Step 1: Consolidate Admin Vendor Management
+
+```typescript
+// app/(dashboard)/vendors/page.tsx
+import { VendorList } from '@/components/vendors/VendorList';
+import { requireRole } from '@/lib/auth-utils';
+
+export default async function VendorsManagementPage() {
+  await requireRole(['ADMIN', 'PROCUREMENT_MANAGER']);
+
+  return (
+    <div>
+      <h1>Vendor Management</h1>
+      <VendorList showAdminActions />
+    </div>
+  );
+}
+```
+
+#### Step 2: Unified Vendor Portal
+
+```typescript
+// app/vendor/page.tsx (Dashboard for logged-in vendors)
+import { requireRole } from '@/lib/auth-utils';
+
+export default async function VendorDashboardPage() {
+  await requireRole(['VENDOR']);
+  const vendor = await getCurrentVendor();
+
+  return (
+    <VendorLayout>
+      <VendorDashboard vendor={vendor} />
+      {/* Tabs: Overview | Products | Orders | Performance | Settings */}
+    </VendorLayout>
+  );
+}
+```
+
+---
+
+## Migration Checklist
+
+### Pre-Migration (Week 1)
+
+- [ ] Create `ModuleContext` provider
+- [ ] Update `app/layout.tsx` with `<ModuleProvider>`
+- [ ] Create shared hooks (`useProperties`, `useFinance`, etc.)
+- [ ] Set up parallel API routes (`/api/properties` vs `/api/fm/properties`)
+
+### Phase 1: Properties Module (Week 2)
+
+- [ ] Create `/app/(dashboard)/properties/page.tsx`
+- [ ] Extract `PropertiesStandardView` component
+- [ ] Extract `PropertiesFMView` component
+- [ ] Migrate `/app/properties/*` → `/app/(dashboard)/properties/*`
+- [ ] Delete old `/app/fm/properties/*` pages
+- [ ] Update all navigation links
+- [ ] Test role-based switching
+
+### Phase 2: Finance Module (Week 2)
+
+- [ ] Create `/app/(dashboard)/finance/page.tsx`
+- [ ] Consolidate payment pages
+- [ ] Consolidate invoice pages
+- [ ] Merge FM finance features
+- [ ] Delete duplicates
+- [ ] Update navigation
+
+### Phase 3: Maintenance Module (Week 3)
+
+- [ ] Create `/app/(dashboard)/maintenance/page.tsx`
+- [ ] Merge work orders + FM maintenance
+- [ ] Consolidate support tickets
+- [ ] Unified Kanban board
+- [ ] Delete duplicates
+
+### Phase 4: Marketplace (Week 3)
+
+- [ ] Rename `/app/souq` → `/app/store`
+- [ ] Keep `/app/(dashboard)/marketplace` separate
+- [ ] Update all product links
+- [ ] Share ProductCard component
+- [ ] Update navigation
+
+### Phase 5: Vendors (Week 4)
+
+- [ ] Create `/app/vendor/page.tsx` (unified portal)
+- [ ] Create `/app/(dashboard)/vendors/page.tsx` (admin)
+- [ ] Merge vendor product management
+- [ ] Delete old vendor pages
+- [ ] Update vendor onboarding flow
+
+### Phase 6: Remaining Modules (Week 4)
+
+- [ ] Consolidate dashboards
+- [ ] Merge reports pages
+- [ ] Merge system settings
+- [ ] Merge compliance pages
+- [ ] Merge CRM pages
+- [ ] Merge HR pages
+
+---
+
+## Code Migration Scripts
+
+### Script 1: Update Import Paths
+
+```typescript
+// scripts/update-imports.ts
+
+import { promises as fs } from "fs";
+import { glob } from "glob";
+
+const oldPaths = [
+  { from: "@/app/fm/properties", to: "@/app/(dashboard)/properties" },
+  { from: "@/app/fm/finance", to: "@/app/(dashboard)/finance" },
+  // ... add all mappings
+];
+
+async function updateImports() {
+  const files = await glob("**/*.{ts,tsx}", { ignore: "node_modules/**" });
+
+  for (const file of files) {
+    let content = await fs.readFile(file, "utf-8");
+
+    for (const { from, to } of oldPaths) {
+      content = content.replace(new RegExp(from, "g"), to);
+    }
+
+    await fs.writeFile(file, content);
+  }
+
+  console.log(`✅ Updated ${files.length} files`);
+}
+
+updateImports();
+```
+
+### Script 2: Update Navigation Links
+
+```typescript
+// scripts/update-nav.ts
+
+import { updateNavigationLinks } from "@/lib/migration-utils";
+
+const linkMappings = {
+  "/fm/properties": "/properties",
+  "/fm/finance": "/finance",
+  "/fm/maintenance": "/maintenance",
+  // ... add all mappings
+};
+
+async function updateNavigation() {
+  // Update sidebar navigation
+  await updateNavigationLinks("nav/sidebar-links.ts", linkMappings);
+
+  // Update breadcrumbs
+  await updateNavigationLinks("components/Breadcrumbs.tsx", linkMappings);
+
+  console.log("✅ Navigation links updated");
+}
+
+updateNavigation();
+```
+
+---
+
+## Testing Strategy
+
+### 1. Role-Based Testing
+
+```typescript
+// tests/consolidation.test.ts
+
+describe("Page Consolidation", () => {
+  test("Standard user sees standard view", async () => {
+    const user = await loginAs("standard-user");
+    const page = await navigateTo("/properties");
+
+    expect(page).toShowStandardView();
+    expect(page).not.toShowFMFeatures();
+  });
+
+  test("FM Manager sees FM view", async () => {
+    const user = await loginAs("fm-manager");
+    const page = await navigateTo("/properties");
+
+    expect(page).toShowFMView();
+    expect(page).toShowAssetManagementFeatures();
+  });
+
+  test("Admin can switch between views", async () => {
+    const user = await loginAs("admin");
+    const page = await navigateTo("/properties");
+
+    await page.switchMode("fm");
+    expect(page).toShowFMView();
+
+    await page.switchMode("standard");
+    expect(page).toShowStandardView();
+  });
+});
+```
+
+### 2. Navigation Testing
+
+```typescript
+describe("Navigation After Consolidation", () => {
+  test("Old FM URLs redirect to new paths", async () => {
+    const response = await fetch("/fm/properties");
+
+    expect(response).toRedirect("/properties");
+    expect(response.headers.get("x-view-mode")).toBe("fm");
+  });
+});
+```
+
+### 3. Data Integrity Testing
+
+```typescript
+describe("Data Migration", () => {
+  test("FM data accessible from consolidated page", async () => {
+    const fmProperty = await createFMProperty();
+
+    const page = await navigateTo("/properties", { mode: "fm" });
+
+    expect(page).toDisplayProperty(fmProperty);
+  });
+});
+```
+
+---
+
+## Rollback Plan
+
+### If Issues Occur
+
+#### Step 1: Feature Flag Rollback
+
+```typescript
+// lib/feature-flags.ts
+
+export const FEATURE_FLAGS = {
+  CONSOLIDATED_PROPERTIES: process.env.NEXT_PUBLIC_CONSOLIDATED_PROPERTIES === 'true',
+  CONSOLIDATED_FINANCE: process.env.NEXT_PUBLIC_CONSOLIDATED_FINANCE === 'true',
+  // ... other flags
+};
+
+// Usage in page
+export default function PropertiesPage() {
+  if (!FEATURE_FLAGS.CONSOLIDATED_PROPERTIES) {
+    // Show old interface
+    return <OldPropertiesPage />;
+  }
+
+  // Show new consolidated interface
+  return <ConsolidatedPropertiesPage />;
+}
+```
+
+#### Step 2: Git Revert Strategy
+
+```bash
+# Revert specific module consolidation
+git revert <commit-hash>  # Revert properties consolidation
+git push origin feat/consolidation
+
+# Or revert entire consolidation
+git revert <range-of-commits>
+```
+
+---
+
+## Success Metrics
+
+### Quantitative Metrics
+
+- **Code Reduction**: Target 50% reduction in duplicate code
+- **Build Time**: Expect 20-30% faster builds (fewer files)
+- **Bundle Size**: Target 15-20% smaller production bundle
+- **Test Coverage**: Maintain >80% coverage during migration
+
+### Qualitative Metrics
+
+- **Developer Experience**: Single source of truth for features
+- **User Experience**: Consistent behavior across features
+- **Maintainability**: Bug fixes applied once, not twice
+
+---
+
+## Timeline Summary
+
+| Week       | Task                                  | Pages Affected | Status      |
+| ---------- | ------------------------------------- | -------------- | ----------- |
+| **Week 1** | Setup infrastructure (Context, Hooks) | 0              | Not Started |
+| **Week 2** | Properties + Finance consolidation    | 22             | Not Started |
+| **Week 3** | Maintenance + Marketplace             | 38             | Not Started |
+| **Week 4** | Vendors + Remaining modules           | 12             | Not Started |
+
+**Total Duration**: 4 weeks  
+**Total Pages Consolidated**: 72 pages → 36 pages
+
+---
+
+## Next Steps
+
+1. ✅ Review and approve consolidation strategy
+2. 🔄 Create `ModuleContext` provider
+3. 🔄 Start with Properties module (lowest risk)
+4. 🔄 Test thoroughly before moving to next module
+5. 🔄 Update documentation as you go
+
+---
+
+**Last Updated**: 2025-10-25  
+**Status**: Strategy defined, awaiting approval
+
+]]>
+</file>
+
+<file path="docs/PAYMENT_WEBHOOK_TESTING.md">
+<![CDATA[
+# Payment Webhook Resilience Testing Guide
+
+**Date:** November 18, 2025  
+**Status:** Ready for Staging Execution  
+**Priority:** HIGH - Deployment Blocker
+
+---
+
+## Overview
+
+This guide details testing procedures for PayTabs and Tap payment callback webhooks to ensure:
+
+1. **Idempotent execution** prevents duplicate processing
+2. **Rate limiting** blocks malicious flood attacks
+3. **Payload size limits** prevent memory exhaustion
+4. **Signature validation** ensures authenticity
+
+---
+
+## Prerequisites
+
+- [ ] `.env.staging` (or the environment you are targeting) contains the **exact** values listed below for PayTabs and Tap.
+- [ ] `scripts/sign-paytabs-payload.ts` is available (added in November 2025) so you can generate valid PayTabs signatures without leaving secrets in shell history (see [Generating PayTabs Signatures](#generating-paytabs-signatures)).
+- [ ] Tap HMAC helper ready (`pnpm tsx scripts/sign-tap-payload.ts` or the Python snippet in [Generating Tap Signatures](#generating-tap-signatures)) so you can hash the raw payload with `TAP_SECRET_KEY`.
+- [ ] Access to MongoDB (read-only is fine) for verifying payment/idempotency collections.
+- [ ] Tail access to the application logs (`pnpm tsx tools/log-tail.ts payments` or CloudWatch/Sentry dashboards).
+- [ ] Redis CLI access (or any `redis-cli --scan` alternative) to confirm rate-limit counters increment and expire as expected.
+- [ ] Sample payloads (success + failure) are ready; use the library published in [`payment-integration-checklist.md`](payment-integration-checklist.md) so the JSON schemas are consistent across teams.
+
+### Generating PayTabs Signatures
+
+```bash
+# Example: create a signed payload quickly without exposing raw secrets
+pnpm tsx scripts/sign-paytabs-payload.ts --json '{
+  "tran_ref": "TST0001234567",
+  "cart_id": "order-12345",
+  "resp_status": "A",
+  "amount": 150.00
+}'
+# The script prints the `signature` header value and the curl command to run.
+```
+
+### Generating Tap Signatures
+
+Tap webhooks use an HMAC SHA-256 of the **raw** request body with `TAP_SECRET_KEY`. Use the helper script to avoid manual hashing mistakes:
+
+```bash
+pnpm tsx scripts/sign-tap-payload.ts --json '{
+  "id": "chg_TS01234567890",
+  "object": "charge",
+  "status": "CAPTURED",
+  "amount": 250.00,
+  "currency": "SAR"
+}'
+```
+
+The script validates the JSON, prints the hex digest for `X-Tap-Signature`, and echoes a curl command that preserves the original payload bytes.
+
+> ⚠️ **Important:** the signature must match the byte-for-byte payload you send. If you edit or pretty-print the JSON, re-run the script.
+
+Prefer the script, but if you need an inline approach, you can still use the Python snippet below (remember to set `RAW_BODY` to the exact string used in `curl`):
+
+```bash
+RAW_BODY='{"id":"chg_TS01234567890","object":"charge","status":"CAPTURED","amount":250,"currency":"SAR"}'
+TAP_SECRET_KEY="your-tap-secret-key"
+python - <<'PY'
+import hashlib, hmac, os
+secret = os.environ["TAP_SECRET_KEY"].encode()
+payload = os.environ["RAW_BODY"].encode()
+print(hmac.new(secret, payload, hashlib.sha256).hexdigest())
+PY
+```
+
+---
+
+## PayTabs Callback Testing
+
+### Environment Configuration
+
+```bash
+# Production values - set in staging environment
+export PAYTABS_CALLBACK_MAX_BYTES=32768  # 32KB payload limit
+export PAYTABS_CALLBACK_RATE_LIMIT=60    # 60 requests
+export PAYTABS_CALLBACK_RATE_WINDOW_MS=60000  # per minute
+export PAYTABS_CALLBACK_IDEMPOTENCY_TTL_MS=300000  # 5 minutes
+export PAYTABS_SERVER_KEY="your-paytabs-server-key"
+```
+
+### Test Cases
+
+#### TC1: Normal Payment Flow
+
+```bash
+# Expected: 200 OK, payment processed
+# Signature: use scripts/sign-paytabs-payload.ts so payload+signature always match
+curl -X POST https://staging.fixzit.app/api/payments/paytabs/callback \
+  -H "Content-Type: application/json" \
+  -H "X-Paytabs-Signature: <valid-signature>" \
+  -d '{
+    "tran_ref": "TST0001234567",
+    "cart_id": "order-12345",
+    "resp_status": "A",
+    "resp_message": "Approved",
+    "amount": 150.00,
+    "currency": "SAR"
+  }'
+```
+
+#### TC2: Idempotency Check (Replay Attack)
+
+```bash
+# Send same payload twice within 5 minutes
+# Expected: First request: 200 OK, Second request: 200 OK (but no duplicate processing)
+# Verify via Mongo: db.subscriptioninvoices.find({"paytabsTranRef":"TST0001234567"}).count() === 1
+
+# First call
+curl -X POST https://staging.fixzit.app/api/payments/paytabs/callback \
+  -H "Content-Type: application/json" \
+  -H "X-Paytabs-Signature: <valid-signature>" \
+  -d '{"tran_ref": "TST0001234567", "cart_id": "order-replay", "resp_status": "A", "amount": 100.00}'
+
+# Second call (immediate replay)
+curl -X POST https://staging.fixzit.app/api/payments/paytabs/callback \
+  -H "Content-Type: application/json" \
+  -H "X-Paytabs-Signature: <valid-signature>" \
+  -d '{"tran_ref": "TST0001234567", "cart_id": "order-replay", "resp_status": "A", "amount": 100.00}'
+
+# Verify database: Only ONE payment record created
+```
+
+#### TC3: Rate Limit Exhaustion
+
+```bash
+# Send 61 requests within 60 seconds
+# Expected: First 60 succeed, 61st returns 429 Too Many Requests
+# Monitor Redis: keys matching ratelimit:paytabs should increment
+
+for i in {1..61}; do
+  curl -X POST https://staging.fixzit.app/api/payments/paytabs/callback \
+    -H "Content-Type: application/json" \
+    -H "X-Paytabs-Signature: <valid-signature>" \
+    -d "{\"tran_ref\": \"TST-RATE-$i\", \"cart_id\": \"order-$i\", \"resp_status\": \"A\", \"amount\": 10.00}" &
+done
+wait
+
+# Check last response: should be 429
+```
+
+#### TC4: Payload Size Limit
+
+```bash
+# Send 33KB payload (exceeds 32KB limit)
+# Expected: 413 Payload Too Large (log line: "PayTabs payload rejected: exceeds limit")
+
+# Create oversized payload
+LARGE_PAYLOAD=$(python3 -c "import json; print(json.dumps({'tran_ref': 'TST999', 'cart_id': 'x'*33000, 'resp_status': 'A', 'amount': 100}))")
+
+curl -X POST https://staging.fixzit.app/api/payments/paytabs/callback \
+  -H "Content-Type: application/json" \
+  -H "X-Paytabs-Signature: <valid-signature>" \
+  -d "$LARGE_PAYLOAD"
+```
+
+#### TC5: Invalid Signature
+
+```bash
+# Send valid payload with wrong signature
+# Expected: 401 Unauthorized (log line: "PayTabs callback rejected: Invalid signature")
+
+curl -X POST https://staging.fixzit.app/api/payments/paytabs/callback \
+  -H "Content-Type: application/json" \
+  -H "X-Paytabs-Signature: invalid-signature-12345" \
+  -d '{"tran_ref": "TST111", "cart_id": "order-sig-test", "resp_status": "A", "amount": 50.00}'
+```
+
+---
+
+## Shared Verification Steps (PayTabs & Tap)
+
+After **every** test case:
+
+1. **Logs** – tail server output and look for structured webhook entries (success + explicit error reason).
+   ```bash
+   pnpm tsx tools/log-tail.ts payments | grep "payments.webhook"
+   ```
+   For failures you should see the rejection reason (payload limit, invalid signature, rate limit, etc.). Copy the log snippet into the test sheet.
+2. **MongoDB** – verify inserts/updates:
+   ```bash
+   # PayTabs (subscription invoices)
+   mongosh --eval 'db.subscriptioninvoices.find({"paytabsTranRef":"TST0001234567"}, {cartId:1,status:1}).pretty()'
+   # Tap (charge log)
+   mongosh --eval 'db.tapTransactions.find({"tapChargeId":"chg_TS01234567890"}, {status:1}).pretty()'
+   ```
+   PayTabs should only create/update documents when `resp_status === "A"` and never more than once per `tran_ref`. Tap must keep a single document per `id`.
+3. **Redis rate limits** – confirm counters increment and expire:
+   ```bash
+   redis-cli --scan --pattern "ratelimit:paytabs:*"
+   redis-cli --ttl "ratelimit:paytabs:https://staging.fixzit.app/api/payments/paytabs/callback"
+   redis-cli --scan --pattern "ratelimit:tap:*"
+   ```
+   TTL values should be close to `PAYTABS_CALLBACK_RATE_WINDOW_MS / 1000` (or Tap equivalent) immediately after TC3.
+4. **Idempotency cache** – recommended to ensure replays are short-circuited:
+   ```bash
+   redis-cli --scan --pattern "paytabs:idempotency:*"
+   redis-cli --pttl "paytabs:idempotency:TST0001234567"
+   redis-cli --scan --pattern "tap:idempotency:*"
+   ```
+   TTLs should align with `*_CALLBACK_IDEMPOTENCY_TTL_MS`. Lack of keys indicates withIdempotency isn’t running.
+
+Document every discrepancy in the test sheet before moving to the next scenario.
+
+### Evidence to Attach Per Scenario
+
+- ✅ `curl` command + response (HTTP status + body)
+- ✅ Log snippet showing `payments.webhook` outcome (success or explicit failure reason)
+- ✅ Mongo query output proving insert/update counts
+- ✅ Redis `--ttl/--pttl` output for the relevant rate-limit or idempotency key
+- ✅ Screenshot or JSON excerpt saved under `_artifacts/payments/<date>/<suite>/`
+
+## Reporting & Audit Trail
+
+1. **Execution Log** – append each scenario’s outcome to [`SMOKE_TEST_EXECUTION_LOG.md`](../SMOKE_TEST_EXECUTION_LOG.md) (same numbering as this guide) and include the artifact folder link.
+2. **Artifacts Folder Structure**
+   ```
+   _artifacts/payments/<YYYY-MM-DD>/<suite>/
+     ├── curl.log
+     ├── mongo.json
+     ├── redis.txt
+     ├── logs.txt
+     └── screenshots/
+   ```
+3. **Checklist Cross-References** – in every log entry, mention which row in [`payment-integration-checklist.md`](payment-integration-checklist.md) the evidence satisfies (e.g., PI-Idempotency, PI-RateLimit).
+
+---
+
+## Tap Payments Callback Testing
+
+### Environment Configuration
+
+```bash
+# Production values
+export TAP_WEBHOOK_MAX_BYTES=32768
+export TAP_WEBHOOK_RATE_LIMIT=60
+export TAP_WEBHOOK_RATE_WINDOW_MS=60000
+export TAP_WEBHOOK_IDEMPOTENCY_TTL_MS=300000  # 5 minutes
+export TAP_SECRET_KEY="your-tap-secret-key"
+export TAP_WEBHOOK_SECRET="your-tap-webhook-hmac-secret"
+```
+
+### Test Cases
+
+#### TC1: Normal Charge Success
+
+```bash
+curl -X POST https://staging.fixzit.app/api/payments/tap/webhook \
+  -H "Content-Type: application/json" \
+  -H "X-Tap-Signature: <valid-hmac-signature>" \
+  -d '{
+    "id": "chg_TS01234567890",
+    "object": "charge",
+    "status": "CAPTURED",
+    "amount": 250.00,
+    "currency": "SAR",
+    "metadata": {
+      "order_id": "order-tap-001"
+    }
+  }'
+```
+
+#### TC2: Idempotency Check
+
+```bash
+# Replay same charge ID twice
+# Expected: Second call should be skipped (logged but not processed)
+# Verify with Mongo `db.tapTransactions.find({tapChargeId: "chg_REPLAY001"}).count() === 1`
+
+# First call
+curl -X POST https://staging.fixzit.app/api/payments/tap/webhook \
+  -H "Content-Type: application/json" \
+  -H "X-Tap-Signature: <valid-signature>" \
+  -d '{"id": "chg_REPLAY001", "object": "charge", "status": "CAPTURED", "amount": 100, "currency": "SAR"}'
+
+# Immediate replay
+curl -X POST https://staging.fixzit.app/api/payments/tap/webhook \
+  -H "Content-Type: application/json" \
+  -H "X-Tap-Signature: <valid-signature>" \
+  -d '{"id": "chg_REPLAY001", "object": "charge", "status": "CAPTURED", "amount": 100, "currency": "SAR"}'
+```
+
+#### TC3: Rate Limit Test
+
+```bash
+# Same as PayTabs - flood with 61 requests
+for i in {1..61}; do
+  curl -X POST https://staging.fixzit.app/api/payments/tap/webhook \
+    -H "Content-Type: application/json" \
+    -H "X-Tap-Signature: <valid-signature>" \
+    -d "{\"id\": \"chg_RATE_$i\", \"object\": \"charge\", \"status\": \"CAPTURED\", \"amount\": 10, \"currency\": \"SAR\"}" &
+done
+wait
+
+# Expected: 61st response is 429 Too Many Requests, Redis ratelimit key increments.
+```
+
+#### TC4: Payload Size Limit
+
+```bash
+# Reuse PayTabs oversized payload strategy
+LARGE_TAP_PAYLOAD=$(python3 -c "import json; print(json.dumps({'id': 'chg_BIG', 'object': 'charge', 'status': 'CAPTURED', 'amount': 100, 'currency': 'SAR', 'metadata': {'blob': 'x'*33000}}))")
+
+curl -X POST https://staging.fixzit.app/api/payments/tap/webhook \
+  -H "Content-Type: application/json" \
+  -H "X-Tap-Signature: <valid-signature>" \
+  -d "$LARGE_TAP_PAYLOAD"
+
+# Expected: 413 Payload Too Large with log entry "Tap payload rejected: exceeds limit"
+```
+
+#### TC5: Invalid Signature
+
+```bash
+curl -X POST https://staging.fixzit.app/api/payments/tap/webhook \
+  -H "Content-Type: application/json" \
+  -H "X-Tap-Signature: invalid-signature-xyz" \
+  -d '{"id": "chg_SIG_FAIL", "object": "charge", "status": "CAPTURED", "amount": 10, "currency": "SAR"}'
+
+# Expected: 401 Unauthorized, log entry "Tap callback rejected: Invalid signature"
+```
+
+---
+
+## Reporting Checklist
+
+Before marking the suite complete:
+
+1. ✅ All test cases above executed in both **staging** and **pre-prod** (if applicable).
+2. ✅ Screenshots or log excerpts attached for any non-200/expected responses.
+3. ✅ Mongo/Redis verification notes recorded for TC2/TC3 counterparts.
+4. ✅ Issues filed (with log snippets + payload) for any deviations from expected behavior.
+5. ✅ `.env` overrides reverted or documented for rollback.
+
+## Reference Payload Library & Monitoring SLA
+
+- Use the **Sample Payload Library** + **Error Response Matrix** in [`payment-integration-checklist.md`](payment-integration-checklist.md) for signed PayTabs/Tap examples. Each payload now includes required metadata fields plus failure variants for signature and fraud cases.
+- SLA recap:
+  - **Idempotency window:** 5 minutes (`PAYTABS_CALLBACK_IDEMPOTENCY_TTL_MS`, `TAP_WEBHOOK_IDEMPOTENCY_TTL_MS`)
+  - **Rate limit:** 60 req/min per gateway (`*_CALLBACK_RATE_LIMIT`)
+  - **Payload ceiling:** 32KB (`*_CALLBACK_MAX_BYTES`)
+  - **Monitoring:** Triage via `pnpm tsx tools/log-tail.ts payments`, Sentry project `payments-webhooks`, and `redis-cli --scan --pattern "ratelimit:paytabs:*"`.
+
+## QA Data Seeding & Evidence Capture
+
+1. **Seed identities**
+   ```bash
+   pnpm tsx scripts/seed-demo-users.ts --support --finance --operations
+   node scripts/create-test-data.js --scenarios support-orgs --tenants 3 --finance-fixtures
+   ```
+2. **Verify impersonation + SupportOrg switcher**  
+   `pnpm tsx scripts/create-test-data.js --verify-support-impersonation`
+3. **Capture evidence**
+   - Rerun suites in [`SMOKE_TEST_EXECUTION_LOG.md`](../SMOKE_TEST_EXECUTION_LOG.md) and attach:
+     - EN + AR screenshots for each prompt
+     - Mongo queries proving `organizationId` swap
+     - Curl output snippets for webhook runs
+4. **Log results**
+   - Update the log table per suite.
+   - Drop artifacts (screens + `curl` transcripts) into `_artifacts/payments/<date>/`.
+
+## Org Guard Automation Hook
+
+- `pnpm run verify:org-context` now chains `tsx scripts/verify-org-context.ts` and the smoke tests in `tests/smoke/org-context-flow.test.tsx`.
+- The **Route Quality** GitHub workflow already runs this job (see `.github/workflows/route-quality.yml`), so regressions fail CI automatically.
+- Local verification shortcut:
+  ```bash
+  pnpm run verify:org-context
+  ```
+  Review warnings for baseline clean-up and rerun after applying fixes.
+
+## Next Steps & Cross-Team Dependencies
+
+| #   | Owner              | Action                                                                                                                                                                                                  | Source                                                                                             | Status                                                               |
+| --- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| 1   | Backend / Payments | Deliver PayTabs sample payloads (success/error) plus timeout + monitoring SLAs so checklist items PI-01/PI-02 unblock.                                                                                  | [`payment-integration-checklist.md`](payment-integration-checklist.md) (PI table around line 87)   | ✅ Completed – payload/error library published Nov 18                |
+| 2   | QA                 | Seed support users + multi-org data using `pnpm tsx scripts/seed-demo-users.ts` and `node scripts/create-test-data.js`, then rerun SupportOrg smoke suites and capture EN/AR evidence for doc sign-off. | [`SMOKE_TEST_EXECUTION_LOG.md`](../SMOKE_TEST_EXECUTION_LOG.md) lines 372 & 391                    | 🟡 Ready for execution – follow _QA Data Seeding & Evidence Capture_ |
+| 3   | Platform           | Finish org-guard verification script + CI wiring, updating both the tracker and this action plan as phases complete.                                                                                    | `docs/ORG_GUARD_STATUS.md` line 335 and `docs/operations/DOCUMENTATION_ORG_ACTION_PLAN.md` line 28 | ✅ Automated – `pnpm verify:org-context` wired into Route Quality CI |
+
+Document the outcome of each action above before running full staging webhooks to ensure all upstream blockers are resolved.
+
+## Validation Checklist
+
+### Pre-Test Setup
+
+- [ ] Staging environment variables configured (see Environment Configuration tables)
+- [ ] Test payment gateway accounts active
+- [ ] Database access for verification queries
+- [ ] Monitoring dashboards ready (Sentry, logs)
+
+### During Testing
+
+- [ ] Monitor server CPU/memory usage
+- [ ] Check Redis for idempotency keys
+- [ ] Verify rate limit counters
+- [ ] Watch application logs for errors
+
+### Post-Test Verification
+
+- [ ] Query database: `db.payments.find({cartId: /order-/}).count()`
+- [ ] Verify no duplicate payment records
+- [ ] Check DLQ for failed webhooks
+- [ ] Review Sentry for unexpected errors
+- [ ] Confirm ZATCA invoice generation (Saudi payments only)
+
+---
+
+## Expected Results
+
+| Test Case   | Expected Status                                           | Verification Command                                                                  |
+| ----------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------- | ---------------------------- |
+| PayTabs TC1 | `200 OK`, invoice status becomes `PAID`                   | `db.subscriptioninvoices.findOne({cartId:"order-12345"},{status:1,paytabsTranRef:1})` |
+| PayTabs TC2 | second call returns cached response, no duplicate invoice | `db.subscriptioninvoices.find({"paytabsTranRef":"TST0001234567"}).count()`            |
+| PayTabs TC3 | Request 61 returns `429`                                  | Inspect `/tmp/paytabs-callback.log` or Sentry rate-limit counter                      |
+| PayTabs TC4 | `413 Payload Too Large` and log entry                     | `pnpm tsx tools/log-tail.ts payments                                                  | grep "payload rejected"`     |
+| PayTabs TC5 | `401 Unauthorized`, no DB writes                          | `db.subscriptioninvoices.find({"cartId":"order-sig-test"})`                           |
+| Tap TC1     | `200 OK`, `tapTransactions` entry created                 | `db.tapTransactions.find({"tapChargeId":"chg_TS01234567890"})`                        |
+| Tap TC2     | Replay skipped                                            | `db.tapTransactions.find({"tapChargeId":"chg_REPLAY001"}).count()`                    |
+| Tap TC3     | 61st request `429`                                        | Tap webhook logs contain "Rate limit exceeded"                                        |
+| Tap TC4     | `413 Payload Too Large`, log entry                        | `pnpm tsx tools/log-tail.ts payments                                                  | grep "Tap payload rejected"` |
+| Tap TC5     | `401 Unauthorized`, no DB writes                          | `db.tapTransactions.find({"tapChargeId":"chg_SIG_FAIL"})`                             |
+
+Document every run in [`SMOKE_TEST_EXECUTION_LOG.md`](../SMOKE_TEST_EXECUTION_LOG.md) and attach curl output + relevant log excerpts so the QA lead can sign off the deployment gate.
+
+### Success Criteria
+
+✅ **Idempotency:** Replayed webhooks return 200 but don't duplicate database records  
+✅ **Rate Limiting:** 61st request within 60s returns HTTP 429  
+✅ **Size Limits:** >32KB payloads rejected with HTTP 413  
+✅ **Signature Validation:** Invalid signatures rejected with HTTP 401  
+✅ **ZATCA Integration:** Saudi payments generate valid QR codes
+
+### Failure Indicators
+
+❌ Duplicate payment records in database  
+❌ Rate limits not enforced (>60 req/min accepted)  
+❌ Large payloads crash server or consume excessive memory  
+❌ Invalid signatures processed successfully  
+❌ Missing ZATCA clearance for Saudi transactions
+
+---
+
+## Rollback Plan
+
+If critical issues found:
+
+1. **Immediate:** Disable webhooks via feature flag `PAYMENT_WEBHOOKS_ENABLED=false`
+2. **Short-term:** Roll back to previous version
+3. **Investigation:** Review logs, identify root cause
+4. **Fix & Retest:** Apply fixes, repeat full test suite
+
+---
+
+## Sign-Off
+
+| Role          | Name | Date       | Status               |
+| ------------- | ---- | ---------- | -------------------- |
+| Developer     | -    | 2025-11-18 | ✅ Tests Ready       |
+| QA Lead       | -    | -          | ⏳ Pending Execution |
+| DevOps        | -    | -          | ⏳ Staging Setup     |
+| Product Owner | -    | -          | ⏳ Final Approval    |
+
+---
+
+## Next Steps
+
+1. **Schedule staging testing window** (recommend 2-hour block during low traffic)
+2. **Execute all test cases** and document results
+3. **Review with team** before production deployment
+4. **Update production env vars** based on staging findings
+5. **Monitor production closely** for first 24 hours post-deployment
+
+]]>
+</file>
+
+<file path="docs/POST_STABILIZATION_AUDIT_REPORT.md">
+<![CDATA[
+# Post-Stabilization System Integrity & STRICT v4 Audit Report
+
+**Audit Date:** 2025-12-02 (Updated)  
+**Original Audit Date:** 2025-11-28  
+**Auditor:** Codex (ChatGPT) / GitHub Copilot (Claude Opus 4.5)  
+**Scope:** Targeted post-stabilization review for STRICT v4.1 compliance, structural drift, and task list verification
+
+---
+
+## Executive Summary
+
+| Category | Status | Issues Found | Critical |
+|----------|--------|--------------|----------|
+| **Phase 1: Structural Drift** | ✅ PASS | 0 | 0 |
+| **Phase 2: RBAC & Mongoose** | ✅ PASS | 0 | 0 |
+| **Phase 3: Task List & Tests** | ✅ PASS | 0 | 0 |
+| **Phase 4: Console.log Audit** | ✅ PASS | 11 (acceptable) | 0 |
+
+**Overall Assessment:** The codebase is in **good compliance** with STRICT v4.1. No Prisma/SQL violations found in production code. RBAC is properly implemented in API routes. Full test suite is passing (1,216 tests as of 2025-11-28).
+
+---
+
+## Phase 1: Structural Drift & Import Errors
+
+### 1.1 Prisma/SQL Violations
+
+**Search Pattern:** `prisma|schema\.prisma|@prisma/client|PrismaClient`  
+**Search Scope:** All `.ts` and `.tsx` files
+
+| Location | Type | Severity | Action |
+|----------|------|----------|--------|
+| `docs/archived/*` | Documentation only | ✅ None | Acceptable - historical reference |
+| `docs/POST_STABILIZATION_AUDIT_FIXES.md` | Comment documenting removal | ✅ None | Acceptable - audit trail |
+| No production imports found | N/A | ✅ PASS | No action needed |
+
+**Conclusion:** ✅ **NO PRISMA VIOLATIONS IN PRODUCTION CODE**
+
+### 1.2 Broken Import Scan
+
+**Status:** ✅ PASS
+
+All imports verified through TypeScript compilation. The codebase uses the correct patterns:
+- MongoDB: `@/lib/mongodb-unified`
+- Mongoose models: `@/server/models/*`
+- Logger: `@/lib/logger`
+
+### 1.3 Legacy Document Path References
+
+**Status:** ✅ PASS
+
+No broken references to legacy documentation paths found in active code.
+
+---
+
+## Phase 2: RBAC & Mongoose Violations
+
+### 2.1 Organization Scoping (org_id/orgId)
+
+**Search Pattern:** `org_id|orgId|organizationId`  
+**Results:** 50+ matches verified
+
+| API Route | Scoping Implementation | Status |
+|-----------|----------------------|--------|
+| `/api/hr/employees` | `session.user.orgId` enforced | ✅ PASS |
+| `/api/hr/leaves` | `session.user.orgId` enforced | ✅ PASS |
+| `/api/hr/leave-types` | `session.user.orgId` enforced | ✅ PASS |
+| `/api/hr/payroll/runs` | `session.user.orgId` enforced | ✅ PASS |
+| `/api/finance/journals` | Via `requirePermission()` + org scoping | ✅ PASS |
+| `/api/finance/accounts` | Via `requirePermission()` + org scoping | ✅ PASS |
+| `/api/fm/reports` | `org_id: tenantId` enforced | ✅ PASS |
+| `/api/notifications` | `orgId` in filter | ✅ PASS |
+
+**Exception Found (Acceptable):**
+- `/api/ats/feeds/jsonld` - Public job feed, uses optional orgId for filtering public jobs only
+- `/api/ats/feeds/indeed` - Public job feed, same pattern
+
+**Conclusion:** ✅ **ALL PROTECTED ROUTES PROPERLY SCOPED**
+
+### 2.2 Finance/HR Role Restrictions
+
+#### HR Routes (`/api/hr/*`)
+
+```typescript
+// Example from /api/hr/employees/route.ts
+const allowedRoles = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER'];
+if (!session.user.role || !allowedRoles.includes(session.user.role)) {
+  return NextResponse.json({ error: "Forbidden: HR access required" }, { status: 403 });
+}
+```
+
+| Route | Roles Allowed | PII Protection | Status |
+|-------|---------------|----------------|--------|
+| `GET /api/hr/employees` | SUPER_ADMIN, CORPORATE_ADMIN, HR, HR_OFFICER | ✅ PII stripped unless explicitly requested | ✅ PASS |
+| `POST /api/hr/employees` | SUPER_ADMIN, CORPORATE_ADMIN, HR, HR_OFFICER | N/A | ✅ PASS |
+| `GET /api/hr/leaves` | SUPER_ADMIN, CORPORATE_ADMIN, HR, HR_OFFICER | N/A | ✅ PASS |
+
+#### Finance Routes (`/api/finance/*`)
+
+Finance routes use the centralized `requirePermission()` function from `server/lib/rbac.config.ts`:
+
+```typescript
+// From server/lib/rbac.config.ts
+"finance.accounts.read": [
+  UserRole.SUPER_ADMIN,
+  UserRole.CORPORATE_ADMIN,
+  UserRole.FINANCE,
+  UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
+  UserRole.AUDITOR,
+],
+```
+
+**Conclusion:** ✅ **FINANCE/HR PROPERLY RESTRICTED TO AUTHORIZED ROLES**
+
+### 2.3 PII Encryption Hooks
+
+**Location:** `lib/security/encryption.ts`  
+**Status:** ✅ Implemented
+
+PII fields (compensation, bankDetails) are:
+1. Stripped from bulk list responses by default
+2. Only included when `includePii=true` AND user has HR/HR_OFFICER role
+
+### 2.4 Middleware RBAC Enforcement
+
+**File:** `middleware.ts`  
+**Key Checks:**
+- `/api/admin/*` and `/api/system/*` require SUPER_ADMIN or admin permissions
+- Protected routes redirect to `/login` for unauthenticated users
+- User headers attached with role, orgId, permissions
+
+**Conclusion:** ✅ **MIDDLEWARE RBAC PROPERLY CONFIGURED**
+
+---
+
+## Phase 3: Task List Verification
+
+**Source:** `docs/CATEGORIZED_TASKS_LIST.md`
+
+### Category 0: Audit Logging & RBAC (P0)
+
+| Task | Documented Status | Actual Status | Verified |
+|------|-------------------|---------------|----------|
+| Establish RBAC Compliance Matrix | COMPLETED | ✅ Implemented in `domain/fm/fm.behavior.ts` | ✅ |
+| org_id scoping in Mongoose | COMPLETED | ✅ Verified in API routes | ✅ |
+| Finance/HR role restrictions | COMPLETED | ✅ Verified with requirePermission() | ✅ |
+| Agent audit logging | COMPLETED | ✅ Implemented in `domain/fm/fm.behavior.ts` | ✅ |
+| PII encryption hooks | COMPLETED | ✅ Implemented in HR employee routes | ✅ |
+
+### Category 1: Testing & QA (P0)
+
+| Task | Documented Status | Current Status | Verified |
+|------|-------------------|----------------|----------|
+| Full test suite | COMPLETED | ✅ 1,216 tests passing (pnpm vitest run, 2025-11-28) | ✅ |
+
+### Category 2: Code Quality (P0)
+
+| Task | Documented Status | Actual Status | Verified |
+|------|-------------------|---------------|----------|
+| Console statements Phase 3 | INCOMPLETE | See Phase 4 below | ⚠️ Partial |
+
+---
+
+## Phase 4: Console.log Audit
+
+**Search Pattern:** `console\.(log|warn|error|debug|info)`  
+**Scope:** Production code (`lib/`, `components/`, `domain/`, `services/`, `app/`)
+
+### Results Summary
+
+| Directory | Matches | Assessment |
+|-----------|---------|------------|
+| `components/` | 0 | ✅ Clean |
+| `domain/` | 0 | ✅ Clean |
+| `services/` | 0 | ✅ Clean |
+| `app/` | 0 | ✅ Clean |
+| `lib/` | 11 | ⚠️ See below |
+
+### lib/ Console Statement Analysis
+
+| File | Type | Context | Assessment |
+|------|------|---------|------------|
+| `lib/logger.ts:33` | `console.info` | Logger implementation | ✅ Acceptable - this IS the logger |
+| `lib/logger.ts:42` | `console.warn` | Logger implementation | ✅ Acceptable |
+| `lib/logger.ts:64` | `console.error` | Logger implementation | ✅ Acceptable |
+| `lib/logger.ts:78` | `console.debug` | Logger implementation | ✅ Acceptable |
+| `lib/logger.ts:99,126,158` | `console.error` | Sentry import errors | ✅ Acceptable - fallback logging |
+| `lib/auth.ts:22` | Comment only | `* console.log('User ID'...` | ✅ Documentation example |
+| `lib/security/encryption.ts:443` | Comment only | `* console.log('Add to .env'...` | ✅ Documentation example |
+| `lib/auth.test.ts:97` | Test file | `// Capture console.warn` | ✅ Test utility |
+| `lib/aqar/package-activation.ts:108` | Comment only | `* console.error('Failed...'` | ✅ Documentation example |
+
+**Conclusion:** ✅ **ALL console statements are either in the logger itself or in comments/tests**
+
+---
+
+## Phase 5: STRICT v4.1 Role Matrix Verification
+
+### Canonical 20 Roles (STRICT v4.1)
+
+**Source:** `types/user.ts` - CANONICAL_ROLES constant
+
+#### Administrative Roles (4)
+| Role | Module Access | Verified |
+|------|--------------|----------|
+| SUPER_ADMIN | All modules + cross-org | ✅ |
+| CORPORATE_ADMIN | All modules (org-scoped) | ✅ |
+| ADMIN | All modules (org-scoped) | ✅ |
+| MANAGER | Team management, WO, PM | ✅ |
+
+#### Facility Management Roles (3)
+| Role | Module Access | Verified |
+|------|--------------|----------|
+| FM_MANAGER | FM operations, WO dispatch | ✅ |
+| PROPERTY_MANAGER | Properties, WO, Support | ✅ |
+| TECHNICIAN | WO (assigned), Support, Reports | ✅ |
+
+#### Business Function Roles (3)
+| Role | Module Access | Verified |
+|------|--------------|----------|
+| FINANCE | Finance module + reports | ✅ |
+| HR | HR module + reports | ✅ |
+| PROCUREMENT | RFQ, PO, vendor selection | ✅ |
+
+#### Team Member + Sub-Roles (5)
+| Role | Specialization | Verified |
+|------|---------------|----------|
+| TEAM_MEMBER | Base role - use sub-roles for module access | ✅ |
+| FINANCE_OFFICER | Finance module only + reports | ✅ |
+| HR_OFFICER | HR module + PII access + reports | ✅ |
+| SUPPORT_AGENT | Support + CRM + reports | ✅ |
+| OPERATIONS_MANAGER | WO + Properties + Support (wider scope) | ✅ |
+
+#### Property & External Roles (5)
+| Role | Module Access | Verified |
+|------|--------------|----------|
+| OWNER | Portfolio management + approvals | ✅ |
+| CORPORATE_OWNER | Multi-property portfolio | ✅ |
+| TENANT | Own units/WO, Marketplace | ✅ |
+| VENDOR | Assigned WO, Marketplace | ✅ |
+| AUDITOR | Read-only finance + compliance | ✅ |
+
+#### Legacy/Deprecated Roles (NOT FOR NEW CODE)
+> ⚠️ These are kept only for backward compatibility during migration.
+> See `types/user.ts` LEGACY_ROLES and ROLE_ALIAS_MAP for migration guidance.
+
+- `EMPLOYEE` → Use MANAGER or specific function role
+- `SUPPORT` → Use SUPPORT_AGENT sub-role
+- `DISPATCHER` → Use FM_MANAGER or PROPERTY_MANAGER
+- `FINANCE_MANAGER` → Use FINANCE or FINANCE_OFFICER
+- `CUSTOMER` → B2C portal role (not part of STRICT v4)
+- `VIEWER` → View-only placeholder (not part of STRICT v4)
+
+---
+
+## Remediation Plan
+
+### High Priority (P0)
+
+1. **Test Suite Maintenance**
+   - Run `pnpm test` regularly to verify test health
+   - Track test counts in CI pipeline artifacts
+   - Address any failing tests before deployment
+
+> **Note**: Test counts should be sourced from CI pipeline results. The certification below reflects the state at the time of the original audit (2025-11-28). Always verify current test status with `pnpm test` before deployment.
+
+### Medium Priority (P1)
+
+2. **Landing Page Security Verification**
+   - Confirmed: `app/page.tsx` is marketing-only, no FM metrics exposed
+   - No API calls to protected endpoints from public landing
+   - ✅ **No action needed** - the previous concern was a false positive
+
+### Low Priority (P2)
+
+3. **Documentation Cleanup**
+   - Consider archiving `docs/archived/` Prisma references
+   - Update any stale migration documentation
+
+---
+
+## Appendix: Files Audited
+
+### Core RBAC Files
+- `domain/fm/fm.behavior.ts` (1573 lines) - Full RBAC matrix
+- `types/user.ts` - Central role definitions
+- `middleware.ts` - Route protection
+- `server/lib/rbac.config.ts` - Finance permissions
+
+### API Routes Verified
+- `app/api/hr/employees/route.ts` ✅
+- `app/api/hr/leaves/route.ts` ✅
+- `app/api/hr/leave-types/route.ts` ✅
+- `app/api/hr/payroll/runs/route.ts` ✅
+- `app/api/finance/journals/route.ts` ✅
+- `app/api/finance/accounts/route.ts` ✅
+- `app/api/fm/reports/route.ts` ✅
+- `app/api/notifications/route.ts` ✅
+
+### Public Pages Verified
+- `app/page.tsx` ✅ - Marketing only, no protected data
+
+---
+
+## Certification
+
+This audit confirms the Fixzit codebase is in **STRICT v4.1 compliance** with:
+- ✅ No Prisma/SQL in production code
+- ✅ Proper org_id scoping in all protected API routes
+- ✅ Finance/HR role restrictions enforced
+- ✅ PII protection implemented
+- ✅ Agent audit logging implemented
+- ✅ Middleware RBAC properly configured
+- ✅ Console statements appropriately managed
+- ✅ Canonical 20-role matrix documented (aligned with `types/user.ts`)
+
+**Audit Status:** ✅ PASSED (as of original audit date)
+
+> **Important**: This certification reflects the codebase state at the time of audit.
+> Before deployment, always verify:
+> 1. `pnpm typecheck` passes
+> 2. `pnpm lint` passes
+> 3. `pnpm test` passes (check CI for current test count)
+
+---
+
+*Report generated by GitHub Copilot (Claude Opus 4.5)*
+*Last updated: 2025-12-02*
+
+]]>
+</file>
+
+<file path="docs/PRODUCTION_AUTH_CHECKLIST.md">
+<![CDATA[
+# Production Authentication Checklist
+
+## Required Environment Variables for Auth to Work
+
+The following environment variables **MUST** be set in your production environment (Vercel, AWS, etc.) for authentication to function correctly.
+
+### Critical Variables (Auth Won't Work Without These)
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `NEXTAUTH_SECRET` | ✅ **REQUIRED** | 32+ character secret for JWT signing. Generate with: `openssl rand -base64 32` |
+| `AUTH_TRUST_HOST` | ✅ **REQUIRED** for Vercel/proxied deployments | Set to `true` to allow NextAuth to trust the host header behind a proxy |
+| `NEXTAUTH_URL` | ✅ **REQUIRED** | Your production URL (e.g., `https://app.fixzit.co`) |
+
+### Multi-Tenant Organization Defaults (Required for Public Auth Routes)
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `PUBLIC_ORG_ID` | ✅ **REQUIRED** | MongoDB ObjectId for the default public organization. Used by signup, forgot-password, reset-password, and verify routes. Create a "Public" org in your database. |
+| `DEFAULT_ORG_ID` | ✅ **REQUIRED** | Fallback organization ID when no specific tenant context is available. Typically the same as `PUBLIC_ORG_ID`. |
+| `TEST_ORG_ID` | Optional | Organization ID for test/E2E environments. Used by test utilities and can override public flows in testing. |
+
+> ⚠️ **CRITICAL**: Without `PUBLIC_ORG_ID` and `DEFAULT_ORG_ID`, the following endpoints will return 500 errors:
+> - `/api/auth/signup`
+> - `/api/auth/forgot-password`
+> - `/api/auth/reset-password`
+> - `/api/auth/verify/*`
+> - `/api/auth/otp/send`
+
+### Generate a Secret
+
+```bash
+# Generate a secure 32-byte secret
+openssl rand -base64 32
+```
+
+### Vercel Environment Setup
+
+1. Go to your Vercel project settings
+2. Navigate to **Settings → Environment Variables**
+3. Add the following for **Production** environment:
+
+```env
+# Auth secrets
+NEXTAUTH_SECRET=<your-generated-secret>
+AUTH_TRUST_HOST=true
+NEXTAUTH_URL=https://your-domain.com
+
+# Multi-tenant organization defaults (REQUIRED)
+PUBLIC_ORG_ID=<mongodb-objectid-for-public-org>
+DEFAULT_ORG_ID=<mongodb-objectid-for-default-org>
+# TEST_ORG_ID=<mongodb-objectid-for-test-org>  # Optional, for staging/test
+```
+
+> **Note**: To get your organization ObjectIds, query your MongoDB database:
+> ```javascript
+> db.organizations.find({ name: /public|default/i }, { _id: 1, name: 1 })
+> ```
+
+## Common Auth Errors and Fixes
+
+### 500 Error on `/api/auth/signup`, `/api/auth/forgot-password`, or `/api/auth/reset-password`
+
+**Cause**: Missing `PUBLIC_ORG_ID` or `DEFAULT_ORG_ID` environment variables
+
+**Fix**:
+1. Create a "Public" organization in your MongoDB database if it doesn't exist
+2. Set `PUBLIC_ORG_ID` to the ObjectId of that organization
+3. Set `DEFAULT_ORG_ID` (typically the same as `PUBLIC_ORG_ID`)
+4. Redeploy after adding the environment variables
+
+**Error Message**:
+```text
+Default organization not configured. Set PUBLIC_ORG_ID, TEST_ORG_ID, or DEFAULT_ORG_ID environment variable with a valid ObjectId.
+```
+
+### 500 Error on `/api/auth/session` or `/api/auth/csrf`
+
+**Cause**: Missing `NEXTAUTH_SECRET` or `AUTH_TRUST_HOST`
+
+**Fix**:
+1. Ensure `NEXTAUTH_SECRET` is set (32+ characters)
+2. Set `AUTH_TRUST_HOST=true` for proxied deployments
+
+### 401 Error on `/api/auth/otp/send`
+
+**Cause**: Invalid credentials or user not found in database
+
+**Fix**:
+1. Check if user exists in production database
+2. Verify password is correct
+3. Check if user status is `ACTIVE`
+
+### "There was a problem with the server configuration"
+
+This NextAuth error message appears when:
+- `NEXTAUTH_SECRET` is missing or invalid
+- `trustHost` is false and running behind a proxy
+- Database connection fails during auth callback
+
+## Super Admin OTP Verification
+
+**Production Security**: In production (`NODE_ENV=production`), OTP verification is **always required** for all users including super admins. This ensures proper MFA security.
+
+### Development Bypass (Dev Only)
+
+The bypass only works when ALL these conditions are true:
+
+```typescript
+isSuperAdmin && isDevelopment && explicitBypass
+```
+
+Where:
+- `isSuperAdmin`: User has SUPER_ADMIN role
+- `isDevelopment`: `NODE_ENV !== 'production'`
+- `explicitBypass`: `NEXTAUTH_SUPERADMIN_BYPASS_OTP=true`
+
+### Production Super Admin Login (Recommended)
+
+1. **Configure SMS Gateway**: Ensure SMS provider (Twilio, etc.) is properly configured
+2. **Update User Phone**: Ensure super admin user has a valid phone number in the database
+3. **Test OTP Flow**: Verify OTP is sent and received on the configured phone number
+
+### Required Environment Variables
+
+```env
+# SMS Gateway Configuration (Twilio example)
+TWILIO_ACCOUNT_SID=your_account_sid
+TWILIO_AUTH_TOKEN=your_auth_token
+TWILIO_PHONE_NUMBER=+966xxxxxxxxx
+```
+
+### Production Test Phone Configuration
+
+For production testing, the designated test phone number is configured in the database:
+
+```text
+Phone: +966552233456
+```
+
+**Usage**:
+- ✅ This phone number (+966552233456) is the **Super Admin's designated phone** for full privileged access
+- ✅ Super Admin manages all test users and can update phone numbers as needed
+- ✅ OTP will be sent to this number for Super Admin authentication
+
+### Fallback Phone (Emergency Use Only)
+
+```env
+# ⚠️ SECURITY WARNING: Avoid in production unless absolutely necessary
+# Only use for time-bound emergency break-glass procedures
+# Remove immediately after emergency access is no longer needed
+# NEXTAUTH_SUPERADMIN_FALLBACK_PHONE=+966500000000
+```
+
+**Caution**: Do not set `NEXTAUTH_SUPERADMIN_FALLBACK_PHONE` in production unless there is a documented, time-limited break-glass procedure approved by security. Using a static fallback phone weakens MFA assurance by bypassing user-profile phone validation.
+
+### Troubleshooting OTP Issues
+
+1. **OTP Not Received**: Check SMS gateway configuration and phone number format
+2. **Invalid Phone Format**: Ensure phone is in Saudi format (+966XXXXXXXXX)
+3. **User Not Found**: Verify super admin user exists in database with `status: 'ACTIVE'`
+4. **Rate Limited**: Wait 5 minutes between OTP requests
+
+## Environment Variable Validation
+
+Auth config validates environment at startup. Check logs for messages like:
+
+```text
+Missing required runtime configuration: NEXTAUTH_URL. These are required for production runtime.
+Missing secrets: NEXTAUTH_SECRET or AUTH_SECRET. Authentication will not work.
+```
+
+## Testing Auth Configuration
+
+### Quick Health Check
+
+```bash
+# Test session endpoint (should return empty session, not 500)
+curl -s https://your-domain.com/api/auth/session
+
+# Expected: {"user":null} or {} (empty object)
+# Error: 500 status with HTML error page
+```
+
+### Full Auth Flow Test
+
+1. Navigate to `/login`
+2. Enter valid credentials
+3. Verify OTP is sent (or bypassed in dev)
+4. Check redirect to `/dashboard`
+
+## Checklist Before Deployment
+
+### Auth Secrets
+- [ ] `NEXTAUTH_SECRET` set (32+ chars, unique per environment)
+- [ ] `AUTH_TRUST_HOST=true` set for Vercel/proxied deployments
+- [ ] `NEXTAUTH_URL` set to production domain with https
+
+### Multi-Tenant Configuration
+- [ ] `PUBLIC_ORG_ID` set to a valid MongoDB ObjectId for the public organization
+- [ ] `DEFAULT_ORG_ID` set to a valid MongoDB ObjectId (typically same as PUBLIC_ORG_ID)
+- [ ] (Optional) `TEST_ORG_ID` set for staging/test environments
+
+### Database & Services
+- [ ] Database connection string (`MONGODB_URI`) is correct
+- [ ] SMS gateway configured for OTP (if using SMS)
+- [ ] Super admin user exists in database with `status: 'ACTIVE'`
+- [ ] Public organization exists in database with appropriate permissions
+
+### Testing
+- [ ] Test login flow on staging before production
+- [ ] Test signup flow with a new email
+- [ ] Test forgot-password flow
+- [ ] Finance index migration executed: run `MONGODB_URI=<prod-uri> pnpm tsx scripts/drop-legacy-fm-transaction-index.ts` and verify `db.fm_financial_transactions.getIndexes()` only includes the org-scoped unique `{ orgId: 1, transactionNumber: 1 }` (legacy global `{ transactionNumber: 1 }` removed)
+
+## Vercel Specific Notes
+
+1. **Preview deployments**: Use separate secrets from production
+2. **Edge runtime**: Auth handlers must use `runtime = 'nodejs'`
+3. **Serverless function timeout**: Increase if DB connections are slow
+
+---
+
+## Related Documentation
+
+- [PII Migration Break-Glass Runbook](./operations/PII_MIGRATION_BREAK_GLASS_RUNBOOK.md) - Emergency procedure for finance PII encryption migration
+- [Post-Stabilization Audit Report](./POST_STABILIZATION_AUDIT_REPORT.md) - STRICT v4.1 compliance status
+- [Security Documentation](./SECURITY.md) - Security policies and procedures
+
+---
+
+**Last Updated**: 2025-12-02  
+**Version**: 1.3
+
+]]>
+</file>
+
+</batch_content>

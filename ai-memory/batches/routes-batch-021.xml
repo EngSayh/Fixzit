@@ -1,0 +1,3358 @@
+
+You are the "Fixzit Memory Builder" for category: "routes".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "routes",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/api/vendors/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Vendor } from "@/server/models/Vendor";
+import { z } from "zod";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
+
+const createVendorSchema = z.object({
+  name: z.string().min(1),
+  type: z.enum(["SUPPLIER", "CONTRACTOR", "SERVICE_PROVIDER", "CONSULTANT"]),
+  contact: z.object({
+    primary: z.object({
+      name: z.string(),
+      title: z.string().optional(),
+      email: z.string().email(),
+      phone: z.string().optional(),
+      mobile: z.string().optional(),
+    }),
+    secondary: z
+      .object({
+        name: z.string().optional(),
+        email: z.string().email().optional(),
+        phone: z.string().optional(),
+      })
+      .optional(),
+    address: z.object({
+      street: z.string(),
+      city: z.string(),
+      region: z.string(),
+      postalCode: z.string().optional(),
+    }),
+  }),
+  business: z
+    .object({
+      registrationNumber: z.string().optional(),
+      taxId: z.string().optional(),
+      licenseNumber: z.string().optional(),
+      establishedDate: z.string().optional(),
+      employees: z.number().optional(),
+      annualRevenue: z.number().optional(),
+      specializations: z.array(z.string()).optional(),
+      certifications: z
+        .array(
+          z.object({
+            name: z.string(),
+            issuer: z.string(),
+            issued: z.string().optional(),
+            expires: z.string().optional(),
+            status: z.string().optional(),
+          }),
+        )
+        .optional(),
+    })
+    .optional(),
+  status: z
+    .enum(["PENDING", "APPROVED", "SUSPENDED", "REJECTED", "BLACKLISTED"])
+    .optional(),
+  tags: z.array(z.string()).optional(),
+});
+
+function isUnauthenticatedError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.message.toLowerCase().includes("unauthenticated")
+  );
+}
+
+async function resolveSessionUser(req: NextRequest) {
+  try {
+    return await getSessionUser(req);
+  } catch (error) {
+    if (isUnauthenticatedError(error)) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+/**
+ * @openapi
+ * /api/vendors:
+ *   get:
+ *     summary: vendors operations
+ *     tags: [vendors]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const user = await resolveSessionUser(req);
+    if (!user) {
+      return createSecureResponse(
+        { error: "Authentication required" },
+        401,
+        req,
+      );
+    }
+
+    // Rate limiting AFTER authentication
+    const clientIp = getClientIP(req);
+    const rl = await smartRateLimit(
+      `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
+      60,
+      60_000,
+    );
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        { status: 401 },
+      );
+    }
+    await connectToDatabase();
+
+    const data = createVendorSchema.parse(await req.json());
+
+    const vendor = await Vendor.create({
+      orgId: user.orgId,
+      code: `VEN-${crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase()}`,
+      ...data,
+      createdBy: user.id,
+    });
+
+    return createSecureResponse(vendor, 201, req);
+  } catch (error: unknown) {
+    const correlationId = crypto.randomUUID();
+    logger.error("[POST /api/vendors] Error creating vendor:", {
+      correlationId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    const status = error instanceof z.ZodError ? 422 : 500;
+    return createSecureResponse(
+      {
+        error: "Failed to create vendor",
+        correlationId,
+      },
+      status,
+      req,
+    );
+  }
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const user = await resolveSessionUser(req);
+    if (!user) {
+      return createSecureResponse(
+        { error: "Authentication required" },
+        401,
+        req,
+      );
+    }
+
+    // Rate limiting AFTER authentication
+    const clientIp = getClientIP(req);
+    const rl = await smartRateLimit(
+      `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
+      60,
+      60_000,
+    );
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        { status: 401 },
+      );
+    }
+    await connectToDatabase();
+
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, Number(searchParams.get("page")) || 1);
+    const limit = Math.min(100, Number(searchParams.get("limit")) || 20);
+    const type = searchParams.get("type");
+    const status = searchParams.get("status");
+    const search = searchParams.get("search");
+
+    const match: Record<string, unknown> = { orgId: user.orgId };
+
+    if (type) match.type = type;
+    if (status) match.status = status;
+    if (search) {
+      match.$text = { $search: search };
+    }
+
+    const [items, total] = await Promise.all([
+      Vendor.find(match)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit),
+      Vendor.countDocuments(match),
+    ]);
+
+    return NextResponse.json({
+      items,
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit),
+    });
+  } catch (error: unknown) {
+    const correlationId = crypto.randomUUID();
+    logger.error("[GET /api/vendors] Error fetching vendors:", {
+      correlationId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return createSecureResponse(
+      {
+        error: "Failed to fetch vendors",
+        correlationId,
+      },
+      500,
+      req,
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/webhooks/carrier/tracking/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { fulfillmentService } from "@/services/souq/fulfillment-service";
+import { logger } from "@/lib/logger";
+import crypto from "crypto";
+import { z } from "zod";
+
+/**
+ * Carrier webhook secrets - should be configured per carrier
+ * Each carrier provides their own webhook signing key
+ */
+const CARRIER_WEBHOOK_SECRETS: Record<string, string | undefined> = {
+  aramex: process.env.ARAMEX_WEBHOOK_SECRET,
+  smsa: process.env.SMSA_WEBHOOK_SECRET,
+  spl: process.env.SPL_WEBHOOK_SECRET,
+};
+
+const TrackingWebhookSchema = z.object({
+  carrier: z.enum(["aramex", "smsa", "spl"]),
+  trackingNumber: z.string().min(1),
+  status: z.string().optional(),
+  location: z.string().optional(),
+  timestamp: z.string().optional(),
+  signature: z.string().min(1, "Webhook signature is required"),
+  orgId: z.string().min(1, "Organization ID is required"),
+});
+
+/**
+ * Verify webhook signature using HMAC-SHA256
+ * Each carrier signs webhooks with their secret key
+ */
+function verifyWebhookSignature(
+  body: Record<string, unknown>,
+  signature: string,
+  carrier: string,
+): boolean {
+  const secret = CARRIER_WEBHOOK_SECRETS[carrier];
+  if (!secret) {
+    // If no secret configured, reject for security
+    logger.warn(`[carrier-webhook] No secret configured for carrier: ${carrier}`);
+    return false;
+  }
+
+  // Create payload for verification (exclude signature from body)
+  const { signature: _sig, ...payload } = body;
+  const payloadString = JSON.stringify(payload);
+
+  const expectedSignature = crypto
+    .createHmac("sha256", secret)
+    .update(payloadString)
+    .digest("hex");
+
+  // Timing-safe comparison to prevent timing attacks
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(signature),
+      Buffer.from(expectedSignature),
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * POST /api/webhooks/carrier/tracking
+ * Webhook endpoint for carrier tracking updates
+ * Accepts updates from Aramex, SMSA, SPL
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+
+    // Validate request body with Zod
+    const parseResult = TrackingWebhookSchema.safeParse(body);
+    if (!parseResult.success) {
+      return NextResponse.json(
+        {
+          error: "Invalid request body",
+          details: parseResult.error.issues.map((i) => i.message),
+        },
+        { status: 400 },
+      );
+    }
+
+    const { carrier, trackingNumber, signature, orgId } = parseResult.data;
+
+    // Verify webhook signature (SECURITY: Always verify in all environments)
+    const isValid = verifyWebhookSignature(body, signature, carrier);
+    if (!isValid) {
+      logger.warn(`[carrier-webhook] Invalid signature for carrier: ${carrier}`, {
+        trackingNumber,
+      });
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    }
+
+    // Update tracking
+    await fulfillmentService.updateTracking(trackingNumber, carrier, orgId);
+
+    return NextResponse.json({
+      success: true,
+      message: "Tracking updated successfully",
+      trackingNumber,
+    });
+  } catch (error) {
+    logger.error("Webhook tracking update error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * GET /api/webhooks/carrier/tracking
+ * Health check endpoint
+ */
+export async function GET() {
+  return NextResponse.json({
+    status: "ok",
+    service: "carrier-tracking-webhook",
+    timestamp: new Date().toISOString(),
+  });
+}
+
+]]>
+</file>
+
+<file path="app/api/webhooks/nexmo/sms/route.ts">
+<![CDATA[
+/**
+ * Nexmo (Vonage) SMS Webhook Handler
+ *
+ * Receives delivery status callbacks from Nexmo/Vonage SMS provider.
+ * Updates SMSMessage status based on delivery receipts.
+ *
+ * @module app/api/webhooks/nexmo/sms
+ */
+import { NextRequest, NextResponse } from "next/server";
+import crypto from "node:crypto";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { SMSMessage } from "@/server/models/SMSMessage";
+import { logger } from "@/lib/logger";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
+
+// Nexmo delivery status codes
+// https://developer.vonage.com/messaging/sms/guides/delivery-receipts
+const STATUS_MAP: Record<string, "SENT" | "DELIVERED" | "FAILED"> = {
+  delivered: "DELIVERED",
+  accepted: "SENT",
+  buffered: "SENT",
+  expired: "FAILED",
+  failed: "FAILED",
+  rejected: "FAILED",
+  unknown: "SENT",
+};
+
+// Nexmo error codes that indicate permanent failure
+const PERMANENT_FAILURE_CODES = new Set([
+  "1", // Unknown
+  "2", // Absent subscriber temporary
+  "3", // Absent subscriber permanent
+  "4", // Call barred by user
+  "5", // Portability error
+  "6", // Anti-spam rejection
+  "7", // Handset busy
+  "8", // Network error
+  "9", // Illegal number
+  "10", // Invalid message
+  "11", // Unroutable
+  "12", // Destination unreachable
+  "99", // General error
+]);
+
+/**
+ * Verify Nexmo webhook signature
+ * Nexmo uses HMAC-SHA256 or JWT depending on configuration
+ */
+function verifyNexmoSignature(
+  request: NextRequest,
+  params: URLSearchParams,
+  secret: string
+): boolean {
+  if (!secret) return true; // Skip if no secret configured
+
+  const signature = params.get("sig");
+  if (!signature) return false;
+
+  // Build the signature base string (sorted parameters without sig)
+  const sortedParams = Array.from(params.entries())
+    .filter(([key]) => key !== "sig")
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, value]) => `${key}=${value}`)
+    .join("&");
+
+  const expectedSignature = crypto
+    .createHmac("sha256", secret)
+    .update(sortedParams)
+    .digest("hex")
+    .toUpperCase();
+
+  return crypto.timingSafeEqual(
+    Buffer.from(signature.toUpperCase()),
+    Buffer.from(expectedSignature)
+  );
+}
+
+/**
+ * POST /api/webhooks/nexmo/sms
+ * GET /api/webhooks/nexmo/sms (Nexmo can send via GET)
+ *
+ * Handles Nexmo/Vonage delivery receipts
+ */
+async function handleNexmoWebhook(request: NextRequest) {
+  try {
+    const clientIp = getClientIP(request);
+    const rl = await smartRateLimit(`nexmo-webhook:${clientIp}`, 100, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    // Nexmo can send via GET or POST
+    let params: URLSearchParams;
+    if (request.method === "GET") {
+      params = request.nextUrl.searchParams;
+    } else {
+      const body = await request.text();
+      // Nexmo sends form-urlencoded or JSON
+      if (request.headers.get("content-type")?.includes("application/json")) {
+        const json = JSON.parse(body);
+        params = new URLSearchParams(json);
+      } else {
+        params = new URLSearchParams(body);
+      }
+    }
+
+    const webhookSecret = process.env.NEXMO_WEBHOOK_SECRET;
+    if (webhookSecret && !verifyNexmoSignature(request, params, webhookSecret)) {
+      logger.warn("[Nexmo Webhook] Invalid signature", { clientIp });
+      return NextResponse.json(
+        { error: "Invalid signature" },
+        { status: 401 }
+      );
+    }
+
+    // Nexmo delivery receipt fields
+    const messageId = params.get("messageId") || params.get("message-id");
+    const status = params.get("status")?.toLowerCase();
+    const errCode = params.get("err-code");
+    const messageTimestamp = params.get("message-timestamp");
+    const scts = params.get("scts"); // Service center timestamp
+
+    if (!messageId) {
+      logger.warn("[Nexmo Webhook] Missing messageId");
+      return NextResponse.json(
+        { error: "Missing messageId" },
+        { status: 400 }
+      );
+    }
+
+    // Map Nexmo status to our status
+    const ourStatus = status ? STATUS_MAP[status] : undefined;
+    if (!ourStatus) {
+      logger.info("[Nexmo Webhook] Ignoring intermediate status", {
+        messageId,
+        status,
+      });
+      return NextResponse.json({ success: true, ignored: true });
+    }
+
+    await connectToDatabase();
+
+    // Find message by provider message ID
+    const message = await SMSMessage.findOne({ providerMessageId: messageId });
+    if (!message) {
+      logger.warn("[Nexmo Webhook] Message not found", { messageId });
+      return NextResponse.json({ success: true, notFound: true });
+    }
+
+    // 🔐 STRICT v4.1: Org-scoped filter for updates
+    const orgScopedFilter = { _id: message._id, orgId: message.orgId };
+
+    // Parse delivery timestamp
+    let deliveredAt: Date | undefined;
+    if (scts) {
+      // SCTS format: YYMMDDHHMM
+      const year = parseInt(`20${scts.substring(0, 2)}`, 10);
+      const month = parseInt(scts.substring(2, 4), 10) - 1;
+      const day = parseInt(scts.substring(4, 6), 10);
+      const hour = parseInt(scts.substring(6, 8), 10);
+      const minute = parseInt(scts.substring(8, 10), 10);
+      deliveredAt = new Date(year, month, day, hour, minute);
+    } else if (messageTimestamp) {
+      deliveredAt = new Date(messageTimestamp);
+    }
+
+    if (ourStatus === "DELIVERED") {
+      // Use org-scoped update instead of markDelivered to ensure tenant isolation
+      await SMSMessage.findOneAndUpdate(orgScopedFilter, {
+        status: "DELIVERED",
+        deliveredAt: deliveredAt || new Date(),
+      });
+      logger.info("[Nexmo Webhook] Message delivered", {
+        messageId: message._id.toString(),
+        providerMessageId: messageId,
+        orgId: message.orgId,
+      });
+    } else if (ourStatus === "FAILED") {
+      const isPermanent = errCode ? PERMANENT_FAILURE_CODES.has(errCode) : false;
+      await SMSMessage.findOneAndUpdate(orgScopedFilter, {
+        status: "FAILED",
+        lastError: `Nexmo error: ${errCode}`,
+        lastErrorCode: errCode || "UNKNOWN",
+        metadata: {
+          ...message.metadata,
+          nexmoPermanentFailure: isPermanent,
+        },
+      });
+      logger.warn("[Nexmo Webhook] Message delivery failed", {
+        messageId: message._id.toString(),
+        providerMessageId: messageId,
+        orgId: message.orgId,
+        errorCode: errCode,
+        permanent: isPermanent,
+      });
+    } else if (ourStatus === "SENT") {
+      await SMSMessage.findOneAndUpdate(orgScopedFilter, {
+        status: "SENT",
+        sentAt: deliveredAt || new Date(),
+      });
+      logger.info("[Nexmo Webhook] Message sent/accepted", {
+        messageId: message._id.toString(),
+        providerMessageId: messageId,
+        orgId: message.orgId,
+      });
+    }
+
+    return NextResponse.json({ success: true, status: ourStatus });
+  } catch (error) {
+    logger.error("[Nexmo Webhook] Error processing callback", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  return handleNexmoWebhook(request);
+}
+
+export async function GET(request: NextRequest) {
+  return handleNexmoWebhook(request);
+}
+
+]]>
+</file>
+
+<file path="app/api/webhooks/sendgrid/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { createSecureResponse } from "@/server/security/headers";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
+import { verifyWebhookSignature } from "@/config/sendgrid.config";
+import { getClientIp } from "@/lib/security/client-ip";
+
+import { logger } from "@/lib/logger";
+/**
+ * SendGrid Event Webhook Handler
+ *
+ * Receives delivery, open, click, bounce, and spam events from SendGrid
+ * Updates email_logs collection with real-time delivery status
+ *
+ * @see https://docs.sendgrid.com/for-developers/tracking-events/event
+ * @see https://docs.sendgrid.com/for-developers/tracking-events/getting-started-event-webhook-security
+ */
+
+interface SendGridEvent {
+  email: string;
+  timestamp: number;
+  event:
+    | "processed"
+    | "delivered"
+    | "open"
+    | "click"
+    | "bounce"
+    | "dropped"
+    | "spamreport"
+    | "unsubscribe"
+    | "group_unsubscribe"
+    | "group_resubscribe";
+  sg_event_id: string;
+  sg_message_id: string;
+  emailId?: string;
+  errorId?: string;
+  type?: string;
+  url?: string; // For click events
+  reason?: string; // For bounce/dropped events
+  status?: string; // For bounce events (5.x.x format)
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    // SECURITY: Capture client IP for logging (using secure IP detection)
+    const clientIp = getClientIp(req);
+
+    // SECURITY: Validate Content-Type (exact match)
+    const contentType = req.headers.get("content-type");
+    if (!contentType || !contentType.startsWith("application/json")) {
+      logger.warn("⚠️ Invalid Content-Type:", { contentType });
+      return createSecureResponse({ error: "Invalid Content-Type" }, 400, req);
+    }
+
+    // Get raw body for signature verification
+    const rawBody = await req.text();
+
+    // SECURITY: Validate payload size using byte length (prevent DoS with multi-byte chars)
+    const MAX_PAYLOAD_SIZE_BYTES = 1024 * 1024; // 1MB
+    const payloadBytes = Buffer.byteLength(rawBody, "utf8");
+    if (payloadBytes > MAX_PAYLOAD_SIZE_BYTES) {
+      logger.error(`❌ Payload too large: ${payloadBytes} bytes`);
+      return createSecureResponse({ error: "Payload too large" }, 413, req);
+    }
+
+    // Parse events
+    let events: SendGridEvent[];
+    try {
+      events = JSON.parse(rawBody);
+      if (!Array.isArray(events)) {
+        throw new Error(
+          `Invalid payload type: Expected array, got ${typeof events}`,
+        );
+      }
+    } catch (parseError) {
+      const error =
+        parseError instanceof Error
+          ? parseError
+          : new Error(String(parseError));
+      logger.error("❌ Invalid JSON payload:", error);
+      return createSecureResponse({ error: "Invalid JSON payload" }, 400, req);
+    }
+
+    // Verify webhook signature (enforced in production, configurable in development)
+    const signature =
+      req.headers.get("x-twilio-email-event-webhook-signature") || "";
+    const timestamp =
+      req.headers.get("x-twilio-email-event-webhook-timestamp") || "";
+    const publicKey =
+      req.headers.get("x-twilio-email-event-webhook-public-key") || "";
+
+    // CRITICAL SECURITY: Signature verification with timing-safe comparison
+    const isValid = verifyWebhookSignature(
+      publicKey,
+      rawBody,
+      signature,
+      timestamp,
+    );
+    if (!isValid) {
+      logger.error("❌ Invalid webhook signature from IP", undefined, {
+        clientIp,
+      });
+      return createSecureResponse({ error: "Invalid signature" }, 401, req);
+    }
+
+    // Process events
+    const db = await getDatabase();
+    const emailsCollection = db.collection(COLLECTIONS.EMAIL_LOGS);
+
+    const updates = events.map(async (event) => {
+      try {
+        const emailId = event.emailId; // Custom arg we sent
+        const eventDate = new Date(event.timestamp * 1000);
+
+        // Build update based on event type
+        const set: Record<string, unknown> = {
+          lastEvent: event.event,
+          lastEventAt: eventDate,
+          [`events.${event.event}`]: eventDate,
+        };
+        const inc: Record<string, number> = {};
+        const addToSet: Record<string, unknown> = {};
+
+        // Handle specific event types
+        switch (event.event) {
+          case "delivered":
+            set.status = "delivered";
+            set.deliveredAt = eventDate;
+            break;
+
+          case "open":
+            set.opened = true;
+            set.openedAt = eventDate;
+            inc.openCount = 1;
+            break;
+
+          case "click":
+            set.clicked = true;
+            set.clickedAt = eventDate;
+            inc.clickCount = 1;
+            if (event.url) {
+              addToSet.clickedUrls = event.url;
+            }
+            break;
+
+          case "bounce":
+          case "dropped":
+            set.status = "failed";
+            set.failedAt = eventDate;
+            set.error = event.reason || `Email ${event.event}`;
+            set.bounceReason = event.reason;
+            set.bounceStatus = event.status;
+            break;
+
+          case "spamreport":
+            set.status = "spam";
+            set.spamReportedAt = eventDate;
+            break;
+
+          case "unsubscribe":
+          case "group_unsubscribe":
+            set.unsubscribed = true;
+            set.unsubscribedAt = eventDate;
+            break;
+
+          case "group_resubscribe":
+            set.unsubscribed = false;
+            set.resubscribedAt = eventDate;
+            break;
+        }
+
+        // Build update doc
+        const updateDoc: Record<string, unknown> = { $set: set };
+        if (Object.keys(inc).length) {
+          updateDoc.$inc = inc;
+        }
+        if (Object.keys(addToSet).length) {
+          updateDoc.$addToSet = addToSet;
+        }
+
+        // Update email log
+        if (emailId) {
+          await emailsCollection.updateOne({ emailId }, updateDoc, {
+            upsert: false,
+          });
+        } else {
+          // Fallback: find by recipient email and sg_message_id
+          await emailsCollection.updateOne(
+            {
+              recipient: event.email,
+              "metadata.sg_message_id": event.sg_message_id,
+            },
+            updateDoc,
+            { upsert: false },
+          );
+        }
+
+        logger.info(
+          `✅ Processed ${event.event} for ${event.email} (${emailId || event.sg_message_id})`,
+        );
+        return { status: "success", event: event.event, email: event.email };
+      } catch (eventError) {
+        logger.error(
+          `❌ Failed to process event ${event.event} for ${event.email}:`,
+          eventError instanceof Error
+            ? eventError
+            : new Error(String(eventError)),
+        );
+        // Don't throw - continue processing other events
+        return {
+          status: "failed",
+          event: event.event,
+          email: event.email,
+          error: eventError,
+        };
+      }
+    });
+
+    const results = await Promise.allSettled(updates);
+
+    // Count successful and failed operations in a single pass
+    const { successful, failed } = results.reduce(
+      (acc, r) => ({
+        successful:
+          acc.successful +
+          (r.status === "fulfilled" && r.value.status === "success" ? 1 : 0),
+        failed:
+          acc.failed +
+          (r.status === "rejected" ||
+          (r.status === "fulfilled" && r.value.status === "failed")
+            ? 1
+            : 0),
+      }),
+      { successful: 0, failed: 0 },
+    );
+
+    if (failed > 0) {
+      logger.warn(
+        `⚠️  Webhook processing partial success: ${successful} succeeded, ${failed} failed`,
+      );
+    }
+
+    return createSecureResponse(
+      {
+        success: failed === 0, // Only true if all succeeded
+        processed: events.length,
+        successful,
+        failed,
+        message:
+          failed > 0
+            ? `Processed ${events.length} events: ${successful} successful, ${failed} failed`
+            : "Events processed successfully",
+      },
+      failed > 0 ? 500 : 200,
+      req,
+    ); // Return 500 if any failed to trigger SendGrid retry
+  } catch (error) {
+    logger.error("❌ Webhook processing error:", error);
+    return createSecureResponse(
+      {
+        error: "Failed to process webhook",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      500,
+      req,
+    );
+  }
+}
+
+// Health check endpoint
+export async function GET(req: NextRequest) {
+  return createSecureResponse(
+    {
+      status: "healthy",
+      service: "sendgrid-webhook",
+      timestamp: new Date().toISOString(),
+    },
+    200,
+    req,
+  );
+}
+
+]]>
+</file>
+
+<file path="app/api/webhooks/sns/sms/route.ts">
+<![CDATA[
+/**
+ * AWS SNS SMS Webhook Handler
+ *
+ * Receives delivery status callbacks from AWS SNS SMS.
+ * Handles SNS subscription confirmation and delivery notifications.
+ *
+ * @module app/api/webhooks/sns/sms
+ */
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { SMSMessage } from "@/server/models/SMSMessage";
+import { logger } from "@/lib/logger";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
+
+// AWS SNS message types
+type SNSMessageType = "SubscriptionConfirmation" | "Notification" | "UnsubscribeConfirmation";
+
+// SNS delivery status mapping
+const STATUS_MAP: Record<string, "SENT" | "DELIVERED" | "FAILED"> = {
+  SUCCESS: "DELIVERED",
+  FAILURE: "FAILED",
+  OPTOUT: "FAILED",
+  UNKNOWN: "SENT",
+};
+
+/**
+ * Verify AWS SNS message signature
+ * SNS uses X.509 certificate-based signing
+ */
+async function verifySNSSignature(message: Record<string, unknown>): Promise<boolean> {
+  try {
+    // In production, you should verify the signing certificate URL
+    // and validate the signature using the public key
+    const signingCertUrl = message.SigningCertURL as string;
+    
+    // Security: Only accept certificates from AWS
+    if (!signingCertUrl?.startsWith("https://sns.") || !signingCertUrl?.includes(".amazonaws.com/")) {
+      logger.warn("[SNS Webhook] Invalid signing cert URL", { url: signingCertUrl });
+      return false;
+    }
+
+    // For production, implement full signature verification
+    // This is a simplified check - full implementation would fetch cert and verify
+    return true;
+  } catch (error) {
+    logger.error("[SNS Webhook] Signature verification failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return false;
+  }
+}
+
+/**
+ * Handle SNS subscription confirmation
+ */
+async function handleSubscriptionConfirmation(subscribeUrl: string): Promise<boolean> {
+  try {
+    // Security: Only accept AWS URLs
+    if (!subscribeUrl.startsWith("https://sns.") || !subscribeUrl.includes(".amazonaws.com/")) {
+      logger.warn("[SNS Webhook] Invalid subscribe URL", { url: subscribeUrl });
+      return false;
+    }
+
+    const response = await fetch(subscribeUrl);
+    const success = response.ok;
+    
+    logger.info("[SNS Webhook] Subscription confirmation", {
+      success,
+      status: response.status,
+    });
+    
+    return success;
+  } catch (error) {
+    logger.error("[SNS Webhook] Subscription confirmation failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return false;
+  }
+}
+
+/**
+ * POST /api/webhooks/sns/sms
+ *
+ * Handles AWS SNS delivery status webhooks
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const clientIp = getClientIP(request);
+    const rl = await smartRateLimit(`sns-webhook:${clientIp}`, 200, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    const rawBody = await request.text();
+    const snsMessage = JSON.parse(rawBody);
+
+    // Verify SNS signature
+    if (!(await verifySNSSignature(snsMessage))) {
+      logger.warn("[SNS Webhook] Invalid signature", { clientIp });
+      return NextResponse.json(
+        { error: "Invalid signature" },
+        { status: 401 }
+      );
+    }
+
+    const messageType = request.headers.get("x-amz-sns-message-type") as SNSMessageType;
+
+    // Handle subscription confirmation
+    if (messageType === "SubscriptionConfirmation") {
+      const subscribeUrl = snsMessage.SubscribeURL as string;
+      const confirmed = await handleSubscriptionConfirmation(subscribeUrl);
+      return NextResponse.json({
+        success: confirmed,
+        type: "SubscriptionConfirmation",
+      });
+    }
+
+    // Handle unsubscribe confirmation
+    if (messageType === "UnsubscribeConfirmation") {
+      logger.info("[SNS Webhook] Unsubscribe confirmation received");
+      return NextResponse.json({
+        success: true,
+        type: "UnsubscribeConfirmation",
+      });
+    }
+
+    // Handle delivery notification
+    if (messageType === "Notification") {
+      const notificationMessage = JSON.parse(snsMessage.Message as string);
+      
+      // SNS SMS delivery notification structure
+      const {
+        notification: {
+          messageId: MessageId,
+          timestamp,
+        } = {} as { messageId?: string; timestamp?: string },
+        delivery: {
+          phoneCarrier,
+          providerResponse,
+        } = {} as { phoneCarrier?: string; providerResponse?: string },
+        status: Status,
+      } = notificationMessage;
+
+      if (!MessageId) {
+        logger.warn("[SNS Webhook] Missing messageId in notification");
+        return NextResponse.json({ success: true, ignored: true });
+      }
+
+      await connectToDatabase();
+
+      // Map SNS status to our status
+      const ourStatus = STATUS_MAP[Status?.toUpperCase()] || "SENT";
+
+      // Find message by provider message ID
+      const message = await SMSMessage.findOne({ providerMessageId: MessageId });
+      if (!message) {
+        logger.warn("[SNS Webhook] Message not found", { messageId: MessageId });
+        return NextResponse.json({ success: true, notFound: true });
+      }
+
+      // 🔐 STRICT v4.1: Org-scoped filter for updates
+      const orgScopedFilter = { _id: message._id, orgId: message.orgId };
+
+      if (ourStatus === "DELIVERED") {
+        // Use org-scoped update instead of markDelivered to ensure tenant isolation
+        await SMSMessage.findOneAndUpdate(orgScopedFilter, {
+          status: "DELIVERED",
+          deliveredAt: timestamp ? new Date(timestamp) : new Date(),
+        });
+        logger.info("[SNS Webhook] Message delivered", {
+          messageId: message._id.toString(),
+          providerMessageId: MessageId,
+          orgId: message.orgId,
+          carrier: phoneCarrier,
+        });
+      } else if (ourStatus === "FAILED") {
+        await SMSMessage.findOneAndUpdate(orgScopedFilter, {
+          status: "FAILED",
+          lastError: providerResponse || "SNS delivery failed",
+          lastErrorCode: "SNS_FAILURE",
+        });
+        logger.warn("[SNS Webhook] Message delivery failed", {
+          messageId: message._id.toString(),
+          providerMessageId: MessageId,
+          orgId: message.orgId,
+          providerResponse,
+        });
+      }
+
+      return NextResponse.json({ success: true, status: ourStatus });
+    }
+
+    return NextResponse.json({ success: true, type: "unknown" });
+  } catch (error) {
+    logger.error("[SNS Webhook] Error processing callback", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/webhooks/twilio/sms/route.ts">
+<![CDATA[
+/**
+ * Twilio SMS Status Webhook Handler
+ *
+ * Receives delivery status callbacks from Twilio to update SMS message status.
+ * Twilio sends POST requests with status updates (queued, sent, delivered, failed, etc.)
+ *
+ * @see https://www.twilio.com/docs/sms/api/message-resource#message-status-values
+ *
+ * @module app/api/webhooks/twilio/sms/route
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { SMSMessage } from "@/server/models/SMSMessage";
+import crypto from "crypto";
+
+// Twilio status to our status mapping
+const STATUS_MAP: Record<string, "SENT" | "DELIVERED" | "FAILED"> = {
+  queued: "SENT",
+  sending: "SENT",
+  sent: "SENT",
+  delivered: "DELIVERED",
+  undelivered: "FAILED",
+  failed: "FAILED",
+};
+
+/**
+ * Validate Twilio webhook signature
+ * @see https://www.twilio.com/docs/usage/security#validating-requests
+ */
+function validateTwilioSignature(
+  signature: string | null,
+  url: string,
+  params: Record<string, string>
+): boolean {
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  if (!authToken) {
+    logger.warn("[Twilio Webhook] No auth token configured, skipping validation");
+    return process.env.NODE_ENV !== "production"; // Allow in dev
+  }
+
+  if (!signature) {
+    logger.warn("[Twilio Webhook] No signature header provided");
+    return false;
+  }
+
+  // Build the data string: URL + sorted params
+  const sortedParams = Object.keys(params)
+    .sort()
+    .reduce((acc, key) => acc + key + params[key], "");
+  const data = url + sortedParams;
+
+  // Calculate expected signature
+  const expectedSignature = crypto
+    .createHmac("sha1", authToken)
+    .update(Buffer.from(data, "utf-8"))
+    .digest("base64");
+
+  return signature === expectedSignature;
+}
+
+/**
+ * POST /api/webhooks/twilio/sms
+ *
+ * Twilio SMS status callback handler
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const formData = await request.formData();
+    const params: Record<string, string> = {};
+
+    for (const [key, value] of formData.entries()) {
+      params[key] = String(value);
+    }
+
+    // Validate signature in production
+    const signature = request.headers.get("X-Twilio-Signature");
+    const url = request.url;
+
+    if (process.env.NODE_ENV === "production") {
+      if (!validateTwilioSignature(signature, url, params)) {
+        logger.warn("[Twilio Webhook] Invalid signature", { url });
+        return NextResponse.json({ error: "Invalid signature" }, { status: 403 });
+      }
+    }
+
+    const {
+      MessageSid,
+      MessageStatus,
+      ErrorCode,
+      ErrorMessage,
+    } = params;
+
+    if (!MessageSid || !MessageStatus) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    logger.info("[Twilio Webhook] Status update received", {
+      messageSid: MessageSid,
+      status: MessageStatus,
+      errorCode: ErrorCode,
+    });
+
+    await connectToDatabase();
+
+    // Map Twilio status to our status
+    const ourStatus = STATUS_MAP[MessageStatus.toLowerCase()];
+    if (!ourStatus) {
+      logger.info("[Twilio Webhook] Ignoring intermediate status", {
+        messageSid: MessageSid,
+        status: MessageStatus,
+      });
+      return NextResponse.json({ success: true, ignored: true });
+    }
+
+    // Find and update the message
+    const message = await SMSMessage.findOne({ providerMessageId: MessageSid });
+    if (!message) {
+      logger.warn("[Twilio Webhook] Message not found", { messageSid: MessageSid });
+      return NextResponse.json({ success: true, notFound: true });
+    }
+
+    // Update based on status
+    if (ourStatus === "DELIVERED") {
+      await SMSMessage.markDelivered(MessageSid, new Date());
+      logger.info("[Twilio Webhook] Message marked as delivered", {
+        messageId: message._id.toString(),
+        messageSid: MessageSid,
+      });
+    } else if (ourStatus === "FAILED") {
+      await SMSMessage.findByIdAndUpdate(message._id, {
+        status: "FAILED",
+        lastError: ErrorMessage || `Twilio error: ${ErrorCode}`,
+        lastErrorCode: ErrorCode,
+      });
+      logger.warn("[Twilio Webhook] Message delivery failed", {
+        messageId: message._id.toString(),
+        messageSid: MessageSid,
+        errorCode: ErrorCode,
+        errorMessage: ErrorMessage,
+      });
+    }
+
+    return NextResponse.json({ success: true, status: ourStatus });
+  } catch (error) {
+    logger.error("[Twilio Webhook] Error processing callback", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+// Twilio may send GET for verification
+export async function GET() {
+  return NextResponse.json({ status: "ok", service: "twilio-sms-webhook" });
+}
+
+]]>
+</file>
+
+<file path="app/api/webhooks/unifonic/sms/route.ts">
+<![CDATA[
+/**
+ * Unifonic SMS Webhook Handler
+ *
+ * Receives delivery status callbacks from Unifonic SMS provider.
+ * Updates SMSMessage status based on Unifonic delivery notifications.
+ *
+ * @module app/api/webhooks/unifonic/sms
+ */
+import { NextRequest, NextResponse } from "next/server";
+import crypto from "node:crypto";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { SMSMessage } from "@/server/models/SMSMessage";
+import { logger } from "@/lib/logger";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
+
+// Unifonic status mapping to our internal status
+const STATUS_MAP: Record<string, "SENT" | "DELIVERED" | "FAILED"> = {
+  sent: "SENT",
+  delivered: "DELIVERED",
+  failed: "FAILED",
+  rejected: "FAILED",
+  expired: "FAILED",
+  undeliverable: "FAILED",
+};
+
+/**
+ * Verify Unifonic webhook signature
+ * Unifonic uses HMAC-SHA256 signature in X-Unifonic-Signature header
+ */
+function verifyUnifonicSignature(
+  payload: string,
+  signature: string | null,
+  secret: string
+): boolean {
+  if (!signature || !secret) return false;
+
+  const expectedSignature = crypto
+    .createHmac("sha256", secret)
+    .update(payload)
+    .digest("hex");
+
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSignature)
+  );
+}
+
+/**
+ * POST /api/webhooks/unifonic/sms
+ *
+ * Handles Unifonic delivery status webhooks
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const clientIp = getClientIP(request);
+    const rl = await smartRateLimit(`unifonic-webhook:${clientIp}`, 100, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    const rawBody = await request.text();
+    const signature = request.headers.get("x-unifonic-signature");
+    const webhookSecret = process.env.UNIFONIC_WEBHOOK_SECRET;
+
+    // Verify signature if secret is configured
+    if (webhookSecret && !verifyUnifonicSignature(rawBody, signature, webhookSecret)) {
+      logger.warn("[Unifonic Webhook] Invalid signature", { clientIp });
+      return NextResponse.json(
+        { error: "Invalid signature" },
+        { status: 401 }
+      );
+    }
+
+    const body = JSON.parse(rawBody);
+
+    // Unifonic webhook payload structure
+    const {
+      MessageId,
+      Status,
+      ErrorCode,
+      ErrorMessage,
+      DeliveredAt,
+    } = body;
+
+    if (!MessageId) {
+      return NextResponse.json(
+        { error: "Missing MessageId" },
+        { status: 400 }
+      );
+    }
+
+    await connectToDatabase();
+
+    // Map Unifonic status to our status
+    const ourStatus = STATUS_MAP[Status?.toLowerCase()];
+    if (!ourStatus) {
+      logger.info("[Unifonic Webhook] Ignoring intermediate status", {
+        messageId: MessageId,
+        status: Status,
+      });
+      return NextResponse.json({ success: true, ignored: true });
+    }
+
+    // Find message by provider message ID
+    const message = await SMSMessage.findOne({ providerMessageId: MessageId });
+    if (!message) {
+      logger.warn("[Unifonic Webhook] Message not found", { messageId: MessageId });
+      return NextResponse.json({ success: true, notFound: true });
+    }
+
+    // 🔐 STRICT v4.1: Org-scoped filter for updates
+    const orgScopedFilter = { _id: message._id, orgId: message.orgId };
+
+    if (ourStatus === "DELIVERED") {
+      // Use org-scoped update instead of markDelivered to ensure tenant isolation
+      await SMSMessage.findOneAndUpdate(orgScopedFilter, {
+        status: "DELIVERED",
+        deliveredAt: DeliveredAt ? new Date(DeliveredAt) : new Date(),
+      });
+      logger.info("[Unifonic Webhook] Message marked as delivered", {
+        messageId: message._id.toString(),
+        providerMessageId: MessageId,
+        orgId: message.orgId,
+      });
+    } else if (ourStatus === "FAILED") {
+      await SMSMessage.findOneAndUpdate(orgScopedFilter, {
+        status: "FAILED",
+        lastError: ErrorMessage || `Unifonic error: ${ErrorCode}`,
+        lastErrorCode: ErrorCode?.toString(),
+      });
+      logger.warn("[Unifonic Webhook] Message delivery failed", {
+        messageId: message._id.toString(),
+        providerMessageId: MessageId,
+        orgId: message.orgId,
+        errorCode: ErrorCode,
+        errorMessage: ErrorMessage,
+      });
+    } else if (ourStatus === "SENT") {
+      await SMSMessage.findOneAndUpdate(orgScopedFilter, {
+        status: "SENT",
+        sentAt: new Date(),
+      });
+      logger.info("[Unifonic Webhook] Message sent", {
+        messageId: message._id.toString(),
+        providerMessageId: MessageId,
+        orgId: message.orgId,
+      });
+    }
+
+    return NextResponse.json({ success: true, status: ourStatus });
+  } catch (error) {
+    logger.error("[Unifonic Webhook] Error processing callback", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/work-orders/[id]/assign/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { WorkOrder } from "@/server/models/WorkOrder";
+import { z } from "zod";
+import { requireAbility } from "@/server/middleware/withAuthRbac";
+import { WOAbility } from "@/types/work-orders/abilities";
+import { Types } from "mongoose";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
+
+const schema = z
+  .object({
+    assigneeUserId: z.string().optional(),
+    assigneeVendorId: z.string().optional(),
+  })
+  .refine((d) => d.assigneeUserId || d.assigneeVendorId, "Provide an assignee");
+
+/**
+ * Assigns a work order to a user and/or vendor and returns the updated work order.
+ *
+ * Validates request body, enforces the caller has the "ASSIGN" ability, looks up the work order
+ * by route `params.id` and the caller's tenant, updates assignee fields, and if the work order
+ * was in "SUBMITTED" state records a status transition to "DISPATCHED". Changes are persisted to MongoDB.
+ *
+ * @param req - Incoming Next.js request (must include JSON body matching the handler schema).
+ * @param params - Route params object; `params.id` is the work order `_id` to update.
+ * @returns A NextResponse containing the JSON-serialized updated work order, or a 404 JSON response if not found.
+ */
+/**
+ * @openapi
+ * /api/work-orders/[id]/assign:
+ *   get:
+ *     summary: work-orders/[id]/assign operations
+ *     tags: [work-orders]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(
+  req: NextRequest,
+  props: { params: { id: string } },
+): Promise<NextResponse> {
+  // Rate limiting
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  const { id } = props.params;
+  if (!id || !Types.ObjectId.isValid(id)) {
+    return createSecureResponse({ error: "Invalid work order id" }, 400, req);
+  }
+  const user = await requireAbility(WOAbility.ASSIGN)(req);
+  if (user instanceof NextResponse) return user;
+  await connectToDatabase();
+
+  const body = schema.parse(await req.json());
+
+  const orgCandidates =
+    Types.ObjectId.isValid(user.orgId) ? [user.orgId, new Types.ObjectId(user.orgId)] : [user.orgId];
+  const wo = await WorkOrder.findOne({ _id: id, orgId: { $in: orgCandidates } });
+  if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
+
+  const now = new Date();
+  const nextStatus = wo.status === "SUBMITTED" ? "ASSIGNED" : wo.status;
+  const updated = await WorkOrder.findOneAndUpdate(
+    { _id: id, orgId: { $in: orgCandidates } },
+    {
+      $set: {
+        "assignment.assignedTo.userId": body.assigneeUserId ?? null,
+        "assignment.assignedTo.vendorId": body.assigneeVendorId ?? null,
+        "assignment.assignedBy": user.id,
+        "assignment.assignedAt": now,
+        status: nextStatus,
+      },
+      $push: {
+        statusHistory: {
+          fromStatus: wo.status,
+          toStatus: nextStatus,
+          changedBy: user.id,
+          changedAt: now,
+          notes: "Assignment updated via API",
+        },
+      },
+    },
+    { new: true },
+  );
+
+  return createSecureResponse(updated ?? wo, 200, req);
+}
+
+]]>
+</file>
+
+<file path="app/api/work-orders/[id]/attachments/presign/route.ts">
+<![CDATA[
+import { randomUUID } from "crypto";
+import { NextRequest, NextResponse } from "next/server";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { getPresignedPutUrl } from "@/lib/storage/s3";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+import { createSecureResponse } from "@/server/security/headers";
+import { validateBucketPolicies } from "@/lib/security/s3-policy";
+
+const ALLOWED_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "application/pdf",
+]);
+const ALLOWED_EXTENSIONS = new Set(["png", "jpg", "jpeg", "pdf"]);
+
+const MAX_SIZE_BYTES = 15 * 1024 * 1024; // 15MB
+/**
+ * @openapi
+ * /api/work-orders/[id]/attachments/presign:
+ *   get:
+ *     summary: work-orders/[id]/attachments/presign operations
+ *     tags: [work-orders]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
+  const user = await getSessionUser(req).catch(() => null);
+  if (!user) return createSecureResponse({ error: "Unauthorized" }, 401, req);
+
+  if (!process.env.AWS_S3_BUCKET || !process.env.AWS_REGION) {
+    return createSecureResponse({ error: "Storage not configured" }, 500, req);
+  }
+  const scanEnforced = process.env.S3_SCAN_REQUIRED === "true";
+  if (scanEnforced && !process.env.AV_SCAN_ENDPOINT) {
+    return createSecureResponse(
+      { error: "AV scanning not configured" },
+      503,
+      req,
+    );
+  }
+  const policiesOk = await validateBucketPolicies();
+  if (!policiesOk) {
+    return createSecureResponse(
+      { error: "Bucket policy/encryption invalid" },
+      503,
+      req,
+    );
+  }
+
+  const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 30, 60_000);
+  if (!rl.allowed) return rateLimitError();
+
+  const { id } = await props.params;
+
+  const { name, type, size } = await req
+    .json()
+    .catch(() => ({}) as Record<string, unknown>);
+  if (!name || !type || typeof size !== "number") {
+    return createSecureResponse({ error: "Missing name/type/size" }, 400, req);
+  }
+  const ext = String(name).split(".").pop()?.toLowerCase();
+  if (!ext || !ALLOWED_EXTENSIONS.has(ext)) {
+    return createSecureResponse(
+      { error: "Unsupported file extension" },
+      400,
+      req,
+    );
+  }
+  if (!ALLOWED_TYPES.has(type as string)) {
+    return createSecureResponse({ error: "Unsupported type" }, 400, req);
+  }
+  if (size > MAX_SIZE_BYTES) {
+    return createSecureResponse({ error: "File too large" }, 400, req);
+  }
+
+  const safeName = encodeURIComponent(
+    String(name).replace(/[^a-zA-Z0-9._-]/g, "_"),
+  );
+  const key = `wo/${id}/${Date.now()}-${randomUUID()}-${safeName}`;
+  const { url: putUrl, headers } = await getPresignedPutUrl(
+    key,
+    String(type),
+    900,
+    {
+      category: "work-order-attachment",
+      user: user.id,
+      tenant: user.tenantId || "global",
+      workOrderId: id,
+    },
+  );
+  const expiresAt = new Date(Date.now() + 900_000).toISOString();
+
+  return NextResponse.json({
+    putUrl,
+    key,
+    expiresAt,
+    headers,
+    scanRequired: scanEnforced,
+  });
+}
+
+]]>
+</file>
+
+<file path="app/api/work-orders/[id]/checklists/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { WorkOrder } from "@/server/models/WorkOrder";
+import { z } from "zod";
+import { requireAbility } from "@/server/middleware/withAuthRbac";
+import { WOAbility } from "@/types/work-orders/abilities";
+
+import { createSecureResponse } from "@/server/security/headers";
+
+const schema = z.object({
+  title: z.string().min(2),
+  items: z
+    .array(z.object({ label: z.string().min(1), done: z.boolean().optional() }))
+    .default([]),
+});
+
+interface WorkOrderDoc {
+  checklists: Array<{
+    title: string;
+    items: Array<{ label: string; done?: boolean }>;
+  }>;
+  save: () => Promise<void>;
+}
+
+/**
+ * @openapi
+ * /api/work-orders/[id]/checklists:
+ *   get:
+ *     summary: work-orders/[id]/checklists operations
+ *     tags: [work-orders]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+): Promise<NextResponse> {
+  const user = await requireAbility(WOAbility.EDIT)(req);
+  if (user instanceof NextResponse) return user;
+  const { id } = await props.params;
+  await connectToDatabase();
+  const data = schema.parse(await req.json());
+  // Validate MongoDB ObjectId format
+  if (!/^[a-fA-F0-9]{24}$/.test(id)) {
+    return createSecureResponse({ error: "Invalid id" }, 400, req);
+  }
+  const wo = (await WorkOrder.findOne({
+    _id: id,
+    tenantId: user.tenantId,
+  })) as WorkOrderDoc | null;
+  if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
+  wo.checklists.push({ title: data.title, items: data.items || [] });
+  await wo.save();
+  return createSecureResponse(wo.checklists, 200, req);
+}
+
+]]>
+</file>
+
+<file path="app/api/work-orders/[id]/checklists/toggle/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { WorkOrder } from "@/server/models/WorkOrder";
+import { z } from "zod";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+
+import { createSecureResponse } from "@/server/security/headers";
+
+const schema = z.object({
+  checklistIndex: z.number().int().nonnegative(),
+  itemIndex: z.number().int().nonnegative(),
+  done: z.boolean(),
+});
+
+/**
+ * @openapi
+ * /api/work-orders/[id]/checklists/toggle:
+ *   get:
+ *     summary: work-orders/[id]/checklists/toggle operations
+ *     tags: [work-orders]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
+  await connectToDatabase();
+  const user = await getSessionUser(req);
+  const { id } = await props.params;
+  const { checklistIndex, itemIndex, done } = schema.parse(await req.json());
+  interface WorkOrderDoc {
+    checklists?: Array<{
+      items?: Array<{ done: boolean }>;
+    }>;
+    save: () => Promise<void>;
+  }
+  const wo = (await WorkOrder.findOne({
+    _id: id,
+    tenantId: user.tenantId,
+  })) as WorkOrderDoc | null;
+  if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
+  if (!wo.checklists?.[checklistIndex]?.items?.[itemIndex])
+    return createSecureResponse({ error: "Bad index" }, 400, req);
+  wo.checklists[checklistIndex].items[itemIndex].done = done;
+  await wo.save();
+  return createSecureResponse(wo.checklists[checklistIndex], 200, req);
+}
+
+]]>
+</file>
+
+<file path="app/api/work-orders/[id]/comments/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { WorkOrder } from "@/server/models/WorkOrder";
+import { z } from "zod";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+
+import { createSecureResponse } from "@/server/security/headers";
+
+const schema = z.object({ text: z.string().min(1) });
+
+/**
+ * @openapi
+ * /api/work-orders/[id]/comments:
+ *   get:
+ *     summary: work-orders/[id]/comments operations
+ *     tags: [work-orders]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
+  const user = await getSessionUser(req);
+  const { id } = await props.params;
+  await connectToDatabase();
+  const wo = await WorkOrder.findOne({ _id: id, orgId: user.orgId });
+  const communication = (
+    wo as { communication?: { comments?: unknown[] } } | null
+  )?.communication;
+  return createSecureResponse(communication?.comments ?? [], 200, req);
+}
+
+export async function POST(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
+  const user = await getSessionUser(req);
+  const { id } = await props.params;
+  await connectToDatabase();
+  const { text } = schema.parse(await req.json());
+  const wo = await WorkOrder.findOne({ _id: id, orgId: user.orgId });
+  if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
+  type Comment = {
+    commentId?: string;
+    userId: string;
+    userName?: string;
+    comment: string;
+    timestamp: Date;
+    isInternal?: boolean;
+  };
+  const doc = wo as { communication?: { comments?: Comment[] } };
+  doc.communication ??= {};
+  doc.communication.comments ??= [];
+  doc.communication.comments.push({
+    userId: user.id,
+    comment: String(text).slice(0, 5000),
+    timestamp: new Date(),
+  });
+  await wo.save();
+  return createSecureResponse({ ok: true }, 200, req);
+}
+
+]]>
+</file>
+
+<file path="app/api/work-orders/[id]/materials/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { WorkOrder } from "@/server/models/WorkOrder";
+import { z } from "zod";
+import { requireAbility } from "@/server/middleware/withAuthRbac";
+import { WOAbility } from "@/types/work-orders/abilities";
+
+import { createSecureResponse } from "@/server/security/headers";
+
+const upsertSchema = z.object({
+  sku: z.string().optional(),
+  name: z.string(),
+  qty: z.number().positive(),
+  unitPrice: z.number().nonnegative(),
+  currency: z.string().default("SAR"),
+});
+
+/**
+ * @openapi
+ * /api/work-orders/[id]/materials:
+ *   get:
+ *     summary: work-orders/[id]/materials operations
+ *     tags: [work-orders]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+): Promise<NextResponse> {
+  const user = await requireAbility(WOAbility.EDIT)(req);
+  if (user instanceof NextResponse) return user;
+  await connectToDatabase();
+  const m = upsertSchema.parse(await req.json());
+  // Validate MongoDB ObjectId format
+  if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
+    return createSecureResponse({ error: "Invalid id" }, 400, req);
+  }
+  interface Material {
+    sku?: string;
+    name: string;
+    qty: number;
+    unitPrice: number;
+    currency: string;
+  }
+  interface WorkOrderDoc {
+    materials: Material[];
+    costSummary?: {
+      labor?: number;
+      materials?: number;
+      other?: number;
+      total?: number;
+    };
+    save: () => Promise<void>;
+  }
+  const wo = (await WorkOrder.findOne({
+    _id: params.id,
+    tenantId: user.tenantId,
+  })) as WorkOrderDoc | null;
+  if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
+  wo.materials.push(m);
+  const materials = wo.materials.reduce((s, c) => s + c.qty * c.unitPrice, 0);
+  const total =
+    (wo.costSummary?.labor || 0) + materials + (wo.costSummary?.other || 0);
+  wo.costSummary = { ...(wo.costSummary || {}), materials, total };
+  await wo.save();
+  return createSecureResponse(wo.materials, 200, req);
+}
+
+]]>
+</file>
+
+<file path="app/api/work-orders/[id]/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
+import { WorkOrder } from "@/server/models/WorkOrder";
+import { z } from "zod";
+import { requireAbility } from "@/server/middleware/withAuthRbac";
+import type { Ability } from "@/server/rbac/workOrdersPolicy";
+import { resolveSlaTarget, WorkOrderPriority } from "@/lib/sla";
+import { WOPriority } from "@/server/work-orders/wo.schema";
+import { Types } from "mongoose";
+
+import { createSecureResponse } from "@/server/security/headers";
+import { deleteObject } from "@/lib/storage/s3";
+import { getClientIP } from "@/server/security/headers";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+
+const attachmentInputSchema = z.object({
+  key: z.string(),
+  url: z.string().url(),
+  name: z.string().optional(),
+  size: z.number().optional(),
+  type: z.string().optional(),
+  scanStatus: z.enum(["pending", "clean", "infected", "error"]).default("pending"),
+});
+
+type AttachmentInput = z.infer<typeof attachmentInputSchema>;
+
+function normalizeAttachments(attachments: AttachmentInput[], userId: string) {
+  return attachments.map((att) => ({
+    key: att.key,
+    fileName: att.name || att.key.split('/').pop() || att.key,
+    originalName: att.name || att.key,
+    fileUrl: att.url,
+    fileType: att.type,
+    fileSize: att.size,
+    uploadedBy: userId,
+    uploadedAt: new Date(),
+    category: 'WORK_ORDER',
+    description: att.scanStatus === 'infected' ? 'Virus detected' : undefined,
+    isPublic: false,
+    scanStatus: att.scanStatus ?? 'pending',
+  }));
+}
+
+/**
+ * @openapi
+ * /api/work-orders/[id]:
+ *   get:
+ *     summary: work-orders/[id] operations
+ *     tags: [work-orders]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(
+  req: NextRequest,
+  props: { params: { id: string } },
+): Promise<NextResponse> {
+  const user = await requireAbility("VIEW")(req);
+  if (user instanceof NextResponse) return user;
+  const { id } = props.params;
+  if (!id || !Types.ObjectId.isValid(id)) {
+    return createSecureResponse({ error: "Invalid work order id" }, 400, req);
+  }
+
+  // Basic rate limit to avoid hot path abuse
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(
+    `${new URL(req.url).pathname}:${clientIp}:${user.id}`,
+    60,
+    60_000,
+  );
+  if (!rl.allowed) return rateLimitError();
+
+  await connectToDatabase();
+  const scopedQuery =
+    user.isSuperAdmin === true
+      ? { _id: id }
+      : { _id: id, orgId: { $in: [user.orgId, new Types.ObjectId(user.orgId)] } };
+
+  const wo = await WorkOrder.findOne(scopedQuery).lean();
+  if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
+
+  // Enforce data scope for limited roles (tenant/technician)
+  if (!user.isSuperAdmin) {
+    const assignedTech = wo.assignment?.assignedTo?.userId;
+    const requesterId = wo.requester?.userId;
+    if (
+      user.role === "TECHNICIAN" &&
+      assignedTech &&
+      String(assignedTech) !== user.id
+    ) {
+      return createSecureResponse({ error: "Forbidden" }, 403, req);
+    }
+    if (
+      user.role === "TENANT" &&
+      requesterId &&
+      String(requesterId) !== user.id
+    ) {
+      return createSecureResponse({ error: "Forbidden" }, 403, req);
+    }
+  }
+
+  return createSecureResponse(wo, 200, req);
+}
+
+const patchSchema = z.object({
+  title: z.string().min(3).optional(),
+  description: z.string().optional(),
+  priority: WOPriority.optional(),
+  category: z.string().optional(),
+  subcategory: z.string().optional(),
+  dueAt: z.string().datetime().optional(),
+  propertyId: z.string().optional(),
+  unitNumber: z.string().optional(),
+  assignment: z.object({
+    assignedTo: z.object({
+      userId: z.string().optional()
+    }).optional()
+  }).optional(),
+  attachments: z.array(attachmentInputSchema).optional()
+});
+
+export async function PATCH(
+  req: NextRequest,
+  props: { params: { id: string } },
+): Promise<NextResponse> {
+  const { id } = props.params;
+  const workOrderId = id || req.url.split('/').pop() || '';
+  if (!workOrderId || !Types.ObjectId.isValid(workOrderId)) {
+    return createSecureResponse({ error: "Invalid work order id" }, 400, req);
+  }
+  const ability: Ability = "EDIT"; // Type-safe: must match Ability union type
+  const user = await requireAbility(ability)(req);
+  if (user instanceof NextResponse) return user;
+  await connectToDatabase();
+  const updates = patchSchema.parse(await req.json());
+  const updatePayload: Record<string, unknown> = { ...updates };
+
+  const scopedQuery =
+    user.isSuperAdmin === true
+      ? { _id: workOrderId }
+      : { _id: workOrderId, orgId: { $in: [user.orgId, new Types.ObjectId(user.orgId)] } };
+
+  // Validate property existence if provided
+  if (updates.propertyId) {
+    const { getDatabase } = await import('@/lib/mongodb-unified');
+    const { ObjectId } = await import('mongodb');
+    const db = await getDatabase();
+    const propertyExists = await db.collection(COLLECTIONS.PROPERTIES).countDocuments({
+      _id: new ObjectId(updates.propertyId),
+      orgId: user.orgId
+    });
+    if (!propertyExists) {
+      return createSecureResponse({ error: 'Invalid propertyId: property not found' }, 422, req);
+    }
+  }
+
+  // Validate assignee existence if provided
+  if (updates.assignment?.assignedTo?.userId) {
+    const { getDatabase } = await import('@/lib/mongodb-unified');
+    const { ObjectId } = await import('mongodb');
+    const db = await getDatabase();
+    const userExists = await db.collection(COLLECTIONS.USERS).countDocuments({
+      _id: new ObjectId(updates.assignment.assignedTo.userId),
+      orgId: user.orgId
+    });
+    if (!userExists) {
+      return createSecureResponse({ error: 'Invalid assignee: user not found' }, 422, req);
+    }
+  }
+
+  // Handle location fields
+  if (updates.propertyId || updates.unitNumber) {
+    updatePayload.location = {
+      ...(updates.propertyId ? { propertyId: updates.propertyId } : {}),
+      ...(updates.unitNumber ? { unitNumber: updates.unitNumber } : {})
+    };
+    delete updatePayload.propertyId;
+    delete updatePayload.unitNumber;
+  }
+
+  // Handle assignment with timestamp
+  if (updates.assignment?.assignedTo?.userId) {
+    updatePayload.assignment = {
+      assignedTo: { userId: updates.assignment.assignedTo.userId },
+      assignedAt: new Date()
+    };
+  }
+
+  // Recalculate SLA on priority change
+  if (updates.priority) {
+    const { slaMinutes, dueAt } = resolveSlaTarget(updates.priority as WorkOrderPriority);
+    updatePayload.slaMinutes = slaMinutes;
+    if (!updates.dueAt) {
+      updatePayload.dueAt = dueAt;
+    }
+  }
+
+  if (updates.dueAt) {
+    updatePayload.dueAt = new Date(updates.dueAt);
+  }
+
+  let removedKeys: string[] = [];
+  if (updates.attachments) {
+    // Fetch existing to calculate removed attachments for cleanup
+    const existing = await WorkOrder.findOne(scopedQuery)
+      .select({ attachments: 1 })
+      .lean<{ attachments?: { key?: string }[] } | null>();
+    const existingKeys = new Set((existing?.attachments || []).map((att) => att.key).filter(Boolean) as string[]);
+    const next = normalizeAttachments(updates.attachments as AttachmentInput[], user.id);
+    updatePayload.attachments = next;
+    const nextKeys = new Set(next.map((att) => att.key));
+    removedKeys = [...existingKeys].filter((k) => !nextKeys.has(k));
+  }
+
+  const wo = (await WorkOrder.findOneAndUpdate(
+    scopedQuery,
+    { $set: updatePayload },
+    { new: true }
+  ));
+  if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
+
+  if (removedKeys.length) {
+    const { logger } = await import('@/lib/logger');
+    // Delete removed attachments from S3 with observability
+    const deleteResults = await Promise.allSettled(
+      removedKeys.map((key) => deleteObject(key))
+    );
+
+    // Log failures for monitoring
+    deleteResults.forEach((result, idx) => {
+      if (result.status === 'rejected') {
+        logger.error('[WorkOrder PATCH] S3 cleanup failed', {
+          workOrderId,
+          key: removedKeys[idx],
+          error: result.reason
+        });
+      }
+    });
+
+    const failedKeys = deleteResults
+      .map((result, idx) => (result.status === 'rejected' ? removedKeys[idx] : null))
+      .filter((key): key is string => Boolean(key));
+
+    if (failedKeys.length === 0) {
+      logger.info('[WorkOrder PATCH] S3 cleanup success', {
+        workOrderId,
+        total: removedKeys.length
+      });
+    } else {
+      logger.warn('[WorkOrder PATCH] S3 cleanup partial failure', {
+        workOrderId,
+        total: removedKeys.length,
+        failed: failedKeys.length
+      });
+
+      try {
+        const { JobQueue } = await import('@/lib/jobs/queue');
+        const jobId = await JobQueue.enqueue('s3-cleanup', {
+          keys: failedKeys,
+          workOrderId,
+          source: 'work-order-patch'
+        });
+
+        logger.info('[WorkOrder PATCH] S3 cleanup retry enqueued', {
+          workOrderId,
+          failedKeys: failedKeys.length,
+          jobId
+        });
+      } catch (error) {
+        logger.error('[WorkOrder PATCH] Failed to enqueue cleanup retry', error as Error, {
+          workOrderId,
+          failedKeys
+        });
+      }
+    }
+  }
+
+  return createSecureResponse(wo, 200, req);
+}
+
+]]>
+</file>
+
+<file path="app/api/work-orders/[id]/status/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { WorkOrder } from "@/server/models/WorkOrder";
+import { z } from "zod";
+import {
+  getSessionUser,
+  requireAbility,
+} from "@/server/middleware/withAuthRbac";
+import { WORK_ORDER_FSM } from "@/domain/fm/fm.behavior";
+import { postFromWorkOrder } from "@/server/finance/fmFinance.service";
+import { logger } from "@/lib/logger";
+import { Types } from "mongoose";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+
+const schema = z.object({
+  to: z.enum([
+    "NEW",
+    "ASSESSMENT",
+    "ESTIMATE_PENDING",
+    "QUOTATION_REVIEW",
+    "PENDING_APPROVAL",
+    "APPROVED",
+    "IN_PROGRESS",
+    "WORK_COMPLETE",
+    "QUALITY_CHECK",
+    "FINANCIAL_POSTING",
+    "CLOSED",
+  ]),
+  note: z.string().optional(),
+});
+
+/**
+ * @openapi
+ * /api/work-orders/[id]/status:
+ *   get:
+ *     summary: work-orders/[id]/status operations
+ *     tags: [work-orders]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(
+  req: NextRequest,
+  props: { params: { id: string } },
+): Promise<NextResponse> {
+  const user = await getSessionUser(req);
+  const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  await connectToDatabase();
+  const { id } = props.params;
+  if (!id || !Types.ObjectId.isValid(id)) {
+    return createSecureResponse({ error: "Invalid work order id" }, 400, req);
+  }
+
+  const body = schema.parse(await req.json());
+  const orgCandidates =
+    Types.ObjectId.isValid(user.orgId) ? [user.orgId, new Types.ObjectId(user.orgId)] : [user.orgId];
+  const wo = await WorkOrder.findOne({ _id: id, orgId: { $in: orgCandidates } });
+  if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
+
+  // Get current status and target status
+  const currentStatus = wo.status as string;
+  const targetStatus = body.to;
+
+  // Validate FSM transition using FM behavior spec
+  const transition = WORK_ORDER_FSM.transitions.find(
+    (t) => t.from === currentStatus && t.to === targetStatus,
+  );
+
+  if (transition) {
+    // Validate required media
+    if (transition.requireMedia) {
+      const attachments = (wo as { attachments?: unknown[] }).attachments || [];
+      if (attachments.length === 0) {
+        return createSecureResponse(
+          {
+            error: "Media required",
+            message: `${transition.requireMedia.join(", ")} photos are required for this transition`,
+            required: `Upload ${transition.requireMedia.join(" and ")} photos before proceeding`,
+          },
+          400,
+          req,
+        );
+      }
+    }
+
+    // Validate technician assignment guard
+    if (transition.guard === "technicianAssigned") {
+      const assignedTo = (
+        wo as unknown as {
+          assignment?: { assignedTo?: { userId?: string; vendorId?: string } };
+        }
+      ).assignment?.assignedTo;
+      if (!assignedTo?.userId && !assignedTo?.vendorId) {
+        return createSecureResponse(
+          {
+            error: "Assignment required",
+            message:
+              "Work order must be assigned to a technician before proceeding",
+            required: "Assign a technician or vendor before transitioning",
+          },
+          400,
+          req,
+        );
+      }
+    }
+  }
+
+  // Role gate by target state
+  const statusGates: Record<string, "STATUS" | "VERIFY" | "CLOSE"> = {
+    NEW: "STATUS",
+    ASSESSMENT: "STATUS",
+    ESTIMATE_PENDING: "STATUS",
+    QUOTATION_REVIEW: "STATUS",
+    PENDING_APPROVAL: "STATUS",
+    APPROVED: "STATUS",
+    IN_PROGRESS: "STATUS",
+    WORK_COMPLETE: "STATUS",
+    QUALITY_CHECK: "VERIFY",
+    FINANCIAL_POSTING: "STATUS",
+    CLOSED: "CLOSE",
+  };
+  const guard = statusGates[body.to] || "STATUS";
+  const gate = await (await requireAbility(guard))(req);
+  if (gate instanceof NextResponse) return gate;
+
+  // Technician/Vendor can only move their own assignments
+  if (user.role === "TECHNICIAN" || user.role === "VENDOR") {
+    const assignedTo = (
+      wo as unknown as {
+        assignment?: { assignedTo?: { userId?: string; vendorId?: string } };
+      }
+    ).assignment?.assignedTo;
+    const matches =
+      (user.role === "TECHNICIAN" &&
+        assignedTo?.userId &&
+        String(assignedTo.userId) === user.id) ||
+      (user.role === "VENDOR" &&
+        assignedTo?.vendorId &&
+        String(assignedTo.vendorId) === user.id);
+    if (!matches) {
+      return createSecureResponse({ error: "Not your assignment" }, 403, req);
+    }
+  }
+
+  type StatusHistoryEntry = {
+    fromStatus: string;
+    toStatus: string;
+    changedBy: string;
+    changedAt: Date;
+    notes?: string;
+  };
+
+  const doc = wo as { statusHistory?: StatusHistoryEntry[] };
+  doc.statusHistory ??= [];
+  doc.statusHistory.push({
+    fromStatus: currentStatus,
+    toStatus: body.to as unknown as typeof wo.status,
+    changedBy: user.id,
+    changedAt: new Date(),
+    notes: body.note,
+  });
+  const shouldPostToFinance =
+    body.to === "FINANCIAL_POSTING" && currentStatus !== body.to;
+
+  wo.set("status", body.to as unknown as typeof wo.status);
+  await wo.save();
+
+  if (shouldPostToFinance) {
+    const financial =
+      (
+        wo as {
+          financial?: {
+            actualCost?: number;
+            estimatedCost?: number;
+            isBillable?: boolean;
+            costBreakdown?: { total?: number };
+          };
+        }
+      ).financial || {};
+    const expense =
+      typeof financial.actualCost === "number"
+        ? financial.actualCost
+        : typeof financial.estimatedCost === "number"
+          ? financial.estimatedCost
+          : 0;
+    const billable = financial.isBillable
+      ? typeof financial.costBreakdown?.total === "number"
+        ? financial.costBreakdown.total
+        : expense
+      : 0;
+
+    if (expense > 0 || billable > 0) {
+      try {
+        await postFromWorkOrder(
+          {
+            userId: user.id,
+            orgId: user.orgId,
+            role: user.role ?? "STAFF",
+            timestamp: new Date(),
+          },
+          wo._id.toString(),
+          { expense, billable },
+        );
+      } catch (financeError) {
+        logger.error("Failed to post work order to finance", {
+          financeError,
+          workOrderId: wo._id.toString(),
+        });
+        return createSecureResponse(
+          {
+            error: "Failed to post finance journal",
+            details:
+              financeError instanceof Error
+                ? financeError.message
+                : String(financeError),
+          },
+          500,
+          req,
+        );
+      }
+    }
+  }
+
+  return createSecureResponse(wo, 200, req);
+}
+
+]]>
+</file>
+
+<file path="app/api/work-orders/export/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { WorkOrder } from "@/server/models/WorkOrder";
+import { requireAbility } from "@/server/middleware/withAuthRbac";
+import { WOAbility } from "@/types/work-orders/abilities";
+
+// Define type for exported work order fields
+interface WorkOrderExportDoc {
+  workOrderNumber?: string;
+  title?: string;
+  status?: string;
+  priority?: string;
+  location?: { propertyId?: string; unitNumber?: string };
+  assignment?: { assignedTo?: { userId?: string; vendorId?: string } };
+  createdAt?: Date;
+  sla?: { resolutionDeadline?: Date };
+}
+
+/**
+ * @openapi
+ * /api/work-orders/export:
+ *   get:
+ *     summary: work-orders/export operations
+ *     tags: [work-orders]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  const user = await requireAbility(WOAbility.EXPORT)(req);
+  if (user instanceof NextResponse) return user;
+  await connectToDatabase();
+
+  // Use .lean() to get plain JavaScript objects instead of Mongoose documents
+  const docs = await WorkOrder.find({
+    orgId: user.orgId,
+    isDeleted: { $ne: true },
+  })
+    .limit(2000)
+    .lean<WorkOrderExportDoc[]>();
+
+  const header = [
+    "workOrderNumber",
+    "title",
+    "status",
+    "priority",
+    "propertyId",
+    "assigneeUserId",
+    "assigneeVendorId",
+    "createdAt",
+    "resolutionDeadline",
+  ];
+  const lines = [header.join(",")].concat(
+    docs.map((d: WorkOrderExportDoc) =>
+      [
+        d.workOrderNumber || "",
+        JSON.stringify(d.title || ""),
+        d.status || "",
+        d.priority || "",
+        d.location?.propertyId || "",
+        d.assignment?.assignedTo?.userId || "",
+        d.assignment?.assignedTo?.vendorId || "",
+        d.createdAt?.toISOString() || "",
+        d.sla?.resolutionDeadline?.toISOString() || "",
+      ].join(","),
+    ),
+  );
+
+  const csv = lines.join("\n");
+  return new NextResponse(csv, {
+    status: 200,
+    headers: {
+      "content-type": "text/csv; charset=utf-8",
+      "content-disposition": "attachment; filename=work-orders.csv",
+    },
+  });
+}
+
+]]>
+</file>
+
+<file path="app/api/work-orders/import/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { WorkOrder } from "@/server/models/WorkOrder";
+import { requireAbility } from "@/server/middleware/withAuthRbac";
+import { z } from "zod";
+import { WOAbility } from "@/types/work-orders/abilities";
+
+import { createSecureResponse } from "@/server/security/headers";
+
+// Validation schema for import rows
+const ImportRowSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().optional(),
+  priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]).optional(),
+});
+
+const ImportRequestSchema = z.object({
+  rows: z.array(ImportRowSchema).max(100, "Maximum 100 rows per import"),
+});
+
+/**
+ * @openapi
+ * /api/work-orders/import:
+ *   get:
+ *     summary: work-orders/import operations
+ *     tags: [work-orders]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest): Promise<NextResponse> {
+  const user = await requireAbility(WOAbility.EDIT)(req);
+  if (user instanceof NextResponse) return user;
+  await connectToDatabase();
+
+  // Extract correlation ID once for the entire request
+  const correlationId =
+    req.headers.get("x-correlation-id") || crypto.randomUUID();
+
+  // Parse and validate JSON request body
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return createSecureResponse(
+      { error: "Invalid JSON in request body" },
+      400,
+      req,
+    );
+  }
+
+  // Validate request structure and rows
+  const validationResult = ImportRequestSchema.safeParse(body);
+  if (!validationResult.success) {
+    return createSecureResponse(
+      {
+        error: "Validation failed",
+        details: validationResult.error.issues,
+      },
+      422,
+      req,
+    );
+  }
+
+  const { rows } = validationResult.data;
+  let created = 0;
+  const errors: Array<{ row: number; error: string }> = [];
+
+  // Process each row with error handling
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    try {
+      const code = `WO-${new Date().getFullYear()}-${crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`;
+      await WorkOrder.create({
+        tenantId: user.orgId,
+        code,
+        title: r.title,
+        description: r.description,
+        priority: r.priority || "MEDIUM",
+        createdBy: user.id,
+        status: "SUBMITTED",
+        statusHistory: [
+          {
+            from: "DRAFT",
+            to: "SUBMITTED",
+            byUserId: user.id,
+            at: new Date(),
+          },
+        ],
+      });
+      created++;
+    } catch (error) {
+      logger.error(
+        `[${correlationId}] Work order import error for row ${i + 1}:`,
+        error instanceof Error ? error : new Error(String(error)),
+        { row: i + 1 },
+      );
+      errors.push({ row: i + 1, error: "Failed to import row" });
+    }
+  }
+
+  return createSecureResponse(
+    {
+      created,
+      total: rows.length,
+      failed: errors.length,
+      errors: errors.length > 0 ? errors : undefined,
+    },
+    200,
+    req,
+  );
+}
+
+]]>
+</file>
+
+<file path="app/api/work-orders/route.ts">
+<![CDATA[
+/**
+ * Work Orders API Routes - Refactored with CRUD Factory
+ * BEFORE: 190 lines of duplicated boilerplate
+ * AFTER: ~85 lines using reusable factory
+ * REDUCTION: 55% less code
+ */
+
+import { createCrudHandlers } from "@/lib/api/crud-factory";
+import { WorkOrder } from "@/server/models/WorkOrder";
+import { z } from "zod";
+import { resolveSlaTarget, WorkOrderPriority } from "@/lib/sla";
+import { logger } from "@/lib/logger";
+import { WOPriority } from "@/server/work-orders/wo.schema";
+import { deleteObject } from "@/lib/storage/s3";
+
+const attachmentInputSchema = z.object({
+  key: z.string(),
+  url: z.string().url(),
+  name: z.string().optional(),
+  size: z.number().optional(),
+  type: z.string().optional(),
+  scanStatus: z
+    .enum(["pending", "clean", "infected", "error"])
+    .default("pending"),
+});
+
+type AttachmentInput = z.infer<typeof attachmentInputSchema>;
+
+function normalizeAttachments(attachments: AttachmentInput[], userId: string) {
+  return attachments.map((att) => ({
+    key: att.key,
+    fileName: att.name || att.key.split("/").pop() || att.key,
+    originalName: att.name || att.key,
+    fileUrl: att.url,
+    fileType: att.type,
+    fileSize: att.size,
+    uploadedBy: userId,
+    uploadedAt: new Date(),
+    category: "WORK_ORDER",
+    description: att.scanStatus === "infected" ? "Virus detected" : undefined,
+    isPublic: false,
+    scanStatus: att.scanStatus ?? "pending",
+  }));
+}
+
+/**
+ * Work Order Creation Schema
+ */
+const createWorkOrderSchema = z.object({
+  title: z.string().min(3),
+  description: z.string().optional(),
+  type: z
+    .enum([
+      "MAINTENANCE",
+      "REPAIR",
+      "INSPECTION",
+      "INSTALLATION",
+      "EMERGENCY",
+      "PREVENTIVE",
+      "CORRECTIVE",
+    ])
+    .default("MAINTENANCE"),
+  priority: WOPriority.default("MEDIUM"),
+  category: z.string().default("GENERAL"),
+  subcategory: z.string().optional(),
+  propertyId: z.string().optional(),
+  unitNumber: z.string().optional(),
+  attachments: z.array(attachmentInputSchema).optional(),
+  status: z
+    .enum([
+      "DRAFT",
+      "SUBMITTED",
+      "ASSIGNED",
+      "IN_PROGRESS",
+      "ON_HOLD",
+      "PENDING_APPROVAL",
+      "COMPLETED",
+      "VERIFIED",
+      "CLOSED",
+      "CANCELLED",
+    ])
+    .default("DRAFT"),
+  requester: z
+    .object({
+      type: z.enum(["TENANT", "OWNER", "STAFF"]).default("TENANT"),
+      id: z.string().optional(),
+      name: z.string().optional(),
+      phone: z.string().optional(),
+      email: z.string().email().optional(),
+    })
+    .optional(),
+});
+
+/**
+ * Build Work Order Filter
+ */
+// 🔒 TYPE SAFETY: Using Record<string, unknown> for MongoDB filter
+// 🔒 STRICT v4: Add role-based filtering for user assignments using canonical schema paths
+function buildWorkOrderFilter(
+  searchParams: URLSearchParams,
+  orgId: string,
+  user?: { id: string; orgId: string; role: string; vendorId?: string; units?: string[] }
+) {
+  const filter: Record<string, unknown> = { orgId, isDeleted: { $ne: true } };
+
+  // 🔒 RBAC: Scope by role per STRICT v4 multi-tenant isolation
+  // BLOCKER FIX: Use canonical schema paths from server/models/WorkOrder.ts
+  const userRole = user?.role;
+  const userId = user?.id;
+  const vendorId = user?.vendorId;
+  const units = user?.units;
+  
+  if (userRole === 'TECHNICIAN' && userId) {
+    // Technicians only see work orders assigned to them (canonical: assignment.assignedTo.userId)
+    filter["assignment.assignedTo.userId"] = userId;
+  } else if (userRole === 'VENDOR' && vendorId) {
+    // Vendors only see work orders for their vendor organization (canonical: assignment.assignedTo.vendorId)
+    filter["assignment.assignedTo.vendorId"] = vendorId;
+  } else if (userRole === 'TENANT') {
+    // MAJOR FIX: Tenants with empty units get 403, not org-wide access
+    if (!units || units.length === 0) {
+      // Return a filter that matches nothing - caller should check for this
+      filter._id = { $exists: false }; // Impossible condition = no results
+      filter.__tenantNoUnits = true; // Signal to caller
+    } else {
+      // Tenants only see work orders for their units (canonical: location.propertyId or unitNumber)
+      filter["location.unitNumber"] = { $in: units };
+    }
+  }
+  // SUPER_ADMIN, CORPORATE_ADMIN, ADMIN, MANAGER, FM_MANAGER, PROPERTY_MANAGER see all in org
+
+  const status = searchParams.get("status");
+  if (status) {
+    filter.status = status;
+  }
+
+  const priority = searchParams.get("priority");
+  if (priority && ["CRITICAL", "HIGH", "MEDIUM", "LOW"].includes(priority)) {
+    filter.priority = priority;
+  }
+  const propertyId = searchParams.get("propertyId");
+  if (propertyId) {
+    filter["location.propertyId"] = propertyId;
+  }
+
+  const search = searchParams.get("search") || searchParams.get("q");
+  if (search) {
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    filter.$or = [
+      { workOrderNumber: { $regex: escapedSearch, $options: "i" } },
+      { title: { $regex: escapedSearch, $options: "i" } },
+      { description: { $regex: escapedSearch, $options: "i" } },
+      { category: { $regex: escapedSearch, $options: "i" } },
+    ];
+  }
+
+  return filter;
+}
+
+/**
+ * Generate Work Order Code with Year + Crypto UUID
+ */
+function generateWorkOrderNumber() {
+  const uuid = crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase();
+  return `WO-${new Date().getFullYear()}-${uuid}`;
+}
+
+/**
+ * Export CRUD Handlers with Custom Work Order Logic
+ */
+export const { GET, POST } = createCrudHandlers({
+  Model: WorkOrder,
+  createSchema: createWorkOrderSchema,
+  entityName: "work order",
+  defaultSort: { createdAt: -1 },
+  searchFields: ["workOrderNumber", "title", "description", "category"],
+  buildFilter: buildWorkOrderFilter,
+  // Custom onCreate hook to add SLA calculations
+  // 🔒 TYPE SAFETY: Using Record for dynamic work order data
+  onCreate: async (data: Record<string, unknown>, user) => {
+    const createdAt = new Date();
+    const { slaMinutes, dueAt } = resolveSlaTarget(
+      data.priority as WorkOrderPriority,
+      createdAt,
+    );
+    const responseMinutes = 120;
+
+    const location = data.propertyId
+      ? {
+          propertyId: data.propertyId,
+          unitNumber: data.unitNumber,
+        }
+      : undefined;
+
+    delete data.propertyId;
+    delete data.unitNumber;
+
+    const attachments = Array.isArray(data.attachments)
+      ? normalizeAttachments(data.attachments as AttachmentInput[], user.id)
+      : [];
+
+    return {
+      ...data,
+      orgId: user.orgId,
+      workOrderNumber: generateWorkOrderNumber(),
+      status: data.status === "DRAFT" ? "DRAFT" : "SUBMITTED",
+      statusHistory: [
+        {
+          fromStatus: "DRAFT",
+          toStatus: data.status === "DRAFT" ? "DRAFT" : "SUBMITTED",
+          changedBy: user.id,
+          changedAt: createdAt,
+          notes: "Created via API",
+        },
+      ],
+      location,
+      sla: {
+        responseTimeMinutes: responseMinutes,
+        resolutionTimeMinutes: slaMinutes,
+        responseDeadline: new Date(
+          createdAt.getTime() + responseMinutes * 60 * 1000,
+        ),
+        resolutionDeadline: dueAt,
+        status: "ON_TIME",
+      },
+      attachments,
+      createdAt,
+    };
+  },
+  onUpdate: async (id: string, updates: Record<string, unknown>, user) => {
+    // best-effort cleanup of removed attachment keys with observability
+    if (!Array.isArray(updates.attachments)) {
+      return updates;
+    }
+    const existing = await WorkOrder.findOne({ _id: id, orgId: user.orgId })
+      .select({ attachments: 1 })
+      .lean<{ attachments?: { key?: string }[] } | null>();
+    if (!existing?.attachments) return updates;
+    const existingKeys = new Set(
+      (existing.attachments || [])
+        .map((a) => a.key)
+        .filter(Boolean) as string[],
+    );
+    // Type assertion for attachments array with key property
+    const updatesAttachments = updates.attachments as
+      | Array<{ key?: string }>
+      | undefined;
+    const nextKeys = new Set(
+      (updatesAttachments || []).map((a) => a.key).filter(Boolean) as string[],
+    );
+    const removed = [...existingKeys].filter((k) => !nextKeys.has(k));
+    if (removed.length) {
+      void (async () => {
+        const results = await Promise.allSettled(
+          removed.map((key) => deleteObject(key)),
+        );
+        const failed = results.filter((r) => r.status === "rejected");
+        if (failed.length) {
+          logger.warn("[WorkOrder PATCH] S3 cleanup partial failure", {
+            workOrderId: id,
+            total: removed.length,
+            failed: failed.length,
+          });
+          failed.forEach((res, idx) => {
+            logger.error("[WorkOrder PATCH] S3 cleanup failed", {
+              workOrderId: id,
+              key: removed[idx],
+              error: (res as PromiseRejectedResult).reason,
+            });
+          });
+
+          // Enqueue cleanup retry job for failed deletions
+          const failedKeys = results
+            .map((res, idx) =>
+              res.status === "rejected" ? removed[idx] : null,
+            )
+            .filter((key): key is string => Boolean(key));
+
+          if (failedKeys.length > 0) {
+            try {
+              const { JobQueue } = await import("@/lib/jobs/queue");
+              const jobId = await JobQueue.enqueue("s3-cleanup", {
+                keys: failedKeys,
+                workOrderId: id,
+                retryReason: "partial-cleanup-failure",
+              });
+              logger.info("[WorkOrder PATCH] S3 cleanup retry job enqueued", {
+                workOrderId: id,
+                failedCount: failedKeys.length,
+                jobId,
+              });
+            } catch (error) {
+              logger.error(
+                "[WorkOrder PATCH] Failed to enqueue cleanup retry",
+                {
+                  workOrderId: id,
+                  error:
+                    error instanceof Error ? error.message : "Unknown error",
+                },
+              );
+            }
+          }
+        } else {
+          logger.info("[WorkOrder PATCH] S3 cleanup success", {
+            workOrderId: id,
+            total: removed.length,
+          });
+        }
+      })();
+    }
+    return updates;
+  },
+});
+
+]]>
+</file>
+
+<file path="app/api/work-orders/sla-check/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { WorkOrder } from "@/server/models/WorkOrder";
+import { requireSuperAdmin } from "@/lib/authz";
+
+import { logger } from "@/lib/logger";
+import { parseDate } from "@/lib/date-utils";
+
+interface WorkOrderWithSLA {
+  workOrderNumber: string;
+  title: string;
+  status: string;
+  priority: string;
+  sla?: {
+    resolutionDeadline?: Date | string;
+    responseDeadline?: Date | string;
+  };
+}
+
+/**
+ * POST /api/work-orders/sla-check
+ * Check for SLA breaches and send escalation notifications
+ *
+ * SECURITY: Requires SUPER_ADMIN authentication.
+ * This is a system-wide cron job that should be triggered by internal scheduler.
+ * Production deployments should use a secure cron service with proper credentials.
+ */
+export async function POST(req: NextRequest) {
+  // SECURITY: Require SUPER_ADMIN for system-wide SLA checking
+  // This endpoint runs across ALL tenants and should only be called by system cron
+  try {
+    await requireSuperAdmin(req);
+  } catch (error) {
+    if (error instanceof Response) {
+      return error;
+    }
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const now = new Date();
+    const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+
+    // NOTE: System-wide query across all tenants is intentional for SLA monitoring
+    // This is an admin-only endpoint for platform-wide SLA compliance tracking
+    const workOrders = await WorkOrder.find({
+      status: { $nin: ["CLOSED", "CANCELLED", "ARCHIVED"] },
+      "sla.resolutionDeadline": { $exists: true, $lte: twoHoursFromNow },
+    }).lean();
+
+    const results = {
+      checked: await WorkOrder.countDocuments({
+        status: { $nin: ["CLOSED", "CANCELLED", "ARCHIVED"] },
+        "sla.resolutionDeadline": { $exists: true },
+      }),
+      atRisk: 0,
+      breached: 0,
+      notifications: [] as Array<{
+        woNumber: string;
+        status: string;
+        timeRemaining: string;
+      }>,
+    };
+
+    for (const wo of workOrders) {
+      // Schema has responseDeadline/resolutionDeadline
+      const woTyped = wo as WorkOrderWithSLA;
+      const deadline = parseDate(
+        woTyped.sla?.resolutionDeadline,
+        () => new Date(),
+      );
+      const diff = deadline.getTime() - now.getTime();
+
+      if (diff <= 0) {
+        // SLA Breached
+        results.breached++;
+        const overdue = Math.abs(diff);
+        const hours = Math.floor(overdue / (1000 * 60 * 60));
+
+        // In real implementation, send escalation notifications here
+        logger.info(
+          `[SLA] BREACH: WO ${wo.workOrderNumber} is ${hours}h overdue`,
+        );
+
+        results.notifications.push({
+          woNumber: wo.workOrderNumber as string,
+          status: "BREACHED",
+          timeRemaining: `${hours}h overdue`,
+        });
+      } else {
+        // At Risk (within 2 hours)
+        results.atRisk++;
+        const minutes = Math.floor(diff / (1000 * 60));
+
+        logger.info(
+          `[SLA] WARNING: WO ${wo.workOrderNumber} due in ${minutes}m`,
+        );
+
+        results.notifications.push({
+          woNumber: wo.workOrderNumber as string,
+          status: "AT_RISK",
+          timeRemaining: `${minutes}m remaining`,
+        });
+      }
+    }
+
+    logger.info("[SLA] Check complete:", { results });
+
+    return NextResponse.json({
+      success: true,
+      data: results,
+    });
+  } catch (error) {
+    logger.error(
+      "[API] SLA check failed:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return NextResponse.json(
+      { success: false, error: "SLA check failed" },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * GET /api/work-orders/sla-check
+ * Preview SLA status without sending notifications
+ *
+ * SECURITY: Requires SUPER_ADMIN authentication.
+ */
+export async function GET(req: NextRequest) {
+  // SECURITY: Require SUPER_ADMIN for system-wide SLA preview
+  try {
+    await requireSuperAdmin(req);
+  } catch (error) {
+    if (error instanceof Response) {
+      return error;
+    }
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const now = new Date();
+
+    // NOTE: System-wide query across all tenants is intentional for SLA monitoring
+    const allWorkOrders = await WorkOrder.find({
+      status: { $nin: ["CLOSED", "CANCELLED", "ARCHIVED"] },
+      "sla.resolutionDeadline": { $exists: true },
+    }).lean();
+
+    const preview = {
+      total: allWorkOrders.length,
+      safe: 0,
+      warning: 0,
+      critical: 0,
+      breached: 0,
+      workOrders: allWorkOrders
+        .map((wo) => {
+          const woTyped = wo as WorkOrderWithSLA;
+          const deadline = parseDate(
+            woTyped.sla?.resolutionDeadline,
+            () => new Date(),
+          );
+          const diff = deadline.getTime() - now.getTime();
+          const hours = Math.floor(Math.abs(diff) / (1000 * 60 * 60));
+
+          let urgency: "safe" | "warning" | "critical" | "breached";
+          if (diff <= 0) {
+            urgency = "breached";
+            preview.breached++;
+          } else if (hours < 2) {
+            urgency = "critical";
+            preview.critical++;
+          } else if (hours < 4) {
+            urgency = "warning";
+            preview.warning++;
+          } else {
+            urgency = "safe";
+            preview.safe++;
+          }
+
+          return {
+            woNumber: wo.workOrderNumber,
+            title: wo.title,
+            status: wo.status,
+            priority: wo.priority,
+            deadline: wo.sla?.resolutionDeadline,
+            urgency,
+            hoursRemaining: diff > 0 ? hours : -hours,
+          };
+        })
+        .sort((a, b) => a.hoursRemaining - b.hoursRemaining),
+    };
+
+    return NextResponse.json({
+      success: true,
+      data: preview,
+    });
+  } catch (error) {
+    logger.error(
+      "[API] SLA preview failed:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return NextResponse.json(
+      { success: false, error: "SLA preview failed" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="config/routes/public.ts">
+<![CDATA[
+export const MARKETING_ROUTES = [
+  "/",
+  "/about",
+  "/privacy",
+  "/terms",
+  "/help",
+  "/careers",
+  "/cms/privacy",
+  "/cms/terms",
+  "/cms/about",
+];
+
+export const MARKETING_ROUTE_PREFIXES = [
+  "/aqar",
+  "/souq",
+  "/test",
+  "/test-rtl",
+  "/test-translations",
+  "/test-cms",
+  "/test-simple",
+];
+
+export const AUTH_ROUTES = [
+  "/login",
+  "/forgot-password",
+  "/signup",
+  "/reset-password",
+];
+
+export const PROTECTED_ROUTE_PREFIXES = [
+  "/admin",
+  "/administration",
+  "/crm",
+  "/dashboard",
+  "/dev",
+  "/finance",
+  "/fm",
+  "/hr",
+  "/notifications",
+  "/profile",
+  "/properties",
+  "/reports",
+  "/settings",
+  "/support",
+  "/system",
+  "/vendor",
+  "/vendors",
+  "/work-orders",
+  "/souq/cart",
+  "/souq/checkout",
+  "/souq/purchase",
+  "/souq/my-orders",
+  "/souq/my-rfqs",
+  "/marketplace",
+  "/marketplace/cart",
+  "/marketplace/checkout",
+];
+
+export const PUBLIC_MARKETPLACE_PREFIXES = [
+  "/souq",
+  "/souq/catalog",
+  "/souq/vendors",
+  "/aqar",
+  "/aqar/map",
+  "/aqar/filters",
+  "/aqar/properties",
+];
+
+export const PROTECTED_MARKETPLACE_ACTIONS = [
+  "/souq/cart",
+  "/souq/checkout",
+  "/souq/purchase",
+  "/souq/my-orders",
+  "/souq/my-rfqs",
+];
+
+]]>
+</file>
+
+</batch_content>

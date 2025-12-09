@@ -1,0 +1,3174 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/archived/reports/CRITICAL_FIXES_OCT26.md">
+<![CDATA[
+# Critical Fixes Applied - October 26, 2025
+
+## Summary
+
+Applied 30+ critical fixes addressing security, accessibility, and functionality issues across the Fixzit codebase.
+
+## Fixes Applied
+
+### 🔒 Security Fixes
+
+1. **Login Route (app/api/auth/login/route.ts)**
+   - ✅ Fixed loginType default logic: now correctly defaults to 'corporate' when employeeNumber exists, otherwise 'personal'
+   - Impact: Proper identifier selection for corporate vs personal logins
+
+2. **Referral Generation (app/api/referrals/generate/route.ts)**
+   - ✅ Replaced hardcoded `https://fixzit.sa` with BASE_URL environment variable
+   - ✅ Added validation (returns 500 error if BASE_URL missing)
+   - ✅ Updated env.example with BASE_URL and NEXT_PUBLIC_BASE_URL
+   - Impact: Environment-aware URL generation, no hardcoded domains
+
+3. **Dev Login Helpers (app/dev/login-helpers/page.tsx)**
+   - ✅ Removed hardcoded demo credentials from source code
+   - ✅ Created credentials.example.ts template
+   - ✅ Added credentials.ts to .gitignore
+   - ✅ Added runtime validation with fallback to empty arrays
+   - Impact: No credentials committed to VCS, developer-friendly onboarding
+
+4. **LoginForm Role Storage (components/auth/LoginForm.tsx)**
+   - ✅ Removed `localStorage.setItem('fixzit-role', ...)`
+   - ✅ Added comment: "Role is managed server-side via secure HTTP-only cookies"
+   - Impact: Client-side tampering no longer possible, server-validated auth only
+
+### ✅ Input Validation Fixes
+
+5. **Login Phase1 Email Validation (app/login/page.tsx.phase1)**
+   - ✅ Replaced loose `value.includes('@')` with proper email regex: `/^[^\s@]+@[^\s@]+\.[^\s@]+$/`
+   - Impact: Rejects invalid addresses like '@', 'user@', 'user@domain'
+
+6. **LoginForm Email Validation (components/auth/LoginForm.tsx)**
+   - ✅ Replaced `value.includes('@')` with proper email regex
+   - Impact: Consistent, robust validation across login flows
+
+### ♿ Accessibility Fixes
+
+7. **Login Phase1 - Forgot Password Link (app/login/page.tsx.phase1)**
+   - ✅ Removed `tabIndex={-1}` from "Forgot Password" link
+   - Impact: Keyboard users can now tab to the link
+
+8. **Login Phase1 - Password Visibility Toggle (app/login/page.tsx.phase1)**
+   - ✅ Removed `tabIndex={-1}` from password show/hide button
+   - Impact: Keyboard users can toggle password visibility
+
+### 🔧 Code Quality Fixes
+
+9. **ServiceProvider Model - EstablishedYear (server/models/ServiceProvider.ts)**
+   - ✅ Replaced static `max: new Date().getFullYear()` with runtime validator
+   - ✅ Added descriptive error message with actual value
+   - Impact: Year validation works correctly regardless of when module is loaded
+
+10. **ServiceProvider Model - Coordinates Validator (server/models/ServiceProvider.ts)**
+    - ✅ Fixed validator to reject empty arrays `[]`
+    - ✅ Now requires exactly 2 numeric elements or null/undefined
+    - Impact: Prevents invalid coordinate data (empty arrays no longer accepted)
+
+11. **E2E Start Script - Playwright Check (start-e2e-testing.sh)**
+    - ✅ Replaced broken glob check with `compgen -G` pattern
+    - Impact: Correctly detects Playwright browser installation
+
+## Files Modified
+
+- ✅ .gitignore
+- ✅ app/api/auth/login/route.ts
+- ✅ app/api/referrals/generate/route.ts
+- ✅ app/dev/login-helpers/credentials.example.ts (NEW)
+- ✅ app/dev/login-helpers/page.tsx
+- ✅ app/login/page.tsx.phase1
+- ✅ components/auth/LoginForm.tsx
+- ✅ env.example
+- ✅ server/models/ServiceProvider.ts
+- ✅ start-e2e-testing.sh
+
+## Remaining Issues (To Be Addressed)
+
+### High Priority
+
+- 🟡 Owner model bank account encryption (server/models/Owner.ts)
+- 🟡 FeatureFlag lifecycle.changeLog initialization (server/models/FeatureFlag.ts)
+- 🟡 ReferralCode generateCode retry limit (server/models/ReferralCode.ts)
+- 🟡 ServiceProvider atomic approval update (server/models/ServiceProvider.ts)
+- 🟡 Test credentials in setup-auth.ts (tests/setup-auth.ts)
+
+### Medium Priority
+
+- 🔵 UpgradeModal alert() replacement (components/admin/UpgradeModal.tsx)
+- 🔵 LoginFooter hardcoded Arabic string (components/auth/LoginFooter.tsx)
+- 🔵 JobApplicationForm auto-redirect timing (components/careers/JobApplicationForm.tsx)
+- 🔵 CompactCurrencySelector type safety (components/i18n/CompactCurrencySelector.tsx)
+- 🔵 LanguageSelector arrow alignment (components/i18n/LanguageSelector.tsx)
+
+### Low Priority (UX/Polish)
+
+- 🟢 feature-toggle.tsx unused import (components/ui/feature-toggle.tsx)
+- 🟢 language-selector keyboard navigation (components/ui/language-selector.tsx)
+- 🟢 language-selector RTL spacing/alignment (components/ui/language-selector.tsx)
+- 🟢 language-selector fetch timeout (components/ui/language-selector.tsx)
+- 🟢 navigation-buttons preventDefault handling (components/ui/navigation-buttons.tsx)
+- 🟢 FormStateContext handler key generation (contexts/FormStateContext.tsx)
+- 🟢 FeatureFlag percentage rollout logging (server/models/FeatureFlag.ts)
+- 🟢 FeatureFlag getConfig return type (server/models/FeatureFlag.ts)
+
+## Testing Recommendations
+
+1. **Login Flow Testing**
+   - Test corporate login with employeeNumber (should use corporate identifier)
+   - Test personal login with email (should use personal identifier)
+   - Test invalid email formats (should be rejected)
+   - Test keyboard navigation on login page (Tab through all fields including Forgot Password and password toggle)
+
+2. **Referral Generation**
+   - Verify BASE_URL is set in all environments (dev, staging, prod)
+   - Test referral link generation returns correct domain-based URLs
+
+3. **Dev Login Helpers**
+   - Verify credentials.ts is properly gitignored
+   - Test loading behavior when credentials.ts is missing (should show empty list)
+   - Developers should copy credentials.example.ts to credentials.ts
+
+4. **Security Audit**
+   - Verify role authorization is checked server-side on every API route
+   - Confirm localStorage no longer contains 'fixzit-role'
+   - Test that manipulating client state doesn't bypass authorization
+
+## Next Steps
+
+1. **Immediate**: Address remaining high-priority security issues (Owner encryption, test credentials)
+2. **Sprint Planning**: Schedule medium-priority UX fixes for next sprint
+3. **Tech Debt**: Create tickets for low-priority polish items
+4. **Documentation**: Update developer onboarding docs with credentials.example.ts process
+
+## Commit Information
+
+Branch: `fix/auth-duplicate-requests-and-debug-logs`
+Commits: Multiple incremental commits for traceability
+Status: Ready for review and testing
+
+]]>
+</file>
+
+<file path="docs/archived/reports/CRITICAL_FIXES_REQUIRED.md">
+<![CDATA[
+# Critical Issues Identified - Immediate Fixes Required
+
+## Date: 2025-10-11
+
+## Status: 🔴 CRITICAL - 3 Major Issues
+
+---
+
+## Issue 1: Sign Out Button Not Working ❌
+
+### Problem
+
+The TopBar `handleLogout` function exists and is correctly implemented, BUT the button is using **hardcoded "Sign out" text** instead of the translation function.
+
+### Current Code (Line 410 in TopBar.tsx)
+
+```tsx
+<button
+  className="block w-full text-left px-3 py-2 hover:bg-gray-50 text-red-600 rounded"
+  onClick={handleLogout}
+>
+  {t("common.logout", "Sign out")} // ✅ This is CORRECT
+</button>
+```
+
+### Root Cause Analysis
+
+The logout button **IS** using translations correctly. The issue might be:
+
+1. **Translation context not available** - The `t()` function is falling back to English default
+2. **Language not persisting** across page navigation
+3. **handleLogout** function is clearing `fxz.lang` from localStorage (Line 221)
+
+### Evidence from Code
+
+```tsx
+// Line 221-225 in TopBar.tsx
+localStorage.removeItem("fixzit-role");
+localStorage.removeItem("fxz.lang"); // ❌ THIS REMOVES LANGUAGE PREFERENCE!
+localStorage.removeItem("fixzit-currency");
+localStorage.removeItem("fixzit-theme");
+```
+
+### Fix Required
+
+**DO NOT** remove language preference on logout. Users should keep their language selection even after logging out.
+
+---
+
+## Issue 2: Arabic Language Not Switching on Pages ⚠️
+
+### Problem
+
+When user changes language in TopBar, translations don't update across pages immediately.
+
+### Root Cause Analysis
+
+#### Evidence from TranslationContext.tsx (Lines 1607-1623)
+
+```tsx
+useEffect(() => {
+  if (!isClient) {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem("fxz.locale", currentOption.locale);
+    window.localStorage.setItem("fxz.lang", currentOption.language);
+    document.cookie = `fxz.lang=${currentOption.language}; path=/; SameSite=Lax`;
+    document.cookie = `fxz.locale=${currentOption.locale}; path=/; SameSite=Lax`;
+    document.documentElement.lang = currentOption.locale.toLowerCase();
+    document.documentElement.dir = currentOption.dir;
+    document.documentElement.setAttribute("data-locale", currentOption.locale);
+    if (document.body) {
+      document.body.style.direction = currentOption.dir;
+    }
+    window.dispatchEvent(
+      new CustomEvent("fixzit:language-change", {
+        detail: {
+          locale: currentOption.locale,
+          language: currentOption.language,
+          dir: currentOption.dir,
+        },
+      }),
+    );
+  } catch (error) {
+    console.warn("Could not update language settings:", error);
+  }
+}, [currentOption, isClient]);
+```
+
+**Analysis**: The TranslationContext is setting localStorage and dispatching events correctly ✅
+
+#### Evidence from LanguageSelector.tsx (Lines 68-75)
+
+```tsx
+const handleSelect = (option: LanguageOption) => {
+  setLanguage(option.language as LanguageCode);
+  setOpen(false);
+  setQuery("");
+};
+```
+
+**Analysis**: LanguageSelector calls `setLanguage()` which updates TranslationContext ✅
+
+### Possible Root Causes
+
+1. **Pages are not subscribed to language change events** - Pages use `useTranslation()` hook but React doesn't re-render when language changes
+2. **Multiple Translation Systems** - Code has TWO translation systems:
+   - `TranslationContext.tsx` (1,717 lines) with 1,569 LOC of translations
+   - `i18n/dictionaries/` folder with separate translation files
+3. **Race condition** - Language changes but components don't re-render because context value doesn't change
+
+### Testing Required
+
+1. Open any page (e.g., /work-orders)
+2. Change language from English to Arabic using TopBar selector
+3. Check if page content updates immediately or requires page refresh
+
+---
+
+## Issue 3: Corporate Login Requires Non-Existent Fields 🚫
+
+### Problem
+
+User reports: "corporate account login requires Corporate number + employee login number + password which is not existing, why?"
+
+### Current Implementation
+
+#### Login Page (Lines 140-157)
+
+```tsx
+const CORPORATE_CREDENTIALS = [
+  {
+    role: "Property Manager (Corporate)",
+    employeeNumber: "EMP001",
+    password: "password123",
+    description: "Corporate account access",
+    icon: Building2,
+    color: "bg-green-100 text-green-800",
+  },
+  {
+    role: "Admin (Corporate)",
+    employeeNumber: "EMP002",
+    password: "password123",
+    description: "Corporate administrative access",
+    icon: User,
+    color: "bg-blue-100 text-blue-800",
+  },
+];
+```
+
+#### Corporate Login Form (Lines 477-500)
+
+```tsx
+{loginMethod === 'corporate' && (
+  <>
+    {/* Employee Number Field */}
+    <div>
+      <label htmlFor="employeeNumber" className="block text-sm font-medium text-gray-700 mb-2">
+        Employee Number
+      </label>
+      <div className="relative">
+        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+        <Input
+          id="employeeNumber"
+          type="text"
+          placeholder="Enter your employee number"
+          value={employeeNumber}
+          onChange={(e) => setEmployeeNumber(e.target.value)}
+          className="pl-10 h-12"
+          required
+        />
+      </div>
+    </div>
+    // ... PASSWORD FIELD FOLLOWS
+```
+
+### Root Cause Analysis
+
+**THERE IS NO "CORPORATE NUMBER" FIELD!** The user's complaint is INVALID or refers to a misunderstanding.
+
+#### What Corporate Login Actually Requires
+
+1. **Employee Number** (e.g., EMP001) ✅ EXISTS
+2. **Password** ✅ EXISTS
+3. **Corporate Number** ❌ DOES NOT EXIST
+
+### Possible User Confusion Sources
+
+1. **Demo credentials show "Corporate" in description** - Users might think they need a separate corporate ID
+2. **No visual distinction** between personal and corporate login beyond the tab selector
+3. **Missing explanatory text** about what corporate login is
+
+### API Implementation (app/api/auth/login/route.ts)
+
+```typescript
+const LoginSchema = z
+  .object({
+    email: z.string().email().optional(),
+    employeeNumber: z.string().optional(),
+    password: z.string().min(1, "Password is required"),
+    loginType: z.enum(["personal", "corporate"]).default("personal"),
+  })
+  .refine(
+    (data) =>
+      data.loginType === "personal" ? !!data.email : !!data.employeeNumber,
+    {
+      message:
+        "Email required for personal login or employee number for corporate login",
+    },
+  );
+```
+
+**Analysis**: API schema is correct. No corporate number field exists or is required. ✅
+
+### Fix Required
+
+1. **Add help text** explaining corporate login: "Use your employee number and password. No separate corporate ID needed."
+2. **Add visual examples** in the demo credentials section
+3. **Add Arabic translation** for all corporate login fields and help text
+
+---
+
+## Issue 4: Missing Arabic Translations on Login Page 🌐
+
+### Problem
+
+Login page has hardcoded English text that doesn't switch to Arabic.
+
+### Evidence from login/page.tsx
+
+#### Hardcoded Text Examples (Not using translation system)
+
+- Line 415: `"Corporate Account"` - HARDCODED
+- Line 436: `"Personal Email Address"` - HARDCODED
+- Line 443: `"Enter your personal email"` - HARDCODED
+- Line 451: `"Password"` - HARDCODED
+- Line 458: `"Enter your password"` - HARDCODED
+- Line 480: `"Employee Number"` - HARDCODED
+- Line 487: `"Enter your employee number"` - HARDCODED
+
+### Root Cause
+
+**Login page is NOT using TranslationContext!** There's no `useTranslation()` hook call.
+
+### Fix Required
+
+1. Import `useTranslation` hook
+2. Replace ALL hardcoded strings with `t('key', 'fallback')`
+3. Add missing translation keys to TranslationContext.tsx
+
+---
+
+## Priority Action Plan
+
+### 🔥 CRITICAL (Fix Today)
+
+1. **Fix handleLogout** - Don't remove language preference (5 minutes)
+2. **Add TranslationContext to login page** - Import hook and replace hardcoded strings (30 minutes)
+3. **Add Arabic translations for login page** - Add keys to TranslationContext.tsx (15 minutes)
+
+### ⚠️ HIGH (Fix This Week)
+
+4. **Investigate language switching** - Test page re-renders, add debug logging (1 hour)
+5. **Add corporate login help text** - Clarify no corporate number needed (20 minutes)
+6. **Fix 6 hardcoded save buttons** - From previous verification report (1 hour)
+
+### 📋 MEDIUM (Fix Next Week)
+
+7. **Add page refresh mechanism** - Force re-render on language change if needed
+8. **Consolidate translation systems** - Choose one system (TranslationContext vs i18n/dictionaries)
+9. **Add visual feedback** - Show loading state when changing language
+
+---
+
+## Files Requiring Changes
+
+### Immediate Changes Required
+
+1. **components/TopBar.tsx** (Line 221)
+   - Remove `localStorage.removeItem('fxz.lang');`
+
+2. **app/login/page.tsx** (Multiple lines)
+   - Add `useTranslation()` hook
+   - Replace 30+ hardcoded strings
+   - Add language selector to login page?
+
+3. **contexts/TranslationContext.tsx** (Add new keys)
+   - `'login.title'`
+   - `'login.personalEmail'`
+   - `'login.corporateAccount'`
+   - `'login.employeeNumber'`
+   - `'login.password'`
+   - `'login.enterEmail'`
+   - `'login.enterEmployeeNumber'`
+   - `'login.enterPassword'`
+   - `'login.corporateHelp'`
+   - And 20+ more login-related keys
+
+---
+
+## Testing Checklist
+
+### Sign Out Test
+
+- [ ] Login as any user
+- [ ] Change language to Arabic
+- [ ] Click sign out
+- [ ] Go to login page
+- [ ] Verify language is STILL Arabic (not reset to English)
+
+### Language Switching Test
+
+- [ ] Login and navigate to /work-orders
+- [ ] Note current page language
+- [ ] Change language using TopBar selector
+- [ ] Verify page content updates immediately (no refresh needed)
+- [ ] Navigate to another page
+- [ ] Verify language persists
+
+### Corporate Login Test
+
+- [ ] Go to login page
+- [ ] Click "Corporate Account" tab
+- [ ] Verify only 2 fields: Employee Number + Password (NO corporate number field)
+- [ ] Enter EMP001 / password123
+- [ ] Verify login succeeds
+- [ ] Check Arabic translations for all fields
+
+---
+
+## Next Steps
+
+1. ✅ Document issues (THIS FILE)
+2. ⏳ Update todo list
+3. ⏳ Fix handleLogout (remove language preference deletion)
+4. ⏳ Add translations to login page
+5. ⏳ Test language switching behavior
+6. ⏳ Add corporate login help text
+7. ⏳ Commit and push fixes
+8. ⏳ Create PR with comprehensive changes
+
+]]>
+</file>
+
+<file path="docs/archived/reports/CRITICAL_FIX_REPORT.md">
+<![CDATA[
+# CRITICAL FIX REPORT - Merge Conflict Emergency Cleanup
+
+**Date**: November 16, 2024  
+**Status**: ✅ **RESOLVED**  
+**Severity**: 🔴 **CRITICAL** (Blocking - Dev server wouldn't start)
+
+---
+
+## Executive Summary
+
+**Problem**: After pushing the initial merge commit (fe8c9c0b3), attempted to run `pnpm dev` and discovered **59 files still contained merge conflict markers** that were blocking the development server from starting.
+
+**Root Cause**: Previous automated cleanup scripts (Python + shell) missed many conflict markers due to:
+
+1. Searching patterns that were too specific
+2. Not checking all file types (`.final` backup files were missed)
+3. Script execution order issues
+
+**Solution**: Created emergency cleanup script that found and removed all remaining conflict markers.
+
+**Impact**:
+
+- ✅ Dev server now starts successfully
+- ✅ All parsing errors resolved
+- ✅ Application accessible at http://localhost:3000
+- ✅ 0 merge conflict markers remaining in source code
+
+---
+
+## Timeline of Events
+
+### Initial Discovery (10:30 AM)
+
+```
+pnpm dev
+⨯ ./lib/mongodb-unified.ts:96:1
+Parsing ecmascript source code failed
+> 96 | >>>>>>> feat/souq-marketplace-advanced
+Merge conflict marker encountered.
+```
+
+### Comprehensive Search (10:35 AM)
+
+```bash
+grep -rn ">>>>>>> " lib/ app/ components/ server/
+# Result: 59 files with conflict markers!
+```
+
+### Files Affected by Missed Conflicts
+
+**Library Files (8)**
+
+- `lib/fm-notifications.ts` - 4 markers (lines 234, 310, 358, 406)
+- `lib/fm-auth-middleware.ts` - 2 markers (lines 251, 300)
+- `lib/audit/middleware.ts` - 1 marker (line 271)
+- `lib/api/crud-factory.ts` - 1 marker (line 172)
+- `lib/finance/pricing.ts` - 6 markers (lines 4, 67, 87, 130, 142, 153)
+- `lib/mongo.ts` - 1 marker (line 13)
+- `lib/fm-approval-engine.ts` - 6 markers (lines 597, 621, 671, 696, 838, 896)
+- `lib/audit.ts` - 2 markers (lines 4, 45)
+
+**Application Pages & API Routes (44)**
+
+- Aqar module: 4 files (map, properties - including .final backups)
+- Work orders: 2 files (pm page, sla-check route)
+- FM dashboard: 8 files (dashboard page with 6 markers each, plus .final backups)
+- Marketplace: 10 files (admin, product, checkout, rfq, orders, search)
+- Careers & CMS: 3 files (career detail, CMS slug pages)
+- Support: 1 file (my-tickets page)
+- HR: 6 files (payroll, employees - including .final backups)
+- Finance: 10 files (payments, invoices, expenses routes, hooks)
+- Souq: 1 file (catalog page - 4 markers)
+- Notifications: 1 file (page.tsx - 6 markers)
+
+**Components (5)**
+
+- `components/fm/WorkOrdersView.tsx` - 2 markers
+- `components/finance/AccountActivityViewer.tsx` - 1 marker
+- `components/topbar/GlobalSearch.tsx` - 1 marker
+- `components/ClientLayout.tsx` - 1 marker
+- `components/ErrorBoundary.tsx` - 1 marker
+
+**Server Files (7)**
+
+- `server/middleware/withAuthRbac.ts` - 2 markers
+- `server/work-orders/wo.service.ts` - 2 markers
+- `server/copilot/tools.ts` - 2 markers
+- `server/models/FeatureFlag.ts` - 1 marker
+- `server/models/finance/Payment.ts` - 1 marker
+- `server/models/finance/Journal.ts` - 2 markers
+- `server/services/owner/financeIntegration.ts` - 1 marker
+
+---
+
+## Emergency Fix Implementation
+
+### Step 1: Created Emergency Cleanup Script
+
+**File**: `scripts/emergency-conflict-cleanup.sh`
+
+```bash
+#!/bin/bash
+# Emergency cleanup of all remaining merge conflict markers
+
+echo "🚨 Emergency cleanup of merge conflict markers..."
+
+# Find all files with conflict markers
+FILES=$(grep -rl ">>>>>>> feat/souq-marketplace-advanced" lib/ app/ components/ server/ 2>/dev/null | grep -v node_modules | grep -v ".next")
+
+COUNT=0
+for file in $FILES; do
+  if [ -f "$file" ]; then
+    echo "Cleaning: $file"
+    # Remove all conflict markers
+    sed -i.emergency-bak '/^<<<<<<< HEAD$/d' "$file"
+    sed -i.emergency-bak '/^=======$/d' "$file"
+    sed -i.emergency-bak '/^>>>>>>> feat\/souq-marketplace-advanced$/d' "$file"
+    COUNT=$((COUNT + 1))
+  fi
+done
+
+echo "✅ Cleaned $COUNT files"
+
+# Verify no markers remain
+REMAINING=$(grep -rl ">>>>>>> " lib/ app/ components/ server/ 2>/dev/null | grep -v node_modules | grep -v ".next" | grep -v ".bak" | wc -l)
+echo "📊 Remaining files with markers: $REMAINING"
+```
+
+### Step 2: Executed Emergency Cleanup
+
+```bash
+chmod +x scripts/emergency-conflict-cleanup.sh
+./scripts/emergency-conflict-cleanup.sh
+```
+
+**Output**:
+
+```
+🚨 Emergency cleanup of merge conflict markers...
+Cleaning: lib/fm-notifications.ts
+Cleaning: lib/fm-auth-middleware.ts
+... [59 files total]
+✅ Cleaned 59 files
+📊 Remaining files with markers: 0
+```
+
+### Step 3: Committed Emergency Fix
+
+**Commit**: `d7831a12c`
+
+```bash
+git add -A
+git commit -m "fix: Emergency cleanup of missed merge conflict markers in 59 files"
+git push origin main
+```
+
+**Commit Stats**:
+
+- 120 files changed
+- 19,846 insertions(+)
+- 121 deletions(-)
+- All backup files (`.emergency-bak`) created for rollback
+
+### Step 4: Verified Dev Server
+
+```bash
+pnpm dev
+```
+
+**Result**: ✅ **SUCCESS**
+
+```
+▲ Next.js 15.5.6 (Turbopack)
+- Local:        http://localhost:3000
+- Network:      http://192.168.1.2:3000
+
+✓ Starting...
+✓ Compiled middleware in 624ms
+✓ Ready in 1534ms
+```
+
+---
+
+## Verification Results
+
+### ✅ Conflict Markers Check
+
+```bash
+grep -rl "<<<<<<< HEAD\|>>>>>>> \|=======" lib/ app/ components/ server/
+# Result: 0 files (excluding .bak files)
+```
+
+### ✅ Dev Server Status
+
+- Server: Running on http://localhost:3000
+- Compilation: Success
+- Middleware: Compiled in 624ms
+- Ready time: 1.5 seconds
+- Errors: None
+
+### ✅ Git Repository Status
+
+- Branch: `main`
+- Latest commit: `d7831a12c` (Emergency cleanup)
+- Remote: Pushed to `origin/main` ✅
+- Conflicts: 0
+
+---
+
+## Lessons Learned
+
+### What Went Wrong
+
+1. **Incomplete Grep Patterns**
+   - Previous searches used specific line patterns
+   - Missed files with slightly different formatting
+   - Didn't account for `.final` backup files
+
+2. **Script Reliability**
+   - Python regex script was complex and missed edge cases
+   - Shell script `sed` commands needed broader patterns
+   - No comprehensive verification after cleanup
+
+3. **Testing Gap**
+   - Didn't run `pnpm dev` immediately after conflict resolution
+   - Relied on `pnpm lint` which has caching issues
+   - Committed merge before runtime verification
+
+### What Worked Well
+
+1. **Emergency Response**
+   - Quickly identified scope (59 files)
+   - Simple, reliable cleanup script
+   - Proper backup creation (`.emergency-bak`)
+   - Immediate verification
+
+2. **Documentation**
+   - Created this report for future reference
+   - Comprehensive file list for tracking
+   - Clear commit message
+
+3. **Recovery Process**
+   - Zero data loss
+   - All files now syntactically valid
+   - Dev server operational
+
+---
+
+## Current Status
+
+### ✅ Resolved Issues
+
+1. **Merge Conflict Markers**: 0 remaining in source code
+2. **Dev Server**: Running successfully on port 3000
+3. **Parsing Errors**: All resolved
+4. **Git Repository**: Clean, all changes pushed
+
+### ⚠️ Known Warnings (Non-Blocking)
+
+1. **Auth Configuration**:
+
+   ```
+   [ERROR] Auth session error: Missing required authentication secrets: NEXTAUTH_SECRET
+   ```
+
+   - **Impact**: Authentication won't work without `.env.local`
+   - **Solution**: User needs to create `.env.local` with credentials
+   - **Blocker**: No (dev server still runs)
+
+2. **Package Dependencies**:
+
+   ```
+   ⚠ Package import-in-the-middle can't be external
+   ⚠ Package require-in-the-middle can't be external
+   ```
+
+   - **Impact**: OpenTelemetry instrumentation warnings
+   - **Solution**: Consider adding to `serverExternalPackages` in next.config.js
+   - **Blocker**: No (just warnings)
+
+3. **Dependabot Security Alert**:
+
+   ```
+   GitHub found 1 vulnerability on EngSayh/Fixzit's default branch (1 moderate)
+   https://github.com/EngSayh/Fixzit/security/dependabot/7
+   ```
+
+   - **Impact**: Potential security risk
+   - **Solution**: Review and update vulnerable dependency
+   - **Blocker**: No (moderate severity)
+
+---
+
+## Next Steps
+
+### Immediate (User Action Required)
+
+1. **Review Application**
+   - Open http://localhost:3000 in browser
+   - Test theme switching (light/dark/system)
+   - Test language selector (9 languages)
+   - Verify RTL layouts (Arabic, Urdu)
+   - Check all main navigation routes
+
+2. **Configure Environment**
+   - Create `.env.local` from `env.example`
+   - Add `NEXTAUTH_SECRET` (generate with `openssl rand -base64 32`)
+   - Add `MONGODB_URI` (or `DATABASE_URL`)
+   - Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (optional)
+
+3. **Address Dependabot Alert**
+   - Visit: https://github.com/EngSayh/Fixzit/security/dependabot/7
+   - Review vulnerability details
+   - Update affected package
+   - Run `pnpm install` to update lock file
+
+### Short-Term (Next 1-2 Weeks)
+
+4. **Professional Translations**
+   - Hire translators for 7 languages: FR, PT, RU, ES, UR, HI, ZH
+   - Provide `i18n/*.json` stub files
+   - Each file: ~1,076 strings (35 top-level keys)
+   - Estimated cost: $50-100 per language
+
+5. **Code Quality Improvements**
+   - Address 665 lint warnings
+   - Priority: Fix 14 undefined references (high risk)
+   - Run `pnpm lint --fix` for auto-fixes
+   - Type explicit `any` instances
+
+6. **E2E Testing**
+   - Write Playwright tests for theme switching
+   - Test language selector functionality
+   - Verify RTL layout rendering
+   - Test all 9 language variants
+
+### Long-Term (Next 1 Month)
+
+7. **Performance Optimization**
+   - Lazy load translation files (reduce bundle size)
+   - Code-split by language (load on demand)
+   - Implement service worker for offline i18n
+   - Run Lighthouse audits per language
+
+8. **Production Deployment**
+   - Staging deployment for 24-hour monitoring
+   - Cross-browser testing (Chrome, Safari, Firefox)
+   - Mobile responsive verification
+   - Accessibility audit (WCAG 2.1 AA)
+   - Security scan (npm audit, Snyk)
+   - Production deployment
+
+---
+
+## Backup Files Created
+
+All cleaned files have backup copies with `.emergency-bak` extension:
+
+```bash
+# List all backup files
+find . -name "*.emergency-bak" | wc -l
+# Result: 59 files
+
+# Example backups:
+# lib/mongodb-unified.ts.emergency-bak
+# app/souq/catalog/page.tsx.emergency-bak
+# components/ClientLayout.tsx.emergency-bak
+```
+
+**Rollback Command** (if needed):
+
+```bash
+# Restore all original files from backups
+for f in $(find . -name "*.emergency-bak"); do
+  original="${f%.emergency-bak}"
+  cp "$f" "$original"
+done
+```
+
+**Cleanup Backups** (when confident fix is correct):
+
+```bash
+find . -name "*.emergency-bak" -delete
+```
+
+---
+
+## Summary
+
+| Metric                 | Before   | After               | Status          |
+| ---------------------- | -------- | ------------------- | --------------- |
+| Merge Conflict Markers | 59 files | 0 files             | ✅              |
+| Dev Server Status      | Blocked  | Running             | ✅              |
+| Parsing Errors         | Multiple | None                | ✅              |
+| TypeScript Errors      | 0        | 0                   | ✅              |
+| Lint Warnings          | 665      | 665                 | ⚠️ Non-blocking |
+| Git Repository         | Clean    | Clean               | ✅              |
+| GitHub Push            | N/A      | Success (d7831a12c) | ✅              |
+
+**Final Status**: 🎉 **APPLICATION READY FOR TESTING**
+
+---
+
+## Documentation References
+
+For full technical details, see:
+
+- **V2_IMPLEMENTATION_SUMMARY.md** - Quick reference guide
+- **V2_THEME_INTL_COMPLETION_REPORT.md** - Comprehensive 30-page technical report
+- **PHASE_2_PR_SPLIT_STRATEGY.md** - PR strategy (documented, not executed)
+
+---
+
+**Report Generated**: November 16, 2024, 10:50 AM  
+**Author**: GitHub Copilot (AI Assistant)  
+**Commits**: fe8c9c0b3 (initial merge) → d7831a12c (emergency cleanup)
+
+]]>
+</file>
+
+<file path="docs/archived/reports/DEAD_CODE_ANALYSIS_REPORT.md">
+<![CDATA[
+# Dead Code Analysis Report
+
+**Date**: October 15, 2025 06:45:00 UTC  
+**Tool**: ts-prune v0.10.3  
+**Scope**: Entire TypeScript/TSX codebase  
+**Status**: ✅ **ANALYSIS COMPLETE**
+
+---
+
+## Executive Summary
+
+**Total Exports Found**: 109 exports  
+**Unused Exports**: 51 items  
+**Used in Module**: 58 items (legitimately exported for external use)
+
+**Categories**:
+
+1. **Next.js Conventions** (6 items) - Required by framework, keep
+2. **Test/Script Files** (4 items) - Entry points, keep
+3. **Utility Functions** (12 items) - May be future use, review
+4. **Components** (8 items) - Potentially unused, safe to remove
+5. **Type Exports** (3 items) - May be imported without detection
+6. **Configuration** (5 items) - Framework/tool requirements
+7. **Middleware/Auth** (10 items) - API utilities, review usage
+8. **Business Logic** (3 items) - SLA calculations, jobs
+
+---
+
+## Category 1: Next.js Framework Requirements (KEEP - 6 items)
+
+These exports are required by Next.js conventions and must not be removed:
+
+1. ✅ **`app/layout.tsx:7 - default`** - Root layout component
+2. ✅ **`app/not-found.tsx:6 - default`** - 404 page component
+3. ✅ **`middleware.ts:106 - middleware`** - Next.js middleware function
+4. ✅ **`middleware.ts:247 - config`** - Middleware configuration
+5. ✅ **`playwright.config.ts:7 - default`** - Playwright test config
+6. ✅ **`qa/playwright.config.ts:3 - default`** - QA Playwright config
+
+**Action**: KEEP ALL - Framework requirements  
+**Risk**: CRITICAL if removed - Application will break
+
+---
+
+## Category 2: Scripts & Test Entry Points (KEEP - 4 items)
+
+Entry points for scripts and test utilities:
+
+7. ✅ **`scripts/seed-marketplace.ts:75 - default`** - Database seeding script
+8. ✅ **`scripts/seed-users.ts:270 - default`** - User seeding script
+9. ✅ **`test-powershell-heredoc.ts:3 - GET`** - Test utility
+10. ✅ **`jobs/recurring-charge.ts:3 - chargeDueMonthlySubs`** - Scheduled job function
+
+**Action**: KEEP ALL - Used by external runners/schedulers  
+**Note**: ts-prune doesn't detect command-line script usage
+
+---
+
+## Category 3: Utility Functions (REVIEW - 12 items)
+
+Exported utilities that may or may not be used:
+
+### 3A. Auth & Permissions (6 items)
+
+11. ⚠️ **`lib/edge-auth-middleware.ts:18 - authenticateRequest`**
+12. ⚠️ **`lib/edge-auth-middleware.ts:78 - hasPermission`**
+13. ⚠️ **`lib/edge-auth-middleware.ts:109 - getUserPermissions`**
+14. ⚠️ **`lib/edge-auth-middleware.ts:114 - isAdmin`**
+15. ⚠️ **`lib/edge-auth-middleware.ts:118 - isManager`**
+16. ⚠️ **`lib/edge-auth-middleware.ts:122 - isTenant`**
+
+**Investigation Needed**:
+
+```bash
+# Check if used in API routes
+grep -r "authenticateRequest" app/api/
+grep -r "hasPermission" app/api/
+grep -r "isAdmin" app/
+```
+
+**Recommendation**:
+
+- If grep returns 0 results → **REMOVE**
+- If found in dynamic imports → **KEEP**
+- Edge middleware exports may be used in serverless functions
+
+### 3B. Pricing & Business Logic (4 items)
+
+17. ⚠️ **`lib/pricing.ts:232 - default`** - Default pricing export
+18. ⚠️ **`sla.ts:1 - computeSlaMinutes`** - SLA time calculation
+19. ⚠️ **`sla.ts:11 - computeDueAt`** - SLA due date calculation
+20. ⚠️ **`lib/auth-middleware.ts:41 - requireAbility`** - RBAC ability check
+
+**Investigation**:
+
+```bash
+grep -r "computeSlaMinutes" app/ server/
+grep -r "computeDueAt" app/ server/
+grep -r "requireAbility" app/api/
+```
+
+**Recommendation**:
+
+- SLA functions: Likely used in work order services → **VERIFY FIRST**
+- requireAbility: RBAC function → **VERIFY FIRST**
+
+### 3C. Data & Configuration (2 items)
+
+21. ⚠️ **`lib/regex.ts:1 - escapeRegex`** - Regex escaping utility
+22. ⚠️ **`lib/rbac.ts:11 - ACCESS`** - Access control constants
+
+**Recommendation**: Common utilities, likely used → **VERIFY**
+
+---
+
+## Category 4: Components (SAFE TO REMOVE - 8 items)
+
+UI components flagged as unused:
+
+### 4A. Test/Development Components (3 items - REMOVE)
+
+23. ❌ **`components/ErrorTest.tsx:8 - default`** - Test component
+24. ❌ **`components/HelpWidget.tsx:9 - default`** - Unused help widget
+25. ❌ **`core/RuntimeMonitor.tsx:1 - default`** - Development monitoring UI
+
+**Action**: **REMOVE THESE FILES**
+
+- ErrorTest.tsx - Dev testing only
+- HelpWidget.tsx - Replaced by CopilotWidget
+- RuntimeMonitor.tsx - Development tool, not production
+
+**Estimated Savings**: ~300 lines
+
+### 4B. Responsive Components (2 items - REVIEW)
+
+26. ⚠️ **`components/ResponsiveLayout.tsx:105 - ResponsiveCard`**
+27. ⚠️ **`components/ResponsiveLayout.tsx:145 - ResponsiveButton`**
+
+**Investigation**:
+
+```bash
+grep -r "ResponsiveCard" components/ app/
+grep -r "ResponsiveButton" components/ app/
+```
+
+**Recommendation**: If unused → Move to separate file or remove
+
+### 4C. Other Components (3 items)
+
+28. ⚠️ **`components/FlagIcon.tsx:16 - FlagIcon`** - Country flag component
+29. ⚠️ **`providers/QAProvider.tsx:20 - QAProvider`** - QA test provider
+30. ❌ **`core/ArchitectureGuard.ts:36 - architectureGuard`** - Unused guard
+
+**FlagIcon**: Used in LanguageSelector? → **VERIFY**  
+**QAProvider**: Test infrastructure → **KEEP**  
+**architectureGuard**: Likely unused → **REMOVE**
+
+---
+
+## Category 5: Type Exports (KEEP - 3 items)
+
+TypeScript type exports may not be detected by usage:
+
+31. ✅ **`i18n/useI18n.ts:41 - UseI18nReturn`** - Return type
+32. ✅ **`contexts/CurrencyContext.tsx:20 - satisfies`** - Type operator
+33. ✅ **`contexts/CurrencyContext.tsx:20 - readonly`** - Type modifier
+
+**Action**: KEEP ALL - TypeScript type safety  
+**Note**: Types used in type annotations don't show as "used" in ts-prune
+
+---
+
+## Category 6: Configuration & Constants (REVIEW - 5 items)
+
+34. ⚠️ **`config/modules.ts:7 - MODULES`** - Module configuration
+35. ⚠️ **`config/sidebarModules.ts:6 - SIDEBAR_ITEMS`** - Sidebar config
+36. ⚠️ **`config/topbar-modules.ts:64 - getModuleFromPath`** - Module resolver
+37. ⚠️ **`data/language-options.ts:44 - DEFAULT_LANGUAGE`** - Default lang constant
+38. ⚠️ **`nav/registry.ts:24 - modules`** - Navigation registry
+
+**Investigation**:
+
+```bash
+grep -r "MODULES" components/ app/
+grep -r "SIDEBAR_ITEMS" components/
+grep -r "getModuleFromPath" app/
+```
+
+**Recommendation**: Configuration exports → **VERIFY** before removing
+
+---
+
+## Category 7: Context & Hooks (REVIEW - 3 items)
+
+39. ⚠️ **`contexts/ResponsiveContext.tsx:38 - useResponsiveContext`**
+40. ⚠️ **`contexts/ThemeContext.tsx:22 - useThemeCtx`**
+41. ⚠️ **`db/mongoose.ts:22 - getMongoose`**
+
+**useResponsiveContext**: Replaced by useResponsive? → **VERIFY**  
+**useThemeCtx**: Replaced by useTheme? → **VERIFY**  
+**getMongoose**: Database utility → **VERIFY**
+
+---
+
+## Category 8: PayTabs & Payment (REVIEW - 3 items)
+
+42. ⚠️ **`lib/paytabs.config.ts:16 - validatePayTabsConfig`**
+43. ⚠️ **`lib/paytabs.ts:209 - CURRENCIES`**
+44. ⚠️ **`lib/paytabs.ts:223 - getAvailablePaymentMethods`**
+
+**Note**: `lib/paytabs.ts` flagged for removal in duplicate code analysis  
+**Action**: Remove entire file (consolidate to `lib/paytabs/core.ts`)
+
+---
+
+## Category 9: Miscellaneous (REVIEW - 8 items)
+
+45. ⚠️ **`client/woClient.ts:3 - api`** - Work order API client
+46. ⚠️ **`lib/aws-secrets.ts:74 - default`** - AWS Secrets Manager
+47. ⚠️ **`lib/i18n.ts:142 - applyHtmlLang`** - HTML lang attribute
+48. ⚠️ **`lib/i18n.ts:159 - getMarketplaceErrorMessage`** - Error messages
+49. ⚠️ **`lib/mongoose-typed.ts:3 - typedModel`** - Mongoose utility
+50. ⚠️ **`lib/utils.ts:4 - cn`** - Classname utility (likely Tailwind merge)
+51. ⚠️ **`lib/zatca.ts:48 - validateZATCAData`** - ZATCA e-invoicing
+
+**cn**: Widely used Tailwind utility → **FALSE POSITIVE** (verify imports)  
+**validateZATCAData**: Saudi invoicing requirement → **KEEP** (may be future use)  
+**Others**: Requires individual verification
+
+---
+
+## Verification Commands
+
+Run these to verify before removing:
+
+```bash
+# Check each export
+for export in "authenticateRequest" "hasPermission" "computeSlaMinutes" "FlagIcon" "cn"; do
+  echo "=== Searching for: $export ==="
+  grep -r "$export" app/ components/ lib/ server/ contexts/ --include="*.ts" --include="*.tsx" | wc -l
+done
+
+# Find imports of specific modules
+grep -r "from '@/lib/edge-auth-middleware'" app/
+grep -r "from '@/components/ErrorTest'" app/
+grep -r "from '@/components/HelpWidget'" app/
+```
+
+---
+
+## Removal Plan
+
+### Phase 1: Safe Removals (15 minutes)
+
+**Files to DELETE**:
+
+1. ❌ `components/ErrorTest.tsx` - Test component (not in production)
+2. ❌ `components/HelpWidget.tsx` - Replaced by CopilotWidget
+3. ❌ `core/RuntimeMonitor.tsx` - Dev monitoring (not needed)
+
+**Exports to REMOVE from files**: 4. ❌ `core/ArchitectureGuard.ts:36` - Remove `architectureGuard` export
+
+**Estimated Impact**: ~350 lines removed
+
+### Phase 2: Verification Required (30 minutes)
+
+For each item in Categories 3, 4B, 6, 7, 8, 9:
+
+1. Run grep search across codebase
+2. Check dynamic imports (import())
+3. Check if used in scripts/jobs
+4. If 0 results → Add to removal list
+5. If found → Keep and document
+
+### Phase 3: PayTabs Consolidation (15 minutes)
+
+**Already planned in Duplicate Code Analysis**:
+
+- Remove `lib/paytabs.ts` entirely
+- Update imports to `lib/paytabs/core.ts`
+- This will remove 3 unused exports automatically
+
+---
+
+## Statistics
+
+### Current State
+
+- **Total Exports**: 109
+- **Framework/Config Required**: 6 (5.5%)
+- **Scripts/Jobs**: 4 (3.7%)
+- **Unused**: 51 (46.8%)
+- **Used in Module**: 58 (53.2%)
+
+### After Cleanup (Projected)
+
+- **Safe Removals**: 3 files, 4 exports (~350 lines)
+- **After Verification**: Additional 10-15 exports (~200 lines)
+- **Total Reduction**: ~550 lines (3.7% of codebase)
+
+---
+
+## False Positives (Common Issues)
+
+1. **Dynamic Imports**: `import()` not detected by ts-prune
+2. **Type-only Imports**: Type imports don't count as "used"
+3. **Re-exports**: Barrel exports (index.ts) may show as unused
+4. **External Scripts**: Node scripts, cron jobs not detected
+5. **Framework Conventions**: Next.js pages, middleware, config
+
+**Solution**: Always grep-verify before removing
+
+---
+
+## CI/CD Integration
+
+Add to `.github/workflows/code-quality.yml`:
+
+```yaml
+- name: Check for dead code
+  run: |
+    npx ts-prune --error > dead-code-report.txt || true
+    # Review report, fail if new dead code introduced
+    # (requires baseline comparison)
+```
+
+---
+
+## Recommendations
+
+### Immediate Actions
+
+1. ✅ Remove ErrorTest.tsx, HelpWidget.tsx, RuntimeMonitor.tsx
+2. ✅ Remove architectureGuard export
+3. ⏳ Verify edge-auth-middleware exports (Phase 2)
+4. ⏳ Verify SLA calculation functions (Phase 2)
+
+### Long-term Strategy
+
+- ✅ Regular ts-prune audits (quarterly)
+- ✅ Code review checklist: "Is this export used?"
+- ✅ Documentation: Mark intentional "future use" exports with comments
+- ✅ Prefer private/internal exports by default
+
+---
+
+## Example: How to Verify Before Removing
+
+**Candidate**: `lib/regex.ts:1 - escapeRegex`
+
+```bash
+# Step 1: Search for usage
+$ grep -r "escapeRegex" . --include="*.ts" --include="*.tsx"
+./lib/search.ts:5:import { escapeRegex } from '@/lib/regex';
+./lib/search.ts:45:  const escaped = escapeRegex(query);
+
+# Result: USED → KEEP
+```
+
+**Candidate**: `components/HelpWidget.tsx:9 - default`
+
+```bash
+# Step 1: Search for imports
+$ grep -r "HelpWidget" . --include="*.ts" --include="*.tsx"
+# No results
+
+# Step 2: Search for dynamic imports
+$ grep -r "import.*HelpWidget" .
+# No results
+
+# Step 3: Check if mentioned in any files
+$ grep -r "HelpWidget" .
+./components/HelpWidget.tsx:export default function HelpWidget()
+
+# Result: UNUSED → SAFE TO REMOVE
+```
+
+---
+
+## Next Steps
+
+1. ✅ Review this report with team
+2. ⏳ Execute Phase 1 (Safe Removals) - 15 minutes
+3. ⏳ Execute Phase 2 (Verification) - 30 minutes
+4. ⏳ Execute Phase 3 (PayTabs) - 15 minutes (from duplicate analysis)
+5. ✅ Update progress report with findings
+
+**Total Estimated Time**: 1 hour  
+**Actual Time Spent on Analysis**: 25 minutes
+
+---
+
+**Report Generated**: October 15, 2025 06:45:00 UTC  
+**Tool**: ts-prune v0.10.3  
+**Analyzed Files**: 109 exports across entire codebase  
+**Status**: ✅ Analysis complete, ready for Phase 1 removals
+
+**Next Task**: Create comprehensive daily progress report
+
+]]>
+</file>
+
+<file path="docs/archived/reports/DEPENDENCY_AUDIT_NOV17.md">
+<![CDATA[
+# Dependency Audit Report - November 17, 2024
+
+**Generated:** November 17, 2024  
+**Tool:** depcheck  
+**Purpose:** Identify unused and missing dependencies in package.json
+
+## Summary
+
+- **18 unused dependencies** (production)
+- **34 unused devDependencies** (development)
+- **12 missing dependencies** (referenced but not in package.json)
+
+---
+
+## 1. Unused Dependencies (Production)
+
+These packages are in `dependencies` but not used in the codebase:
+
+| Package                         | Reason for Inclusion | Recommendation                                 |
+| ------------------------------- | -------------------- | ---------------------------------------------- |
+| `@hookform/resolvers`           | Form validation      | Remove - unused                                |
+| `@radix-ui/react-avatar`        | UI component         | Remove - unused                                |
+| `@radix-ui/react-dropdown-menu` | UI component         | Remove - unused                                |
+| `@radix-ui/react-progress`      | UI component         | Remove - unused                                |
+| `@radix-ui/react-select`        | UI component         | Remove - unused                                |
+| `@radix-ui/react-separator`     | UI component         | Remove - unused                                |
+| `@radix-ui/react-tabs`          | UI component         | Remove - unused                                |
+| `@radix-ui/react-toast`         | UI component         | Remove - unused (using sonner instead)         |
+| `@radix-ui/react-tooltip`       | UI component         | Remove - unused                                |
+| `bcrypt`                        | Password hashing     | Remove - unused (using NextAuth)               |
+| `bullmq`                        | Redis-based queue    | Remove - unused                                |
+| `fast-xml-parser`               | XML parsing          | Remove - unused                                |
+| `marked`                        | Markdown parsing     | Remove - unused (using unified/remark instead) |
+| `next-themes`                   | Theme management     | Remove - unused (custom ThemeContext)          |
+| `react-hook-form`               | Form management      | Remove - unused                                |
+| `react-markdown`                | Markdown rendering   | Remove - unused (using unified/remark instead) |
+| `recharts`                      | Charting library     | Remove - unused                                |
+| `socket.io-client`              | WebSocket client     | Remove - unused                                |
+
+**Action:** Remove all 18 packages to reduce bundle size and installation time.
+
+---
+
+## 2. Unused DevDependencies (Development)
+
+These packages are in `devDependencies` but not used:
+
+### Babel Dependencies (7)
+
+- `@babel/parser` - Not used (TypeScript instead)
+- `@babel/preset-env` - Not used
+- `@babel/preset-react` - Not used
+- `@babel/preset-typescript` - Not used
+- `@babel/traverse` - Not used
+- `@types/babel__traverse` - Not used
+- `@inquirer/prompts` - Not used
+
+### ESLint Dependencies (6)
+
+- `@typescript-eslint/eslint-plugin` - Not in eslint config
+- `@typescript-eslint/parser` - Not in eslint config
+- `eslint-config-next` - Using flat config instead
+- `eslint-plugin-jsx-a11y` - Not in config
+- `eslint-plugin-react` - Not in config
+- `eslint-plugin-react-hooks` - Not in config
+- `eslint-plugin-unused-imports` - Not in config
+
+### Testing Dependencies (4)
+
+- `@types/jest` - Using Vitest instead
+- `@vitest/coverage-v8` - Not used
+- `next-router-mock` - Not used
+- `start-server-and-test` - Not used
+
+### Build Tools (17)
+
+- `autopreffix` - Not needed (PostCSS config empty)
+- `cross-env` - Not used in scripts
+- `depcheck` - Keep (just used this!)
+- `import-in-the-middle` - Not used
+- `jscodeshift` - Not used (codemods not active)
+- `jscpd` - Not used (duplicate detection)
+- `madge` - Not used (dependency analysis)
+- `postcss` - Keep (required by TailwindCSS)
+- `postcss-selector-parser` - Not used
+- `prettier` - Keep (code formatting)
+- `require-in-the-middle` - Not used
+- `rimraf` - Not used (using rm -rf instead)
+- `safe-regex2` - Not used
+- `shx` - Not used (cross-platform commands)
+- `ts-morph` - Not used
+- `ts-node` - Keep (used for running .ts scripts)
+- `ts-prune` - Not used (dead code detection)
+- `tsconfig-paths` - Not used
+- `wait-on` - Not used
+- `webpack-cli` - Not used (Next.js handles bundling)
+
+**Action:**
+
+- **Remove:** 31 packages
+- **Keep:** 3 packages (depcheck, postcss, prettier, ts-node)
+
+---
+
+## 3. Missing Dependencies
+
+These packages are referenced in code but not in package.json:
+
+### False Positives (Safe to Ignore)
+
+| Package       | Location                                     | Reason                                       |
+| ------------- | -------------------------------------------- | -------------------------------------------- |
+| `src`         | tests/unit/components/ErrorBoundary.test.tsx | Import path issue, not a real package        |
+| `server-only` | lib/mongoUtils.server.ts                     | Next.js built-in, not needed in package.json |
+
+### Scripts Only (Not Production)
+
+| Package                  | Location                  | Reason                   |
+| ------------------------ | ------------------------- | ------------------------ |
+| `express`                | scripts/fixzit-server.js  | Dev script only          |
+| `@faker-js/faker`        | scripts/seed-aqar-data.js | Seeding script only      |
+| `cors`                   | scripts/server-fixed.js   | Dev script only          |
+| `helmet`                 | scripts/server-fixed.js   | Dev script only          |
+| `express-rate-limit`     | scripts/server-fixed.js   | Dev script only          |
+| `express-mongo-sanitize` | scripts/server-fixed.js   | Dev script only          |
+| `cookie-parser`          | scripts/server-fixed.js   | Dev script only          |
+| `morgan`                 | scripts/server.js         | Dev script only          |
+| `express-validator`      | scripts/test-server.js    | Dev script only          |
+| `k6`                     | scripts/load/smoke.js     | Load testing script only |
+
+**Action:**
+
+- No action needed for `server-only` (Next.js built-in)
+- Consider adding script dependencies to devDependencies if scripts are actively used
+- Or document that scripts require manual `npm install <package>` before use
+
+---
+
+## 4. Recommendations
+
+### Immediate Actions (High Priority)
+
+1. **Remove 18 unused production dependencies** - Reduces bundle size
+2. **Remove 31 unused devDependencies** - Speeds up CI/CD
+3. **Fix `src` import** in ErrorBoundary.test.tsx (likely `@/` path issue)
+
+### Medium Priority
+
+4. **Document script dependencies** - Create scripts/README.md listing required packages
+5. **Consider adding script deps to devDependencies** - If scripts are used regularly
+
+### Low Priority
+
+6. **Audit UI component library usage** - Standardize on one system (Radix vs shadcn/ui vs custom)
+7. **Review markdown parsing** - Using multiple libraries (marked, react-markdown, unified/remark)
+
+---
+
+## 5. Impact Analysis
+
+### Bundle Size Reduction
+
+- **Production:** ~18 packages removed = Estimated 2-5MB reduction
+- **Development:** ~31 packages removed = Estimated 50-100MB reduction in node_modules
+
+### Installation Time
+
+- **Before:** 1306 packages (from recent git push)
+- **After:** ~1257 packages (estimated)
+- **Time Saved:** ~10-15 seconds per `pnpm install`
+
+### Maintenance Benefits
+
+- Fewer security vulnerabilities to track
+- Simpler dependency tree
+- Faster dependency updates
+
+---
+
+## 6. Execution Plan
+
+```bash
+# Step 1: Remove unused production dependencies
+pnpm remove @hookform/resolvers @radix-ui/react-avatar @radix-ui/react-dropdown-menu \
+  @radix-ui/react-progress @radix-ui/react-select @radix-ui/react-separator \
+  @radix-ui/react-tabs @radix-ui/react-toast @radix-ui/react-tooltip \
+  bcrypt bullmq fast-xml-parser marked next-themes \
+  react-hook-form react-markdown recharts socket.io-client
+
+# Step 2: Remove unused devDependencies
+pnpm remove -D @babel/parser @babel/preset-env @babel/preset-react @babel/preset-typescript \
+  @babel/traverse @types/babel__traverse @inquirer/prompts \
+  @typescript-eslint/eslint-plugin @typescript-eslint/parser eslint-config-next \
+  eslint-plugin-jsx-a11y eslint-plugin-react eslint-plugin-react-hooks \
+  eslint-plugin-unused-imports @types/jest @vitest/coverage-v8 next-router-mock \
+  start-server-and-test autoprefixer cross-env import-in-the-middle \
+  jscodeshift jscpd madge postcss-selector-parser require-in-the-middle \
+  rimraf safe-regex2 shx ts-morph ts-prune tsconfig-paths wait-on webpack-cli
+
+# Step 3: Verify build still works
+pnpm build
+
+# Step 4: Verify tests still work
+pnpm test
+
+# Step 5: Commit changes
+git add package.json pnpm-lock.yaml
+git commit -m "chore: Remove 49 unused dependencies"
+```
+
+---
+
+## 7. Verification Steps
+
+After removal:
+
+1. ✅ TypeScript compilation succeeds (`pnpm tsc --noEmit`)
+2. ✅ Build succeeds (`pnpm build`)
+3. ✅ Tests pass (`pnpm test`)
+4. ✅ Dev server starts (`pnpm dev`)
+5. ✅ No new errors in browser console
+
+---
+
+**Status:** ✅ Audit Complete  
+**Next Step:** Execute removal plan (user approval required)  
+**Estimated Time:** 10-15 minutes (including verification)
+
+]]>
+</file>
+
+<file path="docs/archived/reports/DEPLOYMENT_READINESS_STATUS.md">
+<![CDATA[
+# 🚀 Deployment Readiness Status
+
+**Generated:** October 11, 2025  
+**Branch:** main  
+**Status:** READY FOR DEPLOYMENT ✅
+
+---
+
+## ✅ **COMPLETED WORK**
+
+### 1. Type Safety - PERFECT SCORE
+
+- ✅ TypeScript errors: 313 → **0**
+- ✅ ESLint 'any' warnings: 228 → **0**
+- ✅ 100% type safety achieved
+- ✅ PR #99 merged to main
+
+### 2. Code Quality
+
+- ✅ All files compile successfully
+- ✅ No linting errors
+- ✅ Enhanced code comments and documentation
+- ✅ All changes committed and pushed
+
+### 3. Git Status
+
+- ✅ Working tree clean
+- ✅ All changes pushed to origin/main
+- ✅ Up to date with remote
+
+---
+
+## ⚠️ **PENDING ITEMS**
+
+### 1. Open Pull Requests (9)
+
+```
+#98 - Configure VS Code Copilot Age...
+#97 - Check for code quality issues
+#96 - End to end production readine...
+#95 - End to end production readine...
+#94 - Find pending system checks
+#93 - Find pending system checks
+#92 - System audit for code quality...
+#85 - Feature/finance module
+#84 - Fix/consolidation guardrails
+```
+
+**Action:** Review and merge/close as needed
+
+### 2. Open Issues (1)
+
+```
+#100 - Reduce ESLint 'any' warnings: 222 → <20
+```
+
+**Status:** ✅ RESOLVED (achieved 0 warnings)
+**Action:** Close this issue
+
+### 3. TODO Items in Code (1)
+
+```
+app/api/support/welcome-email/route.ts:
+  TODO: Integrate actual email service (SendGrid, AWS SES, or Mailgun)
+```
+
+**Impact:** Non-blocking for deployment
+**Action:** Can be addressed post-deployment
+
+### 4. Pre-Deployment Checklist (Not Run)
+
+- ⏳ Environment variables verification
+- ⏳ Production build test
+- ⏳ Database connection test
+- ⏳ Critical files verification
+
+**Location:** `pre-deployment-check.sh`
+**Action:** Run before deployment
+
+---
+
+## 📋 **DEPLOYMENT CHECKLIST**
+
+### Before Deployment
+
+- [ ] Run `./pre-deployment-check.sh`
+- [ ] Verify `.env` has all production values
+- [ ] Close resolved issue #100
+- [ ] Review and merge/close open PRs
+- [ ] Backup production database
+- [ ] Notify team of deployment window
+
+### During Deployment
+
+- [ ] Deploy to production environment
+- [ ] Verify deployment successful
+- [ ] Run smoke tests on critical paths:
+  - [ ] User login/authentication
+  - [ ] API endpoints respond
+  - [ ] Database connectivity
+  - [ ] Frontend loads correctly
+
+### After Deployment
+
+- [ ] Monitor logs for first hour
+- [ ] Check error tracking (Sentry/similar)
+- [ ] Verify core functionality works
+- [ ] Document any issues
+- [ ] Update deployment notes
+
+---
+
+## 🎯 **IMMEDIATE NEXT STEPS**
+
+### Step 1: Pre-Deployment Verification
+
+```bash
+cd /workspaces/Fixzit
+chmod +x pre-deployment-check.sh
+./pre-deployment-check.sh
+```
+
+### Step 2: Clean Up Repository
+
+```bash
+# Close resolved issue
+gh issue close 100 --comment "✅ Resolved: Achieved 0 'any' warnings (100% reduction)"
+
+# Review and merge/close old PRs
+gh pr list --state open
+```
+
+### Step 3: Deploy
+
+```bash
+# Using Docker Compose (if configured)
+docker-compose up -d --build
+
+# Or using your deployment platform
+# (Vercel, AWS, Azure, etc.)
+```
+
+---
+
+## 📊 **DEPLOYMENT METRICS**
+
+### Code Quality Score: A+
+
+- TypeScript: ✅ 0 errors
+- ESLint: ✅ 0 'any' warnings
+- Build: ✅ Successful
+- Documentation: ✅ Enhanced
+
+### Technical Debt: MINIMAL
+
+- 1 TODO (non-blocking)
+- 0 FIXME items
+- 0 blocking issues
+
+### Risk Level: LOW
+
+- All core functionality type-safe
+- No breaking changes
+- Backwards compatible
+
+---
+
+## 🚦 **GO/NO-GO DECISION**
+
+### ✅ GO Criteria Met
+
+1. ✅ Code compiles without errors
+2. ✅ All tests that can run pass
+3. ✅ Type safety perfect
+4. ✅ Git repository clean
+5. ✅ Documentation updated
+
+### ⏳ Pending Verification
+
+1. Environment variables configured
+2. Database connection tested
+3. Production build verified
+4. Smoke tests passed
+
+---
+
+## 💡 **RECOMMENDATION**
+
+**Status: READY FOR DEPLOYMENT** ✅
+
+The codebase is in excellent condition with:
+
+- Perfect type safety
+- Clean git history
+- Enhanced documentation
+- Zero blocking issues
+
+**Recommended Actions:**
+
+1. ✅ **Run pre-deployment check** - Execute `pre-deployment-check.sh`
+2. ✅ **Deploy to staging first** - Verify in non-production environment
+3. ✅ **Deploy to production** - If staging tests pass
+4. 📝 **Monitor closely** - Watch logs for first 1-2 hours
+
+---
+
+## 🔗 **Useful Commands**
+
+```bash
+# Run pre-deployment checks
+./pre-deployment-check.sh
+
+# Build for production
+pnpm build
+
+# Start production server
+pnpm start
+
+# Check deployment status
+docker-compose ps
+
+# View logs
+docker-compose logs -f
+
+# Rollback if needed
+git revert HEAD
+```
+
+---
+
+**Last Updated:** October 11, 2025  
+**Next Review:** After deployment  
+**Deployment Window:** Ready anytime
+
+]]>
+</file>
+
+<file path="docs/archived/reports/DEPLOYMENT_READY_SUMMARY.md">
+<![CDATA[
+# 🚀 DEPLOYMENT READY - EXECUTIVE SUMMARY
+
+**Status**: ✅ **APPROVED FOR PRODUCTION**  
+**Date**: 2025-01-19  
+**Confidence**: **HIGH**
+
+---
+
+## ✅ WHAT'S BEEN COMPLETED
+
+### Security (100% Complete)
+
+- ✅ All API routes have authentication
+- ✅ Tenant isolation enforced everywhere
+- ✅ Rate limiting on all public endpoints
+- ✅ Input validation with Zod
+- ✅ Secure headers configured
+- ✅ JWT secrets in AWS Secrets Manager
+- ✅ No SQL injection vulnerabilities
+- ✅ XSS protection enabled
+
+### Code Quality (Production Ready)
+
+- ✅ TypeScript strict mode
+- ✅ No critical `any` types in production code
+- ✅ Error handling standardized
+- ✅ Proper type guards everywhere
+- ✅ 11 code review issues fixed
+- ✅ PR83 critical fixes complete
+
+### Database (Production Ready)
+
+- ✅ Connection pooling configured
+- ✅ Indexes on all query fields
+- ✅ Tenant isolation at DB level
+- ✅ Retry logic implemented
+- ✅ Backup strategy ready
+
+---
+
+## ⚠️ KNOWN NON-BLOCKERS
+
+### Minor Items (Can Fix Post-Launch)
+
+1. **23 `any` types in test files** - Not production code
+2. **1 type cast in QA health endpoint** - Non-critical endpoint
+3. **Some TODO comments** - Future enhancements
+
+**Impact**: ZERO - None of these affect production functionality
+
+---
+
+## 🎯 DEPLOYMENT COMMAND
+
+```bash
+# Run pre-deployment check
+chmod +x pre-deployment-check.sh
+./pre-deployment-check.sh
+
+# If all checks pass, deploy
+npm run build
+npm run deploy  # or your deployment command
+```
+
+---
+
+## 📊 METRICS
+
+| Category           | Status  | Details                   |
+| ------------------ | ------- | ------------------------- |
+| **Security**       | ✅ 100% | All critical issues fixed |
+| **Authentication** | ✅ 100% | All routes protected      |
+| **Type Safety**    | ✅ 99%  | Production code clean     |
+| **Error Handling** | ✅ 100% | Standardized              |
+| **Database**       | ✅ 100% | Configured & tested       |
+| **Tests**          | ✅ Pass | Core features covered     |
+
+---
+
+## 🚨 POST-DEPLOYMENT MONITORING
+
+### First Hour
+
+- Monitor `/api/health` endpoint
+- Check error logs
+- Verify user logins working
+- Test critical workflows
+
+### First 24 Hours
+
+- Monitor error rates
+- Check API response times
+- Verify database performance
+- Monitor rate limiting
+
+---
+
+## ✅ FINAL VERDICT
+
+# **SYSTEM IS PRODUCTION READY**
+
+All critical issues resolved. Remaining items are minor code quality improvements that don't affect functionality.
+
+**Recommendation**: Deploy immediately.
+
+---
+
+**Prepared by**: AI Code Review System  
+**Approved for**: Production Deployment  
+**Next Review**: 24 hours post-deployment
+
+]]>
+</file>
+
+<file path="docs/archived/reports/DEVELOPMENT_SESSION_SUMMARY.md">
+<![CDATA[
+# Development Session Summary
+
+**Date:** January 2025
+**Branch:** feat/souq-marketplace-advanced
+**Total Commits:** 4
+**Files Changed:** 30+
+
+## Completed Tasks
+
+### 1. ✅ Type Safety Improvements (be084c81c)
+
+Fixed 25+ TypeScript type errors across the codebase with comprehensive improvements:
+
+- **Security**: Replaced Math.random() with crypto.randomUUID() for secure ID generation
+- **Quality Gates**: Enforced strict TypeScript standards across 18 files
+- **Duplicate Resolution**: Fixed ar.ts duplicate imports and consolidation issues
+- **Type Annotations**: Added proper type definitions for function parameters and return values
+
+### 2. ✅ Code DRY Improvements (4a72eb1cb - Part 1)
+
+**getUsersByRole Helper Function**
+
+- Extracted duplicate User.find() pattern from fm-approval-engine.ts
+- Replaced 3 of 4 duplicated query patterns
+- Reduced code duplication: 45+ lines → 25-line reusable function
+- Improved maintainability and consistency
+
+### 3. ✅ Pricing Service Enhancements (4a72eb1cb - Part 2)
+
+**Type Safety (100% Coverage)**
+
+- Created TierType and PriceRowType interfaces
+- Replaced ALL implicit `any` types with proper annotations
+- Zero implicit `any` remaining in pricing.ts
+
+**Error Handling**
+
+- Created custom PricingError class with structured error codes:
+  - INVALID_INPUT
+  - PRICEBOOK_NOT_FOUND
+  - TIER_NOT_FOUND
+  - MODULE_NOT_FOUND
+- User-friendly error messages with actionable context
+
+**Input Validation**
+
+- Implemented Zod schema validation:
+  - Seats: 1-10,000 range
+  - Modules: Minimum 1 required
+  - Currency: USD/SAR enum validation
+  - Billing cycle: MONTHLY/ANNUAL enum validation
+- Catches invalid input before database queries
+
+**Performance Optimization**
+
+- Changed to Promise.all([PriceBook, DiscountRule])
+- Conditional parallel query (only fetches discount for ANNUAL billing)
+- ~50% latency reduction on pricing calculations
+
+### 4. ✅ Comprehensive Testing (bf313fc0e)
+
+**36 Test Cases Created**
+
+- **Validation Tests (7)**: Input validation, boundary conditions
+- **Enterprise Quotes (3)**: 501+ seat handling, quote requirement flows
+- **Tier Selection (7)**: 1-seat, 2-5 seats, 6-50, 51-250, 251-500, 501+
+- **Multi-Module Pricing (3)**: Multiple module combinations
+- **Annual Discounts (4)**: 10% discount application, discount validation
+- **Currency Support (3)**: USD and SAR pricing
+- **Edge Cases (3)**: Empty modules, invalid inputs, missing data
+- **Error Structure (2)**: Error code validation, message format
+- **Performance (2)**: Response time, query efficiency
+
+**Coverage:** 100% logic coverage with boundary testing
+
+### 5. ✅ Enhanced Subscription System (61141d9e5)
+
+**subscriptionSeatService.ts Enhancements (300+ lines)**
+
+- `allocateSeat()`: Allocate seat to user for specific module
+- `deallocateSeat()`: Remove seat allocation from user
+- `getAvailableSeats()`: Calculate available seats
+- `getSeatUsageReport()`: Comprehensive usage metrics with utilization percentage
+- `validateModuleAccess()`: Permission checking for module access
+- `bulkAllocateSeats()`: Batch seat allocation operations
+- `getSubscriptionForOwner()`: Owner subscription retrieval
+- Fixed TypeScript errors (ObjectId conversions, array type checks)
+
+**Comprehensive Documentation (docs/SUBSCRIPTION_SYSTEM.md)**
+Complete 600+ line documentation covering:
+
+- **Architecture Overview**
+  - Data Models (Subscription, SubscriptionInvoice)
+  - Services (Billing, Seat Management)
+  - Cron Jobs (Billing, Usage Sync)
+  - API Routes and Dashboard
+- **API Reference**
+  - All endpoints with request/response examples
+  - Type definitions for all interfaces
+- **Payment Integration**
+  - PayTabs recurring billing flow
+  - Webhook handling
+  - Failure recovery
+- **Seat Management**
+  - Allocation strategy (Corporate vs Owner)
+  - Workflow diagrams
+  - Usage tracking
+- **Status Lifecycle**
+  - State transitions (INCOMPLETE → ACTIVE → PAST_DUE → CANCELED)
+  - Trigger conditions and actions
+- **Security Considerations**
+  - Tenant isolation
+  - XOR validation
+  - Payment security
+- **Testing Strategy**
+  - Unit, Integration, E2E test scenarios
+- **Monitoring & Observability**
+  - Key metrics
+  - Logging levels
+  - Alert thresholds
+- **Troubleshooting Guide**
+  - Common issues and solutions
+- **Future Enhancements**
+  - Metered billing
+  - Trial periods
+  - Proration
+  - Multi-currency
+  - Subscription tiers
+  - Self-service portal
+
+### 6. ✅ Mongoose 8.x Type Compatibility (ab0500e24)
+
+**Created types/mongoose.d.ts**
+
+- Global Model interface augmentation
+- Fixes edge-runtime compatible Model export pattern
+- Resolves union type signature conflicts
+
+**Fixed Errors Across Codebase (20+ files)**
+
+- `lib/fm-approval-engine.ts`: 9 errors fixed
+  - 5x User.find() calls
+  - 1x FMApproval.create()
+  - 2x FMApproval.findOne()
+  - 2x FMApproval.find()
+- `server/services/subscriptionBillingService.ts`: 1 error fixed
+  - Added Types.ObjectId type assertion for sub.\_id
+- `server/cron/usageSyncCron.ts`: 1 error fixed
+  - Added any cast for sub.\_id.toString()
+- `server/cron/billingCron.ts`: 1 import error fixed
+- Installed node-cron@4.2.1 and @types/node-cron@3.0.11
+
+**Impact:** All Model<T> TypeScript errors resolved across entire codebase
+
+## Statistics
+
+### Code Changes
+
+- **Files Modified:** 30+
+- **Lines Added:** ~1,500+
+- **Lines Removed:** ~200+
+- **Net Change:** +1,300 lines
+
+### Error Resolution
+
+- **TypeScript Errors Fixed:** 35+
+- **Duplicate Code Removed:** 45+ lines
+- **Test Cases Added:** 36
+
+### Documentation
+
+- **New Documentation Files:** 1 (SUBSCRIPTION_SYSTEM.md - 600+ lines)
+- **Code Comments Added:** 100+
+- **API Documentation:** Complete reference
+
+### Performance Improvements
+
+- **Pricing Service:** ~50% latency reduction
+- **Query Optimization:** Parallel Promise.all() execution
+- **Conditional Queries:** Only fetch when needed
+
+## Files Changed by Commit
+
+### be084c81c - Type Safety & Security
+
+- Multiple files with type fixes (18 files)
+- Security improvements (crypto.randomUUID)
+- ar.ts duplicate resolution
+
+### 4a72eb1cb - DRY & Pricing Enhancements
+
+- `lib/fm-approval-engine.ts`: getUsersByRole helper
+- `lib/finance/pricing.ts`: Type safety, error handling, validation, optimization
+
+### bf313fc0e - Comprehensive Testing
+
+- `tests/lib/finance/pricing.test.ts`: 36 test cases (new file)
+
+### 61141d9e5 - Subscription System Enhancement
+
+- `server/services/subscriptionSeatService.ts`: Enhanced with 300+ lines
+- `docs/SUBSCRIPTION_SYSTEM.md`: Comprehensive documentation (new file)
+
+### ab0500e24 - Mongoose 8.x Compatibility
+
+- `types/mongoose.d.ts`: Global type augmentation (new file)
+- `server/services/subscriptionBillingService.ts`: Type assertions
+- `server/cron/usageSyncCron.ts`: Type assertions
+- `package.json`: node-cron dependencies
+
+## Technical Debt Resolved
+
+### Before
+
+- ❌ 35+ TypeScript errors across codebase
+- ❌ Implicit `any` types in pricing.ts
+- ❌ No input validation in pricing calculations
+- ❌ Duplicate User query patterns
+- ❌ No comprehensive test coverage for pricing
+- ❌ Incomplete subscription seat management
+- ❌ Missing subscription system documentation
+- ❌ Mongoose 8.x Model<T> type conflicts
+
+### After
+
+- ✅ Zero TypeScript errors
+- ✅ 100% type coverage in pricing.ts
+- ✅ Zod validation with comprehensive error handling
+- ✅ DRY getUsersByRole helper
+- ✅ 36 test cases with 100% logic coverage
+- ✅ Complete seat allocation system with 8+ functions
+- ✅ 600+ line comprehensive documentation
+- ✅ Mongoose 8.x fully compatible with type augmentation
+
+## Quality Metrics
+
+### Code Quality
+
+- **TypeScript Strict Mode:** ✅ Passing
+- **ESLint:** ✅ No violations
+- **Type Coverage:** ✅ 100% in modified files
+- **Test Coverage:** ✅ 100% logic coverage for pricing
+
+### Security
+
+- **Crypto Usage:** ✅ crypto.randomUUID() instead of Math.random()
+- **Input Validation:** ✅ Zod schema validation
+- **Error Handling:** ✅ Structured error codes
+- **Type Safety:** ✅ No implicit any
+
+### Performance
+
+- **Query Optimization:** ✅ Promise.all() parallelization
+- **Conditional Fetching:** ✅ Only fetch when needed
+- **Latency Reduction:** ✅ ~50% improvement
+
+### Documentation
+
+- **Code Comments:** ✅ Comprehensive
+- **API Documentation:** ✅ Complete reference
+- **System Documentation:** ✅ 600+ line guide
+- **Troubleshooting:** ✅ Common issues documented
+
+## Dependencies Added
+
+- `node-cron@4.2.1`: Cron job scheduling
+- `@types/node-cron@3.0.11`: TypeScript declarations
+
+## Next Steps (Future Work)
+
+### Recommended Priorities
+
+1. **Testing:** Run test suite to validate all changes
+2. **Integration Testing:** Test subscription billing flow end-to-end
+3. **Code Review:** Peer review of all changes
+4. **Deployment:** Deploy to staging for QA testing
+
+### Future Enhancements
+
+- Implement metered billing for usage-based pricing
+- Add trial period support (7, 14, 30 days)
+- Implement mid-cycle proration for upgrades/downgrades
+- Add multi-currency support with auto-conversion
+- Create subscription tier system (Starter, Pro, Enterprise)
+- Build reporting dashboard with revenue charts
+- Implement self-service subscription management portal
+- Add webhook system for subscription events
+
+## Conclusion
+
+This development session successfully completed all 9 planned tasks with comprehensive improvements across:
+
+- **Type Safety:** Zero TypeScript errors remaining
+- **Code Quality:** DRY principles, proper error handling, input validation
+- **Testing:** 36 comprehensive test cases
+- **Features:** Enhanced subscription system with complete seat management
+- **Documentation:** 600+ line comprehensive system documentation
+- **Compatibility:** Full Mongoose 8.x compatibility
+
+All changes are committed to the `feat/souq-marketplace-advanced` branch and ready for review and testing.
+
+---
+
+**Session Duration:** ~2-3 hours  
+**Commits:** 4  
+**Total Lines Changed:** +1,300/-200  
+**Quality:** Production-ready  
+**Status:** ✅ Complete
+
+]]>
+</file>
+
+<file path="docs/archived/reports/DEV_LOGIN_SECURITY_FIX.md">
+<![CDATA[
+# Server-Safe Dev Login Helpers - Security Fix
+
+## 🔴 Critical Security Issue Fixed
+
+**Problem**: Original implementation used `require('./credentials')` inside a **client component**, which caused Next.js to bundle secrets into the client-side JavaScript bundle. Passwords were visible in the browser.
+
+**Solution**: Complete architectural refactor to server-only credentials with zero exposure to client.
+
+---
+
+## 🏗️ New Architecture
+
+### Server-Only Credentials
+
+- **`dev/credentials.server.ts`** (gitignored) - Real secrets never leave server
+- **`dev/credentials.example.ts`** (committed) - Template for developers
+- TypeScript types ensure compile-time safety
+
+### API Endpoints
+
+#### `/api/dev/demo-accounts` (GET)
+
+- Returns **sanitized** credential list (NO PASSWORDS)
+- Only sends role, description, color, icon, email/employeeNumber
+- Server-side dynamic import of credentials
+
+#### `/api/dev/demo-login` (POST)
+
+- Accepts `{ role: string }`
+- Looks up credentials **server-side only**
+- Calls `/api/auth/login` internally with password
+- Forwards Set-Cookie headers to establish session
+- Password **never** reaches browser
+
+### Page Structure
+
+#### `app/dev/login-helpers/page.tsx` (Server Component)
+
+- Hard-blocks if `NEXT_PUBLIC_ENABLE_DEMO_LOGIN !== 'true'` and `NODE_ENV !== 'development'`
+- Returns 404 in production
+- No secrets in this file
+
+#### `app/dev/login-helpers/DevLoginClient.tsx` (Client Component)
+
+- Fetches sanitized account list from `/api/dev/demo-accounts`
+- Displays `[hidden]` for passwords
+- Auto-login button calls `/api/dev/demo-login` (server-side)
+- Copy button only copies identifier (email/employeeNumber), never password
+
+### Middleware Guard
+
+#### `middleware.ts`
+
+- Belt-and-suspenders protection
+- Redirects `/dev/login-helpers` and `/api/dev/*` to `/login` if not dev-enabled
+- Prevents accidental production exposure even if client bundle leaks
+
+---
+
+## 🔒 Security Improvements
+
+| Before                                            | After                                                  |
+| ------------------------------------------------- | ------------------------------------------------------ |
+| ❌ `require('./credentials')` in client component | ✅ Server-only dynamic import                          |
+| ❌ Passwords bundled into browser JS              | ✅ Passwords never leave server                        |
+| ❌ Passwords visible in DOM                       | ✅ Only `[hidden]` shown                               |
+| ❌ Client-side login with exposed credentials     | ✅ Server-side login, cookies set by server            |
+| ❌ Single env check in client                     | ✅ Triple guards (server component + middleware + API) |
+
+---
+
+## 📁 Files Changed
+
+### New Files
+
+- `dev/credentials.example.ts` - Template with example structure
+- `dev/credentials.server.ts` - Gitignored placeholder (re-exports example by default)
+- `app/api/dev/demo-accounts/route.ts` - Sanitized account list API
+- `app/api/dev/demo-login/route.ts` - Server-side login API
+- `app/dev/login-helpers/DevLoginClient.tsx` - Safe client UI
+
+### Modified Files
+
+- `app/dev/login-helpers/page.tsx` - Now server component gate
+- `middleware.ts` - Added dev helpers guard
+- `.gitignore` - Added `/dev/credentials.server.ts`
+
+### Removed Files
+
+- `app/dev/login-helpers/credentials.example.ts` - Moved to `/dev/`
+- (Old client implementation removed)
+
+---
+
+## 🎨 UX Improvements
+
+- Loading states on auto-login buttons
+- Disabled state while logging in
+- Empty state with setup instructions
+- Stable `data-testid` attributes for E2E testing
+- Cleaner UI with `[hidden]` password display
+
+---
+
+## 🧪 E2E Test Hooks
+
+All interactive elements have stable selectors:
+
+```typescript
+// Card containers
+`data-testid="dev-card-${role}"`
+// Auto-login buttons
+`data-testid="dev-autologin-${role}"`
+// Copy buttons
+`data-testid="dev-copy-${role}"`
+// Back to login link
+`data-testid="back-to-login"`;
+```
+
+---
+
+## 📖 Developer Usage
+
+### Setup
+
+1. Copy template:
+
+   ```bash
+   cp dev/credentials.example.ts dev/credentials.server.ts
+   ```
+
+2. Fill in real credentials:
+
+   ```typescript
+   export const DEMO_CREDENTIALS: DemoCredential[] = [
+     {
+       role: "SuperAdmin",
+       loginType: "personal",
+       email: "super@fixzit.co",
+       password: "YOUR_REAL_PASSWORD",
+       description: "Full system access",
+       color: "bg-red-100 text-red-800 border-red-200",
+       icon: "Shield",
+     },
+     // ... more roles
+   ];
+   ```
+
+3. Never commit `dev/credentials.server.ts` (already gitignored)
+
+### Access Page
+
+- **Dev**: Automatically available at `/dev/login-helpers`
+- **Production**: Set `NEXT_PUBLIC_ENABLE_DEMO_LOGIN=true` (not recommended)
+
+### How It Works
+
+1. Page loads, fetches sanitized account list
+2. User clicks "Auto Login"
+3. Client sends `{ role: "Admin" }` to `/api/dev/demo-login`
+4. Server looks up credentials, calls auth endpoint with password
+5. Server sets session cookie, returns success
+6. Client redirects to dashboard
+
+---
+
+## 🚨 Production Safety
+
+### Triple Protection
+
+1. **Server Component**: `notFound()` if not dev-enabled
+2. **Middleware**: Redirects `/dev/*` and `/api/dev/*` to `/login`
+3. **API Routes**: Return 403 if not dev-enabled
+
+### What If Flag is Accidentally Set in Production?
+
+- Middleware still blocks access
+- API returns 403 forbidden
+- Credentials file may not exist in prod (gitignored)
+- Even if all checks pass, users need valid credentials that exist in DB
+
+---
+
+## 🔄 Migration Notes
+
+### Breaking Changes
+
+- Old `app/dev/login-helpers/credentials.ts` → `dev/credentials.server.ts`
+- Old client component → split into server component + client UI
+- Must copy new example file and populate real credentials
+
+### Non-Breaking
+
+- Same user-facing functionality
+- Same URL: `/dev/login-helpers`
+- Same env var: `NEXT_PUBLIC_ENABLE_DEMO_LOGIN`
+
+---
+
+## ✅ Testing Checklist
+
+- [ ] TypeScript compiles (`pnpm typecheck`)
+- [ ] `/dev/login-helpers` loads in dev
+- [ ] Account list displays correctly
+- [ ] Auto-login works for all roles
+- [ ] Copy button copies identifier only
+- [ ] Passwords never visible in DOM
+- [ ] Passwords never visible in Network tab
+- [ ] `/dev/login-helpers` returns 404 in prod (without flag)
+- [ ] `/api/dev/*` returns 403 in prod (without flag)
+- [ ] Middleware redirects if accessed directly
+
+---
+
+## 📊 Impact
+
+### Security
+
+- ✅ Zero credential exposure to client
+- ✅ Server-side authentication only
+- ✅ Triple-layer production guards
+
+### Developer Experience
+
+- ✅ Same quick-login workflow
+- ✅ Clear setup instructions
+- ✅ Better visual feedback (loading states)
+- ✅ E2E-testable with stable selectors
+
+### Code Quality
+
+- ✅ Server/client separation
+- ✅ Type-safe credentials
+- ✅ Graceful error handling
+- ✅ Consistent with Next.js best practices
+
+---
+
+**Commit**: `[pending]`  
+**Branch**: `fix/auth-duplicate-requests-and-debug-logs`  
+**Related Issue**: Dev credentials security audit  
+**Impact**: Critical security fix - prevents credential leakage
+
+]]>
+</file>
+
+<file path="docs/archived/reports/DOCUMENTATION_AND_CODE_QUALITY_FIXES.md">
+<![CDATA[
+# Documentation and Code Quality Fixes - Complete Report
+
+**Date**: October 24, 2025  
+**Branch**: `fix/pr137-remaining-issues`  
+**Commit**: `76eda2bdb`
+
+## Executive Summary
+
+Fixed **8 distinct categories of issues** across 6 files, including markdown formatting errors, documentation inaccuracies, security improvements, and script enhancements.
+
+---
+
+## Issues Fixed
+
+### 1. ✅ Markdown Code Block Fencing (2 Files)
+
+**Problem**: Multiple markdown files had incorrect closing fences `\`\`\`text`instead of`\`\`\``
+
+#### `.artifacts/PR138_COMPLETION_SUMMARY.md`
+
+- **Fixed**: 17 occurrences at lines 52, 75, 103, 121, 151, 169, 197, 213, 248, 270, 304, 317, 322, 341, 350, 359, 372
+- **Method**: `sed -i 's/^```text$/```/g'`
+- **Impact**: Proper markdown rendering in GitHub and documentation viewers
+
+#### `FINAL_SYSTEM_AUDIT_COMPLETE.md`
+
+- **Fixed**: 10 occurrences at lines 56, 76, 92, 109, 201, 217, 263, 270, 367, 391
+- **Method**: `sed -i 's/^```text$/```/g'`
+- **Impact**: Proper markdown rendering
+
+---
+
+### 2. ✅ Grep Pattern Syntax (1 File)
+
+**Problem**: `HONEST_ASSESSMENT_SEARCH_METHODOLOGY_FAILURE.md` used grep patterns requiring extended regex without the `-E` flag
+
+#### Fixed Patterns:
+
+```bash
+# BEFORE:
+grep -r "split(',')[0]" app/ lib/ ...
+
+# AFTER:
+grep -r -E "split\(','\)\[0\]" app/ lib/ ...
+```
+
+#### Fixed Sections:
+
+1. **Lines 119-141**: Added `-E` flag to 3 grep commands
+2. **Lines 256-293**: Added `-E` and `-n` flags to pattern loop grep command
+
+**Impact**:
+
+- Proper regex interpretation for special characters
+- Correct matching of patterns like `split\(','\)\[0\]` and `process\.env.*\|\|`
+- Line numbers included in output for better debugging
+
+---
+
+### 3. ✅ Documentation Accuracy (1 File)
+
+**Problem**: `PR137_CRITICAL_FIXES_COMPLETE.md` documented incorrect IP extraction priority order
+
+#### Documentation Update:
+
+```diff
+- // Priority: x-real-ip > cf-connecting-ip > last x-forwarded-for IP
++ // Priority: cf-connecting-ip > last x-forwarded-for IP > x-real-ip (if TRUST_X_REAL_IP=true)
+```
+
+#### Added Security Rationale:
+
+- **cf-connecting-ip**: Cloudflare-controlled, cannot be spoofed (highest trust)
+- **Last x-forwarded-for IP**: Appended by trusted reverse proxy (second priority)
+- **x-real-ip**: Can be spoofed, requires explicit `TRUST_X_REAL_IP='true'` (lowest priority)
+
+**Reference**: See `lib/security/client-ip.ts` for current implementation
+
+---
+
+### 4. ✅ Empty Header Handling (1 File)
+
+**File**: `lib/security/client-ip.ts` (lines 49-54)
+
+**Problem**: Function returned empty string when `x-forwarded-for` header existed but was empty/whitespace
+
+#### Before:
+
+```typescript
+const forwardedFor = request.headers.get("x-forwarded-for");
+if (forwardedFor) {
+  const ips = forwardedFor.split(",").map((ip) => ip.trim());
+  return ips[ips.length - 1]; // Could return empty string!
+}
+```
+
+#### After:
+
+```typescript
+const forwardedFor = request.headers.get("x-forwarded-for");
+if (forwardedFor) {
+  const trimmed = forwardedFor.trim();
+  // Treat empty or whitespace-only header as absent
+  if (trimmed) {
+    const ips = trimmed
+      .split(",")
+      .map((ip) => ip.trim())
+      .filter((ip) => ip.length > 0);
+    // Only return if we have at least one non-empty IP
+    if (ips.length > 0) {
+      return ips[ips.length - 1];
+    }
+  }
+  // Fall through if header was empty
+}
+```
+
+**Impact**: Proper fallback to next priority when header is malformed
+
+---
+
+### 5. ✅ Fail-Closed Security (1 File)
+
+**File**: `lib/security/client-ip.ts` (lines 124-143)
+
+**Problem**: `isPrivateIP()` returned `false` for invalid IPs, potentially allowing security bypasses
+
+#### Before (Fail-Open):
+
+```typescript
+export function isPrivateIP(ip: string): boolean {
+  if (!isValidIPv4(ip)) return false; // ❌ Invalid IPs treated as PUBLIC
+  // ... private range checks
+}
+```
+
+#### After (Fail-Closed):
+
+```typescript
+export function isPrivateIP(ip: string): boolean {
+  // Fail-closed: treat invalid/non-IPv4 input as private to prevent security bypass
+  if (!isValidIPv4(ip)) return true; // ✅ Invalid IPs treated as PRIVATE
+  // ... private range checks
+}
+```
+
+**Security Impact**:
+
+- Invalid IPs (e.g., malformed addresses, IPv6 when IPv4 expected) now treated as private
+- Prevents potential bypass of IP-based access controls
+- Conservative approach: deny by default on ambiguous input
+
+---
+
+### 6. ✅ Script Redundancy Removal (1 File)
+
+**File**: `scripts/security/fix-ip-extraction.ts` (lines 84-116)
+
+**Problem**: Manual replacement blocks duplicated logic already in `UNSAFE_PATTERNS`, likely due to stateful regex issues
+
+#### Removed Code:
+
+```typescript
+// ❌ REMOVED: Duplicated UNSAFE_PATTERNS logic
+if (/const\s+clientIp\s*=\s*req\.headers\.get.../.test(content)) {
+  content = content.replace(...);
+}
+if (/const\s+ip\s*=\s*req\.headers\.get.../.test(content)) {
+  content = content.replace(...);
+}
+// ... more manual blocks
+```
+
+#### Fix Applied:
+
+- Updated `UNSAFE_PATTERNS` to use **factory functions** returning fresh RegExp instances
+- Prevents stateful `/g` flag issues causing missed matches
+- Removed 32 lines of duplicate code
+
+---
+
+### 7. ✅ Dry-Run Capability (1 File)
+
+**File**: `scripts/security/fix-ip-extraction.ts`
+
+**Added Features**:
+
+#### A. CLI Flag Parsing:
+
+```typescript
+const args = process.argv.slice(2);
+const DRY_RUN = args.includes("--dry-run");
+```
+
+#### B. Preview Mode:
+
+```typescript
+if (DRY_RUN) {
+  console.log(`\n📝 [DRY RUN] Would fix: ${filePath}`);
+  changes.forEach((change) => console.log(`   - ${change}`));
+  return true;
+}
+```
+
+#### C. Backup Creation:
+
+```typescript
+if (!DRY_RUN) {
+  const backupPath = filePath + ".bak";
+  writeFileSync(backupPath, originalContent, "utf-8");
+  console.log(`💾 Created backup: ${backupPath}`);
+}
+```
+
+**Usage**:
+
+```bash
+# Preview changes only
+tsx scripts/security/fix-ip-extraction.ts --dry-run
+
+# Apply changes with backups
+tsx scripts/security/fix-ip-extraction.ts
+```
+
+---
+
+### 8. ✅ Syntax Validation (1 File)
+
+**File**: `scripts/security/fix-ip-extraction.ts`
+
+**Added Validation**:
+
+```typescript
+import * as ts from "typescript";
+
+function validateTypeScript(content: string): {
+  valid: boolean;
+  errors: string[];
+} {
+  const sourceFile = ts.createSourceFile(
+    "temp.ts",
+    content,
+    ts.ScriptTarget.Latest,
+    true,
+  );
+
+  const diagnostics = (sourceFile as any).parseDiagnostics || [];
+  if (diagnostics.length > 0) {
+    // Collect and report errors
+    return { valid: false, errors };
+  }
+
+  return { valid: true, errors: [] };
+}
+
+// Usage in fixFile():
+const validation = validateTypeScript(content);
+if (!validation.valid) {
+  console.error(`❌ Validation failed for ${filePath}:`);
+  validation.errors.forEach((err) => console.error(`   ${err}`));
+  return false; // Don't write invalid files
+}
+```
+
+**Impact**:
+
+- Prevents writing syntactically invalid TypeScript
+- Early detection of transformation errors
+- Safer automated refactoring
+
+---
+
+## Verification Results
+
+### ✅ TypeScript Compilation
+
+```bash
+pnpm typecheck
+# Result: 0 errors ✅
+```
+
+### ✅ Markdown Validation
+
+````bash
+grep -n '```text' .artifacts/PR138_COMPLETION_SUMMARY.md | wc -l
+# Result: 0 occurrences ✅
+
+grep -n '```text' FINAL_SYSTEM_AUDIT_COMPLETE.md | wc -l
+# Result: 0 occurrences ✅
+````
+
+### ✅ Git Status
+
+```bash
+git status --short
+# M  .artifacts/PR138_COMPLETION_SUMMARY.md
+# M  FINAL_SYSTEM_AUDIT_COMPLETE.md
+# M  HONEST_ASSESSMENT_SEARCH_METHODOLOGY_FAILURE.md
+# M  PR137_CRITICAL_FIXES_COMPLETE.md
+# M  lib/security/client-ip.ts
+# M  scripts/security/fix-ip-extraction.ts
+```
+
+---
+
+## Summary Statistics
+
+| Category                   | Files | Changes                                                  |
+| -------------------------- | ----- | -------------------------------------------------------- |
+| **Markdown Formatting**    | 2     | 27 incorrect closing fences fixed                        |
+| **Grep Syntax**            | 1     | 4 command patterns corrected                             |
+| **Documentation Accuracy** | 1     | IP priority order updated with rationale                 |
+| **Security Improvements**  | 1     | 2 functions hardened (empty headers, fail-closed)        |
+| **Script Enhancements**    | 1     | 4 features added (dry-run, backups, validation, logging) |
+| **Code Cleanup**           | 1     | 32 lines of duplicate code removed                       |
+| **Total Files Modified**   | 6     | 179 insertions(+), 88 deletions(-)                       |
+
+---
+
+## Impact Assessment
+
+### 🟢 Documentation Quality
+
+- All markdown files now render correctly in GitHub
+- Documentation accurately reflects implementation
+- Search examples use correct syntax
+
+### 🟢 Security Posture
+
+- Fail-closed behavior for edge cases
+- Proper empty header handling
+- Accurate IP extraction priority documentation
+
+### 🟢 Maintainability
+
+- Removed code duplication
+- Added safety features to automation scripts
+- Improved error reporting and logging
+
+### 🟢 Developer Experience
+
+- Dry-run mode for safe testing
+- Automatic backups prevent data loss
+- Syntax validation catches errors early
+
+---
+
+## Related PRs and Commits
+
+- **PR #138**: fix: Resolve ALL 9 Critical Issues from PR #137 Review
+- **Previous commit**: `d87e8da51` - PR #135 verification report
+- **This commit**: `76eda2bdb` - Documentation and code quality fixes
+
+---
+
+**Status**: ✅ **ALL ISSUES RESOLVED**  
+**Quality**: 🟢 **HIGH** (All validations pass)  
+**Risk**: 🟢 **LOW** (Non-breaking improvements)
+
+---
+
+_Generated on October 24, 2025_  
+_Branch: fix/pr137-remaining-issues_  
+_Commit: 76eda2bdb_
+
+]]>
+</file>
+
+<file path="docs/archived/reports/DUPLICATE_CLEANUP_REPORT.md">
+<![CDATA[
+# Fixzit Duplicate Cleanup & Consolidation Report
+
+**Date:** October 5, 2025  
+**Branch:** 86  
+**Commits:** a5939b214, 6734d294c, b1beb6dfd, 2963ace8b, 2a4b0f304
+
+## Executive Summary
+
+Systematic cleanup following "search duplicates → merge → delete → fix imports" methodology. Eliminated 22 duplicate files, standardized 31 import paths, and reduced TypeScript errors by 31%.
+
+---
+
+## 🗑️ Duplicates Removed
+
+### 1. MongoDB Connection Files
+
+**DELETED:** `lib/mongodb.ts` (MongoClient-based)  
+**KEPT:** `lib/mongodb-unified.ts` (Mongoose-based, canonical)  
+**Reason:** System uses Mongoose exclusively. MongoClient version was abandoned code.
+
+### 2. Model Directories
+
+**DELETED:** `src/db/models/` (entire directory, 16 files)  
+**KEPT:** `server/models/` (canonical location)  
+**Files Verified Identical:**
+
+- Application.ts
+- AtsSettings.ts
+- CmsPage.ts
+- CopilotAudit.ts
+- CopilotKnowledge.ts
+- HelpArticle.ts
+- Job.ts
+- MarketplaceProduct.ts
+- Organization.ts
+- OwnerStatement.ts
+- Project.ts
+- RFQ.ts
+- SLA.ts
+- SearchSynonym.ts
+- SupportTicket.ts
+- Candidate.test.ts
+
+**Verification Method:** `diff -q` confirmed 100% identical content
+
+### 3. Placeholder Files
+
+**DELETED:** `core/DuplicatePrevention.ts`  
+**Reason:** Single-line stub returning empty array, no actual functionality
+
+### 4. ESLint Configurations
+
+**DELETED:**
+
+- `.eslintrc.json` (basic Next.js config)
+- `eslint.config.js` (flat config causing "Unknown options" errors)
+
+**KEPT:** `.eslintrc.cjs` (comprehensive configuration)  
+**Benefits:**
+
+- 5000+ lines of pragmatic rules
+- TypeScript support
+- Next.js integration
+- Test/script-specific overrides
+- Fixed `next lint` errors
+
+### 5. Tailwind Configurations
+
+**DELETED:** `tailwind.config.ts` (minimal 25-line config)  
+**KEPT:** `tailwind.config.js` (comprehensive 400+ line config)  
+**Features Preserved:**
+
+- Dark mode support
+- shadcn/ui color system
+- RTL utilities (Arabic support)
+- Glass morphism effects
+- Brand color tokens (#0061A8, #00A859, #FFB400)
+- Custom animations
+- Arabic font configuration
+
+---
+
+## 🔧 Import Path Standardization
+
+### Pattern 1: `@/db/models/*` → `@/server/models/*`
+
+**Files Fixed (20):**
+
+- app/api/tenants/route.ts
+- app/api/invoices/route.ts
+- app/api/properties/route.ts
+- app/api/vendors/route.ts
+- app/api/assistant/query/route.ts (2 imports)
+- app/api/support/tickets/route.ts
+- app/api/support/tickets/my/route.ts
+- app/api/rfqs/route.ts
+- app/api/slas/route.ts
+- app/api/ats/public-post/route.ts
+- app/api/assets/route.ts (2 dynamic imports)
+- app/api/work-orders/route.ts (2 dynamic imports)
+- app/api/work-orders/import/route.ts
+- app/api/work-orders/export/route.ts
+- server/finance/invoice.service.ts
+- server/copilot/audit.ts
+- server/copilot/tools.ts (2 imports)
+- tests/tools.spec.ts (2 mocks)
+- tests/unit/api/support/incidents.route.test.ts (2 references)
+- app/api/marketplace/search/route.test.ts (2 mocks)
+- app/api/public/rfqs/route.test.ts
+
+### Pattern 2: `../db/models/*` → `@/server/models/*`
+
+**Files Fixed (4):**
+
+- services/paytabs.ts (3 imports)
+- services/checkout.ts (2 imports)
+- services/pricing.ts (2 imports)
+- jobs/recurring-charge.ts
+
+### Pattern 3: `@/src/components/*` → `@/components/*`
+
+**Files Fixed (2):**
+
+- app/fm/properties/[id]/page.tsx (5 imports)
+- app/marketplace/product/[slug]/page.tsx (2 imports)
+
+### Pattern 4: `../src/*` → `../*`
+
+**Files Fixed (2):**
+
+- scripts/seed-users.ts (3 imports)
+- scripts/verify-core.ts (8 imports)
+
+**Total Import Paths Fixed:** 31 files / 50+ individual import statements
+
+---
+
+## 📊 TypeScript Error Reduction
+
+### Error Count Progression
+
+| Stage                    | Errors | Delta   | % Reduced |
+| ------------------------ | ------ | ------- | --------- |
+| Initial                  | 122+   | -       | -         |
+| After @/db/models/ fixes | 101    | -21     | 17%       |
+| After src/db/ deletion   | 101    | 0       | -         |
+| After @/src/ fixes       | 84     | -17     | 17%       |
+| **Current**              | **84** | **-38** | **31%**   |
+
+### Errors Fixed by Type
+
+- TS2307 (Cannot find module): **-17** instances
+  - All `@/db/models/*` references
+  - All `@/src/*` references
+  - All `../src/*` references
+
+### Remaining Error Categories (84 total)
+
+- TS2307 (Cannot find module): 17 instances
+- TS2345 (Argument type): 22 instances
+- TS2353 (Object literal): 13 instances
+- TS2339 (Property does not exist): 10 instances
+- TS2322 (Type not assignable): 12 instances
+- Others: 10 instances
+
+---
+
+## ✅ Consistency Achievements
+
+### Single Source of Truth Established
+
+1. **Models:** `/server/models/` (canonical location)
+2. **MongoDB Connection:** `/lib/mongodb-unified.ts` (Mongoose-based)
+3. **ESLint Config:** `.eslintrc.cjs` (comprehensive)
+4. **Tailwind Config:** `tailwind.config.js` (feature-complete)
+5. **JWT Secret:** Set in `.env.local` (production-grade hash)
+
+### Import Path Patterns (Standardized)
+
+```typescript
+// ✅ CORRECT
+import { Model } from "@/server/models/Model";
+import { utility } from "@/lib/utility";
+import { Component } from "@/components/Component";
+
+// ❌ WRONG (all eliminated)
+import { Model } from "@/db/models/Model";
+import { Model } from "@/src/server/models/Model";
+import { Component } from "@/src/components/Component";
+```
+
+---
+
+## 📈 Impact Metrics
+
+### Code Quality
+
+- **Duplicate Code Removed:** ~2,000 lines
+- **Dead Code Removed:** ~100 lines
+- **Import Consistency:** 100% (zero non-canonical paths remaining)
+
+### Build System
+
+- **ESLint:** Now functional (was broken with "Unknown options" errors)
+- **TypeScript:** 31% fewer errors
+- **Config Conflicts:** Zero (was 5 conflicting config files)
+
+### Developer Experience
+
+- **Import Autocomplete:** Now accurate (no phantom @/src/ paths)
+- **File Navigation:** Clear hierarchy (no duplicate locations)
+- **Linting:** Fast and reliable (single config)
+
+---
+
+## 🔍 Verification Commands
+
+```bash
+# Verify no @/db/models/ imports remain
+grep -r "@/db/models/" . --include="*.ts" --include="*.tsx" \
+  --exclude-dir=node_modules --exclude-dir=.next | wc -l
+# Result: 0 ✅
+
+# Verify no @/src/ imports remain
+grep -r "@/src/" . --include="*.ts" --include="*.tsx" \
+  --exclude-dir=node_modules --exclude-dir=.next | wc -l
+# Result: 0 ✅
+
+# Verify no ../db/models/ imports remain
+grep -r "\.\./.*db/models" . --include="*.ts" \
+  --exclude-dir=node_modules --exclude-dir=.next | wc -l
+# Result: 0 ✅
+
+# TypeScript error count
+npx tsc --noEmit 2>&1 | grep "error TS" | wc -l
+# Result: 84 (was 122)
+
+# ESLint functional check
+npx eslint --version && npx eslint app/page.tsx
+# Result: Works ✅
+```
+
+---
+
+## 📝 Git Commits
+
+1. **a5939b214** - Set JWT_SECRET and deleted duplicate MongoDB file
+2. **6734d294c** - Fixed all model import paths (20 files)
+3. **b1beb6dfd** - Removed duplicate src/db/ directory (16 files)
+4. **2963ace8b** - Consolidated ESLint and Tailwind configs
+5. **2a4b0f304** - Fixed @/src/ and ../src/ import paths
+
+---
+
+## 🎯 Next Steps
+
+### Remaining TypeScript Errors (84)
+
+1. **TS2339 - Property does not exist (10):**
+   - `req.ip` (should use `x-forwarded-for` header)
+   - `user.permissions` (check auth type structure)
+
+2. **TS2345 - Argument type issues (22):**
+   - Candidate.test.ts mock types
+   - Locale type mismatches
+
+3. **TS2307 - Cannot find module (17):**
+   - `@/models/marketplace/Product` (deprecated path)
+   - `@/lib/db/index` (non-existent)
+   - `@/types` (missing types file)
+
+### Additional Duplicate Scans Needed
+
+- [ ] Component duplicates (app/components vs components/)
+- [ ] Utility duplicates (lib/utils vs server/utils)
+- [ ] Type definition duplicates (types/ vs @types/)
+- [ ] Config duplicates (next.config.js, jest.config.js, etc.)
+
+---
+
+## 📊 Success Metrics
+
+✅ **22 duplicate files eliminated**  
+✅ **31 import paths standardized**  
+✅ **38 TypeScript errors fixed (31% reduction)**  
+✅ **5 configuration conflicts resolved**  
+✅ **Zero non-canonical import paths remaining**  
+✅ **100% consistency in model/lib/component paths**
+
+---
+
+**Report Generated:** October 5, 2025  
+**Next Review:** After component/utility duplicate scan
+
+]]>
+</file>
+
+</batch_content>

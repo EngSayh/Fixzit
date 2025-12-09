@@ -1,0 +1,2880 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="services/souq/claims/claim-service.ts">
+<![CDATA[
+import { ObjectId, type Collection } from "mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
+import { logger } from "@/lib/logger";
+
+// Claim Types
+export type ClaimType =
+  | "item_not_received" // INR - Item never delivered
+  | "defective_item" // Item damaged or doesn't work
+  | "not_as_described" // Item doesn't match listing
+  | "wrong_item" // Received different product
+  | "missing_parts" // Incomplete item
+  | "counterfeit"; // Suspected fake product
+
+// Claim Status Lifecycle
+export type ClaimStatus =
+  | "pending_review" // Initial state
+  | "pending_seller_response" // Waiting for seller to respond
+  | "under_review" // Manual investigation in progress
+  | "under_investigation" // Admin reviewing evidence
+  | "pending_evidence" // Waiting for more evidence
+  | "escalated" // Requires manual admin review
+  | "resolved_refund_full" // Full refund issued
+  | "resolved_refund_partial" // Partial refund issued
+  | "resolved_replacement" // Replacement sent
+  | "rejected" // Claim denied
+  | "withdrawn" // Buyer withdrew claim
+  | "approved" // Seller accepted buyer resolution
+  | "closed" // Claim fully closed
+  | "appealed" // Seller appealed decision
+  | "under_appeal"; // Appeal awaiting review
+
+// Decision Outcomes
+export type DecisionOutcome =
+  | "refund_full"
+  | "refund_partial"
+  | "replacement"
+  | "reject"
+  | "needs_more_info";
+
+export interface Claim {
+  _id?: ObjectId;
+  orgId: string; // 🔐 Required for tenant isolation
+  claimId: string;
+  orderId: string;
+  buyerId: string;
+  sellerId: string;
+  productId: string; // FSIN
+  type: ClaimType;
+  status: ClaimStatus;
+
+  // Claim Details
+  reason: string;
+  description: string;
+  evidence: Evidence[];
+
+  // Timeline
+  filedAt: Date;
+  responseDeadline: Date;
+  investigationDeadline?: Date;
+  resolvedAt?: Date;
+
+  // Responses
+  sellerResponse?: SellerResponse;
+  adminNotes?: AdminNote[];
+
+  // Decision
+  decision?: ClaimDecision;
+  appeal?: Appeal;
+
+  // Amounts
+  orderAmount: number;
+  requestedAmount?: number;
+  requestType?: string;
+  refundAmount?: number;
+
+  // Flags
+  isAutoResolvable: boolean;
+  isFraudulent: boolean;
+  priority: "low" | "medium" | "high" | "urgent";
+
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Evidence {
+  evidenceId: string;
+  uploadedBy: "buyer" | "seller" | "admin";
+  type:
+    | "image"
+    | "photo"
+    | "video"
+    | "document"
+    | "tracking_info"
+    | "message_screenshot";
+  url: string;
+  description?: string;
+  uploadedAt: Date;
+}
+
+export interface SellerResponse {
+  action?: "accept" | "dispute";
+  message?: string;
+  responseText?: string;
+  proposedSolution?:
+    | "refund_full"
+    | "refund_partial"
+    | "replacement"
+    | "dispute";
+  partialRefundAmount?: number;
+  evidence?: Evidence[];
+  counterEvidence?: Evidence[];
+  respondedAt: Date;
+}
+
+export interface AdminNote {
+  noteId: string;
+  adminId: string;
+  note: string;
+  createdAt: Date;
+}
+
+export interface ClaimDecision {
+  decisionId: string;
+  decidedBy: "system" | "admin";
+  decidedByUserId?: string;
+  outcome: DecisionOutcome;
+  reason: string;
+  refundAmount?: number;
+  decidedAt: Date;
+  notifiedAt?: Date;
+}
+
+export interface Appeal {
+  appealId: string;
+  appealedBy: "buyer" | "seller";
+  reason: string;
+  evidence: Evidence[];
+  status: "pending" | "approved" | "rejected";
+  reviewedBy?: string;
+  reviewedAt?: Date;
+  appealedAt: Date;
+}
+
+export interface CreateClaimInput {
+  orgId: string; // 🔐 Required for tenant isolation
+  orderId: string;
+  buyerId: string;
+  sellerId: string;
+  productId: string;
+  type: ClaimType;
+  reason: string;
+  description: string;
+  evidence?: { type: string; url: string; description?: string }[];
+  orderAmount: number;
+  requestedAmount?: number;
+  requestType?: string;
+}
+
+export interface AddEvidenceInput {
+  claimId: string;
+  orgId: string; // 🔐 Required for tenant isolation
+  uploadedBy: "buyer" | "seller" | "admin";
+  type: string;
+  url: string;
+  description?: string;
+  allowOrgless?: boolean;
+}
+
+export interface SellerResponseInput {
+  claimId: string;
+  orgId: string; // 🔐 Required for tenant isolation
+  sellerId: string;
+  action?: "accept" | "dispute";
+  responseText: string;
+  proposedSolution:
+    | "refund_full"
+    | "refund_partial"
+    | "replacement"
+    | "dispute";
+  partialRefundAmount?: number;
+  evidence?: { type: string; url: string; description?: string }[];
+}
+
+export interface MakeDecisionInput {
+  claimId: string;
+  orgId: string; // 🔐 Required for tenant isolation
+  decidedBy: "system" | "admin";
+  decidedByUserId?: string;
+  outcome: DecisionOutcome;
+  reason: string;
+  refundAmount?: number;
+}
+
+export class ClaimService {
+  private static COLLECTION = "claims";
+  private static SELLER_RESPONSE_DEADLINE_HOURS = 48;
+  private static INVESTIGATION_DEADLINE_HOURS = 72;
+  private static AUTO_RESOLVE_THRESHOLD = 50; // SAR
+  private static indexesReady: Promise<void> | null = null;
+
+  private static async collection(): Promise<Collection<Claim>> {
+    const collection = (await getDatabase()).collection<Claim>(this.COLLECTION);
+    if (!this.indexesReady) {
+      this.indexesReady = (async () => {
+        if (typeof collection.createIndex !== "function") return;
+        try {
+          await Promise.all([
+            // Tenant + identity
+            collection.createIndex({ orgId: 1, claimId: 1 }, { name: "claims_org_claimId", background: true }),
+            collection.createIndex({ org_id: 1, claimId: 1 }, { name: "claims_orgLegacy_claimId", background: true }),
+            // Auto-resolution / review flows (status + filedAt/priority)
+            collection.createIndex(
+              { orgId: 1, status: 1, isAutoResolvable: 1, filedAt: 1 },
+              { name: "claims_org_status_auto_filed", background: true },
+            ),
+            collection.createIndex(
+              { org_id: 1, status: 1, isAutoResolvable: 1, filedAt: 1 },
+              { name: "claims_orgLegacy_status_auto_filed", background: true },
+            ),
+            collection.createIndex(
+              { orgId: 1, status: 1, priority: -1, filedAt: 1 },
+              { name: "claims_org_status_priority_filed", background: true },
+            ),
+            collection.createIndex(
+              { org_id: 1, status: 1, priority: -1, filedAt: 1 },
+              { name: "claims_orgLegacy_status_priority_filed", background: true },
+            ),
+            // Listing / pagination
+            collection.createIndex({ orgId: 1, createdAt: -1 }, { name: "claims_org_createdAt", background: true }),
+            collection.createIndex({ org_id: 1, createdAt: -1 }, { name: "claims_orgLegacy_createdAt", background: true }),
+          ]);
+        } catch (error) {
+          logger.error("[Claims] Failed to ensure claim indexes", { error });
+          // 🔐 STRICT v4.1: Reset cached promise to allow retry on next call
+          this.indexesReady = null;
+          throw error; // Fail fast - don't run without critical org-scoped indexes
+        }
+      })();
+    }
+    await this.indexesReady;
+    return collection;
+  }
+
+  /**
+   * Ensure indexes are created and return the collection.
+   * Exposed for services that need a guaranteed indexed collection (e.g., investigation-service).
+   */
+  static async ensureIndexes(): Promise<Collection<Claim>> {
+    return this.collection();
+  }
+
+  private static buildIdMatch(value: string) {
+    const conditions: Array<string | ObjectId> = [value];
+    if (ObjectId.isValid(value)) {
+      conditions.push(new ObjectId(value));
+    }
+    // Cast to string[] for typing while retaining ObjectId in runtime for dual-format support
+    return { $in: conditions as unknown as string[] };
+  }
+
+  /**
+   * Build org filter for string orgId field.
+   * Includes dual type matching (string/ObjectId) and allows legacy org-less docs in tests.
+   */
+  private static buildOrgFilter(
+    orgId: string,
+    options: { allowOrgless?: boolean } = {},
+  ): Record<string, unknown> {
+    const orgMatch = { orgId: this.buildIdMatch(orgId?.trim?.() || orgId) };
+    if (options.allowOrgless) {
+      return { $or: [orgMatch, { orgId: { $exists: false } }] };
+    }
+    return orgMatch;
+  }
+
+  /**
+   * File a new A-to-Z claim
+   */
+  static async createClaim(input: CreateClaimInput): Promise<Claim> {
+    const collection = await this.collection();
+
+    const claimId = `CLM-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const _id = new ObjectId();
+
+    // Calculate deadlines
+    const filedAt = new Date();
+    const responseDeadline = new Date(
+      filedAt.getTime() + this.SELLER_RESPONSE_DEADLINE_HOURS * 60 * 60 * 1000,
+    );
+
+    // Determine if auto-resolvable (low value claims)
+    const isAutoResolvable = input.orderAmount <= this.AUTO_RESOLVE_THRESHOLD;
+
+    // Determine priority
+    let priority: "low" | "medium" | "high" | "urgent" = "medium";
+    if (input.type === "counterfeit") priority = "urgent";
+    else if (input.orderAmount > 500) priority = "high";
+    else if (input.orderAmount < 50) priority = "low";
+
+    const evidence: Evidence[] = (input.evidence || []).map((e, index) => ({
+      evidenceId: `EV-${claimId}-${index + 1}`,
+      uploadedBy: "buyer" as const,
+      type: e.type as Evidence["type"],
+      url: e.url,
+      description: e.description,
+      uploadedAt: new Date(),
+    }));
+
+    const claim: Claim = {
+      _id,
+      orgId: input.orgId,
+      claimId,
+      orderId: input.orderId,
+      buyerId: input.buyerId,
+      sellerId: input.sellerId,
+      productId: input.productId,
+      type: input.type,
+      status: "pending_review",
+      reason: input.reason,
+      description: input.description,
+      evidence,
+      filedAt,
+      responseDeadline,
+      orderAmount: input.orderAmount,
+      requestedAmount: input.requestedAmount ?? input.orderAmount,
+      requestType: input.requestType ?? "refund",
+      isAutoResolvable,
+      isFraudulent: false,
+      priority,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    if (process.env.DEBUG_CLAIM_TEST === "1") {
+      // eslint-disable-next-line no-console
+      console.log("[ClaimService][TestDebug] inserting claim", { claimId, orgId: input.orgId });
+    }
+
+    await collection.insertOne(claim);
+
+    await addJob(QUEUE_NAMES.NOTIFICATIONS, "souq-claim-filed", {
+      claimId,
+      sellerId: input.sellerId,
+      buyerId: input.buyerId,
+      orderId: input.orderId,
+      priority,
+      orgId: input.orgId, // 🔐 Tenant-scoped notification routing
+    });
+
+    return claim;
+  }
+
+  /**
+   * Get claim by ID
+   * @param claimId - The claim ID or ObjectId string
+   * @param orgId - Required for tenant isolation (STRICT v4.1)
+   */
+  static async getClaim(
+    claimId: string,
+    orgId: string,
+    allowOrgless = false,
+  ): Promise<Claim | null> {
+    if (!orgId) {
+      throw new Error("orgId is required to fetch claim (STRICT v4.1 tenant isolation)");
+    }
+    const collection = await this.collection();
+    const orgFilter = this.buildOrgFilter(orgId, { allowOrgless });
+    if (process.env.DEBUG_CLAIM_TEST === "1") {
+      // eslint-disable-next-line no-console
+      console.log("[ClaimService][TestDebug] getClaim filter", { claimId, orgId, orgFilter });
+    }
+    if (ObjectId.isValid(claimId)) {
+      const byObjectId = await collection.findOne({
+        _id: new ObjectId(claimId),
+        ...orgFilter,
+      });
+      if (byObjectId) {
+        return byObjectId;
+      }
+    }
+    return collection.findOne({ claimId, ...orgFilter });
+  }
+
+  /**
+   * List claims with filters
+   * 🔐 MAJOR FIX: Caps limit to 200 to prevent unbounded queries
+   */
+  static async listClaims(filters: {
+    orgId: string;
+    buyerId?: string;
+    sellerId?: string;
+    status?: ClaimStatus;
+    type?: ClaimType;
+    priority?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ claims: Claim[]; total: number }> {
+    const collection = await this.collection();
+
+    const query: Record<string, unknown> = {
+      ...this.buildOrgFilter(filters.orgId),
+    };
+    if (filters.buyerId) query.buyerId = this.buildIdMatch(filters.buyerId);
+    if (filters.sellerId) query.sellerId = this.buildIdMatch(filters.sellerId);
+    if (filters.status) query.status = filters.status;
+    if (filters.type) query.type = filters.type;
+    if (filters.priority) query.priority = filters.priority;
+
+    // 🔐 Cap limit to 200 to prevent unbounded queries
+    const MAX_LIMIT = 200;
+    const limit = Math.min(filters.limit ?? 20, MAX_LIMIT);
+    const offset = filters.offset || 0;
+
+    const [claims, total] = await Promise.all([
+      collection
+        .find(query)
+        .sort({ createdAt: -1 })
+        .skip(offset)
+        .limit(limit)
+        .toArray(),
+      collection.countDocuments(query),
+    ]);
+
+    return {
+      claims,
+      total,
+    };
+  }
+
+  /**
+   * Add evidence to claim
+   * 🔐 SECURITY: orgId required for tenant isolation
+   */
+  static async addEvidence(input: AddEvidenceInput & { orgId: string }): Promise<void> {
+    if (!input.orgId) {
+      throw new Error("orgId is required for tenant-scoped operation");
+    }
+
+    const collection = await this.collection();
+
+    const claim = await this.getClaim(input.claimId, input.orgId, input.allowOrgless ?? false);
+    if (!claim) throw new Error("Claim not found");
+
+    const evidence: Evidence = {
+      evidenceId: `EV-${input.claimId}-${claim.evidence.length + 1}`,
+      uploadedBy: input.uploadedBy,
+      type: input.type as Evidence["type"],
+      url: input.url,
+      description: input.description,
+      uploadedAt: new Date(),
+    };
+
+    const orgFilter = this.buildOrgFilter(input.orgId, { allowOrgless: input.allowOrgless ?? false });
+    await collection.updateOne(
+      ObjectId.isValid(input.claimId)
+        ? { _id: new ObjectId(input.claimId), ...orgFilter }
+        : { claimId: input.claimId, ...orgFilter },
+      {
+        $push: { evidence },
+        $set: { updatedAt: new Date() },
+      },
+    );
+  }
+
+  /**
+   * Seller responds to claim
+   * 🔐 SECURITY: orgId required for tenant isolation
+   */
+  static async addSellerResponse(input: SellerResponseInput & { orgId: string }): Promise<void> {
+    if (!input.orgId) {
+      throw new Error("orgId is required for tenant-scoped operation");
+    }
+
+    const collection = await this.collection();
+
+    const claim = await this.getClaim(input.claimId, input.orgId);
+    if (!claim) throw new Error("Claim not found");
+    if (String(claim.sellerId) !== String(input.sellerId)) throw new Error("Unauthorized");
+    if (
+      claim.status !== "pending_review" &&
+      claim.status !== "pending_seller_response"
+    ) {
+      throw new Error("Claim is not in a state that accepts seller response");
+    }
+
+    const evidence: Evidence[] = (input.evidence || []).map((e, index) => ({
+      evidenceId: `EV-${input.claimId}-${claim.evidence.length + index + 1}`,
+      uploadedBy: "seller" as const,
+      type: e.type as Evidence["type"],
+      url: e.url,
+      description: e.description,
+      uploadedAt: new Date(),
+    }));
+
+    const sellerResponse: SellerResponse = {
+      action: input.action,
+      responseText: input.responseText,
+      proposedSolution: input.proposedSolution,
+      partialRefundAmount: input.partialRefundAmount,
+      counterEvidence: evidence,
+      evidence,
+      respondedAt: new Date(),
+    };
+
+    // Determine next status and whether we should attempt auto-resolution
+    const newStatus: ClaimStatus =
+      input.proposedSolution === "refund_full" ? "approved" : "under_review";
+    const shouldAttemptAutoResolve =
+      input.proposedSolution === "refund_full" && claim.isAutoResolvable;
+
+    // 🔐 SECURITY: Scope update by orgId
+    const orgFilter = this.buildOrgFilter(input.orgId);
+    await collection.updateOne(
+      ObjectId.isValid(input.claimId)
+        ? { _id: new ObjectId(input.claimId), ...orgFilter }
+        : { claimId: input.claimId, ...orgFilter },
+      {
+        $set: {
+          sellerResponse,
+          status: newStatus,
+          updatedAt: new Date(),
+        },
+        $push: { evidence: { $each: evidence } },
+      },
+    );
+
+    if (shouldAttemptAutoResolve) {
+      await this.tryAutoResolveClaim(input.claimId, input.orgId);
+    }
+  }
+
+  /**
+   * Make decision on claim
+   * 🔐 SECURITY: orgId required for tenant isolation
+   */
+  static async makeDecision(input: MakeDecisionInput & { orgId: string }): Promise<void> {
+    if (!input.orgId) {
+      throw new Error("orgId is required for tenant-scoped operation");
+    }
+
+    const collection = await this.collection();
+
+    const claim = await this.getClaim(input.claimId, input.orgId);
+    if (!claim) throw new Error("Claim not found");
+
+    const decision: ClaimDecision = {
+      decisionId: `DEC-${input.claimId}-${Date.now()}`,
+      decidedBy: input.decidedBy,
+      decidedByUserId: input.decidedByUserId,
+      outcome: input.outcome,
+      reason: input.reason,
+      refundAmount: input.refundAmount,
+      decidedAt: new Date(),
+    };
+
+    // Map outcome to status
+    const statusMap: Record<DecisionOutcome, ClaimStatus> = {
+      refund_full: "resolved_refund_full",
+      refund_partial: "resolved_refund_partial",
+      replacement: "resolved_replacement",
+      reject: "rejected",
+      needs_more_info: "pending_evidence",
+    };
+
+    // 🔐 SECURITY: Scope update by orgId
+    const orgScope = this.buildOrgFilter(input.orgId);
+    await collection.updateOne(
+      { claimId: input.claimId, ...orgScope },
+      {
+        $set: {
+          decision,
+          status: statusMap[input.outcome],
+          refundAmount: input.refundAmount,
+          resolvedAt:
+            input.outcome !== "needs_more_info" ? new Date() : undefined,
+          updatedAt: new Date(),
+        },
+      },
+    );
+
+    await addJob(QUEUE_NAMES.NOTIFICATIONS, "souq-claim-decision", {
+      claimId: input.claimId,
+      buyerId: claim.buyerId,
+      sellerId: claim.sellerId,
+      orgId: claim.orgId, // 🔐 Tenant-scoped notification routing
+      outcome: input.outcome,
+      refundAmount: input.refundAmount,
+    });
+  }
+
+  /**
+   * File an appeal
+   */
+  static async fileAppeal(
+    claimId: string,
+    orgId: string,
+    appealedBy: "buyer" | "seller",
+    reason: string,
+    evidence: { type: string; url: string; description?: string }[],
+    options: { allowOrgless?: boolean } = {},
+  ): Promise<void> {
+    const collection = await this.collection();
+
+    const allowOrgless = options.allowOrgless ?? false;
+    const claim = await this.getClaim(claimId, orgId, allowOrgless);
+    if (!claim) throw new Error("Claim not found");
+    if (!claim.decision)
+      throw new Error("Cannot appeal claim without decision");
+
+    const appealEvidence: Evidence[] = evidence.map((e, index) => ({
+      evidenceId: `EV-${claimId}-APPEAL-${index + 1}`,
+      uploadedBy: appealedBy === "buyer" ? "buyer" : "seller",
+      type: e.type as Evidence["type"],
+      url: e.url,
+      description: e.description,
+      uploadedAt: new Date(),
+    }));
+
+    const appeal: Appeal = {
+      appealId: `APP-${claimId}-${Date.now()}`,
+      appealedBy,
+      reason,
+      evidence: appealEvidence,
+      status: "pending",
+      appealedAt: new Date(),
+    };
+
+    // 🔐 SECURITY: Scope update by orgId
+    const orgScope = this.buildOrgFilter(orgId, { allowOrgless });
+    await collection.updateOne(
+      ObjectId.isValid(claimId) ? { _id: new ObjectId(claimId), ...orgScope } : { claimId, ...orgScope },
+      {
+        $set: {
+          appeal,
+          status: "appealed",
+          updatedAt: new Date(),
+        },
+        $push: { evidence: { $each: appealEvidence } },
+      },
+    );
+
+    // Notify admin team for manual review
+    await addJob(QUEUE_NAMES.NOTIFICATIONS, "internal-notification", {
+      to: "souq-claims-admins",
+      orgId: claim.orgId, // 🔐 Tenant-scoped notification routing
+      priority: "high",
+      message: `Claim ${claimId} was appealed by the ${appealedBy}.`,
+      metadata: {
+        claimId,
+        appealedBy,
+        sellerId: claim.sellerId,
+        buyerId: claim.buyerId,
+        reason,
+      },
+    });
+  }
+
+  /**
+   * Add admin note
+   */
+  static async addAdminNote(
+    claimId: string,
+    orgId: string,
+    adminId: string,
+    note: string,
+  ): Promise<void> {
+    const collection = await this.collection();
+
+    const adminNote: AdminNote = {
+      noteId: `NOTE-${claimId}-${Date.now()}`,
+      adminId,
+      note,
+      createdAt: new Date(),
+    };
+
+    // 🔐 SECURITY: Scope update by orgId
+    const orgScope = this.buildOrgFilter(orgId);
+    await collection.updateOne(
+      ObjectId.isValid(claimId) ? { _id: new ObjectId(claimId), ...orgScope } : { claimId, ...orgScope },
+      {
+        $push: { adminNotes: adminNote },
+        $set: { updatedAt: new Date() },
+      },
+    );
+  }
+
+  /**
+   * Update claim status
+   * 🔐 SECURITY: orgId required for tenant isolation
+   */
+  static async updateStatus(
+    claimId: string,
+    orgId: string,
+    status: ClaimStatus,
+  ): Promise<void> {
+    if (!orgId) {
+      throw new Error("orgId is required for tenant-scoped operation");
+    }
+
+    const collection = await this.collection();
+
+    // 🔐 SECURITY: Scope update by orgId
+    const orgScope = this.buildOrgFilter(orgId);
+    await collection.updateOne(
+      ObjectId.isValid(claimId) ? { _id: new ObjectId(claimId), ...orgScope } : { claimId, ...orgScope },
+      {
+        $set: {
+          status,
+          updatedAt: new Date(),
+        },
+      },
+    );
+  }
+
+  /**
+   * Check for overdue responses
+   */
+  static async getOverdueClaims(orgId: string): Promise<Claim[]> {
+    if (!orgId) {
+      throw new Error("orgId is required to fetch overdue claims");
+    }
+    const collection = await this.collection();
+
+    const now = new Date();
+
+    const overdueClaims = await collection
+      .find({
+        ...this.buildOrgFilter(orgId),
+        status: { $in: ["pending_review", "pending_seller_response"] },
+        responseDeadline: { $lt: now },
+      })
+      .toArray();
+
+    return overdueClaims;
+  }
+
+  /**
+   * Auto-escalate overdue claims
+   */
+  static async escalateOverdueClaims(orgId: string): Promise<number> {
+    const overdueClaims = await this.getOverdueClaims(orgId);
+    const collection = await this.collection();
+
+    for (const claim of overdueClaims) {
+      await collection.updateOne(
+        { claimId: claim.claimId, ...this.buildOrgFilter(orgId) },
+        {
+          $set: {
+            status: "escalated",
+            priority: "high",
+            updatedAt: new Date(),
+          },
+        },
+      );
+    }
+
+    return overdueClaims.length;
+  }
+
+  /**
+   * Get claim statistics
+   */
+  static async getClaimStats(filters: {
+    orgId: string; // 🔐 Required for tenant isolation
+    sellerId?: string;
+    buyerId?: string;
+  }): Promise<{
+    total: number;
+    byStatus: Record<ClaimStatus, number>;
+    byType: Record<ClaimType, number>;
+    avgResolutionTime: number;
+    refundTotal: number;
+  }> {
+    if (!filters.orgId) {
+      throw new Error("orgId is required to fetch claim stats (STRICT v4.1 tenant isolation)");
+    }
+    const collection = await this.collection();
+
+    // 🔐 SECURITY: Scope by orgId and aggregate server-side to avoid unbounded scans
+    const matchStage: Record<string, unknown> = { ...this.buildOrgFilter(filters.orgId) };
+    if (filters.sellerId) matchStage.sellerId = this.buildIdMatch(filters.sellerId);
+    if (filters.buyerId) matchStage.buyerId = this.buildIdMatch(filters.buyerId);
+
+    const [aggregated] = await collection
+      .aggregate([
+        { $match: matchStage },
+        {
+          $facet: {
+            status: [{ $group: { _id: "$status", count: { $sum: 1 } } }],
+            type: [{ $group: { _id: "$type", count: { $sum: 1 } } }],
+            totals: [
+              {
+                $group: {
+                  _id: null,
+                  total: { $sum: 1 },
+                  resolvedCount: {
+                    $sum: { $cond: [{ $ifNull: ["$resolvedAt", false] }, 1, 0] },
+                  },
+                  totalResolutionTime: {
+                    $sum: {
+                      $cond: [
+                        { $ifNull: ["$resolvedAt", false] },
+                        { $subtract: ["$resolvedAt", "$filedAt"] },
+                        0,
+                      ],
+                    },
+                  },
+                  refundTotal: { $sum: { $ifNull: ["$refundAmount", 0] } },
+                },
+              },
+            ],
+          },
+        },
+        {
+          $project: {
+            status: 1,
+            type: 1,
+            totals: { $arrayElemAt: ["$totals", 0] },
+          },
+        },
+      ])
+      .toArray();
+
+    const byStatus = Object.fromEntries(
+      (aggregated?.status || []).map(
+        (entry: { _id: ClaimStatus; count: number }) => [entry._id, entry.count],
+      ),
+    ) as Record<ClaimStatus, number>;
+
+    const byType = Object.fromEntries(
+      (aggregated?.type || []).map((entry: { _id: ClaimType; count: number }) => [
+        entry._id,
+        entry.count,
+      ]),
+    ) as Record<ClaimType, number>;
+
+    const totals = aggregated?.totals ?? {};
+    const total = totals.total ?? 0;
+    const resolvedCount = totals.resolvedCount ?? 0;
+    const totalResolutionTime = totals.totalResolutionTime ?? 0;
+    const refundTotal = totals.refundTotal ?? 0;
+
+    return {
+      total,
+      byStatus,
+      byType,
+      avgResolutionTime: resolvedCount > 0 ? totalResolutionTime / resolvedCount : 0,
+      refundTotal,
+    };
+  }
+
+  /**
+   * Run auto-resolution checks after seller agrees to refund
+   * 🔐 SECURITY: orgId required for tenant isolation
+   */
+  private static async tryAutoResolveClaim(claimId: string, orgId: string): Promise<void> {
+    const claim = await this.getClaim(claimId, orgId);
+    if (!claim || !claim.isAutoResolvable) {
+      return;
+    }
+
+    const { InvestigationService } = await import("./investigation-service");
+    const investigation = await InvestigationService.investigateClaim(claimId, orgId);
+
+    const canAutoResolve =
+      investigation.confidence === "high" &&
+      !investigation.requiresManualReview &&
+      investigation.fraudScore < 50 &&
+      investigation.recommendedOutcome === "refund_full" &&
+      claim.sellerResponse?.proposedSolution === "refund_full";
+
+    if (!canAutoResolve) {
+      return;
+    }
+
+    await this.makeDecision({
+      claimId,
+      orgId,
+      decidedBy: "system",
+      outcome: "refund_full",
+      reason: `Auto-resolved after seller agreement: ${investigation.reasoning.join("; ")}`,
+      refundAmount: claim.orderAmount,
+    });
+  }
+}
+
+]]>
+</file>
+
+<file path="services/souq/claims/investigation-service.ts">
+<![CDATA[
+import { getDatabase } from "@/lib/mongodb-unified";
+import { ClaimService, Claim, DecisionOutcome } from "./claim-service";
+import { logger } from "@/lib/logger";
+import { ObjectId as MongoObjectId, type Filter } from "mongodb";
+
+export interface InvestigationResult {
+  claimId: string;
+  recommendedOutcome: DecisionOutcome;
+  confidence: "low" | "medium" | "high";
+  reasoning: string[];
+  requiresManualReview: boolean;
+  fraudScore: number; // 0-100
+  evidenceQuality: "poor" | "fair" | "good" | "excellent";
+}
+
+export interface FraudIndicators {
+  multipleClaimsInShortPeriod: boolean;
+  highValueClaim: boolean;
+  inconsistentEvidence: boolean;
+  sellerHistoryGood: boolean;
+  buyerHistoryPoor: boolean;
+  trackingShowsDelivered: boolean;
+  lateReporting: boolean;
+}
+
+export class InvestigationService {
+  private static FRAUD_THRESHOLD = 70; // Score above 70 requires manual review
+  private static HIGH_VALUE_THRESHOLD = 500; // SAR
+  private static MULTIPLE_CLAIMS_PERIOD = 30; // days
+  private static LATE_REPORTING_DAYS = 14; // days after delivery
+  private static async claimsCollection() {
+    // Use ClaimService.ensureIndexes to guarantee index bootstrap before heavy queries
+    return ClaimService.ensureIndexes();
+  }
+
+  /**
+   * Investigate claim and recommend decision
+   */
+  static async investigateClaim(claimId: string, orgId: string): Promise<InvestigationResult> {
+    if (!orgId) {
+      throw new Error("orgId is required for investigation (tenant isolation)");
+    }
+    const claim = await ClaimService.getClaim(claimId, orgId);
+    if (!claim) throw new Error("Claim not found");
+
+    // Collect investigation data
+    const [trackingInfo, sellerHistory, buyerHistory] = await Promise.all([
+      this.getTrackingInfo({ orderId: claim.orderId, orgId }),
+      this.getSellerHistory({ sellerId: claim.sellerId, orgId }),
+      this.getBuyerHistory({ buyerId: claim.buyerId, orgId }),
+    ]);
+    const fraudIndicators = await this.detectFraudIndicators({
+      claim,
+      orgId,
+      trackingInfo,
+      sellerHistory,
+      buyerHistory,
+    });
+
+    // Calculate fraud score
+    const fraudScore = this.calculateFraudScore(fraudIndicators, claim);
+
+    // Assess evidence quality
+    const evidenceQuality = this.assessEvidenceQuality(claim);
+
+    // Generate recommendation
+    const recommendation = this.generateRecommendation(
+      claim,
+      fraudIndicators,
+      trackingInfo,
+      sellerHistory,
+      buyerHistory,
+      fraudScore,
+      evidenceQuality,
+    );
+
+    return recommendation;
+  }
+
+  /**
+   * Detect fraud indicators
+   */
+  private static async detectFraudIndicators(params: {
+    claim: Claim;
+    orgId: string;
+    trackingInfo: { status: string; deliveredAt?: Date };
+    sellerHistory: {
+      claimRate: number;
+      rating: number;
+      totalOrders: number;
+      totalClaims: number;
+    };
+    buyerHistory: { claimCount: number; claimRate: number; totalOrders: number };
+  }): Promise<FraudIndicators> {
+    const { claim, orgId, trackingInfo, sellerHistory, buyerHistory } = params;
+    const orgCandidates = MongoObjectId.isValid(orgId)
+      ? [orgId, new MongoObjectId(orgId)]
+      : [orgId];
+    // Cast to Filter<Claim> to handle mixed string/ObjectId candidates
+    const orgScope = {
+      $or: [
+        { orgId: { $in: orgCandidates } },
+        { org_id: { $in: orgCandidates } },
+      ],
+    } as Filter<Claim>;
+
+    // Check for multiple claims from same buyer in short period
+    const claimsCollection = await this.claimsCollection();
+    const recentClaims = await claimsCollection.countDocuments({
+      buyerId: claim.buyerId,
+      ...orgScope,
+      filedAt: {
+        $gte: new Date(
+          Date.now() - this.MULTIPLE_CLAIMS_PERIOD * 24 * 60 * 60 * 1000,
+        ),
+      },
+    } as Filter<Claim>);
+
+    const trackingShowsDelivered =
+      trackingInfo.status === "delivered" && trackingInfo.deliveredAt !== undefined;
+
+    // Check reporting timeline
+    const daysSinceDelivery = trackingInfo.deliveredAt
+      ? (Date.now() - new Date(trackingInfo.deliveredAt).getTime()) /
+        (1000 * 60 * 60 * 24)
+      : 0;
+    const lateReporting = daysSinceDelivery > this.LATE_REPORTING_DAYS;
+
+    const sellerHistoryGood =
+      sellerHistory.claimRate < 0.05 && sellerHistory.rating >= 4.0; // <5% claim rate, 4+ stars
+    const buyerHistoryPoor =
+      buyerHistory.claimCount > 10 && buyerHistory.claimRate > 0.15; // >10 claims, >15% rate
+
+    return {
+      multipleClaimsInShortPeriod: recentClaims >= 3,
+      highValueClaim: claim.orderAmount > this.HIGH_VALUE_THRESHOLD,
+      inconsistentEvidence: this.checkEvidenceConsistency(claim),
+      sellerHistoryGood,
+      buyerHistoryPoor,
+      trackingShowsDelivered:
+        trackingShowsDelivered && claim.type === "item_not_received",
+      lateReporting,
+    };
+  }
+
+  /**
+   * Calculate fraud score (0-100)
+   */
+  private static calculateFraudScore(
+    indicators: FraudIndicators,
+    claim: Claim,
+  ): number {
+    let score = 0;
+
+    if (indicators.multipleClaimsInShortPeriod) score += 30;
+    if (indicators.buyerHistoryPoor) score += 25;
+    if (indicators.trackingShowsDelivered) score += 20;
+    if (indicators.lateReporting) score += 15;
+    if (indicators.inconsistentEvidence) score += 10;
+
+    // Reduce score for positive indicators
+    if (indicators.sellerHistoryGood) score -= 15;
+    if (claim.evidence.length >= 3) score -= 10; // Good evidence provided
+
+    return Math.max(0, Math.min(100, score));
+  }
+
+  /**
+   * Assess evidence quality
+   */
+  private static assessEvidenceQuality(
+    claim: Claim,
+  ): "poor" | "fair" | "good" | "excellent" {
+    const evidenceCount = claim.evidence.length;
+    const hasPhotos = claim.evidence.some((e) => e.type === "photo");
+    const hasTracking = claim.evidence.some((e) => e.type === "tracking_info");
+    const hasVideo = claim.evidence.some((e) => e.type === "video");
+
+    if (evidenceCount === 0) return "poor";
+    if (evidenceCount === 1 && !hasPhotos) return "poor";
+    if (evidenceCount >= 2 && hasPhotos) return "fair";
+    if (evidenceCount >= 3 && hasPhotos && (hasTracking || hasVideo))
+      return "good";
+    if (evidenceCount >= 4 && hasPhotos && hasVideo && hasTracking)
+      return "excellent";
+
+    return "fair";
+  }
+
+  /**
+   * Check evidence consistency
+   */
+  private static checkEvidenceConsistency(claim: Claim): boolean {
+    // Simple heuristic: if buyer claims item not received but provides photos of item, inconsistent
+    if (claim.type === "item_not_received") {
+      const hasProductPhotos = claim.evidence.some(
+        (e) => e.type === "photo" && e.uploadedBy === "buyer",
+      );
+      return hasProductPhotos; // Inconsistent if photos provided for INR claim
+    }
+
+    // More sophisticated checks could be added
+    return false;
+  }
+
+  /**
+   * Get tracking information
+   */
+  private static async getTrackingInfo(params: {
+    orderId: string;
+    orgId: string;
+  }): Promise<{ status: string; deliveredAt?: Date }> {
+    const { orderId, orgId } = params;
+    if (!orgId) {
+      throw new Error("orgId is required to fetch tracking info (STRICT v4.1 tenant isolation)");
+    }
+    const db = await getDatabase();
+    const orgCandidates = MongoObjectId.isValid(orgId)
+      ? [orgId, new MongoObjectId(orgId)]
+      : [orgId];
+    const order = await db
+      .collection("souq_orders")
+      .findOne({
+        orderId,
+        $or: [{ orgId: { $in: orgCandidates } }, { org_id: { $in: orgCandidates } }],
+      });
+
+    if (!order) return { status: "unknown" };
+
+    return {
+      status: order.deliveryStatus || "unknown",
+      deliveredAt: order.deliveredAt,
+    };
+  }
+
+  /**
+   * Get seller history
+   */
+  private static async getSellerHistory(params: {
+    sellerId: string;
+    orgId: string;
+  }): Promise<{
+    claimRate: number;
+    rating: number;
+    totalOrders: number;
+    totalClaims: number;
+  }> {
+    const { sellerId, orgId } = params;
+    if (!orgId) {
+      throw new Error("orgId is required to fetch seller history (STRICT v4.1 tenant isolation)");
+    }
+    const db = await getDatabase();
+
+    // 🔐 STRICT v4.1: souq_sellers.orgId is ObjectId; orgId param may be string.
+    // Use dual-type candidates to match both legacy string and ObjectId storage.
+    const { ObjectId } = await import("mongodb");
+    const orgCandidates = ObjectId.isValid(orgId)
+      ? [orgId, new ObjectId(orgId)]
+      : [orgId];
+    const orgFilter = { $in: orgCandidates };
+
+    const [totalOrders, totalClaims, seller] = await Promise.all([
+      db.collection("souq_orders").countDocuments({
+        sellerId,
+        $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+      }),
+      db.collection("claims").countDocuments({
+        sellerId,
+        $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+      }),
+      db.collection("souq_sellers").findOne({
+        sellerId,
+        $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+      }),
+    ]);
+
+    return {
+      claimRate: totalOrders > 0 ? totalClaims / totalOrders : 0,
+      rating: seller?.rating || 0,
+      totalOrders,
+      totalClaims,
+    };
+  }
+
+  /**
+   * Get buyer history
+   */
+  private static async getBuyerHistory(params: {
+    buyerId: string;
+    orgId: string;
+  }): Promise<{ claimCount: number; claimRate: number; totalOrders: number }> {
+    const { buyerId, orgId } = params;
+    if (!orgId) {
+      throw new Error("orgId is required to fetch buyer history (STRICT v4.1 tenant isolation)");
+    }
+    const db = await getDatabase();
+
+    // 🔐 STRICT v4.1: souq_orders.orgId is ObjectId; orgId param may be string.
+    // Use dual-type candidates to match both legacy string and ObjectId storage.
+    const { ObjectId } = await import("mongodb");
+    const orgCandidates = ObjectId.isValid(orgId)
+      ? [orgId, new ObjectId(orgId)]
+      : [orgId];
+    const orgFilter = { $in: orgCandidates };
+
+    const [totalOrders, claimCount] = await Promise.all([
+      db.collection("souq_orders").countDocuments({
+        buyerId,
+        $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+      }),
+      db.collection("claims").countDocuments({
+        buyerId,
+        $or: [{ orgId: orgFilter }, { org_id: orgFilter }],
+      }),
+    ]);
+
+    return {
+      claimCount,
+      claimRate: totalOrders > 0 ? claimCount / totalOrders : 0,
+      totalOrders,
+    };
+  }
+
+  /**
+   * Generate recommendation based on investigation
+   */
+  private static generateRecommendation(
+    claim: Claim,
+    fraudIndicators: FraudIndicators,
+    trackingInfo: { status: string; deliveredAt?: Date },
+    sellerHistory: {
+      claimRate: number;
+      rating: number;
+      totalOrders: number;
+      totalClaims: number;
+    },
+    buyerHistory: {
+      claimCount: number;
+      claimRate: number;
+      totalOrders: number;
+    },
+    fraudScore: number,
+    evidenceQuality: "poor" | "fair" | "good" | "excellent",
+  ): InvestigationResult {
+    const reasoning: string[] = [];
+    let recommendedOutcome: DecisionOutcome = "needs_more_info";
+    let confidence: "low" | "medium" | "high" = "medium";
+    let requiresManualReview = false;
+
+    // High fraud score always requires manual review
+    if (fraudScore >= this.FRAUD_THRESHOLD) {
+      requiresManualReview = true;
+      reasoning.push(
+        `High fraud score (${fraudScore}/100) requires manual review`,
+      );
+    }
+
+    // High value claims require manual review
+    if (fraudIndicators.highValueClaim) {
+      requiresManualReview = true;
+      reasoning.push(
+        `High value claim (${claim.orderAmount} SAR) requires manual review`,
+      );
+    }
+
+    // Item Not Received logic
+    if (claim.type === "item_not_received") {
+      if (trackingInfo.status === "delivered" && trackingInfo.deliveredAt) {
+        recommendedOutcome = "reject";
+        confidence = "high";
+        reasoning.push("Tracking shows item was delivered");
+        reasoning.push(
+          `Delivered on ${trackingInfo.deliveredAt.toLocaleDateString()}`,
+        );
+      } else if (
+        trackingInfo.status === "lost" ||
+        trackingInfo.status === "returned"
+      ) {
+        recommendedOutcome = "refund_full";
+        confidence = "high";
+        reasoning.push(`Tracking shows ${trackingInfo.status} status`);
+      } else if (claim.sellerResponse?.proposedSolution === "refund_full") {
+        recommendedOutcome = "refund_full";
+        confidence = "high";
+        reasoning.push("Seller agrees to full refund");
+      } else {
+        recommendedOutcome = "needs_more_info";
+        confidence = "low";
+        reasoning.push("Need carrier confirmation of delivery status");
+        requiresManualReview = true;
+      }
+    }
+
+    // Defective Item logic
+    if (claim.type === "defective_item") {
+      if (evidenceQuality === "poor") {
+        recommendedOutcome = "needs_more_info";
+        confidence = "low";
+        reasoning.push(
+          "Insufficient evidence of defect - photos/video required",
+        );
+      } else if (
+        evidenceQuality === "excellent" &&
+        !fraudIndicators.buyerHistoryPoor
+      ) {
+        if (claim.sellerResponse?.proposedSolution === "replacement") {
+          recommendedOutcome = "replacement";
+          confidence = "high";
+          reasoning.push(
+            "Seller offers replacement, strong evidence of defect",
+          );
+        } else {
+          recommendedOutcome = "refund_full";
+          confidence = "high";
+          reasoning.push("Strong evidence of defect, buyer has good history");
+        }
+      } else {
+        recommendedOutcome = "refund_partial";
+        confidence = "medium";
+        reasoning.push("Evidence suggests defect, partial refund appropriate");
+        requiresManualReview = true;
+      }
+    }
+
+    // Not As Described logic
+    if (claim.type === "not_as_described") {
+      if (evidenceQuality === "poor") {
+        recommendedOutcome = "needs_more_info";
+        confidence = "low";
+        reasoning.push("Need photos comparing item to listing description");
+      } else if (
+        evidenceQuality === "good" ||
+        (evidenceQuality === "excellent" && sellerHistory.claimRate > 0.1)
+      ) {
+        recommendedOutcome = "refund_full";
+        confidence = "high";
+        reasoning.push("Evidence shows significant discrepancy from listing");
+        if (sellerHistory.claimRate > 0.1) {
+          reasoning.push(
+            `Seller has high claim rate (${(sellerHistory.claimRate * 100).toFixed(1)}%)`,
+          );
+        }
+      } else {
+        recommendedOutcome = "refund_partial";
+        confidence = "medium";
+        reasoning.push("Minor discrepancy from listing");
+        requiresManualReview = true;
+      }
+    }
+
+    // Counterfeit always requires manual review
+    if (claim.type === "counterfeit") {
+      requiresManualReview = true;
+      recommendedOutcome = "needs_more_info";
+      reasoning.push("Counterfeit claims require expert verification");
+      reasoning.push("Escalating to legal/compliance team");
+    }
+
+    // Consider seller response
+    if (claim.sellerResponse) {
+      reasoning.push(
+        `Seller proposed: ${claim.sellerResponse.proposedSolution}`,
+      );
+
+      if (
+        claim.sellerResponse.proposedSolution === "refund_full" &&
+        recommendedOutcome !== "reject"
+      ) {
+        recommendedOutcome = "refund_full";
+        confidence = "high";
+        reasoning.push("Seller agrees to full refund");
+      }
+
+      if (claim.sellerResponse.proposedSolution === "dispute") {
+        requiresManualReview = true;
+        reasoning.push("Seller disputes claim - manual review required");
+      }
+    }
+
+    // Buyer/seller history context
+    if (buyerHistory.claimRate > 0.2) {
+      reasoning.push(
+        `Buyer has high claim rate (${(buyerHistory.claimRate * 100).toFixed(1)}%)`,
+      );
+      confidence = "low";
+      requiresManualReview = true;
+    }
+
+    if (sellerHistory.rating >= 4.5 && sellerHistory.claimRate < 0.02) {
+      reasoning.push(
+        `Seller has excellent history (${sellerHistory.rating.toFixed(1)}★, ${(sellerHistory.claimRate * 100).toFixed(1)}% claim rate)`,
+      );
+    }
+
+    return {
+      claimId: claim.claimId,
+      recommendedOutcome,
+      confidence,
+      reasoning,
+      requiresManualReview,
+      fraudScore,
+      evidenceQuality,
+    };
+  }
+
+  /**
+   * Auto-resolve eligible claims
+   */
+  static async autoResolveClaims(orgId: string): Promise<number> {
+    if (!orgId) {
+      throw new Error("orgId is required for auto-resolve (STRICT v4.1 tenant isolation)");
+    }
+    // Dual-type candidates to support legacy string/ObjectId orgId storage
+    const orgCandidates: (string | MongoObjectId)[] = MongoObjectId.isValid(orgId)
+      ? [orgId, new MongoObjectId(orgId)]
+      : [orgId];
+    const orgScope: Filter<Claim> = {
+      $or: [
+        { orgId: { $in: orgCandidates as unknown as string[] } },
+        { org_id: { $in: orgCandidates as unknown as string[] } },
+      ],
+    };
+
+    // Get claims eligible for auto-resolution
+    // 🔐 LIMIT: Process in batches to prevent unbounded memory usage
+    const BATCH_LIMIT = 200;
+    const claimsCollection = await this.claimsCollection();
+    const eligibleClaims = await claimsCollection
+      .find({
+        ...orgScope,
+        status: "under_investigation",
+        isAutoResolvable: true,
+      })
+      .sort({ filedAt: 1 })
+      .limit(BATCH_LIMIT)
+      .toArray();
+
+    let resolvedCount = 0;
+
+    for (const claim of eligibleClaims) {
+      try {
+        const orgId =
+          (claim as { orgId?: string | MongoObjectId }).orgId?.toString?.() ??
+          (claim as { org_id?: string | MongoObjectId }).org_id?.toString?.() ??
+          "";
+        if (!orgId) continue;
+        const investigation = await this.investigateClaim(claim.claimId, orgId);
+
+        // Only auto-resolve if high confidence and no manual review required
+        if (
+          investigation.confidence === "high" &&
+          !investigation.requiresManualReview &&
+          investigation.fraudScore < 50 &&
+          investigation.recommendedOutcome !== "needs_more_info"
+        ) {
+          await ClaimService.makeDecision({
+            claimId: claim.claimId,
+            decidedBy: "system",
+            outcome: investigation.recommendedOutcome,
+            reason: `Auto-resolved: ${investigation.reasoning.join("; ")}`,
+            refundAmount:
+              investigation.recommendedOutcome === "refund_full"
+                ? claim.orderAmount
+                : investigation.recommendedOutcome === "refund_partial"
+                  ? claim.orderAmount * 0.5
+                  : undefined,
+            orgId,
+          });
+
+          resolvedCount++;
+        }
+      } catch (_error) {
+        const error =
+          _error instanceof Error ? _error : new Error(String(_error));
+        void error;
+        logger.error(`Failed to auto-resolve claim ${claim.claimId}:`, error);
+      }
+    }
+
+    return resolvedCount;
+  }
+
+  /**
+   * Get claims requiring manual review
+   */
+  static async getClaimsRequiringReview(orgId: string): Promise<
+    Array<Claim & { investigation: InvestigationResult }>
+  > {
+    if (!orgId) {
+      throw new Error("orgId is required to fetch claims for review (STRICT v4.1 tenant isolation)");
+    }
+    // Dual-type candidates to support legacy string/ObjectId orgId storage
+    const orgCandidates: (string | MongoObjectId)[] = MongoObjectId.isValid(orgId)
+      ? [orgId, new MongoObjectId(orgId)]
+      : [orgId];
+    const orgScope: Filter<Claim> = {
+      $or: [
+        { orgId: { $in: orgCandidates as unknown as string[] } },
+        { org_id: { $in: orgCandidates as unknown as string[] } },
+      ],
+    };
+    // 🔐 LIMIT: Cap results to prevent unbounded memory usage for large tenants
+    const REVIEW_LIMIT = 100;
+    const claimsCollection = await this.claimsCollection();
+    const claims = await claimsCollection
+      .find({
+        ...orgScope,
+        status: { $in: ["under_investigation", "escalated"] },
+      })
+      .sort({ priority: -1, filedAt: 1 })
+      .limit(REVIEW_LIMIT)
+      .toArray();
+
+    const claimsWithInvestigation = await Promise.all(
+      claims.map(async (claim) => {
+        const orgId =
+          (claim as { orgId?: string | MongoObjectId }).orgId?.toString?.() ??
+          (claim as { org_id?: string | MongoObjectId }).org_id?.toString?.() ??
+          "";
+        if (!orgId) return null;
+        const investigation = await this.investigateClaim(claim.claimId, orgId);
+        return { ...claim, investigation };
+      }),
+    );
+
+    const hydrated = claimsWithInvestigation.filter(Boolean) as Array<
+      Claim & { investigation: InvestigationResult }
+    >;
+
+    return hydrated.filter((c) => c.investigation.requiresManualReview);
+  }
+
+  /**
+   * Validate evidence upload
+   */
+  static validateEvidence(file: { size: number; type: string }): {
+    valid: boolean;
+    error?: string;
+  } {
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    const ALLOWED_TYPES = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "video/mp4",
+      "video/quicktime",
+      "application/pdf",
+    ];
+
+    if (file.size > MAX_FILE_SIZE) {
+      return { valid: false, error: "File size exceeds 10MB limit" };
+    }
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return {
+        valid: false,
+        error: "Invalid file type. Allowed: JPEG, PNG, WebP, MP4, MOV, PDF",
+      };
+    }
+
+    return { valid: true };
+  }
+}
+
+]]>
+</file>
+
+<file path="services/souq/claims/refund-processor.ts">
+<![CDATA[
+import { ObjectId as MongoObjectId, type Filter, type Document } from 'mongodb';
+import { getDatabase } from '@/lib/mongodb-unified';
+import { createRequire } from 'module';
+import { createRefund, queryRefundStatus } from '@/lib/paytabs';
+import { validatePayTabsConfig } from '@/config/paytabs.config';
+import { logger } from '@/lib/logger';
+import { ClaimService } from './claim-service';
+import type { Claim as ClaimModel } from './claim-service';
+import { buildSouqOrgFilter } from '@/services/souq/org-scope';
+
+// Vitest globals are available in test runtime; safely access via globalThis to avoid ReferenceError in production
+type ViTestGlobal = { importMock?: <T>(path: string) => Promise<T> } | undefined;
+const getViGlobal = (): ViTestGlobal => {
+  try {
+    // Access via globalThis to avoid ReferenceError in non-test environments
+    return (globalThis as unknown as Record<string, unknown>).vi as ViTestGlobal;
+  } catch {
+    return undefined;
+  }
+};
+
+// 🔐 STRICT v4.1: Use shared org filter helper for consistency
+const buildOrgScope = (orgId: string, options?: { allowOrgless?: boolean }): Filter<Document> => {
+  return buildSouqOrgFilter(orgId, { allowOrgless: options?.allowOrgless });
+};
+
+const toIdString = (value: unknown): string => {
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object' && 'toString' in value && typeof (value as { toString: () => string }).toString === 'function') {
+    return (value as { toString: () => string }).toString();
+  }
+  return String(value ?? '');
+};
+
+export interface RefundRequest {
+  claimId: string;
+  orderId: string;
+  buyerId: string;
+  sellerId: string;
+  orgId: string; // 🔐 Tenant context for notifications
+  amount: number;
+  reason: string;
+  originalPaymentMethod: string;
+  originalTransactionId?: string;
+}
+
+
+
+type SellerBalanceDocument = {
+  sellerId: string;
+  orgId: string; // 🔐 Tenant context for balance isolation
+  availableBalance: number;
+  transactions: Array<{
+    transactionId: string;
+    type: string;
+    amount: number;
+    reason: string;
+    createdAt: Date;
+  }>;
+  updatedAt?: Date;
+};
+
+export interface RefundResult {
+  refundId: string;
+  status: 'initiated' | 'processing' | 'completed' | 'failed';
+  amount: number;
+  transactionId?: string;
+  completedAt?: Date;
+  failureReason?: string;
+}
+
+export interface Refund {
+  refundId: string;
+  claimId: string;
+  orderId: string;
+  buyerId: string;
+  sellerId: string;
+  orgId: string; // 🔐 Tenant context for notifications
+  amount: number;
+  reason: string;
+  paymentMethod: string;
+  originalTransactionId?: string;
+  
+  status: 'initiated' | 'processing' | 'completed' | 'failed';
+  transactionId?: string;
+  processedAt?: Date;
+  completedAt?: Date;
+  failureReason?: string;
+  retryCount: number;
+  nextRetryAt?: Date;
+  statusCheckCount?: number;
+  nextStatusCheckAt?: Date;
+  
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+type QueueModule = typeof import('@/lib/queues/setup');
+let queueModuleOverride: QueueModule | null = null;
+let queueModuleCache: QueueModule | null = null;
+
+export const __setQueueModuleForTests = (mod: QueueModule | null) => {
+  queueModuleOverride = mod;
+};
+
+const getQueueModule = async (): Promise<QueueModule> => {
+  if (queueModuleOverride) {
+    return queueModuleOverride;
+  }
+  // In tests, always fetch fresh so vi.mock replacements are respected even if this module was loaded earlier.
+  if (process.env.NODE_ENV === 'test') {
+    try {
+      const req = createRequire(import.meta.url);
+      const resolved = req.resolve('@/lib/queues/setup');
+      if (req.cache?.[resolved]) {
+        delete req.cache[resolved];
+      }
+    } catch {
+      // ignore cache clearing failures in test env
+    }
+    let resolvedModule = (await import('@/lib/queues/setup')) as QueueModule;
+    const viGlobal = getViGlobal();
+    if (
+      viGlobal?.importMock &&
+      (!('addJob' in resolvedModule) ||
+        !(resolvedModule as { addJob?: { mock?: unknown } }).addJob?.mock)
+    ) {
+      try {
+        const mockedModule = await viGlobal.importMock<QueueModule>('@/lib/queues/setup');
+        if (mockedModule) {
+          resolvedModule = mockedModule;
+        }
+      } catch {
+        // ignore and fall back to resolvedModule
+      }
+    }
+    if (
+      typeof resolvedModule === 'object' &&
+      resolvedModule !== null &&
+      'addJob' in resolvedModule &&
+      (resolvedModule as { addJob?: { mock?: unknown } }).addJob?.mock
+    ) {
+      queueModuleOverride = resolvedModule;
+    }
+    return resolvedModule;
+  }
+  if (!queueModuleCache) {
+    queueModuleCache = await import('@/lib/queues/setup');
+  }
+  return queueModuleCache;
+};
+
+export class RefundProcessor {
+  private static COLLECTION = 'souq_refunds';
+  private static MAX_RETRIES = 3;
+  private static MAX_STATUS_POLLS = 5;
+  // 🔐 Production-appropriate delay: 30 seconds base delay for payment gateway retries
+  // PayTabs and similar gateways need time to process and may rate-limit rapid retries
+  private static RETRY_DELAY_MS = 30_000;
+  // 🔐 Maximum retry delay cap (5 minutes) to prevent excessive waits
+  private static MAX_RETRY_DELAY_MS = 300_000;
+  private static indexesReady: Promise<void> | null = null;
+  private static async collection() {
+    const db = await getDatabase();
+    const collection = db.collection<Refund>(this.COLLECTION);
+    if (!this.indexesReady) {
+      this.indexesReady = (async () => {
+        if (typeof collection.createIndex !== 'function') return;
+        try {
+          await Promise.all([
+            // Primary indexes for orgId (current standard)
+            collection.createIndex({ orgId: 1, claimId: 1 }, { unique: true, name: 'refund_org_claim_unique', background: true }),
+            collection.createIndex({ orgId: 1, refundId: 1 }, { name: 'refund_org_refundId', background: true }),
+            collection.createIndex({ orgId: 1, status: 1, createdAt: -1 }, { name: 'refund_org_status_createdAt', background: true }),
+            collection.createIndex({ orgId: 1, transactionId: 1 }, { name: 'refund_org_txn', background: true }),
+            // 🔐 STRICT v4.1: Legacy org_id indexes to support dual-field org scoping
+            // These ensure queries using $or: [{ orgId }, { org_id }] remain performant
+            collection.createIndex({ org_id: 1, claimId: 1 }, { unique: true, name: 'refund_org_id_claim_unique', sparse: true, background: true }),
+            collection.createIndex({ org_id: 1, refundId: 1 }, { name: 'refund_org_id_refundId', sparse: true, background: true }),
+            collection.createIndex({ org_id: 1, status: 1, createdAt: -1 }, { name: 'refund_org_id_status_createdAt', sparse: true, background: true }),
+            collection.createIndex({ org_id: 1, transactionId: 1 }, { name: 'refund_org_id_txn', sparse: true, background: true }),
+          ]);
+        } catch (error) {
+          logger.error('[Refunds] Failed to ensure refund indexes', { error });
+          // Allow retry on next access instead of staying stuck with missing indexes
+          this.indexesReady = null;
+          throw error;
+        }
+      })();
+    }
+    await this.indexesReady;
+    return collection;
+  }
+
+  /**
+   * Process refund for approved claim
+   * 🔐 Service-level safeguards:
+   *   1. Validates claim exists, is approved, and belongs to orgId
+   *   2. Validates refund amount against order total (prevent over-refund)
+   *   3. Idempotency guard to prevent duplicate refunds
+   */
+  static async processRefund(request: RefundRequest): Promise<RefundResult> {
+    if (!request.orgId) {
+      throw new Error("orgId is required to process claim refund");
+    }
+
+    const db = await getDatabase();
+    const collection = await this.collection();
+
+    // 🔐 BLOCKER FIX: Validate claim exists, is approved, and belongs to this org
+    const claim = await ClaimService.getClaim(request.claimId, request.orgId);
+    if (!claim) {
+      throw new Error(`Claim not found or does not belong to org: ${request.claimId}`);
+    }
+    const eligibleStatuses: ClaimModel['status'][] = [
+      'approved',
+      'resolved_refund_full',
+      'resolved_refund_partial',
+      'resolved_replacement',
+    ];
+    if (!eligibleStatuses.includes(claim.status)) {
+      throw new Error(`Claim must be approved/resolved for refund. Current status: ${claim.status}`);
+    }
+    // Validate claim/order/buyer/seller match
+    const claimOrderId = toIdString(claim.orderId);
+    const requestOrderId = toIdString(request.orderId);
+    if (claimOrderId !== requestOrderId) {
+      throw new Error('Claim orderId does not match refund request orderId');
+    }
+    if (toIdString(claim.buyerId) !== toIdString(request.buyerId)) {
+      throw new Error('Claim buyer does not match refund request buyer');
+    }
+    if (toIdString(claim.sellerId) !== toIdString(request.sellerId)) {
+      throw new Error('Claim seller does not match refund request seller');
+    }
+
+    // 🔐 BLOCKER FIX: Idempotency guard - check for existing active/completed refund
+    const existingRefund = await collection.findOne({
+      claimId: request.claimId,
+      ...buildOrgScope(request.orgId),
+      status: { $in: ['initiated', 'processing', 'completed', 'failed'] },
+    });
+    if (existingRefund) {
+      if (existingRefund.amount !== request.amount) {
+        throw new Error('Refund already exists for claim with a different amount');
+      }
+      if (existingRefund.status === 'completed') {
+        logger.info('[Refunds] Refund already completed for claim', { claimId: request.claimId, refundId: existingRefund.refundId });
+        return {
+          refundId: existingRefund.refundId,
+          status: 'completed',
+          amount: existingRefund.amount,
+          transactionId: existingRefund.transactionId,
+          completedAt: existingRefund.completedAt,
+        };
+      }
+      if (existingRefund.status === 'failed') {
+        if ((existingRefund.retryCount ?? 0) < this.MAX_RETRIES) {
+          await this.scheduleRetry(existingRefund);
+          return {
+            refundId: existingRefund.refundId,
+            status: 'processing',
+            amount: existingRefund.amount,
+            failureReason: existingRefund.failureReason,
+          };
+        }
+        return {
+          refundId: existingRefund.refundId,
+          status: 'failed',
+          amount: existingRefund.amount,
+          failureReason: existingRefund.failureReason,
+        };
+      }
+      logger.info('[Refunds] Refund already in progress for claim', { claimId: request.claimId, refundId: existingRefund.refundId });
+      return {
+        refundId: existingRefund.refundId,
+        status: existingRefund.status as 'initiated' | 'processing',
+        amount: existingRefund.amount,
+      };
+    }
+    
+    // 🔐 SAFETY: Validate refund amount against order total (prevent over-refund)
+    const orderIdFilters: Array<Record<string, unknown>> = [{ orderId: request.orderId }];
+    if (MongoObjectId.isValid(request.orderId)) {
+      orderIdFilters.push({ _id: new MongoObjectId(request.orderId) });
+    }
+    // 🔐 CRITICAL: Use $and to combine org scope with order filters - prevents $or key collision
+    const order = await db.collection('souq_orders').findOne({
+      $and: [
+        buildOrgScope(request.orgId),
+        { $or: orderIdFilters },
+      ],
+    }) as { pricing?: { total?: number }; payment?: { transactionId?: string; method?: string; amount?: number } } | null;
+
+    if (!order) {
+      throw new Error(`Order not found for refund: ${request.orderId}`);
+    }
+
+    const orderTotal = order.pricing?.total ?? order.payment?.amount ?? null;
+    if (request.amount <= 0) {
+      throw new Error("Refund amount must be greater than 0");
+    }
+    if (orderTotal !== null && request.amount > orderTotal) {
+      throw new Error(`Refund amount (${request.amount}) exceeds order total (${orderTotal})`);
+    }
+    // 🔐 Additional guard: Refund cannot exceed claim's requested amount
+    const claimRequestedAmount = claim.requestedAmount ?? claim.orderAmount ?? orderTotal;
+    if (claimRequestedAmount !== null && request.amount > claimRequestedAmount) {
+      throw new Error(`Refund amount (${request.amount}) exceeds claim requested amount (${claimRequestedAmount})`);
+    }
+
+    // 🔐 Validate payment details exist for gateway call
+    if (!order.payment?.transactionId) {
+      throw new Error("Order payment transactionId missing - cannot process refund");
+    }
+    if (!order.payment?.method) {
+      throw new Error("Order payment method missing - cannot process refund");
+    }
+    if (request.originalPaymentMethod && request.originalPaymentMethod !== order.payment.method) {
+      throw new Error("Payment method mismatch between request and order");
+    }
+    if (request.originalTransactionId && request.originalTransactionId !== order.payment.transactionId) {
+      throw new Error("Payment transactionId mismatch between request and order");
+    }
+
+    // Create refund record
+    const refundId = `REF-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    
+    const refund: Refund = {
+      refundId,
+      claimId: request.claimId,
+      orderId: request.orderId,
+      buyerId: request.buyerId,
+      sellerId: request.sellerId,
+      orgId: request.orgId, // 🔐 Tenant context for notifications
+      amount: request.amount,
+      reason: request.reason,
+      paymentMethod: order.payment.method,
+      originalTransactionId: order.payment.transactionId,
+      status: 'initiated',
+      retryCount: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      statusCheckCount: 0,
+    };
+
+    // 🔐 Atomic insert with idempotency key (claimId + orgId unique constraint)
+    // Use findOneAndUpdate with upsert to prevent race conditions
+    const insertResult = await collection.findOneAndUpdate(
+      {
+        claimId: request.claimId,
+        ...buildOrgScope(request.orgId),
+      },
+      { $setOnInsert: refund },
+      { upsert: true, returnDocument: 'after', includeResultMetadata: true }
+    );
+
+    const upsertedRefund = insertResult.value;
+    const wasInserted = Boolean(insertResult.lastErrorObject?.upserted);
+
+    // If we matched an existing refund (race condition), return its current state to avoid double-processing
+    if (!wasInserted && upsertedRefund) {
+      if (upsertedRefund.status === 'completed') {
+        return {
+          refundId: upsertedRefund.refundId,
+          status: 'completed',
+          amount: upsertedRefund.amount,
+          transactionId: upsertedRefund.transactionId,
+          completedAt: upsertedRefund.completedAt,
+        };
+      }
+      if (upsertedRefund.status === 'failed') {
+        if ((upsertedRefund.retryCount ?? 0) < this.MAX_RETRIES) {
+          await this.scheduleRetry(upsertedRefund);
+          return {
+            refundId: upsertedRefund.refundId,
+            status: 'processing',
+            amount: upsertedRefund.amount,
+            failureReason: upsertedRefund.failureReason,
+          };
+        }
+        return {
+          refundId: upsertedRefund.refundId,
+          status: 'failed',
+          amount: upsertedRefund.amount,
+          failureReason: upsertedRefund.failureReason,
+        };
+      }
+      return {
+        refundId: upsertedRefund.refundId,
+        status: upsertedRefund.status as 'initiated' | 'processing',
+        amount: upsertedRefund.amount,
+        transactionId: upsertedRefund.transactionId,
+        failureReason: upsertedRefund.failureReason,
+      };
+    }
+
+    const refundDoc = upsertedRefund ?? refund;
+
+    // Attempt to process refund
+    try {
+      const result = await this.executeRefund(refundDoc);
+      
+      // Update refund status
+      await this.updateRefundStatus(refundDoc.refundId, request.orgId, result.status, {
+        transactionId: result.transactionId,
+        completedAt: result.completedAt,
+        failureReason: result.failureReason,
+      });
+
+      // 🔐 Only update order and notify when truly completed
+      if (result.status === 'completed') {
+        await this.updateOrderStatus({
+          orderId: request.orderId,
+          orgId: request.orgId,
+          status: 'refunded',
+        });
+        // Only notify on final completion
+        await this.notifyRefundStatus(refundDoc, result);
+      } else if (result.status === 'processing') {
+        // For pending/processing, send a "processing" notification and schedule a retry to check status
+        await this.notifyRefundStatus(refundDoc, { ...result, status: 'processing' });
+        // Use scheduleRetry to check status later
+        await this.scheduleRetry(refundDoc);
+      }
+
+      return result;
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      await this.updateRefundStatus(refundDoc.refundId, request.orgId, 'failed', {
+        failureReason: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      throw error;
+    }
+  }
+
+  /**
+   * Execute refund with payment gateway (PayTabs)
+   */
+  private static async executeRefund(refund: Refund): Promise<RefundResult> {
+    // Atomically check and lock to prevent concurrent processing
+    // This guards against race conditions from queue + in-process timer or multiple workers
+    const collection = await this.collection();
+      const result = await collection.updateOne(
+      { 
+        refundId: refund.refundId, 
+        ...buildOrgScope(refund.orgId),
+        status: { $in: ['initiated', 'processing'] },
+        // Add a processing lock flag that's only set during active execution
+        processingLock: { $exists: false }
+      },
+      { 
+        $set: { 
+          status: 'processing',
+          processingLock: new Date(),
+          updatedAt: new Date() 
+        } 
+      }
+    );
+    
+    if (result.matchedCount === 0) {
+      logger.info('[Refunds] Skipping executeRefund; already being processed', {
+        refundId: refund.refundId,
+      });
+      return {
+        refundId: refund.refundId,
+        status: 'processing',
+        amount: refund.amount,
+      };
+    }
+
+    try {
+      // Call PayTabs refund API
+      const gatewayResult = await this.callPaymentGateway(refund);
+
+      // Clear processing lock on success/pending
+      await collection.updateOne(
+        { refundId: refund.refundId, ...buildOrgScope(refund.orgId) },
+        { $unset: { processingLock: '' } }
+      );
+
+      // 🔐 MAJOR FIX: Handle PayTabs pending correctly - don't treat as completed
+      if (gatewayResult.status === 'PENDING') {
+        // Schedule a status check instead of re-calling the refund endpoint
+        await this.scheduleStatusCheck({ ...refund, transactionId: gatewayResult.transactionId });
+        return {
+          refundId: refund.refundId,
+          status: 'processing', // Keep as processing, not completed
+          amount: refund.amount,
+          transactionId: gatewayResult.transactionId,
+        };
+      }
+
+      // Only return completed when gateway confirms approved
+      return {
+        refundId: refund.refundId,
+        status: 'completed',
+        amount: refund.amount,
+        transactionId: gatewayResult.transactionId,
+        completedAt: new Date(),
+      };
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      // Retry logic
+      if (refund.retryCount < this.MAX_RETRIES) {
+        // Clear lock before scheduling retry
+        await collection.updateOne(
+          { refundId: refund.refundId, ...buildOrgScope(refund.orgId) },
+          { $unset: { processingLock: '' } }
+        );
+        
+        await this.scheduleRetry(refund);
+        
+        return {
+          refundId: refund.refundId,
+          status: 'processing',
+          amount: refund.amount,
+        };
+      }
+
+      // Clear lock on final failure
+      await collection.updateOne(
+        { refundId: refund.refundId, ...buildOrgScope(refund.orgId) },
+        { $unset: { processingLock: '' } }
+      );
+
+      return {
+        refundId: refund.refundId,
+        status: 'failed',
+        amount: refund.amount,
+        failureReason: error instanceof Error ? error.message : 'Failed after max retries',
+      };
+    }
+  }
+
+  /**
+   * Call payment gateway API - Using PayTabs for Saudi market
+   */
+  private static async callPaymentGateway(refund: Refund): Promise<{
+    transactionId: string;
+    status: 'SUCCEEDED' | 'PENDING';
+  }> {
+    if (!refund.originalTransactionId) {
+      throw new Error('Missing original transaction reference for refund');
+    }
+
+    // 🔐 Use shared PayTabs config validation (ensures both profileId and serverKey)
+    validatePayTabsConfig();
+
+    // Use PayTabs refund API
+    const paytabsRefund = await createRefund({
+      originalTransactionId: refund.originalTransactionId,
+      refundId: refund.refundId,
+      amount: refund.amount, // PayTabs uses decimal SAR, not halalas
+      currency: 'SAR',
+      reason: refund.reason,
+      metadata: {
+        claimId: refund.claimId,
+        orderId: refund.orderId,
+        buyerId: refund.buyerId,
+        sellerId: refund.sellerId,
+      },
+    });
+
+    if (!paytabsRefund.success) {
+      throw new Error(paytabsRefund.error || 'PayTabs refund failed');
+    }
+
+    // Map PayTabs status codes to internal status
+    // A = Approved, P = Pending, D = Declined
+    const status = paytabsRefund.status === 'A' ? 'SUCCEEDED' : 
+                   paytabsRefund.status === 'P' ? 'PENDING' : 'FAILED';
+
+    if (status === 'FAILED') {
+      throw new Error(`PayTabs refund declined: ${paytabsRefund.message}`);
+    }
+
+    return {
+      transactionId: paytabsRefund.refundId!,
+      status: status,
+    };
+  }
+
+  /**
+   * Schedule retry for failed refund
+   * Uses exponential backoff with cap to prevent excessive delays
+   */
+  private static async scheduleRetry(refund: Refund): Promise<void> {
+    const collection = await this.collection();
+    const nextRetryCount = refund.retryCount + 1;
+    // 🔐 Exponential backoff: 30s, 60s, 120s, 240s (capped at 5 min)
+    const delayMs = Math.min(
+      this.RETRY_DELAY_MS * Math.pow(2, nextRetryCount - 1),
+      this.MAX_RETRY_DELAY_MS
+    );
+    const nextRetryAt = new Date(Date.now() + delayMs);
+
+    await collection.updateOne(
+      { refundId: refund.refundId, ...buildOrgScope(refund.orgId) },
+      {
+        $inc: { retryCount: 1 },
+        $set: {
+          status: 'processing',
+          nextRetryAt,
+          updatedAt: new Date(),
+        },
+      }
+    );
+
+    try {
+      const queue = await getQueueModule();
+      await queue.addJob(
+        queue.QUEUE_NAMES.REFUNDS,
+        'souq-claim-refund-retry',
+        { refundId: refund.refundId, orgId: refund.orgId },
+        {
+          delay: delayMs,
+          jobId: `refund-retry-${refund.refundId}-${nextRetryCount}`,
+          priority: 1,
+        }
+      );
+      logger.info('[Refunds] Retry scheduled via queue', {
+        refundId: refund.refundId,
+        attempt: nextRetryCount,
+        delayMs,
+      });
+      return;
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      logger.warn('[Refunds] Queue unavailable, using in-process retry fallback', {
+        refundId: refund.refundId,
+        attempt: nextRetryCount,
+        delayMs,
+        error: error.message,
+      });
+      // Mark refund as failed to avoid silent hang; surface operational signal
+      await this.updateRefundStatus(refund.refundId, refund.orgId, 'failed', {
+        failureReason: 'Queue unavailable for retry scheduling',
+      });
+      await this.notifyRefundStatus(refund, {
+        refundId: refund.refundId,
+        status: 'failed',
+        amount: refund.amount,
+        failureReason: 'Queue unavailable for retry scheduling',
+      });
+    }
+  }
+
+  /**
+   * Schedule a status check for refunds that are pending at the gateway
+   */
+  private static async scheduleStatusCheck(refund: Refund): Promise<void> {
+    const currentCount = refund.statusCheckCount ?? 0;
+    if (currentCount >= this.MAX_STATUS_POLLS) {
+      const failureReason = 'Refund remained pending after multiple status checks';
+      await this.updateRefundStatus(refund.refundId, refund.orgId, 'failed', {
+        failureReason,
+      });
+      // 🔐 MAJOR FIX: Notify parties about the failed refund (no silent failures)
+      await this.notifyRefundStatus(refund, {
+        refundId: refund.refundId,
+        status: 'failed',
+        amount: refund.amount,
+        failureReason,
+      });
+      return;
+    }
+
+    const nextCount = currentCount + 1;
+    // 🔐 Exponential backoff: 30s, 60s, 120s, 240s (capped at 5 min)
+    const delayMs = Math.min(
+      this.RETRY_DELAY_MS * Math.pow(2, nextCount - 1),
+      this.MAX_RETRY_DELAY_MS
+    );
+    const nextStatusCheckAt = new Date(Date.now() + delayMs);
+
+    const collection = await this.collection();
+    await collection.updateOne(
+      { refundId: refund.refundId, ...buildOrgScope(refund.orgId) },
+      {
+        $inc: { statusCheckCount: 1 },
+        $set: { status: 'processing', nextStatusCheckAt, updatedAt: new Date() },
+      }
+    );
+
+    try {
+      const queue = await getQueueModule();
+      await queue.addJob(
+        queue.QUEUE_NAMES.REFUNDS,
+        'souq-claim-refund-status-check',
+        { refundId: refund.refundId, orgId: refund.orgId },
+        {
+          delay: delayMs,
+          jobId: `refund-status-${refund.refundId}-${nextCount}`,
+          priority: 1,
+        }
+      );
+      logger.info('[Refunds] Status check scheduled via queue', {
+        refundId: refund.refundId,
+        attempt: nextCount,
+        delayMs,
+      });
+      return;
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      logger.warn('[Refunds] Queue unavailable, using in-process status check fallback', {
+        refundId: refund.refundId,
+        attempt: nextCount,
+        delayMs,
+        error: error.message,
+      });
+      await this.updateRefundStatus(refund.refundId, refund.orgId, 'failed', {
+        failureReason: 'Queue unavailable for status check scheduling',
+      });
+      await this.notifyRefundStatus(refund, {
+        refundId: refund.refundId,
+        status: 'failed',
+        amount: refund.amount,
+        failureReason: 'Queue unavailable for status check scheduling',
+      });
+    }
+  }
+
+  static async processRetryJob(refundId: string, orgId: string): Promise<void> {
+    const latestCollection = await this.collection();
+    const updatedRefund = await latestCollection.findOne({ refundId, ...buildOrgScope(orgId) });
+
+    if (updatedRefund && updatedRefund.status === 'processing') {
+      // If we already have a transactionId, perform a status check instead of re-calling PayTabs refund API
+      if (updatedRefund.transactionId) {
+        await this.processStatusCheckJob(refundId, orgId);
+        return;
+      }
+
+      // Otherwise attempt refund execution (initial call likely failed)
+      const result = await this.executeRefund(updatedRefund);
+
+      await this.updateRefundStatus(refundId, orgId, result.status, {
+        transactionId: result.transactionId,
+        completedAt: result.status === 'completed' ? new Date() : undefined,
+        failureReason: result.failureReason,
+      });
+
+      if (result.status === 'completed') {
+        await this.updateOrderStatus({
+          orderId: updatedRefund.orderId,
+          orgId,
+          status: 'refunded',
+        });
+      }
+
+      await this.notifyRefundStatus(updatedRefund, result);
+      if (result.status === 'processing') {
+        await this.scheduleStatusCheck(updatedRefund);
+      }
+
+      logger.info('[Refunds] Retry job processed and persisted', {
+        refundId,
+        status: result.status,
+        transactionId: result.transactionId,
+      });
+    } else {
+      logger.info('[Refunds] Skipping retry; refund no longer processing', {
+        refundId,
+        status: updatedRefund?.status,
+      });
+    }
+  }
+
+  /**
+   * Process a status check job for pending refunds
+   */
+  static async processStatusCheckJob(refundId: string, orgId: string): Promise<void> {
+    const collection = await this.collection();
+    const refund = await collection.findOne({ refundId, ...buildOrgScope(orgId) });
+
+    if (!refund) {
+      logger.warn('[Refunds] Status check skipped - refund not found', { refundId, orgId });
+      return;
+    }
+
+    if (refund.status !== 'processing') {
+      logger.info('[Refunds] Status check skipped - refund not processing', {
+        refundId,
+        status: refund.status,
+      });
+      return;
+    }
+
+    if (!refund.transactionId) {
+      await this.updateRefundStatus(refundId, orgId, 'failed', {
+        failureReason: 'Missing transactionId for PayTabs status check',
+      });
+      return;
+    }
+
+    try {
+      const statusData = await queryRefundStatus(refund.transactionId);
+      const rawStatus =
+        (statusData as { payment_result?: { response_status?: string } }).payment_result
+          ?.response_status ?? (statusData as { status?: string }).status ?? 'P';
+      const normalizedStatus = typeof rawStatus === 'string' ? rawStatus.toUpperCase() : 'P';
+      const message =
+        (statusData as { payment_result?: { response_message?: string } }).payment_result
+          ?.response_message ?? (statusData as { message?: string }).message;
+
+      if (normalizedStatus === 'A') {
+        const completedAt = new Date();
+        await this.updateRefundStatus(refundId, orgId, 'completed', {
+          transactionId: refund.transactionId,
+          completedAt,
+        });
+        await this.updateOrderStatus({
+          orderId: refund.orderId,
+          orgId: refund.orgId,
+          status: 'refunded',
+        });
+        await this.notifyRefundStatus(refund, {
+          refundId,
+          status: 'completed',
+          amount: refund.amount,
+          transactionId: refund.transactionId,
+          completedAt,
+        });
+        return;
+      }
+
+      if (normalizedStatus === 'P') {
+        await this.scheduleStatusCheck(refund);
+        return;
+      }
+
+      await this.updateRefundStatus(refundId, orgId, 'failed', {
+        transactionId: refund.transactionId,
+        failureReason: message || `Refund declined with status ${normalizedStatus}`,
+      });
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      logger.error('[Refunds] Status check error', { refundId, error: error.message });
+      // Retry status check with backoff
+      await this.scheduleStatusCheck(refund);
+    }
+  }
+
+  /**
+   * Update refund status
+   */
+  private static async updateRefundStatus(
+    refundId: string,
+    orgId: string,
+    status: Refund['status'],
+    data?: {
+      transactionId?: string;
+      completedAt?: Date;
+      failureReason?: string;
+    }
+  ): Promise<void> {
+    const update: Record<string, unknown> = {
+      status,
+      updatedAt: new Date(),
+    };
+
+    if (data?.transactionId) update.transactionId = data.transactionId;
+    if (data?.completedAt) update.completedAt = data.completedAt;
+    if (data?.failureReason) update.failureReason = data.failureReason;
+    if (status === 'processing') update.processedAt = new Date();
+
+    const collection = await this.collection();
+    await collection.updateOne({ refundId, ...buildOrgScope(orgId) }, { $set: update });
+  }
+
+  /**
+   * Update order status after refund
+   */
+  private static async updateOrderStatus(params: {
+    orderId: string;
+    orgId: string;
+    status: string;
+  }): Promise<void> {
+    const { orderId, orgId, status } = params;
+    const db = await getDatabase();
+    const orderIdFilters: Array<Record<string, unknown>> = [{ orderId }];
+    if (MongoObjectId.isValid(orderId)) {
+      orderIdFilters.push({ _id: new MongoObjectId(orderId) });
+    }
+    // Use $and to combine org filter (which has $or) with orderId filter (which also uses $or).
+    // This prevents the second $or from overwriting the first one.
+    const orgFilter = buildOrgScope(orgId);
+    await db.collection('souq_orders').updateOne(
+      { $and: [orgFilter, { $or: orderIdFilters }] },
+      {
+        $set: {
+          status,
+          refundedAt: new Date(),
+          updatedAt: new Date(),
+          'payment.status': 'refunded',
+        },
+      }
+    );
+  }
+
+  /**
+   * Notify parties about refund status
+   */
+  public static notifyRefundStatus = async (
+    buyerId: string | Refund,
+    sellerOrResult: string | RefundResult,
+    resultMaybe?: RefundResult,
+    orgIdMaybe?: string,
+  ): Promise<void> => {
+    const enqueue = async (
+      payload: Parameters<QueueModule['addJob']>[2],
+      queueModule?: QueueModule
+    ) => {
+      const queue = queueModule ?? (await getQueueModule());
+      if (process.env.DEBUG_REFUND_TEST === '1') {
+        // eslint-disable-next-line no-console
+        console.log('[Refunds][TestDebug] enqueue using queue module', {
+          hasMock:
+            typeof queue === 'object' &&
+            queue !== null &&
+            'addJob' in queue &&
+            typeof (queue as { addJob?: unknown }).addJob === 'function' &&
+            Boolean((queue as { addJob?: { mock?: unknown } }).addJob?.mock),
+          queueKeys: typeof queue === 'object' && queue !== null ? Object.keys(queue) : [],
+        });
+      }
+      const queueName = queue.QUEUE_NAMES.NOTIFICATIONS;
+      const jobName = 'souq-claim-refund-status';
+      await queue.addJob(queueName, jobName, payload);
+
+      // In full-suite Vitest runs, this module may have been loaded before vi.mock hooks.
+      // Invoke the module resolved in the current test context to ensure spies register the call.
+      if (process.env.NODE_ENV === 'test') {
+        try {
+          const mockedQueue = (await import('@/lib/queues/setup')) as QueueModule;
+          const mockedQueueName =
+            (mockedQueue.QUEUE_NAMES && mockedQueue.QUEUE_NAMES.NOTIFICATIONS) ?? queueName;
+          const mockedAddJob = (mockedQueue as Record<string, unknown>).addJob as ((q: string, j: string, p: unknown) => Promise<void>) | undefined;
+          if ((mockedAddJob as unknown as { mock?: boolean })?.mock || mockedQueue.addJob !== queue.addJob) {
+            await mockedQueue.addJob(mockedQueueName, jobName, payload);
+          }
+          const viTestGlobal = getViGlobal();
+          if (viTestGlobal?.importMock) {
+            const viMockedQueue = await viTestGlobal.importMock<QueueModule>('@/lib/queues/setup');
+            if (viMockedQueue?.addJob) {
+              const viQueueName =
+                (viMockedQueue.QUEUE_NAMES && viMockedQueue.QUEUE_NAMES.NOTIFICATIONS) ??
+                mockedQueueName;
+              await viMockedQueue.addJob(viQueueName, jobName, payload);
+            }
+          }
+        } catch {
+          // ignore and rely on primary enqueue
+        }
+      }
+    };
+
+    // Test/legacy signature: (buyerId, sellerId, result, orgId)
+    if (typeof buyerId === 'string' && typeof sellerOrResult === 'string') {
+      const result = resultMaybe as RefundResult;
+      const orgId = orgIdMaybe?.trim?.();
+      if (!orgId) {
+        throw new Error('orgId is required for refund notifications (legacy signature)');
+      }
+      await enqueue({
+        buyerId,
+        sellerId: sellerOrResult,
+        orgId,
+        refundId: result.refundId,
+        status: result.status,
+        amount: result.amount,
+        failureReason: result.failureReason,
+        transactionId: result.transactionId,
+        completedAt: result.completedAt,
+      });
+      return;
+    }
+
+    // Primary runtime signature: (refund, result)
+    const refundDoc = buyerId as Refund;
+    const result = sellerOrResult as RefundResult;
+
+    await enqueue({
+      buyerId: refundDoc.buyerId,
+      sellerId: refundDoc.sellerId,
+      orgId: refundDoc.orgId, // 🔐 Tenant context for branding/routing
+      refundId: result.refundId,
+      status: result.status,
+      amount: result.amount,
+      failureReason: result.failureReason,
+      transactionId: result.transactionId,
+      completedAt: result.completedAt,
+    });
+  };
+
+  /**
+   * Get refund by ID
+   */
+  static async getRefund(refundId: string, orgId: string): Promise<Refund | null> {
+    const collection = await this.collection();
+    return collection.findOne({ refundId, ...buildOrgScope(orgId) });
+  }
+
+  /**
+   * List refunds with filters
+   * 🔐 MAJOR FIX: Caps limit to 200 to prevent unbounded queries
+   */
+  static async listRefunds(filters: {
+    orgId: string;
+    buyerId?: string;
+    sellerId?: string;
+    claimId?: string;
+    status?: Refund['status'];
+    limit?: number;
+    offset?: number;
+  }): Promise<{ refunds: Refund[]; total: number }> {
+    if (!filters.orgId) {
+      throw new Error('orgId is required to list refunds');
+    }
+    const collection = await this.collection();
+
+    const query: Record<string, unknown> = { ...buildOrgScope(filters.orgId) };
+    if (filters.buyerId) query.buyerId = filters.buyerId;
+    if (filters.sellerId) query.sellerId = filters.sellerId;
+    if (filters.claimId) query.claimId = filters.claimId;
+    if (filters.status) query.status = filters.status;
+
+    // 🔐 Cap limit to 200 to prevent unbounded queries
+    const MAX_LIMIT = 200;
+    const limit = Math.min(filters.limit ?? 20, MAX_LIMIT);
+    const offset = filters.offset || 0;
+
+    const [refunds, total] = await Promise.all([
+      collection
+        .find(query)
+        .sort({ createdAt: -1 })
+        .skip(offset)
+        .limit(limit)
+        .toArray(),
+      collection.countDocuments(query),
+    ]);
+
+    return {
+      refunds,
+      total,
+    };
+  }
+
+  /**
+   * Retry failed refunds
+   * 🔐 MAJOR FIX: Uses bounded cursor to prevent OOM on large datasets
+   */
+  static async retryFailedRefunds(orgId: string, batchLimit = 100): Promise<number> {
+    if (!orgId) {
+      throw new Error('orgId is required to retry failed refunds');
+    }
+    const collection = await this.collection();
+    // 🔐 Use cursor with limit to prevent loading all failed refunds into memory
+    const cursor = collection
+      .find({
+        status: 'failed',
+        retryCount: { $lt: this.MAX_RETRIES },
+        ...buildOrgScope(orgId),
+      })
+      .sort({ updatedAt: -1 })
+      .limit(batchLimit);
+
+    let retriedCount = 0;
+
+    for await (const refund of cursor) {
+      try {
+        const result = await this.executeRefund(refund);
+
+        await this.updateRefundStatus(refund.refundId, refund.orgId, result.status, {
+          transactionId: result.transactionId,
+          completedAt: result.completedAt ?? (result.status === 'completed' ? new Date() : undefined),
+          failureReason: result.failureReason,
+        });
+
+        if (result.status === 'completed') {
+          await this.updateOrderStatus({
+            orderId: refund.orderId,
+            orgId: refund.orgId,
+            status: 'refunded',
+          });
+          await this.notifyRefundStatus(refund, result);
+        } else if (result.status === 'processing') {
+          await this.notifyRefundStatus(refund, { ...result, status: 'processing' });
+        }
+
+        retriedCount++;
+      } catch (_error) {
+        const error = _error instanceof Error ? _error : new Error(String(_error));
+        void error;
+        logger.error('Failed to retry refund', error, { refundId: refund.refundId });
+      }
+    }
+
+    return retriedCount;
+  }
+
+  /**
+   * Get refund statistics
+   * 🔐 MAJOR FIX: Uses MongoDB aggregation pipeline instead of unbounded in-memory scan
+   * Recommended index: { orgId: 1, createdAt: -1, sellerId: 1, status: 1 }
+   */
+  static async getRefundStats(filters: {
+    orgId: string;
+    sellerId?: string;
+    startDate?: Date;
+    endDate?: Date;
+  }): Promise<{
+    totalRefunds: number;
+    totalAmount: number;
+    byStatus: Record<Refund['status'], number>;
+    avgProcessingTime: number;
+    successRate: number;
+  }> {
+    if (!filters.orgId) {
+      throw new Error('orgId is required to fetch refund stats');
+    }
+    const collection = await this.collection();
+
+    // Build match stage with org filter
+    const matchStage: Record<string, unknown> = { ...buildOrgScope(filters.orgId) };
+    if (filters.sellerId) matchStage.sellerId = filters.sellerId;
+    if (filters.startDate || filters.endDate) {
+      matchStage.createdAt = {} as { $gte?: Date; $lte?: Date };
+      if (filters.startDate) (matchStage.createdAt as { $gte?: Date }).$gte = filters.startDate;
+      if (filters.endDate) (matchStage.createdAt as { $lte?: Date }).$lte = filters.endDate;
+    }
+
+    // 🔐 Use aggregation pipeline for efficient server-side computation
+    const pipeline = [
+      { $match: matchStage },
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 },
+          totalAmount: { $sum: '$amount' },
+          // Calculate processing time only for completed refunds
+          processingTimeSum: {
+            $sum: {
+              $cond: [
+                { $and: [{ $eq: ['$status', 'completed'] }, { $ne: ['$completedAt', null] }] },
+                { $subtract: ['$completedAt', '$createdAt'] },
+                0,
+              ],
+            },
+          },
+          completedCount: {
+            $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] },
+          },
+          processedCount: {
+            $sum: { $cond: [{ $in: ['$status', ['completed', 'failed']] }, 1, 0] },
+          },
+        },
+      },
+    ];
+
+    const results = await collection.aggregate(pipeline).toArray();
+
+    // Aggregate results from all status groups
+    const byStatus: Record<string, number> = {};
+    let totalRefunds = 0;
+    let totalAmount = 0;
+    let totalProcessingTime = 0;
+    let processedCount = 0;
+    let successCount = 0;
+
+    for (const group of results) {
+      const status = group._id as string;
+      byStatus[status] = group.count;
+      totalRefunds += group.count;
+      totalAmount += group.totalAmount;
+      totalProcessingTime += group.processingTimeSum;
+      processedCount += group.processedCount;
+      successCount += group.completedCount;
+    }
+
+    return {
+      totalRefunds,
+      totalAmount,
+      byStatus: byStatus as Record<Refund['status'], number>,
+      avgProcessingTime: successCount > 0 ? totalProcessingTime / successCount : 0,
+      successRate: processedCount > 0 ? successCount / processedCount : 0,
+    };
+  }
+
+  /**
+   * Calculate seller deduction from refund
+   * @param claimId - The claim ID
+   * @param orgId - 🔐 Required for tenant isolation (STRICT v4.1)
+   * @param refundAmount - The refund amount
+   */
+  static async calculateSellerDeduction(
+    claimId: string,
+    orgId: string,
+    refundAmount: number
+  ): Promise<{
+    refundAmount: number;
+    sellerDeduction: number;
+    platformFeeRefund: number;
+    netSellerDeduction: number;
+  }> {
+    if (!orgId) {
+      throw new Error('orgId is required for calculateSellerDeduction (STRICT v4.1 tenant isolation)');
+    }
+    const claim = await ClaimService.getClaim(claimId, orgId);
+    if (!claim) throw new Error('Claim not found');
+
+    // Platform takes back its commission (assume 10%)
+    const platformFeeRate = 0.10;
+    const platformFeeRefund = refundAmount * platformFeeRate;
+
+    // Seller pays the full refund amount
+    const sellerDeduction = refundAmount;
+
+    // Net seller loss (after getting back items if returned)
+    const netSellerDeduction = sellerDeduction - platformFeeRefund;
+
+    return {
+      refundAmount,
+      sellerDeduction,
+      platformFeeRefund,
+      netSellerDeduction,
+    };
+  }
+
+  /**
+   * Process seller payout deduction
+   * @param sellerId - The seller ID
+   * @param orgId - 🔐 Required tenant context for balance isolation
+   * @param amount - Amount to deduct (must be positive)
+   * @param reason - Reason for deduction
+   */
+  static async deductFromSellerBalance(
+    sellerId: string,
+    orgId: string,
+    amount: number,
+    reason: string
+  ): Promise<void> {
+    // 🔐 Require orgId for tenant isolation
+    if (!orgId) {
+      throw new Error("orgId is required for seller balance deduction to ensure tenant isolation");
+    }
+    
+    // 🔐 MAJOR FIX: Validate positive amount to prevent balance inflation
+    if (amount <= 0) {
+      throw new Error("Deduction amount must be positive to prevent balance inflation");
+    }
+    
+    const balances = (await getDatabase()).collection<SellerBalanceDocument>('souq_seller_balances');
+    const newTransaction: SellerBalanceDocument['transactions'][number] = {
+      transactionId: `TXN-${Date.now()}`,
+      type: 'deduction',
+      amount: -amount,
+      reason,
+      createdAt: new Date(),
+    };
+
+    // 🔐 RACE-SAFE FIX: Use atomic updateOne with upsert to prevent read-modify-write races.
+    // $inc treats missing field as 0, and $push creates the transactions array on insert.
+    // $setOnInsert only sets identity fields (sellerId, orgId) which don't conflict with $inc/$push/$set.
+    // Note: Concurrent upserts may still trigger duplicate-key errors; caller should retry if needed.
+    await balances.updateOne(
+      { sellerId, ...buildOrgScope(orgId) },
+      {
+        $inc: { availableBalance: -amount },
+        $push: { transactions: newTransaction },
+        $setOnInsert: { sellerId, orgId },
+        $set: { updatedAt: new Date() },
+      },
+      { upsert: true },
+    );
+  }
+}
+
+
+]]>
+</file>
+
+</batch_content>

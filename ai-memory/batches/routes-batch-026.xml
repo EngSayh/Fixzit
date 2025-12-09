@@ -1,0 +1,3210 @@
+
+You are the "Fixzit Memory Builder" for category: "routes".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "routes",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="tests/api/souq/search.route.test.ts">
+<![CDATA[
+import { describe, expect, it, beforeEach, vi } from "vitest";
+import { NextRequest } from "next/server";
+import { Types } from "mongoose";
+
+const searchMock = vi.fn();
+const smartRateLimitMock = vi.fn();
+const getSessionUserMock = vi.fn();
+const resolveMarketplaceContextMock = vi.fn();
+
+vi.mock("@/lib/meilisearch", () => ({
+  searchClient: {
+    index: () => ({ search: searchMock }),
+  },
+  INDEXES: { PRODUCTS: "products" },
+}));
+vi.mock("@/lib/meilisearch-resilience", () => ({
+  withMeiliResilience: async (_k: string, _op: string, cb: () => Promise<unknown>) => cb(),
+}));
+vi.mock("@/server/security/rateLimit", () => ({
+  smartRateLimit: (...args: unknown[]) => smartRateLimitMock(...args),
+}));
+vi.mock("@/server/utils/errorResponses", () => ({
+  rateLimitError: () => new Response("rate limited", { status: 429 }),
+}));
+vi.mock("@/server/security/headers", () => ({
+  getClientIP: () => "127.0.0.1",
+}));
+vi.mock("@/server/middleware/withAuthRbac", () => ({
+  getSessionUser: (...args: unknown[]) => getSessionUserMock(...args),
+}));
+vi.mock("@/lib/marketplace/context", () => ({
+  resolveMarketplaceContext: (...args: unknown[]) => resolveMarketplaceContextMock(...args),
+  isUnauthorizedMarketplaceContext: (ctx: unknown) =>
+    (ctx as { tenantKey?: string; orgId?: { toString?: () => string } })?.tenantKey ===
+      "__unauthorized__" ||
+    (ctx as { orgId?: { toString?: () => string } })?.orgId?.toString?.() ===
+      "000000000000000000000000",
+}));
+
+import { GET } from "@/app/api/souq/search/route";
+
+describe("Souq search route", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.MARKETPLACE_PUBLIC_ORGS = "";
+    process.env.MARKETPLACE_DEFAULT_TENANT = "";
+    smartRateLimitMock.mockReturnValue({ allowed: true, remaining: 5 });
+    getSessionUserMock.mockResolvedValue(null);
+    resolveMarketplaceContextMock.mockResolvedValue({
+      tenantKey: "__unauthorized__",
+      orgId: new Types.ObjectId("000000000000000000000000"),
+      correlationId: "corr-1",
+    });
+    searchMock.mockResolvedValue({
+      hits: [],
+      estimatedTotalHits: 0,
+      facetDistribution: {},
+      processingTimeMs: 1,
+    });
+  });
+
+  it("returns 403 when unauthenticated and not allowlisted", async () => {
+    const req = new NextRequest("http://localhost/api/souq/search?q=test");
+    const res = await GET(req);
+    expect(res.status).toBe(403);
+    expect(searchMock).not.toHaveBeenCalled();
+  });
+
+  it("allows allowlisted public org and scopes filters", async () => {
+    const orgId = new Types.ObjectId("507f191e810c19729de860ea");
+    process.env.MARKETPLACE_PUBLIC_ORGS = orgId.toString();
+    resolveMarketplaceContextMock.mockResolvedValue({
+      tenantKey: orgId.toString(),
+      orgId,
+      correlationId: "corr-2",
+    });
+
+    const req = new NextRequest(
+      "http://localhost/api/souq/search?q=test&category=foo&badges=a,b",
+    );
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const opts = searchMock.mock.calls.at(-1)?.[1] as { filter?: string[] };
+    // VITEST path adds isActive + orgId + org_id + category (badges not added to Meilisearch filter in test path)
+    expect(opts?.filter).toEqual(
+      expect.arrayContaining([
+        `isActive = true`,
+        `orgId = "${orgId.toString()}"`,
+        `org_id = "${orgId.toString()}"`,
+        `category = "foo"`,
+      ]),
+    );
+  });
+
+  it("escapes filter values to prevent injection", async () => {
+    const orgId = new Types.ObjectId("507f191e810c19729de860ea");
+    process.env.MARKETPLACE_PUBLIC_ORGS = orgId.toString();
+    resolveMarketplaceContextMock.mockResolvedValue({
+      tenantKey: orgId.toString(),
+      orgId,
+      correlationId: "corr-3",
+    });
+
+    const inj = 'x" OR rating > 0';
+    const req = new NextRequest(
+      `http://localhost/api/souq/search?q=test&category=${encodeURIComponent(inj)}`,
+    );
+    await GET(req);
+    const opts = searchMock.mock.calls.at(-1)?.[1] as { filter?: string[] };
+    const catFilter = opts?.filter?.find((f) => f.startsWith("category"));
+    expect(catFilter).toBe(`category = "x\\" OR rating > 0"`);
+  });
+
+  it("returns 429 when rate limited", async () => {
+    smartRateLimitMock.mockReturnValue({ allowed: false, remaining: 0 });
+    const req = new NextRequest("http://localhost/api/souq/search?q=test");
+    const res = await GET(req);
+    expect(res.status).toBe(429);
+  });
+
+  it("applies isActive and orgId scoping defaults", async () => {
+    const orgId = new Types.ObjectId("507f191e810c19729de860ea");
+    process.env.MARKETPLACE_PUBLIC_ORGS = orgId.toString();
+    resolveMarketplaceContextMock.mockResolvedValue({
+      tenantKey: orgId.toString(),
+      orgId,
+      correlationId: "corr-4",
+    });
+    const req = new NextRequest("http://localhost/api/souq/search?q=test&inStock=true");
+    await GET(req);
+    const opts = searchMock.mock.calls.at(-1)?.[1] as { filter?: string[] };
+    // The VITEST path adds isActive + orgId/org_id filters (inStock is tracked in response but not in filter array)
+    expect(opts?.filter).toEqual(
+      expect.arrayContaining([
+        `isActive = true`,
+        `orgId = "${orgId.toString()}"`,
+        `org_id = "${orgId.toString()}"`,
+      ]),
+    );
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/api/souq/tsconfig.json">
+<![CDATA[
+{
+  "extends": "../../tsconfig.base.json",
+  "include": [
+    "./**/*.ts",
+    "./**/*.tsx",
+    "../../../types/vitest.d.ts",
+    "../../../types/**/*.d.ts"
+  ]
+}
+
+]]>
+</file>
+
+<file path="tests/integration/app/api/search/search.integration.test.ts">
+<![CDATA[
+import { beforeAll, afterAll, describe, expect, it } from "vitest";
+import { MongoMemoryServer } from "mongodb-memory-server";
+import { MongoClient, ObjectId, type Db } from "mongodb";
+import { NextRequest } from "next/server";
+import { UserRole } from "@/types/user";
+import {
+  WORK_ORDERS_ENTITY_LEGACY,
+  WORK_ORDERS_ENTITY,
+} from "@/config/topbar-modules";
+
+let db: Db;
+let client: MongoClient;
+let mongo: MongoMemoryServer;
+let mockSession: any;
+
+vi.mock("@/lib/mongodb-unified", () => ({
+  connectToDatabase: async () => ({ connection: { db } }),
+}));
+
+vi.mock("@/server/middleware/withAuthRbac", () => {
+  class UnauthorizedError extends Error {}
+  return {
+    UnauthorizedError,
+    getSessionUser: async () => mockSession,
+  };
+});
+
+import { GET } from "@/app/api/search/route";
+import { COLLECTIONS } from "@/lib/db/collections";
+
+const orgId = new ObjectId();
+const buildRequest = (query: string) =>
+  new NextRequest(new URL(`http://localhost/api/search?${query}`));
+
+describe("GET /api/search (integration, in-memory Mongo)", () => {
+  const tenantUserId = new ObjectId();
+  const techUserId = new ObjectId();
+  const vendorId = new ObjectId();
+  const ownerPropertyId = new ObjectId();
+
+  beforeAll(async () => {
+    mongo = await MongoMemoryServer.create();
+    client = await MongoClient.connect(mongo.getUri());
+    db = client.db("testdb");
+
+    await db.collection(COLLECTIONS.WORK_ORDERS).createIndex({ title: "text" });
+    await db.collection(COLLECTIONS.ORDERS).createIndex({ title: "text" });
+    await db.collection(COLLECTIONS.PROPERTIES).createIndex({ title: "text" });
+
+    await db.collection(COLLECTIONS.WORK_ORDERS).insertMany([
+      {
+        title: "Alpha tenant WO",
+        orgId,
+        requester: { userId: tenantUserId },
+        assignment: { assignedTo: { userId: techUserId, vendorId } },
+        location: { propertyId: ownerPropertyId },
+      },
+      {
+        title: "Other tenant WO",
+        orgId,
+        requester: { userId: new ObjectId() },
+        assignment: { assignedTo: { userId: new ObjectId() } },
+        location: { propertyId: new ObjectId() },
+      },
+    ]);
+
+    await db.collection(COLLECTIONS.ORDERS).insertOne({
+      title: "Vendor order",
+      orgId,
+      vendorId,
+    });
+
+    await db.collection(COLLECTIONS.PROPERTIES).insertOne({
+      title: "Owner property",
+      orgId,
+      _id: ownerPropertyId,
+    });
+  });
+
+  afterAll(async () => {
+    await client?.close();
+    await mongo?.stop();
+  });
+
+  it("returns only tenant-owned work orders", async () => {
+    mockSession = {
+      id: tenantUserId.toHexString(),
+      role: UserRole.TENANT,
+      orgId: orgId.toHexString(),
+      tenantId: new ObjectId().toHexString(),
+      vendorId: "",
+    };
+
+    const res = await GET(
+      buildRequest(`app=fm&q=Alpha&entities=${WORK_ORDERS_ENTITY}`),
+    );
+    const json = await res.json();
+
+    expect(json.results).toHaveLength(1);
+    expect(json.results[0].title).toBe("Alpha tenant WO");
+  });
+
+  it("returns only technician-assigned work orders", async () => {
+    mockSession = {
+      id: techUserId.toHexString(),
+      role: UserRole.TECHNICIAN,
+      orgId: orgId.toHexString(),
+      tenantId: "",
+      vendorId: "",
+    };
+
+    const res = await GET(
+      buildRequest(`app=fm&q=Alpha&entities=${WORK_ORDERS_ENTITY}`),
+    );
+    const json = await res.json();
+
+    expect(json.results).toHaveLength(1);
+    expect(json.results[0].title).toBe("Alpha tenant WO");
+  });
+
+  it("returns only vendor orders", async () => {
+    mockSession = {
+      id: new ObjectId().toHexString(),
+      role: UserRole.VENDOR,
+      orgId: orgId.toHexString(),
+      tenantId: "",
+      vendorId: vendorId.toHexString(),
+    };
+
+    const res = await GET(buildRequest("app=souq&q=Vendor&entities=orders"));
+    const json = await res.json();
+
+    expect(json.results).toHaveLength(1);
+    expect(json.results[0].title).toBe("Vendor order");
+  });
+
+  it("returns only owner properties", async () => {
+    mockSession = {
+      id: new ObjectId().toHexString(),
+      role: UserRole.OWNER,
+      orgId: orgId.toHexString(),
+      tenantId: "",
+      vendorId: "",
+      assignedProperties: [ownerPropertyId.toHexString()],
+    };
+
+    const res = await GET(buildRequest("app=fm&q=Owner&entities=properties"));
+    const json = await res.json();
+
+    expect(json.results).toHaveLength(1);
+    expect(json.results[0].title).toBe("Owner property");
+  });
+
+  it("returns empty when tenant lacks unit assignments for properties search", async () => {
+    mockSession = {
+      id: new ObjectId().toHexString(),
+      role: UserRole.TENANT,
+      orgId: orgId.toHexString(),
+      tenantId: new ObjectId().toHexString(),
+      units: [],
+    };
+
+    const res = await GET(buildRequest("app=fm&q=Owner&entities=properties"));
+    const json = await res.json();
+
+    expect(json.results).toHaveLength(0);
+  });
+
+  it("accepts legacy work_orders alias for work orders search", async () => {
+    mockSession = {
+      id: new ObjectId().toHexString(),
+      role: UserRole.MANAGER,
+      orgId: orgId.toHexString(),
+      tenantId: "",
+      vendorId: "",
+    };
+
+    const res = await GET(
+      buildRequest(`app=fm&q=Alpha&entities=${WORK_ORDERS_ENTITY_LEGACY}`),
+    );
+    const json = await res.json();
+
+    expect(json.results).toHaveLength(1);
+    expect(json.results[0].title).toBe("Alpha tenant WO");
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/server/api/counters.contract.test.ts">
+<![CDATA[
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+// Mock auth to return an org-scoped session
+vi.mock("@/auth", () => ({
+  auth: vi.fn().mockResolvedValue({ user: { orgId: "org-123" } }),
+}));
+
+// Mock getAllCounters to return shaped data
+vi.mock("@/lib/queries", () => ({
+  getAllCounters: vi.fn().mockResolvedValue({
+    approvals: { pending: 2, overdue: 1 },
+    rfqs: { open: 5 },
+    hrApplications: { pending: 3 },
+  }),
+}));
+
+// Ensure offline flag is false
+vi.mock("@/lib/utils/env", async (orig) => {
+  const actual = await orig();
+  return {
+    ...actual,
+    isTruthy: () => false,
+  };
+});
+
+import { GET } from "@/app/api/counters/route";
+
+describe("/api/counters contract", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.resetModules();
+  });
+
+  it("returns approvals, rfqs, and hrApplications counters", async () => {
+    const resp = await GET();
+    const data = await resp.json();
+
+    expect(data).toMatchObject({
+      approvals: { pending: 2, overdue: 1 },
+      rfqs: { open: 5 },
+      hrApplications: { pending: 3 },
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/server/hr/leave-types.route.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { NextRequest } from "next/server";
+
+const authMock = vi.hoisted(() => vi.fn());
+const connectMock = vi.hoisted(() => vi.fn());
+const listMock = vi.hoisted(() => vi.fn());
+const createMock = vi.hoisted(() => vi.fn());
+
+vi.mock("@/auth", () => ({
+  auth: authMock,
+}));
+
+vi.mock("@/lib/mongodb-unified", () => ({
+  connectToDatabase: connectMock,
+}));
+
+vi.mock("@/server/services/hr/leave-type.service", () => ({
+  LeaveTypeService: {
+    list: listMock,
+    create: createMock,
+  },
+}));
+
+import { GET, POST } from "@/app/api/hr/leave-types/route";
+
+describe("app/api/hr/leave-types route", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns 401 when no authenticated session", async () => {
+    authMock.mockResolvedValue(null);
+    const request = new NextRequest("http://localhost/api/hr/leave-types");
+    const response = await GET(request);
+    expect(response.status).toBe(401);
+  });
+
+  it("returns 403 when user lacks HR role", async () => {
+    authMock.mockResolvedValue({ user: { orgId: "org-1", role: "TENANT" } });
+    const request = new NextRequest("http://localhost/api/hr/leave-types");
+    const response = await GET(request);
+    expect(response.status).toBe(403);
+  });
+
+  it("lists leave types for authenticated org with HR role", async () => {
+    authMock.mockResolvedValue({ user: { orgId: "org-1", role: "HR_OFFICER" } });
+    listMock.mockResolvedValue([
+      { _id: "lt1", code: "ANNUAL", name: "Annual Leave" },
+    ]);
+
+    const request = new NextRequest(
+      "http://localhost/api/hr/leave-types?search=annual&limit=5",
+    );
+    const response = await GET(request);
+    const payload = await response.json();
+
+    expect(listMock).toHaveBeenCalledWith("org-1", "annual", { limit: 5 });
+    expect(payload.leaveTypes).toHaveLength(1);
+    expect(response.status).toBe(200);
+  });
+
+  it("validates POST body", async () => {
+    authMock.mockResolvedValue({ user: { orgId: "org-1", role: "HR" } });
+    const request = new NextRequest("http://localhost/api/hr/leave-types", {
+      method: "POST",
+      body: JSON.stringify({ name: "Test" }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const response = await POST(request);
+    expect(response.status).toBe(400);
+    expect(createMock).not.toHaveBeenCalled();
+  });
+
+  it("creates leave type when payload is valid", async () => {
+    authMock.mockResolvedValue({ user: { orgId: "org-1", role: "HR" } });
+    createMock.mockResolvedValue({
+      _id: "lt2",
+      code: "EMERGENCY",
+      name: "Emergency Leave",
+    });
+    const request = new NextRequest("http://localhost/api/hr/leave-types", {
+      method: "POST",
+      body: JSON.stringify({
+        code: "EMERGENCY",
+        name: "Emergency Leave",
+        isPaid: false,
+      }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const response = await POST(request);
+    expect(response.status).toBe(201);
+    expect(createMock).toHaveBeenCalledWith("org-1", {
+      code: "EMERGENCY",
+      name: "Emergency Leave",
+      description: undefined,
+      isPaid: false,
+      annualEntitlementDays: undefined,
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/api/admin/billing.benchmark.route.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+vi.mock("next/server", () => {
+  return {
+    NextRequest: class {},
+    NextResponse: {
+      json: (body: unknown, init?: ResponseInit) => {
+        const status = init?.status ?? 200;
+        return {
+          status,
+          body,
+          async json() {
+            return body;
+          },
+        };
+      },
+    },
+  };
+});
+
+vi.mock("@/lib/authz", () => ({
+  requireSuperAdmin: vi.fn(async () => ({ id: "user-1", tenantId: "org-1" })),
+}));
+
+const lean = vi.fn().mockResolvedValue([{ vendor: "v1" }]);
+const find = vi.fn().mockReturnValue({ lean });
+vi.mock("@/server/models/Benchmark", () => ({
+  __esModule: true,
+  default: { find },
+}));
+
+vi.mock("@/lib/mongodb-unified", () => ({
+  connectToDatabase: vi.fn().mockResolvedValue(undefined),
+}));
+
+const smartRateLimit = vi.fn().mockResolvedValue({ allowed: true });
+const buildOrgAwareRateLimitKey = vi.fn(() => "rl-key");
+vi.mock("@/server/security/rateLimit", () => ({
+  smartRateLimit,
+  buildOrgAwareRateLimitKey,
+}));
+
+describe("GET /api/admin/billing/benchmark", () => {
+  let GET: typeof import("@/app/api/admin/billing/benchmark/route").GET;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    ({ GET } = await import("@/app/api/admin/billing/benchmark/route"));
+  });
+
+  it("scopes benchmarks to tenant and uses org-aware rate limit key", async () => {
+    const req = {
+      url: "https://example.com/api/admin/billing/benchmark",
+      headers: new Map(),
+    } as unknown as Request;
+
+    const res = await GET(req as any);
+    expect(res.status).toBe(200);
+    expect(await (res as any).json()).toEqual([{ vendor: "v1" }]);
+
+    expect(buildOrgAwareRateLimitKey).toHaveBeenCalledWith(
+      expect.anything(),
+      "org-1",
+      "user-1",
+    );
+    expect(smartRateLimit).toHaveBeenCalledWith("rl-key", 100, 60_000);
+    expect(find).toHaveBeenCalledWith({ tenantId: "org-1" });
+    expect(lean).toHaveBeenCalled();
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/api/admin/discounts.route.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+vi.mock("next/server", () => ({
+  NextRequest: class {},
+  NextResponse: {
+    json: (body: unknown, init?: ResponseInit) => {
+      const status = init?.status ?? 200;
+      return { status, body, async json() { return body; } };
+    },
+  },
+}));
+
+vi.mock("@/lib/logger", () => ({
+  logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
+}));
+
+vi.mock("@/lib/mongodb-unified", () => ({
+  connectToDatabase: vi.fn().mockResolvedValue(undefined),
+}));
+
+const smartRateLimit = vi.fn().mockResolvedValue({ allowed: true });
+const buildOrgAwareRateLimitKey = vi.fn(() => "rl-key");
+vi.mock("@/server/security/rateLimit", () => ({
+  smartRateLimit,
+  buildOrgAwareRateLimitKey,
+}));
+
+vi.mock("@/lib/auth", () => ({
+  getUserFromToken: vi.fn(async () => ({
+    id: "admin-1",
+    role: "SUPER_ADMIN",
+    orgId: "org-1",
+  })),
+}));
+
+const findOne = vi.fn().mockReturnValue({ lean: vi.fn().mockResolvedValue(null) });
+const findOneAndUpdate = vi.fn().mockResolvedValue({
+  key: "ANNUAL",
+  percentage: 10,
+  orgId: "org-1",
+});
+vi.mock("@/server/models/DiscountRule", () => ({
+  __esModule: true,
+  default: { findOne, findOneAndUpdate },
+}));
+
+describe("admin/discounts", () => {
+  let GET: typeof import("@/app/api/admin/discounts/route").GET;
+  let PUT: typeof import("@/app/api/admin/discounts/route").PUT;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    ({ GET, PUT } = await import("@/app/api/admin/discounts/route"));
+  });
+
+  it("requires orgId and scopes queries by orgId on GET", async () => {
+    const req = {
+      url: "https://example.com/api/admin/discounts",
+      headers: new Map([["authorization", "Bearer token"]]),
+    } as unknown as Request;
+
+    const res = await GET(req as any);
+
+    expect(res.status).toBe(200);
+    expect(findOne).toHaveBeenCalledWith({ key: "ANNUAL", orgId: "org-1" });
+    expect(buildOrgAwareRateLimitKey).toHaveBeenCalledWith(
+      expect.anything(),
+      "org-1",
+      "admin-1",
+    );
+  });
+
+  it("returns 400 when orgId is missing", async () => {
+    const { getUserFromToken } = await import("@/lib/auth");
+    vi.mocked(getUserFromToken).mockResolvedValueOnce({ id: "admin-1", role: "SUPER_ADMIN" } as any);
+
+    const req = {
+      url: "https://example.com/api/admin/discounts",
+      headers: new Map([["authorization", "Bearer token"]]),
+    } as unknown as Request;
+
+    const res = await GET(req as any);
+    expect(res.status).toBe(400);
+  });
+
+  it("upserts with org-scoped filter on PUT", async () => {
+    const req = {
+      url: "https://example.com/api/admin/discounts",
+      headers: new Map([["authorization", "Bearer token"]]),
+      json: async () => ({ value: 12 }),
+    } as unknown as Request;
+
+    const res = await PUT(req as any);
+
+    expect(res.status).toBe(200);
+    expect(findOneAndUpdate).toHaveBeenCalledWith(
+      { key: "ANNUAL", orgId: "org-1" },
+      expect.objectContaining({ percentage: 12, orgId: "org-1" }),
+      { upsert: true, new: true },
+    );
+    expect(buildOrgAwareRateLimitKey).toHaveBeenCalledWith(
+      expect.anything(),
+      "org-1",
+      "admin-1",
+    );
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/api/admin/notifications.history.route.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { ObjectId } from "mongodb";
+
+vi.mock("next/server", () => {
+  return {
+    NextRequest: class {},
+    NextResponse: {
+      json: (body: unknown, init?: ResponseInit) => ({
+        status: init?.status ?? 200,
+        body,
+      }),
+    },
+  };
+});
+
+vi.mock("@/auth", () => ({
+  auth: vi.fn(async () => ({
+    user: {
+      id: "admin-1",
+      email: "admin@example.com",
+      role: "SUPER_ADMIN",
+      orgId: "507f1f77bcf86cd799439011",
+    },
+  })),
+}));
+
+const toArray = vi.fn().mockResolvedValue([{ _id: "n1" }]);
+const skip = vi.fn().mockReturnValue({ toArray });
+const limit = vi.fn().mockReturnValue({ skip });
+const sort = vi.fn().mockReturnValue({ limit });
+const find = vi.fn().mockReturnValue({ sort });
+const countDocuments = vi.fn().mockResolvedValue(1);
+const collection = vi.fn().mockReturnValue({ find, countDocuments });
+vi.mock("@/lib/mongodb-unified", () => ({
+  getDatabase: vi.fn().mockResolvedValue({
+    collection,
+  }),
+}));
+
+const smartRateLimit = vi.fn().mockResolvedValue({ allowed: true });
+const buildOrgAwareRateLimitKey = vi.fn(() => "rl-key");
+vi.mock("@/server/security/rateLimit", () => ({
+  smartRateLimit,
+  buildOrgAwareRateLimitKey,
+}));
+
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+describe("GET /api/admin/notifications/history", () => {
+  let GET: typeof import("@/app/api/admin/notifications/history/route").GET;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    ({ GET } = await import("@/app/api/admin/notifications/history/route"));
+  });
+
+  it("uses org-aware rate limiting and org-scoped queries", async () => {
+    const url =
+      "https://example.com/api/admin/notifications/history?limit=5&skip=0";
+    const req = {
+      url,
+      nextUrl: new URL(url),
+      headers: new Map(),
+    } as unknown as Request;
+
+    const res = await GET(req as any);
+
+    expect(res.status).toBe(200);
+    expect((res as any).body.success).toBe(true);
+    expect((res as any).body.data).toEqual([{ _id: "n1" }]);
+
+    const expectedOrg = new ObjectId("507f1f77bcf86cd799439011");
+    expect(buildOrgAwareRateLimitKey).toHaveBeenCalledWith(
+      expect.anything(),
+      "507f1f77bcf86cd799439011",
+      "admin-1",
+    );
+    expect(smartRateLimit).toHaveBeenCalledWith("rl-key", 100, 60_000);
+    expect(find).toHaveBeenCalledWith({ orgId: expectedOrg });
+    expect(countDocuments).toHaveBeenCalledWith({ orgId: expectedOrg });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/api/admin/notifications.send.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { NextRequest } from "next/server";
+import { ObjectId } from "mongodb";
+
+vi.mock("@/auth", () => ({
+  auth: vi.fn().mockResolvedValue({
+    user: { id: "u1", email: "a@test.com", orgId: "507f1f77bcf86cd799439011", role: "SUPER_ADMIN" },
+  }),
+}));
+vi.mock("@/lib/logger", () => ({
+  logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
+}));
+vi.mock("@/lib/mongodb-unified", () => ({
+  getDatabase: vi.fn(),
+}));
+vi.mock("@/lib/email", () => ({
+  sendEmail: vi.fn().mockResolvedValue({ success: true }),
+}));
+vi.mock("@/lib/sms", () => ({
+  sendSMS: vi.fn().mockResolvedValue({ success: true }),
+}));
+vi.mock("@/lib/communication-logger", () => ({
+  logCommunication: vi.fn().mockResolvedValue({ success: true }),
+}));
+
+import { POST } from "@/app/api/admin/notifications/send/route";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import * as mongo from "@/lib/mongodb-unified";
+
+function makeRequest(body: unknown) {
+  return new NextRequest("http://localhost/api/admin/notifications/send", {
+    method: "POST",
+    body: JSON.stringify(body),
+    headers: { "content-type": "application/json" },
+  });
+}
+
+describe("admin/notifications/send route", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  vi.mocked(auth).mockResolvedValue({
+    user: { id: "u1", email: "a@test.com", orgId: ORG_ID, role: "SUPER_ADMIN" },
+  });
+});
+
+  it("returns 404 when no recipients found", async () => {
+    const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
+    const find = vi.fn().mockReturnValue({
+      toArray: vi.fn().mockResolvedValue([]), // no recipients
+    });
+    const collection = vi.fn().mockReturnValue({ find, insertOne });
+    vi.mocked(mongo).getDatabase.mockResolvedValue({ collection } as any);
+
+    const body = {
+      recipients: { type: "users", ids: [] },
+      channels: ["email"],
+      subject: "s",
+      message: "m",
+      priority: "normal",
+    };
+    const res = await POST(makeRequest(body));
+    expect(res.status).toBe(404);
+  });
+
+  it("scopes user fetches to orgId", async () => {
+    const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
+    const find = vi.fn().mockReturnValue({
+      toArray: vi.fn().mockResolvedValue([{ _id: new ObjectId(), email: "u@test.com", name: "U" }]),
+    });
+    const collection = vi.fn().mockReturnValue({ find, insertOne });
+    vi.mocked(mongo).getDatabase.mockResolvedValue({ collection } as any);
+
+    const body = {
+      recipients: { type: "users", ids: [] },
+      channels: ["email"],
+      subject: "s",
+      message: "m",
+      priority: "normal",
+    };
+    const res = await POST(makeRequest(body));
+    expect(res.status).toBe(200);
+    expect(find).toHaveBeenCalledWith({ orgId: new ObjectId(ORG_ID) });
+  });
+
+  it("scopes tenant fetches to orgId", async () => {
+    const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
+    const find = vi.fn().mockReturnValue({
+      toArray: vi.fn().mockResolvedValue([{ _id: new ObjectId(), name: "T", contactEmail: "t@test.com" }]),
+    });
+    const collection = vi.fn().mockReturnValue({ find, insertOne });
+    vi.mocked(mongo).getDatabase.mockResolvedValue({ collection } as any);
+
+    const body = {
+      recipients: { type: "tenants", ids: [] },
+      channels: ["email"],
+      subject: "s",
+      message: "m",
+      priority: "normal",
+    };
+    const res = await POST(makeRequest(body));
+    expect(res.status).toBe(200);
+    expect(find).toHaveBeenCalledWith({ orgId: new ObjectId(ORG_ID) });
+  });
+});
+const ORG_ID = "507f1f77bcf86cd799439011";
+
+]]>
+</file>
+
+<file path="tests/unit/api/admin/price-tiers.route.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { NextRequest } from "next/server";
+
+vi.mock("@/lib/logger", () => ({
+  logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
+}));
+vi.mock("@/lib/mongodb-unified", () => ({
+  connectToDatabase: vi.fn(),
+}));
+vi.mock("@/lib/auth", () => ({
+  getUserFromToken: vi.fn(),
+}));
+vi.mock("@/server/security/rateLimit", () => ({
+  smartRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
+  buildOrgAwareRateLimitKey: vi.fn(() => "rl-key"),
+}));
+vi.mock("@/server/models/Module", () => ({
+  __esModule: true,
+  default: { findOne: vi.fn() },
+}));
+vi.mock("@/server/models/PriceTier", () => ({
+  __esModule: true,
+  default: {
+    find: vi.fn().mockReturnThis(),
+    populate: vi.fn().mockReturnThis(),
+    lean: vi.fn().mockResolvedValue([]),
+    findOneAndUpdate: vi.fn(),
+  },
+}));
+
+import { GET, POST } from "@/app/api/admin/price-tiers/route";
+import { getUserFromToken } from "@/lib/auth";
+import Module from "@/server/models/Module";
+import PriceTier from "@/server/models/PriceTier";
+
+function makeRequest(method: "GET" | "POST", body?: any, headers?: Record<string, string>) {
+  return new NextRequest("http://localhost/api/admin/price-tiers", {
+    method,
+    body: body ? JSON.stringify(body) : undefined,
+    headers: {
+      authorization: "Bearer token",
+      "content-type": "application/json",
+      ...headers,
+    },
+  });
+}
+
+describe("admin/price-tiers route", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(getUserFromToken).mockResolvedValue({
+      id: "u1",
+      email: "a@test.com",
+      role: "SUPER_ADMIN",
+      orgId: "org1",
+    } as any);
+  });
+
+  it("GET scopes by orgId when present", async () => {
+    const res = await GET(makeRequest("GET"));
+    expect(res.status).toBe(200);
+    expect(PriceTier.find).toHaveBeenCalledWith({ orgId: "org1" });
+  });
+
+  it("POST upserts with orgId", async () => {
+    vi.mocked(Module.findOne).mockResolvedValue({ _id: "mod1" } as any);
+    vi.mocked(PriceTier.findOneAndUpdate).mockResolvedValue({ _id: "tier1", orgId: "org1" } as any);
+
+    const res = await POST(
+      makeRequest("POST", {
+        moduleCode: "MOD",
+        seatsMin: 1,
+        seatsMax: 10,
+        pricePerSeatMonthly: 5,
+        currency: "USD",
+      }),
+    );
+
+    expect(res.status).toBe(201);
+    expect(PriceTier.findOneAndUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ orgId: "org1" }),
+      expect.objectContaining({ orgId: "org1" }),
+      expect.any(Object),
+    );
+  });
+
+  it("POST rejects isGlobal for non super admin", async () => {
+    vi.mocked(getUserFromToken).mockResolvedValue({
+      id: "u2",
+      email: "b@test.com",
+      role: "ADMIN",
+      orgId: "org1",
+    } as any);
+
+    const res = await POST(
+      makeRequest("POST", {
+        moduleCode: "MOD",
+        seatsMin: 1,
+        seatsMax: 10,
+        pricePerSeatMonthly: 5,
+        currency: "USD",
+        isGlobal: true,
+      }),
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it("POST allows isGlobal for super admin and tags record", async () => {
+    vi.mocked(Module.findOne).mockResolvedValue({ _id: "mod1" } as any);
+    vi.mocked(PriceTier.findOneAndUpdate).mockResolvedValue({ _id: "tier1", isGlobal: true } as any);
+
+    const res = await POST(
+      makeRequest("POST", {
+        moduleCode: "MOD",
+        seatsMin: 1,
+        seatsMax: 10,
+        pricePerSeatMonthly: 5,
+        currency: "USD",
+        isGlobal: true,
+      }),
+    );
+    expect(res.status).toBe(201);
+    expect(PriceTier.findOneAndUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ isGlobal: true }),
+      expect.objectContaining({ isGlobal: true }),
+      expect.any(Object),
+    );
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/api/api-payments-paytabs-callback-tenancy.test.ts">
+<![CDATA[
+import { describe, expect, it, vi, beforeEach } from "vitest";
+
+// Mocks
+const mockSetTenantContext = vi.fn();
+const mockClearTenantContext = vi.fn();
+
+vi.mock("@/server/plugins/tenantIsolation", () => ({
+  setTenantContext: (...args: unknown[]) => mockSetTenantContext(...args),
+  clearTenantContext: (...args: unknown[]) => mockClearTenantContext(...args),
+}));
+
+// Stubs for AqarPayment model chain calls
+const mockFindOne = vi.fn();
+const mockFindOneAndUpdate = vi.fn();
+
+vi.mock("@/server/models/aqar", () => ({
+  AqarPayment: {
+    findOne: (...args: unknown[]) => mockFindOne(...args),
+    findOneAndUpdate: (...args: unknown[]) => mockFindOneAndUpdate(...args),
+  },
+}));
+
+// Minimal mocks for unrelated dependencies to keep the module importable
+vi.mock("@/lib/paytabs", () => ({ validateCallback: vi.fn(() => true) }));
+vi.mock("@/lib/payments/paytabs-callback.contract", () => ({
+  buildPaytabsIdempotencyKey: vi.fn(),
+  enforcePaytabsPayloadSize: vi.fn(),
+  extractPaytabsSignature: vi.fn(),
+  normalizePaytabsCallbackPayload: vi.fn(),
+  parsePaytabsJsonPayload: vi.fn(),
+  PaytabsCallbackValidationError: class extends Error {},
+  PAYTABS_CALLBACK_IDEMPOTENCY_TTL_MS: 1000,
+  PAYTABS_CALLBACK_RATE_LIMIT: { requests: 10, windowMs: 1000 },
+}));
+vi.mock("@/lib/http/fetchWithRetry", () => ({ fetchWithRetry: vi.fn() }));
+vi.mock("@/lib/resilience", () => ({ getCircuitBreaker: vi.fn(() => null) }));
+vi.mock("@/server/security/idempotency", () => ({
+  withIdempotency: async (_key: string, fn: () => Promise<unknown>) => fn(),
+}));
+vi.mock("@/server/security/rateLimit", () => ({
+  rateLimit: () => ({ allowed: true }),
+  smartRateLimit: async () => ({ allowed: true }),
+}));
+vi.mock("@/server/utils/errorResponses", () => ({
+  unauthorizedError: (msg: string) =>
+    new Response(JSON.stringify({ error: msg }), { status: 401 }),
+  validationError: (msg: string) =>
+    new Response(JSON.stringify({ error: msg }), { status: 400 }),
+  rateLimitError: () => new Response("rate limited", { status: 429 }),
+  handleApiError: (err?: unknown) =>
+    new Response(
+      JSON.stringify({ error: err instanceof Error ? err.message : "error" }),
+      { status: 500 },
+    ),
+}));
+vi.mock("@/server/security/headers", () => ({
+  createSecureResponse: (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { "content-type": "application/json" },
+    }),
+  getClientIP: () => "127.0.0.1",
+}));
+vi.mock("@/config/service-timeouts", () => ({
+  SERVICE_RESILIENCE: { zatca: { timeouts: { clearanceMs: 1000 }, retries: { maxAttempts: 1, baseDelayMs: 1 } } },
+}));
+vi.mock("@/lib/config/constants", () => ({
+  Config: { payment: { paytabs: { serverKey: "s", profileId: "p" } } },
+}));
+
+describe("PayTabs callback tenancy guard (snake_case org_id)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockFindOne.mockReset();
+    mockFindOneAndUpdate.mockReset();
+  });
+
+  it("uses org-scoped filter with buildOrgScopedFilter when updating payment", async () => {
+    // Mock the findOne chain for existence check
+    mockFindOne.mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        lean: vi.fn().mockReturnValue({
+          exec: vi.fn().mockResolvedValue({ _id: "cart1", orgId: "tenant-snake" }),
+        }),
+      }),
+    });
+
+    const updatedDoc = { _id: "cart1", orgId: "tenant-snake", updated: true };
+    mockFindOneAndUpdate.mockResolvedValue(updatedDoc);
+
+    const mod = await import(
+      "@/app/api/payments/paytabs/callback/route"
+    );
+    const updatePaymentRecord = (mod as unknown as {
+      updatePaymentRecord: (
+        cartId: string,
+        callerOrgId: string | undefined,
+        evidence: Parameters<typeof mockFindOneAndUpdate>[1],
+      ) => Promise<unknown>;
+    }).updatePaymentRecord;
+
+    // Pass callerOrgId (tenant-snake) as second argument per function signature
+    const result = await updatePaymentRecord("cart1", "tenant-snake", {
+      zatcaQR: "qr",
+      fatooraClearanceId: "clear",
+      fatooraClearedAt: new Date(),
+      zatcaSubmittedAt: new Date(),
+      invoicePayload: {},
+      complianceStatus: "CLEARED",
+    });
+
+    expect(result).toEqual(updatedDoc);
+
+    // Verify findOneAndUpdate was called with org-scoped filter
+    expect(mockFindOneAndUpdate).toHaveBeenCalledTimes(1);
+    const [filter] = mockFindOneAndUpdate.mock.calls[0];
+    
+    // buildOrgScopedFilter includes both orgId and org_id variants
+    expect(filter).toMatchObject({
+      _id: "cart1",
+      $or: expect.arrayContaining([
+        { orgId: "tenant-snake" },
+        { org_id: "tenant-snake" },
+      ]),
+    });
+
+    // NOTE: updatePaymentRecord does NOT call setTenantContext - it relies on the caller
+    // to manage tenant context (avoids nested context ownership ambiguity).
+    // The POST handler sets context before calling updatePaymentRecord and clears it in finally.
+    expect(mockSetTenantContext).not.toHaveBeenCalled();
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/api/api-paytabs-callback.test.ts">
+<![CDATA[
+import type { NextRequest } from "next/server";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const mockDbConnect = vi.fn().mockResolvedValue(undefined);
+vi.mock("@/db/mongoose", () => ({
+  dbConnect: (...args: unknown[]) => mockDbConnect(...args),
+}));
+
+const mockNormalizePayload = vi.fn(() => ({ cart_id: "C123" }));
+const mockFinalizeTransaction = vi.fn(async () => ({ ok: true }));
+
+// Route imports from @/lib/finance/paytabs-subscription
+vi.mock("@/lib/finance/paytabs-subscription", () => ({
+  normalizePayTabsPayload: (...args: unknown[]) =>
+    mockNormalizePayload(...args),
+  finalizePayTabsTransaction: (...args: unknown[]) =>
+    mockFinalizeTransaction(...args),
+}));
+
+const mockValidateCallback = vi.fn(() => true);
+
+vi.mock("@/lib/paytabs", () => ({
+  validateCallback: (...args: unknown[]) => mockValidateCallback(...args),
+}));
+
+// Mock paytabs-callback.contract functions
+vi.mock("@/lib/payments/paytabs-callback.contract", () => ({
+  buildPaytabsIdempotencyKey: vi.fn(() => "test-idempotency-key"),
+  enforcePaytabsPayloadSize: vi.fn(),
+  extractPaytabsSignature: vi.fn((req: unknown, payload: unknown) => {
+    const headers = (req as { headers: Headers }).headers;
+    return headers.get("signature");
+  }),
+  parsePaytabsJsonPayload: vi.fn((rawBody: string) => JSON.parse(rawBody)),
+  PaytabsCallbackValidationError: class extends Error {
+    constructor(message: string) {
+      super(message);
+      this.name = "PaytabsCallbackValidationError";
+    }
+  },
+  PAYTABS_CALLBACK_IDEMPOTENCY_TTL_MS: 60000,
+  PAYTABS_CALLBACK_RATE_LIMIT: { requests: 100, windowMs: 60000 },
+}));
+
+// Mock idempotency wrapper to just call the function
+vi.mock("@/server/security/idempotency", () => ({
+  withIdempotency: vi.fn(async (_key: string, fn: () => Promise<unknown>) => fn()),
+}));
+
+type JsonBody = Record<string, unknown>;
+const mockCreateSecureResponse = vi.fn(
+  (body: JsonBody, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { "content-type": "application/json" },
+    }),
+);
+const mockGetClientIP = vi.fn(() => "127.0.0.1");
+
+vi.mock("@/server/security/headers", () => ({
+  createSecureResponse: (...args: unknown[]) =>
+    mockCreateSecureResponse(...args),
+  getClientIP: (...args: unknown[]) => mockGetClientIP(...args),
+}));
+
+const mockRateLimit = vi.fn(() => ({ allowed: true }));
+const mockSmartRateLimit = vi.fn(async () => ({ allowed: true }));
+vi.mock('@/server/security/rateLimit', () => ({
+  rateLimit: (...args: unknown[]) => mockRateLimit(...args),
+  smartRateLimit: (...args: unknown[]) => mockSmartRateLimit(...args),
+}));
+
+const mockRateLimitError = vi.fn(
+  () => new Response("rate limited", { status: 429 }),
+);
+const mockHandleApiError = vi.fn(
+  (error?: unknown) =>
+    new Response(
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "error",
+      }),
+      { status: 500 },
+    ),
+);
+
+vi.mock("@/server/utils/errorResponses", () => ({
+  rateLimitError: (...args: unknown[]) => mockRateLimitError(...args),
+  handleApiError: (...args: unknown[]) => mockHandleApiError(...args),
+}));
+
+import { POST } from "@/app/api/paytabs/callback/route";
+
+function makeRequest(
+  rawBody: string,
+  headers: Record<string, string> = {},
+): NextRequest {
+  return new Request("https://example.com/api/paytabs/callback", {
+    method: "POST",
+    body: rawBody,
+    headers: {
+      "content-type": "application/json",
+      ...headers,
+    },
+  }) as unknown as NextRequest;
+}
+
+describe("PayTabs subscription callback route", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockValidateCallback.mockReturnValue(true);
+  });
+
+  it("finalizes transaction when signature is valid", async () => {
+    const payload = { cart_id: "C1", signature: "ignored" };
+    const req = makeRequest(JSON.stringify(payload), {
+      signature: "good-signature",
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json).toEqual({ ok: true });
+
+    expect(mockValidateCallback).toHaveBeenCalledWith(
+      payload,
+      "good-signature",
+    );
+    expect(mockNormalizePayload).toHaveBeenCalledWith(payload);
+    expect(mockFinalizeTransaction).toHaveBeenCalledWith({ cart_id: "C123" });
+    expect(mockDbConnect).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns 403 when signature validation fails", async () => {
+    mockValidateCallback.mockReturnValueOnce(false);
+    const payload = { cart_id: "C1" };
+    const req = makeRequest(JSON.stringify(payload), { signature: "bad" });
+
+    const res = await POST(req);
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body).toEqual({
+      error: "Payment verification failed: Invalid signature",
+    });
+
+    expect(mockFinalizeTransaction).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 when signature is missing", async () => {
+    const payload = { cart_id: "C1" };
+    const req = makeRequest(JSON.stringify(payload), {});
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body).toEqual({
+      error: "Payment verification failed: Missing signature",
+    });
+    expect(mockValidateCallback).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 on invalid JSON payloads", async () => {
+    const req = makeRequest("{invalid-json", { signature: "sig" });
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body).toEqual({
+      error: "Payment verification failed: Invalid JSON payload",
+    });
+    expect(mockValidateCallback).not.toHaveBeenCalled();
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/api/api-paytabs.test.ts">
+<![CDATA[
+/**
+ * Tests for PayTabs payment page creation route handler (POST).
+ * Framework: Vitest
+ */
+import { describe, test, expect, vi, beforeEach, beforeAll, afterEach } from 'vitest';
+import type { NextRequest } from 'next/server'
+import type { RequestInit } from 'node-fetch';
+
+// Mock next/server to isolate NextResponse and avoid runtime coupling
+vi.mock('next/server', async () => {
+  const actual = await vi.importActual('next/server')
+  // Provide a minimal NextResponse.json that returns a standard Response-like object
+  return {
+    ...actual,
+    NextResponse: {
+      json: (data: ResponseBody, init?: ResponseInit): MockResponse => {
+        const status = init?.status ?? 200
+        // Return a Response-like object with status and json() for assertions
+        return {
+          status,
+          async json() {
+            return data
+          },
+        } as MockResponse
+      },
+    },
+  }
+})
+
+// Prefer dynamic import of the route after mocks are established
+// The following path is auto-detected or a best-guess fallback if detection failed.
+// Update if the route file has a different path.
+
+type ResponseBody =
+  | { ok: true; paymentUrl: string; tranRef: string }
+  | { ok: false; error: string; status?: number; body?: string; details?: Record<string, unknown> }
+  | { ok: false; error: string }
+type MockResponse = { status: number; json: () => Promise<ResponseBody> }
+
+const BASE_ENV: NodeJS.ProcessEnv = {
+  ...process.env,
+  NEXTAUTH_URL: process.env.NEXTAUTH_URL ?? 'https://example.com',
+  PAYTABS_PROFILE_ID: process.env.PAYTABS_PROFILE_ID ?? '85119',
+  PAYTABS_SERVER_KEY: process.env.PAYTABS_SERVER_KEY ?? 'server-key',
+  PAYTABS_MAX_ATTEMPTS: '1',
+};
+
+let Config: typeof import('@/lib/config/constants').Config;
+let POST: (req: NextRequest) => Promise<MockResponse>
+beforeAll(async () => {
+  process.env = { ...BASE_ENV }
+  vi.resetModules()
+  const configModule = await import('@/lib/config/constants')
+  Config = configModule.Config
+  const mod = await import('@/app/api/payments/paytabs/route')
+  POST = mod.POST as typeof POST
+})
+
+/**
+ * Helper to create a mock NextRequest with just json() usage covered by the handler.
+ */
+const makeReq = (body: Record<string, unknown>) =>
+  new Request('https://example.test/api/payments/paytabs', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  }) as unknown as NextRequest
+
+const jsonResponse = (body: unknown, init?: ResponseInit) =>
+  new Response(JSON.stringify(body), {
+    status: init?.status ?? 200,
+    headers: { 'content-type': 'application/json', ...(init?.headers || {}) },
+  })
+
+const textResponse = (body: string, status: number) => new Response(body, { status })
+
+const validBody = {
+  orderId: 'ORDER-123',
+  amount: 199.99,
+  currency: 'SAR',
+  customerEmail: 'user@example.com',
+  customerName: 'John Doe',
+  customerPhone: '+966500000000',
+}
+
+describe('PayTabs POST route', () => {
+  let fetchSpy: ReturnType<typeof vi.spyOn>
+
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2025-01-01T00:00:00.000Z'))
+    process.env = { ...BASE_ENV }
+    fetchSpy = vi.spyOn(globalThis, 'fetch')
+  })
+
+  afterEach(() => {
+    fetchSpy.mockRestore()
+    vi.useRealTimers()
+    process.env = { ...BASE_ENV }
+  })
+
+  test('returns paymentUrl and tranRef on successful PayTabs response (happy path)', async () => {
+    fetchSpy.mockResolvedValueOnce(
+      jsonResponse({
+        redirect_url: 'https://paytabs.example/redirect',
+        tran_ref: 'TRN-12345',
+      })
+    )
+
+    const res = await POST(makeReq(validBody))
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data).toEqual({
+      ok: true,
+      paymentUrl: 'https://paytabs.example/redirect',
+      tranRef: 'TRN-12345',
+    })
+
+    // Verify payload constructed properly
+    const call = fetchSpy.mock.calls[0]
+    expect(call[0]).toBe('https://secure.paytabs.sa/payment/request')
+    const options = call[1] as RequestInit
+    expect(options.method).toBe('POST')
+    expect(options.headers['Content-Type']).toBe('application/json')
+    expect(options.headers['Authorization']).toBe('server-key')
+    const payload = JSON.parse(options.body as string)
+    expect(payload).toMatchObject({
+      profile_id: '85119',
+      tran_type: 'sale',
+      tran_class: 'ecom',
+      cart_id: validBody.orderId,
+      cart_currency: 'SAR',
+      cart_amount: validBody.amount.toFixed(2),
+      cart_description: `Fixzit Order ${validBody.orderId}`,
+      customer_details: {
+        name: validBody.customerName,
+        email: validBody.customerEmail,
+        phone: validBody.customerPhone,
+        country: 'SA',
+      },
+      callback: `${BASE_ENV.NEXTAUTH_URL}/api/payments/paytabs/callback`,
+      return: `${BASE_ENV.NEXTAUTH_URL}/marketplace/order-success`,
+    })
+  })
+
+  test('uses default currency SAR when not provided', async () => {
+    fetchSpy.mockResolvedValueOnce(jsonResponse({ redirect_url: 'url', tran_ref: 'ref' }))
+
+    const body = { ...validBody }
+    delete (body as Record<string, unknown>).currency
+    const res = await POST(makeReq(body))
+    expect(res.status).toBe(200)
+    await res.json()
+    const options = fetchSpy.mock.calls[0][1] as RequestInit
+    const payload = JSON.parse(options.body as string)
+    expect(payload.cart_currency).toBe('SAR')
+  })
+
+  test('returns 500 when PAYTABS server key is missing', async () => {
+    ;(Config as any).payment.paytabs.serverKey = ''
+
+    const res = await POST(makeReq(validBody))
+    expect(res.status).toBe(500)
+    const data = await res.json()
+    expect(data).toEqual({ error: 'PAYTABS server key not configured' })
+    expect(fetchSpy).not.toHaveBeenCalled()
+
+    ;(Config as any).payment.paytabs.serverKey = BASE_ENV.PAYTABS_SERVER_KEY
+  })
+
+  test('propagates 502 with response details when PayTabs returns non-OK', async () => {
+    fetchSpy.mockResolvedValueOnce(textResponse('Unauthorized', 401))
+
+    const res = await POST(makeReq(validBody))
+    expect(res.status).toBe(502)
+    const data = await res.json()
+    expect(data).toEqual({
+      error: 'PayTabs request failed',
+      status: 401,
+      body: 'Unauthorized',
+    })
+  })
+
+  test('returns 400 when PayTabs returns no redirect_url (failure to initialize)', async () => {
+    fetchSpy.mockResolvedValueOnce(jsonResponse({ message: 'no redirect' }))
+
+    const res = await POST(makeReq(validBody))
+    expect(res.status).toBe(400)
+    const data = await res.json()
+    expect(data).toEqual({
+      ok: false,
+      error: 'Payment initialization failed',
+      details: { message: 'no redirect' },
+    })
+  })
+
+  test('aborts fetch after 15s timeout', async () => {
+    let capturedSignal: AbortSignal | undefined
+    fetchSpy.mockImplementationOnce(((...args: [string, { signal?: AbortSignal }] ) => {
+      const opts = args[1]
+      capturedSignal = opts?.signal
+      return new Promise<Response>((_, reject) => {
+        opts?.signal?.addEventListener('abort', () => reject(new Error('Aborted')), { once: true })
+      }) as unknown as Response
+    }) as unknown as typeof fetch)
+    const resPromise = POST(makeReq(validBody)) // Start request
+    // Fast-forward timers to trigger abort
+    await vi.advanceTimersByTimeAsync(15001)
+    await expect(resPromise).resolves.toHaveProperty('status', 500)
+    // Assert the signal is aborted
+    expect(capturedSignal).toBeDefined()
+    expect(capturedSignal?.aborted).toBe(true)
+  })
+
+  describe('input validation via zod', () => {
+    test('rejects negative amount', async () => {
+      const res = await POST(makeReq({ ...validBody, amount: -1 }))
+      expect(res.status).toBe(500) // caught by try/catch -> 500
+      const body = await res.json()
+      expect(body).toEqual({ ok: false, error: 'Payment processing failed' })
+      expect(fetchSpy).not.toHaveBeenCalled()
+    })
+
+    test('rejects invalid email', async () => {
+      const res = await POST(makeReq({ ...validBody, customerEmail: 'not-an-email' }))
+      expect(res.status).toBe(500)
+      const body = await res.json()
+      expect(body).toEqual({ ok: false, error: 'Payment processing failed' })
+      expect(fetchSpy).not.toHaveBeenCalled()
+    })
+  })
+
+  test('handles unexpected fetch/json errors gracefully with 500', async () => {
+    fetchSpy.mockRejectedValueOnce(new Error('network down'))
+    const res = await POST(makeReq(validBody))
+    expect(res.status).toBe(500)
+    const body = await res.json()
+    expect(body).toEqual({ ok: false, error: 'Payment processing failed' })
+  })
+})
+
+]]>
+</file>
+
+<file path="tests/unit/api/auth/forgot-password.test.ts">
+<![CDATA[
+import { describe, it, expect } from "vitest";
+import { NextRequest } from "next/server";
+
+/**
+ * Lightweight tests for forgot-password API route.
+ * 
+ * Note: Full integration tests require database setup.
+ * These tests verify basic request validation that doesn't require mocking.
+ */
+describe("POST /api/auth/forgot-password - Input Validation", () => {
+  function createRequest(body: Record<string, unknown>): NextRequest {
+    return new NextRequest("http://localhost:3000/api/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify(body),
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  it("returns 400 when email is missing", async () => {
+    const { POST } = await import("@/app/api/auth/forgot-password/route");
+    const req = createRequest({});
+    const res = await POST(req);
+    const json = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(json.error).toBe("Email is required");
+  });
+
+  it("returns 400 for invalid email format", async () => {
+    const { POST } = await import("@/app/api/auth/forgot-password/route");
+    const req = createRequest({ email: "not-an-email" });
+    const res = await POST(req);
+    const json = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(json.error).toBe("Invalid email format");
+  });
+
+  it("returns 400 for empty email string", async () => {
+    const { POST } = await import("@/app/api/auth/forgot-password/route");
+    const req = createRequest({ email: "   " });
+    const res = await POST(req);
+    const json = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(json.error).toBe("Email is required");
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/api/counters.route.test.ts">
+<![CDATA[
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { NextResponse } from "next/server";
+
+// Mocks
+vi.mock("@/auth", () => ({
+  auth: vi.fn(),
+}));
+
+vi.mock("@/lib/queries", () => ({
+  getAllCounters: vi.fn(),
+}));
+
+vi.mock("@/lib/utils/env", () => ({
+  isTruthy: vi.fn().mockReturnValue(false),
+}));
+
+let auth: typeof import("@/auth").auth;
+let getAllCounters: typeof import("@/lib/queries").getAllCounters;
+let isTruthy: typeof import("@/lib/utils/env").isTruthy;
+let GET: typeof import("@/app/api/counters/route").GET;
+
+describe("GET /api/counters", () => {
+  const mockCounters = {
+    workOrders: { total: 10, open: 4, inProgress: 3, overdue: 1 },
+    approvals: { pending: 2, overdue: 1 },
+    rfqs: { open: 5 },
+    hrApplications: { pending: 7 },
+  };
+
+  beforeEach(async () => {
+    vi.resetAllMocks();
+    vi.resetModules();
+    process.env.ALLOW_OFFLINE_MONGODB = "false";
+    ({ auth } = await import("@/auth"));
+    ({ getAllCounters } = await import("@/lib/queries"));
+    ({ isTruthy } = await import("@/lib/utils/env"));
+    const route = await import("@/app/api/counters/route");
+    GET = route.GET;
+    (isTruthy as vi.Mock).mockReturnValue(false);
+  });
+
+  it("returns counters including approvals, rfqs, and hrApplications for authenticated org", async () => {
+    (auth as vi.Mock).mockResolvedValue({
+      user: { id: "u1", orgId: "org1" },
+    });
+    (getAllCounters as vi.Mock).mockResolvedValue(mockCounters);
+
+    const res = (await GET()) as NextResponse;
+    const json = await res.json();
+
+    // Debug assertion path visibility during development
+    // console.log({ status: res.status, json });
+
+    expect(res.status).toBe(200);
+    expect(getAllCounters).toHaveBeenCalledWith("org1");
+    expect(json.approvals).toEqual(mockCounters.approvals);
+    expect(json.rfqs).toEqual(mockCounters.rfqs);
+    expect(json.hrApplications).toEqual(mockCounters.hrApplications);
+    expect(json.workOrders).toEqual(mockCounters.workOrders);
+  });
+
+  it("returns empty object for guests", async () => {
+    (auth as vi.Mock).mockResolvedValue(null);
+
+    const res = (await GET()) as NextResponse;
+    const json = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(json).toEqual({});
+    expect(getAllCounters).not.toHaveBeenCalled();
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/api/fm/properties/route.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { ObjectId } from 'mongodb';
+
+vi.mock('@/lib/mongodb-unified', () => ({
+  getDatabase: vi.fn(),
+}));
+
+vi.mock('@/lib/logger', () => ({
+  logger: {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+vi.mock('@/app/api/fm/permissions', () => ({
+  requireFmPermission: vi.fn(),
+}));
+
+vi.mock('@/app/api/fm/utils/tenant', () => ({
+  resolveTenantId: vi.fn(() => ({ tenantId: 'tenant-1', source: 'session' })),
+}));
+
+import { GET, POST, PATCH, DELETE } from '@/app/api/fm/properties/route';
+import { getDatabase } from '@/lib/mongodb-unified';
+import { requireFmPermission } from '@/app/api/fm/permissions';
+import { resolveTenantId } from '@/app/api/fm/utils/tenant';
+import { FMErrors } from '@/app/api/fm/errors';
+import { makeGetRequest, makePostRequest } from '@/tests/helpers/request';
+
+type DbMock = ReturnType<typeof mockDb>;
+
+describe('api/fm/properties route', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (getDatabase as unknown as vi.Mock).mockReset();
+    (requireFmPermission as vi.Mock).mockReset();
+    (resolveTenantId as vi.Mock).mockReset();
+  });
+
+  it('returns paginated properties for tenant scope', async () => {
+    mockPermission();
+    (resolveTenantId as vi.Mock).mockReturnValue({ tenantId: 'tenant-1', source: 'session' });
+    const items = [
+      buildProperty({ _id: new ObjectId('507f1f77bcf86cd799439011'), name: 'Tower A' }),
+      buildProperty({ _id: new ObjectId('507f1f77bcf86cd799439012'), name: 'Tower B', code: 'PROP-1' }),
+    ];
+    mockDb({
+      findResult: items,
+      count: 2,
+    });
+
+    const req = createGetRequest({ page: '1', limit: '10' });
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+
+    expect(body.success).toBe(true);
+    expect(body.data).toHaveLength(2);
+    expect(body.data[0]).toMatchObject({
+      id: items[0]._id.toString(),
+      name: 'Tower A',
+      status: 'Active',
+    });
+    expect(body.pagination).toMatchObject({ page: 1, total: 2, totalPages: 1 });
+    const collection = getCollectionMock();
+    // AUDIT-2025-11-26: Changed from org_id to orgId per STRICT v4.1
+    expect(collection.find).toHaveBeenCalledWith({ orgId: 'tenant-1' });
+  });
+
+  it('validates payload when creating properties', async () => {
+    mockPermission();
+    const req = createPostRequest({});
+    const res = await POST(req);
+    const body = await res.json();
+    expect(res.status).toBe(400);
+    expect(body.error).toBe('validation-error');
+  });
+
+  it('rejects duplicate property codes', async () => {
+    mockPermission();
+    mockDb({
+      findExisting: true,
+    });
+    const req = createPostRequest({ name: 'HQ', type: 'Office', code: 'PROP-1' });
+    const res = await POST(req);
+    const body = await res.json();
+    expect(res.status).toBe(409);
+    expect(body.error).toBe('conflict');
+  });
+
+  it('creates property and generates code when absent', async () => {
+    mockPermission();
+    const db = mockDb();
+    const req = createPostRequest({ name: 'HQ', type: 'Office' });
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.data.name).toBe('HQ');
+    expect(body.data.code).toMatch(/^PROP-\d{6}-\d{4}$/);
+    expect(db.insertOne).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns guard response when tenant resolution fails', async () => {
+    mockPermission();
+    (resolveTenantId as vi.Mock).mockReturnValue({ error: FMErrors.forbidden('mismatch') });
+    const req = createGetRequest({});
+    const res = await GET(req);
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error).toBe('forbidden');
+  });
+  it('updates property fields through PATCH', async () => {
+    mockPermission();
+    const updated = buildProperty({ _id: new ObjectId('507f1f77bcf86cd799439013'), name: 'Updated', status: 'Inactive' });
+    mockDb({ updateValue: updated });
+    const req = createPatchRequest('507f1f77bcf86cd799439013', { name: 'Updated', status: 'Inactive' });
+    const res = await PATCH(req);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.success).toBe(true);
+    expect(body.data.name).toBe('Updated');
+    const collection = getCollectionMock();
+    expect(collection.findOneAndUpdate).toHaveBeenCalled();
+  });
+
+  it('deletes property when DELETE invoked', async () => {
+    mockPermission();
+    mockDb({ deleteValue: buildProperty({ _id: new ObjectId('507f1f77bcf86cd799439014') }) });
+    const req = createDeleteRequest('507f1f77bcf86cd799439014');
+    const res = await DELETE(req);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.message).toContain('deleted');
+  });
+});
+
+function mockPermission() {
+  (requireFmPermission as vi.Mock).mockResolvedValue({
+    id: 'user-1',
+    orgId: 'tenant-1',
+    tenantId: 'tenant-1',
+    isSuperAdmin: false,
+    plan: 'STANDARD',
+  });
+}
+
+type DbOptions = {
+  findResult?: Array<Record<string, unknown>>;
+  count?: number;
+  findExisting?: boolean;
+  updateValue?: Record<string, unknown> | null;
+  deleteValue?: Record<string, unknown> | null;
+};
+
+let collectionMock: ReturnType<typeof buildCollectionMock>;
+
+function getCollectionMock() {
+  if (!collectionMock) {
+    throw new Error('Collection mock not initialized');
+  }
+  return collectionMock;
+}
+
+function mockDb(options: DbOptions = {}): DbMock {
+  collectionMock = buildCollectionMock(options);
+  const db = {
+    collection: vi.fn(() => collectionMock),
+  };
+  (getDatabase as vi.Mock).mockResolvedValue(db);
+  return collectionMock;
+}
+
+function buildCollectionMock(options: DbOptions) {
+  const toArray = vi.fn().mockResolvedValue(options.findResult ?? []);
+  const limit = vi.fn().mockReturnValue({ toArray });
+  const skip = vi.fn().mockReturnValue({ limit });
+  const sort = vi.fn().mockReturnValue({ skip });
+  const find = vi.fn().mockReturnValue({ sort });
+
+  const insertOne = vi.fn().mockImplementation((doc) =>
+    Promise.resolve({ insertedId: doc._id ?? new ObjectId() })
+  );
+
+  const findOne = vi
+    .fn()
+    .mockResolvedValue(options.findExisting ? { _id: new ObjectId() } : null);
+
+  const countDocuments = vi.fn().mockResolvedValue(options.count ?? (options.findResult?.length ?? 0));
+  const findOneAndUpdate = vi.fn().mockResolvedValue({ value: options.updateValue ?? null });
+  const findOneAndDelete = vi.fn().mockResolvedValue({ value: options.deleteValue ?? null });
+
+  return {
+    find,
+    sort,
+    skip,
+    limit,
+    toArray,
+    insertOne,
+    findOne,
+    countDocuments,
+    findOneAndUpdate,
+    findOneAndDelete,
+  };
+}
+
+function createGetRequest(params: Record<string, string>) {
+  const url = new URL('https://fixzit.test/api/fm/properties');
+  Object.entries(params).forEach(([key, value]) => {
+    url.searchParams.set(key, value);
+  });
+  const req = makeGetRequest(url.toString());
+  return req;
+}
+
+function createPostRequest(body: Record<string, unknown>) {
+  const url = new URL('https://fixzit.test/api/fm/properties');
+  return makePostRequest(url.toString(), body);
+}
+
+function createPatchRequest(id: string, body: Record<string, unknown>) {
+  const url = new URL('https://fixzit.test/api/fm/properties');
+  url.searchParams.set('id', id);
+  return new Request(url.toString(), {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+function createDeleteRequest(id: string) {
+  const url = new URL('https://fixzit.test/api/fm/properties');
+  url.searchParams.set('id', id);
+  return new Request(url.toString(), { method: 'DELETE' });
+}
+
+function buildProperty(overrides: Partial<PropertyDocument> = {}) {
+  return {
+    _id: overrides._id ?? new ObjectId(),
+    org_id: overrides.org_id ?? 'tenant-1',
+    name: overrides.name ?? 'Property',
+    code: overrides.code ?? 'PROP-0001',
+    type: overrides.type ?? 'Office',
+    status: overrides.status ?? 'Active',
+    lease_status: overrides.lease_status ?? 'Vacant',
+    createdAt: overrides.createdAt ?? new Date('2024-01-01T00:00:00Z'),
+    updatedAt: overrides.updatedAt ?? new Date('2024-01-02T00:00:00Z'),
+  };
+}
+
+type PropertyDocument = {
+  _id: ObjectId;
+  org_id: string;
+  name: string;
+  code: string;
+  type: string;
+  status: string;
+  lease_status: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+]]>
+</file>
+
+<file path="tests/unit/api/fm/work-orders/attachments.route.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { ObjectId } from 'mongodb';
+import { NextResponse } from 'next/server';
+
+vi.mock('@/lib/mongodb-unified', () => ({
+  getDatabase: vi.fn(),
+}));
+
+vi.mock('@/lib/logger', () => ({
+  logger: {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+vi.mock('@/app/api/fm/utils/tenant', () => ({
+  resolveTenantId: vi.fn(() => ({ tenantId: 'tenant-1', source: 'session' })),
+}));
+
+vi.mock('@/app/api/fm/utils/auth', () => ({
+  requireFmAbility: vi.fn(),
+}));
+
+import { GET, POST } from '@/app/api/fm/work-orders/[id]/attachments/route';
+import { getDatabase } from '@/lib/mongodb-unified';
+import { resolveTenantId } from '@/app/api/fm/utils/tenant';
+import { requireFmAbility } from '@/app/api/fm/utils/auth';
+import { FMErrors } from '@/app/api/fm/errors';
+import { makeGetRequest, makePostRequest } from '@/tests/helpers/request';
+
+type DbMock = ReturnType<typeof mockDb>;
+
+describe('api/fm/work-orders/[id]/attachments route', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (getDatabase as unknown as vi.Mock).mockReset();
+    (resolveTenantId as vi.Mock).mockReset();
+    (requireFmAbility as vi.Mock).mockReset();
+  });
+
+  it('returns guard response when tenant resolution fails', async () => {
+    mockAbility();
+    (resolveTenantId as vi.Mock).mockReturnValue({ error: FMErrors.forbidden('tenant mismatch') });
+    const req = createGetRequest('https://fixzit.test/api/fm/work-orders/507f1f77bcf86cd799439011/attachments');
+    const res = await GET(req, { params: { id: '507f1f77bcf86cd799439011' } });
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error).toBe('forbidden');
+  });
+
+  it('returns attachments when ability and tenant guards pass', async () => {
+    mockAbility();
+    (resolveTenantId as vi.Mock).mockReturnValue({ tenantId: 'tenant-1', source: 'session' });
+    const attachments = [
+      { _id: new ObjectId('507f1f77bcf86cd799439011'), url: 'https://s3/1.jpg', type: 'attachment', uploadedAt: new Date() },
+    ];
+    mockDb({ attachments });
+
+    const req = createGetRequest('https://fixzit.test/api/fm/work-orders/507f1f77bcf86cd799439011/attachments');
+    const res = await GET(req, { params: { id: '507f1f77bcf86cd799439011' } });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.success).toBe(true);
+    expect(body.data).toHaveLength(1);
+    expect(body.data[0]).toMatchObject({ id: attachments[0]._id.toHexString(), url: attachments[0].url });
+  });
+
+  it('short-circuits when ability guard denies access', async () => {
+    (requireFmAbility as vi.Mock).mockImplementation(() => async () => NextResponse.json({ error: 'forbidden' }, { status: 403 }));
+    const req = createPostRequest('https://fixzit.test/api/fm/work-orders/507f1f77bcf86cd799439011/attachments', {
+      url: 'https://cdn/new.jpg',
+      type: 'attachment',
+    });
+    const res = await POST(req, { params: { id: '507f1f77bcf86cd799439011' } });
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error).toBe('forbidden');
+    expect(getDatabase).not.toHaveBeenCalled();
+  });
+});
+
+function mockAbility(overrides: Record<string, unknown> = {}) {
+  (requireFmAbility as vi.Mock).mockImplementation(() => async () => ({
+    id: 'user-1',
+    orgId: 'tenant-1',
+    tenantId: 'tenant-1',
+    email: 'user@example.com',
+    name: 'User',
+    ...overrides,
+  }));
+}
+
+type DbOptions = {
+  attachments?: Array<Record<string, unknown>>;
+};
+
+function mockDb(options: DbOptions = {}): DbMock {
+  const collectionMock = {
+    find: vi.fn().mockReturnValue({
+      sort: vi.fn().mockReturnValue({
+        toArray: vi.fn().mockResolvedValue(options.attachments ?? []),
+      }),
+    }),
+    insertOne: vi.fn(),
+  };
+  (getDatabase as vi.Mock).mockResolvedValue({
+    collection: vi.fn(() => collectionMock),
+  });
+  return collectionMock;
+}
+
+function createGetRequest(url: string) {
+  return makeGetRequest(url);
+}
+
+function createPostRequest(url: string, body: Record<string, unknown>) {
+  return makePostRequest(url, body);
+}
+
+]]>
+</file>
+
+<file path="tests/unit/api/fm/work-orders/stats.route.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { NextResponse } from 'next/server';
+
+vi.mock('@/lib/mongodb-unified', () => ({
+  getDatabase: vi.fn(),
+}));
+
+vi.mock('@/lib/logger', () => ({
+  logger: {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+vi.mock('@/app/api/fm/utils/tenant', () => ({
+  resolveTenantId: vi.fn(() => ({ tenantId: 'tenant-1', source: 'session' })),
+}));
+
+vi.mock('@/app/api/fm/utils/auth', () => ({
+  requireFmAbility: vi.fn(),
+}));
+
+import { GET } from '@/app/api/fm/work-orders/stats/route';
+import { makeGetRequest } from '@/tests/helpers/request';
+import { getDatabase } from '@/lib/mongodb-unified';
+import { resolveTenantId } from '@/app/api/fm/utils/tenant';
+import { requireFmAbility } from '@/app/api/fm/utils/auth';
+import { FMErrors } from '@/app/api/fm/errors';
+
+describe('api/fm/work-orders/stats route', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (getDatabase as unknown as vi.Mock).mockReset();
+    (resolveTenantId as vi.Mock).mockReset();
+    (requireFmAbility as vi.Mock).mockReset();
+  });
+
+  it('returns guard response when ability denies access', async () => {
+    const guardResponse = NextResponse.json({ error: 'forbidden' }, { status: 403 });
+    (requireFmAbility as vi.Mock).mockImplementation(() => async () => guardResponse);
+    const req = createRequest();
+    const res = await GET(req);
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error).toBe('forbidden');
+    expect(getDatabase).not.toHaveBeenCalled();
+  });
+
+  it('returns guard response when tenant resolution fails', async () => {
+    mockAbility();
+    (resolveTenantId as vi.Mock).mockReturnValue({ error: FMErrors.forbidden('mismatch') });
+    const req = createRequest();
+    const res = await GET(req);
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error).toBe('forbidden');
+    expect(getDatabase).not.toHaveBeenCalled();
+  });
+
+  it('aggregates stats when guards pass', async () => {
+    mockAbility();
+    (resolveTenantId as vi.Mock).mockReturnValue({ tenantId: 'tenant-1', source: 'session' });
+    mockDb();
+    const req = createRequest();
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.success).toBe(true);
+    expect(body.data.total).toBe(5);
+    expect(body.data.overdueCount).toBe(2);
+  });
+});
+
+function mockAbility() {
+  (requireFmAbility as vi.Mock).mockImplementation(() => async () => ({
+    id: 'user-1',
+    orgId: 'tenant-1',
+    tenantId: 'tenant-1',
+  }));
+}
+
+function mockDb() {
+  const pipelineResult = [{ _id: 'OPEN', count: 3 }];
+  const completionResult = [{
+    avgCompletionTime: 5,
+    totalCompleted: 2,
+    slaMet: 1,
+    slaDefinedCount: 2,
+  }];
+  const aggregateMock = vi.fn()
+    .mockImplementationOnce(() => ({ toArray: vi.fn().mockResolvedValue(pipelineResult) }))
+    .mockImplementationOnce(() => ({ toArray: vi.fn().mockResolvedValue(pipelineResult) }))
+    .mockImplementationOnce(() => ({ toArray: vi.fn().mockResolvedValue(completionResult) }));
+
+  const collectionMock = {
+    countDocuments: vi.fn()
+      .mockResolvedValueOnce(5)
+      .mockResolvedValueOnce(2),
+    aggregate: aggregateMock,
+  };
+
+  const db = {
+    collection: vi.fn(() => collectionMock),
+  };
+  (getDatabase as vi.Mock).mockResolvedValue(db);
+}
+
+function createRequest() {
+  const url = new URL('https://fixzit.test/api/fm/work-orders/stats');
+  return makeGetRequest(url.toString());
+}
+
+]]>
+</file>
+
+<file path="tests/unit/api/fm/work-orders/transition.route.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { ObjectId } from 'mongodb';
+
+vi.mock('@/lib/mongodb-unified', () => ({
+  getDatabase: vi.fn(),
+}));
+
+vi.mock('@/lib/logger', () => ({
+  logger: {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+const { abilityUser, requireAbilityMock } = vi.hoisted(() => {
+  const abilityUser = {
+    id: 'ability-user',
+    orgId: 'tenant-1',
+    tenantId: 'tenant-1',
+  };
+
+  const requireAbilityMock = vi.fn().mockImplementation(() => async () => abilityUser);
+  return { abilityUser, requireAbilityMock };
+});
+
+vi.mock('@/server/middleware/withAuthRbac', () => {
+  class MockUnauthorizedError extends Error {}
+  return {
+    getSessionUser: vi.fn(),
+    UnauthorizedError: MockUnauthorizedError,
+    requireAbility: requireAbilityMock,
+  };
+});
+
+vi.mock('@/app/api/fm/work-orders/utils', async () => {
+  const actual = await vi.importActual<typeof import('@/app/api/fm/work-orders/utils')>(
+    '@/app/api/fm/work-orders/utils'
+  );
+  return {
+    ...actual,
+    resolveTenantId: vi.fn(() => ({ tenantId: 'tenant-1' })),
+    recordTimelineEntry: vi.fn(),
+  };
+});
+
+import { POST } from '@/app/api/fm/work-orders/[id]/transition/route';
+import { WOStatus } from '@/domain/fm/fm.behavior';
+import { getDatabase } from '@/lib/mongodb-unified';
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
+
+const WORK_ORDER_ID = '507f1f77bcf86cd799439011';
+
+describe('api/fm/work-orders/[id]/transition route', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getDatabase.mockReset();
+    getSessionUser.mockReset();
+    requireAbilityMock.mockClear();
+    abilityUser.id = 'ability-user';
+    abilityUser.orgId = 'tenant-1';
+    abilityUser.tenantId = 'tenant-1';
+  });
+
+  it('returns descriptive media requirement errors when missing BEFORE photos', async () => {
+    const workOrder = {
+      _id: new ObjectId(WORK_ORDER_ID),
+      tenantId: 'tenant-1',
+      orgId: 'tenant-1',
+      status: WOStatus.ASSESSMENT,
+      attachments: [],
+    };
+
+    mockSession({
+      id: 'user-1',
+      role: 'TECHNICIAN',
+      subscriptionPlan: 'PRO',
+      orgId: 'tenant-1',
+    });
+    mockDatabase(workOrder);
+
+    const req = createMockRequest(
+      { toStatus: WOStatus.ESTIMATE_PENDING },
+      { 'x-tenant-id': 'tenant-1' }
+    );
+    const res = await POST(req, { params: { id: WORK_ORDER_ID } });
+    const body = await res.json();
+    expect(res.status).toBe(400);
+    expect(body.error).toBe('validation-error');
+    expect(body.message).toContain('BEFORE');
+    expect(body.details?.required).toContain('BEFORE');
+  });
+
+  it('blocks technicians from starting work when no assignment exists', async () => {
+    const workOrder = {
+      _id: new ObjectId(WORK_ORDER_ID),
+      tenantId: 'tenant-1',
+      orgId: 'tenant-1',
+      status: WOStatus.APPROVED,
+      attachments: [{ category: 'BEFORE' }],
+      assignment: {},
+    };
+
+    mockSession({
+      id: 'user-1',
+      role: 'TECHNICIAN',
+      subscriptionPlan: 'STANDARD',
+      orgId: 'tenant-1',
+    });
+    mockDatabase(workOrder, { ...workOrder, status: WOStatus.IN_PROGRESS });
+
+    const req = createMockRequest(
+      { toStatus: WOStatus.IN_PROGRESS },
+      { 'x-tenant-id': 'tenant-1' }
+    );
+    const res = await POST(req, { params: { id: WORK_ORDER_ID } });
+    const body = await res.json();
+    expect(res.status).toBe(403);
+    expect(body.error).toBe('forbidden');
+    expect(body.message).toContain('cannot perform action start_work');
+  });
+});
+
+type SessionInput = {
+  id?: string;
+  role?: string;
+  subscriptionPlan?: string;
+  orgId?: string;
+  tenantId?: string;
+  email?: string;
+  name?: string;
+};
+
+function mockSession(user: SessionInput) {
+  getSessionUser.mockResolvedValue({
+    id: user.id ?? 'user-1',
+    role: user.role ?? 'TECHNICIAN',
+    subscriptionPlan: user.subscriptionPlan ?? 'STANDARD',
+    orgId: user.orgId ?? 'tenant-1',
+    tenantId: user.tenantId ?? user.orgId ?? 'tenant-1',
+    email: user.email ?? 'user@example.com',
+    name: user.name ?? 'Test User',
+    permissions: [],
+    roles: [],
+  });
+  abilityUser.id = user.id ?? 'user-1';
+  abilityUser.orgId = user.orgId ?? 'tenant-1';
+  abilityUser.tenantId = user.tenantId ?? user.orgId ?? 'tenant-1';
+}
+
+function mockDatabase(workOrder: Record<string, unknown>, updatedDoc?: Record<string, unknown>) {
+  const workordersCollection = {
+    findOne: vi.fn().mockResolvedValue(workOrder),
+    findOneAndUpdate: vi.fn().mockResolvedValue({ value: updatedDoc ?? workOrder }),
+  };
+
+  const timelineCollection = {
+    insertOne: vi.fn().mockResolvedValue({ insertedId: 'timeline-1' }),
+  };
+
+  const usersCollection = {
+    findOne: vi.fn().mockResolvedValue(null),
+  };
+
+  getDatabase.mockResolvedValue({
+    collection: vi.fn((name: string) => {
+      if (name === 'workorders') return workordersCollection;
+      if (name === 'workorder_timeline') return timelineCollection;
+      if (name === 'users') return usersCollection;
+      throw new Error(`Unknown collection ${name}`);
+    }),
+  });
+}
+
+type Headers = Record<string, string>;
+
+function createMockRequest(body: unknown, headers: Headers = {}) {
+  return new Request(`https://test.com/api/fm/work-orders/${WORK_ORDER_ID}/transition`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...headers,
+    },
+    body: JSON.stringify(body),
+  });
+}
+
+]]>
+</file>
+
+<file path="tests/unit/api/health/health.test.ts">
+<![CDATA[
+/**
+ * Health Endpoint Tests
+ *
+ * Tests for /api/health/ready and /api/health/live endpoints.
+ * Uses vi.resetModules() + vi.doMock() pattern for proper isolation.
+ */
+
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+// Default mocks for happy path
+vi.mock("@/lib/mongo", () => ({
+  db: Promise.resolve({
+    command: vi.fn().mockResolvedValue({ ok: 1 }),
+  }),
+}));
+
+vi.mock("@/lib/redis", () => ({
+  getRedisClient: vi.fn(() => null),
+}));
+
+vi.mock("@/lib/resilience", () => ({
+  withTimeout: vi.fn(async (fn: (signal: AbortSignal) => Promise<unknown>) => {
+    const controller = new AbortController();
+    return fn(controller.signal);
+  }),
+}));
+
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+describe("Health Endpoints", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+  });
+
+  describe("GET /api/health/live", () => {
+    it("returns 200 with alive status", async () => {
+      const { GET: getLive } = await import("@/app/api/health/live/route");
+      const response = await getLive();
+      const json = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(json.alive).toBe(true);
+      expect(json.uptime).toBeGreaterThanOrEqual(0);
+      expect(json.memory).toBeDefined();
+      expect(json.memory.heapUsed).toBeGreaterThan(0);
+      expect(json.timestamp).toBeDefined();
+    });
+  });
+
+  describe("GET /api/health/ready", () => {
+    it("returns 200 when MongoDB is healthy and Redis not configured", async () => {
+      const { GET: getReady } = await import("@/app/api/health/ready/route");
+      const response = await getReady();
+      const json = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(json.ready).toBe(true);
+      expect(json.checks.mongodb).toBe("ok");
+      expect(json.checks.redis).toBe("disabled");
+      expect(json.timestamp).toBeDefined();
+    });
+
+    it("returns 503 when MongoDB is unavailable", async () => {
+      vi.resetModules();
+      
+      vi.doMock("@/lib/mongo", () => ({
+        db: Promise.resolve({
+          command: vi.fn().mockRejectedValue(new Error("Connection refused")),
+        }),
+      }));
+
+      vi.doMock("@/lib/redis", () => ({
+        getRedisClient: vi.fn(() => null),
+      }));
+
+      vi.doMock("@/lib/resilience", () => ({
+        withTimeout: vi.fn(async (fn: (signal: AbortSignal) => Promise<unknown>) => {
+          const controller = new AbortController();
+          return fn(controller.signal);
+        }),
+      }));
+
+      vi.doMock("@/lib/logger", () => ({
+        logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+      }));
+
+      const { GET: getReadyFresh } = await import("@/app/api/health/ready/route");
+      const response = await getReadyFresh();
+      const json = await response.json();
+
+      expect(response.status).toBe(503);
+      expect(json.ready).toBe(false);
+      expect(json.checks.mongodb).not.toBe("ok");
+      expect(json.timestamp).toBeDefined();
+    });
+
+    it("returns 503 when Redis is configured but unavailable", async () => {
+      vi.resetModules();
+      vi.stubEnv("REDIS_URL", "redis://localhost:6379");
+      
+      vi.doMock("@/lib/mongo", () => ({
+        db: Promise.resolve({
+          command: vi.fn().mockResolvedValue({ ok: 1 }),
+        }),
+      }));
+
+      vi.doMock("@/lib/redis", () => ({
+        getRedisClient: vi.fn(() => ({
+          ping: vi.fn().mockRejectedValue(new Error("ECONNREFUSED")),
+        })),
+      }));
+
+      vi.doMock("@/lib/resilience", () => ({
+        withTimeout: vi.fn(async (fn: (signal: AbortSignal) => Promise<unknown>) => {
+          const controller = new AbortController();
+          return fn(controller.signal);
+        }),
+      }));
+
+      vi.doMock("@/lib/logger", () => ({
+        logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+      }));
+
+      const { GET: getReadyFresh } = await import("@/app/api/health/ready/route");
+      const response = await getReadyFresh();
+      const json = await response.json();
+
+      expect(response.status).toBe(503);
+      expect(json.ready).toBe(false);
+      expect(json.checks.mongodb).toBe("ok");
+      expect(json.checks.redis).toBe("error");
+      expect(json.requiresRedis).toBe(true);
+    });
+
+    it("returns 200 when both MongoDB and Redis are healthy", async () => {
+      vi.resetModules();
+      vi.stubEnv("REDIS_URL", "redis://localhost:6379");
+      
+      vi.doMock("@/lib/mongo", () => ({
+        db: Promise.resolve({
+          command: vi.fn().mockResolvedValue({ ok: 1 }),
+        }),
+      }));
+
+      vi.doMock("@/lib/redis", () => ({
+        getRedisClient: vi.fn(() => ({
+          ping: vi.fn().mockResolvedValue("PONG"),
+        })),
+      }));
+
+      vi.doMock("@/lib/resilience", () => ({
+        withTimeout: vi.fn(async (fn: (signal: AbortSignal) => Promise<unknown>) => {
+          const controller = new AbortController();
+          return fn(controller.signal);
+        }),
+      }));
+
+      vi.doMock("@/lib/logger", () => ({
+        logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+      }));
+
+      const { GET: getReadyFresh } = await import("@/app/api/health/ready/route");
+      const response = await getReadyFresh();
+      const json = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(json.ready).toBe(true);
+      expect(json.checks.mongodb).toBe("ok");
+      expect(json.checks.redis).toBe("ok");
+      expect(json.requiresRedis).toBe(true);
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/api/logs.route.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+vi.mock("@/auth", () => ({
+  auth: vi.fn().mockResolvedValue({
+    user: { id: "user-1", email: "a@test.com", tenantId: "org-1" },
+  }),
+}));
+vi.mock("@/server/security/rateLimit", () => ({
+  smartRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
+  buildOrgAwareRateLimitKey: vi.fn(() => "rl-key"),
+}));
+vi.mock("@/lib/logger", () => ({
+  logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
+}));
+
+import { POST } from "@/app/api/logs/route";
+import { auth } from "@/auth";
+import { smartRateLimit } from "@/server/security/rateLimit";
+
+type NextRequestLike = {
+  url: string;
+  headers: { get: (key: string) => string | null };
+  json: () => Promise<any>;
+};
+
+function createRequest(body: any): NextRequestLike {
+  return {
+    url: "http://localhost/api/logs",
+    headers: { get: () => null },
+    json: async () => body,
+  };
+}
+
+describe("api/logs route", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.resetAllMocks();
+    vi.mocked(auth).mockResolvedValue({
+      user: { id: "user-1", email: "a@test.com", tenantId: "org-1" },
+    });
+    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true });
+  });
+
+  it("rejects when unauthorized", async () => {
+    vi.mocked(auth).mockResolvedValue(null as any);
+    const res = await POST(createRequest({ level: "info", message: "m" }) as any);
+    expect(res.status).toBe(401);
+  });
+
+  it("rejects when org context is missing", async () => {
+    vi.mocked(auth).mockResolvedValue({ user: { id: "user-1", email: "a@test.com" } } as any);
+    const res = await POST(createRequest({ level: "info", message: "m" }) as any);
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe("Missing organization context");
+  });
+
+  it("rate limits when not allowed", async () => {
+    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: false });
+    const res = await POST(createRequest({ level: "info", message: "m" }) as any);
+    expect(res.status).toBe(429);
+  });
+
+  it("rejects invalid level", async () => {
+    const res = await POST(createRequest({ level: "debug", message: "m" }) as any);
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects oversized context", async () => {
+    const big = "x".repeat(9000);
+    const res = await POST(createRequest({ level: "info", message: "m", context: { big } }) as any);
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe("Context too large");
+  });
+
+  it("accepts valid request", async () => {
+    const res = await POST(createRequest({ level: "info", message: "ok", context: { a: 1 } }) as any);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.success).toBe(true);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/api/marketplace/products/[slug]/route.test.ts">
+<![CDATA[
+// Tests for app/api/marketplace/products/[slug]/route.ts
+// Framework: Vitest
+
+import { vi } from "vitest";
+
+// IMPORTANT: We import the route implementation.
+// If your project alias resolution differs, adjust the relative path accordingly.
+import { GET } from "@/app/api/marketplace/products/[slug]/route";
+
+// TYPESCRIPT FIX: Import the actual type to fix 'unknown' type errors
+import type { MarketplaceProduct as MarketplaceProductType } from "@/server/models/marketplace/Product";
+import type { Model } from "mongoose";
+
+// Mock the MarketplaceProduct model imported in the route implementation.
+// The route imports: "@/server/models/MarketplaceProduct"
+vi.mock("@/server/models/MarketplaceProduct", () => {
+  return {
+    // TYPESCRIPT FIX: Type the mock as a Mongoose Model to fix 'unknown' errors
+    MarketplaceProduct: {
+      findOne: vi.fn(),
+    } as unknown as Model<MarketplaceProductType>,
+  };
+});
+
+import { MarketplaceProduct } from "@/server/models/MarketplaceProduct";
+
+// Helper to read JSON body from a NextResponse (web-standard Response compatible)
+async function readJson(res: Response) {
+  // NextResponse extends Response; .json() is available to parse body
+
+  return await (res as any).json();
+}
+
+describe("GET /api/marketplace/products/[slug]", () => {
+  const tenantId = "demo-tenant";
+
+  // Helper to create a mock NextRequest with proper headers and nextUrl
+  const createMockRequest = () =>
+    ({
+      headers: new Headers({ origin: "http://localhost:3000" }),
+      nextUrl: {
+        protocol: "http:",
+        hostname: "localhost",
+        port: "3000",
+      },
+    }) as any;
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test("returns 404 when product is not found", async () => {
+    (MarketplaceProduct.findOne as any).mockResolvedValueOnce(null);
+
+    const req = createMockRequest();
+    const res = await GET(req, {
+      params: Promise.resolve({ slug: "non-existent" }),
+    });
+
+    expect(MarketplaceProduct.findOne as any).toHaveBeenCalledWith({
+      tenantId,
+      slug: "non-existent",
+    });
+    expect(res.status).toBe(404);
+    await expect(readJson(res as any)).resolves.toEqual({
+      ok: false,
+      error: "Product not found",
+    });
+  });
+
+  test("returns product with computed buyBox (happy path with all fields)", async () => {
+    const doc = {
+      _id: "p1",
+      name: "Test Product",
+      slug: "test-product",
+      prices: [{ listPrice: 123.45, currency: "USD" }],
+      inventories: [{ onHand: 10, leadDays: 5 }],
+    };
+    (MarketplaceProduct.findOne as any).mockResolvedValueOnce(doc);
+
+    const req = createMockRequest();
+    const res = await GET(req, {
+      params: Promise.resolve({ slug: "test-product" }),
+    });
+
+    expect(MarketplaceProduct.findOne as any).toHaveBeenCalledWith({
+      tenantId,
+      slug: "test-product",
+    });
+    expect(res.status).toBe(200);
+
+    const body = await readJson(res as any);
+    expect(body.product).toEqual(doc);
+    expect(body.buyBox).toEqual({
+      price: 123.45,
+      currency: "USD",
+      inStock: true,
+      leadDays: 5,
+    });
+  });
+
+  test("defaults currency to SAR when missing", async () => {
+    const doc = {
+      slug: "no-currency",
+      prices: [{ listPrice: 50 }], // no currency
+      inventories: [{ onHand: 3, leadDays: 2 }],
+    };
+    (MarketplaceProduct.findOne as any).mockResolvedValueOnce(doc);
+
+    const res = await GET(createMockRequest(), {
+      params: Promise.resolve({ slug: "no-currency" }),
+    });
+    const body = await readJson(res as any);
+
+    expect(body.buyBox.currency).toBe("SAR");
+    expect(body.buyBox.price).toBe(50);
+    expect(body.buyBox.inStock).toBe(true);
+    expect(body.buyBox.leadDays).toBe(2);
+  });
+
+  test("handles missing prices by setting price null and default currency", async () => {
+    const doc = {
+      slug: "no-prices",
+      // prices missing
+      inventories: [{ onHand: 1, leadDays: 1 }],
+    };
+    (MarketplaceProduct.findOne as any).mockResolvedValueOnce(doc);
+
+    const res = await GET(createMockRequest(), {
+      params: Promise.resolve({ slug: "no-prices" }),
+    });
+    const body = await readJson(res as any);
+
+    expect(body.buyBox.price).toBeNull();
+    expect(body.buyBox.currency).toBe("SAR");
+    expect(body.buyBox.inStock).toBe(true);
+    expect(body.buyBox.leadDays).toBe(1);
+  });
+
+  test("handles empty prices array by setting price null and default currency", async () => {
+    const doc = {
+      slug: "empty-prices",
+      prices: [],
+      inventories: [{ onHand: 1, leadDays: 4 }],
+    };
+    (MarketplaceProduct.findOne as any).mockResolvedValueOnce(doc);
+
+    const res = await GET(createMockRequest(), {
+      params: Promise.resolve({ slug: "empty-prices" }),
+    });
+    const body = await readJson(res as any);
+
+    expect(body.buyBox.price).toBeNull();
+    expect(body.buyBox.currency).toBe("SAR");
+    expect(body.buyBox.inStock).toBe(true);
+    expect(body.buyBox.leadDays).toBe(4);
+  });
+
+  test("computes inStock as false when onHand is 0 or falsy", async () => {
+    const doc = {
+      slug: "out-of-stock",
+      prices: [{ listPrice: 10, currency: "EUR" }],
+      inventories: [{ onHand: 0, leadDays: 7 }],
+    };
+    (MarketplaceProduct.findOne as any).mockResolvedValueOnce(doc);
+
+    const res = await GET(createMockRequest(), {
+      params: Promise.resolve({ slug: "out-of-stock" }),
+    });
+    const body = await readJson(res as any);
+
+    expect(body.buyBox.inStock).toBe(false);
+    expect(body.buyBox.leadDays).toBe(7);
+    expect(body.buyBox.currency).toBe("EUR");
+  });
+
+  test("defaults leadDays to 3 when inventories missing", async () => {
+    const doc = {
+      slug: "no-inventories",
+      prices: [{ listPrice: 99.99, currency: "GBP" }],
+      // inventories missing
+    };
+    (MarketplaceProduct.findOne as any).mockResolvedValueOnce(doc);
+
+    const res = await GET(createMockRequest(), {
+      params: Promise.resolve({ slug: "no-inventories" }),
+    });
+    const body = await readJson(res as any);
+
+    expect(body.buyBox.price).toBe(99.99);
+    expect(body.buyBox.currency).toBe("GBP");
+    expect(body.buyBox.inStock).toBe(false); // (0 || 0) > 0 => false
+    expect(body.buyBox.leadDays).toBe(3);
+  });
+
+  test("defaults leadDays to 3 when first inventory missing leadDays", async () => {
+    const doc = {
+      slug: "no-leaddays",
+      prices: [{ listPrice: 1.23, currency: "JPY" }],
+      inventories: [{ onHand: 2 /* leadDays missing */ }],
+    };
+    (MarketplaceProduct.findOne as any).mockResolvedValueOnce(doc);
+
+    const res = await GET(createMockRequest(), {
+      params: Promise.resolve({ slug: "no-leaddays" }),
+    });
+    const body = await readJson(res as any);
+
+    expect(body.buyBox.leadDays).toBe(3);
+    expect(body.buyBox.inStock).toBe(true);
+  });
+
+  test("handles errors from data layer by returning 500", async () => {
+    (MarketplaceProduct.findOne as any).mockRejectedValueOnce(
+      new Error("DB failure"),
+    );
+
+    const res = await GET(createMockRequest(), {
+      params: Promise.resolve({ slug: "boom" }),
+    });
+
+    expect(res.status).toBe(500);
+    await expect(readJson(res as any)).resolves.toEqual({
+      error: "Server error",
+    });
+  });
+
+  test("uses the provided slug param in the query", async () => {
+    const doc = { slug: "unique-slug", prices: [], inventories: [] };
+    (MarketplaceProduct.findOne as any).mockResolvedValueOnce(doc);
+
+    await GET(createMockRequest(), {
+      params: Promise.resolve({ slug: "unique-slug" }),
+    });
+
+    expect(MarketplaceProduct.findOne as any).toHaveBeenCalledWith({
+      tenantId,
+      slug: "unique-slug",
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/api/marketplace/search/route.test.ts">
+<![CDATA[
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { NextRequest } from "next/server";
+
+const jsonMock = vi.fn();
+const searchProductsMock = vi.fn();
+const resolveMarketplaceContextMock = vi.fn();
+const connectToDatabaseMock = vi.fn();
+const categoryFindOneLeanMock = vi.fn();
+const categoryFindLeanMock = vi.fn();
+const createSecureResponseMock = vi.fn();
+const zodValidationErrorMock = vi.fn();
+
+vi.mock("next/server", () => {
+  class MockNextRequest {
+    url: string;
+    nextUrl: URL;
+    headers: Headers;
+
+    constructor(url: string | URL) {
+      const normalized = new URL(
+        typeof url === "string" ? url : url.toString(),
+      );
+      this.url = normalized.toString();
+      this.nextUrl = normalized;
+      this.headers = new Headers();
+    }
+  }
+
+  return {
+    NextRequest: MockNextRequest,
+    NextResponse: {
+      json: (body: unknown, init?: ResponseInit) => {
+        jsonMock(body, init);
+        return { body, init };
+      },
+    },
+  };
+});
+
+vi.mock("@/lib/marketplace/context", () => ({
+  resolveMarketplaceContext: resolveMarketplaceContextMock,
+}));
+
+vi.mock("@/lib/marketplace/search", () => ({
+  searchProducts: searchProductsMock,
+}));
+
+vi.mock("@/lib/mongodb-unified", () => ({
+  connectToDatabase: connectToDatabaseMock,
+}));
+
+vi.mock("@/server/models/marketplace/Category", () => ({
+  __esModule: true,
+  default: {
+    findOne: (...args: unknown[]) => ({
+      lean: () => categoryFindOneLeanMock(...args),
+    }),
+    find: (...args: unknown[]) => ({
+      lean: () => categoryFindLeanMock(...args),
+    }),
+  },
+}));
+
+vi.mock("@/server/security/headers", () => ({
+  createSecureResponse: createSecureResponseMock,
+}));
+
+vi.mock("@/server/utils/errorResponses", () => ({
+  zodValidationError: zodValidationErrorMock,
+}));
+
+describe("GET /api/marketplace/search", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    resolveMarketplaceContextMock.mockResolvedValue({
+      orgId: "org-1",
+      tenantKey: "tenant-1",
+    });
+    connectToDatabaseMock.mockResolvedValue(undefined);
+    searchProductsMock.mockResolvedValue({
+      items: [{ id: "product-1" }],
+      pagination: { total: 1 },
+      facets: { brands: [], standards: [], categories: ["cat-1"] },
+    });
+    categoryFindOneLeanMock.mockResolvedValue(null);
+    categoryFindLeanMock.mockResolvedValue([
+      { _id: "cat-1", slug: "electronics", name: { en: "Electronics" } },
+    ]);
+    createSecureResponseMock.mockReturnValue({ status: 500 });
+  });
+
+  async function makeRequest(url: string): Promise<NextRequest> {
+    const mod = await import("next/server");
+    const RequestCtor = mod.NextRequest as new (url: string) => NextRequest;
+    return new RequestCtor(url) as NextRequest;
+  }
+
+  it("returns search results with pagination and facets", async () => {
+    const { GET } = await import("@/app/api/marketplace/search/route");
+    const req = await makeRequest(
+      "https://example.com/api/marketplace/search?q=phone&page=2&limit=12",
+    );
+
+    await GET(req);
+
+    expect(connectToDatabaseMock).toHaveBeenCalled();
+    expect(searchProductsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orgId: "org-1",
+        q: "phone",
+        limit: 12,
+        skip: 12,
+      }),
+    );
+    expect(categoryFindLeanMock).toHaveBeenCalledWith({
+      _id: { $in: ["cat-1"] },
+      orgId: "org-1",
+    });
+
+    expect(jsonMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ok: true,
+        data: {
+          items: [{ id: "product-1" }],
+          pagination: {
+            limit: 12,
+            page: 2,
+            total: 1,
+            pages: expect.any(Number),
+          },
+          facets: {
+            brands: [],
+            standards: [],
+            categories: [
+              {
+                slug: "electronics",
+                name: "Electronics",
+              },
+            ],
+          },
+        },
+      }),
+      undefined,
+    );
+  });
+
+  it("resolves category slug and passes ObjectId to searchProducts", async () => {
+    const { GET } = await import("@/app/api/marketplace/search/route");
+    categoryFindOneLeanMock.mockResolvedValue({ _id: "mongo-id" });
+
+    const req = await makeRequest(
+      "https://example.com/api/marketplace/search?q=watch&cat=smart-watches",
+    );
+
+    await GET(req);
+
+    expect(categoryFindOneLeanMock).toHaveBeenCalledWith({
+      orgId: "org-1",
+      slug: "smart-watches",
+    });
+    expect(searchProductsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        categoryId: "mongo-id",
+      }),
+    );
+  });
+
+  it("returns zod validation error when params invalid", async () => {
+    const { GET } = await import("@/app/api/marketplace/search/route");
+    zodValidationErrorMock.mockReturnValue("validation-error");
+
+    const req = await makeRequest(
+      "https://example.com/api/marketplace/search?limit=0",
+    );
+
+    const res = await GET(req);
+
+    expect(zodValidationErrorMock).toHaveBeenCalled();
+    expect(res).toBe("validation-error");
+    expect(jsonMock).not.toHaveBeenCalled();
+  });
+
+  it("handles unexpected failures with secure response", async () => {
+    const { GET } = await import("@/app/api/marketplace/search/route");
+    searchProductsMock.mockRejectedValue(new Error("boom"));
+    createSecureResponseMock.mockReturnValue({ status: 500 });
+
+    const req = await makeRequest(
+      "https://example.com/api/marketplace/search?q=boom",
+    );
+
+    const res = await GET(req);
+
+    expect(createSecureResponseMock).toHaveBeenCalledWith(
+      { error: "Search failed" },
+      500,
+      req,
+    );
+    expect(res).toEqual({ status: 500 });
+  });
+});
+
+]]>
+</file>
+
+</batch_content>

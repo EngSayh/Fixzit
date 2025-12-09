@@ -1,0 +1,3104 @@
+
+You are the "Fixzit Memory Builder" for category: "routes".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "routes",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="tests/api/jobs/process.test.ts">
+<![CDATA[
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { NextResponse } from 'next/server';
+
+const mockAuth = vi.fn();
+const mockClaimJob = vi.fn();
+const mockCompleteJob = vi.fn();
+const mockFailJob = vi.fn();
+const mockRetryStuckJobs = vi.fn();
+const mockGetStats = vi.fn();
+const mockDeleteObject = vi.fn();
+const mockSend = vi.fn();
+const mockSetApiKey = vi.fn();
+
+vi.mock('@/auth', () => ({
+  auth: mockAuth,
+}));
+
+vi.mock('@/lib/logger', () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+vi.mock('@/lib/jobs/queue', () => ({
+  JobQueue: {
+    claimJob: (...args: unknown[]) => mockClaimJob(...args),
+    completeJob: (...args: unknown[]) => mockCompleteJob(...args),
+    failJob: (...args: unknown[]) => mockFailJob(...args),
+    retryStuckJobs: (...args: unknown[]) => mockRetryStuckJobs(...args),
+    getStats: (...args: unknown[]) => mockGetStats(...args),
+  },
+}));
+
+vi.mock('@/lib/storage/s3', () => ({
+  deleteObject: (...args: unknown[]) => mockDeleteObject(...args),
+}));
+
+vi.mock('@/config/sendgrid.config', () => ({
+  getSendGridConfig: () => ({
+    apiKey: 'sendgrid-key',
+    from: { email: 'no-reply@test.local' },
+  }),
+}));
+
+vi.mock('@sendgrid/mail', () => ({
+  default: {
+    setApiKey: (...args: unknown[]) => mockSetApiKey(...args),
+    send: (...args: unknown[]) => mockSend(...args),
+  },
+}));
+
+const buildRequest = (body: Record<string, unknown>) =>
+  new Request('http://localhost/api/jobs/process', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+describe('/api/jobs/process POST', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAuth.mockResolvedValue({ user: { isSuperAdmin: true } });
+    mockClaimJob.mockReset();
+    mockDeleteObject.mockReset();
+    mockRetryStuckJobs.mockResolvedValue(0);
+    mockGetStats.mockResolvedValue({ queued: 0, processing: 0, completed: 0, failed: 0, total: 0 });
+    mockCompleteJob.mockResolvedValue(undefined);
+    mockFailJob.mockResolvedValue(undefined);
+    mockSend.mockResolvedValue(undefined);
+    mockSetApiKey.mockReturnValue(undefined);
+  });
+
+  it('processes s3-cleanup jobs and marks success', async () => {
+    const jobId = 'job-1';
+    mockClaimJob.mockResolvedValueOnce({
+      _id: { toString: () => jobId },
+      type: 's3-cleanup',
+      payload: { keys: ['a', 'b'] },
+    });
+    mockClaimJob.mockResolvedValueOnce(null);
+    mockDeleteObject.mockResolvedValue(undefined);
+
+    const { POST } = await import('@/app/api/jobs/process/route');
+
+    const res = await POST(buildRequest({ type: 's3-cleanup', maxJobs: 1 }));
+    const json = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(mockClaimJob).toHaveBeenCalled();
+    expect(json.processed.success).toBe(1);
+    expect(mockCompleteJob).toHaveBeenCalledWith(jobId);
+    expect(mockFailJob).not.toHaveBeenCalled();
+    expect(mockDeleteObject).toHaveBeenCalledTimes(2);
+  });
+
+  it('marks s3-cleanup job failed when deletion errors', async () => {
+    const jobId = 'job-2';
+    mockClaimJob
+      .mockImplementationOnce(async () => ({
+        _id: { toString: () => jobId },
+        type: 's3-cleanup',
+        payload: { keys: ['x'] },
+      }))
+      .mockImplementationOnce(async () => null);
+    mockDeleteObject.mockRejectedValueOnce(new Error('boom'));
+
+    const { POST } = await import('@/app/api/jobs/process/route');
+
+    const res = await POST(buildRequest({ type: 's3-cleanup', maxJobs: 1 }));
+    const json = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(mockClaimJob).toHaveBeenCalled();
+    expect(json.processed).toBeDefined();
+    expect(json.processed.failed).toBe(1);
+    expect(mockDeleteObject).toHaveBeenCalled();
+    expect(mockFailJob).toHaveBeenCalledWith(jobId, expect.stringContaining('Failed to delete'));
+    expect(mockCompleteJob).not.toHaveBeenCalled();
+  });
+
+  it('processes email invitations with jobId payload present', async () => {
+    const jobId = 'job-email-1';
+    mockClaimJob
+      .mockImplementationOnce(async () => ({
+        _id: { toString: () => jobId },
+        type: 'email-invitation',
+        payload: {
+          inviteId: 'inv-123',
+          email: 'user@test.local',
+          firstName: 'Test',
+          lastName: 'User',
+          role: 'ADMIN',
+        },
+      }))
+      .mockImplementationOnce(async () => null);
+
+    const { POST } = await import('@/app/api/jobs/process/route');
+
+    const res = await POST(buildRequest({ type: 'email-invitation', maxJobs: 1 }));
+    const json = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(mockClaimJob).toHaveBeenCalled();
+    expect(json.processed).toBeDefined();
+    expect(json.processed.success).toBe(1);
+    expect(mockSetApiKey).toHaveBeenCalledWith('sendgrid-key');
+    expect(mockSend).toHaveBeenCalled();
+    expect(mockCompleteJob).toHaveBeenCalledWith(jobId);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/api/lib-paytabs.test.ts">
+<![CDATA[
+/**
+ * Tests for PayTabs integration helpers.
+ * Testing framework: Vitest.
+ * If your project uses Vitest/Mocha, adapt describe/it/expect/mocking accordingly.
+ */
+
+import { vi, describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { resetAllCircuitBreakers } from '@/lib/resilience/service-circuit-breakers';
+
+ // We will dynamically import the module under test using a relative path guess.
+ // Update the import below to match your actual module path if different.
+ // Try common locations in order via require.resolve in a try/catch chain.
+interface PayTabsHelpers {
+  paytabsBase(region?: string): string;
+  createHppRequest(region: string, payload: unknown): Promise<unknown>;
+  createPaymentPage(request: Record<string, unknown>): Promise<unknown>;
+  verifyPayment(ref: string): Promise<unknown>;
+  validateCallbackRaw(body: string, signature: string | null): Promise<boolean>;
+  CURRENCIES?: unknown;
+  PAYMENT_METHODS?: unknown;
+}
+let lib: PayTabsHelpers;
+// Define the exact path to the PayTabs helpers module here.
+const PAYTABS_HELPERS_MODULE_PATH = '@/lib/paytabs'; // <-- Update this path as needed
+async function loadModule(): Promise<PayTabsHelpers> {
+  try {
+    const mod = await import(PAYTABS_HELPERS_MODULE_PATH);
+    return mod as PayTabsHelpers;
+  } catch (e) {
+    throw new Error(`Could not resolve module for PayTabs helpers at "${PAYTABS_HELPERS_MODULE_PATH}". Please adjust PAYTABS_HELPERS_MODULE_PATH in qa/tests/lib-paytabs.spec.ts`);
+  }
+}
+
+// Reset circuit breakers before each test to prevent state bleeding
+beforeEach(() => {
+  resetAllCircuitBreakers();
+});
+
+// Lazy-load once for all tests
+beforeAll(async () => {
+  lib = await loadModule();
+});
+
+// Helpers to stub global fetch and crypto.subtle
+type FetchResponse = {
+  ok?: boolean;
+  status?: number;
+  json: () => Promise<Record<string, unknown>>;
+};
+type FetchMock = ReturnType<typeof vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<FetchResponse>>>;
+const fetchMock: FetchMock = vi.fn();
+function mockFetchOnce(impl: Parameters<FetchMock>[0]) {
+  fetchMock.mockImplementationOnce(impl);
+  vi.stubGlobal('fetch', fetchMock);
+}
+
+function setEnv(obj: Record<string, string | undefined>) {
+  const backup: Record<string, string | undefined> = {};
+  for (const k of Object.keys(obj)) {
+    backup[k] = process.env[k];
+    if (typeof obj[k] === 'undefined') delete process.env[k];
+    else process.env[k] = obj[k] as string;
+  }
+  return () => {
+    for (const k of Object.keys(backup)) {
+      if (typeof backup[k] === 'undefined') delete process.env[k];
+      else process.env[k] = backup[k] as string;
+    }
+  };
+}
+
+describe('paytabsBase', () => {
+  it('returns base URL for known regions and falls back to GLOBAL', () => {
+    const { paytabsBase } = lib;
+    expect(paytabsBase('KSA')).toBe('https://secure.paytabs.sa');
+    expect(paytabsBase('UAE')).toBe('https://secure.paytabs.com');
+    expect(paytabsBase('EGYPT')).toBe('https://secure-egypt.paytabs.com');
+    expect(paytabsBase('OMAN')).toBe('https://secure-oman.paytabs.com');
+    expect(paytabsBase('JORDAN')).toBe('https://secure-jordan.paytabs.com');
+    expect(paytabsBase('KUWAIT')).toBe('https://secure-kuwait.paytabs.com');
+    expect(paytabsBase('GLOBAL')).toBe('https://secure-global.paytabs.com');
+    // edge: unknown region
+    expect(paytabsBase('NOPE')).toBe('https://secure-global.paytabs.com');
+    // default param
+    expect(paytabsBase()).toBe('https://secure-global.paytabs.com');
+  });
+});
+
+describe('createHppRequest', () => {
+  const restoreEnv = setEnv({ PAYTABS_SERVER_KEY: 'sv_key_123' });
+  afterAll(restoreEnv);
+
+  it('POSTs to region-specific endpoint with correct headers and body', async () => {
+    const { createHppRequest } = lib;
+    const payload = { a: 1, b: 'x' };
+
+    mockFetchOnce(async (input, init) => {
+      expect(String(input)).toBe('https://secure.paytabs.com/payment/request'); // UAE
+      expect(init?.method).toBe('POST');
+      expect(init?.headers).toMatchObject({
+        'Content-Type': 'application/json',
+        authorization: 'sv_key_123',
+      });
+      expect(init?.body).toBe(JSON.stringify(payload));
+      return { json: async () => ({ ok: true, echo: payload }) };
+    });
+
+    const res = await createHppRequest('UAE', payload);
+    expect(res).toEqual({ ok: true, echo: payload });
+  });
+
+  it('falls back to GLOBAL region when unknown', async () => {
+    const { createHppRequest } = lib;
+
+    mockFetchOnce(async (input, _init) => {
+      expect(String(input)).toBe('https://secure-global.paytabs.com/payment/request');
+      return { json: async () => ({ ok: true }) };
+    });
+
+    const res = await createHppRequest('UNKNOWN', {});
+    expect(res).toEqual({ ok: true });
+  });
+
+  it('uses PAYTABS_API_SERVER_KEY if PAYTABS_SERVER_KEY missing (indirect via headers variable)', async () => {
+    const restore = setEnv({ PAYTABS_SERVER_KEY: undefined, PAYTABS_API_SERVER_KEY: 'api_sv_key' });
+    try {
+      const { createHppRequest } = lib;
+
+      mockFetchOnce(async (_input, init) => {
+        expect(init?.headers).toMatchObject({ authorization: 'api_sv_key' });
+        return { json: async () => ({ ok: true }) };
+      });
+
+      await createHppRequest('GLOBAL', {});
+    } finally {
+      restore();
+    }
+  });
+});
+
+describe('createPaymentPage', () => {
+  const PAYTABS_CONFIG = {
+    baseUrl: 'https://api.example.com',
+    serverKey: 'sk_live_abc',
+    profileId: 'prof_123',
+  };
+
+  beforeEach(() => {
+    // Inject PAYTABS_CONFIG as a writable global/module var if present
+    // If the library reads PAYTABS_CONFIG from its own module scope, we need it to exist.
+    (globalThis as { PAYTABS_CONFIG?: typeof PAYTABS_CONFIG }).PAYTABS_CONFIG = PAYTABS_CONFIG;
+  });
+
+  it('returns success with url and transaction id when redirect_url present', async () => {
+    const { createPaymentPage } = lib;
+    const request = {
+      invoiceId: 'INV-1',
+      currency: 'SAR',
+      amount: 100.235, // should get fixed to 2 decimals
+      description: 'Order #1',
+      returnUrl: 'https://merchant/return',
+      callbackUrl: 'https://merchant/callback',
+      customerDetails: {
+        name: 'John',
+        email: 'john@example.com',
+        phone: '+966500000000',
+        address: 'Street 1',
+        city: 'Riyadh',
+        state: 'Riyadh',
+        country: 'SA',
+        zip: '12345',
+      },
+    };
+
+    mockFetchOnce(async (input, init) => {
+      expect(String(input)).toBe('https://api.example.com/payment/request');
+      expect(init?.method).toBe('POST');
+      expect(init?.headers).toMatchObject({
+        Authorization: 'sk_live_abc',
+        'Content-Type': 'application/json',
+      });
+      const sent = JSON.parse(String(init?.body));
+      expect(sent.profile_id).toBe('prof_123');
+      expect(sent.tran_type).toBe('sale');
+      expect(sent.tran_class).toBe('ecom');
+      expect(sent.cart_id).toBe('INV-1');
+      expect(sent.cart_currency).toBe('SAR');
+      expect(sent.cart_amount).toBe('100.24'); // rounded to 2 decimals
+      expect(sent.return).toBe('https://merchant/return');
+      expect(sent.callback).toBe('https://merchant/callback');
+      expect(sent.hide_shipping).toBe(true);
+      expect(sent.paypage_lang).toBe('ar');
+      return {
+        json: async () => ({ redirect_url: 'https://pt/redirect', tran_ref: 'T123' }),
+      };
+    });
+
+    const res = await createPaymentPage(request);
+    expect(res).toEqual({ success: true, paymentUrl: 'https://pt/redirect', transactionId: 'T123' });
+  });
+
+  it('generates cart_id when invoiceId is missing and handles failure without redirect_url', async () => {
+    const { createPaymentPage } = lib;
+    const request = {
+      currency: 'SAR',
+      amount: 50,
+      description: 'Order #2',
+      returnUrl: 'https://merchant/return',
+      callbackUrl: 'https://merchant/callback',
+      customerDetails: {
+        name: 'Jane',
+        email: 'jane@example.com',
+        phone: '+966500000001',
+        address: 'Street 2',
+        city: 'Jeddah',
+        state: 'Makkah',
+        country: 'SA',
+        zip: '54321',
+      },
+    };
+
+    mockFetchOnce(async (_input, _init) => {
+      return { json: async () => ({ message: 'Invalid profile' }) };
+    });
+
+    const res = await createPaymentPage(request);
+    expect(res).toEqual({ success: false, error: 'Invalid profile' });
+  });
+
+  it('returns generic error when fetch throws', async () => {
+    const { createPaymentPage } = lib as PayTabsHelpers;
+
+    // Throw error
+    // @ts-ignore
+    global.fetch = vi.fn(async () => {
+      throw new Error('Network down');
+    });
+
+    const res = await createPaymentPage({
+      currency: 'SAR',
+      amount: 10,
+      description: 'x',
+      returnUrl: 'https://merchant/return',
+      callbackUrl: 'https://merchant/callback',
+      customerDetails: {
+        name: 'X',
+        email: 'x@x.com',
+        phone: '0',
+        address: 'a',
+        city: 'c',
+        state: 's',
+        country: 'SA',
+        zip: 'z',
+      },
+    });
+
+    expect(res).toEqual({ success: false, error: 'Network down' });
+  });
+});
+
+describe('verifyPayment', () => {
+  const PAYTABS_CONFIG = {
+    baseUrl: 'https://api.example.com',
+    serverKey: 'sk_live_abc',
+    profileId: 'prof_123',
+  };
+
+  beforeEach(() => {
+    (global as any).PAYTABS_CONFIG = PAYTABS_CONFIG;
+  });
+
+  it('POSTs to query endpoint and returns parsed JSON', async () => {
+    const { verifyPayment } = lib as PayTabsHelpers;
+
+    mockFetchOnce(async (input, init) => {
+      expect(String(input)).toBe('https://api.example.com/payment/query');
+      expect(init?.method).toBe('POST');
+      expect(init?.headers).toMatchObject({
+        Authorization: 'sk_live_abc',
+        'Content-Type': 'application/json',
+      });
+      const body = JSON.parse(String(init?.body));
+      expect(body).toEqual({ profile_id: 'prof_123', tran_ref: 'TREF' });
+      return { json: async () => ({ status: 'A', tran_ref: 'TREF' }) };
+    });
+
+    const res = await verifyPayment('TREF');
+    expect(res).toEqual({ status: 'A', tran_ref: 'TREF' });
+  });
+
+  it('rethrows on fetch error', async () => {
+    const { verifyPayment } = lib as PayTabsHelpers;
+
+    // @ts-ignore
+    global.fetch = vi.fn(async () => {
+      throw new Error('timeout');
+    });
+
+    await expect(verifyPayment('X')).rejects.toThrow('timeout');
+  });
+});
+
+describe('validateCallbackRaw (HMAC SHA-256 verification)', () => {
+  let restoreEnv: (() => void) | undefined;
+  beforeAll(() => {
+    restoreEnv = setEnv({ PAYTABS_API_SERVER_KEY: 'server_key', PAYTABS_SERVER_KEY: undefined });
+  });
+  afterAll(() => {
+    restoreEnv?.();
+  });
+
+  // Minimal mock for WebCrypto subtle.sign producing deterministic bytes
+  function setCryptoMock(signatureBytes: Uint8Array) {
+    vi.stubGlobal('crypto', {
+      subtle: {
+        importKey: vi.fn(async () => ({} as CryptoKey)),
+        sign: vi.fn(async (_algo: string, _key: CryptoKey, _data: ArrayBuffer) => {
+          return signatureBytes.buffer as ArrayBuffer;
+        }),
+      } as unknown as SubtleCrypto,
+    });
+  }
+
+  it('returns false when server key missing or signature missing', async () => {
+    const { validateCallbackRaw } = lib as { validateCallbackRaw: (body: string, signature?: string) => Promise<boolean> };
+
+    // No server key
+    const restore = setEnv({ PAYTABS_API_SERVER_KEY: undefined, PAYTABS_SERVER_KEY: undefined });
+    expect(await validateCallbackRaw('body', 'aa')).toBe(false);
+    restore();
+
+    // No signature
+    expect(await validateCallbackRaw('body', undefined)).toBe(false);
+    expect(await validateCallbackRaw('body', null as any)).toBe(false);
+  });
+
+  it('returns true on exact signature match (constant-time compare)', async () => {
+    const { validateCallbackRaw } = lib as PayTabsHelpers;
+    // signature bytes -> hex "0a0b0c"
+    const bytes = new Uint8Array([0x0a, 0x0b, 0x0c]);
+    setCryptoMock(bytes);
+    // Expected hex string
+    const sigHex = '0a0b0c';
+    const ok = await validateCallbackRaw('raw-body', sigHex);
+    expect(ok).toBe(true);
+  });
+
+  it('returns false on length mismatch', async () => {
+    const { validateCallbackRaw } = lib as PayTabsHelpers;
+    const bytes = new Uint8Array([0xde, 0xad, 0xbe, 0xef]); // hex "deadbeef"
+    setCryptoMock(bytes);
+    const notSameLen = 'deadbee'; // one nibble short
+    const ok = await validateCallbackRaw('raw', notSameLen);
+    expect(ok).toBe(false);
+  });
+
+  it('returns false when any character differs', async () => {
+    const { validateCallbackRaw } = lib as PayTabsHelpers;
+    const bytes = new Uint8Array([0xaa, 0xbb]); // "aabb"
+    setCryptoMock(bytes);
+    expect(await validateCallbackRaw('raw', 'aaba')).toBe(false);
+  });
+
+  it('returns false on crypto error', async () => {
+    const { validateCallbackRaw } = lib as PayTabsHelpers;
+    // Force subtle.sign to throw
+    vi.stubGlobal('crypto', {
+      subtle: {
+        importKey: vi.fn(async () => ({} as CryptoKey)),
+        sign: vi.fn(async () => { throw new Error('subtle failed'); }),
+      } as any,
+    });
+    const res = await validateCallbackRaw('raw', '00');
+    expect(res).toBe(false);
+  });
+});
+
+describe('constants and helpers', () => {
+  it('PAYMENT_METHODS contains expected KSA methods', () => {
+    const { PAYMENT_METHODS } = lib;
+    expect(PAYMENT_METHODS).toMatchObject({
+      MADA: 'mada',
+      VISA: 'visa',
+      MASTERCARD: 'mastercard',
+      APPLE_PAY: 'applepay',
+      STC_PAY: 'stcpay',
+      TAMARA: 'tamara',
+      TABBY: 'tabby',
+    });
+  });
+
+  it('CURRENCIES includes SAR, USD, EUR, AED', () => {
+    const { CURRENCIES } = lib as PayTabsHelpers;
+    expect(CURRENCIES.SAR).toBe('SAR');
+    expect(CURRENCIES.USD).toBe('USD');
+    expect(CURRENCIES.EUR).toBe('EUR');
+    expect(CURRENCIES.AED).toBe('AED');
+  });
+
+  it('getAvailablePaymentMethods returns enabled list with expected shapes', () => {
+    const { getAvailablePaymentMethods, PAYMENT_METHODS } = lib as PayTabsHelpers;
+    const list = getAvailablePaymentMethods();
+    expect(Array.isArray(list)).toBe(true);
+    // ensure unique ids and all enabled
+    const ids = new Set<string>();
+    for (const m of list) {
+      expect(typeof m.id).toBe('string');
+      expect(typeof m.name).toBe('string');
+      expect(typeof m.icon).toBe('string');
+      expect(m.enabled).toBe(true);
+      ids.add(m.id);
+    }
+    expect(ids.has(PAYMENT_METHODS.MADA)).toBe(true);
+    expect(ids.has(PAYMENT_METHODS.VISA)).toBe(true);
+    expect(ids.has(PAYMENT_METHODS.MASTERCARD)).toBe(true);
+    expect(ids.has(PAYMENT_METHODS.APPLE_PAY)).toBe(true);
+    expect(ids.has(PAYMENT_METHODS.STC_PAY)).toBe(true);
+    expect(ids.has(PAYMENT_METHODS.TAMARA)).toBe(true);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/api/marketplace/products/route.test.ts">
+<![CDATA[
+import { describe, expect, it, vi, beforeEach } from 'vitest';
+import type { NextRequest } from 'next/server';
+import type { Mock } from 'vitest';
+
+vi.mock('next/server', () => {
+  return {
+    NextResponse: {
+      json: (body: ResponseBody, init?: ResponseInit): JsonResponse => ({
+        type: 'NextResponseMock',
+        status: init?.status ?? 200,
+        body
+      })
+    },
+    NextRequest: class {},
+  };
+});
+
+const mockFindOne: Mock = vi.fn();
+vi.mock('@/server/models/MarketplaceProduct', () => ({
+  MarketplaceProduct: {
+    findOne: (...args: unknown[]) => mockFindOne(...args),
+  },
+}));
+
+import { GET } from '@/app/api/marketplace/products/[slug]/route';
+
+type Context = {
+  params: { slug: string };
+};
+type ProductDoc = {
+  _id: string;
+  slug: string;
+  prices: { listPrice: number; currency: string }[];
+  inventories: { onHand: number; leadDays: number }[];
+};
+type ResponseBody =
+  | { ok: false; error: string }
+  | {
+      ok: true;
+      data: { product: ProductDoc };
+      product: ProductDoc;
+      buyBox: { price: number; currency: string; inStock: boolean; leadDays: number };
+    };
+type JsonResponse = { type: 'NextResponseMock'; status: number; body: ResponseBody };
+
+const callGET = async (slug: string): Promise<any> => {
+  const req = { headers: new Headers(), nextUrl: { protocol: 'https:' } } as unknown as NextRequest;
+  return await GET(req, { params: { slug } } as Context) as any;
+};
+
+describe('API GET /marketplace/products/[slug]', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    delete process.env.NEXT_PUBLIC_MARKETPLACE_TENANT;
+  });
+
+  it('returns 404 payload when product missing', async () => {
+    mockFindOne.mockReturnValueOnce({
+      lean: vi.fn().mockResolvedValue(null),
+    });
+
+    const res = await callGET('missing');
+    expect(mockFindOne).toHaveBeenCalledWith({
+      tenantId: 'demo-tenant',
+      slug: 'missing',
+    });
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ ok: false, error: 'Product not found' });
+  });
+
+  it('returns ok payload with computed buy box when product exists', async () => {
+    const doc = {
+      _id: 'abc',
+      slug: 'toy',
+      prices: [{ listPrice: 100, currency: 'USD' }],
+      inventories: [{ onHand: 5, leadDays: 4 }],
+    };
+    mockFindOne.mockReturnValueOnce({
+      lean: vi.fn().mockResolvedValue(doc),
+    });
+
+    const res = await callGET('toy');
+
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.data.product).toEqual(doc);
+    expect(res.body.product).toEqual(doc);
+    expect(res.body.buyBox).toEqual({
+      price: 100,
+      currency: 'USD',
+      inStock: true,
+      leadDays: 4,
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/api/marketplace/search.route.impl.ts">
+<![CDATA[
+import { NextResponse } from 'next/server';
+
+// Mockable Mongoose-like models exposed via globals for tests
+// In real app they'd be imported from '@/server/models/...'
+type SynonymDoc = { synonyms?: string[] } | null;
+type FindCall = [{ [key: string]: any }];
+type SortCall = Record<string, unknown>;
+
+declare global {
+  // Tracking and configuration hooks for tests
+  var __mp_find_calls__: FindCall[];
+  var __mp_sort_calls__: SortCall[];
+  var __mp_limit_calls__: number[];
+  var __mp_throw_on_lean__: boolean;
+  var __syn_findOne_queue__: { locale: string; term: string; result: SynonymDoc; throwError: boolean }[];
+}
+
+// Initialize globals if not present
+globalThis.__mp_find_calls__ ||= [];
+globalThis.__mp_sort_calls__ ||= [];
+globalThis.__mp_limit_calls__ ||= [];
+globalThis.__mp_throw_on_lean__ ||= false;
+globalThis.__syn_findOne_queue__ ||= [];
+
+// Simulated SearchSynonym model
+export const SearchSynonym = {
+  async findOne(query: { locale: string; term: string }) {
+    // Shift one queued behavior if matches; else return null
+    const idx = globalThis.__syn_findOne_queue__.findIndex(
+      (it) => it.locale === query.locale && it.term === query.term
+    );
+    if (idx >= 0) {
+      const item = globalThis.__syn_findOne_queue__.splice(idx, 1)[0];
+      if (item.throwError) throw new Error('synonym lookup failed');
+      return item.result;
+    }
+    return null;
+  },
+};
+
+// Simulated MarketplaceProduct model with chainable query
+export const MarketplaceProduct = {
+  find(filter: Record<string, unknown>) {
+    globalThis.__mp_find_calls__.push([filter]);
+    const chain = {
+      sort(sortArg: Record<string, unknown>) {
+        globalThis.__mp_sort_calls__.push(sortArg);
+        return chain2;
+      },
+    };
+    const chain2 = {
+      limit(n: number) {
+        globalThis.__mp_limit_calls__.push(n);
+        return chain3;
+      },
+    };
+    const chain3 = {
+      async lean() {
+        if (globalThis.__mp_throw_on_lean__) {
+          throw new Error('DB error');
+        }
+        return [{ _id: 'p1' }, { _id: 'p2' }];
+      },
+    };
+    return chain;
+  },
+};
+
+export async function GET(req: { url: string }) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const q = (searchParams.get('q') || '').trim();
+    const locale = (searchParams.get('locale') || 'en').toLowerCase();
+    const orgId = searchParams.get('orgId') || 'demo-org';
+
+    if (!q) return NextResponse.json({ items: [] });
+
+    // Expand with synonyms (best effort)
+    let terms = [q];
+    try {
+      const syn = await SearchSynonym.findOne({ locale, term: q.toLowerCase() });
+      if (syn && syn.synonyms?.length) terms = Array.from(new Set([q, ...syn.synonyms]));
+    } catch {}
+
+    const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const or = [
+      { $text: { $search: terms.join(' ') } },
+      { title: new RegExp(escapeRegex(q), 'i') },
+      { brand: new RegExp(escapeRegex(q), 'i') },
+    ];
+
+    const docs = await MarketplaceProduct
+      .find({ orgId, $or: or })
+      .sort({ updatedAt: -1 })
+      .limit(24)
+      .lean();
+
+    return NextResponse.json({ items: docs });
+  } catch (error) {
+    console.error('search error', error);
+    return NextResponse.json({ items: [] });
+  }
+}
+
+]]>
+</file>
+
+<file path="tests/api/marketplace/search.route.test.ts">
+<![CDATA[
+import { vi } from 'vitest';
+// Tests for GET handler in search route
+// Framework: Vitest (TypeScript)
+// These tests mock Mongoose-like models and Next.js Response behavior.
+
+import { GET } from '@/tests/api/marketplace/search.route.impl'; // Fallback: will be replaced below if path differs
+
+
+// We will dynamically rewire imports using jest.mock by referencing the same module path as the implementation.
+// Since we don't have the actual file path here, we will inline the implementation under test in a sibling file
+// and import it above. This ensures the tests remain deterministic in this environment.
+
+ 
+
+describe('GET /api/marketplace/search', () => {
+  const originalConsoleError = console.error;
+
+  beforeAll(() => {
+    // Silence expected error logs in error-path tests
+    console.error = vi.fn();
+  });
+
+  afterAll(() => {
+    console.error = originalConsoleError;
+  });
+
+  const makeReq = (q?: string, locale?: string, orgId?: string) => {
+    const params = new URLSearchParams();
+    if (q !== undefined) params.set('q', q);
+    if (locale !== undefined) params.set('locale', locale);
+    if (orgId !== undefined) params.set('orgId', orgId);
+    const qs = params.toString();
+    const url = `http://localhost/api/marketplace/search${qs ? '?' + qs : ''}`;
+    // The handler only uses req.url; a minimal shim suffices.
+    return { url };
+  };
+
+  it('returns empty items when q is missing', async () => {
+    const res = await GET(makeReq(undefined, 'en', 'demo-tenant'));
+    const json = await res.json();
+    expect(json).toEqual({ items: [] });
+  });
+
+  it('returns empty items when q is blank after trim', async () => {
+    const res = await GET(makeReq('   '));
+    const json = await res.json();
+    expect(json).toEqual({ items: [] });
+  });
+
+  it('queries products with default locale and tenant when only q is provided', async () => {
+    const res = await GET(makeReq('Laptop'));
+    const json = await res.json();
+
+    expect(globalThis.__mp_find_calls__.length).toBe(1);
+    const [filter] = globalThis.__mp_find_calls__[0];
+    expect(filter.orgId).toBe('demo-org');
+    expect(Array.isArray(filter.$or)).toBe(true);
+    expect(filter.$or).toHaveLength(3);
+    // $text search should equal original q when no synonyms
+    expect(filter.$or[0].$text.$search).toBe('Laptop');
+    // Regexes for title and brand are case-insensitive and source equals q
+    expect(filter.$or[1].title).toBeInstanceOf(RegExp);
+
+    expect(filter.$or[1].title.ignoreCase).toBe(true);
+
+    expect(filter.$or[1].title.source).toBe('Laptop');
+    expect(filter.$or[2].brand).toBeInstanceOf(RegExp);
+    expect(filter.$or[2].brand.ignoreCase).toBe(true);
+    expect(filter.$or[2].brand.source).toBe('Laptop');
+
+    // Default pagination and order honored, and mocked docs returned
+    expect(globalThis.__mp_sort_calls__).toEqual([{ updatedAt: -1 }]);
+    expect(globalThis.__mp_limit_calls__).toEqual([24]);
+    expect(json).toEqual({ items: [{ _id: 'p1' }, { _id: 'p2' }] });
+  });
+
+  it('uses provided locale and orgId from query params', async () => {
+    const res = await GET(makeReq('Phone', 'ES', 'tenant-123')); // locale should be lowercased
+    const json = await res.json();
+
+    expect(globalThis.__mp_find_calls__.length).toBeGreaterThan(0);
+    const [filter] = globalThis.__mp_find_calls__[globalThis.__mp_find_calls__.length - 1];
+    expect(filter.orgId).toBe('tenant-123');
+    expect(filter.$or[0].$text.$search).toBe('Phone');
+    expect(json.items).toEqual([{ _id: 'p1' }, { _id: 'p2' }]);
+  });
+
+  it('expands q with synonyms (best effort) when available', async () => {
+    // Configure synonym mock for this call
+    globalThis.__syn_findOne_queue__.push({
+      locale: 'en',
+      term: 'tablet',
+      result: { synonyms: ['slate', 'pad', 'tablet'] }, // includes original to test Set uniqueness
+      throwError: false,
+    });
+
+    const res = await GET(makeReq('tablet', 'en'));
+    const json = await res.json();
+
+    const [filter] = globalThis.__mp_find_calls__[globalThis.__mp_find_calls__.length - 1];
+    // Should include unique terms, original first is okay, order doesn't strictly matter,
+    // but $text string concatenates with space
+    expect(filter.$or[0].$text.$search).toBe('tablet slate pad');
+
+    expect(json.items).toEqual([{ _id: 'p1' }, { _id: 'p2' }]);
+  });
+
+  it('ignores synonym lookup errors (best effort) and still searches', async () => {
+    // Simulate error in synonym lookup
+    globalThis.__syn_findOne_queue__.push({
+      locale: 'en',
+      term: 'camera',
+      result: null,
+      throwError: true,
+    });
+
+    const res = await GET(makeReq('camera'));
+    const json = await res.json();
+
+    const [filter] = globalThis.__mp_find_calls__[globalThis.__mp_find_calls__.length - 1];
+    expect(filter.$or[0].$text.$search).toBe('camera');
+    expect(json.items).toEqual([{ _id: 'p1' }, { _id: 'p2' }]);
+  });
+
+  it('handles synonym document without synonyms array gracefully', async () => {
+    globalThis.__syn_findOne_queue__.push({
+      locale: 'en',
+      term: 'watch',
+      result: {}, // no synonyms
+      throwError: false,
+    });
+
+    const res = await GET(makeReq('watch'));
+    const json = await res.json();
+
+    const [filter] = globalThis.__mp_find_calls__[globalThis.__mp_find_calls__.length - 1];
+    expect(filter.$or[0].$text.$search).toBe('watch');
+    expect(json.items).toEqual([{ _id: 'p1' }, { _id: 'p2' }]);
+  });
+
+  it('returns [] when an unexpected error bubbles up from product query', async () => {
+    // Flip a flag to make the chained query throw
+    globalThis.__mp_throw_on_lean__ = true;
+
+    const res = await GET(makeReq('drone'));
+    const json = await res.json();
+
+    expect(json).toEqual({ items: [] });
+
+    // Reset flag
+    globalThis.__mp_throw_on_lean__ = false;
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/api/paytabs-callback.test.ts">
+<![CDATA[
+import type { NextRequest } from "next/server";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const mockDbConnect = vi.fn().mockResolvedValue(undefined);
+vi.mock("@/db/mongoose", () => ({
+  dbConnect: (...args: unknown[]) => mockDbConnect(...args),
+}));
+
+const mockNormalizePayload = vi.fn(() => ({
+  cartId: "C123",
+  tranRef: "T123",
+  respStatus: "A",
+}));
+const mockFinalizeTransaction = vi.fn(async () => ({ ok: true }));
+
+vi.mock("@/lib/finance/paytabs-subscription", () => ({
+  normalizePayTabsPayload: (...args: unknown[]) => mockNormalizePayload(...args),
+  finalizePayTabsTransaction: (...args: unknown[]) => mockFinalizeTransaction(...args),
+}));
+
+const mockValidateCallback = vi.fn(() => true);
+
+vi.mock("@/lib/paytabs", () => ({
+  validateCallback: (...args: unknown[]) => mockValidateCallback(...args),
+}));
+
+type JsonBody = Record<string, unknown>;
+const mockCreateSecureResponse = vi.fn(
+  (body: JsonBody, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { "content-type": "application/json" },
+    }),
+);
+const mockGetClientIP = vi.fn(() => "127.0.0.1");
+
+vi.mock("@/server/security/headers", () => ({
+  createSecureResponse: (...args: unknown[]) =>
+    mockCreateSecureResponse(...args),
+  getClientIP: (...args: unknown[]) => mockGetClientIP(...args),
+}));
+
+const mockRateLimit = vi.fn(() => ({ allowed: true }));
+const mockSmartRateLimit = vi.fn(async () => ({ allowed: true }));
+vi.mock("@/server/security/rateLimit", () => ({
+  rateLimit: (...args: unknown[]) => mockRateLimit(...args),
+  smartRateLimit: (...args: unknown[]) => mockSmartRateLimit(...args),
+}));
+
+const mockWithIdempotency = vi.fn(
+  async (_key: string, exec: () => Promise<unknown>) => exec(),
+);
+vi.mock("@/server/security/idempotency", async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    withIdempotency: (...args: unknown[]) => mockWithIdempotency(...args),
+  };
+});
+
+const mockRateLimitError = vi.fn(
+  () => new Response("rate limited", { status: 429 }),
+);
+const mockHandleApiError = vi.fn(
+  (error?: unknown) =>
+    new Response(
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "error",
+      }),
+      { status: 500 },
+    ),
+);
+
+vi.mock("@/server/utils/errorResponses", () => ({
+  rateLimitError: (...args: unknown[]) => mockRateLimitError(...args),
+  handleApiError: (...args: unknown[]) => mockHandleApiError(...args),
+}));
+
+import { POST } from "@/app/api/paytabs/callback/route";
+
+function makeRequest(
+  rawBody: string,
+  headers: Record<string, string> = {},
+): NextRequest {
+  return new Request("https://example.com/api/paytabs/callback", {
+    method: "POST",
+    body: rawBody,
+    headers: {
+      "content-type": "application/json",
+      ...headers,
+    },
+  }) as unknown as NextRequest;
+}
+
+describe("API PayTabs callback route", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockValidateCallback.mockReturnValue(true);
+    mockWithIdempotency.mockImplementation(
+      async (_key: string, exec: () => Promise<unknown>) => exec(),
+    );
+  });
+
+  it("returns 200 for valid signatures and persists results", async () => {
+    const payload = { cart_id: "C1", signature: "ignored" };
+    const req = makeRequest(JSON.stringify(payload), { signature: "good" });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    await res.json();
+
+    expect(mockValidateCallback).toHaveBeenCalledWith(payload, "good");
+    expect(mockNormalizePayload).toHaveBeenCalledWith(payload);
+    expect(mockFinalizeTransaction).toHaveBeenCalledWith({
+      cartId: "C123",
+      tranRef: "T123",
+      respStatus: "A",
+    });
+    expect(mockDbConnect).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns 403 for invalid signatures", async () => {
+    mockValidateCallback.mockReturnValueOnce(false);
+    const req = makeRequest(JSON.stringify({ cart_id: "C1" }), {
+      signature: "bad",
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body).toEqual({
+      error: "Payment verification failed: Invalid signature",
+    });
+  });
+
+  it("returns 400 when signature is missing entirely", async () => {
+    const req = makeRequest(JSON.stringify({ cart_id: "C1" }));
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body).toEqual({
+      error: "Payment verification failed: Missing signature",
+    });
+  });
+
+  it("returns 400 for malformed JSON before signature validation", async () => {
+    const req = makeRequest("{oops", { signature: "sig" });
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body).toEqual({
+      error: "Payment verification failed: Invalid JSON payload",
+    });
+    expect(mockValidateCallback).not.toHaveBeenCalled();
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/api/returns/refund-route.test.ts">
+<![CDATA[
+import { describe, it, expect, vi, beforeAll } from "vitest";
+import { NextResponse } from "next/server";
+
+const mockAuth = vi.fn();
+const mockGetRefundableAmount = vi.fn();
+const mockProcessRefund = vi.fn();
+const mockFireNotifications = vi.fn();
+const mockFindOne = vi.fn();
+
+vi.mock("@/auth", () => ({
+  auth: mockAuth,
+}));
+
+vi.mock("@/services/souq/returns-service", () => ({
+  returnsService: {
+    getRefundableAmount: mockGetRefundableAmount,
+    processRefund: mockProcessRefund,
+    fireNotifications: mockFireNotifications,
+  },
+}));
+
+vi.mock("@/server/models/souq/RMA", () => ({
+  SouqRMA: {
+    findOne: mockFindOne,
+  },
+}));
+
+describe("POST /api/souq/returns/refund", () => {
+  let postHandler: typeof import("@/app/api/souq/returns/refund/route").POST;
+
+  beforeAll(async () => {
+    ({ POST: postHandler } = await import("@/app/api/souq/returns/refund/route"));
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockFindOne.mockReturnValue({ lean: vi.fn().mockResolvedValue(null) });
+  });
+
+  it("returns 400 for invalid rmaId before hitting database", async () => {
+    mockAuth.mockResolvedValue({
+      user: { id: "user-1", role: "ADMIN", orgId: "org-1", isSuperAdmin: false },
+    });
+
+    const request = new Request("http://localhost/api/souq/returns/refund", {
+      method: "POST",
+      body: JSON.stringify({
+        rmaId: "not-an-objectid",
+        refundAmount: 100,
+        refundMethod: "wallet",
+      }),
+    });
+
+    const response = (await postHandler(request)) as NextResponse;
+    expect(response.status).toBe(400);
+    const data = await response.json();
+    expect(data.error).toMatch(/Invalid rmaId/i);
+    expect(mockFindOne).not.toHaveBeenCalled();
+    expect(mockProcessRefund).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when RMA not found in tenant scope (cross-org or missing)", async () => {
+    mockAuth.mockResolvedValue({
+      user: { id: "user-2", role: "SUPER_ADMIN", orgId: "org-a", isSuperAdmin: true },
+    });
+    mockFindOne.mockReturnValue({ lean: vi.fn().mockResolvedValue(null) });
+
+    const validId = "65a0d6f5e8b9c2a1d4f5e6a7";
+    const request = new Request("http://localhost/api/souq/returns/refund", {
+      method: "POST",
+      body: JSON.stringify({
+        rmaId: validId,
+        refundAmount: 50,
+        refundMethod: "wallet",
+      }),
+    });
+
+    const response = (await postHandler(request)) as NextResponse;
+    expect(response.status).toBe(404);
+    expect(mockFindOne).toHaveBeenCalled();
+    expect(mockProcessRefund).not.toHaveBeenCalled();
+  });
+
+  it("returns 500 when refund processing fails after RMA lookup", async () => {
+    mockAuth.mockResolvedValue({
+      user: { id: "user-3", role: "ADMIN", orgId: "org-1", isSuperAdmin: false },
+    });
+    mockFindOne.mockReturnValue({
+      lean: vi.fn().mockResolvedValue({
+        orgId: "org-1",
+        inspection: { condition: "good", restockable: true },
+      }),
+    });
+    mockGetRefundableAmount.mockResolvedValue(100);
+    mockProcessRefund.mockRejectedValue(new Error("payment error"));
+
+    const validId = "65a0d6f5e8b9c2a1d4f5e6a7";
+    const request = new Request("http://localhost/api/souq/returns/refund", {
+      method: "POST",
+      body: JSON.stringify({
+        rmaId: validId,
+        refundAmount: 50,
+        refundMethod: "wallet",
+      }),
+    });
+
+    const response = (await postHandler(request)) as NextResponse;
+    expect(response.status).toBe(500);
+    expect(mockFindOne).toHaveBeenCalled();
+    expect(mockGetRefundableAmount).toHaveBeenCalled();
+    expect(mockProcessRefund).toHaveBeenCalled();
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/api/rfqs/bids-invalid-id.test.ts">
+<![CDATA[
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { NextRequest } from "next/server";
+
+vi.mock("@/server/middleware/withAuthRbac", () => ({
+  getSessionUser: vi.fn(async () => ({
+    id: "507f1f77bcf86cd799439011",
+    orgId: "507f1f77bcf86cd799439011",
+  })),
+}));
+
+vi.mock("@/server/security/rateLimit", () => ({
+  smartRateLimit: vi.fn(async () => ({ allowed: true })),
+}));
+
+vi.mock("@/server/security/rateLimitKey", () => ({
+  buildOrgAwareRateLimitKey: vi.fn(() => "test-key"),
+}));
+
+vi.mock("@/lib/mongodb-unified", () => ({
+  connectToDatabase: vi.fn(async () => ({})),
+}));
+
+// RFQ model should never be hit for invalid ObjectId, but mock to be safe
+vi.mock("@/server/models/RFQ", () => ({
+  RFQ: {
+    findOne: vi.fn(() => {
+      throw new Error("RFQ.findOne should not be called for invalid id");
+    }),
+  },
+}));
+
+import { POST } from "@/app/api/rfqs/[id]/bids/route";
+
+describe("RFQ bids route - invalid id handling", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns 400 for an invalid RFQ id before hitting the database", async () => {
+    const body = {
+      amount: 100,
+      currency: "SAR",
+      validity: "30",
+      deliveryTime: 7,
+      paymentTerms: "Net 30",
+    };
+
+    // Minimal mock implementing the pieces the handler uses
+    const req = {
+      json: async () => body,
+      headers: new Headers(),
+      method: "POST",
+      url: "http://localhost/api/rfqs/invalid-id/bids",
+    } as unknown as NextRequest;
+
+    const res = await POST(req, { params: { id: "invalid-id" } });
+
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json).toEqual({ error: "Invalid RFQ id" });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/api/rfqs/publish-invalid-id.test.ts">
+<![CDATA[
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { NextRequest } from "next/server";
+
+vi.mock("@/server/middleware/withAuthRbac", () => ({
+  getSessionUser: vi.fn(async () => ({
+    id: "507f1f77bcf86cd799439011",
+    orgId: "507f1f77bcf86cd799439011",
+  })),
+  UnauthorizedError: class extends Error {},
+}));
+
+vi.mock("@/server/security/rateLimit", () => ({
+  smartRateLimit: vi.fn(async () => ({ allowed: true })),
+}));
+
+vi.mock("@/server/security/rateLimitKey", () => ({
+  buildOrgAwareRateLimitKey: vi.fn(() => "test-key"),
+}));
+
+vi.mock("@/lib/mongodb-unified", () => ({
+  connectToDatabase: vi.fn(async () => ({})),
+}));
+
+// RFQ model should not be hit for invalid ObjectId
+vi.mock("@/server/models/RFQ", () => ({
+  RFQ: {
+    findOneAndUpdate: vi.fn(() => {
+      throw new Error("RFQ.findOneAndUpdate should not be called for invalid id");
+    }),
+  },
+}));
+
+import { POST } from "@/app/api/rfqs/[id]/publish/route";
+
+describe("RFQ publish route - invalid id handling", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns 400 for an invalid RFQ id before hitting the database", async () => {
+    const req = {
+      headers: new Headers(),
+      method: "POST",
+      url: "http://localhost/api/rfqs/invalid-id/publish",
+    } as unknown as NextRequest;
+
+    const res = await POST(req, { params: Promise.resolve({ id: "invalid-id" }) });
+
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json).toEqual({ error: "Invalid RFQ id" });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/api/rfqs.guard.test.ts">
+<![CDATA[
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { NextRequest, NextResponse } from "next/server";
+import { Types } from "mongoose";
+
+vi.mock("@/lib/mongodb-unified", () => ({
+  connectToDatabase: vi.fn(),
+}));
+
+vi.mock("@/server/security/rateLimit", () => ({
+  smartRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
+}));
+
+vi.mock("@/server/security/rateLimitKey", () => ({
+  buildOrgAwareRateLimitKey: vi.fn(() => "org-scope-key"),
+}));
+
+vi.mock("@/server/utils/errorResponses", () => ({
+  rateLimitError: () => NextResponse.json({ error: "rate limited" }, { status: 429 }),
+  handleApiError: (error: unknown) => {
+    throw error;
+  },
+}));
+
+vi.mock("@/server/security/headers", () => ({
+  createSecureResponse: (body: unknown, status = 200) =>
+    NextResponse.json(body, { status }),
+}));
+
+class UnauthorizedErrorMock extends Error {}
+const getSessionUser = vi.fn();
+
+vi.mock("@/server/middleware/withAuthRbac", () => ({
+  getSessionUser,
+  UnauthorizedError: UnauthorizedErrorMock,
+}));
+
+const rfqModelMock = {
+  findOneAndUpdate: vi.fn(),
+  findOne: vi.fn().mockReturnThis(),
+  updateOne: vi.fn(),
+  lean: vi.fn(),
+  create: vi.fn(),
+  find: vi.fn(),
+  countDocuments: vi.fn(),
+};
+
+vi.mock("@/server/models/RFQ", () => ({
+  RFQ: rfqModelMock,
+}));
+
+const projectBidModelMock = {
+  countDocuments: vi.fn(),
+  findOne: vi.fn().mockReturnThis(),
+  lean: vi.fn().mockReturnThis(),
+  exec: vi.fn(),
+  create: vi.fn(),
+};
+
+vi.mock("@/server/models/ProjectBid", () => ({
+  ProjectBidModel: projectBidModelMock,
+}));
+
+describe("RFQ publish route RBAC", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns 401 when orgId is missing", async () => {
+    getSessionUser.mockResolvedValue({ id: "user-1" });
+    const { POST } = await import("@/app/api/rfqs/[id]/publish/route");
+    const req = new NextRequest("http://localhost/api/rfqs/1/publish", { method: "POST" });
+    const res = await POST(req, { params: { id: "507f191e810c19729de860ea" } });
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 403 for insufficient role", async () => {
+    getSessionUser.mockResolvedValue({ id: "user-1", orgId: "org-1", role: "viewer" });
+    const { POST } = await import("@/app/api/rfqs/[id]/publish/route");
+    const req = new NextRequest("http://localhost/api/rfqs/1/publish", { method: "POST" });
+    const res = await POST(req, { params: { id: "507f191e810c19729de860ea" } });
+    expect(res.status).toBe(403);
+  });
+
+  it("publishes when role allowed and RFQ found", async () => {
+    getSessionUser.mockResolvedValue({ id: "user-1", orgId: "org-1", role: "ADMIN" });
+    const now = new Date();
+    rfqModelMock.findOneAndUpdate.mockResolvedValue({
+      _id: "507f191e810c19729de860eb",
+      code: "RFQ-123",
+      status: "PUBLISHED",
+      workflow: { publishedAt: now },
+    });
+    const { POST } = await import("@/app/api/rfqs/[id]/publish/route");
+    const req = new NextRequest("http://localhost/api/rfqs/1/publish", { method: "POST" });
+    const res = await POST(req, { params: { id: "507f191e810c19729de860ea" } });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.success).toBe(true);
+    expect(body.rfq.status).toBe("PUBLISHED");
+  });
+});
+
+describe("RFQ create/list route guards", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const buildPostRequest = (body: unknown) =>
+    new NextRequest(
+      new Request("http://localhost/api/rfqs", {
+        method: "POST",
+        body: JSON.stringify(body),
+        headers: { "content-type": "application/json" },
+      }),
+    );
+
+  it("POST returns 401 when orgId is missing", async () => {
+    getSessionUser.mockResolvedValue({ id: "user-1" });
+    const { POST } = await import("@/app/api/rfqs/route");
+    const req = buildPostRequest({
+      title: "Test RFQ",
+      description: "Desc",
+      category: "Cat",
+      location: { city: "Riyadh" },
+      timeline: { bidDeadline: "2025-01-01", startDate: "2025-01-02", completionDate: "2025-02-01" },
+      budget: { estimated: 1000, currency: "SAR" },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(401);
+  });
+
+  it("POST creates RFQ for valid org/user", async () => {
+    getSessionUser.mockResolvedValue({ id: "user-1", orgId: "org-1" });
+    rfqModelMock.create.mockResolvedValue({
+      _id: "rfq-1",
+      orgId: "org-1",
+      title: "Test RFQ",
+      status: "DRAFT",
+    });
+    const { POST } = await import("@/app/api/rfqs/route");
+    const req = buildPostRequest({
+      title: "Test RFQ",
+      description: "Desc",
+      category: "Cat",
+      location: { city: "Riyadh" },
+      timeline: { bidDeadline: "2025-01-01", startDate: "2025-01-02", completionDate: "2025-02-01" },
+      budget: { estimated: 1000, currency: "SAR" },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.orgId).toBe("org-1");
+    expect(rfqModelMock.create).toHaveBeenCalled();
+  });
+
+  it("GET lists RFQs scoped by orgId", async () => {
+    getSessionUser.mockResolvedValue({ id: "user-1", orgId: "org-1" });
+    const items = [{ _id: "rfq-1", orgId: "org-1" }];
+    rfqModelMock.find.mockReturnValue({
+      sort: () => ({
+        skip: () => ({
+          limit: () => items,
+        }),
+      }),
+    });
+    rfqModelMock.countDocuments.mockResolvedValue(1);
+    const { GET } = await import("@/app/api/rfqs/route");
+    const req = new NextRequest("http://localhost/api/rfqs?page=1&limit=10", { method: "GET" });
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    expect(rfqModelMock.find).toHaveBeenCalledWith(
+      expect.objectContaining({ orgId: expect.objectContaining({ $in: expect.arrayContaining(["org-1"]) }) }),
+    );
+    expect(rfqModelMock.countDocuments).toHaveBeenCalledWith(
+      expect.objectContaining({ orgId: expect.objectContaining({ $in: expect.arrayContaining(["org-1"]) }) }),
+    );
+    const body = await res.json();
+    expect(body.items).toHaveLength(1);
+    expect(body.total).toBe(1);
+  });
+});
+
+describe("RFQ bids route RBAC and identity", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const buildRequest = (body: unknown) =>
+    new NextRequest(
+      new Request("http://localhost/api/rfqs/1/bids", {
+        method: "POST",
+        body: JSON.stringify(body),
+        headers: { "content-type": "application/json" },
+      }),
+    );
+
+  it("returns 401 when orgId is missing", async () => {
+    getSessionUser.mockResolvedValue({ id: "vendor-1" });
+    const { POST } = await import("@/app/api/rfqs/[id]/bids/route");
+    const req = buildRequest({ amount: 1000, currency: "SAR", validity: "30", deliveryTime: 7, paymentTerms: "NET30" });
+    const res = await POST(req, { params: { id: "507f191e810c19729de860ea" } });
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 403 for disallowed role", async () => {
+    getSessionUser.mockResolvedValue({ id: "vendor-1", orgId: "org-1", role: "ADMIN" });
+    const { POST } = await import("@/app/api/rfqs/[id]/bids/route");
+    const req = buildRequest({ amount: 1000, currency: "SAR", validity: "30", deliveryTime: 7, paymentTerms: "NET30" });
+    const res = await POST(req, { params: { id: "507f191e810c19729de860ea" } });
+    expect(res.status).toBe(403);
+  });
+
+  it("submits bid with session-derived vendor identity for allowed role", async () => {
+    getSessionUser.mockResolvedValue({ id: "507f191e810c19729de860ff", orgId: "org-1", role: "VENDOR", name: "Vendor A" });
+    rfqModelMock.findOne.mockReturnThis();
+    rfqModelMock.lean.mockResolvedValue({
+      _id: new Types.ObjectId("507f191e810c19729de860ea"),
+      orgId: "org-1",
+      status: "PUBLISHED",
+      bids: [],
+      bidding: { targetBids: 2 },
+      timeline: {},
+    });
+    projectBidModelMock.countDocuments.mockResolvedValue(0);
+    projectBidModelMock.exec.mockResolvedValue(null);
+    const bidId = new Types.ObjectId("507f191e810c19729de860ed");
+    projectBidModelMock.create.mockResolvedValue({
+      _id: bidId,
+      vendorName: "Vendor A",
+      submittedAt: new Date(),
+    });
+    rfqModelMock.updateOne.mockResolvedValue({ acknowledged: true });
+
+    const { POST } = await import("@/app/api/rfqs/[id]/bids/route");
+    const req = buildRequest({ amount: 1000, currency: "SAR", validity: "30", deliveryTime: 7, paymentTerms: "NET30" });
+    const res = await POST(req, { params: { id: "507f191e810c19729de860ea" } });
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.vendorId).toBe("507f191e810c19729de860ff");
+    expect(body.bidId).toBe(bidId.toString());
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/api/souq/ads-rbac.route.test.ts">
+<![CDATA[
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { NextRequest } from "next/server";
+
+const mockCreateCampaign = vi.fn();
+const mockListCampaigns = vi.fn();
+
+vi.mock("@/services/souq/ads/campaign-service", () => ({
+  CampaignService: {
+    createCampaign: (...args: unknown[]) => mockCreateCampaign(...args),
+    listCampaigns: (...args: unknown[]) => mockListCampaigns(...args),
+  },
+}));
+
+const mockAuth = vi.fn();
+vi.mock("@/auth", () => ({
+  auth: (...args: unknown[]) => mockAuth(...args),
+}));
+
+// Import routes after mocks
+import { POST as campaignsPOST, GET as campaignsGET } from "@/app/api/souq/ads/campaigns/route";
+
+const makeRequest = (url: string, method: string, body?: Record<string, unknown>): NextRequest =>
+  new Request(url, {
+    method,
+    headers: { "content-type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined,
+  }) as unknown as NextRequest;
+
+describe("Ads campaigns RBAC (STRICT v4.1)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockCreateCampaign.mockResolvedValue({ campaignId: "camp_1" });
+    mockListCampaigns.mockResolvedValue([]);
+  });
+
+  it("POST /campaigns forbids non-allowed roles", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "u1", orgId: "org1", role: "tenant" } });
+
+    const req = makeRequest("https://example.com/api/souq/ads/campaigns", "POST", {
+      name: "Test",
+      type: "sponsored_products",
+      dailyBudget: 10,
+      startDate: new Date().toISOString(),
+      biddingStrategy: "manual",
+      targeting: { type: "automatic" },
+      products: ["p1"],
+    });
+
+    const res = await campaignsPOST(req);
+    expect(res.status).toBe(403);
+    expect(mockCreateCampaign).not.toHaveBeenCalled();
+  });
+
+  it("POST /campaigns allows vendor role", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "u1", orgId: "org1", role: "VENDOR" } });
+
+    const req = makeRequest("https://example.com/api/souq/ads/campaigns", "POST", {
+      name: "Test",
+      type: "sponsored_products",
+      dailyBudget: 10,
+      startDate: new Date().toISOString(),
+      biddingStrategy: "manual",
+      targeting: { type: "automatic" },
+      products: ["p1"],
+    });
+
+    const res = await campaignsPOST(req);
+    expect(res.status).toBe(200);
+    expect(mockCreateCampaign).toHaveBeenCalledWith(
+      expect.objectContaining({ orgId: "org1", sellerId: "u1" }),
+    );
+  });
+
+  it("GET /campaigns forbids non-allowed roles", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "u1", orgId: "org1", role: "tenant" } });
+
+    const req = makeRequest("https://example.com/api/souq/ads/campaigns", "GET");
+    const res = await campaignsGET(req);
+    expect(res.status).toBe(403);
+    expect(mockListCampaigns).not.toHaveBeenCalled();
+  });
+
+  it("GET /campaigns allows vendor role", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "u1", orgId: "org1", role: "VENDOR" } });
+
+    const req = makeRequest("https://example.com/api/souq/ads/campaigns", "GET");
+    const res = await campaignsGET(req);
+    expect(res.status).toBe(200);
+    expect(mockListCampaigns).toHaveBeenCalledWith("u1", "org1", { status: undefined, type: undefined });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/api/souq/claims-org-scope.route.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import type { NextRequest } from "next/server";
+import { ObjectId } from "mongodb";
+import { COLLECTIONS } from "@/lib/db/collections";
+
+const mockGetClaim = vi.fn();
+const mockFileAppeal = vi.fn();
+const mockAddSellerResponse = vi.fn();
+
+vi.mock("@/services/souq/claims/claim-service", () => ({
+  ClaimService: {
+    getClaim: (...args: unknown[]) => mockGetClaim(...args),
+    fileAppeal: (...args: unknown[]) => mockFileAppeal(...args),
+    addSellerResponse: (...args: unknown[]) => mockAddSellerResponse(...args),
+  },
+}));
+
+const mockResolveSession = vi.fn();
+vi.mock("@/lib/auth/request-session", () => ({
+  resolveRequestSession: (...args: unknown[]) => mockResolveSession(...args),
+}));
+
+const updateOneMock = vi.fn();
+const claimsCollection = { updateOne: (...args: unknown[]) => updateOneMock(...args) };
+const ordersCollection = { findOne: vi.fn() };
+const usersCollection = { findOne: vi.fn() };
+
+vi.mock("@/lib/mongodb-unified", () => ({
+  getDatabase: () => ({
+    collection: (name: string) => {
+      if (name === COLLECTIONS.CLAIMS) return claimsCollection;
+      if (name === COLLECTIONS.ORDERS) return ordersCollection;
+      if (name === COLLECTIONS.USERS) return usersCollection;
+      return { findOne: vi.fn(), updateOne: vi.fn() };
+    },
+  }),
+}));
+
+// Import routes under test after mocks
+import { POST as appealPOST } from "@/app/api/souq/claims/[id]/appeal/route";
+import { POST as responsePOST } from "@/app/api/souq/claims/[id]/response/route";
+import { POST as decisionPOST } from "@/app/api/souq/claims/[id]/decision/route";
+
+const makeRequest = (url: string, method: string, body: Record<string, unknown>): NextRequest =>
+  new Request(url, {
+    method,
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  }) as unknown as NextRequest;
+
+describe("Claims routes - org scoping enforcement", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    updateOneMock.mockReset();
+    ordersCollection.findOne.mockReset();
+    usersCollection.findOne.mockReset();
+    mockResolveSession.mockReturnValue({
+      user: { id: "user-1", orgId: "org-1", role: "ADMIN" },
+    });
+  });
+
+  it("appeal route uses orgId when filing appeal", async () => {
+    mockGetClaim.mockResolvedValue({
+      claimId: "C1",
+      buyerId: "user-1",
+      sellerId: "seller-1",
+      status: "resolved",
+      decision: { decidedAt: new Date().toISOString() },
+    });
+    mockFileAppeal.mockResolvedValue(undefined);
+
+    const req = makeRequest(
+      "https://example.com/api/souq/claims/123/appeal",
+      "POST",
+      { reasoning: "Need reconsideration" },
+    );
+
+    const res = await appealPOST(req, { params: { id: "123" } });
+    expect(res.status).toBe(200);
+    expect(mockFileAppeal).toHaveBeenCalledWith(
+      "123",
+      "org-1",
+      "buyer",
+      "Need reconsideration",
+      expect.any(Array),
+      expect.objectContaining({ allowOrgless: true }),
+    );
+  });
+
+  it("seller response update is scoped to org filter", async () => {
+    mockGetClaim.mockResolvedValue({
+      claimId: "C2",
+      sellerId: "user-1",
+      buyerId: "buyer-1",
+      status: "pending_seller_response",
+    });
+    mockAddSellerResponse.mockResolvedValue(undefined);
+    const req = makeRequest(
+      "https://example.com/api/souq/claims/456/response",
+      "POST",
+      { action: "accept", message: "Will refund" },
+    );
+
+    const res = await responsePOST(req, { params: { id: "456" } });
+    expect(res.status).toBe(200);
+    // Verify addSellerResponse was called with orgId for tenant isolation
+    expect(mockAddSellerResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        claimId: "456",
+        orgId: "org-1",
+        sellerId: "user-1",
+      }),
+    );
+  });
+
+  it("decision route enforces org scoping for order lookup and claim access", async () => {
+    const orgObjectId = new ObjectId("6566c5b6e51fbe1b2f000001");
+    mockResolveSession.mockReturnValue({
+      user: { id: "admin-1", orgId: orgObjectId.toString(), role: "ADMIN" },
+    });
+    usersCollection.findOne.mockResolvedValue({ role: "ADMIN" });
+    mockGetClaim.mockResolvedValue({
+      claimId: "C3",
+      orderId: "order-1",
+      buyerId: "buyer-1",
+      sellerId: "seller-1",
+      status: "pending_review",
+      refundAmount: 50,
+    });
+    ordersCollection.findOne.mockResolvedValue({
+      _id: "order-1",
+      orgId: orgObjectId,
+      pricing: { total: 100 },
+    });
+    updateOneMock.mockResolvedValue(undefined);
+
+    const req = makeRequest(
+      "https://example.com/api/souq/claims/789/decision",
+      "POST",
+      { decision: "approve", reasoning: "Valid", refundAmount: 50 },
+    );
+
+    const res = await decisionPOST(req, { params: { id: "789" } });
+    expect(res.status).toBe(200);
+    expect(mockGetClaim).toHaveBeenCalledWith("789", orgObjectId.toString(), true);
+    const orderFilter = ordersCollection.findOne.mock.calls[0]?.[0];
+    expect(orderFilter).toMatchObject({
+      orgId: expect.any(ObjectId),
+    });
+    const updateFilter = updateOneMock.mock.calls[0]?.[0];
+    // In test mode, allowOrgless=true wraps the filter in $or pattern
+    // The claim filter includes $or with orgId match + orgId.$exists:false for orgless claims
+    expect(updateFilter).toHaveProperty("claimId", "789");
+    expect(updateFilter).toHaveProperty("$or");
+    // Verify the $or pattern includes org scoping
+    const orClauses = updateFilter.$or as Array<{ orgId?: unknown }>;
+    const hasOrgIdClause = orClauses.some(
+      (clause) => clause.orgId && typeof clause.orgId === "object"
+    );
+    expect(hasOrgIdClause).toBe(true);
+  });
+
+  it("decision route blocks cross-tenant decision when order is not in org", async () => {
+    const orgObjectId = new ObjectId("6566c5b6e51fbe1b2f000002");
+    mockResolveSession.mockReturnValue({
+      user: { id: "admin-1", orgId: orgObjectId.toString(), role: "ADMIN" },
+    });
+    usersCollection.findOne.mockResolvedValue({ role: "ADMIN" });
+    mockGetClaim.mockResolvedValue({
+      claimId: "C4",
+      orderId: "order-x",
+      buyerId: "buyer-2",
+      sellerId: "seller-2",
+      status: "pending_review",
+      refundAmount: 25,
+    });
+    ordersCollection.findOne.mockResolvedValue(null); // No order in this org
+    updateOneMock.mockResolvedValue(undefined);
+
+    const req = makeRequest(
+      "https://example.com/api/souq/claims/999/decision",
+      "POST",
+      { decision: "approve", reasoning: "Invalid item", refundAmount: 25 },
+    );
+
+    const res = await decisionPOST(req, { params: { id: "999" } });
+    // 🔐 STRICT v4.1: Return 404 (not 403) to prevent info leakage about resources in other orgs
+    expect(res.status).toBe(404);
+    expect(updateOneMock).not.toHaveBeenCalled();
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/api/souq/claims.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import { MongoClient, ObjectId } from "mongodb";
+import type { Db } from "mongodb";
+
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
+/**
+ * Claims API Test Suite
+ *
+ * Tests the Souq marketplace claims system including:
+ * - Claim creation and validation
+ * - Evidence upload and management
+ * - Seller response workflow
+ * - Admin decision making
+ * - Appeal process
+ * - Fraud detection
+ * - Partial refunds
+ * - Deadline enforcement
+ *
+ * Coverage Target: 90% (from 40%)
+ */
+
+describe("Claims API - Core Functionality", () => {
+  let db: Db;
+  let client: MongoClient;
+  let testOrderId: ObjectId;
+  let testBuyerId: ObjectId;
+  let testSellerId: ObjectId;
+  let testClaimId: ObjectId;
+  let testOrgId: ObjectId;
+
+  beforeAll(async () => {
+    const uri =
+      process.env.MONGODB_URI || "mongodb://localhost:27017/fixzit-test";
+    client = new MongoClient(uri);
+    await client.connect();
+    db = client.db();
+  });
+
+  afterAll(async () => {
+    await client.close();
+  });
+
+  beforeEach(async () => {
+    // Clean up test data
+    await db.collection("claims").deleteMany({ testData: true });
+    await db.collection("orders").deleteMany({ testData: true });
+    await db.collection("users").deleteMany({ testData: true });
+    testOrgId = new ObjectId();
+    const buyerCode = new ObjectId().toHexString();
+    const sellerCode = new ObjectId().toHexString();
+
+    // Create test users
+    const buyerResult = await db.collection("users").insertOne({
+      email: "buyer@test.com",
+      role: "tenant",
+      orgId: testOrgId,
+      code: buyerCode,
+      username: "buyer_user",
+      testData: true,
+      createdAt: new Date(),
+    });
+    testBuyerId = buyerResult.insertedId;
+
+    const sellerResult = await db.collection("users").insertOne({
+      email: "seller@test.com",
+      role: "vendor",
+      orgId: testOrgId,
+      code: sellerCode,
+      username: "seller_user",
+      testData: true,
+      createdAt: new Date(),
+    });
+    testSellerId = sellerResult.insertedId;
+
+    // Create test order with orgId for multi-tenant isolation
+    const orderResult = await db.collection("orders").insertOne({
+      buyerId: testBuyerId,
+      sellerId: testSellerId,
+      orgId: testOrgId,
+      items: [
+        {
+          productId: new ObjectId(),
+          name: "Test Product",
+          quantity: 1,
+          price: 100,
+          total: 100,
+        },
+      ],
+      total: 100,
+      status: "delivered",
+      deliveredAt: new Date(),
+      testData: true,
+      createdAt: new Date(),
+    });
+    testOrderId = orderResult.insertedId;
+  });
+
+  describe("POST /api/souq/claims - Create Claim", () => {
+    it("should create a claim with valid data", async () => {
+      const claim = {
+        orderId: testOrderId.toString(),
+        reason: "product_not_as_described",
+        description: "The product color was different from the listing",
+        requestedAmount: 100,
+        requestType: "refund",
+      };
+
+      const response = await fetch("http://localhost:3000/api/souq/claims", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
+        },
+        body: JSON.stringify(claim),
+      });
+
+      expect(response.status).toBe(201);
+      const data = await response.json();
+      expect(data).toHaveProperty("claimId");
+      expect(data.status).toBe("pending_review");
+
+      testClaimId = new ObjectId(data.claimId);
+    });
+
+    it("should reject claim with missing required fields", async () => {
+      const claim = {
+        orderId: testOrderId.toString(),
+        // Missing reason
+        description: "Test description",
+      };
+
+      const response = await fetch("http://localhost:3000/api/souq/claims", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
+        },
+        body: JSON.stringify(claim),
+      });
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain("reason");
+    });
+
+    it("should reject claim after deadline (30 days)", async () => {
+      // Update order to be delivered 31 days ago
+      await db.collection("orders").updateOne(
+        { _id: testOrderId },
+        {
+          $set: {
+            deliveredAt: new Date(Date.now() - 31 * 24 * 60 * 60 * 1000),
+          },
+        },
+      );
+
+      const claim = {
+        orderId: testOrderId.toString(),
+        reason: "product_defective",
+        description: "Product stopped working",
+        requestedAmount: 100,
+        requestType: "refund",
+      };
+
+      const response = await fetch("http://localhost:3000/api/souq/claims", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
+        },
+        body: JSON.stringify(claim),
+      });
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain("deadline");
+    });
+
+    it("should reject duplicate claim for same order", async () => {
+      // Create first claim
+      await db.collection("claims").insertOne({
+        orderId: testOrderId,
+        buyerId: testBuyerId,
+        sellerId: testSellerId,
+        orgId: testOrgId,
+        status: "pending_review",
+        reason: "product_defective",
+        testData: true,
+        createdAt: new Date(),
+      });
+
+      const claim = {
+        orderId: testOrderId.toString(),
+        reason: "product_not_as_described",
+        description: "Different issue",
+        requestedAmount: 50,
+        requestType: "partial_refund",
+      };
+
+      const response = await fetch("http://localhost:3000/api/souq/claims", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
+        },
+        body: JSON.stringify(claim),
+      });
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain("existing claim");
+    });
+
+    it("should validate requested amount does not exceed order total", async () => {
+      const claim = {
+        orderId: testOrderId.toString(),
+        reason: "product_defective",
+        description: "Product not working",
+        requestedAmount: 150, // Order total is 100
+        requestType: "refund",
+      };
+
+      const response = await fetch("http://localhost:3000/api/souq/claims", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
+        },
+        body: JSON.stringify(claim),
+      });
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain("exceeds order total");
+    });
+  });
+
+  describe("POST /api/souq/claims/[id]/evidence - Upload Evidence", () => {
+    beforeEach(async () => {
+      const claimResult = await db.collection("claims").insertOne({
+        orderId: testOrderId,
+        buyerId: testBuyerId,
+        sellerId: testSellerId,
+        orgId: testOrgId,
+        status: "pending_review",
+        reason: "product_defective",
+        description: "Test claim",
+        requestedAmount: 100,
+        evidence: [],
+        testData: true,
+        createdAt: new Date(),
+      });
+      testClaimId = claimResult.insertedId;
+    });
+
+    it("should accept valid image evidence", async () => {
+      const formData = new FormData();
+      const blob = new Blob(["fake image data"], { type: "image/jpeg" });
+      formData.append("file", blob, "evidence.jpg");
+      formData.append("description", "Photo of defective product");
+
+      const response = await fetch(
+        `http://localhost:3000/api/souq/claims/${testClaimId.toString()}/evidence`,
+        {
+          method: "POST",
+          headers: {
+            "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
+          },
+          body: formData,
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.evidence).toHaveLength(1);
+      expect(data.evidence[0]).toHaveProperty("url");
+      expect(data.evidence[0].type).toBe("image");
+    });
+
+    it("should reject evidence file over size limit (10MB)", async () => {
+      const formData = new FormData();
+      // Create 11MB blob
+      const largeBlob = new Blob([new ArrayBuffer(11 * 1024 * 1024)], {
+        type: "image/jpeg",
+      });
+      formData.append("file", largeBlob, "large.jpg");
+
+      const response = await fetch(
+        `http://localhost:3000/api/souq/claims/${testClaimId.toString()}/evidence`,
+        {
+          method: "POST",
+          headers: {
+            "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
+          },
+          body: formData,
+        },
+      );
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain("size");
+    });
+
+    it("should reject invalid file types", async () => {
+      const formData = new FormData();
+      const blob = new Blob(["fake executable"], {
+        type: "application/x-executable",
+      });
+      formData.append("file", blob, "virus.exe");
+
+      const response = await fetch(
+        `http://localhost:3000/api/souq/claims/${testClaimId.toString()}/evidence`,
+        {
+          method: "POST",
+          headers: {
+            "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
+          },
+          body: formData,
+        },
+      );
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain("file type");
+    });
+
+    it("should enforce maximum evidence count (10 files)", async () => {
+      // Add 10 evidence files
+      await db.collection("claims").updateOne(
+        { _id: testClaimId },
+        {
+          $set: {
+            evidence: Array(10)
+              .fill(null)
+              .map((_, i) => ({
+                type: "image",
+                url: `https://storage.example.com/evidence${i}.jpg`,
+                uploadedAt: new Date(),
+              })),
+          },
+        },
+      );
+
+      const formData = new FormData();
+      const blob = new Blob(["fake image"], { type: "image/jpeg" });
+      formData.append("file", blob, "extra.jpg");
+
+      const response = await fetch(
+        `http://localhost:3000/api/souq/claims/${testClaimId.toString()}/evidence`,
+        {
+          method: "POST",
+          headers: {
+            "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
+          },
+          body: formData,
+        },
+      );
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain("maximum");
+    });
+  });
+
+  describe("POST /api/souq/claims/[id]/response - Seller Response", () => {
+    beforeEach(async () => {
+      const claimResult = await db.collection("claims").insertOne({
+        orderId: testOrderId,
+        buyerId: testBuyerId,
+        sellerId: testSellerId,
+        orgId: testOrgId,
+        status: "pending_seller_response",
+        reason: "product_defective",
+        description: "Test claim",
+        requestedAmount: 100,
+        evidence: [],
+        testData: true,
+        createdAt: new Date(),
+      });
+      testClaimId = claimResult.insertedId;
+    });
+
+    it("should accept seller acceptance of claim", async () => {
+      const response = await fetch(
+        `http://localhost:3000/api/souq/claims/${testClaimId.toString()}/response`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": testSellerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
+          },
+          body: JSON.stringify({
+            action: "accept",
+            message: "We apologize for the inconvenience",
+          }),
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.status).toBe("approved");
+
+      // Verify in database
+      const claim = await db.collection("claims").findOne({ _id: testClaimId });
+      expect(claim?.sellerResponse).toBeDefined();
+      expect(claim?.sellerResponse.action).toBe("accept");
+    });
+
+    it("should accept seller dispute with counter-evidence", async () => {
+      const response = await fetch(
+        `http://localhost:3000/api/souq/claims/${testClaimId.toString()}/response`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": testSellerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
+          },
+          body: JSON.stringify({
+            action: "dispute",
+            message: "Product was delivered in perfect condition",
+            counterEvidence: [
+              {
+                type: "image",
+                url: "https://storage.example.com/delivery-proof.jpg",
+                description: "Delivery photo showing intact package",
+              },
+            ],
+          }),
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.status).toBe("under_review");
+      expect(data.sellerResponse.counterEvidence).toHaveLength(1);
+    });
+
+    it("should reject response after deadline (5 days)", async () => {
+      // Update claim to be 6 days old
+      await db.collection("claims").updateOne(
+        { _id: testClaimId },
+        {
+          $set: {
+            createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000),
+          },
+        },
+      );
+
+      const response = await fetch(
+        `http://localhost:3000/api/souq/claims/${testClaimId.toString()}/response`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": testSellerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
+          },
+          body: JSON.stringify({
+            action: "dispute",
+            message: "Too late",
+          }),
+        },
+      );
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain("deadline");
+    });
+
+    // 🔐 SECURITY: Returns 404 instead of 403 to prevent cross-tenant existence leaks
+    it("should reject response from non-seller with 404 (prevents existence leak)", async () => {
+      const response = await fetch(
+        `http://localhost:3000/api/souq/claims/${testClaimId.toString()}/response`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(), // Wrong user
+          },
+          body: JSON.stringify({
+            action: "accept",
+            message: "Not authorized",
+          }),
+        },
+      );
+
+      expect(response.status).toBe(404);
+    });
+  });
+
+  describe("POST /api/souq/claims/[id]/decision - Admin Decision", () => {
+    let adminId: ObjectId;
+
+    beforeEach(async () => {
+      const adminResult = await db.collection("users").insertOne({
+        email: `admin@${EMAIL_DOMAIN}`,
+        // 🔒 SECURITY FIX: Use standard role name from UserRole enum (SUPER_ADMIN not SUPERADMIN)
+        role: "SUPER_ADMIN",
+        orgId: testOrgId,
+        testData: true,
+      });
+      adminId = adminResult.insertedId;
+
+      const claimResult = await db.collection("claims").insertOne({
+        orderId: testOrderId,
+        buyerId: testBuyerId,
+        sellerId: testSellerId,
+        orgId: testOrgId,
+        status: "under_review",
+        reason: "product_defective",
+        description: "Test claim",
+        requestedAmount: 100,
+        sellerResponse: {
+          action: "dispute",
+          message: "Seller disputes",
+          respondedAt: new Date(),
+        },
+        testData: true,
+        createdAt: new Date(),
+      });
+      testClaimId = claimResult.insertedId;
+    });
+
+    it("should approve claim with full refund", async () => {
+      const response = await fetch(
+        `http://localhost:3000/api/souq/claims/${testClaimId.toString()}/decision`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": adminId.toString(),
+            "x-user-role": "SUPER_ADMIN",
+            "x-user-org-id": testOrgId.toString(),
+          },
+          body: JSON.stringify({
+            decision: "approve",
+            refundAmount: 100,
+            reasoning: "Buyer evidence is compelling",
+          }),
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.status).toBe("approved");
+      expect(data.refundAmount).toBe(100);
+    });
+
+    it("should approve claim with partial refund", async () => {
+      const response = await fetch(
+        `http://localhost:3000/api/souq/claims/${testClaimId.toString()}/decision`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": adminId.toString(),
+            "x-user-role": "SUPER_ADMIN",
+            "x-user-org-id": testOrgId.toString(),
+          },
+          body: JSON.stringify({
+            decision: "approve",
+            refundAmount: 50, // Partial refund
+            reasoning: "Product has some value despite defect",
+          }),
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.status).toBe("approved");
+      expect(data.refundAmount).toBe(50);
+    });
+
+    it("should reject claim in favor of seller", async () => {
+      const response = await fetch(
+        `http://localhost:3000/api/souq/claims/${testClaimId.toString()}/decision`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": adminId.toString(),
+            "x-user-role": "SUPER_ADMIN",
+            "x-user-org-id": testOrgId.toString(),
+          },
+          body: JSON.stringify({
+            decision: "reject",
+            reasoning: "Seller provided proof of proper delivery",
+          }),
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.status).toBe("rejected");
+      expect(data.refundAmount).toBe(0);
+    });
+
+    it("should reject decision from non-admin", async () => {
+      const response = await fetch(
+        `http://localhost:3000/api/souq/claims/${testClaimId.toString()}/decision`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
+          },
+          body: JSON.stringify({
+            decision: "approve",
+            refundAmount: 100,
+          }),
+        },
+      );
+
+      // 🔐 STRICT v4.1: Non-admin gets 404 (not 403) to prevent info leakage about claims they can't access
+      expect(response.status).toBe(404);
+    });
+
+    it("should calculate seller protection eligibility", async () => {
+      // Create claim where seller should be protected
+      await db.collection("claims").updateOne(
+        { _id: testClaimId },
+        {
+          $set: {
+            sellerResponse: {
+              action: "dispute",
+              message: "Valid dispute",
+              counterEvidence: [
+                { type: "tracking", url: "tracking-proof" },
+                { type: "signature", url: "signature-proof" },
+              ],
+              respondedAt: new Date(),
+            },
+          },
+        },
+      );
+
+      const response = await fetch(
+        `http://localhost:3000/api/souq/claims/${testClaimId.toString()}/decision`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": adminId.toString(),
+            "x-user-role": "SUPER_ADMIN",
+            "x-user-org-id": testOrgId.toString(),
+          },
+          body: JSON.stringify({
+            decision: "reject",
+            reasoning: "Seller meets protection criteria",
+          }),
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.sellerProtected).toBe(true);
+    });
+  });
+
+  describe("POST /api/souq/claims/[id]/appeal - Appeal Process", () => {
+    beforeEach(async () => {
+      const claimResult = await db.collection("claims").insertOne({
+        orderId: testOrderId,
+        buyerId: testBuyerId,
+        sellerId: testSellerId,
+        orgId: testOrgId,
+        status: "rejected",
+        reason: "product_defective",
+        description: "Test claim",
+        requestedAmount: 100,
+        decision: {
+          outcome: "reject",
+          reasoning: "Insufficient evidence",
+          decidedAt: new Date(),
+          decidedBy: new ObjectId(),
+        },
+        testData: true,
+        createdAt: new Date(),
+      });
+      testClaimId = claimResult.insertedId;
+    });
+
+    it("should accept appeal with new evidence", async () => {
+      const response = await fetch(
+        `http://localhost:3000/api/souq/claims/${testClaimId.toString()}/appeal`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
+          },
+          body: JSON.stringify({
+            reasoning: "New evidence discovered",
+            additionalEvidence: [
+              {
+                type: "video",
+                url: "https://storage.example.com/defect-video.mp4",
+                description: "Video showing product defect",
+              },
+            ],
+          }),
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.status).toBe("under_appeal");
+      expect(data.appeal).toBeDefined();
+    });
+
+    it("should reject appeal after deadline (7 days)", async () => {
+      // Update decision to be 8 days old
+      await db.collection("claims").updateOne(
+        { _id: testClaimId },
+        {
+          $set: {
+            "decision.decidedAt": new Date(
+              Date.now() - 8 * 24 * 60 * 60 * 1000,
+            ),
+          },
+        },
+      );
+
+      const response = await fetch(
+        `http://localhost:3000/api/souq/claims/${testClaimId.toString()}/appeal`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
+          },
+          body: JSON.stringify({
+            reasoning: "Too late",
+          }),
+        },
+      );
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain("appeal deadline");
+    });
+
+    it("should reject duplicate appeal", async () => {
+      // Add existing appeal
+      await db.collection("claims").updateOne(
+        { _id: testClaimId },
+        {
+          $set: {
+            status: "under_appeal",
+            appeal: {
+              reasoning: "First appeal",
+              submittedAt: new Date(),
+            },
+          },
+        },
+      );
+
+      const response = await fetch(
+        `http://localhost:3000/api/souq/claims/${testClaimId.toString()}/appeal`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
+          },
+          body: JSON.stringify({
+            reasoning: "Second appeal",
+          }),
+        },
+      );
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain("already appealed");
+    });
+  });
+
+  describe("Fraud Detection Workflow", () => {
+    it("should flag suspicious claim patterns", async () => {
+      // Create multiple claims from same buyer
+      for (let i = 0; i < 5; i++) {
+        const order = await db.collection("orders").insertOne({
+          buyerId: testBuyerId,
+          sellerId: new ObjectId(),
+          orgId: testOrgId,
+          total: 100,
+          status: "delivered",
+          testData: true,
+        });
+
+        await db.collection("claims").insertOne({
+          orderId: order.insertedId,
+          buyerId: testBuyerId,
+          sellerId: new ObjectId(),
+          orgId: testOrgId,
+          status: "pending_review",
+          reason: "product_defective",
+          testData: true,
+          createdAt: new Date(),
+        });
+      }
+
+      const claim = {
+        orderId: testOrderId.toString(),
+        reason: "product_defective",
+        description: "Yet another defective product",
+        requestedAmount: 100,
+        requestType: "refund",
+      };
+
+      const response = await fetch("http://localhost:3000/api/souq/claims", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
+        },
+        body: JSON.stringify(claim),
+      });
+
+      expect(response.status).toBe(201);
+      const data = await response.json();
+      expect(data.fraudRisk).toBe("high");
+      expect(data.requiresManualReview).toBe(true);
+    });
+
+    it("should detect high-value claim patterns", async () => {
+      // Create expensive order
+      await db
+        .collection("orders")
+        .updateOne({ _id: testOrderId }, { $set: { total: 5000 } });
+
+      const claim = {
+        orderId: testOrderId.toString(),
+        reason: "product_not_received",
+        description: "Package never arrived",
+        requestedAmount: 5000,
+        requestType: "refund",
+      };
+
+      const response = await fetch("http://localhost:3000/api/souq/claims", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
+        },
+        body: JSON.stringify(claim),
+      });
+
+      expect(response.status).toBe(201);
+      const data = await response.json();
+      expect(data.requiresEnhancedVerification).toBe(true);
+    });
+  });
+
+  describe("GET /api/souq/claims - List Claims", () => {
+    beforeEach(async () => {
+      // Create multiple test claims
+      await db.collection("claims").insertMany([
+        {
+          orderId: testOrderId,
+          buyerId: testBuyerId,
+          sellerId: testSellerId,
+          orgId: testOrgId,
+          status: "pending_review",
+          reason: "product_defective",
+          createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+          testData: true,
+        },
+        {
+          orderId: new ObjectId(),
+          buyerId: testBuyerId,
+          sellerId: testSellerId,
+          orgId: testOrgId,
+          status: "approved",
+          reason: "wrong_item",
+          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+          testData: true,
+        },
+        {
+          orderId: new ObjectId(),
+          buyerId: testBuyerId,
+          sellerId: testSellerId,
+          orgId: testOrgId,
+          status: "rejected",
+          reason: "product_not_as_described",
+          createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+          testData: true,
+        },
+      ]);
+    });
+
+    it("should list claims for buyer", async () => {
+      const response = await fetch(
+        `http://localhost:3000/api/souq/claims?userId=${testBuyerId.toString()}`,
+        {
+          headers: {
+            "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
+          },
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.claims).toHaveLength(3);
+    });
+
+    it("should filter claims by status", async () => {
+      const response = await fetch(
+        `http://localhost:3000/api/souq/claims?userId=${testBuyerId.toString()}&status=approved`,
+        {
+          headers: {
+            "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
+          },
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.claims).toHaveLength(1);
+      expect(data.claims[0].status).toBe("approved");
+    });
+
+    it("should paginate results", async () => {
+      const response = await fetch(
+        `http://localhost:3000/api/souq/claims?userId=${testBuyerId.toString()}&page=1&limit=2`,
+        {
+          headers: {
+            "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
+          },
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.claims).toHaveLength(2);
+      expect(data.pagination).toHaveProperty("total");
+      expect(data.pagination).toHaveProperty("pages");
+    });
+  });
+
+  describe("GET /api/souq/claims/[id] - Get Claim Details", () => {
+    beforeEach(async () => {
+      const claimResult = await db.collection("claims").insertOne({
+        orderId: testOrderId,
+        buyerId: testBuyerId,
+        sellerId: testSellerId,
+        orgId: testOrgId,
+        status: "under_review",
+        reason: "product_defective",
+        description: "Detailed test claim",
+        requestedAmount: 100,
+        evidence: [
+          {
+            type: "image",
+            url: "https://storage.example.com/evidence1.jpg",
+            uploadedAt: new Date(),
+          },
+        ],
+        timeline: [
+          { event: "created", timestamp: new Date(), by: testBuyerId },
+          {
+            event: "evidence_uploaded",
+            timestamp: new Date(),
+            by: testBuyerId,
+          },
+        ],
+        testData: true,
+        createdAt: new Date(),
+      });
+      testClaimId = claimResult.insertedId;
+    });
+
+    it("should return complete claim details", async () => {
+      const response = await fetch(
+        `http://localhost:3000/api/souq/claims/${testClaimId.toString()}`,
+        {
+          headers: {
+            "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
+          },
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data._id).toBe(testClaimId.toString());
+      expect(data.evidence).toHaveLength(1);
+      expect(data.timeline).toHaveLength(2);
+    });
+
+    it("should populate order and user details", async () => {
+      const response = await fetch(
+        `http://localhost:3000/api/souq/claims/${testClaimId.toString()}?populate=order,buyer,seller`,
+        {
+          headers: {
+            "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
+          },
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.order).toBeDefined();
+      expect(data.buyer).toBeDefined();
+      expect(data.seller).toBeDefined();
+    });
+
+    it("should restrict access to authorized users", async () => {
+      const unauthorizedId = new ObjectId();
+
+      const response = await fetch(
+        `http://localhost:3000/api/souq/claims/${testClaimId.toString()}`,
+        {
+          headers: {
+            "x-user-id": unauthorizedId.toString(),
+            "x-user-org-id": testOrgId.toString(),
+          },
+        },
+      );
+
+      // Claim found but user is not buyer/seller - returns 403 Forbidden
+      expect(response.status).toBe(403);
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/api/souq/repricer/routes.test.ts">
+<![CDATA[
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { NextRequest } from "next/server";
+
+// Mocks
+const authMock = vi.hoisted(() => vi.fn());
+const findOneMock = vi.hoisted(() => vi.fn());
+const getSettingsMock = vi.hoisted(() => vi.fn());
+const enableMock = vi.hoisted(() => vi.fn());
+const disableMock = vi.hoisted(() => vi.fn());
+const repriceMock = vi.hoisted(() => vi.fn());
+
+vi.mock("@/auth", () => ({
+  auth: authMock,
+}));
+
+vi.mock("@/server/models/souq/Seller", () => ({
+  SouqSeller: {
+    findOne: (...args: unknown[]) => ({
+      lean: () => findOneMock(...args),
+    }),
+  },
+}));
+
+vi.mock("@/services/souq/auto-repricer-service", () => ({
+  AutoRepricerService: {
+    getRepricerSettings: getSettingsMock,
+    enableAutoRepricer: enableMock,
+    disableAutoRepricer: disableMock,
+    repriceSeller: repriceMock,
+  },
+}));
+
+let settingsHandler: typeof import("@/app/api/souq/repricer/settings/route").GET;
+let settingsPostHandler: typeof import("@/app/api/souq/repricer/settings/route").POST;
+let settingsDeleteHandler: typeof import("@/app/api/souq/repricer/settings/route").DELETE;
+let runHandler: typeof import("@/app/api/souq/repricer/run/route").POST;
+
+describe("repricer routes seller resolution", () => {
+  beforeEach(async () => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    ({ GET: settingsHandler, POST: settingsPostHandler, DELETE: settingsDeleteHandler } =
+      await import("@/app/api/souq/repricer/settings/route"));
+    ({ POST: runHandler } = await import("@/app/api/souq/repricer/run/route"));
+  });
+
+  it("returns 404 when seller not found (settings GET)", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1", orgId: "org-1" } });
+    findOneMock.mockResolvedValue(null);
+
+    const req = new NextRequest("http://localhost/api/souq/repricer/settings", {
+      method: "GET",
+    });
+    const res = await settingsHandler(req);
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 404 when seller not found (settings POST)", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1", orgId: "org-1" } });
+    findOneMock.mockResolvedValue(null);
+
+    const req = new NextRequest("http://localhost/api/souq/repricer/settings", {
+      method: "POST",
+      body: JSON.stringify({ settings: { enabled: true, rules: {} } }),
+    });
+    const res = await settingsPostHandler(req);
+    expect(res.status).toBe(404);
+    expect(enableMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when seller not found (settings DELETE)", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1", orgId: "org-1" } });
+    findOneMock.mockResolvedValue(null);
+
+    const req = new NextRequest("http://localhost/api/souq/repricer/settings", {
+      method: "DELETE",
+    });
+    const res = await settingsDeleteHandler(req);
+    expect(res.status).toBe(404);
+    expect(disableMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when seller not found (run POST)", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1", orgId: "org-1" } });
+    findOneMock.mockResolvedValue(null);
+
+    const req = new NextRequest("http://localhost/api/souq/repricer/run", {
+      method: "POST",
+    });
+    const res = await runHandler(req);
+    expect(res.status).toBe(404);
+    expect(repriceMock).not.toHaveBeenCalled();
+  });
+
+  it("calls service when seller exists", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1", orgId: "org-1" } });
+    findOneMock.mockResolvedValue({ _id: "seller-1" });
+    getSettingsMock.mockResolvedValue({ enabled: true });
+
+    const req = new NextRequest("http://localhost/api/souq/repricer/settings", {
+      method: "GET",
+    });
+    const res = await settingsHandler(req);
+    expect(res.status).toBe(200);
+    expect(getSettingsMock).toHaveBeenCalledWith("seller-1", "org-1");
+  });
+});
+
+]]>
+</file>
+
+</batch_content>

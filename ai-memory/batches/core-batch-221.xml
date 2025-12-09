@@ -1,0 +1,3472 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="lib/http/fetchWithAuth.ts">
+<![CDATA[
+import { logger } from "@/lib/logger";
+
+/**
+ * fetchWithAuth: wraps fetch to automatically attempt a token refresh on 401/419.
+ * Assumes backend issues httpOnly cookies (fxz.access/fxz.refresh) and /api/auth/refresh rotates them.
+ */
+export async function fetchWithAuth(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+): Promise<Response> {
+  const doFetch = async () =>
+    fetch(input, {
+      ...init,
+      credentials: "include",
+    });
+
+  let response = await doFetch();
+  if (response.status !== 401 && response.status !== 419) {
+    return response;
+  }
+
+  try {
+    const refresh = await fetch("/api/auth/refresh", {
+      method: "POST",
+      credentials: "include",
+    });
+    if (!refresh.ok) {
+      return response;
+    }
+    response = await doFetch();
+  } catch (error) {
+    logger.warn("[fetchWithAuth] refresh failed", { error });
+  }
+  return response;
+}
+
+]]>
+</file>
+
+<file path="lib/http/fetchWithRetry.ts">
+<![CDATA[
+import { logger } from "@/lib/logger";
+import { createTimeoutSignal } from "@/lib/resilience";
+import type { CircuitBreaker } from "@/lib/resilience";
+
+type FetchTarget = Parameters<typeof fetch>[0];
+type FetchInit = NonNullable<Parameters<typeof fetch>[1]>;
+
+export type FetchRetryContext = {
+  attempt: number;
+  maxAttempts: number;
+  response?: Response;
+  error?: Error;
+};
+
+export type FetchWithRetryOptions = {
+  timeoutMs?: number;
+  maxAttempts?: number;
+  retryDelayMs?: number;
+  backoffFactor?: number;
+  jitterRatio?: number;
+  shouldRetry?: (_context: FetchRetryContext) => boolean;
+  onAttempt?: (_context: FetchRetryContext) => void;
+  label?: string;
+  circuitBreaker?: CircuitBreaker;
+};
+
+const defaultShouldRetry = (context: FetchRetryContext): boolean => {
+  if (context.error) {
+    return true;
+  }
+  const status = context.response?.status ?? 0;
+  return status >= 500 || status === 429;
+};
+
+export async function fetchWithRetry(
+  input: FetchTarget,
+  init: FetchInit = {},
+  options: FetchWithRetryOptions = {},
+): Promise<Response> {
+  const {
+    timeoutMs = Number(process.env.PAYMENT_TIMEOUT_MS) || 15_000,
+    maxAttempts = Number(process.env.PAYMENT_MAX_RETRIES) || 1,
+    retryDelayMs = 1_000,
+    backoffFactor = 2,
+    jitterRatio = 0.2,
+    shouldRetry = defaultShouldRetry,
+    onAttempt,
+    label,
+    circuitBreaker,
+  } = options;
+
+  if (maxAttempts < 1) {
+    throw new Error("maxAttempts must be at least 1");
+  }
+
+  let attempt = 0;
+  let delayMs = retryDelayMs;
+  let lastError: Error | undefined;
+  let lastResponse: Response | undefined;
+
+  while (attempt < maxAttempts) {
+    attempt += 1;
+    if (init.signal?.aborted) {
+      throw init.signal.reason ?? new Error("Aborted before fetch started");
+    }
+
+    const timeout = createTimeoutSignal({
+      timeoutMs,
+      signal: init.signal ?? undefined,
+      reason: `Fetch timeout (${timeoutMs}ms) exceeded`,
+    });
+    const timeoutSignal: AbortSignal | undefined = timeout.signal || undefined;
+
+    try {
+      const exec = () =>
+        fetch(input, {
+          ...init,
+          signal: timeoutSignal || undefined,
+        });
+
+      const response = circuitBreaker
+        ? await circuitBreaker.run(exec)
+        : await exec();
+
+      lastResponse = response;
+      const context: FetchRetryContext = { attempt, maxAttempts, response };
+      onAttempt?.(context);
+
+      if (!shouldRetry(context) || attempt === maxAttempts) {
+        return response;
+      }
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      const err = error instanceof Error ? error : new Error(String(error));
+      lastError = err;
+      const context: FetchRetryContext = { attempt, maxAttempts, error: err };
+      onAttempt?.(context);
+
+      if (attempt === maxAttempts || !shouldRetry(context)) {
+        throw err;
+      }
+
+      logger.warn("[fetchWithRetry] transient failure", {
+        label,
+        attempt,
+        maxAttempts,
+        error: err.message,
+      });
+    } finally {
+      timeout.dispose();
+    }
+
+    const jitter = delayMs * jitterRatio * Math.random();
+    const waitTime = delayMs + jitter;
+    await new Promise((resolve) => setTimeout(resolve, waitTime));
+    delayMs *= backoffFactor;
+  }
+
+  if (lastResponse) {
+    return lastResponse;
+  }
+
+  throw lastError ?? new Error("fetchWithRetry failed without response");
+}
+
+]]>
+</file>
+
+<file path="lib/http/installFetchInterceptor.ts">
+<![CDATA[
+import { logger } from "@/lib/logger";
+
+let installed = false;
+
+/**
+ * Installs a global fetch interceptor on the client that retries once after
+ * refreshing auth cookies (via /api/auth/refresh) when a 401/419 is received.
+ * Safe to call multiple times; only installs once. Same-origin requests only.
+ */
+export const installFetchInterceptor = () => {
+  if (typeof window === "undefined" || installed) return;
+  const originalFetch = window.fetch.bind(window);
+
+  const isSameOrigin = (input: RequestInfo | URL) => {
+    const url =
+      typeof input === "string"
+        ? input
+        : typeof Request !== "undefined" && input instanceof Request
+          ? input.url
+          : input instanceof URL
+            ? input.toString()
+            : input?.toString?.() || "";
+    if (!url) return false;
+    return url.startsWith("/") || url.startsWith(window.location.origin);
+  };
+
+  window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (!isSameOrigin(input)) {
+      return originalFetch(input, init);
+    }
+
+    const doFetch = () =>
+      originalFetch(input, {
+        ...init,
+        credentials: init?.credentials ?? "include",
+      });
+
+    let response = await doFetch();
+    if (response.status !== 401 && response.status !== 419) {
+      return response;
+    }
+
+    try {
+      const refresh = await originalFetch("/api/auth/refresh", {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!refresh.ok) {
+        return response;
+      }
+      response = await doFetch();
+    } catch (error) {
+      logger.warn("[fetchInterceptor] refresh failed", { error });
+    }
+    return response;
+  };
+
+  installed = true;
+  logger.info("[fetchInterceptor] installed global auth interceptor");
+};
+
+]]>
+</file>
+
+<file path="lib/i18n/server.ts">
+<![CDATA[
+import { cookies, headers } from "next/headers";
+import { findLanguageByCode } from "@/config/language-options";
+import { NextRequest } from "next/server";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import type {
+  SupportedTranslationLocale,
+  TranslationDictionary,
+} from "@/i18n/dictionaries/types";
+import { logger } from "@/lib/logger";
+import { APP_DEFAULTS } from "@/config/constants";
+
+type TranslationValues = Record<string, string | number>;
+
+type TFn = (
+  _key: string,
+  _fallback?: string,
+  _values?: TranslationValues,
+) => string;
+
+const interpolate = (text: string, values?: TranslationValues) => {
+  if (!values) return text;
+  return text.replace(/{{\s*(\w+)\s*}}/g, (_, token) => {
+    const value = values[token.trim()];
+    return value === undefined ? "" : String(value);
+  });
+};
+
+const RTL_LANGUAGES: SupportedTranslationLocale[] = ["ar"];
+
+const SUPPORTED_LOCALES: SupportedTranslationLocale[] = ["en", "ar"];
+
+const NORMALIZE_MAP: Record<string, SupportedTranslationLocale> = {
+  ar: "ar",
+  "ar-sa": "ar",
+  "ar-sa-": "ar",
+  en: "en",
+  "en-gb": "en",
+  "en-us": "en",
+};
+
+export type ServerI18nResult = {
+  t: TFn;
+  isRTL: boolean;
+  locale: SupportedTranslationLocale;
+};
+
+/**
+ * Minimal server-side i18n helper.
+ * - Reads language cookie written by client code (fxz.lang / fxz.locale)
+ * - Exposes `t` backed by generated dictionaries (avoids bundling the giant context)
+ * - Provides RTL + locale metadata so layouts can set <html lang/dir> on first paint
+ */
+export async function getServerI18n(): Promise<ServerI18nResult> {
+  try {
+    const cookieStore = await cookies();
+    const headerStore = await headers();
+
+    const cookieLocale =
+      cookieStore.get("fxz.lang")?.value ||
+      cookieStore.get("fxz.locale")?.value ||
+      cookieStore.get("locale")?.value;
+
+    const headerLocale = headerStore.get("accept-language")?.split(",")[0];
+
+    const locale = resolveLocale(cookieLocale || headerLocale);
+    const langOption =
+      findLanguageByCode(locale) || findLanguageByCode(locale.split("-")[0]);
+    const messages = loadDictionary(locale);
+    const translator = createTranslator(messages);
+
+    return {
+      t: translator,
+      isRTL: langOption
+        ? langOption.dir === "rtl"
+        : RTL_LANGUAGES.includes(locale),
+      locale,
+    };
+  } catch (_err) {
+    return {
+      t: (k: string, f: string = k, values?: TranslationValues) =>
+        interpolate(f, values),
+      isRTL: APP_DEFAULTS.language === "ar",
+      locale: APP_DEFAULTS.language as SupportedTranslationLocale,
+    };
+  }
+}
+
+const GENERATED_DICTIONARY_DIR = path.join(process.cwd(), "i18n", "generated");
+const DICTIONARY_CACHE: Partial<
+  Record<SupportedTranslationLocale, TranslationDictionary>
+> = {};
+
+function normalizeLocaleToken(
+  input?: string | null,
+): SupportedTranslationLocale | undefined {
+  if (!input) {
+    return undefined;
+  }
+
+  const token = input.trim().toLowerCase();
+  if (NORMALIZE_MAP[token]) {
+    return NORMALIZE_MAP[token];
+  }
+
+  const [language] = token.split(/[-_]/);
+  if (language && (SUPPORTED_LOCALES as string[]).includes(language)) {
+    return language as SupportedTranslationLocale;
+  }
+  return undefined;
+}
+
+function resolveLocale(preferred?: string | null): SupportedTranslationLocale {
+  return (
+    normalizeLocaleToken(preferred) ??
+    (APP_DEFAULTS.language as SupportedTranslationLocale)
+  );
+}
+
+function loadDictionary(
+  locale: SupportedTranslationLocale,
+): TranslationDictionary {
+  if (DICTIONARY_CACHE[locale]) {
+    return DICTIONARY_CACHE[locale] as TranslationDictionary;
+  }
+
+  const filePath = path.join(
+    GENERATED_DICTIONARY_DIR,
+    `${locale}.dictionary.json`,
+  );
+
+  try {
+    const raw = readFileSync(filePath, "utf-8");
+    const parsed = JSON.parse(raw) as TranslationDictionary;
+    DICTIONARY_CACHE[locale] = parsed;
+    return parsed;
+  } catch (err) {
+    if (process.env.NODE_ENV !== "production") {
+      logger.error("Failed to load dictionary", err, {
+        component: "i18n",
+        locale,
+      });
+    }
+    if (locale !== "en") {
+      return loadDictionary("en");
+    }
+    throw err;
+  }
+}
+
+function getMessageValue(
+  dictionary: TranslationDictionary,
+  key: string,
+): string | undefined {
+  if (key in dictionary && typeof dictionary[key] === "string") {
+    return dictionary[key] as string;
+  }
+
+  const segments = key.split(".");
+  let current: unknown = dictionary;
+
+  for (const segment of segments) {
+    if (
+      current &&
+      typeof current === "object" &&
+      segment in (current as Record<string, unknown>)
+    ) {
+      current = (current as Record<string, unknown>)[segment];
+    } else {
+      return undefined;
+    }
+  }
+
+  return typeof current === "string" ? current : undefined;
+}
+
+function createTranslator(dictionary: TranslationDictionary): TFn {
+  return (key: string, fallback: string = key, values?: TranslationValues) => {
+    const template = getMessageValue(dictionary, key) ?? fallback ?? key;
+    return interpolate(template, values);
+  };
+}
+
+export async function getServerTranslation(request: NextRequest) {
+  // Get locale from cookie or Accept-Language header (match getServerI18n cookie keys)
+  const cookieLocale =
+    request.cookies.get("fxz.lang")?.value ||
+    request.cookies.get("fxz.locale")?.value ||
+    request.cookies.get("locale")?.value;
+  const headerLocale = request.headers.get("accept-language")?.split(",")[0];
+  const locale = resolveLocale(cookieLocale || headerLocale);
+
+  const messages = loadDictionary(locale);
+  return createTranslator(messages);
+}
+
+]]>
+</file>
+
+<file path="lib/i18n/translation-loader.ts">
+<![CDATA[
+/**
+ * Runtime translation loader - loads from generated JSON artifacts
+ * Supports 2 languages: EN (English), AR (Arabic)
+ *
+ * FR/PT/RU/ES/UR/HI/ZH removed - only EN/AR have real translations
+ * Other locales can be added when translation budget is approved
+ *
+ * CRITICAL: Run `pnpm i18n:build` before starting the app
+ */
+
+import fs from "fs";
+import path from "path";
+import type { LanguageCode } from "@/config/language-options";
+import { logger } from "@/lib/logger";
+
+// Supported locales (only those with real translations)
+const SUPPORTED_LOCALES: LanguageCode[] = ["en", "ar"];
+
+let cachedTranslations: Record<LanguageCode, Record<string, string>> | null =
+  null;
+
+/**
+ * Load translations from generated JSON artifacts (server-side only)
+ * All artifacts MUST be pre-flattened during build (no runtime flattening)
+ */
+export function loadTranslations(): Record<
+  LanguageCode,
+  Record<string, string>
+> {
+  if (cachedTranslations) {
+    return cachedTranslations;
+  }
+
+  // Server-side: Load from generated JSON files
+  if (typeof window === "undefined") {
+    try {
+      const root = process.cwd();
+      const genDir = path.join(root, "i18n", "generated");
+
+      // Verify generated directory exists
+      if (!fs.existsSync(genDir)) {
+        throw new Error(
+          `❌ i18n/generated/ not found. Run: pnpm i18n:build\n` +
+            `   Current working directory: ${root}`,
+        );
+      }
+
+      const loaded: Partial<Record<LanguageCode, Record<string, string>>> = {};
+      const missing: string[] = [];
+
+      // Load all locale artifacts
+      for (const locale of SUPPORTED_LOCALES) {
+        const filePath = path.join(genDir, `${locale}.dictionary.json`);
+
+        if (!fs.existsSync(filePath)) {
+          missing.push(locale);
+          loaded[locale] = {}; // Fallback to empty for missing locales
+          continue;
+        }
+
+        try {
+          const content = fs.readFileSync(filePath, "utf-8");
+          const dict = JSON.parse(content);
+
+          // Dictionaries are pre-flattened at build time (no runtime processing needed)
+          loaded[locale] = dict;
+        } catch (err) {
+          if (process.env.NODE_ENV !== "production") {
+            logger.error(`Failed to parse ${locale} dictionary`, err, {
+              component: "i18n-loader",
+              locale,
+            });
+          }
+          loaded[locale] = {}; // Fallback on parse error
+        }
+      }
+
+      if (missing.length > 0) {
+        if (process.env.NODE_ENV !== "production") {
+          logger.warn(
+            `Missing translation artifacts for: ${missing.join(", ")}. Generate with: pnpm i18n:build`,
+            { component: "i18n-loader", missingLocales: missing },
+          );
+        }
+      }
+
+      cachedTranslations = loaded as Record<
+        LanguageCode,
+        Record<string, string>
+      >;
+      return cachedTranslations;
+    } catch (err) {
+      if (process.env.NODE_ENV !== "production") {
+        logger.error("Failed to load translations", err, {
+          component: "i18n-loader",
+        });
+      }
+      throw err; // Don't silently fail - app needs translations
+    }
+  }
+
+  // Client-side: Should be provided via props/context from SSR
+  throw new Error(
+    "Translation loader called on client-side. " +
+      "Translations must be embedded during SSR/SSG.",
+  );
+}
+
+/**
+ * Get specific locale translations
+ */
+export function getTranslations(locale: LanguageCode): Record<string, string> {
+  const all = loadTranslations();
+  return all[locale] || {};
+}
+
+/**
+ * Get available locale codes
+ */
+export function getAvailableLocales(): LanguageCode[] {
+  return SUPPORTED_LOCALES;
+}
+
+/**
+ * Get translation counts per locale (for validation)
+ */
+export function getTranslationCounts(): Record<LanguageCode, number> {
+  const all = loadTranslations();
+  const counts: Partial<Record<LanguageCode, number>> = {};
+
+  for (const locale of SUPPORTED_LOCALES) {
+    counts[locale] = Object.keys(all[locale] || {}).length;
+  }
+
+  return counts as Record<LanguageCode, number>;
+}
+
+/**
+ * Check if translations are loaded
+ */
+export function areTranslationsLoaded(): boolean {
+  return cachedTranslations !== null;
+}
+
+/**
+ * Clear cache (useful for testing)
+ */
+export function clearTranslationCache(): void {
+  cachedTranslations = null;
+}
+
+]]>
+</file>
+
+<file path="lib/integrations/notifications.ts">
+<![CDATA[
+import axios from "axios";
+import { getEnv } from "@/lib/env";
+import { logger } from "@/lib/logger";
+import { DOMAINS } from "@/lib/config/domains";
+import type {
+  NotificationChannel,
+  NotificationPayload,
+  NotificationRecipient,
+} from "@/lib/fm-notifications";
+import type { messaging } from "firebase-admin";
+
+// Dynamic imports for heavy packages to reduce TypeScript server memory usage
+// - firebase-admin: 51 type definition files
+// - @sendgrid/mail: ~20 type definition files
+// Note: Twilio has been removed. SMS is now handled via Taqnyat (CITC-compliant)
+type FirebaseAdmin = typeof import("firebase-admin");
+type SendGridMail = typeof import("@sendgrid/mail");
+
+async function resolveModuleDefault<T>(
+  importPromise: Promise<unknown>,
+): Promise<T> {
+  const loadedModule = (await importPromise) as { default?: T };
+  if (
+    loadedModule &&
+    typeof loadedModule === "object" &&
+    "default" in loadedModule &&
+    loadedModule.default
+  ) {
+    return loadedModule.default;
+  }
+  return loadedModule as unknown as T;
+}
+
+/**
+ * External Notification Service Integrations
+ * Implements SendGrid, Taqnyat (SMS), WhatsApp Business API, and Firebase Cloud Messaging
+ * 
+ * IMPORTANT: Taqnyat is the ONLY production SMS provider for Fixzit.
+ */
+
+export interface BulkNotificationIssue {
+  userId: string;
+  channel: NotificationChannel;
+  type: "failed" | "skipped";
+  reason: string;
+  attempt?: number;
+  attemptedAt?: Date;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ChannelMetric {
+  channel: NotificationChannel;
+  attempted: number;
+  succeeded: number;
+  failed: number;
+  skipped: number;
+  lastAttemptAt?: Date;
+  errors: string[];
+}
+
+export type ChannelMetricsMap = Record<NotificationChannel, ChannelMetric>;
+
+export interface BulkNotificationResult {
+  attempted: number;
+  succeeded: number;
+  failed: number;
+  skipped: number;
+  issues: BulkNotificationIssue[];
+  channelMetrics: ChannelMetricsMap;
+}
+
+export function createChannelMetricsMap(): ChannelMetricsMap {
+  const channels: NotificationChannel[] = ["push", "email", "sms", "whatsapp"];
+  return channels.reduce<ChannelMetricsMap>((acc, channel) => {
+    acc[channel] = {
+      channel,
+      attempted: 0,
+      succeeded: 0,
+      failed: 0,
+      skipped: 0,
+      errors: [],
+    };
+    return acc;
+  }, {} as ChannelMetricsMap);
+}
+
+// =============================================================================
+// Firebase Cloud Messaging (FCM) - Push Notifications
+// =============================================================================
+
+let fcmInitialized = false;
+let adminInstance: FirebaseAdmin | null = null;
+
+async function initializeFCM() {
+  if (fcmInitialized) return adminInstance!;
+
+  try {
+    if (!process.env.FIREBASE_ADMIN_PROJECT_ID) {
+      logger.warn("[FCM] Firebase credentials not configured");
+      throw new Error("FCM not configured");
+    }
+
+    const admin = await resolveModuleDefault<FirebaseAdmin>(
+      import("firebase-admin"),
+    );
+    adminInstance = admin;
+
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(
+          /\\n/g,
+          "\n",
+        ),
+      }),
+    });
+
+    fcmInitialized = true;
+    logger.info("[FCM] Initialized successfully");
+    return admin;
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[FCM] Initialization failed", { error });
+    throw error;
+  }
+}
+
+export async function sendFCMNotification(
+  userId: string,
+  notification: NotificationPayload,
+): Promise<void> {
+  try {
+    const admin = await initializeFCM();
+
+    if (!fcmInitialized || !adminInstance) {
+      const error = new Error("FCM not configured");
+      logger.warn("[FCM] Skipping push notification (not initialized)");
+      throw error;
+    }
+
+    // Get user's FCM tokens from database
+    const tokens = await getUserFCMTokens(userId);
+    if (tokens.length === 0) {
+      logger.info("[FCM] No tokens found for user", { userId });
+      return;
+    }
+
+    // Build FCM message
+    const message: messaging.MulticastMessage = {
+      tokens,
+      notification: {
+        title: notification.title,
+        body: notification.body,
+      },
+      data: {
+        notificationId: notification.id,
+        event: notification.event,
+        deepLink: notification.deepLink || "",
+        ...Object.fromEntries(
+          Object.entries(notification.data || {}).map(([k, v]) => [
+            k,
+            String(v),
+          ]),
+        ),
+      },
+      android: {
+        priority: notification.priority === "high" ? "high" : "normal",
+        notification: {
+          sound: "default",
+          channelId: "fixzit_notifications",
+        },
+      },
+      apns: {
+        payload: {
+          aps: {
+            sound: "default",
+            badge: 1,
+          },
+        },
+      },
+      webpush: {
+        notification: {
+          icon: "/img/logo.jpg",
+          badge: "/img/badge.png",
+          requireInteraction: notification.priority === "high",
+        },
+      },
+    };
+
+    // Send notification
+    const response = await admin.messaging().sendEachForMulticast(message);
+
+    logger.info("[FCM] Push notification sent", {
+      userId,
+      successCount: response.successCount,
+      failureCount: response.failureCount,
+    });
+
+    // Remove invalid tokens
+    if (response.failureCount > 0) {
+      const failedTokens = response.responses
+        .map((resp: messaging.SendResponse, idx: number) =>
+          !resp.success ? tokens[idx] : null,
+        )
+        .filter(Boolean) as string[];
+
+      await removeInvalidFCMTokens(userId, failedTokens);
+    }
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[FCM] Failed to send push notification", { error, userId });
+    throw error;
+  }
+}
+
+async function getUserFCMTokens(userId: string): Promise<string[]> {
+  // Query database for user's FCM tokens
+  // This would come from a UserDevices collection
+  try {
+    const { User } = await import("@/server/models/User");
+    const user = (await User.findOne({ userId })
+      .select("fcmTokens")
+      .lean()) as { fcmTokens?: string[] } | null;
+    return user?.fcmTokens || [];
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[FCM] Failed to get user tokens", { error, userId });
+    return [];
+  }
+}
+
+async function removeInvalidFCMTokens(
+  userId: string,
+  tokens: string[],
+): Promise<void> {
+  try {
+    const { User } = await import("@/server/models/User");
+    await User.updateOne({ userId }, { $pull: { fcmTokens: { $in: tokens } } });
+    logger.info("[FCM] Removed invalid tokens", {
+      userId,
+      count: tokens.length,
+    });
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[FCM] Failed to remove invalid tokens", { error, userId });
+  }
+}
+
+// =============================================================================
+// SendGrid - Email Notifications
+// =============================================================================
+
+let sendGridInitialized = false;
+let sgMailInstance: SendGridMail | null = null;
+
+async function initializeSendGrid() {
+  if (sendGridInitialized) return sgMailInstance!;
+
+  try {
+    // Use getEnv with alias support for Vercel naming conventions
+    // Checks: SENDGRID_API_KEY, SEND_GRID, SEND_GRID_EMAIL_FIXZIT_TOKEN
+    const sendgridApiKey = getEnv("SENDGRID_API_KEY");
+    if (!sendgridApiKey) {
+      logger.warn("[SendGrid] API key not configured (checked SENDGRID_API_KEY, SEND_GRID, SEND_GRID_EMAIL_FIXZIT_TOKEN)");
+      throw new Error("SendGrid not configured");
+    }
+
+    const sgMail = await resolveModuleDefault<SendGridMail>(
+      import("@sendgrid/mail"),
+    );
+    sgMailInstance = sgMail;
+    sgMail.setApiKey(sendgridApiKey);
+    sendGridInitialized = true;
+    logger.info("[SendGrid] Initialized successfully");
+    return sgMail;
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[SendGrid] Initialization failed", { error });
+    throw error;
+  }
+}
+
+export async function sendEmailNotification(
+  recipient: NotificationRecipient,
+  notification: NotificationPayload,
+): Promise<void> {
+  try {
+    const sgMail = await initializeSendGrid();
+
+    if (!sendGridInitialized || !sgMailInstance) {
+      logger.warn("[SendGrid] Skipping email notification (not initialized)");
+      throw new Error("SendGrid not configured");
+    }
+
+    if (!recipient.email) {
+      logger.warn("[SendGrid] No email address for recipient", {
+        userId: recipient.userId,
+      });
+      return;
+    }
+
+    // Build email message
+    const message = {
+      to: recipient.email,
+      from: {
+        email: process.env.SENDGRID_FROM_EMAIL || `noreply@${process.env.EMAIL_DOMAIN || "fixzit.co"}`,
+        name: process.env.SENDGRID_FROM_NAME || "Fixzit",
+      },
+      subject: notification.title,
+      text: notification.body,
+      html: buildEmailHTML(notification, recipient),
+      categories: ["notification", notification.event],
+      customArgs: {
+        notificationId: notification.id,
+        userId: recipient.userId,
+        event: notification.event,
+      },
+    };
+
+    // Use template if configured
+    if (process.env.SENDGRID_TEMPLATE_NOTIFICATION) {
+      Object.assign(message, {
+        templateId: process.env.SENDGRID_TEMPLATE_NOTIFICATION,
+        dynamicTemplateData: {
+          name: recipient.name,
+          title: notification.title,
+          body: notification.body,
+          deepLink: notification.deepLink,
+          actionUrl: notification.deepLink
+            ? `${DOMAINS.primary}${notification.deepLink.replace("fixzit://", "/")}`
+            : undefined,
+          priority: notification.priority,
+          ...notification.data,
+        },
+      });
+    }
+
+    // Send email
+    await sgMail.send(message);
+
+    logger.info("[SendGrid] Email sent successfully", {
+      to: recipient.email,
+      subject: notification.title,
+    });
+  } catch (_error: unknown) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    const errorDetails =
+      typeof error === "object" && error !== null
+        ? (error as {
+            message?: string;
+            code?: unknown;
+            response?: { body?: unknown };
+          })
+        : undefined;
+
+    logger.error("[SendGrid] Failed to send email", {
+      error:
+        errorDetails?.message ??
+        (error instanceof Error ? error.message : String(error)),
+      code: errorDetails?.code,
+      response: errorDetails?.response?.body,
+    });
+    throw error;
+  }
+}
+
+function buildEmailHTML(
+  notification: NotificationPayload,
+  recipient: NotificationRecipient,
+): string {
+  const actionButton = notification.deepLink
+    ? `<a href="${DOMAINS.primary}${notification.deepLink.replace("fixzit://", "/")}" style="display: inline-block; padding: 12px 24px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; margin: 20px 0;">View Details</a>`
+    : "";
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${notification.title}</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background: #f4f4f4; padding: 20px; border-radius: 8px;">
+        <h1 style="color: #0066cc; margin-top: 0;">${notification.title}</h1>
+        <p style="font-size: 16px;">${notification.body}</p>
+        ${actionButton}
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        <p style="font-size: 12px; color: #666;">
+          This email was sent to ${recipient.email} as part of your Fixzit notifications.
+          <br>
+          If you no longer wish to receive these emails, you can 
+          <a href="${DOMAINS.primary}/settings/notifications" style="color: #0066cc;">manage your notification preferences</a>.
+        </p>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+// =============================================================================
+// Taqnyat - SMS Notifications (CITC-compliant for Saudi Arabia)
+// =============================================================================
+// IMPORTANT: Taqnyat is the ONLY production SMS provider for Fixzit.
+// All other providers (Twilio, Unifonic, AWS SNS, Nexmo) have been removed.
+
+import { TaqnyatProvider, isTaqnyatConfigured } from "@/lib/sms-providers";
+
+export async function sendSMSNotification(
+  recipient: NotificationRecipient,
+  notification: NotificationPayload,
+): Promise<void> {
+  try {
+    if (!isTaqnyatConfigured()) {
+      logger.warn("[Taqnyat] Skipping SMS notification (not configured)");
+      throw new Error("Taqnyat SMS not configured");
+    }
+
+    if (!recipient.phone) {
+      logger.warn("[Taqnyat] No phone number for recipient", {
+        userId: recipient.userId,
+      });
+      return;
+    }
+
+    // Format message (SMS has 160 character limit for single message)
+    const message = `${notification.title}\n${notification.body}`;
+    const truncatedMessage =
+      message.length > 160 ? message.substring(0, 157) + "..." : message;
+
+    // Send SMS via Taqnyat
+    const taqnyatProvider = new TaqnyatProvider();
+    const result = await taqnyatProvider.sendSMS(recipient.phone, truncatedMessage);
+
+    if (result.success) {
+      logger.info("[Taqnyat] SMS sent successfully", {
+        to: recipient.phone,
+        messageId: result.messageId,
+      });
+    } else {
+      throw new Error(result.error || "Taqnyat SMS failed");
+    }
+  } catch (_error: unknown) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    logger.error("[Taqnyat] Failed to send SMS", {
+      error: error.message,
+    });
+    throw error;
+  }
+}
+
+// =============================================================================
+// WhatsApp Business API - WhatsApp Notifications
+// =============================================================================
+
+export async function sendWhatsAppNotification(
+  recipient: NotificationRecipient,
+  notification: NotificationPayload,
+): Promise<void> {
+  try {
+    if (
+      !process.env.WHATSAPP_BUSINESS_API_KEY ||
+      !process.env.WHATSAPP_PHONE_NUMBER_ID
+    ) {
+      logger.warn("[WhatsApp] API credentials not configured");
+      throw new Error("WhatsApp Business API not configured");
+    }
+
+    if (!recipient.phone) {
+      logger.warn("[WhatsApp] No phone number for recipient", {
+        userId: recipient.userId,
+      });
+      return;
+    }
+
+    // WhatsApp Business API requires approved templates
+    // Using template-based messaging
+    const templateName = getWhatsAppTemplate(notification.event);
+
+    if (!templateName) {
+      logger.warn("[WhatsApp] No template for event", {
+        event: notification.event,
+      });
+      return;
+    }
+
+    // Format phone number (WhatsApp requires E.164 format)
+    const phoneNumber = formatPhoneForWhatsApp(recipient.phone);
+
+    // Send WhatsApp message via WhatsApp Business API
+    const response = await axios.post(
+      `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
+      {
+        messaging_product: "whatsapp",
+        to: phoneNumber,
+        type: "template",
+        template: {
+          name: templateName,
+          language: {
+            code: "ar", // Arabic for Saudi market
+          },
+          components: [
+            {
+              type: "body",
+              parameters: extractWhatsAppParameters(notification),
+            },
+          ],
+        },
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.WHATSAPP_BUSINESS_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    logger.info("[WhatsApp] Message sent successfully", {
+      to: phoneNumber,
+      messageId: response.data.messages?.[0]?.id,
+      template: templateName,
+    });
+  } catch (_error: unknown) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    const details =
+      typeof error === "object" && error !== null
+        ? (error as { message?: string; response?: { data?: unknown } })
+        : undefined;
+
+    logger.error("[WhatsApp] Failed to send message", {
+      error:
+        details?.message ??
+        (error instanceof Error ? error.message : String(error)),
+      response: details?.response?.data,
+    });
+    throw error;
+  }
+}
+
+function getWhatsAppTemplate(event: string): string | null {
+  // Map events to approved WhatsApp templates
+  const templateMap: Record<string, string> = {
+    onTicketCreated: "work_order_created",
+    onAssign: "work_order_assigned",
+    onApprovalRequested: "approval_required",
+    onApproved: "approval_granted",
+    onClosed: "work_order_closed",
+  };
+
+  return templateMap[event] || null;
+}
+
+function formatPhoneForWhatsApp(phone: string): string {
+  // Remove all non-digit characters
+  let cleaned = phone.replace(/\D/g, "");
+
+  // Add country code if missing (assume Saudi Arabia +966)
+  if (!cleaned.startsWith("966")) {
+    // Remove leading zero if present
+    if (cleaned.startsWith("0")) {
+      cleaned = cleaned.substring(1);
+    }
+    cleaned = "966" + cleaned;
+  }
+
+  return cleaned;
+}
+
+type WhatsAppParameter = { type: "text"; text: string };
+
+function coerceString(value: unknown, fallback = "N/A"): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  return fallback;
+}
+
+function extractWhatsAppParameters(
+  notification: NotificationPayload,
+): WhatsAppParameter[] {
+  // Extract dynamic parameters from notification data
+  // WhatsApp templates have placeholders like {{1}}, {{2}}, etc.
+  const params: WhatsAppParameter[] = [];
+
+  switch (notification.event) {
+    case "onTicketCreated":
+      params.push(
+        { type: "text", text: coerceString(notification.data?.workOrderId) },
+        { type: "text", text: coerceString(notification.data?.tenantName) },
+      );
+      break;
+
+    case "onAssign":
+      params.push(
+        { type: "text", text: coerceString(notification.data?.workOrderId) },
+        { type: "text", text: coerceString(notification.data?.technicianName) },
+      );
+      break;
+
+    case "onApprovalRequested":
+      params.push(
+        { type: "text", text: coerceString(notification.data?.quotationId) },
+        {
+          type: "text",
+          text: `SAR ${
+            typeof notification.data?.amount === "number"
+              ? notification.data.amount.toLocaleString()
+              : "0"
+          }`,
+        },
+      );
+      break;
+
+    case "onClosed":
+      params.push({
+        type: "text",
+        text: coerceString(notification.data?.workOrderId),
+      });
+      break;
+  }
+
+  return params;
+}
+
+// =============================================================================
+// Bulk Notification Helper
+// =============================================================================
+
+type ChannelSenders = {
+  push: typeof sendFCMNotification;
+  email: typeof sendEmailNotification;
+  sms: typeof sendSMSNotification;
+  whatsapp: typeof sendWhatsAppNotification;
+};
+
+interface BulkNotificationOptions {
+  senders?: Partial<ChannelSenders>;
+}
+
+export async function sendBulkNotifications(
+  notification: NotificationPayload,
+  recipients: NotificationRecipient[],
+  options: BulkNotificationOptions = {},
+): Promise<BulkNotificationResult> {
+  logger.info("[Notifications] Sending bulk notifications", {
+    count: recipients.length,
+    event: notification.event,
+  });
+
+  const channelMetrics = createChannelMetricsMap();
+
+  const result: BulkNotificationResult = {
+    attempted: 0,
+    succeeded: 0,
+    failed: 0,
+    skipped: 0,
+    issues: [],
+    channelMetrics,
+  };
+
+  if (recipients.length === 0) {
+    return result;
+  }
+
+  const senders: ChannelSenders = {
+    push: options.senders?.push ?? sendFCMNotification,
+    email: options.senders?.email ?? sendEmailNotification,
+    sms: options.senders?.sms ?? sendSMSNotification,
+    whatsapp: options.senders?.whatsapp ?? sendWhatsAppNotification,
+  };
+
+  const batchSize = 50;
+  const batchCount = Math.ceil(recipients.length / batchSize);
+
+  for (let batchIndex = 0; batchIndex < batchCount; batchIndex++) {
+    const batch = recipients.slice(
+      batchIndex * batchSize,
+      (batchIndex + 1) * batchSize,
+    );
+
+    await Promise.all(
+      batch.map(async (recipient) => {
+        for (const channel of recipient.preferredChannels) {
+          const validationError = validateRecipientChannel(recipient, channel);
+          if (validationError) {
+            result.skipped += 1;
+            channelMetrics[channel].skipped += 1;
+            result.issues.push({
+              userId: recipient.userId,
+              channel,
+              type: "skipped",
+              reason: validationError,
+              attemptedAt: new Date(),
+              metadata: { validationError: true },
+            });
+            logger.warn("[Notifications] Skipping channel for recipient", {
+              userId: recipient.userId,
+              channel,
+              reason: validationError,
+            });
+            continue;
+          }
+
+          result.attempted += 1;
+          channelMetrics[channel].attempted += 1;
+          const attemptNumber = channelMetrics[channel].attempted;
+          const attemptTimestamp = new Date();
+          channelMetrics[channel].lastAttemptAt = attemptTimestamp;
+
+          try {
+            switch (channel) {
+              case "push":
+                await senders.push(recipient.userId, notification);
+                break;
+              case "email":
+                await senders.email(recipient, notification);
+                break;
+              case "sms":
+                await senders.sms(recipient, notification);
+                break;
+              case "whatsapp":
+                await senders.whatsapp(recipient, notification);
+                break;
+            }
+            result.succeeded += 1;
+            channelMetrics[channel].succeeded += 1;
+          } catch (_error) {
+            const error =
+              _error instanceof Error ? _error : new Error(String(_error));
+            void error;
+            result.failed += 1;
+            channelMetrics[channel].failed += 1;
+            const reason =
+              error instanceof Error ? error.message : "Unknown error";
+            if (channelMetrics[channel].errors.length < 10) {
+              channelMetrics[channel].errors.push(reason);
+            }
+            result.issues.push({
+              userId: recipient.userId,
+              channel,
+              type: "failed",
+              reason,
+              attempt: attemptNumber,
+              attemptedAt: attemptTimestamp,
+            });
+            logger.error("[Notifications] Failed to send to recipient", {
+              error,
+              userId: recipient.userId,
+              channel,
+            });
+          }
+        }
+      }),
+    );
+
+    if (batchIndex < batchCount - 1) {
+      await delay(1000);
+    }
+  }
+
+  logger.info("[Notifications] Bulk notifications sent", {
+    count: recipients.length,
+    event: notification.event,
+    attempted: result.attempted,
+    succeeded: result.succeeded,
+    failed: result.failed,
+    skipped: result.skipped,
+  });
+
+  return result;
+}
+
+function validateRecipientChannel(
+  recipient: NotificationRecipient,
+  channel: NotificationChannel,
+): string | null {
+  switch (channel) {
+    case "email":
+      return recipient.email ? null : "Missing email address";
+    case "sms":
+    case "whatsapp":
+      return recipient.phone ? null : "Missing phone number";
+    case "push":
+      return recipient.userId ? null : "Missing userId";
+    default:
+      return null;
+  }
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+]]>
+</file>
+
+<file path="lib/integrations/whatsapp.ts">
+<![CDATA[
+/**
+ * WhatsApp Business API Integration
+ *
+ * Provides WhatsApp messaging capabilities via WhatsApp Business Platform.
+ * Supports sending template messages and text messages.
+ *
+ * Setup Instructions:
+ * 1. Register for WhatsApp Business Platform: https://business.whatsapp.com/
+ * 2. Get your credentials from Meta Business Manager
+ * 3. Add environment variables:
+ *    - WHATSAPP_BUSINESS_ACCOUNT_ID
+ *    - WHATSAPP_PHONE_NUMBER_ID
+ *    - WHATSAPP_ACCESS_TOKEN
+ * 4. Configure webhook endpoint for incoming messages (optional)
+ *
+ * @see https://developers.facebook.com/docs/whatsapp/cloud-api
+ */
+
+import { logger } from "@/lib/logger";
+
+const WHATSAPP_API_BASE = "https://graph.facebook.com/v18.0";
+
+interface WhatsAppConfig {
+  phoneNumberId: string;
+  accessToken: string;
+  businessAccountId: string;
+}
+
+/**
+ * Get WhatsApp configuration from environment
+ */
+function getWhatsAppConfig(): WhatsAppConfig | null {
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
+  const businessAccountId = process.env.WHATSAPP_BUSINESS_ACCOUNT_ID;
+
+  if (!phoneNumberId || !accessToken || !businessAccountId) {
+    return null;
+  }
+
+  return { phoneNumberId, accessToken, businessAccountId };
+}
+
+/**
+ * Check if WhatsApp integration is enabled
+ */
+export function isWhatsAppEnabled(): boolean {
+  return getWhatsAppConfig() !== null;
+}
+
+/**
+ * Normalize phone number to E.164 format
+ * Accepts: +966501234567, 966501234567, 0501234567
+ */
+export function normalizePhoneNumber(phone: string): string {
+  // Remove all non-digit characters
+  let cleaned = phone.replace(/\D/g, "");
+
+  // If starts with 0, replace with country code (assume Saudi Arabia 966)
+  if (cleaned.startsWith("0")) {
+    cleaned = "966" + cleaned.substring(1);
+  }
+
+  // Ensure it starts with country code
+  if (!cleaned.startsWith("966") && cleaned.length === 9) {
+    cleaned = "966" + cleaned;
+  }
+
+  return cleaned;
+}
+
+interface SendTextMessageParams {
+  to: string; // Phone number in E.164 format
+  message: string;
+  previewUrl?: boolean;
+}
+
+/**
+ * Send a text message via WhatsApp
+ */
+export async function sendWhatsAppTextMessage(
+  params: SendTextMessageParams,
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  const config = getWhatsAppConfig();
+  if (!config) {
+    return { success: false, error: "WhatsApp not configured" };
+  }
+
+  const { to, message, previewUrl = false } = params;
+  const normalizedPhone = normalizePhoneNumber(to);
+
+  try {
+    const response = await fetch(
+      `${WHATSAPP_API_BASE}/${config.phoneNumberId}/messages`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${config.accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          recipient_type: "individual",
+          to: normalizedPhone,
+          type: "text",
+          text: {
+            preview_url: previewUrl,
+            body: message,
+          },
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      logger.error("[WhatsApp] Failed to send message", {
+        error,
+        to: normalizedPhone,
+      });
+      return {
+        success: false,
+        error: error.error?.message || "Failed to send",
+      };
+    }
+
+    const data = await response.json();
+    logger.info("[WhatsApp] Message sent successfully", {
+      messageId: data.messages?.[0]?.id,
+      to: normalizedPhone,
+    });
+
+    return { success: true, messageId: data.messages?.[0]?.id };
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[WhatsApp] Error sending message", {
+      error,
+      to: normalizedPhone,
+    });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+interface TemplateParameter {
+  type: "text" | "currency" | "date_time" | "image" | "document" | "video";
+  text?: string;
+  currency?: { fallback_value: string; code: string; amount_1000: number };
+  date_time?: { fallback_value: string };
+  image?: { link: string };
+  document?: { link: string; filename?: string };
+  video?: { link: string };
+}
+
+interface SendTemplateMessageParams {
+  to: string;
+  templateName: string;
+  languageCode: string; // e.g., 'en', 'ar'
+  components?: {
+    type: "header" | "body" | "button";
+    parameters: TemplateParameter[];
+  }[];
+}
+
+/**
+ * Send a template message via WhatsApp
+ * Templates must be pre-approved in Meta Business Manager
+ */
+export async function sendWhatsAppTemplateMessage(
+  params: SendTemplateMessageParams,
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  const config = getWhatsAppConfig();
+  if (!config) {
+    return { success: false, error: "WhatsApp not configured" };
+  }
+
+  const { to, templateName, languageCode, components = [] } = params;
+  const normalizedPhone = normalizePhoneNumber(to);
+
+  try {
+    const response = await fetch(
+      `${WHATSAPP_API_BASE}/${config.phoneNumberId}/messages`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${config.accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: normalizedPhone,
+          type: "template",
+          template: {
+            name: templateName,
+            language: {
+              code: languageCode,
+            },
+            components: components.length > 0 ? components : undefined,
+          },
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      logger.error("[WhatsApp] Failed to send template", {
+        error,
+        to: normalizedPhone,
+        templateName,
+      });
+      return {
+        success: false,
+        error: error.error?.message || "Failed to send",
+      };
+    }
+
+    const data = await response.json();
+    logger.info("[WhatsApp] Template sent successfully", {
+      messageId: data.messages?.[0]?.id,
+      to: normalizedPhone,
+      templateName,
+    });
+
+    return { success: true, messageId: data.messages?.[0]?.id };
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[WhatsApp] Error sending template", {
+      error,
+      to: normalizedPhone,
+      templateName,
+    });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+/**
+ * Common template examples
+ * These must be created and approved in Meta Business Manager
+ */
+export const WhatsAppTemplates = {
+  // Order notifications
+  ORDER_CONFIRMATION: "order_confirmation",
+  ORDER_SHIPPED: "order_shipped",
+  ORDER_DELIVERED: "order_delivered",
+
+  // Payment notifications
+  PAYMENT_RECEIVED: "payment_received",
+  PAYMENT_REMINDER: "payment_reminder",
+
+  // Work order notifications
+  WO_CREATED: "workorder_created",
+  WO_ASSIGNED: "workorder_assigned",
+  WO_COMPLETED: "workorder_completed",
+
+  // Authentication
+  OTP_VERIFICATION: "otp_verification",
+
+  // General
+  WELCOME_MESSAGE: "welcome_message",
+  APPOINTMENT_REMINDER: "appointment_reminder",
+} as const;
+
+/**
+ * Example: Send OTP via WhatsApp
+ */
+export async function sendWhatsAppOTP(
+  phoneNumber: string,
+  otp: string,
+  expiryMinutes: number = 5,
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  return sendWhatsAppTemplateMessage({
+    to: phoneNumber,
+    templateName: WhatsAppTemplates.OTP_VERIFICATION,
+    languageCode: "en",
+    components: [
+      {
+        type: "body",
+        parameters: [
+          { type: "text", text: otp },
+          { type: "text", text: String(expiryMinutes) },
+        ],
+      },
+    ],
+  });
+}
+
+/**
+ * Example: Send work order notification
+ */
+export async function sendWorkOrderNotification(
+  phoneNumber: string,
+  workOrderNumber: string,
+  propertyName: string,
+  assigneeName: string,
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  return sendWhatsAppTemplateMessage({
+    to: phoneNumber,
+    templateName: WhatsAppTemplates.WO_ASSIGNED,
+    languageCode: "ar", // Use Arabic for Saudi market
+    components: [
+      {
+        type: "body",
+        parameters: [
+          { type: "text", text: workOrderNumber },
+          { type: "text", text: propertyName },
+          { type: "text", text: assigneeName },
+        ],
+      },
+    ],
+  });
+}
+
+]]>
+</file>
+
+<file path="lib/ip.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import {
+  isPrivateIP,
+  validateTrustedProxyCount,
+} from "@/server/security/ip-utils";
+
+/**
+ * Hardened IP extraction with infrastructure-aware trusted proxy counting
+ *
+ * SECURITY: Uses TRUSTED_PROXY_COUNT to skip known trusted proxy hops,
+ * with fallback to leftmost public IP to prevent header spoofing attacks.
+ *
+ * Shared by:
+ * - lib/rateLimit.ts (getHardenedClientIp)
+ * - server/security/headers.ts (getClientIP)
+ *
+ * @param request - Next.js request object
+ * @returns Client IP address or 'unknown' if not determinable
+ */
+export function extractClientIP(request: NextRequest): string {
+  if (!request?.headers || typeof request.headers.get !== "function") {
+    return "unknown";
+  }
+  // 1) Cloudflare's CF-Connecting-IP is most trustworthy
+  const cfIp = request.headers.get("cf-connecting-ip");
+  if (cfIp && cfIp.trim()) return cfIp.trim();
+
+  // 2) X-Forwarded-For with trusted proxy counting
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded && forwarded.trim()) {
+    const ips = forwarded
+      .split(",")
+      .map((ip) => ip.trim())
+      .filter((ip) => ip);
+    if (ips.length) {
+      const trustedProxyCount = validateTrustedProxyCount();
+
+      // Skip trusted proxy hops from the right
+      const clientIPIndex = Math.max(0, ips.length - 1 - trustedProxyCount);
+      const hopSkippedIP = ips[clientIPIndex];
+
+      // If hop-skipped IP is valid and public, use it
+      if (hopSkippedIP && !isPrivateIP(hopSkippedIP)) {
+        return hopSkippedIP;
+      }
+
+      // Fallback: find leftmost public IP
+      for (const ip of ips) {
+        if (!isPrivateIP(ip)) {
+          return ip;
+        }
+      }
+
+      // SECURITY: Do not return private IPs - they can leak internal addresses or be spoofed
+      // If no public IP found, return 'unknown' instead of exposing internal topology
+    }
+  }
+
+  // 3) X-Real-IP only if explicitly trusted
+  if (process.env.TRUST_X_REAL_IP === "true") {
+    const realIP = request.headers.get("x-real-ip");
+    if (realIP && realIP.trim()) return realIP.trim();
+  }
+
+  // 4) Fallback
+  return "unknown";
+}
+
+]]>
+</file>
+
+<file path="lib/jobs/queue.ts">
+<![CDATA[
+import { logger } from "@/lib/logger";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { ObjectId } from "mongodb";
+
+export type JobType =
+  | "email-invitation"
+  | "email-notification"
+  | "s3-cleanup"
+  | "report-generation";
+
+export interface Job {
+  _id: ObjectId;
+  type: JobType;
+  payload: Record<string, unknown>;
+  status: "queued" | "processing" | "completed" | "failed";
+  attempts: number;
+  maxAttempts: number;
+  error?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  processedAt?: Date;
+}
+
+const COLLECTION = "background_jobs";
+const MAX_ATTEMPTS = 3;
+
+/**
+ * Background Job Queue Service
+ *
+ * Simple in-database job queue for background tasks
+ * Jobs are processed by worker endpoints or scheduled jobs
+ */
+export class JobQueue {
+  /**
+   * Enqueue a new background job
+   */
+  static async enqueue(
+    type: JobType,
+    payload: Record<string, unknown>,
+    maxAttempts = MAX_ATTEMPTS,
+  ): Promise<string> {
+    try {
+      const db = await getDatabase();
+      const collection = db.collection<Job>(COLLECTION);
+
+      const job: Job = {
+        _id: new ObjectId(),
+        type,
+        payload,
+        status: "queued",
+        attempts: 0,
+        maxAttempts,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      await collection.insertOne(job);
+      logger.info("Job enqueued", { jobId: job._id.toString(), type });
+
+      return job._id.toString();
+    } catch (error) {
+      logger.error("Failed to enqueue job", error as Error, { type, payload });
+      throw error;
+    }
+  }
+
+  /**
+   * Claim a job for processing (atomic operation)
+   */
+  static async claimJob(type?: JobType): Promise<Job | null> {
+    try {
+      const db = await getDatabase();
+      const collection = db.collection<Job>(COLLECTION);
+
+      const query: Record<string, unknown> = {
+        status: "queued",
+        $expr: {
+          $lt: ["$attempts", { $ifNull: ["$maxAttempts", MAX_ATTEMPTS] }],
+        },
+      };
+
+      if (type) {
+        query.type = type;
+      }
+
+      const result = await collection.findOneAndUpdate(
+        query,
+        {
+          $set: { status: "processing", updatedAt: new Date() },
+          $inc: { attempts: 1 },
+        },
+        {
+          sort: { createdAt: 1 },
+          returnDocument: "after",
+        },
+      );
+
+      return result || null;
+    } catch (error) {
+      logger.error("Failed to claim job", error as Error);
+      return null;
+    }
+  }
+
+  /**
+   * Mark a job as completed
+   */
+  static async completeJob(jobId: string): Promise<void> {
+    try {
+      const db = await getDatabase();
+      const collection = db.collection<Job>(COLLECTION);
+
+      await collection.updateOne(
+        { _id: new ObjectId(jobId) },
+        {
+          $set: {
+            status: "completed",
+            processedAt: new Date(),
+            updatedAt: new Date(),
+          },
+        },
+      );
+
+      logger.info("Job completed", { jobId });
+    } catch (error) {
+      logger.error("Failed to complete job", error as Error, { jobId });
+    }
+  }
+
+  /**
+   * Mark a job as failed
+   */
+  static async failJob(jobId: string, error: string): Promise<void> {
+    try {
+      const db = await getDatabase();
+      const collection = db.collection<Job>(COLLECTION);
+
+      const job = await collection.findOne({ _id: new ObjectId(jobId) });
+
+      if (!job) {
+        logger.warn("Job not found for failure update", { jobId });
+        return;
+      }
+
+      // If max attempts reached, mark as failed permanently
+      // Otherwise, set back to queued for retry
+      const status = job.attempts >= job.maxAttempts ? "failed" : "queued";
+
+      await collection.updateOne(
+        { _id: new ObjectId(jobId) },
+        {
+          $set: {
+            status,
+            error,
+            updatedAt: new Date(),
+            ...(status === "failed" && { processedAt: new Date() }),
+          },
+        },
+      );
+
+      logger.error("Job failed", new Error(error), {
+        jobId,
+        attempts: job.attempts,
+        status,
+      });
+    } catch (error) {
+      logger.error("Failed to update failed job", error as Error, { jobId });
+    }
+  }
+
+  /**
+   * Retry stuck jobs that have been processing for too long
+   */
+  static async retryStuckJobs(timeoutMinutes = 10): Promise<number> {
+    try {
+      const db = await getDatabase();
+      const collection = db.collection<Job>(COLLECTION);
+
+      const cutoffTime = new Date(Date.now() - timeoutMinutes * 60 * 1000);
+
+      const result = await collection.updateMany(
+        {
+          status: "processing",
+          updatedAt: { $lt: cutoffTime },
+          $expr: {
+            $lt: ["$attempts", { $ifNull: ["$maxAttempts", MAX_ATTEMPTS] }],
+          },
+        },
+        {
+          $set: {
+            status: "queued",
+            updatedAt: new Date(),
+          },
+        },
+      );
+
+      if (result.modifiedCount > 0) {
+        logger.info("Retried stuck jobs", { count: result.modifiedCount });
+      }
+
+      return result.modifiedCount;
+    } catch (error) {
+      logger.error("Failed to retry stuck jobs", error as Error);
+      return 0;
+    }
+  }
+
+  /**
+   * Get job statistics
+   */
+  static async getStats(): Promise<{
+    queued: number;
+    processing: number;
+    completed: number;
+    failed: number;
+    total: number;
+  }> {
+    try {
+      const db = await getDatabase();
+      const collection = db.collection<Job>(COLLECTION);
+
+      const [queued, processing, completed, failed, total] = await Promise.all([
+        collection.countDocuments({ status: "queued" }),
+        collection.countDocuments({ status: "processing" }),
+        collection.countDocuments({ status: "completed" }),
+        collection.countDocuments({ status: "failed" }),
+        collection.countDocuments(),
+      ]);
+
+      return { queued, processing, completed, failed, total };
+    } catch (error) {
+      logger.error("Failed to get job stats", error as Error);
+      return { queued: 0, processing: 0, completed: 0, failed: 0, total: 0 };
+    }
+  }
+
+  /**
+   * Clean up old completed jobs
+   */
+  static async cleanupOldJobs(daysOld = 30): Promise<number> {
+    try {
+      const db = await getDatabase();
+      const collection = db.collection<Job>(COLLECTION);
+
+      const cutoffDate = new Date(Date.now() - daysOld * 24 * 60 * 60 * 1000);
+
+      const result = await collection.deleteMany({
+        status: { $in: ["completed", "failed"] },
+        updatedAt: { $lt: cutoffDate },
+      });
+
+      if (result.deletedCount > 0) {
+        logger.info("Cleaned up old jobs", { count: result.deletedCount });
+      }
+
+      return result.deletedCount;
+    } catch (error) {
+      logger.error("Failed to cleanup old jobs", error as Error);
+      return 0;
+    }
+  }
+}
+
+]]>
+</file>
+
+<file path="lib/jobs/sms-sla-monitor.ts">
+<![CDATA[
+/**
+ * SMS SLA Breach Monitor Job
+ *
+ * Detects SMS messages that have breached their SLA targets and sends notifications.
+ * Should be run periodically via cron job.
+ *
+ * @module lib/jobs/sms-sla-monitor
+ */
+
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { SMSMessage, type ISMSMessage } from "@/server/models/SMSMessage";
+import { SMSSettings, type ISMSSettings } from "@/server/models/SMSSettings";
+import { sendEmail } from "@/lib/email";
+
+export interface SLABreachReport {
+  totalChecked: number;
+  newBreaches: number;
+  notificationsSent: number;
+  errors: string[];
+}
+
+/**
+ * Check for and process SLA breaches
+ */
+export async function processSLABreaches(): Promise<SLABreachReport> {
+  await connectToDatabase();
+
+  const report: SLABreachReport = {
+    totalChecked: 0,
+    newBreaches: 0,
+    notificationsSent: 0,
+    errors: [],
+  };
+
+  try {
+    // Find messages that haven't been checked for SLA breach yet
+    // and are past their target delivery time
+    const now = new Date();
+    const pendingMessages = await SMSMessage.find({
+      status: { $in: ["PENDING", "QUEUED", "SENT"] },
+      slaBreached: false,
+      slaTargetMs: { $exists: true, $gt: 0 },
+    }).lean();
+
+    report.totalChecked = pendingMessages.length;
+
+    // Group breaches by orgId for batch notifications
+    const breachesByOrg: Map<string, ISMSMessage[]> = new Map();
+
+    for (const message of pendingMessages) {
+      const elapsed = now.getTime() - new Date(message.createdAt).getTime();
+
+      if (message.slaTargetMs && elapsed > message.slaTargetMs) {
+        // Mark as breached
+        await SMSMessage.findByIdAndUpdate(message._id, {
+          slaBreached: true,
+          slaBreachAt: now,
+        });
+
+        report.newBreaches++;
+
+        // Group by org for notifications
+        const orgId = message.orgId || "global";
+        if (!breachesByOrg.has(orgId)) {
+          breachesByOrg.set(orgId, []);
+        }
+        breachesByOrg.get(orgId)!.push(message as ISMSMessage);
+
+        logger.warn("[SLA Monitor] SMS SLA breached", {
+          messageId: message._id.toString(),
+          orgId: message.orgId,
+          type: message.type,
+          priority: message.priority,
+          targetMs: message.slaTargetMs,
+          elapsedMs: elapsed,
+        });
+      }
+    }
+
+    // Send notifications for each org with breaches
+    for (const [orgId, messages] of breachesByOrg) {
+      try {
+        await sendBreachNotification(orgId, messages);
+        report.notificationsSent++;
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        report.errors.push(`Failed to notify org ${orgId}: ${errorMsg}`);
+        logger.error("[SLA Monitor] Failed to send breach notification", {
+          orgId,
+          error: errorMsg,
+        });
+      }
+    }
+
+    logger.info("[SLA Monitor] Breach check completed", {
+      totalChecked: report.totalChecked,
+      newBreaches: report.newBreaches,
+      notificationsSent: report.notificationsSent,
+      errorCount: report.errors.length,
+    });
+    return report;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    report.errors.push(`Monitor failed: ${errorMsg}`);
+    logger.error("[SLA Monitor] Failed to process breaches", { error: errorMsg });
+    return report;
+  }
+}
+
+/**
+ * Send breach notification to org admins
+ */
+async function sendBreachNotification(
+  orgId: string,
+  messages: ISMSMessage[]
+): Promise<void> {
+  // Get org-specific settings (or global)
+  const settings: ISMSSettings = orgId === "global"
+    ? await SMSSettings.getEffectiveSettings()
+    : await SMSSettings.getEffectiveSettings(orgId);
+
+  const notifyEmails = settings.slaBreachNotifyEmails || [];
+
+  if (notifyEmails.length === 0) {
+    logger.info("[SLA Monitor] No notification emails configured", { orgId });
+    return;
+  }
+
+  // Build summary
+  const criticalCount = messages.filter((m) => m.priority === "CRITICAL").length;
+  const highCount = messages.filter((m) => m.priority === "HIGH").length;
+  const normalCount = messages.filter((m) => m.priority === "NORMAL").length;
+  const lowCount = messages.filter((m) => m.priority === "LOW").length;
+
+  const subject = `⚠️ SMS SLA Breach Alert: ${messages.length} message(s) exceeded target delivery time`;
+
+  const body = `
+    <h2>SMS SLA Breach Alert</h2>
+    <p>${messages.length} SMS message(s) have exceeded their target delivery time.</p>
+    
+    <h3>Summary by Priority:</h3>
+    <ul>
+      ${criticalCount > 0 ? `<li>🔴 Critical: ${criticalCount}</li>` : ""}
+      ${highCount > 0 ? `<li>🟠 High: ${highCount}</li>` : ""}
+      ${normalCount > 0 ? `<li>🟡 Normal: ${normalCount}</li>` : ""}
+      ${lowCount > 0 ? `<li>🟢 Low: ${lowCount}</li>` : ""}
+    </ul>
+
+    <h3>Recent Breaches:</h3>
+    <table border="1" cellpadding="5" style="border-collapse: collapse;">
+      <tr>
+        <th>Type</th>
+        <th>Priority</th>
+        <th>To</th>
+        <th>Target</th>
+        <th>Elapsed</th>
+      </tr>
+      ${messages.slice(0, 10).map((m) => `
+        <tr>
+          <td>${m.type}</td>
+          <td>${m.priority}</td>
+          <td>${m.to.slice(0, 6)}****</td>
+          <td>${formatMs(m.slaTargetMs || 0)}</td>
+          <td>${formatMs(Date.now() - new Date(m.createdAt).getTime())}</td>
+        </tr>
+      `).join("")}
+      ${messages.length > 10 ? `<tr><td colspan="5">... and ${messages.length - 10} more</td></tr>` : ""}
+    </table>
+
+    <p>Please investigate and take action to resolve delivery issues.</p>
+    <p><a href="${process.env.NEXT_PUBLIC_APP_URL || "https://fixzit.co"}/admin/sms">View SMS Dashboard</a></p>
+  `;
+
+  // Send to all configured emails
+  for (const email of notifyEmails) {
+    await sendEmail(email, subject, body, { html: body });
+  }
+
+  // Send webhook notification if configured
+  if (settings.slaBreachNotifyWebhook) {
+    try {
+      await fetch(settings.slaBreachNotifyWebhook, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "sms_sla_breach",
+          orgId,
+          breachCount: messages.length,
+          summary: { criticalCount, highCount, normalCount, lowCount },
+          timestamp: new Date().toISOString(),
+        }),
+      });
+    } catch (error) {
+      logger.error("[SLA Monitor] Failed to send webhook", {
+        webhook: settings.slaBreachNotifyWebhook,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+}
+
+/**
+ * Format milliseconds to human-readable string
+ */
+function formatMs(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  if (ms < 3600000) return `${(ms / 60000).toFixed(1)}m`;
+  return `${(ms / 3600000).toFixed(1)}h`;
+}
+
+/**
+ * Get SLA breach statistics for dashboard
+ */
+export async function getSLABreachStats(
+  orgId?: string,
+  since?: Date
+): Promise<{
+  total: number;
+  byPriority: Record<string, number>;
+  byType: Record<string, number>;
+  recentBreaches: Array<{
+    id: string;
+    type: string;
+    priority: string;
+    createdAt: Date;
+    breachAt: Date;
+    targetMs: number;
+    elapsedMs: number;
+  }>;
+}> {
+  await connectToDatabase();
+
+  const match: Record<string, unknown> = { slaBreached: true };
+  if (orgId) match.orgId = orgId;
+  if (since) match.slaBreachAt = { $gte: since };
+
+  const [total, byPriority, byType, recentBreaches] = await Promise.all([
+    SMSMessage.countDocuments(match),
+    SMSMessage.aggregate([
+      { $match: match },
+      { $group: { _id: "$priority", count: { $sum: 1 } } },
+    ]),
+    SMSMessage.aggregate([
+      { $match: match },
+      { $group: { _id: "$type", count: { $sum: 1 } } },
+    ]),
+    SMSMessage.find(match)
+      .sort({ slaBreachAt: -1 })
+      .limit(20)
+      .lean(),
+  ]);
+
+  return {
+    total,
+    byPriority: Object.fromEntries(byPriority.map((p) => [p._id, p.count])),
+    byType: Object.fromEntries(byType.map((t) => [t._id, t.count])),
+    recentBreaches: recentBreaches.map((m) => ({
+      id: m._id.toString(),
+      type: m.type,
+      priority: m.priority,
+      createdAt: m.createdAt,
+      breachAt: m.slaBreachAt!,
+      targetMs: m.slaTargetMs || 0,
+      elapsedMs: (m.slaBreachAt?.getTime() || Date.now()) - m.createdAt.getTime(),
+    })),
+  };
+}
+
+]]>
+</file>
+
+<file path="lib/logger.ts">
+<![CDATA[
+/* eslint-disable no-console -- This IS the logger utility, console calls are intentional */
+/**
+ * Production-safe logging utility
+ * Replaces console.* calls with proper logging that:
+ * - Respects environment (dev vs production)
+ * - Sends errors to monitoring service
+ * - Provides structured logging
+ */
+
+import { sanitizeError, sanitizeLogParams } from "@/lib/security/log-sanitizer";
+
+type LogLevel = "info" | "warn" | "error" | "debug";
+
+interface LogContext {
+  component?: string;
+  action?: string;
+  userId?: string;
+  [key: string]: unknown;
+}
+
+class Logger {
+  private get isDevelopment(): boolean {
+    return process.env.NODE_ENV === "development";
+  }
+
+  private get isTest(): boolean {
+    return process.env.NODE_ENV === "test";
+  }
+
+  private sanitizeContext(context?: LogContext): LogContext | undefined {
+    if (!context) return undefined;
+    return sanitizeLogParams(context as Record<string, unknown>) as LogContext;
+  }
+
+  /**
+   * Log informational message (development only)
+   */
+  info(message: string, context?: LogContext): void {
+    const safeContext = this.sanitizeContext(context);
+    if (this.isDevelopment && !this.isTest) {
+      console.info(`[INFO] ${message}`, safeContext || "");
+    }
+  }
+
+  /**
+   * Log warning message
+   */
+  warn(message: string, context?: LogContext): void {
+    const safeContext = this.sanitizeContext(context);
+    if (this.isDevelopment || !this.isTest) {
+      console.warn(`[WARN] ${message}`, safeContext || "");
+    }
+    // In production, send to monitoring service
+    if (!this.isDevelopment && !this.isTest) {
+      this.sendToMonitoring("warn", message, safeContext);
+    }
+  }
+
+  /**
+   * Log error message and send to monitoring
+   */
+  error(message: string, error?: Error | unknown, context?: LogContext): void {
+    const safeContext = this.sanitizeContext(context);
+    const errorInfo =
+      error instanceof Error
+        ? {
+            message: error.message,
+            stack: error.stack,
+            name: error.name,
+          }
+        : sanitizeError(error);
+
+    if (this.isDevelopment && !this.isTest) {
+      console.error(`[ERROR] ${message}`, errorInfo, safeContext || "");
+    }
+
+    // Always send errors to monitoring (except in tests)
+    if (!this.isTest) {
+      this.sendToMonitoring("error", message, { ...safeContext, ...errorInfo });
+    }
+  }
+
+  /**
+   * Debug logging (development only)
+   */
+  debug(message: string, data?: unknown): void {
+    const safeData =
+      data && typeof data === "object"
+        ? sanitizeLogParams(data as Record<string, unknown>)
+        : data;
+    if (this.isDevelopment && !this.isTest) {
+      console.debug(`[DEBUG] ${message}`, safeData || "");
+    }
+  }
+
+  /**
+   * Send log to monitoring service (Sentry integration)
+   */
+  private async sendToMonitoring(
+    level: LogLevel,
+    message: string,
+    context?: LogContext,
+  ): Promise<void> {
+    // Suppress monitoring integrations outside production to avoid noisy dev/test instrumentation
+    if (process.env.NODE_ENV !== 'production') {
+      return;
+    }
+
+    try {
+      // Sentry integration for error tracking
+      if (level === "error" && process.env.NEXT_PUBLIC_SENTRY_DSN) {
+        const Sentry = await import("@sentry/nextjs").catch((importError) => {
+          console.error('[Logger] Failed to import Sentry for error tracking:', importError);
+          return null;
+        });
+
+        if (Sentry) {
+          // Pass original Error if available, otherwise create new Error with cause
+          let errorToCapture: Error;
+          if (context?.error instanceof Error) {
+            errorToCapture = context.error;
+          } else {
+            errorToCapture = new Error(message, {
+              cause: context?.error,
+            } as ErrorOptions);
+          }
+
+          Sentry.captureException(errorToCapture, {
+            level: "error",
+            extra: context,
+            tags: {
+              component: context?.component as string,
+              action: context?.action as string,
+              userId: context?.userId as string,
+            },
+          });
+        }
+      } else if (level === "warn" && process.env.NEXT_PUBLIC_SENTRY_DSN) {
+        const Sentry = await import("@sentry/nextjs").catch((importError) => {
+          console.error('[Logger] Failed to import Sentry for warning:', importError);
+          return null;
+        });
+
+        if (Sentry) {
+          Sentry.captureMessage(message, {
+            level: "warning",
+            extra: context,
+          });
+        }
+      }
+
+      // ✅ SECURITY FIX: DataDog integration removed from client-accessible logger
+      // Moved to server-only module (/app/api/logs/route.ts) to prevent credential leaks
+      // Client components should call /api/logs endpoint instead of accessing keys directly
+
+      // Store in session for debugging (browser only)
+      if (typeof window !== "undefined" && window.sessionStorage) {
+        const logs = JSON.parse(sessionStorage.getItem("app_logs") || "[]");
+        logs.push({
+          level,
+          message,
+          context,
+          timestamp: new Date().toISOString(),
+        });
+        // Keep only last 100 logs
+        if (logs.length > 100) logs.shift();
+        sessionStorage.setItem("app_logs", JSON.stringify(logs));
+      }
+    } catch (err) {
+      // Silently fail - don't break app if logging fails
+      if (this.isDevelopment) {
+        console.error("Failed to send log to monitoring:", err);
+      }
+    }
+  }
+}
+
+// Export singleton instance
+export const logger = new Logger();
+
+// Convenience exports
+export const logInfo = logger.info.bind(logger);
+export const logWarn = logger.warn.bind(logger);
+export const logError = logger.error.bind(logger);
+export const logDebug = logger.debug.bind(logger);
+
+]]>
+</file>
+
+<file path="lib/markdown.ts">
+<![CDATA[
+import { unified } from "unified";
+import remarkParse from "remark-parse";
+import remarkRehype from "remark-rehype";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
+import rehypeStringify from "rehype-stringify";
+
+export async function renderMarkdownSanitized(
+  markdown: string,
+): Promise<string> {
+  const schema = {
+    ...defaultSchema,
+    attributes: {
+      ...defaultSchema.attributes,
+      a: [...(defaultSchema.attributes?.a || []), ["target", "rel"]],
+      code: [...(defaultSchema.attributes?.code || []), ["className"]],
+    },
+  };
+
+  const file = await unified()
+    .use(remarkParse)
+    .use(remarkRehype)
+    // @ts-expect-error - rehype-sanitize schema type doesn't match unified plugin signature
+    .use(rehypeSanitize, schema)
+    .use(rehypeStringify)
+    .process(markdown || "");
+  return String(file);
+}
+
+]]>
+</file>
+
+<file path="lib/marketplace/cart.ts">
+<![CDATA[
+import Order from "@/server/models/marketplace/Order";
+import { Types } from "mongoose";
+
+export async function getOrCreateCart(
+  orgId: Types.ObjectId,
+  buyerUserId: Types.ObjectId,
+) {
+  let cart = await Order.findOne({ orgId, buyerUserId, status: "CART" });
+  if (!cart) {
+    cart = await Order.create({
+      orgId,
+      buyerUserId,
+      status: "CART",
+      lines: [],
+      totals: { subtotal: 0, vat: 0, grand: 0 },
+      currency: "SAR",
+    });
+  }
+  return cart;
+}
+
+interface CartLine {
+  total: number;
+}
+
+interface CartDoc {
+  lines: CartLine[];
+  totals?: {
+    subtotal: number;
+    vat: number;
+    grand: number;
+  };
+}
+
+export function recalcCartTotals(cart: CartDoc) {
+  const subtotal = cart.lines.reduce(
+    (sum: number, line) => sum + line.total,
+    0,
+  );
+  const vat = subtotal * 0.15;
+  cart.totals = {
+    subtotal,
+    vat,
+    grand: subtotal + vat,
+  };
+}
+
+]]>
+</file>
+
+<file path="lib/marketplace/cartClient.ts">
+<![CDATA[
+export const CART_UPDATED_EVENT = "fixzit-marketplace-cart-updated";
+
+export type MarketplaceCartLine = { qty?: number };
+export type MarketplaceCartLike =
+  | { lines?: MarketplaceCartLine[] }
+  | null
+  | undefined;
+
+export function computeCartCount(cart: MarketplaceCartLike) {
+  if (!cart?.lines) {
+    return 0;
+  }
+  return cart.lines.reduce((sum, line) => sum + (Number(line?.qty) || 0), 0);
+}
+
+export function broadcastCartUpdate(cart: MarketplaceCartLike) {
+  const count = computeCartCount(cart);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent(CART_UPDATED_EVENT, { detail: { count } }),
+    );
+  }
+  return count;
+}
+
+function parseCartError(payload: unknown, fallback: string) {
+  if (typeof payload === "object" && payload !== null) {
+    const obj = payload as Record<string, unknown>;
+    if (obj.error && typeof obj.error === "string") {
+      return obj.error;
+    }
+    if (obj.message && typeof obj.message === "string") {
+      return obj.message;
+    }
+  }
+  return fallback;
+}
+
+export async function addProductToCart(productId: string, quantity: number) {
+  const response = await fetch("/api/marketplace/cart", {
+    method: "POST",
+    credentials: "include",
+    cache: "no-store",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ productId, quantity }),
+  });
+
+  let payload: unknown;
+  try {
+    payload = await response.json();
+  } catch {
+    payload = undefined;
+  }
+
+  if (!response.ok) {
+    throw new Error(parseCartError(payload, "Unable to update cart"));
+  }
+
+  const order = (payload as Record<string, unknown> | undefined)?.data;
+  broadcastCartUpdate(order as MarketplaceCartLike);
+  return order;
+}
+
+]]>
+</file>
+
+<file path="lib/marketplace/context.ts">
+<![CDATA[
+import { cookies, headers } from "next/headers";
+import { NextRequest } from "next/server";
+import { jwtVerify } from "jose";
+import { Types } from "mongoose";
+import { randomUUID } from "node:crypto";
+import { objectIdFrom } from "./objectIds";
+import { requireEnv, TEST_JWT_SECRET } from "../env";
+
+export interface MarketplaceRequestContext {
+  tenantKey: string;
+  orgId: Types.ObjectId;
+  userId?: Types.ObjectId;
+  role?: string;
+  correlationId?: string;
+}
+
+async function decodeToken(token?: string | null) {
+  if (!token) {
+    return undefined;
+  }
+  try {
+    const secret = new TextEncoder().encode(
+      requireEnv("JWT_SECRET", { testFallback: TEST_JWT_SECRET }),
+    );
+    // Verify JWT with algorithm constraint for security
+    const { payload } = await jwtVerify(token, secret, {
+      algorithms: ['HS256'],
+      clockTolerance: 5, // 5 second tolerance for clock skew
+    });
+    return payload;
+  } catch {
+    // Failed to decode marketplace JWT payload
+    return undefined;
+  }
+}
+
+async function readHeaderValue(
+  req: NextRequest | Request | null | undefined,
+  key: string,
+) {
+  if (req) {
+    const value = req.headers.get(key);
+    if (value) return value;
+  }
+
+  try {
+    const serverHeaders = await headers();
+    return serverHeaders.get(key) ?? undefined;
+  } catch {
+    // Marketplace context header fallback failed
+    return undefined;
+  }
+}
+
+async function readCookieValue(
+  req: NextRequest | null | undefined,
+  key: string,
+) {
+  if (req) {
+    const cookie = req.cookies.get(key)?.value;
+    if (cookie) return cookie;
+  }
+
+  try {
+    const cookieStore = await cookies();
+    return cookieStore.get(key)?.value;
+  } catch {
+    // Marketplace context cookie fallback failed
+    return undefined;
+  }
+}
+
+export async function resolveMarketplaceContext(
+  req?: NextRequest | Request | null,
+): Promise<MarketplaceRequestContext> {
+  // SECURITY: Read auth token FIRST to establish trusted context
+  const token = await readCookieValue(
+    req instanceof NextRequest ? req : null,
+    "fixzit_auth",
+  );
+  const payload = (await decodeToken(token)) as
+    | Record<string, unknown>
+    | undefined;
+
+  // Extract trusted orgId from verified JWT token
+  const tokenOrgId = (payload as Record<string, unknown> | undefined)?.orgId as
+    | string
+    | undefined;
+  const tokenTenantId = (payload as Record<string, unknown> | undefined)?.tenantId as
+    | string
+    | undefined;
+
+  // SECURITY FIX: Only accept header-based org/tenant for unauthenticated requests
+  // Authenticated users MUST use their token's org to prevent cross-tenant access
+  let tenantKey: string;
+  let orgId: Types.ObjectId;
+
+  // SECURITY: Build public org allowlist from env (comma-separated ObjectIds)
+  // Empty list means NO public access without auth - strict default
+  const publicOrgAllowlistRaw = (process.env.MARKETPLACE_PUBLIC_ORGS || "")
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+  const publicOrgAllowlist = new Set(publicOrgAllowlistRaw);
+
+  if (payload && tokenOrgId) {
+    // Authenticated user: ALWAYS use token's orgId, ignore headers
+    tenantKey = tokenTenantId || tokenOrgId;
+    orgId = objectIdFrom(tokenOrgId);
+  } else {
+    // Unauthenticated: Only allow header/cookie org if explicitly allowlisted
+    // SECURITY FIX: Reject untrusted headers unless org is in allowlist
+    const headerOrg =
+      (await readHeaderValue(req ?? null, "x-org-id")) ||
+      (await readHeaderValue(req ?? null, "x-tenant-id"));
+    const cookieOrg =
+      (await readCookieValue(
+        req instanceof NextRequest ? req : null,
+        "fixzit_org",
+      )) ||
+      (await readCookieValue(
+        req instanceof NextRequest ? req : null,
+        "fixzit_tenant",
+      ));
+
+    const candidateOrg =
+      headerOrg ||
+      cookieOrg ||
+      process.env.MARKETPLACE_DEFAULT_TENANT ||
+      undefined;
+
+    const allowlistEnforced = publicOrgAllowlist.size > 0;
+    if (!allowlistEnforced || !candidateOrg || !publicOrgAllowlist.has(candidateOrg)) {
+      tenantKey = "__unauthorized__";
+      orgId = objectIdFrom("000000000000000000000000");
+    } else {
+      tenantKey = candidateOrg;
+      orgId = objectIdFrom(candidateOrg);
+    }
+  }
+
+  const userId = (payload as Record<string, unknown> | undefined)?.id
+    ? objectIdFrom((payload as Record<string, unknown>).id as string)
+    : undefined;
+  const professional = (payload as Record<string, unknown> | undefined)
+    ?.professional as Record<string, unknown> | undefined;
+  const role =
+    ((payload as Record<string, unknown> | undefined)?.role as
+      | string
+      | undefined) ||
+    (professional?.role as string | undefined) ||
+    "BUYER";
+
+  return {
+    tenantKey,
+    orgId,
+    userId,
+    role,
+    correlationId: randomUUID(),
+  };
+}
+
+/**
+ * Check if a marketplace context represents an unauthorized request.
+ * Returns true if:
+ * - context is null/undefined
+ * - tenantKey is "__unauthorized__"
+ * - orgId is the zero ObjectId (000000000000000000000000)
+ */
+export function isUnauthorizedMarketplaceContext(
+  context?: MarketplaceRequestContext | null,
+): boolean {
+  if (!context) return true;
+  const orgStr = context.orgId?.toString?.() || "";
+  return (
+    context.tenantKey === "__unauthorized__" ||
+    orgStr === "000000000000000000000000" ||
+    orgStr.length === 0
+  );
+}
+
+]]>
+</file>
+
+<file path="lib/marketplace/correlation.ts">
+<![CDATA[
+import { randomUUID } from "node:crypto";
+import { logger } from "@/lib/logger";
+
+/**
+ * Marketplace Request Correlation Utilities
+ *
+ * Provides consistent correlation ID generation and tracking
+ * for improved debugging and error tracking across marketplace operations
+ */
+
+export interface CorrelationContext {
+  correlationId: string;
+  timestamp: number;
+  operation?: string;
+  userId?: string;
+  tenantId?: string;
+}
+
+/**
+ * Generate a new correlation ID with context
+ */
+export function createCorrelationContext(
+  options: {
+    operation?: string;
+    userId?: string;
+    tenantId?: string;
+  } = {},
+): CorrelationContext {
+  return {
+    correlationId: randomUUID(),
+    timestamp: Date.now(),
+    ...options,
+  };
+}
+
+/**
+ * Create correlation headers for API requests
+ */
+export function getCorrelationHeaders(
+  context: CorrelationContext,
+): Record<string, string> {
+  return {
+    "X-Correlation-ID": context.correlationId,
+    "X-Request-Timestamp": context.timestamp.toString(),
+    ...(context.operation && { "X-Operation": context.operation }),
+    ...(context.userId && { "X-User-ID": context.userId }),
+    ...(context.tenantId && { "X-Tenant-ID": context.tenantId }),
+  };
+}
+
+/**
+ * Log with correlation context for debugging
+ */
+export function logWithCorrelation(
+  level: "debug" | "info" | "warn" | "error",
+  message: string,
+  context: CorrelationContext,
+  additional?: Record<string, unknown>,
+): void {
+  const logData = {
+    ...context,
+    message,
+    ...additional,
+  };
+
+  const formattedMessage = `[MarketplaceCorrelation] ${message}`;
+  
+  // Use proper logger instead of console
+  switch (level) {
+    case "debug":
+      logger.debug(formattedMessage, logData);
+      break;
+    case "info":
+      logger.info(formattedMessage, logData);
+      break;
+    case "warn":
+      logger.warn(formattedMessage, logData);
+      break;
+    case "error":
+      logger.error(formattedMessage, undefined, logData);
+      break;
+  }
+}
+
+/**
+ * Extract correlation ID from error or create new one
+ */
+export function getErrorCorrelationId(error?: unknown): string {
+  if (error instanceof Error) {
+    try {
+      const errorData = JSON.parse(error.message);
+      if (errorData.correlationId) {
+        return errorData.correlationId;
+      }
+    } catch {
+      // Not a JSON error, continue to generate new ID
+    }
+  }
+  return randomUUID();
+}
+
+/**
+ * Enhance error with correlation context
+ */
+export function createCorrelatedError(
+  message: string,
+  context: CorrelationContext,
+  errorDetails: {
+    name?: string;
+    code?: string;
+    userMessageKey?: string;
+    userMessage?: string;
+    devMessage?: string;
+  } = {},
+): Error {
+  const errorPayload = {
+    name: errorDetails.name || "MarketplaceError",
+    code: errorDetails.code || "UNKNOWN_ERROR",
+    userMessageKey:
+      errorDetails.userMessageKey || "marketplace.errors.fetch_failed",
+    userMessage: errorDetails.userMessage || "An error occurred",
+    devMessage: errorDetails.devMessage || message,
+    ...context,
+  };
+  logWithCorrelation("error", message, context, errorDetails);
+  return new Error(JSON.stringify(errorPayload));
+}
+
+]]>
+</file>
+
+<file path="lib/marketplace/meiliFilters.ts">
+<![CDATA[
+/**
+ * Escape values used inside Meilisearch filter expressions.
+ * - Removes control characters
+ * - Escapes backslashes and quotes
+ */
+export function escapeMeiliFilterValue(value: string): string {
+  let sanitized = "";
+  for (let i = 0; i < value.length; i++) {
+    const code = value.charCodeAt(i);
+    if (code >= 0x20) {
+      sanitized += value[i];
+    }
+  }
+  return `"${sanitized.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+}
+
+]]>
+</file>
+
+<file path="lib/marketplace/objectIds.ts">
+<![CDATA[
+import crypto from "crypto";
+import { Types } from "mongoose";
+
+export function objectIdFrom(
+  input: string | Types.ObjectId | undefined | null,
+): Types.ObjectId {
+  if (!input) {
+    return new Types.ObjectId();
+  }
+
+  if (input instanceof Types.ObjectId) {
+    return input;
+  }
+
+  if (/^[a-fA-F0-9]{24}$/.test(input)) {
+    return new Types.ObjectId(input);
+  }
+
+  const digest = crypto.createHash("sha1").update(input).digest("hex");
+  return new Types.ObjectId(digest.slice(0, 24));
+}
+
+]]>
+</file>
+
+<file path="lib/marketplace/search.ts">
+<![CDATA[
+import fs from "fs";
+import { logger } from "@/lib/logger";
+import path from "path";
+import { MarketplaceProduct } from "@/server/models/marketplace/Product";
+import { Types } from "mongoose";
+import Product from "@/server/models/marketplace/Product";
+import { db } from "@/lib/mongo";
+import { serializeProduct } from "./serializers";
+
+/**
+ * Synonym Map Structure
+ *
+ * Defines brand and product term synonyms for search query expansion.
+ * Used to match user queries with product catalog variations.
+ *
+ * @example
+ * {
+ *   brand: { "samsung": ["samsung electronics", "samsung co"] },
+ *   product: { "ac": ["air conditioner", "cooling unit"] }
+ * }
+ */
+interface SynonymMap {
+  brand: Record<string, string[]>; // Brand name variations
+  product: Record<string, string[]>; // Product term alternatives
+}
+
+/** In-memory cache for synonym data to avoid repeated file reads */
+let cachedSynonyms: SynonymMap | undefined;
+
+/**
+ * Load Search Synonyms from Filesystem
+ *
+ * Reads and caches synonym mappings from search/synonyms.json.
+ * Falls back to empty maps if file is missing or invalid.
+ *
+ * Caching ensures we only read the file once per process lifetime,
+ * improving search performance.
+ *
+ * @returns Synonym mappings for brands and products
+ */
+function loadSynonyms(): SynonymMap {
+  if (cachedSynonyms) return cachedSynonyms;
+  const filePath = path.join(process.cwd(), "search", "synonyms.json");
+  try {
+    const content = fs.readFileSync(filePath, "utf-8");
+    cachedSynonyms = JSON.parse(content);
+    return cachedSynonyms!;
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.warn("Marketplace search synonyms unavailable, using defaults", {
+      error,
+    });
+    cachedSynonyms = { brand: {}, product: {} };
+    return cachedSynonyms!;
+  }
+}
+
+/**
+ * Expand Search Query with Synonyms
+ *
+ * Takes user query and adds synonym variations to improve search recall.
+ * For example, "AC repair" becomes "AC air conditioner cooling unit repair".
+ *
+ * Process:
+ * 1. Tokenize query into words
+ * 2. For each token, find matching synonyms
+ * 3. Add all variations to expanded set
+ * 4. Return combined query string
+ *
+ * @param value - User's search query
+ * @returns Expanded query with synonyms included
+ *
+ * @example
+ * expandQuery('samsung ac')
+ * // Returns: 'samsung samsung electronics ac air conditioner cooling unit'
+ */
+function expandQuery(value: string) {
+  const synonyms = loadSynonyms();
+  const tokens = value.split(/\s+/).filter(Boolean);
+  const expanded = new Set<string>(tokens);
+
+  for (const token of tokens) {
+    for (const dictionary of [synonyms.brand, synonyms.product]) {
+      for (const [key, variants] of Object.entries(dictionary)) {
+        if (
+          token.localeCompare(key, undefined, { sensitivity: "base" }) === 0 ||
+          variants.includes(token)
+        ) {
+          expanded.add(key);
+          variants.forEach((variant) => expanded.add(variant));
+        }
+      }
+    }
+  }
+
+  return Array.from(expanded).join(" ");
+}
+
+export interface MarketplaceSearchFilters {
+  orgId: Types.ObjectId;
+  q?: string;
+  categoryId?: Types.ObjectId;
+  brand?: string;
+  standard?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  limit?: number;
+  skip?: number;
+}
+
+type MongoQueryOperator =
+  | { $gte?: number; $lte?: number }
+  | { $text: { $search: string; $language?: string } }
+  | { $regex: RegExp; $options?: string }
+  | { $in: (string | number | Types.ObjectId)[] }
+  | { $nin: (string | number | Types.ObjectId)[] }
+  | { $exists: boolean }
+  | Types.ObjectId
+  | string
+  | number
+  | boolean
+  | MongoQueryOperator[];
+type MongoQuery = Record<
+  string,
+  MongoQueryOperator | MongoQueryOperator[] | Record<string, MongoQueryOperator>
+>;
+
+export async function searchProducts(filters: MarketplaceSearchFilters) {
+  await db;
+  const query: MongoQuery = { orgId: filters.orgId, status: "ACTIVE" };
+
+  if (filters.q) {
+    query.$text = { $search: expandQuery(filters.q) };
+  }
+
+  if (filters.categoryId) {
+    query.categoryId = filters.categoryId;
+  }
+
+  if (filters.brand) {
+    query.brand = filters.brand;
+  }
+
+  if (filters.standard) {
+    query.standards = filters.standard;
+  }
+
+  if (filters.minPrice != null || filters.maxPrice != null) {
+    const priceQuery: { $gte?: number; $lte?: number } = {};
+    if (filters.minPrice != null) {
+      priceQuery.$gte = filters.minPrice;
+    }
+    if (filters.maxPrice != null) {
+      priceQuery.$lte = filters.maxPrice;
+    }
+    query["buy.price"] = priceQuery;
+  }
+
+  const limit = Math.min(Math.max(filters.limit ?? 24, 1), 100);
+  const skip = Math.max(filters.skip ?? 0, 0);
+
+  const [items, total, distinctBrands, distinctStandards] = await Promise.all([
+    Product.find(query)
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 })
+      .lean<MarketplaceProduct[]>(),
+    Product.countDocuments(query),
+    Product.distinct("brand", query),
+    Product.distinct("standards", query),
+  ]);
+
+  const categoriesAggregation = await Product.aggregate<{
+    _id: Types.ObjectId;
+  }>([
+    { $match: query },
+    { $group: { _id: "$categoryId", count: { $sum: 1 } } },
+  ]);
+
+  const categoryIds = categoriesAggregation.map((item) => item._id);
+
+  return {
+    items: items.map((item) => serializeProduct(item)),
+    pagination: {
+      total,
+      limit,
+      skip,
+    },
+    facets: {
+      brands: distinctBrands.filter(Boolean).sort(),
+      standards: distinctStandards.flat().filter(Boolean).sort(),
+      categories: categoryIds,
+    },
+  };
+}
+
+export async function findProductBySlug(orgId: Types.ObjectId, slug: string) {
+  await db;
+  const product = await Product.findOne({ orgId, slug }).lean();
+  if (!product) return null;
+  return serializeProduct(product as MarketplaceProduct);
+}
+
+]]>
+</file>
+
+<file path="lib/marketplace/security.ts">
+<![CDATA[
+import { NextResponse } from "next/server";
+
+/**
+ * Marketplace Security Headers Utility
+ * Provides standardized security headers for marketplace API responses
+ */
+export interface SecurityHeadersConfig {
+  enableCORS?: boolean;
+  corsOrigin?: string | string[];
+  enableCSP?: boolean;
+  customCSP?: string;
+  enableHSTS?: boolean;
+  enableFrameOptions?: boolean;
+  enableContentTypeOptions?: boolean;
+
+  enableReferrerPolicy?: boolean;
+}
+
+/**
+ * Default security headers configuration for marketplace APIs
+ */
+const DEFAULT_SECURITY_CONFIG: Required<SecurityHeadersConfig> = {
+  enableCORS: true,
+  corsOrigin: "*", // Will be overridden by environment-specific values
+  enableCSP: true,
+  customCSP:
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self' https:;",
+  enableHSTS: true,
+  enableFrameOptions: true,
+  enableContentTypeOptions: true,
+  enableReferrerPolicy: true,
+};
+
+/**
+ * Get CORS origins from environment or use defaults
+ */
+function getCORSOrigins(): string | string[] {
+  const envOrigins = process.env.CORS_ORIGINS || process.env.ALLOWED_ORIGINS;
+  if (envOrigins) {
+    return envOrigins.split(",").map((origin) => origin.trim());
+  }
+  if (process.env.NODE_ENV === "development") {
+    return [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "https://localhost:3000",
+      "https://localhost:3001",
+    ];
+  }
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
+  if (baseUrl) {
+    return [baseUrl];
+  }
+  return "*"; // Fallback, should be avoided in production
+}
+
+/**
+ * Apply security headers to a NextResponse
+ */
+export function applySecurityHeaders(
+  response: NextResponse,
+  config: SecurityHeadersConfig = {},
+): NextResponse {
+  const finalConfig = { ...DEFAULT_SECURITY_CONFIG, ...config };
+  // CORS Headers
+  if (finalConfig.enableCORS) {
+    const origins =
+      finalConfig.corsOrigin === "*"
+        ? getCORSOrigins()
+        : finalConfig.corsOrigin;
+    if (Array.isArray(origins)) {
+      response.headers.set(
+        "Access-Control-Allow-Origin",
+        origins.length === 1 ? origins[0] : "*",
+      );
+    } else {
+      response.headers.set("Access-Control-Allow-Origin", origins);
+    }
+    response.headers.set(
+      "Access-Control-Allow-Methods",
+      "GET, POST, PUT, DELETE, OPTIONS, PATCH",
+    );
+    response.headers.set(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization, X-Requested-With, X-Correlation-ID, X-Request-Timestamp, X-Operation, X-User-ID, X-Tenant-ID",
+    );
+    response.headers.set(
+      "Access-Control-Expose-Headers",
+      "X-Correlation-ID, X-Request-Timestamp, X-RateLimit-Limit, X-RateLimit-Remaining",
+    );
+    response.headers.set("Access-Control-Allow-Credentials", "true");
+    response.headers.set("Access-Control-Max-Age", "86400"); // 24 hours
+  }
+  // Content Security Policy
+  if (finalConfig.enableCSP) {
+    response.headers.set("Content-Security-Policy", finalConfig.customCSP);
+  }
+  // HTTP Strict Transport Security (HSTS)
+  if (finalConfig.enableHSTS && process.env.NODE_ENV === "production") {
+    response.headers.set(
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains; preload",
+    );
+  }
+  // X-Frame-Options (prevent clickjacking)
+  if (finalConfig.enableFrameOptions) {
+    response.headers.set("X-Frame-Options", "DENY");
+  }
+  // X-Content-Type-Options (prevent MIME sniffing)
+  if (finalConfig.enableContentTypeOptions) {
+    response.headers.set("X-Content-Type-Options", "nosniff");
+  }
+  // Referrer Policy
+  if (finalConfig.enableReferrerPolicy) {
+    response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  }
+  // Additional security headers
+  response.headers.set("X-XSS-Protection", "1; mode=block");
+  response.headers.set("X-DNS-Prefetch-Control", "off");
+  response.headers.set("X-Download-Options", "noopen");
+  response.headers.set("X-Permitted-Cross-Domain-Policies", "none");
+  // Cache control for sensitive data
+  response.headers.set(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, private",
+  );
+  response.headers.set("Pragma", "no-cache");
+  return response;
+}
+
+/**
+ * Create a new response with security headers applied
+ */
+export function createSecureResponse(
+  data: unknown,
+  init?: globalThis.ResponseInit,
+  config?: SecurityHeadersConfig,
+): NextResponse {
+  const response = NextResponse.json(data, init);
+  return applySecurityHeaders(response, config);
+}
+
+/**
+ * Handle OPTIONS preflight requests for CORS
+ */
+export function handleCORSPreflight(
+  config?: SecurityHeadersConfig,
+): NextResponse {
+  const response = new NextResponse(null, { status: 200 });
+  return applySecurityHeaders(response, config);
+}
+
+/**
+ * Middleware-style function to wrap API route handlers with security headers
+ */
+export function withSecurityHeaders<T extends unknown[]>(
+  handler: (..._args: T) => Promise<NextResponse> | NextResponse,
+  config?: SecurityHeadersConfig,
+) {
+  return async (...args: T): Promise<NextResponse> => {
+    try {
+      const response = await handler(...args);
+      return applySecurityHeaders(response, config);
+    } catch {
+      // Even error responses should have security headers
+      const errorResponse = NextResponse.json(
+        { error: "Internal server error" },
+        { status: 500 },
+      );
+      return applySecurityHeaders(errorResponse, config);
+    }
+  };
+}
+
+]]>
+</file>
+
+</batch_content>

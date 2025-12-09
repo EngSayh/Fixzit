@@ -1,0 +1,3315 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="scripts/seed/souq-test-data.ts">
+<![CDATA[
+/**
+ * Souq Test Data Seeding Script
+ * Seeds test data for EPICs G (Analytics) and H (Reviews & Ratings)
+ *
+ * Usage:
+ *   pnpm tsx scripts/seed/souq-test-data.ts
+ *
+ * This script creates:
+ * - Test products (10)
+ * - Test customers (20)
+ * - Test orders (50) with various statuses
+ * - Test reviews (100) with different ratings
+ * - Historical sales data for analytics
+ */
+
+import { config } from "dotenv";
+import { resolve } from "path";
+
+// Load environment variables from .env.local
+config({ path: resolve(process.cwd(), ".env.local") });
+
+import { connectDb } from "@/lib/mongodb-unified";
+import { SouqProduct } from "@/server/models/souq/Product";
+import { SouqOrder } from "@/server/models/souq/Order";
+import { SouqReview } from "@/server/models/souq/Review";
+import { nanoid } from "nanoid";
+
+type SeedProduct = {
+  fsin?: string;
+  productId?: string;
+  name?: string;
+  price?: number;
+  [key: string]: unknown;
+};
+
+type SeedOrderItem = {
+  fsin?: string;
+  productId?: string;
+  productName?: string;
+  quantity?: number;
+  price?: number;
+  subtotal?: number;
+};
+
+type SeedOrder = {
+  status?: string;
+  items: SeedOrderItem[];
+  customerId?: string;
+  customerName?: string;
+  orderId?: string;
+  statusHistory?: Array<{ status: string; updatedAt: Date; updatedBy: string }>;
+  channel?: string;
+  total?: number;
+  [key: string]: unknown;
+};
+
+// Test organization ID (replace with your actual test org ID)
+// Must be a valid ObjectId string for product/org scoping
+const TEST_ORG_ID = "507f1f77bcf86cd799439011";
+const TEST_SELLER_ID = "6740b53c5b1a08c748eec97f"; // Valid MongoDB ObjectId format
+
+// Sample product data matching the Product schema
+const PRODUCT_TEMPLATES = [
+  {
+    title: { en: "Premium Office Chair", ar: "كرسي مكتب فاخر" },
+    description: {
+      en: "Ergonomic office chair with lumbar support",
+      ar: "كرسي مكتب مريح مع دعم قطني",
+    },
+    categoryId: "CAT-FURNITURE-001",
+    basePrice: 299.99,
+    images: ["https://placehold.co/600x400/png?text=Office+Chair"],
+  },
+  {
+    title: { en: "Wireless Keyboard", ar: "لوحة مفاتيح لاسلكية" },
+    description: {
+      en: "Mechanical wireless keyboard with RGB lighting",
+      ar: "لوحة مفاتيح ميكانيكية لاسلكية مع إضاءة RGB",
+    },
+    categoryId: "CAT-ELECTRONICS-001",
+    basePrice: 79.99,
+    images: ["https://placehold.co/600x400/png?text=Keyboard"],
+  },
+  {
+    title: { en: "Standing Desk", ar: "مكتب واقف" },
+    description: {
+      en: "Height-adjustable standing desk",
+      ar: "مكتب قابل لتعديل الارتفاع",
+    },
+    categoryId: "CAT-FURNITURE-001",
+    basePrice: 499.99,
+    images: ["https://placehold.co/600x400/png?text=Standing+Desk"],
+  },
+  {
+    title: { en: "4K Monitor", ar: "شاشة 4K" },
+    description: { en: "27-inch 4K IPS monitor", ar: "شاشة 27 بوصة 4K IPS" },
+    categoryId: "CAT-ELECTRONICS-001",
+    basePrice: 349.99,
+    images: ["https://placehold.co/600x400/png?text=4K+Monitor"],
+  },
+  {
+    title: { en: "Desk Lamp", ar: "مصباح مكتب" },
+    description: {
+      en: "LED desk lamp with adjustable brightness",
+      ar: "مصباح LED مع سطوع قابل للتعديل",
+    },
+    categoryId: "CAT-LIGHTING-001",
+    basePrice: 39.99,
+    images: ["https://placehold.co/600x400/png?text=Desk+Lamp"],
+  },
+  {
+    title: { en: "Laptop Stand", ar: "حامل لابتوب" },
+    description: {
+      en: "Aluminum laptop stand with cooling",
+      ar: "حامل لابتوب ألمنيوم مع تبريد",
+    },
+    categoryId: "CAT-ACCESSORIES-001",
+    basePrice: 49.99,
+    images: ["https://placehold.co/600x400/png?text=Laptop+Stand"],
+  },
+  {
+    title: { en: "Webcam HD", ar: "كاميرا ويب عالية الدقة" },
+    description: {
+      en: "1080p HD webcam with auto-focus",
+      ar: "كاميرا ويب 1080p مع تركيز تلقائي",
+    },
+    categoryId: "CAT-ELECTRONICS-001",
+    basePrice: 89.99,
+    images: ["https://placehold.co/600x400/png?text=Webcam"],
+  },
+  {
+    title: { en: "Mouse Pad", ar: "ماوس باد" },
+    description: { en: "Large gaming mouse pad", ar: "ماوس باد كبير للألعاب" },
+    categoryId: "CAT-ACCESSORIES-001",
+    basePrice: 19.99,
+    images: ["https://placehold.co/600x400/png?text=Mouse+Pad"],
+  },
+  {
+    title: { en: "Headphone Stand", ar: "حامل سماعات" },
+    description: {
+      en: "RGB headphone stand with USB hub",
+      ar: "حامل سماعات RGB مع USB hub",
+    },
+    categoryId: "CAT-ACCESSORIES-001",
+    basePrice: 24.99,
+    images: ["https://placehold.co/600x400/png?text=Headphone+Stand"],
+  },
+  {
+    title: { en: "Cable Management Box", ar: "صندوق تنظيم الكابلات" },
+    description: { en: "Cable organizer box", ar: "صندوق منظم للكابلات" },
+    categoryId: "CAT-ACCESSORIES-001",
+    basePrice: 29.99,
+    images: ["https://placehold.co/600x400/png?text=Cable+Box"],
+  },
+];
+
+// Sample customer names
+const CUSTOMER_NAMES = [
+  "Ahmed Al-Rashid",
+  "Fatima Hassan",
+  "Mohammed Ali",
+  "Sarah Abdullah",
+  "Omar Khalid",
+  "Noura Ibrahim",
+  "Khalid Mansoor",
+  "Layla Ahmed",
+  "Youssef Fahad",
+  "Maryam Sultan",
+  "Abdullah Nasser",
+  "Aisha Mohammed",
+  "Hassan Ali",
+  "Zainab Khalid",
+  "Faisal Ahmed",
+  "Huda Ibrahim",
+  "Tariq Rashid",
+  "Nadia Hassan",
+  "Saeed Abdullah",
+  "Reem Fahad",
+];
+
+// Review title templates
+const REVIEW_TITLES = [
+  "Excellent quality product!",
+  "Great value for money",
+  "Highly recommend this product",
+  "Exceeded my expectations",
+  "Good but could be better",
+  "Not what I expected",
+  "Perfect for my needs",
+  "Amazing product",
+  "Decent product overall",
+  "Outstanding quality",
+  "Worth every penny",
+  "Very satisfied with purchase",
+  "Could use some improvements",
+  "Fantastic product!",
+  "Good product, fast delivery",
+];
+
+// Review content templates (positive)
+const POSITIVE_REVIEWS = [
+  "This product has been amazing. The quality is top-notch and it works exactly as described. I have been using it for a few weeks now and I am very satisfied with my purchase. Highly recommended!",
+  "I am extremely happy with this purchase. The product arrived quickly and was exactly what I needed. The quality exceeded my expectations and I would definitely buy from this seller again.",
+  "Outstanding product! The build quality is excellent and it has made a significant difference in my daily work. The seller was also very responsive to my questions before purchasing.",
+  "Great value for the price. The product is well-made and functions perfectly. I compared several similar products before choosing this one and I am glad I did. Excellent choice!",
+  "This exceeded all my expectations. The quality is superb and it looks even better in person. The packaging was also very secure and professional. Will be ordering more from this seller.",
+];
+
+// Review content templates (neutral)
+const NEUTRAL_REVIEWS = [
+  "The product is okay. It works as described but nothing exceptional. The price point is reasonable but I expected slightly better quality for the cost. Still a decent purchase overall.",
+  "Decent product for the price. It does what it is supposed to do but there is room for improvement. The delivery was fast and the seller was professional in their communication.",
+  "Average quality product. It meets basic expectations but could use some improvements in design and materials. For the price, it is acceptable but not outstanding.",
+];
+
+// Review content templates (negative)
+const NEGATIVE_REVIEWS = [
+  "Unfortunately, this product did not meet my expectations. The quality is lower than what was advertised and it does not function as smoothly as I hoped. I am disappointed with this purchase.",
+  "Not satisfied with this purchase. The product arrived with some minor defects and the overall quality is not what I expected based on the description and price point.",
+];
+
+// Pros and cons
+const PROS_OPTIONS = [
+  "Excellent build quality",
+  "Fast delivery",
+  "Great customer service",
+  "Easy to use",
+  "Good value for money",
+  "Durable materials",
+  "Stylish design",
+  "Comfortable",
+  "Well-packaged",
+  "Exactly as described",
+];
+
+const CONS_OPTIONS = [
+  "Slightly expensive",
+  "Could be more durable",
+  "Instructions unclear",
+  "Takes time to set up",
+  "Packaging could be better",
+  "Limited color options",
+  "No warranty included",
+];
+
+/**
+ * Generate random date within last N days
+ */
+function randomDateWithinDays(days: number): Date {
+  const now = new Date();
+  const pastDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+  const randomTime =
+    pastDate.getTime() + Math.random() * (now.getTime() - pastDate.getTime());
+  return new Date(randomTime);
+}
+
+/**
+ * Generate random array subset
+ */
+function randomSubset<T>(array: T[], count: number): T[] {
+  const shuffled = [...array].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
+}
+
+/**
+ * Seed test products
+ */
+async function seedProducts(): Promise<SeedProduct[]> {
+  console.log("🌱 Seeding products...");
+
+  const products: SeedProduct[] = [];
+
+  for (let i = 0; i < PRODUCT_TEMPLATES.length; i++) {
+    const template = PRODUCT_TEMPLATES[i];
+    const fsin = `FSIN-${nanoid(10).toUpperCase()}`;
+
+    products.push({
+      fsin,
+      orgId: TEST_ORG_ID,
+      title: template.title,
+      description: template.description,
+      categoryId: template.categoryId,
+      images: template.images,
+      isActive: true,
+      hasVariations: false,
+      attributes: {},
+      complianceFlags: [],
+      createdBy: TEST_SELLER_ID,
+      createdAt: randomDateWithinDays(180),
+      updatedAt: new Date(),
+    });
+  }
+
+  // Clear existing test products
+  await SouqProduct.deleteMany({ createdBy: TEST_SELLER_ID, orgId: TEST_ORG_ID });
+
+  // Insert new products
+  const insertedProducts = (await SouqProduct.insertMany(
+    products,
+  )) as SeedProduct[];
+  console.log(`✅ Created ${insertedProducts.length} products`);
+
+  return insertedProducts;
+}
+
+/**
+ * Seed test orders
+ */
+async function seedOrders(products: SeedProduct[]): Promise<SeedOrder[]> {
+  console.log("🌱 Seeding orders...");
+
+  const orders: SeedOrder[] = [];
+  const orderStatuses = [
+    "pending",
+    "confirmed",
+    "processing",
+    "shipped",
+    "delivered",
+    "completed",
+  ];
+
+  for (let i = 0; i < 50; i++) {
+    const customerId = `CUST-${nanoid(10).toUpperCase()}`;
+    const customerName =
+      CUSTOMER_NAMES[Math.floor(Math.random() * CUSTOMER_NAMES.length)];
+    const orderId = `ORD-${nanoid(10).toUpperCase()}`;
+
+    // Random 1-3 items per order
+    const itemCount = Math.floor(Math.random() * 3) + 1;
+    const orderProducts = randomSubset(products, itemCount);
+
+    const items = orderProducts.map((product) => {
+      const quantity = Math.floor(Math.random() * 3) + 1;
+      return {
+        fsin: product.fsin,
+        productId: product.productId,
+        productName: product.name,
+        quantity,
+        price: product.price,
+        subtotal: product.price * quantity,
+      };
+    });
+
+    const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
+    const tax = subtotal * 0.15; // 15% tax
+    const total = subtotal + tax;
+
+    // Older orders are more likely to be delivered
+    const orderAge = Math.random() * 90;
+    let status;
+    if (orderAge > 60)
+      status = orderStatuses[5]; // completed
+    else if (orderAge > 40)
+      status = orderStatuses[4]; // delivered
+    else if (orderAge > 20)
+      status = orderStatuses[3]; // shipped
+    else if (orderAge > 10)
+      status = orderStatuses[2]; // processing
+    else if (orderAge > 5)
+      status = orderStatuses[1]; // confirmed
+    else status = orderStatuses[0]; // pending
+
+    orders.push({
+      orderId,
+      // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+      orgId: TEST_ORG_ID,
+      sellerId: TEST_SELLER_ID,
+      customerId,
+      customerName,
+      items,
+      subtotal,
+      tax,
+      total,
+      status,
+      paymentStatus: status === "pending" ? "pending" : "paid",
+      shippingAddress: {
+        street: "123 Test Street",
+        city: "Riyadh",
+        country: "Saudi Arabia",
+        postalCode: "12345",
+      },
+      createdAt: randomDateWithinDays(orderAge),
+      updatedAt: new Date(),
+    });
+  }
+
+  // Clear existing test orders
+  // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+  await SouqOrder.deleteMany({ orgId: TEST_ORG_ID });
+
+  // Insert new orders
+  const insertedOrders = (await SouqOrder.insertMany(orders)) as SeedOrder[];
+  console.log(`✅ Created ${insertedOrders.length} orders`);
+
+  return insertedOrders;
+}
+
+/**
+ * Seed test reviews
+ */
+async function seedReviews(products: SeedProduct[], orders: SeedOrder[]) {
+  console.log("🌱 Seeding reviews...");
+
+  const reviews = [];
+
+  // Get delivered/completed orders for verified reviews
+  const deliveredOrders = orders.filter(
+    (o) => o.status === "delivered" || o.status === "completed",
+  );
+
+  // Create reviews for about 60% of delivered orders
+  const reviewCount = Math.floor(deliveredOrders.length * 0.6);
+  const ordersToReview = randomSubset(deliveredOrders, reviewCount);
+
+  for (const order of ordersToReview) {
+    // Review one random item from the order
+    const item = order.items[Math.floor(Math.random() * order.items.length)];
+
+    // Random rating (weighted toward positive)
+    const rand = Math.random();
+    let rating;
+    if (rand < 0.5)
+      rating = 5; // 50% 5-star
+    else if (rand < 0.75)
+      rating = 4; // 25% 4-star
+    else if (rand < 0.85)
+      rating = 3; // 10% 3-star
+    else if (rand < 0.95)
+      rating = 2; // 10% 2-star
+    else rating = 1; // 5% 1-star
+
+    // Select review content based on rating
+    let content, pros, cons;
+    if (rating >= 4) {
+      content =
+        POSITIVE_REVIEWS[Math.floor(Math.random() * POSITIVE_REVIEWS.length)];
+      pros = randomSubset(PROS_OPTIONS, Math.floor(Math.random() * 3) + 2);
+      cons = Math.random() < 0.3 ? randomSubset(CONS_OPTIONS, 1) : [];
+    } else if (rating === 3) {
+      content =
+        NEUTRAL_REVIEWS[Math.floor(Math.random() * NEUTRAL_REVIEWS.length)];
+      pros = randomSubset(PROS_OPTIONS, Math.floor(Math.random() * 2) + 1);
+      cons = randomSubset(CONS_OPTIONS, Math.floor(Math.random() * 2) + 1);
+    } else {
+      content =
+        NEGATIVE_REVIEWS[Math.floor(Math.random() * NEGATIVE_REVIEWS.length)];
+      pros = Math.random() < 0.3 ? randomSubset(PROS_OPTIONS, 1) : [];
+      cons = randomSubset(CONS_OPTIONS, Math.floor(Math.random() * 3) + 2);
+    }
+
+    const reviewId = `REV-${nanoid(10).toUpperCase()}`;
+
+    reviews.push({
+      reviewId,
+      // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+      orgId: TEST_ORG_ID,
+      productId: item.productId,
+      fsin: item.fsin,
+      customerId: order.customerId,
+      customerName: order.customerName,
+      orderId: order.orderId,
+      rating,
+      title: REVIEW_TITLES[Math.floor(Math.random() * REVIEW_TITLES.length)],
+      content,
+      pros,
+      cons,
+      isVerifiedPurchase: true,
+      status: "published",
+      helpful: Math.floor(Math.random() * 20),
+      notHelpful: Math.floor(Math.random() * 5),
+      reportedCount: 0,
+      createdAt: new Date(order.createdAt.getTime() + 7 * 24 * 60 * 60 * 1000), // 7 days after order
+      updatedAt: new Date(),
+    });
+  }
+
+  // Also add some non-verified reviews
+  const nonVerifiedCount = Math.floor(reviewCount * 0.2);
+  for (let i = 0; i < nonVerifiedCount; i++) {
+    const product = products[Math.floor(Math.random() * products.length)];
+    const rating = Math.floor(Math.random() * 5) + 1;
+
+    let content;
+    if (rating >= 4)
+      content =
+        POSITIVE_REVIEWS[Math.floor(Math.random() * POSITIVE_REVIEWS.length)];
+    else if (rating === 3)
+      content =
+        NEUTRAL_REVIEWS[Math.floor(Math.random() * NEUTRAL_REVIEWS.length)];
+    else
+      content =
+        NEGATIVE_REVIEWS[Math.floor(Math.random() * NEGATIVE_REVIEWS.length)];
+
+    reviews.push({
+      reviewId: `REV-${nanoid(10).toUpperCase()}`,
+      // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+      orgId: TEST_ORG_ID,
+      productId: product.productId,
+      fsin: product.fsin,
+      customerId: `CUST-${nanoid(10).toUpperCase()}`,
+      customerName:
+        CUSTOMER_NAMES[Math.floor(Math.random() * CUSTOMER_NAMES.length)],
+      rating,
+      title: REVIEW_TITLES[Math.floor(Math.random() * REVIEW_TITLES.length)],
+      content,
+      isVerifiedPurchase: false,
+      status: "published",
+      helpful: Math.floor(Math.random() * 10),
+      notHelpful: Math.floor(Math.random() * 3),
+      reportedCount: 0,
+      createdAt: randomDateWithinDays(60),
+      updatedAt: new Date(),
+    });
+  }
+
+  // Clear existing test reviews
+  // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+  await SouqReview.deleteMany({ orgId: TEST_ORG_ID });
+
+  // Insert new reviews
+  const insertedReviews = await SouqReview.insertMany(reviews);
+  console.log(
+    `✅ Created ${insertedReviews.length} reviews (${reviewCount} verified, ${nonVerifiedCount} non-verified)`,
+  );
+
+  return insertedReviews;
+}
+
+/**
+ * Main seed function
+ */
+async function main() {
+  try {
+    console.log("🚀 Starting Souq test data seeding...\n");
+
+    // Connect to database
+    await connectDb();
+    console.log("✅ Connected to database\n");
+
+    // Seed data
+    const products = await seedProducts();
+    console.log("");
+
+    const orders = await seedOrders(products);
+    console.log("");
+
+    const reviews = await seedReviews(products, orders);
+    console.log("");
+
+    // Summary
+    console.log("📊 Seeding Summary:");
+    console.log(`   - Products: ${products.length}`);
+    console.log(`   - Orders: ${orders.length}`);
+    console.log(`   - Reviews: ${reviews.length}`);
+    console.log("");
+
+    // Calculate some stats
+    const avgRating =
+      reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+    const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
+
+    console.log("📈 Test Data Stats:");
+    console.log(`   - Total Revenue: ${totalRevenue.toFixed(2)} SAR`);
+    console.log(`   - Average Rating: ${avgRating.toFixed(2)} ⭐`);
+    console.log(
+      `   - Verified Reviews: ${reviews.filter((r) => r.isVerifiedPurchase).length}`,
+    );
+    console.log(
+      `   - Completed Orders: ${orders.filter((o) => o.status === "completed").length}`,
+    );
+    console.log("");
+
+    console.log("✅ Seeding completed successfully!");
+    console.log("");
+    console.log("🧪 Test Data Identifiers:");
+    console.log(`   - Organization ID: ${TEST_ORG_ID}`);
+    console.log(`   - Seller ID: ${TEST_SELLER_ID}`);
+    console.log("");
+    console.log("💡 Next Steps:");
+    console.log("   1. Login as a seller with TEST_SELLER_ID");
+    console.log("   2. Navigate to /marketplace/seller-central/analytics");
+    console.log("   3. View products at /marketplace/souq/products");
+    console.log("   4. Test review submission on product pages");
+    console.log("");
+  } catch (error) {
+    console.error("❌ Seeding failed:", error);
+    process.exit(1);
+  } finally {
+    // Close database connection
+    process.exit(0);
+  }
+}
+
+// Run if called directly
+if (require.main === module) {
+  main();
+}
+
+export { seedProducts, seedOrders, seedReviews };
+
+]]>
+</file>
+
+<file path="scripts/seed-aqar-data.js">
+<![CDATA[
+/**
+ * Aqar Marketplace Seed Data Generator
+ *
+ * This script generates comprehensive seed data for the Aqar real estate marketplace,
+ * including properties, agents, viewings, and transactions for testing and development.
+ *
+ * Usage:
+ *   node scripts/seed-aqar-data.js
+ *
+ * Options:
+ *   --properties=100    Number of properties to generate (default: 100)
+ *   --agents=20         Number of agents to generate (default: 20)
+ *   --viewings=50       Number of viewing requests to generate (default: 50)
+ *   --transactions=30   Number of transactions to generate (default: 30)
+ *   --clear             Clear existing data before seeding
+ */
+
+require("dotenv").config();
+
+const isProdLike =
+  process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike) {
+  console.error(
+    "Seeding blocked in production/CI. Set ALLOW_SEED=1 only in non-production.",
+  );
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== "1") {
+  console.error("Set ALLOW_SEED=1 to run seed scripts in non-production.");
+  process.exit(1);
+}
+
+const mongoose = require("mongoose");
+const { faker } = require("@faker-js/faker");
+
+// Import models
+const { PropertyListing } = require("../server/models/aqar/PropertyListing");
+const { RealEstateAgent } = require("../server/models/aqar/RealEstateAgent");
+const { ViewingRequest } = require("../server/models/aqar/ViewingRequest");
+const {
+  PropertyTransaction,
+} = require("../server/models/aqar/PropertyTransaction");
+const User = require("../models/User");
+
+// Configuration
+const config = {
+  properties: parseInt(
+    process.argv
+      .find((arg) => arg.startsWith("--properties="))
+      ?.split("=")[1] || "100",
+    10,
+  ),
+  agents: parseInt(
+    process.argv.find((arg) => arg.startsWith("--agents="))?.split("=")[1] ||
+      "20",
+    10,
+  ),
+  viewings: parseInt(
+    process.argv.find((arg) => arg.startsWith("--viewings="))?.split("=")[1] ||
+      "50",
+    10,
+  ),
+  transactions: parseInt(
+    process.argv
+      .find((arg) => arg.startsWith("--transactions="))
+      ?.split("=")[1] || "30",
+    10,
+  ),
+  clearExisting: process.argv.includes("--clear"),
+};
+
+// Saudi cities with coordinates
+const saudiCities = [
+  {
+    name: "Riyadh",
+    name_ar: "الرياض",
+    lat: 24.7136,
+    lng: 46.6753,
+    districts: [
+      "Al Olaya",
+      "Al Malaz",
+      "Al Nakheel",
+      "Al Wurud",
+      "King Fahd",
+      "Al Sahafa",
+    ],
+  },
+  {
+    name: "Jeddah",
+    name_ar: "جدة",
+    lat: 21.5433,
+    lng: 39.1728,
+    districts: [
+      "Al Hamra",
+      "Al Shatea",
+      "Al Rawdah",
+      "Al Salamah",
+      "Al Zahra",
+      "Al Basateen",
+    ],
+  },
+  {
+    name: "Mecca",
+    name_ar: "مكة",
+    lat: 21.4225,
+    lng: 39.8262,
+    districts: [
+      "Al Aziziyah",
+      "Al Hindawiyah",
+      "Jarwal",
+      "Al Shawqiyah",
+      "Al Kakiyah",
+    ],
+  },
+  {
+    name: "Medina",
+    name_ar: "المدينة",
+    lat: 24.5247,
+    lng: 39.5692,
+    districts: ["Al Khalidiyah", "Al Aqiq", "Al Iskan", "Quba", "Al Jumuah"],
+  },
+  {
+    name: "Dammam",
+    name_ar: "الدمام",
+    lat: 26.4207,
+    lng: 50.0888,
+    districts: [
+      "Al Shati",
+      "Al Faisaliyah",
+      "Al Adamah",
+      "Al Nuzha",
+      "Al Muhammadiyah",
+    ],
+  },
+  {
+    name: "Khobar",
+    name_ar: "الخبر",
+    lat: 26.2172,
+    lng: 50.1971,
+    districts: [
+      "Corniche",
+      "Al Aqrabiyah",
+      "Al Khobar Al Shamaliyah",
+      "Al Ulaya",
+      "Al Hizam",
+    ],
+  },
+];
+
+// Property types with typical characteristics
+const propertyData = {
+  APARTMENT: {
+    priceRange: [150000, 800000],
+    areaRange: [60, 200],
+    bedrooms: [1, 2, 3, 4],
+    images: 8,
+  },
+  VILLA: {
+    priceRange: [800000, 5000000],
+    areaRange: [250, 800],
+    bedrooms: [3, 4, 5, 6],
+    images: 12,
+  },
+  TOWNHOUSE: {
+    priceRange: [500000, 2000000],
+    areaRange: [180, 350],
+    bedrooms: [2, 3, 4],
+    images: 10,
+  },
+  PENTHOUSE: {
+    priceRange: [1500000, 8000000],
+    areaRange: [200, 500],
+    bedrooms: [2, 3, 4, 5],
+    images: 15,
+  },
+  STUDIO: {
+    priceRange: [100000, 400000],
+    areaRange: [30, 60],
+    bedrooms: [0, 1],
+    images: 6,
+  },
+  LAND: {
+    priceRange: [200000, 10000000],
+    areaRange: [300, 5000],
+    bedrooms: [0],
+    images: 4,
+  },
+  COMMERCIAL: {
+    priceRange: [500000, 15000000],
+    areaRange: [100, 2000],
+    bedrooms: [0],
+    images: 8,
+  },
+  WAREHOUSE: {
+    priceRange: [1000000, 20000000],
+    areaRange: [500, 10000],
+    bedrooms: [0],
+    images: 6,
+  },
+  OFFICE: {
+    priceRange: [300000, 5000000],
+    areaRange: [50, 500],
+    bedrooms: [0],
+    images: 8,
+  },
+};
+
+// Amenities pool
+const amenitiesList = [
+  "Swimming Pool",
+  "Gym",
+  "Parking",
+  "Security 24/7",
+  "Garden",
+  "Balcony",
+  "Elevator",
+  "Central AC",
+  "Maid Room",
+  "Storage Room",
+  "Kids Play Area",
+  "BBQ Area",
+  "Smart Home",
+  "Solar Panels",
+  "Covered Parking",
+  "Guest Parking",
+  "Mosque Nearby",
+  "School Nearby",
+  "Mall Nearby",
+  "Metro Station",
+  "Bus Stop",
+  "Hospital Nearby",
+];
+
+// Agent specializations
+const specializations = [
+  "Residential Properties",
+  "Commercial Properties",
+  "Luxury Villas",
+  "Apartments",
+  "Investment Properties",
+  "Off-Plan Properties",
+  "Land Sales",
+  "Property Management",
+];
+
+// Helper functions
+const randomItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const randomItems = (arr, count) => {
+  const shuffled = [...arr].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, count);
+};
+const randomInt = (min, max) =>
+  Math.floor(Math.random() * (max - min + 1)) + min;
+const randomFloat = (min, max) => Math.random() * (max - min) + min;
+
+/**
+ * Generate a random Saudi phone number
+ */
+function generateSaudiPhone() {
+  const prefixes = ["50", "53", "54", "55", "56", "58", "59"];
+  const prefix = randomItem(prefixes);
+  const number = Math.floor(Math.random() * 10000000)
+    .toString()
+    .padStart(7, "0");
+  return `+966${prefix}${number}`;
+}
+
+/**
+ * Generate property listings
+ */
+async function generateProperties(count, agents) {
+  console.log(`Generating ${count} properties...`);
+  const properties = [];
+
+  for (let i = 0; i < count; i++) {
+    const propertyType = randomItem(Object.keys(propertyData));
+    const listingType = randomItem(["SALE", "RENT", "RENT", "LEASE"]); // More rentals
+    const city = randomItem(saudiCities);
+    const district = randomItem(city.districts);
+    const data = propertyData[propertyType];
+
+    // Random coordinates near city center
+    const lat = city.lat + randomFloat(-0.1, 0.1);
+    const lng = city.lng + randomFloat(-0.1, 0.1);
+
+    // Price calculation
+    const basePrice = randomInt(data.priceRange[0], data.priceRange[1]);
+    const rentMultiplier = listingType === "RENT" ? 0.004 : 1; // ~4% annual for rent
+    const price =
+      listingType === "RENT"
+        ? Math.floor(basePrice * rentMultiplier)
+        : basePrice;
+
+    // Area
+    const builtArea = randomInt(data.areaRange[0], data.areaRange[1]);
+    const plotArea = ["VILLA", "TOWNHOUSE", "LAND"].includes(propertyType)
+      ? builtArea * randomFloat(1.5, 3)
+      : builtArea;
+
+    // Bedrooms & Bathrooms
+    const bedrooms = propertyType === "STUDIO" ? 0 : randomItem(data.bedrooms);
+    const bathrooms =
+      bedrooms > 0
+        ? randomInt(Math.max(1, Math.floor(bedrooms * 0.6)), bedrooms + 1)
+        : 1;
+
+    // Features
+    const hasParking = propertyType !== "STUDIO";
+    const parkingSpaces = hasParking
+      ? randomInt(1, propertyType === "VILLA" ? 4 : 2)
+      : 0;
+    const furnished = Math.random() > 0.6;
+    const amenities = randomItems(amenitiesList, randomInt(3, 8));
+
+    // Status
+    const status = randomItem([
+      "AVAILABLE",
+      "AVAILABLE",
+      "AVAILABLE",
+      "RESERVED",
+      "SOLD",
+    ]);
+    const featured = Math.random() > 0.85;
+    const verified = Math.random() > 0.2;
+
+    // Agent
+    const agent = randomItem(agents);
+    const agentId = agent._id;
+
+    // Property title
+    const titlePrefix =
+      listingType === "SALE"
+        ? "For Sale"
+        : listingType === "RENT"
+          ? "For Rent"
+          : "For Lease";
+    const title = {
+      en: `${titlePrefix}: ${propertyType} in ${district}, ${city.name}`,
+      ar: `${propertyType} في ${district}, ${city.name_ar}`,
+    };
+
+    // Description
+    const description = {
+      en:
+        `Beautiful ${propertyType.toLowerCase()} located in the premium ${district} district of ${city.name}. ` +
+        `This property features ${bedrooms} bedroom${bedrooms !== 1 ? "s" : ""}, ${bathrooms} bathroom${bathrooms !== 1 ? "s" : ""}, ` +
+        `and ${Math.floor(builtArea)} sqm of living space. ${furnished ? "Fully furnished and " : ""}Ready to move in. ` +
+        `Amenities include: ${amenities.slice(0, 3).join(", ")}.`,
+      ar: `عقار جميل يقع في ${district} في ${city.name_ar}`,
+    };
+
+    // Images (mock URLs)
+    const images = Array.from({ length: data.images }, (_, idx) => ({
+      url: `https://picsum.photos/seed/prop-${i}-${idx}/800/600`,
+      caption: { en: `Image ${idx + 1}`, ar: `صورة ${idx + 1}` },
+      order: idx,
+      isCover: idx === 0,
+    }));
+
+    const property = {
+      propertyType,
+      listingType,
+      status,
+      title,
+      description,
+      location: {
+        address: {
+          street: `${randomInt(1, 999)} ${faker.location.street()}`,
+          district,
+          city: city.name,
+          region: city.name,
+          country: "Saudi Arabia",
+          postalCode: `${randomInt(10000, 99999)}`,
+        },
+        coordinates: {
+          type: "Point",
+          coordinates: [lng, lat],
+        },
+        nearby: {
+          schools: randomItems(
+            [
+              "King Saud International School",
+              "American International School",
+              "British International School",
+            ],
+            2,
+          ),
+          hospitals: randomItems(
+            [
+              "King Faisal Specialist Hospital",
+              "Saudi German Hospital",
+              "Dr. Sulaiman Al Habib Hospital",
+            ],
+            1,
+          ),
+          malls: randomItems(
+            ["Al Nakheel Mall", "Riyadh Park", "Kingdom Centre"],
+            1,
+          ),
+          mosques: randomItems(
+            ["Grand Mosque", "Al Rajhi Mosque", "Al Faisaliyah Mosque"],
+            2,
+          ),
+          metro:
+            propertyType !== "LAND"
+              ? [`Metro Station ${randomInt(1, 10)}`]
+              : undefined,
+        },
+      },
+      features: {
+        bedrooms,
+        bathrooms,
+        area: {
+          built: builtArea,
+          plot: propertyType === "APARTMENT" ? undefined : plotArea,
+          unit: "sqm",
+        },
+        floor: ["APARTMENT", "OFFICE"].includes(propertyType)
+          ? randomInt(1, 20)
+          : undefined,
+        totalFloors: ["APARTMENT", "OFFICE"].includes(propertyType)
+          ? randomInt(5, 30)
+          : undefined,
+        parking: parkingSpaces,
+        furnished,
+        amenities,
+        yearBuilt: randomInt(2000, 2024),
+        lastRenovated: Math.random() > 0.7 ? randomInt(2018, 2024) : undefined,
+      },
+      pricing: {
+        amount: price,
+        currency: "SAR",
+        pricePerSqm: Math.floor(price / builtArea),
+        negotiable: Math.random() > 0.5,
+        includedUtilities:
+          listingType === "RENT"
+            ? randomItems(
+                ["Water", "Electricity", "Internet", "Maintenance"],
+                randomInt(0, 3),
+              )
+            : undefined,
+      },
+      media: {
+        images,
+        videos:
+          Math.random() > 0.7
+            ? [
+                {
+                  url: `https://www.youtube.com/watch?v=${faker.string.alphanumeric(11)}`,
+                  thumbnail: images[0].url,
+                },
+              ]
+            : [],
+        virtualTour:
+          Math.random() > 0.8
+            ? `https://virtual-tour.example.com/property-${i}`
+            : undefined,
+        floorPlan:
+          Math.random() > 0.6
+            ? `https://picsum.photos/seed/floor-${i}/1200/800`
+            : undefined,
+      },
+      agentId,
+      ownerId: agent.userId,
+      featured,
+      verified,
+      views: randomInt(10, 1000),
+      publishedAt:
+        Math.random() > 0.2 ? faker.date.past({ years: 0.5 }) : undefined,
+      expiresAt: faker.date.future({ years: 1 }),
+    };
+
+    properties.push(property);
+  }
+
+  const result = await PropertyListing.insertMany(properties);
+  console.log(`✓ Created ${result.length} properties`);
+  return result;
+}
+
+/**
+ * Generate real estate agents
+ */
+async function generateAgents(count) {
+  console.log(`Generating ${count} agents...`);
+  const agents = [];
+
+  // Create or find user accounts for agents
+  for (let i = 0; i < count; i++) {
+    const firstName = faker.person.firstName();
+    const lastName = faker.person.lastName();
+    const email = faker.internet.email({ firstName, lastName }).toLowerCase();
+    const phone = generateSaudiPhone();
+
+    // Create user if doesn't exist
+    let user = await User.findOne({ email });
+    if (!user) {
+      user = await User.create({
+        email,
+        firstName,
+        lastName,
+        phone,
+        role: "agent",
+        verified: true,
+        active: true,
+      });
+    }
+
+    const tier = randomItem(["BASIC", "PREMIUM", "PREMIUM", "ELITE"]); // More premium
+    const experience = randomInt(1, 20);
+    const totalListings = randomInt(10, 200);
+    const soldProperties = Math.floor(totalListings * randomFloat(0.3, 0.7));
+
+    const agent = {
+      userId: user._id,
+      firstName,
+      lastName,
+      displayName: `${firstName} ${lastName}`,
+      photo: `https://i.pravatar.cc/300?u=${email}`,
+      bio: {
+        en: faker.lorem.paragraph(),
+        ar: "وكيل عقارات محترف",
+      },
+      license: {
+        number: `LIC-${randomInt(100000, 999999)}`,
+        authority: "Saudi Real Estate Authority",
+        issueDate: faker.date.past({ years: experience }),
+        expiryDate: faker.date.future({ years: randomInt(1, 5) }),
+        verified: Math.random() > 0.1,
+      },
+      specializations: randomItems(specializations, randomInt(2, 4)),
+      languages: randomItems(
+        ["English", "Arabic", "Urdu", "Hindi", "French"],
+        randomInt(2, 3),
+      ),
+      experience,
+      serviceAreas: randomItems(
+        saudiCities.map((c) => c.name),
+        randomInt(1, 3),
+      ),
+      contact: {
+        phone,
+        whatsapp: phone,
+        email,
+        website:
+          Math.random() > 0.5
+            ? `https://${faker.internet.domainName()}`
+            : undefined,
+      },
+      availability: {
+        daysAvailable: randomItems(
+          [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday",
+          ],
+          randomInt(5, 7),
+        ),
+        hoursStart: "09:00",
+        hoursEnd: "18:00",
+        instantBooking: Math.random() > 0.5,
+      },
+      statistics: {
+        totalListings,
+        activeListings: totalListings - soldProperties,
+        soldProperties,
+        rentedProperties: Math.floor(totalListings * randomFloat(0.2, 0.4)),
+        totalSalesValue: soldProperties * randomInt(500000, 2000000),
+        averageRating: randomFloat(3.5, 5),
+        totalReviews: randomInt(5, 150),
+        responseTime: randomInt(5, 120),
+        viewingCompletionRate: randomFloat(0.6, 0.95),
+      },
+      tier,
+      verified: Math.random() > 0.1,
+      featured: Math.random() > 0.8,
+      status: "ACTIVE",
+    };
+
+    agents.push(agent);
+  }
+
+  const result = await RealEstateAgent.insertMany(agents);
+  console.log(`✓ Created ${result.length} agents`);
+  return result;
+}
+
+/**
+ * Generate viewing requests
+ */
+async function generateViewings(count, properties, agents) {
+  console.log(`Generating ${count} viewing requests...`);
+  const viewings = [];
+
+  for (let i = 0; i < count; i++) {
+    const property = randomItem(properties);
+    const agent = randomItem(agents);
+    const viewingType = randomItem([
+      "IN_PERSON",
+      "IN_PERSON",
+      "VIDEO_CALL",
+      "VIRTUAL",
+    ]);
+    const status = randomItem([
+      "REQUESTED",
+      "CONFIRMED",
+      "CONFIRMED",
+      "COMPLETED",
+      "CANCELLED",
+      "NO_SHOW",
+    ]);
+
+    const preferredDate = faker.date.future({ months: 1 });
+    const preferredTime = randomItem([
+      "09:00",
+      "10:00",
+      "11:00",
+      "14:00",
+      "15:00",
+      "16:00",
+      "17:00",
+    ]);
+
+    const viewing = {
+      propertyId: property._id,
+      agentId: agent._id,
+      requesterId: agent.userId, // Mock requester
+      viewingType,
+      preferredDate,
+      preferredTime,
+      status,
+      participants: [
+        {
+          name: faker.person.fullName(),
+          phone: generateSaudiPhone(),
+          email: faker.internet.email(),
+          relationship: "Primary",
+        },
+      ],
+      notes: Math.random() > 0.5 ? faker.lorem.sentence() : undefined,
+      statusHistory: [
+        {
+          status: "REQUESTED",
+          changedAt: faker.date.recent({ days: 7 }),
+          changedBy: agent.userId,
+        },
+      ],
+    };
+
+    if (status === "COMPLETED") {
+      viewing.feedback = {
+        rating: randomInt(3, 5),
+        comments: faker.lorem.paragraph(),
+        interested: Math.random() > 0.3,
+        followUpRequested: Math.random() > 0.5,
+      };
+    }
+
+    viewings.push(viewing);
+  }
+
+  const result = await ViewingRequest.insertMany(viewings);
+  console.log(`✓ Created ${result.length} viewing requests`);
+  return result;
+}
+
+/**
+ * Generate property transactions
+ */
+async function generateTransactions(count, properties, agents) {
+  console.log(`Generating ${count} transactions...`);
+  const transactions = [];
+
+  for (let i = 0; i < count; i++) {
+    const property = randomItem(
+      properties.filter((p) => p.status !== "AVAILABLE"),
+    );
+    const agent = randomItem(agents);
+    const type = property.listingType;
+    const status = randomItem([
+      "PENDING",
+      "IN_PROGRESS",
+      "IN_PROGRESS",
+      "COMPLETED",
+      "CANCELLED",
+    ]);
+
+    const totalAmount = property.pricing.amount;
+    const commission = totalAmount * 0.025; // 2.5% commission
+
+    const transaction = {
+      propertyId: property._id,
+      agentId: agent._id,
+      type,
+      status,
+      referenceNumber: `TXN-${Date.now()}-${randomInt(1000, 9999)}`,
+      buyer:
+        type === "SALE"
+          ? {
+              userId: agent.userId,
+              name: faker.person.fullName(),
+              phone: generateSaudiPhone(),
+              email: faker.internet.email(),
+            }
+          : undefined,
+      seller:
+        type === "SALE"
+          ? {
+              userId: property.ownerId,
+              name: faker.person.fullName(),
+              phone: generateSaudiPhone(),
+              email: faker.internet.email(),
+            }
+          : undefined,
+      tenant:
+        type !== "SALE"
+          ? {
+              userId: agent.userId,
+              name: faker.person.fullName(),
+              phone: generateSaudiPhone(),
+              email: faker.internet.email(),
+            }
+          : undefined,
+      landlord:
+        type !== "SALE"
+          ? {
+              userId: property.ownerId,
+              name: faker.person.fullName(),
+              phone: generateSaudiPhone(),
+              email: faker.internet.email(),
+            }
+          : undefined,
+      amount: {
+        total: totalAmount,
+        currency: "SAR",
+        commission,
+        taxes: totalAmount * 0.05, // 5% VAT
+        additionalFees: randomInt(1000, 5000),
+      },
+      paymentSchedule: [
+        {
+          description: type === "SALE" ? "Down Payment" : "First Month Rent",
+          amount: type === "SALE" ? totalAmount * 0.3 : totalAmount,
+          dueDate: faker.date.future({ months: 1 }),
+          status: status === "COMPLETED" ? "PAID" : "PENDING",
+        },
+      ],
+      contractStartDate: faker.date.recent({ days: 30 }),
+      contractEndDate: faker.date.future({
+        years: type === "SALE" ? undefined : 1,
+      }),
+      contractDuration: type !== "SALE" ? 12 : undefined,
+      documents: [
+        {
+          name: "Sales Agreement",
+          type: "CONTRACT",
+          url: `https://docs.example.com/contract-${i}.pdf`,
+          uploadedAt: faker.date.recent({ days: 10 }),
+        },
+      ],
+      statusHistory: [
+        {
+          status: "PENDING",
+          changedAt: faker.date.recent({ days: 20 }),
+          changedBy: agent.userId,
+          notes: "Transaction initiated",
+        },
+      ],
+    };
+
+    transactions.push(transaction);
+  }
+
+  const result = await PropertyTransaction.insertMany(transactions);
+  console.log(`✓ Created ${result.length} transactions`);
+  return result;
+}
+
+/**
+ * Main seeding function
+ */
+async function seedDatabase() {
+  try {
+    console.log("🌱 Starting Aqar marketplace seeding...\n");
+
+    // Connect to MongoDB
+    const mongoUri =
+      process.env.MONGODB_URI || "mongodb://localhost:27017/fixzit";
+    await mongoose.connect(mongoUri);
+    console.log("✓ Connected to MongoDB\n");
+
+    // Clear existing data if requested
+    if (config.clearExisting) {
+      console.log("🗑️  Clearing existing data...");
+      await Promise.all([
+        PropertyListing.deleteMany({}),
+        RealEstateAgent.deleteMany({}),
+        ViewingRequest.deleteMany({}),
+        PropertyTransaction.deleteMany({}),
+      ]);
+      console.log("✓ Existing data cleared\n");
+    }
+
+    // Generate data
+    const agents = await generateAgents(config.agents);
+    const properties = await generateProperties(config.properties, agents);
+    const viewings = await generateViewings(
+      config.viewings,
+      properties,
+      agents,
+    );
+    const transactions = await generateTransactions(
+      config.transactions,
+      properties,
+      agents,
+    );
+
+    // Summary
+    console.log("\n✅ Seeding completed successfully!\n");
+    console.log("Summary:");
+    console.log(`  - Agents: ${agents.length}`);
+    console.log(`  - Properties: ${properties.length}`);
+    console.log(`  - Viewing Requests: ${viewings.length}`);
+    console.log(`  - Transactions: ${transactions.length}`);
+    console.log("\n");
+  } catch (error) {
+    console.error("❌ Seeding failed:", error);
+    process.exit(1);
+  } finally {
+    await mongoose.disconnect();
+    console.log("✓ Disconnected from MongoDB");
+  }
+}
+
+// Run seeding
+if (require.main === module) {
+  seedDatabase();
+}
+
+module.exports = { seedDatabase };
+
+]]>
+</file>
+
+<file path="scripts/seed-aqar-properties.ts">
+<![CDATA[
+import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
+
+const isProdLike =
+  process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike) {
+  console.error(
+    "Seeding blocked in production/CI. Set ALLOW_SEED=1 only in non-production.",
+  );
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== "1") {
+  console.error("Set ALLOW_SEED=1 to run seed scripts in non-production.");
+  process.exit(1);
+}
+
+async function run() {
+  try {
+    const db = await getDatabase();
+    if (!db) throw new Error("Database connection not available");
+    const col = db.collection(COLLECTIONS.PROPERTIES);
+
+    const now = new Date();
+    const docs = [
+      {
+        tenantId: "demo-tenant",
+        code: "PROP-AQ-001",
+        name: "Luxury Villa - Al Olaya",
+        type: "RESIDENTIAL",
+        subtype: "Villa",
+        address: {
+          street: "Olaya St",
+          city: "Riyadh",
+          region: "Riyadh",
+          postalCode: "11564",
+          district: "Al Olaya",
+          coordinates: { lat: 24.69, lng: 46.685 },
+        },
+        details: { totalArea: 450, bedrooms: 5, bathrooms: 6 },
+        market: { listingPrice: 3500000 },
+        photos: ["/images/sample/villa1.jpg"],
+        createdBy: "system",
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        tenantId: "demo-tenant",
+        code: "PROP-AQ-002",
+        name: "Modern Apartment - King Fahd Rd",
+        type: "RESIDENTIAL",
+        subtype: "Apartment",
+        address: {
+          street: "King Fahd Rd",
+          city: "Riyadh",
+          region: "Riyadh",
+          postalCode: "11564",
+          district: "Al Wurud",
+          coordinates: { lat: 24.73, lng: 46.67 },
+        },
+        details: { totalArea: 120, bedrooms: 2, bathrooms: 2 },
+        market: { listingPrice: 8500 },
+        photos: ["/images/sample/apt1.jpg"],
+        createdBy: "system",
+        createdAt: now,
+        updatedAt: now,
+      },
+    ];
+
+    for (const d of docs) {
+      const { createdAt, ...rest } = d;
+      await col.updateOne(
+        { code: d.code },
+        {
+          $set: { ...rest, updatedAt: new Date() },
+          $setOnInsert: { createdAt: createdAt || new Date() },
+        },
+        { upsert: true },
+      );
+    }
+
+    console.log("Seeded Aqar sample properties");
+    process.exit(0);
+  } catch (e) {
+    console.error(e);
+    process.exit(1);
+  }
+}
+
+run();
+
+]]>
+</file>
+
+<file path="scripts/seed-chart-accounts.ts">
+<![CDATA[
+/**
+ * Saudi Arabia Chart of Accounts Seeder
+ * Creates 22 standard accounts for property management with Arabic names
+ */
+
+import mongoose from "mongoose";
+import ChartAccount from "../server/models/finance/ChartAccount";
+import {
+  setTenantContext,
+  setAuditContext,
+} from "../server/models/plugins/tenantAudit";
+
+const isProdLike =
+  process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike) {
+  console.error(
+    "Seeding blocked in production/CI. Set ALLOW_SEED=1 only in non-production.",
+  );
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== "1") {
+  console.error("Set ALLOW_SEED=1 to run seed scripts in non-production.");
+  process.exit(1);
+}
+
+interface AccountSeed {
+  accountCode: string;
+  accountName: string;
+  accountNameAr?: string;
+  accountType: "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE";
+  normalBalance: "DEBIT" | "CREDIT";
+  parentCode?: string;
+  description?: string;
+  taxable?: boolean;
+  taxRate?: number;
+}
+
+const SAUDI_COA: AccountSeed[] = [
+  // ASSETS (1000-1999)
+  {
+    accountCode: "1000",
+    accountName: "Assets",
+    accountNameAr: "الأصول",
+    accountType: "ASSET",
+    normalBalance: "DEBIT",
+    description: "All company assets",
+  },
+  {
+    accountCode: "1100",
+    accountName: "Current Assets",
+    accountNameAr: "الأصول المتداولة",
+    accountType: "ASSET",
+    normalBalance: "DEBIT",
+    parentCode: "1000",
+  },
+  {
+    accountCode: "1110",
+    accountName: "Cash",
+    accountNameAr: "النقد",
+    accountType: "ASSET",
+    normalBalance: "DEBIT",
+    parentCode: "1100",
+    description: "Cash on hand and in bank",
+  },
+  {
+    accountCode: "1120",
+    accountName: "Accounts Receivable",
+    accountNameAr: "الحسابات المدينة",
+    accountType: "ASSET",
+    normalBalance: "DEBIT",
+    parentCode: "1100",
+    description: "Amounts owed by tenants",
+  },
+  {
+    accountCode: "1130",
+    accountName: "Tenant Security Deposits Held",
+    accountNameAr: "الودائع التأمينية للمستأجرين",
+    accountType: "ASSET",
+    normalBalance: "DEBIT",
+    parentCode: "1100",
+    description: "Security deposits held in escrow",
+  },
+  {
+    accountCode: "1200",
+    accountName: "Fixed Assets",
+    accountNameAr: "الأصول الثابتة",
+    accountType: "ASSET",
+    normalBalance: "DEBIT",
+    parentCode: "1000",
+  },
+  {
+    accountCode: "1210",
+    accountName: "Properties",
+    accountNameAr: "العقارات",
+    accountType: "ASSET",
+    normalBalance: "DEBIT",
+    parentCode: "1200",
+    description: "Investment properties",
+  },
+
+  // LIABILITIES (2000-2999)
+  {
+    accountCode: "2000",
+    accountName: "Liabilities",
+    accountNameAr: "الخصوم",
+    accountType: "LIABILITY",
+    normalBalance: "CREDIT",
+    description: "All company liabilities",
+  },
+  {
+    accountCode: "2100",
+    accountName: "Current Liabilities",
+    accountNameAr: "الخصوم المتداولة",
+    accountType: "LIABILITY",
+    normalBalance: "CREDIT",
+    parentCode: "2000",
+  },
+  {
+    accountCode: "2110",
+    accountName: "Accounts Payable",
+    accountNameAr: "الحسابات الدائنة",
+    accountType: "LIABILITY",
+    normalBalance: "CREDIT",
+    parentCode: "2100",
+    description: "Amounts owed to vendors",
+  },
+  {
+    accountCode: "2120",
+    accountName: "Tenant Security Deposits",
+    accountNameAr: "التزامات الودائع التأمينية",
+    accountType: "LIABILITY",
+    normalBalance: "CREDIT",
+    parentCode: "2100",
+    description: "Obligation to return tenant deposits",
+  },
+  {
+    accountCode: "2130",
+    accountName: "VAT Payable",
+    accountNameAr: "ضريبة القيمة المضافة المستحقة",
+    accountType: "LIABILITY",
+    normalBalance: "CREDIT",
+    parentCode: "2100",
+    description: "VAT owed to ZATCA (15%)",
+    taxable: true,
+    taxRate: 15,
+  },
+  {
+    accountCode: "2140",
+    accountName: "Commission Payable",
+    accountNameAr: "العمولات المستحقة",
+    accountType: "LIABILITY",
+    normalBalance: "CREDIT",
+    parentCode: "2100",
+    description: "Commission owed to property owners",
+  },
+
+  // EQUITY (3000-3999)
+  {
+    accountCode: "3000",
+    accountName: "Equity",
+    accountNameAr: "حقوق الملكية",
+    accountType: "EQUITY",
+    normalBalance: "CREDIT",
+    description: "Owner equity",
+  },
+  {
+    accountCode: "3100",
+    accountName: "Retained Earnings",
+    accountNameAr: "الأرباح المحتجزة",
+    accountType: "EQUITY",
+    normalBalance: "CREDIT",
+    parentCode: "3000",
+  },
+
+  // REVENUE (4000-4999)
+  {
+    accountCode: "4000",
+    accountName: "Revenue",
+    accountNameAr: "الإيرادات",
+    accountType: "REVENUE",
+    normalBalance: "CREDIT",
+    description: "All revenue accounts",
+  },
+  {
+    accountCode: "4100",
+    accountName: "Rental Income",
+    accountNameAr: "إيرادات الإيجار",
+    accountType: "REVENUE",
+    normalBalance: "CREDIT",
+    parentCode: "4000",
+    description: "Rent collected from tenants",
+    taxable: false, // Residential rent exempt in KSA
+  },
+  {
+    accountCode: "4200",
+    accountName: "Management Fees",
+    accountNameAr: "رسوم الإدارة",
+    accountType: "REVENUE",
+    normalBalance: "CREDIT",
+    parentCode: "4000",
+    description: "Property management fees",
+    taxable: true,
+    taxRate: 15,
+  },
+
+  // EXPENSES (5000-5999)
+  {
+    accountCode: "5000",
+    accountName: "Expenses",
+    accountNameAr: "المصروفات",
+    accountType: "EXPENSE",
+    normalBalance: "DEBIT",
+    description: "All expense accounts",
+  },
+  {
+    accountCode: "5100",
+    accountName: "Property Expenses",
+    accountNameAr: "مصروفات العقارات",
+    accountType: "EXPENSE",
+    normalBalance: "DEBIT",
+    parentCode: "5000",
+  },
+  {
+    accountCode: "5110",
+    accountName: "Maintenance & Repairs",
+    accountNameAr: "الصيانة والإصلاحات",
+    accountType: "EXPENSE",
+    normalBalance: "DEBIT",
+    parentCode: "5100",
+    description: "Property maintenance costs",
+    taxable: true,
+    taxRate: 15,
+  },
+  {
+    accountCode: "5120",
+    accountName: "Utilities",
+    accountNameAr: "المرافق",
+    accountType: "EXPENSE",
+    normalBalance: "DEBIT",
+    parentCode: "5100",
+    description: "Electricity, water, etc.",
+    taxable: false, // Utilities often exempt or zero-rated
+  },
+];
+
+/**
+ * Seed Chart of Accounts for an organization
+ * @param orgId - Organization ID to seed accounts for
+ * @param userId - User ID performing the seed (defaults to 'system')
+ */
+export async function seedChartOfAccounts(
+  orgId: string,
+  userId: string = "system",
+): Promise<void> {
+  try {
+    // Set context for tenant isolation
+    setTenantContext({ orgId });
+    setAuditContext({ userId });
+
+    console.log(`🌱 Seeding Chart of Accounts for org: ${orgId}`);
+
+    // Check if accounts already exist
+    const existingCount = await ChartAccount.countDocuments({ orgId });
+    if (existingCount > 0) {
+      console.log(
+        `⚠️  Found ${existingCount} existing accounts. Skipping seed.`,
+      );
+      return;
+    }
+
+    // Build parent references map
+    const accountMap = new Map<string, mongoose.Types.ObjectId>();
+
+    // First pass: Create all accounts without parent references
+    for (const seed of SAUDI_COA) {
+      const account = await ChartAccount.create({
+        orgId,
+        accountCode: seed.accountCode,
+        accountName: seed.accountName,
+        accountNameAr: seed.accountNameAr,
+        accountType: seed.accountType,
+        normalBalance: seed.normalBalance,
+        description: seed.description,
+        taxable: seed.taxable || false,
+        taxRate: seed.taxRate || 0,
+        balance: 0,
+        isActive: true,
+        createdBy: userId,
+      });
+
+      accountMap.set(seed.accountCode, account._id as mongoose.Types.ObjectId);
+      console.log(`  ✅ Created: ${seed.accountCode} - ${seed.accountName}`);
+    }
+
+    // Second pass: Update parent references
+    for (const seed of SAUDI_COA) {
+      if (seed.parentCode) {
+        const accountId = accountMap.get(seed.accountCode);
+        const parentId = accountMap.get(seed.parentCode);
+
+        if (accountId && parentId) {
+          await ChartAccount.findByIdAndUpdate(accountId, { parentId });
+          console.log(`  🔗 Linked: ${seed.accountCode} → ${seed.parentCode}`);
+        }
+      }
+    }
+
+    console.log(
+      `✅ Successfully seeded ${SAUDI_COA.length} accounts for org: ${orgId}`,
+    );
+  } catch (error) {
+    console.error("❌ Error seeding Chart of Accounts:", error);
+    throw error;
+  }
+}
+
+// CLI execution
+if (require.main === module) {
+  const orgId = process.argv[2];
+  const userId = process.argv[3] || "system";
+
+  if (!orgId) {
+    console.error("Usage: ts-node seed-chart-accounts.ts <orgId> [userId]");
+    process.exit(1);
+  }
+
+  // Connect to MongoDB
+  const MONGODB_URI =
+    process.env.MONGODB_URI || "mongodb://localhost:27017/fixzit";
+  mongoose
+    .connect(MONGODB_URI)
+    .then(() => seedChartOfAccounts(orgId, userId))
+    .then(() => {
+      console.log("✅ Seed complete");
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error("❌ Seed failed:", error);
+      process.exit(1);
+    });
+}
+
+export default seedChartOfAccounts;
+
+]]>
+</file>
+
+<file path="scripts/seed-chart-of-accounts.ts">
+<![CDATA[
+/**
+ * Chart of Accounts Seed Script
+ *
+ * Seeds the Chart of Accounts (COA) structure for Saudi Arabian FM/Aqar operations.
+ * Based on standard accounting principles with FM/property management focus.
+ *
+ * Account Numbering:
+ * - 1000-1999: Assets
+ * - 2000-2999: Liabilities
+ * - 3000-3999: Equity
+ * - 4000-4999: Revenue
+ * - 5000-5999: Cost of Revenue
+ * - 6000-6999: Operating Expenses
+ * - 7000-7999: Other Income/Expense
+ *
+ * Usage:
+ *   pnpm tsx scripts/seed-chart-of-accounts.ts --orgId <org_id>
+ */
+
+import mongoose, { Types } from "mongoose";
+import { dbConnect } from "../db/mongoose";
+import ChartAccountModel from "../server/models/finance/ChartAccount";
+
+const isProdLike =
+  process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike) {
+  console.error(
+    "Seeding blocked in production/CI. Set ALLOW_SEED=1 only in non-production.",
+  );
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== "1") {
+  console.error("Set ALLOW_SEED=1 to run seed scripts in non-production.");
+  process.exit(1);
+}
+
+const args = process.argv.slice(2);
+const orgIdArg = args.find((arg) => arg.startsWith("--orgId="));
+
+if (!orgIdArg) {
+  console.error("❌ Missing required argument: --orgId=<organization_id>");
+  console.log(
+    "Usage: pnpm tsx scripts/seed-chart-of-accounts.ts --orgId=<org_id>",
+  );
+  process.exit(1);
+}
+
+const orgId = new Types.ObjectId(orgIdArg.split("=")[1]);
+
+const CHART_OF_ACCOUNTS = [
+  // ==================== ASSETS (1000-1999) ====================
+  {
+    accountCode: "1000",
+    accountName: "Current Assets",
+    accountType: "ASSET",
+    normalBalance: "DEBIT",
+    description: "Assets expected to be converted to cash within one year",
+    isSystemAccount: false,
+    isActive: true,
+  },
+  {
+    accountCode: "1100",
+    accountName: "Cash and Cash Equivalents",
+    accountType: "ASSET",
+    normalBalance: "DEBIT",
+    parentId: "1000",
+    description: "Cash in bank accounts and petty cash",
+    isSystemAccount: true,
+    isActive: true,
+  },
+  {
+    accountCode: "1110",
+    accountName: "Cash - Operating Account",
+    accountType: "ASSET",
+    normalBalance: "DEBIT",
+    parentId: "1100",
+    description: "Primary operating bank account",
+    isSystemAccount: true,
+    isActive: true,
+  },
+  {
+    accountCode: "1120",
+    accountName: "Petty Cash",
+    accountType: "ASSET",
+    normalBalance: "DEBIT",
+    parentId: "1100",
+    description: "Small cash amounts for minor expenses",
+    isSystemAccount: false,
+    isActive: true,
+  },
+  {
+    accountCode: "1200",
+    accountName: "Accounts Receivable",
+    accountType: "ASSET",
+    normalBalance: "DEBIT",
+    parentId: "1000",
+    description: "Amounts owed by customers",
+    isSystemAccount: true,
+    isActive: true,
+  },
+  {
+    accountCode: "1210",
+    accountName: "Accounts Receivable - Tenants",
+    accountType: "ASSET",
+    normalBalance: "DEBIT",
+    parentId: "1200",
+    description: "Rent and service charges receivable from tenants",
+    isSystemAccount: true,
+    isActive: true,
+  },
+  {
+    accountCode: "1220",
+    accountName: "Accounts Receivable - Property Owners",
+    accountType: "ASSET",
+    normalBalance: "DEBIT",
+    parentId: "1200",
+    description: "Service fees receivable from property owners",
+    isSystemAccount: false,
+    isActive: true,
+  },
+  {
+    accountCode: "1300",
+    accountName: "Security Deposits Held",
+    accountType: "ASSET",
+    normalBalance: "DEBIT",
+    parentId: "1000",
+    description: "Tenant security deposits held in trust",
+    isSystemAccount: true,
+    isActive: true,
+  },
+  {
+    accountCode: "1400",
+    accountName: "Prepaid Expenses",
+    accountType: "ASSET",
+    normalBalance: "DEBIT",
+    parentId: "1000",
+    description: "Expenses paid in advance (insurance, rent)",
+    isSystemAccount: false,
+    isActive: true,
+  },
+  {
+    accountCode: "1500",
+    accountName: "Inventory",
+    accountType: "ASSET",
+    normalBalance: "DEBIT",
+    parentId: "1000",
+    description: "Maintenance supplies and parts inventory",
+    isSystemAccount: false,
+    isActive: true,
+  },
+
+  // ==================== LIABILITIES (2000-2999) ====================
+  {
+    accountCode: "2000",
+    accountName: "Current Liabilities",
+    accountType: "LIABILITY",
+    normalBalance: "CREDIT",
+    description: "Obligations due within one year",
+    isSystemAccount: false,
+    isActive: true,
+  },
+  {
+    accountCode: "2100",
+    accountName: "Accounts Payable",
+    accountType: "LIABILITY",
+    normalBalance: "CREDIT",
+    parentId: "2000",
+    description: "Amounts owed to vendors and suppliers",
+    isSystemAccount: true,
+    isActive: true,
+  },
+  {
+    accountCode: "2110",
+    accountName: "Accounts Payable - Vendors",
+    accountType: "LIABILITY",
+    normalBalance: "CREDIT",
+    parentId: "2100",
+    description: "Maintenance and service vendor payables",
+    isSystemAccount: true,
+    isActive: true,
+  },
+  {
+    accountCode: "2120",
+    accountName: "Accounts Payable - Property Owners",
+    accountType: "LIABILITY",
+    normalBalance: "CREDIT",
+    parentId: "2100",
+    description: "Rent payable to property owners",
+    isSystemAccount: true,
+    isActive: true,
+  },
+  {
+    accountCode: "2200",
+    accountName: "Security Deposits Payable",
+    accountType: "LIABILITY",
+    normalBalance: "CREDIT",
+    parentId: "2000",
+    description: "Tenant security deposits liability",
+    isSystemAccount: true,
+    isActive: true,
+  },
+  {
+    accountCode: "2300",
+    accountName: "VAT Payable",
+    accountType: "LIABILITY",
+    normalBalance: "CREDIT",
+    parentId: "2000",
+    description: "Value Added Tax payable to tax authority",
+    isSystemAccount: true,
+    isActive: true,
+    taxable: true,
+    vatRate: 15,
+  },
+  {
+    accountCode: "2400",
+    accountName: "Accrued Expenses",
+    accountType: "LIABILITY",
+    normalBalance: "CREDIT",
+    parentId: "2000",
+    description: "Expenses incurred but not yet paid",
+    isSystemAccount: false,
+    isActive: true,
+  },
+  {
+    accountCode: "2500",
+    accountName: "Unearned Revenue",
+    accountType: "LIABILITY",
+    normalBalance: "CREDIT",
+    parentId: "2000",
+    description: "Advance payments received from tenants",
+    isSystemAccount: false,
+    isActive: true,
+  },
+
+  // ==================== EQUITY (3000-3999) ====================
+  {
+    accountCode: "3000",
+    accountName: "Equity",
+    accountType: "EQUITY",
+    normalBalance: "CREDIT",
+    description: "Owner equity and retained earnings",
+    isSystemAccount: false,
+    isActive: true,
+  },
+  {
+    accountCode: "3100",
+    accountName: "Owner Capital",
+    accountType: "EQUITY",
+    normalBalance: "CREDIT",
+    parentId: "3000",
+    description: "Initial and additional owner investments",
+    isSystemAccount: true,
+    isActive: true,
+  },
+  {
+    accountCode: "3200",
+    accountName: "Retained Earnings",
+    accountType: "EQUITY",
+    normalBalance: "CREDIT",
+    parentId: "3000",
+    description: "Cumulative net income retained in business",
+    isSystemAccount: true,
+    isActive: true,
+  },
+  {
+    accountCode: "3300",
+    accountName: "Owner Drawings",
+    accountType: "EQUITY",
+    normalBalance: "DEBIT",
+    parentId: "3000",
+    description: "Owner withdrawals",
+    isSystemAccount: false,
+    isActive: true,
+  },
+
+  // ==================== REVENUE (4000-4999) ====================
+  {
+    accountCode: "4000",
+    accountName: "Operating Revenue",
+    accountType: "REVENUE",
+    normalBalance: "CREDIT",
+    description: "Revenue from core business operations",
+    isSystemAccount: false,
+    isActive: true,
+  },
+  {
+    accountCode: "4100",
+    accountName: "Rental Income",
+    accountType: "REVENUE",
+    normalBalance: "CREDIT",
+    parentId: "4000",
+    description: "Rent collected from tenants",
+    isSystemAccount: true,
+    isActive: true,
+    taxable: true,
+    vatRate: 0, // Residential rent is VAT-exempt in KSA
+  },
+  {
+    accountCode: "4200",
+    accountName: "Service Fees - Property Management",
+    accountType: "REVENUE",
+    normalBalance: "CREDIT",
+    parentId: "4000",
+    description: "Management fees from property owners",
+    isSystemAccount: true,
+    isActive: true,
+    taxable: true,
+    vatRate: 15,
+  },
+  {
+    accountCode: "4300",
+    accountName: "Service Fees - Maintenance",
+    accountType: "REVENUE",
+    normalBalance: "CREDIT",
+    parentId: "4000",
+    description: "Revenue from maintenance services",
+    isSystemAccount: false,
+    isActive: true,
+    taxable: true,
+    vatRate: 15,
+  },
+  {
+    accountCode: "4400",
+    accountName: "Marketplace Commission Revenue",
+    accountType: "REVENUE",
+    normalBalance: "CREDIT",
+    parentId: "4000",
+    description: "Commission from marketplace transactions",
+    isSystemAccount: false,
+    isActive: true,
+    taxable: true,
+    vatRate: 15,
+  },
+  {
+    accountCode: "4500",
+    accountName: "Late Payment Fees",
+    accountType: "REVENUE",
+    normalBalance: "CREDIT",
+    parentId: "4000",
+    description: "Late payment penalties from tenants",
+    isSystemAccount: false,
+    isActive: true,
+    taxable: true,
+    vatRate: 15,
+  },
+
+  // ==================== OPERATING EXPENSES (6000-6999) ====================
+  {
+    accountCode: "6000",
+    accountName: "Operating Expenses",
+    accountType: "EXPENSE",
+    normalBalance: "DEBIT",
+    description: "Expenses from core business operations",
+    isSystemAccount: false,
+    isActive: true,
+  },
+  {
+    accountCode: "6100",
+    accountName: "Maintenance Expense",
+    accountType: "EXPENSE",
+    normalBalance: "DEBIT",
+    parentId: "6000",
+    description: "Routine maintenance and repairs",
+    isSystemAccount: true,
+    isActive: true,
+    taxable: true,
+    vatRate: 15,
+  },
+  {
+    accountCode: "6200",
+    accountName: "Utilities Expense",
+    accountType: "EXPENSE",
+    normalBalance: "DEBIT",
+    parentId: "6000",
+    description: "Electricity, water, gas",
+    isSystemAccount: false,
+    isActive: true,
+    taxable: true,
+    vatRate: 15,
+  },
+  {
+    accountCode: "6300",
+    accountName: "Salaries and Wages",
+    accountType: "EXPENSE",
+    normalBalance: "DEBIT",
+    parentId: "6000",
+    description: "Employee compensation",
+    isSystemAccount: false,
+    isActive: true,
+    taxable: false,
+  },
+  {
+    accountCode: "6400",
+    accountName: "Insurance Expense",
+    accountType: "EXPENSE",
+    normalBalance: "DEBIT",
+    parentId: "6000",
+    description: "Property and liability insurance",
+    isSystemAccount: false,
+    isActive: true,
+    taxable: true,
+    vatRate: 15,
+  },
+  {
+    accountCode: "6500",
+    accountName: "Professional Fees",
+    accountType: "EXPENSE",
+    normalBalance: "DEBIT",
+    parentId: "6000",
+    description: "Legal, accounting, consulting fees",
+    isSystemAccount: false,
+    isActive: true,
+    taxable: true,
+    vatRate: 15,
+  },
+  {
+    accountCode: "6600",
+    accountName: "Office Supplies",
+    accountType: "EXPENSE",
+    normalBalance: "DEBIT",
+    parentId: "6000",
+    description: "Office supplies and equipment",
+    isSystemAccount: false,
+    isActive: true,
+    taxable: true,
+    vatRate: 15,
+  },
+  {
+    accountCode: "6700",
+    accountName: "Marketing and Advertising",
+    accountType: "EXPENSE",
+    normalBalance: "DEBIT",
+    parentId: "6000",
+    description: "Marketing and promotional expenses",
+    isSystemAccount: false,
+    isActive: true,
+    taxable: true,
+    vatRate: 15,
+  },
+  {
+    accountCode: "6800",
+    accountName: "Bad Debt Expense",
+    accountType: "EXPENSE",
+    normalBalance: "DEBIT",
+    parentId: "6000",
+    description: "Uncollectible accounts receivable",
+    isSystemAccount: false,
+    isActive: true,
+    taxable: false,
+  },
+
+  // ==================== OTHER INCOME/EXPENSE (7000-7999) ====================
+  {
+    accountCode: "7000",
+    accountName: "Other Income and Expenses",
+    accountType: "EXPENSE",
+    normalBalance: "DEBIT",
+    description: "Non-operating income and expenses",
+    isSystemAccount: false,
+    isActive: true,
+  },
+  {
+    accountCode: "7100",
+    accountName: "Interest Income",
+    accountType: "REVENUE",
+    normalBalance: "CREDIT",
+    parentId: "7000",
+    description: "Interest earned on deposits",
+    isSystemAccount: false,
+    isActive: true,
+    taxable: true,
+    vatRate: 0, // Financial services are typically VAT-exempt
+  },
+  {
+    accountCode: "7200",
+    accountName: "Interest Expense",
+    accountType: "EXPENSE",
+    normalBalance: "DEBIT",
+    parentId: "7000",
+    description: "Interest on loans and credit",
+    isSystemAccount: false,
+    isActive: true,
+    taxable: false,
+  },
+  {
+    accountCode: "7300",
+    accountName: "Foreign Exchange Gain/Loss",
+    accountType: "EXPENSE",
+    normalBalance: "DEBIT",
+    parentId: "7000",
+    description: "Gains or losses from currency exchange",
+    isSystemAccount: false,
+    isActive: true,
+    taxable: false,
+  },
+];
+
+async function seedChartOfAccounts() {
+  console.log(`\n${"=".repeat(60)}`);
+  console.log("CHART OF ACCOUNTS SEED");
+  console.log(`${"=".repeat(60)}\n`);
+  console.log(`Organization ID: ${orgId}\n`);
+
+  try {
+    await dbConnect();
+
+    // Check if COA already exists for this org
+    const existingCount = await ChartAccountModel.countDocuments({ orgId });
+
+    if (existingCount > 0) {
+      console.log(
+        `⚠️  Warning: ${existingCount} accounts already exist for this organization.`,
+      );
+      console.log("   Skipping seed to avoid duplicates.\n");
+      console.log("   To re-seed, delete existing accounts first:\n");
+      console.log(
+        `   db.chartaccounts.deleteMany({ orgId: ObjectId("${orgId}") })\n`,
+      );
+      process.exit(0);
+    }
+
+    // Build parent reference map
+    const accountMap = new Map<string, Types.ObjectId>();
+    const stats = {
+      created: 0,
+      skipped: 0,
+      errors: 0,
+    };
+
+    // First pass: Create accounts without parents
+    for (const accountData of CHART_OF_ACCOUNTS) {
+      if (!accountData.parentId) {
+        try {
+          const account = await ChartAccountModel.create({
+            ...accountData,
+            orgId,
+            currency: "SAR",
+            balance: 0,
+            createdBy: orgId, // Placeholder - should be admin user
+            updatedBy: orgId,
+          });
+
+          accountMap.set(accountData.accountCode, account._id);
+          console.log(
+            `✅ Created: ${accountData.accountCode} - ${accountData.accountName}`,
+          );
+          stats.created++;
+        } catch (error: unknown) {
+          const message =
+            error instanceof Error ? error.message : String(error);
+          console.error(
+            `❌ Error creating ${accountData.accountCode}:`,
+            message,
+          );
+          stats.errors++;
+        }
+      }
+    }
+
+    // Second pass: Create child accounts with parent references
+    for (const accountData of CHART_OF_ACCOUNTS) {
+      if (accountData.parentId) {
+        const parentId = accountMap.get(accountData.parentId);
+
+        if (!parentId) {
+          console.error(
+            `❌ Parent not found for ${accountData.accountCode} (parent: ${accountData.parentId})`,
+          );
+          stats.errors++;
+          continue;
+        }
+
+        try {
+          const account = await ChartAccountModel.create({
+            ...accountData,
+            orgId,
+            parentId,
+            currency: "SAR",
+            balance: 0,
+            createdBy: orgId,
+            updatedBy: orgId,
+          });
+
+          accountMap.set(accountData.accountCode, account._id);
+          console.log(
+            `✅ Created: ${accountData.accountCode} - ${accountData.accountName}`,
+          );
+          stats.created++;
+        } catch (error: unknown) {
+          const message =
+            error instanceof Error ? error.message : String(error);
+          console.error(
+            `❌ Error creating ${accountData.accountCode}:`,
+            message,
+          );
+          stats.errors++;
+        }
+      }
+    }
+
+    // Summary
+    console.log(`\n${"=".repeat(60)}`);
+    console.log("SEED SUMMARY");
+    console.log(`${"=".repeat(60)}`);
+    console.log(`Accounts created: ${stats.created}`);
+    console.log(`Errors:           ${stats.errors}`);
+    console.log(`${"=".repeat(60)}\n`);
+
+    if (stats.errors > 0) {
+      console.error("❌ Seed completed with errors.\n");
+      process.exit(1);
+    }
+
+    console.log("✅ Chart of Accounts seeded successfully!\n");
+    console.log("Next steps:");
+    console.log("   1. Verify accounts in database");
+    console.log("   2. Adjust opening balances if needed");
+    console.log("   3. Create journal entries to post transactions\n");
+  } catch (error) {
+    console.error("\n❌ FATAL ERROR:", error);
+    process.exit(1);
+  } finally {
+    await mongoose.connection.close();
+  }
+}
+
+seedChartOfAccounts();
+
+]]>
+</file>
+
+<file path="scripts/seed-cms.js">
+<![CDATA[
+// Run this script to seed initial CMS pages
+// Usage: node scripts/seed-cms.js
+
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+const isProdLike =
+  process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike) {
+  console.error(
+    "Seeding blocked in production/CI. Set ALLOW_SEED=1 only in non-production.",
+  );
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== "1") {
+  console.error("Set ALLOW_SEED=1 to run seed-cms.js in non-production.");
+  process.exit(1);
+}
+
+const seedPages = async () => {
+  const baseUrl = "http://localhost:3000";
+  const headers = {
+    "content-type": "application/json",
+    "x-user": JSON.stringify({
+      id: "system",
+      role: "SUPER_ADMIN",
+      tenantId: "t0",
+    }),
+  };
+
+  const pages = [
+    {
+      slug: "privacy",
+      title: "Privacy Policy",
+      content: `# Privacy Policy
+
+Last updated: ${new Date().toLocaleDateString()}
+
+## Information We Collect
+
+We collect information you provide directly to us, such as when you:
+- Create an account
+- Use our facility management services
+- Contact our support team
+
+## How We Use Your Information
+
+We use the information we collect to:
+- Provide and maintain our services
+- Process transactions and manage your properties
+- Send you technical notices and support messages
+- Respond to your requests and provide customer service
+
+## Data Security
+
+We implement appropriate technical and organizational measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.
+
+## Contact Us
+
+If you have any questions about this Privacy Policy, please contact us at privacy@${EMAIL_DOMAIN}`,
+      status: "PUBLISHED",
+    },
+    {
+      slug: "terms",
+      title: "Terms of Service",
+      content: `# Terms of Service
+
+Last updated: ${new Date().toLocaleDateString()}
+
+## Acceptance of Terms
+
+By accessing and using Fixzit Enterprise Platform, you accept and agree to be bound by these Terms of Service.
+
+## Use of Service
+
+You may use our Service only for lawful purposes and in accordance with these Terms.
+
+## User Accounts
+
+You are responsible for:
+- Maintaining the confidentiality of your account
+- All activities that occur under your account
+- Notifying us immediately of any unauthorized use
+
+## Property Management Services
+
+Our platform provides tools for:
+- Managing properties and tenants
+- Processing work orders
+- Handling financial transactions
+- Marketplace procurement
+
+## Limitation of Liability
+
+In no event shall Fixzit be liable for any indirect, incidental, special, consequential, or punitive damages.
+
+## Contact Information
+
+For questions about these Terms, contact us at legal@${EMAIL_DOMAIN}`,
+      status: "PUBLISHED",
+    },
+    {
+      slug: "about",
+      title: "About Fixzit",
+      content: `# About Fixzit
+
+## Our Mission
+
+Fixzit is revolutionizing facility management by combining property operations, maintenance workflows, and procurement into one unified platform.
+
+## What We Do
+
+### Property Management
+Complete tools for managing residential and commercial properties, from tenant onboarding to lease management.
+
+### Work Order Management
+Streamline maintenance requests, dispatch technicians, and track SLAs with our intelligent work order system.
+
+### Marketplace Integration
+Access a curated marketplace of vendors, materials, and services directly within your facility management workflow.
+
+## Our Values
+
+- **Innovation**: Continuously improving our platform with cutting-edge technology
+- **Reliability**: Ensuring 99.9% uptime for critical facility operations
+- **Security**: Protecting your data with enterprise-grade security measures
+- **Support**: Providing 24/7 customer support for all users
+
+## Contact Us
+
+Email: info@${EMAIL_DOMAIN}
+Phone: +966 XX XXX XXXX
+Address: Riyadh, Saudi Arabia`,
+      status: "PUBLISHED",
+    },
+  ];
+
+  for (const page of pages) {
+    try {
+      const response = await fetch(`${baseUrl}/api/cms/pages/${page.slug}`, {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify(page),
+      });
+
+      if (response.ok) {
+        console.log(`✅ Seeded page: ${page.slug}`);
+      } else {
+        console.error(`❌ Failed to seed ${page.slug}:`, await response.text());
+      }
+    } catch (error) {
+      console.error(`❌ Error seeding ${page.slug}:`, error);
+    }
+  }
+};
+
+// Seed help articles
+const seedHelpArticles = async () => {
+  const baseUrl = "http://localhost:3000";
+  const headers = {
+    "content-type": "application/json",
+    "x-user": JSON.stringify({
+      id: "system",
+      role: "SUPER_ADMIN",
+      tenantId: "t0",
+    }),
+  };
+
+  const articles = [
+    {
+      slug: "getting-started",
+      title: "Getting Started with Fixzit",
+      content:
+        "Learn how to set up your account and start managing properties...",
+      category: "Getting Started",
+      tags: ["basics", "tutorial"],
+      status: "PUBLISHED",
+    },
+    {
+      slug: "create-work-order",
+      title: "How to Create a Work Order",
+      content: "Step by step guide to creating and managing work orders...",
+      category: "Work Orders",
+      tags: ["work-orders", "maintenance"],
+      status: "PUBLISHED",
+    },
+    {
+      slug: "manage-tenants",
+      title: "Managing Tenants",
+      content:
+        "Learn how to add tenants, manage leases, and handle communications...",
+      category: "Property Management",
+      tags: ["tenants", "properties"],
+      status: "PUBLISHED",
+    },
+  ];
+
+  for (const article of articles) {
+    try {
+      const response = await fetch(`${baseUrl}/api/help/articles`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(article),
+      });
+
+      if (response.ok) {
+        console.log(`✅ Seeded help article: ${article.slug}`);
+      } else {
+        console.error(
+          `❌ Failed to seed ${article.slug}:`,
+          await response.text(),
+        );
+      }
+    } catch (error) {
+      console.error(`❌ Error seeding ${article.slug}:`, error);
+    }
+  }
+};
+
+// Run the seeding
+console.log("🌱 Starting CMS seeding...");
+seedPages()
+  .then(() => {
+    console.log("🌱 Seeding help articles...");
+    return seedHelpArticles();
+  })
+  .then(() => {
+    console.log("✅ Seeding complete!");
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error("❌ Seeding failed:", error);
+    process.exit(1);
+  });
+
+]]>
+</file>
+
+<file path="scripts/seed-copilot-knowledge.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * Seeds Copilot knowledge with Fixzit system FAQs and overviews.
+ *
+ * Usage:
+ *   pnpm tsx scripts/seed-copilot-knowledge.ts
+ *
+ * Requires MongoDB connectivity and (optionally) OPENAI_API_KEY for embeddings.
+ * Falls back to deterministic embeddings when the key is not set.
+ */
+
+import crypto from "crypto";
+import { upsertKnowledgeDocument } from "@/server/copilot/retrieval";
+
+const isProdLike =
+  process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike) {
+  console.error(
+    "Seeding blocked in production/CI. Set ALLOW_SEED=1 only in non-production.",
+  );
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== "1") {
+  console.error("Set ALLOW_SEED=1 to run seed-copilot-knowledge.ts in non-production.");
+  process.exit(1);
+}
+
+const GLOBAL_ORG_ID = "000000000000000000000000";
+
+const docs = [
+  {
+    slug: "system-overview",
+    title: "Fixzit System Overview",
+    tags: ["architecture", "platform", "faq"],
+    content: `
+Fixzit is a multi-tenant Next.js 15 app-router platform on Node 18+ with pnpm. Core services: MongoDB via Mongoose, NextAuth for authentication, rate limiting, and Sentry instrumentation. Modules include Souq (claims, ads), FM/Work Orders, background jobs, AI Copilot, and notification pipelines. Data access is tenant-scoped (orgId) with plugins enforcing isolation. Background jobs live in lib/jobs/queue.ts with handlers in app/api/jobs/process/route.ts. Files and assets use optional AWS S3. ".env.local" powers local dev; production is Vercel with env vars in the dashboard. Source root for the app is Fixzit/Fixzit.`,
+  },
+  {
+    slug: "ai-copilot-faq",
+    title: "AI Copilot FAQ",
+    tags: ["ai", "copilot", "faq"],
+    content: `
+Entry points: /api/copilot/stream (streaming) and generateCopilotResponse (non-streaming) in server/copilot/llm.ts. Models come from COPILOT_MODEL (defaults to gpt-4o-mini) and OPENAI_API_KEY; embeddings use COPILOT_EMBEDDING_MODEL or deterministic fallback. Governors in server/copilot/governors.ts enforce RBAC and safety. Knowledge retrieval uses server/copilot/retrieval.ts with CopilotKnowledge documents. Ingest knowledge via POST /api/copilot/knowledge with x-webhook-secret=COPILOT_WEBHOOK_SECRET. Roles can scope documents; global docs use the seeded default orgId. Rate limiting: 30 req/min on streaming endpoint (see route middleware).`,
+  },
+  {
+    slug: "deployment-and-env-faq",
+    title: "Deployment and Environment FAQ",
+    tags: ["deployment", "vercel", "env", "faq"],
+    content: `
+Platform: Vercel. Root directory: Fixzit (set in Vercel settings). Critical env: MONGODB_URI, NEXTAUTH_SECRET, NEXTAUTH_URL, OPENAI_API_KEY, COPILOT_MODEL, COPILOT_EMBEDDING_MODEL. Important: SENDGRID_API_KEY, SENDGRID_FROM_EMAIL, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER, AWS_ACCESS_KEY_ID/SECRET/S3_BUCKET (optional uploads). Jobs: optional CRON_SECRET for /api/jobs/process when called by cron. Build command: pnpm build. Tests: pnpm vitest -c vitest.config.api.ts run tests/server/copilot. E2E (Playwright) lives under tests/specs; run pnpm test:e2e when specs are active.`,
+  },
+  {
+    slug: "background-jobs-faq",
+    title: "Background Jobs and Queue FAQ",
+    tags: ["jobs", "queue", "faq"],
+    content: `
+Queue implementation: lib/jobs/queue.ts (enqueue, claimJob, completeJob, failJob, retryStuckJobs, cleanup). Mongo collection: background_jobs. Processor endpoint: app/api/jobs/process/route.ts (POST processes up to 10 jobs; GET shows stats). Job types: email-invitation, email-notification, s3-cleanup, report-generation. Work order API enqueues s3-cleanup retries on failed deletions; user invite API enqueues email invitations. Stuck jobs reset after 10 minutes, max attempts 3 by default. Use CRON_SECRET + x-cron-secret header if securing the processor. Stats via GET /api/jobs/process.`,
+  },
+  {
+    slug: "souq-claims-faq",
+    title: "Souq Claims FAQ",
+    tags: ["souq", "claims", "faq"],
+    content: `
+Endpoints: POST /api/souq/claims (create), GET /api/souq/claims (list by role), GET /api/souq/claims/admin/review (admin review with fraud scoring), POST /api/souq/claims/admin/bulk (bulk approve/reject). Admin review enriches claims with fraudScore, riskLevel, recommendedAction, evidenceCount, and stats; bulk actions limit 50 claims, require reason >=20 chars, eligible statuses include submitted/under_review/pending_seller_response/pending_investigation/escalated. UI: components/souq/claims/ClaimList.tsx handles filtering, bilingual messaging, and pagination. Model definitions reside in services/souq/claims/claim-service.ts and server/models/souq/Claim.ts.`,
+  },
+  {
+    slug: "testing-and-ops-faq",
+    title: "Testing and Ops FAQ",
+    tags: ["testing", "ops", "faq"],
+    content: `
+Core commands: pnpm lint; pnpm typecheck; pnpm build; pnpm vitest -c vitest.config.api.ts run tests/server/copilot (Copilot unit tests); pnpm vitest -c vitest.config.models.ts run (models); pnpm test:e2e (Playwright, when specs enabled); pnpm dev for local UI. Common warnings: @opentelemetry/@sentry dynamic import warnings during build; Next.js runtime notice on /api/aqar/chat/route. Ensure OPENAI_API_KEY is present to avoid deterministic embedding fallback.`,
+  },
+];
+
+async function main() {
+  let seeded = 0;
+  for (const doc of docs) {
+    const checksum = crypto
+      .createHash("sha256")
+      .update(doc.content)
+      .digest("hex");
+    await upsertKnowledgeDocument({
+      ...doc,
+      orgId: GLOBAL_ORG_ID,
+      locale: "en",
+      checksum,
+    });
+    seeded += 1;
+    console.log(`Seeded: ${doc.slug}`);
+  }
+  console.log(`Done. Seeded ${seeded} Copilot knowledge documents.`);
+}
+
+main().catch((error) => {
+  console.error("Failed to seed Copilot knowledge:", error);
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/seed-db.js">
+<![CDATA[
+// Seed runner - using CommonJS for easier execution
+require("dotenv").config({ path: ".env.local" });
+
+const isProdLike =
+  process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike) {
+  console.error(
+    "Seeding blocked in production/CI. Set ALLOW_SEED=1 only in non-production.",
+  );
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== "1") {
+  console.error("Set ALLOW_SEED=1 to run seed scripts in non-production.");
+  process.exit(1);
+}
+
+const seedScript = async () => {
+  // Clear require cache
+  delete require.cache[require.resolve("../src/lib/mongo")];
+  delete require.cache[require.resolve("../src/server/models/User")];
+  delete require.cache[require.resolve("./seed-users")];
+
+  // Import and run
+  const seedUsers = require("./seed-users").default;
+  await seedUsers();
+};
+
+seedScript()
+  .then(() => {
+    console.log("Seeding completed successfully");
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error("Seeding failed:", error);
+    process.exit(1);
+  });
+
+]]>
+</file>
+
+<file path="scripts/seed-demo-users.ts">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * Seed demo users that match the login page credentials
+ * 
+ * SEC-051: Passwords now configurable via environment variables:
+ * - DEMO_SUPERADMIN_PASSWORD (required)
+ * - DEMO_DEFAULT_PASSWORD (required)
+ * 
+ * Email domain is configurable via EMAIL_DOMAIN environment variable.
+ * Uses centralized demo user configuration from lib/config/demo-users.ts
+ */
+import { db } from "../lib/mongo";
+import { User } from "../server/models/User";
+import { hashPassword } from "../lib/auth";
+import { getDemoEmail, DEMO_USER_DEFINITIONS } from "../lib/config/demo-users";
+
+// SEC-051: Require environment variables (no hardcoded fallbacks)
+const DEMO_SUPERADMIN_PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD;
+const DEMO_DEFAULT_PASSWORD = process.env.DEMO_DEFAULT_PASSWORD;
+const SHOW_DEMO_CREDS_IN_LOGS = process.env.SHOW_DEMO_CREDS === "true";
+
+if (!DEMO_SUPERADMIN_PASSWORD || !DEMO_DEFAULT_PASSWORD) {
+  throw new Error(
+    "DEMO_SUPERADMIN_PASSWORD and DEMO_DEFAULT_PASSWORD must be set before seeding demo users.",
+  );
+}
+
+// Safety: block accidental production/CI execution and require explicit opt-in
+const isProdLike =
+  process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike) {
+  console.error("❌ SEEDING BLOCKED: seed-demo-users.ts cannot run in production/CI");
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== "1") {
+  console.error("❌ ALLOW_SEED=1 is required to run seed-demo-users.ts (prevents accidental prod writes)");
+  process.exit(1);
+}
+
+const demoPhones = {
+  superadmin:
+    process.env.DEMO_SUPERADMIN_PHONE ||
+    process.env.NEXTAUTH_SUPERADMIN_FALLBACK_PHONE ||
+    "+966552233456",
+  admin: process.env.DEMO_ADMIN_PHONE || "+966552233456",
+  manager: process.env.DEMO_MANAGER_PHONE || "+966552233456",
+  tenant: process.env.DEMO_TENANT_PHONE || "+966552233456",
+  vendor: process.env.DEMO_VENDOR_PHONE || "+966552233456",
+  emp001: process.env.DEMO_EMP001_PHONE || "+966552233456",
+  emp002: process.env.DEMO_EMP002_PHONE || "+966552233456",
+} as const;
+
+const demoUsers = [
+  {
+    code: "USR-SUPERADMIN",
+    username: "superadmin",
+    email: getDemoEmail("superadmin"),
+    password: DEMO_SUPERADMIN_PASSWORD,
+    phone: demoPhones.superadmin,
+    orgId: "68dc8955a1ba6ed80ff372dc",
+    personal: {
+      firstName: "Super",
+      lastName: "Admin",
+      phone: demoPhones.superadmin,
+      nationality: "SA",
+      address: { country: "SA" },
+    },
+    professional: {
+      role: "SUPER_ADMIN",
+      title: "Super Administrator",
+      department: "IT",
+      skills: [],
+      licenses: [],
+      certifications: [],
+    },
+    workload: {
+      workingHours: { days: [], timezone: "Asia/Riyadh" },
+      availability: [],
+    },
+    performance: { reviews: [] },
+    security: { permissions: [] },
+    employment: { benefits: [] },
+    compliance: { training: [] },
+    status: "ACTIVE",
+    createdBy: "seed-script",
+  },
+  {
+    code: "USR-ADMIN",
+    username: "admin",
+    email: getDemoEmail("admin"),
+    password: DEMO_DEFAULT_PASSWORD,
+    phone: demoPhones.admin,
+    // Don't set orgId/createdBy for existing user - will be updated via updateOne
+  },
+  {
+    code: "USR-MANAGER",
+    username: "manager",
+    email: getDemoEmail("manager"),
+    password: DEMO_DEFAULT_PASSWORD,
+    phone: demoPhones.manager,
+    orgId: "68dc8955a1ba6ed80ff372dc",
+    personal: {
+      firstName: "Property",
+      lastName: "Manager",
+      phone: demoPhones.manager,
+      nationality: "SA",
+      address: { country: "SA" },
+    },
+    professional: {
+      role: "PROPERTY_MANAGER",
+      title: "Property Manager",
+      department: "Operations",
+      skills: [],
+      licenses: [],
+      certifications: [],
+    },
+    workload: {
+      workingHours: { days: [], timezone: "Asia/Riyadh" },
+      availability: [],
+    },
+    performance: { reviews: [] },
+    security: { permissions: [] },
+    employment: { benefits: [] },
+    compliance: { training: [] },
+    status: "ACTIVE",
+    createdBy: "seed-script",
+  },
+  {
+    code: "USR-TENANT",
+    username: "tenant",
+    email: getDemoEmail("tenant"),
+    password: DEMO_DEFAULT_PASSWORD,
+    phone: demoPhones.tenant,
+    orgId: "68dc8955a1ba6ed80ff372dc",
+    personal: {
+      firstName: "Demo",
+      lastName: "Tenant",
+      phone: demoPhones.tenant,
+      nationality: "SA",
+      address: { country: "SA" },
+    },
+    professional: {
+      role: "TENANT",
+      title: "Tenant",
+      department: "N/A",
+      skills: [],
+      licenses: [],
+      certifications: [],
+    },
+    workload: {
+      workingHours: { days: [], timezone: "Asia/Riyadh" },
+      availability: [],
+    },
+    performance: { reviews: [] },
+    security: { permissions: [] },
+    employment: { benefits: [] },
+    compliance: { training: [] },
+    status: "ACTIVE",
+    createdBy: "seed-script",
+  },
+  {
+    code: "USR-VENDOR",
+    username: "vendor",
+    email: getDemoEmail("vendor"),
+    password: DEMO_DEFAULT_PASSWORD,
+    phone: demoPhones.vendor,
+    orgId: "68dc8955a1ba6ed80ff372dc",
+    personal: {
+      firstName: "Demo",
+      lastName: "Vendor",
+      phone: demoPhones.vendor,
+      nationality: "SA",
+      address: { country: "SA" },
+    },
+    professional: {
+      role: "VENDOR",
+      title: "Vendor",
+      department: "N/A",
+      skills: [],
+      licenses: [],
+      certifications: [],
+    },
+    workload: {
+      workingHours: { days: [], timezone: "Asia/Riyadh" },
+      availability: [],
+    },
+    performance: { reviews: [] },
+    security: { permissions: [] },
+    employment: { benefits: [] },
+    compliance: { training: [] },
+    status: "ACTIVE",
+    createdBy: "seed-script",
+  },
+  {
+    code: "EMP001",
+    username: "EMP001",
+    email: getDemoEmail("emp001"),
+    password: DEMO_DEFAULT_PASSWORD,
+    phone: demoPhones.emp001,
+    orgId: "68dc8955a1ba6ed80ff372dc",
+    personal: {
+      firstName: "Employee",
+      lastName: "One",
+      phone: demoPhones.emp001,
+      nationality: "SA",
+      address: { country: "SA" },
+    },
+    professional: {
+      role: "TEAM_MEMBER",
+      title: "Team Member",
+      department: "Operations",
+      skills: [],
+      licenses: [],
+      certifications: [],
+    },
+    workload: {
+      workingHours: { days: [], timezone: "Asia/Riyadh" },
+      availability: [],
+    },
+    performance: { reviews: [] },
+    security: { permissions: [] },
+    employment: { benefits: [] },
+    compliance: { training: [] },
+    status: "ACTIVE",
+    createdBy: "seed-script",
+  },
+  {
+    code: "EMP002",
+    username: "EMP002",
+    email: getDemoEmail("emp002"),
+    password: DEMO_DEFAULT_PASSWORD,
+    phone: demoPhones.emp002,
+    orgId: "68dc8955a1ba6ed80ff372dc",
+    personal: {
+      firstName: "Employee",
+      lastName: "Two",
+      phone: demoPhones.emp002,
+      nationality: "SA",
+      address: { country: "SA" },
+    },
+    professional: {
+      role: "TEAM_MEMBER",
+      title: "Team Member",
+      department: "Operations",
+      skills: [],
+      licenses: [],
+      certifications: [],
+    },
+    workload: {
+      workingHours: { days: [], timezone: "Asia/Riyadh" },
+      availability: [],
+    },
+    performance: { reviews: [] },
+    security: { permissions: [] },
+    employment: { benefits: [] },
+    compliance: { training: [] },
+    status: "ACTIVE",
+    createdBy: "seed-script",
+  },
+];
+
+async function seedDemoUsers() {
+  try {
+    await db;
+    console.log("🌱 Seeding demo users...\n");
+
+    let created = 0;
+    let updated = 0;
+    let skipped = 0;
+
+    for (const userData of demoUsers) {
+      const existingUser = await User.findOne({ email: userData.email });
+
+      const hashedPassword = await hashPassword(userData.password);
+      const userWithHashedPassword = {
+        ...userData,
+        password: hashedPassword,
+      };
+
+      if (existingUser) {
+        // Update existing user's password using direct MongoDB update to skip validation
+        const updateFields: Record<string, unknown> = {
+          password: hashedPassword,
+          status: "ACTIVE",
+          username: userData.username,
+        };
+
+        if (userData.phone) {
+          updateFields.phone = userData.phone;
+        }
+        if (userData.personal?.phone) {
+          updateFields["personal.phone"] = userData.personal.phone;
+        }
+
+        await User.updateOne(
+          { _id: existingUser._id },
+          {
+            $set: updateFields,
+          },
+        );
+        console.log(`✅ Updated user: ${userData.email} (password updated)`);
+        updated++;
+      } else {
+        try {
+          await User.create(userWithHashedPassword);
+          console.log(
+            `✅ Created user: ${userData.email} (${userData.professional?.role || "user"})`,
+          );
+          created++;
+        } catch (error: unknown) {
+          const duplicate =
+            typeof error === "object" && error !== null
+              ? (error as { code?: number })
+              : undefined;
+          if (duplicate?.code === 11000) {
+            console.log(`⏭️  User already exists: ${userData.email}`);
+            skipped++;
+          } else {
+            const message =
+              error instanceof Error ? error.message : String(error);
+            console.error(`❌ Error creating ${userData.email}:`, message);
+          }
+        }
+      }
+    }
+
+    console.log("\n📊 Summary:");
+    console.log(`   Created: ${created}`);
+    console.log(`   Updated: ${updated}`);
+    console.log(`   Skipped: ${skipped}`);
+    console.log("   Total:   " + (created + updated + skipped));
+    console.log("\n✅ Demo user seeding completed!");
+    if (SHOW_DEMO_CREDS_IN_LOGS) {
+      console.log("\n📝 Login credentials:");
+      console.log(`   Personal:  ${getDemoEmail("superadmin")} / ${DEMO_SUPERADMIN_PASSWORD}`);
+      console.log(`   Personal:  ${getDemoEmail("admin")} / ${DEMO_DEFAULT_PASSWORD}`);
+      console.log(`   Personal:  ${getDemoEmail("manager")} / ${DEMO_DEFAULT_PASSWORD}`);
+      console.log(`   Personal:  ${getDemoEmail("tenant")} / ${DEMO_DEFAULT_PASSWORD}`);
+      console.log(`   Personal:  ${getDemoEmail("vendor")} / ${DEMO_DEFAULT_PASSWORD}`);
+      console.log(`   Corporate: EMP001 / ${DEMO_DEFAULT_PASSWORD}`);
+      console.log(`   Corporate: EMP002 / ${DEMO_DEFAULT_PASSWORD}`);
+    } else {
+      // SEC-051: Don't log passwords to console - they may end up in CI logs
+      console.log("\n📝 Login credentials (passwords hidden; use env vars):");
+      console.log(`   Personal:  ${getDemoEmail("superadmin")} / [DEMO_SUPERADMIN_PASSWORD]`);
+      console.log(`   Personal:  ${getDemoEmail("admin")} / [DEMO_DEFAULT_PASSWORD]`);
+      console.log(`   Personal:  ${getDemoEmail("manager")} / [DEMO_DEFAULT_PASSWORD]`);
+      console.log(`   Personal:  ${getDemoEmail("tenant")} / [DEMO_DEFAULT_PASSWORD]`);
+      console.log(`   Personal:  ${getDemoEmail("vendor")} / [DEMO_DEFAULT_PASSWORD]`);
+      console.log(`   Corporate: EMP001 / [DEMO_DEFAULT_PASSWORD]`);
+      console.log(`   Corporate: EMP002 / [DEMO_DEFAULT_PASSWORD]`);
+      console.log('\n💡 Set SHOW_DEMO_CREDS=true to display actual passwords');
+    }
+
+    process.exit(0);
+  } catch (error) {
+    console.error("❌ Error seeding demo users:", error);
+    process.exit(1);
+  }
+}
+
+seedDemoUsers();
+
+]]>
+</file>
+
+</batch_content>

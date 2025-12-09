@@ -1,0 +1,2721 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/forgot-password/reset/page.tsx">
+<![CDATA[
+'use client';
+
+import { useState, useEffect, Suspense } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Lock, ArrowLeft, CheckCircle, AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslation } from '@/contexts/TranslationContext';
+
+function ResetPasswordContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const token = searchParams?.get('token') ?? null;
+  
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [validating, setValidating] = useState(true);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [tokenValid, setTokenValid] = useState(false);
+  const [maskedEmail, setMaskedEmail] = useState('');
+  const { t } = useTranslation();
+
+  // Validate token on mount
+  useEffect(() => {
+    async function validateToken() {
+      if (!token) {
+        setError(t('resetPassword.errors.noToken', 'Invalid or missing reset token'));
+        setValidating(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/auth/reset-password?token=${encodeURIComponent(token)}`);
+        const data = await response.json();
+
+        if (data.valid) {
+          setTokenValid(true);
+          setMaskedEmail(data.email || '');
+        } else {
+          setError(data.error || t('resetPassword.errors.invalidToken', 'Invalid or expired reset link'));
+        }
+      } catch (_err) {
+        setError(t('resetPassword.errors.validation', 'Failed to validate reset link'));
+      } finally {
+        setValidating(false);
+      }
+    }
+
+    validateToken();
+  }, [token, t]);
+
+  // Validate password requirements
+  const validatePassword = (pwd: string): string[] => {
+    const errors: string[] = [];
+    if (pwd.length < 8) {
+      errors.push(t('resetPassword.validation.minLength', 'At least 8 characters'));
+    }
+    if (!/[A-Za-z]/.test(pwd)) {
+      errors.push(t('resetPassword.validation.letter', 'At least one letter'));
+    }
+    if (!/[0-9]/.test(pwd)) {
+      errors.push(t('resetPassword.validation.number', 'At least one number'));
+    }
+    if (!/[^A-Za-z0-9]/.test(pwd)) {
+      errors.push(t('resetPassword.validation.special', 'At least one special character'));
+    }
+    return errors;
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newPassword = e.target.value;
+    setPassword(newPassword);
+    setValidationErrors(validatePassword(newPassword));
+    setError('');
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validate passwords
+    const pwdErrors = validatePassword(password);
+    if (pwdErrors.length > 0) {
+      setValidationErrors(pwdErrors);
+      return;
+    }
+    
+    if (password !== confirmPassword) {
+      setError(t('resetPassword.errors.mismatch', 'Passwords do not match'));
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          token,
+          password,
+          confirmPassword
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to reset password');
+      }
+      
+      setSuccess(true);
+      
+      // Redirect to login after 3 seconds
+      setTimeout(() => {
+        router.push('/login?reset=success');
+      }, 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('resetPassword.errors.failed', 'Failed to reset password'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Loading state while validating token
+  if (validating) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-brand-500 via-success to-accent flex items-center justify-center p-4">
+        <div className="bg-card rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
+          <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">
+            {t('resetPassword.validating', 'Validating your reset link...')}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Invalid token state
+  if (!tokenValid && !validating) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-brand-500 via-success to-accent flex items-center justify-center p-4">
+        <div className="bg-card rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <AlertCircle className="w-8 h-8 text-destructive" />
+          </div>
+          
+          <h1 className="text-2xl font-bold text-foreground mb-4">
+            {t('resetPassword.invalidTitle', 'Invalid Reset Link')}
+          </h1>
+          <p className="text-muted-foreground mb-6">
+            {error || t('resetPassword.invalidMessage', 'This password reset link is invalid or has expired.')}
+          </p>
+          
+          <div className="space-y-3">
+            <Link href="/forgot-password">
+              <Button className="w-full">
+                {t('resetPassword.requestNew', 'Request New Reset Link')}
+              </Button>
+            </Link>
+            <Link href="/login">
+              <Button variant="ghost" className="w-full">
+                <ArrowLeft className="w-4 h-4 me-2" />
+                {t('resetPassword.backToLogin', 'Back to Login')}
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Success state
+  if (success) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-brand-500 via-success to-accent flex items-center justify-center p-4">
+        <div className="bg-card rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-8 h-8 text-success" />
+          </div>
+          
+          <h1 className="text-2xl font-bold text-foreground mb-4">
+            {t('resetPassword.success.title', 'Password Reset Successfully')}
+          </h1>
+          <p className="text-muted-foreground mb-6">
+            {t('resetPassword.success.message', 'Your password has been reset. You can now log in with your new password.')}
+          </p>
+          <p className="text-sm text-muted-foreground mb-8">
+            {t('resetPassword.success.redirect', 'Redirecting to login...')}
+          </p>
+          
+          <Link href="/login">
+            <Button className="w-full">
+              <ArrowLeft className="w-4 h-4 me-2" />
+              {t('resetPassword.goToLogin', 'Go to Login')}
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Reset form
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-brand-500 via-success to-accent flex items-center justify-center p-4">
+      <div className="bg-card rounded-2xl shadow-2xl p-8 max-w-md w-full">
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+            <Lock className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold text-foreground mb-2">
+            {t('resetPassword.title', 'Create New Password')}
+          </h1>
+          {maskedEmail && (
+            <p className="text-muted-foreground text-sm">
+              {t('resetPassword.forEmail', 'For account:')} {maskedEmail}
+            </p>
+          )}
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* New Password */}
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
+              {t('resetPassword.newPassword', 'New Password')}
+            </label>
+            <div className="relative">
+              <Lock className="absolute start-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" aria-hidden="true" />
+              <Input
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder={t('resetPassword.passwordPlaceholder', 'Enter new password')}
+                value={password}
+                onChange={handlePasswordChange}
+                className="ps-10 pe-10 h-12"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute end-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            </div>
+            
+            {/* Password requirements */}
+            {password && validationErrors.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {validationErrors.map((err, idx) => (
+                  <p key={idx} className="text-sm text-destructive flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {err}
+                  </p>
+                ))}
+              </div>
+            )}
+            {password && validationErrors.length === 0 && (
+              <p className="mt-2 text-sm text-success flex items-center gap-1">
+                <CheckCircle className="h-3 w-3" />
+                {t('resetPassword.passwordStrong', 'Password meets requirements')}
+              </p>
+            )}
+          </div>
+
+          {/* Confirm Password */}
+          <div>
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-foreground mb-2">
+              {t('resetPassword.confirmPassword', 'Confirm New Password')}
+            </label>
+            <div className="relative">
+              <Lock className="absolute start-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" aria-hidden="true" />
+              <Input
+                id="confirmPassword"
+                name="confirmPassword"
+                type={showConfirmPassword ? 'text' : 'password'}
+                placeholder={t('resetPassword.confirmPlaceholder', 'Confirm new password')}
+                value={confirmPassword}
+                onChange={(e) => { setConfirmPassword(e.target.value); setError(''); }}
+                className="ps-10 pe-10 h-12"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute end-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+              >
+                {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            </div>
+            {confirmPassword && password !== confirmPassword && (
+              <p className="mt-2 text-sm text-destructive flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                {t('resetPassword.errors.mismatch', 'Passwords do not match')}
+              </p>
+            )}
+            {confirmPassword && password === confirmPassword && confirmPassword.length > 0 && (
+              <p className="mt-2 text-sm text-success flex items-center gap-1">
+                <CheckCircle className="h-3 w-3" />
+                {t('resetPassword.passwordsMatch', 'Passwords match')}
+              </p>
+            )}
+          </div>
+
+          {error && (
+            <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive">
+              <AlertCircle className="h-5 w-5 flex-shrink-0" />
+              <span className="text-sm">{error}</span>
+            </div>
+          )}
+
+          <Button
+            type="submit"
+            disabled={loading || validationErrors.length > 0 || password !== confirmPassword || !password}
+            className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold transition-colors"
+          >
+            {loading ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {t('resetPassword.resetting', 'Resetting Password...')}
+              </div>
+            ) : (
+              t('resetPassword.submit', 'Reset Password')
+            )}
+          </Button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <Link href="/login" className="text-primary hover:text-primary font-medium flex items-center justify-center gap-2 transition-colors">
+            <ArrowLeft className="w-4 h-4" />
+            {t('resetPassword.backToLogin', 'Back to Login')}
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-brand-500 via-success to-accent flex items-center justify-center p-4">
+        <div className="bg-card rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
+          <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    }>
+      <ResetPasswordContent />
+    </Suspense>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/global-error.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect } from "react";
+import { AlertOctagon, RefreshCw, Home } from "lucide-react";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
+
+/**
+ * Global Error Boundary Component
+ *
+ * This component handles errors that occur in the root layout.
+ * It must NOT use any context providers (they may have failed).
+ *
+ * STRICT v4 COMPLIANCE:
+ * - Uses inline styles (no Tailwind, contexts may have failed)
+ * - Provides recovery via full page reload
+ * - Logs errors to console for debugging
+ *
+ * @see https://nextjs.org/docs/app/building-your-application/routing/error-handling#handling-errors-in-root-layouts
+ */
+export default function GlobalError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  useEffect(() => {
+    // Log to console since our logger may have failed
+    // eslint-disable-next-line no-console
+    console.error("[GlobalError] Critical application error:", {
+      message: error.message,
+      digest: error.digest,
+      stack: error.stack,
+    });
+  }, [error]);
+
+  return (
+    <html lang="en" dir="ltr">
+      <body
+        style={{
+          margin: 0,
+          padding: 0,
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily:
+            "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+          backgroundColor: "#f8f9fa",
+          color: "#1a1a1a",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: "400px",
+            width: "100%",
+            padding: "24px",
+            textAlign: "center",
+          }}
+        >
+          {/* Error Icon */}
+          <div
+            style={{
+              width: "80px",
+              height: "80px",
+              margin: "0 auto 24px",
+              backgroundColor: "rgba(220, 38, 38, 0.1)",
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <AlertOctagon
+              style={{ width: "40px", height: "40px", color: "#dc2626" }}
+            />
+          </div>
+
+          {/* Error Content */}
+          <h1
+            style={{
+              fontSize: "24px",
+              fontWeight: "bold",
+              marginBottom: "8px",
+              color: "#1a1a1a",
+            }}
+          >
+            Critical Error
+          </h1>
+          <p
+            style={{
+              color: "#6b7280",
+              marginBottom: "24px",
+              lineHeight: "1.5",
+            }}
+          >
+            A critical error occurred that prevented the application from
+            loading. Please try refreshing the page.
+          </p>
+
+          {/* Development Error Details */}
+          {process.env.NODE_ENV === "development" && (
+            <div
+              style={{
+                backgroundColor: "rgba(220, 38, 38, 0.05)",
+                border: "1px solid rgba(220, 38, 38, 0.2)",
+                borderRadius: "8px",
+                padding: "16px",
+                marginBottom: "24px",
+                textAlign: "left",
+              }}
+            >
+              <p
+                style={{
+                  fontSize: "14px",
+                  fontFamily: "monospace",
+                  color: "#dc2626",
+                  wordBreak: "break-all",
+                  margin: 0,
+                }}
+              >
+                {error.message}
+              </p>
+              {error.digest && (
+                <p
+                  style={{
+                    fontSize: "12px",
+                    color: "#6b7280",
+                    margin: "8px 0 0 0",
+                  }}
+                >
+                  Error ID: {error.digest}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Recovery Actions */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <button
+              onClick={reset}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                width: "100%",
+                padding: "12px 24px",
+                backgroundColor: "#0061A8",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                fontSize: "16px",
+                fontWeight: "500",
+                cursor: "pointer",
+              }}
+            >
+              <RefreshCw style={{ width: "16px", height: "16px" }} />
+              Try Again
+            </button>
+
+            <button
+              onClick={() => (window.location.href = "/")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                width: "100%",
+                padding: "12px 24px",
+                backgroundColor: "transparent",
+                color: "#1a1a1a",
+                border: "1px solid #e5e7eb",
+                borderRadius: "8px",
+                fontSize: "16px",
+                fontWeight: "500",
+                cursor: "pointer",
+              }}
+            >
+              <Home style={{ width: "16px", height: "16px" }} />
+              Go to Homepage
+            </button>
+          </div>
+
+          {/* Support Link */}
+          <p
+            style={{
+              marginTop: "32px",
+              fontSize: "14px",
+              color: "#6b7280",
+            }}
+          >
+            If this problem persists,{" "}
+            <a
+              href={`mailto:${EMAIL_DOMAINS.support}`}
+              style={{ color: "#0061A8", textDecoration: "none" }}
+            >
+              contact support
+            </a>
+          </p>
+        </div>
+      </body>
+    </html>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/globals.css">
+<![CDATA[
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   FIXZIT DESIGN SYSTEM v3.0
+   Modern, Distinctive, Production-Ready
+   ============================================ */
+
+@layer base {
+  :root {
+    /* ─────────────────────────────────────────
+       LIGHT MODE - Business.sa Theme
+       Saudi-inspired: Professional Blue + Green
+       ───────────────────────────────────────── */
+    --background: 210 20% 98%;
+    --foreground: 210 25% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 210 25% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 25% 12%;
+
+    /* Primary Blue - Business.sa Corporate Blue #0061A8 */
+    --primary: 204 100% 33%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 15% 95%;
+    --secondary-foreground: 210 25% 18%;
+
+    --muted: 210 12% 94%;
+    --muted-foreground: 210 15% 40%;
+
+    /* Accent - Saudi Green #00A859 */
+    --accent: 152 100% 33%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 210 15% 88%;
+    --input: 210 15% 90%;
+    --ring: 204 100% 33%;
+
+    /* Extended Palette - Business.sa */
+    --success: 152 100% 33%;
+    --success-foreground: 0 0% 100%;
+    --warning: 43 100% 50%;
+    --warning-foreground: 210 25% 12%;
+    --info: 204 100% 33%;
+    --info-foreground: 0 0% 100%;
+
+    /* Atmospheric Background Gradients - Business.sa */
+    --gradient-subtle: linear-gradient(
+      135deg,
+      hsl(210 20% 98%) 0%,
+      hsl(210 15% 96%) 50%,
+      hsl(210 20% 97%) 100%
+    );
+    --gradient-hero: linear-gradient(
+      135deg,
+      hsl(204 100% 33%) 0%,
+      hsl(152 100% 33%) 100%
+    );
+    --gradient-card: linear-gradient(
+      145deg,
+      hsl(0 0% 100%) 0%,
+      hsl(210 15% 99%) 100%
+    );
+    --gradient-sidebar: linear-gradient(
+      180deg,
+      hsl(204 80% 15%) 0%,
+      hsl(204 90% 10%) 100%
+    );
+    --gradient-topbar: linear-gradient(
+      90deg,
+      hsl(0 0% 100% / 0.95) 0%,
+      hsl(210 15% 99% / 0.98) 100%
+    );
+
+    /* Shadows & Depth - Business.sa */
+    --shadow-xs: 0 1px 2px hsl(210 25% 12% / 0.04);
+    --shadow-sm: 0 2px 4px hsl(210 25% 12% / 0.06);
+    --shadow-md: 0 4px 12px hsl(210 25% 12% / 0.08);
+    --shadow-lg: 0 8px 24px hsl(210 25% 12% / 0.12);
+    --shadow-xl: 0 16px 48px hsl(210 25% 12% / 0.16);
+    --shadow-glow: 0 0 24px hsl(204 100% 33% / 0.25);
+    --shadow-inset: inset 0 2px 4px hsl(210 25% 12% / 0.06);
+
+    /* Sidebar (Dark Blue for Business.sa) */
+    --sidebar-background: 204 80% 12%;
+    --sidebar-foreground: 210 15% 92%;
+    --sidebar-primary: 152 100% 40%;
+    --sidebar-primary-foreground: 204 80% 12%;
+    --sidebar-accent: 204 60% 18%;
+    --sidebar-accent-foreground: 210 15% 92%;
+    --sidebar-border: 204 50% 20%;
+    --sidebar-ring: 152 100% 40%;
+    --sidebar-muted: 204 20% 40%;
+
+    /* Section Backgrounds */
+    --section-bg: 0 0% 100%;
+    --section-alt: 210 15% 97%;
+
+    --radius: 0.75rem;
+
+    /* Legacy Tokens - Business.sa */
+    --fixzit-primary: hsl(var(--primary));
+    --fixzit-primary-dark: hsl(204 100% 25%);
+    --fixzit-primary-light: hsl(204 100% 45%);
+    --fixzit-secondary: hsl(var(--secondary));
+    --fixzit-accent: hsl(var(--accent));
+    --fixzit-danger: hsl(var(--destructive));
+    --fixzit-success: hsl(var(--success));
+
+    /* Business.sa Brand Colors (Direct Hex) */
+    --brand-blue: #0061A8;
+    --brand-green: #00A859;
+    --brand-gold: #FFB400;
+    --brand-bg-light: #F5F7FA;
+  }
+
+  .dark {
+    /* ─────────────────────────────────────────
+       DARK MODE - Business.sa Night
+       Professional blue-based dark theme
+       ───────────────────────────────────────── */
+    --background: 210 25% 7%;
+    --foreground: 210 15% 92%;
+
+    --card: 210 20% 11%;
+    --card-foreground: 210 15% 92%;
+
+    --popover: 210 20% 11%;
+    --popover-foreground: 210 15% 92%;
+
+    --primary: 204 85% 50%;
+    --primary-foreground: 210 25% 5%;
+
+    --secondary: 210 15% 18%;
+    --secondary-foreground: 210 12% 88%;
+
+    --muted: 210 15% 18%;
+    --muted-foreground: 210 12% 55%;
+
+    --accent: 152 80% 40%;
+    --accent-foreground: 210 25% 5%;
+
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 210 15% 20%;
+    --input: 210 15% 20%;
+    --ring: 204 85% 50%;
+
+    /* Extended Palette Dark - Business.sa */
+    --success: 152 75% 40%;
+    --warning: 43 90% 50%;
+    --info: 204 85% 55%;
+
+    /* Atmospheric Background Gradients (Dark) - Business.sa */
+    --gradient-subtle: linear-gradient(
+      135deg,
+      hsl(210 25% 7%) 0%,
+      hsl(210 22% 9%) 50%,
+      hsl(210 25% 8%) 100%
+    );
+    --gradient-hero: linear-gradient(
+      135deg,
+      hsl(204 80% 20%) 0%,
+      hsl(152 70% 18%) 100%
+    );
+    --gradient-card: linear-gradient(
+      145deg,
+      hsl(210 20% 12%) 0%,
+      hsl(210 20% 10%) 100%
+    );
+    --gradient-sidebar: linear-gradient(
+      180deg,
+      hsl(204 70% 8%) 0%,
+      hsl(204 80% 5%) 100%
+    );
+    --gradient-topbar: linear-gradient(
+      90deg,
+      hsl(210 20% 11% / 0.95) 0%,
+      hsl(210 22% 10% / 0.98) 100%
+    );
+
+    /* Shadows Dark - Business.sa */
+    --shadow-xs: 0 1px 2px hsl(0 0% 0% / 0.2);
+    --shadow-sm: 0 2px 4px hsl(0 0% 0% / 0.25);
+    --shadow-md: 0 4px 12px hsl(0 0% 0% / 0.3);
+    --shadow-lg: 0 8px 24px hsl(0 0% 0% / 0.4);
+    --shadow-xl: 0 16px 48px hsl(0 0% 0% / 0.5);
+    --shadow-glow: 0 0 24px hsl(204 85% 50% / 0.3);
+
+    /* Sidebar Dark - Business.sa */
+    --sidebar-background: 204 70% 6%;
+    --sidebar-foreground: 210 15% 88%;
+    --sidebar-primary: 152 80% 45%;
+    --sidebar-primary-foreground: 204 70% 6%;
+    --sidebar-accent: 204 50% 14%;
+    --sidebar-accent-foreground: 210 15% 88%;
+    --sidebar-border: 204 40% 18%;
+    --sidebar-muted: 210 15% 40%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans, 'DM Sans'), system-ui, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Typography Hierarchy */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display, 'Bricolage Grotesque'), system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+
+  h1 {
+    @apply text-4xl md:text-5xl lg:text-6xl;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+  }
+
+  h2 {
+    @apply text-3xl md:text-4xl;
+    font-weight: 700;
+  }
+
+  h3 {
+    @apply text-2xl md:text-3xl;
+  }
+
+  h4 {
+    @apply text-xl md:text-2xl;
+  }
+
+  /* Monospace for data elements */
+  code, kbd, .font-mono {
+    font-family: var(--font-mono, 'Space Mono'), 'JetBrains Mono', monospace;
+  }
+
+  /* Arabic text styling - Business.sa Tajawal font */
+  [lang="ar"] body,
+  [dir="rtl"] body {
+    font-family: var(--font-tajawal, 'Tajawal'), var(--font-arabic, 'Noto Sans Arabic'), system-ui, sans-serif;
+  }
+
+  [lang="ar"] h1,
+  [lang="ar"] h2,
+  [lang="ar"] h3,
+  [lang="ar"] h4,
+  [lang="ar"] h5,
+  [lang="ar"] h6,
+  [dir="rtl"] h1,
+  [dir="rtl"] h2,
+  [dir="rtl"] h3,
+  [dir="rtl"] h4,
+  [dir="rtl"] h5,
+  [dir="rtl"] h6 {
+    font-family: var(--font-tajawal, 'Tajawal'), var(--font-arabic, 'Noto Sans Arabic'), system-ui, sans-serif;
+    letter-spacing: 0;
+  }
+}
+
+/* Shell-specific utility classes for Fixzit */
+
+/* ============================================
+   COMPONENT LAYER - Fixzit Design System
+   ============================================ */
+
+@layer components {
+  /* ─────────────────────────────────────────
+     TOP BAR - Frosted Glass Header
+     ───────────────────────────────────────── */
+  .fxz-topbar {
+    background: var(--gradient-topbar);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border-bottom: 1px solid hsl(var(--border) / 0.5);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .fxz-topbar-logo {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(204 80% 28%) 100%);
+    color: hsl(var(--primary-foreground));
+    border-radius: 10px;
+    box-shadow: var(--shadow-md), var(--shadow-glow);
+  }
+
+  .fxz-topbar-pill {
+    background-color: hsl(var(--secondary));
+    color: hsl(var(--secondary-foreground));
+    border-radius: 9999px;
+    border: 1px solid hsl(var(--border));
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+  }
+
+  .fxz-topbar-pill:hover {
+    background-color: hsl(var(--muted));
+    transform: translateY(-1px);
+  }
+
+  /* ─────────────────────────────────────────
+     BUTTONS - Modern with Depth
+     ───────────────────────────────────────── */
+  .fxz-btn-primary {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(204 80% 28%) 100%);
+    color: hsl(var(--primary-foreground));
+    border-radius: 10px;
+    border: none;
+    box-shadow: var(--shadow-sm), 0 1px 0 hsl(0 0% 100% / 0.1) inset;
+    font-weight: 500;
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .fxz-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md), var(--shadow-glow);
+  }
+
+  .fxz-btn-primary:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .fxz-btn-outline {
+    background-color: transparent;
+    color: hsl(var(--primary));
+    border-radius: 10px;
+    border: 1.5px solid hsl(var(--primary) / 0.3);
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .fxz-btn-outline:hover {
+    background-color: hsl(var(--primary) / 0.08);
+    border-color: hsl(var(--primary) / 0.5);
+  }
+
+  /* ─────────────────────────────────────────
+     SIDEBAR - Dark Elegant Navigation
+     ───────────────────────────────────────── */
+  .fxz-sidebar {
+    background: var(--gradient-sidebar);
+    color: hsl(var(--sidebar-foreground));
+    border-inline-end: 1px solid hsl(var(--sidebar-border));
+    box-shadow: var(--shadow-lg);
+  }
+
+  .fxz-sidebar-title {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: hsl(var(--sidebar-muted));
+    padding-inline: 0.75rem;
+    margin-block: 1.5rem 0.5rem;
+  }
+
+  .fxz-sidebar-item {
+    border-radius: 10px;
+    padding: 0.625rem 0.875rem;
+    margin-inline: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 450;
+    color: hsl(var(--sidebar-foreground) / 0.85);
+    text-decoration: none;
+    transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+  }
+
+  .fxz-sidebar-item::before {
+    content: '';
+    position: absolute;
+    inset-inline-start: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 0;
+    background: linear-gradient(180deg, hsl(var(--sidebar-primary)) 0%, hsl(204 80% 40%) 100%);
+    border-radius: 0 2px 2px 0;
+    transition: height 0.2s ease;
+  }
+
+  .fxz-sidebar-item:hover {
+    background-color: hsl(var(--sidebar-accent));
+    color: hsl(var(--sidebar-foreground));
+  }
+
+  .fxz-sidebar-item:hover::before {
+    height: 16px;
+  }
+
+  .fxz-sidebar-item-active {
+    background: linear-gradient(135deg, hsl(var(--sidebar-primary)) 0%, hsl(204 80% 35%) 100%);
+    color: hsl(var(--sidebar-primary-foreground));
+    font-weight: 500;
+    box-shadow: 0 4px 12px hsl(var(--sidebar-primary) / 0.3);
+  }
+
+  .fxz-sidebar-item-active::before {
+    height: 0;
+  }
+
+  .fxz-sidebar-item-active:hover {
+    background: linear-gradient(135deg, hsl(var(--sidebar-primary)) 0%, hsl(204 80% 40%) 100%);
+  }
+
+  /* Sidebar Badge */
+  .fxz-sidebar-badge {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+    background: hsl(var(--destructive));
+    color: hsl(var(--destructive-foreground));
+    margin-inline-start: auto;
+    box-shadow: 0 2px 4px hsl(var(--destructive) / 0.3);
+  }
+
+  /* ─────────────────────────────────────────
+     CARDS - Elevated with Subtle Gradients
+     ───────────────────────────────────────── */
+  .fxz-card {
+    background: var(--gradient-card);
+    color: hsl(var(--card-foreground));
+    border-radius: var(--radius);
+    border: 1px solid hsl(var(--border) / 0.8);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .fxz-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: hsl(var(--border));
+  }
+
+  .fxz-card-elevated {
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* ─────────────────────────────────────────
+     FOOTER - Clean & Professional
+     ───────────────────────────────────────── */
+  .fxz-footer {
+    background: var(--gradient-subtle);
+    color: hsl(var(--muted-foreground));
+    border-top: 1px solid hsl(var(--border));
+  }
+
+  /* ─────────────────────────────────────────
+     HERO SECTION - Atmospheric
+     ───────────────────────────────────────── */
+  .fxz-hero {
+    background: var(--gradient-hero);
+    border-bottom: 1px solid hsl(var(--border) / 0.5);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .fxz-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -25%;
+    width: 80%;
+    height: 200%;
+    background: radial-gradient(
+      ellipse at center,
+      hsl(var(--primary) / 0.08) 0%,
+      transparent 60%
+    );
+    pointer-events: none;
+  }
+
+  /* Hero CTA buttons - enhanced contrast on gradient background (PR #454 P1 feedback) */
+  .fxz-hero .fxz-btn-primary {
+    background: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(210 15% 96%) 100%);
+    color: hsl(var(--primary));
+    border: 1px solid hsl(0 0% 100% / 0.3);
+    box-shadow: var(--shadow-md), 0 0 0 1px hsl(0 0% 100% / 0.2);
+  }
+
+  .fxz-hero .fxz-btn-primary:hover {
+    background: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(0 0% 98%) 100%);
+    box-shadow: var(--shadow-lg), 0 0 20px hsl(0 0% 100% / 0.3);
+  }
+
+  .fxz-hero .fxz-btn-outline {
+    background-color: hsl(0 0% 100% / 0.1);
+    color: hsl(0 0% 100%);
+    border-color: hsl(0 0% 100% / 0.4);
+  }
+
+  .fxz-hero .fxz-btn-outline:hover {
+    background-color: hsl(0 0% 100% / 0.2);
+    border-color: hsl(0 0% 100% / 0.6);
+  }
+
+  .fxz-hero .fxz-btn-ghost {
+    color: hsl(0 0% 100%) !important;
+    border-color: hsl(0 0% 100% / 0.3) !important;
+  }
+
+  .fxz-hero .fxz-btn-ghost:hover {
+    background-color: hsl(0 0% 100% / 0.15) !important;
+    border-color: hsl(0 0% 100% / 0.5) !important;
+  }
+
+  /* ─────────────────────────────────────────
+     DATA DISPLAY - Mono Typography
+     ───────────────────────────────────────── */
+  .fxz-data-value {
+    font-family: var(--font-mono);
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: hsl(var(--foreground));
+  }
+
+  .fxz-data-label {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* ─────────────────────────────────────────
+     STATUS INDICATORS
+     ───────────────────────────────────────── */
+  .fxz-status-success {
+    background: hsl(var(--success) / 0.15);
+    color: hsl(var(--success));
+    border: 1px solid hsl(var(--success) / 0.25);
+  }
+
+  .fxz-status-warning {
+    background: hsl(var(--warning) / 0.15);
+    color: hsl(var(--warning));
+    border: 1px solid hsl(var(--warning) / 0.25);
+  }
+
+  .fxz-status-error {
+    background: hsl(var(--destructive) / 0.15);
+    color: hsl(var(--destructive));
+    border: 1px solid hsl(var(--destructive) / 0.25);
+  }
+
+  .fxz-status-info {
+    background: hsl(var(--info) / 0.15);
+    color: hsl(var(--info));
+    border: 1px solid hsl(var(--info) / 0.25);
+  }
+}
+
+/* ============================================
+   Custom Cursor Styles
+   ============================================ */
+
+/* Cursor brand colors (actual Fixzit brand, not theme tokens) */
+:root {
+  --cursor-primary: #0061A8;    /* Fixzit primary blue */
+  --cursor-secondary: #00A859;  /* Marketplace green */
+  --cursor-accent: #FFB400;     /* Gold accent */
+  --cursor-glow: #36aff8;       /* Light blue glow */
+}
+
+/* ============================================
+   ENHANCED ANIMATION KEYFRAMES
+   ============================================ */
+
+@keyframes aurora-flow {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.5;
+  }
+}
+
+@keyframes slide-up-fade {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer-sweep {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes float-gentle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.15);
+  }
+  50% {
+    box-shadow: 0 0 35px hsl(var(--primary) / 0.25);
+  }
+}
+
+/* ============================================
+   ENHANCED UTILITY CLASSES
+   ============================================ */
+
+.animate-slide-up {
+  animation: slide-up-fade 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-aurora {
+  background-size: 400% 400%;
+  animation: aurora-flow 12s ease-in-out infinite;
+}
+
+.animate-glow {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float-gentle 5s ease-in-out infinite;
+}
+
+/* Staggered animation delays for lists */
+.stagger-1 { animation-delay: 50ms; }
+.stagger-2 { animation-delay: 100ms; }
+.stagger-3 { animation-delay: 150ms; }
+.stagger-4 { animation-delay: 200ms; }
+.stagger-5 { animation-delay: 250ms; }
+.stagger-6 { animation-delay: 300ms; }
+.stagger-7 { animation-delay: 350ms; }
+.stagger-8 { animation-delay: 400ms; }
+
+/* ============================================
+   ENHANCED BACKGROUND EFFECTS
+   ============================================ */
+
+/* Noise texture overlay for atmospheric depth */
+.noise-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.025;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+.dark .noise-overlay::before {
+  opacity: 0.04;
+}
+
+/* Mesh gradient background for hero sections */
+.mesh-bg {
+  background:
+    radial-gradient(at 40% 20%, hsl(var(--primary) / 0.12) 0px, transparent 50%),
+    radial-gradient(at 80% 0%, hsl(152 100% 33% / 0.08) 0px, transparent 50%),
+    radial-gradient(at 0% 50%, hsl(43 100% 50% / 0.06) 0px, transparent 50%),
+    hsl(var(--background));
+}
+
+.dark .mesh-bg {
+  background:
+    radial-gradient(at 40% 20%, hsl(var(--primary) / 0.08) 0px, transparent 50%),
+    radial-gradient(at 80% 0%, hsl(152 100% 33% / 0.05) 0px, transparent 50%),
+    radial-gradient(at 0% 50%, hsl(43 100% 50% / 0.04) 0px, transparent 50%),
+    hsl(var(--background));
+}
+
+/* Gradient border effect */
+.gradient-border {
+  position: relative;
+  background: hsl(var(--card));
+  border-radius: var(--radius);
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, hsl(var(--primary) / 0.4), hsl(var(--primary) / 0.1));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ============================================
+   ENHANCED INTERACTIVE STATES
+   ============================================ */
+
+/* Smooth hover lift effect */
+.hover-lift {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Focus ring style */
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.3);
+}
+
+/* Active press effect */
+.press-effect:active {
+  transform: scale(0.98);
+}
+
+/* Shimmer loading effect */
+.shimmer-loading {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 0%,
+    hsl(var(--muted-foreground) / 0.1) 50%,
+    hsl(var(--muted)) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-sweep 1.5s ease-in-out infinite;
+}
+
+/* Custom cursor enhancement styles
+   Keep native cursor visible but add visual effects around it
+   This ensures the mouse pointer is always visible while showing the animation */
+@media (prefers-reduced-motion: no-preference) {
+  /* Native cursor remains visible - custom cursor adds trailing effect */
+  body.custom-cursor-active {
+    /* cursor: default; - keep native cursor visible */
+  }
+}
+
+/* Base styles for custom cursor elements */
+.custom-cursor-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 99999;
+}
+
+.cursor-dot {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99999;
+  /* Default transform will be overridden by JS, but ensure centering if needed */
+  transform: translate(-50%, -50%);
+  transition: transform 0.1s ease-out;
+  will-change: transform;
+}
+
+.cursor-main {
+  width: 10px;
+  height: 10px;
+  background-color: var(--cursor-primary);
+  /* Smooth transition for hover pop effect */
+  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out, width 0.2s ease-out, height 0.2s ease-out;
+}
+
+.cursor-trail {
+  width: 6px;
+  height: 6px;
+  /* Default color (overridden per-dot via inline style) */
+  background-color: var(--cursor-primary);
+}
+
+/* Glow expansion on hoverable elements */
+.cursor-main.cursor--hover {
+  width: 16px;
+  height: 16px;
+  box-shadow: 0 0 12px var(--cursor-glow), 0 0 24px rgba(54, 175, 248, 0.5);
+}
+
+/* ============================================
+   Tooltip Styles
+   ============================================ */
+
+.tooltip-content {
+  max-width: 240px;
+  padding: 8px 12px;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: hsl(var(--foreground));
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  pointer-events: none;
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+/* Dark mode support */
+.dark .tooltip-content,
+[data-theme='dark'] .tooltip-content {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Tooltip entrance animation */
+.tooltip-content {
+  animation: tooltipFadeIn 0.15s ease-out;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, var(--tooltip-translate-y, 0)) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, var(--tooltip-translate-y, 0)) scale(1);
+  }
+}
+
+/* RTL support for tooltip */
+[dir='rtl'] .tooltip-content {
+  text-align: right;
+}
+
+]]>
+</file>
+
+<file path="app/help/[slug]/HelpArticleClient.tsx">
+<![CDATA[
+"use client";
+
+import Link from "next/link";
+import { useState, type FormEvent } from "react";
+import ClientDate from "@/components/ClientDate";
+
+type HelpArticleClientProps = {
+  article: {
+    slug: string;
+    title: string;
+    category?: string;
+    contentHtml: string;
+    updatedAt?: string;
+  };
+  isRTL: boolean;
+  strings: {
+    home: string;
+    categoryFallback: string;
+    updated: string;
+    back: string;
+    feedbackPrompt: string;
+    helpfulYes: string;
+    helpfulNo: string;
+    helpfulAria: string;
+    notHelpfulAria: string;
+    ctaTitle: string;
+    ctaSubtitle: string;
+    cta: string;
+    commentsTitle: string;
+    commentsPlaceholder: string;
+    commentsSubmit: string;
+    commentsSuccess: string;
+    commentsError: string;
+    commentsAuth: string;
+  };
+};
+
+export default function HelpArticleClient({
+  article,
+  isRTL,
+  strings,
+}: HelpArticleClientProps) {
+  const [comment, setComment] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [commentStatus, setCommentStatus] = useState<
+    "idle" | "success" | "error"
+  >("idle");
+
+  const submitComment = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!comment.trim()) return;
+    setIsSubmitting(true);
+    setCommentStatus("idle");
+    try {
+      const res = await fetch(`/api/help/articles/${article.slug}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comment }),
+      });
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
+      setComment("");
+      setCommentStatus("success");
+    } catch (_err) {
+      setCommentStatus("error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex flex-col"
+      dir={isRTL ? "rtl" : "ltr"}
+    >
+      {/* Breadcrumb */}
+      <section className="bg-gradient-to-r from-primary to-success text-primary-foreground py-8">
+        <div className="mx-auto max-w-4xl px-6">
+          <div className="flex items-center gap-2 text-sm mb-2 opacity-90">
+            <Link href="/help" className="hover:underline">
+              {strings.home}
+            </Link>
+            <span>/</span>
+            <span>{article.category || strings.categoryFallback}</span>
+          </div>
+          <h1 className="text-3xl font-bold">{article.title}</h1>
+        </div>
+      </section>
+
+      {/* Content */}
+      <div className="mx-auto max-w-4xl px-6 py-10 flex-1">
+        <div className="grid md:grid-cols-[1fr_280px] gap-8">
+          <div className="bg-card rounded-2xl shadow-md border border-border p-8">
+            <article
+              className="prose prose-lg max-w-none prose-headings:text-foreground prose-a:text-primary prose-strong:text-foreground"
+              dangerouslySetInnerHTML={{ __html: article.contentHtml }}
+            />
+
+            <div className="mt-8 pt-6 border-t border-border">
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <div>
+                  {strings.updated}{" "}
+                  {article.updatedAt ? (
+                    <ClientDate date={article.updatedAt} format="date-only" />
+                  ) : (
+                    ""
+                  )}
+                </div>
+                <Link
+                  href="/help"
+                  className="text-primary hover:text-primary/80 font-medium"
+                >
+                  {strings.back}
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <aside className="space-y-4">
+            <div className="bg-card rounded-2xl shadow-md border border-border p-4">
+              <h3 className="font-semibold text-foreground mb-3">
+                {strings.feedbackPrompt}
+              </h3>
+              <div className="flex gap-2">
+                <button
+                  aria-label={strings.helpfulAria}
+                  className="flex-1 px-3 py-2 border border-border rounded-2xl hover:bg-muted"
+                >
+                  {strings.helpfulYes}
+                </button>
+                <button
+                  aria-label={strings.notHelpfulAria}
+                  className="flex-1 px-3 py-2 border border-border rounded-2xl hover:bg-muted"
+                >
+                  {strings.helpfulNo}
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-primary text-primary-foreground rounded-2xl p-4">
+              <h4 className="font-semibold mb-2">{strings.ctaTitle}</h4>
+              <p className="text-sm mb-3">{strings.ctaSubtitle}</p>
+              <Link
+                href="/support/my-tickets"
+                className="block w-full bg-card text-primary px-4 py-2 rounded-2xl font-medium hover:bg-muted text-center"
+              >
+                {strings.cta}
+              </Link>
+            </div>
+
+            <div className="bg-card rounded-2xl shadow-md border border-border p-4">
+              <h3 className="font-semibold text-foreground mb-3">
+                {strings.commentsTitle}
+              </h3>
+              <form className="space-y-3" onSubmit={submitComment}>
+                <label className="sr-only" htmlFor="comment">
+                  {strings.commentsTitle}
+                </label>
+                <textarea
+                  id="comment"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder={strings.commentsPlaceholder}
+                  className="w-full border border-border rounded-2xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/60 min-h-[100px]"
+                  disabled={isSubmitting}
+                />
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">
+                    {strings.commentsAuth}
+                  </span>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !comment.trim()}
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  >
+                    {isSubmitting ? "..." : strings.commentsSubmit}
+                  </button>
+                </div>
+                {commentStatus === "success" && (
+                  <p className="text-xs text-success">
+                    {strings.commentsSuccess}
+                  </p>
+                )}
+                {commentStatus === "error" && (
+                  <p className="text-xs text-destructive">
+                    {strings.commentsError}
+                  </p>
+                )}
+              </form>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/help/[slug]/not-found.tsx">
+<![CDATA[
+import Link from "next/link";
+import { FileQuestion } from "lucide-react";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+/**
+ * Custom 404 page for help articles that don't exist or are not published.
+ *
+ * Provides links to browse all help articles or return to the help center homepage.
+ *
+ * @returns JSX for the help article not found page.
+ */
+export default function HelpArticleNotFound() {
+  const auto = useAutoTranslator("help.articleNotFound");
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex items-center justify-center px-6">
+      <div className="max-w-md w-full text-center">
+        <div className="mb-6 flex justify-center">
+          <div className="p-4 bg-muted rounded-full">
+            <FileQuestion className="w-16 h-16 text-muted-foreground" />
+          </div>
+        </div>
+
+        <h1 className="text-3xl font-bold text-foreground mb-3">
+          {auto("Article Not Found", "title")}
+        </h1>
+
+        <p className="text-muted-foreground mb-8">
+          {auto(
+            "The help article you're looking for doesn't exist or is no longer available.",
+            "description",
+          )}
+        </p>
+
+        <div className="space-y-3">
+          <Link
+            href="/help"
+            className="block w-full bg-primary text-primary-foreground px-6 py-3 rounded-2xl font-medium hover:bg-primary/90 transition-colors"
+          >
+            {auto("Browse All Help Articles", "actions.browse")}
+          </Link>
+
+          <Link
+            href="/"
+            className="block w-full border border-border text-foreground px-6 py-3 rounded-2xl font-medium hover:bg-muted transition-colors"
+          >
+            {auto("Return to Homepage", "actions.home")}
+          </Link>
+
+          <Link
+            href="/support/my-tickets"
+            className="block w-full text-primary hover:text-primary/80 font-medium pt-2"
+          >
+            {auto("Contact Support", "actions.support")} →
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/help/[slug]/page.tsx">
+<![CDATA[
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { renderMarkdownSanitized } from "@/lib/markdown";
+
+export const revalidate = 60;
+
+type Article = {
+  slug: string;
+  title: string;
+  content: string;
+  category?: string;
+  status?: string;
+  updatedAt?: Date | string;
+};
+
+// Use sanitized markdown renderer to prevent XSS
+async function renderMarkdown(md: string): Promise<string> {
+  return renderMarkdownSanitized(md);
+}
+
+export default async function HelpArticlePage({
+  params,
+}: {
+  params: { slug: string };
+}) {
+  const db = await getDatabase();
+  const a =
+    (await db
+      .collection<Article>("helparticles")
+      .findOne({ slug: params.slug, status: "PUBLISHED" } as Partial<Article>)) ||
+    ({
+      slug: params.slug,
+      title: "Article not available.",
+      content: "Article not available.",
+      category: "General",
+      status: "PUBLISHED",
+    } as Article);
+
+  if (!a) {
+    notFound();
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-10">
+      <div className="flex justify-between items-center mb-6">
+        <Link href="/help" className="text-sm text-primary hover:underline">
+          ← Help Center
+        </Link>
+        <div className="flex gap-3 text-sm text-muted-foreground">
+          <Link href="/help">All articles</Link>
+          <Link href="/support/my-tickets">Contact Support</Link>
+        </div>
+      </div>
+
+      <article className="bg-card rounded-2xl p-6 shadow-sm">
+        <p className="text-xs uppercase text-muted-foreground mb-1">
+          {a.category || "General"}
+        </p>
+        <h1 className="text-3xl font-semibold mb-2">
+          {a.title || "Article not available."}
+        </h1>
+        <p className="text-sm text-muted-foreground mb-4">
+          Last updated{" "}
+          {a.updatedAt ? new Date(a.updatedAt).toISOString().slice(0, 10) : ""}
+        </p>
+
+        <div
+          className="prose prose-neutral max-w-none"
+          dangerouslySetInnerHTML={{ __html: await renderMarkdown(a.content) }}
+        />
+      </article>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/help/ai-chat/page.tsx">
+<![CDATA[
+"use client";
+
+import React, { useState } from "react";
+import { Bot, User, X, Send } from "lucide-react";
+import ClientDate from "@/components/ClientDate";
+
+import { logger } from "@/lib/logger";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+interface Citation {
+  title: string;
+  slug: string;
+}
+
+interface Message {
+  id: string;
+  type: "bot" | "user";
+  content: string;
+  citations?: Citation[];
+  timestamp: Date;
+}
+
+export default function AIChatPage() {
+  const auto = useAutoTranslator("help.aiChat");
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: "1",
+      type: "bot",
+      content: auto(
+        "Hello! I'm Fixzit AI Assistant. I can help you with questions about Fixzit Enterprise, guide you through features, and provide support. How can I help you today?",
+        "intro",
+      ),
+      timestamp: new Date(),
+    },
+  ]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const sendMessage = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMessage = {
+      id: crypto.randomUUID(),
+      type: "user" as const,
+      content: input.trim(),
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    const questionText = input.trim();
+    setInput("");
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/assistant/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: questionText }),
+      });
+
+      if (!response.ok) {
+        // Handle HTTP errors - read response body once
+        const responseText = await response.text();
+        let errorMessage = `Request failed with status ${response.status}`;
+
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch {
+          // JSON parse failed, use text if available
+          if (responseText) {
+            errorMessage = responseText;
+          }
+        }
+
+        const botMessage = {
+          id: crypto.randomUUID(),
+          type: "bot" as const,
+          content: auto(
+            "I apologize, but I encountered an error: {{message}}. Please try again.",
+            "errors.api",
+          ).replace("{{message}}", errorMessage),
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, botMessage]);
+        return;
+      }
+
+      const data = await response.json();
+
+      const botMessage = {
+        id: crypto.randomUUID(),
+        type: "bot" as const,
+        content:
+          data.answer ||
+          auto(
+            "I'm here to help! However, I encountered an issue processing your request. Please try again.",
+            "errors.generic",
+          ),
+        citations: data.citations as
+          | Array<{ title: string; slug: string }>
+          | undefined,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, botMessage]);
+    } catch (error) {
+      logger.error("AI Chat error:", error);
+      const errorMessage = {
+        id: crypto.randomUUID(),
+        type: "bot" as const,
+        content: auto(
+          "I apologize, but I encountered an error. Please try again or contact support if the problem persists.",
+          "errors.fallback",
+        ),
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-muted flex flex-col">
+      <div className="max-w-4xl mx-auto p-4 flex-1 flex flex-col">
+        <div className="bg-card rounded-2xl shadow-xl h-[600px] flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between p-6 border-b border-border">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
+                <Bot className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-foreground">
+                  {auto("Fixzit AI Assistant", "header.title")}
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  {auto("Ask me anything about Fixzit!", "header.subtitle")}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => window.close()}
+              aria-label={auto("Close chat", "header.closeAria")}
+              className="text-muted-foreground hover:text-muted-foreground p-2 rounded-2xl hover:bg-muted"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex items-start gap-3 ${message.type === "user" ? "flex-row-reverse" : ""}`}
+              >
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    message.type === "user" ? "bg-success" : "bg-primary"
+                  }`}
+                >
+                  {message.type === "user" ? (
+                    <User className="w-4 h-4 text-primary-foreground" />
+                  ) : (
+                    <Bot className="w-4 h-4 text-primary-foreground" />
+                  )}
+                </div>
+                <div
+                  className={`max-w-[80%] p-4 rounded-2xl ${
+                    message.type === "user"
+                      ? "bg-success text-primary-foreground"
+                      : "bg-muted text-foreground"
+                  }`}
+                >
+                  <p className="text-sm whitespace-pre-wrap">
+                    {message.content}
+                  </p>
+                  {message.type === "bot" &&
+                    message.citations &&
+                    message.citations.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-border">
+                        <p className="text-sm font-medium mb-2">
+                          📚{" "}
+                          {auto(
+                            "Related Help Articles:",
+                            "messages.citationsTitle",
+                          )}
+                        </p>
+                        <ul className="space-y-1">
+                          {message.citations.map((citation, i) => (
+                            <li key={citation.slug}>
+                              <a
+                                href={`/help/${citation.slug}`}
+                                className="text-sm text-primary hover:underline block"
+                              >
+                                {i + 1}. {citation.title}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  <p className="text-xs mt-2 opacity-70">
+                    <ClientDate date={message.timestamp} format="time-only" />
+                  </p>
+                </div>
+              </div>
+            ))}
+
+            {isLoading && (
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                  <Bot className="w-4 h-4 text-primary-foreground" />
+                </div>
+                <div className="bg-muted p-4 rounded-2xl">
+                  <p className="text-sm text-muted-foreground">
+                    {auto("Thinking...", "messages.thinking")}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Input */}
+          <div className="p-6 border-t border-border">
+            <div className="flex gap-3">
+              <label htmlFor="chat-input" className="sr-only">
+                {auto("Chat message", "input.label")}
+              </label>
+              <input
+                id="chat-input"
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder={auto(
+                  "Ask me anything about Fixzit...",
+                  "input.placeholder",
+                )}
+                className="flex-1 px-4 py-3 border border-border rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                disabled={isLoading}
+              />
+              <button
+                onClick={sendMessage}
+                disabled={!input.trim() || isLoading}
+                aria-label={auto("Send message", "input.sendAria")}
+                className="px-4 py-3 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              {auto("Press Enter to send", "input.hint")}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/help/page.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import {
+  MessageSquare,
+  Plus,
+  Bot,
+  BookOpen,
+  Play,
+  ChevronRight,
+  Star,
+  Users,
+  Building2,
+  DollarSign,
+  Wrench,
+  FileText,
+} from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { logger } from "@/lib/logger";
+
+type Difficulty = "Beginner" | "Intermediate" | "Advanced";
+
+type Tutorial = {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  duration: string;
+  difficulty: Difficulty;
+  featured?: boolean;
+  completed?: boolean;
+  href: string;
+};
+
+type HelpArticle = {
+  slug: string;
+  title: string;
+  category?: string;
+  updatedAt?: string;
+};
+
+const formatUpdatedDate = (value?: string) => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString().slice(0, 10);
+};
+
+const getCategoryIcon = (category: string) => {
+  switch (category.toLowerCase()) {
+    case "facility management":
+      return <Building2 className="w-5 h-5 text-primary" />;
+    case "work orders":
+      return <Wrench className="w-5 h-5 text-success" />;
+    case "procurement":
+      return <FileText className="w-5 h-5 text-secondary-foreground" />;
+    case "customer service":
+      return <Users className="w-5 h-5 text-accent-foreground" />;
+    case "finance":
+      return <DollarSign className="w-5 h-5 text-success" />;
+    default:
+      return <BookOpen className="w-5 h-5 text-muted-foreground" />;
+  }
+};
+
+const getDifficultyColor = (
+  difficulty: string,
+  t: ReturnType<typeof useTranslation>["t"],
+) => {
+  switch (difficulty) {
+    case "Beginner":
+    case t("helpCenter.difficulty.beginner"):
+      return "bg-success/10 text-success-foreground";
+    case "Intermediate":
+    case t("helpCenter.difficulty.intermediate"):
+      return "bg-warning/10 text-warning-foreground";
+    case "Advanced":
+    case t("helpCenter.difficulty.advanced"):
+      return "bg-destructive/10 text-destructive-foreground";
+    default:
+      return "bg-muted text-foreground";
+  }
+};
+
+export default function HelpHome() {
+  const { t, isRTL } = useTranslation();
+  const [articles, setArticles] = useState<HelpArticle[]>([]);
+  const [isLoadingArticles, setIsLoadingArticles] = useState(true);
+  const [hasArticleError, setHasArticleError] = useState(false);
+
+  const strings = useMemo(
+    () => ({
+      title: t("helpCenterV2.title", "Fixzit Knowledge Center"),
+      subtitle: t(
+        "helpCenterV2.subtitle",
+        "Interactive tutorials, guides, and resources to master Fixzit Enterprise",
+      ),
+      askAi: t("helpCenterV2.askAssistant", "Ask AI Assistant"),
+      createTicket: t("helpCenterV2.createTicket", "Create Support Ticket"),
+      viewTickets: t("helpCenterV2.viewTickets", "View My Tickets"),
+      interactiveTitle: t(
+        "helpCenterV2.interactiveTutorials",
+        "Interactive Tutorials",
+      ),
+      interactiveSubtitle: t(
+        "helpCenterV2.interactiveSubtitle",
+        "Learn Fixzit step-by-step with our guided tutorials",
+      ),
+      viewAllTutorials: t(
+        "helpCenterV2.viewAllTutorials",
+        "View All Tutorials",
+      ),
+      helpArticles: t("helpCenterV2.helpArticles", "Latest Help Articles"),
+      articlesSubtitle: t(
+        "helpCenterV2.articlesSubtitle",
+        "Fresh product docs and how-tos",
+      ),
+      readMore: t("helpCenterV2.readMore", "Read More"),
+      emptyArticles: t("helpCenterV2.emptyArticles", "No articles found."),
+      updated: t("helpCenterV2.updated", "Updated"),
+      loadingArticles: t("helpCenterV2.loadingArticles", "Loading articles..."),
+      generalCategory: t("helpCenterV2.generalCategory", "General"),
+      systemOverview: t("helpCenterV2.systemOverview", "System Overview"),
+      overviewSubtitle: t(
+        "helpCenterV2.overviewSubtitle",
+        "High-level overview of the system",
+      ),
+      propertiesTitle: t("helpCenterV2.propertiesTitle", "Properties"),
+      propertiesCopy: t(
+        "helpCenterV2.propertiesCopy",
+        "Add and manage properties",
+      ),
+      workOrdersTitle: t("helpCenterV2.workOrdersTitle", "Work Orders"),
+      workOrdersCopy: t(
+        "helpCenterV2.workOrdersCopy",
+        "Create and track work orders",
+      ),
+      vendorsTitle: t("helpCenterV2.vendorsTitle", "Vendors"),
+      vendorsCopy: t(
+        "helpCenterV2.vendorsCopy",
+        "Manage vendors and contracts",
+      ),
+      financeTitle: t("helpCenterV2.financeTitle", "Finance"),
+      financeCopy: t(
+        "helpCenterV2.financeCopy",
+        "Manage budgets, invoices, and expenses",
+      ),
+      untitledArticle: t("helpCenterV2.untitledArticle", "Untitled Article"),
+    }),
+    [t],
+  );
+
+  const tutorials: Tutorial[] = useMemo(
+    () => [
+      {
+        id: "getting-started",
+        title: t(
+          "helpCenterV2.tutorials.gettingStarted.title",
+          "Getting Started with Fixzit FM",
+        ),
+        description: t(
+          "helpCenterV2.tutorials.gettingStarted.description",
+          "Learn the basics of facility management in Fixzit",
+        ),
+        category: t(
+          "helpCenterV2.categories.facilityManagement",
+          "Facility Management",
+        ),
+        duration: t("helpCenterV2.tutorials.gettingStarted.duration", "15 min"),
+        difficulty: "Beginner",
+        featured: true,
+        completed: false,
+        href: "/help/tutorial/getting-started",
+      },
+      {
+        id: "first-work-order",
+        title: t(
+          "helpCenterV2.tutorials.firstWorkOrder.title",
+          "Creating Your First Work Order",
+        ),
+        description: t(
+          "helpCenterV2.tutorials.firstWorkOrder.description",
+          "Step-by-step guide to create and assign work orders",
+        ),
+        category: t("helpCenterV2.categories.workOrders", "Work Orders"),
+        duration: t("helpCenterV2.tutorials.firstWorkOrder.duration", "10 min"),
+        difficulty: "Beginner",
+        href: "/help/tutorial/first-work-order",
+      },
+      {
+        id: "vendor-management",
+        title: t(
+          "helpCenterV2.tutorials.vendorManagement.title",
+          "Vendor Management Best Practices",
+        ),
+        description: t(
+          "helpCenterV2.tutorials.vendorManagement.description",
+          "Learn how to manage vendors and procurement processes",
+        ),
+        category: t("helpCenterV2.categories.procurement", "Procurement"),
+        duration: t(
+          "helpCenterV2.tutorials.vendorManagement.duration",
+          "20 min",
+        ),
+        difficulty: "Intermediate",
+        href: "/help/tutorial/vendor-management",
+      },
+      {
+        id: "tenant-relations",
+        title: t(
+          "helpCenterV2.tutorials.tenantRelations.title",
+          "Tenant Relations & Communication",
+        ),
+        description: t(
+          "helpCenterV2.tutorials.tenantRelations.description",
+          "Master tenant communication and relationship management",
+        ),
+        category: t(
+          "helpCenterV2.categories.customerService",
+          "Customer Service",
+        ),
+        duration: t(
+          "helpCenterV2.tutorials.tenantRelations.duration",
+          "12 min",
+        ),
+        difficulty: "Beginner",
+        href: "/help/tutorial/tenant-relations",
+      },
+      {
+        id: "financial-reporting",
+        title: t(
+          "helpCenterV2.tutorials.financialReporting.title",
+          "Financial Reporting & Invoicing",
+        ),
+        description: t(
+          "helpCenterV2.tutorials.financialReporting.description",
+          "Complete guide to financial management in Fixzit",
+        ),
+        category: t("helpCenterV2.categories.finance", "Finance"),
+        duration: t(
+          "helpCenterV2.tutorials.financialReporting.duration",
+          "25 min",
+        ),
+        difficulty: "Intermediate",
+        href: "/help/tutorial/financial-reporting",
+      },
+    ],
+    [t],
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+
+    const loadArticles = async () => {
+      try {
+        setHasArticleError(false);
+        const response = await fetch("/api/help/articles", {
+          credentials: "include",
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
+        }
+
+        const payload = await response.json();
+        const items: HelpArticle[] = Array.isArray(payload?.items)
+          ? payload.items.map(
+              (
+                item: Partial<HelpArticle> & { updated_at?: string },
+                idx: number,
+              ) => ({
+                slug: item.slug || `article-${idx + 1}`,
+                title: item.title || strings.untitledArticle,
+                category: item.category || undefined,
+                updatedAt: item.updatedAt || item.updated_at,
+              }),
+            )
+          : [];
+
+        if (!active) return;
+        setArticles(items);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        logger.warn("[Help] Failed to load articles", { error });
+        if (!active) return;
+        setHasArticleError(true);
+        setArticles([]);
+      } finally {
+        if (active) {
+          setIsLoadingArticles(false);
+        }
+      }
+    };
+
+    loadArticles();
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [strings.untitledArticle]);
+
+  const openInNewTab = (path: string) => {
+    if (typeof window === "undefined") return;
+    window.open(path, "_blank", "noopener,noreferrer");
+  };
+
+  return (
+    <div
+      className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex flex-col"
+      dir={isRTL ? "rtl" : "ltr"}
+    >
+      <section className="bg-gradient-to-r from-primary via-primary to-success text-primary-foreground py-16">
+        <div className="mx-auto max-w-7xl px-4 lg:px-6">
+          <h1 className="text-4xl font-bold mb-4">{strings.title}</h1>
+          <p className="text-xl opacity-90 mb-8">{strings.subtitle}</p>
+
+          <div className="flex flex-wrap gap-4">
+            <button
+              type="button"
+              onClick={() => openInNewTab("/help/ai-chat")}
+              className="bg-card text-primary px-6 py-3 rounded-2xl font-semibold hover:bg-muted transition-colors flex items-center gap-2"
+            >
+              <Bot className="w-5 h-5" />
+              {strings.askAi}
+            </button>
+            <button
+              type="button"
+              onClick={() => openInNewTab("/help/support-ticket")}
+              className="bg-accent text-foreground px-6 py-3 rounded-2xl font-semibold hover:bg-accent-dark transition-colors flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              {strings.createTicket}
+            </button>
+            <Link
+              href="/support/my-tickets"
+              className="bg-white/10 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-white/20 transition-colors flex items-center gap-2 border border-white/20"
+            >
+              <MessageSquare className="w-5 h-5" />
+              {strings.viewTickets}
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-16">
+        <div className="mx-auto max-w-7xl px-4 lg:px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-foreground mb-4">
+              {strings.interactiveTitle}
+            </h2>
+            <p className="text-xl text-muted-foreground">
+              {strings.interactiveSubtitle}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {tutorials.map((tutorial) => (
+              <div
+                key={tutorial.id}
+                className="bg-card rounded-2xl shadow-md border border-border p-6 hover:shadow-lg transition-shadow"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      {getCategoryIcon(tutorial.category)}
+                      <span className="text-sm text-muted-foreground">
+                        {tutorial.category}
+                      </span>
+                      {tutorial.featured && (
+                        <Star className="w-4 h-4 text-accent" />
+                      )}
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">
+                      {tutorial.title}
+                    </h3>
+                    <p className="text-muted-foreground text-sm mb-4">
+                      {tutorial.description}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <Play className="w-4 h-4" />
+                      {tutorial.duration}
+                    </div>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(
+                        tutorial.difficulty,
+                        t,
+                      )}`}
+                    >
+                      {tutorial.difficulty}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => openInNewTab(tutorial.href)}
+                    className="text-primary hover:text-primary font-medium text-sm flex items-center gap-1"
+                  >
+                    {t("helpCenter.startTutorial")}
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="w-full bg-muted rounded-full h-2">
+                  <div
+                    className="bg-primary h-2 rounded-full"
+                    style={{ width: tutorial.completed ? "100%" : "0%" }}
+                  />
+                </div>
+                {tutorial.completed && (
+                  <div className="mt-2 text-success text-sm font-medium">
+                    ✓ {t("helpCenter.completed")}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center">
+            <Link
+              href="/help/tutorials"
+              className="inline-block bg-muted text-foreground px-6 py-3 rounded-2xl font-medium hover:bg-muted transition-colors"
+            >
+              {strings.viewAllTutorials}
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-16 bg-muted">
+        <div className="mx-auto max-w-7xl px-4 lg:px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-foreground mb-4">
+              {strings.helpArticles}
+            </h2>
+            <p className="text-xl text-muted-foreground">
+              {strings.articlesSubtitle}
+            </p>
+          </div>
+
+          {isLoadingArticles ? (
+            <p className="text-center text-muted-foreground">
+              {strings.loadingArticles}
+            </p>
+          ) : !articles.length ? (
+            <p className="text-center text-muted-foreground">
+              {strings.emptyArticles}
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {articles.map((article) => {
+                const category = article.category || strings.generalCategory;
+                const updated = formatUpdatedDate(article.updatedAt);
+                return (
+                  <div
+                    key={article.slug || article.title}
+                    className="bg-card rounded-2xl shadow-md border border-border p-6 hover:shadow-lg transition-shadow"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="flex-shrink-0">
+                        {getCategoryIcon(category)}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-foreground mb-2">
+                          {article.title}
+                        </h3>
+                        <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
+                          <span className="flex items-center gap-2">
+                            <span>{category}</span>
+                            {updated ? (
+                              <span aria-label="updated-at">
+                                • {strings.updated} {updated}
+                              </span>
+                            ) : null}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">
+                            {strings.articlesSubtitle}
+                          </span>
+                          <Link
+                            href={`/help/${article.slug}`}
+                            className="text-primary hover:text-primary font-medium text-sm flex items-center gap-1"
+                          >
+                            {strings.readMore}
+                            <ChevronRight className="w-4 h-4" />
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {hasArticleError && !isLoadingArticles ? (
+            <p className="mt-4 text-center text-xs text-muted-foreground">
+              {t(
+                "helpCenterV2.fallbackNotice",
+                "Unable to load the latest articles right now.",
+              )}
+            </p>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="py-16">
+        <div className="mx-auto max-w-7xl px-4 lg:px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-foreground mb-4">
+              {strings.systemOverview}
+            </h2>
+            <p className="text-xl text-muted-foreground">
+              {strings.overviewSubtitle}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Building2 className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                {strings.propertiesTitle}
+              </h3>
+              <p className="text-muted-foreground text-sm">
+                {strings.propertiesCopy}
+              </p>
+            </div>
+
+            <div className="text-center">
+              <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Wrench className="w-8 h-8 text-success" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                {strings.workOrdersTitle}
+              </h3>
+              <p className="text-muted-foreground text-sm">
+                {strings.workOrdersCopy}
+              </p>
+            </div>
+
+            <div className="text-center">
+              <div className="w-16 h-16 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Users className="w-8 h-8 text-secondary-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                {strings.vendorsTitle}
+              </h3>
+              <p className="text-muted-foreground text-sm">
+                {strings.vendorsCopy}
+              </p>
+            </div>
+
+            <div className="text-center">
+              <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <DollarSign className="w-8 h-8 text-accent-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                {strings.financeTitle}
+              </h3>
+              <p className="text-muted-foreground text-sm">
+                {strings.financeCopy}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+</batch_content>

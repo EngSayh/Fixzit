@@ -1,0 +1,2505 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/profile/page.tsx">
+<![CDATA[
+"use client";
+
+import Link from "next/link";
+import React from "react";
+import { useState, useEffect, useCallback } from "react";
+import { User, Settings, Shield, Bell } from "lucide-react";
+import toast, { Toaster } from "react-hot-toast";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { EMAIL_DOMAINS as EMAILS } from "@/lib/config/domains";
+import { logger } from "@/lib/logger";
+
+type TabType = "account" | "notifications" | "security";
+
+interface UserData {
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
+  joinDate: string;
+}
+
+interface NotificationSettings {
+  emailNotifications: boolean;
+  pushNotifications: boolean;
+  smsNotifications: boolean;
+  workOrderUpdates: boolean;
+  maintenanceAlerts: boolean;
+  invoiceReminders: boolean;
+}
+
+interface SecuritySettings {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+  twoFactorEnabled: boolean;
+}
+
+export default function ProfilePage() {
+  const { t, isRTL } = useTranslation();
+  const [activeTab, setActiveTab] = useState<TabType>("account");
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Original data for reset functionality
+  const [originalUser, setOriginalUser] = useState<UserData>({
+    name: "",
+    email: "",
+    phone: "",
+    role: "",
+    joinDate: "",
+  });
+
+  const [user, setUser] = useState<UserData>({
+    name: "",
+    email: "",
+    phone: "",
+    role: "",
+    joinDate: "",
+  });
+
+  const [notificationSettings, setNotificationSettings] =
+    useState<NotificationSettings>({
+      emailNotifications: true,
+      pushNotifications: false,
+      smsNotifications: false,
+      workOrderUpdates: true,
+      maintenanceAlerts: true,
+      invoiceReminders: false,
+    });
+
+  const [securitySettings, setSecuritySettings] = useState<SecuritySettings>({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+    twoFactorEnabled: false,
+  });
+
+  const isProd = typeof process !== "undefined" && process.env.NODE_ENV === "production";
+
+  const fetchProfileData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setLoadError(null);
+      const response = await fetch("/api/user/profile", {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch profile data");
+      }
+
+      const data = await response.json();
+
+      if (data.user) {
+        const userData: UserData = {
+          name: data.user.name || "Admin User",
+          email: data.user.email || EMAILS.admin,
+          phone: data.user.phone || "",
+          role: data.user.role || "Administrator",
+          joinDate: data.user.joinDate || "January 2024",
+        };
+        setUser(userData);
+        setOriginalUser(userData);
+      }
+
+      if (data.notificationSettings) {
+        setNotificationSettings(data.notificationSettings);
+      }
+
+      if (data.securitySettings) {
+        setSecuritySettings((prev) => ({
+          ...prev,
+          twoFactorEnabled: data.securitySettings.twoFactorEnabled || false,
+        }));
+      }
+    } catch (error) {
+      logger.error("Error fetching profile:", error);
+      const friendlyError = t(
+        "profile.toast.loadError",
+        "Failed to load profile data",
+      );
+      setLoadError(friendlyError);
+      toast.error(friendlyError);
+      // Only seed defaults in non-production to keep UI usable for dev
+      if (!isProd) {
+        const defaultUser: UserData = {
+          name: "Admin User",
+          email: EMAILS.admin,
+          phone: "",
+          role: "Administrator",
+          joinDate: "January 2024",
+        };
+        setUser(defaultUser);
+        setOriginalUser(defaultUser);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [isProd]);
+
+  // Fetch user profile data on mount
+  useEffect(() => {
+    fetchProfileData();
+  }, [fetchProfileData]);
+
+  const handleSaveAccount = async () => {
+    try {
+      const response = await fetch("/api/user/profile", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update account");
+      }
+
+      const _result = await response.json(); // Acknowledge server response
+
+      // Update original user data after successful save
+      setOriginalUser(user);
+
+      toast.success(
+        t("profile.toast.accountSaved", "Account settings saved successfully!"),
+      );
+    } catch (error) {
+      logger.error("Error saving account:", error);
+      toast.error(
+        t("profile.toast.accountError", "Failed to save account settings"),
+      );
+    }
+  };
+
+  const handleCancelAccount = () => {
+    // Reset to originally fetched data
+    setUser(originalUser);
+    toast.success(t("profile.toast.changesCancelled", "Changes cancelled"));
+  };
+
+  const handleSaveNotifications = async () => {
+    try {
+      const response = await fetch("/api/user/notifications", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(notificationSettings),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update notifications");
+      }
+
+      toast.success(
+        t(
+          "profile.toast.notificationsSaved",
+          "Notification preferences updated!",
+        ),
+      );
+    } catch (error) {
+      logger.error("Error saving notifications:", error);
+      toast.error(
+        t("profile.toast.notificationsError", "Failed to update notifications"),
+      );
+    }
+  };
+
+  const handleSaveSecurity = async () => {
+    if (securitySettings.newPassword !== securitySettings.confirmPassword) {
+      toast.error(
+        t("profile.toast.passwordMismatch", "Passwords do not match"),
+      );
+      return;
+    }
+
+    if (
+      securitySettings.newPassword &&
+      securitySettings.newPassword.length < 8
+    ) {
+      toast.error(
+        t(
+          "profile.toast.passwordTooShort",
+          "Password must be at least 8 characters",
+        ),
+      );
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/user/security", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          currentPassword: securitySettings.currentPassword,
+          newPassword: securitySettings.newPassword,
+          twoFactorEnabled: securitySettings.twoFactorEnabled,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.message || "Failed to update security settings",
+        );
+      }
+
+      toast.success(
+        t("profile.toast.securitySaved", "Security settings updated!"),
+      );
+
+      // Clear password fields after successful update
+      setSecuritySettings({
+        ...securitySettings,
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+    } catch (error) {
+      logger.error("Error saving security:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : t(
+              "profile.toast.securityError",
+              "Failed to update security settings",
+            ),
+      );
+    }
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-8" dir={isRTL ? "rtl" : "ltr"}>
+      <Toaster position="top-right" />
+
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-foreground mb-2">
+          {t("profile.title", "My Profile")}
+        </h1>
+        <p className="text-muted-foreground">
+          {t(
+            "profile.subtitle",
+            "Manage your account settings and preferences",
+          )}
+        </p>
+      </div>
+
+      {loadError && (
+        <div
+          role="alert"
+          className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-destructive"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <span>{loadError}</span>
+            <Button variant="outline" onClick={fetchProfileData} size="sm">
+              {t("profile.retry", "Retry")}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Profile Card */}
+        <div className="lg:col-span-1">
+          <div className="bg-card text-card-foreground rounded-2xl shadow-md p-6">
+            {loading ? (
+              <div className="text-center py-8">
+                <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                  <User size={32} className="text-muted-foreground" />
+                </div>
+                <div className="h-6 bg-muted rounded w-3/4 mx-auto mb-2 animate-pulse"></div>
+                <div className="h-4 bg-muted rounded w-1/2 mx-auto mb-4 animate-pulse"></div>
+                <div className="h-6 bg-muted rounded w-24 mx-auto animate-pulse"></div>
+              </div>
+            ) : (
+              <div className="text-center">
+                <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                  <User size={32} className="text-white" />
+                </div>
+                <h2 className="text-xl font-semibold text-foreground">
+                  {user.name}
+                </h2>
+                <p className="text-muted-foreground">{user.email}</p>
+                <span className="inline-block mt-2 px-3 py-1 bg-success text-white text-sm rounded-full">
+                  {user.role}
+                </span>
+              </div>
+            )}
+
+            <div className="mt-6 space-y-4">
+              <div className="flex justify-between items-center py-2 border-b border-border">
+                <span className="text-sm text-muted-foreground">
+                  {t("profile.card.memberSince", "Member Since")}
+                </span>
+                <span className="text-sm font-medium">{user.joinDate}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-border">
+                <span className="text-sm text-muted-foreground">
+                  {t("profile.card.accountStatus", "Account Status")}
+                </span>
+                <span className="text-sm font-medium text-success">
+                  {t("profile.card.active", "Active")}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Settings Tabs */}
+        <div className="lg:col-span-2">
+          <div className="bg-card text-card-foreground rounded-2xl shadow-md">
+            <div className="border-b border-border">
+              <div className="flex">
+                <Button
+                  variant="ghost"
+                  onClick={() => setActiveTab("account")}
+                  className={`px-6 py-3 text-sm font-medium transition-colors rounded-none ${
+                    activeTab === "account"
+                      ? "text-primary border-b-2 border-primary"
+                      : "text-muted-foreground hover:text-foreground border-b-2 border-transparent"
+                  }`}
+                >
+                  {t("profile.tabs.account")}
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setActiveTab("notifications")}
+                  className={`px-6 py-3 text-sm font-medium transition-colors rounded-none ${
+                    activeTab === "notifications"
+                      ? "text-primary border-b-2 border-primary"
+                      : "text-muted-foreground hover:text-foreground border-b-2 border-transparent"
+                  }`}
+                >
+                  {t("profile.tabs.notifications")}
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setActiveTab("security")}
+                  className={`px-6 py-3 text-sm font-medium transition-colors rounded-none ${
+                    activeTab === "security"
+                      ? "text-primary border-b-2 border-primary"
+                      : "text-muted-foreground hover:text-foreground border-b-2 border-transparent"
+                  }`}
+                >
+                  {t("profile.tabs.security")}
+                </Button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              {/* Account Settings Tab */}
+              {activeTab === "account" && (
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName">
+                      {t("profile.account.fullName")}
+                    </Label>
+                    <Input
+                      id="fullName"
+                      type="text"
+                      value={user.name}
+                      onChange={(e) =>
+                        setUser({ ...user, name: e.target.value })
+                      }
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="email">{t("profile.account.email")}</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={user.email}
+                      onChange={(e) =>
+                        setUser({ ...user, email: e.target.value })
+                      }
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">{t("profile.account.phone")}</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={user.phone}
+                      onChange={(e) =>
+                        setUser({ ...user, phone: e.target.value })
+                      }
+                      placeholder="+966 50 123 4567"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-3">
+                    <Button variant="outline" onClick={handleCancelAccount}>
+                      {t("profile.account.cancel")}
+                    </Button>
+                    <Button onClick={handleSaveAccount} disabled={loading}>
+                      {t("profile.account.save")}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Notifications Tab */}
+              {activeTab === "notifications" && (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-medium text-foreground mb-4">
+                      {t("profile.notifications.channels")}
+                    </h3>
+                    <div className="space-y-3">
+                      <Label
+                        htmlFor="email-notifications"
+                        className="flex cursor-pointer items-center justify-between rounded-2xl border border-border p-3 hover:bg-muted"
+                      >
+                        <span className="text-sm font-medium">
+                          {t("profile.notifications.email")}
+                        </span>
+                        <Switch
+                          id="email-notifications"
+                          checked={notificationSettings.emailNotifications}
+                          onCheckedChange={(checked) =>
+                            setNotificationSettings({
+                              ...notificationSettings,
+                              emailNotifications: checked,
+                            })
+                          }
+                          aria-label={t("profile.notifications.email")}
+                        />
+                      </Label>
+                      <Label
+                        htmlFor="push-notifications"
+                        className="flex cursor-pointer items-center justify-between rounded-2xl border border-border p-3 hover:bg-muted"
+                      >
+                        <span className="text-sm font-medium">
+                          {t("profile.notifications.push")}
+                        </span>
+                        <Switch
+                          id="push-notifications"
+                          checked={notificationSettings.pushNotifications}
+                          onCheckedChange={(checked) =>
+                            setNotificationSettings({
+                              ...notificationSettings,
+                              pushNotifications: checked,
+                            })
+                          }
+                          aria-label={t("profile.notifications.push")}
+                        />
+                      </Label>
+                      <Label
+                        htmlFor="sms-notifications"
+                        className="flex cursor-pointer items-center justify-between rounded-2xl border border-border p-3 hover:bg-muted"
+                      >
+                        <span className="text-sm font-medium">
+                          {t("profile.notifications.sms")}
+                        </span>
+                        <Switch
+                          id="sms-notifications"
+                          checked={notificationSettings.smsNotifications}
+                          onCheckedChange={(checked) =>
+                            setNotificationSettings({
+                              ...notificationSettings,
+                              smsNotifications: checked,
+                            })
+                          }
+                          aria-label={t("profile.notifications.sms")}
+                        />
+                      </Label>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-medium text-foreground mb-4">
+                      {t("profile.notifications.events")}
+                    </h3>
+                    <div className="space-y-3">
+                      <Label
+                        htmlFor="work-order-updates"
+                        className="flex cursor-pointer items-center justify-between rounded-2xl border border-border p-3 hover:bg-muted"
+                      >
+                        <span className="text-sm font-medium">
+                          {t("profile.notifications.workOrders")}
+                        </span>
+                        <Switch
+                          id="work-order-updates"
+                          checked={notificationSettings.workOrderUpdates}
+                          onCheckedChange={(checked) =>
+                            setNotificationSettings({
+                              ...notificationSettings,
+                              workOrderUpdates: checked,
+                            })
+                          }
+                          aria-label={t("profile.notifications.workOrders")}
+                        />
+                      </Label>
+                      <Label
+                        htmlFor="maintenance-alerts"
+                        className="flex cursor-pointer items-center justify-between rounded-2xl border border-border p-3 hover:bg-muted"
+                      >
+                        <span className="text-sm font-medium">
+                          {t("profile.notifications.maintenance")}
+                        </span>
+                        <Switch
+                          id="maintenance-alerts"
+                          checked={notificationSettings.maintenanceAlerts}
+                          onCheckedChange={(checked) =>
+                            setNotificationSettings({
+                              ...notificationSettings,
+                              maintenanceAlerts: checked,
+                            })
+                          }
+                          aria-label={t("profile.notifications.maintenance")}
+                        />
+                      </Label>
+                      <Label
+                        htmlFor="invoice-reminders"
+                        className="flex cursor-pointer items-center justify-between rounded-2xl border border-border p-3 hover:bg-muted"
+                      >
+                        <span className="text-sm font-medium">
+                          {t("profile.notifications.invoices")}
+                        </span>
+                        <Switch
+                          id="invoice-reminders"
+                          checked={notificationSettings.invoiceReminders}
+                          onCheckedChange={(checked) =>
+                            setNotificationSettings({
+                              ...notificationSettings,
+                              invoiceReminders: checked,
+                            })
+                          }
+                          aria-label={t("profile.notifications.invoices")}
+                        />
+                      </Label>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button onClick={handleSaveNotifications}>
+                      {t("profile.notifications.save")}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Security Tab */}
+              {activeTab === "security" && (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-medium text-foreground mb-4">
+                      {t("profile.security.changePassword")}
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="current-password">
+                          {t("profile.security.currentPassword")}
+                        </Label>
+                        <Input
+                          id="current-password"
+                          type="password"
+                          value={securitySettings.currentPassword}
+                          onChange={(e) =>
+                            setSecuritySettings({
+                              ...securitySettings,
+                              currentPassword: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="new-password">
+                          {t("profile.security.newPassword")}
+                        </Label>
+                        <Input
+                          id="new-password"
+                          type="password"
+                          value={securitySettings.newPassword}
+                          onChange={(e) =>
+                            setSecuritySettings({
+                              ...securitySettings,
+                              newPassword: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="confirm-password">
+                          {t("profile.security.confirmPassword")}
+                        </Label>
+                        <Input
+                          id="confirm-password"
+                          type="password"
+                          value={securitySettings.confirmPassword}
+                          onChange={(e) =>
+                            setSecuritySettings({
+                              ...securitySettings,
+                              confirmPassword: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-medium text-foreground mb-4">
+                      {t("profile.security.twoFactor")}
+                    </h3>
+                    <div className="flex items-center justify-between p-4 border border-border rounded-2xl">
+                      <div className="space-y-0.5">
+                        <Label
+                          htmlFor="two-factor-auth"
+                          className="text-sm font-medium cursor-pointer"
+                        >
+                          {t("profile.security.enable2FA")}
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          {t("profile.security.2FADesc")}
+                        </p>
+                      </div>
+                      <Switch
+                        id="two-factor-auth"
+                        checked={securitySettings.twoFactorEnabled}
+                        onCheckedChange={(checked) =>
+                          setSecuritySettings({
+                            ...securitySettings,
+                            twoFactorEnabled: checked,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button onClick={handleSaveSecurity}>
+                      {t("profile.security.update")}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="mt-8">
+        <h2 className="text-lg font-semibold text-foreground mb-4">
+          {t("profile.quickActions.title", "Quick Actions")}
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Link
+            href="/settings"
+            className="bg-card text-card-foreground p-4 rounded-2xl shadow-md hover:shadow-lg transition-shadow"
+          >
+            <Settings className="h-6 w-6 text-primary mb-2" />
+            <h3 className="font-medium text-foreground">
+              {t("profile.quickActions.system", "System Settings")}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {t(
+                "profile.quickActions.systemDesc",
+                "Configure application preferences",
+              )}
+            </p>
+          </Link>
+
+          <Link
+            href="/notifications"
+            className="bg-card text-card-foreground p-4 rounded-2xl shadow-md hover:shadow-lg transition-shadow"
+          >
+            <Bell className="h-6 w-6 text-success mb-2" />
+            <h3 className="font-medium text-foreground">
+              {t("profile.quickActions.notifications", "Notification Settings")}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {t(
+                "profile.quickActions.notificationsDesc",
+                "Manage alerts and notifications",
+              )}
+            </p>
+          </Link>
+
+          <Link
+            href="/security"
+            className="bg-card text-card-foreground p-4 rounded-2xl shadow-md hover:shadow-lg transition-shadow"
+          >
+            <Shield className="h-6 w-6 text-accent mb-2" />
+            <h3 className="font-medium text-foreground">
+              {t("profile.quickActions.security", "Security Settings")}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {t(
+                "profile.quickActions.securityDesc",
+                "Password and access management",
+              )}
+            </p>
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/properties/[id]/page.tsx">
+<![CDATA[
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { MapPin, Home, Users, Wrench } from "lucide-react";
+import { useParams } from "next/navigation";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+export default function PropertyDetailPage() {
+  const params = useParams();
+  const propertyId = params?.id?.toString() ?? "";
+  const { isRTL } = useTranslation();
+  const auto = useAutoTranslator("properties.detail");
+
+  const [property] = useState({
+    id: propertyId,
+    name: "Al Faisaliah Tower",
+    address: "King Fahd Road, Riyadh 12211, Saudi Arabia",
+    lat: 24.6892,
+    lng: 46.6857,
+    type: "Commercial",
+    units: 45,
+    occupancy: 89,
+    openWorkOrders: 7,
+  });
+
+  const initializeMap = useCallback(() => {
+    if (typeof window !== "undefined" && window.google && window.google.maps) {
+      const mapElement = document.getElementById("property-map");
+      if (!mapElement) return; // Guard against null
+
+      const map = new window.google.maps.Map(mapElement, {
+        center: { lat: property.lat, lng: property.lng },
+        zoom: 16,
+        mapTypeControl: false,
+        fullscreenControl: false,
+      });
+
+      new window.google.maps.Marker({
+        position: { lat: property.lat, lng: property.lng },
+        map,
+        title: property.name,
+      });
+    }
+  }, [property.lat, property.lng, property.name]);
+
+  useEffect(() => {
+    // Load Google Maps
+    if (!window.google) {
+      const script = document.createElement("script");
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&callback=initMap`;
+      script.async = true;
+      window.initMap = initializeMap;
+      document.head.appendChild(script);
+
+      // ✅ FIX: Add cleanup function to prevent memory leak
+      return () => {
+        // Remove the script element
+        if (script.parentNode) {
+          script.parentNode.removeChild(script);
+        }
+        // Clean up the global callback
+        delete (window as { initMap?: unknown }).initMap;
+      };
+    } else {
+      initializeMap();
+    }
+  }, [initializeMap]);
+
+  return (
+    <div className={`min-h-screen bg-muted ${isRTL ? "rtl" : "ltr"}`}>
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="bg-card rounded-2xl shadow">
+          {/* Header */}
+          <div className="p-6 border-b">
+            <h1 className="text-2xl font-bold text-foreground">
+              {property.name}
+            </h1>
+            <p
+              className={`text-muted-foreground flex items-center gap-2 mt-2 ${isRTL ? "flex-row-reverse" : ""}`}
+            >
+              <MapPin className="h-4 w-4" />
+              {property.address}
+            </p>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 p-6 border-b">
+            <div
+              className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}
+            >
+              <div className="p-3 bg-primary/10 rounded-2xl">
+                <Home className="h-6 w-6 text-primary" />
+              </div>
+              <div className="text-start">
+                <p className="text-sm text-muted-foreground">
+                  {auto("Type", "stats.type")}
+                </p>
+                <p className="font-semibold">{property.type}</p>
+              </div>
+            </div>
+
+            <div
+              className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}
+            >
+              <div className="p-3 bg-success/10 rounded-2xl">
+                <Home className="h-6 w-6 text-success" />
+              </div>
+              <div className="text-start">
+                <p className="text-sm text-muted-foreground">
+                  {auto("Units", "stats.units")}
+                </p>
+                <p className="font-semibold">{property.units}</p>
+              </div>
+            </div>
+
+            <div
+              className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}
+            >
+              <div className="p-3 bg-accent/10 rounded-2xl">
+                <Users className="h-6 w-6 text-accent" />
+              </div>
+              <div className="text-start">
+                <p className="text-sm text-muted-foreground">
+                  {auto("Occupancy", "stats.occupancy")}
+                </p>
+                <p className="font-semibold">{property.occupancy}%</p>
+              </div>
+            </div>
+
+            <div
+              className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}
+            >
+              <div className="p-3 bg-destructive/10 rounded-2xl">
+                <Wrench className="h-6 w-6 text-destructive" />
+              </div>
+              <div className="text-start">
+                <p className="text-sm text-muted-foreground">
+                  {auto("Open Work Orders", "stats.workOrders")}
+                </p>
+                <p className="font-semibold">{property.openWorkOrders}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Map */}
+          <div className="p-6">
+            <h2 className="text-lg font-semibold mb-4">
+              {auto("Location", "map.title")}
+            </h2>
+            <div
+              id="property-map"
+              className="w-full h-96 rounded-2xl border"
+              style={{ minHeight: "400px" }}
+            />
+          </div>
+
+          {/* Actions */}
+          <div
+            className={`p-6 border-t bg-muted flex gap-3 ${isRTL ? "flex-row-reverse" : ""}`}
+          >
+            <button className="px-4 py-2 bg-primary text-white rounded-2xl hover:bg-primary/90 transition-colors">
+              {auto("View Units", "actions.viewUnits")}
+            </button>
+            <button className="px-4 py-2 bg-success text-white rounded-2xl hover:bg-success-dark transition-colors">
+              {auto("Create Work Order", "actions.createWorkOrder")}
+            </button>
+            <button className="px-4 py-2 border border-border rounded-2xl hover:bg-muted transition-colors">
+              {auto("View Reports", "actions.viewReports")}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/properties/documents/page.tsx">
+<![CDATA[
+export { default } from "@/app/fm/properties/documents/page";
+export * from "@/app/fm/properties/documents/page";
+
+]]>
+</file>
+
+<file path="app/properties/inspections/page.tsx">
+<![CDATA[
+"use client";
+
+import React from "react";
+import { useTranslation } from "@/contexts/TranslationContext";
+
+export default function PropertiesInspectionsPage() {
+  const { t } = useTranslation();
+  const inspections = [
+    {
+      id: "INSP-001",
+      title: "Monthly Safety Inspection",
+      property: "Tower A",
+      inspector: "Safety Team",
+      scheduledDate: "2025-01-25",
+      status: "scheduled",
+      type: "Safety",
+      lastInspection: "2024-12-25",
+      nextDue: "2025-02-25",
+    },
+    {
+      id: "INSP-002",
+      title: "Fire System Check",
+      property: "Tower B",
+      inspector: "Fire Safety Dept",
+      scheduledDate: "2025-01-23",
+      status: "in-progress",
+      type: "Fire Safety",
+      lastInspection: "2024-10-15",
+      nextDue: "2025-04-15",
+    },
+    {
+      id: "INSP-003",
+      title: "HVAC System Inspection",
+      property: "Villa Complex",
+      inspector: "Maintenance Team",
+      scheduledDate: "2025-01-20",
+      status: "completed",
+      type: "Mechanical",
+      lastInspection: "2024-12-20",
+      nextDue: "2025-02-20",
+    },
+    {
+      id: "INSP-004",
+      title: "Electrical Safety Audit",
+      property: "Tower A",
+      inspector: "Electrical Team",
+      scheduledDate: "2025-01-18",
+      status: "overdue",
+      type: "Electrical",
+      lastInspection: "2024-11-15",
+      nextDue: "2025-05-15",
+    },
+  ];
+  const propertyOptions = [
+    {
+      value: "all",
+      key: "properties.filters.allProperties",
+      fallback: "All Properties",
+    },
+    { value: "tower-a", key: "properties.filters.towerA", fallback: "Tower A" },
+    { value: "tower-b", key: "properties.filters.towerB", fallback: "Tower B" },
+    {
+      value: "villa-complex",
+      key: "properties.filters.villaComplex",
+      fallback: "Villa Complex",
+    },
+  ];
+
+  const inspectionTypeOptions = [
+    {
+      value: "all",
+      key: "properties.inspections.filters.types.all",
+      fallback: "All Types",
+    },
+    {
+      value: "safety",
+      key: "properties.inspections.filters.types.safety",
+      fallback: "Safety",
+    },
+    {
+      value: "fire",
+      key: "properties.inspections.filters.types.fireSafety",
+      fallback: "Fire Safety",
+    },
+    {
+      value: "mechanical",
+      key: "properties.inspections.filters.types.mechanical",
+      fallback: "Mechanical",
+    },
+    {
+      value: "electrical",
+      key: "properties.inspections.filters.types.electrical",
+      fallback: "Electrical",
+    },
+  ];
+
+  const inspectionStatusOptions = [
+    {
+      value: "all",
+      key: "properties.inspections.filters.status.all",
+      fallback: "All Status",
+    },
+    {
+      value: "scheduled",
+      key: "properties.inspections.filters.status.scheduled",
+      fallback: "Scheduled",
+    },
+    {
+      value: "in-progress",
+      key: "properties.inspections.filters.status.inProgress",
+      fallback: "In Progress",
+    },
+    {
+      value: "completed",
+      key: "properties.inspections.filters.status.completed",
+      fallback: "Completed",
+    },
+    {
+      value: "overdue",
+      key: "properties.inspections.filters.status.overdue",
+      fallback: "Overdue",
+    },
+  ];
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "completed":
+        return "bg-success/10 text-success border-[hsl(var(--success)) / 0.1]";
+      case "scheduled":
+        return "bg-primary/10 text-primary border-[hsl(var(--primary)) / 0.1]";
+      case "in-progress":
+        return "bg-accent/10 text-accent border-accent/20";
+      case "overdue":
+        return "bg-destructive/10 text-destructive border-[hsl(var(--destructive)) / 0.1]";
+      case "cancelled":
+        return "bg-muted text-foreground border-border";
+      default:
+        return "bg-muted text-foreground border-border";
+    }
+  };
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case "Safety":
+        return "bg-primary/10 text-primary border-[hsl(var(--primary)) / 0.1]";
+      case "Fire Safety":
+        return "bg-destructive/10 text-destructive border-[hsl(var(--destructive)) / 0.1]";
+      case "Mechanical":
+        return "bg-secondary/10 text-secondary border-secondary/30";
+      case "Electrical":
+        return "bg-accent/10 text-accent border-accent/20";
+      default:
+        return "bg-muted text-foreground border-border";
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            Property Inspections
+          </h1>
+          <p className="text-muted-foreground">
+            Schedule and track property inspections and audits
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button className="btn-secondary">Inspection Templates</button>
+          <button className="btn-primary">+ Schedule Inspection</button>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                Scheduled
+              </p>
+              <p className="text-2xl font-bold text-primary">12</p>
+            </div>
+            <div className="text-primary">📅</div>
+          </div>
+        </div>
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                In Progress
+              </p>
+              <p className="text-2xl font-bold text-accent">3</p>
+            </div>
+            <div className="text-accent">🔄</div>
+          </div>
+        </div>
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                Completed
+              </p>
+              <p className="text-2xl font-bold text-success">45</p>
+            </div>
+            <div className="text-success">✅</div>
+          </div>
+        </div>
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                Overdue
+              </p>
+              <p className="text-2xl font-bold text-destructive">2</p>
+            </div>
+            <div className="text-[hsl(var(--destructive)) / 0.1]">🔴</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="card">
+        <div className="flex flex-wrap gap-4">
+          <div className="flex-1 min-w-48">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
+              {propertyOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {t(option.key, option.fallback)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex-1 min-w-48">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
+              {inspectionTypeOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {t(option.key, option.fallback)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex-1 min-w-48">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
+              {inspectionStatusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {t(option.key, option.fallback)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button className="btn-primary">
+            {t("common.filter", "Filter")}
+          </button>
+        </div>
+      </div>
+
+      {/* Inspections Table */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">Inspection Schedule</h3>
+          <div className="flex gap-2">
+            <button className="btn-ghost">📄 Export</button>
+            <button className="btn-ghost">📊 Reports</button>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-muted">
+              <tr>
+                <th className="px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Inspection ID
+                </th>
+                <th className="px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Title
+                </th>
+                <th className="px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Property
+                </th>
+                <th className="px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Inspector
+                </th>
+                <th className="px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Scheduled Date
+                </th>
+                <th className="px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Type
+                </th>
+                <th className="px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Last Inspection
+                </th>
+                <th className="px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Next Due
+                </th>
+                <th className="px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-card divide-y divide-border">
+              {inspections.map((inspection) => (
+                <tr key={inspection.id} className="hover:bg-muted">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-foreground">
+                    {inspection.id}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-foreground">
+                    {inspection.title}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    {inspection.property}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    {inspection.inspector}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    {inspection.scheduledDate}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap">
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getTypeColor(inspection.type)}`}
+                    >
+                      {inspection.type}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    {inspection.lastInspection}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    {inspection.nextDue}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap">
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(inspection.status)}`}
+                    >
+                      {inspection.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex gap-2">
+                      <button className="text-primary hover:text-primary">
+                        {t("common.edit", "Edit")}
+                      </button>
+                      <button className="text-success hover:text-success-foreground">
+                        Start
+                      </button>
+                      <button className="text-warning hover:text-warning">
+                        Report
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Overdue Inspections Alert */}
+      <div className="card border-destructive/20 bg-destructive/10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="text-[hsl(var(--destructive)) / 0.1]">🔴</div>
+            <div>
+              <h3 className="font-semibold text-destructive">
+                Overdue Inspections
+              </h3>
+              <p className="text-sm text-destructive">
+                2 inspections are overdue and require immediate attention
+              </p>
+            </div>
+          </div>
+          <button className="px-4 py-2 bg-[hsl(var(--destructive))] text-white rounded-2xl hover:bg-[hsl(var(--destructive)) / 0.9] transition-colors">
+            Reschedule Now
+          </button>
+        </div>
+      </div>
+
+      {/* Upcoming Inspections */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">Upcoming Inspections</h3>
+          <button className="btn-ghost">View Calendar</button>
+        </div>
+        <div className="space-y-3">
+          {inspections
+            .filter((inspection) => inspection.status === "scheduled")
+            .map((inspection) => (
+              <div
+                key={inspection.id}
+                className="flex items-center justify-between p-3 bg-primary/10 border border-primary/20 rounded-2xl"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="text-primary">📅</div>
+                  <div>
+                    <p className="font-medium text-foreground">
+                      {inspection.title}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {inspection.property} • {inspection.scheduledDate}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button className="px-3 py-1 bg-primary text-white rounded text-sm hover:bg-primary/90">
+                    View Details
+                  </button>
+                </div>
+              </div>
+            ))}
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="card">
+        <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">📅</div>
+            <div className="text-sm font-medium">Schedule</div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">📋</div>
+            <div className="text-sm font-medium">Templates</div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">📊</div>
+            <div className="text-sm font-medium">Reports</div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">🔧</div>
+            <div className="text-sm font-medium">Checklists</div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">⚙️</div>
+            <div className="text-sm font-medium">Settings</div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">📤</div>
+            <div className="text-sm font-medium">Export</div>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/properties/leases/page.tsx">
+<![CDATA[
+export { default } from "@/app/fm/properties/leases/page";
+export * from "@/app/fm/properties/leases/page";
+
+]]>
+</file>
+
+<file path="app/properties/page.tsx">
+<![CDATA[
+"use client";
+
+import { useTranslation } from "@/contexts/TranslationContext";
+
+/**
+ * Page component that displays a "Properties" heading and a short description.
+ *
+ * Renders a top-level container with a bold heading and a muted paragraph guiding users
+ * to browse and manage properties and referencing the Aqar module for public discovery.
+ *
+ * @returns The component's JSX element.
+ */
+export default function Page() {
+  const { t } = useTranslation();
+
+  return (
+    <div className="space-y-2">
+      <h1 className="text-2xl font-bold">
+        {t("properties.title", "Properties")}
+      </h1>
+      <p className="text-muted-foreground">
+        {t(
+          "properties.description",
+          "Browse and manage properties. Use Aqar module for public discovery.",
+        )}
+      </p>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/properties/template.tsx">
+<![CDATA[
+import { ReactNode } from "react";
+import { OrgContextGate } from "@/components/fm/OrgContextGate";
+
+interface PropertiesTemplateProps {
+  children: ReactNode;
+}
+
+/**
+ * Extends the org guard to legacy /properties entry points.
+ */
+export default function PropertiesTemplate({
+  children,
+}: PropertiesTemplateProps) {
+  return <OrgContextGate>{children}</OrgContextGate>;
+}
+
+]]>
+</file>
+
+<file path="app/properties/units/page.tsx">
+<![CDATA[
+"use client";
+
+import React from "react";
+import { useTranslation } from "@/contexts/TranslationContext";
+
+export default function PropertiesUnitsPage() {
+  const { t } = useTranslation();
+  const units = [
+    {
+      id: "U-001",
+      unitNumber: "1204",
+      property: "Tower A",
+      type: "2BR Apartment",
+      size: "120 sqm",
+      tenant: "John Smith",
+      leaseStatus: "Active",
+      monthlyRent: "SAR 8,500",
+      occupancy: "occupied",
+    },
+    {
+      id: "U-002",
+      unitNumber: "1205",
+      property: "Tower A",
+      type: "3BR Apartment",
+      size: "150 sqm",
+      tenant: "Sarah Johnson",
+      leaseStatus: "Active",
+      monthlyRent: "SAR 12,000",
+      occupancy: "occupied",
+    },
+    {
+      id: "U-003",
+      unitNumber: "901",
+      property: "Tower B",
+      type: "Studio",
+      size: "45 sqm",
+      tenant: "Available",
+      leaseStatus: "Vacant",
+      monthlyRent: "SAR 4,500",
+      occupancy: "vacant",
+    },
+    {
+      id: "U-004",
+      unitNumber: "V-009",
+      property: "Villa Complex",
+      type: "4BR Villa",
+      size: "300 sqm",
+      tenant: "Ahmed Al-Rashid",
+      leaseStatus: "Active",
+      monthlyRent: "SAR 25,000",
+      occupancy: "occupied",
+    },
+  ];
+  const propertyOptions = [
+    {
+      value: "all",
+      key: "properties.filters.allProperties",
+      fallback: "All Properties",
+    },
+    { value: "tower-a", key: "properties.filters.towerA", fallback: "Tower A" },
+    { value: "tower-b", key: "properties.filters.towerB", fallback: "Tower B" },
+    {
+      value: "villa-complex",
+      key: "properties.filters.villaComplex",
+      fallback: "Villa Complex",
+    },
+  ];
+
+  const unitTypeOptions = [
+    {
+      value: "all",
+      key: "properties.units.filters.types.all",
+      fallback: "All Types",
+    },
+    {
+      value: "studio",
+      key: "properties.units.filters.types.studio",
+      fallback: "Studio",
+    },
+    {
+      value: "1br",
+      key: "properties.units.filters.types.1br",
+      fallback: "1BR Apartment",
+    },
+    {
+      value: "2br",
+      key: "properties.units.filters.types.2br",
+      fallback: "2BR Apartment",
+    },
+    {
+      value: "3br",
+      key: "properties.units.filters.types.3br",
+      fallback: "3BR Apartment",
+    },
+    {
+      value: "villa",
+      key: "properties.units.filters.types.villa",
+      fallback: "Villa",
+    },
+  ];
+
+  const unitStatusOptions = [
+    {
+      value: "all",
+      key: "properties.units.filters.status.all",
+      fallback: "All Status",
+    },
+    {
+      value: "occupied",
+      key: "properties.units.filters.status.occupied",
+      fallback: "Occupied",
+    },
+    {
+      value: "vacant",
+      key: "properties.units.filters.status.vacant",
+      fallback: "Vacant",
+    },
+    {
+      value: "maintenance",
+      key: "properties.units.filters.status.maintenance",
+      fallback: "Maintenance",
+    },
+  ];
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "Active":
+        return "bg-success/10 text-success-foreground border-success/20";
+      case "Expiring":
+        return "bg-warning/10 text-warning-foreground border-warning/20";
+      case "Expired":
+        return "bg-destructive/10 text-destructive-foreground border-destructive/20";
+      case "Vacant":
+        return "bg-muted text-foreground border-border";
+      default:
+        return "bg-muted text-foreground border-border";
+    }
+  };
+
+  const getOccupancyColor = (occupancy: string) => {
+    switch (occupancy) {
+      case "occupied":
+        return "bg-success/10 text-success-foreground border-success/20";
+      case "vacant":
+        return "bg-destructive/10 text-destructive-foreground border-destructive/20";
+      case "maintenance":
+        return "bg-warning/10 text-warning-foreground border-warning/20";
+      default:
+        return "bg-muted text-foreground border-border";
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            Units & Tenants
+          </h1>
+          <p className="text-muted-foreground">
+            Manage property units and tenant information
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button className="btn-secondary">Import Units</button>
+          <button className="btn-primary">+ Add Unit</button>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                Total Units
+              </p>
+              <p className="text-2xl font-bold text-primary">156</p>
+            </div>
+            <div className="text-primary">🏢</div>
+          </div>
+        </div>
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                Occupied
+              </p>
+              <p className="text-2xl font-bold text-success">142</p>
+            </div>
+            <div className="text-success">👥</div>
+          </div>
+        </div>
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                Vacant
+              </p>
+              <p className="text-2xl font-bold text-destructive">14</p>
+            </div>
+            <div className="text-[hsl(var(--destructive)) / 0.1]">🏠</div>
+          </div>
+        </div>
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                Occupancy Rate
+              </p>
+              <p className="text-2xl font-bold text-[hsl(var(--secondary))]">
+                91%
+              </p>
+            </div>
+            <div className="text-secondary">📊</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="card">
+        <div className="flex flex-wrap gap-4">
+          <div className="flex-1 min-w-48">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
+              {propertyOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {t(option.key, option.fallback)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex-1 min-w-48">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
+              {unitTypeOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {t(option.key, option.fallback)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex-1 min-w-48">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
+              {unitStatusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {t(option.key, option.fallback)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button className="btn-primary">
+            {t("common.filter", "Filter")}
+          </button>
+        </div>
+      </div>
+
+      {/* Units Table */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">Units Overview</h3>
+          <div className="flex gap-2">
+            <button className="btn-ghost">📄 Export</button>
+            <button className="btn-ghost">📊 Analytics</button>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-muted">
+              <tr>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Unit ID
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Property
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Type
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Size
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Tenant
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Monthly Rent
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Lease Status
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Occupancy
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-card divide-y divide-border">
+              {units.map((unit) => (
+                <tr key={unit.id} className="hover:bg-muted">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-foreground">
+                    {unit.unitNumber}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    {unit.property}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    {unit.type}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    {unit.size}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    {unit.tenant}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    {unit.monthlyRent}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap">
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(unit.leaseStatus)}`}
+                    >
+                      {unit.leaseStatus}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap">
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getOccupancyColor(unit.occupancy)}`}
+                    >
+                      {unit.occupancy}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex gap-2">
+                      <button className="text-primary hover:text-primary">
+                        {t("common.edit", "Edit")}
+                      </button>
+                      <button className="text-success hover:text-success-foreground">
+                        View Tenant
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="card">
+        <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">➕</div>
+            <div className="text-sm font-medium">Add Unit</div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">👥</div>
+            <div className="text-sm font-medium">Add Tenant</div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">📋</div>
+            <div className="text-sm font-medium">Lease Management</div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">💰</div>
+            <div className="text-sm font-medium">Rent Collection</div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">📊</div>
+            <div className="text-sm font-medium">Reports</div>
+          </button>
+          <button className="btn-ghost text-center">
+            <div className="text-2xl mb-2">⚙️</div>
+            <div className="text-sm font-medium">Settings</div>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/reports/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import { toast } from "sonner";
+import Link from "next/link";
+import { useTranslation } from "@/contexts/TranslationContext";
+
+type ReportTab = "dashboard" | "builder" | "viewer";
+
+type ReportAction = "download" | "retry";
+
+interface ReportRow {
+  name: string;
+  type: string;
+  lastRun: string;
+  status: "ready" | "running" | "error";
+  actionType: ReportAction;
+  disableActions?: boolean;
+}
+
+const statusAppearance: Record<
+  ReportRow["status"],
+  { className: string; titleKey: string; fallback: string }
+> = {
+  ready: {
+    className: "text-success",
+    titleKey: "reports.status.ready",
+    fallback: "Ready",
+  },
+  running: {
+    className: "text-warning",
+    titleKey: "reports.status.running",
+    fallback: "Running",
+  },
+  error: {
+    className: "text-destructive",
+    titleKey: "reports.status.error",
+    fallback: "Error",
+  },
+};
+
+export default function Reports() {
+  const { t, language, setLanguage } = useTranslation();
+  const [activeTab, setActiveTab] = useState<ReportTab>("dashboard");
+
+  const toggleLanguage = () => {
+    setLanguage(language === "ar" ? "en" : "ar");
+  };
+
+  const reportRows: ReportRow[] = [
+    {
+      name: t(
+        "reports.samples.monthlyFinancialSummary",
+        "Monthly Financial Summary",
+      ),
+      type: t("reports.types.financial", "Financial"),
+      lastRun: "2024-01-15 10:30",
+      status: "ready",
+      actionType: "download",
+    },
+    {
+      name: t(
+        "reports.samples.workOrdersPerformance",
+        "Work Orders Performance",
+      ),
+      type: t("reports.types.operational", "Operational"),
+      lastRun: "2024-01-14 15:45",
+      status: "running",
+      actionType: "download",
+      disableActions: true,
+    },
+    {
+      name: t("reports.samples.complianceStatus", "Compliance Status Report"),
+      type: t("reports.types.compliance", "Compliance"),
+      lastRun: "2024-01-13 09:15",
+      status: "error",
+      actionType: "retry",
+    },
+  ];
+
+  return (
+    <>
+      <div className="fxz-topbar">
+        <div className="fxz-brand">{t("reports.page.title", "Reports")}</div>
+        <div className="fxz-top-actions">
+          <button
+            type="button"
+            className="fxz-btn primary"
+            onClick={() =>
+              toast.info(
+                t(
+                  "reports.toast.newReportComingSoon",
+                  "New Report feature coming soon",
+                ),
+              )
+            }
+          >
+            {t("reports.actions.newReport", "+ New Report")}
+          </button>
+          <button
+            type="button"
+            className="fxz-btn secondary"
+            onClick={toggleLanguage}
+          >
+            {t("reports.actions.langToggle", "EN / عربي")}
+          </button>
+        </div>
+      </div>
+
+      <div className="fxz-app">
+        <aside className="fxz-sidebar">
+          <div className="fxz-sidehead">
+            {t("sidebar.category.core", "Core")}
+          </div>
+          <nav className="fxz-nav">
+            <Link href="/dashboard">
+              🏠 <span>{t("nav.dashboard", "Dashboard")}</span>
+            </Link>
+            <Link href="/work-orders">
+              🧰 <span>{t("nav.work-orders", "Work Orders")}</span>
+            </Link>
+            <Link href="/properties">
+              🏢 <span>{t("nav.properties", "Properties")}</span>
+            </Link>
+            <Link href="/finance">
+              💳 <span>{t("nav.finance", "Finance")}</span>
+            </Link>
+            <Link href="/hr">
+              👥 <span>{t("nav.hr", "HR")}</span>
+            </Link>
+          </nav>
+          <div className="fxz-sidehead">
+            {t("sidebar.category.business", "Business")}
+          </div>
+          <nav className="fxz-nav">
+            <Link href="/crm">
+              📇 <span>{t("nav.crm", "CRM")}</span>
+            </Link>
+            <Link href="/marketplace">
+              🛍️ <span>{t("nav.marketplace", "Marketplace")}</span>
+            </Link>
+            <Link href="/support">
+              🎧 <span>{t("nav.support", "Support")}</span>
+            </Link>
+            <Link href="/compliance">
+              🛡️ <span>{t("nav.compliance", "Compliance")}</span>
+            </Link>
+            <Link href="/reports" className="active">
+              📊 <span>{t("nav.reports", "Reports")}</span>
+            </Link>
+            <Link href="/system">
+              ⚙️ <span>{t("nav.system", "System Mgmt.")}</span>
+            </Link>
+          </nav>
+        </aside>
+
+        <main className="fxz-main">
+          <div className="fxz-content">
+            <h2 style={{ margin: "0 0 6px" }}>
+              {t("reports.page.title", "Reports")}
+            </h2>
+            <div className="fxz-pills" data-tabs="reports">
+              <button
+                type="button"
+                className={`fxz-pill ${activeTab === "dashboard" ? "active" : ""}`}
+                onClick={() => setActiveTab("dashboard")}
+                data-tab="dashboard"
+              >
+                {t("nav.dashboard", "Dashboard")}
+              </button>
+              <button
+                type="button"
+                className={`fxz-pill ${activeTab === "builder" ? "active" : ""}`}
+                onClick={() => setActiveTab("builder")}
+                data-tab="builder"
+              >
+                {t("reports.tabs.builder", "Report Builder")}
+              </button>
+              <button
+                type="button"
+                className={`fxz-pill ${activeTab === "viewer" ? "active" : ""}`}
+                onClick={() => setActiveTab("viewer")}
+                data-tab="viewer"
+              >
+                {t("reports.tabs.viewer", "Report Viewer")}
+              </button>
+            </div>
+
+            <div data-panels="reports">
+              <section
+                data-panel="dashboard"
+                className={activeTab === "dashboard" ? "" : "fxz-hidden"}
+              >
+                <table className="fxz-table">
+                  <thead>
+                    <tr>
+                      <th>{t("reports.table.reportName", "Report Name")}</th>
+                      <th>{t("reports.table.type", "Type")}</th>
+                      <th>{t("reports.table.lastRun", "Last Run")}</th>
+                      <th>{t("reports.table.status", "Status")}</th>
+                      <th>{t("reports.table.actions", "Actions")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reportRows.map((row) => (
+                      <tr key={`${row.name}-${row.lastRun}`}>
+                        <td>{row.name}</td>
+                        <td>{row.type}</td>
+                        <td>{row.lastRun}</td>
+                        <td className={statusAppearance[row.status].className}>
+                          {t(
+                            statusAppearance[row.status].titleKey,
+                            statusAppearance[row.status].fallback,
+                          )}
+                        </td>
+                        <td>
+                          {row.actionType === "download" ? (
+                            <>
+                              <button
+                                className="fxz-btn secondary"
+                                style={{ padding: "4px 8px", fontSize: "12px" }}
+                                disabled={row.disableActions}
+                              >
+                                {t("common.view", "View")}
+                              </button>
+                              <button
+                                className="fxz-btn primary"
+                                style={{
+                                  padding: "4px 8px",
+                                  fontSize: "12px",
+                                  marginInlineStart: "4px",
+                                }}
+                                disabled={row.disableActions}
+                              >
+                                {t("common.download", "Download")}
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                className="fxz-btn secondary"
+                                style={{ padding: "4px 8px", fontSize: "12px" }}
+                              >
+                                {t("common.retry", "Retry")}
+                              </button>
+                              <button
+                                className="fxz-btn primary"
+                                style={{
+                                  padding: "4px 8px",
+                                  fontSize: "12px",
+                                  marginInlineStart: "4px",
+                                }}
+                              >
+                                {t("common.edit", "Edit")}
+                              </button>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </section>
+
+              <section
+                className={activeTab === "builder" ? "" : "fxz-hidden"}
+                data-panel="builder"
+              >
+                <div className="fxz-card">
+                  {t(
+                    "reports.builder.placeholder",
+                    "Drag-and-drop report builder interface",
+                  )}
+                </div>
+              </section>
+
+              <section
+                className={activeTab === "viewer" ? "" : "fxz-hidden"}
+                data-panel="viewer"
+              >
+                <div className="fxz-card">
+                  {t(
+                    "reports.viewer.placeholder",
+                    "Report viewer with export options",
+                  )}
+                </div>
+              </section>
+            </div>
+          </div>
+          <div className="fxz-footer">
+            {t("reports.footer", "© 2025 Fixzit Enterprise — Version 1.0")}
+          </div>
+        </main>
+      </div>
+    </>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/settings/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Bell, Lock, User, Palette } from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
+
+const NOTIFICATION_LABELS: Record<string, { key: string; fallback: string }> = {
+  email: { key: "settings.notifications.email", fallback: "Email Alerts" },
+  sms: { key: "settings.notifications.sms", fallback: "SMS Alerts" },
+  push: { key: "settings.notifications.push", fallback: "Push Notifications" },
+  workOrders: {
+    key: "settings.notifications.workOrders",
+    fallback: "Work Orders",
+  },
+  maintenance: {
+    key: "settings.notifications.maintenance",
+    fallback: "Maintenance Updates",
+  },
+  reports: { key: "settings.notifications.reports", fallback: "Reports" },
+};
+
+export default function SettingsPage() {
+  const { t } = useTranslation();
+  const [notifications, setNotifications] = useState({
+    email: true,
+    sms: true,
+    push: true,
+    workOrders: true,
+    maintenance: true,
+    reports: false,
+  });
+  const getNotificationLabel = (key: string) => {
+    const entry = NOTIFICATION_LABELS[key] ?? {
+      key: `settings.notifications.${key}`,
+      fallback: key.replace(/([A-Z])/g, " $1").trim(),
+    };
+    return t(entry.key, entry.fallback);
+  };
+
+  return (
+    <div className="min-h-screen bg-muted dark:bg-neutral-900">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-foreground dark:text-white">
+            {t("nav.settings", "Settings")}
+          </h1>
+          <p className="mt-2 text-muted-foreground dark:text-muted-foreground">
+            {t(
+              "settings.subtitle",
+              "Manage your account settings and preferences",
+            )}
+          </p>
+        </div>
+
+        <Tabs defaultValue="profile" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="profile" className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              {t("settings.tabs.profile", "Profile")}
+            </TabsTrigger>
+            <TabsTrigger value="security" className="flex items-center gap-2">
+              <Lock className="h-4 w-4" />
+              {t("settings.tabs.security", "Security")}
+            </TabsTrigger>
+            <TabsTrigger
+              value="notifications"
+              className="flex items-center gap-2"
+            >
+              <Bell className="h-4 w-4" />
+              {t("settings.tabs.notifications", "Notifications")}
+            </TabsTrigger>
+            <TabsTrigger
+              value="preferences"
+              className="flex items-center gap-2"
+            >
+              <Palette className="h-4 w-4" />
+              {t("settings.tabs.preferences", "Preferences")}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="profile">
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  {t("settings.profile.title", "Profile Information")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="firstName">
+                      {t("settings.profile.firstName", "First Name")}
+                    </Label>
+                    <Input id="firstName" defaultValue="System" />
+                  </div>
+                  <div>
+                    <Label htmlFor="lastName">
+                      {t("settings.profile.lastName", "Last Name")}
+                    </Label>
+                    <Input id="lastName" defaultValue="Administrator" />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="email">
+                    {t("settings.profile.email", "Email")}
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    defaultValue={EMAIL_DOMAINS.admin}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="phone">
+                    {t("settings.profile.phone", "Phone")}
+                  </Label>
+                  <Input id="phone" defaultValue="+966 50 123 4567" />
+                </div>
+                <div>
+                  <Label htmlFor="department">
+                    {t("settings.profile.department", "Department")}
+                  </Label>
+                  <Input id="department" defaultValue="IT" />
+                </div>
+                <Button>{t("settings.profile.save", "Save Changes")}</Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="security">
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  {t("settings.security.title", "Security Settings")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="currentPassword">
+                    {t("settings.security.currentPassword", "Current Password")}
+                  </Label>
+                  <Input id="currentPassword" type="password" />
+                </div>
+                <div>
+                  <Label htmlFor="newPassword">
+                    {t("settings.security.newPassword", "New Password")}
+                  </Label>
+                  <Input id="newPassword" type="password" />
+                </div>
+                <div>
+                  <Label htmlFor="confirmPassword">
+                    {t("settings.security.confirmPassword", "Confirm Password")}
+                  </Label>
+                  <Input id="confirmPassword" type="password" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>
+                      {t(
+                        "settings.security.twoFactor",
+                        "Two-Factor Authentication",
+                      )}
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      {t(
+                        "settings.security.twoFactorDesc",
+                        "Add an extra layer of security to your account",
+                      )}
+                    </p>
+                  </div>
+                  <Switch />
+                </div>
+                <Button>
+                  {t("settings.security.updatePassword", "Update Password")}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="notifications">
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  {t(
+                    "settings.notifications.title",
+                    "Notification Preferences",
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {Object.entries(notifications).map(([key, value]) => (
+                  <div key={key} className="flex items-center justify-between">
+                    <Label htmlFor={key} className="capitalize">
+                      {getNotificationLabel(key)}
+                    </Label>
+                    <Switch
+                      id={key}
+                      checked={value}
+                      onCheckedChange={(checked) =>
+                        setNotifications({ ...notifications, [key]: checked })
+                      }
+                    />
+                  </div>
+                ))}
+                <Button>
+                  {t("settings.notifications.save", "Save Preferences")}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="preferences">
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  {t("settings.preferences.title", "App Preferences")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="language">
+                    {t("settings.preferences.language", "Language")}
+                  </Label>
+                  <Select defaultValue="ar">
+                    <SelectTrigger id="language">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en">
+                        {t("settings.preferences.english", "English")}
+                      </SelectItem>
+                      <SelectItem value="ar">
+                        {t("settings.preferences.arabic", "العربية")}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="timezone">
+                    {t("settings.preferences.timezone", "Timezone")}
+                  </Label>
+                  <Select defaultValue="Asia/Riyadh">
+                    <SelectTrigger id="timezone">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Asia/Riyadh">
+                        {t(
+                          "settings.preferences.riyadh",
+                          "Asia/Riyadh (GMT+3)",
+                        )}
+                      </SelectItem>
+                      <SelectItem value="UTC">
+                        {t("settings.preferences.utc", "UTC")}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="theme">
+                    {t("settings.preferences.theme", "Theme")}
+                  </Label>
+                  <Select defaultValue="light">
+                    <SelectTrigger id="theme">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="light">
+                        {t("settings.preferences.light", "Light")}
+                      </SelectItem>
+                      <SelectItem value="dark">
+                        {t("settings.preferences.dark", "Dark")}
+                      </SelectItem>
+                      <SelectItem value="system">
+                        {t("settings.preferences.system", "System")}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button>
+                  {t("settings.preferences.save", "Save Preferences")}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+</batch_content>

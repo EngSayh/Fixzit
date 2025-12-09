@@ -1,0 +1,2958 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/fm/support/tickets/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState, type ReactNode } from "react";
+import Link from "next/link";
+import useSWR from "swr";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { TableSkeleton } from "@/components/skeletons";
+import ClientDate from "@/components/ClientDate";
+
+import { logger } from "@/lib/logger";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { FmGuardedPage } from "@/components/fm/FmGuardedPage";
+interface TicketItem {
+  id: string;
+  code?: string;
+  subject?: string;
+  module?: string;
+  priority?: string;
+  status?: string;
+  createdAt?: string;
+}
+
+export default function SupportTicketsPage() {
+  return (
+    <FmGuardedPage moduleId="support">
+      {({ orgId, supportBanner }) => (
+        <SupportTicketsContent orgId={orgId} supportBanner={supportBanner} />
+      )}
+    </FmGuardedPage>
+  );
+}
+
+type SupportTicketsContentProps = {
+  orgId: string;
+  supportBanner?: ReactNode | null;
+};
+
+function SupportTicketsContent({
+  orgId,
+  supportBanner,
+}: SupportTicketsContentProps) {
+  const auto = useAutoTranslator("fm.supportTickets");
+  const { data: session } = useSession();
+  const [status, setStatus] = useState("");
+  const [priority, setPriority] = useState("");
+
+  const fetcher = (url: string) =>
+    fetch(url, {
+      headers: { "x-tenant-id": orgId },
+    })
+      .then((r) => r.json())
+      .catch((error) => {
+        logger.error("FM tickets fetch error", error);
+        throw error;
+      });
+
+  const { data, mutate, isLoading } = useSWR(
+    orgId
+      ? [`/api/support/tickets?status=${status}&priority=${priority}`, orgId]
+      : null,
+    ([url]) => fetcher(url),
+  );
+
+  const updateTicket = async (id: string, updates: { status?: string }) => {
+    const toastId = toast.loading(
+      auto("Updating ticket status...", "toast.updating"),
+    );
+
+    try {
+      const res = await fetch(`/api/support/tickets/${id}`, {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json",
+          "x-tenant-id": orgId,
+        },
+        body: JSON.stringify(updates),
+      });
+
+      if (res.ok) {
+        toast.success(
+          auto("Ticket status updated successfully", "toast.success"),
+          { id: toastId },
+        );
+        mutate();
+      } else {
+        const error = await res.json();
+        const detail = error?.error || auto("Unknown error", "errors.unknown");
+        toast.error(
+          auto("Failed to update ticket: {{message}}", "toast.updateFailed", {
+            message: detail,
+          }),
+          { id: toastId },
+        );
+      }
+    } catch (_error) {
+      logger.error("Error updating ticket:", _error);
+      toast.error(
+        auto("Error updating ticket. Please try again.", "toast.genericError"),
+        { id: toastId },
+      );
+    }
+  };
+
+  if (!session) {
+    return <TableSkeleton rows={5} />;
+  }
+
+  return (
+    <div className="p-6 space-y-6">
+      <ModuleViewTabs moduleId="support" />
+      {supportBanner}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            {auto("Support Tickets", "header.title")}
+          </h1>
+          <p className="text-muted-foreground">
+            {auto("Manage customer support requests", "header.subtitle")}
+          </p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex gap-4 mb-6">
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+          className="px-3 py-2 border border-border rounded-2xl"
+        >
+          <option value="">{auto("All Status", "filters.status.all")}</option>
+          <option value="New">{auto("New", "filters.status.new")}</option>
+          <option value="Open">{auto("Open", "filters.status.open")}</option>
+          <option value="Waiting">
+            {auto("Waiting", "filters.status.waiting")}
+          </option>
+          <option value="Resolved">
+            {auto("Resolved", "filters.status.resolved")}
+          </option>
+          <option value="Closed">
+            {auto("Closed", "filters.status.closed")}
+          </option>
+        </select>
+
+        <select
+          value={priority}
+          onChange={(e) => setPriority(e.target.value)}
+          className="px-3 py-2 border border-border rounded-2xl"
+        >
+          <option value="">
+            {auto("All Priority", "filters.priority.all")}
+          </option>
+          <option value="Low">{auto("Low", "filters.priority.low")}</option>
+          <option value="Medium">
+            {auto("Medium", "filters.priority.medium")}
+          </option>
+          <option value="High">{auto("High", "filters.priority.high")}</option>
+          <option value="Urgent">
+            {auto("Urgent", "filters.priority.urgent")}
+          </option>
+        </select>
+      </div>
+
+      {/* Tickets List */}
+      {isLoading ? (
+        <TableSkeleton rows={5} />
+      ) : (
+        <div className="bg-card rounded-2xl shadow-md border border-border">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-muted border-b border-border">
+                <tr>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                    {auto("Code", "table.code")}
+                  </th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                    {auto("Subject", "table.subject")}
+                  </th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                    {auto("Module", "table.module")}
+                  </th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                    {auto("Priority", "table.priority")}
+                  </th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                    {auto("Status", "table.status")}
+                  </th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                    {auto("Created", "table.created")}
+                  </th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                    {auto("Actions", "table.actions")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {((data?.items as TicketItem[]) || []).map((ticket) => (
+                  <tr key={ticket.id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">
+                      {ticket.code}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-foreground">
+                      {ticket.subject}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                      {ticket.module}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-2 py-1 text-xs rounded-full ${
+                          ticket.priority === "Urgent"
+                            ? "bg-destructive/10 text-destructive-foreground"
+                            : ticket.priority === "High"
+                              ? "bg-warning/10 text-warning"
+                              : ticket.priority === "Medium"
+                                ? "bg-warning/10 text-warning-foreground"
+                                : "bg-muted text-foreground"
+                        }`}
+                      >
+                        {ticket.priority}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <select
+                        value={ticket.status}
+                        onChange={(e) =>
+                          updateTicket(ticket.id, { status: e.target.value })
+                        }
+                        className="text-sm border border-border rounded px-2 py-1"
+                      >
+                        <option value="New">
+                          {auto("New", "filters.status.new")}
+                        </option>
+                        <option value="Open">
+                          {auto("Open", "filters.status.open")}
+                        </option>
+                        <option value="Waiting">
+                          {auto("Waiting", "filters.status.waiting")}
+                        </option>
+                        <option value="Resolved">
+                          {auto("Resolved", "filters.status.resolved")}
+                        </option>
+                        <option value="Closed">
+                          {auto("Closed", "filters.status.closed")}
+                        </option>
+                      </select>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                      {ticket.createdAt ? (
+                        <ClientDate
+                          date={ticket.createdAt}
+                          format="date-only"
+                        />
+                      ) : (
+                        auto("N/A", "table.notAvailable")
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <Link
+                        href={`/fm/support/tickets/${ticket.id}`}
+                        className="text-primary hover:text-primary/90 hover:underline"
+                      >
+                        {auto("View", "table.view")}
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/system/integrations/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { CardGridSkeleton } from "@/components/skeletons";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { Plug, Check, X, Settings } from "lucide-react";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useEffect } from "react";
+import { logger } from "@/lib/logger";
+
+interface RemoteIntegration {
+  id: string;
+  status: string;
+  [key: string]: unknown;
+}
+
+const INTEGRATIONS = [
+  {
+    id: "sendgrid",
+    name: "SendGrid",
+    description: "Email delivery service for notifications",
+    status: "connected",
+    icon: "📧",
+  },
+  {
+    id: "twilio",
+    name: "Twilio",
+    description: "SMS and WhatsApp messaging",
+    status: "connected",
+    icon: "💬",
+  },
+  {
+    id: "paytabs",
+    name: "PayTabs",
+    description: "Payment gateway for online transactions",
+    status: "connected",
+    icon: "💳",
+  },
+  {
+    id: "aws-s3",
+    name: "AWS S3",
+    description: "Cloud storage for documents and media",
+    status: "connected",
+    icon: "☁️",
+  },
+  {
+    id: "google-maps",
+    name: "Google Maps",
+    description: "Location services and geocoding",
+    status: "disconnected",
+    icon: "🗺️",
+  },
+  {
+    id: "slack",
+    name: "Slack",
+    description: "Team collaboration and alerts",
+    status: "disconnected",
+    icon: "💼",
+  },
+];
+
+export default function IntegrationsPage() {
+  const auto = useAutoTranslator("fm.system.integrations");
+  const { data: session } = useSession();
+  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({
+    moduleId: "system",
+  });
+  const [integrations, setIntegrations] = useState(INTEGRATIONS);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchIntegrations = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/fm/system/integrations"); // optional future endpoint to list
+        if (res.ok) {
+          const json = await res.json();
+          if (Array.isArray(json?.data)) {
+            const remoteIntegrations = json.data as RemoteIntegration[];
+            setIntegrations((prev) =>
+              prev.map((int) => {
+                const remote = remoteIntegrations.find((x) => x.id === int.id);
+                return remote ? { ...int, status: remote.status } : int;
+              }),
+            );
+          }
+        }
+      } catch {
+        // ignore
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchIntegrations();
+  }, []);
+
+  if (!session) {
+    return <CardGridSkeleton count={6} />;
+  }
+
+  if (!hasOrgContext) {
+    return guard;
+  }
+
+  const handleToggle = async (integrationId: string, currentStatus: string) => {
+    const action = currentStatus === "connected" ? "disconnect" : "connect";
+    const toastId = toast.loading(
+      auto(
+        `${action === "connect" ? "Connecting" : "Disconnecting"}...`,
+        `toast.${action}Loading`,
+      ),
+    );
+
+    try {
+      const res = await fetch(
+        `/api/fm/system/integrations/${integrationId}/toggle`,
+        {
+          method: "POST",
+        },
+      );
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || "Failed to toggle integration");
+      }
+      const json = await res.json();
+      const newStatus =
+        json?.data?.status ??
+        (action === "connect" ? "connected" : "disconnected");
+
+      setIntegrations((prev) =>
+        prev.map((int) =>
+          int.id === integrationId ? { ...int, status: newStatus } : int,
+        ),
+      );
+
+      toast.success(
+        auto(
+          newStatus === "connected"
+            ? "Connected successfully"
+            : "Disconnected successfully",
+          `toast.${newStatus === "connected" ? "connectSuccess" : "disconnectSuccess"}`,
+        ),
+        { id: toastId },
+      );
+    } catch (error) {
+      logger.error("[Integrations] Toggle failed", error, {
+        component: "IntegrationsPage",
+        action: "toggleIntegration",
+        integrationId,
+      });
+      toast.error(auto("Operation failed", "toast.error"), { id: toastId });
+    }
+  };
+
+  const connectedCount = integrations.filter(
+    (i) => i.status === "connected",
+  ).length;
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="system" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {auto("Support context: {{name}}", "support.activeOrg", {
+            name: supportOrg.name,
+          })}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <Plug className="w-6 h-6 text-primary" />
+            <h1 className="text-2xl font-bold text-foreground">
+              {auto("Integrations", "header.title")}
+            </h1>
+          </div>
+          <p className="text-muted-foreground">
+            {auto("Manage third-party service connections", "header.subtitle")}
+          </p>
+        </div>
+        <div className="text-end">
+          <p className="text-2xl font-bold">
+            {connectedCount}/{integrations.length}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {auto("Connected", "stats.connected")}
+          </p>
+        </div>
+      </div>
+
+      {loading ? (
+        <CardGridSkeleton count={6} />
+      ) : (
+        <>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {integrations.map((integration) => (
+              <Card key={integration.id}>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-3xl">{integration.icon}</span>
+                      <div>
+                        <CardTitle className="text-lg">
+                          {integration.name}
+                        </CardTitle>
+                        <Badge
+                          variant={
+                            integration.status === "connected"
+                              ? "default"
+                              : "secondary"
+                          }
+                          className="mt-1"
+                        >
+                          {integration.status === "connected" ? (
+                            <Check className="w-3 h-3 me-1" />
+                          ) : (
+                            <X className="w-3 h-3 me-1" />
+                          )}
+                          {auto(
+                            integration.status,
+                            `status.${integration.status}`,
+                          )}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    {integration.description}
+                  </p>
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant={
+                        integration.status === "connected"
+                          ? "destructive"
+                          : "default"
+                      }
+                      size="sm"
+                      onClick={() =>
+                        handleToggle(integration.id, integration.status)
+                      }
+                      className="flex-1"
+                    >
+                      {integration.status === "connected"
+                        ? auto("Disconnect", "actions.disconnect")
+                        : auto("Connect", "actions.connect")}
+                    </Button>
+                    {integration.status === "connected" && (
+                      <Button variant="outline" size="sm">
+                        <Settings className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="p-6 border border-dashed border-border rounded-lg text-center">
+            <p className="text-sm text-muted-foreground">
+              {auto(
+                "Integration data will be managed via /api/fm/system/integrations",
+                "info.apiEndpoint",
+              )}
+            </p>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/system/page.tsx">
+<![CDATA[
+"use client";
+
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+export default function SystemPage() {
+  const { hasOrgContext, guard, supportBanner } = useFmOrgGuard({
+    moduleId: "system",
+  });
+  const auto = useAutoTranslator("fm.system");
+  if (!hasOrgContext) {
+    return guard;
+  }
+
+  return (
+    <div className="p-6 space-y-6">
+      {supportBanner}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            {auto("System Management", "header.title")}
+          </h1>
+          <p className="text-muted-foreground">
+            {auto(
+              "Configure system settings and preferences",
+              "header.subtitle",
+            )}
+          </p>
+        </div>
+      </div>
+      <ModuleViewTabs moduleId="system" />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-card rounded-2xl shadow-md border border-border p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4">
+            {auto("General Settings", "general.title")}
+          </h2>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">
+                {auto("Organization Name", "general.organizationName")}
+              </label>
+              <input
+                type="text"
+                value="Fixzit Enterprise"
+                className="w-full px-3 py-2 border border-border rounded-2xl"
+                readOnly
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">
+                {auto("Default Language", "general.defaultLanguage")}
+              </label>
+              <select className="w-full px-3 py-2 border border-border rounded-2xl">
+                <option>{auto("English", "general.languages.en")}</option>
+                <option>{auto("Arabic", "general.languages.ar")}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-card rounded-2xl shadow-md border border-border p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4">
+            {auto("System Info", "info.title")}
+          </h2>
+          <div className="space-y-3">
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">
+                {auto("Version", "info.version")}
+              </span>
+              <span className="text-sm font-medium text-foreground">
+                2.0.26
+              </span>
+            </div>
+
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">
+                {auto("Last Update", "info.lastUpdate")}
+              </span>
+              <span className="text-sm font-medium text-foreground">
+                Jan 12, 2025
+              </span>
+            </div>
+
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">
+                {auto("Database Status", "info.databaseStatus")}
+              </span>
+              <span className="text-sm font-medium text-success">
+                {auto("Connected", "info.connected")}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/system/roles/new/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { CardGridSkeleton } from "@/components/skeletons";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { Shield, Plus } from "lucide-react";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+
+const PERMISSIONS = [
+  { id: "users:read", label: "View Users", category: "users" },
+  { id: "users:write", label: "Manage Users", category: "users" },
+  { id: "roles:read", label: "View Roles", category: "roles" },
+  { id: "roles:write", label: "Manage Roles", category: "roles" },
+  { id: "workorders:read", label: "View Work Orders", category: "workorders" },
+  {
+    id: "workorders:write",
+    label: "Manage Work Orders",
+    category: "workorders",
+  },
+  { id: "properties:read", label: "View Properties", category: "properties" },
+  {
+    id: "properties:write",
+    label: "Manage Properties",
+    category: "properties",
+  },
+  { id: "finance:read", label: "View Finance", category: "finance" },
+  { id: "finance:write", label: "Manage Finance", category: "finance" },
+  { id: "reports:read", label: "View Reports", category: "reports" },
+  { id: "reports:write", label: "Generate Reports", category: "reports" },
+];
+
+export default function NewRolePage() {
+  const auto = useAutoTranslator("fm.system.roles.new");
+  const { data: session } = useSession();
+  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({
+    moduleId: "system",
+  });
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [permissions, setPermissions] = useState<string[]>([]);
+  const [creating, setCreating] = useState(false);
+
+  if (!session) {
+    return <CardGridSkeleton count={1} />;
+  }
+
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
+  const handlePermissionToggle = (permissionId: string) => {
+    setPermissions((prev) =>
+      prev.includes(permissionId)
+        ? prev.filter((p) => p !== permissionId)
+        : [...prev, permissionId],
+    );
+  };
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreating(true);
+    const toastId = toast.loading(auto("Creating role...", "toast.loading"));
+
+    try {
+      const res = await fetch("/api/fm/system/roles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orgId,
+          name,
+          description,
+          permissions,
+        }),
+      });
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || "Failed to create role");
+      }
+      toast.success(auto("Role created successfully", "toast.success"), {
+        id: toastId,
+      });
+      setName("");
+      setDescription("");
+      setPermissions([]);
+    } catch (_error) {
+      toast.error(auto("Failed to create role", "toast.error"), {
+        id: toastId,
+      });
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const permissionsByCategory = PERMISSIONS.reduce(
+    (acc, perm) => {
+      if (!acc[perm.category]) acc[perm.category] = [];
+      acc[perm.category].push(perm);
+      return acc;
+    },
+    {} as Record<string, (typeof PERMISSIONS)[number][]>,
+  );
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="system" />
+      {supportBanner}
+
+      <div>
+        <div className="flex items-center gap-2">
+          <Shield className="w-6 h-6 text-primary" />
+          <h1 className="text-2xl font-bold text-foreground">
+            {auto("Create Role", "header.title")}
+          </h1>
+        </div>
+        <p className="text-muted-foreground">
+          {auto("Define a new role with custom permissions", "header.subtitle")}
+        </p>
+      </div>
+
+      <div className="max-w-3xl">
+        <form onSubmit={handleCreate} className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>{auto("Role Details", "details.title")}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">{auto("Role Name", "fields.name")}</Label>
+                <Input
+                  id="name"
+                  placeholder={auto(
+                    "e.g. Property Manager",
+                    "fields.namePlaceholder",
+                  )}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">
+                  {auto("Description", "fields.description")}
+                </Label>
+                <Textarea
+                  id="description"
+                  placeholder={auto(
+                    "Describe the role responsibilities...",
+                    "fields.descriptionPlaceholder",
+                  )}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>{auto("Permissions", "permissions.title")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {Object.entries(permissionsByCategory).map(
+                  ([category, perms]) => (
+                    <div key={category}>
+                      <h3 className="font-semibold mb-3 capitalize">
+                        {auto(category, `categories.${category}`)}
+                      </h3>
+                      <div className="space-y-2 ms-4">
+                        {perms.map((perm) => (
+                          <div
+                            key={perm.id}
+                            className="flex items-center space-x-2"
+                          >
+                            <Checkbox
+                              id={perm.id}
+                              checked={permissions.includes(perm.id)}
+                              onCheckedChange={() =>
+                                handlePermissionToggle(perm.id)
+                              }
+                            />
+                            <Label htmlFor={perm.id} className="cursor-pointer">
+                              {auto(perm.label, `permissions.${perm.id}`)}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ),
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Button
+            type="submit"
+            disabled={creating || !name || permissions.length === 0}
+            className="w-full"
+          >
+            <Plus className="w-4 h-4 me-2" />
+            {auto("Create Role", "submit")}
+          </Button>
+        </form>
+
+        <div className="mt-6 p-4 border border-dashed border-border rounded-lg">
+          <p className="text-sm text-muted-foreground">
+            {auto("Roles will be created via /api/roles", "info.apiEndpoint")}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/system/users/invite/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { CardGridSkeleton } from "@/components/skeletons";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { Mail, UserPlus, Shield } from "lucide-react";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+
+export default function InviteUserPage() {
+  const auto = useAutoTranslator("fm.system.users.invite");
+  const { data: session } = useSession();
+  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({
+    moduleId: "system",
+  });
+  const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [role, setRole] = useState("");
+  const [sending, setSending] = useState(false);
+
+  if (!session) {
+    return <CardGridSkeleton count={1} />;
+  }
+
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
+  const handleInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSending(true);
+    const toastId = toast.loading(
+      auto("Sending invitation...", "toast.loading"),
+    );
+
+    try {
+      const res = await fetch("/api/fm/system/users/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orgId,
+          email,
+          firstName,
+          lastName,
+          role,
+        }),
+      });
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || "Failed to send invitation");
+      }
+      toast.success(auto("Invitation sent successfully", "toast.success"), {
+        id: toastId,
+      });
+      setEmail("");
+      setFirstName("");
+      setLastName("");
+      setRole("");
+    } catch (_error) {
+      toast.error(auto("Failed to send invitation", "toast.error"), {
+        id: toastId,
+      });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="system" />
+      {supportBanner}
+
+      <div>
+        <div className="flex items-center gap-2">
+          <UserPlus className="w-6 h-6 text-primary" />
+          <h1 className="text-2xl font-bold text-foreground">
+            {auto("Invite User", "header.title")}
+          </h1>
+        </div>
+        <p className="text-muted-foreground">
+          {auto(
+            "Send an email invitation to join the platform",
+            "header.subtitle",
+          )}
+        </p>
+      </div>
+
+      <div className="max-w-2xl">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="w-5 h-5" />
+              {auto("Invitation Details", "card.title")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleInvite} className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">
+                    {auto("First Name", "fields.firstName")}
+                  </Label>
+                  <Input
+                    id="firstName"
+                    placeholder={auto("John", "fields.firstNamePlaceholder")}
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">
+                    {auto("Last Name", "fields.lastName")}
+                  </Label>
+                  <Input
+                    id="lastName"
+                    placeholder={auto("Doe", "fields.lastNamePlaceholder")}
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">
+                  {auto("Email Address", "fields.email")}
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder={auto(
+                    "user@example.com",
+                    "fields.emailPlaceholder",
+                  )}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="role" className="flex items-center gap-2">
+                  <Shield className="w-4 h-4" />
+                  {auto("Role", "fields.role")}
+                </Label>
+                <Select value={role} onValueChange={setRole}>
+                  <SelectTrigger id="role">
+                    <SelectValue
+                      placeholder={auto(
+                        "Select a role...",
+                        "fields.rolePlaceholder",
+                      )}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">
+                      {auto("Administrator", "roles.admin")}
+                    </SelectItem>
+                    <SelectItem value="manager">
+                      {auto("Manager", "roles.manager")}
+                    </SelectItem>
+                    <SelectItem value="technician">
+                      {auto("Technician", "roles.technician")}
+                    </SelectItem>
+                    <SelectItem value="viewer">
+                      {auto("Viewer", "roles.viewer")}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="pt-4 border-t">
+                <Button
+                  type="submit"
+                  disabled={
+                    sending || !email || !firstName || !lastName || !role
+                  }
+                  className="w-full"
+                >
+                  <Mail className="w-4 h-4 me-2" />
+                  {auto("Send Invitation", "submit")}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        <div className="mt-6 p-4 border border-dashed border-border rounded-lg">
+          <p className="text-sm text-muted-foreground">
+            {auto(
+              "User invitations will be sent via /api/users/invite",
+              "info.apiEndpoint",
+            )}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/template.tsx">
+<![CDATA[
+import { ReactNode } from "react";
+import { OrgContextGate } from "@/components/fm/OrgContextGate";
+
+interface FmTemplateProps {
+  children: ReactNode;
+}
+
+/**
+ * Template that enforces organization context for all FM routes.
+ * Prevents rendering FM modules without a selected organization to avoid cross-tenant data exposure.
+ */
+export default function FmTemplate({ children }: FmTemplateProps) {
+  return <OrgContextGate>{children}</OrgContextGate>;
+}
+
+]]>
+</file>
+
+<file path="app/fm/tenants/new/page.tsx">
+<![CDATA[
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { ArrowLeft } from "lucide-react";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { CardGridSkeleton } from "@/components/skeletons";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { CreateTenantForm } from "@/components/fm/tenants/CreateTenantForm";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+
+export default function NewTenantPage() {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const { data: session } = useSession();
+  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({
+    moduleId: "tenants",
+  });
+
+  if (!session) {
+    return <CardGridSkeleton count={4} />;
+  }
+
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="tenants" />
+      {supportBanner}
+      <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            {t("fm.tenants.new.kicker", "Tenants · Onboarding workspace")}
+          </p>
+          <h1 className="text-3xl font-semibold text-foreground">
+            {t("fm.tenants.new.title", "Onboard a new tenant")}
+          </h1>
+          <p className="text-muted-foreground">
+            {t(
+              "fm.tenants.new.subtitle",
+              "Register contact, lease, and compliance data before assigning units or invoices.",
+            )}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="ghost" onClick={() => router.push("/fm/tenants")}>
+            <ArrowLeft className="w-4 h-4 me-2" />
+            {t("fm.tenants.new.back", "Back to tenants")}
+          </Button>
+        </div>
+      </header>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            {t("fm.tenants.new.sectionTitle", "Tenant profile")}
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {t(
+              "fm.tenants.new.sectionDescription",
+              "Data entered here automatically updates leasing, billing, and support workstreams.",
+            )}
+          </p>
+        </CardHeader>
+        <CardContent>
+          <CreateTenantForm
+            orgId={orgId}
+            onCreated={() => {
+              router.push("/fm/tenants");
+            }}
+          />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/tenants/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState, type ReactNode } from "react";
+import useSWR from "swr";
+import { useSession } from "next-auth/react";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { CardGridSkeleton } from "@/components/skeletons";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Users,
+  Plus,
+  Search,
+  Mail,
+  Phone,
+  MapPin,
+  Eye,
+  Edit,
+  Trash2,
+  User,
+  Building,
+  Shield,
+} from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { CreateTenantForm } from "@/components/fm/tenants/CreateTenantForm";
+import { FmGuardedPage } from "@/components/fm/FmGuardedPage";
+import { logger } from "@/lib/logger";
+interface TenantProperty {
+  occupancy?: {
+    status?: string;
+  };
+}
+
+interface Tenant {
+  id: string;
+  name?: string;
+  code?: string;
+  type?: string;
+  contact?: {
+    primary?: {
+      email?: string;
+      phone?: string;
+    };
+  };
+  address?: {
+    current?: {
+      city?: string;
+      region?: string;
+    };
+  };
+  financial?: {
+    outstandingBalance?: number;
+  };
+  properties?: TenantProperty[];
+}
+
+const sarCurrencyFormatter = new Intl.NumberFormat("en-SA", {
+  style: "currency",
+  currency: "SAR",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+export default function TenantsPage() {
+  return (
+    <FmGuardedPage moduleId="tenants">
+      {({ orgId, supportBanner }) => (
+        <TenantsContent orgId={orgId} supportBanner={supportBanner} />
+      )}
+    </FmGuardedPage>
+  );
+}
+
+type TenantsContentProps = {
+  orgId: string;
+  supportBanner?: ReactNode | null;
+};
+
+function TenantsContent({ orgId, supportBanner }: TenantsContentProps) {
+  const { t } = useTranslation();
+  const { data: session } = useSession();
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+
+  const fetcher = (url: string) =>
+    fetch(url, {
+      headers: { "x-tenant-id": orgId },
+    })
+      .then((r) => r.json())
+      .catch((error) => {
+        logger.error("FM tenants fetch error", error);
+        throw error;
+      });
+
+  const { data, mutate, isLoading, error } = useSWR(
+    orgId
+      ? [
+          `/api/tenants?search=${encodeURIComponent(search)}&type=${typeFilter}`,
+          orgId,
+        ]
+      : null,
+    ([url]) => fetcher(url),
+  );
+
+  if (!session) {
+    return <CardGridSkeleton count={6} />;
+  }
+
+  const tenants = data?.items || [];
+  const showEmptyState = !isLoading && !error && tenants.length === 0;
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="tenants" />
+      {supportBanner}
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">
+            {t("fm.tenants.title", "Tenant Management")}
+          </h1>
+          <p className="text-muted-foreground">
+            {t(
+              "fm.tenants.subtitle",
+              "Customer relationship and lease management",
+            )}
+          </p>
+        </div>
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-secondary hover:bg-secondary/90">
+              <Plus className="w-4 h-4 me-2" />
+              {t("fm.tenants.newTenant", "New Tenant")}
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>
+                {t("fm.tenants.addTenant", "Add New Tenant")}
+              </DialogTitle>
+            </DialogHeader>
+            <CreateTenantForm
+              orgId={orgId}
+              onCreated={() => {
+                mutate();
+                setCreateOpen(false);
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-wrap gap-4">
+            <div className="flex-1 min-w-64">
+              <div className="relative">
+                <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  placeholder={t(
+                    "fm.tenants.searchTenants",
+                    "Search tenants...",
+                  )}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="ps-10"
+                />
+              </div>
+            </div>
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue
+                  placeholder={t("fm.tenants.tenantType", "Tenant Type")}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">
+                  {t("fm.properties.allTypes", "All Types")}
+                </SelectItem>
+                <SelectItem value="INDIVIDUAL">
+                  {t("fm.tenants.individual", "Individual")}
+                </SelectItem>
+                <SelectItem value="COMPANY">
+                  {t("fm.tenants.company", "Company")}
+                </SelectItem>
+                <SelectItem value="GOVERNMENT">
+                  {t("fm.tenants.government", "Government")}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertTitle>
+            {t("fm.tenants.errors.failedToLoadTitle", "Unable to load tenants")}
+          </AlertTitle>
+          <AlertDescription className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <span>
+              {t(
+                "fm.tenants.errors.failedToLoadDescription",
+                "Something went wrong while contacting the server. Please retry.",
+              )}
+            </span>
+            <Button variant="outline" size="sm" onClick={() => mutate()}>
+              {t("common.retry", "Retry")}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Tenants Grid */}
+      {isLoading ? (
+        <CardGridSkeleton count={6} />
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {(tenants as Tenant[]).map((tenant) => (
+              <TenantCard key={tenant.id} tenant={tenant} />
+            ))}
+          </div>
+
+          {/* Empty State */}
+          {showEmptyState && (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Users className="w-12 h-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  {t("fm.tenants.noTenants", "No Tenants Found")}
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  {t(
+                    "fm.tenants.noTenantsText",
+                    "Get started by adding your first tenant.",
+                  )}
+                </p>
+                <Button
+                  onClick={() => setCreateOpen(true)}
+                  className="bg-secondary hover:bg-secondary/90"
+                >
+                  <Plus className="w-4 h-4 me-2" />
+                  {t("fm.tenants.addTenant", "Add Tenant")}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function TenantCard({ tenant }: { tenant: Tenant }) {
+  const { t } = useTranslation();
+  const missingValue = t("common.notAvailable", "Not available");
+  const primaryEmail = tenant.contact?.primary?.email?.trim();
+  const primaryPhone = tenant.contact?.primary?.phone?.trim();
+  const locationParts = [
+    tenant.address?.current?.city?.trim(),
+    tenant.address?.current?.region?.trim(),
+  ].filter(Boolean);
+  const location = locationParts.join(", ") || missingValue;
+  const outstandingBalance = tenant.financial?.outstandingBalance ?? 0;
+  const outstandingBalanceDisplay =
+    sarCurrencyFormatter.format(outstandingBalance);
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case "INDIVIDUAL":
+        return <User className="w-5 h-5" />;
+      case "COMPANY":
+        return <Building className="w-5 h-5" />;
+      case "GOVERNMENT":
+        return <Shield className="w-5 h-5" />;
+      default:
+        return <User className="w-5 h-5" />;
+    }
+  };
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case "INDIVIDUAL":
+        return "bg-primary/10 text-primary-foreground";
+      case "COMPANY":
+        return "bg-success/10 text-success-foreground";
+      case "GOVERNMENT":
+        return "bg-destructive/10 text-destructive-foreground";
+      default:
+        return "bg-muted text-foreground";
+    }
+  };
+
+  const getTypeLabel = (type: string) => {
+    switch (type) {
+      case "INDIVIDUAL":
+        return t("fm.tenants.individual", "Individual");
+      case "COMPANY":
+        return t("fm.tenants.company", "Company");
+      case "GOVERNMENT":
+        return t("fm.tenants.government", "Government");
+      default:
+        return type?.toLowerCase() || "";
+    }
+  };
+
+  const activeProperties =
+    tenant.properties?.filter((p) => p.occupancy?.status === "ACTIVE").length ||
+    0;
+  const totalProperties = tenant.properties?.length || 0;
+
+  return (
+    <Card className="hover:shadow-lg transition-shadow">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center space-x-2">
+            {getTypeIcon(tenant.type || "")}
+            <div className="flex-1">
+              <CardTitle className="text-lg">{tenant.name}</CardTitle>
+              <p className="text-sm text-muted-foreground">{tenant.code}</p>
+            </div>
+          </div>
+          <Badge className={getTypeColor(tenant.type || "")}>
+            {getTypeLabel(tenant.type || "")}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center text-sm text-muted-foreground">
+          <Mail className="w-4 h-4 me-1" />
+          <span>
+            {primaryEmail || t("fm.tenants.noEmail", "No email on file")}
+          </span>
+        </div>
+
+        <div className="flex items-center text-sm text-muted-foreground">
+          <Phone className="w-4 h-4 me-1" />
+          <span>
+            {primaryPhone || t("fm.tenants.noPhone", "No phone on file")}
+          </span>
+        </div>
+
+        <div className="flex items-center text-sm text-muted-foreground">
+          <MapPin className="w-4 h-4 me-1" />
+          <span>{location}</span>
+        </div>
+
+        <Separator />
+
+        <div className="space-y-2">
+          <div className="flex justify-between">
+            <span className="text-sm text-muted-foreground">
+              {t("fm.tenants.properties", "Properties")}:
+            </span>
+            <span className="text-sm font-medium">
+              {activeProperties}/{totalProperties}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-sm text-muted-foreground">
+              {t("fm.tenants.leaseStatus", "Lease Status")}:
+            </span>
+            <Badge variant="outline" className="text-success border-success">
+              {activeProperties > 0
+                ? t("properties.leases.active", "Active")
+                : t("fm.tenants.noActiveLeases", "No Active Leases")}
+            </Badge>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-sm text-muted-foreground">
+              {t("fm.tenants.outstandingBalance", "Outstanding Balance")}:
+            </span>
+            <span className="text-sm font-medium">
+              {outstandingBalanceDisplay}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex justify-end space-x-2 pt-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={t("common.view", "View")}
+            title={t("common.view", "View")}
+          >
+            <Eye className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={t("common.edit", "Edit")}
+            title={t("common.edit", "Edit")}
+          >
+            <Edit className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-destructive hover:text-destructive"
+            aria-label={t("common.delete", "Delete")}
+            title={t("common.delete", "Delete")}
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/vendors/[id]/edit/page.tsx">
+<![CDATA[
+"use client";
+import { logger } from "@/lib/logger";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+import { useState } from "react";
+import useSWR from "swr";
+import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem } from "@/components/ui/select";
+import { CardGridSkeleton } from "@/components/skeletons";
+import { ChevronLeft, Save } from "lucide-react";
+import Link from "next/link";
+import {
+  UpdateVendorSchema,
+  type UpdateVendorInput,
+} from "@/lib/validations/forms";
+import { z } from "zod";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+
+// ✅ FIX 1: Helper to convert empty strings to undefined for optional fields
+const getOptionalString = (value: string | File | null): string | undefined => {
+  const str = typeof value === "string" ? value : null;
+  return str && str.trim() ? str : undefined;
+};
+
+// ✅ FIX 2: Safe date formatter to prevent crashes on invalid dates
+const toInputDate = (dateString: string | undefined | null): string => {
+  if (!dateString) return "";
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return ""; // Check for invalid date
+    return date.toISOString().split("T")[0];
+  } catch {
+    return "";
+  }
+};
+
+interface Vendor {
+  id: string;
+  code: string;
+  name: string;
+  type: string;
+  status: "PENDING" | "APPROVED" | "SUSPENDED" | "REJECTED" | "BLACKLISTED";
+  contact?: {
+    primary?: {
+      name?: string;
+      email?: string;
+      phone?: string;
+      mobile?: string;
+    };
+    address?: {
+      street?: string;
+      city?: string;
+      region?: string;
+      postalCode?: string;
+    };
+  };
+  business?: {
+    specializations?: string[];
+    crNumber?: string;
+    taxNumber?: string;
+    licenseNumber?: string;
+    licenseExpiry?: string;
+    insuranceExpiry?: string;
+    description?: string;
+  };
+}
+
+export default function EditVendorPage() {
+  const params = useParams();
+  const vendorId = Array.isArray(params?.id) ? params.id[0] : params?.id;
+  const router = useRouter();
+  const { data: session } = useSession();
+  const auto = useAutoTranslator("fm.vendors.edit");
+  const { hasOrgContext, orgId, guard, supportBanner } = useFmOrgGuard({
+    moduleId: "vendors",
+  });
+  const [isSaving, setIsSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // ✅ FIX 3: Handle HTTP errors properly to prevent crash on 404/500
+  const fetcher = (url: string) => {
+    if (!orgId) {
+      return Promise.reject(
+        new Error(auto("No organization ID", "errors.noOrg")),
+      );
+    }
+    return fetch(url, {
+      headers: { "x-tenant-id": orgId },
+    })
+      .then(async (r) => {
+        if (!r.ok) {
+          const errorData = await r
+            .json()
+            .catch(() => ({ message: "Failed to fetch vendor" }));
+          throw new Error(errorData.message || `Error ${r.status}`);
+        }
+        return r.json();
+      })
+      .catch((error) => {
+        logger.error("FM vendor edit fetch error", error);
+        throw error;
+      });
+  };
+
+  const {
+    data: vendor,
+    error,
+    isLoading,
+  } = useSWR<Vendor>(
+    orgId && vendorId ? `/api/vendors/${vendorId}` : null,
+    fetcher,
+  );
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!orgId)
+      return toast.error(auto("Organization ID missing", "errors.noOrg"));
+    if (!vendorId)
+      return toast.error(auto("Vendor ID missing", "errors.noVendor"));
+
+    setIsSaving(true);
+    setErrors({});
+
+    const formData = new FormData(e.currentTarget);
+    const specializationsStr = getOptionalString(
+      formData.get("specializations"),
+    );
+    const specializations = specializationsStr
+      ? specializationsStr
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : undefined;
+
+    // ✅ FIX 4: Use getOptionalString for all optional fields to match validation schema
+    const data: Partial<UpdateVendorInput> = {
+      id: vendorId,
+      name: formData.get("name")?.toString() || "", // Required field
+      code: getOptionalString(formData.get("code")),
+      type: getOptionalString(formData.get("type")),
+      status: formData.get("status")?.toString() as
+        | "PENDING"
+        | "APPROVED"
+        | "SUSPENDED"
+        | "REJECTED"
+        | "BLACKLISTED",
+      contact: {
+        primary: {
+          name: formData.get("contactName")?.toString() || "", // Required field
+          email: getOptionalString(formData.get("contactEmail")),
+          phone: getOptionalString(formData.get("contactPhone")),
+          mobile: getOptionalString(formData.get("contactMobile")),
+        },
+        address: {
+          street: getOptionalString(formData.get("addressStreet")),
+          city: getOptionalString(formData.get("addressCity")),
+          region: getOptionalString(formData.get("addressRegion")),
+          postalCode: getOptionalString(formData.get("addressPostalCode")),
+        },
+      },
+      business: {
+        specializations,
+        crNumber: getOptionalString(formData.get("crNumber")),
+        taxNumber: getOptionalString(formData.get("taxNumber")),
+        licenseNumber: getOptionalString(formData.get("licenseNumber")),
+        licenseExpiry: getOptionalString(formData.get("licenseExpiry")),
+        insuranceExpiry: getOptionalString(formData.get("insuranceExpiry")),
+        description: getOptionalString(formData.get("businessDescription")),
+      },
+    };
+
+    try {
+      // Validate with Zod
+      UpdateVendorSchema.parse(data);
+
+      const res = await fetch(`/api/vendors/${vendorId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tenant-id": orgId,
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Failed to update vendor");
+      }
+
+      toast.success(auto("Vendor updated successfully", "toast.success"));
+      router.push(`/fm/vendors/${vendorId}`);
+    } catch (_error) {
+      if (_error instanceof z.ZodError) {
+        const fieldErrors: Record<string, string> = {};
+        _error.issues.forEach((err: z.ZodIssue) => {
+          if (err.path.length > 0) {
+            fieldErrors[err.path.join(".")] = err.message;
+          }
+        });
+        setErrors(fieldErrors);
+        toast.error(auto("Please fix validation errors", "toast.validation"));
+      } else {
+        toast.error(
+          _error instanceof Error
+            ? _error.message
+            : auto("Failed to update vendor", "toast.error"),
+        );
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (!session) return <CardGridSkeleton count={1} />;
+  if (!hasOrgContext || !orgId) {
+    return (
+      <div className="space-y-6">
+        <ModuleViewTabs moduleId="vendors" />
+        {supportBanner}
+        {guard}
+      </div>
+    );
+  }
+  if (!vendorId) {
+    return (
+      <div className="text-destructive">
+        {auto("Vendor ID missing", "errors.noVendor")}
+      </div>
+    );
+  }
+  if (error)
+    return (
+      <div className="text-destructive">
+        {auto("Failed to load vendor", "errors.loadFailed")}
+      </div>
+    );
+  if (isLoading || !vendor) return <CardGridSkeleton count={1} />;
+
+  return (
+    <div className="p-6 space-y-6">
+      <ModuleViewTabs moduleId="vendors" />
+      {supportBanner}
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Link href={vendorId ? `/fm/vendors/${vendorId}` : "/fm/vendors"}>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={auto("Back to vendor details", "common.back")}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+        </Link>
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">
+            {auto("Edit Vendor", "header.title")}
+          </h1>
+          <p className="text-muted-foreground">
+            {auto("Update vendor information", "header.subtitle")}
+          </p>
+        </div>
+      </div>
+
+      {/* Edit Form */}
+      <form onSubmit={handleSubmit}>
+        <Card>
+          <CardHeader>
+            <CardTitle>{auto("Basic Information", "card.basic")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Vendor Name */}
+            <div className="space-y-2">
+              <Label htmlFor="name">
+                {auto("Vendor Name *", "form.labels.name")}
+              </Label>
+              <Input
+                id="name"
+                name="name"
+                defaultValue={vendor.name}
+                placeholder={auto(
+                  "Enter vendor name",
+                  "form.placeholders.name",
+                )}
+                required
+              />
+              {errors.name && (
+                <p className="text-sm text-destructive">{errors.name}</p>
+              )}
+            </div>
+
+            {/* Vendor Code */}
+            <div className="space-y-2">
+              <Label htmlFor="code">
+                {auto("Vendor Code *", "form.labels.code")}
+              </Label>
+              <Input
+                id="code"
+                name="code"
+                defaultValue={vendor.code}
+                placeholder={auto("e.g., VEN-001", "form.placeholders.code")}
+                required
+              />
+              {errors.code && (
+                <p className="text-sm text-destructive">{errors.code}</p>
+              )}
+            </div>
+
+            {/* Type & Status */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="type">
+                  {auto("Type *", "form.labels.type")}
+                </Label>
+                <Input
+                  id="type"
+                  name="type"
+                  defaultValue={vendor.type}
+                  placeholder={auto(
+                    "e.g., Contractor, Supplier",
+                    "form.placeholders.type",
+                  )}
+                  required
+                />
+                {errors.type && (
+                  <p className="text-sm text-destructive">{errors.type}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="status">
+                  {auto("Status *", "form.labels.status")}
+                </Label>
+                <Select name="status" defaultValue={vendor.status}>
+                  <SelectContent>
+                    <SelectItem value="PENDING">
+                      {auto("Pending", "form.status.pending")}
+                    </SelectItem>
+                    <SelectItem value="APPROVED">
+                      {auto("Approved", "form.status.approved")}
+                    </SelectItem>
+                    <SelectItem value="SUSPENDED">
+                      {auto("Suspended", "form.status.suspended")}
+                    </SelectItem>
+                    <SelectItem value="REJECTED">
+                      {auto("Rejected", "form.status.rejected")}
+                    </SelectItem>
+                    <SelectItem value="BLACKLISTED">
+                      {auto("Blacklisted", "form.status.blacklisted")}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.status && (
+                  <p className="text-sm text-destructive">{errors.status}</p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Contact Information */}
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>{auto("Contact Information", "card.contact")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Contact Name */}
+            <div className="space-y-2">
+              <Label htmlFor="contactName">
+                {auto("Contact Person Name", "form.labels.contactName")}
+              </Label>
+              <Input
+                id="contactName"
+                name="contactName"
+                defaultValue={vendor.contact?.primary?.name || ""}
+                placeholder={auto(
+                  "Enter contact person name",
+                  "form.placeholders.contactName",
+                )}
+              />
+              {errors["contact.primary.name"] && (
+                <p className="text-sm text-destructive">
+                  {errors["contact.primary.name"]}
+                </p>
+              )}
+            </div>
+
+            {/* Email & Phone */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="contactEmail">Email</Label>
+                <Input
+                  id="contactEmail"
+                  name="contactEmail"
+                  type="email"
+                  defaultValue={vendor.contact?.primary?.email || ""}
+                  placeholder="email@example.com"
+                />
+                {errors["contact.primary.email"] && (
+                  <p className="text-sm text-destructive">
+                    {errors["contact.primary.email"]}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="contactPhone">
+                  {auto("Phone", "form.labels.contactPhone")}
+                </Label>
+                <Input
+                  id="contactPhone"
+                  name="contactPhone"
+                  defaultValue={vendor.contact?.primary?.phone || ""}
+                  placeholder={auto(
+                    "+966XXXXXXXXX",
+                    "form.placeholders.contactPhone",
+                  )}
+                />
+                {errors["contact.primary.phone"] && (
+                  <p className="text-sm text-destructive">
+                    {errors["contact.primary.phone"]}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Mobile */}
+            <div className="space-y-2">
+              <Label htmlFor="contactMobile">
+                {auto("Mobile", "form.labels.contactMobile")}
+              </Label>
+              <Input
+                id="contactMobile"
+                name="contactMobile"
+                defaultValue={vendor.contact?.primary?.mobile || ""}
+                placeholder={auto(
+                  "+966XXXXXXXXX",
+                  "form.placeholders.contactMobile",
+                )}
+              />
+              {errors["contact.primary.mobile"] && (
+                <p className="text-sm text-destructive">
+                  {errors["contact.primary.mobile"]}
+                </p>
+              )}
+            </div>
+
+            {/* Address */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">
+                {auto("Address", "form.section.address")}
+              </h3>
+
+              <div className="space-y-2">
+                <Label htmlFor="addressStreet">
+                  {auto("Street", "form.labels.street")}
+                </Label>
+                <Input
+                  id="addressStreet"
+                  name="addressStreet"
+                  defaultValue={vendor.contact?.address?.street || ""}
+                  placeholder={auto(
+                    "Street address",
+                    "form.placeholders.street",
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="addressCity">
+                    {auto("City", "form.labels.city")}
+                  </Label>
+                  <Input
+                    id="addressCity"
+                    name="addressCity"
+                    defaultValue={vendor.contact?.address?.city || ""}
+                    placeholder={auto("City", "form.placeholders.city")}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="addressRegion">
+                    {auto("Region", "form.labels.region")}
+                  </Label>
+                  <Input
+                    id="addressRegion"
+                    name="addressRegion"
+                    defaultValue={vendor.contact?.address?.region || ""}
+                    placeholder={auto("Region", "form.placeholders.region")}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="addressPostalCode">
+                    {auto("Postal Code", "form.labels.postalCode")}
+                  </Label>
+                  <Input
+                    id="addressPostalCode"
+                    name="addressPostalCode"
+                    defaultValue={vendor.contact?.address?.postalCode || ""}
+                    placeholder={auto("12345", "form.placeholders.postalCode")}
+                  />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Business Information */}
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>
+              {auto("Business Information", "card.business")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Specializations */}
+            <div className="space-y-2">
+              <Label htmlFor="specializations">
+                {auto("Specializations", "form.labels.specializations")}
+              </Label>
+              <Input
+                id="specializations"
+                name="specializations"
+                defaultValue={
+                  vendor.business?.specializations?.join(", ") || ""
+                }
+                placeholder={auto(
+                  "e.g., Electrical, Plumbing, HVAC (comma-separated)",
+                  "form.placeholders.specializations",
+                )}
+              />
+              <p className="text-sm text-muted-foreground">
+                {auto(
+                  "Enter multiple specializations separated by commas",
+                  "form.helpers.specializations",
+                )}
+              </p>
+            </div>
+
+            {/* CR Number & Tax Number */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="crNumber">
+                  {auto("CR Number", "form.labels.crNumber")}
+                </Label>
+                <Input
+                  id="crNumber"
+                  name="crNumber"
+                  defaultValue={vendor.business?.crNumber || ""}
+                  placeholder={auto(
+                    "Commercial Registration Number",
+                    "form.placeholders.crNumber",
+                  )}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="taxNumber">
+                  {auto("Tax Number", "form.labels.taxNumber")}
+                </Label>
+                <Input
+                  id="taxNumber"
+                  name="taxNumber"
+                  defaultValue={vendor.business?.taxNumber || ""}
+                  placeholder={auto(
+                    "Tax Registration Number",
+                    "form.placeholders.taxNumber",
+                  )}
+                />
+              </div>
+            </div>
+
+            {/* License */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="licenseNumber">
+                  {auto("License Number", "form.labels.licenseNumber")}
+                </Label>
+                <Input
+                  id="licenseNumber"
+                  name="licenseNumber"
+                  defaultValue={vendor.business?.licenseNumber || ""}
+                  placeholder={auto(
+                    "License Number",
+                    "form.placeholders.licenseNumber",
+                  )}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="licenseExpiry">
+                  {auto("License Expiry", "form.labels.licenseExpiry")}
+                </Label>
+                <Input
+                  id="licenseExpiry"
+                  name="licenseExpiry"
+                  type="date"
+                  defaultValue={toInputDate(vendor.business?.licenseExpiry)}
+                />
+              </div>
+            </div>
+
+            {/* Insurance Expiry */}
+            <div className="space-y-2">
+              <Label htmlFor="insuranceExpiry">
+                {auto("Insurance Expiry", "form.labels.insuranceExpiry")}
+              </Label>
+              <Input
+                id="insuranceExpiry"
+                name="insuranceExpiry"
+                type="date"
+                defaultValue={toInputDate(vendor.business?.insuranceExpiry)}
+              />
+            </div>
+
+            {/* Business Description */}
+            <div className="space-y-2">
+              <Label htmlFor="businessDescription">
+                {auto(
+                  "Business Description",
+                  "form.labels.businessDescription",
+                )}
+              </Label>
+              <Textarea
+                id="businessDescription"
+                name="businessDescription"
+                defaultValue={vendor.business?.description || ""}
+                placeholder={auto(
+                  "Describe the vendor's business, services, and capabilities...",
+                  "form.placeholders.businessDescription",
+                )}
+                rows={4}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Actions */}
+        <div className="flex justify-end gap-4 mt-6">
+          <Link href={vendorId ? `/fm/vendors/${vendorId}` : "/fm/vendors"}>
+            <Button type="button" variant="outline">
+              {auto("Cancel", "actions.cancel")}
+            </Button>
+          </Link>
+          <Button type="submit" disabled={isSaving}>
+            <Save className="h-4 w-4 me-2" />
+            {isSaving
+              ? auto("Saving...", "actions.saving")
+              : auto("Save Changes", "actions.save")}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/vendors/[id]/page.tsx">
+<![CDATA[
+"use client";
+import { logger } from "@/lib/logger";
+
+import useSWR from "swr";
+import type { ReactNode } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { CardGridSkeleton } from "@/components/skeletons";
+import {
+  Building2,
+  MapPin,
+  Phone,
+  Mail,
+  User,
+  FileText,
+  ChevronLeft,
+  Edit,
+  Trash2,
+  Star,
+  Clock,
+  Shield,
+  Award,
+} from "lucide-react";
+import Link from "next/link";
+import ClientDate from "@/components/ClientDate";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { FmGuardedPage } from "@/components/fm/FmGuardedPage";
+
+interface Vendor {
+  id: string;
+  code: string;
+  name: string;
+  type: string;
+  status: "PENDING" | "APPROVED" | "SUSPENDED" | "REJECTED" | "BLACKLISTED";
+  contact?: {
+    primary?: {
+      name?: string;
+      email?: string;
+      phone?: string;
+      mobile?: string;
+    };
+    address?: {
+      street?: string;
+      city?: string;
+      region?: string;
+      postalCode?: string;
+    };
+  };
+  business?: {
+    specializations?: string[];
+    crNumber?: string;
+    taxNumber?: string;
+    licenseNumber?: string;
+    licenseExpiry?: string;
+    insuranceExpiry?: string;
+    description?: string;
+  };
+  rating?: number;
+  responseTime?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+const statusColors: Record<string, string> = {
+  APPROVED: "bg-success/10 text-success-foreground",
+  PENDING: "bg-warning/10 text-warning-foreground",
+  SUSPENDED: "bg-destructive/10 text-destructive-foreground",
+  REJECTED: "bg-muted text-foreground",
+  BLACKLISTED: "bg-destructive/20 text-destructive",
+};
+
+export default function VendorDetailsPage() {
+  return (
+    <FmGuardedPage moduleId="vendors">
+      {({ orgId, supportBanner }) => (
+        <VendorDetailsContent orgId={orgId} supportBanner={supportBanner} />
+      )}
+    </FmGuardedPage>
+  );
+}
+
+type VendorDetailsContentProps = {
+  orgId: string;
+  supportBanner?: ReactNode | null;
+};
+
+function VendorDetailsContent({
+  orgId,
+  supportBanner,
+}: VendorDetailsContentProps) {
+  const params = useParams();
+  const router = useRouter();
+  const { data: session } = useSession();
+  const { t } = useTranslation();
+
+  const handleDelete = async () => {
+    const confirmMessage = t(
+      "fm.vendors.detail.actions.confirmDelete",
+      'Delete vendor "{{name}}"? This cannot be undone.',
+    ).replace("{{name}}", vendor?.name ?? "");
+
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+    if (!orgId) {
+      toast.error(
+        t("fm.vendors.detail.errors.noOrgId", "Organization ID missing"),
+      );
+      return;
+    }
+
+    if (!params?.id) {
+      toast.error(
+        t("fm.vendors.detail.errors.noVendorId", "Vendor ID missing"),
+      );
+      return;
+    }
+
+    const toastId = toast.loading(
+      t("fm.vendors.detail.toasts.deleting", "Deleting vendor..."),
+    );
+    try {
+      const res = await fetch(`/api/vendors/${params.id}`, {
+        method: "DELETE",
+        headers: { "x-tenant-id": orgId },
+      });
+      if (!res.ok) throw new Error("Failed to delete vendor");
+      toast.success(
+        t("fm.vendors.detail.toasts.success", "Vendor deleted successfully"),
+        { id: toastId },
+      );
+      router.push("/fm/vendors");
+    } catch (_error) {
+      const message =
+        _error instanceof Error ? _error.message : "Failed to delete vendor";
+      const failureMessage = t(
+        "fm.vendors.detail.toasts.failure",
+        "Failed to delete vendor: {{message}}",
+      ).replace("{{message}}", message);
+      toast.error(failureMessage, { id: toastId });
+    }
+  };
+
+  const fetcher = (url: string) => {
+    if (!orgId) {
+      return Promise.reject(new Error("No organization ID"));
+    }
+    return fetch(url, {
+      headers: { "x-tenant-id": orgId },
+    })
+      .then((r) => r.json())
+      .catch((error) => {
+        logger.error("FM vendor detail fetch error", error);
+        throw error;
+      });
+  };
+
+  const {
+    data: vendor,
+    error,
+    isLoading,
+  } = useSWR<Vendor>(
+    orgId && params?.id ? `/api/vendors/${params.id}` : null,
+    fetcher,
+  );
+
+  if (!session) return <CardGridSkeleton count={3} />;
+  if (error)
+    return (
+      <div>
+        {t("fm.vendors.detail.errors.loadFailed", "Failed to load vendor")}
+      </div>
+    );
+  if (isLoading || !vendor) return <CardGridSkeleton count={3} />;
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="vendors" />
+      {supportBanner}
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Link href="/fm/vendors">
+            <Button variant="ghost" size="sm">
+              <ChevronLeft className="w-4 h-4 me-1" />
+              Back
+            </Button>
+          </Link>
+          <div>
+            <div className="flex items-center space-x-3">
+              <h1 className="text-3xl font-bold">{vendor.name}</h1>
+              <Badge className={statusColors[vendor.status] || "bg-muted"}>
+                {vendor.status}
+              </Badge>
+            </div>
+            <p className="text-muted-foreground">{vendor.code}</p>
+          </div>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (params?.id) {
+                router.push(`/fm/vendors/${params.id}/edit`);
+              }
+            }}
+          >
+            <Edit className="w-4 h-4 me-2" />
+            Edit
+          </Button>
+          <Button
+            variant="outline"
+            className="text-destructive hover:text-destructive"
+            onClick={handleDelete}
+          >
+            <Trash2 className="w-4 h-4 me-2" />
+            Delete
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Details */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Overview Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Building2 className="w-5 h-5 me-2" />
+                Vendor Overview
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Vendor Type</p>
+                  <p className="font-medium">{vendor.type || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <Badge className={statusColors[vendor.status] || "bg-muted"}>
+                    {vendor.status}
+                  </Badge>
+                </div>
+                {vendor.rating && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Rating</p>
+                    <div className="flex items-center">
+                      <Star className="w-4 h-4 text-warning me-1" />
+                      <p className="font-medium">
+                        {vendor.rating.toFixed(1)} / 5.0
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {vendor.responseTime && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      Response Time
+                    </p>
+                    <div className="flex items-center">
+                      <Clock className="w-4 h-4 text-primary me-1" />
+                      <p className="font-medium">{vendor.responseTime}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {vendor.business?.description && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Description
+                    </p>
+                    <p className="text-foreground">
+                      {vendor.business.description}
+                    </p>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Business Information */}
+          {vendor.business && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <FileText className="w-5 h-5 me-2" />
+                  Business Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  {vendor.business.crNumber && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">CR Number</p>
+                      <p className="font-medium">{vendor.business.crNumber}</p>
+                    </div>
+                  )}
+                  {vendor.business.taxNumber && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        Tax Number
+                      </p>
+                      <p className="font-medium">{vendor.business.taxNumber}</p>
+                    </div>
+                  )}
+                  {vendor.business.licenseNumber && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        License Number
+                      </p>
+                      <p className="font-medium">
+                        {vendor.business.licenseNumber}
+                      </p>
+                    </div>
+                  )}
+                  {vendor.business.licenseExpiry && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        License Expiry
+                      </p>
+                      <p className="font-medium">
+                        <ClientDate
+                          date={vendor.business.licenseExpiry}
+                          format="date-only"
+                        />
+                      </p>
+                    </div>
+                  )}
+                  {vendor.business.insuranceExpiry && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        Insurance Expiry
+                      </p>
+                      <p className="font-medium">
+                        <ClientDate
+                          date={vendor.business.insuranceExpiry}
+                          format="date-only"
+                        />
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {vendor.business.specializations &&
+                  vendor.business.specializations.length > 0 && (
+                    <>
+                      <Separator />
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-2 flex items-center">
+                          <Award className="w-4 h-4 me-1" />
+                          Specializations
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {vendor.business.specializations.map((spec) => (
+                            <Badge key={spec} variant="outline">
+                              {spec}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Contact Information */}
+          {vendor.contact?.primary && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <User className="w-5 h-5 me-2" />
+                  Contact Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 gap-4">
+                  {vendor.contact.primary.name && (
+                    <div className="flex items-center">
+                      <User className="w-4 h-4 text-muted-foreground me-2" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">
+                          Contact Person
+                        </p>
+                        <p className="font-medium">
+                          {vendor.contact.primary.name}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {vendor.contact.primary.email && (
+                    <div className="flex items-center">
+                      <Mail className="w-4 h-4 text-muted-foreground me-2" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Email</p>
+                        <a
+                          href={`mailto:${vendor.contact.primary.email}`}
+                          className="font-medium text-primary hover:underline"
+                        >
+                          {vendor.contact.primary.email}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  {vendor.contact.primary.phone && (
+                    <div className="flex items-center">
+                      <Phone className="w-4 h-4 text-muted-foreground me-2" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Phone</p>
+                        <a
+                          href={`tel:${vendor.contact.primary.phone}`}
+                          className="font-medium text-primary hover:underline"
+                        >
+                          {vendor.contact.primary.phone}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  {vendor.contact.primary.mobile && (
+                    <div className="flex items-center">
+                      <Phone className="w-4 h-4 text-muted-foreground me-2" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Mobile</p>
+                        <a
+                          href={`tel:${vendor.contact.primary.mobile}`}
+                          className="font-medium text-primary hover:underline"
+                        >
+                          {vendor.contact.primary.mobile}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {vendor.contact.address && (
+                  <>
+                    <Separator />
+                    <div className="flex items-start">
+                      <MapPin className="w-4 h-4 text-muted-foreground me-2 mt-1" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Address</p>
+                        <p className="font-medium">
+                          {[
+                            vendor.contact.address.street,
+                            vendor.contact.address.city,
+                            vendor.contact.address.region,
+                            vendor.contact.address.postalCode,
+                          ]
+                            .filter(Boolean)
+                            .join(", ") || "N/A"}
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Right Column - Stats & Quick Info */}
+        <div className="space-y-6">
+          {/* Quick Stats */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Quick Stats</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {vendor.rating && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Rating</span>
+                  <div className="flex items-center">
+                    <Star className="w-4 h-4 text-warning me-1" />
+                    <span className="font-medium">
+                      {vendor.rating.toFixed(1)}
+                    </span>
+                  </div>
+                </div>
+              )}
+              {vendor.responseTime && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    Avg. Response
+                  </span>
+                  <div className="flex items-center">
+                    <Clock className="w-4 h-4 text-primary me-1" />
+                    <span className="font-medium">{vendor.responseTime}</span>
+                  </div>
+                </div>
+              )}
+              <Separator />
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Status</span>
+                <Badge className={statusColors[vendor.status] || "bg-muted"}>
+                  {vendor.status}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Verification Status */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center">
+                <Shield className="w-4 h-4 me-2" />
+                Verification Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                  CR Verified
+                </span>
+                <Badge
+                  variant={vendor.business?.crNumber ? "default" : "outline"}
+                >
+                  {vendor.business?.crNumber ? "Yes" : "Pending"}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                  License Valid
+                </span>
+                <Badge
+                  variant={
+                    vendor.business?.licenseNumber ? "default" : "outline"
+                  }
+                >
+                  {vendor.business?.licenseNumber ? "Yes" : "Pending"}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                  Insurance Active
+                </span>
+                <Badge
+                  variant={
+                    vendor.business?.insuranceExpiry ? "default" : "outline"
+                  }
+                >
+                  {vendor.business?.insuranceExpiry ? "Yes" : "No"}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Timestamps */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Record Info</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {vendor.createdAt && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Created</p>
+                  <p className="text-sm font-medium">
+                    <ClientDate date={vendor.createdAt} format="date-only" />
+                  </p>
+                </div>
+              )}
+              {vendor.updatedAt && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Last Updated</p>
+                  <p className="text-sm font-medium">
+                    <ClientDate date={vendor.updatedAt} format="date-only" />
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+</batch_content>

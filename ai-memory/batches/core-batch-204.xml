@@ -1,0 +1,2269 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="i18n/sources/parkingManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "parkingManagement.accessibility": "Accessible Parking",
+    "parkingManagement.availability": "Space Availability",
+    "parkingManagement.citation": "Citation",
+    "parkingManagement.daily": "Daily Rate",
+    "parkingManagement.electric": "EV Charging",
+    "parkingManagement.enforcement": "Parking Enforcement",
+    "parkingManagement.fee": "Parking Fee",
+    "parkingManagement.garage": "Parking Garage",
+    "parkingManagement.hourly": "Hourly Rate",
+    "parkingManagement.lot": "Parking Lot",
+    "parkingManagement.monthly": "Monthly Pass",
+    "parkingManagement.occupancy": "Parking Occupancy",
+    "parkingManagement.parking": "Parking Management",
+    "parkingManagement.pass": "Parking Pass",
+    "parkingManagement.payment": "Parking Payment",
+    "parkingManagement.permit": "Parking Permit",
+    "parkingManagement.rate": "Parking Rate",
+    "parkingManagement.reservation": "Parking Reservation",
+    "parkingManagement.space": "Parking Space",
+    "parkingManagement.valet": "Valet Parking",
+    "parkingManagement.validation": "Parking Validation",
+    "parkingManagement.violation": "Parking Violation"
+  },
+  "ar": {
+    "parkingManagement.accessibility": "مواقف لذوي الإعاقة",
+    "parkingManagement.availability": "توفر المواقف",
+    "parkingManagement.citation": "مخالفة رسمية",
+    "parkingManagement.daily": "رسوم يومية",
+    "parkingManagement.electric": "شحن المركبات الكهربائية",
+    "parkingManagement.enforcement": "مراقبة المواقف",
+    "parkingManagement.fee": "رسوم المواقف",
+    "parkingManagement.garage": "مواقف متعددة الطوابق",
+    "parkingManagement.hourly": "رسوم بالساعة",
+    "parkingManagement.lot": "ساحة المواقف",
+    "parkingManagement.monthly": "اشتراك شهري",
+    "parkingManagement.occupancy": "نسبة الإشغال",
+    "parkingManagement.parking": "إدارة المواقف",
+    "parkingManagement.pass": "بطاقة المواقف",
+    "parkingManagement.payment": "دفع رسوم المواقف",
+    "parkingManagement.permit": "تصريح المواقف",
+    "parkingManagement.rate": "تعرفة المواقف",
+    "parkingManagement.reservation": "حجز المواقف",
+    "parkingManagement.space": "مساحة المواقف",
+    "parkingManagement.valet": "خدمة صف السيارات",
+    "parkingManagement.validation": "التحقق من المواقف",
+    "parkingManagement.violation": "مخالفة المواقف"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/partnerEcosystem.translations.json">
+<![CDATA[
+{
+  "en": {
+    "partnerEcosystem.analytics": "Partner Analytics",
+    "partnerEcosystem.certification": "Partner Certification",
+    "partnerEcosystem.collaboration": "Partner Collaboration",
+    "partnerEcosystem.community": "Partner Community",
+    "partnerEcosystem.development": "Partner Development",
+    "partnerEcosystem.ecosystem": "Ecosystem Management",
+    "partnerEcosystem.enablement": "Partner Enablement",
+    "partnerEcosystem.engagement": "Partner Engagement",
+    "partnerEcosystem.governance": "Partner Governance",
+    "partnerEcosystem.innovation": "Partner Innovation",
+    "partnerEcosystem.integration": "Partner Integration",
+    "partnerEcosystem.management": "Partner Management",
+    "partnerEcosystem.network": "Partner Network",
+    "partnerEcosystem.partner": "Partner Ecosystem",
+    "partnerEcosystem.performance": "Partner Performance",
+    "partnerEcosystem.platform": "Partner Platform",
+    "partnerEcosystem.portal": "Partner Portal",
+    "partnerEcosystem.program": "Partner Program",
+    "partnerEcosystem.success": "Partner Success",
+    "partnerEcosystem.support": "Partner Support",
+    "partnerEcosystem.training": "Partner Training",
+    "partnerEcosystem.value": "Partner Value"
+  },
+  "ar": {
+    "partnerEcosystem.analytics": "تحليلات الشركاء",
+    "partnerEcosystem.certification": "اعتماد الشركاء",
+    "partnerEcosystem.collaboration": "التعاون مع الشركاء",
+    "partnerEcosystem.community": "مجتمع الشركاء",
+    "partnerEcosystem.development": "تطوير الشركاء",
+    "partnerEcosystem.ecosystem": "إدارة النظام البيئي",
+    "partnerEcosystem.enablement": "تمكين الشركاء",
+    "partnerEcosystem.engagement": "إشراك الشركاء",
+    "partnerEcosystem.governance": "حوكمة الشركاء",
+    "partnerEcosystem.innovation": "ابتكار الشركاء",
+    "partnerEcosystem.integration": "تكامل الشركاء",
+    "partnerEcosystem.management": "إدارة الشركاء",
+    "partnerEcosystem.network": "شبكة الشركاء",
+    "partnerEcosystem.partner": "نظام الشركاء",
+    "partnerEcosystem.performance": "أداء الشركاء",
+    "partnerEcosystem.platform": "منصة الشركاء",
+    "partnerEcosystem.portal": "بوابة الشركاء",
+    "partnerEcosystem.program": "برنامج الشركاء",
+    "partnerEcosystem.success": "نجاح الشركاء",
+    "partnerEcosystem.support": "دعم الشركاء",
+    "partnerEcosystem.training": "تدريب الشركاء",
+    "partnerEcosystem.value": "قيمة الشركاء"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/partnershipManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "partnershipManagement.agreement": "Partnership Agreement",
+    "partnershipManagement.alliance": "Strategic Alliance",
+    "partnershipManagement.channel": "Channel Partnership",
+    "partnershipManagement.collaboration": "Partnership Collaboration",
+    "partnershipManagement.commission": "Partner Commission",
+    "partnershipManagement.development": "Co-Development",
+    "partnershipManagement.distributor": "Distributor",
+    "partnershipManagement.enablement": "Partner Enablement",
+    "partnershipManagement.marketing": "Co-Marketing",
+    "partnershipManagement.onboarding": "Partner Onboarding",
+    "partnershipManagement.partnership": "Partnership Management",
+    "partnershipManagement.performance": "Partner Performance",
+    "partnershipManagement.portal": "Partner Portal",
+    "partnershipManagement.program": "Partner Program",
+    "partnershipManagement.referral": "Referral Partner",
+    "partnershipManagement.relationship": "Partnership Relationship",
+    "partnershipManagement.renewal": "Partnership Renewal",
+    "partnershipManagement.reseller": "Reseller",
+    "partnershipManagement.revenue": "Revenue Sharing",
+    "partnershipManagement.support": "Partner Support",
+    "partnershipManagement.tier": "Partner Tier",
+    "partnershipManagement.training": "Partner Training"
+  },
+  "ar": {
+    "partnershipManagement.agreement": "اتفاقية الشراكة",
+    "partnershipManagement.alliance": "التحالف الاستراتيجي",
+    "partnershipManagement.channel": "شراكة القناة",
+    "partnershipManagement.collaboration": "التعاون في الشراكة",
+    "partnershipManagement.commission": "عمولة الشريك",
+    "partnershipManagement.development": "التطوير المشترك",
+    "partnershipManagement.distributor": "الموزع",
+    "partnershipManagement.enablement": "تمكين الشريك",
+    "partnershipManagement.marketing": "التسويق المشترك",
+    "partnershipManagement.onboarding": "تأهيل الشريك",
+    "partnershipManagement.partnership": "إدارة الشراكات",
+    "partnershipManagement.performance": "أداء الشريك",
+    "partnershipManagement.portal": "بوابة الشريك",
+    "partnershipManagement.program": "برنامج الشراكة",
+    "partnershipManagement.referral": "شريك الإحالة",
+    "partnershipManagement.relationship": "علاقة الشراكة",
+    "partnershipManagement.renewal": "تجديد الشراكة",
+    "partnershipManagement.reseller": "الموزع",
+    "partnershipManagement.revenue": "تقاسم الإيرادات",
+    "partnershipManagement.support": "دعم الشريك",
+    "partnershipManagement.tier": "مستوى الشريك",
+    "partnershipManagement.training": "تدريب الشريك"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/patentManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "patentManagement.analytics": "Patent Analytics",
+    "patentManagement.application": "Patent Application",
+    "patentManagement.enforcement": "Patent Enforcement",
+    "patentManagement.examination": "Patent Examination",
+    "patentManagement.filing": "Patent Filing",
+    "patentManagement.grant": "Patent Grant",
+    "patentManagement.infringement": "Patent Infringement",
+    "patentManagement.intelligence": "Patent Intelligence",
+    "patentManagement.invalidity": "Patent Invalidity",
+    "patentManagement.landscape": "Patent Landscape",
+    "patentManagement.licensing": "Patent Licensing",
+    "patentManagement.litigation": "Patent Litigation",
+    "patentManagement.maintenance": "Patent Maintenance",
+    "patentManagement.management": "Patent Administration",
+    "patentManagement.monetization": "Patent Monetization",
+    "patentManagement.opposition": "Patent Opposition",
+    "patentManagement.patent": "Patent Management",
+    "patentManagement.portfolio": "Patent Portfolio",
+    "patentManagement.prosecution": "Patent Prosecution",
+    "patentManagement.renewal": "Patent Renewal",
+    "patentManagement.search": "Patent Search",
+    "patentManagement.strategy": "Patent Strategy"
+  },
+  "ar": {
+    "patentManagement.analytics": "تحليلات براءات الاختراع",
+    "patentManagement.application": "طلب براءة الاختراع",
+    "patentManagement.enforcement": "إنفاذ براءة الاختراع",
+    "patentManagement.examination": "فحص براءة الاختراع",
+    "patentManagement.filing": "تقديم طلب براءة الاختراع",
+    "patentManagement.grant": "منح براءة الاختراع",
+    "patentManagement.infringement": "انتهاك براءة الاختراع",
+    "patentManagement.intelligence": "ذكاء براءات الاختراع",
+    "patentManagement.invalidity": "بطلان براءة الاختراع",
+    "patentManagement.landscape": "مشهد براءات الاختراع",
+    "patentManagement.licensing": "ترخيص براءة الاختراع",
+    "patentManagement.litigation": "التقاضي في براءة الاختراع",
+    "patentManagement.maintenance": "صيانة براءة الاختراع",
+    "patentManagement.management": "إدارة براءات الاختراع",
+    "patentManagement.monetization": "تحقيق الدخل من براءة الاختراع",
+    "patentManagement.opposition": "معارضة براءة الاختراع",
+    "patentManagement.patent": "إدارة براءات الاختراع",
+    "patentManagement.portfolio": "محفظة براءات الاختراع",
+    "patentManagement.prosecution": "ملاحقة براءة الاختراع",
+    "patentManagement.renewal": "تجديد براءة الاختراع",
+    "patentManagement.search": "البحث عن براءات الاختراع",
+    "patentManagement.strategy": "استراتيجية براءات الاختراع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/patientCare.translations.json">
+<![CDATA[
+{
+  "en": {
+    "patientCare.acute": "Acute Care",
+    "patientCare.administration": "Medication Administration",
+    "patientCare.allergies": "Patient Allergies",
+    "patientCare.anesthesia": "Anesthesia",
+    "patientCare.assessment": "Patient Assessment",
+    "patientCare.care": "Patient Care",
+    "patientCare.chronic": "Chronic Disease Management",
+    "patientCare.contraindications": "Contraindications",
+    "patientCare.counseling": "Patient Counseling",
+    "patientCare.description": "Patient Care and Treatment Services",
+    "patientCare.diagnosis": "Medical Diagnosis",
+    "patientCare.discharge": "Discharge Planning",
+    "patientCare.dosage": "Dosage Management",
+    "patientCare.education": "Patient Education",
+    "patientCare.evaluation": "Clinical Evaluation",
+    "patientCare.followup": "Follow-up Care",
+    "patientCare.glucose": "Blood Glucose",
+    "patientCare.homecare": "Home Care Services",
+    "patientCare.hospice": "Hospice Care",
+    "patientCare.interactions": "Drug Interactions",
+    "patientCare.medication": "Medication Management",
+    "patientCare.monitoring": "Patient Monitoring",
+    "patientCare.nutrition": "Nutritional Support",
+    "patientCare.observation": "Clinical Observation",
+    "patientCare.occupationalTherapyService": "Occupational Therapy",
+    "patientCare.oxygen": "Oxygen Saturation",
+    "patientCare.pain": "Pain Management",
+    "patientCare.palliative": "Palliative Care",
+    "patientCare.physical": "Physical Therapy",
+    "patientCare.prescriptions": "Prescriptions",
+    "patientCare.pressure": "Blood Pressure",
+    "patientCare.procedures": "Medical Procedures",
+    "patientCare.pulse": "Pulse Rate",
+    "patientCare.recovery": "Post-operative Recovery",
+    "patientCare.rehabilitation": "Rehabilitation Services",
+    "patientCare.speech": "Speech Therapy",
+    "patientCare.surgery": "Surgical Procedures",
+    "patientCare.temperature": "Temperature Monitoring",
+    "patientCare.title": "Patient Care",
+    "patientCare.treatment": "Medical Treatment",
+    "patientCare.vitals": "Vital Signs",
+    "patientCare.wound": "Wound Care"
+  },
+  "ar": {
+    "patientCare.acute": "الرعاية الحادة",
+    "patientCare.administration": "إعطاء الدواء",
+    "patientCare.allergies": "حساسية المريض",
+    "patientCare.anesthesia": "التخدير",
+    "patientCare.assessment": "تقييم المريض",
+    "patientCare.care": "رعاية المرضى",
+    "patientCare.chronic": "إدارة الأمراض المزمنة",
+    "patientCare.contraindications": "موانع الاستعمال",
+    "patientCare.counseling": "استشارات المرضى",
+    "patientCare.description": "خدمات رعاية وعلاج المرضى",
+    "patientCare.diagnosis": "التشخيص الطبي",
+    "patientCare.discharge": "تخطيط الخروج",
+    "patientCare.dosage": "إدارة الجرعات",
+    "patientCare.education": "تثقيف المرضى",
+    "patientCare.evaluation": "التقييم السريري",
+    "patientCare.followup": "الرعاية اللاحقة",
+    "patientCare.glucose": "جلوكوز الدم",
+    "patientCare.homecare": "خدمات الرعاية المنزلية",
+    "patientCare.hospice": "رعاية المحتضرين",
+    "patientCare.interactions": "التفاعلات الدوائية",
+    "patientCare.medication": "إدارة الأدوية",
+    "patientCare.monitoring": "مراقبة المريض",
+    "patientCare.nutrition": "الدعم الغذائي",
+    "patientCare.observation": "الملاحظة السريرية",
+    "patientCare.occupationalTherapyService": "العلاج الوظيفي",
+    "patientCare.oxygen": "تشبع الأكسجين",
+    "patientCare.pain": "إدارة الألم",
+    "patientCare.palliative": "الرعاية التلطيفية",
+    "patientCare.physical": "العلاج الطبيعي",
+    "patientCare.prescriptions": "الوصفات الطبية",
+    "patientCare.pressure": "ضغط الدم",
+    "patientCare.procedures": "الإجراءات الطبية",
+    "patientCare.pulse": "معدل النبض",
+    "patientCare.recovery": "التعافي بعد العملية",
+    "patientCare.rehabilitation": "خدمات التأهيل",
+    "patientCare.speech": "علاج النطق",
+    "patientCare.surgery": "الإجراءات الجراحية",
+    "patientCare.temperature": "مراقبة درجة الحرارة",
+    "patientCare.title": "رعاية المرضى",
+    "patientCare.treatment": "العلاج الطبي",
+    "patientCare.vitals": "العلامات الحيوية",
+    "patientCare.wound": "العناية بالجروح"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/payPerClickAdvertising.translations.json">
+<![CDATA[
+{
+  "en": {
+    "payPerClickAdvertising.abtesting": "A/B Testing",
+    "payPerClickAdvertising.ad": "Advertisement",
+    "payPerClickAdvertising.adgroup": "Ad Group",
+    "payPerClickAdvertising.advertising": "Pay-Per-Click Advertising",
+    "payPerClickAdvertising.audience": "Target Audience",
+    "payPerClickAdvertising.bid": "Bid",
+    "payPerClickAdvertising.bidding": "Bidding",
+    "payPerClickAdvertising.budget": "Campaign Budget",
+    "payPerClickAdvertising.campaign": "Ad Campaign",
+    "payPerClickAdvertising.click": "Ad Click",
+    "payPerClickAdvertising.conversion": "Ad Conversion",
+    "payPerClickAdvertising.cpc": "Cost Per Click",
+    "payPerClickAdvertising.cpm": "Cost Per Mille",
+    "payPerClickAdvertising.ctr": "Click-Through Rate",
+    "payPerClickAdvertising.impression": "Ad Impression",
+    "payPerClickAdvertising.keyword": "Keyword",
+    "payPerClickAdvertising.landing": "Landing Page",
+    "payPerClickAdvertising.optimization": "Campaign Optimization",
+    "payPerClickAdvertising.ppc": "PPC",
+    "payPerClickAdvertising.quality": "Quality Score",
+    "payPerClickAdvertising.roi": "Return on Investment",
+    "payPerClickAdvertising.spend": "Ad Spend",
+    "payPerClickAdvertising.targeting": "Ad Targeting"
+  },
+  "ar": {
+    "payPerClickAdvertising.abtesting": "اختبار A/B",
+    "payPerClickAdvertising.ad": "إعلان",
+    "payPerClickAdvertising.adgroup": "مجموعة إعلانية",
+    "payPerClickAdvertising.advertising": "الإعلان بالدفع بالنقرة",
+    "payPerClickAdvertising.audience": "الجمهور المستهدف",
+    "payPerClickAdvertising.bid": "عرض السعر",
+    "payPerClickAdvertising.bidding": "المزايدة",
+    "payPerClickAdvertising.budget": "ميزانية الحملة",
+    "payPerClickAdvertising.campaign": "حملة إعلانية",
+    "payPerClickAdvertising.click": "نقرة الإعلان",
+    "payPerClickAdvertising.conversion": "تحويل الإعلان",
+    "payPerClickAdvertising.cpc": "التكلفة لكل نقرة",
+    "payPerClickAdvertising.cpm": "التكلفة لكل ألف ظهور",
+    "payPerClickAdvertising.ctr": "معدل النقر إلى الظهور",
+    "payPerClickAdvertising.impression": "ظهور الإعلان",
+    "payPerClickAdvertising.keyword": "كلمة مفتاحية",
+    "payPerClickAdvertising.landing": "صفحة الهبوط",
+    "payPerClickAdvertising.optimization": "تحسين الحملة",
+    "payPerClickAdvertising.ppc": "الدفع بالنقرة",
+    "payPerClickAdvertising.quality": "نقاط الجودة",
+    "payPerClickAdvertising.roi": "عائد الاستثمار",
+    "payPerClickAdvertising.spend": "الإنفاق الإعلاني",
+    "payPerClickAdvertising.targeting": "استهداف الإعلان"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/payablesManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "payablesManagement.accountsPayable": "Accounts Payable",
+    "payablesManagement.accruals": "Expense Accruals",
+    "payablesManagement.ach": "ACH Payments",
+    "payablesManagement.agingReports": "Aging Reports",
+    "payablesManagement.ap": "AP Management",
+    "payablesManagement.checks": "Check Printing",
+    "payablesManagement.disbursements": "Cash Disbursements",
+    "payablesManagement.earlyPay": "Early Payment Discounts",
+    "payablesManagement.eft": "EFT Payments",
+    "payablesManagement.expenseMgmt": "Expense Management",
+    "payablesManagement.invoiceApproval": "Invoice Approval",
+    "payablesManagement.invoiceProcessing": "Invoice Processing",
+    "payablesManagement.paymentProcessing": "Payment Processing",
+    "payablesManagement.paymentTerms": "Payment Terms",
+    "payablesManagement.prepayments": "Prepayment Management",
+    "payablesManagement.reimbursement": "Expense Reimbursement",
+    "payablesManagement.suppliers": "Supplier Management",
+    "payablesManagement.threeWayMatch": "Three-Way Matching",
+    "payablesManagement.vendorMgmt": "Vendor Management",
+    "payablesManagement.wireTransfers": "Wire Transfers"
+  },
+  "ar": {
+    "payablesManagement.accountsPayable": "الحسابات الدائنة",
+    "payablesManagement.accruals": "مستحقات المصروفات",
+    "payablesManagement.ach": "مدفوعات ACH",
+    "payablesManagement.agingReports": "تقارير الأعمار",
+    "payablesManagement.ap": "إدارة الحسابات الدائنة",
+    "payablesManagement.checks": "طباعة الشيكات",
+    "payablesManagement.disbursements": "المدفوعات النقدية",
+    "payablesManagement.earlyPay": "خصومات الدفع المبكر",
+    "payablesManagement.eft": "مدفوعات EFT",
+    "payablesManagement.expenseMgmt": "إدارة المصروفات",
+    "payablesManagement.invoiceApproval": "الموافقة على الفواتير",
+    "payablesManagement.invoiceProcessing": "معالجة الفواتير",
+    "payablesManagement.paymentProcessing": "معالجة المدفوعات",
+    "payablesManagement.paymentTerms": "شروط الدفع",
+    "payablesManagement.prepayments": "إدارة المدفوعات المسبقة",
+    "payablesManagement.reimbursement": "سداد المصروفات",
+    "payablesManagement.suppliers": "إدارة الموردين",
+    "payablesManagement.threeWayMatch": "المطابقة الثلاثية",
+    "payablesManagement.vendorMgmt": "إدارة الموردين",
+    "payablesManagement.wireTransfers": "التحويلات البرقية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/paymentGateways.translations.json">
+<![CDATA[
+{
+  "en": {
+    "paymentGateways.apiKey": "API Key",
+    "paymentGateways.authorize": "Authorize.net",
+    "paymentGateways.braintree": "Braintree",
+    "paymentGateways.configure": "Configure Gateway",
+    "paymentGateways.creditCard": "Credit Card",
+    "paymentGateways.debitCard": "Debit Card",
+    "paymentGateways.digital": "Digital Wallet",
+    "paymentGateways.disable": "Disable",
+    "paymentGateways.enable": "Enable",
+    "paymentGateways.fee": "Transaction Fee",
+    "paymentGateways.gateway": "Payment Gateway",
+    "paymentGateways.live": "Live Mode",
+    "paymentGateways.merchantId": "Merchant ID",
+    "paymentGateways.paypal": "PayPal",
+    "paymentGateways.processor": "Payment Processor",
+    "paymentGateways.publicKey": "Public Key",
+    "paymentGateways.secretKey": "Secret Key",
+    "paymentGateways.square": "Square",
+    "paymentGateways.stripe": "Stripe",
+    "paymentGateways.supported": "Supported Methods",
+    "paymentGateways.test": "Test Mode",
+    "paymentGateways.webhook": "Webhook URL"
+  },
+  "ar": {
+    "paymentGateways.apiKey": "مفتاح API",
+    "paymentGateways.authorize": "Authorize.net",
+    "paymentGateways.braintree": "Braintree",
+    "paymentGateways.configure": "تكوين البوابة",
+    "paymentGateways.creditCard": "بطاقة ائتمان",
+    "paymentGateways.debitCard": "بطاقة خصم",
+    "paymentGateways.digital": "محفظة رقمية",
+    "paymentGateways.disable": "تعطيل",
+    "paymentGateways.enable": "تفعيل",
+    "paymentGateways.fee": "رسوم المعاملة",
+    "paymentGateways.gateway": "بوابة الدفع",
+    "paymentGateways.live": "الوضع المباشر",
+    "paymentGateways.merchantId": "معرف التاجر",
+    "paymentGateways.paypal": "باي بال",
+    "paymentGateways.processor": "معالج الدفع",
+    "paymentGateways.publicKey": "المفتاح العام",
+    "paymentGateways.secretKey": "المفتاح السري",
+    "paymentGateways.square": "سكوير",
+    "paymentGateways.stripe": "سترايب",
+    "paymentGateways.supported": "الطرق المدعومة",
+    "paymentGateways.test": "وضع الاختبار",
+    "paymentGateways.webhook": "رابط Webhook"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/paymentGatewaysAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "paymentGatewaysAdv.ach": "ACH",
+    "paymentGatewaysAdv.authorize": "Authorize.Net",
+    "paymentGatewaysAdv.bank": "Bank Transfer",
+    "paymentGatewaysAdv.braintree": "Braintree",
+    "paymentGatewaysAdv.card": "Credit Card",
+    "paymentGatewaysAdv.chargeback": "Chargeback",
+    "paymentGatewaysAdv.crypto": "Cryptocurrency",
+    "paymentGatewaysAdv.debit": "Debit Card",
+    "paymentGatewaysAdv.invoice": "Invoice Payment",
+    "paymentGatewaysAdv.merchant": "Merchant Account",
+    "paymentGatewaysAdv.payment": "Payment Gateway",
+    "paymentGatewaysAdv.paypal": "PayPal",
+    "paymentGatewaysAdv.pci": "PCI Compliance",
+    "paymentGatewaysAdv.recurring": "Recurring Payment",
+    "paymentGatewaysAdv.refund": "Refund",
+    "paymentGatewaysAdv.settlement": "Settlement",
+    "paymentGatewaysAdv.square": "Square",
+    "paymentGatewaysAdv.stripe": "Stripe",
+    "paymentGatewaysAdv.subscription": "Subscription",
+    "paymentGatewaysAdv.tokenization": "Tokenization",
+    "paymentGatewaysAdv.wallet": "Digital Wallet",
+    "paymentGatewaysAdv.wire": "Wire Transfer"
+  },
+  "ar": {
+    "paymentGatewaysAdv.ach": "ACH",
+    "paymentGatewaysAdv.authorize": "Authorize.Net",
+    "paymentGatewaysAdv.bank": "تحويل بنكي",
+    "paymentGatewaysAdv.braintree": "Braintree",
+    "paymentGatewaysAdv.card": "بطاقة ائتمان",
+    "paymentGatewaysAdv.chargeback": "رد المبلغ",
+    "paymentGatewaysAdv.crypto": "عملة رقمية",
+    "paymentGatewaysAdv.debit": "بطاقة خصم",
+    "paymentGatewaysAdv.invoice": "دفع الفاتورة",
+    "paymentGatewaysAdv.merchant": "حساب التاجر",
+    "paymentGatewaysAdv.payment": "بوابة الدفع",
+    "paymentGatewaysAdv.paypal": "PayPal",
+    "paymentGatewaysAdv.pci": "امتثال PCI",
+    "paymentGatewaysAdv.recurring": "دفع متكرر",
+    "paymentGatewaysAdv.refund": "الاسترداد",
+    "paymentGatewaysAdv.settlement": "التسوية",
+    "paymentGatewaysAdv.square": "Square",
+    "paymentGatewaysAdv.stripe": "Stripe",
+    "paymentGatewaysAdv.subscription": "الاشتراك",
+    "paymentGatewaysAdv.tokenization": "الترميز",
+    "paymentGatewaysAdv.wallet": "المحفظة الرقمية",
+    "paymentGatewaysAdv.wire": "حوالة بنكية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/payments.translations.json">
+<![CDATA[
+{
+  "en": {
+    "payments.bankTransfer": "Bank Transfer",
+    "payments.cash": "Cash",
+    "payments.cheque": "Cheque",
+    "payments.creditCard": "Credit Card",
+    "payments.debitCard": "Debit Card",
+    "payments.makePayment": "Make Payment",
+    "payments.onlinePayment": "Online Payment",
+    "payments.paymentAmount": "Payment Amount",
+    "payments.paymentDate": "Payment Date",
+    "payments.paymentDetails": "Payment Details",
+    "payments.paymentFailed": "Payment Failed",
+    "payments.paymentHistory": "Payment History",
+    "payments.paymentMethod": "Payment Method",
+    "payments.paymentPending": "Payment Pending",
+    "payments.paymentReceived": "Payment Received",
+    "payments.paymentReference": "Payment Reference",
+    "payments.paymentStatus": "Payment Status",
+    "payments.tap.applePay": "آبل باي",
+    "payments.tap.cardHolder": "اسم حامل البطاقة",
+    "payments.tap.cardNumber": "رقم البطاقة",
+    "payments.tap.contactSupport": "في حال وجود أي استفسار، يرجى التواصل مع الدعم الفني",
+    "payments.tap.creditOrDebitCard": "بطاقة ائتمان أو خصم",
+    "payments.tap.cvv": "رمز الحماية",
+    "payments.tap.doNotRefresh": "يرجى عدم إغلاق هذه النافذة أو العودة للخلف",
+    "payments.tap.errors.expiredCard": "البطاقة منتهية الصلاحية",
+    "payments.tap.errors.generalError": "حدث خطأ أثناء معالجة الدفع، يرجى المحاولة مرة أخرى",
+    "payments.tap.errors.insufficientFunds": "رصيد غير كافٍ",
+    "payments.tap.errors.invalidAmount": "المبلغ غير صحيح",
+    "payments.tap.errors.invalidCard": "بيانات البطاقة غير صحيحة",
+    "payments.tap.errors.networkError": "خطأ في الاتصال، يرجى المحاولة مرة أخرى",
+    "payments.tap.errors.paymentTimeout": "انتهت مهلة الدفع، يرجى المحاولة مرة أخرى",
+    "payments.tap.errors.sessionExpired": "انتهت صلاحية الجلسة، يرجى العودة والمحاولة مرة أخرى",
+    "payments.tap.expiryDate": "تاريخ الانتهاء",
+    "payments.tap.fullRefund": "استرجاع كامل",
+    "payments.tap.madaCard": "بطاقة مدى",
+    "payments.tap.orderNumber": "رقم الطلب",
+    "payments.tap.partialRefund": "استرجاع جزئي",
+    "payments.tap.paymentAuthorized": "تم التفويض بنجاح",
+    "payments.tap.paymentCancelled": "تم الإلغاء",
+    "payments.tap.paymentDeclined": "تم الرفض",
+    "payments.tap.paymentFailed": "فشلت العملية",
+    "payments.tap.paymentInProgress": "جاري إتمام الدفع...",
+    "payments.tap.paymentPending": "قيد المعالجة",
+    "payments.tap.paymentSuccessful": "تمت العملية بنجاح",
+    "payments.tap.payNow": "ادفع الآن",
+    "payments.tap.payWithTap": "الدفع عبر تاب",
+    "payments.tap.poweredByTap": "مدعوم من تاب بيمنتس",
+    "payments.tap.processingPayment": "جاري معالجة الدفع...",
+    "payments.tap.receiptSent": "تم إرسال الإيصال إلى بريدك الإلكتروني",
+    "payments.tap.redirectingToPayment": "جاري تحويلك إلى صفحة الدفع...",
+    "payments.tap.refundAmount": "مبلغ الاسترجاع",
+    "payments.tap.refundCompleted": "تم الاسترجاع بنجاح",
+    "payments.tap.refundFailed": "فشل الاسترجاع",
+    "payments.tap.refundProcessing": "جاري معالجة الاسترجاع",
+    "payments.tap.refundReason": "سبب الاسترجاع",
+    "payments.tap.refundRequested": "تم طلب الاسترجاع",
+    "payments.tap.returnToMerchant": "العودة إلى المتجر",
+    "payments.tap.securePayment": "دفع آمن ومشفر",
+    "payments.tap.selectPaymentMethod": "اختر طريقة الدفع",
+    "payments.tap.stcPay": "إس تي سي باي",
+    "payments.tap.supportEmail": "البريد الإلكتروني: support@fixzit.sa",
+    "payments.tap.supportPhone": "الهاتف: ٩٢٠٠٠٣٣٣١",
+    "payments.tap.tapPayment": "دفع تاب",
+    "payments.tap.totalAmount": "المبلغ الإجمالي",
+    "payments.tap.transactionId": "رقم العملية",
+    "payments.title": "Payments"
+  },
+  "ar": {
+    "payments.bankTransfer": "تحويل بنكي",
+    "payments.cash": "نقداً",
+    "payments.cheque": "شيك",
+    "payments.creditCard": "بطاقة ائتمان",
+    "payments.debitCard": "بطاقة خصم",
+    "payments.makePayment": "إجراء دفع",
+    "payments.onlinePayment": "دفع إلكتروني",
+    "payments.paymentAmount": "مبلغ الدفع",
+    "payments.paymentDate": "تاريخ الدفع",
+    "payments.paymentDetails": "تفاصيل الدفع",
+    "payments.paymentFailed": "فشل الدفع",
+    "payments.paymentHistory": "سجل المدفوعات",
+    "payments.paymentMethod": "طريقة الدفع",
+    "payments.paymentPending": "الدفع معلق",
+    "payments.paymentReceived": "تم استلام الدفع",
+    "payments.paymentReference": "مرجع الدفع",
+    "payments.paymentStatus": "حالة الدفع",
+    "payments.tap.applePay": "آبل باي",
+    "payments.tap.cardHolder": "اسم حامل البطاقة",
+    "payments.tap.cardNumber": "رقم البطاقة",
+    "payments.tap.contactSupport": "في حال وجود أي استفسار، يرجى التواصل مع الدعم الفني",
+    "payments.tap.creditOrDebitCard": "بطاقة ائتمان أو خصم",
+    "payments.tap.cvv": "رمز الحماية",
+    "payments.tap.doNotRefresh": "يرجى عدم إغلاق هذه النافذة أو العودة للخلف",
+    "payments.tap.errors.expiredCard": "البطاقة منتهية الصلاحية",
+    "payments.tap.errors.generalError": "حدث خطأ أثناء معالجة الدفع، يرجى المحاولة مرة أخرى",
+    "payments.tap.errors.insufficientFunds": "رصيد غير كافٍ",
+    "payments.tap.errors.invalidAmount": "المبلغ غير صحيح",
+    "payments.tap.errors.invalidCard": "بيانات البطاقة غير صحيحة",
+    "payments.tap.errors.networkError": "خطأ في الاتصال، يرجى المحاولة مرة أخرى",
+    "payments.tap.errors.paymentTimeout": "انتهت مهلة الدفع، يرجى المحاولة مرة أخرى",
+    "payments.tap.errors.sessionExpired": "انتهت صلاحية الجلسة، يرجى العودة والمحاولة مرة أخرى",
+    "payments.tap.expiryDate": "تاريخ الانتهاء",
+    "payments.tap.fullRefund": "استرجاع كامل",
+    "payments.tap.madaCard": "بطاقة مدى",
+    "payments.tap.orderNumber": "رقم الطلب",
+    "payments.tap.partialRefund": "استرجاع جزئي",
+    "payments.tap.paymentAuthorized": "تم التفويض بنجاح",
+    "payments.tap.paymentCancelled": "تم الإلغاء",
+    "payments.tap.paymentDeclined": "تم الرفض",
+    "payments.tap.paymentFailed": "فشلت العملية",
+    "payments.tap.paymentInProgress": "جاري إتمام الدفع...",
+    "payments.tap.paymentPending": "قيد المعالجة",
+    "payments.tap.paymentSuccessful": "تمت العملية بنجاح",
+    "payments.tap.payNow": "ادفع الآن",
+    "payments.tap.payWithTap": "الدفع عبر تاب",
+    "payments.tap.poweredByTap": "مدعوم من تاب بيمنتس",
+    "payments.tap.processingPayment": "جاري معالجة الدفع...",
+    "payments.tap.receiptSent": "تم إرسال الإيصال إلى بريدك الإلكتروني",
+    "payments.tap.redirectingToPayment": "جاري تحويلك إلى صفحة الدفع...",
+    "payments.tap.refundAmount": "مبلغ الاسترجاع",
+    "payments.tap.refundCompleted": "تم الاسترجاع بنجاح",
+    "payments.tap.refundFailed": "فشل الاسترجاع",
+    "payments.tap.refundProcessing": "جاري معالجة الاسترجاع",
+    "payments.tap.refundReason": "سبب الاسترجاع",
+    "payments.tap.refundRequested": "تم طلب الاسترجاع",
+    "payments.tap.returnToMerchant": "العودة إلى المتجر",
+    "payments.tap.securePayment": "دفع آمن ومشفر",
+    "payments.tap.selectPaymentMethod": "اختر طريقة الدفع",
+    "payments.tap.stcPay": "إس تي سي باي",
+    "payments.tap.supportEmail": "البريد الإلكتروني: support@fixzit.sa",
+    "payments.tap.supportPhone": "الهاتف: ٩٢٠٠٠٣٣٣١",
+    "payments.tap.tapPayment": "دفع تاب",
+    "payments.tap.totalAmount": "المبلغ الإجمالي",
+    "payments.tap.transactionId": "رقم العملية",
+    "payments.title": "المدفوعات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/penetrationTesting.translations.json">
+<![CDATA[
+{
+  "en": {
+    "penetrationTesting.blueteam": "Blue Team Defense",
+    "penetrationTesting.enumeration": "Service Enumeration",
+    "penetrationTesting.ethical": "Ethical Hacking",
+    "penetrationTesting.exfiltration": "Data Exfiltration",
+    "penetrationTesting.exploitation": "Exploitation Phase",
+    "penetrationTesting.hacking": "Ethical Hacking",
+    "penetrationTesting.lateral": "Lateral Movement",
+    "penetrationTesting.network": "Network Testing",
+    "penetrationTesting.penetration": "Penetration Testing",
+    "penetrationTesting.persistence": "Persistence Techniques",
+    "penetrationTesting.phishing": "Phishing Simulation",
+    "penetrationTesting.physical": "Physical Security",
+    "penetrationTesting.privilege": "Privilege Escalation",
+    "penetrationTesting.reconnaissance": "Reconnaissance Phase",
+    "penetrationTesting.redteam": "Red Team Operations",
+    "penetrationTesting.remediation": "Remediation Guidance",
+    "penetrationTesting.reporting": "Findings Report",
+    "penetrationTesting.scanning": "Vulnerability Scanning",
+    "penetrationTesting.social": "Social Engineering",
+    "penetrationTesting.testing": "Penetration Testing",
+    "penetrationTesting.web": "Web Application Testing",
+    "penetrationTesting.wireless": "Wireless Testing"
+  },
+  "ar": {
+    "penetrationTesting.blueteam": "دفاع الفريق الأزرق",
+    "penetrationTesting.enumeration": "تعداد الخدمات",
+    "penetrationTesting.ethical": "القرصنة الأخلاقية",
+    "penetrationTesting.exfiltration": "تسريب البيانات",
+    "penetrationTesting.exploitation": "مرحلة الاستغلال",
+    "penetrationTesting.hacking": "القرصنة الأخلاقية",
+    "penetrationTesting.lateral": "الحركة الجانبية",
+    "penetrationTesting.network": "اختبار الشبكة",
+    "penetrationTesting.penetration": "اختبار الاختراق",
+    "penetrationTesting.persistence": "تقنيات الاستمرارية",
+    "penetrationTesting.phishing": "محاكاة التصيد الاحتيالي",
+    "penetrationTesting.physical": "الأمن المادي",
+    "penetrationTesting.privilege": "تصعيد الامتيازات",
+    "penetrationTesting.reconnaissance": "مرحلة الاستطلاع",
+    "penetrationTesting.redteam": "عمليات الفريق الأحمر",
+    "penetrationTesting.remediation": "إرشادات المعالجة",
+    "penetrationTesting.reporting": "تقرير النتائج",
+    "penetrationTesting.scanning": "فحص الثغرات",
+    "penetrationTesting.social": "الهندسة الاجتماعية",
+    "penetrationTesting.testing": "اختبار الاختراق",
+    "penetrationTesting.web": "اختبار تطبيقات الويب",
+    "penetrationTesting.wireless": "اختبار اللاسلكي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/performance.translations.json">
+<![CDATA[
+{
+  "en": {
+    "performance.achievement": "Achievement",
+    "performance.assessment": "Assessment",
+    "performance.baseline": "Baseline",
+    "performance.benchmark": "Benchmark",
+    "performance.effectiveness": "Effectiveness",
+    "performance.efficiency": "Efficiency",
+    "performance.evaluation": "Evaluation",
+    "performance.goal": "Goal",
+    "performance.improvement": "Improvement",
+    "performance.keyPerformanceIndicator": "Key Performance Indicator",
+    "performance.kpi": "KPI",
+    "performance.measurement": "Measurement",
+    "performance.objective": "Objective",
+    "performance.optimization": "Optimization",
+    "performance.outcome": "Outcome",
+    "performance.output": "Output",
+    "performance.performance1": "Performance",
+    "performance.performanceMetric": "Performance Metric",
+    "performance.performanceReview": "Performance Review",
+    "performance.productivity": "Productivity",
+    "performance.rating": "Rating",
+    "performance.result": "Result",
+    "performance.results": "Results",
+    "performance.review": "Review",
+    "performance.score": "Score",
+    "performance.target": "Target",
+    "performance.trend": "Trend",
+    "performance.variance": "Variance"
+  },
+  "ar": {
+    "performance.achievement": "إنجاز",
+    "performance.assessment": "تقييم",
+    "performance.baseline": "خط الأساس",
+    "performance.benchmark": "معيار",
+    "performance.effectiveness": "الفعالية",
+    "performance.efficiency": "الكفاءة",
+    "performance.evaluation": "تقييم",
+    "performance.goal": "غاية",
+    "performance.improvement": "تحسين",
+    "performance.keyPerformanceIndicator": "مؤشر الأداء الرئيسي",
+    "performance.kpi": "مؤشر الأداء الرئيسي",
+    "performance.measurement": "قياس",
+    "performance.objective": "هدف",
+    "performance.optimization": "التحسين",
+    "performance.outcome": "النتيجة",
+    "performance.output": "الإنتاج",
+    "performance.performance1": "الأداء",
+    "performance.performanceMetric": "مقياس الأداء",
+    "performance.performanceReview": "مراجعة الأداء",
+    "performance.productivity": "الإنتاجية",
+    "performance.rating": "تقييم",
+    "performance.result": "نتيجة",
+    "performance.results": "نتائج",
+    "performance.review": "مراجعة",
+    "performance.score": "نقاط",
+    "performance.target": "هدف",
+    "performance.trend": "اتجاه",
+    "performance.variance": "التباين"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/performanceManagementAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "performanceManagementAdv.analytics": "Performance Analytics",
+    "performanceManagementAdv.appraisal": "Performance Appraisal",
+    "performanceManagementAdv.bonus": "Performance Bonus",
+    "performanceManagementAdv.coaching": "Performance Coaching",
+    "performanceManagementAdv.compensation": "Performance Compensation",
+    "performanceManagementAdv.development": "Development Planning",
+    "performanceManagementAdv.evaluation": "Performance Evaluation",
+    "performanceManagementAdv.feedback": "Performance Feedback",
+    "performanceManagementAdv.goals": "Goal Setting",
+    "performanceManagementAdv.improvement": "Performance Improvement",
+    "performanceManagementAdv.incentives": "Performance Incentives",
+    "performanceManagementAdv.kpi": "Key Performance Indicators",
+    "performanceManagementAdv.metrics": "Performance Metrics",
+    "performanceManagementAdv.objectives": "Objectives",
+    "performanceManagementAdv.performance": "Performance Management",
+    "performanceManagementAdv.rating": "Performance Rating",
+    "performanceManagementAdv.recognition": "Performance Recognition",
+    "performanceManagementAdv.reporting": "Performance Reporting",
+    "performanceManagementAdv.review": "Performance Review",
+    "performanceManagementAdv.rewards": "Performance Rewards",
+    "performanceManagementAdv.targets": "Performance Targets",
+    "performanceManagementAdv.tracking": "Performance Tracking"
+  },
+  "ar": {
+    "performanceManagementAdv.analytics": "تحليلات الأداء",
+    "performanceManagementAdv.appraisal": "تقييم الأداء",
+    "performanceManagementAdv.bonus": "مكافأة الأداء",
+    "performanceManagementAdv.coaching": "تدريب الأداء",
+    "performanceManagementAdv.compensation": "تعويض الأداء",
+    "performanceManagementAdv.development": "التخطيط التطويري",
+    "performanceManagementAdv.evaluation": "تقييم الأداء",
+    "performanceManagementAdv.feedback": "ملاحظات الأداء",
+    "performanceManagementAdv.goals": "تحديد الأهداف",
+    "performanceManagementAdv.improvement": "تحسين الأداء",
+    "performanceManagementAdv.incentives": "حوافز الأداء",
+    "performanceManagementAdv.kpi": "مؤشرات الأداء الرئيسية",
+    "performanceManagementAdv.metrics": "مقاييس الأداء",
+    "performanceManagementAdv.objectives": "الأهداف",
+    "performanceManagementAdv.performance": "إدارة الأداء",
+    "performanceManagementAdv.rating": "تصنيف الأداء",
+    "performanceManagementAdv.recognition": "التقدير على الأداء",
+    "performanceManagementAdv.reporting": "تقارير الأداء",
+    "performanceManagementAdv.review": "مراجعة الأداء",
+    "performanceManagementAdv.rewards": "مكافآت الأداء",
+    "performanceManagementAdv.targets": "أهداف الأداء",
+    "performanceManagementAdv.tracking": "تتبع الأداء"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/performanceMeasurement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "performanceMeasurement.analysis": "Performance Analysis",
+    "performanceMeasurement.analytics": "Performance Analytics",
+    "performanceMeasurement.balanced": "Balanced Scorecard",
+    "performanceMeasurement.benchmarking": "Performance Benchmarking",
+    "performanceMeasurement.dashboard": "Performance Dashboard",
+    "performanceMeasurement.evaluation": "Performance Evaluation",
+    "performanceMeasurement.feedback": "Performance Feedback",
+    "performanceMeasurement.goals": "Goal Setting",
+    "performanceMeasurement.improvement": "Performance Improvement",
+    "performanceMeasurement.insights": "Performance Insights",
+    "performanceMeasurement.kpi": "KPI Management",
+    "performanceMeasurement.measurement": "Performance Measurement",
+    "performanceMeasurement.metrics": "Performance Metrics",
+    "performanceMeasurement.monitoring": "Performance Monitoring",
+    "performanceMeasurement.objectives": "Objectives Management",
+    "performanceMeasurement.okr": "OKR Framework",
+    "performanceMeasurement.optimization": "Performance Optimization",
+    "performanceMeasurement.performance": "Performance Management",
+    "performanceMeasurement.reporting": "Performance Reporting",
+    "performanceMeasurement.review": "Performance Review",
+    "performanceMeasurement.targets": "Target Setting",
+    "performanceMeasurement.tracking": "Performance Tracking"
+  },
+  "ar": {
+    "performanceMeasurement.analysis": "تحليل الأداء",
+    "performanceMeasurement.analytics": "تحليلات الأداء",
+    "performanceMeasurement.balanced": "بطاقة الأداء المتوازن",
+    "performanceMeasurement.benchmarking": "قياس الأداء المقارن",
+    "performanceMeasurement.dashboard": "لوحة معلومات الأداء",
+    "performanceMeasurement.evaluation": "تقييم الأداء",
+    "performanceMeasurement.feedback": "ملاحظات الأداء",
+    "performanceMeasurement.goals": "تحديد الأهداف",
+    "performanceMeasurement.improvement": "تحسين الأداء",
+    "performanceMeasurement.insights": "رؤى الأداء",
+    "performanceMeasurement.kpi": "إدارة مؤشرات الأداء الرئيسية",
+    "performanceMeasurement.measurement": "قياس الأداء",
+    "performanceMeasurement.metrics": "مقاييس الأداء",
+    "performanceMeasurement.monitoring": "مراقبة الأداء",
+    "performanceMeasurement.objectives": "إدارة الأهداف",
+    "performanceMeasurement.okr": "إطار الأهداف والنتائج الرئيسية",
+    "performanceMeasurement.optimization": "تحسين الأداء",
+    "performanceMeasurement.performance": "إدارة الأداء",
+    "performanceMeasurement.reporting": "تقارير الأداء",
+    "performanceMeasurement.review": "مراجعة الأداء",
+    "performanceMeasurement.targets": "تحديد الأهداف",
+    "performanceMeasurement.tracking": "تتبع الأداء"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/performanceMetrics.translations.json">
+<![CDATA[
+{
+  "en": {
+    "performanceMetrics.analysis": "Metrics Analysis",
+    "performanceMetrics.baseline": "Baseline Measurement",
+    "performanceMetrics.benchmark": "Benchmark Comparison",
+    "performanceMetrics.dashboard": "Metrics Dashboard",
+    "performanceMetrics.evaluation": "Metrics Evaluation",
+    "performanceMetrics.forecasting": "Metrics Forecasting",
+    "performanceMetrics.goal": "Goal Setting",
+    "performanceMetrics.improvement": "Metrics Improvement",
+    "performanceMetrics.indicator": "Performance Indicator",
+    "performanceMetrics.kpi": "KPI Management",
+    "performanceMetrics.measurement": "Measurement System",
+    "performanceMetrics.metrics": "Performance Metrics",
+    "performanceMetrics.monitoring": "Metrics Monitoring",
+    "performanceMetrics.optimization": "Metrics Optimization",
+    "performanceMetrics.reporting": "Metrics Reporting",
+    "performanceMetrics.review": "Metrics Review",
+    "performanceMetrics.scorecard": "Balanced Scorecard",
+    "performanceMetrics.target": "Target Setting",
+    "performanceMetrics.threshold": "Threshold Definition",
+    "performanceMetrics.tracking": "Metrics Tracking",
+    "performanceMetrics.trend": "Trend Analysis",
+    "performanceMetrics.visualization": "Metrics Visualization"
+  },
+  "ar": {
+    "performanceMetrics.analysis": "تحليل المقاييس",
+    "performanceMetrics.baseline": "القياس الأساسي",
+    "performanceMetrics.benchmark": "المقارنة المرجعية",
+    "performanceMetrics.dashboard": "لوحة معلومات المقاييس",
+    "performanceMetrics.evaluation": "تقييم المقاييس",
+    "performanceMetrics.forecasting": "التنبؤ بالمقاييس",
+    "performanceMetrics.goal": "تحديد الغايات",
+    "performanceMetrics.improvement": "تحسين المقاييس",
+    "performanceMetrics.indicator": "مؤشر الأداء",
+    "performanceMetrics.kpi": "إدارة مؤشرات الأداء الرئيسية",
+    "performanceMetrics.measurement": "نظام القياس",
+    "performanceMetrics.metrics": "مقاييس الأداء",
+    "performanceMetrics.monitoring": "مراقبة المقاييس",
+    "performanceMetrics.optimization": "تحسين المقاييس",
+    "performanceMetrics.reporting": "إعداد تقارير المقاييس",
+    "performanceMetrics.review": "مراجعة المقاييس",
+    "performanceMetrics.scorecard": "بطاقة الأداء المتوازن",
+    "performanceMetrics.target": "تحديد الأهداف",
+    "performanceMetrics.threshold": "تعريف العتبة",
+    "performanceMetrics.tracking": "تتبع المقاييس",
+    "performanceMetrics.trend": "تحليل الاتجاهات",
+    "performanceMetrics.visualization": "تصور المقاييس"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/performanceMetricsExt.translations.json">
+<![CDATA[
+{
+  "en": {
+    "performanceMetricsExt.analysis": "Performance Analysis",
+    "performanceMetricsExt.balanced": "Balanced Scorecard",
+    "performanceMetricsExt.baseline": "Baseline",
+    "performanceMetricsExt.benchmark": "Benchmark",
+    "performanceMetricsExt.dashboard": "Performance Dashboard",
+    "performanceMetricsExt.goal": "Goal",
+    "performanceMetricsExt.indicator": "Performance Indicator",
+    "performanceMetricsExt.kpi": "Key Performance Indicator",
+    "performanceMetricsExt.measure": "Measurement",
+    "performanceMetricsExt.metrics": "Metrics",
+    "performanceMetricsExt.monitoring": "Performance Monitoring",
+    "performanceMetricsExt.objective": "Objective",
+    "performanceMetricsExt.optimization": "Performance Optimization",
+    "performanceMetricsExt.performance": "Performance Metrics",
+    "performanceMetricsExt.reporting": "Performance Reporting",
+    "performanceMetricsExt.review": "Performance Review",
+    "performanceMetricsExt.scorecard": "Scorecard",
+    "performanceMetricsExt.target": "Target",
+    "performanceMetricsExt.threshold": "Threshold",
+    "performanceMetricsExt.tracking": "Performance Tracking",
+    "performanceMetricsExt.trend": "Trend",
+    "performanceMetricsExt.variance": "Variance"
+  },
+  "ar": {
+    "performanceMetricsExt.analysis": "تحليل الأداء",
+    "performanceMetricsExt.balanced": "بطاقة الأداء المتوازن",
+    "performanceMetricsExt.baseline": "الخط الأساسي",
+    "performanceMetricsExt.benchmark": "المعيار",
+    "performanceMetricsExt.dashboard": "لوحة معلومات الأداء",
+    "performanceMetricsExt.goal": "الغاية",
+    "performanceMetricsExt.indicator": "مؤشر الأداء",
+    "performanceMetricsExt.kpi": "مؤشر الأداء الرئيسي",
+    "performanceMetricsExt.measure": "القياس",
+    "performanceMetricsExt.metrics": "المقاييس",
+    "performanceMetricsExt.monitoring": "مراقبة الأداء",
+    "performanceMetricsExt.objective": "الهدف",
+    "performanceMetricsExt.optimization": "تحسين الأداء",
+    "performanceMetricsExt.performance": "مقاييس الأداء",
+    "performanceMetricsExt.reporting": "الإبلاغ عن الأداء",
+    "performanceMetricsExt.review": "مراجعة الأداء",
+    "performanceMetricsExt.scorecard": "بطاقة الأداء",
+    "performanceMetricsExt.target": "الهدف",
+    "performanceMetricsExt.threshold": "العتبة",
+    "performanceMetricsExt.tracking": "تتبع الأداء",
+    "performanceMetricsExt.trend": "الاتجاه",
+    "performanceMetricsExt.variance": "التباين"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/performanceMonitoring.translations.json">
+<![CDATA[
+{
+  "en": {
+    "performanceMonitoring.alert": "Performance Alert",
+    "performanceMonitoring.apm": "Application Performance Monitoring",
+    "performanceMonitoring.availability": "Availability",
+    "performanceMonitoring.benchmark": "Benchmark",
+    "performanceMonitoring.bottleneck": "Bottleneck",
+    "performanceMonitoring.crash": "Crash Report",
+    "performanceMonitoring.downtime": "Downtime",
+    "performanceMonitoring.error": "Error Rate",
+    "performanceMonitoring.exception": "Exception",
+    "performanceMonitoring.latency": "Latency",
+    "performanceMonitoring.load": "Load Time",
+    "performanceMonitoring.log": "Log Analysis",
+    "performanceMonitoring.monitoring": "Performance Monitoring",
+    "performanceMonitoring.optimization": "Performance Optimization",
+    "performanceMonitoring.performance": "Performance",
+    "performanceMonitoring.profiling": "Performance Profiling",
+    "performanceMonitoring.response": "Response Time",
+    "performanceMonitoring.sla": "SLA Monitoring",
+    "performanceMonitoring.speed": "Page Speed",
+    "performanceMonitoring.throughput": "Throughput",
+    "performanceMonitoring.trace": "Distributed Tracing",
+    "performanceMonitoring.uptime": "Uptime"
+  },
+  "ar": {
+    "performanceMonitoring.alert": "تنبيه الأداء",
+    "performanceMonitoring.apm": "مراقبة أداء التطبيق",
+    "performanceMonitoring.availability": "التوافر",
+    "performanceMonitoring.benchmark": "المعيار",
+    "performanceMonitoring.bottleneck": "عنق الزجاجة",
+    "performanceMonitoring.crash": "تقرير التعطل",
+    "performanceMonitoring.downtime": "وقت التوقف",
+    "performanceMonitoring.error": "معدل الخطأ",
+    "performanceMonitoring.exception": "الاستثناء",
+    "performanceMonitoring.latency": "زمن الاستجابة",
+    "performanceMonitoring.load": "وقت التحميل",
+    "performanceMonitoring.log": "تحليل السجل",
+    "performanceMonitoring.monitoring": "مراقبة الأداء",
+    "performanceMonitoring.optimization": "تحسين الأداء",
+    "performanceMonitoring.performance": "الأداء",
+    "performanceMonitoring.profiling": "تحليل الأداء",
+    "performanceMonitoring.response": "وقت الاستجابة",
+    "performanceMonitoring.sla": "مراقبة اتفاقية مستوى الخدمة",
+    "performanceMonitoring.speed": "سرعة الصفحة",
+    "performanceMonitoring.throughput": "الإنتاجية",
+    "performanceMonitoring.trace": "التتبع الموزع",
+    "performanceMonitoring.uptime": "وقت التشغيل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/performanceOptimizationAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "performanceOptimizationAdv.async": "Async",
+    "performanceOptimizationAdv.bandwidth": "Bandwidth",
+    "performanceOptimizationAdv.bundle": "Bundle",
+    "performanceOptimizationAdv.cache": "Cache",
+    "performanceOptimizationAdv.caching": "Caching",
+    "performanceOptimizationAdv.cdn": "CDN",
+    "performanceOptimizationAdv.compression": "Compression",
+    "performanceOptimizationAdv.cpu": "CPU",
+    "performanceOptimizationAdv.debounce": "Debounce",
+    "performanceOptimizationAdv.defer": "Defer",
+    "performanceOptimizationAdv.disk": "Disk I/O",
+    "performanceOptimizationAdv.latency": "Latency",
+    "performanceOptimizationAdv.lazy": "Lazy Loading",
+    "performanceOptimizationAdv.memory": "Memory",
+    "performanceOptimizationAdv.minify": "Minification",
+    "performanceOptimizationAdv.network": "Network",
+    "performanceOptimizationAdv.optimization": "Optimization",
+    "performanceOptimizationAdv.optimize": "Optimize",
+    "performanceOptimizationAdv.performance": "Performance",
+    "performanceOptimizationAdv.prefetch": "Prefetch",
+    "performanceOptimizationAdv.preload": "Preload",
+    "performanceOptimizationAdv.throttle": "Throttle"
+  },
+  "ar": {
+    "performanceOptimizationAdv.async": "غير متزامن",
+    "performanceOptimizationAdv.bandwidth": "عرض النطاق",
+    "performanceOptimizationAdv.bundle": "الحزمة",
+    "performanceOptimizationAdv.cache": "الذاكرة المؤقتة",
+    "performanceOptimizationAdv.caching": "التخزين المؤقت",
+    "performanceOptimizationAdv.cdn": "شبكة توصيل المحتوى",
+    "performanceOptimizationAdv.compression": "الضغط",
+    "performanceOptimizationAdv.cpu": "المعالج",
+    "performanceOptimizationAdv.debounce": "إزالة الارتداد",
+    "performanceOptimizationAdv.defer": "التأجيل",
+    "performanceOptimizationAdv.disk": "إدخال/إخراج القرص",
+    "performanceOptimizationAdv.latency": "زمن الاستجابة",
+    "performanceOptimizationAdv.lazy": "التحميل الكسول",
+    "performanceOptimizationAdv.memory": "الذاكرة",
+    "performanceOptimizationAdv.minify": "التصغير",
+    "performanceOptimizationAdv.network": "الشبكة",
+    "performanceOptimizationAdv.optimization": "التحسين",
+    "performanceOptimizationAdv.optimize": "التحسين",
+    "performanceOptimizationAdv.performance": "الأداء",
+    "performanceOptimizationAdv.prefetch": "الجلب المسبق",
+    "performanceOptimizationAdv.preload": "التحميل المسبق",
+    "performanceOptimizationAdv.throttle": "الحد"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/performanceReview.translations.json">
+<![CDATA[
+{
+  "en": {
+    "performanceReview.achievements": "Achievements",
+    "performanceReview.annual": "Annual Review",
+    "performanceReview.appraisal": "Appraisal",
+    "performanceReview.assessment": "Assessment",
+    "performanceReview.comments": "Comments",
+    "performanceReview.evaluation": "Evaluation",
+    "performanceReview.excellent": "Excellent",
+    "performanceReview.feedback": "Feedback",
+    "performanceReview.goals": "Goals",
+    "performanceReview.good": "Good",
+    "performanceReview.managerReview": "Manager Review",
+    "performanceReview.monthly": "Monthly Review",
+    "performanceReview.needsImprovement": "Needs Improvement",
+    "performanceReview.objectives": "Objectives",
+    "performanceReview.peerReview": "Peer Review",
+    "performanceReview.performance": "Performance",
+    "performanceReview.period": "Review Period",
+    "performanceReview.quarterly": "Quarterly Review",
+    "performanceReview.rating": "Rating",
+    "performanceReview.review": "Review",
+    "performanceReview.satisfactory": "Satisfactory",
+    "performanceReview.score": "Score",
+    "performanceReview.selfReview": "Self Review",
+    "performanceReview.strengths": "Strengths",
+    "performanceReview.unsatisfactory": "Unsatisfactory",
+    "performanceReview.weaknesses": "Weaknesses"
+  },
+  "ar": {
+    "performanceReview.achievements": "الإنجازات",
+    "performanceReview.annual": "المراجعة السنوية",
+    "performanceReview.appraisal": "التقدير",
+    "performanceReview.assessment": "التقييم",
+    "performanceReview.comments": "التعليقات",
+    "performanceReview.evaluation": "التقييم",
+    "performanceReview.excellent": "ممتاز",
+    "performanceReview.feedback": "الملاحظات",
+    "performanceReview.goals": "الأهداف",
+    "performanceReview.good": "جيد",
+    "performanceReview.managerReview": "مراجعة المدير",
+    "performanceReview.monthly": "المراجعة الشهرية",
+    "performanceReview.needsImprovement": "يحتاج إلى تحسين",
+    "performanceReview.objectives": "الأهداف",
+    "performanceReview.peerReview": "مراجعة الأقران",
+    "performanceReview.performance": "الأداء",
+    "performanceReview.period": "فترة المراجعة",
+    "performanceReview.quarterly": "المراجعة الفصلية",
+    "performanceReview.rating": "التصنيف",
+    "performanceReview.review": "المراجعة",
+    "performanceReview.satisfactory": "مرضٍ",
+    "performanceReview.score": "النتيجة",
+    "performanceReview.selfReview": "المراجعة الذاتية",
+    "performanceReview.strengths": "نقاط القوة",
+    "performanceReview.unsatisfactory": "غير مرضٍ",
+    "performanceReview.weaknesses": "نقاط الضعف"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/performanceTrackingAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "performanceTrackingAdv.achievement": "Achievement",
+    "performanceTrackingAdv.benchmark": "Benchmark",
+    "performanceTrackingAdv.completion": "Completion",
+    "performanceTrackingAdv.efficiency": "Efficiency",
+    "performanceTrackingAdv.goal": "Goal",
+    "performanceTrackingAdv.impact": "Impact",
+    "performanceTrackingAdv.indicator": "Indicator",
+    "performanceTrackingAdv.measure": "Measure",
+    "performanceTrackingAdv.metric": "Metric",
+    "performanceTrackingAdv.milestone": "Milestone",
+    "performanceTrackingAdv.monitor": "Monitor",
+    "performanceTrackingAdv.objective": "Objective",
+    "performanceTrackingAdv.outcome": "Outcome",
+    "performanceTrackingAdv.performance": "Performance",
+    "performanceTrackingAdv.productivity": "Productivity",
+    "performanceTrackingAdv.progress": "Progress",
+    "performanceTrackingAdv.quality": "Quality",
+    "performanceTrackingAdv.rating": "Rating",
+    "performanceTrackingAdv.result": "Result",
+    "performanceTrackingAdv.score": "Score",
+    "performanceTrackingAdv.target": "Target",
+    "performanceTrackingAdv.tracking": "Tracking"
+  },
+  "ar": {
+    "performanceTrackingAdv.achievement": "الإنجاز",
+    "performanceTrackingAdv.benchmark": "المعيار المرجعي",
+    "performanceTrackingAdv.completion": "الإكمال",
+    "performanceTrackingAdv.efficiency": "الكفاءة",
+    "performanceTrackingAdv.goal": "الغاية",
+    "performanceTrackingAdv.impact": "التأثير",
+    "performanceTrackingAdv.indicator": "المؤشر",
+    "performanceTrackingAdv.measure": "القياس",
+    "performanceTrackingAdv.metric": "المقياس",
+    "performanceTrackingAdv.milestone": "المعلم",
+    "performanceTrackingAdv.monitor": "المراقبة",
+    "performanceTrackingAdv.objective": "الهدف",
+    "performanceTrackingAdv.outcome": "المخرج",
+    "performanceTrackingAdv.performance": "الأداء",
+    "performanceTrackingAdv.productivity": "الإنتاجية",
+    "performanceTrackingAdv.progress": "التقدم",
+    "performanceTrackingAdv.quality": "الجودة",
+    "performanceTrackingAdv.rating": "التقييم",
+    "performanceTrackingAdv.result": "النتيجة",
+    "performanceTrackingAdv.score": "النتيجة",
+    "performanceTrackingAdv.target": "الهدف",
+    "performanceTrackingAdv.tracking": "التتبع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/performanceTuning.translations.json">
+<![CDATA[
+{
+  "en": {
+    "performanceTuning.benchmarking": "Benchmarking",
+    "performanceTuning.bottleneck": "Bottleneck",
+    "performanceTuning.bundling": "Bundling",
+    "performanceTuning.caching": "Caching",
+    "performanceTuning.clustering": "Clustering",
+    "performanceTuning.compression": "Compression",
+    "performanceTuning.debouncing": "Debouncing",
+    "performanceTuning.denormalization": "Denormalization",
+    "performanceTuning.indexing": "Database Indexing",
+    "performanceTuning.infinite": "Infinite Scroll",
+    "performanceTuning.lazy": "Lazy Loading",
+    "performanceTuning.loadTesting": "Load Testing",
+    "performanceTuning.minification": "Minification",
+    "performanceTuning.optimization": "Optimization",
+    "performanceTuning.pagination": "Pagination",
+    "performanceTuning.partitioning": "Partitioning",
+    "performanceTuning.performance": "Performance",
+    "performanceTuning.pooling": "Connection Pooling",
+    "performanceTuning.prefetch": "Prefetching",
+    "performanceTuning.preload": "Preloading",
+    "performanceTuning.profiling": "Performance Profiling",
+    "performanceTuning.queueing": "Queueing",
+    "performanceTuning.replication": "Replication",
+    "performanceTuning.sharding": "Sharding",
+    "performanceTuning.stressTesting": "Stress Testing",
+    "performanceTuning.throttling": "Throttling",
+    "performanceTuning.tuning": "Tuning",
+    "performanceTuning.virtualization": "Virtual Scrolling"
+  },
+  "ar": {
+    "performanceTuning.benchmarking": "المقارنة المعيارية",
+    "performanceTuning.bottleneck": "الاختناق",
+    "performanceTuning.bundling": "التجميع",
+    "performanceTuning.caching": "التخزين المؤقت",
+    "performanceTuning.clustering": "التجميع",
+    "performanceTuning.compression": "الضغط",
+    "performanceTuning.debouncing": "إزالة الارتداد",
+    "performanceTuning.denormalization": "إلغاء التطبيع",
+    "performanceTuning.indexing": "فهرسة قاعدة البيانات",
+    "performanceTuning.infinite": "التمرير اللانهائي",
+    "performanceTuning.lazy": "التحميل الكسول",
+    "performanceTuning.loadTesting": "اختبار الحمل",
+    "performanceTuning.minification": "التصغير",
+    "performanceTuning.optimization": "التحسين",
+    "performanceTuning.pagination": "التصفح",
+    "performanceTuning.partitioning": "التقسيم",
+    "performanceTuning.performance": "الأداء",
+    "performanceTuning.pooling": "تجميع الاتصالات",
+    "performanceTuning.prefetch": "الجلب المسبق",
+    "performanceTuning.preload": "التحميل المسبق",
+    "performanceTuning.profiling": "تحليل الأداء",
+    "performanceTuning.queueing": "التسلسل",
+    "performanceTuning.replication": "التكرار",
+    "performanceTuning.sharding": "التجزئة",
+    "performanceTuning.stressTesting": "اختبار الإجهاد",
+    "performanceTuning.throttling": "الحد من المعدل",
+    "performanceTuning.tuning": "الضبط",
+    "performanceTuning.virtualization": "التمرير الافتراضي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/permissionControl.translations.json">
+<![CDATA[
+{
+  "en": {
+    "permissionControl.admin": "Administer",
+    "permissionControl.allow": "Allow",
+    "permissionControl.control": "Permission Control",
+    "permissionControl.create": "Create",
+    "permissionControl.custom": "Custom",
+    "permissionControl.delete": "Delete",
+    "permissionControl.deny": "Deny",
+    "permissionControl.edit": "Edit",
+    "permissionControl.execute": "Execute",
+    "permissionControl.full": "Full Access",
+    "permissionControl.grant": "Grant",
+    "permissionControl.inherit": "Inherit",
+    "permissionControl.limited": "Limited Access",
+    "permissionControl.manage": "Manage",
+    "permissionControl.none": "No Access",
+    "permissionControl.override": "Override",
+    "permissionControl.permission": "Permission",
+    "permissionControl.read": "Read",
+    "permissionControl.revoke": "Revoke",
+    "permissionControl.update": "Update",
+    "permissionControl.view": "View",
+    "permissionControl.write": "Write"
+  },
+  "ar": {
+    "permissionControl.admin": "إدارة كاملة",
+    "permissionControl.allow": "سماح",
+    "permissionControl.control": "التحكم في الصلاحيات",
+    "permissionControl.create": "إنشاء",
+    "permissionControl.custom": "مخصص",
+    "permissionControl.delete": "حذف",
+    "permissionControl.deny": "رفض",
+    "permissionControl.edit": "تحرير",
+    "permissionControl.execute": "تنفيذ",
+    "permissionControl.full": "وصول كامل",
+    "permissionControl.grant": "منح",
+    "permissionControl.inherit": "وراثة",
+    "permissionControl.limited": "وصول محدود",
+    "permissionControl.manage": "إدارة",
+    "permissionControl.none": "لا يوجد وصول",
+    "permissionControl.override": "تجاوز",
+    "permissionControl.permission": "الصلاحية",
+    "permissionControl.read": "قراءة",
+    "permissionControl.revoke": "إلغاء",
+    "permissionControl.update": "تحديث",
+    "permissionControl.view": "عرض",
+    "permissionControl.write": "كتابة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/permissions.translations.json">
+<![CDATA[
+{
+  "en": {
+    "permissions.approve": "Approve",
+    "permissions.archive": "Archive",
+    "permissions.create": "Create",
+    "permissions.delete": "Delete",
+    "permissions.download": "Download",
+    "permissions.edit": "Edit",
+    "permissions.export": "Export",
+    "permissions.import": "Import",
+    "permissions.manage": "Manage",
+    "permissions.publish": "Publish",
+    "permissions.reject": "Reject",
+    "permissions.restore": "Restore",
+    "permissions.share": "Share",
+    "permissions.upload": "Upload",
+    "permissions.view": "View"
+  },
+  "ar": {
+    "permissions.approve": "موافقة",
+    "permissions.archive": "أرشفة",
+    "permissions.create": "إنشاء",
+    "permissions.delete": "حذف",
+    "permissions.download": "تحميل",
+    "permissions.edit": "تعديل",
+    "permissions.export": "تصدير",
+    "permissions.import": "استيراد",
+    "permissions.manage": "إدارة",
+    "permissions.publish": "نشر",
+    "permissions.reject": "رفض",
+    "permissions.restore": "استعادة",
+    "permissions.share": "مشاركة",
+    "permissions.upload": "رفع",
+    "permissions.view": "عرض"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/pestAnalysis.translations.json">
+<![CDATA[
+{
+  "en": {
+    "pestAnalysis.analysis": "PEST Assessment",
+    "pestAnalysis.drivers": "External Drivers",
+    "pestAnalysis.economic": "Economic Factors",
+    "pestAnalysis.environmental": "Environmental Factors",
+    "pestAnalysis.framework": "PEST Framework",
+    "pestAnalysis.impact": "Impact Assessment",
+    "pestAnalysis.implications": "Strategic Implications",
+    "pestAnalysis.legal": "Legal Factors",
+    "pestAnalysis.methodology": "PEST Methodology",
+    "pestAnalysis.monitoring": "Environment Monitoring",
+    "pestAnalysis.opportunities": "Opportunities Analysis",
+    "pestAnalysis.pest": "PEST Analysis",
+    "pestAnalysis.pestle": "PESTLE Analysis",
+    "pestAnalysis.planning": "Strategic Planning",
+    "pestAnalysis.political": "Political Factors",
+    "pestAnalysis.reporting": "PEST Reporting",
+    "pestAnalysis.scanning": "Environmental Scanning",
+    "pestAnalysis.social": "Social Factors",
+    "pestAnalysis.strategy": "Strategic Response",
+    "pestAnalysis.technological": "Technological Factors",
+    "pestAnalysis.threats": "Threats Analysis",
+    "pestAnalysis.trends": "Macro Trends"
+  },
+  "ar": {
+    "pestAnalysis.analysis": "تقييم بيست",
+    "pestAnalysis.drivers": "المحركات الخارجية",
+    "pestAnalysis.economic": "العوامل الاقتصادية",
+    "pestAnalysis.environmental": "العوامل البيئية",
+    "pestAnalysis.framework": "إطار بيست",
+    "pestAnalysis.impact": "تقييم الأثر",
+    "pestAnalysis.implications": "الآثار الاستراتيجية",
+    "pestAnalysis.legal": "العوامل القانونية",
+    "pestAnalysis.methodology": "منهجية بيست",
+    "pestAnalysis.monitoring": "مراقبة البيئة",
+    "pestAnalysis.opportunities": "تحليل الفرص",
+    "pestAnalysis.pest": "تحليل بيست",
+    "pestAnalysis.pestle": "تحليل بيستل",
+    "pestAnalysis.planning": "التخطيط الاستراتيجي",
+    "pestAnalysis.political": "العوامل السياسية",
+    "pestAnalysis.reporting": "تقارير بيست",
+    "pestAnalysis.scanning": "المسح البيئي",
+    "pestAnalysis.social": "العوامل الاجتماعية",
+    "pestAnalysis.strategy": "الاستجابة الاستراتيجية",
+    "pestAnalysis.technological": "العوامل التكنولوجية",
+    "pestAnalysis.threats": "تحليل التهديدات",
+    "pestAnalysis.trends": "الاتجاهات الكلية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/pharmaceuticalOperations.translations.json">
+<![CDATA[
+{
+  "en": {
+    "pharmaceuticalOperations.adverseEventReporting": "Adverse Event Reporting",
+    "pharmaceuticalOperations.batchRecords": "Batch Records",
+    "pharmaceuticalOperations.clinicalTrials": "Clinical Trials",
+    "pharmaceuticalOperations.coldChainMonitoring": "Cold Chain Monitoring",
+    "pharmaceuticalOperations.description": "Drug development and pharmaceutical manufacturing",
+    "pharmaceuticalOperations.distributionTracking": "Distribution Tracking",
+    "pharmaceuticalOperations.drugApproval": "Drug Approval Process",
+    "pharmaceuticalOperations.drugDevelopment": "Drug Development",
+    "pharmaceuticalOperations.emaCompliance": "EMA Compliance",
+    "pharmaceuticalOperations.fdaCompliance": "FDA Compliance",
+    "pharmaceuticalOperations.goodManufacturingPractice": "Good Manufacturing Practice (GMP)",
+    "pharmaceuticalOperations.manufacturing": "Manufacturing Operations",
+    "pharmaceuticalOperations.packagingLabeling": "Packaging & Labeling",
+    "pharmaceuticalOperations.patientRecruitment": "Patient Recruitment",
+    "pharmaceuticalOperations.pharmacovigilance": "Pharmacovigilance",
+    "pharmaceuticalOperations.qualityTesting": "Quality Testing",
+    "pharmaceuticalOperations.recallManagement": "Recall Management",
+    "pharmaceuticalOperations.regulatorySubmissions": "Regulatory Submissions",
+    "pharmaceuticalOperations.researchDevelopment": "Research & Development",
+    "pharmaceuticalOperations.safetyMonitoring": "Safety Monitoring",
+    "pharmaceuticalOperations.serialization": "Serialization",
+    "pharmaceuticalOperations.stabilityStudies": "Stability Studies",
+    "pharmaceuticalOperations.supplyChain": "Supply Chain Management",
+    "pharmaceuticalOperations.title": "Pharmaceutical Operations",
+    "pharmaceuticalOperations.trialManagement": "Trial Management"
+  },
+  "ar": {
+    "pharmaceuticalOperations.adverseEventReporting": "الإبلاغ عن الأحداث الضارة",
+    "pharmaceuticalOperations.batchRecords": "سجلات الدفعات",
+    "pharmaceuticalOperations.clinicalTrials": "التجارب السريرية",
+    "pharmaceuticalOperations.coldChainMonitoring": "مراقبة السلسلة الباردة",
+    "pharmaceuticalOperations.description": "تطوير الأدوية والتصنيع الصيدلاني",
+    "pharmaceuticalOperations.distributionTracking": "تتبع التوزيع",
+    "pharmaceuticalOperations.drugApproval": "عملية الموافقة على الأدوية",
+    "pharmaceuticalOperations.drugDevelopment": "تطوير الأدوية",
+    "pharmaceuticalOperations.emaCompliance": "الامتثال لوكالة الأدوية الأوروبية",
+    "pharmaceuticalOperations.fdaCompliance": "الامتثال لإدارة الغذاء والدواء",
+    "pharmaceuticalOperations.goodManufacturingPractice": "ممارسات التصنيع الجيدة (GMP)",
+    "pharmaceuticalOperations.manufacturing": "عمليات التصنيع",
+    "pharmaceuticalOperations.packagingLabeling": "التغليف والتعبئة",
+    "pharmaceuticalOperations.patientRecruitment": "توظيف المرضى",
+    "pharmaceuticalOperations.pharmacovigilance": "اليقظة الدوائية",
+    "pharmaceuticalOperations.qualityTesting": "اختبار الجودة",
+    "pharmaceuticalOperations.recallManagement": "إدارة الاستدعاءات",
+    "pharmaceuticalOperations.regulatorySubmissions": "التقديمات التنظيمية",
+    "pharmaceuticalOperations.researchDevelopment": "البحث والتطوير",
+    "pharmaceuticalOperations.safetyMonitoring": "مراقبة السلامة",
+    "pharmaceuticalOperations.serialization": "الترقيم التسلسلي",
+    "pharmaceuticalOperations.stabilityStudies": "دراسات الثبات",
+    "pharmaceuticalOperations.supplyChain": "إدارة سلسلة التوريد",
+    "pharmaceuticalOperations.title": "العمليات الصيدلانية",
+    "pharmaceuticalOperations.trialManagement": "إدارة التجارب"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/pharmaceuticals.translations.json">
+<![CDATA[
+{
+  "en": {
+    "pharmaceuticals.adverse": "Adverse Events",
+    "pharmaceuticals.approval": "Regulatory Approval",
+    "pharmaceuticals.aseptic": "Aseptic Processing",
+    "pharmaceuticals.batch": "Batch Records",
+    "pharmaceuticals.biosimilar": "Biosimilar Products",
+    "pharmaceuticals.blending": "Powder Blending",
+    "pharmaceuticals.calibration": "Instrument Calibration",
+    "pharmaceuticals.cleanroom": "Cleanroom Operations",
+    "pharmaceuticals.clinical": "Clinical Trials",
+    "pharmaceuticals.coating": "Tablet Coating",
+    "pharmaceuticals.compliance": "Regulatory Compliance",
+    "pharmaceuticals.crystallization": "Crystallization",
+    "pharmaceuticals.description": "Manage pharmaceutical operations and compliance",
+    "pharmaceuticals.distribution": "Distribution Network",
+    "pharmaceuticals.documentation": "Documentation System",
+    "pharmaceuticals.drying": "Drying Process",
+    "pharmaceuticals.encapsulation": "Capsule Filling",
+    "pharmaceuticals.formulation": "Drug Formulation",
+    "pharmaceuticals.generic": "Generic Drugs",
+    "pharmaceuticals.gmp": "GMP Standards",
+    "pharmaceuticals.granulation": "Granulation Process",
+    "pharmaceuticals.inventory": "Inventory Management",
+    "pharmaceuticals.labeling": "Product Labeling",
+    "pharmaceuticals.laboratory": "Laboratory Testing",
+    "pharmaceuticals.manufacturing": "Drug Manufacturing",
+    "pharmaceuticals.milling": "Milling Operations",
+    "pharmaceuticals.packaging": "Pharmaceutical Packaging",
+    "pharmaceuticals.patent": "Patent Management",
+    "pharmaceuticals.pharmacovigilance": "Pharmacovigilance",
+    "pharmaceuticals.purification": "Purification Process",
+    "pharmaceuticals.qualification": "Equipment Qualification",
+    "pharmaceuticals.quality": "Quality Control",
+    "pharmaceuticals.recall": "Product Recall",
+    "pharmaceuticals.registration": "Drug Registration",
+    "pharmaceuticals.research": "Research & Development",
+    "pharmaceuticals.shelf": "Shelf Life",
+    "pharmaceuticals.stability": "Stability Testing",
+    "pharmaceuticals.sterilization": "Sterilization Process",
+    "pharmaceuticals.storage": "Cold Storage",
+    "pharmaceuticals.supply": "Supply Chain",
+    "pharmaceuticals.synthesis": "Chemical Synthesis",
+    "pharmaceuticals.title": "Pharmaceuticals",
+    "pharmaceuticals.traceability": "Product Traceability",
+    "pharmaceuticals.vaccine": "Vaccine Production",
+    "pharmaceuticals.validation": "Process Validation"
+  },
+  "ar": {
+    "pharmaceuticals.adverse": "الأحداث الضارة",
+    "pharmaceuticals.approval": "الموافقة التنظيمية",
+    "pharmaceuticals.aseptic": "المعالجة المعقمة",
+    "pharmaceuticals.batch": "سجلات الدفعات",
+    "pharmaceuticals.biosimilar": "المنتجات المشابهة حيوياً",
+    "pharmaceuticals.blending": "خلط المساحيق",
+    "pharmaceuticals.calibration": "معايرة الأجهزة",
+    "pharmaceuticals.cleanroom": "عمليات الغرف النظيفة",
+    "pharmaceuticals.clinical": "التجارب السريرية",
+    "pharmaceuticals.coating": "طلاء الأقراص",
+    "pharmaceuticals.compliance": "الامتثال التنظيمي",
+    "pharmaceuticals.crystallization": "التبلور",
+    "pharmaceuticals.description": "إدارة العمليات الدوائية والامتثال",
+    "pharmaceuticals.distribution": "شبكة التوزيع",
+    "pharmaceuticals.documentation": "نظام التوثيق",
+    "pharmaceuticals.drying": "عملية التجفيف",
+    "pharmaceuticals.encapsulation": "تعبئة الكبسولات",
+    "pharmaceuticals.formulation": "تركيب الدواء",
+    "pharmaceuticals.generic": "الأدوية الجنيسة",
+    "pharmaceuticals.gmp": "معايير التصنيع الجيد",
+    "pharmaceuticals.granulation": "عملية التحبيب",
+    "pharmaceuticals.inventory": "إدارة المخزون",
+    "pharmaceuticals.labeling": "وضع الملصقات",
+    "pharmaceuticals.laboratory": "الاختبارات المعملية",
+    "pharmaceuticals.manufacturing": "تصنيع الأدوية",
+    "pharmaceuticals.milling": "عمليات الطحن",
+    "pharmaceuticals.packaging": "التعبئة الدوائية",
+    "pharmaceuticals.patent": "إدارة براءات الاختراع",
+    "pharmaceuticals.pharmacovigilance": "اليقظة الدوائية",
+    "pharmaceuticals.purification": "عملية التنقية",
+    "pharmaceuticals.qualification": "تأهيل المعدات",
+    "pharmaceuticals.quality": "مراقبة الجودة",
+    "pharmaceuticals.recall": "سحب المنتج",
+    "pharmaceuticals.registration": "تسجيل الدواء",
+    "pharmaceuticals.research": "البحث والتطوير",
+    "pharmaceuticals.shelf": "العمر الافتراضي",
+    "pharmaceuticals.stability": "اختبار الثبات",
+    "pharmaceuticals.sterilization": "عملية التعقيم",
+    "pharmaceuticals.storage": "التخزين البارد",
+    "pharmaceuticals.supply": "سلسلة الإمداد",
+    "pharmaceuticals.synthesis": "التركيب الكيميائي",
+    "pharmaceuticals.title": "الصناعات الدوائية",
+    "pharmaceuticals.traceability": "تتبع المنتج",
+    "pharmaceuticals.vaccine": "إنتاج اللقاحات",
+    "pharmaceuticals.validation": "التحقق من العمليات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/pharmacyManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "pharmacyManagement.adherence": "Medication Adherence",
+    "pharmacyManagement.adverse": "Adverse Events",
+    "pharmacyManagement.allergies": "Drug Allergies",
+    "pharmacyManagement.billing": "Pharmacy Billing",
+    "pharmacyManagement.claims": "Insurance Claims",
+    "pharmacyManagement.compliance": "Patient Compliance",
+    "pharmacyManagement.compounding": "Medication Compounding",
+    "pharmacyManagement.contraindications": "Drug Contraindications",
+    "pharmacyManagement.controlled": "Controlled Substances",
+    "pharmacyManagement.copays": "Copay Collection",
+    "pharmacyManagement.counseling": "Patient Counseling",
+    "pharmacyManagement.dea": "DEA Compliance",
+    "pharmacyManagement.description": "Pharmacy Operations and Medication Management",
+    "pharmacyManagement.dispensing": "Medication Dispensing",
+    "pharmacyManagement.disposal": "Drug Disposal",
+    "pharmacyManagement.education": "Medication Education",
+    "pharmacyManagement.expiration": "Expiration Tracking",
+    "pharmacyManagement.filling": "Prescription Filling",
+    "pharmacyManagement.formulary": "Drug Formulary",
+    "pharmacyManagement.generic": "Generic Substitution",
+    "pharmacyManagement.insurance": "Insurance Processing",
+    "pharmacyManagement.interactions": "Drug Interactions",
+    "pharmacyManagement.inventory": "Drug Inventory",
+    "pharmacyManagement.labeling": "Prescription Labeling",
+    "pharmacyManagement.mtm": "Medication Therapy Management",
+    "pharmacyManagement.narcotics": "Narcotic Management",
+    "pharmacyManagement.ordering": "Drug Ordering",
+    "pharmacyManagement.pharmacy": "Pharmacy Operations",
+    "pharmacyManagement.prescriptions": "Prescription Processing",
+    "pharmacyManagement.prior": "Prior Authorization",
+    "pharmacyManagement.procurement": "Drug Procurement",
+    "pharmacyManagement.receiving": "Drug Receiving",
+    "pharmacyManagement.refills": "Prescription Refills",
+    "pharmacyManagement.refrigeration": "Refrigeration Management",
+    "pharmacyManagement.reporting": "Adverse Event Reporting",
+    "pharmacyManagement.returns": "Drug Returns",
+    "pharmacyManagement.schedule": "Schedule II-V Drugs",
+    "pharmacyManagement.side": "Side Effects",
+    "pharmacyManagement.storage": "Drug Storage",
+    "pharmacyManagement.synchronization": "Medication Synchronization",
+    "pharmacyManagement.therapeutic": "Therapeutic Substitution",
+    "pharmacyManagement.title": "Pharmacy Management",
+    "pharmacyManagement.verification": "Prescription Verification"
+  },
+  "ar": {
+    "pharmacyManagement.adherence": "التزام المريض بالدواء",
+    "pharmacyManagement.adverse": "الأحداث الضارة",
+    "pharmacyManagement.allergies": "حساسية الأدوية",
+    "pharmacyManagement.billing": "فواتير الصيدلية",
+    "pharmacyManagement.claims": "مطالبات التأمين",
+    "pharmacyManagement.compliance": "امتثال المريض",
+    "pharmacyManagement.compounding": "تركيب الأدوية",
+    "pharmacyManagement.contraindications": "موانع استخدام الأدوية",
+    "pharmacyManagement.controlled": "المواد الخاضعة للرقابة",
+    "pharmacyManagement.copays": "تحصيل المدفوعات المشتركة",
+    "pharmacyManagement.counseling": "استشارات المرضى",
+    "pharmacyManagement.dea": "امتثال DEA",
+    "pharmacyManagement.description": "عمليات الصيدلية وإدارة الأدوية",
+    "pharmacyManagement.dispensing": "صرف الأدوية",
+    "pharmacyManagement.disposal": "التخلص من الأدوية",
+    "pharmacyManagement.education": "التثقيف الدوائي",
+    "pharmacyManagement.expiration": "تتبع انتهاء الصلاحية",
+    "pharmacyManagement.filling": "تعبئة الوصفات",
+    "pharmacyManagement.formulary": "قائمة الأدوية",
+    "pharmacyManagement.generic": "الاستبدال العام",
+    "pharmacyManagement.insurance": "معالجة التأمين",
+    "pharmacyManagement.interactions": "التفاعلات الدوائية",
+    "pharmacyManagement.inventory": "مخزون الأدوية",
+    "pharmacyManagement.labeling": "وضع ملصقات الوصفات",
+    "pharmacyManagement.mtm": "إدارة العلاج الدوائي",
+    "pharmacyManagement.narcotics": "إدارة المخدرات",
+    "pharmacyManagement.ordering": "طلب الأدوية",
+    "pharmacyManagement.pharmacy": "عمليات الصيدلية",
+    "pharmacyManagement.prescriptions": "معالجة الوصفات",
+    "pharmacyManagement.prior": "التصريح المسبق",
+    "pharmacyManagement.procurement": "شراء الأدوية",
+    "pharmacyManagement.receiving": "استلام الأدوية",
+    "pharmacyManagement.refills": "تجديد الوصفات",
+    "pharmacyManagement.refrigeration": "إدارة التبريد",
+    "pharmacyManagement.reporting": "الإبلاغ عن الأحداث الضارة",
+    "pharmacyManagement.returns": "إرجاع الأدوية",
+    "pharmacyManagement.schedule": "أدوية الجدول II-V",
+    "pharmacyManagement.side": "الآثار الجانبية",
+    "pharmacyManagement.storage": "تخزين الأدوية",
+    "pharmacyManagement.synchronization": "تزامن الأدوية",
+    "pharmacyManagement.therapeutic": "الاستبدال العلاجي",
+    "pharmacyManagement.title": "إدارة الصيدليات",
+    "pharmacyManagement.verification": "التحقق من الوصفات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/phoneFormats.translations.json">
+<![CDATA[
+{
+  "en": {
+    "phoneFormats.area": "Area Code",
+    "phoneFormats.country": "Country Code",
+    "phoneFormats.extension": "Extension",
+    "phoneFormats.fax": "Fax",
+    "phoneFormats.format": "Phone Format",
+    "phoneFormats.international": "International Format",
+    "phoneFormats.invalid": "Invalid Number",
+    "phoneFormats.landline": "Landline",
+    "phoneFormats.local": "Local Format",
+    "phoneFormats.mobile": "Mobile",
+    "phoneFormats.national": "National Format",
+    "phoneFormats.number": "Phone Number",
+    "phoneFormats.phone": "Phone",
+    "phoneFormats.separator": "Separator",
+    "phoneFormats.valid": "Valid Number",
+    "phoneFormats.validate": "Validate"
+  },
+  "ar": {
+    "phoneFormats.area": "رمز المنطقة",
+    "phoneFormats.country": "رمز الدولة",
+    "phoneFormats.extension": "التحويلة",
+    "phoneFormats.fax": "فاكس",
+    "phoneFormats.format": "تنسيق الهاتف",
+    "phoneFormats.international": "تنسيق دولي",
+    "phoneFormats.invalid": "رقم غير صالح",
+    "phoneFormats.landline": "خط أرضي",
+    "phoneFormats.local": "تنسيق محلي",
+    "phoneFormats.mobile": "جوال",
+    "phoneFormats.national": "تنسيق وطني",
+    "phoneFormats.number": "رقم الهاتف",
+    "phoneFormats.phone": "الهاتف",
+    "phoneFormats.separator": "الفاصل",
+    "phoneFormats.valid": "رقم صالح",
+    "phoneFormats.validate": "التحقق"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/phrases.translations.json">
+<![CDATA[
+{
+  "en": {
+    "phrases.and": "and",
+    "phrases.arabic": "Arabic",
+    "phrases.at": "at",
+    "phrases.attention": "Attention",
+    "phrases.beta": "Beta",
+    "phrases.browse": "Browse",
+    "phrases.by": "by",
+    "phrases.chooseFile": "Choose File",
+    "phrases.clickToUpload": "Click to upload",
+    "phrases.collapseAll": "Collapse All",
+    "phrases.comingSoon": "Coming Soon",
+    "phrases.congratulations": "Congratulations",
+    "phrases.created": "Created",
+    "phrases.done": "Done",
+    "phrases.dragAndDrop": "Drag and drop files here",
+    "phrases.emptyState": "No data available",
+    "phrases.english": "English",
+    "phrases.error": "Error",
+    "phrases.expandAll": "Expand All",
+    "phrases.for": "for",
+    "phrases.from": "from",
+    "phrases.goodbye": "Goodbye",
+    "phrases.hideAll": "Hide All",
+    "phrases.important": "Important",
+    "phrases.in": "in",
+    "phrases.info": "Information",
+    "phrases.language": "Language",
+    "phrases.lastModified": "Last Modified",
+    "phrases.learnMore": "Learn More",
+    "phrases.loading": "Loading...",
+    "phrases.maintenance": "Under Maintenance",
+    "phrases.new": "New",
+    "phrases.no": "No",
+    "phrases.noItemsFound": "No items found",
+    "phrases.nothingToShow": "Nothing to show",
+    "phrases.notice": "Notice",
+    "phrases.of": "of",
+    "phrases.ok": "OK",
+    "phrases.on": "on",
+    "phrases.oops": "Oops!",
+    "phrases.optional": "Optional",
+    "phrases.or": "or",
+    "phrases.pleaseWait": "Please wait...",
+    "phrases.processing": "Processing...",
+    "phrases.readLess": "Read Less",
+    "phrases.readMore": "Read More",
+    "phrases.recommended": "Recommended",
+    "phrases.required": "Required",
+    "phrases.saved": "Saved",
+    "phrases.saving": "Saving...",
+    "phrases.seeAll": "See All",
+    "phrases.selectLanguage": "Select Language",
+    "phrases.showAll": "Show All",
+    "phrases.success": "Success",
+    "phrases.thankYou": "Thank You",
+    "phrases.the": "the",
+    "phrases.to": "to",
+    "phrases.unavailable": "Unavailable",
+    "phrases.updated": "Updated",
+    "phrases.version": "Version",
+    "phrases.viewMore": "View More",
+    "phrases.warning": "Warning",
+    "phrases.welcome": "Welcome",
+    "phrases.welcomeBack": "Welcome Back",
+    "phrases.with": "with",
+    "phrases.yes": "Yes"
+  },
+  "ar": {
+    "phrases.and": "و",
+    "phrases.arabic": "العربية",
+    "phrases.at": "في",
+    "phrases.attention": "انتباه",
+    "phrases.beta": "تجريبي",
+    "phrases.browse": "تصفح",
+    "phrases.by": "بواسطة",
+    "phrases.chooseFile": "اختر ملف",
+    "phrases.clickToUpload": "انقر للرفع",
+    "phrases.collapseAll": "طي الكل",
+    "phrases.comingSoon": "قريباً",
+    "phrases.congratulations": "تهانينا",
+    "phrases.created": "تم الإنشاء",
+    "phrases.done": "تم",
+    "phrases.dragAndDrop": "اسحب وأفلت الملفات هنا",
+    "phrases.emptyState": "لا توجد بيانات متاحة",
+    "phrases.english": "الإنجليزية",
+    "phrases.error": "خطأ",
+    "phrases.expandAll": "توسيع الكل",
+    "phrases.for": "لـ",
+    "phrases.from": "من",
+    "phrases.goodbye": "وداعاً",
+    "phrases.hideAll": "إخفاء الكل",
+    "phrases.important": "مهم",
+    "phrases.in": "في",
+    "phrases.info": "معلومات",
+    "phrases.language": "اللغة",
+    "phrases.lastModified": "آخر تعديل",
+    "phrases.learnMore": "تعرف على المزيد",
+    "phrases.loading": "جاري التحميل...",
+    "phrases.maintenance": "قيد الصيانة",
+    "phrases.new": "جديد",
+    "phrases.no": "لا",
+    "phrases.noItemsFound": "لم يتم العثور على عناصر",
+    "phrases.nothingToShow": "لا يوجد شيء لعرضه",
+    "phrases.notice": "إشعار",
+    "phrases.of": "من",
+    "phrases.ok": "موافق",
+    "phrases.on": "على",
+    "phrases.oops": "عفواً!",
+    "phrases.optional": "اختياري",
+    "phrases.or": "أو",
+    "phrases.pleaseWait": "يرجى الانتظار...",
+    "phrases.processing": "جاري المعالجة...",
+    "phrases.readLess": "اقرأ أقل",
+    "phrases.readMore": "اقرأ المزيد",
+    "phrases.recommended": "موصى به",
+    "phrases.required": "مطلوب",
+    "phrases.saved": "تم الحفظ",
+    "phrases.saving": "جاري الحفظ...",
+    "phrases.seeAll": "عرض الكل",
+    "phrases.selectLanguage": "اختر اللغة",
+    "phrases.showAll": "إظهار الكل",
+    "phrases.success": "نجاح",
+    "phrases.thankYou": "شكراً لك",
+    "phrases.the": "الـ",
+    "phrases.to": "إلى",
+    "phrases.unavailable": "غير متاح",
+    "phrases.updated": "محدث",
+    "phrases.version": "الإصدار",
+    "phrases.viewMore": "عرض المزيد",
+    "phrases.warning": "تحذير",
+    "phrases.welcome": "مرحباً",
+    "phrases.welcomeBack": "مرحباً بك مرة أخرى",
+    "phrases.with": "مع",
+    "phrases.yes": "نعم"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/placeholders.translations.json">
+<![CDATA[
+{
+  "en": {
+    "placeholders.additionalNotes": "Additional notes about this payment...",
+    "placeholders.briefDescription": "Brief description of your issue",
+    "placeholders.category": "Category",
+    "placeholders.coverLetter": "Cover letter",
+    "placeholders.enterFullName": "Enter your full name",
+    "placeholders.invoiceNumber": "INV-001",
+    "placeholders.markdownContent": "Markdown content...",
+    "placeholders.projectType": "Project Type",
+    "placeholders.quantity": "Qty",
+    "placeholders.search": "Search...",
+    "placeholders.searchAssets": "Search assets...",
+    "placeholders.searchByCityDistrict": "Search by city, district, or title",
+    "placeholders.searchInvoices": "Search by invoice number or customer...",
+    "placeholders.searchParts": "Search parts from marketplace...",
+    "placeholders.searchProjects": "Search projects...",
+    "placeholders.searchRFQs": "Search RFQs...",
+    "placeholders.status": "Status",
+    "placeholders.tenantType": "Tenant Type",
+    "placeholders.type": "Type",
+    "placeholders.unitLocation": "Unit number or specific location...",
+    "placeholders.vendorType": "Vendor Type",
+    "placeholders.yearsExperience": "Years of experience"
+  },
+  "ar": {
+    "placeholders.additionalNotes": "ملاحظات إضافية حول هذا الدفع...",
+    "placeholders.briefDescription": "وصف مختصر لمشكلتك",
+    "placeholders.category": "الفئة",
+    "placeholders.coverLetter": "خطاب تعريفي",
+    "placeholders.enterFullName": "أدخل اسمك الكامل",
+    "placeholders.invoiceNumber": "INV-001",
+    "placeholders.markdownContent": "محتوى Markdown...",
+    "placeholders.projectType": "نوع المشروع",
+    "placeholders.quantity": "الكمية",
+    "placeholders.search": "بحث...",
+    "placeholders.searchAssets": "البحث في الأصول...",
+    "placeholders.searchByCityDistrict": "البحث بالمدينة أو الحي أو العنوان",
+    "placeholders.searchInvoices": "البحث برقم الفاتورة أو العميل...",
+    "placeholders.searchParts": "البحث عن قطع الغيار من السوق...",
+    "placeholders.searchProjects": "البحث في المشاريع...",
+    "placeholders.searchRFQs": "البحث في طلبات العروض...",
+    "placeholders.status": "الحالة",
+    "placeholders.tenantType": "نوع المستأجر",
+    "placeholders.type": "النوع",
+    "placeholders.unitLocation": "رقم الوحدة أو الموقع المحدد...",
+    "placeholders.vendorType": "نوع المورد",
+    "placeholders.yearsExperience": "سنوات الخبرة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/plumbing.translations.json">
+<![CDATA[
+{
+  "en": {
+    "plumbing.bathtub": "Bathtub",
+    "plumbing.blockage": "Blockage",
+    "plumbing.clog": "Clog",
+    "plumbing.coldWater": "Cold Water",
+    "plumbing.drain": "Drain",
+    "plumbing.drainage": "Drainage",
+    "plumbing.faucet": "Faucet",
+    "plumbing.hotWater": "Hot Water",
+    "plumbing.leak": "Leak",
+    "plumbing.leakDetection": "Leak Detection",
+    "plumbing.leakRepair": "Leak Repair",
+    "plumbing.pipe": "Pipe",
+    "plumbing.pipeline": "Pipeline",
+    "plumbing.pipes": "Pipes",
+    "plumbing.plumber": "Plumber",
+    "plumbing.plumbing1": "Plumbing",
+    "plumbing.pump": "Pump",
+    "plumbing.sewage": "Sewage",
+    "plumbing.sewerLine": "Sewer Line",
+    "plumbing.shower": "Shower",
+    "plumbing.shutoffValve": "Shutoff Valve",
+    "plumbing.sink": "Sink",
+    "plumbing.tap": "Tap",
+    "plumbing.toilet": "Toilet",
+    "plumbing.unclog": "Unclog",
+    "plumbing.valve": "Valve",
+    "plumbing.water": "Water",
+    "plumbing.waterHeater": "Water Heater",
+    "plumbing.waterLeak": "Water Leak",
+    "plumbing.waterPressure": "Water Pressure",
+    "plumbing.waterPump": "Water Pump",
+    "plumbing.waterSupply": "Water Supply"
+  },
+  "ar": {
+    "plumbing.bathtub": "حوض استحمام",
+    "plumbing.blockage": "انسداد",
+    "plumbing.clog": "انسداد",
+    "plumbing.coldWater": "ماء بارد",
+    "plumbing.drain": "صرف",
+    "plumbing.drainage": "الصرف الصحي",
+    "plumbing.faucet": "صنبور",
+    "plumbing.hotWater": "ماء ساخن",
+    "plumbing.leak": "تسرب",
+    "plumbing.leakDetection": "كشف التسرب",
+    "plumbing.leakRepair": "إصلاح التسرب",
+    "plumbing.pipe": "أنبوب",
+    "plumbing.pipeline": "خط أنابيب",
+    "plumbing.pipes": "أنابيب",
+    "plumbing.plumber": "سباك",
+    "plumbing.plumbing1": "السباكة",
+    "plumbing.pump": "مضخة",
+    "plumbing.sewage": "مياه الصرف",
+    "plumbing.sewerLine": "خط الصرف الصحي",
+    "plumbing.shower": "دش",
+    "plumbing.shutoffValve": "صمام إغلاق",
+    "plumbing.sink": "حوض",
+    "plumbing.tap": "حنفية",
+    "plumbing.toilet": "مرحاض",
+    "plumbing.unclog": "فك الانسداد",
+    "plumbing.valve": "صمام",
+    "plumbing.water": "ماء",
+    "plumbing.waterHeater": "سخان مياه",
+    "plumbing.waterLeak": "تسرب مياه",
+    "plumbing.waterPressure": "ضغط الماء",
+    "plumbing.waterPump": "مضخة مياه",
+    "plumbing.waterSupply": "إمدادات المياه"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/policyManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "policyManagement.approval": "Policy Approval",
+    "policyManagement.archive": "Policy Archive",
+    "policyManagement.audit": "Policy Audit",
+    "policyManagement.communication": "Policy Communication",
+    "policyManagement.compliance": "Policy Compliance",
+    "policyManagement.creation": "Policy Creation",
+    "policyManagement.development": "Policy Development",
+    "policyManagement.enforcement": "Policy Enforcement",
+    "policyManagement.framework": "Policy Framework",
+    "policyManagement.governance": "Policy Governance",
+    "policyManagement.implementation": "Policy Implementation",
+    "policyManagement.library": "Policy Library",
+    "policyManagement.lifecycle": "Policy Lifecycle",
+    "policyManagement.management": "Policy Administration",
+    "policyManagement.monitoring": "Policy Monitoring",
+    "policyManagement.policy": "Policy Management",
+    "policyManagement.repository": "Policy Repository",
+    "policyManagement.retirement": "Policy Retirement",
+    "policyManagement.review": "Policy Review",
+    "policyManagement.revision": "Policy Revision",
+    "policyManagement.training": "Policy Training",
+    "policyManagement.update": "Policy Update"
+  },
+  "ar": {
+    "policyManagement.approval": "الموافقة على السياسات",
+    "policyManagement.archive": "أرشفة السياسات",
+    "policyManagement.audit": "تدقيق السياسات",
+    "policyManagement.communication": "التواصل بشأن السياسات",
+    "policyManagement.compliance": "الامتثال للسياسات",
+    "policyManagement.creation": "إنشاء السياسات",
+    "policyManagement.development": "تطوير السياسات",
+    "policyManagement.enforcement": "إنفاذ السياسات",
+    "policyManagement.framework": "إطار السياسات",
+    "policyManagement.governance": "حوكمة السياسات",
+    "policyManagement.implementation": "تنفيذ السياسات",
+    "policyManagement.library": "مكتبة السياسات",
+    "policyManagement.lifecycle": "دورة حياة السياسات",
+    "policyManagement.management": "إدارة السياسات",
+    "policyManagement.monitoring": "مراقبة السياسات",
+    "policyManagement.policy": "إدارة السياسات",
+    "policyManagement.repository": "مستودع السياسات",
+    "policyManagement.retirement": "إلغاء السياسات",
+    "policyManagement.review": "مراجعة السياسات",
+    "policyManagement.revision": "مراجعة السياسات",
+    "policyManagement.training": "تدريب السياسات",
+    "policyManagement.update": "تحديث السياسات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/policyManagementExt.translations.json">
+<![CDATA[
+{
+  "en": {
+    "policyManagementExt.approval": "Policy Approval",
+    "policyManagementExt.attestation": "Policy Attestation",
+    "policyManagementExt.compliance": "Policy Compliance",
+    "policyManagementExt.creation": "Policy Creation",
+    "policyManagementExt.development": "Policy Development",
+    "policyManagementExt.distribution": "Policy Distribution",
+    "policyManagementExt.enforcement": "Policy Enforcement",
+    "policyManagementExt.exception": "Policy Exception",
+    "policyManagementExt.framework": "Policy Framework",
+    "policyManagementExt.governance": "Policy Governance",
+    "policyManagementExt.implementation": "Policy Implementation",
+    "policyManagementExt.lifecycle": "Policy Lifecycle",
+    "policyManagementExt.monitoring": "Policy Monitoring",
+    "policyManagementExt.policy": "Policy Management",
+    "policyManagementExt.publication": "Policy Publication",
+    "policyManagementExt.repository": "Policy Repository",
+    "policyManagementExt.retirement": "Policy Retirement",
+    "policyManagementExt.review": "Policy Review",
+    "policyManagementExt.revision": "Policy Revision",
+    "policyManagementExt.update": "Policy Update",
+    "policyManagementExt.violation": "Policy Violation",
+    "policyManagementExt.waiver": "Policy Waiver"
+  },
+  "ar": {
+    "policyManagementExt.approval": "الموافقة على السياسة",
+    "policyManagementExt.attestation": "شهادة السياسة",
+    "policyManagementExt.compliance": "امتثال السياسة",
+    "policyManagementExt.creation": "إنشاء السياسة",
+    "policyManagementExt.development": "تطوير السياسة",
+    "policyManagementExt.distribution": "توزيع السياسة",
+    "policyManagementExt.enforcement": "إنفاذ السياسة",
+    "policyManagementExt.exception": "استثناء السياسة",
+    "policyManagementExt.framework": "إطار السياسة",
+    "policyManagementExt.governance": "حوكمة السياسة",
+    "policyManagementExt.implementation": "تنفيذ السياسة",
+    "policyManagementExt.lifecycle": "دورة حياة السياسة",
+    "policyManagementExt.monitoring": "مراقبة السياسة",
+    "policyManagementExt.policy": "إدارة السياسات",
+    "policyManagementExt.publication": "نشر السياسة",
+    "policyManagementExt.repository": "مستودع السياسات",
+    "policyManagementExt.retirement": "إنهاء السياسة",
+    "policyManagementExt.review": "مراجعة السياسة",
+    "policyManagementExt.revision": "مراجعة السياسة",
+    "policyManagementExt.update": "تحديث السياسة",
+    "policyManagementExt.violation": "انتهاك السياسة",
+    "policyManagementExt.waiver": "تنازل السياسة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/portfolioManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "portfolioManagement.alignment": "Portfolio Alignment",
+    "portfolioManagement.analysis": "Portfolio Analysis",
+    "portfolioManagement.balancing": "Portfolio Balancing",
+    "portfolioManagement.dashboard": "Portfolio Dashboard",
+    "portfolioManagement.execution": "Portfolio Execution",
+    "portfolioManagement.governance": "Portfolio Governance",
+    "portfolioManagement.investment": "Portfolio Investment",
+    "portfolioManagement.monitoring": "Portfolio Monitoring",
+    "portfolioManagement.optimization": "Portfolio Optimization",
+    "portfolioManagement.performance": "Portfolio Performance",
+    "portfolioManagement.pipeline": "Portfolio Pipeline",
+    "portfolioManagement.planning": "Portfolio Planning",
+    "portfolioManagement.portfolio": "Portfolio Management",
+    "portfolioManagement.prioritization": "Portfolio Prioritization",
+    "portfolioManagement.rationalization": "Portfolio Rationalization",
+    "portfolioManagement.reporting": "Portfolio Reporting",
+    "portfolioManagement.review": "Portfolio Review",
+    "portfolioManagement.risk": "Portfolio Risk",
+    "portfolioManagement.roadmap": "Portfolio Roadmap",
+    "portfolioManagement.selection": "Portfolio Selection",
+    "portfolioManagement.strategy": "Portfolio Strategy",
+    "portfolioManagement.value": "Portfolio Value"
+  },
+  "ar": {
+    "portfolioManagement.alignment": "مواءمة الحافظة",
+    "portfolioManagement.analysis": "تحليل الحافظة",
+    "portfolioManagement.balancing": "موازنة الحافظة",
+    "portfolioManagement.dashboard": "لوحة معلومات الحافظة",
+    "portfolioManagement.execution": "تنفيذ الحافظة",
+    "portfolioManagement.governance": "حوكمة الحافظة",
+    "portfolioManagement.investment": "استثمار الحافظة",
+    "portfolioManagement.monitoring": "مراقبة الحافظة",
+    "portfolioManagement.optimization": "تحسين الحافظة",
+    "portfolioManagement.performance": "أداء الحافظة",
+    "portfolioManagement.pipeline": "خط أنابيب الحافظة",
+    "portfolioManagement.planning": "تخطيط الحافظة",
+    "portfolioManagement.portfolio": "إدارة الحافظة",
+    "portfolioManagement.prioritization": "تحديد أولويات الحافظة",
+    "portfolioManagement.rationalization": "ترشيد الحافظة",
+    "portfolioManagement.reporting": "تقارير الحافظة",
+    "portfolioManagement.review": "مراجعة الحافظة",
+    "portfolioManagement.risk": "مخاطر الحافظة",
+    "portfolioManagement.roadmap": "خارطة طريق الحافظة",
+    "portfolioManagement.selection": "اختيار الحافظة",
+    "portfolioManagement.strategy": "استراتيجية الحافظة",
+    "portfolioManagement.value": "قيمة الحافظة"
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

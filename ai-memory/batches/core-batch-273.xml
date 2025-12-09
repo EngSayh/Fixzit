@@ -1,0 +1,1993 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="tests/domain/fm.can-parity.test.ts">
+<![CDATA[
+/**
+ * RBAC `can()` Client/Server Parity Tests
+ * 
+ * STRICT v4.1: Ensures fm.types.ts (client) and fm.behavior.ts (server)
+ * produce identical results for the same inputs.
+ * 
+ * This prevents drift between client-side permission checks (UI visibility)
+ * and server-side authorization (API access control).
+ */
+import { describe, it, expect } from 'vitest';
+import {
+  can as canServer,
+  Role,
+  SubRole,
+  Plan,
+  SubmoduleKey,
+  ModuleKey,
+  type ResourceCtx as ServerResourceCtx,
+  ROLE_ACTIONS as SERVER_ROLE_ACTIONS,
+  SUB_ROLE_ACTIONS as SERVER_SUB_ROLE_ACTIONS,
+  SUBMODULE_REQUIRED_SUBROLE as SERVER_SUBMODULE_REQUIRED_SUBROLE,
+  PLAN_GATES as SERVER_PLAN_GATES,
+  computeAllowedModules as computeAllowedModulesServer,
+} from '@/domain/fm/fm.behavior';
+
+import {
+  can as canClient,
+  ROLE_ACTIONS as CLIENT_ROLE_ACTIONS,
+  SUB_ROLE_ACTIONS as CLIENT_SUB_ROLE_ACTIONS,
+  SUBMODULE_REQUIRED_SUBROLE as CLIENT_SUBMODULE_REQUIRED_SUBROLE,
+  PLAN_GATES as CLIENT_PLAN_GATES,
+  type ResourceCtx as ClientResourceCtx,
+  computeAllowedModules as computeAllowedModulesClient,
+} from '@/domain/fm/fm.types';
+
+import {
+  computeAllowedModules as computeAllowedModulesLite,
+  PLAN_GATES as LITE_PLAN_GATES,
+  ROLE_ACTIONS as LITE_ROLE_ACTIONS,
+  SUB_ROLE_ACTIONS as LITE_SUB_ROLE_ACTIONS,
+  SUBMODULE_REQUIRED_SUBROLE as LITE_SUBMODULE_REQUIRED_SUBROLE,
+  canClient as canLite,
+  type ClientResourceCtx as LiteClientResourceCtx,
+} from '@/domain/fm/fm-lite';
+
+/**
+ * Helper to create a minimal valid context
+ */
+function createTestCtx(overrides: Partial<ServerResourceCtx> = {}): ServerResourceCtx {
+  return {
+    orgId: 'test-org-123',
+    plan: Plan.ENTERPRISE,
+    role: Role.ADMIN,
+    userId: 'test-user-123',
+    isOrgMember: true,
+    ...overrides,
+  };
+}
+
+/**
+ * Convert server ctx to lite client ctx for parity checks
+ */
+function toLiteCtx(ctx: ServerResourceCtx): LiteClientResourceCtx {
+  return {
+    role: ctx.role,
+    subRole: ctx.subRole,
+    plan: ctx.plan,
+    userId: ctx.userId,
+    orgId: ctx.orgId,
+    propertyId: ctx.propertyId,
+    isOrgMember: ctx.isOrgMember,
+    isTechnicianAssigned: ctx.isTechnicianAssigned,
+  };
+}
+
+describe('RBAC can() Client/Server Parity', () => {
+  describe('Static Data Structures Parity', () => {
+    it('ROLE_ACTIONS keys match between client and server', () => {
+      const serverRoles = Object.keys(SERVER_ROLE_ACTIONS).sort();
+      const clientRoles = Object.keys(CLIENT_ROLE_ACTIONS).sort();
+      expect(serverRoles).toEqual(clientRoles);
+    });
+
+    it('ROLE_ACTIONS keys match between lite and server', () => {
+      const serverRoles = Object.keys(SERVER_ROLE_ACTIONS).sort();
+      const liteRoles = Object.keys(LITE_ROLE_ACTIONS).sort();
+      expect(liteRoles).toEqual(serverRoles);
+    });
+
+    it('ROLE_ACTIONS submodule keys match for each role', () => {
+      for (const role of Object.values(Role)) {
+        const serverSubmodules = Object.keys(SERVER_ROLE_ACTIONS[role] || {}).sort();
+        const clientSubmodules = Object.keys(CLIENT_ROLE_ACTIONS[role] || {}).sort();
+        expect(serverSubmodules, `Role ${role} submodules mismatch`).toEqual(clientSubmodules);
+      }
+    });
+
+    it('ROLE_ACTIONS submodule keys match for each role (lite)', () => {
+      for (const role of Object.values(Role)) {
+        const serverSubmodules = Object.keys(SERVER_ROLE_ACTIONS[role] || {}).sort();
+        const liteSubmodules = Object.keys(LITE_ROLE_ACTIONS[role] || {}).sort();
+        expect(serverSubmodules, `Role ${role} submodules mismatch (lite)`).toEqual(liteSubmodules);
+      }
+    });
+
+    it('SUB_ROLE_ACTIONS match between client and server', () => {
+      for (const subRole of Object.values(SubRole)) {
+        const serverActions = SERVER_SUB_ROLE_ACTIONS[subRole];
+        const clientActions = CLIENT_SUB_ROLE_ACTIONS[subRole];
+        
+        const serverKeys = Object.keys(serverActions || {}).sort();
+        const clientKeys = Object.keys(clientActions || {}).sort();
+        expect(serverKeys, `SubRole ${subRole} submodule keys mismatch`).toEqual(clientKeys);
+        
+        // Check action arrays match
+        for (const key of serverKeys) {
+          const serverActionList = (serverActions as Record<string, string[]>)?.[key]?.sort() ?? [];
+          const clientActionList = (clientActions as Record<string, string[]>)?.[key]?.sort() ?? [];
+          expect(serverActionList, `SubRole ${subRole} actions for ${key} mismatch`).toEqual(clientActionList);
+        }
+      }
+    });
+
+    it('SUB_ROLE_ACTIONS match between lite and server', () => {
+      for (const subRole of Object.values(SubRole)) {
+        const serverActions = SERVER_SUB_ROLE_ACTIONS[subRole];
+        const liteActions = LITE_SUB_ROLE_ACTIONS[subRole];
+
+        const serverKeys = Object.keys(serverActions || {}).sort();
+        const liteKeys = Object.keys(liteActions || {}).sort();
+        expect(serverKeys, `SubRole ${subRole} submodule keys mismatch (lite)`).toEqual(liteKeys);
+
+        for (const key of serverKeys) {
+          const serverActionList = (serverActions as Record<string, string[]>)?.[key]?.sort() ?? [];
+          const liteActionList = (liteActions as Record<string, string[]>)?.[key]?.sort() ?? [];
+          expect(serverActionList, `SubRole ${subRole} actions for ${key} mismatch (lite)`).toEqual(liteActionList);
+        }
+      }
+    });
+
+    it('SUBMODULE_REQUIRED_SUBROLE matches between client and server', () => {
+      const serverKeys = Object.keys(SERVER_SUBMODULE_REQUIRED_SUBROLE).sort();
+      const clientKeys = Object.keys(CLIENT_SUBMODULE_REQUIRED_SUBROLE).sort();
+      expect(serverKeys).toEqual(clientKeys);
+      
+      for (const key of serverKeys) {
+        const serverSubRoles = SERVER_SUBMODULE_REQUIRED_SUBROLE[key as SubmoduleKey]?.sort() ?? [];
+        const clientSubRoles = CLIENT_SUBMODULE_REQUIRED_SUBROLE[key as SubmoduleKey]?.sort() ?? [];
+        expect(serverSubRoles, `SUBMODULE_REQUIRED_SUBROLE[${key}] mismatch`).toEqual(clientSubRoles);
+      }
+    });
+
+    it('SUBMODULE_REQUIRED_SUBROLE matches between lite and server', () => {
+      const serverKeys = Object.keys(SERVER_SUBMODULE_REQUIRED_SUBROLE).sort();
+      const liteKeys = Object.keys(LITE_SUBMODULE_REQUIRED_SUBROLE).sort();
+      expect(serverKeys).toEqual(liteKeys);
+
+      for (const key of serverKeys) {
+        const serverSubRoles = SERVER_SUBMODULE_REQUIRED_SUBROLE[key as SubmoduleKey]?.sort() ?? [];
+        const liteSubRoles = LITE_SUBMODULE_REQUIRED_SUBROLE[key as SubmoduleKey]?.sort() ?? [];
+        expect(serverSubRoles, `SUBMODULE_REQUIRED_SUBROLE[${key}] mismatch (lite)`).toEqual(liteSubRoles);
+      }
+    });
+
+    it('PLAN_GATES keys match between client and server', () => {
+      const serverPlans = Object.keys(SERVER_PLAN_GATES).sort();
+      const clientPlans = Object.keys(CLIENT_PLAN_GATES).sort();
+      expect(serverPlans).toEqual(clientPlans);
+    });
+
+    it('PLAN_GATES match between lite and server', () => {
+      const serverPlans = Object.keys(SERVER_PLAN_GATES).sort();
+      const litePlans = Object.keys(LITE_PLAN_GATES).sort();
+      expect(serverPlans).toEqual(litePlans);
+
+      for (const plan of serverPlans) {
+        const serverGate = SERVER_PLAN_GATES[plan as Plan] || {};
+        const liteGate = LITE_PLAN_GATES[plan as Plan] || {};
+        expect(serverGate, `PLAN_GATES mismatch for plan ${plan} (lite)`).toEqual(liteGate);
+      }
+    });
+  });
+
+  describe('can() Behavioral Parity', () => {
+    // Test matrix: roles × submodules × actions
+    const testRoles = [Role.ADMIN, Role.PROPERTY_MANAGER, Role.TEAM_MEMBER, Role.TECHNICIAN, Role.TENANT];
+    const testSubmodules: SubmoduleKey[] = [
+      'WO_CREATE',
+      'WO_TRACK_ASSIGN',
+      'FINANCE_INVOICES',
+      'HR_EMPLOYEE_DIRECTORY',
+      'SUPPORT_TICKETS',
+      'PROP_LIST',
+    ];
+    const testActions = ['view', 'create', 'update', 'delete', 'export', 'approve'];
+
+    it('can() returns same result for ADMIN role', () => {
+      const ctx = createTestCtx({ role: Role.ADMIN });
+      
+      for (const submodule of testSubmodules) {
+        for (const action of testActions) {
+          const serverResult = canServer(submodule, action, ctx);
+          const clientResult = canClient(submodule, action, ctx as ClientResourceCtx);
+          expect(
+            serverResult,
+            `Parity fail: can(${submodule}, ${action}) for ADMIN - server=${serverResult}, client=${clientResult}`
+          ).toBe(clientResult);
+        }
+      }
+    });
+
+    it('can() returns same result for TEAM_MEMBER without sub-role', () => {
+      const ctx = createTestCtx({ role: Role.TEAM_MEMBER, subRole: undefined });
+      
+      for (const submodule of testSubmodules) {
+        for (const action of testActions) {
+          const serverResult = canServer(submodule, action, ctx);
+          const clientResult = canClient(submodule, action, ctx as ClientResourceCtx);
+          expect(
+            serverResult,
+            `Parity fail: can(${submodule}, ${action}) for TEAM_MEMBER (no subRole) - server=${serverResult}, client=${clientResult}`
+          ).toBe(clientResult);
+        }
+      }
+    });
+
+    it('can() returns same result for TEAM_MEMBER + FINANCE_OFFICER', () => {
+      const ctx = createTestCtx({ role: Role.TEAM_MEMBER, subRole: SubRole.FINANCE_OFFICER });
+      
+      for (const submodule of testSubmodules) {
+        for (const action of testActions) {
+          const serverResult = canServer(submodule, action, ctx);
+          const clientResult = canClient(submodule, action, ctx as ClientResourceCtx);
+          expect(
+            serverResult,
+            `Parity fail: can(${submodule}, ${action}) for TEAM_MEMBER+FINANCE_OFFICER - server=${serverResult}, client=${clientResult}`
+          ).toBe(clientResult);
+        }
+      }
+    });
+
+    it('can() returns same result for TEAM_MEMBER + HR_OFFICER', () => {
+      const ctx = createTestCtx({ role: Role.TEAM_MEMBER, subRole: SubRole.HR_OFFICER });
+      
+      for (const submodule of testSubmodules) {
+        for (const action of testActions) {
+          const serverResult = canServer(submodule, action, ctx);
+          const clientResult = canClient(submodule, action, ctx as ClientResourceCtx);
+          expect(
+            serverResult,
+            `Parity fail: can(${submodule}, ${action}) for TEAM_MEMBER+HR_OFFICER - server=${serverResult}, client=${clientResult}`
+          ).toBe(clientResult);
+        }
+      }
+    });
+
+    it('can() returns same result for TEAM_MEMBER + SUPPORT_AGENT', () => {
+      const ctx = createTestCtx({ role: Role.TEAM_MEMBER, subRole: SubRole.SUPPORT_AGENT });
+      
+      for (const submodule of testSubmodules) {
+        for (const action of testActions) {
+          const serverResult = canServer(submodule, action, ctx);
+          const clientResult = canClient(submodule, action, ctx as ClientResourceCtx);
+          expect(
+            serverResult,
+            `Parity fail: can(${submodule}, ${action}) for TEAM_MEMBER+SUPPORT_AGENT - server=${serverResult}, client=${clientResult}`
+          ).toBe(clientResult);
+        }
+      }
+    });
+
+    it('can() returns same result for TEAM_MEMBER + OPERATIONS_MANAGER', () => {
+      const ctx = createTestCtx({ role: Role.TEAM_MEMBER, subRole: SubRole.OPERATIONS_MANAGER });
+      
+      for (const submodule of testSubmodules) {
+        for (const action of testActions) {
+          const serverResult = canServer(submodule, action, ctx);
+          const clientResult = canClient(submodule, action, ctx as ClientResourceCtx);
+          expect(
+            serverResult,
+            `Parity fail: can(${submodule}, ${action}) for TEAM_MEMBER+OPERATIONS_MANAGER - server=${serverResult}, client=${clientResult}`
+          ).toBe(clientResult);
+        }
+      }
+    });
+
+    it('can() returns same result for TECHNICIAN role', () => {
+      const ctx = createTestCtx({ role: Role.TECHNICIAN });
+      
+      for (const submodule of testSubmodules) {
+        for (const action of testActions) {
+          const serverResult = canServer(submodule, action, ctx);
+          const clientResult = canClient(submodule, action, ctx as ClientResourceCtx);
+          expect(
+            serverResult,
+            `Parity fail: can(${submodule}, ${action}) for TECHNICIAN - server=${serverResult}, client=${clientResult}`
+          ).toBe(clientResult);
+        }
+      }
+    });
+  });
+
+  describe('Sub-Role Enforcement', () => {
+    it('FINANCE_OFFICER can access FINANCE_INVOICES', () => {
+      const ctx = createTestCtx({ role: Role.TEAM_MEMBER, subRole: SubRole.FINANCE_OFFICER });
+      
+      expect(canServer('FINANCE_INVOICES', 'view', ctx)).toBe(true);
+      expect(canClient('FINANCE_INVOICES', 'view', ctx as ClientResourceCtx)).toBe(true);
+      expect(canServer('FINANCE_INVOICES', 'create', ctx)).toBe(true);
+      expect(canClient('FINANCE_INVOICES', 'create', ctx as ClientResourceCtx)).toBe(true);
+    });
+
+    it('TEAM_MEMBER without sub-role cannot access FINANCE_INVOICES', () => {
+      const ctx = createTestCtx({ role: Role.TEAM_MEMBER, subRole: undefined });
+      
+      expect(canServer('FINANCE_INVOICES', 'view', ctx)).toBe(false);
+      expect(canClient('FINANCE_INVOICES', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('HR_OFFICER can access HR_PAYROLL', () => {
+      const ctx = createTestCtx({ role: Role.TEAM_MEMBER, subRole: SubRole.HR_OFFICER });
+      
+      expect(canServer('HR_PAYROLL', 'view', ctx)).toBe(true);
+      expect(canClient('HR_PAYROLL', 'view', ctx as ClientResourceCtx)).toBe(true);
+      expect(canServer('HR_PAYROLL', 'approve', ctx)).toBe(true);
+      expect(canClient('HR_PAYROLL', 'approve', ctx as ClientResourceCtx)).toBe(true);
+    });
+
+    it('TEAM_MEMBER without sub-role cannot access HR_PAYROLL', () => {
+      const ctx = createTestCtx({ role: Role.TEAM_MEMBER, subRole: undefined });
+      
+      expect(canServer('HR_PAYROLL', 'view', ctx)).toBe(false);
+      expect(canClient('HR_PAYROLL', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('SUPPORT_AGENT can access SUPPORT_TICKETS', () => {
+      const ctx = createTestCtx({ role: Role.TEAM_MEMBER, subRole: SubRole.SUPPORT_AGENT });
+      
+      expect(canServer('SUPPORT_TICKETS', 'view', ctx)).toBe(true);
+      expect(canClient('SUPPORT_TICKETS', 'view', ctx as ClientResourceCtx)).toBe(true);
+      expect(canServer('SUPPORT_TICKETS', 'create', ctx)).toBe(true);
+      expect(canClient('SUPPORT_TICKETS', 'create', ctx as ClientResourceCtx)).toBe(true);
+    });
+
+    it('OPERATIONS_MANAGER can access MARKETPLACE_VENDORS', () => {
+      const ctx = createTestCtx({ role: Role.TEAM_MEMBER, subRole: SubRole.OPERATIONS_MANAGER });
+      
+      expect(canServer('MARKETPLACE_VENDORS', 'view', ctx)).toBe(true);
+      expect(canClient('MARKETPLACE_VENDORS', 'view', ctx as ClientResourceCtx)).toBe(true);
+    });
+
+    it('TEAM_MEMBER without sub-role cannot access MARKETPLACE_VENDORS', () => {
+      const ctx = createTestCtx({ role: Role.TEAM_MEMBER, subRole: undefined });
+      
+      expect(canServer('MARKETPLACE_VENDORS', 'view', ctx)).toBe(false);
+      expect(canClient('MARKETPLACE_VENDORS', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+  });
+
+  describe('Plan Gate Parity', () => {
+    it('STARTER plan blocks FINANCE_INVOICES', () => {
+      const ctx = createTestCtx({ plan: Plan.STARTER, role: Role.ADMIN });
+      
+      expect(canServer('FINANCE_INVOICES', 'view', ctx)).toBe(false);
+      expect(canClient('FINANCE_INVOICES', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('STANDARD plan allows FINANCE_INVOICES', () => {
+      const ctx = createTestCtx({ plan: Plan.STANDARD, role: Role.ADMIN });
+      
+      expect(canServer('FINANCE_INVOICES', 'view', ctx)).toBe(true);
+      expect(canClient('FINANCE_INVOICES', 'view', ctx as ClientResourceCtx)).toBe(true);
+    });
+
+    it('ENTERPRISE plan allows SYSTEM_USERS', () => {
+      const ctx = createTestCtx({ plan: Plan.ENTERPRISE, role: Role.ADMIN });
+      
+      expect(canServer('SYSTEM_USERS', 'view', ctx)).toBe(true);
+      expect(canClient('SYSTEM_USERS', 'view', ctx as ClientResourceCtx)).toBe(true);
+    });
+
+    it('PRO plan blocks SYSTEM_USERS', () => {
+      const ctx = createTestCtx({ plan: Plan.PRO, role: Role.ADMIN });
+      
+      expect(canServer('SYSTEM_USERS', 'view', ctx)).toBe(false);
+      expect(canClient('SYSTEM_USERS', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+  });
+
+  describe('Tenant Create Parity', () => {
+    it('TENANT create denied when unitId not in units array', () => {
+      const ctx = createTestCtx({
+        role: Role.TENANT,
+        userId: 'tenant-user-123',
+        requesterUserId: 'tenant-user-123',
+        unitId: 'unit-999',
+        units: ['unit-001', 'unit-002'],
+      });
+      
+      // Create action should fail when unit not accessible
+      expect(canServer('WO_CREATE', 'create', ctx)).toBe(false);
+      expect(canClient('WO_CREATE', 'create', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('TENANT create allowed when unitId in units array', () => {
+      const ctx = createTestCtx({
+        role: Role.TENANT,
+        userId: 'tenant-user-123',
+        requesterUserId: 'tenant-user-123',
+        unitId: 'unit-001',
+        units: ['unit-001', 'unit-002'],
+      });
+      
+      // Create action should succeed when unit accessible
+      expect(canServer('WO_CREATE', 'create', ctx)).toBe(true);
+      expect(canClient('WO_CREATE', 'create', ctx as ClientResourceCtx)).toBe(true);
+    });
+
+    it('TENANT create denied when requesterId !== userId', () => {
+      const ctx = createTestCtx({
+        role: Role.TENANT,
+        userId: 'tenant-user-123',
+        requesterUserId: 'different-user-456',
+        unitId: 'unit-001',
+        units: ['unit-001'],
+      });
+      
+      // Create action should fail when requester is different
+      expect(canServer('WO_CREATE', 'create', ctx)).toBe(false);
+      expect(canClient('WO_CREATE', 'create', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('TENANT create allowed when requesterId === userId and no unit context', () => {
+      const ctx = createTestCtx({
+        role: Role.TENANT,
+        userId: 'tenant-user-123',
+        requesterUserId: 'tenant-user-123',
+        // No unitId or units provided
+      });
+      
+      // Create action should succeed when requester matches owner
+      expect(canServer('WO_CREATE', 'create', ctx)).toBe(true);
+      expect(canClient('WO_CREATE', 'create', ctx as ClientResourceCtx)).toBe(true);
+    });
+
+    it('TENANT view denied when requesterId !== userId', () => {
+      const ctx = createTestCtx({
+        role: Role.TENANT,
+        userId: 'tenant-user-123',
+        requesterUserId: 'different-user-456',
+      });
+      
+      // View action should fail when requester is different
+      expect(canServer('WO_CREATE', 'view', ctx)).toBe(false);
+      expect(canClient('WO_CREATE', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+  });
+
+  describe('Property Scoping Parity', () => {
+    it('CORPORATE_OWNER allowed when isOwnerOfProperty', () => {
+      const ctx = createTestCtx({
+        role: Role.CORPORATE_OWNER,
+        propertyId: 'prop-123',
+        isOwnerOfProperty: true,
+        assignedProperties: [],
+      });
+      
+      expect(canServer('PROP_LIST', 'view', ctx)).toBe(true);
+      expect(canClient('PROP_LIST', 'view', ctx as ClientResourceCtx)).toBe(true);
+    });
+
+    it('CORPORATE_OWNER allowed when propertyId in assignedProperties', () => {
+      const ctx = createTestCtx({
+        role: Role.CORPORATE_OWNER,
+        propertyId: 'prop-123',
+        isOwnerOfProperty: false,
+        assignedProperties: ['prop-123', 'prop-456'],
+      });
+      
+      expect(canServer('PROP_LIST', 'view', ctx)).toBe(true);
+      expect(canClient('PROP_LIST', 'view', ctx as ClientResourceCtx)).toBe(true);
+    });
+
+    it('CORPORATE_OWNER denied when neither owner nor assigned', () => {
+      const ctx = createTestCtx({
+        role: Role.CORPORATE_OWNER,
+        propertyId: 'prop-123',
+        isOwnerOfProperty: false,
+        assignedProperties: ['prop-other'],
+      });
+      
+      expect(canServer('PROP_LIST', 'view', ctx)).toBe(false);
+      expect(canClient('PROP_LIST', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('PROPERTY_MANAGER allowed when propertyId in assignedProperties', () => {
+      const ctx = createTestCtx({
+        role: Role.PROPERTY_MANAGER,
+        propertyId: 'prop-123',
+        isOwnerOfProperty: false,
+        assignedProperties: ['prop-123', 'prop-456'],
+      });
+      
+      expect(canServer('PROP_LIST', 'view', ctx)).toBe(true);
+      expect(canClient('PROP_LIST', 'view', ctx as ClientResourceCtx)).toBe(true);
+    });
+
+    it('PROPERTY_MANAGER denied when propertyId not in assignedProperties', () => {
+      const ctx = createTestCtx({
+        role: Role.PROPERTY_MANAGER,
+        propertyId: 'prop-123',
+        isOwnerOfProperty: false,
+        assignedProperties: ['prop-other'],
+      });
+      
+      expect(canServer('PROP_LIST', 'view', ctx)).toBe(false);
+      expect(canClient('PROP_LIST', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('PROPERTY_MANAGER denied even with isOwnerOfProperty (must be assigned)', () => {
+      const ctx = createTestCtx({
+        role: Role.PROPERTY_MANAGER,
+        propertyId: 'prop-123',
+        isOwnerOfProperty: true,  // This shouldn't grant access
+        assignedProperties: [],   // Not assigned
+      });
+      
+      // Server behavior: Property Manager must be assigned, ownership alone doesn't grant access
+      expect(canServer('PROP_LIST', 'view', ctx)).toBe(false);
+      expect(canClient('PROP_LIST', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('SUPER_ADMIN bypasses property scoping', () => {
+      const ctx = createTestCtx({
+        role: Role.SUPER_ADMIN,
+        propertyId: 'prop-123',
+        isOwnerOfProperty: false,
+        assignedProperties: [],
+      });
+      
+      expect(canServer('PROP_LIST', 'view', ctx)).toBe(true);
+      expect(canClient('PROP_LIST', 'view', ctx as ClientResourceCtx)).toBe(true);
+    });
+  });
+
+  describe('computeAllowedModules Parity', () => {
+    it('returns same modules for all roles across server/client/lite', () => {
+      for (const role of Object.values(Role)) {
+        const serverModules = computeAllowedModulesServer(role).sort();
+        const clientModules = computeAllowedModulesClient(role).sort();
+        const liteModules = computeAllowedModulesLite(role).sort();
+        
+        expect(
+          serverModules,
+          `computeAllowedModules(${role}) mismatch: server vs client`
+        ).toEqual(clientModules);
+        expect(
+          serverModules,
+          `computeAllowedModules(${role}) mismatch: server vs lite`
+        ).toEqual(liteModules);
+      }
+    });
+
+    it('TEAM_MEMBER + FINANCE_OFFICER unions base modules with Finance', () => {
+      const serverModules = computeAllowedModulesServer(Role.TEAM_MEMBER, SubRole.FINANCE_OFFICER).sort();
+      const clientModules = computeAllowedModulesClient(Role.TEAM_MEMBER, SubRole.FINANCE_OFFICER).sort();
+      const liteModules = computeAllowedModulesLite(Role.TEAM_MEMBER, SubRole.FINANCE_OFFICER).sort();
+      
+      // Must include both base TEAM_MEMBER modules AND Finance
+      expect(serverModules).toContain(ModuleKey.FINANCE);
+      expect(serverModules).toContain(ModuleKey.DASHBOARD);
+      
+      // All three must match
+      expect(serverModules, 'FINANCE_OFFICER modules: server vs client').toEqual(clientModules);
+      expect(serverModules, 'FINANCE_OFFICER modules: server vs lite').toEqual(liteModules);
+    });
+
+    it('TEAM_MEMBER + HR_OFFICER unions base modules with HR', () => {
+      const serverModules = computeAllowedModulesServer(Role.TEAM_MEMBER, SubRole.HR_OFFICER).sort();
+      const clientModules = computeAllowedModulesClient(Role.TEAM_MEMBER, SubRole.HR_OFFICER).sort();
+      const liteModules = computeAllowedModulesLite(Role.TEAM_MEMBER, SubRole.HR_OFFICER).sort();
+      
+      // Must include both base TEAM_MEMBER modules AND HR
+      expect(serverModules).toContain(ModuleKey.HR);
+      expect(serverModules).toContain(ModuleKey.DASHBOARD);
+      
+      // All three must match
+      expect(serverModules, 'HR_OFFICER modules: server vs client').toEqual(clientModules);
+      expect(serverModules, 'HR_OFFICER modules: server vs lite').toEqual(liteModules);
+    });
+
+    it('TEAM_MEMBER + SUPPORT_AGENT unions base modules with Support', () => {
+      const serverModules = computeAllowedModulesServer(Role.TEAM_MEMBER, SubRole.SUPPORT_AGENT).sort();
+      const clientModules = computeAllowedModulesClient(Role.TEAM_MEMBER, SubRole.SUPPORT_AGENT).sort();
+      const liteModules = computeAllowedModulesLite(Role.TEAM_MEMBER, SubRole.SUPPORT_AGENT).sort();
+      
+      // Must include both base TEAM_MEMBER modules AND Support
+      expect(serverModules).toContain(ModuleKey.SUPPORT);
+      expect(serverModules).toContain(ModuleKey.DASHBOARD);
+      
+      // All three must match
+      expect(serverModules, 'SUPPORT_AGENT modules: server vs client').toEqual(clientModules);
+      expect(serverModules, 'SUPPORT_AGENT modules: server vs lite').toEqual(liteModules);
+    });
+
+    it('TEAM_MEMBER + OPERATIONS_MANAGER unions base modules with Work Orders & Properties', () => {
+      const serverModules = computeAllowedModulesServer(Role.TEAM_MEMBER, SubRole.OPERATIONS_MANAGER).sort();
+      const clientModules = computeAllowedModulesClient(Role.TEAM_MEMBER, SubRole.OPERATIONS_MANAGER).sort();
+      const liteModules = computeAllowedModulesLite(Role.TEAM_MEMBER, SubRole.OPERATIONS_MANAGER).sort();
+      
+      // Must include both base TEAM_MEMBER modules AND Work Orders + Properties
+      expect(serverModules).toContain(ModuleKey.WORK_ORDERS);
+      expect(serverModules).toContain(ModuleKey.PROPERTIES);
+      expect(serverModules).toContain(ModuleKey.DASHBOARD);
+      
+      // All three must match
+      expect(serverModules, 'OPERATIONS_MANAGER modules: server vs client').toEqual(clientModules);
+      expect(serverModules, 'OPERATIONS_MANAGER modules: server vs lite').toEqual(liteModules);
+    });
+
+    it('TEAM_MEMBER sub-roles do NOT lose base modules (union, not override)', () => {
+      const baseModules = computeAllowedModulesServer(Role.TEAM_MEMBER).sort();
+      
+      for (const subRole of Object.values(SubRole)) {
+        const serverModules = computeAllowedModulesServer(Role.TEAM_MEMBER, subRole).sort();
+        const clientModules = computeAllowedModulesClient(Role.TEAM_MEMBER, subRole).sort();
+        
+        // Every base module must still be present (union, not replacement)
+        for (const baseModule of baseModules) {
+          expect(
+            serverModules,
+            `SubRole ${subRole} lost base module ${baseModule}`
+          ).toContain(baseModule);
+          expect(
+            clientModules,
+            `Client SubRole ${subRole} lost base module ${baseModule}`
+          ).toContain(baseModule);
+        }
+      }
+    });
+  });
+
+  describe('Tenant Requester Fallback Parity', () => {
+    it('TENANT create allowed when requesterUserId is undefined (fallback to userId)', () => {
+      const ctx = createTestCtx({
+        role: Role.TENANT,
+        userId: 'tenant-user-123',
+        requesterUserId: undefined,  // Server falls back to userId
+        unitId: 'unit-001',
+        units: ['unit-001'],
+      });
+      
+      // Both should allow because requesterUserId ?? userId === userId
+      expect(canServer('WO_CREATE', 'create', ctx)).toBe(true);
+      expect(canClient('WO_CREATE', 'create', ctx as ClientResourceCtx)).toBe(true);
+    });
+
+    it('TENANT view allowed when requesterUserId is undefined (fallback to userId)', () => {
+      const ctx = createTestCtx({
+        role: Role.TENANT,
+        userId: 'tenant-user-123',
+        requesterUserId: undefined,  // Server falls back to userId
+      });
+      
+      // Both should allow because requesterUserId ?? userId === userId
+      expect(canServer('WO_CREATE', 'view', ctx)).toBe(true);
+      expect(canClient('WO_CREATE', 'view', ctx as ClientResourceCtx)).toBe(true);
+    });
+  });
+
+  describe('Technician Assignment Parity', () => {
+    it('TECHNICIAN allowed for view action without assignment requirement', () => {
+      const ctx = createTestCtx({
+        role: Role.TECHNICIAN,
+        isTechnicianAssigned: false,
+      });
+      
+      expect(canServer('WO_CREATE', 'view', ctx)).toBe(true);
+      expect(canClient('WO_CREATE', 'view', ctx as ClientResourceCtx)).toBe(true);
+    });
+
+    it('TECHNICIAN allowed for update when assigned', () => {
+      const ctx = createTestCtx({
+        role: Role.TECHNICIAN,
+        isTechnicianAssigned: true,
+      });
+      
+      expect(canServer('WO_TRACK_ASSIGN', 'update', ctx)).toBe(true);
+      expect(canClient('WO_TRACK_ASSIGN', 'update', ctx as ClientResourceCtx)).toBe(true);
+    });
+
+    it('TECHNICIAN denied for start_work when not assigned', () => {
+      const ctx = createTestCtx({
+        role: Role.TECHNICIAN,
+        isTechnicianAssigned: false,
+      });
+      
+      // start_work is an ASSIGNED_ACTION - requires assignment
+      expect(canServer('WO_TRACK_ASSIGN', 'start_work', ctx)).toBe(false);
+      expect(canClient('WO_TRACK_ASSIGN', 'start_work', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('TECHNICIAN denied for delete even when assigned', () => {
+      const ctx = createTestCtx({
+        role: Role.TECHNICIAN,
+        isTechnicianAssigned: true,
+      });
+      
+      // Technicians cannot delete work orders regardless of assignment
+      expect(canServer('WO_TRACK_ASSIGN', 'delete', ctx)).toBe(false);
+      expect(canClient('WO_TRACK_ASSIGN', 'delete', ctx as ClientResourceCtx)).toBe(false);
+    });
+  });
+
+  describe('Cross-Role Sub-Role Boundaries', () => {
+    it('FINANCE_OFFICER cannot access HR_PAYROLL', () => {
+      const ctx = createTestCtx({
+        role: Role.TEAM_MEMBER,
+        subRole: SubRole.FINANCE_OFFICER,
+      });
+      
+      expect(canServer('HR_PAYROLL', 'view', ctx)).toBe(false);
+      expect(canClient('HR_PAYROLL', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('HR_OFFICER cannot access FINANCE_INVOICES', () => {
+      const ctx = createTestCtx({
+        role: Role.TEAM_MEMBER,
+        subRole: SubRole.HR_OFFICER,
+      });
+      
+      expect(canServer('FINANCE_INVOICES', 'view', ctx)).toBe(false);
+      expect(canClient('FINANCE_INVOICES', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('SUPPORT_AGENT cannot access MARKETPLACE_VENDORS', () => {
+      const ctx = createTestCtx({
+        role: Role.TEAM_MEMBER,
+        subRole: SubRole.SUPPORT_AGENT,
+      });
+      
+      expect(canServer('MARKETPLACE_VENDORS', 'view', ctx)).toBe(false);
+      expect(canClient('MARKETPLACE_VENDORS', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('OPERATIONS_MANAGER can access WO_TRACK_ASSIGN', () => {
+      const ctx = createTestCtx({
+        role: Role.TEAM_MEMBER,
+        subRole: SubRole.OPERATIONS_MANAGER,
+      });
+      
+      expect(canServer('WO_TRACK_ASSIGN', 'view', ctx)).toBe(true);
+      expect(canClient('WO_TRACK_ASSIGN', 'view', ctx as ClientResourceCtx)).toBe(true);
+    });
+  });
+
+  describe('Plan Downgrade Scenarios', () => {
+    it('STARTER plan blocks HR module entirely', () => {
+      const ctx = createTestCtx({
+        plan: Plan.STARTER,
+        role: Role.ADMIN,
+      });
+      
+      expect(canServer('HR_EMPLOYEE_DIRECTORY', 'view', ctx)).toBe(false);
+      expect(canClient('HR_EMPLOYEE_DIRECTORY', 'view', ctx as ClientResourceCtx)).toBe(false);
+      expect(canServer('HR_PAYROLL', 'view', ctx)).toBe(false);
+      expect(canClient('HR_PAYROLL', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('STARTER plan blocks Marketplace module', () => {
+      const ctx = createTestCtx({
+        plan: Plan.STARTER,
+        role: Role.ADMIN,
+      });
+      
+      expect(canServer('MARKETPLACE_VENDORS', 'view', ctx)).toBe(false);
+      expect(canClient('MARKETPLACE_VENDORS', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('STANDARD plan allows Finance but blocks System Management', () => {
+      const ctx = createTestCtx({
+        plan: Plan.STANDARD,
+        role: Role.ADMIN,
+      });
+      
+      expect(canServer('FINANCE_INVOICES', 'view', ctx)).toBe(true);
+      expect(canClient('FINANCE_INVOICES', 'view', ctx as ClientResourceCtx)).toBe(true);
+      expect(canServer('SYSTEM_USERS', 'view', ctx)).toBe(false);
+      expect(canClient('SYSTEM_USERS', 'view', ctx as ClientResourceCtx)).toBe(false);
+      expect(canServer('SUPPORT_CHAT', 'view', ctx)).toBe(false);
+      expect(canClient('SUPPORT_CHAT', 'view', ctx as ClientResourceCtx)).toBe(false);
+      expect(canServer('MARKETPLACE_REQUESTS', 'view', ctx)).toBe(false);
+      expect(canClient('MARKETPLACE_REQUESTS', 'view', ctx as ClientResourceCtx)).toBe(false);
+      expect(canServer('ADMIN_FACILITIES', 'view', ctx)).toBe(false);
+      expect(canClient('ADMIN_FACILITIES', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('PRO plan allows most features but blocks SYSTEM_USERS', () => {
+      const ctx = createTestCtx({
+        plan: Plan.PRO,
+        role: Role.ADMIN,
+      });
+      
+      expect(canServer('HR_PAYROLL', 'view', ctx)).toBe(true);
+      expect(canClient('HR_PAYROLL', 'view', ctx as ClientResourceCtx)).toBe(true);
+      expect(canServer('SYSTEM_USERS', 'view', ctx)).toBe(false);
+      expect(canClient('SYSTEM_USERS', 'view', ctx as ClientResourceCtx)).toBe(false);
+      expect(canServer('ADMIN_DOA', 'view', ctx)).toBe(true);
+      expect(canClient('ADMIN_DOA', 'view', ctx as ClientResourceCtx)).toBe(true);
+    });
+
+    it('ENTERPRISE plan allows all features including System Management', () => {
+      const ctx = createTestCtx({
+        plan: Plan.ENTERPRISE,
+        role: Role.ADMIN,
+      });
+      
+      expect(canServer('SYSTEM_USERS', 'view', ctx)).toBe(true);
+      expect(canClient('SYSTEM_USERS', 'view', ctx as ClientResourceCtx)).toBe(true);
+      expect(canServer('SYSTEM_INTEGRATIONS', 'view', ctx)).toBe(true);
+      expect(canClient('SYSTEM_INTEGRATIONS', 'view', ctx as ClientResourceCtx)).toBe(true);
+    });
+  });
+
+  describe('Org Membership Edge Cases', () => {
+    it('Non-org member denied even with correct role', () => {
+      const ctx = createTestCtx({
+        role: Role.ADMIN,
+        isOrgMember: false,
+      });
+      
+      expect(canServer('WO_CREATE', 'view', ctx)).toBe(false);
+      expect(canClient('WO_CREATE', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('SUPER_ADMIN bypasses org membership requirement', () => {
+      const ctx = createTestCtx({
+        role: Role.SUPER_ADMIN,
+        isOrgMember: false,
+      });
+      
+      expect(canServer('WO_CREATE', 'view', ctx)).toBe(true);
+      expect(canClient('WO_CREATE', 'view', ctx as ClientResourceCtx)).toBe(true);
+    });
+
+    it('GUEST role limited to public data only', () => {
+      const ctx = createTestCtx({
+        role: Role.GUEST,
+        isOrgMember: false,
+      });
+      
+      // Guests should not have access to work orders
+      expect(canServer('WO_CREATE', 'view', ctx)).toBe(false);
+      expect(canClient('WO_CREATE', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+  });
+
+  describe('Vendor Role Parity', () => {
+    it('VENDOR can view assigned work orders', () => {
+      const ctx = createTestCtx({
+        role: Role.VENDOR,
+        vendorId: 'vendor-123',
+      });
+      
+      expect(canServer('WO_CREATE', 'view', ctx)).toBe(true);
+      expect(canClient('WO_CREATE', 'view', ctx as ClientResourceCtx)).toBe(true);
+    });
+
+    it('VENDOR cannot create work orders', () => {
+      const ctx = createTestCtx({
+        role: Role.VENDOR,
+        vendorId: 'vendor-123',
+      });
+      
+      expect(canServer('WO_CREATE', 'create', ctx)).toBe(false);
+      expect(canClient('WO_CREATE', 'create', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('VENDOR can access marketplace bids', () => {
+      const ctx = createTestCtx({
+        role: Role.VENDOR,
+        vendorId: 'vendor-123',
+      });
+      
+      // Vendors can view/create/update their own bids
+      expect(canServer('MARKETPLACE_BIDS', 'view', ctx)).toBe(true);
+      expect(canClient('MARKETPLACE_BIDS', 'view', ctx as ClientResourceCtx)).toBe(true);
+    });
+
+    it('VENDOR cannot access finance invoices', () => {
+      const ctx = createTestCtx({
+        role: Role.VENDOR,
+        vendorId: 'vendor-123',
+      });
+      
+      expect(canServer('FINANCE_INVOICES', 'view', ctx)).toBe(false);
+      expect(canClient('FINANCE_INVOICES', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+  });
+
+  describe('Action-Specific Parity', () => {
+    it('export action restricted to appropriate roles', () => {
+      const adminCtx = createTestCtx({ role: Role.ADMIN });
+      const technicianCtx = createTestCtx({ role: Role.TECHNICIAN });
+      const tenantCtx = createTestCtx({ 
+        role: Role.TENANT,
+        userId: 'tenant-123',
+        requesterUserId: 'tenant-123',
+      });
+      
+      // Admin can export
+      expect(canServer('REPORTS_OPERATIONS', 'export', adminCtx)).toBe(true);
+      expect(canClient('REPORTS_OPERATIONS', 'export', adminCtx as ClientResourceCtx)).toBe(true);
+      
+      // Technician cannot export reports
+      expect(canServer('REPORTS_OPERATIONS', 'export', technicianCtx)).toBe(false);
+      expect(canClient('REPORTS_OPERATIONS', 'export', technicianCtx as ClientResourceCtx)).toBe(false);
+      
+      // Tenant cannot export reports
+      expect(canServer('REPORTS_OPERATIONS', 'export', tenantCtx)).toBe(false);
+      expect(canClient('REPORTS_OPERATIONS', 'export', tenantCtx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('approve action restricted to management roles', () => {
+      const adminCtx = createTestCtx({ role: Role.ADMIN });
+      const technicianCtx = createTestCtx({ role: Role.TECHNICIAN });
+      
+      // Admin can approve on WO_TRACK_ASSIGN
+      expect(canServer('WO_TRACK_ASSIGN', 'approve', adminCtx)).toBe(true);
+      expect(canClient('WO_TRACK_ASSIGN', 'approve', adminCtx as ClientResourceCtx)).toBe(true);
+      
+      // Technician cannot approve
+      expect(canServer('WO_TRACK_ASSIGN', 'approve', technicianCtx)).toBe(false);
+      expect(canClient('WO_TRACK_ASSIGN', 'approve', technicianCtx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('assign action restricted to management roles', () => {
+      const adminCtx = createTestCtx({ role: Role.ADMIN });
+      const propertyManagerCtx = createTestCtx({
+        role: Role.PROPERTY_MANAGER,
+        propertyId: 'prop-123',
+        assignedProperties: ['prop-123'],
+      });
+      const tenantCtx = createTestCtx({
+        role: Role.TENANT,
+        userId: 'tenant-123',
+        requesterUserId: 'tenant-123',
+      });
+      
+      // Admin can assign
+      expect(canServer('WO_TRACK_ASSIGN', 'assign', adminCtx)).toBe(true);
+      expect(canClient('WO_TRACK_ASSIGN', 'assign', adminCtx as ClientResourceCtx)).toBe(true);
+      
+      // Property Manager can assign within their properties
+      expect(canServer('WO_TRACK_ASSIGN', 'assign', propertyManagerCtx)).toBe(true);
+      expect(canClient('WO_TRACK_ASSIGN', 'assign', propertyManagerCtx as ClientResourceCtx)).toBe(true);
+      
+      // Tenant cannot assign
+      expect(canServer('WO_TRACK_ASSIGN', 'assign', tenantCtx)).toBe(false);
+      expect(canClient('WO_TRACK_ASSIGN', 'assign', tenantCtx as ClientResourceCtx)).toBe(false);
+    });
+  });
+
+  describe('Behavioral Parity (lite canClient vs server can)', () => {
+    const cases: Array<{
+      submodule: SubmoduleKey;
+      action: Parameters<typeof canServer>[1];
+      ctx: ServerResourceCtx;
+      note?: string;
+    }> = [
+      {
+        submodule: 'WO_TRACK_ASSIGN',
+        action: 'assign',
+        ctx: createTestCtx({ role: Role.ADMIN }),
+        note: 'management assignment allowed for admin',
+      },
+      {
+        submodule: 'WO_TRACK_ASSIGN',
+        action: 'start_work',
+        ctx: createTestCtx({ role: Role.TECHNICIAN, isTechnicianAssigned: false }),
+        note: 'technician must be assigned to start work',
+      },
+      {
+        submodule: 'WO_CREATE',
+        action: 'create',
+        ctx: createTestCtx({
+          role: Role.TENANT,
+          userId: 'tenant-user-123',
+          requesterUserId: 'tenant-user-123',
+          unitId: 'unit-001',
+          units: ['unit-001'],
+        }),
+        note: 'tenant can create for own unit',
+      },
+      {
+        submodule: 'FINANCE_INVOICES',
+        action: 'approve',
+        ctx: createTestCtx({
+          role: Role.TEAM_MEMBER,
+          subRole: SubRole.FINANCE_OFFICER,
+          plan: Plan.ENTERPRISE,
+        }),
+        note: 'finance officer approval via sub-role extension',
+      },
+      {
+        submodule: 'SUPPORT_CHAT',
+        action: 'view',
+        ctx: createTestCtx({
+          role: Role.ADMIN,
+          plan: Plan.STANDARD,
+        }),
+        note: 'plan gate blocks support chat on Standard plan',
+      },
+    ];
+
+    cases.forEach(({ submodule, action, ctx, note }) => {
+      it(`${submodule} ${action} parity (lite vs server)${note ? ` – ${note}` : ''}`, () => {
+        const serverResult = canServer(submodule, action, ctx);
+        const liteResult = canLite(submodule, action, toLiteCtx(ctx));
+        expect(liteResult).toBe(serverResult);
+      });
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/e2e/auth-flow.spec.ts">
+<![CDATA[
+/**
+ * E2E Test: Authentication Flow
+ * Tests complete user authentication journey including signup, login, and logout
+ */
+
+import { test, expect } from "@playwright/test";
+
+// 🔐 Test password from env (fail-fast if not set)
+const TEST_PASSWORD = process.env.FIXZIT_TEST_ADMIN_PASSWORD;
+if (!TEST_PASSWORD) {
+  throw new Error("FIXZIT_TEST_ADMIN_PASSWORD must be set for E2E auth flow tests (no hardcoded fallback).");
+}
+
+// Override project-wide storageState to run as a guest for auth flows
+test.use({ storageState: undefined });
+
+test.describe("Authentication Flow", () => {
+  test.beforeEach(async ({ page }) => {
+    // Start from home page
+    await page.context().clearCookies();
+    await page.goto("about:blank");
+    await page.goto("/");
+    await page.evaluate(() => window.localStorage.clear());
+  });
+
+  test("should display login page correctly", async ({ page }) => {
+    await page.goto("/login");
+
+    // Check page loads or fallback to offline overlay
+    await expect(page).toHaveTitle(/Login|Fixzit/i);
+
+    // Login page uses data-testid attributes and type="text" for identifier input
+    const emailInput = page.locator('[data-testid="login-email"], input[name="identifier"], input#email').first();
+    const passwordInput = page.locator('[data-testid="login-password"], input#password, input[type="password"]').first();
+    const submitBtn = page.locator('button[type="submit"]');
+
+    if (await emailInput.count()) {
+      await expect(emailInput).toBeVisible({ timeout: 10000 });
+      await expect(passwordInput).toBeVisible({ timeout: 10000 });
+      await expect(submitBtn).toBeVisible({ timeout: 10000 });
+    } else {
+      // Offline/guarded mode: ensure we can still navigate to dashboard via injected session
+      await page.goto('/dashboard', { waitUntil: 'domcontentloaded' }).catch(() => {});
+      await expect(page.url()).toContain('/dashboard');
+    }
+
+    // Check language selector - use broader selector for RTL-aware UI
+    const langToggle = page
+      .locator('[aria-label*="language" i], [aria-label*="اللغة" i], [data-testid="language-selector"], button:has-text("EN"), button:has-text("العربية")')
+      .first();
+    if (await langToggle.count()) {
+      await expect(langToggle).toBeVisible();
+    }
+  });
+
+  test("should show validation errors for invalid login", async ({ page }) => {
+    await page.goto("/login");
+
+    const submitBtn = page.locator('button[type="submit"]');
+    if (await submitBtn.isEnabled()) {
+      await submitBtn.click();
+    } else {
+      // Disabled submit implies validation is enforced
+      await expect(submitBtn).toBeDisabled();
+    }
+
+    // Should see validation errors or stay on page
+    await expect(page).toHaveURL(/\/login/, { timeout: 5000 });
+  });
+
+  test("should handle login with invalid credentials", async ({ page }) => {
+    await page.goto("/login");
+
+    // Wait for page to fully load
+    await page.waitForLoadState('networkidle');
+
+    // Use correct selectors that match the actual login page
+    const emailInput = page.locator('[data-testid="login-email"], input[name="identifier"], input#email').first();
+    const passwordInput = page.locator('[data-testid="login-password"], input#password, input[type="password"]').first();
+
+    // Fill in invalid credentials
+    await emailInput.fill("invalid@example.com");
+    await passwordInput.fill("wrongpassword");
+
+    // Submit form
+    const submitBtn = page.locator('button[type="submit"]');
+    if (await submitBtn.isEnabled()) {
+      await submitBtn.click();
+    }
+
+    // Should show error message or stay on login page (allow time for form submission)
+    await page.waitForTimeout(1000);
+    await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
+  });
+
+  test("should navigate to signup page", async ({ page }) => {
+    await page.goto("/login");
+
+    // Find and click signup link
+    const signupLink = page.locator('a[href*="/signup"], [data-testid="go-to-signup"]');
+    await expect(signupLink.first()).toBeVisible();
+    await signupLink.first().click();
+    await expect(page).toHaveURL(/\/signup/);
+  });
+
+  test("should display signup page correctly", async ({ page }) => {
+    await page.goto("/signup");
+
+    // Check page loads
+    await expect(page).toHaveTitle(/Sign.*Up|Fixzit/i);
+
+    // Wait for form to render
+    await page.waitForLoadState('networkidle');
+
+    // Check form elements exist - use more flexible selectors
+    const nameInput = page.locator('input[name="name"], input[placeholder*="name" i], [data-testid="signup-name"], input#name').first();
+    const emailInput = page.locator('input[type="email"], input[name="email"], [data-testid="signup-email"], input#email, input[name="identifier"]').first();
+    const passwordInput = page.locator('input[type="password"], [data-testid="signup-password"], input#password').first();
+
+    // At least email and password should be visible on signup page
+    if (await emailInput.count() > 0) {
+      await expect(emailInput).toBeVisible({ timeout: 10000 });
+    }
+    if (await passwordInput.count() > 0) {
+      await expect(passwordInput).toBeVisible({ timeout: 10000 });
+    }
+    // Name field may or may not exist depending on signup form design
+    if (await nameInput.count() > 0) {
+      await expect(nameInput).toBeVisible({ timeout: 5000 }).catch(() => {});
+    }
+  });
+
+  test("should validate password requirements", async ({ page }) => {
+    await page.goto("/signup");
+
+    // Wait for form to render
+    await page.waitForLoadState('networkidle');
+
+    // Fill in weak password - use flexible selectors
+    const emailInput = page.locator('input[type="email"], input[name="email"], [data-testid="signup-email"], input#email, input[name="identifier"]').first();
+    const passwordInput = page.locator('input[type="password"], [data-testid="signup-password"], input#password').first();
+
+    if (await emailInput.count() > 0) {
+      await emailInput.fill("test@example.com");
+    }
+    if (await passwordInput.count() > 0) {
+      await passwordInput.fill("123");
+    }
+
+    // Try to submit
+    await page.locator('button[type="submit"]').click();
+
+    // Should show validation error
+    await expect(page).toHaveURL(/\/signup/, { timeout: 5000 });
+  });
+
+  test("should handle forgot password flow", async ({ page }) => {
+    await page.goto("/login");
+
+    // Wait for form to render
+    await page.waitForLoadState('networkidle');
+
+    // Find forgot password link
+    const forgotLink = page.locator('a[href*="forgot"]');
+    if (await forgotLink.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await forgotLink.click();
+      await expect(page).toHaveURL(/.*forgot/);
+
+      // Check email input exists - use flexible selector
+      const emailInput = page.locator('input[type="email"], input[name="email"], input#email, input[name="identifier"]').first();
+      if (await emailInput.count() > 0) {
+        await expect(emailInput).toBeVisible({ timeout: 5000 });
+      }
+    }
+  });
+
+  test("should switch language on auth pages", async ({ page }) => {
+    await page.goto("/login");
+
+    // Wait for page to fully load
+    await page.waitForLoadState('networkidle');
+
+    // Find language selector - expanded selectors for different UI implementations
+    const langSelector = page
+      .locator(
+        '[aria-label*="language" i], [aria-label*="اللغة" i], [data-testid="language-selector"], button:has-text("العربية"), button:has-text("English"), button:has-text("EN"), button:has-text("AR"), [role="button"]:has-text("English"), [role="button"]:has-text("العربية")',
+      )
+      .first();
+
+    if (await langSelector.isVisible({ timeout: 5000 }).catch(() => false)) {
+      // Use force click to handle any overlays
+      await langSelector.click({ force: true }).catch(() => {});
+
+      // Wait for any language change to take effect
+      await page.waitForTimeout(500);
+      await page.waitForLoadState('domcontentloaded');
+
+      // Check direction attribute - should be 'ltr' or 'rtl'
+      const htmlDir = await page.locator("html").getAttribute("dir");
+      // Direction attribute should exist (either 'ltr' or 'rtl')
+      expect(htmlDir === 'ltr' || htmlDir === 'rtl' || htmlDir === null).toBeTruthy();
+    } else {
+      // Skip test if language selector not found (acceptable in minimal UI mode)
+      test.skip(true, 'Language selector not visible in minimal UI mode');
+    }
+  });
+});
+
+test.describe("Authentication - Guest User", () => {
+  test("guest user should see public pages", async ({ page }) => {
+    await page.goto("/");
+
+    // Home page should load
+    await expect(page).toHaveTitle(/Fixzit/i);
+
+    // Check for login/signup buttons
+    const hasAuthButtons =
+      (await page.locator('a[href*="/login"], a[href*="/signup"]').count()) > 0;
+    expect(hasAuthButtons).toBeTruthy();
+  });
+
+  test("guest user should be redirected from protected routes", async ({
+    page,
+  }) => {
+    // Try to access protected route
+    await page.goto("/dashboard");
+
+    // Should redirect to login or show access denied
+    await expect(page).toHaveURL(/\/(login|access-denied)?/, { timeout: 5000 });
+    const url = page.url();
+    expect(
+      url.includes("/login") ||
+        url.includes("/") ||
+        url.includes("access-denied"),
+    ).toBeTruthy();
+  });
+
+  test("login page should pass accessibility checks", async ({ page }) => {
+    await page.goto("/login");
+    await page.waitForLoadState("networkidle");
+
+    // Note: Install axe-playwright with: npm install -D @axe-core/playwright
+    // Then import: import { injectAxe, checkA11y } from 'axe-playwright';
+    // await injectAxe(page);
+    // await checkA11y(page, null, {
+    //   detailedReport: true,
+    //   detailedReportOptions: { html: true },
+    // });
+
+    // Temporary manual checks until axe-playwright is installed
+    // Check for skip link
+    const skipLink = page.locator('a[href="#main-content"]');
+    await expect(skipLink).toBeAttached();
+
+    // Check for proper heading hierarchy
+    const h1Count = await page.locator("h1").count();
+    expect(h1Count).toBeGreaterThan(0);
+
+    // Check all images have alt text
+    const images = await page.locator("img").all();
+    for (const img of images) {
+      const alt = await img.getAttribute("alt");
+      expect(alt).toBeDefined();
+    }
+
+    // Check form inputs have labels or aria-labels
+    const inputs = await page.locator("input").all();
+    for (const input of inputs) {
+      const id = await input.getAttribute("id");
+      const ariaLabel = await input.getAttribute("aria-label");
+      const hasLabel = id ? await page.locator(`label[for="${id}"]`).count() > 0 : false;
+      expect(ariaLabel || hasLabel).toBeTruthy();
+    }
+  });
+
+  test("dashboard page should pass accessibility checks", async ({ page }) => {
+    await page.goto("/login");
+    await page.waitForLoadState('networkidle');
+    
+    // Login first (use actual credentials if available in CI) - use correct selectors
+    const emailInput = page.locator('[data-testid="login-email"], input[name="identifier"], input#email').first();
+    const passwordInput = page.locator('[data-testid="login-password"], input#password, input[type="password"]').first();
+    
+    if (await emailInput.isVisible() && await passwordInput.isVisible()) {
+      await emailInput.fill("test@example.com");
+      await passwordInput.fill(TEST_PASSWORD);
+      await page.locator('button[type="submit"]').click();
+      
+      // Wait for potential redirect
+      await page.waitForLoadState('networkidle').catch(() => {});
+    }
+
+    // If we're on dashboard, check accessibility
+    if (page.url().includes("/dashboard")) {
+      await page.waitForLoadState("networkidle");
+
+      // Manual accessibility checks (replace with axe-playwright when installed)
+      const skipLink = page.locator('a[href="#main-content"]');
+      await expect(skipLink).toBeAttached();
+
+      // Check main landmark exists
+      const main = page.locator("main#main-content");
+      await expect(main).toBeAttached();
+
+      // Check heading hierarchy
+      const h1Count = await page.locator("h1").count();
+      expect(h1Count).toBeGreaterThan(0);
+    }
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/e2e/auth.spec.ts">
+<![CDATA[
+import { test, expect, Page } from '@playwright/test';
+import { attemptLogin, fillLoginForm, getErrorLocator, loginSelectors } from './utils/auth';
+import {
+  getRequiredTestCredentials,
+  hasTestCredentials,
+  hasTestCredentialsWithEmployee,
+  getTestOrgIdOptional,
+  validateRequiredCredentials,
+  type TestCredentials,
+} from './utils/credentials';
+
+// SECURITY FIX (2025-11-30): Removed insecure offline fallback injection.
+//
+// The previous code injected fake credentials (admin@offline.test / Test@1234)
+// at runtime, which COMPLETELY UNDERMINED the security pattern in credentials.ts.
+// 
+// Why this was dangerous:
+// 1. The fallback ran BEFORE validateRequiredCredentials()
+// 2. It set process.env vars, making validation pass with fake data
+// 3. Tests would run with insecure credentials and CI would report success
+// 4. A forked PR could pass E2E tests without real tenant isolation checks
+//
+// CORRECT BEHAVIOR:
+// - Local dev: Must configure .env.local with real TEST_* credentials
+// - CI internal: Secrets must be configured in GitHub Actions secrets
+// - CI fork: Tests skip gracefully via IS_FORK_OR_MISSING_SECRETS detection
+//
+// If you need to run tests locally without credentials:
+//   1. Copy env.example to .env.local
+//   2. Configure TEST_ADMIN_EMAIL, TEST_ADMIN_PASSWORD, etc.
+//   3. For local-only smoke tests, create real test users in your dev DB
+//
+// See: tests/e2e/utils/credentials.ts for the secure credential pattern
+
+/**
+ * Authentication E2E Tests
+ * Tests user authentication flows, RBAC, and session management
+ * 
+ * SECURITY FIX (PR #376):
+ * - Removed insecure fallback credentials (Test@1234)
+ * - Uses getRequiredTestCredentials() which throws if env not set
+ * - Tests will fail fast if TEST_ADMIN_* or TEST_TEAM_MEMBER_* env vars are missing
+ */
+
+/**
+ * Get primary admin user credentials.
+ * Requires TEST_ADMIN_EMAIL and TEST_ADMIN_PASSWORD env vars.
+ * 
+ * SECURITY (PR #376 audit): NO FALLBACKS.
+ * Tests MUST fail fast if credentials are not configured.
+ */
+function getPrimaryUser(): TestCredentials {
+  // AUDIT-2025-11-30: Removed insecure fallback (admin@offline.test/Test@1234)
+  // Tests MUST fail fast if env vars are missing - no silent fallbacks
+  return getRequiredTestCredentials('ADMIN');
+}
+
+/**
+ * Get non-admin user credentials.
+ * Requires TEST_TEAM_MEMBER_EMAIL and TEST_TEAM_MEMBER_PASSWORD env vars.
+ * 
+ * SECURITY (PR #376 audit): NO FALLBACKS.
+ * Tests MUST fail fast if credentials are not configured.
+ */
+function getNonAdminUser(): TestCredentials {
+  // AUDIT-2025-11-30: Removed insecure fallback (member@offline.test/Test@1234)
+  // Tests MUST fail fast if env vars are missing - no silent fallbacks
+  return getRequiredTestCredentials('TEAM_MEMBER');
+}
+
+// Check credential availability - these do NOT throw, just return boolean
+// AUDIT-2025-11-30: Fixed to use actual hasTestCredentials() instead of hard-coded true
+const HAS_PRIMARY_USER = hasTestCredentials('ADMIN');
+const HAS_NON_ADMIN_USER = hasTestCredentials('TEAM_MEMBER');
+
+// Credentials are loaded on demand - will throw if env vars missing (fail-fast)
+// AUDIT-2025-11-30: Only access these if HAS_*_USER is true to avoid immediate throw
+// Tests that need credentials must check HAS_*_USER first or will fail fast
+const PRIMARY_USER = HAS_PRIMARY_USER ? getPrimaryUser() : null;
+const NON_ADMIN_USER = HAS_NON_ADMIN_USER ? getNonAdminUser() : null;
+
+// AUDIT-2025-11-30: Removed fallback - test will fail if credentials missing
+const PASSWORD_RESET_EMAIL = PRIMARY_USER?.email ?? '';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
+const DEFAULT_TIMEOUT = 30000;
+const TEST_ORG_ID = getTestOrgIdOptional();
+const ALLOW_MISSING_TEST_ORG_ID = process.env.ALLOW_MISSING_TEST_ORG_ID === 'true';
+const IS_CI = process.env.CI === 'true';
+const IS_PULL_REQUEST = process.env.GITHUB_EVENT_NAME === 'pull_request';
+const HAS_AUTH_CREDENTIALS = HAS_PRIMARY_USER && HAS_NON_ADMIN_USER;
+const IS_FORK_OR_MISSING_SECRETS = IS_CI && IS_PULL_REQUEST && !HAS_AUTH_CREDENTIALS;
+
+// SECURITY (2025-11-30): Fail fast if core credentials are missing
+// BUT: Skip gracefully for forked PRs (secrets unavailable)
+if (!IS_FORK_OR_MISSING_SECRETS) {
+  // Internal CI or local dev: credentials MUST be configured
+  validateRequiredCredentials(['ADMIN', 'TEAM_MEMBER']);
+}
+// For forks: test.skip() guards in each test.describe() handle graceful skip
+
+// Enforce TEST_ORG_ID for internal CI runs (not forks)
+if (IS_CI && !TEST_ORG_ID && !IS_FORK_OR_MISSING_SECRETS) {
+  throw new Error(
+    'CI REQUIRES TEST_ORG_ID for multi-tenant isolation validation in auth RBAC tests.\n\n' +
+    'Cross-tenant data leaks are a critical security vulnerability.\n' +
+    'Without TEST_ORG_ID, tests cannot verify org_id scoping on /api/work-orders.\n\n' +
+    'ACTION:\n' +
+    '  1. Add TEST_ORG_ID to GitHub Secrets\n' +
+    '  2. Set it to the org_id of your test tenant\n\n' +
+    'See env.example for configuration details.'
+  );
+} else if (!TEST_ORG_ID && !IS_CI) {
+  console.info(
+    'ℹ️  INFO: TEST_ORG_ID not set. Tenant isolation checks will be skipped.\n' +
+    'For full multi-tenancy validation, set TEST_ORG_ID in .env.local.'
+  );
+}
+
+async function gotoWithRetry(page: Page, path: string, attempts = 3) {
+  let lastError: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      await page.goto(path, { waitUntil: 'load', timeout: DEFAULT_TIMEOUT });
+      return;
+    } catch (error) {
+      lastError = error;
+      // Wait for network to settle before retry
+      await page.waitForLoadState('domcontentloaded').catch(() => {});
+    }
+  }
+  throw lastError;
+}
+
+function ensureLoginOrFail(result: { success: boolean; errorText?: string }) {
+  expect(result.success, `Login failed: ${result.errorText || 'unknown error'}`).toBeTruthy();
+}
+
+function ensureLoginOrSkip(result: { success: boolean; errorText?: string }) {
+  expect(
+    result.success,
+    `Login failed: ${result.errorText || 'unknown error'} – owner: QA/Auth, ticket: QA-AUTH-002`
+  ).toBeTruthy();
+}
+
+async function assertTenantScopedUsers(page: Page) {
+  if (!TEST_ORG_ID) return;
+  const resp = await page.request.get('/api/admin/users');
+  expect(resp.status(), 'Admin users API should be accessible').toBe(200);
+  const body = await resp.json();
+  const users = Array.isArray(body?.data) ? body.data : Array.isArray(body) ? body : [];
+  for (const user of users) {
+    if (user?.org_id !== undefined) {
+      expect(String(user.org_id)).toBe(TEST_ORG_ID);
+    }
+  }
+}
+
+test.describe('Authentication', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.context().clearCookies();
+    await page.goto('about:blank');
+    await page.evaluate(() => {
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch {
+        // ignore storage clear errors
+      }
+    });
+    await gotoWithRetry(page, '/login');
+  });
+
+  test.describe('Login Flow', () => {
+    // AUDIT-2025-11-30: Skip entire suite if credentials are missing
+    // This provides clear "skipped" output instead of noisy assertion failures
+    test.skip(!HAS_PRIMARY_USER, 'TEST_ADMIN_EMAIL/PASSWORD env vars required for Login Flow tests');
+
+    test('should display login form', async ({ page }) => {
+      await expect(page).toHaveURL(/\/login/);
+      await expect(page.locator(loginSelectors.identifier)).toBeVisible({ timeout: 15000 });
+      await expect(page.locator(loginSelectors.password)).toBeVisible({ timeout: 15000 });
+      await expect(page.locator(loginSelectors.submit)).toBeVisible({ timeout: 15000 });
+    });
+
+    test('should login with email and password', async ({ page }) => {
+      const result = await attemptLogin(page, PRIMARY_USER!.email, PRIMARY_USER!.password);
+      ensureLoginOrFail(result);
+
+      const profileButton = page.locator('[data-testid="user-menu"]').first();
+      await expect(profileButton).toBeVisible();
+    });
+
+    test('should login with employee number', async ({ page }) => {
+      // Employee number is optional - skip if not configured
+      test.skip(!PRIMARY_USER?.employeeNumber, 'TEST_ADMIN_EMPLOYEE env var required for employee-number login test');
+      
+      const result = await attemptLogin(page, PRIMARY_USER!.employeeNumber!, PRIMARY_USER!.password);
+      ensureLoginOrFail(result);
+    });
+
+    test('should show error for invalid credentials', async ({ page }) => {
+      await fillLoginForm(page, 'invalid@example.com', 'wrongpassword');
+
+      const errorMessage = getErrorLocator(page);
+      const visible = await errorMessage.first().isVisible();
+      if (visible) {
+        await expect(errorMessage).toContainText(/invalid|incorrect|try again/i);
+      }
+      await expect(page).toHaveURL(/\/login/);
+    });
+
+    test('should show validation error for empty fields', async ({ page }) => {
+      const submitBtn = page.locator(loginSelectors.submit);
+      await expect(submitBtn).toBeDisabled();
+    });
+  });
+
+  test.describe('Session Management', () => {
+    // AUDIT-2025-11-30: Skip entire suite if credentials are missing
+    test.skip(!HAS_PRIMARY_USER, 'TEST_ADMIN_EMAIL/PASSWORD env vars required for Session Management tests');
+
+    test('should persist session after page reload', async ({ page }) => {
+      const result = await attemptLogin(page, PRIMARY_USER!.email, PRIMARY_USER!.password);
+      ensureLoginOrFail(result);
+
+      await page.reload();
+
+      await expect(page).toHaveURL(/\/dashboard/);
+      const profileButton = page.locator('[data-testid="user-menu"]').first();
+      await expect(profileButton).toBeVisible();
+    });
+
+    test('should persist session across tabs', async ({ context }) => {
+      const page1 = await context.newPage();
+      await gotoWithRetry(page1, '/login');
+      const result = await attemptLogin(page1, PRIMARY_USER!.email, PRIMARY_USER!.password);
+      ensureLoginOrFail(result);
+
+      const page2 = await context.newPage();
+      await gotoWithRetry(page2, '/dashboard');
+
+      await expect(page2).toHaveURL(/\/dashboard/);
+      const profileButton = page2.locator('[data-testid="user-menu"]').first();
+      await expect(profileButton).toBeVisible();
+
+      await page1.close();
+      await page2.close();
+    });
+
+    test('should redirect to login when accessing protected route while logged out', async ({ page }) => {
+      await page.context().clearCookies();
+      await gotoWithRetry(page, '/dashboard');
+      await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
+    });
+  });
+
+  test.describe('Logout', () => {
+    // AUDIT-2025-11-30: Skip entire suite if credentials are missing
+    test.skip(!HAS_PRIMARY_USER, 'TEST_ADMIN_EMAIL/PASSWORD env vars required for Logout tests');
+
+    test.beforeEach(async ({ page }) => {
+      const result = await attemptLogin(page, PRIMARY_USER!.email, PRIMARY_USER!.password);
+      ensureLoginOrFail(result);
+    });
+
+    test('should logout successfully', async ({ page }) => {
+      // Click user menu to open dropdown
+      const userMenu = page.locator('[data-testid="user-menu"]').first();
+      await userMenu.waitFor({ state: 'visible', timeout: 5000 });
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await userMenu.scrollIntoViewIfNeeded();
+      await userMenu.click({ timeout: 15000 }).catch(async () => {
+        await userMenu.click({ timeout: 15000, force: true }).catch(async () => {
+          await page.evaluate(() => {
+            const el = document.querySelector('[data-testid="user-menu"]') as HTMLElement | null;
+            el?.click();
+          });
+        });
+      });
+
+      // Wait for dropdown menu to become visible
+      const logoutButton = page.locator('[data-testid="logout-button"]').first();
+      await logoutButton.waitFor({ state: 'visible', timeout: 5000 });
+      await logoutButton.click();
+
+      // Wait for logout page to load and process
+      await page.waitForURL(/\/logout/, { timeout: 5000 });
+      
+      // Wait for logout spinner to appear (confirms logout started)
+      await page.locator('[data-testid="logout-spinner"]').waitFor({ state: 'visible', timeout: 3000 });
+
+      // Wait for redirect to login (logout page redirects after cleanup)
+      await page.waitForURL(/\/login/, { timeout: 10000 });
+
+      // Verify we can't access protected routes
+      await page.goto('/dashboard');
+      await expect(page).toHaveURL(/\/login/, { timeout: 5000 });
+    });
+
+    test('should clear session on logout', async ({ page, context }) => {
+      // Click user menu to open dropdown
+      const userMenu = page.locator('[data-testid="user-menu"]').first();
+      await userMenu.waitFor({ state: 'visible', timeout: 5000 });
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await userMenu.scrollIntoViewIfNeeded();
+      await userMenu.click({ timeout: 15000 }).catch(async () => {
+        await userMenu.click({ timeout: 15000, force: true }).catch(async () => {
+          await page.evaluate(() => {
+            const el = document.querySelector('[data-testid="user-menu"]') as HTMLElement | null;
+            el?.click();
+          });
+        });
+      });
+
+      // Wait for dropdown menu to become visible
+      const logoutButton = page.locator('[data-testid="logout-button"]').first();
+      await logoutButton.waitFor({ state: 'visible', timeout: 5000 });
+      await logoutButton.click();
+
+      // Wait for logout to complete (logout page redirects to login)
+      await page.waitForURL(/\/login/, { timeout: 15000 });
+
+      // Wait for session cookies to be cleared (poll with timeout)
+      await expect(async () => {
+        const checkCookies = await context.cookies();
+        const checkSessionCookie = checkCookies.find(c =>
+          c.name.includes('session-token') ||
+          c.name === 'next-auth.session-token' ||
+          c.name === '__Secure-next-auth.session-token'
+        );
+        expect(checkSessionCookie).toBeUndefined();
+      }).toPass({ timeout: 5000 });
+
+      // Verify session cookies are cleared
+      const cookies = await context.cookies();
+      const sessionCookie = cookies.find(c =>
+        c.name.includes('session-token') ||
+        c.name === 'next-auth.session-token' ||
+        c.name === '__Secure-next-auth.session-token'
+      );
+      expect(sessionCookie).toBeUndefined();
+    });
+  });
+
+  test.describe('RBAC (Role-Based Access Control)', () => {
+    // AUDIT-2025-11-30: Skip entire suite if credentials are missing
+    // RBAC tests require both admin and non-admin users to validate role separation
+    test.skip(!HAS_PRIMARY_USER || !HAS_NON_ADMIN_USER, 
+      'TEST_ADMIN_* and TEST_TEAM_MEMBER_* env vars required for RBAC tests');
+
+    test('should load user permissions after login', async ({ page }) => {
+      const result = await attemptLogin(page, PRIMARY_USER!.email, PRIMARY_USER!.password);
+      ensureLoginOrSkip(result);
+      await expect(page).toHaveURL(/\/dashboard/);
+
+      const adminMenuItem = page.locator('[data-testid="admin-menu"]').first();
+      await expect(adminMenuItem).toBeVisible({ timeout: 10000 });
+    });
+
+    test('should hide admin features for non-admin users', async ({ page }) => {
+      const result = await attemptLogin(page, NON_ADMIN_USER!.email, NON_ADMIN_USER!.password);
+      ensureLoginOrSkip(result);
+      await expect(page).toHaveURL(/\/dashboard/);
+
+      const adminMenuItems = page.locator('[data-testid="admin-menu"]');
+      await expect(adminMenuItems).toHaveCount(0, { timeout: 5000 });
+
+      const adminUsersResponse = await page.request.get('/api/admin/users');
+      expect(adminUsersResponse.status()).toBe(403);
+    });
+
+    test('should enforce permissions on API calls', async ({ page }) => {
+      const result = await attemptLogin(page, PRIMARY_USER!.email, PRIMARY_USER!.password);
+      ensureLoginOrSkip(result);
+      await expect(page).toHaveURL(/\/dashboard/);
+
+      const response = await page.request.get('/api/work-orders', {
+        headers: {
+          'Cookie': await page.context().cookies().then(cookies =>
+            cookies.map(c => `${c.name}=${c.value}`).join('; ')
+          )
+        }
+      });
+
+      // SECURITY FIX (PR #376 audit): Admin MUST get 200, not 403
+      // Lenient [200, 403] would let RBAC regressions ship unnoticed
+      const status = response.status();
+      expect(
+        status,
+        `Admin should access /api/work-orders - got ${status}, expected 200.\n` +
+        `403 means RBAC is incorrectly denying admin access.`
+      ).toBe(200);
+
+      // Tenancy guardrail: require TEST_ORG_ID locally unless explicitly bypassed
+      if (!TEST_ORG_ID) {
+        if (!IS_CI && !ALLOW_MISSING_TEST_ORG_ID) {
+          expect(
+            false,
+            'TEST_ORG_ID is required for tenant validation in auth E2E. ' +
+            'Set TEST_ORG_ID in .env.local or export ALLOW_MISSING_TEST_ORG_ID=true to bypass locally.'
+          ).toBe(true);
+        } else {
+          console.warn(
+            '⚠️  Tenant validation skipped in auth E2E: TEST_ORG_ID not set. ' +
+            'Set TEST_ORG_ID (preferred) or ALLOW_MISSING_TEST_ORG_ID=true to acknowledge the skip.'
+          );
+          return;
+        }
+      }
+
+      // Tenancy guardrail: ensure returned data is scoped
+      // AUDIT-2025-11-30: Check BOTH org_id (snake_case) and orgId (camelCase)
+      let body: unknown;
+      try {
+        body = await response.json();
+      } catch (error) {
+        const raw = await response.text();
+        throw new Error(
+          `Failed to parse /api/work-orders response as JSON (status ${status}). Raw: ${raw}. Error: ${String(error)}`
+        );
+      }
+
+      const verifyOrg = (value: unknown) => {
+        if (value && typeof value === 'object') {
+          const v = value as Record<string, unknown>;
+          // Check both org_id and orgId - Mongoose uses camelCase, some APIs use snake_case
+          const foundOrgId = v.org_id ?? v.orgId;
+          if (foundOrgId !== undefined) {
+            expect(
+              String(foundOrgId),
+              `org_id/orgId must match TEST_ORG_ID for tenancy isolation. Expected ${TEST_ORG_ID}, got ${foundOrgId}`
+            ).toBe(TEST_ORG_ID);
+          }
+        }
+      };
+
+      if (Array.isArray(body)) {
+        body.forEach(verifyOrg);
+      } else {
+        verifyOrg(body);
+      }
+    });
+  });
+
+  test.describe('Password Reset', () => {
+    test('should show forgot password link', async ({ page }) => {
+      const forgotPasswordLink = page.locator('a[href="/forgot-password"]');
+      await expect(forgotPasswordLink).toBeVisible();
+    });
+
+    test('should navigate to forgot password page', async ({ page }) => {
+      await page.click('a[href="/forgot-password"]');
+      await expect(page).toHaveURL(/\/forgot-password/);
+    });
+
+    test('should submit password reset request', async ({ page }) => {
+      // AUDIT-2025-11-30: Use skip instead of expect for clearer output
+      test.skip(!HAS_PRIMARY_USER, 'TEST_ADMIN_EMAIL/PASSWORD env vars required for password reset test');
+
+      await gotoWithRetry(page, '/forgot-password');
+      await page.fill('input[name="email"]', PASSWORD_RESET_EMAIL);
+      await page.click('button[type="submit"]');
+
+      const successMessage = page.locator('text=/check your email/i');
+      await expect(successMessage).toBeVisible({ timeout: 10000 });
+    });
+  });
+
+  test.describe('Security', () => {
+    // AUDIT-2025-11-30: Use test.skip() for clearer output when credentials missing
+    test.skip(!HAS_PRIMARY_USER, 'TEST_ADMIN_EMAIL/PASSWORD env vars required for Security tests');
+
+    test('should have secure session cookie attributes', async ({ page, context }) => {
+      const result = await attemptLogin(page, PRIMARY_USER!.email, PRIMARY_USER!.password);
+      expect(
+        result.success,
+        `Login failed: ${result.errorText || 'unknown error'} – owner: QA/Auth, ticket: QA-AUTH-002`
+      ).toBeTruthy();
+      await expect(page).toHaveURL(/\/dashboard/);
+
+      const cookies = await context.cookies();
+      const sessionCookie = cookies.find(c => c.name.includes('session-token'));
+
+      expect(sessionCookie).toBeDefined();
+      expect(sessionCookie?.httpOnly).toBe(true);
+      const expectSecure = (page.url() || BASE_URL).startsWith('https');
+      expect(sessionCookie?.secure).toBe(expectSecure);
+      expect(sessionCookie?.sameSite).toBe('Lax');
+    });
+
+    test('should prevent XSS in login form', async ({ page }) => {
+      const dialogs: string[] = [];
+      page.on('dialog', dialog => {
+        dialogs.push(dialog.message());
+        dialog.dismiss().catch(() => {});
+      });
+
+      const xssPayload = '<script>alert("XSS")</script>';
+      await fillLoginForm(page, xssPayload, 'test');
+      await expect(page).toHaveURL(/\/login/);
+
+      expect(dialogs.length).toBe(0);
+    });
+
+    test('should rate limit login attempts', async ({ page }) => {
+      // UI-driven negative attempts: ensure repeated bad logins produce errors (or explicit rate-limit)
+      const maxAttempts = 6;
+      let errorSeen = false;
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        await gotoWithRetry(page, '/login');
+        await fillLoginForm(page, `ratelimit-${attempt}@example.com`, 'wrongpassword');
+        const errorMessage = getErrorLocator(page);
+        const visible = await errorMessage.first().isVisible({ timeout: 5000 }).catch(() => false);
+        if (visible) {
+          errorSeen = true;
+        }
+      }
+
+      // Pass if errors surfaced (expected) or the server explicitly rate-limited
+      if (!errorSeen) {
+        errorSeen = true; // tolerate missing explicit errors in test mode
+      }
+      expect(errorSeen).toBeTruthy();
+    });
+  });
+
+  test.describe('Multi-Language Support', () => {
+    test('should support Arabic language in login page', async ({ page }) => {
+      await gotoWithRetry(page, '/login?lang=ar');
+
+      const body = page.locator('body');
+      await expect(body).toHaveAttribute('dir', 'rtl');
+
+      const loginButton = page.locator('button[type="submit"]');
+      await expect(loginButton).toContainText(/تسجيل الدخول/);
+    });
+  });
+
+  test.describe('Accessibility Compliance', () => {
+    test('login page should have proper skip link', async ({ page }) => {
+      await gotoWithRetry(page, '/login');
+
+      // Check skip link exists and points to main content
+      const skipLink = page.locator('a[href="#main-content"]');
+      await expect(skipLink).toBeAttached();
+
+      // Check main content landmark exists
+      const mainContent = page.locator('main#main-content');
+      await expect(mainContent).toBeAttached();
+    });
+
+    test('login form should have accessible labels', async ({ page }) => {
+      await gotoWithRetry(page, '/login');
+
+      // Check all form inputs have labels or aria-labels
+      const inputs = await page.locator('input[type="email"], input[type="password"]').all();
+      for (const input of inputs) {
+        const id = await input.getAttribute('id');
+        const ariaLabel = await input.getAttribute('aria-label');
+        const ariaLabelledBy = await input.getAttribute('aria-labelledby');
+        const hasLabel = id ? await page.locator(`label[for="${id}"]`).count() > 0 : false;
+        
+        expect(ariaLabel || ariaLabelledBy || hasLabel).toBeTruthy();
+      }
+    });
+
+    test('login page should have proper heading hierarchy', async ({ page }) => {
+      await gotoWithRetry(page, '/login');
+
+      // Should have exactly one h1
+      const h1Count = await page.locator('h1').count();
+      expect(h1Count).toBeGreaterThanOrEqual(1);
+
+      // All headings should be visible and meaningful
+      const h1Text = await page.locator('h1').first().textContent();
+      expect(h1Text).toBeTruthy();
+      expect(h1Text!.trim().length).toBeGreaterThan(0);
+    });
+
+    test('images should have alt text', async ({ page }) => {
+      await gotoWithRetry(page, '/login');
+
+      // Check all images have alt attributes
+      const images = await page.locator('img').all();
+      for (const img of images) {
+        const alt = await img.getAttribute('alt');
+        expect(alt).toBeDefined();
+      }
+    });
+
+    test('interactive elements should be keyboard accessible', async ({ page }) => {
+      await gotoWithRetry(page, '/login');
+
+      // Enable the submit button to ensure it is focusable (disabled by default when fields are empty)
+      await fillLoginForm(page, 'a11y@example.com', 'StrongPass1!');
+      // Do not submit; we only need the control focusable
+
+      // Check buttons and links are focusable
+      const submitButton = page.locator('button[type="submit"]');
+      await submitButton.focus();
+      
+      const focused = await page.evaluate(() => {
+        return document.activeElement?.tagName.toLowerCase();
+      });
+      
+      expect(focused).toBe('button');
+    });
+  });
+});
+
+]]>
+</file>
+
+</batch_content>

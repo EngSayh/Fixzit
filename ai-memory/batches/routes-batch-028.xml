@@ -1,0 +1,2969 @@
+
+You are the "Fixzit Memory Builder" for category: "routes".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "routes",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="tests/unit/api/souq/returns/mutations.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeAll, afterEach, vi } from "vitest";
+import { NextRequest } from "next/server";
+
+// Hoisted mocks so we can reference them in assertions
+const authMock = vi.hoisted(() => vi.fn());
+const approveReturnMock = vi.hoisted(() => vi.fn());
+const rejectReturnMock = vi.hoisted(() => vi.fn());
+const inspectReturnMock = vi.hoisted(() => vi.fn());
+const processRefundMock = vi.hoisted(() => vi.fn().mockResolvedValue([]));
+const fireNotificationsMock = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const findOneMock = vi.hoisted(() => vi.fn());
+const agentAuditCreateMock = vi.hoisted(() => vi.fn());
+
+vi.mock("@/auth", () => ({
+  auth: authMock,
+}));
+
+vi.mock("@/services/souq/returns-service", () => ({
+  returnsService: {
+    approveReturn: approveReturnMock,
+    rejectReturn: rejectReturnMock,
+    inspectReturn: inspectReturnMock,
+    processRefund: processRefundMock,
+    fireNotifications: fireNotificationsMock,
+  },
+}));
+
+vi.mock("@/server/models/souq/RMA", () => ({
+  SouqRMA: {
+    findOne: findOneMock,
+  },
+}));
+
+vi.mock("@/server/models/AgentAuditLog", () => ({
+  AgentAuditLog: {
+    create: agentAuditCreateMock,
+  },
+}));
+
+let approveRoute: typeof import("@/app/api/souq/returns/approve/route").POST;
+let inspectRoute: typeof import("@/app/api/souq/returns/inspect/route").POST;
+let refundRoute: typeof import("@/app/api/souq/returns/refund/route").POST;
+
+beforeAll(async () => {
+  ({ POST: approveRoute } = await import("@/app/api/souq/returns/approve/route"));
+  ({ POST: inspectRoute } = await import("@/app/api/souq/returns/inspect/route"));
+  ({ POST: refundRoute } = await import("@/app/api/souq/returns/refund/route"));
+});
+
+afterEach(() => {
+  vi.clearAllMocks();
+});
+
+describe("souq returns mutations RBAC/org checks", () => {
+  describe("approve route", () => {
+    it("requires targetOrgId when SUPER_ADMIN lacks session org", async () => {
+      authMock.mockResolvedValue({
+        user: { id: "admin", role: "SUPER_ADMIN", isSuperAdmin: true, orgId: undefined },
+      });
+
+      const req = new NextRequest("http://test.local/api/souq/returns/approve", {
+        method: "POST",
+        body: JSON.stringify({ rmaId: "r1", approve: true }),
+      });
+
+      const res = await approveRoute(req);
+      expect(res.status).toBe(400);
+    });
+
+    it("approves within org scope for ADMIN", async () => {
+      authMock.mockResolvedValue({
+        user: { id: "admin1", role: "ADMIN", isSuperAdmin: false, orgId: "org-1" },
+      });
+
+      const req = new NextRequest("http://test.local/api/souq/returns/approve", {
+        method: "POST",
+        body: JSON.stringify({ rmaId: "r1", approve: true }),
+      });
+
+      const res = await approveRoute(req);
+      expect(res.status).toBe(200);
+      expect(approveReturnMock).toHaveBeenCalledWith({
+        rmaId: "r1",
+        orgId: "org-1",
+        adminId: "admin1",
+        approvalNotes: undefined,
+      });
+    });
+  });
+
+  describe("inspect route", () => {
+    it("requires orgId for inspection", async () => {
+      authMock.mockResolvedValue({
+        user: { id: "ops1", role: "TEAM_MEMBER", subRole: "OPERATIONS_MANAGER" },
+      });
+
+      const req = new NextRequest("http://test.local/api/souq/returns/inspect", {
+        method: "POST",
+        body: JSON.stringify({
+          rmaId: "r1",
+          condition: "good",
+          restockable: true,
+        }),
+      });
+
+      const res = await inspectRoute(req);
+      expect(res.status).toBe(403);
+      expect(inspectReturnMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("refund route", () => {
+    it("denies refund when RMA org differs from caller org (non-platform admin)", async () => {
+      authMock.mockResolvedValue({
+        user: { id: "admin2", role: "ADMIN", isSuperAdmin: false, orgId: "org-1" },
+      });
+      findOneMock.mockReturnValue({
+        lean: vi.fn().mockResolvedValue({
+          _id: "r1",
+          orgId: "org-2",
+        }),
+      });
+
+      const req = new NextRequest("http://test.local/api/souq/returns/refund", {
+        method: "POST",
+        body: JSON.stringify({
+          rmaId: "r1",
+          refundAmount: 50,
+          refundMethod: "wallet",
+        }),
+      });
+
+      const res = await refundRoute(req);
+      const payload = await res.json();
+      // SECURITY: Returns 404 instead of 403 to prevent cross-tenant existence leaks (SEC-006)
+      expect(res.status).toBe(404);
+      expect(payload.error).toBe('RMA not found');
+      expect(processRefundMock).not.toHaveBeenCalled();
+    });
+
+    it("processes refund for SUPER_ADMIN without needing targetOrgId", async () => {
+      authMock.mockResolvedValue({
+        user: { id: "super1", role: "SUPER_ADMIN", isSuperAdmin: true, orgId: undefined },
+      });
+      findOneMock.mockReturnValue({
+        lean: vi.fn().mockResolvedValue({
+          _id: "r1",
+          orgId: "org-3",
+        }),
+      });
+
+      const req = new NextRequest("http://test.local/api/souq/returns/refund", {
+        method: "POST",
+        body: JSON.stringify({
+          rmaId: "r1",
+          refundAmount: 25,
+          refundMethod: "wallet",
+        }),
+      });
+
+      const res = await refundRoute(req);
+      const payload = await res.json();
+      expect(res.status).toBe(200);
+      expect(processRefundMock).toHaveBeenCalledWith({
+        rmaId: "r1",
+        orgId: "org-3",
+        refundAmount: 25,
+        refundMethod: "wallet",
+        processorId: "super1",
+      });
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/api/souq/returns/route.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeAll, afterEach, vi } from "vitest";
+import { Types } from "mongoose";
+import { NextRequest } from "next/server";
+
+import { SouqRMA } from "@/server/models/souq/RMA";
+
+// Mock auth to control session context per test
+const authMock = vi.hoisted(() => vi.fn());
+
+vi.mock("@/auth", () => ({
+  auth: authMock,
+}));
+
+// Import the route handler after mocks
+let routeGet: typeof import("@/app/api/souq/returns/route").GET;
+
+beforeAll(async () => {
+  ({ GET: routeGet } = await import("@/app/api/souq/returns/route"));
+});
+
+afterEach(async () => {
+  authMock.mockReset();
+  await SouqRMA.deleteMany({});
+});
+
+describe("app/api/souq/returns/route GET", () => {
+  it("rejects seller requests when orgId is missing", async () => {
+    const sellerId = new Types.ObjectId().toString();
+    authMock.mockResolvedValue({
+      user: { id: sellerId, role: "SELLER", isSuperAdmin: false },
+    });
+
+    const req = new NextRequest(
+      "http://test.local/api/souq/returns?type=seller",
+      { method: "GET" },
+    );
+
+    const res = await routeGet(req);
+    expect(res.status).toBe(403);
+  });
+
+  it("returns only seller RMAs within the tenant org", async () => {
+    const sellerId = new Types.ObjectId().toString();
+    const buyerId = new Types.ObjectId().toString();
+    const orgA = new Types.ObjectId().toString();
+    const orgB = new Types.ObjectId().toString();
+
+    // RMA in orgA (should be returned)
+    const rmaA = await SouqRMA.create({
+      rmaId: `RMA-${Date.now()}`,
+      orgId: orgA,
+      orderId: new Types.ObjectId().toString(),
+      orderNumber: "ORD-A",
+      buyerId,
+      sellerId,
+      items: [
+        {
+          orderItemId: "OI-A",
+          listingId: "L-A",
+          productId: "P-A",
+          productName: "Prod A",
+          quantity: 1,
+          unitPrice: 10,
+          reason: "defective",
+          returnReason: "defective",
+        },
+      ],
+      status: "initiated",
+      returnWindowDays: 30,
+      returnDeadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      shipping: { shippingCost: 0, paidBy: "seller" },
+      refund: { amount: 10, method: "original_payment", status: "pending" },
+      timeline: [{ status: "initiated", timestamp: new Date(), performedBy: buyerId }],
+    });
+
+    // Noise RMA in orgB (should not be returned)
+    await SouqRMA.create({
+      rmaId: `RMA-${Date.now()}-B`,
+      orgId: orgB,
+      orderId: new Types.ObjectId().toString(),
+      orderNumber: "ORD-B",
+      buyerId,
+      sellerId,
+      items: [
+        {
+          orderItemId: "OI-B",
+          listingId: "L-B",
+          productId: "P-B",
+          productName: "Prod B",
+          quantity: 1,
+          unitPrice: 5,
+          reason: "defective",
+          returnReason: "defective",
+        },
+      ],
+      status: "initiated",
+      returnWindowDays: 30,
+      returnDeadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      shipping: { shippingCost: 0, paidBy: "seller" },
+      refund: { amount: 5, method: "original_payment", status: "pending" },
+      timeline: [{ status: "initiated", timestamp: new Date(), performedBy: buyerId }],
+    });
+
+    authMock.mockResolvedValue({
+      user: { id: sellerId, role: "SELLER", isSuperAdmin: false, orgId: orgA },
+    });
+
+    const req = new NextRequest(
+      "http://test.local/api/souq/returns?type=seller",
+      { method: "GET" },
+    );
+
+    const res = await routeGet(req);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.total).toBe(1);
+    expect(body.returns[0]?.orderId).toBe(rmaA.orderId);
+  });
+
+  it("requires targetOrgId for platform admins listing admin returns", async () => {
+    authMock.mockResolvedValue({
+      user: { id: "admin", role: "SUPER_ADMIN", isSuperAdmin: true, orgId: new Types.ObjectId().toString() },
+    });
+
+    const req = new NextRequest(
+      "http://test.local/api/souq/returns?type=admin",
+      { method: "GET" },
+    );
+
+    const res = await routeGet(req);
+    expect(res.status).toBe(400);
+  });
+
+  it("returns admin list scoped to targetOrgId for platform admins", async () => {
+    const sellerId = new Types.ObjectId().toString();
+    const buyerId = new Types.ObjectId().toString();
+    const orgA = new Types.ObjectId().toString();
+    const orgB = new Types.ObjectId().toString();
+
+    await SouqRMA.create({
+      rmaId: `RMA-${Date.now()}-A2`,
+      orgId: orgA,
+      orderId: new Types.ObjectId().toString(),
+      orderNumber: "ORD-A2",
+      buyerId,
+      sellerId,
+      items: [
+        {
+          orderItemId: "OI-A2",
+          listingId: "L-A2",
+          productId: "P-A2",
+          productName: "Prod A2",
+          quantity: 1,
+          unitPrice: 20,
+          reason: "defective",
+          returnReason: "defective",
+        },
+      ],
+      status: "initiated",
+      returnWindowDays: 30,
+      returnDeadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      shipping: { shippingCost: 0, paidBy: "seller" },
+      refund: { amount: 20, method: "original_payment", status: "pending" },
+      timeline: [{ status: "initiated", timestamp: new Date(), performedBy: buyerId }],
+    });
+
+    await SouqRMA.create({
+      rmaId: `RMA-${Date.now()}-B2`,
+      orgId: orgB,
+      orderId: new Types.ObjectId().toString(),
+      orderNumber: "ORD-B2",
+      buyerId,
+      sellerId,
+      items: [
+        {
+          orderItemId: "OI-B2",
+          listingId: "L-B2",
+          productId: "P-B2",
+          productName: "Prod B2",
+          quantity: 1,
+          unitPrice: 30,
+          reason: "defective",
+          returnReason: "defective",
+        },
+      ],
+      status: "initiated",
+      returnWindowDays: 30,
+      returnDeadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      shipping: { shippingCost: 0, paidBy: "seller" },
+      refund: { amount: 30, method: "original_payment", status: "pending" },
+      timeline: [{ status: "initiated", timestamp: new Date(), performedBy: buyerId }],
+    });
+
+    authMock.mockResolvedValue({
+      user: { id: "admin", role: "SUPER_ADMIN", isSuperAdmin: true, orgId: orgA },
+    });
+
+    const req = new NextRequest(
+      `http://test.local/api/souq/returns?type=admin&targetOrgId=${orgA}`,
+      { method: "GET" },
+    );
+
+    const res = await routeGet(req);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.total).toBe(1);
+    expect(body.returns[0]?.orderNumber).toBe("ORD-A2");
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/api/souq/search/route.test.ts">
+<![CDATA[
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+const searchMock = vi.fn();
+const smartRateLimitMock = vi.fn();
+const resolveMarketplaceContextMock = vi.fn();
+
+vi.mock("@/lib/meilisearch", () => ({
+  searchClient: {
+    index: vi.fn().mockReturnValue({
+      search: searchMock,
+    }),
+  },
+  INDEXES: { PRODUCTS: "products" },
+}));
+
+vi.mock("@/lib/meilisearch-resilience", () => ({
+  withMeiliResilience: (_name: string, _op: string, fn: () => unknown) => fn(),
+}));
+
+vi.mock("@/server/security/rateLimit", () => ({
+  smartRateLimit: smartRateLimitMock,
+}));
+
+vi.mock("@/lib/marketplace/context", () => ({
+  resolveMarketplaceContext: resolveMarketplaceContextMock,
+}));
+
+vi.mock("@/server/security/headers", async (orig) => {
+  const actual = await orig<typeof import("@/server/security/headers")>();
+  return {
+    ...actual,
+    getClientIP: () => "127.0.0.1",
+  };
+});
+
+vi.mock("next/server", () => {
+  class MockNextRequest {
+    url: string;
+    nextUrl: URL;
+    headers: Headers;
+
+    constructor(url: string | URL) {
+      const u = new URL(typeof url === "string" ? url : url.toString());
+      this.url = u.toString();
+      this.nextUrl = u;
+      this.headers = new Headers();
+    }
+    get cookies() {
+      return {
+        get: () => undefined,
+      };
+    }
+  }
+  return {
+    NextRequest: MockNextRequest,
+    NextResponse: {
+      json: (body: unknown, init?: ResponseInit) => ({
+        body,
+        status: init?.status ?? 200,
+        headers: new Headers(init?.headers),
+      }),
+    },
+  };
+});
+
+describe("GET /api/souq/search", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    smartRateLimitMock.mockResolvedValue({ allowed: true, remaining: 99 });
+    resolveMarketplaceContextMock.mockResolvedValue({
+      orgId: "org-1",
+      correlationId: "corr-123",
+    });
+    searchMock.mockResolvedValue({
+      hits: [],
+      facetDistribution: {},
+      processingTimeMs: 1,
+      estimatedTotalHits: 0,
+    });
+    delete process.env.MARKETPLACE_PUBLIC_ORGS;
+  });
+
+  afterEach(() => {
+    delete process.env.MARKETPLACE_PUBLIC_ORGS;
+  });
+
+  async function makeRequest(url: string) {
+    const mod = await import("next/server");
+    const Ctor = mod.NextRequest as unknown as new (url: string) => Request;
+    return new Ctor(url);
+  }
+
+  it("applies isActive and org filters with escaping and sets headers", async () => {
+    // Allow org-1 in the allowlist so the search proceeds
+    process.env.MARKETPLACE_PUBLIC_ORGS = "org-1";
+    const { GET } = await import("@/app/api/souq/search/route");
+    const req = await makeRequest(
+      "https://example.com/api/souq/search?q=watch&category=elec\"tronics",
+    );
+
+    const res = (await GET(req)) as { body: any; headers: Headers };
+
+    expect(searchMock).toHaveBeenCalled();
+    const searchArgs = searchMock.mock.calls[0][1];
+    expect(searchArgs.filter).toContain('isActive = true');
+    expect(searchArgs.filter).toContain('orgId = "org-1"');
+    // Escaping should preserve quote safely: " -> \"
+    expect(searchArgs.filter).toContain('category = "elec\\"tronics"');
+
+    expect(res.headers.get("X-Correlation-Id")).toBe("corr-123");
+    expect(res.headers.get("X-RateLimit-Limit")).toBe("120");
+  });
+
+  it("blocks orgs not in public allowlist when no user context", async () => {
+    process.env.MARKETPLACE_PUBLIC_ORGS = "allowed-org";
+    resolveMarketplaceContextMock.mockResolvedValue({
+      orgId: "not-allowed",
+      correlationId: "corr-999",
+      userId: undefined,
+    });
+    const { GET } = await import("@/app/api/souq/search/route");
+    const req = await makeRequest("https://example.com/api/souq/search");
+
+    const res = (await GET(req)) as { status: number; body: any };
+    expect(res.status).toBe(403);
+    expect(searchMock).not.toHaveBeenCalled();
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/api/support/incidents.route.test.ts">
+<![CDATA[
+/**
+ * Unit tests for /api/support/incidents route (POST).
+ * Framework: Vitest
+ *
+ * We mock:
+ * - next/server: NextResponse.json to return simple object with status + payload.
+ * - @/lib/mongodb-unified: getDatabase().collection('error_events').insertOne
+ * - @/server/models/SupportTicket: .create
+ *
+ * Tests cover:
+ * - Happy path with explicit fields
+ * - Defaults when fields missing (incidentId generation, default code/category/severity/message)
+ * - Severity-to-priority mapping
+ * - Guest requester derivation when userId missing but email present
+ * - Subject length truncation to 140 chars
+ * - Message composition with details/stack
+ */
+
+import { vi, describe, it, expect, beforeEach, beforeAll, afterEach } from 'vitest';
+import type { NextRequest } from 'next/server';
+
+vi.mock('next/server', () => {
+  return {
+    NextResponse: {
+      json: vi.fn((payload: ResponsePayload, init?: { status?: number }) => ({
+        ok: true,
+        status: init?.status ?? 200,
+        json: payload
+      })),
+    },
+  };
+});
+
+const insertOneMock = vi.fn().mockResolvedValue({ acknowledged: true, insertedId: 'mocked-id' });
+const findOneMock = vi.fn().mockResolvedValue(null);
+const updateOneMock = vi.fn().mockResolvedValue({ acknowledged: true, modifiedCount: 1 });
+const collectionMock = vi.fn().mockReturnValue({
+  insertOne: insertOneMock,
+  findOne: findOneMock,
+  updateOne: updateOneMock,
+});
+const getDatabaseMock = vi.fn().mockResolvedValue({ collection: collectionMock });
+
+vi.mock('@/lib/mongodb-unified', () => ({
+  getDatabase: getDatabaseMock,
+}));
+
+const supportTicketCreateMock = vi.fn(async (doc: SupportTicketDoc) => ({
+  ...doc,
+  code: doc.code || 'SUP-2024-99999',
+}));
+
+vi.mock('@/server/models/SupportTicket', () => ({
+  SupportTicket: {
+    create: supportTicketCreateMock,
+  },
+}));
+
+const getSessionUserMock = vi.fn(async () => ({
+  id: 'user-1',
+  role: 'ADMIN',
+  orgId: 'org-1',
+}));
+
+vi.mock('@/server/middleware/withAuthRbac', () => ({
+  getSessionUser: getSessionUserMock,
+}));
+
+const redisIncrMock = vi.fn();
+const redisExpireMock = vi.fn();
+
+vi.mock('@/lib/redis', () => ({
+  getRedisClient: () => ({
+    incr: redisIncrMock,
+    expire: redisExpireMock,
+  }),
+}));
+
+vi.mock('@/server/security/rateLimit', () => ({
+  rateLimit: vi.fn(() => ({ allowed: true })),
+  smartRateLimit: vi.fn(async () => ({ allowed: true })),
+}));
+
+vi.mock('@/server/security/rateLimitKey', () => ({
+  buildRateLimitKey: vi.fn(() => 'rate-key'),
+  buildOrgAwareRateLimitKey: vi.fn(() => 'rate-key'),
+}));
+
+// Import after mocks
+type ResponsePayload = Record<string, string | number | boolean | null | object | undefined>;
+type NextResponseJson = { ok: boolean; status: number; json: ResponsePayload };
+type MongoCollection = {
+  insertOne: typeof insertOneMock;
+  findOne: typeof findOneMock;
+  updateOne: typeof updateOneMock;
+};
+type MongoDb = { collection: (name: string) => MongoCollection };
+type SupportTicketDoc = {
+  code?: string;
+  category?: string;
+  message?: string;
+  [key: string]: unknown;
+};
+
+let POST: (req: NextRequest) => Promise<NextResponseJson> | NextResponseJson;
+let NextResponse: { json: ReturnType<typeof vi.fn> };
+let getDatabase: ReturnType<typeof vi.fn>;
+let SupportTicket: { create: ReturnType<typeof vi.fn> };
+
+beforeAll(async () => {
+  // Import the route handler
+  ({ POST } = await import('@/app/api/support/incidents/route'));
+  
+  // Get references to mocked modules
+  ({ NextResponse } = await import('next/server'));
+  ({ getDatabase } = await import('@/lib/mongodb-unified'));
+  ({ SupportTicket } = await import('@/server/models/SupportTicket'));
+});
+
+describe('POST /api/support/incidents', () => {
+  const FIXED_DATE = new Date('2024-06-15T12:34:56.000Z');
+  let randomSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(FIXED_DATE);
+    randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.123456789);
+    NextResponse.json.mockClear();
+    getDatabase.mockClear();
+    SupportTicket.create.mockClear();
+    insertOneMock.mockReset();
+    insertOneMock.mockResolvedValue({ acknowledged: true, insertedId: 'mocked-id' });
+    findOneMock.mockReset();
+    findOneMock.mockResolvedValue(null);
+    updateOneMock.mockReset();
+    updateOneMock.mockResolvedValue({ acknowledged: true, modifiedCount: 1 });
+    collectionMock.mockClear();
+    supportTicketCreateMock.mockClear();
+    getSessionUserMock.mockReset();
+    getSessionUserMock.mockResolvedValue({
+      id: 'user-1',
+      role: 'ADMIN',
+      orgId: 'org-1',
+    });
+    redisIncrMock.mockReset();
+    redisIncrMock.mockResolvedValue(1);
+    redisExpireMock.mockReset();
+    redisExpireMock.mockResolvedValue(undefined);
+    delete process.env.SUPPORT_PUBLIC_ORG_ID;
+    delete process.env.ENABLE_ANONYMOUS_INCIDENTS;
+  });
+
+  afterEach(() => {
+    randomSpy.mockRestore();
+    vi.useRealTimers();
+    delete process.env.SUPPORT_PUBLIC_ORG_ID;
+    delete process.env.ENABLE_ANONYMOUS_INCIDENTS;
+  });
+
+  function mkReq(body: unknown): NextRequest {
+    return { 
+      json: async () => body,
+      headers: new Map([['x-forwarded-for', '127.0.0.1']]),
+      url: 'http://localhost/api/support/incidents'
+    } as unknown as NextRequest;
+  }
+
+  it('creates incident and ticket with provided fields (happy path)', async () => {
+    const body = {
+      incidentId: 'INC-2024-ABCD12',
+      code: 'UI-CORE-500',
+      category: 'Crash',
+      severity: 'P1',
+      message: 'Unexpected error occurred',
+      details: 'Stack trace...',
+      userContext: { userId: 'u_1', tenant: 't_1', email: 'user@example.com', phone: '+1-555-0100' },
+      clientContext: { os: 'macOS', version: '1.2.3' },
+    };
+
+    const res = await POST(mkReq(body));
+    const [payload, init] = NextResponse.json.mock.calls[0];
+    expect(payload).toMatchObject({
+      ok: true,
+      incidentId: 'INC-2024-ABCD12',
+    });
+    expect(payload.ticketId).toMatch(/^SUP-2024-[A-Z0-9]{6}$/);
+    expect(init).toEqual({ status: 202 });
+
+    const native = await getDatabase.mock.results[0].value;
+    const insertOne = native.collection('error_events').insertOne;
+    expect(insertOne).toHaveBeenCalledTimes(1);
+    expect(insertOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        incidentId: 'INC-2024-ABCD12',
+        code: 'UI-CORE-500',
+        category: 'Crash',
+        severity: 'P1',
+        message: 'Unexpected error occurred',
+        details: 'Stack trace...',
+        sessionUser: { id: 'user-1', role: 'ADMIN', orgId: 'org-1' },
+        clientContext: body.clientContext,
+        tenantScope: 'org-1',
+        createdAt: FIXED_DATE,
+      })
+    );
+
+    expect(SupportTicket.create).toHaveBeenCalledTimes(1);
+    expect(SupportTicket.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orgId: 'org-1',
+        code: expect.stringMatching(/^SUP-2024-[A-Z0-9]{6}$/),
+        subject: '[UI-CORE-500] Unexpected error occurred',
+        module: 'Other',
+        type: 'Bug',
+        priority: 'High',
+        category: 'Technical',
+        subCategory: 'Bug Report',
+        status: 'New',
+        createdBy: 'user-1',
+        requester: undefined,
+        messages: [
+          expect.objectContaining({
+            byUserId: 'user-1',
+            byRole: 'USER',
+            text: 'Unexpected error occurred\n\nStack trace...',
+            at: FIXED_DATE,
+          }),
+        ],
+      })
+    );
+
+    expect(res.status).toBe(202);
+    expect(res.json.ok).toBe(true);
+    expect(res.json.incidentId).toBe('INC-2024-ABCD12');
+    expect(res.json.ticketId).toMatch(/^SUP-2024-[A-Z0-9]{6}$/);
+  });
+
+  it('uses defaults when fields are missing and generates incidentId', async () => {
+    const body = {};
+
+    const res = await POST(mkReq(body));
+
+    const expectedIncPrefix = `INC-${FIXED_DATE.getFullYear()}-`;
+    const payload = (NextResponse.json as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    const statusInit = (NextResponse.json as ReturnType<typeof vi.fn>).mock.calls[0][1];
+    expect(statusInit).toEqual({ status: 202 });
+    expect(payload.ok).toBe(true);
+    expect(payload.incidentId).toMatch(/^INC-2024-[A-Z0-9]{8}$/);
+    expect(payload.incidentId.startsWith(expectedIncPrefix)).toBe(true);
+
+    const native = await getDatabase.mock.results[0].value;
+    const insertOne = native.collection('error_events').insertOne;
+    expect(insertOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'UI-UI-UNKNOWN-000',
+        category: 'Support',
+        severity: 'P2',
+        message: 'Application error',
+        details: undefined,
+        sessionUser: { id: 'user-1', role: 'ADMIN', orgId: 'org-1' },
+        clientContext: null,
+        tenantScope: 'org-1',
+        createdAt: FIXED_DATE,
+      })
+    );
+
+    expect(SupportTicket.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        priority: 'Medium',
+        subject: '[UI-UI-UNKNOWN-000] Application error',
+      })
+    );
+  });
+
+  it('maps severity to priority correctly (P0, CRITICAL => Urgent; P1 => High; others => Medium)', async () => {
+    const severities = [
+      { input: 'P0', expected: 'Urgent' },
+      { input: 'CRITICAL', expected: 'Urgent' },
+      { input: 'P1', expected: 'High' },
+      { input: 'P2', expected: 'Medium' },
+      { input: 'P3', expected: 'Medium' },
+    ];
+
+    for (const { input, expected } of severities) {
+      SupportTicket.create.mockClear();
+      await POST(mkReq({ severity: input }));
+      expect(SupportTicket.create).toHaveBeenCalled();
+      const call = SupportTicket.create.mock.calls[0][0];
+      expect(call.priority).toBe(expected);
+    }
+  });
+
+  it('derives requester when userId is absent but email present (anonymous mode)', async () => {
+    process.env.ENABLE_ANONYMOUS_INCIDENTS = 'true';
+    process.env.SUPPORT_PUBLIC_ORG_ID = 'org-public';
+    getSessionUserMock.mockRejectedValueOnce(new Error('no session'));
+    const body = {
+      message: 'A thing happened',
+      userContext: { email: 'guest.user@example.com', phone: '123-456' },
+    };
+
+    await POST(mkReq(body));
+
+    expect(SupportTicket.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requester: {
+          name: 'guest.user',
+          email: 'guest.user@example.com',
+          phone: '123-456',
+        },
+        messages: [
+          expect.objectContaining({
+            byUserId: undefined,
+            byRole: 'GUEST',
+            text: 'A thing happened',
+            at: FIXED_DATE,
+          }),
+        ],
+      })
+    );
+  });
+
+  it('truncates subject to 140 chars', async () => {
+    const longMsg = 'X'.repeat(200);
+    await POST(mkReq({ code: 'C-1', message: longMsg }));
+
+    const call = SupportTicket.create.mock.calls[0][0];
+    expect(call.subject.length).toBeLessThanOrEqual(140);
+    expect(call.subject).toBe(`[C-1] ${longMsg}`.slice(0, 140));
+  });
+
+  it('includes details/stack in first message if provided', async () => {
+    await POST(mkReq({ message: 'boom', details: 'trace' }));
+    let call = SupportTicket.create.mock.calls[0][0];
+    expect(call.messages[0].text).toBe('boom\n\ntrace');
+
+    SupportTicket.create.mockClear();
+    await POST(mkReq({ message: 'boom', stack: 'stack-lines' }));
+    call = SupportTicket.create.mock.calls[0][0];
+    expect(call.messages[0].text).toBe('boom\n\nstack-lines');
+
+    SupportTicket.create.mockClear();
+    await POST(mkReq({ message: 'boom' }));
+    call = SupportTicket.create.mock.calls[0][0];
+    expect(call.messages[0].text).toBe('boom');
+  });
+
+  it('allows anonymous incident with public tenantScope and uses SUPPORT_PUBLIC_ORG_ID for ticket', async () => {
+    process.env.ENABLE_ANONYMOUS_INCIDENTS = 'true';
+    process.env.SUPPORT_PUBLIC_ORG_ID = 'org-public';
+    getSessionUserMock.mockRejectedValueOnce(new Error('no session'));
+
+    await POST(mkReq({ message: 'Anonymous crash', userContext: { email: 'anon@example.com', phone: '123' } }));
+
+    const native = await getDatabase.mock.results[0].value;
+    const insertOne = native.collection('error_events').insertOne;
+    expect(insertOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantScope: 'public',
+      })
+    );
+
+    expect(SupportTicket.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orgId: 'org-public',
+        requester: {
+          name: 'anon',
+          email: 'anon@example.com',
+          phone: '123',
+        },
+      })
+    );
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/api/trial-request/route.test.ts">
+<![CDATA[
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+const enforceRateLimitMock = vi.fn();
+const insertOneMock = vi.fn();
+
+vi.mock("@/lib/middleware/rate-limit", () => ({
+  enforceRateLimit: enforceRateLimitMock,
+}));
+
+vi.mock("@/lib/mongodb-unified", () => ({
+  connectToDatabase: vi.fn().mockResolvedValue(undefined),
+  getDatabase: vi.fn().mockResolvedValue({
+    collection: () => ({ insertOne: insertOneMock }),
+  }),
+}));
+
+vi.mock("@/server/security/headers", async (orig) => {
+  const actual = await orig<typeof import("@/server/security/headers")>();
+  return {
+    ...actual,
+    getClientIP: () => "10.0.0.1",
+  };
+});
+
+vi.mock("next/server", () => {
+  class MockNextRequest {
+    url: string;
+    headers: Headers;
+    private body: unknown;
+    constructor(url: string | URL, body: unknown) {
+      this.url = url.toString();
+      this.body = body;
+      this.headers = new Headers({ "user-agent": "jest" });
+    }
+    async json() {
+      return this.body;
+    }
+  }
+  return {
+    NextRequest: MockNextRequest,
+    NextResponse: {
+      json: (body: unknown, init?: ResponseInit) => ({
+        body,
+        status: init?.status ?? 200,
+      }),
+    },
+  };
+});
+
+describe("POST /api/trial-request", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    enforceRateLimitMock.mockReturnValue(null);
+    insertOneMock.mockResolvedValue({});
+  });
+
+  it("rejects via honeypot without persisting", async () => {
+    const { POST } = await import("@/app/api/trial-request/route");
+    const mod = await import("next/server");
+    const req = new (mod.NextRequest as any)("https://example.com/api/trial-request", {
+      name: "User",
+      email: "user@example.com",
+      company: "Co",
+      website: "bot", // honeypot
+    });
+
+    const res = (await POST(req)) as { status: number };
+    expect(res.status).toBe(200);
+    expect(insertOneMock).not.toHaveBeenCalled();
+  });
+
+  it("rate limits per email", async () => {
+    const limitResponse = { status: 429 };
+    enforceRateLimitMock
+      .mockReturnValueOnce(null) // IP-based
+      .mockReturnValueOnce(limitResponse); // email-based
+
+    const { POST } = await import("@/app/api/trial-request/route");
+    const mod = await import("next/server");
+    const req = new (mod.NextRequest as any)("https://example.com/api/trial-request", {
+      name: "User",
+      email: "user@example.com",
+      company: "Co",
+    });
+
+    const res = (await POST(req)) as { status: number };
+    expect(res).toBe(limitResponse);
+    expect(insertOneMock).not.toHaveBeenCalled();
+    expect(enforceRateLimitMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/api/upload/scan-status.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { NextResponse } from 'next/server';
+
+// Mock dependencies
+vi.mock('@/lib/mongodb-unified', () => ({
+  getDatabase: vi.fn(),
+}));
+
+vi.mock('@/server/middleware/withAuthRbac', () => ({
+  getSessionUser: vi.fn(),
+}));
+
+vi.mock('@/server/security/rateLimit', () => ({
+  rateLimit: vi.fn(() => ({ allowed: true })),
+  smartRateLimit: vi.fn(async () => ({ allowed: true })),
+}));
+
+vi.mock('@/server/utils/errorResponses', () => ({
+  rateLimitError: vi.fn(() => NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })),
+}));
+
+vi.mock('@/server/security/rateLimitKey', () => ({
+  buildRateLimitKey: vi.fn(() => 'test-key'),
+  buildOrgAwareRateLimitKey: vi.fn(() => 'test-key'),
+}));
+
+vi.mock('@/lib/logger', () => ({
+  logger: {
+    error: vi.fn(),
+    info: vi.fn(),
+  },
+}));
+
+import { GET, POST } from '@/app/api/upload/scan-status/route';
+import { makeGetRequest, makePostRequest } from '@/tests/helpers/request';
+import { getDatabase } from '@/lib/mongodb-unified';
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { smartRateLimit } from '@/server/security/rateLimit';
+
+describe('GET /api/upload/scan-status', () => {
+  const mockUser = { id: 'user-123', tenantId: 'tenant-1' };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (getSessionUser as vi.Mock).mockResolvedValue(mockUser);
+    (smartRateLimit as vi.Mock).mockResolvedValue({ allowed: true });
+    process.env.SCAN_STATUS_TOKEN_REQUIRED = 'false';
+    delete process.env.SCAN_STATUS_TOKEN;
+  });
+
+  it('enforces rate limiting', async () => {
+    (smartRateLimit as vi.Mock).mockResolvedValue({ allowed: false });
+
+    const req = createRequest('https://test.com/api/upload/scan-status?key=test.jpg');
+    const res = await GET(req);
+
+    expect(res.status).toBe(429);
+  });
+
+  it('requires authentication', async () => {
+    (getSessionUser as vi.Mock).mockResolvedValue(null);
+
+    const req = createRequest('https://test.com/api/upload/scan-status?key=test.jpg');
+    const res = await GET(req);
+
+    expect(res.status).toBe(401);
+    const body = await res.json();
+    expect(body.error).toBe('Unauthorized');
+  });
+
+  it('allows token-based access without auth', async () => {
+    (getSessionUser as vi.Mock).mockResolvedValue(null);
+    process.env.SCAN_STATUS_TOKEN_REQUIRED = 'true';
+    process.env.SCAN_STATUS_TOKEN = 'secret';
+    const mockDb = {
+      collection: vi.fn().mockReturnValue({
+        find: vi.fn().mockReturnValue({
+          sort: vi.fn().mockReturnValue({
+            limit: vi.fn().mockReturnValue({
+              next: vi.fn().mockResolvedValue({ key: 'token-file', status: 'clean' }),
+            }),
+          }),
+        }),
+      }),
+    };
+    (getDatabase as vi.Mock).mockResolvedValue(mockDb);
+    process.env.SCAN_STATUS_TOKEN = 'secret';
+
+    const req = createRequest('https://test.com/api/upload/scan-status?key=token-file', {
+      'x-scan-token': 'secret',
+    });
+    const res = await GET(req);
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.status).toBe('clean');
+  });
+
+  it('validates key parameter is provided', async () => {
+    const req = createRequest('https://test.com/api/upload/scan-status');
+    const res = await GET(req);
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe('Missing key');
+  });
+
+  it('returns scan status with cache headers', async () => {
+    const mockDb = {
+      collection: vi.fn().mockReturnValue({
+        find: vi.fn().mockReturnValue({
+          sort: vi.fn().mockReturnValue({
+            limit: vi.fn().mockReturnValue({
+              next: vi.fn().mockResolvedValue({
+                key: 'test.jpg',
+                status: 'clean',
+                scannedAt: new Date(),
+              }),
+            }),
+          }),
+        }),
+      }),
+    };
+    (getDatabase as vi.Mock).mockResolvedValue(mockDb);
+
+    const req = createRequest('https://test.com/api/upload/scan-status?key=test.jpg');
+    const res = await GET(req);
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.key).toBe('test.jpg');
+    expect(body.status).toBe('clean');
+
+    // Verify cache headers are present
+    expect(res.headers.get('Cache-Control')).toBe('public, max-age=5');
+    expect(res.headers.get('CDN-Cache-Control')).toBe('max-age=5');
+  });
+
+  it('normalizes status to valid enum values', async () => {
+    const mockDb = {
+      collection: vi.fn().mockReturnValue({
+        find: vi.fn().mockReturnValue({
+          sort: vi.fn().mockReturnValue({
+            limit: vi.fn().mockReturnValue({
+              next: vi.fn().mockResolvedValue({
+                key: 'test.jpg',
+                status: 'invalid-status', // Invalid status
+              }),
+            }),
+          }),
+        }),
+      }),
+    };
+    (getDatabase as vi.Mock).mockResolvedValue(mockDb);
+
+    const req = createRequest('https://test.com/api/upload/scan-status?key=test.jpg');
+    const res = await GET(req);
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.status).toBe('pending'); // Defaults to pending
+  });
+
+  it('returns pending when no scan record exists', async () => {
+    const mockDb = {
+      collection: vi.fn().mockReturnValue({
+        find: vi.fn().mockReturnValue({
+          sort: vi.fn().mockReturnValue({
+            limit: vi.fn().mockReturnValue({
+              next: vi.fn().mockResolvedValue(null), // No record
+            }),
+          }),
+        }),
+      }),
+    };
+    (getDatabase as vi.Mock).mockResolvedValue(mockDb);
+
+    const req = createRequest('https://test.com/api/upload/scan-status?key=new-file.jpg');
+    const res = await GET(req);
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.status).toBe('pending');
+    expect(body.key).toBe('new-file.jpg');
+  });
+});
+
+describe('POST /api/upload/scan-status', () => {
+  const mockUser = { id: 'user-123', tenantId: 'tenant-1' };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (getSessionUser as vi.Mock).mockResolvedValue(mockUser);
+    (smartRateLimit as vi.Mock).mockResolvedValue({ allowed: true });
+    process.env.SCAN_STATUS_TOKEN_REQUIRED = 'false';
+    delete process.env.SCAN_STATUS_TOKEN;
+  });
+
+  it('validates key in request body', async () => {
+    const req = createPostRequest({});
+    const res = await POST(req);
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe('Missing key');
+  });
+
+  it('returns scan status with cache headers', async () => {
+    const mockDb = {
+      collection: vi.fn().mockReturnValue({
+        find: vi.fn().mockReturnValue({
+          sort: vi.fn().mockReturnValue({
+            limit: vi.fn().mockReturnValue({
+              next: vi.fn().mockResolvedValue({
+                key: 'test.jpg',
+                status: 'infected',
+                findings: ['virus.exe'],
+              }),
+            }),
+          }),
+        }),
+      }),
+    };
+    (getDatabase as vi.Mock).mockResolvedValue(mockDb);
+
+    const req = createPostRequest({ key: 'test.jpg' });
+    const res = await POST(req);
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.status).toBe('infected');
+    expect(body.findings).toEqual(['virus.exe']);
+
+    // Verify cache headers
+    expect(res.headers.get('Cache-Control')).toBe('public, max-age=5');
+    expect(res.headers.get('CDN-Cache-Control')).toBe('max-age=5');
+  });
+
+  it('enforces rate limiting on POST', async () => {
+    (smartRateLimit as vi.Mock).mockResolvedValue({ allowed: false });
+    process.env.SCAN_STATUS_TOKEN_REQUIRED = 'false';
+
+    const req = createPostRequest({ key: 'test.jpg' });
+    const res = await POST(req);
+
+    expect(res.status).toBe(429);
+  });
+
+  it('requires token when token-required flag set', async () => {
+    process.env.SCAN_STATUS_TOKEN_REQUIRED = 'true';
+    process.env.SCAN_STATUS_TOKEN = 'secret';
+    (getSessionUser as vi.Mock).mockResolvedValue(null);
+
+    const req = createPostRequest({ key: 'test.jpg' });
+    const res = await POST(req);
+
+    expect(res.status).toBe(401);
+
+    const reqWithToken = createPostRequest({ key: 'test.jpg' }, { 'x-scan-token': 'secret' });
+    const res2 = await POST(reqWithToken);
+    expect(res2.status).toBe(200);
+  });
+});
+
+// Helper functions
+const createRequest = (url: string, headers: Record<string, string> = {}) => makeGetRequest(url, headers);
+
+const createPostRequest = (body: Record<string, unknown>, headers: Record<string, string> = {}) =>
+  makePostRequest('https://test.com/api/upload/scan-status', body, headers);
+
+]]>
+</file>
+
+<file path="tests/unit/api/work-orders/patch.route.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { ObjectId } from 'mongodb';
+import { NextResponse } from 'next/server';
+
+// Mock dependencies
+vi.mock('@/lib/mongodb-unified', () => ({
+  connectToDatabase: vi.fn(),
+  getDatabase: vi.fn(),
+}));
+
+vi.mock('@/server/models/WorkOrder', () => ({
+  WorkOrder: {
+    findOne: vi.fn(),
+    findOneAndUpdate: vi.fn(),
+  },
+}));
+
+vi.mock('@/server/middleware/withAuthRbac', () => ({
+  requireAbility: vi.fn(),
+}));
+
+vi.mock('@/lib/sla', () => ({
+  resolveSlaTarget: vi.fn((priority) => ({
+    slaMinutes: priority === 'CRITICAL' ? 240 : 1440,
+    dueAt: new Date(Date.now() + 86400000),
+  })),
+  WorkOrderPriority: {},
+}));
+
+vi.mock('@/lib/storage/s3', () => ({
+  deleteObject: vi.fn(),
+}));
+
+vi.mock('@/lib/logger', () => ({
+  logger: {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+  },
+}));
+
+import { PATCH } from '@/app/api/work-orders/[id]/route';
+import { WorkOrder } from '@/server/models/WorkOrder';
+import { requireAbility } from '@/server/middleware/withAuthRbac';
+import { getDatabase } from '@/lib/mongodb-unified';
+import { deleteObject } from '@/lib/storage/s3';
+import { logger } from '@/lib/logger';
+
+describe('PATCH /api/work-orders/[id]', () => {
+  const mockUser = {
+    id: 'user-123',
+    tenantId: 'tenant-1',
+    role: 'MANAGER',
+  };
+
+  const mockWorkOrder = {
+    _id: new ObjectId('507f1f77bcf86cd799439011'),
+    title: 'Fix AC',
+    priority: 'MEDIUM',
+    tenantId: 'tenant-1',
+    attachments: [{ key: 'old-file.jpg' }],
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (requireAbility as vi.Mock).mockImplementation(() => async () => mockUser);
+    
+    // Mock WorkOrder.findOne to return chainable methods
+    const mockFindOne = {
+      select: vi.fn().mockReturnThis(),
+      lean: vi.fn().mockResolvedValue(mockWorkOrder),
+    };
+    (WorkOrder.findOne as vi.Mock).mockReturnValue(mockFindOne);
+    
+    (WorkOrder.findOneAndUpdate as vi.Mock).mockResolvedValue({
+      ...mockWorkOrder,
+      title: 'Updated Title',
+    });
+  });
+
+  describe('Property validation', () => {
+    it('validates propertyId exists before updating', async () => {
+      const mockDb = {
+        collection: vi.fn().mockReturnValue({
+          countDocuments: vi.fn().mockResolvedValue(0), // Property not found
+        }),
+      };
+      (getDatabase as vi.Mock).mockResolvedValue(mockDb);
+
+      const req = createRequest({
+        title: 'Updated',
+        propertyId: '507f1f77bcf86cd799439012',
+      });
+
+      const res = await PATCH(req, {
+        params: { id: '' },
+      });
+
+      expect(res.status).toBe(422);
+      const body = await res.json();
+      expect(body.error).toContain('Invalid propertyId');
+      expect(WorkOrder.findOneAndUpdate).not.toHaveBeenCalled();
+    });
+
+    it('allows valid propertyId', async () => {
+      const mockDb = {
+        collection: vi.fn().mockReturnValue({
+          countDocuments: vi.fn().mockResolvedValue(1), // Property exists
+        }),
+      };
+      (getDatabase as vi.Mock).mockResolvedValue(mockDb);
+
+      const req = createRequest({
+        title: 'Updated',
+        propertyId: '507f1f77bcf86cd799439012',
+      });
+
+      const res = await PATCH(req, {
+        params: { id: '' },
+      });
+
+      expect(res.status).toBe(200);
+      expect(WorkOrder.findOneAndUpdate).toHaveBeenCalled();
+      const updateCall = (WorkOrder.findOneAndUpdate as vi.Mock).mock.calls[0];
+      expect(updateCall[1].$set.location).toEqual({
+        propertyId: '507f1f77bcf86cd799439012',
+      });
+    });
+
+    it('combines propertyId and unitNumber into location', async () => {
+      const mockDb = {
+        collection: vi.fn().mockReturnValue({
+          countDocuments: vi.fn().mockResolvedValue(1),
+        }),
+      };
+      (getDatabase as vi.Mock).mockResolvedValue(mockDb);
+
+      const req = createRequest({
+        propertyId: '507f1f77bcf86cd799439012',
+        unitNumber: '3B',
+      });
+
+      const res = await PATCH(req, {
+        params: { id: '' },
+      });
+
+      expect(res.status).toBe(200);
+      const updateCall = (WorkOrder.findOneAndUpdate as vi.Mock).mock.calls[0];
+      expect(updateCall[1].$set.location).toEqual({
+        propertyId: '507f1f77bcf86cd799439012',
+        unitNumber: '3B',
+      });
+    });
+  });
+
+  describe('Assignment validation', () => {
+    it('validates assignee exists before updating', async () => {
+      const mockDb = {
+        collection: vi.fn().mockReturnValue({
+          countDocuments: vi.fn().mockResolvedValue(0), // User not found
+        }),
+      };
+      (getDatabase as vi.Mock).mockResolvedValue(mockDb);
+
+      const req = createRequest({
+        assignment: {
+          assignedTo: { userId: '507f1f77bcf86cd799439013' },
+        },
+      });
+
+      const res = await PATCH(req, {
+        params: { id: '' },
+      });
+
+      expect(res.status).toBe(422);
+      const body = await res.json();
+      expect(body.error).toContain('Invalid assignee');
+      expect(WorkOrder.findOneAndUpdate).not.toHaveBeenCalled();
+    });
+
+    it('allows valid assignee and adds timestamp', async () => {
+      const mockDb = {
+        collection: vi.fn().mockReturnValue({
+          countDocuments: vi.fn().mockResolvedValue(1), // User exists
+        }),
+      };
+      (getDatabase as vi.Mock).mockResolvedValue(mockDb);
+
+      const req = createRequest({
+        assignment: {
+          assignedTo: { userId: '507f1f77bcf86cd799439013' },
+        },
+      });
+
+      const res = await PATCH(req, {
+        params: { id: '' },
+      });
+
+      expect(res.status).toBe(200);
+      const updateCall = (WorkOrder.findOneAndUpdate as vi.Mock).mock.calls[0];
+      expect(updateCall[1].$set.assignment).toMatchObject({
+        assignedTo: { userId: '507f1f77bcf86cd799439013' },
+        assignedAt: expect.any(Date),
+      });
+    });
+  });
+
+  describe('SLA recalculation', () => {
+    it('recalculates SLA when priority changes', async () => {
+      const req = createRequest({
+        priority: 'CRITICAL',
+      });
+
+      const res = await PATCH(req, {
+        params: { id: '' },
+      });
+
+      expect(res.status).toBe(200);
+      const updateCall = (WorkOrder.findOneAndUpdate as vi.Mock).mock.calls[0];
+      expect(updateCall[1].$set.slaMinutes).toBe(240);
+      expect(updateCall[1].$set.dueAt).toBeInstanceOf(Date);
+    });
+
+    it('preserves custom dueAt when provided with priority', async () => {
+      const customDue = new Date('2025-12-31');
+      const req = createRequest({
+        priority: 'HIGH',
+        dueAt: customDue.toISOString(),
+      });
+
+      const res = await PATCH(req, {
+        params: { id: '' },
+      });
+
+      expect(res.status).toBe(200);
+      const updateCall = (WorkOrder.findOneAndUpdate as vi.Mock).mock.calls[0];
+      expect(updateCall[1].$set.dueAt).toEqual(customDue);
+    });
+  });
+
+  describe('S3 cleanup observability', () => {
+    it('logs S3 delete failures for monitoring', async () => {
+      const mockFindOneWithAttachments = {
+        select: vi.fn().mockReturnThis(),
+        lean: vi.fn().mockResolvedValue({
+          ...mockWorkOrder,
+          attachments: [{ key: 'old-1.jpg' }, { key: 'old-2.jpg' }],
+        }),
+      };
+      (WorkOrder.findOne as vi.Mock).mockReturnValue(mockFindOneWithAttachments);
+
+      (deleteObject as vi.Mock)
+        .mockRejectedValueOnce(new Error('S3 error'))
+        .mockResolvedValueOnce(undefined);
+
+      const req = createRequest({
+        attachments: [{ key: 'new-1.jpg', url: 'https://s3/new-1.jpg' }],
+      });
+
+      const res = await PATCH(req, {
+        params: { id: '' },
+      });
+
+      expect(res.status).toBe(200);
+      await new Promise((resolve) => setTimeout(resolve, 10)); // Wait for async cleanup
+
+      expect(logger.error).toHaveBeenCalledWith(
+        '[WorkOrder PATCH] S3 cleanup failed',
+        expect.objectContaining({
+          workOrderId: '507f1f77bcf86cd799439011',
+          key: 'old-1.jpg',
+          error: expect.any(Error),
+        })
+      );
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        '[WorkOrder PATCH] S3 cleanup partial failure',
+        expect.objectContaining({
+          workOrderId: '507f1f77bcf86cd799439011',
+          total: 2,
+          failed: 1,
+        })
+      );
+    });
+
+    it('cleans up removed attachments successfully', async () => {
+      const mockFindOneWithAttachments = {
+        select: vi.fn().mockReturnThis(),
+        lean: vi.fn().mockResolvedValue({
+          ...mockWorkOrder,
+          attachments: [{ key: 'remove-me.jpg' }],
+        }),
+      };
+      (WorkOrder.findOne as vi.Mock).mockReturnValue(mockFindOneWithAttachments);
+
+      (deleteObject as vi.Mock).mockResolvedValue(undefined);
+
+      const req = createRequest({
+        attachments: [{ key: 'keep-me.jpg', url: 'https://s3/keep.jpg' }],
+      });
+
+      const res = await PATCH(req, {
+        params: { id: '' },
+      });
+
+      expect(res.status).toBe(200);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(deleteObject).toHaveBeenCalledWith('remove-me.jpg');
+      expect(logger.error).not.toHaveBeenCalled();
+      expect(logger.warn).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Combined updates', () => {
+    it('handles property + assignment + priority update together', async () => {
+      const mockDb = {
+        collection: vi.fn((name: string) => ({
+          countDocuments: vi.fn().mockResolvedValue(1), // All valid
+        })),
+      };
+      (getDatabase as vi.Mock).mockResolvedValue(mockDb);
+
+      const req = createRequest({
+        title: 'Emergency Repair',
+        priority: 'CRITICAL',
+        propertyId: '507f1f77bcf86cd799439012',
+        unitNumber: '5A',
+        assignment: {
+          assignedTo: { userId: '507f1f77bcf86cd799439013' },
+        },
+      });
+
+      const res = await PATCH(req, {
+        params: { id: '' },
+      });
+
+      expect(res.status).toBe(200);
+      const updateCall = (WorkOrder.findOneAndUpdate as vi.Mock).mock.calls[0];
+      const update = updateCall[1].$set;
+
+      expect(update.title).toBe('Emergency Repair');
+      expect(update.priority).toBe('CRITICAL');
+      expect(update.location).toEqual({
+        propertyId: '507f1f77bcf86cd799439012',
+        unitNumber: '5A',
+      });
+      expect(update.assignment).toMatchObject({
+        assignedTo: { userId: '507f1f77bcf86cd799439013' },
+        assignedAt: expect.any(Date),
+      });
+      expect(update.slaMinutes).toBe(240);
+    });
+  });
+});
+
+// Helper to create mock request
+function createRequest(body: Record<string, unknown>) {
+  return new Request('https://test.com/api/work-orders/507f1f77bcf86cd799439011', {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+]]>
+</file>
+
+<file path="tests/unit/api/work-orders/rbac.test.ts">
+<![CDATA[
+/**
+ * RBAC Unit Tests - Work Orders Role-Based Filtering
+ * 
+ * Tests the role-based access control and filtering logic for work orders API.
+ * Validates STRICT v4 compliance with multi-tenant isolation.
+ * 
+ * Test Coverage:
+ * - TECHNICIAN: Only sees assigned work orders (assignedTo scoping)
+ * - VENDOR: Only sees vendor work orders (vendorId scoping)
+ * - TENANT: Only sees unit work orders (unitId scoping)
+ * - ADMIN/MANAGER: See all org work orders (orgId scoping only)
+ * - SUPER_ADMIN: Bypasses scoping (no filters)
+ * 
+ * Related Files:
+ * - app/api/work-orders/route.ts (buildWorkOrderFilter function)
+ * - POST_STABILIZATION_AUDIT_FIXES.md (RBAC-001)
+ */
+
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { Types } from 'mongoose';
+
+// Type for work order query filter
+interface WorkOrderFilter {
+  orgId?: string;
+  assignedTo?: string;
+  vendorId?: string;
+  unitId?: { $in: string[] };
+}
+
+// Mock the buildWorkOrderFilter function logic
+function buildWorkOrderFilter(params: {
+  orgId: string;
+  userRole: string;
+  userId?: string;
+  vendorId?: string;
+  units?: string[];
+  isSuperAdmin?: boolean;
+}): WorkOrderFilter {
+  const { orgId, userRole, userId, vendorId, units, isSuperAdmin } = params;
+  
+  // Super admin bypasses all scoping
+  if (isSuperAdmin) {
+    return {};
+  }
+  
+  const filter: WorkOrderFilter = { orgId };
+  
+  // 🔒 RBAC: Scope by role per STRICT v4 multi-tenant isolation
+  if (userRole === 'TECHNICIAN' && userId) {
+    filter.assignedTo = userId; // Only assigned work orders
+  } else if (userRole === 'VENDOR' && vendorId) {
+    filter.vendorId = vendorId; // Only vendor work orders
+  } else if (userRole === 'TENANT' && units && units.length > 0) {
+    filter.unitId = { $in: units }; // Only unit work orders
+  }
+  // ADMIN, MANAGER, FM_MANAGER, PROPERTY_MANAGER see all org work orders
+  
+  return filter;
+}
+
+describe('Work Orders RBAC - Role-Based Filtering', () => {
+  const mockOrgId = new Types.ObjectId().toString();
+  const mockUserId = new Types.ObjectId().toString();
+  const mockVendorId = new Types.ObjectId().toString();
+  const mockUnitIds = [
+    new Types.ObjectId().toString(),
+    new Types.ObjectId().toString(),
+  ];
+  
+  describe('TECHNICIAN Role', () => {
+    it('should filter work orders by assignedTo (technician ID)', () => {
+      const filter = buildWorkOrderFilter({
+        orgId: mockOrgId,
+        userRole: 'TECHNICIAN',
+        userId: mockUserId,
+      });
+      
+      expect(filter).toEqual({
+        orgId: mockOrgId,
+        assignedTo: mockUserId,
+      });
+    });
+    
+    it('should only show org scoping if userId missing (defensive)', () => {
+      const filter = buildWorkOrderFilter({
+        orgId: mockOrgId,
+        userRole: 'TECHNICIAN',
+        // userId intentionally omitted
+      });
+      
+      expect(filter).toEqual({
+        orgId: mockOrgId,
+        // No assignedTo filter - falls back to org-only scoping
+      });
+    });
+    
+    it('should NOT see work orders assigned to other technicians', () => {
+      const otherTechnicianId = new Types.ObjectId().toString();
+      const filter = buildWorkOrderFilter({
+        orgId: mockOrgId,
+        userRole: 'TECHNICIAN',
+        userId: mockUserId,
+      });
+      
+      // Simulate MongoDB query
+      const mockWorkOrders = [
+        { _id: '1', assignedTo: mockUserId, orgId: mockOrgId },
+        { _id: '2', assignedTo: otherTechnicianId, orgId: mockOrgId },
+        { _id: '3', assignedTo: mockUserId, orgId: mockOrgId },
+      ];
+      
+      const filtered = mockWorkOrders.filter((wo) => {
+        return wo.orgId === filter.orgId && wo.assignedTo === filter.assignedTo;
+      });
+      
+      expect(filtered).toHaveLength(2);
+      expect(filtered.every((wo) => wo.assignedTo === mockUserId)).toBe(true);
+    });
+  });
+  
+  describe('VENDOR Role', () => {
+    it('should filter work orders by vendorId', () => {
+      const filter = buildWorkOrderFilter({
+        orgId: mockOrgId,
+        userRole: 'VENDOR',
+        vendorId: mockVendorId,
+      });
+      
+      expect(filter).toEqual({
+        orgId: mockOrgId,
+        vendorId: mockVendorId,
+      });
+    });
+    
+    it('should only show org scoping if vendorId missing (defensive)', () => {
+      const filter = buildWorkOrderFilter({
+        orgId: mockOrgId,
+        userRole: 'VENDOR',
+        // vendorId intentionally omitted
+      });
+      
+      expect(filter).toEqual({
+        orgId: mockOrgId,
+        // No vendorId filter
+      });
+    });
+    
+    it('should NOT see work orders for other vendors', () => {
+      const otherVendorId = new Types.ObjectId().toString();
+      const filter = buildWorkOrderFilter({
+        orgId: mockOrgId,
+        userRole: 'VENDOR',
+        vendorId: mockVendorId,
+      });
+      
+      const mockWorkOrders = [
+        { _id: '1', vendorId: mockVendorId, orgId: mockOrgId },
+        { _id: '2', vendorId: otherVendorId, orgId: mockOrgId },
+        { _id: '3', vendorId: mockVendorId, orgId: mockOrgId },
+      ];
+      
+      const filtered = mockWorkOrders.filter((wo) => {
+        return wo.orgId === filter.orgId && wo.vendorId === filter.vendorId;
+      });
+      
+      expect(filtered).toHaveLength(2);
+      expect(filtered.every((wo) => wo.vendorId === mockVendorId)).toBe(true);
+    });
+  });
+  
+  describe('TENANT Role', () => {
+    it('should filter work orders by unitId array', () => {
+      const filter = buildWorkOrderFilter({
+        orgId: mockOrgId,
+        userRole: 'TENANT',
+        units: mockUnitIds,
+      });
+      
+      expect(filter).toEqual({
+        orgId: mockOrgId,
+        unitId: { $in: mockUnitIds },
+      });
+    });
+    
+    it('should only show org scoping if units array empty (defensive)', () => {
+      const filter = buildWorkOrderFilter({
+        orgId: mockOrgId,
+        userRole: 'TENANT',
+        units: [],
+      });
+      
+      expect(filter).toEqual({
+        orgId: mockOrgId,
+        // No unitId filter
+      });
+    });
+    
+    it('should NOT see work orders for other units', () => {
+      const otherUnitId = new Types.ObjectId().toString();
+      const filter = buildWorkOrderFilter({
+        orgId: mockOrgId,
+        userRole: 'TENANT',
+        units: mockUnitIds,
+      });
+      
+      const mockWorkOrders = [
+        { _id: '1', unitId: mockUnitIds[0], orgId: mockOrgId },
+        { _id: '2', unitId: otherUnitId, orgId: mockOrgId },
+        { _id: '3', unitId: mockUnitIds[1], orgId: mockOrgId },
+      ];
+      
+      const filtered = mockWorkOrders.filter((wo) => {
+        return (
+          wo.orgId === filter.orgId &&
+          mockUnitIds.includes(wo.unitId)
+        );
+      });
+      
+      expect(filtered).toHaveLength(2);
+      expect(filtered.every((wo) => mockUnitIds.includes(wo.unitId))).toBe(true);
+    });
+  });
+  
+  describe('ADMIN/MANAGER Roles', () => {
+    it('should see all org work orders (ADMIN)', () => {
+      const filter = buildWorkOrderFilter({
+        orgId: mockOrgId,
+        userRole: 'ADMIN',
+      });
+      
+      expect(filter).toEqual({
+        orgId: mockOrgId,
+        // No additional scoping - org-wide access
+      });
+    });
+    
+    it('should see all org work orders (MANAGER)', () => {
+      const filter = buildWorkOrderFilter({
+        orgId: mockOrgId,
+        userRole: 'MANAGER',
+      });
+      
+      expect(filter).toEqual({
+        orgId: mockOrgId,
+      });
+    });
+    
+    it('should see all org work orders (FM_MANAGER)', () => {
+      const filter = buildWorkOrderFilter({
+        orgId: mockOrgId,
+        userRole: 'FM_MANAGER',
+      });
+      
+      expect(filter).toEqual({
+        orgId: mockOrgId,
+      });
+    });
+    
+    it('should see all org work orders (PROPERTY_MANAGER)', () => {
+      const filter = buildWorkOrderFilter({
+        orgId: mockOrgId,
+        userRole: 'PROPERTY_MANAGER',
+      });
+      
+      expect(filter).toEqual({
+        orgId: mockOrgId,
+      });
+    });
+    
+    it('should NOT see work orders from other orgs', () => {
+      const otherOrgId = new Types.ObjectId().toString();
+      const filter = buildWorkOrderFilter({
+        orgId: mockOrgId,
+        userRole: 'ADMIN',
+      });
+      
+      const mockWorkOrders = [
+        { _id: '1', orgId: mockOrgId },
+        { _id: '2', orgId: otherOrgId },
+        { _id: '3', orgId: mockOrgId },
+      ];
+      
+      const filtered = mockWorkOrders.filter((wo) => wo.orgId === filter.orgId);
+      
+      expect(filtered).toHaveLength(2);
+      expect(filtered.every((wo) => wo.orgId === mockOrgId)).toBe(true);
+    });
+  });
+  
+  describe('SUPER_ADMIN Role', () => {
+    it('should bypass all scoping (empty filter)', () => {
+      const filter = buildWorkOrderFilter({
+        orgId: mockOrgId,
+        userRole: 'SUPER_ADMIN',
+        isSuperAdmin: true,
+      });
+      
+      expect(filter).toEqual({});
+    });
+    
+    it('should see work orders across all orgs', () => {
+      const org1Id = new Types.ObjectId().toString();
+      const org2Id = new Types.ObjectId().toString();
+      const filter = buildWorkOrderFilter({
+        orgId: org1Id,
+        userRole: 'SUPER_ADMIN',
+        isSuperAdmin: true,
+      });
+      
+      const mockWorkOrders = [
+        { _id: '1', orgId: org1Id },
+        { _id: '2', orgId: org2Id },
+        { _id: '3', orgId: org1Id },
+      ];
+      
+      // Super admin filter is empty, so all work orders pass
+      const filtered = mockWorkOrders.filter(() => {
+        // Empty filter = no filtering
+        return Object.keys(filter).length === 0 || true;
+      });
+      
+      expect(filtered).toHaveLength(3);
+    });
+  });
+  
+  describe('Multi-Tenant Isolation', () => {
+    it('should enforce orgId scoping for all non-superadmin roles', () => {
+      const roles = ['ADMIN', 'MANAGER', 'TECHNICIAN', 'VENDOR', 'TENANT'];
+      
+      roles.forEach((role) => {
+        const filter = buildWorkOrderFilter({
+          orgId: mockOrgId,
+          userRole: role,
+          userId: mockUserId,
+          vendorId: mockVendorId,
+          units: mockUnitIds,
+        });
+        
+        expect(filter.orgId).toBe(mockOrgId);
+      });
+    });
+    
+    it('should prevent cross-org data leakage', () => {
+      const org1Id = new Types.ObjectId().toString();
+      const org2Id = new Types.ObjectId().toString();
+      
+      const filter = buildWorkOrderFilter({
+        orgId: org1Id,
+        userRole: 'ADMIN',
+      });
+      
+      const mockWorkOrders = [
+        { _id: '1', orgId: org1Id, title: 'Org 1 WO' },
+        { _id: '2', orgId: org2Id, title: 'Org 2 WO' },
+      ];
+      
+      const filtered = mockWorkOrders.filter((wo) => wo.orgId === filter.orgId);
+      
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].orgId).toBe(org1Id);
+      expect(filtered[0].title).toBe('Org 1 WO');
+    });
+  });
+  
+  describe('Edge Cases', () => {
+    it('should handle missing orgId gracefully', () => {
+      const filter = buildWorkOrderFilter({
+        orgId: '',
+        userRole: 'ADMIN',
+      });
+      
+      expect(filter.orgId).toBe('');
+    });
+    
+    it('should handle unknown roles as org-scoped', () => {
+      const filter = buildWorkOrderFilter({
+        orgId: mockOrgId,
+        userRole: 'UNKNOWN_ROLE',
+      });
+      
+      expect(filter).toEqual({
+        orgId: mockOrgId,
+        // No additional filters for unknown role
+      });
+    });
+    
+    it('should handle technician with both userId and vendorId (userId takes precedence)', () => {
+      const filter = buildWorkOrderFilter({
+        orgId: mockOrgId,
+        userRole: 'TECHNICIAN',
+        userId: mockUserId,
+        vendorId: mockVendorId, // Should be ignored for TECHNICIAN
+      });
+      
+      expect(filter).toEqual({
+        orgId: mockOrgId,
+        assignedTo: mockUserId,
+      });
+      expect(filter.vendorId).toBeUndefined();
+    });
+  });
+  
+  describe('STRICT v4 Compliance', () => {
+    it('should map to correct STRICT v4 roles', () => {
+      const strictV4Roles = [
+        'SUPER_ADMIN',
+        'CORPORATE_ADMIN',
+        'ADMIN',
+        'MANAGER',
+        'FM_MANAGER',
+        'PROPERTY_MANAGER',
+        'TECHNICIAN',
+        'FINANCE',
+        'HR',
+        'PROCUREMENT',
+        'OWNER',
+        'TENANT',
+        'VENDOR',
+        'AUDITOR',
+      ];
+      
+      strictV4Roles.forEach((role) => {
+        const filter = buildWorkOrderFilter({
+          orgId: mockOrgId,
+          userRole: role,
+          userId: mockUserId,
+          vendorId: mockVendorId,
+          units: mockUnitIds,
+          isSuperAdmin: role === 'SUPER_ADMIN',
+        });
+        
+        // Every role should return a valid filter
+        expect(filter).toBeDefined();
+        expect(typeof filter).toBe('object');
+        
+        // Super admin bypasses, others have orgId
+        if (role === 'SUPER_ADMIN') {
+          expect(filter.orgId).toBeUndefined();
+        } else {
+          expect(filter.orgId).toBe(mockOrgId);
+        }
+      });
+    });
+  });
+});
+
+describe('Work Orders RBAC - Integration Scenarios', () => {
+  it('should handle multi-unit tenant with proper scoping', () => {
+    const mockOrgId = new Types.ObjectId().toString();
+    const tenantUnits = [
+      new Types.ObjectId().toString(),
+      new Types.ObjectId().toString(),
+      new Types.ObjectId().toString(),
+    ];
+    
+    const filter = buildWorkOrderFilter({
+      orgId: mockOrgId,
+      userRole: 'TENANT',
+      units: tenantUnits,
+    });
+    
+    expect(filter.unitId).toEqual({ $in: tenantUnits });
+    
+    // Simulate tenant with 3 units, org has 5 total work orders
+    const mockWorkOrders = [
+      { _id: '1', unitId: tenantUnits[0], orgId: mockOrgId },
+      { _id: '2', unitId: tenantUnits[1], orgId: mockOrgId },
+      { _id: '3', unitId: new Types.ObjectId().toString(), orgId: mockOrgId },
+      { _id: '4', unitId: tenantUnits[2], orgId: mockOrgId },
+      { _id: '5', unitId: new Types.ObjectId().toString(), orgId: mockOrgId },
+    ];
+    
+    const filtered = mockWorkOrders.filter((wo) => {
+      return wo.orgId === filter.orgId && tenantUnits.includes(wo.unitId);
+    });
+    
+    expect(filtered).toHaveLength(3);
+  });
+  
+  it('should handle technician promotion to manager (role change)', () => {
+    const mockOrgId = new Types.ObjectId().toString();
+    const userId = new Types.ObjectId().toString();
+    
+    // Before: Technician (scoped to assignments)
+    const technicianFilter = buildWorkOrderFilter({
+      orgId: mockOrgId,
+      userRole: 'TECHNICIAN',
+      userId: userId,
+    });
+    
+    expect(technicianFilter.assignedTo).toBe(userId);
+    
+    // After: Manager (org-wide access)
+    const managerFilter = buildWorkOrderFilter({
+      orgId: mockOrgId,
+      userRole: 'MANAGER',
+      userId: userId, // Same user, different role
+    });
+    
+    expect(managerFilter.assignedTo).toBeUndefined();
+    expect(managerFilter.orgId).toBe(mockOrgId);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/app/api/search/search-entities.test.ts">
+<![CDATA[
+import { describe, expect, it } from "vitest";
+import {
+  ENTITY_COLLECTION_MAP,
+  TEXT_INDEXED_ENTITIES,
+} from "@/app/api/search/route";
+import { COLLECTIONS } from "@/lib/db/collections";
+import type { SearchEntity } from "@/config/topbar-modules";
+import {
+  WORK_ORDERS_ENTITY,
+  WORK_ORDERS_ENTITY_LEGACY,
+} from "@/config/topbar-modules";
+
+const EXPECTED_ENTITIES: SearchEntity[] = [
+  WORK_ORDERS_ENTITY,
+  WORK_ORDERS_ENTITY_LEGACY, // legacy alias
+  "properties",
+  "units",
+  "tenants",
+  "vendors",
+  "invoices",
+  "products",
+  "services",
+  "rfqs",
+  "orders",
+  "listings",
+  "projects",
+  "agents",
+];
+
+describe("search route – text search coverage", () => {
+  it("TEXT_INDEXED_ENTITIES matches the indexed collections", () => {
+    const actual = Array.from(TEXT_INDEXED_ENTITIES).sort();
+    const expected = [...EXPECTED_ENTITIES].sort();
+    expect(actual).toEqual(expected);
+  });
+
+  it("ENTITY_COLLECTION_MAP covers all text-indexed entities with COLLECTIONS constants", () => {
+    const keys = Object.keys(ENTITY_COLLECTION_MAP).sort();
+    const expected = [...EXPECTED_ENTITIES].sort();
+    expect(keys).toEqual(expected);
+
+    // Every mapping points to a defined collection name from COLLECTIONS
+    for (const [entity, collectionName] of Object.entries(ENTITY_COLLECTION_MAP)) {
+      expect(collectionName).toBeDefined();
+      const value = collectionName as string;
+      expect(Object.values(COLLECTIONS)).toContain(value);
+
+      // Work orders (both canonical and legacy) must map to canonical collection
+      if (entity === WORK_ORDERS_ENTITY || entity === WORK_ORDERS_ENTITY_LEGACY) {
+        expect(value).toBe(COLLECTIONS.WORK_ORDERS);
+      }
+    }
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/app/api/search/search-rbac-scope.test.ts">
+<![CDATA[
+import { describe, expect, it } from "vitest";
+import { ObjectId } from "mongodb";
+import {
+  applyEntityScope,
+  canSearchEntity,
+} from "@/app/api/search/route";
+import {
+  WORK_ORDERS_ENTITY,
+  WORK_ORDERS_ENTITY_LEGACY,
+} from "@/config/topbar-modules";
+import { UserRole } from "@/types/user";
+import type { SessionUser } from "@/server/middleware/withAuthRbac";
+
+const orgObjectId = new ObjectId();
+
+const baseQuery = () =>
+  ({
+    orgId: orgObjectId,
+    $text: { $search: "foo" },
+    deletedAt: { $exists: false },
+    isDeleted: { $ne: true },
+  }) as Record<string, unknown>;
+
+const makeSession = (overrides: Partial<SessionUser> = {}): SessionUser => ({
+  id: new ObjectId().toHexString(),
+  orgId: orgObjectId.toHexString(),
+  tenantId: orgObjectId.toHexString(),
+  role: UserRole.MANAGER,
+  permissions: [],
+  roles: [],
+  isSuperAdmin: false,
+  ...overrides,
+});
+
+describe("search RBAC and tenancy scoping", () => {
+  describe("canSearchEntity", () => {
+    it("allows canonical and legacy work orders for allowed roles", () => {
+      const session = makeSession({ role: UserRole.MANAGER });
+      expect(canSearchEntity(session, WORK_ORDERS_ENTITY)).toBe(true);
+      expect(canSearchEntity(session, WORK_ORDERS_ENTITY_LEGACY)).toBe(true);
+    });
+
+    it("denies work orders for roles not in permission map", () => {
+      const session = makeSession({ role: UserRole.FINANCE });
+      expect(canSearchEntity(session, WORK_ORDERS_ENTITY)).toBe(false);
+    });
+
+    it("permits access when explicit permission is present even if role is not", () => {
+      const session = makeSession({
+        role: UserRole.FINANCE,
+        permissions: ["workorders:read"],
+      });
+      expect(canSearchEntity(session, WORK_ORDERS_ENTITY)).toBe(true);
+    });
+
+    it("permits access via module wildcard permission", () => {
+      const session = makeSession({
+        role: UserRole.FINANCE,
+        permissions: ["workorders:*"],
+      });
+      expect(canSearchEntity(session, WORK_ORDERS_ENTITY)).toBe(true);
+    });
+
+    it("respects subRole-based access for tenants.read via SUPPORT_AGENT sub-role", () => {
+      const session = makeSession({
+        role: UserRole.TEAM_MEMBER,
+        subRole: "SUPPORT_AGENT",
+        roles: [UserRole.SUPPORT_AGENT],
+      });
+      expect(canSearchEntity(session, "tenants")).toBe(true);
+    });
+  });
+
+  describe("applyEntityScope", () => {
+    it("returns base query unchanged for super users", () => {
+      const session = makeSession({ isSuperAdmin: true });
+      const scoped = applyEntityScope(WORK_ORDERS_ENTITY, session, baseQuery());
+      expect(scoped.allowed).toBe(true);
+      expect(scoped.query).toEqual(baseQuery());
+    });
+
+    it("treats broad corporate owner as org-wide for work orders", () => {
+      const session = makeSession({ role: UserRole.CORPORATE_OWNER });
+      const scoped = applyEntityScope(WORK_ORDERS_ENTITY, session, baseQuery());
+      expect(scoped.allowed).toBe(true);
+      expect(scoped.query).toEqual(baseQuery());
+    });
+
+    it("treats team member/support agent as org-wide for properties", () => {
+      const teamMember = makeSession({ role: UserRole.TEAM_MEMBER });
+      const supportAgent = makeSession({
+        role: UserRole.TEAM_MEMBER,
+        roles: [UserRole.SUPPORT_AGENT],
+      });
+
+      const scopedTeamMember = applyEntityScope("properties", teamMember, baseQuery());
+      expect(scopedTeamMember.allowed).toBe(true);
+      expect(scopedTeamMember.query).toEqual(baseQuery());
+
+      const scopedSupport = applyEntityScope("properties", supportAgent, baseQuery());
+      expect(scopedSupport.allowed).toBe(true);
+      expect(scopedSupport.query).toEqual(baseQuery());
+    });
+
+    it("scopes tenants to their own work orders", () => {
+      const tenantId = new ObjectId().toHexString();
+      const session = makeSession({ role: UserRole.TENANT, id: tenantId });
+      const scoped = applyEntityScope(WORK_ORDERS_ENTITY, session, baseQuery());
+      expect(scoped.allowed).toBe(true);
+      expect(scoped.query["requester.userId"]?.toString()).toBe(tenantId);
+    });
+
+    it("requires owner assignments for work orders", () => {
+      const session = makeSession({
+        role: UserRole.OWNER,
+        assignedProperties: [],
+        roles: [UserRole.OWNER],
+      });
+      const scoped = applyEntityScope(WORK_ORDERS_ENTITY, session, baseQuery());
+      expect(scoped.allowed).toBe(false);
+    });
+
+    it("requires owner assignments for properties and applies $in when present", () => {
+      const propertyIds = [new ObjectId().toHexString()];
+      const session = makeSession({
+        role: UserRole.OWNER,
+        assignedProperties: propertyIds,
+      });
+      const scoped = applyEntityScope("properties", session, baseQuery());
+      expect(scoped.allowed).toBe(true);
+      expect(scoped.query["_id"]).toEqual({ $in: propertyIds.map((id) => new ObjectId(id)) });
+    });
+
+    it("requires tenant unit list for properties and units", () => {
+      const tenantWithNoUnits = makeSession({
+        role: UserRole.TENANT,
+        units: [],
+        roles: [UserRole.TENANT],
+      });
+      expect(applyEntityScope("properties", tenantWithNoUnits, baseQuery()).allowed).toBe(false);
+      expect(applyEntityScope("units", tenantWithNoUnits, baseQuery()).allowed).toBe(false);
+
+      const unitIds = [new ObjectId().toHexString()];
+      const tenantWithUnits = makeSession({
+        role: UserRole.TENANT,
+        units: unitIds,
+        roles: [UserRole.TENANT],
+      });
+      const unitsScope = applyEntityScope("units", tenantWithUnits, baseQuery());
+      expect(unitsScope.allowed).toBe(true);
+      expect(unitsScope.query["_id"]).toEqual({ $in: unitIds.map((id) => new ObjectId(id)) });
+    });
+
+    it("requires vendorId for vendor-scoped entities", () => {
+      const vendorMissingId = makeSession({ role: UserRole.VENDOR });
+      expect(applyEntityScope("orders", vendorMissingId, baseQuery()).allowed).toBe(false);
+
+      const vendorId = new ObjectId().toHexString();
+      const vendorWithId = makeSession({ role: UserRole.VENDOR, vendorId });
+      const scoped = applyEntityScope("orders", vendorWithId, baseQuery());
+      expect(scoped.allowed).toBe(true);
+      expect(scoped.query["vendorId"]?.toString()).toBe(vendorId);
+    });
+
+    it("scopes technician work orders to assignments", () => {
+      const technicianId = new ObjectId().toHexString();
+      const session = makeSession({ role: UserRole.TECHNICIAN, id: technicianId });
+      const scoped = applyEntityScope(WORK_ORDERS_ENTITY, session, baseQuery());
+      expect(scoped.allowed).toBe(true);
+      expect(scoped.query["assignment.assignedTo.userId"]?.toString()).toBe(technicianId);
+    });
+
+    it("allows property manager to search properties with assigned properties", () => {
+      const propertyIds = [new ObjectId().toHexString()];
+      const session = makeSession({
+        role: UserRole.PROPERTY_MANAGER,
+        assignedProperties: propertyIds,
+        roles: [UserRole.PROPERTY_MANAGER],
+      });
+      const scoped = applyEntityScope("properties", session, baseQuery());
+      expect(scoped.allowed).toBe(true);
+      expect(scoped.query["_id"]).toEqual({ $in: propertyIds.map((id) => new ObjectId(id)) });
+    });
+
+    it("allows property manager to search units with assigned properties", () => {
+      const propertyIds = [new ObjectId().toHexString()];
+      const session = makeSession({
+        role: UserRole.PROPERTY_MANAGER,
+        assignedProperties: propertyIds,
+        roles: [UserRole.PROPERTY_MANAGER],
+      });
+      const scoped = applyEntityScope("units", session, baseQuery());
+      expect(scoped.allowed).toBe(true);
+      expect(scoped.query["propertyId"]).toEqual({ $in: propertyIds.map((id) => new ObjectId(id)) });
+    });
+
+    it("denies property manager properties access without assigned properties", () => {
+      const session = makeSession({
+        role: UserRole.PROPERTY_MANAGER,
+        assignedProperties: [],
+        roles: [UserRole.PROPERTY_MANAGER],
+      });
+      expect(applyEntityScope("properties", session, baseQuery()).allowed).toBe(false);
+      expect(applyEntityScope("units", session, baseQuery()).allowed).toBe(false);
+    });
+
+    it("allows property manager to search work orders with assigned properties", () => {
+      const propertyIds = [new ObjectId().toHexString()];
+      const session = makeSession({
+        role: UserRole.PROPERTY_MANAGER,
+        assignedProperties: propertyIds,
+        roles: [UserRole.PROPERTY_MANAGER],
+      });
+      const scoped = applyEntityScope(WORK_ORDERS_ENTITY, session, baseQuery());
+      expect(scoped.allowed).toBe(true);
+      expect(scoped.query["location.propertyId"]).toEqual({ $in: propertyIds.map((id) => new ObjectId(id)) });
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/app/api/search/search-scope.test.ts">
+<![CDATA[
+import { describe, expect, it } from "vitest";
+import { ObjectId } from "mongodb";
+
+import { applyEntityScope } from "@/app/api/search/route";
+import { UserRole } from "@/types/user";
+import type { SessionUser } from "@/server/middleware/withAuthRbac";
+
+const baseQuery = { orgId: new ObjectId("656f1f1f1f1f1f1f1f1f1f1f") };
+
+const session = (overrides: Partial<SessionUser>): SessionUser => ({
+  id: "u1",
+  orgId: "org",
+  role: overrides.role ?? UserRole.TENANT,
+  roles: overrides.roles ?? [],
+  tenantId: overrides.tenantId ?? "",
+  vendorId: overrides.vendorId ?? "",
+  assignedProperties: overrides.assignedProperties,
+  units: overrides.units,
+  ...overrides,
+});
+
+describe("applyEntityScope – per-role filters", () => {
+  it("scopes tenant work orders to requester.userId", () => {
+    const userId = new ObjectId().toHexString();
+    const scoped = applyEntityScope("workOrders", session({ id: userId, role: UserRole.TENANT }), baseQuery);
+    expect(scoped.allowed).toBe(true);
+    expect(scoped.query["requester.userId"]).toEqual(new ObjectId(userId));
+  });
+
+  it("scopes technician work orders to assignment.assignedTo.userId", () => {
+    const techId = new ObjectId().toHexString();
+    const scoped = applyEntityScope("workOrders", session({ id: techId, role: UserRole.TECHNICIAN }), baseQuery);
+    expect(scoped.allowed).toBe(true);
+    expect(scoped.query["assignment.assignedTo.userId"]).toEqual(new ObjectId(techId));
+  });
+
+  it("scopes vendor RFQs to invitedVendors.vendorId", () => {
+    const vendorId = new ObjectId().toHexString();
+    const scoped = applyEntityScope("rfqs", session({ role: UserRole.VENDOR, vendorId }), baseQuery);
+    expect(scoped.allowed).toBe(true);
+    expect(scoped.query["invitedVendors.vendorId"]).toEqual(new ObjectId(vendorId));
+  });
+
+  it("blocks vendor without vendorId and scopes vendor orders when vendorId present", () => {
+    const withoutVendorId = applyEntityScope("orders", session({ role: UserRole.VENDOR, vendorId: undefined }), baseQuery);
+    expect(withoutVendorId.allowed).toBe(false);
+
+    const vendorId = new ObjectId().toHexString();
+    const withVendorId = applyEntityScope("orders", session({ role: UserRole.VENDOR, vendorId }), baseQuery);
+    expect(withVendorId.allowed).toBe(true);
+    expect(withVendorId.query["vendorId"]).toEqual(new ObjectId(vendorId));
+  });
+
+  it("scopes owner listings/projects to assigned properties and blocks when none", () => {
+    const props = [new ObjectId().toHexString()];
+    const ownerSession = session({ role: UserRole.OWNER, assignedProperties: props });
+
+    const scopedListings = applyEntityScope("listings", ownerSession, baseQuery);
+    expect(scopedListings.allowed).toBe(true);
+    expect(scopedListings.query["propertyId"]).toEqual({ $in: props.map((p) => new ObjectId(p)) });
+
+    const scopedProjects = applyEntityScope("projects", ownerSession, baseQuery);
+    expect(scopedProjects.allowed).toBe(true);
+    expect(scopedProjects.query["propertyId"]).toEqual({ $in: props.map((p) => new ObjectId(p)) });
+
+    const blocked = applyEntityScope("listings", session({ role: UserRole.OWNER, assignedProperties: [] }), baseQuery);
+    expect(blocked.allowed).toBe(false);
+  });
+
+  it("agents remain org-scoped (no property-based restriction)", () => {
+    const scoped = applyEntityScope("agents", session({ role: UserRole.OWNER, assignedProperties: ["p1"] }), baseQuery);
+    expect(scoped.allowed).toBe(true);
+    expect(scoped.query).toEqual(baseQuery);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/app/api_help_articles_route.test.ts">
+<![CDATA[
+/**
+ * Tests for the Help Articles GET route.
+ *
+ * Testing library and framework: Vitest
+ */
+ 
+
+import { vi, describe, test, expect, beforeAll, afterEach } from 'vitest';
+import type { NextRequest } from 'next/server'
+
+type ArticleDoc = {
+  slug?: string;
+  title?: string;
+  category?: string;
+  status?: string;
+  updatedAt?: string | number | Date | null;
+  [key: string]: string | number | boolean | null | object | undefined;
+};
+
+type ResponseData =
+  | { error: string }
+  | { items: ArticleDoc[]; page: number; limit: number; total: number; hasMore: boolean };
+
+type MockResponse = { __mockResponse: true; status: number; data: ResponseData; headers?: { set: ReturnType<typeof vi.fn> } };
+
+let fallbackItems: ArticleDoc[] = []
+let fallbackTotal = 0
+let activeColl: MockColl | undefined
+
+vi.mock('@/app/api/help/articles/route', () => {
+  return {
+    GET: async (req: Pick<NextRequest, 'url'>) => {
+      const { getDatabase } = await import('@/lib/mongodb-unified')
+      const { NextResponse } = await import('next/server')
+      const url = new URL(req.url)
+      const sp = url.searchParams
+      const category = sp.get('category') || undefined
+      const rawStatus = sp.get('status')
+      const status = rawStatus ? rawStatus.toUpperCase() : 'PUBLISHED'
+      const pageParam = sp.get('page')
+      let page = 1
+      if (pageParam !== null) {
+        const parsed = Number(pageParam)
+        if (Number.isNaN(parsed)) {
+          page = parsed as number
+        } else if (parsed > 0) {
+          page = Math.floor(parsed)
+        } else {
+          page = 1
+        }
+      }
+
+      const limitParam = sp.get('limit')
+      const rawLimit = limitParam === null ? NaN : Number(limitParam)
+      const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(50, Math.floor(rawLimit))) : 20
+      const skip = (page - 1) * limit
+
+      const qParam = sp.get('q')
+      const q = qParam && qParam.trim() !== '' ? qParam.trim() : undefined
+
+      try {
+        const db = await getDatabase()
+        const coll = db.collection('helparticles')
+
+        await coll.createIndex({ slug: 1 }, { unique: true })
+        await coll.createIndex({ status: 1, updatedAt: -1 })
+        await coll.createIndex({ title: 'text', content: 'text', tags: 'text' })
+
+        const baseFilter: Record<string, string | object> = { status }
+        if (category) baseFilter.category = category
+
+        let items: ArticleDoc[] = []
+        let total = 0
+
+        if (q) {
+          const filter = { ...baseFilter, $text: { $search: q } }
+          const cursor = coll.find(filter, {
+            projection: { score: { $meta: 'textScore' }, slug: 1, title: 1, category: 1, updatedAt: 1 }
+          })
+          cursor.sort({ score: { $meta: 'textScore' } })
+          cursor.skip(skip)
+          cursor.limit(limit)
+          items = await cursor.toArray()
+          total = await coll.countDocuments(filter)
+        } else {
+          const filter = { ...baseFilter }
+          const cursor = coll.find(filter, {
+            projection: { slug: 1, title: 1, category: 1, updatedAt: 1 }
+          })
+          cursor.sort({ updatedAt: -1 })
+          cursor.skip(skip)
+          cursor.limit(limit)
+          items = await cursor.toArray()
+          total = await coll.countDocuments(filter)
+        }
+
+        return NextResponse.json(
+          { items, page, limit, total, hasMore: skip + items.length < total },
+          { status: 200 }
+        )
+      } catch (_err) {
+        // Fall back to the latest mocked items to avoid flakiness when background mocks are reset
+        return NextResponse.json(
+          {
+            items: fallbackItems,
+            page,
+            limit,
+            total: fallbackTotal,
+            hasMore: (page - 1) * limit + fallbackItems.length < fallbackTotal,
+          },
+          { status: 200 }
+        )
+      }
+    }
+  }
+})
+
+// We will mock "next/server" to control NextResponse.json behavior and avoid Next runtime dependencies
+vi.mock('next/server', () => {
+  return {
+    // We only need the type for NextRequest; at runtime, GET only uses req.url, so we pass a minimal object.
+    NextRequest: class {},
+    NextResponse: {
+      json: vi.fn((data: ResponseData, init?: ResponseInit): MockResponse => {
+        // Return a plain object that resembles a minimal Response for ease of assertions
+        return {
+          __mockResponse: true,
+          status: init?.status ?? 200,
+          data
+        }
+      })
+    }
+  }
+})
+
+// Mock the database module imported as "@/lib/mongodb-unified"
+vi.mock('@/lib/mongodb-unified', () => ({
+  getDatabase: vi.fn(async () => ({
+    collection: vi.fn(() => activeColl ?? {
+      createIndex: vi.fn(async () => ({})),
+      find: vi.fn(() => buildMockCursor()),
+      countDocuments: vi.fn(async () => 0)
+    })
+  }))
+}))
+
+vi.mock('@/server/middleware/withAuthRbac', () => ({
+  getSessionUser: vi.fn(async () => ({ id: 'u1', orgId: 'org1', role: 'ADMIN', permissions: ['help:moderate'] }))
+}))
+
+vi.mock('@/server/security/rateLimit', () => ({
+  rateLimit: () => ({ allowed: true }),
+  smartRateLimit: async () => ({ allowed: true })
+}))
+
+vi.mock('@/server/security/rateLimitKey', () => ({
+  buildRateLimitKey: () => 'help-articles-key',
+  buildOrgAwareRateLimitKey: () => 'help-articles-key'
+}))
+
+vi.mock('@/server/security/headers', () => ({
+  createSecureResponse: (body: ResponseData, status = 200): MockResponse => ({
+    __mockResponse: true,
+    status,
+    data: body,
+    headers: { set: vi.fn() }
+  })
+}))
+
+vi.mock('@/server/utils/errorResponses', () => ({
+  rateLimitError: vi.fn((): MockResponse => ({
+    __mockResponse: true,
+    status: 429,
+    data: { error: 'Rate limit exceeded' },
+    headers: { set: vi.fn() }
+  }))
+}))
+
+vi.mock('@/lib/logger', () => ({
+  logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() }
+}))
+
+import { getDatabase } from '@/lib/mongodb-unified'
+import { NextResponse } from 'next/server'
+import * as HelpArticlesRoute from '@/app/api/help/articles/route'
+
+// Import the route handler under test.
+// Try common Next.js route locations; adjust if your project structure differs.
+
+let GET: (req: NextRequest) => Promise<MockResponse>
+
+// We'll attempt dynamic import paths that are commonly used in Next.js app router.
+// In CI, you likely know the exact path; if different, update this accordingly.
+beforeAll(async () => {
+  GET = HelpArticlesRoute.GET
+})
+
+beforeEach(() => {
+  activeColl = undefined
+})
+
+type MockColl = {
+  createIndex: ReturnType<typeof vi.fn>
+  find: ReturnType<typeof vi.fn>
+  countDocuments: ReturnType<typeof vi.fn>
+}
+
+type CursorChain = {
+  _sortArg?: Record<string, unknown>;
+  _skipArg?: number;
+  _limitArg?: number;
+  sort: ReturnType<typeof vi.fn>;
+  skip: ReturnType<typeof vi.fn>;
+  limit: ReturnType<typeof vi.fn>;
+  toArray: ReturnType<typeof vi.fn>;
+};
+
+function buildMockCursor(items: ArticleDoc[] = []): CursorChain {
+  const chain: CursorChain = {
+    _sortArg: undefined,
+    _skipArg: undefined,
+    _limitArg: undefined,
+    sort: vi.fn(function (this: CursorChain, arg: Record<string, unknown>) {
+      chain._sortArg = arg
+      return chain
+    }),
+    skip: vi.fn(function (this: CursorChain, n: number) {
+      chain._skipArg = n
+      return chain
+    }),
+    limit: vi.fn(function (this: CursorChain, n: number) {
+      chain._limitArg = n
+      return chain
+    }),
+    toArray: vi.fn(async () => items)
+  }
+  return chain
+}
+
+function setupDbMocks({
+  items = [],
+  total = 0
+}: {
+  items?: ArticleDoc[]
+  total?: number
+}) {
+  const coll: MockColl = {
+    createIndex: vi.fn(async () => ({ ok: 1 })),
+    find: vi.fn(),
+    countDocuments: vi.fn(async () => total)
+  }
+  activeColl = coll
+  fallbackItems = items
+  fallbackTotal = total
+  const cursor = buildMockCursor(items)
+  coll.find.mockReturnValue(cursor)
+
+  ;(getDatabase as ReturnType<typeof vi.fn>).mockResolvedValue({
+    collection: vi.fn(() => coll)
+  })
+
+  return { coll, cursor }
+}
+
+type UrlOnlyRequest = Pick<NextRequest, 'url'>
+
+function makeReq(url: string): UrlOnlyRequest {
+  // Minimal object satisfying what GET uses (only req.url is accessed)
+  return { url }
+}
+
+describe('GET /api/help-articles', () => {
+  test('creates indexes and returns paginated default results (no query params)', async () => {
+    const items = [{ slug: 'a', title: 'A', category: 'cat1', updatedAt: new Date().toISOString() }]
+    const total = 3
+    const { coll, cursor } = setupDbMocks({ items, total })
+
+    const res = await GET(makeReq('http://localhost/api/help-articles'))
+    expect(res).toMatchObject({
+      __mockResponse: true,
+      status: 200,
+      data: {
+        items,
+        page: 1,
+        limit: 20,
+        total,
+        hasMore: true // 0 + 1 < 3
+      }
+    })
+
+    // Default filter includes status=PUBLISHED
+    const expectedFilter = { status: 'PUBLISHED' }
+    expect(coll.find).toHaveBeenCalledWith(expectedFilter, {
+      projection: { slug: 1, title: 1, category: 1, updatedAt: 1 }
+    })
+
+    // Sort by updatedAt desc when q not present
+    expect(cursor.sort).toHaveBeenCalledWith({ updatedAt: -1 })
+    expect(cursor._skipArg).toBe(0)
+    expect(cursor._limitArg).toBe(20)
+    expect(coll.countDocuments).toHaveBeenCalledWith(expectedFilter)
+  })
+
+  test('applies category filter and custom pagination', async () => {
+    const items = new Array(5).fill(0).map((_, i) => ({ slug: `s${i}`, title: `T${i}`, category: 'howto', updatedAt: new Date().toISOString() }))
+    const total = 17
+    const page = 2
+    const limit = 5
+    const skip = (page - 1) * limit
+
+    const { coll, cursor } = setupDbMocks({ items, total })
+    const res = await GET(makeReq(`http://localhost/api/help-articles?category=howto&page=${page}&limit=${limit}`))
+
+    expect(res.data.page).toBe(page)
+    expect(res.data.limit).toBe(limit)
+    expect(res.data.total).toBe(total)
+    expect(res.data.items).toHaveLength(5)
+    expect(res.data.hasMore).toBe(true) // 5*1 + 5 = 10 < 17
+
+    const expectedFilter = { status: 'PUBLISHED', category: 'howto' }
+    expect(coll.find).toHaveBeenCalledWith(expectedFilter, {
+      projection: { slug: 1, title: 1, category: 1, updatedAt: 1 }
+    })
+    expect(cursor.sort).toHaveBeenCalledWith({ updatedAt: -1 })
+    expect(cursor._skipArg).toBe(skip)
+    expect(cursor._limitArg).toBe(limit)
+    expect(coll.countDocuments).toHaveBeenCalledWith(expectedFilter)
+  })
+
+  test('clamps limit to [1, 50] and page minimum to 1', async () => {
+    const { coll, cursor } = setupDbMocks({ items: [], total: 0 })
+    // limit > 50 -> clamp to 50; page < 1 -> clamp to 1
+    const res = await GET(makeReq('http://localhost/api/help-articles?page=-10&limit=999'))
+    expect(res.data.page).toBe(1)
+    expect(res.data.limit).toBe(50)
+    expect(cursor._skipArg).toBe(0)
+    expect(cursor._limitArg).toBe(50)
+    // limit < 1 -> clamp to 1
+    await GET(makeReq('http://localhost/api/help-articles?limit=0'))
+    expect(cursor.limit).toHaveBeenLastCalledWith(1)
+  })
+
+  test('when q is provided, uses $text filter, textScore projection and sort by score', async () => {
+    const items = [{ slug: 'match', title: 'Matched Title', category: 'faq', updatedAt: new Date().toISOString() }]
+    const total = 1
+    const { coll, cursor } = setupDbMocks({ items, total })
+
+    const q = 'search words'
+    const res = await GET(makeReq(`http://localhost/api/help-articles?q=${encodeURIComponent(q)}`))
+
+    const expectedFilter: Record<string, string | object> = { status: 'PUBLISHED', $text: { $search: q } }
+    expect(coll.find).toHaveBeenCalledWith(expectedFilter, {
+      projection: { score: { $meta: 'textScore' }, slug: 1, title: 1, category: 1, updatedAt: 1 }
+    })
+    expect(cursor.sort).toHaveBeenCalledWith({ score: { $meta: 'textScore' } })
+    expect(res.data.hasMore).toBe(false)
+  })
+
+  test('empty q (q=) should behave like no q (no $text filter)', async () => {
+    const { coll, cursor } = setupDbMocks({ items: [], total: 0 })
+    await GET(makeReq('http://localhost/api/help-articles?q='))
+    const expectedFilter = { status: 'PUBLISHED' }
+    expect(coll.find).toHaveBeenCalledWith(expectedFilter, {
+      projection: { slug: 1, title: 1, category: 1, updatedAt: 1 }
+    })
+    expect(cursor.sort).toHaveBeenCalledWith({ updatedAt: -1 })
+  })
+
+  test('status can be overridden via query param', async () => {
+    const { coll } = setupDbMocks({ items: [], total: 0 })
+    await GET(makeReq('http://localhost/api/help-articles?status=DRAFT'))
+    expect(coll.find).toHaveBeenCalledWith(
+      { status: 'DRAFT' },
+      { projection: { slug: 1, title: 1, category: 1, updatedAt: 1 } }
+    )
+  })
+
+  test('hasMore false when skip + items.length >= total', async () => {
+    const items = new Array(10).fill(0).map((_, i) => ({ slug: `s${i}`, title: `T${i}`, category: 'x', updatedAt: new Date().toISOString() }))
+    const page = 2
+    const limit = 10
+    const total = 20
+    const { cursor } = setupDbMocks({ items, total })
+    const res = await GET(makeReq(`http://localhost/api/help-articles?page=${page}&limit=${limit}`))
+    expect(cursor._skipArg).toBe(10)
+    expect(items.length).toBe(10)
+    expect(res.data.total).toBe(20)
+    expect(res.data.hasMore).toBe(false) // 10 + 10 == 20
+  })
+
+  test('non-numeric page results in NaN skip propagation (current behavior)', async () => {
+    const { cursor } = setupDbMocks({ items: [], total: 0 })
+    await GET(makeReq('http://localhost/api/help-articles?page=abc'))
+    // Current implementation does not guard against NaN -> Math.max(1, NaN) yields NaN
+    expect(Number.isNaN(cursor._skipArg)).toBe(true)
+  })
+
+  test('handles errors gracefully and returns empty results', async () => {
+    ;(getDatabase as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('boom'))
+    const res = await GET(makeReq('http://localhost/api/help-articles'))
+    expect(res).toMatchObject({
+      __mockResponse: true,
+      status: 200,
+      data: { items: [], total: 0, page: 1, limit: 20, hasMore: false }
+    })
+  })
+})
+
+]]>
+</file>
+
+</batch_content>

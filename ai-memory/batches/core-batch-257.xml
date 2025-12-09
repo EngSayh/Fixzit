@@ -1,0 +1,3545 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="scripts/testing/e2e-production-test.js">
+<![CDATA[
+#!/usr/bin/env node
+
+/**
+ * Production E2E Test Suite
+ * Tests the live production system at the provided URL
+ * Tests all pages with all user roles
+ *
+ * REQUIRED ENVIRONMENT VARIABLES:
+ *   PRODUCTION_URL     - Production URL to test
+ *   ADMIN_EMAIL        - Admin user email
+ *   ADMIN_PASSWORD     - Admin user password
+ *   PM_EMAIL           - Property Manager email
+ *   PM_PASSWORD        - Property Manager password
+ *   TENANT_EMAIL       - Tenant user email
+ *   TENANT_PASSWORD    - Tenant user password
+ *   VENDOR_EMAIL       - Vendor user email
+ *   VENDOR_PASSWORD    - Vendor user password
+ *   HR_EMAIL           - HR Manager email
+ *   HR_PASSWORD        - HR Manager password
+ *
+ * Usage:
+ *   Set environment variables in your CI/CD secrets or .env file
+ *   Then run: node scripts/testing/e2e-production-test.js
+ *
+ * Security:
+ *   - Never hardcode credentials
+ *   - Use permission-scoped test accounts
+ *   - Rotate credentials regularly in your secrets manager
+ *   - Store in GitHub Secrets, GitLab CI/CD variables, or Vault
+ */
+
+const fs = require("fs");
+const path = require("path");
+
+// Validate required environment variables
+const REQUIRED_ENV_VARS = [
+  "PRODUCTION_URL",
+  "ADMIN_EMAIL",
+  "ADMIN_PASSWORD",
+  "PM_EMAIL",
+  "PM_PASSWORD",
+  "TENANT_EMAIL",
+  "TENANT_PASSWORD",
+  "VENDOR_EMAIL",
+  "VENDOR_PASSWORD",
+  "HR_EMAIL",
+  "HR_PASSWORD",
+];
+
+const missingVars = REQUIRED_ENV_VARS.filter(
+  (varName) => !process.env[varName],
+);
+
+if (missingVars.length > 0) {
+  console.error("❌ ERROR: Missing required environment variables\n");
+  console.error("The following environment variables must be set:");
+  missingVars.forEach((varName) => {
+    console.error(`  - ${varName}`);
+  });
+  console.error(
+    "\nPlease configure these in your CI/CD secrets or environment.",
+  );
+  console.error("Example:");
+  console.error("  export PRODUCTION_URL=https://your-production-url.com");
+  console.error("  export ADMIN_EMAIL=admin@example.com");
+  console.error("  export ADMIN_PASSWORD=secure_password");
+  console.error("  # ... set all required variables\n");
+  console.error("For security:");
+  console.error("  - Use GitHub Secrets, GitLab CI variables, or Vault");
+  console.error("  - Never commit credentials to version control");
+  console.error("  - Use dedicated test accounts with minimal permissions");
+  console.error("  - Rotate credentials regularly\n");
+  process.exit(1);
+}
+
+// Configuration - ALL VALUES FROM ENVIRONMENT (NO DEFAULTS)
+const CONFIG = {
+  baseUrl: process.env.PRODUCTION_URL,
+  timeout: 30000,
+  testUsers: {
+    admin: {
+      email: process.env.ADMIN_EMAIL,
+      password: process.env.ADMIN_PASSWORD,
+      role: "admin",
+    },
+    propertyManager: {
+      email: process.env.PM_EMAIL,
+      password: process.env.PM_PASSWORD,
+      role: "property_manager",
+    },
+    tenant: {
+      email: process.env.TENANT_EMAIL,
+      password: process.env.TENANT_PASSWORD,
+      role: "tenant",
+    },
+    vendor: {
+      email: process.env.VENDOR_EMAIL,
+      password: process.env.VENDOR_PASSWORD,
+      role: "vendor",
+    },
+    hrManager: {
+      email: process.env.HR_EMAIL,
+      password: process.env.HR_PASSWORD,
+      role: "hr_manager",
+    },
+  },
+  pages: [
+    { path: "/", name: "Landing Page", requiresAuth: false },
+    { path: "/login", name: "Login Page", requiresAuth: false },
+    { path: "/dashboard", name: "Dashboard", requiresAuth: true },
+    { path: "/properties", name: "Properties", requiresAuth: true },
+    { path: "/work-orders", name: "Work Orders", requiresAuth: true },
+    { path: "/tenants", name: "Tenants", requiresAuth: true },
+    { path: "/vendors", name: "Vendors", requiresAuth: true },
+    { path: "/rfqs", name: "RFQs", requiresAuth: true },
+    { path: "/finance", name: "Finance", requiresAuth: true },
+    { path: "/marketplace", name: "Marketplace", requiresAuth: false },
+    { path: "/help", name: "Help Center", requiresAuth: false },
+    { path: "/careers", name: "Careers", requiresAuth: false },
+    { path: "/hr/employees", name: "HR Employees", requiresAuth: true },
+    { path: "/hr/attendance", name: "HR Attendance", requiresAuth: true },
+    { path: "/settings", name: "Settings", requiresAuth: true },
+  ],
+};
+
+// Test results storage
+const results = {
+  startTime: new Date().toISOString(),
+  environment: "production",
+  baseUrl: CONFIG.baseUrl,
+  tests: [],
+  summary: {
+    total: 0,
+    passed: 0,
+    failed: 0,
+    skipped: 0,
+  },
+};
+
+/**
+ * Test a single page with HTTP request
+ */
+async function testPageHttp(
+  url,
+  testName,
+  userRole = "anonymous",
+  pageRequiresAuth = false,
+) {
+  const test = {
+    testName,
+    userRole,
+    url,
+    requiresAuth: pageRequiresAuth,
+    timestamp: new Date().toISOString(),
+    status: "pending",
+  };
+
+  try {
+    console.log(`\n🧪 Testing: ${testName} (${userRole})`);
+    console.log(`   URL: ${url}`);
+    console.log(`   Requires Auth: ${pageRequiresAuth ? "Yes" : "No"}`);
+
+    const startTime = Date.now();
+
+    // Use curl for HTTP testing (works in any environment)
+    const { execSync } = require("child_process");
+
+    // Added -S flag to show errors and 2>&1 to capture stderr
+    const curlCommand = `curl -sS -o /dev/null -w "%{http_code}|%{time_total}" -L --max-time 30 "${url}" 2>&1`;
+
+    let output,
+      curlError = null;
+    try {
+      output = execSync(curlCommand, { encoding: "utf-8" }).trim();
+    } catch (err) {
+      // Capture curl errors for diagnostics
+      curlError = err.stdout || err.stderr || err.message;
+      output = curlError;
+    }
+
+    const [statusCode, responseTime] = output.split("|");
+
+    const duration = Date.now() - startTime;
+
+    test.statusCode = parseInt(statusCode) || 0;
+    test.responseTime = responseTime
+      ? parseFloat(responseTime) * 1000
+      : duration;
+    test.duration = duration;
+
+    if (curlError) {
+      test.curlError = curlError;
+      test.diagnostics = `Curl error: ${curlError}`;
+    }
+
+    // Determine if test passed based on expected auth requirement
+    if (test.statusCode >= 200 && test.statusCode < 400) {
+      test.status = "passed";
+      test.message = `✅ Page loaded successfully (${test.statusCode})`;
+      console.log(
+        `   ✅ PASSED: ${test.statusCode} in ${test.responseTime.toFixed(0)}ms`,
+      );
+      results.summary.passed++;
+    } else if (test.statusCode === 401 || test.statusCode === 403) {
+      // Only treat 401/403 as pass if auth is explicitly required
+      if (pageRequiresAuth) {
+        test.status = "passed";
+        test.message = `✅ Auth required as expected (${test.statusCode})`;
+        console.log(`   ✅ PASSED: ${test.statusCode} (auth required)`);
+        results.summary.passed++;
+      } else {
+        test.status = "failed";
+        test.message = `❌ Unexpected auth error on public page (${test.statusCode})`;
+        console.log(
+          `   ❌ FAILED: ${test.statusCode} - Public page should not require auth`,
+        );
+        results.summary.failed++;
+      }
+    } else {
+      test.status = "failed";
+      test.message = `❌ Unexpected status code: ${test.statusCode}`;
+      console.log(`   ❌ FAILED: ${test.statusCode}`);
+      if (test.diagnostics) {
+        console.log(`   📋 Diagnostics: ${test.diagnostics}`);
+      }
+      results.summary.failed++;
+    }
+  } catch (error) {
+    test.status = "failed";
+    test.error = error.message;
+    test.message = `❌ Error: ${error.message}`;
+    console.log(`   ❌ ERROR: ${error.message}`);
+    results.summary.failed++;
+  }
+
+  results.summary.total++;
+  results.tests.push(test);
+  return test;
+}
+
+/**
+ * Test login functionality
+ */
+async function testLogin(userType, credentials) {
+  const test = {
+    testName: `Login as ${userType}`,
+    userRole: userType,
+    url: `${CONFIG.baseUrl}/api/auth/login`,
+    timestamp: new Date().toISOString(),
+    status: "pending",
+  };
+
+  try {
+    console.log(`\n🔐 Testing Login: ${userType}`);
+    console.log(`   Email: ${credentials.email}`);
+
+    if (!credentials.password) {
+      test.status = "skipped";
+      test.message = "⚠️ No password configured";
+      console.log("   ⚠️ SKIPPED: No password configured");
+      results.summary.skipped++;
+      results.summary.total++;
+      results.tests.push(test);
+      return test;
+    }
+
+    const { spawnSync } = require("child_process");
+    const loginData = JSON.stringify({
+      email: credentials.email,
+      password: credentials.password,
+    });
+
+    // Use spawnSync with stdin to avoid shell injection from passwords with quotes
+    const curl = spawnSync(
+      "curl",
+      [
+        "-s",
+        "-w",
+        "\n%{http_code}",
+        "-X",
+        "POST",
+        "-H",
+        "Content-Type: application/json",
+        "-d",
+        "@-", // Read from stdin
+        "--max-time",
+        "30",
+        `${CONFIG.baseUrl}/api/auth/login`,
+      ],
+      {
+        input: loginData,
+        encoding: "utf-8",
+      },
+    );
+
+    if (curl.error) {
+      throw curl.error;
+    }
+    if (curl.status !== 0) {
+      throw new Error(curl.stderr || `curl exited with status ${curl.status}`);
+    }
+
+    const output = curl.stdout;
+    const lines = output.trim().split("\n");
+    const statusCode = parseInt(lines[lines.length - 1]);
+    const responseBody = lines.slice(0, -1).join("\n");
+
+    test.statusCode = statusCode;
+    test.responseBody = responseBody;
+
+    if (statusCode === 200) {
+      try {
+        const response = JSON.parse(responseBody);
+        if (response.token || response.success) {
+          test.status = "passed";
+          test.message = "✅ Login successful";
+          console.log("   ✅ PASSED: Login successful");
+          results.summary.passed++;
+        } else {
+          test.status = "failed";
+          test.message = "❌ No token in response";
+          console.log("   ❌ FAILED: No token in response");
+          results.summary.failed++;
+        }
+      } catch (error) {
+        test.status = "failed";
+        test.message = "❌ Invalid JSON response";
+        console.log(
+          "   ❌ FAILED: Invalid JSON response",
+          error?.message || "",
+        );
+        results.summary.failed++;
+      }
+    } else {
+      test.status = "failed";
+      test.message = `❌ Login failed with status ${statusCode}`;
+      console.log(`   ❌ FAILED: Status ${statusCode}`);
+      results.summary.failed++;
+    }
+  } catch (error) {
+    test.status = "failed";
+    test.error = error.message;
+    test.message = `❌ Error: ${error.message}`;
+    console.log(`   ❌ ERROR: ${error.message}`);
+    results.summary.failed++;
+  }
+
+  results.summary.total++;
+  results.tests.push(test);
+  return test;
+}
+
+/**
+ * Run all tests
+ */
+async function runTests() {
+  console.log("═══════════════════════════════════════════════════════════");
+  console.log("🚀 PRODUCTION E2E TEST SUITE");
+  console.log("═══════════════════════════════════════════════════════════");
+  console.log(`📍 Base URL: ${CONFIG.baseUrl}`);
+  console.log(`⏰ Started: ${results.startTime}`);
+  console.log("═══════════════════════════════════════════════════════════\n");
+
+  // Test 1: Public pages (no auth)
+  console.log("\n📋 TEST SECTION 1: PUBLIC PAGES (No Authentication)\n");
+  for (const page of CONFIG.pages.filter((p) => !p.requiresAuth)) {
+    await testPageHttp(
+      `${CONFIG.baseUrl}${page.path}`,
+      page.name,
+      "anonymous",
+      false,
+    );
+  }
+
+  // Test 2: Login functionality for each user type
+  console.log("\n\n📋 TEST SECTION 2: LOGIN FUNCTIONALITY\n");
+  for (const [userType, credentials] of Object.entries(CONFIG.testUsers)) {
+    await testLogin(userType, credentials);
+  }
+
+  // Test 3: Protected pages (should redirect or return 401/403)
+  console.log("\n\n📋 TEST SECTION 3: PROTECTED PAGES (Should require auth)\n");
+  for (const page of CONFIG.pages.filter((p) => p.requiresAuth)) {
+    await testPageHttp(
+      `${CONFIG.baseUrl}${page.path}`,
+      page.name,
+      "anonymous",
+      true,
+    );
+  }
+
+  // Test 4: Health checks and API endpoints
+  console.log("\n\n📋 TEST SECTION 4: API HEALTH CHECKS\n");
+  await testPageHttp(
+    `${CONFIG.baseUrl}/api/health`,
+    "API Health Check",
+    "anonymous",
+  );
+  await testPageHttp(
+    `${CONFIG.baseUrl}/api/health/database`,
+    "Database Health Check",
+    "anonymous",
+  );
+
+  // Generate report
+  results.endTime = new Date().toISOString();
+  results.duration = new Date(results.endTime) - new Date(results.startTime);
+
+  console.log(
+    "\n\n═══════════════════════════════════════════════════════════",
+  );
+  console.log("📊 TEST RESULTS SUMMARY");
+  console.log("═══════════════════════════════════════════════════════════");
+  console.log(`Total Tests:   ${results.summary.total}`);
+  console.log(
+    `✅ Passed:     ${results.summary.passed} (${((results.summary.passed / results.summary.total) * 100).toFixed(1)}%)`,
+  );
+  console.log(
+    `❌ Failed:     ${results.summary.failed} (${((results.summary.failed / results.summary.total) * 100).toFixed(1)}%)`,
+  );
+  console.log(`⚠️  Skipped:   ${results.summary.skipped}`);
+  console.log(`⏱️  Duration:  ${(results.duration / 1000).toFixed(2)}s`);
+  console.log("═══════════════════════════════════════════════════════════\n");
+
+  // Save results
+  const resultsDir = path.join(process.cwd(), "e2e-test-results");
+  if (!fs.existsSync(resultsDir)) {
+    fs.mkdirSync(resultsDir, { recursive: true });
+  }
+
+  const timestamp = Date.now();
+  const jsonFile = path.join(resultsDir, `production-e2e-${timestamp}.json`);
+  const mdFile = path.join(
+    resultsDir,
+    `PRODUCTION_E2E_REPORT_${new Date().toISOString().split("T")[0]}.md`,
+  );
+
+  // Save JSON
+  fs.writeFileSync(jsonFile, JSON.stringify(results, null, 2));
+  console.log(`💾 Saved JSON results: ${jsonFile}`);
+
+  // Generate Markdown Report
+  const mdReport = generateMarkdownReport(results);
+  fs.writeFileSync(mdFile, mdReport);
+  console.log(`📄 Saved Markdown report: ${mdFile}`);
+
+  // Exit with appropriate code
+  process.exit(results.summary.failed > 0 ? 1 : 0);
+}
+
+/**
+ * Generate Markdown Report
+ */
+function generateMarkdownReport(results) {
+  const passRate = (
+    (results.summary.passed / results.summary.total) *
+    100
+  ).toFixed(1);
+
+  let md = `# Production E2E Test Report\n\n`;
+  md += `**Generated:** ${results.endTime}\n\n`;
+  md += `**Environment:** Production\n\n`;
+  md += `**Base URL:** ${results.baseUrl}\n\n`;
+  md += `---\n\n`;
+
+  md += `## 📊 Summary\n\n`;
+  md += `| Metric | Value |\n`;
+  md += `|--------|-------|\n`;
+  md += `| Total Tests | ${results.summary.total} |\n`;
+  md += `| ✅ Passed | ${results.summary.passed} (${passRate}%) |\n`;
+  md += `| ❌ Failed | ${results.summary.failed} |\n`;
+  md += `| ⚠️ Skipped | ${results.summary.skipped} |\n`;
+  md += `| ⏱️ Duration | ${(results.duration / 1000).toFixed(2)}s |\n`;
+  md += `| Status | ${results.summary.failed === 0 ? "✅ **ALL TESTS PASSED**" : "❌ **SOME TESTS FAILED**"} |\n\n`;
+
+  md += `---\n\n`;
+  md += `## 📋 Detailed Test Results\n\n`;
+
+  // Group by test type
+  const groupedTests = {
+    "Public Pages": results.tests.filter(
+      (t) =>
+        t.testName.includes("Page") &&
+        t.userRole === "anonymous" &&
+        !t.url.includes("/api/"),
+    ),
+    "Login Tests": results.tests.filter((t) => t.testName.includes("Login")),
+    "Protected Pages": results.tests.filter(
+      (t) =>
+        t.testName.includes("Page") &&
+        t.testName !== "Landing Page" &&
+        t.testName !== "Login Page" &&
+        t.testName !== "Marketplace" &&
+        t.testName !== "Help Center" &&
+        t.testName !== "Careers",
+    ),
+    "API Health Checks": results.tests.filter((t) =>
+      t.testName.includes("Health"),
+    ),
+  };
+
+  for (const [category, tests] of Object.entries(groupedTests)) {
+    if (tests.length === 0) continue;
+
+    md += `### ${category}\n\n`;
+    md += `| Test | Status | Details |\n`;
+    md += `|------|--------|----------|\n`;
+
+    for (const test of tests) {
+      const statusIcon =
+        test.status === "passed"
+          ? "✅"
+          : test.status === "failed"
+            ? "❌"
+            : "⚠️";
+      const details = test.responseTime
+        ? `${test.statusCode} (${test.responseTime.toFixed(0)}ms)`
+        : test.statusCode || test.message;
+      md += `| ${test.testName} | ${statusIcon} ${test.status} | ${details} |\n`;
+    }
+    md += `\n`;
+  }
+
+  // Failed tests section
+  const failedTests = results.tests.filter((t) => t.status === "failed");
+  if (failedTests.length > 0) {
+    md += `---\n\n`;
+    md += `## ❌ Failed Tests Details\n\n`;
+    for (const test of failedTests) {
+      md += `### ${test.testName}\n\n`;
+      md += `- **URL:** ${test.url}\n`;
+      md += `- **User Role:** ${test.userRole}\n`;
+      md += `- **Status Code:** ${test.statusCode || "N/A"}\n`;
+      md += `- **Error:** ${test.error || test.message}\n`;
+      if (test.responseBody) {
+        md += `- **Response:** \`${test.responseBody.substring(0, 200)}...\`\n`;
+      }
+      md += `\n`;
+    }
+  }
+
+  md += `---\n\n`;
+  md += `## 🔧 Configuration\n\n`;
+  md += `\`\`\`json\n`;
+  md += JSON.stringify(
+    {
+      baseUrl: CONFIG.baseUrl,
+      timeout: CONFIG.timeout,
+      testUsers: Object.keys(CONFIG.testUsers),
+      pagesCount: CONFIG.pages.length,
+    },
+    null,
+    2,
+  );
+  md += `\n\`\`\`\n\n`;
+
+  md += `---\n\n`;
+  md += `*Report generated by Production E2E Test Suite*\n`;
+
+  return md;
+}
+
+// Run the tests
+runTests().catch((error) => {
+  console.error("\n❌ FATAL ERROR:", error);
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/testing/env-check.js">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * Preflight check for required test env vars.
+ * Fails fast if any are missing.
+ */
+
+const REQUIRED = [
+  "FIXZIT_TEST_ADMIN_PASSWORD",
+  "NEXTAUTH_SECRET",
+  // Allow AUTH_SECRET as alternate; handled below
+  "E2E_TEST_PASSWORD",
+  "DEMO_SUPERADMIN_PASSWORD",
+  "DEMO_DEFAULT_PASSWORD",
+];
+
+function ensure(name) {
+  if (!process.env[name]) {
+    throw new Error(`Missing required env: ${name}`);
+  }
+}
+
+try {
+  REQUIRED.forEach(ensure);
+  if (!process.env.NEXTAUTH_SECRET && !process.env.AUTH_SECRET) {
+    throw new Error("Missing NEXTAUTH_SECRET or AUTH_SECRET");
+  }
+  console.log("✅ All required test env vars are set.");
+} catch (err) {
+  console.error(`❌ Env check failed: ${err.message}`);
+  process.exit(1);
+}
+
+]]>
+</file>
+
+<file path="scripts/testing/expected-access.sample.json">
+<![CDATA[
+{
+  "SUPER_ADMIN": {
+    "/dashboard": "ALLOW",
+    "/fm/dashboard": "ALLOW",
+    "/admin": "ALLOW"
+  },
+  "CORPORATE_ADMIN": {
+    "/dashboard": "ALLOW",
+    "/fm/dashboard": "ALLOW",
+    "/admin": "BLOCK"
+  },
+  "FINANCE": {
+    "/finance": "ALLOW",
+    "/admin": "BLOCK",
+    "/fm/hr": "BLOCK"
+  },
+  "HR": {
+    "/fm/hr": "ALLOW",
+    "/admin": "BLOCK",
+    "/finance": "BLOCK"
+  },
+  "CORPORATE_EMPLOYEE": {
+    "/fm/dashboard": "ALLOW",
+    "/admin": "BLOCK"
+  },
+  "PROPERTY_OWNER": {
+    "/fm/dashboard": "BLOCK",
+    "/properties": "ALLOW"
+  },
+  "TECHNICIAN": {
+    "/work-orders": "ALLOW",
+    "/admin": "BLOCK"
+  },
+  "TENANT": {
+    "/work-orders": "BLOCK",
+    "/properties": "BLOCK"
+  },
+  "FINANCE_OFFICER": {
+    "/finance": "ALLOW",
+    "/admin": "BLOCK"
+  },
+  "HR_OFFICER": {
+    "/fm/hr": "ALLOW",
+    "/admin": "BLOCK"
+  },
+  "SUPPORT": {
+    "/support": "ALLOW",
+    "/admin": "BLOCK"
+  },
+  "OPS": {
+    "/fm/maintenance": "ALLOW",
+    "/admin": "BLOCK"
+  },
+  "AUDITOR_COMPLIANCE": {
+    "/compliance": "ALLOW",
+    "/admin": "BLOCK"
+  }
+}
+
+]]>
+</file>
+
+<file path="scripts/testing/session-cookie.js">
+<![CDATA[
+/**
+ * Test session cookie helper for NextAuth-compatible JWTs.
+ * Reused by HTTP runners and Playwright setup to avoid duplicating mint logic.
+ */
+const { encode: encodeJwt } = require("next-auth/jwt");
+
+function requireEnv(name) {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required env: ${name}`);
+  }
+  return value;
+}
+
+async function mintSessionCookie({ email, role, orgId }) {
+  const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+  if (!secret) {
+    throw new Error("NEXTAUTH_SECRET (or AUTH_SECRET) is required to mint session cookies");
+  }
+
+  const token = await encodeJwt({
+    secret,
+    maxAge: 30 * 24 * 60 * 60,
+    token: {
+      id: email,
+      sub: email,
+      email,
+      role,
+      roles: [role],
+      orgId: orgId || process.env.TEST_ORG_ID || "test-org",
+      passwordSet: true,
+    },
+  });
+
+  return {
+    token,
+    cookies: [
+      `${process.env.BASE_URL && process.env.BASE_URL.startsWith("https") ? "__Secure-authjs.session-token" : "authjs.session-token"}=${token}; Path=/; HttpOnly; SameSite=Lax`,
+      `${process.env.BASE_URL && process.env.BASE_URL.startsWith("https") ? "__Secure-next-auth.session-token" : "next-auth.session-token"}=${token}; Path=/; HttpOnly; SameSite=Lax`,
+    ],
+  };
+}
+
+module.exports = { mintSessionCookie, requireEnv };
+
+]]>
+</file>
+
+<file path="scripts/testing/test-auth.js">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * Authentication Test Script
+ * Tests the NextAuth authentication flow end-to-end
+ */
+
+const https = require("http"); // Use http for localhost
+const { URL } = require("url");
+
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+// 🔐 Use configurable password for tests (env var with local dev fallback)
+const TEST_PASSWORD = process.env.DEMO_DEFAULT_PASSWORD || "password123";
+
+if (!process.env.DEMO_DEFAULT_PASSWORD) {
+  console.warn("⚠️  DEMO_DEFAULT_PASSWORD not set - using local dev default. Set this env var in production.");
+}
+
+// Test configuration
+const BASE_URL = "http://localhost:3000";
+const TEST_USERS = [
+  { email: `admin@${EMAIL_DOMAIN}`, password: TEST_PASSWORD, name: "Admin User" },
+  {
+    email: `property@${EMAIL_DOMAIN}`,
+    password: TEST_PASSWORD,
+    name: "Property Manager",
+  },
+  { email: `tech@${EMAIL_DOMAIN}`, password: TEST_PASSWORD, name: "Technician" },
+];
+
+// Colors for console output
+const colors = {
+  reset: "\x1b[0m",
+  bright: "\x1b[1m",
+  green: "\x1b[32m",
+  red: "\x1b[31m",
+  yellow: "\x1b[33m",
+  blue: "\x1b[34m",
+  cyan: "\x1b[36m",
+};
+
+function log(message, type = "info") {
+  const timestamp = new Date().toISOString().split("T")[1].split(".")[0];
+  const typeColors = {
+    success: colors.green,
+    error: colors.red,
+    warning: colors.yellow,
+    info: colors.cyan,
+    test: colors.blue,
+  };
+  console.log(`${typeColors[type]}[${timestamp}] ${message}${colors.reset}`);
+}
+
+function makeRequest(url, options = {}) {
+  return new Promise((resolve, reject) => {
+    const parsedUrl = new URL(url);
+    const reqOptions = {
+      hostname: parsedUrl.hostname,
+      port: parsedUrl.port || 80,
+      path: parsedUrl.pathname + parsedUrl.search,
+      method: options.method || "GET",
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+    };
+
+    const req = https.request(reqOptions, (res) => {
+      let data = "";
+      res.on("data", (chunk) => (data += chunk));
+      res.on("end", () => {
+        try {
+          const parsed = JSON.parse(data);
+          resolve({
+            status: res.statusCode,
+            headers: res.headers,
+            data: parsed,
+          });
+        } catch (_e) {
+          resolve({
+            status: res.statusCode,
+            headers: res.headers,
+            data: data,
+          });
+        }
+      });
+    });
+
+    req.on("error", reject);
+
+    if (options.body) {
+      req.write(JSON.stringify(options.body));
+    }
+    req.end();
+  });
+}
+
+async function testHealth() {
+  log("Testing health endpoint...", "test");
+  try {
+    const response = await makeRequest(`${BASE_URL}/api/health`);
+    if (response.status === 200) {
+      log("✓ Health check passed", "success");
+      return true;
+    } else {
+      log(`✗ Health check failed: ${response.status}`, "error");
+      return false;
+    }
+  } catch (error) {
+    log(`✗ Health check error: ${error.message}`, "error");
+    return false;
+  }
+}
+
+async function testSessionEndpoint() {
+  log("Testing session endpoint...", "test");
+  try {
+    const response = await makeRequest(`${BASE_URL}/api/auth/test-session`);
+    if (response.status === 401) {
+      log(
+        "✓ Session endpoint correctly returns 401 when not authenticated",
+        "success",
+      );
+      return true;
+    } else {
+      log(
+        `Session endpoint returned unexpected status: ${response.status}`,
+        "warning",
+      );
+      console.log("Response:", response.data);
+      return false;
+    }
+  } catch (error) {
+    log(`✗ Session endpoint error: ${error.message}`, "error");
+    return false;
+  }
+}
+
+async function testNextAuthEndpoint() {
+  log("Testing NextAuth endpoint...", "test");
+  try {
+    const response = await makeRequest(`${BASE_URL}/api/auth/providers`);
+    log(`NextAuth providers endpoint status: ${response.status}`, "info");
+    if (response.data) {
+      console.log("Available providers:", response.data);
+    }
+    return true;
+  } catch (error) {
+    log(`NextAuth endpoint error: ${error.message}`, "warning");
+    return false;
+  }
+}
+
+async function testLogin(user) {
+  log(`Testing login for ${user.email}...`, "test");
+
+  try {
+    // Test NextAuth CSRF token endpoint
+    const csrfResponse = await makeRequest(`${BASE_URL}/api/auth/csrf`);
+    const csrfToken = csrfResponse.data?.csrfToken;
+
+    if (csrfToken) {
+      log("✓ Got CSRF token", "success");
+    } else {
+      log("✗ No CSRF token received", "warning");
+    }
+
+    // Test direct API login endpoint (if it exists)
+    log("Testing direct login API...", "info");
+    const loginResponse = await makeRequest(`${BASE_URL}/api/auth/login`, {
+      method: "POST",
+      body: {
+        email: user.email,
+        password: user.password,
+      },
+    });
+
+    if (loginResponse.status === 200 && loginResponse.data.success) {
+      log(`✓ Direct login successful for ${user.email}`, "success");
+      return true;
+    } else {
+      log(`Direct login status: ${loginResponse.status}`, "info");
+      console.log("Response:", loginResponse.data);
+    }
+
+    // Test NextAuth callback endpoint
+    log("Testing NextAuth callback...", "info");
+    const callbackResponse = await makeRequest(
+      `${BASE_URL}/api/auth/callback/credentials`,
+      {
+        method: "POST",
+        headers: {
+          Cookie: csrfResponse.headers["set-cookie"]?.join("; ") || "",
+        },
+        body: {
+          email: user.email,
+          password: user.password,
+          csrfToken: csrfToken,
+        },
+      },
+    );
+
+    log(`NextAuth callback status: ${callbackResponse.status}`, "info");
+
+    return false;
+  } catch (error) {
+    log(`✗ Login error for ${user.email}: ${error.message}`, "error");
+    return false;
+  }
+}
+
+async function runTests() {
+  console.log(colors.bright + "\n" + "=".repeat(60));
+  console.log("   FIXZIT SOUQ - Authentication Test Suite");
+  console.log("=".repeat(60) + colors.reset + "\n");
+
+  let passed = 0;
+  let failed = 0;
+
+  // Test 1: Health Check
+  if (await testHealth()) passed++;
+  else failed++;
+
+  // Test 2: Session Endpoint
+  if (await testSessionEndpoint()) passed++;
+  else failed++;
+
+  // Test 3: NextAuth Endpoint
+  if (await testNextAuthEndpoint()) passed++;
+  else failed++;
+
+  // Test 4: Login Tests
+  console.log(colors.bright + "\n--- Login Tests ---" + colors.reset);
+  for (const user of TEST_USERS) {
+    if (await testLogin(user)) passed++;
+    else failed++;
+  }
+
+  // Summary
+  console.log(colors.bright + "\n" + "=".repeat(60));
+  console.log("   TEST SUMMARY");
+  console.log("=".repeat(60) + colors.reset);
+  console.log(`${colors.green}✓ Passed: ${passed}${colors.reset}`);
+  console.log(`${colors.red}✗ Failed: ${failed}${colors.reset}`);
+  console.log(`Total: ${passed + failed}\n`);
+
+  if (failed === 0) {
+    log("All tests passed! Authentication is working.", "success");
+  } else {
+    log(
+      `Some tests failed. Please review the authentication setup.`,
+      "warning",
+    );
+  }
+
+  process.exit(failed === 0 ? 0 : 1);
+}
+
+// Run tests
+runTests().catch((error) => {
+  log(`Test suite error: ${error.message}`, "error");
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/testing/test-e2e-comprehensive.js">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * COMPREHENSIVE E2E TEST SUITE
+ * Tests every page, button, UI element, workflow, and MongoDB connection
+ * Run with: node test-e2e-comprehensive.js
+ */
+
+const http = require("http");
+const https = require("https");
+
+const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
+const MONGODB_URI = process.env.MONGODB_URI;
+
+let passedTests = 0;
+let failedTests = 0;
+const failures = [];
+
+function test(name, fn) {
+  return fn()
+    .then(() => {
+      console.log(`✅ ${name}`);
+      passedTests++;
+    })
+    .catch((err) => {
+      console.error(`❌ ${name}: ${err.message}`);
+      failures.push({ test: name, error: err.message });
+      failedTests++;
+    });
+}
+
+function httpRequest(url, options = {}) {
+  return new Promise((resolve, reject) => {
+    const lib = url.startsWith("https") ? https : http;
+    const req = lib.request(url, options, (res) => {
+      let data = "";
+      res.on("data", (chunk) => (data += chunk));
+      res.on("end", () => {
+        if (res.statusCode >= 200 && res.statusCode < 400) {
+          resolve({ statusCode: res.statusCode, data, headers: res.headers });
+        } else {
+          reject(
+            new Error(`HTTP ${res.statusCode}: ${data.substring(0, 100)}`),
+          );
+        }
+      });
+    });
+    req.on("error", reject);
+    if (options.body) req.write(options.body);
+    req.end();
+  });
+}
+
+async function testMongoDB() {
+  if (!MONGODB_URI) {
+    throw new Error("MONGODB_URI not set");
+  }
+
+  const mongoose = require("mongoose");
+  await mongoose.connect(MONGODB_URI);
+
+  const collections = await mongoose.connection.db.listCollections().toArray();
+  if (collections.length === 0) {
+    throw new Error("No collections found in database");
+  }
+
+  console.log(`  📊 Found ${collections.length} collections`);
+  await mongoose.disconnect();
+}
+
+async function testPage(path, expectedTitle) {
+  const res = await httpRequest(`${BASE_URL}${path}`);
+  if (!res.data.includes("<html")) {
+    throw new Error("Response is not HTML");
+  }
+  if (expectedTitle && !res.data.includes(expectedTitle)) {
+    throw new Error(`Title "${expectedTitle}" not found in page`);
+  }
+}
+
+async function testAPI(
+  path,
+  method = "GET",
+  body = null,
+  expectedStatus = 200,
+) {
+  const options = {
+    method,
+    headers: { "Content-Type": "application/json" },
+  };
+  if (body) options.body = JSON.stringify(body);
+
+  const res = await httpRequest(`${BASE_URL}${path}`, options);
+  if (res.statusCode !== expectedStatus) {
+    throw new Error(`Expected ${expectedStatus}, got ${res.statusCode}`);
+  }
+  return JSON.parse(res.data);
+}
+
+async function runTests() {
+  console.log("\n🚀 COMPREHENSIVE E2E TEST SUITE\n");
+  console.log("━".repeat(60));
+
+  // MongoDB Tests
+  console.log("\n📊 MONGODB TESTS");
+  await test("MongoDB Connection", testMongoDB);
+
+  // Page Tests
+  console.log("\n🌐 PAGE TESTS");
+  await test("Homepage", () => testPage("/", "Fixzit"));
+  await test("Login Page", () => testPage("/login", "Login"));
+  await test("Dashboard", () => testPage("/dashboard", "Dashboard"));
+  await test("Work Orders", () => testPage("/work-orders", "Work Orders"));
+  await test("Invoices", () => testPage("/invoices", "Invoices"));
+  await test("RFQs", () => testPage("/rfqs", "RFQ"));
+  await test("Customers", () => testPage("/customers", "Customers"));
+  await test("Settings", () => testPage("/settings", "Settings"));
+  await test("Reports", () => testPage("/reports", "Reports"));
+
+  // API Health Tests
+  console.log("\n🔧 API HEALTH TESTS");
+  await test("API Health Endpoint", () => testAPI("/api/health"));
+
+  // Auth API Tests
+  console.log("\n🔐 AUTH API TESTS");
+  await test("Auth Status (Unauthenticated)", async () => {
+    try {
+      await testAPI("/api/auth/status", "GET", null, 401);
+    } catch (err) {
+      // 401 or redirect is acceptable
+      if (!err.message.includes("401") && !err.message.includes("302")) {
+        throw err;
+      }
+    }
+  });
+
+  // Work Orders API Tests
+  console.log("\n📋 WORK ORDERS API TESTS");
+  await test("Work Orders List API", () => testAPI("/api/work-orders"));
+
+  // Validation Tests (using fixed ATS endpoint)
+  console.log("\n✅ VALIDATION TESTS");
+  await test("ATS Public Post Validation (Missing Title)", async () => {
+    try {
+      await testAPI("/api/ats/public-post", "POST", {}, 400);
+    } catch (err) {
+      if (!err.message.includes("400")) throw err;
+    }
+  });
+
+  await test("ATS Public Post Validation (Valid Data)", async () => {
+    if (process.env.ATS_ENABLED !== "true") {
+      console.log("  ⏭️  Skipping (ATS_ENABLED not true)");
+      return;
+    }
+    await testAPI(
+      "/api/ats/public-post",
+      "POST",
+      {
+        title: "Test Senior Developer Position",
+        department: "Engineering",
+        jobType: "full-time",
+      },
+      201,
+    );
+  });
+
+  // Business Logic Tests
+  console.log("\n💼 BUSINESS LOGIC TESTS");
+  await test("Duplicate Detection (Work Orders)", async () => {
+    const response = await testAPI("/api/work-orders");
+    if (response.workOrders && response.workOrders.length > 0) {
+      const titles = response.workOrders.map((wo) => wo.title);
+      const duplicates = titles.filter((t, i) => titles.indexOf(t) !== i);
+      if (duplicates.length > 0) {
+        throw new Error(
+          `Found duplicate work order titles: ${duplicates.join(", ")}`,
+        );
+      }
+    }
+  });
+
+  // Error Handling Tests
+  console.log("\n🚨 ERROR HANDLING TESTS");
+  await test("404 for Invalid Route", async () => {
+    try {
+      await testAPI("/api/nonexistent-endpoint", "GET", null, 404);
+    } catch (err) {
+      if (!err.message.includes("404")) throw err;
+    }
+  });
+
+  // Performance Tests
+  console.log("\n⚡ PERFORMANCE TESTS");
+  await test("Homepage Load Time < 2s", async () => {
+    const start = Date.now();
+    await httpRequest(BASE_URL);
+    const duration = Date.now() - start;
+    if (duration > 2000) {
+      throw new Error(`Load time ${duration}ms exceeds 2000ms`);
+    }
+    console.log(`  ⏱️  Load time: ${duration}ms`);
+  });
+
+  // Security Tests
+  console.log("\n🔒 SECURITY TESTS");
+  await test("CORS Headers Present", async () => {
+    const res = await httpRequest(`${BASE_URL}/api/health`);
+    if (!res.headers["x-content-type-options"]) {
+      console.warn("  ⚠️  Missing X-Content-Type-Options header");
+    }
+  });
+
+  // Summary
+  console.log("\n" + "━".repeat(60));
+  console.log("\n📊 TEST SUMMARY\n");
+  console.log(`✅ Passed: ${passedTests}`);
+  console.log(`❌ Failed: ${failedTests}`);
+  console.log(
+    `📈 Success Rate: ${((passedTests / (passedTests + failedTests)) * 100).toFixed(1)}%`,
+  );
+
+  if (failures.length > 0) {
+    console.log("\n❌ FAILURES:\n");
+    failures.forEach((f) => {
+      console.log(`  • ${f.test}`);
+      console.log(`    ${f.error}`);
+    });
+  }
+
+  console.log("\n" + "━".repeat(60));
+
+  process.exit(failedTests > 0 ? 1 : 0);
+}
+
+runTests().catch((err) => {
+  console.error("\n💥 FATAL ERROR:", err);
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/testing/test-mongodb-comprehensive.js">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * MONGODB COMPREHENSIVE VERIFICATION
+ * Tests connection, indexes, CRUD operations, and business logic
+ * Run with: node test-mongodb-comprehensive.js
+ */
+
+const mongoose = require("mongoose");
+const { COLLECTIONS } = require("../utils/collections");
+
+const MONGODB_URI = process.env.MONGODB_URI;
+
+async function testConnection() {
+  console.log("🔌 Testing MongoDB Connection...");
+  await mongoose.connect(MONGODB_URI);
+  console.log("✅ Connected to MongoDB");
+  return mongoose.connection.db;
+}
+
+async function testCollections(db) {
+  console.log("\n📚 Testing Collections...");
+  const collections = await db.listCollections().toArray();
+  console.log(`✅ Found ${collections.length} collections:`);
+  collections.forEach((c) => console.log(`  - ${c.name}`));
+  return collections;
+}
+
+async function testIndexes(db) {
+  console.log("\n🔍 Testing Indexes...");
+  const collections = [
+    COLLECTIONS.USERS,
+    COLLECTIONS.WORK_ORDERS,
+    COLLECTIONS.INVOICES,
+    COLLECTIONS.RFQS,
+    COLLECTIONS.CUSTOMERS,
+    "jobs",
+  ];
+
+  for (const collName of collections) {
+    try {
+      const indexes = await db.collection(collName).indexes();
+      console.log(`✅ ${collName}: ${indexes.length} indexes`);
+      indexes.forEach((idx) => {
+        const keys = Object.keys(idx.key).join(", ");
+        console.log(
+          `    - ${idx.name}: ${keys}${idx.unique ? " (unique)" : ""}`,
+        );
+      });
+    } catch (error) {
+      console.log(`⚠️  ${collName}: Collection not found (${error.message})`);
+    }
+  }
+}
+
+async function testCRUD(db) {
+  console.log("\n✍️  Testing CRUD Operations...");
+
+  const testCollection = "test_crud_" + Date.now();
+  const coll = db.collection(testCollection);
+
+  // Create
+  const insertResult = await coll.insertOne({
+    name: "Test Document",
+    createdAt: new Date(),
+    testFlag: true,
+  });
+  console.log(
+    `✅ CREATE: Inserted document with ID ${insertResult.insertedId}`,
+  );
+
+  // Read
+  const doc = await coll.findOne({ _id: insertResult.insertedId });
+  if (!doc || doc.name !== "Test Document") {
+    throw new Error("READ failed: Document not found or incorrect");
+  }
+  console.log(`✅ READ: Retrieved document successfully`);
+
+  // Update
+  const updateResult = await coll.updateOne(
+    { _id: insertResult.insertedId },
+    { $set: { name: "Updated Document", updatedAt: new Date() } },
+  );
+  if (updateResult.modifiedCount !== 1) {
+    throw new Error("UPDATE failed: No documents modified");
+  }
+  console.log(`✅ UPDATE: Updated document successfully`);
+
+  // Delete
+  const deleteResult = await coll.deleteOne({ _id: insertResult.insertedId });
+  if (deleteResult.deletedCount !== 1) {
+    throw new Error("DELETE failed: No documents deleted");
+  }
+  console.log(`✅ DELETE: Deleted document successfully`);
+
+  // Cleanup
+  await coll.drop();
+  console.log(`✅ CLEANUP: Dropped test collection`);
+}
+
+async function testQueryPerformance(db) {
+  console.log("\n⚡ Testing Query Performance...");
+
+  const collections = [
+    COLLECTIONS.USERS,
+    COLLECTIONS.WORK_ORDERS,
+    COLLECTIONS.INVOICES,
+    COLLECTIONS.RFQS,
+    COLLECTIONS.CUSTOMERS,
+    "jobs",
+  ];
+
+  for (const collName of collections) {
+    try {
+      const coll = db.collection(collName);
+      const start = Date.now();
+      const count = await coll.countDocuments();
+      const duration = Date.now() - start;
+      console.log(`✅ ${collName}: ${count} documents (${duration}ms)`);
+
+      if (duration > 1000) {
+        console.warn(
+          `  ⚠️  Query took ${duration}ms - may need index optimization`,
+        );
+      }
+    } catch (err) {
+      console.log(`⚠️  ${collName}: ${err.message}`);
+    }
+  }
+}
+
+async function testBusinessLogic(db) {
+  console.log("\n💼 Testing Business Logic...");
+
+  // Test 1: Work Orders with duplicate detection
+  try {
+    const workOrders = db.collection(COLLECTIONS.WORK_ORDERS);
+    const duplicates = await workOrders
+      .aggregate([
+        { $group: { _id: "$workOrderNumber", count: { $sum: 1 } } },
+        { $match: { count: { $gt: 1 } } },
+      ])
+      .toArray();
+
+    if (duplicates.length > 0) {
+      console.log(
+        `⚠️  Found ${duplicates.length} duplicate work order numbers`,
+      );
+      duplicates.forEach((d) =>
+        console.log(`    - ${d._id}: ${d.count} copies`),
+      );
+    } else {
+      console.log(`✅ No duplicate work order numbers found`);
+    }
+  } catch (err) {
+    console.log(`⚠️  Work Orders: ${err.message}`);
+  }
+
+  // Test 2: Invoices with ZATCA validation
+  try {
+    const invoices = db.collection(COLLECTIONS.INVOICES);
+    const sentWithoutZATCA = await invoices.countDocuments({
+      status: "SENT",
+      $or: [{ "zatca.status": { $exists: false } }, { "zatca.status": null }],
+    });
+
+    if (sentWithoutZATCA > 0) {
+      console.log(
+        `⚠️  Found ${sentWithoutZATCA} SENT invoices without ZATCA status`,
+      );
+    } else {
+      console.log(`✅ All SENT invoices have ZATCA status`);
+    }
+  } catch (err) {
+    console.log(`⚠️  Invoices: ${err.message}`);
+  }
+
+  // Test 3: Users with proper roles
+  try {
+    const users = db.collection(COLLECTIONS.USERS);
+    const usersWithoutRoles = await users.countDocuments({
+      $or: [{ roles: { $exists: false } }, { roles: [] }, { roles: null }],
+    });
+
+    if (usersWithoutRoles > 0) {
+      console.log(`⚠️  Found ${usersWithoutRoles} users without roles`);
+    } else {
+      console.log(`✅ All users have roles assigned`);
+    }
+  } catch (err) {
+    console.log(`⚠️  Users: ${err.message}`);
+  }
+}
+
+async function testDataIntegrity(db) {
+  console.log("\n🔐 Testing Data Integrity...");
+
+  // Test for orphaned references
+  try {
+    const workOrders = db.collection(COLLECTIONS.WORK_ORDERS);
+    const customers = db.collection(COLLECTIONS.CUSTOMERS);
+
+    const woCursor = await workOrders
+      .find({}, { projection: { customerId: 1 } })
+      .limit(100);
+    const customerIds = new Set(
+      (await customers.find({}, { projection: { _id: 1 } }).toArray()).map(
+        (c) => c._id.toString(),
+      ),
+    );
+
+    let orphanedCount = 0;
+    for await (const wo of woCursor) {
+      if (wo.customerId && !customerIds.has(wo.customerId.toString())) {
+        orphanedCount++;
+      }
+    }
+
+    if (orphanedCount > 0) {
+      console.log(
+        `⚠️  Found ${orphanedCount} work orders with invalid customer references`,
+      );
+    } else {
+      console.log(`✅ No orphaned customer references in work orders`);
+    }
+  } catch (err) {
+    console.log(`⚠️  Data Integrity: ${err.message}`);
+  }
+}
+
+async function runTests() {
+  console.log("\n🚀 MONGODB COMPREHENSIVE VERIFICATION\n");
+  console.log("━".repeat(60));
+
+  if (!MONGODB_URI) {
+    console.error("❌ MONGODB_URI environment variable not set");
+    process.exit(1);
+  }
+
+  console.log(
+    `📍 Connection String: ${MONGODB_URI.replace(/\/\/[^:]+:[^@]+@/, "//***:***@")}`,
+  );
+
+  try {
+    const db = await testConnection();
+    await testCollections(db);
+    await testIndexes(db);
+    await testCRUD(db);
+    await testQueryPerformance(db);
+    await testBusinessLogic(db);
+    await testDataIntegrity(db);
+
+    console.log("\n" + "━".repeat(60));
+    console.log("\n✅ ALL MONGODB TESTS PASSED!\n");
+    console.log("━".repeat(60));
+
+    await mongoose.disconnect();
+    process.exit(0);
+  } catch (err) {
+    console.error("\n❌ TEST FAILED:", err.message);
+    console.error(err.stack);
+    await mongoose.disconnect();
+    process.exit(1);
+  }
+}
+
+runTests();
+
+]]>
+</file>
+
+<file path="scripts/testing/test-system-e2e.js">
+<![CDATA[
+#!/usr/bin/env node
+
+const http = require("http");
+
+async function testEndpoint(path, description) {
+  return new Promise((resolve) => {
+    const options = {
+      hostname: "localhost",
+      port: 3000,
+      path: path,
+      method: "GET",
+      timeout: 5000,
+    };
+
+    const req = http.request(options, (res) => {
+      console.log(`✅ ${description}: ${res.statusCode} ${res.statusMessage}`);
+      resolve({ success: true, status: res.statusCode, path });
+    });
+
+    req.on("error", (err) => {
+      console.log(`❌ ${description}: ${err.message}`);
+      resolve({ success: false, error: err.message, path });
+    });
+
+    req.on("timeout", () => {
+      console.log(`⏱️  ${description}: Timeout after 5s`);
+      req.destroy();
+      resolve({ success: false, error: "Timeout", path });
+    });
+
+    req.end();
+  });
+}
+
+async function runE2ETests() {
+  console.log("🚀 Starting E2E System Tests...\n");
+
+  const testRoutes = [
+    ["/", "Homepage"],
+    ["/login", "Login Page"],
+    ["/dashboard", "Dashboard"],
+    ["/marketplace", "Marketplace"],
+    ["/aqar", "Aqar (Real Estate)"],
+    ["/fm", "Facility Management"],
+    ["/finance", "Finance Module"],
+    ["/hr", "HR Module"],
+    ["/crm", "CRM Module"],
+    ["/admin", "Admin (should redirect to /system)"],
+    ["/system", "System Admin"],
+    ["/compliance", "Compliance Module"],
+    ["/careers", "Careers Page"],
+    ["/help", "Help Center"],
+    ["/notifications", "Notifications"],
+    ["/api/health", "Health Check API"],
+    ["/api/auth/me", "Auth API"],
+  ];
+
+  const results = [];
+
+  for (const [path, description] of testRoutes) {
+    const result = await testEndpoint(path, description);
+    results.push(result);
+    // Small delay between requests
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+
+  console.log("\n📊 Test Summary:");
+  const successful = results.filter((r) => r.success && r.status < 500).length;
+  const total = results.length;
+
+  console.log(
+    `✅ Successful: ${successful}/${total} (${Math.round((successful / total) * 100)}%)`,
+  );
+
+  if (successful < total) {
+    console.log("\n❌ Failed Routes:");
+    results
+      .filter((r) => !r.success || r.status >= 500)
+      .forEach((r) => {
+        console.log(`   ${r.path} - ${r.error || r.status}`);
+      });
+  }
+
+  console.log(
+    `\n🎯 Target: 100% completions - Current: ${Math.round((successful / total) * 100)}%`,
+  );
+
+  return successful / total;
+}
+
+runE2ETests().catch(console.error);
+
+]]>
+</file>
+
+<file path="scripts/testing/verify-imports.py">
+<![CDATA[
+#!/usr/bin/env python3
+"""
+Verify Imports
+Runs the import analysis tool
+"""
+
+import subprocess
+import sys
+import os
+
+# ANSI color codes
+CYAN = '\033[96m'
+GREEN = '\033[92m'
+YELLOW = '\033[93m'
+RED = '\033[91m'
+RESET = '\033[0m'
+
+def print_header(text):
+    print(f"\n{CYAN}{'=' * 40}")
+    print(text)
+    print(f"{'=' * 40}{RESET}\n")
+
+def main():
+    print_header("Verifying Imports")
+    
+    # Check if analyze-imports.js exists
+    if not os.path.exists("analyze-imports.js"):
+        print(f"{RED}❌ Error: analyze-imports.js not found{RESET}\n")
+        sys.exit(1)
+    
+    # Run the analysis
+    try:
+        result = subprocess.run(
+            ['node', 'analyze-imports.js'],
+            capture_output=False,
+            text=True
+        )
+        
+        exit_code = result.returncode
+        
+        print()
+        if exit_code == 0:
+            print(f"{GREEN}✅ All imports are valid!{RESET}\n")
+        else:
+            print(f"{YELLOW}⚠️  Import issues found - see report above{RESET}\n")
+        
+        sys.exit(exit_code)
+        
+    except FileNotFoundError:
+        print(f"{RED}❌ Error: Node.js not found. Please install Node.js{RESET}\n")
+        sys.exit(1)
+    except Exception as e:
+        print(f"{RED}❌ Error: {e}{RESET}\n")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
+
+]]>
+</file>
+
+<file path="scripts/tmp/capture-landing.ts">
+<![CDATA[
+import { chromium } from "playwright";
+import path from "path";
+import fs from "fs";
+
+async function capture(
+  file: string,
+  out: string,
+  viewport = { width: 1440, height: 900 },
+) {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage({ viewport });
+  const url = "file://" + file;
+  await page.goto(url);
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: out, fullPage: true });
+  await browser.close();
+}
+
+async function main() {
+  const base = path.join(process.cwd(), "_artifacts");
+  fs.mkdirSync(base, { recursive: true });
+  const arHtml = path.join(base, "landing-ar.html");
+  const enHtml = path.join(base, "landing-en.html");
+  if (!fs.existsSync(arHtml) || !fs.existsSync(enHtml)) {
+    throw new Error("landing HTML snapshots missing; run render-landing first");
+  }
+  await capture(arHtml, path.join(base, "landing-ar.png"));
+  await capture(enHtml, path.join(base, "landing-en.png"));
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/tmp/render-landing.tsx">
+<![CDATA[
+import fs from "fs";
+import path from "path";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import LandingPage from "../../app/page";
+import { I18nProvider } from "../../i18n/I18nProvider";
+import { TranslationProvider } from "../../contexts/TranslationContext";
+
+type Locale = "ar" | "en";
+
+const renderLanding = (locale: Locale) => {
+  const html = renderToStaticMarkup(
+    <I18nProvider initialLocale={locale}>
+      <TranslationProvider initialLanguage={locale}>
+        <div
+          style={{ background: "#f5f1ec", color: "#1f1c18", padding: "16px" }}
+        >
+          <LandingPage />
+        </div>
+      </TranslationProvider>
+    </I18nProvider>,
+  );
+  return "<!DOCTYPE html>" + html;
+};
+
+const outDir = path.join(process.cwd(), "_artifacts");
+fs.mkdirSync(outDir, { recursive: true });
+fs.writeFileSync(
+  path.join(outDir, "landing-ar.html"),
+  renderLanding("ar"),
+  "utf8",
+);
+fs.writeFileSync(
+  path.join(outDir, "landing-en.html"),
+  renderLanding("en"),
+  "utf8",
+);
+console.log("Wrote HTML snapshots to", outDir);
+
+]]>
+</file>
+
+<file path="scripts/truth-verification.js">
+<![CDATA[
+const axios = require("axios");
+const BASE_URL = "http://localhost:5000";
+
+async function exposeTheTruth() {
+  console.log('🔍 EXPOSING THE TRUTH ABOUT YOUR "100% COMPLETE" CLAIM...\n');
+
+  let realEndpoints = 0;
+  let placeholderEndpoints = 0;
+  let missingEndpoints = 0;
+
+  const criticalTests = [
+    // Work Orders (Must have SLA, photos, costs)
+    {
+      name: "Work Order Creation",
+      method: "POST",
+      url: "/api/workorders",
+      data: {
+        title: "Test",
+        priority: "urgent",
+        category: "HVAC",
+        propertyId: "test",
+      },
+      validate: (res) =>
+        res.data._id && res.data.slaBreachTime && res.data.workOrderNumber,
+    },
+
+    // Properties (Must have units, owner, deputy)
+    {
+      name: "Property with Units",
+      method: "POST",
+      url: "/api/properties",
+      data: {
+        name: "Building A",
+        type: "residential",
+        ownerId: "test",
+        units: [],
+      },
+      validate: (res) =>
+        res.data._id &&
+        res.data.units !== undefined &&
+        res.data.deputyId !== undefined,
+    },
+
+    // Property Owner Dashboard (CRITICAL - THEY PAY!)
+    {
+      name: "Owner Dashboard",
+      method: "GET",
+      url: "/api/owner/dashboard",
+      validate: (res) =>
+        res.data.revenue && res.data.expenses && res.data.fmPerformance,
+    },
+
+    // Deputy Assignment
+    {
+      name: "Deputy System",
+      method: "POST",
+      url: "/api/owner/properties/test/deputy",
+      data: { deputyUserId: "test", permissions: ["approve"] },
+      validate: (res) => res.data.deputyId && res.data.permissions,
+    },
+
+    // Subscription (How you make MONEY!)
+    {
+      name: "Subscription Plans",
+      method: "GET",
+      url: "/api/subscriptions/plans",
+      validate: (res) => res.data.plans && res.data.plans.length >= 4,
+    },
+
+    // DoA Approval System
+    {
+      name: "DoA Check",
+      method: "POST",
+      url: "/api/doa/check",
+      data: { workOrderId: "test", amount: 10000 },
+      validate: (res) =>
+        res.data.requiresApproval !== undefined && res.data.approvers,
+    },
+
+    // ZATCA (LEGALLY REQUIRED!)
+    {
+      name: "ZATCA Invoice",
+      method: "POST",
+      url: "/api/finance/invoices",
+      data: {
+        customer: { name: "Test", vatNumber: "300000000000003" },
+        items: [{ description: "Service", quantity: 1, unitPrice: 100 }],
+      },
+      validate: (res) =>
+        res.data.qrCode && res.data.qrCode.length > 100 && res.data.zatca,
+    },
+
+    // RFQ System
+    {
+      name: "RFQ Creation",
+      method: "POST",
+      url: "/api/marketplace/rfq",
+      data: {
+        title: "Test RFQ",
+        items: [{ description: "Service", quantity: 1 }],
+      },
+      validate: (res) =>
+        res.data._id &&
+        res.data.status === "open" &&
+        res.data.bids !== undefined,
+    },
+  ];
+
+  for (const test of criticalTests) {
+    try {
+      const response = await axios({
+        method: test.method,
+        url: BASE_URL + test.url,
+        data: test.data,
+      });
+
+      if (test.validate(response)) {
+        console.log(`✅ ${test.name}: REAL IMPLEMENTATION`);
+        realEndpoints++;
+      } else if (response.data.message) {
+        console.log(
+          `❌ ${test.name}: PLACEHOLDER - Returns "${response.data.message}"`,
+        );
+        placeholderEndpoints++;
+      } else {
+        console.log(`⚠️ ${test.name}: SUSPICIOUS - Incomplete implementation`);
+        placeholderEndpoints++;
+      }
+    } catch (error) {
+      console.log(`❌ ${test.name}: MISSING - ${error.message}`);
+      missingEndpoints++;
+    }
+  }
+
+  console.log("\n" + "=".repeat(60));
+  console.log("📊 THE TRUTH:");
+  console.log("=".repeat(60));
+  console.log(
+    `Real Endpoints: ${realEndpoints}/8 (${Math.round((realEndpoints / 8) * 100)}%)`,
+  );
+  console.log(`Placeholders: ${placeholderEndpoints}/8`);
+  console.log(`Missing: ${missingEndpoints}/8`);
+
+  if (realEndpoints < 8) {
+    console.log("\n🔴 YOU ARE LYING ABOUT COMPLETION!");
+    console.log("The system is NOT complete. Stop claiming 100%.");
+    console.log("\n📋 MISSING CRITICAL FEATURES:");
+    if (!realEndpoints)
+      console.log("- Property Owner Dashboard (THE PAYING CUSTOMERS!)");
+    console.log("- Deputy System (delegation)");
+    console.log("- Subscription Management (how platform makes MONEY)");
+    console.log("- DoA Approvals (prevent unauthorized spending)");
+    console.log("- ZATCA Compliance (LEGALLY REQUIRED)");
+  }
+
+  return realEndpoints === 8;
+}
+
+exposeTheTruth();
+
+]]>
+</file>
+
+<file path="scripts/tsconfig.all.json">
+<![CDATA[
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "moduleResolution": "node",
+    "module": "esnext",
+    "types": ["node"]
+  },
+  "include": ["./**/*.ts"],
+  "exclude": [
+    "../node_modules",
+    "../.next"
+  ]
+}
+
+]]>
+</file>
+
+<file path="scripts/tsconfig.json">
+<![CDATA[
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "moduleResolution": "node",
+    "module": "esnext",
+    "types": ["node"]
+  },
+  "include": ["./migrate-encrypt-finance-pii.ts"],
+  "exclude": [
+    "../node_modules",
+    "../.next"
+  ]
+}
+
+]]>
+</file>
+
+<file path="scripts/ui_review.py">
+<![CDATA[
+# scripts/ui_review.py
+from __future__ import annotations
+import os
+import sys
+import time
+import json
+import re
+import signal
+import subprocess
+from pathlib import Path
+from typing import List, Dict, Any
+import requests
+
+ROOT = Path(__file__).resolve().parents[1]
+ART = ROOT / "artifacts"
+SHOT = ART / "screenshots"
+ART.mkdir(exist_ok=True)
+SHOT.mkdir(exist_ok=True)
+
+ENTRY_CAND = ["app.py", "streamlit_app.py", "main.py"]
+PAGES_DIR = ROOT / "pages"
+PORT = int(os.environ.get("FIXZIT_PORT", "8501"))
+BASE = f"http://127.0.0.1:{PORT}"
+
+
+def find_entry() -> Path:
+    for n in ENTRY_CAND:
+        p = ROOT / n
+        if p.exists():
+            return p
+    print("[ui] No entry app file found (app.py/streamlit_app.py/main.py)")
+    sys.exit(1)
+
+
+def discover_pages() -> List[str]:
+    names: List[str] = ["Home"]
+    if PAGES_DIR.exists():
+        for f in sorted(PAGES_DIR.glob("*.py")):
+            name = f.stem.replace("_", " ").strip() or f.stem
+            names.append(name)
+    # unique preserve order
+    seen, uniq = set(), []
+    for n in names:
+        k = re.sub(r"\s+", " ", n).strip().lower()
+        if k not in seen:
+            seen.add(k)
+            uniq.append(n)
+    return uniq
+
+
+def wait_server(url: str, timeout: float = 30.0) -> None:
+    start = time.time()
+    last_err = None
+    while time.time() - start < timeout:
+        try:
+            r = requests.get(url, timeout=2)
+            if r.status_code in (200, 404):
+                return
+        except Exception as e:
+            last_err = e
+        time.sleep(0.5)
+    raise RuntimeError(f"Dev server not responding at {url}: {last_err}")
+
+
+def launch_server(entry: Path) -> subprocess.Popen:
+    cmd = [
+        sys.executable,
+        "-m",
+        "streamlit",
+        "run",
+        str(entry),
+        "--server.headless",
+        "true",
+        "--server.port",
+        str(PORT),
+        "--browser.gatherUsageStats",
+        "false",
+    ]
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    wait_server(BASE)
+    return proc
+
+
+def playwright_review(routes: List[str]) -> Dict[str, Any]:
+    from playwright.sync_api import sync_playwright
+
+    issues: List[Dict[str, Any]] = []
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True)
+        context = browser.new_context()
+        for route in routes:
+            page = context.new_page()
+            console_errors: List[str] = []
+            failed: List[Dict[str, Any]] = []
+
+            page.on(
+                "console",
+                lambda msg: (
+                    console_errors.append(msg.text) if msg.type() == "error" else None
+                ),
+            )
+            page.on(
+                "response",
+                lambda res: (
+                    failed.append({"url": res.url, "status": res.status})
+                    if res.status >= 400
+                    else None
+                ),
+            )
+            url = BASE
+            try:
+                # Home first
+                if route == "Home":
+                    page.goto(url, wait_until="networkidle", timeout=25000)
+                else:
+                    # Try clicking via sidebar label
+                    page.goto(url, wait_until="domcontentloaded", timeout=25000)
+                    try:
+                        page.get_by_text(route, exact=True).first.click(timeout=4000)
+                        page.wait_for_load_state("networkidle", timeout=20000)
+                    except Exception:
+                        from urllib.parse import quote
+
+                        page.goto(
+                            f"{url}/?page={quote(route)}",
+                            wait_until="networkidle",
+                            timeout=25000,
+                        )
+
+                # Screenshot
+                safe = "root" if route == "Home" else re.sub(r"[^\w\-]+", "_", route)
+                page.screenshot(path=str(SHOT / f"{safe}.png"), full_page=True)
+
+                # Log issues
+                for m in console_errors:
+                    issues.append({"route": route, "type": "console", "message": m})
+                for f in failed:
+                    issues.append(
+                        {
+                            "route": route,
+                            "type": "http",
+                            "message": f"HTTP {f['status']}",
+                            "extra": {"url": f["url"]},
+                        }
+                    )
+            except Exception as e:
+                issues.append({"route": route, "type": "pageerror", "message": str(e)})
+            finally:
+                page.close()
+        context.close()
+        browser.close()
+    return {"issues": issues, "routes": routes}
+
+
+def write_reports(result: Dict[str, Any]) -> None:
+    (ART / "ui-report.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
+    lines = ["# UI Review Report", "", f"Routes checked: {len(result['routes'])}", ""]
+    issues = result["issues"]
+    if not issues:
+        lines.append("✅ No UI issues found.")
+    else:
+        lines.append(f"❌ Issues: {len(issues)}\n")
+        by_route: Dict[str, List[Dict[str, Any]]] = {}
+        for it in issues:
+            by_route.setdefault(it["route"], []).append(it)
+        for route, arr in by_route.items():
+            lines.append(f"## {route}")
+            for i in arr:
+                lines.append(f"- **{i['type']}**: {i['message']}")
+                if i.get("extra", {}).get("url"):
+                    lines.append(f"  - URL: {i['extra']['url']}")
+            lines.append("")
+    (ART / "ui-report.md").write_text("\n".join(lines), encoding="utf-8")
+
+
+def main() -> None:
+    entry = find_entry()
+    routes = discover_pages()
+    proc = launch_server(entry)
+    try:
+        result = playwright_review(routes)
+        write_reports(result)
+        blocking = [i for i in result["issues"] if i["type"] != "a11y"]
+        if blocking:
+            sys.exit(1)
+        print("UI review OK → artifacts/ui-report.md")
+    finally:
+        try:
+            if proc.poll() is None:
+                if os.name == "nt":
+                    proc.terminate()
+                else:
+                    os.kill(proc.pid, signal.SIGTERM)
+        except Exception:
+            pass
+
+
+if __name__ == "__main__":
+    main()
+
+]]>
+</file>
+
+<file path="scripts/unified-audit-system.js">
+<![CDATA[
+/**
+ * ========================================
+ * FIXZIT ENTERPRISE UNIFIED AUDIT SYSTEM
+ * ========================================
+ * Complete implementation treating the system
+ * as ONE integrated platform with three faces
+ * ========================================
+ * 
+ * SEC-051: Password now configurable via DEMO_SUPERADMIN_PASSWORD env var
+ */
+
+const axios = require("axios");
+require("dotenv").config();
+
+const BASE_URL = "http://localhost:5000";
+
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+
+// SEC-051: Use environment variable with local dev fallback
+const DEMO_SUPERADMIN_PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD || "admin123";
+
+// ============================================
+// UNIFIED PLATFORM DEFINITION
+// ============================================
+
+class FixzitEcosystem {
+  constructor() {
+    this.platforms = {
+      FM: new FacilityManagement(),
+      SOUQ: new FixzitSouq(),
+      AQAR: new AqarSouq(),
+    };
+    this.bridges = new CrossPlatformBridges();
+    this.audit = new MasterAuditSystem();
+    this.authToken = "";
+  }
+
+  async initialize() {
+    console.log("🚀 Initializing FIXZIT ENTERPRISE ECOSYSTEM...\n");
+    await this.authenticate();
+    return this;
+  }
+
+  async authenticate() {
+    try {
+      const response = await axios.post(`${BASE_URL}/api/auth/login`, {
+        email: `admin@${EMAIL_DOMAIN}`,
+        password: DEMO_SUPERADMIN_PASSWORD,
+      });
+      this.authToken = response.data.token;
+      console.log("✅ Unified authentication successful");
+      console.log(
+        `👤 Role: ${response.data.user.role} (Cross-platform access)\n`,
+      );
+    } catch (error) {
+      throw new Error(`Authentication failed: ${error.message}`);
+    }
+  }
+}
+
+class FacilityManagement {
+  modules = [
+    "Dashboard", // 1
+    "WorkOrders", // 2
+    "Properties", // 3
+    "Finance", // 4
+    "HumanResources", // 5
+    "Administration", // 6
+    "CRM", // 7
+    "Marketplace", // 8 (bridge to Souq)
+    "Support", // 9
+    "Compliance", // 10
+    "Reports", // 11
+    "SystemManagement", // 12
+  ];
+
+  workflows = {
+    workOrderLifecycle: [
+      "Intake",
+      "Triage",
+      "Dispatch",
+      "Execute",
+      "QC",
+      "Close",
+      "Bill",
+    ],
+    preventiveMaintenance: [
+      "Schedule",
+      "Generate",
+      "Assign",
+      "Execute",
+      "Document",
+    ],
+  };
+}
+
+class FixzitSouq {
+  modules = [
+    "HomeDiscovery", // 1
+    "Catalog", // 2
+    "SearchFilters", // 3
+    "RFQBidding", // 4
+    "CartCheckout", // 5
+    "VendorPortal", // 6
+    "BuyerPortal", // 7
+    "SupportDisputes", // 8
+    "Analytics", // 9
+    "Integrations", // 10
+  ];
+
+  workflows = {
+    procurementCycle: [
+      "RFQ",
+      "Bids",
+      "Compare",
+      "Award",
+      "Contract",
+      "Order",
+      "Fulfillment",
+      "Payout",
+    ],
+  };
+}
+
+class AqarSouq {
+  modules = [
+    "HomeExplore", // 1
+    "Listings", // 2
+    "PostProperty", // 3
+    "MapSearch", // 4
+    "LeadsCRM", // 5
+    "MortgageValuation", // 6
+    "Projects", // 7
+    "AgentDeveloperPortal", // 8
+    "CommunityContent", // 9
+    "SupportSafety", // 10
+  ];
+
+  workflows = {
+    listingLifecycle: [
+      "Post",
+      "Moderation",
+      "Publish",
+      "Lead",
+      "Appointment",
+      "Offer",
+      "Deal",
+    ],
+  };
+}
+
+// ============================================
+// UNIFIED ROLE MATRIX (14 ROLES)
+// ============================================
+
+const UserRole = {
+  SUPER_ADMIN: "super_admin", // 1
+  OWNER_ADMIN: "owner_admin", // 2
+  MANAGEMENT: "management", // 3
+  FINANCE: "finance", // 4
+  HR: "hr", // 5
+  OPERATIONS: "operations", // 6
+  TECHNICIAN: "technician", // 7
+  VENDOR: "vendor", // 8
+  CUSTOMER: "customer", // 9
+  PROPERTY_OWNER: "property_owner", // 10
+  CRM_SALES: "crm_sales", // 11
+  SUPPORT_AGENT: "support_agent", // 12
+  CORPORATE_EMPLOYEE: "corporate_employee", // 13
+  VIEWER_GUEST: "viewer_guest", // 14
+};
+
+const COMPLETE_ROLE_MATRIX = [
+  {
+    role: UserRole.SUPER_ADMIN,
+    fmAccess: ["*"],
+    souqAccess: ["*"],
+    aqarAccess: ["*"],
+    doaLimit: Infinity,
+    crossPlatform: true,
+  },
+  {
+    role: UserRole.OWNER_ADMIN,
+    fmAccess: ["all_modules", "doa", "billing", "users"],
+    souqAccess: ["org_setup", "buyer_approvals"],
+    aqarAccess: ["agency_admin", "packages"],
+    doaLimit: 1000000,
+    crossPlatform: true,
+  },
+  {
+    role: UserRole.OPERATIONS,
+    fmAccess: ["work_orders", "dispatch", "pm"],
+    souqAccess: ["buyer_rfqs"],
+    aqarAccess: ["lead_management"],
+    doaLimit: 50000,
+    crossPlatform: true,
+  },
+  {
+    role: UserRole.VENDOR,
+    fmAccess: ["vendor_page"],
+    souqAccess: ["listings", "orders", "payouts"],
+    aqarAccess: ["valuation_partner", "mortgage_partner"],
+    doaLimit: 0,
+    crossPlatform: true,
+  },
+  {
+    role: UserRole.CUSTOMER,
+    fmAccess: ["tickets", "approvals"],
+    souqAccess: ["buyer_checkout", "rfqs"],
+    aqarAccess: ["inquiry", "book_viewing"],
+    doaLimit: 5000,
+    crossPlatform: true,
+  },
+  // Additional roles would be defined here
+];
+
+// ============================================
+// CROSS-PLATFORM BRIDGES
+// ============================================
+
+class CrossPlatformBridges {
+  constructor() {
+    this.bridges = [
+      {
+        from: "FM",
+        to: "SOUQ",
+        dataFlow:
+          "RFQs published to marketplace; awarded bids create PO/Orders in FM",
+        endpoint: "/api/bridges/fm-to-souq",
+      },
+      {
+        from: "SOUQ",
+        to: "FM",
+        dataFlow: "Service orders auto-create FM Work Orders with linked SLAs",
+        endpoint: "/api/bridges/souq-to-fm",
+      },
+      {
+        from: "FM",
+        to: "AQAR",
+        dataFlow: "Property objects sync; Tenant leads flow to FM CRM",
+        endpoint: "/api/bridges/fm-to-aqar",
+      },
+      {
+        from: "AQAR",
+        to: "FM",
+        dataFlow: "Maintenance requests from tenant portal → FM Tickets/WO",
+        endpoint: "/api/bridges/aqar-to-fm",
+      },
+      {
+        from: "AQAR",
+        to: "SOUQ",
+        dataFlow:
+          "Source services (photography, staging) from listing workflow",
+        endpoint: "/api/bridges/aqar-to-souq",
+      },
+    ];
+  }
+
+  async testBridge(bridge, authToken) {
+    try {
+      const response = await axios.get(`${BASE_URL}${bridge.endpoint}`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+        timeout: 5000,
+      });
+
+      return {
+        success: true,
+        latency: response.headers["response-time"] || "N/A",
+        status: response.status,
+        data: response.data,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+        status: error.response?.status || "CONNECTION_ERROR",
+      };
+    }
+  }
+}
+
+// ============================================
+// MASTER AUDIT SYSTEM
+// ============================================
+
+class MasterAuditSystem {
+  constructor() {
+    this.issues = new Map();
+    this.results = {};
+  }
+
+  async runCompleteAudit(ecosystem) {
+    console.log("🔍 STARTING COMPLETE FIXZIT ENTERPRISE ECOSYSTEM AUDIT");
+    console.log("=====================================================\n");
+
+    const startTime = Date.now();
+
+    try {
+      // Audit all platforms as integrated system
+      const platformResults = await this.auditIntegratedPlatforms(ecosystem);
+
+      // Audit cross-platform bridges
+      const bridgeResults = await this.auditBridges(ecosystem);
+
+      // Audit unified role system
+      const roleResults = await this.auditUnifiedRoles(ecosystem);
+
+      // Audit technical infrastructure
+      const technicalResults =
+        await this.auditTechnicalInfrastructure(ecosystem);
+
+      // Audit database as unified system
+      const databaseResults = await this.auditUnifiedDatabase(ecosystem);
+
+      // Audit workflows end-to-end
+      const workflowResults = await this.auditIntegratedWorkflows(ecosystem);
+
+      const auditDuration = Date.now() - startTime;
+
+      // Generate unified report
+      const report = this.generateUnifiedReport({
+        platforms: platformResults,
+        bridges: bridgeResults,
+        roles: roleResults,
+        technical: technicalResults,
+        database: databaseResults,
+        workflows: workflowResults,
+        duration: auditDuration,
+      });
+
+      return report;
+    } catch (error) {
+      console.error("❌ Audit failed:", error.message);
+      throw error;
+    }
+  }
+
+  async auditIntegratedPlatforms(ecosystem) {
+    console.log("📊 AUDITING INTEGRATED PLATFORM ECOSYSTEM");
+    console.log("------------------------------------------");
+
+    const results = {
+      fm: await this.auditPlatformFace(
+        "FM",
+        ecosystem.platforms.FM,
+        ecosystem.authToken,
+      ),
+      souq: await this.auditPlatformFace(
+        "SOUQ",
+        ecosystem.platforms.SOUQ,
+        ecosystem.authToken,
+      ),
+      aqar: await this.auditPlatformFace(
+        "AQAR",
+        ecosystem.platforms.AQAR,
+        ecosystem.authToken,
+      ),
+      integration: await this.auditPlatformIntegration(ecosystem),
+    };
+
+    return results;
+  }
+
+  async auditPlatformFace(platformName, platform, authToken) {
+    console.log(`🔎 Auditing ${platformName} Platform Face...`);
+
+    const moduleResults = [];
+    let passedModules = 0;
+
+    for (const mod of platform.modules) {
+      const moduleResult = await this.auditModule(platformName, mod, authToken);
+      moduleResults.push(moduleResult);
+      if (moduleResult.status === "PASS") passedModules++;
+    }
+
+    const platformResult = {
+      name: platformName,
+      totalModules: platform.modules.length,
+      passedModules,
+      completionRate: Math.round(
+        (passedModules / platform.modules.length) * 100,
+      ),
+      moduleResults,
+      status:
+        passedModules === platform.modules.length
+          ? "FULLY_OPERATIONAL"
+          : "PARTIAL",
+    };
+
+    console.log(
+      `  ✅ ${platformName}: ${passedModules}/${platform.modules.length} modules operational (${platformResult.completionRate}%)`,
+    );
+
+    return platformResult;
+  }
+
+  async auditModule(platform, moduleName, authToken) {
+    // Map modules to actual API endpoints
+    const endpointMap = {
+      Dashboard: "/api/dashboard",
+      WorkOrders: "/api/workorders",
+      Properties: "/api/properties",
+      Finance: "/api/invoices",
+      Marketplace: "/api/vendors",
+      Reports: "/api/reports",
+      Administration: "/api/organizations",
+      SystemManagement: "/api/settings",
+      HumanResources: "/api/users",
+      CRM: "/api/activities",
+      Support: "/api/comments",
+      Compliance: "/api/audit-logs",
+    };
+
+    const endpoint =
+      endpointMap[moduleName] || `/api/${moduleName.toLowerCase()}`;
+
+    try {
+      const response = await axios.get(`${BASE_URL}${endpoint}`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+        timeout: 5000,
+      });
+
+      return {
+        module: moduleName,
+        platform,
+        endpoint,
+        status: "PASS",
+        responseTime: response.headers["response-time"] || "N/A",
+        dataCount: this.extractDataCount(response.data),
+        httpStatus: response.status,
+      };
+    } catch (error) {
+      return {
+        module: moduleName,
+        platform,
+        endpoint,
+        status: "FAIL",
+        error: error.message,
+        httpStatus: error.response?.status || "CONNECTION_ERROR",
+      };
+    }
+  }
+
+  async auditBridges(ecosystem) {
+    console.log("\n🌉 AUDITING CROSS-PLATFORM BRIDGES");
+    console.log("----------------------------------");
+
+    const bridgeResults = [];
+    let connectedBridges = 0;
+
+    for (const bridge of ecosystem.bridges.bridges) {
+      console.log(`  Testing ${bridge.from} → ${bridge.to} bridge...`);
+
+      const result = await ecosystem.bridges.testBridge(
+        bridge,
+        ecosystem.authToken,
+      );
+
+      if (result.success) {
+        console.log(`    ✅ Connected (${result.latency}ms)`);
+        connectedBridges++;
+      } else {
+        console.log(`    ❌ ${result.error}`);
+      }
+
+      bridgeResults.push({
+        bridge: `${bridge.from} → ${bridge.to}`,
+        dataFlow: bridge.dataFlow,
+        status: result.success ? "CONNECTED" : "BROKEN",
+        result,
+      });
+    }
+
+    return {
+      totalBridges: ecosystem.bridges.bridges.length,
+      connectedBridges,
+      connectivity: Math.round(
+        (connectedBridges / ecosystem.bridges.bridges.length) * 100,
+      ),
+      results: bridgeResults,
+    };
+  }
+
+  async auditUnifiedRoles(ecosystem) {
+    console.log("\n👥 AUDITING UNIFIED ROLE MATRIX (14 ROLES)");
+    console.log("------------------------------------------");
+
+    const roleResults = [];
+    let validRoles = 0;
+
+    for (const roleConfig of COMPLETE_ROLE_MATRIX) {
+      const roleTest = await this.testUnifiedRole(
+        roleConfig,
+        ecosystem.authToken,
+      );
+
+      if (roleTest.valid) {
+        console.log(`  ✅ ${roleConfig.role}: Cross-platform access verified`);
+        validRoles++;
+      } else {
+        console.log(`  ❌ ${roleConfig.role}: Issues detected`);
+      }
+
+      roleResults.push({
+        role: roleConfig.role,
+        crossPlatform: roleConfig.crossPlatform,
+        doaLimit: roleConfig.doaLimit,
+        status: roleTest.valid ? "VALID" : "INVALID",
+        details: roleTest,
+      });
+    }
+
+    return {
+      totalRoles: COMPLETE_ROLE_MATRIX.length,
+      validRoles,
+      crossPlatformRoles: COMPLETE_ROLE_MATRIX.filter((r) => r.crossPlatform)
+        .length,
+      results: roleResults,
+    };
+  }
+
+  async auditTechnicalInfrastructure(ecosystem) {
+    console.log("\n⚙️ AUDITING TECHNICAL INFRASTRUCTURE");
+    console.log("-----------------------------------");
+
+    const checks = [
+      { name: "MongoDB Connection", test: () => this.checkDatabase() },
+      {
+        name: "JWT Authentication",
+        test: () => this.checkAuthentication(ecosystem.authToken),
+      },
+      {
+        name: "API Response Times",
+        test: () => this.checkAPIPerformance(ecosystem.authToken),
+      },
+      { name: "WebSocket Services", test: () => this.checkWebSockets() },
+      { name: "Multi-tenant Support", test: () => this.checkMultiTenancy() },
+    ];
+
+    const results = {};
+
+    for (const check of checks) {
+      try {
+        const result = await check.test();
+        results[check.name] = { status: "PASS", result };
+        console.log(`  ✅ ${check.name}`);
+      } catch (error) {
+        results[check.name] = { status: "FAIL", error: error.message };
+        console.log(`  ❌ ${check.name}: ${error.message}`);
+      }
+    }
+
+    return results;
+  }
+
+  async auditUnifiedDatabase(ecosystem) {
+    console.log("\n💾 AUDITING UNIFIED DATABASE");
+    console.log("----------------------------");
+
+    try {
+      // Test core collections with real data
+      const collections = [
+        { name: "users", endpoint: "/api/users" },
+        { name: "properties", endpoint: "/api/properties" },
+        { name: "workorders", endpoint: "/api/workorders" },
+        { name: "invoices", endpoint: "/api/invoices" },
+        { name: "vendors", endpoint: "/api/vendors" },
+      ];
+
+      const results = {};
+      let totalRecords = 0;
+
+      for (const collection of collections) {
+        try {
+          const response = await axios.get(
+            `${BASE_URL}${collection.endpoint}`,
+            {
+              headers: { Authorization: `Bearer ${ecosystem.authToken}` },
+            },
+          );
+
+          const count = this.extractDataCount(response.data);
+          totalRecords += count;
+
+          results[collection.name] = {
+            status: "CONNECTED",
+            recordCount: count,
+            hasData: count > 0,
+          };
+
+          console.log(`  ✅ ${collection.name}: ${count} records`);
+        } catch (error) {
+          results[collection.name] = {
+            status: "ERROR",
+            error: error.message,
+          };
+          console.log(`  ❌ ${collection.name}: ${error.message}`);
+        }
+      }
+
+      return {
+        collections: results,
+        totalRecords,
+        usingRealData: totalRecords > 0,
+        status: totalRecords > 0 ? "REAL_DATA" : "EMPTY_OR_MOCK",
+      };
+    } catch (error) {
+      return {
+        status: "CONNECTION_FAILED",
+        error: error.message,
+      };
+    }
+  }
+
+  async auditIntegratedWorkflows(ecosystem) {
+    console.log("\n🔄 AUDITING INTEGRATED WORKFLOWS");
+    console.log("-------------------------------");
+
+    const workflows = [
+      {
+        name: "FM Work Order Lifecycle",
+        steps: ecosystem.platforms.FM.workflows.workOrderLifecycle,
+        test: () => this.testWorkOrderFlow(ecosystem.authToken),
+      },
+      {
+        name: "Souq Procurement Cycle",
+        steps: ecosystem.platforms.SOUQ.workflows.procurementCycle,
+        test: () => this.testProcurementFlow(ecosystem.authToken),
+      },
+      {
+        name: "Aqar Listing Lifecycle",
+        steps: ecosystem.platforms.AQAR.workflows.listingLifecycle,
+        test: () => this.testListingFlow(ecosystem.authToken),
+      },
+    ];
+
+    const results = {};
+
+    for (const workflow of workflows) {
+      try {
+        const result = await workflow.test();
+        results[workflow.name] = {
+          status: "OPERATIONAL",
+          steps: workflow.steps,
+          result,
+        };
+        console.log(
+          `  ✅ ${workflow.name}: ${workflow.steps.length} steps verified`,
+        );
+      } catch (error) {
+        results[workflow.name] = {
+          status: "BROKEN",
+          error: error.message,
+        };
+        console.log(`  ❌ ${workflow.name}: ${error.message}`);
+      }
+    }
+
+    return results;
+  }
+
+  generateUnifiedReport(auditData) {
+    console.log("\n📋 GENERATING UNIFIED ECOSYSTEM REPORT");
+    console.log("=====================================\n");
+
+    // Calculate overall ecosystem health
+    const platformHealth = this.calculatePlatformHealth(auditData.platforms);
+    const bridgeHealth =
+      (auditData.bridges.connectedBridges / auditData.bridges.totalBridges) *
+      100;
+    const roleHealth =
+      (auditData.roles.validRoles / auditData.roles.totalRoles) * 100;
+
+    const overallHealth = Math.round(
+      (platformHealth + bridgeHealth + roleHealth) / 3,
+    );
+
+    const report = {
+      timestamp: new Date(),
+      auditDuration: `${auditData.duration}ms`,
+      ecosystem: {
+        name: "FIXZIT ENTERPRISE",
+        type: "UNIFIED_PLATFORM",
+        faces: ["Facility Management", "Fixzit Souq", "Aqar Souq"],
+      },
+      health: {
+        overall: overallHealth,
+        platforms: platformHealth,
+        bridges: bridgeHealth,
+        roles: roleHealth,
+        status: this.getHealthStatus(overallHealth),
+      },
+      platforms: auditData.platforms,
+      bridges: auditData.bridges,
+      roles: auditData.roles,
+      technical: auditData.technical,
+      database: auditData.database,
+      workflows: auditData.workflows,
+      summary: this.generateExecutiveSummary(auditData, overallHealth),
+    };
+
+    this.printExecutiveReport(report);
+    return report;
+  }
+
+  // Helper methods
+  extractDataCount(data) {
+    if (!data) return 0;
+
+    // Look for array properties in response
+    const arrayKeys = Object.keys(data).filter((key) =>
+      Array.isArray(data[key]),
+    );
+    if (arrayKeys.length > 0) {
+      return data[arrayKeys[0]].length;
+    }
+
+    // Check for common count properties
+    if (data.count !== undefined) return data.count;
+    if (data.total !== undefined) return data.total;
+    if (data.length !== undefined) return data.length;
+
+    return 0;
+  }
+
+  calculatePlatformHealth(platforms) {
+    const rates = [
+      platforms.fm.completionRate,
+      platforms.souq.completionRate || 0,
+      platforms.aqar.completionRate || 0,
+    ];
+    return Math.round(rates.reduce((a, b) => a + b, 0) / rates.length);
+  }
+
+  getHealthStatus(health) {
+    if (health >= 90) return "EXCELLENT";
+    if (health >= 80) return "GOOD";
+    if (health >= 70) return "FAIR";
+    if (health >= 60) return "POOR";
+    return "CRITICAL";
+  }
+
+  generateExecutiveSummary(auditData, overallHealth) {
+    return {
+      ecosystemReadiness:
+        overallHealth >= 80 ? "PRODUCTION_READY" : "NEEDS_ATTENTION",
+      keyStrengths: this.identifyStrengths(auditData),
+      criticalIssues: this.identifyCriticalIssues(auditData),
+      recommendations: this.generateRecommendations(auditData),
+    };
+  }
+
+  identifyStrengths(auditData) {
+    const strengths = [];
+
+    if (auditData.database.usingRealData) {
+      strengths.push("Real database connectivity with actual data");
+    }
+
+    if (auditData.bridges.connectivity >= 80) {
+      strengths.push("Strong cross-platform integration");
+    }
+
+    if (auditData.platforms.fm.completionRate >= 90) {
+      strengths.push("Robust facility management foundation");
+    }
+
+    return strengths;
+  }
+
+  identifyCriticalIssues(auditData) {
+    const issues = [];
+
+    if (auditData.bridges.connectivity < 50) {
+      issues.push("Cross-platform bridges need attention");
+    }
+
+    if (!auditData.database.usingRealData) {
+      issues.push("Database needs real data for production readiness");
+    }
+
+    return issues;
+  }
+
+  generateRecommendations(auditData) {
+    const recommendations = [];
+
+    if (auditData.platforms.souq.completionRate < 80) {
+      recommendations.push("Implement remaining Souq marketplace modules");
+    }
+
+    if (auditData.platforms.aqar.completionRate < 80) {
+      recommendations.push("Complete Aqar property platform modules");
+    }
+
+    recommendations.push("Establish monitoring for cross-platform data flows");
+
+    return recommendations;
+  }
+
+  printExecutiveReport(report) {
+    console.log("🏆 FIXZIT ENTERPRISE ECOSYSTEM HEALTH REPORT");
+    console.log("===========================================");
+    console.log(
+      `🎯 Overall Health: ${report.health.overall}% (${report.health.status})`,
+    );
+    console.log(`📊 Platform Integration: ${report.health.platforms}%`);
+    console.log(`🌉 Bridge Connectivity: ${report.health.bridges}%`);
+    console.log(`👥 Role System: ${report.health.roles}%`);
+    console.log(`📅 Audit Duration: ${report.auditDuration}`);
+
+    console.log("\n📈 PLATFORM COMPLETION:");
+    console.log(
+      `   FM (Facility Management): ${report.platforms.fm.completionRate}%`,
+    );
+    console.log(
+      `   SOUQ (Marketplace): ${report.platforms.souq?.completionRate || 0}%`,
+    );
+    console.log(
+      `   AQAR (Property): ${report.platforms.aqar?.completionRate || 0}%`,
+    );
+
+    console.log("\n💾 DATABASE STATUS:");
+    console.log(`   Total Records: ${report.database.totalRecords || 0}`);
+    console.log(
+      `   Using Real Data: ${report.database.usingRealData ? "YES" : "NO"}`,
+    );
+
+    console.log("\n🔗 CROSS-PLATFORM BRIDGES:");
+    console.log(
+      `   Connected: ${report.bridges.connectedBridges}/${report.bridges.totalBridges}`,
+    );
+
+    if (report.summary.keyStrengths.length > 0) {
+      console.log("\n✅ KEY STRENGTHS:");
+      report.summary.keyStrengths.forEach((strength) => {
+        console.log(`   • ${strength}`);
+      });
+    }
+
+    if (report.summary.criticalIssues.length > 0) {
+      console.log("\n⚠️ CRITICAL ISSUES:");
+      report.summary.criticalIssues.forEach((issue) => {
+        console.log(`   • ${issue}`);
+      });
+    }
+
+    console.log(`\n🎯 ECOSYSTEM STATUS: ${report.summary.ecosystemReadiness}`);
+    console.log("\n==========================================\n");
+  }
+
+  // Mock test methods for demonstration
+  async testUnifiedRole(roleConfig, _authToken) {
+    return { valid: true, crossPlatformAccess: roleConfig.crossPlatform };
+  }
+
+  async checkDatabase() {
+    return { connected: true, type: "MongoDB Atlas" };
+  }
+
+  async checkAuthentication(authToken) {
+    return { valid: !!authToken, type: "JWT" };
+  }
+
+  async checkAPIPerformance(_authToken) {
+    return { averageResponseTime: "95ms", status: "Good" };
+  }
+
+  async checkWebSockets() {
+    return { available: true, port: 5000 };
+  }
+
+  async checkMultiTenancy() {
+    return { supported: true, isolation: "Organization-based" };
+  }
+
+  async testWorkOrderFlow(_authToken) {
+    return { operational: true, stages: 7 };
+  }
+
+  async testProcurementFlow(_authToken) {
+    return { operational: true, stages: 8 };
+  }
+
+  async testListingFlow(_authToken) {
+    return { operational: true, stages: 7 };
+  }
+}
+
+// ============================================
+// MAIN EXECUTION
+// ============================================
+
+async function runUnifiedAudit() {
+  try {
+    const ecosystem = new FixzitEcosystem();
+    await ecosystem.initialize();
+
+    const auditReport = await ecosystem.audit.runCompleteAudit(ecosystem);
+
+    return auditReport;
+  } catch (error) {
+    console.error("❌ Unified audit failed:", error.message);
+    process.exit(1);
+  }
+}
+
+// Run the unified audit if this file is executed directly
+if (require.main === module) {
+  runUnifiedAudit();
+}
+
+module.exports = { FixzitEcosystem, MasterAuditSystem };
+
+]]>
+</file>
+
+<file path="scripts/universal-verification.js">
+<![CDATA[
+const axios = require("axios");
+const BASE_URL = "http://localhost:5000";
+
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
+async function getAuthToken() {
+  try {
+    const res = await axios.post(`${BASE_URL}/api/auth/login`, {
+      email: `admin@${EMAIL_DOMAIN}`,
+      password: "Admin@1234",
+    });
+    return res.data.token;
+  } catch (error) {
+    console.log("❌ AUTH FAILED - Backend not running?", error?.message || "");
+    return null;
+  }
+}
+
+async function verifyPhaseCompletion(phase) {
+  console.log(`\n🔍 VERIFYING ${phase} IMPLEMENTATION...\n`);
+
+  const token = await getAuthToken();
+  if (!token) return 0;
+
+  const authHeaders = { Authorization: `Bearer ${token}` };
+
+  const tests = {
+    phase1: [
+      {
+        name: "Work Order Creation",
+        test: async () => {
+          const res = await axios.post(
+            `${BASE_URL}/api/workorders`,
+            {
+              title: "Test WO",
+              priority: "urgent",
+              category: "HVAC",
+            },
+            { headers: authHeaders },
+          );
+          return res.data.success && res.data.data._id
+            ? "✅ REAL"
+            : "❌ PLACEHOLDER";
+        },
+      },
+      {
+        name: "ZATCA QR Generation",
+        test: async () => {
+          const res = await axios.post(
+            `${BASE_URL}/api/finance/invoices-simple`,
+            {
+              customer: "Test",
+              amount: 100,
+            },
+            { headers: authHeaders },
+          );
+          return res.data.success &&
+            res.data.qrCode &&
+            res.data.qrCode.length > 100
+            ? "✅ REAL"
+            : "❌ PLACEHOLDER";
+        },
+      },
+      {
+        name: "RFQ System",
+        test: async () => {
+          const res = await axios.post(
+            `${BASE_URL}/api/marketplace/rfq`,
+            {
+              title: "Test RFQ",
+            },
+            { headers: authHeaders },
+          );
+          return res.data.rfq && res.data.rfq._id
+            ? "✅ REAL"
+            : "❌ PLACEHOLDER";
+        },
+      },
+    ],
+    phase2: [
+      {
+        name: "Mobile API - Tenant Login",
+        test: async () => {
+          const res = await axios.post(`${BASE_URL}/api/mobile/tenant/login`, {
+            phone: "+966500000000",
+            otp: "123456",
+          });
+          return res.data.success &&
+            res.data.token &&
+            res.data.token.length > 50
+            ? "✅ REAL"
+            : "❌ PLACEHOLDER";
+        },
+      },
+      {
+        name: "Mobile API - Technician Tasks",
+        test: async () => {
+          const res = await axios.get(
+            `${BASE_URL}/api/mobile/technician/tasks`,
+          );
+          return res.data.success && Array.isArray(res.data.tasks)
+            ? "✅ REAL"
+            : "❌ PLACEHOLDER";
+        },
+      },
+    ],
+    phase3: [
+      {
+        name: "Analytics Engine",
+        test: async () => {
+          const res = await axios.get(`${BASE_URL}/api/analytics/predictive`);
+          return res.data.predictions ? "✅ REAL" : "❌ PLACEHOLDER";
+        },
+      },
+    ],
+  };
+
+  let realCount = 0;
+  let totalCount = 0;
+
+  for (const test of tests[phase] || []) {
+    try {
+      const result = await test.test();
+      console.log(`${test.name}: ${result}`);
+      if (result.includes("✅")) realCount++;
+      totalCount++;
+    } catch (error) {
+      console.log(
+        `${test.name}: ❌ ERROR/NOT IMPLEMENTED`,
+        error?.message || "",
+      );
+      totalCount++;
+    }
+  }
+
+  const percentage = Math.round((realCount / totalCount) * 100);
+  console.log(`\n📊 ${phase.toUpperCase()} REAL COMPLETION: ${percentage}%\n`);
+
+  return percentage;
+}
+
+// RUN ALL PHASE CHECKS
+(async () => {
+  const phase1 = await verifyPhaseCompletion("phase1");
+  const phase2 = await verifyPhaseCompletion("phase2");
+
+  if (phase1 < 100) {
+    console.log("❌ PHASE 1 INCOMPLETE - FIX THIS FIRST!");
+    console.log(
+      'SEARCH FOR: "workOrderSchema", "generateZATCAQR", "RFQSchema"',
+    );
+  } else if (phase2 < 100) {
+    console.log("✅ Phase 1 Complete");
+    console.log("🔧 Working on Phase 2 - Mobile Apps");
+  }
+})();
+
+]]>
+</file>
+
+<file path="scripts/update-demo-passwords.ts">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * Update all demo user passwords
+ * Uses centralized demo user configuration from lib/config/demo-users.ts
+ * 
+ * SEC-051: Password now configurable via DEMO_DEFAULT_PASSWORD env var
+ */
+import { db } from "../lib/mongo";
+import { User } from "../server/models/User";
+import { hashPassword } from "../lib/auth";
+import { getDemoEmail } from "../lib/config/demo-users";
+
+// SEC-051: Use environment variable with local dev fallback
+const DEMO_DEFAULT_PASSWORD = process.env.DEMO_DEFAULT_PASSWORD || "password123";
+
+const emails = [
+  getDemoEmail("superadmin"),
+  getDemoEmail("admin"),
+  getDemoEmail("manager"),
+  getDemoEmail("tenant"),
+  getDemoEmail("vendor"),
+  getDemoEmail("emp001"),
+  getDemoEmail("emp002"),
+];
+
+const usernames = ["EMP001", "EMP002"];
+
+async function updatePasswords() {
+  try {
+    await db;
+    console.log(`🔐 Updating all demo user passwords to "${DEMO_DEFAULT_PASSWORD}"...\n`);
+
+    const hashedPassword = await hashPassword(DEMO_DEFAULT_PASSWORD);
+    let updated = 0;
+
+    // Update by email
+    for (const email of emails) {
+      const result = await User.updateOne(
+        { email },
+        { $set: { password: hashedPassword, status: "ACTIVE" } },
+      );
+      if (result.modifiedCount > 0) {
+        console.log(`✅ Updated: ${email}`);
+        updated++;
+      } else {
+        const exists = await User.findOne({ email });
+        if (exists) {
+          console.log(`⏭️  Already set: ${email}`);
+        } else {
+          console.log(`❌ Not found: ${email}`);
+        }
+      }
+    }
+
+    // Also update by username for corporate users
+    for (const username of usernames) {
+      const result = await User.updateOne(
+        { username },
+        { $set: { password: hashedPassword, status: "ACTIVE" } },
+      );
+      if (result.modifiedCount > 0 && result.matchedCount > 0) {
+        console.log(`✅ Updated: ${username}`);
+        updated++;
+      }
+    }
+
+    console.log(`\n📊 Updated ${updated} user passwords`);
+    console.log(`\n🔑 All demo users now have password: ${DEMO_DEFAULT_PASSWORD}`);
+
+    process.exit(0);
+  } catch (error) {
+    console.error("❌ Error:", error);
+    process.exit(1);
+  }
+}
+
+updatePasswords();
+
+]]>
+</file>
+
+<file path="scripts/update-superadmin-credentials.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * Update SuperAdmin Credentials
+ * 
+ * Updates the SuperAdmin account with username/password authentication.
+ * Twilio does not support KSA, so OTP is disabled for SuperAdmin.
+ * 
+ * SuperAdmin Credentials:
+ * - Username: EngSayh
+ * - Password: EngSayh@1985
+ * - Email: Uses centralized demo-users config
+ */
+
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import { User } from '@/server/models/User';
+import bcrypt from 'bcryptjs';
+import { getDemoEmail } from '@/lib/config/demo-users';
+
+const SUPERADMIN_EMAIL = getDemoEmail('superadmin');
+const NEW_USERNAME = 'EngSayh';
+const NEW_PASSWORD = 'EngSayh@1985';
+
+async function updateSuperAdminCredentials() {
+  console.log('🔐 Updating SuperAdmin credentials...\n');
+
+  try {
+    // Connect to database
+    await connectToDatabase();
+    console.log('✅ Connected to database\n');
+
+    // Find super admin user
+    const user = await User.findOne({ email: SUPERADMIN_EMAIL });
+
+    if (!user) {
+      console.error(`❌ SuperAdmin user not found: ${SUPERADMIN_EMAIL}`);
+      console.error('   Run: pnpm exec tsx scripts/seed-test-users.ts');
+      process.exit(1);
+    }
+
+    console.log('✅ Found SuperAdmin user');
+    console.log('   ID:', user._id);
+    console.log('   Current Role:', user.role || user.professional?.role);
+    console.log('   Current Username:', user.username || 'NOT SET');
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(NEW_PASSWORD, 12);
+
+    // Update user with new credentials
+    const updateResult = await User.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          username: NEW_USERNAME,
+          password: hashedPassword,
+          status: 'ACTIVE',
+          isActive: true,
+          isSuperAdmin: true,
+          role: 'SUPER_ADMIN',
+          'professional.role': 'SUPER_ADMIN',
+          // Disable OTP requirement for SuperAdmin (Twilio doesn't support KSA)
+          'preferences.otpDisabled': true,
+          'security.locked': false,
+          'security.lockReason': null,
+          'security.lockTime': null,
+          'security.loginAttempts': 0,
+        },
+      },
+    );
+
+    if (updateResult.modifiedCount > 0 || updateResult.matchedCount > 0) {
+      console.log('\n✅ SuperAdmin credentials updated successfully!\n');
+    } else {
+      console.log('\n⚠️  No changes made (user may already have correct credentials)\n');
+    }
+
+    // Verify the update
+    const updatedUser = await User.findOne({ email: SUPERADMIN_EMAIL });
+    if (updatedUser) {
+      const passwordValid = await bcrypt.compare(NEW_PASSWORD, updatedUser.password);
+      
+      console.log('📋 Updated SuperAdmin Details:');
+      console.log('   ═══════════════════════════════════════════');
+      console.log('   Email:    ', SUPERADMIN_EMAIL);
+      console.log('   Username: ', updatedUser.username);
+      console.log('   Password: ', passwordValid ? '✅ VERIFIED' : '❌ FAILED');
+      console.log('   Role:     ', updatedUser.role || updatedUser.professional?.role);
+      console.log('   Status:   ', updatedUser.status);
+      console.log('   OTP:      ', updatedUser.preferences?.otpDisabled ? '❌ DISABLED' : '✅ ENABLED');
+      console.log('   ═══════════════════════════════════════════\n');
+
+      if (passwordValid) {
+        console.log('🎉 LOGIN CREDENTIALS:');
+        console.log('   ═══════════════════════════════════════════');
+        console.log(`   📧 Email:    ${SUPERADMIN_EMAIL}`);
+        console.log('   👤 Username: EngSayh');
+        console.log('   🔑 Password: EngSayh@1985');
+        console.log('   ═══════════════════════════════════════════\n');
+        console.log('   Login URL: https://fixzit.co/login\n');
+      }
+    }
+
+  } catch (error) {
+    console.error('❌ Error:', error);
+    process.exit(1);
+  } finally {
+    process.exit(0);
+  }
+}
+
+updateSuperAdminCredentials();
+
+]]>
+</file>
+
+<file path="scripts/update-test-users-phone.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * Update Test Users with Phone Numbers
+ *
+ * Adds Saudi phone numbers to test users for OTP testing
+ */
+
+import { config } from "dotenv";
+import { getDatabase, disconnectFromDatabase } from "../lib/mongodb-unified";
+import { COLLECTIONS } from "../lib/db/collections";
+
+// Load environment
+config({ path: ".env.local" });
+
+async function updateTestUsersPhone() {
+  try {
+    const db = await getDatabase();
+    const usersCollection = db.collection(COLLECTIONS.USERS);
+
+    // Test user emails and their phone numbers
+    const testUsers = [
+      { email: "superadmin@test.fixzit.co", phone: "+966552233456" },
+      { email: "admin@test.fixzit.co", phone: "+966552233456" },
+      { email: "property-manager@test.fixzit.co", phone: "+966552233456" },
+      { email: "technician@test.fixzit.co", phone: "+966552233456" },
+      { email: "tenant@test.fixzit.co", phone: "+966552233456" },
+      { email: "vendor@test.fixzit.co", phone: "+966552233456" },
+    ];
+
+    let updated = 0;
+
+    for (const user of testUsers) {
+      const result = await usersCollection.updateOne(
+        { email: user.email },
+        {
+          $set: {
+            phone: user.phone,
+            "contact.phone": user.phone,
+            "personal.phone": user.phone,
+            updatedAt: new Date(),
+          },
+        },
+      );
+
+      if (result.modifiedCount > 0) {
+        updated++;
+        console.log(`✅ Updated ${user.email} with phone ${user.phone}`);
+      } else {
+        console.log(
+          `ℹ️  ${user.email} already has phone number or doesn't exist`,
+        );
+      }
+    }
+
+    console.log(`\n✅ Updated ${updated} test user(s) with phone numbers`);
+
+    await disconnectFromDatabase();
+  } catch (error) {
+    console.error(
+      `❌ Failed to update test users: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    process.exit(1);
+  }
+}
+
+updateTestUsersPhone();
+
+]]>
+</file>
+
+</batch_content>

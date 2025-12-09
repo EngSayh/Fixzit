@@ -1,0 +1,3200 @@
+
+You are the "Fixzit Memory Builder" for category: "routes".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "routes",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="scripts/enhance-api-routes.js">
+<![CDATA[
+#!/usr/bin/env node
+
+/**
+ * API Routes Enhancement Script
+ *
+ * This script applies standardized patterns to all API routes:
+ * 1. Rate limiting
+ * 2. Standardized error handling
+ * 3. OpenAPI documentation
+ * 4. Security headers
+ * 5. Input validation improvements
+ *
+ * Usage:
+ *   node scripts/enhance-api-routes.js --dry-run  # Preview changes
+ *   node scripts/enhance-api-routes.js --apply    # Apply changes
+ *   node scripts/enhance-api-routes.js --route /app/api/specific/route.ts  # Single route
+ */
+
+import fs from "fs/promises";
+import path from "path";
+import { glob } from "glob";
+
+const DRY_RUN = process.argv.includes("--dry-run");
+const APPLY = process.argv.includes("--apply");
+const SINGLE_ROUTE = process.argv
+  .find((arg) => arg.startsWith("--route="))
+  ?.split("=")[1];
+
+// Rate limiting recommendations by route type
+const RATE_LIMITS = {
+  auth: { limit: 5, window: 900_000 }, // 5 req per 15 min
+  payment: { limit: 10, window: 300_000 }, // 10 req per 5 min
+  subscription: { limit: 3, window: 300_000 }, // 3 req per 5 min
+  read: { limit: 60, window: 60_000 }, // 60 req per min
+  write: { limit: 20, window: 60_000 }, // 20 req per min
+  admin: { limit: 100, window: 60_000 }, // 100 req per min
+  public: { limit: 10, window: 60_000 }, // 10 req per min
+};
+
+// Detect route type and recommend rate limit
+function getRateLimitForRoute(filePath) {
+  if (filePath.includes("/auth/")) return RATE_LIMITS.auth;
+  if (filePath.includes("/payment")) return RATE_LIMITS.payment;
+  if (filePath.includes("/subscribe")) return RATE_LIMITS.subscription;
+  if (filePath.includes("/admin/")) return RATE_LIMITS.admin;
+  if (filePath.includes("/public/")) return RATE_LIMITS.public;
+  return RATE_LIMITS.read; // default
+}
+
+// Check if file needs enhancement
+async function analyzeRoute(filePath) {
+  const content = await fs.readFile(filePath, "utf-8");
+
+  const analysis = {
+    path: filePath,
+    hasRateLimit: /rateLimit\(/.test(content),
+    hasStandardizedErrors:
+      /createErrorResponse|unauthorizedError|forbiddenError/.test(content),
+    hasOpenAPI: /@openapi/.test(content),
+    hasZodValidation: /z\.object\(/.test(content),
+    hasTenantIsolation: /orgId:/.test(content),
+    methods: [],
+    needsEnhancement: false,
+  };
+
+  // Detect HTTP methods
+  const methodMatches = content.matchAll(
+    /export\s+async\s+function\s+(GET|POST|PUT|PATCH|DELETE)/g,
+  );
+  for (const match of methodMatches) {
+    analysis.methods.push(match[1]);
+  }
+
+  // Determine if enhancement needed
+  analysis.needsEnhancement =
+    !analysis.hasRateLimit ||
+    !analysis.hasStandardizedErrors ||
+    !analysis.hasOpenAPI;
+
+  return analysis;
+}
+
+// Generate OpenAPI doc comment for a method
+function generateOpenAPIDoc(method, routePath) {
+  const projectRoot = process.cwd();
+  // Use path.posix for consistent forward slashes across all platforms
+  const normalizedRoute = routePath.split(path.sep).join(path.posix.sep);
+  const normalizedRoot = projectRoot.split(path.sep).join(path.posix.sep);
+
+  const cleanPath = normalizedRoute
+    .replace(`${normalizedRoot}/app/api`, "/api")
+    .replace("/route.ts", "")
+    .replace("[id]", "{id}")
+    .replace("[slug]", "{slug}");
+
+  const methodLower = method.toLowerCase();
+  const resourceName = cleanPath.split("/").filter(Boolean).pop() || "resource";
+
+  let doc = `/**
+ * @openapi
+ * ${cleanPath}:
+ *   ${methodLower}:
+ *     summary: ${method} ${resourceName}
+ *     tags: [${resourceName.charAt(0).toUpperCase() + resourceName.slice(1)}]
+ *     security:
+ *       - bearerAuth: []`;
+
+  if (method === "POST" || method === "PUT" || method === "PATCH") {
+    doc += `
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object`;
+  }
+
+  doc += `
+ *     responses:
+ *       ${method === "POST" ? "201" : "200"}:
+ *         description: Success
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       429:
+ *         $ref: '#/components/responses/RateLimitExceeded'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */`;
+
+  return doc;
+}
+
+// Enhance a single route file
+async function enhanceRoute(filePath) {
+  const analysis = await analyzeRoute(filePath);
+
+  if (!analysis.needsEnhancement) {
+    console.log(`✓ ${filePath} - Already enhanced`);
+    return { enhanced: false, analysis };
+  }
+
+  let content = await fs.readFile(filePath, "utf-8");
+  let changes = [];
+
+  // Add missing imports
+  const imports = {
+    rateLimit: "import { rateLimit } from '@/server/security/rateLimit';",
+    errors: `import {
+  unauthorizedError,
+  forbiddenError,
+  notFoundError,
+  zodValidationError,
+  rateLimitError,
+  handleApiError
+} from '@/server/utils/errorResponses';`,
+    secureResponse:
+      "import { createSecureResponse } from '@/server/security/headers';",
+  };
+
+  if (!analysis.hasRateLimit) {
+    content = addImportAfterLast(content, imports.rateLimit);
+    changes.push("Added rate limiting import");
+  }
+
+  if (!analysis.hasStandardizedErrors) {
+    content = addImportAfterLast(content, imports.errors);
+    changes.push("Added standardized error imports");
+  }
+
+  // Add OpenAPI docs if missing
+  if (!analysis.hasOpenAPI) {
+    for (const method of analysis.methods) {
+      const openAPIDoc = generateOpenAPIDoc(method, filePath);
+      content = addOpenAPIBeforeMethod(content, method, openAPIDoc);
+      changes.push(`Added OpenAPI doc for ${method}`);
+    }
+  }
+
+  // Add rate limiting to methods if missing
+  if (!analysis.hasRateLimit) {
+    const rateLimit = getRateLimitForRoute(filePath);
+    for (const method of analysis.methods) {
+      content = addRateLimitingToMethod(content, method, rateLimit);
+      changes.push(`Added rate limiting to ${method}`);
+    }
+  }
+
+  // Replace error patterns
+  if (!analysis.hasStandardizedErrors) {
+    content = replaceErrorPatterns(content);
+    changes.push("Replaced error patterns with standardized handlers");
+  }
+
+  if (APPLY && changes.length > 0) {
+    await fs.writeFile(filePath, content, "utf-8");
+    console.log(`✓ ${filePath}`);
+    changes.forEach((change) => console.log(`  - ${change}`));
+  } else if (DRY_RUN) {
+    console.log(`[DRY RUN] ${filePath}`);
+    changes.forEach((change) => console.log(`  - ${change}`));
+  }
+
+  return { enhanced: true, analysis, changes };
+}
+
+// Helper functions
+function addImportAfterLast(content, importStatement) {
+  const lines = content.split("\n");
+  let lastImportIndex = -1;
+
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].startsWith("import ")) {
+      lastImportIndex = i;
+    }
+  }
+
+  if (lastImportIndex >= 0) {
+    lines.splice(lastImportIndex + 1, 0, importStatement);
+  } else {
+    lines.unshift(importStatement);
+  }
+
+  return lines.join("\n");
+}
+
+function addOpenAPIBeforeMethod(content, method, openAPIDoc) {
+  const regex = new RegExp(`(\\n)(export\\s+async\\s+function\\s+${method})`);
+  return content.replace(regex, `\n${openAPIDoc}\n$2`);
+}
+
+function addRateLimitingToMethod(content, method, rateLimit) {
+  // Find the method and add rate limiting after try {
+  const methodRegex = new RegExp(
+    `(export\\s+async\\s+function\\s+${method}[^{]+{\\s*try\\s*{)`,
+    "s",
+  );
+
+  const rateLimitCode = `
+    // Rate limiting
+    const key = \`route:\${user?.orgId || 'anonymous'}\`;
+    const rl = rateLimit(key, ${rateLimit.limit}, ${rateLimit.window});
+    if (!rl.allowed) return rateLimitError();
+`;
+
+  return content.replace(methodRegex, `$1${rateLimitCode}`);
+}
+
+function replaceErrorPatterns(content) {
+  // Replace common error patterns with standardized functions
+  content = content.replace(
+    /NextResponse\.json\(\s*{\s*(?:ok:\s*false,\s*)?error:\s*['"]Unauthorized['"]\s*}\s*,\s*{\s*status:\s*401\s*}\s*\)/g,
+    "unauthorizedError()",
+  );
+
+  content = content.replace(
+    /NextResponse\.json\(\s*{\s*(?:ok:\s*false,\s*)?error:\s*['"]Forbidden['"]\s*}\s*,\s*{\s*status:\s*403\s*}\s*\)/g,
+    "forbiddenError()",
+  );
+
+  content = content.replace(
+    /NextResponse\.json\(\s*{\s*(?:ok:\s*false,\s*)?error:\s*['"](.*?)['"]\s*}\s*,\s*{\s*status:\s*404\s*}\s*\)/g,
+    "notFoundError('$1')",
+  );
+
+  // Replace generic 500 errors
+  content = content.replace(
+    /NextResponse\.json\(\s*{\s*(?:ok:\s*false,\s*)?error:\s*['"](.*?)['"]\s*}\s*,\s*{\s*status:\s*500\s*}\s*\)/g,
+    "internalServerError('$1')",
+  );
+
+  return content;
+}
+
+// Main execution
+async function main() {
+  console.log("🚀 API Routes Enhancement Tool\n");
+
+  let routes;
+
+  if (SINGLE_ROUTE) {
+    routes = [SINGLE_ROUTE];
+  } else {
+    routes = await glob("app/api/**/route.ts", {
+      cwd: process.cwd(),
+      absolute: true,
+      ignore: ["**/node_modules/**", "**/*.test.ts", "**/*.FIXED.ts"],
+    });
+  }
+
+  console.log(`Found ${routes.length} API routes\n`);
+
+  const results = {
+    total: routes.length,
+    enhanced: 0,
+    alreadyGood: 0,
+    errors: 0,
+  };
+
+  for (const route of routes) {
+    try {
+      const result = await enhanceRoute(route);
+      if (result.enhanced) {
+        results.enhanced++;
+      } else {
+        results.alreadyGood++;
+      }
+    } catch (error) {
+      console.error(`✗ ${route} - Error: ${error.message}`);
+      results.errors++;
+    }
+  }
+
+  console.log("\n📊 Summary:");
+  console.log(`  Total routes: ${results.total}`);
+  console.log(`  Enhanced: ${results.enhanced}`);
+  console.log(`  Already good: ${results.alreadyGood}`);
+  console.log(`  Errors: ${results.errors}`);
+
+  if (DRY_RUN) {
+    console.log("\n⚠️  This was a dry run. Use --apply to make changes.");
+  } else if (APPLY) {
+    console.log("\n✅ Changes applied successfully!");
+  } else {
+    console.log("\n💡 Use --dry-run to preview or --apply to make changes.");
+  }
+}
+
+if (!DRY_RUN && !APPLY && !SINGLE_ROUTE) {
+  console.log("Usage:");
+  console.log(
+    "  node scripts/enhance-api-routes.js --dry-run  # Preview changes",
+  );
+  console.log(
+    "  node scripts/enhance-api-routes.js --apply    # Apply changes",
+  );
+  console.log(
+    "  node scripts/enhance-api-routes.js --route=/path/to/route.ts  # Single route",
+  );
+  process.exit(1);
+}
+
+main().catch(console.error);
+
+]]>
+</file>
+
+<file path="scripts/fix-routes.js">
+<![CDATA[
+const fs = require("fs");
+const path = require("path");
+
+// Fix route loading issues
+const routesDir = path.join(__dirname, "routes");
+
+if (!fs.existsSync(routesDir)) {
+  fs.mkdirSync(routesDir, { recursive: true });
+}
+
+// Create base routes that were failing
+const routes = [
+  "auth.routes.js",
+  "property.routes.js",
+  "workorder.routes.js",
+  "finance.routes.js",
+  "hr.routes.js",
+  "admin.routes.js",
+  "crm.routes.js",
+  "marketplace.routes.js",
+  "support.routes.js",
+  "compliance.routes.js",
+  "reports.routes.js",
+  "system.routes.js",
+];
+
+routes.forEach((routeFile) => {
+  const filePath = path.join(routesDir, routeFile);
+  if (!fs.existsSync(filePath)) {
+    const routeName = routeFile.replace(".routes.js", "");
+    const content = `
+const express = require('express');
+const router = express.Router();
+
+// ${routeName.toUpperCase()} ROUTES
+
+router.get('/', (req, res) => {
+    res.json({ 
+        module: '${routeName}',
+        status: 'operational',
+        endpoints: []
+    });
+});
+
+router.get('/health', (req, res) => {
+    res.json({ 
+        module: '${routeName}',
+        health: 'healthy'
+    });
+});
+
+module.exports = router;
+`;
+    fs.writeFileSync(filePath, content);
+    console.log(`✅ Created ${routeFile}`);
+  }
+});
+
+console.log("✅ All routes fixed");
+
+]]>
+</file>
+
+<file path="scripts/generate-route-metrics.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import path from "node:path";
+
+const ROOT = process.cwd();
+const INPUT = path.join(ROOT, "_artifacts", "route-alias-report.json");
+const OUTPUT = path.join(ROOT, "public", "api-mock", "route-metrics.json");
+
+if (!existsSync(INPUT)) {
+  console.error(
+    'Route alias report not found. Run "pnpm run check:route-aliases" first.',
+  );
+  process.exit(1);
+}
+
+type RouteAliasResult = {
+  alias: string;
+  target: string;
+  exists: boolean;
+};
+
+type RouteAliasReport = {
+  results: RouteAliasResult[];
+};
+
+const data = JSON.parse(readFileSync(INPUT, "utf8")) as RouteAliasReport;
+
+const modulesMap = new Map<
+  string,
+  { moduleKey: string; aliases: number; missing: number; targets: string[] }
+>();
+const reuseMap = new Map<string, number>();
+
+for (const result of data.results) {
+  const moduleKey = result.alias.split("/")[2] || "unknown";
+  if (!modulesMap.has(moduleKey)) {
+    modulesMap.set(moduleKey, {
+      moduleKey,
+      aliases: 0,
+      missing: 0,
+      targets: [],
+    });
+  }
+  const mod = modulesMap.get(moduleKey)!;
+  mod.aliases += 1;
+  mod.missing += result.exists ? 0 : 1;
+  mod.targets.push(result.target);
+
+  reuseMap.set(result.target, (reuseMap.get(result.target) ?? 0) + 1);
+}
+
+const modules = Array.from(modulesMap.values()).map((mod) => ({
+  module: mod.moduleKey,
+  aliases: mod.aliases,
+  missing: mod.missing,
+  uniqueTargets: new Set(mod.targets).size,
+  targets: mod.targets,
+}));
+
+const reuse = Array.from(reuseMap.entries())
+  .filter(([, count]) => count > 1)
+  .map(([target, count]) => ({ target, count }))
+  .sort((a, b) => b.count - a.count);
+
+const totals = {
+  aliasFiles: data.results.length,
+  modules: modules.length,
+  reusedTargets: reuse.length,
+  uniqueTargets: new Set(data.results.map((r) => r.target)).size,
+  duplicateAliases: reuse.reduce((sum, entry) => sum + entry.count, 0),
+  unresolvedAliases: data.results.filter((r) => !r.exists).length,
+};
+
+const payload = {
+  generatedAt: new Date().toISOString(),
+  totals,
+  modules,
+  reuse,
+};
+
+mkdirSync(path.dirname(OUTPUT), { recursive: true });
+writeFileSync(OUTPUT, JSON.stringify(payload, null, 2));
+console.log(`Route metrics saved to ${OUTPUT}`);
+
+]]>
+</file>
+
+<file path="scripts/notify-route-metrics.ts">
+<![CDATA[
+import { readFileSync } from "fs";
+import path from "path";
+
+import { RouteAliasMetrics } from "@/lib/routes/aliasMetrics";
+import { postRouteMetricsWebhook } from "@/lib/routes/webhooks";
+
+async function main() {
+  const artifactPath = path.join(
+    process.cwd(),
+    "_artifacts/route-aliases.json",
+  );
+  const contents = readFileSync(artifactPath, "utf8");
+  const metrics = JSON.parse(contents) as RouteAliasMetrics;
+
+  const duplicationRate =
+    metrics.totals.aliasFiles > 0
+      ? (metrics.totals.duplicateAliases / metrics.totals.aliasFiles) * 100
+      : 0;
+
+  await postRouteMetricsWebhook({
+    duplicationRate,
+    generatedAt: metrics.generatedAt,
+    aliasFiles: metrics.totals.aliasFiles,
+  });
+}
+
+void main();
+
+]]>
+</file>
+
+<file path="scripts/perf_collect_routes.py">
+<![CDATA[
+#!/usr/bin/env python3
+"""
+Performance Collection for Multiple Routes
+Collects performance metrics across multiple routes for trend analysis
+"""
+
+import json
+import os
+import sys
+import time
+import subprocess
+import signal
+import pathlib
+from contextlib import contextmanager
+from playwright.sync_api import sync_playwright
+from datetime import datetime
+
+# Configuration
+ART = pathlib.Path("artifacts")
+ART.mkdir(exist_ok=True)
+
+ROUTES_FILE = pathlib.Path("routes.txt")
+TRENDS_FILE = ART / "perf-trends.json"
+STREAMLIT_FILE = os.environ.get("FXZ_APP_ENTRY", "app.py")
+APP_PORT = int(os.environ.get("FXZ_APP_PORT", "5000"))
+APP_URL = f"http://localhost:{APP_PORT}"
+
+TIMEOUT = 60_000  # 60 seconds
+
+
+def get_routes_to_test():
+    """Get routes from routes.txt file"""
+    if not ROUTES_FILE.exists():
+        print("No routes.txt file found, testing root route only")
+        return ["/"]
+
+    try:
+        routes = []
+        with open(ROUTES_FILE, "r") as f:
+            for line in f:
+                route = line.strip()
+                if route and not route.startswith("#"):
+                    if not route.startswith("/"):
+                        route = "/" + route
+                    routes.append(route)
+
+        return routes if routes else ["/"]
+
+    except Exception as e:
+        print(f"Error reading routes.txt: {e}")
+        return ["/"]
+
+
+@contextmanager
+def run_streamlit():
+    """Launch Streamlit app and wait for it to be ready"""
+    print(f"🚀 Starting Streamlit app on port {APP_PORT}...")
+
+    proc = subprocess.Popen(
+        [
+            "streamlit",
+            "run",
+            STREAMLIT_FILE,
+            "--server.port",
+            str(APP_PORT),
+            "--server.headless",
+            "true",
+            "--server.address",
+            "0.0.0.0",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+
+    try:
+        # Wait until server is up
+        started = False
+        t0 = time.time()
+
+        while time.time() - t0 < 40:
+            if proc.poll() is not None:
+                raise RuntimeError(
+                    f"Streamlit process exited early with code {proc.returncode}"
+                )
+
+            if proc.stdout:
+                line = proc.stdout.readline()
+            else:
+                line = ""
+            if not line:
+                time.sleep(0.1)
+                continue
+
+            print(f"📡 {line.strip()}")
+
+            if "Running on" in line and f":{APP_PORT}/" in line:
+                started = True
+                print("✅ Streamlit server is ready!")
+                break
+
+        if not started:
+            raise RuntimeError("Streamlit did not start in time.")
+
+        # Give it a moment to fully initialize
+        time.sleep(2)
+        yield
+
+    finally:
+        print("🛑 Shutting down Streamlit...")
+        try:
+            os.kill(proc.pid, signal.SIGTERM)
+            proc.wait(timeout=5)
+        except Exception as e:
+            print(f"Warning: Failed to gracefully shutdown: {e}")
+            try:
+                os.kill(proc.pid, signal.SIGKILL)
+            except Exception:
+                pass
+
+
+def collect_route_metrics(page, route="/"):
+    """Collect performance metrics for a specific route"""
+    print(f"📊 Collecting metrics for: {route}")
+
+    # Inject performance observers
+    page.add_init_script(
+        """
+        (() => {
+            window.__fxzMetrics = {
+                cls: 0,
+                lcp: undefined,
+                fid: undefined,
+                navigationStart: performance.timeOrigin
+            };
+            
+            if ('PerformanceObserver' in window) {
+                try {
+                    // Cumulative Layout Shift
+                    let clsValue = 0;
+                    const clsObserver = new PerformanceObserver((list) => {
+                        for (const entry of list.getEntries()) {
+                            if (!entry.hadRecentInput) {
+                                clsValue += entry.value;
+                            }
+                        }
+                        window.__fxzMetrics.cls = clsValue;
+                    });
+                    clsObserver.observe({ type: 'layout-shift', buffered: true });
+
+                    // Largest Contentful Paint
+                    const lcpObserver = new PerformanceObserver((list) => {
+                        const entries = list.getEntries();
+                        const lastEntry = entries[entries.length - 1];
+                        if (lastEntry) {
+                            window.__fxzMetrics.lcp = lastEntry.startTime;
+                        }
+                    });
+                    lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
+
+                } catch (e) {
+                    console.warn('Performance observers setup failed:', e);
+                }
+            }
+        })();
+    """
+    )
+
+    # Navigate to the route
+    full_url = f"{APP_URL}{route}"
+    print(f"🔍 Loading: {full_url}")
+
+    try:
+        page.goto(full_url, wait_until="networkidle", timeout=TIMEOUT)
+    except Exception as e:
+        print(f"❌ Failed to load {route}: {e}")
+        return None
+
+    # Wait for page to settle
+    page.wait_for_timeout(2000)
+
+    # Collect all metrics
+    try:
+        metrics = page.evaluate(
+            """
+            () => {
+                const nav = performance.getEntriesByType('navigation')[0] || {};
+                const paints = performance.getEntriesByType('paint') || [];
+                
+                const fcp = (paints.find(p => p.name === 'first-contentful-paint') || {}).startTime || 0;
+                const lcp = window.__fxzMetrics?.lcp || 0;
+                const cls = window.__fxzMetrics?.cls || 0;
+                
+                // Navigation Timing metrics
+                const ttfb = nav.responseStart || 0;
+                const domContentLoaded = nav.domContentLoadedEventEnd || 0;
+                const loadComplete = nav.loadEventEnd || 0;
+                
+                // Calculate TTI approximation
+                const tti = Math.max(fcp, domContentLoaded);
+                
+                // Total Blocking Time approximation
+                const tbt = Math.max(0, (nav.domInteractive || 0) - fcp - 50);
+                
+                // Speed Index approximation
+                const speedIndex = fcp + (lcp - fcp) * 0.5;
+                
+                return {
+                    route: window.location.pathname,
+                    timestamp: Date.now(),
+                    ttfb: Math.round(ttfb),
+                    fcp: Math.round(fcp),
+                    lcp: Math.round(lcp),
+                    cls: parseFloat(cls.toFixed(4)),
+                    tti: Math.round(tti),
+                    tbt: Math.round(tbt),
+                    speedIndex: Math.round(speedIndex),
+                    domContentLoaded: Math.round(domContentLoaded),
+                    loadComplete: Math.round(loadComplete)
+                };
+            }
+        """
+        )
+
+        print(
+            f"✅ Metrics collected: FCP={metrics['fcp']}ms, LCP={metrics['lcp']}ms, CLS={metrics['cls']}"
+        )
+        return metrics
+
+    except Exception as e:
+        print(f"❌ Failed to collect metrics for {route}: {e}")
+        return None
+
+
+def load_existing_trends():
+    """Load existing trend data"""
+    if TRENDS_FILE.exists():
+        try:
+            return json.loads(TRENDS_FILE.read_text())
+        except Exception:
+            pass
+
+    return {"version": "1.0", "created_at": datetime.now().isoformat(), "trends": {}}
+
+
+def save_trends(trends_data):
+    """Save trend data to file"""
+    trends_data["updated_at"] = datetime.now().isoformat()
+    TRENDS_FILE.write_text(json.dumps(trends_data, indent=2))
+
+
+def add_metrics_to_trends(trends_data, metrics):
+    """Add new metrics to trend data"""
+    if not metrics:
+        return
+
+    route = metrics.get("route", "/")
+    timestamp = metrics.get("timestamp")
+    date_key = datetime.fromtimestamp(timestamp / 1000).strftime("%Y-%m-%d")
+
+    # Initialize route data if not exists
+    if route not in trends_data["trends"]:
+        trends_data["trends"][route] = {
+            "route": route,
+            "samples": [],
+            "daily_averages": {},
+        }
+
+    # Add sample
+    trends_data["trends"][route]["samples"].append(metrics)
+
+    # Keep only last 100 samples per route
+    trends_data["trends"][route]["samples"] = trends_data["trends"][route]["samples"][
+        -100:
+    ]
+
+    # Calculate daily average for this date
+    date_samples = [
+        sample
+        for sample in trends_data["trends"][route]["samples"]
+        if datetime.fromtimestamp(sample["timestamp"] / 1000).strftime("%Y-%m-%d")
+        == date_key
+    ]
+
+    if date_samples:
+        daily_avg = {
+            "date": date_key,
+            "samples_count": len(date_samples),
+            "fcp_avg": sum(s.get("fcp", 0) for s in date_samples) / len(date_samples),
+            "lcp_avg": sum(s.get("lcp", 0) for s in date_samples) / len(date_samples),
+            "cls_avg": sum(s.get("cls", 0) for s in date_samples) / len(date_samples),
+            "ttfb_avg": sum(s.get("ttfb", 0) for s in date_samples) / len(date_samples),
+        }
+
+        trends_data["trends"][route]["daily_averages"][date_key] = daily_avg
+
+
+def main():
+    """Main function to collect performance trends"""
+    print("🎯 Starting Performance Trend Collection")
+    print("=" * 50)
+
+    routes = get_routes_to_test()
+    print(f"📍 Routes to test: {', '.join(routes)}")
+
+    # Load existing trends
+    trends_data = load_existing_trends()
+    all_metrics = []
+
+    with run_streamlit():
+        with sync_playwright() as p:
+            browser = p.chromium.launch(
+                headless=True, args=["--no-sandbox", "--disable-dev-shm-usage"]
+            )
+            context = browser.new_context(viewport={"width": 1366, "height": 768})
+            page = context.new_page()
+
+            try:
+                for route in routes:
+                    print(f"\n🧪 Testing: {route}")
+
+                    metrics = collect_route_metrics(page, route)
+                    if metrics:
+                        all_metrics.append(metrics)
+                        add_metrics_to_trends(trends_data, metrics)
+                    else:
+                        print(f"❌ Failed to collect metrics for {route}")
+
+            finally:
+                browser.close()
+
+    # Save trends
+    if all_metrics:
+        save_trends(trends_data)
+
+        # Also save individual metrics for compatibility
+        (ART / "perf-routes-latest.json").write_text(json.dumps(all_metrics, indent=2))
+
+        print(f"\n✅ Collected metrics for {len(all_metrics)} routes")
+        print(f"💾 Trends saved to: {TRENDS_FILE}")
+
+        # Show summary
+        for metrics in all_metrics:
+            route = metrics["route"]
+            fcp = metrics["fcp"]
+            lcp = metrics["lcp"]
+            cls = metrics["cls"]
+            print(f"   📊 {route}: FCP={fcp}ms, LCP={lcp}ms, CLS={cls}")
+    else:
+        print("❌ No metrics collected")
+        return 1
+
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        exit_code = main()
+        sys.exit(exit_code)
+    except KeyboardInterrupt:
+        print("\n⏹️  Performance trend collection interrupted")
+        sys.exit(1)
+    except Exception as e:
+        print(f"💥 Performance trend collection failed: {e}")
+        sys.exit(1)
+
+]]>
+</file>
+
+<file path="scripts/routes_check.py">
+<![CDATA[
+# scripts/routes_check.py
+from __future__ import annotations
+from pathlib import Path
+import re
+import sys
+import json
+
+ROOT = Path(__file__).resolve().parents[1]
+ART = ROOT / "artifacts"
+ART.mkdir(exist_ok=True)
+PAGES = ROOT / "pages"
+ENTRY_CAND = [ROOT / "app.py", ROOT / "streamlit_app.py", ROOT / "main.py"]
+
+issues = []
+entry = next((p for p in ENTRY_CAND if p.exists()), None)
+if entry is None:
+    issues.append(
+        {
+            "type": "entry:missing",
+            "message": "No entry file (app.py/streamlit_app.py/main.py)",
+        }
+    )
+
+names = []
+if PAGES.exists():
+    for f in sorted(PAGES.glob("*.py")):
+        names.append(f.stem.replace("_", " ").strip() or f.stem)
+
+# Duplicates (case/space insensitive)
+keyed = [re.sub(r"\s+", " ", n).strip().lower() for n in names]
+seen = {}
+dupes = []
+for i, k in enumerate(keyed):
+    if k in seen:
+        dupes.append((names[i], names[seen[k]]))
+    else:
+        seen[k] = i
+
+if dupes:
+    issues.append(
+        {"type": "pages:duplicate", "message": "Duplicate page labels", "extra": dupes}
+    )
+
+report = {"entry": str(entry) if entry else None, "pages": names, "issues": issues}
+(ART / "routes-report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+
+lines = ["# Routes/Pages Report", ""]
+lines.append(f"Entry: {entry if entry else '— MISSING —'}")
+lines.append(f"Pages ({len(names)}): " + ", ".join(names) if names else "(none)")
+lines.append("")
+if not issues:
+    lines.append("✅ Routes/pages OK")
+else:
+    lines.append(f"❌ Issues: {len(issues)}")
+    for it in issues:
+        lines.append(f"- **{it['type']}**: {it['message']}")
+        if it.get("extra"):
+            for a, b in it["extra"]:
+                lines.append(f"  - {a} ↔ {b}")
+(ART / "routes-report.md").write_text("\n".join(lines), encoding="utf-8")
+
+sys.exit(1 if issues else 0)
+
+]]>
+</file>
+
+<file path="scripts/run-route-http-check.ts">
+<![CDATA[
+import { spawn } from "child_process";
+
+const BASE_URL = process.env.ROUTE_VERIFY_BASE || "http://127.0.0.1:4010";
+const PORT = new URL(BASE_URL).port || "4010";
+
+function runCommand(
+  command: string,
+  args: string[],
+  options: { env?: NodeJS.ProcessEnv } = {},
+) {
+  return new Promise<void>((resolve, reject) => {
+    const child = spawn(command, args, {
+      stdio: "inherit",
+      env: { ...process.env, ...options.env },
+      shell: process.platform === "win32",
+    });
+
+    child.once("error", reject);
+    child.once("close", (code) => {
+      if (code === 0) resolve();
+      else
+        reject(
+          new Error(`${command} ${args.join(" ")} exited with code ${code}`),
+        );
+    });
+  });
+}
+
+async function waitForServer(url: string, attempts = 60, delay = 2000) {
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      const res = await fetch(url, { method: "GET" });
+      if (res.ok || res.status === 404) return;
+    } catch {
+      // ignore until next retry
+    }
+    await new Promise((resolve) => setTimeout(resolve, delay));
+  }
+  throw new Error(`Server never responded at ${url}`);
+}
+
+async function main() {
+  const buildFlags = process.env.ROUTE_VERIFY_BUILD_FLAGS?.split(" ").filter(
+    Boolean,
+  ) ?? ["--no-lint"];
+  const sharedEnv = {
+    ...process.env,
+    // Allow opting into live Mongo during local verification unless explicitly disabled
+    ...(process.env.NODE_ENV !== "production" &&
+    !process.env.ALLOW_MONGODB_DURING_BUILD
+      ? { ALLOW_MONGODB_DURING_BUILD: "true" }
+      : {}),
+    ALLOW_LOCAL_MONGODB: "true",
+    DISABLE_MONGODB_FOR_BUILD: "true",
+  };
+  const buildArgs = ["run", "build", ...buildFlags];
+
+  console.log("🏗️  Building Next.js app before route verification...");
+  await runCommand("pnpm", buildArgs, { env: sharedEnv });
+
+  console.log(`🚀 Starting Next.js server on ${BASE_URL}...`);
+  const server = spawn(
+    "pnpm",
+    ["run", "start", "-p", PORT, "-H", "127.0.0.1"],
+    { stdio: "inherit", env: sharedEnv, shell: process.platform === "win32" },
+  );
+  const serverClosed = new Promise<void>((resolve) => {
+    server.once("close", () => resolve());
+  });
+
+  let detachFailureHandlers = () => {};
+  const serverFailure = new Promise<never>((_, reject) => {
+    const handleError = (error: Error) => {
+      detachFailureHandlers();
+      reject(error);
+    };
+    const handleExit = (code: number | null, signal: NodeJS.Signals | null) => {
+      detachFailureHandlers();
+      reject(
+        new Error(
+          `Next.js server exited before verification (code: ${code}, signal: ${signal ?? "none"})`,
+        ),
+      );
+    };
+    detachFailureHandlers = () => {
+      server.off("error", handleError);
+      server.off("exit", handleExit);
+    };
+    server.once("error", handleError);
+    server.once("exit", handleExit);
+  });
+
+  try {
+    await Promise.race([waitForServer(`${BASE_URL}/`), serverFailure]);
+    detachFailureHandlers();
+    console.log("✅ Server is up, running HTTP route verification...");
+    await runCommand("pnpm", ["exec", "tsx", "scripts/verify-routes.ts"], {
+      env: { ...sharedEnv, ROUTE_VERIFY_BASE: BASE_URL },
+    });
+  } finally {
+    console.log("🧹 Shutting down Next.js server...");
+    if (!server.killed) {
+      server.kill();
+    }
+    await Promise.race([
+      serverClosed,
+      new Promise((resolve) => setTimeout(resolve, 2000)),
+    ]);
+  }
+}
+
+main()
+  .then(() => {
+    console.log("✅ Route verification complete");
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error("❌ Route HTTP verification failed:", error);
+    process.exit(1);
+  });
+
+]]>
+</file>
+
+<file path="scripts/verify-route-aliases.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * verify-route-aliases.ts
+ *
+ * Scans the /app/fm directory for alias pages (exporting from another route)
+ * and ensures that the referenced target file actually exists on disk.
+ * Emits a JSON + human summary so CI can fail fast when an alias target is missing.
+ */
+
+import {
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import path from "node:path";
+
+const ROOT = process.cwd();
+const FM_DIR = path.join(ROOT, "app", "fm");
+const VALID_EXTENSIONS = [".tsx", ".ts", ".jsx", ".js"];
+
+interface AliasResult {
+  alias: string;
+  target: string;
+  exists: boolean;
+}
+
+function walkPages(dir: string): string[] {
+  const entries = readdirSync(dir, { withFileTypes: true });
+  const pages: string[] = [];
+  for (const entry of entries) {
+    if (entry.name.startsWith(".")) continue;
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      pages.push(...walkPages(fullPath));
+    } else if (entry.isFile() && entry.name === "page.tsx") {
+      pages.push(fullPath);
+    }
+  }
+  return pages;
+}
+
+function normalizeTarget(importPath: string, fileDir: string): string[] {
+  if (importPath.startsWith("@/")) {
+    const withoutAlias = importPath.replace(/^@\//, "");
+    return VALID_EXTENSIONS.map((ext) => path.join(ROOT, withoutAlias + ext));
+  }
+  if (importPath.startsWith("./") || importPath.startsWith("../")) {
+    return VALID_EXTENSIONS.map((ext) => path.join(fileDir, importPath + ext));
+  }
+  return [];
+}
+
+function analyzeAlias(file: string): AliasResult | null {
+  const content = readFileSync(file, "utf8");
+  const match = content.match(/export \{ default \} from '([^']+)'/);
+  if (!match) return null;
+  const importPath = match[1];
+  const candidates = normalizeTarget(importPath, path.dirname(file));
+  const existing = candidates.find((candidate) => {
+    try {
+      return statSync(candidate).isFile();
+    } catch {
+      return false;
+    }
+  });
+  return {
+    alias: path.relative(ROOT, file),
+    target: existing
+      ? path.relative(ROOT, existing)
+      : (candidates[0] ?? importPath),
+    exists: Boolean(existing),
+  };
+}
+
+const aliasFiles = walkPages(FM_DIR);
+const results: AliasResult[] = [];
+for (const file of aliasFiles) {
+  const result = analyzeAlias(file);
+  if (result) results.push(result);
+}
+
+const missing = results.filter((result) => !result.exists);
+
+if (missing.length === 0) {
+  console.log(
+    `✅ Route alias verification passed. Checked ${results.length} aliases.`,
+  );
+} else {
+  console.error(
+    `❌ Route alias verification failed. ${missing.length} alias(es) reference missing targets:`,
+  );
+  for (const miss of missing) {
+    console.error(` - ${miss.alias} -> ${miss.target}`);
+  }
+  process.exitCode = 1;
+}
+
+const reportPath = path.join(ROOT, "_artifacts", "route-alias-report.json");
+try {
+  mkdirSync(path.dirname(reportPath), { recursive: true });
+  writeFileSync(
+    reportPath,
+    JSON.stringify({ timestamp: new Date().toISOString(), results }, null, 2),
+  );
+  console.log(
+    `📝 Detailed report written to ${path.relative(ROOT, reportPath)}`,
+  );
+} catch (err) {
+  console.warn("⚠️  Unable to write route alias report:", err);
+}
+
+]]>
+</file>
+
+<file path="scripts/verify-routes.ts">
+<![CDATA[
+import { readdirSync, statSync } from "fs";
+import { join } from "path";
+
+const ROOT = process.cwd();
+const APP = join(ROOT, "app");
+const BASE = process.env.ROUTE_VERIFY_BASE || "http://localhost:3000";
+const pages: string[] = [];
+
+function replaceDynamicSegments(route: string): string {
+  const parts = route.split("/").filter(Boolean);
+  const normalized = parts.map((segment) => {
+    if (segment.startsWith("[") && segment.endsWith("]")) {
+      const key = segment.slice(1, -1).toLowerCase();
+      if (
+        key.includes("id") ||
+        key.includes("order") ||
+        key.includes("account")
+      ) {
+        return "507f1f77bcf86cd799439011"; // valid ObjectId-ish value for tests
+      }
+      if (key.includes("slug")) {
+        return "test-slug";
+      }
+      if (key.includes("file")) {
+        return "sample.pdf";
+      }
+      return "test";
+    }
+    return segment;
+  });
+  return "/" + normalized.join("/");
+}
+
+function crawl(dir: string, pathParts: string[] = []) {
+  for (const name of readdirSync(dir)) {
+    const full = join(dir, name);
+    const s = statSync(full);
+    if (s.isDirectory()) {
+      // Strip Next.js route groups like "(app)" and "(dashboard)" from the URL
+      const isRouteGroup = name.startsWith("(") && name.endsWith(")");
+      const nextParts = isRouteGroup ? pathParts : [...pathParts, name];
+      crawl(full, nextParts);
+    } else {
+      if (/^page\.(tsx|jsx|js|mdx)$/.test(name)) {
+        const route = "/" + pathParts.join("/");
+        pages.push(route === "/app" ? "/" : route.replace(/^\/app/, "") || "/");
+      }
+    }
+  }
+}
+
+try {
+  crawl(APP, []);
+} catch {
+  /* app dir might not exist */
+}
+
+const unique = Array.from(new Set(pages.length ? pages : ["/"]));
+console.log("Discovered routes:", unique);
+
+function hasErrorCode(error: unknown, code: string): boolean {
+  if (!error || typeof error !== "object") return false;
+  const err = error as { code?: string; cause?: unknown; errors?: unknown[] };
+  if (typeof err.code === "string" && err.code === code) {
+    return true;
+  }
+  if (
+    Array.isArray(err.errors) &&
+    err.errors.some((child) => hasErrorCode(child, code))
+  ) {
+    return true;
+  }
+  if (err.cause) {
+    return hasErrorCode(err.cause, code);
+  }
+  return false;
+}
+
+function formatConnectionHint(url: string): string {
+  return [
+    `Connection refused while requesting ${url}.`,
+    "Start the Next.js dev server (pnpm dev) or run pnpm verify:routes:http to auto-build/start a local server before verifying routes.",
+  ].join(" ");
+}
+
+(async () => {
+  let failures = 0;
+  for (const r of unique) {
+    const url = BASE + replaceDynamicSegments(r);
+    try {
+      const res = await fetch(url, { redirect: "manual" });
+      if (res.status >= 400) {
+        failures++;
+        console.error(`❌ ${res.status} ${url}`);
+      } else {
+        console.log(`✅ ${res.status} ${url}`);
+      }
+    } catch (e) {
+      failures++;
+      if (hasErrorCode(e, "ECONNREFUSED")) {
+        console.error(`❌ ERR ${url} ${formatConnectionHint(url)}`);
+      } else {
+        console.error(`❌ ERR ${url}`, e);
+      }
+    }
+  }
+  if (failures) {
+    console.error(`Route failures: ${failures}`);
+    process.exit(1);
+  } else {
+    console.log("All discovered routes OK ✅");
+  }
+})();
+
+]]>
+</file>
+
+<file path="tests/api/ats/analytics.route.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
+import type { NextRequest } from 'next/server';
+import { Types } from 'mongoose';
+import type { Mock } from 'vitest';
+
+process.env.SKIP_ENV_VALIDATION = 'true';
+process.env.NEXTAUTH_SECRET = 'test-secret';
+
+type JsonBody = { error?: string } | Record<string, string | number | boolean | null | object>;
+type JsonResponse = { status: number; body: JsonBody };
+
+vi.mock('next/server', () => ({
+  NextRequest: class {},
+  NextResponse: {
+    json: (body: JsonBody, init?: ResponseInit): JsonResponse => ({
+      status: init?.status ?? 200,
+      body
+    })
+  }
+}));
+
+vi.mock('@/lib/mongodb-unified', () => ({
+  connectToDatabase: vi.fn().mockResolvedValue(undefined)
+}));
+
+vi.mock('@/lib/ats/rbac', () => ({
+  atsRBAC: vi.fn(),
+}));
+
+vi.mock('@/server/security/rateLimit', () => ({
+  rateLimit: vi.fn().mockReturnValue({ allowed: true }),
+  smartRateLimit: vi.fn(async () => ({ allowed: true }))
+}));
+
+vi.mock('@/server/security/headers', () => ({
+  getClientIP: vi.fn().mockReturnValue('127.0.0.1')
+}));
+
+const ApplicationMock = {
+  aggregate: vi.fn(),
+  countDocuments: vi.fn().mockResolvedValue(0)
+};
+
+const InterviewMock = {
+  aggregate: vi.fn().mockResolvedValue([]),
+  countDocuments: vi.fn().mockResolvedValue(0)
+};
+
+const JobMock = {
+  countDocuments: vi.fn().mockResolvedValue(0)
+};
+
+vi.mock('@/server/models/Application', () => ({
+  Application: ApplicationMock
+}));
+
+vi.mock('@/server/models/ats/Interview', () => ({
+  Interview: InterviewMock
+}));
+
+vi.mock('@/server/models/Job', () => ({
+  Job: JobMock
+}));
+
+let GET: any;
+let atsRBAC: any;
+
+describe('API /api/ats/analytics', () => {
+  beforeAll(async () => {
+    ({ GET } = await import('@/app/api/ats/analytics/route'));
+    ({ atsRBAC } = await import('@/lib/ats/rbac'));
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    atsRBAC.mockResolvedValue({
+      authorized: true,
+      orgId: 'org-1',
+      atsModule: {
+        enabled: true,
+        jobPostLimit: Number.MAX_SAFE_INTEGER,
+        seats: Number.MAX_SAFE_INTEGER,
+        seatUsage: 0,
+      },
+    });
+    ApplicationMock.aggregate.mockReset();
+    ApplicationMock.aggregate
+      .mockResolvedValueOnce([{ _id: 'applied', count: 2 }])
+      .mockResolvedValueOnce([{ _id: '2024-01-01', count: 1 }])
+      .mockResolvedValueOnce([{ applied: 2, screening: 1, interview: 1, offer: 0, hired: 0, rejected: 0 }])
+      .mockResolvedValueOnce([{ _id: 'applied', avgDays: 1 }])
+      .mockResolvedValueOnce([{ jobTitle: 'Engineer', applicationsCount: 2, avgScore: 80 }]);
+  });
+
+  const callGET = async (query: string) => {
+    const req = { url: `https://example.com/api/ats/analytics${query}` } as NextRequest;
+    return GET(req);
+  };
+
+  it('rejects invalid period values', async () => {
+    const res = await callGET('?period=0');
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('Invalid period');
+  });
+
+  it('casts jobId filter when provided', async () => {
+    const jobId = new Types.ObjectId().toHexString();
+    const res = await callGET(`?period=30&jobId=${jobId}`);
+    expect(res.status).toBe(200);
+
+    const matchStage = ApplicationMock.aggregate.mock.calls[0][0][0];
+    expect(matchStage.$match.jobId).toBeInstanceOf(Types.ObjectId);
+    expect(matchStage.$match.jobId.toString()).toBe(jobId);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/api/ats/applications-id.route.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
+import type { NextRequest } from 'next/server';
+import type { Mock } from 'vitest';
+
+process.env.SKIP_ENV_VALIDATION = 'true';
+process.env.NEXTAUTH_SECRET = 'test-secret';
+
+type JsonBody = { error?: string; allowedTransitions?: string[] } | Record<string, string | number | boolean | null | object>;
+type JsonResponse = { status: number; body: JsonBody };
+type PatchBody = { stage?: string; [key: string]: string | number | boolean | null | object | undefined };
+
+vi.mock('next/server', () => ({
+  NextRequest: class {},
+  NextResponse: {
+    json: (body: JsonBody, init?: ResponseInit): JsonResponse => ({
+      status: init?.status ?? 200,
+      body
+    })
+  }
+}));
+
+vi.mock('next-auth', () => ({
+  __esModule: true,
+  default: vi.fn(() => ({
+    handlers: {},
+    auth: vi.fn(),
+    signIn: vi.fn(),
+    signOut: vi.fn()
+  })),
+  getServerSession: vi.fn(async () => ({
+    user: { id: 'user-1', role: 'ADMIN', orgId: 'org-1' }
+  }))
+}));
+
+vi.mock('@/lib/mongodb-unified', () => ({
+  connectToDatabase: vi.fn().mockResolvedValue(undefined)
+}));
+
+vi.mock('@/lib/ats/rbac', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/ats/rbac')>('@/lib/ats/rbac');
+  return {
+    ...actual,
+    atsRBAC: vi.fn()
+  };
+});
+
+vi.mock('@/server/security/rateLimit', () => ({
+  rateLimit: vi.fn().mockReturnValue({ allowed: true }),
+  smartRateLimit: vi.fn(async () => ({ allowed: true }))
+}));
+
+vi.mock('@/server/security/headers', () => ({
+  getClientIP: vi.fn().mockReturnValue('127.0.0.1'),
+  createSecureResponse: vi.fn()
+}));
+
+vi.mock('@/server/utils/errorResponses', () => ({
+  rateLimitError: vi.fn()
+}));
+
+const ApplicationMock = {
+  findById: vi.fn(),
+  find: vi.fn(),
+  countDocuments: vi.fn()
+};
+
+vi.mock('@/server/models/Application', () => ({
+  Application: ApplicationMock
+}));
+
+let PATCH: any;
+let atsRBAC: any;
+
+describe('API /api/ats/applications/[id] PATCH', () => {
+  beforeAll(async () => {
+    ({ PATCH } = await import('@/app/api/ats/applications/[id]/route'));
+    ({ atsRBAC } = await import('@/lib/ats/rbac'));
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    atsRBAC.mockResolvedValue({
+      authorized: true,
+      orgId: 'org-1',
+      userId: 'user-1',
+      isSuperAdmin: false,
+      atsModule: {
+        enabled: true,
+        jobPostLimit: Number.MAX_SAFE_INTEGER,
+        seats: Number.MAX_SAFE_INTEGER,
+        seatUsage: 0,
+      },
+    });
+    ApplicationMock.findById.mockResolvedValue({
+      _id: 'app-1',
+      stage: 'applied',
+      orgId: 'org-1',
+      history: [],
+      notes: [],
+      save: vi.fn().mockResolvedValue(undefined)
+    });
+  });
+
+  const callPATCH = async (body: PatchBody) => {
+    const req = {
+      url: 'https://example.com/api/ats/applications/app-1',
+      json: async () => body
+    } as unknown as NextRequest;
+    return PATCH(req, { params: Promise.resolve({ id: 'app-1' }) });
+  };
+
+  it('returns allowed transitions when invalid stage move attempted', async () => {
+    const res = await callPATCH({ stage: 'hired' });
+    expect(res.status).toBe(400);
+    expect(res.body.allowedTransitions).toEqual(['screening', 'rejected', 'withdrawn']);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/api/ats/applications.route.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
+import type { NextRequest } from 'next/server';
+import { Types } from 'mongoose';
+import type { Mock } from 'vitest';
+
+process.env.SKIP_ENV_VALIDATION = 'true';
+process.env.NEXTAUTH_SECRET = 'test-secret';
+
+type JsonBody = { error?: string } | Record<string, string | number | boolean | null | object>;
+type JsonResponse = { status: number; body: JsonBody };
+
+vi.mock('next/server', () => {
+  return {
+    NextRequest: class {},
+    NextResponse: {
+      json: (body: JsonBody, init?: ResponseInit): JsonResponse => ({
+        status: init?.status ?? 200,
+        body
+      })
+    }
+  };
+});
+
+vi.mock('@/lib/mongodb-unified', () => ({
+  connectToDatabase: vi.fn().mockResolvedValue(undefined)
+}));
+
+vi.mock('@/lib/ats/rbac', () => ({
+  atsRBAC: vi.fn(),
+}));
+
+vi.mock('@/server/security/rateLimit', () => ({
+  rateLimit: vi.fn().mockReturnValue({ allowed: true }),
+  smartRateLimit: vi.fn(async () => ({ allowed: true }))
+}));
+
+vi.mock('@/server/utils/errorResponses', () => ({
+  rateLimitError: vi.fn()
+}));
+
+vi.mock('@/server/security/headers', () => ({
+  getClientIP: vi.fn().mockReturnValue('127.0.0.1'),
+  createSecureResponse: vi.fn()
+}));
+
+const queryChain = () => ({
+  populate: vi.fn().mockReturnThis(),
+  sort: vi.fn().mockReturnThis(),
+  skip: vi.fn().mockReturnThis(),
+  limit: vi.fn().mockReturnThis(),
+  lean: vi.fn().mockResolvedValue([])
+});
+
+const ApplicationMock = {
+  find: vi.fn().mockReturnValue(queryChain()),
+  countDocuments: vi.fn().mockResolvedValue(0),
+  findById: vi.fn()
+};
+
+vi.mock('@/server/models/Application', () => ({
+  Application: ApplicationMock
+}));
+
+let GET: any;
+let atsRBAC: any;
+
+describe('API /api/ats/applications', () => {
+  beforeAll(async () => {
+    ({ GET } = await import('@/app/api/ats/applications/route'));
+    ({ atsRBAC } = await import('@/lib/ats/rbac'));
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    ApplicationMock.find.mockReturnValue(queryChain());
+    ApplicationMock.countDocuments.mockResolvedValue(0);
+    atsRBAC.mockResolvedValue({
+      authorized: true,
+      orgId: 'org-1',
+      atsModule: {
+        enabled: true,
+        jobPostLimit: Number.MAX_SAFE_INTEGER,
+        seats: Number.MAX_SAFE_INTEGER,
+        seatUsage: 0,
+      },
+    });
+  });
+
+  const callGET = async (query: string) => {
+    const req = { url: `https://example.com/api/ats/applications${query}` } as NextRequest;
+    return GET(req);
+  };
+
+  it('rejects invalid page parameter', async () => {
+    const res = await callGET('?page=abc');
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('Invalid page');
+  });
+
+  it('casts jobId and candidateId filters to ObjectId when valid', async () => {
+    const jobId = new Types.ObjectId().toHexString();
+    const candidateId = new Types.ObjectId().toHexString();
+    const res = await callGET(`?jobId=${jobId}&candidateId=${candidateId}&stage=screening&page=2&limit=75`);
+
+    expect(res.status).toBe(200);
+    expect(ApplicationMock.find).toHaveBeenCalledTimes(1);
+    const filter = ApplicationMock.find.mock.calls[0][0];
+    expect(filter.orgId).toBe('org-1');
+    expect(filter.stage).toBe('screening');
+    expect(filter.jobId).toBeInstanceOf(Types.ObjectId);
+    expect(filter.jobId.toString()).toBe(jobId);
+    expect(filter.candidateId.toString()).toBe(candidateId);
+    expect(ApplicationMock.countDocuments).toHaveBeenCalledWith(filter);
+  });
+
+  it('returns 403 when user lacks ATS access', async () => {
+    // Mock atsRBAC to return unauthorized with response object
+    const { atsRBAC } = await import('@/lib/ats/rbac');
+    (atsRBAC as Mock).mockResolvedValue({
+      authorized: false,
+      response: {
+        status: 403,
+        body: { error: 'Access denied' }
+      }
+    });
+
+    const res = await callGET('?page=1');
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toContain('Access denied');
+    expect(ApplicationMock.find).not.toHaveBeenCalled();
+  });
+
+  it('returns 403 when user is not from correct org', async () => {
+    // Mock atsRBAC to return unauthorized with response object
+    const { atsRBAC } = await import('@/lib/ats/rbac');
+    (atsRBAC as Mock).mockResolvedValue({
+      authorized: false,
+      response: {
+        status: 403,
+        body: { error: 'Access denied - organization mismatch' }
+      }
+    });
+
+    const res = await callGET('?page=1');
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toContain('Access denied');
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/api/ats/interviews.route.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
+import type { NextRequest } from 'next/server';
+import { Types } from 'mongoose';
+import type { Mock } from 'vitest';
+
+process.env.SKIP_ENV_VALIDATION = 'true';
+process.env.NEXTAUTH_SECRET = 'test-secret';
+
+type JsonBody = { error?: string } | Record<string, string | number | boolean | null | object>;
+type JsonResponse = { status: number; body: JsonBody };
+type InterviewRequestBody = {
+  applicationId: string;
+  scheduledAt: string;
+  stage: string;
+  status: string;
+  duration: number;
+  interviewers: string[];
+  metadata?: Record<string, string | number | boolean | null | object>;
+  feedback?: Record<string, string | number | boolean | null | object>;
+};
+
+// Increase timeouts for this suite; Mongo/route wiring can take longer when run inside the full CI matrix
+vi.setConfig({ hookTimeout: 120000, testTimeout: 120000 });
+
+vi.mock('next/server', () => ({
+  NextRequest: class {},
+  NextResponse: {
+    json: (body: JsonBody, init?: ResponseInit): JsonResponse => ({
+      status: init?.status ?? 200,
+      body
+    })
+  }
+}));
+
+vi.mock('@/lib/mongodb-unified', () => ({
+  connectToDatabase: vi.fn().mockResolvedValue(undefined)
+}));
+
+vi.mock('@/lib/ats/rbac', () => ({
+  atsRBAC: vi.fn(),
+}));
+
+vi.mock('@/server/security/rateLimit', () => ({
+  rateLimit: vi.fn().mockReturnValue({ allowed: true }),
+  smartRateLimit: vi.fn(async () => ({ allowed: true }))
+}));
+
+vi.mock('@/server/security/headers', () => ({
+  getClientIP: vi.fn().mockReturnValue('127.0.0.1'),
+  createSecureResponse: vi.fn()
+}));
+
+vi.mock('@/server/utils/errorResponses', () => ({
+  rateLimitError: vi.fn()
+}));
+
+const createFindOneChain = () => ({
+  select: vi.fn().mockReturnThis(),
+  lean: vi.fn()
+});
+
+const ApplicationMock = {
+  findOne: vi.fn()
+};
+
+const queryChain = () => ({
+  select: vi.fn().mockReturnThis(),
+  populate: vi.fn().mockReturnThis(),
+  sort: vi.fn().mockReturnThis(),
+  skip: vi.fn().mockReturnThis(),
+  limit: vi.fn().mockReturnThis(),
+  lean: vi.fn().mockResolvedValue([])
+});
+
+const InterviewMock = {
+  find: vi.fn().mockReturnValue(queryChain()),
+  countDocuments: vi.fn().mockResolvedValue(0),
+  create: vi.fn()
+};
+
+vi.mock('@/server/models/Application', () => ({
+  Application: ApplicationMock
+}));
+
+vi.mock('@/server/models/ats/Interview', () => ({
+  Interview: InterviewMock
+}));
+
+let GET: any;
+let POST: any;
+let atsRBAC: any;
+
+describe('API /api/ats/interviews', () => {
+  beforeAll(async () => {
+    ({ GET, POST } = await import('@/app/api/ats/interviews/route'));
+    ({ atsRBAC } = await import('@/lib/ats/rbac'));
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    InterviewMock.find.mockReturnValue(queryChain());
+    InterviewMock.countDocuments.mockResolvedValue(0);
+    atsRBAC.mockResolvedValue({
+      authorized: true,
+      orgId: 'org-1',
+      userId: 'user-1',
+      atsModule: {
+        enabled: true,
+        jobPostLimit: Number.MAX_SAFE_INTEGER,
+        seats: Number.MAX_SAFE_INTEGER,
+        seatUsage: 0,
+      },
+    });
+  });
+
+  const getRequest = (query: string): NextRequest => ({
+    url: `https://example.com/api/ats/interviews${query}`
+  }) as NextRequest;
+
+  it('rejects invalid from date values', async () => {
+    const res = await GET(getRequest('?from=not-a-date'));
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('Invalid from date');
+  });
+
+  it('derives job and candidate from application when creating interviews', async () => {
+    const appId = new Types.ObjectId();
+    const jobId = new Types.ObjectId();
+    const candidateId = new Types.ObjectId();
+    const query = createFindOneChain();
+    query.lean.mockResolvedValueOnce({ _id: appId, jobId, candidateId, orgId: 'org-1' });
+    ApplicationMock.findOne.mockReturnValueOnce(query);
+    InterviewMock.create.mockResolvedValueOnce({ _id: 'int-1' });
+
+    const req = {
+      url: 'https://example.com/api/ats/interviews',
+      json: async (): Promise<InterviewRequestBody> => ({
+        applicationId: appId.toHexString(),
+        scheduledAt: '2024-01-01T00:00:00.000Z',
+        stage: 'technical',
+        status: 'completed',
+        duration: 45,
+        interviewers: ['mentor'],
+        metadata: { source: 'panel' },
+        feedback: { overall: 5 }
+      })
+    } as unknown as NextRequest;
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(201);
+    expect(InterviewMock.create).toHaveBeenCalledTimes(1);
+    const payload = InterviewMock.create.mock.calls[0][0];
+    expect(payload.applicationId.toString()).toBe(appId.toHexString());
+    expect(payload.jobId.toString()).toBe(jobId.toHexString());
+    expect(payload.candidateId.toString()).toBe(candidateId.toHexString());
+    expect(payload.orgId).toBe('org-1');
+    expect(payload.createdBy).toBe('user-1');
+    expect(payload.stage).toBe('technical');
+    expect(payload.status).toBe('completed');
+    expect(payload.scheduledAt).toBeInstanceOf(Date);
+    expect(payload.metadata).toEqual({ source: 'panel' });
+  });
+
+  it('returns 403 when user lacks ATS access on POST', async () => {
+    // Mock atsRBAC to return unauthorized with response object
+    const { atsRBAC } = await import('@/lib/ats/rbac');
+    (atsRBAC as Mock).mockResolvedValue({
+      authorized: false,
+      response: {
+        status: 403,
+        body: { error: 'Access denied' }
+      }
+    });
+
+    const appId = new Types.ObjectId();
+    const req = {
+      url: 'https://example.com/api/ats/interviews',
+      json: async () => ({
+        applicationId: appId.toHexString(),
+        scheduledAt: '2025-01-20T10:00:00Z',
+        stage: 'technical',
+        status: 'scheduled',
+        duration: 60,
+        interviewers: [],
+      } as InterviewRequestBody)
+    } as NextRequest;
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toContain('Access denied');
+    expect(InterviewMock.create).not.toHaveBeenCalled();
+  });
+
+  it('returns 403 when user tries to access other org interviews', async () => {
+    const { atsRBAC } = await import('@/lib/ats/rbac');
+    (atsRBAC as Mock).mockResolvedValue({
+      authorized: false,
+      response: {
+        status: 403,
+        body: { error: 'Organization mismatch' }
+      }
+    });
+
+    const appId = new Types.ObjectId();
+    const req = {
+      url: 'https://example.com/api/ats/interviews',
+      json: async () => ({
+        applicationId: appId.toHexString(),
+        scheduledAt: '2025-01-20T10:00:00Z',
+        stage: 'technical',
+        status: 'scheduled',
+        duration: 60,
+        interviewers: [],
+      } as InterviewRequestBody)
+    } as NextRequest;
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toContain('Organization mismatch');
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/api/ats/jobs-public.route.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
+import type { NextRequest } from 'next/server';
+
+process.env.SKIP_ENV_VALIDATION = 'true';
+process.env.NEXTAUTH_SECRET = 'test-secret';
+process.env.PUBLIC_JOBS_ORG_ID = 'test-org-123';
+
+type JsonBody = { error?: string; success?: boolean; data?: unknown[]; pagination?: object } | Record<string, string | number | boolean | null | object>;
+type JsonResponse = { status: number; body: JsonBody };
+
+vi.mock('next/server', () => {
+  return {
+    NextRequest: class {},
+    NextResponse: {
+      json: (body: JsonBody, init?: ResponseInit): JsonResponse => ({
+        status: init?.status ?? 200,
+        body
+      })
+    }
+  };
+});
+
+vi.mock('@/lib/mongodb-unified', () => ({
+  connectToDatabase: vi.fn().mockResolvedValue(undefined)
+}));
+
+vi.mock('@/server/security/rateLimit', () => ({
+  rateLimit: vi.fn().mockReturnValue({ allowed: true }),
+  smartRateLimit: vi.fn(async () => ({ allowed: true })),
+  buildOrgAwareRateLimitKey: vi.fn(() => 'test-rate-limit-key')
+}));
+
+vi.mock('@/server/utils/errorResponses', () => ({
+  rateLimitError: vi.fn().mockReturnValue({ status: 429, body: { error: 'Rate limit exceeded' } })
+}));
+
+vi.mock('@/server/security/headers', () => ({
+  getClientIP: vi.fn().mockReturnValue('127.0.0.1'),
+}));
+
+// Mock Redis to bypass cache for testing query logic
+vi.mock('@/lib/redis', () => ({
+  getCached: vi.fn().mockImplementation(async (_key: string, _ttl: number, fn: () => Promise<unknown>) => {
+    return fn();
+  }),
+  CacheTTL: {
+    FIFTEEN_MINUTES: 900
+  }
+}));
+
+const mockJobs = [
+  {
+    _id: 'job-1',
+    title: 'Senior Software Engineer',
+    description: 'Build scalable systems',
+    department: 'Engineering',
+    location: { city: 'Dubai', country: 'UAE', mode: 'hybrid' },
+    jobType: 'full-time',
+    skills: ['TypeScript', 'Node.js', 'MongoDB'],
+    tags: ['senior', 'backend'],
+    slug: 'senior-software-engineer',
+    createdAt: new Date(),
+  },
+  {
+    _id: 'job-2',
+    title: 'Product Manager',
+    description: 'Lead product strategy',
+    department: 'Product',
+    location: { city: 'Muscat', country: 'Oman', mode: 'onsite' },
+    jobType: 'full-time',
+    skills: ['Product Strategy', 'Agile'],
+    tags: ['product', 'leadership'],
+    slug: 'product-manager',
+    createdAt: new Date(),
+  }
+];
+
+const queryChain = (jobs = mockJobs) => ({
+  select: vi.fn().mockReturnThis(),
+  sort: vi.fn().mockReturnThis(),
+  skip: vi.fn().mockReturnThis(),
+  limit: vi.fn().mockReturnThis(),
+  lean: vi.fn().mockResolvedValue(jobs)
+});
+
+const JobMock = {
+  find: vi.fn().mockReturnValue(queryChain()),
+  countDocuments: vi.fn().mockResolvedValue(2),
+};
+
+vi.mock('@/server/models/Job', () => ({
+  Job: JobMock
+}));
+
+let GET: (req: NextRequest) => Promise<JsonResponse>;
+
+describe('API /api/ats/jobs/public - Edge Cases & Input Validation', () => {
+  beforeAll(async () => {
+    ({ GET } = await import('@/app/api/ats/jobs/public/route'));
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    JobMock.find.mockReturnValue(queryChain());
+    JobMock.countDocuments.mockResolvedValue(2);
+  });
+
+  const callGET = async (query: string = '') => {
+    const req = { url: `https://example.com/api/ats/jobs/public${query}` } as NextRequest;
+    return GET(req);
+  };
+
+  describe('Search Input Handling', () => {
+    it('handles empty search gracefully', async () => {
+      const res = await callGET('');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(JobMock.find).toHaveBeenCalledTimes(1);
+      const filter = JobMock.find.mock.calls[0][0];
+      expect(filter.$or).toBeUndefined(); // No $or clause when no search
+    });
+
+    it('handles 256+ character search string (truncated for query, not rejected)', async () => {
+      const longSearch = 'a'.repeat(300); // 300 chars
+      const res = await callGET(`?search=${encodeURIComponent(longSearch)}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      
+      // Verify the search was clamped to 256 chars for the query
+      const filter = JobMock.find.mock.calls[0][0];
+      expect(filter.$or).toBeDefined();
+      const regex = filter.$or[0].title;
+      // The regex pattern should be at most 256 chars (clamped)
+      expect(regex.source.length).toBeLessThanOrEqual(256);
+    });
+
+    it('escapes special regex characters in search to prevent injection', async () => {
+      const maliciousSearch = 'test.*+?^${}()|[]\\injection';
+      const res = await callGET(`?search=${encodeURIComponent(maliciousSearch)}`);
+
+      expect(res.status).toBe(200);
+      const filter = JobMock.find.mock.calls[0][0];
+      expect(filter.$or).toBeDefined();
+      
+      // Verify regex is escaped (should not throw when constructed)
+      const regex = filter.$or[0].title;
+      expect(regex instanceof RegExp).toBe(true);
+      // The pattern should have escaped special chars
+      expect(regex.source).toContain('\\.');
+      expect(regex.source).toContain('\\*');
+      expect(regex.source).toContain('\\+');
+    });
+
+    it('handles unicode and RTL characters in search', async () => {
+      const arabicSearch = 'مهندس برمجيات';
+      const res = await callGET(`?search=${encodeURIComponent(arabicSearch)}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      
+      const filter = JobMock.find.mock.calls[0][0];
+      expect(filter.$or).toBeDefined();
+      const regex = filter.$or[0].title;
+      expect(regex.source).toContain(arabicSearch);
+    });
+
+    it('trims whitespace from search input', async () => {
+      const paddedSearch = '   software engineer   ';
+      const res = await callGET(`?search=${encodeURIComponent(paddedSearch)}`);
+
+      expect(res.status).toBe(200);
+      const filter = JobMock.find.mock.calls[0][0];
+      expect(filter.$or).toBeDefined();
+      const regex = filter.$or[0].title;
+      expect(regex.source).toBe('software engineer');
+    });
+  });
+
+  describe('Department Filter Edge Cases', () => {
+    it('handles case-insensitive department matching', async () => {
+      const res = await callGET('?department=ENGINEERING');
+
+      expect(res.status).toBe(200);
+      const filter = JobMock.find.mock.calls[0][0];
+      expect(filter.department).toBeDefined();
+      // Now uses $regex object format for better index compatibility
+      expect(filter.department.$regex).toBe('^ENGINEERING$');
+      expect(filter.department.$options).toBe('i'); // Case-insensitive flag
+    });
+
+    it('handles department with special characters', async () => {
+      const specialDept = 'R&D (Research & Development)';
+      const res = await callGET(`?department=${encodeURIComponent(specialDept)}`);
+
+      expect(res.status).toBe(200);
+      const filter = JobMock.find.mock.calls[0][0];
+      expect(filter.department).toBeDefined();
+      // Should be escaped to prevent regex injection
+      // escapeRegex escapes: [.*+?^${}()|[\]\\]
+      // Parentheses ( and ) should be escaped as \( and \)
+      // Note: & is NOT a regex special char, so it won't be escaped
+      expect(filter.department.$regex).toContain('\\(Research');
+      expect(filter.department.$regex).toContain('Development\\)');
+    });
+
+    it('handles long department name (256+ chars)', async () => {
+      const longDept = 'Dept'.repeat(100); // 400 chars
+      const res = await callGET(`?department=${encodeURIComponent(longDept)}`);
+
+      expect(res.status).toBe(200);
+      const filter = JobMock.find.mock.calls[0][0];
+      expect(filter.department).toBeDefined();
+      // Should be clamped to 256 chars
+      expect(filter.department.$regex.length).toBeLessThanOrEqual(260); // +2 for ^$
+    });
+  });
+
+  describe('Job Type Filter Edge Cases', () => {
+    it('handles standard job types', async () => {
+      const res = await callGET('?jobType=full-time');
+
+      expect(res.status).toBe(200);
+      const filter = JobMock.find.mock.calls[0][0];
+      expect(filter.jobType).toBeDefined();
+      expect(filter.jobType.$regex).toBe('^full-time$');
+    });
+
+    it('handles job type with mixed case', async () => {
+      const res = await callGET('?jobType=Full-Time');
+
+      expect(res.status).toBe(200);
+      const filter = JobMock.find.mock.calls[0][0];
+      expect(filter.jobType).toBeDefined();
+      expect(filter.jobType.$options).toBe('i');
+    });
+  });
+
+  describe('Location Filter Edge Cases', () => {
+    it('handles location search across city, country, and mode', async () => {
+      const res = await callGET('?location=Dubai');
+
+      expect(res.status).toBe(200);
+      const filter = JobMock.find.mock.calls[0][0];
+      expect(filter.$and).toBeDefined();
+      expect(filter.$and[0].$or).toHaveLength(3); // city, country, mode
+    });
+
+    it('handles location with unicode characters', async () => {
+      const arabicLocation = 'دبي';
+      const res = await callGET(`?location=${encodeURIComponent(arabicLocation)}`);
+
+      expect(res.status).toBe(200);
+      const filter = JobMock.find.mock.calls[0][0];
+      expect(filter.$and).toBeDefined();
+      const locationOr = filter.$and[0].$or;
+      expect(locationOr[0]['location.city'].source).toContain(arabicLocation);
+    });
+  });
+
+  describe('Pagination Edge Cases', () => {
+    it('rejects invalid page parameter (non-numeric)', async () => {
+      const res = await callGET('?page=abc');
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain('Validation failed');
+    });
+
+    it('rejects zero page parameter', async () => {
+      const res = await callGET('?page=0');
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain('Validation failed');
+    });
+
+    it('rejects negative page parameter', async () => {
+      const res = await callGET('?page=-1');
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain('Validation failed');
+    });
+
+    it('rejects invalid limit parameter', async () => {
+      const res = await callGET('?limit=notanumber');
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain('Validation failed');
+    });
+
+    it('caps limit to maximum of 50', async () => {
+      const res = await callGET('?limit=100');
+
+      expect(res.status).toBe(200);
+      // The limit should be capped at 50
+      const limitCall = JobMock.find().limit;
+      expect(limitCall).toHaveBeenCalled();
+    });
+
+    it('uses default pagination when not specified', async () => {
+      const res = await callGET('');
+
+      expect(res.status).toBe(200);
+      expect(res.body.pagination).toEqual({
+        page: 1,
+        limit: 20,
+        total: 2,
+        pages: 1,
+      });
+    });
+
+    it('handles large page numbers gracefully', async () => {
+      const res = await callGET('?page=9999');
+
+      expect(res.status).toBe(200);
+      // Should return empty data with correct pagination info
+    });
+  });
+
+  describe('Combined Filters', () => {
+    it('handles all filters combined', async () => {
+      const res = await callGET('?search=engineer&department=Engineering&location=Dubai&jobType=full-time&page=1&limit=10');
+
+      expect(res.status).toBe(200);
+      const filter = JobMock.find.mock.calls[0][0];
+      
+      // All filters should be present
+      expect(filter.$or).toBeDefined(); // search
+      expect(filter.department).toBeDefined();
+      expect(filter.jobType).toBeDefined();
+      expect(filter.$and).toBeDefined(); // location
+      expect(filter.orgId).toBe('test-org-123');
+      expect(filter.status).toBe('published');
+      expect(filter.visibility).toBe('public');
+    });
+
+    it('handles filters with empty values gracefully', async () => {
+      const res = await callGET('?search=&department=&location=&jobType=');
+
+      expect(res.status).toBe(200);
+      const filter = JobMock.find.mock.calls[0][0];
+      
+      // Empty filters should not be added to query
+      expect(filter.$or).toBeUndefined();
+      expect(filter.department).toBeUndefined();
+      expect(filter.jobType).toBeUndefined();
+      expect(filter.$and).toBeUndefined();
+    });
+  });
+
+  describe('Security', () => {
+    it('always scopes to configured org (no arbitrary orgId)', async () => {
+      const res = await callGET('?orgId=malicious-org-id');
+
+      expect(res.status).toBe(200);
+      const filter = JobMock.find.mock.calls[0][0];
+      // Should use env var, not query param
+      expect(filter.orgId).toBe('test-org-123');
+    });
+
+    it('always requires published status and public visibility', async () => {
+      const res = await callGET('');
+
+      expect(res.status).toBe(200);
+      const filter = JobMock.find.mock.calls[0][0];
+      expect(filter.status).toBe('published');
+      expect(filter.visibility).toBe('public');
+    });
+
+    it('handles SQL injection attempts in search (treated as literal text)', async () => {
+      const sqlInjection = "'; DROP TABLE jobs; --";
+      const res = await callGET(`?search=${encodeURIComponent(sqlInjection)}`);
+
+      expect(res.status).toBe(200);
+      // SQL is meaningless in MongoDB, but verify it doesn't cause issues
+      expect(res.body.success).toBe(true);
+    });
+
+    it('handles NoSQL injection attempts in search', async () => {
+      // Common MongoDB injection attempt
+      const noSqlInjection = '{"$gt": ""}';
+      const res = await callGET(`?search=${encodeURIComponent(noSqlInjection)}`);
+
+      expect(res.status).toBe(200);
+      const filter = JobMock.find.mock.calls[0][0];
+      // Should be treated as literal string, not parsed as JSON
+      expect(filter.$or[0].title.source).toContain('\\{');
+    });
+  });
+
+  describe('Response Structure', () => {
+    it('returns correct response structure on success', async () => {
+      const res = await callGET('');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toBeDefined();
+      expect(res.body.pagination).toBeDefined();
+      expect(res.body.pagination).toEqual({
+        page: 1,
+        limit: 20,
+        total: 2,
+        pages: 1,
+      });
+    });
+
+    it('returns 503 when org is not configured', async () => {
+      // Save both env vars to restore after test (prevent cross-test leakage)
+      const originalPublicJobsOrgId = process.env.PUBLIC_JOBS_ORG_ID;
+      const originalPlatformOrgId = process.env.PLATFORM_ORG_ID;
+      
+      delete process.env.PUBLIC_JOBS_ORG_ID;
+      delete process.env.PLATFORM_ORG_ID;
+
+      // Re-import to get new module with updated env
+      vi.resetModules();
+      vi.doMock('@/lib/mongodb-unified', () => ({ connectToDatabase: vi.fn().mockResolvedValue(undefined) }));
+      vi.doMock('@/server/security/rateLimit', () => ({
+        rateLimit: vi.fn().mockReturnValue({ allowed: true }),
+        smartRateLimit: vi.fn(async () => ({ allowed: true })),
+        buildOrgAwareRateLimitKey: vi.fn(() => 'test-rate-limit-key')
+      }));
+      vi.doMock('@/server/utils/errorResponses', () => ({ rateLimitError: vi.fn() }));
+      vi.doMock('@/server/security/headers', () => ({ getClientIP: vi.fn().mockReturnValue('127.0.0.1') }));
+      vi.doMock('@/lib/redis', () => ({ getCached: vi.fn(), CacheTTL: { FIFTEEN_MINUTES: 900 } }));
+      vi.doMock('@/server/models/Job', () => ({ Job: JobMock }));
+      
+      const { GET: GET2 } = await import('@/app/api/ats/jobs/public/route');
+      const req = { url: 'https://example.com/api/ats/jobs/public' } as NextRequest;
+      const res = await GET2(req);
+
+      expect(res.status).toBe(503);
+      expect(res.body.error).toContain('Service not configured');
+
+      // Restore both env vars to prevent cross-test leakage
+      if (originalPublicJobsOrgId !== undefined) {
+        process.env.PUBLIC_JOBS_ORG_ID = originalPublicJobsOrgId;
+      }
+      if (originalPlatformOrgId !== undefined) {
+        process.env.PLATFORM_ORG_ID = originalPlatformOrgId;
+      }
+    });
+  });
+});
+
+describe('API /api/ats/jobs/public - Cache Key Normalization', () => {
+  beforeAll(async () => {
+    vi.resetModules();
+    // Re-register mocks after module reset
+    vi.doMock('@/server/security/rateLimit', () => ({
+      rateLimit: vi.fn().mockReturnValue({ allowed: true }),
+      smartRateLimit: vi.fn(async () => ({ allowed: true })),
+      buildOrgAwareRateLimitKey: vi.fn(() => 'test-rate-limit-key')
+    }));
+    vi.doMock('@/lib/redis', () => ({
+      getCached: vi.fn().mockImplementation(async (_key: string, _ttl: number, fn: () => Promise<unknown>) => {
+        return fn();
+      }),
+      CacheTTL: {
+        FIFTEEN_MINUTES: 900
+      }
+    }));
+    ({ GET } = await import('@/app/api/ats/jobs/public/route'));
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    JobMock.find.mockReturnValue(queryChain());
+    JobMock.countDocuments.mockResolvedValue(2);
+  });
+
+  const callGET = async (query: string = '') => {
+    const req = { url: `https://example.com/api/ats/jobs/public${query}` } as NextRequest;
+    return GET(req);
+  };
+
+  it('generates cache keys independent of search case', async () => {
+    const { getCached } = await import('@/lib/redis');
+    
+    await callGET('?search=Engineer');
+    const firstCacheKey = (getCached as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    
+    vi.clearAllMocks();
+    JobMock.find.mockReturnValue(queryChain());
+    
+    await callGET('?search=ENGINEER');
+    const secondCacheKey = (getCached as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    
+    // Cache keys should be identical (both lowercased)
+    expect(firstCacheKey).toBe(secondCacheKey);
+  });
+
+  it('clamps cache key segments to 64 chars while preserving query fidelity', async () => {
+    const { getCached } = await import('@/lib/redis');
+    const longSearch = 'a'.repeat(100);
+    
+    await callGET(`?search=${encodeURIComponent(longSearch)}`);
+    
+    const cacheKey = (getCached as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    const segments = cacheKey.split(':');
+    
+    // The search segment should be clamped to 64 chars
+    const searchSegment = segments[2]; // public-jobs:orgId:search:...
+    expect(searchSegment.length).toBeLessThanOrEqual(64);
+    
+    // Verify the cache key contains the clamped 64-char version
+    expect(searchSegment).toBe('a'.repeat(64));
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/api/auth/refresh.replay.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeAll, beforeEach, vi } from "vitest";
+import jwt from "jsonwebtoken";
+
+process.env.SKIP_ENV_VALIDATION = "true";
+process.env.NEXTAUTH_SECRET = "test-secret-refresh-32chars";
+
+type JsonBody = Record<string, unknown>;
+type JsonResponse = { status: number; body: JsonBody };
+
+const mockNextResponseJson = (body: JsonBody, init?: ResponseInit): JsonResponse => ({
+  status: init?.status ?? 200,
+  body,
+});
+
+vi.mock("next/server", () => ({
+  NextRequest: class {},
+  NextResponse: {
+    json: mockNextResponseJson,
+  },
+}));
+
+const mockAuth = vi.fn();
+vi.mock("@/auth", () => ({
+  auth: () => mockAuth(),
+}));
+
+vi.mock("@/lib/mongodb-unified", () => ({
+  connectToDatabase: vi.fn().mockResolvedValue(undefined),
+}));
+
+const mockUser = {
+  findById: vi.fn(),
+};
+vi.mock("@/server/models/User", () => ({
+  User: mockUser,
+}));
+
+const mockValidate = vi.fn();
+const mockPersist = vi.fn();
+const mockRevoke = vi.fn();
+vi.mock("@/lib/refresh-token-store", () => ({
+  validateRefreshJti: (...args: unknown[]) => mockValidate(...args),
+  persistRefreshJti: (...args: unknown[]) => mockPersist(...args),
+  revokeRefreshJti: (...args: unknown[]) => mockRevoke(...args),
+}));
+
+let POST: any;
+
+describe("API /api/auth/refresh replay protection", () => {
+  beforeAll(async () => {
+    ({ POST } = await import("@/app/api/auth/refresh/route"));
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.NODE_ENV = "test";
+    mockAuth.mockResolvedValue({
+      user: { id: "u1", role: "TENANT", orgId: "org1" },
+    });
+    mockUser.findById.mockReturnValue({
+      select: () => ({
+        lean: () =>
+          Promise.resolve({
+            status: "ACTIVE",
+            professional: { role: "TENANT" },
+            orgId: "org1",
+          }),
+      }),
+    });
+    mockValidate.mockResolvedValue(true);
+  });
+
+  const makeReq = (token: string) =>
+    ({
+      cookies: { get: () => ({ value: token }) },
+      nextUrl: new URL("https://example.com/api/auth/refresh"),
+    } as any);
+
+  it("rejects token without jti", async () => {
+    const token = jwt.sign({ sub: "u1", type: "refresh" }, process.env.NEXTAUTH_SECRET!, {
+      expiresIn: 60,
+    });
+    const res = await POST(makeReq(token));
+    expect(res.status).toBe(401);
+  });
+
+  it("rejects unknown jti in production", async () => {
+    process.env.NODE_ENV = "production";
+    mockValidate.mockResolvedValue(false);
+    const token = jwt.sign(
+      { sub: "u1", type: "refresh", jti: "unknown" },
+      process.env.NEXTAUTH_SECRET!,
+      { expiresIn: 60 },
+    );
+    const res = await POST(makeReq(token));
+    expect(res.status).toBe(401);
+    expect(mockPersist).not.toHaveBeenCalled();
+  });
+
+  it("registers unknown jti once in non-production", async () => {
+    process.env.NODE_ENV = "test";
+    mockValidate.mockResolvedValue(false);
+    const token = jwt.sign(
+      { sub: "u1", type: "refresh", jti: "legacy" },
+      process.env.NEXTAUTH_SECRET!,
+      { expiresIn: 60 },
+    );
+    const res = await POST(makeReq(token));
+    expect(res.status).toBe(200);
+    expect(mockPersist).toHaveBeenCalledWith("u1", "legacy", expect.any(Number));
+  });
+
+  it("allows known jti and rotates to new jti", async () => {
+    mockValidate.mockResolvedValue(true);
+    const token = jwt.sign(
+      { sub: "u1", type: "refresh", jti: "known" },
+      process.env.NEXTAUTH_SECRET!,
+      { expiresIn: 60 },
+    );
+    const res = await POST(makeReq(token));
+    expect(res.status).toBe(200);
+    expect(mockPersist).toHaveBeenCalledWith("u1", expect.any(String), expect.any(Number));
+    // Verify old JTI is revoked during rotation
+    expect(mockRevoke).toHaveBeenCalledWith("u1", "known");
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/api/auth/refresh.route.test.ts">
+<![CDATA[
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import jwt from "jsonwebtoken";
+
+// Mocks must be declared before importing the route to ensure they apply
+const mockAuth = vi.fn();
+vi.mock("@/auth", () => ({
+  auth: (...args: unknown[]) => mockAuth(...args),
+}));
+
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+const mockValidate = vi.fn(async () => true);
+const mockPersist = vi.fn(async () => undefined);
+const mockRevoke = vi.fn(async () => undefined);
+vi.mock("@/lib/refresh-token-store", () => ({
+  validateRefreshJti: (...args: unknown[]) => mockValidate(...args),
+  persistRefreshJti: (...args: unknown[]) => mockPersist(...args),
+  revokeRefreshJti: (...args: unknown[]) => mockRevoke(...args),
+}));
+
+const mockConnect = vi.fn();
+vi.mock("@/lib/mongodb-unified", () => ({
+  connectToDatabase: (...args: unknown[]) => mockConnect(...args),
+}));
+
+const mockFindById = vi.fn();
+vi.mock("@/server/models/User", () => ({
+  User: {
+    findById: (...args: unknown[]) => ({
+      select: vi.fn().mockReturnThis(),
+      lean: vi.fn().mockImplementation(async () => mockFindById(...args)),
+    }),
+  },
+}));
+
+import { NextRequest } from "next/server";
+import { POST, REFRESH_COOKIE } from "@/app/api/auth/refresh/route";
+import { logger } from "@/lib/logger";
+
+function makeRequest(token: string) {
+  return new NextRequest("https://example.com/api/auth/refresh", {
+    method: "POST",
+    headers: {
+      cookie: `${REFRESH_COOKIE}=${token}`,
+    },
+  });
+}
+
+describe("auth/refresh route", () => {
+  const secret = "test-secret";
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.NEXTAUTH_SECRET = secret;
+    mockFindById.mockResolvedValue({
+      status: "ACTIVE",
+      professional: { role: "TENANT" },
+      orgId: "org-1",
+    });
+    mockConnect.mockResolvedValue(undefined);
+  });
+
+  it("rejects tokens missing refresh type (prevents access-token replay)", async () => {
+    const accessToken = jwt.sign({ sub: "user-1" }, secret, { expiresIn: 60 });
+    const req = makeRequest(accessToken);
+
+    const res = await POST(req);
+    expect(res.status).toBe(401);
+    const body = await res.json();
+    expect(body).toEqual({ error: "Invalid token type" });
+  });
+
+  it("accepts valid refresh tokens with type=refresh and matches session user", async () => {
+    const userId = "507f1f77bcf86cd799439011";
+    const refreshToken = jwt.sign(
+      { sub: userId, type: "refresh", jti: "jti-123" },
+      secret,
+      { expiresIn: 60 },
+    );
+    mockAuth.mockResolvedValue({
+      user: { id: userId, role: "TENANT", orgId: "org-1" },
+    });
+
+    const req = makeRequest(refreshToken);
+    const res = await POST(req);
+
+    const errors = (logger.error as unknown as { mock: { calls: unknown[][] } }).mock
+      .calls;
+    const body = await res.json();
+    expect(mockAuth).toHaveBeenCalledTimes(1);
+    expect(errors).toEqual([]);
+    expect(res.status).toBe(200);
+    expect(body).toHaveProperty("accessToken");
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/api/files/resumes.presign.route.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
+import type { NextRequest } from 'next/server';
+
+process.env.SKIP_ENV_VALIDATION = 'true';
+
+type JsonBody = {
+  error?: string;
+  url?: string;
+  key?: string;
+  headers?: Record<string, string>;
+} & Record<string, unknown>;
+type JsonResponse = { status: number; body: JsonBody };
+type PresignRequest = { fileName: string; contentType: string; size: number };
+
+vi.mock('next/server', () => ({
+  NextRequest: class {},
+  NextResponse: {
+    json: (body: JsonBody, init?: ResponseInit): JsonResponse => ({
+      status: init?.status ?? 200,
+      body,
+    }),
+  },
+}));
+
+const getSessionUser = vi.fn();
+const getPresignedPutUrl = vi.fn<
+  Promise<{ url: string; headers: Record<string, string> }>,
+  [string, string, number, string | undefined]
+>();
+const validateBucketPolicies = vi.fn<Promise<boolean>, [string, string]>();
+
+vi.mock('@/server/middleware/withAuthRbac', () => ({
+  getSessionUser: () => getSessionUser(),
+}));
+
+vi.mock('@/lib/storage/s3', () => ({
+  getPresignedPutUrl: (...args: Parameters<typeof getPresignedPutUrl>) => getPresignedPutUrl(...args),
+  buildResumeKey: (tenant: string, fileName: string) => `${tenant}/resumes/${fileName}`,
+}));
+
+vi.mock('@/server/security/rateLimit', () => ({
+  rateLimit: vi.fn().mockReturnValue({ allowed: true }),
+  smartRateLimit: vi.fn(async () => ({ allowed: true })),
+}));
+
+vi.mock('@/server/utils/errorResponses', () => ({
+  rateLimitError: vi.fn(() => ({ status: 429, body: { error: 'rate_limited' } })),
+}));
+
+vi.mock('@/lib/security/s3-policy', () => ({
+  validateBucketPolicies: (...args: Parameters<typeof validateBucketPolicies>) => validateBucketPolicies(...args),
+}));
+
+let POST: (req: NextRequest) => Promise<JsonResponse>;
+
+describe('POST /api/files/resumes/presign', () => {
+  beforeAll(async () => {
+    ({ POST } = await import('@/app/api/files/resumes/presign/route'));
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.AWS_S3_BUCKET = 'test-bucket';
+    process.env.AWS_REGION = 'us-east-1';
+    process.env.S3_SCAN_REQUIRED = 'false';
+    getSessionUser.mockResolvedValue(null);
+    getPresignedPutUrl.mockResolvedValue({
+      url: 'https://s3.test/upload',
+      headers: { 'x-test': '1' },
+    });
+    validateBucketPolicies.mockResolvedValue(true);
+  });
+
+  const buildRequest = (body: PresignRequest): NextRequest =>
+    ({
+      url: 'https://example.com/api/files/resumes/presign',
+      json: async () => body,
+    }) as unknown as NextRequest;
+
+  it('returns presign details for valid PDF input (anonymous allowed)', async () => {
+    const res = await POST(
+      buildRequest({ fileName: 'resume.pdf', contentType: 'application/pdf', size: 1024 })
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body.url).toBe('https://s3.test/upload');
+    expect(res.body.headers['x-test']).toBe('1');
+    expect(res.body.key).toMatch(/public\/resumes\/.*resume\.pdf$/);
+  });
+
+  it('rejects unsupported extension', async () => {
+    const res = await POST(
+      buildRequest({ fileName: 'resume.exe', contentType: 'application/pdf', size: 1024 })
+    );
+
+    expect(res.status).toBe(415);
+    expect(res.body.error).toMatch(/extension/i);
+  });
+
+  it('rejects files over 5MB', async () => {
+    const res = await POST(
+      buildRequest({ fileName: 'resume.pdf', contentType: 'application/pdf', size: 6 * 1024 * 1024 })
+    );
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/too large/i);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/api/finance/payments/complete.route.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { POST } from "@/app/api/finance/payments/[id]/complete/route";
+import type { NextRequest } from "next/server";
+
+const mockFindOne = vi.fn();
+const mockRequirePermission = vi.fn();
+const mockRunWithContext = vi.fn((_ctx, fn) => fn());
+const mockGetSessionUser = vi.fn();
+
+vi.mock("@/server/models/finance/Payment", () => ({
+  PaymentStatus: {
+    DRAFT: "DRAFT",
+    POSTED: "POSTED",
+    CLEARED: "CLEARED",
+    BOUNCED: "BOUNCED",
+    CANCELLED: "CANCELLED",
+    REFUNDED: "REFUNDED",
+  },
+  Payment: {
+    findOne: (...args: unknown[]) => mockFindOne(...args),
+  },
+}));
+
+vi.mock("@/server/middleware/withAuthRbac", () => ({
+  getSessionUser: (...args: unknown[]) => mockGetSessionUser(...args),
+}));
+
+vi.mock("@/server/lib/authContext", () => ({
+  runWithContext: (...args: unknown[]) => mockRunWithContext(...args),
+}));
+
+vi.mock("@/config/rbac.config", () => ({
+  requirePermission: (...args: unknown[]) => mockRequirePermission(...args),
+}));
+
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    error: vi.fn(),
+  },
+}));
+
+const makeReq = () => ({ headers: new Headers() } as unknown as NextRequest);
+
+describe("POST /api/finance/payments/[id]/complete", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetSessionUser.mockResolvedValue({
+      id: "65c2c2c2c2c2c2c2c2c2c2c2",
+      orgId: "org-1",
+      role: "FINANCE",
+    });
+  });
+
+  it("returns 400 for invalid ObjectId", async () => {
+    const res = await POST(makeReq(), { params: { id: "bad-id" } });
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toMatchObject({
+      success: false,
+      error: "Invalid payment ID",
+    });
+    expect(mockFindOne).not.toHaveBeenCalled();
+  });
+
+  it("returns 401 when session is missing", async () => {
+    mockGetSessionUser.mockResolvedValueOnce(null);
+    const res = await POST(makeReq(), { params: { id: "65d2d2d2d2d2d2d2d2d2d2d2" } });
+    expect(res.status).toBe(401);
+    await expect(res.json()).resolves.toMatchObject({
+      success: false,
+      error: "Unauthorized",
+    });
+  });
+
+  it("returns 404 when payment is not found", async () => {
+    mockFindOne.mockResolvedValueOnce(null);
+    const res = await POST(makeReq(), { params: { id: "65d2d2d2d2d2d2d2d2d2d2d2" } });
+    expect(res.status).toBe(404);
+    await expect(res.json()).resolves.toMatchObject({
+      success: false,
+      error: "Payment not found",
+    });
+  });
+
+  it("returns 400 when payment already cleared", async () => {
+    const payment = {
+      _id: "65d2d2d2d2d2d2d2d2d2d2d2",
+      paymentNumber: "PAY-1",
+      status: "CLEARED",
+      amount: 100,
+      currency: "USD",
+      paymentDate: new Date(),
+      reconciliation: {},
+      save: vi.fn(),
+    };
+    mockFindOne.mockResolvedValueOnce(payment);
+    const res = await POST(makeReq(), { params: { id: "65d2d2d2d2d2d2d2d2d2d2d2" } });
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toMatchObject({
+      success: false,
+      error: "Payment is already completed",
+    });
+    expect(payment.save).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 when payment is not in POSTED status", async () => {
+    const payment = {
+      _id: "65d2d2d2d2d2d2d2d2d2d2d2",
+      paymentNumber: "PAY-2",
+      status: "DRAFT",
+      amount: 50,
+      currency: "USD",
+      paymentDate: new Date(),
+      reconciliation: {},
+      save: vi.fn(),
+    };
+    mockFindOne.mockResolvedValueOnce(payment);
+
+    const res = await POST(makeReq(), { params: { id: "65d2d2d2d2d2d2d2d2d2d2d2" } });
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toMatchObject({
+      success: false,
+      error: "Payment must be in POSTED status before it can be marked as completed",
+    });
+    expect(payment.save).not.toHaveBeenCalled();
+  });
+
+  it("marks payment as cleared and returns sanitized payload", async () => {
+    const now = new Date("2024-01-01T00:00:00Z");
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
+    const payment = {
+      _id: {
+        toString: () => "65d2d2d2d2d2d2d2d2d2d2d2",
+      },
+      paymentNumber: "PAY-1",
+      status: "POSTED",
+      amount: 150,
+      currency: "USD",
+      paymentDate: new Date("2023-12-31T00:00:00Z"),
+      reconciliation: {},
+      save: vi.fn(),
+    };
+    mockFindOne.mockResolvedValueOnce(payment);
+
+    const res = await POST(makeReq(), { params: { id: "65d2d2d2d2d2d2d2d2d2d2d2" } });
+    expect(res.status).toBe(200);
+    const json = await res.json();
+
+    expect(payment.status).toBe("CLEARED");
+    expect(payment.reconciliation?.isReconciled).toBe(true);
+    expect(payment.save).toHaveBeenCalled();
+
+    expect(json).toMatchObject({
+      success: true,
+      data: {
+        id: "65d2d2d2d2d2d2d2d2d2d2d2",
+        paymentNumber: "PAY-1",
+        status: "CLEARED",
+        amount: 150,
+        currency: "USD",
+        paymentDate: payment.paymentDate.toISOString(),
+        reconciledBy: "65c2c2c2c2c2c2c2c2c2c2c2",
+      },
+    });
+    vi.useRealTimers();
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/api/fm/finance/budgets/id.route.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { ObjectId } from "mongodb";
+import type { NextRequest } from "next/server";
+import { PATCH, DELETE } from "@/app/api/fm/finance/budgets/[id]/route";
+
+const mockFindOneAndUpdate = vi.fn();
+const mockFindOneAndDelete = vi.fn();
+const mockRequireFmPermission = vi.fn();
+const mockResolveTenantId = vi.fn();
+const mockBuildTenantFilter = vi.fn();
+const mockIsCrossTenantMode = vi.fn();
+
+vi.mock("@/lib/mongodb-unified", () => ({
+  getDatabase: vi.fn().mockResolvedValue({
+    collection: () => ({
+      findOneAndUpdate: (...args: unknown[]) => mockFindOneAndUpdate(...args),
+      findOneAndDelete: (...args: unknown[]) => mockFindOneAndDelete(...args),
+    }),
+  }),
+}));
+
+vi.mock("@/app/api/fm/permissions", () => ({
+  requireFmPermission: (...args: unknown[]) => mockRequireFmPermission(...args),
+}));
+
+vi.mock("@/app/api/fm/utils/tenant", () => ({
+  resolveTenantId: (...args: unknown[]) => mockResolveTenantId(...args),
+  buildTenantFilter: (...args: unknown[]) => mockBuildTenantFilter(...args),
+  isCrossTenantMode: (...args: unknown[]) => mockIsCrossTenantMode(...args),
+}));
+
+vi.mock("@/lib/mongoUtils.server", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/mongoUtils.server")>();
+  return {
+    ...actual,
+    unwrapFindOneResult: actual.unwrapFindOneResult,
+  };
+});
+
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    error: vi.fn(),
+  },
+}));
+
+const tenantFilter = { orgId: "tenant-123" };
+
+const makeReq = (body?: unknown) => {
+  const req = {
+    headers: new Headers(),
+    nextUrl: new URL("http://localhost/api/fm/finance/budgets/65d2d2d2d2d2d2d2d2d2d2d2"),
+    json: body !== undefined ? async () => body : undefined,
+  };
+  return req as unknown as NextRequest;
+};
+
+describe("FM Budgets by id API", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockRequireFmPermission.mockResolvedValue({
+      orgId: "tenant-123",
+      tenantId: "tenant-123",
+      isSuperAdmin: false,
+      userId: "user-1",
+    });
+    mockResolveTenantId.mockReturnValue({
+      tenantId: "tenant-123",
+      source: "session",
+    });
+    mockBuildTenantFilter.mockReturnValue(tenantFilter);
+    mockIsCrossTenantMode.mockReturnValue(false);
+  });
+
+  it("PATCH includes tenant filter in query and returns updated budget", async () => {
+    const updatedDoc = {
+      _id: new ObjectId("65d2d2d2d2d2d2d2d2d2d2d2"),
+      orgId: "tenant-123",
+      name: "Ops Budget",
+      department: "Ops",
+      allocated: 5000,
+      currency: "USD",
+      createdAt: new Date("2024-01-01T00:00:00Z"),
+      updatedAt: new Date("2024-01-02T00:00:00Z"),
+    };
+
+    mockFindOneAndUpdate.mockResolvedValue({ value: updatedDoc });
+
+    const res = await PATCH(
+      makeReq({ name: "Ops Budget" }),
+      { params: { id: "65d2d2d2d2d2d2d2d2d2d2d2" } }
+    );
+
+    expect(mockBuildTenantFilter).toHaveBeenCalledWith("tenant-123");
+    expect(mockFindOneAndUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orgId: "tenant-123",
+        _id: expect.any(ObjectId),
+      }),
+      expect.objectContaining({
+        $set: expect.objectContaining({ name: "Ops Budget" }),
+      }),
+      expect.objectContaining({ returnDocument: "after" })
+    );
+
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json).toMatchObject({
+      success: true,
+      data: {
+        id: updatedDoc._id.toString(),
+        name: "Ops Budget",
+        department: "Ops",
+        allocated: 5000,
+        currency: "USD",
+      },
+    });
+  });
+
+  it("DELETE includes tenant filter in query and returns success", async () => {
+    const deletedDoc = {
+      _id: new ObjectId("65d2d2d2d2d2d2d2d2d2d2d2"),
+      orgId: "tenant-123",
+      name: "Ops Budget",
+      department: "Ops",
+      allocated: 5000,
+      currency: "USD",
+      createdAt: new Date("2024-01-01T00:00:00Z"),
+      updatedAt: new Date("2024-01-02T00:00:00Z"),
+    };
+    mockFindOneAndDelete.mockResolvedValue({ value: deletedDoc });
+
+    const res = await DELETE(
+      makeReq(),
+      { params: { id: "65d2d2d2d2d2d2d2d2d2d2d2" } }
+    );
+
+    expect(mockBuildTenantFilter).toHaveBeenCalledWith("tenant-123");
+    expect(mockFindOneAndDelete).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orgId: "tenant-123",
+        _id: expect.any(ObjectId),
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json).toMatchObject({
+      success: true,
+      message: "Budget deleted successfully",
+    });
+  });
+});
+
+]]>
+</file>
+
+</batch_content>

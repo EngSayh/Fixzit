@@ -1,0 +1,3293 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="tests/server/hr/attendance.service.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { AttendanceService } from "@/server/services/hr/attendance.service";
+import { AttendanceRecord } from "@/server/models/hr.models";
+import { HrNotificationService } from "@/server/services/hr/hr-notification.service";
+vi.mock("bullmq", () => ({}));
+
+describe("AttendanceService", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("filters attendance list by date range", async () => {
+    const findMock = vi.spyOn(AttendanceRecord, "find").mockReturnValue({
+      lean: vi
+        .fn()
+        .mockReturnValue({ exec: vi.fn().mockResolvedValue([{ _id: "a1" }]) }),
+    } as any);
+
+    const results = await AttendanceService.list(
+      "org-1",
+      "emp-1",
+      new Date("2025-05-01"),
+      new Date("2025-05-31"),
+    );
+
+    expect(findMock).toHaveBeenCalledWith({
+      orgId: "org-1",
+      employeeId: "emp-1",
+      isDeleted: false,
+      date: { $gte: new Date("2025-05-01"), $lte: new Date("2025-05-31") },
+    });
+    expect(results).toHaveLength(1);
+  });
+
+  it("queues notifications when status is ABSENT", async () => {
+    const execMock = vi.fn().mockResolvedValue({
+      employeeId: { toString: () => "emp-1" },
+      status: "ABSENT",
+      date: new Date("2025-05-12"),
+    });
+    vi.spyOn(AttendanceRecord, "findOneAndUpdate").mockReturnValue({
+      exec: execMock,
+    } as any);
+
+    const queueMock = vi
+      .spyOn(HrNotificationService, "queueAttendanceAlert")
+      .mockResolvedValue(undefined);
+
+    await AttendanceService.logEntry({
+      orgId: "org-1",
+      employeeId: "emp-1",
+      date: new Date("2025-05-12"),
+      status: "ABSENT",
+    });
+
+    expect(queueMock).toHaveBeenCalledWith(
+      expect.objectContaining({ employeeId: "emp-1", status: "ABSENT" }),
+    );
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/server/hr/hr-notification.service.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import type { AttendanceStatus } from "@/server/models/hr.models";
+
+const addJobMock = vi.hoisted(() => vi.fn());
+
+vi.mock("@/lib/queues/setup", () => ({
+  addJob: addJobMock,
+  QUEUE_NAMES: {
+    NOTIFICATIONS: "notifications-queue",
+  },
+}));
+
+import { HrNotificationService } from "@/server/services/hr/hr-notification.service";
+
+describe("HrNotificationService", () => {
+  beforeEach(() => {
+    addJobMock.mockReset();
+  });
+
+  it("queues leave status change jobs on the notifications queue", async () => {
+    await HrNotificationService.queueLeaveStatusChange({
+      orgId: "org-123",
+      leaveRequestId: "leave-555",
+      employeeId: "emp-9",
+      status: "APPROVED",
+      approverId: "approver-1",
+      reason: "Family leave",
+    });
+
+    expect(addJobMock).toHaveBeenCalledWith(
+      "notifications-queue",
+      "hr.leave.status_changed",
+      expect.objectContaining({
+        leaveRequestId: "leave-555",
+        status: "APPROVED",
+        approverId: "approver-1",
+      }),
+    );
+  });
+
+  it("swallows queue errors when emitting attendance alerts", async () => {
+    addJobMock.mockRejectedValueOnce(new Error("redis offline"));
+
+    await expect(
+      HrNotificationService.queueAttendanceAlert({
+        orgId: "org-1",
+        employeeId: "emp-7",
+        status: "ABSENT" as AttendanceStatus,
+        date: new Date("2025-05-15"),
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(addJobMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/server/hr/leave.service.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { LeaveService } from "@/server/services/hr/leave.service";
+import { LeaveRequest, LeaveBalance } from "@/server/models/hr.models";
+import { HrNotificationService } from "@/server/services/hr/hr-notification.service";
+vi.mock("bullmq", () => ({}));
+
+describe("LeaveService", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("returns populated leave requests", async () => {
+    const execMock = vi.fn().mockResolvedValue([{ _id: "leave-1" }]);
+    const populateMock = vi
+      .fn()
+      .mockReturnValue({ lean: vi.fn().mockReturnValue({ exec: execMock }) });
+    vi.spyOn(LeaveRequest, "find").mockReturnValue({
+      sort: vi.fn().mockReturnValue({ populate: populateMock }),
+    } as any);
+
+    const results = await LeaveService.list("org-1", "PENDING");
+
+    expect(LeaveRequest.find).toHaveBeenCalledWith({
+      orgId: "org-1",
+      isDeleted: false,
+      status: "PENDING",
+    });
+    expect(results).toHaveLength(1);
+  });
+
+  it("queues notification when updating status", async () => {
+    const execMock = vi.fn().mockResolvedValue({
+      employeeId: { toString: () => "emp-1" },
+      status: "APPROVED",
+      startDate: new Date(),
+      endDate: new Date(),
+    });
+    vi.spyOn(LeaveRequest, "findOneAndUpdate").mockReturnValue({
+      exec: execMock,
+    } as any);
+    const queueMock = vi
+      .spyOn(HrNotificationService, "queueLeaveStatusChange")
+      .mockResolvedValue(undefined);
+
+    await LeaveService.updateStatus(
+      "org-1",
+      "leave-1",
+      "APPROVED",
+      "approver-1",
+    );
+
+    expect(queueMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        leaveRequestId: "leave-1",
+        status: "APPROVED",
+      }),
+    );
+  });
+
+  it("adjusts leave balance with upsert", async () => {
+    const execMock = vi.fn().mockResolvedValue({ _id: "balance-1" });
+    vi.spyOn(LeaveBalance, "findOneAndUpdate").mockReturnValue({
+      exec: execMock,
+    } as any);
+
+    await LeaveService.adjustBalance("org-1", "emp-1", "lt-1", 2025, {
+      accrued: 2,
+      taken: 1,
+    });
+
+    expect(LeaveBalance.findOneAndUpdate).toHaveBeenCalledWith(
+      { orgId: "org-1", employeeId: "emp-1", leaveTypeId: "lt-1", year: 2025 },
+      { $inc: { accrued: 2, taken: 1 } },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    );
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/server/hr/payroll-finance.integration.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { Types } from "mongoose";
+import { PayrollRun } from "@/server/models/hr.models";
+
+const findOneMock = vi.hoisted(() => vi.fn());
+vi.mock("@/server/models/finance/ChartAccount", () => ({
+  __esModule: true,
+  default: { findOne: findOneMock },
+}));
+
+const createJournalMock = vi.hoisted(() => vi.fn());
+const postJournalMock = vi.hoisted(() => vi.fn());
+vi.mock("@/server/services/finance/postingService", () => ({
+  __esModule: true,
+  default: {
+    createJournal: createJournalMock,
+    postJournal: postJournalMock,
+  },
+}));
+
+import { PayrollFinanceIntegration } from "@/server/services/hr/payroll-finance.integration";
+
+describe("PayrollFinanceIntegration", () => {
+  const orgId = new Types.ObjectId();
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    findOneMock.mockReset();
+    createJournalMock.mockReset();
+    postJournalMock.mockReset();
+  });
+
+  it("creates a balanced journal entry and marks the payroll run as posted", async () => {
+    const accounts = {
+      "5200": {
+        _id: new Types.ObjectId(),
+        accountCode: "5200",
+        accountType: "EXPENSE",
+      },
+      "2100": {
+        _id: new Types.ObjectId(),
+        accountCode: "2100",
+        accountType: "LIABILITY",
+      },
+      "2101": {
+        _id: new Types.ObjectId(),
+        accountCode: "2101",
+        accountType: "LIABILITY",
+      },
+      "2105": {
+        _id: new Types.ObjectId(),
+        accountCode: "2105",
+        accountType: "LIABILITY",
+      },
+      "1010": {
+        _id: new Types.ObjectId(),
+        accountCode: "1010",
+        accountType: "ASSET",
+      },
+    };
+
+    findOneMock.mockImplementation(
+      async ({ accountCode }: { accountCode: keyof typeof accounts }) =>
+        accounts[accountCode],
+    );
+
+    const journalId = new Types.ObjectId();
+    createJournalMock.mockResolvedValue({
+      _id: journalId,
+      journalNumber: "JE-2025-001",
+    });
+    postJournalMock.mockResolvedValue(undefined);
+
+    const updateExecMock = vi.fn().mockResolvedValue({});
+    const updateOneSpy = vi
+      .spyOn(PayrollRun, "updateOne")
+      .mockReturnValue({ exec: updateExecMock } as any);
+
+    const run = {
+      _id: new Types.ObjectId(),
+      orgId,
+      name: "Payroll Oct-2025",
+      periodStart: new Date("2025-10-01"),
+      periodEnd: new Date("2025-10-31"),
+      status: "LOCKED",
+      financePosted: false,
+      lines: [
+        {
+          employeeId: new Types.ObjectId(),
+          employeeCode: "EMP-1",
+          employeeName: "Alice",
+          baseSalary: 1000,
+          allowances: 200,
+          overtimeAmount: 100,
+          deductions: 100,
+          gosiContribution: 30,
+          gosiBreakdown: {
+            annuitiesEmployee: 20,
+            sanedEmployee: 10,
+            annuitiesEmployer: 25,
+            sanedEmployer: 5,
+            occupationalHazards: 5,
+          },
+          netPay: 1200,
+        },
+      ],
+      totals: {
+        baseSalary: 1000,
+        allowances: 200,
+        overtime: 100,
+        deductions: 100,
+        gosi: 30,
+        net: 1200,
+      },
+    } as any;
+
+    await PayrollFinanceIntegration.postRun(run);
+
+    expect(createJournalMock).toHaveBeenCalledTimes(1);
+    const journalInput = createJournalMock.mock.calls[0][0];
+    expect(journalInput.lines).toEqual([
+      expect.objectContaining({
+        accountId: accounts["5200"]._id,
+        debit: 1335,
+        credit: 0,
+      }),
+      expect.objectContaining({
+        accountId: accounts["2100"]._id,
+        debit: 0,
+        credit: 30,
+      }),
+      expect.objectContaining({
+        accountId: accounts["2101"]._id,
+        debit: 0,
+        credit: 35,
+      }),
+      expect.objectContaining({
+        accountId: accounts["2105"]._id,
+        debit: 0,
+        credit: 70,
+      }),
+      expect.objectContaining({
+        accountId: accounts["1010"]._id,
+        debit: 0,
+        credit: 1200,
+      }),
+    ]);
+
+    expect(postJournalMock).toHaveBeenCalledWith(journalId);
+    expect(updateOneSpy).toHaveBeenCalledWith(
+      { _id: run._id },
+      expect.objectContaining({
+        financePosted: true,
+        financeJournalId: journalId,
+        financeReference: "JE-2025-001",
+      }),
+    );
+    expect(updateExecMock).toHaveBeenCalled();
+  });
+
+  it("skips posting when payroll run is already marked as posted", async () => {
+    const run = {
+      _id: new Types.ObjectId(),
+      orgId,
+      financePosted: true,
+    } as any;
+
+    await PayrollFinanceIntegration.postRun(run);
+
+    expect(createJournalMock).not.toHaveBeenCalled();
+    expect(postJournalMock).not.toHaveBeenCalled();
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/server/hr/payroll.service.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { PayrollService } from "@/server/services/hr/payroll.service";
+import { PayrollRun } from "@/server/models/hr.models";
+import { PayrollFinanceIntegration } from "@/server/services/hr/payroll-finance.integration";
+
+describe("PayrollService.updateStatus", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("calls finance integration when run is locked and not yet posted", async () => {
+    const run = {
+      _id: "run-1",
+      orgId: "org-1",
+      financePosted: false,
+      lines: [],
+    } as any;
+    const execMock = vi.fn().mockResolvedValue(run);
+    vi.spyOn(PayrollRun, "findOneAndUpdate").mockReturnValue({
+      exec: execMock,
+    } as any);
+    const postRunMock = vi
+      .spyOn(PayrollFinanceIntegration, "postRun")
+      .mockResolvedValue(undefined);
+
+    await PayrollService.updateStatus("org-1", "run-1", "LOCKED");
+
+    expect(postRunMock).toHaveBeenCalledWith(run);
+  });
+
+  it("does not call finance integration when already posted", async () => {
+    const run = { financePosted: true } as any;
+    const execMock = vi.fn().mockResolvedValue(run);
+    vi.spyOn(PayrollRun, "findOneAndUpdate").mockReturnValue({
+      exec: execMock,
+    } as any);
+    const postRunMock = vi
+      .spyOn(PayrollFinanceIntegration, "postRun")
+      .mockResolvedValue(undefined);
+
+    await PayrollService.updateStatus("org-1", "run-1", "LOCKED");
+
+    expect(postRunMock).not.toHaveBeenCalled();
+  });
+
+  it("skips finance integration for non-locked statuses", async () => {
+    const run = { financePosted: false } as any;
+    const execMock = vi.fn().mockResolvedValue(run);
+    vi.spyOn(PayrollRun, "findOneAndUpdate").mockReturnValue({
+      exec: execMock,
+    } as any);
+    const postRunMock = vi
+      .spyOn(PayrollFinanceIntegration, "postRun")
+      .mockResolvedValue(undefined);
+
+    await PayrollService.updateStatus("org-1", "run-1", "IN_REVIEW");
+
+    expect(postRunMock).not.toHaveBeenCalled();
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/server/hr/wpsService.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { Types } from "mongoose";
+import type { PayrollLineDoc } from "@/server/models/hr.models";
+
+const loggerMock = vi.hoisted(() => ({
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  debug: vi.fn(),
+}));
+
+const attendanceRecordMock = vi.hoisted(() => ({
+  find: vi.fn(),
+}));
+
+vi.mock("@/lib/logger", () => ({
+  logger: loggerMock,
+}));
+
+vi.mock("@/server/models/hr.models", () => ({
+  AttendanceRecord: attendanceRecordMock,
+}));
+
+import * as wpsService from "@/services/hr/wpsService";
+
+function createPayrollLine(
+  overrides: Partial<PayrollLineDoc> = {},
+): PayrollLineDoc {
+  const baseLine: Partial<PayrollLineDoc> = {
+    employeeId: new Types.ObjectId(),
+    employeeCode: "EMP-001",
+    employeeName: "Test User",
+    iban: "SA4420000001234567891234",
+    baseSalary: 4000,
+    housingAllowance: 1000,
+    transportAllowance: 500,
+    otherAllowances: [],
+    allowances: 1500,
+    overtimeHours: 0,
+    overtimeAmount: 0,
+    deductions: 0,
+    taxDeduction: 0,
+    gosiContribution: 0,
+    netPay: 5500,
+    currency: "SAR",
+    notes: "",
+    earnings: [],
+    deductionLines: [],
+    gosiBreakdown: {},
+  };
+
+  return { ...baseLine, ...overrides } as PayrollLineDoc;
+}
+
+function extractWorkDays(file: wpsService.WPSFile): number {
+  const [, dataRow] = file.content.split("\n");
+  const columns = dataRow.split(",");
+  return Number(columns[10]);
+}
+
+describe("WPS work day calculation", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    attendanceRecordMock.find.mockReset();
+  });
+
+  it("uses attendance-based calculation when workDays is not provided on the payroll line", async () => {
+    const selectMock = vi.fn().mockResolvedValue([
+      { date: new Date("2025-03-01T06:00:00Z") },
+      { date: new Date("2025-03-02T06:00:00Z") },
+      { date: new Date("2025-03-02T12:00:00Z") }, // duplicate day should not increase count
+    ]);
+    attendanceRecordMock.find.mockReturnValue({ select: selectMock } as any);
+
+    const line = createPayrollLine();
+
+    const { file, errors } = await wpsService.generateWPSFile(
+      [line],
+      "org-123",
+      "2025-03",
+    );
+
+    expect(errors).toHaveLength(0);
+    expect(attendanceRecordMock.find).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orgId: "org-123",
+        employeeId: line.employeeId.toString(),
+        isDeleted: false,
+      }),
+    );
+    expect(extractWorkDays(file)).toBe(2);
+  });
+
+  it("falls back to calendar days and logs an error if attendance lookup fails", async () => {
+    const line = createPayrollLine();
+    const failure = new Error("attendance unavailable");
+    const selectMock = vi.fn().mockRejectedValue(failure);
+
+    attendanceRecordMock.find.mockReturnValue({ select: selectMock } as any);
+
+    const { file } = await wpsService.generateWPSFile(
+      [line],
+      "org-123",
+      "2025-02",
+    );
+
+    expect(loggerMock.error).toHaveBeenCalledWith(
+      "[WPS] Failed to calculate work days from attendance",
+      expect.objectContaining({
+        employeeId: line.employeeId.toString(),
+        orgId: "org-123",
+        yearMonth: "2025-02",
+        error: failure,
+      }),
+    );
+    expect(extractWorkDays(file)).toBe(28); // February 2025 has 28 days
+  });
+
+  it("respects pre-computed workDays on the payroll line without hitting attendance lookups", async () => {
+    const line = createPayrollLine();
+    (line as any).workDays = 18;
+
+    const { file } = await wpsService.generateWPSFile(
+      [line],
+      "org-123",
+      "2025-03",
+    );
+
+    expect(attendanceRecordMock.find).not.toHaveBeenCalled();
+    expect(extractWorkDays(file)).toBe(18);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/server/support/support-org-apis.test.ts">
+<![CDATA[
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { GET, POST, DELETE } from '@/app/api/support/impersonation/route';
+import { GET as searchGET } from '@/app/api/support/organizations/search/route';
+import { auth } from '@/auth';
+import { connectToDatabase } from '@/lib/mongodb-unified';
+
+vi.mock('@/auth', () => ({
+  auth: vi.fn(),
+}));
+
+vi.mock('@/lib/mongodb-unified', () => ({
+  connectToDatabase: vi.fn(),
+}));
+
+let findOneMock: vi.Mock;
+let findMock: vi.Mock;
+
+vi.mock('@/server/models/Organization', () => ({
+  Organization: {
+    findOne: (...args: unknown[]) => findOneMock(...args),
+    find: (...args: unknown[]) => findMock(...args),
+  },
+}));
+
+const authMock = auth as unknown as vi.Mock;
+const connectMock = connectToDatabase as unknown as vi.Mock;
+
+type CookieValue = { name: string; value: string };
+
+function createCookieStore(initial: Record<string, string> = {}) {
+  const store = new Map<string, string>(Object.entries(initial));
+  return {
+    get: (name: string): CookieValue | undefined => {
+      const value = store.get(name);
+      return value ? { name, value } : undefined;
+    },
+  };
+}
+
+type RequestLike = { cookies: ReturnType<typeof createCookieStore>; json: () => Promise<unknown>; url: string };
+
+function createRequest(overrides: Partial<RequestLike> = {}) {
+  return {
+    cookies: overrides.cookies ?? createCookieStore(),
+    json: overrides.json ?? (async () => ({})),
+    url: overrides.url ?? 'https://fixzit.test/api',
+  };
+}
+
+function mockQueryResult<T>(value: T) {
+  const chain = {
+    select: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    lean: vi.fn().mockResolvedValue(value),
+  };
+  return chain;
+}
+
+describe('Support org impersonation API', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    findOneMock = vi.fn();
+    findMock = vi.fn();
+  });
+
+  it('rejects non super admins in GET', async () => {
+    authMock.mockResolvedValue({ user: { isSuperAdmin: false } });
+    const res = await GET(createRequest());
+    expect(res.status).toBe(403);
+  });
+
+  it('returns impersonated organization when cookie exists', async () => {
+    authMock.mockResolvedValue({ user: { isSuperAdmin: true } });
+    findOneMock.mockReturnValue(mockQueryResult({ orgId: 'org_cookie', name: 'Cookie Org' }));
+
+    const res = await GET(
+      createRequest({
+        cookies: createCookieStore({ support_org_id: 'org_cookie' }),
+      })
+    );
+
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({
+      organization: {
+        orgId: 'org_cookie',
+        name: 'Cookie Org',
+        code: null,
+        registrationNumber: null,
+        subscriptionPlan: null,
+      },
+    });
+  });
+
+  it('sets impersonation cookie on POST', async () => {
+    authMock.mockResolvedValue({ user: { isSuperAdmin: true } });
+    findOneMock.mockReturnValue(
+      mockQueryResult({
+        orgId: 'org_post',
+        name: 'Post Org',
+        code: 'POST',
+        legal: { registrationNumber: '123' },
+        subscription: { plan: 'enterprise' },
+      })
+    );
+
+    const res = await POST(
+      createRequest({
+        json: async () => ({ orgId: 'org_post' }),
+      })
+    );
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.organization).toMatchObject({ orgId: 'org_post', name: 'Post Org' });
+    expect(res.cookies.get('support_org_id')?.value).toBe('org_post');
+  });
+
+  it('clears impersonation cookie via DELETE', async () => {
+    authMock.mockResolvedValue({ user: { isSuperAdmin: true } });
+    const res = await DELETE(createRequest());
+    expect(res.status).toBe(200);
+    expect(res.cookies.get('support_org_id')?.value).toBe('');
+  });
+});
+
+describe('Support org search API', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    findOneMock = vi.fn();
+    findMock = vi.fn();
+  });
+
+  it('rejects non super admins', async () => {
+    authMock.mockResolvedValue(null);
+    const res = await searchGET(createRequest({ url: 'https://fixzit.test/api?q=1' }));
+    expect(res.status).toBe(403);
+  });
+
+  it('returns matched organizations', async () => {
+    authMock.mockResolvedValue({ user: { isSuperAdmin: true } });
+    connectMock.mockResolvedValue(undefined);
+    findMock.mockReturnValue(
+      mockQueryResult([
+        {
+          orgId: 'org_select',
+          name: 'Select Org',
+          code: 'SEL',
+          legal: { registrationNumber: 'REG' },
+          subscription: { plan: 'enterprise' },
+        },
+      ])
+    );
+
+    const res = await searchGET(
+      createRequest({
+        url: 'https://fixzit.test/api/support/organizations/search?identifier=select',
+      })
+    );
+
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({
+      results: [
+        {
+          orgId: 'org_select',
+          name: 'Select Org',
+          code: 'SEL',
+          registrationNumber: 'REG',
+          subscriptionPlan: 'enterprise',
+        },
+      ],
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/server/withAuthRbac.test.ts">
+<![CDATA[
+import { describe, expect, it } from "vitest";
+import { __internals } from "@/server/middleware/withAuthRbac";
+import { Role } from "@/domain/fm/fm.behavior";
+
+const { normalizeWorkOrderRole } = __internals;
+
+describe("withAuthRbac normalizeWorkOrderRole", () => {
+  it("maps canonical admin roles", () => {
+    expect(normalizeWorkOrderRole("ADMIN")).toBe(Role.ADMIN);
+    expect(normalizeWorkOrderRole("SUPER_ADMIN")).toBe(Role.SUPER_ADMIN);
+  });
+
+  it("maps legacy aliases to canonical roles", () => {
+    expect(normalizeWorkOrderRole("CORPORATE_ADMIN")).toBe(Role.ADMIN);
+    expect(normalizeWorkOrderRole("FM_MANAGER")).toBe(Role.PROPERTY_MANAGER);
+    expect(normalizeWorkOrderRole("FINANCE")).toBe(Role.TEAM_MEMBER);
+  });
+
+  it("handles tenant/vendor/technician roles", () => {
+    expect(normalizeWorkOrderRole("TENANT")).toBe(Role.TENANT);
+    expect(normalizeWorkOrderRole("VENDOR")).toBe(Role.VENDOR);
+    expect(normalizeWorkOrderRole("TECHNICIAN")).toBe(Role.TECHNICIAN);
+  });
+
+  it("returns null for unknown roles", () => {
+    expect(normalizeWorkOrderRole("UNKNOWN_ROLE")).toBeNull();
+    expect(normalizeWorkOrderRole(undefined)).toBeNull();
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/services/account-health-service.test.ts">
+<![CDATA[
+import { describe, it, expect, vi, afterEach, beforeAll } from "vitest";
+import { Types } from "mongoose";
+import { nanoid } from "nanoid";
+
+// Hoist mock setup
+const { mockAddJob } = vi.hoisted(() => ({
+  mockAddJob: vi.fn(async () => undefined),
+}));
+
+// Mock external dependencies
+vi.mock("@/lib/queues/setup", () => ({
+  addJob: mockAddJob,
+  QUEUE_NAMES: { NOTIFICATIONS: "notifications", HEALTH_CHECK: "health-check" },
+}));
+
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+// Import models after mocks
+import { SouqSeller } from "@/server/models/souq/Seller";
+import { SouqOrder } from "@/server/models/souq/Order";
+
+// Deferred service import
+let accountHealthService: typeof import("@/services/souq/account-health-service").accountHealthService;
+
+// Test fixture ObjectId for consistent test data
+const testOrgId = new Types.ObjectId();
+
+/**
+ * Helper to seed a test seller
+ */
+async function seedSeller({
+  orgId = testOrgId,
+  accountHealth = { status: "good", score: 85 },
+} = {}) {
+  const sellerId = new Types.ObjectId();
+  
+  await SouqSeller.create({
+    _id: sellerId,
+    sellerId: `SEL-${nanoid(8)}`,
+    orgId,
+    legalName: `Seller-${nanoid(6)}`,
+    tradeName: `Trade-${nanoid(6)}`,
+    crNumber: `CR-${nanoid(8)}`,
+    vatNumber: `VAT-${nanoid(8)}`,
+    registrationType: "company",
+    country: "SA",
+    city: "Riyadh",
+    address: "123 Test Street",
+    contactEmail: `contact-${nanoid(4)}@test.com`,
+    contactPhone: "+966500000001",
+    accountHealth: {
+      orderDefectRate: 0.5,
+      lateShipmentRate: 2,
+      cancellationRate: 1,
+      validTrackingRate: 98,
+      onTimeDeliveryRate: 98,
+      score: accountHealth.score || 85,
+      status: accountHealth.status || "good",
+      lastCalculated: new Date(),
+    },
+    kycStatus: { status: "approved", step: "verification", companyInfoComplete: true, documentsComplete: true, bankDetailsComplete: true },
+    tier: "professional",
+    tierEffectiveFrom: new Date(),
+    autoRepricerSettings: { enabled: false, rules: {} },
+  });
+
+  return { sellerId: sellerId.toString() };
+}
+
+/**
+ * Helper to seed a test order
+ */
+async function seedOrder({
+  sellerId,
+  orgId = testOrgId,
+  status = "delivered",
+  isDefective = false,
+  isLate = false,
+  isCancelled = false,
+  createdAt = new Date(),
+} = { sellerId: "", orgId: testOrgId }) {
+  const orderId = `ORD-${nanoid(8)}`;
+  const customerId = new Types.ObjectId();
+  const listingId = new Types.ObjectId();
+  const productId = new Types.ObjectId();
+
+  await SouqOrder.create({
+    orderId,
+    orgId,
+    customerId,
+    customerEmail: `test-${nanoid(4)}@example.com`,
+    customerPhone: "+966501234567",
+    items: [
+      {
+        sellerId: new Types.ObjectId(sellerId),
+        listingId,
+        productId,
+        fsin: `FSIN-${nanoid(8)}`,
+        title: `Product ${nanoid(6)}`,
+        quantity: 1,
+        pricePerUnit: 100,
+        subtotal: 100,
+        fulfillmentMethod: "fbm",
+        status,
+      },
+    ],
+    status: isCancelled ? "cancelled" : status,
+    pricing: {
+      subtotal: 100,
+      shippingFee: 10,
+      tax: 15,
+      discount: 0,
+      total: 125,
+      currency: "SAR",
+    },
+    payment: {
+      method: "card",
+      status: "captured",
+    },
+    shippingAddress: {
+      name: "Test Customer",
+      phone: "+966501234567",
+      addressLine1: "123 Test St",
+      city: "Riyadh",
+      country: "SA",
+      postalCode: "12345",
+    },
+    createdAt,
+    // Mark as defective/late if needed
+    ...(isDefective && { defectReported: true }),
+    ...(isLate && { shippedLate: true }),
+    ...(isCancelled && { cancelledAt: new Date() }),
+  });
+
+  return { orderId };
+}
+
+afterEach(async () => {
+  await SouqSeller.deleteMany({});
+  await SouqOrder.deleteMany({});
+  vi.clearAllMocks();
+});
+
+beforeAll(async () => {
+  ({ accountHealthService } = await import("@/services/souq/account-health-service"));
+});
+
+describe("accountHealthService", () => {
+  describe("calculateAccountHealth", () => {
+    it("should return zero metrics when seller has no orders", async () => {
+      const { sellerId } = await seedSeller();
+      
+      const metrics = await accountHealthService.calculateAccountHealth(
+        sellerId,
+        testOrgId.toString(),
+        "last_30_days",
+      );
+      
+      expect(metrics.totalOrders).toBe(0);
+      expect(metrics.odr).toBe(0);
+      expect(metrics.lateShipmentRate).toBe(0);
+      expect(metrics.cancellationRate).toBe(0);
+      expect(metrics.healthStatus).toBe("good"); // 0 orders returns "good" status
+      expect(metrics.atRisk).toBe(false);
+    });
+
+    it("should calculate health metrics for seller with orders", async () => {
+      const { sellerId } = await seedSeller();
+      
+      // Seed some orders
+      await seedOrder({ sellerId, status: "delivered" });
+      await seedOrder({ sellerId, status: "delivered" });
+      await seedOrder({ sellerId, status: "delivered" });
+
+      const metrics = await accountHealthService.calculateAccountHealth(
+        sellerId,
+        testOrgId.toString(),
+        "last_30_days",
+      );
+      
+      expect(metrics.totalOrders).toBe(3);
+      expect(metrics.odr).toBe(0);
+      expect(metrics.healthStatus).toBe("excellent");
+    });
+
+    it("should calculate ODR when there are defective orders", async () => {
+      const { sellerId } = await seedSeller();
+      
+      // Seed 10 orders with 2 defective
+      for (let i = 0; i < 8; i++) {
+        await seedOrder({ sellerId, status: "delivered" });
+      }
+      await seedOrder({ sellerId, status: "delivered", isDefective: true });
+      await seedOrder({ sellerId, status: "delivered", isDefective: true });
+
+      const metrics = await accountHealthService.calculateAccountHealth(
+        sellerId,
+        testOrgId.toString(),
+        "last_30_days",
+      );
+      
+      expect(metrics.totalOrders).toBe(10);
+      expect(metrics.totalDefects).toBeGreaterThanOrEqual(0); // Depends on implementation
+    });
+
+    it("should calculate late shipment rate", async () => {
+      const { sellerId } = await seedSeller();
+      
+      // Seed orders with some late shipments
+      for (let i = 0; i < 8; i++) {
+        await seedOrder({ sellerId, status: "delivered" });
+      }
+      await seedOrder({ sellerId, status: "delivered", isLate: true });
+      await seedOrder({ sellerId, status: "delivered", isLate: true });
+
+      const metrics = await accountHealthService.calculateAccountHealth(
+        sellerId,
+        testOrgId.toString(),
+        "last_30_days",
+      );
+      
+      expect(metrics.totalOrders).toBe(10);
+      expect(metrics.totalLateShipments).toBeGreaterThanOrEqual(0);
+    });
+
+    it("should calculate cancellation rate", async () => {
+      const { sellerId } = await seedSeller();
+      
+      // Seed orders with some cancellations
+      for (let i = 0; i < 8; i++) {
+        await seedOrder({ sellerId, status: "delivered" });
+      }
+      await seedOrder({ sellerId, isCancelled: true });
+      await seedOrder({ sellerId, isCancelled: true });
+
+      const metrics = await accountHealthService.calculateAccountHealth(
+        sellerId,
+        testOrgId.toString(),
+        "last_30_days",
+      );
+      
+      expect(metrics.totalOrders).toBeGreaterThanOrEqual(8);
+    });
+
+    it("should filter orders by period", async () => {
+      const { sellerId } = await seedSeller();
+      
+      // Order from 60 days ago
+      const oldDate = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+      await seedOrder({ sellerId, status: "delivered", createdAt: oldDate });
+      
+      // Recent order
+      await seedOrder({ sellerId, status: "delivered" });
+
+      const metrics7d = await accountHealthService.calculateAccountHealth(
+        sellerId,
+        testOrgId.toString(),
+        "last_7_days",
+      );
+      const metrics30d = await accountHealthService.calculateAccountHealth(
+        sellerId,
+        testOrgId.toString(),
+        "last_30_days",
+      );
+      const metrics90d = await accountHealthService.calculateAccountHealth(
+        sellerId,
+        testOrgId.toString(),
+        "last_90_days",
+      );
+      
+      expect(metrics7d.totalOrders).toBeLessThanOrEqual(metrics30d.totalOrders);
+      expect(metrics30d.totalOrders).toBeLessThanOrEqual(metrics90d.totalOrders);
+    });
+
+    it("should set atRisk flag when metrics are poor", async () => {
+      const { sellerId } = await seedSeller();
+      
+      // Seed many defective orders to trigger poor health
+      for (let i = 0; i < 5; i++) {
+        await seedOrder({ sellerId, status: "delivered", isDefective: true });
+      }
+
+      const metrics = await accountHealthService.calculateAccountHealth(
+        sellerId,
+        testOrgId.toString(),
+        "last_30_days",
+      );
+      
+      // Health status depends on implementation thresholds
+      expect(metrics).toHaveProperty("atRisk");
+      expect(metrics).toHaveProperty("warnings");
+    });
+  });
+
+  describe("getAccountHealthSummary", () => {
+    it("should return a summary for a seller", async () => {
+      const { sellerId } = await seedSeller();
+      
+      const summary = await accountHealthService.getHealthSummary(
+        sellerId,
+        testOrgId.toString(),
+      );
+      expect(summary).toHaveProperty("current");
+    });
+  });
+
+  describe("monitorAllSellers", () => {
+    it("should run health checks for active sellers", async () => {
+      await seedSeller();
+      const result = await accountHealthService.monitorAllSellers();
+      expect(result).toHaveProperty("checked");
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/services/auto-repricer-service.test.ts">
+<![CDATA[
+import { describe, it, expect, vi, afterEach, beforeAll } from "vitest";
+import { Types } from "mongoose";
+import { nanoid } from "nanoid";
+
+// Hoist mock setup
+const { mockAddJob } = vi.hoisted(() => ({
+  mockAddJob: vi.fn(async () => undefined),
+}));
+
+// Mock external dependencies
+vi.mock("@/lib/queues/setup", () => ({
+  addJob: mockAddJob,
+  QUEUE_NAMES: { NOTIFICATIONS: "notifications", REPRICER: "repricer" },
+}));
+
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+// Import models after mocks
+import { SouqListing } from "@/server/models/souq/Listing";
+import { SouqSeller } from "@/server/models/souq/Seller";
+
+// Deferred service import
+let AutoRepricerService: typeof import("@/services/souq/auto-repricer-service").AutoRepricerService;
+
+// Test fixture ObjectId for consistent test data
+const testOrgId = new Types.ObjectId();
+
+/**
+ * Helper to seed a test seller with repricer settings
+ */
+async function seedSeller({
+  orgId = testOrgId,
+  repricerEnabled = false,
+  repricerRules = {},
+  defaultRule = undefined as {
+    enabled: boolean;
+    minPrice: number;
+    maxPrice: number;
+    targetPosition: "win" | "competitive";
+    undercut: number;
+    protectMargin: boolean;
+  } | undefined,
+} = {}) {
+  const sellerId = new Types.ObjectId();
+  
+  await SouqSeller.create({
+    _id: sellerId,
+    sellerId: `SEL-${nanoid(8)}`,
+    orgId,
+    legalName: `Seller-${nanoid(6)}`,
+    tradeName: `Trade-${nanoid(6)}`,
+    crNumber: `CR-${nanoid(8)}`,
+    vatNumber: `VAT-${nanoid(8)}`,
+    registrationType: "company",
+    city: "Riyadh",
+    address: "123 Test Street",
+    contactEmail: `contact-${nanoid(4)}@test.com`,
+    contactPhone: "+966500000001",
+    accountHealth: { status: "good", score: 85 },
+    status: "active",
+    kycStatus: { status: "approved", step: "verification", companyInfoComplete: true, documentsComplete: true, bankDetailsComplete: true },
+    tier: "professional",
+    autoRepricerSettings: {
+      enabled: repricerEnabled,
+      rules: repricerRules,
+      defaultRule,
+    },
+  });
+
+  return { sellerId: sellerId.toString() };
+}
+
+/**
+ * Helper to seed a test listing
+ */
+async function seedListing({
+  sellerId,
+  fsin,
+  price = 100,
+  quantity = 50,
+  orgId = testOrgId,
+} = { sellerId: "", fsin: "", orgId: testOrgId }) {
+  const productId = new Types.ObjectId();
+  const listingId = `LST-${nanoid(8)}`;
+
+  await SouqListing.create({
+    listingId,
+    productId,
+    fsin,
+    sellerId: new Types.ObjectId(sellerId),
+    orgId,
+    price,
+    currency: "SAR",
+    stockQuantity: quantity,
+    reservedQuantity: 0,
+    availableQuantity: quantity,
+    lowStockThreshold: 10,
+    fulfillmentMethod: "fbm",
+    handlingTime: 1,
+    shippingOptions: [{ method: "standard", price: 10, estimatedDays: 3 }],
+    condition: "new",
+    metrics: {
+      orderCount: 10,
+      cancelRate: 2,
+      defectRate: 1,
+      onTimeShipRate: 95,
+      customerRating: 4.5,
+      priceCompetitiveness: 60,
+    },
+    status: "active",
+    buyBoxEligible: true,
+    buyBoxScore: 0,
+  });
+
+  return { listingId, productId: productId.toString() };
+}
+
+afterEach(async () => {
+  await SouqListing.deleteMany({});
+  await SouqSeller.deleteMany({});
+  vi.clearAllMocks();
+});
+
+beforeAll(async () => {
+  ({ AutoRepricerService } = await import("@/services/souq/auto-repricer-service"));
+});
+
+describe("AutoRepricerService", () => {
+  describe("repriceSeller", () => {
+    it("should return empty results when seller not found", async () => {
+      const fakeSellerId = new Types.ObjectId().toString();
+      
+      const result = await AutoRepricerService.repriceSeller(fakeSellerId, testOrgId.toString());
+      expect(result.repriced).toBe(0);
+      expect(result.errors).toBe(0);
+      expect(result.listings).toHaveLength(0);
+    });
+
+    it("should return empty results when repricer is disabled", async () => {
+      const { sellerId } = await seedSeller({ repricerEnabled: false });
+      
+      const result = await AutoRepricerService.repriceSeller(sellerId, testOrgId.toString());
+      
+      expect(result.repriced).toBe(0);
+      expect(result.errors).toBe(0);
+      expect(result.listings).toHaveLength(0);
+    });
+
+    it("should skip sellers with invalid repricer settings", async () => {
+      const sellerId = new Types.ObjectId();
+      
+      // Create seller with invalid settings structure
+      await SouqSeller.create({
+        _id: sellerId,
+        sellerId: `SEL-${nanoid(8)}`,
+        orgId: testOrgId,
+        legalName: `Seller-${nanoid(6)}`,
+        tradeName: `Trade-${nanoid(6)}`,
+        crNumber: `CR-${nanoid(8)}`,
+        vatNumber: `VAT-${nanoid(8)}`,
+        registrationType: "company",
+        city: "Riyadh",
+        address: "123 Test Street",
+        contactEmail: `contact-${nanoid(4)}@test.com`,
+        contactPhone: "+966500000001",
+        accountHealth: { status: "good", score: 85 },
+        status: "active",
+        kycStatus: { status: "approved", step: "verification", companyInfoComplete: true, documentsComplete: true, bankDetailsComplete: true },
+        tier: "professional",
+        autoRepricerSettings: { invalid: "settings" }, // Invalid
+      });
+
+      const result = await AutoRepricerService.repriceSeller(sellerId.toString(), testOrgId.toString());
+      
+      expect(result.repriced).toBe(0);
+    });
+
+    it("should process active listings when repricer is enabled", async () => {
+      const fsin = `FSIN-${nanoid(8)}`;
+      const listingId = `LST-${nanoid(8)}`;
+      
+      const { sellerId } = await seedSeller({
+        repricerEnabled: true,
+        repricerRules: {
+          [listingId]: {
+            enabled: true,
+            minPrice: 80,
+            maxPrice: 150,
+            targetPosition: "win" as const,
+            undercut: 1,
+            protectMargin: true,
+          },
+        },
+      });
+
+      await seedListing({ sellerId, fsin, price: 100 });
+
+      const result = await AutoRepricerService.repriceSeller(sellerId, testOrgId.toString());
+      
+      // Should return results (repriced or not depending on competition)
+      expect(result).toHaveProperty("repriced");
+      expect(result).toHaveProperty("errors");
+      expect(result).toHaveProperty("listings");
+    });
+
+    it("should respect minPrice when protectMargin is true", async () => {
+      const fsin = `FSIN-${nanoid(8)}`;
+      
+      const { sellerId } = await seedSeller({
+        repricerEnabled: true,
+        defaultRule: {
+          enabled: true,
+          minPrice: 90,
+          maxPrice: 150,
+          targetPosition: "win" as const,
+          undercut: 1,
+          protectMargin: true,
+        },
+      });
+
+      const { listingId } = await seedListing({ sellerId, fsin, price: 100 });
+
+      const result = await AutoRepricerService.repriceSeller(sellerId, testOrgId.toString());
+      
+      // If listing was repriced, verify it didn't go below minPrice
+      if (result.listings.length > 0) {
+        const repricedListing = result.listings.find(l => l.listingId === listingId);
+        if (repricedListing) {
+          expect(repricedListing.newPrice).toBeGreaterThanOrEqual(90);
+        }
+      }
+    });
+  });
+
+  describe("queueRepricingJob", () => {
+    it("should queue a repricing job for a seller", async () => {
+      const { sellerId } = await seedSeller({ repricerEnabled: true });
+
+      if (AutoRepricerService.queueRepricingJob) {
+        await AutoRepricerService.queueRepricingJob(sellerId);
+        expect(mockAddJob).toHaveBeenCalled();
+      }
+    });
+  });
+
+  describe("calculateOptimalPrice", () => {
+    it("should calculate price within min/max bounds", async () => {
+      if (AutoRepricerService.calculateOptimalPrice) {
+        const rule = {
+          enabled: true,
+          minPrice: 80,
+          maxPrice: 150,
+          targetPosition: "win" as const,
+          undercut: 1,
+          protectMargin: true,
+        };
+
+        const optimalPrice = await AutoRepricerService.calculateOptimalPrice(
+          100, // currentPrice
+          null, // current winner (none)
+          [{ id: "competitor", price: 95 }], // competitors
+          rule,
+          "self-listing",
+        );
+
+        expect(optimalPrice).toBeGreaterThanOrEqual(rule.minPrice);
+        expect(optimalPrice).toBeLessThanOrEqual(rule.maxPrice);
+      }
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/services/buybox-service.test.ts">
+<![CDATA[
+import { describe, it, expect, vi, afterEach, beforeAll } from "vitest";
+import { Types } from "mongoose";
+import { nanoid } from "nanoid";
+
+// Hoist mock setup
+const { mockAddJob } = vi.hoisted(() => ({
+  mockAddJob: vi.fn(async () => undefined),
+}));
+
+// Mock external dependencies
+vi.mock("@/lib/queues/setup", () => ({
+  addJob: mockAddJob,
+  QUEUE_NAMES: { NOTIFICATIONS: "notifications" },
+}));
+
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+// Import models after mocks
+import { SouqListing } from "@/server/models/souq/Listing";
+import { SouqSeller } from "@/server/models/souq/Seller";
+
+// Deferred service import
+let BuyBoxService: typeof import("@/services/souq/buybox-service").BuyBoxService;
+
+// Test fixture org for listings
+const testOrgId = new Types.ObjectId();
+
+/**
+ * Helper to seed a test seller
+ */
+async function seedSeller({
+  orgId = testOrgId,
+  accountHealth = { status: "good", score: 85 },
+} = {}) {
+  const sellerId = new Types.ObjectId();
+  
+  await SouqSeller.create({
+    _id: sellerId,
+    sellerId: `SEL-${nanoid(8)}`,
+    orgId,
+    legalName: `Seller-${nanoid(6)}`,
+    tradeName: `Trade-${nanoid(6)}`,
+    crNumber: `CR-${nanoid(8)}`,
+    vatNumber: `VAT-${nanoid(8)}`,
+    registrationType: "company",
+    city: "Riyadh",
+    address: "123 Test Street",
+    contactEmail: `contact-${nanoid(4)}@test.com`,
+    contactPhone: "+966500000001",
+    accountHealth,
+    status: "active",
+    kycStatus: { status: "approved", step: "verification", companyInfoComplete: true, documentsComplete: true, bankDetailsComplete: true },
+    tier: "professional",
+    autoRepricerSettings: { enabled: false, rules: {} },
+  });
+
+  return { sellerId: sellerId.toString(), orgId: orgId.toString() };
+}
+
+/**
+ * Helper to seed a test listing
+ */
+async function seedListing({
+  sellerId,
+  fsin,
+  price = 100,
+  buyBoxEligible = true,
+  quantity = 50,
+  fulfillmentMethod = "fbm" as const,
+  metrics = {
+    orderCount: 10,
+    cancelRate: 2,
+    defectRate: 1,
+    onTimeShipRate: 95,
+    customerRating: 4.5,
+    priceCompetitiveness: 60,
+  },
+  orgId = testOrgId,
+} = { sellerId: "", fsin: "", orgId: testOrgId }) {
+  const productId = new Types.ObjectId();
+  const listingId = `LST-${nanoid(8)}`;
+
+  await SouqListing.create({
+    listingId,
+    productId,
+    fsin,
+    sellerId: new Types.ObjectId(sellerId),
+    orgId,
+    price,
+    currency: "SAR",
+    stockQuantity: quantity,
+    reservedQuantity: 0,
+    availableQuantity: quantity,
+    lowStockThreshold: 10,
+    fulfillmentMethod,
+    handlingTime: 1,
+    shippingOptions: [{ method: "standard", price: 10, estimatedDays: 3 }],
+    condition: "new",
+    metrics,
+    status: "active",
+    buyBoxEligible,
+    buyBoxScore: 0,
+  });
+
+  return { listingId, productId: productId.toString() };
+}
+
+afterEach(async () => {
+  await SouqListing.deleteMany({});
+  await SouqSeller.deleteMany({});
+  vi.clearAllMocks();
+});
+
+beforeAll(async () => {
+  ({ BuyBoxService } = await import("@/services/souq/buybox-service"));
+});
+
+describe("BuyBoxService", () => {
+  describe("calculateBuyBoxWinner", () => {
+    it("should return null when no eligible listings exist", async () => {
+      const winner = await BuyBoxService.calculateBuyBoxWinner("FSIN-NONEXISTENT", testOrgId.toString());
+      expect(winner).toBeNull();
+    });
+
+    it("should return the only listing when there is a single eligible listing", async () => {
+      const { sellerId } = await seedSeller();
+      const fsin = `FSIN-${nanoid(8)}`;
+      await seedListing({ sellerId, fsin, price: 100, buyBoxEligible: true });
+
+      const winner = await BuyBoxService.calculateBuyBoxWinner(fsin, testOrgId.toString());
+      
+      expect(winner).not.toBeNull();
+      expect(winner?.fsin).toBe(fsin);
+    });
+
+    it("should select listing with best score when multiple listings exist", async () => {
+      const fsin = `FSIN-${nanoid(8)}`;
+      
+      // Create two sellers with different performance
+      const { sellerId: seller1 } = await seedSeller({ accountHealth: { status: "excellent", score: 95 } });
+      const { sellerId: seller2 } = await seedSeller({ accountHealth: { status: "good", score: 75 } });
+
+      // Seller 1: Higher metrics, higher price
+      await seedListing({
+        sellerId: seller1,
+        fsin,
+        price: 110,
+        buyBoxEligible: true,
+        metrics: {
+          orderCount: 200,
+          cancelRate: 1,
+          defectRate: 0.5,
+          onTimeShipRate: 99,
+          customerRating: 4.9,
+          priceCompetitiveness: 70,
+        },
+      });
+
+      // Seller 2: Lower metrics, lower price
+      await seedListing({
+        sellerId: seller2,
+        fsin,
+        price: 95,
+        buyBoxEligible: true,
+        metrics: {
+          orderCount: 20,
+          cancelRate: 5,
+          defectRate: 3,
+          onTimeShipRate: 85,
+          customerRating: 4.0,
+          priceCompetitiveness: 40,
+        },
+      });
+
+      const winner = await BuyBoxService.calculateBuyBoxWinner(fsin, testOrgId.toString());
+      
+      expect(winner).not.toBeNull();
+      // Winner should be determined by algorithm (lower price + good metrics often wins)
+      expect(winner?.fsin).toBe(fsin);
+    });
+
+    it("should not include listings with zero stock", async () => {
+      const { sellerId } = await seedSeller();
+      const fsin = `FSIN-${nanoid(8)}`;
+      await seedListing({ sellerId, fsin, price: 100, buyBoxEligible: true, quantity: 0 });
+
+      const winner = await BuyBoxService.calculateBuyBoxWinner(fsin, testOrgId.toString());
+      expect(winner).toBeNull();
+    });
+
+    it("should not include ineligible listings", async () => {
+      const { sellerId } = await seedSeller();
+      const fsin = `FSIN-${nanoid(8)}`;
+      await seedListing({ sellerId, fsin, price: 100, buyBoxEligible: false });
+
+      const winner = await BuyBoxService.calculateBuyBoxWinner(fsin, testOrgId.toString());
+      expect(winner).toBeNull();
+    });
+
+    it("should favor FBF over FBM with same score", async () => {
+      const fsin = `FSIN-${nanoid(8)}`;
+      const { sellerId: seller1 } = await seedSeller();
+      const { sellerId: seller2 } = await seedSeller();
+
+      // Same metrics, same price, different fulfillment
+      const metrics = {
+        orderCount: 100,
+        cancelRate: 2,
+        defectRate: 1,
+        onTimeShipRate: 95,
+        customerRating: 4.5,
+        priceCompetitiveness: 60,
+      };
+
+      await seedListing({ sellerId: seller1, fsin, price: 100, fulfillmentMethod: "fbm", metrics });
+      await seedListing({ sellerId: seller2, fsin, price: 100, fulfillmentMethod: "fbf" as "fbm", metrics });
+
+      const winner = await BuyBoxService.calculateBuyBoxWinner(fsin, testOrgId.toString());
+      
+      expect(winner).not.toBeNull();
+      // FBF should get bonus points
+    });
+  });
+
+  describe("getProductOffers", () => {
+    it("should return all active offers for a FSIN", async () => {
+      const fsin = `FSIN-${nanoid(8)}`;
+      const { sellerId: seller1 } = await seedSeller();
+      const { sellerId: seller2 } = await seedSeller();
+
+      await seedListing({ sellerId: seller1, fsin, price: 100 });
+      await seedListing({ sellerId: seller2, fsin, price: 95 });
+
+    const offers = await BuyBoxService.getProductOffers(fsin, { orgId: testOrgId.toString() });
+      
+      expect(offers).toHaveLength(2);
+    });
+
+    it("should sort by price when sort=price", async () => {
+      const fsin = `FSIN-${nanoid(8)}`;
+      const { sellerId: seller1 } = await seedSeller();
+      const { sellerId: seller2 } = await seedSeller();
+
+      await seedListing({ sellerId: seller1, fsin, price: 150 });
+      await seedListing({ sellerId: seller2, fsin, price: 100 });
+
+      const offers = await BuyBoxService.getProductOffers(fsin, { sort: "price", orgId: testOrgId.toString() });
+      
+      expect(offers[0].price).toBe(100);
+      expect(offers[1].price).toBe(150);
+    });
+
+    it("should filter by condition", async () => {
+      const fsin = `FSIN-${nanoid(8)}`;
+      const { sellerId } = await seedSeller();
+
+      await seedListing({ sellerId, fsin, price: 100 });
+
+      const offers = await BuyBoxService.getProductOffers(fsin, { condition: "new", orgId: testOrgId.toString() });
+      
+      expect(offers.length).toBeGreaterThanOrEqual(1);
+      expect(offers[0].condition).toBe("new");
+    });
+  });
+
+  describe("updateSellerListingsEligibility", () => {
+    it("should update all listings for a seller", async () => {
+      const { sellerId, orgId } = await seedSeller({ accountHealth: { status: "good", score: 80 } });
+      const fsin = `FSIN-${nanoid(8)}`;
+      
+      await seedListing({ sellerId, fsin, price: 100, buyBoxEligible: false, orgId });
+      
+      await BuyBoxService.updateSellerListingsEligibility(sellerId, orgId);
+      
+      // Verify listings were processed
+      const listings = await SouqListing.find({ sellerId });
+      expect(listings.length).toBeGreaterThan(0);
+    });
+
+    it("should handle non-existent seller gracefully", async () => {
+      const fakeSellerId = new Types.ObjectId().toString();
+      
+      // Should not throw
+      await expect(
+        BuyBoxService.updateSellerListingsEligibility(fakeSellerId, testOrgId.toString())
+      ).resolves.toBeUndefined();
+    });
+  });
+
+  describe("recalculateBuyBoxForProduct", () => {
+    it("should recalculate eligibility for all listings of a product", async () => {
+      const fsin = `FSIN-${nanoid(8)}`;
+      const { sellerId: seller1 } = await seedSeller();
+      const { sellerId: seller2 } = await seedSeller();
+
+      await seedListing({ sellerId: seller1, fsin, price: 100 });
+      await seedListing({ sellerId: seller2, fsin, price: 95 });
+
+      await BuyBoxService.recalculateBuyBoxForProduct(fsin, testOrgId.toString());
+      
+      // Verify listings were processed
+      const listings = await SouqListing.find({ fsin });
+      expect(listings).toHaveLength(2);
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/services/claims/claim-service-tenant.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { ObjectId } from "mongodb";
+
+const claimsStore: any[] = [];
+const findOneCalls: Record<string, unknown>[] = [];
+
+const { mockAddJob } = vi.hoisted(() => ({
+  mockAddJob: vi.fn(async () => undefined),
+}));
+
+// Minimal matcher supporting $or, $in, and $lt for our claim filters
+const matches = (doc: any, filter: Record<string, any>): boolean => {
+  const entries = Object.entries(filter || {});
+  for (const [key, value] of entries) {
+    if (key === "$or") {
+      return Array.isArray(value) && value.some((sub) => matches(doc, sub));
+    }
+
+    const docVal = doc[key];
+
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      if ("$in" in value) {
+        const arr = value.$in as any[];
+        if (!arr.some((candidate) => String(candidate) === String(docVal))) {
+          return false;
+        }
+        continue;
+      }
+      if ("$lt" in value || "$lte" in value || "$gt" in value || "$gte" in value) {
+        const docNum =
+          docVal instanceof Date ? docVal.getTime() : Number(docVal);
+        const lt = "$lt" in value ? (value as any).$lt : undefined;
+        const lte = "$lte" in value ? (value as any).$lte : undefined;
+        const gt = "$gt" in value ? (value as any).$gt : undefined;
+        const gte = "$gte" in value ? (value as any).$gte : undefined;
+        const ltNum = lt instanceof Date ? lt.getTime() : Number(lt);
+        const lteNum = lte instanceof Date ? lte.getTime() : Number(lte);
+        const gtNum = gt instanceof Date ? gt.getTime() : Number(gt);
+        const gteNum = gte instanceof Date ? gte.getTime() : Number(gte);
+        if (lt !== undefined && !(docNum < ltNum)) return false;
+        if (lte !== undefined && !(docNum <= lteNum)) return false;
+        if (gt !== undefined && !(docNum > gtNum)) return false;
+        if (gte !== undefined && !(docNum >= gteNum)) return false;
+        continue;
+      }
+    }
+
+    if (value !== undefined && String(docVal) !== String(value)) {
+      return false;
+    }
+  }
+  return true;
+};
+
+const collection = {
+  insertOne: async (doc: any) => {
+    claimsStore.push(doc);
+    return { insertedId: doc._id ?? new ObjectId() };
+  },
+  findOne: async (filter: Record<string, unknown>) => {
+    findOneCalls.push(filter);
+    return claimsStore.find((c) => matches(c, filter)) ?? null;
+  },
+  find: (filter: Record<string, unknown>) => {
+    const data = claimsStore.filter((c) => matches(c, filter));
+    const chain = {
+      sort: () => chain,
+      skip: () => chain,
+      limit: () => chain,
+      toArray: async () => data,
+    };
+    return chain;
+  },
+  updateOne: async (
+    filter: Record<string, unknown>,
+    update: { $set?: Record<string, unknown>; $push?: Record<string, any> },
+  ) => {
+    const doc = claimsStore.find((c) => matches(c, filter));
+    if (!doc) return { matchedCount: 0, modifiedCount: 0 };
+    if (update.$set) {
+      Object.assign(doc, update.$set);
+    }
+    if (update.$push) {
+      Object.entries(update.$push).forEach(([key, val]) => {
+        if (!Array.isArray(doc[key])) doc[key] = [];
+        if (val && typeof val === "object" && "$each" in val) {
+          doc[key].push(...(val as { $each: any[] }).$each);
+        } else {
+          (doc[key] as any[]).push(val);
+        }
+      });
+    }
+    return { matchedCount: 1, modifiedCount: 1 };
+  },
+  countDocuments: async (filter: Record<string, unknown>) =>
+    claimsStore.filter((c) => matches(c, filter)).length,
+};
+
+vi.mock("@/lib/queues/setup", () => ({
+  addJob: mockAddJob,
+  QUEUE_NAMES: { NOTIFICATIONS: "notifications" },
+}));
+
+vi.mock("@/lib/mongodb-unified", () => {
+  return {
+    getDatabase: async () => ({
+      collection: () => collection,
+    }),
+  };
+});
+
+import { ClaimService, type Claim } from "@/services/souq/claims/claim-service";
+
+let claimAId: string;
+let claimBId: string;
+
+describe("ClaimService tenant isolation", () => {
+  beforeEach(async () => {
+    claimsStore.length = 0;
+    findOneCalls.length = 0;
+    // Force ClaimService to use the in-memory collection to ensure tests don't hit real DB
+    // @ts-expect-error overriding for test
+    ClaimService.collection = async () => collection;
+    const now = new Date();
+    const overdue = new Date(Date.now() - 10_000);
+    const baseClaim = (overrides: Partial<Claim>): Claim => ({
+      _id: new ObjectId(),
+      orgId: "org-a",
+      claimId: `CLM-${Math.random().toString(36).slice(2, 8)}`,
+      orderId: "ORD-A",
+      buyerId: "BUY-A",
+      sellerId: "SEL-A",
+      productId: "PRD-A",
+      type: "item_not_received",
+      status: "pending_review",
+      reason: "not delivered",
+      description: "Package missing",
+      evidence: [],
+      filedAt: now,
+      responseDeadline: overdue,
+      orderAmount: 100,
+      isAutoResolvable: false,
+      isFraudulent: false,
+      priority: "medium",
+      createdAt: now,
+      updatedAt: now,
+      ...overrides,
+    });
+
+    const claimA = baseClaim({ orgId: "org-a", claimId: "CLM-ORG-A" });
+    const claimB = baseClaim({
+      orgId: "org-b",
+      claimId: "CLM-ORG-B",
+      sellerId: "SEL-B",
+      buyerId: "BUY-B",
+      productId: "PRD-B",
+      orderId: "ORD-B",
+    });
+    claimsStore.push(claimA, claimB);
+    claimAId = claimA.claimId;
+    claimBId = claimB.claimId;
+    mockAddJob.mockClear();
+  });
+
+  it("returns claim only for matching orgId", async () => {
+    const foundA = await ClaimService.getClaim(claimAId, "org-a");
+    expect(findOneCalls.length).toBeGreaterThan(0);
+    expect(foundA?.claimId).toBe(claimAId);
+
+    const cross = await ClaimService.getClaim(claimAId, "org-b");
+    expect(cross).toBeNull();
+  });
+
+  it("does not update status when orgId does not match", async () => {
+    await ClaimService.updateStatus(claimAId, "org-b", "closed");
+    const claimAfterWrongOrg = await ClaimService.getClaim(claimAId, "org-a");
+    expect(claimAfterWrongOrg?.status).toBe("pending_review");
+
+    await ClaimService.updateStatus(claimAId, "org-a", "closed");
+    const claimAfterCorrectOrg = await ClaimService.getClaim(claimAId, "org-a");
+    expect(claimAfterCorrectOrg?.status).toBe("closed");
+  });
+
+  it("does not make decision across tenants", async () => {
+    await expect(
+      ClaimService.makeDecision({
+        claimId: claimAId,
+        orgId: "org-b",
+        decidedBy: "admin",
+        outcome: "reject",
+        reason: "invalid",
+      }),
+    ).rejects.toThrow(/Claim not found/);
+
+    await ClaimService.makeDecision({
+      claimId: claimAId,
+      orgId: "org-a",
+      decidedBy: "admin",
+      outcome: "reject",
+      reason: "invalid",
+    });
+    const claimA = await ClaimService.getClaim(claimAId, "org-a");
+    expect(claimA?.decision?.outcome).toBe("reject");
+  });
+
+  it("escalates only overdue claims in the same tenant", async () => {
+    expect(claimsStore.length).toBe(2);
+    const manualOverdue = claimsStore.filter((c) =>
+      matches(c, {
+        status: { $in: ["pending_review", "pending_seller_response"] },
+        responseDeadline: { $lt: new Date() },
+        orgId: "org-a",
+      }),
+    );
+    expect(manualOverdue.length).toBe(1);
+
+    const escalatedCount = await ClaimService.escalateOverdueClaims("org-a");
+    expect(escalatedCount).toBe(1);
+
+    const claimA = await ClaimService.getClaim(claimAId, "org-a");
+    const claimB = await ClaimService.getClaim(claimBId, "org-b");
+
+    expect(claimA?.status).toBe("escalated");
+    expect(claimB?.status).toBe("pending_review");
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/services/claims-refund-processor.test.ts">
+<![CDATA[
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { addJob } from "@/lib/queues/setup";
+import { ObjectId } from "mongodb";
+
+vi.mock("@/lib/queues/setup", () => {
+  return {
+    addJob: vi.fn(async () => undefined),
+    QUEUE_NAMES: { NOTIFICATIONS: "notifications", REFUNDS: "refunds" },
+  };
+});
+
+const mockOrderUpdate = vi.fn(async () => ({}));
+const mockRefundUpdate = vi.fn(async () => ({}));
+const mockRefundFindOne = vi.fn(async () => null);
+
+vi.mock("@/lib/mongodb-unified", () => {
+  return {
+    getDatabase: async () => ({
+      collection: (name: string) => {
+        if (name === "souq_orders") {
+          return { updateOne: mockOrderUpdate };
+        }
+        if (name === "souq_refunds") {
+          return { updateOne: mockRefundUpdate, findOne: mockRefundFindOne, insertOne: vi.fn() };
+        }
+        return { updateOne: vi.fn(async () => ({})) };
+      },
+    }),
+  };
+});
+
+// Import after mocks
+import {
+  RefundProcessor,
+  __setQueueModuleForTests,
+} from "@/services/souq/claims/refund-processor";
+
+const mockedAddJob = addJob as unknown as ReturnType<typeof vi.fn>;
+
+describe("RefundProcessor notifications", () => {
+  beforeEach(() => {
+    __setQueueModuleForTests({
+      addJob: mockedAddJob,
+      QUEUE_NAMES: { NOTIFICATIONS: "notifications", REFUNDS: "refunds" },
+    } as unknown as typeof import("@/lib/queues/setup"));
+    mockOrderUpdate.mockReset();
+    mockRefundUpdate.mockReset();
+    mockRefundFindOne.mockReset();
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    __setQueueModuleForTests(null);
+    vi.clearAllMocks();
+  });
+
+  it("sends orgId in notification payload", async () => {
+    await RefundProcessor["notifyRefundStatus"](
+      {
+        refundId: "REF-1",
+        claimId: "CL-1",
+        orderId: "ORD-1",
+        buyerId: "buyer-1",
+        sellerId: "seller-1",
+        orgId: "org-123",
+        amount: 10,
+        reason: "test",
+        paymentMethod: "card",
+        status: "initiated",
+        retryCount: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        refundId: "REF-1",
+        status: "completed",
+        amount: 10,
+        transactionId: "TX-1",
+      },
+    );
+
+    expect(mockedAddJob).toHaveBeenCalled();
+    const payload = mockedAddJob.mock.calls[0][2];
+    expect(payload.orgId).toBe("org-123");
+  });
+
+  it("updates order status scoped by orgId", async () => {
+    await RefundProcessor["updateOrderStatus"]({
+      orderId: "ORD-1",
+      orgId: "org-abc",
+      status: "refunded",
+    });
+
+    // buildSouqOrgFilter returns $or structure - verify updateOne invoked with scoped filter
+    expect(mockOrderUpdate).toHaveBeenCalled();
+  });
+
+  it("updates order status with ObjectId orgId and includes dual $or scope", async () => {
+    const orgObjectId = new ObjectId("60f5f06d2f9f1c3b2a1d4e5f");
+    await RefundProcessor["updateOrderStatus"]({
+      orderId: "ORD-OBJ",
+      orgId: orgObjectId.toString(),
+      status: "refunded",
+    });
+
+    expect(mockOrderUpdate).toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const callArgs = mockOrderUpdate.mock.calls.at(-1) as any[] | undefined;
+    expect(callArgs).toBeTruthy();
+    const filter = callArgs?.[0] as Record<string, unknown> | undefined;
+    expect(filter).toHaveProperty("$and");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const andArray = (filter as any)?.$and as Array<Record<string, unknown>> | undefined;
+    const orgScope = andArray?.[0] as Record<string, unknown> | undefined;
+    expect(orgScope).toHaveProperty("$or");
+    // Org scope should include both string and ObjectId candidates
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((orgScope as any)?.$or).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ orgId: expect.objectContaining({ $in: expect.arrayContaining([orgObjectId.toString(), orgObjectId]) }) }),
+        expect.objectContaining({ org_id: expect.objectContaining({ $in: expect.arrayContaining([orgObjectId.toString(), orgObjectId]) }) }),
+      ]),
+    );
+  });
+
+  it("queues retry job with orgId", async () => {
+    const refund = {
+      refundId: "REF-2",
+      claimId: "CL-2",
+      orderId: "ORD-2",
+      buyerId: "buyer-2",
+      sellerId: "seller-2",
+      orgId: "org-456",
+      amount: 20,
+      reason: "retry",
+      paymentMethod: "card",
+      status: "processing" as const,
+      retryCount: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    await RefundProcessor["scheduleRetry"](refund as unknown as any);
+
+    expect(mockedAddJob).toHaveBeenCalled();
+    const args = mockedAddJob.mock.calls[0];
+    expect(args[0]).toBe("refunds");
+    expect(args[1]).toBe("souq-claim-refund-retry");
+    expect(args[2]).toMatchObject({ refundId: "REF-2", orgId: "org-456" });
+  });
+
+  it("processes manual retry jobs and persists status/order updates", async () => {
+    const refund = {
+      refundId: "REF-3",
+      claimId: "CL-3",
+      orderId: "ORD-3",
+      buyerId: "buyer-3",
+      sellerId: "seller-3",
+      orgId: "org-789",
+      amount: 30,
+      reason: "retry-manual",
+      paymentMethod: "card",
+      status: "processing" as const,
+      retryCount: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockRefundFindOne.mockResolvedValueOnce(refund as any);
+
+    const executeSpy = vi
+      .spyOn(RefundProcessor as unknown as { executeRefund: (...args: unknown[]) => Promise<unknown> }, "executeRefund")
+      .mockResolvedValue({
+        refundId: "REF-3",
+        status: "completed",
+        amount: 30,
+        transactionId: "TX-3",
+        completedAt: new Date(),
+      });
+    const notifySpy = vi.spyOn(RefundProcessor, "notifyRefundStatus");
+
+    await RefundProcessor.processRetryJob("REF-3", "org-789");
+
+    expect(executeSpy).toHaveBeenCalledWith(refund);
+    // buildSouqOrgFilter returns $or structure for tenant isolation
+    expect(mockRefundUpdate).toHaveBeenCalledWith(
+      { refundId: "REF-3", $or: [{ orgId: { $in: ["org-789"] } }, { org_id: { $in: ["org-789"] } }] },
+      expect.objectContaining({
+        $set: expect.objectContaining({
+          status: "completed",
+          transactionId: "TX-3",
+        }),
+      }),
+    );
+    expect(mockOrderUpdate).toHaveBeenCalled();
+    expect(notifySpy).toHaveBeenCalledWith(
+      expect.objectContaining({ refundId: "REF-3", orgId: "org-789" }),
+      expect.objectContaining({ status: "completed", transactionId: "TX-3" }),
+    );
+  });
+
+  it("skips manual retry when refund is not processing", async () => {
+    const refund = {
+      refundId: "REF-4",
+      claimId: "CL-4",
+      orderId: "ORD-4",
+      buyerId: "buyer-4",
+      sellerId: "seller-4",
+      orgId: "org-999",
+      amount: 40,
+      reason: "retry-skip",
+      paymentMethod: "card",
+      status: "failed" as const,
+      retryCount: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockRefundFindOne.mockResolvedValueOnce(refund as any);
+
+    const executeSpy = vi
+      .spyOn(RefundProcessor as unknown as { executeRefund: (...args: unknown[]) => Promise<unknown> }, "executeRefund")
+      .mockResolvedValue({
+        refundId: "REF-4",
+        status: "completed",
+        amount: 40,
+        transactionId: "TX-4",
+      });
+    const notifySpy = vi.spyOn(RefundProcessor, "notifyRefundStatus");
+
+    await RefundProcessor.processRetryJob("REF-4", "org-999");
+
+    expect(executeSpy).not.toHaveBeenCalled();
+    expect(mockRefundUpdate).not.toHaveBeenCalled();
+    expect(mockOrderUpdate).not.toHaveBeenCalled();
+    expect(notifySpy).not.toHaveBeenCalled();
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/services/fulfillment-service.test.ts">
+<![CDATA[
+import { describe, it, expect, vi, afterEach, beforeAll } from "vitest";
+import { Types } from "mongoose";
+import { SouqOrder } from "../../server/models/souq/Order";
+
+// Hoist mock setup
+const { mockAramexGetRates, mockSmsaGetRates, mockSplGetRates } = vi.hoisted(() => ({
+  mockAramexGetRates: vi.fn(async () => [
+    { carrier: "Aramex", serviceType: "express", cost: 30, estimatedDays: 1 },
+    { carrier: "Aramex", serviceType: "standard", cost: 15, estimatedDays: 3 },
+  ]),
+  mockSmsaGetRates: vi.fn(async () => [
+    { carrier: "SMSA", serviceType: "express", cost: 28, estimatedDays: 1 },
+  ]),
+  mockSplGetRates: vi.fn(async () => [
+    { carrier: "SPL", serviceType: "standard", cost: 12, estimatedDays: 5 },
+  ]),
+}));
+
+// Mock dependencies
+vi.mock("../../lib/queues/setup", () => ({
+  addJob: vi.fn(async () => undefined),
+  QUEUE_NAMES: { NOTIFICATIONS: "notifications" },
+}));
+
+vi.mock("../../lib/logger", () => ({
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
+}));
+
+vi.mock("../../lib/carriers/aramex", () => ({
+  aramexCarrier: {
+    name: "Aramex",
+    createShipment: vi.fn(),
+    getTracking: vi.fn(),
+    cancelShipment: vi.fn(),
+    getRates: mockAramexGetRates,
+  },
+}));
+
+vi.mock("../../lib/carriers/smsa", () => ({
+  smsaCarrier: {
+    name: "SMSA",
+    createShipment: vi.fn(),
+    getTracking: vi.fn(),
+    cancelShipment: vi.fn(),
+    getRates: mockSmsaGetRates,
+  },
+}));
+
+vi.mock("../../lib/carriers/spl", () => ({
+  splCarrier: {
+    name: "SPL",
+    createShipment: vi.fn(),
+    getTracking: vi.fn(),
+    cancelShipment: vi.fn(),
+    getRates: mockSplGetRates,
+  },
+}));
+
+let fulfillmentService: typeof import("../../services/souq/fulfillment-service").fulfillmentService;
+
+afterEach(async () => {
+  await SouqOrder.deleteMany({});
+  vi.clearAllMocks();
+});
+
+beforeAll(async () => {
+  ({ fulfillmentService } = await import("../../services/souq/fulfillment-service"));
+});
+
+describe("fulfillmentService", () => {
+  describe("multi-tenancy guards", () => {
+    it("should reject fulfillOrder when orgId is missing", async () => {
+      await expect(
+        fulfillmentService.fulfillOrder({
+          orderId: "ORD-no-org",
+          orgId: "",
+          orderItems: [],
+          shippingAddress: {
+            name: "Buyer",
+            phone: "+966500000000",
+            street: "Addr",
+            city: "Riyadh",
+            postalCode: "12345",
+            country: "SA",
+          },
+          buyerPhone: "+966500000000",
+          buyerEmail: "buyer@example.com",
+        }),
+      ).rejects.toThrow("orgId is required to fulfill order");
+    });
+
+    it("should enforce org scoping when fulfilling an order", async () => {
+      const orderId = "ORD-org-scope";
+      const orgIdA = new Types.ObjectId().toString();
+      const orgIdB = new Types.ObjectId().toString();
+      await SouqOrder.create({
+        orderId,
+        orgId: new Types.ObjectId(orgIdA),
+        customerId: new Types.ObjectId(),
+        customerEmail: "buyer@example.com",
+        customerPhone: "+966500000000",
+        items: [],
+        shippingAddress: {
+          name: "Buyer",
+          phone: "+966500000000",
+          addressLine1: "Street 1",
+          city: "Riyadh",
+          postalCode: "12345",
+          country: "SA",
+        },
+        pricing: {
+          subtotal: 100,
+          shippingFee: 10,
+          tax: 15,
+          discount: 0,
+          total: 125,
+          currency: "SAR",
+        },
+        payment: { method: "card", status: "captured", transactionId: "txn_123" },
+        status: "pending",
+        fulfillmentStatus: "pending",
+        shippingSpeed: "standard",
+      });
+
+      await expect(
+        fulfillmentService.fulfillOrder({
+          orderId,
+          orgId: orgIdB,
+          orderItems: [],
+          shippingAddress: {
+            name: "Buyer",
+            phone: "+966500000000",
+            street: "Addr",
+            city: "Riyadh",
+            postalCode: "12345",
+            country: "SA",
+          },
+          buyerPhone: "+966500000000",
+          buyerEmail: "buyer@example.com",
+        }),
+      ).rejects.toThrow("Order not found for org");
+    });
+
+    it("should reject generateFBMLabel when orgId is missing", async () => {
+      await expect(
+        fulfillmentService.generateFBMLabel({
+          orderId: "ORD-fbm",
+          sellerId: new Types.ObjectId().toString(),
+          sellerAddress: {
+            name: "Seller",
+            phone: "+966500000000",
+            street: "Seller St",
+            city: "Riyadh",
+            postalCode: "12345",
+            country: "SA",
+          },
+          carrierName: "spl",
+          orgId: "",
+        }),
+      ).rejects.toThrow("orgId is required to generate FBM label");
+    });
+
+    it("should reject updateTracking when orgId is missing", async () => {
+      await expect(
+        fulfillmentService.updateTracking("TRACK-1", "spl", ""),
+      ).rejects.toThrow("orgId is required to update tracking");
+    });
+  });
+
+  describe("getRates", () => {
+    it("should aggregate rates from all carriers sorted by cost", async () => {
+      const rates = await fulfillmentService.getRates({
+        origin: "Riyadh",
+        destination: "Jeddah",
+        weight: 2.5,
+        serviceType: "standard",
+      });
+      expect(rates.length).toBeGreaterThan(0);
+      for (let i = 1; i < rates.length; i++) {
+        expect(rates[i].cost).toBeGreaterThanOrEqual(rates[i - 1].cost);
+      }
+    });
+
+    it("should handle carrier failures gracefully", async () => {
+      mockAramexGetRates.mockRejectedValueOnce(new Error("Network error"));
+      const rates = await fulfillmentService.getRates({
+        origin: "Riyadh",
+        destination: "Dammam",
+        weight: 1.0,
+        serviceType: "express",
+      });
+      expect(rates.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("calculateSLA", () => {
+    it("should compute SLA metrics for pending standard order", async () => {
+      const orderId = `ORD-${Math.random().toString(36).slice(2, 8)}`;
+      const customerId = new Types.ObjectId();
+      const sellerId = new Types.ObjectId();
+      const listingId = new Types.ObjectId();
+      const productId = new Types.ObjectId();
+      const orgId = new Types.ObjectId();
+
+      await SouqOrder.create({
+        orderId,
+        orgId,
+        customerId,
+        customerEmail: "buyer@example.com",
+        customerPhone: "+966500000000",
+        items: [
+          {
+            listingId,
+            productId,
+            fsin: "FSIN-123456",
+            sellerId,
+            title: "Test Product",
+            quantity: 1,
+            pricePerUnit: 100,
+            subtotal: 100,
+            fulfillmentMethod: "fbf",
+            status: "pending",
+          },
+        ],
+        shippingAddress: {
+          name: "Test Buyer",
+          phone: "+966500000000",
+          addressLine1: "Street 1",
+          city: "Riyadh",
+          postalCode: "12345",
+          country: "SA",
+        },
+        pricing: {
+          subtotal: 100,
+          shippingFee: 10,
+          tax: 15,
+          discount: 0,
+          total: 125,
+          currency: "SAR",
+        },
+        payment: { method: "card", status: "captured", transactionId: "txn_123" },
+        status: "pending",
+        fulfillmentStatus: "pending",
+        shippingSpeed: "standard",
+      });
+
+      const sla = await fulfillmentService.calculateSLA(orderId, orgId.toString());
+
+      expect(sla.currentStatus).toBe("pending");
+      expect(sla.isOnTime).toBe(true);
+      expect(sla.handlingDeadline).toBeInstanceOf(Date);
+      expect(sla.deliveryPromise).toBeInstanceOf(Date);
+      expect(["normal", "warning", "critical"]).toContain(sla.urgency);
+    });
+
+    it("should throw when orgId is missing", async () => {
+      await expect(
+        fulfillmentService.calculateSLA("any-order", "")
+      ).rejects.toThrow("orgId is required for SLA calculation");
+    });
+
+    it("should throw for non-existent order with valid orgId", async () => {
+      const orgId = new Types.ObjectId().toString();
+      await expect(
+        fulfillmentService.calculateSLA("non-existent-order", orgId)
+      ).rejects.toThrow("Order not found for org");
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/services/inventory-service.test.ts">
+<![CDATA[
+import { describe, it, expect, vi, afterEach, beforeAll } from "vitest";
+import { Types } from "mongoose";
+import { nanoid } from "nanoid";
+
+// Hoist mock setup
+const { mockAddJob } = vi.hoisted(() => ({
+  mockAddJob: vi.fn(async () => undefined),
+}));
+
+// Mock external dependencies
+vi.mock("@/lib/queues/setup", () => ({
+  addJob: mockAddJob,
+  QUEUE_NAMES: { NOTIFICATIONS: "notifications" },
+}));
+
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+// Import models after mocks
+import { SouqInventory } from "@/server/models/souq/Inventory";
+import { SouqListing } from "@/server/models/souq/Listing";
+
+// Deferred service import
+let inventoryService: typeof import("@/services/souq/inventory-service").inventoryService;
+
+/**
+ * Helper to seed a test listing and inventory
+ */
+// Test fixture ObjectId for consistent test data
+const testOrgId = new Types.ObjectId();
+const otherOrgId = new Types.ObjectId();
+const testOrgIdStr = testOrgId.toString();
+const otherOrgIdStr = otherOrgId.toString();
+
+async function seedInventory({
+  quantity = 100,
+  reservedQuantity = 0,
+  fulfillmentType = "FBM" as const,
+  lowStockThreshold = 10,
+  orgId = testOrgId,
+} = {}) {
+  const sellerId = new Types.ObjectId();
+  const productId = new Types.ObjectId();
+  const listingId = `LST-${nanoid(8)}`;
+  const inventoryId = `INV-${nanoid(8)}`;
+
+  // Create listing first
+  await SouqListing.create({
+    listingId,
+    productId,
+    fsin: `FSIN-${nanoid(6)}`,
+    sellerId,
+    orgId,
+    price: 100,
+    currency: "SAR",
+    stockQuantity: quantity,
+    reservedQuantity,
+    availableQuantity: quantity - reservedQuantity,
+    lowStockThreshold,
+    fulfillmentMethod: "fbm",
+    handlingTime: 1,
+    shippingOptions: [{ method: "standard", price: 10, estimatedDays: 3 }],
+    condition: "new",
+    metrics: {
+      orderCount: 0,
+      cancelRate: 0,
+      defectRate: 0,
+      onTimeShipRate: 100,
+      customerRating: 5,
+      priceCompetitiveness: 50,
+    },
+    status: "active",
+  });
+
+  // Create inventory record
+  await SouqInventory.create({
+    inventoryId,
+    listingId,
+    productId,
+    sellerId,
+    orgId,
+    availableQuantity: quantity - reservedQuantity,
+    totalQuantity: quantity,
+    reservedQuantity,
+    fulfillmentType,
+    lowStockThreshold,
+    reservations: [],
+    transactions: [
+      {
+        transactionId: `TXN-${nanoid(8)}`,
+        type: "receive",
+        quantity,
+        reason: "Initial seed",
+        performedBy: "SYSTEM",
+        performedAt: new Date(),
+      },
+    ],
+    health: {
+      sellableUnits: quantity - reservedQuantity,
+      unsellableUnits: 0,
+      inboundUnits: 0,
+      reservedUnits: reservedQuantity,
+      agingDays: 0,
+      isStranded: false,
+    },
+    status: "active",
+  });
+
+  return {
+    sellerId: sellerId.toString(),
+    productId: productId.toString(),
+    listingId,
+    inventoryId,
+    quantity,
+  };
+}
+
+afterEach(async () => {
+  await SouqInventory.deleteMany({});
+  await SouqListing.deleteMany({});
+  vi.clearAllMocks();
+});
+
+beforeAll(async () => {
+  ({ inventoryService } = await import("@/services/souq/inventory-service"));
+});
+
+describe("inventoryService", () => {
+  describe("reserveInventory", () => {
+    it("should reserve inventory successfully when stock is available", async () => {
+      const { listingId } = await seedInventory({ quantity: 50 });
+      const reservationId = `RES-${nanoid(8)}`;
+
+      const result = await inventoryService.reserveInventory({
+        listingId,
+        quantity: 5,
+        reservationId,
+        orgId: testOrgIdStr,
+        expirationMinutes: 15,
+      });
+
+      expect(result).toBe(true);
+
+      // Verify inventory was updated
+      const inventory = await SouqInventory.findOne({ listingId });
+      expect(inventory?.reservedQuantity).toBe(5);
+      expect(inventory?.availableQuantity).toBe(45);
+      expect(inventory?.reservations).toContainEqual(
+        expect.objectContaining({
+          reservationId,
+          quantity: 5,
+          status: "active",
+        }),
+      );
+    });
+
+    it("should return false when insufficient stock is available", async () => {
+      const { listingId } = await seedInventory({ quantity: 5 });
+      const reservationId = `RES-${nanoid(8)}`;
+
+      const result = await inventoryService.reserveInventory({
+        listingId,
+        quantity: 10, // More than available
+        reservationId,
+        orgId: testOrgIdStr,
+      });
+
+      expect(result).toBe(false);
+    });
+
+    it("should return false when org scope does not match", async () => {
+      const { listingId } = await seedInventory({ quantity: 10, orgId: otherOrgId });
+      const reservationId = `RES-${nanoid(8)}`;
+
+      const result = await inventoryService.reserveInventory({
+        listingId,
+        quantity: 2,
+        reservationId,
+        orgId: testOrgId.toString(),
+      });
+
+      expect(result).toBe(false);
+    });
+
+    it("should return false when listing/inventory not found", async () => {
+      const result = await inventoryService.reserveInventory({
+        listingId: "non-existent-listing",
+        quantity: 5,
+        reservationId: "res-1",
+        orgId: testOrgIdStr,
+      });
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("releaseReservation", () => {
+    it("should release reservation and restore available quantity", async () => {
+      const { listingId } = await seedInventory({ quantity: 50 });
+      const reservationId = `RES-${nanoid(8)}`;
+
+      // First reserve
+      await inventoryService.reserveInventory({
+        listingId,
+        quantity: 10,
+        reservationId,
+        orgId: testOrgIdStr,
+      });
+
+      // Then release
+      const result = await inventoryService.releaseReservation({
+        listingId,
+        reservationId,
+        orgId: testOrgIdStr,
+      });
+
+      expect(result).toBe(true);
+
+      // Verify inventory was restored
+      const inventory = await SouqInventory.findOne({ listingId });
+      expect(inventory?.reservedQuantity).toBe(0);
+      expect(inventory?.availableQuantity).toBe(50);
+    });
+  });
+
+  describe("convertReservationToSale", () => {
+    it("should convert reservation and reduce total/available quantity", async () => {
+      const { listingId } = await seedInventory({ quantity: 20, orgId: otherOrgId });
+      const reservationId = `RES-${nanoid(8)}`;
+      const orderId = `ORD-${nanoid(8)}`;
+
+      await inventoryService.reserveInventory({
+        listingId,
+        quantity: 5,
+        reservationId,
+        orgId: otherOrgId.toString(),
+      });
+
+      const converted = await inventoryService.convertReservationToSale({
+        listingId,
+        reservationId,
+        orderId,
+        orgId: otherOrgId.toString(),
+      });
+
+      expect(converted).toBe(true);
+
+      const inventory = await SouqInventory.findOne({ listingId });
+      expect(inventory?.reservedQuantity).toBe(0);
+      expect(inventory?.totalQuantity).toBe(15);
+      expect(inventory?.health.sellableUnits).toBe(15);
+    });
+  });
+
+  describe("getInventory", () => {
+    it("should return inventory for existing listing", async () => {
+      const { listingId, quantity } = await seedInventory({ quantity: 100 });
+
+      const result = await inventoryService.getInventory(listingId, testOrgIdStr);
+
+      expect(result).not.toBeNull();
+      expect(result?.listingId).toBe(listingId);
+      expect(result?.totalQuantity).toBe(quantity);
+    });
+
+    it("should return null for non-existent listing", async () => {
+      const result = await inventoryService.getInventory("non-existent", testOrgIdStr);
+      expect(result).toBeNull();
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/services/returns-service.test.ts">
+<![CDATA[
+import { describe, it, expect, vi, afterEach, beforeAll } from "vitest";
+import { Types } from "mongoose";
+import { nanoid } from "nanoid";
+
+const { mockAddJob, mockProcessReturn, mockGetRates } = vi.hoisted(() => ({
+  mockAddJob: vi.fn(async () => undefined),
+  mockProcessReturn: vi.fn(async () => undefined),
+  mockGetRates: vi.fn(async () => [{ carrier: "SPL", cost: 12 }]),
+}));
+
+vi.mock("../../lib/queues/setup", () => ({
+  addJob: mockAddJob,
+  QUEUE_NAMES: { NOTIFICATIONS: "notifications" },
+}));
+
+vi.mock("../../services/souq/inventory-service", () => ({
+  inventoryService: {
+    processReturn: mockProcessReturn,
+  },
+}));
+
+vi.mock("../../services/souq/fulfillment-service", () => ({
+  fulfillmentService: {
+    getRates: mockGetRates,
+  },
+}));
+
+import { SouqOrder } from "../../server/models/souq/Order";
+import { SouqListing } from "../../server/models/souq/Listing";
+import { SouqRMA } from "../../server/models/souq/RMA";
+import { SouqSeller } from "../../server/models/souq/Seller";
+
+let returnsService: typeof import("../../services/souq/returns-service").returnsService;
+
+const REQUIRED_ADDRESS = {
+  name: "Test User",
+  phone: "123456789",
+  addressLine1: "123 Test St",
+  city: "Riyadh",
+  country: "SA",
+  postalCode: "12345",
+};
+
+async function seedOrder({
+  price = 100,
+  quantity = 1,
+  reason = "changed_mind" as const,
+  sellerId = new Types.ObjectId(),
+  orgId = new Types.ObjectId(),
+  buyerId = new Types.ObjectId(),
+  productId = new Types.ObjectId(),
+  listingId = new Types.ObjectId(),
+} = {}) {
+
+  // Create Seller with contact info for notification tests
+  await SouqSeller.create({
+    _id: sellerId,
+    orgId,
+    sellerId: `SLR-${nanoid(6)}`,
+    legalName: "Test Seller Legal Name",
+    registrationType: "company",
+    country: "SA",
+    city: "Riyadh",
+    address: "123 Test St, Riyadh",
+    contactEmail: "seller@test.com",
+    contactPhone: "987654321",
+    status: "active",
+  });
+
+  await SouqListing.create({
+    _id: listingId,
+    listingId: `L-${nanoid(6)}`,
+    productId,
+    fsin: "FSIN-TEST",
+    sellerId,
+    orgId,
+    price,
+    currency: "SAR",
+    stockQuantity: 10,
+    reservedQuantity: 0,
+    availableQuantity: 10,
+    lowStockThreshold: 1,
+    fulfillmentMethod: "fbm",
+    handlingTime: 1,
+    shippingOptions: [{ method: "standard", price: 10, estimatedDays: 3 }],
+    condition: "new",
+    metrics: {
+      orderCount: 0,
+      cancelRate: 0,
+      defectRate: 0,
+      onTimeShipRate: 100,
+      customerRating: 5,
+      priceCompetitiveness: 50,
+    },
+    status: "active",
+  });
+
+  const deliveredAt = new Date();
+
+  const order = await SouqOrder.create({
+    orderId: `ORD-${nanoid(6)}`,
+    orgId,
+    customerId: buyerId,
+    customerEmail: "buyer@test.com",
+    customerPhone: "123456789",
+    items: [
+      {
+        listingId,
+        productId,
+        fsin: "FSIN-TEST",
+        sellerId,
+        title: "Test Product",
+        quantity,
+        pricePerUnit: price,
+        subtotal: price * quantity,
+        fulfillmentMethod: "fbm",
+        status: "delivered",
+        deliveredAt,
+      },
+    ],
+    shippingAddress: REQUIRED_ADDRESS,
+    pricing: {
+      subtotal: price * quantity,
+      shippingFee: 10,
+      tax: 0,
+      discount: 0,
+      total: price * quantity + 10,
+      currency: "SAR",
+    },
+    payment: {
+      method: "card",
+      status: "captured",
+      transactionId: "txn_1",
+      paidAt: deliveredAt,
+    },
+    status: "delivered",
+    fulfillmentStatus: "delivered",
+    deliveredAt,
+  });
+
+  return {
+    order,
+    listingId: listingId.toString(),
+    buyerId: buyerId.toString(),
+    sellerId: sellerId.toString(),
+    reason,
+    price,
+    quantity,
+  };
+}
+
+afterEach(() => {
+  vi.clearAllMocks();
+});
+
+beforeAll(async () => {
+  ({ returnsService } = await import("../../services/souq/returns-service"));
+});
+
+describe("returnsService", () => {
+  it("creates RMA with mapped return reason and refund totals", async () => {
+    const { order, listingId, buyerId, price, quantity } = await seedOrder({
+      price: 120,
+      quantity: 2,
+    });
+
+    const rmaId = await returnsService.initiateReturn({
+      orderId: order._id.toString(),
+      buyerId,
+      orgId: order.orgId.toString(),
+      items: [
+        {
+          listingId,
+          quantity,
+          reason: "changed_mind",
+          comments: "No longer needed",
+        },
+      ],
+      buyerPhotos: ["https://example.com/photo.jpg"],
+    });
+
+    const foundRma = await SouqRMA.findById(rmaId);
+    const rma = typeof (foundRma as any)?.lean === "function" ? await (foundRma as any).lean() : foundRma;
+
+    expect(rma?.rmaId).toMatch(/^RMA-/);
+    expect(rma?.items[0]?.returnReason).toBe("no_longer_needed");
+    expect(rma?.refund.amount).toBe(price * quantity);
+    expect(rma?.status).toBe("initiated");
+    expect(rma?.buyerNotes).toContain("No longer needed");
+    expect(mockAddJob).toHaveBeenCalled();
+  });
+
+  it("generates label then processes refund after inspection", async () => {
+    const { order, listingId, buyerId, price, quantity } = await seedOrder({
+      price: 100,
+      quantity: 1,
+    });
+
+    const testOrgId = order.orgId.toString();
+    const rmaId = await returnsService.initiateReturn({
+      orderId: order._id.toString(),
+      buyerId,
+      orgId: testOrgId,
+      items: [
+        {
+          listingId,
+          quantity,
+          reason: "changed_mind",
+        },
+      ],
+    });
+
+    const label = await returnsService.generateReturnLabel(rmaId, testOrgId);
+    expect(label.carrier).toBe("SPL");
+    expect(mockGetRates).toHaveBeenCalled();
+
+    await SouqRMA.updateOne(
+      { _id: rmaId },
+      {
+        status: "received",
+        "shipping.trackingNumber": label.trackingNumber,
+      },
+    );
+
+  await returnsService.inspectReturn({
+    rmaId,
+    orgId: testOrgId,
+    inspectorId: "SYSTEM",
+    condition: "good",
+    restockable: true,
+    inspectionNotes: "Looks fine",
+    allowAutoRefund: true,
+  });
+
+    const updatedDoc = await SouqRMA.findById(rmaId);
+    const updated = typeof (updatedDoc as any)?.lean === "function" ? await (updatedDoc as any).lean() : updatedDoc;
+    expect(updated?.status).toBe("completed");
+    expect(updated?.refund.status).toBe("completed");
+    expect(updated?.refund.amount).toBeCloseTo(price * quantity * 0.95, 5); // 5% deduction for "good"
+    expect(mockProcessReturn).toHaveBeenCalledTimes(1);
+    expect(mockAddJob).toHaveBeenCalled();
+  });
+
+  describe("getBuyerReturnHistory", () => {
+    it("rejects when orgId is missing", async () => {
+      const buyerId = new Types.ObjectId().toString();
+      await expect(
+        returnsService.getBuyerReturnHistory(buyerId, ""),
+      ).rejects.toThrow("orgId is required to fetch buyer return history");
+    });
+
+    it("returns only RMAs within the tenant org scope", async () => {
+      const buyerId = new Types.ObjectId().toString();
+      const orgA = new Types.ObjectId().toString();
+      const orgB = new Types.ObjectId().toString();
+
+      const baseRma = {
+        items: [
+          {
+            orderItemId: "OI-1",
+            listingId: "L-1",
+            productId: "P-1",
+            productName: "Test Product",
+            quantity: 1,
+            unitPrice: 50,
+            reason: "defective",
+            returnReason: "defective",
+          },
+        ],
+        status: "initiated",
+        returnWindowDays: 30,
+        returnDeadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        shipping: { shippingCost: 0, paidBy: "seller" as const },
+        refund: { amount: 50, method: "original_payment" as const, status: "pending" as const },
+        timeline: [{ status: "initiated", timestamp: new Date(), performedBy: buyerId }],
+      };
+
+      const rmaA = await SouqRMA.create({
+        ...baseRma,
+        rmaId: `RMA-${nanoid(8)}`,
+        orgId: orgA,
+        orderId: new Types.ObjectId().toString(),
+        orderNumber: "ORD-ORG-A",
+        buyerId,
+        sellerId: new Types.ObjectId().toString(),
+      });
+
+      await SouqRMA.create({
+        ...baseRma,
+        rmaId: `RMA-${nanoid(8)}`,
+        orgId: orgB,
+        orderId: new Types.ObjectId().toString(),
+        orderNumber: "ORD-ORG-B",
+        buyerId,
+        sellerId: new Types.ObjectId().toString(),
+      });
+
+      const history = await returnsService.getBuyerReturnHistory(buyerId, orgA);
+
+      expect(history).toHaveLength(1);
+      expect(history[0]?.orderId).toBe(rmaA.orderId);
+      expect(history[0]?.status).toBe("initiated");
+    });
+  });
+
+  describe("getSellerReturnStats", () => {
+    it("rejects when orgId is missing", async () => {
+      const sellerId = new Types.ObjectId().toString();
+      await expect(
+        returnsService.getSellerReturnStats(sellerId, "", "month"),
+      ).rejects.toThrow("orgId is required to fetch seller return stats");
+    });
+
+    it("scopes stats to the provided orgId (excludes other tenants)", async () => {
+      const sellerId = new Types.ObjectId();
+      const buyerId = new Types.ObjectId();
+      const orgA = new Types.ObjectId();
+      const orgB = new Types.ObjectId();
+
+      const { order: orderA } = await seedOrder({
+        sellerId,
+        orgId: orgA,
+        buyerId,
+        price: 50,
+        quantity: 1,
+      });
+
+      const lineItem = orderA.items[0];
+      if (!lineItem) {
+        throw new Error("Seeded order missing line item");
+      }
+
+      await SouqRMA.create({
+        rmaId: `RMA-${nanoid(8)}`,
+        orgId: orgA.toString(),
+        orderId: orderA._id.toString(),
+        orderNumber: orderA.orderId,
+        buyerId: buyerId.toString(),
+        sellerId: sellerId.toString(),
+        items: [
+          {
+            orderItemId: lineItem.listingId.toString(),
+            listingId: lineItem.listingId.toString(),
+            productId: lineItem.productId.toString(),
+            productName: lineItem.title || "Product",
+            quantity: 1,
+            unitPrice: 50,
+            reason: "defective",
+            returnReason: "defective",
+          },
+        ],
+        status: "completed",
+        returnWindowDays: 30,
+        returnDeadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        shipping: { shippingCost: 0, paidBy: "seller" },
+        refund: { amount: 50, method: "original_payment", status: "completed" },
+        timeline: [{ status: "completed", timestamp: new Date(), performedBy: buyerId.toString() }],
+      });
+
+      // Noise RMA in another org
+      await SouqRMA.create({
+        rmaId: `RMA-${nanoid(8)}`,
+        orgId: orgB.toString(),
+        orderId: new Types.ObjectId().toString(),
+        orderNumber: "ORD-NOISE",
+        buyerId: buyerId.toString(),
+        sellerId: sellerId.toString(),
+        items: [
+          {
+            orderItemId: "NOISE-OI",
+            listingId: "NOISE-L",
+            productId: "NOISE-P",
+            productName: "Noise",
+            quantity: 1,
+            unitPrice: 10,
+            reason: "defective",
+            returnReason: "defective",
+          },
+        ],
+        status: "completed",
+        returnWindowDays: 30,
+        returnDeadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        shipping: { shippingCost: 0, paidBy: "seller" },
+        refund: { amount: 10, method: "original_payment", status: "completed" },
+        timeline: [{ status: "completed", timestamp: new Date(), performedBy: buyerId.toString() }],
+      });
+
+      const stats = await returnsService.getSellerReturnStats(
+        sellerId.toString(),
+        orgA.toString(),
+        "month",
+      );
+
+      expect(stats.totalReturns).toBe(1);
+      expect(stats.returnRate).toBe(100); // one return / one delivered order in orgA
+      expect(stats.topReasons[0]?.reason).toBe("defective");
+      expect(stats.avgRefundAmount).toBeCloseTo(50);
+    });
+  });
+
+  describe("refund safeguards and tenant isolation", () => {
+    it("rejects getRefundableAmount for cross-tenant access", async () => {
+      const orgA = new Types.ObjectId();
+      const orgB = new Types.ObjectId();
+      const { order, listingId, buyerId } = await seedOrder({
+        orgId: orgA,
+        sellerId: new Types.ObjectId(),
+        buyerId: new Types.ObjectId(),
+        quantity: 1,
+        price: 75,
+      });
+
+      const rmaId = await returnsService.initiateReturn({
+        orderId: order._id.toString(),
+        buyerId: buyerId,
+        orgId: orgA.toString(),
+        items: [
+          {
+            listingId,
+            quantity: 1,
+            reason: "defective",
+          },
+        ],
+      });
+
+      await SouqRMA.updateOne(
+        { _id: rmaId },
+        {
+          status: "inspected",
+          inspection: { condition: "good", restockable: true },
+        },
+      );
+
+      await expect(
+        returnsService.getRefundableAmount(rmaId, orgB.toString()),
+      ).rejects.toThrow("RMA not found");
+    });
+
+    it("rejects processRefund when orgId does not match the RMA tenant", async () => {
+      const orgA = new Types.ObjectId();
+      const orgB = new Types.ObjectId();
+      const { order, listingId, buyerId, price } = await seedOrder({
+        orgId: orgA,
+        sellerId: new Types.ObjectId(),
+        buyerId: new Types.ObjectId(),
+        quantity: 1,
+        price: 80,
+      });
+
+      const rmaId = await returnsService.initiateReturn({
+        orderId: order._id.toString(),
+        buyerId,
+        orgId: orgA.toString(),
+        items: [
+          {
+            listingId,
+            quantity: 1,
+            reason: "not_as_described",
+          },
+        ],
+      });
+
+      await SouqRMA.updateOne(
+        { _id: rmaId },
+        {
+          status: "inspected",
+          inspection: { condition: "good", restockable: true },
+          refund: { amount: price, method: "original_payment", status: "pending" },
+        },
+      );
+
+      await expect(
+        returnsService.processRefund({
+          rmaId,
+          refundAmount: price,
+          refundMethod: "original_payment",
+          processorId: "admin-1",
+          orgId: orgB.toString(),
+        }),
+      ).rejects.toThrow();
+    });
+  });
+});
+
+]]>
+</file>
+
+</batch_content>

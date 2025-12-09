@@ -1,0 +1,3066 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="services/hr/wpsService.ts">
+<![CDATA[
+/**
+ * WPS (Wage Protection System) / Mudad File Generator
+ *
+ * Generates compliant payroll files for upload to Saudi banks
+ * per HRSD Mudad specifications.
+ *
+ * Format: CSV file with specific columns as required by banks
+ * All amounts must be in SAR (Saudi Riyals)
+ *
+ * References:
+ * - HRSD WPS: https://hrsd.gov.sa/en/wps
+ * - Mudad Platform: https://mudad.hrsd.gov.sa
+ */
+
+import { createHash } from "crypto";
+import { logger } from "@/lib/logger";
+import { AttendanceRecord } from "@/server/models/hr.models";
+import type { PayrollLineDoc } from "@/server/models/hr.models";
+
+/**
+ * Calculate actual work days from attendance records
+ * @param employeeId Employee ID to calculate work days for
+ * @param periodMonth Period in format YYYY-MM
+ * @returns Number of days worked (including partial days as full days)
+ */
+async function calculateWorkDays(
+  employeeId: string,
+  orgId: string,
+  periodMonth: string,
+): Promise<number> {
+  try {
+    // Parse month to get start and end dates
+    const [year, month] = periodMonth.split("-").map(Number);
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0); // Last day of month
+
+    // Query attendance records for the period
+    const records = await AttendanceRecord.find({
+      orgId,
+      employeeId,
+      isDeleted: false,
+      date: {
+        $gte: startDate,
+        $lte: endDate,
+      },
+      // Count all statuses except 'absent' and 'no-show'
+      status: { $nin: ["absent", "no-show", "unpaid-leave"] },
+    }).select("date");
+
+    // Count unique dates (in case of multiple clock-ins per day)
+    const uniqueDates = new Set(
+      records.map((r) => r.date?.toISOString().split("T")[0]),
+    );
+
+    return uniqueDates.size;
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    const [year, month] = periodMonth.split("-").map(Number);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    logger.error("[WPS] Failed to calculate work days from attendance", {
+      employeeId,
+      orgId,
+      yearMonth: periodMonth,
+      error,
+    });
+    return daysInMonth;
+  }
+}
+
+export interface WPSRecord {
+  employeeId: string; // Employee code/ID
+  employeeName: string; // Full name
+  bankCode: string; // Saudi bank code (e.g., '80' for Al Rajhi)
+  iban: string; // SA + 22 digits
+  basicSalary: number; // SAR
+  housingAllowance: number; // SAR
+  otherAllowances: number; // SAR
+  totalDeductions: number; // SAR
+  netSalary: number; // SAR
+  salaryMonth: string; // Format: YYYY-MM
+  workDays: number; // Days worked in the month
+}
+
+export interface WPSFile {
+  filename: string; // e.g., WPS_ORG123_2025-03.csv
+  content: string; // CSV content
+  checksum: string; // SHA-256 hash for verification
+  recordCount: number;
+  totalNetSalary: number;
+  generatedAt: Date;
+}
+
+/**
+ * Saudi bank codes (major banks)
+ * Banks may require specific codes - verify with your bank
+ */
+export const SAUDI_BANK_CODES: Record<string, string> = {
+  AL_RAJHI: "80",
+  NCB: "10", // National Commercial Bank (now SNB)
+  SAMBA: "40",
+  RIYAD: "20",
+  SABB: "55",
+  ALINMA: "95",
+  ANB: "25",
+  BANK_ALJAZIRA: "65",
+  BSF: "60",
+  BANQUE_SAUDI_FRANSI: "50",
+} as const;
+
+/**
+ * Extract bank code from IBAN
+ * Saudi IBANs: SA + 2 check digits + 2 bank code + 18 account number
+ * Returns 'INVALID_IBAN' if format is wrong (safer than throwing)
+ */
+function extractBankCode(iban: string): string {
+  if (!iban || !iban.startsWith("SA") || iban.length !== 24) {
+    return "INVALID_IBAN";
+  }
+  // Bank code is characters 5-6 (after SA and 2 check digits)
+  return iban.substring(4, 6);
+}
+
+/**
+ * Generate WPS CSV file from payslips
+ * Returns both the file and any errors encountered (for robust error handling)
+ */
+type PayrollLineInput = PayrollLineDoc & { workDays?: number };
+
+export async function generateWPSFile(
+  lines: PayrollLineInput[],
+  organizationId: string,
+  periodMonth: string, // Format: YYYY-MM
+): Promise<{ file: WPSFile; errors: string[] }> {
+  const records: WPSRecord[] = [];
+  const errors: string[] = [];
+  let totalNetSalary = 0;
+
+  for (const line of lines) {
+    if (!line.iban || !line.iban.startsWith("SA") || line.iban.length !== 24) {
+      errors.push(
+        `Invalid IBAN for employee ${line.employeeCode}: ${line.iban || "missing"}`,
+      );
+      continue;
+    }
+
+    const bankCode = extractBankCode(line.iban);
+    if (bankCode === "INVALID_IBAN") {
+      errors.push(
+        `Could not extract bank code for employee ${line.employeeCode}: ${line.iban}`,
+      );
+      continue;
+    }
+
+    const housingAllowance =
+      (line.housingAllowance || 0) + (line.transportAllowance || 0);
+    const otherAllowances =
+      line.otherAllowances?.reduce(
+        (sum, allowance) => sum + (allowance.amount || 0),
+        0,
+      ) || 0;
+    const totalDeductions =
+      (line.deductions || 0) +
+      (line.taxDeduction || 0) +
+      (line.gosiContribution || 0);
+
+    // ✅ Calculate actual work days from attendance records
+    let workDays = 30; // Default fallback
+    if (typeof line.workDays === "number") {
+      workDays = line.workDays;
+    } else {
+      const attendanceEmployeeId =
+        line.employeeId?.toString?.() ?? line.employeeCode;
+      workDays = await calculateWorkDays(
+        attendanceEmployeeId,
+        organizationId,
+        periodMonth,
+      );
+    }
+
+    const record: WPSRecord = {
+      employeeId: line.employeeCode,
+      employeeName: line.employeeName,
+      bankCode,
+      iban: line.iban,
+      basicSalary: Math.round((line.baseSalary || 0) * 100) / 100,
+      housingAllowance: Math.round(housingAllowance * 100) / 100,
+      otherAllowances: Math.round(otherAllowances * 100) / 100,
+      totalDeductions: Math.round(totalDeductions * 100) / 100,
+      netSalary: Math.round((line.netPay || 0) * 100) / 100,
+      salaryMonth: periodMonth,
+      workDays,
+    };
+
+    records.push(record);
+    totalNetSalary += record.netSalary;
+  }
+
+  // Generate CSV content
+  const csvHeader = [
+    "Employee ID",
+    "Employee Name",
+    "Bank Code",
+    "IBAN",
+    "Basic Salary",
+    "Housing Allowance",
+    "Other Allowances",
+    "Total Deductions",
+    "Net Salary",
+    "Salary Month",
+    "Work Days",
+  ].join(",");
+
+  const csvRows = records.map((r) =>
+    [
+      escapeCsv(r.employeeId),
+      escapeCsv(r.employeeName),
+      r.bankCode,
+      r.iban,
+      r.basicSalary.toFixed(2),
+      r.housingAllowance.toFixed(2),
+      r.otherAllowances.toFixed(2),
+      r.totalDeductions.toFixed(2),
+      r.netSalary.toFixed(2),
+      r.salaryMonth,
+      r.workDays,
+    ].join(","),
+  );
+
+  const csvContent = [csvHeader, ...csvRows].join("\n");
+
+  // Generate checksum using cryptographic SHA-256
+  const checksum = createHash("sha256")
+    .update(csvContent, "utf8")
+    .digest("hex");
+
+  const filename = `WPS_${organizationId}_${periodMonth.replace("-", "")}.csv`;
+
+  const file: WPSFile = {
+    filename,
+    content: csvContent,
+    checksum,
+    recordCount: records.length,
+    totalNetSalary: Math.round(totalNetSalary * 100) / 100,
+    generatedAt: new Date(),
+  };
+
+  return { file, errors };
+}
+
+/**
+ * Escape CSV field (handle commas and quotes)
+ */
+function escapeCsv(value: string): string {
+  if (!value) return '""';
+  // If value contains comma, quote, or newline, wrap in quotes and escape internal quotes
+  if (value.includes(",") || value.includes('"') || value.includes("\n")) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
+
+/**
+ * Validate WPS file before upload
+ */
+export interface WPSValidation {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+export function validateWPSFile(wpsFile: WPSFile): WPSValidation {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  // Check record count
+  if (wpsFile.recordCount === 0) {
+    errors.push("WPS file contains no records");
+  }
+
+  // Check total net salary
+  if (wpsFile.totalNetSalary <= 0) {
+    errors.push("Total net salary must be greater than zero");
+  }
+
+  // Parse CSV and validate each record
+  const lines = wpsFile.content.split("\n");
+  if (lines.length < 2) {
+    errors.push("WPS file must contain header and at least one data row");
+  } else {
+    // Skip header
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i];
+      if (!line.trim()) continue;
+
+      const fields = line.split(",");
+
+      // Validate IBAN (field 3)
+      const iban = fields[3]?.trim();
+      if (!iban || !iban.startsWith("SA") || iban.length !== 24) {
+        errors.push(`Row ${i}: Invalid IBAN format: ${iban}`);
+      }
+
+      // Validate net salary (field 8) is positive
+      const netSalary = parseFloat(fields[8] || "0");
+      if (netSalary <= 0) {
+        warnings.push(`Row ${i}: Net salary is zero or negative`);
+      }
+
+      // Validate salary month format (field 9)
+      const salaryMonth = fields[9]?.trim();
+      if (!salaryMonth || !/^\d{4}-\d{2}$/.test(salaryMonth)) {
+        errors.push(
+          `Row ${i}: Invalid salary month format: ${salaryMonth} (expected YYYY-MM)`,
+        );
+      }
+    }
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings,
+  };
+}
+
+/**
+ * Calculate actual work days from attendance/timesheet records
+ *
+ * This function counts the number of days an employee worked in a given month
+ * by querying approved timesheets. Use this before generating payslips to get
+ * accurate work days for WPS file generation.
+ *
+ * @param employeeId - Employee's unique ID
+ * @param orgId - Organization ID
+ * @param yearMonth - Format: "YYYY-MM" (e.g., "2025-03")
+ * @returns Promise<number> - Number of work days (0-31)
+ *
+ * @example
+ * const workDays = await calculateWorkDaysFromAttendance(
+ *   employeeId,
+ *   orgId,
+ *   "2025-03"
+ * );
+ * // Use workDays when creating payslip object
+ * const payslip = {
+ *   ...otherFields,
+ *   workDays: workDays,
+ * };
+ */
+export async function calculateWorkDaysFromAttendance(
+  employeeId: string,
+  orgId: string,
+  yearMonth: string,
+): Promise<number> {
+  try {
+    // Parse yearMonth to get start and end of month
+    const [year, month] = yearMonth.split("-").map(Number);
+    if (!year || !month || month < 1 || month > 12) {
+      throw new Error(
+        `Invalid yearMonth format: ${yearMonth}. Expected YYYY-MM`,
+      );
+    }
+
+    const monthStart = new Date(year, month - 1, 1); // Month is 0-indexed
+    const monthEnd = new Date(year, month, 0, 23, 59, 59, 999); // Last day of month
+
+    const records = await AttendanceRecord.find({
+      orgId,
+      employeeId,
+      isDeleted: false,
+      date: { $gte: monthStart, $lte: monthEnd },
+      status: { $in: ["PRESENT", "LATE"] },
+    }).select("date");
+
+    const workDaySet = new Set(
+      records.map((record) => record.date.toISOString().slice(0, 10)),
+    );
+
+    const workDays = workDaySet.size;
+    const daysInMonth = monthEnd.getDate();
+    return Math.min(workDays, daysInMonth);
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    // If calculation fails, return default (caller should handle this)
+    logger.error("[WPS] Failed to calculate work days from attendance", error);
+    return 30; // Default fallback
+  }
+}
+
+]]>
+</file>
+
+<file path="services/notifications/seller-notification-service.ts">
+<![CDATA[
+import { getEnv } from "@/lib/env";
+import { logger } from "@/lib/logger";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { sendSMS as sendSMSViaService } from "@/lib/sms";
+import { loadTranslations } from "@/lib/i18n/translation-loader";
+import { Config } from "@/lib/config/constants";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
+
+// Lazy-load translations
+let translations: ReturnType<typeof loadTranslations> | null = null;
+function getTranslations() {
+  if (!translations) {
+    translations = loadTranslations();
+  }
+  return translations;
+}
+
+/**
+ * Seller Notification Templates for Souq Marketplace
+ */
+
+type Locale = "en" | "ar";
+
+interface SellerDetails {
+  email: string;
+  phone?: string;
+  preferredLocale?: Locale;
+  businessName: string;
+}
+
+type TemplatePayloads = {
+  BUDGET_LOW: { budgetRemaining: number; campaignName: string };
+  BUDGET_DEPLETED: { campaignName: string };
+  REFUND_PROCESSED: { amount: number; orderId: string; refundId: string };
+  WITHDRAWAL_COMPLETE: { amount: number; iban: string };
+};
+
+type TemplateKey = keyof TemplatePayloads;
+
+interface TranslationConfig {
+  subject: { key: string; fallback: string };
+  body: { key: string; fallback: string };
+  sms: { key: string; fallback: string };
+}
+
+const templateTranslations: Record<TemplateKey, TranslationConfig> = {
+  BUDGET_LOW: {
+    subject: {
+      key: "notifications.seller.budgetLow.subject",
+      fallback: "Warning: Ad Budget Running Low",
+    },
+    body: {
+      key: "notifications.seller.budgetLow.body",
+      fallback:
+        'Your ad campaign "{{campaignName}}" has only {{budgetRemaining}} SAR remaining. Consider adding funds to avoid campaign interruption.',
+    },
+    sms: {
+      key: "notifications.seller.budgetLow.sms",
+      fallback:
+        "Fixzit Alert: Ad budget low - {{budgetRemaining}} SAR remaining. Add funds to continue.",
+    },
+  },
+  BUDGET_DEPLETED: {
+    subject: {
+      key: "notifications.seller.budgetDepleted.subject",
+      fallback: "Alert: Ad Budget Depleted",
+    },
+    body: {
+      key: "notifications.seller.budgetDepleted.body",
+      fallback:
+        'Your ad campaign "{{campaignName}}" has been paused due to insufficient funds. Add budget to resume advertising.',
+    },
+    sms: {
+      key: "notifications.seller.budgetDepleted.sms",
+      fallback:
+        "Fixzit Alert: Ad campaign paused - budget depleted. Add funds to resume.",
+    },
+  },
+  REFUND_PROCESSED: {
+    subject: {
+      key: "notifications.seller.refundProcessed.subject",
+      fallback: "Refund Processed Successfully",
+    },
+    body: {
+      key: "notifications.seller.refundProcessed.body",
+      fallback:
+        "A refund of {{amount}} SAR has been processed for order {{orderId}}. Refund ID: {{refundId}}. The amount will be credited to your account within 5-7 business days.",
+    },
+    sms: {
+      key: "notifications.seller.refundProcessed.sms",
+      fallback:
+        "Fixzit: Refund of {{amount}} SAR processed for order {{orderId}}.",
+    },
+  },
+  WITHDRAWAL_COMPLETE: {
+    subject: {
+      key: "notifications.seller.withdrawalComplete.subject",
+      fallback: "Withdrawal Completed Successfully",
+    },
+    body: {
+      key: "notifications.seller.withdrawalComplete.body",
+      fallback:
+        "Your withdrawal of {{amount}} SAR has been processed successfully to account {{iban}}. The funds should arrive within 1-3 business days.",
+    },
+    sms: {
+      key: "notifications.seller.withdrawalComplete.sms",
+      fallback: "Fixzit: Withdrawal of {{amount}} SAR completed successfully.",
+    },
+  },
+};
+
+const FALLBACK_LOCALE: Locale = "en";
+
+const translationCatalog: Record<Locale, Record<string, string>> = {
+  en: { ...getTranslations().en },
+  ar: { ...getTranslations().ar },
+};
+
+// Escape regex metacharacters to prevent ReDoS attacks
+const escapeRegExp = (str: string): string => {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+
+const interpolate = (
+  template: string,
+  params?: Record<string, string | number>,
+) => {
+  if (!params) return template;
+  return Object.entries(params).reduce((acc, [key, value]) => {
+    const escapedKey = escapeRegExp(key);
+    const pattern = new RegExp(`{{\\s*${escapedKey}\\s*}}`, "g");
+    return acc.replace(pattern, String(value));
+  }, template);
+};
+
+const translateTemplate = (
+  locale: Locale,
+  config: TranslationConfig[keyof TranslationConfig],
+  params?: Record<string, string | number>,
+) => {
+  const dictionary =
+    translationCatalog[locale] ?? translationCatalog[FALLBACK_LOCALE];
+  const template = dictionary?.[config.key] || config.fallback;
+  return interpolate(template, params);
+};
+
+/**
+ * Get seller details from database
+ */
+async function getSeller(
+  sellerId: string,
+  orgId: string,
+): Promise<SellerDetails | null> {
+  try {
+    const db = await getDatabase();
+    // 🔐 STRICT v4.1: souq_sellers.orgId is ObjectId; caller may pass string.
+    // Use dual-type candidates to match both legacy string and ObjectId storage.
+    const { ObjectId } = await import("mongodb");
+    const orgCandidates = ObjectId.isValid(orgId)
+      ? [orgId, new ObjectId(orgId)]
+      : [orgId];
+    const seller = await db
+      .collection("souq_sellers")
+      .findOne({ sellerId, orgId: { $in: orgCandidates } });
+
+    if (!seller) {
+      logger.warn("[SellerNotification] Seller not found", { sellerId });
+      return null;
+    }
+
+    return {
+      email: seller.contactEmail || seller.email,
+      phone: seller.contactPhone || seller.phone,
+      preferredLocale: seller.preferredLocale || "ar", // Default to Arabic for Saudi market
+      businessName: seller.businessName || "Seller",
+    };
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[SellerNotification] Error fetching seller", error, {
+      sellerId,
+    });
+    return null;
+  }
+}
+
+/**
+ * Send email via SendGrid (if configured)
+ */
+async function sendEmail(
+  to: string,
+  subject: string,
+  body: string,
+  locale: Locale,
+): Promise<boolean> {
+  // Use getEnv with alias support for Vercel naming conventions
+  const sendgridApiKey = getEnv("SENDGRID_API_KEY");
+  if (!sendgridApiKey) {
+    logger.warn("[SellerNotification] SendGrid not configured, skipping email");
+    return false;
+  }
+  const header = translateTemplate(locale, {
+    key: "notifications.seller.email.brand",
+    fallback: "Fixzit Marketplace",
+  });
+  const footer = translateTemplate(locale, {
+    key: "notifications.seller.email.footer",
+    fallback: "This is an automated notification from Fixzit Marketplace.",
+  });
+  const support = translateTemplate(locale, {
+    key: "notifications.seller.email.support",
+    fallback: `For support, contact ${Config.souq.sellerSupportEmail}`,
+  });
+
+  try {
+    const sgMail = (await import("@sendgrid/mail")).default;
+    sgMail.setApiKey(sendgridApiKey);
+
+    await sgMail.send({
+      to,
+      from: process.env.SENDGRID_FROM_EMAIL || EMAIL_DOMAINS.notifications,
+      subject,
+      text: body,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #333; border-bottom: 2px solid #0070f3; padding-bottom: 10px;">
+            ${header}
+          </h2>
+          <div style="margin: 20px 0; line-height: 1.6; color: #666;">
+            ${body.replace(/\n/g, "<br>")}
+          </div>
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;" />
+          <p style="color: #999; font-size: 12px; text-align: center;">
+            ${footer}<br>
+            ${support}
+          </p>
+        </div>
+      `,
+    });
+
+    logger.info("[SellerNotification] Email sent", { to, subject });
+    return true;
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[SellerNotification] Email send failed", error, {
+      to,
+      subject,
+    });
+    return false;
+  }
+}
+
+/**
+ * Send SMS using the centralized SMS service
+ */
+async function sendSMS(to: string, message: string): Promise<boolean> {
+  const result = await sendSMSViaService(to, message);
+
+  if (!result.success) {
+    logger.warn("[SellerNotification] SMS send failed", {
+      to,
+      error: result.error,
+    });
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Send notification to seller
+ */
+export async function sendSellerNotification<T extends TemplateKey>(
+  sellerId: string,
+  orgId: string,
+  template: T,
+  data: TemplatePayloads[T],
+): Promise<void> {
+  let status: "sent" | "failed" = "failed";
+  let locale: Locale | undefined;
+  let logged = false;
+  let seller: SellerDetails | null = null;
+  try {
+    if (!orgId) {
+      throw new Error("[SellerNotification] orgId is required for tenant isolation");
+    }
+    seller = await getSeller(sellerId, orgId);
+
+    if (!seller) {
+      logger.warn(
+        "[SellerNotification] Cannot send notification - seller not found",
+        { sellerId },
+      );
+      return;
+    }
+
+    locale = seller.preferredLocale || "ar";
+    const templateConfig = templateTranslations[template];
+    const params = data as Record<string, string | number>;
+    const subject = translateTemplate(locale, templateConfig.subject, params);
+    const body = translateTemplate(locale, templateConfig.body, params);
+    const emailSent = await sendEmail(seller.email, subject, body, locale);
+
+    const smsSent = seller.phone
+      ? await sendSMS(
+          seller.phone,
+          translateTemplate(locale, templateConfig.sms, params),
+        )
+      : false;
+
+    // Log notification in database for tracking
+    status = emailSent || smsSent ? "sent" : "failed";
+    await logNotification(sellerId, orgId, template, data, locale, status);
+    logged = true;
+
+    logger.info("[SellerNotification] Notification sent", {
+      sellerId,
+      template,
+      locale,
+    });
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[SellerNotification] Error sending notification", error, {
+      sellerId,
+      template,
+    });
+  } finally {
+    // Ensure we still log failed attempts for observability
+    const localeToLog = locale ?? seller?.preferredLocale ?? "ar";
+    if (localeToLog && !logged) {
+      await logNotification(
+        sellerId,
+        orgId,
+        template,
+        data,
+        localeToLog,
+        status,
+      );
+    }
+  }
+}
+
+/**
+ * Log notification in database for audit trail
+ */
+async function logNotification(
+  sellerId: string,
+  orgId: string,
+  template: string,
+  data: Record<string, unknown>,
+  locale: string,
+  status: "sent" | "failed",
+): Promise<void> {
+  try {
+    const db = await getDatabase();
+    const getCollection = () => {
+      if (typeof (db as unknown as Record<string, unknown>).collection === "function") {
+        const raw = (db as unknown as { collection: (name: string) => unknown }).collection("seller_notifications");
+        if (raw && typeof (raw as Record<string, unknown>).insertOne === "function") {
+          return raw as {
+            insertOne: (doc: Record<string, unknown>) => Promise<{ acknowledged: boolean; insertedId: unknown }>;
+          };
+        }
+      }
+      // Test fallback: create an in-memory collection store on the db object
+      const storeKey = "__seller_notifications_store__";
+      type InMemoryStore = {
+        data: Array<Record<string, unknown>>;
+        insertOne: (doc: Record<string, unknown>) => Promise<{ acknowledged: boolean; insertedId: unknown }>;
+        findOne: (filter: Record<string, unknown>) => Promise<Record<string, unknown> | undefined>;
+        deleteMany: () => Promise<{ acknowledged: boolean; deletedCount: number }>;
+      };
+      const dbWithStore = db as unknown as Record<string, unknown>;
+      const collectionStore =
+        (dbWithStore[storeKey] as InMemoryStore | undefined) ??
+        (dbWithStore[storeKey] = {
+          data: [] as Array<Record<string, unknown>>,
+          async insertOne(doc: Record<string, unknown>) {
+            this.data.push({ ...doc });
+            return { acknowledged: true, insertedId: doc._id ?? Date.now().toString() };
+          },
+          async findOne(filter: Record<string, unknown>) {
+            return this.data.find((d) =>
+              Object.entries(filter).every(([k, v]) => d[k] === v),
+            );
+          },
+          async deleteMany() {
+            this.data = [];
+            return { acknowledged: true, deletedCount: 0 };
+          },
+        } as InMemoryStore);
+      return collectionStore;
+    };
+
+    const collection = getCollection();
+    await collection.insertOne({
+      sellerId,
+      orgId,
+      template,
+      data,
+      locale,
+      sentAt: new Date(),
+      status,
+    });
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[SellerNotification] Error logging notification", error, {
+      sellerId,
+      template,
+    });
+  }
+}
+
+]]>
+</file>
+
+<file path="services/souq/account-health-service.ts">
+<![CDATA[
+/**
+ * Account Health Service
+ * Monitors seller performance metrics and enforces policies
+ * - Order Defect Rate (ODR)
+ * - Late Shipment Rate
+ * - Cancellation Rate
+ * - Return Rate
+ * - Policy Violations
+ * - Auto-enforcement
+ */
+
+import { SouqSeller } from "@/server/models/souq/Seller";
+import { SouqOrder } from "@/server/models/souq/Order";
+import { SouqRMA } from "@/server/models/souq/RMA";
+import { SouqListing } from "@/server/models/souq/Listing";
+import { SouqReview } from "@/server/models/souq/Review";
+import { SouqTransaction } from "@/server/models/souq/Transaction";
+import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
+import mongoose from "mongoose";
+import { buildSouqOrgFilter } from "@/services/souq/org-scope";
+
+// 🔐 STRICT v4.1: Use shared org filter helper for consistent tenant isolation
+// Handles both orgId and legacy org_id fields with proper ObjectId matching
+const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) =>
+  buildSouqOrgFilter(orgId.toString()) as Record<string, unknown>;
+
+const parseSellerObjectId = (sellerId: string): mongoose.Types.ObjectId => {
+  if (!mongoose.Types.ObjectId.isValid(sellerId)) {
+    throw new Error("Invalid sellerId");
+  }
+  return new mongoose.Types.ObjectId(sellerId);
+};
+
+export interface IAccountHealthMetrics {
+  // Performance Metrics
+  odr: number; // Order Defect Rate (%)
+  lateShipmentRate: number; // Late Shipment Rate (%)
+  cancellationRate: number; // Pre-fulfillment Cancellation Rate (%)
+  returnRate: number; // Return Rate (%)
+
+  // Volume Metrics
+  totalOrders: number;
+  totalDefects: number;
+  totalLateShipments: number;
+  totalCancellations: number;
+  totalReturns: number;
+
+  // Health Status
+  healthStatus: "excellent" | "good" | "fair" | "poor" | "critical";
+  atRisk: boolean;
+  warnings: string[];
+  violations: string[];
+
+  // Period
+  period: "last_7_days" | "last_30_days" | "last_90_days";
+  calculatedAt: Date;
+}
+
+export interface IPolicyViolation {
+  type:
+    | "restricted_product"
+    | "fake_review"
+    | "price_gouging"
+    | "counterfeit"
+    | "late_shipment"
+    | "high_odr"
+    | "other";
+  severity: "warning" | "minor" | "major" | "critical";
+  description: string;
+  occurredAt: Date;
+  resolved: boolean;
+  resolvedAt?: Date;
+  action:
+    | "warning"
+    | "listing_suppression"
+    | "account_suspension"
+    | "permanent_deactivation"
+    | "none";
+}
+
+class AccountHealthService {
+  /**
+   * Calculate comprehensive account health metrics
+   */
+  async calculateAccountHealth(
+    sellerId: string,
+    orgId: string,
+    period: "last_7_days" | "last_30_days" | "last_90_days" = "last_30_days",
+  ): Promise<IAccountHealthMetrics> {
+    if (!orgId) {
+      throw new Error("orgId is required to calculate account health");
+    }
+
+    const sellerObjectId = parseSellerObjectId(sellerId);
+    const periodDays =
+      period === "last_7_days" ? 7 : period === "last_30_days" ? 30 : 90;
+    const startDate = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000);
+
+    // Get orders in period
+    const orders = await SouqOrder.find({
+      "items.sellerId": sellerObjectId,
+      ...buildOrgFilter(orgId),
+      createdAt: { $gte: startDate },
+      status: { $nin: ["pending", "payment_failed"] }, // Exclude incomplete orders
+    });
+
+    const totalOrders = orders.length;
+
+    if (totalOrders === 0) {
+      return {
+        odr: 0,
+        lateShipmentRate: 0,
+        cancellationRate: 0,
+        returnRate: 0,
+        totalOrders: 0,
+        totalDefects: 0,
+        totalLateShipments: 0,
+        totalCancellations: 0,
+        totalReturns: 0,
+        healthStatus: "good",
+        atRisk: false,
+        warnings: [],
+        violations: [],
+        period,
+        calculatedAt: new Date(),
+      };
+    }
+
+    // Calculate metrics
+    const odr = await this.calculateODR(sellerId, orgId, startDate);
+    const lateShipmentRate = await this.calculateLateShipmentRate(
+      sellerId,
+      orgId,
+      startDate,
+    );
+    const cancellationRate = await this.calculateCancellationRate(
+      sellerId,
+      orgId,
+      startDate,
+    );
+    const returnRate = await this.calculateReturnRate(sellerId, orgId, startDate);
+
+    // Counts
+    const totalDefects = Math.floor((odr / 100) * totalOrders);
+    const totalLateShipments = Math.floor(
+      (lateShipmentRate / 100) * totalOrders,
+    );
+    const totalCancellations = Math.floor(
+      (cancellationRate / 100) * totalOrders,
+    );
+    const totalReturns = Math.floor((returnRate / 100) * totalOrders);
+
+    // Determine health status
+    const { healthStatus, atRisk, warnings, violations } =
+      this.assessHealthStatus({
+        odr,
+        lateShipmentRate,
+        cancellationRate,
+        returnRate,
+      });
+
+    return {
+      odr,
+      lateShipmentRate,
+      cancellationRate,
+      returnRate,
+      totalOrders,
+      totalDefects,
+      totalLateShipments,
+      totalCancellations,
+      totalReturns,
+      healthStatus,
+      atRisk,
+      warnings,
+      violations,
+      period,
+      calculatedAt: new Date(),
+    };
+  }
+
+  /**
+   * Calculate Order Defect Rate (ODR)
+   * ODR = (Negative Feedback + A-to-Z Claims + Chargebacks) / Total Orders
+   * Target: < 1%
+   */
+  private async calculateODR(
+    sellerId: string,
+    orgId: string,
+    startDate: Date,
+  ): Promise<number> {
+    if (!orgId) {
+      throw new Error("orgId is required to calculate ODR");
+    }
+
+    const sellerObjectId = parseSellerObjectId(sellerId);
+
+    const totalOrders = await SouqOrder.countDocuments({
+      "items.sellerId": sellerObjectId,
+      ...buildOrgFilter(orgId),
+      createdAt: { $gte: startDate },
+      status: { $nin: ["pending", "payment_failed"] },
+    });
+
+    if (totalOrders === 0) return 0;
+
+    // Fallback for fixtures that mark defects directly on orders
+    const flaggedOrders = await SouqOrder.countDocuments({
+      "items.sellerId": sellerObjectId,
+      ...buildOrgFilter(orgId),
+      createdAt: { $gte: startDate },
+      defectReported: true,
+    });
+
+    // Count negative feedback (1-2 stars)
+    const sellerProductIds = (await SouqListing.distinct("productId", {
+      sellerId: sellerObjectId,
+      ...buildOrgFilter(orgId),
+    })) as mongoose.Types.ObjectId[];
+
+    const negativeFeedback =
+      sellerProductIds.length === 0
+        ? 0
+        : await SouqReview.countDocuments({
+            productId: { $in: sellerProductIds },
+            ...buildOrgFilter(orgId),
+            createdAt: { $gte: startDate },
+            rating: { $lte: 2 },
+          });
+
+    // Count A-to-Z claims approved against seller
+    const { SouqClaim } = await import("@/server/models/souq/Claim");
+    const approvedClaims = await SouqClaim.countDocuments({
+      sellerId,
+      ...buildOrgFilter(orgId),
+      createdAt: { $gte: startDate },
+      status: "resolved",
+      "decision.outcome": { $in: ["approved", "partial_refund"] },
+    });
+
+    // Count chargebacks (if tracked in orders)
+    const chargebacks = await SouqTransaction.countDocuments({
+      sellerId: sellerObjectId,
+      ...buildOrgFilter(orgId),
+      type: "chargeback",
+      createdAt: { $gte: startDate },
+    });
+
+    const totalDefects = Math.max(
+      negativeFeedback + approvedClaims + chargebacks,
+      flaggedOrders,
+    );
+    const odr = (totalDefects / totalOrders) * 100;
+
+    return Math.round(odr * 100) / 100; // Round to 2 decimals
+  }
+
+  /**
+   * Calculate Late Shipment Rate
+   * LSR = Late Shipments / Total Shipped Orders
+   * Target: < 4%
+   */
+  private async calculateLateShipmentRate(
+    sellerId: string,
+    orgId: string,
+    startDate: Date,
+  ): Promise<number> {
+    const sellerObjectId = parseSellerObjectId(sellerId);
+
+    const shippedOrders = await SouqOrder.find({
+      "items.sellerId": sellerObjectId,
+      ...buildOrgFilter(orgId),
+      createdAt: { $gte: startDate },
+      status: { $in: ["shipped", "delivered"] },
+    });
+
+    if (shippedOrders.length === 0) return 0;
+
+    // Prefer explicit test flag when present
+    const flaggedLate = shippedOrders.filter(
+      (order) => (order as unknown as Record<string, unknown>).shippedLate === true,
+    ).length;
+
+    let lateShipments = 0;
+    for (const order of shippedOrders) {
+      const handlingWindow =
+        order.shippingSpeed === "express"
+          ? 1
+          : order.shippingSpeed === "same_day"
+            ? 0
+            : 2;
+      const shipByDate = new Date(order.createdAt);
+      shipByDate.setDate(shipByDate.getDate() + handlingWindow);
+
+      const latestShipment = order.items
+        .map((item) => item.shippedAt)
+        .filter((date): date is Date => Boolean(date))
+        .sort((a, b) => b.getTime() - a.getTime())[0];
+
+      if (latestShipment && latestShipment > shipByDate) {
+        lateShipments++;
+      }
+    }
+
+    const lsr =
+      flaggedLate > 0
+        ? (flaggedLate / shippedOrders.length) * 100
+        : (lateShipments / shippedOrders.length) * 100;
+    return Math.round(lsr * 100) / 100;
+  }
+
+  /**
+   * Calculate Pre-fulfillment Cancellation Rate
+   * CR = Cancelled Orders / Total Orders
+   * Target: < 2.5%
+   */
+  private async calculateCancellationRate(
+    sellerId: string,
+    orgId: string,
+    startDate: Date,
+  ): Promise<number> {
+    const sellerObjectId = parseSellerObjectId(sellerId);
+
+    const totalOrders = await SouqOrder.countDocuments({
+      "items.sellerId": sellerObjectId,
+      ...buildOrgFilter(orgId),
+      createdAt: { $gte: startDate },
+      status: { $nin: ["pending", "payment_failed"] },
+    });
+
+    if (totalOrders === 0) return 0;
+
+    const cancelledOrders = await SouqOrder.countDocuments({
+      "items.sellerId": sellerObjectId,
+      ...buildOrgFilter(orgId),
+      createdAt: { $gte: startDate },
+      status: "cancelled",
+    });
+
+    const flaggedCancels = await SouqOrder.countDocuments({
+      "items.sellerId": sellerObjectId,
+      ...buildOrgFilter(orgId),
+      createdAt: { $gte: startDate },
+      cancelledAt: { $exists: true },
+    });
+
+    const totalCancelled = Math.max(cancelledOrders, flaggedCancels);
+
+    const cr = (totalCancelled / totalOrders) * 100;
+    return Math.round(cr * 100) / 100;
+  }
+
+  /**
+   * Calculate Return Rate
+   * RR = Returns / Delivered Orders
+   * Target: < 10%
+   */
+  private async calculateReturnRate(
+    sellerId: string,
+    orgId: string,
+    startDate: Date,
+  ): Promise<number> {
+    const sellerObjectId = parseSellerObjectId(sellerId);
+
+    const deliveredOrders = await SouqOrder.countDocuments({
+      "items.sellerId": sellerObjectId,
+      ...buildOrgFilter(orgId),
+      createdAt: { $gte: startDate },
+      status: "delivered",
+    });
+
+    if (deliveredOrders === 0) return 0;
+
+    const returns =
+      (await SouqRMA.countDocuments({
+        sellerId,
+        ...buildOrgFilter(orgId),
+        createdAt: { $gte: startDate },
+      })) ||
+      (await SouqOrder.countDocuments({
+        "items.sellerId": sellerObjectId,
+        ...buildOrgFilter(orgId),
+        createdAt: { $gte: startDate },
+        status: "returned",
+      }));
+
+    const rr = (returns / deliveredOrders) * 100;
+    return Math.round(rr * 100) / 100;
+  }
+
+  /**
+   * Assess health status based on metrics
+   */
+  private assessHealthStatus(metrics: {
+    odr: number;
+    lateShipmentRate: number;
+    cancellationRate: number;
+    returnRate: number;
+  }): {
+    healthStatus: "excellent" | "good" | "fair" | "poor" | "critical";
+    atRisk: boolean;
+    warnings: string[];
+    violations: string[];
+  } {
+    const warnings: string[] = [];
+    const violations: string[] = [];
+    let healthScore = 100;
+
+    // ODR thresholds
+    if (metrics.odr > 2) {
+      violations.push("ODR exceeds 2% - Account suspension risk");
+      healthScore -= 40;
+    } else if (metrics.odr > 1) {
+      warnings.push("ODR exceeds 1% - Target is <1%");
+      healthScore -= 15;
+    }
+
+    // Late Shipment thresholds
+    if (metrics.lateShipmentRate > 10) {
+      violations.push("Late Shipment Rate exceeds 10% - Serious issue");
+      healthScore -= 30;
+    } else if (metrics.lateShipmentRate > 4) {
+      warnings.push("Late Shipment Rate exceeds 4% - Target is <4%");
+      healthScore -= 10;
+    }
+
+    // Cancellation thresholds
+    if (metrics.cancellationRate > 5) {
+      violations.push("Cancellation Rate exceeds 5% - Account review");
+      healthScore -= 25;
+    } else if (metrics.cancellationRate > 2.5) {
+      warnings.push("Cancellation Rate exceeds 2.5% - Target is <2.5%");
+      healthScore -= 10;
+    }
+
+    // Return thresholds
+    if (metrics.returnRate > 15) {
+      warnings.push("Return Rate exceeds 15% - High return rate");
+      healthScore -= 15;
+    } else if (metrics.returnRate > 10) {
+      warnings.push("Return Rate above 10% - Monitor closely");
+      healthScore -= 5;
+    }
+
+    // Determine status
+    let healthStatus: "excellent" | "good" | "fair" | "poor" | "critical";
+    if (healthScore >= 90) healthStatus = "excellent";
+    else if (healthScore >= 75) healthStatus = "good";
+    else if (healthScore >= 60) healthStatus = "fair";
+    else if (healthScore >= 40) healthStatus = "poor";
+    else healthStatus = "critical";
+
+    const atRisk = violations.length > 0 || healthStatus === "critical";
+
+    return { healthStatus, atRisk, warnings, violations };
+  }
+
+  /**
+   * Record policy violation
+   */
+  async recordViolation(
+    sellerId: string,
+    orgId: string,
+    violation: Omit<IPolicyViolation, "occurredAt" | "resolved">,
+  ): Promise<void> {
+    if (!orgId) {
+      throw new Error("orgId is required to record violation");
+    }
+
+    const seller = await SouqSeller.findOne({
+      _id: sellerId,
+      ...buildOrgFilter(orgId),
+    });
+    if (!seller) {
+      throw new Error("Seller not found");
+    }
+
+    const newViolation: IPolicyViolation = {
+      ...violation,
+      occurredAt: new Date(),
+      resolved: false,
+    };
+
+    if (!seller.policyViolations) {
+      seller.policyViolations = [];
+    }
+
+    seller.policyViolations.push(newViolation);
+    await seller.save();
+
+    // Auto-enforce if critical
+    if (violation.severity === "critical") {
+      await this.enforceViolation(sellerId, orgId, violation);
+    }
+
+    // Notify seller
+    await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
+      to: seller.contactEmail,
+      orgId: seller.orgId?.toString(), // 🔐 Tenant-specific routing
+      template: "policy_violation",
+      data: {
+        businessName: seller.tradeName || seller.legalName,
+        violationType: violation.type,
+        severity: violation.severity,
+        description: violation.description,
+        action: violation.action,
+      },
+    });
+  }
+
+  /**
+   * Enforce violation action
+   */
+  private async enforceViolation(
+    sellerId: string,
+    orgId: string,
+    violation: Omit<IPolicyViolation, "occurredAt" | "resolved">,
+  ): Promise<void> {
+    if (!orgId) {
+      throw new Error("orgId is required to enforce violation");
+    }
+
+    const seller = await SouqSeller.findOne({
+      _id: sellerId,
+      ...buildOrgFilter(orgId),
+    });
+    if (!seller) return;
+
+    switch (violation.action) {
+      case "listing_suppression": {
+        // Suppress all active listings (scoped by orgId for tenant isolation)
+        const { SouqListing } = await import("@/server/models/souq/Listing");
+        await SouqListing.updateMany(
+          { 
+            sellerId: parseSellerObjectId(sellerId), 
+            status: "active",
+            ...buildOrgFilter(orgId), // SECURITY: Required for tenant isolation (STRICT v4.1)
+          },
+          {
+            $set: {
+              status: "suppressed",
+              suppressionReason: violation.description,
+            },
+          },
+        );
+        break;
+      }
+
+      case "account_suspension":
+        // Suspend seller account
+        seller.isSuspended = true;
+        seller.isActive = false;
+        seller.suspensionReason = violation.description;
+        await seller.save();
+        break;
+
+      case "permanent_deactivation":
+        // Permanently deactivate
+        seller.isSuspended = true;
+        seller.isActive = false;
+        await seller.save();
+        break;
+
+      default:
+        // Warning only
+        break;
+    }
+
+    // Notify admin team
+    await addJob(
+      QUEUE_NAMES.NOTIFICATIONS,
+      "internal-notification",
+      {
+        to: "seller-compliance-team",
+        orgId: seller.orgId?.toString(), // 🔐 Tenant-specific routing for compliance alerts
+        priority: "high",
+        message: `Policy enforcement: ${violation.action} for ${seller.tradeName || seller.legalName} (${sellerId})`,
+      },
+      { priority: 1 },
+    );
+  }
+
+  /**
+   * Get account health summary for dashboard
+   */
+  async getHealthSummary(
+    sellerId: string,
+    orgId: string,
+    period: "last_7_days" | "last_30_days" | "last_90_days" = "last_30_days",
+  ): Promise<{
+    current: IAccountHealthMetrics;
+    trend: "improving" | "stable" | "declining";
+    recentViolations: IPolicyViolation[];
+    recommendations: string[];
+  }> {
+    if (!orgId) {
+      throw new Error("orgId is required to get health summary");
+    }
+
+    // Current metrics for specified period
+    const current = await this.calculateAccountHealth(sellerId, orgId, period);
+
+    // Simplified trend calculation
+    const trend = await this.calculateTrend(sellerId, orgId, current.odr);
+
+    // Recent violations
+    const seller = await SouqSeller.findOne({
+      _id: sellerId,
+      ...buildOrgFilter(orgId),
+    });
+    const recentViolations =
+      seller?.policyViolations
+        ?.filter((v) => !v.resolved)
+        ?.sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime())
+        ?.slice(0, 5) || [];
+
+    // Generate recommendations
+    const recommendations = this.generateRecommendations(current);
+
+    return {
+      current,
+      trend,
+      recentViolations,
+      recommendations,
+    };
+  }
+
+  /**
+   * Calculate trend (improving/stable/declining)
+   */
+  private async calculateTrend(
+    sellerId: string,
+    orgId: string,
+    currentODR: number,
+  ): Promise<"improving" | "stable" | "declining"> {
+    if (!orgId) {
+      throw new Error("orgId is required to calculate trend");
+    }
+    // Compare with 60-day period
+    const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+
+    const previousODR = await this.calculateODR(sellerId, orgId, sixtyDaysAgo);
+
+    if (currentODR < previousODR - 0.2) return "improving";
+    if (currentODR > previousODR + 0.2) return "declining";
+    return "stable";
+  }
+
+  /**
+   * Generate recommendations based on metrics
+   */
+  private generateRecommendations(metrics: IAccountHealthMetrics): string[] {
+    const recommendations: string[] = [];
+
+    if (metrics.odr > 1) {
+      recommendations.push(
+        "Improve product quality and descriptions to reduce defects",
+      );
+      recommendations.push(
+        "Respond quickly to customer inquiries to prevent A-to-Z claims",
+      );
+    }
+
+    if (metrics.lateShipmentRate > 4) {
+      recommendations.push("Ship orders within 24 hours of confirmation");
+      recommendations.push(
+        "Consider using FBF (Fulfillment by Fixzit) for faster shipping",
+      );
+    }
+
+    if (metrics.cancellationRate > 2.5) {
+      recommendations.push(
+        "Maintain accurate inventory levels to prevent out-of-stock cancellations",
+      );
+      recommendations.push("Set realistic handling times");
+    }
+
+    if (metrics.returnRate > 10) {
+      recommendations.push(
+        "Ensure product photos and descriptions are accurate",
+      );
+      recommendations.push(
+        "Use high-quality packaging to prevent damage during shipping",
+      );
+    }
+
+    if (recommendations.length === 0) {
+      recommendations.push(
+        "Great job! Keep maintaining your excellent performance",
+      );
+    }
+
+    return recommendations;
+  }
+
+  /**
+   * Background job: Monitor and enforce account health
+   * Runs daily to check all active sellers
+   * 
+   * SECURITY: Uses org-by-org iteration to maintain tenant isolation (STRICT v4.1)
+   * This prevents cross-tenant data exposure in background monitoring.
+   */
+  async monitorAllSellers(): Promise<{
+    checked: number;
+    atRisk: number;
+    actionsTaken: number;
+  }> {
+    // SECURITY: Get distinct org IDs first to maintain tenant isolation (STRICT v4.1)
+    // This prevents loading all sellers across tenants into memory at once
+    const orgIds =
+      typeof SouqSeller.distinct === "function"
+        ? ((await SouqSeller.distinct("orgId", {
+            isActive: true,
+          })) as mongoose.Types.ObjectId[])
+        : (await SouqSeller.find({ isActive: true }).select("orgId")).map(
+            (s) => s.orgId as mongoose.Types.ObjectId,
+          );
+
+    let checked = 0;
+    let atRisk = 0;
+    let actionsTaken = 0;
+
+    // Process each organization separately for tenant isolation
+    for (const orgId of orgIds) {
+      const orgIdStr = orgId?.toString();
+      if (!orgIdStr) continue;
+
+      // Fetch sellers scoped to this specific org
+      const activeSellers = await SouqSeller.find({
+        isActive: true,
+        ...buildOrgFilter(orgIdStr),
+      });
+
+      for (const seller of activeSellers) {
+        const health = await this.calculateAccountHealth(
+          seller._id.toString(),
+          orgIdStr,
+          "last_30_days",
+        );
+
+        checked++;
+
+        if (health.atRisk) {
+          atRisk++;
+
+          // Auto-suspend if ODR > 2%
+          if (health.odr > 2) {
+            await this.recordViolation(seller._id.toString(), orgIdStr, {
+              type: "high_odr",
+              severity: "critical",
+              description: `ODR ${health.odr}% exceeds maximum threshold of 2%`,
+              action: "account_suspension",
+            });
+            actionsTaken++;
+          }
+          // Warn if approaching threshold
+          else if (health.odr > 1.5) {
+            await this.recordViolation(seller._id.toString(), orgIdStr, {
+              type: "high_odr",
+              severity: "major",
+              description: `ODR ${health.odr}% approaching suspension threshold`,
+              action: "warning",
+            });
+            actionsTaken++;
+          }
+        }
+      }
+    }
+
+    return { checked, atRisk, actionsTaken };
+  }
+}
+
+export const accountHealthService = new AccountHealthService();
+
+]]>
+</file>
+
+<file path="services/souq/ads/auction-engine.ts">
+<![CDATA[
+/**
+ * CPC Auction Engine
+ *
+ * Implements second-price auction (Vickrey auction) for sponsored products.
+ * Winner pays the second-highest bid + $0.01, up to their max bid.
+ *
+ * Quality Score = CTR (historical) * Relevance Score (0-1)
+ * Ad Rank = Bid * Quality Score
+ *
+ * Auction Types:
+ * - Sponsored Products (search results)
+ * - Sponsored Brands (banner ads)
+ * - Product Display Ads (PDP sidebar)
+ */
+
+interface AdCampaign {
+  campaignId: string;
+  orgId: string; // Required for tenant isolation (STRICT v4.1)
+  sellerId: string;
+  type: "sponsored_products" | "sponsored_brands" | "product_display";
+  status: "active" | "paused" | "ended";
+  dailyBudget: number;
+  spentToday: number;
+  bids?: AdBid[];
+}
+
+interface AdBid {
+  bidId: string;
+  campaignId: string;
+  orgId: string; // Required for tenant isolation (STRICT v4.1)
+  targetType: "keyword" | "category" | "product" | "asin";
+  targetValue: string; // keyword text, category ID, or product FSIN
+  bidAmount: number; // Max CPC bid
+  productId: string; // FSIN of advertised product
+  status: "active" | "paused";
+  matchType?: "exact" | "phrase" | "broad";
+}
+
+interface AdCandidate {
+  bid: AdBid;
+  campaign: AdCampaign;
+  qualityScore: number;
+  adRank: number;
+  relevanceScore: number;
+}
+
+export interface AuctionWinner {
+  bid: AdBid;
+  campaign: AdCampaign;
+  adRank: number;
+  actualCpc: number; // Amount to charge per click (second-price)
+  productId: string;
+  sellerId: string;
+  bidId?: string;
+  campaignId?: string;
+  product?: {
+    title: string;
+    imageUrl?: string;
+    price: number;
+    originalPrice?: number;
+    rating?: number;
+    totalReviews?: number;
+    badges?: string[];
+    brand?: string;
+    inStock?: boolean;
+  };
+}
+
+interface AuctionContext {
+  orgId: string; // Required for tenant isolation (STRICT v4.1)
+  query?: string; // Search query
+  category?: string; // Category ID
+  productId?: string; // Product FSIN (for PDP ads)
+  userContext?: {
+    recentSearches: string[];
+    recentViews: string[];
+  };
+}
+
+export class AuctionEngine {
+  /**
+   * Run auction for search results (Sponsored Products)
+   * Returns winning ads to display
+   */
+  static async runSearchAuction(
+    context: AuctionContext,
+    numSlots: number = 3,
+  ): Promise<AuctionWinner[]> {
+    // Fetch eligible campaigns
+    const campaigns = await this.fetchEligibleCampaigns(
+      "sponsored_products",
+      context,
+    );
+
+    if (campaigns.length === 0) return [];
+
+    // Build candidate list
+    const candidates: AdCandidate[] = [];
+
+    for (const campaign of campaigns) {
+      // Check budget
+      if (campaign.spentToday >= campaign.dailyBudget) continue;
+
+      // Always read the latest bids from the canonical collection
+      const campaignBids = await this.fetchCampaignBids(
+        campaign.campaignId,
+        context.orgId,
+      );
+      if (campaignBids.length === 0) continue;
+
+      // Get matching bids for this search
+      const matchingBids = this.getMatchingBids(campaignBids, context);
+
+      for (const bid of matchingBids) {
+        const qualityScore = await this.calculateQualityScore(bid, context);
+        const relevanceScore = this.calculateRelevanceScore(bid, context);
+        const adRank = bid.bidAmount * qualityScore;
+
+        candidates.push({
+          bid,
+          campaign,
+          qualityScore,
+          adRank,
+          relevanceScore,
+        });
+      }
+    }
+
+    // Sort by ad rank (descending)
+    candidates.sort((a, b) => b.adRank - a.adRank);
+
+    // Select winners and calculate CPC (second-price auction)
+    const winners: AuctionWinner[] = [];
+
+    for (let i = 0; i < Math.min(numSlots, candidates.length); i++) {
+      const winner = candidates[i];
+      const nextBid = candidates[i + 1];
+
+      // Second-price: winner pays next highest bid / winner's quality score + $0.01
+      // Capped at winner's max bid
+      let actualCpc = winner.bid.bidAmount; // Default to max bid
+
+      if (nextBid) {
+        const secondPrice = nextBid.adRank / winner.qualityScore + 0.01;
+        actualCpc = Math.min(secondPrice, winner.bid.bidAmount);
+      }
+
+      winners.push({
+        bid: winner.bid,
+        campaign: winner.campaign,
+        adRank: winner.adRank,
+        actualCpc: Math.round(actualCpc * 100) / 100, // Round to 2 decimals
+        productId: winner.bid.productId,
+        sellerId: winner.campaign.sellerId,
+        bidId: winner.bid.bidId,
+        campaignId: winner.campaign.campaignId,
+      });
+    }
+
+    return winners;
+  }
+
+  /**
+   * Run auction for product display ads (PDP sidebar)
+   */
+  static async runProductDisplayAuction(
+    context: AuctionContext,
+    numSlots: number = 2,
+  ): Promise<AuctionWinner[]> {
+    const campaigns = await this.fetchEligibleCampaigns(
+      "product_display",
+      context,
+    );
+
+    if (campaigns.length === 0) return [];
+
+    const candidates: AdCandidate[] = [];
+
+    for (const campaign of campaigns) {
+      if (campaign.spentToday >= campaign.dailyBudget) continue;
+
+      const campaignBids = await this.fetchCampaignBids(
+        campaign.campaignId,
+        context.orgId,
+      );
+      if (campaignBids.length === 0) continue;
+
+      const matchingBids = this.getMatchingBids(campaignBids, context);
+
+      for (const bid of matchingBids) {
+        // For PDP ads, quality score is based on product similarity + CTR
+        const qualityScore = await this.calculateQualityScore(bid, context);
+        const relevanceScore = this.calculateRelevanceScore(bid, context);
+        const adRank = bid.bidAmount * qualityScore;
+
+        candidates.push({
+          bid,
+          campaign,
+          qualityScore,
+          adRank,
+          relevanceScore,
+        });
+      }
+    }
+
+    candidates.sort((a, b) => b.adRank - a.adRank);
+
+    const winners: AuctionWinner[] = [];
+
+    for (let i = 0; i < Math.min(numSlots, candidates.length); i++) {
+      const winner = candidates[i];
+      const nextBid = candidates[i + 1];
+
+      let actualCpc = winner.bid.bidAmount;
+
+      if (nextBid) {
+        const secondPrice = nextBid.adRank / winner.qualityScore + 0.01;
+        actualCpc = Math.min(secondPrice, winner.bid.bidAmount);
+      }
+
+      winners.push({
+        bid: winner.bid,
+        campaign: winner.campaign,
+        adRank: winner.adRank,
+        actualCpc: Math.round(actualCpc * 100) / 100,
+        productId: winner.bid.productId,
+        sellerId: winner.campaign.sellerId,
+        bidId: winner.bid.bidId,
+        campaignId: winner.campaign.campaignId,
+      });
+    }
+
+    return winners;
+  }
+
+  /**
+   * Calculate Quality Score (0-10)
+   * Quality Score = CTR * Relevance * Landing Page Quality
+   *
+   * Factors:
+   * - Historical CTR (click-through rate)
+   * - Ad relevance to query
+   * - Landing page quality (product rating, reviews)
+   */
+  private static async calculateQualityScore(
+    bid: AdBid,
+    context: AuctionContext,
+  ): Promise<number> {
+    // Fetch historical performance - scoped by orgId for tenant isolation
+    const stats = await this.fetchBidStats(bid.bidId, context.orgId);
+
+    // CTR component (0-1)
+    const ctr =
+      stats.impressions > 100 ? stats.clicks / stats.impressions : 0.05; // Default CTR for new ads
+
+    // Normalize CTR to 0-1 scale (assume 0.5% = 1.0, 5% = 10.0)
+    const ctrScore = Math.min(ctr * 200, 10);
+
+    // Relevance component (0-1)
+    const relevanceScore = this.calculateRelevanceScore(bid, context);
+
+    // Landing page quality (0-1) - scoped by orgId for tenant isolation
+    const lpqScore = await this.calculateLandingPageQuality(bid.productId, context.orgId);
+
+    // Normalize relevance/lpq to the same 0-10 scale before weighting so CTR
+    // does not dominate simply because of scale differences.
+    const normalizedRelevance = relevanceScore * 10;
+    const normalizedLpq = lpqScore * 10;
+
+    const qualityScore =
+      ctrScore * 0.5 + normalizedRelevance * 0.3 + normalizedLpq * 0.2;
+
+    return Math.max(0.1, Math.min(10, qualityScore)); // Clamp to 0.1-10
+  }
+
+  /**
+   * Calculate Relevance Score (0-1)
+   * How well the ad matches the search query or context
+   */
+  private static calculateRelevanceScore(
+    bid: AdBid,
+    context: AuctionContext,
+  ): number {
+    if (bid.targetType === "keyword" && context.query) {
+      return this.calculateKeywordRelevance(bid, context.query);
+    }
+
+    if (bid.targetType === "category" && context.category) {
+      return bid.targetValue === context.category ? 1.0 : 0.3;
+    }
+
+    if (
+      (bid.targetType === "product" || bid.targetType === "asin") &&
+      context.productId
+    ) {
+      return bid.targetValue === context.productId ? 1.0 : 0.5;
+    }
+
+    // Default relevance for broad match
+    return 0.5;
+  }
+
+  /**
+   * Calculate Landing Page Quality (0-1)
+   * Based on product rating, reviews, conversion rate
+   * @param productId - The product FSIN
+   * @param orgId - Required for tenant isolation (STRICT v4.1)
+   */
+  private static async calculateLandingPageQuality(
+    productId: string,
+    orgId: string,
+  ): Promise<number> {
+    const { getDatabase } = await import("@/lib/mongodb-unified");
+    const db = await getDatabase();
+
+    // Build org filter for tenant isolation - handles both orgId and org_id for legacy data
+    const orgFilter = { $or: [{ orgId }, { org_id: orgId }] };
+
+    const product = await db
+      .collection("souq_products")
+      .findOne({ fsin: productId, ...orgFilter });
+
+    if (!product) return 0.5; // Default quality
+
+    const rating = product.rating || 0;
+    const totalReviews = product.totalReviews || 0;
+
+    // Rating score (0-1)
+    const ratingScore = rating / 5;
+
+    // Reviews score (more reviews = higher confidence)
+    const reviewScore = Math.min(totalReviews / 100, 1);
+
+    // Weighted average
+    return ratingScore * 0.7 + reviewScore * 0.3;
+  }
+
+  /**
+   * Get bids that match the auction context
+   */
+  private static getMatchingBids(
+    bids: AdBid[],
+    context: AuctionContext,
+  ): AdBid[] {
+    const query = context.query?.trim();
+
+    return bids.filter((bid) => {
+      if (bid.status !== "active") return false;
+
+      if (bid.targetType === "keyword" && query) {
+        return this.keywordMatches(bid.targetValue, bid.matchType, query);
+      }
+
+      if (bid.targetType === "category" && context.category) {
+        return bid.targetValue === context.category;
+      }
+
+      if (
+        (bid.targetType === "product" || bid.targetType === "asin") &&
+        context.productId
+      ) {
+        return bid.targetValue === context.productId;
+      }
+
+      return false;
+    });
+  }
+
+  /**
+   * Determine whether a keyword bid matches the current query based on match type
+   */
+  private static keywordMatches(
+    keyword: string,
+    matchType: AdBid["matchType"],
+    query: string,
+  ): boolean {
+    const stats = this.getKeywordMatchStats(keyword, query);
+    const type = matchType ?? "broad";
+
+    switch (type) {
+      case "exact":
+        return stats.exact;
+      case "phrase":
+        return stats.exact || stats.includes;
+      case "broad":
+      default:
+        return stats.exact || stats.includes || stats.overlapRatio > 0;
+    }
+  }
+
+  /**
+   * Calculate relevance for keyword bids with match-type awareness
+   */
+  private static calculateKeywordRelevance(bid: AdBid, query: string): number {
+    const stats = this.getKeywordMatchStats(bid.targetValue, query);
+    const matchType = bid.matchType ?? "broad";
+
+    switch (matchType) {
+      case "exact":
+        return stats.exact ? 1 : 0;
+      case "phrase":
+        if (stats.exact) return 1;
+        if (stats.includes) return 0.9;
+        return Math.min(0.8, stats.overlapRatio * 0.8);
+      case "broad":
+      default:
+        if (stats.exact) return 1;
+        if (stats.includes) {
+          return Math.min(0.9, 0.6 + stats.overlapRatio * 0.3);
+        }
+        return stats.overlapRatio;
+    }
+  }
+
+  private static getKeywordMatchStats(
+    keyword: string,
+    rawQuery: string,
+  ): {
+    exact: boolean;
+    includes: boolean;
+    overlapRatio: number;
+  } {
+    const query = rawQuery.toLowerCase();
+    const normalizedKeyword = keyword.toLowerCase();
+
+    const queryWords = query.split(/\s+/).filter(Boolean);
+    const keywordWords = normalizedKeyword.split(/\s+/).filter(Boolean);
+    const overlap = keywordWords.filter((word) =>
+      queryWords.includes(word),
+    ).length;
+    const maxWords = Math.max(keywordWords.length, queryWords.length);
+
+    return {
+      exact: query === normalizedKeyword,
+      includes: query.includes(normalizedKeyword),
+      overlapRatio: maxWords === 0 ? 0 : overlap / maxWords,
+    };
+  }
+
+  /**
+   * Fetch the most recent bids for a campaign from the canonical collection
+   */
+  private static async fetchCampaignBids(
+    campaignId: string,
+    orgId: string,
+  ): Promise<AdBid[]> {
+    const { getDatabase } = await import("@/lib/mongodb-unified");
+    const db = await getDatabase();
+
+    const bids = await db
+      .collection<AdBid>("souq_ad_bids")
+      .find({ campaignId, orgId }) // Tenant isolation (STRICT v4.1)
+      .toArray();
+
+    return bids;
+  }
+
+  /**
+   * Fetch eligible campaigns from database
+   * SECURITY: Must be scoped by orgId for tenant isolation (STRICT v4.1)
+   */
+  private static async fetchEligibleCampaigns(
+    type: "sponsored_products" | "sponsored_brands" | "product_display",
+    context: AuctionContext,
+  ): Promise<AdCampaign[]> {
+    const { getDatabase } = await import("@/lib/mongodb-unified");
+    const db = await getDatabase();
+
+    // CRITICAL: Always filter by orgId to prevent cross-tenant ad serving
+    const campaigns = await db
+      .collection<AdCampaign>("souq_campaigns")
+      .find({
+        orgId: context.orgId, // Required for tenant isolation
+        type,
+        status: "active",
+        $expr: { $lt: ["$spentToday", "$dailyBudget"] },
+      })
+      .toArray();
+
+    return campaigns;
+  }
+
+  /**
+   * Fetch bid performance statistics
+   * @param bidId - The bid ID
+   * @param orgId - Required for tenant isolation (STRICT v4.1)
+   */
+  private static async fetchBidStats(bidId: string, orgId: string): Promise<{
+    impressions: number;
+    clicks: number;
+    conversions: number;
+    spend: number;
+  }> {
+    const { getDatabase } = await import("@/lib/mongodb-unified");
+    const db = await getDatabase();
+
+    // Build org filter for tenant isolation - handles both orgId and org_id for legacy data
+    const orgFilter = { $or: [{ orgId }, { org_id: orgId }] };
+
+    const stats = await db.collection("souq_ad_stats").findOne({ bidId, ...orgFilter });
+
+    return {
+      impressions: stats?.impressions || 0,
+      clicks: stats?.clicks || 0,
+      conversions: stats?.conversions || 0,
+      spend: stats?.spend || 0,
+    };
+  }
+
+  /**
+   * Record impression (ad was shown)
+   */
+  static async recordImpression(
+    bidId: string,
+    campaignId: string,
+    context: AuctionContext,
+  ): Promise<void> {
+    const { getDatabase } = await import("@/lib/mongodb-unified");
+    const db = await getDatabase();
+
+    await db.collection("souq_ad_events").insertOne({
+      eventType: "impression",
+      orgId: context.orgId, // Required for tenant isolation
+      bidId,
+      campaignId,
+      timestamp: new Date(),
+      context: {
+        query: context.query,
+        category: context.category,
+        productId: context.productId,
+      },
+    });
+
+    // Update aggregated stats (scoped by bidId which is unique per campaign)
+    await db.collection("souq_ad_stats").updateOne(
+      { bidId, orgId: context.orgId },
+      {
+        $inc: { impressions: 1 },
+        $setOnInsert: { clicks: 0, conversions: 0, spend: 0, orgId: context.orgId },
+      },
+      { upsert: true },
+    );
+  }
+
+  /**
+   * Record click (user clicked ad)
+   */
+  static async recordClick(
+    bidId: string,
+    campaignId: string,
+    actualCpc: number,
+    context: AuctionContext,
+  ): Promise<void> {
+    const { getDatabase } = await import("@/lib/mongodb-unified");
+    const db = await getDatabase();
+
+    await db.collection("souq_ad_events").insertOne({
+      eventType: "click",
+      orgId: context.orgId, // Required for tenant isolation
+      bidId,
+      campaignId,
+      cpc: actualCpc,
+      timestamp: new Date(),
+      context: {
+        query: context.query,
+        category: context.category,
+        productId: context.productId,
+      },
+    });
+
+    // Update aggregated stats (scoped by bidId which is unique per campaign)
+    await db.collection("souq_ad_stats").updateOne(
+      { bidId, orgId: context.orgId },
+      {
+        $inc: {
+          clicks: 1,
+          spend: actualCpc,
+        },
+        $setOnInsert: { orgId: context.orgId },
+      },
+      { upsert: true },
+    );
+
+    // Update campaign spend
+    await db.collection("souq_campaigns").updateOne(
+      { campaignId, orgId: context.orgId },
+      {
+        $inc: { spentToday: actualCpc },
+      },
+    );
+  }
+
+  /**
+   * Record conversion (user purchased)
+   */
+  static async recordConversion(
+    bidId: string,
+    campaignId: string,
+    orderValue: number,
+    orgId: string,
+  ): Promise<void> {
+    const { getDatabase } = await import("@/lib/mongodb-unified");
+    const db = await getDatabase();
+
+    await db.collection("souq_ad_events").insertOne({
+      eventType: "conversion",
+      orgId,
+      bidId,
+      campaignId,
+      orderValue,
+      timestamp: new Date(),
+    });
+
+    // Update aggregated stats
+    await db.collection("souq_ad_stats").updateOne(
+      { bidId, orgId },
+      {
+        $inc: {
+          conversions: 1,
+          revenue: orderValue,
+        },
+        $setOnInsert: { orgId },
+      },
+      { upsert: true },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="services/souq/ads/budget-manager.ts">
+<![CDATA[
+/**
+ * Budget Manager Service
+ *
+ * Manages advertising budgets with Redis-based real-time tracking:
+ * - Daily budget caps
+ * - Real-time spend tracking
+ * - Budget alerts (75%, 90%, 100%)
+ * - Auto-pause when depleted
+ * - Budget reset at midnight (Saudi time)
+ */
+
+import { ObjectId } from "mongodb";
+import Redis from "ioredis";
+import { logger } from "@/lib/logger";
+import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
+import { findWithOrgFallback } from "@/services/souq/utils/org-helpers";
+
+const DAY_SECONDS = 86400;
+const DAY_MS = DAY_SECONDS * 1000;
+
+function getKsaDatePartition(): { dateKey: string; secondsToMidnight: number } {
+  // Partition budgets by Saudi local day to align with business reporting
+  const now = new Date();
+  const nowKsa = new Date(
+    now.toLocaleString("en-US", { timeZone: "Asia/Riyadh" }),
+  );
+  const dateKey = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Riyadh",
+  }).format(nowKsa);
+  const endOfDay = new Date(nowKsa);
+  endOfDay.setHours(23, 59, 59, 999);
+  const secondsToMidnight = Math.max(
+    60, // Ensure we never set a zero TTL
+    Math.ceil((endOfDay.getTime() - nowKsa.getTime()) / 1000),
+  );
+  return { dateKey, secondsToMidnight };
+}
+
+function createRedisClient(): Redis | null {
+  // Support REDIS_URL or REDIS_KEY (Vercel/GitHub naming convention)
+  const redisUrl = process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL || process.env.REDIS_KEY;
+  const redisHost = process.env.BULLMQ_REDIS_HOST;
+  const redisPort = parseInt(process.env.BULLMQ_REDIS_PORT || "6379", 10);
+  const redisPassword =
+    process.env.BULLMQ_REDIS_PASSWORD || process.env.REDIS_PASSWORD;
+  
+  // 🔐 STRICT v4.1: Redis is REQUIRED for production budget enforcement
+  // Without Redis, budget limits are not shared across instances, enabling overspend
+  const isProduction = process.env.NODE_ENV === "production";
+  const isTest = process.env.NODE_ENV === "test";
+  // During Next.js build we can allow fallback to avoid blocking build artifacts, runtime must still enforce.
+  const isBuildPhase =
+    process.env.NEXT_PHASE === "phase-production-build" ||
+    process.env.DISABLE_MONGODB_FOR_BUILD === "true";
+  
+  if (!redisUrl && !redisHost) {
+    if (isProduction && !isBuildPhase) {
+      // Fail closed in production runtime—do NOT allow memory fallback
+      throw new Error(
+        "[BudgetManager] Redis is REQUIRED for ad budget enforcement in production. " +
+        "Set BULLMQ_REDIS_URL/REDIS_URL; in-memory fallback is disabled in production.",
+      );
+    }
+    if (!isTest) {
+      logger.warn(
+        "[BudgetManager] Redis not configured. Falling back to in-memory budget tracking. " +
+        "⚠️ Budget limits will NOT be shared across instances - risk of overspend.",
+      );
+    }
+    return null;
+  }
+
+  const client = redisUrl
+    ? new Redis(redisUrl, { lazyConnect: true })
+    : new Redis({
+        host: redisHost!,
+        port: redisPort,
+        password: redisPassword,
+        lazyConnect: true,
+      });
+
+  client.on("error", (error) => {
+    logger.error("[BudgetManager] Redis connection error", error);
+  });
+
+  return client;
+}
+
+const redis = createRedisClient();
+
+type LocalBudgetEntry = { spent: number; expiresAt: number };
+const localBudget = new Map<string, LocalBudgetEntry>();
+const localAlerts = new Map<string, number>();
+
+function getLocalSpend(key: string): number {
+  const entry = localBudget.get(key);
+  if (!entry) return 0;
+  if (entry.expiresAt <= Date.now()) {
+    localBudget.delete(key);
+    return 0;
+  }
+  return entry.spent;
+}
+
+function setLocalSpend(key: string, spent: number, ttlMs: number = DAY_MS) {
+  localBudget.set(key, { spent, expiresAt: Date.now() + ttlMs });
+}
+
+function deleteLocalSpend(key: string) {
+  localBudget.delete(key);
+}
+
+function hasLocalAlert(key: string): boolean {
+  const expiresAt = localAlerts.get(key);
+  if (!expiresAt || expiresAt <= Date.now()) {
+    localAlerts.delete(key);
+    return false;
+  }
+  return true;
+}
+
+function setLocalAlert(key: string, ttlSeconds: number) {
+  localAlerts.set(key, Date.now() + ttlSeconds * 1000);
+}
+
+interface BudgetStatus {
+  campaignId: string;
+  dailyBudget: number;
+  spentToday: number;
+  remainingBudget: number;
+  percentageUsed: number;
+  isActive: boolean;
+  lastReset: string;
+}
+
+export class BudgetManager {
+  private static REDIS_PREFIX = "ad_budget:";
+  private static ALERT_THRESHOLDS = [0.75, 0.9, 1.0]; // 75%, 90%, 100%
+
+  /**
+   * Normalize orgId - KEEP AS STRING
+   * Schema: souq_campaigns.orgId is String (see server/models/souq/Advertising.ts)
+   * AUDIT-2025-12-06: Fixed to stop casting to ObjectId which breaks queries for hex-like org IDs
+   */
+  private static normalizeOrg(orgId: string): {
+    orgFilter: string;
+    orgKey: string;
+    orgCandidates: string[];
+  } {
+    // orgId is stored as String in schema - keep it as string only to align with indexes
+    return { orgFilter: orgId, orgKey: orgId, orgCandidates: [orgId] };
+  }
+
+  /**
+   * Check if campaign has budget available for a click
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   */
+  static async canCharge(campaignId: string, orgId: string, amount: number): Promise<boolean> {
+    if (!orgId) {
+      throw new Error('orgId is required for canCharge (STRICT v4.1 tenant isolation)');
+    }
+    const status = await this.getBudgetStatus(campaignId, orgId);
+
+    if (!status.isActive) return false;
+
+    return status.remainingBudget >= amount;
+  }
+
+  /**
+   * Charge campaign budget (atomic operation)
+   * Returns true if charge succeeded, false if insufficient budget
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   */
+  static async chargeBudget(
+    campaignId: string,
+    orgId: string,
+    amount: number,
+  ): Promise<boolean> {
+    if (!orgId) {
+      throw new Error('orgId is required for chargeBudget (STRICT v4.1 tenant isolation)');
+    }
+    const { orgCandidates, orgKey } = this.normalizeOrg(orgId);
+    const { key, ttlSeconds } = this.getBudgetPartition(campaignId, orgKey);
+
+    // Fetch daily budget from database
+    const campaign = await this.fetchCampaign(campaignId, orgCandidates);
+    if (!campaign) return false;
+    // Do not charge if campaign is paused/inactive
+    if (campaign.status !== "active") {
+      logger.warn(
+        `[BudgetManager] Charge blocked; campaign ${campaignId} is ${campaign.status}`,
+      );
+      return false;
+    }
+
+    // Guard against zero/negative budget
+    if (!campaign.dailyBudget || campaign.dailyBudget <= 0) {
+      logger.warn(`[BudgetManager] Campaign ${campaignId} has invalid dailyBudget: ${campaign.dailyBudget}`);
+      return false;
+    }
+
+    if (redis) {
+      const script = `
+      local spent = redis.call('GET', KEYS[1]) or '0'
+      local spentNum = tonumber(spent)
+      local amountNum = tonumber(ARGV[1])
+      local budgetNum = tonumber(ARGV[2])
+      
+      if spentNum + amountNum <= budgetNum then
+        redis.call('INCRBYFLOAT', KEYS[1], amountNum)
+        redis.call('EXPIRE', KEYS[1], tonumber(ARGV[3]))
+        return 1
+      else
+        return 0
+      end
+    `;
+
+      const result = await redis.eval(
+        script,
+        1,
+        key,
+        amount.toString(),
+        campaign.dailyBudget.toString(),
+        ttlSeconds.toString(),
+      );
+
+      const success = result === 1;
+
+      if (success) {
+        await this.checkBudgetThresholds(campaignId, orgKey);
+      }
+
+      return success;
+    }
+
+    const currentSpent = getLocalSpend(key);
+    if (currentSpent + amount <= campaign.dailyBudget) {
+      setLocalSpend(key, currentSpent + amount, ttlSeconds * 1000);
+      await this.checkBudgetThresholds(campaignId, orgKey);
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Get current budget status
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   */
+  static async getBudgetStatus(campaignId: string, orgId: string): Promise<BudgetStatus> {
+    if (!orgId) {
+      throw new Error('orgId is required for getBudgetStatus (STRICT v4.1 tenant isolation)');
+    }
+    const { orgCandidates, orgKey } = this.normalizeOrg(orgId);
+    const { key } = this.getBudgetPartition(campaignId, orgKey);
+    const spentToday = redis
+      ? parseFloat((await redis.get(key)) || "0")
+      : getLocalSpend(key);
+
+    const campaign = await this.fetchCampaign(campaignId, orgCandidates);
+
+    if (!campaign) {
+      throw new Error(`Campaign not found: ${campaignId} in org ${orgId}`);
+    }
+
+    const dailyBudget = campaign.dailyBudget || 0;
+    const remainingBudget = Math.max(0, dailyBudget - spentToday);
+    // Guard against divide by zero
+    const percentageUsed = dailyBudget > 0 ? (spentToday / dailyBudget) * 100 : 0;
+
+    return {
+      campaignId,
+      dailyBudget,
+      spentToday,
+      remainingBudget,
+      percentageUsed,
+      isActive: campaign.status === "active" && remainingBudget > 0,
+      lastReset: new Date().toISOString().split("T")[0], // Today's date
+    };
+  }
+
+  /**
+   * Reset all campaign budgets for an organization (runs daily at midnight Saudi time)
+   * @param orgId - Required for STRICT v4.1 tenant isolation.
+   */
+  static async resetAllBudgets(orgId: string): Promise<{ reset: number }> {
+    if (!orgId) {
+      throw new Error('orgId is required to reset budgets (STRICT v4.1 tenant isolation)');
+    }
+    const { orgCandidates, orgKey } = this.normalizeOrg(orgId);
+    const { getDatabase } = await import("@/lib/mongodb-unified");
+    const db = await getDatabase();
+
+    // Get all active campaigns
+    const campaigns = await db
+      .collection("souq_campaigns")
+      .find({ status: "active", orgId: { $in: orgCandidates } })
+      .toArray();
+
+    let resetCount = 0;
+
+    for (const campaign of campaigns) {
+      // AUDIT-2025-12-06: campaign.orgId is String per schema - normalize to string key but allow legacy ObjectId
+      const campaignOrgKey =
+        typeof campaign.orgId === "string"
+          ? campaign.orgId
+          : campaign.orgId
+            ? String(campaign.orgId)
+            : undefined;
+      if (!campaignOrgKey) {
+        logger.warn(`[BudgetManager] Skipping reset for campaign ${campaign.campaignId} due to missing orgId`);
+        continue;
+      }
+      const { key } = this.getBudgetPartition(campaign.campaignId, campaignOrgKey);
+
+      // Delete Redis key (will start fresh tomorrow)
+      if (redis) {
+        await redis.del(key);
+      } else {
+        deleteLocalSpend(key);
+      }
+
+      // Reset spentToday in MongoDB with orgId scoping
+      // AUDIT-2025-12-06: Use String orgId to match schema
+      await db
+        .collection("souq_campaigns")
+        .updateOne(
+          {
+            campaignId: campaign.campaignId,
+            orgId: {
+              $in: this.normalizeOrg(campaignOrgKey).orgCandidates,
+            },
+          },
+          { $set: { spentToday: 0, lastBudgetReset: new Date() } },
+        );
+
+      resetCount++;
+    }
+
+    logger.info(`[BudgetManager] Reset ${resetCount} campaign budgets for org ${orgKey}`);
+
+    return { reset: resetCount };
+  }
+
+  /**
+   * Reset single campaign budget (manual)
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   */
+  static async resetCampaignBudget(campaignId: string, orgId: string): Promise<void> {
+    if (!orgId) {
+      throw new Error('orgId is required for resetCampaignBudget (STRICT v4.1 tenant isolation)');
+    }
+    const { orgCandidates, orgKey } = this.normalizeOrg(orgId);
+    const { key } = this.getBudgetPartition(campaignId, orgKey);
+    if (redis) {
+      await redis.del(key);
+    } else {
+      deleteLocalSpend(key);
+    }
+
+    const { getDatabase } = await import("@/lib/mongodb-unified");
+    const db = await getDatabase();
+
+    await db
+      .collection("souq_campaigns")
+      .updateOne(
+        { campaignId, orgId: { $in: orgCandidates } },
+        { $set: { spentToday: 0, lastBudgetReset: new Date() } },
+      );
+
+    logger.info(`[BudgetManager] Reset budget for campaign: ${campaignId} in org ${orgKey}`);
+  }
+
+  /**
+   * Check budget thresholds and send alerts / pause campaign
+   */
+  private static async checkBudgetThresholds(
+    campaignId: string,
+    orgId: string,
+  ): Promise<void> {
+    const { orgKey } = this.normalizeOrg(orgId);
+    const status = await this.getBudgetStatus(campaignId, orgKey);
+    const percentage = status.percentageUsed / 100;
+    const { secondsToMidnight } = getKsaDatePartition();
+
+    // Check if we crossed any threshold
+    for (const threshold of this.ALERT_THRESHOLDS) {
+      if (percentage >= threshold) {
+        const alertKey = `${this.REDIS_PREFIX}alert:${orgKey}:${campaignId}:${threshold}`;
+        const alreadySent = redis
+          ? await redis.get(alertKey)
+          : hasLocalAlert(alertKey)
+            ? "1"
+            : null;
+
+        if (!alreadySent) {
+          await this.sendBudgetAlert(campaignId, orgId, threshold);
+          if (redis) {
+            await redis.set(alertKey, "1", "EX", secondsToMidnight); // Don't send again today (KSA midnight aligned)
+          } else {
+            setLocalAlert(alertKey, secondsToMidnight);
+          }
+        }
+      }
+    }
+
+    // Auto-pause if budget depleted
+    if (percentage >= 1.0) {
+      await this.pauseCampaign(campaignId, orgId, "budget_depleted");
+    }
+  }
+
+  /**
+   * Send budget alert notification
+   */
+  private static async sendBudgetAlert(
+    campaignId: string,
+    orgId: string,
+    threshold: number,
+  ): Promise<void> {
+    const { orgCandidates, orgKey } = this.normalizeOrg(orgId);
+    const campaign = await this.fetchCampaign(campaignId, orgCandidates);
+    if (!campaign) return;
+
+    const percentage = Math.round(threshold * 100);
+
+    logger.info(
+      `[BudgetManager] ALERT: Campaign ${campaignId} has used ${percentage}% of daily budget`,
+    );
+
+    await this.enqueueSellerAlert({
+      sellerId: campaign.sellerId,
+      orgId: orgKey,
+      template: "souq_ad_budget_alert",
+      internalAudience: "souq-ads-ops",
+      subject: `Campaign ${campaignId} reached ${percentage}% of its budget`,
+      data: {
+        campaignId,
+        sellerId: campaign.sellerId,
+        percentage,
+        dailyBudget: campaign.dailyBudget,
+      },
+    });
+  }
+
+  /**
+   * Pause campaign due to budget depletion
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   */
+  private static async pauseCampaign(
+    campaignId: string,
+    orgId: string,
+    reason: "budget_depleted" | "manual",
+  ): Promise<void> {
+    const { getDatabase } = await import("@/lib/mongodb-unified");
+    const db = await getDatabase();
+
+    const { orgCandidates, orgKey } = this.normalizeOrg(orgId);
+    const campaign = await this.fetchCampaign(campaignId, orgCandidates);
+
+    // 🔐 STRICT v4.1: Include orgId in filter
+    await db.collection("souq_campaigns").updateOne(
+      { campaignId, orgId: { $in: orgCandidates } },
+      {
+        $set: {
+          status: "paused",
+          pauseReason: reason,
+          pausedAt: new Date(),
+        },
+      },
+    );
+
+    logger.info(`[BudgetManager] Paused campaign ${campaignId}: ${reason}`);
+
+    await this.enqueueSellerAlert({
+      sellerId: campaign?.sellerId || "unknown",
+      orgId: orgKey,
+      template: "souq_ad_campaign_paused",
+      internalAudience: "souq-ads-ops",
+      subject: `Campaign ${campaignId} paused (${reason})`,
+      data: {
+        campaignId,
+        reason,
+      },
+    });
+  }
+
+  private static async enqueueSellerAlert(params: {
+    sellerId: string;
+    orgId: string; // 🔐 STRICT v4.1: orgId is now REQUIRED
+    template: string;
+    internalAudience: string;
+    subject: string;
+    data: Record<string, unknown>;
+  }): Promise<void> {
+    const { sellerId, template, internalAudience, subject, data, orgId: providedOrgId } = params;
+
+    // 🔐 STRICT v4.1: Require orgId to prevent cross-tenant notification leakage
+    if (!providedOrgId) {
+      throw new Error('orgId is required for enqueueSellerAlert (STRICT v4.1 tenant isolation)');
+    }
+
+    // 🔐 STRICT v4.1: Verify seller belongs to this org before sending notifications
+    // This prevents cross-tenant metadata leakage and ensures correct branding
+    let orgId: string = providedOrgId;
+    try {
+      const { SouqSeller } = await import("@/server/models/souq/Seller");
+      const orgCandidates = ObjectId.isValid(providedOrgId)
+        ? [providedOrgId, new ObjectId(providedOrgId)]
+        : [providedOrgId];
+      const sellerFilter = ObjectId.isValid(sellerId) ? new ObjectId(sellerId) : sellerId;
+      // 🔐 FIX: Use findOne with orgId scoping instead of findById
+      const seller = await SouqSeller.findOne({
+        _id: sellerFilter,
+        orgId: { $in: orgCandidates },
+      })
+        .select("orgId")
+        .lean();
+      
+      if (!seller) {
+        logger.warn(`[BudgetManager] Seller ${sellerId} not found in org ${providedOrgId}, skipping alert`, {
+          sellerId,
+          orgId: providedOrgId,
+          component: "BudgetManager",
+          action: "enqueueSellerAlert",
+        });
+        return; // Don't send notification if seller doesn't belong to this org
+      }
+      orgId = seller.orgId ? String(seller.orgId) : providedOrgId;
+    } catch (error) {
+      logger.error(`[BudgetManager] Failed to verify seller org for ${sellerId}`, {
+        error,
+        sellerId,
+        orgId: providedOrgId,
+        component: "BudgetManager",
+        action: "enqueueSellerAlert",
+      });
+      // 🔐 STRICT v4.1: Fail-safe - don't send notification if we can't verify tenant
+      return;
+    }
+    const orgKey = orgId;
+
+    await Promise.all([
+      addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
+        to: sellerId,
+        orgId: orgKey, // 🔐 Tenant-specific routing for branding/templates
+        template,
+        data,
+      }),
+      addJob(QUEUE_NAMES.NOTIFICATIONS, "internal-notification", {
+        to: internalAudience,
+        orgId: orgKey, // 🔐 Include for audit/routing
+        priority: "normal",
+        message: subject,
+        metadata: data,
+      }),
+    ]);
+  }
+
+  /**
+   * Get budget key and TTL aligned to Saudi midnight
+   * @param orgId - Required for tenant isolation in Redis keys
+   */
+  private static getBudgetPartition(
+    campaignId: string,
+    orgId: string,
+  ): { key: string; ttlSeconds: number } {
+    const { dateKey, secondsToMidnight } = getKsaDatePartition();
+    return {
+      key: `${this.REDIS_PREFIX}${orgId}:${campaignId}:${dateKey}`,
+      ttlSeconds: secondsToMidnight,
+    };
+  }
+
+  /**
+   * Fetch campaign from database
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   * AUDIT-2025-12-06: orgId is String per schema - do NOT convert to ObjectId
+   */
+  private static async fetchCampaign(
+    campaignId: string,
+    orgCandidates: string | ObjectId | (string | ObjectId)[],
+  ): Promise<{
+    campaignId: string;
+    orgId: string;
+    dailyBudget: number;
+    status: string;
+    sellerId: string;
+  } | null> {
+    if (
+      !orgCandidates ||
+      (Array.isArray(orgCandidates) && orgCandidates.length === 0)
+    ) {
+      throw new Error('orgId is required for fetchCampaign (STRICT v4.1 tenant isolation)');
+    }
+    const { getDatabase } = await import("@/lib/mongodb-unified");
+    const db = await getDatabase();
+
+    // AUDIT-2025-12-06: souq_campaigns.orgId is String - use directly; also accept legacy ObjectId
+    const campaigns = await findWithOrgFallback(
+      db.collection("souq_campaigns"),
+      { campaignId } as Record<string, unknown>,
+      Array.isArray(orgCandidates) ? orgCandidates : [orgCandidates],
+    );
+    const campaign = campaigns[0] ?? null;
+
+    return campaign as unknown as {
+      campaignId: string;
+      orgId: string;
+      dailyBudget: number;
+      status: string;
+      sellerId: string;
+    } | null;
+  }
+
+  /**
+   * Get aggregated budget stats for all campaigns
+   * @param sellerId - The seller ID
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   */
+  static async getCampaignsBudgetSummary(sellerId: string, orgId: string): Promise<{
+    totalDailyBudget: number;
+    totalSpentToday: number;
+    activeCampaigns: number;
+    pausedCampaigns: number;
+    campaigns: BudgetStatus[];
+  }> {
+    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required for campaign budget summary (STRICT v4.1 tenant isolation)');
+    }
+    const { orgCandidates, orgKey } = this.normalizeOrg(orgId);
+    const { getDatabase } = await import("@/lib/mongodb-unified");
+    const db = await getDatabase();
+
+    // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
+    const sellerFilter = ObjectId.isValid(sellerId) && typeof sellerId === "string"
+      ? { $in: [sellerId, new ObjectId(sellerId)] }
+      : sellerId;
+    const campaigns = await findWithOrgFallback(
+      db.collection("souq_campaigns"),
+      {
+        sellerId: sellerFilter,
+      } as Record<string, unknown>,
+      orgCandidates,
+    );
+
+    let totalDailyBudget = 0;
+    let totalSpentToday = 0;
+    let activeCampaigns = 0;
+    let pausedCampaigns = 0;
+
+    const budgetStatuses: BudgetStatus[] = [];
+
+    // 🚀 PERF: Batch Redis reads instead of N+1 per-campaign calls
+    // Build partition keys for all campaigns at once
+    const { dateKey } = getKsaDatePartition();
+    type CampaignDoc = { campaignId?: string; status?: string; dailyBudget?: number };
+    const partitionKeys = (campaigns as CampaignDoc[]).map(
+      (c) => `${this.REDIS_PREFIX}${orgKey}:${c.campaignId}:${dateKey}`,
+    );
+
+    // Batch fetch all spend values in one Redis call (mget)
+    let spentValues: (string | null)[] = [];
+    if (redis && partitionKeys.length > 0) {
+      try {
+        spentValues = await redis.mget(...partitionKeys);
+      } catch (error) {
+        logger.warn("[BudgetManager] Redis mget failed, falling back to per-campaign fetch", { error });
+        // Fallback to individual calls if mget fails
+        spentValues = [];
+      }
+    }
+
+    // Process campaigns using batched data where available
+    const typedCampaigns = campaigns as CampaignDoc[];
+    for (let i = 0; i < typedCampaigns.length; i++) {
+      const campaign = typedCampaigns[i];
+      const dailyBudget = campaign.dailyBudget || 0;
+      
+      // Use batched value if available, otherwise fall back to individual fetch
+      let spentToday: number;
+      if (spentValues.length > 0 && spentValues[i] !== null && spentValues[i] !== undefined) {
+        spentToday = parseFloat(spentValues[i]!) || 0;
+      } else if (redis) {
+        // Fallback for missing batched values
+        const val = await redis.get(partitionKeys[i]);
+        spentToday = val ? parseFloat(val) : 0;
+      } else {
+        spentToday = getLocalSpend(partitionKeys[i]);
+      }
+
+      const remainingBudget = Math.max(0, dailyBudget - spentToday);
+      const isActive = campaign.status === "active" && remainingBudget > 0;
+      const percentageUsed = dailyBudget > 0 ? (spentToday / dailyBudget) * 100 : 0;
+
+      const status: BudgetStatus = {
+        campaignId: campaign.campaignId || "",
+        dailyBudget,
+        spentToday,
+        remainingBudget,
+        percentageUsed,
+        isActive,
+        lastReset: dateKey,
+      };
+
+      budgetStatuses.push(status);
+
+      totalDailyBudget += dailyBudget;
+      totalSpentToday += spentToday;
+
+      if (isActive) {
+        activeCampaigns++;
+      } else if (campaign.status === "paused") {
+        pausedCampaigns++;
+      }
+    }
+
+    return {
+      totalDailyBudget,
+      totalSpentToday,
+      activeCampaigns,
+      pausedCampaigns,
+      campaigns: budgetStatuses,
+    };
+  }
+
+  /**
+   * Update campaign daily budget
+   */
+  static async updateDailyBudget(
+    campaignId: string,
+    orgId: string,
+    newBudget: number,
+  ): Promise<void> {
+    if (!orgId) {
+      throw new Error('orgId is required to update daily budget (STRICT v4.1 tenant isolation)');
+    }
+    if (newBudget < 10) {
+      throw new Error("Daily budget must be at least 10 SAR");
+    }
+
+    const { orgCandidates, orgKey } = this.normalizeOrg(orgId);
+    const { getDatabase } = await import("@/lib/mongodb-unified");
+    const db = await getDatabase();
+
+    await db
+      .collection("souq_campaigns")
+      .updateOne({ campaignId, orgId: { $in: orgCandidates } }, { $set: { dailyBudget: newBudget } });
+
+    logger.info(
+      `[BudgetManager] Updated budget for ${campaignId}: ${newBudget} SAR (org ${orgKey})`,
+    );
+  }
+
+  /**
+   * Get spend history (last 30 days)
+   */
+  static async getSpendHistory(
+    campaignId: string,
+    orgId: string,
+    days: number = 30,
+  ): Promise<
+    {
+      date: string;
+      spend: number;
+    }[]
+  > {
+    if (!orgId) {
+      throw new Error('orgId is required to fetch spend history (STRICT v4.1 tenant isolation)');
+    }
+    const { orgCandidates } = this.normalizeOrg(orgId);
+    const boundedDays = Math.min(Math.max(days, 1), 90);
+    const { getDatabase } = await import("@/lib/mongodb-unified");
+    const db = await getDatabase();
+
+    const now = new Date();
+    const startKsa = new Date(
+      now.toLocaleString("en-US", { timeZone: "Asia/Riyadh" }),
+    );
+    startKsa.setDate(startKsa.getDate() - boundedDays);
+    const startDateStr = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Riyadh",
+    }).format(startKsa);
+
+    const history = await db
+      .collection("souq_ad_daily_spend")
+      .find({
+        campaignId,
+        orgId: { $in: orgCandidates },
+        date: { $gte: startDateStr },
+      })
+      .sort({ date: 1 })
+      .toArray();
+
+    return history.map((record) => ({
+      date: record.date,
+      spend: record.spend,
+    }));
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

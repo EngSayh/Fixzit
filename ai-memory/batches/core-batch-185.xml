@@ -1,0 +1,2203 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="i18n/sources/businessIntelligenceExt.translations.json">
+<![CDATA[
+{
+  "en": {
+    "businessIntelligenceExt.analysis": "Data Analysis",
+    "businessIntelligenceExt.analytics": "Business Analytics",
+    "businessIntelligenceExt.bi": "BI",
+    "businessIntelligenceExt.business": "Business Intelligence",
+    "businessIntelligenceExt.cube": "Data Cube",
+    "businessIntelligenceExt.dashboard": "BI Dashboard",
+    "businessIntelligenceExt.data": "Data Analytics",
+    "businessIntelligenceExt.dimension": "Dimension",
+    "businessIntelligenceExt.forecast": "Forecasting",
+    "businessIntelligenceExt.insight": "Business Insight",
+    "businessIntelligenceExt.kpi": "Key Performance Indicator",
+    "businessIntelligenceExt.mart": "Data Mart",
+    "businessIntelligenceExt.measure": "Measure",
+    "businessIntelligenceExt.metric": "Business Metric",
+    "businessIntelligenceExt.mining": "Data Mining",
+    "businessIntelligenceExt.olap": "OLAP",
+    "businessIntelligenceExt.predictive": "Predictive Analytics",
+    "businessIntelligenceExt.report": "BI Report",
+    "businessIntelligenceExt.reporting": "BI Reporting",
+    "businessIntelligenceExt.trend": "Trend Analysis",
+    "businessIntelligenceExt.visualization": "Data Visualization",
+    "businessIntelligenceExt.warehouse": "Data Warehouse"
+  },
+  "ar": {
+    "businessIntelligenceExt.analysis": "تحليل البيانات",
+    "businessIntelligenceExt.analytics": "تحليلات الأعمال",
+    "businessIntelligenceExt.bi": "ذكاء الأعمال",
+    "businessIntelligenceExt.business": "ذكاء الأعمال",
+    "businessIntelligenceExt.cube": "مكعب البيانات",
+    "businessIntelligenceExt.dashboard": "لوحة معلومات ذكاء الأعمال",
+    "businessIntelligenceExt.data": "تحليلات البيانات",
+    "businessIntelligenceExt.dimension": "البُعد",
+    "businessIntelligenceExt.forecast": "التنبؤ",
+    "businessIntelligenceExt.insight": "رؤية الأعمال",
+    "businessIntelligenceExt.kpi": "مؤشر الأداء الرئيسي",
+    "businessIntelligenceExt.mart": "سوق البيانات",
+    "businessIntelligenceExt.measure": "القياس",
+    "businessIntelligenceExt.metric": "مقياس الأعمال",
+    "businessIntelligenceExt.mining": "التنقيب في البيانات",
+    "businessIntelligenceExt.olap": "المعالجة التحليلية عبر الإنترنت",
+    "businessIntelligenceExt.predictive": "التحليلات التنبؤية",
+    "businessIntelligenceExt.report": "تقرير ذكاء الأعمال",
+    "businessIntelligenceExt.reporting": "إعداد تقارير ذكاء الأعمال",
+    "businessIntelligenceExt.trend": "تحليل الاتجاه",
+    "businessIntelligenceExt.visualization": "تصور البيانات",
+    "businessIntelligenceExt.warehouse": "مستودع البيانات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/businessIntelligencePlatform.translations.json">
+<![CDATA[
+{
+  "en": {
+    "businessIntelligencePlatform.alerts": "Threshold Alerts",
+    "businessIntelligencePlatform.analytics": "BI Analytics",
+    "businessIntelligencePlatform.bi": "BI Platform",
+    "businessIntelligencePlatform.business": "Business Intelligence Platform",
+    "businessIntelligencePlatform.charts": "Charts & Graphs",
+    "businessIntelligencePlatform.cubes": "Data Cubes",
+    "businessIntelligencePlatform.dashboards": "BI Dashboards",
+    "businessIntelligencePlatform.dimensions": "Dimensions",
+    "businessIntelligencePlatform.distribution": "Report Distribution",
+    "businessIntelligencePlatform.export": "Data Export",
+    "businessIntelligencePlatform.intelligence": "Business Intelligence",
+    "businessIntelligencePlatform.kpi": "KPI Tracking",
+    "businessIntelligencePlatform.measures": "Measures",
+    "businessIntelligencePlatform.mobile": "Mobile BI",
+    "businessIntelligencePlatform.olap": "OLAP Analysis",
+    "businessIntelligencePlatform.queries": "Ad-hoc Queries",
+    "businessIntelligencePlatform.reporting": "BI Reporting",
+    "businessIntelligencePlatform.scheduling": "Report Scheduling",
+    "businessIntelligencePlatform.scorecards": "Scorecards",
+    "businessIntelligencePlatform.selfservice": "Self-Service BI",
+    "businessIntelligencePlatform.tables": "Pivot Tables",
+    "businessIntelligencePlatform.visualization": "Data Visualization"
+  },
+  "ar": {
+    "businessIntelligencePlatform.alerts": "تنبيهات العتبة",
+    "businessIntelligencePlatform.analytics": "تحليلات ذكاء الأعمال",
+    "businessIntelligencePlatform.bi": "منصة ذكاء الأعمال",
+    "businessIntelligencePlatform.business": "منصة ذكاء الأعمال",
+    "businessIntelligencePlatform.charts": "المخططات والرسوم البيانية",
+    "businessIntelligencePlatform.cubes": "مكعبات البيانات",
+    "businessIntelligencePlatform.dashboards": "لوحات معلومات ذكاء الأعمال",
+    "businessIntelligencePlatform.dimensions": "الأبعاد",
+    "businessIntelligencePlatform.distribution": "توزيع التقارير",
+    "businessIntelligencePlatform.export": "تصدير البيانات",
+    "businessIntelligencePlatform.intelligence": "ذكاء الأعمال",
+    "businessIntelligencePlatform.kpi": "تتبع مؤشرات الأداء الرئيسية",
+    "businessIntelligencePlatform.measures": "المقاييس",
+    "businessIntelligencePlatform.mobile": "ذكاء الأعمال عبر الهاتف المحمول",
+    "businessIntelligencePlatform.olap": "تحليل OLAP",
+    "businessIntelligencePlatform.queries": "استعلامات مخصصة",
+    "businessIntelligencePlatform.reporting": "تقارير ذكاء الأعمال",
+    "businessIntelligencePlatform.scheduling": "جدولة التقارير",
+    "businessIntelligencePlatform.scorecards": "بطاقات الأداء",
+    "businessIntelligencePlatform.selfservice": "ذكاء الأعمال الخدمة الذاتية",
+    "businessIntelligencePlatform.tables": "جداول محورية",
+    "businessIntelligencePlatform.visualization": "تصور البيانات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/businessIntelligencePlatform2.translations.json">
+<![CDATA[
+{
+  "en": {
+    "businessIntelligencePlatform2.adhocReporting": "Ad-Hoc Reporting",
+    "businessIntelligencePlatform2.advancedAnalytics": "Advanced Analytics",
+    "businessIntelligencePlatform2.alertsNotifications": "Alerts & Notifications",
+    "businessIntelligencePlatform2.caching": "Caching",
+    "businessIntelligencePlatform2.chartLibrary": "Chart Library",
+    "businessIntelligencePlatform2.collaborationFeatures": "Collaboration Features",
+    "businessIntelligencePlatform2.customVisualizations": "Custom Visualizations",
+    "businessIntelligencePlatform2.dataDiscovery": "Data Discovery",
+    "businessIntelligencePlatform2.dataGovernance": "Data Governance",
+    "businessIntelligencePlatform2.dataIntegration": "Data Integration",
+    "businessIntelligencePlatform2.dataModeling": "Data Modeling",
+    "businessIntelligencePlatform2.dataStorytelling": "Data Storytelling",
+    "businessIntelligencePlatform2.dataWarehouse": "Data Warehouse",
+    "businessIntelligencePlatform2.description": "Advanced analytics and data visualization",
+    "businessIntelligencePlatform2.drillDownCapabilities": "Drill-Down Capabilities",
+    "businessIntelligencePlatform2.embeddedAnalytics": "Embedded Analytics",
+    "businessIntelligencePlatform2.etlProcesses": "ETL Processes",
+    "businessIntelligencePlatform2.exportOptions": "Export Options",
+    "businessIntelligencePlatform2.interactiveDashboards": "Interactive Dashboards",
+    "businessIntelligencePlatform2.metadataManagement": "Metadata Management",
+    "businessIntelligencePlatform2.mobileBI": "Mobile BI",
+    "businessIntelligencePlatform2.naturalLanguageQuery": "Natural Language Query",
+    "businessIntelligencePlatform2.performanceOptimization": "Performance Optimization",
+    "businessIntelligencePlatform2.predictiveModeling": "Predictive Modeling",
+    "businessIntelligencePlatform2.queryOptimization": "Query Optimization",
+    "businessIntelligencePlatform2.realTimeAnalytics": "Real-Time Analytics",
+    "businessIntelligencePlatform2.reportDesigner": "Report Designer",
+    "businessIntelligencePlatform2.reportDistribution": "Report Distribution",
+    "businessIntelligencePlatform2.scheduledReports": "Scheduled Reports",
+    "businessIntelligencePlatform2.selfServiceBI": "Self-Service BI",
+    "businessIntelligencePlatform2.semanticLayer": "Semantic Layer",
+    "businessIntelligencePlatform2.statisticalAnalysis": "Statistical Analysis",
+    "businessIntelligencePlatform2.title": "Business Intelligence Platform",
+    "businessIntelligencePlatform2.visualizationTools": "Visualization Tools",
+    "businessIntelligencePlatform2.whatIfAnalysis": "What-If Analysis"
+  },
+  "ar": {
+    "businessIntelligencePlatform2.adhocReporting": "تقارير فورية",
+    "businessIntelligencePlatform2.advancedAnalytics": "تحليلات متقدمة",
+    "businessIntelligencePlatform2.alertsNotifications": "التنبيهات والإشعارات",
+    "businessIntelligencePlatform2.caching": "التخزين المؤقت",
+    "businessIntelligencePlatform2.chartLibrary": "مكتبة المخططات",
+    "businessIntelligencePlatform2.collaborationFeatures": "ميزات التعاون",
+    "businessIntelligencePlatform2.customVisualizations": "تصورات مخصصة",
+    "businessIntelligencePlatform2.dataDiscovery": "استكشاف البيانات",
+    "businessIntelligencePlatform2.dataGovernance": "حوكمة البيانات",
+    "businessIntelligencePlatform2.dataIntegration": "تكامل البيانات",
+    "businessIntelligencePlatform2.dataModeling": "نمذجة البيانات",
+    "businessIntelligencePlatform2.dataStorytelling": "سرد البيانات",
+    "businessIntelligencePlatform2.dataWarehouse": "مستودع البيانات",
+    "businessIntelligencePlatform2.description": "تحليلات متقدمة ولوحات بيانات تفاعلية",
+    "businessIntelligencePlatform2.drillDownCapabilities": "إمكانيات التحليل المتدرج",
+    "businessIntelligencePlatform2.embeddedAnalytics": "تحليلات مدمجة",
+    "businessIntelligencePlatform2.etlProcesses": "عمليات ETL",
+    "businessIntelligencePlatform2.exportOptions": "خيارات التصدير",
+    "businessIntelligencePlatform2.interactiveDashboards": "لوحات معلومات تفاعلية",
+    "businessIntelligencePlatform2.metadataManagement": "إدارة البيانات الوصفية",
+    "businessIntelligencePlatform2.mobileBI": "ذكاء الأعمال عبر الهاتف",
+    "businessIntelligencePlatform2.naturalLanguageQuery": "استعلام باللغة الطبيعية",
+    "businessIntelligencePlatform2.performanceOptimization": "تحسين الأداء",
+    "businessIntelligencePlatform2.predictiveModeling": "النمذجة التنبؤية",
+    "businessIntelligencePlatform2.queryOptimization": "تحسين الاستعلامات",
+    "businessIntelligencePlatform2.realTimeAnalytics": "تحليلات فورية",
+    "businessIntelligencePlatform2.reportDesigner": "مصمم التقارير",
+    "businessIntelligencePlatform2.reportDistribution": "توزيع التقارير",
+    "businessIntelligencePlatform2.scheduledReports": "تقارير مجدولة",
+    "businessIntelligencePlatform2.selfServiceBI": "ذكاء الأعمال ذاتي الخدمة",
+    "businessIntelligencePlatform2.semanticLayer": "الطبقة الدلالية",
+    "businessIntelligencePlatform2.statisticalAnalysis": "التحليل الإحصائي",
+    "businessIntelligencePlatform2.title": "منصة ذكاء الأعمال",
+    "businessIntelligencePlatform2.visualizationTools": "أدوات التصور",
+    "businessIntelligencePlatform2.whatIfAnalysis": "تحليل ماذا لو"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/businessIntelligenceTools.translations.json">
+<![CDATA[
+{
+  "en": {
+    "businessIntelligenceTools.bi": "Business Intelligence",
+    "businessIntelligenceTools.chart": "Charts",
+    "businessIntelligenceTools.cube": "OLAP Cube",
+    "businessIntelligenceTools.dashboard": "BI Dashboard",
+    "businessIntelligenceTools.drill": "Drill-down",
+    "businessIntelligenceTools.etl": "ETL",
+    "businessIntelligenceTools.filter": "Data Filter",
+    "businessIntelligenceTools.graph": "Graphs",
+    "businessIntelligenceTools.integration": "Data Integration",
+    "businessIntelligenceTools.lake": "Data Lake",
+    "businessIntelligenceTools.mart": "Data Mart",
+    "businessIntelligenceTools.modeling": "Data Modeling",
+    "businessIntelligenceTools.pipeline": "Data Pipeline",
+    "businessIntelligenceTools.pivot": "Pivot Table",
+    "businessIntelligenceTools.query": "Query Builder",
+    "businessIntelligenceTools.report": "Business Report",
+    "businessIntelligenceTools.slice": "Slice and Dice",
+    "businessIntelligenceTools.sql": "SQL Query",
+    "businessIntelligenceTools.table": "Data Table",
+    "businessIntelligenceTools.tool": "BI Tools",
+    "businessIntelligenceTools.visualization": "Data Visualization",
+    "businessIntelligenceTools.warehouse": "Data Warehouse"
+  },
+  "ar": {
+    "businessIntelligenceTools.bi": "ذكاء الأعمال",
+    "businessIntelligenceTools.chart": "الرسوم البيانية",
+    "businessIntelligenceTools.cube": "مكعب OLAP",
+    "businessIntelligenceTools.dashboard": "لوحة معلومات ذكاء الأعمال",
+    "businessIntelligenceTools.drill": "التفصيل",
+    "businessIntelligenceTools.etl": "استخراج وتحويل وتحميل البيانات",
+    "businessIntelligenceTools.filter": "مرشح البيانات",
+    "businessIntelligenceTools.graph": "الرسوم البيانية",
+    "businessIntelligenceTools.integration": "تكامل البيانات",
+    "businessIntelligenceTools.lake": "بحيرة البيانات",
+    "businessIntelligenceTools.mart": "سوق البيانات",
+    "businessIntelligenceTools.modeling": "نمذجة البيانات",
+    "businessIntelligenceTools.pipeline": "خط أنابيب البيانات",
+    "businessIntelligenceTools.pivot": "الجدول المحوري",
+    "businessIntelligenceTools.query": "منشئ الاستعلام",
+    "businessIntelligenceTools.report": "تقرير الأعمال",
+    "businessIntelligenceTools.slice": "التقطيع والتجزئة",
+    "businessIntelligenceTools.sql": "استعلام SQL",
+    "businessIntelligenceTools.table": "جدول البيانات",
+    "businessIntelligenceTools.tool": "أدوات ذكاء الأعمال",
+    "businessIntelligenceTools.visualization": "تصور البيانات",
+    "businessIntelligenceTools.warehouse": "مستودع البيانات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/businessProcessManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "businessProcessManagement.analysis": "Process Analysis",
+    "businessProcessManagement.automation": "Process Automation",
+    "businessProcessManagement.bpm": "BPM",
+    "businessProcessManagement.compliance": "Process Compliance",
+    "businessProcessManagement.conformance": "Conformance Checking",
+    "businessProcessManagement.design": "Process Design",
+    "businessProcessManagement.discovery": "Process Discovery",
+    "businessProcessManagement.documentation": "Process Documentation",
+    "businessProcessManagement.enhancement": "Process Enhancement",
+    "businessProcessManagement.execution": "Process Execution",
+    "businessProcessManagement.governance": "Process Governance",
+    "businessProcessManagement.improvement": "Process Improvement",
+    "businessProcessManagement.mapping": "Process Mapping",
+    "businessProcessManagement.mining": "Process Mining",
+    "businessProcessManagement.modeling": "Process Modeling",
+    "businessProcessManagement.monitoring": "Process Monitoring",
+    "businessProcessManagement.notation": "BPMN",
+    "businessProcessManagement.optimization": "Process Optimization",
+    "businessProcessManagement.orchestration": "Process Orchestration",
+    "businessProcessManagement.process": "Process Management",
+    "businessProcessManagement.standardization": "Process Standardization",
+    "businessProcessManagement.workflow": "Workflow Management"
+  },
+  "ar": {
+    "businessProcessManagement.analysis": "تحليل العمليات",
+    "businessProcessManagement.automation": "أتمتة العمليات",
+    "businessProcessManagement.bpm": "إدارة عمليات الأعمال",
+    "businessProcessManagement.compliance": "الامتثال للعمليات",
+    "businessProcessManagement.conformance": "فحص المطابقة",
+    "businessProcessManagement.design": "تصميم العمليات",
+    "businessProcessManagement.discovery": "اكتشاف العمليات",
+    "businessProcessManagement.documentation": "توثيق العمليات",
+    "businessProcessManagement.enhancement": "تعزيز العمليات",
+    "businessProcessManagement.execution": "تنفيذ العمليات",
+    "businessProcessManagement.governance": "حوكمة العمليات",
+    "businessProcessManagement.improvement": "تحسين العمليات",
+    "businessProcessManagement.mapping": "رسم خرائط العمليات",
+    "businessProcessManagement.mining": "تعدين العمليات",
+    "businessProcessManagement.modeling": "نمذجة العمليات",
+    "businessProcessManagement.monitoring": "مراقبة العمليات",
+    "businessProcessManagement.notation": "رمز نمذجة العمليات",
+    "businessProcessManagement.optimization": "تحسين العمليات",
+    "businessProcessManagement.orchestration": "تنسيق العمليات",
+    "businessProcessManagement.process": "إدارة العمليات",
+    "businessProcessManagement.standardization": "توحيد العمليات",
+    "businessProcessManagement.workflow": "إدارة سير العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/businessProcessModeling.translations.json">
+<![CDATA[
+{
+  "en": {
+    "businessProcessModeling.analysis": "Process Analysis",
+    "businessProcessModeling.automation": "Process Automation",
+    "businessProcessModeling.bpmn": "BPMN",
+    "businessProcessModeling.business": "Business Process Modeling",
+    "businessProcessModeling.design": "Process Design",
+    "businessProcessModeling.documentation": "Process Documentation",
+    "businessProcessModeling.governance": "Process Governance",
+    "businessProcessModeling.improvement": "Process Improvement",
+    "businessProcessModeling.library": "Process Library",
+    "businessProcessModeling.lifecycle": "Process Lifecycle",
+    "businessProcessModeling.management": "Process Management",
+    "businessProcessModeling.methodology": "Modeling Methodology",
+    "businessProcessModeling.modeling": "BPM Notation",
+    "businessProcessModeling.notation": "Process Notation",
+    "businessProcessModeling.optimization": "Process Optimization",
+    "businessProcessModeling.process": "Process Modeling",
+    "businessProcessModeling.repository": "Process Repository",
+    "businessProcessModeling.simulation": "Process Simulation",
+    "businessProcessModeling.software": "Modeling Software",
+    "businessProcessModeling.standards": "Modeling Standards",
+    "businessProcessModeling.tools": "Modeling Tools",
+    "businessProcessModeling.validation": "Process Validation"
+  },
+  "ar": {
+    "businessProcessModeling.analysis": "تحليل العمليات",
+    "businessProcessModeling.automation": "أتمتة العمليات",
+    "businessProcessModeling.bpmn": "بي بي إم إن",
+    "businessProcessModeling.business": "نمذجة عمليات الأعمال",
+    "businessProcessModeling.design": "تصميم العمليات",
+    "businessProcessModeling.documentation": "توثيق العمليات",
+    "businessProcessModeling.governance": "حوكمة العمليات",
+    "businessProcessModeling.improvement": "تحسين العمليات",
+    "businessProcessModeling.library": "مكتبة العمليات",
+    "businessProcessModeling.lifecycle": "دورة حياة العمليات",
+    "businessProcessModeling.management": "إدارة العمليات",
+    "businessProcessModeling.methodology": "منهجية النمذجة",
+    "businessProcessModeling.modeling": "ترميز إدارة عمليات الأعمال",
+    "businessProcessModeling.notation": "ترميز العمليات",
+    "businessProcessModeling.optimization": "تحسين العمليات",
+    "businessProcessModeling.process": "نمذجة العمليات",
+    "businessProcessModeling.repository": "مستودع العمليات",
+    "businessProcessModeling.simulation": "محاكاة العمليات",
+    "businessProcessModeling.software": "برامج النمذجة",
+    "businessProcessModeling.standards": "معايير النمذجة",
+    "businessProcessModeling.tools": "أدوات النمذجة",
+    "businessProcessModeling.validation": "التحقق من العمليات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/businessProcessOutsourcing.translations.json">
+<![CDATA[
+{
+  "en": {
+    "businessProcessOutsourcing.auditCompliance": "Audit & Compliance",
+    "businessProcessOutsourcing.businessContinuity": "Business Continuity",
+    "businessProcessOutsourcing.businessReviews": "Business Reviews",
+    "businessProcessOutsourcing.clientCommunication": "Client Communication",
+    "businessProcessOutsourcing.dataEntry": "Data Entry",
+    "businessProcessOutsourcing.dataProtection": "Data Protection",
+    "businessProcessOutsourcing.description": "BPO services and operations management",
+    "businessProcessOutsourcing.disasterRecovery": "Disaster Recovery",
+    "businessProcessOutsourcing.documentProcessing": "Document Processing",
+    "businessProcessOutsourcing.escalationManagement": "Escalation Management",
+    "businessProcessOutsourcing.governanceStructure": "Governance Structure",
+    "businessProcessOutsourcing.knowledgeTransfer": "Knowledge Transfer",
+    "businessProcessOutsourcing.operationalSetup": "Operational Setup",
+    "businessProcessOutsourcing.performanceDashboards": "Performance Dashboards",
+    "businessProcessOutsourcing.processTransition": "Process Transition",
+    "businessProcessOutsourcing.qualityControl": "Quality Control",
+    "businessProcessOutsourcing.realTimeReporting": "Real-Time Reporting",
+    "businessProcessOutsourcing.resourcePlanning": "Resource Planning",
+    "businessProcessOutsourcing.riskManagement": "Risk Management",
+    "businessProcessOutsourcing.securityProtocols": "Security Protocols",
+    "businessProcessOutsourcing.shiftManagement": "Shift Management",
+    "businessProcessOutsourcing.title": "Business Process Outsourcing (BPO)",
+    "businessProcessOutsourcing.transactionProcessing": "Transaction Processing",
+    "businessProcessOutsourcing.voiceSupport": "Voice Support",
+    "businessProcessOutsourcing.workforceManagement": "Workforce Management"
+  },
+  "ar": {
+    "businessProcessOutsourcing.auditCompliance": "التدقيق والامتثال",
+    "businessProcessOutsourcing.businessContinuity": "استمرارية الأعمال",
+    "businessProcessOutsourcing.businessReviews": "مراجعات الأعمال",
+    "businessProcessOutsourcing.clientCommunication": "التواصل مع العملاء",
+    "businessProcessOutsourcing.dataEntry": "إدخال البيانات",
+    "businessProcessOutsourcing.dataProtection": "حماية البيانات",
+    "businessProcessOutsourcing.description": "خدمات وعمليات الاستعانة بمصادر خارجية للعمليات التجارية",
+    "businessProcessOutsourcing.disasterRecovery": "استعادة الكوارث",
+    "businessProcessOutsourcing.documentProcessing": "معالجة المستندات",
+    "businessProcessOutsourcing.escalationManagement": "إدارة التصعيد",
+    "businessProcessOutsourcing.governanceStructure": "هيكل الحوكمة",
+    "businessProcessOutsourcing.knowledgeTransfer": "نقل المعرفة",
+    "businessProcessOutsourcing.operationalSetup": "الإعداد التشغيلي",
+    "businessProcessOutsourcing.performanceDashboards": "لوحات معلومات الأداء",
+    "businessProcessOutsourcing.processTransition": "انتقال العملية",
+    "businessProcessOutsourcing.qualityControl": "مراقبة الجودة",
+    "businessProcessOutsourcing.realTimeReporting": "التقارير في الوقت الفعلي",
+    "businessProcessOutsourcing.resourcePlanning": "تخطيط الموارد",
+    "businessProcessOutsourcing.riskManagement": "إدارة المخاطر",
+    "businessProcessOutsourcing.securityProtocols": "بروتوكولات الأمان",
+    "businessProcessOutsourcing.shiftManagement": "إدارة الورديات",
+    "businessProcessOutsourcing.title": "الاستعانة بمصادر خارجية للعمليات التجارية (BPO)",
+    "businessProcessOutsourcing.transactionProcessing": "معالجة المعاملات",
+    "businessProcessOutsourcing.voiceSupport": "دعم الصوت",
+    "businessProcessOutsourcing.workforceManagement": "إدارة القوى العاملة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/businessRelationships.translations.json">
+<![CDATA[
+{
+  "en": {
+    "businessRelationships.alignment": "Business Alignment",
+    "businessRelationships.alliance": "Strategic Alliance",
+    "businessRelationships.building": "Relationship Building",
+    "businessRelationships.business": "Business Relationships",
+    "businessRelationships.collaboration": "Business Collaboration",
+    "businessRelationships.communication": "Business Communication",
+    "businessRelationships.cooperation": "Business Cooperation",
+    "businessRelationships.development": "Relationship Development",
+    "businessRelationships.engagement": "Business Engagement",
+    "businessRelationships.governance": "Relationship Governance",
+    "businessRelationships.integration": "Business Integration",
+    "businessRelationships.maintenance": "Relationship Maintenance",
+    "businessRelationships.management": "Relationship Management",
+    "businessRelationships.mutual": "Mutual Benefit",
+    "businessRelationships.networking": "Business Networking",
+    "businessRelationships.partner": "Business Partner",
+    "businessRelationships.partnership": "Business Partnership",
+    "businessRelationships.performance": "Relationship Performance",
+    "businessRelationships.relationships": "Relationship Management",
+    "businessRelationships.synergy": "Business Synergy",
+    "businessRelationships.trust": "Business Trust",
+    "businessRelationships.value": "Value Creation"
+  },
+  "ar": {
+    "businessRelationships.alignment": "مواءمة الأعمال",
+    "businessRelationships.alliance": "التحالف الاستراتيجي",
+    "businessRelationships.building": "بناء العلاقات",
+    "businessRelationships.business": "علاقات الأعمال",
+    "businessRelationships.collaboration": "التعاون التجاري",
+    "businessRelationships.communication": "التواصل التجاري",
+    "businessRelationships.cooperation": "التعاون التجاري",
+    "businessRelationships.development": "تطوير العلاقات",
+    "businessRelationships.engagement": "إشراك الأعمال",
+    "businessRelationships.governance": "حوكمة العلاقات",
+    "businessRelationships.integration": "التكامل التجاري",
+    "businessRelationships.maintenance": "صيانة العلاقات",
+    "businessRelationships.management": "إدارة العلاقات",
+    "businessRelationships.mutual": "المنفعة المتبادلة",
+    "businessRelationships.networking": "التشبيك التجاري",
+    "businessRelationships.partner": "شريك الأعمال",
+    "businessRelationships.partnership": "شراكة الأعمال",
+    "businessRelationships.performance": "أداء العلاقات",
+    "businessRelationships.relationships": "إدارة العلاقات",
+    "businessRelationships.synergy": "التآزر التجاري",
+    "businessRelationships.trust": "الثقة التجارية",
+    "businessRelationships.value": "خلق القيمة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/businessRules.translations.json">
+<![CDATA[
+{
+  "en": {
+    "businessRules.action": "Action",
+    "businessRules.active": "Active",
+    "businessRules.apply": "Apply Rule",
+    "businessRules.condition": "Condition",
+    "businessRules.create": "Create Rule",
+    "businessRules.criteria": "Criteria",
+    "businessRules.delete": "Delete Rule",
+    "businessRules.description": "Description",
+    "businessRules.edit": "Edit Rule",
+    "businessRules.global": "Global",
+    "businessRules.inactive": "Inactive",
+    "businessRules.name": "Rule Name",
+    "businessRules.order": "Execution Order",
+    "businessRules.override": "Override",
+    "businessRules.priority": "Priority",
+    "businessRules.rule": "Business Rule",
+    "businessRules.scope": "Scope",
+    "businessRules.specific": "Specific",
+    "businessRules.test": "Test Rule",
+    "businessRules.validate": "Validate"
+  },
+  "ar": {
+    "businessRules.action": "الإجراء",
+    "businessRules.active": "نشط",
+    "businessRules.apply": "تطبيق القاعدة",
+    "businessRules.condition": "الشرط",
+    "businessRules.create": "إنشاء قاعدة",
+    "businessRules.criteria": "المعايير",
+    "businessRules.delete": "حذف قاعدة",
+    "businessRules.description": "الوصف",
+    "businessRules.edit": "تحرير قاعدة",
+    "businessRules.global": "عام",
+    "businessRules.inactive": "غير نشط",
+    "businessRules.name": "اسم القاعدة",
+    "businessRules.order": "ترتيب التنفيذ",
+    "businessRules.override": "تجاوز",
+    "businessRules.priority": "الأولوية",
+    "businessRules.rule": "قاعدة العمل",
+    "businessRules.scope": "النطاق",
+    "businessRules.specific": "محدد",
+    "businessRules.test": "اختبار القاعدة",
+    "businessRules.validate": "التحقق"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/businessTransformation.translations.json">
+<![CDATA[
+{
+  "en": {
+    "businessTransformation.benefits": "Transformation Benefits",
+    "businessTransformation.change": "Transformational Change",
+    "businessTransformation.culture": "Culture Transformation",
+    "businessTransformation.digital": "Digital Transformation",
+    "businessTransformation.execution": "Transformation Execution",
+    "businessTransformation.governance": "Transformation Governance",
+    "businessTransformation.impact": "Transformation Impact",
+    "businessTransformation.initiative": "Transformation Initiative",
+    "businessTransformation.leadership": "Transformation Leadership",
+    "businessTransformation.metrics": "Transformation Metrics",
+    "businessTransformation.objectives": "Transformation Objectives",
+    "businessTransformation.operational": "Operational Transformation",
+    "businessTransformation.organizational": "Organizational Transformation",
+    "businessTransformation.planning": "Transformation Planning",
+    "businessTransformation.process": "Process Transformation",
+    "businessTransformation.program": "Transformation Program",
+    "businessTransformation.project": "Transformation Project",
+    "businessTransformation.roadmap": "Transformation Roadmap",
+    "businessTransformation.strategy": "Transformation Strategy",
+    "businessTransformation.technology": "Technology Transformation",
+    "businessTransformation.transformation": "Business Transformation",
+    "businessTransformation.vision": "Transformation Vision"
+  },
+  "ar": {
+    "businessTransformation.benefits": "فوائد التحول",
+    "businessTransformation.change": "التغيير التحويلي",
+    "businessTransformation.culture": "تحول الثقافة",
+    "businessTransformation.digital": "التحول الرقمي",
+    "businessTransformation.execution": "تنفيذ التحول",
+    "businessTransformation.governance": "حوكمة التحول",
+    "businessTransformation.impact": "تأثير التحول",
+    "businessTransformation.initiative": "مبادرة التحول",
+    "businessTransformation.leadership": "قيادة التحول",
+    "businessTransformation.metrics": "مقاييس التحول",
+    "businessTransformation.objectives": "أهداف التحول",
+    "businessTransformation.operational": "التحول التشغيلي",
+    "businessTransformation.organizational": "التحول التنظيمي",
+    "businessTransformation.planning": "تخطيط التحول",
+    "businessTransformation.process": "تحول العمليات",
+    "businessTransformation.program": "برنامج التحول",
+    "businessTransformation.project": "مشروع التحول",
+    "businessTransformation.roadmap": "خارطة طريق التحول",
+    "businessTransformation.strategy": "استراتيجية التحول",
+    "businessTransformation.technology": "تحول التكنولوجيا",
+    "businessTransformation.transformation": "التحول في الأعمال",
+    "businessTransformation.vision": "رؤية التحول"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/calendar.translations.json">
+<![CDATA[
+{
+  "en": {
+    "calendar.addEvent": "Add Event",
+    "calendar.agenda": "Agenda",
+    "calendar.allDay": "All Day",
+    "calendar.attendees": "Attendees",
+    "calendar.day": "Day",
+    "calendar.endDate": "End Date",
+    "calendar.endTime": "End Time",
+    "calendar.eventDescription": "Event Description",
+    "calendar.eventTitle": "Event Title",
+    "calendar.location": "Location",
+    "calendar.month": "Month",
+    "calendar.reminder": "Reminder",
+    "calendar.repeat": "Repeat",
+    "calendar.startDate": "Start Date",
+    "calendar.startTime": "Start Time",
+    "calendar.title": "Calendar",
+    "calendar.today": "Today",
+    "calendar.week": "Week"
+  },
+  "ar": {
+    "calendar.addEvent": "إضافة حدث",
+    "calendar.agenda": "جدول الأعمال",
+    "calendar.allDay": "طوال اليوم",
+    "calendar.attendees": "الحاضرون",
+    "calendar.day": "يوم",
+    "calendar.endDate": "تاريخ النهاية",
+    "calendar.endTime": "وقت النهاية",
+    "calendar.eventDescription": "وصف الحدث",
+    "calendar.eventTitle": "عنوان الحدث",
+    "calendar.location": "الموقع",
+    "calendar.month": "شهر",
+    "calendar.reminder": "تذكير",
+    "calendar.repeat": "تكرار",
+    "calendar.startDate": "تاريخ البداية",
+    "calendar.startTime": "وقت البداية",
+    "calendar.title": "التقويم",
+    "calendar.today": "اليوم",
+    "calendar.week": "أسبوع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/callCenterManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "callCenterManagement.abandonment": "Call Abandonment",
+    "callCenterManagement.acd": "Automatic Call Distribution",
+    "callCenterManagement.agent": "Agent",
+    "callCenterManagement.call": "Call Center",
+    "callCenterManagement.center": "Contact Center",
+    "callCenterManagement.handle": "Handle Time",
+    "callCenterManagement.inbound": "Inbound",
+    "callCenterManagement.ivr": "IVR",
+    "callCenterManagement.kpi": "Call Center KPIs",
+    "callCenterManagement.metrics": "Call Center Metrics",
+    "callCenterManagement.monitoring": "Call Monitoring",
+    "callCenterManagement.outbound": "Outbound",
+    "callCenterManagement.performance": "Agent Performance",
+    "callCenterManagement.pickup": "First Call Resolution",
+    "callCenterManagement.quality": "Quality Assurance",
+    "callCenterManagement.queue": "Call Queue",
+    "callCenterManagement.recording": "Call Recording",
+    "callCenterManagement.representative": "Customer Service Representative",
+    "callCenterManagement.routing": "Call Routing",
+    "callCenterManagement.script": "Call Script",
+    "callCenterManagement.transfer": "Call Transfer",
+    "callCenterManagement.wait": "Wait Time"
+  },
+  "ar": {
+    "callCenterManagement.abandonment": "ترك المكالمة",
+    "callCenterManagement.acd": "توزيع المكالمات الآلي",
+    "callCenterManagement.agent": "الوكيل",
+    "callCenterManagement.call": "مركز الاتصال",
+    "callCenterManagement.center": "مركز الاتصال",
+    "callCenterManagement.handle": "وقت المعالجة",
+    "callCenterManagement.inbound": "الواردة",
+    "callCenterManagement.ivr": "الرد الصوتي التفاعلي",
+    "callCenterManagement.kpi": "مؤشرات مركز الاتصال",
+    "callCenterManagement.metrics": "مقاييس مركز الاتصال",
+    "callCenterManagement.monitoring": "مراقبة المكالمات",
+    "callCenterManagement.outbound": "الصادرة",
+    "callCenterManagement.performance": "أداء الوكيل",
+    "callCenterManagement.pickup": "الحل من المكالمة الأولى",
+    "callCenterManagement.quality": "ضمان الجودة",
+    "callCenterManagement.queue": "قائمة انتظار المكالمات",
+    "callCenterManagement.recording": "تسجيل المكالمات",
+    "callCenterManagement.representative": "ممثل خدمة العملاء",
+    "callCenterManagement.routing": "توجيه المكالمات",
+    "callCenterManagement.script": "نص المكالمة",
+    "callCenterManagement.transfer": "نقل المكالمة",
+    "callCenterManagement.wait": "وقت الانتظار"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/campaignManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "campaignManagement.ab": "A/B Testing",
+    "campaignManagement.analytics": "Marketing Analytics",
+    "campaignManagement.attribution": "Marketing Attribution",
+    "campaignManagement.automation": "Marketing Automation",
+    "campaignManagement.campaign": "Campaign Management",
+    "campaignManagement.campaigns": "Campaign Planning",
+    "campaignManagement.content": "Content Marketing",
+    "campaignManagement.display": "Display Advertising",
+    "campaignManagement.email": "Email Marketing",
+    "campaignManagement.execution": "Campaign Execution",
+    "campaignManagement.management": "Campaign Management",
+    "campaignManagement.multivariate": "Multivariate Testing",
+    "campaignManagement.personalization": "Content Personalization",
+    "campaignManagement.planning": "Campaign Planning",
+    "campaignManagement.ppc": "Pay-Per-Click Advertising",
+    "campaignManagement.reporting": "Marketing Reports",
+    "campaignManagement.retargeting": "Retargeting Campaigns",
+    "campaignManagement.roi": "ROI Analysis",
+    "campaignManagement.segmentation": "Audience Segmentation",
+    "campaignManagement.sem": "Search Engine Marketing",
+    "campaignManagement.seo": "Search Engine Optimization",
+    "campaignManagement.sms": "SMS Marketing",
+    "campaignManagement.social": "Social Media Marketing"
+  },
+  "ar": {
+    "campaignManagement.ab": "اختبار A/B",
+    "campaignManagement.analytics": "تحليلات التسويق",
+    "campaignManagement.attribution": "إسناد التسويق",
+    "campaignManagement.automation": "أتمتة التسويق",
+    "campaignManagement.campaign": "إدارة الحملات",
+    "campaignManagement.campaigns": "تخطيط الحملات",
+    "campaignManagement.content": "تسويق المحتوى",
+    "campaignManagement.display": "الإعلانات المرئية",
+    "campaignManagement.email": "التسويق عبر البريد الإلكتروني",
+    "campaignManagement.execution": "تنفيذ الحملات",
+    "campaignManagement.management": "إدارة الحملات",
+    "campaignManagement.multivariate": "الاختبار متعدد المتغيرات",
+    "campaignManagement.personalization": "تخصيص المحتوى",
+    "campaignManagement.planning": "تخطيط الحملات",
+    "campaignManagement.ppc": "الإعلان بالدفع لكل نقرة",
+    "campaignManagement.reporting": "تقارير التسويق",
+    "campaignManagement.retargeting": "حملات إعادة الاستهداف",
+    "campaignManagement.roi": "تحليل عائد الاستثمار",
+    "campaignManagement.segmentation": "تقسيم الجمهور",
+    "campaignManagement.sem": "تسويق محركات البحث",
+    "campaignManagement.seo": "تحسين محركات البحث",
+    "campaignManagement.sms": "التسويق عبر الرسائل القصيرة",
+    "campaignManagement.social": "التسويق عبر وسائل التواصل الاجتماعي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/campusManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "campusManagement.athletics": "Athletic Facilities",
+    "campusManagement.buildings": "Building Management",
+    "campusManagement.cafeteria": "Cafeteria Management",
+    "campusManagement.campus": "Campus Operations",
+    "campusManagement.catering": "Catering Services",
+    "campusManagement.classrooms": "Classroom Management",
+    "campusManagement.counseling": "Counseling Services",
+    "campusManagement.courts": "Sports Courts",
+    "campusManagement.custodial": "Custodial Services",
+    "campusManagement.description": "Campus Operations and Facilities",
+    "campusManagement.dining": "Dining Services",
+    "campusManagement.dormitories": "Dormitory Management",
+    "campusManagement.emergency": "Emergency Services",
+    "campusManagement.energy": "Energy Management",
+    "campusManagement.events": "Campus Events",
+    "campusManagement.facilities": "Campus Facilities",
+    "campusManagement.fields": "Sports Fields",
+    "campusManagement.fitness": "Fitness Centers",
+    "campusManagement.grounds": "Grounds Keeping",
+    "campusManagement.gymnasium": "Gymnasium Management",
+    "campusManagement.health": "Health Services",
+    "campusManagement.housing": "Student Housing",
+    "campusManagement.labs": "Laboratory Management",
+    "campusManagement.libraries": "Library Management",
+    "campusManagement.lots": "Parking Lots",
+    "campusManagement.maintenance": "Facilities Maintenance",
+    "campusManagement.meal": "Meal Plans",
+    "campusManagement.parking": "Parking Management",
+    "campusManagement.permits": "Parking Permits",
+    "campusManagement.police": "Campus Police",
+    "campusManagement.pools": "Swimming Pools",
+    "campusManagement.recreation": "Recreation Facilities",
+    "campusManagement.recycling": "Recycling Programs",
+    "campusManagement.reservations": "Space Reservations",
+    "campusManagement.residence": "Residence Halls",
+    "campusManagement.safety": "Campus Safety",
+    "campusManagement.security": "Campus Security",
+    "campusManagement.shuttle": "Shuttle Services",
+    "campusManagement.sustainability": "Sustainability Initiatives",
+    "campusManagement.title": "Campus Management",
+    "campusManagement.transportation": "Campus Transportation",
+    "campusManagement.utilities": "Utilities Management",
+    "campusManagement.wellness": "Wellness Programs"
+  },
+  "ar": {
+    "campusManagement.athletics": "المرافق الرياضية",
+    "campusManagement.buildings": "إدارة المباني",
+    "campusManagement.cafeteria": "إدارة الكافتيريا",
+    "campusManagement.campus": "عمليات الحرم الجامعي",
+    "campusManagement.catering": "خدمات تقديم الطعام",
+    "campusManagement.classrooms": "إدارة الفصول الدراسية",
+    "campusManagement.counseling": "خدمات الإرشاد",
+    "campusManagement.courts": "الملاعب",
+    "campusManagement.custodial": "خدمات الحراسة",
+    "campusManagement.description": "عمليات ومرافق الحرم الجامعي",
+    "campusManagement.dining": "خدمات الطعام",
+    "campusManagement.dormitories": "إدارة السكن الطلابي",
+    "campusManagement.emergency": "خدمات الطوارئ",
+    "campusManagement.energy": "إدارة الطاقة",
+    "campusManagement.events": "فعاليات الحرم الجامعي",
+    "campusManagement.facilities": "مرافق الحرم الجامعي",
+    "campusManagement.fields": "الملاعب الرياضية",
+    "campusManagement.fitness": "مراكز اللياقة البدنية",
+    "campusManagement.grounds": "صيانة الحدائق",
+    "campusManagement.gymnasium": "إدارة الصالة الرياضية",
+    "campusManagement.health": "الخدمات الصحية",
+    "campusManagement.housing": "السكن الطلابي",
+    "campusManagement.labs": "إدارة المختبرات",
+    "campusManagement.libraries": "إدارة المكتبات",
+    "campusManagement.lots": "مواقف السيارات",
+    "campusManagement.maintenance": "صيانة المرافق",
+    "campusManagement.meal": "خطط الوجبات",
+    "campusManagement.parking": "إدارة مواقف السيارات",
+    "campusManagement.permits": "تصاريح الوقوف",
+    "campusManagement.police": "شرطة الحرم الجامعي",
+    "campusManagement.pools": "حمامات السباحة",
+    "campusManagement.recreation": "المرافق الترفيهية",
+    "campusManagement.recycling": "برامج إعادة التدوير",
+    "campusManagement.reservations": "حجوزات المساحات",
+    "campusManagement.residence": "قاعات الإقامة",
+    "campusManagement.safety": "سلامة الحرم الجامعي",
+    "campusManagement.security": "أمن الحرم الجامعي",
+    "campusManagement.shuttle": "خدمات النقل",
+    "campusManagement.sustainability": "مبادرات الاستدامة",
+    "campusManagement.title": "إدارة الحرم الجامعي",
+    "campusManagement.transportation": "النقل داخل الحرم الجامعي",
+    "campusManagement.utilities": "إدارة المرافق",
+    "campusManagement.wellness": "برامج العافية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/capacityManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "capacityManagement.allocation": "Capacity Allocation",
+    "capacityManagement.analysis": "Capacity Analysis",
+    "capacityManagement.average": "Average Capacity",
+    "capacityManagement.capacity": "Capacity",
+    "capacityManagement.current": "Current Capacity",
+    "capacityManagement.demand": "Capacity Demand",
+    "capacityManagement.expansion": "Capacity Expansion",
+    "capacityManagement.forecast": "Capacity Forecast",
+    "capacityManagement.limit": "Capacity Limit",
+    "capacityManagement.management": "Capacity Management",
+    "capacityManagement.maximum": "Maximum Capacity",
+    "capacityManagement.modeling": "Capacity Modeling",
+    "capacityManagement.monitoring": "Capacity Monitoring",
+    "capacityManagement.optimization": "Capacity Optimization",
+    "capacityManagement.peak": "Peak Capacity",
+    "capacityManagement.planning": "Capacity Planning",
+    "capacityManagement.reduction": "Capacity Reduction",
+    "capacityManagement.report": "Capacity Report",
+    "capacityManagement.reserve": "Reserve Capacity",
+    "capacityManagement.supply": "Capacity Supply",
+    "capacityManagement.threshold": "Capacity Threshold",
+    "capacityManagement.utilization": "Capacity Utilization"
+  },
+  "ar": {
+    "capacityManagement.allocation": "تخصيص السعة",
+    "capacityManagement.analysis": "تحليل السعة",
+    "capacityManagement.average": "السعة المتوسطة",
+    "capacityManagement.capacity": "السعة",
+    "capacityManagement.current": "السعة الحالية",
+    "capacityManagement.demand": "الطلب على السعة",
+    "capacityManagement.expansion": "توسيع السعة",
+    "capacityManagement.forecast": "التنبؤ بالسعة",
+    "capacityManagement.limit": "حد السعة",
+    "capacityManagement.management": "إدارة السعة",
+    "capacityManagement.maximum": "السعة القصوى",
+    "capacityManagement.modeling": "نمذجة السعة",
+    "capacityManagement.monitoring": "مراقبة السعة",
+    "capacityManagement.optimization": "تحسين السعة",
+    "capacityManagement.peak": "السعة القصوى",
+    "capacityManagement.planning": "تخطيط السعة",
+    "capacityManagement.reduction": "تقليل السعة",
+    "capacityManagement.report": "تقرير السعة",
+    "capacityManagement.reserve": "السعة الاحتياطية",
+    "capacityManagement.supply": "توفير السعة",
+    "capacityManagement.threshold": "عتبة السعة",
+    "capacityManagement.utilization": "استخدام السعة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/capacityPlanning.translations.json">
+<![CDATA[
+{
+  "en": {
+    "capacityPlanning.allocation": "Allocation",
+    "capacityPlanning.available": "Available Capacity",
+    "capacityPlanning.average": "Average Usage",
+    "capacityPlanning.bottleneck": "Bottleneck",
+    "capacityPlanning.capacity": "Capacity",
+    "capacityPlanning.current": "Current Capacity",
+    "capacityPlanning.demand": "Demand",
+    "capacityPlanning.expansion": "Expansion",
+    "capacityPlanning.forecast": "Forecast",
+    "capacityPlanning.growth": "Growth",
+    "capacityPlanning.limit": "Limit",
+    "capacityPlanning.maximum": "Maximum Capacity",
+    "capacityPlanning.minimum": "Minimum Required",
+    "capacityPlanning.optimization": "Optimization",
+    "capacityPlanning.peak": "Peak Usage",
+    "capacityPlanning.planning": "Capacity Planning",
+    "capacityPlanning.projection": "Projection",
+    "capacityPlanning.reserved": "Reserved Capacity",
+    "capacityPlanning.resource": "Resource",
+    "capacityPlanning.scaling": "Scaling",
+    "capacityPlanning.supply": "Supply",
+    "capacityPlanning.threshold": "Threshold",
+    "capacityPlanning.trend": "Trend",
+    "capacityPlanning.utilization": "Utilization"
+  },
+  "ar": {
+    "capacityPlanning.allocation": "التخصيص",
+    "capacityPlanning.available": "السعة المتاحة",
+    "capacityPlanning.average": "متوسط الاستخدام",
+    "capacityPlanning.bottleneck": "عنق الزجاجة",
+    "capacityPlanning.capacity": "السعة",
+    "capacityPlanning.current": "السعة الحالية",
+    "capacityPlanning.demand": "الطلب",
+    "capacityPlanning.expansion": "التوسيع",
+    "capacityPlanning.forecast": "التوقع",
+    "capacityPlanning.growth": "النمو",
+    "capacityPlanning.limit": "الحد",
+    "capacityPlanning.maximum": "السعة القصوى",
+    "capacityPlanning.minimum": "الحد الأدنى المطلوب",
+    "capacityPlanning.optimization": "التحسين",
+    "capacityPlanning.peak": "ذروة الاستخدام",
+    "capacityPlanning.planning": "تخطيط السعة",
+    "capacityPlanning.projection": "الإسقاط",
+    "capacityPlanning.reserved": "السعة المحجوزة",
+    "capacityPlanning.resource": "المورد",
+    "capacityPlanning.scaling": "التوسع",
+    "capacityPlanning.supply": "العرض",
+    "capacityPlanning.threshold": "العتبة",
+    "capacityPlanning.trend": "الاتجاه",
+    "capacityPlanning.utilization": "الاستخدام"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/careerDevelopment.translations.json">
+<![CDATA[
+{
+  "en": {
+    "careerDevelopment.advancement": "Career Advancement",
+    "careerDevelopment.aspiration": "Career Aspiration",
+    "careerDevelopment.career": "Career Development",
+    "careerDevelopment.coaching": "Career Coaching",
+    "careerDevelopment.counseling": "Career Counseling",
+    "careerDevelopment.goal": "Career Goal",
+    "careerDevelopment.growth": "Career Growth",
+    "careerDevelopment.ladder": "Career Ladder",
+    "careerDevelopment.mentee": "Mentee",
+    "careerDevelopment.mentor": "Mentor",
+    "careerDevelopment.mentorship": "Mentorship",
+    "careerDevelopment.mobility": "Internal Mobility",
+    "careerDevelopment.move": "Career Move",
+    "careerDevelopment.opportunity": "Career Opportunity",
+    "careerDevelopment.path": "Career Path",
+    "careerDevelopment.planning": "Career Planning",
+    "careerDevelopment.potential": "High Potential",
+    "careerDevelopment.progression": "Career Progression",
+    "careerDevelopment.succession": "Succession Planning",
+    "careerDevelopment.talent": "Talent Development",
+    "careerDevelopment.track": "Career Track",
+    "careerDevelopment.transition": "Career Transition"
+  },
+  "ar": {
+    "careerDevelopment.advancement": "الترقية الوظيفية",
+    "careerDevelopment.aspiration": "الطموح الوظيفي",
+    "careerDevelopment.career": "التطوير الوظيفي",
+    "careerDevelopment.coaching": "التوجيه الوظيفي",
+    "careerDevelopment.counseling": "الاستشارة الوظيفية",
+    "careerDevelopment.goal": "الهدف الوظيفي",
+    "careerDevelopment.growth": "النمو الوظيفي",
+    "careerDevelopment.ladder": "السلم الوظيفي",
+    "careerDevelopment.mentee": "المسترشد",
+    "careerDevelopment.mentor": "المرشد",
+    "careerDevelopment.mentorship": "الإرشاد",
+    "careerDevelopment.mobility": "التنقل الداخلي",
+    "careerDevelopment.move": "التحرك الوظيفي",
+    "careerDevelopment.opportunity": "الفرصة الوظيفية",
+    "careerDevelopment.path": "المسار الوظيفي",
+    "careerDevelopment.planning": "التخطيط الوظيفي",
+    "careerDevelopment.potential": "إمكانات عالية",
+    "careerDevelopment.progression": "التقدم الوظيفي",
+    "careerDevelopment.succession": "التخطيط للخلافة",
+    "careerDevelopment.talent": "تطوير المواهب",
+    "careerDevelopment.track": "المسار الوظيفي",
+    "careerDevelopment.transition": "الانتقال الوظيفي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/careers.translations.json">
+<![CDATA[
+{
+  "en": {
+    "careers.allDepartments": "All Departments",
+    "careers.allLocations": "All Locations",
+    "careers.allTypes": "All Types",
+    "careers.applicationForm": "Application Form",
+    "careers.applicationSubmitted": "Application Submitted Successfully",
+    "careers.applyFailed": "Failed to submit application. Please try again",
+    "careers.applyFor": "Apply for",
+    "careers.applyNow": "Apply Now",
+    "careers.applySuccess": "Your application has been submitted successfully!",
+    "careers.benefits": "Benefits",
+    "careers.cancel": "Cancel",
+    "careers.cities": "3 Cities",
+    "careers.closed": "Closed",
+    "careers.contract": "Contract",
+    "careers.coverLetter": "Cover Letter",
+    "careers.coverLetterPh": "Tell us why you're a great fit for this position...",
+    "careers.currentOpenings": "Current Openings",
+    "careers.department": "Department",
+    "careers.departments.customerService": "Customer Service",
+    "careers.departments.finance": "Finance",
+    "careers.departments.hr": "Human Resources",
+    "careers.departments.it": "Information Technology",
+    "careers.departments.legal": "Legal",
+    "careers.departments.maintenance": "Maintenance",
+    "careers.departments.marketing": "Marketing",
+    "careers.departments.operations": "Operations",
+    "careers.description": "Explore exciting career opportunities and join our growing team of professionals",
+    "careers.detail.back": "Back to Careers",
+    "careers.detail.benefits": "Benefits",
+    "careers.detail.description": "Description",
+    "careers.detail.requirements": "Requirements",
+    "careers.dragDrop": "or drag and drop",
+    "careers.email": "Email Address",
+    "careers.emailInvalid": "Invalid email format",
+    "careers.emailPh": "your.email@example.com",
+    "careers.emailRequired": "Email is required",
+    "careers.employeeCount": "50+ Employees",
+    "careers.employees": "50+ Employees",
+    "careers.experience": "Years of Experience",
+    "careers.experienceInvalid": "Years of experience must be 0 or greater",
+    "careers.featuredPosition": "Featured",
+    "careers.fileTypes": "PDF, DOC, DOCX up to 10MB",
+    "careers.filterByDepartment": "Filter by Department",
+    "careers.filterByLocation": "Filter by Location",
+    "careers.filterByType": "Filter by Type",
+    "careers.firstName": "First Name",
+    "careers.fullName": "Full Name",
+    "careers.fullNamePh": "Enter your full name",
+    "careers.fullNameRequired": "Full name is required",
+    "careers.fullTime": "Full-time",
+    "careers.growing": "Growing Fast",
+    "careers.jobDescription": "Job Description",
+    "careers.lastName": "Last Name",
+    "careers.linkedInProfile": "LinkedIn Profile (Optional)",
+    "careers.linkedin": "LinkedIn Profile",
+    "careers.linkedinInvalid": "Invalid LinkedIn URL",
+    "careers.location": "Location",
+    "careers.locationPh": "City, Country",
+    "careers.notFound.contact": "Contact our HR team",
+    "careers.notFound.description": "This job posting may have been closed, removed, or the link may be invalid.",
+    "careers.notFound.footerPrompt": "Looking for something specific?",
+    "careers.notFound.goHome": "Go to Homepage",
+    "careers.notFound.title": "Job Not Found",
+    "careers.notFound.viewAll": "View All Open Positions",
+    "careers.open": "Open",
+    "careers.openPositions": "Open Positions",
+    "careers.page.form.actions.cancel": "Cancel",
+    "careers.page.form.actions.submit": "Submit Application",
+    "careers.page.form.actions.submitting": "Submitting...",
+    "careers.page.form.applyCta": "Apply Now",
+    "careers.page.form.coverLetter.label": "Cover Letter *",
+    "careers.page.form.coverLetter.placeholder": "Tell us why you're interested in this position and what makes you a great fit...",
+    "careers.page.form.dialogTitle": "Apply for {{jobTitle}}",
+    "careers.page.form.email.label": "Email Address *",
+    "careers.page.form.email.placeholder": "Enter your email",
+    "careers.page.form.firstName.label": "First Name *",
+    "careers.page.form.firstName.placeholder": "Enter your first name",
+    "careers.page.form.lastName.label": "Last Name *",
+    "careers.page.form.lastName.placeholder": "Enter your last name",
+    "careers.page.form.phone.label": "Phone Number *",
+    "careers.page.form.phone.placeholder": "Enter your phone number",
+    "careers.page.form.resume.dragDrop": "or drag and drop",
+    "careers.page.form.resume.hint": "PDF, DOC, DOCX up to 10MB",
+    "careers.page.form.resume.label": "Resume/CV *",
+    "careers.page.form.resume.upload": "Upload a file",
+    "careers.page.hero.statCities": "3 Cities",
+    "careers.page.hero.statEmployees": "50+ Employees",
+    "careers.page.hero.statGrowth": "Growing Fast",
+    "careers.page.hero.subtitle": "Build your career with Fixzit Enterprise - where innovation meets opportunity",
+    "careers.page.hero.title": "Join Our Team",
+    "careers.page.job.benefitsTitle": "Benefits:",
+    "careers.page.job.requirementsTitle": "Requirements:",
+    "careers.page.listings.subtitle": "Explore exciting career opportunities and join our growing team of professionals",
+    "careers.page.listings.title": "Current Openings",
+    "careers.partTime": "Part-time",
+    "careers.personalInformation": "Personal Information",
+    "careers.phone": "Phone Number",
+    "careers.phoneInvalid": "Invalid phone number",
+    "careers.phonePh": "Your phone number",
+    "careers.portfolioWebsite": "Portfolio/Website (Optional)",
+    "careers.posted": "Posted",
+    "careers.postedOn": "Posted on",
+    "careers.presignFailed": "Presign Failed",
+    "careers.remote": "Remote",
+    "careers.requirements": "Requirements",
+    "careers.resume": "Resume/CV",
+    "careers.resumeHint": "PDF, DOC, DOCX (up to 5MB)",
+    "careers.resumeRequired": "Resume is required",
+    "careers.resumeScanStatus": "Resume Scan Status",
+    "careers.resumeSize": "File size must be less than 5MB",
+    "careers.resumeType": "Invalid file type. Only PDF, DOC, DOCX are allowed",
+    "careers.resumeUploadNote": "Resume Upload Note",
+    "careers.salary": "Salary",
+    "careers.skills": "Skills",
+    "careers.skillsHint": "Separate skills with commas",
+    "careers.skillsPh": "e.g., React, Node.js, Python",
+    "careers.spamDetected": "Suspicious content detected. Please try again",
+    "careers.submit": "Submit Application",
+    "careers.submitApplication": "Submit Application",
+    "careers.submitting": "Submitting...",
+    "careers.subtitle": "Build your career with Fixzit Enterprise - where innovation meets opportunity",
+    "careers.terms": "I agree to the processing of my personal data",
+    "careers.thankYou": "Thank you for your interest in joining Fixzit Enterprise. We will review your application and get back to you soon.",
+    "careers.title": "Join Our Team",
+    "careers.tooMany": "Too many applications submitted. Please try later",
+    "careers.type": "Type",
+    "careers.uploadFailed": "Upload Failed",
+    "careers.uploadFile": "Upload a file",
+    "careers.uploadResume": "Upload Resume",
+    "careers.urgentPosition": "Urgent Position",
+    "careers.viewDetails": "View Details",
+    "careers.yearsOfExperience": "Years of Experience"
+  },
+  "ar": {
+    "careers.allDepartments": "جميع الأقسام",
+    "careers.allLocations": "جميع المواقع",
+    "careers.allTypes": "جميع الأنواع",
+    "careers.applicationForm": "نموذج التقديم",
+    "careers.applicationSubmitted": "تم إرسال الطلب بنجاح",
+    "careers.applyFailed": "فشل إرسال الطلب. يرجى المحاولة مرة أخرى",
+    "careers.applyFor": "التقديم على",
+    "careers.applyNow": "قدّم الآن",
+    "careers.applySuccess": "تم إرسال طلبك بنجاح!",
+    "careers.benefits": "المزايا",
+    "careers.cancel": "إلغاء",
+    "careers.cities": "3 مدن",
+    "careers.closed": "مغلق",
+    "careers.contract": "عقد",
+    "careers.coverLetter": "خطاب التقديم",
+    "careers.coverLetterPh": "أخبرنا لماذا أنت مرشح مناسب لهذا المنصب...",
+    "careers.currentOpenings": "الوظائف المتاحة حالياً",
+    "careers.department": "القسم",
+    "careers.departments.customerService": "خدمة العملاء",
+    "careers.departments.finance": "المالية",
+    "careers.departments.hr": "الموارد البشرية",
+    "careers.departments.it": "تقنية المعلومات",
+    "careers.departments.legal": "القانونية",
+    "careers.departments.maintenance": "الصيانة",
+    "careers.departments.marketing": "التسويق",
+    "careers.departments.operations": "العمليات",
+    "careers.description": "استكشف فرص مهنية مثيرة وانضم إلى فريقنا المتنامي من المحترفين",
+    "careers.detail.back": "العودة إلى الوظائف",
+    "careers.detail.benefits": "المميزات",
+    "careers.detail.description": "الوصف",
+    "careers.detail.requirements": "المتطلبات",
+    "careers.dragDrop": "أو اسحب وأفلت",
+    "careers.email": "عنوان البريد الإلكتروني",
+    "careers.emailInvalid": "صيغة البريد الإلكتروني غير صحيحة",
+    "careers.emailPh": "بريدك الإلكتروني",
+    "careers.emailRequired": "البريد الإلكتروني مطلوب",
+    "careers.employeeCount": "50+ موظف",
+    "careers.employees": "50+ موظف",
+    "careers.experience": "سنوات الخبرة",
+    "careers.experienceInvalid": "سنوات الخبرة يجب أن تكون 0 أو أكثر",
+    "careers.featuredPosition": "مميزة",
+    "careers.fileTypes": "PDF، DOC، DOCX حتى 10 ميجابايت",
+    "careers.filterByDepartment": "تصفية حسب القسم",
+    "careers.filterByLocation": "تصفية حسب الموقع",
+    "careers.filterByType": "تصفية حسب النوع",
+    "careers.firstName": "الاسم الأول",
+    "careers.fullName": "الاسم الكامل",
+    "careers.fullNamePh": "أدخل اسمك الكامل",
+    "careers.fullNameRequired": "الاسم الكامل مطلوب",
+    "careers.fullTime": "دوام كامل",
+    "careers.growing": "نمو سريع",
+    "careers.jobDescription": "وصف الوظيفة",
+    "careers.lastName": "الاسم الأخير",
+    "careers.linkedInProfile": "ملف LinkedIn (اختياري)",
+    "careers.linkedin": "ملف LinkedIn",
+    "careers.linkedinInvalid": "رابط LinkedIn غير صحيح",
+    "careers.location": "الموقع",
+    "careers.locationPh": "المدينة، البلد",
+    "careers.notFound.contact": "تواصل مع فريق الموارد البشرية لدينا",
+    "careers.notFound.description": "ربما تم إغلاق هذه الوظيفة أو إزالتها أو أن الرابط غير صالح.",
+    "careers.notFound.footerPrompt": "تبحث عن شيء محدد؟",
+    "careers.notFound.goHome": "اذهب إلى الصفحة الرئيسية",
+    "careers.notFound.title": "لم يتم العثور على الوظيفة",
+    "careers.notFound.viewAll": "عرض جميع الوظائف المتاحة",
+    "careers.open": "متاح",
+    "careers.openPositions": "الوظائف المتاحة",
+    "careers.page.form.actions.cancel": "إلغاء",
+    "careers.page.form.actions.submit": "إرسال الطلب",
+    "careers.page.form.actions.submitting": "جاري الإرسال...",
+    "careers.page.form.applyCta": "قدّم الآن",
+    "careers.page.form.coverLetter.label": "خطاب التعريف *",
+    "careers.page.form.coverLetter.placeholder": "أخبرنا لماذا تهتم بهذه الوظيفة وما الذي يجعلك مناسباً لها...",
+    "careers.page.form.dialogTitle": "قدّم لوظيفة {{jobTitle}}",
+    "careers.page.form.email.label": "البريد الإلكتروني *",
+    "careers.page.form.email.placeholder": "أدخل بريدك الإلكتروني",
+    "careers.page.form.firstName.label": "الاسم الأول *",
+    "careers.page.form.firstName.placeholder": "أدخل اسمك الأول",
+    "careers.page.form.lastName.label": "اسم العائلة *",
+    "careers.page.form.lastName.placeholder": "أدخل اسم العائلة",
+    "careers.page.form.phone.label": "رقم الجوال *",
+    "careers.page.form.phone.placeholder": "أدخل رقم جوالك",
+    "careers.page.form.resume.dragDrop": "أو اسحب وأفلت",
+    "careers.page.form.resume.hint": "PDF، DOC، DOCX حتى 10 ميجابايت",
+    "careers.page.form.resume.label": "السيرة الذاتية *",
+    "careers.page.form.resume.upload": "قم برفع ملف",
+    "careers.page.hero.statCities": "3 مدن",
+    "careers.page.hero.statEmployees": "أكثر من 50 موظفاً",
+    "careers.page.hero.statGrowth": "نمو متسارع",
+    "careers.page.hero.subtitle": "ابنِ مسيرتك مع فيكزيت إنتربرايز حيث تلتقي الابتكار بالفرص",
+    "careers.page.hero.title": "انضم إلى فريقنا",
+    "careers.page.job.benefitsTitle": "المميزات:",
+    "careers.page.job.requirementsTitle": "المتطلبات:",
+    "careers.page.listings.subtitle": "اكتشف فرصاً مهنية مميزة وانضم إلى فريقنا المتنامي من المحترفين",
+    "careers.page.listings.title": "الوظائف المتاحة",
+    "careers.partTime": "دوام جزئي",
+    "careers.personalInformation": "المعلومات الشخصية",
+    "careers.phone": "رقم الهاتف",
+    "careers.phoneInvalid": "رقم الهاتف غير صحيح",
+    "careers.phonePh": "رقم هاتفك",
+    "careers.portfolioWebsite": "موقع الأعمال (اختياري)",
+    "careers.posted": "تاريخ النشر",
+    "careers.postedOn": "نُشرت في",
+    "careers.presignFailed": "Presign فشل",
+    "careers.remote": "عن بُعد",
+    "careers.requirements": "المتطلبات",
+    "careers.resume": "السيرة الذاتية",
+    "careers.resumeHint": "PDF، DOC، DOCX (حتى 5 ميجابايت)",
+    "careers.resumeRequired": "السيرة الذاتية مطلوبة",
+    "careers.resumeScanStatus": "Resume Scan الحالة",
+    "careers.resumeSize": "حجم الملف يجب أن يكون أقل من 5 ميجابايت",
+    "careers.resumeType": "نوع الملف غير صحيح. يُسمح فقط بـ PDF وDOC وDOCX",
+    "careers.resumeUploadNote": "[AR] Resume Upload Note",
+    "careers.salary": "الراتب",
+    "careers.skills": "المهارات",
+    "careers.skillsHint": "افصل بين المهارات بفواصل",
+    "careers.skillsPh": "مثال: React، Node.js، Python",
+    "careers.spamDetected": "تم اكتشاف محتوى مشبوه. يرجى المحاولة مرة أخرى",
+    "careers.submit": "إرسال الطلب",
+    "careers.submitApplication": "إرسال الطلب",
+    "careers.submitting": "جارٍ الإرسال...",
+    "careers.subtitle": "ابنِ مسيرتك المهنية مع فيكزيت إنتربرايز - حيث يلتقي الابتكار بالفرصة",
+    "careers.terms": "أوافق على معالجة بياناتي الشخصية",
+    "careers.thankYou": "شكراً لاهتمامك بالانضمام إلى فيكزت إنتربرايز. سنراجع طلبك ونتواصل معك قريباً.",
+    "careers.title": "انضم إلى فريقنا",
+    "careers.tooMany": "تم إرسال عدد كبير جدًا من الطلبات. يرجى المحاولة لاحقًا",
+    "careers.type": "النوع",
+    "careers.uploadFailed": "Upload فشل",
+    "careers.uploadFile": "تحميل ملف",
+    "careers.uploadResume": "رفع السيرة الذاتية",
+    "careers.urgentPosition": "وظيفة عاجلة",
+    "careers.viewDetails": "عرض التفاصيل",
+    "careers.yearsOfExperience": "سنوات الخبرة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/cateringServices.translations.json">
+<![CDATA[
+{
+  "en": {
+    "cateringServices.allergies": "Food Allergies",
+    "cateringServices.beverage": "Beverage Service",
+    "cateringServices.breakfast": "Breakfast",
+    "cateringServices.buffet": "Buffet",
+    "cateringServices.catering": "Catering Services",
+    "cateringServices.coffee": "Coffee Service",
+    "cateringServices.conference": "Conference Catering",
+    "cateringServices.delivery": "Food Delivery",
+    "cateringServices.dietary": "Dietary Requirements",
+    "cateringServices.dinner": "Dinner",
+    "cateringServices.event": "Event Catering",
+    "cateringServices.food": "Food Service",
+    "cateringServices.halal": "Halal",
+    "cateringServices.kosher": "Kosher",
+    "cateringServices.lunch": "Lunch",
+    "cateringServices.meeting": "Meeting Catering",
+    "cateringServices.menu": "Menu",
+    "cateringServices.ordering": "Food Ordering",
+    "cateringServices.plated": "Plated Service",
+    "cateringServices.snacks": "Snacks",
+    "cateringServices.vegan": "Vegan",
+    "cateringServices.vegetarian": "Vegetarian"
+  },
+  "ar": {
+    "cateringServices.allergies": "حساسية الطعام",
+    "cateringServices.beverage": "خدمة المشروبات",
+    "cateringServices.breakfast": "وجبة الإفطار",
+    "cateringServices.buffet": "بوفيه مفتوح",
+    "cateringServices.catering": "خدمات التموين",
+    "cateringServices.coffee": "خدمة القهوة",
+    "cateringServices.conference": "تموين المؤتمرات",
+    "cateringServices.delivery": "توصيل الطعام",
+    "cateringServices.dietary": "متطلبات غذائية",
+    "cateringServices.dinner": "وجبة العشاء",
+    "cateringServices.event": "تموين الفعاليات",
+    "cateringServices.food": "خدمة الطعام",
+    "cateringServices.halal": "حلال",
+    "cateringServices.kosher": "كوشر",
+    "cateringServices.lunch": "وجبة الغداء",
+    "cateringServices.meeting": "تموين الاجتماعات",
+    "cateringServices.menu": "قائمة الطعام",
+    "cateringServices.ordering": "طلب الطعام",
+    "cateringServices.plated": "خدمة الأطباق",
+    "cateringServices.snacks": "الوجبات الخفيفة",
+    "cateringServices.vegan": "نباتي صارم",
+    "cateringServices.vegetarian": "نباتي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/certificationsLicenses.translations.json">
+<![CDATA[
+{
+  "en": {
+    "certificationsLicenses.accreditation": "Accreditation",
+    "certificationsLicenses.active": "Active",
+    "certificationsLicenses.badge": "Digital Badge",
+    "certificationsLicenses.certification": "Certification",
+    "certificationsLicenses.credential": "Credential",
+    "certificationsLicenses.exam": "Certification Exam",
+    "certificationsLicenses.expiration": "Expiration",
+    "certificationsLicenses.expired": "Expired",
+    "certificationsLicenses.industry": "Industry Certification",
+    "certificationsLicenses.license": "License",
+    "certificationsLicenses.maintain": "Maintain Certification",
+    "certificationsLicenses.passing": "Passing Score",
+    "certificationsLicenses.pending": "Pending",
+    "certificationsLicenses.prerequisite": "Prerequisite",
+    "certificationsLicenses.professional": "Professional Certification",
+    "certificationsLicenses.renewal": "Renewal",
+    "certificationsLicenses.requirement": "Requirement",
+    "certificationsLicenses.status": "Certification Status",
+    "certificationsLicenses.technical": "Technical Certification",
+    "certificationsLicenses.validity": "Validity Period",
+    "certificationsLicenses.vendor": "Vendor Certification",
+    "certificationsLicenses.verify": "Verify Certification"
+  },
+  "ar": {
+    "certificationsLicenses.accreditation": "الاعتماد المؤسسي",
+    "certificationsLicenses.active": "نشط",
+    "certificationsLicenses.badge": "الشارة الرقمية",
+    "certificationsLicenses.certification": "الشهادة المهنية",
+    "certificationsLicenses.credential": "الاعتماد",
+    "certificationsLicenses.exam": "امتحان الشهادة",
+    "certificationsLicenses.expiration": "انتهاء الصلاحية",
+    "certificationsLicenses.expired": "منتهي الصلاحية",
+    "certificationsLicenses.industry": "الشهادة الصناعية",
+    "certificationsLicenses.license": "الترخيص",
+    "certificationsLicenses.maintain": "الحفاظ على الشهادة",
+    "certificationsLicenses.passing": "درجة النجاح",
+    "certificationsLicenses.pending": "قيد الانتظار",
+    "certificationsLicenses.prerequisite": "المتطلب الأساسي",
+    "certificationsLicenses.professional": "الشهادة المهنية",
+    "certificationsLicenses.renewal": "التجديد",
+    "certificationsLicenses.requirement": "المتطلبات",
+    "certificationsLicenses.status": "حالة الشهادة",
+    "certificationsLicenses.technical": "الشهادة التقنية",
+    "certificationsLicenses.validity": "فترة الصلاحية",
+    "certificationsLicenses.vendor": "شهادة المورد",
+    "certificationsLicenses.verify": "التحقق من الشهادة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/changeAdoption.translations.json">
+<![CDATA[
+{
+  "en": {
+    "changeAdoption.acceptance": "Change Acceptance",
+    "changeAdoption.activation": "Change Activation",
+    "changeAdoption.adoption": "Change Adoption",
+    "changeAdoption.assistance": "Adoption Assistance",
+    "changeAdoption.coaching": "Adoption Coaching",
+    "changeAdoption.cutover": "Change Cutover",
+    "changeAdoption.deployment": "Change Deployment",
+    "changeAdoption.enablement": "Change Enablement",
+    "changeAdoption.goLive": "Go-Live",
+    "changeAdoption.implementation": "Adoption Implementation",
+    "changeAdoption.launch": "Change Launch",
+    "changeAdoption.measurement": "Adoption Measurement",
+    "changeAdoption.mentoring": "Adoption Mentoring",
+    "changeAdoption.migration": "Change Migration",
+    "changeAdoption.monitoring": "Adoption Monitoring",
+    "changeAdoption.reinforcement": "Adoption Reinforcement",
+    "changeAdoption.reporting": "Adoption Reporting",
+    "changeAdoption.rollout": "Change Rollout",
+    "changeAdoption.support": "Adoption Support",
+    "changeAdoption.sustainment": "Adoption Sustainment",
+    "changeAdoption.tracking": "Adoption Tracking",
+    "changeAdoption.transition": "Change Transition"
+  },
+  "ar": {
+    "changeAdoption.acceptance": "قبول التغيير",
+    "changeAdoption.activation": "تفعيل التغيير",
+    "changeAdoption.adoption": "تبني التغيير",
+    "changeAdoption.assistance": "المساعدة في التبني",
+    "changeAdoption.coaching": "تدريب التبني",
+    "changeAdoption.cutover": "التحول للتغيير",
+    "changeAdoption.deployment": "نشر التغيير",
+    "changeAdoption.enablement": "تمكين التغيير",
+    "changeAdoption.goLive": "البدء المباشر",
+    "changeAdoption.implementation": "تنفيذ التبني",
+    "changeAdoption.launch": "إطلاق التغيير",
+    "changeAdoption.measurement": "قياس التبني",
+    "changeAdoption.mentoring": "إرشاد التبني",
+    "changeAdoption.migration": "الهجرة للتغيير",
+    "changeAdoption.monitoring": "مراقبة التبني",
+    "changeAdoption.reinforcement": "تعزيز التبني",
+    "changeAdoption.reporting": "إعداد تقارير التبني",
+    "changeAdoption.rollout": "طرح التغيير",
+    "changeAdoption.support": "دعم التبني",
+    "changeAdoption.sustainment": "استدامة التبني",
+    "changeAdoption.tracking": "تتبع التبني",
+    "changeAdoption.transition": "الانتقال للتغيير"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/changeControlAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "changeControlAdv.approval": "Change Approval",
+    "changeControlAdv.assessment": "Change Assessment",
+    "changeControlAdv.board": "Change Advisory Board",
+    "changeControlAdv.closure": "Change Closure",
+    "changeControlAdv.communication": "Change Communication",
+    "changeControlAdv.control": "Change Control",
+    "changeControlAdv.documentation": "Change Documentation",
+    "changeControlAdv.emergency": "Emergency Change",
+    "changeControlAdv.impact": "Impact Analysis",
+    "changeControlAdv.implementation": "Change Implementation",
+    "changeControlAdv.management": "Change Management",
+    "changeControlAdv.normal": "Normal Change",
+    "changeControlAdv.planning": "Change Planning",
+    "changeControlAdv.request": "Change Request",
+    "changeControlAdv.review": "Change Review",
+    "changeControlAdv.rollback": "Rollback Plan",
+    "changeControlAdv.scheduling": "Change Scheduling",
+    "changeControlAdv.standard": "Standard Change",
+    "changeControlAdv.testing": "Change Testing",
+    "changeControlAdv.tracking": "Change Tracking",
+    "changeControlAdv.training": "Change Training",
+    "changeControlAdv.validation": "Change Validation"
+  },
+  "ar": {
+    "changeControlAdv.approval": "الموافقة على التغيير",
+    "changeControlAdv.assessment": "تقييم التغيير",
+    "changeControlAdv.board": "مجلس الاستشاري للتغيير",
+    "changeControlAdv.closure": "إغلاق التغيير",
+    "changeControlAdv.communication": "اتصالات التغيير",
+    "changeControlAdv.control": "التحكم في التغيير",
+    "changeControlAdv.documentation": "توثيق التغيير",
+    "changeControlAdv.emergency": "التغيير الطارئ",
+    "changeControlAdv.impact": "تحليل التأثير",
+    "changeControlAdv.implementation": "تنفيذ التغيير",
+    "changeControlAdv.management": "إدارة التغيير",
+    "changeControlAdv.normal": "التغيير العادي",
+    "changeControlAdv.planning": "تخطيط التغيير",
+    "changeControlAdv.request": "طلب التغيير",
+    "changeControlAdv.review": "مراجعة التغيير",
+    "changeControlAdv.rollback": "خطة التراجع",
+    "changeControlAdv.scheduling": "جدولة التغيير",
+    "changeControlAdv.standard": "التغيير القياسي",
+    "changeControlAdv.testing": "اختبار التغيير",
+    "changeControlAdv.tracking": "تتبع التغيير",
+    "changeControlAdv.training": "تدريب التغيير",
+    "changeControlAdv.validation": "التحقق من التغيير"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/changeManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "changeManagement.advisory": "Change Advisory Board",
+    "changeManagement.approval": "Approval",
+    "changeManagement.assessment": "Risk Assessment",
+    "changeManagement.backout": "Backout Plan",
+    "changeManagement.cancelled": "Cancelled",
+    "changeManagement.change": "Change",
+    "changeManagement.control": "Change Control",
+    "changeManagement.emergency": "Emergency Change",
+    "changeManagement.failed": "Failed",
+    "changeManagement.impact": "Impact",
+    "changeManagement.implementation": "Implementation",
+    "changeManagement.management": "Change Management",
+    "changeManagement.normal": "Normal Change",
+    "changeManagement.request": "Change Request",
+    "changeManagement.review": "Post-Implementation Review",
+    "changeManagement.risk": "Risk",
+    "changeManagement.rollback": "Rollback",
+    "changeManagement.scheduled": "Scheduled",
+    "changeManagement.standard": "Standard Change",
+    "changeManagement.successful": "Successful",
+    "changeManagement.testing": "Testing",
+    "changeManagement.type": "Change Type",
+    "changeManagement.validation": "Validation",
+    "changeManagement.window": "Change Window"
+  },
+  "ar": {
+    "changeManagement.advisory": "مجلس استشاري للتغيير",
+    "changeManagement.approval": "الموافقة",
+    "changeManagement.assessment": "تقييم المخاطر",
+    "changeManagement.backout": "خطة التراجع",
+    "changeManagement.cancelled": "ملغى",
+    "changeManagement.change": "التغيير",
+    "changeManagement.control": "التحكم في التغيير",
+    "changeManagement.emergency": "تغيير طارئ",
+    "changeManagement.failed": "فشل",
+    "changeManagement.impact": "التأثير",
+    "changeManagement.implementation": "التنفيذ",
+    "changeManagement.management": "إدارة التغيير",
+    "changeManagement.normal": "تغيير عادي",
+    "changeManagement.request": "طلب التغيير",
+    "changeManagement.review": "المراجعة بعد التنفيذ",
+    "changeManagement.risk": "المخاطرة",
+    "changeManagement.rollback": "التراجع",
+    "changeManagement.scheduled": "مجدول",
+    "changeManagement.standard": "تغيير قياسي",
+    "changeManagement.successful": "ناجح",
+    "changeManagement.testing": "الاختبار",
+    "changeManagement.type": "نوع التغيير",
+    "changeManagement.validation": "التحقق",
+    "changeManagement.window": "نافذة التغيير"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/changeManagementAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "changeManagementAdv.approval": "Change Approval",
+    "changeManagementAdv.cab": "Change Advisory Board",
+    "changeManagementAdv.calendar": "Change Calendar",
+    "changeManagementAdv.change": "Change Management",
+    "changeManagementAdv.emergency": "Emergency Change",
+    "changeManagementAdv.failure": "Change Failure",
+    "changeManagementAdv.impact": "Impact Analysis",
+    "changeManagementAdv.implementation": "Implementation",
+    "changeManagementAdv.normal": "Normal Change",
+    "changeManagementAdv.proposal": "Change Proposal",
+    "changeManagementAdv.request": "Change Request",
+    "changeManagementAdv.review": "Post-Implementation Review",
+    "changeManagementAdv.risk": "Risk Assessment",
+    "changeManagementAdv.rollback": "Rollback Plan",
+    "changeManagementAdv.schedule": "Change Schedule",
+    "changeManagementAdv.standard": "Standard Change",
+    "changeManagementAdv.success": "Change Success",
+    "changeManagementAdv.testing": "Change Testing",
+    "changeManagementAdv.type": "Change Type",
+    "changeManagementAdv.validation": "Validation",
+    "changeManagementAdv.window": "Change Window"
+  },
+  "ar": {
+    "changeManagementAdv.approval": "الموافقة على التغيير",
+    "changeManagementAdv.cab": "مجلس استشارات التغيير",
+    "changeManagementAdv.calendar": "تقويم التغيير",
+    "changeManagementAdv.change": "إدارة التغيير",
+    "changeManagementAdv.emergency": "التغيير الطارئ",
+    "changeManagementAdv.failure": "فشل التغيير",
+    "changeManagementAdv.impact": "تحليل الأثر",
+    "changeManagementAdv.implementation": "التنفيذ",
+    "changeManagementAdv.normal": "التغيير العادي",
+    "changeManagementAdv.proposal": "مقترح التغيير",
+    "changeManagementAdv.request": "طلب التغيير",
+    "changeManagementAdv.review": "مراجعة ما بعد التنفيذ",
+    "changeManagementAdv.risk": "تقييم المخاطر",
+    "changeManagementAdv.rollback": "خطة التراجع",
+    "changeManagementAdv.schedule": "جدول التغيير",
+    "changeManagementAdv.standard": "التغيير القياسي",
+    "changeManagementAdv.success": "نجاح التغيير",
+    "changeManagementAdv.testing": "اختبار التغيير",
+    "changeManagementAdv.type": "نوع التغيير",
+    "changeManagementAdv.validation": "التحقق",
+    "changeManagementAdv.window": "فترة التغيير"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/changeManagementExt.translations.json">
+<![CDATA[
+{
+  "en": {
+    "changeManagementExt.adoption": "Change Adoption",
+    "changeManagementExt.behavior": "Behavioral Change",
+    "changeManagementExt.champion": "Change Champion",
+    "changeManagementExt.change": "Change Management",
+    "changeManagementExt.coaching": "Change Coaching",
+    "changeManagementExt.communication": "Change Communication",
+    "changeManagementExt.culture": "Cultural Change",
+    "changeManagementExt.impact": "Impact Assessment",
+    "changeManagementExt.implementation": "Change Implementation",
+    "changeManagementExt.initiative": "Change Initiative",
+    "changeManagementExt.metrics": "Change Metrics",
+    "changeManagementExt.planning": "Change Planning",
+    "changeManagementExt.readiness": "Organizational Readiness",
+    "changeManagementExt.resistance": "Resistance Management",
+    "changeManagementExt.roadmap": "Change Roadmap",
+    "changeManagementExt.sponsor": "Executive Sponsor",
+    "changeManagementExt.stakeholder": "Stakeholder Engagement",
+    "changeManagementExt.strategy": "Change Strategy",
+    "changeManagementExt.sustainability": "Change Sustainability",
+    "changeManagementExt.training": "Change Training",
+    "changeManagementExt.transformation": "Organizational Transformation",
+    "changeManagementExt.transition": "Transition Management"
+  },
+  "ar": {
+    "changeManagementExt.adoption": "اعتماد التغيير",
+    "changeManagementExt.behavior": "التغيير السلوكي",
+    "changeManagementExt.champion": "بطل التغيير",
+    "changeManagementExt.change": "إدارة التغيير",
+    "changeManagementExt.coaching": "التدريب على التغيير",
+    "changeManagementExt.communication": "التواصل بشأن التغيير",
+    "changeManagementExt.culture": "التغيير الثقافي",
+    "changeManagementExt.impact": "تقييم التأثير",
+    "changeManagementExt.implementation": "تنفيذ التغيير",
+    "changeManagementExt.initiative": "مبادرة التغيير",
+    "changeManagementExt.metrics": "مقاييس التغيير",
+    "changeManagementExt.planning": "تخطيط التغيير",
+    "changeManagementExt.readiness": "الجاهزية المؤسسية",
+    "changeManagementExt.resistance": "إدارة المقاومة",
+    "changeManagementExt.roadmap": "خريطة طريق التغيير",
+    "changeManagementExt.sponsor": "الراعي التنفيذي",
+    "changeManagementExt.stakeholder": "مشاركة أصحاب المصلحة",
+    "changeManagementExt.strategy": "استراتيجية التغيير",
+    "changeManagementExt.sustainability": "استدامة التغيير",
+    "changeManagementExt.training": "تدريب التغيير",
+    "changeManagementExt.transformation": "التحول المؤسسي",
+    "changeManagementExt.transition": "إدارة الانتقال"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/changeMgmtAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "changeMgmtAdv.adoption": "Change Adoption",
+    "changeMgmtAdv.agent": "Change Agent",
+    "changeMgmtAdv.assessment": "Change Assessment",
+    "changeMgmtAdv.change": "Change Management",
+    "changeMgmtAdv.communication": "Change Communication",
+    "changeMgmtAdv.engagement": "Change Engagement",
+    "changeMgmtAdv.impact": "Change Impact",
+    "changeMgmtAdv.implementation": "Change Implementation",
+    "changeMgmtAdv.leadership": "Change Leadership",
+    "changeMgmtAdv.measurement": "Change Measurement",
+    "changeMgmtAdv.metrics": "Change Metrics",
+    "changeMgmtAdv.planning": "Change Planning",
+    "changeMgmtAdv.readiness": "Change Readiness",
+    "changeMgmtAdv.reinforcement": "Change Reinforcement",
+    "changeMgmtAdv.resistance": "Change Resistance",
+    "changeMgmtAdv.roadmap": "Change Roadmap",
+    "changeMgmtAdv.sponsorship": "Change Sponsorship",
+    "changeMgmtAdv.strategy": "Change Strategy",
+    "changeMgmtAdv.support": "Change Support",
+    "changeMgmtAdv.sustainment": "Change Sustainment",
+    "changeMgmtAdv.training": "Change Training",
+    "changeMgmtAdv.vision": "Change Vision"
+  },
+  "ar": {
+    "changeMgmtAdv.adoption": "تبني التغيير",
+    "changeMgmtAdv.agent": "وكيل التغيير",
+    "changeMgmtAdv.assessment": "تقييم التغيير",
+    "changeMgmtAdv.change": "إدارة التغيير",
+    "changeMgmtAdv.communication": "التواصل بشأن التغيير",
+    "changeMgmtAdv.engagement": "مشاركة التغيير",
+    "changeMgmtAdv.impact": "تأثير التغيير",
+    "changeMgmtAdv.implementation": "تنفيذ التغيير",
+    "changeMgmtAdv.leadership": "قيادة التغيير",
+    "changeMgmtAdv.measurement": "قياس التغيير",
+    "changeMgmtAdv.metrics": "مقاييس التغيير",
+    "changeMgmtAdv.planning": "تخطيط التغيير",
+    "changeMgmtAdv.readiness": "الجاهزية للتغيير",
+    "changeMgmtAdv.reinforcement": "تعزيز التغيير",
+    "changeMgmtAdv.resistance": "مقاومة التغيير",
+    "changeMgmtAdv.roadmap": "خارطة طريق التغيير",
+    "changeMgmtAdv.sponsorship": "رعاية التغيير",
+    "changeMgmtAdv.strategy": "استراتيجية التغيير",
+    "changeMgmtAdv.support": "دعم التغيير",
+    "changeMgmtAdv.sustainment": "استدامة التغيير",
+    "changeMgmtAdv.training": "تدريب التغيير",
+    "changeMgmtAdv.vision": "رؤية التغيير"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/changeReadiness.translations.json">
+<![CDATA[
+{
+  "en": {
+    "changeReadiness.analysis": "Readiness Analysis",
+    "changeReadiness.assessment": "Readiness Assessment",
+    "changeReadiness.barriers": "Change Barriers",
+    "changeReadiness.capability": "Change Capability",
+    "changeReadiness.capacity": "Change Capacity",
+    "changeReadiness.commitment": "Change Commitment",
+    "changeReadiness.criteria": "Readiness Criteria",
+    "changeReadiness.enablers": "Change Enablers",
+    "changeReadiness.evaluation": "Readiness Evaluation",
+    "changeReadiness.factors": "Readiness Factors",
+    "changeReadiness.improvement": "Readiness Improvement",
+    "changeReadiness.indicators": "Readiness Indicators",
+    "changeReadiness.measurement": "Readiness Measurement",
+    "changeReadiness.monitoring": "Readiness Monitoring",
+    "changeReadiness.planning": "Readiness Planning",
+    "changeReadiness.preparation": "Change Preparation",
+    "changeReadiness.readiness": "Change Readiness",
+    "changeReadiness.reporting": "Readiness Reporting",
+    "changeReadiness.resistance": "Change Resistance",
+    "changeReadiness.support": "Change Support",
+    "changeReadiness.survey": "Readiness Survey",
+    "changeReadiness.willingness": "Change Willingness"
+  },
+  "ar": {
+    "changeReadiness.analysis": "تحليل الاستعداد",
+    "changeReadiness.assessment": "تقييم الاستعداد",
+    "changeReadiness.barriers": "حواجز التغيير",
+    "changeReadiness.capability": "قدرة التغيير",
+    "changeReadiness.capacity": "قدرة التغيير",
+    "changeReadiness.commitment": "الالتزام بالتغيير",
+    "changeReadiness.criteria": "معايير الاستعداد",
+    "changeReadiness.enablers": "محفزات التغيير",
+    "changeReadiness.evaluation": "تقييم الاستعداد",
+    "changeReadiness.factors": "عوامل الاستعداد",
+    "changeReadiness.improvement": "تحسين الاستعداد",
+    "changeReadiness.indicators": "مؤشرات الاستعداد",
+    "changeReadiness.measurement": "قياس الاستعداد",
+    "changeReadiness.monitoring": "مراقبة الاستعداد",
+    "changeReadiness.planning": "تخطيط الاستعداد",
+    "changeReadiness.preparation": "التحضير للتغيير",
+    "changeReadiness.readiness": "الاستعداد للتغيير",
+    "changeReadiness.reporting": "إعداد تقارير الاستعداد",
+    "changeReadiness.resistance": "مقاومة التغيير",
+    "changeReadiness.support": "دعم التغيير",
+    "changeReadiness.survey": "مسح الاستعداد",
+    "changeReadiness.willingness": "الرغبة في التغيير"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/chartTypes.translations.json">
+<![CDATA[
+{
+  "en": {
+    "chartTypes.area": "Area Chart",
+    "chartTypes.bar": "Bar Chart",
+    "chartTypes.box": "Box Plot",
+    "chartTypes.bubble": "Bubble Chart",
+    "chartTypes.candlestick": "Candlestick Chart",
+    "chartTypes.chart": "Chart",
+    "chartTypes.chord": "Chord Diagram",
+    "chartTypes.column": "Column Chart",
+    "chartTypes.combo": "Combo Chart",
+    "chartTypes.donut": "Donut Chart",
+    "chartTypes.funnel": "Funnel Chart",
+    "chartTypes.gantt": "Gantt Chart",
+    "chartTypes.gauge": "Gauge Chart",
+    "chartTypes.heatmap": "Heat Map",
+    "chartTypes.line": "Line Chart",
+    "chartTypes.network": "Network Graph",
+    "chartTypes.pie": "Pie Chart",
+    "chartTypes.polar": "Polar Chart",
+    "chartTypes.radar": "Radar Chart",
+    "chartTypes.sankey": "Sankey Diagram",
+    "chartTypes.scatter": "Scatter Chart",
+    "chartTypes.sparkline": "Sparkline",
+    "chartTypes.sunburst": "Sunburst Chart",
+    "chartTypes.timeline": "Timeline Chart",
+    "chartTypes.treemap": "Tree Map",
+    "chartTypes.violin": "Violin Plot",
+    "chartTypes.waterfall": "Waterfall Chart"
+  },
+  "ar": {
+    "chartTypes.area": "مخطط المساحة",
+    "chartTypes.bar": "المخطط الشريطي",
+    "chartTypes.box": "مخطط الصندوق",
+    "chartTypes.bubble": "مخطط الفقاعات",
+    "chartTypes.candlestick": "مخطط الشموع",
+    "chartTypes.chart": "المخطط",
+    "chartTypes.chord": "مخطط الوتر",
+    "chartTypes.column": "مخطط الأعمدة",
+    "chartTypes.combo": "المخطط المركب",
+    "chartTypes.donut": "مخطط الدونات",
+    "chartTypes.funnel": "مخطط القمع",
+    "chartTypes.gantt": "مخطط جانت",
+    "chartTypes.gauge": "مخطط المقياس",
+    "chartTypes.heatmap": "خريطة الحرارة",
+    "chartTypes.line": "المخطط الخطي",
+    "chartTypes.network": "رسم الشبكة",
+    "chartTypes.pie": "المخطط الدائري",
+    "chartTypes.polar": "المخطط القطبي",
+    "chartTypes.radar": "المخطط الراداري",
+    "chartTypes.sankey": "مخطط سانكي",
+    "chartTypes.scatter": "مخطط التشتت",
+    "chartTypes.sparkline": "الخط البسيط",
+    "chartTypes.sunburst": "مخطط الانفجار الشمسي",
+    "chartTypes.timeline": "المخطط الزمني",
+    "chartTypes.treemap": "خريطة الشجرة",
+    "chartTypes.violin": "مخطط الكمان",
+    "chartTypes.waterfall": "مخطط الشلال"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/chartVisualization.translations.json">
+<![CDATA[
+{
+  "en": {
+    "chartVisualization.area": "Area Chart",
+    "chartVisualization.bar": "Bar Chart",
+    "chartVisualization.bubble": "Bubble Chart",
+    "chartVisualization.chart": "Chart",
+    "chartVisualization.color": "Color",
+    "chartVisualization.data": "Data",
+    "chartVisualization.donut": "Donut Chart",
+    "chartVisualization.funnel": "Funnel Chart",
+    "chartVisualization.gantt": "Gantt Chart",
+    "chartVisualization.gauge": "Gauge",
+    "chartVisualization.heatmap": "Heatmap",
+    "chartVisualization.label": "Label",
+    "chartVisualization.legend": "Legend",
+    "chartVisualization.line": "Line Chart",
+    "chartVisualization.pie": "Pie Chart",
+    "chartVisualization.polar": "Polar Chart",
+    "chartVisualization.radar": "Radar Chart",
+    "chartVisualization.scatter": "Scatter Plot",
+    "chartVisualization.series": "Series",
+    "chartVisualization.tooltip": "Tooltip",
+    "chartVisualization.treemap": "Treemap",
+    "chartVisualization.visualization": "Visualization",
+    "chartVisualization.waterfall": "Waterfall Chart",
+    "chartVisualization.xAxis": "X-Axis",
+    "chartVisualization.yAxis": "Y-Axis"
+  },
+  "ar": {
+    "chartVisualization.area": "رسم بياني مساحي",
+    "chartVisualization.bar": "رسم بياني شريطي",
+    "chartVisualization.bubble": "رسم فقاعي",
+    "chartVisualization.chart": "الرسم البياني",
+    "chartVisualization.color": "اللون",
+    "chartVisualization.data": "البيانات",
+    "chartVisualization.donut": "رسم دونات",
+    "chartVisualization.funnel": "رسم بياني قمعي",
+    "chartVisualization.gantt": "رسم جانت",
+    "chartVisualization.gauge": "مقياس",
+    "chartVisualization.heatmap": "خريطة حرارية",
+    "chartVisualization.label": "التسمية",
+    "chartVisualization.legend": "وسيلة الإيضاح",
+    "chartVisualization.line": "رسم بياني خطي",
+    "chartVisualization.pie": "رسم بياني دائري",
+    "chartVisualization.polar": "رسم بياني قطبي",
+    "chartVisualization.radar": "رسم بياني راداري",
+    "chartVisualization.scatter": "رسم بياني مبعثر",
+    "chartVisualization.series": "السلسلة",
+    "chartVisualization.tooltip": "تلميح الأداة",
+    "chartVisualization.treemap": "خريطة شجرية",
+    "chartVisualization.visualization": "التصور",
+    "chartVisualization.waterfall": "رسم الشلال",
+    "chartVisualization.xAxis": "المحور X",
+    "chartVisualization.yAxis": "المحور Y"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/chat.translations.json">
+<![CDATA[
+{
+  "en": {
+    "chat.error.general": "Sorry, I encountered an error. Please try again.",
+    "chat.error.noAnswer": "I didn't receive a response. Please try again.",
+    "chat.welcome": "Hello! I'm your Fixzit AI assistant. How can I help you today?"
+  },
+  "ar": {
+    "chat.error.general": "عذراً، حدث خطأ. يرجى المحاولة مرة أخرى.",
+    "chat.error.noAnswer": "لم أتلق رداً. يرجى المحاولة مرة أخرى.",
+    "chat.welcome": "مرحباً! أنا مساعد فيكزيت الذكي. كيف يمكنني مساعدتك اليوم؟"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/chatbotSupport.translations.json">
+<![CDATA[
+{
+  "en": {
+    "chatbotSupport.accuracy": "Bot Accuracy",
+    "chatbotSupport.ai": "AI Assistant",
+    "chatbotSupport.analytics": "Bot Analytics",
+    "chatbotSupport.automated": "Automated Support",
+    "chatbotSupport.bot": "Bot",
+    "chatbotSupport.chatbot": "Chatbot",
+    "chatbotSupport.confidence": "Confidence Score",
+    "chatbotSupport.conversation": "Conversation",
+    "chatbotSupport.dialogue": "Dialogue",
+    "chatbotSupport.entity": "Entity Extraction",
+    "chatbotSupport.escalation": "Human Escalation",
+    "chatbotSupport.fallback": "Fallback",
+    "chatbotSupport.handoff": "Agent Handoff",
+    "chatbotSupport.improvement": "Bot Improvement",
+    "chatbotSupport.intent": "Intent Recognition",
+    "chatbotSupport.learning": "Machine Learning",
+    "chatbotSupport.nlp": "Natural Language Processing",
+    "chatbotSupport.nlu": "Natural Language Understanding",
+    "chatbotSupport.personalization": "Personalization",
+    "chatbotSupport.response": "Bot Response",
+    "chatbotSupport.training": "Bot Training",
+    "chatbotSupport.virtual": "Virtual Assistant"
+  },
+  "ar": {
+    "chatbotSupport.accuracy": "دقة البوت",
+    "chatbotSupport.ai": "مساعد الذكاء الاصطناعي",
+    "chatbotSupport.analytics": "تحليلات البوت",
+    "chatbotSupport.automated": "الدعم الآلي",
+    "chatbotSupport.bot": "البوت",
+    "chatbotSupport.chatbot": "روبوت الدردشة",
+    "chatbotSupport.confidence": "نقاط الثقة",
+    "chatbotSupport.conversation": "المحادثة",
+    "chatbotSupport.dialogue": "الحوار",
+    "chatbotSupport.entity": "استخراج الكيان",
+    "chatbotSupport.escalation": "التصعيد البشري",
+    "chatbotSupport.fallback": "البديل",
+    "chatbotSupport.handoff": "تسليم الوكيل",
+    "chatbotSupport.improvement": "تحسين البوت",
+    "chatbotSupport.intent": "التعرف على النية",
+    "chatbotSupport.learning": "التعلم الآلي",
+    "chatbotSupport.nlp": "معالجة اللغة الطبيعية",
+    "chatbotSupport.nlu": "فهم اللغة الطبيعية",
+    "chatbotSupport.personalization": "التخصيص",
+    "chatbotSupport.response": "استجابة البوت",
+    "chatbotSupport.training": "تدريب البوت",
+    "chatbotSupport.virtual": "المساعد الافتراضي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/chemical.translations.json">
+<![CDATA[
+{
+  "en": {
+    "chemical.analysis": "Chemical Analysis",
+    "chemical.automation": "Process Automation",
+    "chemical.batch": "Batch Control",
+    "chemical.blending": "Blending",
+    "chemical.catalyst": "Catalysis",
+    "chemical.chromatography": "Chromatography",
+    "chemical.coating": "Coating",
+    "chemical.continuous": "Continuous Process",
+    "chemical.control": "Process Control",
+    "chemical.cooling": "Cooling Systems",
+    "chemical.crystallization": "Crystallization",
+    "chemical.description": "Manage chemical production and safety",
+    "chemical.disposal": "Waste Disposal",
+    "chemical.distillation": "Distillation",
+    "chemical.drying": "Drying Process",
+    "chemical.emission": "Emission Control",
+    "chemical.environmental": "Environmental Compliance",
+    "chemical.filtration": "Filtration",
+    "chemical.flow": "Flow Control",
+    "chemical.formulation": "Product Formulation",
+    "chemical.grinding": "Grinding",
+    "chemical.handling": "Material Handling",
+    "chemical.hazard": "Hazard Analysis",
+    "chemical.heat": "Heat Exchanger",
+    "chemical.instrumentation": "Instrumentation",
+    "chemical.material": "Material Safety",
+    "chemical.mixing": "Mixing Operations",
+    "chemical.pelletizing": "Pelletizing",
+    "chemical.pipeline": "Pipeline Systems",
+    "chemical.pressure": "Pressure Control",
+    "chemical.production": "Chemical Production",
+    "chemical.pump": "Pump Operations",
+    "chemical.quality": "Quality Control",
+    "chemical.reaction": "Chemical Reactions",
+    "chemical.reactor": "Reactor Operations",
+    "chemical.safety": "Chemical Safety",
+    "chemical.separation": "Separation Process",
+    "chemical.spectroscopy": "Spectroscopy",
+    "chemical.storage": "Chemical Storage",
+    "chemical.synthesis": "Chemical Synthesis",
+    "chemical.tank": "Storage Tanks",
+    "chemical.temperature": "Temperature Control",
+    "chemical.testing": "Chemical Testing",
+    "chemical.title": "Chemical Manufacturing",
+    "chemical.titration": "Titration",
+    "chemical.treatment": "Waste Treatment",
+    "chemical.valve": "Valve Control",
+    "chemical.vessel": "Pressure Vessel"
+  },
+  "ar": {
+    "chemical.analysis": "التحليل الكيميائي",
+    "chemical.automation": "أتمتة العمليات",
+    "chemical.batch": "التحكم في الدفعة",
+    "chemical.blending": "المزج",
+    "chemical.catalyst": "التحفيز",
+    "chemical.chromatography": "الكروماتوغرافيا",
+    "chemical.coating": "الطلاء",
+    "chemical.continuous": "العملية المستمرة",
+    "chemical.control": "التحكم في العمليات",
+    "chemical.cooling": "أنظمة التبريد",
+    "chemical.crystallization": "التبلور",
+    "chemical.description": "إدارة الإنتاج والسلامة الكيميائية",
+    "chemical.disposal": "التخلص من النفايات",
+    "chemical.distillation": "التقطير",
+    "chemical.drying": "عملية التجفيف",
+    "chemical.emission": "التحكم في الانبعاثات",
+    "chemical.environmental": "الامتثال البيئي",
+    "chemical.filtration": "الترشيح",
+    "chemical.flow": "التحكم في التدفق",
+    "chemical.formulation": "تركيب المنتج",
+    "chemical.grinding": "الطحن",
+    "chemical.handling": "معالجة المواد",
+    "chemical.hazard": "تحليل المخاطر",
+    "chemical.heat": "مبادل حراري",
+    "chemical.instrumentation": "الأجهزة",
+    "chemical.material": "سلامة المواد",
+    "chemical.mixing": "عمليات الخلط",
+    "chemical.pelletizing": "التحبيب",
+    "chemical.pipeline": "أنظمة الأنابيب",
+    "chemical.pressure": "التحكم في الضغط",
+    "chemical.production": "الإنتاج الكيميائي",
+    "chemical.pump": "عمليات الضخ",
+    "chemical.quality": "مراقبة الجودة",
+    "chemical.reaction": "التفاعلات الكيميائية",
+    "chemical.reactor": "عمليات المفاعل",
+    "chemical.safety": "السلامة الكيميائية",
+    "chemical.separation": "عملية الفصل",
+    "chemical.spectroscopy": "التحليل الطيفي",
+    "chemical.storage": "تخزين المواد الكيميائية",
+    "chemical.synthesis": "التركيب الكيميائي",
+    "chemical.tank": "خزانات التخزين",
+    "chemical.temperature": "التحكم في درجة الحرارة",
+    "chemical.testing": "الاختبار الكيميائي",
+    "chemical.title": "التصنيع الكيميائي",
+    "chemical.titration": "المعايرة",
+    "chemical.treatment": "معالجة النفايات",
+    "chemical.valve": "التحكم في الصمامات",
+    "chemical.vessel": "وعاء الضغط"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/claimsManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "claimsManagement.caseManagement": "Case Management",
+    "claimsManagement.claimAssignment": "Claim Assignment",
+    "claimsManagement.claimInvestigation": "Claim Investigation",
+    "claimsManagement.claimRegistration": "Claim Registration",
+    "claimsManagement.claimsAnalytics": "Claims Analytics",
+    "claimsManagement.claimsClosure": "Claims Closure",
+    "claimsManagement.claimsCycleTime": "Claims Cycle Time",
+    "claimsManagement.damageAssessment": "Damage Assessment",
+    "claimsManagement.description": "End-to-end insurance claims processing",
+    "claimsManagement.documentScanning": "Document Scanning",
+    "claimsManagement.firstNoticeOfLoss": "First Notice of Loss (FNOL)",
+    "claimsManagement.imageRecognition": "Image Recognition",
+    "claimsManagement.litigationManagement": "Litigation Management",
+    "claimsManagement.lossRatios": "Loss Ratios",
+    "claimsManagement.lossReserving": "Loss Reserving",
+    "claimsManagement.medicalManagement": "Medical Management",
+    "claimsManagement.paymentAuthorization": "Payment Authorization",
+    "claimsManagement.recoveryManagement": "Recovery Management",
+    "claimsManagement.reserveAdjustment": "Reserve Adjustment",
+    "claimsManagement.salvageHandling": "Salvage Handling",
+    "claimsManagement.settlementNegotiation": "Settlement Negotiation",
+    "claimsManagement.taskManagement": "Task Management",
+    "claimsManagement.title": "Claims Management",
+    "claimsManagement.workflowAutomation": "Workflow Automation"
+  },
+  "ar": {
+    "claimsManagement.caseManagement": "إدارة الحالة",
+    "claimsManagement.claimAssignment": "تعيين المطالبة",
+    "claimsManagement.claimInvestigation": "تحقيق المطالبة",
+    "claimsManagement.claimRegistration": "تسجيل المطالبة",
+    "claimsManagement.claimsAnalytics": "تحليلات المطالبات",
+    "claimsManagement.claimsClosure": "إغلاق المطالبات",
+    "claimsManagement.claimsCycleTime": "وقت دورة المطالبات",
+    "claimsManagement.damageAssessment": "تقييم الأضرار",
+    "claimsManagement.description": "معالجة مطالبات التأمين من البداية إلى النهاية",
+    "claimsManagement.documentScanning": "مسح المستندات",
+    "claimsManagement.firstNoticeOfLoss": "الإخطار الأول بالخسارة",
+    "claimsManagement.imageRecognition": "التعرف على الصور",
+    "claimsManagement.litigationManagement": "إدارة التقاضي",
+    "claimsManagement.lossRatios": "نسب الخسائر",
+    "claimsManagement.lossReserving": "احتياطي الخسائر",
+    "claimsManagement.medicalManagement": "الإدارة الطبية",
+    "claimsManagement.paymentAuthorization": "تفويض الدفع",
+    "claimsManagement.recoveryManagement": "إدارة الاسترداد",
+    "claimsManagement.reserveAdjustment": "تعديل الاحتياطي",
+    "claimsManagement.salvageHandling": "معالجة الإنقاذ",
+    "claimsManagement.settlementNegotiation": "التفاوض على التسوية",
+    "claimsManagement.taskManagement": "إدارة المهام",
+    "claimsManagement.title": "إدارة المطالبات",
+    "claimsManagement.workflowAutomation": "أتمتة سير العمل"
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

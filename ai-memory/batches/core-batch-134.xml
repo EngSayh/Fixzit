@@ -1,0 +1,2805 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/archived/reports/file-organization-analysis.md">
+<![CDATA[
+# File Organization Analysis - Corrected Assessment
+
+## ✅ Current Organization is CORRECT
+
+The existing file structure follows **Next.js 15 App Router conventions** and **Governance V5 module boundaries**. The automated move plan was incorrectly generated.
+
+### Why the Move Plan Was Wrong
+
+**Issue 1: Misunderstood Next.js Conventions**
+
+- ❌ Tried to move `app/*/layout.tsx` to `components/`
+- ✅ These MUST stay in app directories (Next.js routing requirement)
+
+**Issue 2: Ignored Module Boundaries**
+
+- ❌ Tried to consolidate `app/fm/*`, `app/aqar/*`, `app/souq/*` into single directories
+- ✅ These are separate modules with distinct purposes:
+  - `app/fm/*` = Facilities Management module
+  - `app/aqar/*` = Real Estate (Aqar) marketplace
+  - `app/souq/*` = General marketplace (Souq)
+  - `app/admin/*` = Administration pages
+
+**Issue 3: Breaking API Routes**
+
+- ❌ Tried to move `app/api/**/route.ts` files
+- ✅ API routes MUST stay under `app/api/*` (Next.js convention)
+
+### ✅ What We Actually Fixed
+
+**Category D Cleanup (Completed):**
+
+1. ✅ Removed `components/SupportPopup.OLD.tsx`
+2. ✅ Removed `components/ErrorBoundary.OLD.tsx`
+3. ✅ Moved `smart-merge-conflicts.ts` → `scripts/`
+4. ✅ Verified no other misplaced files
+
+**Memory Safety:**
+
+- Before: 6.4GB
+- During: 6.8GB
+- Status: Safe ✅
+
+### 📋 Correct File Organization (Already In Place)
+
+```
+app/
+├── (dashboard)/          # Dashboard route group
+├── (root)/               # Root route group
+├── api/                  # API routes (DO NOT MOVE)
+├── fm/                   # Facilities Management module
+│   ├── dashboard/
+│   ├── work-orders/
+│   ├── properties/
+│   ├── finance/
+│   └── ...
+├── aqar/                 # Real Estate module
+├── souq/                 # Marketplace module
+├── admin/                # Admin pages
+├── marketplace/          # Shared marketplace
+└── ...
+
+components/               # Shared React components
+├── ui/                   # UI primitives
+├── forms/                # Form components
+├── admin/                # Admin-specific components
+├── fm/                   # FM-specific components
+└── ...
+
+lib/                      # Shared utilities
+scripts/                  # Build/dev scripts
+tests/                    # Test files
+```
+
+### 🎯 Conclusion
+
+**The file organization is already correct.** The only changes needed were:
+
+- Removing 2 backup files
+- Moving 1 utility script to scripts/
+
+No mass reorganization is required or recommended.
+
+]]>
+</file>
+
+<file path="docs/archived/reports/fixes_5d.json">
+<![CDATA[
+[
+  {
+    "hash": "94a1ca5a360b5ad75890f89d6c7d5f8c6ab05ae1",
+    "date": "2025-11-08 21:24:31 +0300",
+    "subject": "fix: Address issues #157-162 - Centralization, Security & Code Quality (#270)",
+    "files": [
+      ".github/workflows/codeql.yml",
+      ".github/workflows/security-audit.yml",
+      "AGENT_SYSTEM_SUMMARY.md",
+      "I18N_STABILIZATION_SUMMARY.md",
+      "PR_270_MERGE_READINESS.md",
+      "SECURITY.md",
+      "TEST_COVERAGE_SUMMARY.md",
+      "components/ClientLayout.tsx",
+      "components/Sidebar.tsx",
+      "config/currencies.ts",
+      "config/navigation.ts",
+      "i18n/useI18n.test.ts",
+      "tests/e2e/auth-flow.spec.ts",
+      "tests/e2e/marketplace-flow.spec.ts",
+      "tests/e2e/referrals-flow.spec.ts",
+      "tests/e2e/work-orders-flow.spec.ts",
+      "tests/unit/components/ClientLayout.test.tsx"
+    ]
+  },
+  {
+    "hash": "817f0a516b0e155e9e76e84ed52bd6165f1efc4a",
+    "date": "2025-11-08 16:37:18 +0000",
+    "subject": "docs: add comprehensive system verification report for 2025-11-08",
+    "files": [
+      "DAILY_PROGRESS_REPORTS/2025-11-08_comprehensive_system_verification.md"
+    ]
+  },
+  {
+    "hash": "fa7684e5c60191cb880efbe325af553090c2094f",
+    "date": "2025-11-08 15:46:06 +0000",
+    "subject": "docs: add comprehensive system audit report for 2025-11-08",
+    "files": ["DAILY_PROGRESS_REPORTS/2025-11-08_system_audit_complete.md"]
+  },
+  {
+    "hash": "1754d2237964d43dbb18c963e36c051313601103",
+    "date": "2025-11-08 15:39:14 +0000",
+    "subject": "fix: resolve auth.config.ts type signature and lint issues",
+    "files": [
+      "app/fm/dashboard/page.tsx",
+      "app/properties/[id]/page.tsx",
+      "auth.config.ts",
+      "src/lib/mockDb.ts",
+      "vitest.setup.ts"
+    ]
+  },
+  {
+    "hash": "267c001519bec9c9008e0a2fefabb377d8ef9d34",
+    "date": "2025-11-08 18:19:10 +0300",
+    "subject": "feat: E2E Stabilization Complete - All 5 Tasks + i18n Expansion (272 keys) (#264)",
+    "files": [
+      "app/administration/page.tsx",
+      "dev/refactoring/vendors-route-crud-factory-wip.ts",
+      "types/test-mocks.ts",
+      "vitest.setup.ts"
+    ]
+  },
+  {
+    "hash": "9667d32c7908d8e5a2b6ae0e5db6903608fc1029",
+    "date": "2025-11-08 18:08:16 +0300",
+    "subject": "fix(auth): avoid persisting jwt verify mock; restore verify implementation and remove debug logs (#266)",
+    "files": ["lib/auth.test.ts", "lib/auth.ts"]
+  },
+  {
+    "hash": "135f35b228ebd28ef9764b032754a1706af8e9ac",
+    "date": "2025-11-08 17:54:54 +0300",
+    "subject": "feat: Production-Ready Testing with MongoDB Memory Server + Root Cause Type Safety Fixes (#269)",
+    "files": [
+      "DAILY_PROGRESS_REPORTS/2025-01-08_test_fixes.md",
+      "DAILY_PROGRESS_REPORTS/2025-01-28-MODEL-TESTS-MONGODB-MEMORY-SERVER.md",
+      "DAILY_PROGRESS_REPORTS/2025-11-08_comprehensive_system_audit.md",
+      "DAILY_PROGRESS_REPORTS/2025-11-08_production_testing_implementation.md",
+      "PRODUCTION_TESTING_SUMMARY.md",
+      "PRODUCTION_TEST_STATUS.md",
+      "TESTING_STRATEGY.md",
+      "TEST_STATUS_REPORT.md",
+      "app/administration/page.tsx",
+      "app/api/admin/discounts/route.ts",
+      "app/api/admin/price-tiers/route.ts",
+      "app/api/aqar/favorites/[id]/route.ts",
+      "app/api/aqar/favorites/route.ts",
+      "app/api/aqar/leads/route.ts",
+      "app/api/aqar/listings/route.ts",
+      "app/api/ats/applications/[id]/route.ts",
+      "app/api/ats/convert-to-employee/route.ts",
+      "app/api/ats/jobs/[id]/publish/route.ts",
+      "app/api/ats/jobs/route.ts",
+      "app/api/ats/moderation/route.ts",
+      "app/api/ats/public-post/route.ts",
+      "app/api/benchmarks/compare/route.ts",
+      "app/api/billing/subscribe/route.ts",
+      "app/api/careers/apply/route.ts",
+      "app/api/contracts/route.ts",
+      "app/api/copilot/chat/route.ts",
+      "app/api/feeds/indeed/route.ts",
+      "app/api/finance/invoices/route.ts",
+      "app/api/health/database/route.ts",
+      "app/api/help/articles/route.ts",
+      "app/api/integrations/linkedin/apply/route.ts",
+      "app/api/invoices/[id]/route.ts",
+      "app/api/invoices/route.ts",
+      "app/api/kb/search/route.ts",
+      "app/api/marketplace/cart/route.ts",
+      "app/api/marketplace/categories/route.ts",
+      "app/api/marketplace/orders/route.ts",
+      "app/api/marketplace/products/[slug]/route.ts",
+      "app/api/marketplace/products/route.ts",
+      "app/api/marketplace/search/route.ts",
+      "app/api/marketplace/vendor/products/route.ts",
+      "app/api/owners/groups/assign-primary/route.ts",
+      "app/api/payments/paytabs/callback/route.ts",
+      "app/api/payments/paytabs/route.ts",
+      "app/api/pm/generate-wos/route.ts",
+      "app/api/pm/plans/[id]/route.ts",
+      "app/api/pm/plans/route.ts",
+      "app/api/projects/[id]/route.ts",
+      "app/api/public/rfqs/route.ts",
+      "app/api/qa/alert/route.ts",
+      "app/api/qa/health/route.ts",
+      "app/api/qa/log/route.ts",
+      "app/api/search/route.ts",
+      "app/api/slas/route.ts",
+      "app/api/support/tickets/my/route.ts",
+      "app/api/support/tickets/route.ts",
+      "app/api/support/welcome-email/route.ts",
+      "app/api/vendors/route.ts",
+      "app/api/webhooks/sendgrid/route.ts",
+      "app/api/work-orders/import/route.ts",
+      "app/dev/login-helpers/DevLoginClient.tsx",
+      "app/finance/fm-finance-hooks.ts",
+      "app/fm/assets/page.tsx",
+      "app/fm/page.tsx",
+      "app/login/page.tsx",
+      "lib/auth.test.ts",
+      "middleware.ts",
+      "package.json",
+      "pnpm-lock.yaml",
+      "scripts/fix-duplicate-loggers.py",
+      "scripts/fix-duplicate-loggers.sh",
+      "scripts/fix-logger-calls.py",
+      "scripts/skip-mock-tests.sh",
+      "server/models/Asset.ts",
+      "server/models/HelpArticle.ts",
+      "server/models/__tests__/Candidate.test.ts",
+      "server/work-orders/wo.service.test.ts",
+      "tests/debug/inspect-journal.test.ts",
+      "tests/models/MarketplaceProduct.test.ts",
+      "tests/models/SearchSynonym.test.ts",
+      "tests/models/candidate.test.ts",
+      "tests/playwright.config.prod.ts",
+      "tests/playwright.config.ts",
+      "tests/setup.ts",
+      "tests/unit/api/marketplace/categories/route.test.ts",
+      "tests/unit/api/marketplace/products/[slug]/route.test.ts",
+      "tests/unit/api/marketplace/search/route.test.ts",
+      "tests/unit/api/public/rfqs/route.test.ts",
+      "tests/unit/api/qa/alert.route.test.ts",
+      "tests/unit/api/qa/health.route.test.ts",
+      "tests/unit/api/qa/log.route.playwright.test.ts",
+      "tests/unit/app/fm/marketplace-page.test.tsx",
+      "tests/unit/app/help_support_ticket_page.test.tsx",
+      "tests/unit/app/marketplace/marketplace-page.test.tsx",
+      "tests/unit/app/marketplace/rfq-page.test.tsx",
+      "tests/unit/app/product/product-page.spec.tsx.skip",
+      "tests/unit/components/FlagIcon.accessibility.test.tsx",
+      "tests/unit/components/__tests__/TopBar.test.tsx",
+      "tests/unit/components/aqar/ContactActions.test.tsx",
+      "tests/unit/components/fm/__tests__/WorkOrdersView.test.tsx",
+      "tests/unit/components/marketplace/CatalogView.test.tsx",
+      "tests/unit/components/ui/__tests__/label.test.tsx",
+      "tests/unit/components/ui/__tests__/select.test.tsx",
+      "tests/unit/components/ui/__tests__/tabs.test.tsx",
+      "tests/unit/components/ui/__tests__/textarea.test.tsx",
+      "tests/unit/models/Asset.test.ts",
+      "tests/unit/models/HelpArticle.test.ts",
+      "tests/unit/models/Property.test.ts",
+      "tests/unit/models/User.test.ts",
+      "tests/unit/models/WorkOrder.test.ts",
+      "tests/vitest.config.test.ts",
+      "tsconfig.json",
+      "types/test-mocks.ts",
+      "vitest.config.api.ts",
+      "vitest.config.models.ts",
+      "vitest.config.ts",
+      "vitest.setup.ts"
+    ]
+  },
+  {
+    "hash": "2c3ca2042824e3a03fe034408be271510a257aba",
+    "date": "2025-11-07 11:36:38 +0000",
+    "subject": "fix(tests): middleware redirect tests with proper NextAuth mocking",
+    "files": ["tests/unit/middleware.test.ts"]
+  },
+  {
+    "hash": "456245b7ce06da42eaf428b9d92938b386630e08",
+    "date": "2025-11-07 11:31:54 +0000",
+    "subject": "refactor: eliminate duplicate test files and scripts",
+    "files": [
+      "scripts/seed-marketplace.js",
+      "scripts/seed-marketplace.mjs",
+      "tests/scripts/seed-marketplace.test.ts",
+      "tests/scripts/seed-marketplace.ts.test.ts",
+      "tests/unit/providers/Providers.test.tsx"
+    ]
+  },
+  {
+    "hash": "66421549db2fee47c473cc0ff6bcaeb70a2494a0",
+    "date": "2025-11-07 11:23:26 +0000",
+    "subject": "fix(tests): I18nProvider async dictionary loading",
+    "files": ["i18n/I18nProvider.test.tsx"]
+  },
+  {
+    "hash": "b367a56c0a9837bb6f17143b53185df913c1dc69",
+    "date": "2025-11-07 11:17:59 +0000",
+    "subject": "fix(tests): skip contradictory generateSlug tests in duplicate file",
+    "files": ["tests/utils.test.ts"]
+  },
+  {
+    "hash": "740f31f199f91dd855c3e2b646ca9c0ec264c7fa",
+    "date": "2025-11-07 11:14:36 +0000",
+    "subject": "fix(tests): parseCartAmount validation and currency support",
+    "files": [
+      "lib/payments/parseCartAmount.ts",
+      "tests/unit/parseCartAmount.test.ts"
+    ]
+  },
+  {
+    "hash": "ceb15ba7a0be13faeec8bdff9692f50ae5f0bcfd",
+    "date": "2025-11-07 11:05:33 +0000",
+    "subject": "fix(tests): align generateSlug with authoritative lib/utils.test.ts",
+    "files": ["lib/ats/scoring.test.ts", "lib/utils.ts"]
+  },
+  {
+    "hash": "2086d511cc6e73b6f2a41b2e3ee7211273d9c833",
+    "date": "2025-11-07 11:01:08 +0000",
+    "subject": "fix(tests): ATS scoring test using real implementation",
+    "files": ["lib/ats/scoring.ts", "tests/ats.scoring.test.ts"]
+  },
+  {
+    "hash": "6cfdec1e3ea0c51b3014819dba9198982db1e85c",
+    "date": "2025-11-07 10:49:02 +0000",
+    "subject": "fix(utils): generateSlug now strips non-ASCII characters",
+    "files": ["lib/utils.ts"]
+  },
+  {
+    "hash": "0205578bf5622001bbe9725f4bcbb37244d5b467",
+    "date": "2025-11-07 10:39:21 +0000",
+    "subject": "fix(tests): update Provider test for new ErrorBoundary position",
+    "files": ["providers/Providers.test.tsx"]
+  },
+  {
+    "hash": "1382b8eb2a0ae8a59ca8d98cb2a16cfaceb8b962",
+    "date": "2025-11-07 10:28:43 +0000",
+    "subject": "docs: Test fixing session report - 25% reduction achieved",
+    "files": ["docs/TEST_FIXING_SESSION_2025-01-07.md"]
+  },
+  {
+    "hash": "4e821fc1ede896fab34583d805a79805f9945a5c",
+    "date": "2025-11-07 10:23:33 +0000",
+    "subject": "fix(tests): middleware test import + mockDb implementation",
+    "files": ["src/lib/mockDb.ts", "tests/unit/middleware.test.ts"]
+  },
+  {
+    "hash": "44219c5ebcaad7ba7cd8c1b96bd4cf6d3aee70de",
+    "date": "2025-11-07 10:03:33 +0000",
+    "subject": "docs: Session 2025-01-07 final documentation",
+    "files": [
+      "docs/SESSION_2025-01-07_FINAL_SUMMARY.md",
+      "docs/SESSION_COMPLETE_CONSOLE_LOG_PHASE_3.md"
+    ]
+  },
+  {
+    "hash": "7a7095f5b393621901a98fa81c518783e9046357",
+    "date": "2025-11-07 10:00:11 +0000",
+    "subject": "refactor: console.log Phase 3 COMPLETE - 100% logger compliance 🎯",
+    "files": [
+      "app/api/admin/discounts/route.ts",
+      "app/api/admin/price-tiers/route.ts",
+      "app/api/aqar/favorites/[id]/route.ts",
+      "app/api/aqar/favorites/route.ts",
+      "app/api/aqar/leads/route.ts",
+      "app/api/aqar/listings/[id]/route.ts",
+      "app/api/aqar/listings/route.ts",
+      "app/api/aqar/packages/route.ts",
+      "app/api/ats/applications/[id]/route.ts",
+      "app/api/ats/convert-to-employee/route.ts",
+      "app/api/ats/jobs/[id]/apply/route.ts",
+      "app/api/ats/jobs/[id]/publish/route.ts",
+      "app/api/ats/jobs/route.ts",
+      "app/api/ats/moderation/route.ts",
+      "app/api/ats/public-post/route.ts",
+      "app/api/benchmarks/compare/route.ts",
+      "app/api/billing/callback/paytabs/route.ts",
+      "app/api/billing/subscribe/route.ts",
+      "app/api/careers/apply/route.ts",
+      "app/api/contracts/route.ts",
+      "app/api/copilot/chat/route.ts",
+      "app/api/dev/demo-login/route.ts",
+      "app/api/feeds/indeed/route.ts",
+      "app/api/finance/invoices/route.ts",
+      "app/api/health/database/route.ts",
+      "app/api/help/articles/[id]/route.ts",
+      "app/api/help/articles/route.ts",
+      "app/api/help/ask/route.ts",
+      "app/api/hr/payroll/runs/[id]/export/wps/route.ts",
+      "app/api/integrations/linkedin/apply/route.ts",
+      "app/api/invoices/[id]/route.ts",
+      "app/api/invoices/route.ts",
+      "app/api/marketplace/cart/route.ts",
+      "app/api/marketplace/categories/route.ts",
+      "app/api/marketplace/orders/route.ts",
+      "app/api/marketplace/products/[slug]/route.ts",
+      "app/api/marketplace/products/route.ts",
+      "app/api/marketplace/search/route.ts",
+      "app/api/marketplace/vendor/products/route.ts",
+      "app/api/owners/groups/assign-primary/route.ts",
+      "app/api/payments/callback/route.ts",
+      "app/api/payments/paytabs/callback/route.ts",
+      "app/api/payments/paytabs/route.ts",
+      "app/api/paytabs/callback/route.ts",
+      "app/api/pm/generate-wos/route.ts",
+      "app/api/pm/plans/[id]/route.ts",
+      "app/api/pm/plans/route.ts",
+      "app/api/projects/[id]/route.ts",
+      "app/api/public/rfqs/route.ts",
+      "app/api/qa/alert/route.ts",
+      "app/api/qa/health/route.ts",
+      "app/api/qa/log/route.ts",
+      "app/api/qa/reconnect/route.ts",
+      "app/api/search/route.ts",
+      "app/api/slas/route.ts",
+      "app/api/support/incidents/route.ts",
+      "app/api/support/tickets/my/route.ts",
+      "app/api/support/tickets/route.ts",
+      "app/api/support/welcome-email/route.ts",
+      "app/api/vendors/route.ts",
+      "app/api/webhooks/sendgrid/route.ts",
+      "app/api/work-orders/import/route.ts",
+      "app/api/work-orders/sla-check/route.ts",
+      "app/dev/login-helpers/DevLoginClient.tsx",
+      "app/finance/page.tsx",
+      "app/fm/assets/page.tsx",
+      "app/fm/page.tsx",
+      "app/login/page.tsx",
+      "app/logout/page.tsx",
+      "app/marketplace/vendor/products/upload/page.tsx",
+      "app/notifications/page.tsx",
+      "app/support/my-tickets/page.tsx"
+    ]
+  },
+  {
+    "hash": "52367952159d4b757602611f32463b656ae1afc1",
+    "date": "2025-11-07 09:54:50 +0000",
+    "subject": "refactor(modules): console → logger Phase 3.5 - multiple modules",
+    "files": [
+      "app/(dashboard)/referrals/page.tsx",
+      "app/admin/audit-logs/page.tsx",
+      "app/admin/feature-settings/page.tsx",
+      "app/fm/assets/page.tsx",
+      "app/fm/projects/page.tsx",
+      "app/fm/properties/page.tsx",
+      "app/fm/rfqs/page.tsx",
+      "app/fm/support/tickets/page.tsx",
+      "app/fm/tenants/page.tsx",
+      "app/hr/employees/page.tsx",
+      "app/hr/payroll/page.tsx",
+      "app/privacy/page.tsx",
+      "app/profile/page.tsx",
+      "app/terms/page.tsx",
+      "app/work-orders/[id]/parts/page.tsx"
+    ]
+  },
+  {
+    "hash": "809599b06ff9087990ee0899988c093c29cbd913",
+    "date": "2025-11-07 09:52:21 +0000",
+    "subject": "docs: Console.log Phase 3 progress report - 39% complete",
+    "files": ["docs/CONSOLE_LOG_PHASE_3_PROGRESS.md"]
+  },
+  {
+    "hash": "a6eb6400d10912fd683178e9d80139e66b97f464",
+    "date": "2025-11-07 09:51:07 +0000",
+    "subject": "refactor(finance): replace console.log with logger in fm-finance-hooks",
+    "files": ["app/finance/fm-finance-hooks.ts"]
+  },
+  {
+    "hash": "c8bf38d22d058dac5659a717ae5de3d5e76e1613",
+    "date": "2025-11-07 09:49:57 +0000",
+    "subject": "refactor(api+modules): mass console → logger replacement - Phase 3.3",
+    "files": [
+      "app/api/admin/audit-logs/route.ts",
+      "app/api/admin/users/[id]/route.ts",
+      "app/api/admin/users/route.ts",
+      "app/api/aqar/listings/[id]/route.ts",
+      "app/api/aqar/listings/search/route.ts",
+      "app/api/aqar/packages/route.ts",
+      "app/api/ats/jobs/[id]/apply/route.ts",
+      "app/api/billing/callback/paytabs/route.ts",
+      "app/api/dev/demo-accounts/route.ts",
+      "app/api/dev/demo-login/route.ts",
+      "app/api/finance/accounts/[id]/route.ts",
+      "app/api/finance/accounts/route.ts",
+      "app/api/finance/expenses/[id]/[action]/route.ts",
+      "app/api/finance/expenses/[id]/route.ts",
+      "app/api/finance/expenses/route.ts",
+      "app/api/finance/journals/[id]/post/route.ts",
+      "app/api/finance/journals/[id]/void/route.ts",
+      "app/api/finance/journals/route.ts",
+      "app/api/finance/ledger/account-activity/[accountId]/route.ts",
+      "app/api/finance/ledger/route.ts",
+      "app/api/finance/ledger/trial-balance/route.ts",
+      "app/api/finance/payments/[id]/[action]/route.ts",
+      "app/api/finance/payments/route.ts",
+      "app/api/help/articles/[id]/route.ts",
+      "app/api/help/ask/route.ts",
+      "app/api/hr/employees/route.ts",
+      "app/api/hr/payroll/runs/[id]/calculate/route.ts",
+      "app/api/hr/payroll/runs/[id]/export/wps/route.ts",
+      "app/api/hr/payroll/runs/route.ts",
+      "app/api/kb/ingest/route.ts",
+      "app/api/kb/search/route.ts",
+      "app/api/organization/settings/route.ts",
+      "app/api/payments/callback/route.ts",
+      "app/api/paytabs/callback/route.ts",
+      "app/api/pm/generate-wos/route.ts",
+      "app/api/qa/reconnect/route.ts",
+      "app/api/referrals/generate/route.ts",
+      "app/api/referrals/my-code/route.ts",
+      "app/api/support/incidents/route.ts",
+      "app/api/support/welcome-email/route.ts",
+      "app/api/user/preferences/route.ts",
+      "app/api/user/profile/route.ts",
+      "app/api/webhooks/sendgrid/route.ts",
+      "app/api/work-orders/sla-check/route.ts",
+      "app/careers/page.tsx",
+      "app/help/ai-chat/page.tsx"
+    ]
+  },
+  {
+    "hash": "b7a169fa911c32a04b1c48dd5a914e726f48355b",
+    "date": "2025-11-07 09:49:22 +0000",
+    "subject": "refactor(finance): complete console.error → logger replacement - Phase 3.2",
+    "files": [
+      "app/finance/expenses/new/page.tsx",
+      "app/finance/invoices/new/page.tsx",
+      "app/finance/page.tsx",
+      "app/finance/payments/new/page.tsx",
+      "scripts/replace-console-with-logger.mjs"
+    ]
+  },
+  {
+    "hash": "feec5fa5c1a164ef17b24d7353cc7936da76768e",
+    "date": "2025-11-07 09:48:32 +0000",
+    "subject": "refactor(finance): replace console.error with logger in budgets - Phase 3.1",
+    "files": ["app/finance/budgets/new/page.tsx"]
+  },
+  {
+    "hash": "e5b34fa0d0ddbd0fd1275a7bc43ca27929a44f3b",
+    "date": "2025-11-07 09:29:13 +0000",
+    "subject": "docs: comprehensive session report - systematic optimization complete",
+    "files": ["docs/SESSION_2025-11-07_SYSTEMATIC_OPTIMIZATION.md"]
+  },
+  {
+    "hash": "657ea1ed30ad5e1d738a8d107dc9532d47c4bd3c",
+    "date": "2025-11-07 09:26:58 +0000",
+    "subject": "perf: dynamic imports for TopBar, Sidebar, Footer in ClientLayout",
+    "files": ["components/ClientLayout.tsx"]
+  },
+  {
+    "hash": "b0e4337eb34950ad7a97d075ca9d0f0267836f0f",
+    "date": "2025-11-07 09:07:13 +0000",
+    "subject": "perf: provider optimization + workspace organization - TBT -170ms",
+    "files": [
+      ".ipynb_checkpoints/Untitled-checkpoint.ipynb",
+      "__pycache__/install-missing-packages.cpython-312.pyc",
+      "__pycache__/verify-imports.cpython-312.pyc",
+      "app/layout.tsx",
+      "app/login/page.tsx",
+      "components/auth/DemoCredentialsSection.tsx",
+      "docs/AGENT_FRESH_RUN_REPORT.md",
+      "docs/CATEGORIZED_TASKS_LIST.md",
+      "docs/FIXZIT_AGENT_COMPLETION_REPORT.md",
+      "docs/FIXZIT_AGENT_QUICKSTART.md",
+      "docs/IMPLEMENTATION_GUIDE.md",
+      "docs/INDEX.md",
+      "docs/PENDING_TASKS_AND_FILE_ORGANIZATION.md",
+      "docs/PR_SUMMARY.md",
+      "docs/QUICK_REFERENCE.md",
+      "docs/SESSION_COMPLETE_ORGANIZATION.md",
+      "docs/SESSION_COMPLETE_TESTING_AND_ORGANIZATION.md",
+      "docs/TASK_COMPLETION_SUMMARY.md",
+      "docs/TEST_FIXES_SUMMARY.md",
+      "docs/TODO_FALSE_POSITIVE_ANALYSIS.md",
+      "docs/UNDEFINED_PROPERTY_FIXES.md",
+      "docs/WORKSPACE_ORGANIZATION_SUMMARY.md",
+      "docs/architecture/PROVIDER_OPTIMIZATION_IMPLEMENTATION.md",
+      "docs/performance/BUILD_RESULTS_LATEST.md",
+      "docs/performance/BUNDLE_ANALYSIS_FINDINGS.md",
+      "docs/performance/OPTIMIZATION_ACTION_PLAN.md",
+      "docs/performance/PERFORMANCE_ANALYSIS_NEXT_STEPS.md",
+      "docs/performance/PERFORMANCE_FINAL_SUMMARY.md",
+      "docs/performance/PERFORMANCE_FIX_GUIDE.md",
+      "docs/performance/PERFORMANCE_OPTIMIZATION_SESSION_SUMMARY.md",
+      "docs/performance/PERFORMANCE_RESULTS.md",
+      "docs/performance/PROVIDER_OPTIMIZATION_RESULTS.md",
+      "docs/performance/SESSION_COMPLETE_SUMMARY.md",
+      "lighthouse-report-final.json",
+      "lighthouse-report-production.json",
+      "lighthouse-report-with-fonts.json",
+      "lighthouse-report.json",
+      "middleware.ts",
+      "next.config.js",
+      "package.json",
+      "pnpm-lock.yaml",
+      "providers/AuthenticatedProviders.tsx",
+      "providers/ConditionalProviders.tsx",
+      "providers/PublicProviders.tsx",
+      "tests/performance/test-provider-optimization.js"
+    ]
+  },
+  {
+    "hash": "4c75f7a81b65155ad464ea2522cba136923f044b",
+    "date": "2025-11-07 07:19:56 +0000",
+    "subject": "docs: deep technical analysis of performance bottlenecks",
+    "files": [
+      "PERFORMANCE_ANALYSIS_NEXT_STEPS.md",
+      "lighthouse-report-with-fonts.json"
+    ]
+  },
+  {
+    "hash": "7100e58a13c787f0e5cce1cb7396006a783d5a29",
+    "date": "2025-11-07 07:04:23 +0000",
+    "subject": "docs: comprehensive performance optimization summary",
+    "files": ["PERFORMANCE_FINAL_SUMMARY.md"]
+  },
+  {
+    "hash": "8f5381820a22a8a4fbdb2afe6cf517e454d6c3d1",
+    "date": "2025-11-07 07:02:15 +0000",
+    "subject": "perf: font optimization with next/font and ESLint fixes",
+    "files": [
+      "app/administration/page.tsx",
+      "app/layout.tsx",
+      "lighthouse-report-final.json",
+      "next.config.js"
+    ]
+  },
+  {
+    "hash": "d4e7a646c27c7966b86510cfa08718d7f0bc1b51",
+    "date": "2025-11-07 06:21:06 +0000",
+    "subject": "perf: production build fixes and lighthouse audit - 82/100 score achieved",
+    "files": [
+      "PERFORMANCE_RESULTS.md",
+      "app/administration/page.tsx",
+      "dev/refactoring/vendors-route-crud-factory-wip.ts",
+      "lighthouse-report-production.json",
+      "next.config.js",
+      "types/test-mocks.ts"
+    ]
+  },
+  {
+    "hash": "0347902926bb32caa71b4b7810685db3efd422ed",
+    "date": "2025-11-07 05:28:52 +0000",
+    "subject": "perf: implement performance fixes - lazy i18n loading + webpack optimizations",
+    "files": [
+      "PERFORMANCE_FIX_GUIDE.md",
+      "i18n/I18nProvider.tsx",
+      "next.config.js"
+    ]
+  },
+  {
+    "hash": "994caf255208f6cced5aba08a2306996512ed364",
+    "date": "2025-11-07 05:19:24 +0000",
+    "subject": "perf: lighthouse audit complete - 48/100 score, LCP 10.7s (root cause identified)",
+    "files": ["lighthouse-report.json"]
+  },
+  {
+    "hash": "5e1aaf040d8556b4e6e2ca8e31587e04e02d653d",
+    "date": "2025-11-07 03:54:11 +0000",
+    "subject": "feat(agent): implement context-aware unhandled rejection detection - reduces false positives",
+    "files": ["scripts/fixzit-agent.mjs"]
+  },
+  {
+    "hash": "b3bc97d5fc23d1b01a23889e70743317df04545d",
+    "date": "2025-11-07 03:51:32 +0000",
+    "subject": "fix(tests): wrap top-level await in async IIFE for HelpArticle test, await generateToken in auth test",
+    "files": ["lib/auth.test.ts", "tests/unit/models/HelpArticle.test.ts"]
+  },
+  {
+    "hash": "5b7e039440e5ddf707efafd1da20b66d6a8a088a",
+    "date": "2025-11-07 03:47:03 +0000",
+    "subject": "feat(i18n): Phase 3 - expand to 366 keys (+94) - add HR, CRM, Marketplace, extended Login",
+    "files": ["i18n/ar.json", "i18n/en.json"]
+  },
+  {
+    "hash": "e84024d75935852f23f03bd3014c966245937462",
+    "date": "2025-11-07 03:39:10 +0000",
+    "subject": "docs: comprehensive PR summary for E2E stabilization session",
+    "files": ["PR_SUMMARY.md"]
+  },
+  {
+    "hash": "1eae179d20eadf9c7efdbb2c14258322603052b8",
+    "date": "2025-11-07 03:37:31 +0000",
+    "subject": "merge: integrate agent file move (lib/fm-finance-hooks.ts → app/finance/)",
+    "files": []
+  },
+  {
+    "hash": "3d0efc8805d14854727929d79a1aff24449313de",
+    "date": "2025-11-07 03:36:52 +0000",
+    "subject": "docs: comprehensive TODO false positive analysis (88-96% FP rate)",
+    "files": ["TODO_FALSE_POSITIVE_ANALYSIS.md"]
+  },
+  {
+    "hash": "0ac7399376c7f5b1ec79af192580fb88a724a4de",
+    "date": "2025-11-07 03:35:00 +0000",
+    "subject": "feat(i18n): expand translations from 127 to 272 keys - add admin, validation, notifications, forms",
+    "files": ["i18n/ar.json", "i18n/en.json"]
+  },
+  {
+    "hash": "bd8104f01793721224a0f702a01414894b2c5bd4",
+    "date": "2025-11-07 03:28:49 +0000",
+    "subject": "chore: remove duplicate logo - keep assets/logos/fixzit_official_logo.jpg",
+    "files": ["assets/fixzit_logo.jpg"]
+  },
+  {
+    "hash": "e4cd278e00ce5a65afcbb49478853d44da097df3",
+    "date": "2025-11-07 03:28:12 +0000",
+    "subject": "fixzit-agent: canonicalize structure + import rewrites (STRICT v4, Gov V5)",
+    "files": [
+      "app/finance/fm-finance-hooks.ts",
+      "tasks/TODO_flat.json",
+      "tmp/fixes_5d_diff.patch"
+    ]
+  },
+  {
+    "hash": "866b94d70d3ccfaf1dcd9f9dd279541047f10fc6",
+    "date": "2025-11-07 03:25:09 +0000",
+    "subject": "chore: update agent-generated reports and diffs",
+    "files": ["tasks/TODO_flat.json", "tmp/fixes_5d_diff.patch"]
+  },
+  {
+    "hash": "d1ea18540f7d9839af37a1f87af685fa672b126e",
+    "date": "2025-11-07 02:40:27 +0000",
+    "subject": "fix: add optional chaining for undefined property access (7 fixes)",
+    "files": [
+      "UNDEFINED_PROPERTY_FIXES.md",
+      "app/finance/budgets/new/page.tsx",
+      "app/finance/expenses/new/page.tsx",
+      "app/finance/invoices/new/page.tsx",
+      "tests/unit/components/ErrorBoundary.test.tsx"
+    ]
+  },
+  {
+    "hash": "d4efd6419f0f956c4f7754dc210abfd3dc05ec06",
+    "date": "2025-11-06 20:23:24 +0000",
+    "subject": "docs: agent fresh run report with improved heuristics",
+    "files": ["AGENT_FRESH_RUN_REPORT.md"]
+  },
+  {
+    "hash": "25883c46e04e2e6be8372222261af8cfcbb70a49",
+    "date": "2025-11-06 20:18:33 +0000",
+    "subject": "fix(agent): improve heuristics and fix api-scan syntax",
+    "files": [
+      "scripts/api-scan.mjs",
+      "scripts/fixzit-agent.mjs",
+      "tasks/TODO_flat.json",
+      "tmp/fixes_5d_diff.patch"
+    ]
+  },
+  {
+    "hash": "9294d6c6e4e01bbd259abd5d8faf3e09f890706e",
+    "date": "2025-11-06 20:13:20 +0000",
+    "subject": "chore: update agent-generated reports",
+    "files": ["tasks/TODO_flat.json", "tmp/fixes_5d_diff.patch"]
+  },
+  {
+    "hash": "c6cc979dcce9f72d39beb84b62da74ba874dfc58",
+    "date": "2025-11-06 20:06:59 +0000",
+    "subject": "docs: task completion summary",
+    "files": ["TASK_COMPLETION_SUMMARY.md"]
+  },
+  {
+    "hash": "5d94a958b04f13f859065c76c3401591a827335f",
+    "date": "2025-11-06 20:05:39 +0000",
+    "subject": "feat: i18n foundation + agent heuristic improvements",
+    "files": ["i18n/ar.json", "i18n/en.json", "scripts/fixzit-agent.mjs"]
+  },
+  {
+    "hash": "7beba7c29d1a120f1435a8927e1a280e4e3dad19",
+    "date": "2025-11-06 19:54:57 +0000",
+    "subject": "fix(Category D): File organization cleanup",
+    "files": [
+      "components/ErrorBoundary.OLD.tsx",
+      "components/SupportPopup.OLD.tsx",
+      "docs/FILE_ORGANIZATION_CORRECT.md",
+      "scripts/smart-merge-conflicts.ts"
+    ]
+  },
+  {
+    "hash": "02ac381337e967dcff14075c167b4edde5fe8dd3",
+    "date": "2025-11-06 19:46:59 +0000",
+    "subject": "fix: Category A-B fixes - unused variables and duplicate files",
+    "files": [
+      "FIXZIT_AGENT_COMPLETION_REPORT.md",
+      "FIXZIT_AGENT_QUICKSTART.md",
+      "TEST_FIXES_SUMMARY.md",
+      "app/administration/page.tsx",
+      "assets/logos/company_logo.jpg",
+      "package.json",
+      "pnpm-lock.yaml",
+      "public/img/fixzit-logo.jpg",
+      "public/landing-step1.png",
+      "public/sidebar.png",
+      "scripts/api-scan.mjs",
+      "scripts/codemods/import-rewrite.cjs",
+      "scripts/codemods/replace-console.cjs",
+      "scripts/fixzit-agent.mjs",
+      "scripts/i18n-scan.mjs",
+      "scripts/stop-dev.js",
+      "scripts/test1.txt",
+      "tasks/TODO_flat.json",
+      "tests/hfv.e2e.spec.ts",
+      "tests/unit/middleware.test.ts",
+      "tests/unit/models/Asset.test.ts",
+      "tests/unit/models/HelpArticle.test.ts",
+      "tmp/fixes_5d_diff.patch"
+    ]
+  },
+  {
+    "hash": "f7a93437961e2b77c20343cc9e097bfb808f05eb",
+    "date": "2025-11-06 18:09:03 +0000",
+    "subject": "feat: comprehensive file organization and categorized task list",
+    "files": [
+      "CATEGORIZED_TASKS_LIST.md",
+      "COMPREHENSIVE_SYSTEM_AUDIT_REPORT.md",
+      "PHASE_2_3_4_COMPLETE.md",
+      "SYSTEM_WIDE_FIXES_PROGRESS.md",
+      "docs/404_FIXES_SUMMARY.md",
+      "docs/AGENT_LIVE_PROGRESS.md",
+      "docs/AUTHENTICATION_VERIFICATION_COMPLETE.md",
+      "docs/AUTHORITATIVE_NAVIGATION_FIXES.md",
+      "docs/BUTTON_FIXES_SUMMARY.md",
+      "docs/COMPREHENSIVE_STATUS_REPORT_20251015_1613.md",
+      "docs/CONSOLIDATION_PROGRESS_REPORT.md",
+      "docs/CURRENT_PAGE_MAPPING.md",
+      "docs/DOCUMENTATION_SECURITY_REDACTION_COMPLETE.md",
+      "docs/DOMAIN_FIX_SUMMARY.md",
+      "docs/E2E_TESTING_BLOCKERS_RESOLVED.md",
+      "docs/E2E_TESTING_PLAN.md",
+      "docs/E2E_TESTING_READY_TO_BEGIN.md",
+      "docs/E2E_TESTING_SESSION_ACTIVE.md",
+      "docs/E2E_TEST_RESULTS.md",
+      "docs/FINAL_VERIFICATION_REPORT.md",
+      "docs/FOCUS_MANAGEMENT_AUDIT.md",
+      "docs/LOGIN_FIXES_SUMMARY.md",
+      "docs/LOGIN_PAGE_AUDIT.md",
+      "docs/MODEL_CONSOLIDATION_COMPLETE.md",
+      "docs/PHASE5_AUTH_TESTING_PROGRESS.md",
+      "docs/PHASE5_E2E_EXECUTION_SUMMARY.md",
+      "docs/PHASE_3_COMPLETION_SUMMARY.md",
+      "docs/PR126_FINAL_STATUS.md",
+      "docs/PR126_RECOMMENDATION_TO_CLOSE.md",
+      "docs/PR126_SUCCESS_REPORT.md",
+      "docs/PR126_WORKFLOW_DIAGNOSIS.md",
+      "docs/PR127_COMMENTS_RESOLUTION.md",
+      "docs/PR127_COMMENTS_REVIEW.md",
+      "docs/PR127_FIX_SUMMARY.md",
+      "docs/PRODUCTION_E2E_SECRETS_MANAGEMENT.md",
+      "docs/PRODUCTION_E2E_TESTING.md",
+      "docs/PRODUCTION_READY_SUMMARY.md",
+      "docs/PROGRESS_REPORT.md",
+      "docs/PROJECT_OVERVIEW.md",
+      "docs/PR_SPLIT_STRATEGY.md",
+      "docs/SECURITY_IMPROVEMENTS_COMPLETE.md",
+      "docs/SECURITY_STATUS.md",
+      "docs/SESSION_COMPLETE.md",
+      "docs/SESSION_COMPLETE_SECURITY_PR_REVIEW.md",
+      "docs/TESTING_NOTE.md",
+      "docs/UI_COMPONENTS_COMPLETE_SUMMARY.md",
+      "docs/UI_UX_COMPLIANCE_REPORT.md",
+      "docs/WORKFLOW_FIXES_PROGRESS.md",
+      "docs/architecture/ARCHITECTURE.md",
+      "docs/architecture/BACKBONE_INDEX.md",
+      "docs/architecture/MODULAR_ARCHITECTURE.md",
+      "docs/development/DEPENDENCIES.md",
+      "docs/development/ENHANCEMENT_ROADMAP.md",
+      "docs/development/FORMSTATE_CONTEXT_USAGE.md",
+      "docs/development/FORMSTATE_INTEGRATION_GUIDE.md",
+      "docs/development/FORM_SAVE_EVENTS.md",
+      "docs/development/MIGRATION_DEPRECATED_HOOKS.md",
+      "docs/operations/GITHUB_SECRETS_SETUP_PRODUCTION.md",
+      "docs/operations/SENDGRID_PRODUCTION_GUIDE.md",
+      "docs/testing-notes.md"
+    ]
+  },
+  {
+    "hash": "1824f04984611998f57b0da01ac23b69e7b1ef27",
+    "date": "2025-11-06 18:02:59 +0000",
+    "subject": "docs: add pending tasks and file organization plan",
+    "files": ["PENDING_TASKS_AND_FILE_ORGANIZATION.md"]
+  },
+  {
+    "hash": "6eee90803a1d8aa6745a0aa16ebc7236097ebd83",
+    "date": "2025-11-06 20:47:53 +0300",
+    "subject": "chore: organize system files and remove legacy code (#261)",
+    "files": [
+      "CRITICAL_AUTH_FIXES_SUMMARY.md",
+      "CRITICAL_TECHNICAL_DEBT_AUDIT.md",
+      "DUPLICATE_FILES_REPORT.md",
+      "DUPLICATE_FILES_REPORT_ROUND2.md",
+      "FINAL_DUPLICATE_REPORT.md",
+      "PROJECT_ORGANIZATION_COMPLETE.md",
+      "SYSTEM_AUDIT_FINDINGS.md",
+      "TEST_FAILURES_REPORT.md",
+      "TEST_PROGRESS_SUMMARY.md",
+      "THEME_UPGRADE_PLAN.md",
+      "THEME_VIOLATIONS_AUDIT.md",
+      "dev/refactoring/README.md",
+      "dev/refactoring/vendors-route-crud-factory-wip.ts",
+      "docs/guides/README_START_HERE.md",
+      "docs/guides/READY_TO_START.md",
+      "docs/guides/START_3_HOUR_TESTING.md",
+      "gitignore",
+      "scripts/temp-verify.mjs",
+      "scripts/temp-verify2.mjs",
+      "scripts/temp-verify3.mjs",
+      "scripts/temp-verify4.mjs",
+      "scripts/temp-verify5.mjs",
+      "tests/unit/api/marketplace/categories/route.test.ts",
+      "tests/unit/api/marketplace/products/[slug]/route.test.ts",
+      "tests/unit/api/marketplace/search/route.test.ts",
+      "tests/unit/api/public/rfqs/route.test.ts",
+      "tests/unit/app/api_help_articles_route.test.ts",
+      "tests/unit/app/fm/marketplace-page.test.tsx",
+      "tests/unit/app/help_ai_chat_page.test.tsx",
+      "tests/unit/app/help_support_ticket_page.test.tsx",
+      "tests/unit/app/marketplace/marketplace-page.test.tsx",
+      "tests/unit/app/marketplace/rfq-page.test.tsx",
+      "tests/unit/app/product/product-page.spec.tsx",
+      "tests/unit/components/FlagIcon.accessibility.test.tsx",
+      "tests/unit/components/__tests__/TopBar.test.tsx",
+      "tests/unit/components/aqar/ContactActions.test.tsx",
+      "tests/unit/components/fm/__tests__/WorkOrdersView.test.tsx",
+      "tests/unit/components/marketplace/CatalogView.test.tsx",
+      "tests/unit/components/ui/__tests__/label.test.tsx",
+      "tests/unit/components/ui/__tests__/select.test.tsx",
+      "tests/unit/components/ui/__tests__/tabs.test.tsx",
+      "tests/unit/components/ui/__tests__/textarea.test.tsx"
+    ]
+  },
+  {
+    "hash": "080aab0aee5f1e4396a6d7835e4aa5e02ba8e876",
+    "date": "2025-11-06 20:47:09 +0300",
+    "subject": "feat: Auto-Restart Mechanism & Development Setup",
+    "files": [
+      "IMPLEMENTATION_GUIDE.md",
+      "ecosystem.config.js",
+      "scripts/setup-dev.sh"
+    ]
+  },
+  {
+    "hash": "f3d03dad171df79669d1a0152cdd5345d4479d35",
+    "date": "2025-11-06 20:46:11 +0300",
+    "subject": "🔧 Category 4: Type Safety - Fix : any warnings in production code (#240)",
+    "files": [
+      "COMPREHENSIVE_SYSTEM_AUDIT_REPORT.md",
+      "SYSTEM_WIDE_FIXES_PROGRESS.md",
+      "app/api/admin/users/route.ts",
+      "app/api/auth/signup/route.ts",
+      "app/api/marketplace/categories/route.test.ts",
+      "app/api/marketplace/search/route.test.ts",
+      "app/api/notifications/route.ts",
+      "app/api/projects/route.ts",
+      "app/api/properties/route.ts",
+      "app/api/public/rfqs/route.test.ts",
+      "app/api/tenants/route.ts",
+      "app/api/user/preferences/route.ts",
+      "app/api/vendors/route.NEW.ts",
+      "app/api/work-orders/route.ts",
+      "components/CopilotWidget.tsx",
+      "components/ErrorBoundary.tsx",
+      "components/TopBar.tsx",
+      "components/aqar/PropertyCard.tsx",
+      "components/auth/GoogleSignInButton.tsx",
+      "components/auth/LoginForm.tsx",
+      "components/finance/AccountActivityViewer.tsx",
+      "components/finance/JournalEntryForm.tsx",
+      "components/finance/TrialBalanceReport.tsx",
+      "components/marketplace/CatalogView.tsx",
+      "components/marketplace/PDPBuyBox.tsx",
+      "components/marketplace/ProductCard.tsx",
+      "components/topbar/GlobalSearch.tsx",
+      "components/topbar/QuickActions.tsx",
+      "components/ui/select.tsx",
+      "components/ui/textarea.tsx",
+      "lib/logger.ts",
+      "types/mongodb.ts",
+      "types/test-mocks.ts",
+      "vitest.setup.ts"
+    ]
+  },
+  {
+    "hash": "62206666ed2d8891a824184ed7331ed57b31e5b2",
+    "date": "2025-11-06 20:43:14 +0300",
+    "subject": "fix: CRITICAL - Security & Reliability Fixes (GUEST Auth + format.ts + Providers) (#263)",
+    "files": [
+      "nav/registry.ts",
+      "providers/Providers.tsx",
+      "tests/unit/nav/registry.test.ts",
+      "tests/unit/providers/Providers.test.tsx",
+      "tests/unit/utils/format.test.ts",
+      "utils/format.ts"
+    ]
+  },
+  {
+    "hash": "9650f082f1eb7b251817c5dfa984152a01466012",
+    "date": "2025-11-06 20:00:46 +0300",
+    "subject": "fix(theme): Category 1 - Theme Compliance System-Wide (20 fixes)",
+    "files": [
+      "PHASE_2_3_4_COMPLETE.md",
+      "components/CopilotWidget.tsx",
+      "components/marketplace/CatalogView.tsx",
+      "components/marketplace/ProductCard.tsx",
+      "docs/analysis/system-wide-issues-analysis.md",
+      "providers/Providers.tsx",
+      "qa/AutoFixAgent.tsx",
+      "tailwind.config.js"
+    ]
+  },
+  {
+    "hash": "786001cc26a0ad266be74b825f99b1e8801ac5eb",
+    "date": "2025-11-06 20:00:35 +0300",
+    "subject": "feat(phase4): Advanced Accessibility & Comprehensive PR Analysis",
+    "files": [
+      ".vscode/settings.json",
+      "components/aqar/MortgageCalculator.tsx",
+      "components/aqar/SearchFilters.tsx",
+      "docs/analysis/closed-pr-comprehensive-analysis.md",
+      "docs/troubleshooting/exit-code-5-memory-fix.md",
+      "next.config.js",
+      "package.json",
+      "scripts/cleanup-dev-cache.sh"
+    ]
+  },
+  {
+    "hash": "206267d5606e05daed2ade9bb92061e7ddb96a5a",
+    "date": "2025-11-06 13:59:40 +0000",
+    "subject": "docs: comprehensive PR review session report (2025-11-06)",
+    "files": [
+      "DAILY_PROGRESS_REPORTS/2025-11-06_PR_REVIEW_SESSION_DETAILED_REPORT.md"
+    ]
+  },
+  {
+    "hash": "aac3d803ad06a11fca9a5e94b861724a086c3bbf",
+    "date": "2025-11-05 17:10:59 +0300",
+    "subject": "feat(aqar): Phase 3 - Theme Compliance (#233)",
+    "files": [
+      "components/CopilotWidget.tsx",
+      "components/aqar/AgentCard.tsx",
+      "components/aqar/MortgageCalculator.tsx",
+      "components/aqar/PropertyCard.tsx",
+      "components/aqar/SearchFilters.tsx",
+      "tailwind.config.js"
+    ]
+  },
+  {
+    "hash": "7abca50d915413beadb1dd0c5d8fda514e283c1b",
+    "date": "2025-11-05 16:53:07 +0300",
+    "subject": "feat(aqar): Phase 2 - Integrate ContactActions Component (#231)",
+    "files": [
+      "components/aqar/AgentCard.tsx",
+      "components/aqar/PropertyCard.tsx"
+    ]
+  },
+  {
+    "hash": "8d0fe89e337a02f48c7bf5cae08b77c8e7bf7fa5",
+    "date": "2025-11-05 15:37:23 +0300",
+    "subject": "fix(security): Category A - Improper Navigation Fixes",
+    "files": [
+      "SYSTEM_AUDIT_FINDINGS.md",
+      "components/ClientLayout.tsx",
+      "components/aqar/AgentCard.tsx",
+      "components/aqar/PropertyCard.tsx"
+    ]
+  },
+  {
+    "hash": "b7b250880f4a114b4dea0face660db910812da89",
+    "date": "2025-11-05 15:16:04 +0300",
+    "subject": "feat(aqar): Architectural Improvements - Phase 1 (#227)",
+    "files": [
+      "components/aqar/ContactActions.test.tsx",
+      "components/aqar/ContactActions.tsx",
+      "utils/formatters.test.ts",
+      "utils/formatters.ts"
+    ]
+  },
+  {
+    "hash": "1753c282281aa6505cb4fbf6fdd9c056a3647af2",
+    "date": "2025-11-05 11:22:37 +0300",
+    "subject": "feat: cleanup deprecated hooks after migration (#223)",
+    "files": [
+      "docs/MIGRATION_DEPRECATED_HOOKS.md",
+      "hooks/__tests__/useUnsavedChanges.test.tsx",
+      "hooks/_deprecated_useFormDirtyState.ts",
+      "hooks/_deprecated_useUnsavedChanges.tsx"
+    ]
+  },
+  {
+    "hash": "b211a3c7279f71710178dbcd1b831267d09c1e67",
+    "date": "2025-11-05 11:18:01 +0300",
+    "subject": "feat: migrate FM page to useFormTracking hook (#222)",
+    "files": ["app/fm/page.tsx"]
+  },
+  {
+    "hash": "e876b2b4f6ea1043206cdce9cd95db06839d998d",
+    "date": "2025-11-05 11:09:59 +0300",
+    "subject": "fix: critical security vulnerabilities and architectural improvements in React hooks (#218)",
+    "files": [
+      "app/fm/page.tsx",
+      "components/common/SaveConfirmation.tsx",
+      "components/common/UnsavedChangesWarning.tsx",
+      "contexts/CurrentOrgContext.tsx",
+      "docs/MIGRATION_DEPRECATED_HOOKS.md",
+      "hooks/__tests__/useUnsavedChanges.test.tsx",
+      "hooks/_deprecated_useFormDirtyState.ts",
+      "hooks/_deprecated_useUnsavedChanges.tsx",
+      "hooks/useDebounce.ts",
+      "hooks/useFMPermissions.ts",
+      "hooks/useFormTracking.ts",
+      "hooks/useScreenSize.ts",
+      "tests/hooks/useDebounce.test.ts",
+      "tests/hooks/useFMPermissions.test.ts",
+      "tests/hooks/useFormTracking.test.tsx"
+    ]
+  },
+  {
+    "hash": "01f13a86be6336c9ddbf7b73c98bda37a2c19bec",
+    "date": "2025-11-05 03:34:51 +0000",
+    "subject": "refactor(qa): improve placeholder scanner to focus on critical issues",
+    "files": ["qa/scripts/scanPlaceholders.mjs"]
+  },
+  {
+    "hash": "223f9add8da1bea3e359b2020650f1a8a47ceb7c",
+    "date": "2025-11-05 03:29:58 +0000",
+    "subject": "fix: handle undefined dev process in verify script",
+    "files": ["qa/scripts/verify.mjs"]
+  },
+  {
+    "hash": "018636165056b82e1d79ecf661b714c92bb9a8a3",
+    "date": "2025-11-05 06:20:27 +0300",
+    "subject": "fix(critical): Multi-tenancy data isolation bug in CRUD factory (#204)",
+    "files": ["lib/api/crud-factory.ts", "server/middleware/withAuthRbac.ts"]
+  },
+  {
+    "hash": "016c6b06aae0d169a5f8243d2a5adc2c9c6f0206",
+    "date": "2025-11-05 06:14:31 +0300",
+    "subject": "fix(ui): Major Accessibility & Architectural Improvements (#202)",
+    "files": [
+      ".github/workflows/fixzit-quality-gates.yml",
+      "app/api/dev/demo-login/route.ts",
+      "components/i18n/CompactCurrencySelector.tsx",
+      "components/i18n/CompactLanguageSelector.tsx",
+      "components/topbar/GlobalSearch.tsx",
+      "components/topbar/QuickActions.tsx",
+      "components/ui/__tests__/label.test.tsx",
+      "components/ui/__tests__/select.test.tsx",
+      "components/ui/__tests__/tabs.test.tsx",
+      "components/ui/__tests__/textarea.test.tsx",
+      "components/ui/dialog.tsx",
+      "components/ui/label.tsx",
+      "components/ui/navigation-buttons.tsx",
+      "components/ui/select.tsx",
+      "components/ui/separator.tsx",
+      "components/ui/tabs.tsx",
+      "components/ui/textarea.tsx"
+    ]
+  },
+  {
+    "hash": "57cbad6182d38ad79c2b5c41d08b4acdcfbadeea",
+    "date": "2025-11-04 21:54:37 +0300",
+    "subject": "fix(finance): Performance optimizations and i18n improvements (#208)",
+    "files": [
+      "components/finance/AccountActivityViewer.tsx",
+      "components/finance/JournalEntryForm.tsx",
+      "hooks/useDebounce.ts"
+    ]
+  },
+  {
+    "hash": "87518bdfd9540c26c81ef74c444142f1fb544f10",
+    "date": "2025-11-04 21:35:12 +0300",
+    "subject": "fix(critical): SendGrid webhook timing attack and security hardening (#207)",
+    "files": ["app/api/webhooks/sendgrid/route.ts", "lib/sendgrid-config.ts"]
+  },
+  {
+    "hash": "74eb4e2db77796f0139f1b1b36d778d0e05d0acf",
+    "date": "2025-11-04 21:25:06 +0300",
+    "subject": "fix(critical): AWS Secrets Manager integration for JWT security (#206)",
+    "files": [
+      ".artifacts/pr_comments.json",
+      "lib/auth-middleware.ts",
+      "lib/auth.test.ts",
+      "lib/auth.ts",
+      "lib/authz.ts",
+      "lib/secrets.ts",
+      "server/middleware/withAuthRbac.ts",
+      "server/utils/tenant.ts",
+      "tests/unit/middleware.test.ts"
+    ]
+  },
+  {
+    "hash": "dd13c363fa44643ff7a6bbf3f0a5f6945712ee64",
+    "date": "2025-11-04 21:17:23 +0300",
+    "subject": "fix(critical): Approval engine data loss and tenant isolation bugs (#205)",
+    "files": ["lib/fm-approval-engine.ts"]
+  },
+  {
+    "hash": "c2666245e4db693e955ec951fc589956182d51d4",
+    "date": "2025-11-04 20:42:38 +0300",
+    "subject": "fix: Delete obsolete files causing architectural conflicts",
+    "files": [
+      "components/finance/TrialBalanceReport.OLD.tsx",
+      "config/modules.ts",
+      "lib/i18n.ts",
+      "lib/mongoUtils.ts",
+      "lib/rbac.ts",
+      "utils/rbac.ts"
+    ]
+  },
+  {
+    "hash": "a5ecd97459f9eaf4f8c2f3d974eabaeac5a25b45",
+    "date": "2025-11-04 19:22:33 +0300",
+    "subject": "fix: Test suite improvements - i18n, mongoose mocks, and utilities (#209)",
+    "files": [
+      "TEST_PROGRESS_SUMMARY.md",
+      "app/api/marketplace/categories/route.test.ts",
+      "app/api/marketplace/products/[slug]/route.test.ts",
+      "app/api/marketplace/search/route.test.ts",
+      "components/LoginPrompt.tsx",
+      "components/aqar/ViewingScheduler.tsx",
+      "components/fm/__tests__/WorkOrdersView.test.tsx",
+      "contexts/TranslationContext.test.tsx",
+      "i18n/dictionaries/__tests__/ar.test.ts",
+      "i18n/dictionaries/ar.ts",
+      "i18n/useI18n.test.ts",
+      "i18n/useI18n.ts",
+      "lib/ats/scoring.ts",
+      "lib/sendgrid-config.ts",
+      "lib/utils.test.ts",
+      "lib/utils.ts",
+      "lib/utils/role-formatter.ts",
+      "lib/utils/timestamp.ts",
+      "server/services/finance/postingService.ts",
+      "tests/debug/inspect-journal.test.ts",
+      "tests/finance/unit/posting.service.test.ts",
+      "tests/setup.ts",
+      "utils/format.test.ts",
+      "vitest.config.ts",
+      "vitest.setup.ts"
+    ]
+  }
+]
+
+]]>
+</file>
+
+<file path="docs/archived/reports/fm-module/FM_ORG_GUARD_COVERAGE.md">
+<![CDATA[
+# FM Module Org Guard Coverage Report
+
+**Generated:** November 18, 2025  
+**Purpose:** Track org guard implementation across all FM pages  
+**Priority:** P0 - Security Critical
+
+---
+
+## Coverage Summary
+
+**Total FM Pages:** ~30 pages  
+**Pages With Guards:** ~10 pages (33%)  
+**Pages Missing Guards:** 20+ pages (67%)  
+**Target:** 100% coverage before production deployment
+
+---
+
+## ✅ Pages WITH Org Guards (User Added)
+
+### Finance Module
+
+```
+✅ app/fm/finance/payments/page.tsx
+✅ app/fm/finance/invoices/page.tsx
+✅ app/fm/finance/budgets/page.tsx
+✅ app/fm/finance/expenses/page.tsx
+```
+
+### Properties Module
+
+```
+✅ app/fm/properties/page.tsx
+✅ app/fm/properties/[id]/page.tsx
+✅ app/fm/properties/units/page.tsx
+✅ app/fm/properties/leases/page.tsx
+```
+
+### System Module
+
+```
+✅ app/fm/system/integrations/page.tsx
+✅ app/fm/system/*/page.tsx (multiple)
+```
+
+### Support Module
+
+```
+✅ app/fm/support/tickets/page.tsx
+✅ app/fm/support/tickets/new/page.tsx
+```
+
+### Marketplace Module (Partial)
+
+```
+✅ app/fm/marketplace/listings/page.tsx
+✅ app/fm/marketplace/orders/page.tsx
+```
+
+### HR Module
+
+```
+✅ app/fm/hr/directory/page.tsx
+```
+
+---
+
+## ❌ Pages MISSING Org Guards (Require Implementation)
+
+### Work Orders Module (6 pages) - CRITICAL
+
+**ModuleId to use:** `'work_orders'`
+
+```
+❌ app/fm/work-orders/page.tsx
+❌ app/fm/work-orders/pm/page.tsx
+❌ app/fm/work-orders/board/page.tsx
+❌ app/fm/work-orders/new/page.tsx
+❌ app/fm/work-orders/history/page.tsx
+❌ app/fm/work-orders/approvals/page.tsx
+```
+
+**Implementation Pattern:**
+
+```typescript
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+
+export default function WorkOrdersPage() {
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({
+    moduleId: "work_orders",
+  });
+
+  if (guard) return guard;
+
+  // Existing page code...
+}
+```
+
+---
+
+### Vendors Module (3 pages) - CRITICAL
+
+**ModuleId to use:** `'vendors'`
+
+```
+❌ app/fm/vendors/page.tsx
+❌ app/fm/vendors/[id]/page.tsx
+❌ app/fm/vendors/[id]/edit/page.tsx
+```
+
+**Implementation Pattern:**
+
+```typescript
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+
+export default function VendorsPage() {
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({
+    moduleId: "vendors",
+  });
+
+  if (guard) return guard;
+
+  // Existing page code...
+}
+```
+
+---
+
+### Invoices Module (2 pages) - HIGH PRIORITY
+
+**ModuleId to use:** `'finance'` (invoices are part of finance)
+
+```
+❌ app/fm/invoices/page.tsx
+❌ app/fm/invoices/new/page.tsx
+```
+
+**Implementation Pattern:**
+
+```typescript
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+
+export default function InvoicesPage() {
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({
+    moduleId: "finance",
+  });
+
+  if (guard) return guard;
+
+  // Existing page code...
+}
+```
+
+---
+
+### CRM Module (3 pages) - HIGH PRIORITY
+
+**ModuleId to use:** `'crm'`
+
+```
+❌ app/fm/crm/page.tsx
+❌ app/fm/crm/leads/new/page.tsx
+❌ app/fm/crm/accounts/new/page.tsx
+```
+
+**Implementation Pattern:**
+
+```typescript
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+
+export default function CRMPage() {
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({
+    moduleId: "crm",
+  });
+
+  if (guard) return guard;
+
+  // Existing page code...
+}
+```
+
+---
+
+### Marketplace Module - Additional Pages (4 pages) - MEDIUM PRIORITY
+
+**ModuleId to use:** `'marketplace'`
+
+```
+❌ app/fm/marketplace/page.tsx
+❌ app/fm/marketplace/vendors/new/page.tsx
+❌ app/fm/marketplace/listings/new/page.tsx
+❌ app/fm/marketplace/orders/new/page.tsx
+```
+
+**Note:** Some marketplace pages already have guards (listings, orders). These are the remaining ones.
+
+**Implementation Pattern:**
+
+```typescript
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+
+export default function MarketplacePage() {
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({
+    moduleId: "marketplace",
+  });
+
+  if (guard) return guard;
+
+  // Existing page code...
+}
+```
+
+---
+
+### Tenants Module (2 pages) - MEDIUM PRIORITY
+
+**ModuleId to use:** `'tenants'`
+
+```
+❌ app/fm/tenants/page.tsx
+❌ app/fm/tenants/new/page.tsx
+```
+
+**Implementation Pattern:**
+
+```typescript
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+
+export default function TenantsPage() {
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({
+    moduleId: "tenants",
+  });
+
+  if (guard) return guard;
+
+  // Existing page code...
+}
+```
+
+---
+
+### Single-Page Modules (3+ pages) - VARIOUS PRIORITIES
+
+#### Projects Page - HIGH PRIORITY
+
+**ModuleId to use:** `'administration'` (or add 'projects' to ModuleId if needed)
+
+```
+❌ app/fm/projects/page.tsx
+```
+
+#### RFQs Page - MEDIUM PRIORITY
+
+**ModuleId to use:** `'administration'` (or add 'rfqs' to ModuleId if needed)
+
+```
+❌ app/fm/rfqs/page.tsx
+```
+
+#### Admin Page - MEDIUM PRIORITY
+
+**ModuleId to use:** `'administration'`
+
+```
+❌ app/fm/admin/page.tsx
+```
+
+#### Compliance Page - MEDIUM PRIORITY
+
+**ModuleId to use:** `'compliance'`
+
+```
+❌ app/fm/compliance/page.tsx
+```
+
+#### Dashboard Page - LOW PRIORITY (if applicable)
+
+**ModuleId to use:** `'dashboard'`
+
+```
+❌ app/fm/dashboard/page.tsx (if missing guard)
+```
+
+---
+
+## ModuleId Type Reference
+
+**Location:** `config/navigation.ts` line 272
+
+**Current Definition (Confirmed):**
+
+```typescript
+export type ModuleId =
+  | "dashboard"
+  | "work_orders" // ✅ Available
+  | "properties" // ✅ Available
+  | "tenants" // ✅ Available
+  | "finance" // ✅ Available (use for invoices)
+  | "hr" // ✅ Available
+  | "administration" // ✅ Available (use for admin/projects/rfqs)
+  | "crm" // ✅ Available
+  | "marketplace" // ✅ Available
+  | "vendors" // ✅ Available
+  | "support" // ✅ Available
+  | "compliance" // ✅ Available
+  | "reports" // ✅ Available
+  | "system"; // ✅ Available
+```
+
+**Good News:** All needed ModuleId values already exist! No type extensions required.
+
+---
+
+## Implementation Priority Matrix
+
+### Priority 0: CRITICAL (Security Risk)
+
+**Estimated Time:** 1.5 hours  
+**Pages:** 12 pages
+
+- Work Orders (6 pages) - 45 min
+- Vendors (3 pages) - 20 min
+- CRM (3 pages) - 25 min
+
+**Risk:** Unauthorized access to tenant-specific work orders, vendor data, CRM records
+
+---
+
+### Priority 1: HIGH (Important Data)
+
+**Estimated Time:** 30 min  
+**Pages:** 4 pages
+
+- Invoices (2 pages) - 15 min
+- Projects (1 page) - 5 min
+- Tenants (2 pages) - 10 min
+
+**Risk:** Unauthorized access to financial data, project information, tenant records
+
+---
+
+### Priority 2: MEDIUM (Less Sensitive)
+
+**Estimated Time:** 30 min  
+**Pages:** 5+ pages
+
+- Marketplace additional pages (4 pages) - 20 min
+- RFQs (1 page) - 5 min
+- Admin (1 page) - 5 min
+- Compliance (1 page) - 5 min
+
+**Risk:** Moderate - less sensitive data but still needs protection
+
+---
+
+## Verification Commands
+
+### Find All Missing Guards
+
+```bash
+find app/fm -name "page.tsx" -type f | while read file; do
+  grep -L "useFmOrgGuard\|useSupportOrg" "$file" && echo "$file"
+done
+```
+
+### Check Specific Module
+
+```bash
+grep -r "useFmOrgGuard" app/fm/work-orders/
+# Should show imports and usage in all work-orders pages
+```
+
+### Verify ModuleId Type
+
+```bash
+grep -A 15 "^export type ModuleId" config/navigation.ts
+```
+
+### Run Official Verification Script (if exists)
+
+```bash
+./scripts/check-org-guards.sh
+```
+
+---
+
+## Testing Checklist
+
+After implementing guards on each page, test:
+
+### Automated Testing
+
+- [ ] Run TypeScript compilation: `pnpm exec tsc --noEmit`
+- [ ] No new errors introduced
+- [ ] Verify guard script: `./scripts/check-org-guards.sh`
+- [ ] Confirm 0 missing guards reported
+
+### Manual Testing (Per Module)
+
+- [ ] Start dev server: `pnpm dev`
+- [ ] Login as superadmin@fixzit.com
+- [ ] Navigate to guarded page (e.g., `/fm/work-orders`)
+- [ ] Verify org selection prompt appears
+- [ ] Select test organization
+- [ ] Verify page content loads
+- [ ] Verify context banner displays
+- [ ] Navigate to another page in same module
+- [ ] Verify org context persists (no re-prompt)
+- [ ] Clear org selection
+- [ ] Navigate back to page
+- [ ] Verify prompt reappears
+
+---
+
+## Known Issues & Considerations
+
+### Issue 1: Org Context Clearing
+
+**Description:** Need to verify clearing behavior works across all pages  
+**Test:** Clear org → navigate to guarded page → verify prompt appears  
+**Status:** Pending manual testing
+
+### Issue 2: Non-Superadmin Users
+
+**Description:** Regular FM users should not see org switcher  
+**Test:** Login as non-superadmin → verify auto-assignment or "contact admin" message  
+**Status:** Pending manual testing
+
+### Issue 3: API Request Headers
+
+**Description:** Verify `x-org-id` header sent with API calls  
+**Test:** DevTools Network tab → select org → make API call → check headers  
+**Status:** Pending manual testing
+
+---
+
+## Implementation Workflow
+
+### Step 1: Work Orders Module (45 min)
+
+1. Open `app/fm/work-orders/page.tsx`
+2. Add useFmOrgGuard import
+3. Add guard logic at component start
+4. Test locally
+5. Repeat for 5 remaining work-orders pages
+6. Verify: `grep -r "useFmOrgGuard" app/fm/work-orders/`
+
+### Step 2: Vendors Module (20 min)
+
+1. Open `app/fm/vendors/page.tsx`
+2. Add useFmOrgGuard import
+3. Add guard logic at component start
+4. Test locally
+5. Repeat for 2 remaining vendor pages
+6. Verify: `grep -r "useFmOrgGuard" app/fm/vendors/`
+
+### Step 3: CRM Module (25 min)
+
+1. Open `app/fm/crm/page.tsx`
+2. Add useFmOrgGuard import
+3. Add guard logic at component start
+4. Test locally
+5. Repeat for 2 remaining CRM pages
+6. Verify: `grep -r "useFmOrgGuard" app/fm/crm/`
+
+### Step 4: Remaining Pages (1 hour)
+
+1. Follow same pattern for invoices, marketplace, tenants, projects, rfqs, admin, compliance
+2. Test each module after implementation
+3. Run full verification at end
+
+### Step 5: Final Validation (15 min)
+
+```bash
+# Check for missing guards:
+find app/fm -name "page.tsx" -type f | while read file; do
+  grep -L "useFmOrgGuard\|useSupportOrg" "$file" && echo "$file"
+done
+
+# Expected output: (empty - all pages have guards)
+
+# Run deployment check:
+./scripts/verify-deployment-readiness.sh
+
+# Expected: Org guard check passes ✅
+```
+
+---
+
+## Rollout Plan
+
+### Phase 1: Critical Pages (Day 1 - 1.5 hours)
+
+- Work Orders (6 pages)
+- Vendors (3 pages)
+- CRM (3 pages)
+- **Coverage:** 12/20 pages (60% → 90%)
+
+### Phase 2: High Priority Pages (Day 1 - 30 min)
+
+- Invoices (2 pages)
+- Projects (1 page)
+- Tenants (2 pages)
+- **Coverage:** 17/20 pages (85% → 95%)
+
+### Phase 3: Remaining Pages (Day 2 - 30 min)
+
+- Marketplace additional (4 pages)
+- RFQs, Admin, Compliance (3 pages)
+- **Coverage:** 20/20 pages (100%)
+
+### Phase 4: Testing & Validation (Day 2 - 1 hour)
+
+- Manual smoke tests
+- Verification scripts
+- Documentation updates
+- **Deployment:** READY ✅
+
+---
+
+## Success Metrics
+
+### Code Coverage
+
+- **Current:** 33% (10/30 pages)
+- **Target:** 100% (30/30 pages)
+- **Critical Path:** 90% (27/30 pages)
+
+### Security Posture
+
+- **Current:** VULNERABLE (20 pages unprotected)
+- **After Phase 1:** IMPROVED (12 pages protected)
+- **After Phase 3:** SECURE (all pages protected)
+
+### Deployment Readiness
+
+- **Current:** NOT READY (missing guards block deployment)
+- **After Implementation:** READY (with TypeScript fixes)
+
+---
+
+## Contact & Support
+
+**Implementation Questions:** engineering@fixzit.sa  
+**Guard Pattern Reference:** `components/fm/useFmOrgGuard.tsx`  
+**ModuleId Type:** `config/navigation.ts` line 272  
+**Documentation:** `CODE_QUALITY_IMPROVEMENTS_REPORT.md`
+
+---
+
+**Report Generated:** November 18, 2025  
+**Next Update:** After Phase 1 completion  
+**Target Completion:** Before production deployment
+
+]]>
+</file>
+
+<file path="docs/archived/reports/fm-module/FM_PROGRESS_SESSION_SUMMARY.md">
+<![CDATA[
+# FM Module Progress Report - Session Summary
+
+**Date:** December 2024  
+**Session Duration:** ~2 hours  
+**Overall Progress:** 25% Complete (up from 0%)
+
+---
+
+## ✅ COMPLETED PHASES
+
+### Phase 1.1: Security Fixes - Organization Guards ✅ COMPLETE
+
+**Status:** 100% Complete  
+**Time:** 90 minutes  
+**Impact:** CRITICAL - Eliminated cross-tenant data access vulnerability
+
+#### What Was Fixed:
+
+- **26 pages** updated with proper org guards
+- Guard coverage: **65% → 100%** (75/75 pages)
+- All FM pages now use `useFmOrgGuard` with proper moduleId
+- Consistent security pattern across entire module
+
+#### Files Modified:
+
+1. Vendors module (3 files) ✅
+2. Tenants module (2 files) ✅
+3. Projects & RFQs (2 files) ✅
+4. Admin & Dashboard (2 files) ✅
+5. System module (2 files) ✅
+6. Properties & Support (3 files) ✅
+7. Finance module (5 files) ✅
+8. Miscellaneous (6 files) ✅
+
+**Verification:** ✅ TypeScript: 0 errors | ✅ Guard coverage: 100%
+
+**Documentation:** `FM_PHASE_1.1_COMPLETE.md`
+
+---
+
+### Phase 1.2: Type System Consolidation ✅ COMPLETE
+
+**Status:** 100% Complete  
+**Time:** 30 minutes  
+**Impact:** HIGH - Single source of truth for FM types
+
+#### What Was Created:
+
+##### 1. `types/fm/work-order.ts` (437 lines)
+
+**Purpose:** Unified Work Order types consolidating 3 duplicate sources
+
+**Key Exports:**
+
+- `WOStatus` enum (11 states FSM)
+- `WOPriority` enum (4 levels)
+- `WOCategory` enum (11 categories)
+- `WorkOrder` interface (complete)
+- `WorkOrderFormData` interface
+- `WorkOrderFilters` interface
+- `WorkOrderStats` interface
+- Type conversion utilities:
+  - `toEnumStatus()` / `toUIStatus()`
+  - `toEnumPriority()` / `toUIPriority()`
+  - `isFinalStatus()`
+
+**Replaced:**
+
+- `types/work-orders.ts` (partial)
+- `lib/models/index.ts` WOStatus enum (6 states)
+- Inline types in `domain/fm/fm.behavior.ts`
+
+##### 2. `types/fm/enums.ts` (408 lines)
+
+**Purpose:** Complete enum library for FM module
+
+**Enums Defined (23 total):**
+
+- **RBAC:** `FMRole` (12 roles), `FMAction` (20+ actions), `FMModule` (12 modules)
+- **Work Orders:** `WOStatus`, `WOPriority`, `WOCategory`
+- **Properties:** `PropertyType`, `PropertyStatus`, `UnitStatus`
+- **Tenants:** `TenancyStatus`, `TenantType`
+- **Vendors:** `VendorStatus`, `VendorType`
+- **Finance:** `InvoiceStatus`, `PaymentStatus`, `PaymentMethod`, `ExpenseCategory`
+- **Notifications:** `NotificationType`, `NotificationChannel`, `NotificationPriority`
+- **Assets:** `AssetStatus`, `AssetType`
+- **Maintenance:** `MaintenanceType`, `MaintenanceFrequency`
+- **Reports:** `ReportType`, `ReportFormat`, `ReportFrequency`
+- **System:** `SubscriptionPlan`
+
+##### 3. `types/fm/index.ts` (58 lines)
+
+**Purpose:** Central export point for all FM types
+
+**Usage:**
+
+```typescript
+import { WorkOrder, WOStatus, FMRole } from "@/types/fm";
+```
+
+**Benefits:**
+
+- ✅ Single source of truth
+- ✅ No duplicate enums
+- ✅ Type-safe across frontend/backend
+- ✅ Easy imports from one location
+
+---
+
+### Phase 1.3: API Endpoints - IN PROGRESS (15% complete)
+
+**Status:** IN PROGRESS  
+**Time:** 30 minutes (of estimated 20 hours)  
+**Impact:** CRITICAL - FM module non-functional without API layer
+
+#### What Has Been Created (3 endpoints):
+
+##### 1. `/api/fm/work-orders/route.ts` ✅
+
+**Methods:** GET, POST
+
+**GET Features:**
+
+- Tenant isolation via `x-tenant-id` header
+- Filtering: status, priority, property, assignee
+- Search: title, description, work order number
+- Pagination: page, limit
+- Returns: WorkOrder[] with pagination metadata
+
+**POST Features:**
+
+- Create new work order
+- Auto-generate work order number (format: WO-YYYYMMDD-XXXX)
+- Set initial status: NEW
+- Calculate SLA based on priority
+- Returns: Created WorkOrder with ID
+
+##### 2. `/api/fm/work-orders/[id]/route.ts` ✅
+
+**Methods:** GET, PATCH, DELETE
+
+**GET Features:**
+
+- Fetch single work order with full details
+- Tenant isolation enforced
+
+**PATCH Features:**
+
+- Partial update (only provided fields)
+- Allowed fields: title, description, status, priority, category, assignments, dates, costs
+- Auto-update timestamps
+
+**DELETE Features:**
+
+- Soft delete (sets status to CLOSED)
+- Preserves data with deletedAt timestamp
+
+##### 3. `/api/fm/work-orders/[id]/transition/route.ts` ✅
+
+**Methods:** POST
+
+**FSM Transition Features:**
+
+- Validates state transitions per FSM rules
+- 11-state workflow enforcement
+- Prevents invalid transitions
+- Auto-sets timestamps (startedAt, completedAt)
+- Creates timeline entries
+- Returns allowed transitions on error
+
+**FSM Rules Implemented:**
+
+```
+NEW → ASSESSMENT → ESTIMATE_PENDING → QUOTATION_REVIEW →
+PENDING_APPROVAL → APPROVED → IN_PROGRESS → WORK_COMPLETE →
+QUALITY_CHECK (optional) → FINANCIAL_POSTING → CLOSED
+```
+
+---
+
+## 🚧 IN PROGRESS / REMAINING WORK
+
+### Phase 1.3 Remaining (85% to go) - PRIORITY: P0
+
+**Estimated Time:** 19.5 hours remaining
+
+#### Critical Endpoints Still Needed:
+
+##### Work Orders (5 more endpoints)
+
+- [ ] `/api/fm/work-orders/[id]/assign` - POST (assign technician)
+- [ ] `/api/fm/work-orders/[id]/comments` - GET, POST (comments/notes)
+- [ ] `/api/fm/work-orders/[id]/timeline` - GET (activity history)
+- [ ] `/api/fm/work-orders/[id]/attachments` - GET, POST, DELETE (file uploads)
+- [ ] `/api/fm/work-orders/stats` - GET (dashboard statistics)
+
+##### Properties Module (6 endpoints)
+
+- [ ] `/api/fm/properties` - GET, POST (list, create property)
+- [ ] `/api/fm/properties/[id]` - GET, PATCH, DELETE (property CRUD)
+- [ ] `/api/fm/properties/[id]/units` - GET (units for property)
+
+##### Vendors Module (3 endpoints)
+
+- [ ] `/api/fm/vendors` - GET, POST
+- [ ] `/api/fm/vendors/[id]` - GET, PATCH, DELETE
+
+##### Tenants Module (3 endpoints)
+
+- [ ] `/api/fm/tenants` - GET, POST
+- [ ] `/api/fm/tenants/[id]` - GET, PATCH, DELETE
+
+##### Finance Module (8 endpoints)
+
+- [ ] `/api/fm/finance/invoices` - GET, POST
+- [ ] `/api/fm/finance/invoices/[id]` - GET, PATCH, DELETE
+- [ ] `/api/fm/finance/payments` - GET, POST
+- [ ] `/api/fm/finance/payments/[id]` - GET, PATCH
+- [ ] `/api/fm/finance/expenses` - GET, POST
+- [ ] `/api/fm/finance/budgets` - GET, POST
+- [ ] `/api/fm/finance/reports` - GET (financial reports)
+
+##### Dashboard & Stats (2 endpoints)
+
+- [ ] `/api/fm/dashboard/stats` - GET (overview statistics)
+- [ ] `/api/fm/dashboard/recent` - GET (recent activity)
+
+##### Approvals Module (3 endpoints)
+
+- [ ] `/api/fm/approvals` - GET (pending approvals)
+- [ ] `/api/fm/approvals/[id]/approve` - POST
+- [ ] `/api/fm/approvals/[id]/reject` - POST
+
+**Total Remaining:** ~30 endpoints
+
+---
+
+### Phase 1.4: Mongoose Model Registration (2h)
+
+**Status:** NOT STARTED  
+**Blockers:** Needs API endpoints first
+
+- [ ] Export models from `domain/fm/fm.behavior.ts`
+- [ ] Register with MongoDB collections
+- [ ] Add model guards to prevent re-registration
+
+---
+
+### Phase 1.5: Permission Middleware (2h)
+
+**Status:** NOT STARTED  
+**Blockers:** Needs API endpoints first
+
+- [ ] Create `can()` permission checker
+- [ ] Integrate with RBAC from domain model
+- [ ] Add to all API endpoints
+- [ ] Role-based access control enforcement
+
+---
+
+### Phase 1.6: Verification & Testing (2h)
+
+**Status:** NOT STARTED  
+**Blockers:** Needs API endpoints first
+
+- [ ] API endpoint testing
+- [ ] Integration tests
+- [ ] FSM transition validation
+- [ ] Error handling verification
+
+---
+
+## 📊 PROGRESS METRICS
+
+### Overall Completion
+
+```
+Phase 1.1: ████████████████████ 100% ✅
+Phase 1.2: ████████████████████ 100% ✅
+Phase 1.3: ███░░░░░░░░░░░░░░░░░  15% 🚧
+Phase 1.4: ░░░░░░░░░░░░░░░░░░░░   0% 📋
+Phase 1.5: ░░░░░░░░░░░░░░░░░░░░   0% 📋
+Phase 1.6: ░░░░░░░░░░░░░░░░░░░░   0% 📋
+───────────────────────────────────────
+Total:     █████░░░░░░░░░░░░░░░  25%
+```
+
+### Time Investment
+
+- **Completed:** 2 hours
+- **Remaining:** ~25 hours
+- **Total Estimated:** 40 hours (Phase 1 only)
+
+### Code Statistics
+
+- **Files Created:** 6
+- **Files Modified:** 26
+- **Lines Added:** ~1,500+
+- **API Endpoints:** 3 created, 30+ remaining
+
+---
+
+## 🎯 NEXT IMMEDIATE STEPS
+
+### Priority 1: Complete Work Orders API (3h)
+
+Finish remaining 5 work order endpoints to enable basic WO functionality:
+
+1. Assign endpoint (critical for workflow)
+2. Comments endpoint (user feedback)
+3. Timeline endpoint (audit trail)
+4. Attachments endpoint (media uploads)
+5. Stats endpoint (dashboard metrics)
+
+### Priority 2: Properties API (2h)
+
+Properties are foundation for all FM operations:
+
+1. CRUD endpoints
+2. Units relationship
+3. Property filtering
+
+### Priority 3: Dashboard Stats (1h)
+
+Enable dashboard to show live data:
+
+1. Aggregate statistics
+2. Recent activity feed
+
+### Priority 4: Vendors & Tenants (2h each)
+
+Core relationship data:
+
+1. Basic CRUD for both
+2. Filtering and search
+
+---
+
+## 🔴 BLOCKERS & RISKS
+
+### Current Blockers:
+
+- **None** - All dependencies resolved
+
+### Risks:
+
+1. **API Scope Creep:** 30+ endpoints is substantial work
+   - **Mitigation:** Prioritize core CRUD first, advanced features later
+2. **Testing Coverage:** No tests created yet
+   - **Mitigation:** Phase 1.6 dedicated to verification
+
+3. **Integration Complexity:** API must work with existing domain model
+   - **Mitigation:** FSM rules already validated in transition endpoint
+
+---
+
+## 📝 KEY DECISIONS MADE
+
+1. **Type Consolidation Strategy:**
+   - Created new `types/fm/` directory as single source
+   - Preserved backward compatibility with UI string types
+   - Added conversion utilities for enum ↔ string
+
+2. **API Design Patterns:**
+   - RESTful with Next.js 13+ route handlers
+   - Tenant isolation via `x-tenant-id` header
+   - Soft deletes (preserve data)
+   - Pagination with metadata
+   - FSM validation on transitions
+
+3. **Security Approach:**
+   - Guard hooks at page level (Phase 1.1) ✅
+   - Permission middleware at API level (Phase 1.5)
+   - Tenant isolation at database level
+
+---
+
+## 🎓 LESSONS LEARNED
+
+1. **Batch Processing Works:** Fixing 26 pages in batches of 5 was highly efficient
+2. **Type Safety Matters:** Consolidating types early prevents downstream issues
+3. **FSM Complexity:** 11-state workflow needs careful validation logic
+4. **MongoDB Integration:** Type conversion needed between MongoDB documents and TypeScript interfaces
+
+---
+
+## 📚 DOCUMENTATION CREATED
+
+1. `FM_MODULE_COMPREHENSIVE_AUDIT.md` - Master 150-hour action plan
+2. `FM_PHASE_1.1_COMPLETE.md` - Security fix summary
+3. `FM_PROGRESS_SESSION_SUMMARY.md` - This document
+4. `types/fm/work-order.ts` - Inline JSDoc documentation
+5. `types/fm/enums.ts` - Inline JSDoc documentation
+
+---
+
+## 🚀 CONTINUATION STRATEGY
+
+When resuming work, follow this sequence:
+
+1. **Complete Work Orders API** (3h)
+   - Implement remaining 5 WO endpoints
+   - Test FSM transitions end-to-end
+2. **Build Dashboard Stats Endpoint** (1h)
+   - Aggregate data for dashboard
+   - Enable real-time metrics
+3. **Implement Properties CRUD** (2h)
+   - Foundation for all FM operations
+4. **Add Vendors & Tenants** (4h)
+   - Core relationship management
+5. **Finance Module APIs** (8h)
+   - Critical for invoicing and payments
+
+6. **Permission Middleware** (2h)
+   - Secure all endpoints with RBAC
+
+7. **Testing & Verification** (2h)
+   - Integration tests
+   - Error handling validation
+
+**Estimated Time to Phase 1 Complete:** 22 hours
+
+---
+
+## 📞 HANDOFF NOTES
+
+**For Next Developer/Session:**
+
+- All Phase 1.1 files committed with proper org guards ✅
+- Type system in `types/fm/` is production-ready ✅
+- First 3 API endpoints functional and tested ✅
+- FSM transition logic validated ✅
+- MongoDB collection naming: `workorders`, `workorder_timeline`
+- Tenant isolation: Always check `x-tenant-id` header
+- Status enum: Use `WOStatus` from `@/types/fm`
+
+**Critical Files to Review:**
+
+- `types/fm/work-order.ts` - Master type definitions
+- `app/api/fm/work-orders/[id]/transition/route.ts` - FSM reference implementation
+- `domain/fm/fm.behavior.ts` - Complete RBAC and FSM rules
+
+---
+
+**Status:** Ready for Phase 1.3 completion  
+**Next Task:** Implement `/api/fm/work-orders/[id]/assign` endpoint  
+**Estimated Completion:** 22 hours remaining
+
+---
+
+_Generated: December 2024_  
+_Session Progress: 25% → Target: 100%_
+
+]]>
+</file>
+
+<file path="docs/archived/reports/fm-module/FM_SOUQ_STATUS_REPORT.md">
+<![CDATA[
+# FM & Souq Module Status Report
+
+**Date:** November 19, 2025  
+**Status:** ✅ Active work complete - Guards implemented, tests passing  
+**Overall Progress:** 80% complete (140/175 items)
+
+---
+
+## Executive Summary
+
+All active work on FM properties and Souq orders is complete. Both modules now enforce proper RBAC and tenant context validation with comprehensive test coverage. All unit tests pass locally. The system is ready for production with documented next steps for remaining endpoint implementation.
+
+### Key Achievements
+
+✅ **FM Properties Route** - Full GET/POST implementation with guards + 224-line test suite  
+✅ **Souq Orders Route** - Org-level checks via auth() + 181-line mocked Vitest suite  
+✅ **FM RBAC Guards** - All 6 existing FM routes use `requireFmPermission` + `resolveTenantId`  
+✅ **Test Coverage** - 5 test suites passing (properties, orders, transition, attachments, stats)  
+✅ **TypeScript** - Zero compilation errors across all changes
+
+---
+
+## 1. FM Module Status
+
+### ✅ Completed Work
+
+#### FM Properties Route (`app/api/fm/properties/route.ts`)
+
+- **Implementation**: GET/POST handlers with full RBAC enforcement
+- **Guards**: `requireFmPermission` for authorization, `resolveTenantId` for tenant context
+- **Test Coverage**: 224 lines in `tests/unit/api/fm/properties/route.test.ts`
+- **Test Status**: ✅ PASSING locally
+- **Features**:
+  - Multi-tenant property listing with filtering
+  - Property creation with validation
+  - Error handling with FMErrors helper
+  - Pagination and sorting support
+
+#### FM Work Orders Routes (Already Complete)
+
+All existing FM work-order routes properly implement guards:
+
+1. **`app/api/fm/work-orders/[id]/route.ts`**
+   - GET/PATCH/DELETE with `resolveTenantId`
+   - Full RBAC enforcement
+
+2. **`app/api/fm/work-orders/[id]/transition/route.ts`**
+   - POST with guards + tests ✅
+   - State machine transitions
+
+3. **`app/api/fm/work-orders/[id]/assign/route.ts`**
+   - POST with guards
+   - Assignment validation
+
+4. **`app/api/fm/work-orders/[id]/attachments/route.ts`**
+   - GET/POST/DELETE with guards + tests ✅
+   - File upload handling
+
+5. **`app/api/fm/work-orders/stats/route.ts`**
+   - GET with guards + tests ✅
+   - Analytics aggregation
+
+### ⏳ Pending FM Endpoints
+
+The following FM CRUD endpoints are not yet implemented:
+
+1. **Properties Detail** - `app/api/fm/properties/[id]/route.ts`
+   - PATCH: Update property details
+   - DELETE: Soft-delete or archive property
+   - Status: Not implemented
+
+2. **Tenants** - `app/api/fm/tenants/route.ts`
+   - GET: List tenants with filtering
+   - POST: Create new tenant
+   - PATCH: Update tenant details
+   - DELETE: Archive tenant
+   - Status: Not implemented
+
+3. **Leases** - `app/api/fm/leases/route.ts`
+   - Full CRUD for lease management
+   - Status: Not implemented
+
+4. **Vendors** - `app/api/fm/vendors/route.ts`
+   - Full CRUD for vendor management
+   - Status: Not implemented
+
+5. **Contracts** - `app/api/fm/contracts/route.ts`
+   - Full CRUD for contract management
+   - Status: Not implemented
+
+6. **Budgets** - `app/api/fm/budgets/route.ts`
+   - Full CRUD for budget management
+   - Status: Not implemented
+
+### Implementation Pattern for New FM Endpoints
+
+All new FM endpoints MUST follow this pattern:
+
+```typescript
+import { NextRequest, NextResponse } from "next/server";
+import { requireFmPermission } from "@/app/api/fm/permissions";
+import { resolveTenantId } from "../utils/tenant"; // Use relative path
+import { FMErrors } from "@/app/api/fm/errors";
+import { getDatabase } from "@/lib/mongodb-unified";
+
+export async function GET(req: NextRequest) {
+  try {
+    // 1. Enforce RBAC
+    const actor = await requireFmPermission(req, {
+      resource: "tenants",
+      action: "read",
+    });
+
+    // 2. Resolve tenant context
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+    );
+    if (!tenantResolution.tenantId) {
+      return FMErrors.noTenantContext();
+    }
+
+    // 3. Business logic with tenant scoping
+    const db = await getDatabase();
+    const tenants = await db
+      .collection("fm_tenants")
+      .find({ tenantId: tenantResolution.tenantId })
+      .toArray();
+
+    return NextResponse.json({ tenants });
+  } catch (error) {
+    return FMErrors.handleError(error);
+  }
+}
+```
+
+### Test Pattern for New FM Endpoints
+
+Follow the `tests/unit/api/fm/properties/route.test.ts` pattern:
+
+```typescript
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { ObjectId } from "mongodb";
+
+// Mock dependencies
+vi.mock("@/lib/mongodb-unified", () => ({ getDatabase: vi.fn() }));
+vi.mock("@/lib/logger", () => ({ logger: { error: vi.fn() } }));
+vi.mock("@/app/api/fm/permissions", () => ({ requireFmPermission: vi.fn() }));
+vi.mock("@/app/api/fm/utils/tenant", () => ({
+  resolveTenantId: vi.fn(() => ({ tenantId: "tenant-1", source: "session" })),
+}));
+
+import { GET, POST } from "@/app/api/fm/tenants/route";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { requireFmPermission } from "@/app/api/fm/permissions";
+
+describe("FM Tenants API", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should list tenants with tenant scoping", async () => {
+    // Setup mocks
+    const mockFind = vi.fn().mockReturnValue({
+      sort: vi.fn().mockReturnThis(),
+      skip: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      toArray: vi
+        .fn()
+        .mockResolvedValue([{ _id: new ObjectId(), name: "Tenant A" }]),
+    });
+
+    (getDatabase as any).mockResolvedValue({
+      collection: vi.fn().mockReturnValue({ find: mockFind }),
+    });
+
+    (requireFmPermission as any).mockResolvedValue({
+      userId: "user-1",
+      orgId: "org-1",
+    });
+
+    // Execute
+    const req = new Request("http://localhost/api/fm/tenants");
+    const response = await GET(req as any);
+    const data = await response.json();
+
+    // Assert
+    expect(response.status).toBe(200);
+    expect(data.tenants).toHaveLength(1);
+    expect(mockFind).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: "tenant-1",
+      }),
+    );
+  });
+});
+```
+
+---
+
+## 2. Souq Module Status
+
+### ✅ Completed Work
+
+#### Souq Orders Route (`app/api/souq/orders/route.ts`)
+
+- **Implementation**: Organization-level access control via `auth()`
+- **Validation**: Enforces `session.user.orgId` on all operations
+- **Test Coverage**: 181 lines in `tests/unit/api/souq/orders/route.test.ts`
+- **Test Status**: ✅ PASSING locally
+- **Features**:
+  - Order listing with org scoping
+  - Order creation with listing validation
+  - Mocked auth() session handling
+  - Error handling with logger
+
+#### Test Implementation Highlights
+
+```typescript
+// Mock auth() with configurable session
+let currentSession: Record<string, unknown> | null = null;
+vi.mock("@/auth", () => ({
+  auth: vi.fn(async () => currentSession),
+}));
+
+describe("Souq Orders API", () => {
+  it("should create order with org scoping", async () => {
+    currentSession = {
+      user: { id: "user-1", orgId: "org-abc", role: "buyer" },
+    };
+
+    const req = new NextRequest("http://localhost/api/souq/orders", {
+      method: "POST",
+      body: JSON.stringify({
+        listingId: "listing-1",
+        quantity: 5,
+      }),
+    });
+
+    const response = await POST(req);
+    const data = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(data.order.buyerOrgId).toBe("org-abc");
+  });
+
+  it("should reject requests without orgId", async () => {
+    currentSession = { user: { id: "user-1" } }; // No orgId
+
+    const req = new NextRequest("http://localhost/api/souq/orders");
+    const response = await GET(req);
+
+    expect(response.status).toBe(403);
+  });
+});
+```
+
+---
+
+## 3. Test Suite Status
+
+### ✅ Passing Unit Tests
+
+All the following tests pass when run individually:
+
+1. **FM Properties**: `pnpm vitest tests/unit/api/fm/properties/route.test.ts` ✅
+   - 224 lines, comprehensive GET/POST coverage
+   - Tests RBAC enforcement, tenant scoping, validation, error handling
+
+2. **Souq Orders**: `pnpm vitest tests/unit/api/souq/orders/route.test.ts` ✅
+   - 181 lines, mocked auth() session handling
+   - Tests org scoping, order creation, listing validation
+
+3. **FM Work Orders - Transition**: `pnpm vitest tests/unit/api/fm/work-orders/transition.route.test.ts` ✅
+   - State machine transition validation
+
+4. **FM Work Orders - Attachments**: `pnpm vitest tests/unit/api/fm/work-orders/attachments.route.test.ts` ✅
+   - File upload and deletion handling
+
+5. **FM Work Orders - Stats**: `pnpm vitest tests/unit/api/fm/work-orders/stats.route.test.ts` ✅
+   - Analytics aggregation with tenant scoping
+
+### ⚠️ Full Suite Timeout Issue
+
+**Problem**: `pnpm test:api` times out after ~5 minutes locally
+
+**Root Cause**: MongoMemoryServer initialization across 100+ test files exceeds default timeout
+
+**Evidence**:
+
+- Individual test files complete in 2-10 seconds
+- Batch runs (5-10 files) complete successfully
+- Full suite hangs at ~5 minute mark
+
+**Current Workaround**: Run tests individually or in small batches
+
+**Recommended Solutions**:
+
+1. **Run in CI Environment** (Preferred)
+
+   ```bash
+   # GitHub Actions / CI with extended timeout
+   pnpm test:api --testTimeout=600000  # 10 minutes
+   ```
+
+2. **Update Vitest Config** (Local development)
+
+   ```typescript
+   // vitest.config.ts
+   export default defineConfig({
+     test: {
+       testTimeout: 600000, // 10 minutes
+       hookTimeout: 120000, // 2 minutes
+     },
+   });
+   ```
+
+3. **Optimize MongoMemoryServer** (Long-term)
+   - Share single MongoMemoryServer instance across test suites
+   - Use `globalSetup` and `globalTeardown` hooks
+   - Implement connection pooling
+
+---
+
+## 4. Remaining Issues & Action Plan
+
+### High Priority
+
+#### 1. Implement Missing FM CRUD Endpoints (4-6 hours)
+
+**Endpoints to Create:**
+
+- [ ] `app/api/fm/properties/[id]/route.ts` - PATCH/DELETE
+- [ ] `app/api/fm/tenants/route.ts` - Full CRUD
+- [ ] `app/api/fm/leases/route.ts` - Full CRUD
+- [ ] `app/api/fm/vendors/route.ts` - Full CRUD
+- [ ] `app/api/fm/contracts/route.ts` - Full CRUD
+- [ ] `app/api/fm/budgets/route.ts` - Full CRUD
+
+**Implementation Checklist for Each Endpoint:**
+
+1. Use `requireFmPermission` with appropriate resource/action
+2. Call `resolveTenantId` before business logic
+3. Scope all DB queries to `tenantId`
+4. Use `FMErrors` helper for error responses
+5. Add comprehensive Vitest test suite (follow properties pattern)
+6. Verify tests pass before merge
+
+#### 2. Resolve Test Suite Timeout (1-2 hours)
+
+**Options:**
+
+- [ ] Run `pnpm test:api` in CI with `--testTimeout=600000`
+- [ ] Update `vitest.config.ts` with higher timeout locally
+- [ ] Investigate shared MongoMemoryServer optimization
+- [ ] Document timeout requirements in `README.md`
+- [ ] Fix any failures reported by full suite
+
+### Medium Priority
+
+#### 3. Add Missing Test Coverage (2-3 hours)
+
+**Test Files to Create:**
+
+- [ ] `tests/unit/api/fm/work-orders/assign.route.test.ts`
+- [ ] `tests/unit/api/fm/work-orders/comments.route.test.ts`
+- [ ] Add smoke tests for new FM CRUD endpoints
+
+#### 4. Documentation Updates
+
+**Documents to Update:**
+
+- [ ] Add FM guard/tenant conventions to contributor docs
+- [ ] Document test timeout workarounds in `README.md`
+- [ ] Update `TECHNICAL_DEBT_BACKLOG.md` after each endpoint implementation
+- [ ] Add API documentation for new FM endpoints
+
+### Low Priority
+
+#### 5. Optional Linting Enhancement
+
+- [ ] Add lint rule to flag `@/app/api/fm/utils/` imports outside utils directory
+- [ ] Enforce relative imports for FM internal modules
+
+---
+
+## 5. Key Findings
+
+### Security & RBAC
+
+✅ **FM Module**: All routes enforce `requireFmPermission` + `resolveTenantId`  
+✅ **Souq Module**: All routes enforce `session.user.orgId` validation  
+✅ **Tenant Isolation**: Multi-tenant data isolation properly implemented  
+✅ **Error Handling**: Structured error responses with FMErrors/SouqErrors helpers
+
+### Code Quality
+
+✅ **Type Safety**: Zero TypeScript compilation errors  
+✅ **Logging**: Structured logging with context objects  
+✅ **Testing**: Comprehensive unit test coverage for active routes  
+✅ **Consistency**: Uniform patterns across FM and Souq modules
+
+### Testing Infrastructure
+
+✅ **Unit Tests**: All individual tests pass reliably  
+✅ **Mocking**: Proper mocking patterns for MongoDB, auth, permissions  
+⚠️ **Full Suite**: Timeout issues with MongoMemoryServer-heavy suite  
+✅ **CI-Ready**: Tests can run in CI with extended timeout
+
+---
+
+## 6. Immediate Next Steps
+
+### For FM Module
+
+1. **When New Endpoints Are Added:**
+   - Wrap with `requireFmPermission(req, { resource, action })`
+   - Call `resolveTenantId(req, actor.orgId ?? actor.tenantId)`
+   - Use relative imports for `../utils/tenant`
+   - Add test suite following `properties/route.test.ts` pattern
+
+2. **Before Merging New Endpoints:**
+   - Verify `pnpm vitest tests/unit/api/fm/<endpoint>/route.test.ts` passes
+   - Check TypeScript compilation: `pnpm tsc --noEmit`
+   - Update `TECHNICAL_DEBT_BACKLOG.md` with completion status
+
+### For Test Suite
+
+1. **Run Full Suite in CI:**
+
+   ```bash
+   # In CI environment (GitHub Actions, etc.)
+   pnpm test:api --testTimeout=600000
+   ```
+
+2. **Monitor for Failures:**
+   - Review any test failures reported by full suite
+   - Fix regressions immediately
+   - Update test documentation with findings
+
+### For Documentation
+
+1. **Keep Tracking Documents Updated:**
+   - `TECHNICAL_DEBT_BACKLOG.md` - Progress on endpoint backlog
+   - `SYSTEM_ISSUE_RESOLUTION_REPORT.md` - Resolution status
+   - `FM_SOUQ_STATUS_REPORT.md` (this file) - Current status
+
+2. **Document Guard Patterns:**
+   - Add FM RBAC conventions to contributor guide
+   - Document tenant resolution patterns
+   - Provide example implementations
+
+---
+
+## 7. Success Metrics
+
+### Completed (80%)
+
+| Category                  | Items | Completed | Remaining | Progress |
+| ------------------------- | ----- | --------- | --------- | -------- |
+| **Security Issues**       | 11    | 11        | 0         | 100% ✅  |
+| **Sprint 1: Logging**     | 72    | 72        | 0         | 100% ✅  |
+| **Sprint 2: Type Safety** | 68    | 62        | 6         | 91% ✅   |
+| **Sprint 3: ObjectId**    | 50    | 50        | 0         | 100% ✅  |
+| **FM RBAC Guards**        | 6     | 6         | 0         | 100% ✅  |
+| **FM CRUD Endpoints**     | 6     | 0         | 6         | 0% ⏳    |
+| **Test Coverage**         | 8     | 5         | 3         | 63% 🟡   |
+| **Test Suite Issues**     | 1     | 0         | 1         | 0% ⚠️    |
+| **Total**                 | 222   | 206       | 16        | 93%      |
+
+### Velocity
+
+- **Sprint 1-3**: 8 hours (3 sprints completed)
+- **FM Guards**: 2-3 hours (6 routes + 2 test suites)
+- **Total Completed**: 10-11 hours
+- **Estimated Remaining**: 5-8 hours
+- **Overall Progress**: 93% complete (206/222 items)
+
+---
+
+## 8. Conclusion
+
+All active work on FM properties and Souq orders is complete and production-ready. The RBAC guard pattern is proven and tested across 6 FM routes. The remaining work consists of:
+
+1. **Implementing 6 missing FM CRUD endpoints** following the established pattern
+2. **Resolving test suite timeout** by running in CI or adjusting config
+3. **Adding 3 missing test suites** for complete coverage
+
+The system is in excellent shape with 93% completion rate and zero TypeScript errors. All active routes enforce proper security and tenant isolation. Next iteration should focus on systematically implementing the remaining FM CRUD endpoints using the proven pattern from properties and work-orders.
+
+---
+
+**Report Generated:** November 19, 2025  
+**Next Review:** After implementing next FM endpoint or resolving test suite timeout  
+**Status:** ✅ PRODUCTION READY for implemented routes
+
+]]>
+</file>
+
+</batch_content>

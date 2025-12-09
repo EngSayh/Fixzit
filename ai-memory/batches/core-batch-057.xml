@@ -1,0 +1,2968 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/AGENT_FRESH_RUN_REPORT.md">
+<![CDATA[
+# Fixzit Agent - Fresh Run Report
+
+**Date:** November 6, 2025 (20:30 UTC)  
+**Mode:** DRY RUN (Analysis Only)  
+**Agent Version:** Enhanced with Next.js protection heuristics
+
+---
+
+## 🎯 Executive Summary
+
+The Fixzit Agent successfully analyzed the codebase with improved heuristics that respect Next.js App Router conventions and module boundaries.
+
+### Key Improvements
+
+✅ Protected Next.js framework files (layouts, pages, API routes)  
+✅ Preserved lib/utils/hooks utility directories  
+✅ Respected module namespaces (fm/aqar/souq/admin)  
+✅ Reduced false positive file moves from **128 → 1**
+
+---
+
+## 📊 Analysis Results
+
+### Repository Health
+
+- **Commits Analyzed:** 92 (past 5 days)
+- **Files Scanned:** 564 files with potential issues
+- **Hash Duplicates:** 29 exact duplicates
+- **Name Collisions:** 473 files with same names
+- **Proposed Moves:** **1 file** (down from 128!)
+
+### System Health
+
+- **Memory:** 7.6GB / 15GB (50%) - Safe ✅
+- **Storage:** 12GB / 32GB (40%) - Healthy ✅
+- **Dev Server:** Running on http://localhost:3000 ✅
+
+---
+
+## 📁 File Organization Analysis
+
+### ✅ Correctly Protected Files (No Moves Suggested)
+
+**Next.js Framework Files:**
+
+- ✅ `app/layout.tsx` - Root layout (was incorrectly flagged before)
+- ✅ `app/page.tsx` - Root page
+- ✅ `app/globals.css` - Global styles
+- ✅ All nested layouts in `app/*/layout.tsx`
+- ✅ All API routes in `app/api/**/*`
+- ✅ Route groups `app/(dashboard)/`, `app/(root)/`
+
+**Utility Libraries (Correctly Kept in lib/):**
+
+- ✅ `lib/marketplace/*` - 9 utility files
+- ✅ `lib/payments/*` - 2 utility files
+- ✅ `lib/audit/*` - Compliance utilities
+- ✅ `lib/analytics/*` - Analytics utilities
+
+**Module Namespaces (Protected):**
+
+- ✅ `app/fm/*` - Facilities Management (intact)
+- ✅ `app/aqar/*` - Real Estate (intact)
+- ✅ `app/souq/*` - Marketplace (intact)
+- ✅ `app/admin/*` - Administration (intact)
+
+### 📋 One Proposed Move (Valid)
+
+```json
+{
+  "from": "lib/fm-finance-hooks.ts",
+  "to": "app/finance/fm-finance-hooks.ts",
+  "reason": "Module-prefixed file should be in module directory"
+}
+```
+
+**Recommendation:** This move is valid - the file has `fm-` prefix indicating it belongs in a module directory.
+
+---
+
+## 🔍 Issue Categories (TODO List)
+
+### Priority Distribution
+
+| Category                         | Count | Status       | Action                               |
+| -------------------------------- | ----- | ------------ | ------------------------------------ |
+| Unhandled Rejections (Potential) | 420   | 📋 Review    | Most are proper async/await patterns |
+| NextResponse Usage               | 141   | ✅ OK        | Intentional Next.js API route usage  |
+| i18n/RTL Issues (Potential)      | 119   | ✅ Addressed | i18n files now created               |
+| Hydration/Server-Client Mismatch | 102   | ✅ OK        | All have 'use client' directive      |
+| Alias Misuse ("@/src")           | 6     | ✅ OK        | False positives in markdown          |
+| Fragile Relative Imports         | 4     | ✅ OK        | Test files (acceptable)              |
+| Undefined Property Access        | 3     | 📋 Future    | Add optional chaining                |
+| TypeScript Assignability         | 1     | 📋 Future    | Minor type fix                       |
+
+### False Positive Rate: ~88%
+
+Most flagged issues are **false positives** due to overly broad heuristics. The agent identifies patterns but doesn't validate context.
+
+---
+
+## 📈 5-Day Commit History Highlights
+
+### Recent Major Work (92 commits analyzed)
+
+1. **Security Fixes** (11 commits)
+   - JWT security (AWS Secrets Manager)
+   - IDOR vulnerability fixes
+   - SendGrid webhook timing attack
+   - Multi-tenant data isolation
+
+2. **Accessibility & Theme** (15 commits)
+   - Theme compliance system-wide
+   - Accessibility improvements
+   - RTL/LTR enhancements
+
+3. **Architecture** (20 commits)
+   - File organization (Governance V5)
+   - Module boundaries enforcement
+   - Test suite improvements
+
+4. **Type Safety** (8 commits)
+   - ESLint fixes (603 → 0 errors)
+   - TypeScript strict mode
+   - Any type warnings
+
+---
+
+## 🎯 Recommendations
+
+### Immediate Actions
+
+1. ✅ **Apply the 1 valid move:**
+
+   ```bash
+   pnpm run fixzit:agent:apply
+   ```
+
+   This will move `lib/fm-finance-hooks.ts` to `app/finance/`
+
+2. 📋 **Review Unhandled Rejections (420 files):**
+   - Most are likely proper async/await patterns
+   - Manual review needed to confirm
+   - Low priority (not causing issues)
+
+3. 📋 **Fix 3 Undefined Property Access:**
+   - Add optional chaining `?.`
+   - Low priority
+
+### Agent Improvements Made ✅
+
+- ✅ Added protection for root Next.js files
+- ✅ Added protection for utility directories
+- ✅ Added module namespace boundaries
+- ✅ Fixed api-scan.mjs syntax error
+- ✅ Reduced false positive rate significantly
+
+### Future Agent Enhancements
+
+- [ ] Improve "Unhandled Rejections" detection (context-aware)
+- [ ] Add try-catch vs async/await pattern detection
+- [ ] Improve hydration pattern detection (check for actual issues)
+- [ ] Add severity levels to TODO items
+
+---
+
+## 📚 Generated Reports
+
+All reports available in `reports/` directory:
+
+1. **fixes_5d.json** (52KB) - 92 commits analyzed
+2. **similar_hits.json** (112KB) - 564 flagged files
+3. **duplicates.json** (288KB) - 29 hash + 473 name collisions
+4. **move-plan.json** (2.2KB) - 1 proposed move
+5. **5d_similarity_report.md** (15KB) - Comprehensive analysis
+6. **i18n-missing.json** (45KB) - i18n parity report
+7. **api-endpoint-scan.json** (24KB) - API route inventory
+8. **TODO_flat.json** - Flat task list (801 items)
+
+---
+
+## ✅ Quality Metrics
+
+### Agent Accuracy
+
+- **Before Improvements:** 128 proposed moves (93% false positives)
+- **After Improvements:** 1 proposed move (100% accuracy)
+- **Improvement:** 99.2% reduction in false positives
+
+### Test Coverage
+
+- **Test Files:** 412 tests across 69 files
+- **Passing:** 347 tests (84%)
+- **Failing:** 65 tests (baseline, no regressions)
+
+### Code Quality
+
+- **ESLint Issues:** Down from 603 → minimal
+- **TypeScript Errors:** Under control
+- **Build Status:** Compiling with warnings
+
+---
+
+## 🚀 Next Steps
+
+### Ready to Execute
+
+```bash
+# Apply the 1 valid file move
+pnpm run fixzit:agent:apply
+
+# This will:
+# 1. Create a new branch
+# 2. Move lib/fm-finance-hooks.ts → app/finance/
+# 3. Update all imports (codemod)
+# 4. Commit changes
+# 5. Regenerate reports
+```
+
+### Review PR
+
+After running `--apply`, you can:
+
+```bash
+# Create PR for review
+gh pr create --fill --title "refactor: move fm-finance-hooks to finance module"
+
+# Or push directly
+git push origin main
+```
+
+---
+
+## 📝 Session Summary
+
+**Duration:** 2.5 hours total  
+**Commits Created:** 6 commits  
+**Code 5 Crashes:** ZERO ✅  
+**Memory Peak:** 8.8GB / 15GB (safe)  
+**Storage Used:** 40% (healthy)
+
+**Deliverables:**
+
+- ✅ 4 tasks completed (test verification, analysis, i18n, agent updates)
+- ✅ Fresh agent reports generated
+- ✅ Agent heuristics significantly improved
+- ✅ File organization verified correct
+- ✅ All changes committed to main
+
+---
+
+**Status:** Ready for Production ✅  
+**Quality:** Excellent ✅  
+**Stability:** Zero crashes ✅
+
+]]>
+</file>
+
+<file path="docs/AGENT_UPGRADES.md">
+<![CDATA[
+# Fixzit Agent Upgrades - Phase 2 Reconciliation
+
+**Date**: 2025-11-09  
+**Purpose**: Lock in Phase 2 findings as canonical truth  
+**Outcome**: Deterministic, false-positive-free audits
+
+---
+
+## 🎯 Overview
+
+This upgrade aligns the Fixzit Agent with **Phase 2 completion findings** to eliminate false positives and provide deterministic stabilization audits. The Agent now understands:
+
+1. **Factory patterns** for API routes (createCrudHandlers, NextAuth)
+2. **TranslationContext** as primary i18n source (1927 EN ↔ 1927 AR)
+3. **Production-appropriate console usage** (console.error/warn)
+4. **Domain-specific model separation** (complementary, not duplicates)
+5. **Vendor/temp directories** exclusion from scans
+
+---
+
+## 📁 New Files Created
+
+### 1. `.fixzit-waivers.json` ✨ NEW
+
+**Purpose**: Source of truth for accepted patterns and configurations
+
+```json
+{
+  "routes": {
+    "treat_factory_destructures_as_valid": true,
+    "treat_named_reexports_as_valid": true,
+    "treat_nextauth_v5_handlers_as_valid": true
+  },
+  "console": {
+    "allow_error_and_warn_in_runtime": true,
+    "flag_log_and_dir_only": true
+  },
+  "duplicates": {
+    "ignore_dirs": [
+      "aws/dist",
+      "tmp",
+      ".next",
+      "dist",
+      "build",
+      "coverage",
+      ".turbo",
+      ".vercel"
+    ]
+  },
+  "imports": {
+    "treat_atslash_src_as_alias_to_root": true,
+    "forbid_deep_relatives": true
+  },
+  "i18n": {
+    "merge_translation_context": "contexts/TranslationContext.tsx"
+  }
+}
+```
+
+**Versioned**: ✅ Track in Git for team consensus  
+**Editable**: ✅ Team can adjust patterns as codebase evolves
+
+---
+
+### 2. `scripts/api-scan-v2.mjs` 🔍 UPGRADED
+
+**Purpose**: Factory/re-export aware API route scanner
+
+**Detects**:
+
+- ✅ Standard exports: `export async function GET(...)`
+- ✅ Const exports: `export const GET = ...`
+- ✅ Factory destructure: `export const { GET, POST } = createCrudHandlers(...)`
+- ✅ Named re-export: `export { GET, POST } from './factory'`
+- ✅ NextAuth v5: `export const { GET, POST } = handlers`
+
+**Example Output** (`reports/api-endpoint-scan-v2.json`):
+
+```json
+{
+  "file": "app/api/assets/route.ts",
+  "methods": ["GET", "POST"],
+  "importsNextServer": true,
+  "status": "OK",
+  "detectionNote": "Factory/NextAuth pattern detected"
+}
+```
+
+**Results**: 156/156 routes detected (was 150/156 before)
+
+---
+
+### 3. `scripts/i18n-scan-v2.mjs` 🌐 UPGRADED
+
+**Purpose**: Merges locale JSON files + TranslationContext for accurate counts
+
+**Sources**:
+
+1. `i18n/en.json` and `i18n/ar.json` (403 keys each)
+2. `contexts/TranslationContext.tsx` (1860 keys each)
+3. **Merged Total**: 2092 EN ↔ 2092 AR (100% parity)
+
+**Example Output** (`reports/i18n-missing-v2.json`):
+
+```json
+{
+  "timestamp": "2025-11-09T20:00:00.000Z",
+  "sources": {
+    "localeFiles": { "en": 403, "ar": 403 },
+    "translationContext": { "en": 1860, "ar": 1860 },
+    "merged": { "en": 2092, "ar": 2092 }
+  },
+  "parity": {
+    "enCount": 2092,
+    "arCount": 2092,
+    "gap": 0,
+    "status": "PERFECT"
+  },
+  "usage": {
+    "keysUsedInCode": 1447,
+    "usedButMissing": ["test.key1", "test.key2"]
+  }
+}
+```
+
+**Results**: 2092/2092 parity (was showing false mismatches before)
+
+---
+
+## 🔧 Package.json Updates
+
+Added new scripts:
+
+```json
+{
+  "scripts": {
+    "scan:api": "node scripts/api-scan-v2.mjs",
+    "scan:i18n:v2": "node scripts/i18n-scan-v2.mjs"
+  }
+}
+```
+
+**Usage**:
+
+```bash
+# Quick API surface audit (factory-aware)
+pnpm run scan:api
+
+# i18n parity check (TranslationContext-aware)
+pnpm run scan:i18n:v2
+```
+
+---
+
+## 📊 Before vs After
+
+### API Route Detection
+
+| Metric           | Before | After      |
+| ---------------- | ------ | ---------- |
+| Total routes     | 156    | 156        |
+| Detected methods | 150    | **156** ✅ |
+| False negatives  | 6      | **0** ✅   |
+
+**Fixed Routes**:
+
+- `app/api/assets/route.ts` ✅
+- `app/api/projects/route.ts` ✅
+- `app/api/properties/route.ts` ✅
+- `app/api/tenants/route.ts` ✅
+- `app/api/work-orders/route.ts` ✅
+- `app/api/auth/[...nextauth]/route.ts` ✅
+
+---
+
+### i18n Key Counts
+
+| Metric             | Before   | After          |
+| ------------------ | -------- | -------------- |
+| EN keys (reported) | 403      | **2092** ✅    |
+| AR keys (reported) | 403      | **2092** ✅    |
+| Parity status      | Mismatch | **PERFECT** ✅ |
+| False mismatches   | 1324     | **0** ✅       |
+
+**Source**: Now includes `contexts/TranslationContext.tsx` (1860 keys per language)
+
+---
+
+### Console Usage
+
+| Category        | Before                            | After                          |
+| --------------- | --------------------------------- | ------------------------------ |
+| Flagged         | 31 console statements             | **0** console.error/warn ✅    |
+| Noise           | High (production logging flagged) | **Low** (only console.log/dir) |
+| False positives | 31                                | **0** ✅                       |
+
+**Philosophy**: `console.error` is production-standard for API error logging
+
+---
+
+### Duplicate Detection
+
+| Category              | Before               | After                       |
+| --------------------- | -------------------- | --------------------------- |
+| Scanned directories   | All                  | **Excludes vendor/temp** ✅ |
+| False duplicates      | aws/dist, tmp, .next | **0** ✅                    |
+| Meaningful duplicates | Hard to find         | **Clear signal** ✅         |
+
+**Ignored by default**: aws/dist, tmp, .next, dist, build, coverage, .turbo, .vercel
+
+---
+
+## 🚀 Usage Examples
+
+### Run Full Audit (Factory-Aware)
+
+```bash
+pnpm run fixzit:agent
+```
+
+**Changes**:
+
+- ✅ API routes: Detects factory patterns
+- ✅ i18n: Merges TranslationContext
+- ✅ Console: Only flags console.log/dir
+- ✅ Duplicates: Ignores vendor/temp
+
+---
+
+### Run Individual Scans
+
+**API Routes** (156 routes, all detected):
+
+```bash
+pnpm run scan:api
+# ✅ API route scan complete → reports/api-endpoint-scan-v2.json
+#    Total routes: 156
+#    With methods: 156
+#    No methods: 0
+```
+
+**i18n Parity** (2092 EN ↔ 2092 AR):
+
+```bash
+pnpm run scan:i18n:v2
+# ✅ Extracted 1860 EN keys from TranslationContext
+# ✅ Extracted 1860 AR keys from TranslationContext
+#
+# 📊 i18n Analysis:
+#    EN keys: 2092 (403 locale + 1860 context)
+#    AR keys: 2092 (403 locale + 1860 context)
+#    Parity: PERFECT (gap: 0)
+#    Used in code: 1447
+#    Missing: 10 (test keys only)
+```
+
+---
+
+## 🔐 Waiver System
+
+### Philosophy
+
+**Accepted patterns** should not be re-flagged on every run. Waivers document team consensus on:
+
+- Architectural patterns (factory exports, domain models)
+- Production standards (console.error for API logging)
+- Build artifacts (vendor directories)
+
+### Editing Waivers
+
+```bash
+# Edit team consensus
+vim .fixzit-waivers.json
+
+# Re-run audit with new waivers
+pnpm run fixzit:agent
+```
+
+### Waiver Categories
+
+**1. Routes** - Export patterns recognized as valid
+
+```json
+{
+  "routes": {
+    "treat_factory_destructures_as_valid": true,
+    "treat_named_reexports_as_valid": true,
+    "treat_nextauth_v5_handlers_as_valid": true
+  }
+}
+```
+
+**2. Console** - Production logging standards
+
+```json
+{
+  "console": {
+    "allow_error_and_warn_in_runtime": true,
+    "flag_log_and_dir_only": true
+  }
+}
+```
+
+**3. Duplicates** - Directories to ignore
+
+```json
+{
+  "duplicates": {
+    "ignore_dirs": ["aws/dist", "tmp", ".next", "dist", "build"]
+  }
+}
+```
+
+**4. Imports** - Alias conventions
+
+```json
+{
+  "imports": {
+    "treat_atslash_src_as_alias_to_root": true,
+    "forbid_deep_relatives": true
+  }
+}
+```
+
+**5. i18n** - Translation sources
+
+```json
+{
+  "i18n": {
+    "merge_translation_context": "contexts/TranslationContext.tsx"
+  }
+}
+```
+
+---
+
+## 📚 Evidence Files
+
+After running `pnpm run fixzit:agent`, check:
+
+**API Routes**:
+
+- `reports/api-endpoint-scan-v2.json` - All routes with methods detected
+
+**i18n**:
+
+- `reports/i18n-missing-v2.json` - Merged locale + context, parity status
+
+**Full Audit**:
+
+- `reports/fixzit-agent-report.json` - Complete audit with waiver-aware findings
+- `reports/5d_similarity_report.md` - Similar issues grouped by pattern
+
+---
+
+## 🎓 Key Learnings
+
+### 1. Factory Patterns are Valid Exports
+
+**Before**: `export const { GET, POST } = factory()` → ❌ "No methods detected"  
+**After**: Recognized as valid via destructuring analysis → ✅ "Factory pattern detected"
+
+### 2. TranslationContext is Primary i18n Source
+
+**Before**: Only scanned locale JSON files (403 keys) → ❌ 1324 "missing" keys  
+**After**: Merges TranslationContext.tsx (1860 keys) → ✅ 2092 total, 0 gaps
+
+### 3. Console Usage Context Matters
+
+**Before**: All console statements flagged → ❌ 31 false positives  
+**After**: Only console.log/dir in runtime → ✅ 0 noise, production-safe
+
+### 4. Domain Models ≠ Duplicates
+
+**Before**: Same filename = duplicate → ❌ server/models/Employee vs models/hr/Employee  
+**After**: Different purposes (ATS vs HR compliance) → ✅ Complementary, not duplicate
+
+### 5. Vendor Directories Create Noise
+
+**Before**: Scanned aws/dist, tmp, .next → ❌ Thousands of false duplicates  
+**After**: Waivers exclude vendor/temp → ✅ Clear signal on real duplicates
+
+---
+
+## ✅ Validation
+
+**Run upgraded scans**:
+
+```bash
+# API routes (should show 156/156)
+pnpm run scan:api
+
+# i18n parity (should show PERFECT with 2092 keys)
+pnpm run scan:i18n:v2
+
+# Full agent audit (should respect all waivers)
+pnpm run fixzit:agent
+```
+
+**Expected Results**:
+
+- ✅ 0 false positives on API routes
+- ✅ 0 false positives on i18n parity
+- ✅ 0 false positives on console usage
+- ✅ 0 false positives on duplicates (vendor dirs)
+
+---
+
+## 🔄 Future Maintenance
+
+### When to Update Waivers
+
+**Add new patterns**:
+
+- New factory pattern emerges → Add to `routes`
+- New vendor directory → Add to `duplicates.ignore_dirs`
+- New i18n source → Update `i18n.merge_translation_context`
+
+**Remove outdated patterns**:
+
+- Deprecated pattern removed → Remove waiver
+- Migration complete → Adjust waiver rules
+
+### Version Control
+
+**Commit waivers**:
+
+```bash
+git add .fixzit-waivers.json
+git commit -m "chore: Update waivers for new factory pattern"
+```
+
+**Team consensus**: Waivers document architectural decisions, require review
+
+---
+
+## 📝 Changelog
+
+**v2.0** (2025-11-09):
+
+- ✅ Added `.fixzit-waivers.json` for pattern acceptance
+- ✅ Created `api-scan-v2.mjs` (factory-aware)
+- ✅ Created `i18n-scan-v2.mjs` (TranslationContext-aware)
+- ✅ Updated package.json with new scripts
+- ✅ Locked in Phase 2 findings as canonical
+
+**Results**:
+
+- 0 false positives on API routes (was 6)
+- 0 false positives on i18n (was 1324)
+- 0 false positives on console (was 31)
+- Clean vendor/temp exclusion
+
+---
+
+**Status**: ✅ **DEPLOYED** - Agent now aligned with Phase 2 completion report  
+**Validated**: ✅ All scans produce deterministic, false-positive-free results  
+**Maintainable**: ✅ Waivers versioned and editable by team
+
+**🎉 END OF UPGRADE GUIDE 🎉**
+
+]]>
+</file>
+
+<file path="docs/CATEGORIZED_TASKS_LIST.md">
+<![CDATA[
+# 📋 CATEGORIZED TASKS LIST
+
+**Generated**: November 6, 2025  
+**Source**: Past 5 days analysis + TODO/FIXME scan + Test results
+
+---
+
+## 📊 EXECUTIVE SUMMARY
+
+**Total Tasks**: 51 tasks across 9 categories  
+**Estimated Time**: 24-32 hours  
+**High Priority**: 14 tasks (16-20 hours) - includes P0 audit/RBAC fixes  
+**Medium Priority**: 15 tasks (8-12 hours)  
+**Low Priority**: 22 tasks (2-4 hours)
+
+**🔴 NEW: STRICT v4 Compliance Issues Added** (2025-11-25 Audit)
+
+---
+
+## 🔴 CATEGORY 0: AUDIT LOGGING & RBAC COMPLIANCE (Priority: P0 - CRITICAL)
+
+### 0.0 Authentication Security Fixes ✅ COMPLETED
+
+- **Status**: ✅ ALL 5 CRITICAL VULNERABILITIES FIXED (2025-11-25)
+- **Issues Fixed**:
+  - AUTH-001: Super admin login failure (phone +966552233456, status ACTIVE, OTP bypass)
+  - AUTH-002: OAuth sign-in security gap (added user lookup, status check, orgId validation)
+  - AUTH-003: Credentials login missing orgId check (non-superadmin must have orgId)
+  - AUTH-004: OTP bypass too permissive (changed to AND logic: superadmin + dev + explicit flag)
+  - AUTH-005: .env.example insecure defaults (bypass defaults to false, placeholder phone)
+- **Files**: auth.config.ts, .env.example, scripts/quick-fix-superadmin.ts, 7 seed scripts
+- **Impact**: CVSS 7.5 → 2.0 (OAuth/credentials fully validated, OTP enforced in production)
+- **Documentation**: SYSTEM_REMEDIATION_COMPLETE.md, SYSTEM_FIXES_PR_SUMMARY.md
+- **Time**: ✅ COMPLETE (5 hours)
+- **Priority**: P0 - CRITICAL (DONE)
+
+### 0.1 Fix Audit Logging System ✅ COMPLETED
+
+- **Status**: ✅ ALL 6 FIXES APPLIED (2025-11-25)
+- **Issues Fixed**:
+  - AUDIT-001: Action enum mapping (user.grantSuperAdmin → UPDATE)
+  - AUDIT-002: Mandatory orgId enforcement (early return on missing)
+  - AUDIT-003: Success defaults to true (not false)
+  - AUDIT-004: PII redaction before external logging (25+ sensitive patterns)
+  - AUDIT-005: Entity type enum mapping (user → USER, role → SETTING)
+  - AUDIT-006: Helper functions require orgId parameter
+- **Files**: lib/audit.ts (470 lines)
+- **Impact**: CVSS 9.1 → 5.3 (68% risk reduction)
+- **Priority**: P0 - CRITICAL
+- **Time**: ✅ COMPLETE (4 hours)
+
+### 0.2 Update Audit Helper Callers ✅ VERIFIED NO ACTION NEEDED
+
+- **Status**: ✅ VERIFIED - No existing call sites
+- **Issue**: All callers of `auditSuperAdminAction()` and `auditImpersonation()` must now pass orgId as first parameter
+- **Verification**:
+  ```bash
+  # Search completed across entire codebase
+  grep -rn "auditSuperAdminAction\|auditImpersonation" --include="*.ts" app/ lib/ server/
+  # Result: 0 matches (functions exported but not yet used)
+  ```
+- **Impact**: TypeScript will enforce orgId parameter for future callers (compile-time safety)
+- **Time**: ✅ 0 hours (no work needed)
+- **Priority**: N/A - No action required
+
+### 0.3 RBAC Multi-Tenant Isolation Audit ✅ COMPLETED
+
+- **Status**: ✅ ALL 5 CRITICAL VIOLATIONS FIXED (2025-11-25)
+- **Issues Fixed**:
+  - RBAC-001: Work order scoping (role-based filtering by TECHNICIAN/VENDOR/TENANT)
+  - RBAC-002: FM work order vendor/technician filtering
+  - RBAC-003: Finance over-access (tightened to SUPER_ADMIN, CORPORATE_ADMIN, FINANCE)
+  - RBAC-004: HR PII exposure (added role gates to GET/POST endpoints)
+  - RBAC-005: Role matrix misalignment (restructured to STRICT v4 14-role system)
+- **Files**: app/api/work-orders/route.ts, app/api/fm/work-orders/route.ts, app/api/hr/employees/route.ts, lib/auth/role-guards.ts, types/user.ts, server/lib/rbac.config.ts
+- **Impact**: CVSS 7.5 → 2.0 (Multi-tenant isolation enforced, PII protected)
+- **Documentation**: POST_STABILIZATION_AUDIT_FIXES.md, SYSTEM_FIXES_PR_SUMMARY.md
+- **Time**: ✅ COMPLETE (4 hours)
+- **Priority**: P0 - CRITICAL (DONE)
+
+### 0.4 Create Audit Logging Unit Tests
+
+- **Status**: PENDING
+- **Coverage Needed**:
+  - orgId enforcement (empty/whitespace/valid)
+  - Enum mapping (known actions, unknown actions, case-insensitive)
+  - PII redaction (passwords, tokens, SSNs, credit cards)
+  - Success default behavior
+  - Helper function orgId passing
+  - **NEW**: RBAC role-based filtering (work orders, finance, HR)
+- **Files**: lib/__tests__/audit.test.ts, app/api/work-orders/__tests__/rbac.test.ts
+- **Test Framework**: Vitest (NOT Jest)
+- **Time**: 3-4 hours (includes RBAC tests)
+- **Priority**: P1
+
+### 0.5 Infrastructure Cleanup ✅ COMPLETED
+
+- **Status**: ✅ PRISMA/SQL ARTIFACTS REMOVED (2025-11-25)
+- **Actions Completed**:
+  1. Deleted 3 PostgreSQL/Prisma scripts (generate-fixzit-postgresql.sh, apply_sql_migrations.py, fix-schema-mismatch.sh)
+  2. Removed Prisma commands from scripts/setup-dev.sh
+  3. Updated doc path references to structured tree (tools/generators/create-guardrails.js, server/README.md)
+- **Impact**: MongoDB-only infrastructure, no confusion from legacy scripts
+- **Time**: ✅ COMPLETE (1 hour)
+- **Priority**: P2 (DONE)
+
+### 0.6 Finance PII Encryption (Invoices & FMFinancialTransaction)
+
+- **Status**: ✅ COMPLETE (2025-12-01)
+- **Files Modified**:
+  - `server/models/Invoice.ts` - encryptionPlugin added
+  - `server/models/FMFinancialTransaction.ts` - encryptionPlugin added, **global unique removed** (now compound unique per orgId)
+  - `scripts/migrate-encrypt-finance-pii.ts` - migration script with **24h TTL on backups**
+  - `tests/unit/finance/finance-encryption.test.ts` - encryption tests
+- **Scope**: Encrypts issuer/recipient tax IDs, phones, emails, national IDs, payment account numbers/IBAN/SWIFT, payment references, and bank accounts
+- **New Writes**: ✅ Encrypted automatically via model hooks
+- **Legacy Data**: ⚠️ Run `scripts/migrate-encrypt-finance-pii.ts` to encrypt existing records
+- **Security Improvements (2025-12-01)**:
+  - Added 24h TTL auto-cleanup on backup collections (prevents plaintext PII lingering)
+  - Fixed global unique constraint on `transactionNumber` → compound unique `{ orgId, transactionNumber }`
+- **Usage**:
+
+  ```bash
+  # Preview changes (dry-run)
+  ENCRYPTION_KEY=... pnpm tsx scripts/migrate-encrypt-finance-pii.ts --dry-run
+  
+  # Migrate single organization
+  ENCRYPTION_KEY=... pnpm tsx scripts/migrate-encrypt-finance-pii.ts --org=<orgId>
+  
+  # Migrate all organizations
+  ENCRYPTION_KEY=... pnpm tsx scripts/migrate-encrypt-finance-pii.ts
+  
+  # Rollback from backup (within 24h window)
+  ENCRYPTION_KEY=... pnpm tsx scripts/migrate-encrypt-finance-pii.ts --rollback
+  ```
+
+- **Priority**: P0 - CRITICAL (security) ✅ DONE
+- **Last Updated**: 2025-12-01
+
+### 0.7 Legacy Role Cleanup (STRICT v4.1 Compliance)
+
+- **Status**: ✅ VIEWER DEFAULT FIXED (2025-12-01)
+- **Current State**:
+  - ✅ `app/api/auth/signup/route.ts` - Changed default from `VIEWER` to `TENANT` (canonical)
+  - Legacy roles have `@deprecated` JSDoc tags in `types/user.ts`
+  - `LEGACY_ROLES` and `DEPRECATED_ROLES` arrays exported for migration tooling
+  - `isDeprecatedRole()` helper available for runtime checks
+- **Remaining Actions** (P3 - Low Priority):
+  1. ~~Audit codebase for any active usage of deprecated roles~~ ✅ Done
+  2. Migrate existing users with deprecated roles to STRICT v4.1 equivalents (DB migration)
+  3. Clean up `scripts/rbac/generate-client-roles.ts` and `scripts/mongo-init.js`
+- **Files**: `types/user.ts`, `app/api/auth/signup/route.ts` ✅
+- **Time**: ✅ Core fix complete; remaining cleanup ~1 hour
+- **Priority**: P1 (RBAC) → P3 (remaining cleanup)
+- **Last Updated**: 2025-12-01
+
+---
+
+## 🔴 CATEGORY 1: TESTING & QUALITY ASSURANCE (Priority: HIGH)
+
+### 1.1 Fix Failing Tests ✅ COMPLETED
+
+- **Status**: ✅ ALL TESTS PASSING (0 failing)
+- **Latest Run**: 2025-01-24: 0 failed | 1912 passed (207 test files)
+- **Previous Issues** (RESOLVED):
+  - Auth-related failures (401 instead of expected 200/403) in Souq claims tests ✅
+  - PayTabs callback signature validation ✅
+  - Test auth context not properly mocked ✅
+- **Files**: tests/api/souq/claims.test.ts, tests/unit/api/api-paytabs-callback.test.ts
+- **Time**: ✅ COMPLETE
+- **Priority**: P0 - RESOLVED
+
+### 1.2 Update Test Import Paths
+
+- **Status**: After PR #261 file moves
+- **Action**: Verify all test imports point to correct locations
+- **Files**: tests/unit/\* (newly moved files)
+- **Time**: 1 hour
+- **Priority**: P1
+
+### 1.3 Add Missing Test Coverage
+
+- **Current**: 42 new tests added (100% passing)
+- **Needed**:
+  - Marketplace components
+  - FM (Facility Management) module
+  - Auth middleware edge cases
+- **Time**: 3-4 hours
+- **Priority**: P2
+
+---
+
+## 🔴 CATEGORY 2: CODE QUALITY & STANDARDS (Priority: HIGH)
+
+### 2.1 Console Statements Replacement - Phase 3 ⚠️ INCOMPLETE
+
+- **Status**: API routes ✅ DONE (47 files), Components ✅ DONE (19 files)
+- **Remaining**: ~50 app page files
+- **Pattern**: Replace console.log/error/warn with logger utility
+- **Locations**:
+  - app/(dashboard)/\*_/_.tsx
+  - app/admin/\*_/_.tsx
+  - app/fm/\*_/_.tsx
+  - app/marketplace/\*_/_.tsx
+  - app/work-orders/\*_/_.tsx
+  - app/properties/\*_/_.tsx
+  - app/crm/\*_/_.tsx
+  - app/hr/\*_/_.tsx
+  - app/finance/\*_/_.tsx
+- **Time**: 3-4 hours
+- **Priority**: P0
+
+### 2.2 Remove Placeholder Phone Numbers
+
+- **Pattern**: +966XXXXXXXXX appears in multiple files
+- **Action**: Replace with proper phone validation/formatting
+- **Files**: Various components and services
+- **Time**: 1 hour
+- **Priority**: P2
+
+### 2.3 TypeScript Strict Mode Issues
+
+- **Action**: Enable strict mode and fix type errors
+- **Files**: tsconfig.json + affected files
+- **Time**: 2-3 hours
+- **Priority**: P2
+
+---
+
+## 🟡 CATEGORY 3: ACCESSIBILITY (Priority: MEDIUM)
+
+### 3.1 Navigation Accessibility - Category 6 ⚠️ INCOMPLETE
+
+- **Status**: Not started
+- **Files**: 17 files in nav/\*.ts
+- **Requirements**:
+  - Keyboard navigation support (Tab, Arrow keys, Enter, Escape)
+  - ARIA attributes (aria-label, aria-current, aria-expanded)
+  - Screen reader compatibility
+  - Focus management
+  - Skip navigation links
+- **Files**:
+  - nav/adminNav.ts
+  - nav/dashboardNav.ts
+  - nav/fmNav.ts
+  - nav/marketplaceNav.ts
+  - nav/hrNav.ts
+  - nav/financeNav.ts
+  - nav/crmNav.ts
+  - nav/registry.ts
+  - Plus 9 more nav files
+- **Time**: 2-3 hours
+- **Priority**: P1
+
+### 3.2 Form Accessibility Audit
+
+- **Action**: Ensure all forms meet WCAG 2.1 AA standards
+- **Items**: Labels, error messages, keyboard navigation
+- **Time**: 2 hours
+- **Priority**: P2
+
+### 3.3 Color Contrast Fixes
+
+- **Action**: Verify color contrast ratios (4.5:1 minimum)
+- **Tool**: Use automated scanner
+- **Time**: 1 hour
+- **Priority**: P2
+
+---
+
+## 🟡 CATEGORY 4: INTEGRATION & INFRASTRUCTURE (Priority: MEDIUM)
+
+### 4.1 Monitoring Service Integration ⚠️ TODO
+
+- **File**: lib/logger.ts
+- **Current**: Using sessionStorage (client-side only)
+- **Needed**: Integrate Sentry or DataDog
+- **Action**:
+  - Set up Sentry account/project
+  - Add SDK and configuration
+  - Implement error tracking
+  - Add performance monitoring
+- **Time**: 2-3 hours
+- **Priority**: P1
+
+### 4.2 Notification Services ⚠️ TODOs (4 items)
+
+- **File**: lib/fm-notifications.ts
+- **Needed Integrations**:
+  1. FCM/Web Push for browser notifications
+  2. Email service (SendGrid or AWS SES)
+  3. SMS gateway (Twilio or AWS SNS)
+  4. WhatsApp Business API
+- **Current**: Stub functions returning null
+- **Time**: 6-8 hours (all 4 services)
+- **Priority**: P1 (Email), P2 (others)
+
+### 4.3 Auth Middleware - Real Queries ⚠️ TODOs (4 items)
+
+- **File**: lib/fm-auth-middleware.ts
+- **Issues**:
+  - TODO: Get subscription plan from user/org (appears 2x)
+  - TODO: Verify org membership (appears 2x)
+  - TODO: Query FMProperty model for ownership
+- **Current**: Placeholder returns
+- **Action**: Implement real database queries
+- **Time**: 2-3 hours
+- **Priority**: P1
+
+### 4.4 Approval Engine - User Queries ⚠️ TODOs (3 items)
+
+- **File**: lib/fm-approval-engine.ts
+- **Issues**:
+  - TODO: Query users by role in org/property
+  - TODO: Query and add user IDs for escalation roles
+  - TODO: Send escalation notifications
+  - TODO: Implement notification sending
+- **Time**: 2-3 hours
+- **Priority**: P2
+
+---
+
+## 🟢 CATEGORY 5: UI/UX IMPROVEMENTS (Priority: LOW-MEDIUM)
+
+### 5.1 Logo Replacement ⚠️ TODO
+
+- **File**: components/auth/LoginHeader.tsx
+- **Issue**: "TODO: Replace with official logo"
+- **Action**: Get official logo and update
+- **Time**: 30 minutes
+- **Priority**: P2
+
+### 5.2 Mobile Responsive Features ⚠️ TODO
+
+- **File**: components/aqar/SearchFilters.tsx
+- **Issue**: "TODO: Add mobile filter state"
+- **Action**: Implement mobile-friendly filter panel
+- **Time**: 2-3 hours
+- **Priority**: P2
+
+### 5.3 Dynamic System Verifier ⚠️ TODO
+
+- **File**: components/SystemVerifier.tsx
+- **Issue**: "TODO: Make dynamic - fetch from autoFixManager"
+- **Action**: Implement API endpoint and dynamic fetching
+- **Time**: 1-2 hours
+- **Priority**: P3
+
+### 5.4 RTL (Right-to-Left) Support Audit
+
+- **Action**: Verify Arabic layout properly mirrors
+- **Files**: All components with directional styling
+- **Time**: 2 hours
+- **Priority**: P2
+
+---
+
+## 🟢 CATEGORY 6: BUSINESS LOGIC & FEATURES (Priority: LOW-MEDIUM)
+
+### 6.1 WPS Calculation - HR Module ⚠️ TODO
+
+- **File**: services/hr/wpsService.ts
+- **Issue**: "TODO: Calculate actual work days from attendance"
+- **Current**: Placeholder calculation
+- **Action**: Implement proper WPS (Wage Protection System) calculations
+- **Time**: 2-3 hours
+- **Priority**: P2
+
+### 6.2 PayTabs Integration - Task 2
+
+- **Status**: ⏸️ PAUSED (from Implementation Guide)
+- **Action**: Complete payment gateway integration
+- **Note**: NOT Stripe (use PayTabs per requirements)
+- **Time**: 4-6 hours
+- **Priority**: P2 (User decision needed)
+
+### 6.3 Referral System - Task 3
+
+- **Status**: ⏸️ PAUSED
+- **Action**: Implement user referral tracking and rewards
+- **Time**: 3-4 hours
+- **Priority**: P3
+
+### 6.4 Tasks 4-15 from Implementation Guide
+
+- **Status**: ⏸️ PAUSED
+- **Items**: 12 additional feature tasks
+- **Time**: 15-20 hours
+- **Priority**: P3 (Awaiting user decision)
+
+---
+
+## 🟢 CATEGORY 7: DOCUMENTATION & MAINTENANCE (Priority: LOW)
+
+### 7.1 Update README.md
+
+- **Action**:
+  - Add latest architecture changes
+  - Update setup instructions
+  - Document new modules (FM, HR, Finance)
+- **Time**: 1-2 hours
+- **Priority**: P2
+
+### 7.2 API Documentation
+
+- **File**: openapi.yaml
+- **Action**: Update with latest endpoints
+- **Time**: 2-3 hours
+- **Priority**: P2
+
+### 7.3 Component Documentation
+
+- **Action**: Add JSDoc comments to complex components
+- **Files**: components/fm/_, components/marketplace/_
+- **Time**: 2-3 hours
+- **Priority**: P3
+
+### 7.4 Architecture Decision Records (ADRs)
+
+- **Action**: Document key architectural decisions
+- **Topics**: Module structure, auth flow, state management
+- **Time**: 2 hours
+- **Priority**: P3
+
+---
+
+## 🟢 CATEGORY 8: PERFORMANCE & OPTIMIZATION (Priority: LOW)
+
+### 8.1 Bundle Size Analysis
+
+- **Action**: Analyze and reduce bundle size
+- **Tools**: next/bundle-analyzer
+- **Time**: 2 hours
+- **Priority**: P3
+
+### 8.2 Image Optimization
+
+- **Action**: Convert images to WebP, implement lazy loading
+- **Folders**: public/_, assets/_
+- **Time**: 1-2 hours
+- **Priority**: P3
+
+### 8.3 Database Query Optimization
+
+- **Action**: Add indexes, optimize N+1 queries
+- **Files**: models/_, services/_
+- **Time**: 3-4 hours
+- **Priority**: P3
+
+### 8.4 Caching Strategy
+
+- **Action**: Implement Redis caching for frequently accessed data
+- **Time**: 3-4 hours
+- **Priority**: P3
+
+---
+
+## 📈 PROGRESS TRACKING
+
+### Completed in Past 5 Days ✅
+
+- ✅ PR #237: Accessibility improvements (MortgageCalculator labels)
+- ✅ PR #238: Theme compliance (20 violations fixed)
+- ✅ PR #239/263: Security fixes (GUEST role, format.ts, ErrorBoundary)
+- ✅ PR #240: Type safety improvements
+- ✅ PR #241: Console statements in API routes (47 files)
+- ✅ PR #242: Console statements in components (19 files)
+- ✅ PR #257: Auto-restart mechanism (PM2)
+- ✅ PR #261: File organization (tests, legacy cleanup)
+- ✅ 10 WIP/draft PRs closed
+- ✅ All branches cleaned up
+- ✅ 42 new tests added (100% passing)
+- ✅ Documentation files organized into categories
+
+### In Progress 🔄
+
+- 🔄 File organization refinement (this session)
+- 🔄 Categorized task list creation
+
+### Immediate Next (This Week) ⏸️
+
+- ✅ Fix failing tests (P0 - COMPLETE - 1912 passing)
+- ⏸️ Console statements Phase 3 (P0 - 3-4 hours)
+- ⏸️ Navigation accessibility (P1 - 2-3 hours)
+- ⏸️ Monitoring integration (P1 - 2-3 hours)
+
+---
+
+## 🎯 RECOMMENDED EXECUTION ORDER
+
+### Sprint 1 (Week 1): Critical Fixes
+
+1. **Day 1-2**: ✅ Tests complete (1912 passing)
+2. **Day 2-3**: Console statements Phase 3 (4 hours)
+3. **Day 3-4**: Monitoring integration (Sentry) (3 hours)
+4. **Day 4-5**: Navigation accessibility (3 hours)
+
+**Sprint 1 Total**: ~16 hours
+
+### Sprint 2 (Week 2): Infrastructure & Auth
+
+1. **Day 1-2**: Auth middleware real queries (3 hours)
+2. **Day 2-3**: Email notification service (3 hours)
+3. **Day 3-4**: Approval engine user queries (3 hours)
+4. **Day 4-5**: Test coverage improvements (4 hours)
+
+**Sprint 2 Total**: ~13 hours
+
+### Sprint 3 (Week 3): Polish & Features
+
+1. **Day 1**: Form/Color accessibility (3 hours)
+2. **Day 2**: Mobile responsive features (3 hours)
+3. **Day 3**: WPS calculations (3 hours)
+4. **Day 4**: Documentation updates (3 hours)
+5. **Day 5**: UI polish (logo, RTL audit) (2 hours)
+
+**Sprint 3 Total**: ~14 hours
+
+### Sprint 4+ (Week 4+): Optional Enhancements
+
+- PayTabs integration (if approved)
+- Additional notification services (SMS, WhatsApp)
+- Performance optimizations
+- Referral system
+- Tasks 4-15 from Implementation Guide
+
+---
+
+## ⏱️ TIME ESTIMATES BY PRIORITY
+
+### P0 - Critical (Must Do This Week)
+
+- Test failures: 4-6 hours
+- Console statements: 3-4 hours
+- **Subtotal**: 7-10 hours
+
+### P1 - High Priority (Do This Month)
+
+- Navigation accessibility: 2-3 hours
+- Monitoring integration: 2-3 hours
+- Auth middleware: 2-3 hours
+- Email notifications: 3 hours
+- **Subtotal**: 9-12 hours
+
+### P2 - Medium Priority (Do This Quarter)
+
+- Approval engine: 2-3 hours
+- Form accessibility: 2 hours
+- Mobile responsive: 2-3 hours
+- WPS calculations: 2-3 hours
+- Test coverage: 3-4 hours
+- Documentation: 3-5 hours
+- **Subtotal**: 14-20 hours
+
+### P3 - Low Priority (Backlog)
+
+- Performance optimizations: 8-10 hours
+- Component docs: 2-3 hours
+- Bundle analysis: 2 hours
+- Optional features: 20+ hours
+- **Subtotal**: 32+ hours
+
+**Total Identified Work**: 62-74 hours
+
+---
+
+## 🔍 TASK DEPENDENCIES
+
+### Must Complete Before Others:
+
+1. **Test Fixes** → Blocks all PR merges
+2. **Console Statements** → Blocks production deployment
+3. **Monitoring Integration** → Needed before production issues occur
+4. **Auth Middleware** → Blocks FM module features
+
+### Can Be Done in Parallel:
+
+- Navigation accessibility
+- Test coverage improvements
+- Documentation updates
+- UI polish items
+
+---
+
+## ✅ COMPLETION CRITERIA
+
+### Definition of Done for Each Task:
+
+- [ ] Code implemented and tested locally
+- [ ] All tests passing (including new tests)
+- [ ] Code review completed
+- [ ] Documentation updated (if applicable)
+- [ ] No console errors or warnings
+- [ ] Accessibility verified (if UI change)
+- [ ] Merged to main branch
+- [ ] Deployment verified (if applicable)
+
+---
+
+## 📞 DECISION POINTS (Require User Input)
+
+1. **PayTabs Integration**: Proceed with Task 2?
+2. **Notification Services Priority**: Which services first? (Email > SMS > WhatsApp?)
+3. **Implementation Guide Tasks 4-15**: Continue or deprioritize?
+4. **Performance Work**: When to prioritize optimization sprint?
+
+---
+
+_Generated: November 6, 2025_  
+_Next Review: After Sprint 1 completion_  
+_Owner: Development Team_
+
+]]>
+</file>
+
+<file path="docs/CI_GATES_IMPLEMENTATION.md">
+<![CDATA[
+# CI Gates Implementation - Phase 2 Enforcement
+
+**Date**: 2025-11-09  
+**Status**: ✅ DEPLOYED  
+**Purpose**: Lock Phase 2 canonical truths into automated CI enforcement
+
+---
+
+## 🎯 Overview
+
+This document describes the deterministic CI gates that enforce Phase 2 canonical rules. All gates are backed by the waiver system (`.fixzit-waivers.json`) and produce identical results locally and in CI.
+
+---
+
+## 📁 Files Structure
+
+```
+Fixzit/
+├── .fixzit-waivers.json              # Source of truth for accepted patterns
+├── scripts/
+│   ├── waivers-validate.mjs          # Schema validator (19 lines)
+│   ├── api-scan-v2.mjs               # Factory-aware API scanner (140 lines)
+│   ├── i18n-scan-v2.mjs              # TranslationContext-aware i18n scanner (175 lines)
+│   ├── scan-delta.mjs                # Regression checker (118 lines)
+│   └── fixzit-agent.mjs              # Integrated v2 scanners (updated)
+├── .github/
+│   ├── workflows/
+│   │   └── fixzit-quality-gates.yml  # CI workflow (updated)
+│   └── pull_request_template.md      # PR template with gates checklist
+└── docs/
+    ├── AGENT_UPGRADES.md             # Phase 2 upgrade guide
+    └── CI_GATES_IMPLEMENTATION.md    # THIS FILE
+```
+
+---
+
+## 🔧 Components
+
+### 1. Waiver Configuration (`.fixzit-waivers.json`)
+
+**Purpose**: Source of truth for accepted patterns and architectural decisions
+
+```json
+{
+  "routes": {
+    "treat_factory_destructures_as_valid": true,
+    "treat_named_reexports_as_valid": true,
+    "treat_nextauth_v5_handlers_as_valid": true
+  },
+  "console": {
+    "allow_error_and_warn_in_runtime": true,
+    "flag_log_and_dir_only": true
+  },
+  "duplicates": {
+    "ignore_dirs": [
+      "aws/dist",
+      "tmp",
+      ".next",
+      "dist",
+      "build",
+      "coverage",
+      ".turbo",
+      ".vercel"
+    ]
+  },
+  "imports": {
+    "treat_atslash_src_as_alias_to_root": true,
+    "forbid_deep_relatives": true
+  },
+  "i18n": {
+    "merge_translation_context": "contexts/TranslationContext.tsx"
+  }
+}
+```
+
+**Team Consensus**: Waivers are versioned in Git and require PR review for changes.
+
+---
+
+### 2. Waiver Validator (`scripts/waivers-validate.mjs`)
+
+**Purpose**: Enforce schema correctness for waiver configuration
+
+**Usage**:
+
+```bash
+node scripts/waivers-validate.mjs
+# Output: [waivers] ✅ OK
+```
+
+**Validates**:
+
+- `routes.*` - boolean flags for export pattern recognition
+- `console.*` - boolean flags for console usage policy
+- `duplicates.ignore_dirs` - array of directory paths
+- `imports.*` - boolean flags for import conventions
+- `i18n.merge_translation_context` - string path to TranslationContext file
+
+**Exit Codes**:
+
+- `0` - Schema valid or no waiver file present
+- `1` - Invalid JSON or schema error
+
+---
+
+### 3. API Scanner v2 (`scripts/api-scan-v2.mjs`)
+
+**Purpose**: Factory/NextAuth-aware API route scanner
+
+**Detection Patterns**:
+
+```javascript
+// Standard exports (baseline)
+export async function GET(req: NextRequest) { ... }
+export const GET = async (req: NextRequest) => { ... }
+
+// Factory destructures (waiver: treat_factory_destructures_as_valid)
+export const { GET, POST } = createCrudHandlers(...);
+
+// Named re-exports (waiver: treat_named_reexports_as_valid)
+export { GET, POST } from './factory';
+
+// NextAuth v5 handlers (waiver: treat_nextauth_v5_handlers_as_valid)
+export const { GET, POST } = handlers;
+```
+
+**Usage**:
+
+```bash
+pnpm run scan:api
+# Output:
+# ✅ API route scan complete → /workspaces/Fixzit/reports/api-endpoint-scan-v2.json
+#    Total routes: 156
+#    With methods: 156
+#    No methods: 0
+```
+
+**Report Format** (`reports/api-endpoint-scan-v2.json`):
+
+```json
+[
+  {
+    "file": "app/api/assets/route.ts",
+    "methods": ["GET", "POST"],
+    "importsNextServer": true,
+    "status": "OK",
+    "detectionNote": "Factory/NextAuth aware"
+  }
+]
+```
+
+**Results**:
+
+- **Before Phase 2**: 150/156 routes detected (6 false negatives)
+- **After Phase 2**: 156/156 routes detected (0 false negatives)
+
+---
+
+### 4. i18n Scanner v2 (`scripts/i18n-scan-v2.mjs`)
+
+**Purpose**: Merge locale files + TranslationContext for accurate key counts
+
+**Sources**:
+
+1. **Locale JSON files**: `i18n/en.json`, `i18n/ar.json` (403 keys each)
+2. **TranslationContext**: `contexts/TranslationContext.tsx` (1860 keys each)
+3. **Merged Total**: 2092 EN ↔ 2092 AR (100% parity)
+
+**Extraction Logic**:
+
+```javascript
+// TranslationContext.tsx extraction
+const enBlock = txt.match(/en\s*:\s*\{([\s\S]*?)\}\s*,/);
+const arBlock = txt.match(/ar\s*:\s*\{([\s\S]*?)\}\s*,/);
+const keyRegex = /['"`]([A-Za-z0-9_.-]+)['"`]\s*:/g;
+
+// Locale file flattening
+function flatten(obj, prefix = "") {
+  const out = {};
+  for (const [k, v] of Object.entries(obj || {})) {
+    const key = prefix ? `${prefix}.${k}` : k;
+    if (v && typeof v === "object" && !Array.isArray(v))
+      Object.assign(out, flatten(v, key));
+    else out[key] = v;
+  }
+  return out;
+}
+```
+
+**Usage**:
+
+```bash
+pnpm run scan:i18n:v2
+# Output:
+# ✅ Extracted 1860 EN keys from TranslationContext
+# ✅ Extracted 1860 AR keys from TranslationContext
+#
+# 📊 i18n Analysis:
+#    EN keys: 2092 (403 locale + 1860 context)
+#    AR keys: 2092 (403 locale + 1860 context)
+#    Parity: PERFECT (gap: 0)
+#    Used in code: 1447
+#    Missing: 10
+```
+
+**Report Format** (`reports/i18n-missing-v2.json`):
+
+```json
+{
+  "timestamp": "2025-11-09T20:00:00.000Z",
+  "sources": {
+    "localeFiles": { "en": 403, "ar": 403 },
+    "translationContext": { "en": 1860, "ar": 1860 },
+    "merged": { "en": 2092, "ar": 2092 }
+  },
+  "parity": {
+    "enCount": 2092,
+    "arCount": 2092,
+    "gap": 0,
+    "status": "PERFECT"
+  },
+  "usage": {
+    "keysUsedInCode": 1447,
+    "usedButMissing": ["test.key1", "test.key2"]
+  }
+}
+```
+
+**Results**:
+
+- **Before Phase 2**: 1927 keys reported (missed TranslationContext)
+- **After Phase 2**: 2092 keys reported (complete coverage)
+
+---
+
+### 5. Regression Checker (`scripts/scan-delta.mjs`)
+
+**Purpose**: Fail CI on new, un-waived issues
+
+**Checks**:
+
+#### a) API Routes
+
+```javascript
+// Fails if any route missing HTTP methods after factory-awareness
+const missing = api.filter(
+  (r) =>
+    !r.methods || r.methods.length === 0 || r.status === "NO_METHODS_DETECTED",
+);
+if (missing.length) fail(`API routes missing methods: ${missing.length}`);
+```
+
+#### b) i18n Parity
+
+```javascript
+// Fails on EN-AR parity gap or production missing keys
+const gap = i18n.parity?.gap ?? 0;
+if (gap > 0) fail(`i18n parity gap: ${gap}`);
+
+// Ignore test fixture keys
+const ignore = new Set([
+  "a",
+  "bool",
+  "hello",
+  "missing.key",
+  "msg",
+  "nested.deep.value",
+  "num",
+  "obj",
+  "watch-all",
+  "welcome",
+]);
+const usedMissing = (i18n.usage?.usedButMissing || []).filter(
+  (k) => !ignore.has(k),
+);
+if (usedMissing.size > 0)
+  fail(`i18n used-but-missing keys: ${usedMissing.size}`);
+```
+
+#### c) Console Usage (Optional - Simplified Version)
+
+```javascript
+// Flags console.log/dir in frontend app/components only
+// Skips: scripts, qa, public, tests, tools, jobs, server, lib
+const rx = /\bconsole\.(log|dir)\s*\(/;
+const skipDirs = new Set([
+  "scripts",
+  "qa",
+  "public",
+  "tests",
+  "test",
+  "__tests__",
+  "e2e",
+  "tools",
+  "jobs",
+  "server",
+  "lib",
+]);
+```
+
+**Note**: Console check was simplified in current implementation to reduce noise. Full version scans app/components only.
+
+#### d) Content Duplicates (Optional)
+
+```javascript
+// Detects content duplicates in app/components/lib/modules via SHA-1 hash
+// Excludes vendor/temp directories
+const primaryDirs = new Set([
+  "app",
+  "components",
+  "lib",
+  "modules",
+  "services",
+]);
+```
+
+**Usage**:
+
+```bash
+node scripts/scan-delta.mjs
+# Output: ✅ Regression checks passed.
+```
+
+**Exit Codes**:
+
+- `0` - All checks passed
+- `1` - Regression detected (fails CI)
+
+---
+
+### 6. GitHub Workflow (`.github/workflows/fixzit-quality-gates.yml`)
+
+**Trigger**: Pull requests and pushes to `main` branch
+
+**Steps**:
+
+1. **Checkout** - `actions/checkout@v4`
+2. **Setup Node** - Corepack + pnpm cache
+3. **Install Dependencies** - `pnpm install --frozen-lockfile`
+4. **Validate Waivers** - `node scripts/waivers-validate.mjs`
+5. **API Scan v2** - `pnpm run scan:api`
+6. **i18n Scan v2** - `pnpm run scan:i18n:v2`
+7. **Fixzit Agent** - `node scripts/fixzit-agent.mjs --report --port 3000 --keepAlive=false --limit=0`
+8. **Delta/Regression Checks** - `node scripts/scan-delta.mjs`
+9. **Upload Reports** - `actions/upload-artifact@v4` (reports/**, tmp/**)
+
+**Timeout**: 30 minutes
+
+**Artifacts Uploaded**:
+
+- `reports/api-endpoint-scan-v2.json`
+- `reports/i18n-missing-v2.json`
+- `reports/fixzit-agent-report.json`
+- `reports/5d_similarity_report.md`
+- `tmp/**` (temporary analysis files)
+
+---
+
+### 7. PR Template (`.github/pull_request_template.md`)
+
+**Added Section**: "Fixzit Quality Gates (must pass)"
+
+```markdown
+## Fixzit Quality Gates (must pass)
+
+- [ ] API surface validated (`pnpm run scan:api`) — factory/NextAuth aware
+- [ ] i18n parity validated (`pnpm run scan:i18n:v2`) — TranslationContext merged
+- [ ] Fixzit Agent (dry) produced reports (full similarity, no new criticals)
+- [ ] No `console.log/dir` added in runtime code
+- [ ] No new content duplicates outside vendor/temp
+
+## Evidence
+
+Attach the CI artifact `fixzit-reports` (api-endpoint-scan-v2.json, i18n-missing-v2.json, 5d_similarity_report.md).
+```
+
+---
+
+### 8. Agent Integration (`scripts/fixzit-agent.mjs`)
+
+**Change**: Added v2 scanner calls after `baselineChecks`
+
+```javascript
+await installTooling(pm);
+await baselineChecks(pm);
+
+// Phase 2 Canonical Scanners (non-blocking)
+await $`node scripts/api-scan-v2.mjs`.nothrow();
+await $`node scripts/i18n-scan-v2.mjs`.nothrow();
+
+const branchName = await gitSafety();
+```
+
+**Benefit**: Single-command parity with CI (`pnpm run fixzit:agent`)
+
+---
+
+## 🚀 Local + CI Parity
+
+**Run exactly what CI runs**:
+
+```bash
+# Step-by-step
+node scripts/waivers-validate.mjs
+pnpm run scan:api
+pnpm run scan:i18n:v2
+node scripts/fixzit-agent.mjs --report --port 3000 --keepAlive=false --limit=0
+node scripts/scan-delta.mjs
+
+# Or use Agent (includes v2 scanners + full analysis)
+pnpm run fixzit:agent
+```
+
+**Expected Output**:
+
+```
+[waivers] ✅ OK
+✅ API route scan complete → reports/api-endpoint-scan-v2.json
+   Total routes: 156
+   With methods: 156
+   No methods: 0
+
+✅ Extracted 1860 EN keys from TranslationContext
+✅ Extracted 1860 AR keys from TranslationContext
+
+📊 i18n Analysis:
+   EN keys: 2092 (403 locale + 1860 context)
+   AR keys: 2092 (403 locale + 1860 context)
+   Parity: PERFECT (gap: 0)
+   Used in code: 1447
+   Missing: 10
+
+✅ Regression checks passed.
+```
+
+---
+
+## 📊 What This Locks
+
+### API Routes
+
+- **Locked**: Factory patterns (`export const { GET } = createCrudHandlers(...)`) are valid exports
+- **Detection**: 156/156 routes (100%)
+- **False Negatives**: 0 (was 6 before Phase 2)
+
+### i18n
+
+- **Locked**: TranslationContext merged with locale files
+- **Keys**: 2092 EN ↔ 2092 AR (100% parity)
+- **Phantom Gaps**: 0 (was 1324 false gaps before Phase 2)
+
+### Console Usage
+
+- **Locked**: `console.error/warn` allowed in runtime (production logging)
+- **Flagged**: `console.log/dir` in frontend app/components
+- **Skipped**: scripts, qa, public, tests, tools, jobs, server, lib
+
+### Duplicates
+
+- **Locked**: Vendor/temp directories excluded (aws/dist, tmp, .next, etc.)
+- **Checked**: Content duplicates in app/components/lib/modules via SHA-1 hash
+- **Focus**: Meaningful duplicates, not build artifacts
+
+### Determinism
+
+- **Locked**: Waivers validated on every run (schema enforcement)
+- **Locked**: Regression delta enforced in CI (fails on new issues)
+- **Locked**: Local = CI (identical commands, identical results)
+
+---
+
+## 🎓 Key Learnings from Phase 2
+
+### 1. Factory Patterns ≠ Missing Exports
+
+**Before**: Static analysis couldn't detect `export const { GET, POST } = factory()`  
+**After**: Regex patterns for destructured exports → 100% detection
+
+### 2. TranslationContext = Primary i18n Source
+
+**Before**: Only scanned locale JSON files (403 keys) → 1324 "missing" keys  
+**After**: Merged TranslationContext.tsx (1860 keys) → 2092 total, 0 phantom gaps
+
+### 3. Console.error ≠ Debug Logging
+
+**Before**: All console statements flagged → 31 false positives  
+**After**: Only console.log/dir in frontend → 0 false positives
+
+### 4. Same Filename ≠ Duplicate
+
+**Before**: `Employee.ts` in 2 directories → flagged as duplicate  
+**After**: Recognized as domain-specific models (ATS vs HR compliance)
+
+### 5. Vendor Directories = Noise
+
+**Before**: Scanned aws/dist, tmp, .next → thousands of false duplicates  
+**After**: Waivers exclude vendor/temp → clear signal on real duplicates
+
+---
+
+## 🔄 Maintenance
+
+### When to Update Waivers
+
+**Add New Patterns**:
+
+- New factory pattern emerges → Update `routes` section
+- New vendor directory → Add to `duplicates.ignore_dirs`
+- New i18n source → Update `i18n.merge_translation_context`
+
+**Remove Outdated Patterns**:
+
+- Deprecated pattern removed from codebase → Remove waiver
+- Migration complete (e.g., all routes use standard exports) → Adjust waiver
+
+### Version Control
+
+**Commit Waiver Changes**:
+
+```bash
+git add .fixzit-waivers.json
+git commit -m "chore(waivers): add new factory pattern for X module"
+```
+
+**Team Consensus**: Waiver changes require PR review (architectural decisions)
+
+---
+
+## 📝 Testing New Scanners
+
+### API Scanner v2
+
+```bash
+pnpm run scan:api
+# Expected: 156/156 routes detected
+cat reports/api-endpoint-scan-v2.json | jq '.[] | select(.status == "NO_METHODS_DETECTED")'
+# Expected: empty (no missing methods)
+```
+
+### i18n Scanner v2
+
+```bash
+pnpm run scan:i18n:v2
+# Expected: 2092 EN-AR keys, PERFECT parity
+cat reports/i18n-missing-v2.json | jq '.parity'
+# Expected: {"enCount": 2092, "arCount": 2092, "gap": 0, "status": "PERFECT"}
+```
+
+### Delta Checker
+
+```bash
+node scripts/scan-delta.mjs
+# Expected: ✅ Regression checks passed.
+echo $?
+# Expected: 0
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### Issue: Waiver validator fails with "Invalid JSON"
+
+**Cause**: Malformed JSON in `.fixzit-waivers.json`  
+**Fix**: Validate JSON syntax with `jq . .fixzit-waivers.json`
+
+### Issue: API scan reports 0 routes
+
+**Cause**: No `app/**/route.@(ts|js)` files found  
+**Fix**: Ensure Next.js App Router structure (`app/api/**/route.ts`)
+
+### Issue: i18n scan reports 0 keys
+
+**Cause**: TranslationContext path incorrect in waivers  
+**Fix**: Update `i18n.merge_translation_context` to correct path
+
+### Issue: Delta check fails on console.log in lib/
+
+**Cause**: Backend utility files flagged (should be skipped)  
+**Fix**: Verify `scan-delta.mjs` skipDirs includes `'lib'`
+
+### Issue: CI passes locally but fails in GitHub
+
+**Cause**: Different pnpm versions or missing dependencies  
+**Fix**: Use exact versions in CI (Node 20.12.2, Corepack)
+
+---
+
+## 📚 Related Documentation
+
+- **[Agent Upgrades Guide](./AGENT_UPGRADES.md)** - Phase 2 scanner implementation details
+- **[Phase 2 Completion Report](../archived/DAILY_PROGRESS_REPORTS/2025-11-09_phase2_complete.md)** - Investigation findings
+- **[Agent Upgrades Complete](../archived/DAILY_PROGRESS_REPORTS/2025-11-09_agent_upgrades_complete.md)** - Implementation summary
+
+---
+
+## 🎯 Success Metrics
+
+| Metric                    | Before Phase 2 | After Phase 2 | Improvement |
+| ------------------------- | -------------- | ------------- | ----------- |
+| **API false negatives**   | 6 routes       | 0 routes      | ✅ 100%     |
+| **i18n phantom gaps**     | 1324 keys      | 0 keys        | ✅ 100%     |
+| **Console false flags**   | 31 files       | 0 files       | ✅ 100%     |
+| **Duplicate noise**       | ~1000 files    | 0 files       | ✅ 100%     |
+| **Total false positives** | 1361           | 0             | ✅ 100%     |
+| **Scanner accuracy**      | ~92%           | 100%          | ✅ +8%      |
+| **CI determinism**        | Variable       | Deterministic | ✅ Locked   |
+
+---
+
+## ✅ Acceptance Criteria
+
+**Phase 2 CI Gates are considered complete when**:
+
+- [x] Waiver configuration exists and is validated
+- [x] API scanner v2 detects 156/156 routes (0 false negatives)
+- [x] i18n scanner v2 reports 2092 EN-AR keys with perfect parity
+- [x] Delta checker passes locally and in CI
+- [x] GitHub workflow runs all scanners on PR/push to main
+- [x] PR template includes quality gates checklist
+- [x] Agent integrates v2 scanners (single-command parity)
+- [x] All documentation updated (AGENT_UPGRADES.md, THIS FILE)
+- [x] Zero drift between local and CI results
+
+**Status**: ✅ **ALL CRITERIA MET** (2025-11-09)
+
+---
+
+## 📞 Support
+
+**Questions about CI gates?**
+
+- Review: `docs/AGENT_UPGRADES.md` (usage examples)
+- Check: `reports/*.json` (scan results)
+- Run: `pnpm run fixzit:agent` (full analysis)
+
+**Found a false positive?**
+
+1. Document the pattern in `.fixzit-waivers.json`
+2. Update scanner logic in `scripts/*-scan-v2.mjs`
+3. Add test case to `scan-delta.mjs`
+4. Submit PR with evidence
+
+---
+
+**Last Updated**: 2025-11-09  
+**Maintained By**: Engineering Team  
+**Version**: 1.0  
+**Status**: ✅ PRODUCTION-READY
+
+]]>
+</file>
+
+<file path="docs/CODERABBIT_ACTION_PLAN.md">
+<![CDATA[
+# CodeRabbit Issues Action Plan
+
+> **Generated:** November 27, 2025  
+> **Updated:** November 27, 2025 (Phase 1 & 2 Complete)
+> **Based on:** 43,035 comments across PRs #1–#354  
+> **Scope:** System-wide audit across all 12 categories
+
+---
+
+## ✅ PHASE COMPLETION STATUS
+
+| Phase | Status | Commit | Date |
+|-------|--------|--------|------|
+| **Phase 1** | ✅ COMPLETE | `a2141e86b` | Nov 27, 2025 |
+| **Phase 2** | ✅ COMPLETE | `d0242041a` | Nov 27, 2025 |
+| **Phase 3** | ⏳ PENDING | - | - |
+| **Phase 4** | ⏳ PENDING | - | - |
+
+---
+
+## 📊 Executive Summary
+
+| Category | Comments | PRs | Priority | Effort |
+|----------|----------|-----|----------|--------|
+| Docs/Process | 6,688 | 330 | 🟡 Medium | High |
+| Error/Logging/Monitoring | 5,011 | 297 | 🔴 High | Medium |
+| Testing/QA | 4,574 | 330 | 🔴 High | High |
+| Data/Schema/DB | 4,055 | 279 | 🔴 High | Medium |
+| Infra/Deploy | 3,989 | 330 | 🔴 High | High |
+| Security/RBAC/Auth | 3,970 | 282 | 🔴 Critical | Medium |
+| Business Logic/Validation | 3,858 | 274 | 🔴 High | High |
+| UI/UX/Accessibility | 3,846 | 330 | 🟡 Medium | Medium |
+| CI/CD & Automation | 2,775 | 276 | 🟡 Medium | Medium |
+| i18n/RTL | 1,832 | 264 | 🟡 Medium | Medium |
+| Performance | 1,513 | 263 | 🟡 Medium | Medium |
+| Meta/Other | 924 | 247 | 🟢 Low | Low |
+
+---
+
+## 🔴 PHASE 1: CRITICAL (Week 1-2) — ✅ COMPLETE
+
+### 1. Security/RBAC/Auth — 3,970 comments
+
+#### ✅ Issues Fixed:
+- ✅ **CSRF protection** implemented in `middleware.ts` with `validateCSRF()` function
+- ✅ **Hardcoded demo passwords** removed from `app/api/auth/otp/send/route.ts`
+- ✅ **OTP code exposure** guarded with strict `NODE_ENV !== 'production'` check
+
+#### Action Items:
+
+| Task | File(s) | Priority | Status |
+|------|---------|----------|--------|
+| Implement CSRF token validation | `middleware.ts` | P0 | ✅ Done |
+| Remove/disable demo password bypass | `app/api/auth/otp/send/route.ts` | P0 | ✅ Done |
+| Guard OTP with strict env check | `app/api/auth/otp/send/route.ts` | P1 | ✅ Done |
+| Standardize RBAC to permission-based | All API routes | P1 | ⏳ Pending |
+| Add per-user rate limiting | `lib/rate-limit.ts` | P2 | ⏳ Pending |
+
+```typescript
+// EXAMPLE FIX: CSRF Token Middleware
+// middleware.ts
+export function csrfProtection(request: NextRequest) {
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(request.method)) {
+    const csrfToken = request.headers.get('X-CSRF-Token');
+    const sessionCsrf = request.cookies.get('csrf-token')?.value;
+    if (!csrfToken || csrfToken !== sessionCsrf) {
+      return new Response('Invalid CSRF token', { status: 403 });
+    }
+  }
+}
+```
+
+---
+
+### 2. Business Logic/Validation — 3,858 comments
+
+#### ✅ Race Conditions Fixed (Phase 2):
+- ✅ **Double-processing refunds** - `processRefund()` now uses atomic `findOneAndUpdate` with status condition
+- ✅ **Concurrent inspection** - `inspectReturn()` uses atomic status transition
+- ✅ **Concurrent approval** - `approveReturn()`/`rejectReturn()` use atomic operations
+- ✅ **Auto-complete race** - `autoCompleteReceivedReturns()` uses batch claim pattern with `autoProcessingJobId`
+
+#### ✅ Validations Fixed (Phase 1):
+- ✅ `lib/zatca.ts` - Added `MAX_TLV_FIELD_LENGTH = 256` validation per ZATCA spec
+- ✅ `lib/utils/objectid.ts` - Created centralized `parseObjectId()` with `ValidationError`
+
+#### Remaining Items:
+
+| Task | File(s) | Priority | Status |
+|------|---------|----------|--------|
+| Add MongoDB atomic operations for cart inventory | `services/souq/cart-service.ts` | P0 | ⏳ Pending |
+| Validate `basePrice` in auto-repricer | `services/souq/auto-repricer-service.ts` | P1 | ⏳ Pending |
+| Add negative amount validation | `lib/finance/expense.service.ts` | P1 | ⏳ Pending |
+
+```typescript
+// EXAMPLE FIX: Atomic Inventory Reservation
+// services/souq/cart-service.ts
+await db.collection('inventory').findOneAndUpdate(
+  { productId, quantity: { $gte: requestedQty } },
+  { $inc: { quantity: -requestedQty, reserved: requestedQty } },
+  { returnDocument: 'after' }
+);
+```
+
+---
+
+### 3. Data/Schema/DB — 4,055 comments
+
+#### ✅ Fixed (Phase 1):
+- ✅ Created centralized `parseObjectId()` in `lib/utils/objectid.ts` with `ValidationError` class
+
+#### Remaining Items:
+
+| Task | File(s) | Priority | Status |
+|------|---------|----------|--------|
+| Add Zod schemas to Souq claims API | `app/api/souq/claims/**/*.ts` | P0 | ⏳ Pending |
+| Standardize `org_id`/`orgId` naming | Codebase-wide | P2 | ⏳ Pending |
+| Add missing indexes for `communication_logs` | `db/indexes.ts` | P1 | ⏳ Pending |
+
+```typescript
+// EXAMPLE: Centralized ObjectId Validator
+// lib/utils/objectid.ts
+import { ObjectId } from 'mongodb';
+
+export function parseObjectId(id: string | undefined, fieldName = 'id'): ObjectId {
+  if (!id || !ObjectId.isValid(id)) {
+    throw new ValidationError(`Invalid ${fieldName}: must be a valid ObjectId`);
+  }
+  return new ObjectId(id);
+}
+```
+
+---
+
+### 4. Infra/Deploy — 3,989 comments
+
+#### ✅ Fixed (Phase 1):
+- ✅ Added `HEALTHCHECK` to root `Dockerfile`
+- ✅ Updated `Dockerfile` to use Node 20-alpine, pnpm, non-root user
+- ✅ Enabled `--frozen-lockfile` in `vercel.json`
+- ✅ Disabled `productionBrowserSourceMaps` in `next.config.js`
+
+#### Remaining Items:
+
+| Task | File(s) | Priority | Status |
+|------|---------|----------|--------|
+| Fix Dockerfile path in docker-compose | `docker-compose.yml` | P0 | ⏳ Pending |
+| Add comprehensive env validation | `lib/env.ts` | P1 | ⏳ Pending |
+
+```dockerfile
+# EXAMPLE: Dockerfile HEALTHCHECK
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
+```
+
+---
+
+## 🟠 PHASE 2: HIGH PRIORITY (Week 3-4) — ✅ COMPLETE
+
+### 5. Error/Logging/Monitoring — 5,011 comments
+
+#### Issues Found:
+- ⚠️ **Generic error messages** without error codes in 15+ service files
+- ⚠️ **Missing error handling** in `components/NotificationCenter.tsx:30-46`
+- ⚠️ **Direct console usage** instead of structured logger in some files
+- ⚠️ **Empty catch blocks** returning null silently in `lib/auth.ts:78-85`
+
+#### Action Items:
+
+| Task | File(s) | Priority | Status |
+|------|---------|----------|--------|
+| Add error codes to service layer errors | `services/souq/reviews-service.ts`, etc. | P1 | ⏳ Pending |
+| Add try/catch with proper logging to NotificationCenter | `components/NotificationCenter.tsx` | P1 | ⏳ Pending |
+| Replace console.* with structured logger | `lib/sms.ts:282,299` | P2 | ⏳ Pending |
+| Create domain-specific error classes | `lib/errors/` | P2 | ⏳ Pending |
+
+---
+
+### 6. Testing/QA — 4,574 comments
+
+#### ✅ Tests Added (Phase 2):
+- ✅ **16 CSRF middleware tests** covering:
+  - Safe methods bypass (GET, HEAD, OPTIONS)
+  - State-changing methods require CSRF (POST, PUT, DELETE, PATCH)
+  - Token matching validation
+  - Exempt routes (/api/auth, /api/webhooks, /api/health, /api/copilot)
+  - Lowercase header support
+  - Error response format
+
+#### Remaining Items:
+
+| Task | File(s) | Priority | Status |
+|------|---------|----------|--------|
+| Add tests for Souq services | `services/souq/**/*.ts` | P1 | ⏳ Pending |
+| Add tests for auth functions | `lib/auth.ts` | P1 | ⏳ Pending |
+| Un-skip E2E tests with auth fixtures | `tests/e2e/*.spec.ts` | P2 | ⏳ Pending |
+| Set up coverage threshold enforcement | `vitest.config.ts` | P2 | ⏳ Pending |
+
+---
+
+### 7. CI/CD & Automation — 2,775 comments
+
+#### ✅ Fixed (Phase 1):
+- ✅ **test-runner.yml** now runs actual tests with lint, type-check, and vitest
+
+#### Remaining Items:
+
+| Task | File(s) | Priority | Status |
+|------|---------|----------|--------|
+| Add Vercel deployment workflow | `.github/workflows/deploy.yml` | P1 | ⏳ Pending |
+| Add Prettier config and format check | `.prettierrc`, `package.json` | P2 | ⏳ Pending |
+| Add Codecov/Coveralls integration | `.github/workflows/quality.yml` | P2 | ⏳ Pending |
+
+---
+
+## 🟡 PHASE 3: MEDIUM PRIORITY (Week 5-6)
+
+### 8. Docs/Process — 6,688 comments
+
+#### Missing Documentation:
+- **~225+ functions** missing JSDoc (90% of exports)
+- **15 directories** missing README files
+- **48+ API routes** missing OpenAPI specs
+
+#### Key Directories Needing READMEs:
+- `lib/` - Core utilities
+- `services/` - Business services
+- `domain/` - Domain logic
+- `app/api/` - API routes
+
+#### Action Items:
+
+| Task | Priority | Estimated Effort |
+|------|----------|------------------|
+| Add READMEs to `lib/`, `services/`, `domain/` | P2 | 4 hours |
+| Add JSDoc to auth functions | P2 | 2 hours |
+| Expand OpenAPI specs for FM, Billing, HR APIs | P3 | 8 hours |
+| Set up automated JSDoc enforcement in ESLint | P3 | 1 hour |
+
+---
+
+### 9. UI/UX/Accessibility — 3,846 comments
+
+#### Issues Found:
+- **10+ buttons** missing `aria-label` across multiple components
+- **Form inputs** in `ViewingScheduler.tsx` lack associated labels
+- **Missing loading skeletons** in `property-details`, `reports` pages
+- **Missing error states** in several app pages
+
+#### Action Items:
+
+| Task | File(s) | Priority | Assignee |
+|------|---------|----------|----------|
+| Add aria-labels to interactive buttons | `NotificationCenter.tsx`, `DashboardHero.tsx`, `HeroSection.tsx` | P2 | - |
+| Add form labels/aria to ViewingScheduler | `components/aqar/ViewingScheduler.tsx` | P2 | - |
+| Add loading skeletons to list pages | `app/fm/properties/**`, `app/fm/reports/**` | P3 | - |
+| Verify color contrast meets WCAG | `globals.css`, component styles | P3 | - |
+
+---
+
+### 10. i18n/RTL — 1,832 comments
+
+#### Issues Found:
+- **~50+ hardcoded strings** need translation keys
+- **~15 instances** of date/number formatting not locale-aware
+- **~5-10 instances** of RTL-incompatible CSS (`ml-`, `mr-` instead of `ms-`, `me-`)
+- **~10 aria-labels** not translated
+
+#### Action Items:
+
+| Task | File(s) | Priority | Assignee |
+|------|---------|----------|----------|
+| Replace hardcoded strings in ViewingScheduler | `components/aqar/ViewingScheduler.tsx` | P2 | - |
+| Fix date formatting to use current locale | `lib/utils/format-utils.ts`, components | P2 | - |
+| Convert `ml-`/`mr-` to `ms-`/`me-` | Various components | P3 | - |
+| Add translations for aria-labels | i18n/*.json files | P3 | - |
+
+```typescript
+// EXAMPLE: Locale-aware date formatting
+const formatted = new Intl.DateTimeFormat(locale, {
+  dateStyle: 'medium',
+  timeStyle: 'short'
+}).format(date);
+```
+
+---
+
+### 11. Performance — 1,513 comments
+
+#### High Priority Issues:
+- **N+1 Queries** in 6 files (buybox-service, cart-service, etc.)
+- **Missing pagination** in 6 API endpoints
+- **Unbounded data fetching** in multiple services
+
+#### Action Items:
+
+| Task | File(s) | Priority | Assignee |
+|------|---------|----------|----------|
+| Add pagination to admin users endpoint | `app/api/admin/users/route.ts` | P1 | - |
+| Batch operations in buybox-service | `services/souq/buybox-service.ts` | P2 | - |
+| Add limits to inventory queries | `services/souq/inventory-service.ts` | P2 | - |
+| Dynamic imports for recharts | Chart components | P3 | - |
+
+```typescript
+// EXAMPLE: Pagination fix
+const users = await db.collection('users')
+  .find(filter)
+  .skip((page - 1) * limit)
+  .limit(limit)
+  .toArray();
+```
+
+---
+
+## 🟢 PHASE 4: LOW PRIORITY (Week 7+)
+
+### 12. Meta/Other — 924 comments
+
+- Code style consistency
+- Comment cleanup
+- Deprecated code removal
+- Technical debt documentation
+
+---
+
+## 📅 Implementation Timeline
+
+```
+Week 1-2: PHASE 1 - Critical Security & Business Logic
+├── Security/RBAC/Auth fixes
+├── Race condition fixes
+├── Critical validation gaps
+└── Infrastructure critical issues
+
+Week 3-4: PHASE 2 - High Priority
+├── Error handling improvements
+├── Test coverage expansion
+├── CI/CD fixes
+└── Schema validation
+
+Week 5-6: PHASE 3 - Medium Priority
+├── Documentation
+├── Accessibility
+├── i18n/RTL
+└── Performance
+
+Week 7+: PHASE 4 - Low Priority
+└── Technical debt cleanup
+```
+
+---
+
+## 📈 Success Metrics
+
+| Metric | Current | Target |
+|--------|---------|--------|
+| Security vulnerabilities | ~5 critical | 0 critical |
+| Test coverage | ~15% | 60% |
+| API routes with schema validation | ~40% | 95% |
+| Functions with JSDoc | ~10% | 50% |
+| Accessibility compliance | Unknown | WCAG 2.1 AA |
+| i18n coverage | ~80% | 95% |
+
+---
+
+## 🔗 Related Documents
+
+- [CODERABBIT_FIXES_SUMMARY.md](./CODERABBIT_FIXES_SUMMARY.md) - Detailed analysis
+- [CRITICAL_TECHNICAL_DEBT_AUDIT.md](../CRITICAL_TECHNICAL_DEBT_AUDIT.md) - Technical debt
+- [SYSTEM_AUDIT_FINDINGS.md](../SYSTEM_AUDIT_FINDINGS.md) - System audit
+
+---
+
+*This action plan should be reviewed weekly and updated based on progress.*
+
+]]>
+</file>
+
+<file path="docs/CODERABBIT_TROUBLESHOOTING.md">
+<![CDATA[
+# CodeRabbit / Copilot Chat Troubleshooting
+
+## Issue
+
+User experiences: "Chat failed to get ready. Please ensure you are signed in to GitHub and that the extension GitHub.copilot-chat is installed and enabled."
+
+## Root Cause Analysis
+
+### GitHub Copilot vs CodeRabbit
+
+1. **GitHub Copilot Chat** (`github.copilot-chat`) - ✅ Installed
+2. **GitHub Copilot** (`github.copilot`) - ✅ Installed
+3. **CodeRabbit** - This is a SEPARATE service that requires its own extension
+
+### Authentication Status
+
+- GitHub CLI: ✅ Authenticated as `EngSayh`
+- GitHub Token: ✅ Active (GITHUB_TOKEN)
+
+## Solutions
+
+### Option 1: Use GitHub Copilot Chat (Built-in)
+
+GitHub Copilot Chat is already installed and working. Use it instead of CodeRabbit:
+
+1. Press `Ctrl+I` (Windows/Linux) or `Cmd+I` (Mac) to open inline chat
+2. Or click the chat icon in the sidebar
+3. Or press `Ctrl+Shift+I` for the chat panel
+
+### Option 2: Install CodeRabbit Extension (If you specifically need CodeRabbit)
+
+CodeRabbit is a third-party code review tool. To use it:
+
+1. Open VS Code Extensions (`Ctrl+Shift+X`)
+2. Search for "CodeRabbit"
+3. Install the CodeRabbit extension
+4. Sign in with your CodeRabbit account (separate from GitHub)
+5. Configure CodeRabbit API key in settings
+
+### Option 3: Re-authenticate GitHub Copilot
+
+If the issue persists with GitHub Copilot Chat:
+
+```bash
+# Sign out
+gh auth logout
+
+# Sign back in
+gh auth login
+
+# Verify
+gh auth status
+```
+
+Then in VS Code:
+
+1. Open Command Palette (`Ctrl+Shift+P`)
+2. Run: `GitHub Copilot: Sign Out`
+3. Run: `GitHub Copilot: Sign In`
+4. Follow the authentication flow
+
+### Option 4: Reset VS Code Extension Host
+
+Sometimes the extension host needs a restart:
+
+```bash
+# From Command Palette (Ctrl+Shift+P)
+Developer: Reload Window
+```
+
+Or completely restart VS Code.
+
+### Option 5: Check Copilot Subscription
+
+Ensure your GitHub account has an active Copilot subscription:
+
+- Go to <https://github.com/settings/copilot>
+- Verify your subscription status
+- If expired, renew or start a trial
+
+## Recommended Action
+
+Since you're trying to "review code with CodeRabbit", you likely need to:
+
+1. **Install the CodeRabbit extension** (it's not GitHub Copilot)
+2. **Sign up for CodeRabbit** at <https://coderabbit.ai/>
+3. **Configure CodeRabbit** in your repository
+
+OR
+
+Simply use **GitHub Copilot Chat** which is already working:
+
+- It provides similar AI-powered code review capabilities
+- No additional setup required
+- Already authenticated
+
+## Prevention
+
+To avoid this error in the future:
+
+1. Ensure GitHub Copilot subscription is active
+2. Keep extensions updated
+3. Restart VS Code after authentication changes
+4. Use `Developer: Reload Window` if chat becomes unresponsive
+
+## Status
+
+- ✅ GitHub authenticated
+- ✅ Copilot extensions installed
+- ⚠️ CodeRabbit (separate service) may need installation
+- ✅ Can use GitHub Copilot Chat immediately
+
+## Next Steps
+
+1. Try using GitHub Copilot Chat with `Ctrl+I`
+2. If you specifically need CodeRabbit, install its extension
+3. If issue persists, run `Developer: Reload Window`
+
+]]>
+</file>
+
+<file path="docs/CONSOLIDATION_PLAN.md">
+<![CDATA[
+# Consolidation Plan
+
+## Phase 0: Baseline
+
+- Create governance configs
+- Create verification scripts
+
+## Phase 1: UI Consolidation
+
+- Find duplicates
+- Move to .trash
+- Update imports
+
+## Phase 2: Verification
+
+- Test each page × role
+- Attach artifacts
+
+]]>
+</file>
+
+<file path="docs/CSRF_TOKEN_FLOW.md">
+<![CDATA[
+# CSRF Token Flow - Frontend Developer Guide
+
+> **Version:** 1.0.1  
+> **Last Updated:** November 27, 2025  
+> **Status:** Production Ready
+
+---
+
+## Overview
+
+Fixzit implements Double Submit Cookie CSRF protection for all state-changing API requests. This document explains how frontend developers should obtain, store, and send CSRF tokens using the server-issued token from NextAuth.
+
+---
+
+## Quick Start (Server-Issued Token)
+
+```typescript
+import { getCsrfToken } from 'next-auth/react';
+
+// 1. Ask the backend (/api/auth/csrf via NextAuth) so cookie + header stay in sync
+const csrfToken = await getCsrfToken();
+if (!csrfToken) throw new Error('CSRF token unavailable');
+
+// 2. Include token in all state-changing requests
+fetch('/api/work-orders', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-CSRF-Token': csrfToken,  // ← Required for POST/PUT/DELETE/PATCH
+  },
+  body: JSON.stringify(data),
+});
+```
+
+---
+
+## How It Works
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        CSRF Protection Flow                      │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  1. Initial Page Load / Auth (same-site)                        │
+│     ┌──────────┐                                                │
+│     │ Browser  │ ─── getCsrfToken() ──► Server sets cookie      │
+│     └──────────┘                                                │
+│                                                                 │
+│  2. API Request (POST/PUT/DELETE/PATCH)                         │
+│     ┌──────────┐          ┌──────────────┐      ┌────────────┐ │
+│     │ Browser  │ ──────►  │  Middleware  │ ───► │ API Route  │ │
+│     └──────────┘          └──────────────┘      └────────────┘ │
+│          │                       │                              │
+│          │   X-CSRF-Token        │   Validate:                  │
+│          │   (Header)            │   Header Token === Cookie    │
+│          │                       │                              │
+│          │   csrf-token          │   ✓ Pass → Continue          │
+│          │   (Cookie)            │   ✗ Fail → 403 Forbidden     │
+│          │                       │                              │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Why Double Submit Cookie?
+
+1. **Stateless**: No server-side token storage required  
+2. **Scalable**: Works across multiple servers/instances  
+3. **Simple**: Easy to implement in any frontend framework
+
+---
+
+## Implementation Guide
+
+### Step 1: Obtain CSRF Token on App Initialization (Server-Issued)
+
+**React/Next.js Example:**
+
+```typescript
+// hooks/useCSRFToken.ts
+import { useEffect, useState } from 'react';
+import { getCsrfToken } from 'next-auth/react';
+
+export function useCSRFToken() {
+  const [csrfToken, setCsrfToken] = useState<string>('');
+
+  useEffect(() => {
+    let cancelled = false;
+    const ensureToken = async () => {
+      try {
+        const token = await getCsrfToken();
+        if (!cancelled && token) setCsrfToken(token);
+      } catch {
+        // handled by consumer
+      }
+    };
+    void ensureToken();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return csrfToken;
+}
+```
+
+**App-Level Provider:**
+
+```typescript
+// providers/CSRFProvider.tsx
+'use client';
+
+import { createContext, useContext, ReactNode } from 'react';
+import { useCSRFToken } from '@/hooks/useCSRFToken';
+
+const CSRFContext = createContext<string>('');
+
+export function CSRFProvider({ children }: { children: ReactNode }) {
+  const csrfToken = useCSRFToken();
+  return (
+    <CSRFContext.Provider value={csrfToken}>
+      {children}
+    </CSRFContext.Provider>
+  );
+}
+
+export const useCSRF = () => useContext(CSRFContext);
+```
+
+### Step 2: Create API Client with CSRF Headers
+
+**Fetch Wrapper:**
+
+```typescript
+// lib/api-client.ts
+import { getCookie } from '@/lib/cookies';
+
+interface FetchOptions extends RequestInit {
+  skipCSRF?: boolean;
+}
+
+export async function apiClient<T>(
+  url: string,
+  options: FetchOptions = {}
+): Promise<T> {
+  const { skipCSRF = false, ...fetchOptions } = options;
+  
+  const headers = new Headers(fetchOptions.headers);
+  
+  // Add CSRF token for state-changing methods
+  const method = (fetchOptions.method || 'GET').toUpperCase();
+  const requiresCSRF = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
+  
+  if (requiresCSRF && !skipCSRF) {
+    const csrfToken = getCookie('csrf-token');
+    if (!csrfToken) {
+      // Fetch a fresh token from the server (ensures cookie + header match)
+      const regenerated = await fetch('/api/auth/csrf', { credentials: 'include' })
+        .then(res => res.ok ? res.json() : null)
+        .then(json => json?.csrfToken as string | undefined)
+        .catch(() => undefined);
+      if (!regenerated) {
+        throw new Error('CSRF token not found. Please refresh the page.');
+      }
+      headers.set('X-CSRF-Token', regenerated);
+    } else {
+      headers.set('X-CSRF-Token', csrfToken);
+    }
+  }
+  
+  const response = await fetch(url, {
+    ...fetchOptions,
+    headers,
+    credentials: 'include', // Important: include cookies
+  });
+  
+  if (!response.ok) {
+    if (response.status === 403) {
+      const body = await response.json().catch(() => ({}));
+      if (String(body.error || '').toLowerCase().includes('csrf')) {
+        // Token expired or invalid - re-fetch from server so cookie + header stay aligned
+        await fetch('/api/auth/csrf', { credentials: 'include' }).catch(() => undefined);
+        throw new Error('CSRF token expired. Please try again.');
+      }
+    }
+    throw new Error(`API Error: ${response.status}`);
+  }
+  
+  return response.json();
+}
+```
+
+**Axios Interceptor:**
+
+```typescript
+// lib/axios-client.ts
+import axios from 'axios';
+import { getCookie } from '@/lib/cookies';
+
+const axiosClient = axios.create({
+  baseURL: '/api',
+  withCredentials: true,
+});
+
+// Add CSRF token to all state-changing requests
+axiosClient.interceptors.request.use((config) => {
+  const method = (config.method || 'get').toUpperCase();
+  const requiresCSRF = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
+  
+  if (requiresCSRF) {
+    const csrfToken = getCookie('csrf-token');
+    if (csrfToken) {
+      config.headers['X-CSRF-Token'] = csrfToken;
+    }
+  }
+  
+  return config;
+});
+
+// Handle CSRF errors
+axiosClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 403) {
+      const message = error.response.data?.error || '';
+      if (message.toLowerCase().includes('csrf')) {
+        // Re-fetch token from server and notify user (retry can be added in caller)
+        void axios.get('/api/auth/csrf', { withCredentials: true }).catch(() => undefined);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default axiosClient;
+```
+
+### Step 3: Using in Components
+
+```tsx
+// components/WorkOrderForm.tsx
+'use client';
+
+import { useState } from 'react';
+import { apiClient } from '@/lib/api-client';
+
+export function WorkOrderForm() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (formData: FormData) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      await apiClient('/api/work-orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.fromEntries(formData)),
+      });
+      // Success handling
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create work order');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form action={handleSubmit}>
+      {error && <div className="error">{error}</div>}
+      {/* Form fields */}
+    </form>
+  );
+}
+```
+
+---
+
+## Exempt Routes
+
+The following routes are **exempt** from CSRF validation:
+
+| Route Pattern | Reason |
+|---------------|--------|
+| `/api/auth/*` | NextAuth handles its own CSRF protection |
+| `/api/webhooks/*` | Webhooks use signature verification |
+| `/api/health` | Health checks don't change state |
+| `/api/copilot/*` | AI assistant uses separate auth mechanism |
+
+---
+
+## Error Handling
+
+### 403 Forbidden - Invalid CSRF Token
+
+**Response:**
+```json
+{
+  "error": "Invalid CSRF token"
+}
+```
+
+**Causes:**
+1. Missing `X-CSRF-Token` header  
+2. Missing `csrf-token` cookie  
+3. Token mismatch (header ≠ cookie)  
+4. Token expired
+
+**Resolution:**
+1. Re-fetch CSRF token from `/api/auth/csrf`  
+2. Retry the request  
+3. If persistent, clear cookies and reload page
+
+---
+
+## Security Considerations
+
+### Do's ✅
+
+- Use the server-issued token endpoint (`/api/auth/csrf`) via NextAuth so cookie + header match
+- Keep cookies `Secure` in production (HTTPS only) and `SameSite` aligned with auth requirements (NextAuth defaults to `Lax`)
+- Regenerate token after authentication state changes (call `getCsrfToken` again)
+- Include credentials in fetch (`credentials: 'include'`)
+
+### Don'ts ❌
+
+- Don't log CSRF tokens
+- Don't store tokens in localStorage (use the cookie only)
+- Don't disable CSRF for convenience
+- Don't expose token generation endpoint publicly
+
+---
+
+## Testing CSRF Protection
+
+### Manual Testing
+
+```bash
+# Should fail (no CSRF token)
+curl -X POST http://localhost:3000/api/work-orders \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Test"}'
+# Expected: 403 Forbidden
+
+# Should pass (with CSRF token)
+TOKEN="test-csrf-token-123"
+curl -X POST http://localhost:3000/api/work-orders \
+  -H "Content-Type: application/json" \
+  -H "X-CSRF-Token: $TOKEN" \
+  -H "Cookie: csrf-token=$TOKEN" \
+  -d '{"title": "Test"}'
+# Expected: 200 OK (or 401 if not authenticated)
+```
+
+### Automated Testing
+
+```typescript
+// tests/csrf.test.ts
+import { describe, it, expect } from 'vitest';
+
+describe('CSRF Protection', () => {
+  it('should reject POST without CSRF token', async () => {
+    const response = await fetch('/api/work-orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: 'Test' }),
+    });
+    expect(response.status).toBe(403);
+  });
+
+  it('should accept POST with valid CSRF token', async () => {
+    const token = 'test-token';
+    document.cookie = `csrf-token=${token}`;
+    
+    const response = await fetch('/api/work-orders', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': token,
+      },
+      body: JSON.stringify({ title: 'Test' }),
+      credentials: 'include',
+    });
+    expect(response.status).not.toBe(403);
+  });
+});
+```
+
+---
+
+## Environment Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CSRF_PROTECTION` | `true` | Enable/disable CSRF protection |
+
+**To disable in development:**
+```bash
+CSRF_PROTECTION=false pnpm dev
+```
+
+---
+
+## Reference
+
+- `/api/auth/csrf` is served by the NextAuth handler in `app/api/auth/[...nextauth]/route.ts` (GET export).
+
+]]>
+</file>
+
+</batch_content>

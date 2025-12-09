@@ -1,0 +1,3713 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/PRODUCTION_DEPLOYMENT_CHECKLIST.md">
+<![CDATA[
+# Production Deployment Checklist
+
+## Overview
+
+Complete checklist for deploying Fixzit to production. Follow these steps to ensure a secure, performant, and reliable production deployment.
+
+**Estimated Time**: 4-6 hours for first deployment
+
+## Table of Contents
+
+- [Pre-Deployment](#pre-deployment)
+- [Infrastructure Setup](#infrastructure-setup)
+- [Database Configuration](#database-configuration)
+- [Environment Variables](#environment-variables)
+- [Security Configuration](#security-configuration)
+- [Performance Optimization](#performance-optimization)
+- [Monitoring & Observability](#monitoring--observability)
+- [Backup & Recovery](#backup--recovery)
+- [Testing & Validation](#testing--validation)
+- [Deployment](#deployment)
+- [Post-Deployment](#post-deployment)
+- [Rollback Plan](#rollback-plan)
+
+## Pre-Deployment
+
+### Planning & Documentation
+
+- [ ] **Review architecture documentation**
+  - [ ] System architecture diagrams
+  - [ ] Data flow diagrams
+  - [ ] Security architecture
+  - [ ] Disaster recovery plan
+
+- [ ] **Capacity planning**
+  - [ ] Expected concurrent users: **\_\_\_\_**
+  - [ ] Expected requests per second: **\_\_\_\_**
+  - [ ] Database size estimate: **\_\_\_\_**
+  - [ ] Storage requirements: **\_\_\_\_**
+
+- [ ] **Compliance & Legal**
+  - [ ] GDPR compliance reviewed
+  - [ ] Data residency requirements identified
+  - [ ] Terms of service finalized
+  - [ ] Privacy policy finalized
+
+### Team Preparation
+
+- [ ] **Deployment team identified**
+  - [ ] Lead: **\*\***\_\_\_\_**\*\***
+  - [ ] Database admin: **\*\***\_\_\_\_**\*\***
+  - [ ] DevOps: **\*\***\_\_\_\_**\*\***
+  - [ ] QA: **\*\***\_\_\_\_**\*\***
+
+- [ ] **Communication plan**
+  - [ ] Stakeholders notified
+  - [ ] Maintenance window scheduled
+  - [ ] Status page prepared
+  - [ ] Support team briefed
+
+## Infrastructure Setup
+
+### Hosting Platform
+
+**Choose one**: ☐ Vercel ☐ AWS ☐ GCP ☐ Azure ☐ Other: **\_\_\_\_**
+
+#### Vercel (Recommended for Next.js)
+
+- [ ] **Project setup**
+  - [ ] Vercel account created
+  - [ ] Project connected to GitHub
+  - [ ] Production branch: `main`
+  - [ ] Framework preset: Next.js
+
+- [ ] **Configuration**
+  - [ ] Node.js version: 20.x
+  - [ ] Build command: `pnpm build`
+  - [ ] Output directory: `.next`
+  - [ ] Install command: `pnpm install --frozen-lockfile`
+
+- [ ] **Domains**
+  - [ ] Custom domain configured: **\*\***\_\_\_\_**\*\***
+  - [ ] SSL certificate provisioned
+  - [ ] DNS records updated
+  - [ ] WWW redirect configured
+
+#### AWS/GCP/Azure
+
+- [ ] **Compute resources**
+  - [ ] Instance type selected: **\*\***\_\_\_\_**\*\***
+  - [ ] Auto-scaling configured
+  - [ ] Load balancer configured
+  - [ ] Health check endpoints defined
+
+- [ ] **Networking**
+  - [ ] VPC configured
+  - [ ] Subnets created (public/private)
+  - [ ] Security groups configured
+  - [ ] Network ACLs configured
+
+- [ ] **Storage**
+  - [ ] S3/Cloud Storage bucket created
+  - [ ] Bucket policies configured
+  - [ ] CDN configured (CloudFront/Cloud CDN)
+  - [ ] Backup storage configured
+
+## Database Configuration
+
+See [PRODUCTION_MONGODB_SETUP.md](./PRODUCTION_MONGODB_SETUP.md) for detailed MongoDB setup.
+
+### MongoDB Atlas
+
+- [ ] **Cluster setup**
+  - [ ] Cluster tier: M10+ (production)
+  - [ ] Region selected: **\*\***\_\_\_\_**\*\***
+  - [ ] MongoDB version: 7.0+
+  - [ ] Cluster name: **\*\***\_\_\_\_**\*\***
+
+- [ ] **Database access**
+  - [ ] Application user created
+    - Username: `fixzit_app`
+    - Password: [Strong 32+ character password]
+    - Role: `readWrite` on `fixzit` database
+  - [ ] Admin user created (separate credentials)
+  - [ ] Backup user created (read-only)
+
+- [ ] **Network access**
+  - [ ] IP allowlist configured
+    - Production IPs: **\*\***\_\_\_\_**\*\***
+    - Admin IPs: **\*\***\_\_\_\_**\*\***
+  - [ ] Private endpoint configured (if applicable)
+  - [ ] VPC peering configured (if applicable)
+
+- [ ] **Database configuration**
+  - [ ] Database created: `fixzit`
+  - [ ] Indexes created: `pnpm tsx scripts/ensure-indexes.ts`
+  - [ ] Connection string tested
+  - [ ] Connection pooling verified
+
+- [ ] **Backups**
+  - [ ] Continuous backup enabled
+  - [ ] Snapshot schedule configured
+  - [ ] Retention period: 30 days
+  - [ ] Recovery tested
+
+### Connection Details
+
+```bash
+MONGODB_URI=mongodb+srv://fixzit_app:PASSWORD@cluster.mongodb.net/fixzit
+```
+
+- [ ] Connection string documented in secure location
+- [ ] Credentials stored in secret manager
+
+## Environment Variables
+
+### Required Variables
+
+Copy from `.env.example` and fill in production values:
+
+#### Core Configuration
+
+- [ ] **MONGODB_URI**
+
+  ```bash
+  MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/fixzit
+  ```
+
+- [ ] **NEXTAUTH_URL**
+
+  ```bash
+  NEXTAUTH_URL=https://your-production-domain.com
+  ```
+
+- [ ] **NEXTAUTH_SECRET** (32+ characters)
+
+  ```bash
+  # Generate with: openssl rand -base64 32
+  NEXTAUTH_SECRET=________________________________
+  ```
+
+- [ ] **AUTH_SECRET** (same as NEXTAUTH_SECRET)
+
+  ```bash
+  AUTH_SECRET=________________________________
+  ```
+
+- [ ] **NODE_ENV**
+  ```bash
+  NODE_ENV=production
+  ```
+
+#### OAuth Providers (Recommended)
+
+- [ ] **Google OAuth**
+
+  ```bash
+  GOOGLE_CLIENT_ID=________________________________
+  GOOGLE_CLIENT_SECRET=________________________________
+  ```
+
+  - [ ] OAuth consent screen configured
+  - [ ] Authorized redirect URIs added
+  - [ ] Scopes configured: email, profile
+
+- [ ] **GitHub OAuth** (optional)
+  ```bash
+  GITHUB_CLIENT_ID=________________________________
+  GITHUB_CLIENT_SECRET=________________________________
+  ```
+
+#### Email Service
+
+- [ ] **SendGrid**
+
+  ```bash
+  SENDGRID_API_KEY=________________________________
+  SENDGRID_FROM_EMAIL=noreply@your-domain.com
+  SENDGRID_FROM_NAME=Fixzit
+  ```
+
+  - [ ] API key created
+  - [ ] Sender email verified
+  - [ ] Templates created
+
+#### SMS Service (Optional)
+
+- [ ] **Twilio**
+  ```bash
+  TWILIO_ACCOUNT_SID=________________________________
+  TWILIO_AUTH_TOKEN=________________________________
+  TWILIO_PHONE_NUMBER=+1234567890
+  ```
+
+#### File Storage
+
+- [ ] **AWS S3** or **Cloud Storage**
+
+  ```bash
+  AWS_REGION=us-east-1
+  AWS_ACCESS_KEY_ID=________________________________
+  AWS_SECRET_ACCESS_KEY=________________________________
+  AWS_S3_BUCKET=fixzit-production-uploads
+  ```
+
+  - [ ] Bucket created
+  - [ ] CORS configured
+  - [ ] Lifecycle policies configured
+  - [ ] CDN configured
+
+#### Payment Gateway (Optional)
+
+- [ ] **PayTabs** or **Stripe**
+  ```bash
+  PAYTABS_PROFILE_ID=________________________________
+  PAYTABS_SERVER_KEY=________________________________
+  ```
+
+#### Observability
+
+- [ ] **Logging**
+
+  ```bash
+  LOG_LEVEL=info
+  LOG_FORMAT=json
+  ```
+
+- [ ] **Sentry** (recommended)
+
+  ```bash
+  NEXT_PUBLIC_SENTRY_DSN=________________________________
+  SENTRY_AUTH_TOKEN=________________________________
+  ```
+
+- [ ] **Analytics**
+  ```bash
+  NEXT_PUBLIC_GA_ID=________________________________
+  ```
+
+### Environment Variable Validation
+
+- [ ] All required variables set
+- [ ] No placeholder values remain
+- [ ] Secrets stored in secure vault (not in code)
+- [ ] Environment variables documented
+- [ ] Test environment mirrors production (except credentials)
+
+## Security Configuration
+
+### Authentication & Authorization
+
+- [ ] **NextAuth configuration**
+  - [ ] JWT secrets are strong (32+ characters)
+  - [ ] Session expiry configured (24 hours recommended)
+  - [ ] Cookie security: `secure: true`, `sameSite: 'lax'`
+  - [ ] CSRF protection enabled
+
+- [ ] **Password policies**
+  - [ ] Minimum length: 8 characters
+  - [ ] Complexity requirements enforced
+  - [ ] Password hashing: bcrypt (10+ rounds)
+  - [ ] Password reset flow tested
+
+- [ ] **Role-based access control (RBAC)**
+  - [ ] Roles defined: SuperAdmin, Admin, Manager, Technician, Tenant, Vendor
+  - [ ] Permissions mapped to routes
+  - [ ] API route protection verified
+  - [ ] Client-side route guards tested
+
+### API Security
+
+- [ ] **Rate limiting**
+  - [ ] Global rate limit: 100 req/min per IP
+  - [ ] Auth endpoints: 10 req/min per IP
+  - [ ] API routes protected
+  - [ ] Rate limit headers returned
+
+- [ ] **CORS configuration**
+  - [ ] Allowed origins specified
+  - [ ] Credentials allowed: true
+  - [ ] Methods restricted: GET, POST, PUT, DELETE
+  - [ ] Headers whitelisted
+
+- [ ] **Input validation**
+  - [ ] Zod schemas for all API inputs
+  - [ ] SQL injection protection (using ORM)
+  - [ ] XSS protection (React escapes by default)
+  - [ ] File upload validation (type, size)
+
+### Infrastructure Security
+
+- [ ] **HTTPS/TLS**
+  - [ ] SSL certificate installed
+  - [ ] HTTP to HTTPS redirect enabled
+  - [ ] TLS 1.2+ enforced
+  - [ ] HSTS header configured
+
+- [ ] **Security headers**
+  - [ ] Content-Security-Policy
+  - [ ] X-Frame-Options: DENY
+  - [ ] X-Content-Type-Options: nosniff
+  - [ ] Referrer-Policy: strict-origin-when-cross-origin
+
+- [ ] **Secrets management**
+  - [ ] Environment variables in vault (Vercel/AWS/GCP)
+  - [ ] No secrets in code/logs
+  - [ ] Secrets rotation policy defined
+  - [ ] Access logs monitored
+
+- [ ] **Network security**
+  - [ ] Database not publicly accessible
+  - [ ] Private endpoints configured
+  - [ ] Firewall rules configured
+  - [ ] DDoS protection enabled
+
+### Compliance
+
+- [ ] **Data protection**
+  - [ ] Encryption at rest (MongoDB Atlas)
+  - [ ] Encryption in transit (TLS)
+  - [ ] PII handling documented
+  - [ ] Data retention policy defined
+
+- [ ] **Audit logging**
+  - [ ] User actions logged
+  - [ ] Admin actions logged
+  - [ ] Database access logged
+  - [ ] Log retention: 90 days
+
+## Performance Optimization
+
+### Application Performance
+
+- [ ] **Build optimization**
+  - [ ] Production build successful: `pnpm build`
+  - [ ] Bundle size analyzed: `pnpm analyze`
+  - [ ] Code splitting configured
+  - [ ] Tree shaking verified
+
+- [ ] **Image optimization**
+  - [ ] Next.js Image component used
+  - [ ] WebP format configured
+  - [ ] Lazy loading enabled
+  - [ ] Responsive images configured
+
+- [ ] **Font optimization**
+  - [ ] Fonts self-hosted or from CDN
+  - [ ] Font display: swap
+  - [ ] Variable fonts used (if applicable)
+  - [ ] Preload critical fonts
+
+### Database Performance
+
+- [ ] **Indexes**
+  - [ ] Core indexes created
+  - [ ] Query patterns analyzed
+  - [ ] Index usage monitored
+  - [ ] Missing indexes identified (Performance Advisor)
+
+- [ ] **Query optimization**
+  - [ ] Slow queries identified (>100ms)
+  - [ ] N+1 queries eliminated
+  - [ ] Pagination implemented
+  - [ ] Projection used for large documents
+
+- [ ] **Connection pooling**
+  - [ ] Pool size configured: 10 connections
+  - [ ] Pool monitoring enabled
+  - [ ] Connection leaks checked
+
+### Caching Strategy
+
+- [ ] **CDN caching**
+  - [ ] Static assets cached (1 year)
+  - [ ] Cache headers configured
+  - [ ] Cache invalidation strategy defined
+  - [ ] CDN configured (Vercel, CloudFront)
+
+- [ ] **Application caching**
+  - [ ] Redis/Vercel KV configured (optional)
+  - [ ] Session caching enabled
+  - [ ] API response caching (where appropriate)
+  - [ ] Cache TTLs defined
+
+- [ ] **Browser caching**
+  - [ ] Service worker configured (optional)
+  - [ ] LocalStorage usage optimized
+  - [ ] Cache busting strategy defined
+
+### Load Testing
+
+- [ ] **Performance benchmarks**
+  - [ ] Lighthouse score: >90
+  - [ ] Time to First Byte (TTFB): <200ms
+  - [ ] Largest Contentful Paint (LCP): <2.5s
+  - [ ] First Input Delay (FID): <100ms
+  - [ ] Cumulative Layout Shift (CLS): <0.1
+
+- [ ] **Load testing**
+  - [ ] Concurrent users tested: **\_\_\_\_**
+  - [ ] Response time under load: <500ms
+  - [ ] Error rate under load: <1%
+  - [ ] Database connection pool: No exhaustion
+
+## Monitoring & Observability
+
+### Application Monitoring
+
+- [ ] **Error tracking (Sentry)**
+  - [ ] Sentry project created
+  - [ ] Source maps uploaded
+  - [ ] Error notifications configured
+  - [ ] Error rate baseline established
+
+- [ ] **Performance monitoring**
+  - [ ] Real User Monitoring (RUM) enabled
+  - [ ] Performance metrics tracked
+  - [ ] Core Web Vitals monitored
+  - [ ] Slow requests identified
+
+- [ ] **Logging**
+  - [ ] Structured logging enabled (JSON)
+  - [ ] Log levels configured
+  - [ ] Log aggregation (CloudWatch, Datadog)
+  - [ ] Log retention policy: 30 days
+
+### Infrastructure Monitoring
+
+- [ ] **Uptime monitoring**
+  - [ ] Health check endpoint: `/api/health`
+  - [ ] Uptime monitor configured (Pingdom, UptimeRobot)
+  - [ ] Status page created
+  - [ ] SLA defined: 99.9%
+
+- [ ] **Database monitoring (Atlas)**
+  - [ ] Real-time performance panel enabled
+  - [ ] Query profiling enabled
+  - [ ] Slow query alerts configured
+  - [ ] Disk usage alerts configured
+
+- [ ] **Resource monitoring**
+  - [ ] CPU usage alerts (<80%)
+  - [ ] Memory usage alerts (<80%)
+  - [ ] Disk usage alerts (<80%)
+  - [ ] Network throughput monitored
+
+### Alerts & Notifications
+
+- [ ] **Critical alerts**
+  - [ ] Application down
+  - [ ] Database connection failure
+  - [ ] Error rate spike (>5%)
+  - [ ] Response time spike (>1s)
+
+- [ ] **Warning alerts**
+  - [ ] Disk usage >70%
+  - [ ] Memory usage >70%
+  - [ ] Slow queries >100ms
+  - [ ] Failed login attempts spike
+
+- [ ] **Notification channels**
+  - [ ] Email alerts configured
+  - [ ] Slack/Teams integration
+  - [ ] PagerDuty/OpsGenie (optional)
+  - [ ] Escalation policy defined
+
+## Backup & Recovery
+
+### Backup Configuration
+
+- [ ] **Database backups (Atlas)**
+  - [ ] Continuous backup enabled
+  - [ ] Snapshot frequency: Daily
+  - [ ] Snapshot retention: 30 days
+  - [ ] Point-in-time recovery (PITR) tested
+
+- [ ] **File storage backups**
+  - [ ] S3 versioning enabled
+  - [ ] Cross-region replication configured
+  - [ ] Lifecycle policies configured
+  - [ ] Backup verification schedule
+
+- [ ] **Code & configuration**
+  - [ ] GitHub repository backed up
+  - [ ] Environment variables documented
+  - [ ] Infrastructure as Code (IaC) in version control
+  - [ ] Secrets backup (encrypted)
+
+### Disaster Recovery
+
+- [ ] **Recovery procedures documented**
+  - [ ] Database restore procedure
+  - [ ] Application rollback procedure
+  - [ ] Data recovery procedure
+  - [ ] Communication plan
+
+- [ ] **Recovery objectives**
+  - [ ] Recovery Time Objective (RTO): **\_\_\_\_** hours
+  - [ ] Recovery Point Objective (RPO): **\_\_\_\_** hours
+  - [ ] Maximum tolerable downtime: **\_\_\_\_** hours
+
+- [ ] **Recovery testing**
+  - [ ] Database restore tested
+  - [ ] Failover tested
+  - [ ] Backup integrity verified
+  - [ ] Recovery time measured
+
+## Testing & Validation
+
+### Pre-Production Testing
+
+- [ ] **Unit tests**
+  - [ ] Test coverage: >80%
+  - [ ] All tests passing: `pnpm test`
+  - [ ] Critical paths covered
+
+- [ ] **Integration tests**
+  - [ ] API routes tested
+  - [ ] Database operations tested
+  - [ ] Third-party integrations tested
+
+- [ ] **E2E tests (Playwright)**
+  - [ ] All test suites passing: `pnpm playwright test`
+  - [ ] Critical user flows tested
+  - [ ] Multi-locale testing (EN/AR)
+  - [ ] Multi-role testing (Admin, Tenant, Vendor)
+
+### Staging Environment
+
+- [ ] **Staging deployment**
+  - [ ] Staging environment mirrors production
+  - [ ] Staging database (copy of production)
+  - [ ] All features tested in staging
+  - [ ] Performance tested in staging
+
+- [ ] **Smoke tests**
+  - [ ] User registration
+  - [ ] User login/logout
+  - [ ] Create work order
+  - [ ] Upload attachment
+  - [ ] Send notification
+
+- [ ] **User acceptance testing (UAT)**
+  - [ ] Key stakeholders test critical flows
+  - [ ] Feedback collected and addressed
+  - [ ] Sign-off obtained
+
+### Security Testing
+
+- [ ] **Vulnerability scanning**
+  - [ ] npm audit: `pnpm audit`
+  - [ ] Dependencies up to date
+  - [ ] OWASP Top 10 reviewed
+  - [ ] Penetration testing (optional)
+
+- [ ] **Security headers verified**
+  - [ ] securityheaders.com scan
+  - [ ] SSL Labs test: A rating
+  - [ ] CORS configuration tested
+
+## Deployment
+
+### Pre-Deployment Steps
+
+- [ ] **Final checks**
+  - [ ] All environment variables set
+  - [ ] Database migrations run
+  - [ ] Indexes created
+  - [ ] Backups verified
+
+- [ ] **Communication**
+  - [ ] Maintenance window announced
+  - [ ] Support team notified
+  - [ ] Status page updated
+  - [ ] Rollback plan reviewed
+
+### Deployment Process
+
+#### Vercel Deployment
+
+- [ ] **Deploy to production**
+
+  ```bash
+  git push origin main
+  ```
+
+  - [ ] Build successful
+  - [ ] Deployment preview checked
+  - [ ] Promote to production
+
+- [ ] **Verify deployment**
+  - [ ] Production URL accessible
+  - [ ] Health check passes: `/api/health`
+  - [ ] Database connection verified
+  - [ ] Static assets loading
+
+#### Manual Deployment (AWS/GCP/Azure)
+
+- [ ] **Build application**
+
+  ```bash
+  pnpm install --frozen-lockfile
+  pnpm build
+  ```
+
+- [ ] **Deploy artifacts**
+  - [ ] Upload build to servers
+  - [ ] Start application: `pnpm start`
+  - [ ] Verify process running
+
+- [ ] **Update infrastructure**
+  - [ ] Update load balancer
+  - [ ] Update DNS records (if needed)
+  - [ ] Enable auto-scaling
+
+### Post-Deployment Verification
+
+- [ ] **Smoke tests**
+  - [ ] Homepage loads: https://your-domain.com
+  - [ ] Login works
+  - [ ] Dashboard loads
+  - [ ] API responds: `/api/health`
+  - [ ] Database queries work
+
+- [ ] **Monitoring checks**
+  - [ ] No error spikes in Sentry
+  - [ ] Response times normal (<500ms)
+  - [ ] Database connections stable
+  - [ ] No 5xx errors
+
+- [ ] **Functional verification**
+  - [ ] Create test work order
+  - [ ] Upload test file
+  - [ ] Send test notification
+  - [ ] Generate test report
+
+## Post-Deployment
+
+### Immediate Actions (First Hour)
+
+- [ ] **Monitor dashboards**
+  - [ ] Application metrics
+  - [ ] Error rates
+  - [ ] Response times
+  - [ ] Database performance
+
+- [ ] **Verify features**
+  - [ ] Critical user flows tested
+  - [ ] All roles can login
+  - [ ] OAuth providers working
+  - [ ] Email/SMS notifications working
+
+- [ ] **Communication**
+  - [ ] Deployment announcement sent
+  - [ ] Status page updated: "Operational"
+  - [ ] Support team notified: "Monitoring"
+
+### First 24 Hours
+
+- [ ] **Continuous monitoring**
+  - [ ] Check dashboards every 2 hours
+  - [ ] Review error logs
+  - [ ] Monitor user feedback
+  - [ ] Track performance metrics
+
+- [ ] **Data validation**
+  - [ ] Database integrity checked
+  - [ ] No data loss
+  - [ ] Backups running
+  - [ ] Audit logs verified
+
+### First Week
+
+- [ ] **Performance review**
+  - [ ] Response time analysis
+  - [ ] Error rate analysis
+  - [ ] Resource utilization review
+  - [ ] User feedback collected
+
+- [ ] **Optimization**
+  - [ ] Identify slow queries
+  - [ ] Optimize hot paths
+  - [ ] Adjust cache TTLs
+  - [ ] Tune database indexes
+
+- [ ] **Documentation**
+  - [ ] Deployment log completed
+  - [ ] Issues log maintained
+  - [ ] Lessons learned documented
+  - [ ] Runbook updated
+
+## Rollback Plan
+
+### Rollback Decision Criteria
+
+Rollback if:
+
+- [ ] Error rate >5%
+- [ ] Response time >2s for >10 minutes
+- [ ] Database connection failures
+- [ ] Critical feature broken
+- [ ] Security vulnerability discovered
+
+### Rollback Procedure
+
+#### Vercel
+
+1. **Instant rollback**
+
+   ```bash
+   # From Vercel dashboard: "Rollback to Previous Deployment"
+   ```
+
+   - [ ] Select previous deployment
+   - [ ] Click "Promote to Production"
+   - [ ] Verify rollback successful
+
+#### Manual Deployment
+
+1. **Revert code**
+
+   ```bash
+   git revert HEAD
+   git push origin main
+   ```
+
+2. **Redeploy previous version**
+
+   ```bash
+   git checkout <previous-commit>
+   pnpm build
+   # Deploy using your process
+   ```
+
+3. **Database rollback** (if migrations ran)
+   ```bash
+   # Restore from backup
+   mongorestore --uri="mongodb+srv://..." --dir=./backup
+   ```
+
+### Post-Rollback
+
+- [ ] **Root cause analysis**
+  - [ ] Identify what went wrong
+  - [ ] Document failure
+  - [ ] Create action items
+
+- [ ] **Communication**
+  - [ ] Notify stakeholders
+  - [ ] Update status page
+  - [ ] Explain in post-mortem
+
+## Sign-Off
+
+### Deployment Approval
+
+- [ ] **Technical sign-off**
+  - Approved by: **\*\***\_\_\_\_**\*\***
+  - Date: **\*\***\_\_\_\_**\*\***
+
+- [ ] **Business sign-off**
+  - Approved by: **\*\***\_\_\_\_**\*\***
+  - Date: **\*\***\_\_\_\_**\*\***
+
+- [ ] **Security sign-off**
+  - Approved by: **\*\***\_\_\_\_**\*\***
+  - Date: **\*\***\_\_\_\_**\*\***
+
+### Go-Live Confirmation
+
+- [ ] **Deployment completed successfully**
+  - Deployed by: **\*\***\_\_\_\_**\*\***
+  - Deployment time: **\*\***\_\_\_\_**\*\***
+  - Production URL: **\*\***\_\_\_\_**\*\***
+
+- [ ] **Monitoring active**
+  - All monitors configured
+  - All alerts configured
+  - Team on-call assigned
+
+- [ ] **Documentation complete**
+  - Deployment log finalized
+  - Runbook updated
+  - Team briefed
+
+---
+
+## Additional Resources
+
+- [PRODUCTION_MONGODB_SETUP.md](./PRODUCTION_MONGODB_SETUP.md) - MongoDB setup guide
+- [PRODUCTION_TESTING_SETUP.md](./PRODUCTION_TESTING_SETUP.md) - Testing guide
+- [README.md](../README.md) - Application overview
+- [.env.example](../.env.example) - Environment variables reference
+
+## Support Contacts
+
+- **Technical Lead**: **\*\***\_\_\_\_**\*\***
+- **DevOps**: **\*\***\_\_\_\_**\*\***
+- **Database Admin**: **\*\***\_\_\_\_**\*\***
+- **On-Call**: **\*\***\_\_\_\_**\*\***
+
+## Emergency Contacts
+
+- **Platform Support**: **\*\***\_\_\_\_**\*\***
+- **MongoDB Atlas**: https://support.mongodb.com
+- **Vercel Support**: https://vercel.com/support
+
+---
+
+**Last Updated**: November 21, 2025
+**Next Review**: [Schedule quarterly reviews]
+
+]]>
+</file>
+
+<file path="docs/PRODUCTION_MONGODB_SETUP.md">
+<![CDATA[
+# Production MongoDB Setup Guide
+
+## Overview
+
+This guide covers production-ready MongoDB configuration for the Fixzit application. The system is designed with fail-fast security principles and requires a real MongoDB connection in production environments.
+
+## Table of Contents
+
+- [Production Requirements](#production-requirements)
+- [MongoDB Atlas Setup](#mongodb-atlas-setup)
+- [Connection Configuration](#connection-configuration)
+- [Security Best Practices](#security-best-practices)
+- [Performance Optimization](#performance-optimization)
+- [Monitoring & Health Checks](#monitoring--health-checks)
+- [Backup & Recovery](#backup--recovery)
+- [Troubleshooting](#troubleshooting)
+
+## Production Requirements
+
+### Mandatory Configuration
+
+The application **REQUIRES** the following in production:
+
+1. **MongoDB Atlas Connection** (`mongodb+srv://`)
+   - Local connections (`mongodb://localhost`, `mongodb://127.0.0.1`) are **blocked** in production
+   - Enforced by `assertAtlasUriInProd()` in `lib/mongo.ts`
+   - Override: Set `ALLOW_LOCAL_MONGODB=true` (not recommended)
+
+2. **TLS/SSL Encryption**
+   - Automatically enabled for `mongodb+srv://` connections
+   - Explicitly enabled for `tls=true` or `ssl=true` parameters
+   - Required for data-in-transit security
+
+3. **Environment Variables**
+   ```bash
+   MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/fixzit
+   NODE_ENV=production
+   ```
+
+### Fail-Fast Security
+
+The system implements **fail-fast** principles to prevent silent security vulnerabilities:
+
+- ❌ **No silent fallback** to mock databases in production
+- ❌ **No localhost connections** in production (unless explicitly allowed)
+- ✅ **Throws errors immediately** on configuration issues
+- ✅ **Detailed logging** with correlation IDs for debugging
+
+## MongoDB Atlas Setup
+
+### Step 1: Create Atlas Cluster
+
+1. Sign up at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+2. Create a new cluster:
+   - **Tier**: M10 or higher for production
+   - **Region**: Choose closest to your application servers
+   - **Version**: MongoDB 7.0+ recommended
+   - **Backup**: Enable continuous backups
+
+### Step 2: Configure Database Access
+
+1. **Create Database User**:
+
+   ```
+   Username: fixzit_app
+   Password: [Generate strong password]
+   Role: readWrite on 'fixzit' database
+   ```
+
+2. **Connection String**:
+   ```
+   mongodb+srv://fixzit_app:PASSWORD@cluster.mongodb.net/fixzit
+   ```
+
+### Step 3: Configure Network Access
+
+1. **IP Allowlist**:
+   - Add your application server IPs
+   - For Vercel/Netlify: Add `0.0.0.0/0` (enable in VPC if possible)
+   - For AWS/GCP: Use VPC peering for security
+
+2. **Private Endpoint** (Recommended):
+   - Set up private endpoint for VPC connections
+   - Eliminates public internet exposure
+   - Available on M10+ clusters
+
+### Step 4: Database Configuration
+
+1. **Create Database**: `fixzit`
+2. **Collections** (auto-created on first use):
+   - `users`
+   - `workorders`
+   - `properties`
+   - `invoices`
+   - `supporttickets`
+   - (see `lib/db/index.ts` for complete list)
+
+3. **Indexes**:
+   ```bash
+   # Run index creation during deployment
+   pnpm tsx scripts/ensure-indexes.ts
+   ```
+
+## Connection Configuration
+
+### Environment Variables
+
+```bash
+# Production (Required)
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/fixzit
+NODE_ENV=production
+
+# Optional: Specify database name separately
+MONGODB_DB=fixzit
+
+# Optional: Allow local MongoDB (NOT recommended in production)
+ALLOW_LOCAL_MONGODB=false
+
+# Optional: Disable MongoDB during build phase
+DISABLE_MONGODB_FOR_BUILD=true
+```
+
+### Connection Options
+
+The application uses the following Mongoose connection options:
+
+```typescript
+{
+  dbName: 'fixzit',
+  autoIndex: true,              // Create indexes automatically
+  maxPoolSize: 10,              // Connection pool size
+  serverSelectionTimeoutMS: 8000,
+  connectTimeoutMS: 8000,
+  retryWrites: true,            // Automatic retry for write operations
+  tls: true,                    // TLS encryption (auto for mongodb+srv)
+  w: 'majority',                // Write concern for durability
+}
+```
+
+### Connection String Parameters
+
+Recommended parameters for production:
+
+```
+mongodb+srv://username:password@cluster.mongodb.net/fixzit?
+  retryWrites=true&
+  w=majority&
+  maxPoolSize=10&
+  serverSelectionTimeoutMS=8000
+```
+
+## Security Best Practices
+
+### 1. Credential Management
+
+- ✅ **Use strong passwords**: Minimum 32 characters, alphanumeric + symbols
+- ✅ **Rotate credentials**: Every 90 days
+- ✅ **Store in secrets**: Use Vercel/AWS/GCP secret managers
+- ❌ **Never commit**: Keep out of version control
+
+### 2. Network Security
+
+- ✅ **Private endpoints**: Use VPC peering when possible
+- ✅ **IP allowlisting**: Restrict to known application IPs
+- ✅ **TLS encryption**: Always enabled for data in transit
+- ✅ **Firewall rules**: Configure at cloud provider level
+
+### 3. Database Access Control
+
+- ✅ **Principle of least privilege**: Grant minimum required permissions
+- ✅ **Separate users**: Different users for app, backups, admin
+- ✅ **Read-only replicas**: Use for reporting/analytics
+- ✅ **Audit logs**: Enable and monitor access logs
+
+### 4. Encryption
+
+- ✅ **At-rest encryption**: Enabled by default on Atlas
+- ✅ **In-transit encryption**: TLS/SSL for all connections
+- ✅ **Field-level encryption**: For sensitive PII (optional)
+- ✅ **Key management**: Use cloud provider KMS
+
+## Performance Optimization
+
+### 1. Indexing Strategy
+
+Core indexes are created automatically. See `lib/db/index.ts`:
+
+```typescript
+// Users
+{ email: 1 } (unique)
+{ tenantId: 1 }
+{ role: 1 }
+
+// Work Orders
+{ workOrderNumber: 1 } (unique)
+{ orgId: 1, status: 1, createdAt: -1 } (compound)
+{ 'sla.resolutionDeadline': 1 }
+```
+
+**Create indexes during deployment**:
+
+```bash
+pnpm tsx scripts/ensure-indexes.ts
+```
+
+### 2. Connection Pooling
+
+- Default pool size: **10 connections**
+- Adjust based on traffic: `maxPoolSize` parameter
+- Monitor pool usage in Atlas dashboard
+
+### 3. Query Optimization
+
+- ✅ Use projection to limit returned fields
+- ✅ Use lean() for read-only queries
+- ✅ Paginate large result sets
+- ✅ Add appropriate indexes for frequent queries
+
+### 4. Caching Strategy
+
+- ✅ Use Redis/Vercel KV for session caching
+- ✅ Cache frequently accessed data (users, properties)
+- ✅ Implement stale-while-revalidate pattern
+- ✅ Set appropriate TTLs based on data volatility
+
+## Monitoring & Health Checks
+
+### Health Check Implementation
+
+The application includes built-in health checks:
+
+```typescript
+import { checkDatabaseHealth } from "@/lib/mongodb-unified";
+
+// Returns true if MongoDB is accessible
+const isHealthy = await checkDatabaseHealth();
+```
+
+### Monitoring Metrics
+
+Track these metrics in production:
+
+1. **Connection Metrics**:
+   - Active connections
+   - Connection pool utilization
+   - Connection errors/timeouts
+
+2. **Query Performance**:
+   - Slow queries (>100ms)
+   - Query execution time
+   - Index usage statistics
+
+3. **Database Size**:
+   - Total database size
+   - Collection sizes
+   - Index sizes
+
+4. **Availability**:
+   - Uptime percentage
+   - Failover events
+   - Replica lag
+
+### Atlas Monitoring
+
+Enable in Atlas dashboard:
+
+1. **Performance Advisor**: Identifies missing indexes
+2. **Real-time Performance Panel**: Query profiling
+3. **Alerts**: Configure for critical events
+4. **Metrics**: CPU, memory, disk usage
+
+## Backup & Recovery
+
+### Automated Backups (Atlas)
+
+1. **Continuous Backup**:
+   - Enable on M10+ clusters
+   - Point-in-time recovery (PITR)
+   - Retain for 7-90 days
+
+2. **Snapshot Schedule**:
+   - Daily snapshots at 00:00 UTC
+   - Weekly retention: 4 weeks
+   - Monthly retention: 12 months
+
+### Manual Backups
+
+```bash
+# Export entire database
+mongodump --uri="mongodb+srv://username:password@cluster.mongodb.net/fixzit" --out=./backup
+
+# Export specific collection
+mongodump --uri="mongodb+srv://..." --collection=workorders --out=./backup
+
+# Restore from backup
+mongorestore --uri="mongodb+srv://..." --dir=./backup
+```
+
+### Recovery Testing
+
+- Test recovery procedures quarterly
+- Document recovery time objectives (RTO)
+- Validate backup integrity regularly
+
+## Troubleshooting
+
+### Common Issues
+
+#### 1. "No matching decryption secret"
+
+**Symptom**: 401 errors, JWT session failures
+
+**Cause**: `NEXTAUTH_SECRET` mismatch between environments
+
+**Solution**:
+
+```bash
+# Ensure identical secret across all environments
+NEXTAUTH_SECRET=same-secret-everywhere-32-chars-minimum
+AUTH_SECRET=same-secret-everywhere-32-chars-minimum
+```
+
+#### 2. "Connection timeout"
+
+**Symptom**: Application fails to start, timeout errors
+
+**Causes**:
+
+- IP not allowlisted in Atlas
+- Network connectivity issues
+- Incorrect connection string
+
+**Solution**:
+
+```bash
+# Verify connection string
+mongosh "mongodb+srv://username:password@cluster.mongodb.net/fixzit"
+
+# Check IP allowlist in Atlas Network Access
+# Add current IP or enable 0.0.0.0/0 for testing
+```
+
+#### 3. "Authentication failed"
+
+**Symptom**: "Authentication failed" error
+
+**Causes**:
+
+- Wrong username/password
+- User doesn't have permissions
+- Special characters not URL-encoded
+
+**Solution**:
+
+```bash
+# URL-encode special characters in password
+# @ becomes %40, : becomes %3A, etc.
+mongodb+srv://user:p%40ssw%3Ard@cluster.mongodb.net/fixzit
+
+# Verify user exists in Database Access
+```
+
+#### 4. "FATAL: Local MongoDB URIs are not allowed in production"
+
+**Symptom**: Application won't start in production
+
+**Cause**: Using `mongodb://localhost` in production
+
+**Solution**:
+
+```bash
+# Use Atlas connection string
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/fixzit
+
+# Or explicitly allow local (not recommended)
+ALLOW_LOCAL_MONGODB=true
+```
+
+#### 5. "Slow queries"
+
+**Symptom**: Requests taking >1 second
+
+**Causes**:
+
+- Missing indexes
+- Large result sets without pagination
+- Unoptimized queries
+
+**Solution**:
+
+```bash
+# Run Performance Advisor in Atlas
+# Create recommended indexes
+pnpm tsx scripts/ensure-indexes.ts
+
+# Add pagination to large queries
+.limit(20).skip(page * 20)
+
+# Use projection to limit fields
+.select('field1 field2')
+```
+
+### Debug Logging
+
+Enable detailed MongoDB logging:
+
+```bash
+# Development
+DEBUG=mongodb:* pnpm dev
+
+# Production (use structured logging)
+LOG_LEVEL=debug NODE_ENV=production pnpm start
+```
+
+### Support Resources
+
+- [MongoDB Atlas Documentation](https://www.mongodb.com/docs/atlas/)
+- [Mongoose Documentation](https://mongoosejs.com/docs/)
+- [MongoDB University](https://university.mongodb.com/) (Free courses)
+- [MongoDB Community Forums](https://www.mongodb.com/community/forums/)
+
+## Production Checklist
+
+Before deploying to production:
+
+- [ ] MongoDB Atlas cluster created (M10+ tier)
+- [ ] Database user with strong password created
+- [ ] IP allowlist configured (or private endpoint)
+- [ ] Connection string tested with `mongosh`
+- [ ] `MONGODB_URI` set in production environment
+- [ ] `NEXTAUTH_SECRET` matches across all environments
+- [ ] Indexes created (`pnpm tsx scripts/ensure-indexes.ts`)
+- [ ] Continuous backups enabled
+- [ ] Monitoring alerts configured
+- [ ] Health check endpoint verified (`/api/health`)
+- [ ] Recovery procedures tested and documented
+- [ ] Connection pooling configured appropriately
+- [ ] TLS/SSL encryption verified
+- [ ] Database user permissions reviewed (least privilege)
+- [ ] Audit logs enabled and monitored
+
+## Next Steps
+
+1. Review [PRODUCTION_TESTING_SETUP.md](./PRODUCTION_TESTING_SETUP.md) for testing with real MongoDB
+2. See [PRODUCTION_DEPLOYMENT_CHECKLIST.md](./PRODUCTION_DEPLOYMENT_CHECKLIST.md) for complete deployment guide
+3. Configure monitoring and alerts in Atlas dashboard
+4. Set up automated backup verification
+5. Document your specific connection configuration
+
+]]>
+</file>
+
+<file path="docs/PRODUCTION_TESTING_SETUP.md">
+<![CDATA[
+# Production-Ready Testing Setup Guide
+
+## Overview
+
+This guide explains how to set up Playwright E2E tests with **real MongoDB connection** for production-ready testing. This ensures your tests accurately reflect production behavior.
+
+## Prerequisites
+
+1. **MongoDB Running**
+   - Local: `mongodb://localhost:27017/fixzit_test`
+   - Atlas: `mongodb+srv://username:password@cluster.mongodb.net/fixzit_test`
+
+2. **Test Users Created**
+   - Create 6 test users in your database (one for each role)
+   - Use the admin panel or seed script to create them
+
+3. **Environment Configuration**
+   - `.env.test` with correct credentials and secrets
+   - `NEXTAUTH_SECRET` must match your dev server
+
+## Quick Start
+
+### 1. Configure Test Environment
+
+Copy `.env.test` and update with your real MongoDB connection:
+
+```bash
+# .env.test
+ALLOW_OFFLINE_MONGODB=false   # accepts "true"/"1" to enable offline
+MONGODB_URI=mongodb://localhost:27017/fixzit_test
+BASE_URL=http://localhost:3000
+
+# CRITICAL: Must match your dev server's secret
+AUTH_SECRET=your-actual-secret-key-32-chars-minimum
+NEXTAUTH_SECRET=your-actual-secret-key-32-chars-minimum
+
+# Test user credentials (must exist in your database)
+TEST_SUPERADMIN_IDENTIFIER=superadmin@test.fixzit.co
+TEST_SUPERADMIN_PASSWORD=Test@1234
+TEST_ADMIN_IDENTIFIER=admin@test.fixzit.co
+TEST_ADMIN_PASSWORD=Test@1234
+# ... (other roles)
+```
+
+### 2. Start MongoDB
+
+**Local MongoDB:**
+
+```bash
+# macOS (Homebrew)
+brew services start mongodb-community
+
+# Linux (systemd)
+sudo systemctl start mongod
+
+# Docker
+docker run -d -p 27017:27017 --name mongodb mongo:latest
+```
+
+**MongoDB Atlas:**
+
+- Ensure your IP is whitelisted
+- Connection string includes credentials
+
+### 3. Create Test Users
+
+**Option A: Admin Panel**
+
+1. Start your app: `pnpm dev`
+2. Login as superadmin
+3. Navigate to User Management
+4. Create 6 test users with correct roles
+
+**Option B: Seed Script (if available)**
+
+```bash
+pnpm db:seed:test-users
+```
+
+**Option C: Manual MongoDB Insert**
+
+```javascript
+// Connect to MongoDB
+use fixzit_test;
+
+// Create test users (adjust fields as needed)
+db.users.insertMany([
+  {
+    email: "superadmin@test.fixzit.co",
+    phone: "+966500000001",
+    role: "SUPER_ADMIN",
+    password: "$2a$10$hashedpassword", // Hash Test@1234
+    verified: true,
+    // ... other required fields
+  },
+  // ... other roles
+]);
+```
+
+### 4. Start Development Server
+
+**Critical: Use the same NEXTAUTH_SECRET as .env.test**
+
+```bash
+# Load from .env.local (ensure it matches .env.test)
+MONGODB_URI=mongodb://localhost:27017/fixzit_test pnpm dev
+
+# Or specify inline
+MONGODB_URI=mongodb://localhost:27017/fixzit_test \
+NEXTAUTH_SECRET=your-actual-secret-key-32-chars-minimum \
+pnpm dev
+```
+
+### 5. Regenerate Auth States
+
+```bash
+./scripts/regenerate-test-auth.sh
+```
+
+**Expected Output:**
+
+```
+🔐 Regenerating Playwright authentication states (Production-Ready)...
+
+📋 Configuration:
+   BASE_URL: http://localhost:3000
+   MONGODB: mongodb://localhost:27017/f...
+   OFFLINE: false
+
+📡 Checking if app is running...
+✅ App is running
+
+🔄 Running authentication setup...
+
+🗄️  PRODUCTION MODE - Authenticating with real MongoDB and OTP flow
+
+🔑 SuperAdmin: Authenticating superadmin@test.fixzit.co...
+  📤 Sending OTP request...
+  ✅ OTP received: 123456
+  🔐 Verifying OTP...
+  ✅ OTP verified, token received
+  🛡️  Getting CSRF token...
+  ✅ CSRF token obtained
+  🔓 Creating session...
+  ✅ Session created
+  🏠 Loading dashboard...
+✅ SuperAdmin - Authentication complete
+
+... (repeats for all 6 roles)
+
+📋 Verifying state files...
+
+✅ superadmin.json (1234 bytes)
+✅ admin.json (1198 bytes)
+✅ manager.json (1205 bytes)
+✅ technician.json (1187 bytes)
+✅ tenant.json (1176 bytes)
+✅ vendor.json (1192 bytes)
+
+✅ Authentication states regenerated successfully!
+
+Run tests with:
+  pnpm playwright test --project='Desktop:EN:Admin'
+```
+
+### 6. Run Tests
+
+```bash
+# All tests
+pnpm playwright test
+
+# Specific project
+pnpm playwright test --project='Desktop:EN:Admin'
+
+# Smoke tests
+pnpm playwright test tests/specs/smoke.spec.ts
+
+# With UI mode
+pnpm playwright test --ui
+```
+
+## Troubleshooting
+
+### Error: "no matching decryption secret"
+
+**Cause:** NEXTAUTH_SECRET mismatch between `.env.test` and dev server
+
+**Fix:**
+
+1. Check `NEXTAUTH_SECRET` in both files
+2. Ensure they match exactly (case-sensitive)
+3. Restart dev server after changing
+4. Regenerate auth states: `./scripts/regenerate-test-auth.sh`
+
+### Error: "Failed to send OTP"
+
+**Cause:** Test user doesn't exist in database or wrong credentials
+
+**Fix:**
+
+1. Verify user exists: `db.users.findOne({email: "admin@test.fixzit.co"})`
+2. Check credentials in `.env.test` match database
+3. Ensure password is correct (try logging in via UI)
+
+### Error: "App not running"
+
+**Cause:** Development server not started
+
+**Fix:**
+
+```bash
+MONGODB_URI=mongodb://localhost:27017/fixzit_test pnpm dev
+```
+
+### Error: "MongoDB connection timeout"
+
+**Cause:** MongoDB not running or connection string incorrect
+
+**Fix:**
+
+1. Start MongoDB: `brew services start mongodb-community`
+2. Check connection: `mongosh mongodb://localhost:27017`
+3. Verify MONGODB_URI in `.env.test`
+
+### Tests Pass But Show 401 Errors in Logs
+
+**Cause:** Auth tokens expired or regenerated with wrong secret
+
+**Fix:**
+
+1. Check server logs for exact error
+2. Compare NEXTAUTH_SECRET between `.env.test` and dev server
+3. Regenerate states: `./scripts/regenerate-test-auth.sh`
+
+### State Files Too Small (<100 bytes)
+
+**Cause:** Authentication failed during setup
+
+**Fix:**
+
+1. Check `tests/setup-auth.ts` output for specific errors
+2. Enable detailed logging: `NODE_ENV=development`
+3. Verify OTP dev mode is enabled
+4. Check app logs during auth setup
+
+## Offline Mode (CI/CD)
+
+For CI/CD environments without database access:
+
+```bash
+# .env.test
+ALLOW_OFFLINE_MONGODB=true    # accepts "true"/"1" to enable offline
+```
+
+**Warning:** Offline mode creates mock JWT sessions that:
+
+- Bypass real authentication
+- Grant all permissions
+- Should NOT be used for production validation
+
+Use offline mode only for:
+
+- UI smoke tests in CI pipelines
+- Visual regression testing
+- Component rendering tests
+
+## Production Parity Checklist
+
+✅ Real MongoDB connection configured  
+✅ Test users exist in database with correct roles  
+✅ NEXTAUTH_SECRET matches dev server  
+✅ Auth states regenerated within last 30 days  
+✅ Tests pass without 401 errors  
+✅ OTP flow works for all 6 roles  
+✅ Session cookies properly set
+
+## Advanced Configuration
+
+### Custom MongoDB Database
+
+```bash
+# .env.test
+MONGODB_URI=mongodb://localhost:27017/my_custom_test_db
+```
+
+### MongoDB Atlas with Authentication
+
+```bash
+# .env.test
+MONGODB_URI=mongodb+srv://testuser:testpass@cluster.mongodb.net/fixzit_test?retryWrites=true&w=majority
+```
+
+### Custom Test Timeout
+
+```typescript
+// tests/playwright.config.ts
+timeout: 180_000, // 3 minutes per test
+```
+
+### Parallel Execution
+
+```bash
+# Run tests in parallel (use with caution on shared test DB)
+pnpm playwright test --workers=4
+```
+
+## Best Practices
+
+1. **Isolate Test Data**
+   - Use dedicated test database (`fixzit_test`)
+   - Don't use production database for tests
+   - Reset test data between test suites if needed
+
+2. **Keep Auth States Fresh**
+   - Regenerate every 30 days (JWT expiry)
+   - Regenerate after NEXTAUTH_SECRET changes
+   - Regenerate after test user password changes
+
+3. **Monitor Test Stability**
+   - Track flaky tests in CI
+   - Use retry mechanism (configured in playwright.config.ts)
+   - Review traces for failed tests
+
+4. **Secure Secrets**
+   - Never commit `.env.test` with real credentials
+   - Use GitHub Secrets in CI
+   - Rotate test passwords regularly
+
+## Support
+
+For issues or questions:
+
+- Check app logs: `pnpm dev` output
+- Review Playwright traces: `pnpm exec playwright show-trace path/to/trace.zip`
+- Consult main README: `tests/README.md`
+
+]]>
+</file>
+
+<file path="docs/PR_SUMMARY.md">
+<![CDATA[
+# E2E Stabilization & Comprehensive Fixes - Complete Session
+
+**Date**: November 6-7, 2025  
+**Branch**: `main`  
+**Commits**: 14 commits over 2 days  
+**Agent Runs**: 3 (initial, fresh, apply)  
+**Zero Crashes**: ✅ Throughout entire 2-day session
+
+## 🎯 Overview
+
+Comprehensive E2E stabilization completing all 5 main tasks, category-based fixes (A-E), type safety improvements, i18n expansion, and agent accuracy improvements from 93% false positives to 99.2% accuracy.
+
+## 📊 Key Metrics
+
+### Session Results
+
+- **Files Modified**: 12 files
+- **Files Created**: 7 documentation + 2 i18n files
+- **Files Deleted**: 7 (5 duplicates + 2 backups)
+- **Files Moved**: 2 (smart-merge-conflicts.ts, fm-finance-hooks.ts)
+- **Test Status**: 347/412 passing (84%), 65 baseline failures
+- **Memory**: 5.7GB/15GB (38%) - Excellent ✅
+- **Storage**: 12GB/32GB (40%) - Healthy ✅
+
+### Code Quality
+
+- **Type Safety**: 7 undefined property access issues fixed
+- **Lint Errors**: All resolved (unused vars, duplicate files)
+- **Agent Accuracy**: 99.2% (from 7% accuracy)
+- **False Positive Rate**: 88-96% documented with recommendations
+
+### Internationalization
+
+- **Before**: 0 keys implemented
+- **After**: 272 keys (en + ar)
+- **Coverage**: 18.6% (272/1466 total keys used in code)
+- **Parity**: 100% (en = ar)
+- **Remaining**: 1194 keys (81.4%)
+
+## ✅ All Tasks Complete
+
+### Task 1: Test Suite Verification ✅
+
+- **Status**: COMPLETE
+- **Result**: 347/412 passing (84%)
+- **Baseline Failures**: 65 (documented, no regressions)
+- **Impact**: No regressions from any fixes
+
+### Task 2: Hydration Analysis ✅
+
+- **Status**: COMPLETE
+- **Files Reviewed**: 102 flagged files
+- **Verdict**: 100% false positives
+- **Reason**: All components already have 'use client' and proper useEffect
+- **Documentation**: docs/FILE_ORGANIZATION_CORRECT.md
+
+### Task 3: Type Safety (Undefined Properties) ✅
+
+- **Status**: COMPLETE
+- **Issues Fixed**: 7 instances across 4 files
+- **Pattern**: Added optional chaining and conditional checks
+- **Files**:
+  - tests/unit/components/ErrorBoundary.test.tsx (2 fixes)
+  - app/finance/budgets/new/page.tsx (2 fixes)
+  - app/finance/invoices/new/page.tsx (2 fixes)
+  - app/finance/expenses/new/page.tsx (2 fixes) - Wait, that's 8 not 7!
+- **Documentation**: UNDEFINED_PROPERTY_FIXES.md
+
+### Task 4: i18n Implementation ✅
+
+- **Status**: COMPLETE (Phase 1 + Expansion)
+- **Phase 1**: 127 keys (landing, auth, dashboard, work orders, properties, finance, navigation, errors)
+- **Expansion**: +145 keys (admin, validation, notifications, forms, common)
+- **Total**: 272 keys in both en.json and ar.json
+- **Next Phase**: 1194 keys remaining
+
+### Task 5: Agent Heuristics Update ✅
+
+- **Status**: COMPLETE
+- **Changes**:
+  - Added 13 protected patterns for Next.js framework files
+  - Added 4 module namespace boundaries
+  - Added utility directory preservation
+- **Impact**: Move plan reduced from 128 → 1 file
+- **Accuracy**: 99.2% improvement (93% false positives eliminated)
+
+## 📁 Category-Based Fixes
+
+### Category A: Unused Variables ✅
+
+- **File**: app/administration/page.tsx
+- **Fixes**: 10+ unused variables
+- **Pattern**: Commented out or prefixed with underscore
+- **Result**: All lint errors resolved
+
+### Category B: Duplicate Files ✅
+
+- **Deleted**: 5 exact duplicates
+  - public/landing-step1.png
+  - public/sidebar.png
+  - scripts/test1.txt
+  - assets/logos/company_logo.jpg
+  - public/img/fixzit-logo.jpg
+- **Additional**: assets/fixzit_logo.jpg (this session)
+- **Saved**: ~200KB storage
+
+### Category C: i18n Translation Gaps ✅
+
+- **Status**: Appropriately skipped initially (files didn't exist)
+- **Then**: Created i18n/en.json + i18n/ar.json with 127 keys
+- **Then**: Expanded to 272 keys with admin/validation/notifications/forms
+- **Next**: Continue with remaining 1194 keys
+
+### Category D: File Organization ✅
+
+- **Analysis**: Structure verified correct per Next.js + Governance V5
+- **Cleanup**: 2 backup files removed
+  - components/SupportPopup.OLD.tsx
+  - components/ErrorBoundary.OLD.tsx
+- **Moves**: 2 files relocated
+  - smart-merge-conflicts.ts → scripts/
+  - lib/fm-finance-hooks.ts → app/finance/
+- **Documentation**: docs/FILE_ORGANIZATION_CORRECT.md
+
+### Category E: Hydration Mismatch ✅
+
+- **Analysis**: All 102 files verified correct
+- **Finding**: All components already have 'use client' and proper useEffect
+- **Verdict**: 100% false positives
+- **Action**: No changes needed
+
+## 🔧 Technical Changes
+
+### Files Modified
+
+1. **app/administration/page.tsx**
+   - Commented out unused ApiResponse interface
+   - Removed/prefixed unused state variables (\_selectedUsers, etc.)
+   - Fixed 4 catch blocks with unused error params
+   - Fixed object spread order
+
+2. **app/finance/budgets/new/page.tsx**
+   - Lines 106, 162: Added conditional checks before router.push
+   - Pattern: `if (data?.id) { router.push(...) }`
+
+3. **app/finance/invoices/new/page.tsx**
+   - Lines 320, 397: Added conditional checks before router.push
+   - Line 391: Added check for data?.journal
+
+4. **app/finance/expenses/new/page.tsx**
+   - Lines 379, 445: Added conditional checks before router.push
+   - Pattern: `if (data?.expense?.id) { router.push(...) }`
+
+5. **tests/unit/components/ErrorBoundary.test.tsx**
+   - Lines 360-361: Added optional chaining
+   - `body.data.url` → `body?.data?.url`
+
+6. **scripts/fixzit-agent.mjs**
+   - Added PROTECTED_PATTERNS array (13 patterns)
+   - Added MODULE_NAMESPACES array (4 namespaces)
+   - Added utility directory preservation logic
+
+7. **scripts/api-scan.mjs**
+   - Fixed comment syntax (removed curly braces in JSDoc)
+
+8. **i18n/en.json**
+   - Phase 1: Created with 127 keys
+   - Expansion: Added 145 keys (about, admin, common, validation, notifications, forms)
+   - Total: 272 keys
+
+9. **i18n/ar.json**
+   - Phase 1: Created with 127 keys (full RTL translations)
+   - Expansion: Added 145 keys (parallel to English)
+   - Total: 272 keys (100% parity)
+
+### Files Created
+
+**Agent System:**
+
+- ✅ scripts/fixzit-agent.mjs (already existed)
+- ✅ scripts/codemods/\*.cjs (already existed)
+- ✅ scripts/i18n-scan.mjs (already existed)
+- ✅ scripts/api-scan.mjs (already existed)
+- ✅ scripts/stop-dev.js (already existed)
+- ✅ tests/hfv.e2e.spec.ts (already existed)
+
+**Internationalization:**
+
+- ✅ i18n/en.json (127 → 272 keys)
+- ✅ i18n/ar.json (127 → 272 keys)
+
+**Documentation:**
+
+- ✅ TASK_COMPLETION_SUMMARY.md
+- ✅ AGENT_FRESH_RUN_REPORT.md
+- ✅ UNDEFINED_PROPERTY_FIXES.md
+- ✅ docs/FILE_ORGANIZATION_CORRECT.md
+- ✅ TODO_FALSE_POSITIVE_ANALYSIS.md
+- ✅ PR_SUMMARY.md (this file)
+
+### Files Deleted
+
+**Duplicates:**
+
+- public/landing-step1.png
+- public/sidebar.png
+- scripts/test1.txt
+- assets/logos/company_logo.jpg
+- public/img/fixzit-logo.jpg
+- assets/fixzit_logo.jpg
+
+**Backups:**
+
+- components/SupportPopup.OLD.tsx
+- components/ErrorBoundary.OLD.tsx
+
+### Files Moved
+
+- smart-merge-conflicts.ts → scripts/smart-merge-conflicts.ts
+- lib/fm-finance-hooks.ts → app/finance/fm-finance-hooks.ts
+
+## 📈 Agent Improvements
+
+### Before (Initial Run)
+
+- **Move Plan**: 128 proposed moves
+- **False Positives**: 93% (119/128)
+- **Issue**: Didn't respect Next.js framework files or module boundaries
+
+### After (Heuristics Update)
+
+- **Move Plan**: 1 proposed move
+- **False Positives**: 0.8% (0/1)
+- **Accuracy**: 99.2% improvement
+- **Protected**: layouts, pages, API routes, route groups, global styles
+
+### Protected Patterns Added
+
+```javascript
+/^app\/layout\.tsx?$/          // Root layout
+/^app\/.*\/layout\.tsx?$/      // Nested layouts
+/^app\/page\.tsx?$/            // Root page
+/^app\/.*\/page\.tsx?$/        // Nested pages
+/^app\/api\//                  // API routes
+/^app\/\(.*\)\//              // Route groups
+/^app\/globals\.css$/          // Global styles
+```
+
+### Module Namespaces Preserved
+
+```javascript
+["app/fm/", "app/aqar/", "app/souq/", "app/admin/"];
+```
+
+## 🔍 False Positive Analysis
+
+**Sample Size**: 10 files from 420 flagged "Unhandled Rejections"
+
+**Results**:
+
+- ✅ 10/10 files are FALSE POSITIVES
+- ✅ All files have proper try/catch blocks
+- ✅ All files have proper error handling
+- ✅ All files follow best practices
+
+**False Positive Rate**: 100% (for this sample)  
+**Extrapolated**: 88-96% false positive rate across all 796 TODO items
+
+**Root Cause**: Pattern too broad, doesn't account for:
+
+1. Try/catch blocks wrapping entire function bodies
+2. Nested error handling
+3. Error boundaries in React
+4. `.catch()` chaining
+
+**Recommendation**: Implement context-aware detection (documented in TODO_FALSE_POSITIVE_ANALYSIS.md)
+
+## 📝 Remaining Work
+
+### Immediate (Ready)
+
+- ❌ None - all immediate tasks complete!
+
+### Short Term (Next Session)
+
+1. **i18n Expansion - Phase 3**: Add next 200+ keys
+2. **Test Failures**: Fix 65 baseline test failures
+3. **Agent Heuristics**: Implement context-aware detection
+4. **AWS Cleanup**: Remove 28 duplicate aws/dist/ files
+
+### Long Term
+
+1. **i18n Full Coverage**: Complete remaining 1194 keys
+2. **TypeScript Strict Mode**: Enable incrementally
+3. **Performance Optimization**: Based on Lighthouse reports
+4. **E2E Test Coverage**: Expand HFV tests
+
+## 🎨 Git History
+
+```
+3d0efc880 docs: comprehensive TODO false positive analysis (88-96% FP rate)
+0ac739937 feat(i18n): expand translations from 127 to 272 keys
+bd8104f01 chore: remove duplicate logo
+866b94d70 chore: update agent-generated reports and diffs
+d1ea18540 fix: add optional chaining for undefined property access (7 fixes)
+d4efd6419 docs: agent fresh run report with improved heuristics
+25883c46e fix(agent): improve heuristics and fix api-scan syntax
+9294d6c6e chore: update agent-generated reports
+c6cc979dc docs: task completion summary
+5d94a958b feat: i18n foundation + agent heuristic improvements
+7beba7c29 fix(Category D): File organization cleanup
+02ac38133 fix: Category A-B fixes - unused variables and duplicate files
+f7a934379 feat: comprehensive file organization and categorized task list
+1824f0498 docs: add pending tasks and file organization plan
+```
+
+## 🏆 Success Metrics
+
+### Achieved ✅
+
+- ✅ Zero Code 5 crashes (entire 2-day session)
+- ✅ Memory optimized (7.2GB → 5.7GB, 21% improvement)
+- ✅ Storage healthy (40% usage)
+- ✅ Agent accuracy 99.2% (128 → 1 false positive)
+- ✅ All 5 tasks completed
+- ✅ All category fixes completed (A-E)
+- ✅ Type safety improved (7 fixes)
+- ✅ Test suite stable (no regressions)
+- ✅ i18n foundation established (272 keys)
+- ✅ File organization verified correct
+- ✅ False positive rate documented
+
+### Targets (Future)
+
+- 📋 Reduce agent false positives to <50%
+- 📋 Complete i18n coverage (1194 keys)
+- 📋 Fix 65 failing tests
+- 📋 Clean up 29 duplicate files
+
+## 🎯 Quality Gates
+
+- ✅ Build: Passing (with documented lint warnings)
+- ✅ Tests: 347/412 passing (84%), no regressions
+- ✅ Lint: All critical errors resolved
+- ✅ Type Safety: 7 undefined property access issues fixed
+- ✅ Memory: 5.7GB/15GB (38%) - Excellent
+- ✅ Git: All changes committed, clean working directory
+
+## 🚀 Deployment Ready
+
+This PR is **production ready** with the following notes:
+
+- ✅ All critical fixes complete
+- ✅ No regressions introduced
+- ✅ Documentation complete
+- ✅ i18n foundation ready for expansion
+- ⚠️ 65 test failures are baseline (documented in previous sessions)
+- ⚠️ 1194 i18n keys still needed (81.4% remaining)
+
+## 📚 Documentation Generated
+
+1. **TASK_COMPLETION_SUMMARY.md** - Comprehensive 4-task summary
+2. **AGENT_FRESH_RUN_REPORT.md** - Fresh run analysis with 99.2% accuracy
+3. **UNDEFINED_PROPERTY_FIXES.md** - Type safety fix documentation
+4. **docs/FILE_ORGANIZATION_CORRECT.md** - Structure validation
+5. **TODO_FALSE_POSITIVE_ANALYSIS.md** - 88-96% FP rate analysis with recommendations
+6. **PR_SUMMARY.md** - This comprehensive PR summary
+
+## 🤝 Reviewers
+
+**Auto-Approve**: ✅ Enabled for agent actions  
+**Recommended Reviewers**: @EngSayh  
+**Review Focus Areas**:
+
+1. i18n translations (Arabic native speaker preferred)
+2. Type safety improvements (conditional checks pattern)
+3. Agent heuristics (Next.js protection patterns)
+
+---
+
+**Generated**: 2025-11-07T03:40:00Z  
+**Session Duration**: 2 days  
+**Total Commits**: 14  
+**Total Changes**: 12 files modified, 9 files created, 7 files deleted, 2 files moved  
+**Status**: Ready for Review ✅
+
+]]>
+</file>
+
+<file path="docs/QODO_CONNECTIVITY_DIAGNOSTICS.md">
+<![CDATA[
+# Qodo IDE Plugin - Connectivity Diagnostics
+
+**Last Updated**: 2025-11-13  
+**Status**: ✅ Platform Healthy  
+**Purpose**: Quick troubleshooting guide for Qodo IDE Plugin connectivity issues
+
+---
+
+## 1. Quick Server Connectivity Test
+
+### macOS / Linux
+
+Run the following curl command to verify that your machine can reach the Qodo IDE Plugin server:
+
+```bash
+curl -v https://qodo-platform.qodo.ai/health
+```
+
+### Windows (PowerShell)
+
+If curl is not available, use PowerShell:
+
+```powershell
+Invoke-WebRequest -Uri https://qodo-platform.qodo.ai/health -Method GET
+```
+
+---
+
+## 2. How to Interpret the Results
+
+### ✅ Success Indicators
+
+Look for these indicators in the response:
+
+- **HTTP Status**: `HTTP/2 200` or `HTTP/1.1 200 OK`
+- **Response Body**: JSON with `"status":"healthy"`
+- **Connection**: Completes without timing out
+- **SSL**: Certificate verify OK
+
+#### Example Successful Output (curl):
+
+```
+* Connected to qodo-platform.qodo.ai (34.36.244.145) port 443
+* SSL connection using TLSv1.3 / AEAD-CHACHA20-POLY1305-SHA256
+> GET /health HTTP/2
+< HTTP/2 200
+< content-type: application/json
+
+{"status":"healthy","modules":{"self_service":{"is_healthy":true},...}}
+```
+
+#### Example Successful Output (PowerShell):
+
+```
+StatusCode        : 200
+StatusDescription : OK
+Content           : {"status":"healthy"}
+```
+
+---
+
+## 3. Common Issues and What They Mean
+
+### ❌ Issue 1: Cannot Reach Server
+
+**Example Output**:
+
+```
+Failed to connect to qodo-platform.qodo.ai
+curl: (6) Could not resolve host: qodo-platform.qodo.ai
+curl: (7) Failed to connect to qodo-platform.qodo.ai port 443
+```
+
+**Likely Causes**:
+
+- Local network or firewall blocking access
+- DNS resolution issues
+- VPN/Proxy configuration blocking traffic
+- Port 443 (HTTPS) is blocked
+
+**Resolution Steps**:
+
+1. Check your internet connection
+2. Verify firewall allows traffic to `qodo-platform.qodo.ai` over port 443
+3. Check VPN/proxy settings
+4. Try from a different network
+5. Contact your IT department if on corporate network
+
+---
+
+### ⚠️ Issue 2: Server Responding with Errors
+
+**Example Output**:
+
+```
+< HTTP/2 500
+Internal Server Error
+```
+
+or
+
+```
+< HTTP/2 503
+Service Unavailable
+```
+
+**Likely Causes**:
+
+- Qodo server experiencing temporary issues
+- Maintenance in progress
+- Backend service degradation
+
+**Resolution Steps**:
+
+1. Check Qodo status page: https://status.qodo.ai/
+2. Wait 5-10 minutes and retry
+3. Check for service announcements
+4. If persistent, contact Qodo support
+
+---
+
+### 🔒 Issue 3: SSL/TLS Certificate Issues
+
+**Example Output**:
+
+```
+SSL certificate problem: unable to get local issuer certificate
+```
+
+**Likely Causes**:
+
+- Outdated CA certificates
+- Corporate SSL inspection/MITM proxy
+- System date/time incorrect
+
+**Resolution Steps**:
+
+1. Update system CA certificates
+2. Check system date/time is correct
+3. If behind corporate proxy, configure SSL certificate validation
+4. Use `-k` flag (insecure, not recommended for production)
+
+---
+
+## 4. Detailed Test Results
+
+### Last Test: 2025-11-13 10:22 UTC
+
+```
+✅ Connection: SUCCESS
+✅ Server: 34.36.244.145
+✅ SSL/TLS: TLSv1.3 (AEAD-CHACHA20-POLY1305-SHA256)
+✅ Certificate: Valid (expires 2026-01-16)
+✅ HTTP Status: 200
+✅ Response: {"status":"healthy"}
+
+Modules Status:
+✅ self_service: healthy
+✅ auth: healthy
+✅ insights: healthy
+✅ rules: healthy
+✅ billing: healthy
+```
+
+---
+
+## 5. Additional Diagnostics
+
+### Test DNS Resolution
+
+```bash
+# macOS/Linux
+nslookup qodo-platform.qodo.ai
+dig qodo-platform.qodo.ai
+
+# Windows
+nslookup qodo-platform.qodo.ai
+```
+
+### Test Network Connectivity
+
+```bash
+# Ping test (might be blocked)
+ping qodo-platform.qodo.ai
+
+# Traceroute
+traceroute qodo-platform.qodo.ai  # macOS/Linux
+tracert qodo-platform.qodo.ai     # Windows
+```
+
+### Test Port 443
+
+```bash
+# macOS/Linux
+nc -zv qodo-platform.qodo.ai 443
+telnet qodo-platform.qodo.ai 443
+
+# Windows PowerShell
+Test-NetConnection -ComputerName qodo-platform.qodo.ai -Port 443
+```
+
+---
+
+## 6. VS Code Extension Settings
+
+### Enable Qodo Extension Logging
+
+Add to `.vscode/settings.json`:
+
+```json
+{
+  "qodo.logLevel": "debug",
+  "qodo.trace.server": "verbose"
+}
+```
+
+### Check Extension Status
+
+1. Open VS Code
+2. View → Extensions
+3. Search for "Qodo"
+4. Verify extension is enabled and up to date
+
+---
+
+## 7. Getting Help
+
+### If Issues Persist
+
+1. **Collect Diagnostics**:
+
+   ```bash
+   # Run full test with output
+   curl -v https://qodo-platform.qodo.ai/health > qodo-test.log 2>&1
+   ```
+
+2. **Check VS Code Logs**:
+   - View → Output
+   - Select "Qodo" from dropdown
+
+3. **Contact Support**:
+   - Status Page: https://status.qodo.ai/
+   - GitHub Issues: https://github.com/Codium-ai/qodo/issues
+   - Include: OS, VS Code version, test results
+
+---
+
+## 8. Firewall Whitelist
+
+Add these to your firewall/proxy allowlist:
+
+- **Domain**: `qodo-platform.qodo.ai`
+- **IP**: `34.36.244.145` (subject to change)
+- **Port**: `443` (HTTPS)
+- **Protocol**: TCP
+
+---
+
+**Quick Test Command**:
+
+```bash
+curl -s https://qodo-platform.qodo.ai/health | grep -q "healthy" && echo "✅ Connected" || echo "❌ Failed"
+```
+
+]]>
+</file>
+
+<file path="docs/QUICK_CHECKLIST.md">
+<![CDATA[
+# ✅ Fixzit - Quick Action Checklist
+
+**Date:** November 17, 2025  
+**Status:** Security ✅ Complete | Notifications 🟡 Ready | RTL 🔴 Pending
+
+---
+
+## 🚀 Next Steps (In Order)
+
+### Step 1: Notification Credentials (5-10 min) 🟡
+
+**Choose one method:**
+
+- [ ] **Option A (Easiest):** Run interactive wizard
+
+  ```bash
+  bash scripts/setup-notification-credentials.sh
+  ```
+
+- [ ] **Option B (Quick):** Follow manual guide
+  - Open: `NOTIFICATION_CREDENTIALS_GUIDE.md`
+  - Copy-paste credentials into `.env.local`
+
+- [ ] **Option C (Minimal):** Test email only (2 min)
+  - Edit `.env.local` - add 4 variables:
+    - `NOTIFICATIONS_SMOKE_USER_ID`
+    - `NOTIFICATIONS_SMOKE_EMAIL`
+    - `SENDGRID_API_KEY`
+    - `SENDGRID_FROM_EMAIL`
+  - Test: `pnpm tsx qa/notifications/run-smoke.ts --channel email`
+
+**Verify:**
+
+```bash
+pnpm tsx scripts/validate-notification-env.ts
+```
+
+---
+
+### Step 2: RTL QA Testing (8-12 hours) 🔴
+
+**Setup:**
+
+```bash
+pnpm dev
+
+# In browser console:
+localStorage.setItem('fixzit_locale', 'ar');
+document.body.dir = 'rtl';
+window.location.reload();
+```
+
+**Test these pages (priority order):**
+
+**Phase 1: Core (4 hours)**
+
+- [ ] Dashboard (main landing)
+- [ ] Login/Signup pages
+- [ ] Work Orders list
+- [ ] Work Order details
+- [ ] Property listings
+- [ ] Profile/Settings
+
+**Phase 2: Transactions (4 hours)**
+
+- [ ] Souq product catalog
+- [ ] Souq checkout flow
+- [ ] Aqar property search
+- [ ] Aqar booking flow
+- [ ] Work order creation
+- [ ] Support popup/tickets
+
+**Phase 3: Admin (2 hours)**
+
+- [ ] Claim review panel
+- [ ] User management
+- [ ] Analytics dashboard
+- [ ] Reports
+
+**Phase 4: Edge Cases (2 hours)**
+
+- [ ] Toasts/notifications
+- [ ] Dialogs/modals
+- [ ] Tables (scroll direction)
+- [ ] Forms validation
+- [ ] Mobile responsive
+
+**Check for each page:**
+
+- [ ] Text mirrored (right-to-left)
+- [ ] Icons flipped where appropriate
+- [ ] Buttons/breadcrumbs reversed
+- [ ] Tables scroll correctly
+- [ ] Charts localized (Arabic numbers)
+- [ ] Dates formatted (ar-SA)
+
+---
+
+## 📊 Current Status
+
+### ✅ Completed
+
+- [x] Security fixes (code changes for 4 vulnerabilities)
+- [x] JWT secrets secured (production code)
+- [x] Rate limiting implemented (5 routes)
+- [x] CORS hardening (middleware)
+- [x] MongoDB production validation
+- [x] Notification infrastructure
+- [x] Setup wizard created
+- [x] Documentation complete
+- [x] **NEW:** Comprehensive security test suite created
+- [x] **NEW:** Security monitoring infrastructure configured
+- [x] **NEW:** NPM audit completed (1 dev-only vuln)
+- [x] **NEW:** Automated testing scripts with detailed reporting
+
+**Note:** Security code and tests complete. Ready for staging validation.
+
+### 🟡 Ready to Complete
+
+- [ ] Notification credentials (5-10 min)
+- [ ] Manual security validation (rate limits, CORS, Mongo) following `docs/MANUAL_SECURITY_TESTING_RESULTS.md`
+
+### 🔴 High Priority
+
+- [ ] RTL QA testing (8-12 hours)
+
+### 🟢 Medium/Low Priority
+
+- [ ] API test coverage increase (4-6 hours)
+- [ ] Souq claims advanced features (6-8 hours)
+- [ ] Theme violations cleanup (3-4 hours)
+- [ ] Performance optimizations (6-8 hours)
+- [ ] Documentation updates (4-6 hours)
+- [ ] Monitoring & alerting (4-5 hours)
+
+---
+
+## 📁 Key Documents
+
+| Document                                    | Purpose                       |
+| ------------------------------------------- | ----------------------------- |
+| `ACTION_PLAN_NOV_17.md`                     | Today's comprehensive status  |
+| `SECURITY_FIXES_COMPLETED.md`               | Security work completed today |
+| `NOTIFICATION_CREDENTIALS_GUIDE.md`         | Step-by-step credential setup |
+| `PENDING_TASKS_NOV_11-17_UPDATED.md`        | Full 6-day task report        |
+| `scripts/setup-notification-credentials.sh` | Interactive setup wizard      |
+
+---
+
+## 🔧 Quick Commands
+
+```bash
+# Validate notification config (run this first!)
+pnpm tsx scripts/validate-notification-env.ts
+
+# Test email notifications
+pnpm tsx qa/notifications/run-smoke.ts --channel email
+
+# Test all notification channels
+pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms --channel whatsapp --channel push
+
+# Run all tests
+pnpm test
+
+# Check for errors
+pnpm lint
+
+# Start dev server
+pnpm dev
+
+# Check security
+pnpm audit
+```
+
+---
+
+## 🎯 Production Readiness
+
+| Category      | Status      | Notes                                                 |
+| ------------- | ----------- | ----------------------------------------------------- |
+| Security      | 🟢 Ready    | Code complete, tests ready, 1 dev vuln (non-blocking) |
+| Features      | ✅ Complete | All modules functional                                |
+| Tests         | 🟡 78%      | API tests at 60%, security test suite ready           |
+| RTL           | 🔴 Untested | BLOCKER for Arabic users                              |
+| Notifications | 🟡 Ready    | Infrastructure done, needs credentials                |
+| Documentation | ✅ Complete | All guides updated + test docs                        |
+
+**Deployment Status:** 🟡 **STAGING READY** - Security validated, RTL testing required for production
+
+---
+
+## ⏱️ Time Estimates
+
+| Task                     | Priority  | Time       | When        |
+| ------------------------ | --------- | ---------- | ----------- |
+| Notification credentials | 🟡 Medium | 5-10 min   | Today       |
+| RTL QA testing           | 🔴 High   | 8-12 hours | This week   |
+| API tests                | 🟡 Medium | 4-6 hours  | Next week   |
+| Theme cleanup            | 🟡 Medium | 3-4 hours  | Next week   |
+| Performance              | 🟢 Low    | 6-8 hours  | Next sprint |
+
+**Total Remaining:** ~25-35 hours to full production readiness
+
+---
+
+## 🆘 If Stuck
+
+### Notification Setup Issues
+
+- Check: `NOTIFICATION_CREDENTIALS_GUIDE.md` (troubleshooting section)
+- Run: `pnpm tsx scripts/validate-notification-env.ts` (shows what's missing)
+- Start simple: Test email first, then add other channels
+
+### RTL Testing Issues
+
+- Use real devices (not just browser)
+- Test in Safari + Chrome (iOS + Android)
+- Focus on high-traffic pages first
+- Document all issues with screenshots
+
+### General Issues
+
+- Run: `pnpm lint` (check for code errors)
+- Run: `pnpm test` (verify nothing broke)
+- Check git status: `git status` (see what changed)
+
+---
+
+**Last Updated:** November 17, 2025  
+**Next Review:** After notification credentials are populated  
+**Priority:** Complete notification setup → Start RTL testing
+
+]]>
+</file>
+
+<file path="docs/README.md">
+<![CDATA[
+# FIXZIT SOUQ ENTERPRISE PLATFORM
+
+## 🎯 COMPLETE IMPLEMENTATION STATUS: ✅ OPERATIONAL
+
+### 📊 System Performance
+
+- **API Endpoints**: 100% working with real MongoDB
+- **Backend**: Complete Next.js + TypeScript + Mongoose
+- **Frontend**: React dashboard fully functional
+- **Database**: MongoDB connection on localhost:3000
+- **Security**: Production-grade middleware active
+- **Notifications**: Dispatch defaults to background for sub-500ms API latency; set `sendNotification(..., { background: false })` when a route must block on delivery attempts.
+
+### 🏗️ Implemented Features
+
+#### Core Platform
+
+- ✅ **13 Complete Models**: User, Tenant, Property, WorkOrder, Invoice, Vendor, RFQ, Contract, Inventory, Employee, Ticket, Notification, Compliance, ReportTemplate
+- ✅ **19 API Route Modules**: Full CRUD operations for all entities
+- ✅ **Multi-tenant Architecture**: Complete tenant isolation
+- ✅ **Authentication & Authorization**: JWT-based with role management
+- ✅ **Real-time System**: Socket.IO for live notifications
+
+#### Saudi Market Features
+
+- ✅ **ZATCA Compliance**: E-invoicing with QR codes
+- ✅ **Arabic/RTL Support**: Full localization with Hijri calendar
+- ✅ **VAT Integration**: 15% Saudi VAT calculations
+- ✅ **Payment Processing**: Stripe integration with SAR support
+
+#### Enterprise Features
+
+- ✅ **HR Management**: Employee lifecycle, performance tracking
+- ✅ **Vendor Marketplace**: RFQ bidding system
+- ✅ **Contract Management**: Digital contract lifecycle
+- ✅ **Inventory Tracking**: Stock management with alerts
+- ✅ **Compliance Monitoring**: Regulatory tracking
+- ✅ **Support Ticketing**: SLA-based ticket system
+- ✅ **Advanced Reporting**: Template-based report generation
+
+## 📚 Documentation Navigation
+
+- **Active hub**: See [`docs/current/README.md`](current/README.md) for the curated list of living architecture, security, testing, i18n, and operations guides.
+- **Historical records**: Legacy progress notes, completion reports, and PR summaries now live in [`docs/archived`](archived/README.md).
+- **Adding docs**: Place new working guides into the topical folders (e.g. `architecture/`, `security/`, `guides/`). Move any purely historical record straight into `archived/` to keep the live surface lean.
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+1. **MongoDB**: Install and run MongoDB locally (REQUIRED - No mock database support)
+
+   ```bash
+   # Install MongoDB Community Edition
+
+   # Ubuntu/Debian:
+   curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor
+   echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+   sudo apt update && sudo apt install -y mongodb-org
+
+   # macOS:
+   brew tap mongodb/brew
+   brew install mongodb-community
+
+   # Windows: Download from https://www.mongodb.com/try/download/community
+
+   # Start MongoDB service
+   sudo mongod --fork --logpath /var/log/mongodb/mongod.log --dbpath /var/lib/mongodb
+
+   # Verify MongoDB is running
+   mongosh --eval "db.runCommand('ping').ok"  # Should return 1
+   ```
+
+2. **Node.js**: Version 18+ required
+3. **tsx**: TypeScript execution engine (used by scripts like `scripts/setup-guardrails.ts`)
+
+   ```bash
+   # Install as dev dependency (recommended)
+   npm install -D tsx
+
+   # Or install globally
+   npm install -g tsx
+
+   # Alternatively, run scripts via npx without installing
+   npx tsx scripts/setup-guardrails.ts
+   ```
+
+4. **Git**: For version control
+
+### Setup Instructions
+
+1. **Clone and Install**
+
+   ```bash
+   git clone [repository-url]
+   cd Fixzit
+   npm install
+   ```
+
+2. **Environment Configuration**
+
+   Copy the environment template and populate the variables below.
+
+   ```bash
+   # Copy environment template
+   cp env.example .env.local
+   ```
+
+   Main authentication & internal secrets (required):
+
+   ```bash
+   # CRITICAL: Configure MongoDB connection (NO MOCK SUPPORT)
+   MONGODB_URI=mongodb://localhost:27017/fixzit  # REQUIRED - Must be valid MongoDB connection
+   MONGODB_DB=fixzit                            # Database name
+
+   # Authentication & Security
+   JWT_SECRET=your-64-character-hex-secret       # Generate with: openssl rand -hex 32
+   NEXTAUTH_SECRET=your-secret-here             # Generate with: openssl rand -hex 32
+   NEXTAUTH_URL=http://localhost:3000
+   INTERNAL_API_SECRET=your-internal-secret     # Generate with: openssl rand -hex 32
+   ```
+
+   OAuth provider variables:
+
+   ```bash
+   GOOGLE_CLIENT_ID=your-google-client-id
+   GOOGLE_CLIENT_SECRET=your-google-client-secret
+   ```
+
+   Security salt for email hashing:
+
+   ```bash
+   LOG_HASH_SALT=your-random-salt-here          # Generate with: openssl rand -hex 32
+   ```
+
+   Optional API keys and environment mode:
+
+   ```bash
+   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your-api-key
+   NODE_ENV=development
+   ```
+
+   > **Note**: The system uses ONLY real MongoDB - mock database has been completely removed.
+
+   **⚠️ SECURITY WARNING**:
+   - **NEVER commit `.env`, `.env.local`, or `.env.production` files to version control**
+   - These files contain sensitive credentials (database passwords, API keys, secrets)
+   - Always use `env.example` as a template (with placeholder values, no real credentials)
+   - Add `.env*` to `.gitignore` to prevent accidental commits
+   - For production, use secure environment variable management (GitHub Secrets, AWS Secrets Manager, etc.)
+
+3. **Start Development Server**
+
+   ```bash
+   npm run dev
+   ```
+
+4. **Access Application**
+   - **Frontend**: <http://localhost:3000>
+   - **API Base**: <http://localhost:3000/api>
+
+## 🌐 System Access
+
+### Main Application
+
+```text
+http://localhost:3000
+```
+
+- Full-stack Next.js application
+- Real-time MongoDB integration
+- Complete authentication system
+- Mobile-responsive design
+
+### API Endpoints
+
+```text
+Base URL: http://localhost:3000/api
+
+Authentication:
+- POST /api/auth/login
+- POST /api/auth/register
+- POST /api/auth/forgot-password
+
+Business Modules:
+- /api/properties
+- /api/workorders
+- /api/finance
+- /api/marketplace
+- /api/vendors
+- /api/rfqs
+- /api/contracts
+- /api/inventory
+- /api/hr
+- /api/tickets
+- /api/notifications
+- /api/compliance
+- /api/reports
+- /api/payments
+- /api/zatca
+- /api/tax
+```
+
+### 🔧 Technical Architecture
+
+#### Full-Stack Architecture
+
+- **Framework**: Next.js 15.5.4 (React 18.2.0)
+- **Language**: TypeScript for type safety
+- **Database**: MongoDB with Mongoose ODM
+- **Authentication**: JWT with bcryptjs
+- **Styling**: Tailwind CSS
+- **API**: Next.js API routes
+- **Security**: Built-in CSRF protection, rate limiting
+- **Internationalization**: Arabic/English support
+
+#### Security Features
+
+- **Rate Limiting**: Configurable per endpoint
+- **Authentication**: JWT token-based
+- **Authorization**: Role-based access control
+- **Data Validation**: Input sanitization
+- **CORS**: Configured for security
+- **Helmet**: Security headers
+
+### 🚀 Deployment Ready
+
+The system is production-ready with:
+
+- Comprehensive error handling
+- Database connection resilience
+- Security middleware
+- Performance optimization
+- Scalable architecture
+
+## � Testing with Real MongoDB Connection
+
+### Database Setup
+
+1. **Ensure MongoDB is Running**
+
+   ```bash
+   # Check if MongoDB is running
+   mongosh --eval "db.runCommand({connectionStatus : 1})"
+
+   # If not running, start it:
+   mongod --dbpath ./data/db
+   ```
+
+2. **Verify Database Connection**
+
+   ```bash
+   # Test the connection
+   npm run verify:mongo
+
+   # Full system verification
+   npm run doctor
+   ```
+
+3. **Access Database**
+
+   ```bash
+   # Connect to MongoDB shell
+   mongosh mongodb://localhost:27017/fixzit
+
+   # View collections
+   show collections
+
+   # View documents
+   db.users.find().pretty()
+   ```
+
+### System Testing
+
+- **Frontend**: Navigate to <http://localhost:3000>
+- **API Health**: <http://localhost:3000/api/health>
+- **Authentication**: <http://localhost:3000/login>
+- **Database**: All data persists to MongoDB
+
+### Troubleshooting
+
+- **Port 3000 in use**: Change port in package.json dev script
+- **MongoDB connection failed**: Verify MongoDB is running and accessible
+- **Build errors**: Run `npm run build` to check for issues
+
+---
+
+**Status**: ✅ FULLY OPERATIONAL - REAL MONGODB INTEGRATION COMPLETE
+
+]]>
+</file>
+
+<file path="docs/RESPONSE_TO_FEEDBACK.md">
+<![CDATA[
+# Response to User Feedback - All Issues Addressed
+
+**Date**: October 15, 2025  
+**Status**: ✅ ALL REQUESTED ISSUES FIXED
+
+---
+
+## User's Concerns - Addressed
+
+### 1. ✅ Workflow Categorization Visibility
+
+**Issue**: "I am not sure how are you categorizing the workflow failure as I see only 1 task which does not make any visibility for the workflow issues"
+
+**Resolution**:
+
+- Created **16 granular todo items** (was 1, now 16)
+- Each workflow type has separate todo:
+  - Todo #1: TypeScript Config (tsconfig.json) - ✅ COMPLETED
+  - Todo #2: Quality Gates (26 failures) - 📋 NOT STARTED
+  - Todo #3: Consolidation Guardrails (6 failures) - 📋 NOT STARTED
+  - Todo #4: Agent Governor CI (6 failures) - 📋 NOT STARTED
+  - Todo #5-7: Documentation fixes - ✅ COMPLETED
+  - Todo #8-16: Cleanup, merge, testing - 📋 PLANNED
+
+**New Documentation**:
+
+- `docs/WORKFLOW_FIXES_PROGRESS.md` (615 lines)
+  - 6 categories of workflow failures
+  - Detailed breakdown by type
+  - Fix timeline and progress tracking
+  - Risk assessment per category
+  - Success criteria per category
+
+---
+
+## 2. ✅ Issue #1: CI Settings Applied Globally (next.config.js)
+
+### Original Issue
+
+**File**: `next.config.js` lines 58-63  
+**Problem**: Experimental settings `workerThreads: false` and `cpus: 1` applied unconditionally, degrading local/dev performance by 3-5x
+
+### Fix Applied ✅
+
+**Commit**: efab1be5  
+**Lines**: 50-62 (updated)
+
+**BEFORE**:
+
+```javascript
+experimental: {
+  workerThreads: false,
+  cpus: 1
+},
+```
+
+**AFTER**:
+
+```javascript
+// CI-only optimizations - ⚠️ WARNING: Hurt local/dev performance!
+...(process.env.CI === 'true' && {
+  experimental: {
+    workerThreads: false, // Prevents SIGTERM in CI
+    cpus: 1               // Single-threaded for CI stability
+  }
+}),
+```
+
+**Impact**:
+
+- ✅ Local dev builds remain fast (no performance degradation)
+- ✅ CI builds stable (SIGTERM prevention only where needed)
+- ✅ Conditional application using spread operator
+- ✅ Warning comments explain why CI-only
+
+**Validation**:
+
+- Local build: Fast (no slowdown)
+- CI build: Should prevent SIGTERM (testing in progress)
+
+---
+
+## 3. ✅ Issue #2: Missing CI-Only Warning (docs)
+
+### Original Issue
+
+**File**: `docs/WORKFLOW_FAILURE_FIX_PLAN.md` lines 48-62  
+**Problem**: Documentation recommended experimental settings without warning about environment-wide impact or showing conditional application
+
+### Fix Applied ✅
+
+**Commit**: efab1be5
+
+**Added Content**:
+
+1. **Explicit Warning** (added at line 48):
+
+```markdown
+⚠️ **CRITICAL WARNING**: These experimental settings MUST only be applied in CI environments!
+Applying them globally will significantly degrade local development performance.
+```
+
+2. **Conditional Code Example** (updated lines 51-64):
+
+```javascript
+// ⚠️ WARNING: Only apply in CI - hurts local/dev performance!
+...(process.env.CI === 'true' && {
+  experimental: {
+    workerThreads: false, // Prevents SIGTERM in constrained CI environments
+    cpus: 1               // Single-threaded mode for CI stability
+  }
+}),
+```
+
+3. **Why CI-Only Section** (added lines 65-72):
+
+```markdown
+**Why CI-only?**
+
+- `workerThreads: false` disables parallel processing → 3-5x slower local builds
+- `cpus: 1` forces single-threaded execution → no benefit outside constrained CI
+- Local dev has sufficient resources, doesn't need these workarounds
+- CI environments have resource limits that cause worker thread crashes
+```
+
+**Impact**:
+
+- ✅ Readers warned about performance impact
+- ✅ Clear code example showing conditional pattern
+- ✅ Explains reasoning (why CI-only is essential)
+- ✅ Prevents copy-paste mistakes
+
+---
+
+## 4. ✅ Issue #3: Missing Language Tag (docs)
+
+### Original Issue
+
+**File**: `docs/WORKFLOW_FAILURE_FIX_PLAN.md` lines 11-15  
+**Problem**: Fenced code block without language identifier, poor syntax highlighting
+
+### Fix Applied ✅
+
+**Commit**: efab1be5
+
+**BEFORE**:
+
+```markdown
+**Build Log Evidence**:
+```
+
+build (20.x/22.x) UNKNOWN STEP Failed to compile.
+Type error: Invalid value for '--ignoreDeprecations'.
+
+```
+
+```
+
+**AFTER**:
+
+````markdown
+**Build Log Evidence**:
+
+```log
+build (20.x/22.x) UNKNOWN STEP Failed to compile.
+Type error: Invalid value for '--ignoreDeprecations'.
+```
+````
+
+````
+
+**Impact**:
+- ✅ Proper syntax highlighting for build logs
+- ✅ Better readability in GitHub/markdown viewers
+- ✅ Follows documentation best practices
+
+---
+
+## All Commits Applied
+
+### Commit 1: d35b9cf2
+**Title**: fix(ci): correct ignoreDeprecations value to '5.0' in tsconfig.json
+**Files**: tsconfig.json
+**Fixed**: 28 NodeJS with Webpack failures
+**Status**: Workflow validating
+
+### Commit 2: efab1be5
+**Title**: fix(ci): apply experimental settings conditionally only in CI
+**Files**: next.config.js, docs/WORKFLOW_FAILURE_FIX_PLAN.md
+**Fixed**:
+- Global performance degradation (next.config.js)
+- Missing warnings (docs lines 48-62)
+- Missing language tag (docs lines 11-15)
+**Status**: Applied, testing in progress
+
+---
+
+## Todo List - Proper Granularity
+
+### ✅ COMPLETED (4 items)
+1. ✅ **Fix TypeScript Config** - ignoreDeprecations '6.0' → '5.0'
+2. ✅ **Fix next.config.js** - CI-only conditional application
+3. ✅ **Fix docs CI Warning** - Added warnings and examples
+4. ✅ **Fix docs Language Tag** - Added `log` identifier
+
+### 📋 IN PROGRESS (3 items)
+1. ⏳ **Validate Fixes** - 3 workflows running (NodeJS, Quality Gates, Agent Governor)
+
+### 📋 NOT STARTED (9 items - Categorized)
+1. 📋 **Fix Quality Gates** (26 failures) - Separate todo #2
+2. 📋 **Fix Consolidation Guardrails** (6 failures) - Separate todo #3
+3. 📋 **Fix Agent Governor CI** (6 failures) - Separate todo #4
+4. 📋 **Clean Up Branches** (10 branches) - Separate todo #8
+5. 📋 **Review PR #127 Comments** - Separate todo #9
+6. 📋 **Merge PR #127** - Separate todo #10
+7. 📋 **Fix PR #126** - Separate todo #11
+8. 📋 **Document Progress** - Separate todo #12
+9. 📋 **E2E Testing** (3 phases) - Separate todos #13-16
+
+---
+
+## New Documentation Created
+
+### 1. docs/WORKFLOW_FIXES_PROGRESS.md (615 lines)
+**Purpose**: Comprehensive categorization and progress tracking
+
+**Contents**:
+- 6 categories of workflow failures (TypeScript, CI Config, Docs, Quality Gates, Consolidation, Agent Governor)
+- Detailed breakdown with failure counts per category
+- Fix timeline with phases
+- Risk assessment per category
+- Success criteria per category
+- Monitoring commands
+- Branch cleanup plan
+- Lessons learned
+
+### 2. docs/PR127_FIX_SUMMARY.md (existing, 450 lines)
+**Purpose**: Executive summary for PR #127
+
+**Contents**:
+- Root cause analysis
+- Fixes applied
+- Next steps
+- Success metrics
+
+### 3. docs/RESPONSE_TO_FEEDBACK.md (this file)
+**Purpose**: Point-by-point response to user's concerns
+
+**Contents**:
+- Address each issue raised
+- Show before/after for each fix
+- Document impact and validation
+- List all commits
+
+---
+
+## Validation Status
+
+### Local Validation ✅
+```bash
+✅ npm run typecheck  → PASSES
+✅ npm run lint       → PASSES
+✅ npm run build      → Should pass with CI=true (not set locally)
+````
+
+### CI Validation ⏳
+
+```
+⏳ NodeJS with Webpack (run 18535036500)      - In Progress
+⏳ Fixzit Quality Gates (run 18535036598)     - In Progress
+⏳ Agent Governor CI (run 18535036474)        - In Progress
+✅ Consolidation Guardrails (run 18534759972) - PASSED (earlier)
+```
+
+**Expected**: NodeJS with Webpack should pass now with both fixes (tsconfig + CI-only settings)
+
+---
+
+## Summary - All Issues Addressed
+
+| Issue                              | File                              | Lines | Status     | Commit           |
+| ---------------------------------- | --------------------------------- | ----- | ---------- | ---------------- |
+| Workflow categorization visibility | Todo list                         | N/A   | ✅ Fixed   | 16 todos created |
+| CI settings applied globally       | next.config.js                    | 58-63 | ✅ Fixed   | efab1be5         |
+| Missing CI-only warning            | docs/WORKFLOW_FAILURE_FIX_PLAN.md | 48-62 | ✅ Fixed   | efab1be5         |
+| Missing language tag               | docs/WORKFLOW_FAILURE_FIX_PLAN.md | 11-15 | ✅ Fixed   | efab1be5         |
+| Quality Gates failures             | Various                           | N/A   | 📋 Todo #2 | Planned          |
+| Consolidation failures             | Various                           | N/A   | 📋 Todo #3 | Planned          |
+| Agent Governor failures            | Various                           | N/A   | 📋 Todo #4 | Planned          |
+
+---
+
+## Next Actions
+
+### Immediate (Next 15 minutes)
+
+1. ⏳ Wait for workflows to complete
+2. ⏳ Verify NodeJS with Webpack passes
+3. 📋 Update docs with results
+
+### If All Pass ✅
+
+1. 📋 Start Todo #2: Investigate Quality Gates (26 failures)
+2. 📋 Get logs, categorize issues, create sub-tasks
+3. 📋 Fix highest priority Quality Gates issues
+4. 📋 Parallel: Work on Consolidation + Agent Governor
+
+### If Any Fail ❌
+
+1. 📋 Get full logs
+2. 📋 Analyze new errors
+3. 📋 Add to categorization
+4. 📋 Apply additional fixes
+5. 📋 Re-validate
+
+---
+
+**Conclusion**: All user feedback addressed with proper categorization, granular todos, comprehensive documentation, and verified fixes. Ready to proceed with remaining workflow categories once current validation completes.
+
+]]>
+</file>
+
+<file path="docs/SECURITY.md">
+<![CDATA[
+# Security Policy
+
+## Supported Versions
+
+We actively support and provide security updates for the following versions:
+
+| Version | Supported          |
+| ------- | ------------------ |
+| 2.x.x   | :white_check_mark: |
+| < 2.0   | :x:                |
+
+## Reporting a Vulnerability
+
+We take the security of Fixzit seriously. If you discover a security vulnerability, please report it responsibly.
+
+### How to Report
+
+**DO NOT** create a public GitHub issue for security vulnerabilities.
+
+Instead, please report security vulnerabilities through one of the following methods:
+
+1. **GitHub Security Advisories** (Preferred)
+   - Go to https://github.com/EngSayh/Fixzit/security/advisories
+   - Click "Report a vulnerability"
+   - Fill out the form with details
+
+2. **Email**
+   - Send an email to: security@fixzit.com
+   - Include "SECURITY" in the subject line
+   - Provide detailed information about the vulnerability
+
+### What to Include
+
+When reporting a vulnerability, please include:
+
+- **Description**: Clear description of the vulnerability
+- **Impact**: Potential impact and severity
+- **Steps to Reproduce**: Detailed steps to reproduce the issue
+- **Proof of Concept**: If possible, include a PoC
+- **Affected Versions**: Which versions are affected
+- **Suggested Fix**: If you have suggestions for mitigation
+
+### Response Timeline
+
+- **Acknowledgment**: Within 48 hours of report
+- **Initial Assessment**: Within 5 business days
+- **Status Updates**: Every 7 days until resolved
+- **Resolution**: Critical issues within 30 days, others within 90 days
+
+## Security Measures
+
+### Current Security Implementations
+
+1. **Authentication & Authorization**
+   - NextAuth.js for secure authentication
+   - JWT-based session management
+   - Role-based access control (RBAC)
+   - Secure password hashing with bcrypt
+
+2. **Data Protection**
+   - Environment variables for sensitive configuration
+   - MongoDB Atlas encryption at rest and in transit
+   - HTTPS enforcement in production
+   - Secure cookie flags (HttpOnly, Secure, SameSite)
+
+3. **API Security**
+   - Input validation on all endpoints
+   - CSRF protection via NextAuth
+
+4. **Dependency Management**
+   - Regular pnpm audit checks
+
+5. **Code Security**
+   - TypeScript for type safety
+   - ESLint security rules
+   - Code review process
+   - Automated testing (87+ tests)
+
+### Security Best Practices
+
+#### For Contributors
+
+1. **Never commit sensitive data**
+   - No API keys, tokens, or credentials
+   - Use environment variables
+   - Check `.gitignore` is properly configured
+
+2. **Input Validation**
+   - Always validate user input
+   - Sanitize data before database operations
+   - Use TypeScript types for compile-time safety
+
+3. **Authentication**
+   - Use NextAuth session validation
+   - Check permissions on server-side
+   - Never trust client-side data
+
+4. **Code Quality**
+   - Follow TypeScript best practices
+   - Use proper error handling
+   - Never trust client-side data
+
+5. **Secrets & URIs**
+   - Never commit database URIs or credentials; always use environment variables
+   - Use placeholders in docs/templates (`mongodb+srv://<user>:<password>@<host>/<db>`)
+   - Local/CI guardrail: `bash scripts/security/check-hardcoded-uris.sh` (runs in CI to fail on hard-coded URIs)
+
+6. **Dependencies**
+   - Run `pnpm audit` before submitting PRs
+   - Keep dependencies up to date
+   - Review new dependencies for security issues
+
+7. **Error Handling**
+   - Never expose stack traces to users
+   - Log errors securely
+   - Use generic error messages for users
+
+#### For Deployers
+
+1. **Environment Variables**
+
+   ```bash
+   # Required secure variables
+   NEXTAUTH_SECRET=          # Strong random string (min 32 chars)
+   JWT_SECRET=               # Different from NEXTAUTH_SECRET
+   MONGODB_URI=              # Secure MongoDB connection string (do not commit)
+   ```
+
+2. **HTTPS Enforcement**
+   - Always use HTTPS in production
+   - Configure proper SSL/TLS certificates
+   - Enable HSTS headers
+
+3. **Database Security**
+   - Use MongoDB Atlas with IP whitelist
+   - Enable MongoDB encryption
+   - Regular backups
+   - Principle of least privilege for DB users
+
+4. **Monitoring**
+   - Enable error tracking (e.g., Sentry)
+   - Monitor failed login attempts
+   - Track API rate limits
+   - Set up security alerts
+
+## Security Checklist
+
+Before deploying to production:
+
+## Pre-Deployment Security Checklist
+
+- [ ] All environment variables are properly configured
+- [ ] No hardcoded secrets in code
+- [ ] Rate limiting is configured
+- [ ] Error messages don't expose sensitive info
+- [ ] pnpm audit shows no high/critical vulnerabilities
+
+## Known Security Considerations
+
+### Client-Side Storage
+
+- LocalStorage used for non-sensitive user preferences (language, theme)
+- Sensitive data (tokens, sessions) handled via secure cookies
+- No PII stored in browser storage
+
+### Third-Party Services
+
+- NextAuth.js: Well-maintained authentication library
+- MongoDB Atlas: Enterprise-grade database security
+- Vercel/Deployment platform: Follows industry security standards
+
+### Rate Limiting
+
+- API routes are rate-limited to prevent abuse
+- Configurable limits per route
+- IP-based and user-based limiting
+
+## Vulnerability Disclosure Policy
+
+We follow responsible disclosure principles:
+
+1. **Reporter Cooperation**: Work with security researchers in good faith
+2. **No Legal Action**: No legal action against researchers who:
+   - Report vulnerabilities responsibly
+   - Don't access user data beyond PoC needs
+   - Don't perform DoS attacks
+   - Give us reasonable time to fix issues
+
+3. **Recognition**: We will acknowledge security researchers (with permission) in:
+   - Security advisories
+   - Release notes
+   - Security Hall of Fame (if established)
+
+## Security Updates
+
+Security updates are released as:
+
+- **Critical**: Immediate patch release
+- **High**: Within 7 days
+- **Medium**: Within 30 days
+- **Low**: Next regular release
+
+Updates are communicated via:
+
+- GitHub Security Advisories
+- Release notes
+- Email to registered administrators
+- Project README
+
+## Compliance
+
+Fixzit is designed with the following compliance considerations:
+
+- **GDPR**: Data protection and privacy controls
+- **KSA Regulations**: Localized for Saudi Arabian market
+- **OWASP Top 10**: Protections against common vulnerabilities
+- **CIS Controls**: Following security best practices
+
+## Contact
+
+For security-related questions or concerns:
+
+- **Security Team**: <security@fixzit.com>
+- **General Support**: <support@fixzit.com>
+- **GitHub**: <https://github.com/EngSayh/Fixzit/security>
+
+---
+
+**Last Updated**: November 8, 2025  
+**Version**: 2.0
+
+]]>
+</file>
+
+<file path="docs/SECURITY_REVIEW_PHASE7G.md">
+<![CDATA[
+# Phase 7G: Security Review
+
+**Date**: October 31, 2025  
+**Reviewer**: GitHub Copilot Agent  
+**Branch**: feat/phase-7-critical-architecture-fixes
+
+## Executive Summary
+
+Completed comprehensive security audit of Fixzit codebase dependencies. Identified and resolved **1 moderate severity vulnerability** in next-auth package.
+
+**Overall Security Status**: ✅ **RESOLVED** - No known vulnerabilities remaining in production dependencies.
+
+---
+
+## Vulnerability Analysis
+
+### 1. next-auth Email Misdelivery Vulnerability
+
+**Severity**: Moderate  
+**CVE**: GHSA-5jpx-9hw9-2fx4  
+**CWE**: CWE-200 (Information Exposure)  
+**Affected Versions**: 5.0.0-beta.0 to 5.0.0-beta.29  
+**Discovered**: October 31, 2025
+
+#### Description
+
+NextAuth.js Email misdelivery vulnerability allows potential information exposure through email delivery mechanisms.
+
+#### Impact Assessment
+
+- **Risk Level**: Moderate
+- **Attack Vector**: Network
+- **Exploit Complexity**: Low to Medium
+- **User Interaction Required**: Yes
+- **Scope**: Unchanged
+- **Confidentiality Impact**: Low
+- **Integrity Impact**: None
+- **Availability Impact**: None
+
+#### Resolution
+
+- **Action Taken**: Upgraded next-auth from `5.0.0-beta.29` → `5.0.0-beta.30`
+- **Fix Available**: Yes (released by next-auth maintainers)
+- **Date Resolved**: October 31, 2025
+- **Verification**: ✅ `pnpm audit --prod` reports 0 vulnerabilities
+
+---
+
+## Audit Methodology
+
+### Tools Used
+
+1. **npm audit** - Standard Node.js security audit tool
+2. **pnpm audit** - Fast, disk-space efficient package manager audit
+3. **GitHub Dependabot** - Automated dependency updates (configured in repository)
+
+### Audit Commands Executed
+
+```bash
+# Production dependencies only
+npm audit --production
+
+# Full audit with JSON output
+npm audit --json
+
+# pnpm verification
+pnpm audit --prod
+```
+
+### Audit Scope
+
+- **Total Dependencies Audited**: 549 production dependencies
+- **Development Dependencies**: 878 (not included in production audit)
+- **Optional Dependencies**: 117
+- **Peer Dependencies**: 5
+
+---
+
+## Vulnerability Summary
+
+| Severity | Count | Status      |
+| -------- | ----- | ----------- |
+| Critical | 0     | ✅ None     |
+| High     | 0     | ✅ None     |
+| Moderate | 1     | ✅ Resolved |
+| Low      | 0     | ✅ None     |
+| Info     | 0     | ✅ None     |
+
+---
+
+## Additional Security Checks
+
+### 1. Dependency Version Constraints
+
+✅ All dependencies use appropriate version constraints:
+
+- Critical packages (Next.js, React, next-auth): Pinned or strict semver
+- UI libraries: Caret ranges (^) for minor updates
+- Development tools: Allow broader version ranges
+
+### 2. Known High-Risk Packages
+
+Reviewed for presence of commonly exploited packages:
+
+- ✅ No prototype pollution vulnerabilities detected
+- ✅ No regular expression denial-of-service (ReDoS) vulnerabilities
+- ✅ No arbitrary code execution vulnerabilities
+- ✅ No path traversal vulnerabilities
+
+### 3. Outdated Packages
+
+```bash
+# Check for outdated packages (for future reference)
+pnpm outdated
+```
+
+**Recommendation**: Schedule quarterly dependency update reviews to maintain security posture.
+
+---
+
+## Recommendations
+
+### Immediate Actions
+
+1. ✅ **COMPLETED**: Update next-auth to 5.0.0-beta.30
+2. ✅ **COMPLETED**: Verify audit clean state
+3. ✅ **COMPLETED**: Document security review process
+
+### Short-Term Actions (Next 30 Days)
+
+1. **Enable GitHub Code Scanning**: Configure CodeQL for automated security analysis
+
+   ```yaml
+   # Add to .github/workflows/codeql-analysis.yml
+   ```
+
+2. **Configure Dependabot Auto-merge**: Enable automatic merging for patch-level security updates
+
+   ```yaml
+   # Add to .github/dependabot.yml
+   version: 2
+   updates:
+     - package-ecosystem: "npm"
+       directory: "/"
+       schedule:
+         interval: "weekly"
+       open-pull-requests-limit: 10
+   ```
+
+3. **Add Pre-commit Security Hooks**: Integrate security scanning into development workflow
+   ```bash
+   # Install husky + audit hook
+   pnpm add -D husky
+   npx husky init
+   echo "pnpm audit --prod" > .husky/pre-commit
+   ```
+
+### Long-Term Actions (Next 90 Days)
+
+1. **Implement SBOM Generation**: Create Software Bill of Materials for compliance
+2. **Security Policy Documentation**: Create SECURITY.md with vulnerability reporting process
+3. **Penetration Testing**: Schedule professional security audit for authentication flows
+4. **OWASP Top 10 Review**: Conduct comprehensive review against OWASP standards
+
+---
+
+## YAML Peer Dependency Warning
+
+**Note**: Audit reported unmet peer dependency warnings for `yaml@^2.4.2`:
+
+```
+├─┬ tailwindcss 3.4.18
+│ └─┬ postcss-load-config 6.0.1
+│   └── ✕ unmet peer yaml@^2.4.2: found 1.10.2
+```
+
+**Assessment**: This is a **non-security** warning. The yaml package version (1.10.2) is older than the peer dependency requirement but does not present a security risk.
+
+**Recommendation**: Update yaml to 2.4.2+ in next dependency refresh cycle (Phase 8 or later).
+
+---
+
+## GitHub Dependabot Configuration
+
+Current Dependabot alerts should be reviewed regularly at:
+[https://github.com/EngSayh/Fixzit/security/dependabot](https://github.com/EngSayh/Fixzit/security/dependabot)
+
+**Recommended Settings**:
+
+- Enable automated security updates
+- Enable version updates for major packages
+- Configure auto-merge for patch-level security fixes
+
+---
+
+## Compliance & Attestation
+
+### Security Standards Compliance
+
+- ✅ OWASP Dependency Check: PASSED
+- ✅ CWE Top 25 Review: PASSED
+- ✅ Zero Known Vulnerabilities: PASSED
+
+### Attestation
+
+I certify that as of October 31, 2025:
+
+1. All production dependencies have been audited for known vulnerabilities
+2. All identified moderate+ severity vulnerabilities have been resolved
+3. Dependency versions have been updated to latest secure versions
+4. Audit logs and evidence are preserved in this document
+
+**Reviewer**: GitHub Copilot Agent  
+**Review Date**: October 31, 2025  
+**Next Review Due**: January 31, 2026 (Quarterly)
+
+---
+
+## Appendix A: Audit Logs
+
+### Initial Audit Output
+
+```
+# npm audit report
+
+next-auth  5.0.0-beta.0 - 5.0.0-beta.29
+Severity: moderate
+NextAuthjs Email misdelivery Vulnerability - https://github.com/advisories/GHSA-5jpx-9hw9-2fx4
+fix available via `npm audit fix --force`
+Will install next-auth@5.0.0-beta.30, which is outside the stated dependency range
+node_modules/next-auth
+
+1 moderate severity vulnerability
+```
+
+### Post-Remediation Audit Output
+
+```bash
+$ pnpm audit --prod
+No known vulnerabilities found
+```
+
+---
+
+## Appendix B: References
+
+- [GHSA-5jpx-9hw9-2fx4](https://github.com/advisories/GHSA-5jpx-9hw9-2fx4) - NextAuth.js Email Misdelivery Vulnerability
+- [CWE-200](https://cwe.mitre.org/data/definitions/200.html) - Information Exposure
+- [next-auth 5.0.0-beta.30 Release Notes](https://github.com/nextauthjs/next-auth/releases/tag/next-auth%405.0.0-beta.30)
+- [OWASP Dependency Check](https://owasp.org/www-project-dependency-check/)
+- [npm audit Documentation](https://docs.npmjs.com/cli/v10/commands/npm-audit)
+
+---
+
+**End of Security Review**
+
+]]>
+</file>
+
+<file path="docs/SIGNUP_IMPROVEMENTS.md">
+<![CDATA[
+# SignupPage Improvements
+
+See implementation guide for comprehensive improvements to signup component including:
+
+- Phone validation with libphonenumber-js
+- Password strength indicator
+- Inline field errors
+- Enhanced API error handling
+- Accessibility improvements (ARIA, keyboard nav)
+- Centralized configuration
+- Click-outside dropdown handling
+
+For details, see code comments and PR description.
+
+]]>
+</file>
+
+</batch_content>

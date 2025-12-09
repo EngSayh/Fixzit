@@ -1,0 +1,5395 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/archived/reports/similar_hits.json">
+<![CDATA[
+[
+  {
+    "file": "AGENT_SYSTEM_SUMMARY.md",
+    "hits": [
+      {
+        "pattern": "Fragile Relative Imports",
+        "count": 2
+      },
+      {
+        "pattern": "Alias Misuse ( \"@/src\" )",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "I18N_STABILIZATION_SUMMARY.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "PRODUCTION_TEST_STATUS.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "TESTING_STRATEGY.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "TEST_STATUS_REPORT.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "middleware.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "next.config.js",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "playwright.config.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tailwind.config.js",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "DAILY_PROGRESS_REPORTS/2025-01-08_test_fixes.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "DAILY_PROGRESS_REPORTS/2025-01-27-PRODUCTION-IMPROVEMENTS.md",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "DAILY_PROGRESS_REPORTS/2025-01-28-MODEL-TESTS-MONGODB-MEMORY-SERVER.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "DAILY_PROGRESS_REPORTS/2025-01-auth-and-test-improvements.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "DAILY_PROGRESS_REPORTS/2025-10-28-code-review-fixes-phase1.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "DAILY_PROGRESS_REPORTS/2025-11-08_comprehensive_system_audit.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "DAILY_PROGRESS_REPORTS/2025-11-08_system_audit_complete.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "DAILY_PROGRESS_REPORTS/AGENT_SESSION_COMPLETE_20251030.md",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "DAILY_PROGRESS_REPORTS/FINAL_STATUS_REPORT.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "DAILY_PROGRESS_REPORTS/PR-141-FINAL-REVIEW-SUMMARY.md",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/globals.css",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/not-found.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "client/woClient.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "components/AIChat.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/AutoFixInitializer.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/AutoIncidentReporter.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/ClientLayout.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/CopilotWidget.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/ErrorBoundary.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/ErrorTest.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/Footer.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/GoogleMap.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/HtmlAttrs.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/LoginPrompt.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/Portal.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/PreferenceBroadcast.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/ResponsiveLayout.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/SLATimer.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/Sidebar.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/SupportPopup.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/SystemVerifier.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/TopBar.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "contexts/CurrencyContext.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "contexts/FormStateContext.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "contexts/ResponsiveContext.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "contexts/ThemeContext.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "contexts/TranslationContext.test.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "contexts/TranslationContext.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "db/mongoose.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/AGENT_FRESH_RUN_REPORT.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/FIXZIT_AGENT_QUICKSTART.md",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/HR_MODULE_BIBLE.md",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/MISSING_COMPONENTS_FIXED.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/PAGE_CONSOLIDATION_STRATEGY.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/PR_SUMMARY.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/TASK_COMPLETION_SUMMARY.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/TEST_FIXING_SESSION_2025-01-07.md",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/WORKSPACE_ORGANIZATION.md",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "hooks/useDebounce.ts",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "hooks/useFormTracking.ts",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "hooks/useScreenSize.ts",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "i18n/I18nProvider.test.tsx",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "i18n/I18nProvider.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "i18n/useI18n.test.ts",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "kb/ingest.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "lib/auth-middleware.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "lib/auth.test.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "lib/authz.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "lib/fm-approval-engine.ts",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "lib/fm-auth-middleware.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "lib/fm-notifications.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "lib/markdown.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "lib/mongoUtils.server.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "lib/rateLimit.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "models/aqarBooking.model.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "models/project.model.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "models/referralCode.model.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "providers/Providers.test.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "public/app-fixed.js",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "public/styles.css",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "public/sw.js",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "qa/AutoFixAgent.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "qa/playwright.config.ts",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "qa/qaPatterns.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "scripts/README-replace-string-in-file.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "scripts/apply-auth-to-routes.js",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "scripts/assess-system.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "scripts/auto-enhance-routes.js",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "scripts/dedupe-merge.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "scripts/fixzit-pack.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "scripts/rapid-enhance-all.js",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "scripts/scanner.js",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "server/README.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "services/checkout.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "services/paytabs.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "services/pricing.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "services/provision.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/copilot.spec.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/marketplace.smoke.spec.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/about/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/admin/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/administration/page.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/careers/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/finance/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/fm/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/forgot-password/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/hr/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/login/page.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/logout/page.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/marketplace/layout.tsx",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/marketplace/page.tsx",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/notifications/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/privacy/page.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/profile/page.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/reports/page.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/signup/page.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/souq/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/terms/page.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/test-rtl/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/admin/UpgradeModal.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/aqar/MortgageCalculator.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/aqar/SearchFilters.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/aqar/ViewingScheduler.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/auth/DemoCredentialsSection.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/auth/LoginForm.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/careers/JobApplicationForm.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/finance/AccountActivityViewer.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/finance/JournalEntryForm.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/finance/TrialBalanceReport.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/fm/WorkOrdersView.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/forms/ExampleForm.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/i18n/CompactCurrencySelector.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/i18n/CompactLanguageSelector.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/i18n/CurrencySelector.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/i18n/LanguageSelector.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/marketplace/CatalogView.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/marketplace/Facets.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/topbar/AppSwitcher.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/topbar/GlobalSearch.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/topbar/QuickActions.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/ui/dialog.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/ui/feature-toggle-skeleton.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/ui/feature-toggle.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/ui/navigation-buttons.tsx",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "components/ui/pagination.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "components/ui/select.tsx",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "components/ui/textarea.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/analysis/API_ROUTES_COMPREHENSIVE_ANALYSIS.md",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/analysis/COMPLETE_ISSUE_ANALYSIS.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/analysis/PROBLEMS_ANALYSIS_REPORT.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/analysis/SYSTEM_SECURITY_AUDIT_REPORT.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/analysis/WORKFLOW_FAILURES_CATEGORIZATION_2025-10-16.md",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/analysis/system-wide-issues-analysis.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/architecture/ARCHITECTURE.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/development/ENHANCEMENT_ROADMAP.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/development/FORMSTATE_CONTEXT_USAGE.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/development/FORMSTATE_INTEGRATION_GUIDE.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/development/FORM_SAVE_EVENTS.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/development/MIGRATION_DEPRECATED_HOOKS.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/guides/BACKEND_ARCHITECTURE.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/guides/HOW_TO_TEST_AUTO_LOGIN_FIX.md",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/guides/SUPER_ADMIN_LOGO_CONFIGURATION.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/inventory/paytabs-duplicates.md",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/operations/SENDGRID_PRODUCTION_GUIDE.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/performance/OPTIMIZATION_ACTION_PLAN.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/performance/PERFORMANCE_ANALYSIS_NEXT_STEPS.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/performance/PERFORMANCE_FIX_GUIDE.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/progress/ABSOLUTE_PERFECTION_ROADMAP.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/progress/CODERABBIT_696_FIX_PROGRESS.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/progress/CONTINUOUS_IMPROVEMENT_SESSION_REPORT.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/progress/CONTINUOUS_TEST_IMPROVEMENT_SESSION_2.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/progress/E2E_TEST_PROGRESS.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/progress/E2E_TEST_PROGRESS_REPORT.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/progress/ERROR_FIX_PLAN.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/progress/MASSIVE_TYPE_SAFETY_PROGRESS.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/progress/PHASE5_AUTH_DEBUG_SESSION.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/progress/PR83_FIXES_PLAN.md",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/progress/SESSION_COMPLETE_REPORT.md",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/progress/SESSION_PROGRESS_REPORT_20251014.md",
+    "hits": [
+      {
+        "pattern": "Undefined Property Access (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/progress/SUB_BATCH_1_2B_PROGRESS.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/progress/TEST_FIXES_SESSION_30_COMMITS.md",
+    "hits": [
+      {
+        "pattern": "Fragile Relative Imports",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/progress/TEST_FRAMEWORK_PHASE2_PROGRESS.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/progress/TEST_FRAMEWORK_STANDARDIZATION_PLAN.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/pull-requests/PR135_COMPLETE_VERIFICATION.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/pull-requests/PR137_CRITICAL_FIXES_COMPLETE.md",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/pull-requests/PR_131_FIXES_COMPLETE_2025_10_19.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/pull-requests/PR_135_CONFLICT_RESOLUTION.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/pull-requests/PR_COMMENTS_CHECKLIST.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/pull-requests/PR_ERRORS_COMMENTS_REPORT.md",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/100_PERCENT_COMPLETION_REPORT.md",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/ADDITIONAL_FIXES_COMPLETED.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/API_ROUTES_FIX_IMPLEMENTATION_REPORT.md",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/ARABIC_TRANSLATION_VERIFICATION_COMPLETE.md",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/CLAUDE_PROMPTS.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/CODERABBIT_696_CATEGORIZED.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/CODE_QUALITY_FINAL_STATUS.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/COMPLETE_FIX_REPORT_OCT26.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/COMPLETE_FIX_SUMMARY_2025_10_20.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/COMPLETE_STATUS_REPORT_2025_10_19.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/COMPREHENSIVE_COMMENT_FIX_STATUS.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/COMPREHENSIVE_COMPLETION_REPORT_2025-10-20.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/COMPREHENSIVE_ERROR_LIST_48H.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/COMPREHENSIVE_FIXES_COMPLETE.md",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/COMPREHENSIVE_FIXES_SUMMARY.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/COMPREHENSIVE_FIX_FINAL_REPORT.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/COMPREHENSIVE_SCAN_FINDINGS.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/CONSOLIDATION_FINAL_REPORT.md",
+    "hits": [
+      {
+        "pattern": "Alias Misuse ( \"@/src\" )",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/CRITICAL_ERRORS_REPORT.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/CRITICAL_FIXES_REQUIRED.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/DUPLICATE_CLEANUP_REPORT.md",
+    "hits": [
+      {
+        "pattern": "Alias Misuse ( \"@/src\" )",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/DUPLICATE_CODE_ANALYSIS_REPORT.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/DYNAMIC_IMPORT_IMPLEMENTATION.md",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/E2E_TEST_FIXES_SUMMARY.md",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/ERRORS_FIXED_PAST_15_DAYS.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/ESLINT_CATEGORIES_ACTIONABLE.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/ESLINT_ELIMINATION_STRATEGY.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/ESLINT_READY_TO_EXECUTE.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/FINAL_COMPREHENSIVE_FIXES_REPORT.md",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/FINAL_MISSION_REPORT.md",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/FINAL_SYSTEM_TRANSFORMATION_REPORT.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/FIXES_IMPLEMENTATION_STATUS.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/FIX_SUMMARY.md",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/HEREDOC_SOLUTION.md",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/IMPORT_FIXES_COMPLETE.md",
+    "hits": [
+      {
+        "pattern": "Alias Misuse ( \"@/src\" )",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/JEST_VITEST_MIGRATION_PHASE4_COMPLETE.md",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/LOGIN_PAGE_REFACTORING_COMPLETE.md",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/MONGODB_DEPLOYMENT_READY.md",
+    "hits": [
+      {
+        "pattern": "Alias Misuse ( \"@/src\" )",
+        "count": 1
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/MONGODB_UNIFIED_VERIFICATION_COMPLETE.md",
+    "hits": [
+      {
+        "pattern": "Alias Misuse ( \"@/src\" )",
+        "count": 1
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/MONGODB_VERIFICATION_REPORT.md",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/PHASE1_COMPLETE.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/PHASE_1_COMPLETE.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/PLAYWRIGHT_CONFIG_CONSOLIDATION.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/POWERSHELL_HEREDOC_CONFIGURED.md",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/PR83_ALL_FIXES_COMPLETE.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/PR83_FINAL_VERIFICATION_REPORT.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/PR83_FIXES_SUMMARY.md",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/PR83_NOTHING_MISSED.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/PR84_FINAL_STATUS.md",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/PRODUCTION_READINESS_STATUS.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/PRODUCTION_READY_FIXES_2025-10-26.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/PR_119_FINAL_FIXES.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/PR_119_FIXES_APPLIED.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/PR_75_FIXES_STATUS.md",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/PR_FIXES_SUMMARY.md",
+    "hits": [
+      {
+        "pattern": "Alias Misuse ( \"@/src\" )",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/QA_IMPLEMENTATION_STATUS.md",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/REGEX_FIX_COMPLETE.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/SECURITY_TRANSFORMATION_FINAL_REPORT.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/SUB_BATCH_1_2B_DIAGNOSTIC.md",
+    "hits": [
+      {
+        "pattern": "Undefined Property Access (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/SYSTEM_FIXES_VERIFICATION_REPORT.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/SYSTEM_OPTIMIZATION_COMPLETE.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/TEST_COVERAGE_IMPROVEMENT_REPORT.md",
+    "hits": [
+      {
+        "pattern": "Fragile Relative Imports",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/TOOL_VERIFICATION_COMPLETE.md",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/TRANSLATION_FIXES_COMPLETE_REPORT.md",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/TYPESCRIPT_ZERO_ERRORS_ACHIEVED.md",
+    "hits": [
+      {
+        "pattern": "TypeScript Assignability Issues (Potential)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/VI_IMPORTMOCK_FIXES_COMPLETE.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/reports/ZERO_TYPESCRIPT_ERRORS_ACHIEVED.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/security/NEXTAUTH_VERSION_ANALYSIS.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/security/SECURITY_AND_QUALITY_FIXES_COMPLETE.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/security/SECURITY_AUDIT_ADDITIONAL_FINDINGS.md",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/security/SECURITY_FIXES_COMPLETE_2025_10_19.md",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/sessions/COMPLETE_TASK_SUMMARY.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/sessions/FIX_SUMMARY_2025_10_19.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/sessions/FIX_SUMMARY_COMPREHENSIVE_2025_10_19.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/sessions/FIX_SUMMARY_DOCUMENTATION_CODE_QUALITY_2025_10_19.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/sessions/RTL_DROPDOWN_AND_AUTOLOGIN_FIX_2025-10-24.md",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/sessions/SESSION_COMPLETE_2025_10_19.md",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "docs/sessions/SESSION_CONTINUATION_2025_10_19.md",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "docs/sessions/SESSION_SUMMARY_2025_10_19.md",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "lib/api/http.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "lib/db/collections.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "lib/errors/ErrorResponse.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "lib/marketplace/cart.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "lib/marketplace/security.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "lib/security/rate-limit.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "lib/storage/s3.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "models/aqar/Booking.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "models/aqar/Boost.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "models/aqar/Lead.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "models/aqar/Listing.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "models/aqar/MarketingRequest.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "models/aqar/Package.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "models/aqar/Payment.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "models/aqar/Project.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "models/aqar/SavedSearch.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "modules/organizations/service.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "modules/users/service.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "public/js/secure-utils.js",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "qa/tests/01-login-and-sidebar.spec.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "qa/tests/04-critical-pages.spec.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "qa/tests/05-api-health.spec.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "qa/tests/06-acceptance-gates.spec.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "qa/tests/07-guest-browse.spec.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "qa/tests/07-help-page.spec.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "qa/tests/07-marketplace-page.spec.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "qa/tests/07-qa-log.spec.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "qa/tests/api-projects.spec.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "qa/tests/auth-flows.spec.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "qa/tests/e2e-auth-unified.spec.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "qa/tests/lib-paytabs.base-and-hpp.spec.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "qa/tests/lib-paytabs.create-payment.custom-base.spec.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "qa/tests/lib-paytabs.create-payment.default.spec.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "qa/tests/lib-paytabs.verify-and-utils.spec.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "scripts/codemods/update-mongodb-imports.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "server/copilot/llm.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "server/copilot/retrieval.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "server/copilot/session.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "server/copilot/tools.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "server/finance/invoice.service.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "server/lib/authContext.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "server/lib/numbering.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "server/middleware/withAuthRbac.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "server/plugins/auditPlugin.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "server/plugins/tenantIsolation.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "server/models/AtsSettings.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "server/models/Candidate.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "server/models/FMApproval.ts",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "server/models/FeatureFlag.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "server/models/Job.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "server/models/Organization.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "server/models/Owner.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "server/models/ReferralCode.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "server/security/headers.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "server/security/idempotency.spec.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "server/security/idempotency.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "server/work-orders/wo.service.test.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "server/work-orders/wo.service.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/api/paytabs-callback.test.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "tests/e2e/auth-flow.spec.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/e2e/database.spec.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/e2e/marketplace-flow.spec.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/e2e/referrals-flow.spec.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/e2e/work-orders-flow.spec.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/mocks/mongodb-unified.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/models/candidate.test.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/pages/marketplace.page.test.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/pages/product.slug.page.test.ts",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/rbac/cross-tenant-isolation.test.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/specs/i18n.spec.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/middleware.test.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/utils/http.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tools/scripts-archive/test-powershell-heredoc.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/(dashboard)/referrals/page.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/admin/audit-logs/page.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/admin/cms/page.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/admin/feature-settings/page.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/i18n/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/invoices/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/notifications/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/projects/route.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/api/rfqs/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/search/queryHelpers.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/api/search/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/slas/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/vendors/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/work-orders/route.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/aqar/filters/page.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/aqar/map/page.tsx",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/aqar/properties/page.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/careers/[slug]/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/cms/[slug]/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/dev/login-helpers/DevLoginClient.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/dev/login-helpers/page.tsx",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/fm/assets/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/fm/dashboard/page.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/fm/invoices/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/fm/maintenance/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/fm/orders/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/fm/projects/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/fm/properties/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/fm/rfqs/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/fm/support/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/fm/tenants/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/fm/vendors/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/help/[slug]/page.tsx",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/help/support-ticket/page.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/hr/employees/page.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/hr/payroll/page.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/marketplace/admin/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/marketplace/cart/page.tsx",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/marketplace/checkout/page.tsx",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/marketplace/orders/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/marketplace/rfq/page.tsx",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/marketplace/search/page.tsx",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/marketplace/vendor/page.tsx",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/product/[slug]/page.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/properties/[id]/page.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/properties/documents/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/properties/inspections/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/properties/leases/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/properties/units/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/souq/catalog/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/souq/vendors/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/support/my-tickets/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/vendor/dashboard/page.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/work-orders/approvals/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/work-orders/history/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/work-orders/new/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/work-orders/pm/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/work-orders/sla-watchlist/page.tsx",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "public/assets/css/theme.css",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "public/assets/js/header-footer.js",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "server/models/finance/ChartAccount.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "server/models/finance/Expense.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "server/models/finance/Journal.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "server/models/finance/LedgerEntry.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "server/models/finance/Payment.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/api/marketplace/search.route.impl.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "tests/api/marketplace/search.route.test.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/finance/e2e/finance-pack.test.ts",
+    "hits": [
+      {
+        "pattern": "Fragile Relative Imports",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "tests/finance/unit/posting.service.test.ts",
+    "hits": [
+      {
+        "pattern": "Fragile Relative Imports",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/api/api-paytabs-callback.spec.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/api/api-paytabs.spec.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/app/api_help_articles_route.test.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/app/help_support_ticket_page.test.tsx",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/components/ClientLayout.test.tsx",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/components/ErrorBoundary.test.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "Undefined Property Access (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/components/SupportPopup.test.tsx",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/lib/mongo.test.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/models/Asset.test.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/models/HelpArticle.test.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/models/Property.test.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/models/User.test.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/models/WorkOrder.test.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tools/scripts-archive/dead-code/HelpWidget.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/admin/audit-logs/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/admin/discounts/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/admin/users/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/aqar/favorites/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/aqar/leads/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/aqar/packages/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/aqar/properties/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/assistant/query/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/ats/convert-to-employee/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/ats/jobs/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/ats/moderation/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/ats/public-post/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/benchmarks/compare/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/billing/charge-recurring/route.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/api/billing/quote/route.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/api/billing/subscribe/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/careers/apply/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/checkout/complete/route.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/api/checkout/quote/route.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/api/checkout/session/route.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/api/copilot/chat/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/copilot/knowledge/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/copilot/profile/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/dev/demo-accounts/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/dev/demo-login/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/feeds/linkedin/route.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/api/finance/accounts/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/finance/expenses/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/finance/invoices/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/finance/journals/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/finance/ledger/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/finance/payments/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/health/database/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/help/articles/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/help/ask/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/hr/employees/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/marketplace/cart/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/marketplace/categories/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/marketplace/products/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/marketplace/search/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/organization/settings/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/payments/paytabs/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/paytabs/return/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/performance/metrics/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/pm/generate-wos/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/pm/plans/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/public/rfqs/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/qa/health/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/qa/reconnect/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/referrals/generate/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/referrals/my-code/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/support/incidents/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/support/tickets/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/user/preferences/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/user/profile/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/work-orders/[id]/route.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/api/work-orders/export/route.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/api/work-orders/sla-check/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/finance/budgets/new/page.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/finance/expenses/new/page.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/finance/invoices/new/page.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/finance/payments/new/page.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/fm/properties/[id]/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/fm/support/tickets/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/fm/vendors/[id]/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/help/tutorial/getting-started/page.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/marketplace/product/[slug]/page.tsx",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/marketplace/vendor/portal/page.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/work-orders/[id]/parts/page.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "tests/api/marketplace/products/route.test.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/api/qa/alert.route.test.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/api/qa/health.route.test.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/api/qa/log.route.playwright.test.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/api/support/incidents.route.test.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/app/fm/marketplace-page.test.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/app/marketplace/marketplace-page.test.tsx",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/app/marketplace/rfq-page.test.tsx",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/components/__tests__/TopBar.test.tsx",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/components/marketplace/CatalogView.test.tsx",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/api/admin/billing/annual-discount/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/admin/billing/benchmark/route.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/api/admin/billing/pricebooks/route.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/api/admin/users/[id]/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/aqar/favorites/[id]/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/aqar/listings/[id]/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/aqar/listings/search/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/ats/applications/[id]/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/cms/pages/[slug]/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/files/resumes/[file]/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/files/resumes/presign/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/finance/accounts/[id]/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/finance/expenses/[id]/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/finance/ledger/trial-balance/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/help/articles/[id]/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/hr/payroll/runs/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/integrations/linkedin/apply/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/marketplace/products/[slug]/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/payments/paytabs/callback/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/pm/plans/[id]/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/rfqs/[id]/publish/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/support/tickets/[id]/route.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/api/work-orders/[id]/assign/route.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/api/work-orders/[id]/checklists/route.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/api/work-orders/[id]/comments/route.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/api/work-orders/[id]/materials/route.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/api/work-orders/[id]/status/route.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/fm/vendors/[id]/edit/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/marketplace/vendor/products/upload/page.tsx",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "aws/dist/docutils/writers/html4css1/html4css1.css",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/api/marketplace/categories/route.test.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "qa/qa/artifacts/html-report/trace/index.BZPYnuWQ.js",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/api/marketplace/search/route.test.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/api/public/rfqs/route.test.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/components/fm/__tests__/WorkOrdersView.test.tsx",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/components/ui/__tests__/tabs.test.tsx",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/components/ui/__tests__/textarea.test.tsx",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/api/admin/billing/pricebooks/[id]/route.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/api/admin/billing/benchmark/[id]/route.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/api/ats/jobs/[id]/apply/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/ats/jobs/[id]/publish/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/finance/expenses/[id]/[action]/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/finance/journals/[id]/post/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/finance/journals/[id]/void/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/finance/ledger/account-activity/[accountId]/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/finance/payments/[id]/[action]/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/work-orders/[id]/attachments/presign/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/work-orders/[id]/checklists/toggle/route.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "qa/qa/artifacts/html-report/trace/assets/codeMirrorModule-B9MwJ51G.js",
+    "hits": [
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "qa/qa/artifacts/html-report/trace/assets/defaultSettingsView-Do_wwdKw.js",
+    "hits": [
+      {
+        "pattern": "Hydration/Server-Client Mismatch (Potential)",
+        "count": 2
+      },
+      {
+        "pattern": "i18n/RTL Issues (Potential)",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "tests/unit/api/marketplace/products/[slug]/route.test.ts",
+    "hits": [
+      {
+        "pattern": "Unhandled Rejections (Context-Aware)",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "file": "app/api/hr/payroll/runs/[id]/calculate/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "file": "app/api/hr/payroll/runs/[id]/export/wps/route.ts",
+    "hits": [
+      {
+        "pattern": "NextResponse Usage",
+        "count": 2
+      }
+    ]
+  }
+]
+
+]]>
+</file>
+
+</batch_content>

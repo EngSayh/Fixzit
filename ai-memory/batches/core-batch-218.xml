@@ -1,0 +1,3486 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="lib/ats/resume-parser.ts">
+<![CDATA[
+/**
+ * Resume Parser - Extract structured data from PDF resumes
+ * Phase 2 implementation - Basic text extraction and pattern matching
+ */
+
+import { logger } from "@/lib/logger";
+
+interface ParsedResume {
+  skills: string[];
+  experience: {
+    years: number;
+    positions: Array<{
+      title: string;
+      company: string;
+      duration?: string;
+    }>;
+  };
+  education: Array<{
+    degree: string;
+    institution: string;
+    year?: string;
+  }>;
+  contact?: {
+    email?: string;
+    phone?: string;
+  };
+  rawText?: string;
+}
+
+/**
+ * Parse resume PDF buffer and extract structured information
+ * Note: Requires pdf-parse package - install with: pnpm add pdf-parse
+ */
+export async function parseResumePDF(pdfBuffer: Buffer): Promise<ParsedResume> {
+  // Import pdf-parse dynamically to handle missing dependency gracefully
+  try {
+    const pdfParse = await import("pdf-parse");
+    // @ts-expect-error - pdf-parse has ESM/CJS export issues
+    const parse = pdfParse.default || pdfParse;
+    const data = await parse(pdfBuffer);
+    const parsed = parsePlainText(data.text);
+    return { ...parsed, rawText: data.text };
+  } catch (_error) {
+    logger.warn("pdf-parse not installed or failed, using fallback parser", {
+      component: "ATS",
+      action: "parseResume",
+      error: _error,
+    });
+    return parsePlainText("");
+  }
+}
+
+/**
+ * Parse plain text resume content
+ */
+export function parsePlainText(text: string): ParsedResume {
+  const normalizedText = text.toLowerCase();
+
+  return {
+    skills: extractSkills(text),
+    experience: extractExperience(text, normalizedText),
+    education: extractEducation(text, normalizedText),
+    contact: extractContact(text),
+    rawText: text,
+  };
+}
+
+/**
+ * Extract skills from resume text using keyword matching
+ */
+function extractSkills(text: string): string[] {
+  const skills: Set<string> = new Set();
+
+  // Common technical skills library
+  const skillKeywords = [
+    // Programming Languages
+    "javascript",
+    "typescript",
+    "python",
+    "java",
+    "c#",
+    "c++",
+    "ruby",
+    "php",
+    "swift",
+    "kotlin",
+    "go",
+    "rust",
+    // Web Technologies
+    "react",
+    "angular",
+    "vue",
+    "node.js",
+    "express",
+    "next.js",
+    "html",
+    "css",
+    "sass",
+    "tailwind",
+    // Backend & Databases
+    "mongodb",
+    "postgresql",
+    "mysql",
+    "redis",
+    "elasticsearch",
+    "graphql",
+    "rest api",
+    "microservices",
+    // DevOps & Cloud
+    "docker",
+    "kubernetes",
+    "aws",
+    "azure",
+    "gcp",
+    "ci/cd",
+    "jenkins",
+    "github actions",
+    "terraform",
+    // Mobile
+    "react native",
+    "flutter",
+    "ios",
+    "android",
+    "mobile development",
+    // Other Tech
+    "machine learning",
+    "ai",
+    "data science",
+    "blockchain",
+    "testing",
+    "agile",
+    "scrum",
+    "git",
+    // Soft Skills
+    "leadership",
+    "communication",
+    "teamwork",
+    "problem solving",
+    "project management",
+    "analytical",
+  ];
+
+  const normalizedText = text.toLowerCase();
+
+  for (const keyword of skillKeywords) {
+    // Match whole words or phrases
+    const regex = new RegExp(
+      `\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
+      "gi",
+    );
+    if (regex.test(normalizedText)) {
+      // Preserve original casing from skill library
+      skills.add(
+        keyword
+          .split(" ")
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(" "),
+      );
+    }
+  }
+
+  return Array.from(skills);
+}
+
+/**
+ * Extract work experience from resume text
+ */
+function extractExperience(
+  text: string,
+  normalizedText: string,
+): {
+  years: number;
+  positions: Array<{ title: string; company: string; duration?: string }>;
+} {
+  const positions: Array<{
+    title: string;
+    company: string;
+    duration?: string;
+  }> = [];
+
+  // Look for experience section
+  const experienceSection = extractSection(text, [
+    "experience",
+    "work history",
+    "employment",
+    "professional experience",
+  ]);
+
+  // Extract years of experience
+  const yearsMatch = normalizedText.match(
+    /(\d+)\+?\s*(years?|yrs?)\s*(of\s*)?(experience|exp)/i,
+  );
+  const extractedYears = yearsMatch ? parseInt(yearsMatch[1]) : 0;
+
+  // Try to extract job titles (common patterns)
+  const jobTitlePatterns = [
+    /(?:senior|junior|lead|principal)?\s*(?:software|web|mobile|full[\s-]?stack|front[\s-]?end|back[\s-]?end)?\s*(?:engineer|developer|architect|designer|manager|analyst)/gi,
+    /(?:project|product|program)\s*manager/gi,
+    /(?:data|business)\s*(?:analyst|scientist)/gi,
+    /(?:ui|ux)\s*designer/gi,
+  ];
+
+  const titles = new Set<string>();
+  for (const pattern of jobTitlePatterns) {
+    const matches = experienceSection.match(pattern);
+    if (matches) {
+      matches.forEach((match) => titles.add(match.trim()));
+    }
+  }
+
+  // Extract company names (pattern: "at CompanyName" or "- CompanyName")
+  const companyPattern =
+    /(?:at|@|—|-)\s+([A-Z][A-Za-z0-9\s&.,]+?)(?:\s+[-–—]|\s+\(|\s*\n|$)/g;
+  const companies: string[] = [];
+  let companyMatch;
+  while ((companyMatch = companyPattern.exec(experienceSection)) !== null) {
+    const company = companyMatch[1].trim();
+    if (company.length > 2 && company.length < 50) {
+      companies.push(company);
+    }
+  }
+
+  // Combine titles and companies
+  const titleArray = Array.from(titles);
+
+  for (let i = 0; i < Math.max(titleArray.length, companies.length); i++) {
+    if (titleArray[i] || companies[i]) {
+      positions.push({
+        title: titleArray[i] || "Position",
+        company: companies[i] || "Company",
+        duration: undefined,
+      });
+    }
+  }
+
+  // Calculate years from date ranges if not explicitly stated
+  const dateRanges = experienceSection.match(
+    /\d{4}\s*[-–—]\s*(?:\d{4}|present|current)/gi,
+  );
+  if (!extractedYears && dateRanges) {
+    let totalYears = 0;
+    dateRanges.forEach((range) => {
+      const parts = range.match(/(\d{4})\s*[-–—]\s*(\d{4}|present|current)/i);
+      if (parts) {
+        const startYear = parseInt(parts[1]);
+        const endYear = parts[2].match(/\d{4}/)
+          ? parseInt(parts[2])
+          : new Date().getFullYear();
+        totalYears += endYear - startYear;
+      }
+    });
+    return { years: totalYears, positions };
+  }
+
+  return {
+    years: extractedYears,
+    positions: positions.slice(0, 10), // Limit to 10 positions
+  };
+}
+
+/**
+ * Extract education from resume text
+ */
+function extractEducation(
+  text: string,
+  _normalizedText: string,
+): Array<{ degree: string; institution: string; year?: string }> {
+  const education: Array<{
+    degree: string;
+    institution: string;
+    year?: string;
+  }> = [];
+
+  // Look for education section
+  const educationSection = extractSection(text, [
+    "education",
+    "academic background",
+    "qualifications",
+    "academic history",
+  ]);
+
+  // Degree patterns
+  const degreePatterns = [
+    /(?:bachelor|b\.?s\.?|b\.?a\.?|ba|bs)\s*(?:of|in|degree)?\s*([a-z\s]+)/gi,
+    /(?:master|m\.?s\.?|m\.?a\.?|ma|ms|mba)\s*(?:of|in|degree)?\s*([a-z\s]+)/gi,
+    /(?:phd|ph\.?d\.?|doctorate)\s*(?:of|in)?\s*([a-z\s]+)/gi,
+    /(?:associate|diploma|certificate)\s*(?:of|in)?\s*([a-z\s]+)/gi,
+  ];
+
+  const degrees = new Set<string>();
+  for (const pattern of degreePatterns) {
+    const matches = educationSection.match(pattern);
+    if (matches) {
+      matches.forEach((match) => degrees.add(match.trim()));
+    }
+  }
+
+  // University/Institution patterns
+  const institutionPattern =
+    /(?:university|college|institute|school)\s+(?:of\s+)?([A-Z][A-Za-z\s&]+)/gi;
+  const institutions: string[] = [];
+  let instMatch;
+  while ((instMatch = institutionPattern.exec(educationSection)) !== null) {
+    const inst = instMatch[0].trim();
+    if (inst.length > 5 && inst.length < 80) {
+      institutions.push(inst);
+    }
+  }
+
+  // Graduation years
+  const yearPattern = /(?:graduated|class of|'|\b)(\d{4})\b/gi;
+  const years: string[] = [];
+  let yearMatch;
+  while ((yearMatch = yearPattern.exec(educationSection)) !== null) {
+    const year = yearMatch[1];
+    const yearNum = parseInt(year);
+    if (yearNum >= 1960 && yearNum <= new Date().getFullYear() + 5) {
+      years.push(year);
+    }
+  }
+
+  // Combine degrees, institutions, and years
+  const degreeArray = Array.from(degrees);
+  const maxEducation = Math.max(degreeArray.length, institutions.length);
+
+  for (let i = 0; i < maxEducation; i++) {
+    education.push({
+      degree: degreeArray[i] || "Degree",
+      institution: institutions[i] || "Institution",
+      year: years[i],
+    });
+  }
+
+  return education.slice(0, 5); // Limit to 5 education entries
+}
+
+/**
+ * Extract contact information
+ */
+function extractContact(text: string): { email?: string; phone?: string } {
+  const contact: { email?: string; phone?: string } = {};
+
+  // Email pattern
+  const emailMatch = text.match(
+    /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/,
+  );
+  if (emailMatch) {
+    contact.email = emailMatch[0];
+  }
+
+  // Phone pattern (international and local)
+  const phoneMatch = text.match(
+    /(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/,
+  );
+  if (phoneMatch) {
+    contact.phone = phoneMatch[0];
+  }
+
+  return contact;
+}
+
+/**
+ * Extract section from resume text based on headers
+ */
+function extractSection(text: string, headers: string[]): string {
+  const normalizedText = text.toLowerCase();
+  let sectionStart = -1;
+  let headerFound = "";
+
+  // Find section start
+  for (const header of headers) {
+    const headerPattern = new RegExp(`\\b${header}\\b`, "i");
+    const match = normalizedText.search(headerPattern);
+    if (match !== -1 && (sectionStart === -1 || match < sectionStart)) {
+      sectionStart = match;
+      headerFound = header;
+    }
+  }
+
+  if (sectionStart === -1) {
+    return text; // Section not found, return full text
+  }
+
+  // Find next major section (common headers)
+  const nextSectionHeaders = [
+    "experience",
+    "education",
+    "skills",
+    "projects",
+    "certifications",
+    "awards",
+    "references",
+    "interests",
+  ];
+  let sectionEnd = text.length;
+
+  for (const nextHeader of nextSectionHeaders) {
+    if (nextHeader === headerFound) continue;
+    const nextPattern = new RegExp(`\\n\\s*${nextHeader}\\s*\\n`, "i");
+    const match = normalizedText
+      .substring(sectionStart + headerFound.length)
+      .search(nextPattern);
+    if (match !== -1) {
+      const absoluteMatch = sectionStart + headerFound.length + match;
+      if (absoluteMatch < sectionEnd) {
+        sectionEnd = absoluteMatch;
+      }
+    }
+  }
+
+  return text.substring(sectionStart, sectionEnd);
+}
+
+/**
+ * Calculate application score based on parsed resume and job requirements
+ */
+export function calculateApplicationScore(
+  parsedResume: ParsedResume,
+  jobRequirements: {
+    requiredSkills: string[];
+    minYears: number;
+    preferredDegree?: string;
+  },
+  weights: {
+    skills: number;
+    experience: number;
+    education: number;
+    culture: number;
+  } = { skills: 0.6, experience: 0.3, education: 0.05, culture: 0.05 },
+): number {
+  // Skills score
+  let skillScore = 0;
+  if (jobRequirements.requiredSkills.length > 0) {
+    const resumeSkills = parsedResume.skills.map((s) => s.toLowerCase());
+    const requiredSkills = jobRequirements.requiredSkills.map((s) =>
+      s.toLowerCase(),
+    );
+    const matchedSkills = requiredSkills.filter((req) =>
+      resumeSkills.some((res) => res.includes(req) || req.includes(res)),
+    );
+    skillScore = matchedSkills.length / requiredSkills.length;
+  } else {
+    skillScore = parsedResume.skills.length > 0 ? 0.8 : 0.5;
+  }
+
+  // Experience score
+  let experienceScore = 0;
+  if (jobRequirements.minYears > 0) {
+    const yearsRatio = parsedResume.experience.years / jobRequirements.minYears;
+    experienceScore = Math.min(yearsRatio, 1.2) / 1.2; // Cap at 120% to reward extra experience
+  } else {
+    experienceScore = parsedResume.experience.years > 0 ? 0.8 : 0.5;
+  }
+
+  // Education score
+  const educationScore = parsedResume.education.length > 0 ? 0.8 : 0.5;
+
+  // Culture/other score (placeholder - could be enhanced with assessment data)
+  const cultureScore = 0.7;
+
+  // Weighted total
+  const totalScore =
+    skillScore * weights.skills +
+    experienceScore * weights.experience +
+    educationScore * weights.education +
+    cultureScore * weights.culture;
+
+  return Math.round(totalScore * 100); // Return as percentage
+}
+
+export type { ParsedResume };
+
+]]>
+</file>
+
+<file path="lib/ats/scoring.ts">
+<![CDATA[
+export interface ScoreApplicationInput {
+  skills: string[];
+  requiredSkills?: string[];
+  experience?: number;
+  minExperience?: number;
+}
+
+export interface ScoringWeights {
+  skills?: number;
+  experience?: number;
+  culture?: number;
+  education?: number;
+}
+
+const DEFAULT_WEIGHTS: Required<ScoringWeights> = {
+  skills: 0.6,
+  experience: 0.4,
+  culture: 0.0,
+  education: 0.0,
+};
+
+// FIX: Known technology skills for precise extraction (whitelist approach)
+// This prevents false positives like "Elm" and "Rust" while supporting c++, c#, etc.
+const KNOWN_SKILLS = new Set([
+  "javascript",
+  "typescript",
+  "react",
+  "node",
+  "node.js",
+  "html",
+  "css",
+  "java",
+  "sql",
+  "agile",
+  "c#",
+  "c++",
+  "golang",
+  "docker",
+  "kubernetes",
+  "python",
+  "aws",
+  "angular",
+  "vue",
+  "nextjs",
+  "next.js",
+  "mongodb",
+  "postgresql",
+  "mysql",
+  "redis",
+  "graphql",
+  "rest",
+  "git",
+  "jenkins",
+  "cicd",
+  "ci/cd",
+  "devops",
+  "linux",
+  "windows",
+  "azure",
+  "gcp",
+  "terraform",
+  "ansible",
+  "nginx",
+  "apache",
+  "net",
+  ".net",
+  "core",
+  "aws-s3",
+  "s3", // .NET, ASP.NET Core, AWS S3
+]);
+
+export function scoreApplication(
+  input: ScoreApplicationInput,
+  weights: ScoringWeights = {},
+): number {
+  const normalizedWeights = normaliseWeights({
+    ...DEFAULT_WEIGHTS,
+    ...weights,
+  });
+  const requiredSkills = (input.requiredSkills || []).map(normalizeToken);
+  const candidateSkills = (input.skills || [])
+    .map(normalizeToken)
+    .filter(Boolean);
+
+  const skillScore = computeSkillScore(candidateSkills, requiredSkills);
+  const experienceScore = computeExperienceScore(
+    input.experience,
+    input.minExperience,
+  );
+
+  // Culture and education are placeholders for now but allow weighting flexibility.
+  // Use 1.0 (perfect match) when weights are 0 to avoid penalizing scores
+  const cultureScore = normalizedWeights.culture > 0 ? 0.5 : 1.0;
+  const educationScore = normalizedWeights.education > 0 ? 0.5 : 1.0;
+
+  const weighted =
+    skillScore * normalizedWeights.skills +
+    experienceScore * normalizedWeights.experience +
+    cultureScore * normalizedWeights.culture +
+    educationScore * normalizedWeights.education;
+
+  return Math.round(Math.max(0, Math.min(1, weighted)) * 100);
+}
+
+function normaliseWeights(
+  weights: Required<ScoringWeights>,
+): Required<ScoringWeights> {
+  const total =
+    Object.values(weights).reduce((sum, value) => sum + value, 0) || 1;
+  return {
+    skills: weights.skills / total,
+    experience: weights.experience / total,
+    culture: weights.culture / total,
+    education: weights.education / total,
+  };
+}
+
+function computeSkillScore(
+  candidateSkills: string[],
+  requiredSkills: string[],
+): number {
+  // When job does not define explicit required skills, treat as full match (1.0)
+  if (!requiredSkills.length) {
+    return 1.0;
+  }
+
+  if (!candidateSkills.length) return 0;
+
+  const matches = requiredSkills.filter((req) => candidateSkills.includes(req));
+  const coverage = matches.length / requiredSkills.length;
+  return clamp(coverage);
+}
+
+function computeExperienceScore(
+  experience?: number,
+  minExperience?: number,
+): number {
+  const expYears =
+    typeof experience === "number" && !Number.isNaN(experience)
+      ? Math.max(experience, 0)
+      : 0;
+  const required =
+    typeof minExperience === "number" && !Number.isNaN(minExperience)
+      ? Math.max(minExperience, 0)
+      : 0;
+
+  // When no minimum experience is required, treat as full match (1.0)
+  if (required === 0) {
+    return 1.0;
+  }
+
+  // Simple linear scoring: candidate experience / required experience, capped at 1.0
+  return clamp(expYears / required);
+}
+
+function normalizeToken(value: string): string {
+  return (value || "").toLowerCase().trim();
+}
+
+function clamp(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(1, value));
+}
+
+export function extractSkillsFromText(text: string): string[] {
+  if (!text) return [];
+
+  // FIX: Updated regex to allow "c++", "next.js", "aws-s3", ".net", "node.js"
+  // It now treats letters, numbers, and the symbols +, #, . as part of a single word.
+  const tokens = text.toLowerCase().match(/[\w.#+-]+/g) || []; // \w (alphanumeric) + #, ., +, -
+
+  const skills = new Set<string>();
+
+  for (let token of tokens) {
+    // Clean up: remove leading/trailing periods and hyphens
+    token = token.replace(/^[.-]+/, "").replace(/[.-]+$/, "");
+
+    // Filter: must be a known skill (for precision)
+    if (KNOWN_SKILLS.has(token)) {
+      skills.add(token);
+    }
+  }
+
+  return Array.from(skills).slice(0, 20); // Limit to 20 skills to prevent spam
+}
+
+export function calculateExperienceFromText(text: string): number {
+  if (!text) return 0;
+  const patterns = [
+    /(\d{1,2})\s*\+?\s*(?:years|yrs|y)\s+of\s+experience/gi,
+    /(\d{1,2})\s*\+?\s*(?:years|yrs|y)/gi,
+    /(\d{1,2})\+/gi, // Match "12+" format
+    /experience\s*[:-]?\s*(\d{1,2})/gi,
+  ];
+
+  for (const pattern of patterns) {
+    const match = pattern.exec(text);
+    if (match && match[1]) {
+      const parsed = parseInt(match[1], 10);
+      if (!Number.isNaN(parsed)) {
+        // Cap experience at 40 years to prevent unrealistic values
+        return Math.min(parsed, 40);
+      }
+    }
+  }
+
+  return 0;
+}
+
+]]>
+</file>
+
+<file path="lib/audit/middleware.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { auth } from "@/auth";
+import { AuditLogModel } from "@/server/models/AuditLog";
+
+/**
+ * Audit Log Middleware Configuration
+ */
+export interface AuditConfig {
+  enabled: boolean;
+  excludePaths?: string[];
+  excludeMethods?: string[];
+  logRequestBody?: boolean;
+  logResponseBody?: boolean;
+}
+
+const defaultConfig: AuditConfig = {
+  enabled: true,
+  excludePaths: ["/api/health", "/api/ping", "/_next", "/static"],
+  excludeMethods: ["HEAD", "OPTIONS"], // Removed GET - we need to log failed auth attempts
+  logRequestBody: false,
+  logResponseBody: false,
+};
+
+/**
+ * Entity type mapping for path parsing
+ * PHASE-3 FIX: Extended with sub-role paths
+ */
+const entityMap: Record<string, string> = {
+  properties: "PROPERTY",
+  tenants: "TENANT",
+  owners: "OWNER",
+  contracts: "CONTRACT",
+  payments: "PAYMENT",
+  invoices: "INVOICE",
+  workorders: "WORKORDER",
+  tickets: "TICKET",
+  projects: "PROJECT",
+  bids: "BID",
+  vendors: "VENDOR",
+  users: "USER",
+  documents: "DOCUMENT",
+  settings: "SETTING",
+  auth: "AUTH",
+  finance: "FINANCE",
+  expenses: "EXPENSE",
+  accounts: "ACCOUNT",
+  fm: "FM",
+  aqar: "AQAR",
+  // PHASE-3 FIX: Add sub-role and HR-specific entities
+  hr: "HR",
+  employees: "EMPLOYEE",
+  payroll: "PAYROLL",
+  attendance: "ATTENDANCE",
+  leave: "LEAVE",
+  crm: "CRM",
+  leads: "LEAD",
+  contacts: "CONTACT",
+  support: "SUPPORT",
+  reports: "REPORT",
+};
+
+/**
+ * Extract action type from HTTP method and path
+ */
+function getActionType(method: string, path: string): string {
+  if (method === "GET") return "READ";
+  if (method === "POST") {
+    if (path.includes("/login")) return "LOGIN";
+    if (path.includes("/logout")) return "LOGOUT";
+    if (path.includes("/upload")) return "UPLOAD";
+    if (path.includes("/export")) return "EXPORT";
+    if (path.includes("/import")) return "IMPORT";
+    return "CREATE";
+  }
+  if (method === "PUT" || method === "PATCH") return "UPDATE";
+  if (method === "DELETE") return "DELETE";
+  return "CUSTOM";
+}
+
+/**
+ * Extract entity type and ID from path using robust parsing
+ * Handles nested routes like /api/admin/users, /api/fm/workorders, /api/properties/123/comments
+ */
+function extractEntity(path: string): {
+  entityType: string;
+  entityId?: string;
+} {
+  const segments = path.split("/").filter(Boolean);
+  const apiIndex = segments.indexOf("api");
+
+  if (apiIndex === -1) {
+    return { entityType: "OTHER" };
+  }
+
+  let entityType = "OTHER";
+  let entityId: string | undefined = undefined;
+
+  // Iterate segments after 'api' to find entity and ID
+  for (let i = apiIndex + 1; i < segments.length; i++) {
+    const segment = segments[i].toLowerCase();
+    const mappedEntity = entityMap[segment];
+
+    if (mappedEntity) {
+      entityType = mappedEntity;
+      // Check if next segment is an ID (not another entity keyword)
+      if (i + 1 < segments.length) {
+        const possibleId = segments[i + 1];
+        const possibleIdLower = possibleId.toLowerCase();
+
+        // If next segment is not a known entity, treat it as an ID
+        if (!entityMap[possibleIdLower]) {
+          // Additional validation: IDs are typically alphanumeric, 8+ chars, or numeric
+          if (
+            /^[a-zA-Z0-9_-]{8,}$/.test(possibleId) ||
+            /^\d+$/.test(possibleId)
+          ) {
+            entityId = possibleId;
+          }
+        }
+      }
+      break; // Found entity, stop searching
+    }
+  }
+
+  // Special handling for auth routes
+  if (entityType === "OTHER" && path.includes("/api/auth")) {
+    entityType = "AUTH";
+  }
+
+  return { entityType, entityId };
+}
+
+/**
+ * Audit Log Middleware
+ *
+ * Automatically logs ALL API requests including unauthenticated ones.
+ * This is critical for security auditing - we must log failed login attempts,
+ * unauthorized access attempts, and other security events.
+ */
+export async function auditLogMiddleware(
+  request: NextRequest,
+  config: Partial<AuditConfig> = {},
+) {
+  const finalConfig = { ...defaultConfig, ...config };
+
+  if (!finalConfig.enabled) {
+    return null;
+  }
+
+  const { pathname } = request.nextUrl;
+  const method = request.method;
+
+  // Check if path should be excluded
+  const shouldExclude = finalConfig.excludePaths?.some((path) =>
+    pathname.startsWith(path),
+  );
+  if (shouldExclude) {
+    return null;
+  }
+
+  // Check if method should be excluded
+  if (finalConfig.excludeMethods?.includes(method)) {
+    return null;
+  }
+
+  // Get user session - but DO NOT skip logging if session is null
+  // We need to log unauthenticated requests for security auditing
+  let session = null;
+  try {
+    session = await auth();
+  } catch (authError) {
+    // If auth check fails, log the error but continue as anonymous
+    logger.warn(
+      "Auth session check failed during audit log, proceeding as anonymous",
+      { error: authError },
+    );
+  }
+
+  // Extract request context
+  const userAgent = request.headers.get("user-agent") || "";
+  const ipAddress =
+    request.headers.get("x-forwarded-for") ||
+    request.headers.get("x-real-ip") ||
+    "unknown";
+
+  // Extract entity info using robust parsing
+  const { entityType, entityId } = extractEntity(pathname);
+
+  // Extract request context with improved UA parsing
+  const requestContext = getRequestContext(userAgent);
+
+  // ORGID-FIX: Enforce mandatory orgId for authenticated users
+  // SUPER ADMIN FIX: Log Super Admin cross-tenant actions with marker
+  // DRY FIX: Extract isSuperAdmin check to avoid repeated type assertions
+  type UserWithSuperAdmin = { isSuperAdmin?: boolean; assumedOrgId?: string };
+  const userWithAdmin = session?.user as UserWithSuperAdmin | undefined;
+  const isSuperAdmin = Boolean(userWithAdmin?.isSuperAdmin);
+  const assumedOrgId = userWithAdmin?.assumedOrgId;
+  const rawOrgId = session?.user?.orgId;
+  
+  // Super Admin can operate cross-tenant - use assumedOrgId or marker
+  const orgId = rawOrgId || (isSuperAdmin ? (assumedOrgId || 'superadmin-cross-tenant') : null);
+  
+  if (!orgId || orgId.trim() === '') {
+    // Skip audit logging for anonymous/unauthenticated users
+    // REASON: Multi-tenant isolation - cannot assign pseudo-orgId like "anonymous"
+    return;
+  }
+
+  // Prepare audit log data - authenticated users only
+  const auditData = {
+    orgId,  // ✅ Validated above
+    action: getActionType(method, pathname),
+    entityType,
+    entityId,
+    userId: session?.user?.id || session?.user?.email || "unknown",
+    userName: session?.user?.name || "Unknown User",
+    userEmail: session?.user?.email || "unknown",
+    userRole: session?.user?.role || "USER",
+    // PHASE-2 FIX: Track Super Admin status for elevated access auditing
+    isSuperAdmin,
+    context: {
+      method,
+      endpoint: pathname,
+      ipAddress,
+      sessionId: session?.user?.sessionId,
+      ...requestContext, // browser, os, device, userAgent
+    },
+    metadata: {
+      source: "WEB" as const,
+      // PHASE-2 FIX: Flag elevated access in metadata
+      elevatedAccess: isSuperAdmin,
+    },
+    result: {
+      success: true, // Will be updated after request completes
+      duration: 0,
+    },
+  };
+
+  // PHASE-2 FIX: Log Super Admin access explicitly
+  if (isSuperAdmin) {
+    logger.info('superadmin_api_access', {
+      action: auditData.action,
+      endpoint: pathname,
+      method,
+      orgId,
+      userId: auditData.userId,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  return auditData;
+}
+
+/**
+ * Extract context from User Agent string with improved parsing
+ * More robust than simple string matching, though not as good as a dedicated library
+ */
+function getRequestContext(userAgent: string) {
+  const ua = userAgent.toLowerCase();
+
+  // Browser detection (order matters - check most specific first)
+  let browser = "Unknown";
+  if (ua.includes("edg/") || ua.includes("edge")) {
+    browser = "Edge";
+  } else if (ua.includes("opr/") || ua.includes("opera")) {
+    browser = "Opera";
+  } else if (ua.includes("chrome") && !ua.includes("edg")) {
+    browser = "Chrome";
+  } else if (ua.includes("safari") && !ua.includes("chrome")) {
+    browser = "Safari";
+  } else if (ua.includes("firefox")) {
+    browser = "Firefox";
+  }
+
+  // OS detection
+  let os = "Unknown";
+  if (ua.includes("windows nt")) {
+    os = "Windows";
+  } else if (ua.includes("mac os x") || ua.includes("macintosh")) {
+    os = "macOS";
+  } else if (ua.includes("iphone") || ua.includes("ipad")) {
+    os = "iOS";
+  } else if (ua.includes("android")) {
+    os = "Android";
+  } else if (ua.includes("linux")) {
+    os = "Linux";
+  }
+
+  // Device type detection
+  let device = "desktop";
+  if (ua.includes("mobile") || ua.includes("iphone") || ua.includes("ipod")) {
+    device = "mobile";
+  } else if (ua.includes("tablet") || ua.includes("ipad")) {
+    device = "tablet";
+  }
+
+  return {
+    userAgent,
+    browser,
+    os,
+    device,
+  };
+}
+
+/**
+ * Log the audit entry to database
+ * Silent fail pattern - audit logging must never break the main request
+ */
+export async function logAudit(
+  auditData: Parameters<typeof AuditLogModel.log>[0],
+  response?: NextResponse,
+) {
+  try {
+    // Update result based on response
+    if (response && auditData.result) {
+      auditData.result.success =
+        response.status >= 200 && response.status < 400;
+      if (!auditData.result.success) {
+        auditData.result.errorCode = response.status.toString();
+
+        // Special handling for failed login attempts - make them explicit in action
+        if (auditData.action === "LOGIN" && !auditData.result.success) {
+          auditData.action = "LOGIN_FAILED";
+        }
+      }
+    }
+
+    // Asynchronously log without awaiting to not block response
+    // Use catch to handle any DB errors
+    AuditLogModel.log(auditData).catch((dbError: unknown) => {
+      logger.error("Failed to write audit log to database", {
+        error: dbError,
+        action: auditData.action,
+        endpoint: auditData.context?.endpoint,
+      });
+    });
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    // Silent fail for local errors - don't break the main request
+    logger.error("Failed to prepare audit log for saving", {
+      error,
+      action: auditData.action,
+    });
+  }
+}
+
+/**
+ * Manual audit log function for custom events
+ */
+export async function createAuditLog(
+  data: Parameters<typeof AuditLogModel.log>[0],
+) {
+  try {
+    await AuditLogModel.log(data);
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("Failed to create audit log", { error });
+  }
+}
+
+export default auditLogMiddleware;
+
+]]>
+</file>
+
+<file path="lib/audit.ts">
+<![CDATA[
+import { logger } from '@/lib/logger';
+import { AuditLogModel } from '@/server/models/AuditLog';
+
+/**
+ * Audit Logging System
+ * 
+ * Logs all security-critical actions for compliance and forensics.
+ * Especially important for Super Admin actions (grant/revoke/impersonate).
+ */
+
+export type AuditEvent = {
+  actorId: string;      // User ID performing the action
+  actorEmail: string;   // User email for readability
+  actorRole?: string;   // Actor role for RBAC correlation
+  actorSubRole?: string; // Actor sub-role for STRICT v4 enforcement
+  action: string;       // Action performed (e.g., "user.grantSuperAdmin", "user.impersonate")
+  target?: string;      // Target user ID/email (if applicable)
+  targetType?: string;  // Type of target (e.g., "user", "role", "permission")
+  meta?: Record<string, unknown>;  // Additional metadata
+  ipAddress?: string;   // Client IP address
+  userAgent?: string;   // Client user agent
+  success?: boolean;    // Whether action succeeded
+  error?: string;       // Error message if failed
+  timestamp?: string;   // ISO timestamp (auto-added)
+  orgId?: string;       // Organization ID for multi-tenancy
+};
+
+// Sensitive data redaction lists
+const SENSITIVE_META_KEYS = [
+  'password', 'token', 'secret', 'apiKey', 'api_key',
+  'accessToken', 'refreshToken', 'authToken', 'bearerToken',
+  'ssn', 'socialSecurityNumber', 'creditCard', 'cardNumber', 'cvv', 'pin',
+  'privateKey', 'credentials',
+];
+
+const SENSITIVE_LOG_KEYS = [
+  ...SENSITIVE_META_KEYS,
+  // Additional PII to keep out of log streams (still stored in DB metadata for accountability)
+  'email', 'phone', 'mobile', 'phonenumber', 'mobilenumber',
+];
+
+/**
+ * Audit log to console and/or database
+ * 
+ * Production implementation:
+ * - ✅ Writes to dedicated audit collection (AuditLogModel)
+ * - ✅ Sends to external logging service (Sentry)
+ * - ✅ Triggers alerts for critical actions (logger.warn with high priority)
+ * 
+ * @param event Audit event data
+ */
+export async function audit(event: AuditEvent): Promise<void> {
+  const normalizeKeys = (keys: string[]): string[] =>
+    keys.map(key => key.toLowerCase());
+
+  const redactSensitive = (
+    obj: Record<string, unknown>,
+    sensitiveKeys: string[] = SENSITIVE_META_KEYS,
+    normalizedKeys: string[] = normalizeKeys(sensitiveKeys),
+  ): Record<string, unknown> => {
+    const redactValue = (value: unknown): unknown => {
+      if (Array.isArray(value)) {
+        return value.map(redactValue);
+      }
+      if (value && typeof value === 'object') {
+        return redactSensitive(value as Record<string, unknown>, sensitiveKeys, normalizedKeys);
+      }
+      return value;
+    };
+
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      const lowerKey = key.toLowerCase();
+      if (normalizedKeys.some(s => lowerKey.includes(s))) {
+        result[key] = '[REDACTED]';
+      } else {
+        result[key] = redactValue(value);
+      }
+    }
+    return result;
+  };
+
+  const orgId = event.orgId?.trim();
+  if (!orgId) {
+    const sanitizedEvent = {
+      ...event,
+      meta: event.meta ? redactSensitive(event.meta, SENSITIVE_LOG_KEYS) : undefined,
+      actorEmail: event.actorEmail ? '[REDACTED]' : undefined,
+      target: event.target ? '[REDACTED]' : undefined,
+    };
+    logger.error('[AUDIT] CRITICAL: orgId missing', { event: sanitizedEvent });
+    try {
+      if (typeof window === 'undefined' && process.env.SENTRY_DSN && process.env.NODE_ENV === 'production') {
+        const Sentry = await import('@sentry/nextjs').catch(() => null);
+        if (Sentry) {
+          Sentry.captureMessage('[AUDIT] orgId missing', {
+            level: 'error',
+            extra: sanitizedEvent,
+            tags: {
+              audit_action: sanitizedEvent.action ?? 'unknown',
+            },
+          });
+        }
+      }
+    } catch (sentryError: unknown) {
+      const errorToLog = sentryError instanceof Error ? sentryError : new Error(String(sentryError));
+      logger.error('[AUDIT] Failed to send missing orgId alert:', errorToLog);
+    }
+    return;
+  }
+
+  const rawAction = event.action?.trim() ?? '';
+  const normalizedRawAction = rawAction;
+  const normalizedRawActionKey = normalizedRawAction.toLowerCase();
+  const ACTION_TYPES = new Set([
+    'CREATE',
+    'READ',
+    'UPDATE',
+    'DELETE',
+    'LOGIN',
+    'LOGOUT',
+    'EXPORT',
+    'IMPORT',
+    'APPROVE',
+    'REJECT',
+    'SEND',
+    'RECEIVE',
+    'UPLOAD',
+    'DOWNLOAD',
+    'SHARE',
+    'ARCHIVE',
+    'RESTORE',
+    'ACTIVATE',
+    'DEACTIVATE',
+    'CUSTOM',
+  ]);
+  // AUDIT-001 FIX: Comprehensive action mapping to ActionType enum
+  const ACTION_MAP: Record<string, string> = {
+    // Create actions
+    'user.create': 'CREATE',
+    'role.create': 'CREATE',
+    'permission.create': 'CREATE',
+    'security.apikeycreate': 'CREATE',
+    // Update actions
+    'user.update': 'UPDATE',
+    'user.grantsuperadmin': 'UPDATE',
+    'user.revokesuperadmin': 'UPDATE',
+    'user.assignrole': 'UPDATE',
+    'user.removerole': 'UPDATE',
+    'role.update': 'UPDATE',
+    'role.assignpermission': 'UPDATE',
+    'role.removepermission': 'UPDATE',
+    'permission.update': 'UPDATE',
+    'auth.passwordchange': 'UPDATE',
+    'auth.passwordreset': 'UPDATE',
+    'data.bulkupdate': 'UPDATE',
+    // Delete actions
+    'user.delete': 'DELETE',
+    'role.delete': 'DELETE',
+    'permission.delete': 'DELETE',
+    'data.bulkdelete': 'DELETE',
+    // Auth actions
+    'auth.login': 'LOGIN',
+    'auth.logout': 'LOGOUT',
+    'auth.failedlogin': 'LOGIN',
+    // Data operations
+    'data.export': 'EXPORT',
+    'data.import': 'IMPORT',
+    'compliance.reportgenerate': 'EXPORT',
+    'compliance.auditlogaccess': 'READ',
+    // MFA/Security
+    'auth.mfaenable': 'ACTIVATE',
+    'auth.mfadisable': 'DEACTIVATE',
+    'user.lock': 'DEACTIVATE',
+    'user.unlock': 'ACTIVATE',
+    'security.settingschange': 'UPDATE',
+    'security.apikeyrevoke': 'DEACTIVATE',
+    // Impersonation
+    'impersonate.start': 'CUSTOM',
+    'impersonate.end': 'CUSTOM',
+  };
+  const mappedAction = ACTION_MAP[normalizedRawActionKey];
+  const action = mappedAction ?? (ACTION_TYPES.has(normalizedRawAction.toUpperCase()) ? normalizedRawAction.toUpperCase() : 'CUSTOM');
+
+  const targetType = (event.targetType || '').toLowerCase();
+  // AUDIT-005 FIX: Comprehensive entity type mapping
+  const ENTITY_MAP: Record<string, string> = {
+    user: 'USER',
+    users: 'USER',
+    role: 'SETTING',
+    permission: 'SETTING',
+    property: 'PROPERTY',
+    properties: 'PROPERTY',
+    tenant: 'TENANT',
+    owner: 'OWNER',
+    contract: 'CONTRACT',
+    payment: 'PAYMENT',
+    invoice: 'INVOICE',
+    workorder: 'WORKORDER',
+    work_order: 'WORKORDER',
+    ticket: 'TICKET',
+    project: 'PROJECT',
+    bid: 'BID',
+    vendor: 'VENDOR',
+    serviceprovider: 'SERVICE_PROVIDER',
+    service_provider: 'SERVICE_PROVIDER',
+    document: 'DOCUMENT',
+    setting: 'SETTING',
+  };
+  const entityType = ENTITY_MAP[targetType] ?? 'OTHER';
+
+  const sanitizedMeta = redactSensitive(event.meta || {});
+
+  const success = event.success ?? (event.error ? false : rawAction !== 'auth.failedLogin');
+  if (event.success === undefined) {
+    logger.warn('[AUDIT] success flag missing; inferring from context', {
+      action: rawAction,
+      actorId: event.actorId,
+      inferredSuccess: success,
+    });
+  }
+
+  const entry: AuditEvent = {
+    ...event,
+    orgId,
+    action,
+    targetType: entityType,
+    actorRole: event.actorRole,
+    actorSubRole: event.actorSubRole,
+    meta: {
+      ...sanitizedMeta,
+      rawAction,
+      actorRole: event.actorRole,
+      actorSubRole: event.actorSubRole,
+    },
+    success,
+    timestamp: event.timestamp || new Date().toISOString(),
+  };
+
+  const sanitizedLogEntry = {
+    ...entry,
+    actorEmail: entry.actorEmail ? '[REDACTED]' : undefined,
+    target: entry.target ? '[REDACTED]' : undefined,
+    meta: redactSensitive(entry.meta || {}, SENSITIVE_LOG_KEYS),
+  };
+
+  // Structured logging
+  logger.info('[AUDIT]', sanitizedLogEntry);
+
+  // ✅ Write to database
+  try {
+    const entityId = (entry.meta?.targetId as string | undefined) || undefined;
+    await AuditLogModel.log({
+      orgId,
+      action: entry.action,
+      entityType: entry.targetType || 'OTHER',
+      entityId,
+      entityName: (entry.meta?.targetName as string | undefined) || (entry.target ? String(entry.target) : undefined),
+      userId: entry.actorId,
+      context: {
+        ipAddress: entry.ipAddress,
+        userAgent: entry.userAgent,
+      },
+      metadata: {
+        ...entry.meta,
+        actorEmail: entry.actorEmail ? '[REDACTED]' : undefined,
+        source: 'WEB',
+      },
+      result: {
+        success: entry.success === true,
+        errorMessage: entry.error,
+      },
+    });
+  } catch (dbError: unknown) {
+    // Silent fail - don't break main operation if database write fails
+    // Safe error handling: preserve stack trace
+    const errorToLog = dbError instanceof Error ? dbError : new Error(String(dbError));
+    logger.error('[AUDIT] Database write failed:', errorToLog);
+  }
+
+  // Send to external monitoring service (Sentry)
+  try {
+    if (typeof window === 'undefined' && process.env.SENTRY_DSN && process.env.NODE_ENV === 'production') {
+      // Server-side Sentry integration
+      const Sentry = await import('@sentry/nextjs').catch(() => null);
+      if (Sentry) {
+        Sentry.captureMessage(`[AUDIT] ${entry.action}`, {
+          level: 'info',
+          extra: sanitizedLogEntry,
+          tags: {
+            audit_action: entry.action,
+            actor_id: entry.actorId,
+            target_type: entry.targetType || 'unknown',
+            org_id: orgId,
+            actor_role: entry.actorRole,
+            actor_sub_role: entry.actorSubRole,
+          },
+        });
+      }
+    }
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error('[AUDIT] Failed to send to Sentry:', error as Error);
+  }
+
+  // Trigger alerts for critical actions (Super Admin, Impersonation)
+  const rawActionLower = (entry.meta?.rawAction as string | undefined)?.toLowerCase() || '';
+  const isCriticalAction =
+    rawActionLower.includes('grant') ||
+    rawActionLower.includes('impersonate') ||
+    rawActionLower.includes('revoke');
+
+  if (isCriticalAction) {
+    try {
+      // Log critical action with high priority
+      logger.warn(`[AUDIT CRITICAL] ${entry.action} by [REDACTED] on [REDACTED]`, {
+        ...sanitizedLogEntry,
+        severity: 'critical',
+      });
+      
+      // Future: Send Slack/PagerDuty alert
+      // if (process.env.SLACK_WEBHOOK_URL) {
+      //   await fetch(process.env.SLACK_WEBHOOK_URL, {
+      //     method: 'POST',
+      //     headers: { 'Content-Type': 'application/json' },
+      //     body: JSON.stringify({
+      //       text: `🚨 CRITICAL AUDIT: ${entry.action}`,
+      //       attachments: [{ text: JSON.stringify(entry, null, 2), color: 'danger' }]
+      //     })
+      //   });
+      // }
+    } catch (alertError: unknown) {
+      // Safe error handling: preserve stack trace
+      const errorToLog = alertError instanceof Error ? alertError : new Error(String(alertError));
+      logger.error('[AUDIT] Failed to send critical action alert:', errorToLog);
+    }
+  }
+}
+
+/**
+ * Audit categories for filtering/querying
+ */
+export const AuditCategories = {
+  AUTH: 'auth',
+  USER_MANAGEMENT: 'user.management',
+  ROLE_MANAGEMENT: 'role.management',
+  PERMISSION_MANAGEMENT: 'permission.management',
+  SUPER_ADMIN: 'super.admin',
+  IMPERSONATION: 'impersonation',
+  DATA_ACCESS: 'data.access',
+  DATA_MODIFICATION: 'data.modification',
+  SECURITY: 'security',
+  COMPLIANCE: 'compliance',
+} as const;
+
+/**
+ * Audit actions for common operations
+ */
+export const AuditActions = {
+  // User Management
+  USER_CREATE: 'user.create',
+  USER_UPDATE: 'user.update',
+  USER_DELETE: 'user.delete',
+  USER_GRANT_SUPER: 'user.grantSuperAdmin',
+  USER_REVOKE_SUPER: 'user.revokeSuperAdmin',
+  USER_ASSIGN_ROLE: 'user.assignRole',
+  USER_REMOVE_ROLE: 'user.removeRole',
+  USER_LOCK: 'user.lock',
+  USER_UNLOCK: 'user.unlock',
+
+  // Impersonation
+  IMPERSONATE_START: 'impersonate.start',
+  IMPERSONATE_END: 'impersonate.end',
+
+  // Role Management
+  ROLE_CREATE: 'role.create',
+  ROLE_UPDATE: 'role.update',
+  ROLE_DELETE: 'role.delete',
+  ROLE_ASSIGN_PERMISSION: 'role.assignPermission',
+  ROLE_REMOVE_PERMISSION: 'role.removePermission',
+
+  // Permission Management
+  PERMISSION_CREATE: 'permission.create',
+  PERMISSION_UPDATE: 'permission.update',
+  PERMISSION_DELETE: 'permission.delete',
+
+  // Authentication
+  AUTH_LOGIN: 'auth.login',
+  AUTH_LOGOUT: 'auth.logout',
+  AUTH_FAILED_LOGIN: 'auth.failedLogin',
+  AUTH_PASSWORD_CHANGE: 'auth.passwordChange',
+  AUTH_PASSWORD_RESET: 'auth.passwordReset',
+  AUTH_MFA_ENABLE: 'auth.mfaEnable',
+  AUTH_MFA_DISABLE: 'auth.mfaDisable',
+
+  // Data Access
+  DATA_EXPORT: 'data.export',
+  DATA_IMPORT: 'data.import',
+  DATA_BULK_UPDATE: 'data.bulkUpdate',
+  DATA_BULK_DELETE: 'data.bulkDelete',
+
+  // Security
+  SECURITY_SETTINGS_CHANGE: 'security.settingsChange',
+  SECURITY_API_KEY_CREATE: 'security.apiKeyCreate',
+  SECURITY_API_KEY_REVOKE: 'security.apiKeyRevoke',
+
+  // Compliance
+  COMPLIANCE_REPORT_GENERATE: 'compliance.reportGenerate',
+  COMPLIANCE_AUDIT_LOG_ACCESS: 'compliance.auditLogAccess',
+} as const;
+
+/**
+ * Helper to audit Super Admin actions
+ */
+export async function auditSuperAdminAction(
+  orgId: string,
+  action: string,
+  actorId: string,
+  actorEmail: string,
+  targetId?: string,
+  targetEmail?: string,
+  meta?: Record<string, unknown>
+): Promise<void> {
+  const normalizedOrgId = orgId?.trim();
+  if (!normalizedOrgId) {
+    logger.error("[AUDIT] CRITICAL: orgId missing for super admin action", {
+      action,
+      actorId,
+      targetId,
+    });
+    return;
+  }
+
+  await audit({
+    orgId: normalizedOrgId,
+    actorId,
+    actorEmail,
+    action,
+    target: targetEmail || targetId,
+    targetType: 'user',
+    meta: {
+      ...meta,
+      category: AuditCategories.SUPER_ADMIN,
+      severity: 'critical',
+    },
+  });
+}
+
+/**
+ * Helper to audit impersonation
+ */
+export async function auditImpersonation(
+  orgId: string,
+  actorId: string,
+  actorEmail: string,
+  targetId: string,
+  targetEmail: string,
+  action: 'start' | 'end',
+  meta?: Record<string, unknown>
+): Promise<void> {
+  const normalizedOrgId = orgId?.trim();
+  if (!normalizedOrgId) {
+    logger.error("[AUDIT] CRITICAL: orgId missing for impersonation action", {
+      actorId,
+      targetId,
+      action,
+    });
+    return;
+  }
+
+  await audit({
+    orgId: normalizedOrgId,
+    actorId,
+    actorEmail,
+    action: action === 'start' ? AuditActions.IMPERSONATE_START : AuditActions.IMPERSONATE_END,
+    target: targetEmail,
+    targetType: 'user',
+    meta: {
+      ...meta,
+      category: AuditCategories.IMPERSONATION,
+      severity: 'critical',
+      targetId,
+    },
+  });
+}
+
+]]>
+</file>
+
+<file path="lib/auth/emailVerification.ts">
+<![CDATA[
+import crypto from "crypto";
+
+const TOKEN_TTL_MS = 1000 * 60 * 60 * 24; // 24 hours
+
+export function signVerificationToken(
+  email: string,
+  secret: string,
+  now: number = Date.now(),
+): string {
+  const exp = now + TOKEN_TTL_MS;
+  const payload = `${email}|${exp}`;
+  const sig = crypto.createHmac("sha256", secret).update(payload).digest("hex");
+  return Buffer.from(`${payload}|${sig}`).toString("base64url");
+}
+
+export function verifyVerificationToken(
+  token: string,
+  secret: string,
+  now: number = Date.now(),
+): { ok: true; email: string } | { ok: false; reason: string } {
+  try {
+    const decoded = Buffer.from(token, "base64url").toString("utf8");
+    const [email, expStr, sig] = decoded.split("|");
+    if (!email || !expStr || !sig) return { ok: false, reason: "invalid" };
+    const payload = `${email}|${expStr}`;
+    const expected = crypto
+      .createHmac("sha256", secret)
+      .update(payload)
+      .digest("hex");
+    const expectedBuf = Buffer.from(expected, "hex");
+    const sigBuf = Buffer.from(sig, "hex");
+    if (expectedBuf.length !== sigBuf.length) {
+      return { ok: false, reason: "signature" };
+    }
+    if (!crypto.timingSafeEqual(expectedBuf, sigBuf)) {
+      return { ok: false, reason: "signature" };
+    }
+    const exp = Number(expStr);
+    if (!Number.isFinite(exp) || now > exp) {
+      return { ok: false, reason: "expired" };
+    }
+    return { ok: true, email };
+  } catch (_error) {
+    return { ok: false, reason: "invalid" };
+  }
+}
+
+export function verificationLink(origin: string, token: string): string {
+  return `${origin}/api/auth/verify?token=${token}`;
+}
+
+]]>
+</file>
+
+<file path="lib/auth/getServerSession.ts">
+<![CDATA[
+/**
+ * Server-side session helper for API routes
+ * Uses NextAuth's auth() function to get session with all custom fields
+ */
+
+import { auth } from "@/auth";
+
+export interface ServerSession {
+  user: {
+    id: string;
+    email?: string | null;
+    name?: string | null;
+    role: string;
+    orgId: string | null;
+    isSuperAdmin: boolean;
+    permissions: string[];
+    roles: string[];
+  };
+}
+
+/**
+ * Get authenticated session in API routes
+ * Returns null if not authenticated
+ *
+ * Usage:
+ * ```typescript
+ * const session = await getServerSession();
+ * if (!session) {
+ *   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+ * }
+ * const userId = session.user.id;
+ * ```
+ */
+export async function getServerSession(): Promise<ServerSession | null> {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return null;
+  }
+
+  // Return session with all custom fields
+  return {
+    user: {
+      id: session.user.id,
+      email: session.user.email || null,
+      name: session.user.name || null,
+      role: session.user.role || "USER",
+      orgId: session.user.orgId || null,
+      isSuperAdmin: session.user.isSuperAdmin || false,
+      permissions: session.user.permissions || [],
+      roles: session.user.roles || [],
+    },
+  };
+}
+
+]]>
+</file>
+
+<file path="lib/auth/passwordReset.ts">
+<![CDATA[
+import crypto from "crypto";
+
+const TOKEN_TTL_MS = 1000 * 60 * 60; // 1 hour (shorter than verification for security)
+
+/**
+ * Generate a signed password reset token.
+ * Token contains: email|expiry|random|signature
+ * The random component prevents token reuse across multiple reset requests.
+ */
+export function signPasswordResetToken(
+  email: string,
+  secret: string,
+  now: number = Date.now(),
+): string {
+  const exp = now + TOKEN_TTL_MS;
+  // Add random component to ensure each token is unique
+  const random = crypto.randomBytes(8).toString("hex");
+  const payload = `${email}|${exp}|${random}`;
+  const sig = crypto.createHmac("sha256", secret).update(payload).digest("hex");
+  return Buffer.from(`${payload}|${sig}`).toString("base64url");
+}
+
+/**
+ * Verify a password reset token.
+ * Returns the email if valid, or an error reason if not.
+ */
+export function verifyPasswordResetToken(
+  token: string,
+  secret: string,
+  now: number = Date.now(),
+): { ok: true; email: string } | { ok: false; reason: string } {
+  try {
+    const decoded = Buffer.from(token, "base64url").toString("utf8");
+    const parts = decoded.split("|");
+    if (parts.length !== 4) return { ok: false, reason: "invalid" };
+    
+    const [email, expStr, random, sig] = parts;
+    if (!email || !expStr || !random || !sig) return { ok: false, reason: "invalid" };
+    
+    const payload = `${email}|${expStr}|${random}`;
+    const expected = crypto
+      .createHmac("sha256", secret)
+      .update(payload)
+      .digest("hex");
+    
+    // Timing-safe comparison to prevent timing attacks
+    if (expected.length !== sig.length) return { ok: false, reason: "signature" };
+    const expectedBuf = Buffer.from(expected);
+    const sigBuf = Buffer.from(sig);
+    if (!crypto.timingSafeEqual(expectedBuf, sigBuf)) {
+      return { ok: false, reason: "signature" };
+    }
+    
+    const exp = Number(expStr);
+    if (!Number.isFinite(exp) || now > exp) {
+      return { ok: false, reason: "expired" };
+    }
+    
+    return { ok: true, email };
+  } catch (_error) {
+    return { ok: false, reason: "invalid" };
+  }
+}
+
+/**
+ * Build the password reset link.
+ */
+export function passwordResetLink(origin: string, token: string): string {
+  return `${origin}/forgot-password/reset?token=${token}`;
+}
+
+]]>
+</file>
+
+<file path="lib/auth/request-session.ts">
+<![CDATA[
+import type { NextRequest } from "next/server";
+
+type SessionUser = {
+  id: string;
+  role?: string;
+  email?: string;
+  orgId?: string;
+};
+
+type SessionShape = {
+  user?: SessionUser | null;
+};
+
+/**
+ * Resolve the authenticated user for API routes.
+ * In tests (or automated tooling) we allow `x-user-id` headers to impersonate a user
+ * so the real NextAuth stack does not need to run.
+ */
+type AuthFn = () => Promise<SessionShape | null>;
+let cachedAuth: AuthFn | null = null;
+
+async function loadAuth(): Promise<AuthFn | null> {
+  if (cachedAuth) {
+    return cachedAuth;
+  }
+  try {
+    const mod = await import("@/auth");
+    cachedAuth = mod.auth as AuthFn;
+    return cachedAuth;
+  } catch {
+    return null;
+  }
+}
+
+export async function resolveRequestSession(
+  request: NextRequest,
+): Promise<SessionShape | null> {
+  // SECURITY: Only allow x-user-id header spoofing in test environment
+  // In production, these headers are IGNORED to prevent impersonation attacks
+  if (process.env.NODE_ENV === "test") {
+    const headerUserId = request.headers.get("x-user-id");
+    if (headerUserId) {
+      return {
+        user: {
+          id: headerUserId,
+          role: request.headers.get("x-user-role") ?? undefined,
+          email: request.headers.get("x-user-email") ?? undefined,
+          orgId: request.headers.get("x-user-org-id") ?? undefined,
+        },
+      };
+    }
+    return null;
+  }
+
+  const auth = await loadAuth();
+  return auth ? auth() : null;
+}
+
+]]>
+</file>
+
+<file path="lib/auth/role-guards.ts">
+<![CDATA[
+import { UserRole, type UserRoleType } from "@/types/user";
+import { normalizeRole as normalizeFmRole } from "@/domain/fm/fm.behavior";
+
+type RoleChecker = (_role?: string | null) => boolean;
+
+const normalizeRole = (role?: string | null): string | null => {
+  const canonical = normalizeFmRole(role);
+  if (canonical) return canonical;
+  return typeof role === "string" ? role.trim().toUpperCase() : null;
+};
+
+/**
+ * 🔒 STRICT v4.1: Get effective role for permission checks
+ * 
+ * For users with role: TEAM_MEMBER + subRole: HR_OFFICER/FINANCE_OFFICER/etc,
+ * returns the subRole as the effective role for permission checks.
+ * 
+ * @param role - Primary role from session
+ * @param subRole - Sub-role from session (for TEAM_MEMBER specialization)
+ * @returns Effective role to use for permission checks
+ */
+export function getEffectiveRole(
+  role?: string | null,
+  subRole?: string | null
+): string | null {
+  // If subRole is set, it takes precedence for permission checks
+  // This handles TEAM_MEMBER + HR_OFFICER, TEAM_MEMBER + FINANCE_OFFICER, etc.
+  if (subRole) {
+    const normalizedSubRole = normalizeRole(subRole);
+    if (normalizedSubRole) {
+      return normalizedSubRole;
+    }
+  }
+  return normalizeRole(role);
+}
+
+/**
+ * 🔒 STRICT v4.1: Check if role matches allowed roles (with subRole support)
+ * 
+ * @param role - Primary role from session
+ * @param subRole - Sub-role from session
+ * @param allowedRoles - Array of allowed roles
+ * @returns true if role or subRole matches any allowed role
+ */
+export function hasAllowedRole(
+  role?: string | null,
+  subRole?: string | null,
+  allowedRoles: readonly string[] = []
+): boolean {
+  const normalizedRole = normalizeRole(role);
+  const normalizedSubRole = normalizeRole(subRole);
+  
+  const allowedSet = new Set(allowedRoles.map(r => r.toUpperCase()));
+  
+  // Check if direct role matches
+  if (normalizedRole && allowedSet.has(normalizedRole)) {
+    return true;
+  }
+  
+  // Check if subRole matches (for TEAM_MEMBER + HR_OFFICER, etc.)
+  if (normalizedSubRole && allowedSet.has(normalizedSubRole)) {
+    return true;
+  }
+  
+  return false;
+}
+
+const buildRoleChecker = (
+  allowed: readonly UserRoleType[],
+  legacy: readonly string[] = [],
+): RoleChecker => {
+  const allowedSet = new Set(allowed.map((role) => role.toUpperCase()));
+  const legacySet = new Set(legacy.map((role) => role.toUpperCase()));
+
+  return (role?: string | null) => {
+    const normalized = normalizeRole(role);
+    if (!normalized) {
+      return false;
+    }
+    return allowedSet.has(normalized) || legacySet.has(normalized);
+  };
+};
+
+export const canManageSubscriptions = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.ADMIN,
+    UserRole.FINANCE,
+  ],
+  ["BILLING_ADMIN", "FINANCE_ADMIN"],
+);
+
+// 🔒 STRICT v4: Finance access limited to Finance Officer + Corporate Admin
+// NOTE: Both FINANCE (base role) and FINANCE_OFFICER (sub-role) are granted access
+// Per least-privilege principle, view-only access is appropriate for routine work
+export const canViewInvoices = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE, // Finance base role
+    UserRole.FINANCE_OFFICER, // STRICT v4 sub-role
+  ],
+  ["BILLING_ADMIN", "FINANCE_ADMIN"],
+);
+
+// 🔒 STRICT v4: Finance edit limited to Finance Officer + Corporate Admin
+// SECURITY NOTE: Finance Officer (FINANCE/FINANCE_OFFICER roles) can edit but NOT delete invoices
+// Delete operations require SUPER_ADMIN or CORPORATE_ADMIN approval
+// This guards against accidental/malicious deletion by standard finance staff
+export const canEditInvoices = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE, // Finance base role
+    UserRole.FINANCE_OFFICER, // STRICT v4 sub-role
+  ],
+  ["BILLING_ADMIN", "FINANCE_ADMIN"],
+);
+
+// 🔒 STRICT v4: Invoice DELETE restricted to admin-level roles only
+// Finance Officer intentionally EXCLUDED - requires manager approval for deletions
+export const canDeleteInvoices = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    // NOTE: FINANCE role intentionally NOT included (least-privilege principle)
+  ],
+  ["BILLING_ADMIN"], // Legacy admin roles may have delete access
+);
+
+export const canManageOwnerGroups = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.FM_MANAGER,
+    UserRole.PROPERTY_MANAGER,
+  ],
+  ["PROPERTY_ADMIN"],
+);
+
+// =============================================================================
+// SEC-004 FIX: HR Role Guards for Payroll Access Control
+// STRICT v4.1: Least-privilege access to sensitive payroll data
+// =============================================================================
+
+/**
+ * 🔒 STRICT v4: Payroll VIEW access - HR, Finance, and Admins
+ * Read-only access to payroll data for reporting and audit purposes
+ * 
+ * COMPLIANCE:
+ * - Saudi Labor Law Article 52: Salary confidentiality
+ * - GDPR Article 6: Lawful basis for processing (legitimate interest)
+ * - ISO 27001 A.9.1.1: Access control policy
+ */
+export const canViewPayroll = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.HR,              // HR base role
+    UserRole.HR_OFFICER,      // STRICT v4.1 sub-role - view only
+    UserRole.FINANCE,         // Finance base role
+    UserRole.FINANCE_OFFICER, // STRICT v4.1 sub-role - view only
+  ],
+  ["PAYROLL_ADMIN", "HR_ADMIN", "HR_MANAGER"],
+);
+
+/**
+ * 🔒 STRICT v4: Payroll EDIT access - HR and Admins ONLY
+ * Write access restricted to prevent unauthorized salary modifications
+ * 
+ * SECURITY NOTE: Finance Officer can VIEW but NOT EDIT payroll
+ * This separation of duties prevents fraud and ensures audit compliance
+ * 
+ * COMPLIANCE:
+ * - SOX Section 404: Internal controls over financial reporting
+ * - Saudi Labor Law Article 90: Wage protection
+ */
+export const canEditPayroll = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.HR,              // HR base role can edit
+    // NOTE: HR_OFFICER intentionally excluded - requires manager approval for edits
+    // NOTE: FINANCE roles intentionally excluded - separation of duties
+  ],
+  ["PAYROLL_ADMIN", "HR_MANAGER"],
+);
+
+/**
+ * 🔒 STRICT v4: Payroll DELETE access - Admin-level roles ONLY
+ * Delete operations require highest-level approval
+ * 
+ * SECURITY NOTE: Even HR cannot delete payroll records
+ * This ensures audit trail integrity and regulatory compliance
+ */
+export const canDeletePayroll = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    // NOTE: HR role intentionally excluded - requires admin approval
+  ],
+  [],
+);
+
+/**
+ * 🔒 STRICT v4: Payroll APPROVE access - For finalizing payroll runs
+ * Dual approval: requires both HR and Finance approval
+ * This function checks if user can give HR approval
+ */
+export const canApprovePayrollHR = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.HR,
+  ],
+  ["PAYROLL_ADMIN", "HR_MANAGER"],
+);
+
+/**
+ * 🔒 STRICT v4: Payroll Finance Approval - For budget sign-off
+ * This function checks if user can give Finance approval
+ */
+export const canApprovePayrollFinance = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER,
+  ],
+  ["FINANCE_ADMIN"],
+);
+
+]]>
+</file>
+
+<file path="lib/auth.ts">
+<![CDATA[
+/**
+ * @fileoverview Authentication Module for Fixzit
+ *
+ * This module provides core authentication functionality including:
+ * - Password hashing and verification (bcrypt)
+ * - JWT token generation and verification
+ * - User authentication with multi-tenant isolation
+ * - Token-based user retrieval
+ *
+ * @module lib/auth
+ * @version 2.0.26
+ * @since 1.0.0
+ *
+ * @example
+ * // Authenticate a user
+ * const { token, user } = await authenticateUser('user@example.com', 'password');
+ *
+ * @example
+ * // Verify a token
+ * const payload = await verifyToken(token);
+ * if (payload) {
+ *   console.log('User ID:', payload.id);
+ * }
+ *
+ * @see {@link https://github.com/EngSayh/Fixzit/docs/AUTH_FLOW.md} for authentication flow
+ */
+
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+import { User } from "@/server/models/User";
+import { db } from "@/lib/mongo";
+import { getJWTSecret as getJWTSecretService } from "@/lib/secrets";
+
+/**
+ * Internal type definition for User document structure
+ * Used for type-safe access to user properties from MongoDB
+ *
+ * @internal
+ * @interface _UserDocument
+ */
+interface _UserDocument {
+  /** MongoDB native ObjectId */
+  _id: { toString(): string };
+  /** User's email address (unique identifier for personal login) */
+  email: string;
+  /** Bcrypt-hashed password */
+  password: string;
+  /** Account active status (legacy field) */
+  isActive?: boolean;
+  /** Account status string (preferred: 'ACTIVE', 'INACTIVE', 'SUSPENDED') */
+  status?: string;
+  /** User role (legacy field, prefer professional.role) */
+  role?: string;
+  /** Organization ID for multi-tenant isolation (REQUIRED) */
+  orgId?: { toString(): string } | string;
+  /** Display name */
+  name?: string;
+  /** Personal information container */
+  personal?: {
+    firstName?: string;
+    lastName?: string;
+  };
+  /** Professional information container */
+  professional?: {
+    role?: string;
+  };
+  /** Allow additional fields for extensibility */
+  [key: string]: unknown;
+}
+
+/**
+ * Retrieves the JWT secret key for token operations.
+ *
+ * Uses a priority-based secret resolution:
+ * 1. **AWS Secrets Manager** (production) - cached for 5 minutes
+ * 2. **JWT_SECRET** environment variable - all environments
+ * 3. **Ephemeral secret** - development only, regenerated on restart
+ *
+ * @async
+ * @function getJWTSecret
+ * @returns {Promise<string>} The JWT secret key
+ * @throws {Error} If no secret can be resolved in production
+ *
+ * @security This function never logs or exposes the actual secret value.
+ * @performance Secrets are cached for 5 minutes to minimize AWS API calls.
+ *
+ * @example
+ * const secret = await getJWTSecret();
+ * // Use with jwt.sign() or jwt.verify()
+ *
+ * @internal This is an internal function. Use generateToken/verifyToken instead.
+ */
+async function getJWTSecret(): Promise<string> {
+  return await getJWTSecretService();
+}
+
+/**
+ * Payload structure for JWT authentication tokens.
+ *
+ * @interface AuthToken
+ * @property {string} id - User's MongoDB ObjectId as string
+ * @property {string} email - User's email address
+ * @property {string} role - User's role (e.g., 'ADMIN', 'EMPLOYEE', 'TECHNICIAN')
+ * @property {string} orgId - Organization ID for multi-tenant isolation
+ * @property {string} [tenantId] - Optional tenant ID (deprecated, use orgId)
+ * @property {string} [name] - Optional display name
+ */
+export interface AuthToken {
+  id: string;
+  email: string;
+  role: string;
+  orgId: string;
+  tenantId?: string;
+  name?: string;
+}
+
+/**
+ * Hashes a plaintext password using bcrypt.
+ *
+ * Uses a cost factor of 10, which provides a good balance between
+ * security and performance (~100ms on modern hardware).
+ *
+ * @async
+ * @function hashPassword
+ * @param {string} password - The plaintext password to hash
+ * @returns {Promise<string>} The bcrypt-hashed password
+ *
+ * @security Never log or store the plaintext password.
+ * @security Always hash passwords before storing in database.
+ *
+ * @example
+ * const hashedPassword = await hashPassword('userPass!234');
+ * // Store hashedPassword in database
+ */
+export async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 10);
+}
+
+/**
+ * Verifies a plaintext password against a bcrypt hash.
+ *
+ * @async
+ * @function verifyPassword
+ * @param {string} password - The plaintext password to verify
+ * @param {string} hashedPassword - The bcrypt hash to compare against
+ * @returns {Promise<boolean>} True if password matches, false otherwise
+ *
+ * @security Uses constant-time comparison to prevent timing attacks.
+ *
+ * @example
+ * const isValid = await verifyPassword('userPass!234', user.password);
+ * if (!isValid) {
+ *   throw new Error('Invalid credentials');
+ * }
+ */
+export async function verifyPassword(
+  password: string,
+  hashedPassword: string,
+): Promise<boolean> {
+  return bcrypt.compare(password, hashedPassword);
+}
+
+/**
+ * Generates a signed JWT token for authenticated sessions.
+ *
+ * Token characteristics:
+ * - Algorithm: HS256 (HMAC-SHA256)
+ * - Expiration: 24 hours
+ * - Payload: User ID, email, role, orgId
+ *
+ * @async
+ * @function generateToken
+ * @param {AuthToken} payload - The token payload containing user data
+ * @returns {Promise<string>} Signed JWT token string
+ *
+ * @security Token contains orgId for multi-tenant isolation.
+ * @security Never include sensitive data (passwords, secrets) in payload.
+ *
+ * @example
+ * const token = await generateToken({
+ *   id: user._id.toString(),
+ *   email: user.email,
+ *   role: 'EMPLOYEE',
+ *   orgId: user.orgId,
+ * });
+ * // Send token to client in response
+ */
+export async function generateToken(payload: AuthToken): Promise<string> {
+  const secret = await getJWTSecret();
+  return jwt.sign(payload, secret, { expiresIn: "24h", algorithm: "HS256" });
+}
+
+/**
+ * Verifies and decodes a JWT token.
+ *
+ * @async
+ * @function verifyToken
+ * @param {string} token - The JWT token to verify
+ * @returns {Promise<AuthToken | null>} Decoded payload if valid, null otherwise
+ *
+ * @security Returns null instead of throwing to prevent information leakage.
+ * @security Validates signature, expiration, and algorithm.
+ *
+ * @example
+ * const payload = await verifyToken(token);
+ * if (!payload) {
+ *   return res.status(401).json({ error: 'Invalid or expired token' });
+ * }
+ * // Use payload.id, payload.orgId, etc.
+ */
+export async function verifyToken(token: string): Promise<AuthToken | null> {
+  try {
+    const secret = await getJWTSecret();
+    return jwt.verify(token, secret) as AuthToken;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Authenticates a user with email/employee number and password.
+ *
+ * Supports two login modes:
+ * - **Personal**: Uses email address for authentication (requires orgId)
+ * - **Corporate**: Uses employee number (username field) + companyCode for authentication
+ *
+ * @async
+ * @function authenticateUser
+ * @param {string} emailOrEmployeeNumber - Email (personal) or employee number (corporate)
+ * @param {string} password - Plaintext password
+ * @param {'personal' | 'corporate'} [loginType='personal'] - Login mode
+ * @param {string} [orgId] - Organization ID (required for personal login)
+ * @param {string} [companyCode] - Company code (required for corporate login)
+ * @returns {Promise<{ token: string; user: object }>} Auth token and user data
+ *
+ * @throws {Error} 'Invalid credentials' - User not found or password mismatch
+ * @throws {Error} 'Account is not active' - User account is deactivated
+ * @throws {Error} 'AUTH-001: User {id} has no orgId' - Multi-tenant violation
+ * @throws {Error} 'orgId required for personal login' - Missing tenant context
+ * @throws {Error} 'companyCode required for corporate login' - Missing company context
+ *
+ * @security Validates orgId to ensure multi-tenant isolation.
+ * @security Uses constant-time password comparison.
+ * @security Returns generic error to prevent user enumeration.
+ *
+ * @example
+ * // Personal login (email) - requires orgId
+ * const { token, user } = await authenticateUser(
+ *   'user@company.com',
+ *   '<user-password>',
+ *   'personal',
+ *   'org-123'
+ * );
+ *
+ * @example
+ * // Corporate login (employee number) - requires companyCode
+ * const { token, user } = await authenticateUser(
+ *   'EMP001',
+ *   '<user-password>',
+ *   'corporate',
+ *   undefined,
+ *   'ACME-001'
+ * );
+ */
+export async function authenticateUser(
+  emailOrEmployeeNumber: string,
+  password: string,
+  loginType: "personal" | "corporate" = "personal",
+  orgId?: string,
+  companyCode?: string,
+) {
+  // Ensure database connection is established
+  await db;
+
+  let user;
+  if (loginType === "personal") {
+    // SECURITY: Require orgId for personal login to prevent cross-tenant auth
+    if (!orgId) {
+      throw new Error("orgId required for personal login");
+    }
+    user = await User.findOne({ email: emailOrEmployeeNumber, orgId });
+  } else {
+    // SECURITY: Require companyCode for corporate login
+    if (!companyCode) {
+      throw new Error("companyCode required for corporate login");
+    }
+    // For corporate login, search by employee number (username field) + company code
+    user = await User.findOne({ username: emailOrEmployeeNumber, code: companyCode });
+  }
+
+  if (!user) {
+    throw new Error("Invalid credentials");
+  }
+
+  const isValid = await verifyPassword(password, user.password);
+
+  if (!isValid) {
+    throw new Error("Invalid credentials");
+  }
+
+  // Check if user is active (handle both status and isActive fields)
+  type UserDoc = {
+    isActive?: boolean;
+    status?: string;
+    _id: unknown;
+    email: string;
+    professional?: { role?: string };
+    role?: string;
+    orgId?: unknown;
+    personal?: { firstName?: string; lastName?: string };
+  };
+  const userDoc: UserDoc =
+    typeof user.toObject === "function"
+      ? (user.toObject() as UserDoc)
+      : (user as unknown as UserDoc);
+  const isUserActive =
+    userDoc.isActive !== undefined
+      ? userDoc.isActive
+      : userDoc.status === "ACTIVE";
+  if (!isUserActive) {
+    throw new Error("Account is not active");
+  }
+
+  // ORGID-FIX: Enforce mandatory orgId for multi-tenant isolation
+  const normalizedOrgId = typeof userDoc.orgId === "string"
+    ? userDoc.orgId
+    : userDoc.orgId?.toString() || null;
+  
+  if (!normalizedOrgId || normalizedOrgId.trim() === "") {
+    throw new Error(`AUTH-001: User ${user._id} has no orgId - violates multi-tenant isolation`);
+  }
+
+  const token = await generateToken({
+    id: user._id.toString(),
+    email: user.email,
+    role: userDoc.professional?.role || userDoc.role || "USER",
+    orgId: normalizedOrgId,
+  });
+
+  return {
+    token,
+    user: {
+      id: user._id.toString(),
+      email: user.email,
+      name: `${userDoc.personal?.firstName || ""} ${userDoc.personal?.lastName || ""}`.trim(),
+      role: userDoc.professional?.role || userDoc.role || "USER",
+      orgId: normalizedOrgId,  // ✅ Already validated above
+    },
+  };
+}
+
+/**
+ * Retrieves user data from a JWT token.
+ *
+ * Performs full validation:
+ * 1. Verifies token signature and expiration
+ * 2. Fetches fresh user data from database
+ * 3. Validates user is active
+ * 4. Validates orgId exists (multi-tenant isolation)
+ *
+ * @async
+ * @function getUserFromToken
+ * @param {string} token - JWT token to validate
+ * @returns {Promise<object | null>} User data if valid, null otherwise
+ *
+ * @security Returns null for any validation failure (no information leakage).
+ * @security Always fetches fresh data - doesn't trust token payload alone.
+ * @security Enforces orgId requirement for multi-tenant isolation.
+ *
+ * @example
+ * const user = await getUserFromToken(req.headers.authorization?.split(' ')[1]);
+ * if (!user) {
+ *   return res.status(401).json({ error: 'Unauthorized' });
+ * }
+ * // User is authenticated and active
+ */
+export async function getUserFromToken(token: string) {
+  const payload = await verifyToken(token);
+  if (!payload) {
+    return null;
+  }
+
+  // Database connection handled by model layer
+  const user = await User.findById(payload.id);
+
+  if (!user) {
+    return null;
+  }
+
+  type UserDoc = {
+    status?: string;
+    _id: unknown;
+    email: string;
+    professional?: { role?: string };
+    role?: string;
+    orgId?: unknown;
+    personal?: { firstName?: string; lastName?: string };
+  };
+  const userDoc: UserDoc =
+    typeof user.toObject === "function"
+      ? (user.toObject() as UserDoc)
+      : (user as unknown as UserDoc);
+
+  if (userDoc.status !== "ACTIVE") {
+    return null;
+  }
+
+  // ORGID-FIX: Enforce mandatory orgId for multi-tenant isolation
+  const normalizedOrgId = typeof userDoc.orgId === "string"
+    ? userDoc.orgId
+    : userDoc.orgId?.toString() || null;
+  
+  if (!normalizedOrgId || normalizedOrgId.trim() === "") {
+    // Return null instead of throwing - token validation should fail gracefully
+    return null;
+  }
+
+  return {
+    id: user._id.toString(),
+    email: user.email,
+    name: `${userDoc.personal?.firstName || ""} ${userDoc.personal?.lastName || ""}`.trim(),
+    role: userDoc.professional?.role || userDoc.role || "USER",
+    orgId: normalizedOrgId,
+  };
+}
+
+]]>
+</file>
+
+<file path="lib/authz.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { verifyToken } from "./auth";
+
+export interface AuthContext {
+  id: string;
+  email: string;
+  role: string;
+  tenantId: string;
+}
+
+export async function requireSuperAdmin(
+  req: NextRequest,
+): Promise<AuthContext> {
+  const header = req.headers.get("authorization");
+  if (!header || !header.startsWith("Bearer ")) {
+    throw new Response(JSON.stringify({ error: "UNAUTHORIZED" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const token = header.slice(7);
+  const payload = await verifyToken(token);
+
+  if (!payload || payload.role !== "SUPER_ADMIN") {
+    // 🔐 STRICT v4.1: Return 404 (not 403) to hide admin-only endpoints from non-admins
+    throw new Response(JSON.stringify({ error: "Not found" }), {
+      status: 404,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  return {
+    ...payload,
+    tenantId: payload.tenantId || "",
+  } as AuthContext;
+}
+
+]]>
+</file>
+
+<file path="lib/aws-secrets.ts">
+<![CDATA[
+import {
+  SecretsManagerClient,
+  GetSecretValueCommand,
+} from "@aws-sdk/client-secrets-manager";
+import { logger } from "@/lib/logger";
+
+interface SecretValue {
+  [key: string]: string;
+}
+
+class AWSSecretsManager {
+  private client: SecretsManagerClient;
+  private cache = new Map<string, { value: SecretValue; timestamp: number }>();
+  private cacheTTL = 5 * 60 * 1000; // 5 minutes
+
+  constructor(region = "me-south-1") {
+    this.client = new SecretsManagerClient({ region });
+  }
+
+  async getSecret(secretName: string): Promise<SecretValue> {
+    // Check cache first
+    const cached = this.cache.get(secretName);
+    if (cached && Date.now() - cached.timestamp < this.cacheTTL) {
+      return cached.value;
+    }
+
+    try {
+      const command = new GetSecretValueCommand({ SecretId: secretName });
+      const response = await this.client.send(command);
+
+      if (!response.SecretString) {
+        throw new Error(`No secret string found for ${secretName}`);
+      }
+
+      const secretValue = JSON.parse(response.SecretString);
+
+      // Cache the result
+      this.cache.set(secretName, {
+        value: secretValue,
+        timestamp: Date.now(),
+      });
+
+      return secretValue;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error(`Failed to retrieve secret ${secretName}:`, { error });
+      throw error;
+    }
+  }
+
+  async getJWTSecret(environment = "production"): Promise<string> {
+    const secrets = await this.getSecret(`fixzit-jwt-${environment}`);
+    return secrets.JWT_SECRET;
+  }
+
+  async getDatabaseSecrets(environment = "production"): Promise<SecretValue> {
+    return await this.getSecret(`fixzit-database-${environment}`);
+  }
+
+  async getPaymentSecrets(environment = "production"): Promise<SecretValue> {
+    return await this.getSecret(`fixzit-payments-${environment}`);
+  }
+
+  async getCommunicationSecrets(
+    environment = "production",
+  ): Promise<SecretValue> {
+    return await this.getSecret(`fixzit-communications-${environment}`);
+  }
+
+  // Invalidate cache for a specific secret
+  invalidateCache(secretName: string): void {
+    this.cache.delete(secretName);
+  }
+
+  // Clear all cached secrets
+  clearCache(): void {
+    this.cache.clear();
+  }
+}
+
+export default AWSSecretsManager;
+
+// Example usage:
+// const secretsManager = new AWSSecretsManager();
+// const jwtSecret = await secretsManager.getJWTSecret();
+// const dbSecrets = await secretsManager.getDatabaseSecrets();
+
+]]>
+</file>
+
+<file path="lib/carriers/aramex.ts">
+<![CDATA[
+import {
+  ICarrierInterface,
+  ICreateShipmentParams,
+  IShipmentResponse,
+  ITrackingResponse,
+  IRateParams,
+  IRate,
+  ITrackingEvent,
+} from "@/services/souq/fulfillment-service";
+import { logger } from "@/lib/logger";
+
+/**
+ * Aramex Carrier Integration
+ * https://www.aramex.com/ae/en/services/developers-service-shipping-api
+ *
+ * Features:
+ * - Same-day delivery in major cities
+ * - Express international shipping
+ * - COD support
+ * - Real-time tracking
+ */
+
+class AramexCarrier implements ICarrierInterface {
+  name = "Aramex";
+  private apiKey: string;
+  private accountNumber: string;
+  private apiUrl: string;
+
+  constructor() {
+    this.apiKey = process.env.ARAMEX_API_KEY || "";
+    this.accountNumber = process.env.ARAMEX_ACCOUNT_NUMBER || "";
+    this.apiUrl =
+      process.env.ARAMEX_API_URL || "https://ws.aramex.net/ShippingAPI.V2";
+  }
+
+  /**
+   * Create shipment and generate label
+   */
+  async createShipment(
+    params: ICreateShipmentParams,
+  ): Promise<IShipmentResponse> {
+    try {
+      logger.info("Creating Aramex shipment", { orderId: params.orderId });
+
+      // Mock implementation - Replace with actual Aramex API call
+      if (!this.apiKey) {
+        return this.mockCreateShipment(params);
+      }
+
+      const _shipmentData = {
+        ClientInfo: {
+          UserName: this.accountNumber,
+          Password: this.apiKey,
+          Version: "v1.0",
+          AccountNumber: this.accountNumber,
+          AccountPin: this.apiKey,
+          AccountEntity: "RUH",
+          AccountCountryCode: "SA",
+        },
+        LabelInfo: {
+          ReportID: 9201,
+          ReportType: "URL",
+        },
+        Shipments: [
+          {
+            Reference1: params.reference || params.orderNumber,
+            Reference2: params.orderId,
+            Shipper: {
+              Reference1: params.orderNumber,
+              PartyAddress: {
+                Line1: params.shipFrom.street,
+                City: params.shipFrom.city,
+                PostCode: params.shipFrom.postalCode,
+                CountryCode: params.shipFrom.country,
+              },
+              Contact: {
+                PersonName: params.shipFrom.name,
+                PhoneNumber1: params.shipFrom.phone,
+                EmailAddress: params.shipFrom.email,
+              },
+            },
+            Consignee: {
+              Reference1: params.orderNumber,
+              PartyAddress: {
+                Line1: params.shipTo.street,
+                City: params.shipTo.city,
+                PostCode: params.shipTo.postalCode,
+                CountryCode: params.shipTo.country,
+              },
+              Contact: {
+                PersonName: params.shipTo.name,
+                PhoneNumber1: params.shipTo.phone,
+                EmailAddress: params.shipTo.email,
+              },
+            },
+            Details: {
+              Dimensions: {
+                Length: params.packages[0].length,
+                Width: params.packages[0].width,
+                Height: params.packages[0].height,
+                Unit: "CM",
+              },
+              ActualWeight: {
+                Value: params.packages[0].weight,
+                Unit: "KG",
+              },
+              NumberOfPieces: params.packages.length,
+              DescriptionOfGoods: params.packages[0].description,
+              GoodsOriginCountry: "SA",
+            },
+            Services:
+              params.serviceType === "same_day"
+                ? "SAMEDAY"
+                : params.serviceType === "express"
+                  ? "EXP"
+                  : "STD",
+            CashOnDeliveryAmount: params.codAmount
+              ? {
+                  Value: params.codAmount,
+                  CurrencyCode: "SAR",
+                }
+              : undefined,
+            CustomsValueAmount: {
+              Value: params.declaredValue,
+              CurrencyCode: "SAR",
+            },
+          },
+        ],
+      };
+
+      // Actual API call would go here
+      // const response = await fetch(`${this.apiUrl}/CreateShipments`, {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify(shipmentData)
+      // });
+
+      // For now, return mock data
+      return this.mockCreateShipment(params);
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("Aramex shipment creation failed", {
+        error,
+        orderId: params.orderId,
+      });
+      throw new Error(
+        `Aramex shipment failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  }
+
+  /**
+   * Get tracking information
+   */
+  async getTracking(trackingNumber: string): Promise<ITrackingResponse> {
+    try {
+      logger.info("Getting Aramex tracking", { trackingNumber });
+
+      // Mock implementation - Replace with actual API call
+      if (!this.apiKey) {
+        return this.mockGetTracking(trackingNumber);
+      }
+
+      const _trackingData = {
+        ClientInfo: {
+          UserName: this.accountNumber,
+          Password: this.apiKey,
+          Version: "v1.0",
+          AccountNumber: this.accountNumber,
+          AccountPin: this.apiKey,
+          AccountEntity: "RUH",
+          AccountCountryCode: "SA",
+        },
+        Shipments: [trackingNumber],
+      };
+
+      // Actual API call would go here
+      // const response = await fetch(`${this.apiUrl}/TrackShipments`, {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify(trackingData)
+      // });
+
+      return this.mockGetTracking(trackingNumber);
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("Aramex tracking failed", { error, trackingNumber });
+      throw new Error(
+        `Aramex tracking failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  }
+
+  /**
+   * Cancel shipment
+   */
+  async cancelShipment(shipmentId: string): Promise<boolean> {
+    try {
+      logger.info("Cancelling Aramex shipment", { shipmentId });
+
+      // Mock implementation
+      if (!this.apiKey) {
+        return true;
+      }
+
+      // Actual API call would go here
+      return true;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("Aramex cancellation failed", { error, shipmentId });
+      return false;
+    }
+  }
+
+  /**
+   * Get shipping rates
+   */
+  async getRates(params: IRateParams): Promise<IRate[]> {
+    try {
+      // Mock implementation - Replace with actual API call
+      const rates: IRate[] = [];
+
+      if (params.serviceType === "same_day") {
+        rates.push({
+          carrier: "Aramex",
+          serviceType: "Same Day",
+          cost: 35,
+          estimatedDays: 0,
+        });
+      }
+
+      if (params.serviceType === "express") {
+        rates.push({
+          carrier: "Aramex",
+          serviceType: "Express",
+          cost: 25,
+          estimatedDays: 1,
+        });
+      }
+
+      rates.push({
+        carrier: "Aramex",
+        serviceType: "Standard",
+        cost: 15,
+        estimatedDays: 3,
+      });
+
+      return rates;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("Aramex rates failed", { error, params });
+      return [];
+    }
+  }
+
+  /**
+   * Mock shipment creation for development/testing
+   */
+  private mockCreateShipment(params: ICreateShipmentParams): IShipmentResponse {
+    const trackingNumber = `ARX${Date.now().toString().slice(-10)}`;
+    const deliveryDays =
+      params.serviceType === "same_day"
+        ? 0
+        : params.serviceType === "express"
+          ? 1
+          : 3;
+    const estimatedDelivery = new Date();
+    estimatedDelivery.setDate(estimatedDelivery.getDate() + deliveryDays);
+
+    return {
+      shipmentId: `SHIP_ARX_${Date.now()}`,
+      trackingNumber,
+      labelUrl: `https://aramex.com/labels/${trackingNumber}.pdf`,
+      estimatedDelivery,
+      cost:
+        params.serviceType === "same_day"
+          ? 35
+          : params.serviceType === "express"
+            ? 25
+            : 15,
+    };
+  }
+
+  /**
+   * Mock tracking for development/testing
+   */
+  private mockGetTracking(trackingNumber: string): ITrackingResponse {
+    const events: ITrackingEvent[] = [
+      {
+        timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+        status: "Shipment Created",
+        location: "Riyadh",
+        description: "Shipment information received",
+      },
+      {
+        timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+        status: "Picked Up",
+        location: "Riyadh Warehouse",
+        description: "Package picked up from sender",
+      },
+      {
+        timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000),
+        status: "In Transit",
+        location: "Jeddah Hub",
+        description: "Package in transit",
+      },
+    ];
+
+    return {
+      trackingNumber,
+      status: "in_transit",
+      events,
+      estimatedDelivery: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
+    };
+  }
+}
+
+export const aramexCarrier = new AramexCarrier();
+
+]]>
+</file>
+
+<file path="lib/carriers/smsa.ts">
+<![CDATA[
+import {
+  ICarrierInterface,
+  ICreateShipmentParams,
+  IShipmentResponse,
+  ITrackingResponse,
+  IRateParams,
+  IRate,
+  ITrackingEvent,
+} from "@/services/souq/fulfillment-service";
+import { logger } from "@/lib/logger";
+
+/**
+ * SMSA Express Carrier Integration
+ * https://www.smsaexpress.com/api
+ *
+ * Features:
+ * - Express delivery across Saudi Arabia
+ * - COD support
+ * - Competitive rates
+ * - Wide coverage
+ */
+
+class SMSACarrier implements ICarrierInterface {
+  name = "SMSA";
+  private apiKey: string;
+  private passKey: string;
+  private apiUrl: string;
+
+  constructor() {
+    this.apiKey = process.env.SMSA_API_KEY || "";
+    this.passKey = process.env.SMSA_PASS_KEY || "";
+    this.apiUrl = process.env.SMSA_API_URL || "https://api.smsaexpress.com/v1";
+  }
+
+  /**
+   * Create shipment and generate label
+   */
+  async createShipment(
+    params: ICreateShipmentParams,
+  ): Promise<IShipmentResponse> {
+    try {
+      logger.info("Creating SMSA shipment", { orderId: params.orderId });
+
+      // Mock implementation - Replace with actual SMSA API call
+      if (!this.apiKey) {
+        return this.mockCreateShipment(params);
+      }
+
+      const _shipmentData = {
+        passKey: this.passKey,
+        refNo: params.reference || params.orderNumber,
+        sentDate: new Date().toISOString().split("T")[0],
+        idNo: params.orderId,
+        cName: params.shipTo.name,
+        cntry: params.shipTo.country,
+        cCity: params.shipTo.city,
+        cZipCode: params.shipTo.postalCode || "",
+        cPOBox: "",
+        cMobile: params.shipTo.phone,
+        cTel1: params.shipTo.phone,
+        cAddr1: params.shipTo.street,
+        shipType: params.serviceType === "express" ? "EXP" : "DLV",
+        PCs: params.packages.length.toString(),
+        cEmail: params.shipTo.email || "",
+        carrValue: params.declaredValue.toString(),
+        carrCurr: "SAR",
+        codAmt: params.codAmount?.toString() || "0",
+        weight: params.packages[0].weight.toString(),
+        custVal: params.declaredValue.toString(),
+        custCurr: "SAR",
+        insrAmt: "0",
+        insrCurr: "SAR",
+        itemDesc: params.packages[0].description,
+      };
+
+      // Actual API call would go here
+      // const response = await fetch(`${this.apiUrl}/shipment/create`, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //     'Authorization': `Bearer ${this.apiKey}`
+      //   },
+      //   body: JSON.stringify(shipmentData)
+      // });
+
+      return this.mockCreateShipment(params);
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("SMSA shipment creation failed", {
+        error,
+        orderId: params.orderId,
+      });
+      throw new Error(
+        `SMSA shipment failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  }
+
+  /**
+   * Get tracking information
+   */
+  async getTracking(trackingNumber: string): Promise<ITrackingResponse> {
+    try {
+      logger.info("Getting SMSA tracking", { trackingNumber });
+
+      // Mock implementation - Replace with actual API call
+      if (!this.apiKey) {
+        return this.mockGetTracking(trackingNumber);
+      }
+
+      // Actual API call would go here
+      // const response = await fetch(`${this.apiUrl}/tracking/${trackingNumber}`, {
+      //   headers: {
+      //     'Authorization': `Bearer ${this.apiKey}`
+      //   }
+      // });
+
+      return this.mockGetTracking(trackingNumber);
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("SMSA tracking failed", { error, trackingNumber });
+      throw new Error(
+        `SMSA tracking failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  }
+
+  /**
+   * Cancel shipment
+   */
+  async cancelShipment(shipmentId: string): Promise<boolean> {
+    try {
+      logger.info("Cancelling SMSA shipment", { shipmentId });
+
+      // Mock implementation
+      if (!this.apiKey) {
+        return true;
+      }
+
+      // Actual API call would go here
+      return true;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("SMSA cancellation failed", { error, shipmentId });
+      return false;
+    }
+  }
+
+  /**
+   * Get shipping rates
+   */
+  async getRates(params: IRateParams): Promise<IRate[]> {
+    try {
+      const rates: IRate[] = [];
+
+      if (params.serviceType === "express") {
+        rates.push({
+          carrier: "SMSA",
+          serviceType: "Express",
+          cost: 22,
+          estimatedDays: 1,
+        });
+      }
+
+      rates.push({
+        carrier: "SMSA",
+        serviceType: "Standard",
+        cost: 12,
+        estimatedDays: 3,
+      });
+
+      return rates;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("SMSA rates failed", { error, params });
+      return [];
+    }
+  }
+
+  /**
+   * Mock shipment creation for development/testing
+   */
+  private mockCreateShipment(params: ICreateShipmentParams): IShipmentResponse {
+    const trackingNumber = `SMSA${Date.now().toString().slice(-10)}`;
+    const deliveryDays = params.serviceType === "express" ? 1 : 3;
+    const estimatedDelivery = new Date();
+    estimatedDelivery.setDate(estimatedDelivery.getDate() + deliveryDays);
+
+    return {
+      shipmentId: `SHIP_SMSA_${Date.now()}`,
+      trackingNumber,
+      labelUrl: `https://smsaexpress.com/labels/${trackingNumber}.pdf`,
+      estimatedDelivery,
+      cost: params.serviceType === "express" ? 22 : 12,
+    };
+  }
+
+  /**
+   * Mock tracking for development/testing
+   */
+  private mockGetTracking(trackingNumber: string): ITrackingResponse {
+    const events: ITrackingEvent[] = [
+      {
+        timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+        status: "Shipment Created",
+        location: "Riyadh",
+        description: "Shipment received at origin",
+      },
+      {
+        timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+        status: "In Transit",
+        location: "Riyadh Hub",
+        description: "Package in transit to destination",
+      },
+      {
+        timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000),
+        status: "Out for Delivery",
+        location: "Jeddah",
+        description: "Package out for delivery",
+      },
+    ];
+
+    return {
+      trackingNumber,
+      status: "out_for_delivery",
+      events,
+      estimatedDelivery: new Date(),
+    };
+  }
+}
+
+export const smsaCarrier = new SMSACarrier();
+
+]]>
+</file>
+
+<file path="lib/carriers/spl.ts">
+<![CDATA[
+import {
+  ICarrierInterface,
+  ICreateShipmentParams,
+  IShipmentResponse,
+  ITrackingResponse,
+  IRateParams,
+  IRate,
+  ITrackingEvent,
+} from "@/services/souq/fulfillment-service";
+import { logger } from "@/lib/logger";
+
+/**
+ * SPL (Saudi Post / البريد السعودي) Carrier Integration
+ * https://splonline.com.sa/api
+ *
+ * Features:
+ * - Most affordable rates
+ * - Wide coverage including remote areas
+ * - Government-backed reliability
+ * - Standard delivery
+ */
+
+class SPLCarrier implements ICarrierInterface {
+  name = "SPL";
+  private apiKey: string;
+  private accountId: string;
+  private apiUrl: string;
+
+  constructor() {
+    this.apiKey = process.env.SPL_API_KEY || "";
+    this.accountId = process.env.SPL_ACCOUNT_ID || "";
+    this.apiUrl = process.env.SPL_API_URL || "https://api.splonline.com.sa/v1";
+  }
+
+  /**
+   * Create shipment and generate label
+   */
+  async createShipment(
+    params: ICreateShipmentParams,
+  ): Promise<IShipmentResponse> {
+    try {
+      logger.info("Creating SPL shipment", { orderId: params.orderId });
+
+      // Mock implementation - Replace with actual SPL API call
+      if (!this.apiKey) {
+        return this.mockCreateShipment(params);
+      }
+
+      const _shipmentData = {
+        accountId: this.accountId,
+        reference: params.reference || params.orderNumber,
+        sender: {
+          name: params.shipFrom.name,
+          phone: params.shipFrom.phone,
+          email: params.shipFrom.email,
+          address: {
+            street: params.shipFrom.street,
+            city: params.shipFrom.city,
+            postalCode: params.shipFrom.postalCode,
+            country: params.shipFrom.country,
+          },
+        },
+        receiver: {
+          name: params.shipTo.name,
+          phone: params.shipTo.phone,
+          email: params.shipTo.email,
+          address: {
+            street: params.shipTo.street,
+            city: params.shipTo.city,
+            postalCode: params.shipTo.postalCode,
+            country: params.shipTo.country,
+          },
+        },
+        package: {
+          weight: params.packages[0].weight,
+          dimensions: {
+            length: params.packages[0].length,
+            width: params.packages[0].width,
+            height: params.packages[0].height,
+          },
+          description: params.packages[0].description,
+          quantity: params.packages.length,
+        },
+        service: params.serviceType === "express" ? "EXPRESS" : "STANDARD",
+        declaredValue: params.declaredValue,
+        codAmount: params.codAmount || 0,
+        currency: "SAR",
+      };
+
+      // Actual API call would go here
+      // const response = await fetch(`${this.apiUrl}/shipments`, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //     'X-API-Key': this.apiKey
+      //   },
+      //   body: JSON.stringify(shipmentData)
+      // });
+
+      return this.mockCreateShipment(params);
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("SPL shipment creation failed", {
+        error,
+        orderId: params.orderId,
+      });
+      throw new Error(
+        `SPL shipment failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  }
+
+  /**
+   * Get tracking information
+   */
+  async getTracking(trackingNumber: string): Promise<ITrackingResponse> {
+    try {
+      logger.info("Getting SPL tracking", { trackingNumber });
+
+      // Mock implementation - Replace with actual API call
+      if (!this.apiKey) {
+        return this.mockGetTracking(trackingNumber);
+      }
+
+      // Actual API call would go here
+      // const response = await fetch(`${this.apiUrl}/tracking/${trackingNumber}`, {
+      //   headers: {
+      //     'X-API-Key': this.apiKey
+      //   }
+      // });
+
+      return this.mockGetTracking(trackingNumber);
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("SPL tracking failed", { error, trackingNumber });
+      throw new Error(
+        `SPL tracking failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  }
+
+  /**
+   * Cancel shipment
+   */
+  async cancelShipment(shipmentId: string): Promise<boolean> {
+    try {
+      logger.info("Cancelling SPL shipment", { shipmentId });
+
+      // Mock implementation
+      if (!this.apiKey) {
+        return true;
+      }
+
+      // Actual API call would go here
+      return true;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("SPL cancellation failed", { error, shipmentId });
+      return false;
+    }
+  }
+
+  /**
+   * Get shipping rates
+   */
+  async getRates(params: IRateParams): Promise<IRate[]> {
+    try {
+      const rates: IRate[] = [];
+
+      if (params.serviceType === "express") {
+        rates.push({
+          carrier: "SPL",
+          serviceType: "Express",
+          cost: 18,
+          estimatedDays: 2,
+        });
+      }
+
+      rates.push({
+        carrier: "SPL",
+        serviceType: "Standard",
+        cost: 10,
+        estimatedDays: 4,
+      });
+
+      return rates;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("SPL rates failed", { error, params });
+      return [];
+    }
+  }
+
+  /**
+   * Mock shipment creation for development/testing
+   */
+  private mockCreateShipment(params: ICreateShipmentParams): IShipmentResponse {
+    const trackingNumber = `SPL${Date.now().toString().slice(-10)}`;
+    const deliveryDays = params.serviceType === "express" ? 2 : 4;
+    const estimatedDelivery = new Date();
+    estimatedDelivery.setDate(estimatedDelivery.getDate() + deliveryDays);
+
+    return {
+      shipmentId: `SHIP_SPL_${Date.now()}`,
+      trackingNumber,
+      labelUrl: `https://splonline.com.sa/labels/${trackingNumber}.pdf`,
+      estimatedDelivery,
+      cost: params.serviceType === "express" ? 18 : 10,
+    };
+  }
+
+  /**
+   * Mock tracking for development/testing
+   */
+  private mockGetTracking(trackingNumber: string): ITrackingResponse {
+    const events: ITrackingEvent[] = [
+      {
+        timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+        status: "Accepted",
+        location: "Riyadh Post Office",
+        description: "Package accepted at origin post office",
+      },
+      {
+        timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+        status: "In Transit",
+        location: "Riyadh Sorting Center",
+        description: "Package sorted and in transit",
+      },
+      {
+        timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+        status: "Arrived",
+        location: "Jeddah Post Office",
+        description: "Package arrived at destination facility",
+      },
+    ];
+
+    return {
+      trackingNumber,
+      status: "in_transit",
+      events,
+      estimatedDelivery: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
+    };
+  }
+}
+
+export const splCarrier = new SPLCarrier();
+
+]]>
+</file>
+
+</batch_content>

@@ -1,0 +1,2659 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/archived/reports/DUPLICATE_CODE_ANALYSIS_REPORT.md">
+<![CDATA[
+# Duplicate Code Analysis Report
+
+**Date**: October 15, 2025 06:30:00 UTC  
+**Tool**: jscpd v4.0.5  
+**Scope**: app/, components/, lib/, hooks/, contexts/, utils/, server/  
+**Threshold**: Minimum 5 lines, 50 tokens  
+**Status**: ✅ **ANALYSIS COMPLETE**
+
+---
+
+## Executive Summary
+
+**Total Clones Found**: 50 duplicate code blocks  
+**Severity Distribution**:
+
+- 🔴 HIGH (>25 lines): 3 clones
+- 🟡 MEDIUM (10-25 lines): 18 clones
+- 🟢 LOW (5-9 lines): 29 clones
+
+**Categories**:
+
+1. **API Routes** (27 clones) - Authentication & error handling patterns
+2. **PayTabs Integration** (5 clones) - Payment processing duplicates
+3. **MongoDB Models** (4 clones) - Schema validation patterns
+4. **Server Plugins** (3 clones) - Tenant isolation & audit logging
+5. **Components** (7 clones) - UI patterns & selectors
+6. **Tests** (4 clones) - Test setup & mocking patterns
+
+---
+
+## Priority 1: HIGH Severity Duplicates (>25 lines)
+
+### 1. PayTabs Core Integration - 38 lines (lib/paytabs.ts ↔ lib/paytabs/core.ts)
+
+**Lines**: 223-261 (38 lines, 241 tokens)  
+**Duplication**: 100% overlap between two files
+
+**Issue**: Complete duplication of PayTabs transaction creation logic
+
+**Recommendation**:
+
+- **CONSOLIDATE** - Remove `lib/paytabs.ts` entirely
+- Use `lib/paytabs/core.ts` as single source of truth
+- Update all imports to point to `/paytabs/core`
+- Add deprecation notice if backward compatibility needed
+
+**Impact**: HIGH - Payment processing critical path
+
+**Estimated Time**: 30 minutes
+
+---
+
+### 2. PayTabs Transaction Handling - 29 lines (lib/paytabs.ts ↔ lib/paytabs/core.ts)
+
+**Lines**: 61-90 (29 lines, 229 tokens)
+
+**Issue**: Duplicate transaction status checking logic
+
+**Recommendation**:
+
+- Consolidate with PayTabs fix above
+- Same solution applies
+
+**Impact**: HIGH - Payment status verification
+
+---
+
+### 3. PayTabs Payment Creation - 21 lines (lib/paytabs.ts ↔ lib/paytabs/core.ts)
+
+**Lines**: 97-118 (21 lines, 147 tokens)
+
+**Issue**: Duplicate payment initialization
+
+**Recommendation**:
+
+- Consolidate with PayTabs fix above
+- Remove entire `lib/paytabs.ts` file
+
+**Impact**: HIGH - Payment initialization
+
+---
+
+## Priority 2: MEDIUM Severity Duplicates (10-25 lines)
+
+### 4. RFQ Board & Vendor Catalogue - 23 lines
+
+**Files**: `components/marketplace/RFQBoard.tsx` ↔ `VendorCatalogueManager.tsx`  
+**Lines**: 94-117 (23 lines, 180 tokens)
+
+**Issue**: Data fetching and state management pattern duplicated
+
+**Recommendation**:
+
+- Create shared hook: `hooks/marketplace/useMarketplaceData.ts`
+- Extract common fetch logic to `lib/marketplace/api.ts`
+
+**Code Solution**:
+
+```typescript
+// hooks/marketplace/useMarketplaceData.ts
+export function useMarketplaceData(endpoint: string) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Common fetch logic here
+  }, [endpoint]);
+
+  return { data, loading, refetch };
+}
+```
+
+**Impact**: MEDIUM - Marketplace functionality  
+**Estimated Time**: 20 minutes
+
+---
+
+### 5. Tenant Isolation Plugin - 3x 12-line duplicates
+
+**File**: `server/plugins/tenantIsolation.ts`  
+**Lines**: 85-97, 98-110, 111-123, 124-136 (4 similar blocks)
+
+**Issue**: Tenant validation logic repeated for different operations
+
+**Recommendation**:
+
+- Extract to shared function: `validateTenantAccess(operation, tenantId)`
+- Reduce 48 lines to ~15 lines total
+
+**Code Solution**:
+
+```typescript
+async function validateTenantAccess(
+  operation: string,
+  tenantId: string,
+  userId: string,
+): Promise<ValidationResult> {
+  // Common validation logic
+  return { valid: true, tenant };
+}
+
+// Usage
+export const tenantMiddleware = {
+  async findOne() {
+    await validateTenantAccess("findOne", tenantId, userId);
+  },
+  async updateOne() {
+    await validateTenantAccess("updateOne", tenantId, userId);
+  },
+  // ...
+};
+```
+
+**Impact**: MEDIUM - Multi-tenancy security  
+**Estimated Time**: 25 minutes
+
+---
+
+### 6. Audit Plugin - 11 lines (server/plugins/auditPlugin.ts)
+
+**Lines**: 184-195 ↔ 196-207
+
+**Issue**: Duplicate audit trail creation logic
+
+**Recommendation**:
+
+- Extract to: `createAuditEntry(operation, data)`
+- Reuse for all operations
+
+**Impact**: MEDIUM - Audit logging  
+**Estimated Time**: 15 minutes
+
+---
+
+### 7. Invoice Service - 13 lines
+
+**Files**: `server/finance/invoice.service.ts` ↔ `server/work-orders/wo.service.ts`  
+**Lines**: 94-107 ↔ 81-94
+
+**Issue**: Work order status update pattern duplicated
+
+**Recommendation**:
+
+- Create shared service: `server/common/statusUpdateService.ts`
+- Supports invoices, work orders, and future entities
+
+**Impact**: MEDIUM - Business logic consistency  
+**Estimated Time**: 20 minutes
+
+---
+
+### 8. useUnsavedChanges Hook - 12 lines (hooks/useUnsavedChanges.tsx)
+
+**Lines**: 166-178 ↔ 216-228
+
+**Issue**: Form dirty check logic duplicated
+
+**Recommendation**:
+
+- Extract to internal utility: `checkFormDirty(fields)`
+- Single source of truth for unsaved changes detection
+
+**Impact**: LOW - UI behavior  
+**Estimated Time**: 10 minutes
+
+---
+
+### 9. MongoDB Models - Schema Patterns (4 duplicates)
+
+**Files**: `server/models/Tenant.ts`, `Vendor.ts`, `SLA.ts`, `Project.ts`
+
+**Duplicates**:
+
+- 16 lines: Tenant ↔ Vendor (schema timestamps)
+- 6-7 lines: Multiple models (validation patterns)
+
+**Recommendation**:
+
+- Create base schema: `server/models/base/BaseSchema.ts`
+- Use schema composition/inheritance
+
+**Code Solution**:
+
+```typescript
+// server/models/base/BaseSchema.ts
+export const baseSchemaOptions = {
+  timestamps: true,
+  versionKey: false,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true },
+};
+
+export const auditFields = {
+  createdBy: { type: Schema.Types.ObjectId, ref: "User" },
+  updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
+};
+
+// Usage in models
+const TenantSchema = new Schema(
+  {
+    // Tenant-specific fields
+    ...auditFields,
+  },
+  baseSchemaOptions,
+);
+```
+
+**Impact**: MEDIUM - Data layer consistency  
+**Estimated Time**: 30 minutes
+
+---
+
+### 10. Currency & Language Selectors - 12 lines
+
+**Files**: `components/i18n/CurrencySelector.tsx` ↔ `LanguageSelector.tsx`  
+**Lines**: 54-66 ↔ 46-58
+
+**Issue**: Dropdown UI pattern duplicated
+
+**Recommendation**:
+
+- Create: `components/i18n/shared/SelectorDropdown.tsx`
+- Props: `items`, `selected`, `onChange`, `icon`
+
+**Impact**: LOW - UI component reuse  
+**Estimated Time**: 15 minutes
+
+---
+
+## Priority 3: API Route Patterns (27 clones)
+
+**Common Pattern**: Authentication, error handling, database connection
+
+**Files Affected**:
+
+- `app/api/work-orders/[id]/*` (10 files)
+- `app/api/support/tickets/*` (5 files)
+- `app/api/rfqs/*` (4 files)
+- `app/api/ats/jobs/*` (2 files)
+- `app/api/admin/billing/*` (2 files)
+- Others (4 files)
+
+**Example Duplicate**:
+
+```typescript
+// Repeated in ~25 route files
+export async function POST(req: NextRequest) {
+  try {
+    await connectToDatabase();
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // ... route-specific logic
+  } catch (error) {
+    console.error("Error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+```
+
+**Recommendation**: Create API route middleware wrapper
+
+**Code Solution**:
+
+```typescript
+// lib/api/middleware.ts
+export function withAuth<T>(
+  handler: (req: NextRequest, session: Session) => Promise<NextResponse<T>>,
+) {
+  return async (req: NextRequest) => {
+    try {
+      await connectToDatabase();
+      const session = await getServerSession(authOptions);
+
+      if (!session?.user) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+
+      return await handler(req, session);
+    } catch (error) {
+      console.error("API Error:", error);
+      return NextResponse.json(
+        { error: "Internal server error" },
+        { status: 500 },
+      );
+    }
+  };
+}
+
+// Usage in route files
+export const POST = withAuth(async (req, session) => {
+  // Route-specific logic only
+  const body = await req.json();
+  // ...
+  return NextResponse.json({ success: true });
+});
+```
+
+**Impact**: HIGH - Code maintainability, consistency across 27+ files  
+**Estimated Time**: 2 hours (one-time setup, then quick refactor of each route)
+
+---
+
+## Priority 4: LOW Severity Duplicates (5-9 lines)
+
+### Summary of Low Priority Items
+
+1. **Product Display Patterns** (2 clones) - `PDPBuyBox` ↔ `ProductCard`
+   - 11 lines, 8 lines - Price display formatting
+   - **Fix**: Extract to `formatProductPrice` utility
+
+2. **Database Helpers** (1 clone) - `lib/db/index.ts`
+   - 6 lines - Connection retry logic
+   - **Fix**: Extract to `retryConnection` function
+
+3. **Auth Token Validation** (1 clone) - `lib/auth.ts`
+   - 6 lines - Token expiry check
+   - **Fix**: Extract to `isTokenExpired` utility
+
+4. **Test Setup Patterns** (4 clones) - Various test files
+   - 5-8 lines - Mock setup boilerplate
+   - **Fix**: Create `tests/helpers/setupMocks.ts`
+
+**Total Low Priority Impact**: 15 duplicates  
+**Combined Estimated Time**: 45 minutes
+
+---
+
+## Consolidation Plan
+
+### Phase 1: Quick Wins (1 hour) - RECOMMENDED FIRST
+
+1. ✅ PayTabs consolidation (remove lib/paytabs.ts) - 30 min
+2. ✅ Tenant isolation refactor - 25 min
+3. ✅ Test helpers extraction - 15 min
+
+**Result**: -150 lines, 3 files removed/simplified
+
+---
+
+### Phase 2: API Middleware (2 hours)
+
+1. Create `withAuth` wrapper - 30 min
+2. Refactor 10 high-traffic routes - 60 min
+3. Refactor remaining 17 routes - 30 min
+
+**Result**: -300 lines, consistent error handling
+
+---
+
+### Phase 3: Component & Service Patterns (1.5 hours)
+
+1. Marketplace hooks - 20 min
+2. MongoDB base schemas - 30 min
+3. Invoice/WO service consolidation - 20 min
+4. UI component extraction - 20 min
+
+**Result**: -100 lines, better abstractions
+
+---
+
+### Phase 4: Low Priority Cleanup (45 minutes)
+
+1. Utility functions - 20 min
+2. Test helpers - 15 min
+3. UI formatters - 10 min
+
+**Result**: -50 lines, polish & consistency
+
+---
+
+## Metrics
+
+### Current State
+
+- **Total Lines Scanned**: ~15,000 lines
+- **Duplicate Lines**: ~600 lines (4% duplication)
+- **Duplicate Code Blocks**: 50 clones
+- **Files with Duplicates**: 45 files
+
+### After Consolidation (Projected)
+
+- **Lines Removed**: ~600 lines
+- **New Shared Utilities**: +200 lines
+- **Net Reduction**: -400 lines (2.7% smaller codebase)
+- **Duplication Rate**: <1% (industry best practice)
+
+**Code Quality Improvements**:
+
+- ✅ Single source of truth for auth, payments, validation
+- ✅ Easier to maintain (fix in one place, applies everywhere)
+- ✅ Consistent error handling across API routes
+- ✅ Reduced test maintenance burden
+- ✅ Better TypeScript type safety with shared utilities
+
+---
+
+## Files Requiring Changes
+
+### High Priority (3 files)
+
+1. `lib/paytabs.ts` - **DELETE** (replaced by paytabs/core.ts)
+2. `lib/paytabs/core.ts` - Verify complete, update exports
+3. `server/plugins/tenantIsolation.ts` - Refactor validation logic
+
+### Medium Priority (15 files)
+
+4. `server/plugins/auditPlugin.ts` - Extract audit creation
+5. `server/finance/invoice.service.ts` - Use shared status service
+6. `server/work-orders/wo.service.ts` - Use shared status service
+7. `server/models/Tenant.ts` - Use base schema
+8. `server/models/Vendor.ts` - Use base schema
+9. `server/models/SLA.ts` - Use base schema
+10. `server/models/Project.ts` - Use base schema
+11. `components/marketplace/RFQBoard.tsx` - Use shared hook
+12. `components/marketplace/VendorCatalogueManager.tsx` - Use shared hook
+13. `components/i18n/CurrencySelector.tsx` - Use shared dropdown
+14. `components/i18n/LanguageSelector.tsx` - Use shared dropdown
+15. `hooks/useUnsavedChanges.tsx` - Extract form dirty check
+
+### API Routes (27 files - refactor to use withAuth middleware)
+
+16-42. All `app/api/**/*.ts` files listed in Priority 3
+
+### New Files to Create (8 files)
+
+1. `lib/api/middleware.ts` - Auth & error handling wrapper
+2. `hooks/marketplace/useMarketplaceData.ts` - Shared data fetching
+3. `lib/marketplace/api.ts` - API client functions
+4. `server/common/statusUpdateService.ts` - Status update logic
+5. `server/models/base/BaseSchema.ts` - Base schema patterns
+6. `components/i18n/shared/SelectorDropdown.tsx` - Dropdown component
+7. `tests/helpers/setupMocks.ts` - Test utility functions
+8. `lib/utils/productFormatters.ts` - Product display utilities
+
+---
+
+## Automated Tooling
+
+### jscpd Configuration (Saved)
+
+```json
+{
+  "threshold": 0,
+  "reporters": ["console", "json", "html"],
+  "ignore": [
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/node_modules/**",
+    "**/.next/**"
+  ],
+  "format": ["typescript", "javascript", "tsx", "jsx"],
+  "minLines": 5,
+  "minTokens": 50,
+  "output": "./jscpd-report"
+}
+```
+
+### CI/CD Integration Recommendation
+
+```yaml
+# Add to .github/workflows/code-quality.yml
+- name: Check for code duplication
+  run: |
+    npx jscpd --threshold 3 --exitCode 1
+    # Fails if >3% duplication detected
+```
+
+---
+
+## Next Steps
+
+### Immediate Actions
+
+1. ✅ Review this report with team
+2. ⏳ Start with Phase 1 (Quick Wins) - 1 hour
+3. ⏳ Create shared middleware & utilities
+4. ⏳ Gradually refactor API routes (can be done incrementally)
+
+### Long-term
+
+- ✅ Add jscpd to CI/CD pipeline
+- ✅ Set duplication threshold at 3%
+- ✅ Regular audits (monthly)
+- ✅ Code review checklist: "Does this duplicate existing code?"
+
+---
+
+## Conclusion
+
+**Current State**: 4% code duplication (600 lines across 50 blocks)  
+**Industry Standard**: <1% for mature codebases  
+**Achievable Target**: <1% after consolidation
+
+**Key Findings**:
+
+- Most duplication is in **API route boilerplate** (easy to fix with middleware)
+- **PayTabs** has 100% duplication between two files (critical to fix)
+- **Server plugins** have repetitive validation logic (security concern)
+
+**Recommendation**: Execute consolidation plan over 2-3 development sessions (5 hours total). Prioritize Phase 1 & 2 for maximum impact.
+
+**Risk**: LOW - All refactors involve extracting to shared functions, not changing logic
+
+**Testing Strategy**: Run existing test suite after each phase to ensure no regression
+
+---
+
+**Report Generated**: October 15, 2025 06:30:00 UTC  
+**Agent**: GitHub Copilot  
+**Next Task**: Option C - Dead Code Removal
+
+]]>
+</file>
+
+<file path="docs/archived/reports/DUPLICATE_SCAN_REPORT_20251014.md">
+<![CDATA[
+# Duplicate Code/File Scan Report
+
+**Date:** October 14, 2025  
+**Scan Type:** Comprehensive duplicate detection  
+**Status:** ✅ Complete - Recommendations Ready
+
+---
+
+## 🔍 Executive Summary
+
+Conducted comprehensive scan for duplicate files, scripts, and functionality across the codebase. Found **11 duplicate-related scripts** that can be consolidated, but **no critical duplicate prevention system files** are missing.
+
+### Key Findings
+
+- ✅ No critical DuplicatePrevention system files missing
+- ⚠️ 11 scripts handling duplicate detection/fixing (consolidation opportunity)
+- ✅ No duplicate core functionality files found
+- ✅ Translation duplicate handling scripts already in place
+
+---
+
+## 📊 Discovered Duplicate Management Scripts
+
+### Scripts Directory (10 files)
+
+1. `scripts/cleanup-duplicate-imports.js` - Import cleanup
+2. `scripts/dedupe-merge.ts` - Merge deduplication
+3. `scripts/find_duplicate_routes.sh` - Route duplication finder
+4. `scripts/fix-duplicate-keys.js` - Translation key duplicates
+5. `scripts/fix-duplicates-manual.py` - Manual duplicate fixes
+6. `scripts/fix-en-duplicates.js` - English translation duplicates
+7. `scripts/fix-translation-duplicates.js` - General translation duplicates
+8. `scripts/remove-duplicates-safe.js` - Safe duplicate removal
+9. `scripts/remove-duplicates-v2.js` - Duplicate removal v2
+10. `scripts/scanner.js` - General scanner utility
+
+### QA Scripts Directory (1 file)
+
+11. `qa/scripts/scanDuplicates.mjs` - QA duplicate scanner
+
+---
+
+## 📋 Analysis by Category
+
+### Category 1: Translation Duplicate Handlers ✅ KEEP
+
+**Purpose:** Handle duplicate keys in translation files  
+**Status:** Active and needed
+
+**Files:**
+
+- `scripts/fix-duplicate-keys.js`
+- `scripts/fix-en-duplicates.js`
+- `scripts/fix-translation-duplicates.js`
+
+**Recommendation:** ✅ **KEEP ALL** - Translation work is complete but these may be needed for maintenance.
+
+**Consolidation Potential:** LOW - Each handles specific translation scenario
+
+---
+
+### Category 2: Import Cleanup ✅ KEEP
+
+**Purpose:** Remove duplicate imports  
+**Status:** Utility script
+
+**Files:**
+
+- `scripts/cleanup-duplicate-imports.js`
+
+**Recommendation:** ✅ **KEEP** - Useful utility for code cleanup
+
+---
+
+### Category 3: Duplicate Removal Tools ⚠️ CONSOLIDATE
+
+**Purpose:** General duplicate removal  
+**Status:** Multiple versions exist
+
+**Files:**
+
+- `scripts/remove-duplicates-safe.js`
+- `scripts/remove-duplicates-v2.js`
+- `scripts/fix-duplicates-manual.py`
+
+**Recommendation:** ⚠️ **REVIEW & CONSOLIDATE**
+
+- Keep the most robust version (likely `remove-duplicates-safe.js` based on recent updates)
+- Archive or delete older versions
+- Document which version is "canonical"
+
+**Action Plan:**
+
+1. Compare functionality of all three
+2. Keep the one with best error handling
+3. Move others to `_deprecated/` folder
+4. Update documentation to point to canonical version
+
+---
+
+### Category 4: Scanner Utilities ⚠️ CONSOLIDATE
+
+**Purpose:** Scan codebase for various duplicates  
+**Status:** Two separate scanners exist
+
+**Files:**
+
+- `scripts/scanner.js`
+- `qa/scripts/scanDuplicates.mjs`
+
+**Recommendation:** ⚠️ **REVIEW & POTENTIALLY CONSOLIDATE**
+
+**Questions to Answer:**
+
+1. Do they scan for the same things?
+2. Is one more comprehensive than the other?
+3. Is there a reason to keep both (e.g., QA-specific vs general)?
+
+**Action Plan:**
+
+1. Review both scanner implementations
+2. If functionality overlaps >80%, consolidate
+3. If different purposes, document the distinction clearly
+4. Consider creating a unified scanner with different scan modes
+
+---
+
+### Category 5: Specialized Tools ✅ KEEP
+
+**Purpose:** Specific use cases  
+**Status:** Unique functionality
+
+**Files:**
+
+- `scripts/dedupe-merge.ts` - Merge conflict deduplication
+- `scripts/find_duplicate_routes.sh` - API route duplication detector
+
+**Recommendation:** ✅ **KEEP** - Unique functionality not duplicated elsewhere
+
+---
+
+## 🎯 Consolidation Recommendations
+
+### Priority 1: Duplicate Removal Scripts (HIGH)
+
+**Current State:** 3 scripts doing similar things
+
+```
+scripts/remove-duplicates-safe.js     (String-aware brace counting - BEST)
+scripts/remove-duplicates-v2.js       (Version 2 - older?)
+scripts/fix-duplicates-manual.py      (Python version - different approach)
+```
+
+**Recommended Action:**
+
+```bash
+# 1. Compare functionality
+diff scripts/remove-duplicates-safe.js scripts/remove-duplicates-v2.js
+
+# 2. Keep the best version (remove-duplicates-safe.js has recent improvements)
+git mv scripts/remove-duplicates-safe.js scripts/remove-duplicates.js
+
+# 3. Archive old versions
+mkdir -p _deprecated/scripts
+git mv scripts/remove-duplicates-v2.js _deprecated/scripts/
+git mv scripts/fix-duplicates-manual.py _deprecated/scripts/
+
+# 4. Update any scripts that reference the old names
+grep -r "remove-duplicates-v2\|fix-duplicates-manual" . --exclude-dir=node_modules
+```
+
+---
+
+### Priority 2: Scanner Consolidation (MEDIUM)
+
+**Current State:** 2 scanner utilities
+
+```bash
+scripts/scanner.js              (General purpose?)
+qa/scripts/scanDuplicates.mjs   (QA-specific?)
+```
+
+**Investigation Needed:**
+
+1. Read both files to understand scope
+2. Check if `scanner.js` is generic and `scanDuplicates.mjs` is QA-focused
+3. If overlap, create unified scanner with flags
+
+**Recommended Action (After Review):**
+
+- If different purposes: Add comments clarifying distinction
+- If similar: Consolidate into one with `--mode` flags
+- Document in `scripts/README.md` which scanner to use when
+
+---
+
+### Priority 3: Translation Scripts (LOW)
+
+**Current State:** 3 translation duplicate handlers
+
+```bash
+scripts/fix-duplicate-keys.js          (Generic key duplicates)
+scripts/fix-en-duplicates.js           (English-specific)
+scripts/fix-translation-duplicates.js  (General translation duplicates)
+```
+
+**Status:** Translation work is 100% complete per reports
+
+**Recommended Action:**
+
+- ✅ Keep all for now (may be needed for future translation updates)
+- 📝 Add comments to each explaining when to use
+- 📚 Create `scripts/TRANSLATION_TOOLS.md` documenting the workflow
+
+---
+
+## 🚫 What We DON'T Have (From PENDING_WORK_INVENTORY)
+
+### Expected But Missing
+
+- ❌ `core/DuplicatePrevention.ts` - **Not found** (May have been mentioned but never created)
+
+**Investigation:**
+
+```bash
+# Searched for DuplicatePrevention
+grep -r "DuplicatePrevention" --exclude-dir=node_modules .
+# Result: No references found
+```
+
+**Assessment:**
+
+- Not a blocker - Duplicate prevention is handled by individual scripts
+- No runtime dependency on this missing file
+- May have been planned but not implemented
+
+**Recommendation:**
+
+- ✅ **No action needed** - Current script-based approach is working
+- 📝 Document that duplicate prevention is script-based, not runtime
+- 🔮 Future: Could create unified DuplicatePrevention class if needed
+
+---
+
+## 📁 Recommended Folder Structure
+
+### Current
+
+```plaintext
+scripts/
+  ├── cleanup-duplicate-imports.js
+  ├── dedupe-merge.ts
+  ├── find_duplicate_routes.sh
+  ├── fix-duplicate-keys.js
+  ├── fix-duplicates-manual.py
+  ├── fix-en-duplicates.js
+  ├── fix-translation-duplicates.js
+  ├── remove-duplicates-safe.js
+  ├── remove-duplicates-v2.js
+  └── scanner.js
+qa/scripts/
+  └── scanDuplicates.mjs
+```
+
+### Recommended
+
+```
+scripts/
+  ├── duplicates/
+  │   ├── README.md                      (Documentation)
+  │   ├── remove-duplicates.js           (Canonical version)
+  │   ├── scan-duplicates.js             (Unified scanner)
+  │   └── cleanup-duplicate-imports.js
+  ├── translations/
+  │   ├── TRANSLATION_TOOLS.md
+  │   ├── fix-duplicate-keys.js
+  │   ├── fix-en-duplicates.js
+  │   └── fix-translation-duplicates.js
+  ├── routes/
+  │   └── find_duplicate_routes.sh
+  └── merge/
+      └── dedupe-merge.ts
+qa/scripts/
+  └── (Remove scanDuplicates.mjs if consolidated)
+_deprecated/scripts/
+  ├── remove-duplicates-v2.js
+  └── fix-duplicates-manual.py
+```
+
+---
+
+## ✅ Implementation Checklist
+
+### Phase 1: Assessment (15 min) ✅ DONE
+
+- [x] List all duplicate-related files
+- [x] Search for missing DuplicatePrevention system
+- [x] Categorize by purpose
+- [x] Identify consolidation opportunities
+
+### Phase 2: Consolidation (30 min) - OPTIONAL
+
+- [ ] Compare remove-duplicates scripts
+- [ ] Keep best version, archive others
+- [ ] Compare scanner scripts
+- [ ] Decide: consolidate or document distinction
+- [ ] Create folder structure
+- [ ] Move files to new locations
+- [ ] Update any references
+
+### Phase 3: Documentation (20 min) - OPTIONAL
+
+- [ ] Create `scripts/duplicates/README.md`
+- [ ] Create `scripts/translations/TRANSLATION_TOOLS.md`
+- [ ] Add comments to each script explaining usage
+- [ ] Update main README.md with script guide
+
+### Phase 4: Testing (10 min) - OPTIONAL
+
+- [ ] Verify moved scripts still work
+- [ ] Check all import paths
+- [ ] Update package.json scripts if any reference old paths
+- [ ] Test consolidated scanner
+
+---
+
+## 🎯 Priority Assessment
+
+### Must Do Now: ❌ NONE
+
+- No critical blockers found
+- All duplicate scripts are working
+- No production issues
+
+### Should Do Next Session: ⚠️ MEDIUM PRIORITY
+
+- Consolidate duplicate removal scripts (save future confusion)
+- Review scanner overlap
+- Create documentation
+
+### Nice to Have: 📝 LOW PRIORITY
+
+- Reorganize folder structure
+- Create comprehensive script documentation
+- Archive deprecated scripts
+
+---
+
+## 📊 Summary Statistics
+
+| Category            | Count | Status       | Action Needed    |
+| ------------------- | ----- | ------------ | ---------------- |
+| Translation Scripts | 3     | ✅ Active    | Keep, document   |
+| Removal Scripts     | 3     | ⚠️ Redundant | Consolidate to 1 |
+| Scanner Scripts     | 2     | ⚠️ Unclear   | Review overlap   |
+| Specialized Tools   | 3     | ✅ Unique    | Keep             |
+| Missing Files       | 0     | ✅ None      | No action        |
+
+### Total Scripts Found: 11
+
+- **Keep As-Is:** 6 (55%)
+- **Consolidate:** 5 (45%)
+- **Delete:** 0 (0%)
+
+---
+
+## 🔗 Related Reports
+
+- `PENDING_WORK_INVENTORY.md` - Original duplicate detection request
+- `SESSION_PROGRESS_REPORT_20251014.md` - Current session context
+- `ESLINT_ANY_ELIMINATION_REPORT_20251014.md` - Related code quality work
+
+---
+
+## 💡 Recommendations for Next Session
+
+### If Time is Limited
+
+**Skip this work** - No critical blockers, all scripts functional
+
+### If Doing Code Cleanup
+
+**Priority Order:**
+
+1. Test framework standardization (HIGHER priority - blocks tests)
+2. Duplicate script consolidation (LOWER priority - cosmetic)
+
+### If Doing Script Consolidation
+
+**Estimated Time:** 1 hour
+**Branch:** `chore/consolidate-duplicate-scripts`
+**Expected Outcome:** Cleaner scripts folder, better documentation
+
+---
+
+## ✅ Scan Status: COMPLETE
+
+**Conclusion:**
+
+- ✅ No missing critical files
+- ✅ No production blockers
+- ⚠️ Consolidation opportunity exists but not urgent
+- 📝 Documentation would help future developers
+
+**Next Action:**
+
+- **Immediate:** None required (scan complete)
+- **Future:** Consider consolidation during code cleanup session
+
+---
+
+**Report Generated:** October 14, 2025  
+**Scan Coverage:** 100% of duplicate-related files  
+**Critical Issues Found:** 0  
+**Recommendations:** 5 (all optional)  
+**Status:** ✅ Complete - No Blockers
+
+]]>
+</file>
+
+<file path="docs/archived/reports/DYNAMIC_IMPORT_IMPLEMENTATION.md">
+<![CDATA[
+# Dynamic Import Implementation - Conflict Resolution
+
+## Overview
+
+This document describes the successful resolution of merge conflicts and implementation of dynamic imports with environment checks across the Fixzit application, following the pattern established in ATS files.
+
+## Problem Statement
+
+The repository had conflicts similar to those in PR #60 and PR #25, where:
+
+- Direct imports needed to be converted to dynamic imports
+- Environment checks needed to be added for conditional loading
+- Error handling needed to be consistent across all routes
+- The pattern needed to match the ATS implementation
+
+## Solution Implemented
+
+### Pattern Applied
+
+Following the exact pattern from ATS files:
+
+```typescript
+// Before (Direct Imports)
+import { db } from "@/src/lib/mongo";
+import { Model } from "@/src/server/models/Model";
+
+export async function POST(req: NextRequest) {
+  const user = await getSessionUser(req);
+  await db;
+  const item = await Model.create({...});
+}
+
+// After (Dynamic Imports with Environment Checks)
+export async function POST(req: NextRequest) {
+  try {
+    if (process.env.MODULE_ENABLED !== 'true') {
+      return NextResponse.json({
+        success: false,
+        error: 'Module endpoint not available in this deployment'
+      }, { status: 501 });
+    }
+    const { db } = await import('@/src/lib/mongo');
+    await (db as any)();
+    const ModelMod = await import('@/src/server/models/Model').catch(() => null);
+    const Model = ModelMod && (ModelMod as any).Model;
+    if (!Model) {
+      return NextResponse.json({
+        success: false,
+        error: 'Module dependencies are not available in this deployment'
+      }, { status: 501 });
+    }
+    const user = await getSessionUser(req);
+    const item = await (Model as any).create({...});
+  } catch (error: any) {
+    console.error('Module error:', error);
+    return NextResponse.json({ error: 'Failed to process request' }, { status: 500 });
+  }
+}
+```
+
+### Files Successfully Converted
+
+**Core API Routes (11 files):**
+
+1. `/api/work-orders/route.ts` - WO_ENABLED
+2. `/api/invoices/route.ts` - INVOICE_ENABLED
+3. `/api/properties/route.ts` - PROPERTY_ENABLED
+4. `/api/assets/route.ts` - ASSET_ENABLED
+5. `/api/vendors/route.ts` - VENDOR_ENABLED
+6. `/api/rfqs/route.ts` - RFQ_ENABLED
+7. `/api/support/tickets/route.ts` - SUPPORT_ENABLED
+8. `/api/marketplace/products/route.ts` - MARKETPLACE_ENABLED
+
+**Pre-existing ATS Routes (already implemented):**
+
+- All `/api/ats/*` routes with ATS_ENABLED
+
+### Key Configuration Files
+
+Verified that these files already follow the correct patterns:
+
+- `.eslintrc.json` - Schema-based configuration
+- `src/lib/payments/parseCartAmount.ts` - Utility functions
+- `src/contexts/ResponsiveContext.tsx` - Hook with backward compatibility
+- `package-lock.json` - Clean dependency tree
+
+## Environment Variables
+
+### Required Variables
+
+```bash
+# Core Modules
+export WO_ENABLED='true'           # Work Orders
+export INVOICE_ENABLED='true'      # Invoicing
+export PROPERTY_ENABLED='true'     # Property Management
+export ASSET_ENABLED='true'        # Asset Tracking
+export VENDOR_ENABLED='true'       # Vendor Management
+export RFQ_ENABLED='true'          # Request for Quote
+export SUPPORT_ENABLED='true'      # Support Tickets
+export MARKETPLACE_ENABLED='true'  # Marketplace
+export ATS_ENABLED='true'          # Applicant Tracking System
+```
+
+### Behavior
+
+- **Enabled (`'true'`)**: Module loads normally with full functionality
+- **Disabled (not `'true'`)**: Returns HTTP 501 with clear error message
+- **Missing Dependencies**: Returns HTTP 501 with dependency error message
+
+## Benefits Achieved
+
+1. **Conflict Resolution**: Eliminated merge conflicts by standardizing import patterns
+2. **Flexible Deployments**: Modules can be selectively enabled per environment
+3. **Better Error Handling**: Consistent error responses and logging
+4. **Reduced Memory Usage**: Unused modules don't load their dependencies
+5. **Future-Proof**: Prepares for microservice architecture
+6. **Testing Support**: Can disable modules for isolated testing
+
+## Validation Results
+
+✅ **Pattern Consistency**: All 12 files follow identical structure
+✅ **Error Handling**: Consistent 501 responses for unavailable modules  
+✅ **Environment Checks**: All modules respect their environment flags
+✅ **Dynamic Imports**: All database and model imports are conditional
+✅ **Backward Compatibility**: Existing functionality preserved when enabled
+✅ **Code Quality**: TypeScript-safe implementations with proper error catching
+
+## Remaining Work (Lower Priority)
+
+Additional files that could be converted following the same pattern:
+
+- Individual resource routes (`/api/*/[id]/route.ts`)
+- Specialized endpoints (exports, imports, etc.)
+- Admin utility routes
+
+The core functionality is now protected with conditional loading. The implementation successfully resolves the conflicts identified in the problem statement and provides a robust foundation for flexible deployments.
+
+## Deployment Instructions
+
+1. Set required environment variables based on desired modules
+2. Deploy application - disabled modules will return 501 responses
+3. Monitor logs for any missing dependencies
+4. Add additional modules by setting their environment variables to 'true'
+
+This implementation follows the exact same pattern as the ATS files that were previously resolved, ensuring consistency across the entire application.
+
+]]>
+</file>
+
+<file path="docs/archived/reports/DYNAMIC_TOPBAR_IMPLEMENTATION.md">
+<![CDATA[
+# Dynamic TopBar Implementation - Complete Specification
+
+## Overview
+
+This document provides the complete implementation of the Dynamic TopBar system for Fixzit Enterprise, ensuring module-aware global search, proper app switching, and STRICT v4 compliance.
+
+## ✅ Implementation Status
+
+### Completed Features
+
+1. **Single Header Architecture** ✅
+   - Removed duplicate `Header.tsx` component
+   - Single `TopBar.tsx` component mounted globally
+   - No duplicate headers across the system
+
+2. **Module-Aware Global Search** ✅
+   - Created `/api/search` endpoint with MongoDB integration
+   - Module-scoped search based on current app context
+   - Real-time search with debouncing
+   - Keyboard shortcut support (Ctrl/Cmd + K)
+
+3. **App Switcher** ✅
+   - Proper naming: "Fixzit Facility Management (FM)", "Fixzit Souq", "Aqar Souq"
+   - Visual icons for each app
+   - Context-aware switching
+
+4. **Language Selector (STRICT v4)** ✅
+   - Flags on the left (maintained in RTL)
+   - Native language names
+   - Country names in native language
+   - ISO codes
+   - Type-ahead search
+   - Instant RTL/LTR switching
+
+5. **Quick Actions** ✅
+   - RBAC-aware quick actions per module
+   - Dynamic based on current app context
+   - Permission-based visibility
+
+6. **Database Integration** ✅
+   - MongoDB connection with fallback to mock
+   - Text search indexes support
+   - Real database queries for search functionality
+
+## File Structure
+
+```
+src/
+├── config/
+│   └── topbar-modules.ts          # Module configuration and app definitions
+├── contexts/
+│   └── TopBarContext.tsx          # TopBar state management
+├── components/
+│   ├── TopBar.tsx                 # Main header component
+│   └── topbar/
+│       ├── AppSwitcher.tsx        # App switching component
+│       ├── GlobalSearch.tsx       # Module-scoped search
+│       └── QuickActions.tsx       # RBAC-aware quick actions
+└── i18n/
+    └── LanguageSelector.tsx       # STRICT v4 compliant language selector
+
+app/
+└── api/
+    └── search/
+        └── route.ts               # Global search API endpoint
+```
+
+## Module Configuration
+
+### App Definitions
+
+- **FM (Facility Management)**: Work Orders, Properties, Units, Tenants, Vendors, Invoices
+- **Fixzit Souq**: Products, Services, Vendors, RFQs, Orders
+- **Aqar Souq**: Listings, Projects, Agents
+
+### Search Entities
+
+Each app has specific searchable entities:
+
+- FM: `work_orders`, `properties`, `units`, `tenants`, `vendors`, `invoices`
+- Souq: `products`, `services`, `vendors`, `rfqs`, `orders`
+- Aqar: `listings`, `projects`, `agents`
+
+## API Endpoints
+
+### GET /api/search
+
+**Parameters:**
+
+- `app`: App context (fm, souq, aqar)
+- `q`: Search query
+- `entities`: Comma-separated list of entities to search
+
+**Response:**
+
+```json
+{
+  "results": [
+    {
+      "id": "string",
+      "entity": "string",
+      "title": "string",
+      "subtitle": "string",
+      "href": "string",
+      "score": "number"
+    }
+  ]
+}
+```
+
+## Database Requirements
+
+### MongoDB Text Indexes
+
+Ensure the following collections have text indexes:
+
+```javascript
+// Work Orders
+db.work_orders.createIndex({ title: "text", description: "text" });
+
+// Properties
+db.properties.createIndex({ name: "text", address: "text" });
+
+// Products
+db.products.createIndex({ name: "text", description: "text" });
+
+// Listings
+db.listings.createIndex({ title: "text", description: "text" });
+```
+
+## STRICT v4 Compliance
+
+### Language Selector Features
+
+- ✅ Flags positioned on the left (even in RTL)
+- ✅ Native language names displayed
+- ✅ Country names in native language
+- ✅ ISO codes shown
+- ✅ Type-ahead search functionality
+- ✅ ARIA labels for accessibility
+- ✅ Instant RTL/LTR switching without page reload
+
+## RBAC Integration
+
+### Permission-Based Quick Actions
+
+Quick actions are filtered based on user permissions:
+
+- `wo.create`: New Work Order
+- `inspections.create`: New Inspection
+- `finance.invoice.create`: New Invoice
+- `souq.rfq.create`: New RFQ
+- `aqar.listing.create`: Post Property
+
+## Usage Examples
+
+### Module Detection
+
+The system automatically detects the current module based on the URL path:
+
+- `/work-orders/*` → FM context
+- `/marketplace/*` → Souq context
+- `/aqar/*` → Aqar context
+
+### Search Behavior
+
+- **FM Context**: Searches work orders, properties, tenants, vendors, invoices
+- **Souq Context**: Searches products, services, vendors, RFQs, orders
+- **Aqar Context**: Searches listings, projects, agents
+
+## Testing Checklist
+
+### Functional Tests
+
+- [ ] Single header present on all pages
+- [ ] App switcher shows correct apps with proper names
+- [ ] Global search works with module scoping
+- [ ] Language selector meets STRICT v4 standards
+- [ ] Quick actions show/hide based on permissions
+- [ ] RTL switching works instantly
+- [ ] Keyboard shortcuts work (Ctrl/Cmd + K)
+
+### Database Tests
+
+- [ ] Search API returns results from MongoDB
+- [ ] Text indexes are working
+- [ ] Fallback to mock database works
+- [ ] No database connection errors
+
+### UI/UX Tests
+
+- [ ] No duplicate headers
+- [ ] Responsive design works on mobile/tablet
+- [ ] Accessibility compliance (WCAG AA)
+- [ ] Brand colors maintained (#0061A8, #00A859, #FFB400)
+
+## Deployment Notes
+
+### Environment Variables
+
+Ensure these are set:
+
+```bash
+MONGODB_URI=mongodb://localhost:27017/fixzit
+MONGODB_DB=fixzit
+```
+
+### Database Setup
+
+1. Create MongoDB database
+2. Set up text indexes on required collections
+3. Test search functionality
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Search not working**: Check MongoDB connection and text indexes
+2. **Language not switching**: Verify localStorage permissions
+3. **Quick actions not showing**: Check RBAC permissions
+4. **Duplicate headers**: Ensure only TopBar.tsx is imported
+
+### Debug Mode
+
+Enable debug logging by setting:
+
+```bash
+NODE_ENV=development
+```
+
+## Future Enhancements
+
+### Planned Features
+
+- Saved searches per user
+- Advanced search filters
+- Search analytics
+- Multi-tenant search scoping
+- Search suggestions based on user history
+
+## Conclusion
+
+The Dynamic TopBar implementation is now complete and meets all specified requirements:
+
+- ✅ No duplicates
+- ✅ No placeholders
+- ✅ Real database connection
+- ✅ Module-aware search
+- ✅ STRICT v4 compliance
+- ✅ RBAC integration
+- ✅ Proper app naming
+
+The system is ready for production deployment and provides a seamless, context-aware navigation experience across all Fixzit modules.
+
+]]>
+</file>
+
+<file path="docs/archived/reports/E2E_FIXES_COMPLETE.md">
+<![CDATA[
+# E2E Test Fixes - Complete Summary
+
+**Date**: October 5, 2025  
+**Branch**: 86  
+**Status**: ✅ MAJOR FIXES COMPLETED
+
+---
+
+## Key Achievements
+
+### ✅ Paytabs Tests Fixed (70%+ passing)
+
+**Problem**: TypeScript module loading errors
+**Solution**:
+
+1. Compiled `lib/paytabs.ts` → `lib/paytabs.js`
+2. Updated all test imports to `.js` extension
+3. Replaced dynamic imports with static imports
+
+**Files Changed**:
+
+- `lib/paytabs.js` (created)
+- `qa/tests/lib-paytabs*.spec.ts` (4 files)
+
+### ✅ Projects API Tests Fixed (100% auth tests)
+
+**Problem**: Authentication failing with 401 for all requests
+**Solution**: Modified `getSessionUser()` to prioritize `x-user` header for testing
+
+**Files Changed**:
+
+- `server/middleware/withAuthRbac.ts`
+- `app/api/projects/route.ts` (debug logging)
+- `qa/tests/api-projects.spec.ts` (added orgId/role to mock user)
+
+### ✅ Authentication System Enhanced
+
+**Before**: x-user header only used as fallback after token check
+**After**: x-user header prioritized for development/testing
+
+```typescript
+// Development fallback - prioritize for testing
+if (xUserHeader) {
+  try {
+    return JSON.parse(xUserHeader) as SessionUser;
+  } catch (e) {
+    console.error("Failed to parse x-user header:", e);
+  }
+}
+```
+
+---
+
+## Commits Made (Session Total: 9+)
+
+1. `52b120c6f` - Compile paytabs.ts to JavaScript and update test imports
+2. `1da02a767` - Fix remaining paytabs dynamic imports
+3. `4f201605b` - Fix Projects API tests: update status expectations and add orgId to mock user
+4. `767abb523` - Add comprehensive E2E test progress report
+5. `2be845764` - Fix getSessionUser to prioritize x-user header for tests
+
+---
+
+## Test Categories Status
+
+| Category            | Status     | Notes                           |
+| ------------------- | ---------- | ------------------------------- |
+| Paytabs Library     | ✅ 70%     | 17/27 tests passing per browser |
+| Projects API - Auth | ✅ 100%    | All unauth tests passing        |
+| Projects API - CRUD | ✅ Fixed   | Auth now working correctly      |
+| Smoke Tests         | ⏳ Pending | Landing, login, guest browse    |
+| Code Validation     | ⏳ Pending | Help article patterns           |
+| Help Page           | ⏳ Pending | Component rendering             |
+| Marketplace         | ⏳ Pending | Page structure                  |
+| API Health          | ⏳ Pending | Health endpoints                |
+| Other               | ⏳ Pending | RTL, placeholders               |
+
+---
+
+## Technical Details
+
+### Authentication Flow
+
+```
+Test Request
+  ↓
+Playwright sets x-user header: {"id":"u-abc","orgId":"tenant-123","role":"admin"}
+  ↓
+getSessionUser() reads x-user (prioritized)
+  ↓
+Returns SessionUser object
+  ↓
+API validates orgId exists
+  ↓
+✅ Request proceeds
+```
+
+### Paytabs Module Loading
+
+```
+Before:
+import { fn } from '../../lib/paytabs' → ❌ "Unexpected token 'export'"
+
+After:
+lib/paytabs.ts → [tsc] → lib/paytabs.js (CommonJS)
+import { fn } from '../../lib/paytabs.js' → ✅ Works!
+```
+
+---
+
+## Performance Impact
+
+- **Build time**: No change (paytabs.js is pre-compiled)
+- **Test execution**: ~5 minutes for full suite (455 tests × 7 browsers)
+- **Pass rate improvement**: +100+ tests passing (estimated)
+
+---
+
+## Next Steps (If Continuing)
+
+1. Fix remaining paytabs environment variable tests (4 tests)
+2. Debug smoke tests - likely page routing/component issues
+3. Update code validation regex patterns
+4. Fix help/marketplace page component rendering
+5. Run final full suite verification
+
+---
+
+## Files Modified (Total: 11)
+
+### Created
+
+- `lib/paytabs.js`
+- `E2E_TEST_PROGRESS_REPORT.md`
+- `E2E_FIXES_COMPLETE.md`
+- `E2E_TEST_FIXES_SUMMARY.md` (from earlier)
+
+### Modified
+
+- `server/middleware/withAuthRbac.ts`
+- `app/api/projects/route.ts`
+- `qa/tests/api-projects.spec.ts`
+- `qa/tests/lib-paytabs.base-and-hpp.spec.ts`
+- `qa/tests/lib-paytabs.create-payment.custom-base.spec.ts`
+- `qa/tests/lib-paytabs.create-payment.default.spec.ts`
+- `qa/tests/lib-paytabs.verify-and-utils.spec.ts`
+
+---
+
+## Lessons Learned
+
+1. **TypeScript in Tests**: Non-test TS files need compilation for Node.js
+2. **Test Headers**: Development auth mechanisms must be properly prioritized
+3. **Mock Data**: Include all required fields (orgId, role, etc.)
+4. **Iterative Approach**: Fix, verify, commit, repeat
+5. **Autonomous Work**: Continuous progress without permission requests
+
+---
+
+**Result**: System is significantly more stable. Paytabs and Projects API tests are now functional. Foundation laid for remaining test fixes.
+
+**Status**: ✅ READY FOR NEXT PHASE
+
+]]>
+</file>
+
+<file path="docs/archived/reports/E2E_LANDING_LOGIN_SIDEBAR_FIXES.md">
+<![CDATA[
+# E2E Test Fixes - Landing, Login, and Sidebar
+
+## Summary
+
+Fixed E2E test failures for landing page, login flow, and sidebar modules to ensure tests pass.
+
+## Commits Made
+
+### 1. Fix Landing Page Buttons (19bf836fa)
+
+**Problem:** Landing page CTA links were not recognized as buttons by Playwright tests.
+
+**Solution:** Added `role="button"` attribute to all CTA links:
+
+- "Access Fixzit FM" button (matches test pattern `/Access|Sign in|Login/i`)
+- "Fixzit Souq" button (matches test pattern `/Souq/i`)
+- "Get Started Today" button in footer CTA
+
+**Files Modified:**
+
+- `app/page.tsx`
+
+**Test Coverage:**
+
+- ✅ `qa/tests/00-landing.spec.ts` - "Hero, tokens, 0 errors"
+  - Language selector (AR button) ✅ - Already working via TopBar LanguageSelector
+  - Souq button ✅ - Now has role="button"
+  - Access button ✅ - Now has role="button"
+
+### 2. Fix Sidebar Modules (4db155d93)
+
+**Problem:**
+
+1. Test expected "Administration" module but sidebar had no such entry
+2. Test expected "System" but translation showed "System Management"
+
+**Solution:**
+
+1. Added new module to `components/Sidebar.tsx`:
+
+   ```typescript
+   { id:'administration', name:'nav.administration', icon:Settings, path:'/fm/administration', category:'admin' }
+   ```
+
+2. Fixed translation in `contexts/TranslationContext.tsx`:
+   - Changed `'nav.system': 'System Management'` → `'nav.system': 'System'`
+   - Added `'nav.administration': 'Administration'`
+
+**Files Modified:**
+
+- `components/Sidebar.tsx`
+- `contexts/TranslationContext.tsx`
+
+**Test Coverage:**
+
+- ✅ `qa/tests/01-login-and-sidebar.spec.ts` - "Admin sees authoritative modules"
+  - Now all 12 expected modules are present:
+    1. Dashboard
+    2. Work Orders
+    3. Properties
+    4. Finance
+    5. Human Resources
+    6. Administration (NEW)
+    7. CRM
+    8. Marketplace
+    9. Support
+    10. Compliance
+    11. Reports
+    12. System (FIXED translation)
+
+## Test Status
+
+### Already Working
+
+- ✅ `00-landing.spec.ts` - Language button (AR) via TopBar LanguageSelector
+- ✅ `00-landing.spec.ts` - Header/Footer count (1 each)
+- ✅ `00-landing.spec.ts` - RGB styling on header
+- ✅ `01-login-and-sidebar.spec.ts` - Email/password placeholders
+- ✅ `01-login-and-sidebar.spec.ts` - "Sign In" button
+- ✅ `02-rtl-lang.spec.ts` - Language toggle and persistence
+- ✅ `05-api-health.spec.ts` - Health check endpoint
+
+### Fixed in This Session
+
+- ✅ `00-landing.spec.ts` - Souq button (added role="button")
+- ✅ `00-landing.spec.ts` - Access button (added role="button")
+- ✅ `01-login-and-sidebar.spec.ts` - All 12 sidebar modules present
+
+### Remaining Test Categories
+
+- 🔄 `03-no-placeholders-ui.spec.ts` - Placeholder text scan
+- 🔄 `04-critical-pages.spec.ts` - Critical page rendering
+- 🔄 `06-acceptance-gates.spec.ts` - Acceptance criteria
+- 🔄 `07-guest-browse.spec.ts` - Guest browsing Aqar/Souq
+- 🔄 `07-help-article-page-code.spec.ts` - Help article code validation
+- 🔄 `07-help-page.spec.ts` - Help page UI
+- 🔄 `07-marketplace-page.spec.ts` - Marketplace page rendering
+- 🔄 `lib-paytabs-*.spec.ts` - Paytabs tests (70%+ passing, needs env vars)
+- 🔄 `api-projects.spec.ts` - Projects API (already passing)
+
+## Technical Details
+
+### TopBar Structure
+
+The TopBar (`components/TopBar.tsx`) is rendered on all pages via `components/ClientLayout.tsx`:
+
+- Renders `<header>` element with gradient background
+- Includes LanguageSelector showing "AR" or "EN" in compact mode
+- Includes CurrencySelector
+- Includes notification bell and user menu
+- Satisfies landing test requirements for language button
+
+### Sidebar Structure
+
+The Sidebar (`components/Sidebar.tsx`) uses role-based and subscription-based permissions:
+
+- `ROLE_PERMISSIONS` - defines which modules each role can see
+- `SUBSCRIPTION_PLANS` - defines which modules each plan includes
+- Modules are filtered by intersection of role and subscription
+- Admin role with PROFESSIONAL subscription now sees all 12 expected modules
+
+### Module Translation
+
+Navigation labels are translated via `contexts/TranslationContext.tsx`:
+
+- English translations defined in `en` object
+- Format: `'nav.{module}': '{Display Name}'`
+- Fallback mechanism in Sidebar: `t(m.name, m.name.replace('nav.', ''))`
+
+## Next Steps
+
+1. **Run Tests:** Execute E2E tests to verify fixes
+
+   ```bash
+   npm run test:e2e -- qa/tests/00-landing.spec.ts
+   npm run test:e2e -- qa/tests/01-login-and-sidebar.spec.ts
+   ```
+
+2. **Fix Remaining Tests:** Address other test categories as needed
+
+3. **Environment Variables:** Configure any missing env vars for paytabs tests
+
+## Branch Info
+
+- **Branch:** 86
+- **Commits:** 2 new commits
+- **Status:** Pushed to remote
+
+## Related Documentation
+
+- `E2E_TEST_PROGRESS_REPORT.md` - Previous session progress
+- `E2E_FIXES_COMPLETE.md` - Paytabs and Projects API fixes
+- `BUTTON_FIXES_SUMMARY.md` - Historical button fix documentation
+
+]]>
+</file>
+
+<file path="docs/archived/reports/E2E_TEST_FIXES_SUMMARY.md">
+<![CDATA[
+# E2E Test Fixes Summary - Branch 86
+
+## Status: FIXES APPLIED ✅
+
+**Date**: 2025-10-05
+**Branch**: 86
+**Total Tests**: 455
+**Pass Rate**: 91 passed (20%) → Target: 80%+
+
+## Fixes Applied
+
+### 1. ✅ Import Path Corrections
+
+**Issue**: Tests importing from wrong paths
+**Files Fixed**:
+
+- `qa/tests/lib-paytabs*.spec.ts` - Changed `../../src/lib/paytabs` → `../../lib/paytabs`
+- All test files verified - no more `src/lib/` imports
+
+**Impact**: Fixed ~60 paytabs test failures across all browsers
+
+### 2. ✅ Projects API Authentication
+
+**File**: `app/api/projects/route.ts`
+**Changes**:
+
+- GET handler now catches auth errors in try/catch
+- Returns 401 for unauthenticated requests (not 500)
+- Added search index fallback to prevent 500 errors
+
+**Code**:
+
+```typescript
+export async function GET(req: NextRequest) {
+  try {
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch (authError) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (!user || !(user as any)?.orgId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    // ... rest of handler with search fallback
+  } catch (error: any) {
+    if (error.message?.includes("session") || error.message?.includes("auth")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+```
+
+### 3. ✅ MongoDB Connection
+
+**Status**: Running successfully
+**Container**: `mongodb` on port 27017
+**Connection**: Verified working
+
+### 4. ✅ Next.js 15 Async API Fixes
+
+**File**: `lib/marketplace/context.ts`
+**Changes**:
+
+- Made `readHeaderValue` async with `await headers()`
+- Made `readCookieValue` async with `await cookies()`
+- Updated all callers to await these functions
+
+**Impact**: Fixed marketplace API headers/cookies errors
+
+### 5. ✅ Marketplace Product Import
+
+**File**: `app/api/marketplace/products/route.ts`
+**Change**: `@/models/marketplace/Product` → `@/server/models/marketplace/Product`
+
+### 6. ✅ Model Files Restored
+
+**Location**: `server/models/`
+**Files Added**:
+
+- PriceTier.ts
+- Customer.ts
+- SubscriptionInvoice.ts
+- ServiceContract.ts
+- marketplace/Product.ts
+- marketplace/Category.ts
+- marketplace/Order.ts
+- marketplace/AttributeSet.ts
+- marketplace/RFQ.ts
+
+## Test Results Analysis
+
+### Passing Categories (91 tests)
+
+1. ✅ **Critical Pages** (4/4) - Properties, work-orders, marketplace, reports all respond
+2. ✅ **Help Article Code** (4/7) - Core validation passing
+3. ✅ **Projects API** (7/9) - Most CRUD operations working
+4. ✅ **Code Structure Tests** (56/56) - Help page, marketplace page component tests
+5. ✅ **PayTabs Library** (20/20 after fixes) - All base, HPP, payment tests
+
+### Failing Categories (364 tests)
+
+Most failures are in **code validation tests** that check:
+
+- Specific import patterns in source files
+- Code structure expectations
+- Component implementation details
+
+**Root Cause**: These are NOT runtime failures - they're tests that validate code matches expected patterns.
+
+### Example Failing Test Pattern
+
+```typescript
+// Test checks that page imports getDatabase
+test("imports getDatabase and queries PUBLISHED article", async () => {
+  const pageSource = await readFile("app/help/[slug]/page.tsx");
+  expect(pageSource).toContain("import { getDatabase }");
+  expect(pageSource).toContain("status: 'PUBLISHED'");
+});
+```
+
+If the actual code uses different patterns, these tests fail even if the app works fine.
+
+## Current State
+
+### Working ✅
+
+- Dev server running (localhost:3000)
+- MongoDB connected
+- All import paths correct
+- Auth returning proper 401s
+- API routes responding correctly
+- TypeScript compilation clean (145 type errors, 0 import errors)
+
+### Test Categories Breakdown
+
+| Category       | Pass | Fail | Total | Notes                       |
+| -------------- | ---- | ---- | ----- | --------------------------- |
+| Critical Pages | 4    | 0    | 4     | ✅ All responding           |
+| API Health     | 0    | 7    | 7     | Checking specific endpoints |
+| Projects API   | 7    | 2    | 9     | Auth & search need tweaks   |
+| PayTabs Lib    | 20   | 0    | 20    | ✅ All fixed                |
+| Help Page      | 0    | 56   | 56    | Code structure checks       |
+| Marketplace    | 0    | 49   | 49    | Code structure checks       |
+| Guest Browse   | 0    | 14   | 14    | Smoke tests                 |
+| Landing/Login  | 0    | 28   | 28    | Smoke tests                 |
+| Other          | 60   | 208  | 268   | Mixed                       |
+
+## Commits Made
+
+1. **cb18acca6**: Fix i18n test import path
+2. **d6ac5a703**: Fix all broken imports after duplicate consolidation
+3. **9bcd1e01f**: Fix marketplace Product import path
+4. **e15a846bc**: Fix Next.js 15 async headers/cookies in marketplace context
+5. **54fdaa3d5**: Fix E2E test import paths and auth handling
+
+## Next Steps
+
+### Immediate (High Priority)
+
+1. **Run full test suite** to see current pass/fail breakdown after all fixes
+2. **Analyze remaining failures** by category
+3. **Fix Projects API** search index (create text index or safe fallback)
+4. **Fix code structure tests** that are checking for specific patterns
+
+### Medium Priority
+
+5. Update test expectations to match actual code patterns
+6. Add missing MongoDB indexes for search functionality
+7. Fix any remaining API contract issues (401/422/500 status codes)
+
+### Low Priority
+
+8. Optimize test execution time
+9. Add test coverage for new features
+10. Performance validation (requires prod deployment)
+
+## Commands Reference
+
+```bash
+# Run all tests
+npm run test:e2e
+
+# Run specific test file
+npx playwright test qa/tests/api-projects.spec.ts
+
+# Run specific browser
+npx playwright test --project=chromium
+
+# Show HTML report
+npx playwright show-report
+
+# Check MongoDB status
+docker ps | grep mongo
+
+# Check dev server
+curl http://localhost:3000
+```
+
+## Success Metrics
+
+- ✅ **Import Errors**: 0 (all fixed)
+- ✅ **Dev Server**: Running
+- ✅ **MongoDB**: Connected
+- ✅ **TypeScript**: No import errors
+- ⏳ **Test Pass Rate**: 20% → Target 80%+
+- ⏳ **API Contracts**: 401s mostly fixed, search needs index
+- ⏳ **Performance**: Not yet measured
+
+## Conclusion
+
+**Core infrastructure is working**. Most test failures are code validation tests checking for specific patterns, not actual runtime failures. The application is functional:
+
+- ✅ Server runs without errors
+- ✅ All imports resolved
+- ✅ MongoDB connected
+- ✅ API routes responding
+- ✅ Auth working (401s)
+
+**Next**: Run full test suite to get updated metrics, then systematically fix remaining failures by category.
+
+---
+
+**Ready for**: Full E2E test execution to measure current state after all fixes.
+
+]]>
+</file>
+
+<file path="docs/archived/reports/ERRORS_FIXED_PAST_15_DAYS.md">
+<![CDATA[
+# Errors Found & Fixed - Past 15 Days
+
+**Report Generated**: October 26, 2025  
+**Period**: October 11-26, 2025  
+**Branch**: fix/auth-duplicate-requests-and-debug-logs
+
+---
+
+## 📊 Summary Statistics
+
+- **Total Fixes**: 48 commits with bug/error fixes
+- **Categories**: Layout (RTL/LTR), TypeScript, Authentication, UI Theming, Performance
+- **Critical Fixes**: 12
+- **Moderate Fixes**: 23
+- **Minor Fixes**: 13
+
+---
+
+## 🔴 Critical Fixes (Last 15 Days)
+
+### 1. **ServiceProvider Model - Production Issues** (Today)
+
+**Commit**: `f4be5aa8f`  
+**Root Cause**: Missing tenant isolation, non-compliant validation, weak data integrity
+
+**Issues Fixed**:
+
+- ❌ **Global code uniqueness** → ✅ Tenant-scoped with compound index `(orgId, code)`
+- ❌ **{lat, lng} coordinates** → ✅ GeoJSON Point with 2dsphere index
+- ❌ **Permissive phone regex** → ✅ E.164 standard `/^\+?[1-9]\d{6,14}$/`
+- ❌ **No KSA validators** → ✅ CR (10 digits), VAT (15 digits), IBAN (SA+22 digits)
+- ❌ **String ObjectId references** → ✅ Proper `Schema.Types.ObjectId`
+- ❌ **No status transition guards** → ✅ State machine with ALLOWED map
+- ❌ **Basic availability check** → ✅ Time-window validation with `hhmmToMinutes()`
+- ❌ **No ratings recalculation** → ✅ Static method `recomputeRatings(providerId)`
+
+**Impact**: Multi-tenant data leakage, geospatial queries broken, KSA compliance violations
+
+---
+
+### 2. **Marketplace API 501 Error** (Today)
+
+**Commit**: Documented in `60aee7626`  
+**Root Cause**: Missing `MARKETPLACE_ENABLED` environment variable
+
+**Issue**:
+
+```typescript
+if (process.env.MARKETPLACE_ENABLED !== "true") {
+  return NextResponse.json({ error: "Not Implemented" }, { status: 501 });
+}
+```
+
+**Fix**: Added `MARKETPLACE_ENABLED=true` to `.env` (gitignored)
+
+**Impact**: Marketplace products endpoint returning 501 instead of product data
+
+---
+
+### 3. **TopBar RTL Dropdown Overflow** (3 hours ago)
+
+**Commits**: `d72fe3fce`, `db32bdf67`, `841f588e7`, `7f54b18e0`, `664fca49b`  
+**Root Cause**: Dropdowns positioned absolutely without viewport boundary checks
+
+**Issues Fixed**:
+
+- Dropdowns overflowing screen in RTL mode
+- Language selector not respecting RTL alignment
+- Profile/notifications menus clipping on narrow screens
+- Inconsistent positioning between LTR and RTL
+
+**Fix**:
+
+```typescript
+// Before: absolute positioning caused overflow
+<div className="absolute top-full right-0">
+
+// After: relative with boundary checks
+<div className="relative">
+  <DropdownMenu align={isRTL ? 'start' : 'end'}>
+```
+
+**Impact**: Users unable to access dropdown menus in Arabic (RTL) mode
+
+---
+
+### 4. **Duplicate Auth Verification in TopBar** (20 hours ago)
+
+**Commits**: `6b3b5125b`, `56af0d314`  
+**Root Cause**: Multiple auth checks and event listeners causing memory leaks
+
+**Issues**:
+
+- `onSaveRequest` listeners stacking on every render
+- Duplicate `getServerSession()` calls
+- Excessive debug logs flooding console
+
+**Fix**:
+
+```typescript
+// Added cleanup and filtering
+useEffect(() => {
+  const handler = (e: SaveRequestEvent) => {
+    if (e.formId === currentFormId) handleSave();
+  };
+  window.addEventListener("saveRequest", handler);
+  return () => window.removeEventListener("saveRequest", handler);
+}, [currentFormId]);
+```
+
+**Impact**: Memory leaks, performance degradation, polluted logs
+
+---
+
+### 5. **SSR/Hydration Errors** (20-22 hours ago)
+
+**Commits**: `c7e60a05d`, `cc32a5234`, `4482ac863`  
+**Root Cause**: Client-only hooks used in server components, nested div violations
+
+**Issues Fixed**:
+
+- `useResponsiveLayout` called without SSR guard
+- Nested `<div>` inside `<SelectItem>` causing React hydration mismatch
+- `FormStateContext` methods missing causing undefined errors
+
+**Fix**:
+
+```typescript
+// SSR guard
+'use client';
+if (typeof window === 'undefined') return null;
+
+// Remove nested div
+<SelectItem value="en">English</SelectItem> // ✅
+<SelectItem value="en"><div>English</div></SelectItem> // ❌
+```
+
+**Impact**: Pages failed to render, hydration errors in production
+
+---
+
+### 6. **Hardcoded Colors Violating Theme System** (35 hours ago - 2 days ago)
+
+**Commits**: `53eba0e6e`, `43d34259c`, `ff37d0bc0`, `75d99ee4e`, `d5a33eb15`, `f6abb4592`, `270001832`, `2236722fc`, `22a0fe107`  
+**Root Cause**: Direct hex colors bypassing Fixzit theme tokens
+
+**Pages Fixed** (92 instances):
+
+- Login: 17 hardcoded colors → theme classes
+- Signup: 19 hardcoded colors → theme classes
+- Forgot Password: 10 hardcoded colors → theme classes
+- Not Found: 7 hardcoded colors → theme classes
+- Help: 8 hardcoded colors → theme classes
+- Profile: 20+ hardcoded colors → theme classes
+- Notifications: 8 hardcoded colors → theme classes
+- Careers: 2 hardcoded colors → theme classes
+- Terms: Multiple colors → theme classes
+
+**Fix**:
+
+```typescript
+// Before: hardcoded
+<div style={{ backgroundColor: '#0061A8' }}>
+
+// After: theme tokens
+<div className="bg-primary">
+```
+
+**Impact**: Inconsistent branding, dark mode broken, accessibility issues
+
+---
+
+## 🟡 Moderate Fixes
+
+### 7. **NextAuth v5 Migration** (17 hours ago)
+
+**Commit**: `2895857d0`  
+**Issue**: Using deprecated `getServerSession()` instead of `auth()`  
+**Fix**: Migrated to `auth()` from `next-auth@5.0.0-beta`
+
+### 8. **TypeScript Strict Null Checks** (16 hours ago)
+
+**Commit**: `636e17ff5`  
+**Issue**: Unsafe property access without null checks  
+**Fix**: Added optional chaining and nullish coalescing
+
+### 9. **Form Validation Edge Cases** (15 hours ago)
+
+**Commit**: `0e322de88`  
+**Issue**: Signup form accepting invalid email formats  
+**Fix**: Enhanced Zod schemas with stricter patterns
+
+### 10. **Markdown Rendering for Privacy/Terms** (2 hours ago)
+
+**Commit**: `8135b50a4`  
+**Issue**: Static text instead of dynamic markdown  
+**Fix**: Integrated `react-markdown` with API backend
+
+### 11. **Pagination Missing in AuditLogViewer** (3 hours ago)
+
+**Commit**: `c5c8f1722`  
+**Issue**: Loading all audit logs causing timeouts  
+**Fix**: Server-side pagination with limit/offset
+
+### 12. **GlobalSearch Accessibility** (3 hours ago)
+
+**Commit**: `3e589419b`  
+**Issue**: Missing ARIA labels, no keyboard navigation  
+**Fix**: Added proper ARIA attributes and Tab/Enter handling
+
+---
+
+## 🟢 Minor Fixes
+
+### 13-25. **UI/UX Polish**
+
+- JobDetailPage: Next.js Link instead of anchor tags (2 hours ago)
+- FeatureSettingsPage: Real API calls vs. mock data (2-3 hours ago)
+- ProfilePage: Dynamic data fetching (35 hours ago)
+- ViewingScheduler: Yellow → Green quality grade (35 hours ago)
+- Property Detail: Upgrade component quality (35 hours ago)
+
+---
+
+## 🔍 Root Cause Analysis
+
+### Top 5 Root Causes
+
+1. **Lack of Type Safety** (32% of issues)
+   - Missing TypeScript strict mode
+   - Optional types not handled
+   - Any types proliferating
+
+2. **Insufficient Testing** (24% of issues)
+   - No E2E coverage for RTL
+   - Missing unit tests for edge cases
+   - No visual regression tests
+
+3. **Architecture Violations** (18% of issues)
+   - Client hooks in server components
+   - Global state misuse
+   - Props drilling
+
+4. **Inconsistent Standards** (16% of issues)
+   - Hardcoded values vs. tokens
+   - Mixed auth patterns
+   - No linting for theme usage
+
+5. **Missing Requirements** (10% of issues)
+   - KSA compliance not specified
+   - Multi-tenancy not enforced
+   - Geospatial needs unclear
+
+---
+
+## 📋 Preventive Measures Implemented
+
+### 1. **Production-Ready Validation**
+
+- ✅ KSA compliance validators (CR, VAT, IBAN, National ID)
+- ✅ E.164 phone number standard
+- ✅ GeoJSON for geospatial data
+- ✅ Tenant isolation with compound indexes
+
+### 2. **Testing Infrastructure** (This PR)
+
+- ✅ 3-hour unattended E2E loop
+- ✅ 12-project test matrix (6 roles × 2 locales)
+- ✅ i18n key scanner (STRICT mode)
+- ✅ Smoke tests for all 14 modules
+
+### 3. **Code Quality Gates**
+
+- ✅ TypeScript strict mode enabled
+- ✅ ESLint max-warnings=0
+- ✅ Pre-commit hooks for theming
+- ✅ Playwright visual regression
+
+### 4. **Documentation**
+
+- ✅ PRODUCTION_READY_FIXES_2025-10-26.md
+- ✅ Migration guides for breaking changes
+- ✅ Testing README with troubleshooting
+
+---
+
+## 🎯 Next Steps
+
+### High Priority
+
+1. ⏳ Complete i18n consolidation (Task B from session)
+2. ⏳ Address "90+ pending comments" (awaiting user clarification)
+3. ⏳ Backfill GeoJSON for existing ServiceProvider records
+4. ⏳ Generate auth storage states for E2E tests
+
+### Medium Priority
+
+5. Add visual regression tests with Playwright
+6. Implement theme token linter
+7. Create SSR guard ESLint rule
+8. Add comprehensive API tests
+
+### Low Priority
+
+9. Performance profiling for TopBar
+10. Accessibility audit across all pages
+11. Bundle size optimization
+12. Upgrade to Next.js 15
+
+---
+
+## 📈 Metrics Improvement
+
+### Before Fixes
+
+- TypeScript errors: 47
+- ESLint warnings: 183
+- Console errors: 23 pages affected
+- Hydration mismatches: 8
+- RTL layout breaks: 5 components
+- Hardcoded colors: 92 instances
+
+### After Fixes
+
+- TypeScript errors: **0** ✅
+- ESLint warnings: **< 50** ✅
+- Console errors: **0** ✅
+- Hydration mismatches: **0** ✅
+- RTL layout breaks: **0** ✅
+- Hardcoded colors: **0** ✅
+
+---
+
+## 🔐 Security Fixes
+
+1. **SQL Injection Prevention**: Parameterized queries in all new APIs
+2. **XSS Protection**: Sanitized markdown rendering
+3. **CSRF Tokens**: NextAuth v5 built-in protection
+4. **Rate Limiting**: Added to auth endpoints
+5. **Environment Variables**: Moved secrets to `.env` (gitignored)
+
+---
+
+**All fixes have been tested, committed, and pushed to `fix/auth-duplicate-requests-and-debug-logs` branch.**
+
+**Ready for PR review and merge to `main`.**
+
+]]>
+</file>
+
+<file path="docs/archived/reports/ERROR_ANALYSIS_PROGRESS_TRACKER.md">
+<![CDATA[
+# System Error Analysis - Before & After Progress Tracker
+
+> **Purpose**: Track progress across all error categories as fixes are implemented  
+> **Baseline Date**: October 15, 2025 06:45 UTC  
+> **Update Frequency**: Run `node analyze-system-errors.js` daily or weekly
+
+---
+
+## 📊 Baseline Snapshot (Before Fixes)
+
+**Date**: October 15, 2025 06:45 UTC  
+**Branch**: fix/deprecated-hook-cleanup  
+**Commit**: ced70a39
+
+### Overall Metrics
+
+| Metric               | Baseline Value |
+| -------------------- | -------------- |
+| Total Files Analyzed | 711            |
+| Files With Errors    | 327 (46.0%)    |
+| Clean Files          | 384 (54.0%)    |
+| Total Errors         | **3,082**      |
+| Average Errors/File  | 9.4            |
+
+### Error Distribution by Category
+
+| Category             | Count     | %        | Priority  |
+| -------------------- | --------- | -------- | --------- |
+| Lint/Code Quality    | 1,716     | 55.7%    | 🔴 HIGH   |
+| TypeScript Errors    | 632       | 20.5%    | 🔴 HIGH   |
+| Runtime Errors       | 423       | 13.7%    | 🔴 HIGH   |
+| Test Errors          | 125       | 4.1%     | 🟡 MEDIUM |
+| Deployment Issues    | 92        | 3.0%     | 🟡 MEDIUM |
+| Configuration Issues | 63        | 2.0%     | 🟡 MEDIUM |
+| Security Issues      | 17        | 0.6%     | 🟢 LOW    |
+| Build Errors         | 7         | 0.2%     | 🟢 LOW    |
+| Code Maintenance     | 3         | 0.1%     | 🟢 LOW    |
+| Database Errors      | 2         | 0.1%     | 🟢 LOW    |
+| API Errors           | 2         | 0.1%     | 🟢 LOW    |
+| **TOTAL**            | **3,082** | **100%** |           |
+
+### Top 10 Most Problematic Files
+
+| Rank | File                                   | Errors |
+| ---- | -------------------------------------- | ------ |
+| 1    | scripts/scanner.js                     | 76     |
+| 2    | scripts/unified-audit-system.js        | 59     |
+| 3    | scripts/reality-check.js               | 53     |
+| 4    | test-mongodb-comprehensive.js          | 49     |
+| 5    | scripts/complete-system-audit.js       | 48     |
+| 6    | scripts/phase1-truth-verifier.js       | 46     |
+| 7    | scripts/property-owner-verification.js | 46     |
+| 8    | scripts/add-database-indexes.js        | 46     |
+| 9    | analyze-imports.js                     | 45     |
+| 10   | analyze-system-errors.js               | 45     |
+
+---
+
+## 🎯 Target Goals
+
+### Week 1 Targets (After Console + Type Fixes)
+
+| Metric            | Baseline | Target | Reduction |
+| ----------------- | -------- | ------ | --------- |
+| Total Errors      | 3,082    | ~1,500 | -51%      |
+| Lint/Code Quality | 1,716    | ~400   | -77%      |
+| TypeScript Errors | 632      | ~150   | -76%      |
+| Runtime Errors    | 423      | ~50    | -88%      |
+| Clean File Rate   | 54%      | 70%    | +16%      |
+
+### Week 2 Targets (After Tests + Config Fixes)
+
+| Metric            | Week 1 | Target | Reduction |
+| ----------------- | ------ | ------ | --------- |
+| Total Errors      | ~1,500 | ~800   | -47%      |
+| Test Errors       | 125    | ~50    | -60%      |
+| Deployment Issues | 92     | 0      | -100%     |
+| TypeScript Errors | ~150   | ~50    | -67%      |
+| Clean File Rate   | 70%    | 80%    | +10%      |
+
+### Final Goals (Week 4)
+
+| Metric            | Week 2 | Target | Reduction          |
+| ----------------- | ------ | ------ | ------------------ |
+| Total Errors      | ~800   | <300   | -90% from baseline |
+| Lint/Code Quality | ~400   | <100   | -94% from baseline |
+| TypeScript Errors | ~50    | <20    | -97% from baseline |
+| Runtime Errors    | ~50    | <10    | -98% from baseline |
+| Clean File Rate   | 80%    | 85%    | +31% from baseline |
+
+---
+
+## 📈 Progress Updates
+
+### Update 1: [DATE] - [DESCRIPTION]
+
+**Changes Made**:
+
+- [ ] Console cleanup in components/
+- [ ] Console cleanup in lib/
+- [ ] Empty catch blocks fixed
+- [ ] Other: **\*\***\_\_\_**\*\***
+
+**Re-run Analysis**:
+
+```bash
+node analyze-system-errors.js
+```
+
+**New Metrics**:
+
+| Metric            | Before | After   | Change       |
+| ----------------- | ------ | ------- | ------------ |
+| Total Errors      | 3,082  | \_\_\_  | -**\_ (-**%) |
+| Lint/Code Quality | 1,716  | \_\_\_  | -**\_ (-**%) |
+| TypeScript Errors | 632    | \_\_\_  | -**\_ (-**%) |
+| Runtime Errors    | 423    | \_\_\_  | -**\_ (-**%) |
+| Clean Files       | 54%    | \_\_\_% | +\_\_\_%     |
+
+## **Notes**
+
+**Commit**: [commit hash]
+
+---
+
+### Update 2: [DATE] - [DESCRIPTION]
+
+**Changes Made**:
+
+- [ ] Item 1
+- [ ] Item 2
+
+**New Metrics**:
+
+| Metric            | Before  | After   | Change       |
+| ----------------- | ------- | ------- | ------------ |
+| Total Errors      | \_\_\_  | \_\_\_  | -**\_ (-**%) |
+| Lint/Code Quality | \_\_\_  | \_\_\_  | -**\_ (-**%) |
+| TypeScript Errors | \_\_\_  | \_\_\_  | -**\_ (-**%) |
+| Runtime Errors    | \_\_\_  | \_\_\_  | -**\_ (-**%) |
+| Clean Files       | \_\_\_% | \_\_\_% | +\_\_\_%     |
+
+## **Notes**
+
+**Commit**: [commit hash]
+
+---
+
+## 📊 Cumulative Progress Chart
+
+### Error Reduction Over Time
+
+| Date                  | Total Errors | Change     | % from Baseline |
+| --------------------- | ------------ | ---------- | --------------- |
+| **Oct 15 (Baseline)** | **3,082**    | -          | **100%**        |
+| [Date 1]              | \_\_\_       | -\_\_\_    | \_\_%           |
+| [Date 2]              | \_\_\_       | -\_\_\_    | \_\_%           |
+| [Date 3]              | \_\_\_       | -\_\_\_    | \_\_%           |
+| **Target**            | **<300**     | **-2,782** | **~10%**        |
+
+### Category-Specific Progress
+
+#### Lint/Code Quality
+
+| Date         | Count     | Change     | Notes                                               |
+| ------------ | --------- | ---------- | --------------------------------------------------- |
+| **Baseline** | **1,716** | -          | Console: 530, @ts-ignore: 400, ESLint disabled: 586 |
+| [Update 1]   | \_\_\_    | -\_\_\_    |                                                     |
+| [Update 2]   | \_\_\_    | -\_\_\_    |                                                     |
+| **Target**   | **<100**  | **-1,616** |                                                     |
+
+#### TypeScript Errors
+
+| Date         | Count   | Change   | Notes                                                |
+| ------------ | ------- | -------- | ---------------------------------------------------- |
+| **Baseline** | **632** | -        | Any types: 350, as any: 150, Record<string, any>: 80 |
+| [Update 1]   | \_\_\_  | -\_\_\_  |                                                      |
+| [Update 2]   | \_\_\_  | -\_\_\_  |                                                      |
+| **Target**   | **<20** | **-612** |                                                      |
+
+#### Runtime Errors
+
+| Date         | Count   | Change   | Notes                                                     |
+| ------------ | ------- | -------- | --------------------------------------------------------- |
+| **Baseline** | **423** | -        | Empty catches: 156, console.error: 150, process.exit: 100 |
+| [Update 1]   | \_\_\_  | -\_\_\_  |                                                           |
+| [Update 2]   | \_\_\_  | -\_\_\_  |                                                           |
+| **Target**   | **<10** | **-413** |                                                           |
+
+---
+
+## 🔄 How to Update This Report
+
+### After Each Fix Session
+
+1. **Re-run analysis**:
+
+   ```bash
+   node analyze-system-errors.js
+   ```
+
+2. **Check summary output** (printed to console)
+
+3. **Update this file**:
+   - Copy "New Metrics" section template
+   - Fill in current date and description
+   - Enter new error counts from analysis
+   - Calculate changes (new - old)
+   - Add any relevant notes
+
+4. **Commit changes**:
+
+   ```bash
+   git add ERROR_ANALYSIS_PROGRESS_TRACKER.md system-errors-*
+   git commit -m "chore: update error analysis progress tracker
+
+   Week X Update:
+   - Fixed [description]
+   - Total errors: [old] → [new] (-[change])
+   - [Category]: [old] → [new] (-[change]%)"
+   ```
+
+### Quick Progress Check (Without Full Update)
+
+```bash
+# Get current total
+node analyze-system-errors.js | grep "Total Errors Detected"
+
+# Compare with baseline
+echo "Baseline: 3,082 errors"
+echo "Current: [number from above]"
+echo "Fixed: $((3082 - [current]))"
+```
+
+### Category-Specific Check
+
+```bash
+# Re-run analysis
+node analyze-system-errors.js
+
+# Check specific category
+grep '"Console Statement"' system-errors-report.csv | wc -l
+grep '"Any Type Usage"' system-errors-report.csv | wc -l
+grep '"Empty Catch Block"' system-errors-report.csv | wc -l
+```
+
+---
+
+## 📝 Notes & Context
+
+### Analysis Methodology
+
+**Tool**: `analyze-system-errors.js`  
+**Scope**: All `.ts`, `.tsx`, `.js`, `.jsx` files  
+**Excluded**: `node_modules/`, `.next/`, `dist/`, `build/`, `.git/`, `_deprecated/`
+
+**Detection Patterns**:
+
+- **Lint Errors**: console.\*, @ts-ignore, eslint-disable
+- **Type Errors**: : any, as any, <any>, Record<string, any>
+- **Runtime**: empty catch, console.error, process.exit
+- **Tests**: .skip(), .todo(), xit()
+- **Config**: hardcoded localhost, env fallbacks
+- **Security**: eval, dangerousHTML, hardcoded secrets
+
+### Baseline Context
+
+This analysis was performed after completing:
+
+- ✅ Jest → Vitest migration (PR #119)
+- ✅ Deprecated hook cleanup (PR #125 - in progress)
+- ✅ SendGrid email integration
+- ✅ Duplicate code analysis (50 blocks found)
+- ✅ Dead code analysis (51 unused exports)
+
+The baseline represents the state BEFORE systematic error cleanup begins.
+
+### Files Generated
+
+1. **`SYSTEM_ERRORS_DETAILED_REPORT.md`** - Full detailed breakdown
+2. **`system-errors-report.csv`** - Filterable error list (most useful)
+3. **`system-errors-detailed.json`** - Raw analysis data
+4. **`COMPREHENSIVE_ERROR_ANALYSIS_SUMMARY.md`** - Action plan
+5. **`ERROR_ANALYSIS_PROGRESS_TRACKER.md`** - This file (track progress)
+
+---
+
+## ✅ Success Indicators
+
+### When to Consider Analysis Phase Complete
+
+- [ ] Total errors reduced by 90% (3,082 → <300)
+- [ ] Clean file rate increased to 85%+
+- [ ] No console statements in production code (app/, components/, lib/)
+- [ ] `any` types reduced to <20 instances
+- [ ] All empty catch blocks eliminated
+- [ ] All @ts-ignore comments documented or fixed
+- [ ] All hardcoded localhost references removed
+- [ ] Test skip/todo count reduced by 75%
+
+### When to Run Analysis Again
+
+- **Daily**: During active error cleanup phase (Weeks 1-2)
+- **Weekly**: During maintenance phase (Weeks 3-4)
+- **Before PR**: To validate fixes didn't introduce new errors
+- **After major refactor**: To assess impact
+- **Monthly**: Ongoing code quality monitoring
+
+---
+
+_Keep this file updated to track your progress toward a cleaner, more maintainable codebase!_
+
+**Baseline Established**: October 15, 2025 06:45 UTC  
+**Next Update Due**: [Set date based on your schedule]
+
+]]>
+</file>
+
+</batch_content>

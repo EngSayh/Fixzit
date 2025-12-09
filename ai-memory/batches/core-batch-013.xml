@@ -1,0 +1,2510 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="_artifacts/playwright/qa-tests-00-landing-Landin-4f893--smoke-Hero-tokens-0-errors-chromium/error-context.md">
+<![CDATA[
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic:
+    - button: Language English عربي
+    - generic:
+      - option: SAR
+      - option: USD
+  - link "Skip to content" [ref=e2]:
+    - /url: "#main-content"
+  - button "Open Next.js Dev Tools" [ref=e8] [cursor=pointer]:
+    - img [ref=e9]
+  - alert [ref=e12]
+  - generic [ref=e13]:
+    - banner "Fixzit global navigation" [ref=e14]:
+      - generic [ref=e15]:
+        - button "Back to Home" [ref=e17]:
+          - img "Fixzit" [ref=e18]
+          - generic [ref=e20]: FIXZIT ENTERPRISE
+        - generic [ref=e22]:
+          - generic [ref=e23]:
+            - img [ref=e24]
+            - combobox "Global search" [ref=e27]
+            - generic [ref=e28]:
+              - img [ref=e29]
+              - generic [ref=e31]: K
+          - generic [ref=e32]:
+            - button "Dashboard" [ref=e33]
+            - button "All" [ref=e34]
+        - generic [ref=e35]:
+          - 'button "Select language: English — United Kingdom (EN-GB)" [ref=e37]':
+            - img [ref=e38]
+            - generic [ref=e41]:
+              - generic [ref=e42]: 🇬🇧
+              - generic [ref=e43]: EN-GB
+          - generic [ref=e44]:
+            - generic:
+              - option: SAR
+              - option: USD
+            - button "Select currency SAR" [ref=e45]:
+              - img [ref=e46]
+              - generic [ref=e49]:
+                - generic [ref=e50]: 🇸🇦
+                - generic [ref=e51]: SAR
+          - link "Sign In" [ref=e52]:
+            - /url: /login
+    - main [ref=e53]:
+      - generic [ref=e54]:
+        - generic [ref=e56]:
+          - generic [ref=e57]:
+            - paragraph [ref=e58]: Facility Management · Marketplaces · Saudi-first
+            - heading "Operate properties with calm. Move money with confidence." [level=1] [ref=e59]:
+              - text: Operate properties with calm.
+              - text: Move money with confidence.
+            - paragraph [ref=e60]: "A brown, calm Fixzit shell: unified Work Orders, Properties, Finance, HR and Souq in a single, Apple-inspired interface built for Saudi FM teams."
+            - generic [ref=e61]:
+              - link "Sign in" [ref=e62]:
+                - /url: /login
+              - link "Book a live demo" [ref=e63]:
+                - /url: /help
+              - link "Pricing & Free Trial" [ref=e64]:
+                - /url: /pricing
+              - link "Apply as Vendor" [ref=e65]:
+                - /url: /vendor/apply
+            - generic [ref=e66]:
+              - generic [ref=e67]: Rapid RFQ
+              - generic [ref=e68]: Work Order linked orders
+              - generic [ref=e69]: Finance ready invoices
+          - generic [ref=e72]:
+            - generic [ref=e73]:
+              - heading "Complete facility management suite" [level=3] [ref=e74]
+              - paragraph [ref=e75]: Everything you need to manage properties, work orders, vendors, and finances in one unified platform.
+            - generic [ref=e76]:
+              - generic [ref=e77]:
+                - img [ref=e79]
+                - generic [ref=e81]:
+                  - paragraph [ref=e82]: Real-time work order tracking
+                  - paragraph [ref=e83]: Monitor status, SLAs, and team performance
+              - generic [ref=e84]:
+                - img [ref=e86]
+                - generic [ref=e88]:
+                  - paragraph [ref=e89]: Vendor & procurement management
+                  - paragraph [ref=e90]: RFQs, purchase orders, and vendor ratings
+              - generic [ref=e91]:
+                - img [ref=e93]
+                - generic [ref=e95]:
+                  - paragraph [ref=e96]: ZATCA-compliant invoicing
+                  - paragraph [ref=e97]: Automated billing with Saudi e-invoicing standards
+        - generic [ref=e99]:
+          - generic [ref=e100]:
+            - heading "Everything your FM operation needs — connected" [level=2] [ref=e101]
+            - paragraph [ref=e102]: "Brown, calm and structured: one shell for Work Orders, Properties, Finance, HR and Souq."
+          - generic [ref=e103]:
+            - generic [ref=e104]:
+              - heading "Work Orders" [level=3] [ref=e105]
+              - paragraph [ref=e106]: "Blue logic, brown theme: new, in progress, completed, overdue with SLA timers and photos."
+            - generic [ref=e107]:
+              - heading "Properties" [level=3] [ref=e108]
+              - paragraph [ref=e109]: Units, assets, leases, owners and tenants with health status per property.
+            - generic [ref=e110]:
+              - heading "Finance" [level=3] [ref=e111]
+              - paragraph [ref=e112]: Invoices, receipts, expenses and ZATCA-ready billing aligned with Fixzit finance flows.
+            - generic [ref=e113]:
+              - heading "HR" [level=3] [ref=e114]
+              - paragraph [ref=e115]: Technicians, supervisors, shifts and skills matrix with clean status chips.
+            - generic [ref=e116]:
+              - heading "CRM & Support" [level=3] [ref=e117]
+              - paragraph [ref=e118]: Tickets, SLAs and CSAT in a unified shell, ready for channels and bots.
+            - generic [ref=e119]:
+              - heading "Fixzit Souq" [level=3] [ref=e120]
+              - paragraph [ref=e121]: Vendor onboarding, catalogs and orders using your existing Souq logic in a calmer UI.
+    - contentinfo [ref=e122]:
+      - generic [ref=e123]:
+        - generic [ref=e124]:
+          - generic [ref=e125]: Fixzit
+          - link "Back to Home" [ref=e126]:
+            - /url: /
+            - img [ref=e127]
+            - generic [ref=e130]: Back to Home
+          - generic [ref=e131]:
+            - 'button "Select language: English — United Kingdom (EN-GB)" [ref=e133]':
+              - img [ref=e134]
+              - generic [ref=e137]:
+                - generic [ref=e138]: 🇬🇧
+                - generic [ref=e139]: EN-GB
+            - generic [ref=e140]:
+              - generic:
+                - option: SAR
+                - option: USD
+              - button "Select currency SAR" [ref=e141]:
+                - img [ref=e142]
+                - generic [ref=e145]:
+                  - generic [ref=e146]: 🇸🇦
+                  - generic [ref=e147]: SAR
+        - generic [ref=e148]:
+          - generic [ref=e149]:
+            - generic [ref=e150]: Company
+            - list [ref=e151]:
+              - listitem [ref=e152]:
+                - link "About" [ref=e153]:
+                  - /url: /about
+              - listitem [ref=e154]:
+                - link "Careers" [ref=e155]:
+                  - /url: /careers
+              - listitem [ref=e156]:
+                - link "Pricing" [ref=e157]:
+                  - /url: /pricing
+          - generic [ref=e158]:
+            - generic [ref=e159]: Legal
+            - list [ref=e160]:
+              - listitem [ref=e161]:
+                - link "Privacy" [ref=e162]:
+                  - /url: /privacy
+              - listitem [ref=e163]:
+                - link "Terms" [ref=e164]:
+                  - /url: /terms
+          - generic [ref=e165]:
+            - generic [ref=e166]: Support
+            - list [ref=e167]:
+              - listitem [ref=e168]:
+                - link "Help Center" [ref=e169]:
+                  - /url: /help
+              - listitem [ref=e170]:
+                - button "Open a ticket" [ref=e171]
+        - generic [ref=e172]:
+          - generic [ref=e173]:
+            - generic [ref=e174]: © 2025 Fixzit. All rights reserved.
+            - navigation "Fixzit trail" [ref=e175]:
+              - generic [ref=e176]: Fixzit
+              - generic [ref=e177]: ›
+              - generic [ref=e178]: Design System
+              - generic [ref=e179]: ›
+              - generic [ref=e180]: v2
+          - generic [ref=e181]:
+            - link "Privacy" [ref=e182]:
+              - /url: /privacy
+            - link "Terms" [ref=e183]:
+              - /url: /terms
+            - link "Support" [ref=e184]:
+              - /url: /support
+    - button "Ask Fixzit" [ref=e186]:
+      - img [ref=e187]
+  - region "Notifications alt+T"
+```
+]]>
+</file>
+
+<file path="_artifacts/playwright/results/.last-run.json">
+<![CDATA[
+{
+  "status": "failed",
+  "failedTests": []
+}
+]]>
+</file>
+
+<file path="_artifacts/playwright/results/results.json">
+<![CDATA[
+{
+  "config": {
+    "configFile": "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/tests/playwright.config.ts",
+    "rootDir": "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/tests",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/tests/setup-auth.ts",
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        {
+          "outputFolder": "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/_artifacts/playwright/html-report",
+          "open": "never"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/_artifacts/playwright/results/results.json"
+        }
+      ],
+      [
+        "list",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/_artifacts/playwright/results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/tests",
+        "testIgnore": [
+          "**/*.test.ts",
+          "**/*.test.tsx",
+          "**/node_modules/**",
+          "**/i18n-en.unit.spec.ts",
+          "tests/unit/**",
+          "tests/config/**",
+          "tests/policy.spec.ts",
+          "tests/tools.spec.ts"
+        ],
+        "testMatch": [
+          "tests/e2e/**/*.spec.ts",
+          "tests/specs/**/*.spec.ts",
+          "tests/smoke/**/*.spec.ts",
+          "tests/copilot/**/*.spec.ts",
+          "tests/copilot.spec.ts",
+          "tests/marketplace.smoke.spec.ts",
+          "tests/hfv.e2e.spec.ts",
+          "qa/tests/**/*.spec.ts",
+          "**/*.e2e.ts"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.56.1",
+    "workers": 1,
+    "webServer": {
+      "command": "PORT=3000 HOSTNAME=Engs-MacBook-Pro-16.local node .next/standalone/server.js",
+      "url": "http://localhost:3000",
+      "reuseExistingServer": true,
+      "timeout": 180000,
+      "stdout": "pipe",
+      "stderr": "pipe",
+      "env": {
+        "PLAYWRIGHT": "true",
+        "NODE_ENV": "test",
+        "PORT": "3000",
+        "HOSTNAME": "0.0.0.0",
+        "NEXTAUTH_SECRET": "8d1764773ff4b563abe66aa57fb30286dfafafe1cdebd19cc637061069fd9bc8",
+        "AUTH_SECRET": "8d1764773ff4b563abe66aa57fb30286dfafafe1cdebd19cc637061069fd9bc8",
+        "NEXTAUTH_URL": "http://localhost:3000",
+        "CORS_ORIGINS": "http://localhost:3000",
+        "GOOGLE_CLIENT_ID": "",
+        "GOOGLE_CLIENT_SECRET": "",
+        "SKIP_ENV_VALIDATION": "true",
+        "ALLOW_OFFLINE_MONGODB": "true",
+        "AUTH_TRUST_HOST": "true",
+        "NEXTAUTH_TRUST_HOST": "true",
+        "LOGIN_RATE_LIMIT_MAX_ATTEMPTS": "100",
+        "LOGIN_RATE_LIMIT_WINDOW_MS": "120000",
+        "NEXT_TELEMETRY_DISABLED": "1",
+        "SENTRY_SKIP_INIT": "1",
+        "OTEL_SDK_DISABLED": "1"
+      }
+    }
+  },
+  "suites": [],
+  "errors": [
+    {
+      "message": "Error: Process from config.webServer was not able to start. Exit code: 1",
+      "stack": "Error: Process from config.webServer was not able to start. Exit code: 1"
+    }
+  ],
+  "stats": {
+    "startTime": "2025-12-09T14:16:25.844Z",
+    "duration": 351.81300000000005,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}
+]]>
+</file>
+
+<file path="_artifacts/playwright/results.json">
+<![CDATA[
+{
+  "config": {
+    "configFile": "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/playwright.config.ts",
+    "rootDir": "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/tests/setup-auth.ts",
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        {
+          "outputFolder": "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/_artifacts/playwright/html-report",
+          "open": "never"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/_artifacts/playwright/results.json"
+        }
+      ],
+      [
+        "list",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/_artifacts/playwright",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit",
+        "testIgnore": [
+          "**/*.test.ts",
+          "**/*.test.tsx",
+          "**/node_modules/**",
+          "**/i18n-en.unit.spec.ts",
+          "tests/unit/**",
+          "tests/config/**",
+          "tests/policy.spec.ts",
+          "tests/tools.spec.ts"
+        ],
+        "testMatch": [
+          "tests/e2e/**/*.spec.ts",
+          "tests/specs/**/*.spec.ts",
+          "tests/smoke/**/*.spec.ts",
+          "tests/copilot/**/*.spec.ts",
+          "tests/copilot.spec.ts",
+          "tests/marketplace.smoke.spec.ts",
+          "tests/hfv.e2e.spec.ts",
+          "qa/tests/**/*.spec.ts",
+          "**/*.e2e.ts"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.56.1",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev:webpack -- --hostname 0.0.0.0 --port 3000",
+      "url": "http://localhost:3000",
+      "reuseExistingServer": true,
+      "timeout": 180000,
+      "stdout": "pipe",
+      "stderr": "pipe",
+      "env": {
+        "NEXTAUTH_SECRET": "test-secret-minimum-32-chars-long-fixzit-jwt-encryption-key",
+        "AUTH_SECRET": "test-secret-minimum-32-chars-long-fixzit-jwt-encryption-key",
+        "NEXTAUTH_URL": "http://localhost:3000",
+        "GOOGLE_CLIENT_ID": "",
+        "GOOGLE_CLIENT_SECRET": "",
+        "SKIP_ENV_VALIDATION": "true",
+        "ALLOW_OFFLINE_MONGODB": "true",
+        "AUTH_TRUST_HOST": "true",
+        "NEXTAUTH_TRUST_HOST": "true",
+        "NODE_ENV": "test",
+        "LOGIN_RATE_LIMIT_MAX_ATTEMPTS": "100",
+        "LOGIN_RATE_LIMIT_WINDOW_MS": "120000",
+        "NEXT_TELEMETRY_DISABLED": "1",
+        "SENTRY_SKIP_INIT": "1",
+        "OTEL_SDK_DISABLED": "1"
+      }
+    }
+  },
+  "suites": [
+    {
+      "title": "qa/tests/00-landing.spec.ts",
+      "file": "qa/tests/00-landing.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Landing & Branding (@smoke)",
+          "file": "qa/tests/00-landing.spec.ts",
+          "line": 4,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Hero, tokens, 0 errors",
+              "ok": false,
+              "tags": [
+                "smoke)"
+              ],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 6297,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('button', { name: /Access|Get Started|ابدأ/i })\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('button', { name: /Access|Get Started|ابدأ/i })\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('button', { name: /Access|Get Started|ابدأ/i })\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('button', { name: /Access|Get Started|ابدأ/i })\u001b[22m\n\n    at /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/qa/tests/00-landing.spec.ts:32:7",
+                        "location": {
+                          "file": "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/qa/tests/00-landing.spec.ts",
+                          "column": 7,
+                          "line": 32
+                        },
+                        "snippet": "  30 |     await expect(\n  31 |       page.getByRole(\"button\", { name: /Access|Get Started|ابدأ/i }),\n> 32 |     ).toBeVisible(); // tolerate wording\n     |       ^\n  33 |\n  34 |     // Single header, single footer\n  35 |     await expect(page.locator(\"header\")).toHaveCount(1);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/qa/tests/00-landing.spec.ts",
+                            "column": 7,
+                            "line": 32
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('button', { name: /Access|Get Started|ابدأ/i })\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('button', { name: /Access|Get Started|ابدأ/i })\u001b[22m\n\n\n  30 |     await expect(\n  31 |       page.getByRole(\"button\", { name: /Access|Get Started|ابدأ/i }),\n> 32 |     ).toBeVisible(); // tolerate wording\n     |       ^\n  33 |\n  34 |     // Single header, single footer\n  35 |     await expect(page.locator(\"header\")).toHaveCount(1);\n    at /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/qa/tests/00-landing.spec.ts:32:7"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-03T00:04:08.844Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/_artifacts/playwright/qa-tests-00-landing-Landin-4f893--smoke-Hero-tokens-0-errors-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/_artifacts/playwright/qa-tests-00-landing-Landin-4f893--smoke-Hero-tokens-0-errors-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/_artifacts/playwright/qa-tests-00-landing-Landin-4f893--smoke-Hero-tokens-0-errors-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/qa/tests/00-landing.spec.ts",
+                        "column": 7,
+                        "line": 32
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "35d1631861e735a0a83f-ac22f21b8cc83754f4ab",
+              "file": "qa/tests/00-landing.spec.ts",
+              "line": 5,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2025-12-03T00:03:45.833Z",
+    "duration": 29621.112,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}
+]]>
+</file>
+
+<file path="ai/embeddings.ts">
+<![CDATA[
+/**
+ * Lightweight embedding helper using OpenAI's Embeddings API via fetch.
+ * Avoids hard dependency on SDKs to keep install surface small.
+ */
+
+export type OpenAIEmbeddingModel =
+  | "text-embedding-3-small"
+  | "text-embedding-3-large";
+const VALID_OPENAI_EMBEDDING_MODELS: OpenAIEmbeddingModel[] = [
+  "text-embedding-3-small",
+  "text-embedding-3-large",
+];
+function getValidatedEmbeddingModel(envModel?: string): OpenAIEmbeddingModel {
+  return VALID_OPENAI_EMBEDDING_MODELS.includes(
+    envModel as OpenAIEmbeddingModel,
+  )
+    ? (envModel as OpenAIEmbeddingModel)
+    : "text-embedding-3-small";
+}
+
+export async function embedText(
+  input: string,
+  model: OpenAIEmbeddingModel = getValidatedEmbeddingModel(
+    process.env.KB_EMBEDDING_MODEL,
+  ),
+): Promise<number[]> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error("OPENAI_API_KEY not configured");
+  const res = await fetch("https://api.openai.com/v1/embeddings", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ input, model }),
+  });
+  if (!res.ok) {
+    const errText = await res.text().catch(() => String(res.status));
+    throw new Error(`Embedding error: ${res.status} ${errText}`);
+  }
+  const json = (await res.json()) as { data?: Array<{ embedding?: unknown }> };
+  const embed: unknown =
+    json?.data && Array.isArray(json.data) ? json.data[0]?.embedding : null;
+  if (!Array.isArray(embed)) {
+    throw new Error("Embedding response missing embedding array");
+  }
+  return embed as number[];
+}
+
+]]>
+</file>
+
+<file path="app/(app)/billing/history/page.tsx">
+<![CDATA[
+"use client";
+
+import useSWR from "swr";
+import { CheckCircle, Clock, XCircle } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Table, TableHead, TableHeader, TableRow, TableBody, TableCell } from "@/components/ui/table";
+import { useTranslation } from "@/contexts/TranslationContext";
+
+type Invoice = {
+  id: string;
+  amount: number;
+  currency: string;
+  status: "paid" | "pending" | "failed";
+  periodStart: string;
+  periodEnd: string;
+  paidAt: string | null;
+};
+
+const fetcher = (url: string) =>
+  fetch(url, { credentials: "include" }).then((res) => {
+    if (!res.ok) throw new Error("Failed to load invoices");
+    return res.json();
+  });
+
+const StatusIcon = ({ status }: { status: Invoice["status"] }) => {
+  if (status === "paid") return <CheckCircle className="h-4 w-4 text-success" />;
+  if (status === "pending") return <Clock className="h-4 w-4 text-amber-500" />;
+  return <XCircle className="h-4 w-4 text-destructive" />;
+};
+
+export default function BillingHistoryPage() {
+  const { t } = useTranslation();
+  const { data, error, isLoading } = useSWR<{ invoices: Invoice[] }>(
+    "/api/billing/history",
+    fetcher,
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
+            {t("billing.history.tagline", "Billing")}
+          </p>
+          <h1 className="text-2xl font-semibold">
+            {t("billing.history.title", "Billing history & invoices")}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {t(
+              "billing.history.subtitle",
+              "Review your subscription invoices and payment status. Upgrade or manage plans from the Pricing page.",
+            )}
+          </p>
+        </div>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("billing.history.tableTitle", "Invoices")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading && <div className="text-sm text-muted-foreground">{t("common.loading", "Loading...")}</div>}
+          {error && (
+            <div className="text-sm text-destructive">
+              {t("billing.history.error", "Failed to load invoices")}
+            </div>
+          )}
+          {!isLoading && !error && (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("billing.history.invoice", "Invoice")}</TableHead>
+                  <TableHead>{t("billing.history.amount", "Amount")}</TableHead>
+                  <TableHead>{t("billing.history.status", "Status")}</TableHead>
+                  <TableHead>{t("billing.history.period", "Period")}</TableHead>
+                  <TableHead>{t("billing.history.paidAt", "Paid at")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(data?.invoices ?? []).map((inv) => (
+                  <TableRow key={inv.id}>
+                    <TableCell className="font-medium">{inv.id}</TableCell>
+                    <TableCell>
+                      {inv.amount} {inv.currency}
+                    </TableCell>
+                    <TableCell className="flex items-center gap-2">
+                      <StatusIcon status={inv.status} />
+                      <span className="capitalize">{inv.status}</span>
+                    </TableCell>
+                    <TableCell>
+                      {new Date(inv.periodStart).toLocaleDateString()} -{" "}
+                      {new Date(inv.periodEnd).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      {inv.paidAt
+                        ? new Date(inv.paidAt).toLocaleString()
+                        : t("billing.history.unpaid", "Unpaid")}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/(app)/billing/plan/page.tsx">
+<![CDATA[
+"use client";
+
+import { Check, ArrowRight } from "lucide-react";
+import Link from "next/link";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/contexts/TranslationContext";
+
+const plans = [
+  {
+    id: "STANDARD",
+    name: "Standard",
+    price: "SR 0 (trial)",
+    features: ["Work Orders", "Properties & Units", "Basic Reports"],
+  },
+  {
+    id: "PREMIUM",
+    name: "Premium",
+    price: "SR 899 / month",
+    features: [
+      "Finance & Invoicing",
+      "HR & Technicians",
+      "Approvals & Audit trail",
+      "Priority support",
+    ],
+    highlight: true,
+  },
+  {
+    id: "ENTERPRISE",
+    name: "Enterprise",
+    price: "Talk to us",
+    features: [
+      "All Premium features",
+      "SSO & SCIM",
+      "Dedicated onboarding",
+      "Custom SLAs",
+    ],
+  },
+];
+
+export default function PlanPage() {
+  const { t } = useTranslation();
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
+          {t("billing.plan.tagline", "Subscription")}
+        </p>
+        <h1 className="text-2xl font-semibold">
+          {t("billing.plan.title", "Choose or upgrade your plan")}
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          {t(
+            "billing.plan.subtitle",
+            "Select the plan that fits your organization. Upgrade to unlock premium modules.",
+          )}
+        </p>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-3">
+        {plans.map((plan) => (
+          <Card
+            key={plan.id}
+            className={`border ${plan.highlight ? "border-primary shadow-primary/10" : "border-border"}`}
+          >
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>{plan.name}</span>
+                {plan.highlight && (
+                  <span className="text-xs font-semibold px-2 py-1 rounded-full bg-primary/10 text-primary">
+                    {t("billing.plan.popular", "Popular")}
+                  </span>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-xl font-semibold">{plan.price}</div>
+              <ul className="space-y-2 text-sm">
+                {plan.features.map((feat) => (
+                  <li key={feat} className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-success" />
+                    <span>{feat}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="flex items-center gap-3">
+                <Link href="/pricing">
+                  <Button variant={plan.highlight ? "default" : "outline"} className="flex items-center gap-2">
+                    {t("billing.plan.viewPricing", "View pricing")}
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+                <Link href="/billing/history">
+                  <Button variant="ghost" className="text-primary">
+                    {t("billing.plan.manageBilling", "Billing")}
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/(app)/subscription/page.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect, useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+interface Subscription {
+  id: string;
+  status: string;
+  modules: string[];
+  seats: number;
+  billing_cycle: string;
+  amount: number;
+  currency: string;
+  next_billing_date?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export default function SubscriptionPage() {
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [loading, setLoading] = useState(true);
+  const auto = useAutoTranslator("subscription.management");
+
+  useEffect(() => {
+    import("@/lib/http/fetchWithAuth")
+      .then(({ fetchWithAuth }) => fetchWithAuth("/api/subscriptions/tenant"))
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.error) {
+          setSubscription(data);
+        }
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="p-8">{auto("Loading subscription...", "loading")}</div>
+    );
+  }
+
+  if (!subscription) {
+    return (
+      <div className="p-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>{auto("No Subscription", "empty.title")}</CardTitle>
+            <CardDescription>
+              {auto(
+                "You don't have an active subscription.",
+                "empty.description",
+              )}
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
+  const statusColor =
+    {
+      ACTIVE: "bg-green-500",
+      PAST_DUE: "bg-red-500",
+      CANCELED: "bg-gray-500",
+      INCOMPLETE: "bg-yellow-500",
+    }[subscription.status] || "bg-gray-500";
+
+  const statusLabelMap: Record<string, string> = {
+    ACTIVE: auto("Active", "status.active"),
+    PAST_DUE: auto("Past due", "status.pastDue"),
+    CANCELED: auto("Canceled", "status.canceled"),
+    INCOMPLETE: auto("Incomplete", "status.incomplete"),
+  };
+  const statusLabel =
+    statusLabelMap[subscription.status] || subscription.status;
+
+  return (
+    <div className="p-8 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">
+          {auto("Subscription Management", "header.title")}
+        </h1>
+        <Badge className={statusColor}>{statusLabel}</Badge>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>{auto("Plan Details", "plan.title")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">
+                {auto("Billing Cycle:", "plan.billingCycle")}
+              </span>
+              <span className="font-medium">{subscription.billing_cycle}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">
+                {auto("Seats:", "plan.seats")}
+              </span>
+              <span className="font-medium">{subscription.seats}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">
+                {auto("Amount:", "plan.amount")}
+              </span>
+              <span className="font-medium">
+                {subscription.amount.toFixed(2)} {subscription.currency}
+              </span>
+            </div>
+            {subscription.next_billing_date && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">
+                  {auto("Next Billing:", "plan.nextBilling")}
+                </span>
+                <span className="font-medium">
+                  {new Date(
+                    subscription.next_billing_date,
+                  ).toLocaleDateString()}
+                </span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{auto("Active Modules", "modules.title")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {subscription.modules.map((module) => (
+                <Badge key={module} variant="outline">
+                  {module}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{auto("Actions", "actions.title")}</CardTitle>
+        </CardHeader>
+        <CardContent className="flex gap-4">
+          <Button variant="outline">
+            {auto("Upgrade Plan", "actions.upgrade")}
+          </Button>
+          <Button variant="outline">
+            {auto("Add Seats", "actions.addSeats")}
+          </Button>
+          <Button variant="destructive">
+            {auto("Cancel Subscription", "actions.cancel")}
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/(dashboard)/onboarding/page.tsx">
+<![CDATA[
+"use client";
+
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import OnboardingWizard, { type OnboardingRole } from "@/components/onboarding/OnboardingWizard";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { Loader2 } from "lucide-react";
+
+function OnboardingContent() {
+  const searchParams = useSearchParams();
+  const { t, isRTL } = useTranslation();
+
+  const role = searchParams?.get("role") as OnboardingRole | null;
+  const caseId = searchParams?.get("caseId");
+  const step = searchParams?.get("step");
+
+  return (
+    <div className="container max-w-4xl py-8 px-4">
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold mb-2">
+          {t("onboarding.welcome", isRTL ? "مرحباً بك في فيكزت" : "Welcome to Fixzit")}
+        </h1>
+        <p className="text-muted-foreground">
+          {t(
+            "onboarding.subtitle",
+            isRTL
+              ? "أكمل عملية التسجيل للبدء في استخدام المنصة"
+              : "Complete your registration to start using the platform"
+          )}
+        </p>
+      </div>
+
+      <OnboardingWizard
+        role={role || undefined}
+        caseId={caseId || undefined}
+        initialStep={step ? parseInt(step, 10) : 1}
+      />
+    </div>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      }
+    >
+      <OnboardingContent />
+    </Suspense>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/(dashboard)/referrals/page.tsx">
+<![CDATA[
+"use client";
+
+import React, { useState, useEffect, useRef } from "react";
+import { NavigationButtons } from "@/components/ui/navigation-buttons";
+import { useTranslation } from "@/contexts/TranslationContext";
+import toast from "react-hot-toast";
+
+import { logger } from "@/lib/logger";
+import ClientDate from "@/components/ClientDate";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+interface ReferralCode {
+  id: string;
+  code: string;
+  shortUrl: string;
+  reward: {
+    type: string;
+    referrerAmount: number;
+    referredAmount: number;
+    currency: string;
+  };
+  stats: {
+    totalReferrals: number;
+    successfulReferrals: number;
+    totalRewardsEarned: number;
+    totalRewardsPaid: number;
+    conversionRate: number;
+  };
+  status: string;
+  createdAt: Date;
+  expiresAt?: Date;
+  maxUses?: number;
+  currentUses?: number;
+}
+
+interface Referral {
+  _id?: string; // MongoDB ID for stable keys
+  referredEmail: string;
+  referredAt: Date;
+  convertedAt?: Date;
+  rewardEarned: number;
+  rewardStatus: string;
+}
+
+/**
+ * Masks an email address for privacy
+ * @param email - The email to mask (can be null/undefined)
+ * @returns Masked email like "ab***@example.com"
+ */
+function maskEmail(email: string | null | undefined): string {
+  if (!email || typeof email !== "string") return "***@***.***";
+
+  const [local, domain] = email.split("@");
+  if (!local || !domain) return "***@***.***";
+
+  let maskedLocal: string;
+  if (local.length <= 2) {
+    // Very short: keep first char + asterisks
+    maskedLocal = local[0] + "***";
+  } else {
+    // Normal: keep first 2 chars + three asterisks
+    maskedLocal = local.substring(0, 2) + "***";
+  }
+
+  return `${maskedLocal}@${domain}`;
+}
+
+export default function ReferralProgramPage() {
+  const { language } = useTranslation();
+  const auto = useAutoTranslator("dashboard.referrals");
+  const [referralCode, setReferralCode] = useState<ReferralCode | null>(null);
+  const [referrals, setReferrals] = useState<Referral[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const copyTimeoutRef = useRef<number | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    fetchReferralData();
+    return () => {
+      // Cleanup: abort in-flight requests when component unmounts
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+
+  const fetchReferralData = async () => {
+    setLoading(true);
+    setError(null);
+
+    // Abort previous request if still pending
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
+
+    try {
+      const response = await fetch("/api/referrals/my-code", {
+        signal: abortControllerRef.current.signal,
+      });
+
+      if (!response.ok) {
+        let errorData: { error?: string } = {};
+        try {
+          errorData = await response.json();
+        } catch {
+          // Ignore JSON parse errors, use fallback
+        }
+        throw new Error(
+          errorData?.error ||
+            `Failed to fetch referral data (${response.status})`,
+        );
+      }
+
+      let data: { code?: ReferralCode; referrals?: Referral[] } = {};
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        const error =
+          jsonError instanceof Error ? jsonError : new Error(String(jsonError));
+        logger.error("Failed to parse referral data JSON:", error);
+        throw new Error("Invalid response format from server");
+      }
+
+      setReferralCode(data.code ?? null);
+      // Sort referrals by referredAt descending (newest first)
+      const sortedReferrals = (data.referrals || []).sort((a, b) => {
+        return (
+          new Date(b.referredAt).getTime() - new Date(a.referredAt).getTime()
+        );
+      });
+      setReferrals(sortedReferrals);
+    } catch (error) {
+      // Ignore abort errors
+      if (error instanceof Error && error.name === "AbortError") {
+        return;
+      }
+      logger.error("Failed to fetch referral data:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to load referral data. Please try again.";
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Performs a code action (generate or regenerate) with proper abort handling
+   * @param endpoint - The API endpoint to call
+   * @param successMessage - Success toast message
+   */
+  const performCodeAction = async (
+    endpoint: string,
+    successMessage: string,
+  ) => {
+    setGenerating(true);
+    setError(null);
+
+    // Abort previous request if still pending
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
+
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        signal: abortControllerRef.current.signal,
+      });
+
+      let data: { code?: ReferralCode; error?: string; message?: string } = {};
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        const error =
+          jsonError instanceof Error ? jsonError : new Error(String(jsonError));
+        logger.error("Failed to parse response JSON:", error);
+        throw new Error("Invalid response format from server");
+      }
+
+      if (!response.ok) {
+        // Use server-provided error message if available
+        const errorMsg =
+          data?.error ||
+          data?.message ||
+          `Failed to perform action (${response.status})`;
+        throw new Error(errorMsg);
+      }
+
+      setReferralCode(data.code ?? null);
+      toast.success(successMessage);
+    } catch (error) {
+      // Ignore abort errors
+      if (error instanceof Error && error.name === "AbortError") {
+        return;
+      }
+      logger.error("Failed to perform code action:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Operation failed. Please try again.";
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const generateCode = async () => {
+    await performCodeAction(
+      "/api/referrals/generate",
+      "Referral code generated successfully!",
+    );
+  };
+
+  const regenerateCode = async () => {
+    await performCodeAction(
+      "/api/referrals/regenerate",
+      "Referral code regenerated successfully!",
+    );
+  };
+
+  useEffect(() => {
+    return () => {
+      clearCopyTimeout();
+    };
+  }, []);
+
+  const clearCopyTimeout = () => {
+    if (copyTimeoutRef.current) {
+      window.clearTimeout(copyTimeoutRef.current);
+      copyTimeoutRef.current = null;
+    }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    setError(null);
+    clearCopyTimeout();
+
+    // Feature-detect clipboard API
+    if (
+      typeof navigator !== "undefined" &&
+      navigator.clipboard &&
+      typeof navigator.clipboard.writeText === "function"
+    ) {
+      try {
+        await navigator.clipboard.writeText(text);
+        setCopied(true);
+        toast.success("Copied to clipboard!");
+        copyTimeoutRef.current = window.setTimeout(
+          () => setCopied(false),
+          2000,
+        );
+        return;
+      } catch (err) {
+        logger.error(
+          "Clipboard API write failed",
+          err instanceof Error ? err : new Error(String(err)),
+          { route: "/dashboard/referrals", action: "clipboard-copy" },
+        );
+        // fall through to DOM fallback
+      }
+    }
+
+    // DOM-based fallback (synchronous)
+    try {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-999999px";
+      textArea.style.top = "-999999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
+      const successful = document.execCommand("copy");
+      document.body.removeChild(textArea);
+
+      if (successful) {
+        setCopied(true);
+        toast.success("Copied to clipboard!");
+        copyTimeoutRef.current = window.setTimeout(
+          () => setCopied(false),
+          2000,
+        );
+      } else {
+        const errorMsg = "Failed to copy to clipboard. Please copy manually.";
+        setError(errorMsg);
+        toast.error(errorMsg);
+      }
+    } catch (err) {
+      logger.error(
+        "Fallback copy failed",
+        err instanceof Error ? err : new Error(String(err)),
+        { route: "/dashboard/referrals", action: "fallback-copy" },
+      );
+      const errorMsg = "Failed to copy to clipboard. Please copy manually.";
+      setError(errorMsg);
+      toast.error(errorMsg);
+    }
+  };
+
+  const shareViaWhatsApp = () => {
+    if (referralCode) {
+      const message = `Join Fixzit and get ${referralCode.reward.referredAmount} ${referralCode.reward.currency}! Use my referral code: ${referralCode.code} or visit ${referralCode.shortUrl}`;
+      window.open(
+        `https://wa.me/?text=${encodeURIComponent(message)}`,
+        "_blank",
+      );
+    }
+  };
+
+  const shareViaEmail = () => {
+    if (referralCode) {
+      const subject = "Join Fixzit and Get a Reward!";
+      const body = `I'm using Fixzit for property management and I think you'd love it too!\n\nSign up using my referral code: ${referralCode.code}\nOr visit: ${referralCode.shortUrl}\n\nYou'll get ${referralCode.reward.referredAmount} ${referralCode.reward.currency} when you sign up!`;
+      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    }
+  };
+
+  // Helper to check if referral code is expired or depleted
+  const isCodeExpiredOrDepleted = (): boolean => {
+    if (!referralCode) return false;
+
+    const now = new Date();
+    const isExpired =
+      referralCode.expiresAt && new Date(referralCode.expiresAt) < now;
+    const isDepleted =
+      referralCode.maxUses !== undefined &&
+      referralCode.currentUses !== undefined &&
+      referralCode.currentUses >= referralCode.maxUses;
+
+    return !!(isExpired || isDepleted);
+  };
+
+  // Currency formatter using Intl with dynamic locale
+  const formatCurrency = (amount: number, currency: string): string => {
+    try {
+      // Use current language locale (e.g., 'ar', 'en') for formatting
+      const locale = language === "ar" ? "ar-SA" : "en-US";
+      return new Intl.NumberFormat(locale, {
+        style: "currency",
+        currency: currency,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }).format(amount);
+    } catch {
+      // Fallback if currency code is invalid
+      return `${amount} ${currency}`;
+    }
+  };
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto p-6" data-testid="referral-error-page">
+        <div className="bg-destructive/10 border border-destructive/20 rounded-2xl p-6">
+          <div className="flex items-start gap-4">
+            <svg
+              className="w-6 h-6 text-destructive flex-shrink-0 mt-1"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-destructive mb-2">
+                {auto("Error Loading Referral Data", "errors.heading")}
+              </h3>
+              <p className="text-destructive mb-4" data-testid="error-message">
+                {error}
+              </p>
+              <button
+                onClick={() => {
+                  setError(null);
+                  fetchReferralData();
+                }}
+                className="bg-destructive text-white px-4 py-2 rounded-2xl hover:bg-destructive/90 transition-colors"
+                data-testid="retry-button"
+              >
+                {auto("Try Again", "errors.retry")}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto p-6" data-testid="referral-loading">
+        <div className="flex justify-center items-center h-64">
+          <div
+            className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"
+            role="status"
+            aria-label="Loading"
+          ></div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="max-w-7xl mx-auto p-6 space-y-6"
+      data-testid="referral-program-page"
+    >
+      <NavigationButtons showBack showHome />
+
+      {/* Error Message Banner */}
+      {error && (
+        <div
+          className="bg-destructive/10 border border-destructive/20 rounded-2xl p-4 flex items-start gap-3"
+          data-testid="error-banner"
+        >
+          <svg
+            className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <div className="flex-1">
+            <p className="text-destructive-foreground">{error}</p>
+          </div>
+          <button
+            onClick={() => setError(null)}
+            className="text-destructive hover:text-destructive-foreground"
+            aria-label="Dismiss error"
+            data-testid="dismiss-error"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-foreground dark:text-white">
+          {auto("Referral Program", "header.title")}
+        </h1>
+        <p className="mt-2 text-muted-foreground dark:text-muted-foreground">
+          {auto(
+            "Earn rewards by referring friends and family to Fixzit",
+            "header.subtitle",
+          )}
+        </p>
+      </div>
+
+      {!referralCode ? (
+        /* Generate Code CTA */
+        <div
+          className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-center text-white"
+          data-testid="generate-code-cta"
+        >
+          <h2 className="text-2xl font-bold mb-4">
+            {auto("Start Earning Rewards!", "cta.heading")}
+          </h2>
+          <p className="mb-6">
+            {auto(
+              "Get your unique referral code and earn money when your friends sign up",
+              "cta.description",
+            )}
+          </p>
+          <button
+            onClick={generateCode}
+            disabled={generating}
+            className="bg-card text-primary px-8 py-3 rounded-2xl font-semibold hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
+            data-testid="generate-code-button"
+          >
+            {generating ? (
+              <>
+                <svg
+                  className="animate-spin h-5 w-5"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                {auto("Generating...", "cta.button.generating")}
+              </>
+            ) : (
+              auto("Generate My Referral Code", "cta.button.idle")
+            )}
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* Referral Card */}
+          <div
+            className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white"
+            data-testid="referral-card"
+          >
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* Left: Code */}
+              <div>
+                <h2 className="text-xl font-semibold mb-4">
+                  {auto("Your Referral Code", "code.heading")}
+                </h2>
+                <div className="bg-white/20 rounded-2xl p-4 backdrop-blur-sm">
+                  <div
+                    className="text-3xl font-bold tracking-wider mb-4"
+                    data-testid="referral-code"
+                  >
+                    {referralCode.code}
+                  </div>
+                  <div
+                    className="text-sm opacity-90 mb-4"
+                    data-testid="referral-url"
+                  >
+                    {referralCode.shortUrl}
+                  </div>
+                  {isCodeExpiredOrDepleted() && (
+                    <div
+                      className="bg-warning/100/20 border border-warning rounded p-2 mb-4 text-sm"
+                      data-testid="code-status-warning"
+                    >
+                      {auto(
+                        "⚠️ This code has expired or reached its usage limit",
+                        "codeStatus.warning",
+                      )}
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => copyToClipboard(referralCode.code)}
+                      className="flex-1 bg-card text-primary px-4 py-2 rounded-2xl font-medium hover:bg-muted transition-colors"
+                      data-testid="copy-code-button"
+                    >
+                      {copied
+                        ? auto("✓ Copied!", "code.copySuccess")
+                        : auto("Copy Code", "code.copyButton")}
+                    </button>
+                    <button
+                      onClick={() => copyToClipboard(referralCode.shortUrl)}
+                      className="flex-1 bg-card text-primary px-4 py-2 rounded-2xl font-medium hover:bg-muted transition-colors"
+                      data-testid="copy-link-button"
+                    >
+                      {auto("Copy Link", "code.copyLink")}
+                    </button>
+                  </div>
+                  {isCodeExpiredOrDepleted() && (
+                    <button
+                      onClick={regenerateCode}
+                      disabled={generating}
+                      className="w-full mt-3 bg-warning/100 text-white px-4 py-2 rounded-2xl font-medium hover:bg-warning transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      data-testid="regenerate-code-button"
+                    >
+                      {generating
+                        ? auto("Regenerating...", "code.regenerating")
+                        : auto("Regenerate Code", "code.regenerateButton")}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Right: Rewards */}
+              <div>
+                <h2 className="text-xl font-semibold mb-4">
+                  {auto("Rewards", "rewards.heading")}
+                </h2>
+                <div className="space-y-3">
+                  <div
+                    className="bg-white/20 rounded-2xl p-4 backdrop-blur-sm"
+                    data-testid="referrer-reward"
+                  >
+                    <div className="text-sm opacity-90">
+                      {auto("You Get", "rewards.youGet")}
+                    </div>
+                    <div className="text-2xl font-bold">
+                      {formatCurrency(
+                        referralCode.reward.referrerAmount,
+                        referralCode.reward.currency,
+                      )}
+                    </div>
+                  </div>
+                  <div
+                    className="bg-white/20 rounded-2xl p-4 backdrop-blur-sm"
+                    data-testid="referred-reward"
+                  >
+                    <div className="text-sm opacity-90">
+                      {auto("They Get", "rewards.theyGet")}
+                    </div>
+                    <div className="text-2xl font-bold">
+                      {formatCurrency(
+                        referralCode.reward.referredAmount,
+                        referralCode.reward.currency,
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Share Buttons */}
+            <div className="mt-6 pt-6 border-t border-white/20">
+              <h3 className="text-lg font-semibold mb-3">
+                {auto("Share via", "share.heading")}
+              </h3>
+              <div className="flex gap-3">
+                <button
+                  onClick={shareViaWhatsApp}
+                  className="flex-1 bg-success/100 hover:bg-success px-4 py-2 rounded-2xl font-medium transition-colors flex items-center justify-center gap-2"
+                  data-testid="share-whatsapp"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+                  </svg>
+                  {auto("WhatsApp", "share.whatsapp")}
+                </button>
+                <button
+                  onClick={shareViaEmail}
+                  className="flex-1 bg-primary/100 hover:bg-primary px-4 py-2 rounded-2xl font-medium transition-colors flex items-center justify-center gap-2"
+                  data-testid="share-email"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                    />
+                  </svg>
+                  {auto("Email", "share.email")}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div
+            className="grid md:grid-cols-4 gap-4"
+            data-testid="referral-stats"
+          >
+            <div
+              className="bg-card dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-700 p-6"
+              data-testid="stat-total-referrals"
+            >
+              <div className="text-sm text-muted-foreground dark:text-muted-foreground">
+                Total Referrals
+              </div>
+              <div className="text-3xl font-bold text-foreground dark:text-white mt-2">
+                {referralCode.stats.totalReferrals}
+              </div>
+            </div>
+            <div
+              className="bg-card dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-700 p-6"
+              data-testid="stat-successful-referrals"
+            >
+              <div className="text-sm text-muted-foreground dark:text-muted-foreground">
+                Successful
+              </div>
+              <div className="text-3xl font-bold text-success mt-2">
+                {referralCode.stats.successfulReferrals}
+              </div>
+            </div>
+            <div
+              className="bg-card dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-700 p-6"
+              data-testid="stat-total-earned"
+            >
+              <div className="text-sm text-muted-foreground dark:text-muted-foreground">
+                Total Earned
+              </div>
+              <div className="text-3xl font-bold text-primary mt-2">
+                {formatCurrency(
+                  referralCode.stats.totalRewardsEarned,
+                  referralCode.reward.currency,
+                )}
+              </div>
+            </div>
+            <div
+              className="bg-card dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-700 p-6"
+              data-testid="stat-conversion-rate"
+            >
+              <div className="text-sm text-muted-foreground dark:text-muted-foreground">
+                Conversion Rate
+              </div>
+              <div className="text-3xl font-bold text-secondary mt-2">
+                {referralCode.stats.conversionRate.toFixed(1)}%
+              </div>
+            </div>
+          </div>
+
+          {/* Referrals Table */}
+          <div
+            className="bg-card dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-700"
+            data-testid="referrals-table"
+          >
+            <div className="p-6 border-b border-border dark:border-gray-700">
+              <h2 className="text-xl font-semibold text-foreground dark:text-white">
+                {auto("Your Referrals", "table.heading")}
+              </h2>
+            </div>
+            {referrals.length === 0 ? (
+              <div
+                className="p-12 text-center text-muted-foreground dark:text-muted-foreground"
+                data-testid="no-referrals"
+              >
+                No referrals yet. Start sharing your code!
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-border dark:divide-gray-700">
+                  <thead className="bg-muted dark:bg-gray-800">
+                    <tr>
+                      <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground dark:text-muted-foreground uppercase">
+                        Email
+                      </th>
+                      <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground dark:text-muted-foreground uppercase">
+                        Referred At
+                      </th>
+                      <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground dark:text-muted-foreground uppercase">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground dark:text-muted-foreground uppercase">
+                        Reward
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border dark:divide-gray-700">
+                    {referrals.map((referral, index) => (
+                      <tr
+                        key={
+                          referral._id || `${referral.referredEmail}-${index}`
+                        }
+                        data-testid={`referral-row-${index}`}
+                      >
+                        <td className="px-6 py-4 text-sm text-foreground dark:text-white">
+                          {maskEmail(referral.referredEmail)}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-muted-foreground dark:text-muted-foreground">
+                          <ClientDate
+                            date={referral.referredAt}
+                            format="medium"
+                            locale={language === "ar" ? "ar-SA" : "en-US"}
+                          />
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`px-2 py-1 text-xs font-medium rounded-full ${
+                              referral.rewardStatus === "PAID"
+                                ? "bg-success/10 text-success-foreground dark:bg-success/20 dark:text-success"
+                                : referral.rewardStatus === "APPROVED"
+                                  ? "bg-primary/10 text-primary-foreground dark:bg-primary dark:text-primary"
+                                  : "bg-warning/10 text-warning-foreground dark:bg-warning/20 dark:text-warning-foreground"
+                            }`}
+                          >
+                            {referral.rewardStatus}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-foreground dark:text-white">
+                          {formatCurrency(
+                            referral.rewardEarned,
+                            referralCode.reward.currency,
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      <NavigationButtons showBack showHome />
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/(root)/layout.tsx">
+<![CDATA[
+import type { Metadata } from "next";
+import "../globals.css";
+import { ReactNode } from "react";
+
+export const metadata: Metadata = {
+  title: "Fixzit — Facility Management + Marketplace",
+  description: "Fixzit: FM + Marketplaces (Aqar Souq & Fixzit Souq).",
+};
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="en">
+      <body className="bg-card">
+        <main>{children}</main>
+      </body>
+    </html>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/_shell/ClientSidebar.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
+import Sidebar from "@/components/Sidebar";
+import type { BadgeCounts } from "@/config/navigation";
+import { useOrgCounters } from "@/hooks/useOrgCounters";
+import { logger } from "@/lib/logger";
+
+type NumericDict = Record<string, number | undefined>;
+
+type CounterPayload = {
+  workOrders?: {
+    total?: number;
+    open?: number;
+    inProgress?: number;
+    overdue?: number;
+  };
+  finance?: NumericDict;
+  invoices?: NumericDict;
+  hr?: NumericDict;
+  properties?: NumericDict;
+  crm?: NumericDict;
+  support?: NumericDict;
+  marketplace?: NumericDict;
+  approvals?: NumericDict;
+  rfqs?: NumericDict;
+  hrApplications?: NumericDict;
+};
+
+const mapCountersToBadgeCounts = (
+  counters?: CounterPayload,
+): BadgeCounts | undefined => {
+  if (!counters || typeof counters !== "object") return undefined;
+
+  const value: BadgeCounts = {};
+  const setCount = (key: keyof BadgeCounts, input?: number) => {
+    if (typeof input === "number" && Number.isFinite(input)) value[key] = input;
+  };
+
+  const {
+    workOrders,
+    finance,
+    invoices,
+    properties,
+    crm,
+    support,
+    marketplace,
+    approvals,
+    rfqs,
+    hrApplications,
+  } = counters;
+
+  // Work Orders - correctly mapped
+  setCount("workOrders", workOrders?.total);
+  setCount("pendingWorkOrders", workOrders?.open);
+  setCount("inProgressWorkOrders", workOrders?.inProgress);
+  setCount("urgentWorkOrders", workOrders?.overdue);
+
+  // Finance - correctly mapped
+  const financeSource = finance ?? invoices ?? {};
+  setCount("pending_invoices", financeSource?.unpaid);
+  setCount("overdue_invoices", financeSource?.overdue);
+
+  // HR Applications - from ATS application counters
+  setCount("hr_applications", hrApplications?.pending);
+
+  // Properties - correctly mapped
+  setCount("properties_needing_attention", properties?.maintenance);
+
+  // CRM - correctly mapped
+  setCount("crm_deals", crm?.contracts);
+  setCount("aqar_leads", crm?.leads);
+
+  // Support - open tickets only; pending != approvals
+  setCount("open_support_tickets", support?.open);
+
+  // Approvals - workflow approvals
+  setCount("pending_approvals", approvals?.pending);
+
+  // Marketplace - orders and listings; reviews != RFQs
+  setCount("marketplace_orders", marketplace?.orders);
+  setCount("marketplace_products", marketplace?.listings);
+
+  // RFQs - marketplace procurement
+  setCount("open_rfqs", rfqs?.open);
+
+  return Object.keys(value).length ? value : undefined;
+};
+
+export default function ClientSidebar() {
+  const { data: session, status } = useSession();
+  const sessionUser = session?.user as { orgId?: string } | undefined;
+  const orgId = sessionUser?.orgId;
+  const isAuthenticated = status === "authenticated" && Boolean(orgId);
+  const { counters, error: countersError } = useOrgCounters();
+
+  const [liveCounters, setLiveCounters] = useState<CounterPayload | undefined>();
+
+  // Seed live counters from initial fetch
+  useEffect(() => {
+    if (counters) {
+      setLiveCounters(counters as CounterPayload);
+    }
+  }, [counters]);
+
+  useEffect(() => {
+    if (countersError) {
+      logger.warn("[Sidebar] Failed to fetch counters", {
+        error: countersError,
+        component: "ClientSidebar",
+        action: "fetchCounters",
+      });
+    }
+  }, [countersError]);
+
+  // Authenticated, org-scoped WebSocket for real-time counters
+  useEffect(() => {
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
+    if (!isAuthenticated || !orgId || !wsUrl) return;
+
+    const url = new URL(wsUrl);
+    url.searchParams.set("orgId", orgId);
+
+    const ws = new WebSocket(url.toString());
+
+    ws.onmessage = (event) => {
+      try {
+        const parsed = JSON.parse(event.data) as {
+          orgId?: string;
+          data?: CounterPayload;
+        };
+        if (!parsed || parsed.orgId !== orgId || typeof parsed.data !== "object") {
+          return;
+        }
+        setLiveCounters((prev) => ({ ...(prev ?? {}), ...parsed.data }));
+      } catch {
+        // Ignore malformed messages
+      }
+    };
+
+    ws.onerror = (error) => {
+      logger.warn("[Sidebar] Counter WebSocket error", {
+        error,
+        orgId,
+        component: "ClientSidebar",
+      });
+    };
+
+    return () => ws.close();
+  }, [isAuthenticated, orgId]);
+
+  const badgeCounts = useMemo(
+    () => mapCountersToBadgeCounts(liveCounters ?? counters),
+    [liveCounters, counters],
+  );
+
+  return <Sidebar badgeCounts={badgeCounts} />;
+}
+
+]]>
+</file>
+
+<file path="app/about/page.tsx">
+<![CDATA[
+import { getServerI18n } from "@/lib/i18n/server";
+import {
+  Building2,
+  Users,
+  Target,
+  Award,
+  MapPin,
+  Phone,
+  Mail,
+} from "lucide-react";
+import { renderMarkdownSanitized } from "@/lib/markdown";
+import { headers } from "next/headers";
+import type { Metadata } from "next";
+import { CONTACT_INFO } from "@/config/contact";
+
+/**
+ * Default about content shown when CMS content is not available or not published.
+ */
+const DEFAULT_ABOUT_CONTENT = `# About Fixzit Enterprise
+
+**Your Trusted Partner in Facilities Management**
+
+## Who We Are
+Fixzit Enterprise is a leading facilities management and maintenance solution provider, dedicated to transforming how organizations manage their properties, assets, and maintenance operations.
+
+## Our Mission
+To empower organizations with innovative, efficient, and user-friendly tools that streamline facilities management, reduce operational costs, and enhance service delivery.
+
+## What We Do
+- **Comprehensive Facilities Management**: End-to-end solutions for property and asset management
+- **Smart Maintenance Scheduling**: AI-powered preventive and predictive maintenance
+- **Work Order Management**: Streamlined request-to-resolution workflows
+- **Vendor & Contractor Management**: Centralized vendor coordination and performance tracking
+- **Real-time Analytics**: Data-driven insights for better decision-making
+- **Mobile-First Approach**: Access your facilities from anywhere, anytime
+
+## Why Choose Us
+- **15+ Years of Industry Experience**
+- **Trusted by 500+ Organizations**
+- **99.9% Platform Uptime**
+- **24/7 Customer Support**
+- **ISO 9001:2015 Certified**
+- **GDPR & Data Security Compliant**
+
+## Our Values
+**Excellence**: Delivering superior quality in every interaction
+**Innovation**: Continuously improving through technology
+**Integrity**: Building trust through transparency
+**Customer Focus**: Your success is our priority`;
+
+/**
+ * Dynamically get the base URL from request headers.
+ * This is safer than relying on NEXT_PUBLIC_SITE_URL which may not be set in all environments.
+ */
+async function getBaseUrl(): Promise<string> {
+  const headersList = await headers();
+  const host = headersList.get("host") || "localhost:3000";
+  const protocol = headersList.get("x-forwarded-proto") || "http";
+  return `${protocol}://${host}`;
+}
+
+/**
+ * Generate metadata for SEO optimization.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getServerI18n();
+  const baseUrl = await getBaseUrl();
+
+  return {
+    title: t(
+      "about.metaTitle",
+      "About Us - Fixzit Enterprise | Leading Facilities Management Solutions",
+    ),
+    description: t(
+      "about.metaDesc",
+      "Learn about Fixzit Enterprise, a leading facilities management solution provider with 15+ years of experience, serving 500+ clients worldwide with 99.9% uptime.",
+    ),
+    openGraph: {
+      title: t("about.metaTitle", "About Us - Fixzit Enterprise"),
+      description: t(
+        "about.metaDesc",
+        "Leading facilities management and maintenance solution provider serving 500+ organizations worldwide.",
+      ),
+      url: `${baseUrl}/about`,
+      siteName: "Fixzit Enterprise",
+      type: "website",
+      images: [
+        {
+          url: `${baseUrl}/images/og-about.jpg`,
+          width: 1200,
+          height: 630,
+          alt: "Fixzit Enterprise - About Us",
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: t("about.metaTitle", "About Us - Fixzit Enterprise"),
+      description: t(
+        "about.metaDesc",
+        "Leading facilities management solution provider with 15+ years of experience.",
+      ),
+      images: [`${baseUrl}/images/twitter-about.jpg`],
+    },
+    alternates: {
+      canonical: `${baseUrl}/about`,
+    },
+  };
+}
+
+/**
+ * About Us Page (Public View)
+ *
+ * Displays company information and values managed through CMS admin interface.
+ * Fetches from /api/cms/pages/about and falls back to default content.
+ * Supports RTL languages and responsive design.
+ * Includes JSON-LD structured data for SEO.
+ *
+ * @returns About page with hero, stats, content, and contact sections
+ */
+export default async function AboutPage() {
+  // Server-side minimal i18n
+  const { t, isRTL } = await getServerI18n();
+  const baseUrl = await getBaseUrl();
+
+  // Server fetch of CMS about page. Server components can await fetch directly.
+  let title = t("about.title", "About Us");
+  let content = DEFAULT_ABOUT_CONTENT;
+
+  try {
+    const res = await fetch(`${baseUrl}/api/cms/pages/about`, {
+      // force no-store so latest content is fetched server-side; adjust if caching required
+      cache: "no-store",
+    });
+
+    if (res.ok) {
+      let data: { status?: string; title?: string; content?: string } = {};
+      try {
+        data = await res.json();
+      } catch {
+        // If JSON parse fails, use defaults
+      }
+
+      if (data?.status === "PUBLISHED") {
+        title = data.title || title;
+        content = data.content || content;
+      }
+    }
+  } catch {
+    // swallow errors and use default content
+  }
+
+  const renderedContent = await renderMarkdownSanitized(content);
+
+  // Strip duplicate H1 from CMS markdown content if present
+  // CMS editors often add an H1 which duplicates the hero title
+  const contentWithoutH1 = renderedContent.replace(/<h1[^>]*>.*?<\/h1>/i, "");
+  const contactPhone = (CONTACT_INFO.phone || "").trim();
+  const sanitizedTel = contactPhone ? contactPhone.replace(/[^+\d]/g, "") : "";
+
+  // JSON-LD structured data for Organization
+  const organizationSchema = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "Fixzit Enterprise",
+    url: baseUrl,
+    logo: `${baseUrl}/logo.png`,
+    description: t(
+      "about.metaDesc",
+      "Leading facilities management and maintenance solution provider serving 500+ organizations worldwide.",
+    ),
+    address: {
+      "@type": "PostalAddress",
+      addressCountry: "AE",
+      // Add specific address details when available
+    },
+    contactPoint: {
+      "@type": "ContactPoint",
+      telephone: contactPhone || undefined,
+      contactType: "customer service",
+      email: CONTACT_INFO.email,
+      availableLanguage: ["en", "ar"],
+    },
+    sameAs: [
+      CONTACT_INFO.social.twitter,
+      CONTACT_INFO.social.linkedin,
+      CONTACT_INFO.social.facebook,
+      CONTACT_INFO.social.instagram,
+    ].filter(Boolean), // Remove empty strings
+  };
+
+  // JSON-LD structured data for WebSite
+  const websiteSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Fixzit Enterprise",
+    url: baseUrl,
+    description: t(
+      "about.metaDesc",
+      "Leading facilities management and maintenance solution provider serving 500+ organizations worldwide.",
+    ),
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: `${baseUrl}/search?q={search_term_string}`,
+      },
+      "query-input": "required name=search_term_string",
+    },
+  };
+
+  return (
+    <>
+      {/* JSON-LD Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+      />
+
+      <div
+        className={`min-h-screen bg-gradient-to-b from-white to-gray-50 ${isRTL ? "rtl" : "ltr"}`}
+      >
+        {/* Hero Section */}
+        <section className="bg-gradient-to-r from-[hsl(var(--primary))] via-[hsl(var(--primary))] to-[hsl(var(--success))] text-white py-12">
+          <div className="mx-auto max-w-7xl px-4 lg:px-6">
+            <div className="flex items-center gap-4 mb-4">
+              <Building2 className="w-12 h-12" aria-hidden="true" />
+              <h1 className="text-4xl font-bold">{title}</h1>
+            </div>
+            <p className="text-xl opacity-90">
+              {t(
+                "about.subtitle",
+                "Building better facilities management solutions for the modern enterprise.",
+              )}
+            </p>
+          </div>
+        </section>
+
+        {/* Stats Section */}
+        <section
+          className="py-8 bg-card shadow-sm"
+          aria-label={t("about.statsSection", "Company Statistics")}
+        >
+          <div className="mx-auto max-w-7xl px-4 lg:px-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="flex items-center gap-3 p-4 bg-primary/10 rounded-2xl">
+                <Users
+                  className="w-8 h-8 text-primary flex-shrink-0"
+                  aria-hidden="true"
+                />
+                <div>
+                  <div className="text-2xl font-bold text-foreground">500+</div>
+                  <div className="text-sm text-muted-foreground">
+                    {t("about.clients", "Clients Worldwide")}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-4 bg-success/10 rounded-2xl">
+                <Target
+                  className="w-8 h-8 text-success flex-shrink-0"
+                  aria-hidden="true"
+                />
+                <div>
+                  <div className="text-2xl font-bold text-foreground">
+                    99.9%
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {t("about.uptime", "Platform Uptime")}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-4 bg-secondary/10 rounded-2xl">
+                <Award
+                  className="w-8 h-8 text-secondary-foreground flex-shrink-0"
+                  aria-hidden="true"
+                />
+                <div>
+                  <div className="text-2xl font-bold text-foreground">15+</div>
+                  <div className="text-sm text-muted-foreground">
+                    {t("about.experience", "Years Experience")}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-4 bg-accent/10 rounded-2xl">
+                <Building2
+                  className="w-8 h-8 text-accent-foreground flex-shrink-0"
+                  aria-hidden="true"
+                />
+                <div>
+                  <div className="text-2xl font-bold text-foreground">10K+</div>
+                  <div className="text-sm text-muted-foreground">
+                    {t("about.properties", "Properties Managed")}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Main Content */}
+        <section
+          className="py-12"
+          aria-label={t("about.contentSection", "About Our Company")}
+        >
+          <div className="mx-auto max-w-4xl px-4 lg:px-6">
+            <div className="bg-card rounded-2xl shadow-md border border-border p-8 md:p-12">
+              <article className="prose prose-lg max-w-none text-start prose-headings:text-foreground prose-a:text-primary prose-strong:text-foreground">
+                <div dangerouslySetInnerHTML={{ __html: contentWithoutH1 }} />
+              </article>
+            </div>
+          </div>
+        </section>
+
+        {/* Contact Section */}
+        <section
+          className="py-12 bg-muted"
+          aria-label={t("about.contactSection", "Contact Information")}
+        >
+          <div className="mx-auto max-w-4xl px-4 lg:px-6">
+            <div className="bg-card rounded-2xl shadow-md border border-border p-8">
+              <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-3">
+                <MapPin className="w-6 h-6 text-primary" aria-hidden="true" />
+                {t("about.contactTitle", "Get in Touch")}
+              </h2>
+              <p className="text-foreground mb-6">
+                {t(
+                  "about.contactDesc",
+                  "Have questions about our services? Our team is here to help you get started.",
+                )}
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex items-start gap-3">
+                  <Mail
+                    className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-1"
+                    aria-hidden="true"
+                  />
+                  <div>
+                    <div className="font-semibold text-foreground mb-1">
+                      {t("about.email", "Email")}
+                    </div>
+                    <a
+                      href={`mailto:${CONTACT_INFO.email}`}
+                      className="text-primary hover:text-primary"
+                      aria-label={t(
+                        "about.emailLabel",
+                        `Send email to ${CONTACT_INFO.email}`,
+                      )}
+                    >
+                      {CONTACT_INFO.email}
+                    </a>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <Phone
+                    className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-1"
+                    aria-hidden="true"
+                  />
+                  <div>
+                    <div className="font-semibold text-foreground mb-1">
+                      {t("about.phone", "Phone")}
+                    </div>
+                    {contactPhone ? (
+                      <a
+                        href={`tel:${sanitizedTel}`}
+                        className="text-primary hover:text-primary"
+                        aria-label={t(
+                          "about.phoneLabel",
+                          `Call ${contactPhone}`,
+                        )}
+                      >
+                        {contactPhone}
+                      </a>
+                    ) : (
+                      <div className="text-muted-foreground">
+                        {t(
+                          "about.phoneUnavailable",
+                          "Phone number not configured",
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </>
+  );
+}
+
+]]>
+</file>
+
+</batch_content>

@@ -1,0 +1,3391 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="scripts/seedData.js">
+<![CDATA[
+const mongoose = require("mongoose");
+require("dotenv").config();
+
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+
+// Import models
+const User = require("../models/User");
+const Organization = require("../models/Organization");
+// Legacy Tenant kept only for backward compatibility; new data should use orgId
+const Tenant = require("../models/Tenant");
+const Property = require("../models/Property");
+const WorkOrder = require("../models/WorkOrder");
+const Vendor = require("../models/Vendor");
+const Subscription = require("../models/Subscription");
+const PropertyOwner = require("../models/PropertyOwner");
+
+// Safety: block accidental production/CI seeding and require explicit opt-in
+const isProdLike =
+  process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike) {
+  console.log(
+    "❌ SEEDING BLOCKED: seedData.js cannot run in production/CI environments",
+  );
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== "1") {
+  console.log(
+    "❌ ALLOW_SEED=1 is required to run seedData.js (prevents accidental prod writes)",
+  );
+  process.exit(1);
+}
+
+const DEFAULT_PASSWORD =
+  process.env.SEED_PASSWORD ||
+  process.env.TEST_USER_PASSWORD ||
+  process.env.DEMO_DEFAULT_PASSWORD;
+if (!DEFAULT_PASSWORD) {
+  throw new Error(
+    "SEED_PASSWORD or TEST_USER_PASSWORD (or DEMO_DEFAULT_PASSWORD) is required for seedData.js",
+  );
+}
+
+const seedDatabase = async () => {
+  try {
+    console.log("🌱 Starting database seeding...");
+
+    // Connect to MongoDB
+    await mongoose.connect(process.env.MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log("✅ Connected to MongoDB");
+
+    // Clear existing data (for demo purposes)
+    await Promise.all([
+      User.deleteMany({}),
+      Organization.deleteMany({}),
+      Tenant.deleteMany({}),
+      Property.deleteMany({}),
+      WorkOrder.deleteMany({}),
+      Vendor.deleteMany({}),
+      Subscription.deleteMany({}),
+      PropertyOwner.deleteMany({}),
+    ]);
+    console.log("🧹 Cleared existing data");
+
+    // Create Organizations (TENANT model kept only for legacy compatibility)
+    const organizations = [];
+    for (let i = 1; i <= 3; i++) {
+      const org = await Organization.create({
+        name: `Organization ${i}`,
+        code: `ORG${String(i).padStart(3, "0")}`,
+        domain: `org${i}.fixzit.co`,
+        settings: {
+          language: "en",
+          currency: "SAR",
+          timezone: "Asia/Riyadh",
+        },
+      });
+
+      // Legacy tenant record for backward compatibility; prefer orgId moving forward
+      const tenant = await Tenant.create({
+        name: `Tenant ${i}`,
+        orgId: org._id,
+        isActive: true,
+      });
+
+      organizations.push({ org, tenant });
+      console.log(`📊 Created Organization ${i} (legacy tenant record kept)`);
+    }
+
+    // Create deterministic admin account first
+    const adminOrg = organizations[0]; // Use first organization for admin
+    const adminUser = await User.create({
+      name: "System Administrator",
+      email: `admin@${EMAIL_DOMAIN}`,
+      password: DEFAULT_PASSWORD, // Model pre-save hook will hash it
+      role: "SUPER_ADMIN",
+      orgId: adminOrg.org._id,
+      status: "active",
+    });
+    console.log(`🔑 Created deterministic admin account: admin@${EMAIL_DOMAIN}`);
+
+    // Create Users
+    const users = [
+      { user: adminUser, org: adminOrg.org, tenant: adminOrg.tenant },
+    ];
+    const roles = ["SUPER_ADMIN", "ADMIN", "MANAGER", "TECHNICIAN", "OWNER"];
+
+    for (let orgIndex = 0; orgIndex < organizations.length; orgIndex++) {
+      const { org, tenant } = organizations[orgIndex];
+
+      for (let i = 0; i < 5; i++) {
+        // Skip super_admin for first org since we already created the deterministic admin
+        if (orgIndex === 0 && i === 0) continue;
+
+        const user = await User.create({
+          name: `User ${orgIndex + 1}-${i + 1}`,
+          email: `user${orgIndex + 1}${i + 1}@${EMAIL_DOMAIN}`,
+          password: DEFAULT_PASSWORD, // Model pre-save hook will hash
+          role: roles[i],
+          orgId: org._id,
+          status: "active",
+        });
+
+        users.push({ user, org, tenant });
+      }
+    }
+    console.log(`👥 Created ${users.length} users across all organizations`);
+
+    // Create Properties
+    const properties = [];
+    const propertyTypes = ["residential", "commercial", "mixed"];
+
+    for (let orgIndex = 0; orgIndex < organizations.length; orgIndex++) {
+      const { org, tenant } = organizations[orgIndex];
+
+      for (let i = 1; i <= 10; i++) {
+        // Find an owner user for this organization
+        const ownerUser = users.find(
+          (u) => u.org._id.equals(org._id) && u.user.role === "OWNER",
+        );
+
+        // Generate unique code manually to avoid pre-save hook conflicts
+        const typePrefix = propertyTypes[i % 3].substring(0, 3).toUpperCase();
+        const uniqueCode = `${typePrefix}-${orgIndex + 1}${String(i).padStart(3, "0")}`;
+
+        const property = await Property.create({
+          name: `Property ${orgIndex + 1}-${i}`,
+          code: uniqueCode,
+          type: propertyTypes[i % 3],
+          address: {
+            street: `${i * 100} King Fahd Road`,
+            city: ["Riyadh", "Jeddah", "Dammam"][orgIndex],
+            district: `District ${i}`,
+            country: "Saudi Arabia",
+            postalCode: `${11000 + i}`,
+          },
+          details: {
+            totalArea: 1000 + i * 100,
+            buildingAge: 5 + (i % 10),
+            floors: 1 + (i % 5),
+            units: 10 + i * 2,
+          },
+          owner: ownerUser
+            ? ownerUser.user._id
+            : users.find((u) => u.org._id.equals(org._id))?.user._id,
+          orgId: org._id,
+          status: "active",
+        });
+
+        properties.push({ property, org, tenant });
+      }
+    }
+    console.log(`🏢 Created ${properties.length} properties`);
+
+    // Create Property Owners
+    for (let orgIndex = 0; orgIndex < organizations.length; orgIndex++) {
+      const { org, tenant } = organizations[orgIndex];
+      const ownerUser = users.find(
+        (u) => u.org._id.equals(org._id) && u.user.role === "OWNER",
+      );
+      const orgProperties = properties.filter((p) => p.org._id.equals(org._id));
+
+      if (ownerUser && orgProperties.length > 0) {
+        await PropertyOwner.create({
+          user: ownerUser.user._id,
+          properties: orgProperties.slice(0, 5).map((p) => p.property._id),
+          orgId: org._id,
+        });
+      }
+    }
+    console.log("🏠 Created property owners");
+
+    // Create Work Orders
+    const workOrders = [];
+    const priorities = ["low", "medium", "high", "urgent"];
+    const statuses = ["pending", "in_progress", "completed", "cancelled"];
+    const categories = [
+      "maintenance",
+      "repair",
+      "inspection",
+      "cleaning",
+      "emergency",
+    ];
+
+    for (let i = 1; i <= 100; i++) {
+      const orgIndex = i % organizations.length;
+      const { org, tenant } = organizations[orgIndex];
+      const orgProperties = properties.filter((p) => p.org._id.equals(org._id));
+
+      if (orgProperties.length > 0) {
+        const workOrder = await WorkOrder.create({
+          orderNumber: `WO-${new Date().getFullYear()}-${String(i).padStart(5, "0")}`,
+          title: `${categories[i % 5]} Issue ${i}`,
+          description: `Detailed description for work order ${i}. This requires attention.`,
+          category: categories[i % 5],
+          priority: priorities[i % 4],
+          status: statuses[i % 4],
+          property: orgProperties[i % orgProperties.length].property._id,
+          requestedBy: users.find((u) => u.org._id.equals(org._id))?.user._id,
+          estimatedCost: 100 + i * 50,
+          actualCost: i % 4 === 3 ? 100 + i * 45 : null, // Only for completed orders
+          orgId: org._id,
+          createdAt: new Date(Date.now() - i * 24 * 60 * 60 * 1000), // Spread over last 100 days
+        });
+
+        workOrders.push(workOrder);
+      }
+    }
+    console.log(`🔧 Created ${workOrders.length} work orders`);
+
+    // Create Vendors
+    const vendors = [];
+    const serviceCategories = [
+      ["plumbing", "water_leak_repair"],
+      ["electrical", "wiring_installation"],
+      ["hvac", "ac_maintenance"],
+      ["cleaning", "deep_cleaning"],
+      ["maintenance", "general_maintenance"],
+    ];
+
+    for (let orgIndex = 0; orgIndex < organizations.length; orgIndex++) {
+      const { org, tenant } = organizations[orgIndex];
+
+      for (let i = 1; i <= 8; i++) {
+        const serviceSet = serviceCategories[i % serviceCategories.length];
+
+        const vendor = await Vendor.create({
+          companyName: `${serviceSet[0].toUpperCase()} Solutions ${orgIndex + 1}-${i}`,
+          contactPerson: `Contact Person ${i}`,
+          email: `vendor${orgIndex + 1}${i}@example.com`,
+          phone: `+966-50-${String(i).padStart(3, "0")}-${String(orgIndex + 1).padStart(4, "0")}`,
+          vatNumber: `3${String(orgIndex * 10 + i).padStart(14, "0")}`,
+          services: serviceSet,
+          address: {
+            street: `${i} Business District`,
+            city: ["Riyadh", "Jeddah", "Dammam"][orgIndex],
+            country: "Saudi Arabia",
+          },
+          rating: 3.5 + (i % 3),
+          status: ["pending", "approved", "rejected"][i % 3],
+          orgId: org._id,
+        });
+
+        vendors.push(vendor);
+      }
+    }
+    console.log(`🏪 Created ${vendors.length} vendors`);
+
+    // Create Subscriptions
+    const plans = ["basic", "standard", "pro", "enterprise"];
+    for (let orgIndex = 0; orgIndex < organizations.length; orgIndex++) {
+      const { org } = organizations[orgIndex];
+      const plan = plans[orgIndex % plans.length];
+
+      await Subscription.create({
+        orgId: org._id,
+        plan,
+        seats: { purchased: 10 + orgIndex * 5, used: 3 + orgIndex },
+        billing: {
+          cycle: orgIndex % 2 === 0 ? "monthly" : "annual",
+          amount: { basic: 99, standard: 199, pro: 399, enterprise: 799 }[plan],
+          currency: "SAR",
+          nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          paymentMethod: "card",
+        },
+        status: "active",
+        trialEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        features: {
+          maxProperties:
+            plan === "enterprise"
+              ? -1
+              : { basic: 10, standard: 50, pro: 200 }[plan],
+          maxUsers:
+            plan === "enterprise"
+              ? -1
+              : { basic: 5, standard: 15, pro: 50 }[plan],
+          maxWorkOrders:
+            plan === "enterprise"
+              ? -1
+              : { basic: 100, standard: 500, pro: 2000 }[plan],
+          maxStorage:
+            plan === "enterprise"
+              ? -1
+              : { basic: 1000, standard: 5000, pro: 20000 }[plan],
+          zatcaCompliance: ["standard", "pro", "enterprise"].includes(plan),
+          multiTenant: ["pro", "enterprise"].includes(plan),
+          apiAccess: ["standard", "pro", "enterprise"].includes(plan),
+          customBranding: ["pro", "enterprise"].includes(plan),
+        },
+        usage: {
+          properties: properties.filter((p) => p.org._id.equals(org._id))
+            .length,
+          users: users.filter((u) => u.org._id.equals(org._id)).length,
+          workOrders: workOrders.filter((w) => w.orgId.equals(org._id))
+            .length,
+          storage: Math.floor(Math.random() * 1000),
+        },
+      });
+    }
+    console.log("💳 Created subscriptions for all organizations");
+
+    // Summary
+    console.log("\n🎉 Database seeding completed successfully!");
+    console.log("📊 Summary:");
+    console.log(`   • ${organizations.length} Organizations & Tenants`);
+    console.log(`   • ${users.length} Users (all roles)`);
+    console.log(`   • ${properties.length} Properties`);
+    console.log(`   • ${workOrders.length} Work Orders`);
+    console.log(`   • ${vendors.length} Vendors`);
+    console.log(`   • ${organizations.length} Subscriptions`);
+    console.log("\n✨ System ready for testing!");
+  } catch (error) {
+    console.error("❌ Seeding failed:", error);
+  } finally {
+    await mongoose.disconnect();
+    console.log("🔌 Disconnected from MongoDB");
+    process.exit(0);
+  }
+};
+
+// Run seeding if called directly
+if (require.main === module) {
+  seedDatabase();
+}
+
+module.exports = seedDatabase;
+
+]]>
+</file>
+
+<file path="scripts/seedMarketplace.ts">
+<![CDATA[
+import "dotenv/config";
+import path from "path";
+import { access } from "fs/promises";
+import { Types } from "mongoose";
+import { dbConnect } from "@/db/mongoose";
+import Category from "@/server/models/marketplace/Category";
+import AttributeSet from "@/server/models/marketplace/AttributeSet";
+import Product from "@/server/models/marketplace/Product";
+import Order from "@/server/models/marketplace/Order";
+import RFQ from "@/server/models/marketplace/RFQ";
+import { objectIdFrom } from "@/lib/marketplace/objectIds";
+
+const isProdLike =
+  process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike) {
+  console.error(
+    "Seeding blocked in production/CI. Set ALLOW_SEED=1 only in non-production.",
+  );
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== "1") {
+  console.error("Set ALLOW_SEED=1 to run seedMarketplace.ts in non-production.");
+  process.exit(1);
+}
+
+async function ensureAssetExists(relativeUrl: string) {
+  const filePath = path.join(
+    process.cwd(),
+    "public",
+    relativeUrl.replace(/^\//, ""),
+  );
+  try {
+    await access(filePath);
+  } catch (error) {
+    const detail = error instanceof Error ? ` (${error.message})` : "";
+    throw new Error(
+      `Marketplace seed asset missing: ${filePath}. Ensure marketplace docs and images are generated before seeding.${detail}`,
+    );
+  }
+}
+
+async function run() {
+  await dbConnect();
+  const orgKey = process.env.MARKETPLACE_DEFAULT_TENANT || "demo-tenant";
+  const orgId = objectIdFrom(orgKey);
+  const hvacAttrSetId = new Types.ObjectId();
+
+  await AttributeSet.updateOne(
+    { _id: hvacAttrSetId, orgId },
+    {
+      $setOnInsert: {
+        orgId,
+        title: "HVAC Filters",
+        items: [
+          {
+            key: "efficiency",
+            label: { en: "Efficiency", ar: "الكفاءة" },
+            unit: "MERV",
+            required: true,
+          },
+          { key: "size", label: { en: "Size", ar: "المقاس" }, unit: "mm" },
+          { key: "frame", label: { en: "Frame", ar: "الإطار" } },
+        ],
+      },
+    },
+    { upsert: true },
+  );
+
+  const categories = [
+    { slug: "electrical", name: { en: "Electrical", ar: "كهرباء" } },
+    { slug: "plumbing", name: { en: "Plumbing", ar: "سباكة" } },
+    {
+      slug: "hvac",
+      name: { en: "HVAC", ar: "تكييف" },
+      attrSetId: hvacAttrSetId,
+    },
+    { slug: "concrete", name: { en: "Concrete", ar: "خرسانة" } },
+    { slug: "paints", name: { en: "Paints", ar: "دهانات" } },
+    { slug: "ppe", name: { en: "PPE", ar: "معدات الوقاية" } },
+    { slug: "tools", name: { en: "Tools", ar: "أدوات" } },
+  ];
+
+  for (const category of categories) {
+    await Category.updateOne(
+      { orgId, slug: category.slug },
+      {
+        $set: {
+          ...category,
+          orgId,
+        },
+      },
+      { upsert: true },
+    );
+  }
+
+  const hvacCategory = await Category.findOne({ orgId, slug: "hvac" });
+  const ppeCategory = await Category.findOne({ orgId, slug: "ppe" });
+
+  if (!hvacCategory || !ppeCategory) {
+    throw new Error("Required categories missing after seed");
+  }
+
+  await Promise.all([
+    ensureAssetExists("/images/marketplace/hvac-filter.svg"),
+    ensureAssetExists("/docs/msds/merv13.pdf"),
+    ensureAssetExists("/images/marketplace/nitrile-gloves.svg"),
+    ensureAssetExists("/docs/msds/nitrile-gloves.pdf"),
+  ]);
+
+  await Product.updateOne(
+    { orgId, sku: "HVAC-FLTR-MERV13-24x24" },
+    {
+      $set: {
+        orgId,
+        categoryId: hvacCategory._id,
+        slug: "merv13-filter-24x24",
+        title: {
+          en: "MERV 13 Air Filter 24x24in",
+          ar: "فلتر هواء MERV 13 مقاس 24x24",
+        },
+        summary: "High efficiency HVAC filter meeting ASHRAE 52.2 standard",
+        brand: "FiltrationPro",
+        standards: ["ASHRAE 52.2", "EN 779 (M6/F7)"],
+        specs: {
+          efficiency: "MERV 13",
+          size: "610x610x25",
+          frame: "Galvanized steel",
+        },
+        media: [
+          { url: "/images/marketplace/hvac-filter.svg", role: "GALLERY" },
+          { url: "/docs/msds/merv13.pdf", role: "MSDS", title: "MSDS" },
+        ],
+        buy: { price: 38, currency: "SAR", uom: "ea", leadDays: 2, minQty: 1 },
+        stock: { onHand: 120, reserved: 12, location: "Riyadh DC" },
+        rating: { avg: 4.6, count: 18 },
+        status: "ACTIVE",
+      },
+    },
+    { upsert: true },
+  );
+
+  await Product.updateOne(
+    { orgId, sku: "PPE-NITRILE-GLOVE-XL" },
+    {
+      $set: {
+        orgId,
+        categoryId: ppeCategory._id,
+        slug: "nitrile-gloves-xl",
+        title: {
+          en: "Nitrile Gloves (Powder Free) - XL",
+          ar: "قفازات نايترايل بدون بودرة - حجم كبير",
+        },
+        summary: "Industrial-grade blue nitrile gloves compliant with EN374",
+        brand: "SafeHands",
+        standards: ["EN 374", "ASTM D6319"],
+        specs: {
+          thickness: "6 mil",
+          color: "Blue",
+          packaging: "Box of 100",
+        },
+        media: [
+          { url: "/images/marketplace/nitrile-gloves.svg", role: "GALLERY" },
+          { url: "/docs/msds/nitrile-gloves.pdf", role: "MSDS", title: "MSDS" },
+        ],
+        buy: { price: 68, currency: "SAR", uom: "box", leadDays: 3, minQty: 2 },
+        stock: { onHand: 240, reserved: 30, location: "Jeddah Hub" },
+        rating: { avg: 4.8, count: 42 },
+        status: "ACTIVE",
+      },
+    },
+    { upsert: true },
+  );
+
+  await Order.deleteMany({ orgId });
+  await RFQ.deleteMany({ orgId });
+
+  console.log("Marketplace seed complete");
+  process.exit(0);
+}
+
+run().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/seedOnboarding.ts">
+<![CDATA[
+import mongoose from 'mongoose';
+import { DocumentType } from '@/server/models/onboarding/DocumentType';
+import { DocumentProfile } from '@/server/models/onboarding/DocumentProfile';
+
+const isProdLike =
+  process.env.NODE_ENV === 'production' || process.env.CI === 'true';
+if (isProdLike) {
+  console.error(
+    'Seeding blocked in production/CI. Set ALLOW_SEED=1 only in non-production.',
+  );
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== '1') {
+  console.error('Set ALLOW_SEED=1 to run seed scripts in non-production.');
+  process.exit(1);
+}
+
+// Type guard for MongoDB bulk write errors
+interface MongoWriteError {
+  code?: number;
+  writeErrors?: Array<{ code?: number }>;
+}
+
+function isMongoWriteError(error: unknown): error is MongoWriteError {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    ('code' in error || 'writeErrors' in error)
+  );
+}
+
+function isDuplicateKeyError(error: unknown): boolean {
+  if (!isMongoWriteError(error)) return false;
+  return (
+    error.code === 11000 ||
+    (Array.isArray(error.writeErrors) &&
+      error.writeErrors.every((e) => e?.code === 11000))
+  );
+}
+
+async function seedOnboarding() {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) throw new Error('MONGODB_URI is not set');
+
+  await mongoose.connect(uri);
+
+  await DocumentType.insertMany(
+    [
+      {
+        code: 'NATIONAL_ID',
+        name_en: 'National ID',
+        name_ar: 'بطاقة الهوية الوطنية',
+        applies_to: ['TENANT', 'PROPERTY_OWNER'],
+        is_mandatory: true,
+        requires_expiry: false,
+        max_file_size_mb: 10,
+        allowed_mime_types: ['image/jpeg', 'image/png', 'application/pdf'],
+        review_required: true,
+      },
+      {
+        code: 'CR_LICENSE',
+        name_en: 'Commercial Register',
+        name_ar: 'السجل التجاري',
+        applies_to: ['VENDOR', 'OWNER', 'AGENT'],
+        is_mandatory: true,
+        requires_expiry: true,
+        max_file_size_mb: 10,
+        allowed_mime_types: ['application/pdf'],
+        review_required: true,
+      },
+      {
+        code: 'VAT_CERT',
+        name_en: 'VAT Certificate',
+        name_ar: 'شهادة ضريبة القيمة المضافة',
+        applies_to: ['VENDOR', 'OWNER'],
+        is_mandatory: true,
+        requires_expiry: true,
+        max_file_size_mb: 10,
+        allowed_mime_types: ['application/pdf'],
+        review_required: true,
+      },
+      {
+        code: 'IBAN_CERT',
+        name_en: 'IBAN Certificate',
+        name_ar: 'شهادة IBAN',
+        applies_to: ['VENDOR'],
+        is_mandatory: true,
+        requires_expiry: false,
+        max_file_size_mb: 5,
+        allowed_mime_types: ['application/pdf', 'image/jpeg'],
+        review_required: true,
+      },
+    ],
+    { ordered: false },
+  ).catch((error: any) => {
+    // Ignore duplicate key errors but surface anything else
+    const isDup =
+      error?.code === 11000 ||
+      (Array.isArray(error?.writeErrors) &&
+        error.writeErrors.every((e: any) => e?.code === 11000));
+    if (!isDup) {
+      throw error;
+    }
+  });
+
+  await DocumentProfile.insertMany(
+    [
+      { role: 'TENANT', country: 'SA', required_doc_codes: ['NATIONAL_ID'] },
+      { role: 'VENDOR', country: 'SA', required_doc_codes: ['CR_LICENSE', 'VAT_CERT', 'IBAN_CERT'] },
+      { role: 'AGENT', country: 'SA', required_doc_codes: ['CR_LICENSE'] },
+      { role: 'PROPERTY_OWNER', country: 'SA', required_doc_codes: ['NATIONAL_ID'] },
+      { role: 'OWNER', country: 'SA', required_doc_codes: ['CR_LICENSE', 'VAT_CERT'] },
+    ],
+    { ordered: false },
+  ).catch((error: unknown) => {
+    // Ignore duplicate key errors but surface anything else
+    if (!isDuplicateKeyError(error)) {
+      throw error;
+    }
+  });
+
+  await mongoose.disconnect();
+}
+
+if (require.main === module) {
+  seedOnboarding()
+    .then(() => {
+      // eslint-disable-next-line no-console
+      console.log('Onboarding seed complete');
+      process.exit(0);
+    })
+    .catch((err) => {
+      // eslint-disable-next-line no-console
+      console.error('Onboarding seed failed', err);
+      process.exit(1);
+    });
+}
+
+export default seedOnboarding;
+
+]]>
+</file>
+
+<file path="scripts/serve-frontend.js">
+<![CDATA[
+const express = require("express");
+const path = require("path");
+const app = express();
+
+// Enable CORS for API calls
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization",
+  );
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  next();
+});
+
+// Proxy API calls to backend
+app.use("/api", async (req, res) => {
+  const backendUrl = `http://localhost:5000${req.originalUrl}`;
+  console.log(`🔗 Proxying: ${req.method} ${backendUrl}`);
+
+  try {
+    const response = await fetch(backendUrl, {
+      method: req.method,
+      headers: {
+        "Content-Type": "application/json",
+        ...req.headers,
+      },
+      ...(req.body && { body: JSON.stringify(req.body) }),
+    });
+
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    console.error("Proxy error:", err.message);
+    res
+      .status(500)
+      .json({ error: "Backend unavailable", message: "Using fallback data" });
+  }
+});
+
+app.use(express.static("public"));
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+app.listen(3000, () => {
+  console.log("✅ Fixzit Frontend running on http://localhost:3000");
+  console.log("🔗 Connecting to Backend API at http://localhost:5000");
+  console.log("📱 Features:");
+  console.log("   - Landing page with 3 buttons");
+  console.log("   - Monday.com style interface");
+  console.log("   - RTL Arabic support");
+  console.log("   - Connected to working backend API");
+});
+
+]]>
+</file>
+
+<file path="scripts/server-broken.js">
+<![CDATA[
+const express = require("express");
+const path = require("path");
+const app = express();
+
+// Serve static files from public directory
+app.use(express.static("public"));
+
+// Serve the main HTML file
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+// Start server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(
+    `✅ Fixzit Enterprise Platform running on http://localhost:${PORT}`,
+  );
+  console.log("🎯 Features:");
+  console.log(
+    "   - Landing page with 3 buttons (Yellow Arabic, White Souq, Blue Access)",
+  );
+  console.log("   - Monday.com style interface");
+  console.log("   - RTL support for Arabic");
+  console.log("   - All 13 FM modules structure");
+  console.log("   - Your exact brand colors");
+});
+
+// Mount ALL existing routes - THESE FILES ALREADY EXIST
+app.use("/api/auth", require("./routes/auth"));
+app.use("/api/dashboard", require("./routes/dashboard"));
+app.use("/api/properties", require("./routes/properties"));
+app.use("/api/work-orders", require("./routes/workorders"));
+app.use("/api/finance", require("./routes/finance"));
+// app.use('/api/users', require('./routes/users')); // File missing
+// app.use('/api/tenants', require('./routes/tenants')); // File missing
+app.use("/api/maintenance", require("./routes/maintenance"));
+app.use("/api/hr", require("./routes/hr"));
+app.use("/api/marketplace", require("./routes/marketplace"));
+app.use("/api/crm", require("./routes/crm"));
+app.use("/api/support", require("./routes/tickets")); // Using tickets as support
+app.use("/api/compliance", require("./routes/compliance"));
+app.use("/api/reports", require("./routes/reports"));
+app.use("/api/system", require("./routes/system"));
+app.use("/api/administration", require("./routes/admin"));
+app.use("/api/pm", require("./routes/pm"));
+
+console.log("✅ All 13 module routes mounted");
+
+]]>
+</file>
+
+<file path="scripts/server-fixed.js">
+<![CDATA[
+const express = require("express");
+const cors = require("cors");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
+const mongoSanitize = require("express-mongo-sanitize");
+require("dotenv").config();
+
+const app = express();
+
+// Security middleware
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        scriptSrc: ["'self'", "https://apis.google.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'", "https://api.fixzit.co"],
+      },
+    },
+  }),
+);
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: "Too many requests from this IP, please try again later.",
+});
+app.use("/api/", limiter);
+
+// CORS with proper configuration
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    const allowedOrigins = process.env.CORS_ORIGIN?.split(",") || [
+      "http://localhost:3000",
+    ];
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: process.env.CORS_CREDENTIALS === "true",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  exposedHeaders: ["X-Total-Count"],
+  maxAge: 86400, // 24 hours
+};
+
+app.use(cors(corsOptions));
+
+// Prevent MongoDB injection attacks
+app.use(mongoSanitize());
+
+// Body parsing with size limits
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// Cookie parser for secure token handling
+app.use(require("cookie-parser")());
+
+// Routes
+app.use("/api/auth", require("./routes/auth"));
+app.use("/api/users", require("./routes/users"));
+app.use("/api/properties", require("./routes/properties"));
+app.use("/api/workorders", require("./routes/workorders"));
+app.use("/api/finance", require("./routes/finance"));
+
+// Error handling
+app.use((err, req, res, _next) => {
+  console.error(err.stack);
+  // Don't leak error details in production
+  const message =
+    process.env.NODE_ENV === "production"
+      ? "Internal Server Error"
+      : err.message;
+  res.status(err.status || 500).json({ error: message });
+});
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running securely on port ${PORT}`);
+});
+
+]]>
+</file>
+
+<file path="scripts/server.js">
+<![CDATA[
+// FIXZIT SOUQ - Updated Security Infrastructure
+const logger = require("./src/logger");
+const loggingMiddleware = require("./src/middleware/logging");
+const errorHandler = require("./src/middleware/error");
+const { setupSecurity } = require("./src/middleware/security");
+const _Env = require("./src/config/env");
+const { requireEnv } = require("../lib/env");
+
+const express = require("express");
+const http = require("http");
+const _path = require("path");
+const cors = require("cors");
+const morgan = require("morgan");
+const { realtimeService } = require("./services/realtime");
+const { workflowEngine } = require("./services/workflows");
+
+const app = express();
+
+// Apply security middleware first
+setupSecurity(app);
+
+// Add logging middleware
+app.use(loggingMiddleware);
+
+// Create HTTP server for WebSocket support
+const server = http.createServer(app);
+
+// Security middleware - Enhanced CORS
+const corsOptions = {
+  origin: function (origin, callback) {
+    const allowedOrigins = process.env.CORS_ORIGIN?.split(",") || [
+      "http://localhost:3000",
+      "http://localhost:5000",
+      "https://fixzit.co",
+    ];
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  exposedHeaders: ["X-Total-Count"],
+  maxAge: 86400, // 24 hours
+};
+
+// Configure trust proxy for rate limiting (SECURITY FIX)
+app.set("trust proxy", 1);
+
+// Rate limiting for API routes
+const rateLimit = require("express-rate-limit");
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: "Too many API requests from this IP, please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
+  trustProxy: true,
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 login requests per windowMs
+  message: "Too many login attempts from this IP, please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
+  trustProxy: true,
+});
+
+// MongoDB sanitization - TEMPORARILY DISABLED due to middleware compatibility issue
+// We have input sanitization in our validation middleware instead
+// const mongoSanitize = require('express-mongo-sanitize');
+
+// Middleware
+app.use(cors(corsOptions));
+app.use("/api/", apiLimiter);
+app.use("/api/auth/login", authLimiter);
+app.use("/api/auth/register", authLimiter);
+// app.use(mongoSanitize()); // DISABLED - using validation middleware sanitization instead
+app.use(morgan("combined"));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// Serve static files
+app.use(express.static("public"));
+
+// Environment validation
+function ensureRequiredSecrets() {
+  try {
+    requireEnv("JWT_SECRET");
+    requireEnv("REFRESH_TOKEN_SECRET");
+  } catch (error) {
+    logger.error("Missing required environment variables for authentication", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    process.exit(1);
+  }
+}
+
+ensureRequiredSecrets();
+
+// Initialize WebSocket with realtime service
+realtimeService.establishWebSocket(server);
+
+// Mount the FIXED routes (no more try/catch blocks)
+
+// Core authentication and security
+app.use("/api/auth", require("./routes/auth"));
+
+// 5 Web Portals - COMPLETE IMPLEMENTATION
+app.use("/api/portals", require("./routes/portals"));
+
+// Enhanced Finance with ZATCA compliance
+app.use("/api/finance", require("./routes/finance"));
+
+// Search functionality for workflows and layout audit
+app.use("/api/search", require("./routes/search"));
+
+// Mount other existing routes with error handling
+try {
+  app.use("/api/dashboard", require("./routes/dashboard"));
+} catch (e) {
+  logger.error("Route loading error:", e.message);
+}
+
+try {
+  app.use("/api/properties", require("./routes/properties"));
+} catch (e) {
+  logger.error("Route loading error:", e.message);
+}
+
+try {
+  app.use("/api/work-orders", require("./routes/workorders"));
+} catch (e) {
+  logger.error("Route loading error:", e.message);
+}
+
+try {
+  app.use("/api/hr", require("./routes/hr"));
+} catch (e) {
+  logger.error("Route loading error:", e.message);
+}
+
+try {
+  app.use("/api/administration", require("./routes/admin"));
+} catch (e) {
+  logger.error("Route loading error:", e.message);
+}
+
+try {
+  app.use("/api/crm", require("./routes/crm"));
+} catch (e) {
+  logger.error("Route loading error:", e.message);
+}
+
+try {
+  app.use("/api/marketplace", require("./routes/marketplace"));
+} catch (e) {
+  logger.error("Route loading error:", e.message);
+}
+
+try {
+  app.use("/api/support", require("./routes/tickets"));
+} catch (e) {
+  logger.error("Route loading error:", e.message);
+}
+
+try {
+  app.use("/api/compliance", require("./routes/compliance"));
+} catch (e) {
+  logger.error("Route loading error:", e.message);
+}
+
+try {
+  app.use("/api/reports", require("./routes/reports"));
+} catch (e) {
+  logger.error("Route loading error:", e.message);
+}
+
+try {
+  app.use("/api/system", require("./routes/system"));
+} catch (e) {
+  logger.error("Route loading error:", e.message);
+}
+
+try {
+  app.use("/api/pm", require("./routes/pm"));
+} catch (e) {
+  logger.error("Route loading error:", e.message);
+}
+
+// API Status endpoint
+app.get("/api/status", (req, res) => {
+  const connectionStats = realtimeService.trackActiveConnections();
+
+  res.json({
+    success: true,
+    status: "OPERATIONAL",
+    timestamp: new Date(),
+    version: "2.0.0",
+    features: {
+      authentication: "ENHANCED_WITH_MFA",
+      portals: "5_PORTALS_ACTIVE",
+      finance: "ZATCA_COMPLIANT",
+      realtime: "WEBSOCKET_ACTIVE",
+      workflows: "ENGINE_ACTIVE",
+    },
+    connections: connectionStats,
+    backend: {
+      criticalFixes: "APPLIED",
+      authenticationModule: "ENHANCED",
+      financeModule: "ZATCA_READY",
+      portalsModule: "5_PORTALS",
+      realtimeModule: "WEBSOCKET_ACTIVE",
+      workflowsModule: "ENGINE_READY",
+    },
+  });
+});
+
+// API Health check
+app.get("/api/health", (req, res) => {
+  res.json({
+    success: true,
+    status: "healthy",
+    timestamp: new Date(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    services: {
+      webSocket: !!realtimeService.io,
+      workflows: !!workflowEngine,
+      auth: true,
+      finance: true,
+      portals: true,
+    },
+  });
+});
+
+// Workflow test endpoints
+app.post(
+  "/api/test/tenant-request",
+  require("./routes/auth").authenticateToken,
+  async (req, res) => {
+    try {
+      const result = await workflowEngine.processTenantMaintenanceRequest({
+        title: req.body.title || "Test Maintenance Request",
+        description:
+          req.body.description || "Test maintenance request from API",
+        priority: req.body.priority || "MEDIUM",
+        category: req.body.category || "GENERAL",
+        tenantId: req.user.id,
+        propertyId: req.body.propertyId || "demo-property",
+        estimatedCost: req.body.estimatedCost || 200,
+      });
+
+      res.json({
+        success: true,
+        message: "Tenant maintenance request workflow tested successfully",
+        result,
+      });
+    } catch (error) {
+      console.error("Workflow test failed:", error);
+      res.status(500).json({ error: "Workflow test failed" });
+    }
+  },
+);
+
+// WebSocket test endpoint
+app.post(
+  "/api/test/websocket",
+  require("./routes/auth").authenticateToken,
+  async (req, res) => {
+    try {
+      // Test notification
+      await realtimeService.sendNotification(req.user.id, {
+        type: "TEST_NOTIFICATION",
+        title: "WebSocket Test",
+        message: "This is a test notification from the API",
+        timestamp: new Date(),
+      });
+
+      // Test broadcast
+      realtimeService.broadcastUpdate("tenant:demo-tenant", {
+        type: "API_TEST",
+        message: "WebSocket system test",
+        userId: req.user.id,
+      });
+
+      res.json({
+        success: true,
+        message: "WebSocket test completed",
+        connections: realtimeService.trackActiveConnections(),
+      });
+    } catch (error) {
+      console.error("WebSocket test failed:", error);
+      res.status(500).json({ error: "WebSocket test failed" });
+    }
+  },
+);
+
+// Home route
+app.get("/", (req, res) => {
+  res.sendFile(_path.join(__dirname, "public", "index.html"));
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    error: "Route not found",
+    path: req.originalUrl,
+    method: req.method,
+    timestamp: new Date(),
+  });
+});
+
+// Use comprehensive error handler
+app.use(errorHandler);
+
+// Start server
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, "0.0.0.0", () => {
+  logger.info(`🚀 FIXZIT SOUQ Server running on port ${PORT}`);
+});
+
+// Graceful shutdown
+process.on("SIGTERM", () => {
+  server.close(() => {
+    process.exit(0);
+  });
+});
+
+module.exports = { app, server };
+
+]]>
+</file>
+
+<file path="scripts/set_prefs.py">
+<![CDATA[
+#!/usr/bin/env python3
+"""
+Fixzit Preferences CLI
+Easily set preferences for space saver and verification system
+"""
+
+import os
+import sys
+import json
+import argparse
+from pathlib import Path
+
+ROOT = Path(__file__).parent.parent.resolve()
+PREFS_PATH = ROOT / "config" / "fixzit_prefs.json"
+
+DEFAULT_PREFS = {
+    # UI & verification
+    "FIXZIT_SKIP_UI": "0",
+    # Space saver defaults
+    "SLIM_KEEP_BACKUPS": 2,
+    "SLIM_ARTIFACTS_DAYS": 3,
+    "SLIM_PURGE_PLAYWRIGHT": 0,
+    "SLIM_PURGE_PIP": 1,
+    "SLIM_PRUNE_SCREENSHOTS": 1,
+    # DB behavior
+    "AUTO_FIX_DB_RELATIONSHIPS": 1,
+    "SEED_ONLY_WHEN_EMPTY": 1,
+    "DEMO_MODE": 0
+}
+
+def load_prefs():
+    """Load current preferences"""
+    try:
+        if PREFS_PATH.exists():
+            data = json.loads(PREFS_PATH.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                prefs = DEFAULT_PREFS.copy()
+                prefs.update(data)
+                return prefs
+    except Exception:
+        pass
+    return DEFAULT_PREFS.copy()
+
+def save_prefs(prefs):
+    """Save preferences to file"""
+    PREFS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    PREFS_PATH.write_text(json.dumps(prefs, indent=2), encoding="utf-8")
+
+def show_current_prefs():
+    """Display current preferences"""
+    prefs = load_prefs()
+    print("Current Fixzit Preferences:")
+    print("=" * 40)
+    for key, value in prefs.items():
+        print(f"{key:25} = {value}")
+    print(f"\nStored in: {PREFS_PATH}")
+
+def main():
+    parser = argparse.ArgumentParser(description="Manage Fixzit preferences")
+    parser.add_argument("--show", action="store_true", help="Show current preferences")
+    parser.add_argument("--skip-ui", type=int, choices=[0, 1], help="Skip UI tests (0/1)")
+    parser.add_argument("--keep-backups", type=int, help="Number of backups to keep")
+    parser.add_argument("--artifacts-days", type=int, help="Days to keep artifacts")
+    parser.add_argument("--purge-playwright", type=int, choices=[0, 1], help="Remove Playwright browsers (0/1)")
+    parser.add_argument("--purge-pip", type=int, choices=[0, 1], help="Purge pip cache (0/1)")
+    parser.add_argument("--prune-screenshots", type=int, choices=[0, 1], help="Remove screenshots (0/1)")
+    parser.add_argument("--auto-fix-db", type=int, choices=[0, 1], help="Auto-fix database relationships (0/1)")
+    parser.add_argument("--seed-empty-only", type=int, choices=[0, 1], help="Seed only empty tables (0/1)")
+    parser.add_argument("--demo-mode", type=int, choices=[0, 1], help="Enable demo mode (0/1)")
+    parser.add_argument("--reset", action="store_true", help="Reset to defaults")
+    
+    # Preset profiles
+    parser.add_argument("--zero-risk", action="store_true", help="Apply zero-risk cleanup profile")
+    parser.add_argument("--max-savings", action="store_true", help="Apply maximum savings profile")
+    
+    args = parser.parse_args()
+    
+    if args.show:
+        show_current_prefs()
+        return
+    
+    # Load current preferences
+    prefs = load_prefs()
+    
+    # Apply preset profiles
+    if args.zero_risk:
+        prefs.update({
+            "FIXZIT_SKIP_UI": "0",
+            "SLIM_KEEP_BACKUPS": 2,
+            "SLIM_ARTIFACTS_DAYS": 3,
+            "SLIM_PURGE_PLAYWRIGHT": 0,
+            "SLIM_PURGE_PIP": 1,
+            "SLIM_PRUNE_SCREENSHOTS": 1,
+        })
+        print("Applied zero-risk cleanup profile")
+    
+    if args.max_savings:
+        prefs.update({
+            "FIXZIT_SKIP_UI": "1",
+            "SLIM_KEEP_BACKUPS": 1,
+            "SLIM_ARTIFACTS_DAYS": 2,
+            "SLIM_PURGE_PLAYWRIGHT": 1,
+            "SLIM_PURGE_PIP": 1,
+            "SLIM_PRUNE_SCREENSHOTS": 1,
+        })
+        print("Applied maximum savings profile")
+    
+    if args.reset:
+        prefs = DEFAULT_PREFS.copy()
+        print("Reset preferences to defaults")
+    
+    # Apply individual settings
+    if args.skip_ui is not None:
+        prefs["FIXZIT_SKIP_UI"] = str(args.skip_ui)
+    if args.keep_backups is not None:
+        prefs["SLIM_KEEP_BACKUPS"] = args.keep_backups
+    if args.artifacts_days is not None:
+        prefs["SLIM_ARTIFACTS_DAYS"] = args.artifacts_days
+    if args.purge_playwright is not None:
+        prefs["SLIM_PURGE_PLAYWRIGHT"] = args.purge_playwright
+    if args.purge_pip is not None:
+        prefs["SLIM_PURGE_PIP"] = args.purge_pip
+    if args.prune_screenshots is not None:
+        prefs["SLIM_PRUNE_SCREENSHOTS"] = args.prune_screenshots
+    if args.auto_fix_db is not None:
+        prefs["AUTO_FIX_DB_RELATIONSHIPS"] = args.auto_fix_db
+    if args.seed_empty_only is not None:
+        prefs["SEED_ONLY_WHEN_EMPTY"] = args.seed_empty_only
+    if args.demo_mode is not None:
+        prefs["DEMO_MODE"] = args.demo_mode
+    
+    # Save preferences
+    save_prefs(prefs)
+    print(f"Preferences saved to {PREFS_PATH}")
+    
+    # Show updated preferences
+    if not args.show:
+        print("\nUpdated preferences:")
+        show_current_prefs()
+
+if __name__ == "__main__":
+    main()
+]]>
+</file>
+
+<file path="scripts/setup-guardrails.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+import fs from "node:fs";
+import path from "node:path";
+
+const ROOT = process.cwd();
+
+function ensureDir(dir: string) {
+  fs.mkdirSync(dir, { recursive: true });
+}
+
+function writeFile(filePath: string, content: string) {
+  const dir = path.dirname(filePath);
+  ensureDir(dir);
+  fs.writeFileSync(filePath, content, "utf8");
+  console.log("Created: " + filePath.replace(ROOT, "."));
+}
+
+console.log("Setting up Consolidation Guardrails...\n");
+
+// Complete governance YAML
+writeFile(
+  path.join(ROOT, "configs/fixzit.governance.yaml"),
+  '# Fixzit Governance Configuration\nbranding:\n  colors:\n    primary: "#0061A8"\n    secondary: "#00A859"\n    accent: "#FFB400"\n',
+);
+
+console.log("\nAll files created!");
+
+]]>
+</file>
+
+<file path="scripts/setup-indexes.ts">
+<![CDATA[
+// import { ensureCoreIndexes } from '@/lib/mongodb-unified';
+
+async function setupIndexes() {
+  console.log("Setting up database indexes...");
+  try {
+    if (!process.env.MONGODB_URI) {
+      console.log("⚠️  MONGODB_URI not set - skipping index creation");
+      process.exit(0);
+    }
+    // await ensureCoreIndexes();
+    console.log("✅ Database indexes created successfully");
+    process.exit(0);
+  } catch (error) {
+    console.error("❌ Index creation failed:", error);
+    process.exit(1);
+  }
+}
+
+setupIndexes();
+
+]]>
+</file>
+
+<file path="scripts/setup-production-db.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * Database Deployment Configuration Script
+ *
+ * Validates and applies MongoDB production configuration
+ */
+
+import {
+  connectToDatabase,
+  disconnectFromDatabase,
+} from "@/lib/mongodb-unified";
+import { ObjectId } from "mongodb";
+import { COLLECTIONS } from "./utils/collections";
+
+const loadMongoose = async () => {
+  const { default: mongoose } = await import("mongoose");
+  return mongoose;
+};
+
+async function validateProductionConfig() {
+  console.log("🔧 Validating Production MongoDB Configuration...\n");
+
+  // Check required environment variables
+  const requiredEnvs = [
+    "MONGODB_URI",
+    "MONGODB_DB",
+    "JWT_SECRET",
+    "NEXTAUTH_SECRET",
+  ];
+
+  const missing = requiredEnvs.filter((env) => !process.env[env]);
+  if (missing.length > 0) {
+    console.error("❌ Missing required environment variables:");
+    missing.forEach((env) => console.error(`   - ${env}`));
+    process.exit(1);
+  }
+
+  // Validate MongoDB URI format
+  const mongoUri = process.env.MONGODB_URI!;
+  if (
+    !mongoUri.startsWith("mongodb://") &&
+    !mongoUri.startsWith("mongodb+srv://")
+  ) {
+    console.error(
+      "❌ Invalid MONGODB_URI format. Must start with mongodb:// or mongodb+srv://",
+    );
+    process.exit(1);
+  }
+
+  // Test connection
+  try {
+    console.log("🔌 Testing MongoDB connection...");
+    await connectToDatabase();
+    console.log("✅ MongoDB connection successful");
+  } catch (error) {
+    console.error("❌ MongoDB connection failed:", error);
+    process.exit(1);
+  } finally {
+    await disconnectFromDatabase();
+  }
+
+  console.log("✅ Production configuration validated successfully\n");
+}
+
+async function setupProductionIndexes() {
+  console.log("🗂️  Setting up production indexes...\n");
+
+  try {
+    await connectToDatabase();
+    const mongoose = await loadMongoose();
+    const db = mongoose.connection.db;
+
+    // Create essential indexes for production performance
+    const indexes = [
+      // Users collection
+      { collection: COLLECTIONS.USERS, index: { email: 1 }, options: { unique: true } },
+      { collection: COLLECTIONS.USERS, index: { orgId: 1, role: 1 } },
+
+      // Properties collection
+      { collection: COLLECTIONS.PROPERTIES, index: { tenantId: 1, "address.city": 1 } },
+      { collection: COLLECTIONS.PROPERTIES, index: { tenantId: 1, type: 1 } },
+      { collection: COLLECTIONS.PROPERTIES, index: { tenantId: 1, createdAt: -1 } },
+
+      // Work orders collection
+      { collection: COLLECTIONS.WORK_ORDERS, index: { tenantId: 1, status: 1 } },
+      { collection: COLLECTIONS.WORK_ORDERS, index: { tenantId: 1, priority: 1 } },
+      { collection: COLLECTIONS.WORK_ORDERS, index: { tenantId: 1, createdAt: -1 } },
+
+      // Multi-tenant indexes
+      { collection: "tenancies", index: { tenantId: 1, unitId: 1 } },
+      {
+        collection: "financial_transactions",
+        index: { tenantId: 1, date: -1 },
+      },
+    ];
+
+    for (const { collection, index, options = {} } of indexes) {
+      try {
+        await db.collection(collection).createIndex(index, options);
+        console.log(`✅ Index created on ${collection}:`, Object.keys(index));
+      } catch (error: unknown) {
+        const err = error as { code?: number; message?: string };
+        if (err.code === 85) {
+          console.log(
+            `⚠️  Index already exists on ${collection}:`,
+            Object.keys(index),
+          );
+        } else {
+          console.error(
+            `❌ Failed to create index on ${collection}:`,
+            err.message || String(error),
+          );
+        }
+      }
+    }
+
+    console.log("✅ Production indexes setup complete\n");
+  } finally {
+    await disconnectFromDatabase();
+  }
+}
+
+async function createDefaultTenant() {
+  console.log("👥 Setting up default tenant...\n");
+
+  try {
+    await connectToDatabase();
+    const mongoose = await loadMongoose();
+    const db = mongoose.connection.db;
+
+    const orgId = new ObjectId();
+    const defaultOrg = {
+      _id: orgId,
+      name: "Default Organization",
+      subscriptionPlan: "Enterprise",
+      createdAt: new Date(),
+      isDefault: true,
+    };
+
+    // Check if default org already exists
+    const existing = await db
+      .collection(COLLECTIONS.ORGANIZATIONS)
+      .findOne({ isDefault: true });
+    if (existing) {
+      console.log("⚠️  Default organization already exists:", existing.name);
+      return;
+    }
+
+    await db.collection(COLLECTIONS.ORGANIZATIONS).insertOne(defaultOrg);
+    console.log("✅ Default organization created:", orgId.toString());
+
+    // Update environment with default tenant ID
+    console.log(
+      `📝 Add this to your .env.local: DEFAULT_TENANT_ID=${orgId.toString()}`,
+    );
+  } finally {
+    await disconnectFromDatabase();
+  }
+}
+
+async function main() {
+  console.log("🚀 MongoDB Production Deployment Setup\n");
+  console.log("=".repeat(50));
+
+  try {
+    await validateProductionConfig();
+    await setupProductionIndexes();
+    await createDefaultTenant();
+
+    console.log("=".repeat(50));
+    console.log("✅ Production deployment setup complete!");
+    console.log("\nNext steps:");
+    console.log("1. Run: npm run verify:db:deploy");
+    console.log("2. Run: npm run test:e2e:db");
+    console.log("3. Deploy to production");
+    console.log("4. Verify: GET /api/health/database");
+  } catch (error) {
+    console.error("💥 Production setup failed:", error);
+    process.exit(1);
+  }
+}
+
+if (require.main === module) {
+  main();
+}
+
+]]>
+</file>
+
+<file path="scripts/setup-production-superadmin.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * Setup Production SuperAdmin
+ *
+ * Creates or updates the production SuperAdmin account.
+ * Uses environment variables for email and password.
+ *
+ * Required Environment Variables:
+ * - MONGODB_URI or DATABASE_URL: MongoDB connection string
+ * - SUPERADMIN_EMAIL: SuperAdmin email (e.g., sultan.a.hassni@gmail.com)
+ * - SUPERADMIN_PASSWORD: SuperAdmin password (will be hashed)
+ * - PUBLIC_ORG_ID or DEFAULT_ORG_ID: Organization ID for the user
+ *
+ * Usage:
+ *   SUPERADMIN_EMAIL=sultan.a.hassni@gmail.com SUPERADMIN_PASSWORD=YourSecurePassword123! pnpm exec tsx scripts/setup-production-superadmin.ts
+ */
+
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { User } from "@/server/models/User";
+import bcrypt from "bcryptjs";
+
+async function setupProductionSuperAdmin() {
+  const email = process.env.SUPERADMIN_EMAIL || process.env.NEXTAUTH_SUPERADMIN_EMAIL;
+  const password = process.env.SUPERADMIN_PASSWORD;
+  const orgId = process.env.PUBLIC_ORG_ID || process.env.DEFAULT_ORG_ID;
+
+  if (!email) {
+    console.error("❌ Missing SUPERADMIN_EMAIL environment variable");
+    console.error("   Usage: SUPERADMIN_EMAIL=your@email.com SUPERADMIN_PASSWORD=YourPass123! pnpm exec tsx scripts/setup-production-superadmin.ts");
+    process.exit(1);
+  }
+
+  if (!password) {
+    console.error("❌ Missing SUPERADMIN_PASSWORD environment variable");
+    console.error("   Usage: SUPERADMIN_EMAIL=your@email.com SUPERADMIN_PASSWORD=YourPass123! pnpm exec tsx scripts/setup-production-superadmin.ts");
+    process.exit(1);
+  }
+
+  console.log("🔐 Setting up Production SuperAdmin...\n");
+  console.log(`   Email: ${email}`);
+  console.log(`   OrgId: ${orgId}`);
+  console.log("");
+
+  try {
+    // Connect to database
+    await connectToDatabase();
+    console.log("✅ Connected to database\n");
+
+    // Check if user already exists
+    let user = await User.findOne({ email: email.toLowerCase() });
+
+    if (user) {
+      console.log("📝 User exists, updating credentials...");
+      
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(password, 12);
+
+      // Update user with superadmin credentials
+      await User.updateOne(
+        { _id: user._id },
+        {
+          $set: {
+            password: hashedPassword,
+            status: "ACTIVE",
+            isActive: true,
+            isSuperAdmin: true,
+            role: "SUPER_ADMIN",
+            "professional.role": "SUPER_ADMIN",
+            orgId: orgId,
+            "security.locked": false,
+            "security.lockReason": null,
+            "security.lockTime": null,
+            "security.loginAttempts": 0,
+            emailVerifiedAt: new Date(),
+          },
+        }
+      );
+      
+      console.log("✅ User updated successfully!\n");
+    } else {
+      console.log("📝 Creating new SuperAdmin user...");
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 12);
+
+      // Create new user
+      user = await User.create({
+        email: email.toLowerCase(),
+        password: hashedPassword,
+        username: email.split("@")[0],
+        status: "ACTIVE",
+        isActive: true,
+        isSuperAdmin: true,
+        role: "SUPER_ADMIN",
+        orgId: orgId,
+        professional: {
+          role: "SUPER_ADMIN",
+        },
+        personal: {
+          firstName: "Super",
+          lastName: "Admin",
+        },
+        security: {
+          locked: false,
+          loginAttempts: 0,
+        },
+        emailVerifiedAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      console.log("✅ SuperAdmin created successfully!\n");
+    }
+
+    // Verify the user
+    const verifiedUser = await User.findOne({ email: email.toLowerCase() });
+    if (verifiedUser) {
+      const passwordValid = await bcrypt.compare(password, verifiedUser.password);
+
+      console.log("📋 SuperAdmin Details:");
+      console.log("   ═══════════════════════════════════════════");
+      console.log("   ID:        ", verifiedUser._id.toString());
+      console.log("   Email:     ", verifiedUser.email);
+      console.log("   Password:  ", passwordValid ? "✅ VERIFIED" : "❌ FAILED");
+      console.log("   Role:      ", verifiedUser.role || verifiedUser.professional?.role);
+      console.log("   Status:    ", verifiedUser.status);
+      console.log("   isSuperAdmin:", verifiedUser.isSuperAdmin);
+      console.log("   OrgId:     ", verifiedUser.orgId);
+      console.log("   ═══════════════════════════════════════════\n");
+
+      if (passwordValid) {
+        console.log("🎉 SUCCESS! You can now log in at:");
+        console.log("   https://fixzit.co/login");
+        console.log("");
+        console.log("   Make sure these Vercel environment variables are set:");
+        console.log(`   NEXTAUTH_SUPERADMIN_EMAIL=${email}`);
+        console.log("   NEXTAUTH_BYPASS_OTP_ALL=true");
+        console.log("   NEXTAUTH_BYPASS_OTP_CODE=<12+ char secure code>");
+        console.log("");
+      }
+    }
+
+    process.exit(0);
+  } catch (error) {
+    console.error("❌ Failed to setup SuperAdmin:", error);
+    process.exit(1);
+  }
+}
+
+setupProductionSuperAdmin();
+
+]]>
+</file>
+
+<file path="scripts/setup-test-env.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * Setup Test Environment
+ *
+ * Ensures test environment is properly configured:
+ * - Creates .env.test if missing
+ * - Seeds test database with required users
+ * - Validates all connections
+ *
+ * Usage:
+ *   tsx scripts/setup-test-env.ts
+ */
+
+import { config } from "dotenv";
+import { writeFile, mkdir } from "fs/promises";
+import { existsSync } from "fs";
+import bcrypt from "bcryptjs";
+
+// Load environment files in order of precedence
+config({ path: ".env.local" });
+config({ path: ".env.test", override: true });
+
+const TEST_PASSWORD = "Test@1234";
+
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.sa";
+
+const ORG_FIXTURES = [
+  {
+    key: "platform",
+    _idHex: "66a000000000000000000001",
+    orgId: "fixzit-platform",
+    name: "Fixzit Platform HQ",
+    code: "FIXZIT",
+    type: "CORPORATE",
+    description: "Internal Fixzit organization used for smoke testing.",
+    website: "https://fixzit.sa",
+    contact: {
+      primary: {
+        name: "Transformation Office",
+        title: "Program Director",
+        email: `ops@${EMAIL_DOMAIN}`,
+        phone: "+966-11-123-4567",
+        mobile: "+966-50-000-0001",
+      },
+      billing: {
+        name: "Finance Ops",
+        email: `finance@${EMAIL_DOMAIN}`,
+        phone: "+966-11-654-3210",
+        address: {
+          street: "King Fahd Road",
+          city: "Riyadh",
+          region: "Riyadh",
+          postalCode: "11564",
+          country: "Saudi Arabia",
+        },
+      },
+      technical: {
+        name: "Platform Engineering",
+        email: `platform@${EMAIL_DOMAIN}`,
+        phone: "+966-11-555-0101",
+      },
+    },
+    address: {
+      headquarters: {
+        street: "King Fahd Road 123",
+        city: "Riyadh",
+        region: "Riyadh",
+        postalCode: "11564",
+        country: "Saudi Arabia",
+      },
+    },
+    subscription: {
+      plan: "ENTERPRISE",
+      status: "ACTIVE",
+      startDate: new Date("2024-01-01"),
+      billingCycle: "ANNUAL",
+      features: {
+        maxUsers: 500,
+        maxProperties: 200,
+        maxWorkOrders: 5000,
+        advancedReporting: true,
+        apiAccess: true,
+        customBranding: true,
+        ssoIntegration: true,
+        mobileApp: true,
+        supportLevel: "PREMIUM",
+      },
+      usage: {
+        currentUsers: 18,
+        currentProperties: 32,
+        currentWorkOrders: 480,
+        apiCalls: 3200,
+        storageUsed: 128,
+      },
+      limits: { exceeded: false, warnings: [] },
+    },
+    settings: {
+      locale: "en",
+      timezone: "Asia/Riyadh",
+      currency: "SAR",
+      dateFormat: "DD/MM/YYYY",
+      numberFormat: "1,234.56",
+      businessHours: {
+        workdays: ["SUN", "MON", "TUE", "WED", "THU"],
+        startTime: "09:00",
+        endTime: "18:00",
+        breakTime: { enabled: true, start: "13:00", end: "14:00" },
+      },
+    },
+    tags: ["smoke-test", "platform"],
+  },
+  {
+    key: "enterprise",
+    _idHex: "66a000000000000000000002",
+    orgId: "alpha-developments",
+    name: "Alpha Developments",
+    code: "ALPHACO",
+    type: "CORPORATE",
+    description: "Demo enterprise tenant used for multi-tenant regression.",
+    website: "https://alpha.dev.sa",
+    contact: {
+      primary: {
+        name: "Alpha Ops",
+        title: "FM Director",
+        email: "ops@alpha.dev.sa",
+        phone: "+966-12-444-2222",
+        mobile: "+966-55-777-2222",
+      },
+      billing: {
+        name: "Alpha Finance",
+        email: "finance@alpha.dev.sa",
+        phone: "+966-12-111-0909",
+        address: {
+          street: "Olaya Street 45",
+          city: "Riyadh",
+          region: "Riyadh",
+          postalCode: "12611",
+          country: "Saudi Arabia",
+        },
+      },
+      technical: {
+        name: "Alpha IT",
+        email: "it@alpha.dev.sa",
+        phone: "+966-12-909-9988",
+      },
+    },
+    address: {
+      headquarters: {
+        street: "Olaya Street 45",
+        city: "Riyadh",
+        region: "Riyadh",
+        postalCode: "12611",
+        country: "Saudi Arabia",
+      },
+    },
+    subscription: {
+      plan: "PREMIUM",
+      status: "ACTIVE",
+      startDate: new Date("2024-02-01"),
+      billingCycle: "MONTHLY",
+      features: {
+        maxUsers: 150,
+        maxProperties: 60,
+        maxWorkOrders: 1200,
+        advancedReporting: true,
+        apiAccess: false,
+        customBranding: true,
+        ssoIntegration: false,
+        mobileApp: true,
+        supportLevel: "STANDARD",
+      },
+      usage: {
+        currentUsers: 42,
+        currentProperties: 18,
+        currentWorkOrders: 210,
+        apiCalls: 320,
+        storageUsed: 32,
+      },
+      limits: { exceeded: false, warnings: [] },
+    },
+    settings: {
+      locale: "ar",
+      timezone: "Asia/Riyadh",
+      currency: "SAR",
+      dateFormat: "DD/MM/YYYY",
+      numberFormat: "1.234,56",
+      businessHours: {
+        workdays: ["SUN", "MON", "TUE", "WED", "THU"],
+        startTime: "08:00",
+        endTime: "17:00",
+        breakTime: { enabled: true, start: "12:30", end: "13:15" },
+      },
+    },
+    tags: ["multi-tenant", "demo"],
+  },
+] as const;
+
+const USER_FIXTURES = [
+  {
+    key: "superadmin",
+    _idHex: "66a000000000000000000101",
+    orgKey: "platform",
+    email: "superadmin@test.fixzit.co",
+    code: "SA-0001",
+    username: "superadmin",
+    firstName: "Super",
+    lastName: "Admin",
+    role: "SUPER_ADMIN",
+    isSuperAdmin: true,
+    phone: "+966-50-000-0001",
+  },
+  {
+    key: "platform-admin",
+    _idHex: "66a000000000000000000102",
+    orgKey: "platform",
+    email: "admin@test.fixzit.co",
+    code: "AD-0001",
+    username: "fixzit-admin",
+    firstName: "Fixzit",
+    lastName: "Admin",
+    role: "ADMIN",
+    department: "Platform Ops",
+    phone: "+966-50-000-0002",
+  },
+  {
+    key: "platform-technician",
+    _idHex: "66a000000000000000000103",
+    orgKey: "platform",
+    email: "technician@test.fixzit.co",
+    code: "TECH-0001",
+    username: "senior-tech",
+    firstName: "Lead",
+    lastName: "Technician",
+    role: "TECHNICIAN",
+    department: "FM Field",
+    phone: "+966-50-000-0003",
+  },
+  {
+    key: "platform-tenant",
+    _idHex: "66a000000000000000000104",
+    orgKey: "platform",
+    email: "tenant@test.fixzit.co",
+    code: "TEN-0001",
+    username: "tenant-user",
+    firstName: "Tenant",
+    lastName: "User",
+    role: "TENANT",
+    department: "Residential",
+    phone: "+966-50-000-0004",
+  },
+  {
+    key: "alpha-manager",
+    _idHex: "66a000000000000000000105",
+    orgKey: "enterprise",
+    email: "property-manager@test.fixzit.co",
+    code: "PM-0001",
+    username: "alpha-manager",
+    firstName: "Alpha",
+    lastName: "Manager",
+    role: "PROPERTY_MANAGER",
+    department: "Portfolio",
+    phone: "+966-50-000-0005",
+  },
+  {
+    key: "alpha-vendor",
+    _idHex: "66a000000000000000000106",
+    orgKey: "enterprise",
+    email: "vendor@test.fixzit.co",
+    code: "VEND-0001",
+    username: "vendor-success",
+    firstName: "Vendor",
+    lastName: "Lead",
+    role: "VENDOR",
+    department: "Marketplace",
+    phone: "+966-50-000-0006",
+  },
+] as const;
+
+const PRIMARY_TEST_ORG = ORG_FIXTURES[0];
+const TEST_ORG_ID = PRIMARY_TEST_ORG.orgId;
+const TEST_ORG_NAME = PRIMARY_TEST_ORG.name;
+
+function log(
+  message: string,
+  level: "INFO" | "SUCCESS" | "ERROR" | "WARN" = "INFO",
+) {
+  const colors = {
+    INFO: "\x1b[36m",
+    SUCCESS: "\x1b[32m",
+    ERROR: "\x1b[31m",
+    WARN: "\x1b[33m",
+  };
+  const reset = "\x1b[0m";
+  console.log(`${colors[level]}[${level}]${reset} ${message}`);
+}
+
+async function ensureTestEnvFile() {
+  if (!existsSync(".env.test")) {
+    log("Creating .env.test file...", "INFO");
+
+    const envTestContent = `# =============================================================================
+# TEST ENVIRONMENT VARIABLES
+# =============================================================================
+# Generated test accounts - Password for all: Test@1234
+# =============================================================================
+
+# MongoDB (inherited from .env.local)
+# MONGODB_URI is loaded from .env.local automatically
+
+# === SUPER ADMIN TEST ACCOUNT ===
+TEST_SUPERADMIN_EMAIL=superadmin@test.fixzit.co
+TEST_SUPERADMIN_PASSWORD=${TEST_PASSWORD}
+
+# === ADMIN TEST ACCOUNT ===
+TEST_ADMIN_EMAIL=admin@test.fixzit.co
+TEST_ADMIN_PASSWORD=${TEST_PASSWORD}
+
+# === MANAGER TEST ACCOUNT ===
+TEST_MANAGER_EMAIL=property-manager@test.fixzit.co
+TEST_MANAGER_PASSWORD=${TEST_PASSWORD}
+
+# === TECHNICIAN TEST ACCOUNT ===
+TEST_TECHNICIAN_EMAIL=technician@test.fixzit.co
+TEST_TECHNICIAN_PASSWORD=${TEST_PASSWORD}
+
+# === TENANT TEST ACCOUNT ===
+TEST_TENANT_EMAIL=tenant@test.fixzit.co
+TEST_TENANT_PASSWORD=${TEST_PASSWORD}
+
+# === VENDOR TEST ACCOUNT ===
+TEST_VENDOR_EMAIL=vendor@test.fixzit.co
+TEST_VENDOR_PASSWORD=${TEST_PASSWORD}
+
+# === TEST ORG ===
+TEST_ORG_ID=${TEST_ORG_ID}
+TEST_ORG_NAME=${TEST_ORG_NAME}
+
+# === API Testing ===
+BASE_URL=http://localhost:3000
+`;
+
+    await writeFile(".env.test", envTestContent);
+    log(".env.test created successfully", "SUCCESS");
+  } else {
+    log(".env.test already exists", "INFO");
+  }
+}
+
+async function seedSmokeTestData() {
+  log("Seeding smoke-test organizations and users...", "INFO");
+
+  try {
+    const { connectToDatabase } = await import("../lib/mongodb-unified");
+    await connectToDatabase();
+
+    const mongooseModule = await import("mongoose");
+    const mongoose = mongooseModule.default;
+    const { Organization } = await import("../server/models/Organization");
+    const { User } = await import("../server/models/User");
+
+    const toObjectId = (hex: string) => new mongooseModule.Types.ObjectId(hex);
+    const orgMap = new Map<string, ReturnType<typeof toObjectId>>();
+
+    for (const fixture of ORG_FIXTURES) {
+      const updateResult = await Organization.updateOne(
+        { orgId: fixture.orgId },
+        {
+          $set: {
+            name: fixture.name,
+            code: fixture.code,
+            type: fixture.type,
+            description: fixture.description,
+            website: fixture.website,
+            contact: fixture.contact,
+            address: fixture.address,
+            subscription: fixture.subscription,
+            settings: fixture.settings,
+            tags: fixture.tags,
+          },
+          $setOnInsert: { _id: toObjectId(fixture._idHex) },
+        },
+        { upsert: true },
+      );
+
+      const orgDoc = await Organization.findOne({
+        orgId: fixture.orgId,
+      }).lean();
+      if (orgDoc?._id) {
+        orgMap.set(fixture.key, orgDoc._id as ReturnType<typeof toObjectId>);
+      }
+
+      log(
+        `${updateResult.upsertedCount ? "Created" : "Updated"} organization ${fixture.name}`,
+        updateResult.upsertedCount ? "SUCCESS" : "INFO",
+      );
+    }
+
+    let created = 0;
+    let updated = 0;
+
+    for (const userFixture of USER_FIXTURES) {
+      const orgObjectId = orgMap.get(userFixture.orgKey);
+      if (!orgObjectId) {
+        log(
+          `Skipping user ${userFixture.email} – missing org ${userFixture.orgKey}`,
+          "WARN",
+        );
+        continue;
+      }
+
+      const normalizedEmail = userFixture.email.toLowerCase();
+      const passwordHash = await bcrypt.hash(
+        userFixture.password || TEST_PASSWORD,
+        12,
+      );
+
+      const updateResult = await User.updateOne(
+        { email: normalizedEmail },
+        {
+          $set: {
+            orgId: orgObjectId,
+            code: userFixture.code,
+            username: userFixture.username,
+            email: normalizedEmail,
+            password: passwordHash,
+            phone: userFixture.phone,
+            personal: {
+              firstName: userFixture.firstName,
+              lastName: userFixture.lastName,
+              fullName: `${userFixture.firstName} ${userFixture.lastName}`,
+            },
+            professional: {
+              role: userFixture.role,
+              department: userFixture.department,
+            },
+            status: "ACTIVE",
+            isSuperAdmin: Boolean(userFixture.isSuperAdmin),
+            security: {
+              lastLogin: new Date(),
+            },
+          },
+          $setOnInsert: {
+            _id: toObjectId(userFixture._idHex),
+            createdAt: new Date(),
+          },
+        },
+        { upsert: true },
+      );
+
+      if (updateResult.upsertedCount) {
+        created++;
+        log(
+          `Created user: ${userFixture.email} (${userFixture.role})`,
+          "SUCCESS",
+        );
+      } else {
+        updated++;
+        log(`Updated user: ${userFixture.email}`, "INFO");
+      }
+    }
+
+    log(`Test users seeded: ${created} created, ${updated} updated`, "SUCCESS");
+
+    await mongoose.disconnect();
+  } catch (error) {
+    log(
+      `Failed to seed fixtures: ${error instanceof Error ? error.message : String(error)}`,
+      "ERROR",
+    );
+    throw error;
+  }
+}
+
+async function validateMongoConnection() {
+  log("Validating MongoDB connection...", "INFO");
+
+  const mongoUri = process.env.MONGODB_URI || process.env.DATABASE_URL;
+
+  if (!mongoUri) {
+    log("MONGODB_URI not found in environment", "ERROR");
+    log("Make sure .env.local exists with MONGODB_URI configured", "WARN");
+    return false;
+  }
+
+  try {
+    const { connectToDatabase } = await import("../lib/mongodb-unified");
+    await connectToDatabase();
+
+    const mongoose = (await import("mongoose")).default;
+    const db = mongoose.connection.db;
+
+    if (db) {
+      await db.admin().ping();
+      log(`MongoDB connection successful: ${db.databaseName}`, "SUCCESS");
+      await mongoose.disconnect();
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    log(
+      `MongoDB connection failed: ${error instanceof Error ? error.message : String(error)}`,
+      "ERROR",
+    );
+    return false;
+  }
+}
+
+async function main() {
+  console.log("🔧 Setting Up Test Environment\n");
+
+  try {
+    // Step 1: Ensure .env.test exists
+    await ensureTestEnvFile();
+
+    // Reload environment after creating .env.test
+    config({ path: ".env.test", override: true });
+
+    // Step 2: Validate MongoDB connection
+    const dbConnected = await validateMongoConnection();
+
+    if (!dbConnected) {
+      log("Cannot proceed without database connection", "ERROR");
+      log(
+        "Please ensure MongoDB is running and MONGODB_URI is set in .env.local",
+        "WARN",
+      );
+      process.exit(1);
+    }
+
+    // Step 3: Seed organizations and users for smoke tests
+    await seedSmokeTestData();
+
+    // Step 4: Create state directory for Playwright
+    await mkdir("tests/state", { recursive: true });
+    log("Created tests/state directory", "SUCCESS");
+
+    console.log("\n✅ Test environment setup complete!");
+    console.log("\nNext steps:");
+    console.log(
+      "  1. Run API tests: pnpm exec tsx scripts/test-api-endpoints.ts",
+    );
+    console.log("  2. Run E2E tests: pnpm exec playwright test");
+    console.log(
+      "  3. Generate auth states: pnpm exec playwright test tests/setup-auth.ts\n",
+    );
+  } catch (error) {
+    log(
+      `Setup failed: ${error instanceof Error ? error.message : String(error)}`,
+      "ERROR",
+    );
+    process.exit(1);
+  }
+}
+
+main();
+
+]]>
+</file>
+
+<file path="scripts/sidebar/snapshot_check.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+import fs from "fs";
+
+const snap = "configs/sidebar.snapshot.json";
+if (!fs.existsSync(snap)) {
+  const baseline = [
+    "dashboard",
+    "work-orders",
+    "properties",
+    "finance",
+    "hr",
+    "administration",
+    "crm",
+    "marketplace",
+    "support",
+    "compliance-legal",
+    "reports-analytics",
+    "system-management",
+  ];
+  fs.writeFileSync(snap, JSON.stringify(baseline, null, 2));
+  console.log("✓ Created sidebar snapshot");
+} else {
+  console.log("✓ Sidebar snapshot exists");
+}
+
+]]>
+</file>
+
+<file path="scripts/sign-paytabs-payload.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * Generate a PayTabs callback signature for manual testing.
+ *
+ * Usage examples:
+ *   pnpm tsx scripts/sign-paytabs-payload.ts --file payload.json
+ *   echo '{"tran_ref":"T1"}' | pnpm tsx scripts/sign-paytabs-payload.ts
+ *   pnpm tsx scripts/sign-paytabs-payload.ts --json '{"tran_ref":"T2"}'
+ *
+ * The script loads PAYTABS_* secrets from .env.local by default.
+ */
+import fs from "node:fs";
+import path from "node:path";
+import process from "node:process";
+import { fileURLToPath } from "node:url";
+import { config as loadEnv } from "dotenv";
+import { generateCallbackSignature } from "../lib/paytabs";
+
+type CliOptions = {
+  file?: string;
+  env?: string;
+  json?: string;
+};
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const projectRoot = path.resolve(__dirname, "..");
+
+function parseArgs(): CliOptions {
+  const opts: CliOptions = {};
+  const args = process.argv.slice(2);
+
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (arg === "--file" || arg === "-f") {
+      opts.file = args[++i];
+    } else if (arg === "--env") {
+      opts.env = args[++i];
+    } else if (arg === "--json") {
+      opts.json = args[++i];
+    } else if (arg === "--help" || arg === "-h") {
+      printHelp();
+      process.exit(0);
+    } else {
+      console.warn(`⚠️  Unknown option: ${arg}`);
+    }
+  }
+
+  return opts;
+}
+
+function printHelp(): void {
+  console.log(`Usage: pnpm tsx scripts/sign-paytabs-payload.ts [options]
+
+Options:
+  --file, -f <path>   Path to JSON file containing the payload
+  --json <string>     Inline JSON payload
+  --env <path>        Optional env file (default: .env.local)
+  --help, -h          Show this help message
+
+Examples:
+  pnpm tsx scripts/sign-paytabs-payload.ts --file payload.json
+  echo '{"tran_ref":"T1"}' | pnpm tsx scripts/sign-paytabs-payload.ts
+`);
+}
+
+function readStdIn(): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let data = "";
+    process.stdin.setEncoding("utf8");
+    process.stdin.on("data", (chunk) => {
+      data += chunk;
+    });
+    process.stdin.on("end", () => resolve(data));
+    process.stdin.on("error", reject);
+  });
+}
+
+async function main() {
+  const opts = parseArgs();
+  const envPath = path.resolve(projectRoot, opts.env ?? ".env.local");
+
+  if (fs.existsSync(envPath)) {
+    loadEnv({ path: envPath });
+  } else {
+    console.warn(
+      `⚠️  Env file not found at ${envPath}. Using current environment variables.`,
+    );
+  }
+
+  const serverKey =
+    process.env.PAYTABS_API_SERVER_KEY || process.env.PAYTABS_SERVER_KEY;
+  if (!serverKey) {
+    console.error(
+      "❌ PAYTABS_SERVER_KEY (or PAYTABS_API_SERVER_KEY) is not set. Cannot generate signature.",
+    );
+    process.exit(1);
+  }
+
+  // Ensure the selected key is available to generateCallbackSignature
+  process.env.PAYTABS_SERVER_KEY = serverKey;
+
+  const rawPayload =
+    opts.json ??
+    (opts.file
+      ? fs.readFileSync(path.resolve(process.cwd(), opts.file), "utf8")
+      : (await readStdIn()).trim());
+
+  if (!rawPayload) {
+    console.error(
+      "❌ No payload provided. Pass --file, --json, or pipe JSON via STDIN.",
+    );
+    process.exit(1);
+  }
+
+  let payload: Record<string, unknown>;
+  try {
+    const parsed = JSON.parse(rawPayload);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("Payload must be a JSON object");
+    }
+    payload = parsed as Record<string, unknown>;
+  } catch (error) {
+    console.error(
+      `❌ Failed to parse JSON payload: ${(error as Error).message}`,
+    );
+    process.exit(1);
+  }
+
+  const signature = generateCallbackSignature(payload);
+
+  console.log("✅ Signature generated");
+  console.log("");
+  console.log(`signature header : ${signature}`);
+  console.log("");
+  console.log("Curl example:");
+  console.log(`curl -X POST http://localhost:3000/api/paytabs/callback \\`);
+  console.log(`  -H "Content-Type: application/json" \\`);
+  console.log(`  -H "signature: ${signature}" \\`);
+  console.log(`  -d '${JSON.stringify(payload)}'`);
+}
+
+main().catch((error) => {
+  console.error("❌ Unexpected error while generating signature:", error);
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/sign-tap-payload.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * Generate an HMAC SHA-256 signature for Tap webhook testing.
+ *
+ * Examples:
+ *   pnpm tsx scripts/sign-tap-payload.ts --file payload.json
+ *   pnpm tsx scripts/sign-tap-payload.ts --json '{"id":"chg_123","object":"charge"}'
+ *   echo '{"id":"chg_123"}' | pnpm tsx scripts/sign-tap-payload.ts
+ */
+
+import fs from "node:fs";
+import path from "node:path";
+import process from "node:process";
+import { fileURLToPath } from "node:url";
+import crypto from "node:crypto";
+import { config as loadEnv } from "dotenv";
+
+type CliOptions = {
+  file?: string;
+  json?: string;
+  env?: string;
+};
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const projectRoot = path.resolve(__dirname, "..");
+
+function parseArgs(): CliOptions {
+  const opts: CliOptions = {};
+  const args = process.argv.slice(2);
+
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (arg === "--file" || arg === "-f") {
+      opts.file = args[++i];
+    } else if (arg === "--json") {
+      opts.json = args[++i];
+    } else if (arg === "--env") {
+      opts.env = args[++i];
+    } else if (arg === "--help" || arg === "-h") {
+      printHelp();
+      process.exit(0);
+    } else {
+      console.warn(`⚠️  Unknown option: ${arg}`);
+    }
+  }
+
+  return opts;
+}
+
+function printHelp(): void {
+  console.log(`Usage: pnpm tsx scripts/sign-tap-payload.ts [options]
+
+Options:
+  --file, -f <path>   Read payload JSON from file
+  --json <string>     Inline JSON payload (single line)
+  --env <path>        Optional env file (default: .env.local)
+  --help, -h          Show this help message
+
+Notes:
+  • The signature is calculated on the raw payload string. If you pretty-print the JSON,
+    be sure to reuse the exact same bytes in your curl command.
+`);
+}
+
+function readStdIn(): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let data = "";
+    process.stdin.setEncoding("utf8");
+    process.stdin.on("data", (chunk) => {
+      data += chunk;
+    });
+    process.stdin.on("end", () => resolve(data));
+    process.stdin.on("error", reject);
+  });
+}
+
+async function main() {
+  const opts = parseArgs();
+  const envPath = path.resolve(projectRoot, opts.env ?? ".env.local");
+
+  if (fs.existsSync(envPath)) {
+    loadEnv({ path: envPath });
+  } else {
+    console.warn(
+      `⚠️  Env file not found at ${envPath}. Using current environment variables.`,
+    );
+  }
+
+  const secret = process.env.TAP_SECRET_KEY;
+  if (!secret) {
+    console.error("❌ TAP_SECRET_KEY is not set. Cannot generate signature.");
+    process.exit(1);
+  }
+
+  const rawPayload =
+    opts.json ??
+    (opts.file
+      ? fs.readFileSync(path.resolve(process.cwd(), opts.file), "utf8")
+      : (await readStdIn()).trim());
+
+  if (!rawPayload) {
+    console.error(
+      "❌ No payload provided. Pass --file, --json, or pipe JSON via STDIN.",
+    );
+    process.exit(1);
+  }
+
+  // Validate JSON structure but keep the raw bytes for hashing
+  try {
+    const parsed = JSON.parse(rawPayload);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("Payload must be a JSON object");
+    }
+  } catch (error) {
+    console.error(
+      `❌ Failed to parse JSON payload: ${(error as Error).message}`,
+    );
+    process.exit(1);
+  }
+
+  const signature = crypto
+    .createHmac("sha256", secret)
+    .update(rawPayload)
+    .digest("hex");
+
+  console.log("✅ Tap signature generated");
+  console.log("");
+  console.log(`X-Tap-Signature: ${signature}`);
+  console.log("");
+  console.log("Curl example:");
+  console.log(`RAW_PAYLOAD='${rawPayload}'`);
+  console.log(`curl -X POST http://localhost:3000/api/payments/tap/webhook \\`);
+  console.log(`  -H "Content-Type: application/json" \\`);
+  console.log(`  -H "X-Tap-Signature: ${signature}" \\`);
+  console.log(`  -d "$RAW_PAYLOAD"`);
+}
+
+main().catch((error) => {
+  console.error("❌ Unexpected error while generating Tap signature:", error);
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/slack_digest.py">
+<![CDATA[
+#!/usr/bin/env python3
+"""
+Slack Digest - Post weekly report summaries to Slack
+"""
+
+import argparse
+import datetime
+import os
+import pathlib
+import sys
+
+# Add parent directory to path
+sys.path.append(str(pathlib.Path(__file__).parent.parent))
+
+from scripts.lib.notify import NotifyConfig, latest_report_paths, post_slack
+
+# Import tenant utilities with fallback
+try:
+    from app.tenant import current_tenant, list_tenants
+except ImportError:
+
+    def current_tenant():
+        return os.getenv("FXZ_TENANT", "default")
+
+    def list_tenants():
+        return [current_tenant()]
+
+
+def payload_for(tenant: str, config: NotifyConfig) -> dict:
+    """Create Slack payload for tenant digest"""
+    paths = latest_report_paths(tenant)
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    text = f"*Fixzit Weekly — {tenant}*\nGenerated: {now}"
+
+    blocks = [{"type": "section", "text": {"type": "mrkdwn", "text": text}}]
+
+    # Add file information blocks
+    if paths["html"]:
+        blocks.append(
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"• HTML report: `{paths['html'].name}` (emailed as attachment)",
+                },
+            }
+        )
+
+    if paths["zip"]:
+        blocks.append(
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"• ZIP bundle: `{paths['zip'].name}` (contains all tenant reports)",
+                },
+            }
+        )
+
+    # Add status indicators
+    blocks.append(
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"📊 Weekly performance and reliability summary for {tenant} has been generated and distributed.",
+            },
+        }
+    )
+
+    payload = {"blocks": blocks, "text": text}  # Fallback text for notifications
+
+    # Add channel override if specified
+    if config.slack_channel_override:
+        payload["channel"] = config.slack_channel_override
+
+    return payload
+
+
+def post_digest(tenant: str) -> str:
+    """Post Slack digest for a specific tenant"""
+    config = NotifyConfig(tenant)
+
+    if not config.slack_webhook:
+        return f"[{tenant}] skipped: no Slack webhook configured"
+
+    try:
+        payload = payload_for(tenant, config)
+        post_slack(config.slack_webhook, payload)
+        return f"[{tenant}] Slack digest posted successfully"
+
+    except Exception as e:
+        return f"[{tenant}] Slack post failed: {e}"
+
+
+def cli():
+    """Command line interface"""
+    parser = argparse.ArgumentParser(
+        description="Post Slack digests for weekly reports"
+    )
+    parser.add_argument("--tenant", default=None, help="Post for specific tenant")
+    parser.add_argument("--all", action="store_true", help="Post for all tenants")
+
+    args = parser.parse_args()
+
+    # Determine tenants to process
+    if args.all or not args.tenant:
+        tenants = list_tenants()
+    else:
+        tenants = [args.tenant]
+
+    # Process each tenant
+    results = []
+    for tenant in tenants:
+        result = post_digest(tenant)
+        results.append(result)
+
+    # Print results
+    for result in results:
+        print(result)
+
+
+if __name__ == "__main__":
+    cli()
+
+]]>
+</file>
+
+<file path="scripts/slim_fixzit.py">
+<![CDATA[
+#!/usr/bin/env python3
+"""
+Fixzit Space Saver & Optimizer
+Safely reclaims disk space while preserving core functionality
+"""
+
+import os
+import sys
+import shutil
+import subprocess
+from pathlib import Path
+import json
+import tempfile
+import time
+
+ROOT = Path(__file__).parent.parent.resolve()
+
+def _print(msg):
+    print(f"[slim] {msg}", flush=True)
+
+def get_env_bool(key, default=False):
+    """Get boolean environment variable"""
+    return os.environ.get(key, "1" if default else "0").lower() in ("1", "true", "yes")
+
+def get_env_int(key, default=0):
+    """Get integer environment variable"""
+    try:
+        return int(os.environ.get(key, str(default)))
+    except ValueError:
+        return default
+
+def bytes_to_mb(bytes_val):
+    """Convert bytes to MB"""
+    return bytes_val / (1024 * 1024)
+
+def get_dir_size(path):
+    """Get directory size in bytes"""
+    if not path.exists():
+        return 0
+    total = 0
+    try:
+        for file_path in path.rglob('*'):
+            if file_path.is_file():
+                total += file_path.stat().st_size
+    except (OSError, PermissionError):
+        pass
+    return total
+
+def safe_rmtree(path, trash_dir=None):
+    """Safely remove directory, optionally moving to trash first"""
+    if not path.exists():
+        return 0
+    
+    size_before = get_dir_size(path)
+    
+    if trash_dir and get_env_bool("SLIM_TRASH", False):
+        trash_path = trash_dir / f"{path.name}-{int(time.time())}"
+        try:
+            shutil.move(str(path), str(trash_path))
+            _print(f"Moved {path} to {trash_path}")
+        except Exception as e:
+            _print(f"Failed to move to trash, removing directly: {e}")
+            shutil.rmtree(path, ignore_errors=True)
+    else:
+        shutil.rmtree(path, ignore_errors=True)
+    
+    return size_before
+
+def purge_python_caches():
+    """Remove Python bytecode caches"""
+    _print("🧹 Purging Python caches...")
+    total_saved = 0
+    
+    cache_patterns = ["__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache"]
+    
+    for pattern in cache_patterns:
+        for cache_dir in ROOT.rglob(pattern):
+            if cache_dir.is_dir():
+                size = safe_rmtree(cache_dir)
+                total_saved += size
+    
+    _print(f"   Saved: {bytes_to_mb(total_saved):.1f} MB from Python caches")
+    return total_saved
+
+def prune_artifacts():
+    """Prune old artifacts and backups"""
+    _print("📁 Pruning old artifacts...")
+    total_saved = 0
+    
+    artifacts_dir = ROOT / "artifacts"
+    if not artifacts_dir.exists():
+        return 0
+    
+    # Setup trash directory
+    trash_dir = artifacts_dir / "trash" if get_env_bool("SLIM_TRASH", False) else None
+    if trash_dir:
+        trash_dir.mkdir(exist_ok=True)
+    
+    keep_backups = get_env_int("SLIM_KEEP_BACKUPS", 2)
+    artifacts_days = get_env_int("SLIM_ARTIFACTS_DAYS", 3)
+    
+    # Remove old backups (keep only last N)
+    backup_files = sorted(artifacts_dir.glob("backup-*.zip"), key=lambda x: x.stat().st_mtime, reverse=True)
+    for old_backup in backup_files[keep_backups:]:
+        size = old_backup.stat().st_size
+        if trash_dir:
+            shutil.move(str(old_backup), str(trash_dir / old_backup.name))
+        else:
+            old_backup.unlink()
+        total_saved += size
+        _print(f"   Removed old backup: {old_backup.name}")
+    
+    # Remove old artifacts (older than N days)
+    cutoff_time = time.time() - (artifacts_days * 24 * 3600)
+    for item in artifacts_dir.iterdir():
+        if item.name.startswith("trash"):
+            continue
+        if item.stat().st_mtime < cutoff_time:
+            if item.is_file():
+                size = item.stat().st_size
+                if trash_dir:
+                    shutil.move(str(item), str(trash_dir / item.name))
+                else:
+                    item.unlink()
+                total_saved += size
+            elif item.is_dir():
+                size = safe_rmtree(item, trash_dir)
+                total_saved += size
+    
+    _print(f"   Saved: {bytes_to_mb(total_saved):.1f} MB from artifacts")
+    return total_saved
+
+def purge_pip_cache():
+    """Clear pip cache"""
+    if not get_env_bool("SLIM_PURGE_PIP", True):
+        return 0
+    
+    _print("📦 Purging pip cache...")
+    try:
+        result = subprocess.run([sys.executable, "-m", "pip", "cache", "purge"], 
+                              capture_output=True, text=True)
+        if result.returncode == 0:
+            _print("   Pip cache purged successfully")
+            return 50 * 1024 * 1024  # Estimate 50MB saved
+        else:
+            _print(f"   Pip cache purge failed: {result.stderr}")
+    except Exception as e:
+        _print(f"   Pip cache purge error: {e}")
+    return 0
+
+def remove_playwright_browsers():
+    """Remove Playwright browser binaries"""
+    if not get_env_bool("SLIM_PURGE_PLAYWRIGHT", False):
+        return 0
+    
+    _print("🎭 Removing Playwright browsers...")
+    total_saved = 0
+    
+    # Common Playwright cache locations
+    playwright_dirs = [
+        Path.home() / ".cache" / "ms-playwright",
+        Path.home() / "Library" / "Caches" / "ms-playwright",  # macOS
+        Path(os.environ.get("PLAYWRIGHT_BROWSERS_PATH", "")) if "PLAYWRIGHT_BROWSERS_PATH" in os.environ else None
+    ]
+    
+    for playwright_dir in playwright_dirs:
+        if playwright_dir and playwright_dir.exists():
+            size = safe_rmtree(playwright_dir)
+            total_saved += size
+    
+    _print(f"   Saved: {bytes_to_mb(total_saved):.1f} MB from Playwright browsers")
+    _print("   Note: Reinstall with 'python -m playwright install chromium' when needed")
+    return total_saved
+
+def prune_screenshots():
+    """Remove screenshot files"""
+    if not get_env_bool("SLIM_PRUNE_SCREENSHOTS", True):
+        return 0
+    
+    _print("📸 Pruning screenshots...")
+    total_saved = 0
+    
+    screenshot_patterns = ["*.png", "*.jpg", "*.jpeg", "screenshot-*"]
+    
+    for pattern in screenshot_patterns:
+        for screenshot in ROOT.rglob(pattern):
+            if screenshot.is_file() and "screenshot" in screenshot.name.lower():
+                size = screenshot.stat().st_size
+                screenshot.unlink()
+                total_saved += size
+    
+    _print(f"   Saved: {bytes_to_mb(total_saved):.1f} MB from screenshots")
+    return total_saved
+
+def remove_node_modules():
+    """Remove node_modules directories"""
+    if not get_env_bool("SLIM_REMOVE_NODE_MODULES", False):
+        return 0
+    
+    _print("📦 Removing node_modules...")
+    total_saved = 0
+    
+    for node_modules in ROOT.rglob("node_modules"):
+        if node_modules.is_dir():
+            size = safe_rmtree(node_modules)
+            total_saved += size
+    
+    _print(f"   Saved: {bytes_to_mb(total_saved):.1f} MB from node_modules")
+    return total_saved
+
+def optimize_images():
+    """Optimize image files"""
+    if not get_env_bool("SLIM_OPTIMIZE_IMAGES", False):
+        return 0
+    
+    _print("🖼️  Optimizing images...")
+    total_saved = 0
+    
+    # This is a placeholder - would need actual image optimization
+    # Could use PIL to compress JPEGs or optimize PNGs
+    _print("   Image optimization placeholder - implement if needed")
+    
+    return total_saved
+
+def vacuum_database():
+    """Perform database maintenance"""
+    if not get_env_bool("SLIM_VACUUM_DB", True):
+        return 0
+    
+    _print("🗄️  Running database maintenance...")
+    
+    try:
+        # This would connect to your actual database
+        # For now, just a placeholder
+        _print("   Database VACUUM and ANALYZE completed")
+        return 0
+    except Exception as e:
+        _print(f"   Database maintenance failed: {e}")
+        return 0
+
+def main():
+    """Main space saver function"""
+    _print("🚀 Starting Fixzit Space Saver & Optimizer")
+    
+    if not get_env_bool("SLIM_APPLY", False):
+        _print("Set SLIM_APPLY=1 to run (dry-run mode)")
+        return
+    
+    total_saved = 0
+    start_time = time.time()
+    
+    # Run all cleanup operations
+    total_saved += purge_python_caches()
+    total_saved += prune_artifacts()
+    total_saved += purge_pip_cache()
+    total_saved += remove_playwright_browsers()
+    total_saved += prune_screenshots()
+    total_saved += remove_node_modules()
+    total_saved += optimize_images()
+    total_saved += vacuum_database()
+    
+    elapsed = time.time() - start_time
+    _print(f"✅ Cleanup complete in {elapsed:.1f}s")
+    _print(f"💾 Total space saved: {bytes_to_mb(total_saved):.1f} MB")
+    
+    # Show current disk usage
+    try:
+        disk_usage = shutil.disk_usage(str(ROOT))
+        free_gb = disk_usage.free / (1024**3)
+        _print(f"💿 Free disk space: {free_gb:.2f} GB")
+    except Exception:
+        pass
+
+if __name__ == "__main__":
+    main()
+]]>
+</file>
+
+<file path="scripts/smart-merge-conflicts.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * Smart Conflict Resolution for PR #84
+ *
+ * This script intelligently merges conflicts by:
+ * 1. Keeping all PR #84 enhancements (rate limiting, security, OpenAPI)
+ * 2. Preserving any new business logic from main
+ * 3. Combining both properly
+ */
+
+import * as fs from "fs";
+
+interface ConflictSection {
+  ours: string[]; // PR #84 version (HEAD)
+  theirs: string[]; // main branch version
+  ancestor?: string[]; // Base version (if available)
+}
+
+interface FileConflicts {
+  filePath: string;
+  conflicts: ConflictSection[];
+  beforeFirst: string[];
+  afterLast: string[];
+}
+
+// Patterns that indicate PR #84 enhancements
+const PR84_PATTERNS = {
+  imports: [
+    /from ['"]@\/server\/security\/rateLimit['"]/,
+    /from ['"]@\/server\/security\/headers['"]/,
+    /from ['"]@\/server\/utils\/errorResponses['"]/,
+  ],
+  code: [
+    /rateLimit\(/,
+    /createSecureResponse\(/,
+    /rateLimitError\(/,
+    /zodValidationError\(/,
+    /handleApiError\(/,
+  ],
+  comments: [/@openapi/, /@summary/, /@description/],
+};
+
+function parseConflicts(content: string): FileConflicts | null {
+  const lines = content.split("\n");
+  const conflicts: ConflictSection[] = [];
+  const beforeFirst: string[] = [];
+  const afterLast: string[] = [];
+
+  let inConflict = false;
+  let inOurs = false;
+  let inTheirs = false;
+  let currentOurs: string[] = [];
+  let currentTheirs: string[] = [];
+  let foundFirstConflict = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    if (line.startsWith("<<<<<<< HEAD") || line.startsWith("<<<<<<< ours")) {
+      foundFirstConflict = true;
+      inConflict = true;
+      inOurs = true;
+      currentOurs = [];
+      currentTheirs = [];
+    } else if (line.startsWith("=======") && inConflict) {
+      inOurs = false;
+      inTheirs = true;
+    } else if (line.startsWith(">>>>>>>") && inConflict) {
+      inConflict = false;
+      inTheirs = false;
+      conflicts.push({
+        ours: currentOurs,
+        theirs: currentTheirs,
+      });
+    } else if (inOurs) {
+      currentOurs.push(line);
+    } else if (inTheirs) {
+      currentTheirs.push(line);
+    } else if (!foundFirstConflict) {
+      beforeFirst.push(line);
+    } else if (foundFirstConflict && !inConflict) {
+      afterLast.push(line);
+    }
+  }
+
+  if (conflicts.length === 0) {
+    return null; // No conflicts
+  }
+
+  return {
+    filePath: "",
+    conflicts,
+    beforeFirst,
+    afterLast,
+  };
+}
+
+function hasPR84Enhancement(lines: string[]): boolean {
+  const content = lines.join("\n");
+
+  // Check for PR #84 import patterns
+  for (const pattern of PR84_PATTERNS.imports) {
+    if (pattern.test(content)) return true;
+  }
+
+  // Check for PR #84 code patterns
+  for (const pattern of PR84_PATTERNS.code) {
+    if (pattern.test(content)) return true;
+  }
+
+  // Check for OpenAPI comments
+  for (const pattern of PR84_PATTERNS.comments) {
+    if (pattern.test(content)) return true;
+  }
+
+  return false;
+}
+
+function mergeConflictIntelligently(conflict: ConflictSection): string[] {
+  const oursHasPR84 = hasPR84Enhancement(conflict.ours);
+  const theirsHasPR84 = hasPR84Enhancement(conflict.theirs);
+
+  // Case 1: Only our side (PR #84) has enhancements
+  if (oursHasPR84 && !theirsHasPR84) {
+    console.log("  → Keeping PR #84 enhancements (ours)");
+    return conflict.ours;
+  }
+
+  // Case 2: Both sides have enhancements - need to merge
+  if (oursHasPR84 && theirsHasPR84) {
+    console.log("  → Merging both sides (complex)");
+    // For now, keep ours but flag for manual review
+    return [
+      "// TODO: Review this merge - both sides had changes",
+      ...conflict.ours,
+    ];
+  }
+
+  // Case 3: Neither side has PR #84 patterns - this is business logic
+  // Keep main's version (theirs) as it's likely newer
+  if (!oursHasPR84 && !theirsHasPR84) {
+    console.log("  → Keeping main's business logic (theirs)");
+    return conflict.theirs;
+  }
+
+  // Case 4: Only their side has enhancements (unlikely but possible)
+  console.log("  → Keeping theirs (has enhancements)");
+  return conflict.theirs;
+}
+
+function resolveFile(filePath: string): boolean {
+  if (!fs.existsSync(filePath)) {
+    console.log(`❌ File not found: ${filePath}`);
+    return false;
+  }
+
+  const content = fs.readFileSync(filePath, "utf-8");
+  const parsed = parseConflicts(content);
+
+  if (!parsed) {
+    console.log(`✓ No conflicts: ${filePath}`);
+    return true;
+  }
+
+  console.log(`\n🔧 Resolving: ${filePath}`);
+  console.log(`   Found ${parsed.conflicts.length} conflict(s)`);
+
+  const resolved: string[] = [...parsed.beforeFirst];
+
+  for (let i = 0; i < parsed.conflicts.length; i++) {
+    console.log(`   Conflict ${i + 1}/${parsed.conflicts.length}:`);
+    const mergedLines = mergeConflictIntelligently(parsed.conflicts[i]);
+    resolved.push(...mergedLines);
+  }
+
+  resolved.push(...parsed.afterLast);
+
+  // Write back
+  fs.writeFileSync(filePath, resolved.join("\n"), "utf-8");
+  console.log(`✅ Resolved: ${filePath}`);
+
+  return true;
+}
+
+// Main execution
+const conflictingFiles = [
+  "app/api/aqar/map/route.ts",
+  "app/api/aqar/properties/route.ts",
+  "app/api/assistant/query/route.ts",
+  "app/api/ats/convert-to-employee/route.ts",
+  "app/api/auth/signup/route.ts",
+  "app/api/billing/charge-recurring/route.ts",
+  "app/api/contracts/route.ts",
+  "app/api/feeds/indeed/route.ts",
+  "app/api/feeds/linkedin/route.ts",
+  "app/api/files/resumes/[file]/route.ts",
+  "app/api/files/resumes/presign/route.ts",
+  "app/api/finance/invoices/[id]/route.ts",
+  "app/api/finance/invoices/route.ts",
+  "app/api/kb/ingest/route.ts",
+  "app/api/marketplace/products/route.ts",
+  "app/api/payments/paytabs/callback/route.ts",
+  "app/api/projects/route.ts",
+  "app/api/qa/alert/route.ts",
+  "app/api/qa/log/route.ts",
+  "app/api/work-orders/export/route.ts",
+  "app/api/work-orders/import/route.ts",
+  "components/topbar/AppSwitcher.tsx",
+  "server/copilot/retrieval.ts",
+];
+
+console.log("==========================================");
+console.log("Smart Conflict Resolution for PR #84");
+console.log("==========================================\n");
+
+let resolved = 0;
+let failed = 0;
+let needsReview = 0;
+
+for (const file of conflictingFiles) {
+  try {
+    const success = resolveFile(file);
+    if (success) {
+      const content = fs.readFileSync(file, "utf-8");
+      if (content.includes("TODO: Review this merge")) {
+        needsReview++;
+      } else {
+        resolved++;
+      }
+    } else {
+      failed++;
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.log(`❌ Error resolving ${file}: ${message}`);
+    failed++;
+  }
+}
+
+console.log("\n==========================================");
+console.log("Summary");
+console.log("==========================================");
+console.log(`✅ Auto-resolved: ${resolved}`);
+console.log(`⚠️  Needs review: ${needsReview}`);
+console.log(`❌ Failed: ${failed}`);
+console.log("");
+
+if (needsReview > 0) {
+  console.log(
+    'Files with "TODO: Review this merge" comments need manual review.',
+  );
+  console.log("Search for this comment in your editor.");
+}
+
+if (resolved > 0 || needsReview > 0) {
+  console.log("\nNext steps:");
+  console.log("1. Review changes: git diff");
+  console.log("2. Stage changes: git add .");
+  console.log('3. Commit: git commit -m "chore: resolve merge conflicts"');
+  console.log("4. Push: git push origin fix/consolidation-guardrails");
+}
+
+]]>
+</file>
+
+</batch_content>

@@ -1,0 +1,3456 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/development/FORM_SAVE_EVENTS.md">
+<![CDATA[
+# Form Save Events Documentation
+
+## Overview
+
+The Fixzit application uses a custom event-based system to handle form saving when users attempt to navigate away with unsaved changes. This document explains how to implement this pattern in your form components.
+
+## Event Flow
+
+1. **User attempts navigation** with unsaved changes
+2. **TopBar** intercepts and shows "Unsaved Changes" dialog
+3. **User clicks "Save & Continue"**
+4. **TopBar** dispatches `fixzit:save-forms` event
+5. **Form components** listen for this event and trigger save operations
+6. **Form components** dispatch success/error events when save completes
+7. **TopBar** waits for confirmation (max 5 seconds timeout)
+8. **TopBar** proceeds with navigation on success or shows error
+
+## Event Types
+
+### 1. Save Request Event: `fixzit:save-forms`
+
+Dispatched by TopBar when user clicks "Save & Continue".
+
+```typescript
+window.dispatchEvent(
+  new CustomEvent("fixzit:save-forms", {
+    detail: { timestamp: Date.now() },
+  }),
+);
+```
+
+### 2. Save Success Event: `fixzit:forms-saved`
+
+Your form should dispatch this after successfully saving.
+
+```typescript
+window.dispatchEvent(new CustomEvent("fixzit:forms-saved"));
+```
+
+### 3. Save Error Event: `fixzit:forms-save-error`
+
+Your form should dispatch this if save fails.
+
+```typescript
+window.dispatchEvent(
+  new CustomEvent("fixzit:forms-save-error", {
+    detail: { error: "Failed to save work order: Network error" },
+  }),
+);
+```
+
+## Implementation Example
+
+### Basic Form Component
+
+```typescript
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useFormState } from '@/contexts/FormStateContext';
+
+export default function WorkOrderForm() {
+  const [formData, setFormData] = useState({ /* ... */ });
+  const { setUnsavedChanges, clearUnsavedChanges } = useFormState();
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // Track form changes
+  useEffect(() => {
+    if (hasChanges) {
+      setUnsavedChanges('work-order-form');
+    } else {
+      clearUnsavedChanges('work-order-form');
+    }
+  }, [hasChanges, setUnsavedChanges, clearUnsavedChanges]);
+
+  // Listen for save event from TopBar
+  useEffect(() => {
+    const handleSaveRequest = async (event: Event) => {
+      try {
+        // Perform your save operation
+        const response = await fetch('/api/work-orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to save work order');
+        }
+
+        // Clear unsaved changes flag
+        setHasChanges(false);
+        clearUnsavedChanges('work-order-form');
+
+        // Notify TopBar of success
+        window.dispatchEvent(new CustomEvent('fixzit:forms-saved'));
+
+      } catch (error) {
+        // Notify TopBar of error
+        window.dispatchEvent(new CustomEvent('fixzit:forms-save-error', {
+          detail: {
+            error: error instanceof Error
+              ? error.message
+              : 'Failed to save work order'
+          }
+        }));
+      }
+    };
+
+    window.addEventListener('fixzit:save-forms', handleSaveRequest);
+    return () => window.removeEventListener('fixzit:save-forms', handleSaveRequest);
+  }, [formData, clearUnsavedChanges]);
+
+  return (
+    <form>
+      {/* Your form fields */}
+    </form>
+  );
+}
+```
+
+### React Hook Form Example
+
+```typescript
+'use client';
+
+import { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { useFormState } from '@/contexts/FormStateContext';
+
+export default function PropertyForm() {
+  const { register, handleSubmit, formState: { isDirty } } = useForm();
+  const { setUnsavedChanges, clearUnsavedChanges } = useFormState();
+
+  // Track form dirty state
+  useEffect(() => {
+    if (isDirty) {
+      setUnsavedChanges('property-form');
+    } else {
+      clearUnsavedChanges('property-form');
+    }
+  }, [isDirty, setUnsavedChanges, clearUnsavedChanges]);
+
+  // Listen for save event
+  useEffect(() => {
+    const handleSaveRequest = async () => {
+      try {
+        // Use handleSubmit to validate and save
+        await handleSubmit(async (data) => {
+          const response = await fetch('/api/properties', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+
+          if (!response.ok) throw new Error('Save failed');
+
+          clearUnsavedChanges('property-form');
+          window.dispatchEvent(new CustomEvent('fixzit:forms-saved'));
+        })();
+      } catch (error) {
+        window.dispatchEvent(new CustomEvent('fixzit:forms-save-error', {
+          detail: { error: 'Failed to save property' }
+        }));
+      }
+    };
+
+    window.addEventListener('fixzit:save-forms', handleSaveRequest);
+    return () => window.removeEventListener('fixzit:save-forms', handleSaveRequest);
+  }, [handleSubmit, clearUnsavedChanges]);
+
+  return <form>{/* ... */}</form>;
+}
+```
+
+## Best Practices
+
+### 1. Always Clean Up Event Listeners
+
+Use the cleanup function in `useEffect` to prevent memory leaks:
+
+```typescript
+useEffect(() => {
+  const handler = async () => {
+    /* ... */
+  };
+  window.addEventListener("fixzit:save-forms", handler);
+  return () => window.removeEventListener("fixzit:save-forms", handler);
+}, [dependencies]);
+```
+
+### 2. Handle Errors Gracefully
+
+Always dispatch either success or error event - never leave TopBar waiting:
+
+```typescript
+try {
+  await saveData();
+  window.dispatchEvent(new CustomEvent("fixzit:forms-saved"));
+} catch (error) {
+  window.dispatchEvent(
+    new CustomEvent("fixzit:forms-save-error", {
+      detail: { error: "Descriptive error message" },
+    }),
+  );
+}
+```
+
+### 3. Provide Descriptive Error Messages
+
+Include context in error messages to help users understand what failed:
+
+```typescript
+detail: {
+  error: `Failed to save ${formType}: ${error.message}`;
+}
+```
+
+### 4. Update FormStateContext
+
+Always clear unsaved changes after successful save:
+
+```typescript
+const { clearUnsavedChanges } = useFormState();
+
+// After successful save:
+clearUnsavedChanges("your-form-id");
+window.dispatchEvent(new CustomEvent("fixzit:forms-saved"));
+```
+
+### 5. Consider Multiple Forms on One Page
+
+If you have multiple forms on a page, coordinate their saves:
+
+```typescript
+const handleSaveRequest = async () => {
+  try {
+    // Save all forms
+    await Promise.all([saveForm1(), saveForm2(), saveForm3()]);
+
+    // Clear all unsaved changes
+    clearUnsavedChanges("form-1");
+    clearUnsavedChanges("form-2");
+    clearUnsavedChanges("form-3");
+
+    window.dispatchEvent(new CustomEvent("fixzit:forms-saved"));
+  } catch (error) {
+    window.dispatchEvent(
+      new CustomEvent("fixzit:forms-save-error", {
+        detail: { error: "Failed to save one or more forms" },
+      }),
+    );
+  }
+};
+```
+
+## Timeout Behavior
+
+The TopBar will wait **5 seconds** for a response event. If no event is received:
+
+- An error is displayed: "Save operation timed out after 5 seconds"
+- The dialog remains open
+- User can retry or choose to discard changes
+
+Ensure your save operations complete within this timeframe or dispatch an error event explaining the delay.
+
+## Testing
+
+Test your implementation by:
+
+1. Making changes in your form
+2. Clicking the logo or attempting navigation
+3. Verifying the unsaved changes dialog appears
+4. Clicking "Save & Continue"
+5. Confirming either:
+   - Form saves and navigation proceeds (success)
+   - Error message appears (failure)
+   - Timeout error after 5 seconds (no event dispatched)
+
+## Migration Guide
+
+If you have existing forms using the old pattern, update them:
+
+**Before:**
+
+```typescript
+// Forms didn't respond to save events
+// TopBar just waited 300ms
+```
+
+**After:**
+
+```typescript
+useEffect(
+  () => {
+    const handleSaveRequest = async () => {
+      try {
+        await saveYourForm();
+        window.dispatchEvent(new CustomEvent("fixzit:forms-saved"));
+      } catch (error) {
+        window.dispatchEvent(
+          new CustomEvent("fixzit:forms-save-error", {
+            detail: { error: error.message },
+          }),
+        );
+      }
+    };
+
+    window.addEventListener("fixzit:save-forms", handleSaveRequest);
+    return () =>
+      window.removeEventListener("fixzit:save-forms", handleSaveRequest);
+  },
+  [
+    /* dependencies */
+  ],
+);
+```
+
+## Related Documentation
+
+- [FormStateContext Documentation](./FORM_STATE_CONTEXT.md)
+- [Navigation Pattern Guide](./NAVIGATION_PATTERNS.md)
+- [TopBar Component](../components/TopBar.tsx)
+
+]]>
+</file>
+
+<file path="docs/development/MIGRATION_DEPRECATED_HOOKS.md">
+<![CDATA[
+# Migration Guide: Deprecated Hooks → useFormTracking
+
+## 🎯 Overview
+
+This document tracks the migration from deprecated hooks to the new consolidated `useFormTracking` hook.
+
+**Related PR**: [#218 - Fix Security Vulnerabilities and Architectural Issues](https://github.com/EngSayh/Fixzit/pull/218)
+
+---
+
+## 📋 Migration Checklist
+
+### ✅ ALL MIGRATIONS COMPLETE
+
+- ✅ **app/fm/page.tsx** - Migrated to `useFormTracking` (PR #222)
+  - Completed: 2025-11-05
+  - Changed from manual markDirty/markClean to derived isDirty prop
+  - Removed local dialog components (now managed by FormStateContext)
+
+### ✅ Deprecated Files Deleted
+
+- ✅ **hooks/\_deprecated_useFormDirtyState.ts** - DELETED
+- ✅ **hooks/\_deprecated_useUnsavedChanges.tsx** - DELETED
+- ✅ **hooks/**tests**/useUnsavedChanges.test.tsx** - DELETED
+
+---
+
+## 🔄 Migration Pattern
+
+### Before (useUnsavedChanges):
+
+```tsx
+import { useUnsavedChanges, UnsavedChangesWarning, SaveConfirmation }
+  from '@/hooks/useUnsavedChanges';
+
+function MyComponent() {
+  const {
+    hasUnsavedChanges,
+    showWarning,
+    showSaveConfirm,
+    markDirty,
+    markClean,
+    handleSave,
+    handleDiscard,
+    handleStay
+  } = useUnsavedChanges({
+    message: 'You have unsaved changes...',
+    onSave: async () => {
+      await saveData();
+    }
+  });
+
+  // Manually call markDirty() when data changes
+  const handleChange = (value) => {
+    setValue(value);
+    markDirty();
+  };
+
+  return (
+    <>
+      <input onChange={(e) => handleChange(e.target.value)} />
+      <UnsavedChangesWarning isOpen={showWarning} ... />
+    </>
+  );
+}
+```
+
+### After (useFormTracking):
+
+```tsx
+import { useFormTracking } from "@/hooks/useFormTracking";
+import { UnsavedChangesWarning } from "@/components/common/UnsavedChangesWarning";
+import { SaveConfirmation } from "@/components/common/SaveConfirmation";
+
+function MyComponent() {
+  const [formData, setFormData] = useState(initialData);
+  const [originalData] = useState(initialData);
+
+  // Derive isDirty from state comparison (component's responsibility)
+  const isDirty = JSON.stringify(formData) !== JSON.stringify(originalData);
+
+  const { handleSubmit } = useFormTracking({
+    formId: "my-form",
+    isDirty,
+    onSave: async () => {
+      await saveData(formData);
+      setOriginalData(formData); // Reset baseline after save
+    },
+    unsavedMessage: "You have unsaved changes...", // Optional
+  });
+
+  // No need to call markDirty - state comparison handles it
+  const handleChange = (value) => {
+    setFormData({ ...formData, field: value });
+  };
+
+  return (
+    <>
+      <form onSubmit={handleSubmit}>
+        <input onChange={(e) => handleChange(e.target.value)} />
+        <button type="submit" disabled={!isDirty}>
+          Save
+        </button>
+      </form>
+      {/* UI components same as before */}
+    </>
+  );
+}
+```
+
+---
+
+## 🔑 Key Differences
+
+| Aspect                | useUnsavedChanges (OLD)          | useFormTracking (NEW)               |
+| --------------------- | -------------------------------- | ----------------------------------- |
+| **Dirty Detection**   | Manual (`markDirty()`)           | Automatic (via `isDirty` prop)      |
+| **Data Tracking**     | Internal refs + JSON.stringify   | Component's responsibility          |
+| **UI Components**     | Exported from hook               | Separate components                 |
+| **Form Registration** | ❌ No global context             | ✅ Registers with FormStateContext  |
+| **Browser Guards**    | ✅ beforeunload                  | ✅ beforeunload (improved)          |
+| **Save Handler**      | `handleSave()`                   | `handleSubmit()`                    |
+| **Performance**       | ⚠️ JSON.stringify on every check | ✅ Efficient (component-controlled) |
+
+---
+
+## 🚀 Migration Steps for app/fm/page.tsx
+
+### Step 1: Update imports
+
+```tsx
+// REMOVE
+import { useUnsavedChanges } from "@/hooks/_deprecated_useUnsavedChanges";
+
+// ADD
+import { useFormTracking } from "@/hooks/useFormTracking";
+// Note: UI components already migrated ✅
+```
+
+### Step 2: Add state management for form data
+
+```tsx
+// Track original state for comparison
+const [originalSearchTerm, setOriginalSearchTerm] = useState("");
+const [originalStatusFilter, setOriginalStatusFilter] = useState("all");
+
+// Compute isDirty
+const isDirty =
+  searchTerm !== originalSearchTerm || statusFilter !== originalStatusFilter;
+```
+
+### Step 3: Replace hook usage
+
+```tsx
+// REPLACE
+const { ... } = useUnsavedChanges({ ... });
+
+// WITH
+const { handleSubmit } = useFormTracking({
+  formId: 'fm-filters',
+  isDirty,
+  onSave: async () => {
+    // Save logic (simulate in this case)
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Reset baselines after successful save
+    setOriginalSearchTerm(searchTerm);
+    setOriginalStatusFilter(statusFilter);
+  },
+  unsavedMessage: t('unsaved.message', 'You have unsaved changes...')
+});
+```
+
+### Step 4: Remove markDirty/markClean calls
+
+```tsx
+// REMOVE these calls
+markDirty();
+markClean();
+
+// State comparison handles dirty detection automatically
+```
+
+### Step 5: Update save button
+
+```tsx
+<Button
+  variant="outline"
+  size="sm"
+  onClick={handleSubmit} // Changed from handleSave
+  disabled={!isDirty}
+  className="bg-success text-white hover:bg-success/90"
+>
+  {t("common.save", "Save")}
+</Button>
+```
+
+---
+
+## ⚠️ Common Pitfalls
+
+### 1. **Forgetting to reset baseline after save**
+
+```tsx
+// ❌ WRONG - isDirty will stay true even after save
+onSave: async () => {
+  await saveData();
+  // Missing: setOriginalData(currentData)
+};
+
+// ✅ CORRECT
+onSave: async () => {
+  await saveData();
+  setOriginalData(currentData); // Reset baseline
+};
+```
+
+### 2. **Using JSON.stringify for complex objects**
+
+```tsx
+// ⚠️ WORKS but can be slow for large objects
+const isDirty = JSON.stringify(formData) !== JSON.stringify(originalData);
+
+// ✅ BETTER - Use shallow comparison or specific field checks
+const isDirty =
+  formData.name !== originalData.name || formData.email !== originalData.email;
+
+// ✅ BEST - Use a library like lodash
+import { isEqual } from "lodash";
+const isDirty = !isEqual(formData, originalData);
+```
+
+### 3. **Not providing a unique formId**
+
+```tsx
+// ❌ WRONG - Multiple forms with same ID
+useFormTracking({ formId: 'form', ... })
+useFormTracking({ formId: 'form', ... }) // Collision!
+
+// ✅ CORRECT
+useFormTracking({ formId: 'user-profile-form', ... })
+useFormTracking({ formId: 'settings-form', ... })
+```
+
+---
+
+## 📊 Migration Progress
+
+- **Total consumers**: 1 active file
+- **Migrated**: 1 (100%) ✅
+- **Remaining**: 0 (0%) ✅
+- **Completed**: 2025-11-05
+
+---
+
+## ✅ MIGRATION COMPLETE
+
+All deprecated hooks have been successfully migrated and cleaned up:
+
+- ✅ All consumers migrated to `useFormTracking`
+- ✅ Deprecated hook files deleted
+- ✅ Test files removed
+- ✅ No remaining references in codebase
+- ✅ Migration guide updated
+
+### Related PRs
+
+- [#218](https://github.com/EngSayh/Fixzit/pull/218) - Security fixes and hook consolidation
+- [#222](https://github.com/EngSayh/Fixzit/pull/222) - FM page migration
+
+### Resolved Issues
+
+- Closes #219 (Migration task)
+- Closes #220 (Cleanup task)
+
+---
+
+## 📚 Reference
+
+For future migrations or understanding the new pattern:
+
+1. Review test files: `tests/hooks/useFormTracking.test.tsx`
+2. Check implementation: `hooks/useFormTracking.ts`
+3. See migration example: `app/fm/page.tsx` (git history)
+
+---
+
+**Migration Status**: ✅ COMPLETE  
+**Last Updated**: 2025-11-05  
+**Status**: 🟡 In Progress (0/1 files migrated)
+
+]]>
+</file>
+
+<file path="docs/features/FM_NOTIFICATION_ENGINE_IMPLEMENTATION.md">
+<![CDATA[
+# FM Notification Engine - Implementation Guide
+
+**Date**: November 14, 2025  
+**File**: `services/notifications/fm-notification-engine.ts`
+
+---
+
+## ✅ What Was Implemented
+
+A comprehensive, production-ready notification engine for the FM (Facilities Management) module with the following features:
+
+### 1. **Multi-Channel Support**
+
+- **Push Notifications**: Firebase Cloud Messaging (FCM) with batching (500 tokens/batch)
+- **Email**: SendGrid with HTML templates and XSS protection
+- **SMS**: Twilio integration with intelligent message shortening
+- **WhatsApp**: Twilio WhatsApp Business API integration
+
+### 2. **Advanced Features**
+
+- ✅ **Retry Mechanism**: Up to 3 attempts per channel with exponential backoff
+- ✅ **Batch Processing**: Handles large recipient lists (respects FCM 500 token limit)
+- ✅ **Priority Handling**: High/normal/low priorities integrated into FCM and email
+- ✅ **Status Tracking**: 'pending' → 'sent' → 'delivered' / 'failed' / 'partial'
+- ✅ **Deep Links**: Secure validation with `fixizit://` scheme for mobile app navigation
+- ✅ **i18n Support**: Template-based localization (currently using fallback, ready for i18next)
+- ✅ **DB Persistence**: Hook for MongoDB storage (needs implementation)
+- ✅ **Error Propagation**: Detailed logging and partial failure handling
+
+### 3. **Security Enhancements**
+
+- URL validation (prevents `javascript:` and `data:` schemes)
+- HTML escaping for email templates (XSS protection)
+- Input validation for all event handlers
+- Safe deep link generation with type checking
+
+### 4. **Event Handlers Implemented**
+
+- `onTicketCreated` - New work order notifications
+- `onAssign` - Technician assignment alerts
+- `onApprovalRequested` - Quote approval requests
+- `onApproved` - Approval confirmations
+- `onClosed` - Work order completion notifications
+
+---
+
+## 📦 Required Dependencies
+
+The following packages need to be installed for full functionality:
+
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+
+# Core dependencies
+pnpm add uuid
+pnpm add firebase-admin
+pnpm add @sendgrid/mail
+pnpm add twilio
+
+# TypeScript types
+pnpm add -D @types/uuid
+```
+
+### Optional (for full i18n support):
+
+```bash
+pnpm add i18next react-i18next
+```
+
+---
+
+## 🔧 Environment Variables Required
+
+Add these to your `.env.local` file:
+
+```bash
+# Firebase Cloud Messaging (Push Notifications)
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_CLIENT_EMAIL=your-service-account@project.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+FCM_SERVER_KEY=your-fcm-server-key
+FCM_SENDER_ID=your-fcm-sender-id
+
+# SendGrid (Email)
+SENDGRID_API_KEY=SG.your-api-key
+SENDGRID_FROM_EMAIL=notifications@fixizit.com
+
+# Twilio (SMS & WhatsApp)
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=your-auth-token
+TWILIO_PHONE_NUMBER=+1234567890
+TWILIO_WHATSAPP_NUMBER=+1234567890
+```
+
+---
+
+## 🔄 Integration Steps
+
+### 1. Install Dependencies
+
+```bash
+pnpm add uuid firebase-admin @sendgrid/mail twilio
+pnpm add -D @types/uuid
+```
+
+### 2. Implement DB Persistence Hook
+
+Replace the stub `saveNotification` function in the file with real MongoDB storage:
+
+```typescript
+// Example implementation
+import { connectDb } from "@/lib/mongodb-unified";
+import mongoose from "mongoose";
+
+const NotificationSchema = new mongoose.Schema({
+  id: String,
+  event: String,
+  recipients: Array,
+  title: String,
+  body: String,
+  deepLink: String,
+  data: Object,
+  priority: String,
+  status: String,
+  createdAt: Date,
+  sentAt: Date,
+  deliveredAt: Date,
+  failureReason: String,
+});
+
+const NotificationModel =
+  mongoose.models.Notification ||
+  mongoose.model("Notification", NotificationSchema);
+
+async function saveNotification(
+  notification: NotificationPayload,
+): Promise<void> {
+  await connectDb();
+  await NotificationModel.findOneAndUpdate(
+    { id: notification.id },
+    notification,
+    { upsert: true, new: true },
+  );
+  logger.debug("[Notifications] Saved to DB", { id: notification.id });
+}
+```
+
+### 3. Setup i18n (Optional but Recommended)
+
+Create `/lib/i18n.ts`:
+
+```typescript
+import i18next from "i18next";
+
+i18next.init({
+  lng: "en",
+  resources: {
+    en: {
+      translation: {
+        notifications: {
+          onTicketCreated: {
+            title: "New Work Order Created",
+            body: "Work order for {{tenantName}} - Priority: {{priority}}. {{description}}",
+          },
+          onAssign: {
+            title: "Work Order Assigned",
+            body: "Assigned to {{technicianName}}. {{description}}",
+          },
+          // ... add more translations
+        },
+      },
+    },
+    ar: {
+      translation: {
+        notifications: {
+          onTicketCreated: {
+            title: "تم إنشاء أمر عمل جديد",
+            body: "أمر عمل لـ {{tenantName}} - الأولوية: {{priority}}. {{description}}",
+          },
+          // ... add Arabic translations
+        },
+      },
+    },
+  },
+});
+
+export default i18next;
+```
+
+Then replace the i18n stub in `fm-notification-engine.ts`:
+
+```typescript
+import i18n from "@/lib/i18n"; // Remove stub implementation
+```
+
+### 4. Usage Example
+
+```typescript
+import {
+  onTicketCreated,
+  NotificationRecipient,
+} from "@/services/notifications/fm-notification-engine";
+
+// In your work order creation handler
+const recipients: NotificationRecipient[] = [
+  {
+    userId: "user-123",
+    name: "John Doe",
+    email: "john@example.com",
+    phone: "+1234567890",
+    fcmToken: "firebase-token-here",
+    preferredChannels: ["push", "email"],
+    language: "en",
+  },
+];
+
+await onTicketCreated(
+  workOrder.id,
+  "Tenant Name",
+  "high",
+  "Broken AC unit in apartment 5B",
+  recipients,
+);
+```
+
+---
+
+## 🧪 Testing
+
+### Manual Testing Commands
+
+```bash
+# Test deep link generation
+curl -X POST http://localhost:3000/api/test/notifications \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event": "onTicketCreated",
+    "workOrderId": "WO-123",
+    "tenantName": "Test Tenant",
+    "priority": "high",
+    "description": "Test notification"
+  }'
+```
+
+### Unit Tests Template
+
+```typescript
+import { generateDeepLink, buildNotification } from "./fm-notification-engine";
+
+describe("FM Notification Engine", () => {
+  it("generates valid deep links", () => {
+    const link = generateDeepLink("work-order", "WO-123");
+    expect(link).toBe("fixizit://fm/work-orders/WO-123");
+  });
+
+  it("throws on invalid deep link type", () => {
+    expect(() => generateDeepLink("invalid" as any, "ID-123")).toThrow();
+  });
+
+  it("builds notification with correct structure", () => {
+    const recipients = [
+      {
+        userId: "U1",
+        name: "Test",
+        preferredChannels: ["push"],
+      },
+    ];
+
+    const notification = buildNotification(
+      "onTicketCreated",
+      {
+        workOrderId: "WO-123",
+        tenantName: "John",
+        priority: "high",
+        description: "Test",
+      },
+      recipients,
+    );
+
+    expect(notification.id).toBeDefined();
+    expect(notification.event).toBe("onTicketCreated");
+    expect(notification.deepLink).toContain("fixizit://");
+  });
+});
+```
+
+---
+
+## ⚠️ Known Issues & TODOs
+
+### Current Limitations:
+
+1. **i18n**: Using fallback stub - needs actual i18next integration
+2. **DB Persistence**: `saveNotification` is a stub - needs MongoDB implementation
+3. **FCM Token Management**: Invalid token removal not implemented (marked as TODO)
+4. **Rate Limiting**: No rate limiting on sends (could hit provider limits)
+5. **Delivery Confirmation**: `deliveredAt` is approximate, needs webhook integration
+
+### TypeScript Errors (Expected):
+
+- `uuid` module: Install `@types/uuid`
+- `firebase-admin`: Install package
+- `twilio`: Install package
+- `@sendgrid/mail`: Already installed
+
+### Future Enhancements:
+
+- [ ] Add delivery webhooks (FCM, SendGrid, Twilio)
+- [ ] Implement notification preferences per user
+- [ ] Add notification history API endpoint
+- [ ] Support for notification templates from DB
+- [ ] Batch notification API for bulk sends
+- [ ] Add notification analytics dashboard
+- [ ] Support for scheduled notifications
+- [ ] Add notification grouping/threading
+
+---
+
+## 🔗 Deep Link Scheme
+
+All deep links follow the `fixizit://` scheme:
+
+| Type       | Format                                          | Example                                             |
+| ---------- | ----------------------------------------------- | --------------------------------------------------- |
+| Work Order | `fixizit://fm/work-orders/{id}`                 | `fixizit://fm/work-orders/WO-123`                   |
+| Approval   | `fixizit://approvals/quote/{id}`                | `fixizit://approvals/quote/QT-456`                  |
+| Property   | `fixizit://fm/properties/{id}`                  | `fixizit://fm/properties/PROP-789`                  |
+| Unit       | `fixizit://fm/units/{id}`                       | `fixizit://fm/units/UNIT-012`                       |
+| Tenant     | `fixizit://fm/tenants/{id}`                     | `fixizit://fm/tenants/TNT-345`                      |
+| Financial  | `fixizit://financials/statements/property/{id}` | `fixizit://financials/statements/property/PROP-789` |
+
+---
+
+## 📊 Status Flow
+
+```
+pending → sent → delivered
+           ↓
+         failed
+           ↓
+        partial (some channels succeeded, others failed)
+```
+
+---
+
+## 🚀 Production Checklist
+
+Before deploying to production:
+
+- [ ] Install all required npm packages
+- [ ] Set all environment variables
+- [ ] Implement DB persistence hook
+- [ ] Setup i18n with actual translations
+- [ ] Configure Firebase project
+- [ ] Verify SendGrid domain authentication
+- [ ] Test Twilio phone numbers
+- [ ] Setup WhatsApp Business account
+- [ ] Test all notification channels end-to-end
+- [ ] Add error monitoring (Sentry integration)
+- [ ] Configure retry limits per environment
+- [ ] Setup notification rate limiting
+- [ ] Test FCM token management
+- [ ] Verify deep links work in mobile app
+
+---
+
+## 📝 Notes
+
+- **Thread-safe**: All operations are async and can run concurrently
+- **Scalable**: Batching prevents API rate limit issues
+- **Resilient**: Retry mechanism handles transient failures
+- **Secure**: URL validation prevents XSS and injection attacks
+- **Observable**: Comprehensive logging for debugging
+- **Extensible**: Template-based system allows easy addition of new event types
+
+---
+
+**Status**: ✅ Core implementation complete, awaiting dependency installation and environment configuration.
+
+]]>
+</file>
+
+<file path="docs/features/GOOGLE_OAUTH_STATUS.md">
+<![CDATA[
+# Google OAuth Configuration Status
+
+**Date:** November 14, 2025  
+**Status:** ✅ CONFIGURED & WORKING
+
+---
+
+## Configuration
+
+### Credentials (Stored Securely)
+
+- ✅ **Client ID:** [Configured in .env.local only - NEVER commit Client ID to git]
+- ✅ **Client Secret:** [Configured in .env.local only - NEVER commit secrets to git]
+
+### OAuth Settings
+
+- ✅ **Authorized Origins:**
+  - http://localhost:3000
+  - http://localhost:3001
+  - https://fixzit.co
+  - https://www.fixzit.co
+  - https://app.fixzit.co
+
+- ✅ **Authorized Redirect URIs:**
+  - http://localhost:3000/api/auth/callback/google
+  - https://fixzit.co/api/auth/callback/google
+  - https://www.fixzit.co/api/auth/callback/google
+  - https://app.fixzit.co/api/auth/callback/google
+
+### Integration
+
+- ✅ **NextAuth Configuration:** `auth.config.ts`
+- ✅ **Environment Variable:** `GOOGLE_CLIENT_SECRET` in `.env.local`
+- ✅ **Provider Status:** Active and functional
+
+---
+
+## Verification
+
+### Test OAuth Flow
+
+```bash
+# 1. Start development server
+npm run dev
+
+# 2. Navigate to login page
+open http://localhost:3000/login
+
+# 3. Click "Continue with Google" button
+# 4. Complete Google OAuth flow
+# 5. Verify redirect to dashboard
+```
+
+### API Verification
+
+```bash
+curl http://localhost:3000/api/auth/providers
+```
+
+**Expected Response:**
+
+```json
+{
+  "google": {
+    "id": "google",
+    "name": "Google",
+    "type": "oidc",
+    "signinUrl": "http://localhost:3000/api/auth/signin/google",
+    "callbackUrl": "http://localhost:3000/api/auth/callback/google"
+  },
+  "credentials": {
+    "id": "credentials",
+    "name": "Credentials",
+    "type": "credentials"
+  }
+}
+```
+
+---
+
+## Security Notes
+
+⚠️ **IMPORTANT SECURITY PRACTICES:**
+
+1. **Never commit secrets to git**
+   - Client Secret lives ONLY in `.env.local`
+   - `.env.local` is in `.gitignore`
+   - This file contains only public Client ID
+
+2. **Secret Rotation**
+   - If a secret is ever exposed, revoke immediately
+   - Generate new secret in Google Cloud Console
+   - Update `.env.local` with new secret
+
+3. **Environment Variables Required**
+   ```bash
+   # In .env.local (NEVER commit this file)
+   GOOGLE_CLIENT_ID=887157574249-s5g75n2bu6p8v2aeghib7uos2fpj220j.apps.googleusercontent.com
+   GOOGLE_CLIENT_SECRET=<your-secret-here>
+   NEXTAUTH_SECRET=<random-string-minimum-32-chars>
+   NEXTAUTH_URL=http://localhost:3000
+   ```
+
+---
+
+## Deployment Checklist
+
+### Production Environment Variables
+
+- [ ] Set `GOOGLE_CLIENT_ID` in production env
+- [ ] Set `GOOGLE_CLIENT_SECRET` in production env
+- [ ] Set `NEXTAUTH_URL=https://yourdomain.com`
+- [ ] Set `NEXTAUTH_SECRET` (generate new for production)
+- [ ] Verify OAuth redirect URIs in Google Console match production domain
+
+### Testing Checklist
+
+- [ ] OAuth login flow works
+- [ ] New user account creation works
+- [ ] Existing user login works
+- [ ] Session persistence works
+- [ ] Logout works
+- [ ] Error handling works (denied consent, etc.)
+
+---
+
+**Status:** Ready for production deployment after environment variables configured.
+
+]]>
+</file>
+
+<file path="docs/features/SOUQ_IMPLEMENTATION_STATUS.md">
+<![CDATA[
+# Souq Marketplace Implementation Status
+
+**Last Updated**: November 14, 2025
+**Status**: Phase 1 - Core Infrastructure Complete
+
+## ✅ Completed (Phase 0 + Phase 1A)
+
+### Models (7/11 Required)
+
+- ✅ **Seller** (`server/models/souq/Seller.ts`) - Seller accounts, KYC, account health, violations, tier management
+- ✅ **Product** (`server/models/souq/Product.ts`) - Products with FSIN, brand, category, attributes
+- ✅ **Category** (`server/models/souq/Category.ts`) - Hierarchical product categories
+- ✅ **Brand** (`server/models/souq/Brand.ts`) - Brand registry with verification
+- ✅ **Variation** (`server/models/souq/Variation.ts`) - SKU variations (size, color, etc.)
+- ✅ **Listing** (`server/models/souq/Listing.ts`) - Multi-seller offers with Buy Box scoring
+- ✅ **Order** (`server/models/souq/Order.ts`) - Order lifecycle, items, payments, returns
+- ✅ **Review** (`server/models/souq/Review.ts`) - Product reviews with verification
+- ✅ **Deal** (`server/models/souq/Deal.ts`) - Lightning deals, coupons, promotions
+
+### API Routes (4/11 Required)
+
+- ✅ **Sellers API** (`/api/souq/sellers`) - POST (create seller), GET (list sellers with filters)
+- ✅ **Listings API** (`/api/souq/listings`) - POST (create listing), GET (get offers by FSIN/seller)
+- ✅ **Orders API** (`/api/souq/orders`) - POST (create order), GET (list orders with filters)
+- ✅ **Catalog Products API** (`/api/souq/catalog/products`) - POST (create product with FSIN), GET (list products)
+
+### Services (1/8 Required)
+
+- ✅ **Buy Box Service** (`services/souq/buybox-service.ts`) - Buy Box winner calculation algorithm
+
+### Utilities
+
+- ✅ **FSIN Generator** (`lib/souq/fsin-generator.ts`) - 14-digit unique product IDs with collision detection
+- ✅ **Feature Flags** (`lib/souq/feature-flags.ts`) - 12 feature flags with dependency checking
+
+### Documentation
+
+- ✅ **Roadmap** (`SOUQ_MARKETPLACE_ROADMAP.md`) - 48-week implementation plan (180 SP, 11 EPICs)
+- ✅ **Navigation** (`config/souq-navigation.yaml`) - 200+ menu items for marketplace navigation
+
+## 🔄 In Progress
+
+### Models (Still Needed)
+
+- ⏳ **Ad Campaign** - CPC advertising campaigns
+- ⏳ **Settlement** - Seller payouts and transactions
+
+### API Routes (Still Needed)
+
+- ⏳ **Buy Box API** (`/api/souq/buybox/[fsin]`) - Get Buy Box winner and all offers
+- ⏳ **Reviews API** (`/api/souq/reviews`) - Create review, moderate reviews
+- ⏳ **Deals API** (`/api/souq/deals`) - Create deals, apply coupons
+- ⏳ **Search API** (`/api/souq/search`) - Product search with facets (waiting for Meilisearch)
+- ⏳ **Seller Dashboard API** (`/api/souq/sellers/[id]/dashboard`) - Stats, health metrics
+
+### Services (Still Needed)
+
+- ⏳ **Inventory Service** - Stock management, low stock alerts
+- ⏳ **Fulfillment Service** - FBF/FBM order routing
+- ⏳ **Settlement Service** - Calculate seller payouts
+- ⏳ **Search Indexing Service** - Sync products to Meilisearch
+- ⏳ **Notification Service** - Email/SMS for sellers and buyers
+- ⏳ **Returns Service** - RMA processing
+
+### UI Pages (Still Needed)
+
+- ⏳ Enhance `/marketplace/page.tsx` with FSIN display
+- ⏳ Enhance `/marketplace/vendor/portal/page.tsx` with account health widget
+- ⏳ Create `/marketplace/product/[slug]/page.tsx` with Buy Box display
+- ⏳ Create `/marketplace/seller/onboarding/page.tsx` - KYC flow
+- ⏳ Create `/marketplace/seller/account-health/page.tsx` - Health dashboard
+- ⏳ Create `/marketplace/seller/settlement/page.tsx` - Payment reports
+
+## ❌ Not Started
+
+### EPIC B: Seller Features (10 User Stories)
+
+- ❌ Seller tier upgrades
+- ❌ KYC document upload (need S3/MinIO)
+- ❌ Bank account verification
+- ❌ Violation appeals workflow
+- ❌ Performance improvement plans
+
+### EPIC F: Advertising (8 User Stories)
+
+- ❌ CPC campaign creation
+- ❌ Budget management (need external budget service)
+- ❌ Ad performance reporting
+- ❌ Keyword bidding
+
+### EPIC I: Settlement (6 User Stories)
+
+- ❌ Settlement calculation engine
+- ❌ Hold period management
+- ❌ Payout processing (need payment gateway)
+- ❌ Settlement reports
+
+### EPIC J: Search & Recommendations (7 User Stories)
+
+- ❌ Faceted search (waiting for Meilisearch)
+- ❌ Search ranking algorithm
+- ❌ Product recommendations
+- ❌ Search autocomplete
+
+### EPIC K: Admin & Reporting (8 User Stories)
+
+- ❌ Admin console for category management
+- ❌ Seller approval workflow
+- ❌ Fraud detection
+- ❌ Sales analytics dashboard
+
+## 🚫 Blocked by Infrastructure
+
+These features cannot be implemented without external services:
+
+- **Redis** - Caching, session storage, job queues (BullMQ)
+- **Meilisearch** - Faceted search, ranking, autocomplete
+- **MinIO/S3** - Product images, KYC documents, seller assets
+- **NATS** - Event bus for service communication
+- **Payment Gateway** - Settlement payouts
+
+## 📊 Progress Metrics
+
+### Overall Progress
+
+- **Models**: 9/11 (82%)
+- **API Routes**: 4/11 (36%)
+- **Services**: 1/8 (12.5%)
+- **UI Pages**: 0/10 (0%)
+- **Overall**: ~30% complete
+
+### By EPIC
+
+- **EPIC A (Catalog)**: 60% complete
+- **EPIC B (Sellers)**: 40% complete
+- **EPIC C (Listings)**: 70% complete
+- **EPIC D (Inventory)**: 30% complete
+- **EPIC E (Orders)**: 50% complete
+- **EPIC F (Ads)**: 10% complete
+- **EPIC G (Deals)**: 30% complete
+- **EPIC H (Reviews)**: 40% complete
+- **EPIC I (Settlement)**: 5% complete
+- **EPIC J (Search)**: 10% complete
+- **EPIC K (Admin)**: 5% complete
+
+## 🎯 Next Steps (Immediate Priority)
+
+### Phase 1B: Essential APIs (2 hours)
+
+1. ✅ Buy Box API endpoint (`/api/souq/buybox/[fsin]`)
+2. ✅ Reviews API (`/api/souq/reviews`)
+3. ✅ Deals/Coupons API (`/api/souq/deals`)
+4. ✅ Seller Dashboard API (`/api/souq/sellers/[id]/dashboard`)
+
+### Phase 1C: UI Integration (3 hours)
+
+1. Enhance product detail page with Buy Box + "Other Sellers"
+2. Enhance vendor portal with account health metrics
+3. Create seller onboarding flow (KYC submission without file upload)
+4. Create basic search page (MongoDB text search)
+
+### Phase 1D: Business Logic (2 hours)
+
+1. Inventory reservation/release on cart/checkout
+2. Order confirmation workflow (email notifications)
+3. Account health calculation job
+4. Deal application logic on checkout
+
+## 🔧 Technical Debt
+
+1. **No File Upload**: S3/MinIO not available - need alternative for KYC docs
+2. **No Search Engine**: Meilisearch not available - using MongoDB text search as fallback
+3. **No Caching**: Redis not available - direct MongoDB queries (slow)
+4. **No Job Queue**: BullMQ not available - inline processing (no async jobs)
+5. **No Event Bus**: NATS not available - no service-to-service communication
+
+## 📝 Notes
+
+- All models use strict TypeScript types
+- All APIs use Zod validation schemas
+- Buy Box algorithm weights: Price (35%), Performance (25%), Quality (20%), Rating (10%), Cancel Rate (10%)
+- FSIN format: `YYYYMMDDXXXXXX` (14 digits, date + random + checksum)
+- Settlement cycles: Individual (14 days), Professional (7 days), Enterprise (7 days)
+- Account health thresholds: ODR < 1%, LSR < 4%, CR < 2.5%, VTR > 95%, OTDR > 97%
+
+]]>
+</file>
+
+<file path="docs/features/SOUQ_MARKETPLACE_ROADMAP.md">
+<![CDATA[
+# Fixzit Souq Marketplace Implementation Roadmap
+
+**Project**: Advanced Marketplace Features for Fixzit Souq  
+**Timeline**: 6-12 months (phased rollout)  
+**Status**: Phase 0 - Foundation (In Progress)  
+**Branch**: `feat/souq-marketplace-advanced`
+
+---
+
+## Executive Summary
+
+Implementing enterprise-grade marketplace with:
+
+- Multi-seller catalog with FSIN (Fixzit Standard Item Number)
+- Buy Box competition algorithm
+- Sponsored Products/Brands/Display ads (CPC auction)
+- Fulfillment by Fixzit (FBF) + Fulfillment by Merchant (FBM)
+- Returns Center with A-to-Z claims
+- Settlement & payout engine
+- Brand Registry & IP protection
+- Account Health monitoring
+- Full Arabic/English RTL support
+
+---
+
+## Release Train: Souq-Advanced-Features
+
+### Feature Flags (lib/feature-flags.ts)
+
+```typescript
+export const SOUQ_FEATURES = {
+  ads: boolean;              // Sponsored ads
+  deals: boolean;            // Lightning/Event deals
+  buy_box: boolean;          // Multi-seller competition
+  settlement: boolean;       // Payout cycles
+  returns_center: boolean;   // Self-service returns
+  brand_registry: boolean;   // Brand verification
+  account_health: boolean;   // Seller metrics
+} as const;
+```
+
+---
+
+## Phase Breakdown
+
+### Phase 0: Foundation (Week 1-2) - 4 hours immediate
+
+**Status**: ✅ IN PROGRESS
+**Deliverables**:
+
+- [x] Project roadmap document
+- [ ] Feature flags infrastructure
+- [ ] FSIN generator utility
+- [ ] Base service architecture (catalog-svc, seller-svc, listing-svc)
+- [ ] MongoDB schemas (Category, Brand, Product, Variation)
+- [ ] Navigation YAML + sidebar updates
+- [ ] Environment setup (Redis, NATS/Kafka placeholder)
+
+**Critical Path**:
+
+1. Create `lib/souq/fsin-generator.ts`
+2. Create `server/models/souq/` directory structure
+3. Create `app/marketplace/seller-central/` routes
+4. Create `app/marketplace/admin/` enhanced routes
+5. Update navigation config
+
+---
+
+### Phase 1: Catalog & Brand Registry (Week 3-6) - EPIC A (20 SP)
+
+**Duration**: 4 weeks  
+**Team**: 2 backend + 1 frontend
+
+**Stories**:
+
+- A1 (8 SP): FSIN generator + product/variation creation flow
+- A2 (4 SP): Category & attribute manager in Admin
+- A3 (5 SP): Brand registry submission + verification workflow
+- A4 (3 SP): Compliance checks (policy flags + expiry reminders)
+
+**Deliverables**:
+
+- [ ] catalog-svc: 6 endpoints
+- [ ] Admin UI: Category/attribute CRUD
+- [ ] Seller Central: Brand registry submission
+- [ ] Admin: Brand verification queue
+- [ ] Compliance engine with JSON rules
+- [ ] Daily cron for document expiry warnings
+
+**Acceptance Criteria**:
+
+- ✅ Creating product returns `{ id, fsin }`
+- ✅ Restricted categories block until approval
+- ✅ Brand registry gates listings for gated brands
+- ✅ Compliance flags visible with DOA override logging
+
+**MongoDB Collections**:
+
+```typescript
+// souq_categories, souq_attributes, souq_brands,
+// souq_products, souq_variations, souq_compliance_flags
+```
+
+---
+
+### Phase 2: Seller Onboarding & Account Health (Week 7-9) - EPIC B (15 SP)
+
+**Duration**: 3 weeks  
+**Team**: 2 backend + 1 frontend + 1 QA
+
+**Stories**:
+
+- B1 (7 SP): KYC onboarding (legal entity + bank + policies)
+- B2 (8 SP): Account Health metrics + auto-actions + appeals
+
+**Deliverables**:
+
+- [ ] seller-svc: 3 endpoints
+- [ ] KYC multi-step form (legal, VAT, bank, policies)
+- [ ] Metrics calculation jobs (ODR, LateShip, Cancel, Tracking)
+- [ ] Redis cache for health scores
+- [ ] Account Health dashboard
+- [ ] Auto-enforcement (suppress listings, pause ads, remove Buy Box)
+- [ ] Appeals workflow
+
+**Acceptance Criteria**:
+
+- ✅ New seller completes onboarding → active state
+- ✅ Health metrics update within 5 minutes
+- ✅ Threshold violations trigger auto-actions
+- ✅ Appeals restore privileges with audit log
+
+**MongoDB Collections**:
+
+```typescript
+// souq_sellers, souq_kyc_documents, souq_health_metrics,
+// souq_violations, souq_appeals
+```
+
+---
+
+### Phase 3: Listings, Pricing & Buy Box (Week 10-13) - EPIC C (18 SP)
+
+**Duration**: 4 weeks  
+**Team**: 2 backend + 2 frontend
+
+**Stories**:
+
+- C1 (6 SP): Listings with min/max price guardrails
+- C2 (5 SP): Auto-repricer to track lowest landed price
+- C3 (7 SP): Buy Box scoring & winner selection
+
+**Deliverables**:
+
+- [ ] listing-svc: 3 endpoints
+- [ ] Min/max price enforcement
+- [ ] Auto-repricer worker (BullMQ)
+- [ ] Buy Box algorithm (normalized scoring)
+- [ ] PDP: Primary Buy Box + "Other offers" tab
+- [ ] Redis caching (5-min TTL with invalidation)
+
+**Buy Box Scoring**:
+
+```typescript
+score =
+  0.4 * priceScore +
+  0.25 * deliveryScore +
+  0.2 * sellerScore +
+  0.1 * stockScore +
+  0.05 * fastBadge;
+```
+
+**Acceptance Criteria**:
+
+- ✅ Repricer never violates min/max
+- ✅ Deterministic Buy Box winner per snapshot
+- ✅ Winner updates on price/speed/health changes
+- ✅ "Currently unavailable" graceful handling
+
+**MongoDB Collections**:
+
+```typescript
+// souq_listings, souq_offers, souq_pricing_rules,
+// souq_buy_box_snapshots
+```
+
+---
+
+### Phase 4: Inventory & Fulfillment (Week 14-18) - EPIC D (18 SP)
+
+**Duration**: 5 weeks  
+**Team**: 2 backend + 1 integration + 1 frontend
+
+**Stories**:
+
+- D1 (6 SP): Inventory receive/reserve/release; health
+- D2 (7 SP): FBF & FBM modes with SLAs
+- D3 (5 SP): Returns logistics & RTO
+
+**Deliverables**:
+
+- [ ] inventory-svc: 4 endpoints
+- [ ] fulfillment-svc: 3 endpoints
+- [ ] Carrier adapters: Aramex, SMSA, SPL
+- [ ] Webhook handler for tracking updates
+- [ ] SLA computation + Fast Badge logic
+- [ ] Nightly inventory health jobs
+- [ ] Order Tracking UI
+
+**Acceptance Criteria**:
+
+- ✅ FBF auto-generates label + tracking
+- ✅ FBM requires seller tracking within SLA
+- ✅ Buyer sees real-time carrier status
+- ✅ No negative stock (reservations match orders)
+
+**MongoDB Collections**:
+
+```typescript
+// souq_inventory, souq_reservations, souq_fulfillment_orders,
+// souq_shipments, souq_carrier_events, souq_rto_requests
+```
+
+---
+
+### Phase 5: Orders, Payments, Returns & Claims (Week 19-24) - EPIC E (20 SP)
+
+**Duration**: 6 weeks  
+**Team**: 3 backend + 2 frontend + 1 QA
+
+**Stories**:
+
+- E1 (8 SP): Cart → checkout → payment → order placement
+- E2 (6 SP): Returns Center with rules matrix
+- E3 (6 SP): A-to-Z claims + Support integration
+
+**Deliverables**:
+
+- [ ] orders-svc: 5 endpoints
+- [ ] Payment integrations: Mada, STC Pay, Apple Pay
+- [ ] Returns matrix config (auto-approve vs manual)
+- [ ] RMA generation + shipping label/pickup
+- [ ] support-svc: 3 endpoints
+- [ ] Buyer-seller messaging
+- [ ] Funds hold/reserve on claim
+
+**Acceptance Criteria**:
+
+- ✅ Buyer can start return from Returns Center
+- ✅ Eligible cases auto-issue RMA and label
+- ✅ Refund logic respects scan/inspection triggers
+- ✅ Claims update settlement with audit trail
+
+**MongoDB Collections**:
+
+```typescript
+// souq_orders, souq_carts, souq_payments, souq_returns,
+// souq_rmas, souq_claims, souq_messages, souq_refunds
+```
+
+---
+
+### Phase 6: Advertising System (Week 25-30) - EPIC F (20 SP)
+
+**Duration**: 6 weeks  
+**Team**: 2 backend + 2 frontend + 1 data analyst
+
+**Stories**:
+
+- F1 (8 SP): Campaigns, ad groups, targets & negatives
+- F2 (7 SP): CPC second-price auction with budgets
+- F3 (5 SP): Reports and placements
+
+**Deliverables**:
+
+- [ ] ads-svc: 4 endpoints
+- [ ] Campaign/ad group management
+- [ ] CPC auction engine with quality score
+- [ ] Budget enforcement (daily caps, frequency)
+- [ ] Placement rendering: Search, PLP, PDP
+- [ ] Performance reports: impressions, clicks, CTR, CPC, ACOS, ROAS
+
+**CPC Auction Algorithm**:
+
+```typescript
+// Second-price auction with quality score
+const cost = (second.qualityScore * second.bid) / winner.qualityScore + 0.01;
+```
+
+**Acceptance Criteria**:
+
+- ✅ Budgets not exceeded; clicks decrement budget
+- ✅ Reports show accurate metrics
+- ✅ Ads auto-disabled for out-of-stock/blocked items
+
+**MongoDB Collections**:
+
+```typescript
+// souq_campaigns, souq_ad_groups, souq_ads, souq_targets,
+// souq_bids, souq_ad_events, souq_ad_reports
+```
+
+---
+
+### Phase 7: Deals & Coupons (Week 31-32) - EPIC G (10 SP)
+
+**Duration**: 2 weeks  
+**Team**: 1 backend + 1 frontend
+
+**Deliverables**:
+
+- [ ] Coupon engine (percent/amount, min basket, caps)
+- [ ] Lightning/Event deals with timers
+- [ ] Deal eligibility checks
+- [ ] UI: Strikethrough pricing, countdown timers
+
+**Acceptance Criteria**:
+
+- ✅ Valid coupons apply and respect caps
+- ✅ Lightning deals show timers + apply at checkout
+
+**MongoDB Collections**:
+
+```typescript
+// souq_coupons, souq_deals, souq_deal_participants
+```
+
+---
+
+### Phase 8: Reviews, Q&A, Moderation (Week 33-35) - EPIC H (12 SP)
+
+**Duration**: 3 weeks  
+**Team**: 2 backend + 1 frontend
+
+**Deliverables**:
+
+- [ ] Verified-purchase reviews only
+- [ ] NLP abuse filter (simple keyword + sentiment)
+- [ ] Q&A system with moderation queue
+- [ ] Helpful votes
+- [ ] PDP integration
+
+**Acceptance Criteria**:
+
+- ✅ Only delivered orders produce "Verified" reviews
+- ✅ Flagged content hidden until moderated
+- ✅ Buyers can vote helpful; Q&A appears on PDP
+
+**MongoDB Collections**:
+
+```typescript
+// souq_reviews, souq_questions, souq_answers,
+// souq_moderation_queue, souq_helpful_votes
+```
+
+---
+
+### Phase 9: Settlement, Fees & Invoicing (Week 36-40) - EPIC I (16 SP)
+
+**Duration**: 5 weeks  
+**Team**: 2 backend + 1 finance integration
+
+**Deliverables**:
+
+- [ ] Fee schedules per category/seller tier
+- [ ] Payout cycle engine (7/14/30 days)
+- [ ] VAT invoice generation (ZATCA-compliant)
+- [ ] PDF statement generation
+- [ ] Finance module integration (journal entries)
+- [ ] Settlement console for admin
+
+**Acceptance Criteria**:
+
+- ✅ Running settlement generates payouts with fee breakdown
+- ✅ Compliant VAT invoices
+- ✅ Finance receives reconciled journal entries
+
+**MongoDB Collections**:
+
+```typescript
+// souq_fee_schedules, souq_transactions, souq_payouts,
+// souq_invoices, souq_settlement_periods
+```
+
+---
+
+### Phase 10: Search, Ranking & Recommendations (Week 41-44) - EPIC J (14 SP)
+
+**Duration**: 4 weeks  
+**Team**: 2 backend + 1 search specialist
+
+**Deliverables**:
+
+- [ ] OpenSearch/Meilisearch integration
+- [ ] Full-text search with facets and sorts
+- [ ] Relevance tuning
+- [ ] Similar items recommendations (rule-based)
+- [ ] Frequently-bought-together
+- [ ] Search analytics
+
+**Acceptance Criteria**:
+
+- ✅ Search returns relevant results with facets
+- ✅ Recommendations appear on PDP
+- ✅ Analytics track search performance
+
+**Search Index**:
+
+```typescript
+// souq_search_index (external: OpenSearch/Meilisearch)
+```
+
+---
+
+### Phase 11: Reporting & Admin Consoles (Week 45-48) - EPIC K (14 SP)
+
+**Duration**: 4 weeks  
+**Team**: 2 backend + 1 frontend
+
+**Deliverables**:
+
+- [ ] Business reports (sales, units, ASP, conversion, traffic)
+- [ ] Inventory health reports (aging, excess, stranded)
+- [ ] Ads reports (complete metrics suite)
+- [ ] Returns & defects reports
+- [ ] Settlement reports
+- [ ] Admin consoles: Policy, Disputes, IP, Settlement overrides
+
+**Acceptance Criteria**:
+
+- ✅ All reports support date ranges, filters, CSV/PDF export
+- ✅ Admin consoles functional with DOA logging
+
+**MongoDB Collections**:
+
+```typescript
+// souq_reports_cache, souq_admin_actions, souq_disputes
+```
+
+---
+
+## Technical Architecture
+
+### Services (Logical Domains)
+
+```
+catalog-svc      → Products, categories, brands, attributes
+seller-svc       → KYC, onboarding, account health
+listing-svc      → Multi-seller offers, pricing, Buy Box
+inventory-svc    → Stock, reservations, health
+orders-svc       → Cart, checkout, order lifecycle
+fulfillment-svc  → Labels, tracking, SLAs, RTO
+ads-svc          → Campaigns, auction, reports
+deals-svc        → Coupons, lightning deals
+reviews-svc      → Reviews, Q&A, moderation
+settlement-svc   → Fees, payouts, invoices
+search-rank-svc  → Search index, recommendations
+support-svc      → Claims, messaging, disputes
+reporting-svc    → Analytics, dashboards
+compliance-svc   → Policy enforcement, IP
+events-bus       → NATS/Kafka for inter-service communication
+```
+
+### Tech Stack
+
+**Backend**:
+
+- Node.js 20 + TypeScript (strict mode)
+- Next.js 15 API routes
+- MongoDB (Mongoose) - indexed, normalized
+- Redis - caching + BullMQ for job queues
+- NATS/Kafka - event bus
+
+**Frontend**:
+
+- Next.js 15 App Router
+- Tailwind CSS + Fixzit design tokens
+- shadcn/ui components
+- lucide-react icons
+- RTL support (Arabic/English)
+
+**Infrastructure**:
+
+- S3-compatible storage (media, documents)
+- OpenSearch/Meilisearch (search)
+- Carrier APIs: Aramex, SMSA, SPL
+- Payment gateways: Mada, STC Pay, Apple Pay
+- ZATCA e-invoicing adapter
+
+---
+
+## Domain Events
+
+All services communicate via event bus with typed, versioned schemas:
+
+```typescript
+// Catalog events
+catalog.product.created;
+catalog.brand.verified;
+catalog.compliance.flagged;
+
+// Seller events
+seller.onboarded;
+seller.health.updated;
+seller.violation.triggered;
+seller.appeal.submitted;
+
+// Listing events
+listing.created;
+listing.price.updated;
+listing.suppressed;
+
+// Inventory events
+inventory.received;
+inventory.reserved;
+inventory.released;
+inventory.health.updated;
+
+// Order events
+order.placed;
+order.paid;
+order.shipped;
+order.delivered;
+order.return.requested;
+order.refunded;
+
+// Fulfillment events
+fulfillment.label.created;
+fulfillment.tracking.updated;
+fulfillment.rto.initiated;
+
+// Ads events
+ads.campaign.created;
+ads.auction.won;
+ads.spend.accrued;
+ads.budget.exceeded;
+
+// Settlement events
+settlement.payout.generated;
+settlement.fee.applied;
+settlement.invoice.created;
+
+// Review events
+review.created;
+review.flagged;
+qa.question.posted;
+qa.answer.posted;
+
+// Support events
+support.claim.opened;
+support.claim.resolved;
+support.message.sent;
+```
+
+---
+
+## Security & Quality
+
+### Authentication & Authorization
+
+- JWT on all APIs
+- RBAC enforcement: ADMIN, MARKETPLACE_ADMIN, SELLER_OWNER, SELLER_STAFF, BUYER, DISPUTE_AGENT, FINANCE_OPS
+- Rate limiting: Redis-based, 100 req/min default
+
+### Validation & Sanitization
+
+- Zod schemas for all inputs
+- HTML escaping for user content
+- XSS/CSRF protection
+
+### Audit Logging
+
+- All DOA-guarded actions logged
+- Fee changes, settlement overrides, claim decisions, IP takedowns
+- MongoDB collection: `souq_audit_logs`
+
+### Testing Requirements
+
+- Unit tests: Jest, ≥80% coverage (Buy Box, Ads, Settlement, Returns)
+- Integration tests: API flows via supertest
+- E2E tests: Playwright (buyer journey, return, claim)
+- Load tests: k6 (500 RPS PLP, 50 RPS checkout, p95 < 600ms)
+
+### Monitoring
+
+- Prometheus metrics
+- Grafana dashboards
+- Alerts: ODR spikes, error rates, slow endpoints, job backlog
+
+---
+
+## Migration & Rollout Strategy
+
+### Data Migration
+
+1. **FSIN Backfill**: Assign FSINs to existing products
+2. **Seller Backfill**: Import sellers, assign health baselines
+3. **Inventory Reconciliation**: Move stock to inventory-svc
+4. **Search Reindex**: Full rebuild from new schemas
+
+### Feature Flag Rollout Order
+
+```
+1. ads                 → Week 30
+2. deals               → Week 32
+3. buy_box             → Week 13
+4. returns_center      → Week 24
+5. settlement          → Week 40
+6. account_health      → Week 9
+7. brand_registry      → Week 6
+```
+
+### Deployment Checklist
+
+- [ ] Migrations applied (staging → prod dry-run)
+- [ ] Feature flags default OFF in production
+- [ ] Unit + integration + E2E tests green
+- [ ] Observability dashboards configured
+- [ ] Rollback plan documented
+- [ ] Load testing completed
+- [ ] Security audit passed
+- [ ] Carrier integrations tested
+- [ ] Payment gateway integrations tested
+- [ ] ZATCA e-invoicing validated
+
+---
+
+## Risks & Mitigations
+
+| Risk                                  | Impact | Mitigation                                       |
+| ------------------------------------- | ------ | ------------------------------------------------ |
+| Data migration issues                 | High   | Dry-run on snapshot; idempotent backfill scripts |
+| Buy Box performance                   | Medium | Caching + precomputation; load testing           |
+| Carrier/payment integration flakiness | Medium | Retries, DLQs, circuit breakers                  |
+| Search index lag                      | Low    | Real-time + nightly rebuild; monitoring          |
+| Settlement calculation errors         | High   | Extensive unit tests; manual review queue        |
+| RBAC gaps                             | High   | Code review + security audit before each phase   |
+
+---
+
+## Success Metrics
+
+### Business KPIs
+
+- Seller onboarding rate
+- GMV (Gross Merchandise Value)
+- Average order value (AOV)
+- Conversion rate
+- Return rate
+- Seller satisfaction (NPS)
+
+### Technical KPIs
+
+- API p95 latency < 600ms
+- Search p95 < 300ms
+- Checkout success rate > 95%
+- System uptime > 99.9%
+- Zero data loss events
+- Settlement accuracy 100%
+
+---
+
+## Phase 0 Immediate Actions (Next 4 Hours)
+
+### 1. Feature Flags Infrastructure
+
+- [ ] Create `lib/souq/feature-flags.ts`
+- [ ] Environment variables in `.env.local`
+- [ ] Admin UI for flag management
+
+### 2. FSIN Generator
+
+- [ ] Create `lib/souq/fsin-generator.ts`
+- [ ] Unit tests with collision detection
+
+### 3. Base Service Architecture
+
+- [ ] Create `server/services/souq/` directory
+- [ ] Base service classes with error handling
+- [ ] Event bus placeholder
+
+### 4. MongoDB Schemas
+
+- [ ] Create `server/models/souq/Category.ts`
+- [ ] Create `server/models/souq/Brand.ts`
+- [ ] Create `server/models/souq/Product.ts`
+- [ ] Create `server/models/souq/Variation.ts`
+
+### 5. Navigation Updates
+
+- [ ] Create `config/souq-navigation.yaml`
+- [ ] Update sidebar with Seller Central
+- [ ] Update sidebar with enhanced Admin consoles
+- [ ] Update sidebar with Buyer sections
+
+### 6. Environment Setup
+
+- [ ] Redis connection config
+- [ ] BullMQ queue setup
+- [ ] NATS/Kafka placeholder
+
+---
+
+**Status**: ✅ Roadmap Complete  
+**Next Step**: Implement Phase 0 Foundation  
+**Timeline**: 4 hours → then phase-by-phase over 6-12 months  
+**Estimated Total Effort**: 180+ story points = 9-12 months with 3-person team
+
+]]>
+</file>
+
+<file path="docs/features/SOUQ_QUICK_START.md">
+<![CDATA[
+# Souq Marketplace - Quick Start Guide
+
+> **Phase 0 Foundation Complete** ✅  
+> Ready to begin implementation of 11 EPICs (180 story points, 48 weeks)
+
+---
+
+## 📋 What's Been Built (Phase 0)
+
+### 1. **Planning & Architecture**
+
+- ✅ Comprehensive 48-week roadmap → `SOUQ_MARKETPLACE_ROADMAP.md`
+- ✅ 11 phased implementations (Catalog, Sellers, Listings, Inventory, Orders, Ads, Deals, Reviews, Settlement, Search, Reporting)
+- ✅ Technical architecture (13 services, event bus, job queues)
+- ✅ Risk analysis & mitigation strategies
+
+### 2. **Feature Management**
+
+- ✅ Feature flags system → `lib/souq/feature-flags.ts`
+- ✅ 12 toggleable features (ads, deals, buy_box, settlement, etc.)
+- ✅ Dependency checking (e.g., claims require returns)
+- ✅ Environment variable overrides
+
+### 3. **Core Utilities**
+
+- ✅ FSIN generator → `lib/souq/fsin-generator.ts`
+- ✅ 14-digit unique product identifiers with Luhn check digit
+- ✅ Format: `FX-12345-67890-1`
+- ✅ Validation & collision detection
+
+### 4. **Database Schemas**
+
+- ✅ Category model → `server/models/souq/Category.ts`
+- ✅ Brand model → `server/models/souq/Brand.ts`
+- ✅ Product model → `server/models/souq/Product.ts`
+- ✅ Variation model → `server/models/souq/Variation.ts`
+
+### 5. **Navigation Structure**
+
+- ✅ Navigation YAML → `config/souq-navigation.yaml`
+- ✅ 200+ menu items (Buyer, Seller Central, Admin, RFQ)
+- ✅ Bilingual (English/Arabic)
+- ✅ Feature flag guards & RBAC
+
+### 6. **Configuration**
+
+- ✅ Environment template → `env.example` (100+ variables)
+- ✅ Feature flags, Redis, S3, Search, Event bus, Payments, Carriers, ZATCA, Monitoring
+
+---
+
+## 🚀 Next Steps (Phase 1: Catalog & Brand Registry)
+
+### Immediate Actions (Before Development)
+
+#### 1. Infrastructure Setup (1 day)
+
+**Redis (Caching + BullMQ)**
+
+```bash
+docker run -d --name fixzit-redis -p 6379:6379 redis:7-alpine
+echo "REDIS_URL=redis://localhost:6379" >> .env.local
+```
+
+**Meilisearch (Product Search)**
+
+```bash
+docker run -d --name fixzit-meilisearch -p 7700:7700 getmeili/meilisearch:latest
+echo "MEILISEARCH_HOST=http://localhost:7700" >> .env.local
+echo "MEILISEARCH_API_KEY=master_key_dev" >> .env.local
+```
+
+**MinIO (S3-compatible Storage)**
+
+```bash
+docker run -d --name fixzit-minio -p 9000:9000 -p 9001:9001 \
+  -e MINIO_ROOT_USER=admin -e MINIO_ROOT_PASSWORD=fixzit2024 \
+  minio/minio server /data --console-address ":9001"
+
+echo "S3_ENDPOINT=http://localhost:9000" >> .env.local
+echo "S3_ACCESS_KEY_ID=admin" >> .env.local
+echo "S3_SECRET_ACCESS_KEY=fixzit2024" >> .env.local
+echo "S3_BUCKET_NAME=fixzit-marketplace" >> .env.local
+```
+
+**NATS (Event Bus)**
+
+```bash
+docker run -d --name fixzit-nats -p 4222:4222 -p 8222:8222 nats:latest
+echo "NATS_URL=nats://localhost:4222" >> .env.local
+```
+
+**All-in-One Docker Compose** (recommended)
+
+```yaml
+# Create docker-compose.souq.yml
+version: "3.8"
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  meilisearch:
+    image: getmeili/meilisearch:latest
+    ports:
+      - "7700:7700"
+    environment:
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY} # Set in .env.souq: MEILI_MASTER_KEY=$(openssl rand -base64 32)
+
+  minio:
+    image: minio/minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=fixzit2024
+    command: server /data --console-address ":9001"
+
+  nats:
+    image: nats:latest
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+```
+
+```bash
+docker-compose -f docker-compose.souq.yml up -d
+```
+
+#### 2. Install Dependencies
+
+```bash
+pnpm add bullmq ioredis meilisearch @aws-sdk/client-s3 nats
+pnpm add -D @types/meilisearch
+```
+
+#### 3. Create Git Branch
+
+```bash
+git checkout -b feat/souq-marketplace-advanced
+git add .
+git commit -m "feat(souq): Phase 0 foundation complete
+
+- Add comprehensive roadmap (11 phases, 180 SP)
+- Implement feature flags system (12 flags)
+- Create FSIN generator with Luhn check digit
+- Add MongoDB schemas (Category, Brand, Product, Variation)
+- Create navigation YAML (200+ menu items)
+- Update environment template (100+ variables)"
+
+git push origin feat/souq-marketplace-advanced
+```
+
+---
+
+## 📖 Phase 1 Implementation Guide
+
+### Week 1-2: Catalog Service (FSIN + Product Creation)
+
+**Backend Tasks** (2 engineers):
+
+1. Create API routes in `app/api/souq/catalog/`:
+   - `POST /products` - Create product with auto-generated FSIN
+   - `GET /products/:fsin` - Get product details
+   - `PUT /products/:fsin` - Update product
+   - `POST /products/:fsin/variations` - Add variations
+   - `DELETE /products/:fsin` - Deactivate product
+
+2. Implement validation:
+   - Zod schemas for all inputs
+   - Category-specific required attributes
+   - Image upload to S3
+   - Duplicate FSIN prevention
+
+3. Background jobs (BullMQ):
+   - Index product in Meilisearch on create/update
+   - Generate thumbnails for images
+   - Validate product data integrity
+
+**Frontend Tasks** (1 engineer):
+
+1. Create Seller Central pages:
+   - `/marketplace/seller-central/products/add` - Product wizard
+   - `/marketplace/seller-central/products` - Product list
+   - `/marketplace/seller-central/products/:fsin/edit` - Edit form
+
+2. Components:
+   - ProductForm (title, description, images, attributes)
+   - VariationManager (add/edit variations, bulk upload)
+   - ImageUploader (drag-drop, S3 upload, preview)
+   - AttributeSelector (dynamic based on category)
+
+**Testing**:
+
+- Unit tests: FSIN generation, validation schemas
+- Integration tests: Product CRUD API flows
+- E2E tests: Seller creates product with variations
+
+---
+
+### Week 3: Category & Attribute Manager
+
+**Backend Tasks**:
+
+1. Admin API routes in `app/api/souq/admin/categories/`:
+   - `POST /` - Create category
+   - `PUT /:id` - Update category
+   - `DELETE /:id` - Deactivate category
+   - `GET /tree` - Full hierarchy
+   - `POST /attributes` - Define attributes
+
+**Frontend Tasks**:
+
+1. Admin console:
+   - `/marketplace/admin/categories` - Tree view with drag-drop
+   - Category CRUD modal
+   - Attribute manager (required/optional per category)
+
+2. Buyer-facing:
+   - `/marketplace/categories` - Browse hierarchy
+   - `/marketplace/categories/:slug` - Category landing page
+
+---
+
+### Week 4: Brand Registry
+
+**Backend Tasks**:
+
+1. Brand API routes:
+   - `POST /api/souq/brands` - Submit brand registration
+   - `POST /api/souq/brands/:id/documents` - Upload verification docs
+   - `PUT /api/souq/admin/brands/:id/verify` - Approve/reject
+
+2. IP protection enforcement:
+   - Check gated brands on product listing
+   - Auto-flag unauthorized brand usage
+
+**Frontend Tasks**:
+
+1. Seller Central:
+   - `/marketplace/seller-central/brands/register` - Registration form
+   - Upload documents (trademark, authorization letter)
+   - Track verification status
+
+2. Admin console:
+   - `/marketplace/admin/brands` - Verification queue
+   - Approve/reject with notes
+   - Authorize sellers for gated brands
+
+---
+
+## 🧪 Testing Strategy
+
+### Unit Tests (≥80% coverage)
+
+```bash
+# Run tests
+pnpm test
+
+# Coverage report
+pnpm test:coverage
+```
+
+**Test Files**:
+
+- `lib/souq/__tests__/fsin-generator.test.ts` - FSIN generation, validation
+- `lib/souq/__tests__/feature-flags.test.ts` - Flag toggling, dependencies
+- `server/models/souq/__tests__/Category.test.ts` - Category tree, breadcrumbs
+- `server/models/souq/__tests__/Product.test.ts` - Compliance checks, search
+
+### Integration Tests (API Flows)
+
+```bash
+pnpm test:integration
+```
+
+**Test Scenarios**:
+
+- Seller creates product → FSIN generated → indexed in search
+- Admin creates category → seller selects category → required attributes enforced
+- Seller submits brand → admin approves → seller can list gated brand
+
+### E2E Tests (Playwright)
+
+```bash
+pnpm test:e2e
+```
+
+**User Journeys**:
+
+- Seller onboarding → create product → add variations → list
+- Admin create category → manage attributes → set restrictions
+- Buyer browse categories → search products → view PDP
+
+---
+
+## 📊 Key Metrics & Monitoring
+
+### Development Metrics
+
+- TypeScript errors: **0** (strict mode)
+- ESLint warnings: **0**
+- Test coverage: **Target ≥80%**
+- Build time: **< 2 minutes**
+- Bundle size: **Track with @next/bundle-analyzer**
+
+### Performance Targets (Phase 1)
+
+- Product creation: **< 500ms** (p95)
+- Category tree load: **< 200ms** (p95)
+- Search query: **< 300ms** (p95)
+- Image upload (S3): **< 2s** for 5MB
+
+### Business Metrics (Post-Launch)
+
+- Seller onboarding rate: **Track weekly**
+- Products listed: **Track daily**
+- FSIN collisions: **Should be 0**
+- Brand verification queue: **< 3 days SLA**
+
+---
+
+## 🔒 Security Checklist
+
+### Authentication & Authorization
+
+- [ ] JWT validation on all API routes
+- [ ] RBAC checks (SELLER_OWNER, ADMIN, etc.)
+- [ ] Rate limiting (100 req/min per user)
+- [ ] API key rotation for integrations
+
+### Data Validation
+
+- [ ] Zod schemas for all inputs
+- [ ] XSS prevention (HTML escaping)
+- [ ] CSRF tokens on forms
+- [ ] File upload validation (type, size, virus scan)
+
+### Audit Logging
+
+- [ ] Log all DOA-guarded actions (brand approval, compliance override)
+- [ ] Track FSIN generation (detect patterns)
+- [ ] Monitor failed auth attempts
+- [ ] Alert on bulk operations (mass product delete)
+
+---
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**1. FSIN Collisions**
+
+```typescript
+// Check for existing FSIN before saving
+const exists = await SouqProduct.findOne({ fsin: metadata.fsin });
+if (exists) {
+  // Regenerate FSIN
+  metadata = await generateUniqueFSIN(orgId);
+}
+```
+
+**2. Feature Flag Not Working**
+
+```bash
+# Check environment variables
+echo $SOUQ_FEATURE_ADS
+
+# Reset flags in code
+import { resetFeatureFlags } from '@/lib/souq/feature-flags';
+resetFeatureFlags(); // Reloads from env
+```
+
+**3. MongoDB Connection Issues**
+
+```bash
+# Check MongoDB is running
+docker ps | grep mongo
+
+# Test connection
+mongosh "mongodb://localhost:27017/fixzit"
+```
+
+**4. S3 Upload Failures**
+
+```bash
+# Check MinIO is running
+curl http://localhost:9000/minio/health/live
+
+# Access console
+open http://localhost:9001
+# Login: admin / fixzit2024
+```
+
+---
+
+## 📚 Documentation Links
+
+### Internal Docs
+
+- **Roadmap**: `SOUQ_MARKETPLACE_ROADMAP.md` (15,000 lines)
+- **Phase 0 Summary**: `PHASE_0_FOUNDATION_SUMMARY.md` (1,500 lines)
+- **API Contracts**: `docs/api/souq/` (to be created in Phase 1)
+- **Database Schemas**: `docs/schemas/souq/` (to be created in Phase 1)
+
+### External Resources
+
+- [Next.js App Router](https://nextjs.org/docs/app)
+- [MongoDB Best Practices](https://www.mongodb.com/docs/manual/administration/production-notes/)
+- [Meilisearch Documentation](https://www.meilisearch.com/docs)
+- [BullMQ Documentation](https://docs.bullmq.io/)
+- [NATS Documentation](https://docs.nats.io/)
+
+---
+
+## 👥 Team Contacts
+
+### Roles & Responsibilities
+
+**Backend Team** (2 engineers):
+
+- API development (catalog-svc, seller-svc, admin-svc)
+- MongoDB schema implementation
+- BullMQ job processors
+- Event bus integration
+
+**Frontend Team** (1 engineer):
+
+- Seller Central UI (product forms, brand registry)
+- Admin console (category manager, brand verification)
+- Buyer pages (category browse, PDP)
+
+**QA Team** (1 engineer):
+
+- Test automation (unit, integration, E2E)
+- Manual testing (UAT, exploratory)
+- Performance testing (load, stress)
+
+**DevOps Team** (1 engineer):
+
+- Infrastructure setup (Redis, Meilisearch, S3, NATS)
+- Docker Compose management
+- CI/CD pipeline updates
+- Monitoring & alerting
+
+---
+
+## 🎯 Success Criteria (Phase 1)
+
+### Must-Have (MVP)
+
+- [ ] Sellers can create products with auto-generated FSIN
+- [ ] Products support variations (color, size, etc.)
+- [ ] Admins can create/manage category hierarchy
+- [ ] Category-specific attributes enforced
+- [ ] Sellers can submit brand registration
+- [ ] Admins can approve/reject brands
+- [ ] Products auto-flagged for compliance issues
+
+### Nice-to-Have (Future Phases)
+
+- [ ] Bulk product upload (CSV/Excel)
+- [ ] Product templates for common categories
+- [ ] Brand verification automation (API integrations)
+- [ ] Advanced compliance rules (ML-based)
+
+---
+
+## 📅 Timeline Summary
+
+| Phase        | Duration     | Story Points | Deliverables                      |
+| ------------ | ------------ | ------------ | --------------------------------- |
+| **Phase 0**  | ✅ Complete  | 0 SP         | Foundation, roadmap, schemas      |
+| **Phase 1**  | 4 weeks      | 20 SP        | Catalog, categories, brands       |
+| **Phase 2**  | 3 weeks      | 15 SP        | Seller onboarding, account health |
+| **Phase 3**  | 4 weeks      | 18 SP        | Listings, pricing, Buy Box        |
+| **Phase 4**  | 5 weeks      | 18 SP        | Inventory, fulfillment (FBF/FBM)  |
+| **Phase 5**  | 6 weeks      | 20 SP        | Orders, returns, A-to-Z claims    |
+| **Phase 6**  | 6 weeks      | 20 SP        | Advertising (CPC auction)         |
+| **Phase 7**  | 2 weeks      | 10 SP        | Deals & coupons                   |
+| **Phase 8**  | 3 weeks      | 12 SP        | Reviews, Q&A, moderation          |
+| **Phase 9**  | 5 weeks      | 16 SP        | Settlement, fees, invoicing       |
+| **Phase 10** | 4 weeks      | 14 SP        | Search, ranking, recommendations  |
+| **Phase 11** | 4 weeks      | 14 SP        | Reporting & admin consoles        |
+| **Total**    | **48 weeks** | **177 SP**   | **Complete marketplace**          |
+
+---
+
+## 🔗 Quick Links
+
+### Development
+
+- **Local App**: http://localhost:3000
+- **Meilisearch Console**: http://localhost:7700
+- **MinIO Console**: http://localhost:9001 (admin/fixzit2024)
+- **NATS Monitoring**: http://localhost:8222
+
+### Production (Future)
+
+- **Marketplace**: https://fixzit.sa/marketplace
+- **Seller Central**: https://fixzit.sa/marketplace/seller-central
+- **Admin Console**: https://fixzit.sa/marketplace/admin
+
+---
+
+**Phase 0 Complete!** 🎉  
+**Ready for Phase 1: Catalog & Brand Registry** 🚀
+
+**Questions?** Check `SOUQ_MARKETPLACE_ROADMAP.md` or ask in `#marketplace-dev`
+
+]]>
+</file>
+
+<file path="docs/features/USER_SETTINGS_AUTO_APPROVAL.md">
+<![CDATA[
+# User Settings Configuration for Full Auto-Approval
+
+## ⚠️ IMPORTANT: Apply to Your User Settings
+
+The workspace and devcontainer settings have been configured. You now need to apply the same settings to your **User Settings** (global on your Mac).
+
+## How to Apply User Settings
+
+1. Open VS Code
+2. Press `Cmd+Shift+P` (Command Palette)
+3. Type: `Preferences: Open User Settings (JSON)`
+4. **Merge or add** the following JSON block into your user settings:
+
+```json
+{
+  "chat.agent.enabled": true,
+  "chat.agent.maxRequests": 999,
+
+  "chat.tools.global.autoApprove": true,
+  "chat.tools.terminal.autoApprove": true,
+  "chat.tools.edits.autoApprove": true,
+
+  "chat.tools.terminal.autoReplyToPrompts": true,
+  "chat.editing.autoAcceptDelay": 3,
+  "chat.checkpoints.enabled": true,
+
+  "chat.mcp.discovery.enabled": false,
+
+  "security.workspace.trust.enabled": false,
+  "security.workspace.trust.untrustedFiles": "open",
+
+  "github.copilot.chat.agent.runTasks": true,
+  "chat.notifyWindowOnConfirmation": false
+}
+```
+
+## One-Time Reset Sequence (After Applying Settings)
+
+1. In the **Chat panel**, select **Agent mode**
+2. Open Command Palette (`Cmd+Shift+P`) → `Chat: Reset Tool Confirmations`
+3. Open Command Palette → `Developer: Reload Window` (or fully quit/reopen VS Code)
+4. If you ever see "Allow" again, click the **▾ dropdown** → Choose **"Always allow"**
+
+## Verification Test (30 seconds)
+
+Ask the agent in Agent mode:
+
+> "Install deps, build the app, create src/utils/date.ts with 3 helpers and tests, and save all."
+
+**Expected Result:** Runs end-to-end with **ZERO prompts**.
+
+## What This Configuration Does
+
+### Full Unconditional Auto-Approval:
+
+- ✅ **All terminal commands** auto-approved (no command-specific rules)
+- ✅ **All file edits** auto-approved (no file guards)
+- ✅ **All tools** auto-approved (global approval)
+- ✅ **Y/N prompts** auto-answered
+- ✅ **Edit diffs** auto-accepted after 3 seconds
+- ✅ **MCP discovery** disabled (no external tool prompts)
+- ✅ **Workspace trust** disabled (no trust banners)
+
+### Security & Workflow:
+
+- 🔒 **PR-only workflow** enforced via GitHub Branch Protection on `main`
+- 🔒 Local agent has full power; merges still require PR review
+- 📸 **Checkpoints enabled** for easy rollback if needed
+
+## Current Status
+
+✅ **Workspace settings** (.vscode/settings.json) - Configured
+✅ **Devcontainer settings** (.devcontainer/devcontainer.json) - Configured
+⏳ **User settings** - **YOU MUST APPLY MANUALLY** (see steps above)
+
+## After Configuration
+
+Once all three scopes (User, Workspace, Remote) have the same settings:
+
+- The agent will operate with **ZERO permission prompts**
+- All changes still go through **PR workflow** (cannot push to main directly)
+- You can focus on high-level instructions while agent executes autonomously
+
+---
+
+**Last Updated:** 2025-11-13
+**Branch:** fix/date-hydration-complete-system-wide
+**Commit:** e257c2cae
+
+]]>
+</file>
+
+<file path="docs/features/USER_SETTINGS_INSTRUCTIONS.md">
+<![CDATA[
+# GitHub Copilot Agent - Complete Auto-Approval Setup
+
+## ⚠️ CRITICAL SECURITY WARNING
+
+**These settings disable workspace trust and enable full auto-approval of all agent actions, including terminal commands and file edits.**
+
+### ⚠️ Security Implications:
+
+- ❌ **Workspace Trust is DISABLED**: Malicious code in untrusted workspaces can execute automatically
+- ❌ **All commands auto-approved**: Agent can run ANY command without confirmation (including `rm -rf`, system modifications, etc.)
+- ❌ **All file edits auto-approved**: Agent can modify/delete any file in your workspace
+- ❌ **Terminal prompts auto-answered**: Interactive prompts automatically proceed without review
+
+### ✅ Safer Alternative (Recommended):
+
+Instead of global auto-approval, consider:
+
+1. Leave `security.workspace.trust.enabled: true` (default)
+2. Only enable auto-approval for specific, trusted workspaces
+3. Review agent actions before approval
+4. Use VS Code's built-in workspace trust system
+
+### 🔄 How to Revert These Settings:
+
+If you want to restore default security:
+
+1. Open User Settings JSON (`Cmd+Shift+P` → "Preferences: Open User Settings (JSON)")
+2. Remove or set to `false`: `chat.tools.global.autoApprove`, `chat.tools.terminal.autoApprove`, `chat.tools.edits.autoApprove`
+3. Remove or set to `true`: `security.workspace.trust.enabled`
+4. Reload VS Code
+
+---
+
+## ✅ Status
+
+- **Workspace Settings**: ✅ Applied (`.vscode/settings.json`)
+- **User Settings (Global)**: ⚠️ **YOU MUST APPLY MANUALLY** (see Step 1 below)
+
+---
+
+## Step 1: Apply User Settings (Global - Your Mac)
+
+### Instructions
+
+1. Open VS Code
+1. Press `Cmd+Shift+P` → Type **"Preferences: Open User Settings (JSON)"**
+1. **Merge** (don't replace) the following JSON into your User Settings:
+
+```json
+{
+  "chat.agent.enabled": true,
+  "chat.agent.maxRequests": 999,
+
+  "chat.tools.global.autoApprove": true,
+  "chat.tools.terminal.autoApprove": true,
+  "chat.tools.edits.autoApprove": true,
+  "chat.tools.terminal.autoReplyToPrompts": true,
+
+  "chat.editing.autoAcceptDelay": 3,
+  "chat.checkpoints.enabled": true,
+  "chat.notifyWindowOnConfirmation": false,
+
+  "chat.mcp.discovery.enabled": false,
+
+  "security.workspace.trust.enabled": false,
+  "security.workspace.trust.untrustedFiles": "open",
+
+  "github.copilot.chat.agent.runTasks": true
+}
+```
+
+1. Save the file
+
+---
+
+## Step 2: One-Time Reset (Do in Order)
+
+1. **Switch to Agent Mode**: In the Chat panel, select **Agent** from the mode dropdown
+2. **Reset Confirmations**: Press `Cmd+Shift+P` → **"Chat: Reset Tool Confirmations"**
+3. **Reload Window**: Press `Cmd+Shift+P` → **"Developer: Reload Window"** (or fully quit/reopen VS Code)
+
+---
+
+## Step 3: Handle Any Remaining Prompts
+
+If you see an "Allow" button after the reset:
+
+- Click the **▾** dropdown next to "Allow"
+- Choose **"Always allow"** (this writes a persistent policy)
+
+---
+
+## Troubleshooting
+
+If prompts **still** appear, check:
+
+1. **Wrong key lingering**: Remove any `chat.editing.autoAccept` (must be `chat.editing.autoAcceptDelay`)
+2. **Scope mismatch**: Ensure both User Settings (global) and Workspace Settings have the same values
+3. **Not in Agent mode**: Chat vs Agent are different modes
+4. **Other extensions**: Disable Cursor/Windsurf/MCP or mirror these settings there
+5. **Old cache**: Run Step 2 reset sequence again
+
+---
+
+## What These Settings Do
+
+### Nuclear Switches (Zero Prompts)
+
+- `chat.tools.global.autoApprove: true` - All tools auto-approved
+- `chat.tools.terminal.autoApprove: true` - All terminal commands auto-approved
+- `chat.tools.edits.autoApprove: true` - All file edits auto-approved
+- `chat.tools.terminal.autoReplyToPrompts: true` - CLI prompts auto-answered
+- `chat.editing.autoAcceptDelay: 3` - Diffs auto-accept after 3 seconds
+- `chat.notifyWindowOnConfirmation: false` - No popup notifications
+
+### Safety
+
+- **GitHub Branch Protection**: Keep PR requirements on `main` branch
+- **Local autonomy** with **server-side safety** via PR review process
+
+---
+
+## Verification Test
+
+After completing Steps 1-2, run this in chat:
+
+```text
+Run these commands:
+1. echo "test1"
+2. pwd
+3. git status
+```
+
+**Expected**: All commands execute **without** any Allow prompts.
+
+**If prompts appear**: You missed Step 1 (User Settings) or Step 2 (Reset).
+
+---
+
+## Current Configuration Status
+
+✅ **Workspace Settings** - Applied to `.vscode/settings.json`  
+✅ **DevContainer Settings** - Applied to `.devcontainer/devcontainer.json`  
+⚠️ **User Settings (Global)** - **YOU MUST APPLY** (Step 1 above)
+
+Once you complete Step 1 and Step 2, you'll have **complete zero-prompt autonomous operation**.
+
+]]>
+</file>
+
+<file path="docs/fixes/CI_FIX_COMPREHENSIVE_REPORT.md">
+<![CDATA[
+# 🔧 COMPREHENSIVE FIX REPORT - FIXZIT CI/CD ISSUES
+**Generated:** 2024-11-24 (Current Build Session)  
+**Branch:** `feat/misc-improvements`  
+**Commits:** `7b9e37fb7` → `f26f6e3fe` → `21f20db09` → `0c520f89b`
+
+---
+
+## 📊 EXECUTIVE SUMMARY
+
+### Issues Identified: 8 Categories
+### Issues Resolved: 8/8 (100%)
+### Build Status: ✅ All local validation passed
+### CI Status: 🔄 Rebuilding with fixes
+
+---
+
+## 🎯 ISSUE CATEGORIES & RESOLUTIONS
+
+### 1. ⚙️ PRODUCTION ENVIRONMENT VALIDATION
+**Status:** ✅ RESOLVED  
+**Severity:** 🔴 Critical - Blocking all builds
+
+**Problem:**
+```
+Error: Production env validation failed:
+- TAP_PUBLIC_KEY is required for production payment flows
+- TAP_WEBHOOK_SECRET is required to verify payment webhooks
+```
+
+**Root Cause:**
+- `next.config.js` validation logic treated both `production` and `preview` environments the same
+- Payment credentials were required for ALL Vercel deployments
+- Preview/staging builds cannot access production payment secrets
+
+**Solution:**
+```javascript
+// BEFORE: Both production and preview required payment keys
+const isProdDeploy = 
+  process.env.VERCEL_ENV === 'production' ||
+  process.env.VERCEL_ENV === 'preview';
+
+// AFTER: Split validation logic
+const isProdDeploy = process.env.VERCEL_ENV === 'production';
+const isVercelDeploy = 
+  process.env.VERCEL_ENV === 'production' || 
+  process.env.VERCEL_ENV === 'preview';
+
+// Payment keys only for true production
+if (isProdDeploy) {
+  if (!process.env.TAP_PUBLIC_KEY) { violations.push(...) }
+  if (!process.env.TAP_WEBHOOK_SECRET) { violations.push(...) }
+}
+```
+
+**Files Modified:**
+- `next.config.js` (lines 12-35)
+
+**Commit:** `21f20db09`  
+**Timestamp:** 2024-11-24 11:32:20 UTC
+
+---
+
+### 2. 🔐 SECRET SCANNING FALSE POSITIVES
+**Status:** ✅ RESOLVED  
+**Severity:** 🟡 Medium - Blocking merges
+
+**Problem:**
+```
+Secret Scanning / Scan for exposed secrets (pull_request)
+Failing after 25s
+- 2 secrets detected in docs/migrations/REFUND_METHOD_V2.md
+```
+
+**Root Cause:**
+- Documentation contains example curl commands with `Authorization: Bearer YOUR_TOKEN`
+- Gitleaks scanner flags all Bearer tokens as potential secrets
+- No allowlist configuration existed to exempt documentation
+
+**Solution:**
+Created `.gitleaks.toml` with comprehensive allowlist:
+
+```toml
+[allowlist]
+description = "Allow example credentials in documentation"
+
+[[allowlist.paths]]
+paths = [
+  '''docs/migrations/.*\.md$''',
+  '''docs/api/.*\.md$''',
+  '''README\.md$''',
+  '''.*\.example$'''
+]
+
+[[allowlist.regexes]]
+regex = '''YOUR_TOKEN|YOUR_API_KEY|example-token'''
+description = "Placeholder credentials"
+
+[[allowlist.regexes]]
+regex = '''Authorization:\s+Bearer\s+(YOUR_|your-|example-)'''
+description = "Example Bearer tokens in curl commands"
+```
+
+**Files Created:**
+- `.gitleaks.toml` (new file, 22 lines)
+
+**Commit:** `0c520f89b`  
+**Timestamp:** 2024-11-24 11:45:33 UTC
+
+---
+
+### 3. 🌐 I18N TRANSLATION VALIDATION
+**Status:** ✅ RESOLVED  
+**Severity:** 🟠 Major - 2147 false positives
+
+**Problem:**
+```
+I18n Validation / Validate Translation Artifacts (pull_request)
+Failing after 9s
+- 2147 keys used in code but missing in catalogs
+```
+
+**Root Cause:**
+- `scripts/audit-translations.mjs` was reading from `TranslationContext.tsx` (TypeScript embedded)
+- Actual project uses `i18n/en.json` and `i18n/ar.json` (JSON files)
+- Script couldn't parse nested JSON structures (e.g., `helpCenterV2.title`)
+- All 30,785 keys exist but script reported them as missing
+
+**Solution:**
+Updated audit script to read from JSON files with proper nesting support:
+
+```javascript
+// BEFORE: Read from TS file with regex parsing
+const source = await readText('contexts/TranslationContext.tsx');
+const arBlock = extractLocaleObject(source, 'ar');
+objectLiteralToKeySet(arBlock).forEach(key => arKeys.add(key));
+
+// AFTER: Read from JSON with recursive flattening
+function flattenKeys(obj, prefix = '') {
+  const keys = [];
+  for (const [key, value] of Object.entries(obj)) {
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      keys.push(...flattenKeys(value, fullKey));
+    } else {
+      keys.push(fullKey);
+    }
+  }
+  return keys;
+}
+
+const enData = JSON.parse(await readText('i18n/en.json'));
+const arData = JSON.parse(await readText('i18n/ar.json'));
+flattenKeys(enData).forEach(key => enKeys.add(key));
+flattenKeys(arData).forEach(key => arKeys.add(key));
+```
+
+**Files Modified:**
+- `scripts/audit-translations.mjs` (added `flattenKeys()`, updated `loadCatalogKeys()`)
+
+**Validation:**
+```bash
+✅ Both JSON files are valid
+✅ EN keys: 30,785
+✅ AR keys: 30,785
+✅ Catalog Parity: OK
+```
+
+**Commit:** `0c520f89b`  
+**Timestamp:** 2024-11-24 11:45:33 UTC
+
+---
+
+### 4. 🛣️ ROUTE QUALITY CHECKS
+**Status:** ✅ RESOLVED  
+**Severity:** 🟠 Major - Lockfile validation
+
+**Problem:**
+```
+Route Quality / route-quality (pull_request)
+Failing after 26s
+```
+
+**Root Cause:**
+- pnpm lockfile was potentially out of sync with `package.json`
+- Overrides configuration might not match lockfile
+
+**Solution:**
+```bash
+pnpm install --frozen-lockfile
+# Result: "Lockfile is up to date, resolution step is skipped"
+# Result: "Already up to date"
+```
+
+**Validation:**
+- ✅ Lockfile validated and current
+- ✅ All dependencies resolved
+- ✅ No overrides conflicts
+- ✅ Git hooks installed successfully
+
+**Commit:** Already validated, no changes needed  
+**Timestamp:** 2024-11-24 11:20:15 UTC
+
+---
+
+### 5. 🔄 GITHUB ACTIONS WORKFLOW WARNINGS
+**Status:** ✅ RESOLVED  
+**Severity:** 🟢 Low - YAML validator warnings
+
+**Problem:**
+```
+.github/workflows/e2e-tests.yml
+Line 174-175: Context access might be invalid: GOOGLE_CLIENT_SECRET
+```
+
+**Root Cause:**
+- YAML validators flag `${{ secrets.GOOGLE_CLIENT_SECRET }}` in conditionals
+- Conditional check syntax `if [ -n "${{ secrets.X }}" ]` is valid but triggers warnings
+- False positive from overly strict GitHub Actions validator
+
+**Solution:**
+```yaml
+# BEFORE: Conditional check
+if [ -n "${{ secrets.GOOGLE_CLIENT_SECRET }}" ]; then
+  echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> "$GITHUB_ENV"
+else
+  echo "GOOGLE_CLIENT_SECRET=" >> "$GITHUB_ENV"
+fi
+
+# AFTER: Direct assignment with fallback
+echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET || '' }}" >> "$GITHUB_ENV"
+```
+
+**Files Modified:**
+- `.github/workflows/e2e-tests.yml` (lines 174-178)
+
+**Commit:** `0c520f89b`  
+**Timestamp:** 2024-11-24 11:45:33 UTC
+
+---
+
+### 6. 🔧 ESCALATION SERVICE TYPE SAFETY
+**Status:** ✅ RESOLVED  
+**Severity:** 🟠 Major - CodeRabbit review
+
+**Problem:**
+Multiple CodeRabbit review comments:
+1. `any` type on `deriveDisplayName()` parameter
+2. Unused `context` parameter in `resolveEscalationContact()`
+3. Missing error logging for DB failures
+4. No query ordering (non-deterministic results)
+5. Hardcoded fallback email
+
+**Root Cause:**
+- Quick prototype code promoted to production without refactoring
+- Type safety bypassed with `any`
+- Error handling incomplete
+- Configuration hardcoded instead of externalized
+
+**Solution:**
+```typescript
+// 1. Add type safety
+interface UserLike {
+  username?: string;
+  name?: string;
+  personal?: { firstName?: string; lastName?: string };
+}
+function deriveDisplayName(user: UserLike | null | undefined): string | undefined
+
+// 2. Remove unused parameter
+export async function resolveEscalationContact(
+  user: SessionUser,
+  // context: string, ← REMOVED
+): Promise<EscalationContact>
+
+// 3. Add error logging
+} catch (err) {
+  console.error('[resolveEscalationContact] DB lookup failed:', {
+    orgId: user.orgId,
+    error: err instanceof Error ? err.message : String(err),
+  });
+}
+
+// 4. Add deterministic ordering
+.sort({ 'professional.role': 1, _id: 1 })
+
+// 5. Externalize configuration
+const fallbackEmail = process.env.ESCALATION_FALLBACK_EMAIL || 'support@fixzit.co';
+console.info('[resolveEscalationContact] Using fallback contact:', {
+  userId: user.id,
+  hasOrgId: !!user.orgId,
+  fallbackEmail,
+});
+```
+
+**Files Modified:**
+- `server/services/escalation.service.ts` (comprehensive refactor)
+- `app/api/help/escalate/route.ts` (updated function call)
+- `app/api/help/context/route.ts` (updated function call, removed unused var)
+- `server/middleware/requireVerifiedDocs.ts` (updated function call)
+
+**Commit:** `f26f6e3fe`  
+**Timestamp:** 2024-11-24 11:22:43 UTC
+
+---
+
+### 7. 🌍 TRANSLATION PARITY (AR/EN)
+**Status:** ✅ RESOLVED  
+**Severity:** 🟠 Major - CodeRabbit review
+
+**Problem:**
+CodeRabbit identified missing Arabic translations:
+- `fm.workOrders.attachmentsCount`
+- `fm.workOrders.new.*` (4 keys)
+- `fm.workOrders.attachments.missingUrl`
+
+**Root Cause:**
+- English translations added in previous session
+- Arabic translations not synchronized
+- Localization parity check failed
+
+**Solution:**
+Added complete Arabic translations to `i18n/ar.json`:
+
+```json
+"workOrders": {
+  // ... existing keys ...
+  "attachmentsCount": "{{count}} مرفقات",
+  "new": {
+    "requiredFields": "يرجى ملء جميع الحقول المطلوبة",
+    "success": "تم إنشاء أمر العمل بنجاح",
+    "woNumber": "أمر العمل #{{number}}",
+    "uploadHint": "قم برفع الصور أو المستندات المتعلقة بأمر العمل هذا"
+  },
+  "attachments": {
+    "missingUrl": "عنوان المرفق غير متوفر"
+  }
+}
+```
+
+**Files Modified:**
+- `i18n/ar.json` (lines 1231-1246)
+
+**Validation:**
+- ✅ All keys now exist in both EN and AR
+- ✅ Structure matches exactly
+- ✅ JSON syntax valid
+
+**Commit:** `f26f6e3fe`  
+**Timestamp:** 2024-11-24 11:22:43 UTC
+
+---
+
+### 8. ✅ BUILD & LINT VALIDATION
+**Status:** ✅ RESOLVED  
+**Severity:** 🔴 Critical - Pre-deployment gate
+
+**Problem:**
+- Needed to verify all changes compile and lint correctly
+- Catch any TypeScript or ESLint errors before CI
+- Ensure no runtime issues introduced
+
+**Validation Results:**
+```bash
+# TypeScript Compilation
+$ pnpm tsc --noEmit
+✅ No errors found
+
+# ESLint Production
+$ pnpm lint:prod
+✅ 0 errors, 0 warnings (max-warnings: 0)
+
+# React Hooks Guard
+$ pnpm guard:fm-hooks
+✅ No invalid hook disables in app/fm
+
+# Secret Scanning
+$ bash scripts/security/check-hardcoded-uris.sh
+✅ No hard-coded secrets/URIs detected
+
+# Lockfile Validation
+$ pnpm install --frozen-lockfile
+✅ Lockfile is up to date
+```
+
+**Commit:** All commits validated locally  
+**Timestamp:** 2024-11-24 11:45:00 UTC
+
+---
+
+## 📈 METRICS & STATISTICS
+
+### Code Changes
+| Metric | Count |
+|--------|-------|
+| Files Modified | 10 |
+| Files Created | 2 |
+| Lines Added | 21,331 |
+| Lines Removed | 326 |
+| Net Change | +21,005 |
+
+### Translation Coverage
+| Language | Keys | Coverage |
+|----------|------|----------|
+| English | 30,785 | 100% |
+| Arabic | 30,785 | 100% |
+| **Gap** | **0** | **✅ Parity** |
+
+### Build Performance
+| Check | Status | Duration |
+|-------|--------|----------|
+| TypeScript | ✅ Pass | < 5s |
+| ESLint | ✅ Pass | ~3s |
+| Git Hooks | ✅ Pass | ~2s |
+| Lockfile | ✅ Valid | ~3s |
+
+### CI Checks Fixed
+- ✅ Agent Governor CI
+- ✅ Production Environment Validation  
+- ✅ Secret Scanning
+- ✅ I18n Validation
+- ✅ Route Quality
+- ✅ GitHub Actions Workflows
+- ✅ Next.js CI Build
+- 🔄 Fixzit Quality Gates (awaiting CI run)
+
+---
+
+## 🔄 COMMIT HISTORY
+
+### Commit 1: `7b9e37fb7` - Initial CI Fixes
+**Date:** 2024-11-24 11:18:45 UTC  
+**Message:** `fix(ci): resolve all blocking CI failures`
+
+**Changes:**
+- Added `escalation.service.ts` with User model integration
+- Added defensive null check in escalate route
+- Verified all 73 translation keys present
+- Includes: helpCenterV2 (39 keys), logout (6 keys), nav.admin, careers keys, finance keys
+
+**Impact:**
+- ✅ TypeScript compilation errors resolved
+- ✅ Translation audit false alarms cleared
+- ✅ Route quality check passing
+
+---
+
+### Commit 2: `f26f6e3fe` - CodeRabbit Review Fixes
+**Date:** 2024-11-24 11:22:43 UTC  
+**Message:** `fix(review): address all CodeRabbit feedback`
+
+**Changes:**
+- Added `UserLike` interface for type safety
+- Removed unused `context` parameter
+- Added `.sort()` for deterministic query ordering
+- Added error logging for observability
+- Externalized fallback email to env var
+- Added Arabic translations for `fm.workOrders.*`
+- Updated all API route function signatures
+- Removed unused variables
+
+**Impact:**
+- ✅ Type safety improved (Major)
+- ✅ Localization parity achieved (Major)
+- ✅ Query optimization (Major)
+- ✅ Error handling (Major)
+- ✅ Configuration externalization (Major)
+- ✅ Code cleanup (Minor)
+
+**Additional Files:**
+- 36 files changed (onboarding feature included)
+- 3,407 insertions, 511 deletions
+
+---
+
+### Commit 3: `21f20db09` - Production Environment Fix
+**Date:** 2024-11-24 11:32:20 UTC  
+**Message:** `fix(build): only require payment keys in production, not preview`
+
+**Changes:**
+- Split validation: `isProdDeploy` vs `isVercelDeploy`
+- Security flags apply to all Vercel deployments
+- Payment keys only for production environment
+- Preview deployments work without payment credentials
+
+**Impact:**
+- ✅ Vercel preview deployment failures fixed
+- ✅ Production Environment Validation check passing
+- ✅ Next.js CI Build unblocked
+
+---
+
+### Commit 4: `0c520f89b` - Comprehensive CI Fixes
+**Date:** 2024-11-24 11:45:33 UTC  
+**Message:** `fix(ci): comprehensive fixes for all failing CI checks`
+
+**Changes:**
+- Created `.gitleaks.toml` with documentation allowlist
+- Fixed GitHub Actions secret access pattern
+- Updated `audit-translations.mjs` to read JSON files
+- Added `flattenKeys()` helper for nested structures
+- Cleaned up API route unused variables
+- Generated translation audit artifacts
+
+**Impact:**
+- ✅ Secret Scanning false positives resolved
+- ✅ I18n Validation script accuracy improved
+- ✅ GitHub Actions workflow warnings cleared
+- ✅ All local validation passing
+
+---
+
+## 🎯 REMAINING WORK
+
+### CI Monitoring
+- 🔄 Wait for CI pipeline to complete
+- 🔄 Verify all 8 checks pass on GitHub
+- 🔄 Monitor Vercel preview deployment
+- 🔄 Check CodeRabbit approval
+
+### Post-Merge Tasks
+- 📋 Update environment variables documentation
+- 📋 Add `ESCALATION_FALLBACK_EMAIL` to `.env.example`
+- 📋 Document translation audit script improvements
+- 📋 Review onboarding feature files (accidentally committed)
+
+### Future Improvements
+- 🔮 Consider CI caching for faster builds
+- 🔮 Add translation key usage reporting
+- 🔮 Improve secret scanning performance
+- 🔮 Add pre-commit hook for translation validation
+
+---
+
+## 📝 LESSONS LEARNED
+
+### 1. Environment Configuration
+**Issue:** Payment keys required for all environments  
+**Learning:** Always separate production-only from deployment-wide validation  
+**Best Practice:** Use environment-specific checks with clear separation
+
+### 2. Translation System Architecture
+**Issue:** Audit script looking in wrong location  
+**Learning:** Document data source locations explicitly in scripts  
+**Best Practice:** Add fallback logic for different project structures
+
+### 3. Secret Scanning
+**Issue:** Documentation examples flagged as secrets  
+**Learning:** Always configure allowlists for docs/examples  
+**Best Practice:** Use `.gitleaks.toml` from project start
+
+### 4. Type Safety
+**Issue:** `any` types in production code  
+**Learning:** Never bypass TypeScript for convenience  
+**Best Practice:** Create proper interfaces even for small functions
+
+### 5. Error Handling
+**Issue:** Silent failures in DB lookups  
+**Learning:** Always log errors for observability  
+**Best Practice:** Add context (orgId, userId) to all error logs
+
+---
+
+## 🏆 SUCCESS CRITERIA
+
+### ✅ All Completed
+- [x] TypeScript compilation passes
+- [x] ESLint validation passes (0 warnings)
+- [x] Translation files valid JSON
+- [x] Lockfile up to date
+- [x] Secret scanning configured
+- [x] Production validation fixed
+- [x] API routes cleaned up
+- [x] CodeRabbit feedback addressed
+- [x] All changes committed
+- [x] Changes pushed to remote
+
+### 🔄 In Progress
+- [ ] CI pipeline passing (awaiting results)
+- [ ] Vercel deployment successful
+- [ ] CodeRabbit approval obtained
+- [ ] PR ready to merge
+
+---
+
+## 📞 SUPPORT CONTACTS
+
+**Escalation Email:** `${ESCALATION_FALLBACK_EMAIL:-support@fixzit.co}`  
+**Repository:** https://github.com/EngSayh/Fixzit  
+**Branch:** `feat/misc-improvements`  
+**PR:** #321
+
+---
+
+**Report Generated:** 2024-11-24 11:50:00 UTC  
+**Session Duration:** ~40 minutes  
+**Total Commits:** 4  
+**Files Changed:** 46  
+**Issue Resolution:** 100%
+
+---
+
+## 🔗 RELATED DOCUMENTATION
+
+- [Translation Audit Results](./docs/translations/translation-audit.json)
+- [Translation Audit CSV](./docs/translations/translation-audit.csv)
+- [Gitleaks Configuration](./.gitleaks.toml)
+- [Environment Variables](./env.example)
+- [CI Workflows](./.github/workflows/)
+
+---
+
+*This report documents all issues identified and fixed during the CI/CD troubleshooting session. All fixes have been validated locally and pushed to the remote repository for CI validation.*
+
+]]>
+</file>
+
+</batch_content>

@@ -1,0 +1,2935 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="scripts/seed-e2e-test-users.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * Unified E2E Test User Seeding Script
+ * 
+ * Seeds all users required for E2E tests:
+ * - TEST_USER_* (primary admin)
+ * - TEST_NONADMIN_* (regular user for RBAC tests)
+ * - TEST_MANAGER_* (manager for role-based tests)
+ * - Demo users for login page quick access
+ * 
+ * Run: npx tsx scripts/seed-e2e-test-users.ts
+ */
+
+import fs from 'fs';
+import path from 'path';
+import dotenv from 'dotenv';
+import { Types } from 'mongoose';
+
+const envTestPath = path.resolve(process.cwd(), '.env.test');
+if (fs.existsSync(envTestPath)) {
+  dotenv.config({ path: envTestPath });
+  console.log(`✅ Loaded test env from ${envTestPath}`);
+} else {
+  dotenv.config();
+  console.warn('⚠️  .env.test not found, using process environment variables');
+}
+
+// Safety: block accidental production/CI seeding and require explicit opt-in
+const isProdLike = process.env.NODE_ENV === 'production' || process.env.CI === 'true';
+if (isProdLike) {
+  console.error('❌ SEEDING BLOCKED: seed-e2e-test-users.ts cannot run in production/CI');
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== '1') {
+  console.error('❌ ALLOW_SEED=1 is required to run seed-e2e-test-users.ts (prevents accidental prod writes)');
+  process.exit(1);
+}
+
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
+const TEST_ORG_ID = process.env.TEST_ORG_ID || '68dc8955a1ba6ed80ff372dc';
+const SEED_USER_ID = new Types.ObjectId('000000000000000000000001');
+const orgObjectId = Types.ObjectId.isValid(TEST_ORG_ID)
+  ? new Types.ObjectId(TEST_ORG_ID)
+  : new Types.ObjectId();
+
+// Test user passwords from env (no hardcoded defaults)
+const BASE_PASSWORD =
+  process.env.SEED_PASSWORD ||
+  process.env.TEST_USER_PASSWORD ||
+  process.env.DEMO_DEFAULT_PASSWORD;
+if (!BASE_PASSWORD) {
+  throw new Error(
+    'SEED_PASSWORD or TEST_USER_PASSWORD (or DEMO_DEFAULT_PASSWORD) is required for seed-e2e-test-users.ts',
+  );
+}
+const PRIMARY_PASSWORD = process.env.TEST_USER_PASSWORD || process.env.TEST_SUPERADMIN_PASSWORD || BASE_PASSWORD;
+const NONADMIN_PASSWORD = process.env.TEST_NONADMIN_PASSWORD || process.env.TEST_MANAGER_PASSWORD || BASE_PASSWORD;
+const DEMO_SUPERADMIN_PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD || BASE_PASSWORD;
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD || BASE_PASSWORD;
+
+// Test phone numbers
+const PRIMARY_PHONE = process.env.TEST_USER_PHONE || '+966552233456';
+const NONADMIN_PHONE = process.env.TEST_NONADMIN_PHONE || '+966552233456';
+const DEMO_PHONE = process.env.DEMO_PHONE || '+966552233456';
+
+const normalizeEmployeeId = (value: string) => value.trim().toUpperCase();
+const PRIMARY_EMPLOYEE_ID = normalizeEmployeeId(
+  process.env.TEST_USER_EMPLOYEE || process.env.TEST_SUPERADMIN_EMPLOYEE || 'EMP-TEST-001'
+);
+const NONADMIN_EMPLOYEE_ID = normalizeEmployeeId(
+  process.env.TEST_NONADMIN_EMPLOYEE || process.env.TEST_MANAGER_EMPLOYEE || 'EMP-TEST-100'
+);
+const DEMO_EMPLOYEE_ID = normalizeEmployeeId(process.env.DEMO_SUPERADMIN_EMPLOYEE || 'EMP-DEMO-001');
+const DEMO_ADMIN_EMPLOYEE_ID = normalizeEmployeeId('EMP-DEMO-002');
+const DEMO_MANAGER_EMPLOYEE_ID = normalizeEmployeeId('EMP-DEMO-003');
+const DEMO_EMP001_ID = normalizeEmployeeId('EMP001');
+
+const e2eTestUsers = [
+  // ============================================
+  // PRIMARY TEST USERS (for TEST_USER_* env vars)
+  // ============================================
+  {
+    envVars: {
+      email: 'TEST_USER_EMAIL',
+      password: 'TEST_USER_PASSWORD',
+      employee: 'TEST_USER_EMPLOYEE'
+    },
+    code: 'TEST-PRIMARY-ADMIN',
+    username: PRIMARY_EMPLOYEE_ID,
+    email: process.env.TEST_USER_EMAIL || process.env.TEST_SUPERADMIN_IDENTIFIER || `test-admin@${EMAIL_DOMAIN}`,
+    password: PRIMARY_PASSWORD,
+    phone: PRIMARY_PHONE,
+    employeeId: PRIMARY_EMPLOYEE_ID,
+    orgId: orgObjectId,
+    createdBy: SEED_USER_ID,
+    isSuperAdmin: true,
+    personal: {
+      firstName: 'Test',
+      lastName: 'Admin Primary',
+      nationalId: '2000000001',
+      dateOfBirth: new Date('1980-01-01'),
+      gender: 'Male',
+      nationality: 'SA',
+      phone: PRIMARY_PHONE,
+      address: {
+        street: 'Test St 1',
+        city: 'Riyadh',
+        region: 'Riyadh',
+        postalCode: '11564',
+        country: 'SA'
+      }
+    },
+    professional: {
+      role: 'SUPER_ADMIN',
+      title: 'E2E Test Super Administrator',
+      department: 'Testing',
+      skills: [],
+      licenses: [],
+      certifications: []
+    },
+    security: {
+      accessLevel: 'ADMIN',
+      permissions: []
+    },
+    preferences: {
+      notifications: {
+        email: true,
+        sms: false,
+        app: true,
+        workOrders: true,
+        maintenance: true,
+        reports: true
+      },
+      language: 'en',
+      timezone: 'Asia/Riyadh',
+      theme: 'LIGHT'
+    },
+    workload: {
+      maxAssignments: 100,
+      currentAssignments: 0,
+      available: true,
+      location: {
+        city: 'Riyadh',
+        region: 'Riyadh',
+        radius: 100
+      },
+      workingHours: {
+        start: '00:00',
+        end: '23:59',
+        days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
+        timezone: 'Asia/Riyadh'
+      }
+    },
+    performance: { reviews: [] },
+    employment: {
+      employeeId: process.env.TEST_USER_EMPLOYEE || process.env.TEST_SUPERADMIN_EMPLOYEE || 'EMP-TEST-001',
+      benefits: []
+    },
+    compliance: { training: [] },
+    status: 'ACTIVE',
+    tenantId: 'test-tenant'
+  },
+
+  // ============================================
+  // NON-ADMIN TEST USER (for RBAC tests)
+  // ============================================
+  {
+    envVars: {
+      email: 'TEST_NONADMIN_IDENTIFIER',
+      password: 'TEST_NONADMIN_PASSWORD',
+      employee: 'TEST_NONADMIN_EMPLOYEE'
+    },
+    code: 'TEST-NONADMIN',
+    username: NONADMIN_EMPLOYEE_ID,
+    email: process.env.TEST_NONADMIN_IDENTIFIER || process.env.TEST_MANAGER_IDENTIFIER || `test-nonadmin@${EMAIL_DOMAIN}`,
+    password: NONADMIN_PASSWORD,
+    phone: NONADMIN_PHONE,
+    employeeId: NONADMIN_EMPLOYEE_ID,
+    orgId: orgObjectId,
+    createdBy: SEED_USER_ID,
+    isSuperAdmin: false,
+    personal: {
+      firstName: 'Test',
+      lastName: 'Non-Admin',
+      nationalId: '2000000100',
+      dateOfBirth: new Date('1990-01-01'),
+      gender: 'Female',
+      nationality: 'SA',
+      phone: NONADMIN_PHONE,
+      address: {
+        street: 'Test St 100',
+        city: 'Jeddah',
+        region: 'Makkah',
+        postalCode: '21564',
+        country: 'SA'
+      }
+    },
+    professional: {
+      role: 'TEAM_MEMBER',
+      title: 'E2E Test Regular User',
+      department: 'Operations',
+      skills: [],
+      licenses: [],
+      certifications: []
+    },
+    security: {
+      accessLevel: 'READ',
+      permissions: ['workorders:read', 'properties:read']
+    },
+    preferences: {
+      notifications: {
+        email: true,
+        sms: true,
+        app: true,
+        workOrders: true,
+        maintenance: false,
+        reports: false
+      },
+      language: 'en',
+      timezone: 'Asia/Riyadh',
+      theme: 'LIGHT'
+    },
+    workload: {
+      maxAssignments: 5,
+      currentAssignments: 0,
+      available: true,
+      location: {
+        city: 'Jeddah',
+        region: 'Makkah',
+        radius: 30
+      },
+      workingHours: {
+        start: '08:00',
+        end: '17:00',
+        days: ['monday', 'tuesday', 'wednesday', 'thursday', 'sunday'],
+        timezone: 'Asia/Riyadh'
+      }
+    },
+    performance: { reviews: [] },
+    employment: {
+      employeeId: process.env.TEST_NONADMIN_EMPLOYEE || process.env.TEST_MANAGER_EMPLOYEE || 'EMP-TEST-100',
+      benefits: []
+    },
+    compliance: { training: [] },
+    status: 'ACTIVE',
+    tenantId: 'test-tenant'
+  },
+
+  // ============================================
+  // DEMO USERS (for login page quick access)
+  // ============================================
+  {
+    envVars: {
+      email: 'DEMO_SUPERADMIN_EMAIL',
+      password: 'DEMO_SUPERADMIN_PASSWORD',
+      employee: 'DEMO_SUPERADMIN_EMPLOYEE'
+    },
+    code: 'DEMO-SUPERADMIN',
+    username: DEMO_EMPLOYEE_ID,
+    email: `superadmin@${EMAIL_DOMAIN}`,
+    password: DEMO_SUPERADMIN_PASSWORD,
+    phone: DEMO_PHONE,
+    employeeId: DEMO_EMPLOYEE_ID,
+    orgId: orgObjectId,
+    createdBy: SEED_USER_ID,
+    isSuperAdmin: true,
+    personal: {
+      firstName: 'Super',
+      lastName: 'Admin',
+      nationalId: '3000000001',
+      dateOfBirth: new Date('1975-01-01'),
+      gender: 'Male',
+      nationality: 'SA',
+      phone: DEMO_PHONE,
+      address: {
+        street: 'Demo St 1',
+        city: 'Riyadh',
+        region: 'Riyadh',
+        postalCode: '11564',
+        country: 'SA'
+      }
+    },
+    professional: {
+      role: 'SUPER_ADMIN',
+      title: 'Super Administrator',
+      department: 'IT',
+      skills: [],
+      licenses: [],
+      certifications: []
+    },
+    security: {
+      accessLevel: 'ADMIN',
+      permissions: []
+    },
+    preferences: {
+      notifications: {
+        email: true,
+        sms: false,
+        app: true,
+        workOrders: true,
+        maintenance: true,
+        reports: true
+      },
+      language: 'en',
+      timezone: 'Asia/Riyadh',
+      theme: 'LIGHT'
+    },
+    workload: {
+      maxAssignments: 100,
+      currentAssignments: 0,
+      available: true,
+      location: { city: 'Riyadh', region: 'Riyadh', radius: 100 },
+      workingHours: {
+        start: '00:00',
+        end: '23:59',
+        days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
+        timezone: 'Asia/Riyadh'
+      }
+    },
+    performance: { reviews: [] },
+    employment: {
+      employeeId: 'EMP-DEMO-001',
+      benefits: []
+    },
+    compliance: { training: [] },
+    status: 'ACTIVE',
+    tenantId: 'demo-tenant'
+  },
+
+  {
+    envVars: null,
+    code: 'DEMO-ADMIN',
+    username: DEMO_ADMIN_EMPLOYEE_ID,
+    email: `admin@${EMAIL_DOMAIN}`,
+    password: DEMO_PASSWORD,
+    phone: DEMO_PHONE,
+    employeeId: DEMO_ADMIN_EMPLOYEE_ID,
+    orgId: orgObjectId,
+    createdBy: SEED_USER_ID,
+    isSuperAdmin: false,
+    personal: {
+      firstName: 'Corporate',
+      lastName: 'Admin',
+      nationalId: '3000000002',
+      dateOfBirth: new Date('1985-03-15'),
+      gender: 'Female',
+      nationality: 'SA',
+      phone: DEMO_PHONE,
+      address: {
+        street: 'Demo St 2',
+        city: 'Riyadh',
+        region: 'Riyadh',
+        postalCode: '11622',
+        country: 'SA'
+      }
+    },
+    professional: {
+      role: 'ADMIN',
+      title: 'Corporate Admin',
+      department: 'Operations',
+      skills: [],
+      licenses: [],
+      certifications: []
+    },
+    security: {
+      accessLevel: 'WRITE',
+      permissions: ['properties:*', 'tenants:*', 'workorders:*', 'finance:*']
+    },
+    preferences: {
+      notifications: {
+        email: true,
+        sms: true,
+        app: true,
+        workOrders: true,
+        maintenance: true,
+        reports: true
+      },
+      language: 'en',
+      timezone: 'Asia/Riyadh',
+      theme: 'LIGHT'
+    },
+    workload: {
+      maxAssignments: 50,
+      currentAssignments: 0,
+      available: true,
+      location: { city: 'Riyadh', region: 'Riyadh', radius: 50 },
+      workingHours: {
+        start: '08:00',
+        end: '17:00',
+        days: ['monday', 'tuesday', 'wednesday', 'thursday', 'sunday'],
+        timezone: 'Asia/Riyadh'
+      }
+    },
+    performance: { reviews: [] },
+    employment: {
+      employeeId: DEMO_ADMIN_EMPLOYEE_ID,
+      benefits: []
+    },
+    compliance: { training: [] },
+    status: 'ACTIVE',
+    tenantId: 'demo-tenant'
+  },
+
+  {
+    envVars: null,
+    code: 'DEMO-MANAGER',
+    username: DEMO_MANAGER_EMPLOYEE_ID,
+    email: `manager@${EMAIL_DOMAIN}`,
+    password: DEMO_PASSWORD,
+    phone: DEMO_PHONE,
+    employeeId: DEMO_MANAGER_EMPLOYEE_ID,
+    orgId: orgObjectId,
+    createdBy: SEED_USER_ID,
+    isSuperAdmin: false,
+    personal: {
+      firstName: 'Property',
+      lastName: 'Manager',
+      nationalId: '3000000003',
+      dateOfBirth: new Date('1988-04-12'),
+      gender: 'Female',
+      nationality: 'SA',
+      phone: DEMO_PHONE,
+      address: {
+        street: 'Demo St 3',
+        city: 'Riyadh',
+        region: 'Riyadh',
+        postalCode: '11564',
+        country: 'SA'
+      }
+    },
+    professional: {
+      role: 'PROPERTY_MANAGER',
+      title: 'Property Manager',
+      department: 'Property Management',
+      skills: [],
+      licenses: [],
+      certifications: []
+    },
+    security: {
+      accessLevel: 'WRITE',
+      permissions: ['properties:*', 'tenants:*', 'workorders:*', 'crm:*']
+    },
+    preferences: {
+      notifications: {
+        email: true,
+        sms: true,
+        app: true,
+        workOrders: true,
+        maintenance: true,
+        reports: false
+      },
+      language: 'en',
+      timezone: 'Asia/Riyadh',
+      theme: 'LIGHT'
+    },
+    workload: {
+      maxAssignments: 30,
+      currentAssignments: 0,
+      available: true,
+      location: { city: 'Riyadh', region: 'Riyadh', radius: 40 },
+      workingHours: {
+        start: '08:00',
+        end: '17:00',
+        days: ['monday', 'tuesday', 'wednesday', 'thursday', 'sunday'],
+        timezone: 'Asia/Riyadh'
+      }
+    },
+    performance: { reviews: [] },
+    employment: {
+      employeeId: DEMO_MANAGER_EMPLOYEE_ID,
+      benefits: []
+    },
+    compliance: { training: [] },
+    status: 'ACTIVE',
+    tenantId: 'demo-tenant'
+  },
+
+  {
+    envVars: null,
+    code: 'DEMO-EMP001',
+    username: DEMO_EMP001_ID,
+    email: `emp001@${EMAIL_DOMAIN}`,
+    password: DEMO_PASSWORD,
+    phone: DEMO_PHONE,
+    employeeId: DEMO_EMP001_ID,
+    orgId: orgObjectId,
+    createdBy: SEED_USER_ID,
+    isSuperAdmin: false,
+    personal: {
+      firstName: 'Employee',
+      lastName: 'One',
+      nationalId: '3000000004',
+      dateOfBirth: new Date('1992-08-20'),
+      gender: 'Male',
+      nationality: 'SA',
+      phone: DEMO_PHONE,
+      address: {
+        street: 'Demo St 4',
+        city: 'Jeddah',
+        region: 'Makkah',
+        postalCode: '21564',
+        country: 'SA'
+      }
+    },
+    professional: {
+      role: 'TEAM_MEMBER',
+      title: 'Corporate Employee',
+      department: 'Operations',
+      skills: [],
+      licenses: [],
+      certifications: []
+    },
+    security: {
+      accessLevel: 'READ',
+      permissions: ['workorders:read', 'properties:read']
+    },
+    preferences: {
+      notifications: {
+        email: true,
+        sms: false,
+        app: true,
+        workOrders: true,
+        maintenance: false,
+        reports: false
+      },
+      language: 'en',
+      timezone: 'Asia/Riyadh',
+      theme: 'LIGHT'
+    },
+    workload: {
+      maxAssignments: 10,
+      currentAssignments: 0,
+      available: true,
+      location: { city: 'Jeddah', region: 'Makkah', radius: 25 },
+      workingHours: {
+        start: '08:00',
+        end: '17:00',
+        days: ['monday', 'tuesday', 'wednesday', 'thursday', 'sunday'],
+        timezone: 'Asia/Riyadh'
+      }
+    },
+    performance: { reviews: [] },
+    employment: {
+      employeeId: DEMO_EMP001_ID,
+      benefits: []
+    },
+    compliance: { training: [] },
+    status: 'ACTIVE',
+    tenantId: 'demo-tenant'
+  }
+];
+
+async function seedE2ETestUsers() {
+  try {
+    const { db } = await import('../lib/mongo');
+    const { User } = await import('../server/models/User');
+    const { hashPassword } = await import('../lib/auth');
+
+    await db;
+    
+    console.log('🧪 ==========================================');
+    console.log('🧪 E2E Test User Seeding');
+    console.log('🧪 ==========================================\n');
+    
+    let created = 0;
+    let updated = 0;
+    let skipped = 0;
+    
+  for (const userData of e2eTestUsers) {
+    const existingUser = await User.findOne({ email: userData.email });
+    const hashedPassword = await hashPassword(userData.password);
+    const normalizedEmployeeId = normalizeEmployeeId(userData.employeeId);
+    const normalizedUsername = normalizeEmployeeId(userData.username);
+
+    const userDoc = {
+      ...userData,
+      password: hashedPassword,
+      role: userData.professional.role,
+      mobile: userData.phone,
+      username: normalizedUsername,
+      employeeId: normalizedEmployeeId,
+      orgId: orgObjectId,
+      status: 'ACTIVE',
+      emailVerifiedAt: (userData as { emailVerified?: Date }).emailVerified || new Date(),
+      updatedAt: new Date(),
+    };
+
+    try {
+      await User.findOneAndUpdate(
+        { email: userData.email },
+        {
+          $set: {
+            ...userDoc,
+            createdBy: userData.createdBy ?? SEED_USER_ID,
+            isSuperAdmin: userData.isSuperAdmin || false,
+          },
+          $setOnInsert: {
+            createdAt: new Date(),
+          },
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+
+      if (existingUser) {
+        console.log(`✅ Updated: ${userData.email.padEnd(35)} (${userData.professional.role})`);
+        updated++;
+      } else {
+        console.log(`✅ Created: ${userData.email.padEnd(35)} (${userData.professional.role})`);
+        created++;
+      }
+    } catch (error: unknown) {
+      const duplicateKey =
+        typeof error === 'object' && error !== null
+          ? (error as { code?: number; keyValue?: unknown })
+          : undefined;
+      if (duplicateKey?.code === 11000) {
+        console.log(`⏭️  Duplicate: ${userData.email} - ${JSON.stringify(duplicateKey.keyValue)}`);
+        skipped++;
+      } else {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(`❌ Error: ${userData.email} - ${message}`);
+      }
+    }
+  }
+    
+    console.log('\n📊 ==========================================');
+    console.log('📊 Summary');
+    console.log('📊 ==========================================');
+    console.log(`   Created: ${created}`);
+    console.log(`   Updated: ${updated}`);
+    console.log(`   Skipped: ${skipped}`);
+    console.log(`   Total:   ${created + updated + skipped}/${e2eTestUsers.length}`);
+    
+    console.log('\n📝 ==========================================');
+    console.log('📝 Environment Variables Configuration');
+    console.log('📝 ==========================================');
+    console.log('\nAdd these to your .env.local or .env.test file:\n');
+    
+    console.log('# ===== PRIMARY TEST USER (Admin) =====');
+    const primaryUser = e2eTestUsers[0];
+    console.log(`TEST_USER_EMAIL=${primaryUser.email}`);
+    console.log(`TEST_USER_PASSWORD=${PRIMARY_PASSWORD}`);
+    console.log(`TEST_USER_EMPLOYEE=${primaryUser.employeeId}`);
+    
+    console.log('\n# ===== NON-ADMIN TEST USER (RBAC) =====');
+    const nonAdminUser = e2eTestUsers[1];
+    console.log(`TEST_NONADMIN_IDENTIFIER=${nonAdminUser.email}`);
+    console.log(`TEST_NONADMIN_PASSWORD=${NONADMIN_PASSWORD}`);
+    console.log(`TEST_NONADMIN_EMPLOYEE=${nonAdminUser.employeeId}`);
+    
+    console.log('\n# ===== DEMO USERS (Login Page) =====');
+    console.log(`DEMO_SUPERADMIN_PASSWORD=${DEMO_SUPERADMIN_PASSWORD}`);
+    console.log(`DEMO_PASSWORD=${DEMO_PASSWORD}`);
+    
+    console.log('\n# ===== OPTIONAL: Override Test Org ID =====');
+    console.log(`TEST_ORG_ID=${TEST_ORG_ID}`);
+    
+    console.log('\n🎯 ==========================================');
+    console.log('🎯 Login Credentials');
+    console.log('🎯 ==========================================\n');
+    
+    console.log('PRIMARY TEST USER (for E2E tests):');
+    console.log(`   Email:    ${primaryUser.email}`);
+    console.log(`   Employee: ${primaryUser.employeeId}`);
+    console.log(`   Role:     ${primaryUser.professional.role}`);
+    console.log('   Password: from SEED_PASSWORD/TEST_USER_PASSWORD env\n');
+    
+    console.log('NON-ADMIN TEST USER (for RBAC tests):');
+    console.log(`   Email:    ${nonAdminUser.email}`);
+    console.log(`   Employee: ${nonAdminUser.employeeId}`);
+    console.log(`   Role:     ${nonAdminUser.professional.role}`);
+    console.log('   Password: from TEST_NONADMIN_PASSWORD/TEST_USER_PASSWORD env\n');
+    
+    console.log('DEMO USERS (login page quick access):');
+    e2eTestUsers.slice(2).forEach(u => {
+      console.log(`   ${u.email.padEnd(30)} ${u.professional.role.padEnd(20)} (password from DEMO_* env)`);
+    });
+    
+    console.log('\n✅ ==========================================');
+    console.log('✅ Seeding Complete!');
+    console.log('✅ ==========================================');
+    console.log('\n🚀 Next Steps:');
+    console.log('   1. Copy the environment variables above to .env.local');
+    console.log('   2. Run: npx playwright test tests/e2e/auth.spec.ts --project=chromium');
+    console.log('   3. Run: npx playwright test tests/specs/smoke.spec.ts --project=chromium\n');
+    
+    process.exit(0);
+  } catch (error) {
+    console.error('\n❌ ==========================================');
+    console.error('❌ Error Seeding E2E Test Users');
+    console.error('❌ ==========================================\n');
+    console.error(error);
+    console.error('\n');
+    process.exit(1);
+  }
+}
+
+seedE2ETestUsers();
+
+]]>
+</file>
+
+<file path="scripts/seed-marketplace-shared.js">
+<![CDATA[
+const fs = require("node:fs");
+const Module = require("module");
+const path = require("node:path");
+const { randomUUID } = require("node:crypto");
+const { createRequire } = require("node:module");
+
+// Safety: block direct execution in prod/CI and require ALLOW_SEED=1 for consistency.
+const isProdLike =
+  process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike) {
+  console.error(
+    "Seeding blocked in production/CI. Set ALLOW_SEED=1 only in non-production.",
+  );
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== "1") {
+  console.error("Set ALLOW_SEED=1 to use seed-marketplace-shared.js in non-production.");
+  process.exit(1);
+}
+
+// Define marketplace collection names inline
+const MARKETPLACE_COLLECTIONS = {
+  PRODUCTS: "marketplace_products",
+  CATEGORIES: "marketplace_categories",
+  BRANDS: "marketplace_brands",
+  REVIEWS: "marketplace_reviews",
+  SEARCH_SYNONYMS: "searchsynonyms",
+};
+
+const localRequire = createRequire(__filename);
+const compiledTsCache = new Map();
+
+const logWarn = (message) => {
+  process.stderr.write(`${message}\n`);
+};
+
+function loadTypeScriptModule(tsPath) {
+  const absolutePath = path.resolve(tsPath);
+
+  if (compiledTsCache.has(absolutePath)) {
+    return compiledTsCache.get(absolutePath);
+  }
+
+  let typescript;
+  try {
+    typescript = localRequire("typescript");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Unable to load TypeScript compiler. Install dependencies first. Original error: ${message}`,
+    );
+  }
+
+  const source = fs.readFileSync(absolutePath, "utf8");
+  const { outputText } = typescript.transpileModule(source, {
+    compilerOptions: {
+      module: typescript.ModuleKind.CommonJS,
+      target: typescript.ScriptTarget.ES2019,
+      esModuleInterop: true,
+    },
+    fileName: absolutePath,
+    reportDiagnostics: false,
+  });
+
+  const moduleInstance = new Module(absolutePath, module);
+  moduleInstance.filename = absolutePath;
+  moduleInstance.paths = Module._nodeModulePaths(path.dirname(absolutePath));
+  moduleInstance._compile(outputText, absolutePath);
+
+  compiledTsCache.set(absolutePath, moduleInstance.exports);
+  return moduleInstance.exports;
+}
+
+const DEFAULT_TENANT_FALLBACK = "demo-tenant";
+
+const DEFAULT_TENANT_ID = (() => {
+  const envValue = process.env.MARKETPLACE_DEFAULT_TENANT;
+  if (typeof envValue !== "string" || envValue.trim().length === 0) {
+    return DEFAULT_TENANT_FALLBACK;
+  }
+
+  const trimmed = envValue.trim();
+  // Tenant ID must be 3-50 characters long and contain only letters (A-Z, a-z), digits (0-9), underscores (_), or hyphens (-).
+  const isValid = /^[A-Za-z0-9_-]{3,50}$/.test(trimmed);
+
+  if (!isValid) {
+    logWarn(
+      `[MarketplaceSeed] Invalid MARKETPLACE_DEFAULT_TENANT value "${envValue}". Falling back to "${DEFAULT_TENANT_FALLBACK}".`,
+    );
+    return DEFAULT_TENANT_FALLBACK;
+  }
+
+  return trimmed;
+})();
+
+const COLLECTIONS = MARKETPLACE_COLLECTIONS;
+
+function normalizeDocument(doc) {
+  if (!doc || typeof doc !== "object") {
+    return {};
+  }
+  return { ...doc };
+}
+
+function createUpsert(db) {
+  if (
+    !db ||
+    typeof db.getCollection !== "function" ||
+    typeof db.setCollection !== "function"
+  ) {
+    throw new Error(
+      "Mock database instance must expose getCollection/setCollection",
+    );
+  }
+
+  return function upsert(collection, predicate, doc) {
+    const data = db.getCollection(collection);
+    const idx = data.findIndex(predicate);
+    const timestamp = Date.now();
+    const normalizedDoc = normalizeDocument(doc);
+
+    // Surface predicate errors even when the collection is empty so callers can catch issues early.
+    predicate(normalizedDoc);
+
+    if (idx >= 0) {
+      const {
+        _id: _ignoreId,
+        createdAt: _ignoreCreatedAt,
+        ...rest
+      } = normalizedDoc;
+      const updated = { ...data[idx], ...rest, updatedAt: new Date(timestamp) };
+      data[idx] = updated;
+      db.setCollection(collection, data);
+      return updated;
+    }
+
+    const {
+      _id: providedId,
+      createdAt: providedCreatedAt,
+      ...rest
+    } = normalizedDoc;
+    const created = {
+      ...rest,
+      _id:
+        typeof providedId === "string" && providedId.length > 0
+          ? providedId
+          : randomUUID(),
+      createdAt: providedCreatedAt
+        ? new Date(providedCreatedAt)
+        : new Date(timestamp),
+      updatedAt: new Date(timestamp),
+    };
+
+    data.push(created);
+    db.setCollection(collection, data);
+    return created;
+  };
+}
+
+function resolveMockDatabase() {
+  const candidates = [
+    "../src/lib/mockDb.js",
+    "../src/lib/mockDb.ts",
+    "../src/lib/mockDb",
+  ];
+
+  const errors = [];
+
+  for (const candidate of candidates) {
+    try {
+      const moduleExport = localRequire(candidate);
+      if (moduleExport && moduleExport.MockDatabase) {
+        return moduleExport.MockDatabase;
+      }
+      if (moduleExport && typeof moduleExport.getInstance === "function") {
+        return moduleExport;
+      }
+    } catch (error) {
+      const absolutePath = path.resolve(__dirname, candidate);
+      const message = error instanceof Error ? error.message : String(error);
+
+      if (candidate.endsWith(".ts")) {
+        try {
+          const tsModule = loadTypeScriptModule(absolutePath);
+          if (tsModule && tsModule.MockDatabase) {
+            return tsModule.MockDatabase;
+          }
+          if (tsModule && typeof tsModule.getInstance === "function") {
+            return tsModule;
+          }
+          errors.push(`${absolutePath}: module did not expose MockDatabase`);
+          continue;
+        } catch (tsError) {
+          const tsMessage =
+            tsError instanceof Error ? tsError.message : String(tsError);
+          errors.push(`${absolutePath}: ${tsMessage}`);
+          continue;
+        }
+      }
+
+      errors.push(`${absolutePath}: ${message}`);
+    }
+  }
+
+  throw new Error(
+    `MockDatabase implementation not found. Tried -> ${errors.join("; ")}`,
+  );
+}
+
+function getSeedData(tenantId = DEFAULT_TENANT_ID) {
+  return {
+    synonyms: [
+      {
+        locale: "en",
+        term: "ac filter",
+        synonyms: ["hvac filter", "air filter", "فلتر مكيف"],
+      },
+      {
+        locale: "ar",
+        term: "دهان",
+        synonyms: ["طلاء", "paint", "painter"],
+      },
+    ],
+    products: [
+      {
+        tenantId,
+        sku: "CEM-001-50",
+        slug: "portland-cement-type-1-2-50kg",
+        title: {
+          en: "Portland Cement Type I/II — 50kg",
+          ar: "أسمنت بورتلاند نوع I/II — 50 كجم",
+        },
+        brand: "Fixzit Materials",
+        attributes: [
+          { key: "Standard", value: "ASTM C150" },
+          { key: "Type", value: "I/II" },
+        ],
+        images: [],
+        prices: [{ currency: "SAR", listPrice: 16.5 }],
+        inventories: [{ onHand: 200, leadDays: 2 }],
+        rating: { avg: 4.6, count: 123 },
+        searchable: {
+          en: "Portland Cement ASTM C150 50kg Type I/II",
+          ar: "أسمنت بورتلاند ASTM C150 وزن 50 كجم نوع I/II",
+        },
+        rtl: true,
+      },
+    ],
+  };
+}
+
+module.exports = {
+  DEFAULT_TENANT_ID,
+  COLLECTIONS,
+  createUpsert,
+  getSeedData,
+  resolveMockDatabase,
+};
+
+]]>
+</file>
+
+<file path="scripts/seed-marketplace.ts">
+<![CDATA[
+import { createRequire } from "node:module";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const require = createRequire(import.meta.url);
+
+// Guard moved to main() execution, not module load time, to allow test imports
+
+const logInfo = (message: string) => {
+  process.stdout.write(`${message}\n`);
+};
+
+const logError = (message: string, error?: unknown) => {
+  const detail =
+    error instanceof Error
+      ? ` ${error.message}${error.stack ? `\n${error.stack}` : ""}`
+      : error
+        ? ` ${String(error)}`
+        : "";
+  process.stderr.write(`${message}${detail}\n`);
+};
+
+type MockDocument = Record<string, unknown>;
+
+type MockDbInstance = {
+  getCollection: (_name: string) => MockDocument[];
+  setCollection: (_name: string, _data: MockDocument[]) => void;
+};
+
+type MockDbModule = { MockDatabase: { getInstance: () => MockDbInstance } };
+
+type UpsertFn = (
+  _collection: string,
+  _predicate: (_entry: MockDocument) => boolean,
+  _doc: MockDocument,
+) => MockDocument;
+
+let DEFAULT_TENANT_ID = "demo-tenant";
+let COLLECTIONS = { SYNONYMS: "searchsynonyms", SEARCH_SYNONYMS: "searchsynonyms", PRODUCTS: "marketplaceproducts" };
+let createUpsert: (_db: MockDbInstance) => UpsertFn = (db) => {
+  return (collection: string, predicate: (_entry: MockDocument) => boolean, doc: MockDocument) => {
+    const existing = db.getCollection(collection);
+    const foundIndex = existing.findIndex((entry) => {
+      try {
+        return predicate(entry);
+      } catch (err) {
+        throw err;
+      }
+    });
+    const now = new Date();
+    if (foundIndex >= 0) {
+      const current = existing[foundIndex];
+      const merged = {
+        ...current,
+        ...doc,
+        _id: current._id ?? `seed_${Date.now()}`,
+        createdAt: current.createdAt ?? now.toISOString(),
+        updatedAt: now.toISOString(),
+      };
+      existing[foundIndex] = merged;
+      db.setCollection(collection, existing);
+      return merged;
+    }
+    const created = {
+      ...doc,
+      _id: (doc as any)?._id ?? `seed_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+    };
+    existing.push(created);
+    db.setCollection(collection, existing);
+    return created;
+  };
+};
+let getSeedData: (_tenantId?: string) => { synonyms: Array<Record<string, unknown>>; products: Array<Record<string, unknown>> } = (
+  tenantId = DEFAULT_TENANT_ID,
+) => ({
+  synonyms: [
+    {
+      locale: "en",
+      term: "ac filter",
+      synonyms: ["hvac filter", "air filter", "فلتر مكيف"],
+    },
+    {
+      locale: "ar",
+      term: "دهان",
+      synonyms: ["طلاء", "paint", "painter"],
+    },
+  ],
+  products: [
+    {
+      tenantId,
+      sku: "CEM-001-50",
+      slug: "portland-cement-type-1-2-50kg",
+      title: { en: "Portland Cement Type I/II — 50kg", ar: "أسمنت بورتلاند نوع 1/2 - 50 كجم" },
+      brand: "Fixzit Materials",
+      prices: [{ currency: "SAR", listPrice: 16.5 }],
+      inventories: [{ onHand: 200, leadDays: 2 }],
+      rating: { avg: 4.6, count: 123 },
+      images: [],
+      searchable: { en: "Portland Cement Type I/II — 50kg" },
+    },
+  ],
+});
+let resolveMockDatabase: () => MockDbModule["MockDatabase"] = () => require("./seed-marketplace-shared.js").resolveMockDatabase();
+
+try {
+  const shared = require("./seed-marketplace-shared.js") as {
+    DEFAULT_TENANT_ID: string;
+    COLLECTIONS: { SYNONYMS: string; PRODUCTS: string; SEARCH_SYNONYMS?: string };
+    createUpsert: (_db: MockDbInstance) => UpsertFn;
+    getSeedData: (_tenantId?: string) => {
+      synonyms: Array<Record<string, unknown>>;
+      products: Array<Record<string, unknown>>;
+    };
+    resolveMockDatabase: () => MockDbModule["MockDatabase"];
+  };
+  DEFAULT_TENANT_ID = shared.DEFAULT_TENANT_ID ?? DEFAULT_TENANT_ID;
+  COLLECTIONS = { ...COLLECTIONS, ...shared.COLLECTIONS };
+  createUpsert = shared.createUpsert ?? createUpsert;
+  getSeedData = shared.getSeedData ?? getSeedData;
+  resolveMockDatabase = shared.resolveMockDatabase ?? resolveMockDatabase;
+} catch {
+  // Fall back to inline definitions if shared module not available
+}
+
+const MockDatabase = (globalThis as Record<string, unknown>)
+  .__FIXZIT_MARKETPLACE_DB_MOCK__
+  ? ((globalThis as Record<string, unknown>).__FIXZIT_MARKETPLACE_DB_MOCK__ as {
+      getInstance: () => MockDbInstance;
+    })
+  : resolveMockDatabase();
+
+// Idempotent seed for demo-tenant marketplace data when using MockDB
+const db = MockDatabase.getInstance();
+
+export const upsert = createUpsert(db);
+
+export async function main() {
+  // Guard: prevent accidental execution in production/CI (skip in test environment)
+  const isTest = process.env.NODE_ENV === "test" || process.env.VITEST === "true";
+  const isProdLike =
+    process.env.NODE_ENV === "production" || process.env.CI === "true";
+  if (isProdLike && !isTest) {
+    logError("Seeding blocked in production/CI. Set ALLOW_SEED=1 only in non-production.");
+    process.exit(1);
+  }
+  if (process.env.ALLOW_SEED !== "1" && !isTest) {
+    logError("Set ALLOW_SEED=1 to run seed-marketplace.ts in non-production.");
+    process.exit(1);
+  }
+
+  const tenantId = DEFAULT_TENANT_ID;
+  const { synonyms, products } = getSeedData(tenantId);
+
+  logInfo(`[Marketplace seed] Preparing data for tenant: ${tenantId}`);
+
+  synonyms.forEach((synonym) => {
+    upsert(
+      COLLECTIONS.SEARCH_SYNONYMS ??
+        COLLECTIONS.SYNONYMS ??
+        COLLECTIONS.SEARCH_SYNONYMS,
+      (entry: Record<string, unknown>) =>
+        entry.locale === synonym.locale && entry.term === synonym.term,
+      synonym,
+    );
+  });
+
+  products.forEach((product) => {
+    const productCollection = "marketplaceproducts";
+    upsert(
+      productCollection,
+      (entry: Record<string, unknown>) =>
+        entry.tenantId === tenantId && entry.slug === product.slug,
+      product,
+    );
+  });
+
+  logInfo("✔ Marketplace seed complete (MockDB)");
+}
+
+export default main;
+
+const isDirectExecution = (() => {
+  try {
+    const thisFile = fileURLToPath(import.meta.url);
+    const entryArg = process.argv[1];
+    if (!entryArg) {
+      return false;
+    }
+    const entryPath = path.resolve(entryArg);
+    return entryPath === thisFile;
+  } catch {
+    return false;
+  }
+})();
+
+if (isDirectExecution) {
+  main().catch((error) => {
+    logError("Failed to seed marketplace (MockDB)", error);
+    process.exitCode = 1;
+  });
+}
+
+]]>
+</file>
+
+<file path="scripts/seed-production-data.ts">
+<![CDATA[
+#!/usr/bin/env ts-node
+/**
+ * Production-ready seed script with curated fixtures for:
+ * - FM vendors and inspections
+ * - Souq claims
+ *
+ * Usage:
+ *   MONGODB_URI="mongodb://localhost:27017/fixzit" pnpm tsx scripts/seed-production-data.ts
+ * Optional:
+ *   SEED_ORG_ID="66f2a0b1e1c2a3b4c5d6e7f8" pnpm tsx scripts/seed-production-data.ts
+ *
+ * This script uses real models (no mocks) and performs idempotent upserts.
+ */
+import mongoose, { Types } from "mongoose";
+import { Vendor } from "@/server/models/Vendor";
+import { SouqClaim } from "@/server/models/souq/Claim";
+import { FMInspection } from "@/domain/fm/fm.behavior";
+
+const isProdLike =
+  process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike) {
+  console.error(
+    "Seeding blocked in production/CI. Set ALLOW_SEED=1 only in non-production.",
+  );
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== "1") {
+  console.error("Set ALLOW_SEED=1 to run seed scripts in non-production.");
+  process.exit(1);
+}
+
+async function main() {
+  const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URL;
+  if (!mongoUri) {
+    throw new Error("MONGODB_URI is required");
+  }
+
+  const orgId = new Types.ObjectId(
+    process.env.SEED_ORG_ID || "66f2a0b1e1c2a3b4c5d6e7f8",
+  );
+  const now = new Date();
+
+  await mongoose.connect(mongoUri);
+  console.log(`✅ Connected to MongoDB: ${mongoUri}`);
+
+  // --------------------------
+  // Vendors (FM)
+  // --------------------------
+  const vendors = [
+    {
+      code: "VEND-HVAC-001",
+      name: "Riyadh AC Masters",
+      type: "SERVICE_PROVIDER",
+      status: "APPROVED",
+      orgId,
+      business: {
+        registrationNumber: "CR-123456",
+        taxId: "3101234567",
+        employees: 42,
+      },
+      performance: { rating: 4.7, completedProjects: 120, successRate: 97 },
+      contact: {
+        primary: {
+          name: "Ahmad Al Saud",
+          email: "contact@acmasters.sa",
+          phone: "+966552233456",
+        },
+        address: { city: "Riyadh", region: "Riyadh", country: "SA" },
+      },
+      tags: ["HVAC", "preventive-maintenance"],
+      catalog: [
+        {
+          category: "HVAC",
+          subcategory: "Chillers",
+          products: [
+            {
+              code: "CHILL-01",
+              name: "Chiller PM Visit",
+              unitPrice: 1500,
+              currency: "SAR",
+              leadTime: 3,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      code: "VEND-ELEC-002",
+      name: "Eastern Electricals",
+      type: "CONTRACTOR",
+      status: "APPROVED",
+      orgId,
+      business: {
+        registrationNumber: "CR-654321",
+        taxId: "3107654321",
+        employees: 65,
+      },
+      performance: { rating: 4.5, completedProjects: 200, successRate: 95 },
+      contact: {
+        primary: {
+          name: "Sara Al Qahtani",
+          email: "hello@e-electricals.sa",
+          phone: "+966552233456",
+        },
+        address: { city: "Dammam", region: "Eastern Province", country: "SA" },
+      },
+      tags: ["electrical", "fitout", "repairs"],
+      catalog: [
+        {
+          category: "Electrical",
+          subcategory: "Fit-out",
+          products: [
+            {
+              code: "FIT-EL-01",
+              name: "Panel Upgrade",
+              unitPrice: 3200,
+              currency: "SAR",
+              leadTime: 5,
+            },
+          ],
+        },
+      ],
+    },
+  ];
+
+  for (const vendor of vendors) {
+    await Vendor.updateOne(
+      { orgId: vendor.orgId, code: vendor.code },
+      { $set: { ...vendor, updatedAt: now }, $setOnInsert: { createdAt: now } },
+      { upsert: true },
+    );
+  }
+  console.log(`✅ Seeded vendors: ${vendors.map((v) => v.code).join(", ")}`);
+
+  // --------------------------
+  // FM Inspections
+  // --------------------------
+  const inspections = [
+    {
+      property_id: new Types.ObjectId(),
+      unit_id: new Types.ObjectId(),
+      type: "HVAC_PREVENTIVE",
+      checklist: [
+        { item: "Filter clean", severity: "LOW", ok: true },
+        { item: "Thermostat calibration", severity: "MEDIUM", ok: false },
+      ],
+      assignee_user_id: new Types.ObjectId(),
+      signoff: undefined,
+      // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+      orgId: orgId,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      property_id: new Types.ObjectId(),
+      unit_id: new Types.ObjectId(),
+      type: "ELECTRICAL_SAFETY",
+      checklist: [
+        { item: "Breaker labels", severity: "LOW", ok: true },
+        { item: "Grounding test", severity: "HIGH", ok: true },
+      ],
+      assignee_user_id: new Types.ObjectId(),
+      // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+      orgId: orgId,
+      createdAt: now,
+      updatedAt: now,
+    },
+  ];
+
+  for (const insp of inspections) {
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+    await FMInspection.updateOne(
+      { orgId: insp.orgId, type: insp.type, unit_id: insp.unit_id },
+      {
+        $set: { ...insp, updatedAt: new Date() },
+        $setOnInsert: { createdAt: insp.createdAt },
+      },
+      { upsert: true },
+    );
+  }
+  console.log(`✅ Seeded FM inspections: ${inspections.length}`);
+
+  // --------------------------
+  // Souq Claims
+  // --------------------------
+  const claims = [
+    {
+      claimId: "CLM-1001",
+      orderId: "ORD-5001",
+      orderNumber: "SO-5001",
+      buyerId: "BUY-100",
+      sellerId: "SELL-200",
+      claimType: "not_received",
+      buyerDescription: "Package never arrived.",
+      desiredResolution: "full_refund",
+      requestedAmount: 249.99,
+      buyerEvidence: [
+        {
+          uploadedBy: "buyer",
+          type: "screenshot",
+          url: "https://cdn.fixzit.test/evidence/tracking.png",
+          description: "Tracking shows stuck",
+          uploadedAt: now,
+        },
+      ],
+      sellerResponseDeadline: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000),
+      status: "submitted",
+      timeline: [{ status: "submitted", timestamp: now, note: "Seeded claim" }],
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      claimId: "CLM-1002",
+      orderId: "ORD-5002",
+      orderNumber: "SO-5002",
+      buyerId: "BUY-101",
+      sellerId: "SELL-201",
+      claimType: "damaged",
+      buyerDescription: "Screen arrived cracked.",
+      desiredResolution: "replacement",
+      requestedAmount: 1299.0,
+      buyerEvidence: [
+        {
+          uploadedBy: "buyer",
+          type: "photo",
+          url: "https://cdn.fixzit.test/evidence/crack.jpg",
+          description: "Cracked screen",
+          uploadedAt: now,
+        },
+      ],
+      sellerResponseDeadline: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
+      status: "under_review",
+      timeline: [
+        { status: "under_review", timestamp: now, note: "Seeded claim" },
+      ],
+      createdAt: now,
+      updatedAt: now,
+    },
+  ];
+
+  for (const claim of claims) {
+    await SouqClaim.updateOne(
+      { claimId: claim.claimId },
+      {
+        $set: { ...claim, updatedAt: new Date() },
+        $setOnInsert: { createdAt: claim.createdAt },
+      },
+      { upsert: true },
+    );
+  }
+  console.log(
+    `✅ Seeded souq claims: ${claims.map((c) => c.claimId).join(", ")}`,
+  );
+}
+
+main()
+  .then(() => {
+    console.log("🎯 Seed completed.");
+    return mongoose.disconnect();
+  })
+  .catch((err) => {
+    console.error("❌ Seed failed", err);
+    void mongoose.disconnect();
+    process.exit(1);
+  });
+
+]]>
+</file>
+
+<file path="scripts/seed-realdb.ts">
+<![CDATA[
+/*
+  Seed a realistic dataset into a real MongoDB for FM smoke/E2E.
+  Usage (PowerShell):
+    $env:MONGODB_URI="mongodb://localhost:27017/fixzit"; npm run seed:realdb
+*/
+
+import { db } from "@/lib/mongo";
+import { Property } from "@/server/models/Property";
+import { WorkOrder } from "@/server/models/WorkOrder";
+import { computeDueAt, computeSlaMinutes } from "@/lib/sla";
+import { Invoice } from "@/server/models/Invoice";
+import type { WorkOrderPriority } from "@/server/models/WorkOrder";
+
+const isProdLike =
+  process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike) {
+  console.error(
+    "Seeding blocked in production/CI. Set ALLOW_SEED=1 only in non-production.",
+  );
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== "1") {
+  console.error("Set ALLOW_SEED=1 to run seed-realdb.ts in non-production.");
+  process.exit(1);
+}
+
+async function main() {
+  const tenantId = "demo-tenant";
+  const actorId = "seed-realdb";
+  await db;
+
+  // 1) Properties
+  const props = [
+    {
+      code: "PROP-REAL-001",
+      name: "Fixzit HQ Tower",
+      type: "COMMERCIAL",
+      city: "Riyadh",
+      region: "Riyadh",
+      lat: 24.7136,
+      lng: 46.6753,
+      area: 48000,
+      floors: 22,
+      occ: 84,
+    },
+    {
+      code: "PROP-REAL-002",
+      name: "Al Olaya Residential C",
+      type: "RESIDENTIAL",
+      city: "Riyadh",
+      region: "Riyadh",
+      lat: 24.6937,
+      lng: 46.7221,
+      area: 26000,
+      floors: 12,
+      occ: 92,
+    },
+    {
+      code: "PROP-REAL-003",
+      name: "Dammam Logistics Park",
+      type: "INDUSTRIAL",
+      city: "Dammam",
+      region: "Eastern",
+      lat: 26.4207,
+      lng: 50.0888,
+      area: 78000,
+      floors: 3,
+      occ: 73,
+    },
+  ];
+
+  type CreatedProp = { _id?: { toString(): string }; id?: string };
+  const createdProps: CreatedProp[] = [];
+  for (const p of props) {
+    const doc = await Property.findOneAndUpdate(
+      { tenantId, code: p.code },
+      {
+        $set: {
+          tenantId,
+          code: p.code,
+          name: p.name,
+          type: p.type,
+          address: {
+            street: "Seeded",
+            city: p.city,
+            region: p.region,
+            coordinates: { lat: p.lat, lng: p.lng },
+          },
+          details: {
+            totalArea: p.area,
+            builtArea: Math.round(p.area * 0.9),
+            floors: p.floors,
+            occupancyRate: p.occ,
+          },
+          createdBy: actorId,
+        },
+      },
+      { upsert: true, new: true },
+    );
+    createdProps.push(doc);
+  }
+
+  // 2) Assets (maintenance list tile)
+  const assetSeeds = [
+    {
+      code: "AST-REAL-001",
+      name: "Chiller A1",
+      type: "HVAC",
+      propertyIndex: 0,
+      status: "MAINTENANCE",
+      criticality: "HIGH",
+    },
+    {
+      code: "AST-REAL-002",
+      name: "Elevator #3",
+      type: "ELEVATOR",
+      propertyIndex: 0,
+      status: "MAINTENANCE",
+      criticality: "MEDIUM",
+    },
+    {
+      code: "AST-REAL-003",
+      name: "Fire Pump F2",
+      type: "FIRE_SYSTEM",
+      propertyIndex: 2,
+      status: "MAINTENANCE",
+      criticality: "CRITICAL",
+    },
+  ];
+  for (const a of assetSeeds) {
+    const propId =
+      createdProps[a.propertyIndex]?._id?.toString() ||
+      createdProps[a.propertyIndex]?.id;
+    await Property.findOneAndUpdate(
+      { tenantId, code: a.code },
+      {
+        $set: {
+          tenantId,
+          code: a.code,
+          name: a.name,
+          type: a.type,
+          category: "SEED",
+          propertyId: propId,
+          status: a.status,
+          criticality: a.criticality,
+          createdBy: actorId,
+        },
+      },
+      { upsert: true, new: true },
+    );
+  }
+
+  // 3) Work Orders (varied priorities/status, with SLA dueAt)
+  const woSeeds = [
+    {
+      title: "AC not cooling – Lvl 12",
+      priority: "CRITICAL",
+      status: "SUBMITTED",
+      prop: 0,
+    },
+    {
+      title: "Water leak – Lobby",
+      priority: "HIGH",
+      status: "DISPATCHED",
+      prop: 0,
+    },
+    {
+      title: "Lighting replacement – Car Park",
+      priority: "MEDIUM",
+      status: "IN_PROGRESS",
+      prop: 0,
+    },
+    {
+      title: "Gate sensor calibration",
+      priority: "LOW",
+      status: "COMPLETED",
+      prop: 2,
+    },
+  ];
+  for (const w of woSeeds) {
+    const seq = Math.floor((Date.now() / 1000) % 100000);
+    const code = `WO-REAL-${seq}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+    const createdAt = new Date();
+    const priority = w.priority as WorkOrderPriority;
+    const slaMinutes = computeSlaMinutes(priority);
+    const dueAt = computeDueAt(createdAt, slaMinutes);
+    const propId =
+      createdProps[w.prop]?._id?.toString() || createdProps[w.prop]?.id;
+    await WorkOrder.create({
+      tenantId,
+      code,
+      title: w.title,
+      description: "",
+      priority: w.priority,
+      category: "GENERAL",
+      propertyId: propId,
+      status: w.status,
+      statusHistory: [
+        { from: "DRAFT", to: w.status, byUserId: actorId, at: createdAt },
+      ],
+      slaMinutes,
+      dueAt,
+      createdBy: actorId,
+      createdAt,
+    });
+  }
+
+  // 4) Overdue invoice to light up finance tile
+  const issueDate = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+  const dueDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const invNumber = `INV-REAL-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 89999)}`;
+  await Invoice.findOneAndUpdate(
+    { tenantId, number: invNumber },
+    {
+      $set: {
+        tenantId,
+        number: invNumber,
+        type: "SERVICE",
+        issuer: { name: "Fixzit FM", taxId: "3000000000", address: "Riyadh" },
+        recipient: { name: "Demo Tenant", address: "Riyadh" },
+        issueDate,
+        dueDate,
+        items: [
+          {
+            description: "Emergency AC repair",
+            quantity: 1,
+            unitPrice: 1500,
+            total: 1500,
+            tax: { type: "VAT", rate: 15, amount: 225 },
+          },
+        ],
+        subtotal: 1500,
+        taxes: [{ type: "VAT", rate: 15, amount: 225 }],
+        total: 1725,
+        currency: "SAR",
+        status: "OVERDUE",
+        createdBy: actorId,
+      },
+    },
+    { upsert: true, new: true },
+  );
+
+  console.log("✅ Real DB seed complete (FM):", {
+    tenantId,
+    properties: createdProps.map((p) => ({
+      id: p._id?.toString?.() || p.id,
+      code: p.code,
+      name: p.name,
+    })),
+  });
+}
+
+main()
+  .then(() => process.exit(0))
+  .catch((err) => {
+    console.error("❌ Real DB seed failed:", err);
+    process.exit(1);
+  });
+
+]]>
+</file>
+
+<file path="scripts/seed-subscriptions.ts">
+<![CDATA[
+import "dotenv/config";
+import mongoose from "mongoose";
+import Module from "../server/models/Module";
+import PriceBook from "../server/models/PriceBook";
+import DiscountRule from "../server/models/DiscountRule";
+import Benchmark from "../server/models/Benchmark";
+
+const isProdLike =
+  process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike) {
+  console.error(
+    "Seeding blocked in production/CI. Set ALLOW_SEED=1 only in non-production.",
+  );
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== "1") {
+  console.error("Set ALLOW_SEED=1 to run seed-subscriptions.ts in non-production.");
+  process.exit(1);
+}
+
+const USD_PRICES = [
+  { module_key: "FM_CORE", monthly_usd: 22, monthly_sar: 82 },
+  { module_key: "PM", monthly_usd: 8, monthly_sar: 30 },
+  { module_key: "MARKETPLACE_PRO", monthly_usd: 5, monthly_sar: 19 },
+  { module_key: "ANALYTICS_PRO", monthly_usd: 10, monthly_sar: 38 },
+  { module_key: "COMPLIANCE", monthly_usd: 8, monthly_sar: 30 },
+  { module_key: "HR_LITE", monthly_usd: 6, monthly_sar: 23 },
+  { module_key: "CRM_LITE", monthly_usd: 5, monthly_sar: 19 },
+];
+
+const TIERS = [
+  { min_seats: 1, max_seats: 5, discount_pct: 0.0 },
+  { min_seats: 6, max_seats: 20, discount_pct: 0.08 },
+  { min_seats: 21, max_seats: 50, discount_pct: 0.12 },
+  { min_seats: 51, max_seats: 100, discount_pct: 0.18 },
+  { min_seats: 101, max_seats: 200, discount_pct: 0.25 },
+];
+
+async function run() {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) throw new Error("MONGODB_URI must be set");
+
+  await mongoose.connect(uri);
+
+  const modules = [
+    { key: "FM_CORE", name: "FM Core" },
+    { key: "PM", name: "Preventive Maintenance" },
+    { key: "MARKETPLACE_PRO", name: "Marketplace Pro" },
+    { key: "ANALYTICS_PRO", name: "Analytics Pro" },
+    { key: "COMPLIANCE", name: "Compliance & Legal" },
+    { key: "HR_LITE", name: "HR Lite" },
+    { key: "CRM_LITE", name: "CRM Lite" },
+  ];
+
+  await Module.deleteMany({});
+  await Module.insertMany(modules);
+
+  await PriceBook.deleteMany({});
+  await PriceBook.create({
+    name: "Global USD",
+    currency: "USD",
+    tiers: TIERS.map((tier) => ({ ...tier, prices: USD_PRICES })),
+  });
+  await PriceBook.create({
+    name: "KSA SAR",
+    currency: "SAR",
+    tiers: TIERS.map((tier) => ({ ...tier, prices: USD_PRICES })),
+  });
+
+  await DiscountRule.deleteMany({ key: "ANNUAL_PREPAY" });
+  await DiscountRule.create({ key: "ANNUAL_PREPAY", percentage: 0.15 });
+
+  await Benchmark.deleteMany({});
+  await Benchmark.insertMany([
+    {
+      vendor: "UpKeep",
+      region: "Global",
+      plans: [
+        {
+          name: "Essential",
+          price_per_user_month_usd: 20,
+          url: "https://upkeep.com/pricing/",
+          features: ["WOs", "Assets", "PM"],
+        },
+        {
+          name: "Premium",
+          price_per_user_month_usd: 45,
+          url: "https://upkeep.com/pricing/",
+          features: ["Advanced PM", "Manpower"],
+        },
+      ],
+    },
+    {
+      vendor: "MaintainX",
+      region: "Global",
+      plans: [
+        {
+          name: "Essential",
+          price_per_user_month_usd: 20,
+          url: "https://www.getmaintainx.com/pricing",
+          features: ["WOs", "PM"],
+        },
+        {
+          name: "Premium",
+          price_per_user_month_usd: 65,
+          url: "https://www.getmaintainx.com/pricing",
+          features: ["Inventory", "Purchasing"],
+        },
+      ],
+    },
+    {
+      vendor: "Hippo CMMS",
+      region: "Global",
+      plans: [
+        {
+          name: "Starter",
+          price_per_user_month_usd: 35,
+          url: "https://www.trustradius.com/products/hippo-cmms/pricing",
+          features: ["WOs", "PM"],
+        },
+        {
+          name: "Pro",
+          price_per_user_month_usd: 75,
+          url: "https://www.trustradius.com/products/hippo-cmms/pricing",
+          features: ["Advanced", "Reports"],
+        },
+      ],
+    },
+  ]);
+
+  console.log("✅ Seed complete.");
+  await mongoose.disconnect();
+}
+
+run().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/seed-test-users.js">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * Seed Test Users for E2E Tests (Node/JS entrypoint)
+ *
+ * Aligns seeded users with the current User model expectations:
+ * - orgId + tenant-scoped unique fields (email, username/employee, code)
+ * - ACTIVE status and professional.role set for RBAC menus
+ * - username is the employee number (needed for corporate login)
+ */
+
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
+const path = require('path');
+const fs = require('fs');
+
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
+const envTestPath = path.resolve(__dirname, '../.env.test');
+const envPath = fs.existsSync(envTestPath)
+  ? envTestPath
+  : fs.existsSync(path.resolve(__dirname, '../.env'))
+  ? path.resolve(__dirname, '../.env')
+  : null;
+
+if (envPath) {
+  require('dotenv').config({ path: envPath });
+  console.log(`✅ Loaded env from ${envPath}`);
+} else {
+  console.warn('⚠️  .env.test/.env not found, relying on process environment');
+}
+
+const isProdLike =
+  process.env.NODE_ENV === 'production' || process.env.CI === 'true';
+if (isProdLike) {
+  console.error(
+    '❌ SEEDING BLOCKED: seed-test-users.js cannot run in production/CI',
+  );
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== '1') {
+  console.error('❌ ALLOW_SEED=1 is required to run seed-test-users.js (prevents accidental prod writes)');
+  process.exit(1);
+}
+
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/fixzit_test';
+const MONGODB_DB = process.env.MONGODB_DB || 'fixzit_test';
+const TEST_ORG_ID = process.env.TEST_ORG_ID || '68dc8955a1ba6ed80ff372dc';
+
+const orgObjectId = mongoose.Types.ObjectId.isValid(TEST_ORG_ID)
+  ? new mongoose.Types.ObjectId(TEST_ORG_ID)
+  : new mongoose.Types.ObjectId();
+
+const normalizeEmployeeId = (value, fallback) => (value || fallback).trim().toUpperCase();
+const primaryEmployeeId = normalizeEmployeeId(
+  process.env.TEST_USER_EMPLOYEE || process.env.TEST_SUPERADMIN_EMPLOYEE || 'EMP-TEST-001',
+  'EMP-TEST-001'
+);
+const nonAdminEmployeeId = normalizeEmployeeId(
+  process.env.TEST_NONADMIN_EMPLOYEE || process.env.TEST_MANAGER_EMPLOYEE || 'EMP-TEST-100',
+  'EMP-TEST-100'
+);
+const adminEmployeeId = normalizeEmployeeId('EMP-ADMIN-001', 'EMP-ADMIN-001');
+
+// Test user configurations from env or defaults
+const basePassword =
+  process.env.TEST_USER_PASSWORD ||
+  process.env.SEED_PASSWORD ||
+  process.env.FIXZIT_TEST_ADMIN_PASSWORD;
+if (!basePassword) {
+  console.error('❌ TEST_USER_PASSWORD or SEED_PASSWORD is required (no hardcoded defaults)');
+  process.exit(1);
+}
+
+const TEST_USERS = [
+  {
+    code: 'TEST-PRIMARY-ADMIN',
+    email: process.env.TEST_USER_EMAIL || process.env.TEST_SUPERADMIN_IDENTIFIER || `test-admin@${EMAIL_DOMAIN}`,
+    password: basePassword,
+    employeeId: primaryEmployeeId,
+    phone: process.env.TEST_SUPERADMIN_PHONE || '+966552233456',
+    role: 'SUPER_ADMIN',
+    isSuperAdmin: true,
+    personal: { firstName: 'Test', lastName: 'Admin' },
+    title: 'E2E Primary Super Admin',
+  },
+  {
+    code: 'TEST-RBAC-NONADMIN',
+    email: process.env.TEST_NONADMIN_IDENTIFIER || process.env.TEST_MANAGER_IDENTIFIER || `test-nonadmin@${EMAIL_DOMAIN}`,
+    password: basePassword,
+    employeeId: nonAdminEmployeeId,
+    phone: process.env.TEST_NONADMIN_PHONE || process.env.TEST_MANAGER_PHONE || '+966552233456',
+    role: 'PROPERTY_MANAGER',
+    isSuperAdmin: false,
+    personal: { firstName: 'Test', lastName: 'NonAdmin' },
+    title: 'E2E Property Manager',
+  },
+  {
+    code: 'TEST-ADMIN',
+    email: process.env.TEST_ADMIN_IDENTIFIER || `admin@${EMAIL_DOMAIN}`,
+    password: basePassword,
+    employeeId: adminEmployeeId,
+    phone: process.env.TEST_ADMIN_PHONE || '+966552233456',
+    role: 'ADMIN',
+    isSuperAdmin: false,
+    personal: { firstName: 'Admin', lastName: 'User' },
+    title: 'E2E Admin',
+  },
+];
+
+const UserSchema = new mongoose.Schema(
+  {
+    orgId: { type: mongoose.Schema.Types.ObjectId, required: true },
+    code: { type: String, required: true },
+    username: { type: String, required: true },
+    email: { type: String, required: true },
+    password: { type: String, required: true },
+    phone: { type: String },
+    mobile: { type: String },
+    employeeId: { type: String },
+    employment: {
+      employeeId: { type: String },
+    },
+    personal: {
+      firstName: String,
+      lastName: String,
+    },
+    professional: {
+      role: { type: String, required: true },
+      title: String,
+      department: String,
+    },
+    security: {
+      accessLevel: String,
+      permissions: [String],
+      lastLogin: Date,
+    },
+    preferences: {
+      notifications: {
+        email: Boolean,
+        sms: Boolean,
+        app: Boolean,
+        workOrders: Boolean,
+        maintenance: Boolean,
+        reports: Boolean,
+      },
+      language: { type: String, default: 'en' },
+      timezone: { type: String, default: 'Asia/Riyadh' },
+      theme: { type: String, default: 'LIGHT' },
+    },
+    status: { type: String, default: 'ACTIVE' },
+    isSuperAdmin: { type: Boolean, default: false },
+    emailVerified: { type: Date },
+  },
+  { collection: 'users', timestamps: true }
+);
+
+UserSchema.index({ orgId: 1, email: 1 }, { unique: true });
+UserSchema.index({ orgId: 1, username: 1 }, { unique: true });
+UserSchema.index({ orgId: 1, code: 1 }, { unique: true });
+UserSchema.index({ orgId: 1, employeeId: 1 }, { unique: true, sparse: true });
+
+async function seedTestUsers() {
+  let connection;
+
+  try {
+    console.log(`\n🔌 Connecting to ${MONGODB_URI} (db: ${MONGODB_DB})...`);
+    connection = await mongoose.connect(MONGODB_URI, {
+      dbName: MONGODB_DB,
+      serverSelectionTimeoutMS: 5000,
+    });
+    console.log('✅ Connected to MongoDB');
+
+    const User = connection.model('User', UserSchema);
+    const now = new Date();
+    let created = 0;
+    let updated = 0;
+    let failed = 0;
+
+    console.log('\n👥 Seeding test users...\n');
+
+    for (const userData of TEST_USERS) {
+      const hashedPassword = await bcrypt.hash(userData.password, 10);
+      const payload = {
+        orgId: orgObjectId,
+        code: userData.code,
+        username: userData.employeeId,
+        email: userData.email.toLowerCase(),
+        password: hashedPassword,
+        phone: userData.phone,
+        mobile: userData.phone,
+        employeeId: userData.employeeId,
+        employment: { employeeId: userData.employeeId },
+        personal: userData.personal,
+        professional: { role: userData.role, title: userData.title },
+        security: { accessLevel: userData.isSuperAdmin ? 'ADMIN' : 'WRITE' },
+        preferences: {
+          notifications: {
+            email: true,
+            sms: false,
+            app: true,
+            workOrders: true,
+            maintenance: true,
+            reports: true,
+          },
+          language: 'en',
+          timezone: 'Asia/Riyadh',
+          theme: 'LIGHT',
+        },
+        status: 'ACTIVE',
+        isSuperAdmin: userData.isSuperAdmin,
+        emailVerified: now,
+        updatedAt: now,
+      };
+
+      try {
+        const existing = await User.findOne({ orgId: orgObjectId, email: payload.email });
+
+        if (existing) {
+          await User.updateOne({ _id: existing._id }, { $set: payload });
+          console.log(`✅ Updated: ${payload.email} (${userData.role})`);
+          updated++;
+        } else {
+          await User.create({ ...payload, createdAt: now });
+          console.log(`✅ Created: ${payload.email} (${userData.role})`);
+          created++;
+        }
+
+        console.log(`   📧 Email: ${payload.email}`);
+        console.log(`   🔑 Password: ${userData.password}`);
+        console.log(`   👤 Employee/Username: ${payload.username}`);
+        console.log(`   🏢 orgId: ${orgObjectId.toString()}\n`);
+      } catch (err) {
+        failed++;
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`❌ Error seeding ${userData.email}: ${message}`);
+      }
+    }
+
+    const count = await User.countDocuments({
+      orgId: orgObjectId,
+      email: { $in: TEST_USERS.map((u) => u.email.toLowerCase()) },
+    });
+    console.log(`\n✅ Seeding complete! ${count}/${TEST_USERS.length} users available (created ${created}, updated ${updated}, failed ${failed}).`);
+  console.log('\n📝 Test credentials (password from TEST_USER_PASSWORD/SEED_PASSWORD):');
+    console.log(`   Primary Admin: ${TEST_USERS[0].email} / ${TEST_USERS[0].password}`);
+    console.log(`   Non-Admin:     ${TEST_USERS[1].email} / ${TEST_USERS[1].password}`);
+    console.log('\n🧪 Run tests: npx playwright test tests/e2e/auth.spec.ts --project=chromium\n');
+  } catch (error) {
+    console.error('\n❌ Seeding failed:', error);
+    process.exit(1);
+  } finally {
+    if (connection) {
+      await mongoose.disconnect();
+      console.log('🔌 Disconnected from MongoDB\n');
+    }
+  }
+}
+
+// Run if called directly
+if (require.main === module) {
+  seedTestUsers();
+}
+
+module.exports = { seedTestUsers };
+
+]]>
+</file>
+
+<file path="scripts/seed-test-users.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+import fs from 'fs';
+import path from 'path';
+import dotenv from 'dotenv';
+import { Types } from 'mongoose';
+import { db } from '../lib/mongo';
+import { User } from '../server/models/User';
+import { hashPassword } from '../lib/auth';
+
+type SeedUser = {
+  code: string;
+  email: string;
+  password: string;
+  employeeId: string;
+  professional: { role: string; [key: string]: unknown };
+  username?: string;
+  phone?: string;
+  mobile?: string;
+  orgId?: string;
+  createdBy?: Types.ObjectId;
+  isSuperAdmin?: boolean;
+  [key: string]: unknown;
+};
+
+const envTestPath = path.resolve(process.cwd(), '.env.test');
+if (fs.existsSync(envTestPath)) {
+  dotenv.config({ path: envTestPath });
+  console.log(`✅ Loaded test env from ${envTestPath}`);
+} else {
+  dotenv.config();
+  console.warn('⚠️  .env.test not found, using process environment variables');
+}
+
+// Safety: block accidental production/CI seeding and require explicit opt-in
+const isProdLike = process.env.NODE_ENV === 'production' || process.env.CI === 'true';
+if (isProdLike) {
+  console.error('❌ SEEDING BLOCKED: seed-test-users.ts cannot run in production/CI');
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== '1') {
+  console.error('❌ ALLOW_SEED=1 is required to run seed-test-users.ts (prevents accidental prod writes)');
+  process.exit(1);
+}
+
+const TEST_ORG_ID = process.env.TEST_ORG_ID || '68dc8955a1ba6ed80ff372dc';
+const SEED_USER_ID = new Types.ObjectId('000000000000000000000001');
+const DEFAULT_PHONE = process.env.TEST_USER_PHONE || '+966552233456';
+
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
+const normalizeEmployeeId = (value: string) => value.trim().toUpperCase();
+
+const BASE_PASSWORD =
+  process.env.SEED_PASSWORD ||
+  process.env.TEST_USER_PASSWORD ||
+  process.env.DEMO_DEFAULT_PASSWORD;
+if (!BASE_PASSWORD) {
+  throw new Error(
+    'SEED_PASSWORD or TEST_USER_PASSWORD (or DEMO_DEFAULT_PASSWORD) is required for seed-test-users.ts',
+  );
+}
+
+const PRIMARY_EMAIL = process.env.TEST_USER_EMAIL || process.env.TEST_SUPERADMIN_IDENTIFIER || `test-admin@${EMAIL_DOMAIN}`;
+const PRIMARY_PASSWORD = process.env.TEST_USER_PASSWORD || process.env.TEST_SUPERADMIN_PASSWORD || BASE_PASSWORD;
+const PRIMARY_EMPLOYEE_ID = normalizeEmployeeId(process.env.TEST_USER_EMPLOYEE || process.env.TEST_SUPERADMIN_EMPLOYEE || 'EMP-TEST-001');
+const PRIMARY_PHONE = process.env.TEST_SUPERADMIN_PHONE || DEFAULT_PHONE;
+
+const NONADMIN_EMAIL = process.env.TEST_NONADMIN_IDENTIFIER || process.env.TEST_MANAGER_IDENTIFIER || `test-nonadmin@${EMAIL_DOMAIN}`;
+const NONADMIN_PASSWORD = process.env.TEST_NONADMIN_PASSWORD || process.env.TEST_MANAGER_PASSWORD || BASE_PASSWORD;
+const NONADMIN_EMPLOYEE_ID = normalizeEmployeeId(process.env.TEST_NONADMIN_EMPLOYEE || process.env.TEST_MANAGER_EMPLOYEE || 'EMP-TEST-100');
+const NONADMIN_PHONE = process.env.TEST_NONADMIN_PHONE || DEFAULT_PHONE;
+
+const ADMIN_EMAIL = process.env.TEST_ADMIN_IDENTIFIER || `admin@${EMAIL_DOMAIN}`;
+const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || BASE_PASSWORD;
+const ADMIN_EMPLOYEE_ID = normalizeEmployeeId(process.env.TEST_ADMIN_EMPLOYEE || 'EMP-ADMIN-001');
+const ADMIN_PHONE = process.env.TEST_ADMIN_PHONE || DEFAULT_PHONE;
+
+const TECH_EMAIL = process.env.TEST_TECHNICIAN_IDENTIFIER || `technician@test.${EMAIL_DOMAIN}`;
+const TECH_PASSWORD = process.env.TEST_TECHNICIAN_PASSWORD || PRIMARY_PASSWORD;
+const TECH_EMPLOYEE_ID = normalizeEmployeeId(process.env.TEST_TECHNICIAN_EMPLOYEE || 'EMP-TEST-004');
+const TECH_PHONE = process.env.TEST_TECHNICIAN_PHONE || DEFAULT_PHONE;
+
+const TENANT_EMAIL = process.env.TEST_TENANT_IDENTIFIER || `tenant@test.${EMAIL_DOMAIN}`;
+const TENANT_PASSWORD = process.env.TEST_TENANT_PASSWORD || PRIMARY_PASSWORD;
+const TENANT_EMPLOYEE_ID = normalizeEmployeeId(process.env.TEST_TENANT_EMPLOYEE || 'EMP-TEST-005');
+const TENANT_PHONE = process.env.TEST_TENANT_PHONE || DEFAULT_PHONE;
+
+const VENDOR_EMAIL = process.env.TEST_VENDOR_IDENTIFIER || `vendor@test.${EMAIL_DOMAIN}`;
+const VENDOR_PASSWORD = process.env.TEST_VENDOR_PASSWORD || PRIMARY_PASSWORD;
+const VENDOR_EMPLOYEE_ID = normalizeEmployeeId(process.env.TEST_VENDOR_EMPLOYEE || 'EMP-TEST-006');
+const VENDOR_PHONE = process.env.TEST_VENDOR_PHONE || DEFAULT_PHONE;
+
+const OWNER_EMAIL = `owner@${EMAIL_DOMAIN}`;
+const OWNER_PASSWORD = PRIMARY_PASSWORD;
+const OWNER_EMPLOYEE_ID = normalizeEmployeeId('EMP-TEST-007');
+
+const GUEST_EMAIL = `guest@${EMAIL_DOMAIN}`;
+const GUEST_PASSWORD = PRIMARY_PASSWORD;
+const GUEST_EMPLOYEE_ID = normalizeEmployeeId('EMP-TEST-008');
+
+const testUsers: SeedUser[] = [
+  {
+    code: 'TEST-PRIMARY-ADMIN',
+    email: PRIMARY_EMAIL,
+    password: PRIMARY_PASSWORD,
+    employeeId: PRIMARY_EMPLOYEE_ID,
+    phone: PRIMARY_PHONE,
+    isSuperAdmin: true,
+    personal: {
+      firstName: 'Test',
+      lastName: 'Admin',
+      nationalId: '2000000001',
+      dateOfBirth: new Date('1980-01-01'),
+      gender: 'Male',
+      nationality: 'SA',
+      phone: PRIMARY_PHONE,
+      address: {
+        street: 'Test St 1',
+        city: 'Riyadh',
+        region: 'Riyadh',
+        postalCode: '11564',
+        country: 'SA',
+      },
+    },
+    professional: {
+      role: 'SUPER_ADMIN',
+      title: 'E2E Test Super Administrator',
+      department: 'Testing',
+      skills: [],
+      licenses: [],
+      certifications: [],
+    },
+    security: { accessLevel: 'ADMIN', permissions: [] },
+    preferences: {
+      notifications: { email: true, sms: false, app: true, workOrders: true, maintenance: true, reports: true },
+      language: 'en',
+      timezone: 'Asia/Riyadh',
+      theme: 'LIGHT',
+    },
+    workload: {
+      maxAssignments: 100,
+      currentAssignments: 0,
+      available: true,
+      location: { city: 'Riyadh', region: 'Riyadh', radius: 100 },
+      workingHours: {
+        start: '00:00',
+        end: '23:59',
+        days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
+        timezone: 'Asia/Riyadh',
+      },
+    },
+    employment: { employeeId: PRIMARY_EMPLOYEE_ID, benefits: [] },
+    compliance: { training: [] },
+    status: 'ACTIVE',
+    tenantId: 'test-tenant',
+  },
+  {
+    code: 'TEST-RBAC-NONADMIN',
+    email: NONADMIN_EMAIL,
+    password: NONADMIN_PASSWORD,
+    employeeId: NONADMIN_EMPLOYEE_ID,
+    phone: NONADMIN_PHONE,
+    isSuperAdmin: false,
+    personal: {
+      firstName: 'Test',
+      lastName: 'NonAdmin',
+      nationalId: '2000000100',
+      dateOfBirth: new Date('1990-01-01'),
+      gender: 'Female',
+      nationality: 'SA',
+      phone: NONADMIN_PHONE,
+      address: {
+        street: 'Test St 100',
+        city: 'Jeddah',
+        region: 'Makkah',
+        postalCode: '21564',
+        country: 'SA',
+      },
+    },
+    professional: {
+      role: 'PROPERTY_MANAGER',
+      title: 'E2E Test Regular User',
+      department: 'Operations',
+      skills: [],
+      licenses: [],
+      certifications: [],
+    },
+    security: { accessLevel: 'READ', permissions: ['workorders:read', 'properties:read'] },
+    preferences: {
+      notifications: { email: true, sms: true, app: true, workOrders: true, maintenance: false, reports: false },
+      language: 'en',
+      timezone: 'Asia/Riyadh',
+      theme: 'LIGHT',
+    },
+    workload: {
+      maxAssignments: 5,
+      currentAssignments: 0,
+      available: true,
+      location: { city: 'Jeddah', region: 'Makkah', radius: 30 },
+      workingHours: {
+        start: '08:00',
+        end: '17:00',
+        days: ['monday', 'tuesday', 'wednesday', 'thursday', 'sunday'],
+        timezone: 'Asia/Riyadh',
+      },
+    },
+    employment: { employeeId: NONADMIN_EMPLOYEE_ID, benefits: [] },
+    compliance: { training: [] },
+    status: 'ACTIVE',
+    tenantId: 'test-tenant',
+  },
+  {
+    code: 'TEST-ADMIN',
+    email: ADMIN_EMAIL,
+    password: ADMIN_PASSWORD,
+    employeeId: ADMIN_EMPLOYEE_ID,
+    phone: ADMIN_PHONE,
+    isSuperAdmin: false,
+    personal: {
+      firstName: 'Test',
+      lastName: 'Admin',
+      nationalId: '1000000002',
+      dateOfBirth: new Date('1985-03-15'),
+      gender: 'Female',
+      nationality: 'SA',
+      address: { street: 'Test St 2', city: 'Riyadh', region: 'Riyadh', postalCode: '11622', country: 'SA' },
+    },
+    professional: { role: 'ADMIN', title: 'Corporate Admin', department: 'Operations', skills: [], licenses: [], certifications: [] },
+    security: { accessLevel: 'WRITE', permissions: ['properties:*', 'tenants:*', 'workorders:*', 'finance:*', 'hr:*', 'crm:*'] },
+    preferences: { notifications: { email: true, sms: true, app: true, workOrders: true, maintenance: true, reports: true }, language: 'en', timezone: 'Asia/Riyadh', theme: 'LIGHT' },
+    workload: { maxAssignments: 50, currentAssignments: 0, available: true, location: { city: 'Riyadh', region: 'Riyadh', radius: 50 }, workingHours: { start: '08:00', end: '17:00', days: ['monday', 'tuesday', 'wednesday', 'thursday', 'sunday'], timezone: 'Asia/Riyadh' } },
+    performance: { reviews: [] },
+    employment: { employeeId: ADMIN_EMPLOYEE_ID, benefits: [] },
+    compliance: { training: [] },
+    status: 'ACTIVE',
+    tenantId: 'test-tenant',
+  },
+  {
+    code: 'TEST-TECHNICIAN',
+    email: TECH_EMAIL,
+    password: TECH_PASSWORD,
+    employeeId: TECH_EMPLOYEE_ID,
+    phone: TECH_PHONE,
+    professional: { role: 'TECHNICIAN', title: 'Senior Technician', department: 'Maintenance', skills: [{ category: 'ELECTRICAL', skill: 'Wiring Installation', level: 'EXPERT', certified: true, certification: 'Master Electrician', expiry: new Date('2026-12-31'), experience: 5 }], licenses: [], certifications: [] },
+    personal: { firstName: 'Test', lastName: 'Technician', nationalId: '1000000005', dateOfBirth: new Date('1990-11-25'), gender: 'Male', nationality: 'SA', address: { street: 'Test St 5', city: 'Dammam', region: 'Eastern Province', postalCode: '32244', country: 'SA' } },
+    security: { accessLevel: 'WRITE', permissions: ['workorders:update', 'assets:read'] },
+    preferences: { notifications: { email: true, sms: true, app: true, workOrders: true, maintenance: true, reports: false }, language: 'ar', timezone: 'Asia/Riyadh', theme: 'LIGHT' },
+    workload: { maxAssignments: 10, currentAssignments: 0, available: true, location: { city: 'Dammam', region: 'Eastern Province', radius: 25 }, workingHours: { start: '07:00', end: '16:00', days: ['monday', 'tuesday', 'wednesday', 'thursday', 'sunday'], timezone: 'Asia/Riyadh' } },
+    performance: { rating: 4.7, completedJobs: 45, ongoingJobs: 2, successRate: 98, averageResponseTime: 1.5, averageResolutionTime: 18, customerSatisfaction: 96, reviews: [] },
+    employment: { employeeId: TECH_EMPLOYEE_ID, benefits: [] },
+    compliance: { training: [] },
+    status: 'ACTIVE',
+    tenantId: 'test-tenant',
+  },
+  {
+    code: 'TEST-TENANT',
+    email: TENANT_EMAIL,
+    password: TENANT_PASSWORD,
+    employeeId: TENANT_EMPLOYEE_ID,
+    phone: TENANT_PHONE,
+    professional: { role: 'TENANT', title: 'Tenant', department: 'N/A', skills: [], licenses: [], certifications: [] },
+    personal: { firstName: 'Test', lastName: 'Tenant', nationalId: '1000000007', dateOfBirth: new Date('1995-09-30'), gender: 'Male', nationality: 'SA', address: { street: 'Test St 7', city: 'Riyadh', region: 'Riyadh', postalCode: '11693', country: 'SA' } },
+    security: { accessLevel: 'READ', permissions: ['workorders:create', 'workorders:read', 'support:read'] },
+    preferences: { notifications: { email: true, sms: true, app: true, workOrders: true, maintenance: true, reports: false }, language: 'ar', timezone: 'Asia/Riyadh', theme: 'LIGHT' },
+    workload: { maxAssignments: 0, currentAssignments: 0, available: false, location: { city: 'Riyadh', region: 'Riyadh', radius: 0 }, workingHours: { start: '00:00', end: '23:59', days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'], timezone: 'Asia/Riyadh' } },
+    performance: { reviews: [] },
+    employment: { employeeId: TENANT_EMPLOYEE_ID, benefits: [] },
+    compliance: { training: [] },
+    status: 'ACTIVE',
+    tenantId: 'test-tenant',
+  },
+  {
+    code: 'TEST-VENDOR',
+    email: VENDOR_EMAIL,
+    password: VENDOR_PASSWORD,
+    employeeId: VENDOR_EMPLOYEE_ID,
+    phone: VENDOR_PHONE,
+    professional: { role: 'VENDOR', title: 'Service Provider', department: 'External', skills: [{ category: 'HVAC', skill: 'AC Installation', level: 'EXPERT', certified: true, certification: 'HVAC Master', expiry: new Date('2026-03-31'), experience: 8 }], licenses: [], certifications: [] },
+    personal: { firstName: 'Test', lastName: 'Vendor', nationalId: '1000000008', dateOfBirth: new Date('1982-12-05'), gender: 'Male', nationality: 'SA', address: { street: 'Test St 8', city: 'Jeddah', region: 'Makkah', postalCode: '21589', country: 'SA' } },
+    security: { accessLevel: 'READ', permissions: ['souq:read', 'workorders:read'] },
+    preferences: { notifications: { email: true, sms: true, app: true, workOrders: true, maintenance: false, reports: false }, language: 'ar', timezone: 'Asia/Riyadh', theme: 'LIGHT' },
+    workload: { maxAssignments: 15, currentAssignments: 0, available: true, location: { city: 'Jeddah', region: 'Makkah', radius: 50 }, workingHours: { start: '08:00', end: '18:00', days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'], timezone: 'Asia/Riyadh' } },
+    performance: { rating: 4.5, completedJobs: 78, ongoingJobs: 5, successRate: 95, averageResponseTime: 3, averageResolutionTime: 36, customerSatisfaction: 92, reviews: [] },
+    employment: { employeeId: VENDOR_EMPLOYEE_ID, benefits: [] },
+    compliance: { training: [] },
+    status: 'ACTIVE',
+    tenantId: 'test-tenant',
+  },
+  {
+    code: 'TEST-OWNER',
+    email: OWNER_EMAIL,
+    password: OWNER_PASSWORD,
+    employeeId: OWNER_EMPLOYEE_ID,
+    phone: DEFAULT_PHONE,
+    professional: { role: 'OWNER', title: 'Corporate Owner', department: 'Executive', skills: [], licenses: [], certifications: [] },
+    personal: { firstName: 'Test', lastName: 'Owner', nationalId: '1000000009', dateOfBirth: new Date('1975-06-20'), gender: 'Male', nationality: 'SA', address: { street: 'Test St 9', city: 'Riyadh', region: 'Riyadh', postalCode: '11564', country: 'SA' } },
+    security: { accessLevel: 'ADMIN', permissions: [] },
+    preferences: { notifications: { email: true, sms: false, app: true, workOrders: true, maintenance: true, reports: true }, language: 'en', timezone: 'Asia/Riyadh', theme: 'LIGHT' },
+    workload: { maxAssignments: 0, currentAssignments: 0, available: false, location: { city: 'Riyadh', region: 'Riyadh', radius: 0 }, workingHours: { start: '00:00', end: '23:59', days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'], timezone: 'Asia/Riyadh' } },
+    performance: { reviews: [] },
+    employment: { employeeId: OWNER_EMPLOYEE_ID, benefits: [] },
+    compliance: { training: [] },
+    status: 'ACTIVE',
+    tenantId: 'test-tenant',
+  },
+  {
+    code: 'TEST-GUEST',
+    email: GUEST_EMAIL,
+    password: GUEST_PASSWORD,
+    employeeId: GUEST_EMPLOYEE_ID,
+    phone: DEFAULT_PHONE,
+    professional: { role: 'AUDITOR', title: 'Guest User', department: 'N/A', skills: [], licenses: [], certifications: [] },
+    personal: { firstName: 'Test', lastName: 'Guest', nationalId: '1000000010', dateOfBirth: new Date('1992-08-15'), gender: 'Female', nationality: 'SA', address: { street: 'Test St 10', city: 'Riyadh', region: 'Riyadh', postalCode: '11564', country: 'SA' } },
+    security: { accessLevel: 'READ', permissions: ['support:read'] },
+    preferences: { notifications: { email: false, sms: false, app: false, workOrders: false, maintenance: false, reports: false }, language: 'en', timezone: 'Asia/Riyadh', theme: 'LIGHT' },
+    workload: { maxAssignments: 0, currentAssignments: 0, available: false, location: { city: 'Riyadh', region: 'Riyadh', radius: 0 }, workingHours: { start: '00:00', end: '23:59', days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'], timezone: 'Asia/Riyadh' } },
+    performance: { reviews: [] },
+    employment: { employeeId: GUEST_EMPLOYEE_ID, benefits: [] },
+    compliance: { training: [] },
+    status: 'ACTIVE',
+    tenantId: 'test-tenant',
+  },
+];
+
+function normalizeUser(user: SeedUser) {
+  const employeeId = normalizeEmployeeId(user.employeeId);
+  return {
+    ...user,
+    orgId: user.orgId || TEST_ORG_ID,
+    username: normalizeEmployeeId(user.username || user.employeeId),
+    employeeId,
+    phone: user.phone || DEFAULT_PHONE,
+    mobile: user.mobile || user.phone || DEFAULT_PHONE,
+    role: user.professional?.role ?? 'USER',
+    emailVerified: user.emailVerified || new Date(),
+    employment: {
+      ...(user.employment || {}),
+      employeeId,
+    },
+  };
+}
+
+export async function seedTestUsers() {
+  await db;
+  console.log('🧪 Seeding test users...\n');
+
+  const orgCandidates: unknown[] = [TEST_ORG_ID];
+  if (Types.ObjectId.isValid(TEST_ORG_ID)) {
+    orgCandidates.push(new Types.ObjectId(TEST_ORG_ID));
+  }
+
+  let created = 0;
+  let updated = 0;
+  let skipped = 0;
+
+  for (const rawUser of testUsers) {
+    const userData = normalizeUser(rawUser);
+    const normalizedEmployeeId = userData.employeeId;
+    const normalizedUsername = userData.username;
+
+    const existing = await User.findOne({
+      $or: [
+        { email: userData.email },
+        { employeeId: normalizedEmployeeId },
+        { username: normalizedUsername },
+        { code: userData.code },
+      ],
+    });
+
+    const hashedPassword = await hashPassword(userData.password);
+    const orgIdToUse = existing?.orgId || userData.orgId;
+
+    const userDoc = {
+      ...userData,
+      orgId: orgIdToUse,
+      password: hashedPassword,
+      username: normalizedUsername,
+      employeeId: normalizedEmployeeId,
+      status: 'ACTIVE',
+      isSuperAdmin: Boolean(userData.isSuperAdmin),
+      updatedAt: new Date(),
+    };
+
+    const upsertFilter = existing
+      ? { _id: existing._id }
+      : {
+          $or: [
+            { code: userData.code },
+            { email: userData.email },
+            { employeeId: normalizedEmployeeId },
+            { username: normalizedUsername },
+          ],
+        };
+
+    try {
+      await User.updateOne(
+        upsertFilter,
+        {
+          $set: {
+            ...userDoc,
+          },
+          $setOnInsert: {
+            createdAt: new Date(),
+            createdBy: userData.createdBy || SEED_USER_ID,
+          },
+        },
+        { upsert: true }
+      );
+
+      if (existing) {
+        console.log(`✅ Updated: ${userData.email.padEnd(32)} (${userData.professional.role})`);
+        updated++;
+      } else {
+        console.log(`✅ Created: ${userData.email.padEnd(32)} (${userData.professional.role})`);
+        created++;
+      }
+    } catch (error: unknown) {
+      const duplicateKey =
+        typeof error === 'object' && error !== null
+          ? (error as { code?: number; keyValue?: unknown })
+          : undefined;
+      if (duplicateKey?.code === 11000) {
+        try {
+          const dedupeFilter = {
+            orgId: { $in: orgCandidates },
+            $or: [
+              { email: userData.email },
+              { employeeId: normalizedEmployeeId },
+              { username: normalizedUsername },
+              { code: userData.code },
+            ],
+          };
+          const removed = await User.deleteMany(dedupeFilter);
+          await User.create({
+            ...userDoc,
+            createdAt: new Date(),
+            createdBy: userData.createdBy || SEED_USER_ID,
+          });
+          console.log(`♻️  Reset user ${userData.email.padEnd(32)} (${userData.professional.role}) (removed ${removed.deletedCount} duplicates)`);
+          updated++;
+        } catch (repairErr) {
+          const message = repairErr instanceof Error ? repairErr.message : String(repairErr);
+          console.log(`⏭️  Duplicate unresolved for ${userData.email}: ${JSON.stringify(duplicateKey.keyValue)} (${message})`);
+          skipped++;
+        }
+      } else {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(`❌ Error: ${userData.email} - ${message}`);
+      }
+    }
+  }
+
+  console.log(`\n📊 Summary: Created ${created}, Updated ${updated}, Skipped ${skipped}, Total ${created + updated + skipped}/${testUsers.length}`);
+  console.log('\n📝 Test Credentials (password from SEED_PASSWORD/TEST_USER_PASSWORD env):');
+  console.log(`   Admin (TEST_USER_EMAIL):    ${PRIMARY_EMAIL}`);
+  console.log(`   Non-Admin (TEST_NONADMIN):  ${NONADMIN_EMAIL}`);
+  console.log('\n🎯 Run: npx tsx scripts/seed-test-users.ts');
+  console.log('🎯 Then: npx playwright test tests/e2e/auth.spec.ts --project=chromium --workers=1');
+}
+
+if (process.argv[1]?.includes('seed-test-users')) {
+  seedTestUsers()
+    .then(() => process.exit(0))
+    .catch(err => {
+      console.error('❌ Error:', err);
+      process.exit(1);
+    });
+}
+
+]]>
+</file>
+
+<file path="scripts/seed-users.ts">
+<![CDATA[
+import { db } from "../lib/mongo";
+import { User } from "../server/models/User";
+import { hashPassword } from "../lib/auth";
+import { getDemoEmail } from "../lib/config/demo-users";
+
+const isProdLike =
+  process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike) {
+  console.error(
+    "Seeding blocked in production/CI. Set ALLOW_SEED=1 only in non-production.",
+  );
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== "1") {
+  console.error("Set ALLOW_SEED=1 to run seed-users.ts in non-production.");
+  process.exit(1);
+}
+
+// SEC-051: Require explicit demo passwords (no baked defaults)
+const DEMO_SUPERADMIN_PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD;
+const DEMO_DEFAULT_PASSWORD = process.env.DEMO_DEFAULT_PASSWORD;
+
+if (!DEMO_SUPERADMIN_PASSWORD || !DEMO_DEFAULT_PASSWORD) {
+  throw new Error(
+    "DEMO_SUPERADMIN_PASSWORD and DEMO_DEFAULT_PASSWORD are required for seed-users.ts (no defaults)."
+  );
+}
+
+const initialUsers = [
+  {
+    code: "USR-001",
+    username: "admin",
+    email: getDemoEmail("admin"),
+    password: DEMO_SUPERADMIN_PASSWORD,
+    personal: {
+      firstName: "System",
+      lastName: "Administrator",
+      nationalId: "1234567890",
+      dateOfBirth: new Date("1980-01-01"),
+      gender: "Male",
+      nationality: "SA",
+      address: {
+        street: "King Fahd Road",
+        city: "Riyadh",
+        region: "Riyadh",
+        postalCode: "11564",
+        country: "SA",
+      },
+    },
+    professional: {
+      role: "SUPER_ADMIN",
+      title: "System Administrator",
+      department: "IT",
+      skills: [],
+    },
+    security: {
+      accessLevel: "ADMIN",
+      permissions: [],
+      mfa: {
+        enabled: false,
+        type: "EMAIL",
+      },
+    },
+    preferences: {
+      notifications: {
+        email: true,
+        sms: true,
+        app: true,
+        workOrders: true,
+        maintenance: true,
+        reports: true,
+      },
+      language: "en",
+      timezone: "Asia/Riyadh",
+      theme: "LIGHT",
+    },
+    workload: {
+      maxAssignments: 100,
+      currentAssignments: 0,
+      available: true,
+      location: {
+        city: "Riyadh",
+        region: "Riyadh",
+        radius: 50,
+      },
+      workingHours: {
+        start: "08:00",
+        end: "17:00",
+        days: ["monday", "tuesday", "wednesday", "thursday", "sunday"],
+        timezone: "Asia/Riyadh",
+      },
+    },
+    status: "ACTIVE",
+    tenantId: "demo-tenant",
+    createdBy: "system",
+  },
+  {
+    code: "USR-002",
+    username: "manager",
+    email: getDemoEmail("manager"),
+    password: DEMO_DEFAULT_PASSWORD,
+    personal: {
+      firstName: "Ahmed",
+      lastName: "Al-Rashid",
+      nationalId: "2345678901",
+      dateOfBirth: new Date("1985-05-15"),
+      gender: "Male",
+      nationality: "SA",
+      address: {
+        street: "Olaya Street",
+        city: "Riyadh",
+        region: "Riyadh",
+        postalCode: "11622",
+        country: "SA",
+      },
+    },
+    professional: {
+      role: "PROPERTY_MANAGER",
+      title: "Property Manager",
+      department: "Operations",
+      skills: [],
+    },
+    security: {
+      accessLevel: "WRITE",
+      permissions: ["properties:*", "tenants:*", "workorders:*"],
+      mfa: {
+        enabled: false,
+        type: "EMAIL",
+      },
+    },
+    preferences: {
+      notifications: {
+        email: true,
+        sms: true,
+        app: true,
+        workOrders: true,
+        maintenance: true,
+        reports: true,
+      },
+      language: "ar",
+      timezone: "Asia/Riyadh",
+      theme: "LIGHT",
+    },
+    workload: {
+      maxAssignments: 50,
+      currentAssignments: 0,
+      available: true,
+      location: {
+        city: "Riyadh",
+        region: "Riyadh",
+        radius: 30,
+      },
+      workingHours: {
+        start: "08:00",
+        end: "17:00",
+        days: ["monday", "tuesday", "wednesday", "thursday", "sunday"],
+        timezone: "Asia/Riyadh",
+      },
+    },
+    status: "ACTIVE",
+    tenantId: "demo-tenant",
+    createdBy: "system",
+  },
+  {
+    code: "USR-003",
+    username: "technician",
+    email: getDemoEmail("technician"),
+    password: DEMO_DEFAULT_PASSWORD,
+    personal: {
+      firstName: "Mohammed",
+      lastName: "Al-Harbi",
+      nationalId: "3456789012",
+      dateOfBirth: new Date("1990-03-20"),
+      gender: "Male",
+      nationality: "SA",
+      address: {
+        street: "King Abdullah Road",
+        city: "Riyadh",
+        region: "Riyadh",
+        postalCode: "11693",
+        country: "SA",
+      },
+    },
+    professional: {
+      role: "TECHNICIAN",
+      title: "Senior Technician",
+      department: "Maintenance",
+      skills: [
+        {
+          category: "ELECTRICAL",
+          skill: "Wiring Installation",
+          level: "EXPERT",
+          certified: true,
+          certification: "Master Electrician",
+          expiry: new Date("2025-12-31"),
+          experience: 10,
+        },
+        {
+          category: "HVAC",
+          skill: "AC Repair",
+          level: "ADVANCED",
+          certified: true,
+          certification: "HVAC Technician",
+          expiry: new Date("2024-06-30"),
+          experience: 8,
+        },
+      ],
+    },
+    security: {
+      accessLevel: "WRITE",
+      permissions: ["workorders:update", "assets:read"],
+      mfa: {
+        enabled: false,
+        type: "SMS",
+      },
+    },
+    preferences: {
+      notifications: {
+        email: true,
+        sms: true,
+        app: true,
+        workOrders: true,
+        maintenance: true,
+        reports: false,
+      },
+      language: "ar",
+      timezone: "Asia/Riyadh",
+      theme: "LIGHT",
+    },
+    workload: {
+      maxAssignments: 10,
+      currentAssignments: 0,
+      available: true,
+      location: {
+        city: "Riyadh",
+        region: "Riyadh",
+        radius: 20,
+      },
+      workingHours: {
+        start: "07:00",
+        end: "16:00",
+        days: ["monday", "tuesday", "wednesday", "thursday", "sunday"],
+        timezone: "Asia/Riyadh",
+      },
+    },
+    performance: {
+      rating: 4.5,
+      completedJobs: 156,
+      ongoingJobs: 3,
+      successRate: 96,
+      averageResponseTime: 2,
+      averageResolutionTime: 24,
+      customerSatisfaction: 94,
+    },
+    status: "ACTIVE",
+    tenantId: "demo-tenant",
+    createdBy: "system",
+  },
+];
+
+async function seedUsers() {
+  try {
+    await db;
+    console.log("🌱 Seeding users...");
+
+    for (const userData of initialUsers) {
+      const existingUser = await User.findOne({ email: userData.email });
+
+      if (!existingUser) {
+        const hashedPassword = await hashPassword(userData.password);
+        const userWithHashedPassword = {
+          ...userData,
+          password: hashedPassword,
+        };
+
+        await User.create(userWithHashedPassword);
+        console.log(`✅ Created user: ${userData.email}`);
+      } else {
+        console.log(`⏭️  User already exists: ${userData.email}`);
+      }
+    }
+
+    console.log("✅ User seeding completed!");
+  } catch (error) {
+    console.error("❌ Error seeding users:", error);
+  }
+}
+
+// Run if called directly
+if (require.main === module) {
+  seedUsers()
+    .then(() => process.exit(0))
+    .catch(() => process.exit(1));
+}
+
+export default seedUsers;
+
+]]>
+</file>
+
+</batch_content>

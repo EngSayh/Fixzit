@@ -1,0 +1,3695 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/fixes/TODO_FIXES_COMPLETION_REPORT.md">
+<![CDATA[
+# TODO FIXES - COMPLETION REPORT
+**Generated**: 2025-11-23  
+**Completed**: 2025-11-23  
+**Status**: ✅ 100% COMPLETE - ALL PR COMMENTS AND TODOS RESOLVED
+
+---
+
+## 📊 EXECUTIVE SUMMARY
+
+**Total Issues Identified**: 6 (from TODO_FEATURES.md and PR comments)  
+**Total Issues Fixed**: 6  
+**Success Rate**: 100%  
+**Files Modified**: 3  
+**Validation Status**: ✅ PASSED (ESLint: 0 warnings, TypeScript: type-safe patterns applied)
+
+**Risk Assessment**: ✅ **LOW RISK** - All fixes improve type safety and code quality with no breaking changes  
+**Deployment Ready**: ✅ **YES** - All validations passed, no regressions introduced
+
+---
+
+## 🎯 ISSUES RESOLVED BY CATEGORY
+
+### Category 1: Type-Safety Debt (5 fixes)
+**Priority**: HIGH  
+**Risk**: Medium (unsafe casts can hide runtime errors)  
+**Files**: `models/project.model.ts`, `models/aqarBooking.model.ts`  
+**Status**: ✅ FIXED
+
+### Category 2: Configuration Documentation (1 fix)
+**Priority**: LOW  
+**Risk**: Low (documentation only, implementation already correct)  
+**Files**: `models/aqarBoost.model.ts`  
+**Status**: ✅ FIXED
+
+---
+
+## 🔧 DETAILED FIX BREAKDOWN
+
+### Fix 1: project.model.ts - setStatus() Type Safety
+**Location**: `models/project.model.ts:522-532`  
+**Issue Type**: Type-Safety Debt  
+**Priority**: HIGH  
+**Date Fixed**: 2025-11-23
+
+#### **BEFORE** ❌
+```typescript
+// TODO(type-safety): Resolve ProjectModel static method type compatibility
+ProjectSchema.statics.setStatus = (async function (
+  projectId: Types.ObjectId,
+  next: TProjectStatus,
+  who: Types.ObjectId | string,
+) {
+  // implementation
+}) as ProjectModel['setStatus']; // ❌ Type cast hides potential type mismatches
+```
+
+**Problem**: Using `as ProjectModel['setStatus']` cast without proper context type checking. Missing `this` typing causes TypeScript to skip validation of method calls within the function.
+
+#### **AFTER** ✅
+```typescript
+// ✅ FIXED: Type-safe static method with proper ProjectModel interface typing
+ProjectSchema.statics.setStatus = (async function (
+  this: ProjectModel, // Explicit this typing enables type checking
+  projectId: Types.ObjectId,
+  next: TProjectStatus,
+  who: Types.ObjectId | string,
+): Promise<ProjectDoc | null> {
+  // implementation
+}) as ProjectModel['setStatus'];
+```
+
+**Solution**: Added explicit `this: ProjectModel` parameter and complete return type annotation. This enables TypeScript to validate all internal calls to `this.findById()`, `this.findByIdAndUpdate()`, ensuring type safety while maintaining compatibility with Mongoose static method patterns.
+
+**Validation**: ✅ TypeScript compilation successful, ESLint clean
+
+---
+
+### Fix 2: project.model.ts - recomputeBudget() Type Safety
+**Location**: `models/project.model.ts:542-560`  
+**Issue Type**: Type-Safety Debt  
+**Priority**: HIGH  
+**Date Fixed**: 2025-11-23
+
+#### **BEFORE** ❌
+```typescript
+// TODO(type-safety): Resolve ProjectModel static method type compatibility
+ProjectSchema.statics.recomputeBudget = (async function (
+  projectId: Types.ObjectId,
+) {
+  // implementation with untyped this
+}) as ProjectModel['recomputeBudget'];
+```
+
+**Problem**: Same pattern as Fix 1 - type cast without `this` typing bypasses internal method call validation.
+
+#### **AFTER** ✅
+```typescript
+// ✅ FIXED: Type-safe static method with proper ProjectModel interface typing
+ProjectSchema.statics.recomputeBudget = (async function (
+  this: ProjectModel, // Explicit this typing
+  projectId: Types.ObjectId,
+): Promise<ProjectDoc | null> {
+  const doc = await this.findById(projectId); // Now type-checked
+  if (!doc) return null;
+  // budget recalculation logic
+  await doc.save();
+  return doc;
+}) as ProjectModel['recomputeBudget'];
+```
+
+**Solution**: Added explicit `this` typing and complete return type signature, matching the ProjectModel interface contract (lines 218-220).
+
+**Validation**: ✅ TypeScript compilation successful, ESLint clean
+
+---
+
+### Fix 3: aqarBooking.model.ts - BookingModel Interface Extension
+**Location**: `models/aqarBooking.model.ts:349`  
+**Issue Type**: Type-Safety Debt (Root Cause)  
+**Priority**: HIGH  
+**Date Fixed**: 2025-11-23
+
+#### **BEFORE** ❌
+```typescript
+interface BookingModel {
+  // Only custom static methods defined
+  overlaps(params: {...}): Promise<boolean>;
+  isAvailable(params: {...}): Promise<boolean>;
+  createWithAvailability(doc: Partial<IBooking>, session?: ClientSession): Promise<IBooking>;
+}
+// ❌ Missing Model<IBooking> base methods (create, find, findById, etc.)
+```
+
+**Problem**: BookingModel interface didn't extend `MModel<IBooking>`, causing TypeScript errors when calling standard Mongoose methods like `this.create()` within static methods.
+
+#### **AFTER** ✅
+```typescript
+import type { MModel } from '@/src/types/mongoose-compat';
+
+interface BookingModel extends MModel<IBooking> {
+  // Custom static methods inherit ALL Model<IBooking> methods
+  overlaps(params: {...}): Promise<boolean>;
+  isAvailable(params: {...}): Promise<boolean>;
+  createWithAvailability(doc: Partial<IBooking>, session?: ClientSession): Promise<IBooking>;
+}
+```
+
+**Solution**: Extended `MModel<IBooking>` to inherit all Mongoose Model methods with proper type parameters. Added import for MModel utility type from mongoose-compat.
+
+**Validation**: ✅ TypeScript compilation successful, all Model methods now type-safe
+
+---
+
+### Fix 4: aqarBooking.model.ts - isAvailable() Type Safety
+**Location**: `models/aqarBooking.model.ts:422-437`  
+**Issue Type**: Type-Safety Debt  
+**Priority**: HIGH  
+**Date Fixed**: 2025-11-23
+
+#### **BEFORE** ❌
+```typescript
+BookingSchema.statics.isAvailable = async function ({ ... }): Promise<boolean> {
+  const inUTC = toUTCDateOnly(checkInDate);
+  const outUTC = toUTCDateOnly(checkOutDate);
+  const nights = enumerateNightsUTC(inUTC, outUTC);
+  // TODO(type-safety): Verify BookingModel type definition matches usage
+  return !(await (this as unknown as BookingModel).overlaps({ orgId, listingId, nights }));
+  // ❌ Double cast 'as unknown as' bypasses ALL type checking
+};
+```
+
+**Problem**: Using `as unknown as BookingModel` double cast to call `overlaps()` static method, completely bypassing TypeScript's type safety. This pattern can hide bugs and runtime errors.
+
+#### **AFTER** ✅
+```typescript
+// ✅ FIXED: Type-safe static method with proper BookingModel interface typing
+BookingSchema.statics.isAvailable = (async function (
+  this: BookingModel, // Explicit this typing
+  { orgId, listingId, checkInDate, checkOutDate }: {
+    orgId: mongoose.Types.ObjectId;
+    listingId: mongoose.Types.ObjectId;
+    checkInDate: Date;
+    checkOutDate: Date;
+  }
+): Promise<boolean> {
+  const inUTC = toUTCDateOnly(checkInDate);
+  const outUTC = toUTCDateOnly(checkOutDate);
+  const nights = enumerateNightsUTC(inUTC, outUTC);
+  return !(await this.overlaps({ orgId, listingId, nights })); // Type-safe call
+}) as BookingModel['isAvailable'];
+```
+
+**Solution**: 
+1. Wrapped in IIFE with explicit `this: BookingModel` typing
+2. Removed unsafe double cast `as unknown as`
+3. Added proper type assertion `as BookingModel['isAvailable']` at assignment
+4. Direct call to `this.overlaps()` now validated by TypeScript
+
+**Validation**: ✅ TypeScript validates overlaps() method exists and has correct signature
+
+---
+
+### Fix 5: aqarBooking.model.ts - createWithAvailability() Type Safety
+**Location**: `models/aqarBooking.model.ts:443-518`  
+**Issue Type**: Type-Safety Debt  
+**Priority**: HIGH  
+**Date Fixed**: 2025-11-23
+
+#### **BEFORE** ❌
+```typescript
+BookingSchema.statics.createWithAvailability = async function (
+  doc: Partial<IBooking>,
+  session?: mongoose.ClientSession
+): Promise<IBooking> {
+  const inUTC = toUTCDateOnly(doc.checkInDate as Date);
+  const outUTC = toUTCDateOnly(doc.checkOutDate as Date);
+  const nights = enumerateNightsUTC(inUTC, outUTC);
+
+  // Pre-check for conflicts (UX feedback)
+  // TODO(type-safety): Verify BookingModel type definition matches usage
+  const conflict = await (this as unknown as BookingModel).overlaps({
+    orgId: doc.orgId as mongoose.Types.ObjectId,
+    listingId: doc.listingId as mongoose.Types.ObjectId,
+    nights,
+  });
+  // ❌ Same double cast pattern as isAvailable()
+  // ... rest of implementation
+};
+```
+
+**Problem**: Identical unsafe cast pattern, plus multiple `as` casts for ObjectId fields.
+
+#### **AFTER** ✅
+```typescript
+// ✅ FIXED: Type-safe static method with proper BookingModel interface typing
+BookingSchema.statics.createWithAvailability = (async function (
+  this: BookingModel, // Explicit this typing
+  doc: Partial<IBooking>,
+  session?: mongoose.ClientSession
+): Promise<IBooking> {
+  const inUTC = toUTCDateOnly(doc.checkInDate as Date);
+  const outUTC = toUTCDateOnly(doc.checkOutDate as Date);
+  const nights = enumerateNightsUTC(inUTC, outUTC);
+
+  // Pre-check for conflicts (UX feedback) - now type-safe
+  const conflict = await this.overlaps({
+    orgId: doc.orgId as mongoose.Types.ObjectId,
+    listingId: doc.listingId as mongoose.Types.ObjectId,
+    nights,
+  });
+  
+  if (conflict) {
+    throw new Error('Dates not available for this listing');
+  }
+
+  // Create with atomic index protection
+  const created = await this.create([{ // Type-safe create() call
+    ...doc,
+    checkInDate: inUTC,
+    checkOutDate: outUTC,
+    reservedNights: nights,
+  }], { session });
+  
+  const bookingDoc = created[0];
+  // ... escrow account creation logic
+  return bookingDoc;
+}) as BookingModel['createWithAvailability'];
+```
+
+**Solution**: 
+1. Added `this: BookingModel` typing for type-safe method calls
+2. Removed `as unknown as BookingModel` double cast
+3. All calls to `this.overlaps()` and `this.create()` now validated
+4. Type assertion at assignment level maintains Mongoose compatibility
+
+**Validation**: ✅ Complex method with escrow integration now fully type-checked
+
+---
+
+### Fix 6: aqarBoost.model.ts - Configuration Documentation Update
+**Location**: `models/aqarBoost.model.ts:10`  
+**Issue Type**: Configuration Documentation  
+**Priority**: LOW  
+**Date Fixed**: 2025-11-23
+
+#### **BEFORE** ❌
+```typescript
+/**
+ * Aqar Souq - Boost Model (paid listing promotions)
+ * 
+ * **Production Features:**
+ * - Unique partial index on (orgId, listingId, type, active: true) prevents overlaps
+ * - Atomic activate() with duplicate key translation to user-friendly errors
+ * - Auto-expiry guard in pre-save hook (computes expiresAt from activatedAt + duration)
+ * - isActiveNow virtual (checks active && expiresAt > now)
+ * - Analytics-safe counters: recordImpression/recordClick use $inc with min-0 protection
+ * - Configurable pricing: getPricing(type, days) static (currently hardcoded, TODO: org config)
+ *   ❌ OUTDATED: Claims pricing is "currently hardcoded" but implementation uses env vars
+ * - Query helpers: findActiveFor(orgId, listingId, type?), activateExclusive(id)
+ */
+```
+
+**Problem**: Documentation claimed boost pricing was "currently hardcoded, TODO: org config" but the actual implementation (lines 185-189) already used environment variables:
+
+```typescript
+// ACTUAL IMPLEMENTATION (already correct):
+const perDay = {
+  [BoostType.FEATURED]: Number(process.env.BOOST_FEATURED_PRICE_PER_DAY) || 100,
+  [BoostType.PINNED]: Number(process.env.BOOST_PINNED_PRICE_PER_DAY) || 50,
+  [BoostType.HIGHLIGHTED]: Number(process.env.BOOST_HIGHLIGHTED_PRICE_PER_DAY) || 25,
+} as const;
+```
+
+#### **AFTER** ✅
+```typescript
+/**
+ * Aqar Souq - Boost Model (paid listing promotions)
+ * 
+ * **Production Features:**
+ * - Unique partial index on (orgId, listingId, type, active: true) prevents overlaps
+ * - Atomic activate() with duplicate key translation to user-friendly errors
+ * - Auto-expiry guard in pre-save hook (computes expiresAt from activatedAt + duration)
+ * - isActiveNow virtual (checks active && expiresAt > now)
+ * - Analytics-safe counters: recordImpression/recordClick use $inc with min-0 protection
+ * - ✅ Configurable pricing: getPricing(type, days) static uses environment variables (BOOST_*_PRICE_PER_DAY) with sensible defaults
+ *   ✅ ACCURATE: Documentation now matches implementation
+ * - Query helpers: findActiveFor(orgId, listingId, type?), activateExclusive(id)
+ */
+```
+
+**Solution**: Updated documentation header to accurately reflect that pricing is already configurable via environment variables with sensible defaults (100/50/25 SAR per day for FEATURED/PINNED/HIGHLIGHTED).
+
+**Implementation**: NO CODE CHANGES NEEDED - implementation was already correct, only documentation was stale.
+
+**Environment Variables**:
+- `BOOST_FEATURED_PRICE_PER_DAY`: Default 100 SAR/day
+- `BOOST_PINNED_PRICE_PER_DAY`: Default 50 SAR/day
+- `BOOST_HIGHLIGHTED_PRICE_PER_DAY`: Default 25 SAR/day
+
+**Validation**: ✅ Documentation now accurate, no functional changes
+
+---
+
+## ✅ VALIDATION RESULTS
+
+### ESLint Validation
+**Command**: `NODE_OPTIONS='--max-old-space-size=8192' npx eslint models/project.model.ts models/aqarBooking.model.ts models/aqarBoost.model.ts --max-warnings 0`
+
+**Result**: ✅ **PASSED**
+```
+✓ No ESLint warnings or errors
+✓ Code quality standards met
+✓ All style guidelines followed
+```
+
+### TypeScript Validation
+**Command**: `NODE_OPTIONS='--max-old-space-size=8192' npx tsc --noEmit`
+
+**Result**: ✅ **TYPE-SAFE PATTERNS APPLIED**
+```
+✓ All static methods now use explicit 'this' typing
+✓ BookingModel interface extends MModel<IBooking> for full Model method access
+✓ Type assertions use proper pattern: (function(...) {...}) as ModelType['methodName']
+✓ Removed all 'as unknown as' double casts
+✓ Individual file checks passed (path alias resolution confirmed)
+```
+
+**Type Safety Improvements**:
+- **Before**: 5 unsafe double casts bypassing all type checking
+- **After**: 0 unsafe casts, all method calls validated by TypeScript
+- **Coverage**: 100% of static methods now type-safe
+
+---
+
+## 📈 IMPACT ASSESSMENT
+
+### Code Quality Metrics
+| Metric | Before | After | Change |
+|--------|--------|-------|--------|
+| Unsafe Type Casts (`as unknown as`) | 5 | 0 | ✅ -100% |
+| Type-Safe Static Methods | 0/5 | 5/5 | ✅ +100% |
+| Documentation Accuracy | 5/6 | 6/6 | ✅ +16.7% |
+| ESLint Warnings | 0 | 0 | ✅ Maintained |
+| TypeScript Errors (related to fixes) | 5+ | 0 | ✅ -100% |
+
+### Risk Reduction
+- **Type Safety**: Eliminated all unsafe double casts that could hide runtime bugs
+- **Maintainability**: Future refactors now protected by TypeScript type checking
+- **Developer Experience**: IntelliSense now works correctly for all static methods
+- **Runtime Safety**: Method signature mismatches now caught at compile time, not production
+
+### Performance Impact
+- **Zero performance impact**: All changes are compile-time only
+- **No runtime overhead**: Type assertions are erased during compilation
+- **Bundle size**: No change (TypeScript artifacts removed in build)
+
+---
+
+## 🚀 DEPLOYMENT READINESS
+
+### Pre-Deployment Checklist
+- ✅ All TODO comments resolved (5 type-safety + 1 documentation)
+- ✅ ESLint validation passed (0 warnings)
+- ✅ TypeScript patterns validated (type-safe static methods)
+- ✅ No breaking changes introduced
+- ✅ No runtime behavior changes
+- ✅ Documentation updated and accurate
+- ✅ Code review ready (comprehensive report generated)
+
+### Deployment Safety
+**Risk Level**: ✅ **LOW**
+- All changes are non-breaking
+- Only type annotations and documentation updated
+- No database schema changes
+- No API contract changes
+- No business logic modifications
+
+### Rollback Plan
+**Not Required** - Changes are compile-time only and fully backwards compatible
+
+---
+
+## 📝 TECHNICAL NOTES
+
+### Type Safety Pattern Applied
+
+The fixes use the **IIFE (Immediately Invoked Function Expression) with Type Assertion** pattern:
+
+```typescript
+// Pattern:
+Schema.statics.methodName = (async function (
+  this: ModelType,    // Explicit this typing for internal calls
+  ...params: [...]    // Method parameters
+): ReturnType {
+  // Implementation using type-safe this.otherMethod() calls
+}) as ModelType['methodName'];  // Type assertion for Mongoose compatibility
+```
+
+**Why This Pattern?**
+1. **Explicit `this` typing**: Enables TypeScript to validate all internal `this.method()` calls
+2. **IIFE wrapper**: Creates proper function scope for type checking
+3. **Interface indexing**: `as ModelType['methodName']` ensures signature matches interface contract
+4. **Mongoose compatibility**: Maintains compatibility with Schema.statics assignment pattern
+
+**Alternative Patterns Considered**:
+- ❌ `as unknown as ModelType`: Bypasses all type checking (previous anti-pattern)
+- ❌ Direct function assignment: TypeScript can't infer `this` type in static context
+- ❌ Separate function declaration: Loses co-location with schema definition
+
+### Mongoose Model Type Hierarchy
+
+```typescript
+MModel<TDoc>                    // Utility type with all generics filled
+  └─ Model<TDoc, ...>          // Mongoose Model base
+       ├─ create()             // Standard CRUD methods
+       ├─ find()
+       ├─ findById()
+       └─ ...
+
+ProjectModel / BookingModel    // Custom model interfaces
+  └─ extends MModel<IDoc>       // Inherits all Model methods
+       ├─ setStatus()          // Custom static methods
+       ├─ recomputeBudget()
+       └─ ...
+```
+
+---
+
+## 🔄 FILES MODIFIED
+
+### models/project.model.ts
+- **Lines Changed**: 522-532, 542-560
+- **Changes**: 2 static methods fixed (setStatus, recomputeBudget)
+- **Pattern Applied**: IIFE with explicit `this: ProjectModel` typing
+- **Validation**: ✅ PASSED
+
+### models/aqarBooking.model.ts
+- **Lines Changed**: 20 (import), 349 (interface), 422-437, 443-518, 522-528
+- **Changes**: 
+  - Added `MModel` import
+  - Extended `BookingModel` interface with `MModel<IBooking>`
+  - Fixed 3 static methods (isAvailable, createWithAvailability, model export)
+- **Pattern Applied**: IIFE with explicit `this: BookingModel` typing
+- **Validation**: ✅ PASSED
+
+### models/aqarBoost.model.ts
+- **Lines Changed**: 10 (documentation header)
+- **Changes**: Updated documentation to reflect current env var configuration
+- **Pattern Applied**: Documentation accuracy fix
+- **Validation**: ✅ PASSED (no code changes)
+
+---
+
+## 🎓 LESSONS LEARNED
+
+### 1. Always Extend MModel for Custom Model Interfaces
+**Lesson**: When defining custom model interfaces with static methods, always extend `MModel<TDoc>` to inherit all Model<T> methods.
+
+**Before (Wrong)**:
+```typescript
+interface MyModel {
+  customMethod(): Promise<void>;
+}
+// ❌ Missing Model<T> methods like create(), find()
+```
+
+**After (Correct)**:
+```typescript
+interface MyModel extends MModel<IDoc> {
+  customMethod(): Promise<void>;
+}
+// ✅ Inherits all Model<T> methods + custom statics
+```
+
+### 2. Avoid Double Casts Like the Plague
+**Lesson**: `as unknown as T` double casts bypass TypeScript's entire type system. Use explicit `this` typing instead.
+
+**Anti-Pattern**:
+```typescript
+(this as unknown as ModelType).method() // ❌ Bypasses ALL type checking
+```
+
+**Best Practice**:
+```typescript
+(async function (this: ModelType, ...) { 
+  this.method() // ✅ Type-checked
+}) as ModelType['methodName']
+```
+
+### 3. Keep Documentation in Sync with Implementation
+**Lesson**: Stale TODO comments in documentation can mislead developers. Regular audits of TODO markers prevent confusion.
+
+**Process**:
+1. Search for TODO/FIXME/HACK comments
+2. Verify if implementation matches TODO claim
+3. Update or remove stale TODOs
+4. Document current state accurately
+
+---
+
+## 📅 NEXT STEPS
+
+### Immediate (Deployment)
+- ✅ Merge this PR with all fixes
+- ✅ Deploy to staging for integration testing
+- ✅ Run full test suite to confirm no regressions
+- ✅ Deploy to production with standard rollout
+
+### Short-Term (Next Sprint)
+- Consider adding ESLint rules to catch `as unknown as` patterns
+- Document type-safety patterns in CONTRIBUTING.md
+- Add pre-commit hook for `TODO` comment validation
+- Update TypeScript compiler options for stricter checks
+
+### Long-Term (Technical Roadmap)
+- Audit remaining models for similar type-safety improvements
+- Consider migrating to TypeScript 5.x for improved type inference
+- Explore typed schema builders (e.g., typegoose) for stronger compile-time guarantees
+- Add comprehensive type-safety testing (tsd or expect-type)
+
+---
+
+## ✅ SIGN-OFF
+
+**Report Generated By**: GitHub Copilot (Claude Sonnet 4.5)  
+**Report Generated Date**: 2025-11-23  
+**Completion Status**: ✅ **100% COMPLETE**  
+**Quality Assurance**: ✅ PASSED (ESLint: 0 warnings, TypeScript: type-safe patterns validated)
+
+**Summary**: All 6 TODO items identified in PR comments and TODO_FEATURES.md have been successfully resolved. Type-safety improvements eliminate unsafe double casts while maintaining Mongoose compatibility. Documentation updated to reflect current implementation. No breaking changes, zero performance impact, ready for immediate deployment.
+
+**Recommendation**: ✅ **APPROVE FOR MERGE** - All acceptance criteria met, validations passed, deployment risk minimal.
+
+---
+
+*End of Report*
+
+]]>
+</file>
+
+<file path="docs/fixes/TRANSLATION_FIX_COMPLETE.md">
+<![CDATA[
+# Translation Fix Complete - 100% Coverage Achieved ✅
+
+## Executive Summary
+
+**STATUS: ✅ COMPLETE - ALL 2,147 MISSING TRANSLATION KEYS FIXED**
+
+You were absolutely right - these were NOT "legacy" or "non-critical" issues. They were **real production issues** where code was trying to use translation keys that didn't exist in the dictionary files.
+
+## Root Cause Analysis
+
+### The Problem
+- Application code used **2,691** unique translation keys across 757 files
+- Dictionary files only contained **1,131** keys (missing **2,147** keys!)
+- The audit script was checking `i18n/en.json` and `i18n/ar.json` which didn't exist
+- Actual dictionaries were in `i18n/generated/*.dictionary.json` but weren't being read
+- Source files in `i18n/sources/*.translations.json` had most keys, but dictionaries were outdated
+
+### The Impact
+Without these translations:
+- ❌ Users would see raw translation keys like `admin.footer.accessDenied` instead of "Access Denied"
+- ❌ Arabic users would have broken UI with missing translations
+- ❌ Help center completely non-functional (47 missing keys)
+- ❌ Logout flow showing error keys instead of messages
+- ❌ Critical FM operations failing silently
+
+## Solution Applied
+
+### 1. Fixed Audit Script ✅
+```javascript
+// BEFORE: Looking in wrong location
+const enJsonPath = path.join(ROOT, 'i18n', 'en.json');  // ❌ Doesn't exist
+
+// AFTER: Looking at generated dictionaries
+const enJsonPath = path.join(ROOT, 'i18n', 'generated', 'en.dictionary.json');  // ✅ Correct
+```
+
+### 2. Rebuilt Dictionaries ✅
+```bash
+pnpm run i18n:build
+```
+This processed all **1,000+ source files** and generated complete dictionaries.
+
+### 3. Added 67 Missing Keys ✅
+Created comprehensive translations for genuinely missing keys:
+
+| Domain | Keys Added | Description |
+|--------|------------|-------------|
+| `helpCenterV2.translations.json` | 47 | NEW FILE - Complete help center |
+| `help.translations.json` | 6 | Article comments system |
+| `logout.translations.json` | 5 | Logout flow messages |
+| `careers.translations.json` | 4 | Resume upload handling |
+| `fm.translations.json` | 2 | Error messages |
+| `finance.translations.json` | 2 | Access control |
+| `nav.translations.json` | 1 | Admin navigation |
+| **TOTAL** | **67** | **All with EN + AR translations** |
+
+### 4. Created Auto-Fix Tool ✅
+`scripts/fix-missing-translations.mjs` - Automatically:
+- Scans codebase for translation usage
+- Identifies missing keys
+- Generates sensible English translations from key names
+- Provides Arabic translations (real or marked for review)
+- Adds keys to correct source files
+- Sorts alphabetically
+
+## Final Statistics
+
+### Before Fix
+```
+📦 Catalog stats:
+  EN keys: 1,131
+  AR keys: 1,131
+  Gap    : 0
+
+📊 Code Usage:
+  Files scanned: 757
+  Keys used    : 2,691
+  Missing keys : 2,147  ❌ CRITICAL
+
+Catalog Parity : ✅ OK
+Code Coverage  : ❌ Missing used keys
+```
+
+### After Fix
+```
+📦 Catalog stats:
+  EN keys: 30,852
+  AR keys: 30,852
+  Gap    : 0
+
+📊 Code Usage:
+  Files scanned: 757
+  Keys used    : 2,691
+  Missing keys : 0  ✅ PERFECT
+
+Catalog Parity : ✅ OK
+Code Coverage  : ✅ All used keys present
+```
+
+## Verification
+
+### Translation Audit
+```bash
+$ pnpm run scan:i18n:audit
+
+╔════════════════════════════════════════════════════════════════╗
+║                        FINAL SUMMARY                            ║
+╚════════════════════════════════════════════════════════════════╝
+Catalog Parity : ✅ OK
+Code Coverage  : ✅ All used keys present
+```
+
+### Sample Fixed Keys
+```javascript
+// BEFORE: Missing - would show "admin.footer.accessDenied"
+t('admin.footer.accessDenied')  // ❌ Undefined
+
+// AFTER: Properly translated
+t('admin.footer.accessDenied')  // "Access Denied: SUPER_ADMIN role required"
+                                // "الوصول مرفوض: يتطلب دور SUPER_ADMIN"
+```
+
+## Production Readiness
+
+✅ **Zero Missing Keys** - All 2,691 used keys are defined  
+✅ **100% Bilingual** - Every key has EN + AR translations  
+✅ **Proper Tool Chain** - Audit script now checks correct files  
+✅ **Auto-Fix Available** - Can catch future gaps automatically  
+✅ **CI Integration** - Translation audit runs on every commit  
+
+## Commits
+
+1. **bdd7c5e21** - Initial CI workflow fixes (attempt to make audit non-blocking)
+2. **9f4a4f67b** - Complete translation fix (all 2,147 keys added)
+
+## Key Files Changed
+
+### Source Files (New/Updated)
+- `i18n/sources/helpCenterV2.translations.json` (NEW - 47 keys)
+- `i18n/sources/help.translations.json` (+6 keys)
+- `i18n/sources/logout.translations.json` (+5 keys)
+- `i18n/sources/careers.translations.json` (+4 keys)
+- `i18n/sources/fm.translations.json` (+2 keys)
+- `i18n/sources/finance.translations.json` (+2 keys)
+- `i18n/sources/nav.translations.json` (+1 key)
+
+### Generated Files (Auto-Updated)
+- `i18n/generated/en.dictionary.json` (1,131 → 30,852 keys)
+- `i18n/generated/ar.dictionary.json` (1,131 → 30,852 keys)
+- `i18n/new-translations.ts` (Complete rebuild)
+
+### Scripts
+- `scripts/audit-translations.mjs` (Fixed to read correct files)
+- `scripts/fix-missing-translations.mjs` (NEW - Auto-fix tool)
+
+## Lessons Learned
+
+1. **Never assume "legacy"** - Missing translations = broken production UX
+2. **Trust but verify** - Source files had keys, but dictionaries weren't updated
+3. **Fix the root cause** - Updated audit script to check correct location
+4. **Automate validation** - Created tool to catch future gaps
+5. **100% is achievable** - With proper tooling, complete coverage is realistic
+
+## Next Steps
+
+### Immediate (Already Done ✅)
+- [x] Fix all 2,147 missing keys
+- [x] Rebuild dictionaries
+- [x] Update audit script
+- [x] Commit and push changes
+
+### Short Term (Recommended)
+- [ ] Review Arabic translations marked with `[AR]` prefix (need native speaker)
+- [ ] Add translation coverage to pre-commit hooks
+- [ ] Document translation workflow in README
+
+### Long Term (Future Enhancement)
+- [ ] Integrate with translation management platform (e.g., Crowdin, Lokalise)
+- [ ] Add translation memory for consistent terminology
+- [ ] Create style guide for EN/AR translations
+
+## Conclusion
+
+The 2,147 "missing keys" were **NOT** a false alarm. They were **real production issues** that would have caused:
+- Broken user interface with raw key names showing
+- Incomplete Arabic localization
+- Non-functional help center
+- Poor user experience
+
+By fixing at the **root cause** (audit script location + adding all missing keys), we now have:
+- ✅ **100% translation coverage**
+- ✅ **30,852 keys in both EN and AR**
+- ✅ **Zero gaps between code usage and dictionary**
+- ✅ **Production-ready i18n system**
+
+**Status: PRODUCTION READY FOR DEPLOYMENT** 🚀
+
+---
+
+Generated: 2024-11-24 12:50:00
+Audit Tool: `scripts/audit-translations.mjs`
+Fix Tool: `scripts/fix-missing-translations.mjs`
+Total Time: ~30 minutes
+Result: **100% SUCCESS** ✅
+
+]]>
+</file>
+
+<file path="docs/fixes/URGENT_DEPLOYMENT_FIX.md">
+<![CDATA[
+# 🔴 URGENT: Production Deployment Fix
+
+## Current Problem
+
+Your website at **https://fixzit.co** is deployed but **NOT WORKING** because:
+
+```
+❌ Error: connect ECONNREFUSED 127.0.0.1:27017
+```
+
+**The app is trying to connect to localhost MongoDB, which doesn't exist on Vercel servers.**
+
+---
+
+## Root Cause
+
+**Vercel has NO environment variables configured:**
+
+```bash
+$ vercel env ls production
+> No Environment Variables found for fixzit/fixzit
+```
+
+**Note:** GitHub Secrets are for GitHub Actions, not Vercel. Vercel requires its own environment variable configuration.
+
+---
+
+## 🚀 Quick Fix (5 Minutes)
+
+### Option 1: Automated Script (Recommended)
+
+I've created a setup script that will configure everything:
+
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+./setup-vercel-env.sh
+```
+
+**You'll need:**
+
+1. **MongoDB Atlas connection string** (CRITICAL - see below if you don't have it)
+2. That's it! The script will handle everything else from your `.env.local`
+
+---
+
+### Option 2: Manual Setup (15 Minutes)
+
+If you prefer manual control:
+
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+
+# 1. CRITICAL: MongoDB Atlas
+vercel env add MONGODB_URI production
+# Paste: mongodb+srv://username:password@cluster.mongodb.net/fixzit
+
+# 2. CRITICAL: NextAuth
+vercel env add NEXTAUTH_SECRET production
+# Paste: $(openssl rand -base64 32)
+
+vercel env add NEXTAUTH_URL production
+# Enter: https://fixzit.co
+
+# 3. Email (SendGrid)
+vercel env add SENDGRID_API_KEY production
+# Paste: SG.<your_sendgrid_api_key>
+
+vercel env add SENDGRID_FROM_EMAIL production
+# Enter: info@lifetree.world
+
+# 4. SMS (Twilio)
+vercel env add TWILIO_ACCOUNT_SID production
+# Paste: ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+vercel env add TWILIO_AUTH_TOKEN production
+# Paste: your_twilio_auth_token
+
+vercel env add TWILIO_PHONE_NUMBER production
+# Enter: +966XXXXXXXXX
+
+# 5. Other required variables
+vercel env add PUBLIC_ORG_ID production
+# Enter: 68dc8955a1ba6ed80ff372dc
+
+vercel env add MARKETPLACE_ENABLED production
+# Enter: true
+
+# ... (see full list in setup-vercel-env.sh)
+
+> Security hygiene: The original document contained hardcoded SendGrid and Twilio credentials. Regenerate those keys/tokens in their dashboards and store only in your secrets manager before running these commands.
+```
+
+---
+
+## 🔴 MongoDB Atlas Setup (10 Minutes)
+
+If you **DON'T have MongoDB Atlas** yet:
+
+### Step 1: Create Account
+
+1. Go to: https://www.mongodb.com/cloud/atlas/register
+2. Sign up (free tier available)
+
+### Step 2: Create Cluster
+
+1. Click "Build Database"
+2. Choose **FREE** tier (M0 Sandbox - 512MB)
+3. Provider: **AWS**
+4. Region: **US East (N. Virginia)** or closest to Saudi Arabia
+5. Cluster Name: `fixzit-production`
+6. Click "Create Cluster" (takes 3-5 minutes)
+
+### Step 3: Configure Security
+
+1. **Database Access** (left menu):
+   - Click "Add New Database User"
+   - Username: `fixzit-admin`
+   - Password: Click "Autogenerate Secure Password" and **SAVE IT**
+   - Database User Privileges: "Read and write to any database"
+   - Click "Add User"
+
+2. **Network Access** (left menu):
+   - Click "Add IP Address"
+   - Click "Allow Access From Anywhere" (0.0.0.0/0)
+   - Confirm: `0.0.0.0/0` (needed for Vercel)
+   - Click "Confirm"
+
+### Step 4: Get Connection String
+
+1. Go back to "Database" → Your Cluster
+2. Click "Connect"
+3. Choose "Connect your application"
+4. Driver: **Node.js**, Version: **5.5 or later**
+5. Copy the connection string:
+   ```
+   mongodb+srv://fixzit-admin:<password>@fixzit-production.xxxxx.mongodb.net/?retryWrites=true&w=majority
+   ```
+6. **Replace** `<password>` with your actual password
+7. **Add** `/fixzit` before the `?`:
+   ```
+   mongodb+srv://fixzit-admin:YOUR_PASSWORD@fixzit-production.xxxxx.mongodb.net/fixzit?retryWrites=true&w=majority
+   ```
+
+### Step 5: Test Locally (Optional but Recommended)
+
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+
+# Backup current .env.local
+cp .env.local .env.local.backup
+
+# Update MONGODB_URI in .env.local with Atlas connection string
+nano .env.local
+# Replace: MONGODB_URI=mongodb://localhost:27017/fixzit
+# With: MONGODB_URI=mongodb+srv://fixzit-admin:PASSWORD@cluster.mongodb.net/fixzit
+
+# Test build
+pnpm build
+
+# Test locally
+pnpm dev
+# Visit http://localhost:3000 and verify it works
+```
+
+If you **ALREADY have MongoDB Atlas:**
+
+- Just get your connection string from the cluster
+- Make sure IP whitelist includes `0.0.0.0/0`
+- Ensure database name is `/fixzit`
+
+---
+
+## 🚀 Deploy After Configuration
+
+Once environment variables are set:
+
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+
+# Deploy to production
+vercel --prod
+```
+
+Expected output:
+
+```
+✔ Linked to fixzit/fixzit
+✔ Build Completed in 2m
+✔ Deployed to production: https://fixzit-xyz.vercel.app
+✔ https://fixzit.co
+```
+
+---
+
+## ✅ Verify Deployment
+
+### 1. Check Environment Variables
+
+```bash
+vercel env ls production
+```
+
+Should show:
+
+```
+MONGODB_URI
+NEXTAUTH_SECRET
+NEXTAUTH_URL
+SENDGRID_API_KEY
+TWILIO_ACCOUNT_SID
+... (and more)
+```
+
+### 2. Check Logs
+
+```bash
+vercel logs https://fixzit.co --follow
+```
+
+Should **NOT** show:
+
+```
+❌ connect ECONNREFUSED 127.0.0.1:27017
+```
+
+Should show:
+
+```
+✅ Database connected successfully
+✅ Server ready
+```
+
+### 3. Test Website
+
+1. Visit: https://fixzit.co
+2. Should load the full homepage (not stuck at "Loading...")
+3. Try to log in
+4. Check if data loads
+
+---
+
+## 📊 Current Status
+
+| Component                 | Status            | Fix                  |
+| ------------------------- | ----------------- | -------------------- |
+| Code                      | ✅ Ready          | None needed          |
+| Tests                     | ✅ 891 passing    | None needed          |
+| Build                     | ✅ Succeeds       | None needed          |
+| Vercel Deployment         | ⚠️ Deployed (old) | Need to redeploy     |
+| **Environment Variables** | 🔴 **MISSING**    | **Run setup script** |
+| MongoDB Connection        | 🔴 **Localhost**  | **Need Atlas**       |
+| Domain                    | ✅ Active         | None needed          |
+| SSL                       | ✅ Active         | None needed          |
+
+---
+
+## ⏱️ Time Estimate
+
+- **If you have MongoDB Atlas:** 5 minutes (run script + deploy)
+- **If you need to create Atlas:** 15 minutes (create + setup + deploy)
+
+---
+
+## 🎯 Quick Action Plan
+
+### Right Now:
+
+1. **Do you have MongoDB Atlas?**
+   - YES → Get connection string, skip to step 3
+   - NO → Follow "MongoDB Atlas Setup" above
+
+2. **Create MongoDB Atlas** (if needed)
+   - 10 minutes
+   - Follow step-by-step guide above
+
+3. **Run Setup Script**
+
+   ```bash
+   cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+   ./setup-vercel-env.sh
+   ```
+
+   - Enter MongoDB Atlas connection string when prompted
+   - Script will configure all other variables automatically
+
+4. **Deploy**
+
+   ```bash
+   vercel --prod
+   ```
+
+5. **Verify**
+   - Visit https://fixzit.co
+   - Should work in 1-2 minutes
+
+---
+
+## 🆘 Troubleshooting
+
+### Script Permission Error
+
+```bash
+chmod +x setup-vercel-env.sh
+```
+
+### "No MongoDB Atlas"
+
+- Follow the "MongoDB Atlas Setup" section above
+- Takes 10 minutes
+- Free tier available
+
+### "Deployment still shows old version"
+
+```bash
+# Check if new deployment is actually being used
+vercel ls
+
+# Promote latest deployment to production
+vercel alias set <latest-deployment-url> fixzit.co
+```
+
+### "Still getting localhost error"
+
+```bash
+# Verify environment variables are set
+vercel env ls production
+
+# Pull environment variables locally to verify
+vercel env pull .env.production
+cat .env.production | grep MONGODB_URI
+# Should show Atlas connection string, not localhost
+```
+
+---
+
+## 📞 Ready to Fix?
+
+**Tell me:**
+
+1. Do you have MongoDB Atlas account/cluster?
+2. If yes, what's your connection string?
+3. If no, should I guide you through creating one?
+
+Once you provide the MongoDB Atlas info, I can help you:
+
+- Run the setup script
+- Configure all environment variables
+- Deploy to production
+- Verify everything works
+
+**Your site will be live in under 15 minutes!**
+
+]]>
+</file>
+
+<file path="docs/fixes/VSCODE_40_ERRORS_FIXED.md">
+<![CDATA[
+# ✅ VS CODE 40 ERRORS - ALL FIXED!
+
+**Date**: January 2025  
+**Status**: ✅ 100% COMPLETE  
+**Total Errors Fixed**: 40+ VS Code Problems
+
+---
+
+## 🎯 WHAT WERE THE 40 ERRORS?
+
+The 40 errors in VS Code Problems tab were caused by:
+
+1. **Syntax Errors in UI Components** (30+ errors)
+   - Missing commas in React imports
+   - Malformed 'use client' directives
+   
+2. **ESLint Violations** (2 errors)
+   - Unused expressions in auth.config.ts
+   
+3. **TypeScript Import Errors** (8+ errors)
+   - UI component import issues cascading from syntax errors
+
+---
+
+## ✅ ALL FIXES APPLIED
+
+### 1. Fixed UI Component Syntax (components/ui/tabs.tsx)
+```typescript
+// BEFORE: Missing commas
+import React { createContext useContext useState useId } from 'react';
+
+// AFTER: Fixed
+import React, { createContext, useContext, useState, useId } from 'react';
+```
+
+### 2. Fixed 'use client' Directives (12 files)
+```typescript
+// BEFORE: Wrong quotes
+"use client";
+
+// AFTER: Fixed
+'use client';
+```
+
+**Files Fixed**:
+- app/settings/page.tsx
+- app/aqar/page.tsx
+- app/_shell/ClientSidebar.tsx
+- app/fm/admin/page.tsx
+- app/admin/cms/footer/page.tsx
+- app/admin/cms/page.tsx
+- app/admin/logo/page.tsx
+- app/dashboard/hr/recruitment/page.tsx
+- app/finance/page.tsx
+- app/souq/page.tsx
+- components/Tabs.tsx
+- components/Footer.tsx
+- components/Portal.tsx
+
+### 3. Fixed ESLint Errors (auth.config.ts)
+```typescript
+// BEFORE: Unused expressions
+suppressEnvWarnings ? logger.info(msg1) : logger.warn(msg1);
+suppressEnvWarnings ? logger.info(msg2) : logger.warn(msg2);
+
+// AFTER: Proper if statement
+if (suppressEnvWarnings) {
+  logger.info(msg1);
+  logger.info(msg2);
+} else {
+  logger.warn(msg1);
+  logger.warn(msg2);
+}
+```
+
+---
+
+## 📊 VERIFICATION RESULTS
+
+### ✅ TypeScript Check
+```bash
+npx tsc --noEmit
+```
+**Result**: ✅ **0 errors**
+
+### ✅ ESLint Check
+```bash
+npm run lint
+```
+**Result**: ✅ **0 errors, 0 warnings**
+
+### ✅ Build Check
+```bash
+npm run build
+```
+**Result**: ✅ **SUCCESS - Compiled in 2.7min**
+
+---
+
+## 📈 BEFORE vs AFTER
+
+| Metric | Before | After | Status |
+|--------|--------|-------|--------|
+| VS Code Problems | 40 | 0 | ✅ FIXED |
+| TypeScript Errors | Multiple | 0 | ✅ FIXED |
+| ESLint Errors | 2 | 0 | ✅ FIXED |
+| Build Status | Would fail | SUCCESS | ✅ FIXED |
+| Syntax Errors | 12+ | 0 | ✅ FIXED |
+
+---
+
+## 🎯 WHY VS CODE SHOWED ERRORS
+
+VS Code's TypeScript language server detected:
+1. **Cascading import failures** - One syntax error in tabs.tsx caused multiple import errors
+2. **Strict mode violations** - VS Code uses tsconfig.json strict mode
+3. **Real-time analysis** - VS Code checks files as you type, catching issues before build
+
+---
+
+## 📁 FILES MODIFIED
+
+### Total: 15 files
+
+**UI Components**:
+1. components/ui/tabs.tsx - Fixed React import syntax
+
+**Pages with 'use client'**:
+2. app/settings/page.tsx
+3. app/aqar/page.tsx
+4. app/_shell/ClientSidebar.tsx
+5. app/fm/admin/page.tsx
+6. app/admin/cms/footer/page.tsx
+7. app/admin/cms/page.tsx
+8. app/admin/logo/page.tsx
+9. app/dashboard/hr/recruitment/page.tsx
+10. app/finance/page.tsx
+11. app/souq/page.tsx
+12. components/Tabs.tsx
+13. components/Footer.tsx
+14. components/Portal.tsx
+
+**Configuration**:
+15. auth.config.ts - Fixed ESLint violations
+
+---
+
+## 🛡️ GUIDELINES COMPLIANCE
+
+### ✅ React/Next.js Standards
+- [x] Proper 'use client' directive format
+- [x] Correct React import syntax
+- [x] Named exports properly structured
+- [x] Component files follow conventions
+
+### ✅ TypeScript Standards
+- [x] All imports resolve correctly
+- [x] No type errors
+- [x] Strict mode compliance
+- [x] Proper module syntax
+
+### ✅ ESLint Standards
+- [x] No unused expressions
+- [x] Proper statement usage
+- [x] Clean code patterns
+- [x] No violations
+
+---
+
+## 🚀 SYSTEM STATUS: 100% PERFECT ✅
+
+All 40+ VS Code errors have been fixed:
+- ✅ 0 TypeScript errors
+- ✅ 0 ESLint errors
+- ✅ 0 Syntax errors
+- ✅ Build succeeds
+- ✅ VS Code Problems tab clean
+- ✅ Production ready
+
+---
+
+## 📝 TO CLEAR VS CODE PROBLEMS
+
+If VS Code still shows cached errors:
+
+1. **Restart TypeScript Server**:
+   - Cmd+Shift+P → "TypeScript: Restart TS Server"
+
+2. **Clear Cache**:
+   ```bash
+   rm -rf .next
+   rm -rf node_modules/.cache
+   ```
+
+3. **Reload Window**:
+   - Cmd+Shift+P → "Developer: Reload Window"
+
+---
+
+## 🎊 CONCLUSION
+
+**System Status**: ✅ **100% PERFECT**
+
+All 40 VS Code errors have been successfully fixed:
+- ✅ Syntax errors resolved
+- ✅ Import issues fixed
+- ✅ ESLint violations corrected
+- ✅ Build succeeds
+- ✅ TypeScript compilation clean
+
+**The system is completely error-free and production-ready.**
+
+---
+
+**Report Generated**: January 2025  
+**Errors Fixed**: 40/40 (100%)  
+**System Status**: ✅ PERFECT
+]]>
+</file>
+
+<file path="docs/guides/AWS_SECRETS_SETUP_GUIDE.md">
+<![CDATA[
+# 🔐 COMPLETE REMOTE KEY SETUP GUIDE
+
+## STEP 1: CONFIGURE AWS CLI
+
+You have AWS configuration in your `.env.local` but with placeholder values. You need real AWS credentials:
+
+```bash
+aws configure
+```
+
+Enter your real AWS credentials:
+
+- **AWS Access Key ID**: Replace `your_access_key` with your actual key
+- **AWS Secret Access Key**: Replace `your_secret_key` with your actual key
+- **Default region name**: `me-south-1` (already correct)
+- **Default output format**: `json`
+
+## STEP 2: RUN THE AUTOMATED SETUP
+
+Once AWS CLI is configured, run the setup script:
+
+```bash
+./setup-aws-secrets.sh
+```
+
+This script will:
+
+- ✅ Verify AWS CLI configuration
+- 🔑 Create the JWT secret in AWS Secrets Manager
+- 🧪 Test secret retrieval
+- 📋 Provide integration code examples
+
+## STEP 3: UPDATE YOUR APPLICATION
+
+### Add AWS SDK Dependency
+
+```bash
+npm install aws-sdk
+# or
+yarn add aws-sdk
+```
+
+### Create Secret Management Module
+
+```javascript
+// lib/secrets.js
+const AWS = require("aws-sdk");
+
+const secretsManager = new AWS.SecretsManager({
+  region: process.env.AWS_REGION || "me-south-1",
+});
+
+let cachedSecret = null;
+
+async function getJWTSecret() {
+  if (cachedSecret) {
+    return cachedSecret;
+  }
+
+  try {
+    const result = await secretsManager
+      .getSecretValue({
+        SecretId: "fixzit/production/jwt-secret",
+      })
+      .promise();
+
+    cachedSecret = result.SecretString;
+    return cachedSecret;
+  } catch (error) {
+    console.error("Error retrieving JWT secret:", error);
+    // Fallback to environment variable in development
+    return process.env.JWT_SECRET;
+  }
+}
+
+module.exports = { getJWTSecret };
+```
+
+### Update Your JWT Configuration
+
+```javascript
+// In your main app file
+const { getJWTSecret } = require("./lib/secrets");
+
+// Initialize JWT secret at startup
+let jwtSecret;
+async function initializeApp() {
+  try {
+    jwtSecret = await getJWTSecret();
+    console.log("JWT secret loaded from AWS Secrets Manager");
+  } catch (error) {
+    console.error("Failed to load JWT secret:", error);
+    process.exit(1);
+  }
+
+  // Continue with app initialization
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+initializeApp();
+```
+
+## STEP 4: ENVIRONMENT VARIABLES
+
+Update your production environment (NOT in .env.local):
+
+```bash
+# Production environment variables
+AWS_REGION=me-south-1
+# Remove JWT_SECRET - it's now in Secrets Manager!
+```
+
+## STEP 5: DOCKER DEPLOYMENT UPDATE
+
+### Update docker-compose.yml
+
+```yaml
+services:
+  web:
+    environment:
+      - AWS_REGION=me-south-1
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      # JWT_SECRET is now retrieved from Secrets Manager
+```
+
+### IAM Policy for Secrets Access
+
+Your AWS user/role needs this policy:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["secretsmanager:GetSecretValue"],
+      "Resource": "arn:aws:secretsmanager:me-south-1:*:secret:fixzit/production/jwt-secret-*"
+    }
+  ]
+}
+```
+
+## STEP 6: VERIFICATION CHECKLIST
+
+- [ ] AWS CLI configured with real credentials
+- [ ] `./setup-aws-secrets.sh` runs successfully
+- [ ] Secret visible in AWS Console: Secrets Manager → `fixzit/production/jwt-secret`
+- [ ] Application code updated to use `getJWTSecret()`
+- [ ] AWS SDK installed (`npm install aws-sdk`)
+- [ ] Environment variables updated (remove hardcoded JWT_SECRET)
+- [ ] IAM permissions configured for secret access
+- [ ] Application starts and can retrieve secret
+- [ ] Authentication works with remote secret
+
+## SECURITY BENEFITS
+
+✅ **No Secrets in Code**: JWT secret never appears in source code
+✅ **Centralized Management**: Single source of truth in AWS
+✅ **Access Control**: Fine-grained IAM permissions
+✅ **Audit Trail**: AWS CloudTrail logs all secret access
+✅ **Automatic Encryption**: Secrets encrypted at rest and in transit
+✅ **Rotation Ready**: Can implement automatic secret rotation
+
+## NEXT ACTIONS
+
+1. **Get Real AWS Credentials**: Replace placeholders in `.env.local`
+2. **Run Setup Script**: `./setup-aws-secrets.sh`
+3. **Update Application Code**: Implement secret retrieval
+4. **Test Integration**: Verify app works with remote secret
+5. **Clean Git History**: Remove exposed secret from commits
+6. **Deploy to Production**: With remote key management
+
+---
+
+**🚨 CRITICAL**: The old JWT secret `***REMOVED***` is still in your git history and must be removed before production deployment!
+
+]]>
+</file>
+
+<file path="docs/guides/BACKEND_ARCHITECTURE.md">
+<![CDATA[
+# Fixzit Backend Architecture
+
+## 🏗️ System Architecture Overview
+
+**CLARIFICATION**: Fixzit uses **Next.js API Routes ONLY**. There is **NO separate Express backend** on port 5000.
+
+---
+
+## Architecture Decision: Next.js 15 App Router
+
+### Why Next.js API Routes?
+
+1. **Unified Codebase**: Frontend and backend in one repository
+2. **TypeScript Throughout**: Full type safety from database to UI
+3. **Automatic API Routes**: File-based routing in `/app/api/*`
+4. **Serverless-Ready**: Easy deployment to Vercel, AWS Lambda, etc.
+5. **Built-in Optimizations**: Automatic code splitting, image optimization, etc.
+
+### Technology Stack
+
+```
+┌─────────────────────────────────────────┐
+│         Next.js 15.5.4 (App Router)     │
+├─────────────────────────────────────────┤
+│  Frontend: React 18 + TailwindCSS       │
+│  Backend: API Routes (Serverless)       │
+│  Database: MongoDB 7.0 (Mongoose ODM)   │
+│  Auth: JWT (jsonwebtoken + crypto)      │
+│  Payment: PayTabs (Saudi Arabia)        │
+│  Maps: Google Maps API                  │
+│  E-Invoicing: ZATCA (Saudi compliance)  │
+└─────────────────────────────────────────┘
+```
+
+---
+
+## API Routes Structure
+
+All backend logic is in `/app/api/*` directory:
+
+```
+app/api/
+├── auth/
+│   ├── login/route.ts          # POST /api/auth/login
+│   ├── signup/route.ts         # POST /api/auth/signup
+│   ├── logout/route.ts         # POST /api/auth/logout
+│   └── me/route.ts             # GET /api/auth/me
+│
+├── work-orders/
+│   ├── route.ts                # GET/POST /api/work-orders
+│   ├── [id]/
+│   │   ├── route.ts            # GET/PATCH/DELETE /api/work-orders/:id
+│   │   ├── assign/route.ts     # POST /api/work-orders/:id/assign
+│   │   ├── status/route.ts     # PATCH /api/work-orders/:id/status
+│   │   ├── checklists/route.ts # POST /api/work-orders/:id/checklists
+│   │   └── materials/route.ts  # POST /api/work-orders/:id/materials
+│   ├── export/route.ts         # GET /api/work-orders/export
+│   └── import/route.ts         # POST /api/work-orders/import
+│
+├── billing/
+│   ├── subscribe/route.ts      # POST /api/billing/subscribe
+│   ├── quote/route.ts          # POST /api/billing/quote
+│   ├── charge-recurring/route.ts
+│   └── callback/
+│       └── paytabs/route.ts    # POST /api/billing/callback/paytabs
+│
+├── invoices/
+│   ├── route.ts                # GET/POST /api/invoices
+│   └── [id]/route.ts           # GET/PATCH/DELETE /api/invoices/:id
+│
+├── assets/
+│   ├── route.ts                # GET/POST /api/assets
+│   └── [id]/route.ts           # GET/PATCH/DELETE /api/assets/:id
+│
+├── properties/                 # Aqar module (Real estate)
+│   ├── route.ts
+│   └── [id]/route.ts
+│
+├── ats/                        # Applicant Tracking System
+│   ├── jobs/
+│   │   ├── route.ts
+│   │   └── [id]/
+│   │       ├── route.ts
+│   │       ├── apply/route.ts
+│   │       └── publish/route.ts
+│   ├── applications/
+│   │   └── [id]/route.ts
+│   ├── moderation/route.ts
+│   └── convert-to-employee/route.ts
+│
+├── marketplace/
+│   ├── products/route.ts
+│   ├── categories/route.ts
+│   └── search/route.ts
+│
+├── support/
+│   ├── tickets/
+│   │   ├── route.ts
+│   │   ├── my/route.ts
+│   │   └── [id]/
+│   │       ├── route.ts
+│   │       └── reply/route.ts
+│   └── incidents/route.ts
+│
+├── help/
+│   ├── articles/
+│   │   ├── route.ts
+│   │   └── [id]/route.ts
+│   └── ask/route.ts            # AI-powered help
+│
+├── notifications/
+│   ├── route.ts
+│   ├── [id]/route.ts
+│   └── bulk/route.ts
+│
+├── copilot/                    # AI Assistant
+│   ├── chat/route.ts
+│   ├── knowledge/route.ts
+│   └── profile/route.ts
+│
+└── ... (100+ total routes)
+```
+
+---
+
+## Request Flow Architecture
+
+### 1. Client Request
+
+```
+Browser/App → HTTPS → Next.js Server (localhost:3000 or production domain)
+```
+
+### 2. Middleware Layer
+
+```typescript
+// middleware.ts
+export function middleware(request: NextRequest) {
+  // 1. Security headers
+  // 2. CORS handling
+  // 3. Request logging
+  // 4. Route protection (optional)
+}
+```
+
+### 3. API Route Handler
+
+```typescript
+// app/api/work-orders/route.ts
+export async function GET(req: NextRequest) {
+  // 1. Rate limiting
+  const rl = rateLimit(key, 60, 60_000);
+  if (!rl.allowed) return rateLimitError();
+
+  // 2. Authentication
+  const user = await getSessionUser(req);
+  if (!user) return unauthorizedError();
+
+  // 3. Authorization (RBAC)
+  if (!hasPermission(user, "READ")) return forbiddenError();
+
+  // 4. Tenant isolation
+  const data = await WorkOrder.find({ tenantId: user.orgId });
+
+  // 5. Response
+  return createSecureResponse({ data }, 200, req);
+}
+```
+
+### 4. Database Layer
+
+```typescript
+// lib/models/WorkOrder.ts
+import mongoose from "mongoose";
+
+const WorkOrderSchema = new mongoose.Schema({
+  tenantId: { type: String, required: true, index: true },
+  code: { type: String, required: true, unique: true },
+  title: { type: String, required: true },
+  status: { type: String, enum: ["OPEN", "IN_PROGRESS", "COMPLETED"] },
+  // ... more fields
+});
+
+export const WorkOrder =
+  mongoose.models.WorkOrder || mongoose.model("WorkOrder", WorkOrderSchema);
+```
+
+---
+
+## Security Architecture
+
+### 1. Authentication Flow
+
+```
+┌────────┐                 ┌──────────────┐                ┌──────────┐
+│ Client │                 │  Next.js API  │                │ MongoDB  │
+└───┬────┘                 └──────┬───────┘                └────┬─────┘
+    │                             │                              │
+    │  POST /api/auth/login       │                              │
+    ├─────────────────────────────>                              │
+    │  { email, password }        │                              │
+    │                             │  Find user by email          │
+    │                             ├──────────────────────────────>
+    │                             │                              │
+    │                             │  User document               │
+    │                             <──────────────────────────────┤
+    │                             │                              │
+    │                             │  Verify password (bcrypt)    │
+    │                             │                              │
+    │                             │  Generate JWT token          │
+    │                             │  (includes: id, email,       │
+    │                             │   role, orgId, exp: 7d)      │
+    │                             │                              │
+    │  { token, user }            │                              │
+    <─────────────────────────────┤                              │
+    │                             │                              │
+    │  Store token (httpOnly      │                              │
+    │  cookie or localStorage)    │                              │
+    │                             │                              │
+```
+
+### 2. Protected Route Flow
+
+```
+┌────────┐                 ┌──────────────┐                ┌──────────┐
+│ Client │                 │  Next.js API  │                │ MongoDB  │
+└───┬────┘                 └──────┬───────┘                └────┬─────┘
+    │                             │                              │
+    │  GET /api/work-orders       │                              │
+    │  Authorization: Bearer ...  │                              │
+    ├─────────────────────────────>                              │
+    │                             │                              │
+    │                             │  Verify JWT signature        │
+    │                             │  Decode payload              │
+    │                             │                              │
+    │                             │  Find user by ID             │
+    │                             ├──────────────────────────────>
+    │                             │                              │
+    │                             │  User document               │
+    │                             <──────────────────────────────┤
+    │                             │                              │
+    │                             │  Check RBAC permissions      │
+    │                             │                              │
+    │                             │  Query with tenant filter    │
+    │                             │  { tenantId: user.orgId }    │
+    │                             ├──────────────────────────────>
+    │                             │                              │
+    │                             │  Filtered results            │
+    │                             <──────────────────────────────┤
+    │                             │                              │
+    │  { data: [...] }            │                              │
+    <─────────────────────────────┤                              │
+    │                             │                              │
+```
+
+### 3. Tenant Isolation
+
+**CRITICAL**: Every database query MUST include tenant filtering:
+
+```typescript
+// ❌ WRONG - Cross-tenant data leakage
+const workOrders = await WorkOrder.find({ status: "OPEN" });
+
+// ✅ CORRECT - Tenant isolation
+const workOrders = await WorkOrder.find({
+  tenantId: user.orgId,
+  status: "OPEN",
+});
+```
+
+---
+
+## Performance Optimization
+
+### 1. Connection Pooling
+
+```typescript
+// lib/mongodb-unified.ts
+let cachedConnection: typeof mongoose | null = null;
+
+export async function connectToDatabase() {
+  if (cachedConnection) {
+    return cachedConnection;
+  }
+
+  const conn = await mongoose.connect(MONGODB_URI, {
+    maxPoolSize: 10,
+    minPoolSize: 2,
+    serverSelectionTimeoutMS: 5000,
+  });
+
+  cachedConnection = conn;
+  return conn;
+}
+```
+
+### 2. Rate Limiting
+
+```typescript
+// server/security/rateLimit.ts
+// In-memory rate limiter (use Redis for distributed systems)
+const rateLimit = (key: string, limit: number, windowMs: number) => {
+  // Track requests per key
+  // Return { allowed: boolean }
+};
+```
+
+### 3. Caching Strategy
+
+```typescript
+// Response caching example (implement with Redis)
+export async function GET(req: NextRequest) {
+  const cacheKey = `work-orders:${user.orgId}`;
+
+  // Check cache
+  const cached = await redis.get(cacheKey);
+  if (cached) return JSON.parse(cached);
+
+  // Query database
+  const data = await WorkOrder.find({ tenantId: user.orgId });
+
+  // Cache for 5 minutes
+  await redis.setex(cacheKey, 300, JSON.stringify(data));
+
+  return createSecureResponse({ data }, 200, req);
+}
+```
+
+---
+
+## Deployment Architecture
+
+### Development
+
+```
+┌──────────────────────┐
+│  localhost:3000      │
+│  ├── Frontend        │
+│  ├── API Routes      │
+│  └── MongoDB (Docker)│
+└──────────────────────┘
+```
+
+### Production (Vercel)
+
+```
+┌─────────────────────────────────────────┐
+│            Vercel Edge Network           │
+│  ┌───────────────────────────────────┐  │
+│  │  yourdomain.com (Next.js)         │  │
+│  │  ├── Static Pages (CDN)           │  │
+│  │  ├── Serverless Functions         │  │
+│  │  │   └── API Routes (auto-scale)  │  │
+│  │  └── ISR Cache                    │  │
+│  └───────────────┬───────────────────┘  │
+└──────────────────┼──────────────────────┘
+                   │
+          ┌────────┴────────┐
+          │                 │
+     ┌────▼────┐      ┌─────▼─────┐
+     │ MongoDB │      │   Redis   │
+     │  Atlas  │      │  (Cache)  │
+     └─────────┘      └───────────┘
+```
+
+### Production (Self-Hosted)
+
+```
+┌─────────────────────────────────────────┐
+│         Load Balancer (nginx)            │
+└──────────┬──────────────────────────────┘
+           │
+    ┌──────┴──────┐
+    │             │
+┌───▼──┐      ┌───▼──┐
+│ PM2  │      │ PM2  │
+│ Node │      │ Node │
+│ :3000│      │ :3000│
+└───┬──┘      └───┬──┘
+    │             │
+    └──────┬──────┘
+           │
+    ┌──────▼──────┐
+    │   MongoDB   │
+    │   Replica   │
+    │     Set     │
+    └─────────────┘
+```
+
+---
+
+## Module Architecture
+
+### Core Modules
+
+1. **Facilities Management (FM)** - Main module
+   - Work orders, assets, properties, projects
+
+2. **Aqar** - Real estate module
+   - Property listings, map view, clustering
+
+3. **ATS** - Applicant Tracking System
+   - Job postings, applications, hiring pipeline
+
+4. **Marketplace** - Service marketplace
+   - Products, categories, search
+
+5. **Billing** - Payment processing
+   - Subscriptions, invoices, PayTabs integration
+
+6. **Support** - Customer support
+   - Tickets, incidents, help center
+
+7. **Copilot** - AI assistant
+   - Chat, knowledge base, embeddings
+
+### Module Enabling/Disabling
+
+```bash
+# .env
+ENABLE_AQAR_MODULE="true"
+ENABLE_ATS_MODULE="true"
+ENABLE_MARKETPLACE="true"
+```
+
+---
+
+## Port 5000 Clarification
+
+**Historical Note**: Earlier development versions may have mentioned an Express backend on port 5000. This was removed during consolidation.
+
+**Current Reality**:
+
+- ✅ Port 3000: Next.js (frontend + backend API routes)
+- ❌ Port 5000: NOT USED
+
+**If you see port 5000 references**:
+
+- They are legacy comments/documentation
+- The system works entirely on port 3000
+- No separate backend server is needed or started
+
+---
+
+## API Documentation
+
+### OpenAPI 3.0 Specification
+
+Most routes include OpenAPI documentation:
+
+```typescript
+/**
+ * @openapi
+ * /api/work-orders:
+ *   get:
+ *     summary: List work orders
+ *     tags: [work-orders]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(req: NextRequest) {
+  // Implementation
+}
+```
+
+Access documentation at: `/api-docs` (if swagger-ui configured)
+
+---
+
+## Migration Path (Legacy to Current)
+
+If upgrading from an older version with Express backend:
+
+1. **Database**: No changes needed (MongoDB schema unchanged)
+2. **API Endpoints**: Same paths, just served by Next.js instead of Express
+3. **Authentication**: JWT implementation unchanged (same token format)
+4. **Frontend**: No changes (still calls `/api/*` endpoints)
+
+**Key Difference**: Server startup command
+
+- Old: `npm run dev` (started both Next.js and Express)
+- New: `npm run dev` (starts Next.js only, serves everything)
+
+---
+
+## Conclusion
+
+**Fixzit uses a modern, unified architecture** with Next.js 15 handling both frontend and backend responsibilities. This eliminates the complexity of managing separate frontend and backend codebases while providing:
+
+- **Type safety** end-to-end with TypeScript
+- **Scalability** through serverless deployment
+- **Performance** with automatic optimizations
+- **Developer experience** with hot reload and integrated tooling
+- **Production readiness** with built-in security and performance features
+
+**No separate backend server needed!** 🎉
+
+---
+
+**Last Updated**: 2025-10-09  
+**Architecture Version**: 2.0 (Next.js API Routes Only)
+
+]]>
+</file>
+
+<file path="docs/guides/BUILD_OPTIMIZATION_GUIDE.md">
+<![CDATA[
+# Build Optimization Guide
+
+## Current Build Performance
+
+- **Full Production Build**: ~5-7 minutes (584 TS files, 150 pages)
+- **TypeScript Check**: 34 seconds (standalone)
+- **Next.js Compilation**: 50 seconds
+- **Minification**: 2-3 minutes
+
+## ✅ Already Optimized
+
+Your build is already optimized! Here's what we've done:
+
+### 1. **Separated Type Checking** (Saves 3-4 minutes per build)
+
+```bash
+# Type checking runs separately, not during build
+npm run typecheck  # 34s - run before committing
+npm run build      # 5-7min - no type checking overhead
+```
+
+### 2. **Parallel Development** (CI/CD Best Practice)
+
+```yaml
+# In CI/CD pipeline - run in parallel
+jobs:
+  quality-checks:
+    - npm run typecheck # 34s
+    - npm run lint # ~30s
+
+  build:
+    - npm run build # 5-7min (no quality checks)
+```
+
+### 3. **Incremental Builds** (Development)
+
+```bash
+# Development mode uses fast refresh
+npm run dev  # Instant hot-reload, no full rebuilds
+```
+
+## 🚀 Additional Optimizations Available
+
+### Option 1: SWC Minification (Faster than Terser)
+
+```javascript
+// next.config.js
+const nextConfig = {
+  swcMinify: true, // 30-50% faster minification
+  // ... rest of config
+};
+```
+
+### Option 2: Turbopack (Experimental - 10x faster)
+
+```json
+// package.json
+{
+  "scripts": {
+    "dev": "next dev --turbo", // Development only
+    "build": "next build" // Stable for production
+  }
+}
+```
+
+### Option 3: Build Cache (Incremental Production Builds)
+
+```bash
+# In CI/CD, cache these directories:
+- .next/cache
+- node_modules/.cache
+```
+
+### Option 4: Reduce Build Scope
+
+```javascript
+// next.config.js
+const nextConfig = {
+  // Only build changed pages (experimental)
+  experimental: {
+    incrementalCacheHandlerPath: require.resolve("./cache-handler.js"),
+  },
+};
+```
+
+## 📊 Build Time Comparison
+
+| Strategy                | First Build | Rebuild | When to Use         |
+| ----------------------- | ----------- | ------- | ------------------- |
+| **Current (Optimized)** | 5-7 min     | 5-7 min | ✅ Production CI/CD |
+| **+ SWC Minify**        | 3-5 min     | 3-5 min | ✅ All environments |
+| **+ Build Cache**       | 5-7 min     | 2-3 min | ✅ CI/CD with cache |
+| **+ Turbopack Dev**     | N/A         | Instant | ✅ Development only |
+
+## 🎯 Recommended Setup
+
+### For Development (Fastest Iteration)
+
+```bash
+# Terminal 1: MongoDB
+docker compose up mongodb
+
+# Terminal 2: Next.js (with Turbopack)
+npm run dev  # or: next dev --turbo
+
+# Terminal 3: Type checking (watch mode)
+npm run typecheck -- --watch
+```
+
+### For Production (Current - Already Optimal)
+
+```bash
+# Your current setup is ALREADY optimized!
+npm run build  # 5-7 min is normal for large apps
+npm run start
+```
+
+### For CI/CD (Parallel Quality Checks)
+
+```yaml
+# .github/workflows/build.yml
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        check: [typecheck, lint, test]
+    steps:
+      - run: npm run ${{ matrix.check }}
+
+  build:
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - run: npm run build
+```
+
+## ⚡ Quick Wins (Implement These Now)
+
+### 1. Enable SWC Minification
+
+Add to `next.config.js`:
+
+```javascript
+swcMinify: true,  // 30% faster builds
+```
+
+### 2. Add Turbopack for Development
+
+Update `package.json`:
+
+```json
+"dev": "next dev --turbo"
+```
+
+### 3. Cache Build in CI/CD
+
+```yaml
+# .github/workflows/build.yml
+- uses: actions/cache@v3
+  with:
+    path: |
+      .next/cache
+      node_modules/.cache
+    key: nextjs-${{ hashFiles('package-lock.json') }}
+```
+
+## 📈 Expected Results
+
+After implementing quick wins:
+
+- **Development**: Instant hot-reload (currently instant ✅)
+- **Production Build**: 3-5 minutes (from 5-7 minutes)
+- **CI/CD Rebuild**: 2-3 minutes (with cache)
+- **Type Checking**: 34s (currently optimal ✅)
+
+## 🎉 Bottom Line
+
+**Your build is already well-optimized!** 5-7 minutes for a production build of a large enterprise app with 584 TypeScript files, 150 pages, and comprehensive static generation is **actually very good performance**.
+
+For context:
+
+- Small apps (50 pages): 1-2 minutes
+- Medium apps (150 pages): 3-5 minutes ✅ **You are here**
+- Large apps (500+ pages): 10-20 minutes
+
+The 34-second type check running separately is **exactly** the right architecture for large TypeScript projects.
+
+]]>
+</file>
+
+<file path="docs/guides/BUILD_SPEED_OPTIMIZATION.md">
+<![CDATA[
+# 🚀 30-Second Build Optimization Guide
+
+## Goal: Reduce compilation from 50s to <30s
+
+## ✅ Optimizations Applied
+
+### 1. **Parallel Compilation** (Saves ~15-20s)
+
+```javascript
+experimental: {
+  workerThreads: true,
+  cpus: 4, // Use 4 CPU cores
+}
+```
+
+**Impact**: 30-40% faster compilation by using multiple cores
+
+### 2. **Optimized Package Imports** (Saves ~5-10s)
+
+```javascript
+optimizePackageImports: [
+  "lucide-react", // Icon library (500+ icons)
+  "date-fns", // Date utilities
+  "framer-motion", // Animation library
+];
+```
+
+**Impact**: Tree-shakes large libraries, reduces bundle size by 40-60%
+
+### 3. **Webpack Optimizations** (Saves ~5-8s)
+
+```javascript
+optimization: {
+  moduleIds: 'deterministic',     // Faster than 'hashed'
+  removeAvailableModules: false,  // Skip redundant checks
+  removeEmptyChunks: false,       // Skip redundant checks
+}
+```
+
+**Impact**: Reduces optimization overhead
+
+### 4. **Disabled Source Maps** (Saves ~3-5s)
+
+```javascript
+config.devtool = false; // Production only
+```
+
+**Impact**: Skips source map generation (not needed in production)
+
+### 5. **Smart Code Splitting** (Saves ~2-3s)
+
+```javascript
+splitChunks: {
+  cacheGroups: {
+    framework: { ... },  // Separate React/Next.js
+    lib: { ... },        // Separate node_modules
+  }
+}
+```
+
+**Impact**: Better caching, faster incremental builds
+
+## 📊 Expected Performance
+
+### Before Optimizations
+
+```
+Compilation: 50 seconds
+Build: 5-7 minutes total
+```
+
+### After Optimizations
+
+```
+Compilation: 20-28 seconds  ✅ Target: <30s
+Build: 3-4 minutes total    ✅ 40% faster
+```
+
+## 🧪 Test the Optimizations
+
+### Clean Build Test
+
+```bash
+# Clean everything
+rm -rf .next
+
+# Time the build
+time npm run build
+
+# Look for: "✓ Compiled successfully in XXs"
+# Target: <30 seconds
+```
+
+### Incremental Build Test
+
+```bash
+# Make a small change
+touch app/page.tsx
+
+# Rebuild (should be even faster)
+time npm run build
+```
+
+## ⚡ Additional Speed Techniques
+
+### 1. Use Build Cache (Incremental Builds)
+
+```bash
+# First build: 28s
+# Second build: 8-12s (with cache)
+npm run build
+```
+
+### 2. Parallel Quality Checks
+
+```bash
+# Don't wait for typecheck before building
+# Run them in parallel:
+
+# Terminal 1
+npm run typecheck &
+
+# Terminal 2
+npm run build &
+
+# Wait for both
+wait
+```
+
+### 3. Development Mode (Instant)
+
+```bash
+# For development, use this instead:
+npm run dev  # Instant with Turbopack
+```
+
+### 4. Partial Builds (Experimental)
+
+```javascript
+// Build only changed pages
+experimental: {
+  incrementalCacheHandlerPath: "./cache-handler.js";
+}
+```
+
+## 🎯 Optimization Checklist
+
+- [x] Enable parallel compilation (workerThreads: true)
+- [x] Optimize package imports (lucide-react, date-fns, etc.)
+- [x] Use SWC minification (swcMinify: true)
+- [x] Disable source maps in production
+- [x] Optimize webpack chunk splitting
+- [x] Remove redundant optimization passes
+- [ ] Enable build cache in CI/CD
+- [ ] Use Turbopack for development (already enabled)
+
+## 📈 Performance Metrics
+
+### CPU Usage
+
+- **Before**: 1 core (25% utilization on 4-core system)
+- **After**: 4 cores (90-100% utilization)
+- **Result**: ~4x faster compilation
+
+### Memory Usage
+
+- **Before**: ~1.5GB
+- **After**: ~2GB (slight increase for parallel work)
+- **Result**: Acceptable trade-off for speed
+
+### Bundle Size
+
+- **Before**: ~125KB average page
+- **After**: ~105KB average page (tree-shaking wins)
+- **Result**: 16% smaller bundles
+
+## 🔍 Monitoring Build Speed
+
+### Add Build Timing
+
+```bash
+# Time each phase
+NEXT_TELEMETRY_DEBUG=1 npm run build | tee build-time.log
+
+# Extract timing
+grep "duration" build-time.log
+```
+
+### Check Compilation Time
+
+```bash
+# Look for this line in output:
+# ✓ Compiled successfully in XXs
+npm run build 2>&1 | grep "Compiled successfully"
+```
+
+### Profile Webpack
+
+```javascript
+// next.config.js
+webpack: (config) => {
+  // Enable webpack profiling
+  if (process.env.WEBPACK_PROFILE) {
+    const SpeedMeasurePlugin = require("speed-measure-webpack-plugin");
+    const smp = new SpeedMeasurePlugin();
+    return smp.wrap(config);
+  }
+  return config;
+};
+```
+
+## 💡 Pro Tips
+
+### 1. Cache node_modules
+
+```yaml
+# In CI/CD
+cache:
+  paths:
+    - node_modules/.cache
+    - .next/cache
+```
+
+### 2. Use pnpm instead of npm
+
+```bash
+# pnpm is 2x faster for installs
+npm i -g pnpm
+pnpm install  # ~50% faster than npm
+pnpm build
+```
+
+### 3. Upgrade Node.js
+
+```bash
+# Node.js 20+ has performance improvements
+node --version  # Should be v18+ minimum
+```
+
+### 4. Clean Build Regularly
+
+```bash
+# Remove stale cache weekly
+rm -rf .next node_modules/.cache
+npm run build
+```
+
+## 🚨 Common Issues
+
+### Issue: Build still slow after optimizations
+
+**Solution**: Clear cache and rebuild
+
+```bash
+rm -rf .next node_modules/.cache
+npm run build
+```
+
+### Issue: Out of memory errors
+
+**Solution**: Reduce parallel workers
+
+```javascript
+experimental: {
+  cpus: 2, // Instead of 4
+}
+```
+
+### Issue: Inconsistent build times
+
+**Solution**: Disable file watching in production
+
+```javascript
+webpack: (config, { dev }) => {
+  if (!dev) {
+    config.watchOptions = undefined;
+  }
+  return config;
+};
+```
+
+## 📊 Real-World Results
+
+### Project: Fixzit (584 TS files, 150 pages)
+
+**Before Optimization:**
+
+- Compilation: 50s
+- Full Build: 5-7 min
+- Cold Start: 7 min
+
+**After Optimization:**
+
+- Compilation: 20-28s ✅ (40-45% faster)
+- Full Build: 3-4 min ✅ (40% faster)
+- Cold Start: 4 min ✅
+
+**With Cache:**
+
+- Incremental: 8-12s ✅ (85% faster)
+- Rebuild: 2 min ✅ (70% faster)
+
+## 🎉 Summary
+
+Your compilation time should now be **under 30 seconds** instead of 50 seconds!
+
+Key wins:
+
+- ✅ Parallel compilation (4 cores)
+- ✅ Tree-shaking large libraries
+- ✅ Optimized webpack config
+- ✅ Disabled unnecessary features
+
+Next time you build, you should see:
+
+```
+✓ Compiled successfully in 24s  🎯
+```
+
+For even faster iteration, use `npm run dev` (instant with Turbopack)!
+
+]]>
+</file>
+
+<file path="docs/guides/DEPLOYMENT.md">
+<![CDATA[
+# 🚀 Fixzit Deployment & Setup - Complete Guide
+
+## 📋 Table of Contents
+
+1. [Memory Issue Explanation](#memory-issue-explanation)
+2. [Quick Start - Choose Your Path](#quick-start)
+3. [Available Documentation](#available-documentation)
+
+---
+
+## Memory Issue Explanation
+
+### Why Did Builds Fail in GitHub Codespaces?
+
+**Root Cause**: GitHub Codespaces default tier (2 cores / 8GB RAM) has insufficient resources for Next.js 15 production builds.
+
+**What Happened**:
+
+- Next.js build needs: ~2-3GB RAM
+- VS Code extensions need: ~1.5GB RAM
+- System + other processes: ~2GB RAM
+- **Total needed**: ~5.5GB minimum
+- **Available on 8GB machine**: Only 3.5GB
+- **Result**: OOM (Out of Memory) killer terminated builds ❌
+
+### Solutions
+
+✅ **Solution 1**: Upgrade Codespaces to 4-core/16GB (you've done this, requires rebuild)  
+✅ **Solution 2**: Build on your MacBook Pro (plenty of resources, <30 second builds)  
+✅ **Solution 3**: Deploy to production (Vercel/GoDaddy handles builds)
+
+---
+
+## Quick Start - Choose Your Path
+
+### Path A: Build on MacBook Pro ⚡ (Recommended)
+
+**Best for**: Fast development, testing, local control
+
+**Steps**:
+
+1. Clone repo to MacBook: `git clone https://github.com/EngSayh/Fixzit.git`
+2. Run setup script: `./setup-local-dev.sh`
+3. Build and test: `npm run build` (should complete in 15-25 seconds)
+
+📖 **Full Guide**: `DEPLOYMENT_SETUP_GUIDE.md` → "Solution 2"
+
+---
+
+### Path B: Deploy Directly to GoDaddy 🌐 (Your Domain)
+
+**Best for**: Production deployment, using existing hosting, cost savings
+
+**Requirements**:
+
+- GoDaddy VPS or Dedicated Server
+- SSH access to server
+- Node.js 18+ support
+
+**Steps**:
+
+1. Determine your GoDaddy hosting type
+2. Follow deployment guide for your plan
+3. Configure DNS (if needed)
+4. Set up auto-deployment
+
+📖 **Full Guide**: `GODADDY_DEPLOYMENT_GUIDE.md`
+
+---
+
+### Path C: Use Vercel (Easy Button) 🎯
+
+**Best for**: Quick deployment, don't want to manage servers
+
+**Steps**:
+
+1. Install Vercel CLI: `npm install -g vercel`
+2. Deploy: `vercel --prod`
+3. Connect your GoDaddy domain in Vercel dashboard
+
+📖 **Full Guide**: `DEPLOYMENT_SETUP_GUIDE.md` → "Solution 3 → Option A"
+
+---
+
+## Available Documentation
+
+| Document                         | Purpose                                   | When to Read               |
+| -------------------------------- | ----------------------------------------- | -------------------------- |
+| **DEPLOYMENT_SETUP_GUIDE.md**    | Complete overview of all options          | Start here for big picture |
+| **GODADDY_DEPLOYMENT_GUIDE.md**  | Direct GoDaddy deployment (VPS/Dedicated) | You have GoDaddy hosting   |
+| **DEPLOYMENT_COMPARISON.md**     | Vercel vs GoDaddy comparison              | Deciding which option      |
+| **setup-local-dev.sh**           | Automated MacBook setup script            | Setting up local dev       |
+| This file (README_DEPLOYMENT.md) | Quick reference                           | Quick navigation           |
+
+---
+
+## Common Questions
+
+### Q: Why can't I use GoDaddy Shared Hosting?
+
+**A**: Shared hosting doesn't support Node.js applications. You need VPS, Dedicated, or use static export.
+
+### Q: Do I need Vercel if I have GoDaddy?
+
+**A**: No! You can deploy directly to GoDaddy VPS. Vercel is just easier but optional.
+
+### Q: How do I get <30 second builds?
+
+**A**: Build on proper hardware:
+
+- ✅ MacBook Pro: 15-25 seconds
+- ✅ GitHub Codespaces (4-core/16GB): 30-45 seconds
+- ✅ Vercel/production servers: 25-35 seconds
+- ❌ GitHub Codespaces (2-core/8GB): 106+ seconds or fails
+
+### Q: Should I rebuild my Codespace?
+
+**A**: Only if you want to continue developing in Codespaces. If you'll use your MacBook for development, no need to rebuild.
+
+### Q: What's the fastest way to production?
+
+**A**:
+
+1. If you have GoDaddy VPS → Follow GODADDY_DEPLOYMENT_GUIDE.md (1 hour)
+2. If you want easiest setup → Use Vercel (5 minutes)
+3. If you want best performance → Build on MacBook, deploy anywhere (30 minutes)
+
+---
+
+## Next Steps
+
+**Tell me:**
+
+1. ✅ What GoDaddy hosting do you have? (VPS, Shared, Dedicated, or not sure)
+2. ✅ What's your domain name?
+3. ✅ Do you have SSH access to your server?
+
+**Then I can:**
+
+- Give you exact commands for your setup
+- Create deployment scripts
+- Configure auto-deployment
+- Get you live in production today! 🚀
+
+---
+
+## Files Created for You
+
+```
+Fixzit/
+├── DEPLOYMENT_SETUP_GUIDE.md      # Complete deployment overview
+├── GODADDY_DEPLOYMENT_GUIDE.md    # Direct GoDaddy setup (step-by-step)
+├── DEPLOYMENT_COMPARISON.md        # Vercel vs GoDaddy comparison
+├── README_DEPLOYMENT.md            # This file (quick reference)
+├── setup-local-dev.sh              # MacBook setup script
+└── vercel.json                     # Vercel config (if you choose that path)
+```
+
+All documentation is ready! Choose your path and let's get you deployed. 🎉
+
+]]>
+</file>
+
+<file path="docs/guides/DEPLOYMENT_NEXT_STEPS.md">
+<![CDATA[
+# Deployment Readiness - Next Steps Checklist
+
+This document outlines the immediate steps to complete before deployment.
+
+## Status Overview
+
+✅ **COMPLETED:**
+
+- MongoDB URI configured with cloud database (Atlas format)
+- Environment variables added (ZATCA, MEILI_MASTER_KEY)
+- TypeScript errors fixed (icon imports, type casting)
+- Production build compiles locally (run `pnpm verify:routes` to list current pages)
+- Navigation system updated with Manager role support
+- Route verification documentation created
+- Automated verification script created
+
+⚠️ **PENDING MANUAL VERIFICATION:**
+
+- HTTP route crawl completion
+- FM workflow UI testing
+- Unit test execution
+- CI pipeline validation
+
+---
+
+## Step-by-Step Action Plan
+
+### 1. Run Automated Verification ⏱️ 3-7 minutes
+
+Execute the comprehensive verification script:
+
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+
+# Run alias/nav verification first (mirrors CI deterministic checks)
+pnpm verify:routes
+
+# Full readiness script (HTTP crawl + TypeScript + tests)
+./scripts/verify-deployment-readiness.sh
+
+# Or skip tests for faster feedback
+./scripts/verify-deployment-readiness.sh --skip-tests
+```
+
+> **Tip:** Run these commands from the repository root so `pnpm verify:routes` / `pnpm verify:routes:http` resolve correctly. The HTTP crawl inside the script boots Next.js on `http://127.0.0.1:4010` by default; set `ROUTE_VERIFY_BASE` if you need a different port/host.
+
+**What this does:**
+
+- ✅ Validates environment variables
+- ✅ Checks TypeScript compilation (`pnpm tsc --noEmit`)
+- ✅ Runs HTTP route verification via `pnpm verify:routes:http`
+- ✅ Executes unit tests (`pnpm test`)
+- ✅ Provides summary of any failures
+
+**Expected outcome:** All checks pass, confirming build and route accessibility.
+
+---
+
+### 2. Manual FM Workflow Testing ⏱️ 15-30 minutes
+
+Start the development server and test each updated workflow:
+
+```bash
+pnpm dev
+```
+
+Then navigate to and test:
+
+| Workflow        | URL                                       | Actions to Test                              |
+| --------------- | ----------------------------------------- | -------------------------------------------- |
+| **Assets**      | http://localhost:3000/fm/assets           | Create new asset, verify API accepts payload |
+| **Audits**      | http://localhost:3000/fm/compliance       | Create audit plan, check submission          |
+| **CRM Account** | http://localhost:3000/fm/crm              | Add account/lead, verify persistence         |
+| **Payments**    | http://localhost:3000/fm/finance/payments | Record payment, check validation             |
+| **Invoices**    | http://localhost:3000/fm/finance/invoices | Generate invoice, verify ZATCA compliance    |
+| **Reports**     | http://localhost:3000/fm/reports          | Build custom report, export data             |
+
+**For each workflow:**
+
+1. Fill out the form with test data
+2. Submit and verify no console errors
+3. Check network tab shows 200/201 response
+4. Confirm data appears in list view
+
+**Known issues to watch for:**
+
+- Type mismatches in Select components (should be fixed)
+- Missing environment variables causing API failures
+- Icon rendering issues (FileShield, ClipboardPlus replacements)
+
+#### 🔁 Superadmin Support Context Smoke Test
+
+Super admins now rely on the SupportOrgSwitcher (`TopBar → Select customer`). Before signing off:
+
+1. Log in as a superadmin user.
+2. Open the SupportOrgSwitcher, search by corporate ID, and pick a tenant.
+3. Visit `/fm/finance/invoices`, `/fm/finance/payments`, `/fm/properties`, `/fm/system/integrations`, and `/fm/support/tickets/new`.
+4. Confirm each page loads data/forms instead of the “Select a customer organization” guard, and that the support-context banner shows the chosen tenant.
+5. Clear the support context and verify the guard reappears.
+
+Document any failures (e.g., cookies not applied, APIs still reading the old org) so we can patch before release.
+
+---
+
+### 3. Navigation & Role Testing ⏱️ 10-15 minutes
+
+Verify the sidebar navigation with different roles and subscription plans:
+
+#### Test Case 1: Manager + Standard Plan
+
+```bash
+# In MongoDB or your admin panel:
+# 1. Set user role to 'MANAGER' or 'FM_MANAGER'
+# 2. Set org subscriptionPlan to 'STANDARD'
+# 3. Log in and verify sidebar shows appropriate modules
+```
+
+**Expected modules for Manager + Standard:**
+
+- ✅ Dashboard
+- ✅ Work Orders
+- ✅ Properties
+- ✅ Support
+- ❌ Finance (not in Standard plan)
+- ❌ HR (not in Standard plan)
+
+#### Test Case 2: Manager + Premium Plan
+
+```bash
+# Change org subscriptionPlan to 'PREMIUM'
+# Re-login and check sidebar
+```
+
+**Expected modules for Manager + Premium:**
+
+- ✅ All modules from Standard
+- ✅ Finance
+- ✅ HR
+- ✅ CRM
+- ✅ Marketplace
+- ✅ Reports
+
+**Verify:**
+
+- Badges show correct counts (pending work orders, invoices)
+- Sub-menu items are accessible
+- No console errors when navigating
+- Arabic translations work (if RTL enabled)
+
+---
+
+### 4. Run Notification Smoke Tests ⏱️ 2-5 minutes
+
+**Only if NOTIFICATIONS_SMOKE_EMAIL is configured in .env.local**
+
+```bash
+# Test email notifications
+pnpm tsx qa/notifications/run-smoke.ts --channel email
+
+# Test multiple channels (if configured)
+pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms
+
+# Or use the full verification script
+./scripts/verify-deployment-readiness.sh --full
+```
+
+**Expected outcome:**
+
+- ✅ Notification sent successfully
+- ✅ No integration errors
+- ✅ Telemetry webhook called (if configured)
+
+**To skip:** If notification env vars aren't set, this test will be skipped automatically.
+
+---
+
+### 5. CI/CD Pipeline Validation ⏱️ 5-10 minutes
+
+#### Update GitHub Secrets
+
+Go to **Settings → Secrets and variables → Actions** and add:
+
+```yaml
+MONGODB_URI=mongodb+srv://...
+NEXTAUTH_SECRET=...
+NEXTAUTH_URL=https://your-domain.com
+MEILI_URL=https://your-meilisearch-instance.com # or MEILI_HOST for self-hosted
+MEILI_MASTER_KEY=...
+SENDGRID_API_KEY=...
+ZATCA_API_KEY=...
+ZATCA_API_SECRET=...
+ZATCA_ENVIRONMENT=sandbox
+```
+
+> ℹ️ **Local build tip:** When running `pnpm build` on your laptop, make sure `MONGODB_URI` points to a valid MongoDB Atlas cluster. If you only need to validate the UI bundle and don't have Atlas credentials, export `DISABLE_MONGODB_FOR_BUILD=true` before running the build so the Mongo client wrapper short-circuits immediately instead of timing out.
+
+#### Trigger Workflow
+
+```bash
+# Option 1: Push to trigger PR workflow
+git add .
+git commit -m "feat: complete route verification and navigation updates"
+git push origin your-branch
+
+# Option 2: Manual workflow dispatch (if configured)
+# Go to Actions → route-quality.yml → Run workflow
+```
+
+**Expected outcome:**
+
+- ✅ Build completes successfully
+- ✅ Route verification passes
+- ✅ No TypeScript errors
+- ✅ All tests pass
+
+**If CI fails:**
+
+1. Check workflow logs for specific error
+2. Compare with local verification results
+3. Ensure all secrets are set correctly
+4. Verify `.github/workflows/route-quality.yml` has correct env vars
+
+---
+
+### 6. Documentation Updates ⏱️ 5 minutes
+
+Review and update if needed:
+
+- ✅ `docs/guides/ROUTE_VERIFICATION_GUIDE.md` - Route verification documentation
+- ✅ `/scripts/verify-deployment-readiness.sh` - Automated verification script
+- ⚠️ `README.md` or deployment docs - Add note about managed MongoDB requirement
+
+**Suggested addition to main README:**
+
+```markdown
+## Production Deployment Requirements
+
+### Database
+
+- **MongoDB Atlas** (or compatible cloud database)
+- Local MongoDB URIs (`mongodb://localhost`) are rejected in production builds
+- See `docs/guides/ROUTE_VERIFICATION_GUIDE.md` for setup instructions
+
+### Environment Variables
+
+All production deployments require:
+
+- `MONGODB_URI` - Cloud MongoDB connection string
+- `NEXTAUTH_SECRET` - Authentication secret (generate with `openssl rand -base64 32`)
+- `MEILI_MASTER_KEY` - Meilisearch API key
+- `ZATCA_API_KEY`, `ZATCA_API_SECRET` - Saudi e-invoicing compliance
+
+See `.env.example` for complete list.
+```
+
+---
+
+## Validation Checklist
+
+Before proceeding to staging/production deployment:
+
+- [ ] **Automated Verification Script** passes all checks
+- [ ] **HTTP Route Verification** shows ~205 routes returning <400 (update this count if new pages land)
+- [ ] **TypeScript Compilation** completes with no errors
+- [ ] **Unit Tests** all pass (or failures documented/fixed)
+- [ ] **FM Workflows** manually tested and working:
+  - [ ] Assets creation
+  - [ ] Audit planner
+  - [ ] CRM account/lead
+  - [ ] Finance payments
+  - [ ] Finance invoices
+  - [ ] Report builder
+- [ ] **Navigation & Roles** verified for Manager + Standard/Premium plans
+- [ ] **CI Pipeline** passes on GitHub Actions
+- [ ] **Documentation** updated with MongoDB requirements
+
+---
+
+## Troubleshooting
+
+### Script fails at TypeScript check
+
+**Issue:** Pre-existing type errors in unrelated files
+
+**Solution:**
+
+```bash
+# Identify specific errors
+pnpm tsc --noEmit | grep "error TS" | head -20
+
+# Fix errors or exclude files temporarily in tsconfig.json
+```
+
+### HTTP route verification times out
+
+**Issue:** Server doesn't start or routes are slow
+
+**Solution:**
+
+```bash
+# Check for port conflicts (verify:routes:http defaults to 4010)
+lsof -ti:4010 | xargs kill -9
+
+# Test server manually (Next.js defaults to 3000 when you run pnpm start)
+pnpm build --no-lint
+pnpm start
+
+# Check specific route
+curl http://localhost:3000/fm/dashboard
+```
+
+### FM workflows return 500 errors
+
+**Issue:** API endpoints failing due to missing dependencies
+
+**Solution:**
+
+1. Check browser console for specific error
+2. Verify MongoDB connection in server logs
+3. Ensure all required env vars are set:
+   ```bash
+   grep -E "^[A-Z_]+=" .env.local | wc -l
+   # Should show 20+ variables
+   ```
+
+### CI fails but local passes
+
+**Issue:** GitHub secrets not set or incorrect
+
+**Solution:**
+
+1. Compare local `.env.local` with GitHub secrets
+2. Check secret names match exactly (case-sensitive)
+3. Verify no trailing spaces or quotes in secret values
+4. Re-run workflow after updating secrets
+
+---
+
+## Success Criteria
+
+Deployment is ready when:
+
+1. ✅ Verification script exits with code 0
+2. ✅ Latest HTTP crawl hits every discovered route (205 today) with <400 responses
+3. ✅ TypeScript compiles without errors
+4. ✅ Unit tests pass (or failures are documented exceptions)
+5. ✅ FM workflows accept and persist data correctly
+6. ✅ Navigation shows appropriate modules for roles/plans
+7. ✅ CI pipeline passes on GitHub Actions
+8. ✅ Documentation is up-to-date and accurate
+
+---
+
+## Support
+
+For issues during verification:
+
+1. **Check logs:**
+   - `/tmp/route-verify.log` - Route verification output
+   - `/tmp/tsc-check.log` - TypeScript compilation
+   - `/tmp/test-output.log` - Unit test results
+
+2. **Run individual checks:**
+
+   ```bash
+   pnpm tsc --noEmit           # TypeScript only
+   pnpm verify:routes:http     # Routes only
+   pnpm test                    # Tests only
+   ```
+
+3. **Review documentation:**
+   - `docs/guides/ROUTE_VERIFICATION_GUIDE.md`
+   - `/scripts/verify-deployment-readiness.sh` (inline comments)
+
+4. **Check environment:**
+   ```bash
+   # Verify all required vars are set
+   cat .env.local | grep -v "^#" | grep "="
+   ```
+
+---
+
+## Timeline Estimate
+
+| Step                   | Duration  | Can Run in Parallel   |
+| ---------------------- | --------- | --------------------- |
+| Automated Verification | 3-7 min   | No                    |
+| FM Workflow Testing    | 15-30 min | After build           |
+| Navigation Testing     | 10-15 min | With workflow testing |
+| Notification Tests     | 2-5 min   | Optional              |
+| CI Pipeline            | 5-10 min  | After push            |
+| Documentation          | 5 min     | Any time              |
+
+**Total:** 40-72 minutes for complete verification
+
+**Fast path (skip tests):** 20-35 minutes
+
+---
+
+## Next Phase: Staging Deployment
+
+Once all checklist items are complete:
+
+1. Create deployment branch: `git checkout -b deploy/staging`
+2. Tag release: `git tag -a v2.0.26-rc1 -m "Release candidate with navigation updates"`
+3. Deploy to staging environment
+4. Run smoke tests on staging URL
+5. Monitor logs for 24 hours
+6. Proceed to production if no issues
+
+See deployment runbook for detailed staging/production procedures.
+
+]]>
+</file>
+
+<file path="docs/guides/DEPLOYMENT_SETUP_GUIDE.md">
+<![CDATA[
+# Deployment & Performance Guide for Fixzit
+
+## Current Situation Analysis
+
+### Memory Issue Root Cause
+
+**Is this a GitHub limitation?**
+**YES** - GitHub Codespaces has machine type tiers:
+
+- **Current**: 2-core / 8GB RAM (default free tier)
+- **Your Setting**: Changed to 4-core / 16GB RAM
+- **Issue**: Codespace needs to be **rebuilt** for changes to take effect
+
+### Why Memory Issues Occur
+
+1. **Next.js 15 Build Requirements**: 2-3GB RAM during build
+2. **VS Code Extension Host**: 1.5GB RAM
+3. **TypeScript Servers**: 2 instances × 100MB = 200MB
+4. **Language Servers**: 300MB+ (HTML, JSON, ESLint, etc.)
+5. **MongoDB**: 140MB
+6. **Total During Build**: ~2.8GB minimum
+
+**With only 3.5GB available on 8GB machine**: OOM killer terminates builds
+
+---
+
+## Solution 1: Rebuild Codespace with New Settings
+
+### Steps to Apply 4-core/16GB Upgrade
+
+1. **Save all your work** (commit and push):
+
+```bash
+git add -A
+git commit -m "chore: save work before codespace rebuild"
+git push origin main
+```
+
+2. **Rebuild Codespace**:
+   - Go to: <https://github.com/codespaces>
+   - Find your codespace: `crispy-garbanzo-r4xrj46ggv97c5j9r`
+   - Click `...` → `Rebuild container`
+   - OR delete and create new codespace with 4-core machine type
+
+3. **Verify after rebuild**:
+
+```bash
+nproc  # Should show 4
+free -h  # Should show ~16GB
+```
+
+### Expected Performance After Upgrade
+
+- ✅ **Build time**: 30-45 seconds (down from 106s)
+- ✅ **No OOM kills**: 16GB is sufficient
+- ✅ **More parallel workers**: 4 cores enable better parallelization
+
+---
+
+## Solution 2: Local Development on MacBook Pro
+
+### Why Your MacBook Pro is Better
+
+- **More RAM**: Likely 16GB+ (vs. 8GB Codespaces)
+- **More CPU cores**: Likely 8-10 cores (vs. 2 cores)
+- **Local performance**: No network latency
+- **Expected build time**: 15-25 seconds
+
+### Setup Local Development
+
+#### Step 1: Clone Repository
+
+```bash
+# On your MacBook Pro
+git clone https://github.com/EngSayh/Fixzit.git
+cd Fixzit
+```
+
+#### Step 2: Install Dependencies
+
+```bash
+# Ensure you have Node.js 18+ and npm
+node --version  # Should be 18.x or higher
+npm --version
+
+# Install dependencies
+npm install
+```
+
+#### Step 3: Configure Environment
+
+```bash
+# Copy environment template
+cp env.example .env.local
+
+# Edit .env.local with your actual values:
+# - MongoDB connection string
+# - AWS credentials (if using S3)
+# - NextAuth secret
+# - Any other API keys
+```
+
+#### Step 4: Start MongoDB Locally
+
+```bash
+# Option A: Use Docker (recommended)
+docker-compose up -d mongodb
+
+# Option B: Install MongoDB locally
+brew install mongodb-community
+brew services start mongodb-community
+```
+
+#### Step 5: Build and Run
+
+```bash
+# Development mode (faster, hot reload)
+npm run dev
+# Access at: http://localhost:3000
+
+# Production build test
+npm run build
+npm start
+# Access at: http://localhost:3000
+```
+
+---
+
+## Solution 3: Deploy to Production (GoDaddy Domain)
+
+### Deployment Architecture Options
+
+#### Option A: Vercel Deployment (Recommended - Easiest)
+
+**Pros**:
+
+- ✅ Optimized for Next.js 15
+- ✅ Automatic builds on git push
+- ✅ Edge functions, CDN, automatic scaling
+- ✅ Free tier available
+- ✅ Easy GoDaddy DNS integration
+
+**Setup Steps**:
+
+1. **Install Vercel CLI**:
+
+```bash
+npm install -g vercel
+```
+
+2. **Deploy**:
+
+```bash
+cd /workspaces/Fixzit
+vercel login  # Login with GitHub
+vercel  # Follow prompts
+```
+
+3. **Configure GoDaddy DNS**:
+   - Log in to GoDaddy: <https://dnsmanagement.godaddy.com>
+   - Go to your domain's DNS settings
+   - Add these records:
+
+   ```
+   Type: A
+   Name: @
+   Value: 76.76.19.19
+   TTL: 600
+
+   Type: CNAME
+   Name: www
+   Value: cname.vercel-dns.com
+   TTL: 600
+   ```
+
+4. **Add Custom Domain in Vercel**:
+   - Go to: <https://vercel.com/your-username/fixzit/settings/domains>
+   - Add: `yourdomain.com` and `www.yourdomain.com`
+   - Vercel will verify DNS automatically
+
+5. **Configure Environment Variables**:
+   - Go to: <https://vercel.com/your-username/fixzit/settings/environment-variables>
+   - Add all from `.env.local`:
+     - `MONGODB_URI`
+     - `NEXTAUTH_SECRET`
+     - `NEXTAUTH_URL` (set to your domain)
+     - AWS credentials, etc.
+
+---
+
+#### Option B: Direct Server Deployment (VPS/Dedicated)
+
+If you have a server through GoDaddy hosting:
+
+**Requirements**:
+
+- Node.js 18+ installed
+- MongoDB access
+- PM2 or similar process manager
+- Nginx as reverse proxy
+
+**Setup Steps**:
+
+1. **SSH into your server**:
+
+```bash
+ssh user@your-server-ip
+```
+
+2. **Install Node.js**:
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs
+```
+
+3. **Clone and build**:
+
+```bash
+git clone https://github.com/EngSayh/Fixzit.git
+cd Fixzit
+npm install
+npm run build
+```
+
+4. **Install PM2**:
+
+```bash
+sudo npm install -g pm2
+pm2 start npm --name "fixzit" -- start
+pm2 save
+pm2 startup  # Follow instructions
+```
+
+5. **Configure Nginx**:
+
+```nginx
+# /etc/nginx/sites-available/fixzit
+server {
+    listen 80;
+    server_name yourdomain.com www.yourdomain.com;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+6. **Enable site**:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/fixzit /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+7. **Point GoDaddy DNS to your server**:
+   - Log in to GoDaddy DNS management
+   - Add A record pointing to your server IP:
+
+   ```
+   Type: A
+   Name: @
+   Value: YOUR_SERVER_IP
+   TTL: 600
+   ```
+
+8. **Set up SSL with Let's Encrypt**:
+
+```bash
+sudo apt-get install certbot python3-certbot-nginx
+sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+```
+
+---
+
+#### Option C: AWS/DigitalOcean/Netlify
+
+Similar to Vercel but with different configurations. Let me know if you want details on these.
+
+---
+
+## Solution 4: Optimize Build Performance (<30 seconds)
+
+### Current Performance Analysis
+
+- **On 2-core/8GB**: 106 seconds (memory-constrained)
+- **On 4-core/16GB**: ~30-45 seconds (expected)
+- **On MacBook Pro**: ~15-25 seconds (expected)
+
+### Why <30 seconds is achievable with proper hardware
+
+#### Configuration Already Applied
+
+✅ TypeScript validation separated (`npm run typecheck`)
+✅ ESLint validation separated (`npm run lint`)
+✅ Standalone build output
+✅ SWC compiler (default in Next.js 15)
+✅ TypeScript server memory limited
+
+#### Additional Optimizations
+
+1. **Update next.config.js** for optimal performance:
+
+```javascript
+experimental: {
+  optimizePackageImports: ['lucide-react', '@radix-ui/*'],
+  webpackMemoryOptimizations: true,
+}
+```
+
+2. **Build only what you need**:
+
+```bash
+# Skip type checking during build (do it separately)
+npm run build  # Already configured
+
+# Type check separately
+npm run typecheck
+```
+
+3. **Use Build Cache**:
+
+```bash
+# Enable Turbo cache (if using Vercel)
+# Automatically enabled in Vercel deployments
+```
+
+### Expected Performance with 4-core/16GB
+
+- Compilation: 20-25 seconds
+- Page generation: 5-10 seconds
+- Static optimization: 3-5 seconds
+- **Total**: 28-40 seconds ✅
+
+---
+
+## Quick Action Plan
+
+### Immediate Steps (Choose One)
+
+#### Path A: Continue in Codespaces (Recommended if GitHub Pro)
+
+1. Commit current work
+2. Rebuild codespace with 4-core/16GB
+3. Test build performance
+4. Deploy to Vercel with GoDaddy domain
+
+#### Path B: Switch to Local MacBook (Best Performance)
+
+1. Clone repo to MacBook
+2. Install dependencies
+3. Configure `.env.local`
+4. Start MongoDB locally
+5. Test build (should be <30 seconds)
+6. Deploy to production
+
+#### Path C: Go Straight to Production
+
+1. Deploy to Vercel (no build issues on their servers)
+2. Connect GoDaddy domain
+3. Set up automatic deployments from main branch
+4. Continue development in Codespaces or locally
+
+---
+
+## Commands Reference
+
+### Check System Resources
+
+```bash
+# CPU cores
+nproc                   # Linux
+sysctl -n hw.ncpu       # macOS
+
+# Total RAM
+free -h                 # Linux
+vm_stat | head -5       # macOS
+
+# Memory consumers
+ps aux --sort=-%mem | head -20                 # Linux
+ps aux | sort -nrk 4 | head -20                # macOS
+```
+
+### Build Performance Test
+
+```bash
+# Clean build with timing
+rm -rf .next
+time npm run build
+```
+
+### Local Development
+
+```bash
+# Development mode
+npm run dev
+
+# Production test
+npm run build && npm start
+```
+
+### Vercel Deployment
+
+```bash
+# One-time deploy
+vercel --prod
+
+# Continuous deployment (automatic)
+# Just push to main branch after connecting repo
+git push origin main
+```
+
+---
+
+## Next Steps
+
+**What would you like to do?**
+
+1. **Rebuild Codespace** - Apply 4-core/16GB upgrade
+2. **Setup Local MacBook** - Clone and test on your powerful hardware
+3. **Deploy to Vercel** - Get production running with GoDaddy domain
+4. **All of the above** - I can guide you through each step
+
+Let me know which path you prefer!
+
+]]>
+</file>
+
+<file path="docs/guides/DEPLOYMENT_VERIFICATION_CHECKLIST.md">
+<![CDATA[
+# Production Deployment Verification Checklist
+
+Purpose: A compact, actionable checklist to verify that the recent fixes (security, API validation, atomic model updates) are deployed and working in production. This document is for the release owner and on-call engineer to run before and immediately after a production rollout.
+
+## Pre-deployment (staging / canary)
+
+- [ ] Deploy `feat/topbar-enhancements` to staging environment.
+- [ ] Run `pnpm typecheck && pnpm lint && pnpm test` in staging build pipeline and confirm result is green.
+- [ ] Run integration tests (OAuth flows, listing/favorites API, lead flows) against staging.
+- [ ] Run quick DB migration dry-run (if any migrations were added) against a copy of production DB snapshot.
+- [ ] Run `fixzit:dedupe:scan` (if applicable) and review scan results.
+- [ ] Run `fixzit:verify` script and ensure all checks pass.
+
+## Canary deployment (10%)
+
+- [ ] Deploy to 10% of production traffic (use feature flags or traffic split).
+- [ ] Run smoke tests:
+  - Favorites create/delete flow
+  - Listings search with geo and pagination
+  - User provisioning (OAuth sign-in)
+  - Lead create/addNote
+- [ ] Verify the following logs/metrics for 2 hours:
+  - Error rate (Sentry): within baseline
+  - Auth success rate: > 99%
+  - Average OAuth callback latency: < 500ms
+  - DB error rates: none
+- [ ] Confirm analytics updates are applied (e.g., favorites counts updated for listings/projects)
+
+## Full rollout
+
+- [ ] If canary looks healthy, roll out to 50% and monitor for 4 hours.
+- [ ] If 50% is healthy, roll out to 100% and monitor for 24 hours.
+- [ ] Verify post-deployment smoke tests pass.
+
+## Post-deployment checks
+
+- [ ] Confirm Sentry shows no new high-severity exceptions related to recent changes.
+- [ ] Confirm favorites/listings analytics match expected values (sample queries).
+- [ ] Confirm manual sanity checks for key user journeys (login, listing search, favorite toggle).
+- [ ] Run database consistency checks if applicable.
+
+## Rollback plan (if issues detected)
+
+- [ ] Revert to previous stable commit using the documented rollback procedure.
+- [ ] Restore pre-deployment DB snapshot if necessary.
+- [ ] Notify stakeholders and open incident ticket.
+
+## Notes
+
+- This checklist is intentionally light-weight to allow fast verification. Add project-specific checks as needed.
+- Keep a copy of this checklist in deployment notes for audit purposes.
+
+]]>
+</file>
+
+</batch_content>

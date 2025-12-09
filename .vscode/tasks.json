@@ -6,6 +6,32 @@
       "type": "shell",
       "command": "echo 'Problems cleared'",
       "problemMatcher": []
+    },
+    {
+      "label": "Fixzit: Chunk Batches",
+      "type": "shell",
+      "command": "node",
+      "args": [
+        "tools/smart-chunker.js"
+      ],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "Fixzit: Merge Memory",
+      "type": "shell",
+      "command": "node",
+      "args": [
+        "tools/merge-memory.js"
+      ],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always"
+      }
     }
   ]
 }

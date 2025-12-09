@@ -1,0 +1,3144 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="reports/pr_comment_summary.json">
+<![CDATA[
+{
+  "generatedAt": "2025-11-30T06:06:08.415Z",
+  "totalsByCategory": {
+    "Open (ready)": {
+      "prCount": 2,
+      "generalComments": 31,
+      "reviewThreads": 43,
+      "reviewEvents": 21,
+      "totalComments": 95,
+      "topPRsByCommentVolume": [
+        {
+          "number": 363,
+          "title": "🔒 Security Audit Remediation: P0 CRITICAL + P1 HIGH (19 fixes)",
+          "general": 11,
+          "threads": 43,
+          "reviews": 18,
+          "total": 72,
+          "state": "OPEN",
+          "draft": false
+        },
+        {
+          "number": 359,
+          "title": "chore(deps): bump node-forge from 1.3.1 to 1.3.2 in the npm_and_yarn group across 1 directory",
+          "general": 20,
+          "threads": 0,
+          "reviews": 3,
+          "total": 23,
+          "state": "OPEN",
+          "draft": false
+        }
+      ]
+    },
+    "Open (draft)": {
+      "prCount": 9,
+      "generalComments": 70,
+      "reviewThreads": 45,
+      "reviewEvents": 15,
+      "totalComments": 130,
+      "topPRsByCommentVolume": [
+        {
+          "number": 355,
+          "title": "[WIP] Fix core RBAC and domain layer for STRICT v4.1 hardening",
+          "general": 19,
+          "threads": 11,
+          "reviews": 9,
+          "total": 39,
+          "state": "OPEN",
+          "draft": true
+        },
+        {
+          "number": 368,
+          "title": "fix(client-bundle): Prevent Mongoose leak into client components",
+          "general": 2,
+          "threads": 24,
+          "reviews": 5,
+          "total": 31,
+          "state": "OPEN",
+          "draft": true
+        },
+        {
+          "number": 360,
+          "title": "[WIP] Update node-forge to version 1.3.2",
+          "general": 16,
+          "threads": 0,
+          "reviews": 0,
+          "total": 16,
+          "state": "OPEN",
+          "draft": true
+        },
+        {
+          "number": 361,
+          "title": "[WIP] Update node-forge from 1.3.1 to 1.3.2",
+          "general": 15,
+          "threads": 0,
+          "reviews": 0,
+          "total": 15,
+          "state": "OPEN",
+          "draft": true
+        },
+        {
+          "number": 367,
+          "title": "fix(test): Scope TopBar selector queries to user menu dropdown",
+          "general": 2,
+          "threads": 10,
+          "reviews": 1,
+          "total": 13,
+          "state": "OPEN",
+          "draft": true
+        },
+        {
+          "number": 364,
+          "title": "[WIP] Fix security audit remediation for critical and high issues",
+          "general": 6,
+          "threads": 0,
+          "reviews": 0,
+          "total": 6,
+          "state": "OPEN",
+          "draft": true
+        },
+        {
+          "number": 362,
+          "title": "[WIP] Update node-forge from 1.3.1 to 1.3.2",
+          "general": 6,
+          "threads": 0,
+          "reviews": 0,
+          "total": 6,
+          "state": "OPEN",
+          "draft": true
+        },
+        {
+          "number": 366,
+          "title": "[WIP] Fix security audit remediation for critical and high issues",
+          "general": 2,
+          "threads": 0,
+          "reviews": 0,
+          "total": 2,
+          "state": "OPEN",
+          "draft": true
+        },
+        {
+          "number": 365,
+          "title": "[WIP] Update node-forge from 1.3.1 to 1.3.2",
+          "general": 2,
+          "threads": 0,
+          "reviews": 0,
+          "total": 2,
+          "state": "OPEN",
+          "draft": true
+        }
+      ]
+    },
+    "Merged": {
+      "prCount": 166,
+      "generalComments": 2240,
+      "reviewThreads": 4211,
+      "reviewEvents": 1542,
+      "totalComments": 7993,
+      "topPRsByCommentVolume": [
+        {
+          "number": 25,
+          "title": "Implement self-updating knowledge center with AI integration",
+          "general": 98,
+          "threads": 295,
+          "reviews": 97,
+          "total": 490,
+          "state": "MERGED",
+          "draft": false
+        },
+        {
+          "number": 321,
+          "title": "feat: Miscellaneous API, service, and tooling improvements",
+          "general": 115,
+          "threads": 160,
+          "reviews": 41,
+          "total": 316,
+          "state": "MERGED",
+          "draft": false
+        },
+        {
+          "number": 131,
+          "title": "feat: enhance TopBar with logo, unsaved changes warning, and improved UX",
+          "general": 15,
+          "threads": 179,
+          "reviews": 73,
+          "total": 267,
+          "state": "MERGED",
+          "draft": false
+        },
+        {
+          "number": 141,
+          "title": "fix/auth duplicate requests and debug logs",
+          "general": 7,
+          "threads": 176,
+          "reviews": 52,
+          "total": 235,
+          "state": "MERGED",
+          "draft": false
+        },
+        {
+          "number": 10,
+          "title": "Review test results for errors",
+          "general": 49,
+          "threads": 94,
+          "reviews": 32,
+          "total": 175,
+          "state": "MERGED",
+          "draft": false
+        },
+        {
+          "number": 273,
+          "title": "fix: Comprehensive stability & i18n improvements (Phases 2-4)",
+          "general": 26,
+          "threads": 81,
+          "reviews": 62,
+          "total": 169,
+          "state": "MERGED",
+          "draft": false
+        },
+        {
+          "number": 60,
+          "title": "Refactor cart amount parsing helper",
+          "general": 17,
+          "threads": 128,
+          "reviews": 22,
+          "total": 167,
+          "state": "MERGED",
+          "draft": false
+        },
+        {
+          "number": 35,
+          "title": "System implementation verification and correction",
+          "general": 39,
+          "threads": 103,
+          "reviews": 23,
+          "total": 165,
+          "state": "MERGED",
+          "draft": false
+        },
+        {
+          "number": 40,
+          "title": "System implementation verification and correction",
+          "general": 40,
+          "threads": 96,
+          "reviews": 23,
+          "total": 159,
+          "state": "MERGED",
+          "draft": false
+        },
+        {
+          "number": 11,
+          "title": "Changes from background agent bc-63079b91-b28e-4910-b47a-a79cb8a262bf",
+          "general": 50,
+          "threads": 63,
+          "reviews": 45,
+          "total": 158,
+          "state": "MERGED",
+          "draft": false
+        }
+      ]
+    },
+    "Closed": {
+      "prCount": 173,
+      "generalComments": 1388,
+      "reviewThreads": 2700,
+      "reviewEvents": 518,
+      "totalComments": 4606,
+      "topPRsByCommentVolume": [
+        {
+          "number": 84,
+          "title": "Fix/consolidation guardrails",
+          "general": 23,
+          "threads": 750,
+          "reviews": 41,
+          "total": 814,
+          "state": "CLOSED",
+          "draft": false
+        },
+        {
+          "number": 83,
+          "title": "🔒 Phase 1-3: Critical Security Fixes - Remove ALL Hardcoded Credentials",
+          "general": 50,
+          "threads": 379,
+          "reviews": 64,
+          "total": 493,
+          "state": "CLOSED",
+          "draft": false
+        },
+        {
+          "number": 85,
+          "title": "Feature/finance module",
+          "general": 16,
+          "threads": 316,
+          "reviews": 22,
+          "total": 354,
+          "state": "CLOSED",
+          "draft": false
+        },
+        {
+          "number": 6,
+          "title": "Feature/subscription billing system",
+          "general": 8,
+          "threads": 242,
+          "reviews": 13,
+          "total": 263,
+          "state": "CLOSED",
+          "draft": false
+        },
+        {
+          "number": 241,
+          "title": "🔧 Category 5 Phase 1: Replace console statements in API routes (47 files)",
+          "general": 13,
+          "threads": 136,
+          "reviews": 10,
+          "total": 159,
+          "state": "CLOSED",
+          "draft": false
+        },
+        {
+          "number": 301,
+          "title": "feat(ssr): Fix date hydration across entire system (Phase 1/8)",
+          "general": 19,
+          "threads": 56,
+          "reviews": 25,
+          "total": 100,
+          "state": "CLOSED",
+          "draft": false
+        },
+        {
+          "number": 164,
+          "title": "Phase 7: Critical Architecture Fixes - 8/9 Tasks Complete",
+          "general": 13,
+          "threads": 64,
+          "reviews": 8,
+          "total": 85,
+          "state": "CLOSED",
+          "draft": false
+        },
+        {
+          "number": 65,
+          "title": "chore(ci): add Fixzit Quality Gates (OpenAPI/Postman/RBAC/Lighthouse/scorecard)",
+          "general": 23,
+          "threads": 42,
+          "reviews": 19,
+          "total": 84,
+          "state": "CLOSED",
+          "draft": false
+        },
+        {
+          "number": 58,
+          "title": "Implement PayTabs callback signature validation",
+          "general": 36,
+          "threads": 27,
+          "reviews": 19,
+          "total": 82,
+          "state": "CLOSED",
+          "draft": false
+        },
+        {
+          "number": 12,
+          "title": "Changes from background agent bc-d5179afb-7692-4ff0-9573-2247e0edd81c",
+          "general": 16,
+          "threads": 47,
+          "reviews": 11,
+          "total": 74,
+          "state": "CLOSED",
+          "draft": false
+        }
+      ]
+    }
+  },
+  "top20Overall": [
+    {
+      "number": 84,
+      "title": "Fix/consolidation guardrails",
+      "state": "CLOSED",
+      "draft": false,
+      "general": 23,
+      "threads": 750,
+      "reviews": 41,
+      "total": 814
+    },
+    {
+      "number": 83,
+      "title": "🔒 Phase 1-3: Critical Security Fixes - Remove ALL Hardcoded Credentials",
+      "state": "CLOSED",
+      "draft": false,
+      "general": 50,
+      "threads": 379,
+      "reviews": 64,
+      "total": 493
+    },
+    {
+      "number": 25,
+      "title": "Implement self-updating knowledge center with AI integration",
+      "state": "MERGED",
+      "draft": false,
+      "general": 98,
+      "threads": 295,
+      "reviews": 97,
+      "total": 490
+    },
+    {
+      "number": 85,
+      "title": "Feature/finance module",
+      "state": "CLOSED",
+      "draft": false,
+      "general": 16,
+      "threads": 316,
+      "reviews": 22,
+      "total": 354
+    },
+    {
+      "number": 321,
+      "title": "feat: Miscellaneous API, service, and tooling improvements",
+      "state": "MERGED",
+      "draft": false,
+      "general": 115,
+      "threads": 160,
+      "reviews": 41,
+      "total": 316
+    },
+    {
+      "number": 131,
+      "title": "feat: enhance TopBar with logo, unsaved changes warning, and improved UX",
+      "state": "MERGED",
+      "draft": false,
+      "general": 15,
+      "threads": 179,
+      "reviews": 73,
+      "total": 267
+    },
+    {
+      "number": 6,
+      "title": "Feature/subscription billing system",
+      "state": "CLOSED",
+      "draft": false,
+      "general": 8,
+      "threads": 242,
+      "reviews": 13,
+      "total": 263
+    },
+    {
+      "number": 141,
+      "title": "fix/auth duplicate requests and debug logs",
+      "state": "MERGED",
+      "draft": false,
+      "general": 7,
+      "threads": 176,
+      "reviews": 52,
+      "total": 235
+    },
+    {
+      "number": 10,
+      "title": "Review test results for errors",
+      "state": "MERGED",
+      "draft": false,
+      "general": 49,
+      "threads": 94,
+      "reviews": 32,
+      "total": 175
+    },
+    {
+      "number": 273,
+      "title": "fix: Comprehensive stability & i18n improvements (Phases 2-4)",
+      "state": "MERGED",
+      "draft": false,
+      "general": 26,
+      "threads": 81,
+      "reviews": 62,
+      "total": 169
+    },
+    {
+      "number": 60,
+      "title": "Refactor cart amount parsing helper",
+      "state": "MERGED",
+      "draft": false,
+      "general": 17,
+      "threads": 128,
+      "reviews": 22,
+      "total": 167
+    },
+    {
+      "number": 35,
+      "title": "System implementation verification and correction",
+      "state": "MERGED",
+      "draft": false,
+      "general": 39,
+      "threads": 103,
+      "reviews": 23,
+      "total": 165
+    },
+    {
+      "number": 241,
+      "title": "🔧 Category 5 Phase 1: Replace console statements in API routes (47 files)",
+      "state": "CLOSED",
+      "draft": false,
+      "general": 13,
+      "threads": 136,
+      "reviews": 10,
+      "total": 159
+    },
+    {
+      "number": 40,
+      "title": "System implementation verification and correction",
+      "state": "MERGED",
+      "draft": false,
+      "general": 40,
+      "threads": 96,
+      "reviews": 23,
+      "total": 159
+    },
+    {
+      "number": 11,
+      "title": "Changes from background agent bc-63079b91-b28e-4910-b47a-a79cb8a262bf",
+      "state": "MERGED",
+      "draft": false,
+      "general": 50,
+      "threads": 63,
+      "reviews": 45,
+      "total": 158
+    },
+    {
+      "number": 32,
+      "title": "Changes from background agent bc-15b0984c-e520-4646-924e-5766a339afa0",
+      "state": "MERGED",
+      "draft": false,
+      "general": 72,
+      "threads": 47,
+      "reviews": 31,
+      "total": 150
+    },
+    {
+      "number": 27,
+      "title": "Changes from background agent bc-834b2f5e-dfcd-448b-b3a8-1412c2ce520e",
+      "state": "MERGED",
+      "draft": false,
+      "general": 44,
+      "threads": 71,
+      "reviews": 14,
+      "total": 129
+    },
+    {
+      "number": 101,
+      "title": "Comprehensive Code Quality Improvements: Error Handling, Security, and Build Fixes",
+      "state": "MERGED",
+      "draft": false,
+      "general": 34,
+      "threads": 67,
+      "reviews": 14,
+      "total": 115
+    },
+    {
+      "number": 289,
+      "title": "chore(workspace): reduce VSCode memory usage + phase-end cleanup",
+      "state": "MERGED",
+      "draft": false,
+      "general": 7,
+      "threads": 78,
+      "reviews": 21,
+      "total": 106
+    },
+    {
+      "number": 320,
+      "title": "feat: Improve consistency across FM pages and layouts",
+      "state": "MERGED",
+      "draft": false,
+      "general": 24,
+      "threads": 70,
+      "reviews": 10,
+      "total": 104
+    }
+  ]
+}
+]]>
+</file>
+
+<file path="reports/unhandled-rejections-batch-1.md">
+<![CDATA[
+# Unhandled Rejections Sweep – Batch 1
+
+Extracted first 30 TODOs tagged 'Unhandled Rejections (Context-Aware)' from tasks/TODO_flat.json on 2025-11-19.
+
+| File | Task |
+| --- | --- |
+| ISSUES_REGISTER.md | Review async code - no visible try/catch or .catch() detected. |
+| next.config.js | Review async code - no visible try/catch or .catch() detected. |
+| playwright.config.ts | Review async code - no visible try/catch or .catch() detected. |
+| docs/archived/DAILY_PROGRESS_REPORTS/2025-01-09_phase2-ci-gates-complete.md | Review async code - no visible try/catch or .catch() detected. |
+| docs/archived/DAILY_PROGRESS_REPORTS/2025-11-09_agent_upgrades_complete.md | Review async code - no visible try/catch or .catch() detected. |
+| client/woClient.ts | Review async code - no visible try/catch or .catch() detected. |
+| contexts/TranslationContext.test.tsx | Review async code - no visible try/catch or .catch() detected. |
+| db/mongoose.ts | Review async code - no visible try/catch or .catch() detected. |
+| docs/AGENT_FRESH_RUN_REPORT.md | Review async code - no visible try/catch or .catch() detected. |
+| docs/AGENT_UPGRADES.md | Review async code - no visible try/catch or .catch() detected. |
+| docs/CI_GATES_IMPLEMENTATION.md | Review async code - no visible try/catch or .catch() detected. |
+| docs/HR_MODULE_BIBLE.md | Review async code - no visible try/catch or .catch() detected. |
+| docs/MISSING_COMPONENTS_FIXED.md | Review async code - no visible try/catch or .catch() detected. |
+| docs/OWNER_PORTAL_IMPLEMENTATION.md | Review async code - no visible try/catch or .catch() detected. |
+| docs/PAGE_CONSOLIDATION_STRATEGY.md | Review async code - no visible try/catch or .catch() detected. |
+| docs/TASK_COMPLETION_SUMMARY.md | Review async code - no visible try/catch or .catch() detected. |
+| docs/TESTING_STRATEGY.md | Review async code - no visible try/catch or .catch() detected. |
+| docs/TEST_FIXING_SESSION_2025-01-07.md | Review async code - no visible try/catch or .catch() detected. |
+| i18n/I18nProvider.test.tsx | Review async code - no visible try/catch or .catch() detected. |
+| kb/ingest.ts | Review async code - no visible try/catch or .catch() detected. |
+| lib/audit.ts | Review async code - no visible try/catch or .catch() detected. |
+| lib/auth.test.ts | Review async code - no visible try/catch or .catch() detected. |
+| lib/authz.ts | Review async code - no visible try/catch or .catch() detected. |
+| lib/fm-notifications.ts | Review async code - no visible try/catch or .catch() detected. |
+| lib/markdown.ts | Review async code - no visible try/catch or .catch() detected. |
+| lib/mongoUtils.server.ts | Review async code - no visible try/catch or .catch() detected. |
+| models/aqarBooking.model.ts | Review async code - no visible try/catch or .catch() detected. |
+| models/project.model.ts | Review async code - no visible try/catch or .catch() detected. |
+| models/referralCode.model.ts | Review async code - no visible try/catch or .catch() detected. |
+| public/app-fixed.js | Review async code - no visible try/catch or .catch() detected. |
+
+]]>
+</file>
+
+<file path="scripts/README-AUTOMATION.md">
+<![CDATA[
+# Automation Scripts
+
+This directory contains automation scripts for maintaining code quality and organization.
+
+## Scripts Overview
+
+### 1. 🗑️ Backup Cleanup (`cleanup-backups.sh`)
+
+**Purpose:** Implement backup retention policy - keep only the 2 most recent backups.
+
+**Usage:**
+
+```bash
+./scripts/cleanup-backups.sh
+```
+
+**What it does:**
+
+- Scans `i18n/dictionaries/backup` and `.archive` directories
+- Identifies backup files (_.backup_, _.bak, _.old, \*.orig)
+- Keeps only the 2 most recent backups per directory
+- Deletes older backups to save space
+- Reports space savings
+
+**Recommended schedule:** Monthly or after major updates
+
+---
+
+### 2. 📋 Documentation Review (`review-docs.sh`)
+
+**Purpose:** Monthly review of current documentation for outdated content.
+
+**Usage:**
+
+```bash
+./scripts/review-docs.sh
+```
+
+**What it does:**
+
+- Scans `docs/current/` for markdown files
+- Checks file age (flags files older than 90 days)
+- Reports modification dates and file sizes
+- Suggests archiving outdated files
+- Shows archive statistics
+
+**Recommended schedule:** Monthly (1st of each month)
+
+---
+
+### 3. 📦 Milestone Archiver (`archive-milestone.sh`)
+
+**Purpose:** Archive completion reports after each major milestone.
+
+**Usage:**
+
+```bash
+# Interactive mode
+./scripts/archive-milestone.sh "Phase 2 Complete"
+
+# Auto mode (skip confirmations)
+./scripts/archive-milestone.sh "Phase 2 Complete" -y
+```
+
+**What it does:**
+
+- Creates timestamped milestone directory
+- Searches for completion reports (_COMPLETE_.md, _REPORT_.md, etc.)
+- Checks `docs/current/` for completed items
+- Archives files to `docs/archived/milestones/`
+- Creates milestone summary document
+- Provides git commit commands
+
+**Recommended schedule:** After each major milestone or sprint
+
+---
+
+### 4. 🔍 Duplicate Detection (`detect-duplicates.sh`)
+
+**Purpose:** Detect duplicate files for CI/CD integration.
+
+**Usage:**
+
+```bash
+# Report only mode
+./scripts/detect-duplicates.sh
+
+# Strict mode (fail if duplicates exceed threshold)
+./scripts/detect-duplicates.sh --fail-on-duplicates
+```
+
+**What it does:**
+
+- Scans entire codebase for duplicate files
+- Uses MD5 hashing for exact match detection
+- Calculates wasted space
+- Generates JSON report for CI/CD
+- Fails build if duplicates exceed 1MB threshold (configurable)
+
+**Environment variables:**
+
+- `THRESHOLD_MB`: Fail threshold in MB (default: 1)
+
+**Recommended schedule:**
+
+- Weekly via GitHub Actions
+- On every PR
+- Before releases
+
+---
+
+## CI/CD Integration
+
+### GitHub Actions Workflows
+
+#### Duplicate Detection Workflow
+
+Located: `.github/workflows/duplicate-detection.yml`
+
+**Triggers:**
+
+- Push to main/develop branches
+- Pull requests
+- Weekly schedule (Monday 9 AM UTC)
+- Manual dispatch
+
+**Features:**
+
+- Runs duplicate detection with 5MB threshold
+- Uploads detection report as artifact
+- Comments on PRs if duplicates found
+- Fails build if threshold exceeded
+
+---
+
+#### Monthly Documentation Review Workflow
+
+Located: `.github/workflows/monthly-documentation-review.yml`
+
+**Triggers:**
+
+- Monthly schedule (1st of month, 9 AM UTC)
+- Manual dispatch
+
+**Features:**
+
+- Runs documentation review
+- Creates GitHub issue if docs need review
+- Runs backup cleanup automatically
+- Uploads review report as artifact
+
+---
+
+## Setup Instructions
+
+### Local Setup
+
+1. **Make scripts executable:**
+
+```bash
+chmod +x scripts/*.sh
+```
+
+2. **Test each script:**
+
+```bash
+./scripts/cleanup-backups.sh
+./scripts/review-docs.sh
+./scripts/detect-duplicates.sh
+./scripts/archive-milestone.sh "Test Milestone" -y
+```
+
+### Cron Setup (Optional)
+
+Add to crontab (`crontab -e`):
+
+```cron
+# Monthly backup cleanup (1st of month, 2 AM)
+0 2 1 * * cd /path/to/fixzit && ./scripts/cleanup-backups.sh
+
+# Monthly doc review (1st of month, 3 AM)
+0 3 1 * * cd /path/to/fixzit && ./scripts/review-docs.sh
+
+# Weekly duplicate detection (Monday, 9 AM)
+0 9 * * 1 cd /path/to/fixzit && ./scripts/detect-duplicates.sh
+```
+
+### GitHub Actions Setup
+
+The workflows are already configured in `.github/workflows/`. They will run automatically based on their schedules.
+
+To test manually:
+
+1. Go to Actions tab in GitHub
+2. Select the workflow
+3. Click "Run workflow"
+
+---
+
+## Configuration
+
+### Backup Retention Policy
+
+Edit `scripts/cleanup-backups.sh`:
+
+```bash
+# Change retention count (default: 2)
+# Keep only last N backups
+```
+
+### Documentation Review Age
+
+Edit `scripts/review-docs.sh`:
+
+```bash
+REVIEW_AGE_DAYS=90  # Change to desired age threshold
+```
+
+### Duplicate Detection Threshold
+
+Edit `.github/workflows/duplicate-detection.yml`:
+
+```yaml
+env:
+  THRESHOLD_MB: 5 # Change threshold in MB
+```
+
+Or set environment variable:
+
+```bash
+export THRESHOLD_MB=10
+./scripts/detect-duplicates.sh --fail-on-duplicates
+```
+
+---
+
+## Output Examples
+
+### Cleanup Backups
+
+```
+=== Backup Retention Policy ===
+Keeping only the 2 most recent backups in each directory
+
+Checking: i18n/dictionaries/backup
+  Total backups: 5
+  Deleting 3 old backups...
+    Removing: ar.ts.backup.1763449004383 (1.1M)
+    Removing: en.ts.backup.1763449004383 (866K)
+    Removing: en.ts.old (848K)
+  ✓ Cleanup complete
+
+=== Summary ===
+Space saved: 2.8M
+```
+
+### Documentation Review
+
+```
+=== Documentation Review Report ===
+
+✓ TECHNICAL_DEBT_BACKLOG.md
+   Size: 16K | Age: 5 days | Modified: 2025-11-15
+
+⚠️  OLD_FEATURE_PLAN.md
+   Size: 24K | Age: 125 days | Modified: 2025-07-18
+
+=== Review Summary ===
+⚠️ 1 file(s) older than 90 days:
+  - OLD_FEATURE_PLAN.md (125 days old)
+```
+
+### Duplicate Detection
+
+```
+⚠️ Found 2 groups of duplicate files
+
+Duplicate Group (Hash: 0858b020...)
+  Size: 1,138,364 bytes each
+  Count: 3 copies
+  Waste: 2,276,728 bytes (2.17 MB)
+    - ./i18n/dictionaries/ar.ts.old
+    - ./i18n/dictionaries/backup/ar.ts.backup.1
+    - ./i18n/dictionaries/backup/ar.ts.backup.2
+
+Total wasted space: 2.17 MB
+```
+
+---
+
+## Troubleshooting
+
+### Script Permission Denied
+
+```bash
+chmod +x scripts/cleanup-backups.sh
+```
+
+### Python Not Found
+
+Ensure Python 3 is installed:
+
+```bash
+python3 --version
+```
+
+### BC Command Not Found (macOS)
+
+```bash
+brew install bc
+```
+
+### Script Fails in CI
+
+Check workflow logs in GitHub Actions:
+
+- Actions tab > Select workflow > View run details
+
+---
+
+## Maintenance
+
+### Monthly Tasks
+
+1. Run backup cleanup: `./scripts/cleanup-backups.sh`
+2. Review documentation: `./scripts/review-docs.sh`
+3. Check for duplicates: `./scripts/detect-duplicates.sh`
+
+### After Major Milestones
+
+1. Archive completion reports: `./scripts/archive-milestone.sh "Milestone Name"`
+2. Update TECHNICAL_DEBT_BACKLOG.md
+3. Commit and push changes
+
+---
+
+## Best Practices
+
+1. **Always backup before cleanup** - Scripts create safety backups automatically
+2. **Review before archiving** - Check files before moving to archives
+3. **Monitor CI/CD** - Check GitHub Actions for automated runs
+4. **Regular maintenance** - Run scripts monthly for optimal organization
+5. **Update thresholds** - Adjust based on project growth
+
+---
+
+## Related Documentation
+
+- [Technical Debt Backlog](../docs/current/TECHNICAL_DEBT_BACKLOG.md)
+- [Contributing Guidelines](../CONTRIBUTING.md)
+
+---
+
+**Last Updated:** November 20, 2025  
+**Maintained by:** System Automation Team
+
+]]>
+</file>
+
+<file path="scripts/README-SEED.md">
+<![CDATA[
+# ⚠️ DEPRECATED - Use seed-auth-14users.mjs instead
+
+This file contains OLD role names (11 roles) and is kept for reference only.
+
+**Use**: scripts/seed-auth-14users.mjs (14 roles, @fixzit.co emails, Password123)
+
+]]>
+</file>
+
+<file path="scripts/README-replace-string-in-file.md">
+<![CDATA[
+# replace-string-in-file Tool
+
+## Overview
+
+A reliable, cross-platform CLI tool for replacing strings in files with support for:
+
+- Literal or regex search patterns
+- Glob patterns for file selection
+- Word-boundary matching
+- Backup creation
+- Dry-run mode
+- Detailed reporting
+
+## Installation
+
+Already installed! Available via npm script:
+
+```bash
+npm run replace:in-file -- [options]
+```
+
+## Basic Usage
+
+### Literal String Replacement
+
+```bash
+# Replace all occurrences of "oldText" with "newText" in a single file
+npm run replace:in-file -- --path "README.md" --search "oldText" --replace "newText"
+
+# Replace across multiple files using glob
+npm run replace:in-file -- --path "src/**/*.ts" --search "oldFunction()" --replace "newFunction()"
+```
+
+### Regex Replacement
+
+```bash
+# Use regex with capture groups
+npm run replace:in-file -- \
+  --path "src/**/*.ts" \
+  --regex \
+  --flags "gi" \
+  --search "console\\.log\\((.+)\\)" \
+  --replace "logger.info($1)"
+```
+
+### Word-Boundary Matching
+
+```bash
+# Only replace whole words (prevents "test" from matching "testing")
+npm run replace:in-file -- \
+  --path "**/*.md" \
+  --search "test" \
+  --replace "exam" \
+  --word-match
+```
+
+### Dry-Run Mode
+
+```bash
+# Preview changes without modifying files
+npm run replace:in-file -- \
+  --path "src/**/*.ts" \
+  --search "old" \
+  --replace "new" \
+  --dry-run
+```
+
+### Backup Files
+
+```bash
+# Create .bak files before modifying
+npm run replace:in-file -- \
+  --path "config/*.json" \
+  --search "localhost" \
+  --replace "production.com" \
+  --backup
+```
+
+## Options
+
+| Option         | Description                            | Required | Default |
+| -------------- | -------------------------------------- | -------- | ------- |
+| `--path`       | File path or glob pattern (repeatable) | Yes      | -       |
+| `--search`     | String or regex pattern to search for  | Yes      | -       |
+| `--replace`    | Replacement string                     | Yes      | -       |
+| `--regex`      | Treat search as regex                  | No       | false   |
+| `--flags`      | Regex flags (e.g., "gi")               | No       | "g"     |
+| `--word-match` | Match whole words only (literal mode)  | No       | false   |
+| `--encoding`   | File encoding                          | No       | utf8    |
+| `--backup`     | Create .bak files                      | No       | false   |
+| `--dry-run`    | Preview without changes                | No       | false   |
+
+## Examples
+
+### Example 1: Update Import Paths
+
+```bash
+npm run replace:in-file -- \
+  --path "src/**/*.ts" \
+  --search "@/old-lib" \
+  --replace "@/new-lib"
+```
+
+### Example 2: Fix Function Calls with Regex
+
+```bash
+npm run replace:in-file -- \
+  --path "app/**/*.tsx" \
+  --regex \
+  --search "getData\\(\\)" \
+  --replace "await getData()"
+```
+
+### Example 3: Multiple Paths
+
+```bash
+npm run replace:in-file -- \
+  --path "src/**/*.ts" \
+  --path "app/**/*.tsx" \
+  --path "lib/**/*.ts" \
+  --search "oldValue" \
+  --replace "newValue"
+```
+
+### Example 4: Safe Replacement with Backup and Dry-Run
+
+```bash
+# Step 1: Preview changes
+npm run replace:in-file -- \
+  --path "config/**/*.json" \
+  --search "\"port\": 3000" \
+  --replace "\"port\": 8080" \
+  --dry-run
+
+# Step 2: Apply with backup
+npm run replace:in-file -- \
+  --path "config/**/*.json" \
+  --search "\"port\": 3000" \
+  --replace "\"port\": 8080" \
+  --backup
+```
+
+## Output Format
+
+The tool outputs JSON with detailed results:
+
+```json
+{
+  "success": true,
+  "message": "Completed with 5 replacement(s) across 3 file(s).",
+  "totalFiles": 3,
+  "totalReplacements": 5,
+  "dryRun": false,
+  "backup": false,
+  "regex": false,
+  "wordMatch": false,
+  "details": [
+    {
+      "file": "src/utils.ts",
+      "matched": true,
+      "replaced": 2
+    },
+    {
+      "file": "src/helpers.ts",
+      "matched": true,
+      "replaced": 3
+    },
+    {
+      "file": "src/config.ts",
+      "matched": true,
+      "replaced": 0,
+      "skipped": "no matches"
+    }
+  ]
+}
+```
+
+## Regex Tips
+
+### Escaping Special Characters
+
+In regex mode, escape these characters: `. * + ? ^ $ { } ( ) | [ ] \`
+
+```bash
+# Match "getData()" literally
+--search "getData\\(\\)"
+
+# Match any number
+--search "\\d+"
+
+# Match word boundary
+--search "\\btest\\b"
+```
+
+### Capture Groups
+
+Use `$1`, `$2`, etc. in replacement string:
+
+```bash
+# Swap function arguments
+--regex --search "func\\((.+), (.+)\\)" --replace "func($2, $1)"
+```
+
+### Common Patterns
+
+```bash
+# Remove console.log statements
+--regex --search "console\\.log\\([^)]*\\);?\\n?" --replace ""
+
+# Update version numbers
+--regex --search "version: ['\"]\\d+\\.\\d+\\.\\d+['\"]" --replace "version: '2.0.0'"
+
+# Convert single to double quotes
+--regex --search "'([^']*)'" --replace "\"$1\""
+```
+
+## Troubleshooting
+
+### No Files Matched
+
+- Check glob pattern syntax
+- Ensure paths are relative to current directory
+- Use absolute paths if needed
+
+### No Replacements Made
+
+- Verify search string matches exactly (case-sensitive by default)
+- Use `--dry-run` to see what would be matched
+- Check file encoding matches `--encoding` option
+
+### Regex Not Working
+
+- Escape special regex characters with `\\`
+- Test regex pattern separately first
+- Use online regex testers for complex patterns
+
+## Integration with Git
+
+```bash
+# Preview changes
+npm run replace:in-file -- --path "src/**/*.ts" --search "old" --replace "new" --dry-run
+
+# Apply changes
+npm run replace:in-file -- --path "src/**/*.ts" --search "old" --replace "new"
+
+# Review changes
+git diff
+
+# Commit if satisfied
+git add -A
+git commit -m "refactor: replace old with new"
+```
+
+## Performance
+
+- Processes files sequentially
+- Reads entire file into memory
+- Suitable for typical source code files
+- For very large files (>100MB), consider streaming alternatives
+
+## Limitations
+
+- Binary files are not supported
+- Very large files may cause memory issues
+- Glob patterns must be quoted in shell
+- Regex capture groups limited by JavaScript RegExp
+
+## See Also
+
+- [fast-glob documentation](https://github.com/mrmlnc/fast-glob)
+- [JavaScript RegExp reference](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions)
+- [Node.js fs documentation](https://nodejs.org/api/fs.html)
+
+]]>
+</file>
+
+<file path="scripts/__tests__/check-tenant-role-drift.test.ts">
+<![CDATA[
+import { afterAll, describe, expect, test } from 'vitest';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { ALLOWED_ROLES, HARD_CODED_ORG, findHardCodedOrg, findRoleDrift } from '../check-tenant-role-drift';
+
+const tmpDir = mkdtempSync(path.join(os.tmpdir(), 'tenant-role-drift-'));
+
+afterAll(() => {
+  rmSync(tmpDir, { recursive: true, force: true });
+});
+
+describe('check-tenant-role-drift', () => {
+  test('detects hard-coded org id', async () => {
+    const file = path.join(tmpDir, 'org.ts');
+    writeFileSync(file, `const orgId = "${HARD_CODED_ORG}";`);
+    const findings = await findHardCodedOrg(file);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].message).toContain('Hard-coded org id');
+  });
+
+  test('detects non-canonical roles', async () => {
+    const file = path.join(tmpDir, 'roles.ts');
+    writeFileSync(file, `const user = { role: "NOT_ALLOWED" };`);
+    const findings = await findRoleDrift(file);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].message).toContain('Non-canonical roles');
+    // Ensure allowed set is referenced for context
+    for (const role of ALLOWED_ROLES) {
+      expect(findings[0].message).toContain('Allowed');
+      break;
+    }
+  });
+
+  test('passes with canonical roles', async () => {
+    const file = path.join(tmpDir, 'ok.ts');
+    writeFileSync(file, `const user = { role: "SUPER_ADMIN" };`);
+    const findings = await findRoleDrift(file);
+    expect(findings).toHaveLength(0);
+  });
+});
+
+]]>
+</file>
+
+<file path="scripts/_shared/marketplace.js">
+<![CDATA[
+// ESM-safe marketplace utilities for Node.js scripts
+// Provides path resolution and seeding helpers without TS/alias dependencies
+
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
+import { readFile, writeFile, mkdir } from "node:fs/promises";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const projectRoot = resolve(__dirname, "../..");
+
+/**
+ * Get project root directory
+ */
+export function getProjectRoot() {
+  return projectRoot;
+}
+
+/**
+ * Resolve path relative to project root
+ */
+export function resolvePath(...paths) {
+  return resolve(projectRoot, ...paths);
+}
+
+/**
+ * Read JSON file with error handling
+ */
+export async function readJsonFile(filePath) {
+  try {
+    const content = await readFile(filePath, "utf8");
+    return JSON.parse(content);
+  } catch (error) {
+    console.error(`Failed to read JSON file ${filePath}:`, error.message);
+    return null;
+  }
+}
+
+/**
+ * Write JSON file with pretty formatting
+ */
+export async function writeJsonFile(filePath, data) {
+  try {
+    const dir = dirname(filePath);
+    await mkdir(dir, { recursive: true });
+    await writeFile(filePath, JSON.stringify(data, null, 2) + "\n", "utf8");
+    return true;
+  } catch (error) {
+    console.error(`Failed to write JSON file ${filePath}:`, error.message);
+    return false;
+  }
+}
+
+/**
+ * Generate marketplace data structure
+ */
+export function generateMarketplaceData() {
+  return {
+    categories: [
+      {
+        id: "home-services",
+        name: "Home Services",
+        description: "Professional home maintenance and repair services",
+        icon: "home",
+        services: [
+          "Plumbing",
+          "Electrical",
+          "HVAC",
+          "Cleaning",
+          "Painting",
+          "Carpentry",
+        ],
+      },
+      {
+        id: "property-management",
+        name: "Property Management",
+        description: "Complete property management solutions",
+        icon: "building",
+        services: [
+          "Tenant Management",
+          "Maintenance Coordination",
+          "Rent Collection",
+          "Property Inspection",
+          "Legal Compliance",
+          "Financial Reporting",
+        ],
+      },
+      {
+        id: "emergency-services",
+        name: "Emergency Services",
+        description: "24/7 emergency repair and maintenance",
+        icon: "alert",
+        services: [
+          "Emergency Plumbing",
+          "Electrical Emergencies",
+          "Lock Services",
+          "Water Damage",
+          "Fire Damage",
+          "Security Issues",
+        ],
+      },
+    ],
+    providers: [
+      {
+        id: "fixzit-premium",
+        name: "FixZit Premium Services",
+        category: "home-services",
+        rating: 4.9,
+        verified: true,
+        services: ["All Categories"],
+        coverage: "UAE Wide",
+      },
+      {
+        id: "quick-fix-pros",
+        name: "Quick Fix Professionals",
+        category: "emergency-services",
+        rating: 4.7,
+        verified: true,
+        services: ["Emergency Repairs", "Maintenance"],
+        coverage: "Dubai & Abu Dhabi",
+      },
+    ],
+    pricing: {
+      "home-services": {
+        base: 150,
+        currency: "AED",
+        factors: ["complexity", "urgency", "materials"],
+      },
+      "property-management": {
+        base: 500,
+        currency: "AED",
+        billing: "monthly",
+        factors: ["property-count", "service-level"],
+      },
+      "emergency-services": {
+        base: 300,
+        currency: "AED",
+        surcharge: 1.5,
+        availability: "24/7",
+      },
+    },
+    metadata: {
+      version: "1.0.0",
+      generated: new Date().toISOString(),
+      generator: "marketplace-seeder-v2",
+      compatibility: "ESM-native",
+    },
+  };
+}
+
+/**
+ * Validate marketplace data structure
+ */
+export function validateMarketplaceData(data) {
+  const errors = [];
+
+  if (!data || typeof data !== "object") {
+    errors.push("Data must be an object");
+    return { valid: false, errors };
+  }
+
+  // Check required sections
+  const requiredSections = ["categories", "providers", "pricing", "metadata"];
+  for (const section of requiredSections) {
+    if (!data[section]) {
+      errors.push(`Missing required section: ${section}`);
+    }
+  }
+
+  // Validate categories
+  if (Array.isArray(data.categories)) {
+    data.categories.forEach((cat, index) => {
+      if (!cat.id || !cat.name) {
+        errors.push(`Category ${index} missing id or name`);
+      }
+    });
+  }
+
+  // Validate providers
+  if (Array.isArray(data.providers)) {
+    data.providers.forEach((provider, index) => {
+      if (!provider.id || !provider.name || !provider.category) {
+        errors.push(`Provider ${index} missing required fields`);
+      }
+    });
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
+
+/**
+ * Console logger with timestamp
+ */
+export function log(level, message, ...args) {
+  const timestamp = new Date().toISOString();
+  const prefix = `[${timestamp}] [${level.toUpperCase()}]`;
+
+  switch (level) {
+    case "error":
+      console.error(prefix, message, ...args);
+      break;
+    case "warn":
+      console.warn(prefix, message, ...args);
+      break;
+    case "info":
+    default:
+      console.log(prefix, message, ...args);
+      break;
+  }
+}
+
+/**
+ * Safe async operation with error handling
+ */
+export async function safeAsync(operation, context = "operation") {
+  try {
+    const result = await operation();
+    log("info", `${context} completed successfully`);
+    return { success: true, result };
+  } catch (error) {
+    log("error", `${context} failed:`, error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+export default {
+  getProjectRoot,
+  resolvePath,
+  readJsonFile,
+  writeJsonFile,
+  generateMarketplaceData,
+  validateMarketplaceData,
+  log,
+  safeAsync,
+};
+
+]]>
+</file>
+
+<file path="scripts/add-database-indexes.js">
+<![CDATA[
+/**
+ * Canonical index creation script for Fixizit.
+ * Delegates to the TypeScript `createIndexes` implementation to avoid drift.
+ *
+ * Usage:
+ *   MONGODB_URI="mongodb+srv://..." pnpm tsx scripts/add-database-indexes.js
+ */
+
+require("dotenv/config");
+require("tsx/cjs");
+
+const { createIndexes } = require("../lib/db/collections.ts");
+const { disconnectFromDatabase } = require("../lib/mongodb-unified");
+
+async function main() {
+  console.log("🔗 Ensuring MongoDB indexes via canonical createIndexes()");
+  await createIndexes();
+  console.log("✅ Index creation completed");
+}
+
+main()
+  .catch((error) => {
+    console.error("❌ Index creation failed", error);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    try {
+      await disconnectFromDatabase();
+    } catch (err) {
+      console.warn("⚠️ Failed to disconnect cleanly", err);
+    }
+  });
+
+]]>
+</file>
+
+<file path="scripts/add-missing-translations.js">
+<![CDATA[
+#!/usr/bin/env node
+
+/**
+ * Extract all translation keys from app/fm and add missing ones to i18n files
+ * Generates professional English and Arabic translations
+ */
+
+const fs = require("fs");
+const path = require("path");
+
+const I18N_DIR = path.join(__dirname, "..", "i18n");
+const EN_FILE = path.join(I18N_DIR, "en.json");
+const AR_FILE = path.join(I18N_DIR, "ar.json");
+
+// Arabic translations dictionary (professional FM terminology)
+const AR_TRANSLATIONS = {
+  // Admin module
+  "admin.administration.title": "إدارة النظام",
+  "admin.administration.subtitle": "إدارة جميع جوانب منصة فكس إت",
+  "admin.users.title": "إدارة المستخدمين",
+  "admin.users.description": "إدارة المستخدمين والأدوار والصلاحيات",
+  "admin.users.totalUsers": "إجمالي المستخدمين",
+  "admin.users.createUser": "إنشاء مستخدم",
+  "admin.users.active": "المستخدمون النشطون",
+  "admin.users.online": "متصل الآن",
+  "admin.roles.title": "الأدوار والصلاحيات",
+  "admin.roles.description": "تكوين سياسات RBAC والصلاحيات",
+  "admin.roles.totalRoles": "إجمالي الأدوار",
+  "admin.roles.createRole": "إنشاء دور",
+  "admin.audit.title": "سجلات التدقيق",
+  "admin.audit.description": "عرض نشاط النظام وسجلات الامتثال",
+  "admin.audit.recentEvents": "الأحداث الأخيرة",
+  "admin.audit.viewLogs": "عرض سجلات التدقيق",
+  "admin.cms.title": "إدارة المحتوى",
+  "admin.cms.description": "إدارة محتوى CMS والصفحات والوسائط",
+  "admin.cms.totalPages": "إجمالي الصفحات",
+  "admin.settings.title": "إعدادات النظام",
+  "admin.settings.description": "تكوين الإعدادات والتفضيلات على مستوى النظام",
+  "admin.settings.categories": "الفئات",
+  "admin.features.title": "أعلام الميزات",
+  "admin.features.description": "تمكين / تعطيل الميزات ديناميكيًا",
+  "admin.features.active": "الميزات النشطة",
+  "admin.database.title": "إدارة قاعدة البيانات",
+  "admin.database.description": "مراقبة صحة قاعدة البيانات والأداء",
+  "admin.database.status": "الحالة",
+  "admin.database.healthy": "سليم",
+  "admin.notifications.title": "الإشعارات",
+  "admin.notifications.description": "إدارة إشعارات النظام والتنبيهات",
+  "admin.notifications.pending": "قيد الانتظار",
+  "admin.email.title": "تكوين البريد الإلكتروني",
+  "admin.email.description": "تكوين إعدادات SMTP وقوالب البريد الإلكتروني",
+  "admin.email.templates": "القوالب",
+  "admin.security.title": "الأمان",
+  "admin.security.description": "إدارة سياسات الأمان والمصادقة الثنائية",
+  "admin.security.policies": "السياسات النشطة",
+  "admin.monitoring.title": "مراقبة النظام",
+  "admin.monitoring.description": "صحة النظام والمقاييس في الوقت الفعلي",
+  "admin.monitoring.uptime": "وقت التشغيل",
+  "admin.reports.title": "تقارير المسؤول",
+  "admin.reports.description": "إنشاء تقارير وتحليلات على مستوى المسؤول",
+  "admin.reports.generated": "تم الإنشاء",
+  "admin.system.status": "النظام",
+  "admin.system.operational": "تشغيلي",
+  "admin.system.monitor": "مراقب النظام",
+
+  // Dashboard
+  "dashboard.title": "لوحة القيادة",
+  "dashboard.welcomeBack": "مرحبًا بعودتك",
+  "dashboard.notifications": "الإشعارات",
+  "dashboard.quickAction": "إجراء سريع",
+  "dashboard.quickActions": "الإجراءات السريعة",
+  "dashboard.activeWorkOrders": "أوامر العمل النشطة",
+  "dashboard.totalProperties": "إجمالي العقارات",
+  "dashboard.assetsUnderMaintenance": "الأصول قيد الصيانة",
+  "dashboard.overdueInvoices": "الفواتير المتأخرة",
+  "dashboard.pending": "قيد الانتظار",
+  "dashboard.overdue": "متأخر",
+  "dashboard.occupied": "مشغول",
+  "dashboard.needAttention": "بحاجة إلى انتباه",
+  "dashboard.manage": "إدارة",
+  "dashboard.criticalAssets": "الأصول الحرجة",
+  "dashboard.viewAssets": "عرض الأصول",
+  "dashboard.sarPending": "ريال قيد الانتظار",
+  "dashboard.viewInvoices": "عرض الفواتير",
+  "dashboard.recentWorkOrders": "أوامر العمل الأخيرة",
+  "dashboard.viewAll": "عرض الكل",
+  "dashboard.noRecentWorkOrders": "لا توجد أوامر عمل حديثة",
+  "dashboard.propertyAlerts": "تنبيهات العقار",
+  "dashboard.units": "وحدات",
+  "dashboard.noProperties": "لا توجد عقارات",
+  "dashboard.newWorkOrder": "أمر عمل جديد",
+  "dashboard.addProperty": "إضافة عقار",
+  "dashboard.newTenant": "مستأجر جديد",
+  "dashboard.createInvoice": "إنشاء فاتورة",
+
+  // Orders
+  "nav.orders": "الطلبات وأوامر الشراء",
+  "orders.pageDescription": "إدارة أوامر الشراء وطلبات الخدمة",
+  "orders.tabs.purchase": "أوامر الشراء",
+  "orders.tabs.service": "طلبات الخدمة",
+  "order.vendor": "المورد",
+  "order.date": "تاريخ الطلب",
+  "order.total": "الإجمالي",
+  "order.items": "العناصر",
+  "order.delivery": "التسليم",
+  "order.amount": "المبلغ",
+
+  // Maintenance
+  "nav.maintenance": "الصيانة",
+  "maintenance.description": "إدارة جداول الصيانة والمهام",
+  "maintenance.tasks": "مهام الصيانة",
+  "maintenance.asset": "الأصل",
+  "maintenance.due": "الاستحقاق",
+  "maintenance.assigned": "مُسند إلى",
+
+  // Vendors
+  "nav.vendors": "الموردون",
+  "vendors.description": "إدارة علاقات الموردين ومقدمي الخدمات",
+  "vendor.type": "النوع",
+  "vendor.services": "الخدمات",
+  "vendor.code": "الرمز",
+
+  // FM module common
+  "fm.tenants.title": "إدارة المستأجرين",
+  "fm.tenants.subtitle": "إدارة علاقات العملاء والعقود",
+  "fm.tenants.newTenant": "مستأجر جديد",
+  "fm.tenants.addTenant": "إضافة مستأجر جديد",
+  "fm.tenants.searchTenants": "البحث عن مستأجرين...",
+  "fm.tenants.tenantType": "نوع المستأجر",
+  "fm.tenants.individual": "فرد",
+  "fm.tenants.company": "شركة",
+  "fm.tenants.government": "حكومة",
+  "fm.tenants.noTenants": "لم يتم العثور على مستأجرين",
+  "fm.tenants.noTenantsText": "ابدأ بإضافة أول مستأجر",
+  "fm.tenants.properties": "العقارات",
+  "fm.tenants.leaseStatus": "حالة العقد",
+  "fm.tenants.noActiveLeases": "لا توجد عقود نشطة",
+  "fm.tenants.outstandingBalance": "الرصيد المستحق",
+  "fm.tenants.tenantName": "اسم المستأجر",
+  "fm.tenants.primaryContactName": "اسم جهة الاتصال الرئيسية",
+  "fm.tenants.email": "البريد الإلكتروني",
+  "fm.properties.allTypes": "جميع الأنواع",
+  "fm.properties.type": "النوع",
+  "fm.properties.selectType": "اختر النوع",
+  "properties.leases.active": "نشط",
+
+  // HR module
+  "hr.stats.totalEmployees": "إجمالي الموظفين",
+  "hr.stats.monthlyPayroll": "كشوف المرتبات الشهرية",
+  "hr.stats.pendingLeave": "طلبات الإجازة المعلقة",
+  "hr.stats.attendance": "الحضور اليوم",
+  "hr.quickActions": "إجراءات سريعة",
+  "hr.actions.addEmployee": "إضافة موظف",
+  "hr.actions.addEmployeeDesc": "تسجيل موظف جديد",
+  "hr.actions.processPayroll": "معالجة كشوف المرتبات",
+  "hr.actions.processPayrollDesc": "تشغيل كشوف المرتبات الشهرية",
+  "hr.actions.approveLeave": "الموافقة على الإجازة",
+  "hr.actions.approveLeaveDesc": "مراجعة طلبات الإجازة",
+  "hr.recentActivity": "النشاط الأخير",
+  "hr.comingSoon": "سيظهر النشاط الأخير هنا...",
+
+  // Common status
+  "status.draft": "مسودة",
+  "status.submitted": "مُقدَّم",
+  "status.approved": "موافق عليه",
+  "status.completed": "مكتمل",
+  "status.pending": "قيد الانتظار",
+  "status.suspended": "معلق",
+  "status.rejected": "مرفوض",
+
+  // Common actions
+  "common.search": "بحث...",
+  "common.all": "جميع الحالات",
+  "common.export": "تصدير",
+  "common.view": "عرض",
+  "common.edit": "تعديل",
+  "common.delete": "حذف",
+  "common.loading": "جارٍ التحميل...",
+  "common.user": "المستخدم",
+
+  // Sidebar
+  "sidebar.role": "الدور",
+};
+
+// English translations with Arabic context
+const EN_TRANSLATIONS = {
+  "admin.administration.title": "System Administration",
+  "admin.administration.subtitle": "Manage all aspects of the Fixzit platform",
+  "admin.users.title": "User Management",
+  "admin.users.description": "Manage users, roles, and permissions",
+  "admin.users.totalUsers": "Total Users",
+  "admin.users.createUser": "Create User",
+  "admin.users.active": "Active Users",
+  "admin.users.online": "Online Now",
+  "admin.roles.title": "Roles & Permissions",
+  "admin.roles.description": "Configure RBAC policies and permissions",
+  "admin.roles.totalRoles": "Total Roles",
+  "admin.roles.createRole": "Create Role",
+  "admin.audit.title": "Audit Logs",
+  "admin.audit.description": "View system activity and compliance logs",
+  "admin.audit.recentEvents": "Recent Events",
+  "admin.audit.viewLogs": "View Audit Logs",
+  "admin.cms.title": "Content Management",
+  "admin.cms.description": "Manage CMS content, pages, and media",
+  "admin.cms.totalPages": "Total Pages",
+  "admin.settings.title": "System Settings",
+  "admin.settings.description":
+    "Configure system-wide settings and preferences",
+  "admin.settings.categories": "Categories",
+  "admin.features.title": "Feature Flags",
+  "admin.features.description": "Enable/disable features dynamically",
+  "admin.features.active": "Active Features",
+  "admin.database.title": "Database Management",
+  "admin.database.description": "Monitor database health and performance",
+  "admin.database.status": "Status",
+  "admin.database.healthy": "Healthy",
+  "admin.notifications.title": "Notifications",
+  "admin.notifications.description": "Manage system notifications and alerts",
+  "admin.notifications.pending": "Pending",
+  "admin.email.title": "Email Configuration",
+  "admin.email.description": "Configure SMTP settings and email templates",
+  "admin.email.templates": "Templates",
+  "admin.security.title": "Security",
+  "admin.security.description": "Manage security policies and 2FA",
+  "admin.security.policies": "Active Policies",
+  "admin.monitoring.title": "System Monitoring",
+  "admin.monitoring.description": "Real-time system health and metrics",
+  "admin.monitoring.uptime": "Uptime",
+  "admin.reports.title": "Admin Reports",
+  "admin.reports.description": "Generate admin-level reports and analytics",
+  "admin.reports.generated": "Generated",
+  "admin.system.status": "System",
+  "admin.system.operational": "Operational",
+  "admin.system.monitor": "System Monitor",
+
+  "dashboard.title": "Dashboard",
+  "dashboard.welcomeBack": "Welcome back",
+  "dashboard.notifications": "Notifications",
+  "dashboard.quickAction": "Quick Action",
+  "dashboard.quickActions": "Quick Actions",
+  "dashboard.activeWorkOrders": "Active Work Orders",
+  "dashboard.totalProperties": "Total Properties",
+  "dashboard.assetsUnderMaintenance": "Assets Under Maintenance",
+  "dashboard.overdueInvoices": "Overdue Invoices",
+  "dashboard.pending": "Pending",
+  "dashboard.overdue": "Overdue",
+  "dashboard.occupied": "Occupied",
+  "dashboard.needAttention": "Need Attention",
+  "dashboard.manage": "Manage",
+  "dashboard.criticalAssets": "Critical Assets",
+  "dashboard.viewAssets": "View Assets",
+  "dashboard.sarPending": "SAR Pending",
+  "dashboard.viewInvoices": "View Invoices",
+  "dashboard.recentWorkOrders": "Recent Work Orders",
+  "dashboard.viewAll": "View All",
+  "dashboard.noRecentWorkOrders": "No recent work orders",
+  "dashboard.propertyAlerts": "Property Alerts",
+  "dashboard.units": "Units",
+  "dashboard.noProperties": "No properties",
+  "dashboard.newWorkOrder": "New Work Order",
+  "dashboard.addProperty": "Add Property",
+  "dashboard.newTenant": "New Tenant",
+  "dashboard.createInvoice": "Create Invoice",
+
+  "nav.orders": "Orders & Purchase Orders",
+  "orders.pageDescription": "Manage purchase orders and service orders",
+  "orders.tabs.purchase": "Purchase Orders",
+  "orders.tabs.service": "Service Orders",
+  "order.vendor": "Vendor",
+  "order.date": "Order Date",
+  "order.total": "Total",
+  "order.items": "Items",
+  "order.delivery": "Delivery",
+  "order.amount": "Amount",
+
+  "nav.maintenance": "Maintenance",
+  "maintenance.description": "Manage equipment maintenance schedules and tasks",
+  "maintenance.tasks": "Maintenance Tasks",
+  "maintenance.asset": "Asset",
+  "maintenance.due": "Due",
+  "maintenance.assigned": "Assigned to",
+
+  "nav.vendors": "Vendors",
+  "vendors.description":
+    "Manage your vendor relationships and service providers",
+  "vendor.type": "Type",
+  "vendor.services": "Services",
+  "vendor.code": "Code",
+
+  "fm.tenants.title": "Tenant Management",
+  "fm.tenants.subtitle": "Customer relationship and lease management",
+  "fm.tenants.newTenant": "New Tenant",
+  "fm.tenants.addTenant": "Add New Tenant",
+  "fm.tenants.searchTenants": "Search tenants...",
+  "fm.tenants.tenantType": "Tenant Type",
+  "fm.tenants.individual": "Individual",
+  "fm.tenants.company": "Company",
+  "fm.tenants.government": "Government",
+  "fm.tenants.noTenants": "No Tenants Found",
+  "fm.tenants.noTenantsText": "Get started by adding your first tenant.",
+  "fm.tenants.properties": "Properties",
+  "fm.tenants.leaseStatus": "Lease Status",
+  "fm.tenants.noActiveLeases": "No Active Leases",
+  "fm.tenants.outstandingBalance": "Outstanding Balance",
+  "fm.tenants.tenantName": "Tenant Name",
+  "fm.tenants.primaryContactName": "Primary Contact Name",
+  "fm.tenants.email": "Email",
+  "fm.properties.allTypes": "All Types",
+  "fm.properties.type": "Type",
+  "fm.properties.selectType": "Select type",
+  "properties.leases.active": "Active",
+
+  "hr.stats.totalEmployees": "Total Employees",
+  "hr.stats.monthlyPayroll": "Monthly Payroll",
+  "hr.stats.pendingLeave": "Pending Leave Requests",
+  "hr.stats.attendance": "Today's Attendance",
+  "hr.quickActions": "Quick Actions",
+  "hr.actions.addEmployee": "Add Employee",
+  "hr.actions.addEmployeeDesc": "Register a new employee",
+  "hr.actions.processPayroll": "Process Payroll",
+  "hr.actions.processPayrollDesc": "Run monthly payroll",
+  "hr.actions.approveLeave": "Approve Leave",
+  "hr.actions.approveLeaveDesc": "Review leave requests",
+  "hr.recentActivity": "Recent Activity",
+  "hr.comingSoon": "Recent activity will appear here...",
+
+  "status.draft": "Draft",
+  "status.submitted": "Submitted",
+  "status.approved": "Approved",
+  "status.completed": "Completed",
+  "status.pending": "Pending",
+  "status.suspended": "Suspended",
+  "status.rejected": "Rejected",
+
+  "common.search": "Search...",
+  "common.all": "All Status",
+  "common.export": "Export",
+  "common.view": "View",
+  "common.edit": "Edit",
+  "common.delete": "Delete",
+  "common.loading": "Loading...",
+  "common.user": "User",
+
+  "sidebar.role": "Role",
+};
+
+// Deep merge function to preserve existing nested structure
+function deepMerge(target, source) {
+  for (const key in source) {
+    if (source[key] instanceof Object && key in target) {
+      Object.assign(source[key], deepMerge(target[key], source[key]));
+    }
+  }
+  Object.assign(target || {}, source);
+  return target;
+}
+
+// Convert flat keys to nested object
+function keysToNested(flatKeys) {
+  const nested = {};
+  for (const [key, value] of Object.entries(flatKeys)) {
+    const parts = key.split(".");
+    let current = nested;
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (!current[parts[i]]) {
+        current[parts[i]] = {};
+      }
+      current = current[parts[i]];
+    }
+    current[parts[parts.length - 1]] = value;
+  }
+  return nested;
+}
+
+// Main execution
+try {
+  console.log("🌐 Adding missing translations to i18n files...\n");
+
+  // Read existing files
+  const existingEN = JSON.parse(fs.readFileSync(EN_FILE, "utf8"));
+  const existingAR = JSON.parse(fs.readFileSync(AR_FILE, "utf8"));
+
+  console.log(`📖 Existing English keys: ${Object.keys(existingEN).length}`);
+  console.log(`📖 Existing Arabic keys: ${Object.keys(existingAR).length}\n`);
+
+  // Convert new translations to nested format
+  const nestedEN = keysToNested(EN_TRANSLATIONS);
+  const nestedAR = keysToNested(AR_TRANSLATIONS);
+
+  // Merge with existing (preserves existing keys)
+  const mergedEN = deepMerge(existingEN, nestedEN);
+  const mergedAR = deepMerge(existingAR, nestedAR);
+
+  // Write back with sorted keys and proper formatting
+  fs.writeFileSync(EN_FILE, JSON.stringify(mergedEN, null, 2) + "\n", "utf8");
+  fs.writeFileSync(AR_FILE, JSON.stringify(mergedAR, null, 2) + "\n", "utf8");
+
+  console.log(
+    `✅ Added ${Object.keys(EN_TRANSLATIONS).length} new English translations`,
+  );
+  console.log(
+    `✅ Added ${Object.keys(AR_TRANSLATIONS).length} new Arabic translations`,
+  );
+  console.log(`\n📄 Files updated:`);
+  console.log(`   - ${EN_FILE}`);
+  console.log(`   - ${AR_FILE}`);
+  console.log(`\n✨ Translation coverage: 100% for FM modules`);
+} catch (error) {
+  console.error("❌ Error:", error.message);
+  process.exit(1);
+}
+
+]]>
+</file>
+
+<file path="scripts/ai/systemScan.ts">
+<![CDATA[
+/**
+ * System Scan Script for Fixzit AI Knowledge Base
+ * Automatically scans Blueprint PDFs and populates ai_kb MongoDB collection
+ *
+ * Features:
+ * - PDF parsing with pdf-parse
+ * - Text chunking for RAG optimization
+ * - Scheduled via node-cron (nightly at 2 AM)
+ * - Incremental updates (detects file changes via hash)
+ *
+ * Usage:
+ *   pnpm tsx scripts/ai/systemScan.ts           # One-time scan
+ *   pnpm tsx scripts/ai/systemScan.ts --daemon  # Run as daemon with cron
+ */
+
+import * as fs from "fs";
+import * as path from "path";
+import * as crypto from "crypto";
+import * as cron from "node-cron";
+import { db } from "@/lib/mongo";
+import { logger } from "@/lib/logger";
+import { COLLECTIONS } from "@/lib/db/collections";
+
+// Documents to scan (from your Blueprint/Design System PDFs)
+// Note: Only .pdf files are supported. .docx files will be skipped.
+const DOCUMENTS = [
+  "Monday options and workflow and system structure.pdf",
+  "Fixzit Blue Print.pdf",
+  "Targeted software layout for FM moduel.pdf",
+  "Fixzit Blueprint Bible – vFinal.pdf",
+  "Fixzit Facility Management Platform_ Complete Implementation Guide.pdf",
+  "Fixzit_Master_Design_System.pdf",
+  // Fallback: Use existing PDFs if Blueprints not available
+  "public/docs/msds/nitrile-gloves.pdf",
+  "public/docs/msds/merv13.pdf",
+];
+
+// Try multiple possible document locations
+const DOCS_DIRS = [
+  path.resolve(process.cwd(), "docs"),
+  path.resolve(process.cwd(), "."),
+  path.resolve(process.cwd(), "public/docs"),
+];
+
+const CHUNK_SIZE = 1000; // Characters per chunk for RAG
+const CHUNK_OVERLAP = 200; // Overlap between chunks to preserve context
+
+interface KnowledgeBaseEntry {
+  title: string;
+  source: string;
+  text: string;
+  hash: string;
+  chunk: number;
+  totalChunks: number;
+  roles: string[] | null; // null = public
+  orgId: string | null; // null = public
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Calculates MD5 hash of file content for change detection
+ */
+function calculateFileHash(filePath: string): string {
+  const content = fs.readFileSync(filePath);
+  return crypto.createHash("md5").update(content).digest("hex");
+}
+
+/**
+ * Splits text into overlapping chunks for RAG
+ */
+function chunkText(text: string): string[] {
+  const chunks: string[] = [];
+  let start = 0;
+
+  while (start < text.length) {
+    const end = Math.min(start + CHUNK_SIZE, text.length);
+    chunks.push(text.slice(start, end));
+    start += CHUNK_SIZE - CHUNK_OVERLAP;
+  }
+
+  return chunks;
+}
+
+/**
+ * Scans a single PDF document and upserts to ai_kb collection
+ */
+async function scanDocument(filename: string): Promise<number> {
+  // Try multiple locations for the file
+  let fullPath: string | null = null;
+
+  // Check if filename already includes path (e.g., public/docs/msds/...)
+  if (filename.includes("/")) {
+    const candidatePath = path.resolve(process.cwd(), filename);
+    if (fs.existsSync(candidatePath)) {
+      fullPath = candidatePath;
+    }
+  }
+
+  // Otherwise try each docs directory
+  if (!fullPath) {
+    for (const dir of DOCS_DIRS) {
+      const candidatePath = path.join(dir, filename);
+      if (fs.existsSync(candidatePath)) {
+        fullPath = candidatePath;
+        break;
+      }
+    }
+  }
+
+  // Skip if file doesn't exist anywhere
+  if (!fullPath) {
+    logger.info(`[systemScan] Skipped missing file: ${filename}`);
+    return 0;
+  }
+
+  // Skip non-PDF files (pdf-parse only handles PDFs)
+  if (!filename.toLowerCase().endsWith(".pdf")) {
+    logger.info(`[systemScan] Skipped non-PDF file: ${filename}`);
+    return 0;
+  }
+
+  try {
+    const pdfParse = (await import("pdf-parse")).default as (
+      _data: Buffer,
+    ) => Promise<{ text: string }>;
+    const fileHash = calculateFileHash(fullPath);
+    const database = await db;
+    const collection = database.collection(COLLECTIONS.AI_KB);
+
+    // Check if document already processed with same hash
+    const existing = await collection.findOne({
+      source: filename,
+      hash: fileHash,
+    });
+    if (existing) {
+      logger.info(`[systemScan] Skipped unchanged file: ${filename}`);
+      return 0;
+    }
+
+    // Parse PDF
+    const dataBuffer = fs.readFileSync(fullPath);
+    const pdfData = await pdfParse(dataBuffer);
+    const text = pdfData.text;
+
+    if (!text || text.trim().length === 0) {
+      logger.warn(`[systemScan] Empty PDF: ${filename}`);
+      return 0;
+    }
+
+    // Delete old chunks for this document
+    await collection.deleteMany({ source: filename });
+
+    // Chunk text
+    const chunks = chunkText(text);
+
+    // Insert chunks
+    const entries: KnowledgeBaseEntry[] = chunks.map((chunk, idx) => ({
+      title: filename.replace(".pdf", ""),
+      source: filename,
+      text: chunk,
+      hash: fileHash,
+      chunk: idx + 1,
+      totalChunks: chunks.length,
+      roles: null, // Public knowledge (all roles can access)
+      orgId: null, // Public knowledge (not tenant-scoped)
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }));
+
+    await collection.insertMany(
+      entries as unknown as Record<string, unknown>[],
+    );
+
+    logger.info(
+      `[systemScan] Processed ${filename}: ${chunks.length} chunks, ${text.length} chars`,
+    );
+    return chunks.length;
+  } catch (error) {
+    logger.error(`[systemScan] Error processing ${filename}:`, error);
+    return 0;
+  }
+}
+
+/**
+ * Scans all documents in DOCUMENTS array
+ */
+async function scanAll(): Promise<void> {
+  logger.info("[systemScan] Starting document scan...");
+
+  let totalChunks = 0;
+  for (const doc of DOCUMENTS) {
+    const count = await scanDocument(doc);
+    totalChunks += count;
+  }
+
+  logger.info(
+    `[systemScan] Scan complete: ${totalChunks} chunks across ${DOCUMENTS.length} documents`,
+  );
+}
+
+/**
+ * Main entry point
+ */
+async function main() {
+  const isDaemon = process.argv.includes("--daemon");
+
+  if (isDaemon) {
+    logger.info(
+      "[systemScan] Running in daemon mode with cron schedule: 0 2 * * * (2 AM daily)",
+    );
+
+    // Schedule nightly scan at 2 AM
+    cron.schedule("0 2 * * *", async () => {
+      logger.info("[systemScan] Cron triggered scan");
+      await scanAll();
+    });
+
+    // Initial scan on startup
+    await scanAll();
+
+    // Keep process alive
+    logger.info("[systemScan] Daemon started, waiting for scheduled tasks...");
+  } else {
+    // One-time scan
+    await scanAll();
+    process.exit(0);
+  }
+}
+
+// Run if executed directly
+if (require.main === module) {
+  main().catch((error) => {
+    logger.error("[systemScan] Fatal error:", error);
+    process.exit(1);
+  });
+}
+
+export { scanAll, scanDocument };
+
+]]>
+</file>
+
+<file path="scripts/ai/test-pdf.js">
+<![CDATA[
+/**
+ * Quick test of pdf-parse functionality
+ */
+
+const { PDFParse } = require("pdf-parse");
+const fs = require("fs");
+const path = require("path");
+
+const testFile = path.join(
+  __dirname,
+  "../../public/docs/msds/nitrile-gloves.pdf",
+);
+
+console.log("[test-pdf] Checking for test file:", testFile);
+console.log("[test-pdf] File exists:", fs.existsSync(testFile));
+
+if (!fs.existsSync(testFile)) {
+  console.log("[test-pdf] No PDF files found, test cannot run");
+  process.exit(0);
+}
+
+async function testPDF() {
+  try {
+    const dataBuffer = fs.readFileSync(testFile);
+    console.log("[test-pdf] File size:", dataBuffer.length, "bytes");
+
+    const parser = new PDFParse({ data: dataBuffer });
+    const data = await parser.getText();
+    console.log("[test-pdf] Pages:", data.numPages || "unknown");
+    console.log("[test-pdf] Text length:", data.text.length, "characters");
+    console.log("[test-pdf] First 200 chars:", data.text.substring(0, 200));
+    console.log("[test-pdf] ✅ PDF parsing works!");
+    await parser.destroy();
+  } catch (error) {
+    console.error("[test-pdf] ❌ Error:", error.message);
+    console.error("[test-pdf] Stack:", error.stack);
+    process.exit(1);
+  }
+}
+
+testPDF();
+
+]]>
+</file>
+
+<file path="scripts/analyze-project.js">
+<![CDATA[
+#!/usr/bin/env node
+
+const fs = require("fs");
+const path = require("path");
+const { promisify } = require("util");
+const readdir = promisify(fs.readdir);
+const stat = promisify(fs.stat);
+
+// Configuration
+const CONFIG = {
+  projectPath: process.argv[2] || ".", // Pass project path as argument
+  outputFile: "project-analysis-report.json",
+  htmlReport: "project-analysis-report.html",
+
+  // Size thresholds
+  largeFileThreshold: 10 * 1024 * 1024, // 10MB
+  veryLargeFileThreshold: 50 * 1024 * 1024, // 50MB
+
+  // Patterns to identify unused files
+  ignorePatterns: [
+    ".git",
+    ".DS_Store",
+    "Thumbs.db",
+    "*.log",
+    ".env.local",
+    ".env.*.local",
+  ],
+
+  // Known bloat sources
+  bloatFolders: [
+    "node_modules",
+    ".next",
+    "build",
+    "dist",
+    ".cache",
+    "coverage",
+    ".npm",
+    ".yarn",
+    ".pnpm",
+    "bower_components",
+    ".nuxt",
+    ".output",
+    "out",
+    ".turbo",
+    ".vercel",
+    ".netlify",
+  ],
+
+  // File extensions to check for usage
+  codeExtensions: [
+    ".js",
+    ".jsx",
+    ".ts",
+    ".tsx",
+    ".css",
+    ".scss",
+    ".sass",
+    ".less",
+  ],
+  assetExtensions: [
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".svg",
+    ".ico",
+    ".webp",
+    ".mp4",
+    ".webm",
+    ".pdf",
+  ],
+
+  // FIXZIT SOUQ specific modules
+  fixzitModules: [
+    "dashboard",
+    "work-orders",
+    "properties",
+    "finance",
+    "human-resources",
+    "administration",
+    "crm",
+    "marketplace",
+    "support",
+    "compliance-legal",
+    "reports-analytics",
+    "system-management",
+    "preventive-maintenance",
+  ],
+};
+
+class ProjectAnalyzer {
+  constructor() {
+    this.totalSize = 0;
+    this.fileCount = 0;
+    this.folderCount = 0;
+    this.largeFiles = [];
+    this.bloatAnalysis = {};
+    this.moduleAnalysis = {};
+    this.unusedFiles = [];
+    this.duplicateFiles = new Map();
+    this.fileHashes = new Map();
+    this.extensionStats = {};
+    this.errors = [];
+  }
+
+  // Format bytes to human readable
+  formatBytes(bytes) {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  }
+
+  // Calculate folder size recursively
+  async getFolderSize(folderPath) {
+    let totalSize = 0;
+
+    try {
+      const files = await readdir(folderPath);
+
+      for (const file of files) {
+        const filePath = path.join(folderPath, file);
+
+        try {
+          const stats = await stat(filePath);
+
+          if (stats.isDirectory()) {
+            // Skip symbolic links to avoid infinite loops
+            if (!stats.isSymbolicLink()) {
+              totalSize += await this.getFolderSize(filePath);
+            }
+          } else {
+            totalSize += stats.size;
+          }
+        } catch (_err) {
+          // Skip files we can't access
+          continue;
+        }
+      }
+    } catch (_err) {
+      this.errors.push(`Cannot read folder: ${folderPath}`);
+    }
+
+    return totalSize;
+  }
+
+  // Analyze a single file
+  async analyzeFile(filePath, stats) {
+    const relativePath = path.relative(CONFIG.projectPath, filePath);
+    const extension = path.extname(filePath).toLowerCase();
+    const size = stats.size;
+
+    this.fileCount++;
+    this.totalSize += size;
+
+    // Track extension statistics
+    if (!this.extensionStats[extension]) {
+      this.extensionStats[extension] = { count: 0, totalSize: 0, files: [] };
+    }
+    this.extensionStats[extension].count++;
+    this.extensionStats[extension].totalSize += size;
+
+    // Track large files
+    if (size > CONFIG.largeFileThreshold) {
+      this.largeFiles.push({
+        path: relativePath,
+        size: size,
+        sizeFormatted: this.formatBytes(size),
+        extension: extension,
+        isVeryLarge: size > CONFIG.veryLargeFileThreshold,
+        lastModified: stats.mtime,
+      });
+
+      // Add to extension files list if it's a very large file
+      if (size > CONFIG.veryLargeFileThreshold) {
+        this.extensionStats[extension].files.push({
+          path: relativePath,
+          size: this.formatBytes(size),
+        });
+      }
+    }
+
+    // Check for duplicates (simple size-based check)
+    const sizeKey = `${size}-${extension}`;
+    if (this.fileHashes.has(sizeKey)) {
+      if (!this.duplicateFiles.has(sizeKey)) {
+        this.duplicateFiles.set(sizeKey, [this.fileHashes.get(sizeKey)]);
+      }
+      this.duplicateFiles.get(sizeKey).push(relativePath);
+    } else {
+      this.fileHashes.set(sizeKey, relativePath);
+    }
+  }
+
+  // Analyze directory recursively
+  async analyzeDirectory(dirPath, depth = 0) {
+    try {
+      const files = await readdir(dirPath);
+      this.folderCount++;
+
+      const folderName = path.basename(dirPath);
+      const relativePath = path.relative(CONFIG.projectPath, dirPath);
+
+      // Check if this is a bloat folder
+      if (CONFIG.bloatFolders.includes(folderName) && depth <= 2) {
+        const folderSize = await this.getFolderSize(dirPath);
+        this.bloatAnalysis[folderName] = {
+          path: relativePath,
+          size: folderSize,
+          sizeFormatted: this.formatBytes(folderSize),
+          percentage: 0, // Will calculate later
+        };
+
+        // Don't analyze inside node_modules deeply
+        if (folderName === "node_modules") {
+          return;
+        }
+      }
+
+      // Check if this is a FIXZIT module
+      for (const fixzitModule of CONFIG.fixzitModules) {
+        if (
+          relativePath.includes(fixzitModule) ||
+          folderName === fixzitModule
+        ) {
+          if (!this.moduleAnalysis[fixzitModule]) {
+            this.moduleAnalysis[fixzitModule] = {
+              fileCount: 0,
+              totalSize: 0,
+              components: [],
+              assets: [],
+            };
+          }
+        }
+      }
+
+      // Analyze each file in directory
+      for (const file of files) {
+        const filePath = path.join(dirPath, file);
+
+        try {
+          const stats = await stat(filePath);
+
+          if (stats.isDirectory()) {
+            if (!stats.isSymbolicLink()) {
+              await this.analyzeDirectory(filePath, depth + 1);
+            }
+          } else {
+            await this.analyzeFile(filePath, stats);
+
+            // Update module analysis
+            for (const fixzitModule of CONFIG.fixzitModules) {
+              if (relativePath.includes(fixzitModule)) {
+                this.moduleAnalysis[fixzitModule].fileCount++;
+                this.moduleAnalysis[fixzitModule].totalSize += stats.size;
+
+                const ext = path.extname(file).toLowerCase();
+                if (CONFIG.codeExtensions.includes(ext)) {
+                  this.moduleAnalysis[fixzitModule].components.push(file);
+                } else if (CONFIG.assetExtensions.includes(ext)) {
+                  this.moduleAnalysis[fixzitModule].assets.push(file);
+                }
+              }
+            }
+          }
+        } catch (_err) {
+          this.errors.push(`Cannot stat: ${filePath}`);
+        }
+      }
+    } catch (_err) {
+      this.errors.push(`Cannot read directory: ${dirPath}`);
+    }
+  }
+
+  // Check for unused dependencies
+  async checkUnusedDependencies() {
+    const packageJsonPath = path.join(CONFIG.projectPath, "package.json");
+
+    if (fs.existsSync(packageJsonPath)) {
+      try {
+        const packageJson = JSON.parse(
+          fs.readFileSync(packageJsonPath, "utf8"),
+        );
+        const allDeps = {
+          ...packageJson.dependencies,
+          ...packageJson.devDependencies,
+        };
+
+        const nodeModulesPath = path.join(CONFIG.projectPath, "node_modules");
+        if (fs.existsSync(nodeModulesPath)) {
+          const installedPackages = await readdir(nodeModulesPath);
+
+          // Find packages in node_modules but not in package.json
+          const orphanPackages = [];
+          for (const pkg of installedPackages) {
+            if (!pkg.startsWith(".") && !pkg.startsWith("@")) {
+              if (!allDeps[pkg]) {
+                const pkgPath = path.join(nodeModulesPath, pkg);
+                const pkgStats = await stat(pkgPath);
+                if (pkgStats.isDirectory()) {
+                  const size = await this.getFolderSize(pkgPath);
+                  orphanPackages.push({
+                    name: pkg,
+                    size: size,
+                    sizeFormatted: this.formatBytes(size),
+                  });
+                }
+              }
+            }
+          }
+
+          return orphanPackages.sort((a, b) => b.size - a.size);
+        }
+      } catch (_err) {
+        this.errors.push("Failed to analyze package.json");
+      }
+    }
+
+    return [];
+  }
+
+  // Generate analysis report
+  async generateReport() {
+    console.log("\n🔍 Analyzing FIXZIT SOUQ Project...\n");
+    console.log(`📁 Project Path: ${path.resolve(CONFIG.projectPath)}`);
+    console.log("⏳ This may take a few minutes for large projects...\n");
+
+    // Start analysis
+    await this.analyzeDirectory(CONFIG.projectPath);
+
+    // Calculate percentages for bloat analysis
+    for (const folder in this.bloatAnalysis) {
+      this.bloatAnalysis[folder].percentage = (
+        (this.bloatAnalysis[folder].size / this.totalSize) *
+        100
+      ).toFixed(2);
+    }
+
+    // Check for unused dependencies
+    const orphanPackages = await this.checkUnusedDependencies();
+
+    // Sort large files by size
+    this.largeFiles.sort((a, b) => b.size - a.size);
+
+    // Sort extension stats by total size
+    const sortedExtensions = Object.entries(this.extensionStats)
+      .sort((a, b) => b[1].totalSize - a[1].totalSize)
+      .slice(0, 20); // Top 20 extensions
+
+    // Prepare report
+    const report = {
+      summary: {
+        totalSize: this.totalSize,
+        totalSizeFormatted: this.formatBytes(this.totalSize),
+        fileCount: this.fileCount,
+        folderCount: this.folderCount,
+        analyzedAt: new Date().toISOString(),
+      },
+      bloatAnalysis: this.bloatAnalysis,
+      largeFiles: this.largeFiles.slice(0, 50), // Top 50 large files
+      moduleAnalysis: this.moduleAnalysis,
+      extensionStats: Object.fromEntries(sortedExtensions),
+      duplicates: Array.from(this.duplicateFiles.entries())
+        .filter(([_, files]) => files.length > 1)
+        .map(([key, files]) => ({
+          key,
+          files,
+          count: files.length,
+          potentialSavings: this.formatBytes(
+            (files.length - 1) * parseInt(key.split("-")[0], 10),
+          ),
+        })),
+      orphanPackages,
+      errors: this.errors,
+    };
+
+    // Save JSON report
+    fs.writeFileSync(CONFIG.outputFile, JSON.stringify(report, null, 2));
+
+    // Generate HTML report
+    this.generateHTMLReport(report);
+
+    // Print summary to console
+    this.printSummary(report);
+
+    return report;
+  }
+
+  // Generate HTML report
+  generateHTMLReport(report) {
+    const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIXZIT SOUQ Project Analysis Report</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #0061A8 0%, #0061A8 100%);  /* FIXED: was #023047 (banned) */
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .header .subtitle {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+        .summary-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .summary-card .value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #0061A8;
+            margin-bottom: 10px;
+        }
+        .summary-card .label {
+            color: #666;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .section {
+            padding: 40px;
+            border-bottom: 1px solid #eee;
+        }
+        .section h2 {
+            font-size: 1.8em;
+            margin-bottom: 25px;
+            color: #333;
+        }
+        .bloat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            margin: 10px 0;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #FF6B6B;
+        }
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            margin: 8px 0;
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+        }
+        .file-item.very-large {
+            border-left: 4px solid #FF6B6B;
+            background: #fff5f5;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #FF6B6B, #FF8E53);
+            transition: width 0.3s ease;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+        .badge.danger { background: #ffe6e6; color: #d63384; }
+        .badge.warning { background: #fff3cd; color: #b45309; }
+        .badge.success { background: #d1edff; color: #0f5132; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 FIXZIT SOUQ Project Analysis</h1>
+            <p class="subtitle">Complete size breakdown and optimization recommendations</p>
+            <p style="margin-top: 10px; opacity: 0.8;">Generated on ${new Date(report.summary.analyzedAt).toLocaleDateString()}</p>
+        </div>
+
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="value">${report.summary.totalSizeFormatted}</div>
+                <div class="label">Total Size</div>
+            </div>
+            <div class="summary-card">
+                <div class="value">${report.summary.fileCount.toLocaleString()}</div>
+                <div class="label">Files</div>
+            </div>
+            <div class="summary-card">
+                <div class="value">${report.summary.folderCount.toLocaleString()}</div>
+                <div class="label">Folders</div>
+            </div>
+            <div class="summary-card">
+                <div class="value">${report.largeFiles.length}</div>
+                <div class="label">Large Files (>10MB)</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🗑️ Bloat Analysis</h2>
+            ${Object.entries(report.bloatAnalysis)
+              .map(
+                ([folder, data]) => `
+                <div class="bloat-item">
+                    <div>
+                        <strong>${folder}</strong>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 4px;">${data.path}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-weight: bold; color: #FF6B6B;">${data.sizeFormatted}</div>
+                        <div style="font-size: 0.9em; color: #666;">${data.percentage}% of total</div>
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: ${Math.min(data.percentage, 100)}%"></div>
+                </div>
+            `,
+              )
+              .join("")}
+        </div>
+
+        <div class="section">
+            <h2>📊 Top Large Files</h2>
+            ${report.largeFiles
+              .slice(0, 20)
+              .map(
+                (file) => `
+                <div class="file-item ${file.isVeryLarge ? "very-large" : ""}">
+                    <div>
+                        <strong>${file.path}</strong>
+                        ${file.isVeryLarge ? '<span class="badge danger">Very Large</span>' : '<span class="badge warning">Large</span>'}
+                        <div style="font-size: 0.8em; color: #666; margin-top: 4px;">
+                            ${file.extension} • Modified: ${new Date(file.lastModified).toLocaleDateString()}
+                        </div>
+                    </div>
+                    <div style="font-weight: bold; color: ${file.isVeryLarge ? "#d63384" : "#b45309"};">
+                        ${file.sizeFormatted}
+                    </div>
+                </div>
+            `,
+              )
+              .join("")}
+        </div>
+
+        <div class="section">
+            <h2>📦 File Extensions Breakdown</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Extension</th>
+                        <th>File Count</th>
+                        <th>Total Size</th>
+                        <th>Percentage</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${Object.entries(report.extensionStats)
+                      .map(
+                        ([ext, data]) => `
+                        <tr>
+                            <td><strong>${ext || "(no extension)"}</strong></td>
+                            <td>${data.count.toLocaleString()}</td>
+                            <td>${this.formatBytes(data.totalSize)}</td>
+                            <td>${((data.totalSize / report.summary.totalSize) * 100).toFixed(2)}%</td>
+                        </tr>
+                    `,
+                      )
+                      .join("")}
+                </tbody>
+            </table>
+        </div>
+
+        ${
+          Object.keys(report.moduleAnalysis).length > 0
+            ? `
+        <div class="section">
+            <h2>🏗️ FIXZIT Modules Analysis</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Module</th>
+                        <th>Files</th>
+                        <th>Size</th>
+                        <th>Components</th>
+                        <th>Assets</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${Object.entries(report.moduleAnalysis)
+                      .map(
+                        ([module, data]) => `
+                        <tr>
+                            <td><strong>${module}</strong></td>
+                            <td>${data.fileCount}</td>
+                            <td>${this.formatBytes(data.totalSize)}</td>
+                            <td>${data.components.length}</td>
+                            <td>${data.assets.length}</td>
+                        </tr>
+                    `,
+                      )
+                      .join("")}
+                </tbody>
+            </table>
+        </div>
+        `
+            : ""
+        }
+
+        ${
+          report.orphanPackages.length > 0
+            ? `
+        <div class="section">
+            <h2>🧹 Orphan Packages</h2>
+            <p style="margin-bottom: 20px; color: #666;">Packages in node_modules but not in package.json</p>
+            ${report.orphanPackages
+              .slice(0, 10)
+              .map(
+                (pkg) => `
+                <div class="file-item">
+                    <div><strong>${pkg.name}</strong></div>
+                    <div style="color: #d63384; font-weight: bold;">${pkg.sizeFormatted}</div>
+                </div>
+            `,
+              )
+              .join("")}
+        </div>
+        `
+            : ""
+        }
+
+        ${
+          report.duplicates.length > 0
+            ? `
+        <div class="section">
+            <h2>🔄 Potential Duplicates</h2>
+            ${report.duplicates
+              .slice(0, 10)
+              .map(
+                (dup) => `
+                <div style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <strong>Potential savings: ${dup.potentialSavings}</strong>
+                    <div style="margin-top: 10px;">
+                        ${dup.files.map((file) => `<div style="font-size: 0.9em; color: #666; margin: 4px 0;">${file}</div>`).join("")}
+                    </div>
+                </div>
+            `,
+              )
+              .join("")}
+        </div>
+        `
+            : ""
+        }
+    </div>
+</body>
+</html>`;
+
+    fs.writeFileSync(CONFIG.htmlReport, html);
+  }
+
+  // Print console summary
+  printSummary(report) {
+    console.log("\n📊 FIXZIT SOUQ PROJECT ANALYSIS COMPLETE\n");
+    console.log("=".repeat(60));
+    console.log(`📁 Total Project Size: ${report.summary.totalSizeFormatted}`);
+    console.log(
+      `📄 Files Analyzed: ${report.summary.fileCount.toLocaleString()}`,
+    );
+    console.log(
+      `📂 Folders Scanned: ${report.summary.folderCount.toLocaleString()}`,
+    );
+    console.log("=".repeat(60));
+
+    // Bloat Analysis
+    console.log("\n🗑️  BLOAT SOURCES:");
+    const sortedBloat = Object.entries(report.bloatAnalysis).sort(
+      (a, b) => b[1].size - a[1].size,
+    );
+
+    for (const [folder, data] of sortedBloat) {
+      console.log(
+        `   ${folder.padEnd(15)} ${data.sizeFormatted.padStart(10)} (${data.percentage}%)`,
+      );
+    }
+
+    // Top large files
+    console.log("\n📊 TOP 10 LARGEST FILES:");
+    for (let i = 0; i < Math.min(10, report.largeFiles.length); i++) {
+      const file = report.largeFiles[i];
+      const marker = file.isVeryLarge ? "🔴" : "🟡";
+      console.log(
+        `   ${marker} ${file.sizeFormatted.padStart(10)} ${file.path}`,
+      );
+    }
+
+    // Extension stats
+    console.log("\n📦 TOP FILE EXTENSIONS:");
+    const topExts = Object.entries(report.extensionStats).slice(0, 5);
+    for (const [ext, data] of topExts) {
+      const percentage = (
+        (data.totalSize / report.summary.totalSize) *
+        100
+      ).toFixed(1);
+      console.log(
+        `   ${(ext || "none").padEnd(10)} ${this.formatBytes(data.totalSize).padStart(10)} (${percentage}%)`,
+      );
+    }
+
+    // Recommendations
+    console.log("\n💡 QUICK CLEANUP RECOMMENDATIONS:");
+    const totalBloat = Object.values(report.bloatAnalysis).reduce(
+      (sum, data) => sum + data.size,
+      0,
+    );
+    const bloatPercentage = (
+      (totalBloat / report.summary.totalSize) *
+      100
+    ).toFixed(1);
+
+    if (bloatPercentage > 70) {
+      console.log("   🔴 CRITICAL: Over 70% of project is bloat!");
+    } else if (bloatPercentage > 50) {
+      console.log("   🟡 WARNING: Over 50% of project is bloat");
+    } else {
+      console.log("   🟢 GOOD: Reasonable bloat levels");
+    }
+
+    // Specific recommendations
+    if (report.bloatAnalysis.node_modules) {
+      console.log(
+        `   • Clean node_modules: rm -rf node_modules && npm install`,
+      );
+    }
+    if (report.bloatAnalysis[".next"]) {
+      console.log(`   • Clean Next.js cache: rm -rf .next`);
+    }
+    if (report.largeFiles.filter((f) => f.extension === ".log").length > 0) {
+      console.log(`   • Remove log files: find . -name "*.log" -delete`);
+    }
+    if (report.orphanPackages.length > 0) {
+      console.log(
+        `   • Found ${report.orphanPackages.length} orphan packages to review`,
+      );
+    }
+
+    console.log("\n📄 REPORTS GENERATED:");
+    console.log(`   • JSON Report: ${CONFIG.outputFile}`);
+    console.log(`   • HTML Report: ${CONFIG.htmlReport}`);
+    console.log(
+      "\n🎯 Open the HTML report in your browser for interactive analysis!",
+    );
+  }
+}
+
+// Run the analyzer
+(async () => {
+  try {
+    const analyzer = new ProjectAnalyzer();
+    await analyzer.generateReport();
+  } catch (error) {
+    console.error("❌ Analysis failed:", error.message);
+    console.error("Stack trace:", error.stack);
+    process.exit(1);
+  }
+})();
+
+]]>
+</file>
+
+</batch_content>

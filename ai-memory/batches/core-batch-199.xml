@@ -1,0 +1,2245 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="i18n/sources/iotManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "iotManagement.analytics": "IoT Analytics",
+    "iotManagement.automation": "IoT Automation",
+    "iotManagement.connectivity": "IoT Connectivity",
+    "iotManagement.control": "IoT Control",
+    "iotManagement.data": "IoT Data",
+    "iotManagement.deployment": "IoT Deployment",
+    "iotManagement.device": "IoT Device",
+    "iotManagement.ecosystem": "IoT Ecosystem",
+    "iotManagement.edge": "Edge Computing",
+    "iotManagement.firmware": "Firmware Management",
+    "iotManagement.gateway": "IoT Gateway",
+    "iotManagement.integration": "IoT Integration",
+    "iotManagement.iot": "Internet of Things",
+    "iotManagement.lifecycle": "Device Lifecycle",
+    "iotManagement.management": "IoT Management",
+    "iotManagement.monitoring": "IoT Monitoring",
+    "iotManagement.network": "IoT Network",
+    "iotManagement.platform": "IoT Platform",
+    "iotManagement.protocol": "IoT Protocol",
+    "iotManagement.provisioning": "Device Provisioning",
+    "iotManagement.security": "IoT Security",
+    "iotManagement.sensor": "IoT Sensor"
+  },
+  "ar": {
+    "iotManagement.analytics": "تحليلات إنترنت الأشياء",
+    "iotManagement.automation": "أتمتة إنترنت الأشياء",
+    "iotManagement.connectivity": "اتصال إنترنت الأشياء",
+    "iotManagement.control": "التحكم في إنترنت الأشياء",
+    "iotManagement.data": "بيانات إنترنت الأشياء",
+    "iotManagement.deployment": "نشر إنترنت الأشياء",
+    "iotManagement.device": "جهاز إنترنت الأشياء",
+    "iotManagement.ecosystem": "نظام إنترنت الأشياء البيئي",
+    "iotManagement.edge": "الحوسبة الطرفية",
+    "iotManagement.firmware": "إدارة البرامج الثابتة",
+    "iotManagement.gateway": "بوابة إنترنت الأشياء",
+    "iotManagement.integration": "تكامل إنترنت الأشياء",
+    "iotManagement.iot": "إنترنت الأشياء",
+    "iotManagement.lifecycle": "دورة حياة الجهاز",
+    "iotManagement.management": "إدارة إنترنت الأشياء",
+    "iotManagement.monitoring": "مراقبة إنترنت الأشياء",
+    "iotManagement.network": "شبكة إنترنت الأشياء",
+    "iotManagement.platform": "منصة إنترنت الأشياء",
+    "iotManagement.protocol": "بروتوكول إنترنت الأشياء",
+    "iotManagement.provisioning": "تزويد الأجهزة",
+    "iotManagement.security": "أمن إنترنت الأشياء",
+    "iotManagement.sensor": "مستشعر إنترنت الأشياء"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/issueResolution.translations.json">
+<![CDATA[
+{
+  "en": {
+    "issueResolution.analysis": "Issue Analysis",
+    "issueResolution.assignment": "Issue Assignment",
+    "issueResolution.classification": "Issue Classification",
+    "issueResolution.closure": "Issue Closure",
+    "issueResolution.communication": "Issue Communication",
+    "issueResolution.documentation": "Issue Documentation",
+    "issueResolution.escalation": "Issue Escalation",
+    "issueResolution.identification": "Issue Identification",
+    "issueResolution.impact": "Issue Impact",
+    "issueResolution.investigation": "Issue Investigation",
+    "issueResolution.issue": "Issue Resolution",
+    "issueResolution.logging": "Issue Logging",
+    "issueResolution.management": "Issue Management",
+    "issueResolution.owner": "Issue Owner",
+    "issueResolution.prevention": "Issue Prevention",
+    "issueResolution.prioritization": "Issue Prioritization",
+    "issueResolution.register": "Issue Register",
+    "issueResolution.resolution": "Issue Resolution",
+    "issueResolution.severity": "Issue Severity",
+    "issueResolution.status": "Issue Status",
+    "issueResolution.timeline": "Issue Timeline",
+    "issueResolution.tracking": "Issue Tracking"
+  },
+  "ar": {
+    "issueResolution.analysis": "تحليل المشكلات",
+    "issueResolution.assignment": "تعيين المشكلات",
+    "issueResolution.classification": "تصنيف المشكلات",
+    "issueResolution.closure": "إغلاق المشكلات",
+    "issueResolution.communication": "التواصل بشأن المشكلة",
+    "issueResolution.documentation": "توثيق المشكلة",
+    "issueResolution.escalation": "تصعيد المشكلات",
+    "issueResolution.identification": "تحديد المشكلات",
+    "issueResolution.impact": "تأثير المشكلة",
+    "issueResolution.investigation": "التحقيق في المشكلات",
+    "issueResolution.issue": "حل المشكلات",
+    "issueResolution.logging": "تسجيل المشكلات",
+    "issueResolution.management": "إدارة المشكلات",
+    "issueResolution.owner": "مالك المشكلة",
+    "issueResolution.prevention": "الوقاية من المشكلات",
+    "issueResolution.prioritization": "تحديد أولويات المشكلات",
+    "issueResolution.register": "سجل المشكلات",
+    "issueResolution.resolution": "حل المشكلات",
+    "issueResolution.severity": "خطورة المشكلة",
+    "issueResolution.status": "حالة المشكلة",
+    "issueResolution.timeline": "الجدول الزمني للمشكلة",
+    "issueResolution.tracking": "تتبع المشكلات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/itIncidentManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "itIncidentManagement.analysis": "Incident Analysis",
+    "itIncidentManagement.categorization": "Incident Categorization",
+    "itIncidentManagement.communication": "Incident Communication",
+    "itIncidentManagement.detection": "Incident Detection",
+    "itIncidentManagement.diagnosis": "Incident Diagnosis",
+    "itIncidentManagement.escalation": "Incident Escalation",
+    "itIncidentManagement.identification": "Incident Identification",
+    "itIncidentManagement.impact": "Impact Assessment",
+    "itIncidentManagement.incident": "Incident Management",
+    "itIncidentManagement.investigation": "Incident Investigation",
+    "itIncidentManagement.lessons": "Lessons Learned",
+    "itIncidentManagement.logging": "Incident Logging",
+    "itIncidentManagement.metrics": "Incident Metrics",
+    "itIncidentManagement.notification": "Incident Notification",
+    "itIncidentManagement.postmortem": "Post-Incident Review",
+    "itIncidentManagement.prevention": "Incident Prevention",
+    "itIncidentManagement.prioritization": "Incident Prioritization",
+    "itIncidentManagement.reporting": "Incident Reporting",
+    "itIncidentManagement.resolution": "Incident Resolution",
+    "itIncidentManagement.severity": "Severity Assessment",
+    "itIncidentManagement.trends": "Incident Trends",
+    "itIncidentManagement.workaround": "Workaround Management"
+  },
+  "ar": {
+    "itIncidentManagement.analysis": "تحليل الحوادث",
+    "itIncidentManagement.categorization": "تصنيف الحوادث",
+    "itIncidentManagement.communication": "التواصل بشأن الحوادث",
+    "itIncidentManagement.detection": "اكتشاف الحوادث",
+    "itIncidentManagement.diagnosis": "تشخيص الحوادث",
+    "itIncidentManagement.escalation": "تصعيد الحوادث",
+    "itIncidentManagement.identification": "تحديد الحوادث",
+    "itIncidentManagement.impact": "تقييم الأثر",
+    "itIncidentManagement.incident": "إدارة الحوادث",
+    "itIncidentManagement.investigation": "التحقيق في الحوادث",
+    "itIncidentManagement.lessons": "الدروس المستفادة",
+    "itIncidentManagement.logging": "تسجيل الحوادث",
+    "itIncidentManagement.metrics": "مقاييس الحوادث",
+    "itIncidentManagement.notification": "إخطار الحوادث",
+    "itIncidentManagement.postmortem": "المراجعة بعد الحادث",
+    "itIncidentManagement.prevention": "منع الحوادث",
+    "itIncidentManagement.prioritization": "تحديد أولويات الحوادث",
+    "itIncidentManagement.reporting": "تقارير الحوادث",
+    "itIncidentManagement.resolution": "حل الحوادث",
+    "itIncidentManagement.severity": "تقييم الخطورة",
+    "itIncidentManagement.trends": "اتجاهات الحوادث",
+    "itIncidentManagement.workaround": "إدارة الحلول البديلة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/itServiceDelivery.translations.json">
+<![CDATA[
+{
+  "en": {
+    "itServiceDelivery.availability": "Availability Management",
+    "itServiceDelivery.capacity": "Capacity Management",
+    "itServiceDelivery.catalog": "Service Catalog Management",
+    "itServiceDelivery.continuity": "IT Service Continuity",
+    "itServiceDelivery.dashboard": "Service Dashboard",
+    "itServiceDelivery.delivery": "Service Delivery Management",
+    "itServiceDelivery.demand": "Demand Management",
+    "itServiceDelivery.design": "Service Design",
+    "itServiceDelivery.financial": "IT Financial Management",
+    "itServiceDelivery.improvement": "Continual Service Improvement",
+    "itServiceDelivery.itil": "ITIL Framework",
+    "itServiceDelivery.knowledge": "Knowledge Management",
+    "itServiceDelivery.level": "Service Level Management",
+    "itServiceDelivery.metrics": "Service Metrics",
+    "itServiceDelivery.ola": "OLA Management",
+    "itServiceDelivery.operation": "Service Operation",
+    "itServiceDelivery.planning": "Service Planning",
+    "itServiceDelivery.reporting": "Service Reporting",
+    "itServiceDelivery.service": "Service Delivery",
+    "itServiceDelivery.sla": "SLA Management",
+    "itServiceDelivery.supplier": "Supplier Management",
+    "itServiceDelivery.transition": "Service Transition"
+  },
+  "ar": {
+    "itServiceDelivery.availability": "إدارة التوافر",
+    "itServiceDelivery.capacity": "إدارة القدرات",
+    "itServiceDelivery.catalog": "إدارة كتالوج الخدمة",
+    "itServiceDelivery.continuity": "استمرارية خدمة تكنولوجيا المعلومات",
+    "itServiceDelivery.dashboard": "لوحة معلومات الخدمة",
+    "itServiceDelivery.delivery": "إدارة تقديم الخدمات",
+    "itServiceDelivery.demand": "إدارة الطلب",
+    "itServiceDelivery.design": "تصميم الخدمة",
+    "itServiceDelivery.financial": "الإدارة المالية لتكنولوجيا المعلومات",
+    "itServiceDelivery.improvement": "التحسين المستمر للخدمة",
+    "itServiceDelivery.itil": "إطار عمل ITIL",
+    "itServiceDelivery.knowledge": "إدارة المعرفة",
+    "itServiceDelivery.level": "إدارة مستوى الخدمة",
+    "itServiceDelivery.metrics": "مقاييس الخدمة",
+    "itServiceDelivery.ola": "إدارة اتفاقية مستوى التشغيل",
+    "itServiceDelivery.operation": "تشغيل الخدمة",
+    "itServiceDelivery.planning": "تخطيط الخدمة",
+    "itServiceDelivery.reporting": "تقارير الخدمة",
+    "itServiceDelivery.service": "تقديم الخدمات",
+    "itServiceDelivery.sla": "إدارة اتفاقية مستوى الخدمة",
+    "itServiceDelivery.supplier": "إدارة الموردين",
+    "itServiceDelivery.transition": "انتقال الخدمة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/itServiceManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "itServiceManagement.agreement": "Service Level Agreement",
+    "itServiceManagement.automation": "Service Automation",
+    "itServiceManagement.catalog": "Service Catalog",
+    "itServiceManagement.change": "Change Management",
+    "itServiceManagement.delivery": "Service Delivery",
+    "itServiceManagement.design": "Service Design",
+    "itServiceManagement.desk": "Service Desk",
+    "itServiceManagement.fulfillment": "Request Fulfillment",
+    "itServiceManagement.improvement": "Continual Improvement",
+    "itServiceManagement.incident": "Incident Management",
+    "itServiceManagement.itil": "ITIL",
+    "itServiceManagement.itsm": "IT Service Management",
+    "itServiceManagement.level": "Service Level",
+    "itServiceManagement.operation": "Service Operation",
+    "itServiceManagement.portfolio": "Service Portfolio",
+    "itServiceManagement.problem": "Problem Management",
+    "itServiceManagement.process": "ITSM Process",
+    "itServiceManagement.request": "Service Request",
+    "itServiceManagement.service": "Service",
+    "itServiceManagement.strategy": "Service Strategy",
+    "itServiceManagement.transition": "Service Transition",
+    "itServiceManagement.workflow": "Workflow"
+  },
+  "ar": {
+    "itServiceManagement.agreement": "اتفاقية مستوى الخدمة",
+    "itServiceManagement.automation": "أتمتة الخدمة",
+    "itServiceManagement.catalog": "كتالوج الخدمات",
+    "itServiceManagement.change": "إدارة التغيير",
+    "itServiceManagement.delivery": "تقديم الخدمة",
+    "itServiceManagement.design": "تصميم الخدمة",
+    "itServiceManagement.desk": "مكتب الخدمة",
+    "itServiceManagement.fulfillment": "تلبية الطلب",
+    "itServiceManagement.improvement": "التحسين المستمر",
+    "itServiceManagement.incident": "إدارة الحوادث",
+    "itServiceManagement.itil": "ITIL",
+    "itServiceManagement.itsm": "إدارة خدمات تكنولوجيا المعلومات",
+    "itServiceManagement.level": "مستوى الخدمة",
+    "itServiceManagement.operation": "تشغيل الخدمة",
+    "itServiceManagement.portfolio": "محفظة الخدمات",
+    "itServiceManagement.problem": "إدارة المشاكل",
+    "itServiceManagement.process": "عملية إدارة الخدمات",
+    "itServiceManagement.request": "طلب الخدمة",
+    "itServiceManagement.service": "الخدمة",
+    "itServiceManagement.strategy": "استراتيجية الخدمة",
+    "itServiceManagement.transition": "انتقال الخدمة",
+    "itServiceManagement.workflow": "سير العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/itServiceManagementExt.translations.json">
+<![CDATA[
+{
+  "en": {
+    "itServiceManagementExt.asset": "IT Asset Management",
+    "itServiceManagementExt.automation": "IT Automation",
+    "itServiceManagementExt.catalog": "Service Catalog",
+    "itServiceManagementExt.change": "Change Management",
+    "itServiceManagementExt.compliance": "IT Compliance",
+    "itServiceManagementExt.configuration": "Configuration Management",
+    "itServiceManagementExt.desk": "Service Desk",
+    "itServiceManagementExt.governance": "IT Governance",
+    "itServiceManagementExt.improvement": "Continual Improvement",
+    "itServiceManagementExt.incident": "Incident Management",
+    "itServiceManagementExt.itil": "ITIL Framework",
+    "itServiceManagementExt.itsm": "IT Service Management",
+    "itServiceManagementExt.knowledge": "Knowledge Management",
+    "itServiceManagementExt.kpi": "IT KPI",
+    "itServiceManagementExt.level": "Service Level",
+    "itServiceManagementExt.problem": "Problem Management",
+    "itServiceManagementExt.process": "IT Process",
+    "itServiceManagementExt.reporting": "IT Reporting",
+    "itServiceManagementExt.request": "Service Request",
+    "itServiceManagementExt.service": "IT Service",
+    "itServiceManagementExt.sla": "Service Level Agreement",
+    "itServiceManagementExt.strategy": "IT Strategy"
+  },
+  "ar": {
+    "itServiceManagementExt.asset": "إدارة أصول تكنولوجيا المعلومات",
+    "itServiceManagementExt.automation": "أتمتة تكنولوجيا المعلومات",
+    "itServiceManagementExt.catalog": "كتالوج الخدمة",
+    "itServiceManagementExt.change": "إدارة التغيير",
+    "itServiceManagementExt.compliance": "امتثال تكنولوجيا المعلومات",
+    "itServiceManagementExt.configuration": "إدارة التكوين",
+    "itServiceManagementExt.desk": "مكتب الخدمة",
+    "itServiceManagementExt.governance": "حوكمة تكنولوجيا المعلومات",
+    "itServiceManagementExt.improvement": "التحسين المستمر",
+    "itServiceManagementExt.incident": "إدارة الحوادث",
+    "itServiceManagementExt.itil": "إطار ITIL",
+    "itServiceManagementExt.itsm": "إدارة خدمات تكنولوجيا المعلومات",
+    "itServiceManagementExt.knowledge": "إدارة المعرفة",
+    "itServiceManagementExt.kpi": "مؤشر الأداء الرئيسي لتكنولوجيا المعلومات",
+    "itServiceManagementExt.level": "مستوى الخدمة",
+    "itServiceManagementExt.problem": "إدارة المشاكل",
+    "itServiceManagementExt.process": "عملية تكنولوجيا المعلومات",
+    "itServiceManagementExt.reporting": "الإبلاغ عن تكنولوجيا المعلومات",
+    "itServiceManagementExt.request": "طلب الخدمة",
+    "itServiceManagementExt.service": "خدمة تكنولوجيا المعلومات",
+    "itServiceManagementExt.sla": "اتفاقية مستوى الخدمة",
+    "itServiceManagementExt.strategy": "استراتيجية تكنولوجيا المعلومات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/itSupport.translations.json">
+<![CDATA[
+{
+  "en": {
+    "itSupport.backup": "Backup",
+    "itSupport.configuration": "Configuration",
+    "itSupport.escalation": "Escalation",
+    "itSupport.hardware": "Hardware Support",
+    "itSupport.helpdesk": "Help Desk",
+    "itSupport.incident": "Incident",
+    "itSupport.installation": "Installation",
+    "itSupport.maintenance": "IT Maintenance",
+    "itSupport.network": "Network Support",
+    "itSupport.onsite": "On-site Support",
+    "itSupport.problem": "Problem",
+    "itSupport.recovery": "Recovery",
+    "itSupport.remote": "Remote Support",
+    "itSupport.request": "Service Request",
+    "itSupport.resolution": "Resolution",
+    "itSupport.security": "IT Security",
+    "itSupport.service": "IT Service Desk",
+    "itSupport.software": "Software Support",
+    "itSupport.support": "IT Support",
+    "itSupport.ticket": "Support Ticket",
+    "itSupport.troubleshooting": "Troubleshooting",
+    "itSupport.upgrade": "Upgrade"
+  },
+  "ar": {
+    "itSupport.backup": "النسخ الاحتياطي",
+    "itSupport.configuration": "التكوين",
+    "itSupport.escalation": "التصعيد",
+    "itSupport.hardware": "دعم الأجهزة",
+    "itSupport.helpdesk": "مكتب المساعدة",
+    "itSupport.incident": "حادث",
+    "itSupport.installation": "التثبيت",
+    "itSupport.maintenance": "صيانة تقنية المعلومات",
+    "itSupport.network": "دعم الشبكة",
+    "itSupport.onsite": "الدعم في الموقع",
+    "itSupport.problem": "مشكلة",
+    "itSupport.recovery": "الاستعادة",
+    "itSupport.remote": "الدعم عن بُعد",
+    "itSupport.request": "طلب الخدمة",
+    "itSupport.resolution": "الحل",
+    "itSupport.security": "أمن تقنية المعلومات",
+    "itSupport.service": "مكتب خدمة تقنية المعلومات",
+    "itSupport.software": "دعم البرامج",
+    "itSupport.support": "دعم تقنية المعلومات",
+    "itSupport.ticket": "تذكرة الدعم",
+    "itSupport.troubleshooting": "استكشاف الأخطاء وإصلاحها",
+    "itSupport.upgrade": "الترقية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/jointVentures.translations.json">
+<![CDATA[
+{
+  "en": {
+    "jointVentures.agreement": "JV Agreement",
+    "jointVentures.compliance": "JV Compliance",
+    "jointVentures.control": "Control Structure",
+    "jointVentures.dissolution": "JV Dissolution",
+    "jointVentures.equity": "Equity Structure",
+    "jointVentures.exit": "JV Exit",
+    "jointVentures.financial": "JV Financial",
+    "jointVentures.formation": "JV Formation",
+    "jointVentures.governance": "JV Governance",
+    "jointVentures.integration": "JV Integration",
+    "jointVentures.joint": "Joint Ventures",
+    "jointVentures.management": "JV Management",
+    "jointVentures.objectives": "JV Objectives",
+    "jointVentures.operations": "JV Operations",
+    "jointVentures.ownership": "Ownership Structure",
+    "jointVentures.partners": "JV Partners",
+    "jointVentures.performance": "JV Performance",
+    "jointVentures.reporting": "JV Reporting",
+    "jointVentures.risk": "JV Risk",
+    "jointVentures.strategy": "JV Strategy",
+    "jointVentures.structure": "JV Structure",
+    "jointVentures.venture": "Venture Management"
+  },
+  "ar": {
+    "jointVentures.agreement": "اتفاقية المشروع المشترك",
+    "jointVentures.compliance": "امتثال المشروع المشترك",
+    "jointVentures.control": "هيكل السيطرة",
+    "jointVentures.dissolution": "حل المشروع المشترك",
+    "jointVentures.equity": "هيكل الأسهم",
+    "jointVentures.exit": "خروج المشروع المشترك",
+    "jointVentures.financial": "المالية للمشروع المشترك",
+    "jointVentures.formation": "تشكيل المشروع المشترك",
+    "jointVentures.governance": "حوكمة المشروع المشترك",
+    "jointVentures.integration": "تكامل المشروع المشترك",
+    "jointVentures.joint": "المشاريع المشتركة",
+    "jointVentures.management": "إدارة المشروع المشترك",
+    "jointVentures.objectives": "أهداف المشروع المشترك",
+    "jointVentures.operations": "عمليات المشروع المشترك",
+    "jointVentures.ownership": "هيكل الملكية",
+    "jointVentures.partners": "شركاء المشروع المشترك",
+    "jointVentures.performance": "أداء المشروع المشترك",
+    "jointVentures.reporting": "تقارير المشروع المشترك",
+    "jointVentures.risk": "مخاطر المشروع المشترك",
+    "jointVentures.strategy": "استراتيجية المشروع المشترك",
+    "jointVentures.structure": "هيكل المشروع المشترك",
+    "jointVentures.venture": "إدارة المشاريع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/keys.translations.json">
+<![CDATA[
+{
+  "en": {
+    "keys.accessCard": "Access Card",
+    "keys.deadbolt": "Deadbolt",
+    "keys.duplicateKey": "Duplicate Key",
+    "keys.key": "Key",
+    "keys.keyCard": "Key Card",
+    "keys.keyChain": "Key Chain",
+    "keys.keyFob": "Key Fob",
+    "keys.keyhole": "Keyhole",
+    "keys.keyIssuance": "Key Issuance",
+    "keys.keyLabel": "Key Label",
+    "keys.keyLog": "Key Log",
+    "keys.keyManagement": "Key Management",
+    "keys.keyRegistry": "Key Registry",
+    "keys.keyReplacement": "Key Replacement",
+    "keys.keyReturn": "Key Return",
+    "keys.keys1": "Keys",
+    "keys.keyTag": "Key Tag",
+    "keys.lock": "Lock",
+    "keys.lockChange": "Lock Change",
+    "keys.lockout": "Lockout",
+    "keys.lockRepair": "Lock Repair",
+    "keys.locks": "Locks",
+    "keys.locksmith": "Locksmith",
+    "keys.lostKey": "Lost Key",
+    "keys.masterKey": "Master Key",
+    "keys.padlock": "Padlock",
+    "keys.rekeying": "Rekeying",
+    "keys.spareKey": "Spare Key",
+    "keys.subMasterKey": "Sub Master Key",
+    "keys.unlockDoor": "Unlock Door"
+  },
+  "ar": {
+    "keys.accessCard": "بطاقة وصول",
+    "keys.deadbolt": "قفل ميت",
+    "keys.duplicateKey": "مفتاح مكرر",
+    "keys.key": "مفتاح",
+    "keys.keyCard": "بطاقة مفتاح",
+    "keys.keyChain": "سلسلة مفاتيح",
+    "keys.keyFob": "سلسلة مفاتيح إلكترونية",
+    "keys.keyhole": "ثقب المفتاح",
+    "keys.keyIssuance": "إصدار المفتاح",
+    "keys.keyLabel": "تسمية المفتاح",
+    "keys.keyLog": "سجل المفاتيح",
+    "keys.keyManagement": "إدارة المفاتيح",
+    "keys.keyRegistry": "سجل المفاتيح",
+    "keys.keyReplacement": "استبدال المفتاح",
+    "keys.keyReturn": "إرجاع المفتاح",
+    "keys.keys1": "مفاتيح",
+    "keys.keyTag": "علامة المفتاح",
+    "keys.lock": "قفل",
+    "keys.lockChange": "تغيير القفل",
+    "keys.lockout": "إغلاق",
+    "keys.lockRepair": "إصلاح القفل",
+    "keys.locks": "أقفال",
+    "keys.locksmith": "صانع الأقفال",
+    "keys.lostKey": "مفتاح مفقود",
+    "keys.masterKey": "المفتاح الرئيسي",
+    "keys.padlock": "قفل معلق",
+    "keys.rekeying": "إعادة القفل",
+    "keys.spareKey": "مفتاح احتياطي",
+    "keys.subMasterKey": "المفتاح الفرعي الرئيسي",
+    "keys.unlockDoor": "فتح الباب"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/knowledgeBase.translations.json">
+<![CDATA[
+{
+  "en": {
+    "knowledgeBase.article": "Article",
+    "knowledgeBase.author": "Author",
+    "knowledgeBase.browse": "Browse",
+    "knowledgeBase.category": "Category",
+    "knowledgeBase.documentation": "Documentation",
+    "knowledgeBase.faq": "FAQ",
+    "knowledgeBase.feedback": "Feedback",
+    "knowledgeBase.guide": "Guide",
+    "knowledgeBase.helpful": "Was this helpful?",
+    "knowledgeBase.howTo": "How-to",
+    "knowledgeBase.knowledgeBase1": "Knowledge Base",
+    "knowledgeBase.manual": "Manual",
+    "knowledgeBase.no": "No",
+    "knowledgeBase.popular": "Popular Articles",
+    "knowledgeBase.published": "Published",
+    "knowledgeBase.rating": "Rating",
+    "knowledgeBase.recent": "Recent Articles",
+    "knowledgeBase.reference": "Reference",
+    "knowledgeBase.related": "Related Articles",
+    "knowledgeBase.search": "Search",
+    "knowledgeBase.topic": "Topic",
+    "knowledgeBase.tutorial": "Tutorial",
+    "knowledgeBase.updated": "Last Updated",
+    "knowledgeBase.version": "Version",
+    "knowledgeBase.views": "Views",
+    "knowledgeBase.yes": "Yes"
+  },
+  "ar": {
+    "knowledgeBase.article": "المقال",
+    "knowledgeBase.author": "المؤلف",
+    "knowledgeBase.browse": "تصفح",
+    "knowledgeBase.category": "الفئة",
+    "knowledgeBase.documentation": "التوثيق",
+    "knowledgeBase.faq": "الأسئلة الشائعة",
+    "knowledgeBase.feedback": "الملاحظات",
+    "knowledgeBase.guide": "الدليل",
+    "knowledgeBase.helpful": "هل كان هذا مفيداً؟",
+    "knowledgeBase.howTo": "كيفية",
+    "knowledgeBase.knowledgeBase1": "قاعدة المعرفة",
+    "knowledgeBase.manual": "الدليل",
+    "knowledgeBase.no": "لا",
+    "knowledgeBase.popular": "المقالات الشائعة",
+    "knowledgeBase.published": "تاريخ النشر",
+    "knowledgeBase.rating": "التقييم",
+    "knowledgeBase.recent": "المقالات الأخيرة",
+    "knowledgeBase.reference": "المرجع",
+    "knowledgeBase.related": "المقالات ذات الصلة",
+    "knowledgeBase.search": "البحث",
+    "knowledgeBase.topic": "الموضوع",
+    "knowledgeBase.tutorial": "البرنامج التعليمي",
+    "knowledgeBase.updated": "آخر تحديث",
+    "knowledgeBase.version": "الإصدار",
+    "knowledgeBase.views": "المشاهدات",
+    "knowledgeBase.yes": "نعم"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/knowledgeBaseSupportAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "knowledgeBaseSupportAdv.article": "Knowledge Article",
+    "knowledgeBaseSupportAdv.author": "Article Author",
+    "knowledgeBaseSupportAdv.best": "Best Practices",
+    "knowledgeBaseSupportAdv.category": "Article Category",
+    "knowledgeBaseSupportAdv.documentation": "Documentation",
+    "knowledgeBaseSupportAdv.faq": "FAQ",
+    "knowledgeBaseSupportAdv.feedback": "Article Feedback",
+    "knowledgeBaseSupportAdv.guide": "User Guide",
+    "knowledgeBaseSupportAdv.howto": "How-To",
+    "knowledgeBaseSupportAdv.knowledge": "Knowledge Base",
+    "knowledgeBaseSupportAdv.manual": "Manual",
+    "knowledgeBaseSupportAdv.publish": "Publish",
+    "knowledgeBaseSupportAdv.rating": "Article Rating",
+    "knowledgeBaseSupportAdv.search": "Knowledge Search",
+    "knowledgeBaseSupportAdv.solution": "Solution",
+    "knowledgeBaseSupportAdv.tag": "Article Tags",
+    "knowledgeBaseSupportAdv.tip": "Tips and Tricks",
+    "knowledgeBaseSupportAdv.troubleshooting": "Troubleshooting",
+    "knowledgeBaseSupportAdv.tutorial": "Tutorial",
+    "knowledgeBaseSupportAdv.version": "Article Version",
+    "knowledgeBaseSupportAdv.views": "Article Views",
+    "knowledgeBaseSupportAdv.workaround": "Workaround"
+  },
+  "ar": {
+    "knowledgeBaseSupportAdv.article": "مقال المعرفة",
+    "knowledgeBaseSupportAdv.author": "مؤلف المقال",
+    "knowledgeBaseSupportAdv.best": "أفضل الممارسات",
+    "knowledgeBaseSupportAdv.category": "فئة المقال",
+    "knowledgeBaseSupportAdv.documentation": "التوثيق",
+    "knowledgeBaseSupportAdv.faq": "الأسئلة الشائعة",
+    "knowledgeBaseSupportAdv.feedback": "ملاحظات المقال",
+    "knowledgeBaseSupportAdv.guide": "دليل المستخدم",
+    "knowledgeBaseSupportAdv.howto": "كيفية",
+    "knowledgeBaseSupportAdv.knowledge": "قاعدة المعرفة",
+    "knowledgeBaseSupportAdv.manual": "الدليل",
+    "knowledgeBaseSupportAdv.publish": "النشر",
+    "knowledgeBaseSupportAdv.rating": "تقييم المقال",
+    "knowledgeBaseSupportAdv.search": "بحث المعرفة",
+    "knowledgeBaseSupportAdv.solution": "الحل",
+    "knowledgeBaseSupportAdv.tag": "علامات المقال",
+    "knowledgeBaseSupportAdv.tip": "النصائح والحيل",
+    "knowledgeBaseSupportAdv.troubleshooting": "استكشاف الأخطاء",
+    "knowledgeBaseSupportAdv.tutorial": "البرنامج التعليمي",
+    "knowledgeBaseSupportAdv.version": "إصدار المقال",
+    "knowledgeBaseSupportAdv.views": "مشاهدات المقال",
+    "knowledgeBaseSupportAdv.workaround": "الحل البديل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/knowledgeManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "knowledgeManagement.article": "Knowledge Article",
+    "knowledgeManagement.base": "Knowledge Base",
+    "knowledgeManagement.bestpractice": "Best Practice",
+    "knowledgeManagement.capture": "Knowledge Capture",
+    "knowledgeManagement.category": "Knowledge Category",
+    "knowledgeManagement.collaboration": "Knowledge Collaboration",
+    "knowledgeManagement.creation": "Knowledge Creation",
+    "knowledgeManagement.discovery": "Knowledge Discovery",
+    "knowledgeManagement.documentation": "Knowledge Documentation",
+    "knowledgeManagement.expertise": "Expertise",
+    "knowledgeManagement.faq": "FAQ",
+    "knowledgeManagement.guide": "User Guide",
+    "knowledgeManagement.knowledge": "Knowledge Management",
+    "knowledgeManagement.lesson": "Lessons Learned",
+    "knowledgeManagement.lifecycle": "Knowledge Lifecycle",
+    "knowledgeManagement.repository": "Knowledge Repository",
+    "knowledgeManagement.retention": "Knowledge Retention",
+    "knowledgeManagement.search": "Knowledge Search",
+    "knowledgeManagement.sharing": "Knowledge Sharing",
+    "knowledgeManagement.transfer": "Knowledge Transfer",
+    "knowledgeManagement.tutorial": "Tutorial",
+    "knowledgeManagement.wiki": "Knowledge Wiki"
+  },
+  "ar": {
+    "knowledgeManagement.article": "مقالة معرفية",
+    "knowledgeManagement.base": "قاعدة المعرفة",
+    "knowledgeManagement.bestpractice": "أفضل الممارسات",
+    "knowledgeManagement.capture": "التقاط المعرفة",
+    "knowledgeManagement.category": "فئة المعرفة",
+    "knowledgeManagement.collaboration": "التعاون المعرفي",
+    "knowledgeManagement.creation": "إنشاء المعرفة",
+    "knowledgeManagement.discovery": "اكتشاف المعرفة",
+    "knowledgeManagement.documentation": "توثيق المعرفة",
+    "knowledgeManagement.expertise": "الخبرة",
+    "knowledgeManagement.faq": "الأسئلة الشائعة",
+    "knowledgeManagement.guide": "دليل المستخدم",
+    "knowledgeManagement.knowledge": "إدارة المعرفة",
+    "knowledgeManagement.lesson": "الدروس المستفادة",
+    "knowledgeManagement.lifecycle": "دورة حياة المعرفة",
+    "knowledgeManagement.repository": "مستودع المعرفة",
+    "knowledgeManagement.retention": "الاحتفاظ بالمعرفة",
+    "knowledgeManagement.search": "البحث في المعرفة",
+    "knowledgeManagement.sharing": "مشاركة المعرفة",
+    "knowledgeManagement.transfer": "نقل المعرفة",
+    "knowledgeManagement.tutorial": "البرنامج التعليمي",
+    "knowledgeManagement.wiki": "ويكي المعرفة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/knowledgeManagementAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "knowledgeManagementAdv.article": "Knowledge Article",
+    "knowledgeManagementAdv.base": "Knowledge Base",
+    "knowledgeManagementAdv.best": "Best Practices",
+    "knowledgeManagementAdv.capture": "Knowledge Capture",
+    "knowledgeManagementAdv.categorization": "Content Categorization",
+    "knowledgeManagementAdv.collaboration": "Collaborative Knowledge",
+    "knowledgeManagementAdv.community": "Community of Practice",
+    "knowledgeManagementAdv.creation": "Content Creation",
+    "knowledgeManagementAdv.curation": "Content Curation",
+    "knowledgeManagementAdv.documentation": "Documentation",
+    "knowledgeManagementAdv.expertise": "Expertise",
+    "knowledgeManagementAdv.faq": "FAQ",
+    "knowledgeManagementAdv.guide": "User Guide",
+    "knowledgeManagementAdv.knowledge": "Knowledge Management",
+    "knowledgeManagementAdv.lessons": "Lessons Learned",
+    "knowledgeManagementAdv.manual": "Manual",
+    "knowledgeManagementAdv.procedure": "Procedure",
+    "knowledgeManagementAdv.retrieval": "Information Retrieval",
+    "knowledgeManagementAdv.search": "Knowledge Search",
+    "knowledgeManagementAdv.sharing": "Knowledge Sharing",
+    "knowledgeManagementAdv.taxonomy": "Knowledge Taxonomy",
+    "knowledgeManagementAdv.wiki": "Wiki"
+  },
+  "ar": {
+    "knowledgeManagementAdv.article": "مقال معرفي",
+    "knowledgeManagementAdv.base": "قاعدة المعرفة",
+    "knowledgeManagementAdv.best": "أفضل الممارسات",
+    "knowledgeManagementAdv.capture": "التقاط المعرفة",
+    "knowledgeManagementAdv.categorization": "تصنيف المحتوى",
+    "knowledgeManagementAdv.collaboration": "المعرفة التعاونية",
+    "knowledgeManagementAdv.community": "مجتمع الممارسة",
+    "knowledgeManagementAdv.creation": "إنشاء المحتوى",
+    "knowledgeManagementAdv.curation": "تنسيق المحتوى",
+    "knowledgeManagementAdv.documentation": "التوثيق",
+    "knowledgeManagementAdv.expertise": "الخبرة",
+    "knowledgeManagementAdv.faq": "الأسئلة الشائعة",
+    "knowledgeManagementAdv.guide": "دليل المستخدم",
+    "knowledgeManagementAdv.knowledge": "إدارة المعرفة",
+    "knowledgeManagementAdv.lessons": "الدروس المستفادة",
+    "knowledgeManagementAdv.manual": "الدليل",
+    "knowledgeManagementAdv.procedure": "الإجراء",
+    "knowledgeManagementAdv.retrieval": "استرجاع المعلومات",
+    "knowledgeManagementAdv.search": "البحث في المعرفة",
+    "knowledgeManagementAdv.sharing": "مشاركة المعرفة",
+    "knowledgeManagementAdv.taxonomy": "تصنيف المعرفة",
+    "knowledgeManagementAdv.wiki": "الويكي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/knowledgeManagementSystems.translations.json">
+<![CDATA[
+{
+  "en": {
+    "knowledgeManagementSystems.base": "Knowledge Base",
+    "knowledgeManagementSystems.capture": "Knowledge Capture",
+    "knowledgeManagementSystems.content": "Content Management",
+    "knowledgeManagementSystems.creation": "Knowledge Creation",
+    "knowledgeManagementSystems.database": "Knowledge Database",
+    "knowledgeManagementSystems.documentation": "Documentation System",
+    "knowledgeManagementSystems.governance": "Knowledge Governance",
+    "knowledgeManagementSystems.knowledge": "Knowledge Management Systems",
+    "knowledgeManagementSystems.library": "Knowledge Library",
+    "knowledgeManagementSystems.management": "KM Systems",
+    "knowledgeManagementSystems.organization": "Knowledge Organization",
+    "knowledgeManagementSystems.platform": "KM Platform",
+    "knowledgeManagementSystems.portal": "Knowledge Portal",
+    "knowledgeManagementSystems.repository": "Knowledge Repository",
+    "knowledgeManagementSystems.retrieval": "Knowledge Retrieval",
+    "knowledgeManagementSystems.search": "Knowledge Search",
+    "knowledgeManagementSystems.sharing": "Knowledge Sharing",
+    "knowledgeManagementSystems.storage": "Knowledge Storage",
+    "knowledgeManagementSystems.systems": "KMS Platform",
+    "knowledgeManagementSystems.taxonomy": "Knowledge Taxonomy",
+    "knowledgeManagementSystems.transfer": "Knowledge Transfer",
+    "knowledgeManagementSystems.wiki": "Enterprise Wiki"
+  },
+  "ar": {
+    "knowledgeManagementSystems.base": "قاعدة المعرفة",
+    "knowledgeManagementSystems.capture": "التقاط المعرفة",
+    "knowledgeManagementSystems.content": "إدارة المحتوى",
+    "knowledgeManagementSystems.creation": "إنشاء المعرفة",
+    "knowledgeManagementSystems.database": "قاعدة بيانات المعرفة",
+    "knowledgeManagementSystems.documentation": "نظام التوثيق",
+    "knowledgeManagementSystems.governance": "حوكمة المعرفة",
+    "knowledgeManagementSystems.knowledge": "أنظمة إدارة المعرفة",
+    "knowledgeManagementSystems.library": "مكتبة المعرفة",
+    "knowledgeManagementSystems.management": "أنظمة إدارة المعرفة",
+    "knowledgeManagementSystems.organization": "تنظيم المعرفة",
+    "knowledgeManagementSystems.platform": "منصة إدارة المعرفة",
+    "knowledgeManagementSystems.portal": "بوابة المعرفة",
+    "knowledgeManagementSystems.repository": "مستودع المعرفة",
+    "knowledgeManagementSystems.retrieval": "استرجاع المعرفة",
+    "knowledgeManagementSystems.search": "البحث في المعرفة",
+    "knowledgeManagementSystems.sharing": "مشاركة المعرفة",
+    "knowledgeManagementSystems.storage": "تخزين المعرفة",
+    "knowledgeManagementSystems.systems": "منصة أنظمة إدارة المعرفة",
+    "knowledgeManagementSystems.taxonomy": "تصنيف المعرفة",
+    "knowledgeManagementSystems.transfer": "نقل المعرفة",
+    "knowledgeManagementSystems.wiki": "الويكي المؤسسي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/knowledgeSharing.translations.json">
+<![CDATA[
+{
+  "en": {
+    "knowledgeSharing.base": "Knowledge Base",
+    "knowledgeSharing.best": "Best Practices",
+    "knowledgeSharing.capture": "Knowledge Capture",
+    "knowledgeSharing.coaching": "Coaching",
+    "knowledgeSharing.collaboration": "Knowledge Collaboration",
+    "knowledgeSharing.community": "Knowledge Community",
+    "knowledgeSharing.creation": "Knowledge Creation",
+    "knowledgeSharing.culture": "Knowledge Culture",
+    "knowledgeSharing.dissemination": "Knowledge Dissemination",
+    "knowledgeSharing.documentation": "Documentation",
+    "knowledgeSharing.expertise": "Expertise Sharing",
+    "knowledgeSharing.lessons": "Lessons Learned",
+    "knowledgeSharing.library": "Knowledge Library",
+    "knowledgeSharing.management": "Knowledge Management",
+    "knowledgeSharing.mentoring": "Mentoring",
+    "knowledgeSharing.portal": "Knowledge Portal",
+    "knowledgeSharing.repository": "Knowledge Repository",
+    "knowledgeSharing.retention": "Knowledge Retention",
+    "knowledgeSharing.sharing": "Knowledge Sharing",
+    "knowledgeSharing.training": "Knowledge Training",
+    "knowledgeSharing.transfer": "Knowledge Transfer",
+    "knowledgeSharing.wiki": "Wiki"
+  },
+  "ar": {
+    "knowledgeSharing.base": "قاعدة المعرفة",
+    "knowledgeSharing.best": "أفضل الممارسات",
+    "knowledgeSharing.capture": "التقاط المعرفة",
+    "knowledgeSharing.coaching": "التدريب",
+    "knowledgeSharing.collaboration": "التعاون في المعرفة",
+    "knowledgeSharing.community": "مجتمع المعرفة",
+    "knowledgeSharing.creation": "إنشاء المعرفة",
+    "knowledgeSharing.culture": "ثقافة المعرفة",
+    "knowledgeSharing.dissemination": "نشر المعرفة",
+    "knowledgeSharing.documentation": "التوثيق",
+    "knowledgeSharing.expertise": "تبادل الخبرات",
+    "knowledgeSharing.lessons": "الدروس المستفادة",
+    "knowledgeSharing.library": "مكتبة المعرفة",
+    "knowledgeSharing.management": "إدارة المعرفة",
+    "knowledgeSharing.mentoring": "الإرشاد",
+    "knowledgeSharing.portal": "بوابة المعرفة",
+    "knowledgeSharing.repository": "مستودع المعرفة",
+    "knowledgeSharing.retention": "الاحتفاظ بالمعرفة",
+    "knowledgeSharing.sharing": "تبادل المعرفة",
+    "knowledgeSharing.training": "التدريب على المعرفة",
+    "knowledgeSharing.transfer": "نقل المعرفة",
+    "knowledgeSharing.wiki": "ويكي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/kpiIndicators.translations.json">
+<![CDATA[
+{
+  "en": {
+    "kpiIndicators.achieved": "Achieved",
+    "kpiIndicators.actual": "Actual Value",
+    "kpiIndicators.atRisk": "At Risk",
+    "kpiIndicators.benchmark": "Benchmark",
+    "kpiIndicators.change": "Change",
+    "kpiIndicators.comparison": "Comparison",
+    "kpiIndicators.declining": "Declining",
+    "kpiIndicators.down": "Trending Down",
+    "kpiIndicators.exceeded": "Exceeded",
+    "kpiIndicators.forecast": "Forecast",
+    "kpiIndicators.growth": "Growth Rate",
+    "kpiIndicators.historical": "Historical Data",
+    "kpiIndicators.improving": "Improving",
+    "kpiIndicators.indicator": "Indicator",
+    "kpiIndicators.kpi": "KPI",
+    "kpiIndicators.metric": "Metric",
+    "kpiIndicators.missed": "Missed",
+    "kpiIndicators.offTrack": "Off Track",
+    "kpiIndicators.onTrack": "On Track",
+    "kpiIndicators.percentage": "Percentage",
+    "kpiIndicators.performance": "Performance",
+    "kpiIndicators.stable": "Stable",
+    "kpiIndicators.target": "Target Value",
+    "kpiIndicators.trend": "Trend",
+    "kpiIndicators.up": "Trending Up",
+    "kpiIndicators.value": "Current Value",
+    "kpiIndicators.variance": "Variance"
+  },
+  "ar": {
+    "kpiIndicators.achieved": "تم تحقيقه",
+    "kpiIndicators.actual": "القيمة الفعلية",
+    "kpiIndicators.atRisk": "في خطر",
+    "kpiIndicators.benchmark": "المعيار المرجعي",
+    "kpiIndicators.change": "التغيير",
+    "kpiIndicators.comparison": "المقارنة",
+    "kpiIndicators.declining": "يتراجع",
+    "kpiIndicators.down": "اتجاه هابط",
+    "kpiIndicators.exceeded": "تجاوز",
+    "kpiIndicators.forecast": "التنبؤ",
+    "kpiIndicators.growth": "معدل النمو",
+    "kpiIndicators.historical": "البيانات التاريخية",
+    "kpiIndicators.improving": "يتحسن",
+    "kpiIndicators.indicator": "المؤشر",
+    "kpiIndicators.kpi": "مؤشر الأداء الرئيسي",
+    "kpiIndicators.metric": "المقياس",
+    "kpiIndicators.missed": "فائت",
+    "kpiIndicators.offTrack": "خارج المسار",
+    "kpiIndicators.onTrack": "على المسار الصحيح",
+    "kpiIndicators.percentage": "النسبة المئوية",
+    "kpiIndicators.performance": "الأداء",
+    "kpiIndicators.stable": "مستقر",
+    "kpiIndicators.target": "القيمة المستهدفة",
+    "kpiIndicators.trend": "الاتجاه",
+    "kpiIndicators.up": "اتجاه صاعد",
+    "kpiIndicators.value": "القيمة الحالية",
+    "kpiIndicators.variance": "التباين"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/kubernetesManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "kubernetesManagement.configmaps": "ConfigMaps",
+    "kubernetesManagement.container": "Container Orchestration",
+    "kubernetesManagement.deployments": "Deployments",
+    "kubernetesManagement.docker": "Docker",
+    "kubernetesManagement.helm": "Helm Charts",
+    "kubernetesManagement.horizontal": "Horizontal Pod Autoscaler",
+    "kubernetesManagement.ingress": "Ingress Controllers",
+    "kubernetesManagement.k8s": "K8s",
+    "kubernetesManagement.kubernetes": "Kubernetes",
+    "kubernetesManagement.logging": "Container Logging",
+    "kubernetesManagement.monitoring": "Cluster Monitoring",
+    "kubernetesManagement.namespaces": "Namespace Management",
+    "kubernetesManagement.networking": "Networking",
+    "kubernetesManagement.operators": "Kubernetes Operators",
+    "kubernetesManagement.pods": "Pod Management",
+    "kubernetesManagement.policies": "Network Policies",
+    "kubernetesManagement.scaling": "Auto-Scaling",
+    "kubernetesManagement.secrets": "Secrets Management",
+    "kubernetesManagement.services": "Service Management",
+    "kubernetesManagement.storage": "Storage Classes",
+    "kubernetesManagement.vertical": "Vertical Pod Autoscaler",
+    "kubernetesManagement.volumes": "Persistent Volumes"
+  },
+  "ar": {
+    "kubernetesManagement.configmaps": "خرائط التكوين",
+    "kubernetesManagement.container": "تنسيق الحاويات",
+    "kubernetesManagement.deployments": "النشر",
+    "kubernetesManagement.docker": "Docker",
+    "kubernetesManagement.helm": "مخططات Helm",
+    "kubernetesManagement.horizontal": "مقياس البودات الأفقي التلقائي",
+    "kubernetesManagement.ingress": "وحدات التحكم في الدخول",
+    "kubernetesManagement.k8s": "K8s",
+    "kubernetesManagement.kubernetes": "Kubernetes",
+    "kubernetesManagement.logging": "تسجيل الحاويات",
+    "kubernetesManagement.monitoring": "مراقبة الكتلة",
+    "kubernetesManagement.namespaces": "إدارة مساحات الأسماء",
+    "kubernetesManagement.networking": "الشبكات",
+    "kubernetesManagement.operators": "مشغلو Kubernetes",
+    "kubernetesManagement.pods": "إدارة البودات",
+    "kubernetesManagement.policies": "سياسات الشبكة",
+    "kubernetesManagement.scaling": "القياس التلقائي",
+    "kubernetesManagement.secrets": "إدارة الأسرار",
+    "kubernetesManagement.services": "إدارة الخدمات",
+    "kubernetesManagement.storage": "فئات التخزين",
+    "kubernetesManagement.vertical": "مقياس البودات الرأسي التلقائي",
+    "kubernetesManagement.volumes": "الأحجام الثابتة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/labels.translations.json">
+<![CDATA[
+{
+  "en": {
+    "labels.address": "Address",
+    "labels.amount": "Amount",
+    "labels.assignee": "Assignee",
+    "labels.attachments": "Attachments",
+    "labels.category": "Category",
+    "labels.city": "City",
+    "labels.comments": "Comments",
+    "labels.contact": "Contact",
+    "labels.country": "Country",
+    "labels.createdAt": "Created At",
+    "labels.createdBy": "Created By",
+    "labels.creator": "Creator",
+    "labels.date": "Date",
+    "labels.description": "Description",
+    "labels.details": "Details",
+    "labels.discount": "Discount",
+    "labels.email": "Email",
+    "labels.name": "Name",
+    "labels.notes": "Notes",
+    "labels.owner": "Owner",
+    "labels.phone": "Phone",
+    "labels.price": "Price",
+    "labels.priority": "Priority",
+    "labels.quantity": "Quantity",
+    "labels.status": "Status",
+    "labels.subtotal": "Subtotal",
+    "labels.tags": "Tags",
+    "labels.tax": "Tax",
+    "labels.time": "Time",
+    "labels.title": "Title",
+    "labels.total": "Total",
+    "labels.type": "Type",
+    "labels.updatedAt": "Updated At",
+    "labels.updatedBy": "Updated By",
+    "labels.website": "Website"
+  },
+  "ar": {
+    "labels.address": "العنوان",
+    "labels.amount": "المبلغ",
+    "labels.assignee": "المسؤول",
+    "labels.attachments": "المرفقات",
+    "labels.category": "الفئة",
+    "labels.city": "المدينة",
+    "labels.comments": "التعليقات",
+    "labels.contact": "جهة الاتصال",
+    "labels.country": "البلد",
+    "labels.createdAt": "تاريخ الإنشاء",
+    "labels.createdBy": "أنشئ بواسطة",
+    "labels.creator": "المنشئ",
+    "labels.date": "التاريخ",
+    "labels.description": "الوصف",
+    "labels.details": "التفاصيل",
+    "labels.discount": "الخصم",
+    "labels.email": "البريد الإلكتروني",
+    "labels.name": "الاسم",
+    "labels.notes": "ملاحظات",
+    "labels.owner": "المالك",
+    "labels.phone": "الهاتف",
+    "labels.price": "السعر",
+    "labels.priority": "الأولوية",
+    "labels.quantity": "الكمية",
+    "labels.status": "الحالة",
+    "labels.subtotal": "المجموع الفرعي",
+    "labels.tags": "الوسوم",
+    "labels.tax": "الضريبة",
+    "labels.time": "الوقت",
+    "labels.title": "العنوان",
+    "labels.total": "الإجمالي",
+    "labels.type": "النوع",
+    "labels.updatedAt": "تاريخ التحديث",
+    "labels.updatedBy": "حُدث بواسطة",
+    "labels.website": "الموقع الإلكتروني"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/landing.translations.json">
+<![CDATA[
+{
+  "en": {
+    "landing.cta.button": "Get Started Today",
+    "landing.cta.demo": "Request Demo",
+    "landing.cta.login": "Login",
+    "landing.cta.subtitle": "Join thousands of properties already using Fixzit to streamline operations",
+    "landing.cta.title": "Ready to transform your facility management?",
+    "landing.features.analytics.cta": "Explore →",
+    "landing.features.analytics.desc": "Gain insights with comprehensive reporting and analytics",
+    "landing.features.analytics.title": "Analytics & Reports",
+    "landing.features.crm.cta": "Explore →",
+    "landing.features.crm.desc": "Manage tenant relationships and customer service",
+    "landing.features.crm.title": "CRM & Tenants",
+    "landing.features.finance.cta": "Explore →",
+    "landing.features.finance.desc": "Handle invoicing, payments, and financial reporting",
+    "landing.features.finance.title": "Finance & Billing",
+    "landing.features.property.cta": "Explore →",
+    "landing.features.property.desc": "Manage your real estate portfolio, track occupancy, and handle tenant relations",
+    "landing.features.property.title": "Property Management",
+    "landing.features.title": "Complete Facility Management Solution",
+    "landing.features.titleLanding": "Complete Facility Management Solution",
+    "landing.features.vendors.cta": "Explore →",
+    "landing.features.vendors.desc": "Source materials, manage vendors, and streamline procurement",
+    "landing.features.vendors.title": "Vendors & RFQs",
+    "landing.features.workorders.cta": "Explore →",
+    "landing.features.workorders.desc": "Create, assign, and track maintenance requests with SLA management",
+    "landing.features.workorders.title": "Work Orders",
+    "landing.hero.actions.bookDemo": "Book a live demo",
+    "landing.hero.actions.getStarted": "Get started with Fixzit",
+    "landing.hero.cta1": "Access Fixzit FM",
+    "landing.hero.cta2": "Fixzit Souq",
+    "landing.hero.cta3": "Aqar Real Estate",
+    "landing.hero.description": "A brown, calm Fixzit shell: unified Work Orders, Properties, Finance, HR and Souq in a single, Apple-inspired interface built for Saudi FM teams.",
+    "landing.hero.highlights.financeReady": "Finance ready invoices",
+    "landing.hero.highlights.linkedOrders": "Work Order linked orders",
+    "landing.hero.highlights.rapidRfq": "Rapid RFQ",
+    "landing.hero.tagline": "Facility Management · Marketplaces · Saudi-first",
+    "landing.hero.title.line1": "Operate properties with calm.",
+    "landing.hero.title.line2": "Move money with confidence.",
+    "landing.hero.preview.title": "Complete facility management suite",
+    "landing.hero.preview.description": "Everything you need to manage properties, work orders, vendors, and finances in one unified platform.",
+    "landing.hero.preview.feature1": "Real-time work order tracking",
+    "landing.hero.preview.feature1.desc": "Monitor status, SLAs, and team performance",
+    "landing.hero.preview.feature2": "Vendor & procurement management",
+    "landing.hero.preview.feature2.desc": "RFQs, purchase orders, and vendor ratings",
+    "landing.hero.preview.feature3": "ZATCA-compliant invoicing",
+    "landing.hero.preview.feature3.desc": "Automated billing with Saudi e-invoicing standards",
+    "landing.modules.crm.description": "Tickets, SLAs and CSAT in a unified shell, ready for channels and bots.",
+    "landing.modules.crm.title": "CRM & Support",
+    "landing.modules.finance.description": "Invoices, receipts, expenses and ZATCA-ready billing aligned with Fixzit finance flows.",
+    "landing.modules.finance.title": "Finance",
+    "landing.modules.hr.description": "Technicians, supervisors, shifts and skills matrix with clean status chips.",
+    "landing.modules.hr.title": "HR",
+    "landing.modules.properties.description": "Units, assets, leases, owners and tenants with health status per property.",
+    "landing.modules.properties.title": "Properties",
+    "landing.modules.souq.description": "Vendor onboarding, catalogs and orders using your existing Souq logic in a calmer UI.",
+    "landing.modules.souq.title": "Fixzit Souq",
+    "landing.modules.subtitle": "Brown, calm and structured: one shell for Work Orders, Properties, Finance, HR and Souq.",
+    "landing.modules.title": "Everything your FM operation needs — connected",
+    "landing.modules.workOrders.description": "Blue logic, brown theme: new, in progress, completed, overdue with SLA timers and photos.",
+    "landing.modules.workOrders.title": "Work Orders",
+    "landing.subtitle": "Unified Facility Management + Marketplace Solution for modern property operations",
+    "landing.title": "Fixzit Enterprise Platform"
+  },
+  "ar": {
+    "landing.cta.button": "ابدأ اليوم",
+    "landing.cta.demo": "طلب عرض توضيحي",
+    "landing.cta.login": "تسجيل الدخول",
+    "landing.cta.subtitle": "انضم إلى آلاف العقارات التي تستخدم بالفعل فيكزيت لتبسيط العمليات",
+    "landing.cta.title": "هل أنت مستعد لتحويل إدارة منشآتك؟",
+    "landing.features.analytics.cta": "استكشف ←",
+    "landing.features.analytics.desc": "احصل على رؤى من خلال تقارير وتحليلات شاملة",
+    "landing.features.analytics.title": "التحليلات والتقارير",
+    "landing.features.crm.cta": "استكشف ←",
+    "landing.features.crm.desc": "إدارة علاقات المستأجرين وخدمة العملاء",
+    "landing.features.crm.title": "إدارة علاقات العملاء والمستأجرين",
+    "landing.features.finance.cta": "استكشف ←",
+    "landing.features.finance.desc": "التعامل مع الفواتير والمدفوعات وإعداد التقارير المالية",
+    "landing.features.finance.title": "المالية والفوترة",
+    "landing.features.property.cta": "استكشف ←",
+    "landing.features.property.desc": "إدارة محفظة العقارات الخاصة بك، تتبع الإشغال، والتعامل مع العلاقات مع المستأجرين",
+    "landing.features.property.title": "إدارة الممتلكات",
+    "landing.features.title": "حل كامل لإدارة المنشآت",
+    "landing.features.titleLanding": "حل كامل لإدارة المنشآت",
+    "landing.features.vendors.cta": "استكشف ←",
+    "landing.features.vendors.desc": "مصدر المواد، إدارة الموردين، وتبسيط المشتريات",
+    "landing.features.vendors.title": "الموردون وطلبات العروض",
+    "landing.features.workorders.cta": "استكشف ←",
+    "landing.features.workorders.desc": "إنشاء وتعيين وتتبع طلبات الصيانة مع إدارة اتفاقية مستوى الخدمة",
+    "landing.features.workorders.title": "أوامر العمل",
+    "landing.hero.actions.bookDemo": "احجز عرضًا مباشرًا",
+    "landing.hero.actions.getStarted": "ابدأ مع Fixzit",
+    "landing.hero.cta1": "الوصول إلى فيكزيت FM",
+    "landing.hero.cta2": "فيكزيت سوق",
+    "landing.hero.cta3": "عقار فيكزيت",
+    "landing.hero.description": "هيكل Fixzit هادئ بلون بني: أوامر العمل والعقارات والمالية والموارد البشرية وسوق Souq في واجهة واحدة مستوحاة من تصميم أبل ومخصصة لفرق إدارة المرافق السعودية.",
+    "landing.hero.highlights.financeReady": "فواتير جاهزة للمالية",
+    "landing.hero.highlights.linkedOrders": "طلبات مرتبطة بأوامر العمل",
+    "landing.hero.highlights.rapidRfq": "طلبات تسعير سريعة",
+    "landing.hero.tagline": "إدارة المرافق · الأسواق · أولوية سعودية",
+    "landing.hero.title.line1": "شغّل العقارات بهدوء.",
+    "landing.hero.title.line2": "حرّك الأموال بثقة.",
+    "landing.hero.preview.title": "منظومة إدارة مرافق متكاملة",
+    "landing.hero.preview.description": "كل ما تحتاجه لإدارة العقارات وأوامر العمل والموردين والمالية في منصة واحدة.",
+    "landing.hero.preview.feature1": "تتبع أوامر العمل لحظيًا",
+    "landing.hero.preview.feature1.desc": "راقب الحالة واتفاقيات مستوى الخدمة وأداء الفريق.",
+    "landing.hero.preview.feature2": "إدارة الموردين والمشتريات",
+    "landing.hero.preview.feature2.desc": "طلبات عروض الأسعار، أوامر الشراء، وتقييمات الموردين.",
+    "landing.hero.preview.feature3": "فواتير متوافقة مع الزكاة والضريبة والجمارك",
+    "landing.hero.preview.feature3.desc": "فواتير مؤتمتة متوافقة مع متطلبات الفوترة الإلكترونية السعودية.",
+    "landing.modules.crm.description": "التذاكر واتفاقيات الخدمة ورضا العملاء في واجهة موحدة جاهزة للقنوات والروبوتات.",
+    "landing.modules.crm.title": "إدارة العملاء والدعم",
+    "landing.modules.finance.description": "الفواتير والإيصالات والمصاريف وفوترة متوافقة مع الزكاة والضريبة والجمارك حسب تدفقات Fixzit المالية.",
+    "landing.modules.finance.title": "المالية",
+    "landing.modules.hr.description": "الفنيون والمشرفون والورديات ومصفوفة المهارات مع شارات حالة واضحة.",
+    "landing.modules.hr.title": "الموارد البشرية",
+    "landing.modules.properties.description": "الوحدات والأصول والعقود والمالكون والمستأجرون مع حالة صحية لكل عقار.",
+    "landing.modules.properties.title": "العقارات",
+    "landing.modules.souq.description": "إدخال الموردين والفهارس والطلبات باستخدام منطق Souq الحالي ضمن واجهة أكثر هدوءًا.",
+    "landing.modules.souq.title": "Fixzit Souq",
+    "landing.modules.subtitle": "بني هادئ ومنظم: واجهة واحدة لأوامر العمل والعقارات والمالية والموارد البشرية وسوق Souq.",
+    "landing.modules.title": "كل ما يحتاجه تشغيل المرافق لديك — مترابط",
+    "landing.modules.workOrders.description": "منطق أزرق وثيم بني: جديد، قيد التقدم، مكتمل، متأخر مع مؤقتات SLA وصور.",
+    "landing.modules.workOrders.title": "أوامر العمل",
+    "landing.subtitle": "حل موحد لإدارة المنشآت + السوق التجاري للعمليات العقارية الحديثة",
+    "landing.title": "منصة فيكزيت للمؤسسات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/landscaping.translations.json">
+<![CDATA[
+{
+  "en": {
+    "landscaping.fertilization": "Fertilization",
+    "landscaping.fertilizer": "Fertilizer",
+    "landscaping.flower": "Flower",
+    "landscaping.flowerBed": "Flower Bed",
+    "landscaping.flowers": "Flowers",
+    "landscaping.garden": "Garden",
+    "landscaping.gardener": "Gardener",
+    "landscaping.gardens": "Gardens",
+    "landscaping.grass": "Grass",
+    "landscaping.groundskeeper": "Groundskeeper",
+    "landscaping.groundsKeeping": "Grounds Keeping",
+    "landscaping.irrigation": "Irrigation",
+    "landscaping.irrigationSystem": "Irrigation System",
+    "landscaping.landscape": "Landscape",
+    "landscaping.landscaping1": "Landscaping",
+    "landscaping.lawn": "Lawn",
+    "landscaping.lawnCare": "Lawn Care",
+    "landscaping.lawnMowing": "Lawn Mowing",
+    "landscaping.mulching": "Mulching",
+    "landscaping.pestControl": "Pest Control",
+    "landscaping.pesticide": "Pesticide",
+    "landscaping.plant": "Plant",
+    "landscaping.plants": "Plants",
+    "landscaping.pruning": "Pruning",
+    "landscaping.shrub": "Shrub",
+    "landscaping.shrubs": "Shrubs",
+    "landscaping.sprinklerSystem": "Sprinkler System",
+    "landscaping.tree": "Tree",
+    "landscaping.trees": "Trees",
+    "landscaping.trimming": "Trimming",
+    "landscaping.turf": "Turf",
+    "landscaping.watering": "Watering",
+    "landscaping.weeding": "Weeding"
+  },
+  "ar": {
+    "landscaping.fertilization": "التسميد",
+    "landscaping.fertilizer": "سماد",
+    "landscaping.flower": "زهرة",
+    "landscaping.flowerBed": "حوض زهور",
+    "landscaping.flowers": "زهور",
+    "landscaping.garden": "حديقة",
+    "landscaping.gardener": "بستاني",
+    "landscaping.gardens": "حدائق",
+    "landscaping.grass": "عشب",
+    "landscaping.groundskeeper": "عامل صيانة الأراضي",
+    "landscaping.groundsKeeping": "صيانة الأراضي",
+    "landscaping.irrigation": "الري",
+    "landscaping.irrigationSystem": "نظام الري",
+    "landscaping.landscape": "المناظر الطبيعية",
+    "landscaping.landscaping1": "تنسيق الحدائق",
+    "landscaping.lawn": "العشب",
+    "landscaping.lawnCare": "العناية بالعشب",
+    "landscaping.lawnMowing": "جز العشب",
+    "landscaping.mulching": "التغطية",
+    "landscaping.pestControl": "مكافحة الآفات",
+    "landscaping.pesticide": "مبيد حشري",
+    "landscaping.plant": "نبات",
+    "landscaping.plants": "نباتات",
+    "landscaping.pruning": "التقليم",
+    "landscaping.shrub": "شجيرة",
+    "landscaping.shrubs": "شجيرات",
+    "landscaping.sprinklerSystem": "نظام الرشاشات",
+    "landscaping.tree": "شجرة",
+    "landscaping.trees": "أشجار",
+    "landscaping.trimming": "التشذيب",
+    "landscaping.turf": "النجيل",
+    "landscaping.watering": "السقي",
+    "landscaping.weeding": "إزالة الأعشاب"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/languageLocalization.translations.json">
+<![CDATA[
+{
+  "en": {
+    "languageLocalization.add": "Add Language",
+    "languageLocalization.available": "Available Languages",
+    "languageLocalization.code": "Language Code",
+    "languageLocalization.complete": "Complete",
+    "languageLocalization.default": "Default Language",
+    "languageLocalization.dialect": "Dialect",
+    "languageLocalization.disabled": "Disabled",
+    "languageLocalization.enabled": "Enabled",
+    "languageLocalization.fallback": "Fallback Language",
+    "languageLocalization.incomplete": "Incomplete",
+    "languageLocalization.language": "Language",
+    "languageLocalization.locale": "Locale",
+    "languageLocalization.localization": "Localization",
+    "languageLocalization.ltr": "Left-to-Right",
+    "languageLocalization.missing": "Missing Translations",
+    "languageLocalization.name": "Language Name",
+    "languageLocalization.native": "Native Name",
+    "languageLocalization.progress": "Translation Progress",
+    "languageLocalization.region": "Region",
+    "languageLocalization.remove": "Remove Language",
+    "languageLocalization.rtl": "Right-to-Left",
+    "languageLocalization.translation": "Translation"
+  },
+  "ar": {
+    "languageLocalization.add": "إضافة لغة",
+    "languageLocalization.available": "اللغات المتاحة",
+    "languageLocalization.code": "رمز اللغة",
+    "languageLocalization.complete": "مكتمل",
+    "languageLocalization.default": "اللغة الافتراضية",
+    "languageLocalization.dialect": "اللهجة",
+    "languageLocalization.disabled": "معطلة",
+    "languageLocalization.enabled": "مفعلة",
+    "languageLocalization.fallback": "اللغة الاحتياطية",
+    "languageLocalization.incomplete": "غير مكتمل",
+    "languageLocalization.language": "اللغة",
+    "languageLocalization.locale": "المنطقة",
+    "languageLocalization.localization": "التوطين",
+    "languageLocalization.ltr": "من اليسار لليمين",
+    "languageLocalization.missing": "ترجمات مفقودة",
+    "languageLocalization.name": "اسم اللغة",
+    "languageLocalization.native": "الاسم الأصلي",
+    "languageLocalization.progress": "تقدم الترجمة",
+    "languageLocalization.region": "المنطقة",
+    "languageLocalization.remove": "إزالة لغة",
+    "languageLocalization.rtl": "من اليمين لليسار",
+    "languageLocalization.translation": "الترجمة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/layoutElements.translations.json">
+<![CDATA[
+{
+  "en": {
+    "layoutElements.article": "Article",
+    "layoutElements.aside": "Aside",
+    "layoutElements.bottom": "Bottom",
+    "layoutElements.card": "Card",
+    "layoutElements.center": "Center",
+    "layoutElements.column": "Column",
+    "layoutElements.container": "Container",
+    "layoutElements.divider": "Divider",
+    "layoutElements.flex": "Flexbox",
+    "layoutElements.footer": "Footer",
+    "layoutElements.grid": "Grid",
+    "layoutElements.header": "Header",
+    "layoutElements.inner": "Inner",
+    "layoutElements.item": "Item",
+    "layoutElements.layout": "Layout",
+    "layoutElements.left": "Left",
+    "layoutElements.list": "List",
+    "layoutElements.main": "Main Content",
+    "layoutElements.menu": "Menu",
+    "layoutElements.nav": "Navigation",
+    "layoutElements.outer": "Outer",
+    "layoutElements.panel": "Panel",
+    "layoutElements.right": "Right",
+    "layoutElements.row": "Row",
+    "layoutElements.section": "Section",
+    "layoutElements.spacer": "Spacer",
+    "layoutElements.submenu": "Submenu",
+    "layoutElements.tile": "Tile",
+    "layoutElements.top": "Top",
+    "layoutElements.widget": "Widget",
+    "layoutElements.wrapper": "Wrapper"
+  },
+  "ar": {
+    "layoutElements.article": "المقالة",
+    "layoutElements.aside": "الجانب",
+    "layoutElements.bottom": "الأسفل",
+    "layoutElements.card": "البطاقة",
+    "layoutElements.center": "الوسط",
+    "layoutElements.column": "العمود",
+    "layoutElements.container": "الحاوية",
+    "layoutElements.divider": "الفاصل",
+    "layoutElements.flex": "فليكس بوكس",
+    "layoutElements.footer": "التذييل",
+    "layoutElements.grid": "الشبكة",
+    "layoutElements.header": "الرأس",
+    "layoutElements.inner": "الداخلي",
+    "layoutElements.item": "العنصر",
+    "layoutElements.layout": "التخطيط",
+    "layoutElements.left": "اليسار",
+    "layoutElements.list": "القائمة",
+    "layoutElements.main": "المحتوى الرئيسي",
+    "layoutElements.menu": "القائمة",
+    "layoutElements.nav": "التنقل",
+    "layoutElements.outer": "الخارجي",
+    "layoutElements.panel": "اللوحة",
+    "layoutElements.right": "اليمين",
+    "layoutElements.row": "الصف",
+    "layoutElements.section": "القسم",
+    "layoutElements.spacer": "الفاصل",
+    "layoutElements.submenu": "القائمة الفرعية",
+    "layoutElements.tile": "البلاط",
+    "layoutElements.top": "الأعلى",
+    "layoutElements.widget": "الأداة",
+    "layoutElements.wrapper": "الغلاف"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/leadershipAlignment.translations.json">
+<![CDATA[
+{
+  "en": {
+    "leadershipAlignment.accountability": "Leadership Accountability",
+    "leadershipAlignment.alignment": "Leadership Alignment",
+    "leadershipAlignment.capability": "Leadership Capability",
+    "leadershipAlignment.coalition": "Leadership Coalition",
+    "leadershipAlignment.commitment": "Leadership Commitment",
+    "leadershipAlignment.communication": "Leadership Communication",
+    "leadershipAlignment.decision": "Leadership Decision",
+    "leadershipAlignment.delegation": "Leadership Delegation",
+    "leadershipAlignment.development": "Leadership Development",
+    "leadershipAlignment.direction": "Leadership Direction",
+    "leadershipAlignment.empowerment": "Leadership Empowerment",
+    "leadershipAlignment.engagement": "Leadership Engagement",
+    "leadershipAlignment.guidance": "Leadership Guidance",
+    "leadershipAlignment.involvement": "Leadership Involvement",
+    "leadershipAlignment.leadership": "Leadership Alignment",
+    "leadershipAlignment.messaging": "Leadership Messaging",
+    "leadershipAlignment.responsibility": "Leadership Responsibility",
+    "leadershipAlignment.sponsorship": "Leadership Sponsorship",
+    "leadershipAlignment.support": "Leadership Support",
+    "leadershipAlignment.team": "Leadership Team",
+    "leadershipAlignment.visibility": "Leadership Visibility",
+    "leadershipAlignment.vision": "Leadership Vision"
+  },
+  "ar": {
+    "leadershipAlignment.accountability": "مساءلة القيادة",
+    "leadershipAlignment.alignment": "مواءمة القيادة",
+    "leadershipAlignment.capability": "قدرة القيادة",
+    "leadershipAlignment.coalition": "تحالف القيادة",
+    "leadershipAlignment.commitment": "التزام القيادة",
+    "leadershipAlignment.communication": "تواصل القيادة",
+    "leadershipAlignment.decision": "قرار القيادة",
+    "leadershipAlignment.delegation": "تفويض القيادة",
+    "leadershipAlignment.development": "تطوير القيادة",
+    "leadershipAlignment.direction": "توجيه القيادة",
+    "leadershipAlignment.empowerment": "تمكين القيادة",
+    "leadershipAlignment.engagement": "إشراك القيادة",
+    "leadershipAlignment.guidance": "إرشاد القيادة",
+    "leadershipAlignment.involvement": "مشاركة القيادة",
+    "leadershipAlignment.leadership": "مواءمة القيادة",
+    "leadershipAlignment.messaging": "رسائل القيادة",
+    "leadershipAlignment.responsibility": "مسؤولية القيادة",
+    "leadershipAlignment.sponsorship": "رعاية القيادة",
+    "leadershipAlignment.support": "دعم القيادة",
+    "leadershipAlignment.team": "فريق القيادة",
+    "leadershipAlignment.visibility": "ظهور القيادة",
+    "leadershipAlignment.vision": "رؤية القيادة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/leadershipDevelopment.translations.json">
+<![CDATA[
+{
+  "en": {
+    "leadershipDevelopment.assessment": "Leadership Assessment",
+    "leadershipDevelopment.authentic": "Authentic Leadership",
+    "leadershipDevelopment.change": "Change Leadership",
+    "leadershipDevelopment.coaching": "Leadership Coaching",
+    "leadershipDevelopment.competencies": "Leadership Competencies",
+    "leadershipDevelopment.effectiveness": "Leadership Effectiveness",
+    "leadershipDevelopment.ethical": "Ethical Leadership",
+    "leadershipDevelopment.leadership": "Leadership Development",
+    "leadershipDevelopment.mentoring": "Leadership Mentoring",
+    "leadershipDevelopment.operational": "Operational Leadership",
+    "leadershipDevelopment.pipeline": "Leadership Pipeline",
+    "leadershipDevelopment.potential": "Leadership Potential",
+    "leadershipDevelopment.program": "Leadership Program",
+    "leadershipDevelopment.servant": "Servant Leadership",
+    "leadershipDevelopment.skills": "Leadership Skills",
+    "leadershipDevelopment.strategic": "Strategic Leadership",
+    "leadershipDevelopment.style": "Leadership Style",
+    "leadershipDevelopment.succession": "Succession Planning",
+    "leadershipDevelopment.team": "Team Leadership",
+    "leadershipDevelopment.training": "Leadership Training",
+    "leadershipDevelopment.transformation": "Leadership Transformation",
+    "leadershipDevelopment.vision": "Visionary Leadership"
+  },
+  "ar": {
+    "leadershipDevelopment.assessment": "تقييم القيادة",
+    "leadershipDevelopment.authentic": "القيادة الأصيلة",
+    "leadershipDevelopment.change": "قيادة التغيير",
+    "leadershipDevelopment.coaching": "تدريب القيادة",
+    "leadershipDevelopment.competencies": "كفاءات القيادة",
+    "leadershipDevelopment.effectiveness": "فعالية القيادة",
+    "leadershipDevelopment.ethical": "القيادة الأخلاقية",
+    "leadershipDevelopment.leadership": "تطوير القيادة",
+    "leadershipDevelopment.mentoring": "إرشاد القيادة",
+    "leadershipDevelopment.operational": "القيادة التشغيلية",
+    "leadershipDevelopment.pipeline": "خط أنابيب القيادة",
+    "leadershipDevelopment.potential": "إمكانيات القيادة",
+    "leadershipDevelopment.program": "برنامج القيادة",
+    "leadershipDevelopment.servant": "القيادة الخادمة",
+    "leadershipDevelopment.skills": "مهارات القيادة",
+    "leadershipDevelopment.strategic": "القيادة الاستراتيجية",
+    "leadershipDevelopment.style": "أسلوب القيادة",
+    "leadershipDevelopment.succession": "تخطيط التعاقب",
+    "leadershipDevelopment.team": "قيادة الفريق",
+    "leadershipDevelopment.training": "تدريب القيادة",
+    "leadershipDevelopment.transformation": "تحول القيادة",
+    "leadershipDevelopment.vision": "القيادة الرؤيوية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/leanMethodology.translations.json">
+<![CDATA[
+{
+  "en": {
+    "leanMethodology.culture": "Lean Culture",
+    "leanMethodology.efficiency": "Lean Efficiency",
+    "leanMethodology.flow": "Continuous Flow",
+    "leanMethodology.gemba": "Gemba",
+    "leanMethodology.improvement": "Continuous Improvement",
+    "leanMethodology.jidoka": "Jidoka",
+    "leanMethodology.justin": "Just-in-Time",
+    "leanMethodology.kaizen": "Kaizen",
+    "leanMethodology.kanban": "Kanban",
+    "leanMethodology.lean": "Lean Methodology",
+    "leanMethodology.mapping": "Value Stream Mapping",
+    "leanMethodology.metrics": "Lean Metrics",
+    "leanMethodology.perfection": "Continuous Perfection",
+    "leanMethodology.poka": "Poka-Yoke",
+    "leanMethodology.principles": "Lean Principles",
+    "leanMethodology.pull": "Pull System",
+    "leanMethodology.standardization": "Standardization",
+    "leanMethodology.takt": "Takt Time",
+    "leanMethodology.thinking": "Lean Thinking",
+    "leanMethodology.value": "Value Stream",
+    "leanMethodology.visual": "Visual Management",
+    "leanMethodology.waste": "Waste Elimination"
+  },
+  "ar": {
+    "leanMethodology.culture": "ثقافة الرشاقة",
+    "leanMethodology.efficiency": "الكفاءة الرشيقة",
+    "leanMethodology.flow": "التدفق المستمر",
+    "leanMethodology.gemba": "جيمبا",
+    "leanMethodology.improvement": "التحسين المستمر",
+    "leanMethodology.jidoka": "جيدوكا",
+    "leanMethodology.justin": "في الوقت المحدد",
+    "leanMethodology.kaizen": "كايزن",
+    "leanMethodology.kanban": "كانبان",
+    "leanMethodology.lean": "المنهجية الرشيقة",
+    "leanMethodology.mapping": "رسم خريطة تدفق القيمة",
+    "leanMethodology.metrics": "مقاييس الرشاقة",
+    "leanMethodology.perfection": "الكمال المستمر",
+    "leanMethodology.poka": "بوكا يوكي",
+    "leanMethodology.principles": "مبادئ الرشاقة",
+    "leanMethodology.pull": "نظام السحب",
+    "leanMethodology.standardization": "التوحيد القياسي",
+    "leanMethodology.takt": "وقت التاكت",
+    "leanMethodology.thinking": "التفكير الرشيق",
+    "leanMethodology.value": "تدفق القيمة",
+    "leanMethodology.visual": "الإدارة المرئية",
+    "leanMethodology.waste": "القضاء على الهدر"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/learningDevelopment.translations.json">
+<![CDATA[
+{
+  "en": {
+    "learningDevelopment.assessment": "Assessment",
+    "learningDevelopment.certificate": "Certificate",
+    "learningDevelopment.completion": "Completion",
+    "learningDevelopment.content": "Learning Content",
+    "learningDevelopment.course": "Course",
+    "learningDevelopment.curriculum": "Curriculum",
+    "learningDevelopment.enrollment": "Enrollment",
+    "learningDevelopment.exam": "Exam",
+    "learningDevelopment.instructor": "Instructor",
+    "learningDevelopment.learner": "Learner",
+    "learningDevelopment.learning": "Learning & Development",
+    "learningDevelopment.lesson": "Lesson",
+    "learningDevelopment.lms": "LMS",
+    "learningDevelopment.material": "Training Material",
+    "learningDevelopment.module": "Module",
+    "learningDevelopment.path": "Learning Path",
+    "learningDevelopment.program": "Learning Program",
+    "learningDevelopment.progress": "Progress",
+    "learningDevelopment.quiz": "Quiz",
+    "learningDevelopment.track": "Learning Track",
+    "learningDevelopment.training": "Training",
+    "learningDevelopment.video": "Video Training"
+  },
+  "ar": {
+    "learningDevelopment.assessment": "التقييم",
+    "learningDevelopment.certificate": "الشهادة",
+    "learningDevelopment.completion": "الإنجاز",
+    "learningDevelopment.content": "المحتوى التعليمي",
+    "learningDevelopment.course": "الدورة",
+    "learningDevelopment.curriculum": "المنهج الدراسي",
+    "learningDevelopment.enrollment": "التسجيل",
+    "learningDevelopment.exam": "الامتحان",
+    "learningDevelopment.instructor": "المدرب",
+    "learningDevelopment.learner": "المتعلم",
+    "learningDevelopment.learning": "التعلم والتطوير",
+    "learningDevelopment.lesson": "الدرس",
+    "learningDevelopment.lms": "نظام إدارة التعلم",
+    "learningDevelopment.material": "المواد التدريبية",
+    "learningDevelopment.module": "الوحدة",
+    "learningDevelopment.path": "المسار التعليمي",
+    "learningDevelopment.program": "البرنامج التعليمي",
+    "learningDevelopment.progress": "التقدم",
+    "learningDevelopment.quiz": "الاختبار القصير",
+    "learningDevelopment.track": "المسار التعليمي",
+    "learningDevelopment.training": "التدريب",
+    "learningDevelopment.video": "التدريب بالفيديو"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/learningDevelopmentAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "learningDevelopmentAdv.accreditation": "Accreditation",
+    "learningDevelopmentAdv.assessment": "Skills Assessment",
+    "learningDevelopmentAdv.certification": "Certification",
+    "learningDevelopmentAdv.classroom": "Classroom Training",
+    "learningDevelopmentAdv.competency": "Competency",
+    "learningDevelopmentAdv.course": "Course",
+    "learningDevelopmentAdv.curriculum": "Curriculum",
+    "learningDevelopmentAdv.development": "Development",
+    "learningDevelopmentAdv.education": "Education",
+    "learningDevelopmentAdv.elearning": "E-Learning",
+    "learningDevelopmentAdv.evaluation": "Training Evaluation",
+    "learningDevelopmentAdv.instructor": "Instructor",
+    "learningDevelopmentAdv.knowledge": "Knowledge Base",
+    "learningDevelopmentAdv.learning": "Learning & Development",
+    "learningDevelopmentAdv.module": "Training Module",
+    "learningDevelopmentAdv.onthejob": "On-the-Job Training",
+    "learningDevelopmentAdv.program": "Training Program",
+    "learningDevelopmentAdv.seminar": "Seminar",
+    "learningDevelopmentAdv.skillset": "Skillset",
+    "learningDevelopmentAdv.training": "Training",
+    "learningDevelopmentAdv.webinar": "Webinar",
+    "learningDevelopmentAdv.workshop": "Workshop"
+  },
+  "ar": {
+    "learningDevelopmentAdv.accreditation": "الاعتماد",
+    "learningDevelopmentAdv.assessment": "تقييم المهارات",
+    "learningDevelopmentAdv.certification": "الشهادة",
+    "learningDevelopmentAdv.classroom": "التدريب في الفصول الدراسية",
+    "learningDevelopmentAdv.competency": "الكفاءة",
+    "learningDevelopmentAdv.course": "دورة",
+    "learningDevelopmentAdv.curriculum": "المنهج الدراسي",
+    "learningDevelopmentAdv.development": "التطوير",
+    "learningDevelopmentAdv.education": "التعليم",
+    "learningDevelopmentAdv.elearning": "التعلم الإلكتروني",
+    "learningDevelopmentAdv.evaluation": "تقييم التدريب",
+    "learningDevelopmentAdv.instructor": "المدرب",
+    "learningDevelopmentAdv.knowledge": "قاعدة المعرفة",
+    "learningDevelopmentAdv.learning": "التعلم والتطوير",
+    "learningDevelopmentAdv.module": "وحدة تدريبية",
+    "learningDevelopmentAdv.onthejob": "التدريب أثناء العمل",
+    "learningDevelopmentAdv.program": "برنامج تدريبي",
+    "learningDevelopmentAdv.seminar": "ندوة",
+    "learningDevelopmentAdv.skillset": "مجموعة المهارات",
+    "learningDevelopmentAdv.training": "التدريب",
+    "learningDevelopmentAdv.webinar": "ندوة عبر الإنترنت",
+    "learningDevelopmentAdv.workshop": "ورشة عمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/learningManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "learningManagement.analytics": "Learning Analytics",
+    "learningManagement.assessment": "Learning Assessment",
+    "learningManagement.certification": "Certification",
+    "learningManagement.completion": "Course Completion",
+    "learningManagement.content": "Learning Content",
+    "learningManagement.course": "Course Management",
+    "learningManagement.curriculum": "Curriculum",
+    "learningManagement.delivery": "Content Delivery",
+    "learningManagement.elearning": "E-Learning",
+    "learningManagement.enrollment": "Course Enrollment",
+    "learningManagement.evaluation": "Learning Evaluation",
+    "learningManagement.learning": "Learning Management",
+    "learningManagement.library": "Learning Library",
+    "learningManagement.lms": "Learning Management System",
+    "learningManagement.mobile": "Mobile Learning",
+    "learningManagement.pathway": "Learning Pathway",
+    "learningManagement.personalization": "Learning Personalization",
+    "learningManagement.platform": "Learning Platform",
+    "learningManagement.reporting": "Learning Reporting",
+    "learningManagement.resource": "Learning Resource",
+    "learningManagement.tracking": "Learning Tracking",
+    "learningManagement.training": "Training Management"
+  },
+  "ar": {
+    "learningManagement.analytics": "تحليلات التعلم",
+    "learningManagement.assessment": "تقييم التعلم",
+    "learningManagement.certification": "الشهادة",
+    "learningManagement.completion": "إتمام الدورة",
+    "learningManagement.content": "محتوى التعلم",
+    "learningManagement.course": "إدارة الدورة",
+    "learningManagement.curriculum": "المنهج الدراسي",
+    "learningManagement.delivery": "تقديم المحتوى",
+    "learningManagement.elearning": "التعلم الإلكتروني",
+    "learningManagement.enrollment": "التسجيل في الدورة",
+    "learningManagement.evaluation": "تقييم التعلم",
+    "learningManagement.learning": "إدارة التعلم",
+    "learningManagement.library": "مكتبة التعلم",
+    "learningManagement.lms": "نظام إدارة التعلم",
+    "learningManagement.mobile": "التعلم المحمول",
+    "learningManagement.pathway": "مسار التعلم",
+    "learningManagement.personalization": "تخصيص التعلم",
+    "learningManagement.platform": "منصة التعلم",
+    "learningManagement.reporting": "إعداد تقارير التعلم",
+    "learningManagement.resource": "مورد التعلم",
+    "learningManagement.tracking": "تتبع التعلم",
+    "learningManagement.training": "إدارة التدريب"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/learningManagementSystem.translations.json">
+<![CDATA[
+{
+  "en": {
+    "learningManagementSystem.announcements": "Announcements",
+    "learningManagementSystem.assessmentTools": "Assessment Tools",
+    "learningManagementSystem.assignmentManagement": "Assignment Management",
+    "learningManagementSystem.attendanceTracking": "Attendance Tracking",
+    "learningManagementSystem.badgesAchievements": "Badges & Achievements",
+    "learningManagementSystem.certificationManagement": "Certification Management",
+    "learningManagementSystem.classRosters": "Class Rosters",
+    "learningManagementSystem.communicationTools": "Communication Tools",
+    "learningManagementSystem.completionRates": "Completion Rates",
+    "learningManagementSystem.contentAuthoring": "Content Authoring",
+    "learningManagementSystem.courseManagement": "Course Management",
+    "learningManagementSystem.curriculumDesign": "Curriculum Design",
+    "learningManagementSystem.description": "Educational content delivery and tracking",
+    "learningManagementSystem.discussionForums": "Discussion Forums",
+    "learningManagementSystem.enrollment": "Enrollment Management",
+    "learningManagementSystem.gamification": "Gamification Features",
+    "learningManagementSystem.gradingSystem": "Grading System",
+    "learningManagementSystem.leaderboards": "Leaderboards",
+    "learningManagementSystem.learnerManagement": "Learner Management",
+    "learningManagementSystem.learningOutcomes": "Learning Outcomes",
+    "learningManagementSystem.learningPaths": "Learning Paths",
+    "learningManagementSystem.lessonPlanning": "Lesson Planning",
+    "learningManagementSystem.messaging": "Messaging System",
+    "learningManagementSystem.multimediaContent": "Multimedia Content",
+    "learningManagementSystem.pointsRewards": "Points & Rewards",
+    "learningManagementSystem.progressTracking": "Progress Tracking",
+    "learningManagementSystem.quizBuilder": "Quiz Builder",
+    "learningManagementSystem.reportingAnalytics": "Reporting & Analytics",
+    "learningManagementSystem.rubricCreation": "Rubric Creation",
+    "learningManagementSystem.screenSharing": "Screen Sharing",
+    "learningManagementSystem.skillsMapping": "Skills Mapping",
+    "learningManagementSystem.title": "Learning Management System",
+    "learningManagementSystem.videoConferencing": "Video Conferencing",
+    "learningManagementSystem.virtualClassroom": "Virtual Classroom",
+    "learningManagementSystem.whiteboard": "Interactive Whiteboard"
+  },
+  "ar": {
+    "learningManagementSystem.announcements": "الإعلانات",
+    "learningManagementSystem.assessmentTools": "أدوات التقييم",
+    "learningManagementSystem.assignmentManagement": "إدارة الواجبات",
+    "learningManagementSystem.attendanceTracking": "تتبع الحضور",
+    "learningManagementSystem.badgesAchievements": "الشارات والإنجازات",
+    "learningManagementSystem.certificationManagement": "إدارة الشهادات",
+    "learningManagementSystem.classRosters": "قوائم الفصول",
+    "learningManagementSystem.communicationTools": "أدوات التواصل",
+    "learningManagementSystem.completionRates": "معدلات الإنجاز",
+    "learningManagementSystem.contentAuthoring": "تأليف المحتوى",
+    "learningManagementSystem.courseManagement": "إدارة الدورات",
+    "learningManagementSystem.curriculumDesign": "تصميم المناهج",
+    "learningManagementSystem.description": "تقديم المحتوى التعليمي وتتبعه",
+    "learningManagementSystem.discussionForums": "منتديات النقاش",
+    "learningManagementSystem.enrollment": "إدارة التسجيل",
+    "learningManagementSystem.gamification": "ميزات اللعب",
+    "learningManagementSystem.gradingSystem": "نظام التقييم",
+    "learningManagementSystem.leaderboards": "لوحات المتصدرين",
+    "learningManagementSystem.learnerManagement": "إدارة المتعلمين",
+    "learningManagementSystem.learningOutcomes": "نتائج التعلم",
+    "learningManagementSystem.learningPaths": "مسارات التعلم",
+    "learningManagementSystem.lessonPlanning": "تخطيط الدروس",
+    "learningManagementSystem.messaging": "نظام المراسلة",
+    "learningManagementSystem.multimediaContent": "المحتوى متعدد الوسائط",
+    "learningManagementSystem.pointsRewards": "النقاط والمكافآت",
+    "learningManagementSystem.progressTracking": "تتبع التقدم",
+    "learningManagementSystem.quizBuilder": "منشئ الاختبارات",
+    "learningManagementSystem.reportingAnalytics": "التقارير والتحليلات",
+    "learningManagementSystem.rubricCreation": "إنشاء معايير التقييم",
+    "learningManagementSystem.screenSharing": "مشاركة الشاشة",
+    "learningManagementSystem.skillsMapping": "خريطة المهارات",
+    "learningManagementSystem.title": "نظام إدارة التعلم",
+    "learningManagementSystem.videoConferencing": "مؤتمرات الفيديو",
+    "learningManagementSystem.virtualClassroom": "الفصل الدراسي الافتراضي",
+    "learningManagementSystem.whiteboard": "السبورة التفاعلية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/lease.translations.json">
+<![CDATA[
+{
+  "en": {
+    "lease.newLease": "New Lease"
+  },
+  "ar": {
+    "lease.newLease": "عقد إيجار جديد"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/leasing.translations.json">
+<![CDATA[
+{
+  "en": {
+    "leasing.advancePayment": "Advance Payment",
+    "leasing.earlyTermination": "Early Termination",
+    "leasing.eviction": "Eviction",
+    "leasing.fixedTerm": "Fixed Term",
+    "leasing.handover": "Handover",
+    "leasing.keyHandover": "Key Handover",
+    "leasing.lateFee": "Late Fee",
+    "leasing.latePayment": "Late Payment",
+    "leasing.lease": "Lease",
+    "leasing.leaseAgreement": "Lease Agreement",
+    "leasing.leaseDuration": "Lease Duration",
+    "leasing.leaseEnd": "Lease End",
+    "leasing.leaseStart": "Lease Start",
+    "leasing.leaseTerm": "Lease Term",
+    "leasing.leasing1": "Leasing",
+    "leasing.lessee": "Lessee",
+    "leasing.lessor": "Lessor",
+    "leasing.monthlyRent": "Monthly Rent",
+    "leasing.monthToMonth": "Month-to-month",
+    "leasing.moveIn": "Move-in",
+    "leasing.moveOut": "Move-out",
+    "leasing.renewalOption": "Renewal Option",
+    "leasing.rental": "Rental",
+    "leasing.rentalRate": "Rental Rate",
+    "leasing.securityDeposit": "Security Deposit",
+    "leasing.terminationNotice": "Termination Notice",
+    "leasing.vacate": "Vacate"
+  },
+  "ar": {
+    "leasing.advancePayment": "دفعة مقدمة",
+    "leasing.earlyTermination": "إنهاء مبكر",
+    "leasing.eviction": "الإخلاء",
+    "leasing.fixedTerm": "فترة ثابتة",
+    "leasing.handover": "التسليم",
+    "leasing.keyHandover": "تسليم المفاتيح",
+    "leasing.lateFee": "رسوم التأخير",
+    "leasing.latePayment": "دفعة متأخرة",
+    "leasing.lease": "الإيجار",
+    "leasing.leaseAgreement": "عقد الإيجار",
+    "leasing.leaseDuration": "مدة العقد",
+    "leasing.leaseEnd": "نهاية الإيجار",
+    "leasing.leaseStart": "بداية الإيجار",
+    "leasing.leaseTerm": "مدة الإيجار",
+    "leasing.leasing1": "التأجير",
+    "leasing.lessee": "المستأجر",
+    "leasing.lessor": "المؤجر",
+    "leasing.monthlyRent": "الإيجار الشهري",
+    "leasing.monthToMonth": "شهري قابل للتجديد",
+    "leasing.moveIn": "الانتقال",
+    "leasing.moveOut": "الخروج",
+    "leasing.renewalOption": "خيار التجديد",
+    "leasing.rental": "الإيجار",
+    "leasing.rentalRate": "سعر الإيجار",
+    "leasing.securityDeposit": "التأمين المسترد",
+    "leasing.terminationNotice": "إشعار الإنهاء",
+    "leasing.vacate": "المغادرة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/leaveManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "leaveManagement.annual": "Annual Leave",
+    "leaveManagement.apply": "Apply for Leave",
+    "leaveManagement.approve": "Approve Leave",
+    "leaveManagement.approved": "Approved",
+    "leaveManagement.available": "Available",
+    "leaveManagement.balance": "Leave Balance",
+    "leaveManagement.cancel": "Cancel Leave",
+    "leaveManagement.casual": "Casual Leave",
+    "leaveManagement.compensatory": "Compensatory Leave",
+    "leaveManagement.days": "Days",
+    "leaveManagement.emergency": "Emergency Leave",
+    "leaveManagement.endDate": "End Date",
+    "leaveManagement.leave": "Leave",
+    "leaveManagement.maternity": "Maternity Leave",
+    "leaveManagement.paternity": "Paternity Leave",
+    "leaveManagement.pending": "Pending",
+    "leaveManagement.reason": "Reason",
+    "leaveManagement.reject": "Reject Leave",
+    "leaveManagement.rejected": "Rejected",
+    "leaveManagement.request": "Leave Request",
+    "leaveManagement.sabbatical": "Sabbatical",
+    "leaveManagement.sick": "Sick Leave",
+    "leaveManagement.startDate": "Start Date",
+    "leaveManagement.status": "Status",
+    "leaveManagement.study": "Study Leave",
+    "leaveManagement.type": "Leave Type",
+    "leaveManagement.unpaid": "Unpaid Leave",
+    "leaveManagement.used": "Used"
+  },
+  "ar": {
+    "leaveManagement.annual": "الإجازة السنوية",
+    "leaveManagement.apply": "التقدم بطلب إجازة",
+    "leaveManagement.approve": "الموافقة على الإجازة",
+    "leaveManagement.approved": "موافق عليه",
+    "leaveManagement.available": "متاح",
+    "leaveManagement.balance": "رصيد الإجازات",
+    "leaveManagement.cancel": "إلغاء الإجازة",
+    "leaveManagement.casual": "إجازة عرضية",
+    "leaveManagement.compensatory": "إجازة تعويضية",
+    "leaveManagement.days": "الأيام",
+    "leaveManagement.emergency": "إجازة طارئة",
+    "leaveManagement.endDate": "تاريخ الانتهاء",
+    "leaveManagement.leave": "الإجازة",
+    "leaveManagement.maternity": "إجازة أمومة",
+    "leaveManagement.paternity": "إجازة أبوة",
+    "leaveManagement.pending": "معلق",
+    "leaveManagement.reason": "السبب",
+    "leaveManagement.reject": "رفض الإجازة",
+    "leaveManagement.rejected": "مرفوض",
+    "leaveManagement.request": "طلب إجازة",
+    "leaveManagement.sabbatical": "إجازة تفرغ",
+    "leaveManagement.sick": "الإجازة المرضية",
+    "leaveManagement.startDate": "تاريخ البدء",
+    "leaveManagement.status": "الحالة",
+    "leaveManagement.study": "إجازة دراسية",
+    "leaveManagement.type": "نوع الإجازة",
+    "leaveManagement.unpaid": "إجازة بدون أجر",
+    "leaveManagement.used": "مستخدم"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/legal.translations.json">
+<![CDATA[
+{
+  "en": {
+    "legal.arbitration": "Arbitration",
+    "legal.attorney": "Attorney",
+    "legal.breach": "Breach",
+    "legal.clause": "Clause",
+    "legal.compensation": "Compensation",
+    "legal.court": "Court",
+    "legal.damages": "Damages",
+    "legal.defendant": "Defendant",
+    "legal.dispute": "Dispute",
+    "legal.fine": "Fine",
+    "legal.judgment": "Judgment",
+    "legal.jurisdiction": "Jurisdiction",
+    "legal.law": "Law",
+    "legal.lawsuit": "Lawsuit",
+    "legal.lawyer": "Lawyer",
+    "legal.legal1": "Legal",
+    "legal.legalAdvice": "Legal Advice",
+    "legal.legalCounsel": "Legal Counsel",
+    "legal.litigation": "Litigation",
+    "legal.mediation": "Mediation",
+    "legal.ordinance": "Ordinance",
+    "legal.penalty": "Penalty",
+    "legal.plaintiff": "Plaintiff",
+    "legal.provision": "Provision",
+    "legal.settlement": "Settlement",
+    "legal.statute": "Statute",
+    "legal.tribunal": "Tribunal",
+    "legal.verdict": "Verdict",
+    "legal.violation": "Violation"
+  },
+  "ar": {
+    "legal.arbitration": "التحكيم",
+    "legal.attorney": "محامي",
+    "legal.breach": "خرق",
+    "legal.clause": "بند",
+    "legal.compensation": "تعويض",
+    "legal.court": "محكمة",
+    "legal.damages": "تعويضات",
+    "legal.defendant": "المدعى عليه",
+    "legal.dispute": "نزاع",
+    "legal.fine": "غرامة",
+    "legal.judgment": "حكم",
+    "legal.jurisdiction": "الاختصاص القضائي",
+    "legal.law": "قانون",
+    "legal.lawsuit": "دعوى قضائية",
+    "legal.lawyer": "محامي",
+    "legal.legal1": "قانوني",
+    "legal.legalAdvice": "استشارة قانونية",
+    "legal.legalCounsel": "مستشار قانوني",
+    "legal.litigation": "التقاضي",
+    "legal.mediation": "الوساطة",
+    "legal.ordinance": "مرسوم",
+    "legal.penalty": "عقوبة",
+    "legal.plaintiff": "المدعي",
+    "legal.provision": "حكم",
+    "legal.settlement": "تسوية",
+    "legal.statute": "قانون",
+    "legal.tribunal": "هيئة قضائية",
+    "legal.verdict": "حكم",
+    "legal.violation": "انتهاك"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/legalCompliance.translations.json">
+<![CDATA[
+{
+  "en": {
+    "legalCompliance.agreement": "Agreement",
+    "legalCompliance.arbitration": "Arbitration",
+    "legalCompliance.ccpa": "CCPA",
+    "legalCompliance.compliance": "Compliance",
+    "legalCompliance.consent": "Consent",
+    "legalCompliance.contract": "Contract",
+    "legalCompliance.cookie": "Cookie Policy",
+    "legalCompliance.copyright": "Copyright",
+    "legalCompliance.disclaimer": "Disclaimer",
+    "legalCompliance.enforcement": "Enforcement",
+    "legalCompliance.gdpr": "GDPR",
+    "legalCompliance.indemnity": "Indemnity",
+    "legalCompliance.intellectual": "Intellectual Property",
+    "legalCompliance.jurisdiction": "Jurisdiction",
+    "legalCompliance.legal": "Legal",
+    "legalCompliance.liability": "Liability",
+    "legalCompliance.license": "License",
+    "legalCompliance.privacy": "Privacy Policy",
+    "legalCompliance.terms": "Terms of Service",
+    "legalCompliance.trademark": "Trademark",
+    "legalCompliance.violation": "Violation",
+    "legalCompliance.warranty": "Warranty"
+  },
+  "ar": {
+    "legalCompliance.agreement": "الاتفاقية",
+    "legalCompliance.arbitration": "التحكيم",
+    "legalCompliance.ccpa": "قانون خصوصية كاليفورنيا",
+    "legalCompliance.compliance": "الامتثال",
+    "legalCompliance.consent": "الموافقة",
+    "legalCompliance.contract": "العقد",
+    "legalCompliance.cookie": "سياسة ملفات تعريف الارتباط",
+    "legalCompliance.copyright": "حقوق النشر",
+    "legalCompliance.disclaimer": "إخلاء المسؤولية",
+    "legalCompliance.enforcement": "الإنفاذ",
+    "legalCompliance.gdpr": "اللائحة الأوروبية",
+    "legalCompliance.indemnity": "التعويض",
+    "legalCompliance.intellectual": "الملكية الفكرية",
+    "legalCompliance.jurisdiction": "الولاية القضائية",
+    "legalCompliance.legal": "القانوني",
+    "legalCompliance.liability": "المسؤولية",
+    "legalCompliance.license": "الترخيص",
+    "legalCompliance.privacy": "سياسة الخصوصية",
+    "legalCompliance.terms": "شروط الخدمة",
+    "legalCompliance.trademark": "العلامة التجارية",
+    "legalCompliance.violation": "الانتهاك",
+    "legalCompliance.warranty": "الضمان"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/legalComplianceAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "legalComplianceAdv.adherence": "Adherence",
+    "legalComplianceAdv.agreement": "Agreement",
+    "legalComplianceAdv.arbitration": "Arbitration",
+    "legalComplianceAdv.authorization": "Authorization",
+    "legalComplianceAdv.clause": "Clause",
+    "legalComplianceAdv.compliance": "Compliance",
+    "legalComplianceAdv.consent": "Consent",
+    "legalComplianceAdv.contract": "Contract",
+    "legalComplianceAdv.disclosure": "Disclosure",
+    "legalComplianceAdv.dispute": "Dispute Resolution",
+    "legalComplianceAdv.indemnity": "Indemnity",
+    "legalComplianceAdv.jurisdiction": "Jurisdiction",
+    "legalComplianceAdv.law": "Law",
+    "legalComplianceAdv.legal": "Legal & Compliance",
+    "legalComplianceAdv.liability": "Liability",
+    "legalComplianceAdv.litigation": "Litigation",
+    "legalComplianceAdv.ordinance": "Ordinance",
+    "legalComplianceAdv.provision": "Provision",
+    "legalComplianceAdv.regulation": "Regulation",
+    "legalComplianceAdv.statute": "Statute",
+    "legalComplianceAdv.terms": "Terms & Conditions",
+    "legalComplianceAdv.warranty": "Warranty"
+  },
+  "ar": {
+    "legalComplianceAdv.adherence": "الالتزام",
+    "legalComplianceAdv.agreement": "الاتفاقية",
+    "legalComplianceAdv.arbitration": "التحكيم",
+    "legalComplianceAdv.authorization": "التفويض",
+    "legalComplianceAdv.clause": "البند",
+    "legalComplianceAdv.compliance": "الامتثال",
+    "legalComplianceAdv.consent": "الموافقة",
+    "legalComplianceAdv.contract": "العقد",
+    "legalComplianceAdv.disclosure": "الإفصاح",
+    "legalComplianceAdv.dispute": "تسوية النزاعات",
+    "legalComplianceAdv.indemnity": "التعويض",
+    "legalComplianceAdv.jurisdiction": "الاختصاص القضائي",
+    "legalComplianceAdv.law": "القانون",
+    "legalComplianceAdv.legal": "القانونية والامتثال",
+    "legalComplianceAdv.liability": "المسؤولية",
+    "legalComplianceAdv.litigation": "التقاضي",
+    "legalComplianceAdv.ordinance": "المرسوم",
+    "legalComplianceAdv.provision": "النص",
+    "legalComplianceAdv.regulation": "اللائحة",
+    "legalComplianceAdv.statute": "التشريع",
+    "legalComplianceAdv.terms": "الشروط والأحكام",
+    "legalComplianceAdv.warranty": "الضمان"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/legalComplianceExt.translations.json">
+<![CDATA[
+{
+  "en": {
+    "legalComplianceExt.advice": "Legal Advice",
+    "legalComplianceExt.agreements": "Legal Agreements",
+    "legalComplianceExt.assessment": "Legal Assessment",
+    "legalComplianceExt.audit": "Legal Audit",
+    "legalComplianceExt.compliance": "Legal Requirements",
+    "legalComplianceExt.contracts": "Contract Compliance",
+    "legalComplianceExt.counsel": "Legal Counsel",
+    "legalComplianceExt.disclosure": "Legal Disclosure",
+    "legalComplianceExt.documentation": "Legal Documentation",
+    "legalComplianceExt.due": "Legal Due Diligence",
+    "legalComplianceExt.framework": "Legal Framework",
+    "legalComplianceExt.laws": "Applicable Laws",
+    "legalComplianceExt.legal": "Legal Compliance",
+    "legalComplianceExt.liability": "Legal Liability",
+    "legalComplianceExt.obligations": "Legal Obligations",
+    "legalComplianceExt.regulations": "Legal Regulations",
+    "legalComplianceExt.reporting": "Legal Reporting",
+    "legalComplianceExt.requirements": "Legal Requirements",
+    "legalComplianceExt.review": "Legal Review",
+    "legalComplianceExt.risk": "Legal Risk",
+    "legalComplianceExt.statutes": "Legal Statutes",
+    "legalComplianceExt.support": "Legal Support"
+  },
+  "ar": {
+    "legalComplianceExt.advice": "المشورة القانونية",
+    "legalComplianceExt.agreements": "الاتفاقيات القانونية",
+    "legalComplianceExt.assessment": "التقييم القانوني",
+    "legalComplianceExt.audit": "التدقيق القانوني",
+    "legalComplianceExt.compliance": "المتطلبات القانونية",
+    "legalComplianceExt.contracts": "الامتثال التعاقدي",
+    "legalComplianceExt.counsel": "المستشار القانوني",
+    "legalComplianceExt.disclosure": "الإفصاح القانوني",
+    "legalComplianceExt.documentation": "التوثيق القانوني",
+    "legalComplianceExt.due": "العناية الواجبة القانونية",
+    "legalComplianceExt.framework": "الإطار القانوني",
+    "legalComplianceExt.laws": "القوانين المطبقة",
+    "legalComplianceExt.legal": "الامتثال القانوني",
+    "legalComplianceExt.liability": "المسؤولية القانونية",
+    "legalComplianceExt.obligations": "الالتزامات القانونية",
+    "legalComplianceExt.regulations": "اللوائح القانونية",
+    "legalComplianceExt.reporting": "إعداد التقارير القانونية",
+    "legalComplianceExt.requirements": "المتطلبات القانونية",
+    "legalComplianceExt.review": "المراجعة القانونية",
+    "legalComplianceExt.risk": "المخاطر القانونية",
+    "legalComplianceExt.statutes": "القوانين الأساسية",
+    "legalComplianceExt.support": "الدعم القانوني"
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

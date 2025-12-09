@@ -1,0 +1,2560 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/login/page.tsx">
+<![CDATA[
+'use client';
+
+import { useState, useMemo, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+// ⚡ PERFORMANCE OPTIMIZATION: Only import icons actually used in login page
+import { 
+  Eye, EyeOff, LogIn, Mail, Lock, AlertCircle, Check, AlertTriangle,
+  User, Shield, Apple
+} from 'lucide-react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { signIn, getCsrfToken, useSession } from 'next-auth/react';
+import { useTranslation } from '@/contexts/TranslationContext';
+import type { Language } from '@/contexts/TranslationContext';
+import LanguageSelector from '@/components/i18n/LanguageSelector';
+import CurrencySelector from '@/components/i18n/CurrencySelector';
+import { BrandLogoWithCard } from '@/components/brand';
+// ⚡ PERFORMANCE OPTIMIZATION: Lazy-load OAuth component (only needed for SSO tab)
+import dynamic from 'next/dynamic';
+
+import { logger } from '@/lib/logger';
+
+// Check if OTP is required (matches auth.config.ts logic)
+const REQUIRE_SMS_OTP = process.env.NEXT_PUBLIC_REQUIRE_SMS_OTP !== 'false';
+const SKIP_CSRF = process.env.NEXTAUTH_SKIP_CSRF_CHECK === 'true' || process.env.NODE_ENV === 'test';
+
+// Client-side feature flags: do NOT read secrets here
+const GOOGLE_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_ENABLED === 'true';
+const APPLE_ENABLED = process.env.NEXT_PUBLIC_APPLE_ENABLED === 'true';
+
+const GoogleSignInButton = dynamic(
+  () => import('@/components/auth/GoogleSignInButton'),
+  {
+    loading: () => (
+      <div className="w-full p-3 border border-border rounded-2xl bg-muted animate-pulse h-12" />
+    ),
+    ssr: false, // OAuth buttons don't need SSR
+  },
+);
+
+// ⚡ PERFORMANCE OPTIMIZATION: Lazy-load OTP verification component
+const OTPVerification = dynamic(() => import('@/components/auth/OTPVerification'), {
+  loading: () => (
+    <div className="w-full p-8 bg-muted rounded-2xl animate-pulse h-96" />
+  ),
+  ssr: false
+});
+
+// ⚡ PERFORMANCE OPTIMIZATION: Lazy-load demo credentials section (only needed in dev)
+ 
+const DemoCredentialsSection = dynamic<{
+  isRTL: boolean;
+  loginMethod: 'personal' | 'corporate' | 'sso';
+  quickLogin: (cred: DemoCredential) => void;
+  t: (key: string, fallback: string) => string;
+}>(() => import('@/components/auth/DemoCredentialsSection').catch(() => ({
+  default: () => null // Fallback if component doesn't exist yet
+})), {
+  loading: () => (
+    <div className="mt-6 p-4 bg-muted rounded-2xl animate-pulse h-32" />
+  ),
+  ssr: false
+});
+
+interface FormErrors {
+  identifier?: string;
+  password?: string;
+  general?: string;
+  // PHASE-4 FIX: Company code error for corporate login
+  companyCode?: string;
+}
+
+// OTP state interface
+interface OTPState {
+  identifier: string;
+  maskedPhone: string;
+  expiresIn: number;
+  devCode?: string | null;
+  companyCode?: string | null;
+}
+
+// ⚡ PERFORMANCE: Demo credentials moved to lazy-loaded component
+interface DemoCredential {
+  role: string;
+  email?: string;
+  employeeNumber?: string;
+  password: string;
+  description: string;
+  icon: typeof Shield;
+  color: string;
+}
+
+export default function LoginPage() {
+  const [loginMethod, setLoginMethod] = useState<'personal' | 'corporate' | 'sso'>('personal');
+  const [phoneMode, setPhoneMode] = useState(false);
+  const [email, setEmail] = useState('');
+  const [employeeNumber, setEmployeeNumber] = useState('');
+  // PHASE-4 FIX: Add company/org code for corporate login
+  const [companyCode, setCompanyCode] = useState('');
+  const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [capsLockOn, setCapsLockOn] = useState(false);
+  
+  // OTP state
+  const [showOTP, setShowOTP] = useState(false);
+  const [otpState, setOtpState] = useState<OTPState | null>(null);
+  const [csrfToken, setCsrfToken] = useState<string | undefined>();
+  const [phoneLoginNotice, setPhoneLoginNotice] = useState<string | null>(null);
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { t, isRTL, setLanguage, setLocale } = useTranslation();
+  const { status } = useSession();
+  const isE2E =
+    process.env.PLAYWRIGHT === 'true' ||
+    process.env.NEXT_PUBLIC_E2E === 'true';
+
+  const identifierLabel = isE2E ? 'Email or Employee Number' : t('login.identifierLabel', 'Email or Employee Number');
+
+  // Auth redirect: bounce authenticated users away from login page
+  // SECURITY: Validate redirect target to prevent open redirect attacks
+  useEffect(() => {
+    if (status === 'authenticated' && !isE2E) {
+      const rawTarget = searchParams?.get('callbackUrl') || searchParams?.get('next');
+      // Only allow same-origin paths (starts with / but not //)
+      const safeTarget = 
+        rawTarget && rawTarget.startsWith('/') && !rawTarget.startsWith('//')
+          ? rawTarget
+          : '/fm/dashboard';
+      router.replace(safeTarget);
+    }
+  }, [status, router, searchParams, isE2E]);
+
+  const redirectTarget = searchParams?.get('next') || searchParams?.get('callbackUrl') || null;
+  // Only show demo credentials in development, never in production
+  const showDemoCredentials = process.env.NODE_ENV === 'development';
+  const submitDisabled =
+    loading ||
+    (phoneMode
+      ? !email.trim()
+      : !password ||
+        (loginMethod === 'personal' ? !email : !employeeNumber) ||
+        (loginMethod === 'corporate' && !companyCode.trim()));
+
+  const emailRegex = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/, []);
+  const employeeRegex = useMemo(() => /^EMP[-A-Z0-9]+$/i, []);
+  const isEmployeeId = (value: string) => employeeRegex.test(value.trim());
+
+  // Fetch CSRF token on mount
+  useEffect(() => {
+    const fetchCsrf = async () => {
+      try {
+        if (SKIP_CSRF) {
+          setCsrfToken('csrf-disabled');
+          return;
+        }
+        const token = await getCsrfToken();
+        setCsrfToken(token || undefined);
+      } catch (error) {
+        logger.error('Failed to fetch CSRF token', error instanceof Error ? error : new Error(String(error)));
+      }
+    };
+    fetchCsrf();
+  }, []);
+
+  // Keep language/direction in sync with selected language or ?lang=ar toggle
+  useEffect(() => {
+    const langParam = searchParams?.get('lang');
+    const forceLocale = langParam?.toLowerCase().startsWith('ar') ? 'ar' : undefined;
+
+    if (forceLocale) {
+      try {
+        setLanguage(forceLocale as Language);
+        setLocale(forceLocale);
+      } catch {
+        // ignore fallback errors
+      }
+    }
+
+    const dir = forceLocale === 'ar' || isRTL ? 'rtl' : 'ltr';
+    if (typeof document !== 'undefined') {
+      document.body.setAttribute('dir', dir);
+      document.documentElement?.setAttribute('dir', dir);
+      document.documentElement?.setAttribute('lang', forceLocale ?? (isRTL ? 'ar' : 'en'));
+    }
+  }, [isRTL, searchParams, setLanguage, setLocale]);
+
+  // Quick login helper for demo credentials
+  const quickLogin = (credential: DemoCredential) => {
+    if ('email' in credential && credential.email) {
+      setEmail(credential.email);
+      setLoginMethod('personal');
+    } else if ('employeeNumber' in credential && credential.employeeNumber) {
+      setEmployeeNumber(credential.employeeNumber);
+      setLoginMethod('corporate');
+    }
+    setPassword(credential.password);
+    setErrors({});
+  };
+
+  // Caps lock detection
+  useEffect(() => {
+    const handleKeyEvent = (e: KeyboardEvent) => {
+      if (e.getModifierState) {
+        setCapsLockOn(e.getModifierState('CapsLock'));
+      }
+    };
+
+    const passwordInput = document.getElementById('password');
+    if (passwordInput) {
+      passwordInput.addEventListener('keydown', handleKeyEvent as EventListener);
+      passwordInput.addEventListener('keyup', handleKeyEvent as EventListener);
+    }
+
+    return () => {
+      if (passwordInput) {
+        passwordInput.removeEventListener('keydown', handleKeyEvent as EventListener);
+        passwordInput.removeEventListener('keyup', handleKeyEvent as EventListener);
+      }
+    };
+  }, []);
+
+  const clearError = (field: keyof FormErrors) => {
+    if (errors[field]) setErrors(prev => {
+      const copy = { ...prev };
+      delete copy[field];
+      return copy;
+    });
+  };
+
+const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
+
+  const validateIdentifier = (value: string): string | null => {
+    const v = value.trim();
+    if (!v) return t('login.errors.emailRequired', 'Email, employee number, or phone is required');
+    if (emailRegex.test(v) || employeeRegex.test(v) || phoneRegex.test(v)) return null;
+    return t('login.errors.employeeInvalid', 'Enter a valid email, employee number (e.g., EMP-001), or phone number');
+  };
+
+  const resolveIdentifier = () => {
+    if (phoneMode) {
+      return email.trim();
+    }
+    const candidate = (loginMethod === 'personal' ? email : employeeNumber) || email || employeeNumber;
+    return candidate.trim();
+  };
+
+  const resolveCompanyCode = () => companyCode.trim().toUpperCase();
+
+  const validatePassword = (value: string): string | null => {
+    if (!value) return t('login.errors.passwordRequired', 'Password is required');
+    if (value.length < 8) return t('login.errors.passwordTooShort', 'Password must be at least 8 characters');
+    return null;
+  };
+
+  const validateForm = (): boolean => {
+    const next: FormErrors = {};
+    
+    const identifierErr = validateIdentifier(resolveIdentifier());
+    if (identifierErr) next.identifier = identifierErr;
+    
+    // Skip password validation for phone OTP mode (password field is disabled)
+    if (!phoneMode) {
+      const pwErr = validatePassword(password);
+      if (pwErr) next.password = pwErr;
+    }
+    
+    // PHASE-4 FIX: Require company code for corporate login
+    if (loginMethod === 'corporate' && !companyCode.trim()) {
+      next.companyCode = t('login.errors.companyRequired', 'Company number is required for corporate login');
+    }
+    
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
+
+  // [CODE REVIEW FIX]: Simplified redirect logic - fall back to /dashboard
+  // (FM-specific routing for authenticated users is handled by middleware)
+  // The dashboard page will handle role-based redirects (TENANT -> /fm/properties, VENDOR -> /fm/marketplace)
+  const postLoginRedirect = (): string => {
+    if (redirectTarget && redirectTarget.startsWith('/') && !redirectTarget.startsWith('//')) {
+      return redirectTarget;
+    }
+    return '/fm/dashboard';
+  };
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (loginMethod === 'sso') return;
+
+    if (!validateForm()) return;
+
+    setLoading(true);
+    setErrors({});
+
+    try {
+      const rawIdentifier = resolveIdentifier();
+      const identifier = isEmployeeId(rawIdentifier) ? rawIdentifier.toUpperCase() : rawIdentifier;
+      const normalizedCompanyCode = loginMethod === 'corporate' ? resolveCompanyCode() : undefined;
+      const ensureCsrfToken = async () => {
+        if (csrfToken) return csrfToken;
+        if (SKIP_CSRF) return 'csrf-disabled';
+        try {
+          const token = await getCsrfToken();
+          setCsrfToken(token || undefined);
+          return token || undefined;
+        } catch (err) {
+          logger.error('Failed to refresh CSRF token before login', err instanceof Error ? err : new Error(String(err)));
+          return undefined;
+        }
+      };
+      let tokenToUse = await ensureCsrfToken();
+
+      // If OTP not required, login directly without SMS verification
+      if (!REQUIRE_SMS_OTP) {
+        if (!tokenToUse) {
+          tokenToUse = 'csrf-disabled';
+        }
+
+        // PHASE-4 FIX: Include companyCode in credentials for corporate login
+        const result = await signIn('credentials', {
+          identifier,
+          password,
+          rememberMe,
+          csrfToken: tokenToUse,
+          redirect: false,
+          // Corporate login requires company code for org disambiguation
+          ...(normalizedCompanyCode ? { companyCode: normalizedCompanyCode } : {}),
+        });
+
+        if (result?.error) {
+          if (result.error === 'EMAIL_NOT_VERIFIED') {
+            setPendingVerificationEmail(identifier);
+            setErrors({
+              general: t('login.errors.emailNotVerified', 'Your email is not verified. Please check your inbox or resend verification.'),
+            });
+          } else if (result.error === 'ACCOUNT_LOCKED') {
+            setErrors({
+              general: t('login.errors.accountLocked', 'Your account is locked due to too many failed attempts. Try again later or contact support.'),
+            });
+          } else {
+            setErrors({
+              general: t('login.errors.invalidCredentials', 'Invalid email/employee number or password')
+            });
+          }
+          setLoading(false);
+          return;
+        }
+
+        if (result?.ok) {
+        try {
+          await fetch("/api/auth/post-login", { method: "POST", credentials: "include" });
+        } catch {
+          // ignore
+        }
+        setSuccess(true);
+        const redirectTo = postLoginRedirect();
+        setTimeout(() => {
+          router.replace(redirectTo);
+        }, 500);
+        }
+        return;
+      }
+
+      // Step 1: Send OTP to user's phone (only when OTP is required)
+      // PHASE-4 FIX: Include companyCode for corporate login org disambiguation
+      const otpResponse = await fetch('/api/auth/otp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          identifier, 
+          password,
+          ...(normalizedCompanyCode ? { companyCode: normalizedCompanyCode } : {}),
+        }),
+      });
+
+      const otpData = await otpResponse.json();
+
+      if (!otpResponse.ok) {
+        // Handle OTP send errors
+        if (otpResponse.status === 401) {
+          setErrors({
+            general: t('login.errors.invalidCredentials', 'Invalid email/employee number or password')
+          });
+        } else if (otpResponse.status === 429) {
+          setErrors({
+            general: t('login.errors.rateLimited', 'Too many attempts. Please try again later.')
+          });
+        } else if (otpResponse.status === 400 && otpData.error?.includes('phone')) {
+          setErrors({
+            general: t('login.errors.noPhone', 'No phone number registered. Please contact support.')
+          });
+        } else {
+          setErrors({
+            general: t('login.errors.otpFailed', 'Failed to send verification code. Please try again.')
+          });
+        }
+        setLoading(false);
+        return;
+      }
+
+      // Step 2: Show OTP verification screen
+      setOtpState({
+        identifier,
+        maskedPhone: otpData.data.phone,
+        expiresIn: otpData.data.expiresIn,
+        devCode: otpData.data.devCode ?? null,
+        companyCode: loginMethod === 'corporate' ? normalizedCompanyCode : null,
+      });
+      setShowOTP(true);
+      setLoading(false);
+    } catch (err) {
+      logger.error(
+        'Login error',
+        err instanceof Error ? err : new Error(String(err)),
+        { route: '/login' }
+      );
+      setErrors({ general: t('login.errors.networkError', 'Network error. Please check your connection.') });
+      setLoading(false);
+    }
+  }
+
+  // Handle OTP verification success
+  const handleOTPVerified = async (otpToken: string) => {
+    setLoading(true);
+
+    try {
+      let tokenToUse = csrfToken;
+      if (!tokenToUse) {
+        if (SKIP_CSRF) {
+          tokenToUse = 'csrf-disabled';
+        } else {
+          tokenToUse = await getCsrfToken();
+          setCsrfToken(tokenToUse || undefined);
+        }
+      }
+      if (!tokenToUse) {
+        tokenToUse = 'csrf-disabled';
+      }
+
+      // Use NextAuth signIn with credentials provider (skip OTP this time)
+      const identifierRaw =
+        otpState?.identifier || resolveIdentifier();
+      const identifier = isEmployeeId(identifierRaw) ? identifierRaw.toUpperCase() : identifierRaw;
+      const isCorporateFlow = loginMethod === 'corporate' || Boolean(otpState?.companyCode);
+      const codeForLogin = isCorporateFlow
+        ? (otpState?.companyCode || resolveCompanyCode())
+        : undefined;
+      
+      const result = await signIn('credentials', {
+        identifier,
+        password,
+        rememberMe,
+        otpToken,
+        csrfToken: tokenToUse,
+        redirect: false,
+        ...(isCorporateFlow && codeForLogin
+          ? { companyCode: codeForLogin }
+          : {}),
+      });
+
+        if (result?.error) {
+          if (result.error === 'EMAIL_NOT_VERIFIED') {
+            setPendingVerificationEmail(identifier);
+            setErrors({
+              general: t('login.errors.emailNotVerified', 'Your email is not verified. Please check your inbox or resend verification.'),
+            });
+          } else if (result.error === 'ACCOUNT_LOCKED') {
+            setErrors({
+              general: t('login.errors.accountLocked', 'Your account is locked due to too many failed attempts. Try again later or contact support.'),
+            });
+          } else {
+            setErrors({
+              general: t('login.errors.loginFailed', 'Login failed. Please try again.')
+            });
+          }
+          setLoading(false);
+          setShowOTP(false);
+          return;
+        }
+      
+      // Persist refreshed CSRF token for subsequent operations
+      if (!csrfToken && tokenToUse) {
+        setCsrfToken(tokenToUse);
+      }
+
+      if (result?.ok) {
+        try {
+          await fetch("/api/auth/post-login", { method: "POST", credentials: "include" });
+        } catch {
+          // ignore
+        }
+        setSuccess(true);
+        const redirectTo = postLoginRedirect();
+
+        setTimeout(() => {
+          router.replace(redirectTo);
+        }, 500);
+      }
+    } catch (err) {
+      logger.error(
+        'Post-OTP login error',
+        err instanceof Error ? err : new Error(String(err))
+      );
+      setErrors({ general: t('login.errors.networkError', 'Network error. Please check your connection.') });
+      setLoading(false);
+      setShowOTP(false);
+    }
+  };
+
+  const handleOTPResend = async () => {
+    const identifierRaw = otpState?.identifier || resolveIdentifier();
+    const identifier = isEmployeeId(identifierRaw) ? identifierRaw.toUpperCase() : identifierRaw;
+    const isCorporateFlow = loginMethod === 'corporate' || Boolean(otpState?.companyCode);
+    const resendCompanyCode =
+      isCorporateFlow
+        ? (otpState?.companyCode || resolveCompanyCode())
+        : undefined;
+
+    if (!identifier) {
+      setShowOTP(false);
+      setOtpState(null);
+      return {
+        success: false,
+        error: t('otp.errors.sessionExpired', 'Your verification session expired. Please sign in again.'),
+      };
+    }
+
+    try {
+      // AUDIT-2025-11-26: Include companyCode in OTP resend for corporate login
+      const response = await fetch('/api/auth/otp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          identifier, 
+          ...(phoneMode ? {} : { password }),
+          ...(resendCompanyCode ? { companyCode: resendCompanyCode } : {}),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          return {
+            success: false,
+            error: t('login.errors.rateLimited', 'Too many attempts. Please try again later.'),
+          };
+        }
+
+        if (response.status === 401) {
+          return {
+            success: false,
+            error: t('login.errors.invalidCredentials', 'Invalid email/employee number or password'),
+          };
+        }
+
+        return {
+          success: false,
+          error: data.error || t('otp.errors.resendFailed', 'Failed to resend OTP'),
+        };
+      }
+
+      setOtpState((prev) =>
+        prev
+          ? {
+              ...prev,
+              maskedPhone: data.data.phone || prev.maskedPhone,
+              expiresIn: data.data.expiresIn,
+              devCode: data.data.devCode ?? prev.devCode,
+            }
+          : null
+      );
+
+      return {
+        success: true,
+        expiresIn: data.data.expiresIn,
+      };
+    } catch (err) {
+      logger.error('OTP resend error', err instanceof Error ? err : new Error(String(err)));
+      return {
+        success: false,
+        error: t('otp.errors.networkError', 'Network error. Please try again.'),
+      };
+    }
+  };
+
+  // Handle back from OTP screen
+  const handleOTPBack = () => {
+    setShowOTP(false);
+    setOtpState(null);
+    setPassword('');
+  };
+
+  const handleResendVerification = async () => {
+    if (!pendingVerificationEmail) return;
+    try {
+      const res = await fetch("/api/auth/verify/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: pendingVerificationEmail }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setErrors({
+          general:
+            data.error ||
+            t(
+              "login.errors.resendVerificationFailed",
+              "Failed to resend verification. Please try again.",
+            ),
+        });
+        return;
+      }
+      setErrors({
+        general: t(
+          "login.errors.verificationResent",
+          "Verification email sent. Please check your inbox.",
+        ),
+      });
+    } catch (_error) {
+      setErrors({
+        general: t(
+          "login.errors.resendVerificationFailed",
+          "Failed to resend verification. Please try again.",
+        ),
+      });
+    }
+  };
+
+  // Success state
+  if (success) {
+    return (
+      <main id="main-content" role="main" className="min-h-screen bg-gradient-to-br from-primary to-primary/90 flex items-center justify-center p-4">
+        <div className="bg-card rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Check className="w-8 h-8 text-success" />
+          </div>
+          <h2 className="text-2xl font-bold text-foreground mb-2">
+            {t('login.success.title', 'Welcome Back!')}
+          </h2>
+          <p className="text-muted-foreground mb-4">
+            {t('login.success.message', 'Signing you in...')}
+          </p>
+          <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+            <div className="h-full bg-primary animate-pulse" style={{ width: '100%' }} />
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main id="main-content" role="main" className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Language/Currency Selectors */}
+        <div className={`flex items-center justify-end gap-2 mb-6 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <LanguageSelector variant="compact" />
+          <CurrencySelector variant="compact" />
+        </div>
+
+        {/* Card */}
+        <div className="bg-card rounded-2xl shadow-xl p-8">
+          {/* Show OTP verification or login form */}
+          {showOTP && otpState ? (
+            <OTPVerification
+              identifier={otpState.identifier}
+              companyCode={otpState.companyCode || (loginMethod === 'corporate' ? resolveCompanyCode() : undefined)}
+              maskedPhone={otpState.maskedPhone}
+              expiresIn={otpState.expiresIn}
+              devCode={otpState.devCode || undefined}
+              onVerified={handleOTPVerified}
+              onResend={handleOTPResend}
+              onBack={handleOTPBack}
+              t={t}
+              isRTL={isRTL}
+            />
+          ) : (
+            <>
+              {/* Logo */}
+              <div className="text-center mb-6">
+                <div className="flex justify-center mb-4">
+                  <BrandLogoWithCard 
+                    size="lg" 
+                    alt="Fixzit Logo"
+                    fetchOrgLogo={false}
+                    data-testid="login-logo"
+                  />
+                </div>
+                <h1 className="text-3xl font-bold text-foreground mb-2">
+                  {t('login.welcome', 'Welcome Back')}
+                </h1>
+                <p className="text-muted-foreground">
+                  {t('login.subtitle', 'Sign in to your Fixzit account')}
+                </p>
+              </div>
+
+          {/* Login Method Tabs */}
+          <div className={`flex bg-muted rounded-2xl p-1 mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <button
+              type="button"
+              onClick={() => setLoginMethod('personal')}
+              className={`flex-1 py-2 px-4 rounded-2xl text-sm font-medium transition-colors ${
+                loginMethod === 'personal'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {t('login.personalEmailTab', 'Personal Email')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setLoginMethod('corporate')}
+              className={`flex-1 py-2 px-4 rounded-2xl text-sm font-medium transition-colors ${
+                loginMethod === 'corporate'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {t('login.corporateAccountTab', 'Corporate Account')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setLoginMethod('sso')}
+              className={`flex-1 py-2 px-4 rounded-2xl text-sm font-medium transition-colors ${
+                loginMethod === 'sso'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {t('login.ssoLoginTab', 'SSO Login')}
+            </button>
+          </div>
+          <div className="flex items-center gap-2 mb-6 text-sm">
+            <input
+              type="checkbox"
+              id="phoneMode"
+              checked={phoneMode}
+              onChange={(e) => {
+                setPhoneMode(e.target.checked);
+                setEmail('');
+                setEmployeeNumber('');
+              }}
+              className="w-4 h-4 text-primary border-border rounded focus:ring-primary"
+            />
+            <label htmlFor="phoneMode" className="text-foreground">
+              {t('login.phoneMode', 'Use phone number with OTP (no password)')}
+            </label>
+          </div>
+
+          {/* Form - Personal & Corporate */}
+          {(loginMethod === 'personal' || loginMethod === 'corporate') && (
+            <form onSubmit={onSubmit} className="space-y-5" noValidate data-testid="login-form">
+              <div className="rounded-xl border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
+                {loginMethod === 'personal'
+                  ? t('login.helper.personal', 'Use your email and password to sign in to your personal account.')
+                  : t('login.helper.corporate', 'Use your Company ID + Employee ID + password for corporate access.')}
+              </div>
+              {pendingVerificationEmail && (
+                <div className="rounded-xl border border-amber-300 bg-amber-50 text-amber-800 px-3 py-2 text-sm">
+                  {t(
+                    'login.errors.emailNotVerified',
+                    'Your email is not verified. Please check your inbox or resend verification.',
+                  )}
+                </div>
+              )}
+
+              {/* PHASE-4 FIX: Company Code Field for Corporate Login */}
+              {loginMethod === 'corporate' && (
+                <div>
+                  <label htmlFor="companyCode" className="block text-sm font-medium text-foreground mb-2">
+                    {t('login.companyNumber', 'Company Number')}
+                  </label>
+                  <div className="relative">
+                    <Shield className={`absolute ${isRTL ? 'end-3' : 'start-3'} top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground`} />
+                    <Input
+                      id="companyCode"
+                      name="companyCode"
+                      data-testid="login-company-code"
+                      type="text"
+                      inputMode="text"
+                      enterKeyHint="next"
+                      autoComplete="organization"
+                      placeholder={t('login.enterCompanyNumber', 'Enter your company number (e.g., ORG-001)')}
+                      value={companyCode}
+                      onChange={(e) => {
+                        setCompanyCode(e.target.value);
+                        clearError('companyCode');
+                        clearError('general');
+                      }}
+                      className={`${isRTL ? 'pe-10' : 'ps-10'} h-12 ${errors.companyCode ? 'border-destructive focus:ring-destructive' : ''}`}
+                      aria-invalid={!!errors.companyCode}
+                      aria-describedby={errors.companyCode ? 'companyCode-error' : undefined}
+                      disabled={loading || phoneMode}
+                      autoFocus
+                      required={!phoneMode}
+                    />
+                  </div>
+                  {errors.companyCode && (
+                    <p id="companyCode-error" className="mt-1 text-sm text-destructive flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.companyCode}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Email or Employee Number */}
+              <div>
+                <label htmlFor={loginMethod === 'personal' ? 'email' : 'employeeNumber'} className="block text-sm font-medium text-foreground mb-2">
+                  {identifierLabel}
+                </label>
+                <div className="relative">
+                  {loginMethod === 'personal' ? (
+                    <Mail className={`absolute ${isRTL ? 'end-3' : 'start-3'} top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground`} />
+                  ) : (
+                    <User className={`absolute ${isRTL ? 'end-3' : 'start-3'} top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground`} />
+                  )}
+                  <Input
+                    id={loginMethod === 'personal' ? 'email' : 'employeeNumber'}
+                    name="identifier"
+                    data-testid="login-email"
+                    type="text"
+                    aria-label={identifierLabel}
+                    inputMode={phoneMode ? 'tel' : loginMethod === 'personal' ? 'email' : 'text'}
+                    enterKeyHint="next"
+                    autoComplete={phoneMode ? 'tel' : loginMethod === 'personal' ? 'email' : 'username'}
+                    placeholder={
+                      phoneMode
+                        ? t('login.enterPhone', 'Enter your phone number')
+                        : loginMethod === 'personal'
+                          ? t('login.enterEmail', 'Enter your personal email')
+                          : t('login.enterEmployeeNumber', 'Enter your employee number')
+                    }
+                    value={phoneMode ? email : loginMethod === 'personal' ? email : employeeNumber}
+                    onChange={(e) => {
+                      if (phoneMode) {
+                        setEmail(e.target.value);
+                      } else if (loginMethod === 'personal') {
+                        setEmail(e.target.value);
+                      } else {
+                        setEmployeeNumber(e.target.value);
+                      }
+                      clearError('identifier');
+                      clearError('general');
+                    }}
+                    className={`${isRTL ? 'pe-10' : 'ps-10'} h-12 ${errors.identifier ? 'border-destructive focus:ring-destructive' : ''}`}
+                    aria-invalid={!!errors.identifier}
+                    aria-describedby={errors.identifier ? 'identifier-error' : undefined}
+                    disabled={loading}
+                    autoFocus={loginMethod === 'personal'}
+                    required
+                  />
+                </div>
+                {loginMethod === 'corporate' && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {t('login.corporateHelp', 'Enter your company number, employee number, and password to sign in.')}
+                  </p>
+                )}
+                {errors.identifier && (
+                  <p id="identifier-error" className="mt-1 text-sm text-destructive flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {errors.identifier}
+                  </p>
+                )}
+              </div>
+
+              {/* Password */}
+              <div>
+                {!phoneMode && (
+                  <div className="flex items-center justify-between mb-2">
+                    <label htmlFor="password" className="block text-sm font-medium text-foreground">
+                      {t('common.password', 'Password')}
+                    </label>
+                    <Link href="/forgot-password" className="text-sm text-primary hover:text-primary transition-colors">
+                      {t('common.forgotPassword', 'Forgot?')}
+                    </Link>
+                  </div>
+                )}
+                <div className="relative">
+                  <Lock className={`absolute ${isRTL ? 'end-3' : 'start-3'} top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground`} />
+                  <Input
+                    id="password"
+                    name="password"
+                    data-testid="login-password"
+                    type={showPassword ? 'text' : 'password'}
+                    inputMode="text"
+                    enterKeyHint="send"
+                    autoComplete="current-password"
+                    placeholder={t('login.enterPassword', 'Enter your password')}
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      clearError('password');
+                      clearError('general');
+                    }}
+                    className={`${isRTL ? 'pe-10 ps-10' : 'ps-10 pe-10'} h-12 ${errors.password ? 'border-destructive focus:ring-destructive' : ''}`}
+                    style={{ direction: 'ltr' }}
+                    aria-invalid={!!errors.password}
+                    disabled={loading || phoneMode}
+                    required={!phoneMode}
+                  />
+                  {!phoneMode && (
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(s => !s)}
+                      className={`absolute ${isRTL ? 'start-3' : 'end-3'} top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground`}
+                      aria-label={showPassword ? t('login.hidePassword', 'Hide password') : t('login.showPassword', 'Show password')}
+                    >
+                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  )}
+                </div>
+                {capsLockOn && (
+                  <p className="mt-1 text-sm text-warning flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    {t('login.capsLockOn', 'Caps Lock is on')}
+                  </p>
+                )}
+                {errors.password && (
+                  <p className="mt-1 text-sm text-destructive flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {errors.password}
+                  </p>
+                )}
+              </div>
+
+              {/* Remember Me */}
+              {!phoneMode && (
+                <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <input
+                    type="checkbox"
+                    id="rememberMe"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 text-primary border-border rounded focus:ring-primary"
+                    disabled={loading}
+                  />
+                  <label htmlFor="rememberMe" className="text-sm text-foreground cursor-pointer select-none">
+                    {t('login.rememberMe', 'Remember me for 30 days')}
+                  </label>
+                </div>
+              )}
+
+          {/* Phone OTP prompt */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span className="text-muted-foreground">
+                {t('login.phoneOtp.prompt', 'Prefer phone OTP?')}
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9"
+                onClick={() => {
+                  setLoginMethod('personal');
+                  setPhoneLoginNotice(
+                    t(
+                      'login.phoneOtp.notice',
+                      'Enter your phone in the email field and submit to receive an OTP.',
+                    ),
+                  );
+                }}
+              >
+                {t('login.phoneOtp.cta', 'Use phone OTP')}
+              </Button>
+            </div>
+            {phoneLoginNotice && (
+              <div className="rounded-xl border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                {phoneLoginNotice}
+              </div>
+            )}
+          </div>
+
+              {/* General Error */}
+              {errors.general && (
+                <div
+                  role="alert"
+                  aria-live="assertive"
+                  className={`flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-2xl text-destructive ${isRTL ? 'flex-row-reverse' : ''}`}
+                >
+                  <AlertCircle className="h-5 w-5 flex-shrink-0" />
+                  <span className="text-sm">{errors.general}</span>
+                </div>
+              )}
+              {pendingVerificationEmail && (
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-muted/40 px-3 py-2 text-sm">
+                  <span className="text-muted-foreground">
+                    {t(
+                      "login.verificationPending",
+                      "Email verification required. Resend the verification link to proceed.",
+                    )}
+                  </span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={handleResendVerification}
+                  >
+                    {t("login.resendVerification", "Resend")}
+                  </Button>
+                </div>
+              )}
+
+              {/* Submit */}
+              <Button
+                type="submit"
+                data-testid="login-submit"
+                aria-disabled={submitDisabled}
+                className={`w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold transition-colors ${submitDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                {loading ? (
+                  <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    {t('login.signingIn', 'Signing in...')}
+                  </div>
+                ) : (
+                  <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <LogIn className="h-5 w-5" />
+                    {t('login.signIn', 'Sign In')}
+                  </div>
+                )}
+              </Button>
+            </form>
+          )}
+
+          {/* SSO Login Options */}
+          {loginMethod === 'sso' && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-3">
+                {GOOGLE_ENABLED && <GoogleSignInButton />}
+                {APPLE_ENABLED ? (
+                  <button 
+                    type="button"
+                    className={`flex items-center justify-center gap-3 w-full p-3 border border-border rounded-2xl hover:bg-muted transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}
+                  >
+                    <Apple className="h-5 w-5 text-foreground" />
+                    <span>{t('login.continueWith', 'Continue with')} Apple</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    className={`flex items-center justify-center gap-3 w-full p-3 border border-dashed rounded-2xl text-muted-foreground bg-muted/50 ${isRTL ? 'flex-row-reverse' : ''}`}
+                  >
+                    <Apple className="h-5 w-5 text-muted-foreground" />
+                    <span>{t('login.appleUnavailable', 'Apple login not configured')}</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-card text-muted-foreground">{t('login.orUseAccount', 'Or use account')}</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setLoginMethod('personal')}
+                className="w-full py-2 text-primary hover:text-primary font-medium transition-colors"
+              >
+                {t('login.usePersonalEmail', 'Use Personal Email')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setLoginMethod('corporate')}
+                className="w-full py-2 text-primary hover:text-primary font-medium transition-colors"
+              >
+                {t('login.useCorporateAccount', 'Use Corporate Account')}
+              </button>
+            </div>
+          )}
+          </>
+          )}
+
+          {/* Demo Credentials - Lazy loaded for better performance */}
+          {showDemoCredentials && loginMethod !== 'sso' && !showOTP && (
+            <DemoCredentialsSection 
+              isRTL={isRTL}
+              loginMethod={loginMethod}
+              quickLogin={quickLogin}
+              t={t}
+            />
+          )}
+
+          {/* Sign Up Link */}
+          <div className="mt-6 text-center">
+            <p className="text-muted-foreground text-sm">
+              {t('login.noAccount', "Don't have an account?")}{' '}
+              <Link href="/signup" className="text-primary hover:text-primary font-medium transition-colors">
+                {t('login.signUp', 'Sign up here')}
+              </Link>
+            </p>
+          </div>
+        </div>
+
+        {/* Footer Link */}
+        <div className="mt-6 text-center">
+          <Link 
+            href="/" 
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            aria-label={t('common.backToHome', 'Back to Home')}
+          >
+            {isRTL ? '→' : '←'} {t('common.backToHome', 'Back to Home')}
+          </Link>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/logout/page.tsx">
+<![CDATA[
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { logger } from '@/lib/logger';
+import { APP_STORAGE_KEYS, STORAGE_KEYS, STORAGE_PREFIXES } from '@/config/constants';
+import { BrandLogo } from '@/components/brand';
+
+type LogoutState = 'processing' | 'success' | 'error';
+
+export default function LogoutPage() {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const [state, setState] = useState<LogoutState>('processing');
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const clearAuthCookies = () => {
+      const authCookieNames = [
+        // Standard NextAuth/Auth.js cookies
+        'authjs.callback-url',
+        'next-auth.callback-url',
+        'authjs.session-token',
+        'next-auth.session-token',
+        'authjs.csrf-token',
+        'next-auth.csrf-token',
+        // Secure variants used in HTTPS deployments
+        '__Secure-authjs.callback-url',
+        '__Secure-next-auth.callback-url',
+        '__Secure-authjs.session-token',
+        '__Secure-next-auth.session-token',
+        '__Secure-authjs.csrf-token',
+        '__Secure-next-auth.csrf-token',
+        '__Host-next-auth.csrf-token',
+        'fxz.access',
+        'fxz.refresh',
+        'fxz.otp',
+      ];
+      try {
+        const isHttps = window.location.protocol === 'https:';
+        const host = window.location.hostname;
+        const canUseDomain = host !== 'localhost' && !/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host);
+        authCookieNames.forEach(name => {
+          // Clear cookie without Secure flag (works for HTTP and HTTPS)
+          document.cookie = `${name}=; Max-Age=0; path=/; SameSite=Lax`;
+          // Also try with Secure flag for HTTPS-only cookies
+          if (isHttps) {
+            document.cookie = `${name}=; Max-Age=0; path=/; SameSite=Lax; Secure`;
+          }
+          // Try with domain for subdomain cookies (both variants)
+          if (canUseDomain) {
+            document.cookie = `${name}=; Max-Age=0; path=/; domain=${host}; SameSite=Lax`;
+            if (isHttps) {
+              document.cookie = `${name}=; Max-Age=0; path=/; domain=${host}; SameSite=Lax; Secure`;
+            }
+          }
+        });
+      } catch (err) {
+        logger.warn('Failed to clear auth cookies on logout', { error: err });
+      }
+    };
+
+    const handleLogout = async () => {
+      try {
+        setState('processing');
+
+        // Step 1: Clear app-specific storage (preserve language/locale)
+        // Wrapped in try/catch for Safari Private Mode and strict CSP environments
+        try {
+          const savedLang = localStorage.getItem(STORAGE_KEYS.language);
+          const savedLocale = localStorage.getItem(STORAGE_KEYS.locale);
+
+          Object.keys(localStorage).forEach(key => {
+            const isAppKey =
+              APP_STORAGE_KEYS.includes(key) ||
+              key.startsWith(STORAGE_PREFIXES.app) ||
+              key.startsWith(STORAGE_PREFIXES.shortDash) ||
+              key.startsWith(STORAGE_PREFIXES.shortDot);
+            const preserve = key === STORAGE_KEYS.language || key === STORAGE_KEYS.locale;
+            if (isAppKey && !preserve) localStorage.removeItem(key);
+          });
+
+          // Restore language preferences
+          if (savedLang) localStorage.setItem(STORAGE_KEYS.language, savedLang);
+          if (savedLocale) localStorage.setItem(STORAGE_KEYS.locale, savedLocale);
+        } catch (storageErr) {
+          logger.warn('localStorage unavailable during logout (Safari Private Mode or CSP restriction)', { error: storageErr });
+        }
+
+        // Step 2: Clear session storage
+        try {
+          sessionStorage.clear();
+        } catch (e) {
+          logger.warn('Failed to clear session storage', { error: e });
+        }
+
+        // Step 3: Clear auth cookies explicitly (callback/session)
+        clearAuthCookies();
+
+        // Step 4: Sign out with NextAuth (clears cookies)
+        const signOutResult = await signOut({ 
+          redirect: false, // Manual redirect for better control
+          redirectTo: '/login',
+        });
+        const redirectUrl = signOutResult?.url || '/login';
+
+        // Step 5: Wait for cleanup to propagate
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        if (!mounted) return;
+
+        setState('success');
+
+        // Step 6: Redirect after showing success
+        const successTimer = setTimeout(() => {
+          if (mounted) router.push(redirectUrl);
+        }, 1000);
+
+        // Store timer for cleanup
+        return () => clearTimeout(successTimer);
+
+      } catch (error) {
+        logger.error('Logout error:', error);
+        if (!mounted) return;
+        
+        setState('error');
+        setError(error instanceof Error ? error.message : 'Logout failed');
+
+        // Still attempt redirect after error
+        const errorTimer = setTimeout(() => {
+          if (mounted) router.push('/login');
+        }, 2000);
+
+        // Store timer for cleanup
+        return () => clearTimeout(errorTimer);
+      }
+    };
+
+    let cleanupFn: (() => void) | undefined;
+    
+    handleLogout().then(fn => {
+      if (mounted) cleanupFn = fn;
+    });
+
+    return () => {
+      mounted = false;
+      cleanupFn?.(); // Clear any pending timers
+    };
+  }, [router]);
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background" data-testid="logout-page">
+      <div className="text-center p-8 max-w-md">
+        {/* Brand Logo - consistent across all auth pages */}
+        <div className="mb-6">
+          <BrandLogo 
+            size="lg" 
+            alt="Fixzit" 
+            fetchOrgLogo={false}
+            data-testid="logout-logo"
+          />
+        </div>
+        
+        {state === 'processing' && (
+          <>
+            <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" data-testid="logout-spinner" />
+            <h1 className="text-xl font-semibold text-foreground mb-2">
+              {t('logout.signingOut', 'Signing you out...')}
+            </h1>
+            <p className="text-muted-foreground">
+              {t('logout.pleaseWait', 'Please wait while we log you out securely.')}
+            </p>
+          </>
+        )}
+
+        {state === 'success' && (
+          <>
+            <CheckCircle className="w-12 h-12 text-success mx-auto mb-4" data-testid="logout-success" />
+            <h1 className="text-xl font-semibold text-foreground mb-2">
+              {t('logout.success', 'Logged out successfully')}
+            </h1>
+            <p className="text-muted-foreground">
+              {t('logout.redirecting', 'Redirecting to login...')}
+            </p>
+          </>
+        )}
+
+        {state === 'error' && (
+          <>
+            <XCircle className="w-12 h-12 text-destructive mx-auto mb-4" data-testid="logout-error" />
+            <h1 className="text-xl font-semibold text-foreground mb-2">
+              {t('logout.error', 'Logout error')}
+            </h1>
+            <p className="text-muted-foreground mb-4">
+              {error || t('logout.errorMessage', 'An error occurred during logout')}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {t('logout.redirectingAfterError', 'Redirecting to login...')}
+            </p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/marketplace/admin/page.tsx">
+<![CDATA[
+import { logger } from "@/lib/logger";
+import { serverFetchJsonWithTenant } from "@/lib/marketplace/serverFetch";
+import ClientDate from "@/components/ClientDate";
+import { getServerI18n } from "@/lib/i18n/server";
+
+interface Product {
+  id: string;
+  title: { en: string };
+  sku: string;
+  buy: {
+    price: number;
+    currency: string;
+    uom: string;
+  };
+  standards?: string[];
+}
+
+interface Order {
+  id: string;
+  status: string;
+  currency: string;
+  totals: {
+    grand: number;
+  };
+  approvals?: {
+    status: string;
+  };
+  createdAt: string | Date;
+}
+
+interface RFQ {
+  id: string;
+  status: string;
+}
+
+interface Category {
+  id: string;
+  slug: string;
+  name?: { en: string };
+}
+const APPROVAL_STATUS_LABELS: Record<
+  string,
+  { key: string; fallback: string }
+> = {
+  APPROVAL: {
+    key: "marketplace.orders.status.approval",
+    fallback: "Awaiting approval",
+  },
+  PENDING: { key: "marketplace.orders.status.pending", fallback: "Pending" },
+  CONFIRMED: {
+    key: "marketplace.orders.status.confirmed",
+    fallback: "Confirmed",
+  },
+  FULFILLED: {
+    key: "marketplace.orders.status.fulfilled",
+    fallback: "Fulfilled",
+  },
+  DELIVERED: {
+    key: "marketplace.orders.status.delivered",
+    fallback: "Delivered",
+  },
+  CANCELLED: {
+    key: "marketplace.orders.status.cancelled",
+    fallback: "Cancelled",
+  },
+};
+
+export default async function MarketplaceAdminPage() {
+  const { t } = await getServerI18n();
+  const formatApprovalStatus = (status?: string | null) => {
+    if (!status) {
+      return t("marketplace.orders.status.unknown", "Unknown");
+    }
+    const normalized = status.toUpperCase();
+    const config = APPROVAL_STATUS_LABELS[normalized];
+    return config ? t(config.key, config.fallback) : status;
+  };
+
+  try {
+    const [, productsResponse, ordersResponse, rfqResponse] = await Promise.all(
+      [
+        serverFetchJsonWithTenant<{ data: Category[] }>(
+          "/api/marketplace/categories",
+        ),
+        serverFetchJsonWithTenant<{ data: { items: Product[] } }>(
+          "/api/marketplace/products?limit=50",
+        ),
+        serverFetchJsonWithTenant<{ data: Order[] }>("/api/marketplace/orders"),
+        serverFetchJsonWithTenant<{ data: RFQ[] }>("/api/marketplace/rfq"),
+      ],
+    );
+
+    const products = productsResponse.data.items;
+    const orders = ordersResponse.data;
+    const rfqs = rfqResponse.data;
+
+    // [CODE REVIEW]: FIX - Use Tailwind theme classes, fix React keys to use 'id'
+    return (
+      <div className="min-h-screen bg-muted flex flex-col">
+        <main className="mx-auto max-w-7xl space-y-8 px-4 py-8">
+          <header>
+            <h1 className="text-3xl font-semibold text-foreground">
+              {t("marketplace.admin.title", "Marketplace Administration")}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {t(
+                "marketplace.admin.subtitle",
+                "Monitor catalogue health, approvals, and vendor performance.",
+              )}
+            </p>
+          </header>
+
+          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-2xl bg-card p-6 shadow">
+              <p className="text-xs uppercase tracking-wide text-primary">
+                {t(
+                  "marketplace.admin.metrics.activeProducts",
+                  "Active products",
+                )}
+              </p>
+              <p className="mt-2 text-3xl font-bold text-foreground">
+                {products.length}
+              </p>
+            </div>
+            <div className="rounded-2xl bg-card p-6 shadow">
+              <p className="text-xs uppercase tracking-wide text-primary">
+                {t(
+                  "marketplace.admin.metrics.pendingApprovals",
+                  "Pending approvals",
+                )}
+              </p>
+              <p className="mt-2 text-3xl font-bold text-foreground">
+                {orders.filter((order) => order.status === "APPROVAL").length}
+              </p>
+            </div>
+            <div className="rounded-2xl bg-card p-6 shadow">
+              <p className="text-xs uppercase tracking-wide text-primary">
+                {t(
+                  "marketplace.admin.metrics.deliveredOrders",
+                  "Delivered orders",
+                )}
+              </p>
+              <p className="mt-2 text-3xl font-bold text-foreground">
+                {orders.filter((order) => order.status === "DELIVERED").length}
+              </p>
+            </div>
+            <div className="rounded-2xl bg-card p-6 shadow">
+              <p className="text-xs uppercase tracking-wide text-primary">
+                {t("marketplace.admin.metrics.openRfqs", "Open RFQs")}
+              </p>
+              <p className="mt-2 text-3xl font-bold text-foreground">
+                {rfqs.filter((rfq) => rfq.status === "OPEN").length}
+              </p>
+            </div>
+          </section>
+
+          <section className="rounded-2xl bg-card p-6 shadow">
+            <h2 className="text-lg font-semibold text-foreground">
+              {t("marketplace.admin.catalogue.title", "Catalogue snapshot")}
+            </h2>
+            <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {products.slice(0, 6).map((product) => (
+                <div
+                  key={product.id}
+                  className="rounded-2xl border border-border bg-muted p-4"
+                >
+                  <p className="text-sm font-semibold text-foreground">
+                    {product.title.en}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {t("marketplace.admin.catalogue.sku", "SKU")} {product.sku}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {product.buy.price} {product.buy.currency} /{" "}
+                    {product.buy.uom}
+                  </p>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {t("marketplace.admin.catalogue.standards", "Standards")}:{" "}
+                    {product.standards?.join(", ") || "N/A"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded-2xl bg-card p-6 shadow">
+            <h2 className="text-lg font-semibold text-foreground">
+              {t("marketplace.admin.approvals.title", "Approval queue")}
+            </h2>
+            <table className="mt-4 w-full table-fixed text-start text-sm text-foreground">
+              <thead>
+                <tr className="text-xs uppercase tracking-wide text-muted-foreground">
+                  <th className="py-2">
+                    {t("marketplace.admin.approvals.order", "Order")}
+                  </th>
+                  <th className="py-2">
+                    {t("marketplace.admin.approvals.total", "Total")}
+                  </th>
+                  <th className="py-2">
+                    {t("marketplace.admin.approvals.status", "Status")}
+                  </th>
+                  <th className="py-2">
+                    {t("marketplace.admin.approvals.submitted", "Submitted")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {orders
+                  .filter((order) => order.status === "APPROVAL")
+                  .map((order) => (
+                    <tr key={order.id} className="border-t border-border">
+                      <td className="py-2">
+                        {order.id.slice(-6).toUpperCase()}
+                      </td>
+                      <td className="py-2">
+                        {order.totals.grand.toFixed(2)} {order.currency}
+                      </td>
+                      <td className="py-2">
+                        {formatApprovalStatus(order.approvals?.status)}
+                      </td>
+                      <td className="py-2">
+                        <ClientDate date={order.createdAt} format="medium" />
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </section>
+        </main>
+      </div>
+    );
+  } catch (error) {
+    logger.error("Failed to load marketplace admin data", { error });
+    return (
+      <div className="min-h-screen bg-muted flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-destructive">
+            {t(
+              "marketplace.admin.error",
+              "Failed to load marketplace admin data. Please try again later.",
+            )}
+          </p>
+        </div>
+      </div>
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/marketplace/buyer/claims/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import ClaimList from "@/components/souq/claims/ClaimList";
+import ClaimDetails from "@/components/souq/claims/ClaimDetails";
+import ClaimForm from "@/components/souq/claims/ClaimForm";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, FileText } from "lucide-react";
+import { useI18n } from "@/i18n/useI18n";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+type ViewMode = "list" | "details" | "new";
+
+export default function BuyerClaimsPage() {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [selectedClaimId, setSelectedClaimId] = useState<string | null>(null);
+  const [showNewClaimDialog, setShowNewClaimDialog] = useState(false);
+  const [selectedOrder] = useState<{
+    orderId: string;
+    itemName: string;
+    orderAmount: number;
+    orderDate: string;
+    sellerId: string;
+    sellerName: string;
+    productId: string;
+  } | null>(null);
+
+  const handleSelectClaim = (claimId: string) => {
+    setSelectedClaimId(claimId);
+    setViewMode("details");
+  };
+
+  const handleBackToList = () => {
+    setViewMode("list");
+    setSelectedClaimId(null);
+  };
+
+  const handleNewClaim = () => {
+    // In a real app, this would allow user to select an order first
+    // For now, we'll show a placeholder
+    setShowNewClaimDialog(true);
+  };
+
+  const handleClaimSuccess = () => {
+    setShowNewClaimDialog(false);
+    setViewMode("list");
+    // Refresh the claims list
+  };
+
+  return (
+    <div className="container mx-auto py-8 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          {viewMode !== "list" && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleBackToList}
+              aria-label={t("common.back") || "Back"}
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+          )}
+          <div>
+            <h1 className="text-3xl font-bold">
+              {t("marketplace.claims.buyer.title")}
+            </h1>
+            <p className="text-muted-foreground">
+              {t("marketplace.claims.buyer.subtitle")}
+            </p>
+          </div>
+        </div>
+        {viewMode === "list" && (
+          <Button onClick={handleNewClaim}>
+            <FileText className="w-4 h-4 me-2" />
+            {t("marketplace.claims.buyer.newClaim") || "تقديم مطالبة جديدة"}
+          </Button>
+        )}
+      </div>
+
+      {/* Content */}
+      {viewMode === "list" && (
+        <ClaimList view="buyer" onSelectClaim={handleSelectClaim} />
+      )}
+
+      {viewMode === "details" && selectedClaimId && (
+        <ClaimDetails claimId={selectedClaimId} userRole="buyer" />
+      )}
+
+      {/* New Claim Dialog */}
+      <Dialog open={showNewClaimDialog} onOpenChange={setShowNewClaimDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>تقديم مطالبة جديدة</DialogTitle>
+            <DialogDescription>
+              File a new A-to-Z Guarantee Claim
+            </DialogDescription>
+          </DialogHeader>
+          <div className="text-center py-8">
+            <p className="text-muted-foreground mb-4">
+              الرجاء تحديد الطلب الذي ترغب في تقديم مطالبة بشأنه
+              <br />
+              Please select the order you want to file a claim for
+            </p>
+            <Button onClick={() => router.push("/marketplace/orders")}>
+              عرض طلباتي (View My Orders)
+            </Button>
+          </div>
+          {/* In a real implementation, this would show order selection UI */}
+          {selectedOrder && (
+            <ClaimForm
+              orderId={selectedOrder.orderId}
+              orderDetails={selectedOrder}
+              onSuccess={handleClaimSuccess}
+              onCancel={() => setShowNewClaimDialog(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/marketplace/cart/page.tsx">
+<![CDATA[
+import Link from "next/link";
+import Image from "next/image";
+import { serverFetchJsonWithTenant } from "@/lib/marketplace/serverFetch";
+import { getServerI18n } from "@/lib/i18n/server";
+
+interface CartLine {
+  productId: string;
+  product?: {
+    title?: { en?: string };
+    slug?: string;
+    media?: Array<{ url: string }>;
+    buy?: {
+      leadDays?: number;
+      minQty?: number;
+    };
+  };
+  qty: number;
+  quantity: number;
+  price: number;
+  unitPrice: number;
+  total: number;
+  currency: string;
+}
+
+interface CartData {
+  lines: CartLine[];
+  total: number;
+  totals: {
+    subtotal: number;
+    vat: number;
+    grand: number;
+  };
+  currency: string;
+}
+
+export default async function CartPage() {
+  const cartResponse = await serverFetchJsonWithTenant<{ data: CartData }>(
+    "/api/marketplace/cart",
+  );
+  const cart = cartResponse.data;
+  const { t } = await getServerI18n();
+
+  return (
+    <div className="min-h-screen bg-muted flex flex-col">
+      <main className="mx-auto max-w-7xl px-4 py-8 flex-1">
+        <h1 className="text-3xl font-semibold text-foreground">
+          {t("marketplace.cart.title", "Shopping Cart")}
+        </h1>
+        <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]">
+          <section className="space-y-4">
+            {cart.lines.length ? (
+              cart.lines.map((line) => (
+                <article
+                  key={line.productId}
+                  className="rounded-2xl bg-card p-6 shadow"
+                >
+                  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div className="flex gap-4">
+                      <div className="relative h-24 w-24 rounded-2xl border border-border overflow-hidden">
+                        <Image
+                          src={
+                            line.product?.media?.[0]?.url ||
+                            "/images/marketplace/placeholder-product.svg"
+                          }
+                          alt={
+                            line.product?.title?.en ??
+                            t("marketplace.cart.imageAlt", "Product image")
+                          }
+                          fill
+                          sizes="96px"
+                          className="object-cover"
+                        />
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-semibold text-foreground">
+                          <Link
+                            href={`/marketplace/product/${line.product?.slug ?? line.productId}`}
+                            className="hover:underline"
+                          >
+                            {line.product?.title?.en ??
+                              t(
+                                "marketplace.cart.fallbackTitle",
+                                "Marketplace item",
+                              )}
+                          </Link>
+                        </h2>
+                        <p className="text-sm text-muted-foreground">
+                          {t("marketplace.cart.quantity", "Quantity")}:{" "}
+                          {line.qty}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {t("marketplace.cart.unitPrice", "Unit price")}:{" "}
+                          {line.price} {line.currency}
+                        </p>
+                        <p className="text-sm font-semibold text-primary">
+                          {t("marketplace.cart.lineTotal", "Line total")}:{" "}
+                          {line.total.toFixed(2)} {line.currency}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      <p>
+                        {t("marketplace.cart.leadTime", "Lead time")}:{" "}
+                        {line.product?.buy?.leadDays ?? 2}{" "}
+                        {t("marketplace.cart.days", "day(s)")}
+                      </p>
+                      <p>
+                        {t("marketplace.cart.minOrder", "Min order")}:{" "}
+                        {line.product?.buy?.minQty ?? 1}
+                      </p>
+                    </div>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <div className="rounded-2xl border border-dashed border-muted-foreground/30 bg-card p-10 text-center text-muted-foreground">
+                <p className="text-lg font-semibold text-foreground">
+                  {t("marketplace.cart.empty.title", "Your cart is empty")}
+                </p>
+                <p className="mt-2 text-sm">
+                  {t(
+                    "marketplace.cart.empty.subtitle",
+                    "Browse categories to add ASTM and BS EN compliant items.",
+                  )}
+                </p>
+                <Link
+                  href="/marketplace"
+                  className="mt-4 inline-flex rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+                >
+                  {t("marketplace.cart.empty.cta", "Browse catalogue")}
+                </Link>
+              </div>
+            )}
+          </section>
+
+          <aside className="space-y-4">
+            <div className="rounded-2xl bg-card p-6 shadow">
+              <h2 className="text-lg font-semibold text-foreground">
+                {t("marketplace.cart.summary.title", "Order summary")}
+              </h2>
+              <dl className="mt-4 space-y-2 text-sm text-foreground">
+                <div className="flex justify-between">
+                  <dt>{t("marketplace.cart.summary.subtotal", "Subtotal")}</dt>
+                  <dd>
+                    {cart.totals.subtotal.toFixed(2)} {cart.currency}
+                  </dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt>{t("marketplace.cart.summary.vat", "VAT (15%)")}</dt>
+                  <dd>
+                    {cart.totals.vat.toFixed(2)} {cart.currency}
+                  </dd>
+                </div>
+                <div className="flex justify-between text-base font-semibold text-primary">
+                  <dt>{t("marketplace.cart.summary.total", "Total")}</dt>
+                  <dd>
+                    {cart.totals.grand.toFixed(2)} {cart.currency}
+                  </dd>
+                </div>
+              </dl>
+              <Link
+                href="/marketplace/checkout"
+                className="mt-6 block rounded-full bg-warning px-6 py-3 text-center text-sm font-semibold text-warning-foreground hover:bg-warning/90"
+              >
+                {t(
+                  "marketplace.cart.summary.checkoutCta",
+                  "Proceed to checkout",
+                )}
+              </Link>
+            </div>
+            <div className="rounded-3xl border border-primary/20 bg-card p-6 text-sm text-foreground shadow">
+              <h3 className="text-sm font-semibold text-primary">
+                {t("marketplace.cart.policy.title", "Approval policy")}
+              </h3>
+              <p className="mt-2">
+                {t(
+                  "marketplace.cart.policy.description",
+                  "Orders above SAR {{amount}} will route to the approvals desk before confirmation.",
+                ).replace(
+                  "{{amount}}",
+                  Number(
+                    process.env.MARKETPLACE_APPROVAL_THRESHOLD ?? 5000,
+                  ).toLocaleString(),
+                )}
+              </p>
+            </div>
+          </aside>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/marketplace/checkout/page.tsx">
+<![CDATA[
+import { logger } from "@/lib/logger";
+import CheckoutForm from "@/components/marketplace/CheckoutForm";
+import Link from "next/link";
+import { serverFetchJsonWithTenant } from "@/lib/marketplace/serverFetch";
+import { getServerI18n } from "@/lib/i18n/server";
+
+interface CartLine {
+  productId: string;
+  product?: {
+    title?: { en?: string };
+  };
+  qty: number;
+  price: number;
+  currency: string;
+}
+
+interface CartData {
+  id: string;
+  lines: CartLine[];
+  totals: { subtotal: number; vat: number; grand: number };
+  currency: string;
+}
+
+export default async function CheckoutPage() {
+  const { t } = await getServerI18n();
+
+  try {
+    const [, cartResponse] = await Promise.all([
+      serverFetchJsonWithTenant<{ data: unknown }>(
+        "/api/marketplace/categories",
+      ),
+      serverFetchJsonWithTenant<{ data: CartData }>("/api/marketplace/cart"),
+    ]);
+
+    const cart = cartResponse.data;
+
+    return (
+      <div className="min-h-screen bg-muted flex flex-col">
+        <main className="mx-auto max-w-7xl px-4 py-8 flex-1">
+          <nav className="text-sm text-primary">
+            <Link href="/marketplace/cart" className="hover:underline">
+              {t("marketplace.checkout.breadcrumb.cart", "Cart")}
+            </Link>
+            <span className="mx-2 text-muted-foreground">/</span>
+            <span className="text-muted-foreground">
+              {t("marketplace.checkout.breadcrumb.checkout", "Checkout")}
+            </span>
+          </nav>
+          <h1 className="mt-4 text-3xl font-semibold text-foreground">
+            {t("marketplace.checkout.title", "Checkout & Approvals")}
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {t(
+              "marketplace.checkout.description",
+              "Submit the order for approval. Upon delivery confirmation, the order will automatically create the finance posting per your tenant policy.",
+            )}
+          </p>
+          <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+            <CheckoutForm
+              cartId={cart.id}
+              totals={cart.totals}
+              currency={cart.currency}
+            />
+            <aside className="space-y-4">
+              <div className="rounded-2xl bg-card p-6 shadow">
+                <h2 className="text-lg font-semibold text-foreground">
+                  {t("marketplace.checkout.contents.title", "Order contents")}
+                </h2>
+                <ul className="mt-3 space-y-2 text-sm text-foreground">
+                  {cart.lines.map((line) => (
+                    <li key={line.productId} className="flex justify-between">
+                      <span>{line.product?.title?.en ?? line.productId}</span>
+                      <span>
+                        {line.qty} × {line.price} {line.currency}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="rounded-2xl border border-border bg-card p-6 shadow">
+                <h3 className="text-sm font-semibold text-primary">
+                  {t(
+                    "marketplace.checkout.finance.title",
+                    "Finance automation",
+                  )}
+                </h3>
+                <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+                  <li>
+                    {t(
+                      "marketplace.checkout.finance.point1",
+                      "Finance posting triggered automatically on delivery.",
+                    )}
+                  </li>
+                  <li>
+                    {t(
+                      "marketplace.checkout.finance.point2",
+                      "VAT buckets are calculated from catalogue attributes.",
+                    )}
+                  </li>
+                  <li>
+                    {t(
+                      "marketplace.checkout.finance.point3",
+                      "Work order linkage maintained for downstream audits.",
+                    )}
+                  </li>
+                </ul>
+              </div>
+            </aside>
+          </div>
+        </main>
+      </div>
+    );
+  } catch (error) {
+    logger.error("Failed to load checkout page data", { error });
+    return (
+      <div className="min-h-screen bg-muted flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-destructive">
+            {t(
+              "marketplace.checkout.error.message",
+              "Failed to load cart data. Please try again later.",
+            )}
+          </p>
+          <Link
+            href="/marketplace/cart"
+            className="mt-4 inline-block text-primary hover:underline"
+          >
+            {t("marketplace.checkout.error.cta", "Return to Cart")}
+          </Link>
+        </div>
+      </div>
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/marketplace/error.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect } from "react";
+import { RefreshCw, Home, ShoppingBag } from "lucide-react";
+import Link from "next/link";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
+
+/**
+ * Marketplace Error Boundary
+ *
+ * STRICT v4 COMPLIANCE:
+ * - Uses semantic color tokens
+ * - Supports RTL via TranslationContext
+ * - Logs errors via centralized logger
+ */
+export default function MarketplaceError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  const { t, isRTL } = useTranslation();
+
+  useEffect(() => {
+    logger.error("Marketplace error caught by error boundary", {
+      error: error.message,
+      digest: error.digest,
+      stack: error.stack,
+      component: "app/marketplace/error.tsx",
+    });
+  }, [error]);
+
+  return (
+    <div
+      className="min-h-[60vh] flex flex-col items-center justify-center px-4"
+      dir={isRTL ? "rtl" : "ltr"}
+    >
+      <div className="max-w-md w-full text-center">
+        <div className="mb-6">
+          <div className="w-16 h-16 mx-auto bg-destructive/10 rounded-full flex items-center justify-center">
+            <ShoppingBag className="w-8 h-8 text-destructive" />
+          </div>
+        </div>
+
+        <h1 className="text-xl font-bold text-foreground mb-2">
+          {t("errors.marketplace.title", "Marketplace Error")}
+        </h1>
+        <p className="text-muted-foreground mb-6">
+          {t(
+            "errors.marketplace.message",
+            "There was a problem loading the marketplace. Please try again."
+          )}
+        </p>
+
+        {process.env.NODE_ENV === "development" && (
+          <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-3 text-start mb-6">
+            <p className="text-sm font-mono text-destructive break-all">
+              {error.message}
+            </p>
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Button onClick={reset} variant="default">
+            <RefreshCw className="w-4 h-4 me-2" />
+            {t("common.actions.tryAgain", "Try Again")}
+          </Button>
+
+          <Button asChild variant="outline">
+            <Link href="/dashboard">
+              <Home className="w-4 h-4 me-2" />
+              {t("common.actions.goToDashboard", "Dashboard")}
+            </Link>
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/marketplace/items/new/page.tsx">
+<![CDATA[
+// Route alias for /app/marketplace/items/new -> @/app/marketplace/page
+export { default } from "@/app/marketplace/page";
+export * from "@/app/marketplace/page";
+
+]]>
+</file>
+
+<file path="app/marketplace/layout.tsx">
+<![CDATA[
+import { ReactNode } from "react";
+import { cookies } from "next/headers";
+
+export default async function MarketplaceLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const cookieStore = await cookies();
+  const lang = (cookieStore.get("lang")?.value || "en").toLowerCase();
+  const isRTL = lang === "ar";
+  return <div dir={isRTL ? "rtl" : "ltr"}>{children}</div>;
+}
+
+]]>
+</file>
+
+<file path="app/marketplace/listings/new/page.tsx">
+<![CDATA[
+export { default } from "@/app/fm/marketplace/listings/new/page";
+export * from "@/app/fm/marketplace/listings/new/page";
+
+]]>
+</file>
+
+<file path="app/marketplace/listings/template.tsx">
+<![CDATA[
+import { ReactNode } from "react";
+import { OrgContextGate } from "@/components/fm/OrgContextGate";
+
+interface MarketplaceListingsTemplateProps {
+  children: ReactNode;
+}
+
+/**
+ * Extends the org guard to internal marketplace listing tools.
+ */
+export default function MarketplaceListingsTemplate({
+  children,
+}: MarketplaceListingsTemplateProps) {
+  return <OrgContextGate>{children}</OrgContextGate>;
+}
+
+]]>
+</file>
+
+<file path="app/marketplace/orders/[orderId]/review/page.tsx">
+<![CDATA[
+"use client";
+
+/**
+ * Review Submission Page - Submit review for purchased product
+ * @route /marketplace/orders/[orderId]/review
+ */
+
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  ReviewForm,
+  type ReviewFormData,
+} from "@/components/seller/reviews/ReviewForm";
+
+export default function OrderReviewPage({
+  params,
+}: {
+  params: { orderId: string };
+}) {
+  const router = useRouter();
+  const [_submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  // In real implementation, fetch order details to get product info
+  const productName = "Product Name"; // Placeholder
+  const productId = "PROD-123"; // Placeholder
+
+  const handleSubmit = async (data: ReviewFormData) => {
+    setSubmitting(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/souq/reviews", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          productId,
+          orderId: params.orderId,
+          ...data,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to submit review");
+      }
+
+      // Success - redirect to orders page
+      router.push("/marketplace/orders?review_submitted=true");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to submit review");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-3xl mx-auto">
+        <div className="bg-white border rounded-lg p-8">
+          {error && (
+            <div className="bg-destructive/5 border border-red-200 text-destructive-dark px-4 py-3 rounded-lg mb-6">
+              {error}
+            </div>
+          )}
+
+          <ReviewForm
+            productId={productId}
+            productName={productName}
+            orderId={params.orderId}
+            onSubmit={handleSubmit}
+            onCancel={() => router.back()}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/marketplace/orders/new/page.tsx">
+<![CDATA[
+export { default } from "@/app/fm/marketplace/orders/new/page";
+export * from "@/app/fm/marketplace/orders/new/page";
+
+]]>
+</file>
+
+<file path="app/marketplace/orders/page.tsx">
+<![CDATA[
+import { logger } from "@/lib/logger";
+import { serverFetchJsonWithTenant } from "@/lib/marketplace/serverFetch";
+import ClientDate from "@/components/ClientDate";
+import { getServerI18n } from "@/lib/i18n/server";
+
+interface OrderLine {
+  productId: string;
+  qty: number;
+  price: number;
+  currency: string;
+}
+
+interface Order {
+  id: string;
+  lines: OrderLine[];
+  createdAt: string;
+  status: string;
+  totals: {
+    grand: number;
+  };
+  currency: string;
+  approvals?: {
+    status?: string;
+  };
+}
+
+// Status badge and translation mapping using Tailwind theme classes
+const STATUS_RESOURCES: Record<
+  string,
+  { badge: string; translationKey: string; fallback: string }
+> = {
+  APPROVAL: {
+    badge: "bg-warning/10 text-warning-foreground",
+    translationKey: "marketplace.orders.status.approval",
+    fallback: "Awaiting approval",
+  },
+  PENDING: {
+    badge: "bg-primary/10 text-primary",
+    translationKey: "marketplace.orders.status.pending",
+    fallback: "Pending",
+  },
+  CONFIRMED: {
+    badge: "bg-primary/10 text-primary",
+    translationKey: "marketplace.orders.status.confirmed",
+    fallback: "Confirmed",
+  },
+  FULFILLED: {
+    badge: "bg-success/10 text-success-foreground",
+    translationKey: "marketplace.orders.status.fulfilled",
+    fallback: "Fulfilled",
+  },
+  DELIVERED: {
+    badge: "bg-success/10 text-success-foreground",
+    translationKey: "marketplace.orders.status.delivered",
+    fallback: "Delivered",
+  },
+  CANCELLED: {
+    badge: "bg-destructive/10 text-destructive-foreground",
+    translationKey: "marketplace.orders.status.cancelled",
+    fallback: "Cancelled",
+  },
+};
+
+export default async function OrdersPage() {
+  const { t } = await getServerI18n();
+  try {
+    const [, ordersResponse] = await Promise.all([
+      serverFetchJsonWithTenant<{ data: unknown }>(
+        "/api/marketplace/categories",
+      ),
+      serverFetchJsonWithTenant<{ data: Order[] }>("/api/marketplace/orders"),
+    ]);
+
+    const orders = ordersResponse.data;
+
+    return (
+      <div className="min-h-screen bg-muted flex flex-col">
+        <main className="mx-auto max-w-7xl px-4 py-8">
+          <h1 className="text-3xl font-semibold text-foreground">
+            {t("marketplace.orders.title", "Orders & Approvals")}
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {t(
+              "marketplace.orders.subtitle",
+              "Track procurement across approval, fulfilment, and finance posting.",
+            )}
+          </p>
+          <div className="mt-6 space-y-4">
+            {orders.length ? (
+              orders.map((order) => (
+                <article
+                  key={order.id}
+                  className="rounded-2xl bg-card p-6 shadow"
+                >
+                  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-primary">
+                        {t(
+                          "marketplace.orders.orderNumber",
+                          "Order #{{id}}",
+                        ).replace("{{id}}", order.id.slice(-6).toUpperCase())}
+                      </p>
+                      <h2 className="text-lg font-semibold text-foreground">
+                        {t(
+                          "marketplace.orders.itemsCount",
+                          "{{count}} item(s)",
+                        ).replace("{{count}}", order.lines.length.toString())}
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        {t("marketplace.orders.submitted", "Submitted")}{" "}
+                        <ClientDate date={order.createdAt} format="medium" />
+                      </p>
+                    </div>
+                    <div className="space-y-2 text-end text-sm">
+                      <span
+                        className={`inline-flex rounded-full px-3 py-1 font-semibold ${STATUS_RESOURCES[order.status]?.badge ?? "bg-muted text-foreground"}`}
+                      >
+                        {t(
+                          STATUS_RESOURCES[order.status]?.translationKey ??
+                            "marketplace.orders.status.pending",
+                          STATUS_RESOURCES[order.status]?.fallback ??
+                            order.status,
+                        )}
+                      </span>
+                      <p className="font-semibold text-primary">
+                        {order.totals.grand.toFixed(2)} {order.currency}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {t("marketplace.orders.approvalStatus", "Approval")}:{" "}
+                        {order.approvals?.status
+                          ? t(
+                              STATUS_RESOURCES[order.approvals.status]
+                                ?.translationKey ??
+                                "marketplace.orders.status.pending",
+                              STATUS_RESOURCES[order.approvals.status]
+                                ?.fallback ?? order.approvals.status,
+                            )
+                          : t("common.notAvailable", "N/A")}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-4 grid gap-3 text-sm text-foreground md:grid-cols-2">
+                    {order.lines.map((line) => (
+                      <div
+                        key={line.productId}
+                        className="rounded-2xl border border-border bg-muted p-3"
+                      >
+                        <p className="font-semibold text-foreground">
+                          {line.productId}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {line.qty} × {line.price} {line.currency}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              ))
+            ) : (
+              <div className="rounded-2xl border border-dashed border-muted-foreground/30 bg-card p-10 text-center text-muted-foreground">
+                <p className="text-lg font-semibold text-foreground">
+                  {t("marketplace.orders.empty.title", "No orders yet")}
+                </p>
+                <p className="mt-2 text-sm">
+                  {t(
+                    "marketplace.orders.empty.subtitle",
+                    "Place an order via the marketplace to see approval routing.",
+                  )}
+                </p>
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
+    );
+  } catch (error) {
+    logger.error("Failed to load orders page data", { error });
+    return (
+      <div className="min-h-screen bg-muted flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-destructive">
+            {t(
+              "marketplace.orders.error.message",
+              "Failed to load orders. Please try again later.",
+            )}
+          </p>
+        </div>
+      </div>
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/marketplace/orders/template.tsx">
+<![CDATA[
+import { ReactNode } from "react";
+import { OrgContextGate } from "@/components/fm/OrgContextGate";
+
+interface MarketplaceOrdersTemplateProps {
+  children: ReactNode;
+}
+
+/**
+ * Protects marketplace order management routes with the org guard.
+ */
+export default function MarketplaceOrdersTemplate({
+  children,
+}: MarketplaceOrdersTemplateProps) {
+  return <OrgContextGate>{children}</OrgContextGate>;
+}
+
+]]>
+</file>
+
+</batch_content>

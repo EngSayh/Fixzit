@@ -1,0 +1,3289 @@
+
+You are the "Fixzit Memory Builder" for category: "routes".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "routes",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/api/admin/users/[id]/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { connectDb } from "@/lib/mongo";
+import { Schema, model, models, Types } from "mongoose";
+import { logger } from "@/lib/logger";
+
+/**
+ * DELETE /api/admin/users/[id]
+ *
+ * Delete a user by ID (Super Admin only)
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (session.user.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { error: "Forbidden - Super Admin access required" },
+        { status: 403 },
+      );
+    }
+
+    await connectDb();
+
+    const { id } = await params;
+    if (!Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ error: "Invalid user id" }, { status: 400 });
+    }
+
+    const UserSchema =
+      (models.User && models.User.schema) ||
+      new Schema(
+        {
+          orgId: String,
+          code: String,
+          username: String,
+          email: String,
+        },
+        { collection: "users" },
+      );
+    const UserModel =
+      models.User ||
+      model("User", UserSchema); // lightweight schema to avoid full model import overhead
+
+    // SEC-001: Validate orgId exists for tenant isolation
+    const orgId = session.user.orgId;
+    if (!orgId || typeof orgId !== 'string' || orgId.trim() === '') {
+      return NextResponse.json(
+        { error: "Unauthorized: Invalid organization context" },
+        { status: 403 }
+      );
+    }
+
+    const user = await UserModel.findOne({
+      _id: new Types.ObjectId(id),
+      orgId, // ✅ Validated orgId
+    }).lean();
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // DEFENSE-IN-DEPTH: Include orgId in delete filter (per CodeRabbit review)
+    await UserModel.deleteOne({ _id: new Types.ObjectId(id), orgId });
+
+    return NextResponse.json({
+      success: true,
+      message: "User deleted successfully",
+    });
+  } catch (error) {
+    logger.error("Failed to delete user:", error);
+    return NextResponse.json(
+      { error: "Failed to delete user" },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * PATCH /api/admin/users/[id]
+ *
+ * Update a user by ID (Super Admin only)
+ */
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (session.user.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { error: "Forbidden - Super Admin access required" },
+        { status: 403 },
+      );
+    }
+
+    await connectDb();
+
+    const { id } = await params;
+    if (!Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ error: "Invalid user id" }, { status: 400 });
+    }
+    const body = await request.json();
+
+    const UserSchema = new Schema(
+      {
+        orgId: String,
+        code: String,
+        username: String,
+        email: String,
+        phone: String,
+        personal: {
+          firstName: String,
+          lastName: String,
+        },
+        professional: {
+          role: String,
+          title: String,
+          department: String,
+        },
+        security: {
+          accessLevel: String,
+          permissions: [String],
+          locked: Boolean,
+        },
+        status: String,
+        updatedAt: Date,
+      },
+      { collection: "users" },
+    );
+
+    const UserModel =
+      models.User ||
+      model("User", UserSchema); // lightweight schema to avoid full model import overhead
+
+    // SEC-001: Validate orgId exists for tenant isolation
+    const orgId = session.user.orgId;
+    if (!orgId || typeof orgId !== 'string' || orgId.trim() === '') {
+      return NextResponse.json(
+        { error: "Unauthorized: Invalid organization context" },
+        { status: 403 }
+      );
+    }
+
+    const user = await UserModel.findOne({
+      _id: new Types.ObjectId(id),
+      orgId, // ✅ Validated orgId
+    }).lean();
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Update allowed fields
+    const updates: Record<string, unknown> = {
+      updatedAt: new Date(),
+    };
+
+    if (body.email) updates.email = body.email;
+    if (body.username) updates.username = body.username;
+    if (body.phone) updates.phone = body.phone;
+    if (body.firstName || body.lastName) {
+      updates["personal.firstName"] = body.firstName;
+      updates["personal.lastName"] = body.lastName;
+    }
+    if (body.role) updates["professional.role"] = body.role;
+    if (body.title) updates["professional.title"] = body.title;
+    if (body.department) updates["professional.department"] = body.department;
+    if (body.accessLevel) updates["security.accessLevel"] = body.accessLevel;
+    if (body.status) updates.status = body.status;
+
+    // SECURITY: Include orgId in update filter to prevent cross-tenant updates (TOCTOU protection)
+    await UserModel.updateOne(
+      { _id: new Types.ObjectId(id), orgId },
+      { $set: updates },
+    );
+
+    // SECURITY: Use org-scoped query for returning updated user
+    const updatedUser = await UserModel.findOne(
+      { _id: new Types.ObjectId(id), orgId },
+    ).lean();
+
+    return NextResponse.json({ user: updatedUser });
+  } catch (error) {
+    logger.error("Failed to update user:", error);
+    return NextResponse.json(
+      { error: "Failed to update user" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/admin/users/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { connectDb } from "@/lib/mongo";
+import { Schema, model, models } from "mongoose";
+import bcrypt from "bcryptjs";
+
+import { logger } from "@/lib/logger";
+/**
+ * GET /api/admin/users
+ *
+ * Fetch users with filters (Super Admin only)
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check if user is Super Admin
+    if (session.user.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { error: "Forbidden - Super Admin access required" },
+        { status: 403 },
+      );
+    }
+
+    await connectDb();
+
+    // Get query parameters
+    const { searchParams } = request.nextUrl;
+    const search = searchParams.get("search") || "";
+    const role = searchParams.get("role");
+
+    // Parse and validate pagination
+    let limit = parseInt(searchParams.get("limit") || "50", 10);
+    let skip = parseInt(searchParams.get("skip") || "0", 10);
+
+    if (!Number.isInteger(limit) || limit < 1) {
+      limit = 50;
+    }
+    if (!Number.isInteger(skip) || skip < 0) {
+      skip = 0;
+    }
+    limit = Math.min(limit, 1000);
+    skip = Math.min(skip, 100000);
+
+    // Simple User schema (reuse existing or define minimal inline)
+    const UserSchema = new Schema(
+      {
+        orgId: String,
+        code: String,
+        username: String,
+        email: String,
+        phone: String,
+        personal: {
+          firstName: String,
+          lastName: String,
+        },
+        professional: {
+          role: String,
+          title: String,
+          department: String,
+        },
+        security: {
+          accessLevel: String,
+          locked: Boolean,
+        },
+        status: String,
+        createdAt: Date,
+        updatedAt: Date,
+      },
+      { collection: "users" },
+    );
+
+    const UserModel = models.User || model("User", UserSchema);
+
+    // SEC-001: Validate orgId exists for tenant isolation
+    const orgId = session.user.orgId;
+    if (!orgId || typeof orgId !== 'string' || orgId.trim() === '') {
+      return NextResponse.json(
+        { error: "Unauthorized: Invalid organization context" },
+        { status: 403 }
+      );
+    }
+
+    // Build query
+    // 🔒 TYPE SAFETY: Using Record<string, unknown> for MongoDB query
+    const query: Record<string, unknown> = {
+      orgId,  // ✅ Validated above
+    };
+
+    if (search) {
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      query.$or = [
+        { email: { $regex: escapedSearch, $options: "i" } },
+        { username: { $regex: escapedSearch, $options: "i" } },
+        { "personal.firstName": { $regex: escapedSearch, $options: "i" } },
+        { "personal.lastName": { $regex: escapedSearch, $options: "i" } },
+      ];
+    }
+
+    if (role) {
+      query["professional.role"] = role;
+    }
+
+    const users = await UserModel.find(query)
+      .select(
+        "code username email phone personal professional security status createdAt",
+      )
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .skip(skip)
+      .lean();
+
+    const total = await UserModel.countDocuments(query);
+
+    return NextResponse.json({ users, total });
+  } catch (error) {
+    logger.error("Failed to fetch users:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch users" },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * POST /api/admin/users
+ *
+ * Create a new user (Super Admin only)
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (session.user.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { error: "Forbidden - Super Admin access required" },
+        { status: 403 },
+      );
+    }
+
+    await connectDb();
+
+    const body = await request.json();
+
+    // Validate required fields
+    if (!body.email || !body.username) {
+      return NextResponse.json(
+        { error: "Email and username are required" },
+        { status: 400 },
+      );
+    }
+
+    const UserSchema = new Schema(
+      {
+        orgId: String,
+        code: String,
+        username: String,
+        email: String,
+        password: String,
+        phone: String,
+        personal: {
+          firstName: String,
+          lastName: String,
+        },
+        professional: {
+          role: String,
+          title: String,
+          department: String,
+        },
+        security: {
+          accessLevel: String,
+          permissions: [String],
+          locked: Boolean,
+        },
+        status: String,
+        createdAt: Date,
+        updatedAt: Date,
+      },
+      { collection: "users" },
+    );
+
+    const UserModel = models.User || model("User", UserSchema);
+
+    // SEC-001: Validate orgId exists for tenant isolation
+    const orgId = session.user.orgId;
+    if (!orgId || typeof orgId !== 'string' || orgId.trim() === '') {
+      return NextResponse.json(
+        { error: "Unauthorized: Invalid organization context" },
+        { status: 403 }
+      );
+    }
+
+    // Check if user already exists
+    const existing = await UserModel.findOne({
+      orgId,  // ✅ Validated above
+      $or: [{ email: body.email }, { username: body.username }],
+    });
+
+    if (existing) {
+      return NextResponse.json(
+        { error: "User with this email or username already exists" },
+        { status: 409 },
+      );
+    }
+
+    // SECURITY: Hash passwords before storing (CRITICAL)
+    // Historical context: Code had TODO comment for 6+ months with plaintext passwords
+    // Require password in request body - no default passwords for security
+    if (!body.password) {
+      return NextResponse.json(
+        {
+          error: "Password required",
+          detail:
+            "Password must be provided in request body for security. No default passwords allowed.",
+        },
+        { status: 400 },
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(body.password, 12); // 12 rounds = industry standard
+
+    const newUser = await UserModel.create({
+      orgId,  // ✅ Already validated above
+      code: body.code || `USER-${crypto.randomUUID()}`, // SECURITY: Use crypto instead of Date.now()
+      username: body.username,
+      email: body.email,
+      password: hashedPassword, // FIXED: Now properly hashed
+      phone: body.phone,
+      personal: {
+        firstName: body.firstName,
+        lastName: body.lastName,
+      },
+      professional: {
+        role: body.role || "user",
+        title: body.title,
+        department: body.department,
+      },
+      security: {
+        accessLevel: body.accessLevel || "READ",
+        permissions: body.permissions || [],
+        locked: false,
+      },
+      status: "ACTIVE",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    return NextResponse.json({ user: newUser }, { status: 201 });
+  } catch (error) {
+    logger.error("Failed to create user:", error);
+    return NextResponse.json(
+      { error: "Failed to create user" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/aqar/chat/route.ts">
+<![CDATA[
+export { POST } from "../support/chatbot/route";
+
+// Explicit runtime declaration avoids Next.js warning about re-exported runtime
+export const runtime = "nodejs";
+
+]]>
+</file>
+
+<file path="app/api/aqar/favorites/[id]/route.ts">
+<![CDATA[
+/**
+ * Aqar Souq - Delete Favorite API
+ *
+ * DELETE /api/aqar/favorites/[id]
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectDb } from "@/lib/mongo";
+import { AqarFavorite, AqarListing, AqarProject } from "@/server/models/aqar";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+
+import mongoose from "mongoose";
+
+export const runtime = "nodejs";
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    await connectDb();
+
+    const { id } = await params;
+
+    // Handle authentication separately to return 401 instead of 500
+    let user;
+    try {
+      user = await getSessionUser(request);
+    } catch (authError) {
+      // Log only sanitized error message to avoid exposing sensitive data
+      logger.error(
+        "Authentication failed:",
+        authError instanceof Error ? authError.message : "Unknown error",
+      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json(
+        { error: "Invalid favorite ID" },
+        { status: 400 },
+      );
+    }
+
+    const favorite = await AqarFavorite.findById(id);
+
+    if (!favorite) {
+      return NextResponse.json(
+        { error: "Favorite not found" },
+        { status: 404 },
+      );
+    }
+
+    // Check ownership
+    if (favorite.userId.toString() !== user.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    // Delete favorite first
+    await favorite.deleteOne();
+
+    // Decrement analytics after successful deletion (with error handling)
+    if (favorite.targetType === "LISTING") {
+      try {
+        await AqarListing.findByIdAndUpdate(favorite.targetId, [
+          {
+            $set: {
+              "analytics.favorites": {
+                $max: [{ $subtract: ["$analytics.favorites", 1] }, 0],
+              },
+              "analytics.lastUpdatedAt": new Date(),
+            },
+          },
+        ]);
+      } catch (analyticsError) {
+        // Log analytics error but don't fail the request (deletion already succeeded)
+        logger.error("Failed to decrement listing favorites analytics", {
+          targetId: favorite.targetId.toString(),
+          message:
+            analyticsError instanceof Error
+              ? analyticsError.message
+              : "Unknown error",
+        });
+      }
+    } else if (favorite.targetType === "PROJECT") {
+      try {
+        await AqarProject.findByIdAndUpdate(favorite.targetId, [
+          {
+            $set: {
+              "analytics.favorites": {
+                $max: [{ $subtract: ["$analytics.favorites", 1] }, 0],
+              },
+              "analytics.lastUpdatedAt": new Date(),
+            },
+          },
+        ]);
+      } catch (analyticsError) {
+        // Log analytics error but don't fail the request (deletion already succeeded)
+        logger.error("Failed to decrement project favorites analytics", {
+          targetId: favorite.targetId.toString(),
+          message:
+            analyticsError instanceof Error
+              ? analyticsError.message
+              : "Unknown error",
+        });
+      }
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    logger.error(
+      "Error deleting favorite:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return NextResponse.json(
+      { error: "Failed to delete favorite" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/aqar/favorites/route.ts">
+<![CDATA[
+/**
+ * Aqar Souq - Favorites API
+ *
+ * GET /api/aqar/favorites - Get user's favorites
+ * POST /api/aqar/favorites - Add to favorites
+ * DELETE /api/aqar/favorites/[id] - Remove from favorites
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import mongoose from "mongoose";
+import { connectDb } from "@/lib/mongo";
+import { AqarFavorite, AqarListing, AqarProject } from "@/server/models/aqar";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+
+export const runtime = "nodejs";
+
+interface AqarListingDocument {
+  _id: mongoose.Types.ObjectId;
+  orgId?: string;
+  [key: string]: unknown;
+}
+
+interface AqarProjectDocument {
+  _id: mongoose.Types.ObjectId;
+  orgId?: string;
+  [key: string]: unknown;
+}
+
+interface AqarFavoriteDocument {
+  targetId: mongoose.Types.ObjectId;
+  targetType: "LISTING" | "PROJECT";
+  [key: string]: unknown;
+}
+
+// GET /api/aqar/favorites
+export async function GET(request: NextRequest) {
+  try {
+    await connectDb();
+
+    // Handle authentication separately to return 401 instead of 500
+    let user;
+    try {
+      user = await getSessionUser(request);
+    } catch (authError) {
+      // Log only sanitized error message to avoid exposing sensitive data
+      logger.error(
+        "Authentication failed:",
+        authError instanceof Error ? authError.message : "Unknown error",
+      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Consistent tenant isolation - use orgId if available, fallback to userId
+    const tenantOrgId = user.orgId || user.id;
+
+    const { searchParams } = new URL(request.url);
+    const targetType = searchParams.get("targetType"); // LISTING|PROJECT
+
+    // Pagination with validation - handle NaN explicitly
+    const parsedPage = parseInt(searchParams.get("page") || "1", 10);
+    const parsedLimit = parseInt(searchParams.get("limit") || "20", 10);
+    const page = Number.isNaN(parsedPage) ? 1 : Math.max(1, parsedPage);
+    const limit = Number.isNaN(parsedLimit)
+      ? 20
+      : Math.min(100, Math.max(1, parsedLimit));
+    const skip = (page - 1) * limit;
+
+    const query: Record<string, unknown> = {
+      userId: user.id,
+      orgId: tenantOrgId,
+    };
+
+    if (targetType) {
+      query.targetType = targetType;
+    }
+
+    // Fetch favorites with pagination
+    const favoritesRaw = await AqarFavorite.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean()
+      .exec();
+
+    const favorites = favoritesRaw as unknown as Array<
+      { _id: mongoose.Types.ObjectId } & AqarFavoriteDocument
+    >;
+    const total = await AqarFavorite.countDocuments(query);
+
+    // Batch-fetch targets to eliminate N+1 queries
+    // Step 1: Collect all targetIds by targetType
+    const listingIds: mongoose.Types.ObjectId[] = [];
+    const projectIds: mongoose.Types.ObjectId[] = [];
+
+    for (const fav of favorites) {
+      try {
+        const tid =
+          fav.targetId && mongoose.Types.ObjectId.isValid(fav.targetId)
+            ? new mongoose.Types.ObjectId(fav.targetId)
+            : null;
+        if (!tid) continue;
+        if (fav.targetType === "LISTING") {
+          listingIds.push(tid);
+        } else if (fav.targetType === "PROJECT") {
+          projectIds.push(tid);
+        }
+      } catch {
+        // skip invalid ids
+        continue;
+      }
+    }
+
+    // Step 2: Batch-fetch all listings and projects in parallel (with tenant isolation)
+    const [listings, projects] = await Promise.all([
+      listingIds.length > 0
+        ? AqarListing.find({
+            _id: { $in: listingIds },
+            orgId: tenantOrgId,
+          }).lean()
+        : [],
+      projectIds.length > 0
+        ? AqarProject.find({
+            _id: { $in: projectIds },
+            orgId: tenantOrgId,
+          }).lean()
+        : [],
+    ]);
+
+    // Step 3: Create lookup maps for O(1) access
+    const listingMap = new Map<string, AqarListingDocument>(
+      (listings as AqarListingDocument[]).map(
+        (l) => [String(l._id), l] as const,
+      ),
+    );
+    const projectMap = new Map<string, AqarProjectDocument>(
+      (projects as AqarProjectDocument[]).map(
+        (p) => [String(p._id), p] as const,
+      ),
+    );
+
+    // Step 4: Attach targets to favorites
+    const favoritesWithTargets = favorites.map((fav) => {
+      const targetIdStr = fav.targetId.toString();
+
+      if (fav.targetType === "LISTING") {
+        return { ...fav, target: listingMap.get(targetIdStr) || null };
+      } else if (fav.targetType === "PROJECT") {
+        return { ...fav, target: projectMap.get(targetIdStr) || null };
+      }
+
+      return fav;
+    });
+
+    return NextResponse.json({
+      favorites: favoritesWithTargets,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    logger.error(
+      "Error fetching favorites:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return NextResponse.json(
+      { error: "Failed to fetch favorites" },
+      { status: 500 },
+    );
+  }
+}
+
+// POST /api/aqar/favorites
+export async function POST(request: NextRequest) {
+  try {
+    await connectDb();
+
+    // Handle authentication separately to return 401 instead of 500
+    let user;
+    try {
+      user = await getSessionUser(request);
+    } catch (authError) {
+      // Log only sanitized error message to avoid exposing sensitive data
+      logger.error(
+        "Authentication failed:",
+        authError instanceof Error ? authError.message : "Unknown error",
+      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Consistent tenant isolation - use orgId if available, fallback to userId
+    const tenantOrgId = user.orgId || user.id;
+
+    const body = await request.json();
+    const { targetId, targetType } = body;
+    let { notes, tags } = body;
+
+    if (!targetId || !targetType) {
+      return NextResponse.json(
+        { error: "targetId and targetType are required" },
+        { status: 400 },
+      );
+    }
+    // Validate targetId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(targetId)) {
+      return NextResponse.json({ error: "Invalid targetId" }, { status: 400 });
+    }
+
+    // Validate targetType against allowed values
+    const ALLOWED_TARGET_TYPES = ["LISTING", "PROJECT"];
+    if (!ALLOWED_TARGET_TYPES.includes(targetType)) {
+      return NextResponse.json(
+        {
+          error: `Invalid targetType. Must be one of: ${ALLOWED_TARGET_TYPES.join(", ")}`,
+        },
+        { status: 400 },
+      );
+    }
+
+    // Check if already favorited (with tenant isolation)
+    const existing = await AqarFavorite.findOne({
+      userId: user.id,
+      orgId: tenantOrgId,
+      targetId: new mongoose.Types.ObjectId(targetId),
+      targetType,
+    });
+
+    if (existing) {
+      return NextResponse.json(
+        { error: "Already in favorites" },
+        { status: 409 },
+      );
+    }
+
+    // Verify referenced target exists within same tenant (prevent cross-tenant favorites)
+    const targetObjectId = new mongoose.Types.ObjectId(targetId);
+    if (targetType === "LISTING") {
+      const listingExists = await AqarListing.findOne({
+        _id: targetObjectId,
+        orgId: tenantOrgId,
+      }).lean();
+      if (!listingExists) {
+        return NextResponse.json(
+          { error: "Listing not found" },
+          { status: 404 },
+        );
+      }
+    } else if (targetType === "PROJECT") {
+      const projectExists = await AqarProject.findOne({
+        _id: targetObjectId,
+        orgId: tenantOrgId,
+      }).lean();
+      if (!projectExists) {
+        return NextResponse.json(
+          { error: "Project not found" },
+          { status: 404 },
+        );
+      }
+    }
+
+    // sanitize inputs
+    notes = typeof notes === "string" ? notes.trim().slice(0, 2000) : undefined;
+    if (!Array.isArray(tags)) tags = [];
+    tags = tags.map((t: unknown) => String(t).slice(0, 100)).slice(0, 20);
+
+    const favorite = new AqarFavorite({
+      userId: user.id,
+      orgId: tenantOrgId,
+      targetId: targetObjectId,
+      targetType,
+      notes,
+      tags,
+    });
+
+    // Handle duplicate key race condition gracefully
+    try {
+      await favorite.save();
+    } catch (err: unknown) {
+      if (
+        err &&
+        typeof err === "object" &&
+        "code" in err &&
+        err.code === 11000
+      ) {
+        return NextResponse.json(
+          { error: "Already in favorites" },
+          { status: 409 },
+        );
+      }
+      throw err;
+    }
+
+    // Increment favorites count on listing/project in detached async blocks that await the update
+    // but do not block the response. Errors are caught and logged to avoid silent failures.
+    if (targetType === "LISTING") {
+      (async () => {
+        try {
+          await AqarListing.findByIdAndUpdate(targetId, {
+            $inc: { "analytics.favorites": 1 },
+            $set: { "analytics.lastFavoritedAt": new Date() },
+          }).exec();
+        } catch (analyticsError) {
+          logger.error("Failed to increment listing favorites analytics", {
+            userId: user.id,
+            targetId,
+            targetType,
+            message:
+              analyticsError instanceof Error
+                ? analyticsError.message
+                : "Unknown error",
+          });
+        }
+      })();
+    } else if (targetType === "PROJECT") {
+      (async () => {
+        try {
+          await AqarProject.findByIdAndUpdate(targetId, {
+            $inc: { "analytics.favorites": 1 },
+            $set: { "analytics.lastFavoritedAt": new Date() },
+          }).exec();
+        } catch (analyticsError) {
+          logger.error("Failed to increment project favorites analytics", {
+            userId: user.id,
+            targetId,
+            targetType,
+            message:
+              analyticsError instanceof Error
+                ? analyticsError.message
+                : "Unknown error",
+          });
+        }
+      })();
+    }
+
+    return NextResponse.json({ favorite }, { status: 201 });
+  } catch (error) {
+    logger.error(
+      "Error adding favorite:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return NextResponse.json(
+      { error: "Failed to add favorite" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/aqar/insights/pricing/route.ts">
+<![CDATA[
+import crypto from "crypto";
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import {
+  getSessionUser,
+  UnauthorizedError,
+} from "@/server/middleware/withAuthRbac";
+import { PricingInsightsService } from "@/services/aqar/pricing-insights-service";
+import { ListingIntent, PropertyType } from "@/server/models/aqar/Listing";
+import { isValidObjectIdSafe } from "@/lib/api/validation";
+
+export const runtime = "nodejs";
+
+const sanitizeEnum = <T extends string>(
+  value: string | null,
+  allowed: readonly T[],
+): T | undefined =>
+  value && (allowed as readonly string[]).includes(value)
+    ? (value as T)
+    : undefined;
+
+export async function GET(request: NextRequest) {
+  const correlationId = crypto.randomUUID();
+  try {
+    let user: { orgId?: string } | undefined;
+    try {
+      user = await getSessionUser(request);
+    } catch (error) {
+      if (!(error instanceof UnauthorizedError)) {
+        const message =
+          error instanceof Error ? error.message : "Unknown auth error";
+        logger.warn("AQAR_PRICING_SESSION_WARN", {
+          error: message,
+          correlationId,
+        });
+      }
+    }
+
+    const { searchParams } = new URL(request.url);
+    const city = searchParams.get("city") || undefined;
+    const neighborhood = searchParams.get("neighborhood") || undefined;
+    const propertyType = sanitizeEnum<PropertyType>(
+      searchParams.get("propertyType"),
+      Object.values(PropertyType),
+    );
+    const intent = sanitizeEnum<ListingIntent>(
+      searchParams.get("intent"),
+      Object.values(ListingIntent),
+    );
+
+    const insights = await PricingInsightsService.getInsights({
+      city,
+      neighborhood,
+      propertyType,
+      intent,
+      orgId: user?.orgId,
+      correlationId,
+    });
+
+    return NextResponse.json(insights);
+  } catch (error) {
+    logger.error("AQAR_PRICING_GET_FAILED", {
+      correlationId,
+      error: (error as Error)?.message ?? String(error),
+    });
+    return NextResponse.json(
+      { error: "Unable to compute pricing insights", correlationId },
+      { status: 500 },
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  const correlationId = crypto.randomUUID();
+  try {
+    await getSessionUser(request); // require auth for recalculation
+    const body = await request.json();
+    const listingId =
+      typeof body.listingId === "string" ? body.listingId : undefined;
+    if (!listingId || !isValidObjectIdSafe(listingId)) {
+      return NextResponse.json(
+        { error: "listingId is required" },
+        { status: 400 },
+      );
+    }
+    const pricingInsights =
+      await PricingInsightsService.updateListingInsights(listingId);
+    if (!pricingInsights) {
+      return NextResponse.json({ error: "Listing not found" }, { status: 404 });
+    }
+    return NextResponse.json({ pricingInsights, correlationId });
+  } catch (error) {
+    logger.error("AQAR_PRICING_POST_FAILED", {
+      correlationId,
+      error: (error as Error)?.message ?? String(error),
+    });
+    return NextResponse.json(
+      { error: "Unable to refresh pricing insights", correlationId },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/aqar/leads/route.ts">
+<![CDATA[
+/**
+ * Aqar Souq - Leads API
+ *
+ * POST /api/aqar/leads - Create inquiry lead
+ * GET /api/aqar/leads - Get user's leads (owner/agent)
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectDb } from "@/lib/mongo";
+import { AqarLead, AqarListing } from "@/server/models/aqar";
+import { LeadSource, LeadStatus } from "@/server/models/aqar/Lead";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import {
+  clearTenantContext,
+  setTenantContext,
+} from "@/server/plugins/tenantIsolation";
+import mongoose from "mongoose";
+import { z } from "zod";
+import { Role, SubRole, normalizeRole, normalizeSubRole } from "@/domain/fm/fm-lite";
+
+// Validation schema for lead creation
+const LeadCreateSchema = z.object({
+  listingId: z.string().optional(),
+  projectId: z.string().optional(),
+  inquirerName: z.string().trim().min(1, "Name is required").max(100),
+  inquirerPhone: z
+    .string()
+    .trim()
+    .regex(/^[\d\s\-+()]{7,20}$/, "Invalid phone number format"),
+  inquirerEmail: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email("Invalid email format")
+    .max(100)
+    .optional()
+    .or(z.literal("")),
+  intent: z.enum(["BUY", "RENT", "DAILY"]),
+  message: z.string().trim().max(1000).optional(),
+  source: z.enum(
+    Object.values(LeadSource) as [LeadSource, ...LeadSource[]]
+  ),
+});
+
+// Pagination constants
+const MAX_PAGE_LIMIT = 100;
+const MAX_SKIP = 100000; // Prevent DoS via huge skip values
+
+export const runtime = "nodejs";
+
+// POST /api/aqar/leads
+export async function POST(request: NextRequest) {
+  try {
+    // Apply rate limiting BEFORE DB connection to shed load early
+    const rateLimitResponse = enforceRateLimit(request, {
+      keyPrefix: "aqar-leads:create",
+      requests: 10,
+      windowMs: 60 * 60 * 1000, // 1 hour
+    });
+
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
+    await connectDb();
+
+    // Auth is optional for public inquiries
+    let userId: string | undefined;
+    try {
+      const user = await getSessionUser(request);
+      userId = user.id;
+    } catch (authError) {
+      // Distinguish between "not authenticated" (public inquiry allowed) vs actual errors
+      // Expected: getSessionUser throws Error with 'Unauthorized' message when no session
+      // Unexpected: Any other error (DB connection, token parsing, etc.)
+      const isExpectedAuthFailure =
+        authError instanceof Error &&
+        (authError.message === "Unauthorized" ||
+          authError.message.includes("No session found"));
+
+      if (!isExpectedAuthFailure) {
+        logger.error(
+          "Unexpected auth error in leads POST",
+          authError instanceof Error ? authError : new Error(String(authError)),
+          { route: "POST /api/aqar/leads" },
+        );
+      }
+      // Public inquiry - no auth required
+    }
+
+    const body = await request.json();
+
+    // Validate request body with Zod
+    const validation = LeadCreateSchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: validation.error.flatten() },
+        { status: 400 },
+      );
+    }
+
+    const {
+      listingId,
+      projectId,
+      inquirerName,
+      inquirerPhone,
+      inquirerEmail,
+      intent,
+      message,
+      source,
+    } = validation.data;
+
+    // Ensure either listingId or projectId is provided
+    if (!listingId && !projectId) {
+      return NextResponse.json(
+        { error: "Either listingId or projectId is required" },
+        { status: 400 },
+      );
+    }
+
+    // Validate ObjectId format for listingId and projectId
+    if (listingId && !mongoose.Types.ObjectId.isValid(listingId)) {
+      return NextResponse.json(
+        { error: "Invalid listingId format" },
+        { status: 400 },
+      );
+    }
+
+    if (projectId && !mongoose.Types.ObjectId.isValid(projectId)) {
+      return NextResponse.json(
+        { error: "Invalid projectId format" },
+        { status: 400 },
+      );
+    }
+
+    // Get recipient (listing owner or project developer)
+    let recipientId: string | undefined;
+    let orgIdForLead: string | undefined;
+
+    if (listingId) {
+      const listing = await AqarListing.findById(listingId);
+      if (!listing) {
+        return NextResponse.json(
+          { error: "Listing not found" },
+          { status: 404 },
+        );
+      }
+      recipientId = String(listing.listerId);
+      // Enforce tenant ownership from the listing document (authoritative)
+      const listingOrg =
+        (listing as { orgId?: unknown; org_id?: unknown }).orgId ??
+        (listing as { orgId?: unknown; org_id?: unknown }).org_id;
+      orgIdForLead =
+        typeof listingOrg === "string"
+          ? listingOrg
+          : listingOrg
+            ? String(listingOrg)
+            : undefined;
+
+      // Validate recipientId is a valid ObjectId
+      if (!recipientId || !mongoose.Types.ObjectId.isValid(recipientId)) {
+        return NextResponse.json(
+          { error: "Listing has no owner" },
+          { status: 400 },
+        );
+      }
+
+      // Analytics increment deferred to after main save to avoid tenant context race
+      // See post-save analytics section below
+    } else if (projectId) {
+      const { AqarProject } = await import("@/server/models/aqar");
+      const project = await AqarProject.findById(projectId);
+      if (!project) {
+        return NextResponse.json(
+          { error: "Project not found" },
+          { status: 404 },
+        );
+      }
+      recipientId = String(project.developerId);
+      const projectOrg =
+        (project as { orgId?: unknown; org_id?: unknown }).orgId ??
+        (project as { orgId?: unknown; org_id?: unknown }).org_id;
+      orgIdForLead =
+        typeof projectOrg === "string"
+          ? projectOrg
+          : projectOrg
+            ? String(projectOrg)
+            : undefined;
+
+      // Validate recipientId is a valid ObjectId
+      if (!recipientId || !mongoose.Types.ObjectId.isValid(recipientId)) {
+        return NextResponse.json(
+          { error: "Project has no developer" },
+          { status: 400 },
+        );
+      }
+
+      // Analytics increment deferred to after main save to avoid tenant context race
+      // See post-save analytics section below
+    }
+
+    // Require tenant attribution from listing/project
+    if (!orgIdForLead) {
+      return NextResponse.json(
+        { error: "Unable to determine tenant for lead" },
+        { status: 400 },
+      );
+    }
+
+    // Safety net to satisfy TypeScript definite assignment analysis
+    if (!recipientId) {
+      return NextResponse.json(
+        { error: "Unable to determine lead recipient" },
+        { status: 400 },
+      );
+    }
+
+    setTenantContext({ orgId: String(orgIdForLead), userId });
+
+    const lead = new AqarLead({
+      // Source-of-truth org comes from listing/project
+      orgId: orgIdForLead,
+      listingId,
+      projectId,
+      source,
+      inquirerId: userId,
+      inquirerName,
+      inquirerPhone,
+      inquirerEmail: inquirerEmail || undefined,
+      recipientId,
+      intent,
+      message: message || undefined,
+    });
+
+    await lead.save();
+
+    // POST-SAVE ANALYTICS: Increment after main save succeeds
+    // Run in isolated context to prevent tenant context race with request lifecycle
+    // Uses fire-and-forget but with isolated tenant context per operation
+    if (listingId && orgIdForLead) {
+      // Increment listing analytics (non-blocking, isolated context)
+      void (async () => {
+        try {
+          // Use direct findOneAndUpdate with org filter instead of shared tenant context
+          await AqarListing.findOneAndUpdate(
+            {
+              _id: new mongoose.Types.ObjectId(listingId),
+              $or: [{ orgId: orgIdForLead }, { org_id: orgIdForLead }],
+            },
+            {
+              $inc: { "analytics.inquiries": 1 },
+              $set: { "analytics.lastInquiryAt": new Date() },
+            },
+            { runValidators: true },
+          );
+        } catch (error) {
+          logger.warn("[Analytics] Listing inquiry increment failed", {
+            listingId,
+            orgId: orgIdForLead,
+            metric: "analytics.listing.inquiry.increment.failed",
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+    } else if (projectId && orgIdForLead) {
+      // Increment project analytics (non-blocking, isolated context)
+      void (async () => {
+        try {
+          const { AqarProject } = await import("@/server/models/aqar");
+          await AqarProject.findOneAndUpdate(
+            {
+              _id: new mongoose.Types.ObjectId(projectId),
+              $or: [{ orgId: orgIdForLead }, { org_id: orgIdForLead }],
+            },
+            {
+              $inc: { inquiries: 1 },
+              $set: { lastInquiryAt: new Date() },
+            },
+            { runValidators: true },
+          );
+        } catch (error) {
+          logger.warn("[Analytics] Project inquiry increment failed", {
+            projectId,
+            orgId: orgIdForLead,
+            metric: "analytics.project.inquiry.increment.failed",
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+    }
+
+    // NOTE: clearTenantContext() is called in the finally block to ensure cleanup
+    // even on error paths, avoiding the need for a success-path call here
+
+    // FUTURE: Send notification to recipient (email/SMS/push).
+    // Implementation: Use lib/fm-notifications.ts sendNotification() or SendGrid for emails.
+
+    return NextResponse.json({ lead }, { status: 201 });
+  } catch (error) {
+    logger.error(
+      "Error creating lead:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return NextResponse.json(
+      { error: "Failed to create lead" },
+      { status: 500 },
+    );
+  } finally {
+    // Ensure tenant context is always cleared, even on error
+    clearTenantContext();
+  }
+}
+
+// STRICT v4.1: Roles allowed to access CRM lead data (PII-bearing)
+// Uses canonical Role/SubRole enums to prevent RBAC drift
+const LEADS_READ_ALLOWED_ROLES = new Set<Role>([
+  Role.SUPER_ADMIN,
+  Role.ADMIN,
+  Role.CORPORATE_OWNER,
+  Role.PROPERTY_MANAGER,
+]);
+
+// SubRoles that grant CRM lead access (combined with TEAM_MEMBER base role)
+const LEADS_READ_ALLOWED_SUBROLES = new Set<SubRole>([
+  SubRole.SUPPORT_AGENT,
+  SubRole.OPERATIONS_MANAGER,
+]);
+
+/**
+ * Check if user has permission to access CRM leads.
+ * Uses canonical Role/SubRole normalization to handle legacy role aliases.
+ */
+function canAccessLeads(userRole?: string | null, userSubRole?: string | null): boolean {
+  const normalizedRole = normalizeRole(userRole);
+  if (!normalizedRole) return false;
+  
+  // Direct role match (admin, owner, property manager)
+  if (LEADS_READ_ALLOWED_ROLES.has(normalizedRole)) {
+    return true;
+  }
+  
+  // Team member with appropriate sub-role
+  if (normalizedRole === Role.TEAM_MEMBER) {
+    const normalizedSubRole = normalizeSubRole(userSubRole);
+    if (normalizedSubRole && LEADS_READ_ALLOWED_SUBROLES.has(normalizedSubRole)) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+// GET /api/aqar/leads
+export async function GET(request: NextRequest) {
+  try {
+    // Handle authentication first to avoid wasting DB resources on unauthenticated requests
+    let user;
+    try {
+      user = await getSessionUser(request);
+    } catch (authError) {
+      // Log only sanitized error message to avoid exposing sensitive data
+      logger.error(
+        "Authentication failed:",
+        authError instanceof Error ? authError.message : "Unknown error",
+      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // STRICT v4.1: RBAC gate for CRM lead access (PII protection)
+    // Uses canonical Role/SubRole normalization to handle all role aliases
+    if (!canAccessLeads(user.role, user.subRole)) {
+      logger.warn("Leads access denied - insufficient role", {
+        userId: user.id,
+        role: user.role,
+        subRole: user.subRole,
+      });
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    // Only connect to database after authentication succeeds
+    await connectDb();
+    if (user.orgId) {
+      setTenantContext({ orgId: user.orgId, userId: user.id });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get("status");
+
+    // Parse and validate pagination parameters
+    const rawPage = searchParams.get("page")
+      ? parseInt(searchParams.get("page")!, 10)
+      : 1;
+    const rawLimit = searchParams.get("limit")
+      ? parseInt(searchParams.get("limit")!, 10)
+      : 20;
+
+    // Clamp pagination values to prevent DoS attacks
+    const page = Math.max(1, Math.min(rawPage, 10000)); // Max page 10000
+    const limit = Math.max(1, Math.min(rawLimit, MAX_PAGE_LIMIT)); // Max 100 items per page
+    const skip = Math.min((page - 1) * limit, MAX_SKIP); // Prevent huge skip values
+
+    const query: Record<string, unknown> = {
+      recipientId: user.id,
+    };
+
+    if (user.orgId) {
+      query.orgId = user.orgId;
+    }
+
+    // Validate status filter against LeadStatus enum to prevent unindexed scans
+    if (status) {
+      const validStatuses = Object.values(LeadStatus);
+      if (!validStatuses.includes(status as LeadStatus)) {
+        return NextResponse.json(
+          { error: `Invalid status. Must be one of: ${validStatuses.join(", ")}` },
+          { status: 400 },
+        );
+      }
+      query.status = status;
+    }
+
+    const [leads, total] = await Promise.all([
+      AqarLead.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        // SECURITY: Project only necessary fields from populated documents
+        // Prevents PII/business data overexposure from full document inclusion
+        .populate("listingId", "title price location media.images orgId listingType")
+        .populate("projectId", "name location media.logo developerId orgId")
+        .lean(),
+      AqarLead.countDocuments(query),
+    ]);
+
+    return NextResponse.json({
+      leads,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    logger.error(
+      "Error fetching leads:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return NextResponse.json(
+      { error: "Failed to fetch leads" },
+      { status: 500 },
+    );
+  } finally {
+    clearTenantContext();
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/aqar/listings/[id]/route.ts">
+<![CDATA[
+/**
+ * Aqar Souq - Single Listing API
+ *
+ * GET /api/aqar/listings/[id] - Get listing details
+ * PATCH /api/aqar/listings/[id] - Update listing
+ * DELETE /api/aqar/listings/[id] - Delete listing
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
+import { connectDb } from "@/lib/mongo";
+import { AqarListing } from "@/server/models/aqar";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { FurnishingStatus, ListingStatus } from "@/server/models/aqar/Listing";
+import { ok, badRequest, notFound } from "@/lib/api/http";
+import { isValidObjectIdSafe } from "@/lib/api/validation";
+import { incrementAnalyticsWithRetry } from "@/lib/analytics/incrementWithRetry";
+import {
+  setTenantContext,
+  clearTenantContext,
+} from "@/server/plugins/tenantIsolation";
+
+import mongoose from "mongoose";
+
+import { logger } from "@/lib/logger";
+import {
+  normalizeImmersive,
+  normalizeProptech,
+} from "@/app/api/aqar/listings/normalizers";
+import { AqarFmLifecycleService } from "@/services/aqar/fm-lifecycle-service";
+export const runtime = "nodejs";
+
+// GET /api/aqar/listings/[id]
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const correlationId = crypto.randomUUID();
+
+  try {
+    await connectDb();
+
+    const { id } = await params;
+
+    if (!isValidObjectIdSafe(id)) {
+      return badRequest("Invalid listing ID", { correlationId });
+    }
+
+    const listing = await AqarListing.findById(id)
+      .select(
+        "_id title price areaSqm city status media amenities location intent propertyType analytics rnplEligible auction proptech immersive pricingInsights pricing ai fmLifecycle iotFeatures",
+      )
+      .lean();
+
+    if (!listing) {
+      return notFound("Listing not found", { correlationId });
+    }
+
+    // Extract org_id from listing for tenant-scoped analytics
+    const listingOrg =
+      (listing as { orgId?: unknown; org_id?: unknown }).orgId ??
+      (listing as { orgId?: unknown; org_id?: unknown }).org_id;
+
+    // Best-effort analytics increment with tenant context (non-blocking)
+    // Set tenant context to ensure org_id scoping for analytics updates
+    if (listingOrg) {
+      (async () => {
+        try {
+          setTenantContext({ orgId: String(listingOrg), userId: undefined });
+          await incrementAnalyticsWithRetry({
+            model: AqarListing,
+            id: new mongoose.Types.ObjectId(id),
+            updateOp: {
+              $inc: { "analytics.views": 1 },
+              $set: { "analytics.lastViewedAt": new Date() },
+            },
+            entityType: "listing",
+          });
+        } catch (err) {
+          logger.warn("VIEW_INC_FAILED", {
+            correlationId,
+            id,
+            err: String((err as Error)?.message || err),
+          });
+        } finally {
+          clearTenantContext();
+        }
+      })();
+    } else {
+      // Fallback: increment without tenant context if orgId missing (legacy data)
+      incrementAnalyticsWithRetry({
+        model: AqarListing,
+        id: new mongoose.Types.ObjectId(id),
+        updateOp: {
+          $inc: { "analytics.views": 1 },
+          $set: { "analytics.lastViewedAt": new Date() },
+        },
+        entityType: "listing",
+      }).catch((err: Error) => {
+        logger.warn("VIEW_INC_FAILED", {
+          correlationId,
+          id,
+          err: String(err?.message || err),
+        });
+      });
+    }
+
+    return ok({ listing }, { correlationId });
+  } catch (error) {
+    logger.error("Error fetching listing:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch listing" },
+      { status: 500 },
+    );
+  }
+}
+
+// PATCH /api/aqar/listings/[id]
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    await connectDb();
+
+    const user = await getSessionUser(request);
+
+    const { id } = await params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json(
+        { error: "Invalid listing ID" },
+        { status: 400 },
+      );
+    }
+
+    const listing = await AqarListing.findById(id);
+
+    if (!listing) {
+      return NextResponse.json({ error: "Listing not found" }, { status: 404 });
+    }
+
+    // Check ownership
+    if (listing.listerId.toString() !== user.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const transactionValue =
+      typeof body.transactionValue === "number"
+        ? body.transactionValue
+        : undefined;
+    const vatAmount =
+      typeof body.vatAmount === "number" ? body.vatAmount : undefined;
+
+    // Update allowed fields
+    const allowedFields = [
+      "title",
+      "description",
+      "price",
+      "areaSqm",
+      "beds",
+      "baths",
+      "kitchens",
+      "ageYears",
+      "furnishing",
+      "amenities",
+      "media",
+      "address",
+      "neighborhood",
+      "status",
+    ] as const;
+
+    // Validate and assign fields with type/enum checks
+    const prevStatus = listing.status;
+
+    for (const field of allowedFields) {
+      if (body[field] !== undefined) {
+        const value = body[field];
+
+        // Validate enum fields using actual schema enums
+        if (
+          field === "furnishing" &&
+          !Object.values(FurnishingStatus).includes(value)
+        ) {
+          return NextResponse.json(
+            { error: `Invalid furnishing: ${value}` },
+            { status: 400 },
+          );
+        }
+        if (
+          field === "status" &&
+          !Object.values(ListingStatus).includes(value)
+        ) {
+          return NextResponse.json(
+            { error: `Invalid status: ${value}` },
+            { status: 400 },
+          );
+        }
+
+        // Validate numeric fields
+        if (field === "price" || field === "areaSqm") {
+          if (typeof value !== "number" || value <= 0) {
+            return NextResponse.json(
+              { error: `${field} must be a positive number` },
+              { status: 400 },
+            );
+          }
+        }
+        if (field === "beds" || field === "baths" || field === "kitchens") {
+          if (
+            typeof value !== "number" ||
+            value < 0 ||
+            !Number.isInteger(value)
+          ) {
+            return NextResponse.json(
+              { error: `${field} must be a non-negative integer` },
+              { status: 400 },
+            );
+          }
+        }
+        if (field === "ageYears") {
+          if (typeof value !== "number" || value < 0) {
+            return NextResponse.json(
+              { error: "ageYears must be non-negative" },
+              { status: 400 },
+            );
+          }
+        }
+
+        // Validate string fields are non-empty
+        if (
+          (field === "title" || field === "description") &&
+          (typeof value !== "string" || value.trim().length === 0)
+        ) {
+          return NextResponse.json(
+            { error: `${field} must be a non-empty string` },
+            { status: 400 },
+          );
+        }
+
+        (listing as unknown as Record<string, unknown>)[field] = value;
+      }
+    }
+
+    if ("proptech" in body) {
+      const normalized = normalizeProptech(body.proptech);
+      listing.proptech = normalized;
+    }
+    if ("immersive" in body) {
+      const normalizedImmersive = normalizeImmersive(body.immersive);
+      listing.immersive = normalizedImmersive;
+    }
+
+    await listing.save();
+
+    const statusChanged = body.status && body.status !== prevStatus;
+    if (statusChanged) {
+      await AqarFmLifecycleService.handleStatusChange({
+        listingId: id,
+        nextStatus: body.status,
+        prevStatus,
+        actorId: user.id,
+        transactionValue,
+        vatAmount,
+      });
+    }
+
+    return NextResponse.json({ listing });
+  } catch (error) {
+    logger.error("Error updating listing:", error);
+    return NextResponse.json(
+      { error: "Failed to update listing" },
+      { status: 500 },
+    );
+  }
+}
+
+// DELETE /api/aqar/listings/[id]
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    await connectDb();
+
+    const user = await getSessionUser(request);
+
+    const { id } = await params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json(
+        { error: "Invalid listing ID" },
+        { status: 400 },
+      );
+    }
+
+    const listing = await AqarListing.findById(id);
+
+    if (!listing) {
+      return NextResponse.json({ error: "Listing not found" }, { status: 404 });
+    }
+
+    // Check ownership
+    if (listing.listerId.toString() !== user.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    await listing.deleteOne();
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    logger.error("Error deleting listing:", error);
+    return NextResponse.json(
+      { error: "Failed to delete listing" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/aqar/listings/normalizers.ts">
+<![CDATA[
+import {
+  SmartHomeLevel,
+  ProptechFeature,
+  type IListingProptech,
+  type IListingImmersive,
+} from "@/server/models/aqar/Listing";
+
+const SMART_HOME_LEVELS = new Set<string>(Object.values(SmartHomeLevel));
+const PROPTECH_FEATURES = new Set<string>(Object.values(ProptechFeature));
+
+const sanitizeStringArray = (value: unknown, limit: number): string[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map((item) => (typeof item === "string" ? item.trim() : ""))
+    .filter((item) => item.length > 0)
+    .slice(0, limit);
+};
+
+export function normalizeProptech(
+  input: unknown,
+): IListingProptech | undefined {
+  if (!input || typeof input !== "object") {
+    return undefined;
+  }
+  const value = input as Record<string, unknown>;
+  const smartHomeLevel =
+    typeof value.smartHomeLevel === "string" &&
+    SMART_HOME_LEVELS.has(value.smartHomeLevel)
+      ? (value.smartHomeLevel as SmartHomeLevel)
+      : SmartHomeLevel.NONE;
+  const featuresRaw = Array.isArray(value.features) ? value.features : [];
+  const features = featuresRaw
+    .map((item) => (typeof item === "string" ? item : ""))
+    .filter((item) => PROPTECH_FEATURES.has(item)) as ProptechFeature[];
+
+  return {
+    smartHomeLevel,
+    features,
+    iotVendors: sanitizeStringArray(value.iotVendors, 5),
+    sensors: sanitizeStringArray(value.sensors, 20),
+    energyScore:
+      typeof value.energyScore === "number" ? value.energyScore : undefined,
+    waterScore:
+      typeof value.waterScore === "number" ? value.waterScore : undefined,
+    evCharging: Boolean(value.evCharging),
+    solarReady: Boolean(value.solarReady),
+  };
+}
+
+export function normalizeImmersive(
+  input: unknown,
+): IListingImmersive | undefined {
+  if (!input || typeof input !== "object") {
+    return undefined;
+  }
+  const value = input as Record<string, unknown>;
+  const vrSource = value.vrTour;
+  let vrTour: IListingImmersive["vrTour"];
+  if (vrSource && typeof vrSource === "object") {
+    const vr = vrSource as Record<string, unknown>;
+    if (typeof vr.url === "string" && vr.url.trim().length > 0) {
+      vrTour = {
+        url: vr.url,
+        provider: typeof vr.provider === "string" ? vr.provider : undefined,
+        thumbnail: typeof vr.thumbnail === "string" ? vr.thumbnail : undefined,
+        spatialAnchors: sanitizeStringArray(vr.spatialAnchors, 6),
+        ready: Boolean(vr.ready),
+      };
+    }
+  }
+
+  const arSource = value.arModels;
+  let arModels: IListingImmersive["arModels"];
+  if (arSource && typeof arSource === "object") {
+    const ar = arSource as Record<string, unknown>;
+    arModels = {
+      ios: typeof ar.ios === "string" ? ar.ios : undefined,
+      android: typeof ar.android === "string" ? ar.android : undefined,
+      web: typeof ar.web === "string" ? ar.web : undefined,
+    };
+  }
+
+  const dtSource = value.digitalTwin;
+  let digitalTwin: IListingImmersive["digitalTwin"];
+  if (dtSource && typeof dtSource === "object") {
+    const dt = dtSource as Record<string, unknown>;
+    if (typeof dt.url === "string" && dt.url.trim().length > 0) {
+      digitalTwin = {
+        url: dt.url,
+        version: typeof dt.version === "string" ? dt.version : undefined,
+      };
+    }
+  }
+
+  const highlights = sanitizeStringArray(value.highlights, 8);
+
+  if (!vrTour && !arModels && !digitalTwin && highlights.length === 0) {
+    return undefined;
+  }
+
+  return {
+    vrTour,
+    arModels,
+    digitalTwin,
+    highlights,
+  };
+}
+
+]]>
+</file>
+
+<file path="app/api/aqar/listings/recommendations/route.ts">
+<![CDATA[
+import crypto from "crypto";
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import {
+  getSessionUser,
+  UnauthorizedError,
+} from "@/server/middleware/withAuthRbac";
+import { connectDb } from "@/lib/mongo";
+import { AqarFavorite } from "@/server/models/aqar";
+import { FavoriteType, type IFavorite } from "@/server/models/aqar/Favorite";
+import {
+  AqarRecommendationEngine,
+  type RecommendationContext,
+} from "@/services/aqar/recommendation-engine";
+import { ListingIntent, PropertyType } from "@/server/models/aqar/Listing";
+import { Types, type Model } from "mongoose";
+
+export const runtime = "nodejs";
+
+const parseCsv = (value: string | null): string[] =>
+  value
+    ? value
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+
+const parseNumberParam = (value: string | null): number | undefined => {
+  if (value === null) {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
+
+export async function GET(request: NextRequest) {
+  const correlationId = crypto.randomUUID();
+  try {
+    await connectDb();
+    const { searchParams } = new URL(request.url);
+    let user: { id: string; orgId?: string } | undefined;
+    try {
+      user = await getSessionUser(request);
+    } catch (error) {
+      if (!(error instanceof UnauthorizedError)) {
+        const message =
+          error instanceof Error ? error.message : "Unknown auth error";
+        logger.warn("AQAR_RECO_USER_LOOKUP_FAILED", {
+          error: message,
+          correlationId,
+        });
+      }
+    }
+
+    const propertyTypes = parseCsv(
+      searchParams.get("propertyTypes"),
+    ) as PropertyType[];
+    const neighborhoods = parseCsv(searchParams.get("neighborhoods"));
+    const favoritesParam = parseCsv(searchParams.get("favorites"));
+    const budgetMin = parseNumberParam(searchParams.get("budgetMin"));
+    const budgetMax = parseNumberParam(searchParams.get("budgetMax"));
+    const limit = parseNumberParam(searchParams.get("limit"));
+
+    let favorites: string[] | undefined = favoritesParam.length
+      ? favoritesParam
+      : undefined;
+    if (!favorites && user) {
+      const favoriteModel = AqarFavorite as unknown as Model<IFavorite>;
+      const ids = await favoriteModel
+        .find({
+          userId: new Types.ObjectId(user.id),
+          targetType: FavoriteType.LISTING,
+        })
+        .sort({ updatedAt: -1 })
+        .limit(20)
+        .distinct("targetId");
+      favorites = (ids as Types.ObjectId[]).map((id) => id.toHexString());
+    }
+
+    const context: RecommendationContext = {
+      intent: (searchParams.get("intent") as ListingIntent) || undefined,
+      propertyTypes: propertyTypes.length ? propertyTypes : undefined,
+      preferredCity: searchParams.get("city") || undefined,
+      preferredNeighborhoods: neighborhoods.length ? neighborhoods : undefined,
+      budget:
+        budgetMin !== undefined || budgetMax !== undefined
+          ? {
+              min: budgetMin,
+              max: budgetMax,
+            }
+          : undefined,
+      favorites,
+      limit: typeof limit === "number" ? limit : undefined,
+      currentListingId: searchParams.get("listingId") || undefined,
+      updateAiSnapshot: searchParams.get("updateAi") !== "false",
+      includeExperimental: searchParams.get("experimental") !== "false",
+      orgId: user?.orgId,
+    };
+
+    const recommendations = await AqarRecommendationEngine.recommend(context);
+    return NextResponse.json(recommendations);
+  } catch (error) {
+    logger.error("AQAR_RECO_API_FAILED", {
+      error: (error as Error)?.message ?? String(error),
+      stack: (error as Error)?.stack,
+      correlationId,
+    });
+    return NextResponse.json(
+      { error: "Failed to load recommendations", correlationId },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/aqar/listings/route.ts">
+<![CDATA[
+/**
+ * Aqar Souq - Create Listing API
+ *
+ * POST /api/aqar/listings
+ */
+
+import { NextRequest } from "next/server";
+import { logger } from "@/lib/logger";
+import crypto from "crypto";
+import { connectDb } from "@/lib/mongo";
+import { AqarListing, AqarPackage } from "@/server/models/aqar";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { ok, badRequest, forbidden, serverError } from "@/lib/api/http";
+import {
+  normalizeImmersive,
+  normalizeProptech,
+} from "@/app/api/aqar/listings/normalizers";
+import { AqarRecommendationEngine } from "@/services/aqar/recommendation-engine";
+
+export const runtime = "nodejs";
+
+export async function POST(request: NextRequest) {
+  const correlationId = crypto.randomUUID();
+
+  try {
+    await connectDb();
+
+    const user = await getSessionUser(request);
+
+    // JSON validation guard
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== "object") {
+      return badRequest("Invalid JSON body", { correlationId });
+    }
+
+    // Type-aware validation
+    const missingString = [
+      "intent",
+      "propertyType",
+      "title",
+      "description",
+      "city",
+      "source",
+    ].filter((f) => typeof body[f] !== "string" || !body[f].trim());
+    const invalidNumbers = ["areaSqm"].filter(
+      (f) =>
+        body[f] !== undefined && (typeof body[f] !== "number" || body[f] <= 0),
+    );
+
+    const locationGeo = body.location?.geo || body.geo;
+    const validPricing =
+      typeof body.price?.amount === "number" &&
+      body.price.amount > 0 &&
+      typeof (body.price.currency || "SAR") === "string";
+
+    const validGeo =
+      locationGeo?.type === "Point" &&
+      Array.isArray(locationGeo.coordinates) &&
+      locationGeo.coordinates.length === 2 &&
+      locationGeo.coordinates.every((n: unknown) => typeof n === "number");
+
+    const missing = [
+      ...missingString,
+      ...invalidNumbers,
+      ...(validPricing ? [] : ["price"]),
+      ...(validGeo ? [] : ["location.geo"]),
+    ];
+    if (missing.length) {
+      return badRequest(`Missing/invalid fields: ${missing.join(", ")}`, {
+        correlationId,
+      });
+    }
+
+    // Check if user has active package (for agents/developers)
+    if (body.source === "AGENT" || body.source === "DEVELOPER") {
+      const activePackage = await AqarPackage.findOne({
+        userId: user.id,
+        active: true,
+        expiresAt: { $gt: new Date() },
+        $expr: { $lt: ["$listingsUsed", "$listingsAllowed"] },
+      });
+
+      if (!activePackage) {
+        return forbidden(
+          "No active listing package. Please purchase a package first.",
+          { correlationId },
+        );
+      }
+
+      // Consume package listing
+      await (
+        activePackage as unknown as { consumeListing: () => Promise<void> }
+      ).consumeListing();
+    }
+
+    // Create listing
+    const orgId = user.orgId || user.id;
+    const {
+      proptech: proptechRaw,
+      immersive: immersiveRaw,
+      ...restBody
+    } = body;
+    const listingPayload = {
+      ...restBody,
+      orgId,
+      listerId: user.id,
+      location: {
+        addressLine: body.location?.addressLine || body.address,
+        cityId: body.location?.cityId || body.city,
+        neighborhoodId: body.location?.neighborhoodId || body.neighborhood,
+        geo: locationGeo,
+      },
+      price: {
+        amount: body.price.amount,
+        currency: body.price.currency || "SAR",
+        frequency: body.price.frequency || body.rentFrequency || null,
+      },
+      vatRate: typeof body.vatRate === "number" ? body.vatRate : 15,
+      media: Array.isArray(body.media) ? body.media : [],
+      compliance: {
+        falLicenseNo: body.compliance?.falLicenseNo,
+        adPermitNo: body.compliance?.adPermitNo,
+        brokerageContractId: body.compliance?.brokerageContractId,
+        verifiedOwner: Boolean(body.compliance?.verifiedOwner),
+        nafathVerified: Boolean(body.compliance?.nafathVerified),
+        foreignOwnerCompliant: Boolean(body.compliance?.foreignOwnerCompliant),
+        verifiedAt: body.compliance?.verifiedAt
+          ? new Date(body.compliance.verifiedAt)
+          : undefined,
+      },
+      boost: body.boost,
+      auction: body.auction,
+      rnplEligible: Boolean(body.rnplEligible),
+      status: "DRAFT",
+    };
+
+    if (listingPayload.intent === "AUCTION") {
+      listingPayload.auction = {
+        isAuction: true,
+        startAt: body.auction?.startAt
+          ? new Date(body.auction.startAt)
+          : undefined,
+        endAt: body.auction?.endAt ? new Date(body.auction.endAt) : undefined,
+        reserve: body.auction?.reserve,
+        deposit: body.auction?.deposit,
+        externalLink: body.auction?.externalLink,
+      };
+    }
+
+    const proptechPayload = normalizeProptech(proptechRaw);
+    if (proptechPayload) {
+      listingPayload.proptech = proptechPayload;
+    } else {
+      delete listingPayload.proptech;
+    }
+
+    const immersivePayload = normalizeImmersive(immersiveRaw);
+    if (immersivePayload) {
+      listingPayload.immersive = immersivePayload;
+    } else {
+      delete listingPayload.immersive;
+    }
+
+    const created = await AqarListing.create(listingPayload);
+
+    // Sanitize response
+    const {
+      _id,
+      title,
+      price,
+      areaSqm,
+      city,
+      status,
+      listerId,
+      media,
+      amenities,
+      location,
+      rnplEligible,
+      auction,
+      createdAt,
+    } = created.toObject?.() ?? created;
+
+    void AqarRecommendationEngine.refreshForListing(_id.toString(), {
+      intent: body.intent,
+      propertyTypes: body.propertyType ? [body.propertyType] : undefined,
+      preferredCity: body.city,
+      updateAiSnapshot: true,
+    }).catch((error: Error) => {
+      logger.warn("AQAR_RECO_BOOTSTRAP_FAILED", {
+        listingId: _id.toString(),
+        error: error?.message,
+      });
+    });
+
+    return ok(
+      {
+        listing: {
+          _id,
+          title,
+          price,
+          areaSqm,
+          city,
+          status,
+          listerId,
+          orgId,
+          media,
+          amenities,
+          location,
+          rnplEligible,
+          auction,
+          createdAt,
+        },
+      },
+      { correlationId },
+      201,
+    );
+  } catch (error: unknown) {
+    const msg = String((error as Error)?.message || "");
+    if (/package|quota/i.test(msg)) {
+      return forbidden("Package quota required or exhausted", {
+        correlationId,
+      });
+    }
+    if (/broker ads require/i.test(msg)) {
+      return badRequest("Broker ad prerequisites not met", { correlationId });
+    }
+    logger.error("LISTINGS_POST_ERROR", { correlationId, msg });
+    return serverError("Unexpected error", { correlationId });
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/aqar/listings/search/route.ts">
+<![CDATA[
+/**
+ * Aqar Souq - Listings Search API
+ *
+ * GET /api/aqar/listings/search
+ *
+ * Atlas Search with geo-spatial + full-text + facets
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { connectDb } from "@/lib/mongo";
+import { AqarListing } from "@/server/models/aqar";
+import { SmartHomeLevel } from "@/server/models/aqar/Listing";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { getClientIP } from "@/server/security/headers";
+
+import { logger } from "@/lib/logger";
+export const runtime = "nodejs"; // Atlas Search requires Node.js runtime
+
+export async function GET(request: NextRequest) {
+  try {
+    // AUDIT-2025-12-08: Added rate limiting - 60 requests per minute per IP (higher for search)
+    const ip = getClientIP(request);
+    const rl = await smartRateLimit(`aqar:search:${ip}`, 60, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { ok: false, error: "Rate limit exceeded" },
+        { status: 429 },
+      );
+    }
+
+    await connectDb();
+
+    const { searchParams } = new URL(request.url);
+
+    // Helper to parse numeric values safely (returns undefined on NaN)
+    const parseNum = (v: string | null): number | undefined => {
+      if (v === null) return undefined;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : undefined;
+    };
+
+    // Parse query parameters
+    const intent = searchParams.get("intent"); // BUY|RENT|DAILY
+    const propertyType = searchParams.get("propertyType");
+    const city = searchParams.get("city");
+    const neighborhoods = searchParams
+      .get("neighborhoods")
+      ?.split(",")
+      .filter(Boolean);
+    const minPrice = parseNum(searchParams.get("minPrice"));
+    const maxPrice = parseNum(searchParams.get("maxPrice"));
+    const minBeds = parseNum(searchParams.get("minBeds"));
+    const maxBeds = parseNum(searchParams.get("maxBeds"));
+    const minArea = parseNum(searchParams.get("minArea"));
+    const maxArea = parseNum(searchParams.get("maxArea"));
+    const furnishing = searchParams.get("furnishing");
+    const amenities = searchParams.get("amenities")?.split(",").filter(Boolean);
+    const smartHomeLevel = searchParams.get("smartHomeLevel");
+    const proptechFeatures = searchParams
+      .get("proptechFeatures")
+      ?.split(",")
+      .filter(Boolean);
+    const hasVr = searchParams.get("hasVr");
+    const minAiScore = parseNum(searchParams.get("minAiScore"));
+
+    // Geo search with bounded radiusKm (0.1km to 20km - capped for DoS prevention)
+    const lat = parseNum(searchParams.get("lat"));
+    const lng = parseNum(searchParams.get("lng"));
+    const radiusKmRaw = parseNum(searchParams.get("radiusKm"));
+    const MAX_RADIUS_KM = 20;
+    const MIN_RADIUS_KM = 0.1;
+    const radiusKm = radiusKmRaw
+      ? Math.min(Math.max(radiusKmRaw, MIN_RADIUS_KM), MAX_RADIUS_KM)
+      : undefined;
+
+    // Sorting & pagination with bounds
+    const sort = searchParams.get("sort") || "relevance"; // relevance|price-asc|price-desc|date-desc|featured
+    const pageRaw = parseNum(searchParams.get("page")) ?? 1;
+    const limitRaw = parseNum(searchParams.get("limit")) ?? 20;
+    const page = Math.max(1, Math.floor(pageRaw));
+    const limit = Math.min(100, Math.max(1, Math.floor(limitRaw)));
+    const skip = (page - 1) * limit;
+
+    // Build query
+    const query: Record<string, unknown> = {
+      status: "ACTIVE",
+    };
+
+    if (intent) query.intent = intent;
+    if (propertyType) query.propertyType = propertyType;
+    if (city) query.city = city;
+    if (neighborhoods && neighborhoods.length > 0)
+      query.neighborhood = { $in: neighborhoods };
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      query["price.amount"] = {};
+      if (minPrice !== undefined)
+        (query["price.amount"] as Record<string, number>).$gte = minPrice;
+      if (maxPrice !== undefined)
+        (query["price.amount"] as Record<string, number>).$lte = maxPrice;
+    }
+    if (minBeds !== undefined || maxBeds !== undefined) {
+      query.beds = {};
+      if (minBeds !== undefined)
+        (query.beds as Record<string, number>).$gte = minBeds;
+      if (maxBeds !== undefined)
+        (query.beds as Record<string, number>).$lte = maxBeds;
+    }
+    if (minArea !== undefined || maxArea !== undefined) {
+      query.areaSqm = {};
+      if (minArea !== undefined)
+        (query.areaSqm as Record<string, number>).$gte = minArea;
+      if (maxArea !== undefined)
+        (query.areaSqm as Record<string, number>).$lte = maxArea;
+    }
+    if (furnishing) query.furnishing = furnishing;
+    if (amenities && amenities.length > 0)
+      query.amenities = { $all: amenities };
+    if (
+      smartHomeLevel &&
+      Object.values(SmartHomeLevel).includes(smartHomeLevel as SmartHomeLevel)
+    ) {
+      query["proptech.smartHomeLevel"] = smartHomeLevel;
+    }
+    if (proptechFeatures && proptechFeatures.length > 0) {
+      query["proptech.features"] = { $all: proptechFeatures };
+    }
+    if (hasVr === "true") {
+      query["immersive.vrTour.ready"] = true;
+    }
+    if (minAiScore !== undefined) {
+      query["ai.recommendationScore"] = { $gte: minAiScore };
+    }
+
+    // Geo search
+    if (lat !== undefined && lng !== undefined && radiusKm !== undefined) {
+      query["location.geo"] = {
+        $near: {
+          $geometry: {
+            type: "Point",
+            coordinates: [lng, lat],
+          },
+          $maxDistance: radiusKm * 1000, // Convert km to meters
+        },
+      };
+    }
+
+    if (searchParams.get("isAuction") === "true") {
+      query["auction.isAuction"] = true;
+    }
+
+    if (searchParams.get("rnplEligible") === "true") {
+      query.rnplEligible = true;
+    }
+
+    // Build sort
+    let sortQuery: Record<string, 1 | -1> = {};
+    switch (sort) {
+      case "price-asc":
+        sortQuery = { "price.amount": 1 };
+        break;
+      case "price-desc":
+        sortQuery = { "price.amount": -1 };
+        break;
+      case "date-desc":
+        sortQuery = { publishedAt: -1 };
+        break;
+      case "featured":
+        sortQuery = { featuredLevel: -1, publishedAt: -1 };
+        break;
+      default:
+        sortQuery = { publishedAt: -1 };
+    }
+
+    // Execute query with field projection for performance
+    const countQuery = { ...query };
+    delete (countQuery as { "location.geo"?: unknown })["location.geo"];
+
+    const select =
+      "_id title price areaSqm city status media analytics.views publishedAt rnplEligible auction location";
+    const [listings, total] = await Promise.all([
+      AqarListing.find(query)
+        .select(select)
+        .sort(sortQuery)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      AqarListing.countDocuments(countQuery),
+    ]);
+
+    // Calculate facets - $near cannot be used in $match within $facet
+    // Reuse the same query without geo filter
+    const facets = await AqarListing.aggregate([
+      { $match: countQuery },
+      {
+        $facet: {
+          propertyTypes: [
+            { $group: { _id: "$propertyType", count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+          ],
+          cities: [
+            { $group: { _id: "$city", count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+          ],
+          priceRanges: [
+            {
+              $bucket: {
+                groupBy: "$price.amount",
+                boundaries: [
+                  0, 100000, 250000, 500000, 1000000, 2000000, 5000000,
+                  10000000,
+                ],
+                default: "10M+",
+                output: { count: { $sum: 1 } },
+              },
+            },
+          ],
+        },
+      },
+    ]);
+
+    return NextResponse.json({
+      listings,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+      facets: facets[0] || {},
+    });
+  } catch (error) {
+    logger.error("Error searching listings:", error);
+    return NextResponse.json(
+      { error: "Failed to search listings" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/aqar/map/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+import { AqarListing } from "@/server/models/aqar";
+
+// Constants for clustering grid cell calculation
+const MIN_CELL_SIZE_DEGREES = 0.01; // avoid excessive granularity
+const LATITUDE_RANGE_DEGREES = 180; // -90..+90 total span
+const ZOOM_EXPONENT_BASE = 2; // each zoom level doubles resolution
+
+/**
+ * @openapi
+ * /api/aqar/map:
+ *   get:
+ *     summary: aqar/map operations
+ *     tags: [aqar]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(req: NextRequest) {
+  try {
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch {
+      user = {
+        id: "guest",
+        role: "SUPER_ADMIN" as unknown,
+        orgId: "demo-tenant",
+        tenantId: "demo-tenant",
+      };
+    }
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    const { searchParams } = new URL(req.url);
+    const n = Number(searchParams.get("n"));
+    const s = Number(searchParams.get("s"));
+    const e = Number(searchParams.get("e"));
+    const w = Number(searchParams.get("w"));
+    const z = Math.max(1, Math.min(20, Number(searchParams.get("z") || "10")));
+
+    if ([n, s, e, w].some((v) => Number.isNaN(v))) {
+      return createSecureResponse({ error: "Invalid bbox" }, 400, req);
+    }
+
+    const cell = Math.max(
+      MIN_CELL_SIZE_DEGREES,
+      LATITUDE_RANGE_DEGREES / Math.pow(ZOOM_EXPONENT_BASE, z + 2),
+    );
+
+    await connectToDatabase();
+
+    const match: Record<string, unknown> = {
+      status: "ACTIVE",
+      "location.geo.coordinates.1": { $gte: s, $lte: n },
+      "location.geo.coordinates.0": { $gte: w, $lte: e },
+    };
+
+    if (user?.orgId) {
+      match.orgId = user.orgId;
+    }
+
+    const pipeline = [
+      { $match: match },
+      {
+        $project: {
+          lat: { $arrayElemAt: ["$location.geo.coordinates", 1] },
+          lng: { $arrayElemAt: ["$location.geo.coordinates", 0] },
+          price: "$price.amount",
+          isAuction: "$auction.isAuction",
+          rnplEligible: "$rnplEligible",
+        },
+      },
+      {
+        $addFields: {
+          gx: { $multiply: [{ $floor: { $divide: ["$lat", cell] } }, cell] },
+          gy: { $multiply: [{ $floor: { $divide: ["$lng", cell] } }, cell] },
+        },
+      },
+      {
+        $group: {
+          _id: { gx: "$gx", gy: "$gy" },
+          count: { $sum: 1 },
+          avgPrice: { $avg: "$price" },
+          lat: { $avg: "$lat" },
+          lng: { $avg: "$lng" },
+          auctions: { $sum: { $cond: ["$isAuction", 1, 0] } },
+          rnpl: { $sum: { $cond: ["$rnplEligible", 1, 0] } },
+        },
+      },
+      { $limit: 5000 },
+    ];
+
+    interface ClusterRow {
+      _id: { gx: number; gy: number };
+      count: number;
+      avgPrice?: number;
+      lat: number;
+      lng: number;
+      auctions?: number;
+      rnpl?: number;
+    }
+
+    const rows = await AqarListing.aggregate(pipeline);
+    const clusters = (rows as unknown as ClusterRow[]).map((r) => ({
+      id: `${r._id.gx}:${r._id.gy}`,
+      lat: r.lat,
+      lng: r.lng,
+      count: r.count,
+      avgPrice: Math.round(r.avgPrice || 0),
+      auctions: r.auctions || 0,
+      rnpl: r.rnpl || 0,
+    }));
+
+    return createSecureResponse({ clusters }, 200, req);
+  } catch {
+    return createSecureResponse({ error: "Internal server error" }, 500, req);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/aqar/offline/route.ts">
+<![CDATA[
+import crypto from "crypto";
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { ListingIntent } from "@/server/models/aqar/Listing";
+import { AqarOfflineCacheService } from "@/services/aqar/offline-cache-service";
+
+export const runtime = "nodejs";
+
+export async function GET(request: NextRequest) {
+  const correlationId = crypto.randomUUID();
+  try {
+    const { searchParams } = new URL(request.url);
+    let user: { orgId?: string } | undefined;
+    try {
+      user = await getSessionUser(request);
+    } catch (error) {
+      if (error instanceof Error && error.message !== "Unauthorized") {
+        logger.warn("AQAR_OFFLINE_SESSION_WARN", {
+          error: error.message,
+          correlationId,
+        });
+      }
+    }
+
+    const city = searchParams.get("city") || undefined;
+    const intent = searchParams.get("intent") as ListingIntent | null;
+    const limitRaw = searchParams.get("limit");
+    const limitParsed = limitRaw ? Number(limitRaw) : undefined;
+    const limit =
+      limitParsed !== undefined &&
+      Number.isFinite(limitParsed) &&
+      limitParsed > 0
+        ? Math.floor(limitParsed)
+        : undefined;
+    const includeAuctions = searchParams.get("includeAuctions") === "true";
+    const hint = searchParams.get("hint") || undefined;
+
+    const bundle = await AqarOfflineCacheService.getOrBuildBundle({
+      city,
+      intent: intent || undefined,
+      limit,
+      includeAuctions,
+      cacheHint: hint,
+      orgId: user?.orgId,
+    });
+
+    return NextResponse.json({ ...bundle, correlationId });
+  } catch (error) {
+    logger.error("AQAR_OFFLINE_API_FAILED", {
+      correlationId,
+      error: (error as Error)?.message ?? String(error),
+    });
+    return NextResponse.json(
+      { error: "Failed to build offline bundle", correlationId },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/aqar/packages/route.ts">
+<![CDATA[
+/**
+ * Aqar Souq - Packages API
+ *
+ * GET /api/aqar/packages - Get user's packages
+ * POST /api/aqar/packages - Purchase package
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
+import mongoose from "mongoose";
+import { connectDb } from "@/lib/mongo";
+import { AqarPackage, AqarPayment, PackageType } from "@/server/models/aqar";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { ok, badRequest, serverError } from "@/lib/api/http";
+
+import { logger } from "@/lib/logger";
+import { getServerTranslation } from "@/lib/i18n/server";
+
+export const runtime = "nodejs";
+
+// GET /api/aqar/packages
+export async function GET(request: NextRequest) {
+  try {
+    await connectDb();
+
+    const user = await getSessionUser(request);
+
+    const { searchParams } = new URL(request.url);
+    const activeOnly = searchParams.get("active") === "true";
+
+    const query: Record<string, unknown> = {
+      userId: user.id,
+    };
+
+    if (activeOnly) {
+      query.active = true;
+      query.expiresAt = { $gt: new Date() };
+    }
+
+    const packages = await AqarPackage.find(query)
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return NextResponse.json({ packages });
+  } catch (error) {
+    logger.error("Error fetching packages:", error);
+    const t = await getServerTranslation(request);
+    return NextResponse.json(
+      { error: t("aqar.packages.errors.fetchFailed") },
+      { status: 500 },
+    );
+  }
+}
+
+// POST /api/aqar/packages
+export async function POST(request: NextRequest) {
+  const correlationId = crypto.randomUUID();
+
+  try {
+    await connectDb();
+
+    const user = await getSessionUser(request);
+
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== "object") {
+      return badRequest("Invalid JSON", { correlationId });
+    }
+
+    const packageType = body.type;
+
+    if (!Object.values(PackageType).includes(packageType as PackageType)) {
+      return badRequest(
+        "Invalid package type. Must be STARTER, STANDARD, or PREMIUM",
+        { correlationId },
+      );
+    }
+
+    // Get pricing
+    const pricing = (
+      AqarPackage as never as {
+        getPricing: (type: PackageType) => {
+          price: number;
+          listings: number;
+          days: number;
+        };
+      }
+    ).getPricing(packageType as PackageType);
+
+    // Use atomic transaction for multi-document operation
+    const session = await mongoose.startSession();
+    let pkg: InstanceType<typeof AqarPackage> | undefined;
+    let payment: InstanceType<typeof AqarPayment> | undefined;
+
+    await session.withTransaction(async () => {
+      // Create package
+      pkg = new AqarPackage({
+        userId: user.id,
+        orgId: user.orgId || user.id,
+        type: packageType,
+        listingsAllowed: pricing.listings,
+        validityDays: pricing.days,
+        price: pricing.price,
+      });
+      await pkg.save({ session });
+
+      // Create payment
+      payment = new AqarPayment({
+        userId: user.id,
+        orgId: user.orgId || user.id,
+        type: "PACKAGE",
+        amount: pricing.price,
+        currency: "SAR",
+        relatedId: pkg._id,
+        relatedModel: "AqarPackage",
+        status: "PENDING",
+      });
+      await payment.save({ session });
+
+      // Link payment to package
+      pkg.paymentId = payment._id as never;
+      await pkg.save({ session });
+    });
+
+    session.endSession();
+
+    if (!pkg || !payment) {
+      throw new Error("Transaction failed to create package or payment");
+    }
+
+    // FUTURE: Integrate payment gateway (PayTabs/Stripe) for real payment processing.
+    // Currently returns manual payment link. See /api/payments/paytabs for integration pattern.
+
+    return ok(
+      {
+        package: pkg.toObject?.() ?? pkg,
+        payment: payment.toObject?.() ?? payment,
+        redirectUrl: `/aqar/payments/${payment._id}`,
+      },
+      { correlationId },
+      201,
+    );
+  } catch (e: unknown) {
+    const error = e instanceof Error ? e : new Error(String(e));
+    logger.error("PACKAGES_POST_ERROR", error, { correlationId });
+    const t = await getServerTranslation(request);
+    return serverError(t("common.errors.unexpected"), { correlationId });
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/aqar/pricing/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { dbConnect } from "@/db/mongoose";
+import { ListingIntent, PropertyType } from "@/server/models/aqar/Listing";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { getClientIP } from "@/server/security/headers";
+import { logger } from "@/lib/logger";
+import { PricingInsightsService } from "@/services/aqar/pricing-insights-service";
+
+export const runtime = "nodejs";
+
+const sanitizeEnum = <T extends string>(
+  value: string | null,
+  allowed: readonly T[],
+): T | undefined =>
+  value && (allowed as readonly string[]).includes(value)
+    ? (value as T)
+    : undefined;
+
+export async function GET(req: NextRequest) {
+  try {
+    // Rate limit based on IP for public endpoint
+    const ip = getClientIP(req);
+    const rl = await smartRateLimit(`aqar:pricing:${ip}`, 30, 60_000); // 30 requests per minute
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { ok: false, error: "Rate limit exceeded" },
+        { status: 429 },
+      );
+    }
+
+    await dbConnect();
+    const { searchParams } = new URL(req.url);
+    // Support both old (cityId/neighborhoodId) and new (city/neighborhood) param names
+    const city = searchParams.get("city") || searchParams.get("cityId") || undefined;
+    if (!city) {
+      return NextResponse.json(
+        { ok: false, error: "city is required" },
+        { status: 400 },
+      );
+    }
+    const neighborhood = searchParams.get("neighborhood") || searchParams.get("neighborhoodId") || undefined;
+    const propertyType = sanitizeEnum<PropertyType>(
+      searchParams.get("propertyType"),
+      Object.values(PropertyType),
+    );
+    const intent =
+      sanitizeEnum<ListingIntent>(
+        searchParams.get("intent"),
+        Object.values(ListingIntent),
+      ) || ListingIntent.BUY;
+
+    const insights = await PricingInsightsService.getInsights({
+      city,
+      neighborhood,
+      propertyType,
+      intent,
+    });
+
+    return NextResponse.json({ ok: true, insight: insights });
+  } catch (err) {
+    logger.error("GET /api/aqar/pricing error", { error: err });
+    return NextResponse.json(
+      { ok: false, error: "Server error" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/aqar/properties/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase, getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+
+// Query: /api/aqar/properties?city=&district=&type=&bedsMin=&bathsMin=&areaMin=&areaMax=&priceMin=&priceMax=&sort=&page=&pageSize=
+// sort: newest|price_asc|price_desc|area_desc
+
+/**
+ * @openapi
+ * /api/aqar/properties:
+ *   get:
+ *     summary: aqar/properties operations
+ *     tags: [aqar]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(req: NextRequest) {
+  try {
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch {
+      // Fallback for dev/guest exploration: restrict to demo tenant
+      user = {
+        id: "guest",
+        role: "SUPER_ADMIN" as unknown,
+        orgId: "demo-tenant",
+        tenantId: "demo-tenant",
+      };
+    }
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    await connectToDatabase();
+    const db = await getDatabase();
+    const col = db.collection(COLLECTIONS.PROPERTIES);
+
+    const { searchParams } = new URL(req.url);
+    const city = searchParams.get("city") || undefined;
+    const district = searchParams.get("district") || undefined;
+    const type = searchParams.get("type") || undefined; // matches either type or subtype
+    const bedsMin = Number(searchParams.get("bedsMin") || "") || undefined;
+    const bathsMin = Number(searchParams.get("bathsMin") || "") || undefined;
+    const areaMin = Number(searchParams.get("areaMin") || "") || undefined;
+    const areaMax = Number(searchParams.get("areaMax") || "") || undefined;
+    const priceMin = Number(searchParams.get("priceMin") || "") || undefined;
+    const priceMax = Number(searchParams.get("priceMax") || "") || undefined;
+    const sort = searchParams.get("sort") || "newest";
+    const page = Math.max(1, Number(searchParams.get("page") || "1"));
+    const pageSize = Math.min(
+      60,
+      Math.max(1, Number(searchParams.get("pageSize") || "24")),
+    );
+
+    const filter: Record<string, unknown> = { tenantId: user.tenantId };
+    if (city) filter["address.city"] = city;
+    if (district) filter["address.district"] = district;
+    if (type) filter.$or = [{ type }, { subtype: type }];
+    if (bedsMin) filter["details.bedrooms"] = { $gte: bedsMin };
+    if (bathsMin) filter["details.bathrooms"] = { $gte: bathsMin };
+    if (areaMin || areaMax) {
+      filter["details.totalArea"] = {
+        ...(areaMin ? { $gte: areaMin } : {}),
+        ...(areaMax ? { $lte: areaMax } : {}),
+      };
+    }
+    if (priceMin || priceMax) {
+      filter["market.listingPrice"] = {
+        ...(priceMin ? { $gte: priceMin } : {}),
+        ...(priceMax ? { $lte: priceMax } : {}),
+      };
+    }
+
+    const sortStage: Record<string, 1 | -1> =
+      sort === "price_asc"
+        ? { "market.listingPrice": 1 }
+        : sort === "price_desc"
+          ? { "market.listingPrice": -1 }
+          : sort === "area_desc"
+            ? { "details.totalArea": -1 }
+            : { createdAt: -1 };
+
+    const projection = {
+      code: 1,
+      name: 1,
+      type: 1,
+      subtype: 1,
+      address: 1,
+      details: 1,
+      market: 1,
+      photos: 1,
+      createdAt: 1,
+    } as const;
+
+    const skip = (page - 1) * pageSize;
+    const cursor = col
+      .find(filter, { projection })
+      .sort(sortStage)
+      .skip(skip)
+      .limit(pageSize);
+    const [items, total] = await Promise.all([
+      cursor.toArray(),
+      col.countDocuments(filter),
+    ]);
+
+    return NextResponse.json({ page, pageSize, total, items });
+  } catch {
+    return createSecureResponse({ error: "Internal server error" }, 500, req);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/aqar/recommendations/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { dbConnect } from "@/db/mongoose";
+import { ListingIntent, PropertyType } from "@/server/models/aqar/Listing";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+import { logger } from "@/lib/logger";
+import {
+  AqarRecommendationEngine,
+  type RecommendationContext,
+} from "@/services/aqar/recommendation-engine";
+
+export const runtime = "nodejs";
+
+const sanitizeEnum = <T extends string>(
+  value: string | null,
+  allowed: readonly T[],
+): T | undefined =>
+  value && (allowed as readonly string[]).includes(value)
+    ? (value as T)
+    : undefined;
+
+export async function GET(req: NextRequest) {
+  try {
+    // Authenticate user and require tenant context
+    const session = await getSessionUser(req).catch(() => null);
+    if (!session || !session.orgId) {
+      return createSecureResponse(
+        { ok: false, error: "Authentication and org context required" },
+        session ? 403 : 401,
+        req,
+      );
+    }
+
+    // Rate limit per user/tenant (include org for multi-tenant throttling)
+    const baseKey = buildOrgAwareRateLimitKey(req, session.orgId ?? null, session.id);
+    const rl = await smartRateLimit(
+      `${baseKey}:${session.orgId}`,
+      60,
+      60_000,
+    ); // 60 requests per minute
+    if (!rl.allowed) {
+      return createSecureResponse(
+        { ok: false, error: "Rate limit exceeded" },
+        429,
+        req,
+      );
+    }
+
+    await dbConnect();
+    const { searchParams } = new URL(req.url);
+    const listingId = searchParams.get("listingId") || undefined;
+    // userId is intentionally ignored to avoid cross-tenant probing
+    const city = searchParams.get("city") || undefined;
+    const intent = sanitizeEnum<ListingIntent>(
+      searchParams.get("intent"),
+      Object.values(ListingIntent),
+    );
+    const propertyType = sanitizeEnum<PropertyType>(
+      searchParams.get("propertyType"),
+      Object.values(PropertyType),
+    );
+    const limitParam = Number(searchParams.get("limit") || "");
+    const limit = Number.isFinite(limitParam)
+      ? Math.min(Math.max(1, limitParam), 12)
+      : 8;
+
+    // Tenant-safe context: derive org/tenant from session, not user input
+    const context: RecommendationContext = {
+      currentListingId: listingId,
+      preferredCity: city,
+      intent,
+      propertyTypes: propertyType ? [propertyType] : undefined,
+      orgId: session.orgId,
+      tenantId: session.orgId,
+      limit,
+    };
+
+    const recommendation = await AqarRecommendationEngine.recommend(context);
+
+    const items = recommendation.primary.map((item) => ({
+      listingId: item.listingId,
+      title: item.listing.title,
+      city: item.listing.city,
+      neighborhood: item.listing.neighborhood,
+      price: item.listing.price,
+      propertyType: item.listing.propertyType,
+      intent: item.listing.intent,
+      badges: item.badges,
+      reasons: item.reasons,
+      highlights: item.highlights,
+      score: item.score,
+    }));
+
+    return createSecureResponse({ ok: true, items }, 200, req);
+  } catch (err) {
+    logger.error("GET /api/aqar/recommendations error", { error: err });
+    return createSecureResponse({ ok: false, error: "Server error" }, 500, req);
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

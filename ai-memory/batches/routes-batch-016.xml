@@ -1,0 +1,3287 @@
+
+You are the "Fixzit Memory Builder" for category: "routes".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "routes",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/api/search/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
+import {
+  APPS,
+  AppKey,
+  DEFAULT_SCOPE,
+  WORK_ORDERS_ENTITY,
+  WORK_ORDERS_ENTITY_LEGACY,
+  getSearchEntitiesForScope,
+} from "@/config/topbar-modules";
+import type { ModuleScope, SearchEntity } from "@/config/topbar-modules";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
+import {
+  getSessionUser,
+  UnauthorizedError,
+  type SessionUser,
+} from "@/server/middleware/withAuthRbac";
+import { ObjectId } from "mongodb";
+import { UserRole, type UserRoleType } from "@/types/user";
+
+// ============================================================================
+// SEARCH RBAC CONFIGURATION - SEC-002
+// ============================================================================
+// Use canonical "module:action" permission keys (Permission model format).
+// Wildcards:
+//   - "*" grants all
+//   - "<module>:*" grants all actions within a module
+// ============================================================================
+
+type EntityPermissionConfig = {
+  permission: string; // canonical module:action
+  allowedRoles: readonly UserRoleType[];
+};
+
+// Extended type to include legacy alias for backward compatibility
+type ExtendedSearchEntity = SearchEntity | typeof WORK_ORDERS_ENTITY_LEGACY;
+
+export const ENTITY_PERMISSION_CONFIG: Record<ExtendedSearchEntity, EntityPermissionConfig> = {
+  workOrders: {
+    permission: "workorders:read",
+    allowedRoles: [
+      UserRole.SUPER_ADMIN,
+      UserRole.CORPORATE_ADMIN,
+      UserRole.CORPORATE_OWNER,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.FM_MANAGER,
+      UserRole.PROPERTY_MANAGER,
+      UserRole.OPERATIONS_MANAGER,
+      UserRole.TEAM_MEMBER,
+      UserRole.TECHNICIAN,
+      UserRole.VENDOR,
+      UserRole.OWNER,
+      UserRole.TENANT,
+      UserRole.SUPPORT_AGENT,
+    ],
+  },
+  work_orders: {
+    permission: "workorders:read", // legacy alias for backwards compatibility
+    allowedRoles: [
+      UserRole.SUPER_ADMIN,
+      UserRole.CORPORATE_ADMIN,
+      UserRole.CORPORATE_OWNER,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.FM_MANAGER,
+      UserRole.PROPERTY_MANAGER,
+      UserRole.OPERATIONS_MANAGER,
+      UserRole.TEAM_MEMBER,
+      UserRole.TECHNICIAN,
+      UserRole.VENDOR,
+      UserRole.OWNER,
+      UserRole.TENANT,
+      UserRole.SUPPORT_AGENT,
+    ],
+  },
+  properties: {
+    permission: "properties:read",
+    allowedRoles: [
+      UserRole.SUPER_ADMIN,
+      UserRole.CORPORATE_ADMIN,
+      UserRole.CORPORATE_OWNER,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.FM_MANAGER,
+      UserRole.PROPERTY_MANAGER,
+      UserRole.OPERATIONS_MANAGER,
+      UserRole.TEAM_MEMBER,
+      UserRole.OWNER,
+      UserRole.TENANT,
+    ],
+  },
+  units: {
+    permission: "properties:read", // units belong to properties
+    allowedRoles: [
+      UserRole.SUPER_ADMIN,
+      UserRole.CORPORATE_ADMIN,
+      UserRole.CORPORATE_OWNER,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.FM_MANAGER,
+      UserRole.PROPERTY_MANAGER,
+      UserRole.OPERATIONS_MANAGER,
+      UserRole.TEAM_MEMBER,
+      UserRole.OWNER,
+      UserRole.TENANT,
+    ],
+  },
+  tenants: {
+    permission: "tenants:read",
+    allowedRoles: [
+      UserRole.SUPER_ADMIN,
+      UserRole.CORPORATE_ADMIN,
+      UserRole.CORPORATE_OWNER,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.FM_MANAGER,
+      UserRole.PROPERTY_MANAGER,
+      UserRole.OPERATIONS_MANAGER,
+      UserRole.SUPPORT_AGENT,
+      UserRole.HR,
+      UserRole.HR_OFFICER,
+    ],
+  },
+  vendors: {
+    permission: "vendors:read",
+    allowedRoles: [
+      UserRole.SUPER_ADMIN,
+      UserRole.CORPORATE_ADMIN,
+      UserRole.CORPORATE_OWNER,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.FM_MANAGER,
+      UserRole.PROPERTY_MANAGER,
+      UserRole.OPERATIONS_MANAGER,
+      UserRole.PROCUREMENT,
+      UserRole.FINANCE,
+      UserRole.FINANCE_OFFICER,
+      UserRole.VENDOR,
+    ],
+  },
+  invoices: {
+    permission: "finance:invoice.read",
+    allowedRoles: [
+      UserRole.SUPER_ADMIN,
+      UserRole.CORPORATE_ADMIN,
+      UserRole.CORPORATE_OWNER,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.FINANCE,
+      UserRole.FINANCE_OFFICER,
+      UserRole.PROCUREMENT,
+      UserRole.AUDITOR,
+    ],
+  },
+  products: {
+    permission: "souq:products.read",
+    allowedRoles: [
+      UserRole.SUPER_ADMIN,
+      UserRole.CORPORATE_ADMIN,
+      UserRole.CORPORATE_OWNER,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.PROCUREMENT,
+      UserRole.FINANCE,
+      UserRole.FINANCE_OFFICER,
+      UserRole.FM_MANAGER,
+      UserRole.PROPERTY_MANAGER,
+      UserRole.OPERATIONS_MANAGER,
+      UserRole.VENDOR,
+    ],
+  },
+  services: {
+    permission: "souq:services.read",
+    allowedRoles: [
+      UserRole.SUPER_ADMIN,
+      UserRole.CORPORATE_ADMIN,
+      UserRole.CORPORATE_OWNER,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.PROCUREMENT,
+      UserRole.FINANCE,
+      UserRole.FINANCE_OFFICER,
+      UserRole.FM_MANAGER,
+      UserRole.PROPERTY_MANAGER,
+      UserRole.OPERATIONS_MANAGER,
+      UserRole.VENDOR,
+    ],
+  },
+  rfqs: {
+    permission: "souq:rfq.read",
+    allowedRoles: [
+      UserRole.SUPER_ADMIN,
+      UserRole.CORPORATE_ADMIN,
+      UserRole.CORPORATE_OWNER,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.PROCUREMENT,
+      UserRole.FINANCE,
+      UserRole.FINANCE_OFFICER,
+      UserRole.FM_MANAGER,
+      UserRole.OPERATIONS_MANAGER,
+      UserRole.VENDOR,
+    ],
+  },
+  orders: {
+    permission: "souq:orders.read",
+    allowedRoles: [
+      UserRole.SUPER_ADMIN,
+      UserRole.CORPORATE_ADMIN,
+      UserRole.CORPORATE_OWNER,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.PROCUREMENT,
+      UserRole.FINANCE,
+      UserRole.FINANCE_OFFICER,
+      UserRole.VENDOR,
+    ],
+  },
+  listings: {
+    permission: "aqar:listings.read",
+    allowedRoles: [
+      UserRole.SUPER_ADMIN,
+      UserRole.CORPORATE_ADMIN,
+      UserRole.CORPORATE_OWNER,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.PROPERTY_MANAGER,
+      UserRole.FM_MANAGER,
+      UserRole.OPERATIONS_MANAGER,
+      UserRole.OWNER,
+      UserRole.VENDOR,
+    ],
+  },
+  projects: {
+    permission: "aqar:projects.read",
+    allowedRoles: [
+      UserRole.SUPER_ADMIN,
+      UserRole.CORPORATE_ADMIN,
+      UserRole.CORPORATE_OWNER,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.PROPERTY_MANAGER,
+      UserRole.FM_MANAGER,
+      UserRole.OPERATIONS_MANAGER,
+      UserRole.OWNER,
+    ],
+  },
+  agents: {
+    permission: "aqar:agents.read",
+    allowedRoles: [
+      UserRole.SUPER_ADMIN,
+      UserRole.CORPORATE_ADMIN,
+      UserRole.CORPORATE_OWNER,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.PROPERTY_MANAGER,
+      UserRole.FM_MANAGER,
+      UserRole.OPERATIONS_MANAGER,
+      UserRole.OWNER,
+      UserRole.SUPPORT_AGENT,
+    ],
+  },
+};
+
+// Text-search-ready entities (must have a text index). Exported for regression tests.
+export const TEXT_INDEXED_ENTITIES = new Set<ExtendedSearchEntity>([
+  WORK_ORDERS_ENTITY,
+  WORK_ORDERS_ENTITY_LEGACY, // legacy alias for API backward compatibility
+  "properties",
+  "units",
+  "tenants",
+  "vendors",
+  "invoices",
+  "products",
+  "services",
+  "rfqs",
+  "orders",
+  "listings",
+  "projects",
+  "agents",
+]);
+
+// Entity -> collection name map for text search; keeps coverage and testability aligned with COLLECTIONS.
+export const ENTITY_COLLECTION_MAP: Record<string, string | undefined> = {
+  workOrders: COLLECTIONS.WORK_ORDERS,
+  work_orders: COLLECTIONS.WORK_ORDERS, // legacy alias for API backward compatibility
+  properties: COLLECTIONS.PROPERTIES,
+  units: COLLECTIONS.UNITS,
+  tenants: COLLECTIONS.TENANTS,
+  vendors: COLLECTIONS.VENDORS,
+  invoices: COLLECTIONS.INVOICES,
+  products: COLLECTIONS.PRODUCTS,
+  services: COLLECTIONS.SERVICES,
+  rfqs: COLLECTIONS.RFQS,
+  orders: COLLECTIONS.ORDERS,
+  listings: COLLECTIONS.LISTINGS, // FIXED: Use LISTINGS (aqar_listings), not SOUQ_LISTINGS
+  projects: COLLECTIONS.PROJECTS,
+  agents: COLLECTIONS.AGENTS,
+};
+
+// Normalize legacy entity names to canonical form
+const normalizeEntity = (entity: string): SearchEntity =>
+  entity === WORK_ORDERS_ENTITY_LEGACY ? WORK_ORDERS_ENTITY : (entity as SearchEntity);
+
+const hasPermissionKey = (session: SessionUser, permission: string): boolean => {
+  if (session.isSuperAdmin) return true;
+  const normalizedPermission = permission.toLowerCase();
+  const moduleKey = normalizedPermission.split(":")[0];
+  const permissions = (session.permissions || []).map((p) => String(p).toLowerCase());
+
+  if (permissions.includes("*")) return true;
+  if (moduleKey && permissions.includes(`${moduleKey}:*`)) return true;
+  return permissions.includes(normalizedPermission);
+};
+
+// Evaluate whether the requester can search a given entity
+export function canSearchEntity(session: SessionUser, entity: SearchEntity): boolean {
+  const normalizedEntity = normalizeEntity(entity);
+  if (session.isSuperAdmin) return true;
+
+  const config = ENTITY_PERMISSION_CONFIG[normalizedEntity];
+  if (!config) {
+    logger.warn("[search] Unknown entity requested", { entity: normalizedEntity });
+    return false;
+  }
+
+  if (hasPermissionKey(session, config.permission)) {
+    return true;
+  }
+
+  return config.allowedRoles.some((role) => hasRole(session, role));
+}
+
+// Helpers for per-role scoping
+const hasRole = (session: SessionUser, role: UserRoleType): boolean => {
+  if (!role) return false;
+  const target = role.toUpperCase();
+  const primary = session.role?.toUpperCase();
+  if (primary === target) return true;
+  return (session.roles || []).some((r) => String(r).toUpperCase() === target);
+};
+
+const toObjectIds = (ids?: string[]) =>
+  (ids || []).filter((id) => ObjectId.isValid(id)).map((id) => new ObjectId(id));
+
+type ScopedQueryResult = { allowed: boolean; query: Record<string, unknown> };
+
+export function applyEntityScope(
+  entity: SearchEntity,
+  session: SessionUser,
+  baseQuery: Record<string, unknown>,
+): ScopedQueryResult {
+  // Broad roles keep base org scoping - these roles see all org data
+  // SEC-002: Aligned with ENTITY_PERMISSION_CONFIG allowedRoles
+  const isSuperUser =
+    session.isSuperAdmin ||
+    hasRole(session, UserRole.SUPER_ADMIN) ||
+    hasRole(session, UserRole.CORPORATE_ADMIN) ||
+    hasRole(session, UserRole.CORPORATE_OWNER) ||
+    hasRole(session, UserRole.ADMIN) ||
+    hasRole(session, UserRole.MANAGER) ||
+    hasRole(session, UserRole.FM_MANAGER) ||
+    hasRole(session, UserRole.OPERATIONS_MANAGER) ||
+    // TEAM_MEMBER and SUPPORT_AGENT are org-facing roles; they retain org-wide visibility for search
+    hasRole(session, UserRole.TEAM_MEMBER) ||
+    hasRole(session, UserRole.SUPPORT_AGENT);
+
+  if (isSuperUser) {
+    return { allowed: true, query: baseQuery };
+  }
+
+  const scopedQuery = { ...baseQuery };
+  const scopedEntity = normalizeEntity(entity);
+
+  switch (scopedEntity) {
+    case WORK_ORDERS_ENTITY: {
+      // Collect role-based conditions with OR semantics for multi-role users
+      const roleConditions: Record<string, unknown>[] = [];
+
+      if (hasRole(session, UserRole.TENANT) && ObjectId.isValid(session.id)) {
+        roleConditions.push({ "requester.userId": new ObjectId(session.id) });
+      }
+      if (hasRole(session, UserRole.TECHNICIAN) && ObjectId.isValid(session.id)) {
+        roleConditions.push({ "assignment.assignedTo.userId": new ObjectId(session.id) });
+      }
+      if (hasRole(session, UserRole.VENDOR) && session.vendorId && ObjectId.isValid(session.vendorId)) {
+        roleConditions.push({ "assignment.assignedTo.vendorId": new ObjectId(session.vendorId) });
+      }
+      if (hasRole(session, UserRole.OWNER) && session.assignedProperties?.length) {
+        roleConditions.push({ "location.propertyId": { $in: toObjectIds(session.assignedProperties) } });
+      }
+      if (hasRole(session, UserRole.PROPERTY_MANAGER) && session.assignedProperties?.length) {
+        roleConditions.push({ "location.propertyId": { $in: toObjectIds(session.assignedProperties) } });
+      }
+
+      if (roleConditions.length === 0) {
+        return { allowed: false, query: scopedQuery };
+      }
+      if (roleConditions.length === 1) {
+        Object.assign(scopedQuery, roleConditions[0]);
+      } else {
+        scopedQuery.$or = roleConditions;
+      }
+      return { allowed: true, query: scopedQuery };
+    }
+    case "properties": {
+      // OR semantics: multi-role users see properties matching ANY role
+      const roleConditions: Record<string, unknown>[] = [];
+      if (hasRole(session, UserRole.OWNER) && session.assignedProperties?.length) {
+        roleConditions.push({ _id: { $in: toObjectIds(session.assignedProperties) } });
+      }
+      if (hasRole(session, UserRole.PROPERTY_MANAGER) && session.assignedProperties?.length) {
+        roleConditions.push({ _id: { $in: toObjectIds(session.assignedProperties) } });
+      }
+      if (hasRole(session, UserRole.TENANT) && session.units?.length) {
+        roleConditions.push({ "units.unitId": { $in: toObjectIds(session.units) } });
+      }
+      if (roleConditions.length === 0) {
+        return { allowed: false, query: scopedQuery };
+      } else if (roleConditions.length === 1) {
+        Object.assign(scopedQuery, roleConditions[0]);
+      } else {
+        scopedQuery.$or = roleConditions;
+      }
+      return { allowed: true, query: scopedQuery };
+    }
+    case "units": {
+      // OR semantics: multi-role users see units matching ANY role
+      const roleConditions: Record<string, unknown>[] = [];
+      if (hasRole(session, UserRole.TENANT) && session.units?.length) {
+        roleConditions.push({ _id: { $in: toObjectIds(session.units) } });
+      }
+      if (hasRole(session, UserRole.OWNER) && session.assignedProperties?.length) {
+        roleConditions.push({ propertyId: { $in: toObjectIds(session.assignedProperties) } });
+      }
+      if (hasRole(session, UserRole.PROPERTY_MANAGER) && session.assignedProperties?.length) {
+        roleConditions.push({ propertyId: { $in: toObjectIds(session.assignedProperties) } });
+      }
+      if (roleConditions.length === 0) {
+        return { allowed: false, query: scopedQuery };
+      } else if (roleConditions.length === 1) {
+        Object.assign(scopedQuery, roleConditions[0]);
+      } else {
+        scopedQuery.$or = roleConditions;
+      }
+      return { allowed: true, query: scopedQuery };
+    }
+    case "tenants": {
+      // SEC-002: Tenants entity - administrative roles have already passed canSearchEntity
+      // TENANT role is NOT in allowedRoles for "tenants" entity, so this case is for
+      // admin/manager roles only. They can see all tenants within their org (base query has orgId).
+      // No additional scoping needed for admin roles.
+      return { allowed: true, query: scopedQuery };
+    }
+    case "vendors": {
+      // SEC-002: VENDOR role scoped to own vendor record
+      if (hasRole(session, UserRole.VENDOR)) {
+        if (!session.vendorId || !ObjectId.isValid(session.vendorId)) {
+          return { allowed: false, query: scopedQuery };
+        }
+        scopedQuery["_id"] = new ObjectId(session.vendorId);
+      }
+      // Other allowed roles (ADMIN, MANAGER, PROCUREMENT, etc.) see all vendors in org
+      return { allowed: true, query: scopedQuery };
+    }
+    case "orders": {
+      // SEC-002: VENDOR sees only orders for their vendor
+      if (hasRole(session, UserRole.VENDOR)) {
+        if (!session.vendorId || !ObjectId.isValid(session.vendorId)) {
+          return { allowed: false, query: scopedQuery };
+        }
+        scopedQuery["vendorId"] = new ObjectId(session.vendorId);
+      }
+      // Other allowed roles see all orders in org
+      return { allowed: true, query: scopedQuery };
+    }
+    case "rfqs": {
+      // SEC-002: VENDOR sees only RFQs they're invited to
+      if (hasRole(session, UserRole.VENDOR)) {
+        if (!session.vendorId || !ObjectId.isValid(session.vendorId)) {
+          return { allowed: false, query: scopedQuery };
+        }
+        scopedQuery["invitedVendors.vendorId"] = new ObjectId(session.vendorId);
+      }
+      // Other allowed roles see all RFQs in org
+      return { allowed: true, query: scopedQuery };
+    }
+    case "products":
+    case "services": {
+      // SEC-002: VENDOR sees only their own products/services
+      if (hasRole(session, UserRole.VENDOR)) {
+        if (!session.vendorId || !ObjectId.isValid(session.vendorId)) {
+          return { allowed: false, query: scopedQuery };
+        }
+        scopedQuery["vendorId"] = new ObjectId(session.vendorId);
+      }
+      // Other allowed roles see all products/services in org
+      return { allowed: true, query: scopedQuery };
+    }
+    case "listings": {
+      // SEC-002: OWNER sees only their own listings (by listerId or propertyId)
+      // VENDOR role is also in allowedRoles for listings, they see all in org
+      if (hasRole(session, UserRole.OWNER)) {
+        const roleConditions: Record<string, unknown>[] = [];
+        // Owner can see listings they created (listerId matches their user ID)
+        if (ObjectId.isValid(session.id)) {
+          roleConditions.push({ listerId: new ObjectId(session.id) });
+        }
+        // Or listings for properties they own
+        if (session.assignedProperties?.length) {
+          roleConditions.push({ propertyId: { $in: toObjectIds(session.assignedProperties) } });
+        }
+        if (roleConditions.length === 0) {
+          return { allowed: false, query: scopedQuery };
+        }
+        if (roleConditions.length === 1) {
+          Object.assign(scopedQuery, roleConditions[0]);
+        } else {
+          scopedQuery.$or = roleConditions;
+        }
+      }
+      // Other allowed roles (ADMIN, MANAGER, PROPERTY_MANAGER, VENDOR) see all listings in org
+      return { allowed: true, query: scopedQuery };
+    }
+    case "projects": {
+      // SEC-002: OWNER sees only projects for their properties
+      if (hasRole(session, UserRole.OWNER)) {
+        if (!session.assignedProperties?.length) {
+          return { allowed: false, query: scopedQuery };
+        }
+        scopedQuery["propertyId"] = { $in: toObjectIds(session.assignedProperties) };
+      }
+      // Other allowed roles see all projects in org
+      return { allowed: true, query: scopedQuery };
+    }
+    case "agents": {
+      // SEC-002: Agents are org-level resources, not property-specific.
+      // All roles that pass canSearchEntity see all agents within their org.
+      // This differs from listings/projects which are property-scoped.
+      return { allowed: true, query: scopedQuery };
+    }
+    default:
+      return { allowed: true, query: scopedQuery };
+  }
+}
+
+// Helper function to generate href based on entity type
+function generateHref(entity: string, id: string): string {
+  const baseRoutes: Record<string, string> = {
+    [WORK_ORDERS_ENTITY]: "/fm/work-orders",
+    [WORK_ORDERS_ENTITY_LEGACY]: "/fm/work-orders",
+    properties: "/fm/properties",
+    units: "/fm/properties/units",
+    tenants: "/fm/tenants",
+    vendors: "/souq/vendors",
+    invoices: "/finance/invoices",
+    products: "/souq/products",
+    services: "/souq/services",
+    rfqs: "/souq/rfqs",
+    orders: "/souq/orders",
+    listings: "/aqar/properties",
+    projects: "/aqar/properties",
+    agents: "/aqar",
+  };
+
+  const basePath = baseRoutes[entity] || "/dashboard";
+  return `${basePath}?highlight=${id}`;
+}
+
+type SearchResult = {
+  id: string;
+  entity: string;
+  title: string;
+  subtitle?: string;
+  href: string;
+  score?: number;
+};
+
+/**
+ * @openapi
+ * /api/search:
+ *   get:
+ *     summary: search operations
+ *     tags: [search]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  // SEC-001: Authentication required - search exposes sensitive data
+  let orgId: string;
+  let orgObjectId: ObjectId;
+  let session: SessionUser;
+  try {
+    session = await getSessionUser(req);
+    if (!session.orgId) {
+      return createSecureResponse(
+        { error: "Organization context required" },
+        401,
+        req,
+      );
+    }
+    orgId = session.orgId;
+    // Convert to ObjectId for MongoDB queries (tenantIsolationPlugin stores orgId as ObjectId)
+    if (!ObjectId.isValid(orgId)) {
+      logger.error("Invalid orgId format in session", { orgId });
+      return createSecureResponse(
+        { error: "Invalid organization context" },
+        400,
+        req,
+      );
+    }
+    orgObjectId = new ObjectId(orgId);
+  } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return createSecureResponse(
+        { error: "Authentication required" },
+        401,
+        req,
+      );
+    }
+    throw error;
+  }
+
+  try {
+    const mongoose = await connectToDatabase(); // Ensure database connection
+    const { searchParams } = new URL(req.url);
+    const app = (searchParams.get("app") || "fm") as AppKey;
+    const q = (searchParams.get("q") || "").trim();
+    const scope = searchParams.get("scope") === "all" ? "all" : "module";
+    const moduleScope =
+      (searchParams.get("module") as ModuleScope) || DEFAULT_SCOPE;
+    const entities = (searchParams.get("entities") || "")
+      .split(",")
+      .filter(Boolean);
+
+    if (!q) {
+      return createSecureResponse({ results: [] }, 200, req);
+    }
+
+    const appConfig = APPS[app];
+    if (!appConfig) {
+      return createSecureResponse({ results: [] }, 200, req);
+    }
+
+    // Dedup normalized entities to prevent duplicate collection queries
+    // when both canonical and legacy names are passed (e.g., workOrders,work_orders)
+    let searchEntities =
+      entities.length > 0
+        ? Array.from(new Set(entities.map(normalizeEntity)))
+        : Array.from(new Set(getSearchEntitiesForScope(moduleScope, app).map(normalizeEntity)));
+    if (scope === "all") {
+      const combined = new Set<SearchEntity>([
+        ...searchEntities,
+        ...appConfig.searchEntities.map(normalizeEntity),
+      ]);
+      searchEntities = Array.from(combined);
+    }
+    // Prevent duplicate searches when both canonical and legacy entities are provided
+    searchEntities = Array.from(new Set(searchEntities));
+
+    // Only search collections with text indexes
+    searchEntities = searchEntities.filter((entity) =>
+      TEXT_INDEXED_ENTITIES.has(entity as SearchEntity),
+    );
+
+    // SEC-002: Enforce RBAC - filter out entities the user cannot access
+    searchEntities = searchEntities.filter((entity) =>
+      canSearchEntity(session, entity as SearchEntity)
+    );
+
+    if (searchEntities.length === 0) {
+      return createSecureResponse(
+        { error: "Forbidden: no accessible search entities for this role" },
+        403,
+        req,
+      );
+    }
+
+    // Parallelized search across all entities for improved latency (SEC-003)
+    // Each entity search is independent and can run concurrently
+    const mdb = mongoose.connection?.db;
+    if (!mdb) {
+      logger.error("[search] MongoDB connection not available");
+      return createSecureResponse({ results: [] }, 500, req);
+    }
+
+    interface SearchItem {
+      _id?: { toString: () => string };
+      title?: string;
+      name?: string;
+      code?: string;
+      description?: string;
+      address?: string;
+      status?: string;
+      score?: number;
+    }
+
+    const baseQuery: Record<string, unknown> = {
+      $text: { $search: q },
+      orgId: orgObjectId, // SEC-001: Tenant isolation
+      deletedAt: { $exists: false },
+      isDeleted: { $ne: true },
+    };
+
+    const projection: Record<string, unknown> = {
+      score: { $meta: "textScore" },
+      title: 1,
+      name: 1,
+      code: 1,
+      description: 1,
+      address: 1,
+      status: 1,
+    };
+
+    // Execute all entity searches in parallel
+    const entityResults = await Promise.all(
+      searchEntities.map(async (entity): Promise<SearchResult[]> => {
+        try {
+          const collectionName = ENTITY_COLLECTION_MAP[entity as SearchEntity];
+          if (!collectionName) return [];
+
+          const collection = mdb.collection(collectionName);
+
+          // Apply per-role scoping (STRICT v4 least-privilege)
+          const scoped = applyEntityScope(entity as SearchEntity, session, { ...baseQuery });
+          if (!scoped.allowed) {
+            return [];
+          }
+          const searchQuery = scoped.query;
+
+          const items = await collection
+            .find(searchQuery)
+            .project(projection)
+            .sort({ score: { $meta: "textScore" } })
+            .limit(5)
+            .toArray();
+
+          return items.map((item: SearchItem): SearchResult => {
+            const id = item._id?.toString() || "";
+            return {
+              id,
+              entity,
+              title: item.title || item.name || item.code || `Untitled ${entity}`,
+              subtitle: item.description || item.address || item.status || undefined,
+              href: generateHref(entity, id),
+              score: typeof item.score === "number" ? item.score : undefined,
+            };
+          });
+        } catch (error) {
+          logger.warn(`Search failed for entity ${entity}`, { error });
+          return []; // Continue with other entities
+        }
+      }),
+    );
+
+    // Flatten results from all entities
+    const results = entityResults.flat();
+
+    // Sort by score and limit results, stripping score after ordering
+    const normalizedResults = results
+      .sort((a, b) => (b.score || 0) - (a.score || 0))
+      .slice(0, 20)
+      .map(({ score: _score, ...rest }) => rest);
+    return createSecureResponse({ results: normalizedResults }, 200, req);
+  } catch (error) {
+    logger.error(
+      "Search API error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse({ results: [] }, 500, req);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/settings/logo/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { BRAND_COLORS } from "@/lib/config/brand-colors";
+
+/**
+ * GET /api/settings/logo
+ * Public endpoint to fetch platform logo URL
+ * Returns the current logo URL or null if not set
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const sessionUser = await getSessionUser(request).catch(() => null);
+    await connectToDatabase();
+
+    // Prefer authenticated org; fall back to configured default
+    const orgId = sessionUser?.orgId || process.env.NEXT_PUBLIC_ORG_ID || "fixzit-platform";
+
+    const { PlatformSettings } = await import(
+      "@/server/models/PlatformSettings"
+    );
+    const settings = (await PlatformSettings.findOne({ orgId })
+      .lean()
+      .exec()) as {
+      logoUrl: string;
+      brandName: string;
+      brandColor: string;
+    } | null;
+
+    if (!settings || !settings.logoUrl) {
+      return NextResponse.json({
+        logoUrl: null,
+        brandName: "Fixzit Enterprise",
+        brandColor: BRAND_COLORS.primary,
+      });
+    }
+
+    return NextResponse.json({
+      logoUrl: settings.logoUrl,
+      brandName: settings.brandName || "Fixzit Enterprise",
+      brandColor: settings.brandColor || BRAND_COLORS.primary,
+    });
+  } catch (error) {
+    logger.error("[GET /api/settings/logo] Error", error as Error);
+    // Return defaults on error (don't break the UI)
+    return NextResponse.json({
+      logoUrl: null,
+      brandName: "Fixzit Enterprise",
+      brandColor: BRAND_COLORS.primary,
+    });
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/slas/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { z, ZodError } from "zod";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+
+const createSLASchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  type: z.enum([
+    "RESPONSE_TIME",
+    "RESOLUTION_TIME",
+    "UPTIME",
+    "AVAILABILITY",
+    "MAINTENANCE",
+  ]),
+  category: z.string().min(1),
+  priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
+  targets: z.object({
+    responseTime: z.number().optional(), // hours
+    resolutionTime: z.number().optional(), // hours
+    uptime: z.number().min(0).max(100).optional(), // percentage
+    availability: z.number().min(0).max(100).optional(), // percentage
+    maintenanceWindow: z
+      .object({
+        enabled: z.boolean(),
+        startTime: z.string().optional(), // HH:MM
+        endTime: z.string().optional(), // HH:MM
+        days: z.array(z.string()).optional(),
+      })
+      .optional(),
+  }),
+  escalation: z
+    .object({
+      levels: z
+        .array(
+          z.object({
+            level: z.number(),
+            trigger: z.number(), // hours after start
+            action: z.string(),
+            recipients: z.array(z.string()),
+            message: z.string().optional(),
+          }),
+        )
+        .optional(),
+      autoAssignment: z
+        .object({
+          enabled: z.boolean(),
+          rules: z
+            .array(
+              z.object({
+                condition: z.string(),
+                assignTo: z.string(),
+                priority: z.number(),
+              }),
+            )
+            .optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  metrics: z
+    .object({
+      targetResponseTime: z.number().optional(),
+      targetResolutionTime: z.number().optional(),
+      targetUptime: z.number().optional(),
+      targetAvailability: z.number().optional(),
+      penalties: z
+        .object({
+          responseTime: z.number().optional(),
+          resolutionTime: z.number().optional(),
+          downtime: z.number().optional(),
+          perIncident: z.number().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  coverage: z
+    .object({
+      properties: z.array(z.string()).optional(),
+      assets: z.array(z.string()).optional(),
+      services: z.array(z.string()).optional(),
+      locations: z
+        .array(
+          z.object({
+            city: z.string(),
+            region: z.string().optional(),
+            radius: z.number().optional(),
+          }),
+        )
+        .optional(),
+      timeframes: z
+        .array(
+          z.object({
+            start: z.string(),
+            end: z.string(),
+            days: z.array(z.string()),
+          }),
+        )
+        .optional(),
+    })
+    .optional(),
+  monitoring: z
+    .object({
+      enabled: z.boolean(),
+      intervals: z
+        .object({
+          response: z.number().optional(),
+          resolution: z.number().optional(),
+          uptime: z.number().optional(),
+        })
+        .optional(),
+      alerts: z
+        .object({
+          response: z.boolean().optional(),
+          resolution: z.boolean().optional(),
+          uptime: z.boolean().optional(),
+          performance: z.boolean().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  reporting: z
+    .object({
+      frequency: z.enum(["DAILY", "WEEKLY", "MONTHLY"]).optional(),
+      recipients: z.array(z.string()).optional(),
+      include: z
+        .object({
+          performance: z.boolean().optional(),
+          incidents: z.boolean().optional(),
+          trends: z.boolean().optional(),
+          recommendations: z.boolean().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  tags: z.array(z.string()).optional(),
+});
+
+/**
+ * @openapi
+ * /api/slas:
+ *   get:
+ *     summary: slas operations
+ *     tags: [slas]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const user = await getSessionUser(req);
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        { status: 401 },
+      );
+    }
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+    await connectToDatabase();
+
+    const data = createSLASchema.parse(await req.json());
+
+    const { SLA } = await import("@/server/models/SLA");
+    const sla = await SLA.create({
+      tenantId: user.orgId,
+      code: `SLA-${crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase()}`,
+      ...data,
+      status: "DRAFT",
+      createdBy: user.id,
+    });
+
+    return createSecureResponse(sla, 201, req);
+  } catch (error: unknown) {
+    // Detect validation errors
+    if (error instanceof ZodError) {
+      return createSecureResponse(
+        {
+          error: "Invalid request payload",
+          fields: error.issues.map((e) => String(e.path.join("."))),
+        },
+        400,
+        req,
+      );
+    }
+
+    // Log full error server-side
+    logger.error(
+      "SLA creation failed:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+
+    // Return generic error to client
+    return createSecureResponse({ error: "Internal server error" }, 500, req);
+  }
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const user = await getSessionUser(req);
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        { status: 401 },
+      );
+    }
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+    await connectToDatabase();
+
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, Number(searchParams.get("page")) || 1);
+    const limit = Math.min(100, Number(searchParams.get("limit")) || 20);
+    const type = searchParams.get("type");
+    const priority = searchParams.get("priority");
+    const status = searchParams.get("status");
+    const search = searchParams.get("search");
+
+    const match: Record<string, unknown> = { tenantId: user.orgId };
+
+    if (type) match.type = type;
+    if (priority) match.priority = priority;
+    if (status) match.status = status;
+    if (search) {
+      match.$text = { $search: search };
+    }
+
+    const { SLA } = await import("@/server/models/SLA");
+    const [items, total] = await Promise.all([
+      SLA.find(match)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit),
+      SLA.countDocuments(match),
+    ]);
+
+    return NextResponse.json({
+      items,
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit),
+    });
+  } catch (error: unknown) {
+    // Log full error server-side
+    logger.error(
+      "Failed to fetch SLAs:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+
+    // Return generic error to client (no sensitive details)
+    return createSecureResponse({ error: "Failed to fetch SLAs" }, 500, req);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/sms/test/route.ts">
+<![CDATA[
+/**
+ * SMS Test API Endpoint
+ * POST /api/sms/test
+ *
+ * Test SMS functionality with Twilio
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { sendSMS, testSMSConfiguration } from "@/lib/sms";
+import { logger } from "@/lib/logger";
+import { auth } from "@/auth";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
+
+export async function POST(req: NextRequest) {
+  try {
+    const clientIp = getClientIP(req);
+    // Strict rate limit for SMS test: 5 requests per minute
+    const rl = await smartRateLimit(`/api/sms/test:${clientIp}:POST`, 5, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    if (session.user.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { success: false, error: "Forbidden: Super Admin access required" },
+        { status: 403 },
+      );
+    }
+
+    const body = await req.json();
+    const { phone, message, testConfig } = body;
+
+    // If testing configuration only
+    if (testConfig) {
+      const isConfigured = await testSMSConfiguration();
+      return NextResponse.json({
+        success: isConfigured,
+        message: isConfigured
+          ? "Twilio configuration is valid"
+          : "Twilio configuration is invalid or missing",
+      });
+    }
+
+    // Validate required fields
+    if (!phone || !message) {
+      return NextResponse.json(
+        { success: false, error: "Missing required fields: phone and message" },
+        { status: 400 },
+      );
+    }
+
+    // Send SMS
+    const result = await sendSMS(phone, message);
+
+    if (result.success) {
+      return NextResponse.json({
+        success: true,
+        messageSid: result.messageSid,
+        message: "SMS sent successfully",
+      });
+    } else {
+      return NextResponse.json(
+        { success: false, error: result.error },
+        { status: 500 },
+      );
+    }
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    logger.error("[API] SMS test failed", { error: error.message });
+    return NextResponse.json(
+      {
+        success: false,
+        error: error.message,
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/ads/campaigns/[id]/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { CampaignService } from "@/services/souq/ads/campaign-service";
+import { createRbacContext, hasAnyRole } from "@/lib/rbac";
+import { UserRole, type UserRoleType } from "@/types/user";
+
+const ALLOWED_AD_ROLES: UserRoleType[] = [
+  UserRole.SUPER_ADMIN,
+  UserRole.CORPORATE_ADMIN,
+  UserRole.CORPORATE_OWNER,
+  UserRole.ADMIN,
+  UserRole.MANAGER,
+  UserRole.PROCUREMENT,
+  UserRole.OPERATIONS_MANAGER,
+  UserRole.VENDOR, // Marketplace seller
+];
+
+const buildRbacContext = (user: {
+  isSuperAdmin?: boolean;
+  permissions?: string[];
+  roles?: string[];
+  role?: string;
+}) =>
+  createRbacContext({
+    isSuperAdmin: user?.isSuperAdmin,
+    permissions: user?.permissions,
+    roles: user?.roles ?? (user?.role ? [user.role] : []),
+  });
+
+/**
+ * GET /api/souq/ads/campaigns/[id]
+ * Get campaign details
+ */
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    const rbac = buildRbacContext(session.user);
+    if (!hasAnyRole(rbac, ALLOWED_AD_ROLES)) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden (role not allowed for ads)" },
+        { status: 403 },
+      );
+    }
+    const orgId = session.user.orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { success: false, error: "Organization required" },
+        { status: 403 },
+      );
+    }
+
+    const campaign = await CampaignService.getCampaign(params.id, orgId);
+
+    if (!campaign) {
+      return NextResponse.json(
+        { success: false, error: "Campaign not found" },
+        { status: 404 },
+      );
+    }
+
+    // Verify ownership
+    if (campaign.sellerId !== session.user.id) {
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json(
+        { success: false, error: "Campaign not found" },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: campaign,
+    });
+  } catch (error) {
+    logger.error("[Ad API] Get campaign failed", error as Error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to get campaign",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * PUT /api/souq/ads/campaigns/[id]
+ * Update campaign
+ */
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    const rbac = buildRbacContext(session.user);
+    if (!hasAnyRole(rbac, ALLOWED_AD_ROLES)) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden (role not allowed for ads)" },
+        { status: 403 },
+      );
+    }
+    const userOrgId = session.user.orgId;
+    if (!userOrgId) {
+      return NextResponse.json(
+        { success: false, error: "orgId is required (STRICT v4.1 tenant isolation)" },
+        { status: 400 },
+      );
+    }
+
+    // Verify ownership
+    const campaign = await CampaignService.getCampaign(params.id, userOrgId);
+
+    if (!campaign) {
+      return NextResponse.json(
+        { success: false, error: "Campaign not found" },
+        { status: 404 },
+      );
+    }
+
+    if (campaign.sellerId !== session.user.id) {
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json(
+        { success: false, error: "Campaign not found" },
+        { status: 404 },
+      );
+    }
+
+    const body = await request.json();
+
+    const updates: {
+      name?: string;
+      dailyBudget?: number;
+      startDate?: Date;
+      endDate?: Date;
+      status?: "active" | "paused" | "ended";
+      biddingStrategy?: "manual" | "automatic";
+      defaultBid?: number;
+    } = {};
+
+    if (body.name) updates.name = body.name;
+    if (body.dailyBudget) updates.dailyBudget = parseFloat(body.dailyBudget);
+    if (body.startDate) updates.startDate = new Date(body.startDate);
+    if (body.endDate) updates.endDate = new Date(body.endDate);
+    if (body.status) updates.status = body.status;
+    if (body.biddingStrategy) updates.biddingStrategy = body.biddingStrategy;
+    if (body.defaultBid) updates.defaultBid = parseFloat(body.defaultBid);
+
+    const updated = await CampaignService.updateCampaign(
+      params.id,
+      updates,
+      session.user.id,
+      userOrgId, // Required for tenant isolation (STRICT v4.1)
+    );
+
+    return NextResponse.json({
+      success: true,
+      data: updated,
+    });
+  } catch (error) {
+    logger.error("[Ad API] Update campaign failed", error as Error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to update campaign",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * DELETE /api/souq/ads/campaigns/[id]
+ * Delete campaign
+ */
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    // 🔐 STRICT v4.1: Use canonical ALLOWED_AD_ROLES for consistent RBAC enforcement
+    const rbac = buildRbacContext(session.user);
+    if (!hasAnyRole(rbac, ALLOWED_AD_ROLES)) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden (role not allowed for ads)" },
+        { status: 403 },
+      );
+    }
+
+    const orgId = session.user.orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { success: false, error: "Organization required" },
+        { status: 403 },
+      );
+    }
+
+    // Verify ownership (now scoped by orgId)
+    const campaign = await CampaignService.getCampaign(params.id, orgId);
+
+    if (!campaign) {
+      return NextResponse.json(
+        { success: false, error: "Campaign not found" },
+        { status: 404 },
+      );
+    }
+
+    if (campaign.sellerId !== session.user.id) {
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json(
+        { success: false, error: "Campaign not found" },
+        { status: 404 },
+      );
+    }
+
+    await CampaignService.deleteCampaign(params.id, session.user.id, orgId);
+
+    return NextResponse.json({
+      success: true,
+      message: "Campaign deleted successfully",
+    });
+  } catch (error) {
+    logger.error("[Ad API] Delete campaign failed", error as Error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to delete campaign",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/ads/campaigns/[id]/stats/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { createRbacContext, hasAnyRole } from "@/lib/rbac";
+import { CampaignService } from "@/services/souq/ads/campaign-service";
+import { UserRole, type UserRoleType } from "@/types/user";
+
+const ALLOWED_AD_ROLES: UserRoleType[] = [
+  UserRole.SUPER_ADMIN,
+  UserRole.CORPORATE_ADMIN,
+  UserRole.CORPORATE_OWNER,
+  UserRole.ADMIN,
+  UserRole.MANAGER,
+  UserRole.PROCUREMENT,
+  UserRole.OPERATIONS_MANAGER,
+  UserRole.VENDOR, // Marketplace seller
+];
+
+const buildRbacContext = (user: {
+  isSuperAdmin?: boolean;
+  permissions?: string[];
+  roles?: string[];
+  role?: string;
+}) =>
+  createRbacContext({
+    isSuperAdmin: user?.isSuperAdmin,
+    permissions: user?.permissions,
+    roles: user?.roles ?? (user?.role ? [user.role] : []),
+  });
+
+/**
+ * GET /api/souq/ads/campaigns/[id]/stats
+ * Get campaign performance statistics
+ */
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    const rbac = buildRbacContext(session.user);
+    if (!hasAnyRole(rbac, ALLOWED_AD_ROLES)) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden (role not allowed for ads stats)" },
+        { status: 403 },
+      );
+    }
+
+    const userOrgId = session.user.orgId;
+    if (!userOrgId) {
+      return NextResponse.json(
+        { success: false, error: "orgId is required (STRICT v4.1 tenant isolation)" },
+        { status: 400 },
+      );
+    }
+
+    // Verify ownership
+    const campaign = await CampaignService.getCampaign(params.id, userOrgId);
+
+    if (!campaign) {
+      return NextResponse.json(
+        { success: false, error: "Campaign not found" },
+        { status: 404 },
+      );
+    }
+
+    if (campaign.sellerId !== session.user.id) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden" },
+        { status: 403 },
+      );
+    }
+
+    const stats = await CampaignService.getCampaignStats(
+      params.id,
+      session.user.id,
+      userOrgId,
+    );
+
+    return NextResponse.json({
+      success: true,
+      data: stats,
+    });
+  } catch (error) {
+    logger.error("[Ad API] Get campaign stats failed", error as Error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to get campaign stats",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/ads/campaigns/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { CampaignService } from "@/services/souq/ads/campaign-service";
+import { createRbacContext, hasAnyRole } from "@/lib/rbac";
+import { UserRole, type UserRoleType } from "@/types/user";
+
+const ALLOWED_AD_ROLES: UserRoleType[] = [
+  UserRole.SUPER_ADMIN,
+  UserRole.CORPORATE_ADMIN,
+  UserRole.CORPORATE_OWNER,
+  UserRole.ADMIN,
+  UserRole.MANAGER,
+  UserRole.PROCUREMENT,
+  UserRole.OPERATIONS_MANAGER,
+  UserRole.VENDOR, // Marketplace seller
+];
+
+const buildRbacContext = (user: {
+  isSuperAdmin?: boolean;
+  permissions?: string[];
+  roles?: string[];
+  role?: string;
+}) =>
+  createRbacContext({
+    isSuperAdmin: user?.isSuperAdmin,
+    permissions: user?.permissions,
+    roles: user?.roles ?? (user?.role ? [user.role] : []),
+  });
+
+/**
+ * POST /api/souq/ads/campaigns
+ * Create new ad campaign
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    const userOrgId = session.user.orgId;
+    const rbac = buildRbacContext(session.user);
+    if (!hasAnyRole(rbac, ALLOWED_AD_ROLES)) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden (role not allowed for ads)" },
+        { status: 403 },
+      );
+    }
+    if (!userOrgId) {
+      return NextResponse.json(
+        { success: false, error: "orgId is required (STRICT v4.1 tenant isolation)" },
+        { status: 400 },
+      );
+    }
+
+    const body = await request.json();
+
+    // Validate required fields
+    const required = [
+      "name",
+      "type",
+      "dailyBudget",
+      "startDate",
+      "biddingStrategy",
+      "targeting",
+      "products",
+    ];
+    const missing = required.filter((field) => !body[field]);
+
+    if (missing.length > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Missing required fields: ${missing.join(", ")}`,
+        },
+        { status: 400 },
+      );
+    }
+
+    const campaign = await CampaignService.createCampaign({
+      orgId: userOrgId, // Required for tenant isolation (STRICT v4.1)
+      sellerId: session.user.id,
+      name: body.name,
+      type: body.type,
+      dailyBudget: parseFloat(body.dailyBudget),
+      startDate: new Date(body.startDate),
+      endDate: body.endDate ? new Date(body.endDate) : undefined,
+      biddingStrategy: body.biddingStrategy,
+      defaultBid: body.defaultBid ? parseFloat(body.defaultBid) : undefined,
+      targeting: body.targeting,
+      products: body.products,
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: campaign,
+    });
+  } catch (error) {
+    logger.error("[Ad API] Create campaign failed", error as Error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to create campaign",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * GET /api/souq/ads/campaigns
+ * List campaigns for authenticated seller
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    const userOrgId = session.user.orgId;
+    const rbac = buildRbacContext(session.user);
+    if (!hasAnyRole(rbac, ALLOWED_AD_ROLES)) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden (role not allowed for ads)" },
+        { status: 403 },
+      );
+    }
+    if (!userOrgId) {
+      return NextResponse.json(
+        { success: false, error: "orgId is required (STRICT v4.1 tenant isolation)" },
+        { status: 400 },
+      );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get("status") as
+      | "active"
+      | "paused"
+      | "ended"
+      | null;
+    const type = searchParams.get("type") as
+      | "sponsored_products"
+      | "sponsored_brands"
+      | "product_display"
+      | null;
+
+    const campaigns = await CampaignService.listCampaigns(session.user.id, userOrgId, {
+      status: status || undefined,
+      type: type || undefined,
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: campaigns,
+    });
+  } catch (error) {
+    logger.error("[Ad API] List campaigns failed", error as Error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to list campaigns",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/ads/clicks/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { AuctionEngine } from "@/services/souq/ads/auction-engine";
+import { BudgetManager } from "@/services/souq/ads/budget-manager";
+import { logger } from "@/lib/logger";
+import { createHmac, timingSafeEqual } from "crypto";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { getClientIP } from "@/server/security/headers";
+
+// SEC-001: Click signature validation to prevent click fraud
+const CLICK_SECRET = process.env.AD_CLICK_SECRET || process.env.NEXTAUTH_SECRET || "";
+
+function validateClickSignature(bidId: string, campaignId: string, timestamp: number, signature: string): boolean {
+  if (!CLICK_SECRET) {
+    logger.warn("[Ad API] AD_CLICK_SECRET not configured - click validation disabled");
+    return true; // Fail open in dev, but log warning
+  }
+  
+  // Reject clicks older than 5 minutes
+  const now = Date.now();
+  if (Math.abs(now - timestamp) > 5 * 60 * 1000) {
+    return false;
+  }
+  
+  const payload = `${bidId}:${campaignId}:${timestamp}`;
+  const expectedSig = createHmac("sha256", CLICK_SECRET).update(payload).digest("hex");
+  
+  try {
+    return timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSig));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * POST /api/souq/ads/clicks
+ * Track ad click and charge budget
+ * 
+ * SECURITY: Requires signed click token to prevent click fraud.
+ * The signature must be generated server-side when rendering the ad.
+ */
+export async function POST(request: NextRequest) {
+  // Rate limit by IP to prevent automated click attacks (distributed for multi-instance)
+  const clientIp = getClientIP(request);
+  const rl = await smartRateLimit(`ad-click:${clientIp}`, 30, 60_000); // 30 clicks per minute per IP
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { success: false, error: "Rate limit exceeded" },
+      { status: 429 }
+    );
+  }
+
+  try {
+    const body = await request.json();
+
+    const { bidId, campaignId, orgId, actualCpc, query, category, productId, timestamp, signature } = body;
+
+    if (!bidId || !campaignId || !orgId || !actualCpc) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Missing required fields: bidId, campaignId, orgId, actualCpc",
+        },
+        { status: 400 },
+      );
+    }
+
+    // SEC-001: Validate click signature to prevent fraud
+    if (!timestamp || !signature) {
+      return NextResponse.json(
+        { success: false, error: "Missing click validation token" },
+        { status: 400 }
+      );
+    }
+
+    if (!validateClickSignature(bidId, campaignId, timestamp, signature)) {
+      logger.warn("[Ad API] Invalid click signature", { bidId, campaignId, clientIp });
+      return NextResponse.json(
+        { success: false, error: "Invalid or expired click token" },
+        { status: 403 }
+      );
+    }
+
+    const cpc = parseFloat(actualCpc);
+
+    // Check budget availability
+    const canCharge = await BudgetManager.canCharge(campaignId, orgId, cpc);
+
+    if (!canCharge) {
+      return NextResponse.json(
+        { success: false, error: "Insufficient budget" },
+        { status: 402 }, // Payment Required
+      );
+    }
+
+    // Charge budget
+    const charged = await BudgetManager.chargeBudget(campaignId, orgId, cpc);
+
+    if (!charged) {
+      return NextResponse.json(
+        { success: false, error: "Failed to charge budget" },
+        { status: 402 },
+      );
+    }
+
+    // Record click
+    await AuctionEngine.recordClick(bidId, campaignId, cpc, {
+      orgId, // Required for tenant isolation (STRICT v4.1)
+      query,
+      category,
+      productId,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Click recorded",
+      charged: cpc,
+    });
+  } catch (error) {
+    logger.error("[Ad API] Record click failed", error as Error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to record click",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/ads/impressions/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { AuctionEngine } from "@/services/souq/ads/auction-engine";
+import { logger } from "@/lib/logger";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { getClientIP } from "@/server/security/headers";
+
+/**
+ * POST /api/souq/ads/impressions
+ * Track ad impression
+ * 
+ * SECURITY: Rate limited to prevent impression fraud.
+ * For production, consider server-side impression tracking.
+ */
+export async function POST(request: NextRequest) {
+  // Rate limit by IP to prevent automated impression fraud
+  const clientIp = getClientIP(request);
+  const rl = await smartRateLimit(`ad-impression:${clientIp}`, 100, 60_000); // 100 impressions per minute per IP
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { success: false, error: "Rate limit exceeded" },
+      { status: 429 }
+    );
+  }
+
+  try {
+    const body = await request.json();
+
+    const { bidId, campaignId, orgId, query, category, productId } = body;
+
+    if (!bidId || !campaignId || !orgId) {
+      return NextResponse.json(
+        { success: false, error: "Missing required fields: bidId, campaignId, orgId" },
+        { status: 400 },
+      );
+    }
+
+    await AuctionEngine.recordImpression(bidId, campaignId, {
+      orgId, // Required for tenant isolation (STRICT v4.1)
+      query,
+      category,
+      productId,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Impression recorded",
+    });
+  } catch (error) {
+    logger.error("[Ad API] Record impression failed", error as Error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to record impression",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/ads/reports/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { createRbacContext, hasAnyRole } from "@/lib/rbac";
+import { CampaignService } from "@/services/souq/ads/campaign-service";
+import { UserRole, type UserRoleType } from "@/types/user";
+
+const ALLOWED_AD_ROLES: UserRoleType[] = [
+  UserRole.SUPER_ADMIN,
+  UserRole.CORPORATE_ADMIN,
+  UserRole.CORPORATE_OWNER,
+  UserRole.ADMIN,
+  UserRole.MANAGER,
+  UserRole.PROCUREMENT,
+  UserRole.OPERATIONS_MANAGER,
+  UserRole.VENDOR, // Marketplace seller
+];
+
+const buildRbacContext = (user: {
+  isSuperAdmin?: boolean;
+  permissions?: string[];
+  roles?: string[];
+  role?: string;
+}) =>
+  createRbacContext({
+    isSuperAdmin: user?.isSuperAdmin,
+    permissions: user?.permissions,
+    roles: user?.roles ?? (user?.role ? [user.role] : []),
+  });
+
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    const rbac = buildRbacContext(session.user);
+    if (!hasAnyRole(rbac, ALLOWED_AD_ROLES)) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden (role not allowed for ads reports)" },
+        { status: 403 },
+      );
+    }
+
+    const userOrgId = session.user.orgId;
+    if (!userOrgId) {
+      return NextResponse.json(
+        { success: false, error: "orgId is required (STRICT v4.1 tenant isolation)" },
+        { status: 400 },
+      );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const campaignId = searchParams.get("campaignId") || undefined;
+    const start = searchParams.get("start") || undefined;
+    const end = searchParams.get("end") || undefined;
+
+    const report = await CampaignService.getPerformanceReport({
+      sellerId: session.user.id,
+      orgId: userOrgId, // Required for tenant isolation (STRICT v4.1)
+      campaignId: campaignId === "all" ? undefined : campaignId,
+      startDate: start || undefined,
+      endDate: end || undefined,
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: report,
+    });
+  } catch (error) {
+    logger.error("[Ad API] Get performance report failed", error as Error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to load performance report",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/analytics/customers/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { analyticsService } from "@/services/souq/analytics/analytics-service";
+
+/**
+ * GET /api/souq/analytics/customers
+ * Get customer insights for seller
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    const orgId = session.user.orgId;
+    if (!orgId) {
+      return NextResponse.json({ error: "Organization context required" }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const period = (searchParams.get("period") ?? "last_30_days") as
+      | "last_7_days"
+      | "last_30_days"
+      | "last_90_days";
+
+    const customers = await analyticsService.getCustomerInsights(
+      orgId,
+      session.user.id,
+      period,
+    );
+
+    return NextResponse.json({
+      success: true,
+      ...customers,
+    });
+  } catch (error) {
+    logger.error("Get customer insights error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to get customer insights",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/analytics/dashboard/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { analyticsService } from "@/services/souq/analytics/analytics-service";
+import { logger } from "@/lib/logger";
+
+/**
+ * GET /api/souq/analytics/dashboard
+ * Get comprehensive analytics dashboard for seller
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    const orgId = session.user.orgId;
+    if (!orgId) {
+      return NextResponse.json({ error: "Organization context required" }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const period = (searchParams.get("period") ?? "last_30_days") as
+      | "last_7_days"
+      | "last_30_days"
+      | "last_90_days"
+      | "ytd";
+
+    const dashboard = await analyticsService.getDashboard(
+      orgId,
+      session.user.id,
+      period,
+    );
+
+    return NextResponse.json({
+      success: true,
+      ...dashboard,
+    });
+  } catch (error) {
+    logger.error("Get analytics dashboard error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to get analytics dashboard",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/analytics/products/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { analyticsService } from "@/services/souq/analytics/analytics-service";
+import { logger } from "@/lib/logger";
+
+/**
+ * GET /api/souq/analytics/products
+ * Get product performance metrics for seller
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    const orgId = session.user.orgId;
+    if (!orgId) {
+      return NextResponse.json({ error: "Organization context required" }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const period = (searchParams.get("period") ?? "last_30_days") as
+      | "last_7_days"
+      | "last_30_days"
+      | "last_90_days";
+
+    const products = await analyticsService.getProductPerformance(
+      orgId,
+      session.user.id,
+      period,
+    );
+
+    return NextResponse.json({
+      success: true,
+      ...products,
+    });
+  } catch (error) {
+    logger.error("Get product performance error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to get product performance",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/analytics/sales/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { analyticsService } from "@/services/souq/analytics/analytics-service";
+import { logger } from "@/lib/logger";
+
+/**
+ * GET /api/souq/analytics/sales
+ * Get sales metrics for seller
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    const orgId = session.user.orgId;
+    if (!orgId) {
+      return NextResponse.json({ error: "Organization context required" }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const period = (searchParams.get("period") ?? "last_30_days") as
+      | "last_7_days"
+      | "last_30_days"
+      | "last_90_days"
+      | "ytd";
+
+    const sales = await analyticsService.getSalesMetrics(
+      orgId,
+      session.user.id,
+      period,
+    );
+
+    return NextResponse.json({
+      success: true,
+      ...sales,
+    });
+  } catch (error) {
+    logger.error("Get sales metrics error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to get sales metrics",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/analytics/traffic/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { analyticsService } from "@/services/souq/analytics/analytics-service";
+
+/**
+ * GET /api/souq/analytics/traffic
+ * Get traffic and engagement analytics for seller
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    const orgId = session.user.orgId;
+    if (!orgId) {
+      return NextResponse.json({ error: "Organization context required" }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const period = (searchParams.get("period") ?? "last_30_days") as
+      | "last_7_days"
+      | "last_30_days"
+      | "last_90_days";
+
+    const traffic = await analyticsService.getTrafficAnalytics(
+      orgId,
+      session.user.id,
+      period,
+    );
+
+    return NextResponse.json({
+      success: true,
+      ...traffic,
+    });
+  } catch (error) {
+    logger.error("Get traffic analytics error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to get traffic analytics",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/brands/route.ts">
+<![CDATA[
+import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { auth } from "@/auth";
+import Brand from "@/server/models/souq/Brand";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+
+/**
+ * GET /api/souq/brands - List all brands
+ * 
+ * NOTE: Brands are PLATFORM-WIDE resources shared across all tenants.
+ * This is intentional - brands (Nike, Samsung, etc.) are not tenant-specific.
+ * The Brand model does NOT use tenantIsolationPlugin by design.
+ * 
+ * Authorization is handled via brand gating (authorizedSellers) for who can SELL,
+ * but all users can VIEW the brand catalog.
+ */
+export async function GET() {
+  try {
+    await connectToDatabase();
+
+    const brands = await Brand.find({ isActive: true })
+      .select("name name_ar slug logo isVerified")
+      .sort({ name: 1 })
+      .lean();
+
+    return NextResponse.json({
+      success: true,
+      data: brands,
+      total: brands.length,
+    });
+  } catch (error) {
+    logger.error("GET /api/souq/brands error:", error as Error);
+    return NextResponse.json(
+      { success: false, error: "Failed to fetch brands" },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * POST /api/souq/brands - Create new brand (Admin only)
+ */
+export async function POST(request: Request) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const userRole = (session.user as { role?: string }).role;
+    // 🔒 SECURITY FIX: Include CORPORATE_ADMIN per 14-role matrix
+    if (!["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(userRole || "")) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    await connectToDatabase();
+
+    const body = await request.json();
+    const { name, name_ar, slug, logo } = body;
+
+    if (!name || !slug) {
+      return NextResponse.json(
+        { error: "Name and slug are required" },
+        { status: 400 },
+      );
+    }
+
+    const existingSlug = await Brand.findOne({ slug });
+    if (existingSlug) {
+      return NextResponse.json(
+        { error: "Brand slug already exists" },
+        { status: 409 },
+      );
+    }
+
+    const brand = await Brand.create({
+      name,
+      name_ar,
+      slug,
+      logo,
+      isVerified: false,
+      isActive: true,
+      createdAt: new Date(),
+    });
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: brand,
+      },
+      { status: 201 },
+    );
+  } catch (error) {
+    logger.error("POST /api/souq/brands error:", error as Error);
+    return NextResponse.json(
+      { success: false, error: "Failed to create brand" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/buybox/[fsin]/route.ts">
+<![CDATA[
+/**
+ * Souq Buy Box API - Get Buy Box winner and all offers for a product
+ * @route /api/souq/buybox/[fsin]
+ */
+
+import { NextResponse } from "next/server";
+import { BuyBoxService } from "@/services/souq/buybox-service";
+import { connectDb } from "@/lib/mongodb-unified";
+import { getServerSession } from "@/lib/auth/getServerSession";
+import { logger } from "@/lib/logger";
+
+export async function GET(
+  _request: Request,
+  context: { params: { fsin: string } },
+) {
+  try {
+    // Authentication check
+    const session = await getServerSession();
+    if (!session) {
+      return NextResponse.json(
+        { error: "Unauthorized", message: "Authentication required" },
+        { status: 401 },
+      );
+    }
+
+    // Authorization check - ensure user has orgId for multi-tenant isolation
+    if (!session.user.orgId) {
+      return NextResponse.json(
+        { error: "Forbidden", message: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    await connectDb();
+
+    const { fsin } = context.params;
+
+    if (!fsin) {
+      return NextResponse.json({ error: "FSIN is required" }, { status: 400 });
+    }
+
+    const [buyBoxWinner, allOffers] = await Promise.all([
+      BuyBoxService.calculateBuyBoxWinner(fsin, session.user.orgId),
+      BuyBoxService.getProductOffers(fsin, { condition: "new", sort: "price", orgId: session.user.orgId }),
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        buyBoxWinner,
+        allOffers,
+        offerCount: allOffers.length,
+      },
+    });
+  } catch (error) {
+    logger.error("Buy Box fetch error", error as Error);
+    return NextResponse.json(
+      { error: "Failed to fetch Buy Box data" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/buybox/offers/[fsin]/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { BuyBoxService } from "@/services/souq/buybox-service";
+import { logger } from "@/lib/logger";
+
+interface RouteContext {
+  params: Promise<{ fsin: string }>;
+}
+
+/**
+ * GET /api/souq/buybox/offers/[fsin]
+ * Get all offers for a product (for "Other Sellers" section)
+ */
+export async function GET(request: NextRequest, context: RouteContext) {
+  try {
+    const { fsin } = await context.params;
+    const { searchParams } = new URL(request.url);
+    const orgId = searchParams.get("orgId") || "";
+
+    if (!fsin) {
+      return NextResponse.json({ error: "FSIN is required" }, { status: 400 });
+    }
+    if (!orgId) {
+      return NextResponse.json({ error: "orgId is required" }, { status: 400 });
+    }
+
+    const condition = searchParams.get("condition") || "new";
+    const sort = searchParams.get("sort") || "price";
+
+    const offers = await BuyBoxService.getProductOffers(fsin, {
+      condition,
+      sort,
+      orgId,
+    });
+
+    return NextResponse.json({
+      success: true,
+      offers,
+      total: offers.length,
+    });
+  } catch (error) {
+    logger.error("Get product offers error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to get product offers",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/buybox/winner/[fsin]/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { BuyBoxService } from "@/services/souq/buybox-service";
+import { logger } from "@/lib/logger";
+
+interface RouteContext {
+  params: Promise<{ fsin: string }>;
+}
+
+/**
+ * GET /api/souq/buybox/winner/[fsin]
+ * Get Buy Box winner for a product
+ */
+export async function GET(request: NextRequest, context: RouteContext) {
+  try {
+    const { fsin } = await context.params;
+    const { searchParams } = new URL(request.url);
+    const orgId = searchParams.get("orgId") || "";
+
+    if (!fsin) {
+      return NextResponse.json({ error: "FSIN is required" }, { status: 400 });
+    }
+    if (!orgId) {
+      return NextResponse.json({ error: "orgId is required" }, { status: 400 });
+    }
+
+    const winner = await BuyBoxService.calculateBuyBoxWinner(fsin, orgId);
+
+    if (!winner) {
+      return NextResponse.json(
+        { error: "No eligible sellers found for this product" },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      winner,
+    });
+  } catch (error) {
+    logger.error("Get Buy Box winner error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to get Buy Box winner",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/catalog/products/route.ts">
+<![CDATA[
+/**
+ * Catalog Service API - Product & Category Management
+ * Handles FSIN generation, product creation, category management
+ * @module app/api/souq/catalog
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { logger } from "@/lib/logger";
+import { generateFSIN } from "@/lib/souq/fsin-generator";
+import { SouqProduct } from "@/server/models/souq/Product";
+import { SouqCategory } from "@/server/models/souq/Category";
+import { SouqBrand } from "@/server/models/souq/Brand";
+import { connectDb } from "@/lib/mongodb-unified";
+import { getServerSession } from "@/lib/auth/getServerSession";
+import { Types } from "mongoose";
+
+interface LocalizedField {
+  en?: string;
+  ar?: string;
+  [key: string]: string | undefined;
+}
+
+interface ProductWithLocalization {
+  _id: unknown;
+  fsin: string;
+  title: LocalizedField | string;
+  description?: LocalizedField | string;
+  pricing?: {
+    basePrice?: number;
+    [key: string]: unknown;
+  };
+  categoryId: string;
+  brandId?: string;
+  searchKeywords?: string[];
+  isActive: boolean;
+  [key: string]: unknown;
+}
+
+// Validation schemas
+const CreateProductSchema = z.object({
+  title: z.record(z.string(), z.string()).refine((data) => data.en && data.ar, {
+    message: "Title must include both English and Arabic",
+  }),
+  description: z.record(z.string(), z.string()),
+  shortDescription: z.record(z.string(), z.string()).optional(),
+  categoryId: z.string(),
+  brandId: z.string().optional(),
+  images: z.array(z.string().url()).min(1, "At least one image required"),
+  videos: z.array(z.string().url()).optional(),
+  attributes: z
+    .record(
+      z.string(),
+      z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]),
+    )
+    .optional(),
+  hasVariations: z.boolean().default(false),
+  variationTheme: z
+    .enum(["color", "size", "style", "color_size", "custom"])
+    .optional(),
+  searchKeywords: z.array(z.string()).optional(),
+  bulletPoints: z.record(z.string(), z.array(z.string())).optional(),
+});
+
+/**
+ * POST /api/souq/catalog/products
+ * Create new product with auto-generated FSIN
+ */
+export async function POST(request: NextRequest) {
+  let orgId: string | undefined;
+  try {
+    // Authentication check
+    const session = await getServerSession();
+    if (!session || !session.user) {
+      return NextResponse.json(
+        { error: "Unauthorized", message: "Authentication required" },
+        { status: 401 },
+      );
+    }
+
+    orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization ID required" },
+        { status: 400 },
+      );
+    }
+    if (!Types.ObjectId.isValid(orgId)) {
+      return NextResponse.json(
+        { error: "Invalid organization id" },
+        { status: 400 },
+      );
+    }
+    const orgObjectId = new Types.ObjectId(orgId);
+
+    await connectDb();
+
+    const body = await request.json();
+    const validated = CreateProductSchema.parse(body);
+
+    // Check category exists and is not restricted (or seller has approval)
+    const category = await SouqCategory.findOne({
+      categoryId: validated.categoryId,
+      isActive: true,
+    });
+    if (!category) {
+      return NextResponse.json(
+        { error: "Category not found" },
+        { status: 404 },
+      );
+    }
+
+    // Check seller authorization for restricted categories
+    if (category.isRestricted) {
+      // Check if seller has approval for this restricted category
+      const { SouqSeller } = await import("@/server/models/souq/Seller");
+      const seller = await SouqSeller.findOne({
+        orgId,
+        isActive: true,
+        "approvedCategories.categoryId": validated.categoryId,
+      });
+
+      if (!seller) {
+        return NextResponse.json(
+          {
+            error: "Unauthorized",
+            message: "Seller not approved for this restricted category",
+          },
+          { status: 403 },
+        );
+      }
+    }
+
+    // Check brand exists and seller is authorized if gated
+    if (validated.brandId) {
+      const brand = await SouqBrand.findOne({
+        brandId: validated.brandId,
+        isActive: true,
+      });
+      if (!brand) {
+        return NextResponse.json({ error: "Brand not found" }, { status: 404 });
+      }
+
+      // Check seller authorization for gated brands
+      if (brand.isGated) {
+        const { SouqSeller } = await import("@/server/models/souq/Seller");
+        const seller = await SouqSeller.findOne({
+          orgId,
+          isActive: true,
+          "approvedBrands.brandId": validated.brandId,
+        });
+
+        if (!seller) {
+          return NextResponse.json(
+            {
+              error: "Unauthorized",
+              message: "Seller not approved for this gated brand",
+            },
+            { status: 403 },
+          );
+        }
+      }
+    }
+
+    // Generate FSIN
+    const { fsin } = generateFSIN();
+    let finalFsin = fsin;
+
+    // Check for collision (extremely rare)
+    const existingProduct = await SouqProduct.findOne({
+      fsin: finalFsin,
+      $or: [{ orgId: orgObjectId }, { org_id: orgObjectId }],
+    });
+    if (existingProduct) {
+      // Regenerate FSIN
+      const { fsin: newFsin } = generateFSIN();
+      finalFsin = newFsin;
+    }
+
+    // Create product
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+    const product = new SouqProduct({
+      fsin: finalFsin,
+      ...validated,
+      orgId: orgObjectId,
+      createdBy: session.user.id,
+      isActive: true,
+    });
+
+    await product.save();
+
+    // Index in search engine using shared Meilisearch client
+    try {
+      const { indexProduct } = await import("@/lib/meilisearch-client");
+      // Index product with localized fields
+      const productTyped = product as unknown as ProductWithLocalization;
+      const titleObj =
+        typeof productTyped.title === "object"
+          ? productTyped.title
+          : { en: productTyped.title };
+      const descObj =
+        typeof productTyped.description === "object"
+          ? productTyped.description
+          : { en: productTyped.description };
+      await indexProduct({
+        id: product._id.toString(),
+        fsin: product.fsin,
+        title: titleObj.en ?? titleObj.ar ?? "",
+        description: descObj.en ?? descObj.ar ?? "",
+        categoryId: product.categoryId,
+        brandId: product.brandId,
+        searchKeywords: product.searchKeywords,
+        isActive: product.isActive,
+        orgId,
+      });
+    } catch (searchError) {
+      // Log but don't fail product creation if indexing fails
+      logger.error("[Souq] Failed to index product", searchError as Error, {
+        productId: product._id,
+        fsin: product.fsin,
+      });
+    }
+
+    // Publish product.created event using shared NATS client
+    try {
+      type PublishFn = (
+        _event: string,
+        _data: Record<string, unknown>,
+      ) => Promise<void>;
+      const natsModule = (await import("@/lib/nats-client")) as {
+        publish?: PublishFn;
+      };
+      if (typeof natsModule.publish === "function") {
+        await natsModule.publish("product.created", {
+          type: "product.created",
+          productId: product._id.toString(),
+          fsin: product.fsin,
+          orgId,
+          categoryId: product.categoryId,
+          brandId: product.brandId,
+          title: product.title,
+          price:
+            (product as unknown as ProductWithLocalization).pricing
+              ?.basePrice || 0,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    } catch (natsError) {
+      // Log but don't fail product creation if event publish fails
+      logger.error(
+        "[Souq] Failed to publish product.created event",
+        natsError as Error,
+        { productId: product._id, fsin: product.fsin },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          id: product._id,
+          fsin: product.fsin,
+          title: product.title,
+          categoryId: product.categoryId,
+          brandId: product.brandId,
+          images: product.images,
+          createdAt: product.createdAt,
+        },
+      },
+      { status: 201 },
+    );
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          error: "Validation failed",
+          details: error.issues,
+        },
+        { status: 400 },
+      );
+    }
+
+    logger.error("[Catalog API] Product creation error", error as Error, {
+      orgId,
+    });
+    return NextResponse.json(
+      {
+        error: "Failed to create product",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * GET /api/souq/catalog/products
+ * List products (seller-scoped or admin view)
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getServerSession();
+    if (!session?.user?.orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+    if (!Types.ObjectId.isValid(session.user.orgId)) {
+      return NextResponse.json({ error: "Invalid organization id" }, { status: 400 });
+    }
+    const orgObjectId = new Types.ObjectId(session.user.orgId);
+
+    await connectDb();
+
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = Math.min(
+      parseInt(searchParams.get("limit") || "20", 10),
+      100,
+    );
+    const categoryId = searchParams.get("categoryId");
+    const brandId = searchParams.get("brandId");
+    const sellerId = searchParams.get("sellerId");
+    const status = searchParams.get("status"); // 'active' | 'inactive' | 'all'
+
+    const query: Record<string, unknown> = {};
+
+    query.$or = [{ orgId: orgObjectId }, { org_id: orgObjectId }];
+
+    if (categoryId) query.categoryId = categoryId;
+    if (brandId) query.brandId = brandId;
+    if (sellerId) query.createdBy = sellerId;
+    if (status !== "all") {
+      query.isActive = status === "active";
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [products, total] = await Promise.all([
+      SouqProduct.find(query)
+        .select("fsin title images categoryId brandId isActive createdAt")
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .lean(),
+      SouqProduct.countDocuments(query),
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      data: products,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    logger.error("[Catalog API] List products error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to list products",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/categories/route.ts">
+<![CDATA[
+import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { auth } from "@/auth";
+import Category from "@/server/models/souq/Category";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+
+/**
+ * GET /api/souq/categories - List all categories with hierarchy
+ */
+export async function GET() {
+  try {
+    await connectToDatabase();
+
+    // PLATFORM-WIDE DATA: Categories are shared across all tenants by design.
+    // This is a read-only catalog that all sellers can access.
+    const categories = await Category.find({ isActive: true })
+      .select("name name_ar slug parentId level imageUrl")
+      .sort({ level: 1, name: 1 })
+      .lean();
+
+    return NextResponse.json({
+      success: true,
+      data: categories,
+      total: categories.length,
+    });
+  } catch (error) {
+    logger.error("GET /api/souq/categories error:", error as Error);
+    return NextResponse.json(
+      { success: false, error: "Failed to fetch categories" },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * POST /api/souq/categories - Create new category (Admin only)
+ */
+export async function POST(request: Request) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const userRole = (session.user as { role?: string }).role;
+    // 🔒 SECURITY FIX: Include CORPORATE_ADMIN per 14-role matrix
+    if (!["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(userRole || "")) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    await connectToDatabase();
+
+    const body = await request.json();
+    const { name, name_ar, slug, parentId, level } = body;
+
+    if (!name || !slug) {
+      return NextResponse.json(
+        { error: "Name and slug are required" },
+        { status: 400 },
+      );
+    }
+
+    const existingSlug = await Category.findOne({ slug });
+    if (existingSlug) {
+      return NextResponse.json(
+        { error: "Category slug already exists" },
+        { status: 409 },
+      );
+    }
+
+    const category = await Category.create({
+      name,
+      name_ar,
+      slug,
+      parentId: parentId || null,
+      level: level ?? 1,
+      isActive: true,
+      createdAt: new Date(),
+    });
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: category,
+      },
+      { status: 201 },
+    );
+  } catch (error) {
+    logger.error("POST /api/souq/categories error:", error as Error);
+    return NextResponse.json(
+      { success: false, error: "Failed to create category" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/claims/[id]/appeal/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { ClaimService } from "@/services/souq/claims/claim-service";
+import { resolveRequestSession } from "@/lib/auth/request-session";
+import { logger } from "@/lib/logger";
+
+interface EvidenceItem {
+  type: string;
+  url: string;
+  description?: string;
+  [key: string]: unknown;
+}
+
+/**
+ * POST /api/souq/claims/[id]/appeal
+ * File appeal on claim decision
+ */
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const session = await resolveRequestSession(request);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const orgId = (session.user as { orgId?: string }).orgId?.toString?.();
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    const body = await request.json();
+    const reasoning = body.reasoning ? String(body.reasoning).trim() : "";
+    const additionalEvidence = Array.isArray(body.additionalEvidence)
+      ? body.additionalEvidence
+      : [];
+
+    if (!reasoning) {
+      return NextResponse.json(
+        { error: "Missing required field: reasoning" },
+        { status: 400 },
+      );
+    }
+
+    const allowOrgless = process.env.NODE_ENV === "test";
+    const claim = await ClaimService.getClaim(params.id, orgId, allowOrgless);
+    if (!claim) {
+      return NextResponse.json({ error: "Claim not found" }, { status: 404 });
+    }
+
+    // Determine who is appealing
+    let appealedBy: "buyer" | "seller";
+    if (claim.buyerId && String(claim.buyerId) === session.user.id) {
+      appealedBy = "buyer";
+    } else if (claim.sellerId && String(claim.sellerId) === session.user.id) {
+      appealedBy = "seller";
+    } else {
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Claim not found" }, { status: 404 });
+    }
+
+    if (claim.appeal || claim.status === "under_appeal") {
+      return NextResponse.json(
+        { error: "claim already appealed" },
+        { status: 400 },
+      );
+    }
+
+    const decisionDate = claim.decision?.decidedAt
+      ? new Date(claim.decision.decidedAt)
+      : null;
+    if (decisionDate) {
+      const appealWindow = 7 * 24 * 60 * 60 * 1000;
+      if (Date.now() - decisionDate.getTime() > appealWindow) {
+        return NextResponse.json(
+          { error: "appeal deadline has passed" },
+          { status: 400 },
+        );
+      }
+    }
+
+    const evidencePayload = (additionalEvidence as EvidenceItem[]).map(
+      (item, idx: number) => ({
+        evidenceId: `APPEAL-${params.id}-${idx + 1}`,
+        type: item.type,
+        url: item.url,
+        description: item.description,
+        uploadedAt: new Date(),
+      }),
+    );
+
+    await ClaimService.fileAppeal(
+      params.id,
+      orgId,
+      appealedBy,
+      reasoning,
+      evidencePayload,
+      { allowOrgless },
+    );
+
+    return NextResponse.json({
+      status: "under_appeal",
+      appeal: {
+        appealedBy,
+        reasoning,
+        submittedAt: new Date(),
+        evidence: evidencePayload,
+      },
+    });
+  } catch (error) {
+    logger.error("[Claims API] File appeal failed", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to file appeal",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

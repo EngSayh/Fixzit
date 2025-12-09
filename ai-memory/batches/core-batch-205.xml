@@ -1,0 +1,2251 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="i18n/sources/portfolioOptimization.translations.json">
+<![CDATA[
+{
+  "en": {
+    "portfolioOptimization.alignment": "Strategic Alignment",
+    "portfolioOptimization.analysis": "Portfolio Analysis",
+    "portfolioOptimization.balancing": "Portfolio Balancing",
+    "portfolioOptimization.capacity": "Capacity Planning",
+    "portfolioOptimization.evaluation": "Portfolio Evaluation",
+    "portfolioOptimization.governance": "Portfolio Governance",
+    "portfolioOptimization.metrics": "Portfolio Metrics",
+    "portfolioOptimization.modeling": "Portfolio Modeling",
+    "portfolioOptimization.optimization": "Optimization Analysis",
+    "portfolioOptimization.performance": "Portfolio Performance",
+    "portfolioOptimization.portfolio": "Portfolio Optimization",
+    "portfolioOptimization.prioritization": "Portfolio Prioritization",
+    "portfolioOptimization.rationalization": "Portfolio Rationalization",
+    "portfolioOptimization.rebalancing": "Portfolio Rebalancing",
+    "portfolioOptimization.reporting": "Portfolio Reporting",
+    "portfolioOptimization.resource": "Resource Optimization",
+    "portfolioOptimization.review": "Portfolio Review",
+    "portfolioOptimization.risk": "Risk Optimization",
+    "portfolioOptimization.scenario": "Scenario Analysis",
+    "portfolioOptimization.selection": "Project Selection",
+    "portfolioOptimization.simulation": "Portfolio Simulation",
+    "portfolioOptimization.value": "Value Optimization"
+  },
+  "ar": {
+    "portfolioOptimization.alignment": "التوافق الاستراتيجي",
+    "portfolioOptimization.analysis": "تحليل المحفظة",
+    "portfolioOptimization.balancing": "موازنة المحفظة",
+    "portfolioOptimization.capacity": "تخطيط السعة",
+    "portfolioOptimization.evaluation": "تقييم المحفظة",
+    "portfolioOptimization.governance": "حوكمة المحفظة",
+    "portfolioOptimization.metrics": "مقاييس المحفظة",
+    "portfolioOptimization.modeling": "نمذجة المحفظة",
+    "portfolioOptimization.optimization": "تحليل التحسين",
+    "portfolioOptimization.performance": "أداء المحفظة",
+    "portfolioOptimization.portfolio": "تحسين المحفظة",
+    "portfolioOptimization.prioritization": "تحديد أولويات المحفظة",
+    "portfolioOptimization.rationalization": "ترشيد المحفظة",
+    "portfolioOptimization.rebalancing": "إعادة موازنة المحفظة",
+    "portfolioOptimization.reporting": "إعداد تقارير المحفظة",
+    "portfolioOptimization.resource": "تحسين الموارد",
+    "portfolioOptimization.review": "مراجعة المحفظة",
+    "portfolioOptimization.risk": "تحسين المخاطر",
+    "portfolioOptimization.scenario": "تحليل السيناريوهات",
+    "portfolioOptimization.selection": "اختيار المشروع",
+    "portfolioOptimization.simulation": "محاكاة المحفظة",
+    "portfolioOptimization.value": "تحسين القيمة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/predictiveAnalytics.translations.json">
+<![CDATA[
+{
+  "en": {
+    "predictiveAnalytics.accuracy": "Prediction Accuracy",
+    "predictiveAnalytics.algorithms": "ML Algorithms",
+    "predictiveAnalytics.anomalies": "Anomaly Detection",
+    "predictiveAnalytics.classification": "Classification",
+    "predictiveAnalytics.clustering": "Clustering",
+    "predictiveAnalytics.deployment": "Model Deployment",
+    "predictiveAnalytics.features": "Feature Engineering",
+    "predictiveAnalytics.forecasting": "Forecasting",
+    "predictiveAnalytics.modeling": "Predictive Modeling",
+    "predictiveAnalytics.monitoring": "Model Monitoring",
+    "predictiveAnalytics.optimization": "Model Optimization",
+    "predictiveAnalytics.patterns": "Pattern Recognition",
+    "predictiveAnalytics.performance": "Model Performance",
+    "predictiveAnalytics.prediction": "Prediction Models",
+    "predictiveAnalytics.predictive": "Predictive Analytics",
+    "predictiveAnalytics.regression": "Regression Analysis",
+    "predictiveAnalytics.testing": "Model Testing",
+    "predictiveAnalytics.timeseries": "Time Series Analysis",
+    "predictiveAnalytics.training": "Model Training",
+    "predictiveAnalytics.trends": "Trend Analysis",
+    "predictiveAnalytics.validation": "Model Validation"
+  },
+  "ar": {
+    "predictiveAnalytics.accuracy": "دقة التنبؤ",
+    "predictiveAnalytics.algorithms": "خوارزميات التعلم الآلي",
+    "predictiveAnalytics.anomalies": "كشف الشذوذ",
+    "predictiveAnalytics.classification": "التصنيف",
+    "predictiveAnalytics.clustering": "التجميع",
+    "predictiveAnalytics.deployment": "نشر النموذج",
+    "predictiveAnalytics.features": "هندسة الميزات",
+    "predictiveAnalytics.forecasting": "التنبؤ",
+    "predictiveAnalytics.modeling": "النمذجة التنبؤية",
+    "predictiveAnalytics.monitoring": "مراقبة النموذج",
+    "predictiveAnalytics.optimization": "تحسين النموذج",
+    "predictiveAnalytics.patterns": "التعرف على الأنماط",
+    "predictiveAnalytics.performance": "أداء النموذج",
+    "predictiveAnalytics.prediction": "نماذج التنبؤ",
+    "predictiveAnalytics.predictive": "التحليلات التنبؤية",
+    "predictiveAnalytics.regression": "تحليل الانحدار",
+    "predictiveAnalytics.testing": "اختبار النموذج",
+    "predictiveAnalytics.timeseries": "تحليل السلاسل الزمنية",
+    "predictiveAnalytics.training": "تدريب النموذج",
+    "predictiveAnalytics.trends": "تحليل الاتجاهات",
+    "predictiveAnalytics.validation": "التحقق من صحة النموذج"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/predictiveAnalyticsAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "predictiveAnalyticsAdv.algorithm": "Algorithm",
+    "predictiveAnalyticsAdv.causation": "Causation",
+    "predictiveAnalyticsAdv.confidence": "Confidence",
+    "predictiveAnalyticsAdv.correlation": "Correlation",
+    "predictiveAnalyticsAdv.estimation": "Estimation",
+    "predictiveAnalyticsAdv.factor": "Factor",
+    "predictiveAnalyticsAdv.forecast": "Forecast",
+    "predictiveAnalyticsAdv.interval": "Confidence Interval",
+    "predictiveAnalyticsAdv.likelihood": "Likelihood",
+    "predictiveAnalyticsAdv.model": "Predictive Model",
+    "predictiveAnalyticsAdv.outcome": "Predicted Outcome",
+    "predictiveAnalyticsAdv.pattern": "Pattern Recognition",
+    "predictiveAnalyticsAdv.prediction": "Prediction",
+    "predictiveAnalyticsAdv.predictive": "Predictive Analytics",
+    "predictiveAnalyticsAdv.probability": "Probability",
+    "predictiveAnalyticsAdv.projection": "Projection",
+    "predictiveAnalyticsAdv.risk": "Risk Assessment",
+    "predictiveAnalyticsAdv.scenario": "Scenario",
+    "predictiveAnalyticsAdv.simulation": "Simulation",
+    "predictiveAnalyticsAdv.trend": "Trend Analysis",
+    "predictiveAnalyticsAdv.variable": "Variable",
+    "predictiveAnalyticsAdv.whatIf": "What-If Analysis"
+  },
+  "ar": {
+    "predictiveAnalyticsAdv.algorithm": "الخوارزمية",
+    "predictiveAnalyticsAdv.causation": "السببية",
+    "predictiveAnalyticsAdv.confidence": "الثقة",
+    "predictiveAnalyticsAdv.correlation": "الارتباط",
+    "predictiveAnalyticsAdv.estimation": "التقدير",
+    "predictiveAnalyticsAdv.factor": "العامل",
+    "predictiveAnalyticsAdv.forecast": "التنبؤ",
+    "predictiveAnalyticsAdv.interval": "فاصل الثقة",
+    "predictiveAnalyticsAdv.likelihood": "الإمكانية",
+    "predictiveAnalyticsAdv.model": "النموذج التنبؤي",
+    "predictiveAnalyticsAdv.outcome": "المخرج المتوقع",
+    "predictiveAnalyticsAdv.pattern": "التعرف على الأنماط",
+    "predictiveAnalyticsAdv.prediction": "التوقع",
+    "predictiveAnalyticsAdv.predictive": "التحليلات التنبؤية",
+    "predictiveAnalyticsAdv.probability": "الاحتمالية",
+    "predictiveAnalyticsAdv.projection": "الإسقاط",
+    "predictiveAnalyticsAdv.risk": "تقييم المخاطر",
+    "predictiveAnalyticsAdv.scenario": "السيناريو",
+    "predictiveAnalyticsAdv.simulation": "المحاكاة",
+    "predictiveAnalyticsAdv.trend": "تحليل الاتجاه",
+    "predictiveAnalyticsAdv.variable": "المتغير",
+    "predictiveAnalyticsAdv.whatIf": "تحليل ماذا لو"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/prescriptiveAnalytics.translations.json">
+<![CDATA[
+{
+  "en": {
+    "prescriptiveAnalytics.constraints": "Constraint Modeling",
+    "prescriptiveAnalytics.decision": "Decision Support",
+    "prescriptiveAnalytics.genetic": "Genetic Algorithms",
+    "prescriptiveAnalytics.heuristics": "Heuristic Methods",
+    "prescriptiveAnalytics.integer": "Integer Programming",
+    "prescriptiveAnalytics.linear": "Linear Programming",
+    "prescriptiveAnalytics.monte": "Monte Carlo Simulation",
+    "prescriptiveAnalytics.multi": "Multi-Objective Optimization",
+    "prescriptiveAnalytics.nonlinear": "Nonlinear Optimization",
+    "prescriptiveAnalytics.objectives": "Objective Functions",
+    "prescriptiveAnalytics.optimization": "Optimization",
+    "prescriptiveAnalytics.pareto": "Pareto Optimization",
+    "prescriptiveAnalytics.prescriptive": "Prescriptive Analytics",
+    "prescriptiveAnalytics.recommendations": "Recommendations",
+    "prescriptiveAnalytics.scenarios": "Scenario Analysis",
+    "prescriptiveAnalytics.sensitivity": "Sensitivity Analysis",
+    "prescriptiveAnalytics.simulation": "Simulation",
+    "prescriptiveAnalytics.solutions": "Optimal Solutions",
+    "prescriptiveAnalytics.tradeoffs": "Trade-off Analysis",
+    "prescriptiveAnalytics.variables": "Decision Variables",
+    "prescriptiveAnalytics.whatif": "What-If Analysis"
+  },
+  "ar": {
+    "prescriptiveAnalytics.constraints": "نمذجة القيود",
+    "prescriptiveAnalytics.decision": "دعم القرار",
+    "prescriptiveAnalytics.genetic": "الخوارزميات الجينية",
+    "prescriptiveAnalytics.heuristics": "الطرق الاستدلالية",
+    "prescriptiveAnalytics.integer": "البرمجة الصحيحة",
+    "prescriptiveAnalytics.linear": "البرمجة الخطية",
+    "prescriptiveAnalytics.monte": "محاكاة مونت كارلو",
+    "prescriptiveAnalytics.multi": "التحسين متعدد الأهداف",
+    "prescriptiveAnalytics.nonlinear": "التحسين غير الخطي",
+    "prescriptiveAnalytics.objectives": "دوال الهدف",
+    "prescriptiveAnalytics.optimization": "التحسين",
+    "prescriptiveAnalytics.pareto": "تحسين باريتو",
+    "prescriptiveAnalytics.prescriptive": "التحليلات الوصفية",
+    "prescriptiveAnalytics.recommendations": "التوصيات",
+    "prescriptiveAnalytics.scenarios": "تحليل السيناريو",
+    "prescriptiveAnalytics.sensitivity": "تحليل الحساسية",
+    "prescriptiveAnalytics.simulation": "المحاكاة",
+    "prescriptiveAnalytics.solutions": "الحلول المثلى",
+    "prescriptiveAnalytics.tradeoffs": "تحليل المقايضة",
+    "prescriptiveAnalytics.variables": "متغيرات القرار",
+    "prescriptiveAnalytics.whatif": "تحليل ماذا لو"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/preventiveAction.translations.json">
+<![CDATA[
+{
+  "en": {
+    "preventiveAction.action": "Action Management",
+    "preventiveAction.analysis": "Risk Analysis",
+    "preventiveAction.assessment": "Risk Assessment",
+    "preventiveAction.closure": "Action Closure",
+    "preventiveAction.documentation": "Action Documentation",
+    "preventiveAction.effectiveness": "Action Effectiveness",
+    "preventiveAction.identification": "Risk Identification",
+    "preventiveAction.implementation": "Action Implementation",
+    "preventiveAction.monitoring": "Action Monitoring",
+    "preventiveAction.owner": "Action Owner",
+    "preventiveAction.plan": "Action Plan",
+    "preventiveAction.preventive": "Preventive Action",
+    "preventiveAction.process": "PAPA Process",
+    "preventiveAction.register": "Action Register",
+    "preventiveAction.reporting": "Action Reporting",
+    "preventiveAction.request": "Action Request",
+    "preventiveAction.solution": "Solution Development",
+    "preventiveAction.status": "Action Status",
+    "preventiveAction.timeline": "Action Timeline",
+    "preventiveAction.tracking": "Action Tracking",
+    "preventiveAction.validation": "Action Validation",
+    "preventiveAction.verification": "Action Verification"
+  },
+  "ar": {
+    "preventiveAction.action": "إدارة الإجراءات",
+    "preventiveAction.analysis": "تحليل المخاطر",
+    "preventiveAction.assessment": "تقييم المخاطر",
+    "preventiveAction.closure": "إغلاق الإجراء",
+    "preventiveAction.documentation": "توثيق الإجراء",
+    "preventiveAction.effectiveness": "فعالية الإجراء",
+    "preventiveAction.identification": "تحديد المخاطر",
+    "preventiveAction.implementation": "تنفيذ الإجراء",
+    "preventiveAction.monitoring": "مراقبة الإجراء",
+    "preventiveAction.owner": "مالك الإجراء",
+    "preventiveAction.plan": "خطة الإجراء",
+    "preventiveAction.preventive": "الإجراء الوقائي",
+    "preventiveAction.process": "عملية بابا",
+    "preventiveAction.register": "سجل الإجراءات",
+    "preventiveAction.reporting": "إعداد تقارير الإجراء",
+    "preventiveAction.request": "طلب الإجراء",
+    "preventiveAction.solution": "تطوير الحل",
+    "preventiveAction.status": "حالة الإجراء",
+    "preventiveAction.timeline": "الجدول الزمني للإجراء",
+    "preventiveAction.tracking": "تتبع الإجراء",
+    "preventiveAction.validation": "التحقق من صحة الإجراء",
+    "preventiveAction.verification": "التحقق من الإجراء"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/preventiveMaintenance.translations.json">
+<![CDATA[
+{
+  "en": {
+    "preventiveMaintenance.adjustment": "Adjustment",
+    "preventiveMaintenance.annual": "Annual",
+    "preventiveMaintenance.biannual": "Biannual",
+    "preventiveMaintenance.calibration": "Calibration",
+    "preventiveMaintenance.checklist": "قائمة الفحص",
+    "preventiveMaintenance.checkup": "Checkup",
+    "preventiveMaintenance.cleaning": "Cleaning",
+    "preventiveMaintenance.compliance": "الامتثال",
+    "preventiveMaintenance.condition": "الحالة",
+    "preventiveMaintenance.daily": "Daily",
+    "preventiveMaintenance.documentation": "التوثيق",
+    "preventiveMaintenance.frequency": "Frequency",
+    "preventiveMaintenance.history": "السجل",
+    "preventiveMaintenance.inspection": "الفحص",
+    "preventiveMaintenance.interval": "الفترة الزمنية",
+    "preventiveMaintenance.lubrication": "Lubrication",
+    "preventiveMaintenance.maintenanceCycle": "Maintenance Cycle",
+    "preventiveMaintenance.maintenancePlan": "Maintenance Plan",
+    "preventiveMaintenance.maintenanceProgram": "Maintenance Program",
+    "preventiveMaintenance.maintenanceSchedule": "Maintenance Schedule",
+    "preventiveMaintenance.monthly": "Monthly",
+    "preventiveMaintenance.nextDue": "الموعد التالي",
+    "preventiveMaintenance.oneTime": "One-time",
+    "preventiveMaintenance.overdue": "متأخر",
+    "preventiveMaintenance.overhaul": "Overhaul",
+    "preventiveMaintenance.performance": "الأداء",
+    "preventiveMaintenance.plannedMaintenance": "Planned Maintenance",
+    "preventiveMaintenance.preventiveMaintenance1": "Preventive Maintenance",
+    "preventiveMaintenance.quarterly": "Quarterly",
+    "preventiveMaintenance.recommendation": "التوصية",
+    "preventiveMaintenance.recurring": "Recurring",
+    "preventiveMaintenance.replacement": "Replacement",
+    "preventiveMaintenance.scheduledMaintenance": "Scheduled Maintenance",
+    "preventiveMaintenance.semiannual": "Semi-annual",
+    "preventiveMaintenance.servicing": "Servicing",
+    "preventiveMaintenance.testing": "الاختبار",
+    "preventiveMaintenance.tuneup": "Tune-up",
+    "preventiveMaintenance.upcoming": "قادم",
+    "preventiveMaintenance.weekly": "Weekly",
+    "preventiveMaintenance.winterization": "Winterization"
+  },
+  "ar": {
+    "preventiveMaintenance.adjustment": "الضبط",
+    "preventiveMaintenance.annual": "سنوي",
+    "preventiveMaintenance.biannual": "مرتان في السنة",
+    "preventiveMaintenance.calibration": "المعايرة",
+    "preventiveMaintenance.checklist": "قائمة الفحص",
+    "preventiveMaintenance.checkup": "فحص شامل",
+    "preventiveMaintenance.cleaning": "التنظيف",
+    "preventiveMaintenance.compliance": "الامتثال",
+    "preventiveMaintenance.condition": "الحالة",
+    "preventiveMaintenance.daily": "يومياً",
+    "preventiveMaintenance.documentation": "التوثيق",
+    "preventiveMaintenance.frequency": "التردد",
+    "preventiveMaintenance.history": "السجل",
+    "preventiveMaintenance.inspection": "الفحص",
+    "preventiveMaintenance.interval": "الفترة الزمنية",
+    "preventiveMaintenance.lubrication": "التشحيم",
+    "preventiveMaintenance.maintenanceCycle": "دورة الصيانة",
+    "preventiveMaintenance.maintenancePlan": "خطة الصيانة",
+    "preventiveMaintenance.maintenanceProgram": "برنامج الصيانة",
+    "preventiveMaintenance.maintenanceSchedule": "جدول الصيانة",
+    "preventiveMaintenance.monthly": "شهرياً",
+    "preventiveMaintenance.nextDue": "الموعد التالي",
+    "preventiveMaintenance.oneTime": "لمرة واحدة",
+    "preventiveMaintenance.overdue": "متأخر",
+    "preventiveMaintenance.overhaul": "المراجعة الشاملة",
+    "preventiveMaintenance.performance": "الأداء",
+    "preventiveMaintenance.plannedMaintenance": "صيانة مخططة",
+    "preventiveMaintenance.preventiveMaintenance1": "الصيانة الوقائية",
+    "preventiveMaintenance.quarterly": "ربع سنوي",
+    "preventiveMaintenance.recommendation": "التوصية",
+    "preventiveMaintenance.recurring": "متكرر",
+    "preventiveMaintenance.replacement": "الاستبدال",
+    "preventiveMaintenance.scheduledMaintenance": "الصيانة المجدولة",
+    "preventiveMaintenance.semiannual": "نصف سنوي",
+    "preventiveMaintenance.servicing": "الخدمة",
+    "preventiveMaintenance.testing": "الاختبار",
+    "preventiveMaintenance.tuneup": "ضبط دقيق",
+    "preventiveMaintenance.upcoming": "قادم",
+    "preventiveMaintenance.weekly": "أسبوعياً",
+    "preventiveMaintenance.winterization": "تجهيز للشتاء"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/printOptions.translations.json">
+<![CDATA[
+{
+  "en": {
+    "printOptions.blackWhite": "Black & White",
+    "printOptions.color": "Color",
+    "printOptions.copies": "Number of Copies",
+    "printOptions.custom": "Custom",
+    "printOptions.footer": "Footer",
+    "printOptions.header": "Header",
+    "printOptions.landscape": "Landscape",
+    "printOptions.margins": "Margins",
+    "printOptions.narrow": "Narrow",
+    "printOptions.normal": "Normal",
+    "printOptions.orientation": "Orientation",
+    "printOptions.page": "Page Setup",
+    "printOptions.pageNumbers": "Page Numbers",
+    "printOptions.portrait": "Portrait",
+    "printOptions.preview": "Print Preview",
+    "printOptions.print": "Print",
+    "printOptions.quality": "Print Quality",
+    "printOptions.setup": "Print Setup",
+    "printOptions.size": "Paper Size",
+    "printOptions.wide": "Wide"
+  },
+  "ar": {
+    "printOptions.blackWhite": "أبيض وأسود",
+    "printOptions.color": "ملون",
+    "printOptions.copies": "عدد النسخ",
+    "printOptions.custom": "مخصص",
+    "printOptions.footer": "التذييل",
+    "printOptions.header": "الرأس",
+    "printOptions.landscape": "أفقي",
+    "printOptions.margins": "الهوامش",
+    "printOptions.narrow": "ضيق",
+    "printOptions.normal": "عادي",
+    "printOptions.orientation": "الاتجاه",
+    "printOptions.page": "إعداد الصفحة",
+    "printOptions.pageNumbers": "أرقام الصفحات",
+    "printOptions.portrait": "عمودي",
+    "printOptions.preview": "معاينة الطباعة",
+    "printOptions.print": "طباعة",
+    "printOptions.quality": "جودة الطباعة",
+    "printOptions.setup": "إعداد الطباعة",
+    "printOptions.size": "حجم الورق",
+    "printOptions.wide": "واسع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/printingCopy.translations.json">
+<![CDATA[
+{
+  "en": {
+    "printingCopy.banner": "Banner Printing",
+    "printingCopy.binding": "Binding",
+    "printingCopy.blackwhite": "Black & White",
+    "printingCopy.business": "Business Cards",
+    "printingCopy.color": "Color Printing",
+    "printingCopy.copy": "Copy Services",
+    "printingCopy.document": "Document Services",
+    "printingCopy.envelope": "Envelopes",
+    "printingCopy.equipment": "Print Equipment",
+    "printingCopy.finishing": "Finishing",
+    "printingCopy.folder": "Folders",
+    "printingCopy.laminating": "Laminating",
+    "printingCopy.large": "Large Format",
+    "printingCopy.letterhead": "Letterhead",
+    "printingCopy.maintenance": "Equipment Maintenance",
+    "printingCopy.poster": "Poster Printing",
+    "printingCopy.presentation": "Presentation Materials",
+    "printingCopy.printing": "Printing Services",
+    "printingCopy.reproduction": "Document Reproduction",
+    "printingCopy.scanning": "Scanning",
+    "printingCopy.supplies": "Printing Supplies"
+  },
+  "ar": {
+    "printingCopy.banner": "طباعة اللافتات",
+    "printingCopy.binding": "التجليد",
+    "printingCopy.blackwhite": "أبيض وأسود",
+    "printingCopy.business": "بطاقات العمل",
+    "printingCopy.color": "الطباعة الملونة",
+    "printingCopy.copy": "خدمات النسخ",
+    "printingCopy.document": "خدمات المستندات",
+    "printingCopy.envelope": "مغلفات",
+    "printingCopy.equipment": "معدات الطباعة",
+    "printingCopy.finishing": "التشطيب",
+    "printingCopy.folder": "مجلدات",
+    "printingCopy.laminating": "التغليف",
+    "printingCopy.large": "الصيغة الكبيرة",
+    "printingCopy.letterhead": "ورق رسمي",
+    "printingCopy.maintenance": "صيانة المعدات",
+    "printingCopy.poster": "طباعة الملصقات",
+    "printingCopy.presentation": "مواد العرض التقديمي",
+    "printingCopy.printing": "خدمات الطباعة",
+    "printingCopy.reproduction": "استنساخ المستندات",
+    "printingCopy.scanning": "المسح الضوئي",
+    "printingCopy.supplies": "مستلزمات الطباعة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/privacy.translations.json">
+<![CDATA[
+{
+  "en": {
+    "privacy.compliant": "Regulation Compliant",
+    "privacy.compliantDesc": "We follow all international and local data protection standards",
+    "privacy.contactDesc": "Contact our privacy team for any inquiries",
+    "privacy.contactTitle": "Privacy Questions?",
+    "privacy.email": "privacy@fixzit.app",
+    "privacy.encrypted": "Encrypted Data",
+    "privacy.encryptedDesc": "All your data is protected with bank-level encryption",
+    "privacy.lastUpdated": "Last updated",
+    "privacy.phone": "+968 9999 9999",
+    "privacy.subtitle": "Your privacy is our priority. Learn how we protect and manage your data.",
+    "privacy.title": "Privacy Policy",
+    "privacy.transparent": "Transparent Practices",
+    "privacy.transparentDesc": "We're clear about how your data is collected and used",
+    "privacy.yourRights": "Your Rights",
+    "privacy.yourRightsDesc": "You have full control over your personal data"
+  },
+  "ar": {
+    "privacy.compliant": "متوافق مع اللوائح",
+    "privacy.compliantDesc": "نتبع جميع معايير حماية البيانات الدولية والمحلية",
+    "privacy.contactDesc": "تواصل مع فريق الخصوصية لدينا لأي استفسارات",
+    "privacy.contactTitle": "أسئلة حول الخصوصية؟",
+    "privacy.email": "privacy@fixzit.app",
+    "privacy.encrypted": "بيانات مشفرة",
+    "privacy.encryptedDesc": "جميع بياناتك محمية بتشفير من المستوى المصرفي",
+    "privacy.lastUpdated": "آخر تحديث",
+    "privacy.phone": "+968 9999 9999",
+    "privacy.subtitle": "خصوصيتك أولويتنا. تعرف على كيفية حماية بياناتك وإدارتها.",
+    "privacy.title": "سياسة الخصوصية",
+    "privacy.transparent": "ممارسات شفافة",
+    "privacy.transparentDesc": "نحن واضحون بشأن كيفية جمع بياناتك واستخدامها",
+    "privacy.yourRights": "حقوقك",
+    "privacy.yourRightsDesc": "لديك التحكم الكامل في بياناتك الشخصية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/privacyCompliance.translations.json">
+<![CDATA[
+{
+  "en": {
+    "privacyCompliance.assessment": "Privacy Impact Assessment",
+    "privacyCompliance.audit": "Privacy Audit",
+    "privacyCompliance.automated": "Automated Decision",
+    "privacyCompliance.breach": "Data Breach",
+    "privacyCompliance.consent": "User Consent",
+    "privacyCompliance.controller": "Data Controller",
+    "privacyCompliance.erasure": "Right to Erasure",
+    "privacyCompliance.gdpr": "GDPR Compliance",
+    "privacyCompliance.notice": "Privacy Notice",
+    "privacyCompliance.notification": "Breach Notification",
+    "privacyCompliance.objection": "Right to Object",
+    "privacyCompliance.officer": "Data Protection Officer",
+    "privacyCompliance.policy": "Privacy Policy",
+    "privacyCompliance.portability": "Data Portability",
+    "privacyCompliance.privacy": "Privacy Compliance",
+    "privacyCompliance.processor": "Data Processor",
+    "privacyCompliance.profiling": "User Profiling",
+    "privacyCompliance.protection": "Data Protection",
+    "privacyCompliance.regulation": "Privacy Regulation",
+    "privacyCompliance.restriction": "Processing Restriction",
+    "privacyCompliance.retention": "Data Retention",
+    "privacyCompliance.rights": "Privacy Rights"
+  },
+  "ar": {
+    "privacyCompliance.assessment": "تقييم تأثير الخصوصية",
+    "privacyCompliance.audit": "تدقيق الخصوصية",
+    "privacyCompliance.automated": "القرار الآلي",
+    "privacyCompliance.breach": "خرق البيانات",
+    "privacyCompliance.consent": "موافقة المستخدم",
+    "privacyCompliance.controller": "مراقب البيانات",
+    "privacyCompliance.erasure": "الحق في المحو",
+    "privacyCompliance.gdpr": "امتثال القانون العام لحماية البيانات",
+    "privacyCompliance.notice": "إشعار الخصوصية",
+    "privacyCompliance.notification": "إخطار الخرق",
+    "privacyCompliance.objection": "الحق في الاعتراض",
+    "privacyCompliance.officer": "مسؤول حماية البيانات",
+    "privacyCompliance.policy": "سياسة الخصوصية",
+    "privacyCompliance.portability": "نقل البيانات",
+    "privacyCompliance.privacy": "الامتثال للخصوصية",
+    "privacyCompliance.processor": "معالج البيانات",
+    "privacyCompliance.profiling": "التنميط المستخدم",
+    "privacyCompliance.protection": "حماية البيانات",
+    "privacyCompliance.regulation": "تنظيم الخصوصية",
+    "privacyCompliance.restriction": "تقييد المعالجة",
+    "privacyCompliance.retention": "الاحتفاظ بالبيانات",
+    "privacyCompliance.rights": "حقوق الخصوصية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/privacyManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "privacyManagement.assessment": "Privacy Impact Assessment",
+    "privacyManagement.audit": "Privacy Audit",
+    "privacyManagement.awareness": "Privacy Awareness",
+    "privacyManagement.breach": "Privacy Breach",
+    "privacyManagement.ccpa": "CCPA Compliance",
+    "privacyManagement.compliance": "Privacy Compliance",
+    "privacyManagement.consent": "Consent Management",
+    "privacyManagement.design": "Privacy by Design",
+    "privacyManagement.disclosure": "Privacy Disclosure",
+    "privacyManagement.framework": "Privacy Framework",
+    "privacyManagement.gdpr": "GDPR Compliance",
+    "privacyManagement.governance": "Privacy Governance",
+    "privacyManagement.incident": "Privacy Incident",
+    "privacyManagement.notice": "Privacy Notice",
+    "privacyManagement.officer": "Privacy Officer",
+    "privacyManagement.policy": "Privacy Policy",
+    "privacyManagement.preferences": "Privacy Preferences",
+    "privacyManagement.privacy": "Privacy Management",
+    "privacyManagement.protection": "Privacy Protection",
+    "privacyManagement.request": "Privacy Request",
+    "privacyManagement.rights": "Privacy Rights",
+    "privacyManagement.training": "Privacy Training"
+  },
+  "ar": {
+    "privacyManagement.assessment": "تقييم تأثير الخصوصية",
+    "privacyManagement.audit": "تدقيق الخصوصية",
+    "privacyManagement.awareness": "الوعي بالخصوصية",
+    "privacyManagement.breach": "خرق الخصوصية",
+    "privacyManagement.ccpa": "امتثال قانون خصوصية المسته��ك",
+    "privacyManagement.compliance": "امتثال الخصوصية",
+    "privacyManagement.consent": "إدارة الموافقة",
+    "privacyManagement.design": "الخصوصية بالتصميم",
+    "privacyManagement.disclosure": "الكشف عن الخصوصية",
+    "privacyManagement.framework": "إطار الخصوصية",
+    "privacyManagement.gdpr": "امتثال اللائحة العامة لحماية البيانات",
+    "privacyManagement.governance": "حوكمة الخصوصية",
+    "privacyManagement.incident": "حادث الخصوصية",
+    "privacyManagement.notice": "إشعار الخصوصية",
+    "privacyManagement.officer": "مسؤول الخصوصية",
+    "privacyManagement.policy": "سياسة الخصوصية",
+    "privacyManagement.preferences": "تفضيلات الخصوصية",
+    "privacyManagement.privacy": "إدارة الخصوصية",
+    "privacyManagement.protection": "حماية الخصوصية",
+    "privacyManagement.request": "طلب الخصوصية",
+    "privacyManagement.rights": "حقوق الخصوصية",
+    "privacyManagement.training": "التدريب على الخصوصية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/privacySettings.translations.json">
+<![CDATA[
+{
+  "en": {
+    "privacySettings.accountDeletion": "Delete Account",
+    "privacySettings.activityStatus": "Activity Status",
+    "privacySettings.advertising": "Advertising",
+    "privacySettings.analytics": "Analytics",
+    "privacySettings.blockedUsers": "Blocked Users",
+    "privacySettings.contactInfo": "Contact Information",
+    "privacySettings.cookies": "Cookies",
+    "privacySettings.custom": "Custom",
+    "privacySettings.dataDownload": "Download Your Data",
+    "privacySettings.dataSharing": "Data Sharing",
+    "privacySettings.friendsOnly": "Friends Only",
+    "privacySettings.indexing": "Search Engine Indexing",
+    "privacySettings.locationSharing": "Location Sharing",
+    "privacySettings.personalization": "Personalization",
+    "privacySettings.privacy": "Privacy",
+    "privacySettings.private": "Private",
+    "privacySettings.profileInfo": "Profile Information",
+    "privacySettings.public": "Public",
+    "privacySettings.readReceipts": "Read Receipts",
+    "privacySettings.searchability": "Searchability",
+    "privacySettings.thirdParty": "Third Party Apps",
+    "privacySettings.tracking": "Tracking",
+    "privacySettings.visibility": "Visibility",
+    "privacySettings.whoCanComment": "Who Can Comment",
+    "privacySettings.whoCanContact": "Who Can Contact",
+    "privacySettings.whoCanSee": "Who Can See",
+    "privacySettings.whoCanShare": "Who Can Share",
+    "privacySettings.whoCanTag": "Who Can Tag"
+  },
+  "ar": {
+    "privacySettings.accountDeletion": "حذف الحساب",
+    "privacySettings.activityStatus": "حالة النشاط",
+    "privacySettings.advertising": "الإعلانات",
+    "privacySettings.analytics": "التحليلات",
+    "privacySettings.blockedUsers": "المستخدمون المحظورون",
+    "privacySettings.contactInfo": "معلومات الاتصال",
+    "privacySettings.cookies": "ملفات تعريف الارتباط",
+    "privacySettings.custom": "مخصص",
+    "privacySettings.dataDownload": "تنزيل بياناتك",
+    "privacySettings.dataSharing": "مشاركة البيانات",
+    "privacySettings.friendsOnly": "الأصدقاء فقط",
+    "privacySettings.indexing": "فهرسة محركات البحث",
+    "privacySettings.locationSharing": "مشاركة الموقع",
+    "privacySettings.personalization": "التخصيص",
+    "privacySettings.privacy": "الخصوصية",
+    "privacySettings.private": "خاص",
+    "privacySettings.profileInfo": "معلومات الملف الشخصي",
+    "privacySettings.public": "عام",
+    "privacySettings.readReceipts": "إيصالات القراءة",
+    "privacySettings.searchability": "قابلية البحث",
+    "privacySettings.thirdParty": "تطبيقات الطرف الثالث",
+    "privacySettings.tracking": "التتبع",
+    "privacySettings.visibility": "الظهور",
+    "privacySettings.whoCanComment": "من يمكنه التعليق",
+    "privacySettings.whoCanContact": "من يمكنه التواصل",
+    "privacySettings.whoCanSee": "من يمكنه المشاهدة",
+    "privacySettings.whoCanShare": "من يمكنه المشاركة",
+    "privacySettings.whoCanTag": "من يمكنه الوسم"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/privacyTechnology.translations.json">
+<![CDATA[
+{
+  "en": {
+    "privacyTechnology.access": "Data Access Requests",
+    "privacyTechnology.anonymization": "Data Anonymization",
+    "privacyTechnology.assessment": "Privacy Assessment",
+    "privacyTechnology.audit": "Privacy Audit",
+    "privacyTechnology.breach": "Breach Management",
+    "privacyTechnology.ccpa": "CCPA Compliance",
+    "privacyTechnology.consent": "Consent Management",
+    "privacyTechnology.deletion": "Data Deletion",
+    "privacyTechnology.encryption": "Data Encryption",
+    "privacyTechnology.gdpr": "GDPR Compliance",
+    "privacyTechnology.impact": "Impact Analysis",
+    "privacyTechnology.masking": "Data Masking",
+    "privacyTechnology.notification": "Breach Notification",
+    "privacyTechnology.portability": "Data Portability",
+    "privacyTechnology.preferences": "Privacy Preferences",
+    "privacyTechnology.privacy": "Privacy Technology",
+    "privacyTechnology.protection": "Data Protection",
+    "privacyTechnology.pseudonymization": "Data Pseudonymization",
+    "privacyTechnology.rights": "Data Subject Rights",
+    "privacyTechnology.technology": "Privacy Tech",
+    "privacyTechnology.tokenization": "Data Tokenization",
+    "privacyTechnology.training": "Privacy Training"
+  },
+  "ar": {
+    "privacyTechnology.access": "طلبات الوصول إلى البيانات",
+    "privacyTechnology.anonymization": "إخفاء هوية البيانات",
+    "privacyTechnology.assessment": "تقييم الخصوصية",
+    "privacyTechnology.audit": "تدقيق الخصوصية",
+    "privacyTechnology.breach": "إدارة الاختراقات",
+    "privacyTechnology.ccpa": "امتثال CCPA",
+    "privacyTechnology.consent": "إدارة الموافقة",
+    "privacyTechnology.deletion": "حذف البيانات",
+    "privacyTechnology.encryption": "تشفير البيانات",
+    "privacyTechnology.gdpr": "امتثال GDPR",
+    "privacyTechnology.impact": "تحليل التأثير",
+    "privacyTechnology.masking": "إخفاء البيانات",
+    "privacyTechnology.notification": "إخطار الاختراق",
+    "privacyTechnology.portability": "قابلية نقل البيانات",
+    "privacyTechnology.preferences": "تفضيلات الخصوصية",
+    "privacyTechnology.privacy": "تكنولوجيا الخصوصية",
+    "privacyTechnology.protection": "حماية البيانات",
+    "privacyTechnology.pseudonymization": "الأسماء المستعارة للبيانات",
+    "privacyTechnology.rights": "حقوق موضوع البيانات",
+    "privacyTechnology.technology": "تقنية الخصوصية",
+    "privacyTechnology.tokenization": "ترميز البيانات",
+    "privacyTechnology.training": "تدريب الخصوصية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/problemManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "problemManagement.analysis": "Problem Analysis",
+    "problemManagement.closed": "Closed",
+    "problemManagement.corrective": "Corrective Action",
+    "problemManagement.diagnosed": "Diagnosed",
+    "problemManagement.diagnosis": "Diagnosis",
+    "problemManagement.identified": "Identified",
+    "problemManagement.investigating": "Investigating",
+    "problemManagement.investigation": "Investigation",
+    "problemManagement.knownError": "Known Error",
+    "problemManagement.permanent": "Permanent Fix",
+    "problemManagement.preventive": "Preventive Action",
+    "problemManagement.priority": "Priority",
+    "problemManagement.problem": "Problem",
+    "problemManagement.relatedIncidents": "Related Incidents",
+    "problemManagement.resolved": "Resolved",
+    "problemManagement.review": "Problem Review",
+    "problemManagement.rootCause": "Root Cause Analysis",
+    "problemManagement.solution": "Solution",
+    "problemManagement.status": "Status",
+    "problemManagement.temporary": "Temporary Fix",
+    "problemManagement.trending": "Trending",
+    "problemManagement.workaround": "Workaround"
+  },
+  "ar": {
+    "problemManagement.analysis": "تحليل المشكلة",
+    "problemManagement.closed": "مغلق",
+    "problemManagement.corrective": "الإجراء التصحيحي",
+    "problemManagement.diagnosed": "تم التشخيص",
+    "problemManagement.diagnosis": "التشخيص",
+    "problemManagement.identified": "تم التحديد",
+    "problemManagement.investigating": "قيد التحقيق",
+    "problemManagement.investigation": "التحقيق",
+    "problemManagement.knownError": "خطأ معروف",
+    "problemManagement.permanent": "إصلاح دائم",
+    "problemManagement.preventive": "الإجراء الوقائي",
+    "problemManagement.priority": "الأولوية",
+    "problemManagement.problem": "المشكلة",
+    "problemManagement.relatedIncidents": "الحوادث ذات الصلة",
+    "problemManagement.resolved": "تم الحل",
+    "problemManagement.review": "مراجعة المشكلة",
+    "problemManagement.rootCause": "تحليل السبب الجذري",
+    "problemManagement.solution": "الحل",
+    "problemManagement.status": "الحالة",
+    "problemManagement.temporary": "إصلاح مؤقت",
+    "problemManagement.trending": "الاتجاه",
+    "problemManagement.workaround": "الحل المؤقت"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/problemManagementAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "problemManagementAdv.analysis": "Problem Analysis",
+    "problemManagementAdv.closure": "Problem Closure",
+    "problemManagementAdv.continual": "Continual Improvement",
+    "problemManagementAdv.database": "Known Error Database",
+    "problemManagementAdv.diagnosis": "Problem Diagnosis",
+    "problemManagementAdv.identification": "Problem Identification",
+    "problemManagementAdv.investigation": "Problem Investigation",
+    "problemManagementAdv.known": "Known Error",
+    "problemManagementAdv.metrics": "Problem Metrics",
+    "problemManagementAdv.prevention": "Problem Prevention",
+    "problemManagementAdv.prioritization": "Problem Prioritization",
+    "problemManagementAdv.proactive": "Proactive Problem Management",
+    "problemManagementAdv.problem": "Problem Management",
+    "problemManagementAdv.reactive": "Reactive Problem Management",
+    "problemManagementAdv.record": "Problem Record",
+    "problemManagementAdv.reporting": "Problem Reporting",
+    "problemManagementAdv.resolution": "Problem Resolution",
+    "problemManagementAdv.review": "Problem Review",
+    "problemManagementAdv.root": "Root Cause",
+    "problemManagementAdv.solution": "Permanent Solution",
+    "problemManagementAdv.trend": "Trend Analysis",
+    "problemManagementAdv.workaround": "Workaround"
+  },
+  "ar": {
+    "problemManagementAdv.analysis": "تحليل المشكلة",
+    "problemManagementAdv.closure": "إغلاق المشكلة",
+    "problemManagementAdv.continual": "التحسين المستمر",
+    "problemManagementAdv.database": "قاعدة بيانات الأخطاء المعروفة",
+    "problemManagementAdv.diagnosis": "تشخيص المشكلة",
+    "problemManagementAdv.identification": "تحديد المشكلة",
+    "problemManagementAdv.investigation": "التحقيق في المشكلة",
+    "problemManagementAdv.known": "خطأ معروف",
+    "problemManagementAdv.metrics": "مقاييس المشكلة",
+    "problemManagementAdv.prevention": "منع المشكلة",
+    "problemManagementAdv.prioritization": "تحديد أولوية المشكلة",
+    "problemManagementAdv.proactive": "إدارة المشاكل الاستباقية",
+    "problemManagementAdv.problem": "إدارة المشاكل",
+    "problemManagementAdv.reactive": "إدارة المشاكل التفاعلية",
+    "problemManagementAdv.record": "سجل المشكلة",
+    "problemManagementAdv.reporting": "الإبلاغ عن المشكلة",
+    "problemManagementAdv.resolution": "حل المشكلة",
+    "problemManagementAdv.review": "مراجعة المشكلة",
+    "problemManagementAdv.root": "السبب الجذري",
+    "problemManagementAdv.solution": "الحل الدائم",
+    "problemManagementAdv.trend": "تحليل الاتجاه",
+    "problemManagementAdv.workaround": "الحل المؤقت"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/problemSolving.translations.json">
+<![CDATA[
+{
+  "en": {
+    "problemSolving.analysis": "Problem Analysis",
+    "problemSolving.approach": "Problem-Solving Approach",
+    "problemSolving.brainstorming": "Brainstorming",
+    "problemSolving.creativity": "Creative Problem Solving",
+    "problemSolving.critical": "Critical Thinking",
+    "problemSolving.definition": "Problem Definition",
+    "problemSolving.diagnosis": "Problem Diagnosis",
+    "problemSolving.evaluation": "Solution Evaluation",
+    "problemSolving.framework": "Problem-Solving Framework",
+    "problemSolving.ideation": "Ideation",
+    "problemSolving.identification": "Problem Identification",
+    "problemSolving.implementation": "Solution Implementation",
+    "problemSolving.investigation": "Problem Investigation",
+    "problemSolving.methodology": "Problem-Solving Methodology",
+    "problemSolving.problem": "Problem Solving",
+    "problemSolving.root": "Root Cause Analysis",
+    "problemSolving.selection": "Solution Selection",
+    "problemSolving.solution": "Solution Development",
+    "problemSolving.techniques": "Problem-Solving Techniques",
+    "problemSolving.testing": "Solution Testing",
+    "problemSolving.tools": "Problem-Solving Tools",
+    "problemSolving.validation": "Solution Validation"
+  },
+  "ar": {
+    "problemSolving.analysis": "تحليل المشكلة",
+    "problemSolving.approach": "نهج حل المشكلات",
+    "problemSolving.brainstorming": "العصف الذهني",
+    "problemSolving.creativity": "حل المشكلات الإبداعي",
+    "problemSolving.critical": "التفكير النقدي",
+    "problemSolving.definition": "تعريف المشكلة",
+    "problemSolving.diagnosis": "تشخيص المشكلة",
+    "problemSolving.evaluation": "تقييم الحل",
+    "problemSolving.framework": "إطار حل المشكلات",
+    "problemSolving.ideation": "توليد الأفكار",
+    "problemSolving.identification": "تحديد المشكلة",
+    "problemSolving.implementation": "تنفيذ الحل",
+    "problemSolving.investigation": "التحقيق في المشكلة",
+    "problemSolving.methodology": "منهجية حل المشكلات",
+    "problemSolving.problem": "حل المشكلات",
+    "problemSolving.root": "تحليل السبب الجذري",
+    "problemSolving.selection": "اختيار الحل",
+    "problemSolving.solution": "تطوير الحل",
+    "problemSolving.techniques": "تقنيات حل المشكلات",
+    "problemSolving.testing": "اختبار الحل",
+    "problemSolving.tools": "أدوات حل المشكلات",
+    "problemSolving.validation": "التحقق من الحل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/procedures.translations.json">
+<![CDATA[
+{
+  "en": {
+    "procedures.approval": "Approval",
+    "procedures.authorization": "Authorization",
+    "procedures.bestPractice": "Best Practice",
+    "procedures.checklist": "Checklist",
+    "procedures.diagram": "Diagram",
+    "procedures.documentation": "Documentation",
+    "procedures.escalation": "Escalation",
+    "procedures.exception": "Exception",
+    "procedures.flowchart": "Flowchart",
+    "procedures.form": "Form",
+    "procedures.guideline": "Guideline",
+    "procedures.instruction": "Instruction",
+    "procedures.instructions": "Instructions",
+    "procedures.methodology": "Methodology",
+    "procedures.order": "Order",
+    "procedures.practice": "Practice",
+    "procedures.procedure": "Procedure",
+    "procedures.procedures1": "Procedures",
+    "procedures.process": "Process",
+    "procedures.processes": "Processes",
+    "procedures.protocol": "Protocol",
+    "procedures.sequence": "Sequence",
+    "procedures.sop": "SOP",
+    "procedures.standardOperatingProcedure": "Standard Operating Procedure",
+    "procedures.step": "Step",
+    "procedures.steps": "Steps",
+    "procedures.template": "Template",
+    "procedures.workflow": "Workflow"
+  },
+  "ar": {
+    "procedures.approval": "موافقة",
+    "procedures.authorization": "تفويض",
+    "procedures.bestPractice": "أفضل ممارسة",
+    "procedures.checklist": "قائمة مراجعة",
+    "procedures.diagram": "رسم تخطيطي",
+    "procedures.documentation": "التوثيق",
+    "procedures.escalation": "تصعيد",
+    "procedures.exception": "استثناء",
+    "procedures.flowchart": "مخطط انسيابي",
+    "procedures.form": "نموذج",
+    "procedures.guideline": "إرشاد",
+    "procedures.instruction": "تعليمات",
+    "procedures.instructions": "تعليمات",
+    "procedures.methodology": "منهجية",
+    "procedures.order": "طلب",
+    "procedures.practice": "ممارسة",
+    "procedures.procedure": "إجراء",
+    "procedures.procedures1": "إجراءات",
+    "procedures.process": "عملية",
+    "procedures.processes": "عمليات",
+    "procedures.protocol": "بروتوكول",
+    "procedures.sequence": "تسلسل",
+    "procedures.sop": "إجراء تشغيل قياسي",
+    "procedures.standardOperatingProcedure": "إجراء التشغيل القياسي",
+    "procedures.step": "خطوة",
+    "procedures.steps": "خطوات",
+    "procedures.template": "نموذج",
+    "procedures.workflow": "سير العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/processAutomation.translations.json">
+<![CDATA[
+{
+  "en": {
+    "processAutomation.analytics": "Automation Analytics",
+    "processAutomation.assessment": "Automation Assessment",
+    "processAutomation.automation": "Process Automation",
+    "processAutomation.bot": "Automation Bot",
+    "processAutomation.business": "Business Process Automation",
+    "processAutomation.center": "Automation Center of Excellence",
+    "processAutomation.deployment": "Automation Deployment",
+    "processAutomation.design": "Automation Design",
+    "processAutomation.development": "Automation Development",
+    "processAutomation.governance": "Automation Governance",
+    "processAutomation.hyperautomation": "Hyperautomation",
+    "processAutomation.intelligent": "Intelligent Automation",
+    "processAutomation.metrics": "Automation Metrics",
+    "processAutomation.monitoring": "Automation Monitoring",
+    "processAutomation.opportunity": "Automation Opportunity",
+    "processAutomation.optimization": "Automation Optimization",
+    "processAutomation.orchestration": "Automation Orchestration",
+    "processAutomation.robot": "Software Robot",
+    "processAutomation.roi": "Automation ROI",
+    "processAutomation.rpa": "Robotic Process Automation",
+    "processAutomation.task": "Task Automation",
+    "processAutomation.workflow": "Workflow Automation"
+  },
+  "ar": {
+    "processAutomation.analytics": "تحليلات الأتمتة",
+    "processAutomation.assessment": "تقييم الأتمتة",
+    "processAutomation.automation": "أتمتة العمليات",
+    "processAutomation.bot": "روبوت الأتمتة",
+    "processAutomation.business": "أتمتة العمليات التجارية",
+    "processAutomation.center": "مركز التميز في الأتمتة",
+    "processAutomation.deployment": "نشر الأتمتة",
+    "processAutomation.design": "تصميم الأتمتة",
+    "processAutomation.development": "تطوير الأتمتة",
+    "processAutomation.governance": "حوكمة الأتمتة",
+    "processAutomation.hyperautomation": "الأتمتة الفائقة",
+    "processAutomation.intelligent": "الأتمتة الذكية",
+    "processAutomation.metrics": "مقاييس الأتمتة",
+    "processAutomation.monitoring": "مراقبة الأتمتة",
+    "processAutomation.opportunity": "فرصة الأتمتة",
+    "processAutomation.optimization": "تحسين الأتمتة",
+    "processAutomation.orchestration": "تنسيق الأتمتة",
+    "processAutomation.robot": "الروبوت البرمجي",
+    "processAutomation.roi": "عائد الاستثمار في الأتمتة",
+    "processAutomation.rpa": "أتمتة العمليات الروبوتية",
+    "processAutomation.task": "أتمتة المهام",
+    "processAutomation.workflow": "أتمتة سير العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/processAutomationAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "processAutomationAdv.approval": "Approval",
+    "processAutomationAdv.approver": "Approver",
+    "processAutomationAdv.automate": "Automate",
+    "processAutomationAdv.automatic": "Automatic",
+    "processAutomationAdv.cancel": "Cancel",
+    "processAutomationAdv.custom": "Custom Schedule",
+    "processAutomationAdv.daily": "Daily",
+    "processAutomationAdv.manual": "Manual",
+    "processAutomationAdv.monthly": "Monthly",
+    "processAutomationAdv.onetime": "One Time",
+    "processAutomationAdv.parallel": "Parallel",
+    "processAutomationAdv.pause": "Pause",
+    "processAutomationAdv.phase": "Phase",
+    "processAutomationAdv.process": "Process",
+    "processAutomationAdv.recurring": "Recurring",
+    "processAutomationAdv.resume": "Resume",
+    "processAutomationAdv.reviewer": "Reviewer",
+    "processAutomationAdv.schedule": "Schedule",
+    "processAutomationAdv.sequence": "Sequence",
+    "processAutomationAdv.stage": "Stage",
+    "processAutomationAdv.start": "Start Process",
+    "processAutomationAdv.template": "Process Template",
+    "processAutomationAdv.weekly": "Weekly"
+  },
+  "ar": {
+    "processAutomationAdv.approval": "الموافقة",
+    "processAutomationAdv.approver": "المعتمد",
+    "processAutomationAdv.automate": "أتمتة",
+    "processAutomationAdv.automatic": "تلقائي",
+    "processAutomationAdv.cancel": "إلغاء",
+    "processAutomationAdv.custom": "جدولة مخصصة",
+    "processAutomationAdv.daily": "يومي",
+    "processAutomationAdv.manual": "يدوي",
+    "processAutomationAdv.monthly": "شهري",
+    "processAutomationAdv.onetime": "مرة واحدة",
+    "processAutomationAdv.parallel": "متوازي",
+    "processAutomationAdv.pause": "إيقاف مؤقت",
+    "processAutomationAdv.phase": "الطور",
+    "processAutomationAdv.process": "العملية",
+    "processAutomationAdv.recurring": "متكرر",
+    "processAutomationAdv.resume": "استئناف",
+    "processAutomationAdv.reviewer": "المراجع",
+    "processAutomationAdv.schedule": "الجدولة",
+    "processAutomationAdv.sequence": "تسلسلي",
+    "processAutomationAdv.stage": "المرحلة",
+    "processAutomationAdv.start": "بدء العملية",
+    "processAutomationAdv.template": "قالب العملية",
+    "processAutomationAdv.weekly": "أسبوعي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/processAutomationExt.translations.json">
+<![CDATA[
+{
+  "en": {
+    "processAutomationExt.analysis": "Process Analysis",
+    "processAutomationExt.automation": "Process Automation",
+    "processAutomationExt.bpm": "Business Process Management",
+    "processAutomationExt.bpms": "BPM System",
+    "processAutomationExt.compliance": "Process Compliance",
+    "processAutomationExt.discovery": "Process Discovery",
+    "processAutomationExt.documentation": "Process Documentation",
+    "processAutomationExt.engine": "Workflow Engine",
+    "processAutomationExt.execution": "Process Execution",
+    "processAutomationExt.governance": "Process Governance",
+    "processAutomationExt.improvement": "Process Improvement",
+    "processAutomationExt.intelligence": "Process Intelligence",
+    "processAutomationExt.mining": "Process Mining",
+    "processAutomationExt.modeling": "Process Modeling",
+    "processAutomationExt.monitoring": "Process Monitoring",
+    "processAutomationExt.notation": "BPMN Notation",
+    "processAutomationExt.optimization": "Process Optimization",
+    "processAutomationExt.orchestration": "Process Orchestration",
+    "processAutomationExt.repository": "Process Repository",
+    "processAutomationExt.rpa": "RPA Integration",
+    "processAutomationExt.simulation": "Process Simulation",
+    "processAutomationExt.workflow": "Workflow Automation"
+  },
+  "ar": {
+    "processAutomationExt.analysis": "تحليل العملية",
+    "processAutomationExt.automation": "أتمتة العمليات",
+    "processAutomationExt.bpm": "إدارة عمليات الأعمال",
+    "processAutomationExt.bpms": "نظام إدارة عمليات الأعمال",
+    "processAutomationExt.compliance": "امتثال العملية",
+    "processAutomationExt.discovery": "اكتشاف العملية",
+    "processAutomationExt.documentation": "توثيق العملية",
+    "processAutomationExt.engine": "محرك سير العمل",
+    "processAutomationExt.execution": "تنفيذ العملية",
+    "processAutomationExt.governance": "حوكمة العملية",
+    "processAutomationExt.improvement": "تحسين العملية",
+    "processAutomationExt.intelligence": "ذكاء العملية",
+    "processAutomationExt.mining": "استخراج العملية",
+    "processAutomationExt.modeling": "نمذجة العملية",
+    "processAutomationExt.monitoring": "مراقبة العملية",
+    "processAutomationExt.notation": "تدوين BPMN",
+    "processAutomationExt.optimization": "تحسين العملية",
+    "processAutomationExt.orchestration": "تنسيق العملية",
+    "processAutomationExt.repository": "مستودع العملية",
+    "processAutomationExt.rpa": "تكامل أتمتة العمليات الروبوتية",
+    "processAutomationExt.simulation": "محاكاة العملية",
+    "processAutomationExt.workflow": "أتمتة سير العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/processChange.translations.json">
+<![CDATA[
+{
+  "en": {
+    "processChange.adoption": "Process Adoption",
+    "processChange.alignment": "Process Alignment",
+    "processChange.analysis": "Process Analysis",
+    "processChange.automation": "Process Automation",
+    "processChange.compliance": "Process Compliance",
+    "processChange.digitization": "Process Digitization",
+    "processChange.documentation": "Process Documentation",
+    "processChange.governance": "Process Governance",
+    "processChange.implementation": "Process Implementation",
+    "processChange.improvement": "Process Improvement",
+    "processChange.integration": "Process Integration",
+    "processChange.mapping": "Process Mapping",
+    "processChange.measurement": "Process Measurement",
+    "processChange.monitoring": "Process Monitoring",
+    "processChange.optimization": "Process Optimization",
+    "processChange.process": "Process Change",
+    "processChange.redesign": "Process Redesign",
+    "processChange.reengineering": "Process Reengineering",
+    "processChange.simplification": "Process Simplification",
+    "processChange.standardization": "Process Standardization",
+    "processChange.streamlining": "Process Streamlining",
+    "processChange.transformation": "Process Transformation"
+  },
+  "ar": {
+    "processChange.adoption": "تبني العمليات",
+    "processChange.alignment": "مواءمة العمليات",
+    "processChange.analysis": "تحليل العمليات",
+    "processChange.automation": "أتمتة العمليات",
+    "processChange.compliance": "امتثال العمليات",
+    "processChange.digitization": "رقمنة العمليات",
+    "processChange.documentation": "توثيق العمليات",
+    "processChange.governance": "حوكمة العمليات",
+    "processChange.implementation": "تنفيذ العمليات",
+    "processChange.improvement": "تحسين العمليات",
+    "processChange.integration": "تكامل العمليات",
+    "processChange.mapping": "رسم خريطة العمليات",
+    "processChange.measurement": "قياس العمليات",
+    "processChange.monitoring": "مراقبة العمليات",
+    "processChange.optimization": "تحسين العمليات",
+    "processChange.process": "تغيير العمليات",
+    "processChange.redesign": "إعادة تصميم العمليات",
+    "processChange.reengineering": "إعادة هندسة العمليات",
+    "processChange.simplification": "تبسيط العمليات",
+    "processChange.standardization": "توحيد العمليات",
+    "processChange.streamlining": "تبسيط العمليات",
+    "processChange.transformation": "تحول العمليات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/processImprovement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "processImprovement.analysis": "Process Analysis",
+    "processImprovement.automation": "Process Automation",
+    "processImprovement.control": "Process Control",
+    "processImprovement.documentation": "Process Documentation",
+    "processImprovement.effectiveness": "Process Effectiveness",
+    "processImprovement.efficiency": "Process Efficiency",
+    "processImprovement.excellence": "Process Excellence",
+    "processImprovement.governance": "Process Governance",
+    "processImprovement.improvement": "Process Improvement",
+    "processImprovement.kpi": "Process KPIs",
+    "processImprovement.management": "Process Management",
+    "processImprovement.mapping": "Process Mapping",
+    "processImprovement.metrics": "Process Metrics",
+    "processImprovement.modeling": "Process Modeling",
+    "processImprovement.monitoring": "Process Monitoring",
+    "processImprovement.optimization": "Process Optimization",
+    "processImprovement.ownership": "Process Ownership",
+    "processImprovement.quality": "Process Quality",
+    "processImprovement.redesign": "Process Redesign",
+    "processImprovement.reengineering": "Process Reengineering",
+    "processImprovement.simplification": "Process Simplification",
+    "processImprovement.standardization": "Process Standardization"
+  },
+  "ar": {
+    "processImprovement.analysis": "تحليل العمليات",
+    "processImprovement.automation": "أتمتة العمليات",
+    "processImprovement.control": "التحكم في العمليات",
+    "processImprovement.documentation": "توثيق العمليات",
+    "processImprovement.effectiveness": "فعالية العمليات",
+    "processImprovement.efficiency": "كفاءة العمليات",
+    "processImprovement.excellence": "تميز العمليات",
+    "processImprovement.governance": "حوكمة العمليات",
+    "processImprovement.improvement": "تحسين العمليات",
+    "processImprovement.kpi": "مؤشرات الأداء الرئيسية للعمليات",
+    "processImprovement.management": "إدارة العمليات",
+    "processImprovement.mapping": "رسم خريطة العمليات",
+    "processImprovement.metrics": "مقاييس العمليات",
+    "processImprovement.modeling": "نمذجة العمليات",
+    "processImprovement.monitoring": "مراقبة العمليات",
+    "processImprovement.optimization": "تحسين العمليات",
+    "processImprovement.ownership": "ملكية العمليات",
+    "processImprovement.quality": "جودة العمليات",
+    "processImprovement.redesign": "إعادة تصميم العمليات",
+    "processImprovement.reengineering": "إعادة هندسة العمليات",
+    "processImprovement.simplification": "تبسيط العمليات",
+    "processImprovement.standardization": "توحيد العمليات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/processImprovementMethodologies.translations.json">
+<![CDATA[
+{
+  "en": {
+    "processImprovementMethodologies.act": "Act",
+    "processImprovementMethodologies.analyze": "Analyze",
+    "processImprovementMethodologies.check": "Check",
+    "processImprovementMethodologies.continuous": "Continuous Improvement",
+    "processImprovementMethodologies.control": "Control",
+    "processImprovementMethodologies.define": "Define",
+    "processImprovementMethodologies.dmaic": "DMAIC",
+    "processImprovementMethodologies.do": "Do",
+    "processImprovementMethodologies.gemba": "Gemba",
+    "processImprovementMethodologies.hoshin": "Hoshin Kanri",
+    "processImprovementMethodologies.improve": "Improve",
+    "processImprovementMethodologies.improvement": "Process Improvement",
+    "processImprovementMethodologies.kaizen": "Kaizen",
+    "processImprovementMethodologies.lean": "Lean Manufacturing",
+    "processImprovementMethodologies.measure": "Measure",
+    "processImprovementMethodologies.methodology": "Methodology",
+    "processImprovementMethodologies.pdca": "PDCA",
+    "processImprovementMethodologies.plan": "Plan",
+    "processImprovementMethodologies.six": "Six Sigma",
+    "processImprovementMethodologies.tqm": "Total Quality Management",
+    "processImprovementMethodologies.value": "Value Stream Mapping"
+  },
+  "ar": {
+    "processImprovementMethodologies.act": "تصرف",
+    "processImprovementMethodologies.analyze": "التحليل",
+    "processImprovementMethodologies.check": "تحقق",
+    "processImprovementMethodologies.continuous": "التحسين المستمر",
+    "processImprovementMethodologies.control": "التحكم",
+    "processImprovementMethodologies.define": "التعريف",
+    "processImprovementMethodologies.dmaic": "DMAIC",
+    "processImprovementMethodologies.do": "نفذ",
+    "processImprovementMethodologies.gemba": "جيمبا",
+    "processImprovementMethodologies.hoshin": "هوشين كانري",
+    "processImprovementMethodologies.improve": "التحسين",
+    "processImprovementMethodologies.improvement": "تحسين العمليات",
+    "processImprovementMethodologies.kaizen": "كايزن",
+    "processImprovementMethodologies.lean": "التصنيع الرشيق",
+    "processImprovementMethodologies.measure": "القياس",
+    "processImprovementMethodologies.methodology": "المنهجية",
+    "processImprovementMethodologies.pdca": "خطط-نفذ-تحقق-تصرف",
+    "processImprovementMethodologies.plan": "خطط",
+    "processImprovementMethodologies.six": "ستة سيجما",
+    "processImprovementMethodologies.tqm": "إدارة الجودة الشاملة",
+    "processImprovementMethodologies.value": "رسم خريطة تدفق القيمة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/processMapping.translations.json">
+<![CDATA[
+{
+  "en": {
+    "processMapping.activities": "Process Activities",
+    "processMapping.analysis": "Process Analysis",
+    "processMapping.bottlenecks": "Process Bottlenecks",
+    "processMapping.current": "Current State",
+    "processMapping.design": "Process Design",
+    "processMapping.diagram": "Process Diagram",
+    "processMapping.documentation": "Process Documentation",
+    "processMapping.flowchart": "Process Flowchart",
+    "processMapping.future": "Future State",
+    "processMapping.handoffs": "Process Handoffs",
+    "processMapping.improvement": "Process Improvement",
+    "processMapping.inputs": "Process Inputs",
+    "processMapping.mapping": "Process Visualization",
+    "processMapping.modeling": "Process Modeling",
+    "processMapping.outputs": "Process Outputs",
+    "processMapping.process": "Process Mapping",
+    "processMapping.resources": "Process Resources",
+    "processMapping.steps": "Process Steps",
+    "processMapping.swim": "Swim Lane",
+    "processMapping.value": "Value Stream",
+    "processMapping.visualization": "Process Visualization",
+    "processMapping.workflow": "Workflow Mapping"
+  },
+  "ar": {
+    "processMapping.activities": "أنشطة العمليات",
+    "processMapping.analysis": "تحليل العمليات",
+    "processMapping.bottlenecks": "الاختناقات",
+    "processMapping.current": "الحالة الحالية",
+    "processMapping.design": "تصميم العمليات",
+    "processMapping.diagram": "مخطط العمليات",
+    "processMapping.documentation": "توثيق العمليات",
+    "processMapping.flowchart": "مخطط تدفق العمليات",
+    "processMapping.future": "الحالة المستقبلية",
+    "processMapping.handoffs": "نقاط التسليم",
+    "processMapping.improvement": "تحسين العمليات",
+    "processMapping.inputs": "مدخلات العمليات",
+    "processMapping.mapping": "تصور العمليات",
+    "processMapping.modeling": "نمذجة العمليات",
+    "processMapping.outputs": "مخرجات العمليات",
+    "processMapping.process": "رسم خريطة العمليات",
+    "processMapping.resources": "موارد العمليات",
+    "processMapping.steps": "خطوات العمليات",
+    "processMapping.swim": "مسار السباحة",
+    "processMapping.value": "تدفق القيمة",
+    "processMapping.visualization": "تصور العمليات",
+    "processMapping.workflow": "رسم خريطة سير العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/processMining.translations.json">
+<![CDATA[
+{
+  "en": {
+    "processMining.analysis": "Process Analysis",
+    "processMining.automation": "Process Automation",
+    "processMining.bpm": "BPM Platform",
+    "processMining.choreography": "Process Choreography",
+    "processMining.compliance": "Process Compliance",
+    "processMining.design": "Process Design",
+    "processMining.discovery": "Process Discovery",
+    "processMining.documentation": "Process Documentation",
+    "processMining.execution": "Process Execution",
+    "processMining.governance": "Process Governance",
+    "processMining.improvement": "Process Improvement",
+    "processMining.metrics": "Process Metrics",
+    "processMining.mining": "Process Mining",
+    "processMining.modeling": "Process Modeling",
+    "processMining.monitoring": "Process Monitoring",
+    "processMining.optimization": "Process Optimization",
+    "processMining.orchestration": "Process Orchestration",
+    "processMining.process": "Process Mining",
+    "processMining.reengineering": "Process Reengineering",
+    "processMining.simulation": "Process Simulation",
+    "processMining.workflows": "Workflow Engine"
+  },
+  "ar": {
+    "processMining.analysis": "تحليل العمليات",
+    "processMining.automation": "أتمتة العمليات",
+    "processMining.bpm": "منصة إدارة عمليات الأعمال",
+    "processMining.choreography": "تصميم العمليات الحركي",
+    "processMining.compliance": "امتثال العمليات",
+    "processMining.design": "تصميم العمليات",
+    "processMining.discovery": "اكتشاف العمليات",
+    "processMining.documentation": "توثيق العمليات",
+    "processMining.execution": "تنفيذ العمليات",
+    "processMining.governance": "حوكمة العمليات",
+    "processMining.improvement": "تحسين العمليات",
+    "processMining.metrics": "مقاييس العمليات",
+    "processMining.mining": "تعدين العمليات",
+    "processMining.modeling": "نمذجة العمليات",
+    "processMining.monitoring": "مراقبة العمليات",
+    "processMining.optimization": "تحسين العمليات",
+    "processMining.orchestration": "تنسيق العمليات",
+    "processMining.process": "تعدين العمليات",
+    "processMining.reengineering": "إعادة هندسة العمليات",
+    "processMining.simulation": "محاكاة العمليات",
+    "processMining.workflows": "محرك سير العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/procurement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "procurement.acquisition": "Acquisition",
+    "procurement.bid": "Bid",
+    "procurement.bidding": "Bidding",
+    "procurement.cargo": "Cargo",
+    "procurement.consignment": "Consignment",
+    "procurement.delivery": "Delivery",
+    "procurement.freight": "Freight",
+    "procurement.leadTime": "Lead Time",
+    "procurement.logistics": "Logistics",
+    "procurement.orderPlacement": "Order Placement",
+    "procurement.po": "PO",
+    "procurement.procure": "Procure",
+    "procurement.procurement1": "Procurement",
+    "procurement.purchase": "Purchase",
+    "procurement.purchaseOrder": "Purchase Order",
+    "procurement.purchaseRequisition": "Purchase Requisition",
+    "procurement.purchasing": "Purchasing",
+    "procurement.quotation": "Quotation",
+    "procurement.quote": "Quote",
+    "procurement.requisition": "Requisition",
+    "procurement.shipping": "Shipping",
+    "procurement.sourcing": "Sourcing",
+    "procurement.supplier": "Supplier",
+    "procurement.suppliers": "Suppliers",
+    "procurement.supplyChain": "Supply Chain",
+    "procurement.tender": "Tender",
+    "procurement.vendor": "Vendor",
+    "procurement.vendors": "Vendors"
+  },
+  "ar": {
+    "procurement.acquisition": "الاستحواذ",
+    "procurement.bid": "عطاء",
+    "procurement.bidding": "المناقصة",
+    "procurement.cargo": "البضائع",
+    "procurement.consignment": "الشحنة",
+    "procurement.delivery": "التسليم",
+    "procurement.freight": "الشحن",
+    "procurement.leadTime": "وقت التسليم",
+    "procurement.logistics": "الخدمات اللوجستية",
+    "procurement.orderPlacement": "تقديم الطلب",
+    "procurement.po": "أمر شراء",
+    "procurement.procure": "شراء",
+    "procurement.procurement1": "المشتريات",
+    "procurement.purchase": "شراء",
+    "procurement.purchaseOrder": "أمر شراء",
+    "procurement.purchaseRequisition": "طلب شراء",
+    "procurement.purchasing": "الشراء",
+    "procurement.quotation": "عرض سعر",
+    "procurement.quote": "عرض",
+    "procurement.requisition": "طلب",
+    "procurement.shipping": "الشحن",
+    "procurement.sourcing": "التوريد",
+    "procurement.supplier": "مورد",
+    "procurement.suppliers": "موردون",
+    "procurement.supplyChain": "سلسلة التوريد",
+    "procurement.tender": "مناقصة",
+    "procurement.vendor": "بائع",
+    "procurement.vendors": "بائعون"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/procurementManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "procurementManagement.analysis": "Spend Analysis",
+    "procurementManagement.approval": "Requisition Approval",
+    "procurementManagement.catalog": "Catalog Management",
+    "procurementManagement.compliance": "Procurement Compliance",
+    "procurementManagement.contracts": "Contract Management",
+    "procurementManagement.ethics": "Supplier Ethics",
+    "procurementManagement.inspection": "Quality Inspection",
+    "procurementManagement.matching": "Invoice Matching",
+    "procurementManagement.negotiation": "Contract Negotiation",
+    "procurementManagement.orders": "Purchase Orders",
+    "procurementManagement.performance": "Supplier Performance",
+    "procurementManagement.po": "PO Management",
+    "procurementManagement.procurement": "Procurement Management",
+    "procurementManagement.punchout": "Punchout Catalogs",
+    "procurementManagement.purchasing": "Purchasing Management",
+    "procurementManagement.receiving": "Goods Receipt",
+    "procurementManagement.requisitions": "Purchase Requisitions",
+    "procurementManagement.savings": "Cost Savings",
+    "procurementManagement.sourcing": "Strategic Sourcing",
+    "procurementManagement.spend": "Spend Management",
+    "procurementManagement.supplier": "Supplier Management",
+    "procurementManagement.vendor": "Vendor Management"
+  },
+  "ar": {
+    "procurementManagement.analysis": "تحليل الإنفاق",
+    "procurementManagement.approval": "الموافقة على الطلبات",
+    "procurementManagement.catalog": "إدارة الكتالوج",
+    "procurementManagement.compliance": "الامتثال في المشتريات",
+    "procurementManagement.contracts": "إدارة العقود",
+    "procurementManagement.ethics": "أخلاقيات الموردين",
+    "procurementManagement.inspection": "فحص الجودة",
+    "procurementManagement.matching": "مطابقة الفواتير",
+    "procurementManagement.negotiation": "التفاوض على العقود",
+    "procurementManagement.orders": "أوامر الشراء",
+    "procurementManagement.performance": "أداء الموردين",
+    "procurementManagement.po": "إدارة أوامر الشراء",
+    "procurementManagement.procurement": "إدارة المشتريات",
+    "procurementManagement.punchout": "كتالوجات بانش آوت",
+    "procurementManagement.purchasing": "إدارة الشراء",
+    "procurementManagement.receiving": "استلام البضائع",
+    "procurementManagement.requisitions": "طلبات الشراء",
+    "procurementManagement.savings": "توفير التكاليف",
+    "procurementManagement.sourcing": "التوريد الاستراتيجي",
+    "procurementManagement.spend": "إدارة الإنفاق",
+    "procurementManagement.supplier": "إدارة الموردين",
+    "procurementManagement.vendor": "إدارة البائعين"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/procurementManagementExt.translations.json">
+<![CDATA[
+{
+  "en": {
+    "procurementManagementExt.administration": "Procurement Administration",
+    "procurementManagementExt.approval": "Procurement Approval",
+    "procurementManagementExt.automation": "Procurement Automation",
+    "procurementManagementExt.category": "Category Management",
+    "procurementManagementExt.closure": "Procurement Closure",
+    "procurementManagementExt.compliance": "Procurement Compliance",
+    "procurementManagementExt.contracting": "Contract Management",
+    "procurementManagementExt.eprocurement": "E-Procurement",
+    "procurementManagementExt.governance": "Procurement Governance",
+    "procurementManagementExt.optimization": "Procurement Optimization",
+    "procurementManagementExt.performance": "Procurement Performance",
+    "procurementManagementExt.planning": "Procurement Planning",
+    "procurementManagementExt.policy": "Procurement Policy",
+    "procurementManagementExt.procurement": "Procurement Management",
+    "procurementManagementExt.purchasing": "Purchasing",
+    "procurementManagementExt.requisition": "Purchase Requisition",
+    "procurementManagementExt.risk": "Procurement Risk",
+    "procurementManagementExt.selection": "Supplier Selection",
+    "procurementManagementExt.solicitation": "Procurement Solicitation",
+    "procurementManagementExt.sourcing": "Strategic Sourcing",
+    "procurementManagementExt.spend": "Spend Analysis",
+    "procurementManagementExt.strategy": "Procurement Strategy"
+  },
+  "ar": {
+    "procurementManagementExt.administration": "إدارة المشتريات",
+    "procurementManagementExt.approval": "الموافقة على المشتريات",
+    "procurementManagementExt.automation": "أتمتة المشتريات",
+    "procurementManagementExt.category": "إدارة الفئات",
+    "procurementManagementExt.closure": "إغلاق المشتريات",
+    "procurementManagementExt.compliance": "امتثال المشتريات",
+    "procurementManagementExt.contracting": "إدارة العقود",
+    "procurementManagementExt.eprocurement": "المشتريات الإلكترونية",
+    "procurementManagementExt.governance": "حوكمة المشتريات",
+    "procurementManagementExt.optimization": "تحسين المشتريات",
+    "procurementManagementExt.performance": "أداء المشتريات",
+    "procurementManagementExt.planning": "تخطيط المشتريات",
+    "procurementManagementExt.policy": "سياسة المشتريات",
+    "procurementManagementExt.procurement": "إدارة المشتريات",
+    "procurementManagementExt.purchasing": "عمليات الشراء",
+    "procurementManagementExt.requisition": "طلب الشراء",
+    "procurementManagementExt.risk": "مخاطر المشتريات",
+    "procurementManagementExt.selection": "اختيار الموردين",
+    "procurementManagementExt.solicitation": "طلب المشتريات",
+    "procurementManagementExt.sourcing": "المصادر الاستراتيجية",
+    "procurementManagementExt.spend": "تحليل الإنفاق",
+    "procurementManagementExt.strategy": "استراتيجية المشتريات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/procurementOps.translations.json">
+<![CDATA[
+{
+  "en": {
+    "procurementOps.analytics": "Procurement Analytics",
+    "procurementOps.approval": "Procurement Approval",
+    "procurementOps.bidding": "Bidding",
+    "procurementOps.catalog": "Procurement Catalog",
+    "procurementOps.evaluation": "Bid Evaluation",
+    "procurementOps.invoice": "Invoice Processing",
+    "procurementOps.negotiation": "Contract Negotiation",
+    "procurementOps.ordering": "Purchase Order",
+    "procurementOps.payment": "Supplier Payment",
+    "procurementOps.procurement": "Procurement Operations",
+    "procurementOps.purchasing": "Purchasing",
+    "procurementOps.receiving": "Goods Receipt",
+    "procurementOps.requisition": "Purchase Requisition",
+    "procurementOps.rfI": "Request for Information",
+    "procurementOps.rfp": "Request for Proposal",
+    "procurementOps.rfq": "Request for Quotation",
+    "procurementOps.savings": "Cost Savings",
+    "procurementOps.selection": "Supplier Selection",
+    "procurementOps.sourcing": "Strategic Sourcing",
+    "procurementOps.spend": "Spend Management",
+    "procurementOps.supplier": "Supplier Management",
+    "procurementOps.vendor": "Vendor Management"
+  },
+  "ar": {
+    "procurementOps.analytics": "تحليلات الشراء",
+    "procurementOps.approval": "الموافقة على الشراء",
+    "procurementOps.bidding": "تقديم العطاءات",
+    "procurementOps.catalog": "كتالوج الشراء",
+    "procurementOps.evaluation": "تقييم العطاءات",
+    "procurementOps.invoice": "معالجة الفواتير",
+    "procurementOps.negotiation": "التفاوض على العقد",
+    "procurementOps.ordering": "أمر الشراء",
+    "procurementOps.payment": "دفع للمورد",
+    "procurementOps.procurement": "عمليات الشراء",
+    "procurementOps.purchasing": "الشراء",
+    "procurementOps.receiving": "استلام البضائع",
+    "procurementOps.requisition": "طلب الشراء",
+    "procurementOps.rfI": "طلب معلومات",
+    "procurementOps.rfp": "طلب اقتراح",
+    "procurementOps.rfq": "طلب عرض أسعار",
+    "procurementOps.savings": "توفير التكاليف",
+    "procurementOps.selection": "اختيار المورد",
+    "procurementOps.sourcing": "المصادر الاستراتيجية",
+    "procurementOps.spend": "إدارة الإنفاق",
+    "procurementOps.supplier": "إدارة الموردين",
+    "procurementOps.vendor": "إدارة البائعين"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/procurementProcess.translations.json">
+<![CDATA[
+{
+  "en": {
+    "procurementProcess.analytics": "Procurement Analytics",
+    "procurementProcess.award": "Contract Award",
+    "procurementProcess.bid": "Bid",
+    "procurementProcess.confirmation": "Order Confirmation",
+    "procurementProcess.evaluation": "Bid Evaluation",
+    "procurementProcess.inspection": "Goods Inspection",
+    "procurementProcess.invoice": "Invoice",
+    "procurementProcess.negotiation": "Negotiation",
+    "procurementProcess.order": "Purchase Order",
+    "procurementProcess.payment": "Payment",
+    "procurementProcess.procurement": "Procurement Process",
+    "procurementProcess.quotation": "Quotation",
+    "procurementProcess.receiving": "Receiving",
+    "procurementProcess.request": "Purchase Request",
+    "procurementProcess.requisition": "Purchase Requisition",
+    "procurementProcess.rfi": "RFI",
+    "procurementProcess.rfp": "RFP",
+    "procurementProcess.rfq": "RFQ",
+    "procurementProcess.savings": "Cost Savings",
+    "procurementProcess.selection": "Supplier Selection",
+    "procurementProcess.sourcing": "Sourcing",
+    "procurementProcess.tender": "Tender"
+  },
+  "ar": {
+    "procurementProcess.analytics": "تحليلات الشراء",
+    "procurementProcess.award": "ترسية العقد",
+    "procurementProcess.bid": "العطاء",
+    "procurementProcess.confirmation": "تأكيد الطلب",
+    "procurementProcess.evaluation": "تقييم العطاءات",
+    "procurementProcess.inspection": "فحص البضائع",
+    "procurementProcess.invoice": "الفاتورة",
+    "procurementProcess.negotiation": "التفاوض",
+    "procurementProcess.order": "أمر الشراء",
+    "procurementProcess.payment": "الدفع",
+    "procurementProcess.procurement": "عملية الشراء",
+    "procurementProcess.quotation": "عرض الأسعار",
+    "procurementProcess.receiving": "الاستلام",
+    "procurementProcess.request": "طلب الشراء",
+    "procurementProcess.requisition": "طلب الشراء",
+    "procurementProcess.rfi": "طلب معلومات",
+    "procurementProcess.rfp": "طلب تقديم مقترحات",
+    "procurementProcess.rfq": "طلب عرض أسعار",
+    "procurementProcess.savings": "توفير التكاليف",
+    "procurementProcess.selection": "اختيار المورد",
+    "procurementProcess.sourcing": "البحث عن مصادر",
+    "procurementProcess.tender": "المناقصة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/product.translations.json">
+<![CDATA[
+{
+  "en": {
+    "product.aboutDesc": "Technical data sheets (MSDS/COA), installation notes, and compliance info.",
+    "product.aboutTitle": "About this item",
+    "product.addToCart": "Add to Cart",
+    "product.backorder": "Backorder",
+    "product.brand": "Brand",
+    "product.buyNow": "Buy Now (PO)",
+    "product.days": "days",
+    "product.inStock": "In Stock",
+    "product.lead": "Lead",
+    "product.minQty": "Min Qty",
+    "product.notFound": "Not found",
+    "product.standards": "Standards",
+    "product.uom": "UOM"
+  },
+  "ar": {
+    "product.aboutDesc": "أوراق البيانات الفنية (MSDS/COA)، ملاحظات التركيب، ومعلومات الامتثال.",
+    "product.aboutTitle": "عن هذا المنتج",
+    "product.addToCart": "إضافة إلى السلة",
+    "product.backorder": "طلب مسبق",
+    "product.brand": "العلامة التجارية",
+    "product.buyNow": "اشتر الآن (أمر شراء)",
+    "product.days": "أيام",
+    "product.inStock": "متوفر في المخزون",
+    "product.lead": "مدة التوصيل",
+    "product.minQty": "الحد الأدنى للكمية",
+    "product.notFound": "غير موجود",
+    "product.standards": "المعايير",
+    "product.uom": "وحدة القياس"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/productAnalytics.translations.json">
+<![CDATA[
+{
+  "en": {
+    "productAnalytics.activation": "User Activation",
+    "productAnalytics.adoption": "Feature Adoption",
+    "productAnalytics.arpu": "ARPU",
+    "productAnalytics.churn": "Churn Analysis",
+    "productAnalytics.cohort": "Cohort Retention",
+    "productAnalytics.dau": "Daily Active Users",
+    "productAnalytics.engagement": "Product Engagement",
+    "productAnalytics.feature": "Feature Usage",
+    "productAnalytics.feedback": "Product Feedback",
+    "productAnalytics.growth": "Growth Metrics",
+    "productAnalytics.ltv": "Lifetime Value",
+    "productAnalytics.mau": "Monthly Active Users",
+    "productAnalytics.nps": "Net Promoter Score",
+    "productAnalytics.onboarding": "Onboarding Analytics",
+    "productAnalytics.product": "Product Analytics",
+    "productAnalytics.retention": "Retention Analysis",
+    "productAnalytics.revenue": "Revenue Analytics",
+    "productAnalytics.satisfaction": "Product Satisfaction",
+    "productAnalytics.stickiness": "Product Stickiness",
+    "productAnalytics.virality": "Virality",
+    "productAnalytics.wau": "Weekly Active Users"
+  },
+  "ar": {
+    "productAnalytics.activation": "تنشيط المستخدم",
+    "productAnalytics.adoption": "اعتماد الميزات",
+    "productAnalytics.arpu": "متوسط الإيرادات لكل مستخدم",
+    "productAnalytics.churn": "تحليل الفقدان",
+    "productAnalytics.cohort": "الاحتفاظ بالمجموعة",
+    "productAnalytics.dau": "المستخدمون النشطون يوميًا",
+    "productAnalytics.engagement": "مشاركة المنتج",
+    "productAnalytics.feature": "استخدام الميزات",
+    "productAnalytics.feedback": "ملاحظات المنتج",
+    "productAnalytics.growth": "مقاييس النمو",
+    "productAnalytics.ltv": "القيمة الدائمة",
+    "productAnalytics.mau": "المستخدمون النشطون شهريًا",
+    "productAnalytics.nps": "صافي نقاط الترويج",
+    "productAnalytics.onboarding": "تحليلات الإدراج",
+    "productAnalytics.product": "تحليلات المنتج",
+    "productAnalytics.retention": "تحليل الاحتفاظ",
+    "productAnalytics.revenue": "تحليلات الإيرادات",
+    "productAnalytics.satisfaction": "رضا المنتج",
+    "productAnalytics.stickiness": "التصاق المنتج",
+    "productAnalytics.virality": "الانتشار الفيروسي",
+    "productAnalytics.wau": "المستخدمون النشطون أسبوعيًا"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/productDevelopment.translations.json">
+<![CDATA[
+{
+  "en": {
+    "productDevelopment.analytics": "Product Analytics",
+    "productDevelopment.backlog": "Product Backlog",
+    "productDevelopment.concept": "Concept Development",
+    "productDevelopment.design": "Product Design",
+    "productDevelopment.development": "Product Development",
+    "productDevelopment.engineering": "Product Engineering",
+    "productDevelopment.enhancement": "Product Enhancement",
+    "productDevelopment.ideation": "Product Ideation",
+    "productDevelopment.improvement": "Product Improvement",
+    "productDevelopment.innovation": "Product Innovation",
+    "productDevelopment.iteration": "Product Iteration",
+    "productDevelopment.launch": "Product Launch",
+    "productDevelopment.lifecycle": "Product Lifecycle",
+    "productDevelopment.optimization": "Product Optimization",
+    "productDevelopment.prototyping": "Product Prototyping",
+    "productDevelopment.quality": "Product Quality",
+    "productDevelopment.requirements": "Product Requirements",
+    "productDevelopment.research": "Product Research",
+    "productDevelopment.roadmap": "Product Roadmap",
+    "productDevelopment.specification": "Product Specification",
+    "productDevelopment.testing": "Product Testing",
+    "productDevelopment.validation": "Product Validation"
+  },
+  "ar": {
+    "productDevelopment.analytics": "تحليلات المنتج",
+    "productDevelopment.backlog": "قائمة المهام المتراكمة للمنتج",
+    "productDevelopment.concept": "تطوير المفهوم",
+    "productDevelopment.design": "تصميم المنتج",
+    "productDevelopment.development": "تطوير المنتج",
+    "productDevelopment.engineering": "هندسة المنتج",
+    "productDevelopment.enhancement": "تعزيز المنتج",
+    "productDevelopment.ideation": "تصور الأفكار للمنتج",
+    "productDevelopment.improvement": "تحسين المنتج",
+    "productDevelopment.innovation": "ابتكار المنتج",
+    "productDevelopment.iteration": "تكرار المنتج",
+    "productDevelopment.launch": "إطلاق المنتج",
+    "productDevelopment.lifecycle": "دورة حياة المنتج",
+    "productDevelopment.optimization": "تحسين المنتج",
+    "productDevelopment.prototyping": "النماذج الأولية للمنتج",
+    "productDevelopment.quality": "جودة المنتج",
+    "productDevelopment.requirements": "متطلبات المنتج",
+    "productDevelopment.research": "بحث المنتج",
+    "productDevelopment.roadmap": "خارطة طريق المنتج",
+    "productDevelopment.specification": "مواصفات المنتج",
+    "productDevelopment.testing": "اختبار المنتج",
+    "productDevelopment.validation": "التحقق من المنتج"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/productExpansion.translations.json">
+<![CDATA[
+{
+  "en": {
+    "productExpansion.analytics": "Product Analytics",
+    "productExpansion.development": "Product Development",
+    "productExpansion.diversification": "Product Diversification",
+    "productExpansion.enhancement": "Product Enhancement",
+    "productExpansion.evolution": "Product Evolution",
+    "productExpansion.expansion": "Product Growth",
+    "productExpansion.extension": "Product Extension",
+    "productExpansion.innovation": "Product Innovation",
+    "productExpansion.introduction": "Product Introduction",
+    "productExpansion.launch": "Product Launch",
+    "productExpansion.lifecycle": "Product Lifecycle",
+    "productExpansion.line": "Product Line",
+    "productExpansion.management": "Product Management",
+    "productExpansion.offering": "Product Offering",
+    "productExpansion.performance": "Product Performance",
+    "productExpansion.planning": "Product Planning",
+    "productExpansion.portfolio": "Product Portfolio",
+    "productExpansion.product": "Product Expansion",
+    "productExpansion.range": "Product Range",
+    "productExpansion.roadmap": "Product Roadmap",
+    "productExpansion.strategy": "Product Strategy",
+    "productExpansion.upgrade": "Product Upgrade"
+  },
+  "ar": {
+    "productExpansion.analytics": "تحليلات المنتج",
+    "productExpansion.development": "تطوير المنتج",
+    "productExpansion.diversification": "تنويع المنتج",
+    "productExpansion.enhancement": "تحسين المنتج",
+    "productExpansion.evolution": "تطور المنتج",
+    "productExpansion.expansion": "نمو المنتج",
+    "productExpansion.extension": "امتداد المنتج",
+    "productExpansion.innovation": "ابتكار المنتج",
+    "productExpansion.introduction": "تقديم المنتج",
+    "productExpansion.launch": "إطلاق المنتج",
+    "productExpansion.lifecycle": "دورة حياة المنتج",
+    "productExpansion.line": "خط المنتج",
+    "productExpansion.management": "إدارة المنتج",
+    "productExpansion.offering": "عرض المنتج",
+    "productExpansion.performance": "أداء المنتج",
+    "productExpansion.planning": "تخطيط المنتج",
+    "productExpansion.portfolio": "محفظة المنتجات",
+    "productExpansion.product": "توسيع المنتج",
+    "productExpansion.range": "نطاق المنتج",
+    "productExpansion.roadmap": "خريطة طريق المنتج",
+    "productExpansion.strategy": "استراتيجية المنتج",
+    "productExpansion.upgrade": "ترقية المنتج"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/productLifecycleManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "productLifecycleManagement.bomManagement": "إدارة قائمة المواد (BOM)",
+    "productLifecycleManagement.cadIntegration": "تكامل CAD",
+    "productLifecycleManagement.complianceTracking": "تتبع الامتثال",
+    "productLifecycleManagement.conceptDevelopment": "تطوير المفهوم",
+    "productLifecycleManagement.configurationManagement": "إدارة التكوين",
+    "productLifecycleManagement.description": "نظام إدارة دورة حياة المنتج الكامل",
+    "productLifecycleManagement.endOfLife": "نهاية العمر",
+    "productLifecycleManagement.engineeringChange": "تغيير الهندسة",
+    "productLifecycleManagement.feasibilityStudy": "دراسة الجدوى",
+    "productLifecycleManagement.ideaGeneration": "توليد الأفكار",
+    "productLifecycleManagement.maintenanceDocumentation": "وثائق الصيانة",
+    "productLifecycleManagement.manufacturingPlanning": "تخطيط التصنيع",
+    "productLifecycleManagement.marketResearch": "أبحاث السوق",
+    "productLifecycleManagement.productConception": "مفهوم المنتج",
+    "productLifecycleManagement.productDesign": "تصميم المنتج",
+    "productLifecycleManagement.productionSupport": "دعم الإنتاج",
+    "productLifecycleManagement.productLaunch": "إطلاق المنتج",
+    "productLifecycleManagement.productRetirement": "تقاعد المنتج",
+    "productLifecycleManagement.prototyping": "النماذج الأولية",
+    "productLifecycleManagement.qualityControl": "مراقبة الجودة",
+    "productLifecycleManagement.regulatoryApprovals": "الموافقات التنظيمية",
+    "productLifecycleManagement.serviceManuals": "كتيبات الخدمة",
+    "productLifecycleManagement.spareParts": "قطع الغيار",
+    "productLifecycleManagement.supplierCollaboration": "تعاون الموردين",
+    "productLifecycleManagement.testing": "الاختبار",
+    "productLifecycleManagement.title": "إدارة دورة حياة المنتج",
+    "productLifecycleManagement.versionControl": "التحكم في الإصدار"
+  },
+  "ar": {
+    "productLifecycleManagement.bomManagement": "إدارة قائمة المواد (BOM)",
+    "productLifecycleManagement.cadIntegration": "تكامل CAD",
+    "productLifecycleManagement.complianceTracking": "تتبع الامتثال",
+    "productLifecycleManagement.conceptDevelopment": "تطوير المفهوم",
+    "productLifecycleManagement.configurationManagement": "إدارة التكوين",
+    "productLifecycleManagement.description": "نظام إدارة دورة حياة المنتج الكامل",
+    "productLifecycleManagement.endOfLife": "نهاية العمر",
+    "productLifecycleManagement.engineeringChange": "تغيير الهندسة",
+    "productLifecycleManagement.feasibilityStudy": "دراسة الجدوى",
+    "productLifecycleManagement.ideaGeneration": "توليد الأفكار",
+    "productLifecycleManagement.maintenanceDocumentation": "وثائق الصيانة",
+    "productLifecycleManagement.manufacturingPlanning": "تخطيط التصنيع",
+    "productLifecycleManagement.marketResearch": "أبحاث السوق",
+    "productLifecycleManagement.productConception": "مفهوم المنتج",
+    "productLifecycleManagement.productDesign": "تصميم المنتج",
+    "productLifecycleManagement.productionSupport": "دعم الإنتاج",
+    "productLifecycleManagement.productLaunch": "إطلاق المنتج",
+    "productLifecycleManagement.productRetirement": "تقاعد المنتج",
+    "productLifecycleManagement.prototyping": "النماذج الأولية",
+    "productLifecycleManagement.qualityControl": "مراقبة الجودة",
+    "productLifecycleManagement.regulatoryApprovals": "الموافقات التنظيمية",
+    "productLifecycleManagement.serviceManuals": "كتيبات الخدمة",
+    "productLifecycleManagement.spareParts": "قطع الغيار",
+    "productLifecycleManagement.supplierCollaboration": "تعاون الموردين",
+    "productLifecycleManagement.testing": "الاختبار",
+    "productLifecycleManagement.title": "إدارة دورة حياة المنتج",
+    "productLifecycleManagement.versionControl": "التحكم في الإصدار"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/productManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "productManagement.analytics": "Product Analytics",
+    "productManagement.backlog": "Product Backlog",
+    "productManagement.development": "Product Development",
+    "productManagement.feedback": "Product Feedback",
+    "productManagement.governance": "Product Governance",
+    "productManagement.innovation": "Product Innovation",
+    "productManagement.launch": "Product Launch",
+    "productManagement.lifecycle": "Product Lifecycle",
+    "productManagement.marketing": "Product Marketing",
+    "productManagement.metrics": "Product Metrics",
+    "productManagement.optimization": "Product Optimization",
+    "productManagement.planning": "Product Planning",
+    "productManagement.portfolio": "Product Portfolio",
+    "productManagement.positioning": "Product Positioning",
+    "productManagement.pricing": "Product Pricing",
+    "productManagement.product": "Product Management",
+    "productManagement.release": "Product Release",
+    "productManagement.requirements": "Product Requirements",
+    "productManagement.retirement": "Product Retirement",
+    "productManagement.roadmap": "Product Roadmap",
+    "productManagement.strategy": "Product Strategy",
+    "productManagement.vision": "Product Vision"
+  },
+  "ar": {
+    "productManagement.analytics": "تحليلات المنتج",
+    "productManagement.backlog": "تراكم المنتج",
+    "productManagement.development": "تطوير المنتج",
+    "productManagement.feedback": "ملاحظات المنتج",
+    "productManagement.governance": "حوكمة المنتج",
+    "productManagement.innovation": "ابتكار المنتج",
+    "productManagement.launch": "إطلاق المنتج",
+    "productManagement.lifecycle": "دورة حياة المنتج",
+    "productManagement.marketing": "تسويق المنتج",
+    "productManagement.metrics": "مقاييس المنتج",
+    "productManagement.optimization": "تحسين المنتج",
+    "productManagement.planning": "تخطيط المنتج",
+    "productManagement.portfolio": "حافظة المنتجات",
+    "productManagement.positioning": "تموضع المنتج",
+    "productManagement.pricing": "تسعير المنتج",
+    "productManagement.product": "إدارة المنتجات",
+    "productManagement.release": "إصدار المنتج",
+    "productManagement.requirements": "متطلبات المنتج",
+    "productManagement.retirement": "سحب المنتج",
+    "productManagement.roadmap": "خارطة طريق المنتج",
+    "productManagement.strategy": "استراتيجية المنتج",
+    "productManagement.vision": "رؤية المنتج"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/productManagementExt.translations.json">
+<![CDATA[
+{
+  "en": {
+    "productManagementExt.adoption": "Product Adoption",
+    "productManagementExt.analytics": "Product Analytics",
+    "productManagementExt.backlog": "Product Backlog",
+    "productManagementExt.design": "Product Design",
+    "productManagementExt.development": "Product Development",
+    "productManagementExt.feature": "Feature",
+    "productManagementExt.feedback": "Product Feedback",
+    "productManagementExt.innovation": "Product Innovation",
+    "productManagementExt.launch": "Product Launch",
+    "productManagementExt.lifecycle": "Product Lifecycle",
+    "productManagementExt.metrics": "Product Metrics",
+    "productManagementExt.portfolio": "Product Portfolio",
+    "productManagementExt.positioning": "Product Positioning",
+    "productManagementExt.pricing": "Product Pricing",
+    "productManagementExt.product": "Product Management",
+    "productManagementExt.release": "Product Release",
+    "productManagementExt.requirements": "Product Requirements",
+    "productManagementExt.research": "User Research",
+    "productManagementExt.roadmap": "Product Roadmap",
+    "productManagementExt.specification": "Product Specification",
+    "productManagementExt.strategy": "Product Strategy",
+    "productManagementExt.ux": "User Experience"
+  },
+  "ar": {
+    "productManagementExt.adoption": "اعتماد المنتج",
+    "productManagementExt.analytics": "تحليلات المنتج",
+    "productManagementExt.backlog": "قائمة مهام المنتج",
+    "productManagementExt.design": "تصميم المنتج",
+    "productManagementExt.development": "تطوير المنتج",
+    "productManagementExt.feature": "الميزة",
+    "productManagementExt.feedback": "ملاحظات المنتج",
+    "productManagementExt.innovation": "ابتكار المنتج",
+    "productManagementExt.launch": "إطلاق المنتج",
+    "productManagementExt.lifecycle": "دورة حياة المنتج",
+    "productManagementExt.metrics": "مقاييس المنتج",
+    "productManagementExt.portfolio": "محفظة المنتجات",
+    "productManagementExt.positioning": "وضع المنتج",
+    "productManagementExt.pricing": "تسعير المنتج",
+    "productManagementExt.product": "إدارة المنتجات",
+    "productManagementExt.release": "إصدار المنتج",
+    "productManagementExt.requirements": "متطلبات المنتج",
+    "productManagementExt.research": "بحث المستخدم",
+    "productManagementExt.roadmap": "خريطة طريق المنتج",
+    "productManagementExt.specification": "مواصفات المنتج",
+    "productManagementExt.strategy": "استراتيجية المنتج",
+    "productManagementExt.ux": "تجربة المستخدم"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/productionManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "productionManagement.actual": "Actual Production",
+    "productionManagement.batch": "Batch",
+    "productionManagement.capacity": "Production Capacity",
+    "productionManagement.changeover": "Changeover",
+    "productionManagement.downtime": "Downtime",
+    "productionManagement.efficiency": "Production Efficiency",
+    "productionManagement.line": "Production Line",
+    "productionManagement.manufacturing": "Manufacturing",
+    "productionManagement.oee": "OEE",
+    "productionManagement.output": "Output",
+    "productionManagement.planning": "Production Planning",
+    "productionManagement.production": "Production",
+    "productionManagement.quality": "Production Quality",
+    "productionManagement.rework": "Rework",
+    "productionManagement.run": "Production Run",
+    "productionManagement.scheduling": "Production Scheduling",
+    "productionManagement.scrap": "Scrap",
+    "productionManagement.setup": "Setup",
+    "productionManagement.target": "Production Target",
+    "productionManagement.uptime": "Uptime",
+    "productionManagement.variance": "Variance",
+    "productionManagement.yield": "Yield"
+  },
+  "ar": {
+    "productionManagement.actual": "الإنتاج الفعلي",
+    "productionManagement.batch": "الدفعة",
+    "productionManagement.capacity": "طاقة الإنتاج",
+    "productionManagement.changeover": "التغيير",
+    "productionManagement.downtime": "وقت التوقف",
+    "productionManagement.efficiency": "كفاءة الإنتاج",
+    "productionManagement.line": "خط الإنتاج",
+    "productionManagement.manufacturing": "التصنيع",
+    "productionManagement.oee": "الكفاءة الإجمالية للمعدات",
+    "productionManagement.output": "الناتج",
+    "productionManagement.planning": "تخطيط الإنتاج",
+    "productionManagement.production": "الإنتاج",
+    "productionManagement.quality": "جودة الإنتاج",
+    "productionManagement.rework": "إعادة العمل",
+    "productionManagement.run": "تشغيل الإنتاج",
+    "productionManagement.scheduling": "جدولة الإنتاج",
+    "productionManagement.scrap": "الخردة",
+    "productionManagement.setup": "الإعداد",
+    "productionManagement.target": "هدف الإنتاج",
+    "productionManagement.uptime": "وقت التشغيل",
+    "productionManagement.variance": "التباين",
+    "productionManagement.yield": "العائد"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/productionPlanning.translations.json">
+<![CDATA[
+{
+  "en": {
+    "productionPlanning.batch": "Batch",
+    "productionPlanning.bom": "Bill of Materials",
+    "productionPlanning.bottleneck": "Bottleneck",
+    "productionPlanning.capacity": "Capacity Planning",
+    "productionPlanning.changeover": "Changeover",
+    "productionPlanning.cycle": "Production Cycle",
+    "productionPlanning.demand": "Demand Planning",
+    "productionPlanning.downtime": "Downtime",
+    "productionPlanning.efficiency": "Production Efficiency",
+    "productionPlanning.forecast": "Production Forecast",
+    "productionPlanning.lead": "Lead Time",
+    "productionPlanning.lot": "Lot",
+    "productionPlanning.mrp": "MRP",
+    "productionPlanning.order": "Production Order",
+    "productionPlanning.planning": "Planning",
+    "productionPlanning.production": "Production Planning",
+    "productionPlanning.routing": "Routing",
+    "productionPlanning.run": "Production Run",
+    "productionPlanning.scheduling": "Scheduling",
+    "productionPlanning.setup": "Setup Time",
+    "productionPlanning.throughput": "Throughput",
+    "productionPlanning.utilization": "Utilization"
+  },
+  "ar": {
+    "productionPlanning.batch": "الدُفعة",
+    "productionPlanning.bom": "قائمة المواد",
+    "productionPlanning.bottleneck": "عنق الزجاجة",
+    "productionPlanning.capacity": "تخطيط الطاقة الإنتاجية",
+    "productionPlanning.changeover": "تبديل الخط",
+    "productionPlanning.cycle": "دورة الإنتاج",
+    "productionPlanning.demand": "تخطيط الطلب",
+    "productionPlanning.downtime": "فترات التوقف",
+    "productionPlanning.efficiency": "كفاءة الإنتاج",
+    "productionPlanning.forecast": "التنبؤ بالإنتاج",
+    "productionPlanning.lead": "زمن التوريد",
+    "productionPlanning.lot": "الدفعة",
+    "productionPlanning.mrp": "تخطيط موارد المواد",
+    "productionPlanning.order": "أمر الإنتاج",
+    "productionPlanning.planning": "التخطيط",
+    "productionPlanning.production": "تخطيط الإنتاج",
+    "productionPlanning.routing": "مسارات التشغيل",
+    "productionPlanning.run": "تشغيل الإنتاج",
+    "productionPlanning.scheduling": "الجدولة",
+    "productionPlanning.setup": "زمن الإعداد",
+    "productionPlanning.throughput": "معدل الإنتاج",
+    "productionPlanning.utilization": "نسبة الاستغلال"
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

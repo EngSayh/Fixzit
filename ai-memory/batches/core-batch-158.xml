@@ -1,0 +1,3604 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/guides/REMAINING_WORK_GUIDE.md">
+<![CDATA[
+# Remaining Work Implementation Guide
+**Generated**: 2025-11-25  
+**Priority**: P1-P3 (Lower priority items)  
+**Estimated Effort**: 4-6 hours
+
+---
+
+## Quick Status
+
+### ✅ COMPLETED (Core Security Layer - Verified 2025-11-25)
+- `lib/audit.ts` - **ALL 6 critical bugs fixed** (470 lines after helper updates):
+  - ✅ AUDIT-001: Action mapping to ActionType enum (lines 38-85)
+  - ✅ AUDIT-002: Mandatory orgId enforcement with early return (lines 226-234)
+  - ✅ AUDIT-003: Success defaults to true for undefined values (line 276)
+  - ✅ AUDIT-004: PII redaction before external logging (lines 149-197, 243-246)
+  - ✅ AUDIT-005: Entity type mapping to EntityType enum (lines 97-147)
+  - ✅ AUDIT-006: Helper functions require orgId parameter (lines 414-468)
+- `lib/auth.ts` - 2 authentication orgId violations fixed
+- `lib/fm-auth-middleware.ts` - 3 FM operation orgId violations fixed
+- `lib/audit/middleware.ts` - 1 anonymous logging violation fixed
+- `server/audit/withAudit.ts` - 1 audit wrapper violation fixed
+- `app/api/payments/tap/checkout/route.ts` - Payment metadata fixed (null fallback)
+- `app/api/admin/users/route.ts` - 2 of 3 instances fixed (GET + POST)
+
+### ⚠️ REMAINING (Lower Priority - Mechanical Fixes)
+- **10 orgId violations** in admin APIs (pattern established, verified locations below)
+- **50+ toUpperCase() enum issues** (requires mapping dictionary creation)
+- **Unit tests** (regression prevention for audit.ts fixes)
+
+---
+
+## Section 1: Remaining orgId Violations (10 instances)
+
+### Pattern to Follow
+All remaining fixes should follow this validated pattern:
+
+```typescript
+// ❌ BEFORE (BROKEN):
+const query = {
+  orgId: session.user.orgId || "default",  // Empty fallback
+};
+
+// ✅ AFTER (FIXED):
+const orgId = session.user.orgId;
+if (!orgId || typeof orgId !== 'string' || orgId.trim() === '') {
+  return NextResponse.json(
+    { error: "Unauthorized: Invalid organization context" },
+    { status: 403 }
+  );
+}
+
+const query = {
+  orgId,  // ✅ Validated above
+};
+```
+
+### Files Requiring Fix (Priority Order)
+
+#### P1: Admin User Management APIs (3 files, 10 instances)
+
+**1. app/api/admin/users/route.ts** (1 remaining instance - audit log)
+- **Line ~250**: `orgId: session.user.orgId || "default"` in audit() call
+- **Context**: POST endpoint audit logging after user creation
+- **Fix**: Use `orgId` variable that's already validated at line ~193
+
+```typescript
+// Find and replace:
+await audit({
+  // ... other fields
+  orgId: session.user.orgId || "default",  // ❌ Line ~250
+});
+
+// With:
+await audit({
+  // ... other fields
+  orgId,  // ✅ Already validated above at line ~193
+});
+```
+
+**2. app/api/admin/users/[id]/route.ts** (2 instances)
+- **Line ~49**: `orgId: session.user.orgId || "default"` in DELETE findOne query
+- **Line ~131**: `orgId: session.user.orgId || "default"` in PATCH audit log
+
+**Pattern for DELETE (lines 40-55)**:
+```typescript
+// Add validation before line 47:
+const orgId = session.user.orgId;
+if (!orgId || typeof orgId !== 'string' || orgId.trim() === '') {
+  return NextResponse.json(
+    { error: "Unauthorized: Invalid organization context" },
+    { status: 403 }
+  );
+}
+
+// Then replace line 49:
+const user = await UserModel.findOne({
+  _id: id,
+  orgId,  // ✅ Validated above
+});
+```
+
+**Pattern for PATCH (lines 120-135)**:
+```typescript
+// Add validation before line 129:
+const orgId = session.user.orgId;
+if (!orgId || typeof orgId !== 'string' || orgId.trim() === '') {
+  return NextResponse.json(
+    { error: "Unauthorized: Invalid organization context" },
+    { status: 403 }
+  );
+}
+
+// Then replace line 131:
+await audit({
+  // ... other fields
+  orgId,  // ✅ Validated above
+});
+```
+
+**3. app/api/admin/audit-logs/route.ts** (1 instance)
+- **Line ~81**: `orgId: session.user.orgId || "default"` in audit search query
+- **Context**: GET endpoint for querying audit logs
+
+```typescript
+// Add validation before line 79:
+const orgId = session.user.orgId;
+if (!orgId || typeof orgId !== 'string' || orgId.trim() === '') {
+  return NextResponse.json(
+    { error: "Unauthorized: Invalid organization context" },
+    { status: 403 }
+  );
+}
+
+// Then replace line 81:
+const logs = await AuditLogModel.search({
+  orgId,  // ✅ Validated above
+  // ... other search params
+});
+```
+
+#### P2: RBAC Middleware (2 instances - requires design decision)
+
+**4. server/middleware/withAuthRbac.ts** (2 instances)
+- **Line ~213**: `const sessionOrgId = session.user.orgId || "";`
+- **Line ~236**: `orgId = sessionOrgId || "";`
+
+**⚠️ DESIGN DECISION REQUIRED**:
+This middleware handles RBAC checks. Empty orgId might be intentional for:
+- Public routes (no authentication required)
+- System-level operations (cross-tenant admin actions)
+
+**Option A** (Strict - Recommended for Production):
+```typescript
+// Line ~213:
+const sessionOrgId = session.user.orgId;
+if (!sessionOrgId || typeof sessionOrgId !== 'string' || sessionOrgId.trim() === '') {
+  throw new Error('RBAC-001: orgId required for permission checks');
+}
+
+// Line ~236:
+orgId = sessionOrgId;  // ✅ Already validated
+```
+
+**Option B** (Permissive - Allow Public Routes):
+```typescript
+// Line ~213:
+const sessionOrgId = session.user.orgId || null;
+
+// Line ~236:
+orgId = sessionOrgId || null;  // ✅ null indicates public route
+
+// Add check where orgId is used:
+if (orgId === null) {
+  // Skip org-specific permission checks (public route)
+  return true;
+}
+```
+
+**Recommendation**: Review business requirements for public routes before fixing.
+
+#### P3: Non-Critical Services (6 instances)
+
+**5. server/copilot/session.ts** (1 instance)
+- **Line ~66**: `tenantId: user.orgId || "default"`
+- **Context**: AI Copilot session management (isolated feature)
+- **Risk**: LOW (Copilot sessions mixed across tenants - acceptable for beta)
+- **Fix**: Similar validation pattern OR document as known limitation
+
+**6. hooks/useFMPermissions.ts** (1 instance)
+- **Line ~85**: `orgId: user?.orgId || ""`
+- **Context**: Client-side React hook for FM permissions
+- **Risk**: LOW (client-side only, server validates)
+- **Fix**: May not be critical (server-side validation takes precedence)
+
+**7-9. Test/Mock Files** (4 instances)
+- `tests/api/marketplace/search.route.impl.ts:74` - `orgId || 'demo-org'`
+- `tests/specs/smoke.spec.ts:37` - `orgId: process.env.TEST_ORG_ID || 'fff...'`
+- `services/aqar/offline-cache-service.ts:247` - `orgId: input.orgId || "public"`
+- `scripts/enhance-api-routes.js:242` - `orgId || 'anonymous'`
+
+**Fix**: Use consistent test constants:
+```typescript
+// Create tests/fixtures/constants.ts:
+export const TEST_ORG_ID = 'test-org-000000000000000000000001';
+export const DEMO_ORG_ID = 'demo-org-000000000000000000000001';
+
+// Then replace all test fallbacks with these constants
+```
+
+**10. lib/ats/rbac.ts** (1 instance)
+- **Line ~106**: `orgId = process.env.NEXT_PUBLIC_ORG_ID || "fixzit-platform"`
+- **Context**: ATS (Applicant Tracking System) RBAC
+- **Fix**: Validate environment variable at startup:
+```typescript
+const ATS_DEFAULT_ORG = process.env.NEXT_PUBLIC_ORG_ID;
+if (!ATS_DEFAULT_ORG) {
+  throw new Error('CONFIG-001: NEXT_PUBLIC_ORG_ID required for ATS module');
+}
+
+// Then use:
+orgId = ATS_DEFAULT_ORG;  // ✅ Validated at startup
+```
+
+---
+
+## Section 2: Enum Validation (50+ instances)
+
+### Current Problem
+`.toUpperCase()` used without enum mapping causes invalid database writes:
+
+```typescript
+// ❌ BROKEN:
+const role = userInput.toUpperCase();  // "admin" → "ADMIN" (not in enum)
+await User.create({ role });  // ❌ Invalid enum value persisted
+
+// ✅ FIXED:
+const roleMap = { 'admin': 'ADMIN_USER', 'user': 'REGULAR_USER' };
+const role = roleMap[userInput.toLowerCase()] || 'GUEST';
+await User.create({ role });  // ✅ Valid enum value
+```
+
+### Implementation Strategy
+
+#### Step 1: Create Centralized Enum Mappings
+Create `lib/enums.ts`:
+
+```typescript
+/**
+ * Centralized enum mapping dictionaries
+ * CRITICAL: Keep these in sync with database schemas
+ */
+
+// User Roles - STRICT v4 Canonical 14-Role Matrix (from types/user.ts)
+export const roleMap: Record<string, string> = {
+  'super_admin': 'SUPER_ADMIN',
+  'corporate_admin': 'CORPORATE_ADMIN',
+  'admin': 'ADMIN',
+  'manager': 'MANAGER',
+  'fm_manager': 'FM_MANAGER',
+  'property_manager': 'PROPERTY_MANAGER',
+  'finance': 'FINANCE',
+  'hr': 'HR',
+  'procurement': 'PROCUREMENT',
+  'technician': 'TECHNICIAN',
+  'employee': 'EMPLOYEE',
+  'owner': 'OWNER',
+  'tenant': 'TENANT',
+  'vendor': 'VENDOR',
+  'customer': 'CUSTOMER',
+  'auditor': 'AUDITOR',
+  'viewer': 'VIEWER',
+  'dispatcher': 'DISPATCHER',
+  'support': 'SUPPORT',
+};
+
+// User Status
+export const statusMap: Record<string, string> = {
+  'active': 'ACTIVE',
+  'inactive': 'INACTIVE',
+  'pending': 'PENDING',
+  'suspended': 'SUSPENDED',
+  'locked': 'LOCKED',
+};
+
+// Work Order Status
+export const workOrderStatusMap: Record<string, string> = {
+  'open': 'OPEN',
+  'in_progress': 'IN_PROGRESS',
+  'pending_approval': 'PENDING_APPROVAL',
+  'completed': 'COMPLETED',
+  'closed': 'CLOSED',
+  'cancelled': 'CANCELLED',
+};
+
+// Work Order Priority
+export const priorityMap: Record<string, string> = {
+  'low': 'LOW',
+  'medium': 'MEDIUM',
+  'high': 'HIGH',
+  'urgent': 'URGENT',
+  'emergency': 'EMERGENCY',
+};
+
+// Helper function for safe mapping
+export function mapToEnum<T extends string>(
+  input: string | undefined | null,
+  enumMap: Record<string, T>,
+  defaultValue: T
+): T {
+  if (!input) return defaultValue;
+  const normalized = input.toLowerCase().replace(/\s+/g, '_');
+  return enumMap[normalized] || defaultValue;
+}
+```
+
+#### Step 2: Replace toUpperCase() Patterns System-Wide
+
+**Example 1: lib/auth/role-guards.ts**
+```typescript
+// ❌ BEFORE:
+import { roleMap } from '@/lib/enums';
+
+const userRole = user.role.toUpperCase();
+
+// ✅ AFTER:
+import { mapToEnum, roleMap } from '@/lib/enums';
+
+const userRole = mapToEnum(user.role, roleMap, 'GUEST');
+```
+
+**Example 2: domain/fm/fm.behavior.ts**
+```typescript
+// ❌ BEFORE:
+workOrder.status = input.status.toUpperCase();
+
+// ✅ AFTER:
+import { mapToEnum, workOrderStatusMap } from '@/lib/enums';
+
+workOrder.status = mapToEnum(input.status, workOrderStatusMap, 'OPEN');
+```
+
+#### Step 3: Files Requiring Enum Fixes (Prioritized)
+
+Run this command to identify all instances:
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+grep -rn '\.toUpperCase()' --include="*.ts" --include="*.tsx" \
+  lib/ server/ app/ domain/ services/ \
+  | grep -v node_modules \
+  | grep -v '.next' \
+  > enum_violations.txt
+```
+
+**High-Priority Files** (based on pattern search):
+1. `lib/auth/role-guards.ts` (6, 12, 13) - Role validation
+2. `lib/schemas/admin.ts` (44) - Admin schema enum conversion
+3. `domain/fm/fm.behavior.ts` (279) - FM domain work order status
+4. `services/aqar/offline-cache-service.ts` (189) - Cache service status
+5. `app/api/*/route.ts` (multiple) - API route enum handling
+
+---
+
+## Section 3: Unit Tests (Regression Prevention)
+
+### Critical Test Coverage Needed
+
+#### Test File 1: `lib/__tests__/audit.test.ts`
+
+```typescript
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { audit, actionToVerb, entityTypeMap } from '../audit';
+import { AuditLogModel } from '@/server/models/AuditLog';
+import { logger } from '@/lib/logger';
+
+vi.mock('@/server/models/AuditLog');
+vi.mock('@/lib/logger');
+
+describe('lib/audit.ts - orgId Enforcement', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should reject empty orgId', async () => {
+    const loggerSpy = vi.spyOn(logger, 'error').mockImplementation(() => {});
+    
+    await audit({ 
+      orgId: '', 
+      action: 'user.create', 
+      actorId: 'user123',
+      actorEmail: 'test@example.com' 
+    });
+    
+    // Should log error and return early (no database write)
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining('[AUDIT] CRITICAL: orgId missing')
+    );
+    expect(AuditLogModel.log).not.toHaveBeenCalled();
+  });
+
+  it('should reject whitespace-only orgId', async () => {
+    const loggerSpy = vi.spyOn(logger, 'error').mockImplementation(() => {});
+    
+    await audit({ 
+      orgId: '   ', 
+      action: 'user.create', 
+      actorId: 'user123',
+      actorEmail: 'test@example.com' 
+    });
+    
+    expect(loggerSpy).toHaveBeenCalled();
+    expect(AuditLogModel.log).not.toHaveBeenCalled();
+  });
+
+  it('should accept valid orgId', async () => {
+    await audit({ 
+      orgId: 'org123', 
+      action: 'user.create', 
+      actorId: 'user123',
+      actorEmail: 'test@example.com' 
+    });
+    
+    expect(AuditLogModel.log).toHaveBeenCalledWith(
+      expect.objectContaining({ orgId: 'org123' })
+    );
+  });
+});
+
+describe('lib/audit.ts - Action Enum Mapping', () => {
+  it('should map known actions to ActionType enums', () => {
+    expect(actionToVerb['user.grantSuperAdmin']).toBe('UPDATE');
+    expect(actionToVerb['auth.login']).toBe('LOGIN');
+    expect(actionToVerb['user.create']).toBe('CREATE');
+  });
+
+  it('should default unknown actions to CUSTOM', async () => {
+    await audit({ 
+      orgId: 'org123', 
+      action: 'unknown.action', 
+      actorId: 'user123',
+      actorEmail: 'test@example.com' 
+    });
+    
+    expect(AuditLogModel.log).toHaveBeenCalledWith(
+      expect.objectContaining({ 
+        action: 'CUSTOM',
+        metadata: expect.objectContaining({ rawAction: 'unknown.action' })
+      })
+    );
+  });
+
+  it('should preserve original action in metadata', async () => {
+    await audit({ 
+      orgId: 'org123', 
+      action: 'user.grantSuperAdmin', 
+      actorId: 'user123',
+      actorEmail: 'test@example.com' 
+    });
+    
+    expect(AuditLogModel.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'UPDATE',
+        metadata: expect.objectContaining({ rawAction: 'user.grantSuperAdmin' })
+      })
+    );
+  });
+});
+
+describe('lib/audit.ts - PII Redaction', () => {
+  it('should redact password fields', async () => {
+    const logSpy = jest.spyOn(console, 'info').mockImplementation();
+    
+    await audit({ 
+      orgId: 'org123', 
+      action: 'user.create', 
+      actorId: 'user123',
+      actorEmail: 'test@example.com',
+      meta: {
+        username: 'john',
+        password: 'secret123',
+        email: 'john@example.com'
+      }
+    });
+    
+    expect(logSpy).toHaveBeenCalledWith(
+      '[AUDIT]',
+      expect.objectContaining({
+        meta: expect.objectContaining({
+          username: 'john',
+          password: '[REDACTED]',
+          email: 'john@example.com'
+        })
+      })
+    );
+  });
+
+  it('should redact nested sensitive fields recursively', async () => {
+    const logSpy = jest.spyOn(console, 'info').mockImplementation();
+    
+    await audit({ 
+      orgId: 'org123', 
+      action: 'auth.login', 
+      actorId: 'user123',
+      actorEmail: 'test@example.com',
+      meta: {
+        user: {
+          email: 'test@example.com',
+          credentials: {
+            password: 'secret',
+            token: 'abc123'
+          }
+        }
+      }
+    });
+    
+    expect(logSpy).toHaveBeenCalledWith(
+      '[AUDIT]',
+      expect.objectContaining({
+        meta: expect.objectContaining({
+          user: expect.objectContaining({
+            credentials: expect.objectContaining({
+              password: '[REDACTED]',
+              token: '[REDACTED]'
+            })
+          })
+        })
+      })
+    );
+  });
+});
+```
+
+#### Test File 2: `lib/__tests__/auth.test.ts`
+
+```typescript
+import { authenticateUser, getUserFromToken } from '../auth';
+import { User } from '@/server/models/User';
+
+jest.mock('@/server/models/User');
+
+describe('lib/auth.ts - orgId Enforcement', () => {
+  it('should reject authentication for users without orgId', async () => {
+    const mockUser = {
+      _id: 'user123',
+      email: 'test@example.com',
+      toObject: () => ({
+        _id: 'user123',
+        email: 'test@example.com',
+        orgId: null,  // ❌ Missing orgId
+        status: 'ACTIVE'
+      })
+    };
+
+    await expect(authenticateUser(mockUser as any))
+      .rejects
+      .toThrow('AUTH-001');
+  });
+
+  it('should reject authentication for users with empty orgId', async () => {
+    const mockUser = {
+      _id: 'user123',
+      email: 'test@example.com',
+      toObject: () => ({
+        _id: 'user123',
+        email: 'test@example.com',
+        orgId: '   ',  // ❌ Whitespace-only
+        status: 'ACTIVE'
+      })
+    };
+
+    await expect(authenticateUser(mockUser as any))
+      .rejects
+      .toThrow('AUTH-001');
+  });
+
+  it('should accept valid orgId', async () => {
+    const mockUser = {
+      _id: 'user123',
+      email: 'test@example.com',
+      password: '$2b$12$...',  // Hashed password
+      toObject: () => ({
+        _id: 'user123',
+        email: 'test@example.com',
+        orgId: 'org123',  // ✅ Valid orgId
+        status: 'ACTIVE',
+        role: 'USER'
+      })
+    };
+
+    const result = await authenticateUser(mockUser as any, 'password123');
+    expect(result.user.orgId).toBe('org123');
+  });
+
+  it('getUserFromToken should return null for missing orgId', async () => {
+    (User.findById as jest.Mock).mockResolvedValue({
+      _id: 'user123',
+      email: 'test@example.com',
+      toObject: () => ({
+        _id: 'user123',
+        email: 'test@example.com',
+        orgId: null,  // ❌ Missing orgId
+        status: 'ACTIVE'
+      })
+    });
+
+    const result = await getUserFromToken('valid-token');
+    expect(result).toBeNull();
+  });
+});
+```
+
+#### Test File 3: `lib/__tests__/enums.test.ts`
+
+```typescript
+import { mapToEnum, roleMap, statusMap } from '../enums';
+
+describe('lib/enums.ts - Safe Enum Mapping', () => {
+  it('should map valid role strings', () => {
+    expect(mapToEnum('admin', roleMap, 'GUEST')).toBe('ADMIN');
+    expect(mapToEnum('ADMIN', roleMap, 'GUEST')).toBe('ADMIN');
+    expect(mapToEnum('Admin', roleMap, 'GUEST')).toBe('ADMIN');
+  });
+
+  it('should handle underscores and spaces', () => {
+    expect(mapToEnum('super_admin', roleMap, 'GUEST')).toBe('SUPER_ADMIN');
+    expect(mapToEnum('super admin', roleMap, 'GUEST')).toBe('SUPER_ADMIN');
+  });
+
+  it('should return default for invalid input', () => {
+    expect(mapToEnum('invalid_role', roleMap, 'GUEST')).toBe('GUEST');
+    expect(mapToEnum('', roleMap, 'GUEST')).toBe('GUEST');
+    expect(mapToEnum(null, roleMap, 'GUEST')).toBe('GUEST');
+    expect(mapToEnum(undefined, roleMap, 'GUEST')).toBe('GUEST');
+  });
+
+  it('should work with status enums', () => {
+    expect(mapToEnum('active', statusMap, 'PENDING')).toBe('ACTIVE');
+    expect(mapToEnum('locked', statusMap, 'PENDING')).toBe('LOCKED');
+    expect(mapToEnum('unknown_status', statusMap, 'PENDING')).toBe('PENDING');
+  });
+});
+```
+
+---
+
+## Section 4: Implementation Checklist
+
+### Phase 1: Complete orgId Fixes (2-3 hours)
+- [ ] Fix `app/api/admin/users/route.ts` audit log (line ~250)
+- [ ] Fix `app/api/admin/users/[id]/route.ts` DELETE + PATCH (2 instances)
+- [ ] Fix `app/api/admin/audit-logs/route.ts` search query (1 instance)
+- [ ] Review `server/middleware/withAuthRbac.ts` design decision
+- [ ] Document `server/copilot/session.ts` as known limitation (or fix)
+- [ ] Update test fixtures with TEST_ORG_ID constants
+- [ ] Verify `lib/ats/rbac.ts` environment variable validation
+
+### Phase 2: Enum Validation (3-4 hours)
+- [ ] Create `lib/enums.ts` with mapping dictionaries
+- [ ] Identify all `.toUpperCase()` instances (grep command)
+- [ ] Fix high-priority files (auth, FM domain, admin schemas)
+- [ ] Add `mapToEnum()` helper function
+- [ ] Test enum mappings with sample data
+
+### Phase 3: Testing (2-3 hours)
+- [ ] Write `lib/__tests__/audit.test.ts` (orgId + enum + PII tests)
+- [ ] Write `lib/__tests__/auth.test.ts` (orgId enforcement tests)
+- [ ] Write `lib/__tests__/enums.test.ts` (enum mapping tests)
+- [ ] Run test suite: `pnpm test`
+- [ ] Verify 80%+ coverage for fixed files
+
+### Phase 4: Verification (1 hour)
+- [ ] Run `pnpm typecheck` - verify 0 new errors
+- [ ] Run `pnpm lint` - verify 0 new warnings
+- [ ] Run `pnpm build` - verify successful production build
+- [ ] Manual smoke test: Login → Create user → View audit logs
+- [ ] Check database for invalid enum values (MongoDB query)
+
+---
+
+## Section 5: Success Criteria
+
+### Definition of Done
+- ✅ All 10 remaining orgId violations fixed OR documented as intentional
+- ✅ 80%+ of high-priority enum issues fixed (auth, FM, admin)
+- ✅ Unit tests written with 80%+ coverage for fixed code
+- ✅ `pnpm typecheck` passes (or pre-existing errors documented)
+- ✅ `pnpm build` succeeds
+- ✅ No new security vulnerabilities introduced
+
+### Metrics
+- **Before**: CVSS 9.1 (Critical - Cross-tenant data leakage)
+- **After Core Fixes**: CVSS 5.3 (Medium - 68% risk reduction)
+- **After Remaining Fixes**: CVSS 3.2 (Low - 88% total risk reduction)
+
+---
+
+## Section 6: Quick Reference Commands
+
+### Find All orgId Violations
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+grep -rn 'orgId.*||.*["\x27]' --include="*.ts" --include="*.tsx" \
+  app/ server/ lib/ hooks/ \
+  | grep -v node_modules \
+  | grep -v '.next'
+```
+
+### Find All toUpperCase() Enum Issues
+```bash
+grep -rn '\.toUpperCase()' --include="*.ts" --include="*.tsx" \
+  lib/ server/ app/ domain/ services/ \
+  | grep -v node_modules \
+  | grep -v '.next'
+```
+
+### Run Tests (Vitest Syntax)
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+# Run individual test files (Vitest runner)
+pnpm vitest run lib/__tests__/audit.test.ts
+pnpm vitest run lib/__tests__/auth.test.ts
+pnpm vitest run lib/__tests__/enums.test.ts
+
+# Or use the configured test scripts
+pnpm test:models  # Runs vitest with models config
+pnpm test:api     # Runs vitest with API config
+```
+
+### Verify Database Integrity
+```javascript
+// MongoDB shell query to find invalid enum values
+db.auditlogs.find({ 
+  action: { $not: { $in: [
+    'CREATE', 'READ', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT',
+    'EXPORT', 'IMPORT', 'APPROVE', 'REJECT', 'SEND', 'RECEIVE',
+    'UPLOAD', 'DOWNLOAD', 'SHARE', 'ARCHIVE', 'RESTORE',
+    'ACTIVATE', 'DEACTIVATE', 'CUSTOM'
+  ] } } 
+}).count();
+
+// Expected: 0 (after fixes)
+```
+
+---
+
+## Conclusion
+
+**Estimated Total Effort**: 8-10 hours  
+**Priority**: P1-P3 (Core security already complete)  
+**Risk if Not Fixed**: MEDIUM (remaining issues in less-critical paths)  
+**Recommendation**: Complete Phase 1 (orgId fixes) within 1-2 days, defer enum work to next sprint if needed.
+
+---
+
+**Generated By**: GitHub Copilot (Automated Remediation Agent)  
+**Session ID**: remaining-work-guide-20251125  
+**Related Report**: SYSTEM_REMEDIATION_REPORT_2025-11-25.md
+
+]]>
+</file>
+
+<file path="docs/guides/REMOTE_KEY_MANAGEMENT_GUIDE.md">
+<![CDATA[
+# 🔐 REMOTE KEY MANAGEMENT - JWT SECRET STORAGE
+
+## GENERATED JWT SECRET
+
+**Secret to Store**: `6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267`
+
+---
+
+## 🔧 OPTION 1: AWS SECRETS MANAGER (RECOMMENDED)
+
+Since you have AWS configuration, this is likely your best option:
+
+### Store Secret in AWS Secrets Manager
+
+```bash
+# Install AWS CLI if not installed
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip && sudo ./aws/install
+
+# Configure AWS credentials (use your existing keys)
+aws configure set aws_access_key_id "your_access_key"
+aws configure set aws_secret_access_key "your_secret_key"
+aws configure set default.region "me-south-1"
+
+# Create the secret in AWS Secrets Manager
+aws secretsmanager create-secret \
+    --name "fixzit/jwt-secret" \
+    --description "JWT Secret for Fixzit Authentication" \
+    --secret-string "6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267"
+```
+
+### Update Application to Use AWS Secrets Manager
+
+```javascript
+// lib/aws-secrets.js
+const AWS = require("aws-sdk");
+
+const secretsManager = new AWS.SecretsManager({
+  region: process.env.AWS_REGION || "me-south-1",
+});
+
+async function getSecret(secretName) {
+  try {
+    const result = await secretsManager
+      .getSecretValue({ SecretId: secretName })
+      .promise();
+    return result.SecretString;
+  } catch (error) {
+    console.error("Error retrieving secret:", error);
+    throw error;
+  }
+}
+
+module.exports = { getSecret };
+```
+
+### Update Your Environment Configuration
+
+```javascript
+// In your app initialization
+const { getSecret } = require("./lib/aws-secrets");
+
+// Load JWT secret from AWS Secrets Manager
+const jwtSecret = await getSecret("fixzit/jwt-secret");
+process.env.JWT_SECRET = jwtSecret;
+```
+
+---
+
+## 🔧 OPTION 2: GITHUB SECRETS (FOR CI/CD)
+
+### Add to Repository Secrets
+
+1. Go to your GitHub repository: `https://github.com/EngSayh/Fixzit`
+2. Navigate to **Settings** → **Secrets and variables** → **Actions**
+3. Click **New repository secret**
+4. Name: `JWT_SECRET`
+5. Value: `6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267`
+
+### Update GitHub Actions Workflow
+
+```yaml
+# .github/workflows/deploy.yml
+name: Deploy
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy with secrets
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          # Your deployment commands here
+          docker-compose up -d
+```
+
+---
+
+## 🔧 OPTION 3: DOCKER SECRETS
+
+### Create Docker Secret
+
+```bash
+# Create the secret file
+echo "6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267" | docker secret create jwt_secret -
+```
+
+### Update docker-compose.yml
+
+```yaml
+version: "3.8"
+
+services:
+  web:
+    build:
+      context: ../packages/fixzit-souq-server
+      dockerfile: Dockerfile
+    secrets:
+      - jwt_secret
+    environment:
+      - NODE_ENV=production
+      - JWT_SECRET_FILE=/run/secrets/jwt_secret
+    # ... rest of your config
+
+secrets:
+  jwt_secret:
+    external: true
+```
+
+### Update Application to Read Docker Secret
+
+```javascript
+// In your app
+const fs = require("fs");
+const path = require("path");
+
+function getJWTSecret() {
+  if (process.env.JWT_SECRET_FILE) {
+    return fs.readFileSync(process.env.JWT_SECRET_FILE, "utf8").trim();
+  }
+  return process.env.JWT_SECRET;
+}
+
+const jwtSecret = getJWTSecret();
+```
+
+---
+
+## 🔧 OPTION 4: AZURE KEY VAULT
+
+### Install Azure CLI and Store Secret
+
+```bash
+# Install Azure CLI
+curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
+# Login to Azure
+az login
+
+# Create Key Vault (if doesn't exist)
+az keyvault create --name "fixzit-keyvault" --resource-group "your-resource-group" --location "UAE North"
+
+# Store the secret
+az keyvault secret set \
+    --vault-name "fixzit-keyvault" \
+    --name "jwt-secret" \
+    --value "6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267"
+```
+
+---
+
+## 🔧 OPTION 5: HASHICORP VAULT
+
+### Install and Configure Vault
+
+```bash
+# Install Vault
+curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+sudo apt-get update && sudo apt-get install vault
+
+# Start Vault server (development mode)
+vault server -dev
+
+# Set Vault address
+export VAULT_ADDR='http://127.0.0.1:8200'
+
+# Store the secret
+vault kv put secret/fixzit jwt-secret="6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267"
+```
+
+---
+
+## 📋 RECOMMENDED IMPLEMENTATION STEPS
+
+### 1. Choose Your Platform
+
+Based on your existing AWS configuration, I recommend **AWS Secrets Manager**.
+
+### 2. Store the Secret
+
+```bash
+# Quick command to store in AWS Secrets Manager
+aws secretsmanager create-secret \
+    --name "fixzit/production/jwt-secret" \
+    --description "Production JWT Secret for Fixzit" \
+    --secret-string "6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267"
+```
+
+### 3. Update Application Configuration
+
+Create a centralized secrets management module that your app can use.
+
+### 4. Update Deployment Process
+
+Ensure your deployment process retrieves secrets from the remote system.
+
+### 5. Remove Local Secrets
+
+Once remote secrets are working, remove any local secret files.
+
+---
+
+## 🔒 SECURITY BENEFITS
+
+✅ **Centralized Management**: Single source of truth for secrets
+✅ **Access Control**: Fine-grained permissions on who can access secrets
+✅ **Audit Trail**: Track who accessed secrets and when
+✅ **Automatic Rotation**: Set up automatic secret rotation
+✅ **Encryption**: Secrets encrypted at rest and in transit
+✅ **No Git Exposure**: Secrets never stored in version control
+
+---
+
+## 🚨 NEXT ACTIONS
+
+1. **Choose your remote key platform** (AWS Secrets Manager recommended)
+2. **Store the JWT secret** using the commands above
+3. **Update your application** to retrieve from remote key system
+4. **Test the integration** in development first
+5. **Deploy to production** with remote key retrieval
+6. **Clean git history** to remove the old exposed secret
+
+Which remote key management system would you like to implement?
+
+]]>
+</file>
+
+<file path="docs/guides/SENDGRID_SETUP_CHECKLIST.md">
+<![CDATA[
+# SendGrid Production Setup - Quick Checklist
+
+## ✅ Completed
+
+- [x] Production-ready code implementation
+- [x] Centralized configuration system
+- [x] Webhook event handler
+- [x] MongoDB tracking integration
+- [x] Comprehensive documentation
+- [x] All code committed and pushed
+
+## 🔄 Your Action Items
+
+### 1. Add GitHub Secrets (5 minutes)
+
+Go to: https://github.com/EngSayh/Fixzit/settings/secrets/actions
+
+**Required Secrets** (Add these first):
+
+```
+Name: SENDGRID_API_KEY
+Value: [Your new SendGrid API key]
+
+Name: SENDGRID_FROM_EMAIL
+Value: noreply@fixzit.co
+
+Name: SENDGRID_FROM_NAME
+Value: Fixzit
+```
+
+**Recommended Secrets** (Add these for better functionality):
+
+```
+Name: SENDGRID_REPLY_TO_EMAIL
+Value: support@fixzit.co
+
+Name: SENDGRID_REPLY_TO_NAME
+Value: Fixzit Support
+
+Name: SENDGRID_WEBHOOK_VERIFICATION_KEY
+Value: [Get from SendGrid webhook settings]
+```
+
+**Optional Secrets** (Add if you have these configured in SendGrid):
+
+```
+Name: SENDGRID_UNSUBSCRIBE_GROUP_ID
+Value: [Your unsubscribe group ID]
+
+Name: SENDGRID_IP_POOL_NAME
+Value: [Your IP pool name - Enterprise only]
+
+Name: SENDGRID_TEMPLATE_WELCOME
+Value: [d-abc123... - if using dynamic templates]
+```
+
+### 2. SendGrid Dashboard Configuration (15 minutes)
+
+**A. Verify Sender Identity** (Required)
+
+1. Go to: https://app.sendgrid.com/settings/sender_auth
+2. Choose: **Domain Authentication** (recommended) or **Single Sender**
+3. Follow the wizard to add DNS records
+4. Wait for verification
+
+**B. Setup Event Webhook** (Recommended)
+
+1. Go to: https://app.sendgrid.com/settings/mail_settings
+2. Find **Event Webhook**
+3. Set URL: `https://your-production-domain.com/api/webhooks/sendgrid`
+4. Select events: Processed, Delivered, Opened, Clicked, Bounced, Dropped, Spam Reports
+5. Enable **Signed Event Webhook**
+6. Copy verification key → Add as `SENDGRID_WEBHOOK_VERIFICATION_KEY` secret
+7. Test the integration
+
+**C. Create Unsubscribe Group** (Optional but recommended)
+
+1. Go to: https://app.sendgrid.com/suppressions/unsubscribe_groups
+2. Create group: "Transactional Emails" or "System Notifications"
+3. Copy Group ID → Add as `SENDGRID_UNSUBSCRIBE_GROUP_ID` secret
+
+### 3. Test the Integration (5 minutes)
+
+Once secrets are added and deployed:
+
+```bash
+# Test email sending
+curl -X POST https://your-domain.com/api/support/welcome-email \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "your-test-email@example.com",
+    "subject": "Test Email",
+    "errorId": "TEST-123",
+    "registrationLink": "https://fixzit.co/register"
+  }'
+
+# Check email status
+curl "https://your-domain.com/api/support/welcome-email?email=your-test-email@example.com"
+
+# Webhook health check
+curl "https://your-domain.com/api/webhooks/sendgrid"
+```
+
+### 4. Monitor Delivery (Ongoing)
+
+**SendGrid Activity Feed**:
+
+- https://app.sendgrid.com/email_activity
+
+**MongoDB Email Logs**:
+
+```javascript
+// Query recent emails
+db.email_logs.find().sort({ sentAt: -1 }).limit(10);
+
+// Check delivery stats
+db.email_logs.aggregate([
+  {
+    $group: {
+      _id: "$status",
+      count: { $sum: 1 },
+    },
+  },
+]);
+```
+
+## 📚 Documentation
+
+**Full Guide**: `docs/guides/SENDGRID_PRODUCTION_GUIDE.md`
+
+**Key Files**:
+
+- `/lib/sendgrid-config.ts` - Configuration system
+- `/app/api/support/welcome-email/route.ts` - Email sending
+- `/app/api/webhooks/sendgrid/route.ts` - Event tracking
+
+## 🎯 What Changed
+
+### New Features
+
+✅ Multiple sender identities (from + reply-to)
+✅ Dynamic template support
+✅ Webhook event tracking
+✅ Unsubscribe group management
+✅ IP pool support (Enterprise)
+✅ Webhook signature verification
+✅ Real-time delivery tracking
+
+### Environment Variables
+
+**Old** (still works):
+
+```
+SENDGRID_API_KEY=xxx
+FROM_EMAIL=noreply@fixzit.co
+```
+
+**New** (recommended):
+
+```
+SENDGRID_API_KEY=xxx
+SENDGRID_FROM_EMAIL=noreply@fixzit.co
+SENDGRID_FROM_NAME=Fixzit
+SENDGRID_REPLY_TO_EMAIL=support@fixzit.co
+SENDGRID_REPLY_TO_NAME=Fixzit Support
+SENDGRID_WEBHOOK_VERIFICATION_KEY=xxx
+```
+
+### Backward Compatibility
+
+✅ All existing code still works
+✅ No breaking changes
+✅ Graceful fallbacks for missing config
+
+## 🚨 Important Notes
+
+1. **Domain Authentication**: Critical for deliverability
+   - Without it: emails may go to spam
+   - With it: 95%+ inbox placement
+
+2. **Webhook Verification**: Security requirement
+   - Production: Always verify signatures
+   - Development: Can be disabled for testing
+
+3. **Rate Limits**:
+   - Trial: 100 emails/day
+   - Pro: Unlimited (with rate limits per second)
+   - Monitor your usage in SendGrid dashboard
+
+4. **Sender Reputation**:
+   - Start with low volume
+   - Gradually increase sends
+   - Monitor bounce rates (<5%)
+   - Clean email lists regularly
+
+## ⏭️ Next Steps After Setup
+
+1. **Create Dynamic Templates** (optional but recommended)
+   - Better branding
+   - Easy A/B testing
+   - No code deployments
+
+2. **Setup IP Warming** (if you have dedicated IPs)
+   - Start with 50 emails/day
+   - Double every 3 days
+   - Reach full volume in 2-3 weeks
+
+3. **Monitor Analytics**
+   - Open rates (target: >20%)
+   - Click rates (target: >3%)
+   - Bounce rates (keep <5%)
+   - Spam reports (keep <0.1%)
+
+4. **Setup Alerts**
+   - Bounce rate spike
+   - Spam report spike
+   - API errors
+
+## 🆘 Need Help?
+
+**Documentation**: `docs/guides/SENDGRID_PRODUCTION_GUIDE.md`
+**SendGrid Support**: https://support.sendgrid.com/
+**SendGrid Status**: https://status.sendgrid.com/
+
+---
+
+**Status**: ✅ Code Ready - Waiting for your secrets configuration
+**Last Updated**: October 24, 2025
+
+]]>
+</file>
+
+<file path="docs/guides/SERVER_ACCESS_GUIDE.md">
+<![CDATA[
+# Server Access Guide - GitHub Codespaces
+
+## ✅ Server Status
+
+To check if the server is running, use these commands:
+
+### Check Running Process
+
+```bash
+# Check if server process is running
+ps aux | grep "[n]ode.*server.js"
+# or
+pgrep -f "node.*server.js"
+```
+
+### Verify Listening Port
+
+```bash
+# Check if port 3000 is listening
+netstat -tlnp 2>/dev/null | grep :3000
+# or
+ss -tlnp 2>/dev/null | grep :3000
+```
+
+### Test Health Endpoint
+
+```bash
+# Test if server is responding
+curl -I http://localhost:3000
+# Should return: HTTP/1.1 200 OK
+```
+
+## 🌐 Access URLs
+
+### Inside Codespaces Terminal (Always Works)
+
+```bash
+curl http://localhost:3000
+# Status: 200 OK ✅
+```
+
+### From Your Browser (Forwarded Port)
+
+GitHub Codespaces automatically forwards port 3000. Here's how to access it:
+
+#### Method 1: Automatic Port Forwarding (Recommended)
+
+1. Look at the **PORTS** tab in VS Code (bottom panel)
+2. Find port **3000**
+3. Click the **🌐 globe icon** or **"Open in Browser"**
+4. VS Code will open the forwarded URL in your browser
+
+#### Method 2: Manual URL Construction
+
+Your Codespace URL format:
+
+```
+https://{CODESPACE_NAME}-{PORT}.{DOMAIN}
+```
+
+Example format:
+
+```
+https://<your-codespace-name>-3000.app.github.dev
+```
+
+Replace `<your-codespace-name>` with your actual Codespace name (visible in the terminal prompt or `$CODESPACE_NAME` environment variable).
+
+#### Method 3: VS Code Command Palette
+
+1. Press `Cmd/Ctrl + Shift + P`
+2. Type: `Ports: Focus on Ports View`
+3. Right-click port 3000
+4. Select "Open in Browser"
+
+## 🔒 Port Visibility Settings
+
+By default, ports in Codespaces are **private** (only you can access them). To share:
+
+1. Go to **PORTS** tab
+2. Right-click port **3000**
+3. Choose **Port Visibility**:
+   - **Private**: Only you (default) ✅
+   - **Public**: Anyone with the URL
+   - **Organization**: Team members only
+
+## 🐛 Troubleshooting
+
+### Issue: "Can't access from browser"
+
+**Solution**: Check port forwarding status
+
+```bash
+# In terminal, this should show port 3000:
+gh codespace ports
+```
+
+### Issue: "Connection refused"
+
+**Solution**: Verify server is running
+
+```bash
+# Should show the server process:
+netstat -tlnp 2>/dev/null | grep :3000
+```
+
+### Issue: "502 Bad Gateway"
+
+**Solution**: Restart the server
+
+```bash
+# Kill and restart
+pkill -f "node.*server.js"
+cd /workspaces/Fixzit
+HOSTNAME=0.0.0.0 PORT=3000 NODE_ENV=production nohup node .next/standalone/server.js > server.log 2>&1 &
+```
+
+## 📝 Quick Commands
+
+### Check Server Status
+
+```bash
+# Is it running?
+ps aux | grep "node.*server.js" | grep -v grep
+
+# Is it listening?
+netstat -tlnp 2>/dev/null | grep :3000
+
+# Is it responding?
+curl -I http://localhost:3000
+```
+
+### View Server Logs
+
+```bash
+tail -f server.log
+```
+
+### Restart Server
+
+```bash
+# Kill current server
+pkill -f "node.*server.js"
+
+# Start fresh
+cd /workspaces/Fixzit
+HOSTNAME=0.0.0.0 PORT=3000 NODE_ENV=production nohup node .next/standalone/server.js > server.log 2>&1 &
+```
+
+### Stop Server
+
+```bash
+pkill -f "node.*server.js"
+```
+
+## 🚀 Development vs Production Access
+
+### Development Mode (`npm run dev`)
+
+```bash
+npm run dev
+# Access: https://{codespace}-3000.app.github.dev
+# Features: Hot reload, debug mode, detailed errors
+```
+
+### Production Mode (Current)
+
+```bash
+node .next/standalone/server.js
+# Access: https://{codespace}-3000.app.github.dev
+# Features: Optimized, minified, cached
+```
+
+## 🔍 Current Server Configuration
+
+```javascript
+// Server is binding to:
+HOSTNAME: 0.0.0.0  // Accepts external connections ✅
+PORT: 3000
+NODE_ENV: production
+
+// CORS Headers:
+Access-Control-Allow-Origin: https://fixzit.co
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: Content-Type, Authorization, Cookie
+```
+
+## ⚠️ Important Notes
+
+1. **Codespaces URLs change** - Every time you create a new Codespace, you get a new URL
+2. **Ports are private by default** - Only you can access them unless you change visibility
+3. **HTTPS only** - Codespaces uses HTTPS, not HTTP
+4. **Session timeout** - Codespaces stop after inactivity (configurable)
+
+## ✅ Verification Checklist
+
+- [x] Server is running (PID 574815)
+- [x] Port 3000 is listening (0.0.0.0:3000)
+- [x] Local access works (curl returns 200)
+- [x] Port forwarding is active (check PORTS tab)
+- [ ] Browser access works (use forwarded URL)
+
+## 🎯 Next Steps
+
+1. **Open PORTS tab** in VS Code (View → Terminal → PORTS)
+2. **Find port 3000** in the list
+3. **Click the globe icon** to open in browser
+4. **Verify the application loads**
+
+Your server is ready! Just use the forwarded port URL from the PORTS tab. 🚀
+
+]]>
+</file>
+
+<file path="docs/guides/SOURCE_MAPS_GUIDE.md">
+<![CDATA[
+# Source Map Configuration Guide
+
+## Overview
+
+This project is configured to generate **hidden source maps** in production builds. This enables detailed error stack traces in your error tracking service (like Sentry) without exposing source code to end users.
+
+## Configuration
+
+### next.config.js
+
+```javascript
+// Development: No source maps (fast builds, memory efficient)
+config.devtool = false;
+
+// Production (CI only): Generate hidden source maps
+if (!dev && process.env.CI === "true") {
+  config.devtool = "hidden-source-map";
+  // This generates .map files but doesn't reference them in the bundles
+  // Users won't see or download source maps, but error tracking can use them
+}
+```
+
+### Source Map Types
+
+| Type                   | Description                     | Exposed to Users? | Use Case                       |
+| ---------------------- | ------------------------------- | ----------------- | ------------------------------ |
+| `false`                | No source maps                  | N/A               | Development (memory savings)   |
+| `hidden-source-map`    | Full maps, no bundle reference  | ❌ No             | **Production (recommended)**   |
+| `nosources-source-map` | Maps without source content     | ❌ No             | Production (smaller maps)      |
+| `source-map`           | Full maps with bundle reference | ✅ Yes            | Not recommended for production |
+
+## How It Works
+
+### 1. Build Process
+
+When `CI=true` (GitHub Actions), the build generates:
+
+- Regular bundles: `.next/static/chunks/*.js`
+- Hidden source maps: `.next/static/chunks/*.js.map`
+
+The JavaScript bundles **do not** include `//# sourceMappingURL=` comments, so browsers won't request or download the `.map` files.
+
+### 2. Error Tracking Integration
+
+Source maps are uploaded to your error tracking service via GitHub Actions:
+
+```yaml
+# .github/workflows/build-sourcemaps.yml
+- name: Upload source maps to Sentry
+  run: |
+    sentry-cli releases new "$GITHUB_SHA"
+    sentry-cli releases files "$GITHUB_SHA" upload-sourcemaps .next --rewrite
+    sentry-cli releases finalize "$GITHUB_SHA"
+```
+
+### 3. Error Resolution
+
+When an error occurs in production:
+
+1. User's browser sends error with minified stack trace
+2. Error tracking service receives the error
+3. Service uses uploaded source maps to transform the stack trace
+4. You see the original source code locations and function names
+
+## Setup Instructions
+
+### Option A: Sentry (Recommended)
+
+1. **Install Sentry SDK**:
+
+   ```bash
+   npm install @sentry/nextjs
+   ```
+
+2. **Configure Sentry**:
+
+   ```bash
+   npx @sentry/wizard@latest -i nextjs
+   ```
+
+3. **Add GitHub Secrets**:
+   Go to: <https://github.com/EngSayh/Fixzit/settings/secrets/actions>
+
+   Add these secrets:
+   - `SENTRY_AUTH_TOKEN`: Your Sentry auth token
+   - `SENTRY_ORG`: Your Sentry organization slug
+   - `SENTRY_PROJECT`: Your Sentry project slug
+
+4. **Enable workflow**:
+   The workflow `.github/workflows/build-sourcemaps.yml` will automatically upload maps on every push to `main`.
+
+### Option B: Custom Error Tracking Service
+
+If you use a different error tracking service:
+
+1. **Modify the workflow**:
+   Edit `.github/workflows/build-sourcemaps.yml` and uncomment the "custom service" section:
+
+   ```yaml
+   - name: Upload source maps to custom service
+     run: |
+       find .next -name "*.map" -type f | while read mapfile; do
+         curl -X POST \
+           -F "file=@$mapfile" \
+           -H "Authorization: Bearer ${{ secrets.ERROR_TRACKING_TOKEN }}" \
+           https://your-error-tracking-service.com/api/sourcemaps
+       done
+   ```
+
+2. **Add your service URL and token** as GitHub secrets.
+
+### Option C: Manual Download (Fallback)
+
+If you need source maps for manual debugging:
+
+1. **Download from GitHub Actions artifacts**:
+   - Go to: <https://github.com/EngSayh/Fixzit/actions>
+   - Click on a successful build
+   - Download "source-maps" artifact
+   - Extract and use with browser DevTools
+
+## Testing Source Maps
+
+### Local Testing
+
+1. **Build with source maps**:
+
+   ```bash
+   CI=true npm run build
+   ```
+
+2. **Verify source maps were generated**:
+
+   ```bash
+   find .next -name "*.map" -type f | wc -l
+   # Should show multiple .map files
+   ```
+
+3. **Check source map is hidden**:
+
+   ```bash
+   # Open a built JS file
+   cat .next/static/chunks/app/page-*.js | grep sourceMappingURL
+   # Should return nothing (no sourceMappingURL comment)
+   ```
+
+### Production Testing
+
+1. **Trigger an error in production**
+2. **Check your error tracking dashboard** (Sentry, etc.)
+3. **Verify stack traces show original source code**:
+   - Should see actual file names (e.g., `src/app/page.tsx`)
+   - Should see original function names
+   - Should see correct line numbers
+
+## Performance Impact
+
+### Build Time
+
+| Configuration      | Build Time (4-core/16GB) | Source Map Size |
+| ------------------ | ------------------------ | --------------- |
+| No source maps     | 30-35 seconds            | 0 MB            |
+| Hidden source maps | 35-45 seconds            | ~10-20 MB       |
+
+**Trade-off**: Slightly longer builds for much better error debugging.
+
+### User Experience
+
+- ✅ **No impact on users**: Source maps are never downloaded by browsers
+- ✅ **Same bundle size**: JavaScript bundles are identical
+- ✅ **Same load times**: No additional network requests
+
+## Security Considerations
+
+### ✅ Hidden Source Maps (Current Configuration)
+
+- Source maps exist but are not referenced
+- Users cannot access or download them
+- Only available to error tracking service
+- Source code remains private
+
+### ❌ Regular Source Maps (NOT recommended)
+
+- Source maps are referenced in bundles
+- Users can download and view source code
+- Exposes intellectual property
+- Security risk
+
+## Troubleshooting
+
+### Issue: No source maps generated
+
+**Check**:
+
+```bash
+# Ensure CI=true is set
+CI=true npm run build
+
+# Look for .map files
+find .next -name "*.map"
+```
+
+### Issue: Error tracking shows minified code
+
+**Possible causes**:
+
+1. Source maps not uploaded to error tracking service
+2. Incorrect release/version matching
+3. Source map files missing from build
+
+**Solution**:
+
+1. Check GitHub Actions logs for upload errors
+2. Verify source maps exist in artifacts
+3. Re-run the build workflow
+
+### Issue: Build fails with source maps enabled
+
+**Possible causes**:
+
+1. Insufficient memory (need 4GB+ for source map generation)
+2. Webpack configuration conflict
+
+**Solution**:
+
+1. Build on proper hardware (4-core/16GB minimum)
+2. Check next.config.js for conflicting webpack settings
+
+## Best Practices
+
+1. ✅ **Always enable hidden source maps in production**
+   - Helps debug production errors quickly
+   - No security or performance cost to users
+
+2. ✅ **Upload maps to error tracking automatically**
+   - Use CI/CD pipeline (GitHub Actions)
+   - Don't manually manage source maps
+
+3. ✅ **Keep maps for 30+ days**
+   - Old maps help debug issues in older deployments
+   - GitHub Actions stores artifacts for 30 days by default
+
+4. ✅ **Test error tracking in staging first**
+   - Verify source maps are working before production deploy
+   - Check that stack traces are properly transformed
+
+5. ❌ **Never commit .map files to git**
+   - Already in .gitignore
+   - Generated at build time
+   - Can be very large (10-20 MB)
+
+## Additional Resources
+
+- [Next.js Source Maps Documentation](https://nextjs.org/docs/app/building-your-application/configuring/source-maps)
+- [Webpack devtool Configuration](https://webpack.js.org/configuration/devtool/)
+- [Sentry Source Maps Guide](https://docs.sentry.io/platforms/javascript/sourcemaps/)
+
+## Summary
+
+✅ **Current configuration**: Hidden source maps enabled in CI production builds  
+✅ **User impact**: Zero (maps not exposed or downloaded)  
+✅ **Developer benefit**: Full source code visibility in error tracking  
+✅ **Automation**: GitHub Actions uploads maps automatically
+
+Your production errors will now show original source code instead of minified code! 🎉
+
+]]>
+</file>
+
+<file path="docs/guides/START_3_HOUR_TESTING.md">
+<![CDATA[
+# 🚀 3-HOUR UNATTENDED E2E TESTING - START INSTRUCTIONS
+
+## ⚡ QUICK START (Copy-Paste Ready)
+
+### Step 1: Open VS Code Task Runner
+
+Press `Ctrl+Shift+P` (Windows/Linux) or `Cmd+Shift+P` (Mac), then:
+
+```
+Tasks: Run Task
+```
+
+### Step 2: Select the Testing Task
+
+Type or select:
+
+```
+🚀 START: 3-Hour Unattended E2E Testing
+```
+
+### Step 3: Walk Away
+
+That's it! VS Code will now:
+
+- ✅ Keep your system awake for 3 hours
+- ✅ Start the dev server (Next.js)
+- ✅ Run continuous verification loops
+- ✅ Test all 14 pages across 6 roles in English & Arabic
+- ✅ Validate i18n keys, TypeScript, ESLint
+- ✅ Save reports, traces, and videos
+
+---
+
+## 📋 WHAT THE SYSTEM WILL DO
+
+### Verification Loop (Repeats Every ~15-20 Minutes)
+
+Each cycle automatically runs:
+
+1. **TypeScript Check** (`pnpm typecheck`)
+   - Validates all type definitions
+   - Catches type errors before runtime
+
+2. **ESLint** (`pnpm lint`)
+   - Enforces code quality standards
+   - Fails on warnings (max-warnings=0)
+
+3. **i18n Key Scan** (`pnpm scan:i18n`)
+   - Scans all source files for translation usage
+   - Validates keys exist in English & Arabic dictionaries
+   - **STRICT MODE**: Fails if any keys missing
+
+4. **Playwright E2E Tests** (`pnpm test:e2e`)
+   - Tests 14 core pages (Dashboard, Work Orders, Properties, Finance, HR, Admin, CRM, Marketplace, Support, Compliance, Reports, System, Landing, App)
+   - Across 6 user roles (SuperAdmin, Admin, Manager, Technician, Tenant, Vendor)
+   - In 2 locales (English LTR, Arabic RTL)
+   - **Total: 168 test scenarios** (14 pages × 6 roles × 2 locales)
+
+### What Gets Validated Per Page
+
+- ✅ Page loads successfully (no 500 errors)
+- ✅ Header, sidebar, footer present
+- ✅ Language selector visible
+- ✅ Currency selector visible
+- ✅ RTL/LTR direction correct for locale
+- ✅ No console errors
+- ✅ No failed network requests (4xx/5xx)
+- ✅ No missing translation keys
+- ✅ Core navigation elements accessible
+
+---
+
+## 📊 WHERE TO FIND RESULTS (When You Return)
+
+### 1. **HTML Report** (Primary)
+
+```
+playwright-report/index.html
+```
+
+Open in browser for interactive pass/fail details with:
+
+- Test duration
+- Screenshots of failures
+- Video recordings
+- Network logs
+- Console outputs
+
+### 2. **Execution Log**
+
+```
+tests/loop-runner.log
+```
+
+Timestamped record of every verification cycle:
+
+- Start/end times
+- Exit codes
+- Error summaries
+- Cycle count
+
+### 3. **Test Artifacts**
+
+```
+test-results/
+├── videos/         # Videos of failed tests
+├── traces/         # Playwright traces (viewable with: npx playwright show-trace <file>)
+└── screenshots/    # Failure screenshots
+```
+
+### 4. **Terminal Output**
+
+VS Code terminals will show:
+
+- **Terminal 1**: Keep-alive countdown (1/180 min, 2/180 min, ...)
+- **Terminal 2**: Dev server logs (Next.js)
+- **Terminal 3**: Loop runner progress (Cycle #1, #2, ...)
+
+---
+
+## 🛑 IMPORTANT: NO INTERACTION NEEDED
+
+### The System Will NOT Stop For:
+
+- ❌ Confirmation dialogs
+- ❌ Update prompts
+- ❌ Extension recommendations
+- ❌ Git push confirmations
+- ❌ File save dialogs
+- ❌ Build warnings
+
+### The System WILL Stop For:
+
+- ❌ **Critical build errors** (syntax errors, missing imports)
+- ❌ **Port conflicts** (if 3000 already in use)
+- ❌ **Out of memory** (unlikely, but possible on large runs)
+
+If stopped early, check `tests/loop-runner.log` for the exact failure point.
+
+---
+
+## 🔧 TROUBLESHOOTING (Before You Leave)
+
+### Pre-Flight Checklist
+
+Run these to ensure smooth operation:
+
+```bash
+# 1. Check port 3000 is free
+lsof -i :3000
+# If occupied: kill -9 <PID>
+
+# 2. Verify dependencies installed
+pnpm install
+
+# 3. Install Playwright browsers (one-time)
+pnpm test:install
+
+# 4. Test TypeScript compiles
+pnpm typecheck
+# Should exit with code 0
+
+# 5. Test dev server starts
+pnpm dev
+# Should see "Local: http://localhost:3000" within 10 seconds
+# Press Ctrl+C to stop
+```
+
+### If Auth Setup Fails
+
+Generate test user storage states:
+
+```bash
+pnpm test:e2e:setup
+```
+
+This requires test users to exist in your database. Check `.env.test` for credentials.
+
+---
+
+## 📈 EXPECTED METRICS (After 3 Hours)
+
+Assuming ~15 minutes per cycle:
+
+- **Total Cycles**: ~12
+- **Total Tests**: ~2,016 (168 scenarios × 12 cycles)
+- **TypeScript Checks**: 12
+- **ESLint Runs**: 12
+- **i18n Scans**: 12
+- **E2E Test Runs**: 12
+
+---
+
+## 🎯 SUCCESS CRITERIA
+
+When you return, the system succeeded if:
+
+✅ **Loop log shows**: "3-HOUR VERIFICATION LOOP COMPLETED SUCCESSFULLY"  
+✅ **Playwright report**: All tests green (or known acceptable failures documented)  
+✅ **No build errors**: TypeScript + ESLint passed all cycles  
+✅ **No missing i18n keys**: Scanner passed all cycles  
+✅ **Dev server stable**: No crashes or OOM errors
+
+---
+
+## 🚨 EMERGENCY STOP (If Needed Before 3 Hours)
+
+Press `Ctrl+C` in any terminal to gracefully stop the loop.
+
+Or close all VS Code terminals:
+
+```
+Terminal → Kill All Terminals
+```
+
+---
+
+## 📞 WHAT TO DO IF YOU FIND ISSUES WHEN YOU RETURN
+
+### 1. Check Loop Log First
+
+```bash
+cat tests/loop-runner.log | grep "❌"
+```
+
+### 2. Open HTML Report
+
+```bash
+npx playwright show-report playwright-report
+```
+
+### 3. Replay Failed Tests
+
+```bash
+pnpm exec playwright test --grep "<test-name>" --debug
+```
+
+### 4. View Trace Files
+
+```bash
+npx playwright show-trace test-results/<path-to-trace.zip>
+```
+
+---
+
+## 🎬 FINAL COMMAND TO START
+
+**Option A: VS Code Task (Recommended)**
+
+`Ctrl+Shift+P` → `Tasks: Run Task` → `🚀 START: 3-Hour Unattended E2E Testing`
+
+**Option B: Manual (If task doesn't work)**
+
+```bash
+# Terminal 1: Dev server
+pnpm dev
+
+# Terminal 2: Loop runner (wait for dev server to start)
+pnpm test:e2e:loop
+```
+
+---
+
+## ✅ SYSTEM IS READY
+
+All configuration files created:
+
+- ✅ `.vscode/tasks.json` - VS Code task automation
+- ✅ `.vscode/settings.json` - Prevents prompts/updates
+- ✅ `tests/playwright.config.ts` - 12-project test matrix
+- ✅ `tests/loop-runner.mjs` - 3-hour orchestration
+- ✅ `tests/i18n-scan.mjs` - Translation key validator
+- ✅ `tests/setup-auth.ts` - Auth state generator
+- ✅ `tests/specs/smoke.spec.ts` - Page smoke tests
+- ✅ `tests/specs/i18n.spec.ts` - i18n validation
+- ✅ `tests/README.md` - Detailed documentation
+- ✅ `.env.test` - Test environment template
+- ✅ `package.json` - Added test scripts
+
+**You're all set! Start the task and leave for 3 hours.** ☕
+
+---
+
+**Generated by Fixzit E2E Testing Framework**  
+**Date**: October 27, 2025
+
+]]>
+</file>
+
+<file path="docs/guides/START_HERE.md">
+<![CDATA[
+# 🎯 START HERE - Fixzit Deployment Fix
+
+## THE SITUATION
+
+Your deployment has failed **7 times** with this error:
+
+```
+❌ No Next.js version detected
+```
+
+## THE CAUSE
+
+Your project structure has Next.js in a subfolder, but Vercel is looking in the wrong place.
+
+## THE FIX
+
+**2 settings changes = 5 minutes = ✅ Live website**
+
+---
+
+# 🚀 DO THIS NOW (5 Minutes)
+
+## STEP 1: Fix Vercel Settings (2 min)
+
+### Go Here First:
+
+🔗 **https://vercel.com/fixzit/fixzit/settings/general**
+
+### Do This:
+
+1. Scroll to "**Root Directory**"
+2. Click "**Edit**"
+3. Type: `Fixzit`
+4. Click "**Save**"
+
+**✅ DONE!** Vercel now knows where your app is.
+
+---
+
+## STEP 2: Allow Vercel to Connect to MongoDB (2 min)
+
+### Go Here:
+
+🔗 **https://cloud.mongodb.com/**
+
+### Do This:
+
+1. Click "**Fixzit**" project
+2. Left menu: "**Security**" → "**Network Access**"
+3. Click "**Add IP Address**"
+4. Click "**Allow Access from Anywhere**"
+5. It will fill in: `0.0.0.0/0`
+6. Description: `Vercel Access`
+7. Click "**Confirm**"
+8. Wait 1 minute for it to activate
+
+**✅ DONE!** Vercel can now connect to your database.
+
+---
+
+## STEP 3: Deploy (1 min)
+
+### Go Here:
+
+🔗 **https://vercel.com/fixzit/fixzit**
+
+### Do This:
+
+1. Click "**Deployments**" tab
+2. Click "**Deploy**" button (top right)
+3. Select "**main**" branch
+4. Click "**Deploy**"
+5. Watch it build! ☕
+
+### What You'll See:
+
+```
+✅ Detected Next.js 15.5.6  ← This is the magic!
+✅ Installing dependencies...
+✅ Building...
+✅ Compiled successfully
+✅ Deployment Ready
+```
+
+**⏱️ Takes 2-4 minutes**
+
+---
+
+## STEP 4: Verify It Works (1 min)
+
+### Go Here:
+
+🔗 **https://fixzit.co**
+
+### Check:
+
+- ✅ Homepage loads (not stuck on "Loading...")
+- ✅ No errors in console (F12 → Console tab)
+- ✅ Can go to login page
+- ✅ Everything looks good!
+
+---
+
+# 📊 WHY THIS WORKS
+
+## Your Project Structure:
+
+```
+/Fixzit/                 ← Vercel was looking HERE ❌
+  └── Fixzit/            ← But your app is HERE ✅
+       ├── app/
+       ├── components/
+       ├── next.config.js
+       └── package.json (with next@15.5.6)
+```
+
+## What We Changed:
+
+- Told Vercel: "Look in the `Fixzit` subfolder"
+- Allowed Vercel to connect to MongoDB
+- That's it!
+
+---
+
+# ✅ ALREADY VERIFIED
+
+Before asking you to do anything, I verified:
+
+- ✅ Your code compiles (0 TypeScript errors)
+- ✅ Your tests pass (891 passing)
+- ✅ Your build works locally
+- ✅ Your environment variables are set (34 total)
+- ✅ Your MongoDB connection string is correct
+- ✅ Your Git integration is active
+- ✅ Your dependencies are correct
+
+**The ONLY issues**: 2 configuration settings
+
+---
+
+# 🎯 CONFIDENCE LEVEL
+
+## 99% Success Rate
+
+Because:
+
+1. I've identified the exact problem
+2. The solution is simple (just UI settings)
+3. Your code is perfect (verified)
+4. I've tested the build locally (works!)
+5. All other configuration is correct
+
+**The only thing that could go wrong**: Typo when typing "Fixzit"
+
+---
+
+# 📚 MORE INFO
+
+## Quick Reference:
+
+📄 **EXECUTIVE_SUMMARY.md** - Overview  
+📄 **QUICK_FIX_SUMMARY.md** - This guide in detail  
+📄 **PRE_DEPLOYMENT_CHECKLIST.md** - Technical checklist  
+📄 **COMPREHENSIVE_DEPLOYMENT_AUDIT.md** - Full audit report  
+📄 **DEPLOYMENT_FIX_STEP_BY_STEP.md** - Detailed troubleshooting
+
+## If You Get Stuck:
+
+```bash
+# Check deployment logs
+vercel logs https://fixzit.co --follow
+
+# Verify environment variables
+vercel env ls
+
+# Test build locally
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+pnpm build
+```
+
+---
+
+# ⏱️ TIME TRACKER
+
+```
+Step 1: Fix Vercel Settings        → 2 minutes ⏰
+Step 2: Configure MongoDB           → 2 minutes ⏰
+Step 3: Deploy                      → 1 minute ⏰
+Step 4: Wait for build              → 3 minutes ⏰
+Step 5: Verify                      → 1 minute ⏰
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TOTAL TIME TO LIVE WEBSITE          → 9 minutes 🎉
+```
+
+---
+
+# 🎉 READY?
+
+## Start Here:
+
+🔗 **https://vercel.com/fixzit/fixzit/settings/general**
+
+## In 9 Minutes:
+
+✅ Your site will be live at **https://fixzit.co**
+
+---
+
+**Created**: November 21, 2025  
+**Build Verified**: ✅ Just now (19:17)  
+**Status**: 🟢 Ready to deploy
+
+**GO!** 🚀
+
+]]>
+</file>
+
+<file path="docs/guides/SUBSCRIPTION_SYSTEM_README.md">
+<![CDATA[
+# Fixzit Enterprise - Subscription & Billing System
+
+## ✅ Implementation Snapshot
+
+### 🏗️ Data Models (MongoDB / Mongoose)
+
+- ✅ `src/db/models/Module.ts` – module catalog and defaults
+- ✅ `src/db/models/PriceBook.ts` – tiered seat pricing
+- ✅ `src/db/models/DiscountRule.ts` – annual prepay discount control
+- ✅ `src/db/models/Subscription.ts` – subscriber contracts + PayTabs snapshot
+- ✅ `src/db/models/PaymentMethod.ts` – tokenised payment methods (PayTabs)
+- ✅ `src/db/models/Benchmark.ts` – competitive pricing references
+- ✅ `src/db/models/OwnerGroup.ts` – property owner automation
+- ✅ `src/db/models/ServiceAgreement.ts` – e-signed agreements archive
+
+### ⚙️ Services & Jobs
+
+- ✅ `src/services/pricing.ts` – seat-tier pricing engine (USD/SAR)
+- ✅ `src/services/checkout.ts` – subscription checkout + PayTabs HPP orchestration
+- ✅ `src/services/paytabs.ts` – webhook normalisation, token storage, provisioning
+- ✅ `src/services/provision.ts` – provisioning hook integration point
+- ✅ `src/jobs/recurring-charge.ts` – daily recurring billing token runner
+
+### 🔌 API Endpoints (Next.js App Router)
+
+- ✅ `POST /api/checkout/quote` – instant pricing quote
+- ✅ `POST /api/checkout/session` – generic checkout initialiser
+- ✅ `POST /api/checkout/complete` – finalise checkout / poll status
+- ✅ `POST /api/paytabs/callback` – PayTabs server callback handler
+- ✅ `GET  /api/paytabs/return` – PayTabs hosted page return redirector
+- ✅ `POST /api/subscribe/corporate` – FM company self-service flow
+- ✅ `POST /api/subscribe/owner` – property owner self-service flow
+- ✅ `POST /api/admin/billing/pricebooks` – create price books (Super Admin)
+- ✅ `PATCH /api/admin/billing/pricebooks/:id` – update price books (Super Admin)
+- ✅ `PATCH /api/admin/billing/annual-discount` – adjust annual discount (Super Admin)
+- ✅ `GET /api/admin/billing/benchmark` – list competitor benchmarks
+- ✅ `POST /api/admin/billing/benchmark/vendor` – add benchmark vendor
+- ✅ `PATCH /api/admin/billing/benchmark/:id` – maintain benchmark entries
+
+### 🌱 Seed Script
+
+- ✅ `scripts/seed-subscriptions.ts` – modules, price books, discount, benchmark data
+
+## 🚀 Getting Started
+
+### 1. Environment (`.env.local`)
+
+```bash
+# MongoDB
+MONGODB_URI=mongodb://localhost:27017/fixzit
+MONGODB_DB=fixzit
+
+# PayTabs Hosted Payment Page
+PAYTABS_DOMAIN=https://secure.paytabs.sa
+PAYTABS_PROFILE_ID=your_profile_id
+PAYTABS_SERVER_KEY=your_server_key
+APP_URL=https://your-app-domain
+
+# Optional cron secret (for external schedulers)
+CRON_SECRET=your_secure_random_string
+```
+
+### 2. Seed the Catalogue
+
+```bash
+npx tsx scripts/seed-subscriptions.ts
+```
+
+### 3. Run the App
+
+```bash
+npm run dev
+```
+
+## 🎯 Pricing Baseline (USD, per seat unless noted)
+
+| Module                 | 1-5 | 6-20         | 21-50         | 51-100        | 101-200       |
+| ---------------------- | --- | ------------ | ------------- | ------------- | ------------- |
+| FM Core                | $22 | $22 × (1-8%) | $22 × (1-12%) | $22 × (1-18%) | $22 × (1-25%) |
+| Preventive Maintenance | $8  | $8 × (1-8%)  | $8 × (1-12%)  | $8 × (1-18%)  | $8 × (1-25%)  |
+| Marketplace Pro        | $5  | $5 × (1-8%)  | $5 × (1-12%)  | $5 × (1-18%)  | $5 × (1-25%)  |
+| Analytics Pro          | $10 | $10 × (1-8%) | $10 × (1-12%) | $10 × (1-18%) | $10 × (1-25%) |
+| Compliance & Legal     | $8  | $8 × (1-8%)  | $8 × (1-12%)  | $8 × (1-18%)  | $8 × (1-25%)  |
+| HR Lite                | $6  | $6 × (1-8%)  | $6 × (1-12%)  | $6 × (1-18%)  | $6 × (1-25%)  |
+| CRM Lite               | $5  | $5 × (1-8%)  | $5 × (1-12%)  | $5 × (1-18%)  | $5 × (1-25%)  |
+
+> Annual prepay discount defaults to **15%** (editable by Super Admin). Seat counts above 200 trigger `requiresQuote`.
+
+## 💳 PayTabs Integration Highlights
+
+- Hosted Payment Page with `tokenise=2` for monthly plans
+- Recurring token charge via `tran_class: 'recurring'`
+- Token + masked card stored only (no PAN/CVV)
+- Return + callback wired through `/api/paytabs/return` & `/api/paytabs/callback`
+
+## 📊 Benchmark Dataset (editable)
+
+- UpKeep – Essential $20, Premium $45 (global)
+- MaintainX – Essential $20, Premium $65 (global)
+- Hippo CMMS – Starter $35, Pro $75 (global)
+
+## 🔒 Governance & Automation
+
+- Super Admin only access to billing admin APIs
+- Corporate vs Owner flows issue appropriately scoped subscriptions
+- Owner metadata drives `OwnerGroup` provisioning after successful payment
+- `provisionSubscriber` hook ready for RBAC entitlement wiring
+- Daily recurring job charges tokenised monthly subscriptions
+
+## ✅ Status
+
+All subscription system requirements from governance V5/V6 + the updated billing charter are implemented and production ready.
+
+]]>
+</file>
+
+<file path="docs/guides/SUPER_ADMIN_LOGO_CONFIGURATION.md">
+<![CDATA[
+# 🎨 Super Admin: How to Configure Organization Logo
+
+## Overview
+
+The Fixzit system now supports **dynamic organization branding** where the Super Admin can configure the company logo that appears in the TopBar for all users.
+
+---
+
+## 📊 Current Status
+
+### What's Implemented ✅
+
+- **API Endpoint**: `/api/organization/settings` - Fetches organization branding
+- **TopBar Integration**: Displays logo from database automatically
+- **Fallback Design**: Shows gradient placeholder with org initials if no logo
+- **Database Schema**: Organization model has `logo` field ready
+
+### What's Needed 🔧
+
+- Super Admin UI for logo upload (Admin Settings page)
+- Image upload to cloud storage (S3, Cloudinary, etc.)
+- Organization management API endpoints
+
+---
+
+## 🚀 How Super Admin Will Upload Logo
+
+### Option 1: Via Admin UI (Future Enhancement)
+
+1. **Login as Super Admin**
+2. **Navigate to**: `/admin/settings` or `/admin/organization`
+3. **Upload Logo**:
+   - Click "Upload Logo" button
+   - Select image file (PNG, JPG, SVG recommended)
+   - Recommended size: 128x128px or 256x256px
+   - System uploads to cloud storage
+   - Logo URL automatically saved to database
+4. **Preview**: See logo in TopBar immediately
+
+### Option 2: Via Database (Current Method)
+
+Until the admin UI is built, Super Admin can update the logo directly in MongoDB:
+
+```javascript
+// Connect to MongoDB
+use fixzit_dev
+
+// Find your organization
+db.organizations.findOne({ name: "Your Company Name" })
+
+// Update with logo URL
+db.organizations.updateOne(
+  { name: "Your Company Name" },
+  {
+    $set: {
+      logo: "https://your-storage.com/path/to/logo.png",
+      name: "Your Organization Name",  // Update if needed
+      branding: {
+        primaryColor: "#0061A8",
+        secondaryColor: "#00A859"
+      }
+    }
+  }
+)
+
+// Verify the update
+db.organizations.findOne({ name: "Your Company Name" })
+```
+
+### Option 3: Via API (For Developers)
+
+```bash
+# Update organization via API
+curl -X PATCH http://localhost:3000/api/admin/organization \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_SUPER_ADMIN_TOKEN" \
+  -d '{
+    "logo": "https://your-storage.com/path/to/logo.png",
+    "name": "Your Organization Name",
+    "branding": {
+      "primaryColor": "#0061A8",
+      "secondaryColor": "#00A859"
+    }
+  }'
+```
+
+---
+
+## 📁 Organization Schema
+
+The Organization model in MongoDB has these fields for branding:
+
+```typescript
+{
+  name: string,              // Organization name (displays in TopBar)
+  logo: string | null,       // URL to logo image
+  branding: {
+    primaryColor: string,    // Hex color code (e.g., "#0061A8")
+    secondaryColor: string   // Hex color code (e.g., "#00A859")
+  }
+}
+```
+
+---
+
+## 🎨 Logo Requirements
+
+### Technical Specs
+
+- **Format**: PNG, JPG, or SVG
+- **Size**: 32x32px minimum (will be scaled to 32x32 in TopBar)
+- **Recommended**: 128x128px or 256x256px for high-DPI displays
+- **Background**: Transparent PNG recommended
+- **File Size**: Under 500KB
+
+### Design Guidelines
+
+- **Square aspect ratio** (1:1) works best
+- **Simple design** - readable at small sizes
+- **High contrast** - visible on blue/gradient background
+- **Brand colors** - consistent with your organization
+
+---
+
+## 🔄 How It Works
+
+1. **User visits site** → TopBar component loads
+2. **TopBar fetches** → `/api/organization/settings`
+3. **API queries** → MongoDB Organization collection
+4. **Returns settings**:
+   ```json
+   {
+     "name": "Your Organization Name",
+     "logo": "https://storage.com/logo.png",
+     "primaryColor": "#0061A8",
+     "secondaryColor": "#00A859"
+   }
+   ```
+5. **TopBar displays**:
+   - If `logo` exists → Shows image
+   - If `logo` is null → Shows gradient placeholder with initials
+
+---
+
+## 🖼️ Upload Logo to Cloud Storage
+
+### Recommended Services
+
+#### Option 1: AWS S3
+
+```bash
+# Upload to S3
+aws s3 cp logo.png s3://your-bucket/logos/company-logo.png --acl public-read
+
+# Get URL
+https://your-bucket.s3.amazonaws.com/logos/company-logo.png
+```
+
+#### Option 2: Cloudinary
+
+```javascript
+// Upload via Cloudinary SDK
+const result = await cloudinary.uploader.upload("logo.png", {
+  folder: "fixzit/logos",
+  public_id: "company-logo",
+});
+
+// Get URL
+console.log(result.secure_url);
+// https://res.cloudinary.com/your-cloud/image/upload/v1234/fixzit/logos/company-logo.png
+```
+
+#### Option 3: Vercel Blob Storage
+
+```javascript
+import { put } from "@vercel/blob";
+
+const blob = await put("company-logo.png", file, {
+  access: "public",
+});
+
+console.log(blob.url);
+```
+
+---
+
+## 🧪 Testing the Logo
+
+### Test Current Setup
+
+1. Visit: http://localhost:3000
+2. Check TopBar - should see gradient placeholder with "FI" (Fixzit initials)
+3. Check API: http://localhost:3000/api/organization/settings
+   - Should return default settings
+
+### Test After Upload
+
+1. Update Organization in MongoDB with logo URL
+2. Hard refresh browser (Ctrl+Shift+R)
+3. Logo should appear in TopBar
+4. Verify on mobile - logo should still be visible
+
+---
+
+## 🛠️ Next Steps for Implementation
+
+### Phase 1: Logo Upload UI ✅ IN PROGRESS
+
+- [ ] Create `/admin/organization` page
+- [ ] Add logo upload component
+- [ ] Integrate with cloud storage (S3/Cloudinary)
+- [ ] Create `PATCH /api/admin/organization` endpoint
+- [ ] Add image validation (size, format, dimensions)
+
+### Phase 2: Advanced Branding
+
+- [ ] Primary/Secondary color pickers
+- [ ] Real-time preview
+- [ ] Multiple logo variants (dark mode, mobile)
+- [ ] Favicon generation
+- [ ] Email template branding
+
+### Phase 3: Multi-tenancy
+
+- [ ] Per-organization logo support
+- [ ] Tenant-specific branding
+- [ ] White-label capabilities
+
+---
+
+## 📝 Code References
+
+### Files Created/Modified
+
+- `app/api/organization/settings/route.ts` - API endpoint
+- `components/TopBar.tsx` - Logo display logic
+- `server/models/Organization.ts` - Database schema
+
+### Key Functions
+
+```typescript
+// Fetch organization settings
+const fetchOrgSettings = async () => {
+  const response = await fetch('/api/organization/settings');
+  const data = await response.json();
+  setOrgSettings(data);
+};
+
+// Render logo
+{orgSettings.logo ? (
+  <Image src={orgSettings.logo} alt={orgSettings.name} />
+) : (
+  <div className="gradient-placeholder">
+    {orgSettings.name.substring(0, 2).toUpperCase()}
+  </div>
+)}
+```
+
+---
+
+## ❓ FAQ
+
+**Q: Can I use a local file path for the logo?**  
+A: No, the logo must be a publicly accessible URL (HTTP/HTTPS). Upload to cloud storage first.
+
+**Q: What happens if the logo URL is broken?**  
+A: The system shows the gradient placeholder with organization initials as fallback.
+
+**Q: Can different organizations have different logos?**  
+A: Yes! Each organization document has its own `logo` field. The API can be extended to fetch based on user's organization.
+
+**Q: How do I update the organization name?**  
+A: Update the `name` field in the Organization document. It will reflect in the TopBar automatically.
+
+**Q: Does the logo support dark mode?**  
+A: Currently displays on blue gradient background. Future enhancement can support dark mode variants.
+
+---
+
+## 🎯 Quick Start Checklist
+
+- [ ] Upload logo to cloud storage (S3, Cloudinary, etc.)
+- [ ] Copy the public URL
+- [ ] Update Organization document in MongoDB with logo URL
+- [ ] Refresh browser to see logo in TopBar
+- [ ] Test on mobile and desktop
+- [ ] (Optional) Update organization name and colors
+
+---
+
+**Last Updated**: October 24, 2025  
+**Status**: ✅ Backend Complete | ⏳ Admin UI Pending  
+**Commit**: 00041daaa
+
+]]>
+</file>
+
+<file path="docs/guides/TODO_FEATURES.md">
+<![CDATA[
+# TODO FEATURE TRACKING
+**Generated**: November 23, 2025  
+**Last validated**: Today  
+**Purpose**: Track *all* remaining TODO markers in production code with factual counts  
+**Status**: 📋 Ready for Sprint Planning
+
+---
+
+## 📊 SUMMARY
+
+- **Total TODO markers in production**: 9  
+  - 1 feature enhancement (personalized recommendations)  
+  - 5 type-safety cleanups (Mongoose statics/model exports)  
+  - 1 configuration TODO (boost pricing)  
+  - 2 documentation/historical notes  
+- **Risk**: Low–medium (type-safety debt can hide runtime issues)  
+- **Impact**: One UX feature; rest are quality/hardening items
+
+---
+
+## 🎯 FEATURE TODOs (1)
+
+### 1. User Personalization for Aqar Recommendations
+**Location**: `src/lib/aqar/recommendation.ts:103`  
+**Priority**: 🟢 Low (Enhancement)  
+**Effort**: 🔵 Medium (2–3 days)  
+**Category**: Machine Learning / Personalization
+
+**Current Behavior**  
+Recommendations are based only on property attributes (location, type, price range).
+
+**Proposed Enhancement**  
+Personalize scoring using viewing history, favorites, and search patterns (collaborative/content-based filtering). Add A/B testing and metrics dashboard.
+
+**Acceptance Criteria**
+- [ ] Viewing history captured and stored
+- [ ] Favorites influence scoring
+- [ ] Search patterns influence results
+- [ ] >10% CTR uplift on recommendations
+- [ ] <200ms generation latency
+- [ ] Opt-out / privacy controls
+
+**Sprint Notes**  
+Start with favorites weighting (quick win), then add view tracking, then ML model + A/B framework.
+
+---
+
+## 🛡️ TYPE-SAFETY DEBT (5)
+- `models/project.model.ts:522` – `setStatus` static is cast; define proper ProjectModel statics interface.
+- `models/project.model.ts:542` – `recomputeBudget` static cast; same fix as above.
+- `models/aqarBooking.model.ts:435` – `isAvailable` casts `this` to BookingModel.
+- `models/aqarBooking.model.ts:453` – `createWithAvailability` casts `this` to BookingModel.
+- `models/aqarBooking.model.ts:523` – Model export cast to BookingModel.
+
+**Suggested fix**: Define reusable `BookingModel`/`ProjectModel` static interfaces and apply them instead of `as unknown as` casts.
+
+---
+
+## ⚙️ CONFIGURATION TODO (1)
+- `models/aqarBoost.model.ts:10` – Boost pricing hardcoded; TODO notes org-level configurable pricing. Add settings source with sensible defaults and admin override.
+
+---
+
+## 📝 DOCUMENTATION / HISTORICAL NOTES (2)
+- `components/SystemVerifier.tsx:32` – Documentation note about dynamic API integration.
+- `app/api/admin/users/route.ts:180` – Historical note on removed plaintext passwords.
+
+---
+
+## 🚀 IMPLEMENTATION ROADMAP (Personalization)
+
+1) Foundation: Analytics collection schema, basic view tracking, activity logging service.  
+2) Integration: Favorites + search history in scoring; preference extraction algorithm.  
+3) Enhancement: Collaborative filtering; A/B testing; metrics dashboard.  
+4) Optimization: Caching/indexing; privacy controls; docs/training.
+
+---
+
+## 📈 SUCCESS METRICS
+- CTR on recommendations; time-to-discovery; engagement on recommended properties; conversion from recs.
+- Targets: +10–15% CTR, -20% search time, +25% property views from recommendations.
+
+---
+
+## 💡 ALTERNATIVE APPROACHES
+- Option A: Third-party recommender (Algolia/Elasticsearch) – speed vs. cost/control.  
+- Option B: Rule-based weighting – quick win, low personalization.  
+- Option C: Full ML pipeline – best long-term personalization, highest effort.
+
+**Recommendation**: Start with Option B for speed, evolve to Option C once tracking data is available.
+
+]]>
+</file>
+
+<file path="docs/guides/TOPBAR_TESTING_GUIDE.md">
+<![CDATA[
+# TopBar Popup Testing Guide
+
+## How to Test the Fixes
+
+### 1. Access the Application
+
+1. In VS Code, open the **"Ports"** tab at the bottom
+2. Find port **3000**
+3. Click the **🌐 globe icon** to open in browser
+4. Navigate to any page with the TopBar (e.g., `/fm/dashboard`)
+
+### 2. Test Popup Overlap Prevention
+
+#### Test 1: Single Popup at a Time
+
+1. Click the **Notifications bell** icon (if logged in)
+   - ✅ Notification dropdown should appear
+2. While notifications are open, click the **User menu** (profile icon)
+   - ✅ Notifications should close automatically
+   - ✅ User menu should open
+3. While user menu is open, click **Language selector** (globe icon)
+   - ✅ User menu should close automatically
+   - ✅ Language dropdown should open
+
+**Expected**: Only ONE popup is visible at any time
+
+#### Test 2: Click Outside to Close
+
+1. Open any popup (notifications, user menu, language, currency, app switcher)
+2. Click anywhere outside the popup (on the page background)
+   - ✅ Popup should close
+
+#### Test 3: Escape Key
+
+1. Open any popup
+2. Press the **Escape** key
+   - ✅ Popup should close
+
+### 3. Test Screen Fitting (Mobile Responsive)
+
+#### Desktop Test (> 768px)
+
+1. Open your browser at normal desktop width
+2. Open each popup:
+   - Notifications
+   - User menu
+   - Language selector
+   - Currency selector
+   - App switcher
+3. Check:
+   - ✅ All popups fit within the screen
+   - ✅ Arrow pointers are visible above each dropdown
+   - ✅ No horizontal scrolling
+
+#### Mobile Test (< 640px)
+
+1. Open browser DevTools (F12)
+2. Click "Toggle device toolbar" (phone icon) or press `Ctrl+Shift+M`
+3. Select a mobile device (e.g., iPhone 12, Pixel 5)
+4. Open each popup:
+   - Notifications
+   - User menu
+   - Language selector
+   - Currency selector
+   - App switcher
+5. Check:
+   - ✅ All popups fit within mobile viewport
+   - ✅ No horizontal overflow or scrolling
+   - ✅ Arrow pointers are hidden on mobile
+   - ✅ Popups are properly aligned (right or left)
+
+#### Tablet Test (640px - 768px)
+
+1. In DevTools, select iPad or set custom width to 768px
+2. Test all popups
+3. Check:
+   - ✅ Popups adapt to screen size
+   - ✅ Content is readable and accessible
+
+### 4. Test RTL (Right-to-Left) Mode
+
+1. Open the **Language selector**
+2. Select **Arabic (العربية)**
+3. Page should switch to RTL mode
+4. Open each popup again:
+   - ✅ Popups should align to the correct side (right becomes left)
+   - ✅ Arrow pointers should be on the correct side
+   - ✅ Text should be right-aligned
+   - ✅ All functionality should work the same
+
+### 5. Test Specific Components
+
+#### App Switcher
+
+1. Click the app name next to the logo (e.g., "Facility Management")
+2. ✅ Dropdown shows FM, Souq, Aqar options
+3. ✅ Current app is highlighted
+4. ✅ Clicking outside closes dropdown
+5. Select a different app
+6. ✅ Dropdown closes after selection
+7. ✅ Page navigates to new app
+
+#### Language Selector
+
+1. Click the **globe icon** with language flag
+2. ✅ Searchable language list appears
+3. Type in search box (e.g., "french")
+4. ✅ List filters to matching languages
+5. ✅ Scrollbar appears if needed
+6. ✅ Custom scrollbar styling visible
+7. Select a language
+8. ✅ Dropdown closes
+9. ✅ Interface language changes
+
+#### Currency Selector
+
+1. Click the **dollar icon** with currency code
+2. ✅ Searchable currency list appears
+3. Type in search box (e.g., "euro")
+4. ✅ List filters to matching currencies
+5. Use arrow keys to navigate
+6. ✅ Active item highlighted
+7. Press Enter to select
+8. ✅ Dropdown closes
+9. ✅ Currency changes
+
+#### Notifications (Authenticated Users Only)
+
+1. Log in to the system
+2. Click the **bell icon**
+3. ✅ Notification list appears
+4. ✅ Unread notifications have blue dot
+5. ✅ Loading spinner shows while fetching
+6. ✅ Scroll to see more notifications
+7. Click "View all notifications"
+8. ✅ Navigates to /notifications page
+9. ✅ Dropdown closes
+
+#### User Menu
+
+1. Click the **user icon** with dropdown arrow
+2. ✅ Menu shows Profile, Settings, Sign out
+3. Hover over items
+4. ✅ Background color changes on hover
+5. ✅ Sign out is in red
+6. Click a menu item
+7. ✅ Menu closes
+8. ✅ Navigates to selected page
+
+### 6. Visual Quality Check
+
+Open each popup and verify:
+
+✅ **Shadows**: All popups have deep, consistent shadows
+✅ **Animations**: Smooth slide-in animation from top
+✅ **Arrow Pointers**: Small white triangles point to trigger button (desktop only)
+✅ **Borders**: Clean, consistent border styling
+✅ **Scrollbars**: Custom styled scrollbars (thin, gray)
+✅ **Spacing**: Consistent padding and margins
+✅ **Typography**: Clear, readable text at all sizes
+✅ **Colors**: Consistent color scheme
+
+### 7. Performance Check
+
+1. Open DevTools (F12) → Performance tab
+2. Record while opening/closing popups
+3. Check:
+   - ✅ No layout shifts (CLS score)
+   - ✅ Smooth 60fps animations
+   - ✅ No memory leaks
+   - ✅ Event listeners properly cleaned up
+
+### 8. Browser Compatibility
+
+Test in multiple browsers:
+
+- [ ] Chrome/Edge (latest)
+- [ ] Firefox (latest)
+- [ ] Safari (latest)
+- [ ] Mobile Safari (iOS)
+- [ ] Chrome Mobile (Android)
+
+### 9. Accessibility Check
+
+1. Use Tab key to navigate
+   - ✅ Can focus trigger buttons
+   - ✅ Can focus items within open dropdowns
+2. Use screen reader (optional)
+   - ✅ ARIA labels are read correctly
+   - ✅ Popup states announced
+3. Keyboard navigation
+   - ✅ Arrow keys work in currency/language selectors
+   - ✅ Enter key selects items
+   - ✅ Escape closes popups
+
+## Common Issues to Watch For
+
+### ❌ If Multiple Popups Open Simultaneously
+
+- **Problem**: Click handlers not working
+- **Check**: Browser console for JavaScript errors
+- **Solution**: Refresh page and try again
+
+### ❌ If Popup Doesn't Close on Click Outside
+
+- **Problem**: Event listener not attached
+- **Check**: Popup has correct container class
+- **Solution**: Verify class names match (`.notification-container`, `.user-menu-container`, etc.)
+
+### ❌ If Popup Overflows Screen
+
+- **Problem**: Responsive classes not applied
+- **Check**: Inspect element to verify `max-w-[calc(100vw-2rem)]` class exists
+- **Solution**: Clear cache and reload
+
+### ❌ If Arrow Pointer Misaligned
+
+- **Problem**: RTL or positioning issue
+- **Check**: Verify language direction
+- **Solution**: Toggle language and back
+
+## Test Results Template
+
+```
+Date: _________________
+Browser: _________________
+Screen Size: _________________
+
+Popup Overlap Prevention:     [ ] Pass  [ ] Fail
+Click Outside Detection:       [ ] Pass  [ ] Fail
+Escape Key Functionality:      [ ] Pass  [ ] Fail
+Mobile Screen Fitting:         [ ] Pass  [ ] Fail
+Desktop Screen Fitting:        [ ] Pass  [ ] Fail
+RTL Mode Support:              [ ] Pass  [ ] Fail
+Visual Consistency:            [ ] Pass  [ ] Fail
+Animation Smoothness:          [ ] Pass  [ ] Fail
+Accessibility:                 [ ] Pass  [ ] Fail
+
+Notes:
+_________________________________________________
+_________________________________________________
+_________________________________________________
+```
+
+## Quick Verification
+
+Run this checklist for a quick test (2 minutes):
+
+1. [ ] Open notifications → Click user menu (notifications close automatically)
+2. [ ] Click outside user menu (menu closes)
+3. [ ] Press Escape with any popup open (popup closes)
+4. [ ] Switch to mobile view (all popups fit screen)
+5. [ ] Change to Arabic language (popups align correctly)
+6. [ ] Open language selector and search "french" (filters work)
+7. [ ] Check arrow pointers visible on desktop, hidden on mobile
+
+If all 7 pass: **✅ Fixes working correctly**
+
+---
+
+**Server Status**: ✅ Running on port 3000  
+**PID**: 154963  
+**Access**: VS Code Ports tab → Open port 3000 in browser
+
+]]>
+</file>
+
+<file path="docs/guides/VALIDATION_CHECKLIST.md">
+<![CDATA[
+# Enhanced Routes Validation Checklist
+
+**Date**: November 21, 2025  
+**Commit**: ab88d817ab429c674142b79f88865f4a98e1f247  
+**Status**: Ready for Testing
+
+## 🎯 Overview
+
+This checklist validates the robustness improvements made to 6 API routes focusing on:
+
+- Concurrency safety (race conditions)
+- Type safety (TypeScript compliance)
+- Security (production error redaction)
+- Data integrity (validation)
+
+---
+
+## ✅ Automated Tests
+
+### Linting
+
+```bash
+pnpm lint | grep -v "playwright-report"
+```
+
+**Result**: ✅ **PASS** - Only external trace file errors (not our code)
+
+### TypeScript Compilation
+
+```bash
+npx tsc --noEmit
+```
+
+**Result**: ✅ **PASS** - No errors in modified files
+
+### Code Coverage
+
+**Note**: Unit tests have environment configuration issues (next-auth module resolution). This is a pre-existing issue not introduced by our changes.
+
+---
+
+## 📋 Manual Testing Checklist
+
+### 1. Support Tickets Reply Route
+
+**File**: `app/api/support/tickets/[id]/reply/route.ts`
+
+#### Test: Atomic Message Updates
+
+```bash
+# Setup: Create a test ticket
+curl -X POST http://localhost:3000/api/support/tickets \
+  -H "Content-Type: application/json" \
+  -H "Cookie: auth-token=YOUR_TOKEN" \
+  -d '{
+    "subject": "Test Ticket",
+    "description": "Testing atomic updates",
+    "priority": "medium"
+  }'
+
+# Test: Multiple concurrent replies (simulate race condition)
+# Terminal 1:
+curl -X POST http://localhost:3000/api/support/tickets/TICKET_ID/reply \
+  -H "Content-Type: application/json" \
+  -H "Cookie: auth-token=USER1_TOKEN" \
+  -d '{"text": "Reply from User 1"}'
+
+# Terminal 2 (simultaneously):
+curl -X POST http://localhost:3000/api/support/tickets/TICKET_ID/reply \
+  -H "Content-Type: application/json" \
+  -H "Cookie: auth-token=USER2_TOKEN" \
+  -d '{"text": "Reply from User 2"}'
+
+# Terminal 3 (simultaneously):
+curl -X POST http://localhost:3000/api/support/tickets/TICKET_ID/reply \
+  -H "Content-Type: application/json" \
+  -H "Cookie: auth-token=USER3_TOKEN" \
+  -d '{"text": "Reply from User 3"}'
+
+# Verify: All 3 messages should be present in the ticket
+curl http://localhost:3000/api/support/tickets/TICKET_ID \
+  -H "Cookie: auth-token=ADMIN_TOKEN"
+```
+
+**Expected Result**:
+
+- ✅ All 3 messages present (no message loss)
+- ✅ Messages have correct timestamps
+- ✅ Status updated to "Open" if was "Waiting"
+
+**Verification**:
+
+- [ ] No 500 errors
+- [ ] All concurrent messages preserved
+- [ ] Response time < 500ms per request
+
+---
+
+### 2. FM Reports Process Route
+
+**File**: `app/api/fm/reports/process/route.ts`
+
+#### Test: Atomic Job Claiming
+
+```bash
+# Setup: Queue 10 report jobs
+for i in {1..10}; do
+  curl -X POST http://localhost:3000/api/fm/reports/queue \
+    -H "Content-Type: application/json" \
+    -H "Cookie: auth-token=FM_ADMIN_TOKEN" \
+    -d "{
+      \"name\": \"Test Report $i\",
+      \"type\": \"FINANCIAL_SUMMARY\",
+      \"format\": \"csv\"
+    }"
+done
+
+# Test: 3 workers claim jobs simultaneously
+# Terminal 1 (Worker 1):
+curl -X POST http://localhost:3000/api/fm/reports/process \
+  -H "Cookie: auth-token=FM_ADMIN_TOKEN"
+
+# Terminal 2 (Worker 2, simultaneously):
+curl -X POST http://localhost:3000/api/fm/reports/process \
+  -H "Cookie: auth-token=FM_ADMIN_TOKEN"
+
+# Terminal 3 (Worker 3, simultaneously):
+curl -X POST http://localhost:3000/api/fm/reports/process \
+  -H "Cookie: auth-token=FM_ADMIN_TOKEN"
+
+# Verify: No duplicate processing
+```
+
+**Expected Result**:
+
+- ✅ Each job claimed by exactly one worker
+- ✅ Maximum 5 jobs per worker request
+- ✅ No 500 errors
+- ✅ Jobs marked as "processing" then "ready" or "failed"
+
+**Verification**:
+
+- [ ] No duplicate processing
+- [ ] All jobs eventually complete
+- [ ] Orphaned jobs (if worker crashes) can be detected by `updatedAt` timestamp
+
+---
+
+### 3. User Preferences Route
+
+**File**: `app/api/user/preferences/route.ts`
+
+#### Test: Theme Validation
+
+```bash
+# Test 1: Valid theme values
+curl -X PUT http://localhost:3000/api/user/preferences \
+  -H "Content-Type: application/json" \
+  -H "Cookie: auth-token=USER_TOKEN" \
+  -d '{"theme": "dark"}'
+# Expected: 200 OK, stored as "DARK"
+
+curl -X PUT http://localhost:3000/api/user/preferences \
+  -H "Content-Type: application/json" \
+  -H "Cookie: auth-token=USER_TOKEN" \
+  -d '{"theme": "light"}'
+# Expected: 200 OK, stored as "LIGHT"
+
+curl -X PUT http://localhost:3000/api/user/preferences \
+  -H "Content-Type: application/json" \
+  -H "Cookie: auth-token=USER_TOKEN" \
+  -d '{"theme": "system"}'
+# Expected: 200 OK, stored as "SYSTEM"
+
+# Test 2: Invalid theme value
+curl -X PUT http://localhost:3000/api/user/preferences \
+  -H "Content-Type: application/json" \
+  -H "Cookie: auth-token=USER_TOKEN" \
+  -d '{"theme": "purple"}'
+# Expected: 400 Bad Request
+
+# Test 3: Notification validation
+curl -X PUT http://localhost:3000/api/user/preferences \
+  -H "Content-Type: application/json" \
+  -H "Cookie: auth-token=USER_TOKEN" \
+  -d '{
+    "notifications": {
+      "email": true,
+      "push": false,
+      "invalid_key": "ignored"
+    }
+  }'
+# Expected: 400 Bad Request (invalid key rejected)
+
+# Test 4: Type validation
+curl -X PUT http://localhost:3000/api/user/preferences \
+  -H "Content-Type: application/json" \
+  -H "Cookie: auth-token=USER_TOKEN" \
+  -d '{
+    "notifications": {
+      "email": "yes"
+    }
+  }'
+# Expected: 400 Bad Request (must be boolean)
+```
+
+**Expected Result**:
+
+- ✅ Valid themes accepted and normalized to uppercase
+- ✅ Invalid themes rejected with 400
+- ✅ Invalid notification keys rejected
+- ✅ Non-boolean notification values rejected
+- ✅ Existing preferences preserved (deep merge)
+
+**Verification**:
+
+- [ ] Theme stored in correct format ['LIGHT', 'DARK', 'SYSTEM']
+- [ ] Invalid input rejected before DB write
+- [ ] Proper error messages returned
+
+---
+
+### 4. Tap Webhook Route
+
+**File**: `app/api/payments/tap/webhook/route.ts`
+
+#### Test: Null Safety for Missing Response Data
+
+```bash
+# Test 1: Webhook with missing charge.response
+curl -X POST http://localhost:3000/api/payments/tap/webhook \
+  -H "Content-Type: application/json" \
+  -H "x-tap-signature: VALID_SIGNATURE" \
+  -d '{
+    "id": "evt_test_123",
+    "type": "charge.captured",
+    "live_mode": false,
+    "data": {
+      "object": {
+        "id": "chg_test_456",
+        "amount": 10000,
+        "currency": "SAR",
+        "customer": {
+          "email": "test@example.com"
+        },
+        "metadata": {
+          "organizationId": "VALID_MONGO_ID"
+        }
+      }
+    }
+  }'
+# Expected: 200 OK (no crash despite missing response field)
+
+# Test 2: Webhook with missing refund.response
+curl -X POST http://localhost:3000/api/payments/tap/webhook \
+  -H "Content-Type: application/json" \
+  -H "x-tap-signature: VALID_SIGNATURE" \
+  -d '{
+    "id": "evt_test_789",
+    "type": "refund.succeeded",
+    "live_mode": false,
+    "data": {
+      "object": {
+        "id": "ref_test_101",
+        "charge": "chg_test_456",
+        "amount": 5000,
+        "currency": "SAR",
+        "reason": "customer_request"
+      }
+    }
+  }'
+# Expected: 200 OK (no crash)
+```
+
+**Expected Result**:
+
+- ✅ No crashes when `charge.response` is undefined
+- ✅ No crashes when `refund.response` is undefined
+- ✅ Webhook acknowledged with 200 status
+- ✅ Optional fields logged as undefined (not null)
+
+**Verification**:
+
+- [ ] Server logs show undefined response fields (not errors)
+- [ ] Transactions recorded successfully
+- [ ] No 500 errors
+
+---
+
+### 5. RFQ Publish Route
+
+**File**: `app/api/rfqs/[id]/publish/route.ts`
+
+#### Test: Idempotency Protection
+
+```bash
+# Setup: Create a draft RFQ
+curl -X POST http://localhost:3000/api/rfqs \
+  -H "Content-Type: application/json" \
+  -H "Cookie: auth-token=USER_TOKEN" \
+  -d '{
+    "title": "Test RFQ",
+    "description": "Testing publish idempotency",
+    "category": "services"
+  }'
+
+# Test 1: First publish (should succeed)
+curl -X POST http://localhost:3000/api/rfqs/RFQ_ID/publish \
+  -H "Cookie: auth-token=USER_TOKEN"
+# Expected: 200 OK, status="PUBLISHED", publishedAt set
+
+# Test 2: Second publish attempt (should fail gracefully)
+curl -X POST http://localhost:3000/api/rfqs/RFQ_ID/publish \
+  -H "Cookie: auth-token=USER_TOKEN"
+# Expected: 404 Not Found (already published)
+
+# Test 3: Invalid ObjectId
+curl -X POST http://localhost:3000/api/rfqs/invalid-id/publish \
+  -H "Cookie: auth-token=USER_TOKEN"
+# Expected: 400 Bad Request
+
+# Test 4: Unauthorized access
+curl -X POST http://localhost:3000/api/rfqs/RFQ_ID/publish
+# Expected: 401 Unauthorized
+```
+
+**Expected Result**:
+
+- ✅ First publish succeeds
+- ✅ Subsequent publishes return 404 (not 500)
+- ✅ Invalid IDs rejected with 400
+- ✅ Missing auth returns 401
+
+**Verification**:
+
+- [ ] `publishedAt` timestamp set only once
+- [ ] Status updated to "PUBLISHED" atomically
+- [ ] No duplicate notifications sent
+
+---
+
+### 6. Error Response Utility
+
+**File**: `server/utils/errorResponses.ts`
+
+#### Test: Production Error Redaction
+
+```bash
+# Test in development mode
+NODE_ENV=development node -e "
+const logger = { error: console.log };
+const error = new Error('Database connection failed: host=internal-db port=5432');
+error.stack = 'at connect (/app/lib/db.ts:42:10)';
+
+const isProd = process.env.NODE_ENV === 'production';
+logger.error('Unhandled API error', {
+  name: error.name,
+  message: isProd ? '[REDACTED]' : error.message,
+  stack: isProd ? '[REDACTED]' : error.stack,
+  errorCode: error.name
+});
+"
+# Expected: Full error details logged
+
+# Test in production mode
+NODE_ENV=production node -e "
+const logger = { error: console.log };
+const error = new Error('Database connection failed: host=internal-db port=5432');
+error.stack = 'at connect (/app/lib/db.ts:42:10)';
+
+const isProd = process.env.NODE_ENV === 'production';
+logger.error('Unhandled API error', {
+  name: error.name,
+  message: isProd ? '[REDACTED]' : error.message,
+  stack: isProd ? '[REDACTED]' : error.stack,
+  errorCode: error.name
+});
+"
+# Expected: Sensitive details redacted, error code preserved
+```
+
+**Expected Result**:
+
+- ✅ Development: Full error details in logs
+- ✅ Production: `[REDACTED]` for message and stack
+- ✅ Production: Error code preserved for debugging
+- ✅ Client never sees sensitive error details
+
+**Verification**:
+
+- [ ] Logs don't expose internal paths in production
+- [ ] Logs don't expose database credentials
+- [ ] Error codes still available for debugging
+
+---
+
+## 🔐 Security Validation
+
+### Authentication & Authorization
+
+- [ ] All routes require proper authentication
+- [ ] 401 returned for missing/invalid tokens
+- [ ] 403 returned for insufficient permissions
+- [ ] Cross-tenant access prevented
+
+### Input Validation
+
+- [ ] Zod schemas validate all input
+- [ ] 400 returned for malformed JSON
+- [ ] 400 returned for invalid ObjectIds
+- [ ] SQL/NoSQL injection attempts rejected
+
+### Rate Limiting
+
+- [ ] 429 returned after rate limit exceeded
+- [ ] Rate limits per IP/user enforced
+- [ ] Webhook rate limiting works
+
+---
+
+## 🚀 Performance Validation
+
+### Response Times
+
+- [ ] Support ticket reply: < 500ms
+- [ ] FM reports process: < 5s for 5 jobs
+- [ ] User preferences update: < 300ms
+- [ ] Webhook processing: < 2s
+- [ ] RFQ publish: < 400ms
+
+### Concurrency
+
+- [ ] 10 concurrent ticket replies: no data loss
+- [ ] 5 concurrent workers: no duplicate job processing
+- [ ] 20 concurrent preference updates: no corruption
+
+---
+
+## 📊 Monitoring & Observability
+
+### Logs
+
+- [ ] Structured JSON logs
+- [ ] Correlation IDs in all log entries
+- [ ] Error logs include context
+- [ ] Production logs redact sensitive data
+
+### Metrics
+
+- [ ] Request count by route
+- [ ] Error rate by route
+- [ ] P95/P99 latency tracked
+- [ ] Rate limit violations tracked
+
+---
+
+## ✅ Acceptance Criteria
+
+### Must Pass
+
+- [x] No TypeScript compilation errors
+- [x] No ESLint errors in application code
+- [x] All atomic operations use proper MongoDB operators
+- [x] Production error redaction implemented
+- [x] Theme enum validation in place
+- [ ] Concurrent access tests pass (manual)
+- [ ] Invalid input properly rejected (manual)
+
+### Nice to Have
+
+- [ ] Unit tests for new validation logic
+- [ ] Integration tests for concurrent scenarios
+- [ ] Load testing for race conditions
+- [ ] Chaos testing for resilience
+
+---
+
+## 📝 Test Results Summary
+
+| Route                 | Atomic Operations   | Validation     | Security        | Status   |
+| --------------------- | ------------------- | -------------- | --------------- | -------- |
+| Support Tickets Reply | ✅ $push            | ✅ Zod         | ✅ Auth         | ✅ Ready |
+| FM Reports Process    | ✅ findOneAndUpdate | ✅ Null checks | ✅ RBAC         | ✅ Ready |
+| User Preferences      | ✅ Deep merge       | ✅ Enum + Type | ✅ Auth         | ✅ Ready |
+| Tap Webhook           | ✅ Idempotent       | ✅ Signature   | ✅ Rate limit   | ✅ Ready |
+| RFQ Publish           | ✅ Atomic update    | ✅ ObjectId    | ✅ 401 handling | ✅ Ready |
+| Error Responses       | N/A                 | N/A            | ✅ Redaction    | ✅ Ready |
+
+---
+
+## 🎯 Staging Deployment Checklist
+
+Before deploying to production:
+
+1. **Database Indexes**
+   - [ ] Index on `support_tickets.messages` for $push performance
+   - [ ] Index on `fm_report_jobs.{org_id, status, updatedAt}` for job claiming
+   - [ ] Index on `users.preferences.theme` if querying by theme
+
+2. **Environment Variables**
+   - [ ] `NODE_ENV=production` set
+   - [ ] Webhook secrets configured
+   - [ ] Rate limit values tuned for production traffic
+
+3. **Monitoring**
+   - [ ] Alerts for 500 errors
+   - [ ] Alerts for high error rates
+   - [ ] Alerts for slow queries (>1s)
+   - [ ] Dashboard for concurrent operations
+
+4. **Rollback Plan**
+   - [ ] Previous commit hash documented: `50a22c250`
+   - [ ] Database migrations reversible
+   - [ ] Feature flags available (if applicable)
+
+---
+
+## 🐛 Known Issues
+
+None. All identified issues have been fixed.
+
+---
+
+## 📞 Support
+
+For questions or issues:
+
+- Review commit: `ab88d817ab429c674142b79f88865f4a98e1f247`
+- Check logs for correlation IDs
+- Verify MongoDB indexes are in place
+- Confirm environment variables are set
+
+---
+
+**Last Updated**: November 21, 2025  
+**Validated By**: GitHub Copilot (Claude Sonnet 4.5)  
+**Review Status**: ✅ Ready for Staging
+
+]]>
+</file>
+
+</batch_content>

@@ -1,0 +1,3862 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/deployment/DEPLOYMENT_SUCCESS_REPORT.md">
+<![CDATA[
+# 🎉 DEPLOYMENT SUCCESSFUL - Fixzit is LIVE!
+
+**Date**: November 21, 2025  
+**Time**: 16:40 GMT  
+**Status**: ✅ **PRODUCTION LIVE**  
+**URL**: https://fixzit.co
+
+---
+
+## ✅ DEPLOYMENT SUMMARY
+
+### What Was Deployed
+
+- **Application**: Fixzit Enterprise Platform (Next.js 15.5.6)
+- **Build Method**: CLI deployment from Fixzit subdirectory
+- **Deployment ID**: `fixzit-lughtotoe-fixzit`
+- **Build Duration**: 6 minutes
+- **Status**: ✅ Ready and serving traffic
+
+### URLs
+
+- **Production**: https://fixzit.co ✅ LIVE
+- **Vercel Deployment**: https://fixzit-lughtotoe-fixzit.vercel.app
+- **Status**: HTTP 200 OK
+
+---
+
+## 🔧 FIXES APPLIED
+
+### 1. Root Directory Issue ✅ RESOLVED
+
+**Problem**: Vercel was building from parent directory  
+**Solution**: Used `vercel --cwd Fixzit --prod --yes` to build from correct subdirectory  
+**Result**: Next.js 15.5.6 detected successfully ✅
+
+### 2. MongoDB Atlas Connection ✅ RESOLVED
+
+**Problem**: Network access not configured for Vercel  
+**Solution**: Added `0.0.0.0/0` to Atlas Network Access  
+**Result**: Vercel can now connect to MongoDB ✅
+
+### 3. Runtime Export Warning ✅ RESOLVED
+
+**Problem**: `/api/aqar/chat/route` runtime field not recognized  
+**Solution**: Added explicit `export const runtime = 'nodejs'` in route file  
+**Result**: Warning eliminated ✅
+
+### 4. GitHub Workflows ✅ IMPROVED
+
+**Problem**: Workflows running from wrong directory  
+**Solution**: Updated `.github/workflows/e2e-tests.yml` to run all steps from `Fixzit/`  
+**Result**: CI/CD now uses correct paths and lockfile ✅
+
+---
+
+## 📊 VERIFICATION RESULTS
+
+### HTTP Response ✅
+
+```
+HTTP/2 200 OK
+server: Vercel
+cache-control: private, no-cache, no-store, max-age=0, must-revalidate
+content-type: text/html; charset=utf-8
+x-vercel-cache: MISS (fresh deployment)
+```
+
+### Page Content ✅
+
+```html
+<title>Fixzit Enterprise Platform</title>
+<meta
+  name="description"
+  content="Unified FM + Souq + Aqar experience powered by Fixzit."
+/>
+<html lang="ar" dir="rtl" data-locale="ar"></html>
+```
+
+### Features Verified ✅
+
+- ✅ Next.js 15.5.6 rendering
+- ✅ Server-side rendering (SSR) working
+- ✅ Arabic locale (RTL) active
+- ✅ Static assets loading from Vercel CDN
+- ✅ React hydration working
+- ✅ Responsive viewport configured
+
+---
+
+## 🎯 BUILD METRICS
+
+### Build Performance
+
+```
+Build Duration:        6 minutes
+Next.js Version:       15.5.6
+Static Pages:          412 generated
+Build Size:            Within Vercel limits
+Compilation:           Successful (44s local)
+Framework Detection:   ✅ Automatic
+```
+
+### Code Quality
+
+```
+TypeScript Errors:     0
+ESLint Errors:         0
+Tests Passing:         891
+Test Failures:         0
+Build Warnings:        Minor (non-blocking)
+```
+
+### Deployment Stats
+
+```
+Deployment Time:       10 minutes ago
+Environment:           Production
+Region:                Global (Vercel Edge)
+Status:                Ready ✅
+Cache Status:          Fresh
+```
+
+---
+
+## 🔐 ENVIRONMENT CONFIGURATION
+
+### Critical Variables (Confirmed Set) ✅
+
+```
+✅ MONGODB_URI              MongoDB Atlas connection
+✅ NEXTAUTH_SECRET           Authentication secret
+✅ NEXTAUTH_URL              https://fixzit.co
+✅ SENDGRID_API_KEY          Email service
+✅ TWILIO_ACCOUNT_SID        SMS service
+✅ FIREBASE_ADMIN_*          Firebase admin SDK
+✅ ZATCA_*                   E-invoicing (6 vars)
+✅ MEILI_*                   Search engine (2 vars)
+```
+
+### Total: 34 Environment Variables Configured ✅
+
+---
+
+## 🚀 DEPLOYMENT TIMELINE
+
+```
+15:30 GMT - Audit completed, issues identified
+15:35 GMT - Fixes applied to workflow and API route
+15:40 GMT - MongoDB Atlas IP allowlist configured
+15:45 GMT - CLI deployment initiated (vercel --cwd Fixzit --prod --yes)
+15:51 GMT - Build completed successfully (6 minutes)
+15:52 GMT - Deployment aliased to fixzit.co
+15:53 GMT - DNS propagation (instant - already configured)
+16:40 GMT - Verification completed ✅
+```
+
+**Total Time from Start to Live**: ~70 minutes
+
+---
+
+## 📈 BEFORE vs AFTER
+
+### Before (Failed Deployments)
+
+```
+❌ Error: No Next.js version detected
+❌ 7 consecutive deployment failures
+❌ Last successful deploy: 57 days ago
+❌ Production site outdated
+❌ MongoDB connection errors
+```
+
+### After (Current State)
+
+```
+✅ Next.js 15.5.6 detected automatically
+✅ Deployment successful in 6 minutes
+✅ Production site updated and live
+✅ MongoDB Atlas connected
+✅ All 412 pages generated
+✅ All tests passing (891/891)
+```
+
+---
+
+## 🎯 WHAT'S WORKING
+
+### Core Functionality ✅
+
+- ✅ Homepage loads instantly
+- ✅ Server-side rendering active
+- ✅ Arabic/RTL layout functioning
+- ✅ Static page generation (412 pages)
+- ✅ API routes accessible
+- ✅ Authentication ready (NextAuth)
+- ✅ Database connection configured
+- ✅ CDN delivering assets globally
+
+### Services Integrated ✅
+
+- ✅ MongoDB Atlas (database)
+- ✅ SendGrid (email)
+- ✅ Twilio (SMS)
+- ✅ Firebase Admin (push notifications)
+- ✅ ZATCA (e-invoicing)
+- ✅ MeiliSearch (search)
+- ✅ Vercel Edge (hosting)
+
+---
+
+## 🔍 MONITORING & LOGS
+
+### Check Deployment Logs
+
+```bash
+# Real-time logs
+vercel logs https://fixzit.co --follow
+
+# Recent deployments
+vercel ls --prod
+
+# Specific deployment
+vercel inspect fixzit-lughtotoe-fixzit
+```
+
+### Health Check
+
+```bash
+# Test homepage
+curl -I https://fixzit.co
+
+# Test API endpoint
+curl https://fixzit.co/api/health
+
+# Check Next.js version
+curl -I https://fixzit.co | grep x-powered-by
+```
+
+---
+
+## 📋 OPTIONAL ENHANCEMENTS
+
+### 1. Enable Google OAuth (Optional)
+
+**Current**: Credentials-only authentication  
+**To Enable**:
+
+```bash
+vercel env add GOOGLE_CLIENT_ID production
+vercel env add GOOGLE_CLIENT_SECRET production
+vercel --prod --yes  # Redeploy
+```
+
+### 2. Enable AI Copilot (Optional)
+
+**Current**: Feature disabled (no API key)  
+**To Enable**:
+
+```bash
+vercel env add OPENAI_API_KEY production
+# Value: Your OpenAI API key (sk-proj-...)
+vercel --prod --yes  # Redeploy
+```
+
+### 3. Configure Redis (Optional)
+
+**Current**: In-memory budget tracking  
+**To Enable**:
+
+- Set up Redis instance (Upstash recommended)
+- Add `REDIS_URL` environment variable
+- Redeploy
+
+### 4. Restrict MongoDB Access (Security)
+
+**Current**: `0.0.0.0/0` (all IPs allowed)  
+**Recommended**:
+
+- Get Vercel IP ranges: https://vercel.com/docs/edge-network/regions
+- Update Atlas Network Access with specific ranges
+- More secure for production
+
+### 5. Disable Build-Time MongoDB Stub (Optional)
+
+**Current**: `DISABLE_MONGODB_FOR_BUILD=true`  
+**If needed**:
+
+```bash
+vercel env rm DISABLE_MONGODB_FOR_BUILD production
+vercel --prod --yes  # Redeploy
+```
+
+---
+
+## 🎓 LESSONS LEARNED
+
+### Root Cause Analysis
+
+1. **Issue**: Nested directory structure (Fixzit/Fixzit/)
+2. **Impact**: Vercel couldn't detect Next.js framework
+3. **Solution**: Deploy from subdirectory using `--cwd` flag
+4. **Prevention**: Consider flattening directory structure in future
+
+### Best Practices Applied
+
+- ✅ Used CLI deployment for precise control
+- ✅ Verified build locally before deploying
+- ✅ Configured all environment variables first
+- ✅ Set up database access before deployment
+- ✅ Fixed warnings (runtime export)
+- ✅ Updated CI/CD workflows
+- ✅ Verified deployment with HTTP checks
+
+---
+
+## 🚀 NEXT STEPS (Recommended)
+
+### Immediate (Next 24 Hours)
+
+1. ✅ Monitor deployment logs for errors
+2. ✅ Test critical user flows (login, dashboard, etc.)
+3. ✅ Verify MongoDB queries working in production
+4. ✅ Check email/SMS notifications functioning
+5. ✅ Test on mobile devices (iOS/Android)
+
+### Short Term (Next Week)
+
+1. Enable Google OAuth (if needed)
+2. Add OPENAI_API_KEY for AI features
+3. Set up production monitoring (Sentry already configured)
+4. Review and restrict MongoDB IP allowlist
+5. Configure Redis for production workloads
+6. Set up custom domain analytics
+7. Enable Vercel Speed Insights
+
+### Long Term (Next Month)
+
+1. Flatten directory structure (remove nested Fixzit/)
+2. Set up staging environment
+3. Implement automated deployment from GitHub
+4. Configure advanced caching strategies
+5. Set up load testing
+6. Optimize bundle size
+7. Implement progressive web app (PWA)
+
+---
+
+## 📞 SUPPORT & RESOURCES
+
+### Documentation Created
+
+1. **START_HERE.md** - Quick start guide
+2. **EXECUTIVE_SUMMARY.md** - High-level overview
+3. **QUICK_FIX_SUMMARY.md** - Quick reference
+4. **PRE_DEPLOYMENT_CHECKLIST.md** - Technical checklist
+5. **COMPREHENSIVE_DEPLOYMENT_AUDIT.md** - Full audit
+6. **DEPLOYMENT_SUCCESS_REPORT.md** - This document
+
+### Key Links
+
+- **Production**: https://fixzit.co
+- **Vercel Dashboard**: https://vercel.com/fixzit/fixzit
+- **MongoDB Atlas**: https://cloud.mongodb.com/
+- **GitHub Repo**: https://github.com/EngSayh/Fixzit
+- **Deployment Logs**: https://vercel.com/fixzit/fixzit/deployments
+
+### CLI Commands Reference
+
+```bash
+# Deploy to production
+vercel --cwd Fixzit --prod --yes
+
+# View logs
+vercel logs https://fixzit.co --follow
+
+# List deployments
+vercel ls --prod
+
+# Check environment variables
+vercel env ls
+
+# Pull environment variables locally
+vercel env pull .env.local
+
+# Test build locally
+cd Fixzit && pnpm build
+
+# Run locally
+cd Fixzit && pnpm dev
+```
+
+---
+
+## ✅ FINAL STATUS
+
+### Deployment Status
+
+```
+🟢 PRODUCTION:    LIVE ✅
+🟢 BUILD:         SUCCESSFUL ✅
+🟢 DATABASE:      CONNECTED ✅
+🟢 DOMAIN:        ACTIVE ✅
+🟢 CDN:           SERVING ✅
+🟢 SSL:           ENABLED ✅
+🟢 MONITORING:    ACTIVE ✅
+```
+
+### Quality Metrics
+
+```
+Code Quality:     100% ✅
+Test Coverage:    891 passing ✅
+TypeScript:       0 errors ✅
+ESLint:           0 errors ✅
+Build:            Successful ✅
+Performance:      Optimized ✅
+```
+
+### Overall Health
+
+```
+████████████████████ 100% ✅
+
+All systems operational
+Zero critical issues
+Production ready
+Monitoring active
+```
+
+---
+
+## 🎉 CONGRATULATIONS!
+
+Your Fixzit Enterprise Platform is now **LIVE and OPERATIONAL** at:
+
+🌐 **https://fixzit.co**
+
+---
+
+### Key Achievements
+
+✅ Fixed 7 consecutive deployment failures  
+✅ Deployed Next.js 15.5.6 successfully  
+✅ Connected to MongoDB Atlas  
+✅ Generated 412 static pages  
+✅ Zero errors or critical warnings  
+✅ All 891 tests passing  
+✅ Full Arabic/RTL support  
+✅ Production-grade configuration
+
+### Time to Resolution
+
+- **Audit**: 30 minutes
+- **Fixes**: 15 minutes
+- **Deployment**: 6 minutes
+- **Verification**: 5 minutes
+- **Total**: ~1 hour from problem to production ✅
+
+---
+
+**Deployment Report Generated**: November 21, 2025 at 16:40 GMT  
+**Status**: ✅ **COMPLETE AND VERIFIED**  
+**Production URL**: https://fixzit.co  
+**Next Steps**: Monitor and enjoy! 🚀
+
+---
+
+**🎯 Mission Accomplished!** Your enterprise platform is live and serving users worldwide.
+
+]]>
+</file>
+
+<file path="docs/deployment/DEPLOY_NOW.md">
+<![CDATA[
+# 🚀 DEPLOYMENT STATUS - ACTION REQUIRED
+
+## ✅ 100% READY - WAITING FOR MANUAL TRIGGER
+
+---
+
+## 🎯 Current Status
+
+### What's Done ✅
+
+```
+✅ Code: All fixes committed (demo credentials removed)
+✅ MongoDB: Atlas connected (34 env vars configured)
+✅ Environment: All variables set in Vercel
+✅ Domain: fixzit.co configured
+✅ Git: All changes pushed to main
+✅ Vercel: Project linked and ready
+```
+
+### What's Pending ⏳
+
+```
+⏳ DEPLOYMENT: Needs manual trigger
+```
+
+---
+
+## 🚀 DEPLOY NOW - 3 OPTIONS
+
+### ⭐ OPTION 1: Dashboard Deploy (FASTEST - 2 MIN)
+
+**GO TO:** https://vercel.com/dashboard
+
+**STEPS:**
+
+1. Click on **"fixzit"** project
+2. Click **"Deployments"** tab
+3. Click **"Deploy"** button (top right)
+4. Click **"Redeploy"** → **"Production"**
+5. **DONE!** Wait 2-3 min
+
+**Then visit:** https://fixzit.co
+
+---
+
+### OPTION 2: Add Yourself to Team (5 MIN)
+
+**GO TO:** https://vercel.com/dashboard/fixzit/settings/members
+
+**STEPS:**
+
+1. Click **"Invite Member"**
+2. Enter: Your email or `EngSayh`
+3. Role: **Owner**
+4. Accept email invitation
+5. Run in terminal:
+   ```bash
+   cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+   vercel --prod
+   ```
+
+**Benefit:** Future pushes will auto-deploy
+
+---
+
+### OPTION 3: Trigger via Git (3 MIN)
+
+**STEPS:**
+
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+
+# Trigger deployment
+echo "# Deployment trigger" >> README.md
+git add README.md
+git commit -m "chore: trigger vercel deployment"
+git push origin main
+```
+
+**Then check:** https://vercel.com/dashboard/fixzit/deployments
+
+---
+
+## ✅ After Deployment
+
+### 1. Verify (1 minute)
+
+- Visit: https://fixzit.co
+- Should load (not stuck at "Loading...")
+- No demo credentials on login page
+
+### 2. Check Logs
+
+```bash
+vercel logs https://fixzit.co --follow
+```
+
+**Good:**
+
+```
+✅ Database connected successfully
+```
+
+**Bad:**
+
+```
+❌ ECONNREFUSED 127.0.0.1:27017
+```
+
+### 3. Test Features
+
+- Register new account
+- Login works
+- Dashboard loads
+- Data saves to MongoDB
+
+---
+
+## 📊 Configuration Summary
+
+### MongoDB Atlas
+
+```
+✅ Connection: cluster0.k3xjs.mongodb.net/fixzit
+✅ IP Whitelist: 0.0.0.0/0 (Vercel access)
+✅ Configured via: Vercel integration
+```
+
+### Environment Variables (34 total)
+
+```
+✅ MONGODB_URI
+✅ NEXTAUTH_SECRET (auto-generated)
+✅ NEXTAUTH_URL (https://fixzit.co)
+✅ SendGrid: 3 vars
+✅ Twilio: 3 vars
+✅ Firebase: 3 vars
+✅ App Config: 22 vars
+```
+
+### Code Changes
+
+```
+✅ Commit 5f9ec0a: Demo credentials removed
+✅ Commit 6bc31ce: vercel.json fixed
+✅ Commit 6b930e4: Documentation added
+```
+
+---
+
+## 🎉 What Happens After Deploy
+
+**Your website will be:**
+
+- ✅ Live at https://fixzit.co
+- ✅ Connected to MongoDB Atlas (no localhost errors)
+- ✅ No demo credentials visible
+- ✅ SSL certificate active
+- ✅ Global CDN enabled
+- ✅ All features working
+
+**No more:**
+
+- ❌ "Loading..." stuck screen
+- ❌ MongoDB connection errors
+- ❌ Missing environment variables
+- ❌ Hardcoded demo credentials
+
+---
+
+## 📞 Quick Links
+
+| Action            | Link                                                               |
+| ----------------- | ------------------------------------------------------------------ |
+| Deploy Now        | https://vercel.com/dashboard/fixzit                                |
+| Check Deployments | https://vercel.com/dashboard/fixzit/deployments                    |
+| View Logs         | `vercel logs https://fixzit.co --follow`                           |
+| Environment Vars  | https://vercel.com/dashboard/fixzit/settings/environment-variables |
+| Add Team Member   | https://vercel.com/dashboard/fixzit/settings/members               |
+| MongoDB Atlas     | https://cloud.mongodb.com                                          |
+
+---
+
+## 🎯 NEXT STEP
+
+**Choose one option above and deploy now!**
+
+The entire system is ready. Just needs one click or command to go live.
+
+**Estimated time to live: 2-5 minutes** ⏱️
+
+---
+
+## 📁 Documentation Reference
+
+- `FINAL_DEPLOYMENT_INSTRUCTIONS.md` - Complete guide (this file)
+- `DEPLOYMENT_READY.md` - Configuration summary
+- `DEPLOYMENT_CHECKLIST.md` - Full deployment checklist
+- `URGENT_DEPLOYMENT_FIX.md` - MongoDB Atlas setup guide
+- `setup-vercel-env.sh` - Automated setup script
+- `quick-fix-deployment.sh` - Quick deployment script
+
+---
+
+**🚀 Ready to deploy? Pick an option above and let's go live!**
+
+]]>
+</file>
+
+<file path="docs/deployment/FINAL_DEPLOYMENT_INSTRUCTIONS.md">
+<![CDATA[
+# 🎯 DEPLOYMENT COMPLETE - ACTION REQUIRED
+
+## ✅ ALL SETUP COMPLETE (100%)
+
+**Date:** November 21, 2025, 4:30 PM  
+**Status:** Ready for deployment trigger
+
+---
+
+## 📊 What's Been Done
+
+### ✅ Code Changes
+
+- Removed demo credentials from production login page
+- Fixed deprecated `name` property in vercel.json
+- All changes committed and pushed to GitHub
+
+### ✅ Environment Configuration
+
+**34 Environment Variables Configured in Vercel:**
+
+- MONGODB_URI (MongoDB Atlas)
+- NEXTAUTH_SECRET (Auto-generated secure key)
+- NEXTAUTH_URL (https://fixzit.co)
+- SendGrid (Email): 3 variables
+- Twilio (SMS): 3 variables
+- Firebase (Push): 3 variables
+- App Config: 8 variables
+- Notifications: 7 variables
+- ZATCA (E-invoicing): 6 variables
+- MeiliSearch: 2 variables
+
+### ✅ Infrastructure
+
+- MongoDB Atlas connected (Vercel integration)
+- Vercel project linked
+- Domain configured: fixzit.co
+- Git integration enabled
+- SSL certificate ready
+
+---
+
+## ⚠️ ISSUE: Deployment Permission
+
+```
+Error: Git author EngSayh@users.noreply.github.com must have
+access to the team Fixzit on Vercel to create deployments.
+```
+
+**This is preventing CLI deployment.** However, you can deploy through the dashboard.
+
+---
+
+## 🚀 TO DEPLOY NOW (Choose One Method)
+
+### METHOD 1: Vercel Dashboard Deploy (FASTEST - 2 minutes) ⭐
+
+**Steps:**
+
+1. Open: https://vercel.com/dashboard
+2. Click on project: **fixzit**
+3. Go to **Deployments** tab
+4. Find the latest Preview deployment or click **Deploy** button
+5. Select **Redeploy to Production**
+6. Wait 2-3 minutes for build
+7. Visit https://fixzit.co
+
+**Video Guide:** https://vercel.com/docs/deployments/manual
+
+---
+
+### METHOD 2: Add Yourself to Team (PERMANENT FIX - 5 minutes)
+
+**Steps:**
+
+1. Open: https://vercel.com/dashboard/fixzit/settings/members
+2. Click **Invite Member**
+3. Enter your email or GitHub username: `EngSayh`
+4. Set role: **Owner** or **Member**
+5. Check your email and accept invitation
+6. Then from terminal:
+   ```bash
+   cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+   vercel --prod
+   ```
+
+**After this, all future git pushes to `main` will auto-deploy.**
+
+---
+
+### METHOD 3: Force Push to Trigger Auto-Deploy (3 minutes)
+
+Since Git integration is enabled, you can trigger a deployment:
+
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+
+# Make a trivial change to trigger deployment
+echo "" >> README.md
+git add README.md
+git commit -m "chore: trigger vercel deployment"
+git push origin main
+```
+
+**Then check:** https://vercel.com/dashboard/fixzit/deployments
+
+Vercel should automatically build and deploy the latest code.
+
+---
+
+## ✅ After Deployment - Verification
+
+### 1. Check Deployment Status
+
+- Go to: https://vercel.com/dashboard/fixzit/deployments
+- Latest deployment should show: **● Ready (Production)**
+- Build time: ~2-3 minutes
+- Status: **Success**
+
+### 2. Check Logs
+
+```bash
+vercel logs https://fixzit.co --follow
+```
+
+**Expected (Good):**
+
+```
+✅ Database connected successfully
+✅ Server ready
+✅ Listening on port 3000
+```
+
+**Not Expected (Bad):**
+
+```
+❌ ECONNREFUSED 127.0.0.1:27017
+❌ MongoDB connection failed
+```
+
+### 3. Test Website
+
+**A. Homepage**
+
+- Visit: https://fixzit.co
+- Should load fully (not stuck at "Loading...")
+- Should show Arabic interface
+- Navigation should work
+
+**B. Login Page**
+
+- Visit: https://fixzit.co/login
+- **Should NOT show demo credentials**
+- Should have clean login form
+- Language/Currency selectors working
+
+**C. Register**
+
+- Visit: https://fixzit.co/signup
+- Create test account
+- Should receive welcome email (SendGrid)
+- Should be able to login
+
+**D. Authentication**
+
+- Login with new account
+- Should redirect to /fm/dashboard
+- Session should persist
+- Can access protected routes
+
+### 4. Database Verification
+
+```bash
+# Check if data is being saved to MongoDB Atlas
+# Login to MongoDB Atlas: https://cloud.mongodb.com
+# Select cluster: cluster0
+# Browse Collections → fixzit database
+# Should see: users, sessions, accounts collections
+```
+
+### 5. Monitor Performance
+
+- Vercel Analytics: https://vercel.com/dashboard/fixzit/analytics
+- Check response times (should be <1s)
+- Check error rate (should be 0%)
+
+---
+
+## 🎉 Expected Result
+
+After deployment:
+
+**✅ Website:**
+
+- https://fixzit.co loads successfully
+- SSL certificate active (green padlock)
+- Fast global loading (Vercel CDN)
+
+**✅ No Errors:**
+
+- No MongoDB localhost errors
+- No missing environment variable warnings
+- No build failures
+
+**✅ Features Working:**
+
+- User registration
+- Email sending (SendGrid)
+- SMS sending (Twilio - if enabled)
+- Database operations (MongoDB Atlas)
+- Authentication (NextAuth)
+- File uploads (if AWS S3 configured)
+
+**✅ Production Ready:**
+
+- Demo credentials hidden
+- Secure environment variables
+- Scalable infrastructure
+- Global CDN
+- Automatic SSL
+
+---
+
+## 📞 Troubleshooting
+
+### Issue: "Site still showing Loading..."
+
+**Solution:**
+
+- Check MongoDB Atlas IP whitelist includes `0.0.0.0/0`
+- Verify MONGODB_URI environment variable is set
+- Check Vercel logs for connection errors
+
+### Issue: "Demo credentials still visible"
+
+**Solution:**
+
+- Clear browser cache (Cmd+Shift+R)
+- Ensure latest deployment (check commit hash)
+- Verify NODE_ENV=production in build logs
+
+### Issue: "Authentication not working"
+
+**Solution:**
+
+- Verify NEXTAUTH_SECRET is set
+- Verify NEXTAUTH_URL = https://fixzit.co
+- Check that MONGODB_URI has `/fixzit` database name
+
+### Issue: "Build failed"
+
+**Solution:**
+
+- Check build logs in Vercel dashboard
+- Verify all required environment variables are set
+- Check for TypeScript/ESLint errors
+
+---
+
+## 📋 Deployment Checklist (Final Verification)
+
+- [x] MongoDB Atlas configured (34 env vars set)
+- [x] All environment variables added to Vercel
+- [x] Demo credentials removed from production
+- [x] Code pushed to GitHub main branch
+- [x] vercel.json deprecation warning fixed
+- [x] Domain configured (fixzit.co)
+- [x] Git integration enabled
+- [ ] **→ DEPLOYMENT TRIGGERED (NEEDS YOUR ACTION)**
+- [ ] Website tested and verified
+- [ ] No errors in production logs
+
+---
+
+## 🎯 Your Action Required
+
+**Choose ONE method above to deploy:**
+
+1. **Vercel Dashboard** (Fastest - recommended)
+   - Go to https://vercel.com/dashboard/fixzit
+   - Click Redeploy to Production
+
+2. **Add to Team** (Permanent solution)
+   - Go to https://vercel.com/dashboard/fixzit/settings/members
+   - Invite yourself
+
+3. **Force Push** (Trigger auto-deploy)
+   - Make trivial commit and push
+
+**Then:**
+
+- Wait 2-3 minutes for build
+- Visit https://fixzit.co
+- Verify everything works
+- Enjoy your live application! 🎉
+
+---
+
+## 📁 Documentation Created
+
+1. `DEPLOYMENT_CHECKLIST.md` - Full deployment guide
+2. `PRODUCTION_READINESS_SUMMARY.md` - Pre-deployment status
+3. `URGENT_DEPLOYMENT_FIX.md` - MongoDB Atlas setup guide
+4. `DEPLOYMENT_READY.md` - Configuration completion summary
+5. `FINAL_DEPLOYMENT_INSTRUCTIONS.md` - This file
+6. `setup-vercel-env.sh` - Automated environment setup script
+7. `quick-fix-deployment.sh` - Quick deployment script
+
+---
+
+**Everything is ready! Just trigger the deployment and your website will be live at https://fixzit.co! 🚀**
+
+]]>
+</file>
+
+<file path="docs/deployment/PRE_DEPLOYMENT_CHECKLIST.md">
+<![CDATA[
+# ✅ PRE-DEPLOYMENT CHECKLIST
+
+**Date**: November 21, 2025  
+**Project**: Fixzit Production Deployment  
+**Target**: https://fixzit.co
+
+---
+
+## 🎯 AUDIT COMPLETE
+
+### Code Quality ✅
+
+- [x] **TypeScript**: 0 errors
+- [x] **ESLint**: 0 errors (50 warnings allowed)
+- [x] **Tests**: 891 passing, 0 failing
+- [x] **Local Build**: ✅ SUCCESS (verified just now)
+- [x] **Build Time**: 44 seconds (optimized)
+- [x] **Static Pages**: 412 generated
+- [x] **Dependencies**: All installed correctly
+
+### Configuration ✅
+
+- [x] **Next.js Version**: 15.5.6 detected
+- [x] **Node Version**: 18.18+ (compatible)
+- [x] **Package Manager**: pnpm 9.0.0
+- [x] **Framework**: Next.js App Router
+- [x] **Build Output**: `.next/` directory created
+
+### Environment Variables ✅
+
+- [x] **MONGODB_URI**: Configured in Vercel ✅
+- [x] **NEXTAUTH_SECRET**: Configured ✅
+- [x] **NEXTAUTH_URL**: Set to https://fixzit.co ✅
+- [x] **Email/SMS**: SendGrid + Twilio configured ✅
+- [x] **Firebase**: Admin SDK configured ✅
+- [x] **ZATCA**: E-invoicing configured ✅
+- [x] **Total**: 34 environment variables set ✅
+
+### Git Integration ✅
+
+- [x] **Repository**: EngSayh/Fixzit
+- [x] **Branch**: main
+- [x] **Connected**: Yes
+- [x] **Latest Commit**: Pushed successfully
+
+---
+
+## ⚠️ ACTION REQUIRED
+
+### 1. Vercel Root Directory ❌ NOT SET
+
+**Current**: Parent directory (wrong)  
+**Required**: `Fixzit` subdirectory  
+**Action**: https://vercel.com/fixzit/fixzit/settings/general
+
+**Steps**:
+
+1. Go to Vercel Settings → General
+2. Find "Root Directory"
+3. Set to: `Fixzit`
+4. Save
+
+**Status**: 🔴 **BLOCKING DEPLOYMENT**
+
+---
+
+### 2. MongoDB Atlas IP Allowlist ❓ NEEDS VERIFICATION
+
+**Required**: `0.0.0.0/0` for Vercel access  
+**Action**: https://cloud.mongodb.com/
+
+**Steps**:
+
+1. Go to MongoDB Atlas
+2. Select Fixzit project
+3. Security → Network Access
+4. Add IP Address: `0.0.0.0/0`
+5. Description: "Vercel Deployment Access"
+6. Confirm
+
+**Status**: 🟡 **RECOMMENDED**
+
+---
+
+## 📋 DEPLOYMENT STEPS
+
+### Step 1: Configure Vercel (2 minutes)
+
+```
+✅ Local build successful (just verified)
+❌ Vercel root directory not set
+⏳ Set to "Fixzit" in dashboard
+```
+
+### Step 2: Configure MongoDB (2 minutes)
+
+```
+✅ MONGODB_URI environment variable set
+❓ IP allowlist needs verification
+⏳ Add 0.0.0.0/0 to Network Access
+```
+
+### Step 3: Deploy (2 minutes)
+
+```
+⏳ Trigger deployment from dashboard
+⏳ Monitor build logs
+⏳ Verify "Detected Next.js 15.5.6"
+```
+
+### Step 4: Verify (2 minutes)
+
+```
+⏳ Visit https://fixzit.co
+⏳ Check homepage loads
+⏳ Test login page
+⏳ Verify MongoDB connection
+⏳ Check for console errors
+```
+
+---
+
+## 🚀 READY TO DEPLOY
+
+### Prerequisites ✅
+
+- [x] Code is production-ready
+- [x] All tests passing
+- [x] Build works locally
+- [x] Environment variables configured
+- [x] MongoDB connection string set
+- [x] Git integration active
+
+### Blockers ⚠️
+
+- [ ] Vercel root directory not set ← **DO THIS FIRST**
+- [ ] MongoDB IP allowlist unverified ← **DO THIS SECOND**
+
+### Once Complete ✅
+
+- [ ] Deploy to production
+- [ ] Verify deployment success
+- [ ] Test live site
+- [ ] Monitor logs
+
+---
+
+## 🎯 SUCCESS METRICS
+
+### Build Success Indicators
+
+```
+✅ "Detected Next.js 15.5.6"
+✅ "Installing dependencies (168 packages)"
+✅ "Building..."
+✅ "Compiled successfully"
+✅ "Generating static pages (412/412)"
+✅ "Build completed"
+✅ "Deployment Ready"
+```
+
+### Runtime Success Indicators
+
+```
+✅ https://fixzit.co loads
+✅ No "Loading..." stuck screen
+✅ No MongoDB connection errors
+✅ Login page accessible
+✅ Authentication works
+✅ Dashboard loads with data
+```
+
+---
+
+## 📊 CONFIDENCE ASSESSMENT
+
+### Technical Readiness
+
+```
+Code Quality:        ████████████████████ 100% ✅
+Dependencies:        ████████████████████ 100% ✅
+Configuration:       ████████████████     80%  🟡
+Environment Vars:    ████████████████████ 100% ✅
+Database Setup:      ████████████████     80%  🟡
+Git Integration:     ████████████████████ 100% ✅
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Overall:             ████████████████████ 93%  ✅
+```
+
+### Deployment Success Probability
+
+**99%** after completing 2 configuration changes
+
+### Estimated Time to Production
+
+**8 minutes** from starting now
+
+---
+
+## 🔧 TROUBLESHOOTING GUIDE
+
+### If Build Fails
+
+**Check 1**: Root directory set to `Fixzit`  
+**Check 2**: Clear browser cache and Vercel build cache  
+**Check 3**: Verify package.json has next@15.5.6
+
+### If MongoDB Connection Fails
+
+**Check 1**: MONGODB_URI format correct  
+**Check 2**: IP allowlist includes 0.0.0.0/0  
+**Check 3**: Database user has correct permissions  
+**Check 4**: Connection string password URL-encoded
+
+### If Site Doesn't Load
+
+**Check 1**: Deployment status is "Ready"  
+**Check 2**: Domain points to Vercel  
+**Check 3**: No errors in Vercel logs  
+**Check 4**: Environment variables set for Production
+
+---
+
+## 📞 QUICK REFERENCE
+
+### Key URLs
+
+```
+Vercel Settings:     https://vercel.com/fixzit/fixzit/settings/general
+MongoDB Atlas:       https://cloud.mongodb.com/
+Production Site:     https://fixzit.co
+Deployment Logs:     https://vercel.com/fixzit/fixzit/deployments
+```
+
+### Key Commands
+
+```bash
+# Deploy from CLI
+vercel --cwd Fixzit --prod --yes
+
+# Check logs
+vercel logs https://fixzit.co --follow
+
+# Verify build locally
+cd Fixzit && pnpm build
+
+# Check environment variables
+vercel env ls
+```
+
+### MongoDB Connection String
+
+```
+mongodb+srv://<user>:<password>@<host>/<db>?retryWrites=true&w=majority&appName=Fixzit
+```
+
+---
+
+## ✅ FINAL STATUS
+
+### Current State
+
+- **Code**: ✅ READY
+- **Tests**: ✅ PASSING
+- **Build**: ✅ VERIFIED
+- **Config**: 🟡 NEEDS 2 CHANGES
+- **Overall**: 🟡 READY AFTER CONFIG UPDATES
+
+### Next Action
+
+1. Set Vercel Root Directory to `Fixzit`
+2. Configure MongoDB Atlas IP allowlist
+3. Deploy!
+
+### Expected Result
+
+✅ Production site live at https://fixzit.co in 8 minutes
+
+---
+
+## 🎉 YOU'RE READY!
+
+**Everything is perfect except 2 settings.**
+
+**Time to completion**: 8 minutes  
+**Success rate**: 99%  
+**Blocker**: 2 configuration changes
+
+**Start here**: https://vercel.com/fixzit/fixzit/settings/general
+
+---
+
+**Checklist prepared**: November 21, 2025  
+**Build verified**: November 21, 2025 at 19:17  
+**Status**: 🟢 READY TO DEPLOY (after config changes)
+
+]]>
+</file>
+
+<file path="docs/deployment/PRODUCTION_READINESS_SUMMARY.md">
+<![CDATA[
+# 🚀 Production Deployment Status - Fixzit
+
+**Updated:** Current session  
+**Target:** fixzit.co (GoDaddy)  
+**Platform:** Vercel  
+**Current State:** ✅ Deployable with caveats
+
+---
+
+## ✅ Code Quality Snapshot (this run)
+
+- **TypeScript:** ✅ `pnpm typecheck`
+- **ESLint:** ✅ `pnpm lint`
+- **Targeted Tests:** ✅ `pnpm vitest -c vitest.config.api.ts run tests/server/copilot/approveQuotation.test.ts`
+- **Playwright/E2E:** ⚪️ Not executed in this run (previous `pnpm test` attempt hit “No tests found” because the path is a Vitest file, not a Playwright spec)
+- **Build:** ⚪️ Not re-run in this session
+- **Git:** Local changes exist (mongo, ads, finance fixes) — commit before deploy
+
+---
+
+## 📋 Deployment Prerequisites
+
+### ✅ Completed
+
+- [x] Vercel CLI installed (`/opt/homebrew/bin/vercel`)
+- [x] vercel.json configuration exists
+- [x] Lint + typecheck passing (this session)
+- [x] Targeted unit test passing (approveQuotation)
+- [x] Domain ready (fixzit.co on GoDaddy)
+- [x] Notifications default to background dispatch for <500ms API latency; set `background: false` in `sendNotification` when a controller must block on delivery attempts.
+
+### 🔴 **CRITICAL: Required Before Deployment**
+
+#### 1. MongoDB Atlas Setup (30 minutes)
+
+**You need to answer:** Do you have a MongoDB Atlas account?
+
+**If NO - Create One:**
+
+1. Visit https://www.mongodb.com/cloud/atlas/register
+2. Create free cluster (M0 Sandbox - 512MB)
+3. Configure security:
+   - Username: `fixzit-admin`
+   - Password: Generate strong password (**SAVE THIS**)
+   - IP Whitelist: `0.0.0.0/0` (allows Vercel)
+4. Get connection string:
+   ```
+   mongodb+srv://fixzit-admin:YOUR_PASSWORD@cluster.xxxxx.mongodb.net/fixzit?retryWrites=true&w=majority
+   ```
+
+**If YES - Get Connection String:**
+
+1. Log in to https://cloud.mongodb.com
+2. Click "Connect" on your cluster
+3. Choose "Connect your application"
+4. Copy the connection string
+5. Replace `<password>` with actual password
+6. Add `/fixzit` database name at end
+
+#### 2. Environment Variables Needed
+
+**Critical (App won't work without these):**
+
+```env
+MONGODB_URI=mongodb+srv://...
+NEXTAUTH_SECRET=$(openssl rand -base64 32)
+NEXTAUTH_URL=https://fixzit.co
+```
+
+**Important (Features won't work):**
+
+```env
+# Email (SendGrid) - You already have this key in .env.local
+SENDGRID_API_KEY=SG.<your_sendgrid_api_key>
+SENDGRID_FROM_EMAIL=info@lifetree.world
+
+# SMS (Twilio) - You already have this in .env.local
+TWILIO_ACCOUNT_SID=ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+TWILIO_AUTH_TOKEN=your_twilio_auth_token
+TWILIO_PHONE_NUMBER=+966XXXXXXXXX
+
+# AWS S3 (File uploads) - If you have AWS account
+AWS_ACCESS_KEY_ID=your_key
+AWS_SECRET_ACCESS_KEY=your_secret
+AWS_S3_BUCKET=fixzit-uploads-prod
+AWS_REGION=us-east-1
+```
+
+> Security hygiene: regenerate any SendGrid or Twilio credentials that were previously stored in docs and keep new values only in secret managers.
+
+**Optional (Can add later):**
+
+```env
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+STRIPE_SECRET_KEY=...
+SENTRY_DSN=...
+```
+
+---
+
+## 🎯 Quick Deployment Path (3 Steps)
+
+### Step 1: MongoDB Atlas (10 minutes)
+
+```bash
+# After creating Atlas cluster, test locally:
+nano .env.local
+# Update MONGODB_URI with Atlas connection string
+
+pnpm build  # Should succeed
+pnpm dev    # Test at localhost:3000
+```
+
+### Step 2: Configure Vercel (5 minutes)
+
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+
+# Login
+vercel login
+
+# Add environment variables
+vercel env add MONGODB_URI production
+# Paste: mongodb+srv://fixzit-admin:PASSWORD@cluster.mongodb.net/fixzit
+
+vercel env add NEXTAUTH_URL production
+# Enter: https://fixzit.co
+
+vercel env add NEXTAUTH_SECRET production
+# Generate: openssl rand -base64 32
+# Paste the output
+
+# Copy existing keys from .env.local
+vercel env add SENDGRID_API_KEY production
+vercel env add TWILIO_ACCOUNT_SID production
+vercel env add TWILIO_AUTH_TOKEN production
+```
+
+### Step 3: Deploy & Configure Domain (15 minutes)
+
+```bash
+# Deploy
+vercel --prod
+
+# You'll get: https://fixzit-xyz123.vercel.app
+# Test this URL first!
+
+# Then add custom domain:
+# 1. Go to https://vercel.com/dashboard
+# 2. Select project → Settings → Domains
+# 3. Add: fixzit.co
+# 4. Copy nameservers (e.g., ns1.vercel-dns.com)
+
+# 5. Update GoDaddy:
+#    - Log in to GoDaddy
+#    - Domains → fixzit.co → DNS Management
+#    - Change nameservers to Vercel's nameservers
+#
+# 6. Wait 5-30 minutes for DNS propagation
+# 7. Visit https://fixzit.co
+```
+
+---
+
+## 🔍 Current Environment Status
+
+### Local Development (.env.local)
+
+- **MongoDB:** `localhost:27017` (needs Atlas)
+- **NextAuth:** Dev secret (needs production secret)
+- **SendGrid:** ✅ Configured (API key present)
+- **Twilio:** ✅ Configured (credentials present)
+- **AWS S3:** ❌ Not configured (optional)
+- **Google OAuth:** ❌ Not configured (optional)
+
+### What's Working Locally
+
+- ✅ App builds and runs
+- ✅ Email sending (SendGrid)
+- ✅ SMS sending (Twilio)
+- ✅ Authentication (NextAuth)
+- ✅ Database (local MongoDB)
+
+### What Needs Production Setup
+
+- 🔴 MongoDB Atlas cluster
+- 🔴 Production NextAuth secret
+- 🔴 Production NextAuth URL
+- 🟡 AWS S3 (if you want file uploads)
+- 🟡 Google OAuth (if you want Google login)
+
+---
+
+## 📊 Risk Assessment
+
+### Zero Risk (Can deploy now)
+
+- Lint and typecheck are green
+- Targeted unit test green (approveQuotation)
+- No TypeScript/ESLint errors in this run
+- Build not re-run this session (run `pnpm build` before next prod deploy)
+
+### Low Risk (Easy to fix)
+
+- Missing MongoDB Atlas → 10 minutes to create
+- Missing env vars → 5 minutes to add
+- DNS propagation → Automatic, just wait
+- Full Playwright/E2E coverage not executed in this session → run `pnpm test:e2e` when specs are available
+
+### No Risk Items
+
+- SSL certificate → Vercel handles automatically
+- CDN/Edge → Vercel provides globally
+- Monitoring → Vercel dashboard included
+
+---
+
+## 🎬 Next Actions
+
+### What You Need to Do NOW:
+
+1. **Answer this question:**
+   - Do you have MongoDB Atlas already?
+   - If YES: Get connection string
+   - If NO: Create account at mongodb.com/cloud/atlas
+
+2. **Generate NextAuth secret:**
+
+   ```bash
+   openssl rand -base64 32
+   ```
+
+   Save this output!
+
+3. **Prepare AWS credentials (if you have them):**
+   - AWS Access Key ID
+   - AWS Secret Access Key
+   - S3 Bucket name
+4. **Before the next production deploy:**
+   - Run `pnpm build`
+   - Run Playwright/E2E suite when specs are ready (`pnpm test:e2e`)
+
+### What I'll Do After You Respond:
+
+1. Guide you through MongoDB Atlas setup (if needed)
+2. Add all environment variables to Vercel
+3. Deploy to production
+4. Configure fixzit.co domain
+5. Verify everything works
+
+---
+
+## ⏱️ Time Estimates
+
+| Task                 | Time          | Status        |
+| -------------------- | ------------- | ------------- |
+| Code fixes           | 2 hours       | ✅ DONE       |
+| MongoDB Atlas setup  | 10 min        | ⏳ PENDING    |
+| Vercel env config    | 5 min         | ⏳ PENDING    |
+| Deploy to Vercel     | 5 min         | ⏳ PENDING    |
+| Domain configuration | 5 min         | ⏳ PENDING    |
+| DNS propagation      | 5-30 min      | ⏳ PENDING    |
+| **TOTAL**            | **30-60 min** | **66% READY** |
+
+---
+
+## 📞 Ready to Deploy!
+
+**Current Status:** All code is production-ready. Just need to:
+
+1. Set up MongoDB Atlas
+2. Configure environment variables
+3. Run deployment commands
+
+**Your system is 100% ready from a code perspective.** The only thing blocking deployment is infrastructure setup (MongoDB Atlas + env vars).
+
+**Once you provide MongoDB Atlas connection string, we can deploy in under 10 minutes.**
+
+---
+
+## 🚦 Decision Point
+
+**Choose one:**
+
+**Option A: Full Production Deployment (Recommended)**
+
+- Set up MongoDB Atlas (permanent, scalable)
+- Add all environment variables
+- Deploy to fixzit.co
+- **Time:** 30-60 minutes
+
+**Option B: Quick Test Deployment**
+
+- Deploy with minimal env vars
+- Use Vercel's temporary URL
+- Skip domain configuration
+- **Time:** 10 minutes
+
+**Option C: Local Testing First**
+
+- Set up Atlas for local testing
+- Verify everything works locally
+- Then deploy to production
+- **Time:** 20 minutes + deployment
+
+**What would you like to do?**
+
+---
+
+**Files Created for You:**
+
+- `DEPLOYMENT_CHECKLIST.md` - Full step-by-step guide
+- `PRODUCTION_READINESS_SUMMARY.md` - This file
+
+**Next:** Tell me your MongoDB Atlas status and preferred deployment option!
+
+]]>
+</file>
+
+<file path="docs/deployment/SECRETS_ADDED_SUMMARY.md">
+<![CDATA[
+# ✅ Secrets Configuration Complete
+
+**Date:** November 22, 2025  
+**Production URL:** https://fixzit.co  
+**Status:** ✅ Deployed and Live
+
+---
+
+## 🎉 Successfully Added Secrets (15 new)
+
+### 🔴 Critical Secrets (2)
+
+✅ **JWT_SECRET** - JWT token signing  
+✅ **INTERNAL_API_SECRET** - Server-to-server authentication
+
+### 🌐 Public URLs (4)
+
+✅ **NEXT_PUBLIC_APP_URL** = `https://fixzit.co`  
+✅ **BASE_URL** = `https://fixzit.co`  
+✅ **PUBLIC_BASE_URL** = `https://fixzit.co`  
+✅ **APP_URL** = `https://fixzit.co`
+
+### 🔒 Security Secrets (3)
+
+✅ **CRON_SECRET** - Background jobs authentication  
+✅ **FILE_SIGNING_SECRET** - Secure file URLs  
+✅ **LOG_HASH_SALT** - Privacy protection for logs
+
+### 🤖 AI Configuration (1)
+
+✅ **COPILOT_MODEL** = `gpt-4o-mini`
+
+### 🎚️ Feature Flags (4)
+
+✅ **ATS_ENABLED** = `true` - Applicant Tracking System  
+✅ **WO_ENABLED** = `true` - Work Orders module  
+✅ **INVOICE_ENABLED** = `true` - Invoicing module  
+✅ **PROPERTY_ENABLED** = `true` - Property Management
+
+### 🗺️ Maps (1)
+
+✅ **NEXT_PUBLIC_GOOGLE_MAPS_API_KEY** - Client-side Maps API
+
+---
+
+## 📊 Current Status
+
+### Total Secrets: 57/70 (81% coverage) ⬆️
+
+**Previously Configured:** 38 secrets
+
+- Database & Auth (MongoDB, NextAuth, Google OAuth)
+- Email (SendGrid)
+- SMS (Twilio)
+- Maps (Google Maps server-side)
+- Search (Meilisearch)
+- ZATCA E-Invoicing
+- Firebase Push Notifications
+- WhatsApp Business
+- Organization IDs
+- SMS OTP
+- **AI (OpenAI API Key)** ✅
+- **AWS S3 Storage (4 secrets)** ✅
+
+**Just Added:** 19 secrets
+
+- Critical authentication (JWT, Internal API)
+- All public URLs
+- Security secrets
+- AI configuration
+- Feature flags
+- Public Maps API
+- AWS S3 Storage (4 secrets)
+
+**Still Missing:** 13 secrets (optional)
+
+- Payment gateways (PayTabs/Tap - for payments)
+- Redis (for caching)
+- Shipping integrations (optional)
+- Monitoring (Sentry, Datadog - optional)
+
+---
+
+## ✅ What's Now Working
+
+### 1. **Authentication & Security**
+
+- ✅ JWT token signing working
+- ✅ Internal API authentication enabled
+- ✅ Secure file URL signing
+- ✅ Privacy-protected logging
+
+### 2. **URLs & Links**
+
+- ✅ Email links will use correct domain
+- ✅ OAuth redirects properly configured
+- ✅ Referral links working
+- ✅ Public API links correct
+
+### 3. **Modules Enabled**
+
+- ✅ ATS (Applicant Tracking System)
+- ✅ Work Orders
+- ✅ Invoicing
+- ✅ Property Management
+- ✅ Marketplace (already enabled)
+
+### 4. **Maps**
+
+- ✅ Server-side Maps API
+- ✅ Client-side Maps API
+- ✅ Maps will load on frontend
+
+### 5. **Background Jobs**
+
+- ✅ CRON jobs can authenticate
+- ✅ Scheduled tasks working
+
+### 6. **AI Features** 🤖
+
+- ✅ AI Copilot enabled
+- ✅ Help Q&A working
+- ✅ OpenAI integration active
+- ✅ Model configured (gpt-4o-mini)
+
+### 7. **File Storage** ☁️
+
+- ✅ AWS S3 configured
+- ✅ File uploads working
+- ✅ Resume uploads enabled
+- ✅ Work order attachments working
+- ✅ Bucket: fixzit-prod-uploads
+
+---
+
+## ⚠️ Still Missing (Optional)
+
+### 🟡 Optional (if needed)
+
+**1. Payment Gateways**
+
+- **Impact:** Payment processing won't work
+- **Optional:** Only needed if accepting payments
+- **PayTabs:** PAYTABS_PROFILE_ID, PAYTABS_SERVER_KEY, PAYTABS_CLIENT_KEY
+- **Tap:** TAP_SECRET_KEY, TAP_PUBLIC_KEY
+
+### 🟢 Medium Priority (optional)
+
+**3. REDIS_URL**
+
+- **Impact:** No caching, rate limiting uses in-memory
+- **How to get:** https://upstash.com (free tier)
+- **Add:** `vercel env add REDIS_URL production`
+
+**4. Monitoring (optional)**
+
+- **SENTRY_DSN** - Error tracking from Sentry.io
+- **DATADOG_API_KEY** - APM monitoring from Datadog
+
+**5. Shipping (optional)**
+
+- Aramex, SMSA, SPL integrations for marketplace
+
+---
+
+## 🚀 Deployment Status
+
+✅ **Deployment Complete**
+
+- Build time: ~2 minutes
+- Status: HTTP 200 OK
+- URL: https://fixzit.co
+- All new secrets active
+
+---
+
+## 📋 Quick Commands
+
+### View all secrets:
+
+```bash
+vercel env ls
+```
+
+### Add remaining secrets (if needed):
+
+```bash
+# Redis (if you set up Upstash)
+vercel env add REDIS_URL production
+
+# AWS S3 (if you set up S3)
+vercel env add AWS_S3_BUCKET production
+vercel env add AWS_REGION production
+vercel env add AWS_ACCESS_KEY_ID production
+vercel env add AWS_SECRET_ACCESS_KEY production
+```
+
+### Redeploy after adding secrets:
+
+```bash
+vercel --cwd Fixzit --prod --yes
+```
+
+---
+
+## 🎯 Next Steps
+
+### Immediate (Ready to use):
+
+✅ All core features working
+✅ Authentication secured
+✅ All modules enabled
+✅ Maps functional
+✅ Background jobs working
+✅ **AI features active** 🤖
+✅ **File uploads working** ☁️
+
+### This Week (if needed):
+
+1. Configure payment gateway if accepting payments
+2. Set up Redis for better performance (optional)
+3. Add monitoring tools (Sentry, Datadog)
+
+### Later (optional):
+
+1. Set up Redis for better performance
+2. Add monitoring tools (Sentry, Datadog)
+3. Configure shipping integrations
+
+---
+
+## 📖 Related Documentation
+
+- **Full Analysis:** `VERCEL_SECRETS_STATUS.md`
+- **Analysis Script:** `scripts/analyze-vercel-secrets.ts`
+- **Environment Example:** `env.example`
+
+---
+
+**Status:** ✅ **Production Ready**  
+**Coverage:** 81% (57/70 secrets) ⬆️  
+**Critical Issues:** None ✅  
+**AI Features:** Active 🤖  
+**File Uploads:** Working ☁️  
+**Site Status:** Live and operational 🟢
+
+]]>
+</file>
+
+<file path="docs/deployment/VERCEL_SECRETS_STATUS.md">
+<![CDATA[
+# 🔍 Vercel Secrets Status Report
+
+**Generated:** November 22, 2025  
+**Production URL:** https://fixzit.co
+
+---
+
+## 📊 Executive Summary
+
+- ✅ **Configured:** 37 secrets
+- 🔴 **Critical Missing:** 2 secrets
+- 🟡 **High Priority:** 10 secrets
+- 🟢 **Medium Priority:** 10 secrets
+- ⚪ **Optional:** 11 secrets
+
+**Current Coverage:** 56% (37/70 total secrets)
+
+---
+
+## 🔴 CRITICAL MISSING (Fix Immediately)
+
+These secrets are **required for the app to work properly**. Without them, authentication and core features will fail.
+
+### 1. JWT_SECRET
+
+- **Purpose:** JWT token signing for API authentication
+- **Impact:** API authentication may fail
+- **How to get:**
+  ```bash
+  openssl rand -hex 32
+  ```
+- **Add to Vercel:**
+  ```bash
+  vercel env add JWT_SECRET production
+  # Paste the generated value when prompted
+  ```
+
+### 2. INTERNAL_API_SECRET
+
+- **Purpose:** Server-to-server authentication
+- **Impact:** Internal API calls will fail
+- **How to get:**
+  ```bash
+  openssl rand -base64 32
+  ```
+- **Add to Vercel:**
+  ```bash
+  vercel env add INTERNAL_API_SECRET production
+  ```
+
+---
+
+## 🟡 HIGH PRIORITY (Major Features Broken)
+
+These secrets enable major features. Without them, users will experience broken functionality.
+
+### 1. OPENAI_API_KEY
+
+- **Purpose:** AI Copilot, Help Q&A, intelligent features
+- **Impact:** All AI features will be disabled
+- **How to get:**
+  1. Go to https://platform.openai.com/api-keys
+  2. Sign in or create account
+  3. Click "Create new secret key"
+  4. Copy the key (starts with `sk-`)
+- **Add to Vercel:**
+  ```bash
+  vercel env add OPENAI_API_KEY production
+  vercel env add COPILOT_MODEL production
+  # For COPILOT_MODEL, enter: gpt-4o-mini
+  ```
+
+### 2. AWS S3 Storage (4 secrets)
+
+- **Purpose:** File uploads (resumes, work order attachments, documents)
+- **Impact:** Users cannot upload files
+- **How to get:**
+
+  **Option A: Use AWS S3 (Recommended)**
+  1. Go to https://console.aws.amazon.com/s3/
+  2. Create a new bucket (e.g., `fixzit-uploads`)
+  3. Go to https://console.aws.amazon.com/iam/
+  4. Create new user with S3 access
+  5. Generate access keys
+
+  **Option B: Use Vercel Blob Storage**
+  1. Go to Vercel dashboard
+  2. Project Settings → Storage → Create Blob Store
+  3. Use Vercel Blob SDK instead of AWS S3
+
+- **Add to Vercel (AWS S3):**
+  ```bash
+  vercel env add AWS_S3_BUCKET production        # Enter: fixzit-uploads
+  vercel env add AWS_REGION production           # Enter: us-east-1 (or your region)
+  vercel env add AWS_ACCESS_KEY_ID production    # From IAM console
+  vercel env add AWS_SECRET_ACCESS_KEY production # From IAM console
+  ```
+
+### 3. PayTabs Payment Gateway (3 secrets)
+
+- **Purpose:** Payment processing, invoicing, e-commerce
+- **Impact:** Users cannot make payments
+- **How to get:**
+  1. Go to https://dashboard.tap.company or https://merchant.paytabs.com
+  2. Sign in to your merchant account
+  3. Navigate to Settings → API Keys
+  4. Copy Profile ID, Server Key, Client Key
+- **Add to Vercel:**
+  ```bash
+  vercel env add PAYTABS_PROFILE_ID production
+  vercel env add PAYTABS_SERVER_KEY production
+  vercel env add PAYTABS_CLIENT_KEY production
+  ```
+
+### 4. Tap Payment (Alternative)
+
+- **Purpose:** Alternative payment processor
+- **How to get:**
+  1. Go to https://dashboard.tap.company
+  2. Settings → API Keys
+  3. Copy Secret Key and Public Key
+- **Add to Vercel:**
+  ```bash
+  vercel env add TAP_SECRET_KEY production
+  vercel env add TAP_PUBLIC_KEY production
+  ```
+
+---
+
+## 🟢 MEDIUM PRIORITY (Degraded Experience)
+
+These secrets improve user experience but the app works without them.
+
+### 1. Public URLs (4 secrets)
+
+- **Purpose:** Email links, OAuth redirects, referral links
+- **Impact:** Links in emails may be broken, OAuth may fail
+- **How to get:** Use your production URL
+- **Add to Vercel:**
+  ```bash
+  vercel env add NEXT_PUBLIC_APP_URL production  # Enter: https://fixzit.co
+  vercel env add BASE_URL production              # Enter: https://fixzit.co
+  vercel env add PUBLIC_BASE_URL production       # Enter: https://fixzit.co
+  vercel env add APP_URL production               # Enter: https://fixzit.co
+  ```
+
+### 2. REDIS_URL
+
+- **Purpose:** Caching, rate limiting, job queues
+- **Impact:** Slower performance, no rate limiting
+- **How to get:**
+  1. Go to https://upstash.com (free tier available)
+  2. Create Redis database
+  3. Copy connection URL
+- **Add to Vercel:**
+  ```bash
+  vercel env add REDIS_URL production
+  # Optional: vercel env add REDIS_PASSWORD production
+  ```
+
+### 3. Security Secrets (3 secrets)
+
+- **Purpose:** Background jobs, file security, privacy
+- **How to get:**
+  ```bash
+  # Generate all three
+  openssl rand -hex 32  # For CRON_SECRET
+  openssl rand -hex 32  # For FILE_SIGNING_SECRET
+  openssl rand -hex 32  # For LOG_HASH_SALT
+  ```
+- **Add to Vercel:**
+  ```bash
+  vercel env add CRON_SECRET production
+  vercel env add FILE_SIGNING_SECRET production
+  vercel env add LOG_HASH_SALT production
+  ```
+
+### 4. NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+
+- **Purpose:** Google Maps on client-side
+- **Impact:** Maps won't load on frontend
+- **How to get:** Copy the value from existing `GOOGLE_MAPS_API_KEY` or create new one at https://console.cloud.google.com/apis/credentials
+- **Add to Vercel:**
+  ```bash
+  vercel env add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY production
+  ```
+
+---
+
+## ⚪ OPTIONAL (Nice to Have)
+
+These are optional integrations that can be added later.
+
+### 1. Error Tracking & Monitoring
+
+- **SENTRY_DSN:** From https://sentry.io dashboard
+- **DATADOG_API_KEY:** From https://app.datadoghq.com
+
+### 2. Shipping Integrations
+
+- **ARAMEX_ACCOUNT_NUMBER, ARAMEX_USERNAME, ARAMEX_PASSWORD:** From Aramex account
+- **SMSA_USERNAME:** From SMSA Express account
+- **SPL_API_KEY:** From Saudi Post Logistics
+
+### 3. Feature Flags (Enable Modules)
+
+```bash
+vercel env add ATS_ENABLED production           # Enter: true
+vercel env add WO_ENABLED production            # Enter: true
+vercel env add INVOICE_ENABLED production       # Enter: true
+vercel env add PROPERTY_ENABLED production      # Enter: true
+```
+
+---
+
+## ✅ ALREADY CONFIGURED
+
+These **37 secrets** are already set up in Vercel:
+
+### Core Authentication (3)
+
+- ✅ MONGODB_URI
+- ✅ NEXTAUTH_SECRET
+- ✅ NEXTAUTH_URL
+
+### OAuth (2)
+
+- ✅ GOOGLE_CLIENT_ID
+- ✅ GOOGLE_CLIENT_SECRET
+
+### Email (3)
+
+- ✅ SENDGRID_API_KEY
+- ✅ SENDGRID_FROM_EMAIL
+- ✅ SENDGRID_FROM_NAME
+
+### SMS (3)
+
+- ✅ TWILIO_ACCOUNT_SID
+- ✅ TWILIO_AUTH_TOKEN
+- ✅ TWILIO_PHONE_NUMBER
+
+### Maps (1)
+
+- ✅ GOOGLE_MAPS_API_KEY
+
+### Search (2)
+
+- ✅ MEILI_HOST
+- ✅ MEILI_MASTER_KEY
+
+### ZATCA E-Invoicing (6)
+
+- ✅ ZATCA_API_KEY
+- ✅ ZATCA_API_SECRET
+- ✅ ZATCA_SELLER_NAME
+- ✅ ZATCA_VAT_NUMBER
+- ✅ ZATCA_SELLER_ADDRESS
+- ✅ ZATCA_ENVIRONMENT
+
+### Firebase Push Notifications (3)
+
+- ✅ FIREBASE_ADMIN_PROJECT_ID
+- ✅ FIREBASE_ADMIN_CLIENT_EMAIL
+- ✅ FIREBASE_ADMIN_PRIVATE_KEY
+
+### Organization IDs (3)
+
+- ✅ PUBLIC_ORG_ID
+- ✅ TEST_ORG_ID
+- ✅ DEFAULT_ORG_ID
+
+### Feature Flags (1)
+
+- ✅ MARKETPLACE_ENABLED
+
+### Notifications (7)
+
+- ✅ NOTIFICATIONS_SMOKE_USER_ID
+- ✅ NOTIFICATIONS_SMOKE_NAME
+- ✅ NOTIFICATIONS_SMOKE_EMAIL
+- ✅ NOTIFICATIONS_SMOKE_PHONE
+- ✅ NOTIFICATIONS_TELEMETRY_WEBHOOK
+- ✅ WHATSAPP_BUSINESS_API_KEY
+- ✅ WHATSAPP_PHONE_NUMBER_ID
+
+### SMS OTP (3)
+
+- ✅ NEXTAUTH_REQUIRE_SMS_OTP
+- ✅ NEXT_PUBLIC_REQUIRE_SMS_OTP
+- ✅ NEXTAUTH_SUPERADMIN_FALLBACK_PHONE
+
+---
+
+## 🚀 Quick Setup Script
+
+Run this to add the most critical missing secrets:
+
+```bash
+# 1. Generate secrets
+JWT_SECRET=$(openssl rand -hex 32)
+INTERNAL_API_SECRET=$(openssl rand -base64 32)
+CRON_SECRET=$(openssl rand -hex 32)
+FILE_SIGNING_SECRET=$(openssl rand -hex 32)
+LOG_HASH_SALT=$(openssl rand -hex 32)
+
+# 2. Add critical secrets
+echo $JWT_SECRET | vercel env add JWT_SECRET production
+echo $INTERNAL_API_SECRET | vercel env add INTERNAL_API_SECRET production
+
+# 3. Add URLs
+echo "https://fixzit.co" | vercel env add NEXT_PUBLIC_APP_URL production
+echo "https://fixzit.co" | vercel env add BASE_URL production
+echo "https://fixzit.co" | vercel env add PUBLIC_BASE_URL production
+echo "https://fixzit.co" | vercel env add APP_URL production
+
+# 4. Add security secrets
+echo $CRON_SECRET | vercel env add CRON_SECRET production
+echo $FILE_SIGNING_SECRET | vercel env add FILE_SIGNING_SECRET production
+echo $LOG_HASH_SALT | vercel env add LOG_HASH_SALT production
+
+# 5. Add AI model
+echo "gpt-4o-mini" | vercel env add COPILOT_MODEL production
+
+# 6. Enable modules
+echo "true" | vercel env add ATS_ENABLED production
+echo "true" | vercel env add WO_ENABLED production
+echo "true" | vercel env add INVOICE_ENABLED production
+echo "true" | vercel env add PROPERTY_ENABLED production
+
+# 7. Redeploy
+vercel --cwd Fixzit --prod --yes
+```
+
+---
+
+## ⚠️ Important Notes
+
+1. **Always redeploy after adding secrets:**
+
+   ```bash
+   vercel --cwd Fixzit --prod --yes
+   ```
+
+2. **Never commit secrets to Git:**
+   - Secrets are encrypted in Vercel
+   - Only add via CLI or dashboard
+
+3. **Test secrets locally:**
+   - Add to `.env.local` for development
+   - Keep `.env.local` in `.gitignore`
+
+4. **Secret priority:**
+   - Start with Critical (2 secrets)
+   - Add High Priority as needed (10 secrets)
+   - Add Medium for better UX (10 secrets)
+   - Optional can wait (11 secrets)
+
+5. **Alternative to AWS S3:**
+   - Can use Vercel Blob Storage
+   - Easier setup, integrated with Vercel
+   - See: https://vercel.com/docs/storage/vercel-blob
+
+6. **Payment gateways:**
+   - Only needed if accepting payments
+   - Can use either PayTabs OR Tap (not both required)
+   - Get credentials from respective merchant dashboards
+
+---
+
+## 📝 Next Steps
+
+1. **Immediate (Critical):**
+
+   ```bash
+   vercel env add JWT_SECRET production
+   vercel env add INTERNAL_API_SECRET production
+   ```
+
+2. **This Week (High Priority):**
+   - Set up OPENAI_API_KEY for AI features
+   - Configure AWS S3 or Vercel Blob for file uploads
+   - Add public URLs (NEXT_PUBLIC_APP_URL, etc.)
+
+3. **This Month (Medium):**
+   - Set up Redis for caching
+   - Configure payment gateway (if needed)
+   - Add security secrets
+
+4. **Later (Optional):**
+   - Sentry for error tracking
+   - Shipping integrations
+   - Additional monitoring
+
+---
+
+## 🔗 Useful Links
+
+- Vercel Dashboard: https://vercel.com/fixzit/fixzit
+- OpenAI API Keys: https://platform.openai.com/api-keys
+- AWS Console: https://console.aws.amazon.com
+- Upstash Redis: https://upstash.com
+- Sentry: https://sentry.io
+- PayTabs: https://merchant.paytabs.com
+- Tap Payments: https://dashboard.tap.company
+
+---
+
+**Report Generated by:** `scripts/analyze-vercel-secrets.ts`  
+**Production Site:** https://fixzit.co  
+**Last Updated:** November 22, 2025
+
+]]>
+</file>
+
+<file path="docs/development/BUILD_ENVIRONMENT.md">
+<![CDATA[
+# Build Environment Configuration
+
+> **Last Updated**: 2025-01-17  
+> **Maintainers**: Engineering Team
+
+## Overview
+
+This document describes the build environment requirements and common troubleshooting steps for the Fixzit codebase.
+
+## VS Code Debugger Interference
+
+### Problem
+
+When VS Code's debugger is attached (auto-attach enabled), Next.js builds fail with:
+
+```
+Error: Cannot find module '../../../../webpack-runtime.js'
+    at createEsmNotFoundErr (node:internal/modules/cjs/loader:1262:15)
+```
+
+Or:
+
+```
+ENOENT: no such file or directory, open '.next/app-build-manifest.json'
+```
+
+### Root Cause
+
+VS Code's JavaScript debugger attaches to Node.js workers spawned by Next.js/Webpack. This interferes with webpack's internal module resolution.
+
+### Solution
+
+Disable debugger inspection when running builds:
+
+```bash
+# Production build
+NODE_OPTIONS='' pnpm build
+
+# Or explicitly
+NODE_OPTIONS='' npx next build
+```
+
+### Permanent Fix Options
+
+#### Option 1: VS Code Auto-Attach Settings
+
+1. Open VS Code Command Palette (`Cmd+Shift+P`)
+2. Search "Debug: Toggle Auto Attach"
+3. Set to "Disabled" or "Only With Flag"
+
+#### Option 2: Create Build Task
+
+Add to `.vscode/tasks.json`:
+
+```json
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build (No Debugger)",
+      "type": "shell",
+      "command": "NODE_OPTIONS='' pnpm build",
+      "problemMatcher": []
+    }
+  ]
+}
+```
+
+#### Option 3: Package.json Script
+
+```json
+{
+  "scripts": {
+    "build": "NODE_OPTIONS='' next build"
+  }
+}
+```
+
+## Development Commands
+
+```bash
+# Development server (debugger OK)
+pnpm dev
+
+# Production build (needs NODE_OPTIONS='')
+NODE_OPTIONS='' pnpm build
+
+# Type checking (debugger OK)
+pnpm typecheck
+
+# Linting (debugger OK)
+pnpm lint
+
+# Run tests (debugger OK)
+pnpm test:models
+pnpm vitest run
+```
+
+## Environment Variables
+
+### Required for Production
+
+```bash
+# Database
+MONGODB_URI=mongodb+srv://...
+
+# Authentication
+AUTH_SECRET=...
+NEXTAUTH_URL=https://...
+
+# Redis (optional but recommended)
+REDIS_URL=rediss://...
+```
+
+### Optional for Development
+
+```bash
+# Disable telemetry
+NEXT_TELEMETRY_DISABLED=1
+
+# Skip Redis features
+# Just don't set REDIS_URL
+
+# Development authentication
+AUTH_SECRET=dev-secret-32-chars-min
+```
+
+## Common Build Errors
+
+### 1. "Cannot find module 'webpack-runtime.js'"
+
+**Solution**: Run with `NODE_OPTIONS=''`
+
+### 2. "MONGODB_URI is not defined"
+
+**Solution**: Create `.env.local` with required variables
+
+### 3. "Module not found: Can't resolve 'dns'"
+
+**Cause**: Edge runtime code importing Node.js modules
+
+**Solution**: Check that imports in API routes/middleware don't use `ioredis` directly. Use `lib/redis.ts` which handles this.
+
+### 4. ESLint Memory Issues
+
+```bash
+# Increase Node memory for large linting runs
+NODE_OPTIONS='--max-old-space-size=4096' pnpm lint
+```
+
+### 5. TypeScript "Cannot find module" After Dependency Update
+
+```bash
+# Clear TypeScript cache
+rm -rf .next
+rm -rf node_modules/.cache
+
+# Reinstall
+pnpm install
+
+# Rebuild
+NODE_OPTIONS='' pnpm build
+```
+
+## CI/CD Notes
+
+GitHub Actions doesn't have VS Code debugger, so `NODE_OPTIONS=''` is not needed in CI. The build workflow uses:
+
+```yaml
+- name: Build
+  run: pnpm build
+  env:
+    MONGODB_URI: ${{ secrets.MONGODB_URI }}
+    # ... other env vars
+```
+
+## Performance Tips
+
+### 1. Parallel Type Checking
+
+```bash
+# Run typecheck and lint in parallel
+pnpm typecheck & pnpm lint & wait
+```
+
+### 2. Incremental Builds
+
+Next.js caches builds in `.next/cache`. Don't delete `.next/` during development unless needed.
+
+### 3. Selective Test Runs
+
+```bash
+# Run only specific test file
+pnpm vitest run tests/unit/lib/db/collections.test.ts
+
+# Run only model tests
+pnpm test:models
+```
+
+## Troubleshooting Checklist
+
+1. ✅ VS Code debugger disabled for builds?
+2. ✅ `.env.local` exists with required vars?
+3. ✅ Node.js v20.x installed?
+4. ✅ pnpm v9.x installed?
+5. ✅ `node_modules` fresh? (`rm -rf node_modules && pnpm install`)
+6. ✅ `.next` cache clean? (`rm -rf .next`)
+
+]]>
+</file>
+
+<file path="docs/development/DEPENDENCIES.md">
+<![CDATA[
+# Dependency Risk Management & Justification
+
+**Document Owner**: Eng. Sultan Al Hassni  
+**Last Updated**: October 24, 2025  
+**Status**: Active
+
+---
+
+## Executive Summary
+
+This document provides justification, risk assessment, and mitigation strategies for key dependencies in the Fixzit project that require special consideration or approval.
+
+---
+
+## NextAuth.js v5.0.0-beta.29
+
+### Decision
+
+**APPROVED** for production use in Fixzit Enterprise with documented mitigations.
+
+### Justification
+
+**Date**: October 19, 2025  
+**Approved By**: Eng. Sultan Al Hassni, Lead Engineer & Project Owner
+
+#### Why v5 Beta?
+
+1. **Next.js 15 Compatibility**: NextAuth v4 is incompatible with Next.js 15's App Router and server components architecture. Remaining on v4 would block our Next.js 15 upgrade.
+
+2. **OAuth 2.1 Support**: v5 implements modern OAuth 2.1 standards with improved security (PKCE required, implicit flow removed).
+
+3. **Better Middleware Integration**: v5 provides native Edge runtime support and improved middleware patterns essential for our authentication flow.
+
+4. **TypeScript Improvements**: Enhanced type safety with better TypeScript definitions and autocomplete support.
+
+5. **Production-Ready Beta**: While labeled "beta", NextAuth v5 has:
+   - Thousands of production deployments
+   - Active maintenance and security updates
+   - Stable API (minimal changes expected before v5.0.0 stable)
+   - Comprehensive test coverage (95%+)
+
+#### Alternatives Considered
+
+| Alternative          | Pros               | Cons                            | Decision        |
+| -------------------- | ------------------ | ------------------------------- | --------------- |
+| **Remain on v4**     | Stable, proven     | Blocks Next.js 15, no OAuth 2.1 | ❌ Rejected     |
+| **Custom OAuth**     | Full control       | High dev cost, security risks   | ❌ Rejected     |
+| **Clerk/Auth0**      | Managed service    | High cost ($$$), vendor lock-in | ❌ Rejected     |
+| **NextAuth v5 beta** | Modern, compatible | Beta status                     | ✅ **Selected** |
+
+### Known Issues & Mitigations
+
+#### Known Issues
+
+1. **Beta Status**: API may change before stable release
+2. **Documentation Gaps**: Some edge cases not fully documented
+3. **Community Support**: Fewer community examples than v4
+
+#### Mitigation Strategies
+
+| Risk                     | Probability | Impact | Mitigation                               | Status         |
+| ------------------------ | ----------- | ------ | ---------------------------------------- | -------------- |
+| API breaking changes     | Medium      | High   | Pin exact version, monitor release notes | ✅ Implemented |
+| Undocumented edge cases  | Low         | Medium | Comprehensive test coverage, monitoring  | ✅ Implemented |
+| Security vulnerabilities | Low         | High   | Dependabot alerts, security scanning     | ✅ Implemented |
+| Migration to v5 stable   | Low         | Low    | API mostly stable, migration path clear  | ✅ Ready       |
+
+### Implementation Safeguards
+
+#### 1. Version Pinning
+
+```json
+{
+  "dependencies": {
+    "next-auth": "5.0.0-beta.29" // Exact version, no ^ or ~
+  }
+}
+```
+
+**Why**: Prevents automatic updates that could introduce breaking changes.
+
+#### 2. Comprehensive Testing
+
+- ✅ **Unit Tests**: All auth callbacks covered
+- ✅ **Integration Tests**: OAuth flow, session management
+- ✅ **E2E Tests**: Complete user authentication flows
+- ✅ **Security Tests**: XSS, CSRF, token validation
+
+#### 3. Monitoring & Alerting
+
+```typescript
+// Implemented in auth.config.ts
+- Privacy-preserving logging (hashed emails, no PII)
+- Detailed error tracking via Sentry
+- CloudWatch metrics for auth failures
+- Real-time alerts for suspicious activity
+```
+
+#### 4. Rollback Plan
+
+**If critical issues arise:**
+
+1. Revert to known-good commit (< 5 minutes)
+2. Emergency hotfix deployment via CI/CD
+3. Documented rollback procedure in `DEPLOYMENT.md`
+4. Tested rollback in staging environment
+
+#### 5. Gradual Rollout
+
+- ✅ **Phase 1**: Development environment (completed)
+- ✅ **Phase 2**: Staging environment (completed)
+- ✅ **Phase 3**: Canary deployment (10% users)
+- ⏳ **Phase 4**: Full production rollout
+
+### Security Considerations
+
+#### Enhanced Security Features in v5
+
+1. **PKCE Required**: Proof Key for Code Exchange mandatory for all OAuth flows
+2. **No Implicit Flow**: Removed insecure implicit grant type
+3. **Better Token Management**: Improved JWT rotation and validation
+4. **Edge Runtime Support**: Reduced attack surface with lightweight runtime
+
+#### Additional Security Measures
+
+```typescript
+// Implemented security controls
+✅ Email domain whitelist (auth.config.ts)
+✅ Database user verification option
+✅ Privacy-preserving logging (hashed PII)
+✅ Rate limiting on auth endpoints
+✅ CSRF protection enabled
+✅ Secure session cookies (httpOnly, sameSite, secure)
+```
+
+### Monitoring & Success Metrics
+
+#### Key Performance Indicators (KPIs)
+
+- **Auth Success Rate**: Target > 99.5%
+- **Session Stability**: < 0.1% unexpected logouts
+- **OAuth Latency**: < 2 seconds end-to-end
+- **Security Incidents**: 0 auth-related breaches
+
+#### Monitoring Dashboard
+
+```bash
+# Real-time metrics available at:
+- Sentry: Error tracking and performance
+- CloudWatch: Auth flow metrics
+- Logs: Structured JSON logs for analysis
+```
+
+### Update Policy
+
+#### When to Update
+
+- ✅ **Security patches**: Apply immediately
+- ✅ **Bug fixes**: Apply within 1 week
+- ⚠️ **Feature updates**: Test in staging first
+- ⚠️ **Breaking changes**: Requires approval + migration plan
+
+#### Review Schedule
+
+- **Weekly**: Check for security updates
+- **Monthly**: Review release notes and community feedback
+- **Quarterly**: Evaluate migration to stable v5 when released
+
+### Approval & Sign-off
+
+#### Technical Review
+
+- ✅ **Security Review**: Completed by Eng. Sultan Al Hassni
+- ✅ **Architecture Review**: Approved for Next.js 15 compatibility
+- ✅ **Testing Review**: Comprehensive test coverage verified
+- ✅ **Operations Review**: Monitoring and rollback procedures ready
+
+#### Final Approval
+
+**Approved By**: Eng. Sultan Al Hassni  
+**Role**: Lead Engineer & Project Owner  
+**Date**: October 19, 2025
+
+**Signature**: This decision is documented, reviewed, and approved for production deployment with all documented mitigations in place.
+
+---
+
+## Additional Critical Dependencies
+
+### Future Additions
+
+As additional critical or beta dependencies are introduced, they will be documented here following the same risk assessment framework:
+
+1. **Decision & Justification**
+2. **Known Issues & Mitigations**
+3. **Implementation Safeguards**
+4. **Security Considerations**
+5. **Monitoring & Success Metrics**
+6. **Update Policy**
+7. **Approval & Sign-off**
+
+---
+
+## References
+
+- [NextAuth.js v5 Documentation](https://authjs.dev/)
+- [NextAuth.js v5 Migration Guide](https://authjs.dev/getting-started/migrating-to-v5)
+- [Next.js 15 App Router Documentation](https://nextjs.org/docs)
+- [OAuth 2.1 Authorization Framework](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-08)
+
+---
+
+**Document Control**:
+
+- Version: 1.0
+- Classification: Internal Use
+- Review Frequency: Quarterly
+- Next Review: January 19, 2026
+
+]]>
+</file>
+
+<file path="docs/development/ENHANCEMENT_ROADMAP.md">
+<![CDATA[
+# Fixzit Enhancement Roadmap
+
+## Extracted from Gemini Code Review (Adapted for Next.js/React)
+
+---
+
+## 🎯 High Priority Enhancements
+
+### 1. Referral Program System
+
+**Status**: Not Implemented  
+**Technology**: Next.js API routes + MongoDB
+
+**Requirements**:
+
+- Dual-sided incentive (referrer + referee both get rewards)
+- 10% discount on maintenance services
+- Maximum 20 SAR per month cap
+- 3 uses per month limit
+- Unique referral codes per user
+- WhatsApp/SMS/Email sharing integration
+- Super Admin toggle to enable/disable program
+
+**Implementation Plan**:
+
+```typescript
+// Models needed:
+-ReferralCode(user_id, code, created_at) -
+  ReferralReward(referrer_id, referee_id, amount, status, used_count) -
+  ReferralUsage(user_id, month, usage_count, total_savings) -
+  // API Routes needed:
+  POST / api / referrals / generate -
+  code -
+  POST / api / referrals / apply -
+  code -
+  GET / api / referrals / stats -
+  GET / api / referrals / history;
+```
+
+**Files to Create/Modify**:
+
+- `models/Referral.ts` - MongoDB schema
+- `app/api/referrals/*` - API routes
+- `app/(dashboard)/referrals/page.tsx` - UI page
+- `contexts/ReferralContext.tsx` - State management
+
+---
+
+### 2. Family Account Management
+
+**Status**: Not Implemented  
+**Technology**: Next.js + MongoDB
+
+**Requirements**:
+
+- Main user can invite family members
+- No spending caps (unlimited access to main account)
+- Relationship tracking (spouse, child, parent, sibling)
+- Family members can update their own relationship
+- Sub-users can order and pay from main account
+- Optional: Set monthly budget per family member
+
+**Implementation Plan**:
+
+```typescript
+// Models needed:
+-FamilyMember(main_user_id, member_user_id, relationship, permissions) -
+  FamilyInvitation(inviter_id, email, code, status, expires_at) -
+  // API Routes needed:
+  POST / api / family / invite -
+  POST / api / family / accept -
+  invitation -
+  PUT / api / family / update -
+  relationship -
+  GET / api / family / members -
+  DELETE / api / family / remove -
+  member;
+```
+
+---
+
+### 3. Project Bidding System Enhancement
+
+**Status**: Partially Implemented  
+**Needs**: Backend API + Geo-location filtering
+
+**Requirements**:
+
+- 10 KM radius service provider matching
+- Google Maps integration for address selection
+- Drag-and-drop service arrangement
+- Maximum 3 offers per service
+- Electronic agreement generation (Saudi law compliant)
+- Escrow-style payment (release after customer confirmation)
+- Partial payments for materials (with customer consent)
+- Dual rating system (customer ↔ service provider)
+
+**Implementation Plan**:
+
+```typescript
+// API Routes needed:
+- POST /api/projects/create
+- GET /api/projects/nearby-providers?lat=...&lng=...&radius=10
+- POST /api/projects/:id/bids
+- PUT /api/projects/:id/approve-bid
+- POST /api/projects/:id/payments/escrow
+- POST /api/projects/:id/payments/release
+- POST /api/projects/:id/rate
+```
+
+---
+
+### 4. Receipt Voucher System
+
+**Status**: Not Implemented  
+**Technology**: PDF generation + QR codes
+
+**Requirements**:
+
+- Email/SMS/WhatsApp delivery based on customer preference
+- QR code for verification
+- Separate verification page to prevent fraud
+- Auto-populate recipient (customer), employee, line manager
+- Integration with HR organizational structure
+
+**Implementation Plan**:
+
+```typescript
+// Libraries needed:
+- @react-pdf/renderer or jsPDF for PDF generation
+- qrcode for QR code generation
+- nodemailer for email
+- twilio for SMS
+- whatsapp-web.js for WhatsApp
+
+// API Routes needed:
+- POST /api/receipts/generate
+- POST /api/receipts/send
+- GET /api/receipts/verify/:code
+```
+
+---
+
+### 5. HR Module
+
+**Status**: Not Implemented  
+**Requirements**:
+
+- Employee tracking
+- Vacation request system
+- Line manager approval workflow
+- Organizational structure definition
+- Employee services automation
+
+**Implementation Plan**:
+
+```typescript
+// Models needed:
+- Employee (user_id, department, line_manager_id, hire_date)
+- VacationRequest (employee_id, start_date, end_date, status, reason)
+- OrganizationalStructure (employee_id, reports_to, level)
+
+// API Routes needed:
+- POST /api/hr/employees
+- POST /api/hr/vacation-requests
+- PUT /api/hr/vacation-requests/:id/approve
+- GET /api/hr/organizational-chart
+```
+
+---
+
+## 🔧 Technical Improvements
+
+### 6. Payment Method Storage (Secure)
+
+**Status**: Not Implemented  
+**Requirements**:
+
+- Bank-level encryption (tokenization)
+- Multiple card support (Visa, Mastercard, Mada, Amex)
+- Default payment method selection
+- Auto-payment settings with spending limits
+- Integration with Saudi payment gateways (Tap, MyFatoorah)
+
+**Implementation Plan**:
+
+```typescript
+// Use payment gateway tokenization - NEVER store card details
+// API Routes needed:
+- POST /api/payment-methods/add (returns token from gateway)
+- GET /api/payment-methods
+- PUT /api/payment-methods/:id/set-default
+- DELETE /api/payment-methods/:id
+- PUT /api/payment-methods/auto-pay-settings
+```
+
+---
+
+### 7. Service Provider Registration & Verification
+
+**Status**: Partially Implemented  
+**Requirements**:
+
+- Amazon-style vendor registration
+- Document upload for Saudi government compliance
+- Pending → Approved → Active workflow
+- Super Admin approval required
+- Two types: Technical service providers, Material vendors
+
+**Implementation Plan**:
+
+```typescript
+// Models needed:
+-ServiceProvider(user_id, company_name, license_number, status, documents) -
+  ProviderDocument(provider_id, doc_type, file_url, verified_at);
+
+// Statuses: pending, under_review, approved, rejected, suspended
+```
+
+---
+
+### 8. Maintenance Scheduling with Availability
+
+**Status**: Partially Implemented  
+**Requirements**:
+
+- Real-time availability calendar
+- Service provider can set their schedule
+- Customer selects date/time from available slots
+- 5% platform fee (configurable by Super Admin)
+- Spare parts approval workflow
+- Option to buy from online store if customer declines
+
+**Implementation Plan**:
+
+```typescript
+// Models needed:
+-ProviderAvailability(provider_id, date, time_slots, is_available) -
+  MaintenanceAppointment(ticket_id, provider_id, scheduled_at, status) -
+  SparePartsApproval(ticket_id, parts_list, customer_response, store_order_id);
+```
+
+---
+
+## 📊 UI/UX Enhancements
+
+### 9. iOS-Style Toggle Switches
+
+**Status**: Not Implemented  
+**Requirements**:
+
+- Replace all on/off options with iOS-style toggles
+- Consistent design across admin settings
+- Super Admin can hide/show feature groups
+- Feature flags for gradual rollout
+
+**Implementation Plan**:
+
+```typescript
+// Create reusable component:
+// components/ui/IOSToggle.tsx
+
+// Store feature flags in:
+// models/FeatureFlag.ts
+// API: /api/admin/feature-flags
+```
+
+---
+
+### 10. Language-Specific Content
+
+**Status**: Partially Implemented  
+**Requirements**:
+
+- If English selected: ALL content in English
+- If Arabic selected: ALL content in Arabic
+- No mixing of languages on same page
+- Store user language preference in profile
+- Persistent across sessions
+
+**Current Issues**:
+
+- Some pages have mixed language content
+- Need to audit all pages for language consistency
+
+---
+
+### 11. Date/Calendar Improvements
+
+**Status**: Partially Implemented  
+**Requirements**:
+
+- Auto-detect device locale or user preference
+- Format: DD Month-Name YYYY (e.g., "25 October 2025")
+- Toggle for Hijri calendar conversion
+- Calendar picker should change dynamically
+
+---
+
+### 12. Universal Action Buttons
+
+**Status**: Partially Implemented  
+**Requirements**:
+
+- Save, Back, Home buttons on ALL screens
+- Confirmation dialog when clicking Back without saving
+- Consistent placement across application
+
+---
+
+## 🔐 Security & Compliance
+
+### 13. Comprehensive Audit Logging
+
+**Status**: Not Implemented  
+**Requirements**:
+
+- Log ALL database operations (create, update, delete)
+- Timestamp every entry
+- Track which user made the change
+- Separate audit log viewer page
+- Include soft-deleted data in logs
+
+**Implementation Plan**:
+
+```typescript
+// Middleware for Mongoose to auto-log changes
+// Model: AuditLog (user_id, action, model, record_id, changes, timestamp)
+// API: /api/admin/audit-logs (Super Admin only)
+```
+
+---
+
+### 14. Backup & Data Export
+
+**Status**: Not Implemented  
+**Requirements**:
+
+- Daily automatic backups
+- Ad-hoc backup option (Super Admin only)
+- Data download restricted to Super Admin
+- Subscribers must create ticket to request data
+- Backup retention policy
+
+---
+
+### 15. Two-Level Admin Structure
+
+**Status**: Partially Implemented  
+**Requirements**:
+
+- **Super Admin**: Manages ALL subscriptions, global settings
+- **Subscribed Admin**: Manages own company data only
+- Clear separation of permissions
+- Notification system for communications
+
+---
+
+## 📢 Notification System
+
+### 16. Multi-Channel Notifications
+
+**Status**: Partially Implemented  
+**Requirements**:
+
+- Web push notifications
+- iOS/Android push notifications (when apps deployed)
+- SMS notifications
+- WhatsApp notifications
+- Email notifications
+- User can select preferred channels in profile
+- Send by contract number with auto-populated customer data
+
+---
+
+## 🎨 Branding & UI
+
+### 17. Company Branding Integration
+
+**Status**: Logo provided, needs implementation  
+**Requirements**:
+
+- Company logo: [Provided in conversation]
+- Application logo and letterhead design: [Provided - 8 images]
+- Email signature template
+- Consistent branding across all pages
+- Downloadable branded PDF reports
+
+---
+
+## 📈 Analytics & Reporting
+
+### 18. Market Intelligence Dashboard
+
+**Status**: Not Implemented  
+**Requirements**:
+
+- Competitor pricing tracker (CEO/Super Admin only)
+- Refresh mechanism for pricing data
+- Not visible to subscribers
+- Market trends and benchmarks
+
+---
+
+### 19. Dashboard Enhancements (Ejar-style)
+
+**Status**: Partially Implemented  
+**Requirements**:
+
+- Swipeable dashboard cards (left/right navigation)
+- Filters at top of each dashboard
+- Summary view on home screen
+- Match Ejar government system benchmark
+
+---
+
+## 🛠️ System Optimization
+
+### 20. Page Consolidation
+
+**Status**: Needs Review  
+**Current Issue**: Too many separate pages, fragmented UX  
+**Goal**: Consolidate related features into tabbed interfaces
+
+**Example Consolidations**:
+
+- "Create Service" + "Create Product" → "Marketplace Management" (with tabs)
+- Multiple financial pages → Unified "Financial Management" (with sections)
+- Service provider pages → Single dashboard with sub-sections
+
+---
+
+### 21. Permission Matrix UI
+
+**Status**: Implemented but not functional  
+**Requirements**:
+
+- Interactive permission matrix
+- Can select users
+- Can add/remove/update permissions
+- Visual indication of current permissions
+- Bulk permission updates
+
+---
+
+### 22. Job Application Process
+
+**Status**: Not Implemented  
+**Requirements**:
+
+- Career page with job listings
+- Application form with CV upload
+- LinkedIn profile integration
+- Interview stage tracking
+- Applicant management dashboard
+
+---
+
+## 🧪 Testing & Quality
+
+### 23. Test Suite Fixes
+
+**Status**: CRITICAL - 40 files failing  
+**Priority**: HIGH  
+**Requirements**:
+
+- Fix all 230 failing tests
+- Update test patterns for async operations
+- Add missing test coverage
+- Ensure tests run in CI/CD
+
+---
+
+### 24. Bug Reporting System with AI
+
+**Status**: Not Implemented  
+**Requirements**:
+
+- In-app bug reporting
+- AI-powered troubleshooting suggestions
+- 300 character limit for complaints
+- Upload up to 5 photos/documents
+- Email confirmation with ticket details
+- Help documentation search
+
+---
+
+## 🌍 Localization & Accessibility
+
+### 25. Ejar System Alignment
+
+**Status**: Needs Enhancement  
+**Requirements**:
+
+- Match Ejar field names and structure
+- Optimize data entry flow to match government system
+- Accurate Arabic translations
+- Proper RTL layout for ALL pages
+
+---
+
+## 📦 Feature Flags & Rollout
+
+### 26. Feature Group Management
+
+**Status**: Not Implemented  
+**Requirements**:
+
+- Super Admin can hide feature groups (for bug fixes or staged rollout)
+- iOS-style on/off toggles
+- Applied everywhere on/off options exist
+- Feature availability by subscription tier
+
+---
+
+## Implementation Priority Matrix
+
+| Priority | Enhancement                 | Complexity | Business Value | Estimated Effort |
+| -------- | --------------------------- | ---------- | -------------- | ---------------- |
+| P0       | Test Suite Fixes            | Medium     | Critical       | 2-3 days         |
+| P0       | Language Consistency        | Low        | High           | 1-2 days         |
+| P1       | Referral Program            | Medium     | High           | 3-4 days         |
+| P1       | Family Management           | Medium     | High           | 2-3 days         |
+| P1       | Audit Logging               | Medium     | High           | 2-3 days         |
+| P2       | Receipt Voucher System      | High       | Medium         | 4-5 days         |
+| P2       | HR Module                   | High       | Medium         | 5-7 days         |
+| P2       | Project Bidding Enhancement | High       | High           | 5-7 days         |
+| P2       | Payment Method Storage      | High       | High           | 3-4 days         |
+| P3       | iOS-Style Toggles           | Low        | Low            | 1 day            |
+| P3       | Market Intelligence         | Medium     | Low            | 2-3 days         |
+| P3       | Job Application System      | Medium     | Low            | 3-4 days         |
+| P3       | Bug Reporting with AI       | High       | Medium         | 4-5 days         |
+
+---
+
+## Notes for Implementation
+
+1. **Always maintain backward compatibility** - existing features must continue working
+2. **Mobile-first approach** - all new features must work on mobile
+3. **Security first** - never store sensitive data unencrypted
+4. **Audit everything** - all changes must be logged
+5. **Test before deploy** - no feature goes live without tests
+6. **Document as you go** - update docs with each feature
+
+---
+
+**Last Updated**: 2025-10-25  
+**Next Review**: After PR #141 merge
+
+]]>
+</file>
+
+<file path="docs/development/FORMSTATE_CONTEXT_USAGE.md">
+<![CDATA[
+# FormStateContext Usage Guide
+
+## Overview
+
+The `FormStateContext` provides a centralized way to track form state across the application, enabling features like:
+
+- Unsaved changes detection in TopBar
+- Coordinated form saving before navigation
+- Multiple form management
+
+## Quick Start
+
+### 1. Wrap Your App with FormStateProvider
+
+The provider is already set up in `providers/Providers.tsx`:
+
+```tsx
+<FormStateProvider>{/* Your app content */}</FormStateProvider>
+```
+
+### 2. Use in Form Components
+
+```tsx
+"use client";
+
+import { useFormState } from "@/contexts/FormStateContext";
+import { useEffect } from "react";
+
+export default function MyForm() {
+  const formState = useFormState();
+  const formId = "my-unique-form-id";
+
+  // Register form on mount
+  useEffect(() => {
+    // Register save callback
+    const dispose = formState.onSaveRequest(formId, async () => {
+      // Your save logic here
+      await saveFormData();
+      console.log("Form saved!");
+    });
+
+    // Cleanup on unmount
+    return () => {
+      dispose();
+      formState.unregisterForm(formId);
+    };
+  }, [formState, formId]);
+
+  // Mark form as dirty when fields change
+  const handleFieldChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Update your local state
+    setFieldValue(e.target.value);
+
+    // Mark form as dirty
+    formState.markFormDirty(formId);
+  };
+
+  // Mark form as clean after successful save
+  const handleSave = async () => {
+    try {
+      await saveFormData();
+      formState.markFormClean(formId);
+    } catch (error) {
+      console.error("Save failed", error);
+    }
+  };
+
+  return (
+    <form>
+      <input onChange={handleFieldChange} />
+      <button onClick={handleSave}>Save</button>
+    </form>
+  );
+}
+```
+
+## API Reference
+
+### useFormState()
+
+Returns the FormStateContext with these methods:
+
+#### `hasUnsavedChanges: boolean`
+
+- Whether any forms have unsaved changes
+
+#### `onSaveRequest(formId: string, callback: () => Promise<void>): () => void`
+
+- Register a save callback for a form
+- **Returns:** Dispose function to unregister the callback
+- **Example:**
+
+  ```tsx
+  const dispose = formState.onSaveRequest("myForm", async () => {
+    await saveData();
+  });
+  ```
+
+#### `markFormDirty(formId: string): void`
+
+- Mark a form as having unsaved changes
+- Call this when form fields are modified
+
+#### `markFormClean(formId: string): void`
+
+- Mark a form as having no unsaved changes
+- Call this after successful save
+
+#### `unregisterForm(formId: string): void`
+
+- Remove form from tracking
+- Call this on component unmount
+
+#### `requestSave(): Promise<void>`
+
+- Trigger save for all dirty forms
+- Used by TopBar when user navigates with unsaved changes
+- Throws error if any saves fail
+
+## Complete Example
+
+```tsx
+"use client";
+
+import { useState, useEffect } from "react";
+import { useFormState } from "@/contexts/FormStateContext";
+import { useRouter } from "next/navigation";
+
+export default function PropertyEditForm({
+  propertyId,
+}: {
+  propertyId: string;
+}) {
+  const formState = useFormState();
+  const router = useRouter();
+  const formId = `property-form-${propertyId}`;
+
+  const [name, setName] = useState("");
+  const [address, setAddress] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  // Register form
+  useEffect(() => {
+    const saveData = async () => {
+      setSaving(true);
+      try {
+        const response = await fetch(`/api/properties/${propertyId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, address }),
+        });
+
+        if (!response.ok) throw new Error("Save failed");
+
+        formState.markFormClean(formId);
+      } finally {
+        setSaving(false);
+      }
+    };
+
+    const dispose = formState.onSaveRequest(formId, saveData);
+
+    return () => {
+      dispose();
+      formState.unregisterForm(formId);
+    };
+  }, [formState, formId, name, address, propertyId]);
+
+  // Mark dirty on field changes
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setName(e.target.value);
+    formState.markFormDirty(formId);
+  };
+
+  const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAddress(e.target.value);
+    formState.markFormDirty(formId);
+  };
+
+  // Manual save
+  const handleSave = async () => {
+    try {
+      await formState.requestSave();
+      alert("Saved successfully!");
+    } catch (error) {
+      alert("Save failed. Please try again.");
+    }
+  };
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        handleSave();
+      }}
+    >
+      <input
+        type="text"
+        value={name}
+        onChange={handleNameChange}
+        placeholder="Property Name"
+      />
+      <input
+        type="text"
+        value={address}
+        onChange={handleAddressChange}
+        placeholder="Address"
+      />
+      <button type="submit" disabled={saving}>
+        {saving ? "Saving..." : "Save"}
+      </button>
+      {formState.hasUnsavedChanges && (
+        <p className="text-amber-600">You have unsaved changes</p>
+      )}
+    </form>
+  );
+}
+```
+
+## Integration with TopBar
+
+The TopBar component automatically uses `formState.hasUnsavedChanges` to:
+
+1. Show a warning icon when forms have unsaved changes
+2. Display a confirmation dialog when user tries to navigate away
+3. Call `formState.requestSave()` if user chooses "Save and Leave"
+
+No additional configuration needed!
+
+## Best Practices
+
+1. **Unique Form IDs**: Use descriptive, unique IDs like `'property-form-123'` instead of generic names
+2. **Cleanup**: Always return cleanup function from useEffect to dispose callbacks and unregister forms
+3. **Save Callbacks**: Keep save callbacks simple and focused - they should only save data, not navigate
+4. **Error Handling**: Wrap save logic in try/catch and handle errors appropriately
+5. **Granular Marking**: Call `markFormDirty()` on specific field changes, not on every render
+
+## Troubleshooting
+
+### "Unsaved changes" warning not showing
+
+- Ensure you're calling `markFormDirty(formId)` when fields change
+- Check that `formId` matches between `onSaveRequest` and `markFormDirty`
+- Verify FormStateProvider is wrapping your component tree
+
+### Save callback not being called
+
+- Ensure `onSaveRequest` is called before the form becomes dirty
+- Check that the form is actually marked as dirty
+- Verify the dispose function is not called prematurely
+
+### Multiple forms saving when only one changed
+
+- Use unique, specific form IDs
+- Ensure `markFormClean` is called after successful saves
+- Check that forms are properly unregistered on unmount
+
+]]>
+</file>
+
+<file path="docs/development/FORMSTATE_INTEGRATION_GUIDE.md">
+<![CDATA[
+# FormStateContext Integration Guide
+
+## Production-Ready Unsaved Changes Tracking
+
+This guide shows how to integrate the `useFormTracking` hook with your forms to enable automatic unsaved changes detection and save coordination.
+
+## Quick Start
+
+### 1. Basic Form Integration
+
+```tsx
+"use client";
+
+import { useState } from "react";
+import { useFormTracking } from "@/hooks/useFormTracking";
+
+function MyForm() {
+  const [formData, setFormData] = useState({ name: "", email: "" });
+  const [originalData] = useState({ name: "", email: "" });
+
+  // Track if form has unsaved changes
+  const isDirty = JSON.stringify(formData) !== JSON.stringify(originalData);
+
+  // Register with FormStateContext
+  const { handleSubmit } = useFormTracking({
+    formId: "my-form",
+    isDirty,
+    onBeforeSave: async () => {
+      const response = await fetch("/api/save", {
+        method: "POST",
+        body: JSON.stringify(formData),
+      });
+      if (!response.ok) throw new Error("Save failed");
+    },
+  });
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input
+        value={formData.name}
+        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+      />
+      <button type="submit">Save</button>
+    </form>
+  );
+}
+```
+
+### 2. Real-World Example: Aqar Listing Form
+
+```tsx
+"use client";
+
+import { useState, useEffect } from "react";
+import { useFormTracking } from "@/hooks/useFormTracking";
+import { useRouter } from "next/navigation";
+
+interface ListingFormData {
+  title: string;
+  description: string;
+  price: number;
+  propertyType: string;
+  // ... other fields
+}
+
+function CreateListingForm() {
+  const router = useRouter();
+  const [formData, setFormData] = useState<ListingFormData>({
+    title: "",
+    description: "",
+    price: 0,
+    propertyType: "APARTMENT",
+  });
+
+  const [originalData] = useState(formData);
+  const [saveStatus, setSaveStatus] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle");
+
+  // Calculate dirty state
+  const isDirty = JSON.stringify(formData) !== JSON.stringify(originalData);
+
+  // Integrate with FormStateContext
+  const { handleSubmit } = useFormTracking({
+    formId: "create-listing-form",
+    isDirty,
+    onBeforeSave: async () => {
+      setSaveStatus("saving");
+
+      try {
+        const response = await fetch("/api/aqar/listings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to create listing");
+        }
+
+        const { listing } = await response.json();
+        setSaveStatus("saved");
+
+        // Navigate after successful save
+        router.push(`/aqar/listings/${listing._id}`);
+      } catch (error) {
+        setSaveStatus("error");
+        throw error;
+      }
+    },
+  });
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Form fields */}
+      <input
+        type="text"
+        value={formData.title}
+        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+        placeholder="Property Title"
+        required
+      />
+
+      <textarea
+        value={formData.description}
+        onChange={(e) =>
+          setFormData({ ...formData, description: e.target.value })
+        }
+        placeholder="Description"
+        required
+      />
+
+      <input
+        type="number"
+        value={formData.price}
+        onChange={(e) =>
+          setFormData({ ...formData, price: Number(e.target.value) })
+        }
+        placeholder="Price"
+        required
+        min="0"
+      />
+
+      {/* Save button with loading state */}
+      <button
+        type="submit"
+        disabled={saveStatus === "saving"}
+        className="bg-blue-600 text-white px-4 py-2 rounded"
+      >
+        {saveStatus === "saving" ? "Saving..." : "Create Listing"}
+      </button>
+
+      {saveStatus === "error" && (
+        <div className="text-red-600">Failed to save. Please try again.</div>
+      )}
+    </form>
+  );
+}
+
+export default CreateListingForm;
+```
+
+## Forms That Need Integration
+
+### High Priority (Aqar Module)
+
+1. ✅ **`app/aqar/listings/create/page.tsx`** - Create Listing Form
+2. ✅ **`app/aqar/listings/[id]/edit/page.tsx`** - Edit Listing Form
+3. ✅ **`app/aqar/leads/create/page.tsx`** - Lead Form
+4. ✅ **`app/aqar/projects/create/page.tsx`** - Project Form
+
+### Medium Priority (FM Module)
+
+5. ⏳ **`app/fm/properties/page.tsx`** - CreatePropertyForm
+6. ⏳ **`app/fm/projects/page.tsx`** - CreateProjectForm
+7. ⏳ **`app/fm/vendors/page.tsx`** - CreateVendorForm
+8. ⏳ **`app/fm/tenants/page.tsx`** - CreateTenantForm
+
+### Low Priority
+
+9. ⏳ **`app/marketplace/vendor/products/upload/page.tsx`** - Product Upload
+10. ⏳ **`components/forms/ExampleForm.tsx`** - Example/Demo Forms
+
+## Testing Navigation Warning
+
+After integration, test the following scenarios:
+
+### 1. Browser Back Button
+
+1. Fill out form with changes
+2. Click browser back button
+3. **Expected**: Confirmation dialog appears
+
+### 2. Link Navigation
+
+1. Fill out form with changes
+2. Click navigation link (e.g., TopBar menu item)
+3. **Expected**: Confirmation dialog appears
+
+### 3. Form Submission
+
+1. Fill out form
+2. Click "Save" button
+3. **Expected**: No warning, form saves and navigates
+
+### 4. Tab Close/Refresh
+
+1. Fill out form with changes
+2. Close browser tab OR refresh page
+3. **Expected**: Browser native "Leave site?" dialog
+
+## Best Practices
+
+### 1. Use Unique Form IDs
+
+```tsx
+// ❌ Bad - generic ID
+formId: "form";
+
+// ✅ Good - specific ID
+formId: "aqar-listing-create-form";
+```
+
+### 2. Deep Comparison for Complex Objects
+
+```tsx
+import isEqual from "lodash/isEqual";
+
+const isDirty = !isEqual(formData, originalData);
+```
+
+### 3. Handle Save Errors Properly
+
+```tsx
+onBeforeSave: async () => {
+  try {
+    await saveData();
+  } catch (error) {
+    // Log error and re-throw to prevent form from being marked clean
+    console.error("Save failed:", error);
+    throw error;
+  }
+};
+```
+
+### 4. Reset originalData After Save
+
+```tsx
+const [originalData, setOriginalData] = useState(initialData);
+
+onBeforeSave: async () => {
+  await saveData();
+  // Update original data so form is no longer dirty
+  setOriginalData(formData);
+};
+```
+
+## Migration Checklist
+
+For each form:
+
+- [ ] Import `useFormTracking` hook
+- [ ] Track `isDirty` state (compare current vs original data)
+- [ ] Call `useFormTracking()` with unique `formId`
+- [ ] Implement `onBeforeSave` callback
+- [ ] Replace `onSubmit` with `handleSubmit` from hook
+- [ ] Test navigation warning works
+- [ ] Test successful save clears warning
+- [ ] Test error handling doesn't clear warning
+
+## Estimated Time
+
+- **Per Form**: 10-15 minutes
+- **Total (10 forms)**: ~2-3 hours
+- **Testing**: 30 minutes
+
+## Status: READY FOR PRODUCTION ✅
+
+The `useFormTracking` hook is production-ready and can be integrated into all forms following the examples above.
+
+]]>
+</file>
+
+</batch_content>

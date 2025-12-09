@@ -1,0 +1,2247 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="i18n/sources/quotesEstimates.translations.json">
+<![CDATA[
+{
+  "en": {
+    "quotesEstimates.accept": "Accept Quote",
+    "quotesEstimates.amount": "Amount",
+    "quotesEstimates.approved": "Approved",
+    "quotesEstimates.bid": "Bid",
+    "quotesEstimates.converted": "Converted to Invoice",
+    "quotesEstimates.create": "Create Quote",
+    "quotesEstimates.discount": "Discount",
+    "quotesEstimates.draft": "Draft",
+    "quotesEstimates.estimate": "Estimate",
+    "quotesEstimates.expire": "Expiration",
+    "quotesEstimates.expired": "Expired",
+    "quotesEstimates.lineItem": "Line Item",
+    "quotesEstimates.notes": "Notes",
+    "quotesEstimates.pending": "Pending",
+    "quotesEstimates.proposal": "Proposal",
+    "quotesEstimates.quantity": "Quantity",
+    "quotesEstimates.quotation": "Quotation",
+    "quotesEstimates.quote": "Quote",
+    "quotesEstimates.reject": "Reject Quote",
+    "quotesEstimates.request": "Request Quote",
+    "quotesEstimates.revise": "Revise Quote",
+    "quotesEstimates.send": "Send Quote",
+    "quotesEstimates.subtotal": "Subtotal",
+    "quotesEstimates.tax": "Tax",
+    "quotesEstimates.terms": "Terms & Conditions",
+    "quotesEstimates.total": "Total Amount",
+    "quotesEstimates.unitPrice": "Unit Price",
+    "quotesEstimates.valid": "Valid Until"
+  },
+  "ar": {
+    "quotesEstimates.accept": "قبول عرض السعر",
+    "quotesEstimates.amount": "المبلغ",
+    "quotesEstimates.approved": "موافق عليه",
+    "quotesEstimates.bid": "العطاء",
+    "quotesEstimates.converted": "تم التحويل إلى فاتورة",
+    "quotesEstimates.create": "إنشاء عرض سعر",
+    "quotesEstimates.discount": "الخصم",
+    "quotesEstimates.draft": "مسودة",
+    "quotesEstimates.estimate": "التقدير",
+    "quotesEstimates.expire": "الانتهاء",
+    "quotesEstimates.expired": "منتهي",
+    "quotesEstimates.lineItem": "بند السطر",
+    "quotesEstimates.notes": "الملاحظات",
+    "quotesEstimates.pending": "معلق",
+    "quotesEstimates.proposal": "الاقتراح",
+    "quotesEstimates.quantity": "الكمية",
+    "quotesEstimates.quotation": "عرض الأسعار",
+    "quotesEstimates.quote": "عرض السعر",
+    "quotesEstimates.reject": "رفض عرض السعر",
+    "quotesEstimates.request": "طلب عرض سعر",
+    "quotesEstimates.revise": "مراجعة عرض السعر",
+    "quotesEstimates.send": "إرسال عرض السعر",
+    "quotesEstimates.subtotal": "المجموع الفرعي",
+    "quotesEstimates.tax": "الضريبة",
+    "quotesEstimates.terms": "الشروط والأحكام",
+    "quotesEstimates.total": "المبلغ الإجمالي",
+    "quotesEstimates.unitPrice": "سعر الوحدة",
+    "quotesEstimates.valid": "صالح حتى"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/realEstate.translations.json">
+<![CDATA[
+{
+  "en": {
+    "realEstate.apartment": "Apartment",
+    "realEstate.builtUpArea": "Built-up Area",
+    "realEstate.carpetArea": "Carpet Area",
+    "realEstate.commercial": "Commercial",
+    "realEstate.developmentLand": "Development Land",
+    "realEstate.duplex": "Duplex",
+    "realEstate.factory": "Factory",
+    "realEstate.furnished": "Furnished",
+    "realEstate.industrial": "Industrial",
+    "realEstate.land": "Land",
+    "realEstate.mixedUse": "Mixed-use",
+    "realEstate.office": "Office",
+    "realEstate.penthouse": "Penthouse",
+    "realEstate.plot": "Plot",
+    "realEstate.property": "Property",
+    "realEstate.propertyType": "Property Type",
+    "realEstate.realEstate1": "Real Estate",
+    "realEstate.residential": "Residential",
+    "realEstate.retail": "Retail",
+    "realEstate.semifurnished": "Semi-furnished",
+    "realEstate.showroom": "Showroom",
+    "realEstate.studio": "Studio",
+    "realEstate.superBuiltUpArea": "Super Built-up Area",
+    "realEstate.townhouse": "Townhouse",
+    "realEstate.triplex": "Triplex",
+    "realEstate.villa": "Villa",
+    "realEstate.warehouse": "Warehouse"
+  },
+  "ar": {
+    "realEstate.apartment": "شقة",
+    "realEstate.builtUpArea": "المساحة المبنية",
+    "realEstate.carpetArea": "المساحة الصافية",
+    "realEstate.commercial": "تجاري",
+    "realEstate.developmentLand": "أرض تطوير",
+    "realEstate.duplex": "دوبلكس",
+    "realEstate.factory": "مصنع",
+    "realEstate.furnished": "مفروش",
+    "realEstate.industrial": "صناعي",
+    "realEstate.land": "أرض",
+    "realEstate.mixedUse": "متعدد الاستخدام",
+    "realEstate.office": "مكتب",
+    "realEstate.penthouse": "بنتهاوس",
+    "realEstate.plot": "قطعة أرض",
+    "realEstate.property": "عقار",
+    "realEstate.propertyType": "نوع العقار",
+    "realEstate.realEstate1": "العقارات",
+    "realEstate.residential": "سكني",
+    "realEstate.retail": "مساحة تجارية",
+    "realEstate.semifurnished": "نصف مفروش",
+    "realEstate.showroom": "صالة عرض",
+    "realEstate.studio": "استوديو",
+    "realEstate.superBuiltUpArea": "المساحة الإجمالية",
+    "realEstate.townhouse": "منزل متلاصق",
+    "realEstate.triplex": "تريبلكس",
+    "realEstate.villa": "فيلا",
+    "realEstate.warehouse": "مستودع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/realEstateManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "realEstateManagement.assetManagement": "Asset Management",
+    "realEstateManagement.budgetManagement": "Budget Management",
+    "realEstateManagement.capitalProjects": "Capital Projects",
+    "realEstateManagement.commonAreaMaintenance": "Common Area Maintenance (CAM)",
+    "realEstateManagement.description": "Commercial real estate and property management",
+    "realEstateManagement.facilityManagement": "Facility Management",
+    "realEstateManagement.investorReporting": "Investor Reporting",
+    "realEstateManagement.leaseAbstraction": "Lease Abstraction",
+    "realEstateManagement.leaseAdministration": "Lease Administration",
+    "realEstateManagement.leaseManagement": "Lease Management",
+    "realEstateManagement.marketAnalysis": "Market Analysis",
+    "realEstateManagement.moveInOut": "Move-In/Move-Out",
+    "realEstateManagement.occupancyTracking": "Occupancy Tracking",
+    "realEstateManagement.portfolioAnalytics": "Portfolio Analytics",
+    "realEstateManagement.preventiveMaintenance": "Preventive Maintenance",
+    "realEstateManagement.propertyPortfolio": "Property Portfolio",
+    "realEstateManagement.rentCollection": "Rent Collection",
+    "realEstateManagement.spaceManagement": "Space Management",
+    "realEstateManagement.spaceUtilization": "Space Utilization",
+    "realEstateManagement.tenantRelations": "Tenant Relations",
+    "realEstateManagement.title": "Real Estate Management",
+    "realEstateManagement.valuationManagement": "Valuation Management",
+    "realEstateManagement.vendorManagement": "Vendor Management",
+    "realEstateManagement.workOrderManagement": "Work Order Management"
+  },
+  "ar": {
+    "realEstateManagement.assetManagement": "إدارة الأصول",
+    "realEstateManagement.budgetManagement": "إدارة الميزانية",
+    "realEstateManagement.capitalProjects": "المشاريع الرأسمالية",
+    "realEstateManagement.commonAreaMaintenance": "صيانة المناطق المشتركة",
+    "realEstateManagement.description": "إدارة العقارات التجارية والممتلكات",
+    "realEstateManagement.facilityManagement": "إدارة المرافق",
+    "realEstateManagement.investorReporting": "تقارير المستثمرين",
+    "realEstateManagement.leaseAbstraction": "تلخيص الإيجار",
+    "realEstateManagement.leaseAdministration": "إدارة عقود الإيجار",
+    "realEstateManagement.leaseManagement": "إدارة الإيجار",
+    "realEstateManagement.marketAnalysis": "تحليل السوق",
+    "realEstateManagement.moveInOut": "الانتقال للداخل/الخارج",
+    "realEstateManagement.occupancyTracking": "تتبع الإشغال",
+    "realEstateManagement.portfolioAnalytics": "تحليلات المحفظة",
+    "realEstateManagement.preventiveMaintenance": "الصيانة الوقائية",
+    "realEstateManagement.propertyPortfolio": "محفظة الممتلكات",
+    "realEstateManagement.rentCollection": "تحصيل الإيجار",
+    "realEstateManagement.spaceManagement": "إدارة المساحة",
+    "realEstateManagement.spaceUtilization": "استخدام المساحة",
+    "realEstateManagement.tenantRelations": "علاقات المستأجرين",
+    "realEstateManagement.title": "إدارة العقارات",
+    "realEstateManagement.valuationManagement": "إدارة التقييم",
+    "realEstateManagement.vendorManagement": "إدارة البائعين",
+    "realEstateManagement.workOrderManagement": "إدارة أوامر العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/realEstateTechnology.translations.json">
+<![CDATA[
+{
+  "en": {
+    "realEstateTechnology.accounting": "Property Accounting",
+    "realEstateTechnology.applications": "Application Processing",
+    "realEstateTechnology.appraisal": "Property Appraisal",
+    "realEstateTechnology.compliance": "Regulatory Compliance",
+    "realEstateTechnology.contracts": "Contract Management",
+    "realEstateTechnology.documents": "Document Management",
+    "realEstateTechnology.inspections": "Property Inspections",
+    "realEstateTechnology.leasing": "Leasing Management",
+    "realEstateTechnology.listings": "Property Listings",
+    "realEstateTechnology.maintenance": "Property Maintenance",
+    "realEstateTechnology.payments": "Rent Collection",
+    "realEstateTechnology.portfolio": "Portfolio Management",
+    "realEstateTechnology.property": "Property Management",
+    "realEstateTechnology.realestate": "Real Estate Technology",
+    "realEstateTechnology.reporting": "Property Reporting",
+    "realEstateTechnology.screening": "Tenant Screening",
+    "realEstateTechnology.showings": "Property Showings",
+    "realEstateTechnology.technology": "PropTech",
+    "realEstateTechnology.tenants": "Tenant Management",
+    "realEstateTechnology.transactions": "Transaction Management",
+    "realEstateTechnology.valuation": "Property Valuation",
+    "realEstateTechnology.virtual": "Virtual Tours"
+  },
+  "ar": {
+    "realEstateTechnology.accounting": "محاسبة الممتلكات",
+    "realEstateTechnology.applications": "معالجة الطلبات",
+    "realEstateTechnology.appraisal": "تثمين الممتلكات",
+    "realEstateTechnology.compliance": "الامتثال التنظيمي",
+    "realEstateTechnology.contracts": "إدارة العقود",
+    "realEstateTechnology.documents": "إدارة المستندات",
+    "realEstateTechnology.inspections": "فحص الممتلكات",
+    "realEstateTechnology.leasing": "إدارة الإيجار",
+    "realEstateTechnology.listings": "قوائم العقارات",
+    "realEstateTechnology.maintenance": "صيانة الممتلكات",
+    "realEstateTechnology.payments": "تحصيل الإيجار",
+    "realEstateTechnology.portfolio": "إدارة المحفظة",
+    "realEstateTechnology.property": "إدارة الممتلكات",
+    "realEstateTechnology.realestate": "تكنولوجيا العقارات",
+    "realEstateTechnology.reporting": "تقارير الممتلكات",
+    "realEstateTechnology.screening": "فحص المستأجرين",
+    "realEstateTechnology.showings": "عرض العقارات",
+    "realEstateTechnology.technology": "تكنولوجيا الملكية",
+    "realEstateTechnology.tenants": "إدارة المستأجرين",
+    "realEstateTechnology.transactions": "إدارة المعاملات",
+    "realEstateTechnology.valuation": "تقييم الممتلكات",
+    "realEstateTechnology.virtual": "الجولات الافتراضية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/receivablesManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "receivablesManagement.accountsReceivable": "Accounts Receivable",
+    "receivablesManagement.agingReports": "Aging Reports",
+    "receivablesManagement.ar": "AR Management",
+    "receivablesManagement.badDebt": "Bad Debt Management",
+    "receivablesManagement.cashReceipts": "Cash Receipts",
+    "receivablesManagement.collections": "Collections Management",
+    "receivablesManagement.creditLimits": "Credit Limits",
+    "receivablesManagement.creditMgmt": "Credit Management",
+    "receivablesManagement.creditTerms": "Credit Terms",
+    "receivablesManagement.customerBilling": "Customer Billing",
+    "receivablesManagement.deductions": "Deduction Management",
+    "receivablesManagement.deferredRevenue": "Deferred Revenue",
+    "receivablesManagement.disputes": "Dispute Management",
+    "receivablesManagement.dunning": "Dunning Management",
+    "receivablesManagement.invoicing": "Customer Invoicing",
+    "receivablesManagement.paymentApplication": "Payment Application",
+    "receivablesManagement.paymentReceipts": "Payment Receipts",
+    "receivablesManagement.revenueRecognition": "Revenue Recognition",
+    "receivablesManagement.unappliedCash": "Unapplied Cash",
+    "receivablesManagement.writeOffs": "Write-Offs"
+  },
+  "ar": {
+    "receivablesManagement.accountsReceivable": "الحسابات المدينة",
+    "receivablesManagement.agingReports": "تقارير الأعمار",
+    "receivablesManagement.ar": "إدارة الحسابات المدينة",
+    "receivablesManagement.badDebt": "إدارة الديون المعدومة",
+    "receivablesManagement.cashReceipts": "الإيصالات النقدية",
+    "receivablesManagement.collections": "إدارة التحصيل",
+    "receivablesManagement.creditLimits": "حدود الائتمان",
+    "receivablesManagement.creditMgmt": "إدارة الائتمان",
+    "receivablesManagement.creditTerms": "شروط الائتمان",
+    "receivablesManagement.customerBilling": "فواتير العملاء",
+    "receivablesManagement.deductions": "إدارة الخصومات",
+    "receivablesManagement.deferredRevenue": "الإيرادات المؤجلة",
+    "receivablesManagement.disputes": "إدارة النزاعات",
+    "receivablesManagement.dunning": "إدارة المطالبات",
+    "receivablesManagement.invoicing": "إصدار فواتير العملاء",
+    "receivablesManagement.paymentApplication": "تطبيق المدفوعات",
+    "receivablesManagement.paymentReceipts": "إيصالات الدفع",
+    "receivablesManagement.revenueRecognition": "الاعتراف بالإيرادات",
+    "receivablesManagement.unappliedCash": "النقد غير المطبق",
+    "receivablesManagement.writeOffs": "الشطب"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/receptionServices.translations.json">
+<![CDATA[
+{
+  "en": {
+    "receptionServices.badge": "Visitor Badge",
+    "receptionServices.checkin": "Check-in",
+    "receptionServices.checkout": "Check-out",
+    "receptionServices.concierge": "Concierge",
+    "receptionServices.coordination": "Coordination",
+    "receptionServices.directory": "Building Directory",
+    "receptionServices.escort": "Visitor Escort",
+    "receptionServices.front": "Front Desk",
+    "receptionServices.greeting": "Greeting",
+    "receptionServices.information": "Information Desk",
+    "receptionServices.lobby": "Lobby",
+    "receptionServices.mail": "Mail Handling",
+    "receptionServices.messaging": "Messaging",
+    "receptionServices.package": "Package Receipt",
+    "receptionServices.phone": "Phone System",
+    "receptionServices.reception": "Reception Services",
+    "receptionServices.receptionist": "Receptionist",
+    "receptionServices.registration": "Visitor Registration",
+    "receptionServices.scheduling": "Appointment Scheduling",
+    "receptionServices.security": "Security Coordination",
+    "receptionServices.switchboard": "Switchboard",
+    "receptionServices.visitor": "Visitor Management"
+  },
+  "ar": {
+    "receptionServices.badge": "شارة الزائر",
+    "receptionServices.checkin": "تسجيل الدخول",
+    "receptionServices.checkout": "تسجيل الخروج",
+    "receptionServices.concierge": "الكونسيرج",
+    "receptionServices.coordination": "التنسيق",
+    "receptionServices.directory": "دليل المبنى",
+    "receptionServices.escort": "مرافقة الزائر",
+    "receptionServices.front": "مكتب الاستقبال",
+    "receptionServices.greeting": "الترحيب",
+    "receptionServices.information": "مكتب المعلومات",
+    "receptionServices.lobby": "ردهة",
+    "receptionServices.mail": "التعامل مع البريد",
+    "receptionServices.messaging": "المراسلة",
+    "receptionServices.package": "استلام الطرود",
+    "receptionServices.phone": "نظام الهاتف",
+    "receptionServices.reception": "خدمات الاستقبال",
+    "receptionServices.receptionist": "موظف الاستقبال",
+    "receptionServices.registration": "تسجيل الزوار",
+    "receptionServices.scheduling": "جدولة المواعيد",
+    "receptionServices.security": "التنسيق الأمني",
+    "receptionServices.switchboard": "لوحة المفاتيح",
+    "receptionServices.visitor": "إدارة الزوار"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/recordsManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "recordsManagement.access": "Access Control",
+    "recordsManagement.approval": "Document Approval",
+    "recordsManagement.capture": "Document Capture",
+    "recordsManagement.checkout": "Check-Out/Check-In",
+    "recordsManagement.collaboration": "Document Collaboration",
+    "recordsManagement.disposal": "Document Disposal",
+    "recordsManagement.dms": "DMS",
+    "recordsManagement.document": "Document Management",
+    "recordsManagement.edms": "EDMS",
+    "recordsManagement.indexing": "Document Indexing",
+    "recordsManagement.metadata": "Metadata Management",
+    "recordsManagement.ocr": "OCR Processing",
+    "recordsManagement.records": "Records Management",
+    "recordsManagement.repository": "Document Repository",
+    "recordsManagement.retention": "Retention Management",
+    "recordsManagement.review": "Document Review",
+    "recordsManagement.scanning": "Document Scanning",
+    "recordsManagement.security": "Document Security",
+    "recordsManagement.sharing": "Document Sharing",
+    "recordsManagement.storage": "Document Storage",
+    "recordsManagement.versioning": "Version Control",
+    "recordsManagement.workflow": "Document Workflow"
+  },
+  "ar": {
+    "recordsManagement.access": "التحكم في الوصول",
+    "recordsManagement.approval": "الموافقة على الوثائق",
+    "recordsManagement.capture": "التقاط الوثائق",
+    "recordsManagement.checkout": "السحب والإيداع",
+    "recordsManagement.collaboration": "التعاون في الوثائق",
+    "recordsManagement.disposal": "التخلص من الوثائق",
+    "recordsManagement.dms": "نظام إدارة الوثائق",
+    "recordsManagement.document": "إدارة الوثائق",
+    "recordsManagement.edms": "نظام إدارة الوثائق الإلكترونية",
+    "recordsManagement.indexing": "فهرسة الوثائق",
+    "recordsManagement.metadata": "إدارة البيانات الوصفية",
+    "recordsManagement.ocr": "معالجة التعرف الضوئي على الأحرف",
+    "recordsManagement.records": "إدارة السجلات",
+    "recordsManagement.repository": "مستودع الوثائق",
+    "recordsManagement.retention": "إدارة الاحتفاظ",
+    "recordsManagement.review": "مراجعة الوثائق",
+    "recordsManagement.scanning": "مسح الوثائق",
+    "recordsManagement.security": "أمن الوثائق",
+    "recordsManagement.sharing": "مشاركة الوثائق",
+    "recordsManagement.storage": "تخزين الوثائق",
+    "recordsManagement.versioning": "التحكم في الإصدارات",
+    "recordsManagement.workflow": "سير عمل الوثائق"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/recruitmentHiring.translations.json">
+<![CDATA[
+{
+  "en": {
+    "recruitmentHiring.active": "Active",
+    "recruitmentHiring.applicant": "Applicant",
+    "recruitmentHiring.application": "Application",
+    "recruitmentHiring.benefits": "Benefits",
+    "recruitmentHiring.candidate": "Candidate",
+    "recruitmentHiring.closed": "Closed",
+    "recruitmentHiring.coverLetter": "Cover Letter",
+    "recruitmentHiring.cv": "CV",
+    "recruitmentHiring.hired": "Hired",
+    "recruitmentHiring.hiring": "Hiring",
+    "recruitmentHiring.interview": "Interview",
+    "recruitmentHiring.job": "Job",
+    "recruitmentHiring.offer": "Job Offer",
+    "recruitmentHiring.onboarding": "Onboarding",
+    "recruitmentHiring.opening": "Opening",
+    "recruitmentHiring.pending": "Pending",
+    "recruitmentHiring.position": "Position",
+    "recruitmentHiring.qualifications": "Qualifications",
+    "recruitmentHiring.recruitment": "Recruitment",
+    "recruitmentHiring.rejected": "Rejected",
+    "recruitmentHiring.requirements": "Requirements",
+    "recruitmentHiring.resume": "Resume",
+    "recruitmentHiring.salary": "Salary",
+    "recruitmentHiring.screening": "Screening",
+    "recruitmentHiring.shortlist": "Shortlist",
+    "recruitmentHiring.vacancy": "Vacancy"
+  },
+  "ar": {
+    "recruitmentHiring.active": "نشط",
+    "recruitmentHiring.applicant": "المتقدم",
+    "recruitmentHiring.application": "الطلب",
+    "recruitmentHiring.benefits": "المزايا",
+    "recruitmentHiring.candidate": "المرشح",
+    "recruitmentHiring.closed": "مغلق",
+    "recruitmentHiring.coverLetter": "خطاب التقديم",
+    "recruitmentHiring.cv": "السيرة الذاتية",
+    "recruitmentHiring.hired": "تم التعيين",
+    "recruitmentHiring.hiring": "التعيين",
+    "recruitmentHiring.interview": "المقابلة",
+    "recruitmentHiring.job": "الوظيفة",
+    "recruitmentHiring.offer": "عرض العمل",
+    "recruitmentHiring.onboarding": "التأهيل",
+    "recruitmentHiring.opening": "الوظيفة الشاغرة",
+    "recruitmentHiring.pending": "معلق",
+    "recruitmentHiring.position": "المنصب",
+    "recruitmentHiring.qualifications": "المؤهلات",
+    "recruitmentHiring.recruitment": "التوظيف",
+    "recruitmentHiring.rejected": "مرفوض",
+    "recruitmentHiring.requirements": "المتطلبات",
+    "recruitmentHiring.resume": "السيرة الذاتية",
+    "recruitmentHiring.salary": "الراتب",
+    "recruitmentHiring.screening": "الفرز",
+    "recruitmentHiring.shortlist": "القائمة المختصرة",
+    "recruitmentHiring.vacancy": "الشاغر"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/recruitmentSelection.translations.json">
+<![CDATA[
+{
+  "en": {
+    "recruitmentSelection.acceptance": "Offer Acceptance",
+    "recruitmentSelection.applicant": "Applicant",
+    "recruitmentSelection.application": "Job Application",
+    "recruitmentSelection.assessment": "Candidate Assessment",
+    "recruitmentSelection.background": "Background Check",
+    "recruitmentSelection.candidate": "Candidate",
+    "recruitmentSelection.hiring": "Hiring",
+    "recruitmentSelection.interview": "Interview",
+    "recruitmentSelection.negotiation": "Offer Negotiation",
+    "recruitmentSelection.offer": "Job Offer",
+    "recruitmentSelection.onboarding": "New Hire Onboarding",
+    "recruitmentSelection.pipeline": "Hiring Pipeline",
+    "recruitmentSelection.posting": "Job Posting",
+    "recruitmentSelection.recruitment": "Recruitment",
+    "recruitmentSelection.reference": "Reference Check",
+    "recruitmentSelection.rejection": "Candidate Rejection",
+    "recruitmentSelection.requisition": "Job Requisition",
+    "recruitmentSelection.screening": "Candidate Screening",
+    "recruitmentSelection.selection": "Selection Process",
+    "recruitmentSelection.shortlist": "Shortlist",
+    "recruitmentSelection.sourcing": "Candidate Sourcing",
+    "recruitmentSelection.testing": "Testing"
+  },
+  "ar": {
+    "recruitmentSelection.acceptance": "قبول العرض",
+    "recruitmentSelection.applicant": "مقدم الطلب",
+    "recruitmentSelection.application": "طلب التوظيف",
+    "recruitmentSelection.assessment": "تقييم المرشحين",
+    "recruitmentSelection.background": "فحص الخلفية",
+    "recruitmentSelection.candidate": "المرشح",
+    "recruitmentSelection.hiring": "التعيين",
+    "recruitmentSelection.interview": "المقابلة",
+    "recruitmentSelection.negotiation": "التفاوض على العرض",
+    "recruitmentSelection.offer": "عرض العمل",
+    "recruitmentSelection.onboarding": "إدماج الموظف الجديد",
+    "recruitmentSelection.pipeline": "خط التوظيف",
+    "recruitmentSelection.posting": "إعلان الوظيفة",
+    "recruitmentSelection.recruitment": "التوظيف",
+    "recruitmentSelection.reference": "فحص المراجع",
+    "recruitmentSelection.rejection": "رفض المرشح",
+    "recruitmentSelection.requisition": "طلب التوظيف",
+    "recruitmentSelection.screening": "فحص المرشحين",
+    "recruitmentSelection.selection": "عملية الاختيار",
+    "recruitmentSelection.shortlist": "القائمة المختصرة",
+    "recruitmentSelection.sourcing": "البحث عن المرشحين",
+    "recruitmentSelection.testing": "الاختبار"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/recruitmentSystems.translations.json">
+<![CDATA[
+{
+  "en": {
+    "recruitmentSystems.acquisition": "Talent Acquisition",
+    "recruitmentSystems.analytics": "Recruiting Analytics",
+    "recruitmentSystems.applicant": "Applicant Tracking System",
+    "recruitmentSystems.assessment": "Skills Assessment",
+    "recruitmentSystems.ats": "ATS",
+    "recruitmentSystems.atsSystem": "نظام تتبع المتقدمين",
+    "recruitmentSystems.background": "Background Checks",
+    "recruitmentSystems.candidates": "Candidate Management",
+    "recruitmentSystems.evaluation": "Candidate Evaluation",
+    "recruitmentSystems.hiringOnboarding": "New Hire Onboarding",
+    "recruitmentSystems.interviews": "Interview Management",
+    "recruitmentSystems.jobPostings": "Job Postings",
+    "recruitmentSystems.negotiation": "Offer Negotiation",
+    "recruitmentSystems.offers": "Offer Management",
+    "recruitmentSystems.pipeline": "Hiring Pipeline",
+    "recruitmentSystems.recruiting": "Recruiting",
+    "recruitmentSystems.recruitment": "Recruitment Management",
+    "recruitmentSystems.reference": "Reference Checks",
+    "recruitmentSystems.scheduling": "Interview Scheduling",
+    "recruitmentSystems.screening": "Candidate Screening",
+    "recruitmentSystems.sourcing": "Candidate Sourcing",
+    "recruitmentSystems.talent": "Talent Acquisition"
+  },
+  "ar": {
+    "recruitmentSystems.acquisition": "اكتساب المواهب",
+    "recruitmentSystems.analytics": "تحليلات التوظيف",
+    "recruitmentSystems.applicant": "نظام تتبع المتقدمين",
+    "recruitmentSystems.assessment": "تقييم المهارات",
+    "recruitmentSystems.ats": "ATS",
+    "recruitmentSystems.atsSystem": "نظام تتبع المتقدمين",
+    "recruitmentSystems.background": "فحص الخلفية",
+    "recruitmentSystems.candidates": "إدارة المرشحين",
+    "recruitmentSystems.evaluation": "تقييم المرشحين",
+    "recruitmentSystems.hiringOnboarding": "تأهيل الموظفين الجدد",
+    "recruitmentSystems.interviews": "إدارة المقابلات",
+    "recruitmentSystems.jobPostings": "إعلانات الوظائف",
+    "recruitmentSystems.negotiation": "التفاوض على العروض",
+    "recruitmentSystems.offers": "إدارة العروض",
+    "recruitmentSystems.pipeline": "خط أنابيب التوظيف",
+    "recruitmentSystems.recruiting": "التوظيف",
+    "recruitmentSystems.recruitment": "إدارة التوظيف",
+    "recruitmentSystems.reference": "فحص المراجع",
+    "recruitmentSystems.scheduling": "جدولة المقابلات",
+    "recruitmentSystems.screening": "فحص المرشحين",
+    "recruitmentSystems.sourcing": "البحث عن المرشحين",
+    "recruitmentSystems.talent": "اكتساب المواهب"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/regulatory.translations.json">
+<![CDATA[
+{
+  "en": {
+    "regulatory.code": "Code",
+    "regulatory.codes": "Codes",
+    "regulatory.compliance": "Compliance",
+    "regulatory.compliant": "Compliant",
+    "regulatory.comply": "Comply",
+    "regulatory.guideline": "Guideline",
+    "regulatory.guidelines": "Guidelines",
+    "regulatory.law": "Law",
+    "regulatory.laws": "Laws",
+    "regulatory.legislation": "Legislation",
+    "regulatory.mandatory": "Mandatory",
+    "regulatory.nonCompliant": "Non-compliant",
+    "regulatory.obligatory": "Obligatory",
+    "regulatory.optional": "Optional",
+    "regulatory.policies": "Policies",
+    "regulatory.policy": "Policy",
+    "regulatory.procedure": "Procedure",
+    "regulatory.procedures": "Procedures",
+    "regulatory.recommended": "Recommended",
+    "regulatory.regulation": "Regulation",
+    "regulatory.regulations": "Regulations",
+    "regulatory.regulatory1": "Regulatory",
+    "regulatory.required": "Required",
+    "regulatory.requirement": "Requirement",
+    "regulatory.requirements": "Requirements",
+    "regulatory.rule": "Rule",
+    "regulatory.rules": "Rules",
+    "regulatory.standard": "Standard",
+    "regulatory.standards": "Standards",
+    "regulatory.statutory": "Statutory"
+  },
+  "ar": {
+    "regulatory.code": "كود",
+    "regulatory.codes": "أكواد",
+    "regulatory.compliance": "الامتثال",
+    "regulatory.compliant": "متوافق",
+    "regulatory.comply": "الامتثال",
+    "regulatory.guideline": "إرشاد",
+    "regulatory.guidelines": "إرشادات",
+    "regulatory.law": "قانون",
+    "regulatory.laws": "قوانين",
+    "regulatory.legislation": "تشريع",
+    "regulatory.mandatory": "إلزامي",
+    "regulatory.nonCompliant": "غير متوافق",
+    "regulatory.obligatory": "إلزامي",
+    "regulatory.optional": "اختياري",
+    "regulatory.policies": "سياسات",
+    "regulatory.policy": "سياسة",
+    "regulatory.procedure": "إجراء",
+    "regulatory.procedures": "إجراءات",
+    "regulatory.recommended": "موصى به",
+    "regulatory.regulation": "لائحة",
+    "regulatory.regulations": "لوائح",
+    "regulatory.regulatory1": "تنظيمي",
+    "regulatory.required": "مطلوب",
+    "regulatory.requirement": "متطلب",
+    "regulatory.requirements": "متطلبات",
+    "regulatory.rule": "قاعدة",
+    "regulatory.rules": "قواعد",
+    "regulatory.standard": "معيار",
+    "regulatory.standards": "معايير",
+    "regulatory.statutory": "قانوني"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/regulatoryAffairs.translations.json">
+<![CDATA[
+{
+  "en": {
+    "regulatoryAffairs.adverse": "Adverse Event Reporting",
+    "regulatoryAffairs.advertising": "Advertising Compliance",
+    "regulatoryAffairs.affairs": "Regulatory Affairs",
+    "regulatoryAffairs.approvals": "Regulatory Approvals",
+    "regulatoryAffairs.audits": "Regulatory Audits",
+    "regulatoryAffairs.changes": "Regulatory Changes",
+    "regulatoryAffairs.compliance": "Regulatory Compliance",
+    "regulatoryAffairs.documentation": "Regulatory Documentation",
+    "regulatoryAffairs.inspections": "Regulatory Inspections",
+    "regulatoryAffairs.intelligence": "Regulatory Intelligence",
+    "regulatoryAffairs.labeling": "Product Labeling",
+    "regulatoryAffairs.licenses": "License Management",
+    "regulatoryAffairs.monitoring": "Regulatory Monitoring",
+    "regulatoryAffairs.notifications": "Regulatory Notifications",
+    "regulatoryAffairs.permits": "Permit Management",
+    "regulatoryAffairs.pharmacovigilance": "Pharmacovigilance",
+    "regulatoryAffairs.planning": "Regulatory Planning",
+    "regulatoryAffairs.registrations": "Registration Management",
+    "regulatoryAffairs.regulatory": "Regulatory Affairs",
+    "regulatoryAffairs.reporting": "Regulatory Reporting",
+    "regulatoryAffairs.strategy": "Regulatory Strategy",
+    "regulatoryAffairs.submissions": "Regulatory Submissions"
+  },
+  "ar": {
+    "regulatoryAffairs.adverse": "الإبلاغ عن الأحداث الضارة",
+    "regulatoryAffairs.advertising": "الامتثال للإعلانات",
+    "regulatoryAffairs.affairs": "الشؤون التنظيمية",
+    "regulatoryAffairs.approvals": "الموافقات التنظيمية",
+    "regulatoryAffairs.audits": "التدقيق التنظيمي",
+    "regulatoryAffairs.changes": "التغييرات التنظيمية",
+    "regulatoryAffairs.compliance": "الامتثال التنظيمي",
+    "regulatoryAffairs.documentation": "التوثيق التنظيمي",
+    "regulatoryAffairs.inspections": "التفتيش التنظيمي",
+    "regulatoryAffairs.intelligence": "الذكاء التنظيمي",
+    "regulatoryAffairs.labeling": "وضع العلامات على المنتجات",
+    "regulatoryAffairs.licenses": "إدارة التراخيص",
+    "regulatoryAffairs.monitoring": "المراقبة التنظيمية",
+    "regulatoryAffairs.notifications": "الإخطارات التنظيمية",
+    "regulatoryAffairs.permits": "إدارة التصاريح",
+    "regulatoryAffairs.pharmacovigilance": "اليقظة الدوائية",
+    "regulatoryAffairs.planning": "التخطيط التنظيمي",
+    "regulatoryAffairs.registrations": "إدارة التسجيلات",
+    "regulatoryAffairs.regulatory": "الشؤون التنظيمية",
+    "regulatoryAffairs.reporting": "التقارير التنظيمية",
+    "regulatoryAffairs.strategy": "الاستراتيجية التنظيمية",
+    "regulatoryAffairs.submissions": "التقديمات التنظيمية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/regulatoryCompliance.translations.json">
+<![CDATA[
+{
+  "en": {
+    "regulatoryCompliance.approval": "Regulatory Approval",
+    "regulatoryCompliance.authority": "Regulatory Authority",
+    "regulatoryCompliance.breach": "Compliance Breach",
+    "regulatoryCompliance.dashboard": "Compliance Dashboard",
+    "regulatoryCompliance.disclosure": "Disclosure",
+    "regulatoryCompliance.enforcement": "Enforcement",
+    "regulatoryCompliance.examination": "Examination",
+    "regulatoryCompliance.filing": "Regulatory Filing",
+    "regulatoryCompliance.fine": "Fine",
+    "regulatoryCompliance.inspection": "Inspection",
+    "regulatoryCompliance.monitoring": "Compliance Monitoring",
+    "regulatoryCompliance.penalty": "Penalty",
+    "regulatoryCompliance.regulation": "Regulation",
+    "regulatoryCompliance.regulator": "Regulator",
+    "regulatoryCompliance.regulatory": "Regulatory Compliance",
+    "regulatoryCompliance.remediation": "Remediation",
+    "regulatoryCompliance.reporting": "Regulatory Reporting",
+    "regulatoryCompliance.requirement": "Regulatory Requirement",
+    "regulatoryCompliance.sanction": "Sanction",
+    "regulatoryCompliance.submission": "Submission",
+    "regulatoryCompliance.tracking": "Compliance Tracking",
+    "regulatoryCompliance.violation": "Violation"
+  },
+  "ar": {
+    "regulatoryCompliance.approval": "الموافقة التنظيمية",
+    "regulatoryCompliance.authority": "السلطة التنظيمية",
+    "regulatoryCompliance.breach": "انتهاك الامتثال",
+    "regulatoryCompliance.dashboard": "لوحة معلومات الامتثال",
+    "regulatoryCompliance.disclosure": "الإفصاح",
+    "regulatoryCompliance.enforcement": "الإنفاذ",
+    "regulatoryCompliance.examination": "الفحص",
+    "regulatoryCompliance.filing": "الإيداع التنظيمي",
+    "regulatoryCompliance.fine": "الغرامة المالية",
+    "regulatoryCompliance.inspection": "التفتيش",
+    "regulatoryCompliance.monitoring": "مراقبة الامتثال",
+    "regulatoryCompliance.penalty": "الغرامة",
+    "regulatoryCompliance.regulation": "التنظيم",
+    "regulatoryCompliance.regulator": "الجهة التنظيمية",
+    "regulatoryCompliance.regulatory": "الامتثال التنظيمي",
+    "regulatoryCompliance.remediation": "المعالجة",
+    "regulatoryCompliance.reporting": "الإبلاغ التنظيمي",
+    "regulatoryCompliance.requirement": "المتطلب التنظيمي",
+    "regulatoryCompliance.sanction": "العقوبة",
+    "regulatoryCompliance.submission": "التقديم",
+    "regulatoryCompliance.tracking": "تتبع الامتثال",
+    "regulatoryCompliance.violation": "الانتهاك"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/regulatoryComplianceAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "regulatoryComplianceAdv.assessment": "Compliance Assessment",
+    "regulatoryComplianceAdv.attestation": "Compliance Attestation",
+    "regulatoryComplianceAdv.audit": "Compliance Audit",
+    "regulatoryComplianceAdv.certification": "Compliance Certification",
+    "regulatoryComplianceAdv.compliance": "Compliance Management",
+    "regulatoryComplianceAdv.disclosure": "Compliance Disclosure",
+    "regulatoryComplianceAdv.enforcement": "Regulatory Enforcement",
+    "regulatoryComplianceAdv.framework": "Regulatory Framework",
+    "regulatoryComplianceAdv.guidelines": "Regulatory Guidelines",
+    "regulatoryComplianceAdv.management": "Compliance Management",
+    "regulatoryComplianceAdv.monitoring": "Compliance Monitoring",
+    "regulatoryComplianceAdv.obligations": "Regulatory Obligations",
+    "regulatoryComplianceAdv.penalties": "Regulatory Penalties",
+    "regulatoryComplianceAdv.regulations": "Regulatory Requirements",
+    "regulatoryComplianceAdv.regulatory": "Regulatory Compliance",
+    "regulatoryComplianceAdv.remediation": "Compliance Remediation",
+    "regulatoryComplianceAdv.reporting": "Compliance Reporting",
+    "regulatoryComplianceAdv.requirements": "Compliance Requirements",
+    "regulatoryComplianceAdv.review": "Compliance Review",
+    "regulatoryComplianceAdv.risk": "Compliance Risk",
+    "regulatoryComplianceAdv.standards": "Regulatory Standards",
+    "regulatoryComplianceAdv.violations": "Compliance Violations"
+  },
+  "ar": {
+    "regulatoryComplianceAdv.assessment": "تقييم الامتثال",
+    "regulatoryComplianceAdv.attestation": "شهادة الامتثال",
+    "regulatoryComplianceAdv.audit": "تدقيق الامتثال",
+    "regulatoryComplianceAdv.certification": "اعتماد الامتثال",
+    "regulatoryComplianceAdv.compliance": "إدارة الامتثال",
+    "regulatoryComplianceAdv.disclosure": "الإفصاح عن الامتثال",
+    "regulatoryComplianceAdv.enforcement": "الإنفاذ التنظيمي",
+    "regulatoryComplianceAdv.framework": "الإطار التنظيمي",
+    "regulatoryComplianceAdv.guidelines": "الإرشادات التنظيمية",
+    "regulatoryComplianceAdv.management": "إدارة الامتثال",
+    "regulatoryComplianceAdv.monitoring": "مراقبة الامتثال",
+    "regulatoryComplianceAdv.obligations": "الالتزامات التنظيمية",
+    "regulatoryComplianceAdv.penalties": "العقوبات التنظيمية",
+    "regulatoryComplianceAdv.regulations": "المتطلبات التنظيمية",
+    "regulatoryComplianceAdv.regulatory": "الامتثال التنظيمي",
+    "regulatoryComplianceAdv.remediation": "معالجة الامتثال",
+    "regulatoryComplianceAdv.reporting": "إعداد تقارير الامتثال",
+    "regulatoryComplianceAdv.requirements": "متطلبات الامتثال",
+    "regulatoryComplianceAdv.review": "مراجعة الامتثال",
+    "regulatoryComplianceAdv.risk": "مخاطر الامتثال",
+    "regulatoryComplianceAdv.standards": "المعايير التنظيمية",
+    "regulatoryComplianceAdv.violations": "انتهاكات الامتثال"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/regulatoryReporting.translations.json">
+<![CDATA[
+{
+  "en": {
+    "regulatoryReporting.amlReporting": "AML Reporting",
+    "regulatoryReporting.auditTrail": "Audit Trail",
+    "regulatoryReporting.basReporting": "Basel Reporting",
+    "regulatoryReporting.crsReporting": "CRS Reporting",
+    "regulatoryReporting.deadlineTracking": "Deadline Tracking",
+    "regulatoryReporting.description": "Financial and compliance reporting to regulators",
+    "regulatoryReporting.doddFrank": "Dodd-Frank Reporting",
+    "regulatoryReporting.emir": "EMIR Reporting",
+    "regulatoryReporting.fatcaReporting": "FATCA Reporting",
+    "regulatoryReporting.financialReporting": "Financial Reporting",
+    "regulatoryReporting.gaapReporting": "GAAP Reporting",
+    "regulatoryReporting.ifrsReporting": "IFRS Reporting",
+    "regulatoryReporting.mifidReporting": "MiFID Reporting",
+    "regulatoryReporting.prudentialReporting": "Prudential Reporting",
+    "regulatoryReporting.regulatoryCompliance": "Regulatory Compliance",
+    "regulatoryReporting.regulatoryFilings": "Regulatory Filings",
+    "regulatoryReporting.secReporting": "SEC Reporting",
+    "regulatoryReporting.solvencyReporting": "Solvency Reporting",
+    "regulatoryReporting.statutoryReporting": "Statutory Reporting",
+    "regulatoryReporting.submissionProcess": "Submission Process",
+    "regulatoryReporting.taxonomyManagement": "Taxonomy Management",
+    "regulatoryReporting.title": "Regulatory Reporting",
+    "regulatoryReporting.validationRules": "Validation Rules",
+    "regulatoryReporting.xbrl": "XBRL Reporting"
+  },
+  "ar": {
+    "regulatoryReporting.amlReporting": "تقارير مكافحة غسل الأموال",
+    "regulatoryReporting.auditTrail": "مسار التدقيق",
+    "regulatoryReporting.basReporting": "تقارير بازل",
+    "regulatoryReporting.crsReporting": "تقارير المعيار المشترك",
+    "regulatoryReporting.deadlineTracking": "تتبع المواعيد النهائية",
+    "regulatoryReporting.description": "التقارير المالية والامتثال للجهات التنظيمية",
+    "regulatoryReporting.doddFrank": "تقارير دود-فرانك",
+    "regulatoryReporting.emir": "تقارير EMIR",
+    "regulatoryReporting.fatcaReporting": "تقارير فاتكا",
+    "regulatoryReporting.financialReporting": "التقارير المالية",
+    "regulatoryReporting.gaapReporting": "تقارير المبادئ المحاسبية",
+    "regulatoryReporting.ifrsReporting": "تقارير المعايير الدولية",
+    "regulatoryReporting.mifidReporting": "تقارير MiFID",
+    "regulatoryReporting.prudentialReporting": "التقارير الاحترازية",
+    "regulatoryReporting.regulatoryCompliance": "الامتثال التنظيمي",
+    "regulatoryReporting.regulatoryFilings": "الإيداعات التنظيمية",
+    "regulatoryReporting.secReporting": "تقارير هيئة الأوراق المالية",
+    "regulatoryReporting.solvencyReporting": "تقارير الملاءة المالية",
+    "regulatoryReporting.statutoryReporting": "التقارير القانونية",
+    "regulatoryReporting.submissionProcess": "عملية التقديم",
+    "regulatoryReporting.taxonomyManagement": "إدارة التصنيف",
+    "regulatoryReporting.title": "التقارير التنظيمية",
+    "regulatoryReporting.validationRules": "قواعد التحقق",
+    "regulatoryReporting.xbrl": "تقارير XBRL"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/regulatoryTechnology.translations.json">
+<![CDATA[
+{
+  "en": {
+    "regulatoryTechnology.alerts": "Alert Management",
+    "regulatoryTechnology.aml": "Anti-Money Laundering",
+    "regulatoryTechnology.audit": "Audit Management",
+    "regulatoryTechnology.certifications": "Certification Management",
+    "regulatoryTechnology.compliance": "Compliance Management",
+    "regulatoryTechnology.controls": "Control Framework",
+    "regulatoryTechnology.documentation": "Compliance Documentation",
+    "regulatoryTechnology.fraud": "Fraud Detection",
+    "regulatoryTechnology.governance": "Governance Framework",
+    "regulatoryTechnology.kyc": "Know Your Customer",
+    "regulatoryTechnology.monitoring": "Compliance Monitoring",
+    "regulatoryTechnology.policies": "Policy Management",
+    "regulatoryTechnology.procedures": "Procedure Management",
+    "regulatoryTechnology.regulatory": "Regulatory Technology",
+    "regulatoryTechnology.remediation": "Remediation Management",
+    "regulatoryTechnology.reporting": "Regulatory Reporting",
+    "regulatoryTechnology.risk": "Risk Assessment",
+    "regulatoryTechnology.sanctions": "Sanctions Screening",
+    "regulatoryTechnology.technology": "RegTech",
+    "regulatoryTechnology.training": "Compliance Training",
+    "regulatoryTechnology.transaction": "Transaction Monitoring",
+    "regulatoryTechnology.violations": "Violation Tracking"
+  },
+  "ar": {
+    "regulatoryTechnology.alerts": "إدارة التنبيهات",
+    "regulatoryTechnology.aml": "مكافحة غسل الأموال",
+    "regulatoryTechnology.audit": "إدارة التدقيق",
+    "regulatoryTechnology.certifications": "إدارة الشهادات",
+    "regulatoryTechnology.compliance": "إدارة الامتثال",
+    "regulatoryTechnology.controls": "إطار الضوابط",
+    "regulatoryTechnology.documentation": "توثيق الامتثال",
+    "regulatoryTechnology.fraud": "كشف الاحتيال",
+    "regulatoryTechnology.governance": "إطار الحوكمة",
+    "regulatoryTechnology.kyc": "اعرف عميلك",
+    "regulatoryTechnology.monitoring": "مراقبة الامتثال",
+    "regulatoryTechnology.policies": "إدارة السياسات",
+    "regulatoryTechnology.procedures": "إدارة الإجراءات",
+    "regulatoryTechnology.regulatory": "التكنولوجيا التنظيمية",
+    "regulatoryTechnology.remediation": "إدارة المعالجة",
+    "regulatoryTechnology.reporting": "الإبلاغ التنظيمي",
+    "regulatoryTechnology.risk": "تقييم المخاطر",
+    "regulatoryTechnology.sanctions": "فحص العقوبات",
+    "regulatoryTechnology.technology": "تقنية الامتثال",
+    "regulatoryTechnology.training": "تدريب الامتثال",
+    "regulatoryTechnology.transaction": "مراقبة المعاملات",
+    "regulatoryTechnology.violations": "تتبع المخالفات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/releaseManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "releaseManagement.approval": "Release Approval",
+    "releaseManagement.blue": "Blue-Green Deployment",
+    "releaseManagement.breaking": "Breaking Changes",
+    "releaseManagement.build": "Build",
+    "releaseManagement.canary": "Canary Release",
+    "releaseManagement.changelog": "Changelog",
+    "releaseManagement.deployment": "Deployment",
+    "releaseManagement.deprecation": "Deprecation",
+    "releaseManagement.features": "New Features",
+    "releaseManagement.fixes": "Bug Fixes",
+    "releaseManagement.hotfix": "Hotfix",
+    "releaseManagement.improvements": "Improvements",
+    "releaseManagement.migration": "Migration",
+    "releaseManagement.notes": "Release Notes",
+    "releaseManagement.package": "Release Package",
+    "releaseManagement.plan": "Release Plan",
+    "releaseManagement.production": "Production Release",
+    "releaseManagement.release": "Release",
+    "releaseManagement.rollout": "Rollout",
+    "releaseManagement.schedule": "Release Schedule",
+    "releaseManagement.staged": "Staged Deployment",
+    "releaseManagement.testing": "Release Testing",
+    "releaseManagement.validation": "Validation",
+    "releaseManagement.version": "Version"
+  },
+  "ar": {
+    "releaseManagement.approval": "موافقة الإصدار",
+    "releaseManagement.blue": "النشر الأزرق والأخضر",
+    "releaseManagement.breaking": "التغييرات الجذرية",
+    "releaseManagement.build": "البناء",
+    "releaseManagement.canary": "إصدار كناري",
+    "releaseManagement.changelog": "سجل التغييرات",
+    "releaseManagement.deployment": "النشر",
+    "releaseManagement.deprecation": "الإهمال",
+    "releaseManagement.features": "الميزات الجديدة",
+    "releaseManagement.fixes": "إصلاحات الأخطاء",
+    "releaseManagement.hotfix": "إصلاح عاجل",
+    "releaseManagement.improvements": "التحسينات",
+    "releaseManagement.migration": "الترحيل",
+    "releaseManagement.notes": "ملاحظات الإصدار",
+    "releaseManagement.package": "حزمة الإصدار",
+    "releaseManagement.plan": "خطة الإصدار",
+    "releaseManagement.production": "إصدار الإنتاج",
+    "releaseManagement.release": "الإصدار",
+    "releaseManagement.rollout": "طرح",
+    "releaseManagement.schedule": "جدول الإصدار",
+    "releaseManagement.staged": "النشر المرحلي",
+    "releaseManagement.testing": "اختبار الإصدار",
+    "releaseManagement.validation": "التحقق",
+    "releaseManagement.version": "الإصدار"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/remoteWork.translations.json">
+<![CDATA[
+{
+  "en": {
+    "remoteWork.collaboration": "Remote Collaboration",
+    "remoteWork.communication": "Remote Communication",
+    "remoteWork.compliance": "Remote Compliance",
+    "remoteWork.culture": "Remote Culture",
+    "remoteWork.distributed": "Distributed Work",
+    "remoteWork.engagement": "Remote Engagement",
+    "remoteWork.guidelines": "Remote Guidelines",
+    "remoteWork.hybrid": "Hybrid Work",
+    "remoteWork.infrastructure": "Remote Infrastructure",
+    "remoteWork.management": "Remote Management",
+    "remoteWork.policy": "Remote Policy",
+    "remoteWork.productivity": "Remote Productivity",
+    "remoteWork.remote": "Remote Work",
+    "remoteWork.security": "Remote Security",
+    "remoteWork.supervision": "Remote Supervision",
+    "remoteWork.support": "Remote Support",
+    "remoteWork.technology": "Remote Technology",
+    "remoteWork.telecommuting": "Telecommuting",
+    "remoteWork.tools": "Remote Tools",
+    "remoteWork.virtual": "Virtual Work",
+    "remoteWork.wellbeing": "Remote Wellbeing",
+    "remoteWork.work": "Remote Strategy"
+  },
+  "ar": {
+    "remoteWork.collaboration": "التعاون عن بعد",
+    "remoteWork.communication": "التواصل عن بعد",
+    "remoteWork.compliance": "امتثال العمل عن بعد",
+    "remoteWork.culture": "ثقافة العمل عن بعد",
+    "remoteWork.distributed": "العمل الموزع",
+    "remoteWork.engagement": "إشراك العمل عن بعد",
+    "remoteWork.guidelines": "إرشادات العمل عن بعد",
+    "remoteWork.hybrid": "العمل المختلط",
+    "remoteWork.infrastructure": "البنية التحتية للعمل عن بعد",
+    "remoteWork.management": "إدارة العمل عن بعد",
+    "remoteWork.policy": "سياسة العمل عن بعد",
+    "remoteWork.productivity": "إنتاجية العمل عن بعد",
+    "remoteWork.remote": "العمل عن بعد",
+    "remoteWork.security": "أمن العمل عن بعد",
+    "remoteWork.supervision": "الإشراف عن بعد",
+    "remoteWork.support": "دعم العمل عن بعد",
+    "remoteWork.technology": "تكنولوجيا العمل عن بعد",
+    "remoteWork.telecommuting": "العمل عن بعد",
+    "remoteWork.tools": "أدوات العمل عن بعد",
+    "remoteWork.virtual": "العمل الافتراضي",
+    "remoteWork.wellbeing": "رفاهية العمل عن بعد",
+    "remoteWork.work": "استراتيجية العمل عن بعد"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/renewableEnergy.translations.json">
+<![CDATA[
+{
+  "en": {
+    "renewableEnergy.battery": "Energy Storage",
+    "renewableEnergy.biomass": "Biomass",
+    "renewableEnergy.consumption": "Energy Consumption",
+    "renewableEnergy.converter": "Converter",
+    "renewableEnergy.distribution": "Energy Distribution",
+    "renewableEnergy.efficiency": "Energy Efficiency",
+    "renewableEnergy.energy": "Clean Energy",
+    "renewableEnergy.generation": "Power Generation",
+    "renewableEnergy.geothermal": "Geothermal",
+    "renewableEnergy.grid": "Power Grid",
+    "renewableEnergy.hydro": "Hydroelectric",
+    "renewableEnergy.inverter": "Inverter",
+    "renewableEnergy.management": "Energy Management",
+    "renewableEnergy.monitoring": "Energy Monitoring",
+    "renewableEnergy.panel": "Solar Panel",
+    "renewableEnergy.photovoltaic": "Photovoltaic",
+    "renewableEnergy.renewable": "Renewable Energy",
+    "renewableEnergy.solar": "Solar Energy",
+    "renewableEnergy.storage": "Battery Storage",
+    "renewableEnergy.sustainability": "Energy Sustainability",
+    "renewableEnergy.turbine": "Wind Turbine",
+    "renewableEnergy.wind": "Wind Energy"
+  },
+  "ar": {
+    "renewableEnergy.battery": "تخزين الطاقة",
+    "renewableEnergy.biomass": "الكتلة الحيوية",
+    "renewableEnergy.consumption": "استهلاك الطاقة",
+    "renewableEnergy.converter": "المحول",
+    "renewableEnergy.distribution": "توزيع الطاقة",
+    "renewableEnergy.efficiency": "كفاءة الطاقة",
+    "renewableEnergy.energy": "الطاقة النظيفة",
+    "renewableEnergy.generation": "توليد الطاقة",
+    "renewableEnergy.geothermal": "الطاقة الحرارية الأرضية",
+    "renewableEnergy.grid": "شبكة الطاقة",
+    "renewableEnergy.hydro": "الطاقة الكهرومائية",
+    "renewableEnergy.inverter": "العاكس",
+    "renewableEnergy.management": "إدارة الطاقة",
+    "renewableEnergy.monitoring": "مراقبة الطاقة",
+    "renewableEnergy.panel": "اللوح الشمسي",
+    "renewableEnergy.photovoltaic": "الكهروضوئية",
+    "renewableEnergy.renewable": "الطاقة المتجددة",
+    "renewableEnergy.solar": "الطاقة الشمسية",
+    "renewableEnergy.storage": "تخزين البطارية",
+    "renewableEnergy.sustainability": "استدامة الطاقة",
+    "renewableEnergy.turbine": "توربينات الرياح",
+    "renewableEnergy.wind": "طاقة الرياح"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/renovation.translations.json">
+<![CDATA[
+{
+  "en": {
+    "renovation.addition": "Addition",
+    "renovation.alteration": "Alteration",
+    "renovation.alterations": "Alterations",
+    "renovation.conversion": "Conversion",
+    "renovation.cosmetic": "Cosmetic",
+    "renovation.cosmeticRepair": "Cosmetic Repair",
+    "renovation.expansion": "Expansion",
+    "renovation.extension": "Extension",
+    "renovation.facelit": "Facelift",
+    "renovation.fitOut": "Fit-out",
+    "renovation.improvement": "Improvement",
+    "renovation.improvements": "Improvements",
+    "renovation.interiorDesign": "Interior Design",
+    "renovation.majorRenovation": "Major Renovation",
+    "renovation.makeover": "Makeover",
+    "renovation.minorRenovation": "Minor Renovation",
+    "renovation.modernization": "Modernization",
+    "renovation.reconstruction": "Reconstruction",
+    "renovation.redesign": "Redesign",
+    "renovation.refurbishment": "Refurbishment",
+    "renovation.remodeling": "Remodeling",
+    "renovation.renovation1": "Renovation",
+    "renovation.renovations": "Renovations",
+    "renovation.restoration": "Restoration",
+    "renovation.retrofit": "Retrofit",
+    "renovation.upgrade": "Upgrade",
+    "renovation.upgrades": "Upgrades"
+  },
+  "ar": {
+    "renovation.addition": "إضافة",
+    "renovation.alteration": "تعديل",
+    "renovation.alterations": "تعديلات",
+    "renovation.conversion": "تحويل",
+    "renovation.cosmetic": "تجميلي",
+    "renovation.cosmeticRepair": "إصلاح تجميلي",
+    "renovation.expansion": "توسع",
+    "renovation.extension": "امتداد",
+    "renovation.facelit": "تجميل الواجهة",
+    "renovation.fitOut": "التجهيز الداخلي",
+    "renovation.improvement": "تحسين",
+    "renovation.improvements": "تحسينات",
+    "renovation.interiorDesign": "التصميم الداخلي",
+    "renovation.majorRenovation": "تجديد كبير",
+    "renovation.makeover": "تجديد شامل",
+    "renovation.minorRenovation": "تجديد طفيف",
+    "renovation.modernization": "التحديث",
+    "renovation.reconstruction": "إعادة البناء",
+    "renovation.redesign": "إعادة التصميم",
+    "renovation.refurbishment": "تجديد",
+    "renovation.remodeling": "إعادة تشكيل",
+    "renovation.renovation1": "تجديد",
+    "renovation.renovations": "تجديدات",
+    "renovation.restoration": "ترميم",
+    "renovation.retrofit": "تحديث",
+    "renovation.upgrade": "ترقية",
+    "renovation.upgrades": "ترقيات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/reportAutomationAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "reportAutomationAdv.annual": "Annual Report",
+    "reportAutomationAdv.archive": "Archive Report",
+    "reportAutomationAdv.automate": "Automate Report",
+    "reportAutomationAdv.csv": "CSV",
+    "reportAutomationAdv.custom": "Custom Report",
+    "reportAutomationAdv.daily": "Daily Report",
+    "reportAutomationAdv.distribute": "Distribute",
+    "reportAutomationAdv.email": "Email Report",
+    "reportAutomationAdv.excel": "Excel",
+    "reportAutomationAdv.format": "Format",
+    "reportAutomationAdv.frequency": "Frequency",
+    "reportAutomationAdv.generate": "Generate",
+    "reportAutomationAdv.monthly": "Monthly Report",
+    "reportAutomationAdv.pdf": "PDF",
+    "reportAutomationAdv.publish": "Publish",
+    "reportAutomationAdv.quarterly": "Quarterly Report",
+    "reportAutomationAdv.recipients": "Recipients",
+    "reportAutomationAdv.report": "Report",
+    "reportAutomationAdv.save": "Save Report",
+    "reportAutomationAdv.schedule": "Schedule Report",
+    "reportAutomationAdv.template": "Report Template",
+    "reportAutomationAdv.weekly": "Weekly Report"
+  },
+  "ar": {
+    "reportAutomationAdv.annual": "تقرير سنوي",
+    "reportAutomationAdv.archive": "أرشفة التقرير",
+    "reportAutomationAdv.automate": "أتمتة التقارير",
+    "reportAutomationAdv.csv": "CSV",
+    "reportAutomationAdv.custom": "تقرير مخصص",
+    "reportAutomationAdv.daily": "تقرير يومي",
+    "reportAutomationAdv.distribute": "توزيع",
+    "reportAutomationAdv.email": "إرسال التقرير بالبريد",
+    "reportAutomationAdv.excel": "إكسل",
+    "reportAutomationAdv.format": "التنسيق",
+    "reportAutomationAdv.frequency": "التكرار",
+    "reportAutomationAdv.generate": "إنشاء",
+    "reportAutomationAdv.monthly": "تقرير شهري",
+    "reportAutomationAdv.pdf": "PDF",
+    "reportAutomationAdv.publish": "نشر",
+    "reportAutomationAdv.quarterly": "تقرير ربع سنوي",
+    "reportAutomationAdv.recipients": "المستلمون",
+    "reportAutomationAdv.report": "التقرير",
+    "reportAutomationAdv.save": "حفظ التقرير",
+    "reportAutomationAdv.schedule": "جدولة التقرير",
+    "reportAutomationAdv.template": "قالب التقرير",
+    "reportAutomationAdv.weekly": "تقرير أسبوعي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/reportGeneration.translations.json">
+<![CDATA[
+{
+  "en": {
+    "reportGeneration.automated": "Automated Report",
+    "reportGeneration.build": "Build Report",
+    "reportGeneration.chart": "Chart",
+    "reportGeneration.create": "Create Report",
+    "reportGeneration.dashboard": "Dashboard",
+    "reportGeneration.dateRange": "Date Range",
+    "reportGeneration.detailed": "Detailed Report",
+    "reportGeneration.export": "Export Report",
+    "reportGeneration.filter": "Filter",
+    "reportGeneration.format": "Format",
+    "reportGeneration.generate": "Generate Report",
+    "reportGeneration.graph": "Graph",
+    "reportGeneration.grouping": "Grouping",
+    "reportGeneration.layout": "Layout",
+    "reportGeneration.parameter": "Parameter",
+    "reportGeneration.print": "Print",
+    "reportGeneration.report": "Report",
+    "reportGeneration.schedule": "Schedule Report",
+    "reportGeneration.share": "Share",
+    "reportGeneration.sorting": "Sorting",
+    "reportGeneration.summary": "Summary Report",
+    "reportGeneration.table": "Table",
+    "reportGeneration.template": "Report Template",
+    "reportGeneration.type": "Report Type"
+  },
+  "ar": {
+    "reportGeneration.automated": "تقرير تلقائي",
+    "reportGeneration.build": "بناء تقرير",
+    "reportGeneration.chart": "الرسم البياني",
+    "reportGeneration.create": "إنشاء تقرير",
+    "reportGeneration.dashboard": "لوحة المعلومات",
+    "reportGeneration.dateRange": "نطاق التاريخ",
+    "reportGeneration.detailed": "تقرير مفصل",
+    "reportGeneration.export": "تصدير التقرير",
+    "reportGeneration.filter": "التصفية",
+    "reportGeneration.format": "التنسيق",
+    "reportGeneration.generate": "إنشاء تقرير",
+    "reportGeneration.graph": "الرسم البياني",
+    "reportGeneration.grouping": "التجميع",
+    "reportGeneration.layout": "التخطيط",
+    "reportGeneration.parameter": "المعامل",
+    "reportGeneration.print": "طباعة",
+    "reportGeneration.report": "التقرير",
+    "reportGeneration.schedule": "جدولة التقرير",
+    "reportGeneration.share": "مشاركة",
+    "reportGeneration.sorting": "الترتيب",
+    "reportGeneration.summary": "تقرير ملخص",
+    "reportGeneration.table": "الجدول",
+    "reportGeneration.template": "قالب التقرير",
+    "reportGeneration.type": "نوع التقرير"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/reportingTypes.translations.json">
+<![CDATA[
+{
+  "en": {
+    "reportingTypes.accidentReport": "Accident Report",
+    "reportingTypes.adHocReport": "Ad Hoc Report",
+    "reportingTypes.analyticalReport": "Analytical Report",
+    "reportingTypes.annualReport": "Annual Report",
+    "reportingTypes.auditReport": "Audit Report",
+    "reportingTypes.comparativeReport": "Comparative Report",
+    "reportingTypes.complianceReport": "Compliance Report",
+    "reportingTypes.customReport": "Custom Report",
+    "reportingTypes.dashboardReport": "Dashboard Report",
+    "reportingTypes.detailedReport": "Detailed Report",
+    "reportingTypes.exception": "Exception Report",
+    "reportingTypes.executiveSummary": "Executive Summary",
+    "reportingTypes.financialReport": "Financial Report",
+    "reportingTypes.forecastReport": "Forecast Report",
+    "reportingTypes.incidentReport": "Incident Report",
+    "reportingTypes.inspectionReport": "Inspection Report",
+    "reportingTypes.managementReport": "Management Report",
+    "reportingTypes.monthlyReport": "Monthly Report",
+    "reportingTypes.performanceReport": "Performance Report",
+    "reportingTypes.progressReport": "Progress Report",
+    "reportingTypes.quarterlyReport": "Quarterly Report",
+    "reportingTypes.report": "Report",
+    "reportingTypes.scheduled": "Scheduled Report",
+    "reportingTypes.standardReport": "Standard Report",
+    "reportingTypes.statisticalReport": "Statistical Report",
+    "reportingTypes.statusReport": "Status Report",
+    "reportingTypes.summaryReport": "Summary Report",
+    "reportingTypes.trendReport": "Trend Report",
+    "reportingTypes.varianceReport": "Variance Report"
+  },
+  "ar": {
+    "reportingTypes.accidentReport": "تقرير الحادث",
+    "reportingTypes.adHocReport": "تقرير خاص",
+    "reportingTypes.analyticalReport": "تقرير تحليلي",
+    "reportingTypes.annualReport": "التقرير السنوي",
+    "reportingTypes.auditReport": "تقرير التدقيق",
+    "reportingTypes.comparativeReport": "تقرير مقارن",
+    "reportingTypes.complianceReport": "تقرير الامتثال",
+    "reportingTypes.customReport": "تقرير مخصص",
+    "reportingTypes.dashboardReport": "تقرير لوحة المعلومات",
+    "reportingTypes.detailedReport": "تقرير مفصل",
+    "reportingTypes.exception": "تقرير الاستثناءات",
+    "reportingTypes.executiveSummary": "الملخص التنفيذي",
+    "reportingTypes.financialReport": "التقرير المالي",
+    "reportingTypes.forecastReport": "تقرير التنبؤ",
+    "reportingTypes.incidentReport": "تقرير الحادث",
+    "reportingTypes.inspectionReport": "تقرير الفحص",
+    "reportingTypes.managementReport": "التقرير الإداري",
+    "reportingTypes.monthlyReport": "التقرير الشهري",
+    "reportingTypes.performanceReport": "تقرير الأداء",
+    "reportingTypes.progressReport": "تقرير التقدم",
+    "reportingTypes.quarterlyReport": "التقرير الربع سنوي",
+    "reportingTypes.report": "التقرير",
+    "reportingTypes.scheduled": "تقرير مجدول",
+    "reportingTypes.standardReport": "تقرير قياسي",
+    "reportingTypes.statisticalReport": "تقرير إحصائي",
+    "reportingTypes.statusReport": "تقرير الحالة",
+    "reportingTypes.summaryReport": "تقرير موجز",
+    "reportingTypes.trendReport": "تقرير الاتجاهات",
+    "reportingTypes.varianceReport": "تقرير التباين"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/reports.translations.json">
+<![CDATA[
+{
+  "en": {
+    "reports.actions.langToggle": "EN / عربي",
+    "reports.actions.newReport": "+ New Report",
+    "reports.builder.placeholder": "Drag-and-drop report builder interface",
+    "reports.customReports": "Custom Reports",
+    "reports.dateRange": "Date Range",
+    "reports.downloadCSV": "Download CSV",
+    "reports.downloadExcel": "Download Excel",
+    "reports.downloadPDF": "Download PDF",
+    "reports.exportReport": "Export Report",
+    "reports.financialReports": "Financial Reports",
+    "reports.footer": "© 2025 Fixzit Enterprise — Version 1.0",
+    "reports.generateReport": "Generate Report",
+    "reports.operationalReports": "Operational Reports",
+    "reports.page.title": "Reports",
+    "reports.printReport": "Print Report",
+    "reports.reportTemplates": "Report Templates",
+    "reports.reportType": "Report Type",
+    "reports.samples.complianceStatus": "Compliance Status Report",
+    "reports.samples.monthlyFinancialSummary": "Monthly Financial Summary",
+    "reports.samples.workOrdersPerformance": "Work Orders Performance",
+    "reports.scheduleReport": "Schedule Report",
+    "reports.status.error": "Error",
+    "reports.status.ready": "Ready",
+    "reports.status.running": "Running",
+    "reports.table.actions": "Actions",
+    "reports.table.lastRun": "Last Run",
+    "reports.table.reportName": "Report Name",
+    "reports.table.status": "Status",
+    "reports.table.type": "Type",
+    "reports.tabs.builder": "Report Builder",
+    "reports.tabs.viewer": "Report Viewer",
+    "reports.title": "Reports",
+    "reports.toast.newReportComingSoon": "New report feature coming soon",
+    "reports.types.compliance": "Compliance",
+    "reports.types.financial": "Financial",
+    "reports.types.operational": "Operational",
+    "reports.viewer.placeholder": "Report viewer with export options",
+    "reports.viewReport": "View Report"
+  },
+  "ar": {
+    "reports.actions.langToggle": "EN / عربي",
+    "reports.actions.newReport": "+ تقرير جديد",
+    "reports.builder.placeholder": "واجهة إنشاء التقارير بالسحب والإفلات",
+    "reports.customReports": "تقارير مخصصة",
+    "reports.dateRange": "نطاق التاريخ",
+    "reports.downloadCSV": "تحميل CSV",
+    "reports.downloadExcel": "تحميل Excel",
+    "reports.downloadPDF": "تحميل PDF",
+    "reports.exportReport": "تصدير التقرير",
+    "reports.financialReports": "التقارير المالية",
+    "reports.footer": "© 2025 فيكزيت إنتربرايز — الإصدار 1.0",
+    "reports.generateReport": "إنشاء تقرير",
+    "reports.operationalReports": "التقارير التشغيلية",
+    "reports.page.title": "التقارير",
+    "reports.printReport": "طباعة التقرير",
+    "reports.reportTemplates": "قوالب التقارير",
+    "reports.reportType": "نوع التقرير",
+    "reports.samples.complianceStatus": "تقرير حالة الامتثال",
+    "reports.samples.monthlyFinancialSummary": "ملخص مالي شهري",
+    "reports.samples.workOrdersPerformance": "أداء أوامر العمل",
+    "reports.scheduleReport": "جدولة التقرير",
+    "reports.status.error": "خطأ",
+    "reports.status.ready": "جاهز",
+    "reports.status.running": "قيد التشغيل",
+    "reports.table.actions": "الإجراءات",
+    "reports.table.lastRun": "آخر تشغيل",
+    "reports.table.reportName": "اسم التقرير",
+    "reports.table.status": "الحالة",
+    "reports.table.type": "النوع",
+    "reports.tabs.builder": "منشئ التقارير",
+    "reports.tabs.viewer": "عارض التقارير",
+    "reports.title": "التقارير",
+    "reports.toast.newReportComingSoon": "ميزة إنشاء التقارير الجديدة قادمة قريباً",
+    "reports.types.compliance": "الامتثال",
+    "reports.types.financial": "مالي",
+    "reports.types.operational": "تشغيلي",
+    "reports.viewer.placeholder": "عارض التقارير مع خيارات التصدير",
+    "reports.viewReport": "عرض التقرير"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/researchDevelopment.translations.json">
+<![CDATA[
+{
+  "en": {
+    "researchDevelopment.budget": "R&D Budget",
+    "researchDevelopment.collaboration": "R&D Collaboration",
+    "researchDevelopment.development": "R&D Management",
+    "researchDevelopment.facilities": "R&D Facilities",
+    "researchDevelopment.funding": "R&D Funding",
+    "researchDevelopment.initiatives": "R&D Initiatives",
+    "researchDevelopment.innovation": "R&D Innovation",
+    "researchDevelopment.investment": "R&D Investment",
+    "researchDevelopment.laboratories": "R&D Laboratories",
+    "researchDevelopment.metrics": "R&D Metrics",
+    "researchDevelopment.partnerships": "R&D Partnerships",
+    "researchDevelopment.performance": "R&D Performance",
+    "researchDevelopment.pipeline": "R&D Pipeline",
+    "researchDevelopment.planning": "R&D Planning",
+    "researchDevelopment.portfolio": "R&D Portfolio",
+    "researchDevelopment.programs": "R&D Programs",
+    "researchDevelopment.projects": "R&D Projects",
+    "researchDevelopment.reporting": "R&D Reporting",
+    "researchDevelopment.research": "Research & Development",
+    "researchDevelopment.resources": "R&D Resources",
+    "researchDevelopment.strategy": "R&D Strategy",
+    "researchDevelopment.technology": "R&D Technology"
+  },
+  "ar": {
+    "researchDevelopment.budget": "ميزانية البحث والتطوير",
+    "researchDevelopment.collaboration": "التعاون في البحث والتطوير",
+    "researchDevelopment.development": "إدارة البحث والتطوير",
+    "researchDevelopment.facilities": "مرافق البحث والتطوير",
+    "researchDevelopment.funding": "تمويل البحث والتطوير",
+    "researchDevelopment.initiatives": "مبادرات البحث والتطوير",
+    "researchDevelopment.innovation": "ابتكار البحث والتطوير",
+    "researchDevelopment.investment": "استثمار البحث والتطوير",
+    "researchDevelopment.laboratories": "مختبرات البحث والتطوير",
+    "researchDevelopment.metrics": "مقاييس البحث والتطوير",
+    "researchDevelopment.partnerships": "شراكات البحث والتطوير",
+    "researchDevelopment.performance": "أداء البحث والتطوير",
+    "researchDevelopment.pipeline": "خط أنابيب البحث والتطوير",
+    "researchDevelopment.planning": "تخطيط البحث والتطوير",
+    "researchDevelopment.portfolio": "محفظة البحث والتطوير",
+    "researchDevelopment.programs": "برامج البحث والتطوير",
+    "researchDevelopment.projects": "مشاريع البحث والتطوير",
+    "researchDevelopment.reporting": "تقارير البحث والتطوير",
+    "researchDevelopment.research": "البحث والتطوير",
+    "researchDevelopment.resources": "موارد البحث والتطوير",
+    "researchDevelopment.strategy": "استراتيجية البحث والتطوير",
+    "researchDevelopment.technology": "تكنولوجيا البحث والتطوير"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/researchDevelopmentExt.translations.json">
+<![CDATA[
+{
+  "en": {
+    "researchDevelopmentExt.analysis": "Data Analysis",
+    "researchDevelopmentExt.collaboration": "Research Collaboration",
+    "researchDevelopmentExt.data": "Research Data",
+    "researchDevelopmentExt.design": "Product Design",
+    "researchDevelopmentExt.development": "R&D",
+    "researchDevelopmentExt.engineering": "Engineering",
+    "researchDevelopmentExt.experiment": "Experiment",
+    "researchDevelopmentExt.funding": "Research Funding",
+    "researchDevelopmentExt.grant": "Research Grant",
+    "researchDevelopmentExt.innovation": "Innovation",
+    "researchDevelopmentExt.intellectual": "Intellectual Property",
+    "researchDevelopmentExt.lab": "Laboratory",
+    "researchDevelopmentExt.methodology": "Research Methodology",
+    "researchDevelopmentExt.patent": "Patent",
+    "researchDevelopmentExt.project": "Research Project",
+    "researchDevelopmentExt.prototype": "Prototype",
+    "researchDevelopmentExt.publication": "Scientific Publication",
+    "researchDevelopmentExt.research": "Research & Development",
+    "researchDevelopmentExt.study": "Research Study",
+    "researchDevelopmentExt.technology": "Technology Development",
+    "researchDevelopmentExt.testing": "Testing",
+    "researchDevelopmentExt.trial": "Clinical Trial"
+  },
+  "ar": {
+    "researchDevelopmentExt.analysis": "تحليل البيانات",
+    "researchDevelopmentExt.collaboration": "التعاون البحثي",
+    "researchDevelopmentExt.data": "بيانات البحث",
+    "researchDevelopmentExt.design": "تصميم المنتج",
+    "researchDevelopmentExt.development": "البحث والتطوير",
+    "researchDevelopmentExt.engineering": "الهندسة",
+    "researchDevelopmentExt.experiment": "التجربة",
+    "researchDevelopmentExt.funding": "تمويل البحث",
+    "researchDevelopmentExt.grant": "منحة بحثية",
+    "researchDevelopmentExt.innovation": "الابتكار",
+    "researchDevelopmentExt.intellectual": "الملكية الفكرية",
+    "researchDevelopmentExt.lab": "المختبر",
+    "researchDevelopmentExt.methodology": "منهجية البحث",
+    "researchDevelopmentExt.patent": "براءة الاختراع",
+    "researchDevelopmentExt.project": "مشروع بحثي",
+    "researchDevelopmentExt.prototype": "النموذج الأولي",
+    "researchDevelopmentExt.publication": "النشر العلمي",
+    "researchDevelopmentExt.research": "البحث والتطوير",
+    "researchDevelopmentExt.study": "الدراسة البحثية",
+    "researchDevelopmentExt.technology": "تطوير التكنولوجيا",
+    "researchDevelopmentExt.testing": "الاختبار",
+    "researchDevelopmentExt.trial": "التجارب السريرية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/researchInstitutions.translations.json">
+<![CDATA[
+{
+  "en": {
+    "researchInstitutions.budgetTracking": "Budget Tracking",
+    "researchInstitutions.citationTracking": "Citation Tracking",
+    "researchInstitutions.collaborationManagement": "Collaboration Management",
+    "researchInstitutions.dataManagement": "Research Data Management",
+    "researchInstitutions.dataRepository": "Data Repository",
+    "researchInstitutions.dataSharing": "Data Sharing",
+    "researchInstitutions.description": "Academic and scientific research management",
+    "researchInstitutions.equipmentBooking": "Equipment Booking",
+    "researchInstitutions.ethicsCompliance": "Ethics Compliance",
+    "researchInstitutions.fundingTracking": "Funding Tracking",
+    "researchInstitutions.grantManagement": "Grant Management",
+    "researchInstitutions.impactTracking": "Research Impact Tracking",
+    "researchInstitutions.institutionalReview": "Institutional Review Board (IRB)",
+    "researchInstitutions.intellectualProperty": "Intellectual Property",
+    "researchInstitutions.laboratoryManagement": "Laboratory Management",
+    "researchInstitutions.patentManagement": "Patent Management",
+    "researchInstitutions.peerReviewProcess": "Peer Review Process",
+    "researchInstitutions.projectManagement": "Research Project Management",
+    "researchInstitutions.proposalDevelopment": "Proposal Development",
+    "researchInstitutions.publicationManagement": "Publication Management",
+    "researchInstitutions.researcherProfiles": "Researcher Profiles",
+    "researchInstitutions.resourceSharing": "Resource Sharing",
+    "researchInstitutions.safetyProtocols": "Safety Protocols",
+    "researchInstitutions.technologyTransfer": "Technology Transfer",
+    "researchInstitutions.title": "Research Institutions"
+  },
+  "ar": {
+    "researchInstitutions.budgetTracking": "تتبع الميزانية",
+    "researchInstitutions.citationTracking": "تتبع الاستشهادات",
+    "researchInstitutions.collaborationManagement": "إدارة التعاون",
+    "researchInstitutions.dataManagement": "إدارة بيانات البحث",
+    "researchInstitutions.dataRepository": "مستودع البيانات",
+    "researchInstitutions.dataSharing": "مشاركة البيانات",
+    "researchInstitutions.description": "إدارة البحث الأكاديمي والعلمي",
+    "researchInstitutions.equipmentBooking": "حجز المعدات",
+    "researchInstitutions.ethicsCompliance": "الامتثال الأخلاقي",
+    "researchInstitutions.fundingTracking": "تتبع التمويل",
+    "researchInstitutions.grantManagement": "إدارة المنح",
+    "researchInstitutions.impactTracking": "تتبع تأثير البحث",
+    "researchInstitutions.institutionalReview": "مجلس المراجعة المؤسسية (IRB)",
+    "researchInstitutions.intellectualProperty": "الملكية الفكرية",
+    "researchInstitutions.laboratoryManagement": "إدارة المختبر",
+    "researchInstitutions.patentManagement": "إدارة براءات الاختراع",
+    "researchInstitutions.peerReviewProcess": "عملية مراجعة الأقران",
+    "researchInstitutions.projectManagement": "إدارة مشاريع البحث",
+    "researchInstitutions.proposalDevelopment": "تطوير المقترحات",
+    "researchInstitutions.publicationManagement": "إدارة المنشورات",
+    "researchInstitutions.researcherProfiles": "ملفات الباحثين",
+    "researchInstitutions.resourceSharing": "مشاركة الموارد",
+    "researchInstitutions.safetyProtocols": "بروتوكولات السلامة",
+    "researchInstitutions.technologyTransfer": "نقل التكنولوجيا",
+    "researchInstitutions.title": "مؤسسات البحث"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/resilienceBuilding.translations.json">
+<![CDATA[
+{
+  "en": {
+    "resilienceBuilding.adaptability": "Adaptability",
+    "resilienceBuilding.adaptation": "Resilience Adaptation",
+    "resilienceBuilding.agility": "Organizational Agility",
+    "resilienceBuilding.assessment": "Resilience Assessment",
+    "resilienceBuilding.bounce": "Bounce Back",
+    "resilienceBuilding.building": "Resilience Development",
+    "resilienceBuilding.capability": "Resilience Capability",
+    "resilienceBuilding.capacity": "Resilience Capacity",
+    "resilienceBuilding.culture": "Resilience Culture",
+    "resilienceBuilding.development": "Resilience Development",
+    "resilienceBuilding.flexibility": "Flexibility",
+    "resilienceBuilding.improvement": "Resilience Improvement",
+    "resilienceBuilding.measurement": "Resilience Measurement",
+    "resilienceBuilding.mindset": "Resilience Mindset",
+    "resilienceBuilding.preparedness": "Resilience Preparedness",
+    "resilienceBuilding.readiness": "Resilience Readiness",
+    "resilienceBuilding.recovery": "Resilience Recovery",
+    "resilienceBuilding.resilience": "Resilience Building",
+    "resilienceBuilding.strength": "Resilience Strength",
+    "resilienceBuilding.sustainability": "Resilience Sustainability",
+    "resilienceBuilding.training": "Resilience Training",
+    "resilienceBuilding.transformation": "Resilience Transformation"
+  },
+  "ar": {
+    "resilienceBuilding.adaptability": "القدرة على التكيف",
+    "resilienceBuilding.adaptation": "التكيف بالمرونة",
+    "resilienceBuilding.agility": "الرشاقة التنظيمية",
+    "resilienceBuilding.assessment": "تقييم المرونة",
+    "resilienceBuilding.bounce": "الارتداد السريع",
+    "resilienceBuilding.building": "تطوير المرونة",
+    "resilienceBuilding.capability": "قدرة المرونة",
+    "resilienceBuilding.capacity": "قدرة المرونة",
+    "resilienceBuilding.culture": "ثقافة المرونة",
+    "resilienceBuilding.development": "تطوير المرونة",
+    "resilienceBuilding.flexibility": "المرونة",
+    "resilienceBuilding.improvement": "تحسين المرونة",
+    "resilienceBuilding.measurement": "قياس المرونة",
+    "resilienceBuilding.mindset": "عقلية المرونة",
+    "resilienceBuilding.preparedness": "الاستعداد للمرونة",
+    "resilienceBuilding.readiness": "جاهزية المرونة",
+    "resilienceBuilding.recovery": "التعافي بالمرونة",
+    "resilienceBuilding.resilience": "بناء المرونة",
+    "resilienceBuilding.strength": "قوة المرونة",
+    "resilienceBuilding.sustainability": "استدامة المرونة",
+    "resilienceBuilding.training": "تدريب المرونة",
+    "resilienceBuilding.transformation": "تحول المرونة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/resourceManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "resourceManagement.allocation": "Resource Allocation",
+    "resourceManagement.analysis": "Resource Analysis",
+    "resourceManagement.assignment": "Resource Assignment",
+    "resourceManagement.availability": "Resource Availability",
+    "resourceManagement.capacity": "Resource Capacity",
+    "resourceManagement.conflict": "Resource Conflict",
+    "resourceManagement.contention": "Resource Contention",
+    "resourceManagement.costs": "Resource Costs",
+    "resourceManagement.demand": "Resource Demand",
+    "resourceManagement.efficiency": "Resource Efficiency",
+    "resourceManagement.forecasting": "Resource Forecasting",
+    "resourceManagement.leveling": "Resource Leveling",
+    "resourceManagement.optimization": "Resource Optimization",
+    "resourceManagement.planning": "Resource Planning",
+    "resourceManagement.pooling": "Resource Pooling",
+    "resourceManagement.productivity": "Resource Productivity",
+    "resourceManagement.reallocation": "Resource Reallocation",
+    "resourceManagement.reporting": "Resource Reporting",
+    "resourceManagement.resource": "Resource Management",
+    "resourceManagement.scheduling": "Resource Scheduling",
+    "resourceManagement.tracking": "Resource Tracking",
+    "resourceManagement.utilization": "Resource Utilization"
+  },
+  "ar": {
+    "resourceManagement.allocation": "تخصيص الموارد",
+    "resourceManagement.analysis": "تحليل الموارد",
+    "resourceManagement.assignment": "تعيين الموارد",
+    "resourceManagement.availability": "توفر الموارد",
+    "resourceManagement.capacity": "سعة الموارد",
+    "resourceManagement.conflict": "تعارض الموارد",
+    "resourceManagement.contention": "تنافس الموارد",
+    "resourceManagement.costs": "تكاليف الموارد",
+    "resourceManagement.demand": "الطلب على الموارد",
+    "resourceManagement.efficiency": "كفاءة الموارد",
+    "resourceManagement.forecasting": "التنبؤ بالموارد",
+    "resourceManagement.leveling": "موازنة الموارد",
+    "resourceManagement.optimization": "تحسين الموارد",
+    "resourceManagement.planning": "تخطيط الموارد",
+    "resourceManagement.pooling": "تجميع الموارد",
+    "resourceManagement.productivity": "إنتاجية الموارد",
+    "resourceManagement.reallocation": "إعادة تخصيص الموارد",
+    "resourceManagement.reporting": "تقارير الموارد",
+    "resourceManagement.resource": "إدارة الموارد",
+    "resourceManagement.scheduling": "جدولة الموارد",
+    "resourceManagement.tracking": "تتبع الموارد",
+    "resourceManagement.utilization": "استخدام الموارد"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/responsiveBreakpoints.translations.json">
+<![CDATA[
+{
+  "en": {
+    "responsiveBreakpoints.adaptive": "Adaptive",
+    "responsiveBreakpoints.breakpoint": "Breakpoint",
+    "responsiveBreakpoints.desktop": "Desktop",
+    "responsiveBreakpoints.extraLarge": "Extra Large",
+    "responsiveBreakpoints.extraSmall": "Extra Small",
+    "responsiveBreakpoints.fixed": "Fixed",
+    "responsiveBreakpoints.flexible": "Flexible",
+    "responsiveBreakpoints.fluid": "Fluid",
+    "responsiveBreakpoints.hideDesktop": "Hide on Desktop",
+    "responsiveBreakpoints.hideMobile": "Hide on Mobile",
+    "responsiveBreakpoints.hideTablet": "Hide on Tablet",
+    "responsiveBreakpoints.landscape": "Landscape",
+    "responsiveBreakpoints.large": "Large",
+    "responsiveBreakpoints.largeDesktop": "Large Desktop",
+    "responsiveBreakpoints.medium": "Medium",
+    "responsiveBreakpoints.mobile": "Mobile",
+    "responsiveBreakpoints.portrait": "Portrait",
+    "responsiveBreakpoints.responsive": "Responsive",
+    "responsiveBreakpoints.retina": "Retina Display",
+    "responsiveBreakpoints.showDesktop": "Show on Desktop",
+    "responsiveBreakpoints.showMobile": "Show on Mobile",
+    "responsiveBreakpoints.showTablet": "Show on Tablet",
+    "responsiveBreakpoints.small": "Small",
+    "responsiveBreakpoints.tablet": "Tablet"
+  },
+  "ar": {
+    "responsiveBreakpoints.adaptive": "تكيفي",
+    "responsiveBreakpoints.breakpoint": "نقطة الفصل",
+    "responsiveBreakpoints.desktop": "سطح المكتب",
+    "responsiveBreakpoints.extraLarge": "كبير جداً",
+    "responsiveBreakpoints.extraSmall": "صغير جداً",
+    "responsiveBreakpoints.fixed": "ثابت",
+    "responsiveBreakpoints.flexible": "مرن",
+    "responsiveBreakpoints.fluid": "مرن",
+    "responsiveBreakpoints.hideDesktop": "إخفاء على سطح المكتب",
+    "responsiveBreakpoints.hideMobile": "إخفاء على الجوال",
+    "responsiveBreakpoints.hideTablet": "إخفاء على الجهاز اللوحي",
+    "responsiveBreakpoints.landscape": "أفقي",
+    "responsiveBreakpoints.large": "كبير",
+    "responsiveBreakpoints.largeDesktop": "سطح مكتب كبير",
+    "responsiveBreakpoints.medium": "متوسط",
+    "responsiveBreakpoints.mobile": "الجوال",
+    "responsiveBreakpoints.portrait": "عمودي",
+    "responsiveBreakpoints.responsive": "تجاوبي",
+    "responsiveBreakpoints.retina": "شاشة ريتينا",
+    "responsiveBreakpoints.showDesktop": "إظهار على سطح المكتب",
+    "responsiveBreakpoints.showMobile": "إظهار على الجوال",
+    "responsiveBreakpoints.showTablet": "إظهار على الجهاز اللوحي",
+    "responsiveBreakpoints.small": "صغير",
+    "responsiveBreakpoints.tablet": "الجهاز اللوحي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/retailOperations.translations.json">
+<![CDATA[
+{
+  "en": {
+    "retailOperations.analytics": "Retail Analytics",
+    "retailOperations.customers": "Customer Management",
+    "retailOperations.ecommerce": "E-Commerce Integration",
+    "retailOperations.exchanges": "Exchange Management",
+    "retailOperations.fulfillment": "Order Fulfillment",
+    "retailOperations.inventory": "Inventory Management",
+    "retailOperations.loyalty": "Loyalty Programs",
+    "retailOperations.merchandise": "Merchandise Management",
+    "retailOperations.omnichannel": "Omnichannel Retail",
+    "retailOperations.operations": "Retail Operations",
+    "retailOperations.orders": "Order Management",
+    "retailOperations.pos": "Point of Sale",
+    "retailOperations.pricing": "Pricing Management",
+    "retailOperations.promotions": "Promotions Management",
+    "retailOperations.purchasing": "Purchasing Management",
+    "retailOperations.retail": "Retail Operations",
+    "retailOperations.returns": "Returns Management",
+    "retailOperations.sales": "Sales Management",
+    "retailOperations.stores": "Store Management",
+    "retailOperations.supply": "Supply Chain",
+    "retailOperations.vendors": "Vendor Management",
+    "retailOperations.warehouse": "Warehouse Management"
+  },
+  "ar": {
+    "retailOperations.analytics": "تحليلات التجزئة",
+    "retailOperations.customers": "إدارة العملاء",
+    "retailOperations.ecommerce": "تكامل التجارة الإلكترونية",
+    "retailOperations.exchanges": "إدارة المبادلات",
+    "retailOperations.fulfillment": "تنفيذ الطلبات",
+    "retailOperations.inventory": "إدارة المخزون",
+    "retailOperations.loyalty": "برامج الولاء",
+    "retailOperations.merchandise": "إدارة البضائع",
+    "retailOperations.omnichannel": "تجزئة متعددة القنوات",
+    "retailOperations.operations": "عمليات التجزئة",
+    "retailOperations.orders": "إدارة الطلبات",
+    "retailOperations.pos": "نقطة البيع",
+    "retailOperations.pricing": "إدارة التسعير",
+    "retailOperations.promotions": "إدارة العروض الترويجية",
+    "retailOperations.purchasing": "إدارة المشتريات",
+    "retailOperations.retail": "عمليات التجزئة",
+    "retailOperations.returns": "إدارة المرتجعات",
+    "retailOperations.sales": "إدارة المبيعات",
+    "retailOperations.stores": "إدارة المتاجر",
+    "retailOperations.supply": "سلسلة الإمداد",
+    "retailOperations.vendors": "إدارة الموردين",
+    "retailOperations.warehouse": "إدارة المستودعات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/retailTechnology.translations.json">
+<![CDATA[
+{
+  "en": {
+    "retailTechnology.analytics": "Retail Analytics",
+    "retailTechnology.beacon": "Retail Beacon",
+    "retailTechnology.customer": "Customer Management",
+    "retailTechnology.digital": "Digital Signage",
+    "retailTechnology.ecommerce": "Retail E-Commerce",
+    "retailTechnology.forecasting": "Sales Forecasting",
+    "retailTechnology.instore": "In-Store Technology",
+    "retailTechnology.inventory": "Retail Inventory",
+    "retailTechnology.kiosk": "Self-Service Kiosk",
+    "retailTechnology.loyalty": "Loyalty Program",
+    "retailTechnology.merchandising": "Digital Merchandising",
+    "retailTechnology.mobile": "Mobile POS",
+    "retailTechnology.omnichannel": "Omnichannel Retail",
+    "retailTechnology.payment": "Retail Payment",
+    "retailTechnology.planogram": "Planogram",
+    "retailTechnology.pos": "Point of Sale",
+    "retailTechnology.pricing": "Dynamic Pricing",
+    "retailTechnology.promotion": "Promotion Management",
+    "retailTechnology.retail": "Retail Technology",
+    "retailTechnology.rfid": "RFID Technology",
+    "retailTechnology.security": "Retail Security",
+    "retailTechnology.surveillance": "Store Surveillance"
+  },
+  "ar": {
+    "retailTechnology.analytics": "تحليلات البيع بالتجزئة",
+    "retailTechnology.beacon": "منارة البيع بالتجزئة",
+    "retailTechnology.customer": "إدارة العملاء",
+    "retailTechnology.digital": "اللافتات الرقمية",
+    "retailTechnology.ecommerce": "التجارة الإلكترونية للبيع بالتجزئة",
+    "retailTechnology.forecasting": "التنبؤ بالمبيعات",
+    "retailTechnology.instore": "تقنية المتجر",
+    "retailTechnology.inventory": "مخزون البيع بالتجزئة",
+    "retailTechnology.kiosk": "كشك الخدمة الذاتية",
+    "retailTechnology.loyalty": "برنامج الولاء",
+    "retailTechnology.merchandising": "الترويج الرقمي",
+    "retailTechnology.mobile": "نقطة البيع المحمولة",
+    "retailTechnology.omnichannel": "البيع بالتجزئة متعدد القنوات",
+    "retailTechnology.payment": "الدفع في البيع بالتجزئة",
+    "retailTechnology.planogram": "مخطط المنتج",
+    "retailTechnology.pos": "نقطة البيع",
+    "retailTechnology.pricing": "التسعير الديناميكي",
+    "retailTechnology.promotion": "إدارة العروض الترويجية",
+    "retailTechnology.retail": "تقنية البيع بالتجزئة",
+    "retailTechnology.rfid": "تقنية RFID",
+    "retailTechnology.security": "أمن البيع بالتجزئة",
+    "retailTechnology.surveillance": "مراقبة المتجر"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/returnManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "returnManagement.authorization": "Return Authorization",
+    "returnManagement.credit": "Credit Note",
+    "returnManagement.damaged": "Damaged Goods",
+    "returnManagement.debit": "Debit Note",
+    "returnManagement.defective": "Defective Product",
+    "returnManagement.disposition": "Disposition",
+    "returnManagement.exchange": "Exchange",
+    "returnManagement.inspection": "Return Inspection",
+    "returnManagement.policy": "Return Policy",
+    "returnManagement.processing": "Return Processing",
+    "returnManagement.reason": "Return Reason",
+    "returnManagement.recall": "Product Recall",
+    "returnManagement.refund": "Refund",
+    "returnManagement.repair": "Repair",
+    "returnManagement.replacement": "Replacement",
+    "returnManagement.restocking": "Restocking",
+    "returnManagement.return": "Return Management",
+    "returnManagement.reversal": "Reversal",
+    "returnManagement.rework": "Rework",
+    "returnManagement.rma": "RMA",
+    "returnManagement.scrap": "Scrap",
+    "returnManagement.warranty": "Warranty Return"
+  },
+  "ar": {
+    "returnManagement.authorization": "تصريح المرتجع",
+    "returnManagement.credit": "إشعار دائن",
+    "returnManagement.damaged": "بضائع تالفة",
+    "returnManagement.debit": "إشعار مدين",
+    "returnManagement.defective": "منتج معيب",
+    "returnManagement.disposition": "التصرف بالمرتجع",
+    "returnManagement.exchange": "التبديل",
+    "returnManagement.inspection": "فحص المرتجع",
+    "returnManagement.policy": "سياسة الإرجاع",
+    "returnManagement.processing": "معالجة المرتجع",
+    "returnManagement.reason": "سبب الإرجاع",
+    "returnManagement.recall": "سحب المنتج",
+    "returnManagement.refund": "استرداد المبلغ",
+    "returnManagement.repair": "إصلاح",
+    "returnManagement.replacement": "الاستبدال",
+    "returnManagement.restocking": "إعادة التخزين",
+    "returnManagement.return": "إدارة المرتجعات",
+    "returnManagement.reversal": "عكس العملية",
+    "returnManagement.rework": "إعادة التشغيل",
+    "returnManagement.rma": "تفويض المرتجع",
+    "returnManagement.scrap": "الخردة",
+    "returnManagement.warranty": "مرتجعات الضمان"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/returnsManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "returnsManagement.approval": "Return Approval",
+    "returnsManagement.authorization": "Return Authorization",
+    "returnsManagement.condition": "Product Condition",
+    "returnsManagement.credit": "Store Credit",
+    "returnsManagement.disposal": "Product Disposal",
+    "returnsManagement.exchange": "Exchange",
+    "returnsManagement.inspection": "Return Inspection",
+    "returnsManagement.label": "Return Label",
+    "returnsManagement.policy": "Return Policy",
+    "returnsManagement.processing": "Return Processing",
+    "returnsManagement.reason": "Return Reason",
+    "returnsManagement.refund": "Refund",
+    "returnsManagement.refurbishment": "Refurbishment",
+    "returnsManagement.replacement": "Replacement",
+    "returnsManagement.request": "Return Request",
+    "returnsManagement.restocking": "Restocking Fee",
+    "returnsManagement.return": "Return",
+    "returnsManagement.returns": "Returns",
+    "returnsManagement.reversal": "Payment Reversal",
+    "returnsManagement.rma": "RMA",
+    "returnsManagement.shipping": "Return Shipping",
+    "returnsManagement.tracking": "Return Tracking"
+  },
+  "ar": {
+    "returnsManagement.approval": "الموافقة على الإرجاع",
+    "returnsManagement.authorization": "ترخيص الإرجاع",
+    "returnsManagement.condition": "حالة المنتج",
+    "returnsManagement.credit": "رصيد المتجر",
+    "returnsManagement.disposal": "التخلص من المنتج",
+    "returnsManagement.exchange": "التبديل",
+    "returnsManagement.inspection": "فحص الإرجاع",
+    "returnsManagement.label": "ملصق الإرجاع",
+    "returnsManagement.policy": "سياسة الإرجاع",
+    "returnsManagement.processing": "معالجة الإرجاع",
+    "returnsManagement.reason": "سبب الإرجاع",
+    "returnsManagement.refund": "الاسترداد",
+    "returnsManagement.refurbishment": "التجديد",
+    "returnsManagement.replacement": "الاستبدال",
+    "returnsManagement.request": "طلب الإرجاع",
+    "returnsManagement.restocking": "رسوم إعادة التخزين",
+    "returnsManagement.return": "الإرجاع",
+    "returnsManagement.returns": "المرتجعات",
+    "returnsManagement.reversal": "عكس الدفع",
+    "returnsManagement.rma": "ترخيص إرجاع البضائع",
+    "returnsManagement.shipping": "شحن الإرجاع",
+    "returnsManagement.tracking": "تتبع الإرجاع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/revenueManagementExt.translations.json">
+<![CDATA[
+{
+  "en": {
+    "revenueManagementExt.analysis": "Revenue Analysis",
+    "revenueManagementExt.assurance": "Revenue Assurance",
+    "revenueManagementExt.cycle": "Revenue Cycle",
+    "revenueManagementExt.forecast": "Revenue Forecast",
+    "revenueManagementExt.generation": "Revenue Generation",
+    "revenueManagementExt.growth": "Revenue Growth",
+    "revenueManagementExt.leakage": "Revenue Leakage",
+    "revenueManagementExt.metrics": "Revenue Metrics",
+    "revenueManagementExt.model": "Revenue Model",
+    "revenueManagementExt.monitoring": "Revenue Monitoring",
+    "revenueManagementExt.optimization": "Revenue Optimization",
+    "revenueManagementExt.performance": "Revenue Performance",
+    "revenueManagementExt.pricing": "Revenue Pricing",
+    "revenueManagementExt.projection": "Revenue Projection",
+    "revenueManagementExt.recognition": "Revenue Recognition",
+    "revenueManagementExt.reporting": "Revenue Reporting",
+    "revenueManagementExt.revenue": "Revenue Management",
+    "revenueManagementExt.strategy": "Pricing Strategy",
+    "revenueManagementExt.stream": "Revenue Stream",
+    "revenueManagementExt.target": "Revenue Target",
+    "revenueManagementExt.tracking": "Revenue Tracking",
+    "revenueManagementExt.variance": "Revenue Variance"
+  },
+  "ar": {
+    "revenueManagementExt.analysis": "تحليل الإيرادات",
+    "revenueManagementExt.assurance": "ضمان الإيرادات",
+    "revenueManagementExt.cycle": "دورة الإيرادات",
+    "revenueManagementExt.forecast": "توقع الإيرادات",
+    "revenueManagementExt.generation": "توليد الإيرادات",
+    "revenueManagementExt.growth": "نمو الإيرادات",
+    "revenueManagementExt.leakage": "تسرب الإيرادات",
+    "revenueManagementExt.metrics": "مقاييس الإيرادات",
+    "revenueManagementExt.model": "نموذج الإيرادات",
+    "revenueManagementExt.monitoring": "مراقبة الإيرادات",
+    "revenueManagementExt.optimization": "تحسين الإيرادات",
+    "revenueManagementExt.performance": "أداء الإيرادات",
+    "revenueManagementExt.pricing": "تسعير الإيرادات",
+    "revenueManagementExt.projection": "إسقاط الإيرادات",
+    "revenueManagementExt.recognition": "الاعتراف بالإيرادات",
+    "revenueManagementExt.reporting": "الإبلاغ عن الإيرادات",
+    "revenueManagementExt.revenue": "إدارة الإيرادات",
+    "revenueManagementExt.strategy": "استراتيجية التسعير",
+    "revenueManagementExt.stream": "تدفق الإيرادات",
+    "revenueManagementExt.target": "هدف الإيرادات",
+    "revenueManagementExt.tracking": "تتبع الإيرادات",
+    "revenueManagementExt.variance": "تباين الإيرادات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/revenueOperations.translations.json">
+<![CDATA[
+{
+  "en": {
+    "revenueOperations.arr": "Annual Recurring Revenue (ARR)",
+    "revenueOperations.churnReduction": "Churn Reduction",
+    "revenueOperations.contractManagement": "Contract Management",
+    "revenueOperations.customerLifetimeValue": "Customer Lifetime Value",
+    "revenueOperations.customerSuccess": "Customer Success",
+    "revenueOperations.dealDesk": "Deal Desk",
+    "revenueOperations.demandGeneration": "Demand Generation",
+    "revenueOperations.description": "Unified revenue process and system management",
+    "revenueOperations.discountManagement": "Discount Management",
+    "revenueOperations.expansionStrategy": "Expansion Strategy",
+    "revenueOperations.goToMarket": "Go-to-Market",
+    "revenueOperations.leadManagement": "Lead Management",
+    "revenueOperations.magicNumber": "Magic Number",
+    "revenueOperations.mrr": "Monthly Recurring Revenue (MRR)",
+    "revenueOperations.netRevenueRetention": "Net Revenue Retention",
+    "revenueOperations.opportunityManagement": "Opportunity Management",
+    "revenueOperations.paybackPeriod": "Payback Period",
+    "revenueOperations.pricingStrategy": "Pricing Strategy",
+    "revenueOperations.renewalManagement": "Renewal Management",
+    "revenueOperations.revenueMetrics": "Revenue Metrics",
+    "revenueOperations.revenueStrategy": "Revenue Strategy",
+    "revenueOperations.revOps": "Revenue Operations",
+    "revenueOperations.ruleOf40": "Rule of 40",
+    "revenueOperations.title": "Revenue Operations"
+  },
+  "ar": {
+    "revenueOperations.arr": "الإيرادات السنوية المتكررة",
+    "revenueOperations.churnReduction": "تقليل معدل الانسحاب",
+    "revenueOperations.contractManagement": "إدارة العقود",
+    "revenueOperations.customerLifetimeValue": "القيمة الدائمة للعميل",
+    "revenueOperations.customerSuccess": "نجاح العملاء",
+    "revenueOperations.dealDesk": "مكتب الصفقات",
+    "revenueOperations.demandGeneration": "توليد الطلب",
+    "revenueOperations.description": "إدارة عملية ونظام الإيرادات الموحد",
+    "revenueOperations.discountManagement": "إدارة الخصومات",
+    "revenueOperations.expansionStrategy": "استراتيجية التوسع",
+    "revenueOperations.goToMarket": "الدخول إلى السوق",
+    "revenueOperations.leadManagement": "إدارة العملاء المحتملين",
+    "revenueOperations.magicNumber": "الرقم السحري",
+    "revenueOperations.mrr": "الإيرادات الشهرية المتكررة",
+    "revenueOperations.netRevenueRetention": "صافي الاحتفاظ بالإيرادات",
+    "revenueOperations.opportunityManagement": "إدارة الفرص",
+    "revenueOperations.paybackPeriod": "فترة الاسترداد",
+    "revenueOperations.pricingStrategy": "استراتيجية التسعير",
+    "revenueOperations.renewalManagement": "إدارة التجديد",
+    "revenueOperations.revenueMetrics": "مقاييس الإيرادات",
+    "revenueOperations.revenueStrategy": "استراتيجية الإيرادات",
+    "revenueOperations.revOps": "عمليات الإيرادات",
+    "revenueOperations.ruleOf40": "قاعدة الأربعين",
+    "revenueOperations.title": "عمليات الإيرادات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/rfq.translations.json">
+<![CDATA[
+{
+  "en": {
+    "rfq.award": "Award Contract",
+    "rfq.awardContract": "منح العقد",
+    "rfq.bidAmount": "قيمة العرض",
+    "rfq.bidProposal": "المقترح",
+    "rfq.bids": "bids",
+    "rfq.bidTimeline": "الجدول الزمني",
+    "rfq.bidValidity": "صلاحية العرض",
+    "rfq.budget": "Budget",
+    "rfq.category": "Category",
+    "rfq.create": "Create RFQ",
+    "rfq.createRFQ": "إنشاء طلب عرض",
+    "rfq.due": "Due",
+    "rfq.id": "RFQ ID",
+    "rfq.inviteVendors": "دعوة الموردين",
+    "rfq.noBidsYet": "لم يتم استلام عروض بعد",
+    "rfq.proposals": "Proposals",
+    "rfq.receivedBids": "العروض المستلمة",
+    "rfq.review": "Review Bids",
+    "rfq.reviewBids": "مراجعة العروض",
+    "rfq.rfqAttachments": "المرفقات",
+    "rfq.rfqBudget": "نطاق الميزانية",
+    "rfq.rfqCategory": "الفئة",
+    "rfq.rfqDeadline": "الموعد النهائي للتقديم",
+    "rfq.rfqDescription": "الوصف",
+    "rfq.rfqNumber": "رقم طلب العرض",
+    "rfq.rfqRequirements": "المتطلبات",
+    "rfq.rfqTitle": "العنوان",
+    "rfq.submit": "Submit Bid",
+    "rfq.submitBid": "تقديم عرض",
+    "rfq.title": "RFQs & Bids"
+  },
+  "ar": {
+    "rfq.award": "منح العقد",
+    "rfq.awardContract": "منح العقد",
+    "rfq.bidAmount": "قيمة العرض",
+    "rfq.bidProposal": "المقترح",
+    "rfq.bids": "عروض",
+    "rfq.bidTimeline": "الجدول الزمني",
+    "rfq.bidValidity": "صلاحية العرض",
+    "rfq.budget": "الميزانية",
+    "rfq.category": "الفئة",
+    "rfq.create": "إنشاء طلب عرض",
+    "rfq.createRFQ": "إنشاء طلب عرض",
+    "rfq.due": "تاريخ الاستحقاق",
+    "rfq.id": "رقم طلب العرض",
+    "rfq.inviteVendors": "دعوة الموردين",
+    "rfq.noBidsYet": "لم يتم استلام عروض بعد",
+    "rfq.proposals": "المقترحات",
+    "rfq.receivedBids": "العروض المستلمة",
+    "rfq.review": "مراجعة العروض",
+    "rfq.reviewBids": "مراجعة العروض",
+    "rfq.rfqAttachments": "المرفقات",
+    "rfq.rfqBudget": "نطاق الميزانية",
+    "rfq.rfqCategory": "الفئة",
+    "rfq.rfqDeadline": "الموعد النهائي للتقديم",
+    "rfq.rfqDescription": "الوصف",
+    "rfq.rfqNumber": "رقم طلب العرض",
+    "rfq.rfqRequirements": "المتطلبات",
+    "rfq.rfqTitle": "العنوان",
+    "rfq.submit": "تقديم عرض",
+    "rfq.submitBid": "تقديم عرض",
+    "rfq.title": "طلبات العروض والمناقصات"
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

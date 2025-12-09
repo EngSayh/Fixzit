@@ -1,0 +1,3060 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/fm/administration/assets/new/page.tsx">
+<![CDATA[
+"use client";
+
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { BarChart, HardDriveDownload, Layers, Workflow } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+
+type AssetFormValues = {
+  name: string;
+  category: string;
+  serial: string;
+  value: string;
+  propertyId: string;
+  notes: string;
+  attachments: FileList | null;
+};
+
+export default function CreateAssetRecordPage() {
+  const { hasOrgContext, guard, supportBanner, orgId } = useFmOrgGuard({
+    moduleId: "administration",
+  });
+  const auto = useAutoTranslator("fm.administration.assets.new");
+  const [serverError, setServerError] = useState<string | null>(null);
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<AssetFormValues>({
+    defaultValues: {
+      name: "",
+      category: "",
+      serial: "",
+      value: "",
+      propertyId: "",
+      notes: "",
+      attachments: null,
+    },
+  });
+  const watchedAttachments = watch("attachments");
+
+  const onSubmit = async (values: AssetFormValues) => {
+    setServerError(null);
+    let toastId: string | number | undefined;
+    try {
+      const numericValue = values.value ? Number(values.value) : undefined;
+      if (numericValue !== undefined && Number.isNaN(numericValue)) {
+        throw new Error(
+          auto("Book value must be a valid number.", "form.validation.value"),
+        );
+      }
+
+      const payload = {
+        name: values.name,
+        type: (values.category || "OTHER").toUpperCase(),
+        category: values.category || "GENERAL",
+        serialNumber: values.serial || undefined,
+        propertyId: values.propertyId,
+        status: "ACTIVE",
+        tags: ["administration", "asset"],
+        description: values.notes,
+        ownership: {
+          type: "OWNED",
+        },
+        details: {
+          totalArea: undefined,
+        },
+        bookValue: numericValue,
+      };
+
+      const formData = new FormData();
+      formData.append("metadata", JSON.stringify(payload));
+
+      const attachments = values.attachments
+        ? Array.from(values.attachments)
+        : [];
+      const MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024;
+      attachments.forEach((file) => {
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+          throw new Error(
+            auto(
+              "Attachments must be smaller than 15MB.",
+              "form.validation.attachmentSize",
+            ),
+          );
+        }
+        formData.append("attachments", file);
+      });
+
+      toastId = toast.loading(auto("Saving asset...", "toast.saving"));
+      const response = await fetch("/api/assets", {
+        method: "POST",
+        headers: {
+          ...(orgId && { "x-tenant-id": orgId }),
+        } as HeadersInit,
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.error ?? "Failed to create asset");
+      }
+
+      toast.success(auto("Asset saved successfully.", "form.success"), {
+        id: toastId,
+      });
+      reset();
+    } catch (_error) {
+      const message =
+        _error instanceof Error ? _error.message : "Request failed";
+      setServerError(message);
+      if (toastId) {
+        toast.error(message, { id: toastId });
+      } else {
+        toast.error(message);
+      }
+    }
+  };
+
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="administration" />
+      {supportBanner}
+
+      <header className="space-y-2">
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+          {auto("Asset register", "header.kicker")}
+        </p>
+        <h1 className="text-3xl font-semibold">
+          {auto("Add a new enterprise asset", "header.title")}
+        </h1>
+        <p className="text-muted-foreground">
+          {auto(
+            "Feed both finance and facilities teams with the metadata they need.",
+            "header.subtitle",
+          )}
+        </p>
+      </header>
+
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        encType="multipart/form-data"
+        className="space-y-6"
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle>{auto("Asset profile", "form.title")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="name">{auto("Asset name", "form.name")}</Label>
+                <Input
+                  id="name"
+                  placeholder="Backup Generator - HQ"
+                  disabled={isSubmitting}
+                  {...register("name", {
+                    required: auto(
+                      "Asset name is required.",
+                      "form.validation.name",
+                    ),
+                  })}
+                />
+                {errors.name && (
+                  <p className="text-sm text-destructive">
+                    {errors.name.message}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="category">
+                  {auto("Category", "form.category")}
+                </Label>
+                <Input
+                  id="category"
+                  placeholder="Power / MEP"
+                  disabled={isSubmitting}
+                  {...register("category")}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="serial">
+                  {auto("Serial / asset tag", "form.serial")}
+                </Label>
+                <Input
+                  id="serial"
+                  disabled={isSubmitting}
+                  {...register("serial")}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="value">
+                  {auto("Book value (SAR)", "form.value")}
+                </Label>
+                <Input
+                  id="value"
+                  type="number"
+                  step="0.01"
+                  disabled={isSubmitting}
+                  {...register("value", {
+                    validate: (val) =>
+                      !val ||
+                      !Number.isNaN(Number(val)) ||
+                      auto("Value must be a number.", "form.validation.value"),
+                  })}
+                />
+                {errors.value && (
+                  <p className="text-sm text-destructive">
+                    {errors.value.message}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="property">
+                  {auto("Property ID", "form.property")}
+                </Label>
+                <Input
+                  id="property"
+                  placeholder="PROP-123"
+                  disabled={isSubmitting}
+                  {...register("propertyId", {
+                    required: auto(
+                      "Property ID is required.",
+                      "form.validation.property",
+                    ),
+                  })}
+                />
+                {errors.propertyId && (
+                  <p className="text-sm text-destructive">
+                    {errors.propertyId.message}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="notes">
+                {auto("Notes & maintenance context", "form.notes")}
+              </Label>
+              <Textarea
+                id="notes"
+                rows={4}
+                disabled={isSubmitting}
+                placeholder={auto(
+                  "Include warranty, vendor, and contact info",
+                  "form.notes.placeholder",
+                )}
+                {...register("notes")}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="attachments">
+                {auto("Attach documents", "form.attach")}
+              </Label>
+              <Input
+                id="attachments"
+                type="file"
+                multiple
+                disabled={isSubmitting}
+                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                {...register("attachments")}
+              />
+              {watchedAttachments && watchedAttachments.length > 0 && (
+                <ul className="list-disc space-y-1 ps-5 text-sm text-muted-foreground">
+                  {Array.from(watchedAttachments).map((file) => (
+                    <li key={`${file.name}-${file.lastModified}`}>
+                      {file.name}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button type="button" variant="outline" disabled={isSubmitting}>
+                <HardDriveDownload className="me-2 h-4 w-4" />
+                {auto("Upload from drive", "form.attach.drive")}
+              </Button>
+              <Button type="button" disabled={isSubmitting}>
+                <Layers className="me-2 h-4 w-4" />
+                {auto("Add to asset hierarchy", "form.hierarchy")}
+              </Button>
+            </div>
+            {serverError && (
+              <p className="text-sm text-destructive">{serverError}</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="mt-6 border-dashed border-border/70">
+          <CardHeader>
+            <CardTitle>{auto("Analytics hooks", "analytics.title")}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+            <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1">
+              <BarChart className="h-4 w-4" />
+              {auto("Feed depreciation schedules", "analytics.depreciation")}
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1">
+              <Workflow className="h-4 w-4" />
+              {auto("Sync to CMMS work orders", "analytics.cmms")}
+            </span>
+          </CardContent>
+        </Card>
+
+        <div className="flex justify-end gap-3 pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isSubmitting}
+            onClick={() => reset()}
+          >
+            {auto("Reset form", "actions.reset")}
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting
+              ? auto("Submitting...", "actions.submitting")
+              : auto("Save asset", "actions.save")}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/administration/page.tsx">
+<![CDATA[
+"use client";
+
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import {
+  Users,
+  Shield,
+  FileText,
+  Settings,
+  BarChart3,
+  Database,
+  Bell,
+  Mail,
+  FileCode,
+  Lock,
+  Activity,
+  Zap,
+} from "lucide-react";
+
+export default function AdministrationPage() {
+  const { guard, orgId, supportBanner } = useFmOrgGuard({
+    moduleId: "administration",
+  });
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const { t } = useTranslation();
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login?callbackUrl=/fm/administration");
+    }
+    if (status === "authenticated" && session?.user?.role !== "SUPER_ADMIN") {
+      router.push("/fm/dashboard");
+    }
+  }, [status, session, router]);
+
+  if (status === "loading") {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">
+            {t("common.loading", "Loading...")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (session?.user?.role !== "SUPER_ADMIN") {
+    return null;
+  }
+
+  if (!orgId) {
+    return (
+      <div className="p-6 space-y-6">
+        {supportBanner}
+        {guard}
+      </div>
+    );
+  }
+
+  const adminModules = [
+    {
+      id: "users",
+      name: t("admin.users.title", "User Management"),
+      description: t(
+        "admin.users.description",
+        "Manage users, roles, and permissions",
+      ),
+      icon: Users,
+      href: "/admin",
+      color: "bg-primary",
+      stats: {
+        label: t("admin.users.totalUsers", "Total Users"),
+        value: "---",
+      },
+    },
+    {
+      id: "roles",
+      name: t("admin.roles.title", "Roles & Permissions"),
+      description: t(
+        "admin.roles.description",
+        "Configure RBAC policies and permissions",
+      ),
+      icon: Shield,
+      href: "/admin",
+      color: "bg-purple-500",
+      stats: {
+        label: t("admin.roles.totalRoles", "Total Roles"),
+        value: "---",
+      },
+    },
+    {
+      id: "audit",
+      name: t("admin.audit.title", "Audit Logs"),
+      description: t(
+        "admin.audit.description",
+        "View system activity and compliance logs",
+      ),
+      icon: FileText,
+      href: "/admin/audit-logs",
+      color: "bg-green-500",
+      stats: {
+        label: t("admin.audit.recentEvents", "Recent Events"),
+        value: "---",
+      },
+    },
+    {
+      id: "cms",
+      name: t("admin.cms.title", "Content Management"),
+      description: t(
+        "admin.cms.description",
+        "Manage CMS content, pages, and media",
+      ),
+      icon: FileCode,
+      href: "/admin/cms",
+      color: "bg-orange-500",
+      stats: { label: t("admin.cms.totalPages", "Total Pages"), value: "---" },
+    },
+    {
+      id: "settings",
+      name: t("admin.settings.title", "System Settings"),
+      description: t(
+        "admin.settings.description",
+        "Configure system-wide settings and preferences",
+      ),
+      icon: Settings,
+      href: "/settings",
+      color: "bg-gray-500",
+      stats: {
+        label: t("admin.settings.categories", "Categories"),
+        value: "10+",
+      },
+    },
+    {
+      id: "features",
+      name: t("admin.features.title", "Feature Flags"),
+      description: t(
+        "admin.features.description",
+        "Enable/disable features dynamically",
+      ),
+      icon: Zap,
+      href: "/admin/feature-settings",
+      color: "bg-yellow-500",
+      stats: {
+        label: t("admin.features.active", "Active Features"),
+        value: "---",
+      },
+    },
+    {
+      id: "database",
+      name: t("admin.database.title", "Database Management"),
+      description: t(
+        "admin.database.description",
+        "Monitor database health and performance",
+      ),
+      icon: Database,
+      href: "/fm/system",
+      color: "bg-red-500",
+      stats: { label: t("admin.database.status", "Status"), value: "Healthy" },
+    },
+    {
+      id: "notifications",
+      name: t("admin.notifications.title", "Notifications"),
+      description: t(
+        "admin.notifications.description",
+        "Manage system notifications and alerts",
+      ),
+      icon: Bell,
+      href: "/notifications",
+      color: "bg-indigo-500",
+      stats: {
+        label: t("admin.notifications.pending", "Pending"),
+        value: "---",
+      },
+    },
+    {
+      id: "email",
+      name: t("admin.email.title", "Email Configuration"),
+      description: t(
+        "admin.email.description",
+        "Configure SMTP settings and email templates",
+      ),
+      icon: Mail,
+      href: "/settings",
+      color: "bg-teal-500",
+      stats: { label: t("admin.email.templates", "Templates"), value: "12" },
+    },
+    {
+      id: "security",
+      name: t("admin.security.title", "Security"),
+      description: t(
+        "admin.security.description",
+        "Manage security policies and 2FA",
+      ),
+      icon: Lock,
+      href: "/settings",
+      color: "bg-pink-500",
+      stats: {
+        label: t("admin.security.policies", "Active Policies"),
+        value: "5",
+      },
+    },
+    {
+      id: "monitoring",
+      name: t("admin.monitoring.title", "System Monitoring"),
+      description: t(
+        "admin.monitoring.description",
+        "Real-time system health and metrics",
+      ),
+      icon: Activity,
+      href: "/fm/system",
+      color: "bg-cyan-500",
+      stats: { label: t("admin.monitoring.uptime", "Uptime"), value: "99.9%" },
+    },
+    {
+      id: "reports",
+      name: t("admin.reports.title", "Admin Reports"),
+      description: t(
+        "admin.reports.description",
+        "Generate admin-level reports and analytics",
+      ),
+      icon: BarChart3,
+      href: "/fm/reports",
+      color: "bg-emerald-500",
+      stats: { label: t("admin.reports.generated", "Generated"), value: "---" },
+    },
+  ];
+
+  return (
+    <div className="container mx-auto px-4 py-8 max-w-7xl space-y-4">
+      {supportBanner}
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold mb-2">
+          {t("admin.administration.title", "System Administration")}
+        </h1>
+        <p className="text-muted-foreground text-lg">
+          {t(
+            "admin.administration.subtitle",
+            "Manage all aspects of the Fixzit platform",
+          )}
+        </p>
+        <div className="mt-4 flex items-center gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <Shield className="h-4 w-4 text-primary" />
+            <span className="font-medium">
+              {t("sidebar.role", "Role")}:{" "}
+              <span className="text-primary">SUPER ADMIN</span>
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Activity className="h-4 w-4 text-success" />
+            <span className="font-medium">
+              {t("admin.system.status", "System")}:{" "}
+              <span className="text-success">
+                {t("admin.system.operational", "Operational")}
+              </span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Admin Modules Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {adminModules.map((module) => {
+          const Icon = module.icon;
+          return (
+            <div
+              key={module.id}
+              onClick={() => router.push(module.href)}
+              className="bg-card border border-border rounded-lg p-6 hover:shadow-lg transition-shadow cursor-pointer group"
+            >
+              {/* Icon */}
+              <div
+                className={`${module.color} w-12 h-12 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}
+              >
+                <Icon className="h-6 w-6 text-white" />
+              </div>
+
+              {/* Title & Description */}
+              <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors">
+                {module.name}
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                {module.description}
+              </p>
+
+              {/* Stats */}
+              <div className="pt-4 border-t border-border">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">
+                    {module.stats.label}
+                  </span>
+                  <span className="font-semibold">{module.stats.value}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Quick Actions */}
+      <div className="mt-12 bg-card border border-border rounded-lg p-6">
+        <h2 className="text-2xl font-semibold mb-4">
+          {t("dashboard.quickActions", "Quick Actions")}
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <button
+            onClick={() => router.push("/admin")}
+            className="bg-primary text-primary-foreground px-4 py-3 rounded-lg hover:bg-primary/90 transition-colors font-medium"
+          >
+            {t("admin.users.createUser", "Create User")}
+          </button>
+          <button
+            onClick={() => router.push("/admin")}
+            className="bg-secondary text-secondary-foreground px-4 py-3 rounded-lg hover:bg-secondary/90 transition-colors font-medium"
+          >
+            {t("admin.roles.createRole", "Create Role")}
+          </button>
+          <button
+            onClick={() => router.push("/admin/audit-logs")}
+            className="bg-secondary text-secondary-foreground px-4 py-3 rounded-lg hover:bg-secondary/90 transition-colors font-medium"
+          >
+            {t("admin.audit.viewLogs", "View Audit Logs")}
+          </button>
+          <button
+            onClick={() => router.push("/fm/system")}
+            className="bg-secondary text-secondary-foreground px-4 py-3 rounded-lg hover:bg-secondary/90 transition-colors font-medium"
+          >
+            {t("admin.system.monitor", "System Monitor")}
+          </button>
+        </div>
+      </div>
+
+      {/* System Info */}
+      <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-card border border-border rounded-lg p-6">
+          <div className="flex items-center gap-3 mb-2">
+            <Database className="h-5 w-5 text-primary" />
+            <h3 className="font-semibold">
+              {t("admin.database.title", "Database")}
+            </h3>
+          </div>
+          <p className="text-sm text-muted-foreground mb-2">
+            {t("admin.database.status", "Status")}
+          </p>
+          <p className="text-2xl font-bold text-success">
+            {t("admin.database.healthy", "Healthy")}
+          </p>
+        </div>
+        <div className="bg-card border border-border rounded-lg p-6">
+          <div className="flex items-center gap-3 mb-2">
+            <Activity className="h-5 w-5 text-success" />
+            <h3 className="font-semibold">
+              {t("admin.monitoring.title", "System Monitoring")}
+            </h3>
+          </div>
+          <p className="text-sm text-muted-foreground mb-2">
+            {t("admin.monitoring.uptime", "Uptime")}
+          </p>
+          <p className="text-2xl font-bold">99.9%</p>
+        </div>
+        <div className="bg-card border border-border rounded-lg p-6">
+          <div className="flex items-center gap-3 mb-2">
+            <Users className="h-5 w-5 text-purple-500" />
+            <h3 className="font-semibold">
+              {t("admin.users.active", "Active Users")}
+            </h3>
+          </div>
+          <p className="text-sm text-muted-foreground mb-2">
+            {t("admin.users.online", "Online Now")}
+          </p>
+          <p className="text-2xl font-bold">---</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/administration/policies/new/page.tsx">
+<![CDATA[
+"use client";
+
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { BookCheck, Share2, Shield } from "lucide-react";
+
+export default function CreatePolicyPage() {
+  const { hasOrgContext, guard, supportBanner } = useFmOrgGuard({
+    moduleId: "administration",
+  });
+  const auto = useAutoTranslator("fm.administration.policies.new");
+
+  if (!hasOrgContext) {
+    return guard;
+  }
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="administration" />
+      {supportBanner}
+
+      <header className="space-y-2">
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+          {auto("Policy hub", "header.kicker")}
+        </p>
+        <h1 className="text-3xl font-semibold">
+          {auto("Draft a new policy", "header.title")}
+        </h1>
+        <p className="text-muted-foreground">
+          {auto(
+            "Publish HR, finance, or compliance policies with review workflows.",
+            "header.subtitle",
+          )}
+        </p>
+      </header>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{auto("Policy details", "form.title")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="title">
+                {auto("Policy title", "form.titleField")}
+              </Label>
+              <Input
+                id="title"
+                placeholder={auto(
+                  "Example: Vendor onboarding",
+                  "form.title.placeholder",
+                )}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="owner">{auto("Owner", "form.owner")}</Label>
+              <Input id="owner" placeholder="Corporate Governance" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="summary">{auto("Summary", "form.summary")}</Label>
+            <Textarea
+              id="summary"
+              rows={4}
+              placeholder={auto(
+                "Purpose, scope, and applicability…",
+                "form.summary.placeholder",
+              )}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="body">{auto("Policy body", "form.body")}</Label>
+            <Textarea
+              id="body"
+              rows={8}
+              placeholder={auto(
+                "Add numbered sections, responsibilities…",
+                "form.body.placeholder",
+              )}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-dashed border-border/70">
+        <CardHeader>
+          <CardTitle>
+            {auto("Publishing options", "publishing.title")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+          <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1">
+            <Shield className="h-4 w-4" />
+            {auto("Requires compliance approval", "publishing.compliance")}
+          </span>
+          <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1">
+            <Share2 className="h-4 w-4" />
+            {auto("Share to FM + HR portals", "publishing.share")}
+          </span>
+        </CardContent>
+      </Card>
+
+      <div className="flex gap-3">
+        <Button variant="outline">{auto("Save draft", "actions.save")}</Button>
+        <Button>
+          <BookCheck className="me-2 h-4 w-4" />
+          {auto("Send for approval", "actions.submit")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/assets/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState, type ReactNode } from "react";
+import useSWR from "swr";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
+import { CardGridSkeleton } from "@/components/skeletons";
+import {
+  Building2,
+  Plus,
+  Search,
+  Settings,
+  Eye,
+  Edit,
+  Trash2,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
+import ClientDate from "@/components/ClientDate";
+
+import { logger } from "@/lib/logger";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { FmGuardedPage } from "@/components/fm/FmGuardedPage";
+interface MaintenanceRecord {
+  date?: string;
+}
+
+interface AssetItem {
+  id: string;
+  name?: string;
+  code?: string;
+  type?: string;
+  category?: string;
+  status?: string;
+  criticality?: string;
+  location?: {
+    building?: string;
+    floor?: string;
+    room?: string;
+  };
+  maintenanceHistory?: MaintenanceRecord[];
+}
+
+export default function AssetsPage() {
+  return (
+    <FmGuardedPage moduleId="assets">
+      {({ orgId, supportBanner }) => (
+        <AssetsPageContent orgId={orgId} supportBanner={supportBanner} />
+      )}
+    </FmGuardedPage>
+  );
+}
+
+type AssetsPageContentProps = {
+  orgId: string;
+  supportBanner?: ReactNode;
+};
+
+function AssetsPageContent({ orgId, supportBanner }: AssetsPageContentProps) {
+  const { data: session } = useSession();
+  const auto = useAutoTranslator("fm.assets");
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+
+  // Fetcher with dynamic tenant ID from session
+  const fetcher = (url: string) => {
+    if (!orgId) return Promise.reject(new Error("No organization ID"));
+    return fetch(url, {
+      headers: { "x-tenant-id": orgId },
+    })
+      .then((r) => r.json())
+      .catch((error) => {
+        logger.error("FM assets fetch error", error);
+        throw error;
+      });
+  };
+
+  const { data, mutate, isLoading } = useSWR(
+    orgId
+      ? [
+          `/api/assets?search=${encodeURIComponent(search)}&type=${typeFilter}&status=${statusFilter}`,
+          orgId,
+        ]
+      : null,
+    ([url]) => fetcher(url),
+  );
+
+  const assets = data?.items || [];
+
+  // Show loading state if no session yet
+  if (!session) {
+    return <CardGridSkeleton count={6} />;
+  }
+
+  return (
+    <div className="space-y-6">
+      {supportBanner}
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">
+            {auto("Asset Management", "header.title")}
+          </h1>
+          <p className="text-muted-foreground">
+            {auto(
+              "Equipment registry and predictive maintenance",
+              "header.subtitle",
+            )}
+          </p>
+        </div>
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-primary hover:bg-primary/90">
+              <Plus className="w-4 h-4 me-2" />
+              {auto("New Asset", "actions.newAsset")}
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>{auto("Add New Asset", "dialog.title")}</DialogTitle>
+            </DialogHeader>
+            <CreateAssetForm
+              orgId={orgId}
+              onCreated={() => {
+                mutate();
+                setCreateOpen(false);
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-wrap gap-4">
+            <div className="flex-1 min-w-64">
+              <div className="relative">
+                <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  placeholder={auto(
+                    "Search assets...",
+                    "filters.searchPlaceholder",
+                  )}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="ps-10"
+                />
+              </div>
+            </div>
+            <Select
+              value={typeFilter}
+              onValueChange={setTypeFilter}
+              className="w-48"
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={auto("Asset Type", "filters.type")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">
+                  {auto("All Types", "filters.allTypes")}
+                </SelectItem>
+                <SelectItem value="HVAC">
+                  {auto("HVAC", "filters.types.hvac")}
+                </SelectItem>
+                <SelectItem value="ELECTRICAL">
+                  {auto("Electrical", "filters.types.electrical")}
+                </SelectItem>
+                <SelectItem value="PLUMBING">
+                  {auto("Plumbing", "filters.types.plumbing")}
+                </SelectItem>
+                <SelectItem value="SECURITY">
+                  {auto("Security", "filters.types.security")}
+                </SelectItem>
+                <SelectItem value="ELEVATOR">
+                  {auto("Elevator", "filters.types.elevator")}
+                </SelectItem>
+                <SelectItem value="GENERATOR">
+                  {auto("Generator", "filters.types.generator")}
+                </SelectItem>
+                <SelectItem value="FIRE_SYSTEM">
+                  {auto("Fire System", "filters.types.fireSystem")}
+                </SelectItem>
+                <SelectItem value="IT_EQUIPMENT">
+                  {auto("IT Equipment", "filters.types.itEquipment")}
+                </SelectItem>
+                <SelectItem value="VEHICLE">
+                  {auto("Vehicle", "filters.types.vehicle")}
+                </SelectItem>
+                <SelectItem value="OTHER">
+                  {auto("Other", "filters.types.other")}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={statusFilter}
+              onValueChange={setStatusFilter}
+              className="w-48"
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={auto("Status", "filters.status")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">
+                  {auto("All Status", "filters.allStatus")}
+                </SelectItem>
+                <SelectItem value="ACTIVE">
+                  {auto("Active", "status.active")}
+                </SelectItem>
+                <SelectItem value="MAINTENANCE">
+                  {auto("Maintenance", "status.maintenance")}
+                </SelectItem>
+                <SelectItem value="OUT_OF_SERVICE">
+                  {auto("Out of Service", "status.outOfService")}
+                </SelectItem>
+                <SelectItem value="DECOMMISSIONED">
+                  {auto("Decommissioned", "status.decommissioned")}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Assets Grid */}
+      {isLoading ? (
+        <CardGridSkeleton count={6} />
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {(assets as AssetItem[]).map((asset) => (
+              <AssetCard
+                key={asset.id}
+                asset={asset}
+                orgId={orgId}
+                onUpdated={mutate}
+              />
+            ))}
+          </div>
+
+          {/* Empty State */}
+          {assets.length === 0 && (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Building2 className="w-12 h-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  {auto("No Assets Found", "empty.title")}
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  {auto(
+                    "Get started by adding your first asset to the registry.",
+                    "empty.subtitle",
+                  )}
+                </p>
+                <Button
+                  onClick={() => setCreateOpen(true)}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  <Plus className="w-4 h-4 me-2" />
+                  {auto("Add Asset", "actions.addAsset")}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function AssetCard({
+  asset,
+  onUpdated,
+  orgId,
+}: {
+  asset: AssetItem;
+  onUpdated: () => void;
+  orgId: string;
+}) {
+  const auto = useAutoTranslator("fm.assets.card");
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  const handleView = () => {
+    setViewDialogOpen(true);
+  };
+
+  const handleEdit = () => {
+    setEditDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    const toastId = toast.loading(
+      auto("Deleting {{name}}...", "toast.deleting").replace(
+        "{{name}}",
+        asset.name ?? "",
+      ),
+    );
+
+    try {
+      const response = await fetch(`/api/assets/${asset.id}`, {
+        method: "DELETE",
+        headers: { "x-tenant-id": orgId },
+      });
+
+      if (response.ok) {
+        toast.success(
+          auto("Asset deleted successfully", "toast.deleteSuccess"),
+          { id: toastId },
+        );
+        onUpdated();
+      } else {
+        const error = await response.json();
+        toast.error(
+          auto(
+            "Failed to delete asset: {{error}}",
+            "toast.deleteFailed",
+          ).replace(
+            "{{error}}",
+            error.error || auto("Unknown error", "toast.unknown"),
+          ),
+          { id: toastId },
+        );
+      }
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      logger.error("Delete error:", error);
+      toast.error(
+        auto("Error deleting asset. Please try again.", "toast.deleteError"),
+        { id: toastId },
+      );
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "ACTIVE":
+        return <CheckCircle className="w-4 h-4 text-success" />;
+      case "MAINTENANCE":
+        return <AlertTriangle className="w-4 h-4 text-accent" />;
+      case "OUT_OF_SERVICE":
+        return <XCircle className="w-4 h-4 text-destructive" />;
+      default:
+        return <Settings className="w-4 h-4 text-muted-foreground" />;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "ACTIVE":
+        return "bg-success/10 text-success-foreground";
+      case "MAINTENANCE":
+        return "bg-warning/10 text-warning-foreground";
+      case "OUT_OF_SERVICE":
+        return "bg-destructive/10 text-destructive-foreground";
+      default:
+        return "bg-muted text-foreground";
+    }
+  };
+
+  return (
+    <Card className="hover:shadow-lg transition-shadow">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <CardTitle className="text-lg">{asset.name}</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">{asset.code}</p>
+          </div>
+          <div className="flex items-center space-x-2">
+            {getStatusIcon(asset.status || "")}
+            <Badge className={getStatusColor(asset.status || "")}>
+              {asset.status?.toLowerCase() || ""}
+            </Badge>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <div className="flex justify-between">
+            <span className="text-sm text-muted-foreground">
+              {auto("Type:", "type")}
+            </span>
+            <span className="text-sm font-medium">{asset.type}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-sm text-muted-foreground">
+              {auto("Category:", "category")}
+            </span>
+            <span className="text-sm font-medium">{asset.category}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-sm text-muted-foreground">
+              {auto("Criticality:", "criticality")}
+            </span>
+            <Badge
+              variant="outline"
+              className={
+                asset.criticality === "CRITICAL"
+                  ? "border-destructive/30 text-destructive"
+                  : asset.criticality === "HIGH"
+                    ? "border-warning text-warning"
+                    : asset.criticality === "MEDIUM"
+                      ? "border-warning text-warning"
+                      : "border-border text-foreground"
+              }
+            >
+              {asset.criticality}
+            </Badge>
+          </div>
+          {asset.location && (
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">
+                {auto("Location:", "location")}
+              </span>
+              <span className="text-sm font-medium">
+                {asset.location.building && `${asset.location.building}`}
+                {asset.location.floor &&
+                  `, ${auto("Floor {{floor}}", "floor").replace(
+                    "{{floor}}",
+                    asset.location.floor ?? "",
+                  )}`}
+                {asset.location.room &&
+                  `, ${auto("Room {{room}}", "room").replace(
+                    "{{room}}",
+                    asset.location.room ?? "",
+                  )}`}
+              </span>
+            </div>
+          )}
+        </div>
+
+        <Separator />
+
+        <div className="flex justify-between items-center">
+          <span className="text-sm text-muted-foreground">
+            {auto("Last Maintenance:", "lastMaintenance")}{" "}
+            {asset.maintenanceHistory &&
+            asset.maintenanceHistory.length > 0 &&
+            asset.maintenanceHistory[asset.maintenanceHistory.length - 1]
+              .date ? (
+              <ClientDate
+                date={
+                  asset.maintenanceHistory[asset.maintenanceHistory.length - 1]
+                    .date as string
+                }
+                format="date-only"
+              />
+            ) : (
+              auto("Never", "never")
+            )}
+          </span>
+          <div className="flex space-x-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleView}
+              aria-label={auto("View asset {{name}}", "actions.viewLabel").replace("{{name}}", asset.name || "")}
+            >
+              <Eye className="w-4 h-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleEdit}
+              aria-label={auto("Edit asset {{name}}", "actions.editLabel").replace("{{name}}", asset.name || "")}
+            >
+              <Edit className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive"
+              onClick={handleDelete}
+              aria-label={auto("Delete asset {{name}}", "actions.deleteLabel").replace("{{name}}", asset.name || "")}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* View Dialog */}
+        <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{asset.name}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">{auto("Code", "view.code")}</p>
+                  <p className="font-medium">{asset.code || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">{auto("Type", "view.type")}</p>
+                  <p className="font-medium">{asset.type || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">{auto("Category", "view.category")}</p>
+                  <p className="font-medium">{asset.category || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">{auto("Status", "view.status")}</p>
+                  <Badge className={getStatusColor(asset.status || "")}>{asset.status || "-"}</Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">{auto("Criticality", "view.criticality")}</p>
+                  <p className="font-medium">{asset.criticality || "-"}</p>
+                </div>
+                {asset.location && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">{auto("Location", "view.location")}</p>
+                    <p className="font-medium">
+                      {asset.location.building}{asset.location.floor ? `, Floor ${asset.location.floor}` : ""}{asset.location.room ? `, Room ${asset.location.room}` : ""}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>{auto("Edit Asset", "edit.title")}</DialogTitle>
+            </DialogHeader>
+            <EditAssetForm
+              asset={asset}
+              orgId={orgId}
+              onUpdated={() => {
+                onUpdated();
+                setEditDialogOpen(false);
+              }}
+              onCancel={() => setEditDialogOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>
+  );
+}
+
+function CreateAssetForm({
+  onCreated,
+  orgId,
+}: {
+  onCreated: () => void;
+  orgId: string;
+}) {
+  const auto = useAutoTranslator("fm.assets.form");
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    type: "",
+    category: "",
+    manufacturer: "",
+    model: "",
+    serialNumber: "",
+    propertyId: "",
+    location: {
+      building: "",
+      floor: "",
+      room: "",
+      coordinates: { lat: 24.7136, lng: 46.6753 }, // Default to Riyadh
+    },
+    specs: {
+      capacity: "",
+      powerRating: "",
+      voltage: "",
+      current: "",
+      frequency: "",
+      dimensions: "",
+      weight: "",
+    },
+    purchase: {
+      date: "",
+      cost: 0,
+      supplier: "",
+      warranty: {
+        period: 12,
+        expiry: "",
+        terms: "",
+      },
+    },
+    status: "ACTIVE",
+    criticality: "MEDIUM",
+    tags: [] as string[],
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const toastId = toast.loading(auto("Creating asset...", "loading"));
+
+    try {
+      const response = await fetch("/api/assets", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tenant-id": orgId,
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        toast.success(auto("Asset created successfully", "success"), {
+          id: toastId,
+        });
+        onCreated();
+      } else {
+        const error = await response.json();
+        toast.error(
+          auto("Failed to create asset: {{error}}", "failed").replace(
+            "{{error}}",
+            error.error || auto("Unknown error", "unknown"),
+          ),
+          { id: toastId },
+        );
+      }
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      logger.error("Error creating asset:", error);
+      toast.error(auto("Error creating asset. Please try again.", "error"), {
+        id: toastId,
+      });
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {auto("Asset Name *", "form.labels.name")}
+          </label>
+          <Input
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {auto("Type *", "form.labels.type")}
+          </label>
+          <Select
+            value={formData.type}
+            onValueChange={(value) => setFormData({ ...formData, type: value })}
+          >
+            <SelectTrigger>
+              <SelectValue
+                placeholder={auto("Select type", "form.placeholders.type")}
+              >
+                {formData.type || ""}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="HVAC">
+                {auto("HVAC", "filters.types.hvac")}
+              </SelectItem>
+              <SelectItem value="ELECTRICAL">
+                {auto("Electrical", "filters.types.electrical")}
+              </SelectItem>
+              <SelectItem value="PLUMBING">
+                {auto("Plumbing", "filters.types.plumbing")}
+              </SelectItem>
+              <SelectItem value="SECURITY">
+                {auto("Security", "filters.types.security")}
+              </SelectItem>
+              <SelectItem value="ELEVATOR">
+                {auto("Elevator", "filters.types.elevator")}
+              </SelectItem>
+              <SelectItem value="GENERATOR">
+                {auto("Generator", "filters.types.generator")}
+              </SelectItem>
+              <SelectItem value="FIRE_SYSTEM">
+                {auto("Fire System", "filters.types.fireSystem")}
+              </SelectItem>
+              <SelectItem value="IT_EQUIPMENT">
+                {auto("IT Equipment", "filters.types.itEquipment")}
+              </SelectItem>
+              <SelectItem value="VEHICLE">
+                {auto("Vehicle", "filters.types.vehicle")}
+              </SelectItem>
+              <SelectItem value="OTHER">
+                {auto("Other", "filters.types.other")}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">
+          {auto("Description", "form.labels.description")}
+        </label>
+        <Textarea
+          value={formData.description}
+          onChange={(e) =>
+            setFormData({ ...formData, description: e.target.value })
+          }
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {auto("Category *", "form.labels.category")}
+          </label>
+          <Input
+            value={formData.category}
+            onChange={(e) =>
+              setFormData({ ...formData, category: e.target.value })
+            }
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {auto("Manufacturer", "form.labels.manufacturer")}
+          </label>
+          <Input
+            value={formData.manufacturer}
+            onChange={(e) =>
+              setFormData({ ...formData, manufacturer: e.target.value })
+            }
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {auto("Model", "form.labels.model")}
+          </label>
+          <Input
+            value={formData.model}
+            onChange={(e) =>
+              setFormData({ ...formData, model: e.target.value })
+            }
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {auto("Serial Number", "form.labels.serial")}
+          </label>
+          <Input
+            value={formData.serialNumber}
+            onChange={(e) =>
+              setFormData({ ...formData, serialNumber: e.target.value })
+            }
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">
+          {auto("Status", "form.labels.status")}
+        </label>
+        <Select
+          value={formData.status}
+          onValueChange={(value) => setFormData({ ...formData, status: value })}
+        >
+          <SelectTrigger>
+            <SelectValue
+              placeholder={auto("Select status", "form.placeholders.status")}
+            />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ACTIVE">
+              {auto("Active", "status.active")}
+            </SelectItem>
+            <SelectItem value="MAINTENANCE">
+              {auto("Maintenance", "status.maintenance")}
+            </SelectItem>
+            <SelectItem value="OUT_OF_SERVICE">
+              {auto("Out of Service", "status.outOfService")}
+            </SelectItem>
+            <SelectItem value="DECOMMISSIONED">
+              {auto("Decommissioned", "status.decommissioned")}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">
+          {auto("Criticality", "form.labels.criticality")}
+        </label>
+        <Select
+          value={formData.criticality}
+          onValueChange={(value) =>
+            setFormData({ ...formData, criticality: value })
+          }
+        >
+          <SelectTrigger>
+            <SelectValue
+              placeholder={auto(
+                "Select criticality",
+                "form.placeholders.criticality",
+              )}
+            />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="LOW">
+              {auto("Low", "form.criticality.low")}
+            </SelectItem>
+            <SelectItem value="MEDIUM">
+              {auto("Medium", "form.criticality.medium")}
+            </SelectItem>
+            <SelectItem value="HIGH">
+              {auto("High", "form.criticality.high")}
+            </SelectItem>
+            <SelectItem value="CRITICAL">
+              {auto("Critical", "form.criticality.critical")}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex justify-end space-x-2 pt-4">
+        <Button type="submit" className="bg-primary hover:bg-primary/90">
+          {auto("Create Asset", "form.actions.submit")}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+function EditAssetForm({
+  asset,
+  onUpdated,
+  onCancel,
+  orgId,
+}: {
+  asset: AssetItem;
+  onUpdated: () => void;
+  onCancel: () => void;
+  orgId: string;
+}) {
+  const auto = useAutoTranslator("fm.assets.form");
+  const [formData, setFormData] = useState({
+    name: asset.name || "",
+    type: asset.type || "",
+    category: asset.category || "",
+    status: asset.status || "ACTIVE",
+    criticality: asset.criticality || "MEDIUM",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    const toastId = toast.loading(auto("Updating asset...", "edit.loading"));
+
+    try {
+      const response = await fetch(`/api/assets/${asset.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tenant-id": orgId,
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        toast.success(auto("Asset updated successfully", "edit.success"), {
+          id: toastId,
+        });
+        onUpdated();
+      } else {
+        const error = await response.json();
+        toast.error(
+          auto("Failed to update asset: {{error}}", "edit.failed").replace(
+            "{{error}}",
+            error.error || auto("Unknown error", "toast.unknown"),
+          ),
+          { id: toastId },
+        );
+      }
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      logger.error("Error updating asset:", error);
+      toast.error(auto("Error updating asset. Please try again.", "edit.error"), {
+        id: toastId,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium mb-1">
+          {auto("Asset Name *", "form.labels.name")}
+        </label>
+        <Input
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          required
+          disabled={isSubmitting}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {auto("Type *", "form.labels.type")}
+          </label>
+          <Select
+            value={formData.type}
+            onValueChange={(value) => setFormData({ ...formData, type: value })}
+            disabled={isSubmitting}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={auto("Select type", "form.placeholders.type")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="HVAC">{auto("HVAC", "filters.types.hvac")}</SelectItem>
+              <SelectItem value="ELECTRICAL">{auto("Electrical", "filters.types.electrical")}</SelectItem>
+              <SelectItem value="PLUMBING">{auto("Plumbing", "filters.types.plumbing")}</SelectItem>
+              <SelectItem value="SECURITY">{auto("Security", "filters.types.security")}</SelectItem>
+              <SelectItem value="ELEVATOR">{auto("Elevator", "filters.types.elevator")}</SelectItem>
+              <SelectItem value="GENERATOR">{auto("Generator", "filters.types.generator")}</SelectItem>
+              <SelectItem value="FIRE_SYSTEM">{auto("Fire System", "filters.types.fireSystem")}</SelectItem>
+              <SelectItem value="IT_EQUIPMENT">{auto("IT Equipment", "filters.types.itEquipment")}</SelectItem>
+              <SelectItem value="VEHICLE">{auto("Vehicle", "filters.types.vehicle")}</SelectItem>
+              <SelectItem value="OTHER">{auto("Other", "filters.types.other")}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {auto("Category *", "form.labels.category")}
+          </label>
+          <Input
+            value={formData.category}
+            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+            required
+            disabled={isSubmitting}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {auto("Status", "form.labels.status")}
+          </label>
+          <Select
+            value={formData.status}
+            onValueChange={(value) => setFormData({ ...formData, status: value })}
+            disabled={isSubmitting}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={auto("Select status", "form.placeholders.status")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ACTIVE">{auto("Active", "status.active")}</SelectItem>
+              <SelectItem value="MAINTENANCE">{auto("Maintenance", "status.maintenance")}</SelectItem>
+              <SelectItem value="OUT_OF_SERVICE">{auto("Out of Service", "status.outOfService")}</SelectItem>
+              <SelectItem value="DECOMMISSIONED">{auto("Decommissioned", "status.decommissioned")}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {auto("Criticality", "form.labels.criticality")}
+          </label>
+          <Select
+            value={formData.criticality}
+            onValueChange={(value) => setFormData({ ...formData, criticality: value })}
+            disabled={isSubmitting}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={auto("Select criticality", "form.placeholders.criticality")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="LOW">{auto("Low", "form.criticality.low")}</SelectItem>
+              <SelectItem value="MEDIUM">{auto("Medium", "form.criticality.medium")}</SelectItem>
+              <SelectItem value="HIGH">{auto("High", "form.criticality.high")}</SelectItem>
+              <SelectItem value="CRITICAL">{auto("Critical", "form.criticality.critical")}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="flex justify-end space-x-2 pt-4">
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+          {auto("Cancel", "form.actions.cancel")}
+        </Button>
+        <Button type="submit" className="bg-primary hover:bg-primary/90" disabled={isSubmitting}>
+          {isSubmitting ? auto("Saving...", "form.actions.saving") : auto("Save Changes", "form.actions.save")}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/compliance/audits/new/page.tsx">
+<![CDATA[
+"use client";
+
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { CalendarCheck2, ClipboardSignature } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { FormEvent, useMemo, useState } from "react";
+import { toast } from "sonner";
+
+type AuditFormState = {
+  name: string;
+  owner: string;
+  start: string;
+  end: string;
+  scope: string;
+};
+
+export default function ComplianceAuditPlanPage() {
+  const { hasOrgContext, guard, supportBanner, orgId } = useFmOrgGuard({
+    moduleId: "compliance",
+  });
+  const auto = useAutoTranslator("fm.compliance.audits.new");
+  const router = useRouter();
+  const [formState, setFormState] = useState<AuditFormState>({
+    name: "",
+    owner: "",
+    start: "",
+    end: "",
+    scope: "",
+  });
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<keyof AuditFormState, string>>
+  >({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmitting, setSubmitting] = useState(false);
+
+  const hasErrors = useMemo(
+    () => Object.keys(fieldErrors).length > 0,
+    [fieldErrors],
+  );
+
+  const handleFieldChange =
+    (field: keyof AuditFormState) =>
+    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setFormState((prev) => ({ ...prev, [field]: event.target.value }));
+    };
+
+  const validate = () => {
+    const errors: Partial<Record<keyof AuditFormState, string>> = {};
+    if (!formState.name.trim()) {
+      errors.name = auto("An audit name is required.", "validation.name");
+    }
+    if (!formState.owner.trim()) {
+      errors.owner = auto(
+        "Assign an owner for accountability.",
+        "validation.owner",
+      );
+    }
+    if (!formState.start) {
+      errors.start = auto("Select a start date.", "validation.start");
+    }
+    if (!formState.end) {
+      errors.end = auto("Select an end date.", "validation.end");
+    }
+    if (formState.start && formState.end) {
+      const startDate = new Date(formState.start);
+      const endDate = new Date(formState.end);
+      if (endDate < startDate) {
+        errors.end = auto(
+          "End date must be after the start date.",
+          "validation.order",
+        );
+      }
+    }
+    if (!formState.scope.trim()) {
+      errors.scope = auto(
+        "Detail the scope for the audit.",
+        "validation.scope",
+      );
+    }
+    return errors;
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSubmitError(null);
+    const validationErrors = validate();
+    setFieldErrors(validationErrors);
+    if (Object.keys(validationErrors).length > 0) {
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const payload = {
+        name: formState.name.trim(),
+        owner: formState.owner.trim(),
+        startDate: formState.start,
+        endDate: formState.end,
+        scope: formState.scope.trim(),
+      };
+
+      const response = await fetch("/api/compliance/audits", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(orgId && { "x-tenant-id": orgId }),
+        } as HeadersInit,
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(
+          body?.error ?? auto("Failed to save audit plan.", "feedback.error"),
+        );
+      }
+
+      toast.success(
+        auto("Audit plan published successfully.", "feedback.success"),
+      );
+      setFormState({ name: "", owner: "", start: "", end: "", scope: "" });
+      setFieldErrors({});
+      router.push("/fm/compliance/audits");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : auto("Unable to submit audit.", "feedback.error");
+      setSubmitError(message);
+      toast.error(message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="compliance" />
+      {supportBanner}
+
+      <header className="space-y-2">
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+          {auto("Audit program", "header.kicker")}
+        </p>
+        <h1 className="text-3xl font-semibold">
+          {auto("Create a new audit plan", "header.title")}
+        </h1>
+        <p className="text-muted-foreground">
+          {auto(
+            "Schedule internal or external audits with owners and timelines.",
+            "header.subtitle",
+          )}
+        </p>
+      </header>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>{auto("Audit scope", "form.title")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="name">{auto("Audit name", "form.name")}</Label>
+                <Input
+                  id="name"
+                  placeholder={auto(
+                    "ISO 27001 Surveillance",
+                    "form.name.placeholder",
+                  )}
+                  value={formState.name}
+                  onChange={handleFieldChange("name")}
+                  disabled={isSubmitting}
+                  aria-invalid={Boolean(fieldErrors.name)}
+                />
+                {fieldErrors.name && (
+                  <p className="text-sm text-destructive">{fieldErrors.name}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="owner">{auto("Owner", "form.owner")}</Label>
+                <Input
+                  id="owner"
+                  placeholder="Information Security"
+                  value={formState.owner}
+                  onChange={handleFieldChange("owner")}
+                  disabled={isSubmitting}
+                  aria-invalid={Boolean(fieldErrors.owner)}
+                />
+                {fieldErrors.owner && (
+                  <p className="text-sm text-destructive">
+                    {fieldErrors.owner}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="start">
+                  {auto("Start date", "form.start")}
+                </Label>
+                <Input
+                  id="start"
+                  type="date"
+                  value={formState.start}
+                  onChange={handleFieldChange("start")}
+                  disabled={isSubmitting}
+                  aria-invalid={Boolean(fieldErrors.start)}
+                />
+                {fieldErrors.start && (
+                  <p className="text-sm text-destructive">
+                    {fieldErrors.start}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="end">{auto("End date", "form.end")}</Label>
+                <Input
+                  id="end"
+                  type="date"
+                  value={formState.end}
+                  min={formState.start || undefined}
+                  onChange={handleFieldChange("end")}
+                  disabled={isSubmitting}
+                  aria-invalid={Boolean(fieldErrors.end)}
+                />
+                {fieldErrors.end && (
+                  <p className="text-sm text-destructive">{fieldErrors.end}</p>
+                )}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="scope">
+                {auto("Scope & objectives", "form.scope")}
+              </Label>
+              <Textarea
+                id="scope"
+                rows={4}
+                placeholder={auto(
+                  "Include assets, teams, regulations…",
+                  "form.scope.placeholder",
+                )}
+                value={formState.scope}
+                onChange={handleFieldChange("scope")}
+                disabled={isSubmitting}
+                aria-invalid={Boolean(fieldErrors.scope)}
+              />
+              {fieldErrors.scope && (
+                <p className="text-sm text-destructive">{fieldErrors.scope}</p>
+              )}
+            </div>
+            {submitError && (
+              <p className="text-sm text-destructive" role="alert">
+                {submitError}
+              </p>
+            )}
+            {hasErrors && !submitError && (
+              <p className="text-sm text-muted-foreground">
+                {auto(
+                  "Resolve the highlighted fields to continue.",
+                  "validation.resolve",
+                )}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <div className="flex gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.push("/fm/compliance/audits")}
+            disabled={isSubmitting}
+          >
+            <CalendarCheck2 className="me-2 h-4 w-4" />
+            {auto("Cancel and go back", "actions.cancel")}
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? (
+              auto("Publishing...", "actions.publishing")
+            ) : (
+              <>
+                <ClipboardSignature className="me-2 h-4 w-4" />
+                {auto("Publish plan", "actions.publish")}
+              </>
+            )}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/compliance/audits/page.tsx">
+<![CDATA[
+"use client";
+
+import useSWR from "swr";
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
+import { ClipboardCheck, Loader2, ShieldAlert, RefreshCw } from "lucide-react";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useDebounce } from "@/hooks/useDebounce";
+import ClientDate from "@/components/ClientDate";
+
+type AuditStatus = "PLANNED" | "IN_PROGRESS" | "FOLLOW_UP" | "COMPLETED";
+type AuditRisk = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+
+type ComplianceAudit = {
+  _id: string;
+  name: string;
+  owner: string;
+  scope: string;
+  status: AuditStatus;
+  riskLevel: AuditRisk;
+  startDate: string;
+  endDate: string;
+  findings?: number;
+  openIssues?: number;
+  tags?: string[];
+  supportingTeams?: string[];
+};
+
+type AuditListResponse = {
+  audits: ComplianceAudit[];
+  stats: {
+    total: number;
+    upcoming: number;
+    inProgress: number;
+    completed: number;
+    highRisk: number;
+  };
+};
+
+const fetcher = async (url: string) => {
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload?.error ?? "Failed to load audits");
+  }
+  return (await response.json()) as AuditListResponse;
+};
+
+const STATUS_FILTERS: Array<{
+  value: AuditStatus | "ALL";
+  label: string;
+  translationKey: string;
+}> = [
+  { value: "ALL", label: "All statuses", translationKey: "filters.status.all" },
+  {
+    value: "PLANNED",
+    label: "Planned",
+    translationKey: "filters.status.planned",
+  },
+  {
+    value: "IN_PROGRESS",
+    label: "In progress",
+    translationKey: "filters.status.inProgress",
+  },
+  {
+    value: "FOLLOW_UP",
+    label: "Follow-up",
+    translationKey: "filters.status.followUp",
+  },
+  {
+    value: "COMPLETED",
+    label: "Completed",
+    translationKey: "filters.status.completed",
+  },
+];
+
+const RISK_FILTERS: Array<{
+  value: AuditRisk | "ALL";
+  label: string;
+  translationKey: string;
+}> = [
+  {
+    value: "ALL",
+    label: "All risk levels",
+    translationKey: "filters.risk.all",
+  },
+  { value: "LOW", label: "Low", translationKey: "filters.risk.low" },
+  { value: "MEDIUM", label: "Medium", translationKey: "filters.risk.medium" },
+  { value: "HIGH", label: "High", translationKey: "filters.risk.high" },
+  {
+    value: "CRITICAL",
+    label: "Critical",
+    translationKey: "filters.risk.critical",
+  },
+];
+
+const STATUS_BADGES: Record<AuditStatus, string> = {
+  PLANNED:
+    "bg-slate-100 text-slate-900 dark:bg-slate-900/40 dark:text-slate-200",
+  IN_PROGRESS:
+    "bg-primary/10 text-primary-dark dark:bg-primary/20/40 dark:text-primary-light",
+  FOLLOW_UP:
+    "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200",
+  COMPLETED:
+    "bg-emerald-100 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-200",
+};
+
+const RISK_BADGES: Record<AuditRisk, string> = {
+  LOW: "bg-emerald-100 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-200",
+  MEDIUM:
+    "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200",
+  HIGH: "bg-orange-100 text-orange-900 dark:bg-orange-900/40 dark:text-orange-200",
+  CRITICAL: "bg-red-100 text-red-900 dark:bg-red-900/40 dark:text-red-200",
+};
+
+export default function ComplianceAuditsPage() {
+  const auto = useAutoTranslator("fm.compliance.audits.list");
+  const { data: session } = useSession();
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({
+    moduleId: "compliance",
+  });
+
+  const [statusFilter, setStatusFilter] = useState<AuditStatus | "ALL">("ALL");
+  const [riskFilter, setRiskFilter] = useState<AuditRisk | "ALL">("ALL");
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 400);
+
+  const query = useMemo(() => {
+    const params = new URLSearchParams();
+    params.set("limit", "100");
+    if (statusFilter !== "ALL") {
+      params.set("status", statusFilter);
+    }
+    if (riskFilter !== "ALL") {
+      params.set("risk", riskFilter);
+    }
+    if (debouncedSearch) {
+      params.set("search", debouncedSearch);
+    }
+    return `/api/compliance/audits?${params.toString()}`;
+  }, [statusFilter, riskFilter, debouncedSearch]);
+
+  const { data, error, isLoading, mutate } = useSWR<AuditListResponse>(
+    orgId ? query : null,
+    fetcher,
+  );
+
+  if (!session) {
+    return (
+      <div className="space-y-6">
+        <ModuleViewTabs moduleId="compliance" />
+        <Card>
+          <CardContent className="py-8 text-center text-muted-foreground">
+            {auto("Sign in to load compliance data.", "states.requireSession")}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
+  const audits = data?.audits ?? [];
+  const stats = data?.stats;
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="compliance" />
+
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            {auto("Audit readiness", "header.kicker")}
+          </p>
+          <h1 className="text-3xl font-semibold text-foreground">
+            {auto("Compliance audits & risk", "header.title")}
+          </h1>
+          <p className="text-muted-foreground">
+            {auto(
+              "Monitor regulatory programs and follow-ups across your portfolio.",
+              "header.subtitle",
+            )}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            onClick={() => mutate()}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <Loader2 className="me-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="me-2 h-4 w-4" />
+            )}
+            {auto("Refresh", "actions.refresh")}
+          </Button>
+          <Button asChild>
+            <Link href="/fm/compliance/audits/new">
+              <ClipboardCheck className="me-2 h-4 w-4" />
+              {auto("Plan new audit", "actions.newAudit")}
+            </Link>
+          </Button>
+        </div>
+      </div>
+
+      {supportOrg && (
+        <div className="rounded-lg border border-border/70 bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {auto("Support context: {{name}}", "support.activeOrg", {
+            name: supportOrg.name,
+          })}
+        </div>
+      )}
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <SummaryStat
+          label={auto("Upcoming audits", "stats.upcoming")}
+          value={stats?.upcoming ?? 0}
+          tone="default"
+        />
+        <SummaryStat
+          label={auto("Active engagements", "stats.inProgress")}
+          value={stats?.inProgress ?? 0}
+          tone="indigo"
+        />
+        <SummaryStat
+          label={auto("Completed", "stats.completed")}
+          value={stats?.completed ?? 0}
+          tone="emerald"
+        />
+        <SummaryStat
+          label={auto("High-risk programs", "stats.highRisk")}
+          value={stats?.highRisk ?? 0}
+          tone="destructive"
+        />
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{auto("Filters", "filters.title")}</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-3">
+          <div className="space-y-2">
+            <p className="text-sm font-medium">
+              {auto("Status", "filters.statusLabel")}
+            </p>
+            <Select
+              value={statusFilter}
+              onValueChange={(value) =>
+                setStatusFilter(value as AuditStatus | "ALL")
+              }
+            >
+              <SelectTrigger>
+                <SelectValue
+                  placeholder={auto("All statuses", "filters.status.all")}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_FILTERS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {auto(option.label, option.translationKey)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm font-medium">
+              {auto("Risk level", "filters.riskLabel")}
+            </p>
+            <Select
+              value={riskFilter}
+              onValueChange={(value) =>
+                setRiskFilter(value as AuditRisk | "ALL")
+              }
+            >
+              <SelectTrigger>
+                <SelectValue
+                  placeholder={auto("All risk levels", "filters.risk.all")}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {RISK_FILTERS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {auto(option.label, option.translationKey)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm font-medium">
+              {auto("Search", "filters.searchLabel")}
+            </p>
+            <Input
+              placeholder={auto(
+                "Search audit, owner, or tag…",
+                "filters.searchPlaceholder",
+              )}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {error && (
+        <Card className="border-destructive/60 bg-destructive/5">
+          <CardContent className="flex items-center gap-3 py-4 text-destructive">
+            <ShieldAlert className="h-5 w-5" />
+            <p>{error.message}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{auto("Audit programs", "list.title")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {isLoading && (
+            <div className="flex items-center justify-center py-10 text-muted-foreground">
+              <Loader2 className="me-2 h-5 w-5 animate-spin" />
+              {auto("Loading audits…", "states.loading")}
+            </div>
+          )}
+          {!isLoading && audits.length === 0 && (
+            <div className="rounded-lg border border-dashed border-border p-6 text-center text-muted-foreground">
+              {auto(
+                "No audits match the filters. Plan one or adjust filters to see history.",
+                "states.empty",
+              )}
+            </div>
+          )}
+          {audits.map((audit) => (
+            <div
+              key={audit._id}
+              className="rounded-xl border border-border/80 p-4 hover:bg-muted/30 transition-colors"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-lg font-semibold text-foreground">
+                    {audit.name}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {auto("Owner: {{owner}}", "list.owner", {
+                      owner: audit.owner,
+                    })}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge className={STATUS_BADGES[audit.status]}>
+                    {auto(audit.status, `status.${audit.status.toLowerCase()}`)}
+                  </Badge>
+                  <Badge className={RISK_BADGES[audit.riskLevel]}>
+                    {auto(
+                      audit.riskLevel,
+                      `risk.${audit.riskLevel.toLowerCase()}`,
+                    )}
+                  </Badge>
+                </div>
+              </div>
+              <div className="mt-4 grid gap-3 text-sm text-muted-foreground md:grid-cols-3">
+                <div>
+                  <p className="text-xs uppercase tracking-wide">
+                    {auto("Window", "list.window")}
+                  </p>
+                  <p>
+                    <ClientDate date={audit.startDate} format="date-only" /> —{" "}
+                    <ClientDate date={audit.endDate} format="date-only" />
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide">
+                    {auto("Scope", "list.scope")}
+                  </p>
+                  <p className="line-clamp-2 text-foreground">{audit.scope}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide">
+                    {auto("Status summary", "list.summary")}
+                  </p>
+                  <p>
+                    {auto(
+                      "{{findings}} findings • {{issues}} open issues",
+                      "list.findings",
+                      {
+                        findings: audit.findings ?? 0,
+                        issues: audit.openIssues ?? 0,
+                      },
+                    )}
+                  </p>
+                </div>
+              </div>
+              {audit.tags && audit.tags.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {audit.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full border border-border/70 px-2 py-0.5 text-xs text-muted-foreground"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function SummaryStat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "default" | "indigo" | "emerald" | "destructive";
+}) {
+  const toneClasses: Record<
+    "default" | "indigo" | "emerald" | "destructive",
+    string
+  > = {
+    default:
+      "bg-slate-50 text-slate-900 dark:bg-slate-900/40 dark:text-slate-200",
+    indigo:
+      "bg-indigo-50 text-indigo-900 dark:bg-indigo-900/40 dark:text-indigo-200",
+    emerald:
+      "bg-emerald-50 text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-200",
+    destructive: "bg-red-50 text-red-900 dark:bg-red-900/40 dark:text-red-200",
+  } as Record<typeof tone, string>;
+
+  return (
+    <Card className={toneClasses[tone]}>
+      <CardContent className="py-5">
+        <p className="text-sm font-medium">{label}</p>
+        <p className="text-3xl font-semibold">{value}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/compliance/contracts/new/page.tsx">
+<![CDATA[
+"use client";
+
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { FileText, Stamp } from "lucide-react";
+import { FormEvent, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
+
+type ContractFormState = {
+  vendor: string;
+  effective: string;
+  expiry: string;
+  sla: string;
+  obligations: string;
+};
+
+export default function ComplianceContractPage() {
+  const { hasOrgContext, guard, supportBanner, orgId } = useFmOrgGuard({
+    moduleId: "compliance",
+  });
+  const auto = useAutoTranslator("fm.compliance.contracts.new");
+  const [form, setForm] = useState<ContractFormState>({
+    vendor: "",
+    effective: "",
+    expiry: "",
+    sla: "",
+    obligations: "",
+  });
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof ContractFormState, string>>
+  >({});
+  const [generalError, setGeneralError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const hasErrors = useMemo(() => Object.keys(errors).length > 0, [errors]);
+
+  const handleFieldChange =
+    (field: keyof ContractFormState) =>
+    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      const { value } = event.target;
+      setForm((prev) => ({ ...prev, [field]: value }));
+    };
+
+  const validate = () => {
+    const validationErrors: Partial<Record<keyof ContractFormState, string>> =
+      {};
+    if (!form.vendor.trim()) {
+      validationErrors.vendor = auto(
+        "Vendor name is required.",
+        "form.validation.vendor",
+      );
+    }
+    if (!form.effective) {
+      validationErrors.effective = auto(
+        "Provide an effective date.",
+        "form.validation.effective",
+      );
+    }
+    if (!form.expiry) {
+      validationErrors.expiry = auto(
+        "Provide an expiry date.",
+        "form.validation.expiry",
+      );
+    }
+    if (
+      form.effective &&
+      form.expiry &&
+      new Date(form.expiry) < new Date(form.effective)
+    ) {
+      validationErrors.expiry = auto(
+        "Expiry must be after the effective date.",
+        "form.validation.order",
+      );
+    }
+    if (!form.sla.trim() || !/\d+/.test(form.sla)) {
+      validationErrors.sla = auto(
+        'Enter SLA details with a numeric target (e.g., "2-hour response").',
+        "form.validation.sla",
+      );
+    }
+    if (form.obligations.trim().length < 20) {
+      validationErrors.obligations = auto(
+        "Obligation summary should be at least 20 characters.",
+        "form.validation.obligations",
+      );
+    }
+    return validationErrors;
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setGeneralError(null);
+    const validationErrors = validate();
+    setErrors(validationErrors);
+    if (Object.keys(validationErrors).length > 0) {
+      return;
+    }
+    setSubmitting(true);
+    let toastId: string | number | undefined;
+    try {
+      const payload = {
+        scope: "PROPERTY",
+        scopeRef: form.vendor.trim(),
+        contractorType: "FM_COMPANY",
+        contractorRef: form.vendor.trim(),
+        startDate: form.effective,
+        endDate: form.expiry,
+        terms: form.obligations.trim(),
+        sla: { critical: form.sla.trim() },
+      };
+      const formData = new FormData();
+      formData.append("metadata", JSON.stringify(payload));
+      attachments.forEach((file) => formData.append("certificates", file));
+
+      toastId = toast.loading(
+        auto("Submitting contract...", "actions.progress"),
+      );
+      const response = await fetch("/api/contracts", {
+        method: "POST",
+        headers: {
+          ...(orgId && { "x-tenant-id": orgId }),
+        } as HeadersInit,
+        body: formData,
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload?.error ?? "Failed to submit contract");
+      }
+      toast.success(auto("Contract submitted for review.", "actions.success"), {
+        id: toastId,
+      });
+      setForm({
+        vendor: "",
+        effective: "",
+        expiry: "",
+        sla: "",
+        obligations: "",
+      });
+      setAttachments([]);
+      setErrors({});
+    } catch (_error) {
+      const message =
+        _error instanceof Error ? _error.message : "Request failed";
+      setGeneralError(message);
+      if (toastId) {
+        toast.error(message, { id: toastId });
+      } else {
+        toast.error(message);
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleAttachmentClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAttachmentChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const files = event.target.files ? Array.from(event.target.files) : [];
+    if (!files.length) {
+      return;
+    }
+    const allowedTypes = ["application/pdf", "image/png", "image/jpeg"];
+    const maxSizeBytes = 10 * 1024 * 1024;
+    const invalid = files.find(
+      (file) => !allowedTypes.includes(file.type) || file.size > maxSizeBytes,
+    );
+    if (invalid) {
+      toast.error(
+        auto(
+          "Certificates must be PDF or image files smaller than 10MB.",
+          "form.validation.attachments",
+        ),
+      );
+      return;
+    }
+    setAttachments(files);
+  };
+
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="compliance" />
+      {supportBanner}
+
+      <header className="space-y-2">
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+          {auto("Vendor compliance", "header.kicker")}
+        </p>
+        <h1 className="text-3xl font-semibold">
+          {auto("Register a new contract", "header.title")}
+        </h1>
+        <p className="text-muted-foreground">
+          {auto(
+            "Log obligations, SLAs, and certifications for legal / compliance teams.",
+            "header.subtitle",
+          )}
+        </p>
+      </header>
+
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-4"
+        encType="multipart/form-data"
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle>{auto("Contract metadata", "form.title")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="vendor">
+                  {auto("Vendor name", "form.vendor")}
+                </Label>
+                <Input
+                  id="vendor"
+                  placeholder="Example FM Services"
+                  value={form.vendor}
+                  onChange={handleFieldChange("vendor")}
+                  disabled={submitting}
+                  aria-invalid={Boolean(errors.vendor)}
+                />
+                {errors.vendor && (
+                  <p className="text-sm text-destructive">{errors.vendor}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="effective">
+                  {auto("Effective date", "form.effective")}
+                </Label>
+                <Input
+                  id="effective"
+                  type="date"
+                  value={form.effective}
+                  onChange={handleFieldChange("effective")}
+                  disabled={submitting}
+                  aria-invalid={Boolean(errors.effective)}
+                />
+                {errors.effective && (
+                  <p className="text-sm text-destructive">{errors.effective}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="expiry">
+                  {auto("Expiry date", "form.expiry")}
+                </Label>
+                <Input
+                  id="expiry"
+                  type="date"
+                  value={form.expiry}
+                  min={form.effective || undefined}
+                  onChange={handleFieldChange("expiry")}
+                  disabled={submitting}
+                  aria-invalid={Boolean(errors.expiry)}
+                />
+                {errors.expiry && (
+                  <p className="text-sm text-destructive">{errors.expiry}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sla">{auto("Critical SLA", "form.sla")}</Label>
+                <Input
+                  id="sla"
+                  placeholder="2-hour emergency response"
+                  value={form.sla}
+                  onChange={handleFieldChange("sla")}
+                  disabled={submitting}
+                  aria-invalid={Boolean(errors.sla)}
+                />
+                {errors.sla && (
+                  <p className="text-sm text-destructive">{errors.sla}</p>
+                )}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="obligations">
+                {auto("Key obligations", "form.obligations")}
+              </Label>
+              <Textarea
+                id="obligations"
+                rows={4}
+                placeholder={auto(
+                  "Provide quick summary of compliance clauses…",
+                  "form.obligations.placeholder",
+                )}
+                value={form.obligations}
+                onChange={handleFieldChange("obligations")}
+                disabled={submitting}
+                aria-invalid={Boolean(errors.obligations)}
+              />
+              {errors.obligations && (
+                <p className="text-sm text-destructive">{errors.obligations}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>{auto("Certificates", "form.attachments")}</Label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                multiple
+                accept=".pdf,.png,.jpg,.jpeg"
+                onChange={handleAttachmentChange}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleAttachmentClick}
+                disabled={submitting}
+              >
+                <FileText className="me-2 h-4 w-4" />
+                {auto("Attach certificates", "actions.attach")}
+              </Button>
+              {attachments.length > 0 && (
+                <ul className="list-disc space-y-1 ps-5 text-sm text-muted-foreground">
+                  {attachments.map((file) => (
+                    <li key={`${file.name}-${file.lastModified}`}>
+                      {file.name}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            {generalError && (
+              <p className="text-sm text-destructive">{generalError}</p>
+            )}
+            {hasErrors && !generalError && (
+              <p className="text-sm text-muted-foreground">
+                {auto(
+                  "Please resolve validation issues before submitting.",
+                  "form.validation.resolve",
+                )}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <div className="flex gap-3">
+          <Button type="submit" disabled={submitting}>
+            <Stamp className="me-2 h-4 w-4" />
+            {submitting
+              ? auto("Submitting...", "actions.submitting")
+              : auto("Submit for legal review", "actions.submit")}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+</batch_content>

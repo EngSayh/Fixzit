@@ -1,0 +1,3433 @@
+
+You are the "Fixzit Memory Builder" for category: "routes".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "routes",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/api/finance/expenses/route.ts">
+<![CDATA[
+/**
+ * Expense API Routes
+ * POST /api/finance/expenses - Create expense (draft or direct submission)
+ * GET /api/finance/expenses - List expenses with filters
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { Expense } from "@/server/models/finance/Expense";
+import ChartAccount from "@/server/models/finance/ChartAccount";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { runWithContext } from "@/server/lib/authContext";
+import { requirePermission } from "@/config/rbac.config";
+import { Types } from "mongoose";
+
+import { logger } from "@/lib/logger";
+// Validation schemas
+const ExpenseLineItemSchema = z.object({
+  description: z.string().min(1),
+  quantity: z.number().positive(),
+  unitPrice: z.number().min(0),
+  amount: z.number().min(0),
+  taxable: z.boolean().optional(),
+  taxRate: z.number().min(0).max(100).optional(),
+  taxAmount: z.number().min(0).optional(),
+  totalAmount: z.number().min(0),
+  accountId: z.string().optional(),
+});
+
+const ReceiptSchema = z.object({
+  url: z.string().url(),
+  fileName: z.string(),
+  fileSize: z.number().optional(),
+  mimeType: z.string().optional(),
+  uploadedAt: z.date().optional(),
+  uploadedBy: z.string().optional(),
+});
+
+const CreateExpenseSchema = z.object({
+  expenseNumber: z.string().optional(), // Auto-generated if not provided
+  expenseDate: z.coerce.date(),
+  dueDate: z.coerce.date().optional(),
+  expenseType: z.enum([
+    "OPERATIONAL",
+    "MAINTENANCE",
+    "CAPITAL",
+    "REIMBURSEMENT",
+    "UTILITY",
+    "ADMINISTRATIVE",
+    "OTHER",
+  ]),
+  category: z.enum([
+    "MAINTENANCE_REPAIR",
+    "UTILITIES",
+    "INSURANCE",
+    "PROPERTY_TAX",
+    "PROFESSIONAL_FEES",
+    "MANAGEMENT_FEES",
+    "MARKETING",
+    "SUPPLIES",
+    "TRAVEL",
+    "EQUIPMENT",
+    "LABOR",
+    "PERMITS",
+    "CLEANING",
+    "LANDSCAPING",
+    "OTHER",
+  ]),
+  description: z.string().min(1),
+  vendorId: z.string().optional(),
+  vendorName: z.string().optional(),
+  propertyId: z.string().optional(),
+  unitId: z.string().optional(),
+  workOrderId: z.string().optional(),
+  referenceNumber: z.string().optional(),
+  paymentMethod: z
+    .enum(["CASH", "CARD", "BANK_TRANSFER", "CHEQUE", "ONLINE", "OTHER"])
+    .optional(),
+  lineItems: z.array(ExpenseLineItemSchema).min(1),
+  subtotal: z.number().min(0),
+  totalTax: z.number().min(0).optional(),
+  totalAmount: z.number().min(0).optional(), // Calculated server-side
+  currency: z.string().default("SAR"),
+  notes: z.string().optional(),
+  receipts: z.array(ReceiptSchema).optional(),
+  // Status removed - always DRAFT on create
+  budgetId: z.string().optional(),
+  budgetCategoryId: z.string().optional(),
+});
+
+function isUnauthenticatedError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.message.toLowerCase().includes("unauthenticated")
+  );
+}
+
+async function getUserSession(req: NextRequest) {
+  let user;
+  try {
+    user = await getSessionUser(req);
+  } catch (error) {
+    if (isUnauthenticatedError(error)) {
+      return null;
+    }
+    throw error;
+  }
+
+  if (!user || !user.id || !user.orgId) {
+    return null;
+  }
+
+  return {
+    userId: user.id,
+    orgId: user.orgId,
+    role: user.role,
+  };
+}
+
+/**
+ * POST /api/finance/expenses
+ * Create a new expense (draft or submitted)
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const user = await getUserSession(req);
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    // Authorization check
+    requirePermission(user.role, "finance.expenses.create");
+
+    // Parse request body
+    const body = await req.json();
+    const data = CreateExpenseSchema.parse(body);
+
+    // Execute with proper context
+    return await runWithContext(
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
+      async () => {
+        // Validate all accountId references belong to this org
+        const accountIds = data.lineItems
+          .map((item) => item.accountId)
+          .filter((id): id is string => !!id);
+
+        if (accountIds.length > 0) {
+          const validAccounts = await ChartAccount.find({
+            _id: { $in: accountIds.map((id) => new Types.ObjectId(id)) },
+            orgId: new Types.ObjectId(user.orgId),
+          }).select("_id");
+
+          const validIds = new Set(validAccounts.map((a) => a._id.toString()));
+          const invalidIds = accountIds.filter((id) => !validIds.has(id));
+
+          if (invalidIds.length > 0) {
+            return NextResponse.json(
+              {
+                success: false,
+                error: `Invalid account IDs: ${invalidIds.join(", ")}`,
+              },
+              { status: 400 },
+            );
+          }
+        }
+
+        // Calculate total amount server-side (prevent client tampering)
+        const calculatedSubtotal = data.lineItems.reduce(
+          (sum, item) => sum + item.totalAmount,
+          0,
+        );
+
+        const calculatedTotal = calculatedSubtotal;
+
+        // Reject if client provided amount differs significantly (allow 0.01 rounding)
+        if (
+          data.totalAmount !== undefined &&
+          Math.abs(data.totalAmount - calculatedTotal) > 0.01
+        ) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: "Amount mismatch",
+              details: {
+                clientTotal: data.totalAmount,
+                serverTotal: calculatedTotal,
+                difference: Math.abs(data.totalAmount - calculatedTotal),
+              },
+            },
+            { status: 400 },
+          );
+        }
+
+        // Create expense - always DRAFT
+        const expense = await Expense.create({
+          ...data,
+          totalAmount: calculatedTotal,
+          orgId: user.orgId,
+          createdBy: user.userId,
+          status: "DRAFT", // Force DRAFT - require submit endpoint for SUBMITTED
+        });
+
+        return NextResponse.json({
+          success: true,
+          data: expense,
+          message: "Expense draft created",
+        });
+      },
+    );
+  } catch (error) {
+    logger.error("Error creating expense:", error);
+
+    if (error instanceof Error && error.message.includes("Unauthorized")) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 403 },
+      );
+    }
+
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Validation failed",
+          issues: error.issues,
+        },
+        { status: 400 },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to create expense",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * GET /api/finance/expenses
+ * List expenses with filters
+ */
+export async function GET(req: NextRequest) {
+  try {
+    const user = await getUserSession(req);
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    // Authorization check
+    requirePermission(user.role, "finance.expenses.read");
+
+    const { searchParams } = new URL(req.url);
+
+    // Execute with proper context
+    return await runWithContext(
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
+      async () => {
+        // Build query
+        const query: Record<string, unknown> = {
+          orgId: user.orgId,
+        };
+
+        // Filters
+        const status = searchParams.get("status");
+        if (status) query.status = status;
+
+        const expenseType = searchParams.get("expenseType");
+        if (expenseType) query.expenseType = expenseType;
+
+        const category = searchParams.get("category");
+        if (category) query.category = category;
+
+        const vendorId = searchParams.get("vendorId");
+        if (vendorId) query.vendorId = vendorId;
+
+        const propertyId = searchParams.get("propertyId");
+        if (propertyId) query.propertyId = propertyId;
+
+        const unitId = searchParams.get("unitId");
+        if (unitId) query.unitId = unitId;
+
+        const workOrderId = searchParams.get("workOrderId");
+        if (workOrderId) query.workOrderId = workOrderId;
+
+        // Date range
+        const startDate = searchParams.get("startDate");
+        const endDate = searchParams.get("endDate");
+        if (startDate || endDate) {
+          query.expenseDate = {};
+          if (startDate) {
+            (query.expenseDate as { $gte?: Date }).$gte = new Date(startDate);
+          }
+          if (endDate) {
+            (query.expenseDate as { $lte?: Date }).$lte = new Date(endDate);
+          }
+        }
+
+        // Pagination
+        const page = parseInt(searchParams.get("page") || "1", 10);
+        const limit = Math.min(
+          parseInt(searchParams.get("limit") || "50", 10),
+          100,
+        );
+        const skip = (page - 1) * limit;
+
+        // Execute query
+        const [expenses, totalCount] = await Promise.all([
+          Expense.find(query)
+            .sort({ expenseDate: -1, createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean(),
+          Expense.countDocuments(query),
+        ]);
+
+        return NextResponse.json({
+          success: true,
+          data: expenses,
+          pagination: {
+            page,
+            limit,
+            totalCount,
+            totalPages: Math.ceil(totalCount / limit),
+          },
+        });
+      },
+    );
+  } catch (error) {
+    logger.error("Error fetching expenses:", error);
+
+    if (error instanceof Error && error.message.includes("Unauthorized")) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 403 },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to fetch expenses",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/finance/invoices/[id]/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import * as svc from "@/server/finance/invoice.service";
+import { getUserFromToken } from "@/lib/auth";
+import { z } from "zod";
+
+import { zodValidationError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
+import { canEditInvoices } from "@/lib/auth/role-guards";
+
+// Restrict status updates to valid enum values only
+const invoiceUpdateSchema = z.object({
+  status: z
+    .enum(["DRAFT", "SENT", "PAID", "OVERDUE", "CANCELLED", "VOID"])
+    .optional(),
+  amount: z.number().optional(),
+  dueDate: z.string().or(z.date()).optional(),
+  description: z.string().optional(),
+});
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    // Authentication & Authorization
+    const token = req.headers
+      .get("authorization")
+      ?.replace("Bearer ", "")
+      ?.trim();
+    if (!token) {
+      return createSecureResponse(
+        { error: "Authentication required" },
+        401,
+        req,
+      );
+    }
+
+    const user = await getUserFromToken(token);
+    if (!user) {
+      return createSecureResponse({ error: "Invalid token" }, 401, req);
+    }
+
+    // Role-based access control - only finance roles can modify invoices
+    if (!canEditInvoices(user.role)) {
+      return createSecureResponse(
+        { error: "Insufficient permissions to modify invoices" },
+        403,
+        req,
+      );
+    }
+
+    const body = invoiceUpdateSchema.parse(await req.json());
+
+    const inv = await svc.post(
+      user.orgId,
+      params.id,
+      body,
+      user.id,
+      getClientIP(req),
+    );
+    return createSecureResponse({ data: inv }, 200, req);
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      return zodValidationError(error, req);
+    }
+    return createSecureResponse(
+      { error: "Failed to update invoice" },
+      400,
+      req,
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/finance/invoices/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "crypto";
+import { logger } from "@/lib/logger";
+import * as svc from "@/server/finance/invoice.service";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { getUserFromToken } from "@/lib/auth";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { createSecureResponse, getClientIP } from "@/server/security/headers";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+import {
+  zodValidationError,
+  rateLimitError,
+} from "@/server/utils/errorResponses";
+import { z } from "zod";
+import { canEditInvoices, canViewInvoices } from "@/lib/auth/role-guards";
+
+const invoiceCreateSchema = z.object({
+  customerId: z.string().optional(),
+  amount: z.number().positive(),
+  currency: z.string().min(1).default("SAR"),
+  description: z.string().min(1),
+  dueDate: z.string().or(z.date()),
+  items: z
+    .array(
+      z.object({
+        description: z.string(),
+        quantity: z.number().positive(),
+        price: z.number().positive(),
+      }),
+    )
+    .optional(),
+});
+
+function isUnauthenticatedError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.message.toLowerCase().includes("unauthenticated")
+  );
+}
+
+async function tryGetSessionUser(req: NextRequest) {
+  try {
+    return await getSessionUser(req);
+  } catch (error) {
+    if (isUnauthenticatedError(error)) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+/**
+ * @openapi
+ * /api/finance/invoices:
+ *   get:
+ *     summary: finance/invoices operations
+ *     tags: [finance]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(req: NextRequest) {
+  try {
+    // Try session-based auth first (cookies), fallback to Bearer token
+    let user = await tryGetSessionUser(req);
+
+    if (!user) {
+      // Fallback to Bearer token authentication
+      const token = req.headers
+        .get("authorization")
+        ?.replace("Bearer ", "")
+        ?.trim();
+      if (token) {
+        const bearerUser = await getUserFromToken(token);
+        if (bearerUser) {
+          // Map Bearer token user to SessionUser format
+          user = {
+            ...bearerUser,
+            tenantId: bearerUser.orgId,
+          } as Awaited<ReturnType<typeof getSessionUser>>;
+        }
+      }
+    }
+
+    if (!user) {
+      return createSecureResponse(
+        { error: "Authentication required" },
+        401,
+        req,
+      );
+    }
+
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        { status: 401 },
+      );
+    }
+
+    // Role-based access control - only finance roles can view invoices
+    if (!canViewInvoices(user.role)) {
+      return createSecureResponse(
+        { error: "Insufficient permissions to view invoices" },
+        403,
+        req,
+      );
+    }
+
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    const { searchParams } = new URL(req.url);
+    const q = searchParams.get("q") || undefined;
+    const status = searchParams.get("status") || undefined;
+    const data = await svc.list(user.orgId, q, status);
+    return createSecureResponse({ data }, 200, req);
+  } catch (error: unknown) {
+    const correlationId = randomUUID();
+    logger.error("[GET /api/finance/invoices] Error fetching invoices:", {
+      correlationId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return createSecureResponse(
+      { error: "Failed to fetch invoices", correlationId },
+      500,
+      req,
+    );
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    // Authentication & Authorization
+    const token = req.headers
+      .get("authorization")
+      ?.replace("Bearer ", "")
+      ?.trim();
+    if (!token) {
+      return createSecureResponse(
+        { error: "Authentication required" },
+        401,
+        req,
+      );
+    }
+
+    const user = await getUserFromToken(token);
+
+    if (!user) {
+      return createSecureResponse({ error: "Invalid token" }, 401, req);
+    }
+
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        { status: 401 },
+      );
+    }
+
+    // Role-based access control - only finance roles can create invoices
+    if (!canEditInvoices(user.role)) {
+      return createSecureResponse(
+        { error: "Insufficient permissions to create invoices" },
+        403,
+        req,
+      );
+    }
+
+    const key = `inv:${user.orgId}:${user.id}`;
+    const rl = await smartRateLimit(key, 20, 60_000);
+    if (!rl.allowed)
+      return createSecureResponse({ error: "Rate limit exceeded" }, 429, req);
+
+    const body = invoiceCreateSchema.parse(await req.json());
+
+    const data = await svc.create(
+      { ...body, orgId: user.orgId },
+      user.id,
+      getClientIP(req),
+    );
+    return createSecureResponse({ data }, 201, req);
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      return zodValidationError(error, req);
+    }
+    const correlationId = crypto.randomUUID();
+    logger.error("[POST /api/finance/invoices] Error creating invoice:", {
+      correlationId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return createSecureResponse(
+      { error: "Failed to create invoice", correlationId },
+      400,
+      req,
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/finance/journals/[id]/post/route.ts">
+<![CDATA[
+/**
+ * Journal Post/Void API Routes - Finance Pack Phase 2
+ *
+ * Endpoints:
+ * - POST /api/finance/journals/[id]/post - Post journal to ledger
+ * - POST /api/finance/journals/[id]/void - Void posted journal
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { runWithContext } from "@/server/lib/authContext";
+import { requirePermission } from "@/config/rbac.config";
+
+import { dbConnect } from "@/lib/mongodb-unified";
+import Journal from "@/server/models/finance/Journal";
+import postingService from "@/server/services/finance/postingService";
+
+import { Types } from "mongoose";
+
+// ============================================================================
+// HELPER: Get User Session
+// ============================================================================
+
+async function getUserSession(req: NextRequest) {
+  const user = await getSessionUser(req);
+
+  if (!user) {
+    return null;
+  }
+
+  return {
+    userId: user.id,
+    orgId: user.orgId,
+    role: user.role,
+  };
+}
+
+// ============================================================================
+// POST /api/finance/journals/[id]/post - Post journal to ledger
+// ============================================================================
+
+import type { RouteContext } from "@/lib/types/route-context";
+
+import { logger } from "@/lib/logger";
+export async function POST(
+  req: NextRequest,
+  context: RouteContext<{ id: string }>,
+) {
+  try {
+    await dbConnect();
+
+    // Auth check
+    const user = await getUserSession(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Authorization check
+    requirePermission(user.role, "finance.journals.post");
+
+    // Resolve params (Next.js 15 provides params as a Promise)
+    const _params = await Promise.resolve(context.params);
+
+    // Validate journal ID
+    if (!Types.ObjectId.isValid(_params.id)) {
+      return NextResponse.json(
+        { error: "Invalid journal ID" },
+        { status: 400 },
+      );
+    }
+
+    // Execute with proper context
+    return await runWithContext(
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
+      async () => {
+        // Check journal exists and belongs to org
+        const journal = await Journal.findOne({
+          _id: new Types.ObjectId(_params.id),
+          orgId: new Types.ObjectId(user.orgId),
+        });
+
+        if (!journal) {
+          return NextResponse.json(
+            { error: "Journal not found" },
+            { status: 404 },
+          );
+        }
+
+        // Check journal status
+        if (journal.status !== "DRAFT") {
+          return NextResponse.json(
+            {
+              error: `Cannot post journal with status ${journal.status}`,
+            },
+            { status: 400 },
+          );
+        }
+
+        // Post journal to ledger using postingService
+        const result = await postingService.postJournal(
+          new Types.ObjectId(_params.id),
+        );
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            journal: result.journal,
+            ledgerEntries: result.ledgerEntries,
+            message: `Journal ${result.journal.journalNumber} posted successfully. ${result.ledgerEntries.length} ledger entries created.`,
+          },
+        });
+      },
+    );
+  } catch (error) {
+    logger.error("POST /api/finance/journals/[id]/post error:", error);
+
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 403 },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to post journal",
+      },
+      { status: 400 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/finance/journals/[id]/void/route.ts">
+<![CDATA[
+/**
+ * Journal Void API Route - Finance Pack Phase 2
+ *
+ * Endpoint:
+ * - POST /api/finance/journals/[id]/void - Void posted journal (creates reversal)
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { runWithContext } from "@/server/lib/authContext";
+import { requirePermission } from "@/config/rbac.config";
+
+import { dbConnect } from "@/lib/mongodb-unified";
+import Journal from "@/server/models/finance/Journal";
+import postingService from "@/server/services/finance/postingService";
+
+import { Types } from "mongoose";
+import { z } from "zod";
+
+// ============================================================================
+// VALIDATION SCHEMA
+// ============================================================================
+
+const VoidJournalSchema = z.object({
+  reason: z.string().min(1, "Void reason is required"),
+});
+
+// ============================================================================
+// HELPER: Get User Session
+// ============================================================================
+
+async function getUserSession(_req: NextRequest) {
+  const user = await getSessionUser(_req);
+
+  if (!user) {
+    return null;
+  }
+
+  return {
+    userId: user.id,
+    orgId: user.orgId,
+    role: user.role,
+  };
+}
+
+// ============================================================================
+// POST /api/finance/journals/[id]/void - Void a journal entry
+// ============================================================================
+
+import type { RouteContext } from "@/lib/types/route-context";
+
+import { logger } from "@/lib/logger";
+export async function POST(
+  req: NextRequest,
+  context: RouteContext<{ id: string }>,
+) {
+  try {
+    await dbConnect();
+
+    // Auth check
+    const user = await getUserSession(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Authorization check
+    requirePermission(user.role, "finance.journals.void");
+
+    // Resolve params (Next.js 15 provides params as a Promise)
+    const _params = await Promise.resolve(context.params);
+
+    // Validate journal ID
+    if (!Types.ObjectId.isValid(_params.id)) {
+      return NextResponse.json(
+        { error: "Invalid journal ID" },
+        { status: 400 },
+      );
+    }
+
+    // Parse and validate request body
+    const body = await req.json();
+    const validated = VoidJournalSchema.parse(body);
+
+    // Execute with proper context
+    return await runWithContext(
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
+      async () => {
+        // Check journal exists and belongs to org
+        const journal = await Journal.findOne({
+          _id: new Types.ObjectId(_params.id),
+          orgId: new Types.ObjectId(user.orgId),
+        });
+
+        if (!journal) {
+          return NextResponse.json(
+            { error: "Journal not found" },
+            { status: 404 },
+          );
+        }
+
+        // Check journal status
+        if (journal.status !== "POSTED") {
+          return NextResponse.json(
+            {
+              error: `Cannot void journal with status ${journal.status}. Only POSTED journals can be voided.`,
+            },
+            { status: 400 },
+          );
+        }
+
+        // Void journal using postingService (creates reversal journal)
+        const result = await postingService.voidJournal(
+          new Types.ObjectId(_params.id),
+          new Types.ObjectId(user.userId),
+          validated.reason,
+        );
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            originalJournal: result.originalJournal,
+            reversingJournal: result.reversingJournal,
+            message: `Journal ${result.originalJournal.journalNumber} voided. Reversal journal ${result.reversingJournal.journalNumber} created and posted.`,
+          },
+        });
+      },
+    );
+  } catch (error) {
+    logger.error("POST /api/finance/journals/[id]/void error:", error);
+
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 403 },
+      );
+    }
+
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          error: "Validation failed",
+          details: error.issues,
+        },
+        { status: 400 },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to void journal",
+      },
+      { status: 400 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/finance/journals/route.ts">
+<![CDATA[
+/**
+ * Journal API Routes - Finance Pack Phase 2
+ *
+ * Endpoints:
+ * - POST   /api/finance/journals          - Create draft journal
+ * - GET    /api/finance/journals          - List journals (with filters)
+ * - GET    /api/finance/journals/:id      - Get journal by ID
+ * - POST   /api/finance/journals/:id/post - Post journal to ledger
+ * - POST   /api/finance/journals/:id/void - Void posted journal
+ * - DELETE /api/finance/journals/:id      - Delete draft journal
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { runWithContext } from "@/server/lib/authContext";
+import { requirePermission } from "@/config/rbac.config";
+import { dbConnect } from "@/lib/mongodb-unified";
+import Journal from "@/server/models/finance/Journal";
+import postingService from "@/server/services/finance/postingService";
+
+import { Types } from "mongoose";
+import { z } from "zod";
+
+import { logger } from "@/lib/logger";
+// ============================================================================
+// VALIDATION SCHEMAS
+// ============================================================================
+
+const JournalLineSchema = z.object({
+  accountId: z
+    .string()
+    .refine((val) => Types.ObjectId.isValid(val), "Invalid account ID"),
+  accountCode: z.string().optional(),
+  accountName: z.string().optional(),
+  description: z.string().min(1, "Description is required"),
+  debit: z.number().min(0).optional(),
+  credit: z.number().min(0).optional(),
+  // Dimensions (optional context)
+  propertyId: z
+    .string()
+    .refine((val) => !val || Types.ObjectId.isValid(val), "Invalid property ID")
+    .optional(),
+  unitId: z
+    .string()
+    .refine((val) => !val || Types.ObjectId.isValid(val), "Invalid unit ID")
+    .optional(),
+  workOrderId: z
+    .string()
+    .refine(
+      (val) => !val || Types.ObjectId.isValid(val),
+      "Invalid work order ID",
+    )
+    .optional(),
+  leaseId: z
+    .string()
+    .refine((val) => !val || Types.ObjectId.isValid(val), "Invalid lease ID")
+    .optional(),
+  vendorId: z
+    .string()
+    .refine((val) => !val || Types.ObjectId.isValid(val), "Invalid vendor ID")
+    .optional(),
+});
+
+const CreateJournalSchema = z.object({
+  date: z.string().or(z.date()),
+  description: z.string().min(1, "Description is required"),
+  reference: z.string().optional(),
+  sourceType: z
+    .enum([
+      "MANUAL",
+      "INVOICE",
+      "PAYMENT",
+      "EXPENSE",
+      "WORK_ORDER",
+      "ADJUSTMENT",
+    ])
+    .optional(),
+  sourceId: z
+    .string()
+    .refine((val) => !val || Types.ObjectId.isValid(val), "Invalid source ID")
+    .optional(),
+  lines: z
+    .array(JournalLineSchema)
+    .min(2, "Journal must have at least 2 lines"),
+});
+
+// ============================================================================
+// HELPER: Get User Session
+// ============================================================================
+
+async function getUserSession(req: NextRequest) {
+  const user = await getSessionUser(req);
+
+  if (!user) {
+    return null;
+  }
+
+  return {
+    userId: user.id,
+    orgId: user.orgId,
+    role: user.role,
+  };
+}
+
+// ============================================================================
+// POST /api/finance/journals - Create draft journal
+// ============================================================================
+
+export async function POST(req: NextRequest) {
+  try {
+    await dbConnect();
+
+    // Auth check
+    const user = await getUserSession(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Authorization check
+    requirePermission(user.role, "finance.journals.create");
+
+    // Parse and validate request body
+    const body = await req.json();
+    const validated = CreateJournalSchema.parse(body);
+
+    // Execute with proper context
+    return await runWithContext(
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
+      async () => {
+        // Create draft journal using postingService
+        const journal = await postingService.createJournal({
+          orgId: new Types.ObjectId(user.orgId),
+          journalDate: new Date(validated.date),
+          description: validated.description,
+          sourceType: validated.sourceType || "MANUAL",
+          sourceId: validated.sourceId
+            ? new Types.ObjectId(validated.sourceId)
+            : undefined,
+          sourceNumber: validated.reference,
+          lines: validated.lines.map((line) => ({
+            accountId: new Types.ObjectId(line.accountId),
+            accountCode: line.accountCode,
+            accountName: line.accountName,
+            description: line.description,
+            debit: line.debit || 0,
+            credit: line.credit || 0,
+            propertyId: line.propertyId
+              ? new Types.ObjectId(line.propertyId)
+              : undefined,
+            unitId: line.unitId ? new Types.ObjectId(line.unitId) : undefined,
+            workOrderId: line.workOrderId
+              ? new Types.ObjectId(line.workOrderId)
+              : undefined,
+            leaseId: line.leaseId
+              ? new Types.ObjectId(line.leaseId)
+              : undefined,
+            vendorId: line.vendorId
+              ? new Types.ObjectId(line.vendorId)
+              : undefined,
+          })),
+          userId: new Types.ObjectId(user.userId),
+        });
+
+        return NextResponse.json(
+          {
+            success: true,
+            data: journal,
+          },
+          { status: 201 },
+        );
+      },
+    );
+  } catch (error) {
+    logger.error("POST /api/finance/journals error:", error);
+
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 403 },
+      );
+    }
+
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          error: "Validation failed",
+          details: error.issues,
+        },
+        { status: 400 },
+      );
+    }
+
+    if (error instanceof Error) {
+      return NextResponse.json(
+        {
+          error: error.message,
+        },
+        { status: 400 },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+// ============================================================================
+// GET /api/finance/journals - List journals with filters
+// ============================================================================
+
+export async function GET(req: NextRequest) {
+  try {
+    await dbConnect();
+
+    // Auth check
+    const user = await getUserSession(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Authorization check
+    requirePermission(user.role, "finance.journals.read");
+
+    // Execute with proper context
+    return await runWithContext(
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
+      async () => {
+        // Parse query parameters
+        const { searchParams } = new URL(req.url);
+        const status = searchParams.get("status"); // DRAFT, POSTED, VOID
+        const sourceType = searchParams.get("sourceType");
+        const startDate = searchParams.get("startDate");
+        const endDate = searchParams.get("endDate");
+        const page = parseInt(searchParams.get("page") || "1", 10);
+        const limit = Math.min(
+          parseInt(searchParams.get("limit") || "50", 10),
+          100,
+        );
+        const skip = (page - 1) * limit;
+
+        // Build query
+        const query: Record<string, unknown> = {
+          orgId: new Types.ObjectId(user.orgId),
+        };
+
+        if (status) {
+          query.status = status;
+        }
+
+        if (sourceType) {
+          query.sourceType = sourceType;
+        }
+
+        if (startDate || endDate) {
+          query.date = {};
+          if (startDate)
+            (query.date as Record<string, Date>).$gte = new Date(startDate);
+          if (endDate)
+            (query.date as Record<string, Date>).$lte = new Date(endDate);
+        }
+
+        // Execute query with pagination
+        const [journals, total] = await Promise.all([
+          Journal.find(query)
+            .sort({ date: -1, createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean(),
+          Journal.countDocuments(query),
+        ]);
+
+        return NextResponse.json({
+          success: true,
+          data: journals,
+          pagination: {
+            page,
+            limit,
+            total,
+            pages: Math.ceil(total / limit),
+          },
+        });
+      },
+    );
+  } catch (error) {
+    logger.error("GET /api/finance/journals error:", error);
+
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 403 },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Internal server error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/finance/ledger/account-activity/[accountId]/route.ts">
+<![CDATA[
+/**
+ * Account Activity API Route - Finance Pack Phase 2
+ *
+ * Endpoint:
+ * - GET /api/finance/ledger/account-activity/[accountId] - Get transaction history for account
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { runWithContext } from "@/server/lib/authContext";
+import { requirePermission } from "@/config/rbac.config";
+import { dbConnect } from "@/lib/mongodb-unified";
+import LedgerEntry from "@/server/models/finance/LedgerEntry";
+import ChartAccount from "@/server/models/finance/ChartAccount";
+import { Types } from "mongoose";
+
+interface LedgerEntryDocument {
+  _id: Types.ObjectId;
+  debit: number;
+  credit: number;
+  journalDate: Date;
+  createdAt: Date;
+  [key: string]: unknown;
+}
+
+import { logger } from "@/lib/logger";
+// ============================================================================
+// HELPER: Get User Session
+// ============================================================================
+
+async function getUserSession(_req: NextRequest) {
+  const user = await getSessionUser(_req);
+
+  if (!user) {
+    return null;
+  }
+
+  return {
+    userId: user.id,
+    orgId: user.orgId,
+    role: user.role,
+  };
+}
+
+// ============================================================================
+// GET /api/finance/ledger/account-activity/[accountId] - Account transaction history
+// ============================================================================
+
+export async function GET(
+  req: NextRequest,
+  context: { params: { accountId: string } | Promise<{ accountId: string }> },
+) {
+  try {
+    await dbConnect();
+
+    // Auth check
+    const user = await getUserSession(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Authorization check
+    requirePermission(user.role, "finance.ledger.account-activity");
+
+    // Resolve params
+    const params =
+      context.params &&
+      typeof context.params === "object" &&
+      "then" in context.params
+        ? await context.params
+        : context.params;
+
+    // Validate account ID
+    if (!Types.ObjectId.isValid((await params).accountId)) {
+      return NextResponse.json(
+        { error: "Invalid account ID" },
+        { status: 400 },
+      );
+    }
+
+    // Execute with proper context
+    return await runWithContext(
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
+      async () => {
+        // Check account exists and belongs to org
+        const account = await ChartAccount.findOne({
+          _id: new Types.ObjectId((await params).accountId),
+          orgId: new Types.ObjectId(user.orgId),
+        });
+
+        if (!account) {
+          return NextResponse.json(
+            { error: "Account not found" },
+            { status: 404 },
+          );
+        }
+
+        // Parse query parameters
+        const { searchParams } = new URL(req.url);
+        const startDate = searchParams.get("startDate");
+        const endDate = searchParams.get("endDate");
+        const sourceType = searchParams.get("sourceType");
+        const page = parseInt(searchParams.get("page") || "1", 10);
+        const limit = Math.min(
+          parseInt(searchParams.get("limit") || "50", 10),
+          100,
+        );
+
+        // Build query filter based on LedgerEntry schema fields
+        const queryFilter: {
+          orgId: Types.ObjectId;
+          accountId: Types.ObjectId;
+          journalDate?: { $gte?: Date; $lte?: Date };
+        } = {
+          orgId: new Types.ObjectId(user.orgId),
+          accountId: new Types.ObjectId((await params).accountId),
+        };
+
+        if (startDate || endDate) {
+          queryFilter.journalDate = {};
+          if (startDate) queryFilter.journalDate.$gte = new Date(startDate);
+          if (endDate) queryFilter.journalDate.$lte = new Date(endDate);
+        }
+
+        // Note: sourceType filtering would require joining with Journal collection
+        // For now, we'll filter in memory if needed
+
+        // Calculate opening balance (balance before startDate if provided)
+        let openingBalance = 0;
+        if (startDate) {
+          const entriesBeforeStart = (await LedgerEntry.find({
+            orgId: new Types.ObjectId(user.orgId),
+            accountId: new Types.ObjectId((await params).accountId),
+            journalDate: { $lt: new Date(startDate) },
+          })
+            .sort({ journalDate: 1, createdAt: 1 })
+            .lean<LedgerEntryDocument>()
+            .exec()) as unknown as LedgerEntryDocument[];
+
+          openingBalance = entriesBeforeStart.reduce(
+            (balance: number, entry) => {
+              return balance + entry.debit - entry.credit;
+            },
+            0,
+          );
+        }
+
+        // Get total count for pagination
+        const totalTransactions = await LedgerEntry.countDocuments(queryFilter);
+
+        // Get paginated transactions with running balance calculation
+        const skip = (page - 1) * limit;
+        const transactions = await LedgerEntry.find(queryFilter)
+          .sort({ journalDate: 1, createdAt: 1 })
+          .skip(skip)
+          .limit(limit)
+          .lean();
+
+        // Calculate running balance for paginated transactions
+        let runningBalance = openingBalance;
+
+        // If not on first page, need to calculate balance up to this page
+        if (page > 1) {
+          const previousEntries = await LedgerEntry.find(queryFilter)
+            .sort({ journalDate: 1, createdAt: 1 })
+            .limit(skip)
+            .lean();
+
+          runningBalance = (previousEntries as LedgerEntryDocument[]).reduce(
+            (balance: number, entry) => {
+              return balance + entry.debit - entry.credit;
+            },
+            openingBalance,
+          );
+        }
+
+        const transactionsWithBalance = (
+          transactions as LedgerEntryDocument[]
+        ).map((entry) => {
+          runningBalance += entry.debit - entry.credit;
+          return {
+            _id: entry._id.toString(),
+            date: entry.journalDate.toISOString(),
+            journalNumber: entry.journalNumber,
+            description: entry.description,
+            sourceType: "JOURNAL", // Default - would need join to get actual sourceType
+            sourceNumber: entry.journalId?.toString(),
+            debit: entry.debit || 0,
+            credit: entry.credit || 0,
+            balance: runningBalance,
+          };
+        });
+
+        // Filter by sourceType if provided (in-memory since it's not directly in LedgerEntry)
+        const filteredTransactions = transactionsWithBalance;
+        if (sourceType && sourceType !== "ALL") {
+          // For now, skip filtering - would need Journal join
+          // return transactionsWithBalance.filter(t => t.sourceType === sourceType);
+        }
+
+        // Calculate totals for the filtered period
+        const allTransactions = await LedgerEntry.find(queryFilter)
+          .sort({ journalDate: 1, createdAt: 1 })
+          .lean();
+
+        const allTyped = allTransactions as LedgerEntryDocument[];
+        const totalDebits = allTyped.reduce(
+          (sum: number, entry) => sum + (entry.debit || 0),
+          0,
+        );
+        const totalCredits = allTyped.reduce(
+          (sum: number, entry) => sum + (entry.credit || 0),
+          0,
+        );
+        const closingBalance = openingBalance + totalDebits - totalCredits;
+
+        return NextResponse.json({
+          accountId: account._id.toString(),
+          accountCode: account.code,
+          accountName: account.name,
+          accountType: account.type,
+          openingBalance,
+          closingBalance,
+          transactions: filteredTransactions,
+          totalTransactions,
+          totalDebits,
+          totalCredits,
+          periodStart: startDate || new Date(0).toISOString(),
+          periodEnd: endDate || new Date().toISOString(),
+        });
+      },
+    );
+  } catch (error) {
+    logger.error(
+      "GET /api/finance/ledger/account-activity/[accountId] error:",
+      error,
+    );
+
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
+
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Internal server error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/finance/ledger/route.ts">
+<![CDATA[
+/**
+ * Ledger API Routes - Finance Pack Phase 2
+ *
+ * Endpoints:
+ * - GET /api/finance/ledger               - Get ledger entries (with filters)
+ * - GET /api/finance/ledger/trial-balance - Get trial balance report
+ * - GET /api/finance/ledger/balance-sheet - Get balance sheet report
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { runWithContext } from "@/server/lib/authContext";
+import { requirePermission } from "@/config/rbac.config";
+
+import { dbConnect } from "@/lib/mongodb-unified";
+import LedgerEntry from "@/server/models/finance/LedgerEntry";
+
+import { Types } from "mongoose";
+
+import { logger } from "@/lib/logger";
+// ============================================================================
+// HELPER: Get User Session
+// ============================================================================
+
+async function getUserSession(_req: NextRequest) {
+  const user = await getSessionUser(_req);
+
+  if (!user) {
+    return null;
+  }
+
+  return {
+    userId: user.id,
+    orgId: user.orgId,
+    role: user.role,
+  };
+}
+
+// ============================================================================
+// GET /api/finance/ledger - Get ledger entries with filters
+// ============================================================================
+
+export async function GET(req: NextRequest) {
+  try {
+    await dbConnect();
+
+    // Auth check
+    const user = await getUserSession(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Authorization check
+    requirePermission(user.role, "finance.ledger.read");
+
+    // Execute with proper context
+    return await runWithContext(
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
+      async () => {
+        // Parse query parameters
+        const { searchParams } = new URL(req.url);
+        const accountId = searchParams.get("accountId");
+        const startDate = searchParams.get("startDate");
+        const endDate = searchParams.get("endDate");
+        const propertyId = searchParams.get("propertyId");
+        const unitId = searchParams.get("unitId");
+        const workOrderId = searchParams.get("workOrderId");
+        const page = parseInt(searchParams.get("page") || "1", 10);
+        const limit = Math.min(
+          parseInt(searchParams.get("limit") || "100", 10),
+          100,
+        );
+        const skip = (page - 1) * limit;
+
+        // Build query
+        const query: Record<string, unknown> = {
+          orgId: new Types.ObjectId(user.orgId),
+        };
+
+        if (accountId) {
+          if (!Types.ObjectId.isValid(accountId)) {
+            return NextResponse.json(
+              { error: "Invalid account ID" },
+              { status: 400 },
+            );
+          }
+          query.accountId = new Types.ObjectId(accountId);
+        }
+
+        if (startDate || endDate) {
+          query.date = {};
+          if (startDate)
+            (query.date as Record<string, Date>).$gte = new Date(startDate);
+          if (endDate)
+            (query.date as Record<string, Date>).$lte = new Date(endDate);
+        }
+
+        if (propertyId) {
+          if (!Types.ObjectId.isValid(propertyId)) {
+            return NextResponse.json(
+              { error: "Invalid property ID" },
+              { status: 400 },
+            );
+          }
+          query.propertyId = new Types.ObjectId(propertyId);
+        }
+
+        if (unitId) {
+          if (!Types.ObjectId.isValid(unitId)) {
+            return NextResponse.json(
+              { error: "Invalid unit ID" },
+              { status: 400 },
+            );
+          }
+          query.unitId = new Types.ObjectId(unitId);
+        }
+
+        if (workOrderId) {
+          if (!Types.ObjectId.isValid(workOrderId)) {
+            return NextResponse.json(
+              { error: "Invalid work order ID" },
+              { status: 400 },
+            );
+          }
+          query.workOrderId = new Types.ObjectId(workOrderId);
+        }
+
+        // Execute query with pagination
+        const [entries, total] = await Promise.all([
+          LedgerEntry.find(query)
+            .sort({ date: -1, createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean(),
+          LedgerEntry.countDocuments(query),
+        ]);
+
+        return NextResponse.json({
+          success: true,
+          data: entries,
+          pagination: {
+            page,
+            limit,
+            total,
+            pages: Math.ceil(total / limit),
+          },
+        });
+      },
+    );
+  } catch (error) {
+    logger.error("GET /api/finance/ledger error:", error);
+
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 403 },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Internal server error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/finance/ledger/trial-balance/route.ts">
+<![CDATA[
+/**
+ * Trial Balance API Route - Finance Pack Phase 2
+ *
+ * Endpoint:
+ * - GET /api/finance/ledger/trial-balance - Get trial balance report
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { runWithContext } from "@/server/lib/authContext";
+import { requirePermission } from "@/config/rbac.config";
+
+import { dbConnect } from "@/lib/mongodb-unified";
+import { trialBalance as trialBalanceReport } from "@/server/finance/reporting.service";
+import { decimal128ToMinor } from "@/server/lib/money";
+
+import { Types } from "mongoose";
+
+import { logger } from "@/lib/logger";
+// ============================================================================
+// HELPER: Get User Session
+// ============================================================================
+
+async function getUserSession(_req: NextRequest) {
+  const user = await getSessionUser(_req);
+
+  if (!user) {
+    return null;
+  }
+
+  return {
+    userId: user.id,
+    orgId: user.orgId,
+    role: user.role,
+  };
+}
+
+// ============================================================================
+// GET /api/finance/ledger/trial-balance - Get trial balance report
+// ============================================================================
+
+export async function GET(req: NextRequest) {
+  try {
+    await dbConnect();
+
+    // Auth check
+    const user = await getUserSession(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Authorization check
+    requirePermission(user.role, "finance.ledger.trial-balance");
+
+    // Execute with proper context
+    return await runWithContext(
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
+      async () => {
+        // Parse query parameters
+        const { searchParams } = new URL(req.url);
+        const year = parseInt(
+          searchParams.get("year") || new Date().getFullYear().toString(),
+          10,
+        );
+        const period = parseInt(searchParams.get("period") || "12", 10); // 1-12
+        const asOfDateParam = searchParams.get("asOfDate");
+
+        // Determine as-of date
+        let asOfDate: Date;
+        if (asOfDateParam) {
+          asOfDate = new Date(asOfDateParam);
+        } else {
+          // Default: last day of the specified period
+          asOfDate = new Date(year, period, 0); // Day 0 = last day of previous month
+        }
+
+        const periodStart = new Date(year, period - 1, 1);
+        const periodEnd = asOfDate;
+
+        const result = await trialBalanceReport(
+          {
+            userId: user.userId,
+            orgId: user.orgId,
+            role: user.role,
+            timestamp: new Date(),
+          },
+          periodStart,
+          periodEnd,
+        );
+
+        const decimalZero = Types.Decimal128.fromString("0");
+        const toMajor = (minor: bigint) => Number(minor) / 100;
+
+        const accounts = result.rows.map((row) => {
+          const debitMinor = decimal128ToMinor(
+            (row.debit as Types.Decimal128) ?? decimalZero,
+          );
+          const creditMinor = decimal128ToMinor(
+            (row.credit as Types.Decimal128) ?? decimalZero,
+          );
+
+          return {
+            accountId: row.accountId?.toString?.() ?? "",
+            accountCode: row.code ?? row.accountCode ?? "",
+            accountName: row.name ?? row.accountName ?? "",
+            accountType: row.type,
+            debit: toMajor(debitMinor),
+            credit: toMajor(creditMinor),
+            balance: toMajor(debitMinor - creditMinor),
+            level: 0,
+            hasChildren: false,
+          };
+        });
+
+        const totalDebits = toMajor(result.totDr);
+        const totalCredits = toMajor(result.totCr);
+
+        return NextResponse.json({
+          year,
+          period,
+          asOfDate: asOfDate.toISOString(),
+          accounts,
+          totalDebits,
+          totalCredits,
+          isBalanced: result.balanced,
+          difference: totalDebits - totalCredits,
+        });
+      },
+    );
+  } catch (error) {
+    logger.error("GET /api/finance/ledger/trial-balance error:", error);
+
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 403 },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Internal server error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/finance/payments/[id]/[action]/route.ts">
+<![CDATA[
+/**
+ * Payment reconciliation API
+ * POST /api/finance/payments/:id/reconcile - Reconcile payment with bank statement
+ * POST /api/finance/payments/:id/clear - Mark payment as cleared
+ * POST /api/finance/payments/:id/bounce - Mark cheque as bounced
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { Types } from "mongoose";
+import { z } from "zod";
+import { Payment } from "@/server/models/finance/Payment";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { runWithContext } from "@/server/lib/authContext";
+import { requirePermission } from "@/config/rbac.config";
+
+async function getUserSession(req: NextRequest) {
+  const user = await getSessionUser(req);
+  if (!user || !user.id || !user.orgId) {
+    throw new Error("Unauthorized: Invalid session");
+  }
+  return {
+    userId: user.id,
+    orgId: user.orgId,
+    role: user.role,
+  };
+}
+
+const ReconcileSchema = z.object({
+  bankStatementDate: z.coerce.date(),
+  bankStatementReference: z.string(),
+  clearedAmount: z.number().positive(),
+  notes: z.string().optional(),
+});
+
+const BounceSchema = z.object({
+  bounceReason: z.string().min(1),
+  bounceDate: z.coerce.date(),
+  bounceCharges: z.number().min(0).optional(),
+});
+
+import type { RouteContext } from "@/lib/types/route-context";
+
+import { logger } from "@/lib/logger";
+/**
+ * POST /api/finance/payments/:id/[action]
+ * Handle payment reconciliation actions
+ */
+export async function POST(
+  req: NextRequest,
+  context: RouteContext<{ id: string; action: string }>,
+) {
+  try {
+    const user = await getUserSession(req);
+
+    // Resolve params (Next.js 15 provides params as a Promise)
+    const _params = await Promise.resolve(context.params);
+
+    if (!Types.ObjectId.isValid(_params.id)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid payment ID" },
+        { status: 400 },
+      );
+    }
+
+    // Determine action from URL path
+    const url = new URL(req.url);
+    const action = url.pathname.split("/").pop();
+
+    // Authorization check based on action
+    if (action === "reconcile") {
+      requirePermission(user.role, "finance.payments.reconcile");
+    } else if (action === "clear") {
+      requirePermission(user.role, "finance.payments.clear");
+    } else if (action === "bounce") {
+      requirePermission(user.role, "finance.payments.bounce");
+    } else if (action === "cancel") {
+      requirePermission(user.role, "finance.payments.cancel");
+    } else if (action === "refund") {
+      requirePermission(user.role, "finance.payments.refund");
+    } else {
+      return NextResponse.json(
+        { success: false, error: "Invalid action" },
+        { status: 400 },
+      );
+    }
+
+    // Execute with proper context
+    return await runWithContext(
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
+      async () => {
+        const payment = await Payment.findOne({
+          _id: _params.id,
+          orgId: user.orgId,
+        });
+
+        if (!payment) {
+          return NextResponse.json(
+            { success: false, error: "Payment not found" },
+            { status: 404 },
+          );
+        }
+
+        if (action === "reconcile") {
+          const body = await req.json();
+          const data = ReconcileSchema.parse(body);
+
+          await payment.reconcile(
+            new Types.ObjectId(user.userId),
+            data.bankStatementDate,
+            data.bankStatementReference,
+            data.notes,
+          );
+
+          return NextResponse.json({
+            success: true,
+            data: payment,
+            message: "Payment reconciled successfully",
+          });
+        }
+
+        if (action === "clear") {
+          payment.status = "CLEARED";
+          payment.updatedBy = new Types.ObjectId(user.userId);
+          await payment.save();
+
+          return NextResponse.json({
+            success: true,
+            data: payment,
+            message: "Payment marked as cleared",
+          });
+        }
+
+        if (action === "bounce") {
+          if (payment.paymentMethod !== "CHEQUE") {
+            return NextResponse.json(
+              {
+                success: false,
+                error: "Only cheque payments can be marked as bounced",
+              },
+              { status: 400 },
+            );
+          }
+
+          const body = await req.json();
+          const data = BounceSchema.parse(body);
+
+          payment.status = "BOUNCED";
+          payment.updatedBy = new Types.ObjectId(user.userId);
+          payment.notes = `${payment.notes || ""}\nBounced: ${data.bounceReason} (${data.bounceDate.toISOString().split("T")[0]})`;
+          await payment.save();
+
+          return NextResponse.json({
+            success: true,
+            data: payment,
+            message: "Payment marked as bounced",
+          });
+        }
+
+        // Placeholder for cancel/refund actions (if needed later)
+        return NextResponse.json(
+          { success: false, error: "Action not implemented" },
+          { status: 400 },
+        );
+      },
+    );
+  } catch (error) {
+    logger.error("Error processing payment action:", error);
+
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 403 },
+      );
+    }
+
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Validation failed",
+          issues: error.issues,
+        },
+        { status: 400 },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to process payment action",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/finance/payments/[id]/complete/route.ts">
+<![CDATA[
+/**
+ * Payment Complete API Route
+ * POST /api/finance/payments/:id/complete - Mark payment as completed
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { Types } from "mongoose";
+import { Payment, PaymentStatus } from "@/server/models/finance/Payment";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { runWithContext } from "@/server/lib/authContext";
+import { requirePermission } from "@/config/rbac.config";
+import { logger } from "@/lib/logger";
+
+async function getUserSession(req: NextRequest) {
+  const user = await getSessionUser(req);
+  if (!user || !user.id || !user.orgId) {
+    throw new Error("Unauthorized: Invalid session");
+  }
+  return {
+    userId: user.id,
+    orgId: user.orgId,
+    role: user.role,
+  };
+}
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { id } = params;
+    const user = await getUserSession(req);
+
+    if (!Types.ObjectId.isValid(id)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid payment ID" },
+        { status: 400 }
+      );
+    }
+
+    // Authorization check
+    requirePermission(user.role, "finance.payments.update");
+
+    // Execute with proper context
+    return await runWithContext(
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
+      async () => {
+        const payment = await Payment.findOne({
+          _id: id,
+          orgId: user.orgId,
+        });
+
+        if (!payment) {
+          return NextResponse.json(
+            { success: false, error: "Payment not found" },
+            { status: 404 }
+          );
+        }
+
+        if (payment.status === PaymentStatus.CLEARED) {
+          return NextResponse.json(
+            { success: false, error: "Payment is already completed" },
+            { status: 400 }
+          );
+        }
+
+        if (payment.status !== PaymentStatus.POSTED) {
+          return NextResponse.json(
+            {
+              success: false,
+              error:
+                "Payment must be in POSTED status before it can be marked as completed",
+            },
+            { status: 400 }
+          );
+        }
+
+        // Update payment status to completed/cleared
+        payment.status = PaymentStatus.CLEARED;
+        payment.reconciliation = {
+          ...payment.reconciliation,
+          isReconciled: true,
+          reconciledAt: new Date(),
+          reconciledBy: new Types.ObjectId(user.userId),
+        };
+        await payment.save();
+
+        const responsePayload = {
+          id: payment._id.toString(),
+          paymentNumber: payment.paymentNumber,
+          status: payment.status,
+          amount: payment.amount,
+          currency: payment.currency,
+          paymentDate: payment.paymentDate,
+          reconciledAt: payment.reconciliation?.reconciledAt,
+          reconciledBy: payment.reconciliation?.reconciledBy
+            ? payment.reconciliation.reconciledBy.toString()
+            : undefined,
+        };
+
+        return NextResponse.json(
+          {
+            success: true,
+            data: responsePayload,
+            message: "Payment marked as completed",
+          }
+        );
+      }
+    );
+  } catch (error) {
+    logger.error("Error completing payment:", error);
+
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 403 }
+      );
+    }
+
+    if (error instanceof Error && error.message.includes("Unauthorized")) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to complete payment",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/finance/payments/route.ts">
+<![CDATA[
+/**
+ * Payment API Routes
+ * POST /api/finance/payments - Create payment
+ * GET /api/finance/payments - List payments
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { Payment } from "@/server/models/finance/Payment";
+import { Invoice } from "@/server/models/Invoice";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { runWithContext } from "@/server/lib/authContext";
+import { requirePermission } from "@/config/rbac.config";
+import { Types } from "mongoose";
+
+import { logger } from "@/lib/logger";
+const PaymentAllocationSchema = z.object({
+  invoiceId: z.string(),
+  amount: z.number().positive(),
+  description: z.string().optional(),
+});
+
+const BankDetailsSchema = z.object({
+  bankName: z.string().optional(),
+  accountNumber: z.string().optional(),
+  branchCode: z.string().optional(),
+  swiftCode: z.string().optional(),
+});
+
+const ChequeDetailsSchema = z.object({
+  chequeNumber: z.string(),
+  bankName: z.string(),
+  chequeDate: z.coerce.date(),
+});
+
+const CardDetailsSchema = z.object({
+  cardType: z.enum(["CREDIT", "DEBIT"]).optional(),
+  last4Digits: z.string().optional(),
+  transactionId: z.string().optional(),
+});
+
+const CreatePaymentSchema = z.object({
+  paymentNumber: z.string().optional(), // Auto-generated if not provided
+  paymentDate: z.coerce.date(),
+  paymentType: z.enum(["RECEIVED", "MADE"]),
+  paymentMethod: z.enum([
+    "CASH",
+    "CARD",
+    "BANK_TRANSFER",
+    "CHEQUE",
+    "ONLINE",
+    "OTHER",
+  ]),
+  amount: z.number().positive(),
+  currency: z.string().default("SAR"),
+  partyType: z.enum(["TENANT", "VENDOR", "OWNER", "OTHER"]),
+  partyId: z.string(),
+  partyName: z.string(),
+  description: z.string(),
+  propertyId: z.string().optional(),
+  unitId: z.string().optional(),
+  leaseId: z.string().optional(),
+  invoiceAllocations: z.array(PaymentAllocationSchema).optional(),
+  bankDetails: BankDetailsSchema.optional(),
+  chequeDetails: ChequeDetailsSchema.optional(),
+  cardDetails: CardDetailsSchema.optional(),
+  referenceNumber: z.string().optional(),
+  notes: z.string().optional(),
+  receiptUrl: z.string().optional(),
+  // Status removed - always DRAFT on create, require reconcile/clear/bounce endpoints
+});
+
+async function getUserSession(req: NextRequest) {
+  const user = await getSessionUser(req);
+  if (!user || !user.id || !user.orgId) {
+    throw new Error("Unauthorized: Invalid session");
+  }
+  return {
+    userId: user.id,
+    orgId: user.orgId,
+    role: user.role,
+  };
+}
+
+/**
+ * POST /api/finance/payments
+ * Create a new payment
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const user = await getUserSession(req);
+
+    // Authorization check
+    requirePermission(user.role, "finance.payments.create");
+
+    // Parse request body
+    const body = await req.json();
+    const data = CreatePaymentSchema.parse(body);
+
+    // Execute with proper context
+    return await runWithContext(
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
+      async () => {
+        // Validate all invoice allocations belong to this org
+        if (data.invoiceAllocations && data.invoiceAllocations.length > 0) {
+          const invoiceIds = data.invoiceAllocations.map((a) => a.invoiceId);
+          const validInvoices = await Invoice.find({
+            _id: { $in: invoiceIds.map((id) => new Types.ObjectId(id)) },
+            orgId: new Types.ObjectId(user.orgId),
+          }).select("_id");
+
+          const validIds = new Set(
+            validInvoices.map((inv) => inv._id.toString()),
+          );
+          const invalidIds = invoiceIds.filter((id) => !validIds.has(id));
+
+          if (invalidIds.length > 0) {
+            return NextResponse.json(
+              {
+                success: false,
+                error: `Invalid invoice IDs: ${invalidIds.join(", ")}`,
+              },
+              { status: 400 },
+            );
+          }
+        }
+
+        // Create payment - always DRAFT (require /reconcile /clear /bounce for status changes)
+        const payment = await Payment.create({
+          ...data,
+          orgId: user.orgId,
+          createdBy: user.userId,
+          status: "DRAFT", // Force DRAFT - require dedicated endpoints for other statuses
+        });
+
+        // Auto-allocate to invoices if provided
+        if (data.invoiceAllocations && data.invoiceAllocations.length > 0) {
+          for (const allocation of data.invoiceAllocations) {
+            await payment.allocateToInvoice(
+              new Types.ObjectId(allocation.invoiceId),
+              `INV-${Date.now()}`, // Fallback invoice number
+              allocation.amount,
+            );
+          }
+        }
+
+        return NextResponse.json({
+          success: true,
+          data: payment,
+          message: "Payment draft created",
+        });
+      },
+    );
+  } catch (error) {
+    logger.error("Error creating payment:", error);
+
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 403 },
+      );
+    }
+
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Validation failed",
+          issues: error.issues,
+        },
+        { status: 400 },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to create payment",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * GET /api/finance/payments
+ * List payments with filters
+ */
+export async function GET(req: NextRequest) {
+  try {
+    const user = await getUserSession(req);
+
+    // Authorization check
+    requirePermission(user.role, "finance.payments.read");
+
+    const { searchParams } = new URL(req.url);
+
+    // Execute with proper context
+    return await runWithContext(
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
+      async () => {
+        // Build query
+        const query: Record<string, unknown> = {
+          orgId: user.orgId,
+        };
+
+        // Filters
+        const status = searchParams.get("status");
+        if (status) query.status = status;
+
+        const paymentType = searchParams.get("paymentType");
+        if (paymentType) query.paymentType = paymentType;
+
+        const paymentMethod = searchParams.get("paymentMethod");
+        if (paymentMethod) query.paymentMethod = paymentMethod;
+
+        const partyId = searchParams.get("partyId");
+        if (partyId) query.partyId = partyId;
+
+        const partyType = searchParams.get("partyType");
+        if (partyType) query.partyType = partyType;
+
+        const propertyId = searchParams.get("propertyId");
+        if (propertyId) query.propertyId = propertyId;
+
+        const reconciled = searchParams.get("reconciled");
+        if (reconciled !== null) {
+          query["reconciliation.isReconciled"] = reconciled === "true";
+        }
+
+        // Date range
+        const startDate = searchParams.get("startDate");
+        const endDate = searchParams.get("endDate");
+        if (startDate || endDate) {
+          query.paymentDate = {};
+          if (startDate) {
+            (query.paymentDate as { $gte?: Date }).$gte = new Date(startDate);
+          }
+          if (endDate) {
+            (query.paymentDate as { $lte?: Date }).$lte = new Date(endDate);
+          }
+        }
+
+        // Pagination
+        const page = parseInt(searchParams.get("page") || "1", 10);
+        const limit = Math.min(
+          parseInt(searchParams.get("limit") || "50", 10),
+          100,
+        );
+        const skip = (page - 1) * limit;
+
+        // Execute query
+        const [payments, totalCount] = await Promise.all([
+          Payment.find(query)
+            .sort({ paymentDate: -1, createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean(),
+          Payment.countDocuments(query),
+        ]);
+
+        return NextResponse.json({
+          success: true,
+          data: payments,
+          pagination: {
+            page,
+            limit,
+            totalCount,
+            totalPages: Math.ceil(totalCount / limit),
+          },
+        });
+      },
+    );
+  } catch (error) {
+    logger.error("Error fetching payments:", error);
+
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 403 },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to fetch payments",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/finance/reports/balance-sheet/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { dbConnect } from "@/lib/mongodb-unified";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { runWithContext } from "@/server/lib/authContext";
+import { requirePermission } from "@/config/rbac.config";
+import { balanceSheet } from "@/server/finance/reporting.service";
+import { logger } from "@/lib/logger";
+
+export async function GET(req: NextRequest) {
+  try {
+    await dbConnect();
+
+    const user = await getSessionUser(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    requirePermission(user.role, "finance.reports.balance-sheet");
+
+    return await runWithContext(
+      {
+        userId: user.id,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
+      async () => {
+        const { searchParams } = new URL(req.url);
+        const asOfParam = searchParams.get("asOf");
+        const asOf = asOfParam ? new Date(asOfParam) : new Date();
+
+        const result = await balanceSheet(
+          {
+            userId: user.id,
+            orgId: user.orgId,
+            role: user.role,
+            timestamp: new Date(),
+          },
+          asOf,
+        );
+
+        const toMajor = (value: bigint) => Number(value) / 100;
+
+        return NextResponse.json({
+          asOf: asOf.toISOString(),
+          assets: toMajor(result.assets),
+          liabilities: toMajor(result.liab),
+          equity: toMajor(result.equity),
+          equationOk: result.equationOk,
+        });
+      },
+    );
+  } catch (error) {
+    logger.error("GET /api/finance/reports/balance-sheet error:", error);
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/finance/reports/income-statement/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { dbConnect } from "@/lib/mongodb-unified";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { runWithContext } from "@/server/lib/authContext";
+import { requirePermission } from "@/config/rbac.config";
+import { incomeStatement } from "@/server/finance/reporting.service";
+import { decimal128ToMinor } from "@/server/lib/money";
+import { Types } from "mongoose";
+import { logger } from "@/lib/logger";
+
+export async function GET(req: NextRequest) {
+  try {
+    await dbConnect();
+
+    const user = await getSessionUser(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    requirePermission(user.role, "finance.reports.income-statement");
+
+    return await runWithContext(
+      {
+        userId: user.id,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
+      async () => {
+        const { searchParams } = new URL(req.url);
+        const now = new Date();
+        const year = parseInt(
+          searchParams.get("year") || now.getFullYear().toString(),
+          10,
+        );
+        const fromParam = searchParams.get("from");
+        const toParam = searchParams.get("to");
+
+        const from = fromParam ? new Date(fromParam) : new Date(year, 0, 1);
+        const to = toParam
+          ? new Date(toParam)
+          : new Date(year, 11, 31, 23, 59, 59, 999);
+
+        const result = await incomeStatement(
+          {
+            userId: user.id,
+            orgId: user.orgId,
+            role: user.role,
+            timestamp: new Date(),
+          },
+          from,
+          to,
+        );
+
+        const decimalZero = Types.Decimal128.fromString("0");
+        const toMajor = (minor: bigint) => Number(minor) / 100;
+
+        const rows = result.rows.map((row) => {
+          const debitMinor = decimal128ToMinor(
+            (row.debit as Types.Decimal128) ?? decimalZero,
+          );
+          const creditMinor = decimal128ToMinor(
+            (row.credit as Types.Decimal128) ?? decimalZero,
+          );
+
+          return {
+            accountId: row.accountId?.toString?.() ?? "",
+            accountCode: row.code ?? row.accountCode ?? "",
+            accountName: row.name ?? row.accountName ?? "",
+            accountType: row.type,
+            debit: toMajor(debitMinor),
+            credit: toMajor(creditMinor),
+          };
+        });
+
+        return NextResponse.json({
+          from: from.toISOString(),
+          to: to.toISOString(),
+          revenue: toMajor(result.revenue),
+          expense: toMajor(result.expense),
+          net: toMajor(result.net),
+          rows,
+        });
+      },
+    );
+  } catch (error) {
+    logger.error("GET /api/finance/reports/income-statement error:", error);
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/finance/reports/owner-statement/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { dbConnect } from "@/lib/mongodb-unified";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { runWithContext } from "@/server/lib/authContext";
+import { requirePermission } from "@/config/rbac.config";
+import { ownerStatement } from "@/server/finance/reporting.service";
+import { decimal128ToMinor } from "@/server/lib/money";
+import { Types } from "mongoose";
+import { logger } from "@/lib/logger";
+
+export async function GET(req: NextRequest) {
+  try {
+    await dbConnect();
+
+    const user = await getSessionUser(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    requirePermission(user.role, "finance.reports.owner-statement");
+
+    return await runWithContext(
+      {
+        userId: user.id,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
+      async () => {
+        const { searchParams } = new URL(req.url);
+        const propertyId = searchParams.get("propertyId");
+        if (!propertyId) {
+          return NextResponse.json(
+            { error: "propertyId is required" },
+            { status: 400 },
+          );
+        }
+
+        const fromParam = searchParams.get("from");
+        const toParam = searchParams.get("to");
+        const now = new Date();
+
+        const from = fromParam
+          ? new Date(fromParam)
+          : new Date(now.getFullYear(), now.getMonth(), 1);
+        const to = toParam ? new Date(toParam) : now;
+
+        const result = await ownerStatement(
+          {
+            userId: user.id,
+            orgId: user.orgId,
+            role: user.role,
+            timestamp: new Date(),
+          },
+          propertyId,
+          from,
+          to,
+        );
+
+        const decimalZero = Types.Decimal128.fromString("0");
+        const toMajor = (value: bigint) => Number(value) / 100;
+
+        const lines = result.lines.map((line) => {
+          const debitMinor = decimal128ToMinor(
+            (line.debit as Types.Decimal128) ?? decimalZero,
+          );
+          const creditMinor = decimal128ToMinor(
+            (line.credit as Types.Decimal128) ?? decimalZero,
+          );
+
+          return {
+            accountId: line.accountId?.toString?.() ?? "",
+            accountCode: line.code ?? line.accountCode ?? "",
+            accountName: line.name ?? line.accountName ?? "",
+            accountType: line.type,
+            debit: toMajor(debitMinor),
+            credit: toMajor(creditMinor),
+          };
+        });
+
+        return NextResponse.json({
+          propertyId,
+          from: from.toISOString(),
+          to: to.toISOString(),
+          opening: toMajor(result.opening),
+          charges: toMajor(result.charges),
+          receipts: toMajor(result.receipts),
+          ending: toMajor(result.ending),
+          lines,
+        });
+      },
+    );
+  } catch (error) {
+    logger.error("GET /api/finance/reports/owner-statement error:", error);
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/fm/errors.ts">
+<![CDATA[
+/**
+ * Standardized error responses for FM API endpoints
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+
+export type FMErrorCode =
+  | "UNAUTHORIZED"
+  | "FORBIDDEN"
+  | "NOT_FOUND"
+  | "BAD_REQUEST"
+  | "VALIDATION_ERROR"
+  | "INTERNAL_ERROR"
+  | "CONFLICT"
+  | "INVALID_TRANSITION"
+  | "MISSING_TENANT"
+  | "INVALID_ID"
+  | "RATE_LIMITED";
+
+export type FMErrorOptions = {
+  details?: Record<string, unknown>;
+  headers?: HeadersInit;
+  requestId?: string;
+  path?: string;
+  retryAfterSeconds?: number;
+  allowedTransitions?: string[];
+};
+
+export interface FMErrorResponse {
+  success: false;
+  error: string;
+  code: FMErrorCode;
+  message: string;
+  status: number;
+  timestamp: string;
+  path?: string;
+  requestId?: string;
+  details?: Record<string, unknown>;
+}
+
+/**
+ * Build error context (path + requestId) from NextRequest headers/URL.
+ */
+export function fmErrorContext(
+  req: NextRequest,
+  extra: FMErrorOptions = {},
+): FMErrorOptions {
+  const inferredRequestId =
+    req.headers.get("x-request-id") ||
+    req.headers.get("x-correlation-id") ||
+    req.headers.get("x-trace-id") ||
+    undefined;
+
+  const path = (() => {
+    try {
+      return new URL(req.url).pathname;
+    } catch {
+      return undefined;
+    }
+  })();
+
+  return {
+    ...extra,
+    path: extra.path ?? path,
+    requestId: extra.requestId ?? inferredRequestId,
+  };
+}
+
+/**
+ * Create standardized error response
+ */
+export function createFMErrorResponse(
+  code: FMErrorCode,
+  message: string,
+  status: number,
+  options: FMErrorOptions = {},
+): NextResponse<FMErrorResponse> {
+  const {
+    details,
+    headers,
+    requestId,
+    path,
+    retryAfterSeconds,
+    allowedTransitions,
+  } = options;
+  const responseHeaders = new Headers({ "Cache-Control": "no-store" });
+  const mergedDetails =
+    details || allowedTransitions
+      ? {
+          ...(details ?? {}),
+          ...(allowedTransitions ? { allowedTransitions } : {}),
+        }
+      : undefined;
+
+  if (headers) {
+    new Headers(headers).forEach((value, key) =>
+      responseHeaders.set(key, value),
+    );
+  }
+
+  if (
+    typeof retryAfterSeconds === "number" &&
+    Number.isFinite(retryAfterSeconds)
+  ) {
+    const safeRetry = Math.max(0, Math.ceil(retryAfterSeconds));
+    responseHeaders.set("Retry-After", safeRetry.toString());
+  }
+
+  return NextResponse.json(
+    {
+      success: false,
+      error: code.toLowerCase().replace(/_/g, "-"),
+      code,
+      message,
+      status,
+      timestamp: new Date().toISOString(),
+      ...(path && { path }),
+      ...(requestId && { requestId }),
+      ...(mergedDetails && { details: mergedDetails }),
+      ...(allowedTransitions && { allowedTransitions }),
+    },
+    { status, headers: responseHeaders },
+  );
+}
+
+// Common error responses
+export const FMErrors = {
+  unauthorized: (
+    message = "Authentication required",
+    options?: FMErrorOptions,
+  ) => createFMErrorResponse("UNAUTHORIZED", message, 401, options),
+
+  forbidden: (message = "Insufficient permissions", options?: FMErrorOptions) =>
+    createFMErrorResponse("FORBIDDEN", message, 403, options),
+
+  notFound: (resource: string, options?: FMErrorOptions) =>
+    createFMErrorResponse("NOT_FOUND", `${resource} not found`, 404, options),
+
+  badRequest: (
+    message: string,
+    details?: Record<string, unknown>,
+    options?: FMErrorOptions,
+  ) =>
+    createFMErrorResponse("BAD_REQUEST", message, 400, {
+      ...options,
+      ...(details && { details }),
+    }),
+
+  validationError: (
+    message: string,
+    details?: Record<string, unknown>,
+    options?: FMErrorOptions,
+  ) =>
+    createFMErrorResponse("VALIDATION_ERROR", message, 400, {
+      ...options,
+      ...(details && { details }),
+    }),
+
+  internalError: (
+    message = "Internal server error",
+    options?: FMErrorOptions,
+  ) => createFMErrorResponse("INTERNAL_ERROR", message, 500, options),
+
+  conflict: (message: string, options?: FMErrorOptions) =>
+    createFMErrorResponse("CONFLICT", message, 409, options),
+
+  invalidTransition: (
+    message: string,
+    allowedTransitions?: string[],
+    options?: FMErrorOptions,
+  ) =>
+    createFMErrorResponse("INVALID_TRANSITION", message, 400, {
+      ...options,
+      ...(allowedTransitions ? { allowedTransitions } : undefined),
+    }),
+
+  missingTenant: (options?: FMErrorOptions) =>
+    createFMErrorResponse(
+      "MISSING_TENANT",
+      "Organization context required",
+      400,
+      options,
+    ),
+
+  invalidId: (resource: string, options?: FMErrorOptions) =>
+    createFMErrorResponse("INVALID_ID", `Invalid ${resource} ID`, 400, options),
+
+  rateLimited: (
+    message = "Too many requests",
+    details?: Record<string, unknown> & { retryAfterSeconds?: number },
+    options?: FMErrorOptions,
+  ) =>
+    createFMErrorResponse("RATE_LIMITED", message, 429, {
+      ...options,
+      ...(details && { details }),
+      retryAfterSeconds:
+        options?.retryAfterSeconds ?? details?.retryAfterSeconds,
+    }),
+};
+
+]]>
+</file>
+
+<file path="app/api/fm/finance/budgets/[id]/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { unwrapFindOneResult } from "@/lib/mongoUtils.server";
+import { logger } from "@/lib/logger";
+import { ModuleKey } from "@/domain/fm/fm.behavior";
+import { FMAction } from "@/types/fm/enums";
+import { FMErrors } from "@/app/api/fm/errors";
+import { requireFmPermission } from "@/app/api/fm/permissions";
+import { resolveTenantId, buildTenantFilter, isCrossTenantMode } from "@/app/api/fm/utils/tenant";
+
+type BudgetDocument = {
+  _id: ObjectId;
+  orgId: string;
+  name: string;
+  department: string;
+  allocated: number;
+  currency: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type BudgetPayload = {
+  name?: string;
+  department?: string;
+  allocated?: number;
+  currency?: string;
+};
+
+const COLLECTION = "fm_budgets";
+
+const parsePayload = (payload: BudgetPayload) => {
+  const provided = {
+    name: Object.prototype.hasOwnProperty.call(payload, "name"),
+    department: Object.prototype.hasOwnProperty.call(payload, "department"),
+    allocated: Object.prototype.hasOwnProperty.call(payload, "allocated"),
+    currency: Object.prototype.hasOwnProperty.call(payload, "currency"),
+  };
+
+  const normalized: BudgetPayload = {};
+
+  if (typeof payload.name === "string") {
+    normalized.name = payload.name.trim();
+  }
+  if (typeof payload.department === "string") {
+    normalized.department = payload.department.trim();
+  }
+  if (
+    typeof payload.allocated === "number" &&
+    Number.isFinite(payload.allocated)
+  ) {
+    normalized.allocated = payload.allocated;
+  }
+  if (typeof payload.currency === "string") {
+    normalized.currency = payload.currency.trim().toUpperCase();
+  }
+
+  return { normalized, provided };
+};
+
+const validatePatchPayload = (
+  normalized: BudgetPayload,
+  provided: Record<keyof BudgetPayload, boolean>,
+): string | null => {
+  if (provided.name && !normalized.name) {
+    return "Name cannot be empty";
+  }
+  if (provided.department && !normalized.department) {
+    return "Department cannot be empty";
+  }
+  if (provided.allocated) {
+    if (normalized.allocated === undefined || !Number.isFinite(normalized.allocated)) {
+      return "Allocated amount must be a positive number";
+    }
+    if (normalized.allocated <= 0) {
+      return "Allocated amount must be greater than 0";
+    }
+  }
+  if (provided.currency && !normalized.currency) {
+    return "Currency cannot be empty";
+  }
+  return null;
+};
+
+const mapBudget = (doc: BudgetDocument) => ({
+  id: doc._id.toString(),
+  name: doc.name,
+  department: doc.department,
+  allocated: doc.allocated,
+  currency: doc.currency,
+  createdAt: doc.createdAt,
+  updatedAt: doc.updatedAt,
+});
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { id } = params;
+    
+    if (!ObjectId.isValid(id)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid budget ID" },
+        { status: 400 }
+      );
+    }
+
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.FINANCE,
+      action: FMAction.VIEW,
+    });
+    if (actor instanceof NextResponse) return actor;
+
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    // Reject cross-tenant mode for GET by id (must specify explicit tenant)
+    if (isCrossTenantMode(tenantId)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Super Admin must specify tenant context for budget retrieval",
+        },
+        { status: 400 },
+      );
+    }
+
+    const db = await getDatabase();
+    const collection = db.collection<BudgetDocument>(COLLECTION);
+    
+    const query: Record<string, unknown> = { 
+      _id: new ObjectId(id),
+      ...buildTenantFilter(tenantId)
+    };
+    
+    const budget = await collection.findOne(query);
+    
+    if (!budget) {
+      return NextResponse.json(
+        { success: false, error: "Budget not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: mapBudget(budget),
+    });
+  } catch (error) {
+    logger.error("FM Budgets API - GET [id] error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { id } = params;
+    
+    if (!ObjectId.isValid(id)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid budget ID" },
+        { status: 400 }
+      );
+    }
+
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.FINANCE,
+      action: FMAction.UPDATE,
+    });
+    if (actor instanceof NextResponse) return actor;
+
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    // Reject cross-tenant mode for PATCH (must specify explicit tenant)
+    if (isCrossTenantMode(tenantId)) {
+      return NextResponse.json(
+        { success: false, error: "Super Admin must specify tenant context for budget updates" },
+        { status: 400 }
+      );
+    }
+
+    const rawBody = await req.json().catch(() => null);
+    if (!rawBody || typeof rawBody !== "object" || Array.isArray(rawBody)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid payload" },
+        { status: 400 },
+      );
+    }
+
+    const { normalized: payload, provided } = parsePayload(
+      rawBody as BudgetPayload,
+    );
+    const anyProvided = Object.values(provided).some(Boolean);
+    if (!anyProvided) {
+      return NextResponse.json(
+        { success: false, error: "No fields provided to update" },
+        { status: 400 }
+      );
+    }
+
+    const validationError = validatePatchPayload(payload, provided);
+    if (validationError) {
+      return NextResponse.json(
+        { success: false, error: validationError },
+        { status: 400 },
+      );
+    }
+
+    const db = await getDatabase();
+    const collection = db.collection<BudgetDocument>(COLLECTION);
+    
+    const tenantFilter = buildTenantFilter(tenantId);
+    const query = { 
+      _id: new ObjectId(id),
+      ...tenantFilter 
+    };
+    
+    const updateResult = await collection.findOneAndUpdate(
+      query,
+      { 
+        $set: { 
+          ...payload, 
+          updatedAt: new Date() 
+        } 
+      },
+      { returnDocument: "after" }
+    );
+
+    const updated = unwrapFindOneResult(updateResult);
+    if (!updated) {
+      return NextResponse.json(
+        { success: false, error: "Budget not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: mapBudget(updated),
+    });
+  } catch (error) {
+    logger.error("FM Budgets API - PATCH error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { id } = params;
+    
+    if (!ObjectId.isValid(id)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid budget ID" },
+        { status: 400 }
+      );
+    }
+
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.FINANCE,
+      action: FMAction.DELETE,
+    });
+    if (actor instanceof NextResponse) return actor;
+
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    // Reject cross-tenant mode for DELETE (must specify explicit tenant)
+    if (isCrossTenantMode(tenantId)) {
+      return NextResponse.json(
+        { success: false, error: "Super Admin must specify tenant context for budget deletion" },
+        { status: 400 }
+      );
+    }
+
+    const db = await getDatabase();
+    const collection = db.collection<BudgetDocument>(COLLECTION);
+    
+    const tenantFilter = buildTenantFilter(tenantId);
+    const query = { 
+      _id: new ObjectId(id),
+      ...tenantFilter 
+    };
+    
+    const deleted = unwrapFindOneResult(
+      await collection.findOneAndDelete(query),
+    );
+    if (!deleted) {
+      return NextResponse.json(
+        { success: false, error: "Budget not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Budget deleted successfully",
+    });
+  } catch (error) {
+    logger.error("FM Budgets API - DELETE error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

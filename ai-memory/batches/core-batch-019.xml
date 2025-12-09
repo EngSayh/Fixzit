@@ -1,0 +1,3048 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/dashboard/system/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { logger } from "@/lib/logger";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Users, Shield, Building } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { fetchOrgCounters } from "@/lib/counters";
+
+interface SystemCounters {
+  system: { users: number; roles: number; tenants: number };
+}
+
+export default function SystemDashboard() {
+  const { data: session, status } = useSession();
+  const orgId = (session?.user as { orgId?: string } | undefined)?.orgId;
+  const auto = useAutoTranslator("dashboard.system");
+  const [activeTab, setActiveTab] = useState("users");
+  const [counters, setCounters] = useState<SystemCounters | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (status === "loading") return;
+    if (!orgId) {
+      setCounters(null);
+      setLoading(false);
+      return;
+    }
+    const controller = new AbortController();
+    const fetchData = async () => {
+      try {
+        const data = await fetchOrgCounters(orgId, { signal: controller.signal });
+        const system =
+          (data.system as Partial<SystemCounters["system"]>) ?? {};
+        setCounters({
+          system: {
+            users: system.users ?? 0,
+            roles: system.roles ?? 0,
+            tenants: system.tenants ?? 0,
+          },
+        });
+        setLoading(false);
+      } catch (error) {
+        logger.error("Failed to load system data:", error as Error);
+        setLoading(false);
+      }
+    };
+    fetchData();
+    return () => controller.abort();
+  }, [auto, orgId, status]);
+
+  const tabs = [
+    {
+      id: "users",
+      label: auto("Users", "tabs.users"),
+      count: counters?.system.users,
+    },
+    { id: "roles", label: auto("Roles & Permissions", "tabs.roles") },
+    { id: "billing", label: auto("Billing", "tabs.billing") },
+    { id: "integrations", label: auto("Integrations", "tabs.integrations") },
+    { id: "settings", label: auto("System Settings", "tabs.settings") },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-foreground">
+          {auto("System Admin", "header.title")}
+        </h1>
+        <p className="text-muted-foreground">
+          {auto("Manage users, roles, and system settings", "header.subtitle")}
+        </p>
+      </div>
+
+      <div className="flex items-center gap-2 border-b">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={cn(
+              "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
+              activeTab === tab.id
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {tab.label}
+            {tab.count !== undefined && tab.count > 0 && (
+              <span className="ms-2 px-2 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
+                {tab.count}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "users" && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {auto("Total Users", "metrics.totalUsers")}
+              </CardTitle>
+              <Users className="w-4 h-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {loading ? "..." : counters?.system.users || 0}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {auto("Roles", "metrics.roles")}
+              </CardTitle>
+              <Shield className="w-4 h-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-primary">
+                {loading ? "..." : counters?.system.roles || 0}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {auto("Tenants", "metrics.tenants")}
+              </CardTitle>
+              <Building className="w-4 h-4 text-success" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-success">
+                {loading ? "..." : counters?.system.tenants || 0}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {["roles", "billing", "integrations", "settings"].includes(activeTab) && (
+        <Card>
+          <CardContent className="py-8">
+            <div className="text-center text-muted-foreground">
+              <p className="font-medium">
+                {tabs.find((t) => t.id === activeTab)?.label}
+              </p>
+              <p className="text-sm mt-2">
+                {auto(
+                  "Content will be implemented here",
+                  "placeholder.description",
+                )}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/dev/login-helpers/DevLoginClient.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect, useState } from "react";
+import { logger } from "@/lib/logger";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import {
+  ArrowRight,
+  Shield,
+  User,
+  Building2,
+  Users,
+  Copy,
+  Check,
+} from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
+
+type ListedCred = {
+  role: string;
+  description?: string;
+  color?: string;
+  icon?: "User" | "Shield" | "Building2" | "Users";
+  loginType: "personal" | "corporate";
+  email?: string;
+  employeeNumber?: string;
+};
+
+const IconMap = { User, Shield, Building2, Users } as const;
+
+/**
+ * Client component for dev login helpers
+ * Fetches sanitized credential list (NO PASSWORDS) from server API
+ * Auto-login happens server-side via /api/dev/demo-login
+ */
+export default function DevLoginClient() {
+  const router = useRouter();
+  const { t } = useTranslation();
+  const [demo, setDemo] = useState<ListedCred[]>([]);
+  const [corp, setCorp] = useState<ListedCred[]>([]);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [loading, setLoading] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/dev/demo-accounts", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => {
+        setDemo(d.demo ?? []);
+        setCorp(d.corporate ?? []);
+        if (d.warning) {
+          logger.warn(`[Dev Login Helpers] ${d.warning}`);
+        }
+      })
+      .catch((err) => {
+        logger.error("[Dev Login Helpers] Failed to load accounts:", err);
+      });
+  }, []);
+
+  const copy = (text: string, key: string) => {
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text);
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey(null), 2000);
+    }
+  };
+
+  const autoLogin = async (role: string) => {
+    setLoading(role);
+    try {
+      const res = await fetch("/api/dev/demo-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ role }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok && (data.ok ?? true)) {
+        router.push("/dashboard");
+      } else {
+        alert(
+          t("devLogin.alert.failure", "Login failed: ") +
+            (data.error || res.statusText),
+        );
+      }
+    } catch (error) {
+      alert(
+        t("devLogin.alert.failure", "Login failed: ") +
+          (error instanceof Error
+            ? error.message
+            : t("devLogin.alert.unknownError", "Unknown error")),
+      );
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const Card = (cred: ListedCred, idx: number, offset = 0) => {
+    const key = `${cred.role}-${idx + offset}`;
+    const Icon = IconMap[cred.icon ?? "User"];
+    const id = cred.loginType === "personal" ? cred.email : cred.employeeNumber;
+    const label =
+      cred.loginType === "personal"
+        ? t("devLogin.fields.emailLabel", "Email")
+        : t("devLogin.fields.employeeLabel", "Employee #");
+    const copyText = `${label}: ${id ?? ""}`;
+    const isLoading = loading === cred.role;
+
+    return (
+      <div
+        key={key}
+        className={`${cred.color ?? "border-border"} border rounded-2xl p-6 hover:shadow-xl transition-all`}
+        data-testid={`dev-card-${cred.role}`}
+      >
+        <div className="flex items-start gap-4 mb-4">
+          <div className="p-3 bg-white/10 rounded-2xl">
+            <Icon size={24} />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-bold text-lg">{cred.role}</h3>
+            {cred.description && (
+              <p className="text-sm opacity-80">{cred.description}</p>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-black/20 rounded p-3 mb-3 font-mono text-sm">
+          <div className="mb-1">
+            <span className="opacity-60">{label}:</span> {id ?? "—"}
+          </div>
+          <div>
+            <span className="opacity-60">
+              {t("devLogin.fields.passwordLabel", "Password")}:
+            </span>{" "}
+            <span className="opacity-60">
+              {t("devLogin.fields.passwordHidden", "[hidden]")}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={() => autoLogin(cred.role)}
+            disabled={isLoading}
+            className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            data-testid={`dev-autologin-${cred.role}`}
+          >
+            {isLoading ? (
+              <>
+                <span className="animate-spin">⏳</span>
+                {t("devLogin.buttons.loggingIn", "Logging in...")}
+              </>
+            ) : (
+              <>
+                <ArrowRight size={16} />
+                {t("devLogin.buttons.autoLogin", "Auto Login")}
+              </>
+            )}
+          </button>
+          <button
+            onClick={() => copy(copyText, key)}
+            className="px-4 py-2 bg-white/10 rounded-2xl hover:bg-white/20 transition-colors"
+            title={t("devLogin.buttons.copyIdentifier", "Copy identifier")}
+            data-testid={`dev-copy-${cred.role}`}
+          >
+            {copiedKey === key ? (
+              <Check size={16} className="text-success" />
+            ) : (
+              <Copy size={16} />
+            )}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const isEmpty = demo.length === 0 && corp.length === 0;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white">
+      {/* Header */}
+      <div className="border-b border-border bg-black/50 backdrop-blur">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold">
+              🔧 {t("devLogin.title", "Developer Login Helpers")}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {t(
+                "devLogin.subtitle",
+                "Quick access demo credentials (server-safe)",
+              )}
+            </p>
+          </div>
+          <Link
+            href="/login"
+            className="px-4 py-2 bg-primary text-white rounded-2xl hover:bg-primary/90 transition-colors text-sm font-medium"
+            data-testid="back-to-login"
+          >
+            ← {t("devLogin.buttons.backToLogin", "Back to Login")}
+          </Link>
+        </div>
+      </div>
+
+      {/* Warning Banner */}
+      <div className="bg-warning/20 border-y border-warning/50 py-3">
+        <div className="max-w-6xl mx-auto px-4">
+          <p className="text-warning text-sm flex items-center gap-2">
+            <span className="text-xl">⚠️</span>
+            <span>
+              <strong>
+                {t("devLogin.warning.title", "Development Only:")}
+              </strong>{" "}
+              {t(
+                "devLogin.warning.description",
+                "Credentials are never sent to the browser. Auto-login happens on the server.",
+              )}
+            </span>
+          </p>
+        </div>
+      </div>
+
+      {/* Main */}
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {isEmpty ? (
+          <div className="bg-card/50 border border-border rounded-2xl p-8 text-center">
+            <p className="text-muted-foreground mb-4">
+              {t("devLogin.empty.noCreds", "No demo credentials found.")}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {t("devLogin.empty.copyPrefix", "Copy")}{" "}
+              <code className="bg-black/30 px-2 py-1 rounded">
+                dev/credentials.example.ts
+              </code>{" "}
+              {t("devLogin.empty.copyMiddle", "to")}{" "}
+              <code className="bg-black/30 px-2 py-1 rounded">
+                dev/credentials.server.ts
+              </code>{" "}
+              {t(
+                "devLogin.empty.copySuffix",
+                "and fill in your test credentials.",
+              )}
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Personal */}
+            {demo.length > 0 && (
+              <section className="mb-12">
+                <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                  <span className="text-3xl">📧</span>{" "}
+                  {t("devLogin.sections.personal", "Personal Email Accounts")}
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {demo.map((c, i) => Card(c, i))}
+                </div>
+              </section>
+            )}
+
+            {/* Corporate */}
+            {corp.length > 0 && (
+              <section className="mb-12">
+                <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                  <span className="text-3xl">🏢</span>{" "}
+                  {t("devLogin.sections.corporate", "Corporate Accounts")}
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {corp.map((c, i) => Card(c, i, demo.length))}
+                </div>
+              </section>
+            )}
+          </>
+        )}
+
+        {/* Instructions */}
+        <section className="mt-12 bg-card/50 border border-border rounded-2xl p-6">
+          <h3 className="text-xl font-bold mb-4">
+            📖 {t("devLogin.instructions.title", "Usage Instructions")}
+          </h3>
+          <ul className="space-y-2 text-muted-foreground">
+            <li className="flex gap-2">
+              <span>•</span>
+              <span>
+                <strong>
+                  {t("devLogin.instructions.autoLoginTitle", "Auto Login:")}
+                </strong>{" "}
+                {t(
+                  "devLogin.instructions.autoLoginDesc",
+                  "Happens server-side; browser never sees passwords.",
+                )}
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span>•</span>
+              <span>
+                <strong>{t("devLogin.instructions.copyTitle", "Copy:")}</strong>{" "}
+                {t(
+                  "devLogin.instructions.copyDesc",
+                  "Copies identifier (email / employee #) only.",
+                )}
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span>•</span>
+              <span>
+                <strong>
+                  {t("devLogin.instructions.accessTitle", "Access:")}
+                </strong>{" "}
+                {t(
+                  "devLogin.instructions.accessDesc",
+                  "This page is only visible in non-production environments.",
+                )}
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span>•</span>
+              <span>
+                <strong>
+                  {t("devLogin.instructions.securityTitle", "Security:")}
+                </strong>{" "}
+                {t(
+                  "devLogin.instructions.securityDesc",
+                  "Passwords never reach the client bundle. Login endpoint validates credentials server-side.",
+                )}
+              </span>
+            </li>
+          </ul>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/dev/login-helpers/page.tsx">
+<![CDATA[
+import { notFound } from "next/navigation";
+import DevLoginClient from "./DevLoginClient";
+
+/**
+ * Server component gate for dev login helpers
+ * Hard-blocks in production unless explicitly enabled
+ * Uses server-only ENABLE_DEMO_LOGIN (NOT NEXT_PUBLIC_)
+ */
+export default async function Page() {
+  const enabled =
+    process.env.ENABLE_DEMO_LOGIN === "true" ||
+    process.env.NODE_ENV === "development";
+
+  if (!enabled) {
+    return notFound(); // Hard-block in prod without the flag
+  }
+
+  // No secrets here—client will fetch sanitized data from API
+  return <DevLoginClient />;
+}
+
+export const metadata = {
+  title: "Dev Login Helpers | Fixzit",
+  description: "Developer-only quick login utility",
+};
+
+]]>
+</file>
+
+<file path="app/error.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { AlertTriangle, RefreshCw, Home, ArrowLeft } from "lucide-react";
+import Link from "next/link";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
+import { BrandLogo } from "@/components/brand";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
+
+/**
+ * Root Error Boundary Component
+ *
+ * STRICT v4 COMPLIANCE:
+ * - Uses semantic color tokens (text-destructive, bg-destructive/10)
+ * - Supports RTL via TranslationContext
+ * - Logs errors via centralized logger
+ * - Provides recovery actions
+ *
+ * @see https://nextjs.org/docs/app/building-your-application/routing/error-handling
+ */
+// Configurable support contact for different environments (prod/staging/sandbox)
+const supportEmail =
+  process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? EMAIL_DOMAINS.support;
+
+/**
+ * ErrorPage - Root App Router Error Boundary
+ * Named ErrorPage to avoid shadowing the global Error constructor
+ */
+export default function ErrorPage({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  const { t, isRTL } = useTranslation();
+  const router = useRouter();
+
+  // Deduplicate logging by using stable identifiers as dependencies
+  // This prevents duplicate logs on re-renders with the same error
+  useEffect(() => {
+    const errorId = error.digest || error.message;
+    logger.error("Application error caught by error boundary", {
+      id: errorId,
+      message: error.message,
+      digest: error.digest,
+      stack: error.stack,
+      component: "app/error.tsx",
+    });
+  }, [error.digest, error.message, error.stack]);
+
+  // Safe back navigation with fallback for empty history (deep links, first page)
+  const handleBack = useCallback(() => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/");
+    }
+  }, [router]);
+
+  return (
+    <div
+      className="min-h-screen bg-muted flex flex-col items-center justify-center px-4"
+      dir={isRTL ? "rtl" : "ltr"}
+    >
+      <div className="max-w-md w-full text-center">
+        {/* Brand Logo */}
+        <div className="mb-6">
+          <BrandLogo 
+            size="lg" 
+            alt="Fixzit" 
+            fetchOrgLogo={false}
+            data-testid="error-logo"
+          />
+        </div>
+        
+        {/* Error Icon */}
+        <div className="mb-6">
+          <div className="w-20 h-20 mx-auto bg-destructive/10 rounded-full flex items-center justify-center">
+            <AlertTriangle className="w-10 h-10 text-destructive" />
+          </div>
+        </div>
+
+        {/* Error Content */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-foreground mb-2">
+            {t("errors.generic.title", "Something went wrong")}
+          </h1>
+          <p className="text-muted-foreground mb-4">
+            {t(
+              "errors.generic.message",
+              "We apologize for the inconvenience. An unexpected error occurred."
+            )}
+          </p>
+
+          {/* Error Details (Development Only) */}
+          {process.env.NODE_ENV === "development" && (
+            <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-4 text-start mb-4">
+              <p className="text-sm font-mono text-destructive break-all">
+                {error.message}
+              </p>
+              {error.digest && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Error ID: {error.digest}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Recovery Actions */}
+        <div className="space-y-3">
+          <Button
+            onClick={reset}
+            className="w-full"
+            variant="default"
+          >
+            <RefreshCw className="w-4 h-4 me-2" />
+            {t("common.actions.tryAgain", "Try Again")}
+          </Button>
+
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={handleBack}
+          >
+            <ArrowLeft className="w-4 h-4 me-2" />
+            {t("common.actions.goBack", "Go Back")}
+          </Button>
+
+          <Button asChild variant="ghost" className="w-full">
+            <Link href="/" className="block">
+              <Home className="w-4 h-4 me-2" />
+              {t("common.actions.goToHomepage", "Go to Homepage")}
+            </Link>
+          </Button>
+        </div>
+
+        {/* Support Link */}
+        <div className="mt-8 text-sm text-muted-foreground">
+          <p>
+            {t("errors.generic.persistsText", "If this problem persists,")}{" "}
+            <a
+              href={`mailto:${supportEmail}`}
+              className="text-primary hover:underline"
+            >
+              {t("common.contactSupport", "contact support")}
+            </a>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/finance/budgets/new/page.tsx">
+<![CDATA[
+export { default } from "@/app/fm/finance/budgets/new/page";
+export * from "@/app/fm/finance/budgets/new/page";
+
+]]>
+</file>
+
+<file path="app/finance/error.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect } from "react";
+import { RefreshCw, Home, DollarSign } from "lucide-react";
+import Link from "next/link";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
+
+/**
+ * Finance Error Boundary
+ *
+ * STRICT v4 COMPLIANCE:
+ * - Uses semantic color tokens
+ * - Supports RTL via TranslationContext
+ * - Logs errors via centralized logger
+ */
+export default function FinanceError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  const { t, isRTL } = useTranslation();
+
+  useEffect(() => {
+    logger.error("Finance error caught by error boundary", {
+      error: error.message,
+      digest: error.digest,
+      stack: error.stack,
+      component: "app/finance/error.tsx",
+    });
+  }, [error]);
+
+  return (
+    <div
+      className="min-h-[60vh] flex flex-col items-center justify-center px-4"
+      dir={isRTL ? "rtl" : "ltr"}
+    >
+      <div className="max-w-md w-full text-center">
+        <div className="mb-6">
+          <div className="w-16 h-16 mx-auto bg-destructive/10 rounded-full flex items-center justify-center">
+            <DollarSign className="w-8 h-8 text-destructive" />
+          </div>
+        </div>
+
+        <h1 className="text-xl font-bold text-foreground mb-2">
+          {t("errors.finance.title", "Finance Module Error")}
+        </h1>
+        <p className="text-muted-foreground mb-6">
+          {t(
+            "errors.finance.message",
+            "There was a problem loading the finance module. Please try again."
+          )}
+        </p>
+
+        {process.env.NODE_ENV === "development" && (
+          <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-3 text-start mb-6">
+            <p className="text-sm font-mono text-destructive break-all">
+              {error.message}
+            </p>
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Button onClick={reset} variant="default">
+            <RefreshCw className="w-4 h-4 me-2" />
+            {t("common.actions.tryAgain", "Try Again")}
+          </Button>
+
+          <Link href="/dashboard">
+            <Button variant="outline">
+              <Home className="w-4 h-4 me-2" />
+              {t("common.actions.goToDashboard", "Dashboard")}
+            </Button>
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/finance/expenses/new/page.tsx">
+<![CDATA[
+export { default } from "@/app/fm/finance/expenses/new/page";
+export * from "@/app/fm/finance/expenses/new/page";
+
+]]>
+</file>
+
+<file path="app/finance/fm-finance-hooks.ts">
+<![CDATA[
+/**
+ * FM Finance Auto-Posting Hooks
+ * Automatically creates financial transactions when work orders are closed
+ */
+
+if (!process.env.VITEST) {
+  void import("server-only");
+}
+
+import type { HydratedDocument, Types } from "mongoose";
+import { FMFinancialTransaction } from "@/server/models/FMFinancialTransaction";
+import type { FMFinancialTransactionDoc } from "@/server/models/FMFinancialTransaction";
+import { logger } from "@/lib/logger";
+
+type PaymentDetailsInput = {
+  paymentMethod: string;
+  paymentRef?: string;
+  receivedFrom: string;
+  receivedBy: string;
+  notes?: string;
+};
+
+type FMTransactionDocument = HydratedDocument<FMFinancialTransactionDoc> & {
+  markAsPaid(
+    _details: PaymentDetailsInput,
+  ): Promise<HydratedDocument<FMFinancialTransactionDoc>>;
+};
+
+type LeanFMTransaction = FMFinancialTransactionDoc & { _id: Types.ObjectId };
+
+function hasMarkAsPaid(
+  doc: HydratedDocument<FMFinancialTransactionDoc>,
+): doc is FMTransactionDocument {
+  return typeof (doc as FMTransactionDocument).markAsPaid === "function";
+}
+
+export interface WorkOrderFinancialData {
+  workOrderId: string;
+  propertyId: string;
+  unitId?: string;
+  ownerId: string;
+  tenantId?: string;
+  totalCost: number;
+  laborCost: number;
+  materialCost: number;
+  equipmentCost: number;
+  otherCosts: number;
+  chargeable: boolean;
+  chargeToTenant: boolean;
+  category: string;
+  description: string;
+  completedAt: Date;
+  invoiceId?: string;
+}
+
+export interface FinancialTransaction {
+  id: string;
+  type: "EXPENSE" | "INVOICE" | "PAYMENT" | "ADJUSTMENT";
+  workOrderId: string;
+  propertyId: string;
+  ownerId: string;
+  tenantId?: string;
+  amount: number;
+  currency: string;
+  category: string;
+  description: string;
+  date: Date;
+  dueDate?: Date;
+  status: "PENDING" | "POSTED" | "PAID" | "CANCELLED" | "REFUNDED";
+  postingRef?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface OwnerStatement {
+  ownerId: string;
+  propertyId: string;
+  period: {
+    from: Date;
+    to: Date;
+  };
+  transactions: FinancialTransaction[];
+  totalExpenses: number;
+  totalRevenue: number;
+  netBalance: number;
+  generatedAt: Date;
+}
+
+/**
+ * Hook: Auto-post financial transactions when WO transitions to CLOSED
+ */
+export async function onWorkOrderClosed(
+  workOrderId: string,
+  financialData: WorkOrderFinancialData,
+): Promise<{
+  expenseTransaction?: FinancialTransaction;
+  invoiceTransaction?: FinancialTransaction;
+  statementUpdated: boolean;
+}> {
+  const results: {
+    expenseTransaction?: FinancialTransaction;
+    invoiceTransaction?: FinancialTransaction;
+    statementUpdated: boolean;
+  } = {
+    statementUpdated: false,
+  };
+
+  // 1. Create expense transaction (always)
+  const expenseTransaction: FinancialTransaction = {
+    id: `TXN-EXP-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+    type: "EXPENSE",
+    workOrderId,
+    propertyId: financialData.propertyId,
+    ownerId: financialData.ownerId,
+    amount: financialData.totalCost,
+    currency: "SAR",
+    category: financialData.category,
+    description: `Work Order #${workOrderId}: ${financialData.description}`,
+    date: financialData.completedAt,
+    status: "POSTED",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  // Save expense to database
+  const savedExpense = await FMFinancialTransaction.create({
+    type: "EXPENSE",
+    workOrderId: expenseTransaction.workOrderId,
+    propertyId: expenseTransaction.propertyId,
+    ownerId: expenseTransaction.ownerId,
+    amount: expenseTransaction.amount,
+    currency: expenseTransaction.currency,
+    category: expenseTransaction.category,
+    description: expenseTransaction.description,
+    transactionDate: expenseTransaction.date,
+    status: "POSTED",
+  });
+  logger.info(
+    `[Finance] Created expense transaction: ${savedExpense.transactionNumber}`,
+  );
+  results.expenseTransaction = {
+    ...expenseTransaction,
+    id: savedExpense._id.toString(),
+  };
+
+  // 2. Create invoice if chargeable
+  if (financialData.chargeable) {
+    const invoiceTransaction: FinancialTransaction = {
+      id: `TXN-INV-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+      type: "INVOICE",
+      workOrderId,
+      propertyId: financialData.propertyId,
+      ownerId: financialData.ownerId,
+      tenantId: financialData.chargeToTenant
+        ? financialData.tenantId
+        : undefined,
+      amount: financialData.totalCost,
+      currency: "SAR",
+      category: financialData.category,
+      description: `Invoice for Work Order #${workOrderId}`,
+      date: new Date(),
+      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+      status: "PENDING",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    // Save invoice to database
+    const savedInvoice = await FMFinancialTransaction.create({
+      type: "INVOICE",
+      workOrderId: invoiceTransaction.workOrderId,
+      propertyId: invoiceTransaction.propertyId,
+      ownerId: invoiceTransaction.ownerId,
+      tenantId: invoiceTransaction.tenantId,
+      amount: invoiceTransaction.amount,
+      currency: invoiceTransaction.currency,
+      category: invoiceTransaction.category,
+      description: invoiceTransaction.description,
+      transactionDate: invoiceTransaction.date,
+      dueDate: invoiceTransaction.dueDate,
+      status: "PENDING",
+    });
+    logger.info(`[Finance] Created invoice: ${savedInvoice.transactionNumber}`);
+    results.invoiceTransaction = {
+      ...invoiceTransaction,
+      id: savedInvoice._id.toString(),
+    };
+  }
+
+  // 3. Update owner statement with SAVED transactions (not pre-save objects)
+  try {
+    const savedTransactions: FinancialTransaction[] = [];
+
+    if (results.expenseTransaction) {
+      savedTransactions.push(results.expenseTransaction);
+    }
+
+    if (results.invoiceTransaction) {
+      savedTransactions.push(results.invoiceTransaction);
+    }
+
+    await updateOwnerStatement(
+      financialData.ownerId,
+      financialData.propertyId,
+      savedTransactions,
+    );
+    results.statementUpdated = true;
+  } catch (error) {
+    logger.error("[Finance] Failed to update owner statement:", error);
+  }
+
+  return results;
+}
+
+/**
+ * Update owner financial statement with new transactions
+ */
+export async function updateOwnerStatement(
+  ownerId: string,
+  propertyId: string,
+  transactions: FinancialTransaction[],
+): Promise<void> {
+  // Query existing transactions from database to calculate totals
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+
+  const existingTransactions = await FMFinancialTransaction.find({
+    ownerId,
+    propertyId,
+    "statementPeriod.month": currentMonth,
+    "statementPeriod.year": currentYear,
+  }).lean<LeanFMTransaction[]>();
+
+  logger.info(
+    `[Finance] Updating statement for owner ${ownerId} property ${propertyId}`,
+  );
+  logger.info(`[Finance] Adding ${transactions.length} new transactions`);
+  logger.info(
+    `[Finance] Total transactions in period: ${existingTransactions.length + transactions.length}`,
+  );
+
+  // Calculate totals from database records
+  const expenses = existingTransactions
+    .filter((t) => t.type === "EXPENSE")
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const revenue = existingTransactions
+    .filter((t) => t.type === "INVOICE" && t.status === "PAID")
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  logger.info(`[Finance] Total expenses: ${expenses} SAR`);
+  logger.info(`[Finance] Total revenue: ${revenue} SAR`);
+  logger.info(`[Finance] Net balance: ${revenue - expenses} SAR`);
+}
+
+/**
+ * Generate owner statement for a period
+ */
+export async function generateOwnerStatement(
+  ownerId: string,
+  propertyId: string,
+  period: { from: Date; to: Date },
+): Promise<OwnerStatement> {
+  // Query FMFinancialTransaction collection for transactions in period
+  const dbTransactions = await FMFinancialTransaction.find({
+    ownerId,
+    propertyId,
+    transactionDate: {
+      $gte: period.from,
+      $lte: period.to,
+    },
+  })
+    .sort({ transactionDate: 1 })
+    .lean<LeanFMTransaction[]>();
+
+  // Convert to interface format
+  const transactions: FinancialTransaction[] = dbTransactions.map(
+    (transaction) => ({
+      id: transaction._id.toString(),
+      type: transaction.type,
+      workOrderId: transaction.workOrderId?.toString() ?? "",
+      propertyId: transaction.propertyId,
+      ownerId: transaction.ownerId,
+      tenantId: transaction.tenantId || undefined,
+      amount: transaction.amount,
+      currency: transaction.currency,
+      category: transaction.category,
+      description: transaction.description,
+      date: transaction.transactionDate,
+      dueDate: transaction.dueDate ?? undefined,
+      status: transaction.status,
+      createdAt: transaction.createdAt,
+      updatedAt: transaction.updatedAt,
+    }),
+  );
+
+  const totalExpenses = transactions
+    .filter((t) => t.type === "EXPENSE")
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const totalRevenue = transactions
+    .filter((t) => t.type === "INVOICE" && t.status === "PAID")
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  return {
+    ownerId,
+    propertyId,
+    period,
+    transactions,
+    totalExpenses,
+    totalRevenue,
+    netBalance: totalRevenue - totalExpenses,
+    generatedAt: new Date(),
+  };
+}
+
+/**
+ * Get pending invoices for tenant
+ */
+export async function getTenantPendingInvoices(
+  tenantId: string,
+): Promise<FinancialTransaction[]> {
+  // Query FMFinancialTransaction collection for pending invoices
+  const dbInvoices = await FMFinancialTransaction.find({
+    tenantId,
+    type: "INVOICE",
+    status: "PENDING",
+  })
+    .sort({ dueDate: 1 })
+    .lean<LeanFMTransaction[]>();
+
+  // Convert to interface format
+  return dbInvoices.map((transaction) => ({
+    id: transaction._id.toString(),
+    type: "INVOICE" as const,
+    workOrderId: transaction.workOrderId?.toString() ?? "",
+    propertyId: transaction.propertyId,
+    ownerId: transaction.ownerId,
+    tenantId: transaction.tenantId || undefined,
+    amount: transaction.amount,
+    currency: transaction.currency,
+    category: transaction.category,
+    description: transaction.description,
+    date: transaction.transactionDate,
+    dueDate: transaction.dueDate ?? undefined,
+    status: "PENDING" as const,
+    createdAt: transaction.createdAt,
+    updatedAt: transaction.updatedAt,
+  }));
+}
+
+/**
+ * Record payment against invoice
+ */
+export async function recordPayment(
+  invoiceId: string,
+  amount: number,
+  paymentMethod: string,
+  reference: string,
+): Promise<FinancialTransaction> {
+  // Find and update the invoice
+  const invoice = await FMFinancialTransaction.findById(invoiceId);
+  if (!invoice) {
+    throw new Error(`Invoice ${invoiceId} not found`);
+  }
+
+  // Mark invoice as paid
+  if (!hasMarkAsPaid(invoice)) {
+    throw new Error("Invoice document missing markAsPaid handler");
+  }
+  await invoice.markAsPaid({
+    paymentMethod,
+    paymentRef: reference,
+    receivedFrom: invoice.tenantId || "Unknown",
+    receivedBy: "System",
+  });
+
+  // Create payment transaction
+  const savedPayment = await FMFinancialTransaction.create({
+    type: "PAYMENT",
+    workOrderId: invoice.workOrderId,
+    propertyId: invoice.propertyId,
+    ownerId: invoice.ownerId,
+    tenantId: invoice.tenantId,
+    amount,
+    currency: "SAR",
+    category: "PAYMENT",
+    description: `Payment for invoice #${invoice.transactionNumber} via ${paymentMethod}`,
+    transactionDate: new Date(),
+    status: "POSTED",
+    paymentDetails: {
+      paymentMethod,
+      paymentRef: reference,
+      receivedFrom: invoice.tenantId || "Unknown",
+      receivedBy: "System",
+      receivedDate: new Date(),
+    },
+  });
+
+  // Convert to interface format
+  const payment: FinancialTransaction = {
+    id: savedPayment._id.toString(),
+    type: "PAYMENT",
+    workOrderId: savedPayment.workOrderId?.toString() || "",
+    propertyId: savedPayment.propertyId,
+    ownerId: savedPayment.ownerId,
+    tenantId: savedPayment.tenantId || undefined,
+    amount: savedPayment.amount,
+    currency: savedPayment.currency,
+    category: savedPayment.category,
+    description: savedPayment.description,
+    date: savedPayment.transactionDate,
+    status: "POSTED",
+    postingRef: reference,
+    createdAt: savedPayment.createdAt,
+    updatedAt: savedPayment.updatedAt,
+  };
+
+  logger.info(`[Finance] Recorded payment: ${payment.id}`);
+  return payment;
+}
+
+]]>
+</file>
+
+<file path="app/finance/invoices/new/page.tsx">
+<![CDATA[
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useFormState } from "@/contexts/FormStateContext";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { logger } from "@/lib/logger";
+import { Money, decimal } from "@/lib/finance/decimal";
+import type Decimal from "decimal.js";
+
+// ============================================================================
+// INTERFACES
+// ============================================================================
+
+interface IInvoiceLineItem {
+  id: string;
+  description: string;
+  category: string;
+  accountId: string;
+  accountCode: string;
+  quantity: number;
+  unitPrice: number;
+  discount: number;
+  taxType: string;
+  taxRate: number;
+  taxAmount: number;
+  total: number;
+}
+
+interface IPaymentAllocation {
+  paymentId: string;
+  paymentNumber: string;
+  paymentDate: string;
+  amount: number;
+  method: string;
+  status: string;
+}
+
+interface IChartAccount {
+  id: string;
+  code: string;
+  name: string;
+  nameAr?: string;
+  type: string;
+}
+
+export default function NewInvoicePage() {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const { registerForm, unregisterForm } = useFormState();
+
+  // Core form state
+  const [invoiceType, setInvoiceType] = useState<string>("SALES");
+  const [issueDate, setIssueDate] = useState<string>(""); // ✅ HYDRATION FIX: Initialize empty, set in useEffect
+  const [dueDate, setDueDate] = useState<string>("");
+  const [customerId, setCustomerId] = useState<string>("");
+  const [customerName, setCustomerName] = useState<string>("");
+  const [billingAddress, setBillingAddress] = useState<string>("");
+  const [description] = useState<string>(""); // Not used in this simplified form, kept for future enhancements
+  const [notes, setNotes] = useState<string>("");
+  const [paymentTerms, setPaymentTerms] = useState<string>("Net 30");
+  const [currency, setCurrency] = useState<string>("SAR");
+
+  // Line items state
+  const [lineItems, setLineItems] = useState<IInvoiceLineItem[]>([
+    {
+      id: "1",
+      description: "",
+      category: "RENTAL",
+      accountId: "",
+      accountCode: "",
+      quantity: 1,
+      unitPrice: 0,
+      discount: 0,
+      taxType: "VAT",
+      taxRate: 0.15,
+      taxAmount: 0,
+      total: 0,
+    },
+  ]);
+
+  // Payment allocations (for tracking payments against this invoice)
+  const [paymentAllocations] = useState<IPaymentAllocation[]>([]);
+
+  // Data lookups
+  const [chartAccounts, setChartAccounts] = useState<IChartAccount[]>([]);
+
+  // Journal posting state
+  const [autoPostJournal, setAutoPostJournal] = useState<boolean>(true);
+  const [journalPosted, setJournalPosted] = useState<boolean>(false);
+
+  // UI state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loadingAccounts, setLoadingAccounts] = useState(false);
+
+  // Calculate totals using Decimal math (prevents floating-point errors)
+  const subtotal: Decimal = React.useMemo(() => {
+    const lineAmounts = lineItems.map((item) =>
+      Money.subtract(
+        Money.multiply(item.quantity, item.unitPrice),
+        item.discount,
+      ),
+    );
+    // Keep in Decimal space - don't convert to number before summing
+    return Money.sum(lineAmounts);
+  }, [lineItems]);
+
+  const totalDiscount: Decimal = React.useMemo(
+    () => Money.sum(lineItems.map((item) => item.discount)),
+    [lineItems],
+  );
+
+  const totalTax: Decimal = React.useMemo(
+    () => Money.sum(lineItems.map((item) => item.taxAmount)),
+    [lineItems],
+  );
+
+  const totalAmount: Decimal = React.useMemo(
+    () => subtotal.plus(totalTax),
+    [subtotal, totalTax],
+  );
+
+  const totalPaid: Decimal = React.useMemo(
+    () =>
+      Money.sum(paymentAllocations.map((p: { amount: number }) => p.amount)),
+    [paymentAllocations],
+  );
+
+  const amountDue: Decimal = React.useMemo(
+    () => totalAmount.minus(totalPaid),
+    [totalAmount, totalPaid],
+  );
+
+  // VAT breakdown by rate (using Decimal for precise calculations)
+  const vatBreakdown = React.useMemo(() => {
+    return lineItems.reduce(
+      (acc, item) => {
+        if (item.taxType === "VAT" && item.taxAmount > 0) {
+          const key = `${item.taxRate * 100}%`;
+          if (!acc[key]) {
+            acc[key] = {
+              rate: item.taxRate,
+              amount: decimal(0),
+              base: decimal(0),
+            };
+          }
+          acc[key].amount = acc[key].amount.plus(item.taxAmount);
+          const baseAmount = Money.subtract(
+            Money.multiply(item.quantity, item.unitPrice),
+            item.discount,
+          );
+          acc[key].base = acc[key].base.plus(baseAmount);
+        }
+        return acc;
+      },
+      {} as Record<string, { rate: number; amount: Decimal; base: Decimal }>,
+    );
+  }, [lineItems]);
+
+  // ============================================================================
+  // LIFECYCLE & DATA LOADING
+  // ============================================================================
+
+  // ✅ HYDRATION FIX: Set default date after client hydration
+  useEffect(() => {
+    if (!issueDate) {
+      setIssueDate(new Date().toISOString().split("T")[0]);
+    }
+  }, [issueDate]);
+
+  useEffect(() => {
+    const formId = "new-invoice-form";
+    registerForm(formId);
+    return () => unregisterForm(formId);
+  }, [registerForm, unregisterForm]);
+
+  // Load chart of accounts
+  useEffect(() => {
+    const loadAccounts = async () => {
+      try {
+        setLoadingAccounts(true);
+        const response = await fetch("/api/finance/accounts");
+        if (response.ok) {
+          const data = await response.json();
+          setChartAccounts(data.accounts || []);
+        }
+      } catch (error) {
+        logger.error("Error loading accounts:", { error });
+      } finally {
+        setLoadingAccounts(false);
+      }
+    };
+    loadAccounts();
+  }, []);
+
+  // ============================================================================
+  // LINE ITEMS MANAGEMENT
+  // ============================================================================
+
+  const addLineItem = () => {
+    const newItem: IInvoiceLineItem = {
+      id: Date.now().toString(),
+      description: "",
+      category: "RENTAL",
+      accountId: "",
+      accountCode: "",
+      quantity: 1,
+      unitPrice: 0,
+      discount: 0,
+      taxType: "VAT",
+      taxRate: 0.15,
+      taxAmount: 0,
+      total: 0,
+    };
+    setLineItems([...lineItems, newItem]);
+  };
+
+  const removeLineItem = (id: string) => {
+    if (lineItems.length > 1) {
+      setLineItems(lineItems.filter((item) => item.id !== id));
+    }
+  };
+
+  const updateLineItem = (
+    id: string,
+    field: keyof IInvoiceLineItem,
+    value: string | number | boolean,
+  ) => {
+    setLineItems(
+      lineItems.map((item) => {
+        if (item.id !== id) return item;
+
+        const updated = { ...item, [field]: value };
+
+        // Recalculate amounts
+        const itemSubtotal = updated.quantity * updated.unitPrice;
+        const discountedAmount = itemSubtotal - updated.discount;
+
+        if (
+          field === "quantity" ||
+          field === "unitPrice" ||
+          field === "discount" ||
+          field === "taxRate" ||
+          field === "taxType"
+        ) {
+          if (updated.taxType === "VAT") {
+            updated.taxAmount = discountedAmount * updated.taxRate;
+          } else if (updated.taxType === "EXEMPT") {
+            updated.taxAmount = 0;
+            updated.taxRate = 0;
+          } else {
+            updated.taxAmount = 0;
+          }
+          updated.total = discountedAmount + updated.taxAmount;
+        }
+
+        // Update account code when account changes
+        if (field === "accountId") {
+          const account = chartAccounts.find((a) => a.id === value);
+          if (account) {
+            updated.accountCode = account.code;
+          }
+        }
+
+        return updated;
+      }),
+    );
+  };
+
+  // ============================================================================
+  // VALIDATION
+  // ============================================================================
+
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!issueDate) {
+      newErrors.issueDate = t(
+        "finance.invoice.issueDateRequired",
+        "Issue date is required",
+      );
+    }
+
+    if (!dueDate) {
+      newErrors.dueDate = t(
+        "finance.invoice.dueDateRequired",
+        "Due date is required",
+      );
+    }
+
+    if (!customerName.trim()) {
+      newErrors.customerName = t(
+        "finance.invoice.customerRequired",
+        "Customer name is required",
+      );
+    }
+
+    if (lineItems.length === 0) {
+      newErrors.lineItems = t(
+        "finance.invoice.lineItemsRequired",
+        "At least one line item is required",
+      );
+    }
+
+    // Validate each line item
+    lineItems.forEach((item, index) => {
+      if (!item.description.trim()) {
+        newErrors[`lineItem.${index}.description`] = t(
+          "finance.invoice.lineItemDescRequired",
+          "Description required",
+        );
+      }
+      if (item.quantity <= 0) {
+        newErrors[`lineItem.${index}.quantity`] = t(
+          "finance.invoice.lineItemQtyInvalid",
+          "Quantity must be > 0",
+        );
+      }
+      if (item.unitPrice <= 0) {
+        newErrors[`lineItem.${index}.unitPrice`] = t(
+          "finance.invoice.lineItemPriceInvalid",
+          "Price must be > 0",
+        );
+      }
+      if (!item.accountId) {
+        newErrors[`lineItem.${index}.accountId`] = t(
+          "finance.invoice.accountRequired",
+          "Revenue account required",
+        );
+      }
+    });
+
+    if (!totalAmount.isPositive()) {
+      newErrors.totalAmount = t(
+        "finance.invoice.totalInvalid",
+        "Total amount must be greater than zero",
+      );
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // ============================================================================
+  // FORM SUBMISSION
+  // ============================================================================
+
+  const handleSaveDraft = async () => {
+    if (!validate()) return;
+
+    try {
+      setIsSubmitting(true);
+
+      const payload = {
+        type: invoiceType,
+        status: "DRAFT",
+        issueDate,
+        dueDate,
+        recipient: {
+          customerId: customerId || undefined,
+          name: customerName,
+          address: billingAddress,
+        },
+        description,
+        notes,
+        payment: {
+          terms: paymentTerms,
+        },
+        currency,
+        items: lineItems.map((item) => ({
+          description: item.description,
+          category: item.category,
+          accountId: item.accountId || undefined,
+          accountCode: item.accountCode || undefined,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          discount: item.discount,
+          tax: {
+            type: item.taxType,
+            rate: item.taxRate,
+            amount: item.taxAmount,
+          },
+          total: item.total,
+        })),
+        subtotal: Money.toNumber(subtotal),
+        discounts: totalDiscount.isPositive()
+          ? [
+              {
+                type: "LINE_ITEM",
+                amount: Money.toNumber(totalDiscount),
+                description: "Line item discounts",
+              },
+            ]
+          : [],
+        taxes: Object.entries(vatBreakdown).map(([key, val]) => ({
+          type: "VAT",
+          rate: val.rate,
+          amount: Money.toNumber(val.amount),
+          category: key,
+        })),
+        total: Money.toNumber(totalAmount),
+      };
+
+      const response = await fetch("/api/finance/invoices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to save draft");
+      }
+
+      const data = await response.json();
+      toast.success(
+        t("finance.invoice.draftSaved", "Invoice draft saved successfully"),
+      );
+      if (data?.invoice?.id) {
+        router.push(`/finance/invoices/${data.invoice.id}`);
+      }
+    } catch (error) {
+      logger.error("Error saving draft:", { error });
+      toast.error(t("common.error", "An error occurred"));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCreateInvoice = async () => {
+    if (!validate()) return;
+
+    try {
+      setIsSubmitting(true);
+
+      const payload = {
+        type: invoiceType,
+        status: "SENT",
+        issueDate,
+        dueDate,
+        recipient: {
+          customerId: customerId || undefined,
+          name: customerName,
+          address: billingAddress,
+        },
+        description,
+        notes,
+        payment: {
+          terms: paymentTerms,
+        },
+        currency,
+        items: lineItems.map((item) => ({
+          description: item.description,
+          category: item.category,
+          accountId: item.accountId || undefined,
+          accountCode: item.accountCode || undefined,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          discount: item.discount,
+          tax: {
+            type: item.taxType,
+            rate: item.taxRate,
+            amount: item.taxAmount,
+          },
+          total: item.total,
+        })),
+        subtotal: Money.toNumber(subtotal),
+        discounts: totalDiscount.isPositive()
+          ? [
+              {
+                type: "LINE_ITEM",
+                amount: Money.toNumber(totalDiscount),
+                description: "Line item discounts",
+              },
+            ]
+          : [],
+        taxes: Object.entries(vatBreakdown).map(([key, val]) => ({
+          type: "VAT",
+          rate: val.rate,
+          amount: Money.toNumber(val.amount),
+          category: key,
+        })),
+        totalAmount: Money.toNumber(totalAmount),
+        autoPostJournal,
+      };
+
+      const response = await fetch("/api/finance/invoices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to create invoice");
+      }
+
+      const data = await response.json();
+
+      if (data?.journal) {
+        setJournalPosted(true);
+      }
+
+      toast.success(
+        t("finance.invoice.created", "Invoice created successfully"),
+      );
+      if (data?.invoice?.id) {
+        router.push(`/finance/invoices/${data.invoice.id}`);
+      }
+    } catch (error) {
+      logger.error("Error creating invoice:", { error });
+      toast.error(t("common.error", "An error occurred"));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  // ============================================================================
+  // RENDER
+  // ============================================================================
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            {t("finance.invoice.newInvoice", "New Invoice")}
+          </h1>
+          <p className="text-muted-foreground">
+            {t(
+              "finance.invoice.subtitle",
+              "Create invoice with automatic journal posting",
+            )}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={handleSaveDraft}
+            disabled={isSubmitting}
+            className="btn-secondary"
+          >
+            💾 {t("common.save", "Save Draft")}
+          </button>
+          <button
+            onClick={handleCreateInvoice}
+            disabled={isSubmitting}
+            className="btn-primary"
+          >
+            ✓ {t("finance.invoice.createInvoice", "Create Invoice")}
+          </button>
+        </div>
+      </div>
+
+      {/* Form */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Form */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Invoice Details */}
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">
+              {t("finance.invoice.details", "Invoice Details")}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  {t("finance.invoice.type", "Invoice Type")} *
+                </label>
+                <select
+                  value={invoiceType}
+                  onChange={(e) => setInvoiceType(e.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                >
+                  <option value="SALES">
+                    {t("finance.invoice.sales", "Sales")}
+                  </option>
+                  <option value="RENTAL">
+                    {t("finance.invoice.rental", "Rental")}
+                  </option>
+                  <option value="SERVICE">
+                    {t("finance.invoice.service", "Service")}
+                  </option>
+                  <option value="MAINTENANCE">
+                    {t("finance.invoice.maintenance", "Maintenance")}
+                  </option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  {t("finance.invoice.issueDate", "Issue Date")} *
+                </label>
+                <input
+                  type="date"
+                  value={issueDate}
+                  onChange={(e) => setIssueDate(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent ${errors.issueDate ? "border-destructive" : "border-border"}`}
+                />
+                {errors.issueDate && (
+                  <p className="text-destructive text-xs mt-1">
+                    {errors.issueDate}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  {t("finance.invoice.dueDate", "Due Date")} *
+                </label>
+                <input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent ${errors.dueDate ? "border-destructive" : "border-border"}`}
+                />
+                {errors.dueDate && (
+                  <p className="text-destructive text-xs mt-1">
+                    {errors.dueDate}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  {t("finance.currency", "Currency")}
+                </label>
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                >
+                  <option value="SAR">SAR - Saudi Riyal</option>
+                  <option value="USD">USD - US Dollar</option>
+                  <option value="EUR">EUR - Euro</option>
+                  <option value="GBP">GBP - British Pound</option>
+                  <option value="AED">AED - UAE Dirham</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Bill To */}
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">
+              {t("finance.invoice.billTo", "Bill To")}
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  {t("finance.customer", "Customer")} *
+                </label>
+                <select
+                  value={customerId}
+                  onChange={(e) => {
+                    setCustomerId(e.target.value);
+                    if (e.target.value) {
+                      setCustomerName(
+                        e.target.options[e.target.selectedIndex].text,
+                      );
+                    }
+                  }}
+                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent ${errors.customerName ? "border-destructive" : "border-border"}`}
+                >
+                  <option value="">
+                    {t("finance.selectCustomer", "Select Customer")}
+                  </option>
+                  <option value="cust1">John Smith - Tower A</option>
+                  <option value="cust2">Sarah Johnson - Tower B</option>
+                  <option value="cust3">Ahmed Al-Rashid - Villa 9</option>
+                </select>
+                {errors.customerName && (
+                  <p className="text-destructive text-xs mt-1">
+                    {errors.customerName}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  {t("finance.invoice.customerName", "Customer Name")}
+                </label>
+                <input
+                  type="text"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder={t(
+                    "finance.invoice.customerNamePlaceholder",
+                    "Enter customer name",
+                  )}
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  {t("finance.invoice.billingAddress", "Billing Address")}
+                </label>
+                <textarea
+                  rows={3}
+                  value={billingAddress}
+                  onChange={(e) => setBillingAddress(e.target.value)}
+                  placeholder={t(
+                    "finance.invoice.billingAddressPlaceholder",
+                    "Enter billing address...",
+                  )}
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* LINE ITEMS WITH COA INTEGRATION */}
+          <div className="card">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">
+                {t("finance.invoice.itemsServices", "Items & Services")}
+              </h3>
+              <button onClick={addLineItem} className="btn-sm btn-primary">
+                + {t("finance.invoice.addItem", "Add Item")}
+              </button>
+            </div>
+
+            {errors.lineItems && (
+              <p className="text-destructive text-sm mb-2">
+                {errors.lineItems}
+              </p>
+            )}
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted">
+                  <tr>
+                    <th className="px-2 py-2 text-start">
+                      {t("finance.invoice.description", "Description")}
+                    </th>
+                    <th className="px-2 py-2 text-start">
+                      {t("finance.invoice.revenueAccount", "Revenue Account")}
+                    </th>
+                    <th className="px-2 py-2 text-end">
+                      {t("finance.invoice.qty", "Qty")}
+                    </th>
+                    <th className="px-2 py-2 text-end">
+                      {t("finance.invoice.rate", "Rate")}
+                    </th>
+                    <th className="px-2 py-2 text-end">
+                      {t("finance.invoice.discount", "Discount")}
+                    </th>
+                    <th className="px-2 py-2 text-center">
+                      {t("finance.invoice.taxType", "Tax Type")}
+                    </th>
+                    <th className="px-2 py-2 text-end">
+                      {t("finance.invoice.total", "Total")}
+                    </th>
+                    <th className="px-2 py-2"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lineItems.map((item, index) => (
+                    <tr key={item.id} className="border-b">
+                      <td className="px-2 py-2">
+                        <input
+                          type="text"
+                          value={item.description}
+                          onChange={(e) =>
+                            updateLineItem(
+                              item.id,
+                              "description",
+                              e.target.value,
+                            )
+                          }
+                          placeholder={t(
+                            "finance.invoice.itemDescription",
+                            "Item description",
+                          )}
+                          className={`w-full px-2 py-1 text-sm border rounded ${errors[`lineItem.${index}.description`] ? "border-destructive" : "border-border"}`}
+                        />
+                      </td>
+                      <td className="px-2 py-2">
+                        <select
+                          value={item.accountId}
+                          onChange={(e) =>
+                            updateLineItem(item.id, "accountId", e.target.value)
+                          }
+                          className={`w-full px-2 py-1 text-sm border rounded ${errors[`lineItem.${index}.accountId`] ? "border-destructive" : "border-border"}`}
+                          disabled={loadingAccounts}
+                        >
+                          <option value="">
+                            {loadingAccounts
+                              ? t("common.loading", "Loading...")
+                              : t("finance.selectAccount", "Select Account")}
+                          </option>
+                          {chartAccounts
+                            .filter((a) => a.type === "REVENUE")
+                            .map((account) => (
+                              <option key={account.id} value={account.id}>
+                                {account.code} - {account.name}
+                              </option>
+                            ))}
+                        </select>
+                      </td>
+                      <td className="px-2 py-2">
+                        <input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) =>
+                            updateLineItem(
+                              item.id,
+                              "quantity",
+                              parseFloat(e.target.value) || 1,
+                            )
+                          }
+                          min="1"
+                          step="1"
+                          className={`w-16 px-2 py-1 text-sm text-end border rounded ${errors[`lineItem.${index}.quantity`] ? "border-destructive" : "border-border"}`}
+                        />
+                      </td>
+                      <td className="px-2 py-2">
+                        <input
+                          type="number"
+                          value={item.unitPrice}
+                          onChange={(e) =>
+                            updateLineItem(
+                              item.id,
+                              "unitPrice",
+                              parseFloat(e.target.value) || 0,
+                            )
+                          }
+                          min="0"
+                          step="0.01"
+                          className={`w-24 px-2 py-1 text-sm text-end border rounded ${errors[`lineItem.${index}.unitPrice`] ? "border-destructive" : "border-border"}`}
+                        />
+                      </td>
+                      <td className="px-2 py-2">
+                        <input
+                          type="number"
+                          value={item.discount}
+                          onChange={(e) =>
+                            updateLineItem(
+                              item.id,
+                              "discount",
+                              parseFloat(e.target.value) || 0,
+                            )
+                          }
+                          min="0"
+                          step="0.01"
+                          className="w-20 px-2 py-1 text-sm text-end border border-border rounded"
+                        />
+                      </td>
+                      <td className="px-2 py-2">
+                        <select
+                          value={item.taxType}
+                          onChange={(e) =>
+                            updateLineItem(item.id, "taxType", e.target.value)
+                          }
+                          className="w-24 px-2 py-1 text-sm border border-border rounded"
+                        >
+                          <option value="VAT">VAT 15%</option>
+                          <option value="EXEMPT">
+                            {t("finance.invoice.exempt", "Exempt")}
+                          </option>
+                        </select>
+                      </td>
+                      <td className="px-2 py-2 text-end font-medium">
+                        {currency} {item.total.toFixed(2)}
+                      </td>
+                      <td className="px-2 py-2">
+                        {lineItems.length > 1 && (
+                          <button
+                            onClick={() => removeLineItem(item.id)}
+                            className="text-destructive hover:text-destructive"
+                            title={t("common.remove", "Remove")}
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* ENHANCED VAT BREAKDOWN */}
+          {Object.keys(vatBreakdown).length > 0 && (
+            <div className="card">
+              <h3 className="text-lg font-semibold mb-4">
+                {t("finance.invoice.vatBreakdown", "VAT Breakdown")}
+              </h3>
+              <div className="space-y-2">
+                {Object.entries(vatBreakdown).map(([rate, data]) => (
+                  <div
+                    key={rate}
+                    className="flex justify-between items-center py-2 border-b"
+                  >
+                    <div>
+                      <span className="font-medium">
+                        {t("finance.vat", "VAT")} {rate}
+                      </span>
+                      <span className="text-sm text-muted-foreground ms-2">
+                        ({t("finance.invoice.on", "on")} {currency}{" "}
+                        {Money.toString(data.base)})
+                      </span>
+                    </div>
+                    <span className="font-medium">
+                      {currency} {Money.toString(data.amount)}
+                    </span>
+                  </div>
+                ))}
+                <div className="flex justify-between items-center pt-2 font-semibold">
+                  <span>{t("finance.invoice.totalVAT", "Total VAT")}</span>
+                  <span>
+                    {currency} {Money.toString(totalTax)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* JOURNAL POSTING OPTIONS */}
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">
+              {t("finance.invoice.journalPosting", "Journal Posting")}
+            </h3>
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="auto-post-journal"
+                checked={autoPostJournal}
+                onChange={(e) => setAutoPostJournal(e.target.checked)}
+                className="rounded"
+              />
+              <label htmlFor="auto-post-journal" className="text-sm">
+                {t(
+                  "finance.invoice.autoPostJournal",
+                  "Automatically post journal entry when invoice is created",
+                )}
+              </label>
+            </div>
+            {autoPostJournal && (
+              <div className="mt-3 p-3 bg-primary/10 rounded-2xl text-sm">
+                <p className="text-primary-foreground">
+                  ℹ️{" "}
+                  {t(
+                    "finance.invoice.journalPostingInfo",
+                    "Journal entry will be created automatically with DR: Accounts Receivable, CR: Revenue accounts based on line items.",
+                  )}
+                </p>
+              </div>
+            )}
+            {journalPosted && (
+              <div className="mt-3 p-3 bg-success/10 rounded-2xl text-sm">
+                <p className="text-success-foreground">
+                  ✓{" "}
+                  {t(
+                    "finance.invoice.journalPosted",
+                    "Journal entry posted successfully",
+                  )}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Notes & Terms */}
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">
+              {t("finance.invoice.notesTerms", "Notes & Terms")}
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  {t("finance.invoice.paymentTerms", "Payment Terms")}
+                </label>
+                <select
+                  value={paymentTerms}
+                  onChange={(e) => setPaymentTerms(e.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                >
+                  <option value="Net 30">
+                    {t("finance.invoice.net30", "Net 30 days")}
+                  </option>
+                  <option value="Net 15">
+                    {t("finance.invoice.net15", "Net 15 days")}
+                  </option>
+                  <option value="Net 7">
+                    {t("finance.invoice.net7", "Net 7 days")}
+                  </option>
+                  <option value="Due on Receipt">
+                    {t("finance.invoice.dueOnReceipt", "Due on receipt")}
+                  </option>
+                  <option value="COD">
+                    {t("finance.invoice.cod", "Cash on delivery")}
+                  </option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  {t("finance.invoice.invoiceNotes", "Invoice Notes")}
+                </label>
+                <textarea
+                  rows={3}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder={t(
+                    "finance.invoice.notesPlaceholder",
+                    "Add notes or payment instructions...",
+                  )}
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar */}
+        <div className="space-y-6">
+          {/* Invoice Summary */}
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">
+              {t("finance.invoice.summary", "Invoice Summary")}
+            </h3>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">
+                  {t("finance.subtotal", "Subtotal")}
+                </span>
+                <span className="font-medium">
+                  {currency} {Money.toString(subtotal)}
+                </span>
+              </div>
+              {totalDiscount.isPositive() && (
+                <div className="flex justify-between text-destructive">
+                  <span>{t("finance.discount", "Discount")}</span>
+                  <span>
+                    -{currency} {Money.toString(totalDiscount)}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">
+                  {t("finance.vat", "VAT")}
+                </span>
+                <span className="font-medium">
+                  {currency} {Money.toString(totalTax)}
+                </span>
+              </div>
+              <div className="flex justify-between pt-2 border-t border-border">
+                <span className="text-foreground font-semibold">
+                  {t("finance.total", "Total")}
+                </span>
+                <span className="font-bold text-lg">
+                  {currency} {Money.toString(totalAmount)}
+                </span>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {lineItems.length} {t("finance.invoice.items", "item(s)")}
+              </div>
+            </div>
+          </div>
+
+          {/* PAYMENT TRACKING */}
+          {paymentAllocations.length > 0 && (
+            <div className="card">
+              <h3 className="text-lg font-semibold mb-4">
+                {t("finance.invoice.paymentTracking", "Payment Tracking")}
+              </h3>
+              <div className="space-y-3">
+                {paymentAllocations.map((payment) => (
+                  <div
+                    key={payment.paymentId}
+                    className="flex justify-between items-center p-2 bg-muted rounded"
+                  >
+                    <div>
+                      <p className="text-sm font-medium">
+                        {payment.paymentNumber}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {payment.paymentDate} • {payment.method}
+                      </p>
+                    </div>
+                    <span className="text-sm font-medium text-success">
+                      +{currency} {payment.amount.toFixed(2)}
+                    </span>
+                  </div>
+                ))}
+                <div className="pt-2 border-t border-border">
+                  <div className="flex justify-between mb-1">
+                    <span className="text-sm font-medium">
+                      {t("finance.invoice.totalPaid", "Total Paid")}
+                    </span>
+                    <span className="text-sm font-medium text-success">
+                      {currency} {Money.toString(totalPaid)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm font-semibold">
+                      {t("finance.invoice.amountDue", "Amount Due")}
+                    </span>
+                    <span className="text-sm font-bold">
+                      {currency} {Money.toString(amountDue)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Quick Actions */}
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">
+              {t("workOrders.quickActions", "Quick Actions")}
+            </h3>
+            <div className="space-y-2">
+              <button className="w-full btn-ghost text-start">
+                📋{" "}
+                {t(
+                  "finance.invoice.createFromTemplate",
+                  "Create from Template",
+                )}
+              </button>
+              <button className="w-full btn-ghost text-start">
+                📊 {t("finance.invoice.costCalculator", "View Cost Calculator")}
+              </button>
+              <button className="w-full btn-ghost text-start">
+                💰 {t("finance.invoice.paymentSchedule", "Payment Schedule")}
+              </button>
+            </div>
+          </div>
+
+          {/* Recent Activity */}
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">
+              {t("finance.recentActivity", "Recent Activity")}
+            </h3>
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-success/20 rounded-full"></div>
+                <span className="text-muted-foreground">
+                  {t("finance.formAutoSaved", "Form auto-saved")}
+                </span>
+                <span className="text-muted-foreground ms-auto">2m ago</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-primary/20 rounded-full"></div>
+                <span className="text-muted-foreground">
+                  {t("finance.invoice.customerSelected", "Customer selected")}
+                </span>
+                <span className="text-muted-foreground ms-auto">5m ago</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/finance/page.tsx">
+<![CDATA[
+"use client";
+import useSWR from "swr";
+import { useState, useMemo, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import { CardGridSkeleton } from "@/components/skeletons";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useSupportOrg } from "@/contexts/SupportOrgContext";
+import Decimal from "decimal.js";
+
+import { logger } from "@/lib/logger";
+import ClientDate from "@/components/ClientDate";
+import IncomeStatementWidget from "@/components/finance/IncomeStatementWidget";
+import BalanceSheetWidget from "@/components/finance/BalanceSheetWidget";
+import OwnerStatementWidget from "@/components/finance/OwnerStatementWidget";
+
+export default function FinancePage() {
+  const { t } = useTranslation();
+  const { data: session } = useSession();
+  const { effectiveOrgId, canImpersonate, supportOrg } = useSupportOrg();
+  const orgId = effectiveOrgId ?? undefined;
+  const needsOrgSelection = !orgId && canImpersonate;
+  const [q, setQ] = useState("");
+
+  // ✅ HYDRATION FIX: Set default dates after client hydration
+  const [issue, setIssue] = useState("");
+  const [due, setDue] = useState("");
+
+  useEffect(() => {
+    if (!issue) {
+      setIssue(new Date().toISOString().slice(0, 10));
+    }
+    if (!due) {
+      setDue(new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10));
+    }
+  }, [issue, due]);
+
+  const fetcher = (url: string) => {
+    if (!orgId) {
+      return Promise.reject(new Error("No organization ID"));
+    }
+    // SECURITY FIX: orgId is validated server-side from session/JWT
+    // Removed x-tenant-id header to prevent IDOR vulnerability
+    return fetch(url)
+      .then((r) => r.json())
+      .catch((error) => {
+        logger.error("Finance invoice fetch error", error);
+        throw error;
+      });
+  };
+
+  const { data, mutate, isLoading } = useSWR(
+    orgId ? `/api/finance/invoices?q=${encodeURIComponent(q)}` : null,
+    fetcher,
+  );
+
+  if (!session) {
+    return <CardGridSkeleton count={6} />;
+  }
+
+  if (!orgId) {
+    return (
+      <div className="rounded-xl border border-border bg-card/30 p-6 space-y-3">
+        <p className="text-destructive font-semibold">
+          {needsOrgSelection
+            ? t(
+                "finance.support.selectOrg",
+                "Select a customer organization to enable finance data.",
+              )
+            : t(
+                "finance.errors.noOrgSession",
+                "Error: No organization ID found in session",
+              )}
+        </p>
+        {needsOrgSelection && (
+          <p className="text-sm text-muted-foreground">
+            {t(
+              "finance.support.selectOrgHint",
+              "Use the Support Organization switcher in the top bar to search by corporate ID.",
+            )}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  const list = data?.data ?? [];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">
+          {t("finance.title", "Finance — Invoices")}
+        </h1>
+        <CreateInvoice orgId={orgId} onCreated={() => mutate()} />
+      </div>
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {`${t("finance.support.activeOrg", "Support context")}: ${supportOrg.name}`}
+        </div>
+      )}
+      <div className="flex gap-2 mb-4">
+        <Input
+          placeholder={t(
+            "finance.searchPlaceholder",
+            "Search by number/customer",
+          )}
+          aria-label={t(
+            "finance.searchPlaceholder",
+            "Search by number/customer",
+          )}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+        <Button onClick={() => mutate()}>{t("common.search", "Search")}</Button>
+      </div>
+
+      {isLoading ? (
+        <CardGridSkeleton count={6} />
+      ) : (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {list.map(
+            (inv: {
+              id: string;
+              number: string;
+              status: string;
+              issueDate: string;
+              dueDate: string;
+              total: number;
+              currency: string;
+              vatAmount: number;
+            }) => (
+              <Card key={inv.id}>
+                <CardContent className="p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="font-semibold">{inv.number}</div>
+                    <span className="text-xs rounded-full px-2 py-1 border">
+                      {inv.status}
+                    </span>
+                  </div>
+                  <div className="text-sm text-slate-600">
+                    {t("finance.issue", "Issue")}:{" "}
+                    <ClientDate date={inv.issueDate} format="date-only" /> •{" "}
+                    {t("finance.due", "Due")}:{" "}
+                    <ClientDate date={inv.dueDate} format="date-only" />
+                  </div>
+                  <Separator />
+                  <div className="text-sm">
+                    {t("finance.total", "Total")}: {inv.total} {inv.currency} (
+                    {t("finance.vat", "VAT")} {inv.vatAmount})
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <Action
+                      id={inv.id}
+                      action="POST"
+                      disabled={inv.status !== "DRAFT"}
+                      onDone={() => mutate()}
+                      orgId={orgId}
+                      t={t}
+                    />
+                    <Action
+                      id={inv.id}
+                      action="VOID"
+                      disabled={inv.status === "VOID"}
+                      onDone={() => mutate()}
+                      orgId={orgId}
+                      t={t}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            ),
+          )}
+        </div>
+      )}
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">
+            {t("finance.reports.title", "Financial Reports")}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {t(
+              "finance.reports.subtitle",
+              "Trial balance, P&L, and owner statements at a glance",
+            )}
+          </p>
+        </div>
+        <div className="grid gap-4 lg:grid-cols-3">
+          <IncomeStatementWidget />
+          <BalanceSheetWidget />
+          <OwnerStatementWidget />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+type FinanceAction = "POST" | "VOID";
+
+const ACTION_COPY: Record<
+  FinanceAction,
+  {
+    loadingKey: string;
+    loadingFallback: string;
+    successKey: string;
+    successFallback: string;
+    failureKey: string;
+    failureFallback: string;
+  }
+> = {
+  POST: {
+    loadingKey: "finance.invoice.toast.posting",
+    loadingFallback: "Posting invoice...",
+    successKey: "finance.invoice.toast.postSuccess",
+    successFallback: "Invoice posted successfully",
+    failureKey: "finance.invoice.toast.postFailure",
+    failureFallback: "Failed to post invoice: {{message}}",
+  },
+  VOID: {
+    loadingKey: "finance.invoice.toast.voiding",
+    loadingFallback: "Voiding invoice...",
+    successKey: "finance.invoice.toast.voidSuccess",
+    successFallback: "Invoice voided successfully",
+    failureKey: "finance.invoice.toast.voidFailure",
+    failureFallback: "Failed to void invoice: {{message}}",
+  },
+};
+
+function Action({
+  id,
+  action,
+  disabled,
+  onDone,
+  orgId,
+  t,
+}: {
+  id: string;
+  action: FinanceAction;
+  disabled?: boolean;
+  onDone: () => void;
+  orgId: string;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  async function go() {
+    if (!orgId) {
+      toast.error(t("finance.errors.noOrgId", "No organization ID found"));
+      return;
+    }
+
+    const copy = ACTION_COPY[action];
+    const toastId = toast.loading(t(copy.loadingKey, copy.loadingFallback));
+
+    try {
+      const response = await fetch(`/api/finance/invoices/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          // SECURITY FIX: orgId validated server-side from session - removed x-tenant-id header
+        },
+        body: JSON.stringify({ action }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        const message =
+          error?.error ||
+          t("finance.invoice.toast.unknownError", "Unknown error");
+        toast.error(
+          t(copy.failureKey, copy.failureFallback).replace(
+            "{{message}}",
+            message,
+          ),
+          { id: toastId },
+        );
+        return;
+      }
+
+      toast.success(t(copy.successKey, copy.successFallback), { id: toastId });
+      onDone();
+    } catch (error) {
+      logger.error(`Error ${action} invoice:`, error);
+      toast.error(
+        t(copy.failureKey, copy.failureFallback).replace(
+          "{{message}}",
+          error instanceof Error
+            ? error.message
+            : t("finance.invoice.toast.unknownError", "Unknown error"),
+        ),
+        { id: toastId },
+      );
+    }
+  }
+  return (
+    <Button variant="secondary" disabled={disabled} onClick={go}>
+      {action === "POST"
+        ? t("finance.invoice.actions.post", "Post invoice")
+        : t("finance.invoice.actions.void", "Void invoice")}
+    </Button>
+  );
+}
+
+interface InvoiceLine {
+  id: string;
+  description: string;
+  qty: string;
+  unitPrice: string;
+  vatRate: string;
+}
+
+function InvoiceLineItem({
+  line,
+  onUpdate,
+  t,
+}: {
+  line: InvoiceLine;
+  onUpdate: (id: string, key: string, val: string) => void;
+  t: (key: string, fallback: string) => string;
+}) {
+  const lineTotal = useMemo(() => {
+    const qty = new Decimal(line.qty || "0");
+    const unitPrice = new Decimal(line.unitPrice || "0");
+    const vatRate = new Decimal(line.vatRate || "0");
+    const subtotal = qty.times(unitPrice);
+    const total = subtotal.times(vatRate.dividedBy(100).plus(1));
+    return total.toFixed(2);
+  }, [line.qty, line.unitPrice, line.vatRate]);
+
+  return (
+    <div className="grid grid-cols-12 gap-2 items-center">
+      <div className="col-span-5">
+        <Input
+          placeholder={t("finance.description", "Description")}
+          value={line.description}
+          onChange={(e) => onUpdate(line.id, "description", e.target.value)}
+        />
+      </div>
+      <div className="col-span-2">
+        <Input
+          type="number"
+          placeholder={t("finance.qty", "Qty")}
+          value={line.qty}
+          onChange={(e) => onUpdate(line.id, "qty", e.target.value)}
+        />
+      </div>
+      <div className="col-span-2">
+        <Input
+          type="number"
+          placeholder={t("finance.unitPrice", "Unit Price")}
+          value={line.unitPrice}
+          onChange={(e) => onUpdate(line.id, "unitPrice", e.target.value)}
+        />
+      </div>
+      <div className="col-span-2">
+        <Input
+          type="number"
+          placeholder={t("finance.vatPercent", "VAT %")}
+          value={line.vatRate}
+          onChange={(e) => onUpdate(line.id, "vatRate", e.target.value)}
+        />
+      </div>
+      <div className="col-span-1 text-end text-sm">{lineTotal}</div>
+    </div>
+  );
+}
+
+function CreateInvoice({
+  onCreated,
+  orgId,
+}: {
+  onCreated: () => void;
+  orgId: string;
+}) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [issue, setIssue] = useState(""); // ✅ HYDRATION FIX: Initialize empty
+  const [due, setDue] = useState(""); // ✅ HYDRATION FIX: Initialize empty
+  const [lines, setLines] = useState<InvoiceLine[]>([
+    {
+      id: crypto.randomUUID(),
+      description: "Maintenance Service",
+      qty: "1",
+      unitPrice: "100",
+      vatRate: "15",
+    },
+  ]);
+
+  // ✅ HYDRATION FIX: Set default dates after client hydration
+  useEffect(() => {
+    if (!issue) {
+      setIssue(new Date().toISOString().slice(0, 10));
+    }
+    if (!due) {
+      setDue(new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10));
+    }
+  }, [issue, due]);
+
+  function updateLine(id: string, key: string, val: string) {
+    setLines((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, [key]: val } : l)),
+    );
+  }
+
+  async function submit() {
+    if (!orgId) {
+      toast.error("No organization ID found");
+      return;
+    }
+
+    const toastId = toast.loading("Creating invoice...");
+
+    try {
+      // Convert string values to numbers for API, using Decimal for precision
+      const apiLines = lines.map(
+        (l: {
+          description: string;
+          qty: string | number;
+          unitPrice: string | number;
+          vatRate: string | number;
+        }) => ({
+          description: l.description,
+          qty: new Decimal(l.qty || "0").toDecimalPlaces(0).toNumber(),
+          unitPrice: new Decimal(l.unitPrice || "0")
+            .toDecimalPlaces(2)
+            .toNumber(),
+          vatRate: new Decimal(l.vatRate || "0").toDecimalPlaces(2).toNumber(),
+        }),
+      );
+
+      const response = await fetch("/api/finance/invoices", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          // SECURITY FIX: orgId validated server-side from session - removed x-tenant-id header
+        },
+        body: JSON.stringify({
+          issueDate: issue,
+          dueDate: due,
+          currency: "SAR",
+          lines: apiLines,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast.error(
+          `Failed to create invoice: ${error.error || "Unknown error"}`,
+          { id: toastId },
+        );
+        return;
+      }
+
+      toast.success("Invoice created successfully", { id: toastId });
+      setOpen(false);
+      onCreated();
+    } catch (error) {
+      logger.error("Error creating invoice:", error);
+      toast.error("Error: Failed to create invoice", { id: toastId });
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>{t("finance.newInvoice", "New Invoice")}</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>
+            {t("finance.createInvoice", "Create Invoice")}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="issueDate" className="text-xs">
+                {t("finance.issueDate", "Issue Date")}
+              </label>
+              <Input
+                id="issueDate"
+                type="date"
+                value={issue}
+                onChange={(e) => setIssue(e.target.value)}
+              />
+            </div>
+            <div>
+              <label htmlFor="dueDate" className="text-xs">
+                {t("finance.dueDate", "Due Date")}
+              </label>
+              <Input
+                id="dueDate"
+                type="date"
+                value={due}
+                onChange={(e) => setDue(e.target.value)}
+              />
+            </div>
+          </div>
+          <Separator />
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <div className="font-medium">{t("finance.lines", "Lines")}</div>
+              <Button
+                variant="secondary"
+                onClick={() =>
+                  setLines((prev) => [
+                    ...prev,
+                    {
+                      id: crypto.randomUUID(),
+                      description: "",
+                      qty: "1",
+                      unitPrice: "0",
+                      vatRate: "15",
+                    },
+                  ])
+                }
+              >
+                {t("finance.addLine", "Add Line")}
+              </Button>
+            </div>
+            {lines.map((l) => (
+              <InvoiceLineItem
+                key={l.id}
+                line={l}
+                onUpdate={updateLine}
+                t={t}
+              />
+            ))}
+          </div>
+          <Separator />
+          <Button
+            onClick={submit}
+            disabled={!lines.length || lines.some((l) => !l.description)}
+          >
+            {t("common.create", "Create")}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/finance/payments/new/page.tsx">
+<![CDATA[
+export { default } from "@/app/fm/finance/payments/new/page";
+export * from "@/app/fm/finance/payments/new/page";
+
+]]>
+</file>
+
+<file path="app/finance/template.tsx">
+<![CDATA[
+import { ReactNode } from "react";
+import { OrgContextGate } from "@/components/fm/OrgContextGate";
+
+interface FinanceTemplateProps {
+  children: ReactNode;
+}
+
+/**
+ * Ensures that finance routes (legacy aliases to FM finance) obey the org guard.
+ */
+export default function FinanceTemplate({ children }: FinanceTemplateProps) {
+  return <OrgContextGate>{children}</OrgContextGate>;
+}
+
+]]>
+</file>
+
+<file path="app/fm/admin/page.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+
+/**
+ * Admin route canonical redirect
+ * Redirects /admin to /administration for consistency
+ * See: Stabilization audit - canonicalize admin routes
+ */
+export default function Page() {
+  const router = useRouter();
+  const { t } = useTranslation();
+  const { hasOrgContext, guard, orgId } = useFmOrgGuard({
+    moduleId: "administration",
+  });
+
+  useEffect(() => {
+    if (hasOrgContext && orgId) {
+      router.replace("/administration");
+    }
+  }, [router, orgId, hasOrgContext]);
+
+  if (!hasOrgContext || !orgId) {
+    return <div className="p-6">{guard}</div>;
+  }
+
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <p className="text-muted-foreground">
+        {t("admin.redirecting", "Redirecting to administration...")}
+      </p>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+</batch_content>

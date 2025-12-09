@@ -1,0 +1,3196 @@
+
+You are the "Fixzit Memory Builder" for category: "routes".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "routes",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/api/support/incidents/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
+import { SupportTicket } from "@/server/models/SupportTicket";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { z } from "zod";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
+import { logger } from "@/lib/logger";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+import {
+  clearTenantContext,
+  setTenantContext,
+} from "@/server/plugins/tenantIsolation";
+// Accepts client diagnostic bundles and auto-creates a support ticket.
+// This is non-blocking for the user flow; returns 202 on insert.
+/**
+ * @openapi
+ * /api/support/incidents:
+ *   get:
+ *     summary: support/incidents operations
+ *     tags: [support]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  const native = await getDatabase();
+
+  const body = await req.json();
+  const schema = z.object({
+    code: z.string().max(50).optional(),
+    message: z.string().max(500).optional(),
+    details: z.string().max(4000).optional(),
+    stack: z.string().max(4000).optional(),
+    severity: z.enum(["CRITICAL", "P0", "P1", "P2", "P3"]).optional(),
+    category: z.string().max(50).optional(),
+    incidentId: z.string().max(64).optional(),
+    incidentKey: z.string().max(128).optional(),
+    userContext: z
+      .object({
+        userId: z.string().optional(),
+        tenant: z.string().optional(),
+        email: z.string().email().optional(),
+        phone: z.string().optional(),
+      })
+      .optional(),
+    clientContext: z.record(z.string(), z.unknown()).optional(),
+  });
+  let safe: z.infer<typeof schema>;
+  try {
+    safe = schema.parse(body);
+  } catch (_err: unknown) {
+    const issues =
+      _err && typeof _err === "object" && "issues" in _err
+        ? (_err as { issues: unknown[] }).issues
+        : [];
+    return NextResponse.json(
+      {
+        type: "https://docs.fixzit/errors/invalid-incident-payload",
+        title: "Invalid incident payload",
+        status: 400,
+        detail: "One or more fields are invalid",
+        errors: issues,
+      },
+      { status: 400, headers: { "content-type": "application/problem+json" } },
+    );
+  }
+  const now = new Date();
+
+  const incidentId: string =
+    safe.incidentId ||
+    `INC-${now.getFullYear()}-${crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`;
+  const incidentKey: string | undefined = safe.incidentKey || incidentId;
+  const code: string = safe.code || "UI-UI-UNKNOWN-000";
+  const category: string = safe.category || "Support";
+  const severity: string = safe.severity || "P2";
+  const message: string = safe.message || "Application error";
+  const details: string | undefined = safe.details || safe.stack;
+
+  // Derive authenticated user/tenant if available; ignore spoofed body.userContext
+  let sessionUser: { id: string; role: string; orgId: string } | null = null;
+  try {
+    const user = await getSessionUser(req);
+    sessionUser = { id: user.id, role: user.role, orgId: user.orgId };
+  } catch {
+    sessionUser = null;
+  }
+
+  if (sessionUser && !sessionUser.orgId) {
+    logger.error("[Incidents] Authenticated user missing orgId - denying to preserve tenant isolation", {
+      userId: sessionUser.id,
+    });
+    return NextResponse.json(
+      {
+        error: "Missing organization context",
+        detail: "Authenticated incident reports require an org-scoped session.",
+      },
+      { status: 400 },
+    );
+  }
+
+  // Rate limiting: Authenticated users get tenant-isolated buckets,
+  // anonymous users (if enabled) share IP-based bucket
+  const orgId = sessionUser?.orgId ?? null;
+  const userId = sessionUser?.id ?? null;
+  
+  const rl = await smartRateLimit(
+    buildOrgAwareRateLimitKey(req, orgId, userId),
+    60,
+    60_000,
+  );
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+  // Distributed rate limiting using Redis singleton for multi-instance environments
+  // PERFORMANCE FIX: Use singleton connection instead of new Redis() per request
+  // Historical context: Creating new connection + quit() per request exhausted pool
+  const { getRedisClient } = await import("@/lib/redis");
+  const redis = getRedisClient();
+  const ip = getClientIP(req);
+  // SECURITY: Include tenant scope in rate limit key to prevent cross-tenant interference (STRICT v4.1)
+  const rateLimitTenantScope = sessionUser?.orgId ?? "anonymous";
+  const rateKey = `incidents:rate:${rateLimitTenantScope}:${sessionUser?.id ? `u:${sessionUser.id}` : `ip:${ip}`}`;
+  const windowSecs = 30; // 30s window
+  const maxRequests = 3;
+
+  if (redis) {
+    try {
+      // Use Redis INCR with TTL for atomic rate limiting
+      const count = await redis.incr(rateKey);
+      if (count === 1) {
+        await redis.expire(rateKey, windowSecs);
+      }
+
+      if (count > maxRequests) {
+        // NOTE: Do NOT call redis.quit() - singleton connection is reused
+        return new NextResponse(null, { status: 429 });
+      }
+    } catch (error) {
+      // Fallback: if Redis operation fails, allow the request but log the error
+      logger.error(
+        "[Incidents] Rate limiting failed:",
+        error instanceof Error ? error.message : "Unknown error",
+      );
+    }
+    // NOTE: Do NOT call redis.quit() in finally block - connection is reused
+  } else {
+    // Redis unavailable - allow request (fail open for better UX)
+    logger.warn("[Incidents] Redis unavailable, rate limiting disabled");
+  }
+
+  // SECURITY: Determine tenant scope from authenticated session ONLY
+  // Historical context: PR reviews flagged tenant isolation bypass where
+  // tenantScope fell back to req.headers.get('x-org-id') (client-controlled)
+  // CRITICAL: Never trust client-provided headers for tenant scoping
+
+  // Feature flag: allow anonymous incident reporting for backwards compatibility
+  const ENABLE_ANONYMOUS_INCIDENTS =
+    process.env.ENABLE_ANONYMOUS_INCIDENTS === "true";
+  let tenantScope = sessionUser?.orgId || null;
+
+  // If no authenticated session, optionally allow anonymous reporting under "public" scope
+  if (!tenantScope) {
+    if (ENABLE_ANONYMOUS_INCIDENTS) {
+      tenantScope = "public";
+    } else {
+      return NextResponse.json(
+        {
+          error: "Authentication required",
+          detail:
+            "Incident reporting requires authenticated session for tenant attribution",
+        },
+        { status: 401 },
+      );
+    }
+  }
+  // Align telemetry with org-level tenancy for analytics + isolation
+  const orgScope = tenantScope;
+
+  let existing: Record<string, unknown> | null = null;
+  if (incidentKey) {
+    // Prefer orgId-based dedupe (indexed); fallback to legacy tenantScope-only records
+    existing =
+      (await native
+        .collection(COLLECTIONS.ERROR_EVENTS)
+        .findOne({ incidentKey, orgId: orgScope })) ||
+      (await native
+        .collection(COLLECTIONS.ERROR_EVENTS)
+        .findOne({ incidentKey, tenantScope: orgScope }));
+  }
+  if (existing) {
+    return NextResponse.json(
+      {
+        ok: true,
+        incidentId: existing.incidentId,
+        ticketId: existing.ticketId,
+      },
+      { status: 202 },
+    );
+  }
+
+  // Store minimal incident document for indexing/analytics
+  await native.collection(COLLECTIONS.ERROR_EVENTS).insertOne({
+    orgId: orgScope,
+    incidentKey,
+    incidentId,
+    code,
+    category,
+    severity,
+    message,
+    details,
+    sessionUser: sessionUser || null,
+    clientContext: body?.clientContext || null,
+    tenantScope,
+    createdAt: now,
+  });
+
+  // Auto-create a Support Ticket (same model used by /api/support/tickets)
+  interface TicketDoc {
+    code?: string;
+    _id?: unknown;
+  }
+  let ticket: TicketDoc | null = null;
+  const genCode = () =>
+    `SUP-${now.getFullYear()}-${crypto.randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase()}`;
+  for (let i = 0; i < 5; i++) {
+    const ticketCode = genCode();
+    try {
+      const ticketOrgId = sessionUser?.orgId || process.env.SUPPORT_PUBLIC_ORG_ID;
+      if (!ticketOrgId) {
+        return NextResponse.json(
+          {
+            error: "Missing organization context",
+            detail:
+              "Support tickets require an organization. Set SUPPORT_PUBLIC_ORG_ID for anonymous incidents.",
+          },
+          { status: 400 },
+        );
+      }
+      setTenantContext({ orgId: ticketOrgId });
+      ticket = await SupportTicket.create({
+        orgId: ticketOrgId,
+        code: ticketCode,
+        subject: `[${code}] ${message}`.slice(0, 140),
+        module: "Other",
+        type: "Bug",
+        priority:
+          severity === "P0" || severity === "CRITICAL"
+            ? "Urgent"
+            : severity === "P1"
+              ? "High"
+              : "Medium",
+        category: "Technical",
+        subCategory: "Bug Report",
+        status: "New",
+        createdBy: sessionUser?.id || undefined,
+        requester:
+          !sessionUser && body?.userContext?.email
+            ? {
+                name: String(body?.userContext?.email).split("@")[0],
+                email: body?.userContext?.email,
+                phone: body?.userContext?.phone || "",
+              }
+            : undefined,
+        messages: [
+          {
+            byUserId: sessionUser?.id || undefined,
+            byRole: sessionUser ? "USER" : "GUEST",
+            text: `${message}\n\n${details || ""}`.trim(),
+            at: now,
+          },
+        ],
+      });
+      break;
+    } catch (_e: unknown) {
+      if (_e && typeof _e === "object" && "code" in _e && _e.code === 11000)
+        continue; // duplicate code -> retry
+      throw _e;
+    } finally {
+      clearTenantContext();
+    }
+  }
+
+  // Persist ticket linkage for dedupe/analytics
+  if (ticket) {
+    await native
+      .collection(COLLECTIONS.ERROR_EVENTS)
+      .updateOne(
+        {
+          incidentId,
+          $or: [
+            { orgId: orgScope },
+            { tenantScope: orgScope },
+          ],
+        },
+        { $set: { ticketId: ticket.code } },
+      );
+  }
+
+  return NextResponse.json(
+    { ok: true, incidentId, ticketId: ticket?.code },
+    { status: 202 },
+  );
+}
+
+export async function GET() {
+  return new NextResponse(null, { status: 405 });
+}
+
+]]>
+</file>
+
+<file path="app/api/support/organizations/search/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Organization } from "@/server/models/Organization";
+import { logger } from "@/lib/logger";
+
+function sanitize(text: string) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+const MAX_IDENTIFIER_LEN = 256;
+
+const serialize = (org: {
+  orgId: string;
+  name: string;
+  code?: string;
+  legal?: { registrationNumber?: string };
+  subscription?: { plan?: string };
+}) => ({
+  orgId: org.orgId,
+  name: org.name,
+  code: org.code ?? null,
+  registrationNumber: org.legal?.registrationNumber ?? null,
+  subscriptionPlan: org.subscription?.plan ?? null,
+});
+
+export async function GET(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.isSuperAdmin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { searchParams } = new URL(req.url);
+  const rawIdentifier =
+    searchParams.get("identifier") || searchParams.get("corporateId") || "";
+  const identifier = rawIdentifier.trim();
+
+  if (!identifier) {
+    return NextResponse.json(
+      { error: "identifier query param is required" },
+      { status: 400 },
+    );
+  }
+
+  if (identifier.length > MAX_IDENTIFIER_LEN) {
+    return NextResponse.json({ error: "identifier too long" }, { status: 400 });
+  }
+
+  try {
+    await connectToDatabase();
+
+    const regex = new RegExp(sanitize(identifier), "i");
+    const records = await Organization.find({
+      $or: [
+        { orgId: identifier },
+        { code: regex },
+        { name: regex },
+        { "legal.registrationNumber": identifier },
+      ],
+    })
+      .select("orgId name code legal.registrationNumber subscription.plan")
+      .limit(10)
+      .lean();
+
+    return NextResponse.json({ results: records.map(serialize) });
+  } catch (error) {
+    logger.error("Failed to search organizations", { error, identifier });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/support/tickets/[id]/reply/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { SupportTicket } from "@/server/models/SupportTicket";
+import { z } from "zod";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { Types } from "mongoose";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+
+interface TicketDocument {
+  createdBy?: { toString?: () => string } | string;
+  messages?: Array<{
+    byUserId?: string;
+    byRole: string;
+    text: string;
+    at: Date;
+  }>;
+  status?: string;
+  [key: string]: unknown;
+}
+
+const schema = z.object({ text: z.string().min(1) });
+
+/**
+ * @openapi
+ * /api/support/tickets/[id]/reply:
+ *   get:
+ *     summary: support/tickets/[id]/reply operations
+ *     tags: [support]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
+  // Authenticate user first
+  const user = await getSessionUser(req).catch(() => null);
+  if (!user) {
+    return createSecureResponse({ error: "Authentication required" }, 401, req);
+  }
+
+  // Apply rate limiting with authenticated user ID
+  const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  // Validate payload early to avoid DB work on bad requests
+  const parsedBody = schema.safeParse(await req.json());
+  if (!parsedBody.success) {
+    return createSecureResponse(
+      { error: "Invalid body", details: parsedBody.error.format() },
+      400,
+      req,
+    );
+  }
+
+  const { id } = await props.params;
+
+  // Validate MongoDB ObjectId format
+  if (!Types.ObjectId.isValid(id)) {
+    return createSecureResponse({ error: "Invalid id" }, 400, req);
+  }
+
+  await connectToDatabase();
+
+  const creatorMatch = user?.id
+    ? [
+        {
+          createdBy: Types.ObjectId.isValid(user.id)
+            ? new Types.ObjectId(user.id)
+            : user.id,
+        },
+      ]
+    : [];
+  const adminMatch =
+    user && ["SUPER_ADMIN", "ADMIN", "CORPORATE_ADMIN"].includes(user.role)
+      ? [{}]
+      : [];
+  const t = await SupportTicket.findOne({
+    _id: id,
+    $or: [{ orgId: user?.orgId }, ...creatorMatch, ...adminMatch],
+  });
+  if (!t) return createSecureResponse({ error: "Not found" }, 404, req);
+
+  // End user may reply only to own ticket; admins can reply to any
+  const isAdmin =
+    !!user && ["SUPER_ADMIN", "ADMIN", "CORPORATE_ADMIN"].includes(user.role);
+  const ticketTyped = t as unknown as TicketDocument;
+  const isOwner = !!user && ticketTyped.createdBy?.toString?.() === user.id;
+  if (!isAdmin && !isOwner)
+    return createSecureResponse({ error: "Forbidden" }, 403, req);
+
+  // Use atomic $push to prevent race conditions when multiple users reply simultaneously
+  const updateOps: Record<string, unknown> = {
+    $push: {
+      messages: {
+        byUserId: user?.id,
+        byRole: isAdmin ? "ADMIN" : "USER",
+        text: parsedBody.data.text,
+        at: new Date(),
+      },
+    },
+  };
+
+  // Conditionally update status if currently "Waiting"
+  const ticketDoc = t as unknown as { status?: string };
+  if (ticketDoc.status === "Waiting") {
+    updateOps.$set = { status: "Open", updatedAt: new Date() };
+  }
+
+  await SupportTicket.updateOne({ _id: id }, updateOps);
+  return createSecureResponse({ ok: true }, 200, req);
+}
+
+]]>
+</file>
+
+<file path="app/api/support/tickets/[id]/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { SupportTicket } from "@/server/models/SupportTicket";
+import { z } from "zod";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { Types } from "mongoose";
+
+import { createSecureResponse } from "@/server/security/headers";
+
+const patchSchema = z.object({
+  status: z.enum(["New", "Open", "Waiting", "Resolved", "Closed"]).optional(),
+  assigneeUserId: z.string().optional(),
+  priority: z.enum(["Low", "Medium", "High", "Urgent"]).optional(),
+});
+
+/**
+ * @openapi
+ * /api/support/tickets/[id]:
+ *   get:
+ *     summary: support/tickets/[id] operations
+ *     tags: [support]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
+  await connectToDatabase();
+  const { id } = await props.params;
+
+  // SECURITY: Add authorization check (was missing per CodeRabbit review)
+  const user = await getSessionUser(req);
+  
+  // Validate MongoDB ObjectId format
+  if (!Types.ObjectId.isValid(id)) {
+    return createSecureResponse({ error: "Invalid id" }, 400, req);
+  }
+  
+  const isAdmin = ["SUPER_ADMIN", "ADMIN", "CORPORATE_ADMIN"].includes(user.role);
+  const query: Record<string, unknown> = { _id: id };
+  
+  // Non-admins can only view their own tickets or tickets in their org
+  if (!isAdmin) {
+    query.$or = [
+      { createdBy: Types.ObjectId.isValid(user.id) ? new Types.ObjectId(user.id) : user.id },
+      { orgId: user.orgId },
+    ];
+  }
+  
+  const t = await SupportTicket.findOne(query);
+  if (!t) return createSecureResponse({ error: "Not found" }, 404, req);
+  return createSecureResponse(t, 200, req);
+}
+
+export async function PATCH(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
+  await connectToDatabase();
+  const { id } = await props.params;
+  const user = await getSessionUser(req);
+  if (!["SUPER_ADMIN", "ADMIN", "CORPORATE_ADMIN"].includes(user.role)) {
+    return createSecureResponse({ error: "Forbidden" }, 403, req);
+  }
+  const data = patchSchema.parse(await req.json());
+  // Validate MongoDB ObjectId format
+  if (!Types.ObjectId.isValid(id)) {
+    return createSecureResponse({ error: "Invalid id" }, 400, req);
+  }
+  const t = await SupportTicket.findOne({
+    _id: id,
+    $or: [
+      { orgId: user.orgId },
+      // Allow admins to modify any ticket
+      ...(["SUPER_ADMIN", "ADMIN", "CORPORATE_ADMIN"].includes(user.role)
+        ? [{}]
+        : []),
+    ],
+  });
+  if (!t) return createSecureResponse({ error: "Not found" }, 404, req);
+  if (data.status && t.status === "New" && !t.firstResponseAt)
+    t.firstResponseAt = new Date();
+  if (data.assigneeUserId !== undefined) {
+    t.assignment = t.assignment || {};
+    t.assignment.assignedTo = t.assignment.assignedTo || {};
+    t.assignment.assignedTo.userId = data.assigneeUserId
+      ? new Types.ObjectId(data.assigneeUserId)
+      : undefined;
+    t.assignment.assignedBy = data.assigneeUserId
+      ? new Types.ObjectId(user.id)
+      : undefined;
+    t.assignment.assignedAt = data.assigneeUserId ? new Date() : undefined;
+    delete (data as Record<string, unknown>).assigneeUserId;
+  }
+  Object.assign(t, data);
+  if (data.status === "Resolved") t.resolvedAt = new Date();
+  await t.save();
+  return createSecureResponse(t, 200, req);
+}
+
+]]>
+</file>
+
+<file path="app/api/support/tickets/my/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { SupportTicket } from "@/server/models/SupportTicket";
+import { Types } from "mongoose";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+
+// Force dynamic rendering for this route
+export const dynamic = "force-dynamic";
+
+/**
+ * @openapi
+ * /api/support/tickets/my:
+ *   get:
+ *     summary: support/tickets/my operations
+ *     tags: [support]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(req: NextRequest) {
+  try {
+    await connectToDatabase();
+
+    // Handle authentication separately to return 401 instead of 500
+    let user;
+    try {
+      user = await getSessionUser(req);
+      const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+      if (!rl.allowed) {
+        return rateLimitError();
+      }
+    } catch (authError) {
+      logger.error(
+        "Authentication failed:",
+        authError instanceof Error ? authError.message : "Unknown error",
+      );
+      return createSecureResponse({ error: "Unauthorized" }, 401, req);
+    }
+
+    const creatorId = Types.ObjectId.isValid(user.id)
+      ? new Types.ObjectId(user.id)
+      : user.id;
+    const items = await SupportTicket.find({
+      orgId: user.orgId,
+      createdBy: creatorId,
+    })
+      .sort({ createdAt: -1 })
+      .limit(200);
+    return createSecureResponse({ items }, 200, req);
+  } catch (error) {
+    logger.error(
+      "My tickets query failed:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse(
+      { error: "Failed to fetch your tickets" },
+      500,
+      req,
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/support/tickets/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { SupportTicket } from "@/server/models/SupportTicket";
+import { z } from "zod";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import crypto from "crypto";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import {
+  zodValidationError,
+  rateLimitError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+
+const createSchema = z.object({
+  subject: z.string().min(4),
+  module: z.enum(["FM", "Souq", "Aqar", "Account", "Billing", "Other"]),
+  type: z.enum(["Bug", "Feature", "Complaint", "Billing", "Access", "Other"]),
+  priority: z.enum(["Low", "Medium", "High", "Urgent"]).default("Medium"),
+  category: z
+    .enum([
+      "Technical",
+      "Feature Request",
+      "Billing",
+      "Account",
+      "General",
+      "Bug Report",
+    ])
+    .default("General"),
+  subCategory: z
+    .enum([
+      "Bug Report",
+      "Performance Issue",
+      "UI Error",
+      "API Error",
+      "Database Error",
+      "New Feature",
+      "Enhancement",
+      "Integration",
+      "Customization",
+      "Mobile App",
+      "Invoice Issue",
+      "Payment Error",
+      "Subscription",
+      "Refund",
+      "Pricing",
+      "Login Issue",
+      "Password Reset",
+      "Profile Update",
+      "Permissions",
+      "Access Denied",
+      "Documentation",
+      "Training",
+      "Support",
+      "Feedback",
+      "Other",
+      "Critical Bug",
+      "Minor Bug",
+      "Cosmetic Issue",
+      "Data Error",
+      "Security Issue",
+    ])
+    .default("Other"),
+  text: z.string().min(5),
+  requester: z
+    .object({
+      name: z.string().min(2),
+      email: z.string().email(),
+      phone: z.string().optional(),
+    })
+    .optional(),
+});
+
+/**
+ * @openapi
+ * /api/support/tickets:
+ *   get:
+ *     summary: support/tickets operations
+ *     tags: [support]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const user = await getSessionUser(req).catch(() => null);
+    if (!user) {
+      return createSecureResponse({ error: "Unauthorized" }, 401, req);
+    }
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    await connectToDatabase();
+    const body = createSchema.parse(await req.json());
+
+    // Generate cryptographically secure ticket code
+    const uuid = crypto
+      .randomUUID()
+      .replace(/-/g, "")
+      .slice(0, 8)
+      .toUpperCase();
+    const code = `SUP-${new Date().getFullYear()}-${uuid}`;
+
+    const ticket = await SupportTicket.create({
+      orgId: user?.orgId,
+      code,
+      subject: body.subject,
+      module: body.module,
+      type: body.type,
+      priority: body.priority,
+      category: body.category,
+      subCategory: body.subCategory,
+      status: "New",
+      createdBy: user?.id,
+      requester: user ? undefined : body.requester,
+      messages: [
+        {
+          byUserId: user?.id,
+          byRole: user ? "USER" : "GUEST",
+          text: body.text,
+          at: new Date(),
+        },
+      ],
+    });
+
+    return createSecureResponse(ticket, 201, req);
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      return zodValidationError(error, req);
+    }
+    logger.error(
+      "Support ticket creation failed:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse(
+      { error: "Failed to create support ticket" },
+      500,
+      req,
+    );
+  }
+}
+
+// Admin list with filters
+export async function GET(req: NextRequest) {
+  try {
+    // Handle authentication separately to return 401 instead of 500
+    let user;
+    try {
+      user = await getSessionUser(req);
+      const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+      if (!rl.allowed) {
+        return rateLimitError();
+      }
+    } catch (authError) {
+      logger.error(
+        "Authentication failed:",
+        authError instanceof Error ? authError.message : "Unknown error",
+      );
+      return createSecureResponse({ error: "Unauthorized" }, 401, req);
+    }
+
+    await connectToDatabase();
+
+    if (
+      !user ||
+      !["SUPER_ADMIN", "ADMIN", "CORPORATE_ADMIN"].includes(user.role)
+    ) {
+      return createSecureResponse({ error: "Forbidden" }, 403, req);
+    }
+    const sp = new URL(req.url).searchParams;
+    const status = sp.get("status") || undefined;
+    const moduleKey = sp.get("module") || undefined;
+    const type = sp.get("type") || undefined;
+    const priority = sp.get("priority") || undefined;
+    const page = Math.max(1, Number(sp.get("page") || 1));
+    const limit = Math.min(100, Number(sp.get("limit") || 20));
+    const match: Record<string, unknown> = {};
+    const isGlobalAdmin = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(user.role);
+    if (!isGlobalAdmin) {
+      match.orgId = user.orgId;
+    }
+    if (status) match.status = status;
+    if (moduleKey) match.module = moduleKey;
+    if (type) match.type = type;
+    if (priority) match.priority = priority;
+
+    const [items, total] = await Promise.all([
+      SupportTicket.find(match)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit),
+      SupportTicket.countDocuments(match),
+    ]);
+    return NextResponse.json({ items, page, limit, total });
+  } catch (error) {
+    logger.error(
+      "Support tickets query failed:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse(
+      { error: "Failed to fetch support tickets" },
+      500,
+      req,
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/support/welcome-email/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { z } from "zod";
+import sgMail from "@sendgrid/mail";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
+import { getClientIP } from "@/server/security/headers";
+import { logger } from "@/lib/logger";
+import { verifySecretHeader } from "@/lib/security/verify-secret-header";
+import {
+  getSendGridConfig,
+  getBaseEmailOptions,
+  isSendGridConfigured,
+  getTemplateId,
+} from "@/config/sendgrid.config";
+import { DOMAINS, EMAIL_DOMAINS } from "@/lib/config/domains";
+
+const welcomeEmailSchema = z.object({
+  email: z.string().email(),
+  errorId: z.string(),
+  subject: z.string(),
+  registrationLink: z.string().url(),
+});
+
+/**
+ * @openapi
+ * /api/support/welcome-email:
+ *   get:
+ *     summary: support/welcome-email operations
+ *     tags: [support]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+
+export async function POST(req: NextRequest) {
+  // Rate limiting - reduced to 5 req/min since this sends emails
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 5, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  // SECURITY FIX: Require internal API secret for email sending
+  // This endpoint should only be called by internal services
+  const secretValid = verifySecretHeader(
+    req,
+    "x-internal-secret",
+    process.env.INTERNAL_API_SECRET,
+  );
+  if (!secretValid) {
+    logger.warn("[welcome-email] Unauthorized access attempt", { clientIp });
+    return createSecureResponse({ error: "Unauthorized" }, 401, req);
+  }
+
+  try {
+    const body = welcomeEmailSchema.parse(await req.json());
+
+    // Check if email service is configured
+    if (!isSendGridConfigured()) {
+      return createSecureResponse(
+        {
+          error:
+            "Email service not yet configured. Please integrate SendGrid, AWS SES, or similar service.",
+          status: "not_configured",
+        },
+        501,
+        req,
+      ); // 501 Not Implemented
+    }
+
+    // Create a mock email record in the database (optional)
+    // This could be stored in MongoDB for tracking
+
+    // Email template for future use when email service is integrated
+    const _emailTemplate = `
+🎉 Welcome to Fixzit Enterprise!
+
+Thank you for reporting an issue with our system. We're actively working to resolve it.
+
+**Error ID:** ${body.errorId}
+**Reported:** ${new Date().toISOString()}
+
+**Next Steps:**
+1. 📝 Your support ticket has been created and assigned to our technical team
+2. 🔧 Our developers are investigating the issue
+3. 📧 You'll receive updates via email within 24 hours
+4. 🎯 Once resolved, you'll get a notification with the fix details
+
+**To Get Started with Fixzit:**
+1. Create your account: ${body.registrationLink}
+2. Complete your profile setup
+3. Access the full Fixzit Enterprise platform
+4. Track your support tickets in real-time
+
+**Why Choose Fixzit Enterprise?**
+- ✅ Complete Facility Management Solution
+- ✅ Unified Marketplace Integration
+- ✅ Real Estate Management Tools
+- ✅ Advanced Analytics & Reporting
+- ✅ 24/7 Support & Assistance
+
+**Need Immediate Help?**
+- Contact our support team: ${EMAIL_DOMAINS.support}
+- Visit our help center: ${DOMAINS.primary}/help
+- Call us: +966 50 123 4567
+
+Welcome to the Fixzit family! 🚀
+
+Best regards,
+The Fixzit Enterprise Team
+    `.trim();
+
+    /**
+     * SendGrid Email Service Integration
+     *
+     * ✅ Production-Ready with:
+     * - @sendgrid/mail SDK (installed)
+     * - Centralized SendGrid configuration
+     * - Multiple sender identities support
+     * - Dynamic template support
+     * - Reply-to configuration
+     * - Unsubscribe groups
+     * - IP pools for better deliverability
+     * - MongoDB tracking for email delivery status
+     *
+     * @see https://docs.sendgrid.com/for-developers/sending-email/quickstart-nodejs
+     * @see /config/sendgrid.config.ts for centralized configuration
+     */
+
+    // Initialize SendGrid with API key
+    const config = getSendGridConfig();
+    sgMail.setApiKey(config.apiKey);
+
+    const emailId = `WEL-${crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase()}`;
+    const timestamp = new Date();
+
+    // Check if a dynamic template is configured
+    const templateId = getTemplateId("welcome");
+
+    try {
+      // Get base email options with configured sender and advanced features
+      const baseOptions = getBaseEmailOptions();
+
+      if (templateId) {
+        // Use SendGrid Dynamic Template
+        await sgMail.send({
+          ...baseOptions,
+          to: body.email,
+          templateId,
+          dynamicTemplateData: {
+            errorId: body.errorId,
+            registrationLink: body.registrationLink,
+            subject: body.subject,
+            currentYear: new Date().getFullYear(),
+            supportEmail: config.replyTo?.email || config.from.email,
+          },
+          customArgs: {
+            emailId,
+            errorId: body.errorId,
+            type: "welcome_email",
+          },
+        });
+      } else {
+        // Use HTML template (legacy/fallback)
+        await sgMail.send({
+          ...baseOptions,
+          to: body.email,
+          subject: body.subject,
+          html: _emailTemplate,
+          text: _emailTemplate.replace(/<[^>]*>/g, ""), // Plain text fallback
+          customArgs: {
+            emailId,
+            errorId: body.errorId,
+            type: "welcome_email",
+          },
+        });
+      }
+
+      // Track email in MongoDB
+      try {
+        const db = await getDatabase();
+        const emailsCollection = db.collection(COLLECTIONS.EMAIL_LOGS);
+
+        await emailsCollection.insertOne({
+          emailId,
+          type: "welcome_email",
+          recipient: body.email,
+          subject: body.subject,
+          errorId: body.errorId,
+          registrationLink: body.registrationLink,
+          status: "sent",
+          sentAt: timestamp,
+          provider: "sendgrid",
+          metadata: {
+            clientIp,
+            correlationId:
+              req.headers.get("x-correlation-id") || crypto.randomUUID(),
+          },
+        });
+
+        logger.info("✅ Email sent and logged", {
+          emailId,
+          recipient: body.email,
+          timestamp: timestamp.toISOString(),
+        });
+      } catch (dbError) {
+        // Email sent but logging failed - don't fail the request
+        logger.warn("⚠️ Email sent but database logging failed:", { dbError });
+      }
+
+      return createSecureResponse(
+        {
+          success: true,
+          message: "Welcome email sent successfully",
+          emailId,
+          recipient: body.email,
+          subject: body.subject,
+          sentAt: timestamp.toISOString(),
+        },
+        200,
+        req,
+      );
+    } catch (sendGridError: unknown) {
+      // SendGrid failed - log error and track failure
+      const error = sendGridError as Error;
+      logger.error(
+        "❌ SendGrid error:",
+        error instanceof Error ? error.message : "Unknown error",
+      );
+
+      try {
+        const db = await getDatabase();
+        await db.collection(COLLECTIONS.EMAIL_LOGS).insertOne({
+          emailId,
+          type: "welcome_email",
+          recipient: body.email,
+          subject: body.subject,
+          errorId: body.errorId,
+          status: "failed",
+          error: error.message,
+          failedAt: timestamp,
+          provider: "sendgrid",
+        });
+      } catch {
+        // Ignore DB errors during failure logging
+      }
+
+      return createSecureResponse(
+        {
+          error: "Failed to send email",
+          message:
+            "Email service temporarily unavailable. Please try again later.",
+          emailId,
+        },
+        500,
+        req,
+      );
+    }
+  } catch (error) {
+    const correlationId =
+      req.headers.get("x-correlation-id") || crypto.randomUUID();
+    logger.error(
+      `[${correlationId}] Welcome email error:`,
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse(
+      { error: "Failed to send welcome email", correlationId },
+      500,
+      req,
+    );
+  }
+}
+
+// GET method to check welcome email status
+export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  const sp = new URL(req.url).searchParams;
+  const email = sp.get("email");
+
+  if (!email) {
+    return createSecureResponse(
+      { error: "Email parameter required" },
+      400,
+      req,
+    );
+  }
+
+  // Check if email service is configured
+  if (!isSendGridConfigured()) {
+    return createSecureResponse(
+      {
+        error:
+          "Email service not yet configured. Please integrate SendGrid, AWS SES, or similar service.",
+        email,
+        status: "not_configured",
+      },
+      501,
+      req,
+    ); // 501 Not Implemented
+  }
+
+  try {
+    // Query MongoDB for email delivery status
+    const db = await getDatabase();
+    const emailsCollection = db.collection(COLLECTIONS.EMAIL_LOGS);
+
+    const emailRecords = await emailsCollection
+      .find({ recipient: email, type: "welcome_email" })
+      .sort({ sentAt: -1, failedAt: -1 })
+      .limit(10)
+      .toArray();
+
+    if (emailRecords.length === 0) {
+      return createSecureResponse(
+        {
+          email,
+          status: "no_records_found",
+          message: "No welcome emails found for this recipient",
+        },
+        404,
+        req,
+      );
+    }
+
+    return createSecureResponse(
+      {
+        email,
+        totalEmails: emailRecords.length,
+        emails: emailRecords.map((record: Record<string, unknown>) => ({
+          emailId: record.emailId,
+          subject: record.subject,
+          status: record.status,
+          sentAt: record.sentAt,
+          failedAt: record.failedAt,
+          errorId: record.errorId,
+          error: record.error,
+        })),
+      },
+      200,
+      req,
+    );
+  } catch (error) {
+    logger.error(
+      "Error querying email status:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse(
+      {
+        error: "Failed to query email status",
+        email,
+      },
+      500,
+      req,
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/tenants/[id]/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Tenant } from "@/server/models/Tenant";
+import { z } from "zod";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError, handleApiError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+
+const updateTenantSchema = z.object({
+  name: z.string().min(1).optional(),
+  type: z.enum(["INDIVIDUAL", "COMPANY", "GOVERNMENT"]).optional(),
+  contact: z
+    .object({
+      primary: z
+        .object({
+          name: z.string().optional(),
+          title: z.string().optional(),
+          email: z.string().email().optional(),
+          phone: z.string().optional(),
+          mobile: z.string().optional(),
+        })
+        .optional(),
+      secondary: z
+        .object({
+          name: z.string().optional(),
+          email: z.string().email().optional(),
+          phone: z.string().optional(),
+        })
+        .optional(),
+      emergency: z
+        .object({
+          name: z.string().optional(),
+          relationship: z.string().optional(),
+          phone: z.string().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  identification: z
+    .object({
+      nationalId: z.string().optional(),
+      companyRegistration: z.string().optional(),
+      taxId: z.string().optional(),
+      licenseNumber: z.string().optional(),
+    })
+    .optional(),
+  address: z
+    .object({
+      current: z
+        .object({
+          street: z.string().optional(),
+          city: z.string().optional(),
+          region: z.string().optional(),
+          postalCode: z.string().optional(),
+        })
+        .optional(),
+      permanent: z
+        .object({
+          street: z.string().optional(),
+          city: z.string().optional(),
+          region: z.string().optional(),
+          postalCode: z.string().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  preferences: z
+    .object({
+      communication: z
+        .object({
+          email: z.boolean().optional(),
+          sms: z.boolean().optional(),
+          phone: z.boolean().optional(),
+          app: z.boolean().optional(),
+        })
+        .optional(),
+      notifications: z
+        .object({
+          maintenance: z.boolean().optional(),
+          rent: z.boolean().optional(),
+          events: z.boolean().optional(),
+          announcements: z.boolean().optional(),
+        })
+        .optional(),
+      language: z.string().optional(),
+      timezone: z.string().optional(),
+    })
+    .optional(),
+  tags: z.array(z.string()).optional(),
+});
+
+/**
+ * @openapi
+ * /api/tenants/[id]:
+ *   get:
+ *     summary: tenants/[id] operations
+ *     tags: [tenants]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const user = await getSessionUser(req);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+    await connectToDatabase();
+
+    const tenant = await Tenant.findOne({
+      _id: params.id,
+      tenantId: user.tenantId,
+    });
+
+    if (!tenant) {
+      return createSecureResponse({ error: "Tenant not found" }, 404, req);
+    }
+
+    return createSecureResponse(tenant, 200, req);
+  } catch (error: unknown) {
+    return handleApiError(error);
+  }
+}
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const user = await getSessionUser(req);
+    await connectToDatabase();
+
+    const data = updateTenantSchema.parse(await req.json());
+
+    const tenant = await Tenant.findOneAndUpdate(
+      { _id: params.id, tenantId: user.tenantId },
+      { $set: { ...data, updatedBy: user.id } },
+      { new: true },
+    );
+
+    if (!tenant) {
+      return createSecureResponse({ error: "Tenant not found" }, 404, req);
+    }
+
+    return createSecureResponse(tenant, 200, req);
+  } catch (error: unknown) {
+    return handleApiError(error);
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const user = await getSessionUser(req);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+    await connectToDatabase();
+
+    const tenant = await Tenant.findOneAndUpdate(
+      { _id: params.id, tenantId: user.tenantId },
+      { $set: { status: "INACTIVE", updatedBy: user.id } },
+      { new: true },
+    );
+
+    if (!tenant) {
+      return createSecureResponse({ error: "Tenant not found" }, 404, req);
+    }
+
+    return createSecureResponse({ success: true }, 200, req);
+  } catch (error: unknown) {
+    return handleApiError(error);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/tenants/route.ts">
+<![CDATA[
+/**
+ * Tenants API Routes - Refactored with CRUD Factory
+ * BEFORE: 176 lines of duplicated boilerplate
+ * AFTER: ~90 lines using reusable factory
+ * REDUCTION: 49% less code
+ */
+
+import { createCrudHandlers } from "@/lib/api/crud-factory";
+import { Tenant } from "@/server/models/Tenant";
+import { z } from "zod";
+
+/**
+ * Tenant Creation Schema
+ * Matches original validation exactly - moved from inline definition
+ */
+const createTenantSchema = z.object({
+  name: z.string().min(1, "Tenant name is required"),
+  type: z.enum(["RESIDENTIAL", "COMMERCIAL"]),
+  contact: z.object({
+    primary: z.object({
+      name: z.string().min(1, "Contact name is required"),
+      email: z.string().email("Invalid email format").optional(),
+      phone: z.string().min(1, "Phone is required"),
+    }),
+    secondary: z
+      .object({
+        name: z.string().optional(),
+        email: z.string().email("Invalid email format").optional(),
+        phone: z.string().optional(),
+      })
+      .optional(),
+  }),
+  identification: z
+    .object({
+      nationalId: z.string().optional(),
+      iqamaNumber: z.string().optional(),
+      passport: z
+        .object({
+          number: z.string().optional(),
+          country: z.string().optional(),
+          expiryDate: z.string().optional(),
+        })
+        .optional(),
+      commercialRegistration: z.string().optional(),
+      taxNumber: z.string().optional(),
+    })
+    .optional(),
+  address: z
+    .object({
+      street: z.string().optional(),
+      district: z.string().optional(),
+      city: z.string().optional(),
+      postalCode: z.string().optional(),
+      country: z.string().default("Saudi Arabia"),
+    })
+    .optional(),
+  preferences: z
+    .object({
+      preferredLanguage: z.enum(["en", "ar"]).default("en"),
+      communicationChannel: z
+        .enum(["EMAIL", "SMS", "WHATSAPP", "PHONE"])
+        .default("EMAIL"),
+      notificationSettings: z
+        .object({
+          workOrderUpdates: z.boolean().default(true),
+          maintenanceReminders: z.boolean().default(true),
+          paymentReminders: z.boolean().default(true),
+          marketingEmails: z.boolean().default(false),
+        })
+        .optional(),
+    })
+    .optional(),
+  status: z.enum(["ACTIVE", "INACTIVE", "SUSPENDED"]).default("ACTIVE"),
+  notes: z.string().optional(),
+  tags: z.array(z.string()).default([]),
+  leaseStart: z.string().optional(),
+  leaseEnd: z.string().optional(),
+  rentAmount: z.number().optional(),
+  paymentFrequency: z.enum(["MONTHLY", "QUARTERLY", "ANNUALLY"]).optional(),
+});
+
+/**
+ * Build Tenant Filter
+ * Custom filter logic for tenant search/filtering
+ */
+// 🔒 TYPE SAFETY: Using Record<string, unknown> for MongoDB filter
+function buildTenantFilter(searchParams: URLSearchParams, orgId: string) {
+  const filter: Record<string, unknown> = { orgId };
+
+  const type = searchParams.get("type");
+  if (type && ["RESIDENTIAL", "COMMERCIAL"].includes(type)) {
+    filter.type = type;
+  }
+
+  const status = searchParams.get("status");
+  if (status && ["ACTIVE", "INACTIVE", "SUSPENDED"].includes(status)) {
+    filter.status = status;
+  }
+
+  const search = searchParams.get("search");
+  if (search) {
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    filter.$or = [
+      { name: { $regex: escapedSearch, $options: "i" } },
+      { code: { $regex: escapedSearch, $options: "i" } },
+      { "contact.primary.name": { $regex: escapedSearch, $options: "i" } },
+      { "contact.primary.email": { $regex: escapedSearch, $options: "i" } },
+      { "contact.primary.phone": { $regex: escapedSearch, $options: "i" } },
+    ];
+  }
+
+  return filter;
+}
+
+/**
+ * Export CRUD Handlers
+ * Eliminates 86 lines of boilerplate:
+ * - Rate limiting (60 req/min)
+ * - Auth + tenant isolation (orgId)
+ * - Database connection
+ * - Zod validation with 422 errors
+ * - Pagination with total/pages
+ * - Search/filter logic
+ * - Code generation (TEN-XXXXXXXXXXXX)
+ * - Structured error handling
+ * - Secure response headers
+ */
+export const { GET, POST } = createCrudHandlers({
+  Model: Tenant,
+  createSchema: createTenantSchema,
+  entityName: "tenant",
+  generateCode: () => `TEN-${crypto.randomUUID().slice(0, 12).toUpperCase()}`,
+  defaultSort: { createdAt: -1 },
+  searchFields: [
+    "name",
+    "code",
+    "contact.primary.name",
+    "contact.primary.email",
+    "contact.primary.phone",
+  ],
+  buildFilter: buildTenantFilter,
+});
+
+]]>
+</file>
+
+<file path="app/api/trial-request/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectToDatabase, getDatabase } from "@/lib/mongodb-unified";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { z } from "zod";
+import { getClientIP } from "@/server/security/headers";
+
+// SECURITY: Zod schema with proper email validation and honeypot field
+const trialRequestSchema = z.object({
+  name: z.string().min(1, "Name is required").max(100),
+  email: z.string().email("Valid email is required").max(254),
+  company: z.string().min(1, "Company is required").max(200),
+  plan: z.string().max(50).optional(),
+  message: z.string().max(2000).optional(),
+  phone: z.string().max(20).optional(),
+  // SECURITY: Honeypot field - bots often fill hidden fields
+  // If this field has any value, it's likely a bot submission
+  website: z.string().max(0, "Invalid submission").optional(),
+});
+
+export async function POST(req: NextRequest) {
+  // Rate limiting: 3 requests per minute per IP to prevent spam/abuse
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "trial-request",
+    requests: 3,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
+  const body = await req.json().catch(() => ({}));
+
+  // SECURITY: Validate with Zod schema including email format and honeypot
+  const result = trialRequestSchema.safeParse(body);
+  if (!result.success) {
+    const errors = result.error.flatten();
+    // Check if honeypot was triggered (bot detection)
+    if (errors.fieldErrors.website) {
+      // Log bot attempt but return generic success to not reveal detection
+      logger.warn("[trial-request] Bot submission detected (honeypot triggered)");
+      return NextResponse.json({ ok: true });
+    }
+    return NextResponse.json(
+      { error: "Validation failed", details: errors.fieldErrors },
+      { status: 400 },
+    );
+  }
+
+  const {
+    name,
+    email,
+    company,
+    plan,
+    message,
+    phone,
+  } = result.data;
+
+  // Secondary rate limit per email to prevent spray attacks
+  const emailRateLimit = enforceRateLimit(req, {
+    keyPrefix: "trial-request:email",
+    identifier: email.toLowerCase(),
+    requests: 3,
+    windowMs: 60_000,
+  });
+  if (emailRateLimit) return emailRateLimit;
+
+  const clientIp = getClientIP(req);
+  const userAgent = req.headers.get("user-agent") || undefined;
+
+  try {
+    // Best-effort: connect so the request can be persisted
+    await connectToDatabase().catch(() => null);
+    const db = await getDatabase().catch(() => null);
+    if (db) {
+      await db.collection("trial_requests").insertOne({
+        name,
+        email,
+        company,
+        plan: plan || "unspecified",
+        message,
+        phone,
+        clientIp,
+        userAgent,
+        createdAt: new Date(),
+      });
+    }
+  } catch (error) {
+    logger.warn("[trial-request] DB persistence skipped", { error });
+  }
+
+  logger.info("[trial-request] Received trial request", {
+    company,
+    plan: plan || "unspecified",
+    // PII redacted: name, email, phone not logged per SEC-029 compliance
+  });
+
+  return NextResponse.json({ ok: true });
+}
+
+]]>
+</file>
+
+<file path="app/api/upload/presigned-url/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+import { createSecureResponse } from "@/server/security/headers";
+import { getPresignedPutUrl } from "@/lib/storage/s3";
+import { Config } from "@/lib/config/constants";
+import { logger } from "@/lib/logger";
+
+const ALLOWED_TYPES = new Set([
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+]);
+
+const ALLOWED_EXTENSIONS = new Set(["pdf", "png", "jpg", "jpeg"]);
+
+const MAX_SIZE_BYTES: Record<string, number> = {
+  "application/pdf": 25 * 1024 * 1024, // 25MB
+  "image/png": 10 * 1024 * 1024, // 10MB
+  "image/jpeg": 10 * 1024 * 1024,
+  "image/jpg": 10 * 1024 * 1024,
+};
+
+type PresignCategory = "kyc" | "resume" | "invoice" | "document";
+
+function sanitizeFileName(name: string): string {
+  // Remove path separators and limit to safe characters
+  const sanitized = name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  return sanitized.slice(-128); // cap length to avoid overly long keys
+}
+
+function buildKey(
+  tenantId: string | null | undefined,
+  userId: string,
+  category: PresignCategory,
+  fileName: string,
+) {
+  const safeTenant = (tenantId || "global").replace(/[^a-zA-Z0-9_-]/g, "-");
+  const safeUser = userId.replace(/[^a-zA-Z0-9_-]/g, "-");
+  const safeFile = sanitizeFileName(fileName);
+  const prefix = category || "document";
+  return `${safeTenant}/${prefix}/${safeUser}/${Date.now()}-${safeFile}`;
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const user = await getSessionUser(req).catch(() => null);
+    if (!user) return createSecureResponse({ error: "Unauthorized" }, 401, req);
+
+    if (!Config.aws.s3.bucket || !Config.aws.region) {
+      return createSecureResponse(
+        { error: "Storage not configured" },
+        500,
+        req,
+      );
+    }
+    const scanEnforced = Config.aws.scan.required;
+    if (scanEnforced && !Config.aws.scan.endpoint) {
+      return createSecureResponse(
+        { error: "AV scanning not configured" },
+        503,
+        req,
+      );
+    }
+
+    const { tenantId, id: userId, orgId } = user;
+
+    // SECURITY: Require orgId for tenant-isolated rate limiting
+    // Missing orgId indicates session/data issue - fail fast rather than sharing anonymous bucket
+    if (!orgId) {
+      logger.warn('[Presign] Missing orgId in authenticated session', { userId });
+      return createSecureResponse({ error: "Missing organization context" }, 400, req);
+    }
+
+    // Rate limit to avoid abuse - tenant-isolated bucket
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, orgId, userId), 30, 60_000);
+    if (!rl.allowed) return rateLimitError();
+
+    const body = await req.json().catch(() => ({}));
+    const { fileName, fileType, fileSize, category } = body || {};
+
+    if (!fileName || !fileType || typeof fileSize !== "number") {
+      return createSecureResponse(
+        { error: "Missing fileName, fileType, or fileSize" },
+        400,
+        req,
+      );
+    }
+
+    if (!ALLOWED_TYPES.has(fileType)) {
+      return createSecureResponse({ error: "Unsupported file type" }, 400, req);
+    }
+
+    const ext = fileName.split(".").pop()?.toLowerCase();
+    if (!ext || !ALLOWED_EXTENSIONS.has(ext)) {
+      return createSecureResponse(
+        { error: "Unsupported file extension" },
+        400,
+        req,
+      );
+    }
+
+    const maxSize = MAX_SIZE_BYTES[fileType] ?? 10 * 1024 * 1024;
+    if (fileSize > maxSize) {
+      return createSecureResponse(
+        {
+          error: `File too large. Max ${Math.round(maxSize / (1024 * 1024))}MB`,
+        },
+        400,
+        req,
+      );
+    }
+
+    const cat = (
+      category && typeof category === "string"
+        ? category
+        : fileType.startsWith("image/")
+          ? "document"
+          : "document"
+    ) as PresignCategory;
+
+    const key = buildKey(tenantId, userId, cat, fileName);
+    const { url: uploadUrl, headers: uploadHeaders } = await getPresignedPutUrl(
+      key,
+      fileType,
+      900,
+      {
+        category: cat,
+        user: userId,
+        tenant: tenantId || "global",
+      },
+    ); // 15 minutes
+    const expiresAt = new Date(Date.now() + 900_000).toISOString();
+
+    // Surface metadata for downstream AV scan
+    return NextResponse.json({
+      uploadUrl,
+      uploadHeaders,
+      key,
+      expiresAt,
+      scanRequired: scanEnforced,
+      maxSizeBytes: maxSize,
+      allowedTypes: Array.from(ALLOWED_TYPES),
+    });
+  } catch (err) {
+    logger.error("[Presign] Failed to create presigned URL", { error: err });
+    return createSecureResponse({ error: "Failed to presign" }, 500, req);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/upload/scan/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { createSecureResponse } from "@/server/security/headers";
+import { scanS3Object } from "@/lib/security/av-scan";
+import { validateBucketPolicies } from "@/lib/security/s3-policy";
+import { Config } from "@/lib/config/constants";
+import { logger } from "@/lib/logger";
+
+export async function POST(req: NextRequest) {
+  try {
+    const user = await getSessionUser(req).catch(() => null);
+    if (!user) return createSecureResponse({ error: "Unauthorized" }, 401, req);
+
+    const { key } = await req.json().catch(() => ({}));
+    if (!key || typeof key !== "string") {
+      return createSecureResponse({ error: "Missing key" }, 400, req);
+    }
+
+    if (!Config.aws.s3.bucket || !Config.aws.scan.endpoint) {
+      return createSecureResponse({ error: "Scan not configured" }, 503, req);
+    }
+
+    const policiesOk = await validateBucketPolicies();
+    if (!policiesOk) {
+      return createSecureResponse(
+        { error: "Bucket policy/encryption invalid" },
+        503,
+        req,
+      );
+    }
+
+    const clean = await scanS3Object(key, Config.aws.s3.bucket);
+    if (!clean) {
+      return createSecureResponse(
+        {
+          success: false,
+          clean: false,
+          error: "Scan failed or malware detected",
+        },
+        400,
+        req,
+      );
+    }
+
+    return NextResponse.json({ success: true, clean: true });
+  } catch (err) {
+    logger.error("[Upload Scan] Error", err);
+    return createSecureResponse({ error: "Scan error" }, 500, req);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/upload/scan-callback/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { Config } from "@/lib/config/constants";
+
+type ScanStatus = "pending" | "clean" | "infected" | "error";
+
+type ScanDocument = {
+  _id: ObjectId;
+  key: string;
+  status: ScanStatus;
+  engine?: string;
+  findings?: string[];
+  sizeBytes?: number;
+  scannedAt: Date;
+  receivedAt: Date;
+  raw?: unknown;
+};
+
+const COLLECTION = "upload_scans";
+
+const mapStatus = (value: unknown): ScanStatus => {
+  if (value === "clean") return "clean";
+  if (value === "infected") return "infected";
+  if (value === "pending") return "pending";
+  return "error";
+};
+
+export async function POST(req: NextRequest) {
+  const token = req.headers.get("x-scan-token");
+  const expected = Config.aws.scan.webhookToken;
+  if (!expected || token !== expected) {
+    return NextResponse.json(
+      { success: false, error: "Unauthorized" },
+      { status: 401 },
+    );
+  }
+
+  try {
+    const payload = await req.json();
+    const key = typeof payload?.key === "string" ? payload.key : "";
+    const status = mapStatus(payload?.status);
+    if (!key) {
+      return NextResponse.json(
+        { success: false, error: "Missing key" },
+        { status: 400 },
+      );
+    }
+
+    const doc: ScanDocument = {
+      _id: new ObjectId(),
+      key,
+      status,
+      engine: typeof payload?.engine === "string" ? payload.engine : undefined,
+      findings: Array.isArray(payload?.findings)
+        ? payload.findings.filter((x: unknown) => typeof x === "string")
+        : undefined,
+      sizeBytes:
+        typeof payload?.sizeBytes === "number" ? payload.sizeBytes : undefined,
+      scannedAt: payload?.scannedAt ? new Date(payload.scannedAt) : new Date(),
+      receivedAt: new Date(),
+      raw: payload,
+    };
+
+    const db = await getDatabase();
+    const collection = db.collection<ScanDocument>(COLLECTION);
+    await collection.insertOne(doc);
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    logger.error("[ScanCallback] Failed to record scan result", error as Error);
+    return NextResponse.json(
+      { success: false, error: "Internal error" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/upload/scan-status/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { Config } from "@/lib/config/constants";
+
+type ScanStatus = "pending" | "clean" | "infected" | "error";
+
+type ScanDocument = {
+  _id: ObjectId;
+  key: string;
+  status: ScanStatus;
+  engine?: string;
+  findings?: string[];
+  sizeBytes?: number;
+  scannedAt?: Date;
+  receivedAt?: Date;
+};
+
+const COLLECTION = "upload_scans";
+
+function normalizeStatus(value: unknown): ScanStatus {
+  if (value === "clean") return "clean";
+  if (value === "infected") return "infected";
+  if (value === "pending") return "pending";
+  if (value === "error") return "error";
+  return "pending";
+}
+
+async function getStatusForKey(key: string) {
+  const db = await getDatabase();
+  const collection = db.collection<ScanDocument>(COLLECTION);
+  const doc = await collection
+    .find({ key })
+    .sort({ scannedAt: -1, receivedAt: -1, _id: -1 })
+    .limit(1)
+    .next();
+
+  return {
+    key,
+    status: normalizeStatus(doc?.status ?? "pending"),
+    findings: doc?.findings,
+    engine: doc?.engine,
+    sizeBytes: doc?.sizeBytes,
+    scannedAt: doc?.scannedAt ?? doc?.receivedAt,
+    receivedAt: doc?.receivedAt,
+  } as const;
+}
+
+function getTokenConfig() {
+  const token = process.env.SCAN_STATUS_TOKEN || Config.aws.scan.statusToken;
+  const tokenRequiredEnv = process.env.SCAN_STATUS_TOKEN_REQUIRED;
+  const tokenRequired =
+    tokenRequiredEnv !== undefined
+      ? tokenRequiredEnv === "true"
+      : Config.aws.scan.statusTokenRequired;
+  return { token, tokenRequired };
+}
+
+function isTokenAuthorized(req: NextRequest) {
+  const token = req.headers.get("x-scan-token");
+  const { token: expected } = getTokenConfig();
+  return Boolean(expected && token && token === expected);
+}
+
+function cacheHeaders() {
+  return {
+    "Cache-Control": "public, max-age=5",
+    "CDN-Cache-Control": "max-age=5",
+  };
+}
+
+export async function GET(req: NextRequest) {
+  const tokenAuthorized = isTokenAuthorized(req);
+  const { tokenRequired } = getTokenConfig();
+  let userId: string | null = null;
+  let orgId: string | null = null;
+
+  if (tokenRequired && !tokenAuthorized) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!tokenRequired && !tokenAuthorized) {
+    const user = await getSessionUser(req).catch(() => null);
+    if (!user)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    userId = user.id;
+    orgId = user.orgId ?? null;
+  }
+
+  const rl = await smartRateLimit(
+    buildOrgAwareRateLimitKey(req, orgId, userId),
+    60,
+    60_000,
+  );
+  if (!rl.allowed) return rateLimitError();
+
+  const { searchParams } = new URL(req.url);
+  const key = searchParams.get("key");
+  if (!key) {
+    return NextResponse.json({ error: "Missing key" }, { status: 400 });
+  }
+
+  try {
+    const result = await getStatusForKey(key);
+    // Cache for 5 seconds to reduce DB load from polling (7s interval client-side)
+    return NextResponse.json(result, { status: 200, headers: cacheHeaders() });
+  } catch (error) {
+    logger.error("[ScanStatus] Failed to read status", {
+      error: error as Error,
+      key,
+    });
+    return NextResponse.json(
+      { error: "Failed to read status" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function POST(req: NextRequest) {
+  const tokenAuthorized = isTokenAuthorized(req);
+  const { tokenRequired } = getTokenConfig();
+  let userId: string | null = null;
+  let orgId: string | null = null;
+
+  if (tokenRequired && !tokenAuthorized) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!tokenRequired && !tokenAuthorized) {
+    const user = await getSessionUser(req).catch(() => null);
+    if (!user)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    userId = user.id;
+    orgId = user.orgId ?? null;
+  }
+
+  const rl = await smartRateLimit(
+    buildOrgAwareRateLimitKey(req, orgId, userId),
+    60,
+    60_000,
+  );
+  if (!rl.allowed) return rateLimitError();
+
+  let key = "";
+  try {
+    const body = await req.json().catch(() => ({}) as Record<string, unknown>);
+    key = typeof body.key === "string" ? body.key : "";
+    if (!key) {
+      return NextResponse.json({ error: "Missing key" }, { status: 400 });
+    }
+    const result = await getStatusForKey(key);
+    logger.info("[ScanStatus] Read status", { key, status: result.status });
+    // Cache for 5 seconds to reduce DB load from polling
+    return NextResponse.json(result, { status: 200, headers: cacheHeaders() });
+  } catch (error) {
+    logger.error("[ScanStatus] Failed to read status", {
+      error: error as Error,
+      key,
+    });
+    return NextResponse.json(
+      { error: "Failed to read status" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/upload/verify-metadata/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { HeadObjectCommand } from "@aws-sdk/client-s3";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+import { getS3Client } from "@/lib/storage/s3";
+import { Config } from "@/lib/config/constants";
+
+export async function GET(req: NextRequest) {
+  const user = await getSessionUser(req).catch(() => null);
+  if (!user)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+  if (!rl.allowed) return rateLimitError();
+
+  const { searchParams } = new URL(req.url);
+  const key = searchParams.get("key");
+  if (!key) return NextResponse.json({ error: "Missing key" }, { status: 400 });
+
+  try {
+    const client = getS3Client();
+    const cmd = new HeadObjectCommand({
+      Bucket: Config.aws.s3.bucket,
+      Key: key,
+    });
+    const res = await client.send(cmd);
+
+    return NextResponse.json(
+      {
+        key,
+        contentType: res.ContentType,
+        contentLength: res.ContentLength,
+        metadata: res.Metadata,
+      },
+      { status: 200 },
+    );
+  } catch (_err) {
+    return NextResponse.json(
+      { error: "Failed to verify object metadata" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function POST(req: NextRequest) {
+  const user = await getSessionUser(req).catch(() => null);
+  if (!user)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+  if (!rl.allowed) return rateLimitError();
+
+  const body = await req.json().catch(() => ({}) as Record<string, unknown>);
+  const key = typeof body.key === "string" ? body.key : "";
+  if (!key) return NextResponse.json({ error: "Missing key" }, { status: 400 });
+
+  try {
+    const client = getS3Client();
+    const cmd = new HeadObjectCommand({
+      Bucket: Config.aws.s3.bucket,
+      Key: key,
+    });
+    const res = await client.send(cmd);
+
+    return NextResponse.json(
+      {
+        key,
+        contentType: res.ContentType,
+        contentLength: res.ContentLength,
+        metadata: res.Metadata,
+      },
+      { status: 200 },
+    );
+  } catch (_err) {
+    return NextResponse.json(
+      { error: "Failed to verify object metadata" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/user/preferences/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/auth';
+import { User } from '@/server/models/User';
+import { connectDb } from '@/lib/mongo';
+import { APP_DEFAULTS } from '@/config/constants';
+import { logger } from '@/lib/logger';
+import { isTruthy } from '@/lib/utils/env';
+
+type ThemePreference = 'light' | 'dark' | 'system' | 'LIGHT' | 'DARK' | 'SYSTEM' | 'AUTO';
+
+interface UserPreferences {
+  language?: string;
+  timezone?: string;
+  currency?: string;
+  dateFormat?: string;
+  theme?: ThemePreference;
+  notifications?: {
+    email?: boolean;
+    push?: boolean;
+    sms?: boolean;
+  };
+  [key: string]: unknown;
+}
+
+const DEFAULT_NOTIFICATIONS = {
+  email: true,
+  push: true,
+  sms: false,
+};
+
+const NOTIFICATION_KEYS = ['email', 'push', 'sms'] as const;
+
+const normalizeNotifications = (value?: unknown) => {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return { ...DEFAULT_NOTIFICATIONS };
+  }
+  const source = value as Record<string, unknown>;
+  const normalized: Record<(typeof NOTIFICATION_KEYS)[number], boolean> = { ...DEFAULT_NOTIFICATIONS };
+  for (const key of NOTIFICATION_KEYS) {
+    const current = source[key];
+    if (typeof current === 'boolean') {
+      normalized[key] = current;
+    }
+  }
+  return normalized;
+};
+
+const DEFAULT_PREFERENCES = {
+  language: APP_DEFAULTS.language,
+  timezone: APP_DEFAULTS.timezone,
+  currency: APP_DEFAULTS.currency,
+  dateFormat: 'YYYY-MM-DD',
+  theme: APP_DEFAULTS.theme,
+  notifications: DEFAULT_NOTIFICATIONS,
+};
+
+const normalizeThemePreference = (value?: unknown): ThemePreference | null => {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'light') return 'light';
+  if (normalized === 'dark') return 'dark';
+  if (normalized === 'system' || normalized === 'auto') return 'system';
+  return null;
+};
+
+const mapThemeFromStorage = (value?: unknown): ThemePreference =>
+  normalizeThemePreference(value) ?? APP_DEFAULTS.theme;
+
+const mapThemeToStorage = (value: ThemePreference): string => {
+  switch (value) {
+    case 'dark':
+      return 'DARK';
+    case 'system':
+      return 'SYSTEM';
+    default:
+      return 'LIGHT';
+  }
+};
+
+const normalizePreferencesResponse = (prefs?: Record<string, unknown>) => {
+  const language = typeof prefs?.language === 'string' ? prefs.language : DEFAULT_PREFERENCES.language;
+  const notificationsObject = normalizeNotifications(prefs?.notifications);
+
+  return {
+    ...prefs,
+    language,
+    notifications: notificationsObject,
+    theme: mapThemeFromStorage(prefs?.theme),
+  };
+};
+/**
+ * Deep merge utility to recursively merge nested objects.
+ * Non-mutating: call with an empty object as first arg to avoid mutating inputs.
+ * Usage: deepMerge({}, existingPreferences, updates)
+ */
+function deepMerge(...objects: Array<Record<string, unknown> | undefined>) {
+  const result: Record<string, unknown> = {};
+
+  const isPlainObject = (val: unknown): val is Record<string, unknown> =>
+    typeof val === 'object' && val !== null && !Array.isArray(val);
+
+  for (const obj of objects) {
+    if (!obj) continue;
+    for (const key of Object.keys(obj)) {
+      const sourceValue = obj[key] as unknown;
+      const existing = result[key];
+
+      if (isPlainObject(existing) && isPlainObject(sourceValue)) {
+        result[key] = deepMerge(existing, sourceValue as Record<string, unknown>);
+      } else {
+        // clone arrays and primitives directly
+        if (Array.isArray(sourceValue)) {
+          result[key] = (sourceValue as unknown[]).slice();
+        } else if (isPlainObject(sourceValue)) {
+          result[key] = deepMerge({}, sourceValue as Record<string, unknown>);
+        } else {
+          result[key] = sourceValue;
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * GET /api/user/preferences
+ *
+ * Get current user's preferences (language, theme, notifications, etc.)
+ */
+export async function GET() {
+  const allowPlaywright =
+    process.env.PLAYWRIGHT_TESTS === 'true' && process.env.NODE_ENV === 'test';
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      if (allowPlaywright) {
+        logger.warn('PLAYWRIGHT_TESTS=true: no session detected, returning default preferences');
+        return NextResponse.json({ preferences: DEFAULT_PREFERENCES, source: 'playwright-defaults', reason: 'missing-session' });
+      }
+      if (process.env.PLAYWRIGHT_TESTS === 'true' && process.env.NODE_ENV !== 'test') {
+        // Prevent accidental fallback in non-test environments
+        return NextResponse.json({ error: 'Not Found' }, { status: 404 });
+      }
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (isTruthy(process.env.ALLOW_OFFLINE_MONGODB)) {
+      return NextResponse.json({ preferences: DEFAULT_PREFERENCES });
+    }
+
+    await connectDb();
+    const user = await User.findById(session.user.id).select('preferences');
+
+    if (!user) {
+      if (allowPlaywright) {
+        logger.warn(
+          'PLAYWRIGHT_TESTS=true: user not found for preferences fetch, returning defaults',
+          { userId: session.user.id }
+        );
+        return NextResponse.json({ preferences: DEFAULT_PREFERENCES, source: 'playwright-defaults', reason: 'user-not-found' });
+      }
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    const normalized = normalizePreferencesResponse(user.preferences ?? DEFAULT_PREFERENCES);
+
+    return NextResponse.json({
+      preferences: normalized,
+    });
+  } catch (error) {
+    logger.error('Failed to fetch user preferences:', error);
+    if (allowPlaywright) {
+      logger.warn('PLAYWRIGHT_TESTS=true: returning default preferences after error');
+      return NextResponse.json({ preferences: DEFAULT_PREFERENCES, source: 'playwright-defaults', reason: 'exception' });
+    }
+    return NextResponse.json({ error: 'Failed to fetch preferences' }, { status: 500 });
+  }
+}
+
+/**
+ * PUT /api/user/preferences
+ *
+ * Update current user's preferences with deep merge
+ * Preserves nested properties (e.g., partial notifications object won't wipe other notification settings)
+ *
+ * 🔒 TYPE SAFETY: Body accepts Record<string, unknown> for flexible preferences
+ * Body: { language?: string, theme?: string, notifications?: object, [key: string]: unknown }
+ */
+export async function PUT(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Safely parse JSON body; return 400 for malformed or missing payloads instead of throwing
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      logger.warn('Preferences update received invalid JSON body', { error: parseError });
+      return NextResponse.json(
+        { error: 'Invalid JSON payload' },
+        { status: 400 }
+      );
+    }
+
+    // Validate input: body must be a non-array object
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return NextResponse.json(
+        { error: 'Invalid request body: must be a non-array object' },
+        { status: 400 }
+      );
+    }
+    
+    // Whitelist expected preference keys
+    const payload = body as Record<string, unknown>;
+
+    const allowedKeys = ['language', 'theme', 'notifications', 'timezone', 'currency', 'dateFormat'];
+    const bodyKeys = Object.keys(payload);
+    const invalidKeys = bodyKeys.filter(key => !allowedKeys.includes(key));
+    
+    if (invalidKeys.length > 0) {
+      return NextResponse.json(
+        { 
+          error: 'Invalid preference keys',
+          invalidKeys,
+          allowedKeys
+        },
+        { status: 400 }
+      );
+    }
+
+    const sanitizedUpdates: Record<string, unknown> = {};
+
+    if (Object.prototype.hasOwnProperty.call(payload, 'language')) {
+      if (typeof payload.language !== 'string') {
+        return NextResponse.json({ error: 'Language must be a string' }, { status: 400 });
+      }
+      sanitizedUpdates.language = payload.language.trim();
+    }
+
+    if (Object.prototype.hasOwnProperty.call(payload, 'timezone')) {
+      if (typeof payload.timezone !== 'string') {
+        return NextResponse.json({ error: 'Timezone must be a string' }, { status: 400 });
+      }
+      sanitizedUpdates.timezone = payload.timezone.trim();
+    }
+
+    if (Object.prototype.hasOwnProperty.call(payload, 'currency')) {
+      if (typeof payload.currency !== 'string') {
+        return NextResponse.json({ error: 'Currency must be a string' }, { status: 400 });
+      }
+      sanitizedUpdates.currency = payload.currency.trim();
+    }
+
+    if (Object.prototype.hasOwnProperty.call(payload, 'dateFormat')) {
+      if (typeof payload.dateFormat !== 'string') {
+        return NextResponse.json({ error: 'dateFormat must be a string' }, { status: 400 });
+      }
+      sanitizedUpdates.dateFormat = payload.dateFormat.trim();
+    }
+
+    if (Object.prototype.hasOwnProperty.call(payload, 'notifications')) {
+      const notificationsInput = payload.notifications;
+      if (typeof notificationsInput !== 'object' || notificationsInput === null || Array.isArray(notificationsInput)) {
+        return NextResponse.json({ error: 'Notifications must be an object' }, { status: 400 });
+      }
+      const notificationUpdates: Partial<Record<(typeof NOTIFICATION_KEYS)[number], boolean>> = {};
+      for (const [key, value] of Object.entries(notificationsInput)) {
+        if (!NOTIFICATION_KEYS.includes(key as (typeof NOTIFICATION_KEYS)[number])) {
+          return NextResponse.json({ error: `Invalid notification key: ${key}` }, { status: 400 });
+        }
+        if (typeof value !== 'boolean') {
+          return NextResponse.json(
+            { error: `Notification setting '${key}' must be a boolean` },
+            { status: 400 }
+          );
+        }
+        notificationUpdates[key as (typeof NOTIFICATION_KEYS)[number]] = value;
+      }
+      sanitizedUpdates.notifications = notificationUpdates;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(payload, 'theme')) {
+      const normalizedTheme = normalizeThemePreference(payload.theme);
+      if (!normalizedTheme) {
+        return NextResponse.json(
+          { error: 'Invalid theme value', allowedValues: ['light', 'dark', 'system'] },
+          { status: 400 }
+        );
+      }
+      const themeForStorage = mapThemeToStorage(normalizedTheme);
+      // Validate that the storage format is one of the expected enum values
+      if (!['LIGHT', 'DARK', 'SYSTEM'].includes(themeForStorage)) {
+        logger.error('Theme mapping produced invalid storage value', { normalizedTheme, themeForStorage });
+        return NextResponse.json(
+          { error: 'Theme processing error' },
+          { status: 500 }
+        );
+      }
+      sanitizedUpdates.theme = themeForStorage;
+    }
+    
+    if (isTruthy(process.env.ALLOW_OFFLINE_MONGODB)) {
+      return NextResponse.json({ success: true, preferences: DEFAULT_PREFERENCES });
+    }
+
+    await connectDb();
+
+    const user = await User.findById(session.user.id);
+    
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+    
+    const currentPreferences = user.preferences || {};
+    const merged = deepMerge(
+      {},
+      DEFAULT_PREFERENCES,
+      currentPreferences,
+      sanitizedUpdates
+    ) as UserPreferences;
+    merged.timezone = merged.timezone ?? APP_DEFAULTS.timezone;
+    merged.language = merged.language ?? APP_DEFAULTS.language;
+    merged.theme = merged.theme ?? APP_DEFAULTS.theme;
+    merged.notifications = merged.notifications ?? { ...DEFAULT_NOTIFICATIONS };
+    // Assign merged preferences, ensuring compatibility with User model schema
+    // Note: merged.theme is ThemePreference ('light' | 'dark' | 'system') 
+    // but User model expects uppercase storage format ('LIGHT' | 'DARK' | 'SYSTEM')
+    const themeValueRaw = typeof merged.theme === 'string' ? merged.theme.toUpperCase() : undefined;
+    const themeValue =
+      themeValueRaw === 'LIGHT' || themeValueRaw === 'DARK' || themeValueRaw === 'SYSTEM' || themeValueRaw === 'AUTO'
+        ? (themeValueRaw as 'LIGHT' | 'DARK' | 'SYSTEM' | 'AUTO')
+        : (mapThemeToStorage(APP_DEFAULTS.theme) as 'LIGHT' | 'DARK' | 'SYSTEM' | 'AUTO');
+
+    user.preferences = {
+      ...merged,
+      timezone: merged.timezone ?? APP_DEFAULTS.timezone,
+      language: merged.language ?? APP_DEFAULTS.language,
+      theme: themeValue,
+      notifications: merged.notifications ?? { ...DEFAULT_NOTIFICATIONS }
+    };
+    
+    await user.save();
+
+    const normalized = normalizePreferencesResponse(user.preferences ?? undefined);
+    
+    return NextResponse.json({
+      success: true,
+      preferences: normalized,
+    });
+  } catch (error) {
+    logger.error('Failed to update user preferences:', error);
+    return NextResponse.json(
+      { error: 'Failed to update preferences' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * PATCH /api/user/preferences
+ * 
+ * Partially update current user's preferences (alternative to PUT for smaller updates)
+ */
+export async function PATCH(request: NextRequest) {
+  return PUT(request); // Same logic as PUT for now
+}
+
+]]>
+</file>
+
+<file path="app/api/user/profile/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { User } from "@/server/models/User";
+
+import { logger } from "@/lib/logger";
+/**
+ * Type for user document returned from DB
+ */
+type UserProfileDocument = {
+  id: string;
+  name?: string;
+  firstName?: string;
+  email: string;
+  phone?: string;
+  role?: string;
+  image?: string;
+  avatar?: string;
+  orgId?: string | null;
+  preferences?: Record<string, unknown>;
+  createdAt?: Date;
+  updatedAt?: Date;
+};
+
+/**
+ * Normalize user profile data for API response
+ */
+function normalizeUserProfile(user: UserProfileDocument) {
+  return {
+    id: user.id,
+    name: user.name || user.firstName || "User",
+    email: user.email,
+    phone: user.phone || "",
+    role: user.role || "USER",
+    avatar: user.image || user.avatar || "",
+    orgId: user.orgId || null,
+    preferences: user.preferences || {},
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+}
+
+/**
+ * GET /api/user/profile - Fetch current user's profile
+ * @returns User profile data or 401 if not authenticated
+ */
+export async function GET() {
+  try {
+    // Check authentication
+    const session = await auth();
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Connect to database
+    await connectToDatabase();
+
+    // Fetch user by email from session, scoped by orgId if available
+    // SECURITY FIX: Scope by orgId to ensure tenant isolation (SEC-001)
+    const sessionOrgId = (session.user as { orgId?: string }).orgId;
+    const query = sessionOrgId
+      ? { orgId: sessionOrgId, email: session.user.email }
+      : { email: session.user.email }; // Fallback for sessions without orgId
+    const user = (await User.findOne(query)
+      .select("-password -__v") // Exclude sensitive fields
+      .lean()) as unknown as UserProfileDocument | null;
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      user: normalizeUserProfile(user),
+    });
+  } catch (error) {
+    logger.error("Error fetching user profile:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch profile data" },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * PATCH /api/user/profile - Update current user's profile
+ * @param request - Contains profile updates in body
+ * @returns Updated user profile or error
+ */
+export async function PATCH(request: NextRequest) {
+  try {
+    // Check authentication
+    const session = await auth();
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Parse request body
+    const body = await request.json();
+
+    // Guard: preferences updates should use dedicated endpoint
+    if (body.preferences !== undefined) {
+      return NextResponse.json(
+        {
+          error: "Cannot update preferences through this endpoint",
+          message: "Please use /api/user/preferences for preference updates",
+        },
+        { status: 400 },
+      );
+    }
+
+    const allowedFields = ["name", "phone", "avatar"];
+
+    // Filter to only allowed fields
+    const updates: Record<string, unknown> = {};
+    for (const field of allowedFields) {
+      if (body[field] !== undefined) {
+        updates[field] = body[field];
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json(
+        { error: "No valid fields to update" },
+        { status: 400 },
+      );
+    }
+
+    // Connect to database
+    await connectToDatabase();
+
+    // Update user, scoped by orgId if available
+    // SECURITY FIX: Scope by orgId to ensure tenant isolation (SEC-001)
+    const sessionOrgId = (session.user as { orgId?: string }).orgId;
+    const query = sessionOrgId
+      ? { orgId: sessionOrgId, email: session.user.email }
+      : { email: session.user.email }; // Fallback for sessions without orgId
+    const user = (await User.findOneAndUpdate(
+      query,
+      { $set: updates },
+      { new: true, select: "-password -__v" },
+    ).lean()) as unknown as UserProfileDocument | null;
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      user: normalizeUserProfile(user),
+    });
+  } catch (error) {
+    logger.error("Error updating user profile:", error);
+    return NextResponse.json(
+      { error: "Failed to update profile" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/vendor/apply/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { z } from "zod";
+
+/**
+ * Zod schema for vendor application validation
+ * Validates required fields and formats
+ */
+const VendorApplicationSchema = z.object({
+  company: z.string().min(2, "Company name must be at least 2 characters").max(200),
+  contactName: z.string().min(2, "Contact name must be at least 2 characters").max(100),
+  email: z.string().email("Invalid email address"),
+  phone: z
+    .string()
+    .regex(/^\+?[0-9]{7,15}$/, "Invalid phone number format")
+    .optional(),
+  services: z.string().max(1000).optional(),
+  notes: z.string().max(2000).optional(),
+});
+
+export async function POST(req: NextRequest) {
+  // Rate limiting: 5 requests per minute per IP to prevent spam
+  const rateLimitResponse = enforceRateLimit(req, {
+    keyPrefix: "vendor-apply",
+    requests: 5,
+    windowMs: 60_000,
+  });
+  if (rateLimitResponse) return rateLimitResponse;
+
+  // Parse and validate request body
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid JSON body" },
+      { status: 400 },
+    );
+  }
+
+  const parseResult = VendorApplicationSchema.safeParse(body);
+  if (!parseResult.success) {
+    return NextResponse.json(
+      {
+        error: "Validation failed",
+        details: parseResult.error.issues.map((i) => ({
+          field: i.path.join("."),
+          message: i.message,
+        })),
+      },
+      { status: 400 },
+    );
+  }
+
+  const { company, contactName, email, phone, services, notes } = parseResult.data;
+
+  try {
+    await connectToDatabase().catch(() => null);
+  } catch (error) {
+    logger.warn("[vendor-apply] DB connection skipped", { error });
+  }
+
+  // Log sanitized application data (avoid logging full PII in production)
+  logger.info("[vendor-apply] Vendor application received", {
+    company,
+    contactName: contactName.substring(0, 3) + "***", // Partial name for privacy
+    emailDomain: email.split("@")[1], // Only log domain, not full email
+    hasPhone: !!phone,
+    hasServices: !!services,
+    hasNotes: !!notes,
+  });
+
+  return NextResponse.json({ ok: true });
+}
+
+]]>
+</file>
+
+<file path="app/api/vendors/[id]/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Vendor } from "@/server/models/Vendor";
+import { z } from "zod";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError, handleApiError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+
+const updateVendorSchema = z.object({
+  name: z.string().min(1).optional(),
+  type: z
+    .enum(["SUPPLIER", "CONTRACTOR", "SERVICE_PROVIDER", "CONSULTANT"])
+    .optional(),
+  contact: z
+    .object({
+      primary: z
+        .object({
+          name: z.string().optional(),
+          title: z.string().optional(),
+          email: z.string().email().optional(),
+          phone: z.string().optional(),
+          mobile: z.string().optional(),
+        })
+        .optional(),
+      secondary: z
+        .object({
+          name: z.string().optional(),
+          email: z.string().email().optional(),
+          phone: z.string().optional(),
+        })
+        .optional(),
+      address: z
+        .object({
+          street: z.string().optional(),
+          city: z.string().optional(),
+          region: z.string().optional(),
+          postalCode: z.string().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  business: z
+    .object({
+      registrationNumber: z.string().optional(),
+      taxId: z.string().optional(),
+      licenseNumber: z.string().optional(),
+      establishedDate: z.string().optional(),
+      employees: z.number().optional(),
+      annualRevenue: z.number().optional(),
+      specializations: z.array(z.string()).optional(),
+      certifications: z
+        .array(
+          z.object({
+            name: z.string(),
+            issuer: z.string(),
+            issued: z.string().optional(),
+            expires: z.string().optional(),
+            status: z.string().optional(),
+          }),
+        )
+        .optional(),
+    })
+    .optional(),
+  status: z
+    .enum(["PENDING", "APPROVED", "SUSPENDED", "REJECTED", "BLACKLISTED"])
+    .optional(),
+  tags: z.array(z.string()).optional(),
+});
+
+/**
+ * @openapi
+ * /api/vendors/[id]:
+ *   get:
+ *     summary: vendors/[id] operations
+ *     tags: [vendors]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await props.params;
+    const user = await getSessionUser(req);
+    // SEC-001: Validate orgId to prevent undefined in tenant-scoped queries
+    if (!user?.orgId) {
+      return createSecureResponse(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        401,
+        req,
+      );
+    }
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+    await connectToDatabase();
+
+    const vendor = await Vendor.findOne({
+      _id: id,
+      orgId: user.orgId,
+    });
+
+    if (!vendor) {
+      return createSecureResponse({ error: "Vendor not found" }, 404, req);
+    }
+
+    return createSecureResponse(vendor, 200, req);
+  } catch (error: unknown) {
+    return handleApiError(error);
+  }
+}
+
+export async function PATCH(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await props.params;
+    const user = await getSessionUser(req);
+    // SEC-001: Validate orgId to prevent undefined in tenant-scoped queries
+    if (!user?.orgId) {
+      return createSecureResponse(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        401,
+        req,
+      );
+    }
+    await connectToDatabase();
+
+    const data = updateVendorSchema.parse(await req.json());
+
+    const vendor = await Vendor.findOneAndUpdate(
+      { _id: id, orgId: user.orgId },
+      { $set: { ...data, updatedBy: user.id } },
+      { new: true },
+    );
+
+    if (!vendor) {
+      return createSecureResponse({ error: "Vendor not found" }, 404, req);
+    }
+
+    return createSecureResponse(vendor, 200, req);
+  } catch (error: unknown) {
+    return handleApiError(error);
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await props.params;
+    const user = await getSessionUser(req);
+    // SEC-001: Validate orgId to prevent undefined in tenant-scoped queries
+    if (!user?.orgId) {
+      return createSecureResponse(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        401,
+        req,
+      );
+    }
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+    await connectToDatabase();
+
+    const vendor = await Vendor.findOneAndUpdate(
+      { _id: id, orgId: user.orgId },
+      { $set: { status: "BLACKLISTED", updatedBy: user.id } },
+      { new: true },
+    );
+
+    if (!vendor) {
+      return createSecureResponse({ error: "Vendor not found" }, 404, req);
+    }
+
+    return createSecureResponse({ success: true }, 200, req);
+  } catch (error: unknown) {
+    return handleApiError(error);
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

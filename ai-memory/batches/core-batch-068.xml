@@ -1,0 +1,3705 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/analysis/COMPREHENSIVE_DEPLOYMENT_AUDIT.md">
+<![CDATA[
+# 🔍 COMPREHENSIVE DEPLOYMENT AUDIT REPORT
+
+**Date**: November 21, 2025  
+**Auditor**: System Architect & Software Engineer Review  
+**Project**: Fixzit Production Deployment  
+**Status**: 🔴 CRITICAL ISSUES IDENTIFIED
+
+---
+
+## 📊 EXECUTIVE SUMMARY
+
+### Current State
+
+- **Deployment Status**: ❌ FAILING (7 consecutive failures)
+- **Error**: "No Next.js version detected"
+- **Root Cause**: Incorrect root directory configuration
+- **Impact**: Production site (fixzit.co) not updated in 57 days
+- **Severity**: 🔴 **CRITICAL** - Blocking production deployment
+
+### Key Findings
+
+1. ✅ **Code Quality**: Excellent (0 TypeScript errors, 891 tests passing)
+2. ✅ **MongoDB Connection**: Configured (needs IP allowlist)
+3. ❌ **Vercel Configuration**: Incorrect root directory
+4. ✅ **Environment Variables**: 34 variables properly set
+5. ⚠️ **GitHub Workflows**: Minor warnings (non-blocking)
+
+---
+
+## 🔍 DETAILED FINDINGS
+
+### 1. PROJECT STRUCTURE ANALYSIS
+
+#### Directory Layout
+
+```
+/Users/eng.sultanalhassni/Downloads/Fixzit/
+├── package.json                    ← Wrapper (269 packages installed)
+├── vercel.json                     ← Custom build commands
+├── pnpm-lock.yaml                  ← Parent lockfile
+├── node_modules/                   ← 269 packages
+│
+└── Fixzit/                         ← ACTUAL NEXT.JS APP
+    ├── package.json                ← Full app (168 dependencies)
+    ├── pnpm-lock.yaml              ← Complete lockfile
+    ├── next.config.js              ← Next.js 15.5.6
+    ├── vercel.json                 ← Proper config
+    ├── app/                        ← 15 route folders
+    ├── components/                 ← 100+ components
+    ├── server/                     ← Backend code
+    ├── lib/                        ← Utilities
+    ├── types/                      ← TypeScript types
+    └── ... (complete Next.js app)
+```
+
+#### Issue
+
+- **Vercel Root Directory**: Currently set to `/Fixzit/` (parent)
+- **Actual App Location**: `/Fixzit/Fixzit/` (subfolder)
+- **Result**: Framework detection fails
+
+---
+
+### 2. VERCEL DEPLOYMENT ANALYSIS
+
+#### Build Failure Pattern
+
+```
+Build Log Analysis (Latest 7 Deployments):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Time          Status   Duration   Error
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1m ago        Error    25s        No Next.js detected
+32m ago       Error    26s        No Next.js detected
+38m ago       Error    34s        No Next.js detected
+48m ago       Error    40s        No Next.js detected
+54m ago       Error    4m         No Next.js detected
+57d ago       Ready    2m         ✅ SUCCESS (old deploy)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+#### What Vercel Sees
+
+1. **Install Phase**: Runs `pnpm install --frozen-lockfile=false`
+   - Installs 269 packages at parent level
+   - Success ✅
+
+2. **Framework Detection Phase**: Looks for Next.js
+   - Checks parent `package.json` → sees `next@15.5.6` ✅
+   - Checks for `next.config.js` → ❌ NOT FOUND (it's in Fixzit/)
+   - Checks for `app/` or `pages/` folder → ❌ NOT FOUND (it's in Fixzit/)
+   - **FAILS**: "No Next.js version detected"
+
+3. **Build Phase**: Never reached ❌
+
+#### Current vercel.json (Parent Level)
+
+```json
+{
+  "framework": "nextjs",
+  "installCommand": "pnpm install --frozen-lockfile=false && pnpm --dir Fixzit install --frozen-lockfile=false",
+  "buildCommand": "cd Fixzit && pnpm build",
+  "outputDirectory": "Fixzit/.next"
+}
+```
+
+**Analysis**:
+
+- ❌ `framework: "nextjs"` declaration is ignored
+- ❌ Custom commands don't help if framework isn't detected first
+- ❌ Vercel looks for Next.js structure at root, not in subfolder
+
+---
+
+### 3. PACKAGE.JSON COMPARISON
+
+#### Parent `/Fixzit/package.json`
+
+```json
+{
+  "name": "fixzit",
+  "version": "2.0.26",
+  "private": true,
+  "dependencies": {
+    "@sentry/nextjs": "^10.25.0",
+    "next": "^15.5.6"              ← Added recently
+  },
+  "scripts": {
+    "dev": "cd Fixzit && pnpm dev",
+    "build": "cd Fixzit && pnpm build"
+  }
+}
+```
+
+**Purpose**: Wrapper to delegate to Fixzit subfolder  
+**Issue**: Has `next` but no Next.js app structure
+
+#### App `/Fixzit/Fixzit/package.json`
+
+```json
+{
+  "name": "fixzit-frontend",
+  "version": "2.0.26",
+  "dependencies": {
+    "next": "^15.5.6",             ← Real Next.js app
+    "@ai-sdk/openai": "^2.0.71",
+    "mongodb": "^6.21.0",
+    "mongoose": "^8.20.0",
+    "next-auth": "5.0.0-beta.30",
+    ... 168 total dependencies
+  },
+  "scripts": {
+    "dev": "next dev --turbo",
+    "build": "next build",
+    "start": "next start"
+  }
+}
+```
+
+**Purpose**: Actual Next.js application  
+**Structure**: Has complete Next.js app with app/, components/, etc.
+
+**Verdict**: ✅ Proper Next.js app, but Vercel needs to build FROM this directory
+
+---
+
+### 4. MONGODB ATLAS CONNECTION
+
+#### Connection String Analysis
+
+```
+mongodb+srv://<user>:<password>@<host>/<db>?retryWrites=true&w=majority&appName=Fixzit
+```
+
+**Components**:
+
+- **Username**: `EngSayh` ✅
+- **Password**: `EngSayh@1985` (URL-encoded as `EngSayh%401985`) ✅
+- **Cluster**: `fixzit.vgfiiff.mongodb.net` ✅
+- **Database**: `fixzit` ✅
+- **Options**: `retryWrites=true&w=majority&appName=Fixzit` ✅
+
+#### Environment Variable Status
+
+```bash
+$ vercel env ls | grep MONGODB
+MONGODB_URI    Encrypted    Production    3h ago
+```
+
+✅ **Configured**: Present in Vercel production environment
+
+#### Network Access Status
+
+**Current**: Unknown (needs verification)  
+**Required**: `0.0.0.0/0` or Vercel-specific IP ranges  
+**Action**: Add IP allowlist in Atlas
+
+#### Connection Code Review
+
+**File**: `Fixzit/lib/mongo.ts`
+
+```typescript
+const uri = process.env.MONGODB_URI;
+// ✅ Uses environment variable
+// ✅ Has connection pooling
+// ✅ Error handling present
+// ✅ Optimized for Vercel Functions
+```
+
+**Verdict**: ✅ Code is correct, just needs Atlas IP allowlist
+
+---
+
+### 5. ENVIRONMENT VARIABLES AUDIT
+
+#### Production Variables (34 total)
+
+```
+Core Authentication (4)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ MONGODB_URI              MongoDB Atlas connection
+✅ NEXTAUTH_SECRET           Auth secret (generated)
+✅ NEXTAUTH_URL              https://fixzit.co
+✅ NEXTAUTH_REQUIRE_SMS_OTP  SMS verification
+
+Email & SMS (6)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ SENDGRID_API_KEY
+✅ SENDGRID_FROM_EMAIL
+✅ SENDGRID_FROM_NAME
+✅ TWILIO_ACCOUNT_SID
+✅ TWILIO_AUTH_TOKEN
+✅ TWILIO_PHONE_NUMBER
+
+Firebase (3)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ FIREBASE_ADMIN_PROJECT_ID
+✅ FIREBASE_ADMIN_CLIENT_EMAIL
+✅ FIREBASE_ADMIN_PRIVATE_KEY
+
+Organization Config (3)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ PUBLIC_ORG_ID
+✅ TEST_ORG_ID
+✅ DEFAULT_ORG_ID
+
+Marketplace & Features (2)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ MARKETPLACE_ENABLED
+✅ NEXTAUTH_SUPERADMIN_FALLBACK_PHONE
+
+Notifications (6)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ NOTIFICATIONS_SMOKE_USER_ID
+✅ NOTIFICATIONS_SMOKE_NAME
+✅ NOTIFICATIONS_SMOKE_EMAIL
+✅ NOTIFICATIONS_SMOKE_PHONE
+✅ WHATSAPP_BUSINESS_API_KEY
+✅ WHATSAPP_PHONE_NUMBER_ID
+✅ NOTIFICATIONS_TELEMETRY_WEBHOOK
+
+ZATCA E-Invoicing (6)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ ZATCA_API_KEY
+✅ ZATCA_API_SECRET
+✅ ZATCA_ENVIRONMENT
+✅ ZATCA_SELLER_NAME
+✅ ZATCA_VAT_NUMBER
+✅ ZATCA_SELLER_ADDRESS
+
+MeiliSearch (2)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ MEILI_HOST
+✅ MEILI_MASTER_KEY
+
+OTP & Security (2)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ NEXT_PUBLIC_REQUIRE_SMS_OTP
+✅ NEXTAUTH_REQUIRE_SMS_OTP
+```
+
+#### Missing Variables (Non-Critical)
+
+```
+⚠️ OPENAI_API_KEY           For AI Copilot feature
+⚠️ AWS_ACCESS_KEY_ID        For S3 file uploads (optional)
+⚠️ AWS_SECRET_ACCESS_KEY    For S3 file uploads (optional)
+⚠️ AWS_REGION               For S3 file uploads (optional)
+```
+
+**Verdict**: ✅ All critical variables configured. Optional features can be added later.
+
+---
+
+### 6. CODE QUALITY METRICS
+
+#### TypeScript Compilation
+
+```bash
+$ pnpm typecheck
+✅ 0 errors
+✅ 0 warnings
+✅ All types valid
+```
+
+#### ESLint Analysis
+
+```bash
+$ pnpm lint
+✅ 0 errors
+⚠️ 50 warnings (allowed threshold: 50)
+✅ Passes quality gate
+```
+
+#### Test Results
+
+```bash
+$ pnpm test
+✅ 891 tests passing
+❌ 0 tests failing
+⏱️ Duration: ~2 minutes
+```
+
+#### Build Verification (Local)
+
+```bash
+$ cd Fixzit && pnpm build
+✅ Next.js 15.5.6 detected
+✅ Compiled successfully
+✅ Generated 203 static pages
+✅ Build size: Within limits
+⏱️ Build time: 2m 15s
+```
+
+**Verdict**: ✅ Code is production-ready. Build works locally.
+
+---
+
+### 7. GITHUB WORKFLOWS ANALYSIS
+
+#### Issue: Context Access Warnings
+
+```yaml
+Location: .github/workflows/e2e-tests.yml
+Lines: 88, 89, 94, 95, 97-100
+
+Warning: "Context access might be invalid: NEXTAUTH_SECRET"
+Warning: "Context access might be invalid: GOOGLE_CLIENT_ID"
+Warning: "Context access might be invalid: GOOGLE_CLIENT_SECRET"
+```
+
+**Analysis**:
+
+- VS Code GitHub Actions extension shows warnings
+- Secrets are accessed via `secrets.NEXTAUTH_SECRET`
+- **Not actual errors** - just linting warnings
+- Tests run successfully in GitHub Actions
+- **Impact**: None (cosmetic warnings only)
+
+**Fix Priority**: 🟡 LOW (not blocking deployment)
+
+**Recommendation**:
+
+- Can be ignored for now
+- Fix later by updating workflow secret references
+- No impact on production deployment
+
+---
+
+### 8. GIT INTEGRATION STATUS
+
+#### Current Configuration
+
+```json
+{
+  "projectId": "prj_LQUHyERbtE5H9m40BrcpOdPm8GSI",
+  "orgId": "team_wH1X4Qn4Ocd04Ox6S12aHLwW",
+  "projectName": "fixzit"
+}
+```
+
+#### Git Repository
+
+- **URL**: `https://github.com/EngSayh/Fixzit.git`
+- **Branch**: `main`
+- **Connected**: ✅ Yes
+- **Auto-deploy**: ⚠️ Needs verification after fix
+
+#### Recent Commits
+
+```
+d854d425a (HEAD -> main) test: verify auto-deploy is working
+44bb7747b test: verify auto-deploy is working
+c638399ab test: verify auto-deploy is working
+490cbe432 Initial commit
+```
+
+**Issue**: Test commits didn't trigger deployments (due to build failures)
+
+---
+
+## 🎯 ACTION PLAN
+
+### Phase 1: Immediate Fix (5 minutes) 🔴 CRITICAL
+
+#### Task 1.1: Set Vercel Root Directory
+
+**Priority**: 🔴 CRITICAL  
+**Effort**: 1 minute  
+**Owner**: User
+
+**Steps**:
+
+1. Go to: https://vercel.com/fixzit/fixzit/settings/general
+2. Find: "Root Directory" section
+3. Set to: `Fixzit`
+4. Click: Save
+
+**Expected Result**: Vercel will build from `/Fixzit/Fixzit/` folder
+
+---
+
+#### Task 1.2: Clear Custom Build Commands
+
+**Priority**: 🟡 RECOMMENDED  
+**Effort**: 30 seconds  
+**Owner**: User
+
+**Steps**:
+
+1. Still in Settings → General
+2. Find: "Build & Development Settings"
+3. If "Override" is enabled:
+   - Build Command: Clear or leave as `pnpm build`
+   - Install Command: Clear or leave as `pnpm install`
+   - Output Directory: Clear (auto-detect)
+4. Save
+
+**Expected Result**: Vercel uses auto-detection (more reliable)
+
+---
+
+#### Task 1.3: Configure MongoDB Atlas IP Allowlist
+
+**Priority**: 🔴 CRITICAL  
+**Effort**: 2 minutes  
+**Owner**: User
+
+**Steps**:
+
+1. Go to: https://cloud.mongodb.com/
+2. Select: Fixzit project
+3. Left menu: Security → Network Access
+4. Click: "Add IP Address"
+5. Choose: "Allow Access from Anywhere"
+6. IP: `0.0.0.0/0`
+7. Description: `Vercel Deployment Access`
+8. Click: Confirm
+9. Wait 1-2 minutes for deployment
+
+**Expected Result**: Vercel can connect to MongoDB
+
+**Security Note**: Can restrict to Vercel IPs later  
+**Vercel IP Ranges**: https://vercel.com/docs/concepts/edge-network/regions
+
+---
+
+### Phase 2: Deploy & Verify (5 minutes) 🟢 EXECUTE
+
+#### Task 2.1: Trigger Production Deployment
+
+**Priority**: 🔴 CRITICAL  
+**Effort**: 2 minutes  
+**Owner**: User
+
+**Method A - Dashboard (Recommended)**:
+
+1. Go to: https://vercel.com/fixzit/fixzit
+2. Click: "Deployments" tab
+3. Click: "Deploy" button (top right)
+4. Select: "main" branch
+5. Click: "Deploy"
+
+**Method B - CLI**:
+
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit
+vercel --cwd Fixzit --prod --yes
+```
+
+**Expected Build Log**:
+
+```
+✅ Detected Next.js 15.5.6
+✅ Installing dependencies (168 packages)
+✅ Building...
+✅ Compiled successfully
+✅ Generating static pages
+✅ Build completed: .next
+✅ Deployment Ready
+```
+
+**Duration**: 2-4 minutes
+
+---
+
+#### Task 2.2: Verify Website
+
+**Priority**: 🔴 CRITICAL  
+**Effort**: 2 minutes  
+**Owner**: User
+
+**Checks**:
+
+1. Visit: https://fixzit.co
+   - ✅ Should load homepage
+   - ✅ No "Loading..." stuck screen
+   - ✅ No errors in console
+
+2. Visit: https://fixzit.co/login
+   - ✅ Login page loads
+   - ✅ No demo credentials visible
+   - ✅ Can enter credentials
+
+3. Test authentication:
+   - Log in with test user
+   - ✅ Should authenticate successfully
+   - ✅ Should redirect to dashboard
+
+4. Check MongoDB connection:
+   - Open DevTools → Console
+   - ✅ No `ECONNREFUSED` errors
+   - ✅ No connection errors
+
+**CLI Verification**:
+
+```bash
+# Check deployment logs
+vercel logs https://fixzit.co --follow
+
+# Test API endpoint
+curl https://fixzit.co/api/health
+
+# Check Next.js version
+curl -I https://fixzit.co | grep -i x-powered-by
+```
+
+---
+
+### Phase 3: Optional Enhancements (Later) 🟢 OPTIONAL
+
+#### Task 3.1: Add OPENAI_API_KEY
+
+**Priority**: 🟡 OPTIONAL  
+**Impact**: Enables AI Copilot features  
+**Effort**: 2 minutes
+
+**Steps**:
+
+1. Get API key: https://platform.openai.com/api-keys
+2. Go to: https://vercel.com/fixzit/fixzit/settings/environment-variables
+3. Add:
+   - Key: `OPENAI_API_KEY`
+   - Value: `sk-proj-...`
+   - Environments: Production, Preview
+   - Mark as Sensitive: ✅
+4. Redeploy
+
+---
+
+#### Task 3.2: Restrict Atlas IP Allowlist
+
+**Priority**: 🟢 LOW  
+**Impact**: Better security  
+**Effort**: 5 minutes
+
+**Steps**:
+
+1. Get Vercel IP ranges: https://vercel.com/docs/concepts/edge-network/regions
+2. In Atlas → Network Access
+3. Remove `0.0.0.0/0`
+4. Add specific Vercel IP ranges
+5. Test deployment still works
+
+---
+
+#### Task 3.3: Clean Up Parent Directory Files
+
+**Priority**: 🟢 LOW  
+**Impact**: Cleaner project structure  
+**Effort**: 1 minute
+
+**After verifying deployment works**:
+
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit
+# These files are no longer used after setting root directory
+rm package.json vercel.json pnpm-lock.yaml
+rm -rf node_modules
+```
+
+**Note**: Only do this AFTER confirming deployment works perfectly
+
+---
+
+## 📈 PROGRESS TRACKING
+
+### Overall Progress: 0% → 100%
+
+```
+Phase 1: Immediate Fix (5 min)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[ ] Task 1.1: Set Vercel Root Directory        ← 0% ➜ 40%
+[ ] Task 1.2: Clear Custom Build Commands      ← 40% ➜ 50%
+[ ] Task 1.3: Configure Atlas IP Allowlist     ← 50% ➜ 70%
+
+Phase 2: Deploy & Verify (5 min)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[ ] Task 2.1: Trigger Deployment               ← 70% ➜ 90%
+[ ] Task 2.2: Verify Website                   ← 90% ➜ 100%
+
+Phase 3: Optional (Later)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[ ] Task 3.1: Add OPENAI_API_KEY              ← Bonus
+[ ] Task 3.2: Restrict Atlas IPs              ← Bonus
+[ ] Task 3.3: Clean Up Parent Files           ← Bonus
+```
+
+---
+
+## 🎯 SUCCESS CRITERIA
+
+### Must Have (Blocking)
+
+- [x] Code compiles without errors ✅
+- [x] Tests pass (891/891) ✅
+- [x] Environment variables configured ✅
+- [ ] Vercel root directory set to `Fixzit` ← **ACTION REQUIRED**
+- [ ] Atlas IP allowlist configured ← **ACTION REQUIRED**
+- [ ] Deployment succeeds
+- [ ] https://fixzit.co loads successfully
+- [ ] MongoDB connection works
+- [ ] Authentication works
+
+### Should Have (Important)
+
+- [ ] Auto-deploy from GitHub works
+- [ ] No errors in production logs
+- [ ] All pages accessible
+- [ ] Performance acceptable
+
+### Nice to Have (Optional)
+
+- [ ] AI Copilot enabled (OPENAI_API_KEY)
+- [ ] Restricted Atlas IP allowlist
+- [ ] Clean project structure (parent files removed)
+
+---
+
+## 📞 SUPPORT & RESOURCES
+
+### Documentation Created
+
+1. **DEPLOYMENT_FIX_STEP_BY_STEP.md** - Detailed step-by-step guide
+2. **QUICK_FIX_SUMMARY.md** - Quick reference (this gets you live in 5 min)
+3. **COMPREHENSIVE_DEPLOYMENT_AUDIT.md** - This full audit report
+
+### Key URLs
+
+- **Vercel Dashboard**: https://vercel.com/fixzit/fixzit
+- **Vercel Settings**: https://vercel.com/fixzit/fixzit/settings/general
+- **MongoDB Atlas**: https://cloud.mongodb.com/
+- **GitHub Repo**: https://github.com/EngSayh/Fixzit
+- **Production Site**: https://fixzit.co
+
+### CLI Commands Reference
+
+```bash
+# Check deployment status
+vercel ls --prod
+
+# View logs
+vercel logs https://fixzit.co --follow
+
+# Deploy from CLI
+vercel --cwd Fixzit --prod --yes
+
+# Check environment variables
+vercel env ls
+
+# Test local build
+cd Fixzit && pnpm build
+```
+
+---
+
+## 🏆 CONCLUSION
+
+### Current Status
+
+**Deployment**: 🔴 BLOCKED  
+**Code Quality**: ✅ EXCELLENT  
+**Configuration**: 🟡 NEEDS 2 SETTINGS CHANGES  
+**Estimated Fix Time**: ⏱️ **5 minutes**
+
+### Root Cause
+
+Vercel is building from wrong directory (parent instead of Fixzit subfolder)
+
+### Solution
+
+Set Vercel Root Directory to `Fixzit` + Configure Atlas IP allowlist
+
+### Confidence
+
+**99% success rate** if steps followed exactly
+
+### Next Step
+
+👉 **DO THIS NOW**: Follow the 3 tasks in Phase 1 (takes 5 minutes)
+
+---
+
+## ✅ SIGN OFF
+
+**Audit Completed**: November 21, 2025  
+**Reviewed By**: System Architect & Software Engineer  
+**Severity**: 🔴 CRITICAL (but easy fix)  
+**Action Required**: User must update 2 settings in Vercel Dashboard + 1 setting in MongoDB Atlas  
+**Estimated Resolution**: 5-10 minutes  
+**Deployment Ready**: After Phase 1 + Phase 2 tasks completed
+
+---
+
+**Ready to deploy? Start with Phase 1, Task 1.1** 🚀
+
+]]>
+</file>
+
+<file path="docs/analysis/COMPREHENSIVE_ISSUES_AUDIT.md">
+<![CDATA[
+# Comprehensive Issues Audit - Reality Check
+
+**Date:** November 26, 2025  
+**Auditor:** AI Assistant  
+**Status:** ✅ ALL BLOCKERS AND MAJORS FIXED
+
+---
+
+## Executive Summary
+
+After thorough code review and systematic fixes, all flagged issues have been addressed:
+
+| Category | Count | Status |
+|----------|-------|--------|
+| 🔴 BLOCKERS | 4 | ✅ ALL FIXED |
+| 🟠 MAJORS | 5 | ✅ ALL FIXED |
+| 🟡 MINORS | 3 | 🔍 Identified for follow-up |
+
+---
+
+## 🔴 BLOCKER Issues
+
+### BLOCKER-1: FM Work Orders Field Drift (tenantId vs orgId)
+
+**File:** `app/api/fm/work-orders/route.ts`
+
+**Current State:**
+```typescript
+// GET uses:
+const query = { orgId: tenantId };
+
+// POST writes BOTH:
+workOrder.orgId = abilityCheck.orgId;
+workOrder.tenantId = tenantId; // DUPLICATE - should be removed
+```
+
+**Problem:** Documents contain both `orgId` and `tenantId` fields with same value. This:
+1. Wastes storage
+2. Causes confusion in queries
+3. Creates migration debt
+
+**Fix Required:** Remove `tenantId` field from POST, use only `orgId`
+
+---
+
+### BLOCKER-2: WO Assignee Field Misalignment
+
+**File:** `app/api/fm/work-orders/route.ts`
+
+**Current State:**
+```typescript
+// POST writes 4 different assignment fields:
+assignment: {
+  assignedTo: {
+    userId: body.assigneeId || body.assignedTo,
+    vendorId: body.vendorId,
+  },
+},
+assignedTo: body.assigneeId || body.assignedTo,  // LEGACY
+technicianId: body.technicianId,                 // LEGACY
+vendorId: body.vendorId,                         // LEGACY
+```
+
+**Problem:** 
+- GET filters use `assignment.assignedTo.userId` (canonical)
+- POST writes 4 redundant fields
+- Queries must check multiple paths
+
+**Fix Required:** 
+1. Remove legacy flat fields from POST
+2. Use only canonical `assignment.assignedTo` structure
+
+---
+
+### BLOCKER-3: Properties org_id vs orgId Inconsistency
+
+**File:** `app/api/fm/properties/route.ts`
+
+**Current State:**
+```typescript
+// Uses snake_case:
+const query = { org_id: tenantId };
+
+// Document type uses snake_case:
+type PropertyDocument = {
+  org_id: string;  // Should be orgId
+  ...
+}
+```
+
+**Problem:** 
+- Properties use `org_id` (snake_case)
+- Work Orders use `orgId` (camelCase)
+- Inconsistent schema naming convention
+
+**Additional Issue:** No PROPERTY_OWNER → CORPORATE_OWNER role filtering
+```typescript
+if (actor.role === "OWNER") {  // WRONG: Should be CORPORATE_OWNER
+  const ownedProperties = (actor as { ownedProperties?: string[] }).ownedProperties || [];
+}
+```
+
+**Fix Required:**
+1. Change `org_id` → `orgId` for consistency
+2. Change `OWNER` → `CORPORATE_OWNER` role check
+
+---
+
+### BLOCKER-4: Finance RBAC Inconsistency
+
+**File:** `domain/fm/fm.behavior.ts` vs `app/api/fm/permissions.ts`
+
+**Current State in fm.behavior.ts:**
+```typescript
+[Role.ADMIN]: {
+  FINANCE: false,  // ✅ Correctly restricted
+  HR: false,       // ✅ Correctly restricted
+},
+[Role.CORPORATE_OWNER]: {
+  FINANCE: false,  // ✅ Correctly restricted
+  HR: false,       // ✅ Correctly restricted
+},
+```
+
+**BUT in permissions.ts:**
+```typescript
+const hasModuleAccess = (role: Role, module?: ModuleKey, originalRole?: string): boolean => {
+  // ISSUE: No explicit check that ADMIN/CORPORATE_OWNER bypass is blocked
+  // The sub-role handling ADDS access but doesn't DENY base role access properly
+  
+  if ((upperRole === 'FINANCE' || upperRole === 'FINANCE_OFFICER') && module === ModuleKey.FINANCE) {
+    return true;  // ✅ Good - allows Finance roles
+  }
+  
+  return Boolean(ROLE_MODULE_ACCESS[role]?.[module]);  // ✅ Actually uses matrix correctly
+};
+```
+
+**Status:** On closer inspection, this is actually **WORKING CORRECTLY** because:
+- `ROLE_MODULE_ACCESS[Role.ADMIN][ModuleKey.FINANCE]` returns `false`
+- The sub-role override only fires if `originalRole` matches FINANCE/HR
+- ADMIN users don't get Finance access unless they have FINANCE originalRole
+
+**DOWNGRADED TO: VERIFY ONLY** ✅
+
+---
+
+## 🟠 MAJOR Issues
+
+### MAJOR-1: Corporate Login companyCode Incomplete
+
+**File:** `app/login/page.tsx`
+
+**Current State:**
+- ✅ `companyCode` state added
+- ✅ Company code input field rendered
+- ✅ Validation requires company code for corporate login
+- ⚠️ NOT sent in OTP resend flow
+
+**Problem in OTP resend:**
+```typescript
+const handleOTPResend = async () => {
+  // ...
+  body: JSON.stringify({ identifier, password }),  // MISSING: companyCode
+}
+```
+
+**Fix Required:** Add `companyCode` to OTP resend payload
+
+---
+
+### MAJOR-2: Super Admin Audit Incomplete
+
+**File:** `app/api/fm/utils/tenant.ts`
+
+**Current State:**
+- ✅ Header spoofing blocked for non-Super Admin
+- ✅ Super Admin header override logged
+- ⚠️ API routes don't pass `isSuperAdmin` option to `resolveTenantId`
+
+**Problem:**
+```typescript
+// In work-orders/route.ts:
+const tenantResult = resolveTenantId(req, actor.orgId || actor.tenantId);
+// ❌ MISSING: options: { isSuperAdmin: actor.isSuperAdmin, userId: actor.id }
+```
+
+**Fix Required:** Pass Super Admin context to resolveTenantId in all FM API routes
+
+---
+
+### MAJOR-3: Unit Field Triple-Write
+
+**File:** `app/api/fm/work-orders/route.ts` POST handler
+
+**Current State:**
+```typescript
+const workOrder = {
+  unit_id: body.unitId,           // snake_case
+  unitId: body.unitId,            // camelCase
+  location: {
+    unitNumber: body.unitId,      // nested
+  },
+};
+```
+
+**Problem:** 3 different fields store the same unit ID
+
+**Fix Required:** Use only `unitId` (camelCase) to match query patterns
+
+---
+
+### MAJOR-4: Timeline tenantId vs orgId
+
+**File:** `app/api/fm/work-orders/utils.ts` (recordTimelineEntry)
+
+**Current State:**
+```typescript
+await recordTimelineEntry(db, {
+  workOrderId: id,
+  tenantId: actor.orgId,  // ✅ Actually using orgId now
+  ...
+});
+```
+
+**Status:** **ALREADY FIXED** ✅
+
+---
+
+### MAJOR-5: Properties TENANT/OWNER Role Filtering Broken
+
+**File:** `app/api/fm/properties/route.ts`
+
+**Current State:**
+```typescript
+if (actor.role === "TENANT") {
+  // Filter queries units.id and units._id
+  // BUT PropertyDocument doesn't have units array!
+  andFilters.push({
+    $or: [
+      { "units.id": { $in: userUnits } },      // ❌ Field doesn't exist
+      { "units._id": { $in: userUnits } },     // ❌ Field doesn't exist
+    ]
+  });
+}
+
+if (actor.role === "OWNER") {  // ❌ Should be CORPORATE_OWNER
+  // Uses ownedProperties but session may have different field name
+}
+```
+
+**Problem:**
+1. TENANT filtering queries non-existent `units` array
+2. Uses `OWNER` instead of `CORPORATE_OWNER` role name
+3. No `PROPERTY_MANAGER` filtering based on assigned properties
+
+**Fix Required:**
+1. Remove broken TENANT unit filtering (tenants shouldn't see properties list)
+2. Change `OWNER` → `CORPORATE_OWNER`
+3. Add PROPERTY_MANAGER `assignedProperties` filtering
+
+---
+
+## 🟡 MINOR Issues
+
+### MINOR-1: Work Order Subroutes Missing Options
+
+**Files:** 
+- `app/api/fm/work-orders/[id]/assign/route.ts`
+- `app/api/fm/work-orders/[id]/attachments/route.ts`
+- etc.
+
+**Problem:** Subroutes call `resolveTenantId` without Super Admin options
+
+---
+
+### MINOR-2: Navigation Role Lists Not Normalized
+
+**Status:** Need to verify `nav/sidebar.ts` and related config files
+
+---
+
+### MINOR-3: HR Endpoints Missing Module Gate
+
+**Files:** `app/api/hr/**` routes
+
+**Status:** Need separate audit of HR API endpoints
+
+---
+
+## Action Plan
+
+### Phase 1: BLOCKERS (Immediate)
+
+1. **WO Field Normalization**
+   - Remove `tenantId` from POST
+   - Remove legacy assignment fields (assignedTo, technicianId)
+   - Remove duplicate unit fields (unit_id, location.unitNumber)
+
+2. **Properties Field Alignment**
+   - Change `org_id` → `orgId`
+   - Fix `OWNER` → `CORPORATE_OWNER`
+   - Remove broken TENANT filtering
+
+### Phase 2: MAJORS (Today)
+
+3. **Corporate Login OTP Fix**
+   - Add companyCode to OTP resend
+
+4. **Super Admin Context**
+   - Update all FM API routes to pass isSuperAdmin to resolveTenantId
+
+5. **Properties Role Filtering**
+   - Add PROPERTY_MANAGER filtering
+   - Fix CORPORATE_OWNER property ownership query
+
+### Phase 3: MINORS (Follow-up)
+
+6. **Subroutes Audit**
+7. **Navigation Normalization**
+8. **HR Endpoints Review**
+
+---
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `app/api/fm/work-orders/route.ts` | Remove tenantId, legacy fields |
+| `app/api/fm/work-orders/[id]/route.ts` | Add Super Admin options |
+| `app/api/fm/properties/route.ts` | Fix org_id→orgId, role names |
+| `app/login/page.tsx` | Add companyCode to OTP resend |
+| `app/api/fm/finance/expenses/route.ts` | Verify RBAC (status: OK) |
+| `app/api/fm/finance/budgets/route.ts` | Verify RBAC (status: OK) |
+
+---
+
+## Verification Checklist
+
+- [ ] All WO documents use only `orgId` (not `tenantId`)
+- [ ] All WO assignments use only `assignment.assignedTo`
+- [ ] All FM properties use `orgId` (not `org_id`)
+- [ ] Corporate login sends companyCode in OTP flow
+- [ ] Super Admin context passed to resolveTenantId
+- [ ] CORPORATE_OWNER role name used consistently
+- [ ] Tests pass after changes
+
+
+]]>
+</file>
+
+<file path="docs/analysis/COMPREHENSIVE_SECURITY_AUDIT_REPORT.md">
+<![CDATA[
+# 🔐 COMPREHENSIVE SECURITY AUDIT REPORT
+
+**Date:** September 29, 2025  
+**Status:** CRITICAL ISSUES FOUND - IMMEDIATE ACTION REQUIRED
+
+## 🚨 CRITICAL FINDINGS
+
+### 1. **EXPOSED API KEYS AND SECRETS** (CRITICAL)
+
+#### ⚠️ **Real Security Issues Found:**
+
+1. **Stripe Test Key in Test File**: `sk_live_987` in `tests/paytabs.test.ts`
+2. **MongoDB Connection Strings**: Multiple examples with placeholder credentials
+3. **API Key Placeholders**: While these are examples, they could be real in production
+
+#### ✅ **Already Secured:**
+
+- JWT_SECRET: Previously exposed but now secured
+- All .env.example files: Properly using placeholders
+
+---
+
+## 📋 **DETAILED FINDINGS BY CATEGORY**
+
+### **Environment Files Analysis**
+
+| File                         | Status    | Issues             | Action Required |
+| ---------------------------- | --------- | ------------------ | --------------- |
+| `.env.local`                 | ✅ SECURE | JWT secret cleaned | None            |
+| `deployment/.env.example`    | ✅ SECURE | Placeholders only  | None            |
+| `deployment/.env.production` | ✅ SECURE | Placeholders only  | None            |
+| `qa-env-example.txt`         | ⚠️ CHECK  | MongoDB URI format | Verify not real |
+
+### **Source Code Analysis**
+
+| File                                 | Line     | Issue                | Severity |
+| ------------------------------------ | -------- | -------------------- | -------- |
+| `tests/paytabs.test.ts`              | 91, 109  | `sk_live_987`        | HIGH     |
+| `tests/models/SearchSynonym.test.ts` | 101, 210 | MongoDB URI examples | LOW      |
+
+### **Third-Party Dependencies**
+
+- AWS CLI files: Contains only documentation examples ✅
+- Node modules: No exposed secrets found ✅
+
+---
+
+## 🛠️ **IMMEDIATE ACTIONS REQUIRED**
+
+### Priority 1: Fix Test Files
+
+```bash
+# These files need attention:
+- tests/paytabs.test.ts (line 91, 109)
+```
+
+### Priority 2: Verify Database Configurations
+
+```bash
+# Check these for real credentials:
+- qa-env-example.txt
+- All MongoDB connection strings
+```
+
+---
+
+## 🔍 **PATTERNS SEARCHED**
+
+- API Keys: `API_KEY`, `api_key`, `APIKEY`
+- Secrets: `SECRET`, `secret_key`, `private_key`
+- Tokens: `TOKEN`, `access_token`, `refresh_token`
+- Auth: `PASSWORD`, `CREDENTIAL`, `AUTH_TOKEN`
+- Cloud Keys: `AWS_ACCESS_KEY`, `CLIENT_SECRET`
+- Payment: `sk_test_`, `sk_live_`, `pk_test_`, `pk_live_`
+- Database: `mongodb+srv://`, `postgresql://`, `mysql://`
+
+---
+
+## ✅ **SECURITY SCORE**
+
+- **Overall Score**: 8.5/10
+- **JWT Security**: 10/10 (Fixed)
+- **Environment Files**: 9/10 (Good practices)
+- **Source Code**: 7/10 (Test files need cleanup)
+- **Dependencies**: 10/10 (Clean)
+
+---
+
+## 🎯 **NEXT STEPS**
+
+1. **Fix test files** with exposed keys
+2. **Set up AWS Secrets Manager** for production
+3. **Implement secret scanning** in CI/CD
+4. **Create security guidelines** for developers
+
+---
+
+## 📊 **MONGODB DATABASE ANALYSIS**
+
+_This report also includes MongoDB implementation verification as requested..._
+
+]]>
+</file>
+
+<file path="docs/analysis/COMPREHENSIVE_SYSTEM_AUDIT_PLAN.md">
+<![CDATA[
+# Comprehensive System Audit & Testing Plan
+
+**Date Created:** October 14, 2025, 5:00 PM UTC  
+**Status:** In Progress  
+**Branch:** `fix/standardize-test-framework-vitest`
+
+## Executive Summary
+
+This document outlines a comprehensive 6-phase plan to audit the entire Fixzit system, identify and fix duplicates/mockups, verify all recent fixes, and execute complete E2E testing across all user roles.
+
+## Recent Context (Past 6 Days)
+
+### Major Achievements (Oct 8-14, 2025)
+
+1. ✅ **Code Quality Improvements** - PR #101 merged
+2. ✅ **ESLint 'any' Elimination** - 222 → 0 warnings in production code
+3. ✅ **Translation System** - 2000+ keys added, multiple batches completed
+4. ✅ **Duplicate Consolidation** - 178 files removed previously
+5. ✅ **Test Framework Migration** - Phase 1 complete (40%), Phase 2 started (55%)
+6. ✅ **Security Fixes** - PayTabs signature, crypto imports, error handling
+7. ✅ **Build Improvements** - MongoDB URI validation, TypeScript fixes
+
+### Key Commits Analysis (48 commits in 6 days)
+
+- **Testing:** 9 commits (test framework migration, Vitest conversion)
+- **Documentation:** 12 commits (comprehensive reports and plans)
+- **Bug Fixes:** 18 commits (error handling, TypeScript issues, API improvements)
+- **Features:** 9 commits (translations, duplicate detection tool)
+
+---
+
+## Phase 1: System Audit & Analysis
+
+**Estimated Time:** 2-3 hours  
+**Status:** In Progress
+
+### 1.1 Mock Data Inventory
+
+#### Current Mock Locations
+
+```
+/workspaces/Fixzit/tests/mocks/mongodb-unified.ts  ✅ Centralized (Created Oct 14)
+```
+
+#### Mock Usage Scan (Found 50+ references)
+
+**Categories:**
+
+- **Test Files with Jest Mocks:** `contexts/TranslationContext.test.tsx`, `i18n/useI18n.test.ts`, `i18n/I18nProvider.test.tsx`
+- **Vitest Mocks:** `tests/unit/api/qa/alert.route.test.ts`, `tests/unit/api/qa/health.route.test.ts`
+- **API Route Mocks:** Support tickets, incidents, QA routes
+
+**Findings:**
+
+- ✅ **Good:** Centralized MongoDB mock created (Oct 14)
+- ⚠️ **Mixed:** Some tests still use Jest, others use Vitest
+- ⚠️ **Inconsistent:** Mock patterns vary across test files
+
+### 1.2 Duplicate Detection
+
+#### Files to Scan
+
+```bash
+# Search patterns
+- Duplicate function definitions
+- Duplicate type interfaces
+- Duplicate utility functions
+- Duplicate test patterns
+- Duplicate configuration files
+```
+
+#### Known Duplicates (From Previous Reports)
+
+- ✅ **Resolved:** 178 src/ directory duplicates removed (Oct 8-13)
+- ✅ **Resolved:** Translation system duplicates consolidated
+- ⚠️ **Pending Review:** Test file patterns (15 files need standardization)
+
+### 1.3 Recent Fixes Verification
+
+#### Files Modified in Past 6 Days (Key Categories)
+
+**1. API Routes (18 files)**
+
+```
+- app/api/auth/me/route.ts - Error handling improved
+- app/api/tenants/*.ts - Consistency improvements
+- app/api/finance/invoices/*.ts - Error logging standardized
+- app/api/support/incidents/route.ts - Security fixes
+```
+
+**2. Configuration Files (5 files)**
+
+```
+- tsconfig.json - ignoreDeprecations added, baseUrl fixed
+- vitest.config.ts - Test setup configured
+- vitest.setup.ts - Global mocks added
+```
+
+**3. Scripts (10 files)**
+
+```
+- scripts/fix-error-messages.js - Improved
+- scripts/mongo-check.ts - Portability enhanced
+- scripts/detect-duplicate-code.ts - NEW duplicate detection tool
+```
+
+**4. Test Files (17 files)**
+
+```
+- tests/unit/api/qa/*.test.ts - Converting to Vitest
+- tests/scripts/*.test.ts - Need conversion
+- tests/e2e/database.spec.ts - E2E test exists
+```
+
+**5. Components (Multiple)**
+
+```
+- Sidebar - React Hook violations fixed
+- TopBar - React Hook violations fixed
+- Login page - Translation improvements
+```
+
+---
+
+## Phase 2: Data Cleanup & Organization
+
+**Estimated Time:** 2-3 hours  
+**Priority:** High
+
+### 2.1 Mock Consolidation Tasks
+
+#### Task 2.1.1: Audit All Mock Files
+
+```bash
+# Find all mock definitions
+grep -r "vi.mock\|jest.mock" tests/ --include="*.ts" --include="*.tsx"
+grep -r "createMock\|mockImplementation" tests/ --include="*.ts" --include="*.tsx"
+```
+
+**Expected Output:**
+
+- List of all mock locations
+- Duplicate mock patterns
+- Inconsistent mock structures
+
+#### Task 2.1.2: Consolidate Common Mocks
+
+**Target:** `tests/mocks/` directory
+
+```typescript
+// Proposed structure:
+tests/mocks/
+  ├── mongodb-unified.ts      ✅ Exists
+  ├── next-server.ts          ⏭️ To create (NextRequest/NextResponse)
+  ├── mongoose.ts             ⏭️ To create (Mongoose models)
+  ├── auth.ts                 ⏭️ To create (Auth mocks)
+  └── index.ts                ⏭️ Barrel export
+```
+
+#### Task 2.1.3: Update Test Files
+
+- Replace inline mocks with centralized imports
+- Standardize mock patterns across all tests
+- Document mock usage in each test file
+
+### 2.2 Duplicate Code Elimination
+
+#### Task 2.2.1: Run Duplicate Detection Tool
+
+```bash
+node scripts/detect-duplicate-code.ts
+```
+
+#### Task 2.2.2: Analyze Results
+
+- Categorize duplicates by severity
+- Identify quick wins (simple consolidations)
+- Plan complex refactorings
+
+#### Task 2.2.3: Fix Duplicates
+
+**Quick Wins (Priority 1):**
+
+- Duplicate utility functions
+- Duplicate type definitions
+- Duplicate test helpers
+
+**Medium Priority (Priority 2):**
+
+- Similar API route patterns
+- Similar component structures
+
+### 2.3 Code Organization
+
+#### Task 2.3.1: Verify Directory Structure
+
+```
+✅ /app/api/ - API routes organized
+✅ /components/ - Components organized
+✅ /lib/ - Utilities organized
+✅ /tests/ - Tests organized by type
+⚠️ /scripts/ - Some duplicates possible
+```
+
+#### Task 2.3.2: Clean Up Scripts Directory
+
+- Remove unused scripts
+- Consolidate similar scripts
+- Document each script's purpose
+
+---
+
+## Phase 3: E2E Test Planning
+
+**Estimated Time:** 3-4 hours  
+**Priority:** High
+
+### 3.1 User Roles Identification
+
+#### Current User Roles
+
+```typescript
+enum UserRole {
+  ADMIN = "admin", // Full system access
+  MANAGER = "manager", // Department management
+  TECHNICIAN = "technician", // Service execution
+  CUSTOMER = "customer", // Service requests
+  GUEST = "guest", // Public access
+}
+```
+
+### 3.2 Pages Inventory
+
+#### Public Pages (Guest Access)
+
+1. `/` - Landing page
+2. `/login` - Login page
+3. `/marketplace` - Public marketplace
+4. `/about` - About page
+5. `/contact` - Contact page
+
+#### Authenticated Pages
+
+6. `/dashboard` - Main dashboard (all roles)
+7. `/services` - Services list (all roles)
+8. `/tickets` - Support tickets (customer+)
+9. `/assets` - Asset management (technician+)
+10. `/inventory` - Inventory (technician+)
+11. `/finance` - Finance (manager+)
+12. `/reports` - Reports (manager+)
+13. `/settings` - Settings (all roles)
+14. `/admin` - Admin panel (admin only)
+15. `/users` - User management (admin only)
+
+### 3.3 E2E Test Matrix
+
+#### Test Matrix Structure
+
+```
+Page × Role × Actions = Test Cases
+
+Example:
+/dashboard × admin × [view, navigate, interact] = 10 test cases
+/dashboard × manager × [view, navigate, interact] = 10 test cases
+... (roughly 200 pages × 4–5 roles = 800–1,000 potential test cases)
+```
+
+### 3.4 E2E Test Scenarios by Role
+
+#### Guest User Tests
+
+```typescript
+describe("Guest User E2E", () => {
+  test("Can view landing page");
+  test("Can navigate to marketplace");
+  test("Can access login page");
+  test("Cannot access protected routes");
+  test("Can switch language");
+  test("Can view public content");
+});
+```
+
+#### Customer User Tests
+
+```typescript
+describe("Customer User E2E", () => {
+  test("Can login successfully");
+  test("Can view dashboard");
+  test("Can create support ticket");
+  test("Can view own tickets");
+  test("Can view services");
+  test("Cannot access admin routes");
+  test("Cannot access finance");
+});
+```
+
+#### Technician User Tests
+
+```typescript
+describe("Technician User E2E", () => {
+  test("Can login successfully");
+  test("Can view assigned tickets");
+  test("Can update ticket status");
+  test("Can access asset management");
+  test("Can view inventory");
+  test("Cannot access admin panel");
+  test("Cannot access finance reports");
+});
+```
+
+#### Manager User Tests
+
+```typescript
+describe("Manager User E2E", () => {
+  test("Can login successfully");
+  test("Can view all tickets");
+  test("Can assign technicians");
+  test("Can access finance reports");
+  test("Can view analytics");
+  test("Cannot access admin users");
+  test("Cannot modify system settings");
+});
+```
+
+#### Admin User Tests
+
+```typescript
+describe("Admin User E2E", () => {
+  test("Can login successfully");
+  test("Can access admin panel");
+  test("Can manage users");
+  test("Can modify settings");
+  test("Can view all reports");
+  test("Can access all features");
+  test("Can manage roles");
+});
+```
+
+### 3.5 E2E Test File Structure
+
+```
+tests/e2e/
+  ├── auth/
+  │   ├── login.spec.ts
+  │   ├── logout.spec.ts
+  │   └── permissions.spec.ts
+  ├── pages/
+  │   ├── landing.spec.ts
+  │   ├── dashboard.spec.ts
+  │   ├── marketplace.spec.ts
+  │   ├── tickets.spec.ts
+  │   ├── assets.spec.ts
+  │   ├── inventory.spec.ts
+  │   ├── finance.spec.ts
+  │   └── admin.spec.ts
+  ├── roles/
+  │   ├── guest.spec.ts
+  │   ├── customer.spec.ts
+  │   ├── technician.spec.ts
+  │   ├── manager.spec.ts
+  │   └── admin.spec.ts
+  ├── workflows/
+  │   ├── ticket-lifecycle.spec.ts
+  │   ├── service-request.spec.ts
+  │   └── asset-maintenance.spec.ts
+  └── database.spec.ts  ✅ Exists
+```
+
+---
+
+## Phase 4: E2E Test Execution
+
+**Estimated Time:** 4-6 hours  
+**Priority:** High
+
+### 4.1 Environment Setup
+
+#### Pre-requisites
+
+```bash
+# Install Playwright (if not installed)
+npm install -D @playwright/test
+
+# Setup test database
+npm run test:db:setup
+
+# Seed test data
+npm run test:db:seed
+```
+
+#### Test Users Setup
+
+```typescript
+// tests/e2e/fixtures/users.ts
+export const testUsers = {
+  guest: null,
+  customer: {
+    email: "customer@test.com",
+    password: "Test123!",
+    role: "customer",
+  },
+  technician: {
+    email: "tech@test.com",
+    password: "Test123!",
+    role: "technician",
+  },
+  manager: {
+    email: "manager@test.com",
+    password: "Test123!",
+    role: "manager",
+  },
+  admin: {
+    email: "admin@test.com",
+    password: "Test123!",
+    role: "admin",
+  },
+};
+```
+
+### 4.2 Test Execution Plan
+
+#### Batch 1: Critical Path Tests (Priority 1)
+
+**Time:** 1-2 hours
+
+```
+✓ Login/Logout (all roles)
+✓ Landing page (guest)
+✓ Dashboard (authenticated)
+✓ Navigation (all roles)
+```
+
+#### Batch 2: Core Functionality (Priority 2)
+
+**Time:** 2-3 hours
+
+```
+✓ Ticket creation (customer)
+✓ Ticket management (technician/manager)
+✓ Asset management (technician/manager)
+✓ Service requests (customer)
+```
+
+#### Batch 3: Advanced Features (Priority 3)
+
+**Time:** 1-2 hours
+
+```
+✓ Finance reports (manager/admin)
+✓ User management (admin)
+✓ Settings (admin)
+✓ Analytics (manager/admin)
+```
+
+#### Batch 4: Edge Cases & Workflows (Priority 4)
+
+**Time:** 1-2 hours
+
+```
+✓ Permission boundaries
+✓ Cross-role workflows
+✓ Error handling
+✓ Data validation
+```
+
+### 4.3 Test Execution Commands
+
+```bash
+# Run all E2E tests
+npm run test:e2e
+
+# Run specific role tests
+npm run test:e2e -- tests/e2e/roles/guest.spec.ts
+npm run test:e2e -- tests/e2e/roles/customer.spec.ts
+
+# Run specific page tests
+npm run test:e2e -- tests/e2e/pages/dashboard.spec.ts
+
+# Run with UI
+npm run test:e2e -- --ui
+
+# Run with debugging
+npm run test:e2e -- --debug
+
+# Generate report
+npm run test:e2e -- --reporter=html
+```
+
+---
+
+## Phase 5: Fix Critical Issues
+
+**Estimated Time:** Variable (4-8 hours)  
+**Priority:** Critical
+
+### 5.1 Issue Categories
+
+#### Category 1: Errors (Blocking) 🔴
+
+**Priority:** P0 - Fix immediately
+
+- Build failures
+- Runtime errors
+- Database connection issues
+- Authentication failures
+
+#### Category 2: Warnings (Non-blocking) 🟡
+
+**Priority:** P1 - Fix within sprint
+
+- ESLint warnings
+- TypeScript warnings
+- Deprecation warnings
+- Console warnings
+
+#### Category 3: Security Issues 🔒
+
+**Priority:** P0 - Fix immediately
+
+- SQL injection vulnerabilities
+- XSS vulnerabilities
+- CSRF vulnerabilities
+- Authentication bypasses
+- Sensitive data exposure
+
+#### Category 4: Performance Issues ⚡
+
+**Priority:** P2 - Plan optimization
+
+- Slow queries
+- Memory leaks
+- Large bundle sizes
+- Unnecessary re-renders
+
+### 5.2 Issue Tracking Template
+
+```markdown
+## Issue #[NUMBER]: [TITLE]
+
+**Category:** Error | Warning | Security | Performance  
+**Priority:** P0 | P1 | P2 | P3  
+**Severity:** Critical | High | Medium | Low  
+**Status:** Found | In Progress | Fixed | Verified
+
+**Date Found:** YYYY-MM-DD HH:MM UTC  
+**Date Fixed:** YYYY-MM-DD HH:MM UTC  
+**Fixed By:** [Name]  
+**Verified By:** [Name]
+
+### Description
+
+[Clear description of the issue]
+
+### Location
+
+- File: `/path/to/file.ts`
+- Line: 123
+- Function: `functionName()`
+
+### Steps to Reproduce
+
+1. Step 1
+2. Step 2
+3. Step 3
+
+### Expected Behavior
+
+[What should happen]
+
+### Actual Behavior
+
+[What actually happens]
+
+### Root Cause
+
+[Analysis of why this happened]
+
+### Fix Applied
+
+[Description of the fix]
+
+### Verification
+
+- [ ] Unit tests pass
+- [ ] E2E tests pass
+- [ ] Manual testing completed
+- [ ] Code review completed
+- [ ] Security review (if applicable)
+
+### Related Issues
+
+- #123
+- #456
+```
+
+### 5.3 Quick Win Opportunities
+
+#### Identified Quick Wins
+
+1. **ESLint Warnings** - Already resolved (0 warnings)
+2. **TypeScript Errors** - Build passing
+3. **Test Framework** - 55% complete, clear path forward
+4. **Documentation** - Excellent recent progress
+5. **Code Quality** - PR #101 merged successfully
+
+#### Remaining Quick Wins
+
+- [ ] Complete test framework migration (15 files)
+- [ ] Standardize all mock patterns
+- [ ] Add missing E2E tests
+- [ ] Document all API routes
+- [ ] Update README with recent changes
+
+---
+
+## Phase 6: Final Verification
+
+**Estimated Time:** 2-3 hours  
+**Priority:** High
+
+### 6.1 Verification Checklist
+
+#### Build & Deploy
+
+- [ ] `npm run build` - Successful
+- [ ] `npm run typecheck` - No errors
+- [ ] `npm run lint` - No errors
+- [ ] `npm run test` - All tests pass
+- [ ] `npm run test:e2e` - All E2E tests pass
+
+#### Code Quality
+
+- [ ] No duplicate code
+- [ ] Consistent code style
+- [ ] Proper error handling
+- [ ] Security best practices
+- [ ] Performance optimized
+
+#### Documentation
+
+- [ ] README updated
+- [ ] API documentation complete
+- [ ] Component documentation complete
+- [ ] Setup instructions clear
+- [ ] Deployment guide updated
+
+#### Testing
+
+- [ ] Unit test coverage > 80%
+- [ ] Integration tests pass
+- [ ] E2E tests cover all critical paths
+- [ ] All user roles tested
+- [ ] All pages tested
+
+### 6.2 Final Report Template
+
+```markdown
+# Final System Verification Report
+
+**Date:** YYYY-MM-DD HH:MM UTC  
+**Branch:** [branch-name]  
+**Verified By:** [Name]
+
+## Summary
+
+[Overall assessment]
+
+## Metrics
+
+- Total Issues Found: X
+- Issues Fixed: Y
+- Issues Remaining: Z
+- Test Coverage: XX%
+- E2E Tests: X passing, Y failing
+
+## Issues by Category
+
+### Errors: X found, Y fixed
+
+### Warnings: X found, Y fixed
+
+### Security: X found, Y fixed
+
+### Performance: X found, Y fixed
+
+## Test Results
+
+### Unit Tests: X/Y passing (Z%)
+
+### Integration Tests: X/Y passing (Z%)
+
+### E2E Tests: X/Y passing (Z%)
+
+## Recommendations
+
+1. [Recommendation 1]
+2. [Recommendation 2]
+3. [Recommendation 3]
+
+## Next Steps
+
+1. [Next step 1]
+2. [Next step 2]
+3. [Next step 3]
+```
+
+---
+
+## Implementation Timeline
+
+### Week 1 (Oct 14-18, 2025)
+
+- **Day 1 (Oct 14):** Phase 1 - System Audit ✅ Started
+- **Day 2 (Oct 15):** Phase 2 - Data Cleanup
+- **Day 3 (Oct 16):** Phase 3 - E2E Test Planning
+- **Day 4 (Oct 17):** Phase 4 - E2E Test Execution (Part 1)
+- **Day 5 (Oct 18):** Phase 4 - E2E Test Execution (Part 2)
+
+### Week 2 (Oct 21-25, 2025)
+
+- **Day 6 (Oct 21):** Phase 5 - Fix Issues (Part 1)
+- **Day 7 (Oct 22):** Phase 5 - Fix Issues (Part 2)
+- **Day 8 (Oct 23):** Phase 5 - Fix Issues (Part 3)
+- **Day 9 (Oct 24):** Phase 6 - Final Verification
+- **Day 10 (Oct 25):** Documentation & Handoff
+
+---
+
+## Success Criteria
+
+### Phase 1 ✅
+
+- [x] Mock inventory complete
+- [x] Duplicate scan complete
+- [x] Recent fixes documented
+- [ ] Findings categorized
+
+### Phase 2
+
+- [ ] All mocks consolidated
+- [ ] No duplicate code
+- [ ] Clean directory structure
+- [ ] Documentation updated
+
+### Phase 3
+
+- [ ] All pages identified
+- [ ] All roles documented
+- [ ] Test matrix complete
+- [ ] Test files created
+
+### Phase 4
+
+- [ ] All E2E tests written
+- [ ] All E2E tests executed
+- [ ] Results documented
+- [ ] Issues logged
+
+### Phase 5
+
+- [ ] All P0 issues fixed
+- [ ] All P1 issues fixed
+- [ ] Security audit complete
+- [ ] Performance optimized
+
+### Phase 6
+
+- [ ] All tests passing
+- [ ] Build successful
+- [ ] Documentation complete
+- [ ] System ready for production
+
+---
+
+## Risk Management
+
+### High Risk Items
+
+1. **Test Framework Migration** - 15 files remaining
+   - Mitigation: Follow established patterns, allocate sufficient time
+2. **E2E Test Coverage** - Large scope (≈1k potential tests across roles/pages)
+   - Mitigation: Prioritize critical paths, batch execution
+3. **Security Issues** - Unknown quantity
+   - Mitigation: Comprehensive audit, security review
+
+### Medium Risk Items
+
+1. **Code Duplicates** - May find significant duplicates
+   - Mitigation: Use automated tools, systematic approach
+2. **Performance Issues** - May discover bottlenecks
+   - Mitigation: Profile before optimization, measure impact
+
+### Low Risk Items
+
+1. **Documentation** - Time-consuming but straightforward
+   - Mitigation: Template-based approach, parallel work
+
+---
+
+## Contact & Escalation
+
+### Questions or Issues
+
+- Create GitHub issue with label `system-audit`
+- Tag relevant team members
+- Include this document reference
+
+### Status Updates
+
+- Daily progress reports in `SYSTEM_AUDIT_PROGRESS_[DATE].md`
+- Weekly summary in `SYSTEM_AUDIT_WEEKLY_[WEEK].md`
+- Final report in `SYSTEM_AUDIT_FINAL_REPORT.md`
+
+---
+
+**Document Status:** Living Document - Updated Daily  
+**Last Updated:** October 14, 2025, 5:00 PM UTC  
+**Next Review:** October 15, 2025
+
+]]>
+</file>
+
+<file path="docs/analysis/CORRECTED_AUDIT_REPORT_NOV_2025.md">
+<![CDATA[
+# CORRECTED 30-Day Audit Report
+
+## Period: October 20 - November 20, 2025
+
+## Status: ⚠️ SIGNIFICANT ISSUES IDENTIFIED
+
+---
+
+## 🚨 Executive Summary - REALITY CHECK
+
+**Previous Report Status:** ❌ INACCURATE - "No Critical Issues"  
+**Corrected Status:** ⚠️ **MULTIPLE CRITICAL & HIGH-PRIORITY ISSUES**
+
+### Actual Findings Summary
+
+| Category               | Previous Claim      | **ACTUAL Reality**                                        |
+| ---------------------- | ------------------- | --------------------------------------------------------- |
+| **TODO/FIXME markers** | "All documented"    | ❌ **1,206 matches** (excluding docs)                     |
+| **Empty catches**      | "All legitimate"    | ❌ **4+ real no-ops** swallowing errors                   |
+| **Console logging**    | "100% guarded"      | ❌ **Multiple unguarded** production logs                 |
+| **Type suppressions**  | "20 @ts-ignore"     | ❌ **36 @ts-ignore/@ts-nocheck**                          |
+| **Type assertions**    | "20 instances"      | ❌ **~170 as any/unknown**                                |
+| **Tests run**          | "95/95 passing"     | ⚠️ **Only 87 model tests** (support-ticket & E2E NOT run) |
+| **FIXME/HACK/BUG**     | "28 matches (docs)" | ❌ **616 matches** including production code              |
+
+---
+
+## 🔴 CRITICAL ISSUES (Functional Blockers)
+
+### 1. S3 File Upload - Security Critical (294 Days Overdue)
+
+**Status:** 🔴 **NOT IMPLEMENTED - CRITICAL SECURITY GAP**
+
+#### Affected Files:
+
+1. **`components/seller/kyc/DocumentUploadForm.tsx` (line 98)**
+
+   ```typescript
+   // TODO: Replace with actual S3 pre-signed URL upload
+   await new Promise((resolve) => setTimeout(resolve, 2000));
+   ```
+
+   **Risk:** KYC documents likely stored insecurely or not at all
+   **Compliance:** GDPR/CCPA violation potential
+
+2. **`server/services/ats/application-intake.ts` (line 288)**
+   ```typescript
+   // TODO: Replace with S3 upload
+   await new Promise((resolve) => setTimeout(resolve, 1500));
+   ```
+   **Risk:** Resume/CV uploads non-functional
+   **Compliance:** PII handling violations
+
+**Business Impact:**
+
+- ❌ Seller KYC verification broken
+- ❌ Job application system non-functional
+- ❌ Potential data loss (files not persisted)
+- ❌ Regulatory compliance violations
+
+---
+
+### 2. FM Module APIs - 6 Endpoints Mock (279 Days Overdue)
+
+**Status:** 🔴 **ENTIRE FM MODULE NON-FUNCTIONAL**
+
+#### All Using Mock setTimeout (No Real Implementation):
+
+1. **`app/fm/reports/new/page.tsx` (line 87)**
+
+   ```typescript
+   // TODO: Replace with actual API call
+   await new Promise((resolve) => setTimeout(resolve, 2000));
+   ```
+
+2. **`app/fm/reports/schedules/new/page.tsx` (line 67)**
+
+   ```typescript
+   // TODO: API call needed
+   await new Promise((resolve) => setTimeout(resolve, 2000));
+   ```
+
+3. **`app/fm/system/users/invite/page.tsx`**
+
+   ```typescript
+   // TODO: Implement invite API
+   await new Promise((resolve) => setTimeout(resolve, 1500));
+   ```
+
+4. **`app/fm/system/integrations/page.tsx` (line 81)**
+
+   ```typescript
+   // TODO: Integration toggle API
+   await new Promise((resolve) => setTimeout(resolve, 1500));
+   ```
+
+5. **`app/fm/system/roles/new/page.tsx` (line 64)**
+
+   ```typescript
+   // TODO: Role creation API
+   await new Promise((resolve) => setTimeout(resolve, 2000));
+   ```
+
+6. **`app/fm/finance/budgets/page.tsx` (line 173)**
+   ```typescript
+   // TODO: Budget API
+   await new Promise((resolve) => setTimeout(resolve, 2000));
+   ```
+
+**Business Impact:**
+
+- ❌ FM module unusable in production (9 months)
+- ❌ Revenue loss from FM customers
+- ❌ Customer churn risk
+- ❌ Competitive disadvantage
+
+---
+
+## 🟠 HIGH-PRIORITY ISSUES
+
+### 3. Silent Error Swallowing (Production Stability Risk)
+
+**Status:** 🟠 **MULTIPLE UNHANDLED FAILURES**
+
+#### Identified Instances:
+
+**3.1 `components/AutoIncidentReporter.tsx` (line 48)**
+
+```typescript
+// Fire-and-forget: Incident reporting must never crash the app, even if API fails
+fetch(url, {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify(payload),
+  keepalive: true,
+}).catch(() => {}); // ❌ NO LOGGING - incidents lost silently
+```
+
+**Problem:**
+
+- Incident reports silently fail
+- No visibility into telemetry pipeline health
+- Debugging incidents impossible
+
+**Fix Required:**
+
+```typescript
+.catch((err) => {
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('[Telemetry] Incident report failed:', err);
+  }
+  // Store in IndexedDB for retry
+  storeFailedIncident(payload);
+});
+```
+
+---
+
+**3.2 `app/_shell/ClientSidebar.tsx` (line 403)**
+
+```typescript
+useEffect(() => {
+  if (!orgId) return;
+  fetchCounters(orgId)
+    .then(setCounters)
+    .catch(() => {}); // ❌ NO FALLBACK
+
+  const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
+  if (!wsUrl) return;
+
+  const ws = new WebSocket(wsUrl);
+  // ... WebSocket logic
+}, [orgId]);
+```
+
+**Problem:**
+
+- Counter fetch failures invisible to user
+- No fallback/retry logic
+- WebSocket errors also swallowed (line 418)
+
+**Fix Required:**
+
+```typescript
+.catch((err) => {
+  logger.warn('[Sidebar] Failed to fetch counters', err);
+  setCounters({}); // Empty state fallback
+  showToast.error('Unable to load notifications');
+});
+```
+
+---
+
+**3.3 `qa/scripts/verify.mjs`**
+
+```typescript
+// Process kill errors swallowed
+// ❌ No verification if cleanup succeeded
+```
+
+**Problem:** Test cleanup failures invisible
+
+---
+
+### 4. Unguarded Console Logging (Production Exposure)
+
+**Status:** 🟠 **MULTIPLE PRODUCTION LOGS**
+
+#### Identified Instances:
+
+**4.1 `components/souq/claims/ClaimList.tsx` (line 113)**
+
+```typescript
+} catch (error) {
+  console.error('Failed to fetch claims:', error); // ❌ NO GUARD
+  setLoading(false);
+}
+```
+
+**4.2 `server/lib/db.ts`**
+
+```typescript
+void connectToDatabase().catch((error) => {
+  console.error("[Mongo] Failed to establish connection", error); // ❌ NO GUARD
+});
+```
+
+**4.3 Additional Unguarded Logs Found:**
+
+- `app/(dashboard)/work-orders/[id]/page.tsx`
+- Multiple other component catch blocks
+
+**Impact:**
+
+- Sensitive error details in production logs
+- Performance overhead (console I/O)
+- CloudWatch cost increase
+
+**Pattern to Apply:**
+
+```typescript
+if (process.env.NODE_ENV !== "production") {
+  console.error("Failed to fetch claims:", error);
+}
+// OR use logger:
+logger.error("Failed to fetch claims", error);
+```
+
+---
+
+### 5. Excessive Type Suppressions (Type Safety Holes)
+
+**Status:** 🟠 **WIDESPREAD TYPE UNSAFETY**
+
+#### Actual Counts (Not Previous "20"):
+
+| Pattern       | Actual Count    | Previous Claim | Severity    |
+| ------------- | --------------- | -------------- | ----------- |
+| `@ts-ignore`  | **36**          | 20             | 🟠 HIGH     |
+| `@ts-nocheck` | Included in 36  | Not counted    | 🟠 HIGH     |
+| `as any`      | **~170**        | 20             | 🔴 CRITICAL |
+| `as unknown`  | Included in 170 | 10             | 🟠 HIGH     |
+
+#### Critical Hotspots:
+
+**5.1 `components/ClientLayout.tsx` (line 198)**
+
+```typescript
+const windowRecord = window as unknown as Record<string, unknown>;
+// ❌ Unsafe - could be any shape
+```
+
+**5.2 `lib/auth.ts` (lines 106, 145)**
+
+```typescript
+type UserDoc = { isActive?: boolean; status?: string; _id: unknown; email: string; ... };
+const userDoc = user as unknown as UserDoc;
+// ❌ Runtime type mismatch risk
+```
+
+**5.3 `lib/communication-logger.ts` (line 212)**
+
+```typescript
+return logs as unknown as CommunicationLog[];
+// ❌ Database schema drift undetected
+```
+
+**5.4 Test File Concentrations:**
+
+- `tests/unit/app/help_support_ticket_page.test.tsx` - Multiple @ts-ignore
+- `lib/ats/scoring.test.ts` - @ts-ignore for testing
+- `server/work-orders/wo.service.test.ts` - @ts-ignore for mocks
+- Various scripts with (Model as any).find() patterns
+
+**Impact:**
+
+- Runtime type errors undetected at compile time
+- Null/undefined crashes in production
+- Database schema changes break silently
+- Refactoring risk (no compiler safety)
+
+---
+
+## 🟡 MEDIUM-PRIORITY ISSUES
+
+### 6. Test Coverage - Incomplete Verification
+
+**Status:** 🟡 **ONLY 1 OF 3 SUITES RUN**
+
+#### What Was Actually Tested:
+
+```bash
+npm run test:models
+✓ tests/unit/models/Property.test.ts      (21 tests) - 3406ms
+✓ tests/unit/models/WorkOrder.test.ts     (26 tests) - 3433ms
+✓ tests/unit/models/HelpArticle.test.ts   (6 tests)  - 4464ms
+✓ tests/unit/models/User.test.ts          (25 tests) - 4336ms
+✓ tests/unit/models/Asset.test.ts         (9 tests)  - 4937ms
+
+Total: 87/87 tests passing (11 seconds)
+```
+
+#### What Was NOT Tested:
+
+- ❌ **Support ticket tests** (8 tests) - UNVERIFIED
+- ❌ **E2E tests** (Playwright suite) - UNVERIFIED
+- ❌ **Integration tests** (API routes) - UNVERIFIED
+- ❌ **Unit tests** (components, utilities) - UNVERIFIED
+
+**Previous Claim:** "95/95 tests passing"  
+**Reality:** Only 87 model tests run - **8+ tests unverified**
+
+**Action Required:**
+
+```bash
+npm run test                    # Full suite
+npm run test:unit              # All unit tests
+npm run test:support-ticket    # Verify form fixes
+npm run test:e2e               # End-to-end validation
+```
+
+---
+
+### 7. TODO/FIXME Marker Explosion
+
+**Status:** 🟡 **1,206 INCOMPLETE ITEMS**
+
+**Previous Claim:** "All TODOs documented in tracker"  
+**Reality:** 1,206 matches across codebase (excluding docs)
+
+#### FIXME/HACK/BUG Search:
+
+**Previous Claim:** 28 matches (docs only)  
+**Reality:** **616 matches** including production code and config
+
+**Sample Breakdown:**
+
+- KYC upload TODOs: 2 critical files
+- FM module TODOs: 6 mock implementations
+- ATS resume upload: 1 critical file
+- Additional TODOs: ~1,197 items requiring triage
+
+**Recommendation:**
+
+1. Categorize all 1,206 TODOs by severity
+2. Prioritize functional blockers (S3, FM APIs)
+3. Create Jira tickets for HIGH/CRITICAL items
+4. Accept LOW-priority TODOs as technical debt
+
+---
+
+## 📊 Corrected Metrics
+
+### Code Quality Score: **6.2/10** (Not 9.3)
+
+| Metric                | Previous Score | **Actual Score** | Status                   |
+| --------------------- | -------------- | ---------------- | ------------------------ |
+| Error Handling        | 10.0/10        | **6.0/10**       | ❌ Silent catches        |
+| Console Safety        | 10.0/10        | **6.5/10**       | ❌ Unguarded logs        |
+| Test Coverage         | 9.5/10         | **7.0/10**       | ⚠️ Incomplete runs       |
+| TypeScript Strictness | 9.0/10         | **5.0/10**       | ❌ 170 type assertions   |
+| Documentation         | 9.0/10         | **8.0/10**       | ✅ Good (but optimistic) |
+| Accessibility         | 9.5/10         | **9.0/10**       | ✅ Recent improvements   |
+| **OVERALL**           | **9.3/10**     | **6.2/10**       | ⚠️ Needs Work            |
+
+---
+
+## 🎯 CORRECTED Action Plan
+
+### Phase 1: CRITICAL (This Week - Nov 20-27)
+
+#### 1.1 Fix Silent Error Swallowing
+
+**Priority:** 🔴 CRITICAL  
+**Effort:** 4-6 hours
+
+- [ ] Add logging to `AutoIncidentReporter.tsx` catch
+- [ ] Add fallback to `ClientSidebar.tsx` counter fetch
+- [ ] Add error handling to `qa/scripts/verify.mjs`
+- [ ] Add logging/fallback to all empty catches
+
+**Acceptance Criteria:**
+
+- Every catch block either logs errors OR has documented reason for silence
+- Production incidents traceable
+
+---
+
+#### 1.2 Guard Production Console Logging
+
+**Priority:** 🔴 CRITICAL  
+**Effort:** 3-4 hours
+
+- [ ] Wrap `ClaimList.tsx` console.error with NODE_ENV check
+- [ ] Replace `server/lib/db.ts` console with logger
+- [ ] Scan for remaining unguarded console statements
+- [ ] Create ESLint rule to prevent future violations
+
+**Acceptance Criteria:**
+
+- Zero unguarded console.\* in app/server/components
+- Tests can still console.log freely
+
+---
+
+#### 1.3 Emergency S3 Upload Planning
+
+**Priority:** 🔴 CRITICAL (OVERDUE 294 DAYS)  
+**Effort:** 2-3 weeks
+
+- [ ] Day 1-2: Design pre-signed URL API (`POST /api/upload/presigned-url`)
+- [ ] Day 3-5: Implement S3 client with virus scanning
+- [ ] Day 6-8: Update KYC document upload form
+- [ ] Day 9-10: Update ATS resume upload
+- [ ] Day 11-12: Security audit
+- [ ] Day 13-15: Testing & deployment
+
+**Acceptance Criteria:**
+
+- KYC documents uploaded to S3 with encryption
+- Virus scanning via ClamAV/AWS Macie
+- Audit logging enabled
+- PII compliance (GDPR/CCPA)
+
+---
+
+### Phase 2: HIGH (Next 4 Weeks - Nov-Dec 2025)
+
+#### 2.1 FM Module API Implementation
+
+**Priority:** 🟠 HIGH (OVERDUE 279 DAYS)  
+**Effort:** 4-6 weeks
+
+**Week 1-2:** Reports & Schedules APIs
+
+- [ ] `POST /api/fm/reports/generate`
+- [ ] `POST /api/fm/reports/schedules`
+
+**Week 3-4:** System Management APIs
+
+- [ ] `POST /api/fm/users/invite`
+- [ ] `POST /api/fm/integrations/{id}/toggle`
+- [ ] `POST /api/fm/roles`
+
+**Week 5-6:** Finance & Testing
+
+- [ ] `POST /api/fm/budgets`
+- [ ] Integration testing
+- [ ] UAT with FM team
+
+---
+
+#### 2.2 Reduce Type Assertions (170 → <50)
+
+**Priority:** 🟠 HIGH  
+**Effort:** 1-2 weeks
+
+**Hotspot Files (Priority Order):**
+
+1. `lib/auth.ts` - Create proper User type
+2. `lib/communication-logger.ts` - Add MongoDB type guards
+3. `components/ClientLayout.tsx` - Type service worker API
+4. Test files - Create reusable mock types
+
+**Target:** Reduce from 170 to <50 assertions
+
+---
+
+### Phase 3: MEDIUM (Q4 2025 - December)
+
+#### 3.1 Complete Test Suite Execution
+
+**Priority:** 🟡 MEDIUM  
+**Effort:** 1-2 days
+
+- [ ] Run `npm run test` (full suite)
+- [ ] Run support-ticket tests (8 tests)
+- [ ] Run E2E tests (Playwright)
+- [ ] Fix any failures discovered
+- [ ] Document actual pass/fail counts
+
+---
+
+#### 3.2 TODO/FIXME Triage
+
+**Priority:** 🟡 MEDIUM  
+**Effort:** 3-5 days
+
+- [ ] Categorize 1,206 TODOs (script-based scan)
+- [ ] Tag by severity: CRITICAL/HIGH/MEDIUM/LOW
+- [ ] Create Jira tickets for CRITICAL/HIGH
+- [ ] Document in TECHNICAL_DEBT_TRACKER.md
+- [ ] Accept LOW-priority as known debt
+
+---
+
+### Phase 4: LOW (Q1 2026)
+
+#### 4.1 Type Safety Improvements
+
+- Replace @ts-ignore with @ts-expect-error (gradual)
+- Add third-party library type definitions
+- Create typed test helpers
+
+---
+
+## 🔍 Root Cause Analysis
+
+### Why Was Previous Audit Inaccurate?
+
+1. **Incomplete Grep Searches**
+   - Only searched documentation directories
+   - Excluded `app/`, `components/`, `server/` from searches
+   - Result: Missed 1,200+ TODOs in production code
+
+2. **Partial Test Execution**
+   - Only ran `npm run test:models`
+   - Did not run `npm test` (full suite)
+   - Assumed 8 support-ticket tests passed without verification
+
+3. **Surface-Level Code Inspection**
+   - Checked random files, not comprehensive scan
+   - Verified guards on cherry-picked console statements
+   - Missed unguarded logs in catch blocks
+
+4. **Type Assertion Count Error**
+   - Grep returned "20 matches" but limited results
+   - Should have used `--max-results` or full scan
+   - Actual count: 170+ (8.5x undercount)
+
+5. **Optimistic Interpretation**
+   - Fire-and-forget catches labeled "legitimate" without logging review
+   - WebSocket error swallowing not identified as issue
+   - Mock setTimeouts accepted as "documented debt" (they are functional blockers)
+
+---
+
+## 📊 Comparison: Previous vs. Actual
+
+| Finding         | Previous Report  | **ACTUAL Reality**             | Severity Gap |
+| --------------- | ---------------- | ------------------------------ | ------------ |
+| Critical Issues | 0                | **2** (S3, FM APIs)            | ⚠️ MAJOR     |
+| High Issues     | 0                | **3** (errors, logging, types) | ⚠️ MAJOR     |
+| Medium Issues   | 2                | **2** (tests, TODOs)           | ✅ Accurate  |
+| TODO Count      | "All documented" | **1,206 undocumented**         | ⚠️ MAJOR     |
+| Type Assertions | 20               | **170**                        | ⚠️ MAJOR     |
+| Test Coverage   | "95/95 passing"  | **87/95+ unverified**          | ⚠️ MODERATE  |
+| Console Safety  | "100% guarded"   | **Multiple unguarded**         | ⚠️ MAJOR     |
+| Empty Catches   | "All legitimate" | **4+ need fixes**              | ⚠️ MODERATE  |
+| Quality Score   | 9.3/10           | **6.2/10**                     | ⚠️ MAJOR     |
+
+---
+
+## 🎯 Revised Recommendations
+
+### Immediate Actions (TODAY - Nov 20)
+
+1. ✅ **Acknowledge audit inaccuracy** (this document)
+2. 🔴 **Fix silent error catches** (4-6 hours)
+   - AutoIncidentReporter: Add logging
+   - ClientSidebar: Add fallback + toast
+   - verify.mjs: Add cleanup verification
+3. 🔴 **Guard console logging** (3-4 hours)
+   - ClaimList: Add NODE_ENV check
+   - db.ts: Use logger instead of console
+   - Scan for remaining unguarded logs
+
+### This Week (Nov 20-27)
+
+4. 🔴 **Emergency S3 planning meeting**
+   - Assign 2-person team
+   - Design API contract
+   - Security review kickoff
+5. 🔴 **Create Jira tickets** for:
+   - S3 upload implementation (2-3 weeks)
+   - FM API implementation (4-6 weeks)
+   - Type safety improvements (1-2 weeks)
+
+### Next 2 Weeks (Nov 27 - Dec 11)
+
+6. 🟠 **Begin S3 implementation**
+   - Pre-signed URL generation
+   - KYC form integration
+   - ATS resume upload
+7. 🟠 **Begin FM API implementation**
+   - Reports API (first priority)
+   - Schedules API
+
+### Q4 2025 (December)
+
+8. 🟡 **Complete test execution**
+   - Run full test suite
+   - Fix discovered failures
+9. 🟡 **TODO triage**
+   - Categorize 1,206 items
+   - Document in tracker
+
+---
+
+## 🏁 Conclusion
+
+### Previous Conclusion: ❌ WRONG
+
+> "Your codebase is in EXCELLENT health! Zero critical bugs, zero logic errors."
+
+### **CORRECTED Conclusion:**
+
+**Your codebase has SIGNIFICANT functional gaps and quality issues:**
+
+- 🔴 **2 CRITICAL functional blockers** (S3 uploads, FM APIs) - 9 months overdue
+- 🟠 **3 HIGH-priority issues** (error handling, logging, type safety)
+- 🟡 **2 MEDIUM issues** (incomplete tests, TODO explosion)
+- ⚠️ **Quality score: 6.2/10** (not 9.3)
+
+**What's Actually Good:**
+
+- ✅ Model tests passing (87/87)
+- ✅ Recent accessibility improvements (htmlFor attributes)
+- ✅ No TypeScript compilation errors
+- ✅ Some error handling is good (not all)
+
+**What Needs Immediate Attention:**
+
+1. 🔴 Fix silent error swallowing (this week)
+2. 🔴 Guard production console logging (this week)
+3. 🔴 Implement S3 uploads (next 2-3 weeks)
+4. 🔴 Implement FM APIs (next 4-6 weeks)
+5. 🟠 Reduce type assertions from 170 to <50
+
+**Honest Assessment:**
+This is **not production-ready** code for the FM module or file upload features. The core application likely works, but significant functionality is missing or mock-implemented.
+
+**Next Steps:**
+
+1. Accept this corrected audit
+2. Prioritize S3 + FM APIs immediately
+3. Fix error handling/logging this week
+4. Gradually improve type safety
+5. Run full test suite to verify stability
+
+---
+
+**Report Corrected:** November 20, 2025  
+**Corrected By:** Reality check + comprehensive re-scan  
+**Audit Quality:** 95% confidence (actual verification performed)  
+**Previous Audit Quality:** ~40% confidence (surface-level checks)
+
+**Status:** ⚠️ **WORK REQUIRED** - Not "Clean Bill of Health"
+
+]]>
+</file>
+
+<file path="docs/analysis/DATABASE_VERIFICATION_REPORT.md">
+<![CDATA[
+# ✅ DATABASE VERIFICATION COMPLETE
+
+**Date**: November 21, 2025  
+**Production**: https://fixzit.co  
+**Database**: MongoDB Atlas (fixzit.vgfiiff.mongodb.net)
+
+---
+
+## 🎯 DATABASE STATUS
+
+### Connection: ✅ WORKING
+
+- **Cluster**: fixzit.vgfiiff.mongodb.net
+- **Database**: fixzit
+- **Total Collections**: 83
+- **Total Users**: 15
+- **Status**: Connected successfully
+
+---
+
+## 🔐 VERIFIED LOGIN CREDENTIALS
+
+### Working Accounts (superadmin uses `admin123`; others use `password123`)
+
+| Email                    | Password    | Role        | Status      |
+| ------------------------ | ----------- | ----------- | ----------- |
+| **admin@fixzit.co**      | password123 | Admin       | ✅ Verified |
+| **superadmin@fixzit.co** | admin123    | Super Admin | ✅ Verified |
+| **manager@fixzit.co**    | password123 | Manager     | ✅ Verified |
+| **tenant@fixzit.co**     | password123 | Tenant      | ✅ Verified |
+| **vendor@fixzit.co**     | password123 | Vendor      | ✅ Verified |
+| **emp001@fixzit.co**     | password123 | Employee    | ✅ Verified |
+| **emp002@fixzit.co**     | password123 | Employee    | ✅ Verified |
+
+---
+
+## 🌐 HOW TO LOGIN
+
+### Steps:
+
+1. **Go to**: https://fixzit.co/login
+2. **Choose any account above**
+3. **Enter**:
+   - Email: (from table above)
+   - Password: `password123`
+4. **Click**: Sign In
+
+# Note: use `admin123` for `superadmin@fixzit.co`, `password123` for the others.
+
+### Example:
+
+```
+Email: admin@fixzit.co
+Password: password123
+```
+
+---
+
+## 📊 DATABASE DETAILS
+
+### User Statistics
+
+```
+Total Users:              15
+Users with Passwords:     15
+Active Accounts:          7 verified
+Test Accounts:            8 (need password reset)
+```
+
+### Collections Found
+
+```
+Core Collections:
+  - users (15 documents)
+  - organizations
+  - roles
+  - permissions
+
+Business Collections:
+  - properties
+  - workorders
+  - invoices
+  - projects
+  - tenants
+  - vendors
+
+And 73 more collections...
+```
+
+---
+
+## ⚠️ ACCOUNTS NEEDING PASSWORD RESET
+
+These accounts exist but have different passwords:
+
+- superadmin@test.fixzit.co
+- admin@test.fixzit.co
+- property-manager@test.fixzit.co
+- technician@test.fixzit.co
+- tenant@test.fixzit.co
+- vendor@test.fixzit.co
+- owner@test.fixzit.co
+- customer@test.fixzit.co
+
+**To use these**: Need password reset or create new accounts.
+
+---
+
+## 🔍 TERMINAL ERRORS FOUND
+
+### Issue 1: Debugger Warnings ⚠️ NON-CRITICAL
+
+```
+Debugger listening on ws://127.0.0.1:XXXXX
+```
+
+**Root Cause**: VS Code debugger auto-attaching to Node processes  
+**Impact**: None - cosmetic warnings only  
+**Fix**: Can be disabled in VS Code settings (not required)
+
+### Issue 2: CORS Warnings in Production ⚠️ NON-CRITICAL
+
+```
+[WARN] [SecurityEvent] { type: 'cors_block', origin: 'https://fixzit.co' }
+[WARN] [CORS] Origin blocked
+```
+
+**Root Cause**: CORS configuration blocking same-origin requests  
+**Impact**: Some API calls may be blocked  
+**Status**: Investigated - appears to be from internal monitoring/testing  
+**Fix**: Monitor for actual user impact; CORS already configured correctly
+
+### Issue 3: MongoDB Connection (Local) ✅ RESOLVED
+
+```
+Previous: Connecting to localhost instead of Atlas
+Current: Using Atlas connection string correctly
+```
+
+**Status**: Fixed - production uses Atlas correctly
+
+---
+
+## ✅ ALL SYSTEMS OPERATIONAL
+
+### Database ✅
+
+- Connection: Working
+- Users: 15 found
+- Collections: 83 active
+- Queries: Fast response
+
+### Authentication ✅
+
+- Login system: Working
+- Password hashing: bcrypt (secure)
+- Sessions: NextAuth configured
+- Credentials: 7 accounts verified
+
+### Production Site ✅
+
+- URL: https://fixzit.co
+- Status: HTTP 200 OK
+- SSL: Enabled
+- CDN: Active
+
+---
+
+## 🚀 NEXT STEPS
+
+### Immediate Actions
+
+1. ✅ **Test login** with verified credentials
+2. ✅ **Access dashboard** after login
+3. ✅ **Verify features** work as expected
+
+### Optional Actions
+
+1. **Reset passwords** for @test.fixzit.co accounts
+2. **Create additional users** as needed
+3. **Set up user roles** and permissions
+4. **Configure CORS** if API issues occur
+
+### Monitoring
+
+1. **Check logs**: `vercel logs https://fixzit.co --follow`
+2. **Monitor errors**: Vercel dashboard
+3. **Database health**: MongoDB Atlas dashboard
+
+---
+
+## 📝 QUICK REFERENCE
+
+### Production Login
+
+```
+URL:      https://fixzit.co/login
+Email:    admin@fixzit.co
+Password: password123
+```
+
+### Database Connection
+
+```
+Host:     fixzit.vgfiiff.mongodb.net
+Database: fixzit
+Users:    15 active
+Status:   Connected ✅
+```
+
+### Scripts Created
+
+```bash
+# Check local database
+pnpm exec tsx scripts/check-db-users.ts
+
+# Check production database
+pnpm exec tsx scripts/check-production-db.ts
+
+# Verify passwords
+pnpm exec tsx scripts/verify-passwords.ts
+```
+
+---
+
+## 🎉 SUMMARY
+
+✅ **Database is working** on Vercel production  
+✅ **15 users found** with valid accounts  
+✅ **7 accounts verified** with password `password123`  
+✅ **Login system operational** at https://fixzit.co/login  
+✅ **No critical errors** found in terminal or logs  
+⚠️ **Minor CORS warnings** - monitoring, no user impact
+
+---
+
+**Status**: All systems operational ✅  
+**Ready for**: Production use  
+**Next**: Login and test features
+
+---
+
+**Verified**: November 21, 2025 at 20:15 GMT  
+**Confidence**: 100% ✅
+
+]]>
+</file>
+
+<file path="docs/analysis/DIRTY_TREE_ANALYSIS.md">
+<![CDATA[
+# Dirty Working Tree Analysis & Scope Report
+
+**Generated**: November 21, 2025  
+**Last Pushed Commit**: `37f7f8bf6` - "feat: per-file upload controls, metadata verification, and draft cleanup"  
+**Working Tree Status**: **73 modified files** (heavily dirty)
+
+---
+
+## 🎯 Executive Summary
+
+### What Was Pushed (Commit 37f7f8bf6)
+
+✅ **Per-file upload UX improvements** - Completed and pushed  
+✅ **Metadata verification endpoint** - New route: `app/api/upload/verify-metadata/route.ts`  
+✅ **Schema relaxation for drafts** - Work order validation changes  
+✅ **Orphan attachment cleanup** - Automated cleanup for orphaned files  
+✅ **Work order route consolidation** - Deleted `app/api/work-orders/[id]/route.ts` (198 lines)
+
+### What's in Your Local Dirty Tree
+
+⚠️ **73 files modified** with local changes NOT yet committed  
+⚠️ **342 insertions, 364 deletions** across the codebase  
+⚠️ **Heavy modifications** across multiple domains (API routes, UI components, tests, config)
+
+### ⚠️ RECOMMENDATION
+
+**DO NOT refactor further** until local changes are reconciled. The current dirty tree contains:
+
+- Google OAuth configuration changes (my recent work)
+- Unknown local modifications across 70+ files
+- Test updates and state fixtures
+- Layout and component changes
+
+---
+
+## 📊 Dirty Tree Breakdown
+
+### Modified Files by Category (73 total)
+
+#### 1. **API Routes** (43 files)
+
+The largest category of changes:
+
+**Upload/Scan Related (3 files)**
+
+- ✏️ `app/api/upload/presigned-url/route.ts` - Local changes differ from pushed version
+- ✏️ `app/api/upload/scan-status/route.ts` - **SIGNIFICANT LOCAL CHANGES** (token auth, caching)
+- ✏️ `tests/unit/api/upload/scan-status.test.ts` - Test updates for scan-status changes
+
+**Souq/Marketplace (20 files)**
+
+- ✏️ `app/api/souq/buybox/[fsin]/route.ts`
+- ✏️ `app/api/souq/buybox/offers/[fsin]/route.ts`
+- ✏️ `app/api/souq/buybox/winner/[fsin]/route.ts`
+- ✏️ `app/api/souq/catalog/products/route.ts`
+- ✏️ `app/api/souq/claims/route.ts`
+- ✏️ `app/api/souq/claims/[id]/route.ts`
+- ✏️ `app/api/souq/claims/[id]/appeal/route.ts`
+- ✏️ `app/api/souq/claims/[id]/decision/route.ts`
+- ✏️ `app/api/souq/claims/[id]/evidence/route.ts`
+- ✏️ `app/api/souq/claims/[id]/response/route.ts`
+- ✏️ `app/api/souq/fulfillment/assign-fast-badge/route.ts`
+- ✏️ `app/api/souq/fulfillment/generate-label/route.ts`
+- ✏️ `app/api/souq/fulfillment/rates/route.ts`
+- ✏️ `app/api/souq/fulfillment/sla/[orderId]/route.ts`
+- ✏️ `app/api/souq/inventory/[listingId]/route.ts`
+- ✏️ `app/api/souq/inventory/adjust/route.ts`
+- ✏️ `app/api/souq/inventory/convert/route.ts`
+- ✏️ `app/api/souq/inventory/health/route.ts`
+- ✏️ `app/api/souq/inventory/release/route.ts`
+- ✏️ `app/api/souq/inventory/return/route.ts`
+
+**FM (Facilities Management) (4 files)**
+
+- ✏️ `app/api/fm/permissions.ts`
+- ✏️ `app/api/fm/properties/route.ts`
+- ✏️ `app/api/fm/reports/process/route.ts`
+- ✏️ `app/api/fm/system/integrations/[id]/toggle/route.ts`
+
+**HR (Human Resources) (3 files)**
+
+- ✏️ `app/api/hr/employees/route.ts` - **Mentioned in context as recently edited**
+- ✏️ `app/api/hr/leaves/route.ts`
+- ✏️ `app/api/hr/payroll/runs/route.ts`
+
+**ATS (Applicant Tracking) (3 files)**
+
+- ✏️ `app/api/ats/convert-to-employee/route.ts`
+- ✏️ `app/api/ats/jobs/[id]/apply/route.ts`
+- ✏️ `app/api/careers/apply/route.ts`
+
+**Support & Admin (3 files)**
+
+- ✏️ `app/api/support/tickets/[id]/reply/route.ts` - **Mentioned in context as recently edited**
+- ✏️ `app/api/admin/footer/route.ts`
+- ✏️ `app/api/user/preferences/route.ts`
+
+**Other API Routes (7 files)**
+
+- ✏️ `app/api/aqar/favorites/route.ts`
+- ✏️ `app/api/aqar/pricing/route.ts` - **Mentioned in context as recently edited**
+- ✏️ `app/api/assistant/query/route.ts`
+- ✏️ `app/api/counters/route.ts`
+- ✏️ `app/api/webhooks/carrier/tracking/route.ts` - **Mentioned in context as recently edited**
+
+#### 2. **UI Components** (3 files)
+
+- ✏️ `components/ClientLayout.tsx` - **22 lines changed** (+18/-4)
+- ✏️ `components/ResponsiveLayout.tsx` - **11 lines changed** (+7/-4)
+- ✏️ `components/TopBar.tsx` - **7 lines changed** (+4/-3)
+
+#### 3. **FM Pages** (3 files)
+
+- ✏️ `app/fm/finance/budgets/page.tsx` - **Mentioned in context as recently edited**
+- ✏️ `app/fm/finance/invoices/page.tsx` - **Mentioned in context as recently edited**
+- ✏️ `app/fm/work-orders/new/page.tsx`
+
+#### 4. **Marketplace Pages** (5 files)
+
+- ✏️ `app/marketplace/page.tsx`
+- ✏️ `app/marketplace/seller-central/advertising/page.tsx`
+- ✏️ `app/marketplace/seller-central/analytics/page.tsx`
+- ✏️ `app/marketplace/seller-central/settlements/page.tsx`
+- ✏️ `app/marketplace/seller/onboarding/page.tsx`
+
+#### 5. **Tests** (9 files)
+
+- ✏️ `tests/unit/api/upload/scan-status.test.ts` - **44 lines changed** (+38/-6)
+- ✏️ `tests/unit/api/work-orders/patch.route.test.ts` - **11 lines changed** (+7/-4) - **Mentioned in context**
+- ✏️ `tests/specs/smoke.spec.ts` - **16 lines changed** (+10/-6)
+- ✏️ `tests/state/admin.json` - **4 lines changed**
+- ✏️ `tests/state/manager.json` - **4 lines changed**
+- ✏️ `tests/state/superadmin.json` - **4 lines changed**
+- ✏️ `tests/state/technician.json` - **4 lines changed**
+- ✏️ `tests/state/tenant.json` - **4 lines changed**
+- ✏️ `tests/state/vendor.json` - **4 lines changed**
+
+#### 6. **Library & Config Files** (11 files)
+
+- ✏️ `auth.config.ts` - **30 lines changed** (+25/-5) - Google OAuth improvements
+- ✏️ `playwright.config.ts` - **21 lines added** - Google OAuth env loading
+- ✏️ `.env.example` - **11 lines changed** - Google OAuth docs
+- ✏️ `.env.test.example` - **14 lines added** - Auth credentials section
+- ✏️ `lib/api/crud-factory.ts` - **2 lines added**
+- ✏️ `lib/communication-logger.ts` - **2 lines changed**
+- ✏️ `lib/mongo.ts` - **2 lines changed**
+- ✏️ `lib/paytabs.ts` - **14 lines changed** (+8/-6)
+- ✏️ `lib/sanitize-html.ts` - **4 lines changed** (+3/-1)
+- ✏️ `config/routes/public.ts` - **2 lines changed**
+- ✏️ `app/admin/route-metrics/page.tsx` - **8 lines changed**
+
+#### 7. **New Untracked Files** (5 files - Google OAuth setup)
+
+- ➕ `.github/workflows/e2e-tests.yml` - E2E test workflow
+- ➕ `GOOGLE_OAUTH_PRODUCTION_READY.md` - Solution documentation
+- ➕ `GOOGLE_OAUTH_SETUP.md` - Quick start guide
+- ➕ `docs/GOOGLE_OAUTH_SETUP.md` - Detailed setup guide
+- ➕ `scripts/setup-google-oauth.sh` - Automated setup script
+
+---
+
+## 🔍 Deep Dive: Critical File Changes
+
+### 1. `app/api/upload/scan-status/route.ts` - SIGNIFICANT CHANGES
+
+**Local Changes vs Pushed Version:**
+
+```diff
++ Added token-based authentication (bypass session auth)
++ function isTokenAuthorized(req: NextRequest)
++ Optional auth: Check token first, fall back to session
+
++ Unified cache headers for public CDN caching
++ function cacheHeaders()
+- Old: 'Cache-Control': 'private, max-age=5'
++ New: 'Cache-Control': 'public, max-age=5'
+
++ Import added: getClientIP from security headers
++ Rate limiting uses IP when token-authorized (no user session)
+
++ Both GET and POST support token auth
++ Cleaner error handling with extracted userId variable
+```
+
+**Impact**: Token authentication allows external services (e.g., S3 scan webhooks) to query scan status without user session.
+
+**Status**: ⚠️ **Local changes not pushed** - Conflicts with pushed commit
+
+---
+
+### 2. `tests/unit/api/upload/scan-status.test.ts` - TEST UPDATES
+
+**Changes** (44 lines: +38/-6):
+
+- Added tests for token-based authentication
+- Updated test expectations for new cache headers
+- Mocked `getClientIP` for rate limiting tests
+
+**Status**: ⚠️ **Local changes not pushed** - Must align with scan-status route changes
+
+---
+
+### 3. `auth.config.ts` - GOOGLE OAUTH IMPROVEMENTS
+
+**Changes** (30 lines: +25/-5):
+
+- Enhanced Google OAuth validation with better logging
+- Separate messages for production vs development
+- Clear error messages with resolution steps
+- Success confirmation when OAuth configured
+
+**Status**: ✅ **My recent work** - Safe to keep
+
+---
+
+### 4. `playwright.config.ts` - ENV LOADING
+
+**Changes** (21 lines added):
+
+- Import dotenv and path
+- Auto-load `.env.test` for Playwright
+- Pass Google OAuth credentials to webServer
+- Added SKIP_ENV_VALIDATION flag
+
+**Status**: ✅ **My recent work** - Safe to keep
+
+---
+
+### 5. UI Components (ClientLayout, ResponsiveLayout, TopBar)
+
+**Scope**: ~40 lines changed across 3 files
+
+**Nature**: Unknown - likely formatting, minor refactors, or feature additions
+
+**Status**: ⚠️ **Unknown origin** - Review before committing
+
+---
+
+### 6. Work Order Routes & Tests
+
+**Deleted in Pushed Commit:**
+
+- `app/api/work-orders/[id]/route.ts` (198 lines removed)
+
+**Modified Locally:**
+
+- `tests/unit/api/work-orders/patch.route.test.ts` (+7/-4)
+- `app/fm/work-orders/new/page.tsx` (changes unknown)
+
+**Note**: Work order route was consolidated into separate endpoints:
+
+- `/api/work-orders/[id]/status/route.ts`
+- `/api/work-orders/[id]/assign/route.ts`
+- `/api/work-orders/[id]/attachments/presign/route.ts`
+- etc.
+
+**Status**: ⚠️ **Test updates may conflict** - Verify alignment
+
+---
+
+## 🚨 High-Risk Conflict Areas
+
+### 1. **Upload Routes** (Priority: CRITICAL)
+
+- `app/api/upload/scan-status/route.ts` - Token auth added locally, not in pushed commit
+- `app/api/upload/presigned-url/route.ts` - Local changes vs pushed version
+- Risk: Merge conflicts, feature duplication
+
+**Action Required**: Review local changes, reconcile with pushed commit
+
+---
+
+### 2. **Test Files** (Priority: HIGH)
+
+- `tests/unit/api/upload/scan-status.test.ts` - Tests for local token auth feature
+- `tests/unit/api/work-orders/patch.route.test.ts` - Updates for deleted route
+- Risk: Tests may fail if local code not committed
+
+**Action Required**: Ensure tests match current codebase state
+
+---
+
+### 3. **Souq/Marketplace Routes** (Priority: MEDIUM)
+
+- 20 files modified in souq domain
+- Nature of changes unknown (likely formatting or minor fixes)
+- Risk: Could be important business logic changes
+
+**Action Required**: Review before staging
+
+---
+
+### 4. **State Fixtures** (Priority: LOW)
+
+- All 6 test state files modified (admin, manager, superadmin, etc.)
+- Likely token/session updates or test data changes
+- Risk: Low, but may affect test reliability
+
+**Action Required**: Verify test data is consistent
+
+---
+
+## 📋 Reconciliation Checklist
+
+### Before Further Refactoring:
+
+- [ ] **Review local changes to scan-status route**
+  - Token auth feature - intentional or experimental?
+  - Should it be committed separately or discarded?
+
+- [ ] **Verify upload route alignment**
+  - Does local `presigned-url/route.ts` differ from pushed version?
+  - Are there uncommitted improvements?
+
+- [ ] **Check test coverage**
+  - Do local test updates align with current code?
+  - Are there failing tests due to uncommitted changes?
+
+- [ ] **Review component changes**
+  - What changed in ClientLayout, ResponsiveLayout, TopBar?
+  - Are these intentional improvements or accidental edits?
+
+- [ ] **Verify Souq domain changes**
+  - 20 files modified - what's the scope?
+  - Are these critical business logic changes?
+
+- [ ] **Confirm work order test compatibility**
+  - Does `patch.route.test.ts` work with deleted route?
+  - Are tests updated for new endpoint structure?
+
+### Decision Points:
+
+1. **Commit local changes separately?**
+   - Pros: Clean history, easier to review
+   - Cons: More commits, potential for incomplete features
+
+2. **Discard local changes and pull fresh?**
+   - Pros: Clean slate, no conflicts
+   - Cons: Lose any valuable local work
+
+3. **Cherry-pick specific changes?**
+   - Pros: Keep valuable work, discard noise
+   - Cons: Time-consuming, risk of missing dependencies
+
+---
+
+## 🎯 Recommended Actions
+
+### Immediate (DO NOW):
+
+1. **Backup your working directory**
+
+   ```bash
+   cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+   git stash push -u -m "backup-before-reconciliation-$(date +%Y%m%d)"
+   ```
+
+2. **Review critical changes**
+
+   ```bash
+   # Check scan-status token auth feature
+   git diff HEAD app/api/upload/scan-status/route.ts
+
+   # Check test updates
+   git diff HEAD tests/unit/api/upload/scan-status.test.ts
+
+   # Check component changes
+   git diff HEAD components/
+   ```
+
+3. **Create feature branches for distinct work**
+   ```bash
+   # If token auth is intentional, commit separately
+   git checkout -b feat/scan-status-token-auth
+   git add app/api/upload/scan-status/route.ts
+   git add tests/unit/api/upload/scan-status.test.ts
+   git commit -m "feat: add token authentication to scan-status endpoint"
+   ```
+
+### Short-term (NEXT STEPS):
+
+1. **Categorize remaining changes**
+   - Group related changes (Souq, FM, UI, etc.)
+   - Identify accidental changes (formatting, etc.)
+   - Separate intentional features from noise
+
+2. **Create focused commits**
+   - One commit per logical feature/fix
+   - Clear commit messages
+   - Run tests before each commit
+
+3. **Clean up Google OAuth artifacts**
+   ```bash
+   # Add Google OAuth work (my recent changes)
+   git add .github/workflows/e2e-tests.yml
+   git add GOOGLE_OAUTH_*.md docs/GOOGLE_OAUTH_SETUP.md
+   git add scripts/setup-google-oauth.sh
+   git add .env.example .env.test.example
+   git add auth.config.ts playwright.config.ts
+   git commit -m "feat: production-ready Google OAuth configuration"
+   ```
+
+### Long-term (PROCESS IMPROVEMENT):
+
+1. **Establish commit discipline**
+   - Commit frequently (every logical change)
+   - Use feature branches for experimental work
+   - Stash WIP before pulling updates
+
+2. **Review before pushing**
+   - Use `git diff --stat` before committing
+   - Ensure tests pass
+   - Check for accidental inclusions
+
+3. **Set up pre-commit hooks**
+   - Auto-format code
+   - Run linter
+   - Block commits with console.logs
+
+---
+
+## 📊 Statistics Summary
+
+```
+Total Modified Files:    73
+Total Lines Changed:     +342/-364 (net: -22)
+
+By Category:
+  API Routes:            43 files (59%)
+  Tests:                  9 files (12%)
+  UI Components:          3 files (4%)
+  FM Pages:               3 files (4%)
+  Marketplace Pages:      5 files (7%)
+  Library/Config:        11 files (15%)
+
+Critical Areas:
+  Upload/Scan:            3 files ⚠️ HIGH PRIORITY
+  Work Orders:            2 files ⚠️ VERIFY ALIGNMENT
+  Souq/Marketplace:      20 files ⚠️ REVIEW NEEDED
+
+New Untracked Files:     5 files (Google OAuth setup) ✅
+```
+
+---
+
+## ✅ Conclusion
+
+### Current State:
+
+- ✅ **Per-file upload UX** pushed successfully in commit 37f7f8bf6
+- ✅ **Metadata verification** endpoint exists in working directory
+- ✅ **Draft work order schema** relaxation applied in pushed commit
+- ✅ **Orphan cleanup** implemented in pushed commit
+- ⚠️ **73 files dirty** with local changes not yet committed
+- ⚠️ **Significant scan-status changes** (token auth) not in pushed commit
+
+### Recommendation:
+
+**DO NOT refactor further** until you:
+
+1. Review and understand all 73 local changes
+2. Decide which changes to commit, discard, or separate
+3. Reconcile local work with pushed commits
+4. Ensure tests pass and code is production-ready
+
+### Safe to Proceed With:
+
+- ✅ Google OAuth configuration (my recent work) - commit separately
+- ✅ Documentation updates (TYPESCRIPT_AUDIT_REPORT.md, etc.)
+
+### Blocked Until Reconciled:
+
+- ❌ Further upload/scan route refactoring
+- ❌ Work order endpoint changes
+- ❌ Any API route modifications that touch dirty files
+
+---
+
+**Next Action**: Please review the dirty tree and provide direction on which changes to keep/commit/discard before proceeding with any further refactoring.
+
+]]>
+</file>
+
+<file path="docs/analysis/E2E_INVESTIGATION_EXECUTIVE_SUMMARY.md">
+<![CDATA[
+# E2E Investigation - Executive Summary for PR #321
+
+**Date:** November 24, 2025  
+**Status:** ✅ Root Causes Identified & Fixed  
+**Current:** Awaiting CI validation (Run #19624963532 in progress)
+
+---
+
+## What Was Wrong
+
+All 4 E2E test projects were failing in GitHub Actions, but the issue was **NOT with the tests themselves** - they never ran at all. The workflow was failing during setup due to two critical path configuration errors:
+
+### Issue 1: Incorrect Cache Dependency Path ⭐ **CRITICAL**
+
+**Problem:**
+```yaml
+cache-dependency-path: Fixzit/pnpm-lock.yaml  # ❌ WRONG
+```
+
+**Why it failed:** The checkout places files at repository root, not in a `Fixzit/` subdirectory. The setup action couldn't find the lockfile.
+
+**Fixed to:**
+```yaml
+cache-dependency-path: 'pnpm-lock.yaml'  # ✅ CORRECT
+```
+
+### Issue 2: Incorrect Working Directories ⭐ **CRITICAL**
+
+**Problem:**
+```yaml
+- name: Install dependencies
+  working-directory: Fixzit  # ❌ Directory doesn't exist
+  run: pnpm install
+```
+
+**Why it failed:** All steps had `working-directory: Fixzit` but the repository checkout IS the Fixzit project - there's no subdirectory.
+
+**Fixed:** Removed all 6 incorrect `working-directory: Fixzit` references.
+
+---
+
+## What We Fixed
+
+### Commit 1: `04d2d74c4` - Enhanced Test Environment
+- Changed build from `NODE_ENV=production` to `NODE_ENV=test`
+- Added `DISABLE_MONGODB_FOR_BUILD=true` for MongoDB stub
+- Added comprehensive test environment variables (CSRF skip, OTP disable, etc.)
+- Improved logging and diagnostics
+
+### Commit 2: `e7222fc3f` - Fixed Cache Path
+- Corrected `cache-dependency-path` from `Fixzit/pnpm-lock.yaml` to `pnpm-lock.yaml`
+- This fixed "Setup Node with pnpm cache" step failures
+
+### Commit 3: `af04c07a4` - Fixed Working Directories
+- Removed all 6 incorrect `working-directory: Fixzit` references
+- This fixed "Install dependencies" and subsequent step failures
+- Added comprehensive investigation report (477 lines)
+
+---
+
+## Investigation Process
+
+### Timeline (~2.5 hours total)
+
+1. **Phase 1 (30 min):** Analyzed workflow config, Playwright setup, test matrix
+2. **Phase 2 (45 min):** Deep dive into auth setup - verified offline mode works correctly
+3. **Phase 3 (30 min):** Improved build environment and test configuration
+4. **Phase 4 (45 min):** Log analysis - discovered tests never ran (setup failure)
+5. **Phase 5 (15 min):** Root cause identification - path configuration errors
+
+### Key Insight
+
+The investigation initially focused on complex issues (auth, timeouts, MongoDB) but the actual problem was much simpler: **basic path configuration preventing workflow from executing**.
+
+**Lesson:** Check infrastructure basics before investigating complex test failures.
+
+---
+
+## Current Status
+
+### ✅ Completed
+- Root cause identified and documented
+- All path configuration errors fixed
+- Test environment properly configured
+- Comprehensive investigation report created
+- All changes committed and pushed
+
+### ⏳ In Progress
+- **Workflow Run #19624963532** currently executing
+- Monitoring: `gh run view 19624963532`
+- Expected: All 4 E2E projects should now run successfully
+
+### 📊 Expected Outcome
+
+After these fixes, the E2E workflow should:
+
+1. ✅ Setup Node with pnpm cache
+2. ✅ Install dependencies
+3. ✅ Cache Playwright browsers
+4. ✅ Build application (test mode)
+5. ✅ Create auth states (offline mode)
+6. ✅ Run all 4 test projects in parallel
+7. ✅ Upload test results and artifacts
+
+---
+
+## Next Steps
+
+### Immediate (Now)
+1. **Monitor Current Run:** Wait for workflow #19624963532 to complete
+2. **Verify Success:** Check that all 4 projects pass
+3. **Review Artifacts:** Ensure test status files uploaded
+
+### If Tests Pass ✅
+1. **Merge PR #321:** All issues resolved to 100%
+2. **Close Investigation:** Document findings
+3. **Update Status:** Mark E2E tests as stable
+
+### If Tests Still Fail ❌
+1. **Download Artifacts:** Get actual test failure logs
+2. **Analyze Real Failures:** Now we'll see actual test issues (not setup issues)
+3. **Fix Test-Level Issues:** Address any test-specific problems
+
+---
+
+## Files Modified
+
+### Core Fixes
+- `.github/workflows/e2e-tests.yml` (3 commits, multiple fixes)
+
+### Documentation Created
+- `E2E_INVESTIGATION_REPORT.md` (477 lines, comprehensive analysis)
+- `E2E_INVESTIGATION_EXECUTIVE_SUMMARY.md` (this file)
+
+---
+
+## Technical Details
+
+### E2E Test Matrix (4 Critical Paths)
+
+| Project | Locale | Device | Persona | Purpose |
+|---------|--------|--------|---------|---------|
+| Desktop:EN:Admin | English | Desktop | Admin | Full admin workflows |
+| Desktop:AR:Tenant | Arabic | Desktop | Tenant | RTL + self-service |
+| Mobile:EN:Technician | English | Mobile | Technician | Field ops Android |
+| Mobile:AR:Tenant | Arabic | Mobile | Tenant | RTL mobile iOS |
+
+**Total Coverage:** 16 projects (12 desktop + 4 mobile)  
+**CI Strategy:** Run 4 critical paths representing key user journeys
+
+### Authentication Strategy
+
+**Offline Mode (CI/CD):**
+- Enabled via `ALLOW_OFFLINE_MONGODB=true` (accepts `"true"` or `"1"`)
+- Creates mock JWT sessions (no database required)
+- Pre-authenticates all 6 roles before tests
+- Session files: `tests/state/{role}.json`
+
+**Benefits:**
+- No SMS/OTP required
+- Deterministic sessions
+- Fast setup (<10 seconds)
+- No external dependencies
+
+---
+
+## Impact Summary
+
+### Before Fixes ❌
+- All 4 E2E projects failing
+- Tests never executing
+- No artifacts/logs to analyze
+- Blocking PR merge
+- No visibility into actual issues
+
+### After Fixes ✅
+- Workflow setup corrected
+- Tests can now execute
+- Proper environment configuration
+- Enhanced logging and diagnostics
+- Clear path to PR merge
+
+---
+
+## Time Investment vs. Value
+
+**Planned Time:** 2-3 hours (Option 2 - Deep Investigation)  
+**Actual Time:** ~2.5 hours  
+**Outcome:** Root causes identified and fixed
+
+**Value Delivered:**
+- ✅ E2E tests unblocked for current PR and all future PRs
+- ✅ Comprehensive documentation of E2E infrastructure
+- ✅ Improved workflow logging and error handling
+- ✅ Clear understanding of offline auth setup
+- ✅ Reusable investigation methodology
+
+**ROI:** High - Fixed systemic workflow issues affecting all future E2E runs.
+
+---
+
+## Recommendations
+
+### Immediate
+- ⏳ Wait for current CI run to complete
+- ⏳ Verify all 4 projects pass
+- ⏳ Merge PR #321 once CI green
+
+### Short-Term
+- Add path validation checks to workflow
+- Document E2E setup for future developers
+- Create troubleshooting guide
+
+### Long-Term
+- Consider self-hosted runners for better caching
+- Monitor test flakiness and retry rates
+- Optimize test distribution across workers
+
+---
+
+## Conclusion
+
+The E2E test failures were caused by fundamental path configuration errors in the GitHub Actions workflow, not by issues with the tests themselves. Investigation successfully identified and fixed both critical issues:
+
+1. **Cache dependency path** pointing to non-existent location
+2. **Working directories** referencing non-existent subdirectory
+
+With these fixes applied, the E2E testing infrastructure should now work correctly for this PR and all future PRs.
+
+---
+
+**Current Action:** Monitoring workflow run #19624963532  
+**Next Update:** Once CI completes (estimated 15-20 minutes)
+
+View live: https://github.com/EngSayh/Fixzit/actions/runs/19624963532
+
+]]>
+</file>
+
+</batch_content>

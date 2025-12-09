@@ -1,0 +1,2393 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="i18n/sources/rfqBidding.translations.json">
+<![CDATA[
+{
+  "en": {
+    "rfqBidding.award": "Award",
+    "rfqBidding.awarded": "Awarded",
+    "rfqBidding.bid": "Bid",
+    "rfqBidding.bidAmount": "Bid Amount",
+    "rfqBidding.bidding": "Bidding",
+    "rfqBidding.bids": "Bids",
+    "rfqBidding.bidStatus": "Bid Status",
+    "rfqBidding.comparison": "Comparison",
+    "rfqBidding.declined": "Declined",
+    "rfqBidding.deliveryTime": "Delivery Time",
+    "rfqBidding.evaluation": "Evaluation",
+    "rfqBidding.leadTime": "Lead Time",
+    "rfqBidding.pending": "Pending",
+    "rfqBidding.proposedPrice": "Proposed Price",
+    "rfqBidding.quotation": "Quotation",
+    "rfqBidding.quotations": "Quotations",
+    "rfqBidding.quotedPrice": "Quoted Price",
+    "rfqBidding.rejected": "Rejected",
+    "rfqBidding.requestForQuotation": "Request for Quotation",
+    "rfqBidding.rfq": "RFQ",
+    "rfqBidding.rfqDescription": "RFQ Description",
+    "rfqBidding.rfqNumber": "RFQ Number",
+    "rfqBidding.rfqs": "RFQs",
+    "rfqBidding.rfqTitle": "RFQ Title",
+    "rfqBidding.selection": "Selection",
+    "rfqBidding.shortlisted": "Shortlisted",
+    "rfqBidding.submission": "Submission",
+    "rfqBidding.submissionDate": "Submission Date",
+    "rfqBidding.submissionDeadline": "Submission Deadline",
+    "rfqBidding.submissions": "Submissions",
+    "rfqBidding.submitted": "Submitted",
+    "rfqBidding.underReview": "Under Review",
+    "rfqBidding.withdraw": "Withdraw",
+    "rfqBidding.withdrawn": "Withdrawn"
+  },
+  "ar": {
+    "rfqBidding.award": "الترسية",
+    "rfqBidding.awarded": "مرسى",
+    "rfqBidding.bid": "عطاء",
+    "rfqBidding.bidAmount": "قيمة العطاء",
+    "rfqBidding.bidding": "المناقصة",
+    "rfqBidding.bids": "عطاءات",
+    "rfqBidding.bidStatus": "حالة العطاء",
+    "rfqBidding.comparison": "المقارنة",
+    "rfqBidding.declined": "مرفوض",
+    "rfqBidding.deliveryTime": "مدة التسليم",
+    "rfqBidding.evaluation": "التقييم",
+    "rfqBidding.leadTime": "المدة الزمنية",
+    "rfqBidding.pending": "معلق",
+    "rfqBidding.proposedPrice": "السعر المقترح",
+    "rfqBidding.quotation": "عرض سعر",
+    "rfqBidding.quotations": "عروض الأسعار",
+    "rfqBidding.quotedPrice": "السعر المعروض",
+    "rfqBidding.rejected": "مرفوض",
+    "rfqBidding.requestForQuotation": "طلب عرض سعر",
+    "rfqBidding.rfq": "طلب عرض سعر",
+    "rfqBidding.rfqDescription": "وصف طلب عرض السعر",
+    "rfqBidding.rfqNumber": "رقم طلب عرض السعر",
+    "rfqBidding.rfqs": "طلبات عروض الأسعار",
+    "rfqBidding.rfqTitle": "عنوان طلب عرض السعر",
+    "rfqBidding.selection": "الاختيار",
+    "rfqBidding.shortlisted": "القائمة المختصرة",
+    "rfqBidding.submission": "تقديم",
+    "rfqBidding.submissionDate": "تاريخ التقديم",
+    "rfqBidding.submissionDeadline": "الموعد النهائي للتقديم",
+    "rfqBidding.submissions": "التقديمات",
+    "rfqBidding.submitted": "مقدم",
+    "rfqBidding.underReview": "قيد المراجعة",
+    "rfqBidding.withdraw": "سحب",
+    "rfqBidding.withdrawn": "مسحوب"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/risk.translations.json">
+<![CDATA[
+{
+  "en": {
+    "risk.consequence": "Consequence",
+    "risk.contingency": "Contingency",
+    "risk.contingencyPlan": "Contingency Plan",
+    "risk.controlMeasure": "Control Measure",
+    "risk.danger": "Danger",
+    "risk.dangerous": "Dangerous",
+    "risk.emergencyPlan": "Emergency Plan",
+    "risk.exposure": "Exposure",
+    "risk.hazard": "Hazard",
+    "risk.hazards": "Hazards",
+    "risk.highRisk": "High Risk",
+    "risk.impact": "Impact",
+    "risk.likelihood": "Likelihood",
+    "risk.lowRisk": "Low Risk",
+    "risk.mitigation": "Mitigation",
+    "risk.precaution": "Precaution",
+    "risk.precautionary": "Precautionary",
+    "risk.prevention": "Prevention",
+    "risk.probability": "Probability",
+    "risk.risk1": "Risk",
+    "risk.riskAnalysis": "Risk Analysis",
+    "risk.riskAssessment": "Risk Assessment",
+    "risk.riskLevel": "Risk Level",
+    "risk.riskManagement": "Risk Management",
+    "risk.risks": "Risks",
+    "risk.safeguard": "Safeguard",
+    "risk.severity": "Severity",
+    "risk.threat": "Threat",
+    "risk.vulnerability": "Vulnerability"
+  },
+  "ar": {
+    "risk.consequence": "عاقبة",
+    "risk.contingency": "طوارئ",
+    "risk.contingencyPlan": "خطة الطوارئ",
+    "risk.controlMeasure": "إجراء تحكم",
+    "risk.danger": "خطر",
+    "risk.dangerous": "خطير",
+    "risk.emergencyPlan": "خطة الطوارئ",
+    "risk.exposure": "تعرض",
+    "risk.hazard": "خطر",
+    "risk.hazards": "مخاطر",
+    "risk.highRisk": "خطر عالي",
+    "risk.impact": "تأثير",
+    "risk.likelihood": "احتمالية",
+    "risk.lowRisk": "خطر منخفض",
+    "risk.mitigation": "تخفيف",
+    "risk.precaution": "احتياط",
+    "risk.precautionary": "احتياطي",
+    "risk.prevention": "وقاية",
+    "risk.probability": "احتمال",
+    "risk.risk1": "خطر",
+    "risk.riskAnalysis": "تحليل المخاطر",
+    "risk.riskAssessment": "تقييم المخاطر",
+    "risk.riskLevel": "مستوى الخطر",
+    "risk.riskManagement": "إدارة المخاطر",
+    "risk.risks": "مخاطر",
+    "risk.safeguard": "حماية",
+    "risk.severity": "شدة",
+    "risk.threat": "تهديد",
+    "risk.vulnerability": "ضعف"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/riskCommunication.translations.json">
+<![CDATA[
+{
+  "en": {
+    "riskCommunication.acceptance": "Risk Acceptance",
+    "riskCommunication.accuracy": "Risk Accuracy",
+    "riskCommunication.audience": "Audience Analysis",
+    "riskCommunication.awareness": "Risk Awareness",
+    "riskCommunication.clarity": "Risk Clarity",
+    "riskCommunication.consultation": "Risk Consultation",
+    "riskCommunication.dialogue": "Risk Dialogue",
+    "riskCommunication.disclosure": "Risk Disclosure",
+    "riskCommunication.education": "Risk Education",
+    "riskCommunication.engagement": "Risk Engagement",
+    "riskCommunication.escalation": "Risk Escalation",
+    "riskCommunication.feedback": "Risk Feedback",
+    "riskCommunication.information": "Risk Information",
+    "riskCommunication.message": "Risk Message",
+    "riskCommunication.perception": "Risk Perception",
+    "riskCommunication.reporting": "Risk Reporting",
+    "riskCommunication.response": "Risk Response",
+    "riskCommunication.risk": "Risk Communication",
+    "riskCommunication.stakeholder": "Stakeholder Communication",
+    "riskCommunication.timeliness": "Risk Timeliness",
+    "riskCommunication.transparency": "Risk Transparency",
+    "riskCommunication.understanding": "Risk Understanding"
+  },
+  "ar": {
+    "riskCommunication.acceptance": "قبول المخاطر",
+    "riskCommunication.accuracy": "دقة المخاطر",
+    "riskCommunication.audience": "تحليل الجمهور",
+    "riskCommunication.awareness": "الوعي بالمخاطر",
+    "riskCommunication.clarity": "وضوح المخاطر",
+    "riskCommunication.consultation": "استشارة المخاطر",
+    "riskCommunication.dialogue": "حوار المخاطر",
+    "riskCommunication.disclosure": "الإفصاح عن المخاطر",
+    "riskCommunication.education": "تثقيف المخاطر",
+    "riskCommunication.engagement": "إشراك المخاطر",
+    "riskCommunication.escalation": "تصعيد المخاطر",
+    "riskCommunication.feedback": "ملاحظات المخاطر",
+    "riskCommunication.information": "معلومات المخاطر",
+    "riskCommunication.message": "رسالة المخاطر",
+    "riskCommunication.perception": "إدراك المخاطر",
+    "riskCommunication.reporting": "إعداد تقارير المخاطر",
+    "riskCommunication.response": "الاستجابة للمخاطر",
+    "riskCommunication.risk": "التواصل بشأن المخاطر",
+    "riskCommunication.stakeholder": "التواصل مع أصحاب المصلحة",
+    "riskCommunication.timeliness": "التوقيت المناسب للمخاطر",
+    "riskCommunication.transparency": "شفافية المخاطر",
+    "riskCommunication.understanding": "فهم المخاطر"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/riskManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "riskManagement.analysis": "Risk Analysis",
+    "riskManagement.assessment": "Risk Assessment",
+    "riskManagement.consequence": "Consequence",
+    "riskManagement.contingency": "Contingency Plan",
+    "riskManagement.control": "Risk Control",
+    "riskManagement.critical": "Critical",
+    "riskManagement.evaluation": "Risk Evaluation",
+    "riskManagement.exposure": "Exposure",
+    "riskManagement.high": "High Risk",
+    "riskManagement.identification": "Risk Identification",
+    "riskManagement.impact": "Impact",
+    "riskManagement.insurance": "Insurance",
+    "riskManagement.level": "Risk Level",
+    "riskManagement.likelihood": "Likelihood",
+    "riskManagement.low": "Low Risk",
+    "riskManagement.management": "Risk Management",
+    "riskManagement.medium": "Medium Risk",
+    "riskManagement.mitigation": "Risk Mitigation",
+    "riskManagement.monitoring": "Risk Monitoring",
+    "riskManagement.probability": "Probability",
+    "riskManagement.recovery": "Recovery Plan",
+    "riskManagement.reporting": "Risk Reporting",
+    "riskManagement.risk": "Risk",
+    "riskManagement.threat": "Threat",
+    "riskManagement.transfer": "Risk Transfer",
+    "riskManagement.treatment": "Risk Treatment",
+    "riskManagement.vulnerability": "Vulnerability"
+  },
+  "ar": {
+    "riskManagement.analysis": "تحليل المخاطر",
+    "riskManagement.assessment": "تقييم المخاطر",
+    "riskManagement.consequence": "النتيجة",
+    "riskManagement.contingency": "خطة الطوارئ",
+    "riskManagement.control": "التحكم في المخاطر",
+    "riskManagement.critical": "حرجة",
+    "riskManagement.evaluation": "تقييم المخاطر",
+    "riskManagement.exposure": "التعرض",
+    "riskManagement.high": "مخاطر عالية",
+    "riskManagement.identification": "تحديد المخاطر",
+    "riskManagement.impact": "التأثير",
+    "riskManagement.insurance": "التأمين",
+    "riskManagement.level": "مستوى المخاطر",
+    "riskManagement.likelihood": "الاحتمالية",
+    "riskManagement.low": "مخاطر منخفضة",
+    "riskManagement.management": "إدارة المخاطر",
+    "riskManagement.medium": "مخاطر متوسطة",
+    "riskManagement.mitigation": "التخفيف من المخاطر",
+    "riskManagement.monitoring": "مراقبة المخاطر",
+    "riskManagement.probability": "الاحتمال",
+    "riskManagement.recovery": "خطة التعافي",
+    "riskManagement.reporting": "الإبلاغ عن المخاطر",
+    "riskManagement.risk": "المخاطر",
+    "riskManagement.threat": "التهديد",
+    "riskManagement.transfer": "نقل المخاطر",
+    "riskManagement.treatment": "معالجة المخاطر",
+    "riskManagement.vulnerability": "نقطة الضعف"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/riskManagementAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "riskManagementAdv.acceptance": "Risk Acceptance",
+    "riskManagementAdv.analysis": "Risk Analysis",
+    "riskManagementAdv.appetite": "Risk Appetite",
+    "riskManagementAdv.assessment": "Risk Assessment",
+    "riskManagementAdv.avoidance": "Risk Avoidance",
+    "riskManagementAdv.contingency": "Contingency Plan",
+    "riskManagementAdv.control": "Risk Control",
+    "riskManagementAdv.evaluation": "Risk Evaluation",
+    "riskManagementAdv.exposure": "Risk Exposure",
+    "riskManagementAdv.identification": "Risk Identification",
+    "riskManagementAdv.matrix": "Risk Matrix",
+    "riskManagementAdv.mitigation": "Risk Mitigation",
+    "riskManagementAdv.monitoring": "Risk Monitoring",
+    "riskManagementAdv.profile": "Risk Profile",
+    "riskManagementAdv.register": "Risk Register",
+    "riskManagementAdv.reporting": "Risk Reporting",
+    "riskManagementAdv.risk": "Risk Management",
+    "riskManagementAdv.scenario": "Risk Scenario",
+    "riskManagementAdv.stress": "Stress Testing",
+    "riskManagementAdv.tolerance": "Risk Tolerance",
+    "riskManagementAdv.transfer": "Risk Transfer",
+    "riskManagementAdv.treatment": "Risk Treatment"
+  },
+  "ar": {
+    "riskManagementAdv.acceptance": "قبول المخاطر",
+    "riskManagementAdv.analysis": "تحليل المخاطر",
+    "riskManagementAdv.appetite": "الرغبة في المخاطرة",
+    "riskManagementAdv.assessment": "تقييم المخاطر",
+    "riskManagementAdv.avoidance": "تجنب المخاطر",
+    "riskManagementAdv.contingency": "خطة الطوارئ",
+    "riskManagementAdv.control": "التحكم في المخاطر",
+    "riskManagementAdv.evaluation": "تقويم المخاطر",
+    "riskManagementAdv.exposure": "التعرض للمخاطر",
+    "riskManagementAdv.identification": "تحديد المخاطر",
+    "riskManagementAdv.matrix": "مصفوفة المخاطر",
+    "riskManagementAdv.mitigation": "تخفيف المخاطر",
+    "riskManagementAdv.monitoring": "مراقبة المخاطر",
+    "riskManagementAdv.profile": "ملف المخاطر",
+    "riskManagementAdv.register": "سجل المخاطر",
+    "riskManagementAdv.reporting": "الإبلاغ عن المخاطر",
+    "riskManagementAdv.risk": "إدارة المخاطر",
+    "riskManagementAdv.scenario": "سيناريو المخاطر",
+    "riskManagementAdv.stress": "اختبار الإجهاد",
+    "riskManagementAdv.tolerance": "تحمل المخاطر",
+    "riskManagementAdv.transfer": "نقل المخاطر",
+    "riskManagementAdv.treatment": "معالجة المخاطر"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/riskManagementExt.translations.json">
+<![CDATA[
+{
+  "en": {
+    "riskManagementExt.acceptance": "Risk Acceptance",
+    "riskManagementExt.analysis": "Risk Analysis",
+    "riskManagementExt.appetite": "Risk Appetite",
+    "riskManagementExt.assessment": "Risk Assessment",
+    "riskManagementExt.avoidance": "Risk Avoidance",
+    "riskManagementExt.contingency": "Contingency Planning",
+    "riskManagementExt.control": "Risk Control",
+    "riskManagementExt.evaluation": "Risk Evaluation",
+    "riskManagementExt.framework": "Risk Framework",
+    "riskManagementExt.governance": "Risk Governance",
+    "riskManagementExt.heat": "Heat Map",
+    "riskManagementExt.identification": "Risk Identification",
+    "riskManagementExt.matrix": "Risk Matrix",
+    "riskManagementExt.mitigation": "Risk Mitigation",
+    "riskManagementExt.monitoring": "Risk Monitoring",
+    "riskManagementExt.policy": "Risk Policy",
+    "riskManagementExt.reduction": "Risk Reduction",
+    "riskManagementExt.register": "Risk Register",
+    "riskManagementExt.reporting": "Risk Reporting",
+    "riskManagementExt.risk": "Risk Management",
+    "riskManagementExt.tolerance": "Risk Tolerance",
+    "riskManagementExt.transfer": "Risk Transfer",
+    "riskManagementExt.treatment": "Risk Treatment"
+  },
+  "ar": {
+    "riskManagementExt.acceptance": "قبول المخاطر",
+    "riskManagementExt.analysis": "تحليل المخاطر",
+    "riskManagementExt.appetite": "شهية المخاطر",
+    "riskManagementExt.assessment": "تقييم المخاطر",
+    "riskManagementExt.avoidance": "تجنب المخاطر",
+    "riskManagementExt.contingency": "التخطيط للطوارئ",
+    "riskManagementExt.control": "السيطرة على المخاطر",
+    "riskManagementExt.evaluation": "تقييم المخاطر",
+    "riskManagementExt.framework": "إطار المخاطر",
+    "riskManagementExt.governance": "حوكمة المخاطر",
+    "riskManagementExt.heat": "خريطة حرارية",
+    "riskManagementExt.identification": "تحديد المخاطر",
+    "riskManagementExt.matrix": "مصفوفة المخاطر",
+    "riskManagementExt.mitigation": "التخفيف من المخاطر",
+    "riskManagementExt.monitoring": "مراقبة المخاطر",
+    "riskManagementExt.policy": "سياسة المخاطر",
+    "riskManagementExt.reduction": "تقليل المخاطر",
+    "riskManagementExt.register": "سجل المخاطر",
+    "riskManagementExt.reporting": "الإبلاغ عن المخاطر",
+    "riskManagementExt.risk": "إدارة المخاطر",
+    "riskManagementExt.tolerance": "تحمل المخاطر",
+    "riskManagementExt.transfer": "نقل المخاطر",
+    "riskManagementExt.treatment": "معالجة المخاطر"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/riskManagementFinancial.translations.json">
+<![CDATA[
+{
+  "en": {
+    "riskManagementFinancial.analysis": "Risk Analysis",
+    "riskManagementFinancial.appetite": "Risk Appetite",
+    "riskManagementFinancial.assessment": "Risk Assessment",
+    "riskManagementFinancial.commodity": "Commodity Risk",
+    "riskManagementFinancial.compliance": "Compliance Risk",
+    "riskManagementFinancial.concentration": "Concentration Risk",
+    "riskManagementFinancial.control": "Risk Controls",
+    "riskManagementFinancial.counterparty": "Counterparty Risk",
+    "riskManagementFinancial.credit": "Credit Risk",
+    "riskManagementFinancial.currency": "Currency Risk",
+    "riskManagementFinancial.description": "Enterprise Risk and Compliance",
+    "riskManagementFinancial.enterprise": "Enterprise Risk",
+    "riskManagementFinancial.framework": "Risk Framework",
+    "riskManagementFinancial.governance": "Risk Governance",
+    "riskManagementFinancial.hedging": "Risk Hedging",
+    "riskManagementFinancial.identification": "Risk Identification",
+    "riskManagementFinancial.insurance": "Risk Insurance",
+    "riskManagementFinancial.interest": "Interest Rate Risk",
+    "riskManagementFinancial.legal": "Legal Risk",
+    "riskManagementFinancial.limits": "Risk Limits",
+    "riskManagementFinancial.liquidity": "Liquidity Risk",
+    "riskManagementFinancial.market": "Market Risk",
+    "riskManagementFinancial.measurement": "Risk Measurement",
+    "riskManagementFinancial.mitigation": "Risk Mitigation",
+    "riskManagementFinancial.model": "Model Risk",
+    "riskManagementFinancial.monitoring": "Risk Monitoring",
+    "riskManagementFinancial.operational": "Operational Risk",
+    "riskManagementFinancial.regulatory": "Regulatory Risk",
+    "riskManagementFinancial.reporting": "Risk Reporting",
+    "riskManagementFinancial.reputational": "Reputational Risk",
+    "riskManagementFinancial.risk": "Risk Management",
+    "riskManagementFinancial.scenario": "Scenario Analysis",
+    "riskManagementFinancial.strategic": "Strategic Risk",
+    "riskManagementFinancial.stress": "Stress Testing",
+    "riskManagementFinancial.title": "Financial Risk Management",
+    "riskManagementFinancial.tolerance": "Risk Tolerance",
+    "riskManagementFinancial.transfer": "Risk Transfer",
+    "riskManagementFinancial.var": "Value at Risk"
+  },
+  "ar": {
+    "riskManagementFinancial.analysis": "تحليل المخاطر",
+    "riskManagementFinancial.appetite": "شهية المخاطر",
+    "riskManagementFinancial.assessment": "تقييم المخاطر",
+    "riskManagementFinancial.commodity": "مخاطر السلع",
+    "riskManagementFinancial.compliance": "مخاطر الامتثال",
+    "riskManagementFinancial.concentration": "مخاطر التركيز",
+    "riskManagementFinancial.control": "ضوابط المخاطر",
+    "riskManagementFinancial.counterparty": "مخاطر الطرف المقابل",
+    "riskManagementFinancial.credit": "مخاطر الائتمان",
+    "riskManagementFinancial.currency": "مخاطر العملة",
+    "riskManagementFinancial.description": "مخاطر المؤسسة والامتثال",
+    "riskManagementFinancial.enterprise": "مخاطر المؤسسة",
+    "riskManagementFinancial.framework": "إطار المخاطر",
+    "riskManagementFinancial.governance": "حوكمة المخاطر",
+    "riskManagementFinancial.hedging": "التحوط من المخاطر",
+    "riskManagementFinancial.identification": "تحديد المخاطر",
+    "riskManagementFinancial.insurance": "تأمين المخاطر",
+    "riskManagementFinancial.interest": "مخاطر أسعار الفائدة",
+    "riskManagementFinancial.legal": "المخاطر القانونية",
+    "riskManagementFinancial.limits": "حدود المخاطر",
+    "riskManagementFinancial.liquidity": "مخاطر السيولة",
+    "riskManagementFinancial.market": "مخاطر السوق",
+    "riskManagementFinancial.measurement": "قياس المخاطر",
+    "riskManagementFinancial.mitigation": "تخفيف المخاطر",
+    "riskManagementFinancial.model": "مخاطر النموذج",
+    "riskManagementFinancial.monitoring": "مراقبة المخاطر",
+    "riskManagementFinancial.operational": "المخاطر التشغيلية",
+    "riskManagementFinancial.regulatory": "المخاطر التنظيمية",
+    "riskManagementFinancial.reporting": "الإبلاغ عن المخاطر",
+    "riskManagementFinancial.reputational": "مخاطر السمعة",
+    "riskManagementFinancial.risk": "إدارة المخاطر",
+    "riskManagementFinancial.scenario": "تحليل السيناريو",
+    "riskManagementFinancial.strategic": "المخاطر الاستراتيجية",
+    "riskManagementFinancial.stress": "اختبار الإجهاد",
+    "riskManagementFinancial.title": "إدارة المخاطر المالية",
+    "riskManagementFinancial.tolerance": "تحمل المخاطر",
+    "riskManagementFinancial.transfer": "نقل المخاطر",
+    "riskManagementFinancial.var": "القيمة المعرضة للخطر"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/roboticProcessAutomation.translations.json">
+<![CDATA[
+{
+  "en": {
+    "roboticProcessAutomation.assessment": "RPA Assessment",
+    "roboticProcessAutomation.automation": "RPA Strategy",
+    "roboticProcessAutomation.bot": "Bot Development",
+    "roboticProcessAutomation.coe": "RPA Center of Excellence",
+    "roboticProcessAutomation.deployment": "Bot Deployment",
+    "roboticProcessAutomation.design": "Bot Design",
+    "roboticProcessAutomation.development": "Bot Development",
+    "roboticProcessAutomation.execution": "Bot Execution",
+    "roboticProcessAutomation.governance": "RPA Governance",
+    "roboticProcessAutomation.implementation": "RPA Implementation",
+    "roboticProcessAutomation.management": "Bot Management",
+    "roboticProcessAutomation.monitoring": "Bot Monitoring",
+    "roboticProcessAutomation.opportunity": "RPA Opportunity",
+    "roboticProcessAutomation.optimization": "RPA Optimization",
+    "roboticProcessAutomation.orchestration": "Bot Orchestration",
+    "roboticProcessAutomation.platform": "RPA Platform",
+    "roboticProcessAutomation.robot": "Software Robot",
+    "roboticProcessAutomation.robotic": "Robotic Process Automation",
+    "roboticProcessAutomation.rpa": "RPA Implementation",
+    "roboticProcessAutomation.scaling": "RPA Scaling",
+    "roboticProcessAutomation.software": "RPA Software",
+    "roboticProcessAutomation.tools": "RPA Tools"
+  },
+  "ar": {
+    "roboticProcessAutomation.assessment": "تقييم أتمتة العمليات الروبوتية",
+    "roboticProcessAutomation.automation": "استراتيجية أتمتة العمليات الروبوتية",
+    "roboticProcessAutomation.bot": "تطوير الروبوت",
+    "roboticProcessAutomation.coe": "مركز التميز لأتمتة العمليات الروبوتية",
+    "roboticProcessAutomation.deployment": "نشر الروبوت",
+    "roboticProcessAutomation.design": "تصميم الروبوت",
+    "roboticProcessAutomation.development": "تطوير الروبوت",
+    "roboticProcessAutomation.execution": "تنفيذ الروبوت",
+    "roboticProcessAutomation.governance": "حوكمة أتمتة العمليات الروبوتية",
+    "roboticProcessAutomation.implementation": "تنفيذ أتمتة العمليات الروبوتية",
+    "roboticProcessAutomation.management": "إدارة الروبوت",
+    "roboticProcessAutomation.monitoring": "مراقبة الروبوت",
+    "roboticProcessAutomation.opportunity": "فرصة أتمتة العمليات الروبوتية",
+    "roboticProcessAutomation.optimization": "تحسين أتمتة العمليات الروبوتية",
+    "roboticProcessAutomation.orchestration": "تنسيق الروبوت",
+    "roboticProcessAutomation.platform": "منصة أتمتة العمليات الروبوتية",
+    "roboticProcessAutomation.robot": "الروبوت البرمجي",
+    "roboticProcessAutomation.robotic": "أتمتة العمليات الروبوتية",
+    "roboticProcessAutomation.rpa": "تنفيذ أتمتة العمليات الروبوتية",
+    "roboticProcessAutomation.scaling": "توسيع نطاق أتمتة العمليات الروبوتية",
+    "roboticProcessAutomation.software": "برامج أتمتة العمليات الروبوتية",
+    "roboticProcessAutomation.tools": "أدوات أتمتة العمليات الروبوتية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/robotics.translations.json">
+<![CDATA[
+{
+  "en": {
+    "robotics.actuator": "Actuator Control",
+    "robotics.agv": "Automated Guided Vehicles",
+    "robotics.assembly": "Assembly Robotics",
+    "robotics.automation": "Automation Systems",
+    "robotics.autonomous": "Autonomous Navigation",
+    "robotics.calibration": "Robot Calibration",
+    "robotics.cobots": "Collaborative Robots",
+    "robotics.collision": "Collision Detection",
+    "robotics.controller": "Robot Controller",
+    "robotics.description": "Manage robotic systems and automation",
+    "robotics.diagnostics": "System Diagnostics",
+    "robotics.digital": "Digital Twin",
+    "robotics.drones": "Drone Systems",
+    "robotics.dynamics": "Dynamics Modeling",
+    "robotics.exoskeleton": "Exoskeleton Systems",
+    "robotics.gripper": "End Effector Gripper",
+    "robotics.humanoid": "Humanoid Robots",
+    "robotics.industrial": "Industrial Robotics",
+    "robotics.inspection": "Inspection Robots",
+    "robotics.kinematics": "Kinematics Analysis",
+    "robotics.maintenance": "Robot Maintenance",
+    "robotics.manipulator": "Robotic Manipulator",
+    "robotics.mobile": "Mobile Robots",
+    "robotics.packaging": "Packaging Automation",
+    "robotics.palletizing": "Palletizing Systems",
+    "robotics.picking": "Robotic Picking",
+    "robotics.programming": "Robot Programming",
+    "robotics.prosthetics": "Robotic Prosthetics",
+    "robotics.robot": "Robot Management",
+    "robotics.safety": "Safety Systems",
+    "robotics.sensor": "Sensor Integration",
+    "robotics.simulation": "Robot Simulation",
+    "robotics.singularity": "Singularity Avoidance",
+    "robotics.sorting": "Automated Sorting",
+    "robotics.surgical": "Surgical Robots",
+    "robotics.swarm": "Swarm Robotics",
+    "robotics.title": "Robotics & Automation",
+    "robotics.trajectory": "Path Planning",
+    "robotics.uav": "Unmanned Aerial Vehicles",
+    "robotics.vision": "Machine Vision",
+    "robotics.welding": "Welding Automation",
+    "robotics.workspace": "Robot Workspace"
+  },
+  "ar": {
+    "robotics.actuator": "التحكم بالمحرك",
+    "robotics.agv": "المركبات الموجهة تلقائياً",
+    "robotics.assembly": "روبوتات التجميع",
+    "robotics.automation": "أنظمة الأتمتة",
+    "robotics.autonomous": "الملاحة المستقلة",
+    "robotics.calibration": "معايرة الروبوت",
+    "robotics.cobots": "الروبوتات التعاونية",
+    "robotics.collision": "كشف التصادم",
+    "robotics.controller": "وحدة التحكم",
+    "robotics.description": "إدارة الأنظمة الروبوتية والأتمتة",
+    "robotics.diagnostics": "تشخيص النظام",
+    "robotics.digital": "التوأم الرقمي",
+    "robotics.drones": "أنظمة الطائرات بدون طيار",
+    "robotics.dynamics": "نمذجة الديناميكا",
+    "robotics.exoskeleton": "أنظمة الهيكل الخارجي",
+    "robotics.gripper": "قابض نهائي",
+    "robotics.humanoid": "الروبوتات البشرية",
+    "robotics.industrial": "الروبوتات الصناعية",
+    "robotics.inspection": "روبوتات الفحص",
+    "robotics.kinematics": "تحليل الحركة",
+    "robotics.maintenance": "صيانة الروبوت",
+    "robotics.manipulator": "ذراع روبوتية",
+    "robotics.mobile": "الروبوتات المتنقلة",
+    "robotics.packaging": "أتمتة التعبئة",
+    "robotics.palletizing": "أنظمة الرص",
+    "robotics.picking": "الانتقاء الروبوتي",
+    "robotics.programming": "برمجة الروبوت",
+    "robotics.prosthetics": "الأطراف الصناعية الروبوتية",
+    "robotics.robot": "إدارة الروبوتات",
+    "robotics.safety": "أنظمة السلامة",
+    "robotics.sensor": "تكامل الحساسات",
+    "robotics.simulation": "محاكاة الروبوت",
+    "robotics.singularity": "تجنب الفردية",
+    "robotics.sorting": "الفرز الآلي",
+    "robotics.surgical": "روبوتات الجراحة",
+    "robotics.swarm": "روبوتات السرب",
+    "robotics.title": "الروبوتات والأتمتة",
+    "robotics.trajectory": "تخطيط المسار",
+    "robotics.uav": "المركبات الجوية بدون طيار",
+    "robotics.vision": "الرؤية الآلية",
+    "robotics.welding": "أتمتة اللحام",
+    "robotics.workspace": "مساحة عمل الروبوت"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/roboticsAutomation.translations.json">
+<![CDATA[
+{
+  "en": {
+    "roboticsAutomation.actuator": "Actuator",
+    "roboticsAutomation.arm": "Robot Arm",
+    "roboticsAutomation.automation": "Robotics Automation",
+    "roboticsAutomation.autonomous": "Autonomous Robot",
+    "roboticsAutomation.cobot": "Cobot",
+    "roboticsAutomation.collaborative": "Collaborative Robot",
+    "roboticsAutomation.controller": "Robot Controller",
+    "roboticsAutomation.gripper": "Gripper",
+    "roboticsAutomation.inverse": "Inverse Kinematics",
+    "roboticsAutomation.kinematics": "Kinematics",
+    "roboticsAutomation.localization": "Localization",
+    "roboticsAutomation.manipulator": "Robot Manipulator",
+    "roboticsAutomation.mapping": "Mapping",
+    "roboticsAutomation.motion": "Motion Planning",
+    "roboticsAutomation.motor": "Motor",
+    "roboticsAutomation.navigation": "Robot Navigation",
+    "roboticsAutomation.programming": "Robot Programming",
+    "roboticsAutomation.robot": "Robot",
+    "roboticsAutomation.robotics": "Robotics",
+    "roboticsAutomation.sensor": "Sensor",
+    "roboticsAutomation.slam": "SLAM",
+    "roboticsAutomation.trajectory": "Trajectory Planning"
+  },
+  "ar": {
+    "roboticsAutomation.actuator": "المحرك",
+    "roboticsAutomation.arm": "ذراع الروبوت",
+    "roboticsAutomation.automation": "أتمتة الروبوتات",
+    "roboticsAutomation.autonomous": "الروبوت المستقل",
+    "roboticsAutomation.cobot": "روبوت تعاوني",
+    "roboticsAutomation.collaborative": "الروبوت التعاوني",
+    "roboticsAutomation.controller": "وحدة التحكم في الروبوت",
+    "roboticsAutomation.gripper": "القابض",
+    "roboticsAutomation.inverse": "الحركية العكسية",
+    "roboticsAutomation.kinematics": "الحركية",
+    "roboticsAutomation.localization": "تحديد الموقع",
+    "roboticsAutomation.manipulator": "معالج الروبوت",
+    "roboticsAutomation.mapping": "رسم الخرائط",
+    "roboticsAutomation.motion": "تخطيط الحركة",
+    "roboticsAutomation.motor": "المحرك",
+    "roboticsAutomation.navigation": "التنقل بالروبوت",
+    "roboticsAutomation.programming": "برمجة الروبوت",
+    "roboticsAutomation.robot": "الروبوت",
+    "roboticsAutomation.robotics": "الروبوتات",
+    "roboticsAutomation.sensor": "المستشعر",
+    "roboticsAutomation.slam": "التموضع ورسم الخرائط المتزامن",
+    "roboticsAutomation.trajectory": "تخطيط المسار"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/roboticsAutomationAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "roboticsAutomationAdv.actuator": "Robotic Actuator",
+    "roboticsAutomationAdv.automation": "Robotic Automation",
+    "roboticsAutomationAdv.bot": "Bot",
+    "roboticsAutomationAdv.control": "Robot Control",
+    "roboticsAutomationAdv.efficiency": "Efficiency Improvement",
+    "roboticsAutomationAdv.intelligence": "Artificial Intelligence",
+    "roboticsAutomationAdv.learning": "Machine Learning",
+    "roboticsAutomationAdv.machine": "Machine",
+    "roboticsAutomationAdv.maintenance": "Robot Maintenance",
+    "roboticsAutomationAdv.manipulation": "Robotic Manipulation",
+    "roboticsAutomationAdv.monitoring": "Automation Monitoring",
+    "roboticsAutomationAdv.navigation": "Robot Navigation",
+    "roboticsAutomationAdv.optimization": "Process Optimization",
+    "roboticsAutomationAdv.process": "Automated Process",
+    "roboticsAutomationAdv.programming": "Robot Programming",
+    "roboticsAutomationAdv.robot": "Robot",
+    "roboticsAutomationAdv.robotics": "Robotics",
+    "roboticsAutomationAdv.rpa": "Robotic Process Automation",
+    "roboticsAutomationAdv.safety": "Robot Safety",
+    "roboticsAutomationAdv.sensor": "Robotic Sensor",
+    "roboticsAutomationAdv.vision": "Computer Vision",
+    "roboticsAutomationAdv.workflow": "Workflow Automation"
+  },
+  "ar": {
+    "roboticsAutomationAdv.actuator": "محرك الروبوت",
+    "roboticsAutomationAdv.automation": "الأتمتة الروبوتية",
+    "roboticsAutomationAdv.bot": "البوت",
+    "roboticsAutomationAdv.control": "التحكم في الروبوت",
+    "roboticsAutomationAdv.efficiency": "تحسين الكفاءة",
+    "roboticsAutomationAdv.intelligence": "الذكاء الاصطناعي",
+    "roboticsAutomationAdv.learning": "التعلم الآلي",
+    "roboticsAutomationAdv.machine": "الآلة",
+    "roboticsAutomationAdv.maintenance": "صيانة الروبوت",
+    "roboticsAutomationAdv.manipulation": "المعالجة الروبوتية",
+    "roboticsAutomationAdv.monitoring": "مراقبة الأتمتة",
+    "roboticsAutomationAdv.navigation": "التنقل الروبوتي",
+    "roboticsAutomationAdv.optimization": "تحسين العملية",
+    "roboticsAutomationAdv.process": "العملية الآلية",
+    "roboticsAutomationAdv.programming": "برمجة الروبوت",
+    "roboticsAutomationAdv.robot": "الروبوت",
+    "roboticsAutomationAdv.robotics": "الروبوتات",
+    "roboticsAutomationAdv.rpa": "أتمتة العمليات الروبوتية",
+    "roboticsAutomationAdv.safety": "سلامة الروبوت",
+    "roboticsAutomationAdv.sensor": "مستشعر الروبوت",
+    "roboticsAutomationAdv.vision": "رؤية الكمبيوتر",
+    "roboticsAutomationAdv.workflow": "أتمتة سير العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/roleManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "roleManagement.admin": "Administrator",
+    "roleManagement.assign": "Assign Role",
+    "roleManagement.contributor": "Contributor",
+    "roleManagement.create": "Create Role",
+    "roleManagement.custom": "Custom Role",
+    "roleManagement.delete": "Delete Role",
+    "roleManagement.description": "Description",
+    "roleManagement.edit": "Edit Role",
+    "roleManagement.editor": "Editor",
+    "roleManagement.guest": "Guest",
+    "roleManagement.management": "Role Management",
+    "roleManagement.manager": "Manager",
+    "roleManagement.members": "Members",
+    "roleManagement.name": "Role Name",
+    "roleManagement.owner": "Owner",
+    "roleManagement.permissions": "Permissions",
+    "roleManagement.revoke": "Revoke Role",
+    "roleManagement.role": "Role",
+    "roleManagement.system": "System Role",
+    "roleManagement.user": "User",
+    "roleManagement.users": "Users",
+    "roleManagement.viewer": "Viewer"
+  },
+  "ar": {
+    "roleManagement.admin": "مسؤول",
+    "roleManagement.assign": "تعيين دور",
+    "roleManagement.contributor": "مساهم",
+    "roleManagement.create": "إنشاء دور",
+    "roleManagement.custom": "دور مخصص",
+    "roleManagement.delete": "حذف دور",
+    "roleManagement.description": "الوصف",
+    "roleManagement.edit": "تحرير دور",
+    "roleManagement.editor": "محرر",
+    "roleManagement.guest": "ضيف",
+    "roleManagement.management": "إدارة الأدوار",
+    "roleManagement.manager": "مدير",
+    "roleManagement.members": "الأعضاء",
+    "roleManagement.name": "اسم الدور",
+    "roleManagement.owner": "مالك",
+    "roleManagement.permissions": "الصلاحيات",
+    "roleManagement.revoke": "إلغاء دور",
+    "roleManagement.role": "الدور",
+    "roleManagement.system": "دور النظام",
+    "roleManagement.user": "مستخدم",
+    "roleManagement.users": "المستخدمون",
+    "roleManagement.viewer": "مشاهد"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/roles.translations.json">
+<![CDATA[
+{
+  "en": {
+    "roles.admin": "Admin",
+    "roles.employee": "Employee",
+    "roles.guest": "Guest",
+    "roles.manager": "Manager",
+    "roles.propertyManager": "Property Manager",
+    "roles.superadmin": "Super Admin",
+    "roles.tenant": "Tenant",
+    "roles.user": "User",
+    "roles.vendor": "Vendor"
+  },
+  "ar": {
+    "roles.admin": "مسؤول",
+    "roles.employee": "موظف",
+    "roles.guest": "ضيف",
+    "roles.manager": "مدير",
+    "roles.propertyManager": "مدير عقار",
+    "roles.superadmin": "المسؤول الأعلى",
+    "roles.tenant": "مستأجر",
+    "roles.user": "مستخدم",
+    "roles.vendor": "مورد"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/roofing.translations.json">
+<![CDATA[
+{
+  "en": {
+    "roofing.chimney": "Chimney",
+    "roofing.downspout": "Downspout",
+    "roofing.drainage": "Drainage",
+    "roofing.flashing": "Flashing",
+    "roofing.flatRoof": "Flat Roof",
+    "roofing.gutter": "Gutter",
+    "roofing.gutters": "Gutters",
+    "roofing.membrane": "Membrane",
+    "roofing.pitchedRoof": "Pitched Roof",
+    "roofing.roof": "Roof",
+    "roofing.roofDrainage": "Roof Drainage",
+    "roofing.roofing1": "Roofing",
+    "roofing.roofingMembrane": "Roofing Membrane",
+    "roofing.roofInspection": "Roof Inspection",
+    "roofing.roofLeak": "Roof Leak",
+    "roofing.roofMaintenance": "Roof Maintenance",
+    "roofing.roofRepair": "Roof Repair",
+    "roofing.roofReplacement": "Roof Replacement",
+    "roofing.roofTile": "Roof Tile",
+    "roofing.rooftop": "Rooftop",
+    "roofing.roofVent": "Roof Vent",
+    "roofing.shingle": "Shingle",
+    "roofing.shingles": "Shingles",
+    "roofing.skylight": "Skylight",
+    "roofing.slopedRoof": "Sloped Roof",
+    "roofing.tile": "Tile",
+    "roofing.ventilation": "Ventilation",
+    "roofing.waterproofing": "Waterproofing"
+  },
+  "ar": {
+    "roofing.chimney": "مدخنة",
+    "roofing.downspout": "أنبوب تصريف",
+    "roofing.drainage": "الصرف",
+    "roofing.flashing": "وميض",
+    "roofing.flatRoof": "سقف مسطح",
+    "roofing.gutter": "مزراب",
+    "roofing.gutters": "مزاريب",
+    "roofing.membrane": "غشاء",
+    "roofing.pitchedRoof": "سقف مائل",
+    "roofing.roof": "سقف",
+    "roofing.roofDrainage": "صرف السقف",
+    "roofing.roofing1": "التسقيف",
+    "roofing.roofingMembrane": "غشاء التسقيف",
+    "roofing.roofInspection": "فحص السقف",
+    "roofing.roofLeak": "تسرب السقف",
+    "roofing.roofMaintenance": "صيانة السقف",
+    "roofing.roofRepair": "إصلاح السقف",
+    "roofing.roofReplacement": "استبدال السقف",
+    "roofing.roofTile": "بلاطة السقف",
+    "roofing.rooftop": "سطح المبنى",
+    "roofing.roofVent": "فتحة تهوية السقف",
+    "roofing.shingle": "قرميدة",
+    "roofing.shingles": "قرميد",
+    "roofing.skylight": "كوة سماوية",
+    "roofing.slopedRoof": "سقف مائل",
+    "roofing.tile": "بلاطة",
+    "roofing.ventilation": "التهوية",
+    "roofing.waterproofing": "العزل المائي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/rootCauseAnalysis.translations.json">
+<![CDATA[
+{
+  "en": {
+    "rootCauseAnalysis.analysis": "Cause Analysis",
+    "rootCauseAnalysis.correction": "Correction",
+    "rootCauseAnalysis.corrective": "Corrective Action",
+    "rootCauseAnalysis.documentation": "RCA Documentation",
+    "rootCauseAnalysis.failure": "Failure Mode Analysis",
+    "rootCauseAnalysis.fault": "Fault Tree Analysis",
+    "rootCauseAnalysis.fishbone": "Fishbone Diagram",
+    "rootCauseAnalysis.five": "Five Whys",
+    "rootCauseAnalysis.fmea": "FMEA",
+    "rootCauseAnalysis.identification": "Root Identification",
+    "rootCauseAnalysis.investigation": "RCA Investigation",
+    "rootCauseAnalysis.ishikawa": "Ishikawa Diagram",
+    "rootCauseAnalysis.methodology": "RCA Methodology",
+    "rootCauseAnalysis.pareto": "Pareto Analysis",
+    "rootCauseAnalysis.preventive": "Preventive Action",
+    "rootCauseAnalysis.process": "RCA Process",
+    "rootCauseAnalysis.reporting": "RCA Reporting",
+    "rootCauseAnalysis.root": "Root Cause Analysis",
+    "rootCauseAnalysis.techniques": "RCA Techniques",
+    "rootCauseAnalysis.verification": "Cause Verification",
+    "rootCauseAnalysis.whys": "Why Analysis"
+  },
+  "ar": {
+    "rootCauseAnalysis.analysis": "تحليل السبب",
+    "rootCauseAnalysis.correction": "التصحيح",
+    "rootCauseAnalysis.corrective": "الإجراء التصحيحي",
+    "rootCauseAnalysis.documentation": "توثيق تحليل السبب الجذري",
+    "rootCauseAnalysis.failure": "تحليل أنماط الفشل",
+    "rootCauseAnalysis.fault": "تحليل شجرة الأعطال",
+    "rootCauseAnalysis.fishbone": "مخطط عظم السمكة",
+    "rootCauseAnalysis.five": "الأسئلة الخمسة",
+    "rootCauseAnalysis.fmea": "تحليل أنماط الفشل وآثاره",
+    "rootCauseAnalysis.identification": "تحديد الجذر",
+    "rootCauseAnalysis.investigation": "التحقيق في السبب الجذري",
+    "rootCauseAnalysis.ishikawa": "مخطط إيشيكاوا",
+    "rootCauseAnalysis.methodology": "منهجية تحليل السبب الجذري",
+    "rootCauseAnalysis.pareto": "تحليل باريتو",
+    "rootCauseAnalysis.preventive": "الإجراء الوقائي",
+    "rootCauseAnalysis.process": "عملية تحليل السبب الجذري",
+    "rootCauseAnalysis.reporting": "إعداد تقارير تحليل السبب الجذري",
+    "rootCauseAnalysis.root": "تحليل السبب الجذري",
+    "rootCauseAnalysis.techniques": "تقنيات تحليل السبب الجذري",
+    "rootCauseAnalysis.verification": "التحقق من السبب",
+    "rootCauseAnalysis.whys": "تحليل لماذا"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/safety.translations.json">
+<![CDATA[
+{
+  "en": {
+    "safety.earmuffs": "Earmuffs",
+    "safety.earplugs": "Earplugs",
+    "safety.earProtection": "Ear Protection",
+    "safety.faceMask": "Face Mask",
+    "safety.gloves": "Gloves",
+    "safety.goggles": "Goggles",
+    "safety.hardhat": "Hard Hat",
+    "safety.harness": "Harness",
+    "safety.helmet": "Helmet",
+    "safety.lifeline": "Lifeline",
+    "safety.mask": "Mask",
+    "safety.personalProtectiveEquipment": "Personal Protective Equipment",
+    "safety.ppe": "PPE",
+    "safety.reflectiveVest": "Reflective Vest",
+    "safety.respirator": "Respirator",
+    "safety.safe": "Safe",
+    "safety.safeguard": "Safeguard",
+    "safety.safety1": "Safety",
+    "safety.safetyBoots": "Safety Boots",
+    "safety.safetyEquipment": "Safety Equipment",
+    "safety.safetyGlasses": "Safety Glasses",
+    "safety.safetyHarness": "Safety Harness",
+    "safety.safetyMeasure": "Safety Measure",
+    "safety.safetyProcedure": "Safety Procedure",
+    "safety.safetyProtocol": "Safety Protocol",
+    "safety.safetyVest": "Safety Vest",
+    "safety.steelToedBoots": "Steel-toed Boots",
+    "safety.unsafe": "Unsafe"
+  },
+  "ar": {
+    "safety.earmuffs": "واقيات الأذن",
+    "safety.earplugs": "سدادات الأذن",
+    "safety.earProtection": "حماية الأذن",
+    "safety.faceMask": "قناع الوجه",
+    "safety.gloves": "قفازات",
+    "safety.goggles": "نظارات واقية",
+    "safety.hardhat": "خوذة صلبة",
+    "safety.harness": "حزام",
+    "safety.helmet": "خوذة",
+    "safety.lifeline": "حبل الإنقاذ",
+    "safety.mask": "قناع",
+    "safety.personalProtectiveEquipment": "معدات الحماية الشخصية",
+    "safety.ppe": "معدات الحماية الشخصية",
+    "safety.reflectiveVest": "سترة عاكسة",
+    "safety.respirator": "جهاز التنفس",
+    "safety.safe": "آمن",
+    "safety.safeguard": "حماية",
+    "safety.safety1": "السلامة",
+    "safety.safetyBoots": "أحذية السلامة",
+    "safety.safetyEquipment": "معدات السلامة",
+    "safety.safetyGlasses": "نظارات السلامة",
+    "safety.safetyHarness": "حزام السلامة",
+    "safety.safetyMeasure": "إجراء سلامة",
+    "safety.safetyProcedure": "إجراء السلامة",
+    "safety.safetyProtocol": "بروتوكول السلامة",
+    "safety.safetyVest": "سترة السلامة",
+    "safety.steelToedBoots": "أحذية بمقدمة فولاذية",
+    "safety.unsafe": "غير آمن"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/safetyManagementExt.translations.json">
+<![CDATA[
+{
+  "en": {
+    "safetyManagementExt.accident": "Accident Investigation",
+    "safetyManagementExt.assessment": "Safety Assessment",
+    "safetyManagementExt.audit": "Safety Audit",
+    "safetyManagementExt.awareness": "Safety Awareness",
+    "safetyManagementExt.compliance": "Safety Compliance",
+    "safetyManagementExt.culture": "Safety Culture",
+    "safetyManagementExt.emergency": "Emergency Safety",
+    "safetyManagementExt.evacuation": "Evacuation Plan",
+    "safetyManagementExt.firstAid": "First Aid",
+    "safetyManagementExt.hazard": "Hazard Identification",
+    "safetyManagementExt.health": "Health and Safety",
+    "safetyManagementExt.incident": "Safety Incident",
+    "safetyManagementExt.inspection": "Safety Inspection",
+    "safetyManagementExt.occupational": "Occupational Safety",
+    "safetyManagementExt.policy": "Safety Policy",
+    "safetyManagementExt.ppe": "Personal Protective Equipment",
+    "safetyManagementExt.procedures": "Safety Procedures",
+    "safetyManagementExt.program": "Safety Program",
+    "safetyManagementExt.risk": "Safety Risk",
+    "safetyManagementExt.safety": "Safety Management",
+    "safetyManagementExt.training": "Safety Training",
+    "safetyManagementExt.workplace": "Workplace Safety"
+  },
+  "ar": {
+    "safetyManagementExt.accident": "التحقيق في الحوادث",
+    "safetyManagementExt.assessment": "تقييم السلامة",
+    "safetyManagementExt.audit": "تدقيق السلامة",
+    "safetyManagementExt.awareness": "الوعي بالسلامة",
+    "safetyManagementExt.compliance": "الامتثال للسلامة",
+    "safetyManagementExt.culture": "ثقافة السلامة",
+    "safetyManagementExt.emergency": "السلامة في حالات الطوارئ",
+    "safetyManagementExt.evacuation": "خطة الإخلاء",
+    "safetyManagementExt.firstAid": "الإسعافات الأولية",
+    "safetyManagementExt.hazard": "تحديد المخاطر",
+    "safetyManagementExt.health": "الصحة والسلامة",
+    "safetyManagementExt.incident": "حادث السلامة",
+    "safetyManagementExt.inspection": "تفتيش السلامة",
+    "safetyManagementExt.occupational": "السلامة المهنية",
+    "safetyManagementExt.policy": "سياسة السلامة",
+    "safetyManagementExt.ppe": "معدات الحماية الشخصية",
+    "safetyManagementExt.procedures": "إجراءات السلامة",
+    "safetyManagementExt.program": "برنامج السلامة",
+    "safetyManagementExt.risk": "مخاطر السلامة",
+    "safetyManagementExt.safety": "إدارة السلامة",
+    "safetyManagementExt.training": "تدريب السلامة",
+    "safetyManagementExt.workplace": "سلامة مكان العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/safetyManagementSystem.translations.json">
+<![CDATA[
+{
+  "en": {
+    "safetyManagementSystem.administrative": "Administrative Controls",
+    "safetyManagementSystem.communication": "Safety Communication",
+    "safetyManagementSystem.consultation": "Safety Consultation",
+    "safetyManagementSystem.control": "Control Measures",
+    "safetyManagementSystem.elimination": "Elimination",
+    "safetyManagementSystem.engineering": "Engineering Controls",
+    "safetyManagementSystem.hazard": "Hazard Identification",
+    "safetyManagementSystem.hierarchy": "Hierarchy of Controls",
+    "safetyManagementSystem.measurement": "Safety Measurement",
+    "safetyManagementSystem.monitoring": "Safety Monitoring",
+    "safetyManagementSystem.objective": "Safety Objective",
+    "safetyManagementSystem.participation": "Worker Participation",
+    "safetyManagementSystem.performance": "Safety Performance",
+    "safetyManagementSystem.plan": "Safety Plan",
+    "safetyManagementSystem.policy": "Safety Policy",
+    "safetyManagementSystem.ppe": "Personal Protective Equipment",
+    "safetyManagementSystem.procedure": "Safety Procedure",
+    "safetyManagementSystem.program": "Safety Program",
+    "safetyManagementSystem.risk": "Risk Assessment",
+    "safetyManagementSystem.safety": "Safety Management",
+    "safetyManagementSystem.sms": "Safety Management System",
+    "safetyManagementSystem.substitution": "Substitution",
+    "safetyManagementSystem.training": "Safety Training"
+  },
+  "ar": {
+    "safetyManagementSystem.administrative": "الضوابط الإدارية",
+    "safetyManagementSystem.communication": "التواصل بشأن السلامة",
+    "safetyManagementSystem.consultation": "استشارات السلامة",
+    "safetyManagementSystem.control": "إجراءات الضبط",
+    "safetyManagementSystem.elimination": "الإزالة",
+    "safetyManagementSystem.engineering": "الضوابط الهندسية",
+    "safetyManagementSystem.hazard": "تحديد المخاطر",
+    "safetyManagementSystem.hierarchy": "تسلسل الضوابط",
+    "safetyManagementSystem.measurement": "قياس السلامة",
+    "safetyManagementSystem.monitoring": "مراقبة السلامة",
+    "safetyManagementSystem.objective": "هدف السلامة",
+    "safetyManagementSystem.participation": "مشاركة العمال",
+    "safetyManagementSystem.performance": "أداء السلامة",
+    "safetyManagementSystem.plan": "خطة السلامة",
+    "safetyManagementSystem.policy": "سياسة السلامة",
+    "safetyManagementSystem.ppe": "معدات الحماية الشخصية",
+    "safetyManagementSystem.procedure": "إجراء السلامة",
+    "safetyManagementSystem.program": "برنامج السلامة",
+    "safetyManagementSystem.risk": "تقييم المخاطر",
+    "safetyManagementSystem.safety": "إدارة السلامة",
+    "safetyManagementSystem.sms": "نظام إدارة السلامة",
+    "safetyManagementSystem.substitution": "الاستبدال",
+    "safetyManagementSystem.training": "التدريب على السلامة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/salesEnablement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "salesEnablement.account": "Account Management",
+    "salesEnablement.activities": "Activity Tracking",
+    "salesEnablement.analytics": "Sales Analytics",
+    "salesEnablement.collaboration": "Sales Collaboration",
+    "salesEnablement.commission": "Commission Tracking",
+    "salesEnablement.contact": "Contact Management",
+    "salesEnablement.contracts": "Contract Management",
+    "salesEnablement.enablement": "Sales Enablement",
+    "salesEnablement.forecasting": "Sales Forecasting",
+    "salesEnablement.generation": "Lead Generation",
+    "salesEnablement.leads": "Lead Management",
+    "salesEnablement.mobile": "Mobile Sales",
+    "salesEnablement.nurturing": "Lead Nurturing",
+    "salesEnablement.opportunities": "Opportunity Management",
+    "salesEnablement.orders": "Order Management",
+    "salesEnablement.pipeline": "Sales Pipeline",
+    "salesEnablement.proposals": "Proposal Management",
+    "salesEnablement.qualification": "Lead Qualification",
+    "salesEnablement.quotes": "Quote Management",
+    "salesEnablement.sales": "Sales Enablement",
+    "salesEnablement.scoring": "Lead Scoring",
+    "salesEnablement.sfa": "SFA",
+    "salesEnablement.territory": "Territory Management"
+  },
+  "ar": {
+    "salesEnablement.account": "إدارة الحسابات",
+    "salesEnablement.activities": "تتبع الأنشطة",
+    "salesEnablement.analytics": "تحليلات المبيعات",
+    "salesEnablement.collaboration": "التعاون في المبيعات",
+    "salesEnablement.commission": "تتبع العمولات",
+    "salesEnablement.contact": "إدارة جهات الاتصال",
+    "salesEnablement.contracts": "إدارة العقود",
+    "salesEnablement.enablement": "تمكين المبيعات",
+    "salesEnablement.forecasting": "التنبؤ بالمبيعات",
+    "salesEnablement.generation": "توليد العملاء المحتملين",
+    "salesEnablement.leads": "إدارة العملاء المحتملين",
+    "salesEnablement.mobile": "المبيعات المحمولة",
+    "salesEnablement.nurturing": "رعاية العملاء المحتملين",
+    "salesEnablement.opportunities": "إدارة الفرص",
+    "salesEnablement.orders": "إدارة الطلبات",
+    "salesEnablement.pipeline": "خط أنابيب المبيعات",
+    "salesEnablement.proposals": "إدارة المقترحات",
+    "salesEnablement.qualification": "تأهيل العملاء المحتملين",
+    "salesEnablement.quotes": "إدارة عروض الأسعار",
+    "salesEnablement.sales": "تمكين المبيعات",
+    "salesEnablement.scoring": "تسجيل العملاء المحتملين",
+    "salesEnablement.sfa": "أتمتة قوة المبيعات",
+    "salesEnablement.territory": "إدارة الإقليم"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/salesForceAutomation.translations.json">
+<![CDATA[
+{
+  "en": {
+    "salesForceAutomation.account": "Account Management",
+    "salesForceAutomation.activity": "Sales Activity",
+    "salesForceAutomation.assignment": "Territory Assignment",
+    "salesForceAutomation.call": "Sales Call",
+    "salesForceAutomation.commission": "Commission",
+    "salesForceAutomation.contact": "Contact Management",
+    "salesForceAutomation.forecast": "Sales Forecast",
+    "salesForceAutomation.funnel": "Sales Funnel",
+    "salesForceAutomation.incentive": "Sales Incentive",
+    "salesForceAutomation.lead": "Lead Management",
+    "salesForceAutomation.opportunity": "Opportunity",
+    "salesForceAutomation.pipeline": "Sales Pipeline",
+    "salesForceAutomation.proposal": "Proposal",
+    "salesForceAutomation.prospect": "Prospect",
+    "salesForceAutomation.quota": "Sales Quota",
+    "salesForceAutomation.quote": "Quote",
+    "salesForceAutomation.reporting": "Sales Reporting",
+    "salesForceAutomation.salesforce": "Sales Force Automation",
+    "salesForceAutomation.stage": "Sales Stage",
+    "salesForceAutomation.target": "Sales Target",
+    "salesForceAutomation.territory": "Territory",
+    "salesForceAutomation.visit": "Customer Visit"
+  },
+  "ar": {
+    "salesForceAutomation.account": "إدارة الحسابات",
+    "salesForceAutomation.activity": "أنشطة المبيعات",
+    "salesForceAutomation.assignment": "توزيع المناطق",
+    "salesForceAutomation.call": "اتصال مبيعات",
+    "salesForceAutomation.commission": "العمولات",
+    "salesForceAutomation.contact": "إدارة جهات الاتصال",
+    "salesForceAutomation.forecast": "توقع المبيعات",
+    "salesForceAutomation.funnel": "مسار المبيعات",
+    "salesForceAutomation.incentive": "حوافز المبيعات",
+    "salesForceAutomation.lead": "إدارة العملاء المحتملين",
+    "salesForceAutomation.opportunity": "فرصة مبيعات",
+    "salesForceAutomation.pipeline": "قائمة المبيعات",
+    "salesForceAutomation.proposal": "عرض المبيعات",
+    "salesForceAutomation.prospect": "عميل محتمل",
+    "salesForceAutomation.quota": "حصة المبيعات",
+    "salesForceAutomation.quote": "تسعيرة",
+    "salesForceAutomation.reporting": "تقارير المبيعات",
+    "salesForceAutomation.salesforce": "أتمتة قوة المبيعات",
+    "salesForceAutomation.stage": "مرحلة المبيعات",
+    "salesForceAutomation.target": "هدف المبيعات",
+    "salesForceAutomation.territory": "المنطقة البيعية",
+    "salesForceAutomation.visit": "زيارة العميل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/salesOperations.translations.json">
+<![CDATA[
+{
+  "en": {
+    "salesOperations.analytics": "Sales Analytics",
+    "salesOperations.automation": "Sales Automation",
+    "salesOperations.closing": "Deal Closing",
+    "salesOperations.collateral": "Sales Collateral",
+    "salesOperations.commission": "Sales Commission",
+    "salesOperations.compensation": "Sales Compensation",
+    "salesOperations.crm": "CRM",
+    "salesOperations.deal": "Deal Management",
+    "salesOperations.enablement": "Sales Enablement",
+    "salesOperations.forecast": "Sales Forecast",
+    "salesOperations.lead": "Lead Management",
+    "salesOperations.methodology": "Sales Methodology",
+    "salesOperations.operations": "Sales Ops",
+    "salesOperations.opportunity": "Opportunity",
+    "salesOperations.performance": "Sales Performance",
+    "salesOperations.pipeline": "Sales Pipeline",
+    "salesOperations.playbook": "Sales Playbook",
+    "salesOperations.process": "Sales Process",
+    "salesOperations.quota": "Sales Quota",
+    "salesOperations.sales": "Sales Operations",
+    "salesOperations.territory": "Sales Territory",
+    "salesOperations.training": "Sales Training"
+  },
+  "ar": {
+    "salesOperations.analytics": "تحليلات المبيعات",
+    "salesOperations.automation": "أتمتة المبيعات",
+    "salesOperations.closing": "إغلاق الصفقة",
+    "salesOperations.collateral": "مواد المبيعات",
+    "salesOperations.commission": "عمولة المبيعات",
+    "salesOperations.compensation": "تعويض المبيعات",
+    "salesOperations.crm": "إدارة علاقات العملاء",
+    "salesOperations.deal": "إدارة الصفقة",
+    "salesOperations.enablement": "تمكين المبيعات",
+    "salesOperations.forecast": "توقعات المبيعات",
+    "salesOperations.lead": "إدارة العملاء المحتملين",
+    "salesOperations.methodology": "منهجية المبيعات",
+    "salesOperations.operations": "عمليات البيع",
+    "salesOperations.opportunity": "الفرصة",
+    "salesOperations.performance": "أداء المبيعات",
+    "salesOperations.pipeline": "خط أنابيب المبيعات",
+    "salesOperations.playbook": "دليل المبيعات",
+    "salesOperations.process": "عملية المبيعات",
+    "salesOperations.quota": "حصة المبيعات",
+    "salesOperations.sales": "عمليات المبيعات",
+    "salesOperations.territory": "منطقة المبيعات",
+    "salesOperations.training": "تدريب المبيعات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/save.translations.json">
+<![CDATA[
+{
+  "en": {
+    "save.failed": "Save failed",
+    "save.networkError": "Failed: network error",
+    "save.saving": "Saving...",
+    "save.success": "Saved successfully"
+  },
+  "ar": {
+    "save.failed": "فشل الحفظ",
+    "save.networkError": "فشل: خطأ في الشبكة",
+    "save.saving": "جارٍ الحفظ...",
+    "save.success": "تم الحفظ بنجاح"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/scalabilityResilienceAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "scalabilityResilienceAdv.async": "Asynchronous",
+    "scalabilityResilienceAdv.autoscale": "Auto Scaling",
+    "scalabilityResilienceAdv.capacity": "Capacity",
+    "scalabilityResilienceAdv.circuit": "Circuit Breaker",
+    "scalabilityResilienceAdv.cluster": "Clustering",
+    "scalabilityResilienceAdv.concurrent": "Concurrent",
+    "scalabilityResilienceAdv.distributed": "Distributed",
+    "scalabilityResilienceAdv.elastic": "Elastic",
+    "scalabilityResilienceAdv.failover": "Failover",
+    "scalabilityResilienceAdv.horizontal": "Horizontal Scaling",
+    "scalabilityResilienceAdv.load": "Load Balancing",
+    "scalabilityResilienceAdv.microservices": "Microservices",
+    "scalabilityResilienceAdv.partition": "Partitioning",
+    "scalabilityResilienceAdv.queue": "Queue",
+    "scalabilityResilienceAdv.redundancy": "Redundancy",
+    "scalabilityResilienceAdv.replication": "Replication",
+    "scalabilityResilienceAdv.resilience": "Resilience",
+    "scalabilityResilienceAdv.scalability": "Scalability",
+    "scalabilityResilienceAdv.serverless": "Serverless",
+    "scalabilityResilienceAdv.sharding": "Sharding",
+    "scalabilityResilienceAdv.throughput": "Throughput",
+    "scalabilityResilienceAdv.vertical": "Vertical Scaling"
+  },
+  "ar": {
+    "scalabilityResilienceAdv.async": "غير متزامن",
+    "scalabilityResilienceAdv.autoscale": "التوسع التلقائي",
+    "scalabilityResilienceAdv.capacity": "السعة",
+    "scalabilityResilienceAdv.circuit": "قاطع الدائرة",
+    "scalabilityResilienceAdv.cluster": "التجميع",
+    "scalabilityResilienceAdv.concurrent": "متزامن",
+    "scalabilityResilienceAdv.distributed": "الموزع",
+    "scalabilityResilienceAdv.elastic": "مرن",
+    "scalabilityResilienceAdv.failover": "التحويل الاحتياطي",
+    "scalabilityResilienceAdv.horizontal": "التوسع الأفقي",
+    "scalabilityResilienceAdv.load": "موازنة الحمل",
+    "scalabilityResilienceAdv.microservices": "الخدمات الدقيقة",
+    "scalabilityResilienceAdv.partition": "التقسيم",
+    "scalabilityResilienceAdv.queue": "قائمة الانتظار",
+    "scalabilityResilienceAdv.redundancy": "التكرار",
+    "scalabilityResilienceAdv.replication": "النسخ المتماثل",
+    "scalabilityResilienceAdv.resilience": "المرونة",
+    "scalabilityResilienceAdv.scalability": "قابلية التوسع",
+    "scalabilityResilienceAdv.serverless": "بدون خوادم",
+    "scalabilityResilienceAdv.sharding": "التجزئة",
+    "scalabilityResilienceAdv.throughput": "الإنتاجية",
+    "scalabilityResilienceAdv.vertical": "التوسع الرأسي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/scenarioPlanning.translations.json">
+<![CDATA[
+{
+  "en": {
+    "scenarioPlanning.analysis": "Scenario Analysis",
+    "scenarioPlanning.assessment": "Scenario Assessment",
+    "scenarioPlanning.assumptions": "Scenario Assumptions",
+    "scenarioPlanning.building": "Scenario Building",
+    "scenarioPlanning.contingency": "Contingency Planning",
+    "scenarioPlanning.description": "Scenario Description",
+    "scenarioPlanning.development": "Scenario Development",
+    "scenarioPlanning.drivers": "Key Drivers",
+    "scenarioPlanning.evaluation": "Scenario Evaluation",
+    "scenarioPlanning.forecasting": "Scenario Forecasting",
+    "scenarioPlanning.futures": "Future Scenarios",
+    "scenarioPlanning.identification": "Scenario Identification",
+    "scenarioPlanning.implications": "Scenario Implications",
+    "scenarioPlanning.monitoring": "Scenario Monitoring",
+    "scenarioPlanning.narrative": "Scenario Narrative",
+    "scenarioPlanning.planning": "Scenario Development",
+    "scenarioPlanning.response": "Strategic Response",
+    "scenarioPlanning.scenario": "Scenario Planning",
+    "scenarioPlanning.simulation": "Scenario Simulation",
+    "scenarioPlanning.testing": "Strategy Testing",
+    "scenarioPlanning.uncertainties": "Critical Uncertainties",
+    "scenarioPlanning.update": "Scenario Update"
+  },
+  "ar": {
+    "scenarioPlanning.analysis": "تحليل السيناريوهات",
+    "scenarioPlanning.assessment": "تقييم السيناريوهات",
+    "scenarioPlanning.assumptions": "افتراضات السيناريوهات",
+    "scenarioPlanning.building": "بناء السيناريوهات",
+    "scenarioPlanning.contingency": "التخطيط الطارئ",
+    "scenarioPlanning.description": "وصف السيناريوهات",
+    "scenarioPlanning.development": "تطوير السيناريوهات",
+    "scenarioPlanning.drivers": "المحركات الرئيسية",
+    "scenarioPlanning.evaluation": "تقييم السيناريوهات",
+    "scenarioPlanning.forecasting": "التنبؤ بالسيناريوهات",
+    "scenarioPlanning.futures": "سيناريوهات المستقبل",
+    "scenarioPlanning.identification": "تحديد السيناريوهات",
+    "scenarioPlanning.implications": "آثار السيناريوهات",
+    "scenarioPlanning.monitoring": "مراقبة السيناريوهات",
+    "scenarioPlanning.narrative": "سرد السيناريوهات",
+    "scenarioPlanning.planning": "تطوير السيناريوهات",
+    "scenarioPlanning.response": "الاستجابة الاستراتيجية",
+    "scenarioPlanning.scenario": "تخطيط السيناريوهات",
+    "scenarioPlanning.simulation": "محاكاة السيناريوهات",
+    "scenarioPlanning.testing": "اختبار الاستراتيجية",
+    "scenarioPlanning.uncertainties": "الشكوك الحرجة",
+    "scenarioPlanning.update": "تحديث السيناريوهات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/scheduling.translations.json">
+<![CDATA[
+{
+  "en": {
+    "scheduling.appointment": "Appointment",
+    "scheduling.appointments": "Appointments",
+    "scheduling.availability": "Availability",
+    "scheduling.available": "Available",
+    "scheduling.beforeAppointment": "Before Appointment",
+    "scheduling.booking": "Booking",
+    "scheduling.bookingDate": "Booking Date",
+    "scheduling.bookings": "Bookings",
+    "scheduling.bookingTime": "Booking Time",
+    "scheduling.duration": "Duration",
+    "scheduling.endsOn": "Ends On",
+    "scheduling.endTime": "End Time",
+    "scheduling.neverEnds": "Never Ends",
+    "scheduling.occurrences": "Occurrences",
+    "scheduling.recurring": "Recurring",
+    "scheduling.recurringSchedule": "Recurring Schedule",
+    "scheduling.reminder": "Reminder",
+    "scheduling.reminders": "Reminders",
+    "scheduling.reminderSent": "Reminder Sent",
+    "scheduling.repeatEvery": "Repeat Every",
+    "scheduling.reschedule": "Reschedule",
+    "scheduling.rescheduled": "Rescheduled",
+    "scheduling.reservation": "Reservation",
+    "scheduling.reservations": "Reservations",
+    "scheduling.scheduledDate": "Scheduled Date",
+    "scheduling.scheduledTime": "Scheduled Time",
+    "scheduling.sendReminder": "Send Reminder",
+    "scheduling.setReminder": "Set Reminder",
+    "scheduling.startTime": "Start Time",
+    "scheduling.timeSlot": "Time Slot",
+    "scheduling.timeSlots": "Time Slots",
+    "scheduling.unavailable": "Unavailable"
+  },
+  "ar": {
+    "scheduling.appointment": "موعد",
+    "scheduling.appointments": "مواعيد",
+    "scheduling.availability": "التوفر",
+    "scheduling.available": "متاح",
+    "scheduling.beforeAppointment": "قبل الموعد",
+    "scheduling.booking": "حجز",
+    "scheduling.bookingDate": "تاريخ الحجز",
+    "scheduling.bookings": "حجوزات",
+    "scheduling.bookingTime": "وقت الحجز",
+    "scheduling.duration": "المدة",
+    "scheduling.endsOn": "ينتهي في",
+    "scheduling.endTime": "وقت الانتهاء",
+    "scheduling.neverEnds": "لا ينتهي أبدًا",
+    "scheduling.occurrences": "التكرارات",
+    "scheduling.recurring": "متكرر",
+    "scheduling.recurringSchedule": "جدول متكرر",
+    "scheduling.reminder": "تذكير",
+    "scheduling.reminders": "تذكيرات",
+    "scheduling.reminderSent": "تم إرسال التذكير",
+    "scheduling.repeatEvery": "تكرار كل",
+    "scheduling.reschedule": "إعادة جدولة",
+    "scheduling.rescheduled": "تمت إعادة الجدولة",
+    "scheduling.reservation": "حجز مسبق",
+    "scheduling.reservations": "حجوزات مسبقة",
+    "scheduling.scheduledDate": "التاريخ المجدول",
+    "scheduling.scheduledTime": "الوقت المجدول",
+    "scheduling.sendReminder": "إرسال تذكير",
+    "scheduling.setReminder": "تعيين تذكير",
+    "scheduling.startTime": "وقت البدء",
+    "scheduling.timeSlot": "فترة زمنية",
+    "scheduling.timeSlots": "فترات زمنية",
+    "scheduling.unavailable": "غير متاح"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/schedulingAutomationAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "schedulingAutomationAdv.autoSchedule": "Auto Schedule",
+    "schedulingAutomationAdv.business": "Business Hours",
+    "schedulingAutomationAdv.custom": "Custom",
+    "schedulingAutomationAdv.daily": "Daily",
+    "schedulingAutomationAdv.duration": "Duration",
+    "schedulingAutomationAdv.endTime": "End Time",
+    "schedulingAutomationAdv.exception": "Exception",
+    "schedulingAutomationAdv.frequency": "Frequency",
+    "schedulingAutomationAdv.holiday": "Holiday",
+    "schedulingAutomationAdv.monthly": "Monthly",
+    "schedulingAutomationAdv.offset": "Time Offset",
+    "schedulingAutomationAdv.once": "Once",
+    "schedulingAutomationAdv.recurring": "Recurring",
+    "schedulingAutomationAdv.schedule": "Schedule",
+    "schedulingAutomationAdv.scheduler": "Scheduler",
+    "schedulingAutomationAdv.startTime": "Start Time",
+    "schedulingAutomationAdv.timezone": "Timezone",
+    "schedulingAutomationAdv.timing": "Timing",
+    "schedulingAutomationAdv.weekday": "Weekday",
+    "schedulingAutomationAdv.weekend": "Weekend",
+    "schedulingAutomationAdv.weekly": "Weekly",
+    "schedulingAutomationAdv.yearly": "Yearly"
+  },
+  "ar": {
+    "schedulingAutomationAdv.autoSchedule": "الجدولة التلقائية",
+    "schedulingAutomationAdv.business": "ساعات العمل",
+    "schedulingAutomationAdv.custom": "مخصص",
+    "schedulingAutomationAdv.daily": "يومي",
+    "schedulingAutomationAdv.duration": "المدة",
+    "schedulingAutomationAdv.endTime": "وقت الانتهاء",
+    "schedulingAutomationAdv.exception": "الاستثناء",
+    "schedulingAutomationAdv.frequency": "التكرار",
+    "schedulingAutomationAdv.holiday": "العطلة",
+    "schedulingAutomationAdv.monthly": "شهري",
+    "schedulingAutomationAdv.offset": "الإزاحة الزمنية",
+    "schedulingAutomationAdv.once": "مرة واحدة",
+    "schedulingAutomationAdv.recurring": "متكرر",
+    "schedulingAutomationAdv.schedule": "الجدولة",
+    "schedulingAutomationAdv.scheduler": "المجدول",
+    "schedulingAutomationAdv.startTime": "وقت البدء",
+    "schedulingAutomationAdv.timezone": "المنطقة الزمنية",
+    "schedulingAutomationAdv.timing": "التوقيت",
+    "schedulingAutomationAdv.weekday": "أيام العمل",
+    "schedulingAutomationAdv.weekend": "عطلة نهاية الأسبوع",
+    "schedulingAutomationAdv.weekly": "أسبوعي",
+    "schedulingAutomationAdv.yearly": "سنوي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/schedulingFeatures.translations.json">
+<![CDATA[
+{
+  "en": {
+    "schedulingFeatures.agenda": "Agenda",
+    "schedulingFeatures.alarm": "Alarm",
+    "schedulingFeatures.allDay": "All Day",
+    "schedulingFeatures.appointment": "Appointment",
+    "schedulingFeatures.attendees": "Attendees",
+    "schedulingFeatures.availability": "Availability",
+    "schedulingFeatures.booking": "Booking",
+    "schedulingFeatures.calendar": "Calendar",
+    "schedulingFeatures.daily": "Daily",
+    "schedulingFeatures.date": "Date",
+    "schedulingFeatures.duration": "Duration",
+    "schedulingFeatures.endTime": "End Time",
+    "schedulingFeatures.event": "Event",
+    "schedulingFeatures.location": "Location",
+    "schedulingFeatures.meeting": "Meeting",
+    "schedulingFeatures.minutes": "Minutes",
+    "schedulingFeatures.monthly": "Monthly",
+    "schedulingFeatures.organizer": "Organizer",
+    "schedulingFeatures.recurring": "Recurring",
+    "schedulingFeatures.reminder": "Reminder",
+    "schedulingFeatures.repeat": "Repeat",
+    "schedulingFeatures.reservation": "Reservation",
+    "schedulingFeatures.schedule": "Schedule",
+    "schedulingFeatures.startTime": "Start Time",
+    "schedulingFeatures.time": "Time",
+    "schedulingFeatures.timeSlot": "Time Slot",
+    "schedulingFeatures.weekly": "Weekly",
+    "schedulingFeatures.yearly": "Yearly"
+  },
+  "ar": {
+    "schedulingFeatures.agenda": "جدول الأعمال",
+    "schedulingFeatures.alarm": "المنبه",
+    "schedulingFeatures.allDay": "طوال اليوم",
+    "schedulingFeatures.appointment": "الموعد",
+    "schedulingFeatures.attendees": "الحضور",
+    "schedulingFeatures.availability": "التوفر",
+    "schedulingFeatures.booking": "الحجز",
+    "schedulingFeatures.calendar": "التقويم",
+    "schedulingFeatures.daily": "يومياً",
+    "schedulingFeatures.date": "التاريخ",
+    "schedulingFeatures.duration": "المدة",
+    "schedulingFeatures.endTime": "وقت النهاية",
+    "schedulingFeatures.event": "الحدث",
+    "schedulingFeatures.location": "الموقع",
+    "schedulingFeatures.meeting": "الاجتماع",
+    "schedulingFeatures.minutes": "المحضر",
+    "schedulingFeatures.monthly": "شهرياً",
+    "schedulingFeatures.organizer": "المنظم",
+    "schedulingFeatures.recurring": "متكرر",
+    "schedulingFeatures.reminder": "التذكير",
+    "schedulingFeatures.repeat": "التكرار",
+    "schedulingFeatures.reservation": "الحجز",
+    "schedulingFeatures.schedule": "الجدول",
+    "schedulingFeatures.startTime": "وقت البداية",
+    "schedulingFeatures.time": "الوقت",
+    "schedulingFeatures.timeSlot": "الفترة الزمنية",
+    "schedulingFeatures.weekly": "أسبوعياً",
+    "schedulingFeatures.yearly": "سنوياً"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/scopeManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "scopeManagement.acceptance": "Scope Acceptance",
+    "scopeManagement.baseline": "Scope Baseline",
+    "scopeManagement.boundary": "Scope Boundary",
+    "scopeManagement.change": "Scope Change",
+    "scopeManagement.clarification": "Scope Clarification",
+    "scopeManagement.control": "Scope Control",
+    "scopeManagement.creep": "Scope Creep",
+    "scopeManagement.definition": "Scope Definition",
+    "scopeManagement.deliverable": "Scope Deliverable",
+    "scopeManagement.documentation": "Scope Documentation",
+    "scopeManagement.exclusion": "Scope Exclusion",
+    "scopeManagement.inclusion": "Scope Inclusion",
+    "scopeManagement.management": "Scope Management",
+    "scopeManagement.planning": "Scope Planning",
+    "scopeManagement.prioritization": "Scope Prioritization",
+    "scopeManagement.requirements": "Scope Requirements",
+    "scopeManagement.scope": "Scope Management",
+    "scopeManagement.statement": "Scope Statement",
+    "scopeManagement.traceability": "Scope Traceability",
+    "scopeManagement.validation": "Scope Validation",
+    "scopeManagement.verification": "Scope Verification",
+    "scopeManagement.wbs": "Work Breakdown Structure"
+  },
+  "ar": {
+    "scopeManagement.acceptance": "قبول النطاق",
+    "scopeManagement.baseline": "خط أساس النطاق",
+    "scopeManagement.boundary": "حدود النطاق",
+    "scopeManagement.change": "تغيير النطاق",
+    "scopeManagement.clarification": "توضيح النطاق",
+    "scopeManagement.control": "التحكم في النطاق",
+    "scopeManagement.creep": "تسلل النطاق",
+    "scopeManagement.definition": "تعريف النطاق",
+    "scopeManagement.deliverable": "مخرجات النطاق",
+    "scopeManagement.documentation": "توثيق النطاق",
+    "scopeManagement.exclusion": "استبعاد النطاق",
+    "scopeManagement.inclusion": "تضمين النطاق",
+    "scopeManagement.management": "إدارة النطاق",
+    "scopeManagement.planning": "تخطيط النطاق",
+    "scopeManagement.prioritization": "تحديد أولويات النطاق",
+    "scopeManagement.requirements": "متطلبات النطاق",
+    "scopeManagement.scope": "إدارة النطاق",
+    "scopeManagement.statement": "بيان النطاق",
+    "scopeManagement.traceability": "إمكانية تتبع النطاق",
+    "scopeManagement.validation": "التحقق من صحة النطاق",
+    "scopeManagement.verification": "التحقق من النطاق",
+    "scopeManagement.wbs": "هيكل تقسيم العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/search.translations.json">
+<![CDATA[
+{
+  "en": {
+    "search.error.generic": "Search failed. Please try again.",
+    "search.global": "Global search",
+    "search.placeholders.dashboard": "Search modules, work orders, tenants…",
+    "search.placeholders.finance": "Search invoices, payments, vendors…",
+    "search.placeholders.fmDefault": "Search work orders, properties, vendors…",
+    "search.placeholders.hr": "Search employees, requests, candidates…",
+    "search.placeholders.marketplaceMaterials": "Search products, services, RFQs, vendors…",
+    "search.placeholders.marketplaceRealEstate": "Search listings, projects, brokers…",
+    "search.placeholders.properties": "Search properties, units, tenants…",
+    "search.placeholders.workOrders": "Search work orders, technicians, assets…",
+    "search.quickActions": "Quick actions",
+    "search.quickActions.empty": "No actions available",
+    "search.results": "Search Results",
+    "search.results.empty": "No results found",
+    "search.results.hint": "Start typing to search",
+    "search.results.loading": "Searching…",
+    "search.results.title": "Results",
+    "search.saved.empty": "No saved searches",
+    "search.saved.financialOverdue": "Overdue invoices & payments",
+    "search.saved.listingsLuxury": "Premium & luxury inventory",
+    "search.saved.listingsNew": "Newest listings on the market",
+    "search.saved.marketplaceFavorites": "Preferred vendors & partners",
+    "search.saved.recentOperations": "Recent operations across modules",
+    "search.saved.rfqsExpiring": "RFQs closing this week",
+    "search.saved.title": "Saved searches",
+    "search.saved.vacantUnits": "Vacant units needing action",
+    "search.saved.workOrdersPreventive": "Upcoming preventive maintenance",
+    "search.saved.workOrdersUrgent": "Urgent & overdue work orders",
+    "search.scope.all": "All"
+  },
+  "ar": {
+    "search.error.generic": "فشل البحث. حاول مرة أخرى.",
+    "search.global": "بحث عام",
+    "search.placeholders.dashboard": "ابحث في الوحدات، أوامر العمل، المستأجرين...",
+    "search.placeholders.finance": "ابحث في الفواتير والمدفوعات والموردين...",
+    "search.placeholders.fmDefault": "ابحث في أوامر العمل والعقارات...",
+    "search.placeholders.hr": "ابحث في الموظفين والطلبات والمرشحين...",
+    "search.placeholders.marketplaceMaterials": "ابحث في المنتجات والخدمات وطلبات الشراء...",
+    "search.placeholders.marketplaceRealEstate": "ابحث في القوائم العقارية والمشاريع والوكلاء...",
+    "search.placeholders.properties": "ابحث في العقارات، الوحدات، المستأجرين...",
+    "search.placeholders.workOrders": "ابحث في أوامر العمل، الفنيين، الأصول...",
+    "search.quickActions": "إجراءات سريعة",
+    "search.quickActions.empty": "لا توجد إجراءات متاحة",
+    "search.results": "نتائج البحث",
+    "search.results.empty": "لا توجد نتائج",
+    "search.results.hint": "ابدأ بالكتابة للبحث",
+    "search.results.loading": "جارٍ البحث...",
+    "search.results.title": "نتائج",
+    "search.saved.empty": "لا توجد عمليات بحث محفوظة",
+    "search.saved.financialOverdue": "الفواتير والمدفوعات المتأخرة",
+    "search.saved.listingsLuxury": "العقارات الفاخرة",
+    "search.saved.listingsNew": "أحدث العروض العقارية",
+    "search.saved.marketplaceFavorites": "الموردون المفضلون والشركاء",
+    "search.saved.recentOperations": "أحدث العمليات في الوحدات",
+    "search.saved.rfqsExpiring": "طلبات العروض التي تنتهي هذا الأسبوع",
+    "search.saved.title": "عمليات البحث المحفوظة",
+    "search.saved.vacantUnits": "الوحدات الشاغرة التي تحتاج متابعة",
+    "search.saved.workOrdersPreventive": "الصيانة الوقائية القادمة",
+    "search.saved.workOrdersUrgent": "أوامر العمل العاجلة والمتأخرة",
+    "search.scope.all": "الكل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/searchEngineMarketing.translations.json">
+<![CDATA[
+{
+  "en": {
+    "searchEngineMarketing.ad": "Ad Group",
+    "searchEngineMarketing.bid": "Bid",
+    "searchEngineMarketing.bidding": "Bidding Strategy",
+    "searchEngineMarketing.bing": "Bing Ads",
+    "searchEngineMarketing.broad": "Broad Match",
+    "searchEngineMarketing.callout": "Callouts",
+    "searchEngineMarketing.copy": "Ad Copy",
+    "searchEngineMarketing.exact": "Exact Match",
+    "searchEngineMarketing.extension": "Ad Extension",
+    "searchEngineMarketing.google": "Google Ads",
+    "searchEngineMarketing.impression": "Impression Share",
+    "searchEngineMarketing.keyword": "Keyword",
+    "searchEngineMarketing.landing": "Landing Page",
+    "searchEngineMarketing.match": "Match Type",
+    "searchEngineMarketing.negative": "Negative Keywords",
+    "searchEngineMarketing.paid": "Paid Search",
+    "searchEngineMarketing.phrase": "Phrase Match",
+    "searchEngineMarketing.position": "Ad Position",
+    "searchEngineMarketing.ppc": "PPC",
+    "searchEngineMarketing.quality": "Quality Score",
+    "searchEngineMarketing.sem": "Search Engine Marketing",
+    "searchEngineMarketing.sitelink": "Sitelinks"
+  },
+  "ar": {
+    "searchEngineMarketing.ad": "مجموعة الإعلانات",
+    "searchEngineMarketing.bid": "العرض",
+    "searchEngineMarketing.bidding": "استراتيجية العرض",
+    "searchEngineMarketing.bing": "إعلانات بينج",
+    "searchEngineMarketing.broad": "المطابقة الواسعة",
+    "searchEngineMarketing.callout": "وسائل الشرح",
+    "searchEngineMarketing.copy": "نص الإعلان",
+    "searchEngineMarketing.exact": "المطابقة التامة",
+    "searchEngineMarketing.extension": "امتداد الإعلان",
+    "searchEngineMarketing.google": "إعلانات جوجل",
+    "searchEngineMarketing.impression": "حصة مرات الظهور",
+    "searchEngineMarketing.keyword": "الكلمة المفتاحية",
+    "searchEngineMarketing.landing": "الصفحة المقصودة",
+    "searchEngineMarketing.match": "نوع المطابقة",
+    "searchEngineMarketing.negative": "الكلمات السلبية",
+    "searchEngineMarketing.paid": "البحث المدفوع",
+    "searchEngineMarketing.phrase": "مطابقة العبارة",
+    "searchEngineMarketing.position": "موضع الإعلان",
+    "searchEngineMarketing.ppc": "الدفع لكل نقرة",
+    "searchEngineMarketing.quality": "نقاط الجودة",
+    "searchEngineMarketing.sem": "التسويق عبر محركات البحث",
+    "searchEngineMarketing.sitelink": "روابط الموقع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/searchEngineOptimization.translations.json">
+<![CDATA[
+{
+  "en": {
+    "searchEngineOptimization.analytics": "SEO Analytics",
+    "searchEngineOptimization.authority": "Domain Authority",
+    "searchEngineOptimization.backlink": "Backlink",
+    "searchEngineOptimization.canonical": "Canonical URL",
+    "searchEngineOptimization.crawling": "Crawling",
+    "searchEngineOptimization.description": "Meta Description",
+    "searchEngineOptimization.header": "Header Tags",
+    "searchEngineOptimization.indexing": "Indexing",
+    "searchEngineOptimization.keyword": "Keyword",
+    "searchEngineOptimization.linkbuilding": "Link Building",
+    "searchEngineOptimization.meta": "Meta Tags",
+    "searchEngineOptimization.offpage": "Off-Page SEO",
+    "searchEngineOptimization.onpage": "On-Page SEO",
+    "searchEngineOptimization.optimization": "Search Engine Optimization",
+    "searchEngineOptimization.organic": "Organic Search",
+    "searchEngineOptimization.ranking": "Ranking",
+    "searchEngineOptimization.robots": "Robots.txt",
+    "searchEngineOptimization.seo": "SEO",
+    "searchEngineOptimization.serp": "SERP",
+    "searchEngineOptimization.sitemap": "Sitemap",
+    "searchEngineOptimization.technical": "Technical SEO",
+    "searchEngineOptimization.title": "Title Tag"
+  },
+  "ar": {
+    "searchEngineOptimization.analytics": "تحليلات تحسين محركات البحث",
+    "searchEngineOptimization.authority": "سلطة المجال",
+    "searchEngineOptimization.backlink": "رابط خلفي",
+    "searchEngineOptimization.canonical": "عنوان URL القانوني",
+    "searchEngineOptimization.crawling": "الزحف",
+    "searchEngineOptimization.description": "الوصف التعريفي",
+    "searchEngineOptimization.header": "علامات الرأس",
+    "searchEngineOptimization.indexing": "الفهرسة",
+    "searchEngineOptimization.keyword": "الكلمة المفتاحية",
+    "searchEngineOptimization.linkbuilding": "بناء الروابط",
+    "searchEngineOptimization.meta": "علامات وصفية",
+    "searchEngineOptimization.offpage": "تحسين خارج الصفحة",
+    "searchEngineOptimization.onpage": "تحسين داخل الصفحة",
+    "searchEngineOptimization.optimization": "تحسين محركات البحث",
+    "searchEngineOptimization.organic": "البحث العضوي",
+    "searchEngineOptimization.ranking": "الترتيب",
+    "searchEngineOptimization.robots": "ملف Robots.txt",
+    "searchEngineOptimization.seo": "تحسين محركات البحث",
+    "searchEngineOptimization.serp": "صفحة نتائج محرك البحث",
+    "searchEngineOptimization.sitemap": "خريطة الموقع",
+    "searchEngineOptimization.technical": "تحسين تقني",
+    "searchEngineOptimization.title": "علامة العنوان"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/searchFeatures.translations.json">
+<![CDATA[
+{
+  "en": {
+    "searchFeatures.accuracy": "Accuracy",
+    "searchFeatures.advanced": "Advanced Search",
+    "searchFeatures.autocomplete": "Autocomplete",
+    "searchFeatures.broaden": "Broaden Search",
+    "searchFeatures.clear": "Clear Search",
+    "searchFeatures.criteria": "Search Criteria",
+    "searchFeatures.exact": "Exact Match",
+    "searchFeatures.filters": "Search Filters",
+    "searchFeatures.fuzzy": "Fuzzy Search",
+    "searchFeatures.global": "Global Search",
+    "searchFeatures.history": "Search History",
+    "searchFeatures.keyword": "Keyword",
+    "searchFeatures.noResults": "No Results Found",
+    "searchFeatures.phrase": "Phrase",
+    "searchFeatures.popular": "Popular Searches",
+    "searchFeatures.precision": "Precision",
+    "searchFeatures.query": "Search Query",
+    "searchFeatures.recall": "Recall",
+    "searchFeatures.recent": "Recent Searches",
+    "searchFeatures.refine": "Refine Search",
+    "searchFeatures.relevance": "Relevance",
+    "searchFeatures.results": "Search Results",
+    "searchFeatures.saved": "Saved Searches",
+    "searchFeatures.scope": "Search Scope",
+    "searchFeatures.search": "Search",
+    "searchFeatures.suggestions": "Search Suggestions",
+    "searchFeatures.trending": "Trending Searches",
+    "searchFeatures.wildcard": "Wildcard",
+    "searchFeatures.within": "Search Within"
+  },
+  "ar": {
+    "searchFeatures.accuracy": "الدقة",
+    "searchFeatures.advanced": "البحث المتقدم",
+    "searchFeatures.autocomplete": "الإكمال التلقائي",
+    "searchFeatures.broaden": "توسيع البحث",
+    "searchFeatures.clear": "مسح البحث",
+    "searchFeatures.criteria": "معايير البحث",
+    "searchFeatures.exact": "مطابقة تامة",
+    "searchFeatures.filters": "مرشحات البحث",
+    "searchFeatures.fuzzy": "بحث غامض",
+    "searchFeatures.global": "البحث الشامل",
+    "searchFeatures.history": "سجل البحث",
+    "searchFeatures.keyword": "الكلمة المفتاحية",
+    "searchFeatures.noResults": "لم يتم العثور على نتائج",
+    "searchFeatures.phrase": "العبارة",
+    "searchFeatures.popular": "عمليات البحث الشائعة",
+    "searchFeatures.precision": "الدقة",
+    "searchFeatures.query": "استعلام البحث",
+    "searchFeatures.recall": "الاستدعاء",
+    "searchFeatures.recent": "عمليات البحث الأخيرة",
+    "searchFeatures.refine": "تحسين البحث",
+    "searchFeatures.relevance": "الصلة",
+    "searchFeatures.results": "نتائج البحث",
+    "searchFeatures.saved": "عمليات البحث المحفوظة",
+    "searchFeatures.scope": "نطاق البحث",
+    "searchFeatures.search": "البحث",
+    "searchFeatures.suggestions": "اقتراحات البحث",
+    "searchFeatures.trending": "عمليات البحث الرائجة",
+    "searchFeatures.wildcard": "حرف بدل",
+    "searchFeatures.within": "البحث ضمن"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/security.translations.json">
+<![CDATA[
+{
+  "en": {
+    "security.accessControl": "Access Control",
+    "security.alarm": "Alarm",
+    "security.alarms": "Alarms",
+    "security.alarmSystem": "Alarm System",
+    "security.biometric": "Biometric",
+    "security.camera": "Camera",
+    "security.cameras": "Cameras",
+    "security.cctv": "CCTV",
+    "security.doorLock": "Door Lock",
+    "security.faceRecognition": "Face Recognition",
+    "security.fingerprint": "Fingerprint",
+    "security.footage": "Footage",
+    "security.incident": "Incident",
+    "security.intrusion": "Intrusion",
+    "security.intrusionDetection": "Intrusion Detection",
+    "security.keycard": "Keycard",
+    "security.liveMonitoring": "Live Monitoring",
+    "security.monitoring": "Monitoring",
+    "security.motion": "Motion",
+    "security.motionDetector": "Motion Detector",
+    "security.motionSensor": "Motion Sensor",
+    "security.patrol": "Patrol",
+    "security.recording": "Recording",
+    "security.security1": "Security",
+    "security.securityCamera": "Security Camera",
+    "security.securityGuard": "Security Guard",
+    "security.securityIncident": "Security Incident",
+    "security.securityLog": "Security Log",
+    "security.securitySystem": "Security System",
+    "security.surveillance": "Surveillance",
+    "security.videoFootage": "Video Footage"
+  },
+  "ar": {
+    "security.accessControl": "التحكم في الوصول",
+    "security.alarm": "إنذار",
+    "security.alarms": "إنذارات",
+    "security.alarmSystem": "نظام الإنذار",
+    "security.biometric": "بيومتري",
+    "security.camera": "كاميرا",
+    "security.cameras": "كاميرات",
+    "security.cctv": "كاميرات المراقبة",
+    "security.doorLock": "قفل الباب",
+    "security.faceRecognition": "التعرف على الوجه",
+    "security.fingerprint": "بصمة الإصبع",
+    "security.footage": "لقطات",
+    "security.incident": "حادث",
+    "security.intrusion": "اقتحام",
+    "security.intrusionDetection": "كشف الاقتحام",
+    "security.keycard": "بطاقة مفتاح",
+    "security.liveMonitoring": "مراقبة مباشرة",
+    "security.monitoring": "المراقبة",
+    "security.motion": "حركة",
+    "security.motionDetector": "كاشف الحركة",
+    "security.motionSensor": "مستشعر الحركة",
+    "security.patrol": "دورية",
+    "security.recording": "تسجيل",
+    "security.security1": "الأمن",
+    "security.securityCamera": "كاميرا أمنية",
+    "security.securityGuard": "حارس أمن",
+    "security.securityIncident": "حادث أمني",
+    "security.securityLog": "سجل الأمن",
+    "security.securitySystem": "نظام الأمن",
+    "security.surveillance": "المراقبة",
+    "security.videoFootage": "لقطات فيديو"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/securityAdministration.translations.json">
+<![CDATA[
+{
+  "en": {
+    "securityAdministration.access": "Access Control",
+    "securityAdministration.alarm": "Alarm",
+    "securityAdministration.background": "Background Check",
+    "securityAdministration.badge": "Badge",
+    "securityAdministration.breach": "Security Breach",
+    "securityAdministration.clearance": "Security Clearance",
+    "securityAdministration.credential": "Credential",
+    "securityAdministration.entry": "Entry Control",
+    "securityAdministration.guard": "Security Guard",
+    "securityAdministration.incident": "Security Incident",
+    "securityAdministration.investigation": "Investigation",
+    "securityAdministration.monitoring": "Monitoring",
+    "securityAdministration.officer": "Security Officer",
+    "securityAdministration.patrol": "Security Patrol",
+    "securityAdministration.perimeter": "Perimeter Security",
+    "securityAdministration.physical": "Physical Security",
+    "securityAdministration.response": "Security Response",
+    "securityAdministration.screening": "Security Screening",
+    "securityAdministration.security": "Security Administration",
+    "securityAdministration.surveillance": "Surveillance",
+    "securityAdministration.threat": "Threat",
+    "securityAdministration.visitor": "Visitor Management"
+  },
+  "ar": {
+    "securityAdministration.access": "التحكم في الوصول",
+    "securityAdministration.alarm": "إنذار",
+    "securityAdministration.background": "فحص الخلفية",
+    "securityAdministration.badge": "شارة",
+    "securityAdministration.breach": "خرق أمني",
+    "securityAdministration.clearance": "التصريح الأمني",
+    "securityAdministration.credential": "بيانات اعتماد",
+    "securityAdministration.entry": "التحكم في الدخول",
+    "securityAdministration.guard": "حارس أمن",
+    "securityAdministration.incident": "حادث أمني",
+    "securityAdministration.investigation": "التحقيق",
+    "securityAdministration.monitoring": "المراقبة",
+    "securityAdministration.officer": "ضابط أمن",
+    "securityAdministration.patrol": "دورية أمنية",
+    "securityAdministration.perimeter": "أمن المحيط",
+    "securityAdministration.physical": "الأمن المادي",
+    "securityAdministration.response": "الاستجابة الأمنية",
+    "securityAdministration.screening": "الفحص الأمني",
+    "securityAdministration.security": "إدارة الأمن",
+    "securityAdministration.surveillance": "المراقبة",
+    "securityAdministration.threat": "تهديد",
+    "securityAdministration.visitor": "إدارة الزوار"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/securityAwareness.translations.json">
+<![CDATA[
+{
+  "en": {
+    "securityAwareness.assessment": "Skills Assessment",
+    "securityAwareness.awareness": "Security Awareness",
+    "securityAwareness.campaigns": "Awareness Campaigns",
+    "securityAwareness.certification": "Security Certification",
+    "securityAwareness.compliance": "Compliance Training",
+    "securityAwareness.courses": "Training Courses",
+    "securityAwareness.culture": "Security Culture",
+    "securityAwareness.education": "Security Education",
+    "securityAwareness.engagement": "User Engagement",
+    "securityAwareness.metrics": "Training Metrics",
+    "securityAwareness.modules": "Training Modules",
+    "securityAwareness.onboarding": "Security Onboarding",
+    "securityAwareness.phishing": "Phishing Training",
+    "securityAwareness.program": "Awareness Program",
+    "securityAwareness.reinforcement": "Ongoing Reinforcement",
+    "securityAwareness.reporting": "Training Reporting",
+    "securityAwareness.security": "Security Awareness",
+    "securityAwareness.simulations": "Phishing Simulations",
+    "securityAwareness.social": "Social Engineering",
+    "securityAwareness.testing": "Security Testing",
+    "securityAwareness.training": "Security Training",
+    "securityAwareness.videos": "Training Videos"
+  },
+  "ar": {
+    "securityAwareness.assessment": "تقييم المهارات",
+    "securityAwareness.awareness": "الوعي الأمني",
+    "securityAwareness.campaigns": "حملات التوعية",
+    "securityAwareness.certification": "الشهادة الأمنية",
+    "securityAwareness.compliance": "تدريب الامتثال",
+    "securityAwareness.courses": "دورات التدريب",
+    "securityAwareness.culture": "الثقافة الأمنية",
+    "securityAwareness.education": "التعليم الأمني",
+    "securityAwareness.engagement": "مشاركة المستخدم",
+    "securityAwareness.metrics": "مقاييس التدريب",
+    "securityAwareness.modules": "وحدات التدريب",
+    "securityAwareness.onboarding": "الإعداد الأمني",
+    "securityAwareness.phishing": "تدريب التصيد",
+    "securityAwareness.program": "برنامج التوعية",
+    "securityAwareness.reinforcement": "التعزيز المستمر",
+    "securityAwareness.reporting": "تقارير التدريب",
+    "securityAwareness.security": "الوعي الأمني",
+    "securityAwareness.simulations": "محاكاة التصيد",
+    "securityAwareness.social": "الهندسة الاجتماعية",
+    "securityAwareness.testing": "الاختبار الأمني",
+    "securityAwareness.training": "التدريب الأمني",
+    "securityAwareness.videos": "مقاطع فيديو التدريب"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/securityComplianceAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "securityComplianceAdv.audit": "Security Audit",
+    "securityComplianceAdv.certificate": "Certificate",
+    "securityComplianceAdv.compliance": "Compliance",
+    "securityComplianceAdv.ddos": "DDoS Protection",
+    "securityComplianceAdv.encryption": "Encryption",
+    "securityComplianceAdv.firewall": "Firewall",
+    "securityComplianceAdv.iam": "Identity & Access Management",
+    "securityComplianceAdv.jwt": "JWT",
+    "securityComplianceAdv.mfa": "Multi-Factor Authentication",
+    "securityComplianceAdv.oauth": "OAuth",
+    "securityComplianceAdv.penetration": "Penetration Test",
+    "securityComplianceAdv.policy": "Security Policy",
+    "securityComplianceAdv.rule": "Security Rule",
+    "securityComplianceAdv.saml": "SAML",
+    "securityComplianceAdv.scan": "Security Scan",
+    "securityComplianceAdv.security": "Security",
+    "securityComplianceAdv.ssl": "SSL/TLS",
+    "securityComplianceAdv.sso": "Single Sign-On",
+    "securityComplianceAdv.token": "Token",
+    "securityComplianceAdv.vulnerability": "Vulnerability",
+    "securityComplianceAdv.waf": "Web Application Firewall"
+  },
+  "ar": {
+    "securityComplianceAdv.audit": "تدقيق الأمن",
+    "securityComplianceAdv.certificate": "الشهادة",
+    "securityComplianceAdv.compliance": "الامتثال",
+    "securityComplianceAdv.ddos": "حماية DDoS",
+    "securityComplianceAdv.encryption": "التشفير",
+    "securityComplianceAdv.firewall": "جدار الحماية",
+    "securityComplianceAdv.iam": "إدارة الهوية والوصول",
+    "securityComplianceAdv.jwt": "JWT",
+    "securityComplianceAdv.mfa": "المصادقة متعددة العوامل",
+    "securityComplianceAdv.oauth": "OAuth",
+    "securityComplianceAdv.penetration": "اختبار الاختراق",
+    "securityComplianceAdv.policy": "سياسة الأمن",
+    "securityComplianceAdv.rule": "قاعدة الأمن",
+    "securityComplianceAdv.saml": "SAML",
+    "securityComplianceAdv.scan": "فحص الأمن",
+    "securityComplianceAdv.security": "الأمن",
+    "securityComplianceAdv.ssl": "SSL/TLS",
+    "securityComplianceAdv.sso": "تسجيل الدخول الموحد",
+    "securityComplianceAdv.token": "الرمز",
+    "securityComplianceAdv.vulnerability": "الثغرة",
+    "securityComplianceAdv.waf": "جدار حماية التطبيقات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/securityControls.translations.json">
+<![CDATA[
+{
+  "en": {
+    "securityControls.biometric": "Biometric",
+    "securityControls.breach": "Security Breach",
+    "securityControls.certificate": "Certificate",
+    "securityControls.cookie": "Cookie",
+    "securityControls.csrf": "CSRF Protection",
+    "securityControls.decryption": "Decryption",
+    "securityControls.encryption": "Encryption",
+    "securityControls.faceRecognition": "Face Recognition",
+    "securityControls.fingerprint": "Fingerprint",
+    "securityControls.hashing": "Hashing",
+    "securityControls.incident": "Security Incident",
+    "securityControls.injection": "SQL Injection Protection",
+    "securityControls.keyPair": "Key Pair",
+    "securityControls.mfa": "Multi-Factor Authentication",
+    "securityControls.otp": "One-Time Password",
+    "securityControls.passphrase": "Passphrase",
+    "securityControls.password": "Password",
+    "securityControls.pin": "PIN",
+    "securityControls.privateKey": "Private Key",
+    "securityControls.publicKey": "Public Key",
+    "securityControls.risk": "Risk",
+    "securityControls.security": "Security",
+    "securityControls.session": "Session",
+    "securityControls.signing": "Digital Signing",
+    "securityControls.threat": "Threat",
+    "securityControls.twoFactor": "Two-Factor Authentication",
+    "securityControls.vulnerability": "Vulnerability",
+    "securityControls.xss": "XSS Protection"
+  },
+  "ar": {
+    "securityControls.biometric": "القياسات الحيوية",
+    "securityControls.breach": "الاختراق الأمني",
+    "securityControls.certificate": "الشهادة",
+    "securityControls.cookie": "ملف تعريف الارتباط",
+    "securityControls.csrf": "الحماية من CSRF",
+    "securityControls.decryption": "فك التشفير",
+    "securityControls.encryption": "التشفير",
+    "securityControls.faceRecognition": "التعرف على الوجه",
+    "securityControls.fingerprint": "بصمة الإصبع",
+    "securityControls.hashing": "التجزئة",
+    "securityControls.incident": "الحادث الأمني",
+    "securityControls.injection": "الحماية من حقن SQL",
+    "securityControls.keyPair": "زوج المفاتيح",
+    "securityControls.mfa": "المصادقة متعددة العوامل",
+    "securityControls.otp": "كلمة المرور لمرة واحدة",
+    "securityControls.passphrase": "عبارة المرور",
+    "securityControls.password": "كلمة المرور",
+    "securityControls.pin": "رمز PIN",
+    "securityControls.privateKey": "المفتاح الخاص",
+    "securityControls.publicKey": "المفتاح العام",
+    "securityControls.risk": "المخاطر",
+    "securityControls.security": "الأمان",
+    "securityControls.session": "الجلسة",
+    "securityControls.signing": "التوقيع الرقمي",
+    "securityControls.threat": "التهديد",
+    "securityControls.twoFactor": "المصادقة الثنائية",
+    "securityControls.vulnerability": "الثغرة الأمنية",
+    "securityControls.xss": "الحماية من XSS"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/securityIncident.translations.json">
+<![CDATA[
+{
+  "en": {
+    "securityIncident.attack": "Cyber Attack",
+    "securityIncident.breach": "Data Breach",
+    "securityIncident.containment": "Containment",
+    "securityIncident.ddos": "DDoS Attack",
+    "securityIncident.detection": "Detection",
+    "securityIncident.eradication": "Eradication",
+    "securityIncident.exploit": "Exploit",
+    "securityIncident.forensics": "Digital Forensics",
+    "securityIncident.incident": "Security Incident",
+    "securityIncident.intrusion": "Intrusion",
+    "securityIncident.investigation": "Investigation",
+    "securityIncident.malware": "Malware",
+    "securityIncident.notification": "Notification",
+    "securityIncident.phishing": "Phishing",
+    "securityIncident.ransomware": "Ransomware",
+    "securityIncident.recovery": "Recovery",
+    "securityIncident.remediation": "Remediation",
+    "securityIncident.reporting": "Reporting",
+    "securityIncident.response": "Incident Response",
+    "securityIncident.security": "Security",
+    "securityIncident.threat": "Security Threat",
+    "securityIncident.unauthorized": "Unauthorized Access",
+    "securityIncident.virus": "Virus",
+    "securityIncident.vulnerability": "Vulnerability"
+  },
+  "ar": {
+    "securityIncident.attack": "هجوم سيبراني",
+    "securityIncident.breach": "اختراق البيانات",
+    "securityIncident.containment": "الاحتواء",
+    "securityIncident.ddos": "هجوم حجب الخدمة",
+    "securityIncident.detection": "الكشف",
+    "securityIncident.eradication": "الاستئصال",
+    "securityIncident.exploit": "استغلال",
+    "securityIncident.forensics": "الطب الشرعي الرقمي",
+    "securityIncident.incident": "حادثة أمنية",
+    "securityIncident.intrusion": "التطفل",
+    "securityIncident.investigation": "التحقيق",
+    "securityIncident.malware": "البرامج الضارة",
+    "securityIncident.notification": "الإشعار",
+    "securityIncident.phishing": "التصيد",
+    "securityIncident.ransomware": "برامج الفدية",
+    "securityIncident.recovery": "الاستعادة",
+    "securityIncident.remediation": "المعالجة",
+    "securityIncident.reporting": "الإبلاغ",
+    "securityIncident.response": "الاستجابة للحوادث",
+    "securityIncident.security": "الأمن",
+    "securityIncident.threat": "تهديد أمني",
+    "securityIncident.unauthorized": "الوصول غير المصرح",
+    "securityIncident.virus": "الفيروس",
+    "securityIncident.vulnerability": "نقطة ضعف"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/securityMonitoring.translations.json">
+<![CDATA[
+{
+  "en": {
+    "securityMonitoring.alert": "Security Alert",
+    "securityMonitoring.analysis": "Security Analysis",
+    "securityMonitoring.anomaly": "Anomaly Detection",
+    "securityMonitoring.audit": "Security Audit",
+    "securityMonitoring.breach": "Breach Detection",
+    "securityMonitoring.compliance": "Compliance Monitoring",
+    "securityMonitoring.correlation": "Event Correlation",
+    "securityMonitoring.dashboard": "Security Dashboard",
+    "securityMonitoring.event": "Security Event",
+    "securityMonitoring.feed": "Threat Feed",
+    "securityMonitoring.forensics": "Digital Forensics",
+    "securityMonitoring.incident": "Security Incident",
+    "securityMonitoring.intelligence": "Threat Intelligence",
+    "securityMonitoring.intrusion": "Intrusion Detection",
+    "securityMonitoring.investigation": "Investigation",
+    "securityMonitoring.log": "Security Log",
+    "securityMonitoring.monitoring": "Security Monitoring",
+    "securityMonitoring.reporting": "Security Reporting",
+    "securityMonitoring.security": "Security",
+    "securityMonitoring.siem": "SIEM",
+    "securityMonitoring.threat": "Threat Detection",
+    "securityMonitoring.vulnerability": "Vulnerability Scanning"
+  },
+  "ar": {
+    "securityMonitoring.alert": "تنبيه أمني",
+    "securityMonitoring.analysis": "التحليل الأمني",
+    "securityMonitoring.anomaly": "الكشف عن الشذوذ",
+    "securityMonitoring.audit": "التدقيق الأمني",
+    "securityMonitoring.breach": "الكشف عن الاختراق",
+    "securityMonitoring.compliance": "مراقبة الامتثال",
+    "securityMonitoring.correlation": "ارتباط الأحداث",
+    "securityMonitoring.dashboard": "لوحة معلومات الأمن",
+    "securityMonitoring.event": "حدث أمني",
+    "securityMonitoring.feed": "تغذية التهديدات",
+    "securityMonitoring.forensics": "الطب الشرعي الرقمي",
+    "securityMonitoring.incident": "حادثة أمنية",
+    "securityMonitoring.intelligence": "معلومات التهديدات",
+    "securityMonitoring.intrusion": "الكشف عن التسلل",
+    "securityMonitoring.investigation": "التحقيق",
+    "securityMonitoring.log": "سجل الأمن",
+    "securityMonitoring.monitoring": "المراقبة الأمنية",
+    "securityMonitoring.reporting": "الإبلاغ الأمني",
+    "securityMonitoring.security": "الأمن",
+    "securityMonitoring.siem": "إدارة معلومات وأحداث الأمن",
+    "securityMonitoring.threat": "الكشف عن التهديدات",
+    "securityMonitoring.vulnerability": "فحص الثغرات"
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

@@ -1,0 +1,3503 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/archived/planning/PHASE_2_PR_SPLIT_STRATEGY.md">
+<![CDATA[
+# Phase 2 - Multi-PR Split Strategy
+
+**Date:** November 16, 2025  
+**Purpose:** Break Phase 2 into manageable, reviewable PRs  
+**Total Conflicts:** 65 files  
+**Strategy:** Feature-based grouping with minimal interdependencies
+
+---
+
+## PR Grouping Strategy
+
+### 🎯 PR #1: Core Infrastructure & Models (Foundation)
+
+**Branch:** `feat/souq-phase2-pr1-infrastructure`  
+**Files:** ~20 files  
+**Conflicts:** Low (2-3)  
+**Review Time:** 30 minutes
+
+**Includes:**
+
+- Core Souq models (Product, Category, Brand)
+- Database schemas and migrations
+- Shared utilities (FSIN generator, feature flags)
+- MongoDB plugins and helpers
+
+**Files:**
+
+```
+server/models/souq/Product.ts
+server/models/souq/Category.ts
+server/models/souq/Brand.ts
+server/models/souq/Variation.ts
+lib/souq/fsin-generator.ts
+lib/souq/feature-flags.ts
+src/types/mongoose-compat.ts
+types/souq/reviews.ts
+```
+
+**Why First:** Foundation for all other PRs, minimal conflicts
+
+---
+
+### 📦 PR #2: Inventory Management (EPIC I - Part 1)
+
+**Branch:** `feat/souq-phase2-pr2-inventory`  
+**Files:** ~15 files  
+**Conflicts:** Medium (4-5)  
+**Review Time:** 45 minutes
+
+**Includes:**
+
+- Inventory models and services
+- Stock tracking APIs
+- Warehouse management
+- Reserve/release logic
+
+**Files:**
+
+```
+server/models/souq/Inventory.ts
+server/models/souq/Listing.ts
+services/souq/inventory-service.ts
+app/api/souq/inventory/route.ts
+app/api/souq/inventory/[listingId]/route.ts
+app/api/souq/inventory/adjust/route.ts
+app/api/souq/inventory/health/route.ts
+app/api/souq/inventory/reserve/route.ts
+app/api/souq/inventory/release/route.ts
+```
+
+**Dependencies:** PR #1 (Product models)
+
+---
+
+### 📊 PR #3: Analytics Dashboard (EPIC G)
+
+**Branch:** `feat/souq-phase2-pr3-analytics`  
+**Files:** ~18 files  
+**Conflicts:** Medium (5-6)  
+**Review Time:** 1 hour
+
+**Includes:**
+
+- Analytics service
+- Dashboard APIs
+- Sales/traffic/customer analytics
+- UI components
+
+**Files:**
+
+```
+services/souq/analytics/analytics-service.ts
+app/api/souq/analytics/dashboard/route.ts
+app/api/souq/analytics/sales/route.ts
+app/api/souq/analytics/products/route.ts
+app/api/souq/analytics/traffic/route.ts
+app/api/souq/analytics/customers/route.ts
+components/seller/analytics/SalesChart.tsx
+components/seller/analytics/ProductPerformanceTable.tsx
+components/seller/analytics/CustomerInsightsCard.tsx
+components/seller/analytics/TrafficAnalytics.tsx
+app/marketplace/seller-central/analytics/page.tsx
+```
+
+**Dependencies:** PR #1, PR #2 (Order data)
+
+---
+
+### ⭐ PR #4: Reviews & Ratings System (EPIC H)
+
+**Branch:** `feat/souq-phase2-pr4-reviews`  
+**Files:** ~22 files  
+**Conflicts:** High (8-10)  
+**Review Time:** 1.5 hours
+
+**Includes:**
+
+- Review models and services
+- Rating aggregation
+- Buyer submission APIs
+- Seller response system
+- Review moderation
+- UI components
+
+**Files:**
+
+```
+server/models/souq/Review.ts
+services/souq/reviews/review-service.ts
+services/souq/reviews/rating-aggregation-service.ts
+app/api/souq/reviews/route.ts
+app/api/souq/reviews/[id]/route.ts
+app/api/souq/reviews/[id]/helpful/route.ts
+app/api/souq/reviews/[id]/report/route.ts
+app/api/souq/products/[id]/reviews/route.ts
+app/api/souq/seller-central/reviews/route.ts
+app/api/souq/seller-central/reviews/[id]/respond/route.ts
+components/seller/reviews/ReviewCard.tsx
+components/seller/reviews/ReviewForm.tsx
+components/seller/reviews/ReviewList.tsx
+components/seller/reviews/RatingSummary.tsx
+components/seller/reviews/SellerResponseForm.tsx
+app/marketplace/seller-central/reviews/page.tsx
+app/marketplace/orders/[orderId]/review/page.tsx
+app/marketplace/products/[id]/reviews/page.tsx
+lib/validations/reviews.ts
+docs/api/souq-reviews.md
+```
+
+**Dependencies:** PR #1 (Product models), PR #2 (Order completion)
+
+---
+
+### 🏪 PR #5: Seller Central Dashboard (EPIC E - Part 1)
+
+**Branch:** `feat/souq-phase2-pr5-seller-dashboard`  
+**Files:** ~16 files  
+**Conflicts:** Medium (5-6)  
+**Review Time:** 1 hour
+
+**Includes:**
+
+- Seller dashboard
+- Performance metrics
+- Account health
+- KYC system
+
+**Files:**
+
+```
+server/models/souq/Seller.ts
+server/models/souq/SellerMetrics.ts
+services/souq/seller-kyc-service.ts
+services/souq/account-health-service.ts
+app/api/souq/sellers/route.ts
+app/api/souq/sellers/[id]/dashboard/route.ts
+app/api/souq/seller-central/health/route.ts
+app/api/souq/seller-central/health/summary/route.ts
+app/api/souq/seller-central/kyc/submit/route.ts
+app/api/souq/seller-central/kyc/status/route.ts
+components/seller/health/HealthScore.tsx
+components/seller/health/MetricCard.tsx
+components/seller/kyc/KYCProgress.tsx
+components/seller/kyc/DocumentUploadForm.tsx
+app/marketplace/seller-central/health/page.tsx
+app/marketplace/seller-central/kyc/page.tsx
+```
+
+**Dependencies:** PR #1 (Product models), PR #3 (Analytics)
+
+---
+
+### 💰 PR #6: Returns & Claims (EPIC E - Part 2)
+
+**Branch:** `feat/souq-phase2-pr6-returns-claims`  
+**Files:** ~20 files  
+**Conflicts:** High (7-9)  
+**Review Time:** 1.5 hours
+
+**Includes:**
+
+- Returns management (RMA)
+- Claims system
+- Refund processing
+- Investigation workflow
+
+**Files:**
+
+```
+server/models/souq/RMA.ts
+server/models/souq/Claim.ts
+services/souq/returns-service.ts
+services/souq/claims/claim-service.ts
+services/souq/claims/investigation-service.ts
+services/souq/claims/refund-processor.ts
+app/api/souq/returns/route.ts
+app/api/souq/returns/[rmaId]/route.ts
+app/api/souq/returns/initiate/route.ts
+app/api/souq/returns/approve/route.ts
+app/api/souq/claims/route.ts
+app/api/souq/claims/[id]/route.ts
+app/api/souq/claims/[id]/response/route.ts
+components/souq/claims/ClaimForm.tsx
+components/souq/claims/ClaimDetails.tsx
+app/marketplace/buyer/claims/page.tsx
+app/marketplace/seller-central/claims/page.tsx
+```
+
+**Dependencies:** PR #2 (Orders), PR #4 (Review integration)
+
+---
+
+### 🚚 PR #7: Order Processing & Fulfillment (EPIC I - Part 2)
+
+**Branch:** `feat/souq-phase2-pr7-orders-fulfillment`  
+**Files:** ~14 files  
+**Conflicts:** Medium-High (6-7)  
+**Review Time:** 1 hour
+
+**Includes:**
+
+- Order processing
+- Fulfillment engine
+- Shipping integration
+- SLA tracking
+
+**Files:**
+
+```
+server/models/souq/Order.ts
+services/souq/fulfillment-service.ts
+app/api/souq/orders/route.ts
+app/api/souq/fulfillment/rates/route.ts
+app/api/souq/fulfillment/generate-label/route.ts
+app/api/souq/fulfillment/sla/[orderId]/route.ts
+app/api/webhooks/carrier/tracking/route.ts
+lib/carriers/aramex.ts
+lib/carriers/smsa.ts
+lib/carriers/spl.ts
+```
+
+**Dependencies:** PR #2 (Inventory reserve), PR #6 (Returns)
+
+---
+
+### 💳 PR #8: Settlements & Payouts (EPIC I - Part 3)
+
+**Branch:** `feat/souq-phase2-pr8-settlements`  
+**Files:** ~18 files  
+**Conflicts:** Medium (4-5)  
+**Review Time:** 1 hour
+
+**Includes:**
+
+- Settlement calculation
+- Balance management
+- Payout processing
+- Transaction history
+
+**Files:**
+
+```
+server/models/souq/Settlement.ts
+server/models/souq/SettlementExtended.ts
+server/models/souq/Transaction.ts
+server/models/souq/PayoutRequest.ts
+services/souq/settlements/settlement-calculator.ts
+services/souq/settlements/balance-service.ts
+services/souq/settlements/payout-processor.ts
+app/api/souq/settlements/route.ts
+app/api/souq/settlements/[id]/route.ts
+app/api/souq/settlements/balance/route.ts
+app/api/souq/settlements/request-payout/route.ts
+app/api/souq/settlements/transactions/route.ts
+components/seller/settlements/BalanceOverview.tsx
+components/seller/settlements/SettlementStatementView.tsx
+components/seller/settlements/WithdrawalForm.tsx
+app/marketplace/seller-central/settlements/page.tsx
+```
+
+**Dependencies:** PR #7 (Orders complete)
+
+---
+
+### 🛍️ PR #9: Product Catalog & Variations (EPIC F)
+
+**Branch:** `feat/souq-phase2-pr9-catalog`  
+**Files:** ~12 files  
+**Conflicts:** Low-Medium (3-4)  
+**Review Time:** 45 minutes
+
+**Includes:**
+
+- Product catalog APIs
+- Variation management
+- BuyBox logic
+- Multi-currency support
+
+**Files:**
+
+```
+app/api/souq/catalog/products/route.ts
+app/api/souq/products/route.ts
+app/api/souq/categories/route.ts
+app/api/souq/brands/route.ts
+app/api/souq/buybox/[fsin]/route.ts
+app/api/souq/buybox/winner/[fsin]/route.ts
+app/api/souq/listings/route.ts
+services/souq/buybox-service.ts
+components/souq/BuyBoxWinner.tsx
+components/souq/OtherOffersTab.tsx
+app/souq/catalog/page.tsx
+```
+
+**Dependencies:** PR #1 (Models), PR #2 (Inventory)
+
+---
+
+### 🔍 PR #10: Search & Discovery
+
+**Branch:** `feat/souq-phase2-pr10-search`  
+**Files:** ~10 files  
+**Conflicts:** Medium (4-5)  
+**Review Time:** 45 minutes
+
+**Includes:**
+
+- Meilisearch integration
+- Search indexing
+- Filters and facets
+- Search UI
+
+**Files:**
+
+```
+app/api/souq/search/route.ts
+services/souq/search-indexer-service.ts
+lib/meilisearch-client.ts
+lib/meilisearch.ts
+components/souq/SearchBar.tsx
+components/souq/SearchFilters.tsx
+app/souq/search/page.tsx
+jobs/search-index-jobs.ts
+```
+
+**Dependencies:** PR #1 (Product models)
+
+---
+
+### 📢 PR #11: Advertising & Deals (EPIC F)
+
+**Branch:** `feat/souq-phase2-pr11-advertising`  
+**Files:** ~16 files  
+**Conflicts:** Low (2-3)  
+**Review Time:** 1 hour
+
+**Includes:**
+
+- Advertising campaigns
+- Sponsored products
+- Auction engine
+- Performance reports
+- Deals management
+
+**Files:**
+
+```
+server/models/souq/Advertising.ts
+server/models/souq/Deal.ts
+server/models/souq/Coupon.ts
+services/souq/ads/campaign-service.ts
+services/souq/ads/auction-engine.ts
+services/souq/ads/budget-manager.ts
+app/api/souq/ads/campaigns/route.ts
+app/api/souq/ads/campaigns/[id]/route.ts
+app/api/souq/ads/campaigns/[id]/stats/route.ts
+app/api/souq/deals/route.ts
+components/souq/ads/SponsoredProduct.tsx
+components/souq/ads/SponsoredBrandBanner.tsx
+components/seller/advertising/PerformanceReport.tsx
+app/marketplace/seller-central/advertising/page.tsx
+```
+
+**Dependencies:** PR #9 (Catalog)
+
+---
+
+### 💲 PR #12: Dynamic Pricing & Repricer
+
+**Branch:** `feat/souq-phase2-pr12-pricing`  
+**Files:** ~8 files  
+**Conflicts:** Low (1-2)  
+**Review Time:** 30 minutes
+
+**Includes:**
+
+- Auto-repricer service
+- Pricing rules
+- Competitor analysis
+- Price history
+
+**Files:**
+
+```
+services/souq/auto-repricer-service.ts
+app/api/souq/repricer/settings/route.ts
+app/api/souq/repricer/run/route.ts
+app/api/souq/repricer/analysis/[fsin]/route.ts
+components/seller/pricing/PricingRuleCard.tsx
+components/seller/pricing/CompetitorAnalysis.tsx
+app/marketplace/seller-central/pricing/page.tsx
+```
+
+**Dependencies:** PR #9 (Listings)
+
+---
+
+### 🧪 PR #13: Testing & Documentation
+
+**Branch:** `feat/souq-phase2-pr13-testing-docs`  
+**Files:** ~10 files  
+**Conflicts:** None (0)  
+**Review Time:** 30 minutes
+
+**Includes:**
+
+- Test data seeding script
+- API documentation
+- Testing execution guide
+- Finance scripts
+- Status reports
+
+**Files:**
+
+```
+scripts/seed/souq-test-data.ts
+scripts/finance/seed-fx.ts
+scripts/finance/migrate-journal-postings.ts
+docs/api/souq-reviews.md
+PHASE_2_TESTING_EXECUTION.md
+SEEDING_SCRIPT_STATUS.md
+FINANCE_SCRIPTS_EXECUTION_REPORT.md
+PHASE_2_FINAL_STATUS.md
+EXTERNAL_MODIFICATIONS_REVIEW.md
+```
+
+**Dependencies:** None (documentation only)
+
+---
+
+## Merge Order & Timeline
+
+### Week 1 (Foundation)
+
+1. **Monday:** PR #1 (Infrastructure) - 30 min review
+2. **Tuesday:** PR #2 (Inventory) - 45 min review
+3. **Wednesday:** PR #9 (Catalog) - 45 min review
+4. **Thursday:** PR #10 (Search) - 45 min review
+5. **Friday:** PR #13 (Testing/Docs) - 30 min review
+
+### Week 2 (Features)
+
+6. **Monday:** PR #3 (Analytics) - 1 hour review
+7. **Tuesday:** PR #4 (Reviews) - 1.5 hours review
+8. **Wednesday:** PR #5 (Seller Dashboard) - 1 hour review
+9. **Thursday:** PR #11 (Advertising) - 1 hour review
+10. **Friday:** PR #12 (Pricing) - 30 min review
+
+### Week 3 (Complex Features)
+
+11. **Monday:** PR #6 (Returns/Claims) - 1.5 hours review
+12. **Tuesday:** PR #7 (Fulfillment) - 1 hour review
+13. **Wednesday:** PR #8 (Settlements) - 1 hour review
+
+---
+
+## Implementation Steps
+
+### 1. Abort Current Merge
+
+```bash
+git merge --abort
+git stash pop  # Restore stashed changes if needed
+```
+
+### 2. Create PR Branches (Script)
+
+```bash
+#!/bin/bash
+# Create all PR branches from feat/souq-marketplace-advanced
+
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+
+git checkout feat/souq-marketplace-advanced
+
+# PR #1
+git checkout -b feat/souq-phase2-pr1-infrastructure
+# Cherry-pick relevant commits
+git push origin feat/souq-phase2-pr1-infrastructure
+
+# PR #2
+git checkout feat/souq-marketplace-advanced
+git checkout -b feat/souq-phase2-pr2-inventory
+# Cherry-pick relevant commits
+git push origin feat/souq-phase2-pr2-inventory
+
+# ... repeat for all PRs
+```
+
+### 3. For Each PR
+
+1. Create branch from `feat/souq-marketplace-advanced`
+2. Cherry-pick only relevant commits
+3. Resolve conflicts for that PR only
+4. Test the PR independently
+5. Push to GitHub
+6. Create Pull Request with detailed description
+7. Request review
+8. Merge when approved
+9. Move to next PR
+
+---
+
+## Conflict Resolution Strategy
+
+### High-Conflict Files (Priority)
+
+These files appear in multiple PRs and need careful handling:
+
+1. **package.json / pnpm-lock.yaml** (All PRs)
+   - Resolve in PR #1
+   - Subsequent PRs rebase on main
+
+2. **lib/mongodb-unified.ts** (PRs 1, 2, 7)
+   - Resolve in PR #1
+   - Later PRs inherit fix
+
+3. **i18n files** (PRs 3, 4, 5)
+   - Resolve in PR #3
+   - Later PRs add keys only
+
+4. **components/Sidebar.tsx** (PRs 4, 5, 11)
+   - Resolve navigation in PR #4
+   - Later PRs add menu items
+
+### Conflict Resolution Per PR
+
+**PR #1:** Minimal conflicts (infrastructure)
+**PR #2:** Medium conflicts (inventory APIs)
+**PR #3:** Medium conflicts (analytics dashboard)
+**PR #4:** High conflicts (reviews system)
+**PR #5-13:** Decreasing conflicts as dependencies resolve
+
+---
+
+## Benefits of This Approach
+
+### ✅ Easier Reviews
+
+- Each PR focuses on one feature
+- Reviewers understand context quickly
+- Faster approval cycles
+
+### ✅ Incremental Deployment
+
+- Can deploy PRs 1-5 first (foundation)
+- PRs 6-12 add advanced features
+- Rollback is easier
+
+### ✅ Parallel Development
+
+- Multiple developers can work on different PRs
+- Less merge conflict hell
+- Faster overall delivery
+
+### ✅ Better Testing
+
+- Each PR can be tested independently
+- Easier to identify breaking changes
+- Staging validation per feature
+
+### ✅ Risk Mitigation
+
+- If one PR has issues, others proceed
+- Can defer complex PRs if needed
+- Production deployment is safer
+
+---
+
+## PR Templates
+
+### PR #1 Example
+
+**Title:** `[Phase 2 - PR 1/13] Core Infrastructure & Models`
+
+**Description:**
+
+```markdown
+## Overview
+
+Foundation for Souq marketplace - core models, utilities, and database schemas.
+
+## What's Included
+
+- ✅ Product, Category, Brand models
+- ✅ FSIN generator utility
+- ✅ Feature flags system
+- ✅ Mongoose compatibility types
+
+## Dependencies
+
+- None (foundation PR)
+
+## Testing
+
+- Unit tests for FSIN generator
+- Model validation tests
+- TypeScript compilation verified
+
+## Deployment Notes
+
+- No database migrations needed
+- No breaking changes
+- Safe to merge
+
+## Related PRs
+
+- Blocks: PR #2 (Inventory), PR #9 (Catalog)
+
+## Checklist
+
+- [x] Code reviewed
+- [x] Tests passing
+- [x] Documentation updated
+- [x] TypeScript errors: 0
+- [x] No conflicts with main
+```
+
+---
+
+## Next Steps
+
+**Immediate:**
+
+1. Abort current merge
+2. Create branch creation script
+3. Start with PR #1 (Infrastructure)
+
+**Short-term:**
+
+1. Create all 13 PR branches
+2. Submit PRs 1-5 for review
+3. Begin PR #1 merge process
+
+**Long-term:**
+
+1. Complete all 13 PRs
+2. Update main branch incrementally
+3. Full Phase 2 deployment
+
+---
+
+## Success Metrics
+
+- **Target:** All 13 PRs merged within 3 weeks
+- **Quality:** 0 TypeScript errors per PR
+- **Review Time:** <2 hours per PR
+- **Conflicts:** <5 files per PR after PR #4
+- **Deployment:** Zero downtime incremental rollout
+
+**Status:** ✅ Ready to Execute  
+**Approval:** Pending user confirmation
+
+]]>
+</file>
+
+<file path="docs/archived/planning/PRIORITY_2_IMPLEMENTATION_PLAN.md">
+<![CDATA[
+# Priority 2 Implementation Plan - Tactical Approach
+
+**Date**: 2025-11-10  
+**Status**: 🟧 **IN PROGRESS** - Systematic, incremental fixes  
+**Total Scope**: 315+ issues across 3 categories
+
+---
+
+## 📊 Issue Breakdown
+
+### Discovered Issues (from scans):
+
+- **Unhandled Promises**: 187 issues (115 major, 72 moderate)
+- **Hydration Mismatches**: 58 estimated issues
+- **I18n/RTL Gaps**: 70 estimated issues
+
+### Total: **315+ issues** requiring systematic fixes
+
+---
+
+## 🎯 Strategic Approach: Incremental, Not Revolutionary
+
+**Why NOT mass automated fixes:**
+
+1. Risk of breaking working code
+2. Loss of context-specific logic
+3. Difficult to test/verify all changes
+4. May introduce new bugs
+
+**Why YES incremental manual fixes with automation assist:**
+
+1. Safer - review each change
+2. Learn patterns - improve codebase understanding
+3. Test as you go - catch regressions early
+4. Document decisions - build institutional knowledge
+
+---
+
+## 📋 Phase 1: Work Orders Performance (🔴 Critical - Do First)
+
+### Issue
+
+`/work-orders` page loads in >30 seconds, causing E2E test timeouts
+
+### Root Cause Analysis
+
+1. **No pagination on data fetch** - Loading all work orders at once
+2. **No database indexes** - Full table scan on every query
+3. **No caching** - Fresh fetch every time
+4. **Blocking waterfall** - Sequential data fetching
+
+### Solution Implementation
+
+#### Step 1: Add Database Indexes (5 minutes)
+
+```typescript
+// server/models/WorkOrder.ts
+// Add compound indexes for common queries
+WorkOrderSchema.index({ orgId: 1, status: 1, priority: 1, createdAt: -1 });
+WorkOrderSchema.index({ orgId: 1, propertyId: 1, status: 1 });
+WorkOrderSchema.index({ orgId: 1, assigneeUserId: 1, status: 1 });
+WorkOrderSchema.index({ orgId: 1, code: 1 }, { unique: true });
+```
+
+#### Step 2: Optimize API Query (10 minutes)
+
+```typescript
+// app/api/work-orders/route.ts
+// Already has pagination via createCrudHandlers()
+// Add .lean() for faster queries:
+const results = await WorkOrder.find(filter)
+  .sort(sort)
+  .limit(limit)
+  .skip(skip)
+  .lean() // ← ADD THIS - Returns plain JS objects, 5-10x faster
+  .exec();
+```
+
+#### Step 3: Add Caching Headers (5 minutes)
+
+```typescript
+// app/api/work-orders/route.ts
+return NextResponse.json(data, {
+  headers: {
+    "Cache-Control": "private, max-age=10, stale-while-revalidate=60",
+    "CDN-Cache-Control": "max-age=60",
+  },
+});
+```
+
+#### Step 4: Add Loading Skeleton (15 minutes)
+
+```typescript
+// components/fm/WorkOrdersView.tsx - Already has loading state
+// Just needs better UX - loading skeleton instead of spinner
+```
+
+**Total Time**: ~35 minutes  
+**Expected Result**: <5s page load time
+
+---
+
+## 📋 Phase 2: Unhandled Promises (🟧 Major - Systematic Fix)
+
+### Scan Results
+
+- **187 total issues**
+- **115 major** - fetch() without try-catch
+- **72 moderate** - .then() without .catch()
+
+### Tactical Fix Strategy
+
+#### Pattern 1: Fetch Without Try-Catch (115 issues)
+
+**Before**:
+
+```typescript
+const response = await fetch("/api/endpoint");
+const data = await response.json();
+```
+
+**After**:
+
+```typescript
+try {
+  const response = await fetch("/api/endpoint");
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const data = await response.json();
+} catch (error) {
+  console.error("API Error:", error);
+  // Handle gracefully - show error toast, return fallback, etc.
+}
+```
+
+#### Pattern 2: .then() Without .catch() (72 issues)
+
+**Before**:
+
+```typescript
+fetchData().then((data) => process(data));
+```
+
+**After**:
+
+```typescript
+fetchData()
+  .then((data) => process(data))
+  .catch((error) => console.error("Error:", error));
+```
+
+#### Implementation Plan:
+
+1. **Week 1**: Fix top 20 critical files (API routes, main pages)
+2. **Week 2**: Fix next 50 high-traffic files (components, hooks)
+3. **Week 3**: Fix remaining 117 lower-priority files
+4. **Verification**: Run E2E tests after each batch
+
+**Tools Created**:
+
+- `scripts/scan-unhandled-promises.ts` - Identifies all issues
+- `_artifacts/scans/unhandled-promises.json` - Detailed report
+- `_artifacts/scans/unhandled-promises.csv` - Excel-friendly format
+
+---
+
+## 📋 Phase 3: Hydration Mismatches (🟧 Major - Pattern-Based Fix)
+
+### Common Patterns
+
+#### Pattern 1: Date Formatting
+
+**Before**:
+
+```typescript
+<p>{new Date().toLocaleString()}</p>
+```
+
+**After**:
+
+```typescript
+<p suppressHydrationWarning>{new Date().toLocaleString()}</p>
+```
+
+#### Pattern 2: Browser APIs
+
+**Before**:
+
+```typescript
+function Component() {
+  const token = localStorage.getItem("token");
+  // ...
+}
+```
+
+**After**:
+
+```typescript
+"use client";
+
+function Component() {
+  const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    setToken(localStorage.getItem("token"));
+  }, []);
+  // ...
+}
+```
+
+#### Pattern 3: Window/Document Usage
+
+**Before**:
+
+```typescript
+const width = window.innerWidth;
+```
+
+**After**:
+
+```typescript
+const width = typeof window !== "undefined" ? window.innerWidth : 0;
+```
+
+#### Implementation Plan:
+
+1. **Day 1**: Audit all date formatting (add suppressHydrationWarning)
+2. **Day 2**: Fix localStorage/sessionStorage usage (move to useEffect)
+3. **Day 3**: Fix window/document refs (add typeof checks or 'use client')
+4. **Day 4**: Test and verify - run E2E suite
+
+**Tools Created**:
+
+- `scripts/scan-hydration-issues.ts` - Identifies hydration bugs
+- Pattern-specific automated fixes
+
+---
+
+## 📋 Phase 4: I18n/RTL Coverage (🟨 Moderate - Translation Gaps)
+
+### Translation Audit Results
+
+```bash
+📦 Catalog stats
+  EN keys: 1982
+  AR keys: 1982
+  Gap    : 0 (✅ Parity maintained)
+
+📊 Summary
+  Files scanned: 379
+  Keys used    : 1551
+  Missing (catalog parity): 0
+  Missing (used in code)  : 0
+```
+
+### Issues Found:
+
+1. **Dynamic keys** - 5 files use template literals `t(\`\${expr}\`)`
+2. **Missing namespacing** - Some keys lack module prefix
+3. **RTL layout bugs** - CSS not bidirectional-friendly
+
+### Fix Strategy
+
+#### Step 1: Fix Dynamic Keys (1 hour)
+
+Convert template literals to static keys + parameter substitution:
+
+**Before**:
+
+```typescript
+t(`finance.${category}.title`);
+```
+
+**After**:
+
+```typescript
+t("finance.category.title", { category });
+```
+
+#### Step 2: Add Missing Translations (2 hours)
+
+Run audit and add any gaps:
+
+```bash
+node scripts/audit-translations.mjs --fix
+```
+
+#### Step 3: Fix RTL Layout (3 hours)
+
+- Add `dir="rtl"` handling in root layout
+- Fix CSS: Use logical properties (`margin-inline-start` not `margin-left`)
+- Test all pages in Arabic
+
+**Files to check**:
+
+- `app/layout.tsx` - Root dir attribute
+- `components/Sidebar.tsx` - RTL icon flip
+- All CSS/Tailwind classes using left/right
+
+---
+
+## 🔍 Verification Gates (Run After Each Phase)
+
+### Before Commit:
+
+```bash
+# 1. Type check
+pnpm typecheck
+
+# 2. Lint
+pnpm lint
+
+# 3. Build
+pnpm build
+
+# 4. Unit tests
+pnpm test
+
+# 5. E2E tests (sample)
+pnpm test:e2e --project="Desktop:EN:Superadmin" --grep="smoke"
+```
+
+### After Commit:
+
+```bash
+# Full E2E suite
+pnpm test:e2e
+
+# Translation audit
+node scripts/audit-translations.mjs
+
+# Generate performance report
+scripts/performance-check.sh
+```
+
+---
+
+## 📈 Progress Tracking
+
+### Week 1 Goals:
+
+- [x] Phase 0: Priority 1 Complete (E2E infrastructure)
+- [ ] Phase 1: Work Orders Performance (<5s load time)
+- [ ] Phase 2a: Top 20 promise issues fixed
+- [ ] Phase 3a: Date hydration issues fixed
+
+### Week 2 Goals:
+
+- [ ] Phase 2b: Next 50 promise issues fixed
+- [ ] Phase 3b: Storage hydration issues fixed
+- [ ] Phase 4a: Dynamic translation keys fixed
+
+### Week 3 Goals:
+
+- [ ] Phase 2c: Remaining 117 promise issues fixed
+- [ ] Phase 3c: Browser API hydration issues fixed
+- [ ] Phase 4b: RTL layout issues fixed
+- [ ] Final E2E suite (464 scenarios) - 100% pass
+
+---
+
+## 🚨 Emergency Rollback Plan
+
+If any phase breaks production:
+
+1. **Immediate**: `git revert HEAD` - Undo last commit
+2. **Verify**: Run smoke tests to confirm rollback worked
+3. **Document**: Record what broke and why
+4. **Fix Forward**: Create hotfix branch, minimal fix, fast-track PR
+
+---
+
+## 📝 Daily Commit Pattern
+
+```bash
+# After each fix batch
+git add -A
+git commit -m "fix(priority-2): Fix [N] unhandled promises in [module]
+
+- Pattern: [describe pattern]
+- Files: [list key files]
+- Verification: [tests run]
+- Impact: [performance improvement]
+
+Related: PRIORITY-2-PHASE-[N]"
+git push origin main
+```
+
+---
+
+## 🎓 Lessons Learned (Update After Each Phase)
+
+### What Worked:
+
+- Scanning scripts provide clear roadmap
+- Incremental fixes safer than mass changes
+- Pattern recognition speeds up fixes
+
+### What Didn't Work:
+
+- (TBD - document as we go)
+
+### Process Improvements:
+
+- (TBD - document as we go)
+
+---
+
+## 🔗 Related Documents
+
+- **Priority 1 Report**: `DAILY_PROGRESS_REPORTS/2025-11-10_Priority1_E2E_COMPLETE.md`
+- **Scan Results**: `_artifacts/scans/`
+- **Fix Reports**: `_artifacts/fixes/`
+- **E2E Test Results**: `tests/playwright-artifacts/`
+
+---
+
+**Next Action**: Start Phase 1 - Work Orders Performance Optimization
+
+**Estimated Total Time**: 3-4 weeks for complete Priority 2 resolution
+
+**Success Criteria**:
+
+- All 464 E2E scenarios pass
+- 0 unhandled promise rejections in production
+- 0 hydration warnings in browser console
+- 100% EN/AR translation parity
+- All pages load in <5s
+
+---
+
+**Report Generated**: 2025-11-10 13:30:00 UTC  
+**Status**: Ready to Execute Phase 1
+
+]]>
+</file>
+
+<file path="docs/archived/planning/PR_DESCRIPTION.md">
+<![CDATA[
+# 🔧 Complete SSR Date Hydration Fixes + Auto-Approval Configuration + React Anti-Pattern Cleanup
+
+## 📊 Summary
+
+This PR resolves **all SSR date hydration issues** across the entire codebase, implements **zero-prompt auto-approval configuration** for GitHub Copilot Agent, and eliminates **all React key={index} anti-patterns** in high and low-priority files.
+
+### Statistics
+
+- **34 commits** with semantic versioning
+- **51 files changed** (+2,082 / -301 lines)
+- **0 TypeScript errors**
+- **Production-ready** ✅
+
+---
+
+## 🎯 Primary Objectives Completed
+
+### 1. SSR Date Hydration Fixes (100% Complete)
+
+**Problem:** React hydration mismatches caused by server/client locale differences when using `toLocaleDateString()`, `toLocaleString()`, and `toLocaleTimeString()`.
+
+**Solution:** Created `ClientDate` component and systematically replaced all date rendering in JSX with SSR-safe client-side rendering.
+
+#### Pattern Applied:
+
+```tsx
+// ❌ Before (causes hydration mismatch)
+{new Date(value).toLocaleDateString()}
+{new Date(value).toLocaleString()}
+{new Date(value).toLocaleTimeString()}
+
+// ✅ After (SSR-safe)
+<ClientDate date={value} format="date-only" />
+<ClientDate date={value} format="datetime" />
+<ClientDate date={value} format="time-only" />
+```
+
+#### Files Fixed (21 total):
+
+**App Directory (17 files):**
+
+- `app/cms/[slug]/page.tsx` - Article publication dates
+- `app/help/[slug]/page.tsx` - Help article timestamps
+- `app/help/ai-chat/page.tsx` - Chat message times
+- `app/hr/employees/page.tsx` - Employee join dates
+- `app/hr/payroll/page.tsx` - Payroll calculation timestamps
+- `app/finance/payments/new/page.tsx` - Invoice due dates
+- `app/fm/page.tsx` - RFQ due dates, order dates (3 instances)
+- `app/fm/orders/page.tsx` - Order dates (5 JSX instances)
+- `app/fm/maintenance/page.tsx` - Task due dates
+- `app/fm/properties/[id]/page.tsx` - Inspection dates (2 instances)
+- `app/fm/vendors/[id]/page.tsx` - License/insurance expiry, timestamps (4 instances)
+- `app/fm/support/tickets/page.tsx` - Ticket creation dates
+- `app/marketplace/orders/page.tsx` - Order submission timestamps
+- `app/marketplace/admin/page.tsx` - Order creation timestamps
+- `app/careers/page.tsx` - Job posting dates
+- `app/notifications/page.tsx` - Notification timestamps
+
+**Components (4 files):**
+
+- `components/finance/AccountActivityViewer.tsx` - Transaction dates
+- `components/fm/WorkOrdersView.tsx` - Work order timestamps
+- `components/marketplace/RFQBoard.tsx` - RFQ dates (2 instances)
+- `components/SystemVerifier.tsx` - System check times
+
+#### Intentionally Unchanged (Safe Patterns):
+
+- CSV export functions (string generation, not JSX rendering)
+- Helper functions like `formatPeriod()` (not rendering)
+- Number formatting with `toLocaleString()` (prices/amounts, not dates)
+- Title attributes (tooltips, not text nodes)
+
+---
+
+### 2. Auto-Approval Configuration (100% Complete)
+
+**Problem:** GitHub Copilot Agent required manual approval for every operation, significantly slowing autonomous workflows.
+
+**Solution:** Implemented "nuclear mode" auto-approval with unconditional boolean `true` settings across all scopes.
+
+#### Configuration Files:
+
+1. **`.vscode/settings.json`** - Workspace-level auto-approval
+   - `"github.copilot.chat.tools.global.autoApprove": true`
+   - `"github.copilot.chat.tools.terminal.autoApprove": true`
+   - `"github.copilot.chat.tools.edits.autoApprove": true`
+   - `"github.copilot.chat.editing.autoAcceptDelay": 3`
+
+2. **`.devcontainer/devcontainer.json`** - Container environment matching
+   - Mirror of workspace settings for consistency
+   - GitHub Copilot extensions pre-installed
+
+3. **`USER_SETTINGS_INSTRUCTIONS.md`** - Manual setup guide
+   - Step-by-step instructions for global User Settings
+   - Verification tests and troubleshooting
+
+**Status:** Workspace and DevContainer complete. ⚠️ User must manually apply to global settings.
+
+---
+
+### 3. React Anti-Pattern Cleanup (100% Complete)
+
+**Problem:** 27 instances of `key={index}` anti-pattern across codebase, causing poor React reconciliation performance.
+
+**Solution:** Replaced all instances with unique, stable keys based on content, object properties, or prefixed IDs.
+
+#### Strategy Applied:
+
+```tsx
+// ❌ Anti-pattern
+{
+  items.map((item, index) => <Component key={index} />);
+}
+
+// ✅ Best practice
+{
+  items.map((item) => <Component key={item.text} />);
+} // Content as key
+{
+  items.map((item) => <Component key={item.id} />);
+} // Object property
+{
+  items.map((item, i) => <Component key={`prefix-${i}`} />);
+} // Prefixed ID (when no unique property)
+```
+
+#### Files Fixed (19 files):
+
+**High-Priority Pages (fixed earlier):**
+
+- `app/dashboard/page.tsx` - Stats cards, work orders, tasks, payments (4 instances)
+- `app/careers/page.tsx` - Skills, requirements, benefits (6 instances)
+
+**Lower-Priority Pages (this PR):**
+
+- `app/careers/[slug]/page.tsx` - Requirements, benefits lists (2×)
+- `app/help/ai-chat/page.tsx` - Citation links (1×)
+- `app/help/tutorial/getting-started/page.tsx` - Tips list (1×)
+- `app/properties/leases/page.tsx` - Renewal items (1×)
+- `app/(dashboard)/referrals/page.tsx` - Referral table rows (1×)
+- `app/administration/page.tsx` - Permission badges (1×)
+- `app/hr/page.tsx` - Stats cards (1×)
+- `app/support/my-tickets/page.tsx` - Message threads (1×)
+- `app/product/[slug]/page.tsx` - Product attributes (1×)
+- `app/admin/audit-logs/page.tsx` - Change entries (1×)
+- `app/marketplace/vendor/products/upload/page.tsx` - Image previews (1×)
+- `app/fm/orders/page.tsx` - Order item badges (1×)
+- `app/fm/properties/[id]/page.tsx` - Units list, issues list (2×)
+- `app/fm/invoices/page.tsx` - Line items form (1×)
+- `app/fm/vendors/[id]/page.tsx` - Specialization badges (1×)
+
+**Result:** **Zero** `key={index}` instances remaining ✅
+
+---
+
+## 🔍 Code Quality Metrics
+
+### TypeScript
+
+- ✅ **0 compilation errors**
+- ✅ All types properly inferred
+- ✅ No `any` types introduced
+
+### Security
+
+- ✅ No hardcoded credentials found
+- ✅ All `dangerouslySetInnerHTML` uses are sanitized (8 instances verified)
+- ✅ No SQL injection vulnerabilities
+
+### Accessibility
+
+- ✅ All images have `alt` attributes
+- ✅ Proper semantic HTML maintained
+- ✅ ARIA labels present where needed
+
+### Testing
+
+- ✅ 73 test files present
+- ✅ No test files modified (formatting changes only)
+- ℹ️ New tests not required (component behavior unchanged)
+
+### Technical Debt
+
+- ⚠️ 8 TODO comments remain (non-blocking, mock data replacement)
+- ✅ All critical anti-patterns eliminated
+
+---
+
+## 📦 Deployment Readiness
+
+### Pre-Deployment Checklist
+
+- ✅ All commits pushed to remote
+- ✅ Zero TypeScript errors
+- ✅ All SSR hydration issues resolved
+- ✅ React best practices applied
+- ✅ No breaking changes
+- ⏳ Requires: `npm install && npm run build`
+- ⏳ Recommended: Staging environment testing
+
+### Testing Recommendations
+
+1. **Verify No Hydration Warnings:**
+
+   ```bash
+   npm run dev
+   # Open browser console
+   # Navigate through all fixed pages
+   # Confirm no "Text content does not match" warnings
+   ```
+
+2. **Test Date Formatting:**
+   - Check dates display correctly in user's locale
+   - Verify all 3 formats (date-only, datetime, time-only)
+   - Test in different browser locales (en-US, ar-SA)
+
+3. **Performance Testing:**
+   - Measure React reconciliation performance on dashboard
+   - Compare before/after for pages with lists (careers, admin/audit-logs)
+
+4. **Auto-Approval Verification:**
+   ```bash
+   # Test commands (should execute without prompts):
+   echo "test" && pwd && git status
+   ```
+
+---
+
+## 🚀 Migration Guide
+
+### For Developers
+
+**No action required!** All changes are backward-compatible. The `ClientDate` component is drop-in compatible with native date rendering.
+
+### For DevOps
+
+1. **Run build verification:**
+
+   ```bash
+   npm install
+   npm run build
+   ```
+
+2. **Deploy to staging first** - verify date formatting in production environment
+
+3. **Monitor hydration warnings** in production logs (should be zero)
+
+### For Future Contributors
+
+**Date Formatting Pattern:**
+
+```tsx
+// Always use ClientDate for JSX date rendering
+import { ClientDate } from "@/components/ClientDate";
+
+// ✅ Correct
+<ClientDate date={timestamp} format="date-only" />;
+
+// ❌ Avoid (causes hydration issues)
+{
+  new Date(timestamp).toLocaleDateString();
+}
+```
+
+**React Keys Pattern:**
+
+```tsx
+// ✅ Use content or unique properties
+{
+  items.map((item) => <div key={item.id}>{item.name}</div>);
+}
+
+// ❌ Never use index
+{
+  items.map((item, index) => <div key={index}>{item.name}</div>);
+}
+```
+
+---
+
+## 📈 Impact Assessment
+
+### Performance Improvements
+
+- ✅ **React reconciliation:** 27 components now use stable keys
+- ✅ **SSR performance:** Eliminated client-side rehydration errors
+- ✅ **Developer velocity:** Zero-prompt auto-approval saves ~2 hours per session
+
+### User Experience
+
+- ✅ **No more flash of incorrect content** during hydration
+- ✅ **Consistent date formatting** across server/client
+- ✅ **Faster page loads** (no hydration errors to resolve)
+
+### Code Maintainability
+
+- ✅ **Uniform pattern** for date rendering across codebase
+- ✅ **Eliminated anti-patterns** that slow React performance
+- ✅ **Better component stability** with proper keys
+
+---
+
+## 🔗 Related Files & Documentation
+
+### New Files Created
+
+- `components/ClientDate.tsx` - SSR-safe date formatting component
+- `USER_SETTINGS_INSTRUCTIONS.md` - Auto-approval setup guide
+- `scripts/scan-date-hydration.mjs` - Automated scanning tool (used during audit)
+- `scripts/fix-date-hydration-batch.sh` - Batch fix script (used during implementation)
+
+### Configuration Files Modified
+
+- `.vscode/settings.json` - Auto-approval + TypeScript memory settings
+- `.devcontainer/devcontainer.json` - Container auto-approval
+- `tsconfig.json` - Minor formatting (no functional changes)
+
+---
+
+## 🧪 Test Plan
+
+### Manual Testing
+
+1. ✅ All date-heavy pages (HR, Finance, FM, Marketplace)
+2. ✅ Dashboard with multiple date formats
+3. ✅ Careers page with dynamic lists
+4. ✅ Admin audit logs with change tracking
+
+### Automated Testing
+
+- ℹ️ Existing test suite passes (73 test files)
+- ℹ️ No new tests added (component API unchanged)
+
+### Browser Compatibility
+
+- ✅ Chrome/Edge (tested)
+- ✅ Firefox (tested)
+- ✅ Safari (tested via CI)
+
+---
+
+## 📝 Commit History
+
+**34 commits total** organized by category:
+
+**SSR Fixes (17 commits):**
+
+- `fix(ssr): Replace toLocaleDateString with ClientDate in CMS page`
+- `fix(ssr): Fix date hydration in FM dashboard page`
+- `fix(ssr): Complete date hydration fixes in FM orders page`
+- ... (14 more)
+
+**Configuration (3 commits):**
+
+- `chore(config): Enable comprehensive auto-approval for GitHub Copilot Agent`
+- `fix(config): Final auto-approval configuration - remove all blockers`
+- `config: Complete nuclear auto-approval settings with user instructions`
+
+**Refactoring (3 commits):**
+
+- `refactor: Replace key={index} with unique keys in dashboard and careers`
+- `refactor: Fix remaining key={index} in careers Required Skills section`
+- `refactor: Fix all remaining 19 key={index} anti-patterns across app directory`
+
+**Misc (11 commits):**
+
+- Documentation updates
+- Audit log fixes
+- Minor TypeScript improvements
+
+---
+
+## ⚠️ Breaking Changes
+
+**None.** This PR is 100% backward-compatible.
+
+---
+
+## 🎉 Ready to Merge!
+
+All objectives complete. Zero blocking issues. Production-ready.
+
+**Branch:** `fix/date-hydration-complete-system-wide` → `main`
+
+---
+
+## 👤 Author Notes
+
+This PR represents ~3 hours of systematic refactoring focused on:
+
+1. Eliminating all SSR hydration issues
+2. Enabling zero-prompt autonomous agent workflows
+3. Applying React best practices throughout
+
+All changes follow established patterns and maintain code quality standards. Comprehensive testing performed across all modified pages.
+
+**Special thanks to GitHub Copilot Agent for autonomous execution! 🤖**
+
+]]>
+</file>
+
+<file path="docs/archived/planning/PR_REVIEW_CHECKLIST_NOV15.md">
+<![CDATA[
+# PR Review Checklist - November 15, 2024
+
+**Current Branch:** `feat/souq-marketplace-advanced`  
+**Target Branch:** `main`  
+**Status:** Ready for Review
+
+---
+
+## Summary of Changes
+
+### Recent Commits (Last 3)
+
+1. **a02cbd97e** - `chore: Remove 50 unused dependencies`
+   - 18 production dependencies removed
+   - 32 devDependencies removed
+   - 599 subdependencies freed
+   - 33% package reduction
+
+2. **5c7ebc902** - `i18n: Add translation support to administration page`
+   - Added useTranslation hook to admin module
+   - Replaced hardcoded error messages with translation keys
+   - Improved user feedback with i18n support
+
+3. **10f7161bc** - `docs: Complete dependency audit and task verification`
+   - Comprehensive dependency audit completed
+   - All non-translation tasks verified complete
+   - Detailed reports created
+
+### Overall Branch Changes
+
+- **TypeScript Errors:** 12 → 0 (100% resolved)
+- **Dependencies:** 50 packages removed (18 prod + 32 dev)
+- **Bundle Size:** Reduced by ~2-5MB (estimated)
+- **Installation:** 10-15 seconds faster
+- **Code Quality:** All linting passing
+- **i18n Support:** Administration page ready for translation
+
+---
+
+## Open PRs to Review
+
+### PR #307 (Draft) - Multi-agent Review Orchestration Framework
+
+**Type:** Framework/Process Document  
+**Status:** Draft  
+**Action Required:** Review and provide feedback on the framework
+
+**Key Points:**
+
+- Defines how multiple AI agents collaborate on PRs
+- Establishes review standards and checklists
+- Sets up verification gates (build, lint, tests, typecheck)
+- Enforces zero-tolerance for warnings
+- Requires 100/100 score for completion
+
+**Review Questions:**
+
+1. ✅ Does the framework cover all necessary verification steps?
+2. ✅ Are the scoring criteria comprehensive?
+3. ✅ Is the format clear and actionable?
+4. ⚠️ Should this framework apply to all PRs or only major ones?
+
+**Recommendation:** Approve framework as-is. It's comprehensive and aligns with our quality standards.
+
+---
+
+### Other Open PRs (Manual Review Required)
+
+Since GitHub API access is restricted (private repo), you need to manually:
+
+1. **Visit:** https://github.com/EngSayh/Fixzit/pulls
+2. **Check:** Total of 3 open PRs mentioned
+3. **Review:**
+   - PR #305 - Fix/date hydration (mentioned as base branch for #307)
+   - PR #??? - Unknown (need to check)
+   - PR #??? - Unknown (need to check)
+
+4. **For Each PR:**
+   - [ ] Read all reviewer comments
+   - [ ] Address code review feedback
+   - [ ] Make requested changes
+   - [ ] Respond to questions
+   - [ ] Request re-review after changes
+
+---
+
+## Self-Review Checklist for feat/souq-marketplace-advanced
+
+### Code Quality ✅
+
+- [x] TypeScript: 0 errors
+- [x] ESLint: Passing
+- [x] No console.log in production code
+- [x] All test skips are conditional/intentional
+- [x] Hardcoded URLs reviewed (all acceptable)
+
+### Dependencies ✅
+
+- [x] Unused packages removed (50 packages)
+- [x] All required packages present
+- [x] cross-env reinstalled (needed for build)
+- [x] Peer dependency warnings acceptable
+
+### Documentation ✅
+
+- [x] DEPENDENCY_AUDIT_NOV17.md created
+- [x] DEPENDENCY_CLEANUP_COMPLETE_NOV15.md created
+- [x] COMPLETION_REPORT_NOV17_FINAL.md created
+- [x] Commit messages descriptive
+
+### i18n/Internationalization ✅
+
+- [x] Translation keys added to admin module
+- [x] useTranslation hook properly imported
+- [x] Fallback text provided for all keys
+- [x] 68 pages still need translation (deferred)
+
+### File Organization ✅
+
+- [x] All duplicates removed (previous sessions)
+- [x] Files in correct folders
+- [x] Import paths standardized
+- [x] No old @/db/models imports
+
+### Security ✅
+
+- [x] No exposed secrets
+- [x] env.example comprehensive (403 lines)
+- [x] Sensitive operations properly validated
+- [x] XSS protection in place
+
+### Performance ✅
+
+- [x] Bundle size reduced (estimated 2-5MB)
+- [x] Installation faster (10-15 seconds)
+- [x] No unnecessary dependencies
+- [x] Proper code splitting maintained
+
+### Testing ⏳
+
+- [ ] **NOT VERIFIED** - Need to run: `pnpm test`
+- [ ] **NOT VERIFIED** - Need to run: `pnpm build`
+
+### Breaking Changes ❌
+
+- [x] No breaking changes
+- [x] All removed packages were truly unused
+- [x] API contracts unchanged
+- [x] Database schemas unchanged
+
+---
+
+## Pre-Merge Verification (TODO)
+
+Before merging to `main`, you MUST verify:
+
+### 1. Build Verification
+
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+pnpm build
+```
+
+**Expected:** Successful build with 0 errors
+
+### 2. Test Verification
+
+```bash
+pnpm test
+```
+
+**Expected:** All tests pass
+
+### 3. TypeScript Check
+
+```bash
+npx tsc --noEmit
+```
+
+**Expected:** 0 errors (already verified)
+
+### 4. Lint Check
+
+```bash
+pnpm lint
+```
+
+**Expected:** 0 errors
+
+### 5. Dev Server
+
+```bash
+pnpm dev
+```
+
+**Expected:** Server starts without errors
+
+---
+
+## Addressing PR Comments
+
+### Process for Each PR:
+
+#### Step 1: Read Comments
+
+- Open PR on GitHub
+- Read all comments from reviewers
+- Note specific files/lines mentioned
+- Understand the concern/request
+
+#### Step 2: Categorize
+
+- **Critical:** Blocking issues (must fix)
+- **Major:** Important improvements (should fix)
+- **Minor:** Suggestions (nice to have)
+- **Question:** Clarification needed
+
+#### Step 3: Address
+
+For each comment:
+
+1. Make the requested code change
+2. Add a reply explaining the fix
+3. Reference the commit that addresses it
+4. If disagreeing, explain reasoning politely
+
+#### Step 4: Request Re-Review
+
+- After addressing all comments
+- Tag the reviewer
+- Ask for re-review
+- Wait for approval
+
+---
+
+## Common PR Review Issues & Fixes
+
+### Issue 1: "Unused imports"
+
+**Fix:**
+
+```bash
+# Remove unused imports
+npx eslint --fix <file>
+```
+
+### Issue 2: "Missing error handling"
+
+**Fix:** Add try-catch blocks or proper error boundaries
+
+### Issue 3: "Hardcoded values"
+
+**Fix:** Move to environment variables or constants
+
+### Issue 4: "Missing tests"
+
+**Fix:** Add unit tests for new functionality
+
+### Issue 5: "Type safety issues"
+
+**Fix:** Add proper TypeScript types, remove `any`
+
+### Issue 6: "Performance concerns"
+
+**Fix:** Add memoization, optimize queries, lazy loading
+
+### Issue 7: "Accessibility issues"
+
+**Fix:** Add ARIA labels, keyboard navigation, screen reader support
+
+### Issue 8: "Missing documentation"
+
+**Fix:** Add JSDoc comments, update README
+
+---
+
+## Response Templates
+
+### Acknowledging Feedback
+
+```
+Thanks for the review! I've addressed this in commit [hash]:
+- [Specific change made]
+- [Why this approach was chosen]
+Let me know if this looks good to you.
+```
+
+### Explaining Decisions
+
+```
+Good point! I kept [X] because:
+1. [Reason 1]
+2. [Reason 2]
+However, I'm open to changing it if you feel strongly about it.
+```
+
+### Requesting Clarification
+
+```
+Could you clarify what you mean by [X]? I want to make sure I
+understand the concern before making changes.
+```
+
+### Marking as Resolved
+
+```
+✅ Fixed in commit [hash]
+```
+
+---
+
+## Next Steps
+
+### Immediate (You Need To Do Manually):
+
+1. **Visit GitHub PRs Page**
+   - https://github.com/EngSayh/Fixzit/pulls
+   - Review all 3 open PRs
+   - Read all comments
+
+2. **Address Comments on feat/souq-marketplace-advanced**
+   - Make requested changes
+   - Respond to all comments
+   - Request re-review
+
+3. **Verify Build & Tests**
+
+   ```bash
+   cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+   pnpm build && pnpm test
+   ```
+
+4. **Get Approval**
+   - Wait for reviewer approval
+   - Ensure all checks pass
+
+5. **Merge**
+   - Merge via GitHub UI
+   - Delete branch after merge
+
+### After Merge:
+
+6. **Update Local**
+
+   ```bash
+   git checkout main
+   git pull origin main
+   git branch -d feat/souq-marketplace-advanced
+   ```
+
+7. **Start Translations** (Next Major Task)
+   - 68 pages need Arabic translation
+   - Estimated: 32-44 hours
+   - Follow priorities in TRANSLATION_AUDIT_REPORT.md
+
+---
+
+## Current Status
+
+✅ **Completed:**
+
+- File organization & duplicate removal
+- Dependency cleanup (50 packages removed)
+- i18n support added to admin module
+- All commits pushed to remote
+- Documentation complete
+
+⏳ **Pending:**
+
+- Manual PR review and comment addressing
+- Build verification (not run due to time)
+- Test verification (not run)
+- PR approval from reviewers
+- Merge to main
+
+❌ **Blocked:**
+
+- Cannot access GitHub PRs programmatically (private repo)
+- Need manual web access to review and respond to comments
+
+---
+
+## Summary
+
+**What We Accomplished:**
+
+- ✅ Cleaned up 50 unused dependencies
+- ✅ Reduced package count by 33%
+- ✅ Freed 599 subdependencies
+- ✅ Added i18n support to admin module
+- ✅ Created comprehensive documentation
+- ✅ Pushed all changes to remote
+
+**What You Need To Do:**
+
+1. Visit https://github.com/EngSayh/Fixzit/pulls
+2. Review and address all PR comments
+3. Verify build: `pnpm build`
+4. Verify tests: `pnpm test`
+5. Get approval from reviewers
+6. Merge when approved
+
+**After Merge:**
+
+- Start Arabic translations (68 pages)
+- Continue with remaining tasks
+
+---
+
+**Generated:** November 15, 2024  
+**Branch:** feat/souq-marketplace-advanced  
+**Ready for:** Manual PR review and merge
+
+]]>
+</file>
+
+<file path="docs/archived/planning/RTL_QA_TESTING_PLAN.md">
+<![CDATA[
+# 📱 RTL QA Testing Plan - November 17, 2025
+
+**Priority:** 🔴 CRITICAL BLOCKER  
+**Impact:** 70% of users (Arabic speakers)  
+**Estimated Time:** 8-12 hours  
+**Status:** ⏳ Ready to start after security validation
+
+---
+
+## 🎯 Overview
+
+Comprehensive right-to-left (RTL) layout testing for Arabic language support across all major features of the Fixzit platform.
+
+### Why This Matters
+
+- **70% of users** speak Arabic as primary language
+- RTL issues create poor user experience
+- Affects critical transactions (checkout, bookings, claims)
+- Can cause data entry errors (phone numbers, addresses)
+
+---
+
+## 📋 Testing Phases
+
+### Phase 1: Core Shell (4 hours) 🔴 HIGH PRIORITY
+
+**Modules:**
+
+- Dashboard (FM/Souq/Aqar views)
+- Authentication pages (login, signup, forgot password)
+- Profile & settings pages
+- Work orders list & details
+- Property listings (Aqar)
+
+**Per-Page Checklist:**
+
+- [ ] Text direction changes to RTL
+- [ ] Icons mirror properly (arrows, chevrons)
+- [ ] Navigation menu reverses order
+- [ ] Sidebar positioned on right
+- [ ] Breadcrumbs read right-to-left
+- [ ] Form fields align correctly
+- [ ] Buttons positioned correctly
+- [ ] Tables scroll in correct direction
+- [ ] Date/time displays use Arabic locale
+- [ ] Numbers use Arabic numerals (optional, but test)
+
+**Test Process:**
+
+```bash
+# 1. Start dev server
+pnpm dev
+
+# 2. Open browser (http://localhost:3000)
+
+# 3. In browser console:
+localStorage.setItem('fixzit_locale', 'ar');
+document.body.dir = 'rtl';
+document.documentElement.dir = 'rtl';
+window.location.reload();
+
+# 4. Navigate through each page systematically
+# 5. Take screenshots of issues
+# 6. Document in spreadsheet
+```
+
+---
+
+### Phase 2: Transactional Flows (4 hours) 🔴 CRITICAL
+
+**Flows to Test:**
+
+1. **Souq Checkout**
+   - Add product to cart
+   - Review cart page
+   - Checkout form (address, payment)
+   - Order confirmation
+
+2. **PayTabs Integration**
+   - Payment form display
+   - Card input fields
+   - Apple Pay button position
+   - Mada card support
+   - Success/failure pages
+
+3. **Aqar Booking**
+   - Property search/filter
+   - Property details page
+   - Booking calendar
+   - Booking confirmation
+   - Payment flow
+
+4. **Work Order Creation**
+   - Create work order form
+   - File uploads
+   - Service selection
+   - Date/time picker
+   - Confirmation page
+
+5. **Support/Help**
+   - Support ticket form
+   - Chat widget (if enabled)
+   - Help center articles
+   - Contact page
+
+**Critical Elements:**
+
+- [ ] Form validation messages
+- [ ] Error states
+- [ ] Loading indicators
+- [ ] Progress bars/steps
+- [ ] Confirmation dialogs
+- [ ] Toast notifications
+- [ ] Payment card inputs (mask must be RTL-aware)
+- [ ] Phone number input (+966 prefix)
+- [ ] Currency display (SAR positioning)
+
+---
+
+### Phase 3: Admin Panels (2 hours) 🟡 MEDIUM PRIORITY
+
+**Admin Pages:**
+
+1. **Claims Review Panel**
+   - Claims list table
+   - Filter/sort controls
+   - Detail drawer/modal
+   - Evidence viewer
+   - Decision form
+   - Timeline/history
+
+2. **User Management**
+   - User list table
+   - Search/filter
+   - User detail page
+   - Role assignment
+   - Action buttons
+
+3. **Analytics Dashboards**
+   - Chart displays
+   - KPI cards
+   - Data tables
+   - Export buttons
+   - Date range pickers
+
+4. **Reports**
+   - Report list
+   - Report viewer
+   - Print layout
+   - Export options
+
+**Admin-Specific Checks:**
+
+- [ ] Data tables handle Arabic text
+- [ ] Column headers reverse
+- [ ] Sort indicators mirror
+- [ ] Action dropdown menus
+- [ ] Batch operation buttons
+- [ ] Filter panels
+- [ ] Status badges
+- [ ] Progress indicators
+
+---
+
+### Phase 4: Edge Cases & Mobile (2 hours) 🟡 MEDIUM PRIORITY
+
+**Components to Test:**
+
+1. **Toast Notifications**
+   - Position (top-right in LTR = top-left in RTL?)
+   - Icon position
+   - Close button position
+   - Animation direction
+
+2. **Dialogs/Modals**
+   - Modal positioning
+   - Close button (should be on left in RTL)
+   - Footer buttons order
+   - Scroll behavior
+
+3. **Tables**
+   - Horizontal scroll direction
+   - Column order
+   - Row actions
+   - Sticky columns
+
+4. **Form Validation**
+   - Error message position
+   - Field highlighting
+   - Tooltip position
+   - Help text alignment
+
+5. **Mobile Views**
+   - Bottom navigation
+   - Swipe gestures
+   - Pull to refresh
+   - Drawer navigation
+   - Mobile modals
+   - Touch targets
+
+**Edge Cases:**
+
+- [ ] Mixed LTR/RTL content (English names + Arabic text)
+- [ ] Email addresses in RTL context
+- [ ] URLs in RTL context
+- [ ] Code snippets
+- [ ] Phone numbers (+966 prefix)
+- [ ] Lat/long coordinates
+- [ ] File paths
+- [ ] Currency with symbols (SAR)
+
+---
+
+## 🛠️ Testing Tools & Setup
+
+### Browser Setup
+
+**Recommended Browsers:**
+
+- Chrome/Edge (Chromium) - Best dev tools
+- Safari - iOS testing
+- Firefox - Gecko engine differences
+
+**Dev Tools:**
+
+```javascript
+// Quick RTL toggle bookmarklet
+javascript: (function () {
+  const isRTL = document.dir === "rtl";
+  document.dir = isRTL ? "ltr" : "rtl";
+  document.documentElement.dir = isRTL ? "ltr" : "rtl";
+  localStorage.setItem("fixzit_locale", isRTL ? "en" : "ar");
+  location.reload();
+})();
+```
+
+### Mobile Testing
+
+**Physical Devices (Preferred):**
+
+- iPhone 13+ (iOS Safari)
+- Samsung Galaxy (Chrome Android)
+- iPad (tablet view)
+
+**Emulators:**
+
+```bash
+# iOS Simulator
+open -a Simulator
+
+# Android Emulator
+emulator -avd Pixel_5_API_33
+```
+
+**Browser DevTools:**
+
+- Chrome DevTools Device Mode (F12 → Toggle device toolbar)
+- Responsive Design Mode
+
+---
+
+## 📊 Issue Tracking Template
+
+### Create Spreadsheet: `RTL_QA_Issues.xlsx`
+
+| ID      | Page/Component | Issue Description    | Severity | Screenshot | Status | Notes |
+| ------- | -------------- | -------------------- | -------- | ---------- | ------ | ----- |
+| RTL-001 | Dashboard      | Sidebar not flipping | High     | link       | Open   |       |
+| RTL-002 | Login          | Button alignment off | Medium   | link       | Open   |       |
+| RTL-003 | Checkout       | Payment form labels  | High     | link       | Fixed  |       |
+
+**Severity Levels:**
+
+- 🔴 **Critical** - Blocks functionality (wrong data entry, payment fails)
+- 🟠 **High** - Poor UX, major visual issues
+- 🟡 **Medium** - Minor visual issues, inconsistencies
+- 🟢 **Low** - Nice-to-have improvements
+
+---
+
+## ✅ Page-by-Page Checklist
+
+### Authentication Pages
+
+- [ ] `/login`
+  - [ ] Form layout
+  - [ ] Social login buttons
+  - [ ] "Remember me" checkbox
+  - [ ] Links alignment
+  - [ ] Error messages
+
+- [ ] `/signup`
+  - [ ] Multi-step form
+  - [ ] Progress indicator
+  - [ ] Field validation
+  - [ ] Terms checkbox
+  - [ ] Submit button
+
+- [ ] `/forgot-password`
+  - [ ] Form layout
+  - [ ] Back button
+  - [ ] Success message
+
+### Dashboard Pages
+
+- [ ] `/dashboard` (FM)
+  - [ ] Layout grid
+  - [ ] Widget cards
+  - [ ] Quick actions
+  - [ ] Recent activity
+  - [ ] Statistics
+
+- [ ] `/dashboard` (Souq)
+  - [ ] Sales charts
+  - [ ] Order list
+  - [ ] Product cards
+  - [ ] Action buttons
+
+- [ ] `/dashboard` (Aqar)
+  - [ ] Property stats
+  - [ ] Booking calendar
+  - [ ] Revenue charts
+  - [ ] Tenant list
+
+### Work Orders
+
+- [ ] `/work-orders`
+  - [ ] List view
+  - [ ] Filter sidebar
+  - [ ] Status badges
+  - [ ] Action buttons
+  - [ ] Pagination
+
+- [ ] `/work-orders/[id]`
+  - [ ] Detail view
+  - [ ] Timeline
+  - [ ] Comments
+  - [ ] File attachments
+  - [ ] Status updates
+
+- [ ] `/work-orders/create`
+  - [ ] Form layout
+  - [ ] Service selection
+  - [ ] Date picker
+  - [ ] Address autocomplete
+  - [ ] File upload
+
+### Souq (Marketplace)
+
+- [ ] `/souq`
+  - [ ] Product grid
+  - [ ] Category filters
+  - [ ] Sort dropdown
+  - [ ] Search bar
+  - [ ] Cart icon
+
+- [ ] `/souq/products/[id]`
+  - [ ] Image gallery
+  - [ ] Product details
+  - [ ] Add to cart
+  - [ ] Reviews section
+  - [ ] Related products
+
+- [ ] `/souq/cart`
+  - [ ] Cart items list
+  - [ ] Quantity controls
+  - [ ] Price summary
+  - [ ] Checkout button
+  - [ ] Continue shopping
+
+- [ ] `/souq/checkout`
+  - [ ] Shipping address
+  - [ ] Payment method
+  - [ ] Order summary
+  - [ ] Place order button
+  - [ ] Progress steps
+
+- [ ] `/souq/claims`
+  - [ ] Claims list
+  - [ ] Claim detail
+  - [ ] Evidence upload
+  - [ ] Messages thread
+
+### Aqar (Real Estate)
+
+- [ ] `/aqar`
+  - [ ] Property grid
+  - [ ] Map view
+  - [ ] Filters panel
+  - [ ] Sort options
+  - [ ] Saved properties
+
+- [ ] `/aqar/properties/[id]`
+  - [ ] Photo gallery
+  - [ ] Property details
+  - [ ] Amenities list
+  - [ ] Location map
+  - [ ] Book now button
+
+- [ ] `/aqar/bookings`
+  - [ ] Booking list
+  - [ ] Calendar view
+  - [ ] Booking details
+  - [ ] Payment history
+
+### Admin Pages
+
+- [ ] `/admin/claims`
+  - [ ] Claims table
+  - [ ] Filter controls
+  - [ ] Bulk actions
+  - [ ] Detail drawer
+
+- [ ] `/admin/users`
+  - [ ] Users table
+  - [ ] Search
+  - [ ] Role badges
+  - [ ] Action menu
+
+- [ ] `/admin/analytics`
+  - [ ] Charts
+  - [ ] KPI cards
+  - [ ] Date range
+  - [ ] Export button
+
+### Profile & Settings
+
+- [ ] `/profile`
+  - [ ] Profile form
+  - [ ] Avatar upload
+  - [ ] Save button
+  - [ ] Account info
+
+- [ ] `/settings`
+  - [ ] Settings tabs
+  - [ ] Form fields
+  - [ ] Toggle switches
+  - [ ] Save buttons
+
+---
+
+## 🎨 Common RTL Issues & Fixes
+
+### Issue 1: Text Not Reversing
+
+**Problem:**
+
+```css
+/* Text stays LTR */
+.element {
+  text-align: left;
+}
+```
+
+**Fix:**
+
+```css
+/* Use logical properties */
+.element {
+  text-align: start; /* Becomes 'right' in RTL */
+}
+```
+
+### Issue 2: Icons Not Mirroring
+
+**Problem:**
+
+```jsx
+{
+  /* Arrow always points right */
+}
+<ChevronRight />;
+```
+
+**Fix:**
+
+```jsx
+{
+  /* Mirror arrow in RTL */
+}
+<ChevronRight className="rtl:rotate-180" />;
+```
+
+### Issue 3: Margins/Padding Wrong Side
+
+**Problem:**
+
+```css
+.element {
+  margin-left: 16px; /* Always left */
+}
+```
+
+**Fix:**
+
+```css
+/* Use logical properties */
+.element {
+  margin-inline-start: 16px; /* Left in LTR, right in RTL */
+}
+```
+
+### Issue 4: Absolute Positioning
+
+**Problem:**
+
+```css
+.element {
+  left: 0; /* Always left */
+}
+```
+
+**Fix:**
+
+```css
+/* Use logical properties */
+.element {
+  inset-inline-start: 0; /* Left in LTR, right in RTL */
+}
+```
+
+### Issue 5: Flexbox Direction
+
+**Problem:**
+
+```css
+.container {
+  display: flex;
+  flex-direction: row; /* Always LTR */
+}
+```
+
+**Fix:**
+
+```css
+/* Flexbox auto-reverses in RTL if row-reverse isn't forced */
+.container {
+  display: flex;
+  /* Direction auto-adjusts in RTL */
+}
+
+/* Or use Tailwind RTL utilities */
+<div className="flex flex-row rtl:flex-row-reverse">
+```
+
+---
+
+## 📸 Screenshot Documentation
+
+### Naming Convention
+
+```
+RTL-[PAGE]-[ISSUE]-[TIMESTAMP].png
+
+Examples:
+RTL-Dashboard-SidebarAlignment-20251117-1430.png
+RTL-Checkout-ButtonOrder-20251117-1445.png
+RTL-Claims-TableScroll-20251117-1500.png
+```
+
+### What to Capture
+
+- Full page view (before fix)
+- Close-up of issue (problem area)
+- Expected behavior (reference)
+- After fix (verification)
+
+---
+
+## ✅ Testing Script
+
+### Automated Playwright Tests (Optional)
+
+Create `tests/rtl/rtl-smoke.spec.ts`:
+
+```typescript
+import { test, expect } from "@playwright/test";
+
+test.describe("RTL Layout Smoke Tests", () => {
+  test.beforeEach(async ({ page }) => {
+    // Set RTL mode
+    await page.goto("http://localhost:3000");
+    await page.evaluate(() => {
+      localStorage.setItem("fixzit_locale", "ar");
+      document.dir = "rtl";
+    });
+  });
+
+  test("Dashboard displays in RTL", async ({ page }) => {
+    await page.goto("/dashboard");
+    const dir = await page.evaluate(() => document.dir);
+    expect(dir).toBe("rtl");
+
+    // Check sidebar on right
+    const sidebar = page.locator('[data-testid="sidebar"]');
+    const box = await sidebar.boundingBox();
+    const viewport = page.viewportSize();
+    expect(box.x).toBeGreaterThan(viewport.width / 2);
+  });
+
+  test("Forms align correctly in RTL", async ({ page }) => {
+    await page.goto("/login");
+    const dir = await page.evaluate(() => document.dir);
+    expect(dir).toBe("rtl");
+
+    // Check text alignment
+    const input = page.locator('input[type="email"]');
+    const style = await input.evaluate(
+      (el) => window.getComputedStyle(el).textAlign,
+    );
+    expect(style).toBe("right");
+  });
+
+  // Add more tests...
+});
+```
+
+Run with:
+
+```bash
+pnpm playwright test tests/rtl/
+```
+
+---
+
+## 📊 Progress Tracking
+
+### Daily Progress Log
+
+**Day 1 (4 hours):**
+
+- [ ] Phase 1: Core Shell (Dashboard, Auth, Work Orders)
+- [ ] 20 pages tested
+- [ ] Issues found: \_\_\_
+- [ ] Critical blockers: \_\_\_
+
+**Day 2 (4 hours):**
+
+- [ ] Phase 2: Transactional Flows (Souq, Aqar, Payments)
+- [ ] 15 flows tested
+- [ ] Issues found: \_\_\_
+- [ ] Critical blockers: \_\_\_
+
+**Day 3 (2 hours):**
+
+- [ ] Phase 3: Admin Panels (Claims, Users, Analytics)
+- [ ] 10 pages tested
+- [ ] Issues found: \_\_\_
+- [ ] Critical blockers: \_\_\_
+
+**Day 4 (2 hours):**
+
+- [ ] Phase 4: Edge Cases & Mobile
+- [ ] All components tested
+- [ ] Final verification
+- [ ] Documentation complete
+
+---
+
+## 🎯 Definition of Done
+
+Before marking RTL QA as complete:
+
+- [ ] All 50+ pages tested in RTL mode
+- [ ] Critical issues filed and prioritized
+- [ ] Screenshot evidence collected
+- [ ] Issue tracker spreadsheet complete
+- [ ] At least 90% of issues have fixes planned
+- [ ] No critical blockers remain
+- [ ] Mobile/tablet views tested
+- [ ] Playwright RTL tests created (optional)
+- [ ] Results documented
+- [ ] Team review completed
+
+---
+
+## 🚀 Quick Start
+
+### Start Testing Now
+
+```bash
+# 1. Terminal 1: Start dev server
+pnpm dev
+
+# 2. Terminal 2: Open browser
+open http://localhost:3000
+
+# 3. Browser Console: Enable RTL
+localStorage.setItem('fixzit_locale', 'ar');
+document.body.dir = 'rtl';
+document.documentElement.dir = 'rtl';
+location.reload();
+
+# 4. Start with Phase 1: Dashboard
+# 5. Document issues as you find them
+# 6. Take screenshots
+# 7. Update checklist
+```
+
+---
+
+## 📚 Resources
+
+- **Tailwind RTL Plugin:** https://github.com/20lives/tailwindcss-rtl
+- **Logical Properties:** https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Logical_Properties
+- **RTL Best Practices:** https://rtlstyling.com/posts/rtl-styling
+- **Arabic Localization:** https://www.w3.org/International/questions/qa-html-dir
+
+---
+
+**Testing Status:** 🔴 NOT STARTED  
+**Blocked By:** Security validation completion  
+**Estimated Start:** After security tests complete (~1 hour)  
+**Estimated Completion:** 8-12 hours from start  
+**Priority:** CRITICAL BLOCKER for production
+
+---
+
+**Next Steps:**
+
+1. ✅ Complete security validation first
+2. 🔴 Start Phase 1 (Core Shell) - 4 hours
+3. 🔴 Start Phase 2 (Transactions) - 4 hours
+4. 🟡 Continue with Phases 3-4 - 4 hours
+5. ✅ Document all findings
+6. ✅ Prioritize fixes with team
+
+]]>
+</file>
+
+<file path="docs/archived/planning/TRANSLATION_ACTION_PLAN.md">
+<![CDATA[
+# Translation System Action Plan
+
+**Date:** November 18, 2024  
+**Status:** ✅ Option A Implemented  
+**Reference:** `_artifacts/i18n-locale-coverage.json`
+
+---
+
+## Executive Summary
+
+**Infrastructure:** ✅ 100% Complete  
+**Content:** ✅ 100% Complete (EN/AR only)  
+**Decision Made:** Option A - Remove unused locales
+
+**Implementation Complete (November 18, 2024):**
+
+- ✅ Removed 7 unused locales (FR/PT/RU/ES/UR/HI/ZH) from codebase
+- ✅ Updated `ALL_LOCALES` to `['en', 'ar']` in generator and loader
+- ✅ Deleted 7 unused dictionary files (saved ~10.5MB)
+- ✅ Regenerated artifacts (only EN/AR now)
+- ✅ System now honestly represents capabilities
+
+**Current State:**
+
+- Supported languages: 2 (English, Arabic)
+- Total keys: 29,672 per locale
+- Coverage: 100% for both locales ✅
+- Build time: Faster (7 fewer locales to process)
+- Artifact size: Reduced (3.1MB vs 13.6MB previously)
+- User experience: No misleading language options
+
+---
+
+## Locale Coverage Facts
+
+### High-Fidelity Analysis Results
+
+Running `pnpm i18n:coverage` shows:
+
+| Locale | Total Keys | Localized | Identical to EN | Coverage | Status                     |
+| ------ | ---------- | --------- | --------------- | -------- | -------------------------- |
+| ✅ en  | 29,672     | 29,672    | 0               | 100.0%   | Real English translations  |
+| ✅ ar  | 29,672     | 29,672    | 0               | 100.0%   | Real Arabic translations   |
+| ❌ fr  | 29,672     | 0         | 29,672          | 0.0%     | English text (auto-filled) |
+| ❌ pt  | 29,672     | 0         | 29,672          | 0.0%     | English text (auto-filled) |
+| ❌ ru  | 29,672     | 0         | 29,672          | 0.0%     | English text (auto-filled) |
+| ❌ es  | 29,672     | 0         | 29,672          | 0.0%     | English text (auto-filled) |
+| ❌ ur  | 29,672     | 0         | 29,672          | 0.0%     | English text (auto-filled) |
+| ❌ hi  | 29,672     | 0         | 29,672          | 0.0%     | English text (auto-filled) |
+| ❌ zh  | 29,672     | 0         | 29,672          | 0.0%     | English text (auto-filled) |
+
+**Aggregate:** 207,704 target-locale translation slots, **0 localized** (100% English text)
+
+**Source:** Run `pnpm i18n:coverage` to regenerate `_artifacts/i18n-locale-coverage.json`
+
+### What "0% Coverage" Means
+
+Users selecting French will see:
+
+```
+Button label: "Save" (should be "Enregistrer")
+Cancel button: "Cancel" (should be "Annuler")
+Error message: "Invalid input" (should be "Entrée invalide")
+```
+
+This is **not** a localization bug. The infrastructure works perfectly. The content simply doesn't exist in the source files (`i18n/sources/**/*.json`).
+
+---
+
+## Issues Found (and Fixed)
+
+### 1. ✅ Hard-Coded Locale List
+
+**Problem:** `detect-unlocalized-strings.ts` always audited all 9 locales, even when product should only ship EN/AR  
+**Fix:** Added `--locales=<comma-separated>` flag  
+**Usage:**
+
+```bash
+# Audit only EN/AR (recommended for now)
+pnpm tsx scripts/detect-unlocalized-strings.ts --locales=en,ar
+
+# Audit all 9 locales
+pnpm i18n:coverage
+```
+
+### 2. ✅ Misleading Overall Coverage Math
+
+**Problem:** Coverage calculation only counted exact EN matches, ignoring case-insensitive/whitespace matches and AR fallbacks  
+**Fix:** Updated aggregate math to sum all unlocalized categories  
+**Impact:** "Overall coverage" now accurately reflects 0% for auto-filled locales
+
+### 3. ✅ AR Fallback Misattribution
+
+**Problem:** Identical-to-AR strings treated as "localized" for every locale, masking copy-paste errors  
+**Fix:** AR fallback now counts as unlocalized unless `--allow-ar-fallback` explicitly set  
+**Example:** French showing Arabic text was counted as "translated" before
+
+### 4. ✅ Source Locale Assumptions
+
+**Problem:** Recommendations always assumed EN/AR as sources, even when user filtered to fewer locales  
+**Fix:** Source/target lists now derive from `--locales` parameter  
+**Impact:** `--locales=en,ar` no longer produces "7 locales unlocalized" warnings
+
+---
+
+## The Decision: Two Paths Forward
+
+### Option A: Remove Unused Locales (Recommended for Now)
+
+**Who:** Teams without translation budget or timeline  
+**When:** Immediate implementation (1 hour)  
+**Cost:** $0 (developer time only)  
+**Benefit:** Honest representation of capabilities
+
+**What Changes:**
+
+1. Update `ALL_LOCALES` in 3 files to `['en', 'ar']`:
+   - `scripts/generate-dictionaries-json.ts` (line 15)
+   - `lib/i18n/translation-loader.ts` (line 12)
+
+2. Delete unused artifacts:
+
+   ```bash
+   rm i18n/generated/{fr,pt,ru,es,ur,hi,zh}.dictionary.json
+   ```
+
+3. Regenerate and verify:
+
+   ```bash
+   pnpm i18n:build
+   pnpm i18n:coverage --locales=en,ar  # Should show 100% for both
+   git add i18n/
+   git commit -m "chore(i18n): remove unsupported locales until translation budget approved"
+   ```
+
+4. Update documentation:
+   - README.md: "Languages: English, Arabic"
+   - User-facing language selector: Hide FR/PT/RU/ES/UR/HI/ZH
+
+**Pros:**
+
+- ✅ Honest about capabilities
+- ✅ Faster builds (smaller artifacts)
+- ✅ No misleading user experience
+- ✅ Reversible (can add back when translations arrive)
+
+**Cons:**
+
+- ❌ Limited market reach (EN/AR regions only)
+- ❌ Can't claim "9 language support" in marketing
+
+---
+
+### Option B: Budget Professional Translation
+
+**Who:** Teams committed to real multi-language support  
+**When:** 2-4 weeks + vendor contract time  
+**Cost:** $52,000 - $104,000 USD  
+**Benefit:** Real 9-language product
+
+**Cost Breakdown:**
+
+- Target locales: FR, PT, RU, ES, UR, HI, ZH (7 languages)
+- Source keys: 29,672 keys
+- Estimated words: ~74,180 words (2.5 avg words/key)
+- Translation rate: $0.10 - $0.20 per word
+- **Per-language cost:** $7,418 - $14,836
+- **Total cost:** $51,926 - $103,852
+
+**Timeline:**
+
+1. **Week 1:** RFP & contract
+2. **Week 2-3:** Translation work
+3. **Week 4:** Import & validation
+
+**Implementation:**
+
+```bash
+# 1. Export EN dictionary (TODO: create this script)
+npx tsx scripts/export-to-xliff.ts
+
+# 2. Send to vendor, wait for translated files
+
+# 3. Import translated files (TODO: create this script)
+npx tsx scripts/import-from-xliff.ts
+
+# 4. Regenerate
+pnpm i18n:build
+
+# 5. Verify
+pnpm i18n:coverage  # Should show ~90-95% for all
+
+# 6. QA testing in all languages
+
+# 7. Commit
+git add i18n/
+git commit -m "feat(i18n): add professional translations for 7 languages"
+```
+
+---
+
+## Recommended Path: Option A → Option B
+
+**Phase 1 (Now):** Implement Option A
+
+- Remove unused locales
+- Update documentation ("EN/AR only")
+- Ship honest product
+
+**Phase 2 (When Budget Approved):** Execute Option B
+
+- RFP to translation vendors
+- Continue development in EN/AR
+- Import translations when ready
+- Add locales back to codebase
+
+**Why This Works:**
+
+- ✅ Honest representation today
+- ✅ Infrastructure ready for future
+- ✅ Incremental language support
+- ✅ No technical debt
+
+---
+
+## Integration with CI/CD
+
+### GitHub Actions (Already Updated)
+
+`.github/workflows/i18n-validation.yml` now includes:
+
+```yaml
+- name: High-Fidelity Coverage Check (EN/AR only)
+  run: |
+    npx tsx scripts/detect-unlocalized-strings.ts --locales=en,ar || exit 1
+
+- name: Upload coverage report
+  uses: actions/upload-artifact@v3
+  with:
+    name: i18n-coverage-report
+    path: _artifacts/i18n-locale-coverage.json
+    retention-days: 90
+```
+
+**To enable strict checks for all locales:**
+
+```yaml
+# Remove --locales=en,ar to audit all 9
+npx tsx scripts/detect-unlocalized-strings.ts --fail-threshold=0.1
+```
+
+### Husky Pre-Commit (Already Updated)
+
+`.husky/pre-commit` now includes:
+
+```bash
+# High-fidelity coverage check (non-blocking warning)
+pnpm tsx scripts/detect-unlocalized-strings.ts --locales=en,ar --silent || {
+  echo "⚠️  Translation coverage issues (not blocking)"
+}
+```
+
+**To make it blocking:**
+
+```bash
+# Remove || {...} to exit 1 on failure
+pnpm tsx scripts/detect-unlocalized-strings.ts --locales=en,ar
+```
+
+---
+
+## Commands Reference
+
+### Quick Commands
+
+```bash
+# Audit EN/AR only (recommended)
+pnpm tsx scripts/detect-unlocalized-strings.ts --locales=en,ar
+
+# Audit all 9 locales
+pnpm i18n:coverage
+
+# CI integration (fail if >50% unlocalized)
+pnpm i18n:coverage:fail
+
+# Strict CI (fail if >10% unlocalized)
+pnpm i18n:coverage:strict
+
+# Show sample unlocalized keys
+pnpm tsx scripts/detect-unlocalized-strings.ts --show-samples=20
+
+# Export JSON for tracking
+pnpm i18n:coverage --format=json > coverage-$(date +%Y%m%d).json
+```
+
+### Advanced Usage
+
+```bash
+# Allow AR fallback
+pnpm tsx scripts/detect-unlocalized-strings.ts --allow-ar-fallback
+
+# Custom threshold (fail if >30% unlocalized)
+pnpm tsx scripts/detect-unlocalized-strings.ts --fail-threshold=0.3
+
+# Audit specific locales
+pnpm tsx scripts/detect-unlocalized-strings.ts --locales=en,ar,fr
+
+# Silent mode
+pnpm tsx scripts/detect-unlocalized-strings.ts --silent
+```
+
+---
+
+## Next Steps by Role
+
+### Product Manager / Stakeholder
+
+1. Review this document
+2. Decide: Option A (remove) OR Option B (budget $52k-104k)
+3. Communicate decision to engineering
+4. If Option B: Approve budget and 2-4 week timeline
+
+### Engineering Lead
+
+**If Option A:**
+
+- Assign developer (1 hour task)
+- Update documentation
+- Deploy to staging
+
+**If Option B:**
+
+- Create RFP for vendors
+- Create export/import scripts
+- Set up vendor account
+- Review translated files
+
+### Developer (If Option A)
+
+```bash
+# 1. Update ALL_LOCALES to ['en', 'ar'] in 2 files
+# 2. Delete unused artifacts
+rm i18n/generated/{fr,pt,ru,es,ur,hi,zh}.dictionary.json
+
+# 3. Regenerate
+pnpm i18n:build
+
+# 4. Verify
+pnpm i18n:coverage --locales=en,ar
+
+# 5. Update docs
+
+# 6. Commit
+git add .
+git commit -m "chore(i18n): remove unsupported locales"
+```
+
+### QA Engineer (If Option B)
+
+1. Test UI in all 9 languages
+2. Verify language selector works
+3. Check for text overflow
+4. Validate RTL (AR/UR)
+5. Spot-check 50-100 keys per locale
+
+**Sign-off criteria:**
+
+- ✅ `pnpm i18n:coverage` shows ≥90% for all
+- ✅ No English in non-English locales
+- ✅ No formatting breaks
+- ✅ Language switcher functional
+
+---
+
+## FAQ
+
+**Q: Why not machine translation?**  
+A: Quality varies. Human-reviewed recommended for professional products. Machine translation can reduce costs as first pass.
+
+**Q: Can we add languages incrementally?**  
+A: Yes! Add to `ALL_LOCALES`, import translations, regenerate. Cost: ~$7k-15k per language.
+
+**Q: What if we only translate high-priority keys?**  
+A: Not recommended. Users see inconsistent experience. Better: 100% or stick to EN/AR only.
+
+**Q: How to maintain translations for new features?**  
+A: Two approaches:
+
+1. Vendor retainer for ongoing work
+2. Quarterly translation batches
+
+**Q: Can we use community translations?**  
+A: Risky for production. Quality control difficult. Works for open-source with active contributors.
+
+---
+
+## Progress Tracking
+
+### Baseline (November 18, 2024)
+
+```json
+{
+  "timestamp": "2025-11-18T08:50:24.841Z",
+  "summary": {
+    "overallCoverage": 0.0,
+    "totalSlots": 207704,
+    "unlocalizedSlots": 207704
+  }
+}
+```
+
+### Track Over Time
+
+```bash
+# Daily snapshots
+pnpm i18n:coverage --format=json > _artifacts/coverage-$(date +%Y%m%d).json
+
+# Compare before/after
+diff -u coverage-20241118.json coverage-20241218.json
+
+# Track in git
+git add _artifacts/i18n-locale-coverage.json
+git commit -m "chore(i18n): update coverage baseline"
+```
+
+---
+
+## References
+
+- **Analysis Tool:** `scripts/detect-unlocalized-strings.ts`
+- **Coverage Report:** `_artifacts/i18n-locale-coverage.json`
+- **Infrastructure Docs:** `TRANSLATION_SYSTEM_REMEDIATION_COMPLETE.md`
+- **Decision Framework:** `HIGH_FIDELITY_LOCALE_PLAN.md`
+
+**Commands:**
+
+```bash
+pnpm i18n:build              # Regenerate dictionaries
+pnpm i18n:coverage           # High-fidelity analysis
+pnpm i18n:coverage:fail      # CI check (permissive)
+pnpm i18n:coverage:strict    # CI check (strict)
+```
+
+---
+
+**Last Updated:** November 18, 2024  
+**Next Review:** After decision (Option A or B)
+
+]]>
+</file>
+
+<file path="docs/archived/planning/TYPESCRIPT_CLEANUP_ROADMAP.md">
+<![CDATA[
+# TypeScript Cleanup Roadmap
+
+**Date**: November 15, 2025  
+**Current Status**: 88 errors (283→88, **69% reduction**)  
+**Target**: 0 errors  
+**Estimated Time**: 3-4 hours
+
+---
+
+## Progress Summary
+
+### ✅ Completed (195 errors eliminated)
+
+- **Mongoose Models**: Converted 25+ models to `getModel` pattern
+- **server/copilot/**: Fixed all dynamic import type errors (16 errors)
+- **InferSchemaType**: Resolved constraint violations (47 errors)
+- **lib/ cleanup**: Fixed auth, audit, fm-approval-engine, zatca (30 errors)
+- **Invoice/WorkOrder**: ZATCA compliance + virtual properties (19 errors)
+- **Various API routes**: Type assertions and null checks (60+ errors)
+
+### 🔄 In Progress (88 errors remaining)
+
+#### Priority 1: server/models/ (19 errors) - **1 hour**
+
+**Issues**:
+
+- Missing `Model` import in 5 files (FMApproval, FMFinancialTransaction, FMPMPlan, Invoice, Property)
+- ReferralCode: Duplicate MModel import, wrong generic arity
+- ServiceProvider: Implicit 'any' in type initializer
+- tenantAudit plugin: 5 'unknown' type errors
+
+**Action**:
+
+```bash
+# Fix imports
+grep -l "export const.*= getModel" server/models/*.ts | xargs grep -L "import.*Model.*from 'mongoose'"
+
+# Files needing Model import:
+# - server/models/FMApproval.ts
+# - server/models/FMFinancialTransaction.ts
+# - server/models/FMPMPlan.ts
+# - server/models/Invoice.ts
+# - server/models/Property.ts
+
+# Fix ReferralCode MModel issue
+# Fix ServiceProvider type annotation
+# Cast 'unknown' types in tenantAudit plugin
+```
+
+#### Priority 2: app/api/ (~35 errors) - **1.5 hours**
+
+**Issues**:
+
+- Dynamic imports return 'unknown' (needs `as any` cast)
+- Property access on untyped objects
+- Missing type parameters
+
+**Hotspots**:
+
+- `app/api/rfqs/[id]/bids/` (10 errors)
+- `app/api/souq/catalog/products/` (3 errors)
+- `app/api/souq/listings/` (2 errors)
+- `app/api/referrals/my-code/` (2 errors)
+- `app/api/settings/logo/`, `app/api/organization/settings/` (scattered)
+
+**Pattern**:
+
+```typescript
+// BEFORE (causes TS18046)
+const { RFQ } = await import("@/server/models/RFQ");
+
+// AFTER
+const { RFQ } = (await import("@/server/models/RFQ")) as any;
+```
+
+#### Priority 3: tests/finance/e2e/ (12 errors) - **30 minutes**
+
+**Issues**:
+
+- Test fixtures using old model shapes
+- Type mismatches (e.g., `paidAt` vs `paidDate`)
+
+**Action**:
+
+```bash
+# Identify mismatched properties
+grep -n "error TS" /tmp/tsc.log | grep "tests/finance/e2e"
+
+# Update test fixtures to match current models
+# Add helper types for test data
+```
+
+#### Priority 4: Scattered (~22 errors) - **1 hour**
+
+**Remaining buckets**:
+
+- modules/users/ (5 errors): User module type definitions
+- models/ (5 errors): Legacy model issues
+- scripts/ (4 errors): Build script types
+- services/ (5 errors): souq service (3), notifications (2)
+- contexts/ (2 errors): React context types
+- lib/ (1 error): Utility edge cases
+
+---
+
+## Execution Plan
+
+### Session 1: server/models/ (1 hour)
+
+```bash
+# 1. Fix Model imports (5 files)
+for file in FMApproval FMFinancialTransaction FMPMPlan Invoice Property; do
+  # Add: import { Model } from 'mongoose';
+  # Verify: export const X: Model<XDoc> = getModel<XDoc>('X', XSchema);
+done
+
+# 2. Fix ReferralCode
+# - Remove duplicate MModel import
+# - Fix getModel call to single type parameter
+
+# 3. Fix ServiceProvider
+# - Add type annotation to ServiceProviderModel initialization
+
+# 4. Fix tenantAudit plugin
+# - Cast this.set() to (this as any).set()
+# - Cast this.where() if needed
+
+# 5. Verify
+pnpm exec tsc --noEmit 2>&1 | grep "server/models/" | wc -l
+# Target: 0 errors
+```
+
+### Session 2: app/api/ (1.5 hours)
+
+```bash
+# 1. Find all dynamic imports needing casts
+grep -r "await import('@/server/models" app/api/ | grep -v " as any"
+
+# 2. Add type casts systematically
+# Focus on: rfqs/[id]/bids (10 errors first)
+
+# 3. Fix property access issues
+# - Add optional chaining where needed
+# - Add type guards for conditionals
+
+# 4. Verify
+pnpm exec tsc --noEmit 2>&1 | grep "app/api/" | wc -l
+# Target: 0 errors
+```
+
+### Session 3: tests + scattered (1 hour)
+
+```bash
+# 1. Fix test fixtures
+cd tests/finance/e2e/
+# Update payment test data structures
+# Align with current Invoice/Payment models
+
+# 2. Fix remaining buckets
+# - modules/users/: Export types properly
+# - scripts/: Add type annotations
+# - services/: Cast dynamic imports
+# - contexts/: Add logger imports
+
+# 3. Final verification
+pnpm exec tsc --noEmit 2>&1 | grep -c "error TS"
+# Target: 0 errors
+```
+
+---
+
+## Post-Zero Actions
+
+### 1. Update Documentation (15 minutes)
+
+```bash
+# Capture final verification
+pnpm exec tsc --noEmit 2>&1 | tee /tmp/tsc_zero.log
+
+# Update reports
+# - IMPLEMENTATION_AUDIT_REPORT.md: Change "88 errors" → "0 errors (100% reduction)"
+# - Add verification timestamp
+# - Update timeline: Mark Phase 1 as COMPLETE
+```
+
+### 2. Commit Progress
+
+```bash
+git add -A
+git commit -m "feat: Achieve zero TypeScript errors (283→0, 100% reduction)
+
+🎯 TYPESCRIPT CLEANUP COMPLETE:
+
+**Session 1 - server/models/** (19→0 errors):
+- Fixed Model imports in 5 files
+- Resolved ReferralCode MModel issue
+- Fixed ServiceProvider type annotation
+- Cast tenantAudit plugin unknown types
+
+**Session 2 - app/api/** (35→0 errors):
+- Added type casts for dynamic imports
+- Fixed property access on rfqs routes
+- Resolved souq API type issues
+- Fixed settings/referrals endpoints
+
+**Session 3 - tests + scattered** (34→0 errors):
+- Updated test fixtures to match models
+- Fixed modules/users exports
+- Added script type annotations
+- Cast service dynamic imports
+
+**Final Stats**:
+- Total eliminated: 283 errors
+- Time invested: ~10 hours across 3 days
+- Models refactored: 25+
+- Files touched: 100+
+
+System now has full type safety. Ready for Tap Payments implementation.
+
+Refs: #293 (TypeScript stabilization)"
+```
+
+### 3. Move to Tap Payments (8-12 hours)
+
+**Prerequisites**: ✅ Zero TypeScript errors  
+**Files to create**:
+
+1. `lib/finance/tap-payments.ts` (client wrapper)
+2. `app/api/payments/tap/checkout/route.ts` (charge creation)
+3. `app/api/payments/tap/webhook/route.ts` (callback handler)
+
+**Steps**:
+
+- [ ] Create Tap client with createCharge/retrieveCharge/verifySignature
+- [ ] Wire checkout flow to Invoice model
+- [ ] Implement webhook handler for status updates
+- [ ] Update locales to reference real endpoints
+- [ ] Add env vars documentation
+- [ ] Test with Tap sandbox
+
+---
+
+## Verification Commands
+
+### Real-time Error Tracking
+
+```bash
+# Quick count
+pnpm exec tsc --noEmit 2>&1 | grep -c "error TS"
+
+# Directory breakdown
+pnpm exec tsc --noEmit 2>&1 | grep "error TS" | sed 's/:.*//g' | xargs -I {} dirname {} | sort | uniq -c | sort -rn | head -10
+
+# Specific directory
+pnpm exec tsc --noEmit 2>&1 | grep "server/models/"
+
+# Save full log
+pnpm exec tsc --noEmit 2>&1 | tee /tmp/tsc.log
+```
+
+### Build Verification
+
+```bash
+# TypeScript compilation
+pnpm exec tsc --noEmit
+
+# Next.js build
+pnpm run build
+
+# Production build test
+NODE_ENV=production pnpm run build
+```
+
+---
+
+## Success Criteria
+
+### Phase 1: TypeScript Zero ✅
+
+- [x] 283→88 errors (69% reduction) - **ACHIEVED**
+- [ ] 88→0 errors (100% reduction) - **IN PROGRESS**
+- [ ] All directories show 0 errors
+- [ ] Build passes without warnings
+- [ ] No `@ts-ignore` or `@ts-expect-error` added
+
+### Phase 2: Tap Payments
+
+- [ ] lib/finance/tap-payments.ts exists and compiles
+- [ ] Checkout flow creates charges
+- [ ] Webhook updates invoice status
+- [ ] Tests pass in Tap sandbox
+- [ ] Documentation updated
+
+### Phase 3: Production Ready
+
+- [ ] All TypeScript errors: 0
+- [ ] All integrations working: 8/8 (including Tap)
+- [ ] API smoke tests: Pass
+- [ ] Build time: <5 minutes
+- [ ] No console errors in dev mode
+
+---
+
+## Notes
+
+**Time Estimates**:
+
+- Based on current velocity: ~15 errors/hour
+- server/models/: 19 errors ÷ 15/hr = 1.3 hours → **1 hour** (simple pattern fixes)
+- app/api/: 35 errors ÷ 15/hr = 2.3 hours → **1.5 hours** (repetitive casts)
+- tests+scattered: 34 errors ÷ 15/hr = 2.3 hours → **1 hour** (known patterns)
+
+**Risk Factors**:
+
+- ReferralCode MModel issue may require schema refactoring (add 30 min buffer)
+- Test fixtures might reveal model shape drift (add 15 min buffer)
+- Unknown edge cases in scattered errors (add 15 min buffer)
+
+**Total with buffers**: 3-4 hours to zero errors
+
+---
+
+**Last Updated**: November 15, 2025 - After commit 168757562  
+**Next Review**: After achieving 0 TypeScript errors
+
+]]>
+</file>
+
+</batch_content>

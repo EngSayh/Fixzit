@@ -1,0 +1,2334 @@
+
+You are the "Fixzit Memory Builder" for category: "routes".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "routes",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/api/notifications/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { getCollections } from "@/lib/db/collections";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+
+import type { NotificationDoc } from "@/lib/models";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+import { isTruthy } from "@/lib/utils/env";
+
+const notificationSchema = z.object({
+  title: z.string().min(1),
+  message: z.string().min(1),
+  type: z.enum(["work-order", "vendor", "payment", "maintenance", "system"]),
+  priority: z.enum(["low", "medium", "high"]),
+  category: z.enum(["maintenance", "vendor", "finance", "system"]),
+  targetUrl: z.string().url().optional(), // Optional deep link URL
+  orgId: z.string().optional(),
+});
+
+// Valid enum values for filtering
+const VALID_PRIORITIES = ["low", "medium", "high"] as const;
+const VALID_CATEGORIES = [
+  "maintenance",
+  "vendor",
+  "finance",
+  "system",
+] as const;
+
+// All operations now backed by Mongo collection (tenant-scoped)
+
+const escapeRegex = (input: string) =>
+  input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * @openapi
+ * /api/notifications:
+ *   get:
+ *     summary: notifications operations
+ *     tags: [notifications]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const q = (searchParams.get("q") || "").trim();
+  const category = searchParams.get("category") || "";
+  const priority = searchParams.get("priority") || "";
+  const read = searchParams.get("read") || "";
+  const rawPage = Number.parseInt(searchParams.get("page") || "1", 10);
+  const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
+  const rawLimit = Number.parseInt(searchParams.get("limit") || "20", 10);
+  const limit =
+    Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 100) : 20;
+
+  if (isTruthy(process.env.ALLOW_OFFLINE_MONGODB)) {
+    return NextResponse.json(
+      { items: [], total: 0, page, limit, hasMore: false },
+      { status: 200 },
+    );
+  }
+
+  let orgId: string;
+  try {
+    const user = await getSessionUser(req);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+    // SEC-001: Validate orgId to prevent undefined in tenant-scoped queries
+    if (!user?.orgId) {
+      return createSecureResponse(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        401,
+        req,
+      );
+    }
+    orgId = user.orgId;
+  } catch {
+    return createSecureResponse({ error: "Unauthorized" }, 401, req);
+  }
+
+  const { notifications } = await getCollections();
+  const filter: Record<string, unknown> = { orgId };
+  if (q) {
+    const safe = escapeRegex(q);
+    filter.$or = [
+      { title: { $regex: safe, $options: "i" } },
+      { message: { $regex: safe, $options: "i" } },
+    ];
+  }
+  // Validate category against enum before filtering
+  if (
+    category &&
+    category !== "all" &&
+    VALID_CATEGORIES.includes(category as (typeof VALID_CATEGORIES)[number])
+  ) {
+    filter.category = category;
+  }
+  // Validate priority against enum before filtering
+  if (
+    priority &&
+    priority !== "all" &&
+    VALID_PRIORITIES.includes(priority as (typeof VALID_PRIORITIES)[number])
+  ) {
+    filter.priority = priority;
+  }
+  if (read !== "") filter.read = read === "true";
+
+  const skip = (page - 1) * limit;
+  const [rawItems, total] = await Promise.all([
+    notifications
+      .find(filter)
+      .sort({ timestamp: -1 })
+      .skip(skip)
+      .limit(limit)
+      .toArray(),
+    notifications.countDocuments(filter),
+  ]);
+  // 🔒 TYPE SAFETY: Serialize MongoDB documents with explicit type
+  const items = rawItems.map((n) => ({
+    id: String((n as { _id: unknown })._id),
+    ...n,
+    _id: undefined,
+  }));
+
+  return NextResponse.json({
+    items,
+    total,
+    page,
+    limit,
+    hasMore: skip + items.length < total,
+  });
+}
+
+export async function POST(req: NextRequest) {
+  if (isTruthy(process.env.ALLOW_OFFLINE_MONGODB)) {
+    return NextResponse.json(
+      {
+        error: "ServiceUnavailable",
+        message:
+          "Notifications API is disabled in ALLOW_OFFLINE_MONGODB mode. Provide MongoDB or disable offline mode.",
+      },
+      { status: 503 },
+    );
+  }
+
+  let orgId: string;
+  try {
+    const user = await getSessionUser(req);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+    // SEC-001: Validate orgId to prevent undefined in tenant-scoped queries
+    if (!user?.orgId) {
+      return createSecureResponse(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        401,
+        req,
+      );
+    }
+    orgId = user.orgId;
+  } catch {
+    return createSecureResponse({ error: "Unauthorized" }, 401, req);
+  }
+
+  const body = await req.json();
+  const data = notificationSchema.parse(body);
+  const { notifications } = await getCollections();
+  const doc: Omit<NotificationDoc, "id"> = {
+    orgId,
+    type: data.type,
+    title: data.title,
+    message: data.message,
+    priority: data.priority,
+    category: data.category,
+    timestamp: new Date().toISOString(),
+    read: false,
+    archived: false,
+    ...(data.targetUrl && { targetUrl: data.targetUrl }), // Include targetUrl if provided
+  };
+
+  const result = await notifications.insertOne(doc);
+  return NextResponse.json({ ...doc, id: result.insertedId }, { status: 201 });
+}
+
+]]>
+</file>
+
+<file path="app/api/onboarding/[caseId]/complete-tutorial/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from 'next/server';
+import { connectMongo } from '@/lib/mongo';
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { OnboardingCase } from '@/server/models/onboarding/OnboardingCase';
+import { logger } from '@/lib/logger';
+
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: { caseId: string } },
+) {
+  const user = await getSessionUser(req).catch(() => null);
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  try {
+    await connectMongo();
+    // Defense-in-depth: Query scoped to user's org from the start
+    const onboarding = await OnboardingCase.findOne({
+      _id: params.caseId,
+      $or: [
+        { subject_user_id: user.id },
+        { created_by_id: user.id },
+        ...(user.orgId ? [{ orgId: user.orgId }] : []),
+      ],
+    });
+    if (!onboarding) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
+    onboarding.tutorial_completed = true;
+    onboarding.current_step = Math.max(onboarding.current_step, 4);
+    await onboarding.save();
+
+    return NextResponse.json({ status: 'complete' }, { status: 200 });
+  } catch (error) {
+    logger.error('[Onboarding] Failed to complete tutorial', error as Error);
+    return NextResponse.json({ error: 'Failed to complete tutorial' }, { status: 500 });
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/onboarding/[caseId]/documents/confirm-upload/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from 'next/server';
+import { Types } from 'mongoose';
+import { connectMongo } from '@/lib/mongo';
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { OnboardingCase } from '@/server/models/onboarding/OnboardingCase';
+import { VerificationDocument } from '@/server/models/onboarding/VerificationDocument';
+import { VerificationLog } from '@/server/models/onboarding/VerificationLog';
+import { DocumentProfile } from '@/server/models/onboarding/DocumentProfile';
+import { enqueueOnboardingOcr } from '@/jobs/onboarding-queue';
+import { logger } from '@/lib/logger';
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { caseId: string } },
+) {
+  const user = await getSessionUser(req).catch(() => null);
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const body = (await req.json().catch(() => ({}))) as {
+    document_type_code?: string;
+    file_storage_key?: string;
+    original_name?: string;
+    mime_type?: string;
+    size_bytes?: number;
+  };
+
+  const { document_type_code, file_storage_key, original_name, mime_type, size_bytes } = body;
+
+  if (!document_type_code || !file_storage_key || !original_name) {
+    return NextResponse.json({ error: 'document_type_code, file_storage_key, and original_name are required' }, { status: 400 });
+  }
+
+  try {
+    await connectMongo();
+    // Defense-in-depth: Query scoped to user's org from the start
+    const onboarding = await OnboardingCase.findOne({
+      _id: params.caseId,
+      $or: [
+        { subject_user_id: user.id },
+        { created_by_id: user.id },
+        ...(user.orgId ? [{ orgId: user.orgId }] : []),
+      ],
+    });
+    if (!onboarding) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
+    const profileCountry = onboarding.country || 'SA';
+    const profile = await DocumentProfile.findOne({ role: onboarding.role, country: profileCountry }).lean();
+    if (!profile || !profile.required_doc_codes.includes(document_type_code)) {
+      return NextResponse.json({ error: 'Document type not required for this role' }, { status: 400 });
+    }
+
+    const doc = await VerificationDocument.create({
+      onboarding_case_id: onboarding._id,
+      document_type_code,
+      file_storage_key,
+      original_name,
+      mime_type,
+      size_bytes,
+      status: 'PROCESSING',
+      uploaded_by_id: new Types.ObjectId(user.id),
+    });
+
+    await VerificationLog.create({
+      document_id: doc._id,
+      action: 'UPLOADED',
+      performed_by_id: user.id,
+      details: { document_type_code, file_storage_key },
+    });
+
+    onboarding.status = 'UNDER_REVIEW';
+    if (!onboarding.documents) onboarding.documents = [];
+    onboarding.documents.push(doc._id);
+    await onboarding.save();
+
+    await enqueueOnboardingOcr({ docId: doc._id.toString(), onboardingCaseId: onboarding._id.toString() });
+
+    return NextResponse.json({ docId: doc._id, status: doc.status }, { status: 200 });
+  } catch (error) {
+    logger.error('[Onboarding] Failed to confirm upload', error as Error);
+    return NextResponse.json({ error: 'Failed to confirm upload' }, { status: 500 });
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/onboarding/[caseId]/documents/request-upload/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
+import { connectMongo } from '@/lib/mongo';
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { getPresignedPutUrl } from '@/lib/storage/s3';
+import { OnboardingCase } from '@/server/models/onboarding/OnboardingCase';
+import { DocumentProfile } from '@/server/models/onboarding/DocumentProfile';
+import { DocumentType } from '@/server/models/onboarding/DocumentType';
+import { logger } from '@/lib/logger';
+
+const DEFAULT_COUNTRY = 'SA';
+
+function sanitizeFileName(name: string): string {
+  return name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-128);
+}
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { caseId: string } },
+) {
+  const user = await getSessionUser(req).catch(() => null);
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const body = (await req.json().catch(() => ({}))) as {
+    document_type_code?: string;
+    file_name?: string;
+    mime_type?: string;
+    country?: string;
+  };
+  const { document_type_code, file_name, mime_type, country } = body;
+
+  if (!document_type_code) {
+    return NextResponse.json({ error: 'document_type_code is required' }, { status: 400 });
+  }
+
+  try {
+    await connectMongo();
+    // Defense-in-depth: Query scoped to user's org from the start
+    const onboarding = await OnboardingCase.findOne({
+      _id: params.caseId,
+      $or: [
+        { subject_user_id: user.id },
+        { created_by_id: user.id },
+        ...(user.orgId ? [{ orgId: user.orgId }] : []),
+      ],
+    });
+    if (!onboarding) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
+    const profileCountry = onboarding.country || country || DEFAULT_COUNTRY;
+    const profile = await DocumentProfile.findOne({ role: onboarding.role, country: profileCountry }).lean();
+    if (!profile || !profile.required_doc_codes.includes(document_type_code)) {
+      return NextResponse.json({ error: 'Document type not required for this role' }, { status: 400 });
+    }
+
+    const docType = await DocumentType.findOne({ code: document_type_code }).lean();
+    if (!docType) {
+      return NextResponse.json({ error: 'Unknown document type' }, { status: 400 });
+    }
+
+    // Validate requested mime_type against allowed types
+    const requestedType = mime_type ?? docType.allowed_mime_types?.[0];
+    if (!requestedType || (docType.allowed_mime_types?.length && !docType.allowed_mime_types.includes(requestedType))) {
+      return NextResponse.json({ error: 'Unsupported mime_type for this document type' }, { status: 400 });
+    }
+
+    const contentType = requestedType;
+    const safeName = sanitizeFileName(file_name || document_type_code);
+    const key = `onboarding/${onboarding._id}/${Date.now()}-${randomUUID()}-${document_type_code}-${safeName}`;
+
+    const { url: uploadUrl, headers: uploadHeaders } = await getPresignedPutUrl(
+      key,
+      contentType,
+      3600,
+      {
+        onboarding_case_id: onboarding._id.toString(),
+        document_type_code,
+        uploader: user.id,
+      },
+    );
+
+    const maxSizeBytes = docType?.max_file_size_mb ? docType.max_file_size_mb * 1024 * 1024 : undefined;
+
+    return NextResponse.json({ uploadUrl, uploadHeaders, file_storage_key: key, maxSizeBytes }, { status: 200 });
+  } catch (error) {
+    logger.error('[Onboarding] Failed to presign upload', error as Error);
+    return NextResponse.json({ error: 'Failed to request upload' }, { status: 500 });
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/onboarding/[caseId]/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from 'next/server';
+import { connectMongo } from '@/lib/mongo';
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { OnboardingCase, type OnboardingStatus } from '@/server/models/onboarding/OnboardingCase';
+import { logger } from '@/lib/logger';
+import { setTenantContext, clearTenantContext } from '@/server/plugins/tenantIsolation';
+
+const ALLOWED_STATUS_UPDATES: OnboardingStatus[] = ['SUBMITTED', 'UNDER_REVIEW', 'DOCS_PENDING'];
+const REVIEWER_ROLES = new Set(['SUPER_ADMIN', 'ADMIN', 'COMPLIANCE_OFFICER', 'REVIEWER']);
+
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: { caseId: string } },
+) {
+  const user = await getSessionUser(_req).catch(() => null);
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  await connectMongo();
+  if (user.orgId) {
+    setTenantContext({ orgId: user.orgId });
+  }
+
+  try {
+    // Defense-in-depth: Query scoped to user's org from the start
+    const onboarding = await OnboardingCase.findOne({
+      _id: params.caseId,
+      $or: [
+        { subject_user_id: user.id },
+        { created_by_id: user.id },
+        ...(user.orgId ? [{ orgId: user.orgId }] : []),
+      ],
+    }).lean();
+    if (!onboarding) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(onboarding, { status: 200 });
+  } finally {
+    clearTenantContext();
+  }
+}
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { caseId: string } },
+) {
+  const user = await getSessionUser(req).catch(() => null);
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+  const payload = body.payload as Record<string, unknown> | undefined;
+  const basic_info = body.basic_info as Record<string, unknown> | undefined;
+  const status = body.status as OnboardingStatus | undefined;
+  const current_step = typeof body.current_step === 'number' ? body.current_step : undefined;
+
+  try {
+    await connectMongo();
+    if (user.orgId) {
+      setTenantContext({ orgId: user.orgId });
+    }
+    // Defense-in-depth: Query scoped to user's org from the start
+    const onboarding = await OnboardingCase.findOne({
+      _id: params.caseId,
+      $or: [
+        { subject_user_id: user.id },
+        { created_by_id: user.id },
+        ...(user.orgId ? [{ orgId: user.orgId }] : []),
+      ],
+    });
+    if (!onboarding) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
+    const isReviewer =
+      REVIEWER_ROLES.has(user.role) || user.roles?.some((r) => REVIEWER_ROLES.has(r.toUpperCase?.() || r));
+    const isSubmitter =
+      onboarding.subject_user_id?.toString() === user.id || onboarding.created_by_id?.toString() === user.id;
+
+    if (payload) onboarding.payload = payload;
+    if (basic_info) onboarding.basic_info = { ...onboarding.basic_info, ...basic_info };
+    if (current_step) {
+      const step = Math.max(onboarding.current_step || 1, current_step);
+      onboarding.current_step = Math.min(step, 4);
+    }
+
+    if (status) {
+      if (!ALLOWED_STATUS_UPDATES.includes(status)) {
+        return NextResponse.json({ error: 'Invalid status transition' }, { status: 400 });
+      }
+      // Submitters can only move to SUBMITTED; reviewers control other statuses
+      if (status === 'SUBMITTED' && isSubmitter) {
+        onboarding.status = status;
+      } else if (isReviewer) {
+        onboarding.status = status;
+      } else {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    }
+
+    await onboarding.save();
+    return NextResponse.json({ id: onboarding._id, status: onboarding.status, current_step: onboarding.current_step });
+  } catch (error) {
+    logger.error('[Onboarding] Failed to update case', error as Error);
+    return NextResponse.json({ error: 'Failed to update onboarding' }, { status: 500 });
+  } finally {
+    clearTenantContext();
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/onboarding/documents/[id]/review/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from 'next/server';
+import { Types } from 'mongoose';
+import { connectMongo } from '@/lib/mongo';
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { VerificationDocument, DOCUMENT_STATUSES } from '@/server/models/onboarding/VerificationDocument';
+import { VerificationLog } from '@/server/models/onboarding/VerificationLog';
+import { OnboardingCase } from '@/server/models/onboarding/OnboardingCase';
+import { DocumentProfile } from '@/server/models/onboarding/DocumentProfile';
+import { createEntitiesFromCase } from '@/server/services/onboardingEntities';
+import { logger } from '@/lib/logger';
+
+const ALLOWED_DECISIONS: Array<(typeof DOCUMENT_STATUSES)[number]> = ['VERIFIED', 'REJECTED'];
+const REVIEWER_ROLES = new Set(['SUPER_ADMIN', 'ADMIN', 'COMPLIANCE_OFFICER', 'REVIEWER']);
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  const user = await getSessionUser(req).catch(() => null);
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const body = (await req.json().catch(() => ({}))) as { decision?: string; rejection_reason?: string };
+  const { decision, rejection_reason } = body;
+  if (!decision || !ALLOWED_DECISIONS.includes(decision as (typeof DOCUMENT_STATUSES)[number])) {
+    return NextResponse.json({ error: 'Invalid decision' }, { status: 400 });
+  }
+
+  try {
+    await connectMongo();
+
+    // First check if user has reviewer role
+    const isReviewer =
+      REVIEWER_ROLES.has(user.role) || user.roles?.some((r) => REVIEWER_ROLES.has(r.toUpperCase?.() || r));
+    if (!isReviewer) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const doc = await VerificationDocument.findById(params.id);
+    if (!doc) return NextResponse.json({ error: 'Document not found' }, { status: 404 });
+
+    // Defense-in-depth: Query scoped to user's org (Super Admins can access any org)
+    const orgFilter = user.isSuperAdmin ? {} : { orgId: user.orgId };
+    const onboarding = await OnboardingCase.findOne({
+      _id: doc.onboarding_case_id,
+      ...orgFilter,
+    });
+    if (!onboarding) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
+    const isSubmitter =
+      onboarding.subject_user_id?.toString() === user.id ||
+      onboarding.created_by_id?.toString() === user.id;
+    if (isSubmitter) {
+      return NextResponse.json({ error: 'Self-approval is not allowed' }, { status: 403 });
+    }
+
+    const previousStatus = doc.status;
+    doc.status = decision as (typeof DOCUMENT_STATUSES)[number];
+    // rejection_reason expects i18n object { en?, ar? } or undefined
+    if (rejection_reason) {
+      doc.rejection_reason = { en: rejection_reason };
+    } else {
+      doc.rejection_reason = undefined;
+    }
+    doc.verified_by_id = new Types.ObjectId(user.id);
+    await doc.save();
+
+    await VerificationLog.create({
+      document_id: doc._id,
+      action: 'STATUS_CHANGE',
+      performed_by_id: user.id,
+      details: { from: previousStatus, to: decision, rejection_reason },
+    });
+
+    if (decision === 'VERIFIED') {
+      const profileCountry = onboarding.country || 'SA';
+      const [profile, docs] = await Promise.all([
+        DocumentProfile.findOne({ role: onboarding.role, country: profileCountry }).lean(),
+        VerificationDocument.find({ onboarding_case_id: onboarding._id }).lean(),
+      ]);
+
+      // Guard against auto-approval with missing profile/required_doc_codes
+      if (!profile || !profile.required_doc_codes?.length) {
+        logger.error('[Onboarding] Missing or empty DocumentProfile; skipping auto-approval', {
+          onboardingId: onboarding._id,
+          role: onboarding.role,
+        });
+      } else {
+        const requiredCodes = profile.required_doc_codes;
+        const allRequiredVerified = requiredCodes.every((code) =>
+          docs.some((d) => d.document_type_code === code && d.status === 'VERIFIED'),
+        );
+
+        if (allRequiredVerified) {
+          onboarding.status = 'APPROVED';
+          onboarding.verified_by_id = new Types.ObjectId(user.id);
+          onboarding.current_step = Math.max(onboarding.current_step, 3);
+          await onboarding.save();
+          await createEntitiesFromCase(onboarding);
+        }
+      }
+    }
+
+    return NextResponse.json({ status: doc.status }, { status: 200 });
+  } catch (error) {
+    logger.error('[Onboarding] Failed to review document', error as Error);
+    return NextResponse.json({ error: 'Failed to review document' }, { status: 500 });
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/onboarding/initiate/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from 'next/server';
+import { Types } from 'mongoose';
+import { connectMongo } from '@/lib/mongo';
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { OnboardingCase, ONBOARDING_ROLES, type OnboardingRole } from '@/server/models/onboarding/OnboardingCase';
+import { logger } from '@/lib/logger';
+
+type InitiateBody = {
+  role?: OnboardingRole;
+  basic_info?: Record<string, unknown>;
+  payload?: Record<string, unknown>;
+  country?: string;
+};
+
+export async function POST(req: NextRequest) {
+  const user = await getSessionUser(req).catch(() => null);
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const body = (await req.json().catch(() => ({}))) as InitiateBody;
+  const { role, basic_info, payload, country } = body;
+
+  if (!role || !ONBOARDING_ROLES.includes(role)) {
+    return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
+  }
+  if (!basic_info || typeof basic_info !== 'object') {
+    return NextResponse.json({ error: 'basic_info is required' }, { status: 400 });
+  }
+
+  try {
+    await connectMongo();
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+    const onboarding = await OnboardingCase.create({
+      orgId: user.orgId ? new Types.ObjectId(user.orgId) : null,
+      subject_user_id: new Types.ObjectId(user.id),
+      role,
+      basic_info,
+      payload,
+      country: typeof country === 'string' && country.trim() ? country.trim() : 'SA',
+      created_by_id: new Types.ObjectId(user.id),
+      source_channel: 'web',
+    });
+
+    return NextResponse.json({ id: onboarding._id, step: onboarding.current_step }, { status: 201 });
+  } catch (error) {
+    logger.error('[Onboarding] Failed to initiate case', error as Error);
+    return NextResponse.json({ error: 'Failed to initiate onboarding' }, { status: 500 });
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/onboarding/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from 'next/server';
+import { connectMongo } from '@/lib/mongo';
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { OnboardingCase, ONBOARDING_STATUSES, ONBOARDING_ROLES } from '@/server/models/onboarding/OnboardingCase';
+import { logger } from '@/lib/logger';
+import { setTenantContext, clearTenantContext } from '@/server/plugins/tenantIsolation';
+
+export async function GET(req: NextRequest) {
+  const user = await getSessionUser(req).catch(() => null);
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { searchParams } = new URL(req.url);
+  const orgId = user.orgId;
+  const status = searchParams.get('status');
+  const role = searchParams.get('role');
+  const limitParam = Number(searchParams.get('limit') || 25);
+  const limit = Number.isFinite(limitParam) ? Math.min(Math.max(limitParam, 1), 100) : 25;
+
+  const privilegedRoles = new Set(['SUPER_ADMIN', 'ADMIN', 'COMPLIANCE_OFFICER', 'REVIEWER']);
+  const isPrivileged =
+    privilegedRoles.has(user.role) || user.roles?.some((r) => privilegedRoles.has(r.toUpperCase?.() || r));
+
+  const filter: Record<string, unknown> = {};
+  // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+  if (orgId) filter.orgId = orgId;
+  if (status && ONBOARDING_STATUSES.includes(status as (typeof ONBOARDING_STATUSES)[number])) {
+    filter.status = status;
+  }
+  if (role && ONBOARDING_ROLES.includes(role as (typeof ONBOARDING_ROLES)[number])) {
+    filter.role = role;
+  }
+  if (!isPrivileged) {
+    // Non-privileged users can only see their own cases
+    filter.$or = [
+      { subject_user_id: user.id },
+      { created_by_id: user.id },
+    ];
+  }
+
+  try {
+    await connectMongo();
+    if (orgId) {
+      setTenantContext({ orgId });
+    }
+    const cases = await OnboardingCase.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean();
+
+    return NextResponse.json(cases, { status: 200 });
+  } catch (error) {
+    logger.error('[Onboarding] Failed to list cases', error as Error);
+    return NextResponse.json({ error: 'Failed to load onboarding queue' }, { status: 500 });
+  } finally {
+    clearTenantContext();
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/organization/settings/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { connectDb } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { createHash } from "crypto";
+
+// Default branding for unauthenticated or fallback scenarios
+// Colors aligned with design tokens from tailwind.config.js
+const DEFAULT_BRANDING = {
+  name: "FIXZIT ENTERPRISE",
+  logo: "/img/fixzit-logo.png",
+  primaryColor: "#0061A8", // Business.sa primary blue
+  secondaryColor: "#00A859", // Fixzit green - aligned with design tokens
+  accentColor: "#00A859",
+};
+
+const CACHE_TTL_MS = 60_000;
+type CachedBranding = { payload: Record<string, unknown>; etag: string; expires: number };
+const brandingCache = new Map<string, CachedBranding>();
+
+/**
+ * @openapi
+ * /api/organization/settings:
+ *   get:
+ *     summary: Get organization settings (public branding)
+ *     description: Retrieves public organization settings including logo, name, and branding. Uses authenticated user's org when available, otherwise returns defaults.
+ *     tags:
+ *       - Organization
+ *     responses:
+ *       200:
+ *         description: Organization settings retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 name:
+ *                   type: string
+ *                 logo:
+ *                   type: string
+ *                 primaryColor:
+ *                   type: string
+ *                 secondaryColor:
+ *                   type: string
+ *       500:
+ *         description: Server error
+ */
+export async function GET(req: NextRequest) {
+  try {
+    await connectDb();
+
+    // SECURITY FIX: Get org from authenticated session, not arbitrary first org
+    let orgId: string | undefined;
+    try {
+      const user = await getSessionUser(req);
+      orgId = user.orgId;
+    } catch {
+      // Unauthenticated - return default branding
+      const res = NextResponse.json(DEFAULT_BRANDING);
+      const etag = createHash("md5")
+        .update(JSON.stringify(DEFAULT_BRANDING))
+        .digest("hex");
+      res.headers.set("ETag", etag);
+      res.headers.set(
+        "Cache-Control",
+        "public, max-age=300, stale-while-revalidate=60",
+      );
+      return res;
+    }
+
+    if (!orgId) {
+      // No org context - return default branding
+      const res = NextResponse.json(DEFAULT_BRANDING);
+      const etag = createHash("md5")
+        .update(JSON.stringify(DEFAULT_BRANDING))
+        .digest("hex");
+      res.headers.set("ETag", etag);
+      res.headers.set(
+        "Cache-Control",
+        "public, max-age=300, stale-while-revalidate=60",
+      );
+      return res;
+    }
+
+    const cached = brandingCache.get(orgId);
+    if (cached && cached.expires > Date.now()) {
+      const res = NextResponse.json(cached.payload);
+      res.headers.set("ETag", cached.etag);
+      res.headers.set(
+        "Cache-Control",
+        "public, max-age=300, stale-while-revalidate=60",
+      );
+      return res;
+    }
+
+    // Get the user's organization
+    const { Organization } = await import("@/server/models/Organization");
+    type OrgDoc = {
+      name?: string;
+      logo?: string;
+      branding?: {
+        primaryColor?: string;
+        secondaryColor?: string;
+        accentColor?: string;
+      };
+    };
+    const org = (await Organization.findById(orgId)
+      .select("name logo branding")
+      .lean()) as unknown as OrgDoc | null;
+
+    if (!org) {
+      // No org found - return default branding
+      const res = NextResponse.json(DEFAULT_BRANDING);
+      const etag = createHash("md5")
+        .update(JSON.stringify(DEFAULT_BRANDING))
+        .digest("hex");
+      res.headers.set("ETag", etag);
+      res.headers.set(
+        "Cache-Control",
+        "public, max-age=300, stale-while-revalidate=60",
+      );
+      return res;
+    }
+
+    const orgDoc = org as {
+      name?: string;
+      logo?: string;
+      branding?: { primaryColor?: string; secondaryColor?: string; accentColor?: string };
+    };
+
+    const payload = {
+      name: orgDoc?.name || DEFAULT_BRANDING.name,
+      logo: orgDoc?.logo || DEFAULT_BRANDING.logo,
+      primaryColor: orgDoc?.branding?.primaryColor || DEFAULT_BRANDING.primaryColor,
+      secondaryColor: orgDoc?.branding?.secondaryColor || DEFAULT_BRANDING.secondaryColor,
+      accentColor: orgDoc?.branding?.accentColor || DEFAULT_BRANDING.accentColor,
+    };
+
+    const res = NextResponse.json(payload);
+    const etag = createHash("md5").update(JSON.stringify(payload)).digest("hex");
+    res.headers.set("ETag", etag);
+    res.headers.set("Cache-Control", "public, max-age=300, stale-while-revalidate=60");
+    brandingCache.set(orgId, {
+      payload,
+      etag,
+      expires: Date.now() + CACHE_TTL_MS,
+    });
+    return res;
+  } catch (error) {
+    logger.error("Error fetching organization settings:", error);
+    return NextResponse.json(
+      { error: "Failed to load organization settings" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/owner/properties/route.ts">
+<![CDATA[
+/**
+ * Owner Portal API - Properties List
+ *
+ * GET /api/owner/properties
+ * Returns all properties owned by the authenticated owner
+ *
+ * Query Parameters:
+ * - includeFinancials: boolean (default: false) - Include financial summary
+ * - includeUnits: boolean (default: true) - Include unit details
+ *
+ * Requires: BASIC subscription
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Property } from "@/server/models/Property";
+import { requireSubscription } from "@/server/middleware/subscriptionCheck";
+import {
+  clearTenantContext,
+  setTenantContext,
+} from "@/server/plugins/tenantIsolation";
+import { logger } from "@/lib/logger";
+
+interface PropertyUnit {
+  status: string;
+  [key: string]: unknown;
+}
+
+interface PropertyDocument {
+  units?: PropertyUnit[];
+  [key: string]: unknown;
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    // Check subscription
+    const subCheck = await requireSubscription(req, {
+      requirePlan: "BASIC",
+    });
+
+    if (subCheck.error) {
+      return subCheck.error;
+    }
+
+    const { ownerId, orgId } = subCheck;
+
+    // Parse query parameters
+    const { searchParams } = new URL(req.url);
+    const includeFinancials = searchParams.get("includeFinancials") === "true";
+    const includeUnits = searchParams.get("includeUnits") !== "false";
+
+    // Connect to database
+    await connectToDatabase();
+
+    // Set tenant context for automatic filtering
+    setTenantContext({ orgId });
+
+    try {
+      // Build projection
+      const projection: Record<string, number> = {
+      code: 1,
+      name: 1,
+      description: 1,
+      type: 1,
+      subtype: 1,
+      address: 1,
+      "details.totalArea": 1,
+      "details.bedrooms": 1,
+      "details.bathrooms": 1,
+      "details.occupancyRate": 1,
+      "ownerPortal.ownerNickname": 1,
+      "ownerPortal.agentId": 1,
+      "ownerPortal.advertisementNumber": 1,
+      "ownerPortal.advertisementExpiry": 1,
+      createdAt: 1,
+      updatedAt: 1,
+    };
+
+    if (includeFinancials) {
+      projection["financial.currentValue"] = 1;
+      projection["financial.monthlyRent"] = 1;
+      projection["financial.annualYield"] = 1;
+    }
+
+    if (includeUnits) {
+      projection.units = 1;
+    }
+
+    // Query properties
+    const properties = await Property.find({
+      "ownerPortal.ownerId": ownerId,
+    })
+      .select(projection)
+      .sort({ name: 1 })
+      .lean();
+
+    // Calculate summary statistics
+    const typedProperties = properties as unknown as PropertyDocument[];
+    const summary = {
+      totalProperties: typedProperties.length,
+      totalUnits: typedProperties.reduce(
+        (sum: number, p) => sum + (p.units?.length || 0),
+        0,
+      ),
+      occupiedUnits: typedProperties.reduce(
+        (sum: number, p) =>
+          sum + (p.units?.filter((u) => u.status === "OCCUPIED").length || 0),
+        0,
+      ),
+      averageOccupancy: 0,
+    };
+
+    if (summary.totalUnits > 0) {
+      summary.averageOccupancy =
+        (summary.occupiedUnits / summary.totalUnits) * 100;
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        properties,
+        summary,
+      },
+      subscription: subCheck.status,
+    });
+    } finally {
+      // Ensure tenant context is always cleared, even on error paths
+      clearTenantContext();
+    }
+  } catch (error) {
+    logger.error("Error fetching owner properties", error as Error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to fetch properties",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/owner/reports/roi/route.ts">
+<![CDATA[
+/**
+ * Owner Portal API - ROI Reports
+ *
+ * GET /api/owner/reports/roi
+ * Calculates ROI, NOI, and financial analytics for owner's portfolio
+ *
+ * Query Parameters:
+ * - period: "3m" | "6m" | "9m" | "12m" | "ytd" | "custom" (default: "12m")
+ * - startDate: ISO date string (required if period=custom)
+ * - endDate: ISO date string (required if period=custom)
+ * - propertyId: ObjectId (optional) - specific property or entire portfolio
+ * - includeCapitalGains: boolean (default: false)
+ *
+ * Requires: PRO subscription + roiAnalytics feature
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { Types } from "mongoose";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { requireSubscription } from "@/server/middleware/subscriptionCheck";
+import { logger } from "@/lib/logger";
+import {
+  calculatePortfolioAnalytics,
+  getStandardPeriods,
+  type AnalyticsPeriod,
+} from "@/server/services/owner/analytics";
+
+export async function GET(req: NextRequest) {
+  try {
+    // Check subscription - requires PRO plan with ROI analytics feature
+    const subCheck = await requireSubscription(req, {
+      requirePlan: "PRO",
+      requireFeature: "roiAnalytics",
+    });
+
+    if (subCheck.error) {
+      return subCheck.error;
+    }
+
+    const { ownerId, orgId } = subCheck;
+
+    // Parse query parameters
+    const { searchParams } = new URL(req.url);
+    const periodParam = searchParams.get("period") || "12m";
+    const startDateParam = searchParams.get("startDate");
+    const endDateParam = searchParams.get("endDate");
+    const propertyIdParam = searchParams.get("propertyId");
+    const includeCapitalGains =
+      searchParams.get("includeCapitalGains") === "true";
+
+    // Determine period
+    let period: AnalyticsPeriod;
+
+    if (periodParam === "custom") {
+      if (!startDateParam || !endDateParam) {
+        return NextResponse.json(
+          { error: "startDate and endDate required for custom period" },
+          { status: 400 },
+        );
+      }
+      period = {
+        startDate: new Date(startDateParam),
+        endDate: new Date(endDateParam),
+        label: "Custom Period",
+      };
+    } else {
+      const standardPeriods = getStandardPeriods();
+      const periodMap: Record<string, number> = {
+        "3m": 0,
+        "6m": 1,
+        "9m": 2,
+        "12m": 3,
+        ytd: 4,
+      };
+
+      const periodIndex = periodMap[periodParam];
+      if (periodIndex === undefined) {
+        return NextResponse.json(
+          { error: "Invalid period parameter" },
+          { status: 400 },
+        );
+      }
+
+      period = standardPeriods[periodIndex];
+    }
+
+    // Parse property ID if provided
+    let propertyId: Types.ObjectId | undefined;
+    if (propertyIdParam) {
+      propertyId = new Types.ObjectId(propertyIdParam);
+    }
+
+    // Connect to database
+    await connectToDatabase();
+
+    // Calculate analytics
+    const analytics = await calculatePortfolioAnalytics({
+      ownerId: ownerId!,
+      propertyId,
+      period,
+      includeCapitalGains,
+      orgId: orgId!,
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: analytics,
+      subscription: subCheck.status,
+    });
+  } catch (error) {
+    logger.error("Error calculating ROI report", error as Error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to calculate ROI report",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/owner/statements/route.ts">
+<![CDATA[
+/**
+ * Owner Portal API - Owner Statements
+ *
+ * GET /api/owner/statements
+ * Generates comprehensive financial statements for owner
+ * Similar to bank statements showing all income and expenses
+ *
+ * Query Parameters:
+ * - period: "MTD" | "QTD" | "YTD" | "CUSTOM" (default: "MTD")
+ * - startDate: ISO date string (required if period=CUSTOM)
+ * - endDate: ISO date string (required if period=CUSTOM)
+ * - propertyId: ObjectId (optional) - specific property filter
+ * - format: "json" | "pdf" | "excel" (default: "json")
+ *
+ * Requires: BASIC subscription
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { Types } from "mongoose";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { requireSubscription } from "@/server/middleware/subscriptionCheck";
+import {
+  clearTenantContext,
+  setTenantContext,
+} from "@/server/plugins/tenantIsolation";
+import { logger } from "@/lib/logger";
+
+interface StatementLine {
+  date: Date;
+  description: string;
+  type: "INCOME" | "EXPENSE";
+  category: string;
+  amount: number;
+  reference: string;
+  propertyName?: string;
+  unitNumber?: string;
+}
+
+// Lean query result interface
+interface PropertyLean {
+  _id: Types.ObjectId;
+  name: string;
+  code: string;
+}
+
+// Type definitions for Mongoose query results
+interface PaymentResponse {
+  propertyId?: { toString(): string };
+  paymentDate: Date;
+  tenantName?: string;
+  amount: number;
+  reference?: string;
+  _id?: { toString(): string };
+  unitNumber?: string;
+}
+
+interface WorkOrderResponse {
+  property?: {
+    propertyId?: { toString(): string };
+    unitNumber?: string;
+  };
+  completedDate?: Date;
+  title?: string;
+  cost?: { total: number };
+  workOrderNumber?: string;
+}
+
+interface UtilityBillResponse {
+  propertyId?: { toString(): string };
+  payment?: {
+    paidDate?: Date;
+    amount?: number;
+  };
+  period?: {
+    endDate?: Date;
+  };
+  utilityType?: string;
+  reference?: string;
+}
+
+interface AgentContractResponse {
+  commissionPayments?: {
+    paymentDate?: Date;
+    amount?: number;
+    reference?: string;
+  };
+  agentName?: string;
+  contractNumber?: string;
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    // Check subscription
+    const subCheck = await requireSubscription(req, {
+      requirePlan: "BASIC",
+    });
+
+    if (subCheck.error) {
+      return subCheck.error;
+    }
+
+    const { ownerId, orgId } = subCheck;
+
+    // Parse query parameters
+    const { searchParams } = new URL(req.url);
+    const periodParam = searchParams.get("period") || "MTD";
+    const startDateParam = searchParams.get("startDate");
+    const endDateParam = searchParams.get("endDate");
+    const propertyIdParam = searchParams.get("propertyId");
+    const format = searchParams.get("format") || "json";
+
+    // Determine date range
+    let startDate: Date;
+    let endDate: Date = new Date();
+    const now = new Date();
+
+    switch (periodParam) {
+      case "MTD": // Month to date
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case "QTD": {
+        // Quarter to date
+        const quarter = Math.floor(now.getMonth() / 3);
+        startDate = new Date(now.getFullYear(), quarter * 3, 1);
+        break;
+      }
+      case "YTD": // Year to date
+        startDate = new Date(now.getFullYear(), 0, 1);
+        break;
+      case "CUSTOM":
+        if (!startDateParam || !endDateParam) {
+          return NextResponse.json(
+            { error: "startDate and endDate required for CUSTOM period" },
+            { status: 400 },
+          );
+        }
+        startDate = new Date(startDateParam);
+        endDate = new Date(endDateParam);
+        break;
+      default:
+        return NextResponse.json(
+          { error: "Invalid period parameter" },
+          { status: 400 },
+        );
+    }
+
+    // Connect to database and set tenant context
+    await connectToDatabase();
+    setTenantContext({ orgId });
+
+    try {
+      // Import Mongoose models
+      const { Property } = await import("@/server/models/Property");
+      const { Payment } = await import("@/server/models/finance/Payment");
+      const { WorkOrder } = await import("@/server/models/WorkOrder");
+      const { UtilityBillModel: UtilityBill } = await import(
+        "@/server/models/owner/UtilityBill"
+      );
+      const { AgentContractModel: AgentContract } = await import(
+        "@/server/models/owner/AgentContract"
+      );
+
+    // Build property filter
+    const propertyFilter: Record<string, unknown> = {
+      "ownerPortal.ownerId": ownerId,
+    };
+
+    if (propertyIdParam) {
+      propertyFilter._id = new Types.ObjectId(propertyIdParam);
+    }
+
+    // Get properties using Mongoose model
+    const properties = (await Property.find(propertyFilter)
+      .select("_id name code")
+      .lean()) as PropertyLean[];
+    const propertyIds = properties.map((p) => p._id);
+    const propertyMap = new Map(properties.map((p) => [p._id.toString(), p]));
+
+    // Collect all statement lines
+    const statementLines: StatementLine[] = [];
+
+    // 1. INCOME - Rent Payments (using Mongoose model)
+    const payments = await Payment.find({
+      propertyId: { $in: propertyIds },
+      paymentDate: { $gte: startDate, $lte: endDate },
+      status: "PAID",
+    }).lean();
+
+    payments.forEach((payment: unknown) => {
+      const p = payment as PaymentResponse;
+      const property = propertyMap.get(p.propertyId?.toString() || "");
+      statementLines.push({
+        date: p.paymentDate,
+        description: `Rent Payment - ${p.tenantName || "Unknown"}`,
+        type: "INCOME",
+        category: "RENTAL_INCOME",
+        amount: p.amount,
+        reference: p.reference || p._id?.toString() || "N/A",
+        propertyName: property?.name || "Unknown",
+        unitNumber: p.unitNumber,
+      });
+    });
+
+    // 2. EXPENSES - Maintenance (Work Orders using Mongoose model)
+    const workOrders = await WorkOrder.find({
+      "property.propertyId": { $in: propertyIds },
+      status: "COMPLETED",
+      completedDate: { $gte: startDate, $lte: endDate },
+      "cost.total": { $gt: 0 },
+    }).lean();
+
+    workOrders.forEach((wo: unknown) => {
+      const w = wo as WorkOrderResponse;
+      // Skip work orders without valid completion dates
+      if (!w.completedDate) {
+        logger.warn(
+          "Work order missing completedDate, skipping from statement",
+          { workOrderNumber: w.workOrderNumber },
+        );
+        return;
+      }
+      const property = propertyMap.get(
+        w.property?.propertyId?.toString() || "",
+      );
+      statementLines.push({
+        date: w.completedDate,
+        description: `Maintenance - ${w.title || "Work Order"}`,
+        type: "EXPENSE",
+        category: "MAINTENANCE",
+        amount: w.cost?.total || 0,
+        reference: w.workOrderNumber || "N/A",
+        propertyName: property?.name,
+        unitNumber: w.property?.unitNumber,
+      });
+    });
+
+    // 3. EXPENSES - Utilities (using Mongoose model)
+    const utilityBills = await UtilityBill.find({
+      propertyId: { $in: propertyIds },
+      "responsibility.ownerId": ownerId,
+      "period.endDate": { $gte: startDate, $lte: endDate },
+      "payment.status": "PAID",
+    }).lean();
+
+    utilityBills.forEach((bill: unknown) => {
+      const b = bill as UtilityBillResponse;
+      // Require at least one valid date
+      const billDate = b.payment?.paidDate || b.period?.endDate;
+      if (!billDate) {
+        logger.warn(
+          "Utility bill missing both paidDate and period.endDate, skipping from statement",
+          { reference: b.reference },
+        );
+        return;
+      }
+      const property = propertyMap.get(b.propertyId?.toString() || "");
+      statementLines.push({
+        date: billDate,
+        description: `Utility - ${b.utilityType || "Utility Bill"}`,
+        type: "EXPENSE",
+        category: "UTILITIES",
+        amount: b.payment?.amount || 0,
+        reference: b.reference || "N/A",
+        propertyName: property?.name,
+      });
+    }); // 4. EXPENSES - Agent Commissions (using Mongoose model aggregate)
+    const agentPayments = await AgentContract.aggregate([
+      {
+        $match: {
+          ownerId,
+          status: "ACTIVE",
+        },
+      },
+      {
+        $lookup: {
+          from: "payments",
+          localField: "_id",
+          foreignField: "agentContractId",
+          as: "commissionPayments",
+        },
+      },
+      {
+        $unwind: "$commissionPayments",
+      },
+      {
+        $match: {
+          "commissionPayments.paymentDate": { $gte: startDate, $lte: endDate },
+          "commissionPayments.type": "COMMISSION",
+        },
+      },
+    ]);
+
+    agentPayments.forEach((contract: unknown) => {
+      const c = contract as AgentContractResponse;
+      // Skip entries without valid commission payment dates
+      if (!c.commissionPayments?.paymentDate) {
+        logger.warn(
+          "Agent commission missing paymentDate, skipping from statement",
+          { contractNumber: c.contractNumber },
+        );
+        return;
+      }
+      statementLines.push({
+        date: c.commissionPayments.paymentDate,
+        description: `Agent Commission - ${c.agentName || "Agent"}`,
+        type: "EXPENSE",
+        category: "AGENT_COMMISSION",
+        amount: c.commissionPayments?.amount || 0,
+        reference: c.commissionPayments?.reference || c.contractNumber || "N/A",
+        propertyName: undefined,
+      });
+    });
+
+    // Sort by date (most recent first)
+    statementLines.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+    // Calculate totals
+    const totalIncome = statementLines
+      .filter((l) => l.type === "INCOME")
+      .reduce((sum, l) => sum + l.amount, 0);
+
+    const totalExpenses = statementLines
+      .filter((l) => l.type === "EXPENSE")
+      .reduce((sum, l) => sum + l.amount, 0);
+
+    const netIncome = totalIncome - totalExpenses;
+
+    // Breakdown by category
+    const incomeByCategory: Record<string, number> = {};
+    const expensesByCategory: Record<string, number> = {};
+
+    statementLines.forEach((line) => {
+      if (line.type === "INCOME") {
+        incomeByCategory[line.category] =
+          (incomeByCategory[line.category] || 0) + line.amount;
+      } else {
+        expensesByCategory[line.category] =
+          (expensesByCategory[line.category] || 0) + line.amount;
+      }
+    });
+
+    const statement = {
+      period: {
+        start: startDate,
+        end: endDate,
+        label: periodParam,
+      },
+      summary: {
+        totalIncome,
+        totalExpenses,
+        netIncome,
+        profitMargin: totalIncome > 0 ? (netIncome / totalIncome) * 100 : 0,
+      },
+      breakdown: {
+        income: incomeByCategory,
+        expenses: expensesByCategory,
+      },
+      lines: statementLines,
+      generatedAt: new Date(),
+    };
+
+    // Handle different output formats
+    if (format === "json") {
+      return NextResponse.json({
+        success: true,
+        data: statement,
+        subscription: subCheck.status,
+      });
+    } else {
+      // PDF and Excel would require additional libraries
+      return NextResponse.json(
+        { error: "PDF and Excel formats not yet implemented" },
+        { status: 501 }, // Not Implemented
+      );
+    }
+    } finally {
+      // Ensure tenant context is always cleared, even on error paths
+      clearTenantContext();
+    }
+  } catch (error) {
+    logger.error("Error generating owner statement", error as Error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to generate statement",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/owner/units/[unitId]/history/route.ts">
+<![CDATA[
+/**
+ * Owner Portal API - Unit History
+ *
+ * GET /api/owner/units/[unitId]/history
+ * Returns historical data for a specific unit including:
+ * - Tenant history
+ * - Maintenance history
+ * - Inspection records (move-in/move-out)
+ * - Revenue history
+ * - Utility consumption
+ *
+ * Query Parameters:
+ * - include: comma-separated list of data to include
+ *   Options: tenants, maintenance, inspections, revenue, utilities
+ *   Default: all
+ * - startDate: ISO date string (optional) - filter from date
+ * - endDate: ISO date string (optional) - filter to date
+ *
+ * Requires: BASIC subscription
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { requireSubscription } from "@/server/middleware/subscriptionCheck";
+import { Property } from "@/server/models/Property";
+import {
+  clearTenantContext,
+  setTenantContext,
+} from "@/server/plugins/tenantIsolation";
+import { logger } from "@/lib/logger";
+
+interface PropertyUnit {
+  unitNumber: string;
+  type: string;
+  area?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  status?: string;
+  tenant?: {
+    name?: string;
+    contact?: string;
+    leaseStart?: Date;
+    leaseEnd?: Date;
+    monthlyRent?: number;
+  };
+  [key: string]: unknown;
+}
+
+interface PropertyDocument {
+  _id: unknown;
+  units?: PropertyUnit[];
+  [key: string]: unknown;
+}
+
+interface WorkOrderDocument {
+  workOrderNumber?: string;
+  title?: string;
+  category?: string;
+  priority?: string;
+  financial?: {
+    costBreakdown?: { total?: number };
+    actualCost?: number;
+  };
+  work?: {
+    actualEndTime?: Date;
+  };
+  updatedAt?: Date;
+  assignment?: {
+    assignedTo?: { name?: string };
+  };
+  [key: string]: unknown;
+}
+
+interface PaymentDocument {
+  amount?: number;
+  paymentDate?: Date;
+  method?: string;
+  reference?: string;
+  tenantName?: string;
+  [key: string]: unknown;
+}
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { unitId: string } },
+) {
+  try {
+    // Check subscription
+    const subCheck = await requireSubscription(req, {
+      requirePlan: "BASIC",
+    });
+
+    if (subCheck.error) {
+      return subCheck.error;
+    }
+
+    const { ownerId, orgId } = subCheck;
+
+    // Parse parameters
+    const { searchParams } = new URL(req.url);
+    const includeParam = searchParams.get("include") || "all";
+    const startDateParam = searchParams.get("startDate");
+    const endDateParam = searchParams.get("endDate");
+
+    const includeOptions =
+      includeParam === "all"
+        ? ["tenants", "maintenance", "inspections", "revenue", "utilities"]
+        : includeParam.split(",");
+
+    // Date filters
+    const dateFilter: { $gte?: Date; $lte?: Date } = {};
+    if (startDateParam) dateFilter.$gte = new Date(startDateParam);
+    if (endDateParam) dateFilter.$lte = new Date(endDateParam);
+
+    // Connect to database and set tenant context
+    await connectToDatabase();
+    setTenantContext({ orgId });
+
+    try {
+      // Import Mongoose models
+      const { WorkOrder } = await import("@/server/models/WorkOrder");
+    const { MoveInOutInspectionModel: MoveInOutInspection } = await import(
+      "@/server/models/owner/MoveInOutInspection"
+    );
+    const { Payment } = await import("@/server/models/finance/Payment");
+    const { UtilityBillModel: UtilityBill } = await import(
+      "@/server/models/owner/UtilityBill"
+    );
+
+    // Find property and unit using Mongoose
+    const property = await Property.findOne({
+      "ownerPortal.ownerId": ownerId,
+      "units.unitNumber": params.unitId,
+    }).lean();
+
+    if (!property || Array.isArray(property)) {
+      return NextResponse.json(
+        { error: "Unit not found or access denied" },
+        { status: 404 },
+      );
+    }
+
+    const propertyTyped = property as unknown as PropertyDocument;
+    const unit = propertyTyped.units?.find(
+      (u) => u.unitNumber === params.unitId,
+    );
+
+    if (!unit) {
+      return NextResponse.json({ error: "Unit not found" }, { status: 404 });
+    }
+
+    // Build response data
+    const historyData: Record<string, unknown> = {
+      unit: {
+        unitNumber: unit.unitNumber,
+        type: unit.type,
+        area: unit.area,
+        bedrooms: unit.bedrooms,
+        bathrooms: unit.bathrooms,
+        status: unit.status,
+      },
+    };
+
+    // Tenant History
+    if (includeOptions.includes("tenants")) {
+      // In production, this would query a Tenant/Lease collection
+      // For now, using data from property model
+      const tenant = unit.tenant as
+        | {
+            name?: string;
+            contact?: string;
+            leaseStart?: Date;
+            leaseEnd?: Date;
+            monthlyRent?: number;
+          }
+        | undefined;
+      historyData.tenants = tenant
+        ? [
+            {
+              name: tenant.name,
+              contact: tenant.contact,
+              leaseStart: tenant.leaseStart,
+              leaseEnd: tenant.leaseEnd,
+              monthlyRent: tenant.monthlyRent,
+              status: unit.status === "OCCUPIED" ? "CURRENT" : "PAST",
+            },
+          ]
+        : [];
+    }
+
+    // Maintenance History (using Mongoose model)
+    if (includeOptions.includes("maintenance")) {
+      const maintenanceMatch: Record<string, unknown> = {
+        "location.propertyId": property._id,
+        "location.unitNumber": params.unitId,
+        status: "COMPLETED",
+      };
+
+      if (dateFilter.$gte || dateFilter.$lte) {
+        maintenanceMatch["work.actualEndTime"] = dateFilter;
+      }
+
+      const workOrders = await WorkOrder.find(maintenanceMatch)
+        .sort({ "work.actualEndTime": -1 })
+        .limit(50)
+        .lean();
+
+      const workOrdersTyped = workOrders as unknown as WorkOrderDocument[];
+      historyData.maintenance = workOrdersTyped.map((wo) => ({
+        workOrderNumber: wo.workOrderNumber,
+        title: wo.title,
+        category: wo.category,
+        priority: wo.priority,
+        cost: wo.financial?.costBreakdown?.total ?? wo.financial?.actualCost,
+        completedDate: wo.work?.actualEndTime ?? wo.updatedAt,
+        vendor: wo.assignment?.assignedTo?.name,
+      }));
+    }
+
+    // Inspection History (using Mongoose model)
+    if (includeOptions.includes("inspections")) {
+      const inspectionMatch: Record<string, unknown> = {
+        propertyId: property._id,
+        unitNumber: params.unitId,
+        status: { $in: ["COMPLETED", "APPROVED"] },
+      };
+
+      if (dateFilter.$gte || dateFilter.$lte) {
+        inspectionMatch.actualDate = dateFilter;
+      }
+
+      const inspections = await MoveInOutInspection.find(inspectionMatch)
+        .sort({ actualDate: -1 })
+        .limit(20)
+        .lean();
+
+      historyData.inspections = inspections.map((insp: unknown) => {
+        const i = insp as {
+          inspectionNumber?: string;
+          type?: string;
+          actualDate?: Date;
+          overallCondition?: string;
+          issues?: unknown[];
+          signatures?: {
+            owner?: { signed?: boolean };
+            tenant?: { signed?: boolean };
+            inspector?: { signed?: boolean };
+          };
+        };
+        return {
+          inspectionNumber: i.inspectionNumber,
+          type: i.type,
+          date: i.actualDate,
+          overallCondition: i.overallCondition,
+          issuesFound: i.issues?.length || 0,
+          signatures: {
+            owner: i.signatures?.owner?.signed || false,
+            tenant: i.signatures?.tenant?.signed || false,
+            inspector: i.signatures?.inspector?.signed || false,
+          },
+        };
+      });
+    }
+
+    // Revenue History (using Mongoose model)
+    if (includeOptions.includes("revenue")) {
+      const paymentMatch: Record<string, unknown> = {
+        propertyId: property._id,
+        unitNumber: params.unitId,
+        status: "PAID",
+      };
+
+      if (dateFilter.$gte || dateFilter.$lte) {
+        paymentMatch.paymentDate = dateFilter;
+      }
+
+      const payments = await Payment.find(paymentMatch)
+        .sort({ paymentDate: -1 })
+        .limit(50)
+        .lean();
+
+      const paymentsTyped = payments as unknown as PaymentDocument[];
+      const totalRevenue = paymentsTyped.reduce(
+        (sum: number, p) => sum + (p.amount || 0),
+        0,
+      );
+
+      historyData.revenue = {
+        total: totalRevenue,
+        payments: paymentsTyped.map((p) => ({
+          amount: p.amount,
+          date: p.paymentDate,
+          method: p.method,
+          reference: p.reference,
+          tenant: p.tenantName,
+        })),
+      };
+    }
+
+    // Utility Consumption (using Mongoose model)
+    if (includeOptions.includes("utilities")) {
+      const billMatch: Record<string, unknown> = {
+        propertyId: property._id,
+        unitNumber: params.unitId,
+      };
+
+      if (dateFilter.$gte || dateFilter.$lte) {
+        billMatch["period.endDate"] = dateFilter;
+      }
+
+      const utilityBills = await UtilityBill.find(billMatch)
+        .sort({ "period.endDate": -1 })
+        .limit(24) // Last 2 years of monthly bills
+        .lean();
+
+      const totalUtilityCost = utilityBills.reduce(
+        (sum: number, b: unknown) => {
+          const bill = b as { charges?: { totalAmount?: number } };
+          return sum + (bill.charges?.totalAmount || 0);
+        },
+        0,
+      );
+
+      historyData.utilities = {
+        totalCost: totalUtilityCost,
+        bills: utilityBills.map((b: unknown) => {
+          const bill = b as {
+            billNumber?: string;
+            meterId?: string;
+            period?: { startDate?: Date; endDate?: Date };
+            readings?: { consumption?: number };
+            charges?: { totalAmount?: number };
+            payment?: { status?: string };
+          };
+          return {
+            billNumber: bill.billNumber,
+            utilityType: bill.meterId, // Would need to lookup meter details
+            period: {
+              start: bill.period?.startDate,
+              end: bill.period?.endDate,
+            },
+            consumption: bill.readings?.consumption,
+            amount: bill.charges?.totalAmount,
+            status: bill.payment?.status,
+          };
+        }),
+      };
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: historyData,
+      subscription: subCheck.status,
+    });
+    } finally {
+      // Ensure tenant context is always cleared, even on error paths
+      clearTenantContext();
+    }
+  } catch (error) {
+    logger.error("Error fetching unit history", error as Error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to fetch unit history",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/owners/groups/assign-primary/route.ts">
+<![CDATA[
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { NextRequest } from "next/server";
+import { getUserFromToken } from "@/lib/auth";
+import { z } from "zod";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import {
+  zodValidationError,
+  rateLimitError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
+import { canManageOwnerGroups } from "@/lib/auth/role-guards";
+
+const assignPrimarySchema = z.object({
+  buildingId: z.string().min(1),
+  ownerIds: z.array(z.string()),
+  primaryContactUserId: z.string().min(1),
+});
+
+/**
+ * @openapi
+ * /api/owners/groups/assign-primary:
+ *   get:
+ *     summary: owners/groups/assign-primary operations
+ *     tags: [owners]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  try {
+    // Authentication & Authorization
+    const token = req.headers
+      .get("authorization")
+      ?.replace("Bearer ", "")
+      ?.trim();
+    if (!token) {
+      return createSecureResponse(
+        { error: "Authentication required" },
+        401,
+        req,
+      );
+    }
+
+    const user = await getUserFromToken(token);
+    if (!user) {
+      return createSecureResponse({ error: "Invalid token" }, 401, req);
+    }
+
+    // Role-based access control - only property admins can assign owner groups
+    if (!canManageOwnerGroups(user.role)) {
+      return createSecureResponse(
+        { error: "Insufficient permissions to manage owner groups" },
+        403,
+        req,
+      );
+    }
+
+    await connectToDatabase();
+    const body = assignPrimarySchema.parse(await req.json());
+
+    // Tenant isolation - ensure group belongs to user's org
+    const { OwnerGroupModel } = await import("@/server/models/OwnerGroup");
+    const g = await OwnerGroupModel.findOneAndUpdate(
+      { buildingId: body.buildingId, orgId: user.orgId },
+      {
+        buildingId: body.buildingId,
+        ownerIds: body.ownerIds,
+        primaryContactUserId: body.primaryContactUserId,
+        orgId: user.orgId,
+        updatedBy: user.id,
+        updatedAt: new Date(),
+      },
+      { upsert: true, new: true },
+    );
+    return createSecureResponse(g, 201, req);
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      return zodValidationError(error, req);
+    }
+    logger.error(
+      "Owner group assignment failed:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse(
+      { error: "Failed to assign owner group" },
+      500,
+      req,
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/payments/callback/route.ts">
+<![CDATA[
+// Backwards-compatibility shim: `/api/payments/callback` now defers to the
+// enhanced PayTabs webhook handler that lives under `/api/payments/paytabs/callback`.
+export { POST } from "../paytabs/callback/route";
+
+]]>
+</file>
+
+<file path="app/api/payments/create/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { createPaymentPage } from "@/lib/paytabs";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { Invoice } from "@/server/models/Invoice";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { z } from "zod";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import {
+  notFoundError,
+  validationError,
+  zodValidationError,
+  rateLimitError,
+  handleApiError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { EMAIL_DOMAINS, DOMAINS } from "@/lib/config/domains";
+import { joinUrl } from "@/lib/utils/url";
+
+/**
+ * @openapi
+ * /api/payments/create:
+ *   post:
+ *     summary: Create payment transaction
+ *     description: Initiates a payment transaction for an invoice using PayTabs payment gateway. Generates a secure payment URL for customer checkout. Requires authentication.
+ *     tags:
+ *       - Payments
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - invoiceId
+ *             properties:
+ *               invoiceId:
+ *                 type: string
+ *                 pattern: '^[a-fA-F0-9]{24}$'
+ *                 description: MongoDB ObjectId of the invoice to pay
+ *                 example: "507f1f77bcf86cd799439011"
+ *               returnUrl:
+ *                 type: string
+ *                 format: uri
+ *                 description: URL to redirect after successful payment
+ *                 example: "https://fixzit.co/payments/success"
+ *               cancelUrl:
+ *                 type: string
+ *                 format: uri
+ *                 description: URL to redirect if payment is cancelled
+ *                 example: "https://fixzit.co/payments/cancel"
+ *               paymentMethod:
+ *                 type: string
+ *                 enum: [credit_card, bank_transfer, wallet]
+ *                 description: Preferred payment method
+ *                 example: "credit_card"
+ *     responses:
+ *       200:
+ *         description: Payment page created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 paymentUrl:
+ *                   type: string
+ *                   format: uri
+ *                   description: Secure PayTabs payment page URL
+ *                   example: "https://secure.paytabs.sa/payment/page/ABC123DEF456"
+ *                 transactionId:
+ *                   type: string
+ *                   description: PayTabs transaction reference ID
+ *                   example: "TST2024010112345678"
+ *       400:
+ *         description: Validation error - Invalid invoice ID, already paid, or missing required fields
+ *       404:
+ *         description: Invoice not found in tenant scope
+ *       429:
+ *         description: Rate limit exceeded
+ *       500:
+ *         description: Internal server error or PayTabs API failure
+ */
+export async function POST(req: NextRequest) {
+  try {
+    // Rate limiting: 10 req/5min (300000ms) for payment creation (high sensitivity)
+    // SECURITY: Use distributed rate limiting (Redis) to prevent cross-instance bypass
+    const user = await getSessionUser(req);
+    const rl = await smartRateLimit(`payment-create:${user.id}`, 10, 300000); // 5 minutes = 300,000ms
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    const paymentSchema = z.object({
+      invoiceId: z.string().regex(/^[a-fA-F0-9]{24}$/, "Invalid invoice ID"),
+      returnUrl: z.string().url().optional(),
+      cancelUrl: z.string().url().optional(),
+      paymentMethod: z
+        .enum(["credit_card", "bank_transfer", "wallet"])
+        .optional(),
+    });
+
+    const body = paymentSchema.parse(await req.json());
+    const { invoiceId } = body;
+
+    if (!invoiceId) {
+      return validationError("Invoice ID is required");
+    }
+
+    await connectToDatabase();
+    const invoice = await Invoice.findOne({
+      _id: invoiceId,
+      tenantId: user.orgId,
+    });
+
+    if (!invoice) {
+      return notFoundError("Invoice");
+    }
+
+    if (invoice.status === "PAID") {
+      return validationError("Invoice is already paid");
+    }
+
+    // Create payment request
+    const paymentRequest = {
+      amount: invoice.total,
+      currency: invoice.currency,
+      customerDetails: {
+        name: invoice.recipient?.name || "Unknown Customer",
+        email: invoice.recipient?.email || `customer@${EMAIL_DOMAINS.primary}`,
+        phone: invoice.recipient?.phone || "+966500000000",
+        address: invoice.recipient?.address || "Saudi Arabia",
+        city: "Riyadh",
+        state: "Riyadh",
+        country: "SA",
+        zip: "11564",
+      },
+      description: `Payment for Invoice ${invoice.number}`,
+      invoiceId: invoice._id.toString(),
+      returnUrl: joinUrl(process.env.NEXT_PUBLIC_APP_URL || DOMAINS.app, "/payments/success"),
+      callbackUrl: joinUrl(process.env.NEXT_PUBLIC_APP_URL || DOMAINS.app, "/api/payments/callback"),
+    };
+
+    const paymentResponse = await createPaymentPage(
+      paymentRequest as unknown as Parameters<typeof createPaymentPage>[0],
+    );
+
+    if (paymentResponse.success) {
+      // Update invoice with payment transaction
+      invoice.history.push({
+        action: "PAYMENT_INITIATED",
+        performedBy: user.id,
+        performedAt: new Date(),
+        details: `Payment initiated with transaction ${paymentResponse.transactionId}`,
+      });
+      await invoice.save();
+
+      return createSecureResponse(
+        {
+          success: true,
+          paymentUrl: paymentResponse.paymentUrl,
+          transactionId: paymentResponse.transactionId,
+        },
+        200,
+        req,
+      );
+    } else {
+      return validationError(
+        paymentResponse.error || "Payment initialization failed",
+      );
+    }
+  } catch (error: unknown) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "name" in error &&
+      error.name === "ZodError"
+    ) {
+      return zodValidationError(error as z.ZodError);
+    }
+    return handleApiError(error);
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

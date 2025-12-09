@@ -1,0 +1,2485 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/marketplace/page.tsx">
+<![CDATA[
+import React from "react";
+import { logger } from "@/lib/logger";
+import ProductCard from "@/components/marketplace/ProductCard";
+import { serverFetchJsonWithTenant } from "@/lib/marketplace/serverFetch";
+import { MARKETPLACE_OFFLINE_DATA } from "@/data/marketplace-offline";
+import { getServerI18n } from "@/lib/i18n/server";
+import { isTruthy } from "@/lib/utils/env";
+
+interface Category {
+  id: string;
+  slug: string;
+  name?: { en: string };
+}
+
+interface Product {
+  id?: string;
+  _id?: string;
+  slug: string;
+  title: { en: string };
+  media?: Array<{ url: string; alt?: string }>;
+  buy: {
+    price: number;
+    currency: string;
+    uom: string;
+  };
+  stock?: {
+    onHand: number;
+    reserved: number;
+  };
+  [key: string]: unknown;
+}
+
+interface MarketplaceProductCard {
+  id: string;
+  slug: string;
+  title: { en: string };
+  buy: {
+    price: number;
+    currency: string;
+    uom: string;
+  };
+  [key: string]: unknown;
+}
+
+const offlineMarketplaceEnabled = isTruthy(process.env.ALLOW_OFFLINE_MONGODB);
+
+async function loadHomepageData() {
+  if (offlineMarketplaceEnabled) {
+    logger.info(
+      "[Marketplace] Offline dataset enabled (ALLOW_OFFLINE_MONGODB)",
+    );
+    return MARKETPLACE_OFFLINE_DATA;
+  }
+  try {
+    const [categoriesResponse, featuredResponse] = await Promise.all([
+      serverFetchJsonWithTenant<{ data: Category[] }>(
+        "/api/marketplace/categories",
+      ),
+      serverFetchJsonWithTenant<{ data: { items: Product[] } }>(
+        "/api/marketplace/products?limit=8",
+      ),
+    ]);
+
+    const categories = categoriesResponse.data;
+    const featured = featuredResponse.data.items;
+
+    const carousels = await Promise.all(
+      categories.slice(0, 4).map(async (category) => {
+        const response = await serverFetchJsonWithTenant<{
+          data: { items: Product[] };
+        }>(`/api/marketplace/search?cat=${category.slug}&limit=6`);
+        return {
+          category,
+          items: response.data.items,
+        };
+      }),
+    );
+
+    return { categories, featured, carousels };
+  } catch (error) {
+    logger.error("Failed to load marketplace homepage data", { error });
+    if (offlineMarketplaceEnabled) {
+      logger.warn(
+        "[Marketplace] Falling back to offline dataset after fetch failure",
+      );
+      return MARKETPLACE_OFFLINE_DATA;
+    }
+    // Return empty data to allow graceful degradation
+    return { categories: [], featured: [], carousels: [] };
+  }
+}
+
+export default async function MarketplaceHome() {
+  const { featured, carousels } = await loadHomepageData();
+  const { t } = await getServerI18n();
+  const heroHighlights = [
+    t("marketplace.home.hero.highlights.rapidRfq", "Rapid RFQ"),
+    t(
+      "marketplace.home.hero.highlights.linkedOrders",
+      "Work Order linked orders",
+    ),
+    t(
+      "marketplace.home.hero.highlights.financeReady",
+      "Finance ready invoices",
+    ),
+  ];
+
+  return (
+    <div className="min-h-screen bg-muted flex flex-col">
+      <main className="mx-auto max-w-7xl px-4 py-8 flex-1">
+        <section className="grid gap-6 lg:grid-cols-[1fr_320px]">
+          <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-primary via-success to-primary p-10 text-white shadow-xl">
+            <p className="text-sm uppercase tracking-[0.3em] text-white/70">
+              {t("marketplace.home.hero.pill", "Fixzit Souq")}
+            </p>
+            <h1 className="mt-4 text-4xl font-bold">
+              {t(
+                "marketplace.home.hero.title",
+                "Facilities, MRO & Construction Marketplace",
+              )}
+            </h1>
+            <p className="mt-3 max-w-xl text-lg text-white/80">
+              {t(
+                "marketplace.home.hero.description",
+                "Source ASTM and BS EN compliant materials with tenant-level approvals, finance posting, and vendor SLAs baked in.",
+              )}
+            </p>
+            <div className="mt-6 flex flex-wrap items-center gap-3 text-sm font-semibold">
+              {heroHighlights.map((highlight) => (
+                <span
+                  key={highlight}
+                  className="rounded-full bg-white/20 px-4 py-2"
+                >
+                  {highlight}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-col gap-3 rounded-3xl border border-primary/20 bg-card p-6 shadow-lg">
+            <h2 className="text-lg font-semibold text-foreground">
+              {t("marketplace.home.kpis.title", "Live Operational KPIs")}
+            </h2>
+            <div className="grid gap-3 text-sm text-foreground">
+              <div className="rounded-2xl bg-primary/10 p-4">
+                <p className="text-xs uppercase tracking-wider text-primary">
+                  {t("marketplace.home.kpis.openApprovals", "Open approvals")}
+                </p>
+                <p className="text-2xl font-bold text-primary">3</p>
+              </div>
+              <div className="rounded-2xl bg-warning/10 p-4">
+                <p className="text-xs uppercase tracking-wider text-warning">
+                  {t(
+                    "marketplace.home.kpis.pendingDeliveries",
+                    "Pending deliveries",
+                  )}
+                </p>
+                <p className="text-2xl font-bold text-warning">7</p>
+              </div>
+              <div className="rounded-2xl bg-success/10 p-4">
+                <p className="text-xs uppercase tracking-wider text-success">
+                  {t("marketplace.home.kpis.financeReady", "Finance ready")}
+                </p>
+                <p className="text-2xl font-bold text-success">5</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-12 space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-primary">
+              {t(
+                "marketplace.home.featured.title",
+                "Featured for your organisation",
+              )}
+            </h2>
+            <a
+              href="/marketplace/search"
+              className="text-sm font-semibold text-primary hover:underline"
+            >
+              {t("marketplace.home.featured.viewAll", "View all")}
+            </a>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+            {featured.map((product, idx) => {
+              const p = product as unknown as Product;
+              const idFromObject =
+                typeof p?._id === "object" && p._id && "toString" in p._id
+                  ? (p._id as { toString: () => string }).toString()
+                  : String(p?._id ?? "");
+              const key = p?.id || idFromObject || p?.slug || `featured-${idx}`;
+              const normalized: MarketplaceProductCard = {
+                ...p,
+                id: key,
+                title: p.title,
+                buy: p.buy,
+                slug: (p as { slug?: string })?.slug ?? key,
+              };
+              return <ProductCard key={key} product={normalized} />;
+            })}
+          </div>
+        </section>
+
+        {carousels.map((carousel) => (
+          <section key={carousel.category.slug} className="mt-12 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-semibold text-foreground">
+                {carousel.category.name?.en ?? carousel.category.slug}
+              </h3>
+              <a
+                href={`/marketplace/search?cat=${carousel.category.slug}`}
+                className="text-sm font-semibold text-primary hover:underline"
+              >
+                {t("marketplace.home.categories.explore", "Explore all")}
+              </a>
+            </div>
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {carousel.items.map((product, idx) => {
+                const p = product as Product;
+                const key =
+                  p.id ??
+                  p._id ??
+                  (p as { slug?: string })?.slug ??
+                  `carousel-${carousel.category.slug}-${idx}`;
+                const normalized = {
+                  ...p,
+                  id: p.id ?? p._id ?? (p as { slug?: string })?.slug ?? key,
+                  slug: (p as { slug?: string })?.slug ?? key,
+                };
+                return <ProductCard key={key} product={normalized} />;
+              })}
+            </div>
+          </section>
+        ))}
+      </main>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/marketplace/product/[slug]/page.tsx">
+<![CDATA[
+import Image from "next/image";
+import { logger } from "@/lib/logger";
+import Link from "next/link";
+import PDPBuyBox from "@/components/marketplace/PDPBuyBox";
+import ProductCard from "@/components/marketplace/ProductCard";
+import { serverFetchJsonWithTenant } from "@/lib/marketplace/serverFetch";
+import { getServerI18n } from "@/lib/i18n/server";
+import type { Metadata } from "next";
+
+interface ProductPageProps {
+  params: Promise<{ slug: string }>;
+}
+
+interface Category {
+  slug: string;
+  name?: { en?: string };
+}
+
+interface MediaFile {
+  url: string;
+  role?: string;
+}
+
+interface Product {
+  id: string;
+  slug: string;
+  title: { en: string };
+  summary?: string;
+  sku: string;
+  brand?: string;
+  standards?: string[];
+  specs?: Record<string, unknown>;
+  media?: MediaFile[];
+  related?: Product[];
+  buy: {
+    price: number;
+    currency: string;
+    uom: string;
+    leadDays?: number;
+    minQty?: number;
+  };
+  stock?: {
+    onHand: number;
+    reserved: number;
+    location?: string;
+  };
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const resolvedParams = await params;
+  const { t } = await getServerI18n();
+  const titleSuffix = t(
+    "marketplace.product.metadata.title",
+    "Fixzit Marketplace",
+  );
+  const descriptionBase = t(
+    "marketplace.product.metadata.description",
+    "Shop trusted industrial and FM suppliers across the region.",
+  );
+
+  try {
+    const productResponse = await serverFetchJsonWithTenant<{
+      data: { product: Product };
+    }>(`/api/marketplace/products/${resolvedParams.slug}`);
+    const product = productResponse.data.product;
+    const productName = product?.title?.en ?? resolvedParams.slug;
+    const summary = product?.summary?.trim();
+
+    return {
+      title: `${productName} | ${titleSuffix}`,
+      description: summary
+        ? `${summary} - ${descriptionBase}`
+        : `${productName} - ${descriptionBase}`,
+    };
+  } catch (error) {
+    logger.warn("MARKETPLACE_PDP_METADATA_FALLBACK", {
+      slug: resolvedParams.slug,
+      error: (error as Error)?.message ?? String(error),
+    });
+
+    return {
+      title: `${resolvedParams.slug} | ${titleSuffix}`,
+      description: descriptionBase,
+    };
+  }
+}
+
+export default async function ProductDetail(props: ProductPageProps) {
+  const { t, isRTL } = await getServerI18n();
+  try {
+    const params = await props.params;
+    const [, productResponse] = await Promise.all([
+      serverFetchJsonWithTenant<{ data: Category[] }>(
+        "/api/marketplace/categories",
+      ),
+      serverFetchJsonWithTenant<{
+        data: { product: Product; category?: Category };
+      }>(`/api/marketplace/products/${params.slug}`),
+    ]);
+
+    // departments unused - future feature
+    // const departments = (categories.data as Category[]).map(category => ({
+    //   slug: category.slug,
+    //   name: category.name?.en ?? category.slug
+    // }));
+
+    const product = productResponse.data.product;
+    const category = productResponse.data.category;
+
+    const attachments =
+      product.media?.filter(
+        (file: MediaFile) => file.role === "MSDS" || file.role === "COA",
+      ) ?? [];
+    const gallery =
+      product.media?.filter((file: MediaFile) => file.role === "GALLERY") ?? [];
+
+    // [CODE REVIEW]: FIX - DELETE FIXZIT_COLORS object, use Tailwind theme classes
+    return (
+      <div
+        className="min-h-screen bg-muted flex flex-col"
+        style={{ direction: isRTL ? "rtl" : "ltr" }}
+      >
+        <main className="mx-auto max-w-7xl px-4 py-8">
+          <nav className="text-sm text-primary">
+            <a href="/marketplace" className="hover:underline">
+              {t("marketplace.product.breadcrumb.home", "Marketplace")}
+            </a>
+            <span className="mx-2 text-muted-foreground">/</span>
+            {category && (
+              <a
+                href={`/marketplace/search?cat=${category.slug}`}
+                className="hover:underline"
+              >
+                {category.name?.en ?? category.slug}
+              </a>
+            )}
+            <span className="mx-2 text-muted-foreground">/</span>
+            <span className="text-primary">{product.title.en}</span>
+          </nav>
+
+          <section className="mt-6 grid gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+            <div className="space-y-6">
+              <div className="rounded-2xl bg-card p-6 shadow-lg">
+                <div className="grid gap-4 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+                  <div className="space-y-4">
+                    <div className="relative overflow-hidden rounded-2xl bg-muted h-96">
+                      <Image
+                        src={
+                          gallery[0]?.url ||
+                          "/images/marketplace/placeholder-product.svg"
+                        }
+                        alt={product.title.en}
+                        fill
+                        sizes="(max-width: 768px) 100vw, 50vw"
+                        className="object-cover"
+                      />
+                    </div>
+                    <div className="flex gap-3 overflow-x-auto">
+                      {gallery.map((image: MediaFile) => (
+                        <div
+                          key={image.url}
+                          className="relative h-16 w-16 rounded-2xl border border-border overflow-hidden"
+                        >
+                          <Image
+                            src={image.url}
+                            alt={product.title.en}
+                            fill
+                            sizes="64px"
+                            className="object-cover"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <h1 className="text-3xl font-semibold text-foreground">
+                      {product.title.en}
+                    </h1>
+                    {product.summary && (
+                      <p className="text-sm text-muted-foreground">
+                        {product.summary}
+                      </p>
+                    )}
+                    <div className="space-y-2 text-sm text-foreground">
+                      <p>
+                        <span className="font-semibold">
+                          {t("marketplace.product.sku", "SKU")}:
+                        </span>{" "}
+                        {product.sku}
+                      </p>
+                      {product.brand && (
+                        <p>
+                          <span className="font-semibold">
+                            {t("marketplace.product.brand", "Brand")}:
+                          </span>{" "}
+                          {product.brand}
+                        </p>
+                      )}
+                      {product.standards?.length ? (
+                        <p>
+                          <span className="font-semibold">
+                            {t("marketplace.product.standards", "Standards")}:
+                          </span>{" "}
+                          {product.standards.join(", ")}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="rounded-2xl bg-primary/5 p-4">
+                      <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">
+                        {t(
+                          "marketplace.product.specs.title",
+                          "Key specifications",
+                        )}
+                      </h2>
+                      <ul className="mt-2 space-y-1 text-sm text-foreground">
+                        {Object.entries(product.specs || {}).map(
+                          ([key, value]) => (
+                            <li
+                              key={key}
+                              className="flex justify-between gap-4"
+                            >
+                              <span className="font-medium capitalize text-muted-foreground">
+                                {key.replace(/_/g, " ")}
+                              </span>
+                              <span>{String(value)}</span>
+                            </li>
+                          ),
+                        )}
+                      </ul>
+                    </div>
+                    {attachments.length > 0 && (
+                      <div className="rounded-2xl border border-primary/30 bg-card p-4">
+                        <h3 className="text-sm font-semibold text-primary">
+                          {t(
+                            "marketplace.product.documents.title",
+                            "Compliance documents",
+                          )}
+                        </h3>
+                        <ul className="mt-2 space-y-2 text-sm text-foreground">
+                          {attachments.map((file: MediaFile) => (
+                            <li key={file.url}>
+                              <a
+                                href={file.url}
+                                className="hover:underline"
+                                target="_blank"
+                              >
+                                {file.role === "MSDS"
+                                  ? t(
+                                      "marketplace.product.documents.msds",
+                                      "Material Safety Data Sheet",
+                                    )
+                                  : t(
+                                      "marketplace.product.documents.coa",
+                                      "Certificate of Analysis",
+                                    )}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <section className="rounded-2xl bg-card p-6 shadow-lg">
+                <h2 className="text-xl font-semibold text-foreground">
+                  {t("marketplace.product.related.title", "Related items")}
+                </h2>
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  {product.related?.length ? (
+                    product.related.map((related: Product) => (
+                      <ProductCard key={related.id} product={related} />
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {t(
+                        "marketplace.product.related.empty",
+                        "Additional items will appear as catalogue grows.",
+                      )}
+                    </p>
+                  )}
+                </div>
+              </section>
+            </div>
+
+            <PDPBuyBox product={product} />
+          </section>
+        </main>
+      </div>
+    );
+  } catch (error) {
+    logger.error("Failed to load product detail", { error });
+    return (
+      <div className="min-h-screen bg-muted flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-destructive">
+            {t(
+              "marketplace.product.error",
+              "Failed to load product details. Please try again later.",
+            )}
+          </p>
+          <Link
+            href="/marketplace"
+            className="mt-4 inline-block text-primary hover:underline"
+          >
+            {t("marketplace.product.errorCta", "Return to Marketplace")}
+          </Link>
+        </div>
+      </div>
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/marketplace/products/[id]/reviews/page.tsx">
+<![CDATA[
+/**
+ * Product Reviews Page - Public reviews for a product
+ * @route /marketplace/products/[id]/reviews
+ */
+
+import React from "react";
+import { Metadata } from "next";
+import { reviewService } from "@/services/souq/reviews/review-service";
+import { ProductReviewsClient } from "@/components/marketplace/ProductReviewsClient";
+import { connectDb } from "@/lib/mongodb-unified";
+import { SouqProduct } from "@/server/models/souq/Product";
+import { Types } from "mongoose";
+
+export const metadata: Metadata = {
+  title: "Product Reviews",
+  description: "Customer reviews and ratings",
+};
+
+export default async function ProductReviewsPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id: productId } = await params;
+  await connectDb();
+  // AUDIT-2025-12-06: Query orgId from product for tenant-scoped reviews
+  const productFilter = Types.ObjectId.isValid(productId)
+    ? { _id: new Types.ObjectId(productId) }
+    : { fsin: productId };
+  const product = await SouqProduct.findOne(productFilter)
+    .select("orgId")
+    .lean();
+  const orgId = (product as { orgId?: Types.ObjectId | string } | null)?.orgId;
+  if (!orgId) {
+    throw new Error("Product orgId missing; cannot fetch tenant-scoped reviews");
+  }
+
+  // Fetch reviews and stats
+  const [reviewsData, stats] = await Promise.all([
+    reviewService.getProductReviews(productId, orgId.toString(), {
+      page: 1,
+      limit: 20,
+    }),
+    reviewService.getReviewStats(productId, orgId.toString()),
+  ]);
+
+  // Calculate distribution from stats
+  const distribution = {
+    5: {
+      count: stats.distribution[5],
+      percentage:
+        stats.totalReviews > 0
+          ? Math.round((stats.distribution[5] / stats.totalReviews) * 100)
+          : 0,
+    },
+    4: {
+      count: stats.distribution[4],
+      percentage:
+        stats.totalReviews > 0
+          ? Math.round((stats.distribution[4] / stats.totalReviews) * 100)
+          : 0,
+    },
+    3: {
+      count: stats.distribution[3],
+      percentage:
+        stats.totalReviews > 0
+          ? Math.round((stats.distribution[3] / stats.totalReviews) * 100)
+          : 0,
+    },
+    2: {
+      count: stats.distribution[2],
+      percentage:
+        stats.totalReviews > 0
+          ? Math.round((stats.distribution[2] / stats.totalReviews) * 100)
+          : 0,
+    },
+    1: {
+      count: stats.distribution[1],
+      percentage:
+        stats.totalReviews > 0
+          ? Math.round((stats.distribution[1] / stats.totalReviews) * 100)
+          : 0,
+    },
+  };
+
+  const normalizedReviews = reviewsData.reviews.map((review) => {
+    const rawId =
+      review.reviewId ||
+      (typeof review._id === "string"
+        ? review._id
+        : (
+            review._id as { toString?: () => string } | undefined
+          )?.toString?.()) ||
+      `review-${Math.random().toString(36).slice(2)}`;
+
+    return {
+      _id: rawId,
+      rating: review.rating,
+      title: review.title,
+      comment: review.content,
+      createdAt: review.createdAt
+        ? new Date(review.createdAt).toISOString()
+        : undefined,
+      author: {
+        name: review.customerName,
+        verifiedPurchase: review.isVerifiedPurchase,
+      },
+    };
+  });
+
+  return (
+    <ProductReviewsClient
+      productId={productId}
+      stats={{
+        averageRating: stats.averageRating,
+        totalReviews: stats.totalReviews,
+        distribution,
+        verifiedPurchasePercentage: Math.round(
+          stats.totalReviews > 0
+            ? (stats.verifiedPurchaseCount / stats.totalReviews) * 100
+            : 0,
+        ),
+      }}
+      initialReviews={normalizedReviews}
+    />
+  );
+}
+
+]]>
+</file>
+
+<file path="app/marketplace/rfq/page.tsx">
+<![CDATA[
+import React from "react";
+import { logger } from "@/lib/logger";
+import RFQBoard from "@/components/marketplace/RFQBoard";
+import { serverFetchJsonWithTenant } from "@/lib/marketplace/serverFetch";
+import { getServerI18n } from "@/lib/i18n/server";
+
+interface Category {
+  slug: string;
+  name?: { en?: string };
+}
+
+interface RFQ {
+  id: string;
+  title: string;
+  currency: string;
+  status: string;
+  createdAt: string;
+  [key: string]: unknown;
+}
+
+export default async function RFQPage() {
+  const { t } = await getServerI18n();
+
+  try {
+    const [_categoriesResponse, rfqResponse] = await Promise.all([
+      serverFetchJsonWithTenant<{ data: Category[] }>(
+        "/api/marketplace/categories",
+      ),
+      serverFetchJsonWithTenant<{ data: RFQ[] }>("/api/marketplace/rfq"),
+    ]);
+
+    const _categories = _categoriesResponse.data.map((category) => ({
+      slug: category.slug,
+      name: category.name?.en ?? category.slug,
+    }));
+
+    const rfqs = rfqResponse.data;
+
+    return (
+      <div className="min-h-screen bg-muted flex flex-col">
+        <main className="mx-auto max-w-7xl px-4 py-8">
+          <RFQBoard categories={_categories} initialRfqs={rfqs} />
+        </main>
+      </div>
+    );
+  } catch (error) {
+    logger.error("Failed to load RFQ page data", { error });
+    return (
+      <div className="min-h-screen bg-muted flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-destructive">
+            {t(
+              "marketplace.rfq.error",
+              "Failed to load RFQ data. Please try again later.",
+            )}
+          </p>
+        </div>
+      </div>
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/marketplace/rfqs/new/page.tsx">
+<![CDATA[
+export { default } from "@/app/marketplace/rfq/page";
+export * from "@/app/marketplace/rfq/page";
+
+]]>
+</file>
+
+<file path="app/marketplace/search/page.tsx">
+<![CDATA[
+import ProductCard from "@/components/marketplace/ProductCard";
+import SearchFiltersPanel from "@/components/marketplace/SearchFiltersPanel";
+import Link from "next/link";
+import { serverFetchJsonWithTenant } from "@/lib/marketplace/serverFetch";
+import { getServerI18n } from "@/lib/i18n/server";
+
+interface SearchPageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+interface Product {
+  id: string;
+  slug: string;
+  title: { en: string };
+  media?: Array<{ url: string; alt?: string }>;
+  buy: {
+    price: number;
+    currency: string;
+    uom: string;
+  };
+  stock?: {
+    onHand: number;
+    reserved: number;
+  };
+}
+
+interface CategoryFacet {
+  slug: string;
+  name: string;
+}
+
+interface SearchResponse {
+  items?: Product[];
+  facets?: {
+    categories?: CategoryFacet[];
+    brands?: string[];
+    standards?: string[];
+  };
+  pagination?: { total?: number };
+}
+
+export default async function MarketplaceSearch(props: SearchPageProps) {
+  const { t } = await getServerI18n();
+  const searchParams = await props.searchParams;
+  const query = new URLSearchParams();
+  for (const key of ["q", "cat", "brand", "std", "min", "max", "page"]) {
+    const value = searchParams[key];
+    if (typeof value === "string" && value.length) {
+      query.set(key, value);
+    }
+  }
+
+  const searchResponse = await serverFetchJsonWithTenant<{
+    data: SearchResponse;
+  }>(`/api/marketplace/search?${query.toString()}`);
+
+  const searchData = (searchResponse.data ?? {}) as SearchResponse;
+  const items = Array.isArray(searchData.items) ? searchData.items : [];
+  const facetsData = searchData.facets ?? {};
+  const pagination = searchData.pagination ?? { total: items.length };
+
+  const facets = {
+    categories: Array.isArray(facetsData.categories)
+      ? facetsData.categories
+      : [],
+    brands: Array.isArray(facetsData.brands) ? facetsData.brands : [],
+    standards: Array.isArray(facetsData.standards) ? facetsData.standards : [],
+  };
+
+  const rawQuery =
+    typeof searchParams.q === "string" ? searchParams.q : undefined;
+  const queryLabel =
+    rawQuery && rawQuery.trim().length > 0
+      ? rawQuery
+      : t("marketplace.search.defaultQuery", "All products");
+  const totalResults =
+    typeof pagination.total === "number" ? pagination.total : items.length;
+  const headingTemplate = t(
+    "marketplace.search.heading",
+    "{{count}} result(s) for ‘{{query}}’",
+  );
+  const heading = headingTemplate
+    .replace("{{count}}", String(totalResults))
+    .replace("{{query}}", queryLabel);
+
+  return (
+    <div className="min-h-screen bg-muted flex flex-col">
+      <main className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 lg:flex-row">
+        <SearchFiltersPanel facets={facets} />
+        <section className="flex-1 space-y-6">
+          <header className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm uppercase tracking-wide text-primary">
+                {t("marketplace.search.resultsLabel", "Search results")}
+              </p>
+              <h1 className="text-2xl font-semibold text-foreground">
+                {heading}
+              </h1>
+            </div>
+            <Link
+              href="/marketplace/rfq"
+              className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+            >
+              {t("marketplace.search.startRfq", "Start RFQ")}
+            </Link>
+          </header>
+
+          {items.length ? (
+            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+              {items.map((product: Product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-3xl border border-dashed border-primary/40 bg-card p-10 text-center text-muted-foreground">
+              <p className="text-lg font-semibold text-foreground">
+                {t(
+                  "marketplace.search.empty.title",
+                  "No items match your filters",
+                )}
+              </p>
+              <p className="mt-2 text-sm">
+                {t(
+                  "marketplace.search.empty.subtitle",
+                  "Adjust filters or submit an RFQ for bespoke sourcing.",
+                )}
+              </p>
+            </div>
+          )}
+        </section>
+      </main>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/marketplace/seller/onboarding/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState, useRef } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import {
+  CheckCircle,
+  Upload,
+  FileText,
+  CreditCard,
+  Loader2,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { logger } from "@/lib/logger";
+
+interface FileUpload {
+  file: File | null;
+  preview: string | null;
+  error: string | null;
+}
+
+export default function SellerOnboarding() {
+  const router = useRouter();
+  const { t } = useTranslation();
+  const [step, setStep] = useState(1);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [onboardingId, setOnboardingId] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    businessName: "",
+    businessType: "",
+    taxId: "",
+    contactName: "",
+    email: "",
+    phone: "",
+    address: "",
+    bankName: "",
+    accountNumber: "",
+    iban: "",
+  });
+  const [documents, setDocuments] = useState<{
+    commercialRegistration: FileUpload;
+    taxCertificate: FileUpload;
+  }>({
+    commercialRegistration: { file: null, preview: null, error: null },
+    taxCertificate: { file: null, preview: null, error: null },
+  });
+
+  const commercialRegRef = useRef<HTMLInputElement>(null);
+  const taxCertRef = useRef<HTMLInputElement>(null);
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const validateStep = (currentStep: number): boolean => {
+    switch (currentStep) {
+      case 1:
+        return !!(
+          formData.businessName &&
+          formData.businessType &&
+          formData.taxId
+        );
+      case 2:
+        return !!(
+          formData.contactName &&
+          formData.email &&
+          formData.phone &&
+          formData.address
+        );
+      case 3:
+        return !!(
+          documents.commercialRegistration.file && documents.taxCertificate.file
+        );
+      case 4:
+        return !!(formData.bankName && formData.accountNumber && formData.iban);
+      default:
+        return false;
+    }
+  };
+
+  const buildBasicInfo = () => ({
+    name: formData.contactName || formData.businessName,
+    email: formData.email,
+    phone: formData.phone,
+    type: formData.businessType,
+  });
+
+  const buildPayload = () => ({
+    business: {
+      name: formData.businessName,
+      type: formData.businessType,
+      taxId: formData.taxId,
+      address: formData.address,
+    },
+    contact: {
+      name: formData.contactName,
+      email: formData.email,
+      phone: formData.phone,
+    },
+    banking: {
+      bankName: formData.bankName,
+      accountNumber: formData.accountNumber,
+      iban: formData.iban,
+    },
+  });
+
+  const ensureOnboardingCase = async () => {
+    if (onboardingId) return onboardingId;
+    const res = await fetch("/api/onboarding/initiate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        role: "VENDOR",
+        country: "SA",
+        basic_info: buildBasicInfo(),
+        payload: buildPayload(),
+      }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Failed to start onboarding");
+    }
+    const data = (await res.json()) as { id: string };
+    setOnboardingId(data.id);
+    return data.id;
+  };
+
+  const syncOnboarding = async (
+    updates: Record<string, unknown> & { current_step?: number; status?: string },
+  ) => {
+    const caseId = await ensureOnboardingCase();
+    const res = await fetch(`/api/onboarding/${caseId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        payload: buildPayload(),
+        basic_info: buildBasicInfo(),
+        ...updates,
+      }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Failed to save onboarding progress");
+    }
+    return res.json();
+  };
+
+  const uploadDocument = async (
+    caseId: string,
+    file: File,
+    documentTypeCode: string,
+  ) => {
+    const presign = await fetch(
+      `/api/onboarding/${caseId}/documents/request-upload`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          document_type_code: documentTypeCode,
+          file_name: file.name,
+          mime_type: file.type,
+          country: "SA",
+        }),
+      },
+    );
+    if (!presign.ok) {
+      const data = await presign.json().catch(() => ({}));
+      throw new Error(data.error || "Failed to request upload");
+    }
+    const { uploadUrl, uploadHeaders, file_storage_key } =
+      (await presign.json()) as {
+        uploadUrl: string;
+        uploadHeaders: Record<string, string>;
+        file_storage_key: string;
+      };
+
+    const putRes = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: uploadHeaders,
+      body: file,
+    });
+    if (!putRes.ok) {
+      throw new Error("Failed to upload document");
+    }
+
+    const confirm = await fetch(
+      `/api/onboarding/${caseId}/documents/confirm-upload`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          document_type_code: documentTypeCode,
+          file_storage_key,
+          original_name: file.name,
+          mime_type: file.type,
+          size_bytes: file.size,
+        }),
+      },
+    );
+    if (!confirm.ok) {
+      const data = await confirm.json().catch(() => ({}));
+      throw new Error(data.error || "Failed to confirm document upload");
+    }
+  };
+
+  const handleFileChange = (
+    type: "commercialRegistration" | "taxCertificate",
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ["application/pdf", "image/jpeg", "image/png"];
+    if (!validTypes.includes(file.type)) {
+      setDocuments((prev) => ({
+        ...prev,
+        [type]: {
+          file: null,
+          preview: null,
+          error: t(
+            "marketplace.sellerOnboarding.errors.fileType",
+            "Invalid file type. Please upload PDF, JPG, or PNG.",
+          ),
+        },
+      }));
+      return;
+    }
+
+    // Validate file size (5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setDocuments((prev) => ({
+        ...prev,
+        [type]: {
+          file: null,
+          preview: null,
+          error: t(
+            "marketplace.sellerOnboarding.errors.fileSize",
+            "File too large. Maximum size is 5MB.",
+          ),
+        },
+      }));
+      return;
+    }
+
+    // Create preview
+    const preview = URL.createObjectURL(file);
+    setDocuments((prev) => ({
+      ...prev,
+      [type]: { file, preview, error: null },
+    }));
+  };
+
+  const handleNext = async () => {
+    if (!validateStep(step)) {
+      setSubmitError(
+        t(
+          "marketplace.sellerOnboarding.errors.stepRequired",
+          "Please fill in all required fields before proceeding.",
+        ),
+      );
+      return;
+    }
+    setSubmitError(null);
+    try {
+      if (step === 1 || step === 2) {
+        await syncOnboarding({ current_step: step + 1 });
+      }
+      if (step < 4) setStep(step + 1);
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error ? error.message : "Failed to save progress",
+      );
+    }
+  };
+
+  const handlePrevious = () => {
+    if (step > 1) setStep(step - 1);
+  };
+
+  const handleSubmit = async () => {
+    if (!validateStep(4)) {
+      setSubmitError(
+        t(
+          "marketplace.sellerOnboarding.errors.required",
+          "Please fill in all required fields.",
+        ),
+      );
+      return;
+    }
+
+    setSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const caseId = await ensureOnboardingCase();
+
+      if (!documents.commercialRegistration.file || !documents.taxCertificate.file) {
+        throw new Error(
+          t(
+            "marketplace.sellerOnboarding.errors.required",
+            "Please fill in all required fields.",
+          ),
+        );
+      }
+
+      // Upload required documents for vendor profile
+      await uploadDocument(
+        caseId,
+        documents.commercialRegistration.file,
+        "CR_LICENSE",
+      );
+      await uploadDocument(
+        caseId,
+        documents.taxCertificate.file,
+        "VAT_CERT",
+      );
+
+      await syncOnboarding({ current_step: 4, status: "SUBMITTED" });
+
+      router.push("/marketplace/vendor/portal");
+    } catch (error) {
+      // Log error for debugging while preserving user experience
+      logger.error("Onboarding error", error);
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : t(
+              "marketplace.sellerOnboarding.errors.submitFailed",
+              "Failed to complete onboarding. Please try again.",
+            ),
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background py-12">
+      <div className="max-w-3xl mx-auto px-4">
+        {/* Progress Indicator */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            {[1, 2, 3, 4].map((s) => (
+              <div
+                key={s}
+                className={`flex items-center ${s < 4 ? "flex-1" : ""}`}
+              >
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
+                    s <= step
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {s < step ? <CheckCircle className="w-5 h-5" /> : s}
+                </div>
+                {s < 4 && (
+                  <div
+                    className={`flex-1 h-1 mx-2 ${
+                      s < step ? "bg-primary" : "bg-muted"
+                    }`}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-between text-sm">
+            <span
+              className={step === 1 ? "font-semibold" : "text-muted-foreground"}
+            >
+              {t(
+                "marketplace.sellerOnboarding.progress.business",
+                "Business Info",
+              )}
+            </span>
+            <span
+              className={step === 2 ? "font-semibold" : "text-muted-foreground"}
+            >
+              {t(
+                "marketplace.sellerOnboarding.progress.contact",
+                "Contact Details",
+              )}
+            </span>
+            <span
+              className={step === 3 ? "font-semibold" : "text-muted-foreground"}
+            >
+              {t("marketplace.sellerOnboarding.progress.kyc", "KYC Documents")}
+            </span>
+            <span
+              className={step === 4 ? "font-semibold" : "text-muted-foreground"}
+            >
+              {t("marketplace.sellerOnboarding.progress.banking", "Banking")}
+            </span>
+          </div>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">
+              {step === 1 &&
+                t(
+                  "marketplace.sellerOnboarding.headings.business",
+                  "Business Information",
+                )}
+              {step === 2 &&
+                t(
+                  "marketplace.sellerOnboarding.headings.contact",
+                  "Contact Details",
+                )}
+              {step === 3 &&
+                t("marketplace.sellerOnboarding.headings.kyc", "KYC Documents")}
+              {step === 4 &&
+                t(
+                  "marketplace.sellerOnboarding.headings.banking",
+                  "Banking Information",
+                )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* Step 1: Business Info */}
+            {step === 1 && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    {t(
+                      "marketplace.sellerOnboarding.fields.businessName",
+                      "Business Name *",
+                    )}
+                  </label>
+                  <input
+                    type="text"
+                    name="businessName"
+                    value={formData.businessName}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    {t(
+                      "marketplace.sellerOnboarding.fields.businessType",
+                      "Business Type *",
+                    )}
+                  </label>
+                  <select
+                    name="businessType"
+                    value={formData.businessType}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="">
+                      {t(
+                        "marketplace.sellerOnboarding.options.selectType",
+                        "Select type",
+                      )}
+                    </option>
+                    <option value="sole_proprietor">
+                      {t(
+                        "marketplace.sellerOnboarding.options.soleProprietor",
+                        "Sole Proprietor",
+                      )}
+                    </option>
+                    <option value="llc">
+                      {t("marketplace.sellerOnboarding.options.llc", "LLC")}
+                    </option>
+                    <option value="corporation">
+                      {t(
+                        "marketplace.sellerOnboarding.options.corporation",
+                        "Corporation",
+                      )}
+                    </option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    {t(
+                      "marketplace.sellerOnboarding.fields.taxId",
+                      "Tax ID / Commercial Registration *",
+                    )}
+                  </label>
+                  <input
+                    type="text"
+                    name="taxId"
+                    value={formData.taxId}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Contact Details */}
+            {step === 2 && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm,font-medium mb-2">
+                    {t(
+                      "marketplace.sellerOnboarding.fields.contactName",
+                      "Contact Name *",
+                    )}
+                  </label>
+                  <input
+                    type="text"
+                    name="contactName"
+                    value={formData.contactName}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    {t("marketplace.sellerOnboarding.fields.email", "Email *")}
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    {t("marketplace.sellerOnboarding.fields.phone", "Phone *")}
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    {t(
+                      "marketplace.sellerOnboarding.fields.address",
+                      "Business Address *",
+                    )}
+                  </label>
+                  <input
+                    type="text"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: KYC Documents */}
+            {step === 3 && (
+              <div className="space-y-6">
+                <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+                  <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-sm font-medium mb-2">
+                    {t(
+                      "marketplace.sellerOnboarding.documents.commercial",
+                      "Upload Commercial Registration",
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    {t(
+                      "marketplace.sellerOnboarding.documents.hint",
+                      "PDF, JPG, PNG (Max 5MB)",
+                    )}
+                  </p>
+                  <input
+                    ref={commercialRegRef}
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) =>
+                      handleFileChange("commercialRegistration", e)
+                    }
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => commercialRegRef.current?.click()}
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
+                  >
+                    {t(
+                      "marketplace.sellerOnboarding.documents.chooseFile",
+                      "Choose File",
+                    )}
+                  </button>
+                  {documents.commercialRegistration.file && (
+                    <p className="text-sm text-success mt-2">
+                      ✓ {documents.commercialRegistration.file.name}
+                    </p>
+                  )}
+                  {documents.commercialRegistration.error && (
+                    <p className="text-sm text-destructive mt-2">
+                      {documents.commercialRegistration.error}
+                    </p>
+                  )}
+                </div>
+                <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+                  <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-sm font-medium mb-2">
+                    {t(
+                      "marketplace.sellerOnboarding.documents.tax",
+                      "Upload Tax Certificate",
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    {t(
+                      "marketplace.sellerOnboarding.documents.hint",
+                      "PDF, JPG, PNG (Max 5MB)",
+                    )}
+                  </p>
+                  <input
+                    ref={taxCertRef}
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) => handleFileChange("taxCertificate", e)}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => taxCertRef.current?.click()}
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
+                  >
+                    {t(
+                      "marketplace.sellerOnboarding.documents.chooseFile",
+                      "Choose File",
+                    )}
+                  </button>
+                  {documents.taxCertificate.file && (
+                    <p className="text-sm text-success mt-2">
+                      ✓ {documents.taxCertificate.file.name}
+                    </p>
+                  )}
+                  {documents.taxCertificate.error && (
+                    <p className="text-sm text-destructive mt-2">
+                      {documents.taxCertificate.error}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: Banking */}
+            {step === 4 && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-4 p-3 bg-primary/5 dark:bg-primary/20/20 rounded-lg">
+                  <CreditCard className="w-5 h-5 text-primary" />
+                  <p className="text-sm text-primary">
+                    {t(
+                      "marketplace.sellerOnboarding.banking.info",
+                      "Secure banking information for settlement payments",
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    {t(
+                      "marketplace.sellerOnboarding.fields.bankName",
+                      "Bank Name *",
+                    )}
+                  </label>
+                  <input
+                    type="text"
+                    name="bankName"
+                    value={formData.bankName}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    {t(
+                      "marketplace.sellerOnboarding.fields.accountNumber",
+                      "Account Number *",
+                    )}
+                  </label>
+                  <input
+                    type="text"
+                    name="accountNumber"
+                    value={formData.accountNumber}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    {t("marketplace.sellerOnboarding.fields.iban", "IBAN *")}
+                  </label>
+                  <input
+                    type="text"
+                    name="iban"
+                    value={formData.iban}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Error Display */}
+            {submitError && (
+              <div className="mt-4 p-3 bg-destructive/5 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <p className="text-sm text-destructive dark:text-destructive">
+                  {submitError}
+                </p>
+              </div>
+            )}
+
+            {/* Navigation Buttons */}
+            <div className="flex justify-between mt-8">
+              <button
+                onClick={handlePrevious}
+                disabled={step === 1 || submitting}
+                className="px-6 py-2 border border-border rounded-lg hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {t("marketplace.sellerOnboarding.buttons.previous", "Previous")}
+              </button>
+              {step < 4 ? (
+                <button
+                  onClick={handleNext}
+                  disabled={submitting}
+                  className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {t("marketplace.sellerOnboarding.buttons.next", "Next")}
+                </button>
+              ) : (
+                <button
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  className="px-6 py-2 bg-success text-white rounded-lg hover:bg-success-dark disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {submitting
+                    ? t(
+                        "marketplace.sellerOnboarding.buttons.submitting",
+                        "Submitting...",
+                      )
+                    : t(
+                        "marketplace.sellerOnboarding.buttons.submit",
+                        "Submit Application",
+                      )}
+                </button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/marketplace/seller-central/advertising/create/page.tsx">
+<![CDATA[
+// Route alias: reuse the main advertising dashboard for /advertising/create
+export { default } from "../page";
+export * from "../page";
+
+]]>
+</file>
+
+<file path="app/marketplace/seller-central/advertising/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import {
+  TrendingUp,
+  DollarSign,
+  Eye,
+  MousePointerClick,
+  Plus,
+  Search,
+  Filter,
+  MoreVertical,
+  Play,
+  Pause,
+  Trash2,
+  Edit,
+  BarChart3,
+} from "lucide-react";
+import Link from "next/link";
+import { logger } from "@/lib/logger";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+interface Campaign {
+  campaignId: string;
+  name: string;
+  type: string;
+  status: "active" | "paused" | "ended";
+  dailyBudget: number;
+  spentToday: number;
+  startDate: string;
+  endDate?: string;
+  bids: unknown[];
+}
+
+interface CampaignStats {
+  impressions: number;
+  clicks: number;
+  conversions: number;
+  spend: number;
+  revenue: number;
+  ctr: number;
+  avgCpc: number;
+  acos: number;
+  roas: number;
+}
+
+interface OverviewMetrics {
+  totalSpend: number;
+  totalImpressions: number;
+  totalClicks: number;
+  avgAcos: number;
+  avgRoas: number;
+}
+
+export default function AdvertisingPage() {
+  const auto = useAutoTranslator("marketplace.sellerCentral.advertising");
+  const { data: session } = useSession();
+  const [activeTab, setActiveTab] = useState<"overview" | "campaigns">(
+    "overview",
+  );
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [campaignStats, setCampaignStats] = useState<
+    Record<string, CampaignStats>
+  >({});
+  const [overviewMetrics, setOverviewMetrics] = useState<OverviewMetrics>({
+    totalSpend: 0,
+    totalImpressions: 0,
+    totalClicks: 0,
+    avgAcos: 0,
+    avgRoas: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterType, setFilterType] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    if (session) {
+      loadCampaigns();
+    }
+  }, [session, filterStatus, filterType]);
+
+  const loadCampaigns = async () => {
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (filterStatus !== "all") params.append("status", filterStatus);
+      if (filterType !== "all") params.append("type", filterType);
+
+      const response = await fetch(
+        `/api/souq/ads/campaigns?${params.toString()}`,
+      );
+      if (!response.ok)
+        throw new Error(
+          auto("Failed to load campaigns", "errors.loadCampaigns"),
+        );
+
+      const payload = await response.json();
+      const apiCampaigns = payload.data || [];
+      setCampaigns(apiCampaigns);
+
+      // Load stats for each campaign
+      const statsPromises = apiCampaigns.map((campaign: Campaign) =>
+        fetch(`/api/souq/ads/campaigns/${campaign.campaignId}/stats`).then(
+          async (res) => {
+            if (!res.ok)
+              throw new Error(
+                auto("Failed to load campaign stats", "errors.loadStats"),
+              );
+            const statsPayload = await res.json();
+            const statsData = statsPayload.data || statsPayload;
+            return {
+              campaignId: campaign.campaignId,
+              stats: statsData,
+            };
+          },
+        ),
+      );
+
+      const statsResults = await Promise.all(statsPromises);
+      const statsMap: Record<string, CampaignStats> = {};
+      statsResults.forEach(({ campaignId, stats }) => {
+        statsMap[campaignId] = stats;
+      });
+      setCampaignStats(statsMap);
+
+      // Calculate overview metrics
+      calculateOverviewMetrics(apiCampaigns, statsMap);
+    } catch (error) {
+      logger.error("Failed to load campaigns", error);
+      alert(
+        auto(
+          "Failed to load campaigns. Please try again.",
+          "alerts.loadCampaigns",
+        ),
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const calculateOverviewMetrics = (
+    campaigns: Campaign[],
+    stats: Record<string, CampaignStats>,
+  ) => {
+    let totalSpend = 0;
+    let totalImpressions = 0;
+    let totalClicks = 0;
+    let totalRevenue = 0;
+
+    campaigns.forEach((campaign) => {
+      const stat = stats[campaign.campaignId];
+      if (stat && campaign.status === "active") {
+        totalSpend += stat.spend;
+        totalImpressions += stat.impressions;
+        totalClicks += stat.clicks;
+        totalRevenue += stat.revenue;
+      }
+    });
+
+    setOverviewMetrics({
+      totalSpend,
+      totalImpressions,
+      totalClicks,
+      avgAcos: totalRevenue > 0 ? (totalSpend / totalRevenue) * 100 : 0,
+      avgRoas: totalSpend > 0 ? totalRevenue / totalSpend : 0,
+    });
+  };
+
+  const toggleCampaignStatus = async (
+    campaignId: string,
+    currentStatus: string,
+  ) => {
+    try {
+      const newStatus = currentStatus === "active" ? "paused" : "active";
+      const response = await fetch(`/api/souq/ads/campaigns/${campaignId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!response.ok)
+        throw new Error(
+          auto("Failed to update campaign", "errors.updateCampaign"),
+        );
+
+      loadCampaigns();
+    } catch (error) {
+      logger.error("Failed to toggle campaign status", error);
+      alert(
+        auto(
+          "Failed to update campaign status. Please try again.",
+          "alerts.toggleCampaign",
+        ),
+      );
+    }
+  };
+
+  const deleteCampaign = async (campaignId: string) => {
+    if (
+      !confirm(
+        auto(
+          "Are you sure you want to delete this campaign? This action cannot be undone.",
+          "confirm.deleteCampaign",
+        ),
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/souq/ads/campaigns/${campaignId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok)
+        throw new Error(
+          auto("Failed to delete campaign", "errors.deleteCampaign"),
+        );
+
+      loadCampaigns();
+    } catch (error) {
+      logger.error("Failed to delete campaign", error);
+      alert(
+        auto(
+          "Failed to delete campaign. Please try again.",
+          "alerts.deleteCampaign",
+        ),
+      );
+    }
+  };
+
+  const filteredCampaigns = campaigns.filter((campaign) => {
+    if (
+      searchQuery &&
+      !campaign.name.toLowerCase().includes(searchQuery.toLowerCase())
+    ) {
+      return false;
+    }
+    return true;
+  });
+
+  const MetricCard = ({
+    icon: Icon,
+    label,
+    value,
+    subtitle,
+    color,
+  }: {
+    icon: typeof TrendingUp;
+    label: string;
+    value: string;
+    subtitle?: string;
+    color: string;
+  }) => (
+    <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <p className="text-sm font-medium text-gray-600">{label}</p>
+          <p className={`text-2xl font-bold mt-2 ${color}`}>{value}</p>
+          {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
+        </div>
+        <div
+          className={`p-3 rounded-lg bg-opacity-10 ${color.replace("text-", "bg-")}`}
+        >
+          <Icon className={`w-6 h-6 ${color}`} />
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">
+          {auto("Advertising", "header.title")}
+        </h1>
+        <p className="text-gray-600 mt-2">
+          {auto(
+            "Manage your advertising campaigns and track performance",
+            "header.subtitle",
+          )}
+        </p>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-4 mb-6 border-b border-gray-200">
+        <button
+          onClick={() => setActiveTab("overview")}
+          className={`px-4 py-2 font-medium transition-colors ${
+            activeTab === "overview"
+              ? "text-primary border-b-2 border-primary"
+              : "text-gray-600 hover:text-gray-900"
+          }`}
+        >
+          {auto("Overview", "tabs.overview")}
+        </button>
+        <button
+          onClick={() => setActiveTab("campaigns")}
+          className={`px-4 py-2 font-medium transition-colors ${
+            activeTab === "campaigns"
+              ? "text-primary border-b-2 border-primary"
+              : "text-gray-600 hover:text-gray-900"
+          }`}
+        >
+          {auto("Campaigns", "tabs.campaigns")}
+        </button>
+      </div>
+
+      {/* Overview Tab */}
+      {activeTab === "overview" && (
+        <div className="space-y-6">
+          {/* Metrics Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <MetricCard
+              icon={DollarSign}
+              label={auto("Total Spend", "metrics.totalSpend")}
+              value={`${overviewMetrics.totalSpend.toFixed(2)} SAR`}
+              subtitle={auto("Last 30 days", "metrics.last30")}
+              color="text-red-600"
+            />
+            <MetricCard
+              icon={Eye}
+              label={auto("Impressions", "metrics.impressions")}
+              value={overviewMetrics.totalImpressions.toLocaleString()}
+              color="text-primary"
+            />
+            <MetricCard
+              icon={MousePointerClick}
+              label={auto("Clicks", "metrics.clicks")}
+              value={overviewMetrics.totalClicks.toLocaleString()}
+              color="text-green-600"
+            />
+            <MetricCard
+              icon={TrendingUp}
+              label={auto("ACOS", "metrics.acos")}
+              value={`${overviewMetrics.avgAcos.toFixed(1)}%`}
+              subtitle={auto("Lower is better", "metrics.lowerBetter")}
+              color="text-purple-600"
+            />
+            <MetricCard
+              icon={BarChart3}
+              label={auto("ROAS", "metrics.roas")}
+              value={overviewMetrics.avgRoas.toFixed(2)}
+              subtitle={auto("Higher is better", "metrics.higherBetter")}
+              color="text-indigo-600"
+            />
+          </div>
+
+          {/* Quick Actions */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              {auto("Quick Actions", "quickActions.title")}
+            </h3>
+            <div className="flex gap-4">
+              <Link
+                href="/marketplace/seller-central/advertising/create"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+                {auto("Create Campaign", "quickActions.create")}
+              </Link>
+              <button className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                <BarChart3 className="w-5 h-5" />
+                {auto("View Reports", "quickActions.viewReports")}
+              </button>
+            </div>
+          </div>
+
+          {/* Active Campaigns Summary */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              {auto("Active Campaigns", "activeCampaigns.title")}
+            </h3>
+            {isLoading ? (
+              <div className="text-center py-8 text-gray-500">
+                {auto("Loading...", "state.loading")}
+              </div>
+            ) : filteredCampaigns.filter((c) => c.status === "active")
+                .length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                {auto(
+                  "No active campaigns. Create one to get started.",
+                  "activeCampaigns.empty",
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredCampaigns
+                  .filter((c) => c.status === "active")
+                  .slice(0, 5)
+                  .map((campaign) => {
+                    const stats = campaignStats[campaign.campaignId];
+                    const budgetUsed =
+                      (campaign.spentToday / campaign.dailyBudget) * 100;
+
+                    return (
+                      <div
+                        key={campaign.campaignId}
+                        className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-primary/30 transition-colors"
+                      >
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900">
+                            {campaign.name}
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            {campaign.type.replace("_", " ").toUpperCase()} •{" "}
+                            {auto(
+                              "{{count}} bids",
+                              "activeCampaigns.bids",
+                            ).replace(
+                              "{{count}}",
+                              String(campaign.bids.length),
+                            )}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-6">
+                          <div className="text-end">
+                            <p className="text-sm text-gray-600">
+                              {auto("Budget Used", "activeCampaigns.budget")}
+                            </p>
+                            <p className="font-medium text-gray-900">
+                              {campaign.spentToday.toFixed(2)} /{" "}
+                              {campaign.dailyBudget.toFixed(2)} SAR
+                            </p>
+                            <div className="w-32 h-2 bg-gray-200 rounded-full mt-1">
+                              <div
+                                className={`h-full rounded-full ${
+                                  budgetUsed > 90
+                                    ? "bg-red-600"
+                                    : budgetUsed > 75
+                                      ? "bg-yellow-600"
+                                      : "bg-green-600"
+                                }`}
+                                style={{
+                                  width: `${Math.min(budgetUsed, 100)}%`,
+                                }}
+                              />
+                            </div>
+                          </div>
+
+                          {stats && (
+                            <div className="text-end">
+                              <p className="text-sm text-gray-600">
+                                {auto(
+                                  "Performance",
+                                  "activeCampaigns.performance",
+                                )}
+                              </p>
+                              <p className="font-medium text-gray-900">
+                                {auto(
+                                  "CTR: {{value}}%",
+                                  "activeCampaigns.ctr",
+                                ).replace("{{value}}", stats.ctr.toFixed(2))}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                {auto(
+                                  "CPC: {{value}} SAR",
+                                  "activeCampaigns.cpc",
+                                ).replace("{{value}}", stats.avgCpc.toFixed(2))}
+                              </p>
+                            </div>
+                          )}
+
+                          <Link
+                            href={`/marketplace/seller-central/advertising/${campaign.campaignId}`}
+                            className="px-4 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                          >
+                            {auto("View Details", "activeCampaigns.view")}
+                          </Link>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Campaigns Tab */}
+      {activeTab === "campaigns" && (
+        <div className="space-y-6">
+          {/* Filters and Search */}
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="flex flex-wrap gap-4">
+              <div className="flex-1 min-w-[200px]">
+                <div className="relative">
+                  <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder={auto(
+                      "Search campaigns...",
+                      "filters.searchPlaceholder",
+                    )}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full ps-10 pe-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Filter className="w-5 h-5 text-gray-600" />
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                >
+                  <option value="all">
+                    {auto("All Status", "filters.allStatus")}
+                  </option>
+                  <option value="active">
+                    {auto("Active", "filters.active")}
+                  </option>
+                  <option value="paused">
+                    {auto("Paused", "filters.paused")}
+                  </option>
+                  <option value="ended">
+                    {auto("Ended", "filters.ended")}
+                  </option>
+                </select>
+
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                >
+                  <option value="all">
+                    {auto("All Types", "filters.allTypes")}
+                  </option>
+                  <option value="sponsored_products">
+                    {auto("Sponsored Products", "filters.sponsoredProducts")}
+                  </option>
+                  <option value="sponsored_brands">
+                    {auto("Sponsored Brands", "filters.sponsoredBrands")}
+                  </option>
+                  <option value="product_display">
+                    {auto("Product Display", "filters.productDisplay")}
+                  </option>
+                </select>
+              </div>
+
+              <Link
+                href="/marketplace/seller-central/advertising/create"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+                {auto("Create Campaign", "quickActions.create")}
+              </Link>
+            </div>
+          </div>
+
+          {/* Campaigns List */}
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            {isLoading ? (
+              <div className="text-center py-12 text-gray-500">
+                {auto("Loading campaigns...", "state.loadingCampaigns")}
+              </div>
+            ) : filteredCampaigns.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-500 mb-4">
+                  {auto("No campaigns found", "campaigns.empty")}
+                </p>
+                <Link
+                  href="/marketplace/seller-central/advertising/create"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+                >
+                  <Plus className="w-5 h-5" />
+                  {auto("Create Your First Campaign", "campaigns.createFirst")}
+                </Link>
+              </div>
+            ) : (
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {auto("Campaign", "table.campaign")}
+                    </th>
+                    <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {auto("Status", "table.status")}
+                    </th>
+                    <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {auto("Budget", "table.budget")}
+                    </th>
+                    <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {auto("Performance", "table.performance")}
+                    </th>
+                    <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {auto("Actions", "table.actions")}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {filteredCampaigns.map((campaign) => {
+                    const stats = campaignStats[campaign.campaignId];
+                    const budgetUsed =
+                      (campaign.spentToday / campaign.dailyBudget) * 100;
+
+                    return (
+                      <tr
+                        key={campaign.campaignId}
+                        className="hover:bg-gray-50"
+                      >
+                        <td className="px-6 py-4">
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {campaign.name}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {campaign.type.replace("_", " ").toUpperCase()} •{" "}
+                              {auto("{{count}} bids", "campaigns.bids").replace(
+                                "{{count}}",
+                                String(campaign.bids.length),
+                              )}
+                            </p>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`px-2 py-1 text-xs font-medium rounded-full ${
+                              campaign.status === "active"
+                                ? "bg-green-100 text-green-800"
+                                : campaign.status === "paused"
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : "bg-gray-100 text-gray-800"
+                            }`}
+                          >
+                            {auto(campaign.status, `status.${campaign.status}`)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div>
+                            <p className="text-sm text-gray-900">
+                              {auto(
+                                "{{spent}} / {{budget}} SAR",
+                                "table.budgetUsage",
+                              )
+                                .replace(
+                                  "{{spent}}",
+                                  campaign.spentToday.toFixed(2),
+                                )
+                                .replace(
+                                  "{{budget}}",
+                                  campaign.dailyBudget.toFixed(2),
+                                )}
+                            </p>
+                            <div className="w-24 h-1.5 bg-gray-200 rounded-full mt-1">
+                              <div
+                                className={`h-full rounded-full ${
+                                  budgetUsed > 90
+                                    ? "bg-red-600"
+                                    : budgetUsed > 75
+                                      ? "bg-yellow-600"
+                                      : "bg-green-600"
+                                }`}
+                                style={{
+                                  width: `${Math.min(budgetUsed, 100)}%`,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          {stats ? (
+                            <div className="text-sm">
+                              <p className="text-gray-900">
+                                {auto(
+                                  "{{count}} impressions",
+                                  "table.impressions",
+                                ).replace(
+                                  "{{count}}",
+                                  stats.impressions.toLocaleString(),
+                                )}
+                              </p>
+                              <p className="text-gray-600">
+                                {auto(
+                                  "CTR: {{ctr}}% • CPC: {{cpc}} SAR",
+                                  "table.ctrCpc",
+                                )
+                                  .replace("{{ctr}}", stats.ctr.toFixed(2))
+                                  .replace("{{cpc}}", stats.avgCpc.toFixed(2))}
+                              </p>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-gray-500">
+                              {auto("No data", "table.noData")}
+                            </p>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() =>
+                                toggleCampaignStatus(
+                                  campaign.campaignId,
+                                  campaign.status,
+                                )
+                              }
+                              className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                              title={
+                                campaign.status === "active"
+                                  ? auto("Pause", "actions.pause")
+                                  : auto("Resume", "actions.resume")
+                              }
+                            >
+                              {campaign.status === "active" ? (
+                                <Pause className="w-4 h-4" />
+                              ) : (
+                                <Play className="w-4 h-4" />
+                              )}
+                            </button>
+                            <Link
+                              href={`/marketplace/seller-central/advertising/${campaign.campaignId}/edit`}
+                              className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                              title={auto("Edit", "actions.edit")}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Link>
+                            <button
+                              onClick={() =>
+                                deleteCampaign(campaign.campaignId)
+                              }
+                              className="p-2 text-destructive hover:bg-destructive/5 rounded-lg transition-colors"
+                              title={auto("Delete", "actions.delete")}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                            <Link
+                              href={`/marketplace/seller-central/advertising/${campaign.campaignId}`}
+                              className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                              title={auto("More options", "actions.more")}
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </Link>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+</batch_content>

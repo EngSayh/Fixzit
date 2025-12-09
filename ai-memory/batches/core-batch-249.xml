@@ -1,0 +1,3045 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="scripts/migrate-legacy-rate-limit-keys.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * Legacy Rate Limit Key Migration Script
+ * 
+ * Migrates all API endpoints from legacy buildRateLimitKey(req, userId) 
+ * to org-aware buildOrgAwareRateLimitKey(req, orgId, userId).
+ * 
+ * Usage: pnpm tsx scripts/migrate-legacy-rate-limit-keys.ts [--dry-run]
+ * 
+ * SECURITY: This migration ensures tenant isolation in rate limiting.
+ * Without org-aware keys, different tenants share the same rate limit bucket,
+ * which could lead to noisy-neighbor attacks.
+ */
+
+import * as fs from 'fs';
+import * as path from 'path';
+import { glob } from 'glob';
+
+const DRY_RUN = process.argv.includes('--dry-run');
+
+interface MigrationResult {
+  file: string;
+  success: boolean;
+  changes: string[];
+  error?: string;
+}
+
+/**
+ * Detects and migrates legacy buildRateLimitKey calls to buildOrgAwareRateLimitKey
+ */
+function migrateFile(filePath: string): MigrationResult {
+  const result: MigrationResult = {
+    file: filePath,
+    success: false,
+    changes: [],
+  };
+
+  try {
+    let content = fs.readFileSync(filePath, 'utf-8');
+    const originalContent = content;
+
+    // Skip if file doesn't use buildRateLimitKey
+    if (!content.includes('buildRateLimitKey(')) {
+      result.success = true;
+      result.changes.push('No buildRateLimitKey calls');
+      return result;
+    }
+
+    // Skip if already using buildOrgAwareRateLimitKey
+    if (content.includes('buildOrgAwareRateLimitKey(')) {
+      result.success = true;
+      result.changes.push('Already using buildOrgAwareRateLimitKey');
+      return result;
+    }
+
+    // Detect legacy 2-arg pattern: buildRateLimitKey(req, identifier)
+    // Matches patterns like:
+    // - buildRateLimitKey(req, user.id)
+    // - buildRateLimitKey(req, userId)
+    // - buildRateLimitKey(req, actor.id)
+    // - buildRateLimitKey(req, session.id)
+    // - buildRateLimitKey(req, userId ?? getClientIP(req))
+    // - buildRateLimitKey(req, user?.id ?? safeIp)
+    // Does NOT match 3+ arg patterns
+    const legacyPattern = /buildRateLimitKey\(\s*req\s*,\s*([^,)]+)\s*\)/g;
+    
+    // Check if any matches exist
+    const matches = content.match(legacyPattern);
+    if (!matches) {
+      result.success = true;
+      result.changes.push('No legacy 2-arg patterns found');
+      return result;
+    }
+
+    // Analyze what identifier is used to determine orgId source
+    // Common patterns:
+    // - user.id → user.orgId available
+    // - userId → need to check if user object exists
+    // - actor.id → actor.orgId available
+    // - session.id → session.orgId might be available
+    // - authResult.userId → authResult.orgId might be available
+
+    // 1. First, update the import to include buildOrgAwareRateLimitKey
+    const importPatterns = [
+      // Just buildRateLimitKey
+      {
+        pattern: /import \{ buildRateLimitKey \} from "@\/server\/security\/rateLimitKey";/,
+        replacement: 'import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";',
+      },
+      // buildRateLimitKey with others
+      {
+        pattern: /import \{ ([^}]*?)buildRateLimitKey([^}]*?) \} from "@\/server\/security\/rateLimitKey";/,
+        replacement: (match: string, before: string, after: string) => {
+          // Replace buildRateLimitKey with buildOrgAwareRateLimitKey in the import
+          const updated = `${before}buildOrgAwareRateLimitKey${after}`.replace(/,\s*,/g, ',').replace(/{\s*,/g, '{ ').replace(/,\s*}/g, ' }');
+          return `import { ${updated} } from "@/server/security/rateLimitKey";`;
+        },
+      },
+      // From rateLimit.ts (re-exports)
+      {
+        pattern: /import \{ ([^}]*?)buildRateLimitKey([^}]*?) \} from "@\/server\/security\/rateLimit";/,
+        replacement: (match: string, before: string, after: string) => {
+          const updated = `${before}buildOrgAwareRateLimitKey${after}`.replace(/,\s*,/g, ',').replace(/{\s*,/g, '{ ').replace(/,\s*}/g, ' }');
+          return `import { ${updated} } from "@/server/security/rateLimit";`;
+        },
+      },
+    ];
+
+    for (const { pattern, replacement } of importPatterns) {
+      if (pattern.test(content)) {
+        content = content.replace(pattern, replacement as string);
+        result.changes.push('Updated import to buildOrgAwareRateLimitKey');
+      }
+    }
+
+    // 2. Replace legacy calls with org-aware calls
+    // Map identifier patterns to org sources
+    const replacementMap = [
+      // user.id → user.orgId, user.id
+      {
+        pattern: /buildRateLimitKey\(\s*req\s*,\s*user\.id\s*\)/g,
+        replacement: 'buildOrgAwareRateLimitKey(req, user.orgId, user.id)',
+      },
+      // userId → user.orgId, userId (assumes user object exists)
+      {
+        pattern: /buildRateLimitKey\(\s*req\s*,\s*userId\s*\)/g,
+        replacement: 'buildOrgAwareRateLimitKey(req, user?.orgId ?? null, userId)',
+      },
+      // actor.id → actor.orgId, actor.id
+      {
+        pattern: /buildRateLimitKey\(\s*req\s*,\s*actor\.id\s*\)/g,
+        replacement: 'buildOrgAwareRateLimitKey(req, actor.orgId, actor.id)',
+      },
+      // session.id → session.orgId, session.id
+      {
+        pattern: /buildRateLimitKey\(\s*req\s*,\s*session\.id\s*\)/g,
+        replacement: 'buildOrgAwareRateLimitKey(req, session.orgId ?? null, session.id)',
+      },
+      // authResult.userId → authResult.orgId, authResult.userId
+      {
+        pattern: /buildRateLimitKey\(\s*req\s*,\s*authResult\.userId\s*\)/g,
+        replacement: 'buildOrgAwareRateLimitKey(req, authResult.orgId ?? null, authResult.userId)',
+      },
+      // Complex nullable patterns with fallback to IP
+      // userId ?? getClientIP(req) or similar
+      {
+        pattern: /buildRateLimitKey\(\s*req\s*,\s*userId\s*\?\?\s*getClientIP\(req\)\s*\)/g,
+        replacement: 'buildOrgAwareRateLimitKey(req, user?.orgId ?? null, userId)',
+      },
+      // user?.id ?? safeIp or similar
+      {
+        pattern: /buildRateLimitKey\(\s*req\s*,\s*user\?\s*\.id\s*(?:\|\||(\?\?))\s*\w+\s*\)/g,
+        replacement: 'buildOrgAwareRateLimitKey(req, user?.orgId ?? null, user?.id ?? null)',
+      },
+      // sessionUser?.id ?? null
+      {
+        pattern: /buildRateLimitKey\(\s*req\s*,\s*sessionUser\?\s*\.id\s*\?\?\s*null\s*\)/g,
+        replacement: 'buildOrgAwareRateLimitKey(req, sessionUser?.orgId ?? null, sessionUser?.id ?? null)',
+      },
+      // user?.id ?? null
+      {
+        pattern: /buildRateLimitKey\(\s*req\s*,\s*user\?\s*\.id\s*\?\?\s*null\s*\)/g,
+        replacement: 'buildOrgAwareRateLimitKey(req, user?.orgId ?? null, user?.id ?? null)',
+      },
+    ];
+
+    let replacementMade = false;
+    for (const { pattern, replacement } of replacementMap) {
+      if (pattern.test(content)) {
+        content = content.replace(pattern, replacement);
+        replacementMade = true;
+        result.changes.push(`Migrated: ${pattern.source.substring(0, 40)}...`);
+      }
+    }
+
+    // 3. Handle any remaining legacy patterns (manual review needed)
+    const remainingLegacy = content.match(/buildRateLimitKey\(\s*req\s*,\s*[^,)]+\s*\)/g);
+    if (remainingLegacy) {
+      for (const match of remainingLegacy) {
+        result.changes.push(`⚠️ MANUAL REVIEW NEEDED: ${match}`);
+      }
+    }
+
+    // Check if we made any changes
+    if (content === originalContent) {
+      result.success = true;
+      result.changes.push('No changes needed');
+      return result;
+    }
+
+    // Write the file
+    if (!DRY_RUN) {
+      fs.writeFileSync(filePath, content, 'utf-8');
+    }
+    
+    result.success = true;
+    result.changes.push(DRY_RUN ? 'Would write changes' : 'Changes written');
+  } catch (error) {
+    result.error = error instanceof Error ? error.message : String(error);
+  }
+
+  return result;
+}
+
+async function main() {
+  console.log('🔄 Legacy Rate Limit Key Migration Script');
+  console.log(DRY_RUN ? '📝 DRY RUN MODE - No files will be modified\n' : '\n');
+
+  // Find all API route files
+  const files = await glob('app/api/**/route.ts', { cwd: process.cwd() });
+  console.log(`Found ${files.length} API route files\n`);
+
+  const results: MigrationResult[] = [];
+  let migratedCount = 0;
+  let skippedCount = 0;
+  let errorCount = 0;
+  let manualReviewCount = 0;
+
+  for (const file of files) {
+    const fullPath = path.join(process.cwd(), file);
+    const result = migrateFile(fullPath);
+    results.push(result);
+
+    const needsManualReview = result.changes.some(c => c.startsWith('⚠️'));
+    
+    if (result.error) {
+      console.log(`❌ ${file}: ${result.error}`);
+      errorCount++;
+    } else if (needsManualReview) {
+      console.log(`⚠️  ${file}:`);
+      for (const change of result.changes) {
+        console.log(`   ${change}`);
+      }
+      manualReviewCount++;
+    } else if (result.changes.includes('No buildRateLimitKey calls') || 
+               result.changes.includes('Already using buildOrgAwareRateLimitKey') ||
+               result.changes.includes('No legacy 2-arg patterns found') ||
+               result.changes.includes('No changes needed')) {
+      skippedCount++;
+    } else {
+      console.log(`✅ ${file}:`);
+      for (const change of result.changes) {
+        console.log(`   ${change}`);
+      }
+      migratedCount++;
+    }
+  }
+
+  console.log('\n📊 Summary');
+  console.log(`   Migrated: ${migratedCount}`);
+  console.log(`   Skipped: ${skippedCount}`);
+  console.log(`   Manual Review: ${manualReviewCount}`);
+  console.log(`   Errors: ${errorCount}`);
+  
+  if (DRY_RUN) {
+    console.log('\n⚠️  This was a dry run. Run without --dry-run to apply changes.');
+  }
+
+  if (manualReviewCount > 0) {
+    console.log('\n⚠️  Some files need manual review. Check the output above.');
+  }
+}
+
+main().catch(console.error);
+
+]]>
+</file>
+
+<file path="scripts/migrate-rate-limits.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * Rate Limit Migration Script
+ * 
+ * Migrates all API endpoints from in-memory rateLimit() to distributed smartRateLimit().
+ * 
+ * Usage: pnpm tsx scripts/migrate-rate-limits.ts [--dry-run]
+ * 
+ * SECURITY: This migration enables distributed rate limiting across serverless instances.
+ */
+
+import * as fs from 'fs';
+import * as path from 'path';
+import { glob } from 'glob';
+
+const DRY_RUN = process.argv.includes('--dry-run');
+
+interface MigrationResult {
+  file: string;
+  success: boolean;
+  changes: string[];
+  error?: string;
+}
+
+function migrateFile(filePath: string): MigrationResult {
+  const result: MigrationResult = {
+    file: filePath,
+    success: false,
+    changes: [],
+  };
+
+  try {
+    let content = fs.readFileSync(filePath, 'utf-8');
+    const originalContent = content;
+
+    // Skip if already using smartRateLimit
+    if (content.includes('import { smartRateLimit }') || 
+        content.includes("import { smartRateLimit,") ||
+        content.includes(", smartRateLimit }")) {
+      result.success = true;
+      result.changes.push('Already migrated');
+      return result;
+    }
+
+    // Check if file uses rateLimit
+    if (!content.includes('from "@/server/security/rateLimit"')) {
+      result.success = true;
+      result.changes.push('No rate limit imports');
+      return result;
+    }
+
+    // 1. Update import statement
+    const importPatterns = [
+      // Simple import
+      {
+        pattern: /import \{ rateLimit \} from "@\/server\/security\/rateLimit";/g,
+        replacement: 'import { smartRateLimit } from "@/server/security/rateLimit";',
+      },
+      // Import with buildRateLimitKey
+      {
+        pattern: /import \{ rateLimit, buildRateLimitKey \} from "@\/server\/security\/rateLimit";/g,
+        replacement: 'import { smartRateLimit, buildRateLimitKey } from "@/server/security/rateLimit";',
+      },
+      {
+        pattern: /import \{ buildRateLimitKey, rateLimit \} from "@\/server\/security\/rateLimit";/g,
+        replacement: 'import { smartRateLimit, buildRateLimitKey } from "@/server/security/rateLimit";',
+      },
+    ];
+
+    for (const { pattern, replacement } of importPatterns) {
+      if (pattern.test(content)) {
+        content = content.replace(pattern, replacement);
+        result.changes.push('Updated import to smartRateLimit');
+      }
+    }
+
+    // 2. Replace rateLimit( with await smartRateLimit(
+    // Handle various patterns:
+    // - const rl = rateLimit(...)
+    // - if (!rateLimit(...).allowed)
+    const rateLimitCallPatterns = [
+      // Standard pattern: const rl = rateLimit(...)
+      {
+        pattern: /const (\w+) = rateLimit\(/g,
+        replacement: 'const $1 = await smartRateLimit(',
+      },
+      // Inline pattern: rateLimit(...).allowed
+      {
+        pattern: /rateLimit\(([^)]+)\)\.allowed/g,
+        replacement: '(await smartRateLimit($1)).allowed',
+      },
+    ];
+
+    for (const { pattern, replacement } of rateLimitCallPatterns) {
+      if (pattern.test(content)) {
+        content = content.replace(pattern, replacement);
+        result.changes.push('Updated rateLimit call to await smartRateLimit');
+      }
+    }
+
+    // Check if we made any changes
+    if (content === originalContent) {
+      result.success = true;
+      result.changes.push('No changes needed');
+      return result;
+    }
+
+    // Write the file
+    if (!DRY_RUN) {
+      fs.writeFileSync(filePath, content, 'utf-8');
+    }
+    
+    result.success = true;
+    result.changes.push(DRY_RUN ? 'Would write changes' : 'Changes written');
+  } catch (error) {
+    result.error = error instanceof Error ? error.message : String(error);
+  }
+
+  return result;
+}
+
+async function main() {
+  console.log('🔄 Rate Limit Migration Script');
+  console.log(DRY_RUN ? '📝 DRY RUN MODE - No files will be modified\n' : '\n');
+
+  // Find all API route files
+  const files = await glob('app/api/**/route.ts', { cwd: process.cwd() });
+  console.log(`Found ${files.length} API route files\n`);
+
+  const results: MigrationResult[] = [];
+  let migratedCount = 0;
+  let skippedCount = 0;
+  let errorCount = 0;
+
+  for (const file of files) {
+    const fullPath = path.join(process.cwd(), file);
+    const result = migrateFile(fullPath);
+    results.push(result);
+
+    if (result.error) {
+      console.log(`❌ ${file}: ${result.error}`);
+      errorCount++;
+    } else if (result.changes.includes('Already migrated') || result.changes.includes('No rate limit imports') || result.changes.includes('No changes needed')) {
+      skippedCount++;
+    } else {
+      console.log(`✅ ${file}: ${result.changes.join(', ')}`);
+      migratedCount++;
+    }
+  }
+
+  console.log('\n📊 Summary');
+  console.log(`   Migrated: ${migratedCount}`);
+  console.log(`   Skipped: ${skippedCount}`);
+  console.log(`   Errors: ${errorCount}`);
+  
+  if (DRY_RUN) {
+    console.log('\n⚠️  This was a dry run. Run without --dry-run to apply changes.');
+  }
+}
+
+main().catch(console.error);
+
+]]>
+</file>
+
+<file path="scripts/migrate-rbac-v4.1.ts">
+<![CDATA[
+#!/usr/bin/env ts-node
+/**
+ * STRICT v4.1 Database Migration Script
+ * 
+ * Migrates existing users to STRICT v4.1 specification:
+ * 1. Normalizes legacy role names to canonical names
+ * 2. Adds sub_role field for Team Members (optional)
+ * 3. Populates assignedProperties for Property Managers (empty array by default)
+ * 4. Creates MongoDB indexes for new fields
+ * 
+ * USAGE:
+ *   npx ts-node scripts/migrate-rbac-v4.1.ts [OPTIONS]
+ * 
+ * OPTIONS:
+ *   --dry-run            Preview changes without modifying database
+ *   --org=ORG_ID         Migrate only users from specific organization
+ *   --batch-size=N       Process N users per batch (default: 500)
+ * 
+ * EXAMPLES:
+ *   # Preview all changes
+ *   npx ts-node scripts/migrate-rbac-v4.1.ts --dry-run
+ *   
+ *   # Migrate specific organization
+ *   npx ts-node scripts/migrate-rbac-v4.1.ts --org=abc123
+ *   
+ *   # Large dataset with custom batch size
+ *   npx ts-node scripts/migrate-rbac-v4.1.ts --batch-size=1000
+ * 
+ * SAFETY:
+ *   - Pre-migration validation checks
+ *   - Creates backup collection before migration (users_backup_v4_1)
+ *   - Batched processing with progress tracking
+ *   - Automatic rollback on any error
+ *   - Performance metrics and ETA display
+ * 
+ * COMPLIANCE:
+ *   - GDPR Article 5 (data accuracy)
+ *   - ISO 27001 change management
+ *   - SOC 2 audit trail requirements
+ */
+
+import mongoose, { ClientSession } from "mongoose";
+import { User } from "@/server/models/User";
+import { normalizeRole } from "@/domain/fm/fm.behavior";
+import { logger } from "@/lib/logger";
+import { COLLECTIONS } from "@/lib/db/collections";
+
+// Configuration
+const DRY_RUN = process.argv.includes("--dry-run");
+const ORG_ID = process.argv.find(arg => arg.startsWith("--org="))?.split("=")[1];
+const BATCH_SIZE = parseInt(
+  process.argv.find(arg => arg.startsWith("--batch-size="))?.split("=")[1] ||
+  process.env.BATCH_SIZE ||
+  "500",
+  10,
+);
+const BACKUP_COLLECTION = "users_backup_v4_1";
+
+// Statistics
+interface MigrationStats {
+  total: number;
+  updated: number;
+  skipped: number;
+  errors: number;
+  rolesNormalized: Record<string, number>;
+  subRolesAdded: number;
+  assignedPropertiesAdded: number;
+  batchesProcessed: number;
+  startTime: number;
+  endTime?: number;
+  failedUserIds: string[];
+}
+
+const stats: MigrationStats = {
+  total: 0,
+  updated: 0,
+  skipped: 0,
+  batchesProcessed: 0,
+  startTime: Date.now(),
+  failedUserIds: [],
+  errors: 0,
+  rolesNormalized: {},
+  subRolesAdded: 0,
+  assignedPropertiesAdded: 0,
+};
+
+/**
+ * Connect to MongoDB
+ */
+async function connectDatabase(): Promise<void> {
+  const mongoUri = process.env.MONGODB_URI || process.env.DATABASE_URL;
+  if (!mongoUri) {
+    throw new Error("MONGODB_URI or DATABASE_URL environment variable not set");
+  }
+  
+  await mongoose.connect(mongoUri);
+  logger.info("Connected to MongoDB", {
+    action: 'migration:db:connect',
+    readyState: mongoose.connection.readyState,
+  });
+}
+
+/**
+ * Create per-tenant backup of users collection
+ */
+async function createBackup(): Promise<void> {
+  const backupName = ORG_ID 
+    ? `${BACKUP_COLLECTION}_${ORG_ID}`
+    : BACKUP_COLLECTION;
+  
+  logger.info(`Creating backup collection: ${backupName}`, {
+    action: 'migration:backup:start',
+    orgId: ORG_ID,
+    backupCollection: backupName,
+  });
+  
+  const db = mongoose.connection.db;
+  if (!db) {
+    throw new Error("Database connection not established");
+  }
+  
+  // Drop existing backup if present
+  const collections = await db.listCollections({ name: backupName }).toArray();
+  if (collections.length > 0) {
+    await db.dropCollection(backupName);
+    logger.info(`Dropped existing backup collection`, {
+      action: 'migration:backup:drop',
+      backupCollection: backupName,
+    });
+  }
+  
+  // Build backup query (scope to org if provided)
+  const matchStage = ORG_ID ? { $match: { orgId: ORG_ID } } : { $match: {} };
+  
+  // Copy users to backup (tenant-scoped if applicable)
+  await db.collection(COLLECTIONS.USERS).aggregate([
+    matchStage,
+    { $out: backupName },
+  ]).toArray();
+  
+  const backupCount = await db.collection(backupName).countDocuments();
+  logger.info(`Backup complete: ${backupCount} users backed up`, {
+    action: 'migration:backup:complete',
+    backupCollection: backupName,
+    userCount: backupCount,
+    orgId: ORG_ID,
+  });
+}
+
+/**
+ * Migrate a single user document
+ */
+function migrateUser(user: Record<string, unknown> & { professional?: Record<string, unknown>; _id?: unknown }): { modified: boolean; changes: string[] } {
+  const changes: string[] = [];
+  let modified = false;
+  
+  // 1. Normalize role name
+  const currentRole = user.professional?.role;
+  if (currentRole) {
+    const normalized = normalizeRole(currentRole);
+    if (normalized && normalized !== currentRole) {
+      changes.push(`role: ${currentRole} → ${normalized}`);
+      user.professional.role = normalized;
+      modified = true;
+      
+      // Track statistics
+      stats.rolesNormalized[currentRole] = (stats.rolesNormalized[currentRole] || 0) + 1;
+    }
+  }
+  
+  // 2. Add subRole field if TEAM_MEMBER (empty for now, admin can set later)
+  if (user.professional?.role === "TEAM_MEMBER") {
+    if (!user.professional.subRole) {
+      // Infer sub-role from legacy role names if possible
+      const legacyRole = currentRole?.toUpperCase();
+      if (legacyRole === "FINANCE") {
+        user.professional.subRole = "FINANCE_OFFICER";
+        changes.push("subRole: inferred FINANCE_OFFICER from FINANCE");
+        stats.subRolesAdded++;
+        modified = true;
+      } else if (legacyRole === "HR") {
+        user.professional.subRole = "HR_OFFICER";
+        changes.push("subRole: inferred HR_OFFICER from HR");
+        stats.subRolesAdded++;
+        modified = true;
+      } else if (legacyRole === "SUPPORT") {
+        user.professional.subRole = "SUPPORT_AGENT";
+        changes.push("subRole: inferred SUPPORT_AGENT from SUPPORT");
+        stats.subRolesAdded++;
+        modified = true;
+      }
+    }
+  }
+  
+  // 3. Add assignedProperties for Property Managers (empty array, admin can populate)
+  if (user.professional?.role === "PROPERTY_MANAGER") {
+    if (!user.professional.assignedProperties) {
+      user.professional.assignedProperties = [];
+      changes.push("assignedProperties: initialized as []");
+      stats.assignedPropertiesAdded++;
+      modified = true;
+    }
+  }
+  
+  return { modified, changes };
+}
+
+/**
+ * Validate database state before migration
+ */
+async function validatePreMigration(): Promise<void> {
+  logger.info("Pre-migration validation checks", { action: 'migration:validation:start' });
+  
+  // Check User model exists
+  const collections = await mongoose.connection.db?.listCollections({ name: "users" }).toArray();
+  if (!collections || collections.length === 0) {
+    throw new Error("Users collection not found in database");
+  }
+  logger.info("Users collection exists", { action: 'migration:validation:collection_exists' });
+  
+  // Check for required fields in User schema
+  const sampleUser = await User.findOne().lean();
+  if (sampleUser) {
+    if (!sampleUser.professional) {
+      throw new Error("User schema missing 'professional' field - incompatible schema");
+    }
+    logger.info("User schema contains required fields", { action: 'migration:validation:schema_valid' });
+  }
+  
+  // Verify MongoDB version supports transactions
+  const adminDb = mongoose.connection.db?.admin();
+  if (adminDb && !DRY_RUN) {
+    try {
+      const buildInfo = await adminDb.command({ buildInfo: 1 });
+      const version = buildInfo.version as string;
+      const majorVersion = parseInt(version.split(".")[0], 10);
+      if (majorVersion < 4) {
+        logger.warn(`MongoDB ${version} - transactions require v4.0+`, {
+          action: 'migration:validation:mongodb_version',
+          version,
+          majorVersion,
+          supportsTransactions: false,
+        });
+      } else {
+        logger.info(`MongoDB ${version} supports transactions`, {
+          action: 'migration:validation:mongodb_version',
+          version,
+          majorVersion,
+          supportsTransactions: true,
+        });
+      }
+    } catch (error) {
+      logger.info(`Could not verify MongoDB version`, {
+        action: 'migration:validation:mongodb_version',
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+}
+
+/**
+ * Calculate and display progress with ETA
+ */
+function displayProgress(current: number, total: number, startTime: number): void {
+  const percentage = ((current / total) * 100).toFixed(1);
+  const elapsed = Date.now() - startTime;
+  const estimatedTotal = (elapsed / current) * total;
+  const remaining = estimatedTotal - elapsed;
+  const eta = new Date(Date.now() + remaining);
+  
+  const formatDuration = (ms: number): string => {
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    if (hours > 0) return `${hours}h ${minutes % 60}m`;
+    if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+    return `${seconds}s`;
+  };
+  
+  logger.info("Migration progress", {
+    action: 'migration:progress',
+    current,
+    total,
+    percentage: parseFloat(percentage),
+    elapsed: formatDuration(elapsed),
+    eta: eta.toISOString(),
+  });
+}
+
+/**
+ * Run the migration with batching, per-batch transactions, and progress tracking
+ */
+async function runMigration(session?: ClientSession): Promise<void> {
+  logger.info("Starting STRICT v4.1 Migration", {
+    action: 'migration:start',
+    mode: DRY_RUN ? 'dry-run' : 'live',
+    batchSize: BATCH_SIZE,
+    orgId: ORG_ID,
+    scope: ORG_ID ? 'single-tenant' : 'all-tenants',
+  });
+  
+  if (!ORG_ID) {
+    logger.warn("Running migration across ALL tenants", {
+      action: 'migration:multi-tenant-warning',
+      recommendation: 'Use --org=<orgId> for production to maintain tenant boundaries',
+    });
+  }
+  
+  // Build query
+  const query: { orgId?: string } = {};
+  if (ORG_ID) {
+    query.orgId = ORG_ID;
+  }
+  
+  // Count total users first
+  const totalCount = await User.countDocuments(query);
+  stats.total = totalCount;
+  
+  if (totalCount === 0) {
+    logger.warn("No users found matching criteria", {
+      action: 'migration:no_users',
+      orgId: ORG_ID,
+      query,
+    });
+    return;
+  }
+  
+  logger.info(`Found ${stats.total} users to process`, {
+    action: 'migration:scan-complete',
+    totalUsers: stats.total,
+    batchCount: Math.ceil(totalCount / BATCH_SIZE),
+    orgId: ORG_ID,
+  });
+  
+  let processedCount = 0;
+  
+  // Process in batches
+  while (processedCount < totalCount) {
+    const batchStart = processedCount;
+    const batchEnd = Math.min(processedCount + BATCH_SIZE, totalCount);
+    const batchNum = stats.batchesProcessed + 1;
+    
+    logger.info(`Batch ${batchNum}: Processing users ${batchStart + 1}-${batchEnd}`, {
+      action: 'migration:batch:start',
+      batchNumber: batchNum,
+      userRange: `${batchStart + 1}-${batchEnd}`,
+      orgId: ORG_ID,
+    });
+    
+    // Per-batch transaction for safety (session arg preserved for legacy single-transaction mode)
+    const batchSession = DRY_RUN ? null : (session ?? await mongoose.startSession());
+    const shouldManageTransaction = batchSession && !session;
+    if (shouldManageTransaction && !batchSession.inTransaction()) {
+      batchSession.startTransaction();
+    }
+
+    try {
+      // Fetch batch with stable sort for deterministic pagination
+      const findQuery = User.find(query)
+        .sort({ _id: 1 }) // Stable sort to avoid non-deterministic paging
+        .skip(processedCount)
+        .limit(BATCH_SIZE);
+      if (batchSession) {
+        findQuery.session(batchSession);
+      }
+      const users = await findQuery.lean();
+      
+      // Process batch
+      for (let i = 0; i < users.length; i++) {
+        const user = users[i];
+        const { modified, changes } = migrateUser(user);
+        
+        if (modified) {
+          stats.updated++;
+          
+          if (DRY_RUN || stats.updated <= 10 || i === 0) {
+            // Log first 10 changes, or first of each batch
+            logger.info(`User migration: ${user.email || user.username || user.code}`, {
+              action: 'migration:user:updated',
+              userId: user._id,
+              userEmail: user.email,
+              orgId: user.orgId,
+              changes: changes,
+              dryRun: DRY_RUN,
+            });
+          }
+          
+          if (!DRY_RUN) {
+            try {
+              // Avoid attempting to update immutable _id field
+              const { _id, ...update } = user;
+              if (!_id) {
+                throw new Error("User record missing _id");
+              }
+              // B.1 Multi-tenancy Enforcement: Scope update by orgId to prevent cross-tenant writes
+              const updateFilter = ORG_ID 
+                ? { _id, orgId: ORG_ID } 
+                : { _id, orgId: user.orgId };
+              const updateOptions = batchSession ? { session: batchSession } : {};
+              await User.updateOne(updateFilter, { $set: update }, updateOptions);
+            } catch (error) {
+              const userId = String(user._id || "unknown");
+              logger.error(`Error updating user`, {
+                action: 'migration:user:update_error',
+                userId,
+                orgId: user.orgId,
+                error: error instanceof Error ? error.message : String(error),
+                stack: error instanceof Error ? error.stack : undefined,
+              });
+              stats.errors++;
+              stats.failedUserIds.push(userId);
+              
+              // Stop batch on first error to trigger rollback
+              throw new Error(`Failed to update user ${userId}: ${error}`);
+            }
+          }
+        } else {
+          stats.skipped++;
+        }
+        
+        processedCount++;
+        
+        // Display progress every 50 users or at batch end
+        if (processedCount % 50 === 0 || processedCount === batchEnd) {
+          displayProgress(processedCount, totalCount, stats.startTime);
+        }
+      }
+
+      // Commit batch transaction
+      if (shouldManageTransaction) {
+        await batchSession.commitTransaction();
+      }
+      
+      stats.batchesProcessed++;
+      logger.info(`Batch complete`, {
+        action: 'migration:batch:complete',
+        batchNumber: batchNum,
+        usersProcessed: Math.min(users.length, BATCH_SIZE),
+      });
+    } catch (error) {
+      if (shouldManageTransaction) {
+        await batchSession.abortTransaction();
+        logger.error("Batch transaction aborted", {
+          action: 'migration:batch:abort',
+          batchNumber: batchNum,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+      throw error;
+    } finally {
+      if (shouldManageTransaction) {
+        batchSession.endSession();
+      }
+    }
+  }
+
+  // If any update failed, trigger rollback in the calling transaction
+  if (!DRY_RUN && session && stats.errors > 0) {
+    throw new Error(`Encountered ${stats.errors} error(s) during migration. Failed user IDs: ${stats.failedUserIds.join(", ")}`);
+  }
+}
+
+/**
+ * Create indexes for new fields
+ */
+async function createIndexes(): Promise<void> {
+  if (DRY_RUN) {
+    logger.info("Indexes would be created (dry-run mode)", {
+      action: 'migration:indexes:dry_run',
+    });
+    return;
+  }
+  
+  logger.info("Creating indexes for STRICT v4.1 fields", {
+    action: 'migration:indexes:start',
+  });
+  
+  try {
+    await User.collection.createIndex({ orgId: 1, "professional.subRole": 1 });
+    logger.info("Created index", {
+      action: 'migration:indexes:create',
+      index: '{ orgId: 1, professional.subRole: 1 }',
+    });
+  } catch (error) {
+    logger.info("Index already exists or error", {
+      action: 'migration:indexes:create',
+      index: '{ orgId: 1, professional.subRole: 1 }',
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+  
+  try {
+    await User.collection.createIndex({ "professional.assignedProperties": 1 });
+    logger.info("Created index", {
+      action: 'migration:indexes:create',
+      index: '{ professional.assignedProperties: 1 }',
+    });
+  } catch (error) {
+    logger.info("Index already exists or error", {
+      action: 'migration:indexes:create',
+      index: '{ professional.assignedProperties: 1 }',
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+/**
+ * Print migration summary with performance metrics
+ */
+function printSummary(): void {
+  stats.endTime = Date.now();
+  const durationMs = stats.endTime - stats.startTime;
+  const durationSec = durationMs / 1000;
+  const throughput = stats.total > 0 ? (stats.total / durationSec).toFixed(2) : "0";
+  
+  logger.info("Migration summary", {
+    action: 'migration:summary',
+    stats: {
+      total: stats.total,
+      updated: stats.updated,
+      skipped: stats.skipped,
+      batchesProcessed: stats.batchesProcessed,
+      errors: stats.errors,
+    },
+    performance: {
+      durationMinutes: (durationSec / 60).toFixed(2),
+      durationSeconds: durationSec.toFixed(1),
+      throughputPerSecond: throughput,
+      avgBatchTimeSeconds: stats.batchesProcessed > 0 ? (durationSec / stats.batchesProcessed).toFixed(2) : null,
+    },
+    rolesNormalized: stats.rolesNormalized,
+    subRolesAdded: stats.subRolesAdded,
+    assignedPropertiesAdded: stats.assignedPropertiesAdded,
+    failedUserIds: stats.failedUserIds,
+  });
+  
+  if (DRY_RUN) {
+    logger.warn("DRY RUN MODE: No changes were made to the database", {
+      action: 'migration:complete:dry_run',
+    });
+  } else if (stats.errors > 0) {
+    logger.error("Migration FAILED and was rolled back", {
+      action: 'migration:complete:failed',
+      errors: stats.errors,
+      failedUserIds: stats.failedUserIds,
+    });
+    process.exit(1);
+  } else {
+    logger.info("Migration completed successfully", {
+      action: 'migration:complete:success',
+      updated: stats.updated,
+      skipped: stats.skipped,
+    });
+  }
+}
+
+/**
+ * Main execution
+ */
+async function main(): Promise<void> {
+  let session: ClientSession | null = null;
+  try {
+    logger.info("STRICT v4.1 RBAC Migration Tool", {
+      action: 'migration:start',
+      startTime: new Date().toISOString(),
+      orgId: ORG_ID,
+      dryRun: DRY_RUN,
+      batchSize: BATCH_SIZE,
+    });
+    
+    await connectDatabase();
+    await validatePreMigration();
+    
+    if (!DRY_RUN) {
+      await createBackup();
+      
+      // Single transaction covering all batches for full rollback safety
+      session = await mongoose.startSession();
+      session.startTransaction();
+      try {
+        await runMigration(session);
+        await session.commitTransaction();
+      } catch (error) {
+        await session.abortTransaction();
+        throw error;
+      } finally {
+        await session.endSession();
+        session = null;
+      }
+    } else {
+      await runMigration();
+    }
+    
+    await createIndexes();
+    
+    printSummary();
+    
+  } catch (error) {
+    logger.error("Migration failed", {
+      action: 'migration:failed',
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    process.exit(1);
+  } finally {
+    await mongoose.disconnect();
+    logger.info("Migration tool complete", {
+      action: 'migration:complete',
+      completedAt: new Date().toISOString(),
+      disconnected: true,
+    });
+  }
+}
+
+// Run if called directly
+if (require.main === module) {
+  main();
+}
+
+export { main as migrateRbacV41 };
+
+]]>
+</file>
+
+<file path="scripts/migrate-rfq-bids.ts">
+<![CDATA[
+/**
+ * RFQ Bid Migration Script
+ *
+ * Migrates embedded bid data from MarketplaceRFQ documents to separate ProjectBid documents.
+ *
+ * CRITICAL: This migration is REQUIRED before deploying the Phase 3 schema changes.
+ *
+ * Usage:
+ *   DRY RUN:  pnpm tsx scripts/migrate-rfq-bids.ts --dry-run
+ *   EXECUTE:  pnpm tsx scripts/migrate-rfq-bids.ts --execute
+ *   VERIFY:   pnpm tsx scripts/migrate-rfq-bids.ts --verify
+ *
+ * Safety:
+ *   - Dry run mode by default (shows changes without applying)
+ *   - Validates data integrity before migration
+ *   - Creates backups before modification
+ *   - Atomic updates per RFQ
+ *   - Rollback support
+ */
+
+import mongoose from "mongoose";
+import { connectToDatabase, disconnectFromDatabase } from "../lib/mongodb-unified";
+import { COLLECTIONS } from "../lib/db/collections";
+// Note: ProjectBid model must be created before running this migration
+// import ProjectBidModel from '../server/models/marketplace/ProjectBid';
+
+// Old embedded bid structure (before Phase 3)
+interface OldRFQBid {
+  vendorId: string | mongoose.Types.ObjectId;
+  amount: number;
+  currency: string;
+  leadDays?: number;
+  submittedAt: Date;
+}
+
+const args = process.argv.slice(2);
+const mode = args.includes("--execute")
+  ? "EXECUTE"
+  : args.includes("--verify")
+    ? "VERIFY"
+    : "DRY_RUN";
+
+async function main() {
+  console.log(`\n${"=".repeat(60)}`);
+  console.log(`RFQ BID MIGRATION - MODE: ${mode}`);
+  console.log(`${"=".repeat(60)}\n`);
+
+  try {
+    await connectToDatabase();
+
+    const RFQCollection = mongoose.connection.collection(COLLECTIONS.RFQS);
+    const ProjectBidCollection = mongoose.connection.collection(
+      COLLECTIONS.PROJECT_BIDS,
+    );
+
+    if (mode === "VERIFY") {
+      await verifyMigration(RFQCollection, ProjectBidCollection);
+      return;
+    }
+
+    // Step 1: Find all RFQs with embedded bids
+    const rfqsWithEmbeddedBids = await RFQCollection.find({
+      bids: { $exists: true, $type: "array", $ne: [] },
+      "bids.0.vendorId": { $exists: true }, // Check if first element is an object (embedded)
+    }).toArray();
+
+    console.log(
+      `Found ${rfqsWithEmbeddedBids.length} RFQs with embedded bids\n`,
+    );
+
+    if (rfqsWithEmbeddedBids.length === 0) {
+      console.log("✅ No embedded bids found. Migration not needed.\n");
+      process.exit(0);
+    }
+
+    // Step 2: Process each RFQ
+    const stats = {
+      rfqsProcessed: 0,
+      bidsCreated: 0,
+      rfqsUpdated: 0,
+      errors: 0,
+    };
+
+    for (const rfq of rfqsWithEmbeddedBids) {
+      try {
+        console.log(`\n📋 Processing RFQ: ${rfq._id} (${rfq.title})`);
+        console.log(`   Org: ${rfq.orgId}`);
+        console.log(`   Embedded bids: ${rfq.bids.length}`);
+
+        const embeddedBids = rfq.bids as OldRFQBid[];
+        const newBidIds: mongoose.Types.ObjectId[] = [];
+
+        // Step 3: Create ProjectBid documents from embedded bids
+        for (const bid of embeddedBids) {
+          const projectBidData = {
+            _id: new mongoose.Types.ObjectId(),
+            orgId: rfq.orgId,
+            rfqId: rfq._id,
+            vendorId:
+              typeof bid.vendorId === "string"
+                ? new mongoose.Types.ObjectId(bid.vendorId)
+                : bid.vendorId,
+            amount: bid.amount,
+            currency: bid.currency || "SAR",
+            leadDays: bid.leadDays,
+            submittedAt: bid.submittedAt || new Date(),
+            status: "SUBMITTED",
+            createdAt: bid.submittedAt || new Date(),
+            updatedAt: new Date(),
+            // Add audit fields (placeholder - should be from original user)
+            createdBy: rfq.requesterId,
+            updatedBy: rfq.requesterId,
+          };
+
+          if (mode === "DRY_RUN") {
+            console.log(
+              `   [DRY RUN] Would create ProjectBid: ${projectBidData._id}`,
+            );
+            console.log(`      Vendor: ${projectBidData.vendorId}`);
+            console.log(
+              `      Amount: ${projectBidData.amount} ${projectBidData.currency}`,
+            );
+          } else {
+            await ProjectBidCollection.insertOne(projectBidData);
+            console.log(`   ✅ Created ProjectBid: ${projectBidData._id}`);
+            stats.bidsCreated++;
+          }
+
+          newBidIds.push(projectBidData._id);
+        }
+
+        // Step 4: Update RFQ to replace embedded bids with references
+        if (mode === "DRY_RUN") {
+          console.log(`   [DRY RUN] Would update RFQ ${rfq._id}`);
+          console.log(
+            `      Replace ${embeddedBids.length} embedded bids with ${newBidIds.length} references`,
+          );
+        } else {
+          const result = await RFQCollection.updateOne(
+            { _id: rfq._id },
+            {
+              $set: {
+                bids: newBidIds,
+                updatedAt: new Date(),
+              },
+            },
+          );
+
+          if (result.modifiedCount === 1) {
+            console.log(
+              `   ✅ Updated RFQ ${rfq._id} (replaced bids with references)`,
+            );
+            stats.rfqsUpdated++;
+          } else {
+            console.error(`   ❌ Failed to update RFQ ${rfq._id}`);
+            stats.errors++;
+          }
+        }
+
+        stats.rfqsProcessed++;
+      } catch (error) {
+        console.error(`   ❌ Error processing RFQ ${rfq._id}:`, error);
+        stats.errors++;
+      }
+    }
+
+    // Step 5: Summary
+    console.log(`\n${"=".repeat(60)}`);
+    console.log("MIGRATION SUMMARY");
+    console.log(`${"=".repeat(60)}`);
+    console.log(`RFQs processed:    ${stats.rfqsProcessed}`);
+    console.log(`Bids created:      ${stats.bidsCreated}`);
+    console.log(`RFQs updated:      ${stats.rfqsUpdated}`);
+    console.log(`Errors:            ${stats.errors}`);
+    console.log(`${"=".repeat(60)}\n`);
+
+    if (mode === "DRY_RUN") {
+      console.log("⚠️  DRY RUN MODE: No changes were made to the database.");
+      console.log("   Run with --execute to apply these changes.\n");
+      process.exit(0);
+    }
+
+    if (stats.errors > 0) {
+      console.error(
+        "❌ Migration completed with errors. Please review logs.\n",
+      );
+      process.exit(1);
+    }
+
+    console.log("✅ Migration completed successfully!\n");
+    console.log("Next steps:");
+    console.log(
+      "   1. Run verification: pnpm tsx scripts/migrate-rfq-bids.ts --verify",
+    );
+    console.log("   2. Test RFQ/bid functionality in staging");
+    console.log("   3. Deploy to production\n");
+  } catch (error) {
+    console.error("\n❌ FATAL ERROR:", error);
+    process.exit(1);
+  } finally {
+    await disconnectFromDatabase();
+  }
+}
+
+async function verifyMigration(
+  RFQCollection: mongoose.Collection,
+  ProjectBidCollection: mongoose.Collection,
+) {
+  console.log("Running migration verification...\n");
+
+  // Check 1: No embedded bids remain
+  const rfqsWithEmbeddedBids = await RFQCollection.countDocuments({
+    bids: { $exists: true, $type: "array", $ne: [] },
+    "bids.0.vendorId": { $exists: true },
+  });
+
+  console.log(`Check 1: Embedded bids remaining: ${rfqsWithEmbeddedBids}`);
+  if (rfqsWithEmbeddedBids > 0) {
+    console.error("❌ FAIL: Found RFQs with embedded bids still present\n");
+    process.exit(1);
+  }
+
+  // Check 2: All RFQ bids are ObjectId references
+  const rfqsWithInvalidBids = await RFQCollection.countDocuments({
+    bids: { $exists: true, $not: { $type: "array" } },
+  });
+
+  console.log(
+    `Check 2: RFQs with invalid bid structure: ${rfqsWithInvalidBids}`,
+  );
+  if (rfqsWithInvalidBids > 0) {
+    console.error("❌ FAIL: Found RFQs with invalid bid structure\n");
+    process.exit(1);
+  }
+
+  // Check 3: All ProjectBids have valid rfqId references
+  const bidsWithoutRFQ = await ProjectBidCollection.countDocuments({
+    rfqId: { $exists: false },
+  });
+
+  console.log(`Check 3: ProjectBids without rfqId: ${bidsWithoutRFQ}`);
+  if (bidsWithoutRFQ > 0) {
+    console.error("❌ FAIL: Found ProjectBids without rfqId reference\n");
+    process.exit(1);
+  }
+
+  // Check 4: Data integrity - counts match
+  const totalRFQs = await RFQCollection.countDocuments({});
+  const totalBids = await ProjectBidCollection.countDocuments({});
+
+  console.log(`Check 4: Data counts:`);
+  console.log(`   Total RFQs: ${totalRFQs}`);
+  console.log(`   Total ProjectBids: ${totalBids}`);
+
+  // Check 5: Sample data validation
+  const sampleRFQ = await RFQCollection.findOne({ bids: { $ne: [] } });
+  if (sampleRFQ) {
+    console.log(`\nCheck 5: Sample RFQ validation`);
+    console.log(`   RFQ ID: ${sampleRFQ._id}`);
+    console.log(`   Bid count: ${sampleRFQ.bids.length}`);
+    console.log(`   First bid ID: ${sampleRFQ.bids[0]}`);
+    console.log(
+      `   Is ObjectId: ${mongoose.Types.ObjectId.isValid(sampleRFQ.bids[0])}`,
+    );
+
+    // Verify the referenced bids exist
+    const referencedBids = await ProjectBidCollection.countDocuments({
+      _id: { $in: sampleRFQ.bids },
+    });
+
+    console.log(
+      `   Referenced bids exist: ${referencedBids}/${sampleRFQ.bids.length}`,
+    );
+
+    if (referencedBids !== sampleRFQ.bids.length) {
+      console.error(
+        "❌ FAIL: Referenced bids do not exist in ProjectBid collection\n",
+      );
+      process.exit(1);
+    }
+  }
+
+  console.log("\n✅ ALL CHECKS PASSED - Migration verified successfully!\n");
+  process.exit(0);
+}
+
+main();
+
+]]>
+</file>
+
+<file path="scripts/migrate-souq-orgid.js">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * Migration: Normalize Souq orgId fields to ObjectId
+ * - Converts string orgId values to ObjectId for souq_listings and souq_inventory
+ * - Skips documents where orgId is already ObjectId
+ * - Trims whitespace before conversion
+ *
+ * Usage: MONGODB_URI="mongodb+srv://..." node scripts/migrate-souq-orgid.js
+ */
+
+require("dotenv/config");
+const mongoose = require("mongoose");
+
+const uri = process.env.MONGODB_URI || process.env.DATABASE_URL;
+
+if (!uri) {
+  console.error("❌ MONGODB_URI (or DATABASE_URL) is required");
+  process.exit(1);
+}
+
+async function convertCollection(collectionName) {
+  const collection = mongoose.connection.collection(collectionName);
+  const stringDocs = collection.find({
+    $expr: { $eq: [{ $type: "$orgId" }, "string"] },
+  });
+
+  const bulk = [];
+  let processed = 0;
+  let converted = 0;
+  let skipped = 0;
+
+  while (await stringDocs.hasNext()) {
+    const doc = await stringDocs.next();
+    processed += 1;
+    const rawOrgId = (doc.orgId || "").trim();
+
+    if (!mongoose.Types.ObjectId.isValid(rawOrgId)) {
+      skipped += 1;
+      console.warn(
+        `[WARN] Skipping ${collectionName} _id=${doc._id} invalid orgId=${rawOrgId}`,
+      );
+      continue;
+    }
+
+    const newOrgId = new mongoose.Types.ObjectId(rawOrgId);
+    bulk.push({
+      updateOne: {
+        filter: { _id: doc._id },
+        update: { $set: { orgId: newOrgId } },
+      },
+    });
+    converted += 1;
+
+    if (bulk.length >= 500) {
+      await collection.bulkWrite(bulk);
+      bulk.length = 0;
+    }
+  }
+
+  if (bulk.length) {
+    await collection.bulkWrite(bulk);
+  }
+
+  console.log(
+    `✅ ${collectionName}: processed=${processed}, converted=${converted}, skipped=${skipped}`,
+  );
+}
+
+async function main() {
+  await mongoose.connect(uri);
+  console.log("Connected to MongoDB");
+
+  await convertCollection("souq_listings");
+  await convertCollection("souq_inventory");
+
+  await mongoose.disconnect();
+  console.log("Done.");
+}
+
+main().catch((err) => {
+  console.error("Migration failed", err);
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/migrate-souq-seller-org.ts">
+<![CDATA[
+#!/usr/bin/env ts-node
+/**
+ * Backfill orgId for SouqSeller documents (marketplace tenancy hardening)
+ *
+ * Usage:
+ *   MONGODB_URI=... pnpm tsx scripts/migrate-souq-seller-org.ts [--dry-run] [--batch=500]
+ *
+ * Behavior:
+ * - Finds sellers where orgId is missing/null.
+ * - Attempts to resolve orgId from linked user (userId) and patches the seller.
+ * - Runs in batches to avoid memory spikes.
+ * - Skips sellers with no linked user or missing user orgId (reported at the end).
+ */
+
+import mongoose from "mongoose";
+import { SouqSeller } from "@/server/models/souq/Seller";
+import { User } from "@/server/models/User";
+
+const DRY_RUN = process.argv.includes("--dry-run");
+const BATCH_SIZE =
+  parseInt(
+    process.argv
+      .find((arg) => arg.startsWith("--batch="))
+      ?.split("=")?.[1] || "500",
+    10,
+  ) || 500;
+
+async function main() {
+  const mongoUri = process.env.MONGODB_URI || process.env.DATABASE_URL;
+  if (!mongoUri) {
+    throw new Error("MONGODB_URI or DATABASE_URL must be set");
+  }
+
+  await mongoose.connect(mongoUri);
+  console.log("[migrate-souq-seller-org] Connected to MongoDB");
+
+  const missingQuery = {
+    $or: [{ orgId: { $exists: false } }, { orgId: null }],
+  };
+
+  const totalMissing = await SouqSeller.countDocuments(missingQuery);
+  if (totalMissing === 0) {
+    console.log("[migrate-souq-seller-org] No sellers missing orgId. Nothing to do.");
+    await mongoose.disconnect();
+    return;
+  }
+
+  console.log(
+    `[migrate-souq-seller-org] Sellers missing orgId: ${totalMissing} (batch size: ${BATCH_SIZE})`,
+  );
+
+  const cursor = SouqSeller.find(missingQuery).cursor({ batchSize: BATCH_SIZE });
+  let processed = 0;
+  let updated = 0;
+  let skipped = 0;
+  const missingOwnerOrg: string[] = [];
+
+  const bulkOps: Parameters<typeof SouqSeller.bulkWrite>[0] = [];
+
+  for await (const seller of cursor) {
+    processed++;
+
+    if (!seller.userId) {
+      skipped++;
+      missingOwnerOrg.push(seller._id.toString());
+      continue;
+    }
+
+    const ownerUser = await User.findById(seller.userId)
+      .select("orgId")
+      .lean<{ orgId?: mongoose.Types.ObjectId | string }>();
+
+    if (!ownerUser?.orgId) {
+      skipped++;
+      missingOwnerOrg.push(seller._id.toString());
+      continue;
+    }
+
+    bulkOps.push({
+      updateOne: {
+        filter: { _id: seller._id },
+        update: { $set: { orgId: ownerUser.orgId } },
+      },
+    });
+    updated++;
+
+    if (bulkOps.length >= BATCH_SIZE) {
+      if (!DRY_RUN) {
+        await SouqSeller.bulkWrite(bulkOps, { ordered: false });
+      }
+      bulkOps.length = 0;
+      console.log(
+        `[migrate-souq-seller-org] Progress: processed=${processed}, updated=${updated}, skipped=${skipped}`,
+      );
+    }
+  }
+
+  if (bulkOps.length > 0 && !DRY_RUN) {
+    await SouqSeller.bulkWrite(bulkOps, { ordered: false });
+  }
+
+  console.log("[migrate-souq-seller-org] Migration complete", {
+    processed,
+    updated,
+    skipped,
+    dryRun: DRY_RUN,
+    missingOwnerOrgCount: missingOwnerOrg.length,
+  });
+
+  if (missingOwnerOrg.length) {
+    console.log(
+      "[migrate-souq-seller-org] Sellers missing owner orgId (manual review):",
+      missingOwnerOrg.join(", "),
+    );
+  }
+
+  await mongoose.disconnect();
+}
+
+main().catch((err) => {
+  console.error("[migrate-souq-seller-org] Migration failed:", err);
+  process.exitCode = 1;
+});
+
+]]>
+</file>
+
+<file path="scripts/migrations/2025-01-20-fix-souq-orgid.js">
+<![CDATA[
+/**
+ * Fix souq_* orgId inconsistencies and report legacy ad campaigns collection.
+ *
+ * - Converts string orgId -> ObjectId in:
+ *   - souq_payouts (schema expects ObjectId)
+ *   - souq_withdrawal_requests (downstream expects ObjectId)
+ * - Reports any documents in legacy souq_ad_campaigns.
+ *
+ * Defaults to dry-run. Set DRY_RUN=false to apply changes.
+ * Optional flags:
+ *   - MIGRATE_ADS=true to copy docs from souq_ad_campaigns -> souq_campaigns (upsert by campaignId)
+ *   - DROP_AD_CAMPAIGNS=true to drop legacy collection after migration
+ *
+ * Usage:
+ *   DRY_RUN=true MONGODB_URI="mongodb+srv://..." node scripts/migrations/2025-01-20-fix-souq-orgid.js
+ *   DRY_RUN=false MONGODB_URI="..." node scripts/migrations/2025-01-20-fix-souq-orgid.js
+ *
+ * Safety:
+ * - Dry-run prints counts and sample ids.
+ * - ObjectId conversion only runs on records where orgId is a string.
+ */
+
+const { MongoClient, ObjectId } = require("mongodb");
+
+async function main() {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    throw new Error("MONGODB_URI is required");
+  }
+  const dryRun = process.env.DRY_RUN !== "false";
+  const migrateAds = process.env.MIGRATE_ADS === "true";
+  const dropLegacyAds = process.env.DROP_AD_CAMPAIGNS === "true";
+
+  const client = new MongoClient(uri);
+  await client.connect();
+  const db = client.db();
+
+  const collections = [
+    { name: "souq_payouts", targetType: "ObjectId" },
+    { name: "souq_withdrawal_requests", targetType: "ObjectId" },
+  ];
+
+  for (const { name } of collections) {
+    const coll = db.collection(name);
+    const stringCount = await coll.countDocuments({ orgId: { $type: "string" } });
+    console.log(`[${name}] string orgId count:`, stringCount);
+    if (stringCount === 0) continue;
+
+    const sample = await coll
+      .find({ orgId: { $type: "string" } }, { projection: { _id: 1, orgId: 1 } })
+      .limit(5)
+      .toArray();
+    console.log(`[${name}] sample string orgIds:`, sample);
+
+    if (dryRun) {
+      console.log(`[${name}] dry-run enabled; no writes performed.`);
+      continue;
+    }
+
+    const cursor = coll.find({ orgId: { $type: "string" } }, { projection: { orgId: 1 } });
+    let converted = 0;
+    const bulk = [];
+    while (await cursor.hasNext()) {
+      const doc = await cursor.next();
+      if (!doc?.orgId || typeof doc.orgId !== "string" || !ObjectId.isValid(doc.orgId)) continue;
+      bulk.push({
+        updateOne: {
+          filter: { _id: doc._id },
+          update: { $set: { orgId: new ObjectId(doc.orgId) } },
+        },
+      });
+      if (bulk.length >= 500) {
+        const res = await coll.bulkWrite(bulk, { ordered: false });
+        converted += res.modifiedCount;
+        bulk.length = 0;
+      }
+    }
+    if (bulk.length) {
+      const res = await coll.bulkWrite(bulk, { ordered: false });
+      converted += res.modifiedCount;
+    }
+    console.log(`[${name}] converted string orgIds -> ObjectId: ${converted}`);
+  }
+
+  // Legacy ad campaigns collection check/migrate
+  const legacyName = "souq_ad_campaigns";
+  const modernName = "souq_campaigns";
+  const collectionsList = await db.listCollections({ name: legacyName }).toArray();
+  if (collectionsList.length > 0) {
+    const legacyColl = db.collection(legacyName);
+    const legacyCount = await legacyColl.countDocuments();
+    console.log(`[${legacyName}] documents found: ${legacyCount}`);
+
+    if (legacyCount > 0 && migrateAds) {
+      const modernColl = db.collection(modernName);
+      const cursor = legacyColl.find({}, { projection: { _id: 0 } });
+      let upserts = 0;
+      while (await cursor.hasNext()) {
+        const doc = await cursor.next();
+        if (!doc?.campaignId) continue;
+        const orgId = doc.orgId;
+        const updateDoc = { ...doc };
+        // Ensure orgId stays string for campaigns schema
+        if (orgId && typeof orgId !== "string") {
+          updateDoc.orgId = String(orgId);
+        }
+        await modernColl.updateOne(
+          { campaignId: doc.campaignId },
+          { $set: updateDoc, $setOnInsert: { migratedFrom: legacyName } },
+          { upsert: true },
+        );
+        upserts += 1;
+      }
+      console.log(`[${legacyName}] migrated/upserted into ${modernName}: ${upserts}`);
+      if (dropLegacyAds) {
+        await legacyColl.drop();
+        console.log(`[${legacyName}] dropped after migration.`);
+      }
+    } else {
+      console.log(`[${legacyName}] migration not requested (set MIGRATE_ADS=true to migrate).`);
+    }
+  } else {
+    console.log(`[${legacyName}] collection not present.`);
+  }
+
+  await client.close();
+  console.log("Done.");
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/migrations/2025-11-29-rename-org_id-indexes-fm.ts">
+<![CDATA[
+#!/usr/bin/env npx tsx
+/**
+ * Migration: Update org_id indexes to orgId across all FM collections
+ * 
+ * AUDIT-2025-11-29: Standardize index naming to camelCase for consistency
+ * 
+ * This migration updates the remaining org_id indexes found in FM collections.
+ * The documents already use orgId, but the indexes were created with org_id.
+ * 
+ * Run with: npx tsx scripts/migrations/2025-11-29-rename-org_id-indexes-fm.ts
+ * 
+ * Options:
+ *   --dry-run    Preview changes without applying them
+ */
+
+import { MongoClient } from "mongodb";
+import { config } from "dotenv";
+
+config({ path: ".env.local" });
+config({ path: ".env" });
+
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
+if (!MONGO_URI) {
+  console.error("❌ MONGODB_URI or MONGO_URI environment variable is required");
+  process.exit(1);
+}
+
+async function runMigration(dryRun: boolean) {
+  const client = new MongoClient(MONGO_URI!);
+  
+  try {
+    await client.connect();
+    const db = client.db();
+    
+    console.log(`\n🔄 Migration: Update org_id indexes to orgId in FM collections`);
+    console.log(`📋 Mode: ${dryRun ? "DRY RUN (no changes)" : "LIVE"}\n`);
+
+    // Get all collections
+    const collections = await db.listCollections().toArray();
+    
+    let totalUpdated = 0;
+    let totalSkipped = 0;
+    
+    for (const col of collections) {
+      const collection = db.collection(col.name);
+      const indexes = await collection.indexes();
+      
+      // Find indexes that contain org_id
+      const orgIdIndexes = indexes.filter((idx) => {
+        if (!idx.key) return false;
+        return Object.keys(idx.key).some((k) => k === "org_id");
+      });
+      
+      if (orgIdIndexes.length === 0) {
+        continue;
+      }
+      
+      console.log(`\n📦 ${col.name}: Found ${orgIdIndexes.length} indexes with org_id`);
+      
+      for (const idx of orgIdIndexes) {
+        const oldKeys = idx.key as Record<string, number>;
+        const newKeys: Record<string, number> = {};
+        
+        // Replace org_id with orgId in the key
+        for (const [k, v] of Object.entries(oldKeys)) {
+          newKeys[k === "org_id" ? "orgId" : k] = v;
+        }
+        
+        console.log(`   📇 ${idx.name}: ${JSON.stringify(oldKeys)} → ${JSON.stringify(newKeys)}`);
+        
+        if (!dryRun) {
+          try {
+            // Drop the old index
+            await collection.dropIndex(idx.name!);
+            console.log(`   ✅ Dropped: ${idx.name}`);
+            
+            // Create the new index with same options (except internal fields)
+            const { key, name, ns, v, ...options } = idx;
+            await collection.createIndex(newKeys, { ...options, background: true });
+            console.log(`   ✅ Created: ${JSON.stringify(newKeys)}`);
+            totalUpdated++;
+          } catch (error) {
+            console.log(`   ⚠️  Error: ${(error as Error).message}`);
+          }
+        } else {
+          totalUpdated++;
+        }
+      }
+    }
+    
+    console.log(`\n✅ Migration complete!`);
+    console.log(`   📊 Indexes updated: ${totalUpdated}`);
+    
+    if (dryRun) {
+      console.log("\n⚠️  This was a dry run. Run without --dry-run to apply changes.");
+      console.log("   Run: DRY_RUN=false npx tsx scripts/migrations/2025-11-29-rename-org_id-indexes-fm.ts");
+    }
+    
+  } catch (error) {
+    console.error("❌ Migration failed:", error);
+    process.exit(1);
+  } finally {
+    await client.close();
+  }
+}
+
+// Parse arguments
+const args = process.argv.slice(2);
+const dryRun = args.includes("--dry-run") || process.env.DRY_RUN !== "false";
+
+runMigration(dryRun);
+
+]]>
+</file>
+
+<file path="scripts/migrations/2025-11-29-rename-org_id-to-orgId.ts">
+<![CDATA[
+#!/usr/bin/env npx tsx
+/**
+ * Migration: Rename org_id → orgId across all collections
+ * 
+ * AUDIT-2025-11-29: Standardize field naming to camelCase for consistency
+ * 
+ * This migration renames snake_case tenant fields to camelCase in the following collections:
+ * - onboarding_cases (org_id → orgId, subject_org_id → subjectOrgId)
+ * - souq_settlements (org_id → orgId)
+ * - souq_reviews (org_id → orgId)
+ * - payment_methods (org_id → orgId)
+ * - agent_audit_logs (org_id → orgId)
+ * 
+ * Run with: npx tsx scripts/migrations/2025-11-29-rename-org_id-to-orgId.ts
+ * 
+ * Options:
+ *   --dry-run    Preview changes without applying them
+ *   --rollback   Reverse the migration (orgId → org_id)
+ */
+
+import { MongoClient } from "mongodb";
+import { config } from "dotenv";
+
+config({ path: ".env.local" });
+config({ path: ".env" });
+
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
+if (!MONGO_URI) {
+  console.error("❌ MONGODB_URI or MONGO_URI environment variable is required");
+  process.exit(1);
+}
+
+const COLLECTIONS_TO_MIGRATE = [
+  { name: "onboarding_cases", field: "org_id", newField: "orgId" },
+  { name: "onboarding_cases", field: "subject_org_id", newField: "subjectOrgId" },
+  { name: "souq_settlements", field: "org_id", newField: "orgId" },
+  { name: "souq_reviews", field: "org_id", newField: "orgId" },
+  { name: "payment_methods", field: "org_id", newField: "orgId" },
+  { name: "agent_audit_logs", field: "org_id", newField: "orgId" },
+];
+
+// Index definitions to update (drop old, create new)
+const INDEXES_TO_UPDATE = [
+  {
+    collection: "onboarding_cases",
+    dropIndex: { org_id: 1 },
+    createIndex: { orgId: 1 },
+    indexOptions: { background: true },
+  },
+  {
+    collection: "onboarding_cases",
+    dropIndex: { org_id: 1, status: 1, role: 1 },
+    createIndex: { orgId: 1, status: 1, role: 1 },
+    indexOptions: { background: true },
+  },
+  {
+    collection: "onboarding_cases",
+    dropIndex: { subject_org_id: 1 },
+    createIndex: { subjectOrgId: 1 },
+    indexOptions: { background: true },
+  },
+  {
+    collection: "souq_settlements",
+    dropIndex: { org_id: 1, status: 1 },
+    createIndex: { orgId: 1, status: 1 },
+    indexOptions: { background: true },
+  },
+  {
+    collection: "payment_methods",
+    dropIndex: { org_id: 1 },
+    createIndex: { orgId: 1 },
+    indexOptions: { background: true },
+  },
+  {
+    collection: "agent_audit_logs",
+    dropIndex: { org_id: 1, timestamp: -1 },
+    createIndex: { orgId: 1, timestamp: -1 },
+    indexOptions: { background: true },
+  },
+  {
+    collection: "agent_audit_logs",
+    dropIndex: { org_id: 1, resource_type: 1, timestamp: -1 },
+    createIndex: { orgId: 1, resource_type: 1, timestamp: -1 },
+    indexOptions: { background: true },
+  },
+  {
+    collection: "agent_audit_logs",
+    dropIndex: { org_id: 1, success: 1, timestamp: -1 },
+    createIndex: { orgId: 1, success: 1, timestamp: -1 },
+    indexOptions: { background: true },
+  },
+];
+
+function buildCreateIndexOptions(
+  existingIndex: Record<string, any> | undefined,
+  indexOptions: Record<string, any> = {},
+) {
+  if (!existingIndex) return { ...indexOptions };
+  const { key, name, ns, v, ...rest } = existingIndex;
+  return { ...rest, ...indexOptions };
+}
+
+async function runMigration(dryRun: boolean, rollback: boolean) {
+  const client = new MongoClient(MONGO_URI!);
+  
+  try {
+    await client.connect();
+    const db = client.db();
+    
+    console.log(`\n🔄 Migration: ${rollback ? "Rollback" : "Forward"} (org_id ${rollback ? "←" : "→"} orgId)`);
+    console.log(`📋 Mode: ${dryRun ? "DRY RUN (no changes)" : "LIVE"}\n`);
+
+    // Step 1: Rename fields in documents
+    for (const { name, field, newField } of COLLECTIONS_TO_MIGRATE) {
+      const collection = db.collection(name);
+      const sourceField = rollback ? newField : field;
+      const targetField = rollback ? field : newField;
+      const filter = { [sourceField]: { $exists: true } };
+      
+      if (dryRun) {
+        const count = await collection.countDocuments(filter);
+        if (count === 0) {
+          console.log(`⏭️  ${name}: No documents with '${sourceField}' field, skipping`);
+          continue;
+        }
+        console.log(`📦 ${name}: ${count} documents would update (${sourceField} → ${targetField})`);
+        continue;
+      }
+
+      // Use $rename to atomically rename the field
+      const result = await collection.updateMany(filter, { $rename: { [sourceField]: targetField } });
+      if (result.matchedCount === 0) {
+        console.log(`⏭️  ${name}: No documents with '${sourceField}' field, skipping`);
+      } else {
+        console.log(
+          `📦 ${name}: ${result.modifiedCount} documents updated (${sourceField} → ${targetField})`,
+        );
+      }
+    }
+
+    // Step 2: Update indexes
+    console.log("\n📇 Updating indexes...");
+    
+    for (const { collection: collName, dropIndex, createIndex, indexOptions } of INDEXES_TO_UPDATE) {
+      const collection = db.collection(collName);
+      const sourceIndex = rollback ? createIndex : dropIndex;
+      const targetIndex = rollback ? dropIndex : createIndex;
+      
+      try {
+        // Check if source index exists
+        const indexes = await collection.indexes();
+        const existingIndex = indexes.find((idx) => {
+          const idxKeys = Object.keys(idx.key ?? {});
+          const sourceKeys = Object.keys(sourceIndex);
+          if (idxKeys.length !== sourceKeys.length) return false;
+          // Compare key/value regardless of key order
+          return sourceKeys.every(
+            (k) => (idx.key as Record<string, number | undefined>)?.[k] === sourceIndex[k as keyof typeof sourceIndex],
+          );
+        });
+        
+        if (existingIndex) {
+          console.log(`   ${collName}: Found index ${JSON.stringify(sourceIndex)}`);
+          
+          if (!dryRun) {
+            // Drop old index
+            await collection.dropIndex(existingIndex.name!);
+            console.log(`   ✅ Dropped: ${existingIndex.name}`);
+            
+            // Create new index
+            const createOptions = buildCreateIndexOptions(existingIndex, indexOptions);
+            await collection.createIndex(targetIndex, createOptions);
+            console.log(`   ✅ Created: ${JSON.stringify(targetIndex)} with options ${JSON.stringify(createOptions)}`);
+          }
+        } else {
+          console.log(`   ⚠️  ${collName}: Index ${JSON.stringify(sourceIndex)} not found`);
+          if (!dryRun) {
+            const createOptions = { ...indexOptions };
+            await collection.createIndex(targetIndex, createOptions);
+            console.log(`   ✅ Created missing index ${JSON.stringify(targetIndex)} with options ${JSON.stringify(createOptions)}`);
+          }
+        }
+      } catch (error) {
+        console.log(`   ⚠️  ${collName}: Error updating index: ${(error as Error).message}`);
+      }
+    }
+
+    console.log("\n✅ Migration complete!");
+    
+    if (dryRun) {
+      console.log("\n⚠️  This was a dry run. Run without --dry-run to apply changes.");
+    }
+    
+  } catch (error) {
+    console.error("❌ Migration failed:", error);
+    process.exit(1);
+  } finally {
+    await client.close();
+  }
+}
+
+// Parse arguments
+const args = process.argv.slice(2);
+const dryRun = args.includes("--dry-run");
+const rollback = args.includes("--rollback");
+
+runMigration(dryRun, rollback);
+
+]]>
+</file>
+
+<file path="scripts/migrations/2025-12-01-rename-org_id-aqar-payments.ts">
+<![CDATA[
+#!/usr/bin/env npx tsx
+/**
+ * Migration: Normalize org_id → orgId in aqar_payments
+ *
+ * Scope:
+ * - Rename org_id to orgId (only when orgId is absent to avoid overwrites)
+ * - Rebuild any indexes that still reference org_id with orgId equivalents
+ *
+ * Usage:
+ *   DRY RUN (default):
+ *     npx tsx scripts/migrations/2025-12-01-rename-org_id-aqar-payments.ts --dry-run
+ *
+ *   Apply (live):
+ *     DRY_RUN=false npx tsx scripts/migrations/2025-12-01-rename-org_id-aqar-payments.ts
+ *
+ *   Rollback:
+ *     ROLLBACK=true npx tsx scripts/migrations/2025-12-01-rename-org_id-aqar-payments.ts
+ *
+ * Notes:
+ * - Requires MONGODB_URI or MONGO_URI to be set.
+ * - Safe-guards prevent overwriting orgId when already present; documents with both
+ *   fields are reported for manual review.
+ */
+
+import { MongoClient, Document, IndexDescription } from "mongodb";
+import { config } from "dotenv";
+
+config({ path: ".env.local" });
+config({ path: ".env" });
+
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
+if (!MONGO_URI) {
+  console.error("❌ MONGODB_URI or MONGO_URI environment variable is required");
+  process.exit(1);
+}
+
+const COLLECTION = "aqar_payments";
+
+function buildCreateIndexOptions(idx: IndexDescription) {
+  // Preserve options except internal fields
+  const { key, name, ns, v, ...rest } = idx as Record<string, unknown>;
+  // Always set background creation for safety
+  return { ...rest, background: true };
+}
+
+async function renameFields(collection: ReturnType<MongoClient["db"]>["collection"], dryRun: boolean, rollback: boolean) {
+  const sourceField = rollback ? "orgId" : "org_id";
+  const targetField = rollback ? "org_id" : "orgId";
+
+  // Docs where target is missing (safe to rename)
+  const safeFilter = {
+    [sourceField]: { $exists: true },
+    [targetField]: { $exists: false },
+  };
+
+  const conflictFilter = {
+    [sourceField]: { $exists: true },
+    [targetField]: { $exists: true },
+  };
+
+  const conflicts = await collection.countDocuments(conflictFilter);
+  if (conflicts > 0) {
+    console.warn(
+      `⚠️  Found ${conflicts} documents with both ${sourceField} and ${targetField}; skipping these to avoid overwrites.`,
+    );
+  }
+
+  if (dryRun) {
+    const count = await collection.countDocuments(safeFilter);
+    console.log(
+      `📦 DRY-RUN: ${count} documents would be renamed (${sourceField} → ${targetField})`,
+    );
+    return;
+  }
+
+  const result = await collection.updateMany(safeFilter, { $rename: { [sourceField]: targetField } });
+  console.log(
+    `📦 Updated ${result.modifiedCount}/${result.matchedCount} documents (${sourceField} → ${targetField})`,
+  );
+}
+
+function rebuildIndexKey(key: Record<string, number | string>, rollback: boolean) {
+  const from = rollback ? "orgId" : "org_id";
+  const to = rollback ? "org_id" : "orgId";
+
+  const newKey: Record<string, number | string> = {};
+  for (const [k, v] of Object.entries(key)) {
+    newKey[k === from ? to : k] = v;
+  }
+  return newKey;
+}
+
+async function rebuildIndexes(collection: ReturnType<MongoClient["db"]>["collection"], dryRun: boolean, rollback: boolean) {
+  const indexes = await collection.indexes();
+  let updated = 0;
+
+  for (const idx of indexes) {
+    if (!idx.key) continue;
+    const containsLegacy = Object.keys(idx.key).includes(rollback ? "orgId" : "org_id");
+    if (!containsLegacy) continue;
+
+    const newKey = rebuildIndexKey(idx.key as Record<string, number>, rollback);
+    console.log(
+      `\n📇 ${idx.name}: ${JSON.stringify(idx.key)} → ${JSON.stringify(newKey)}`,
+    );
+
+    if (dryRun) {
+      updated++;
+      continue;
+    }
+
+    try {
+      await collection.dropIndex(idx.name!);
+      console.log(`   ✅ Dropped ${idx.name}`);
+
+      const options = buildCreateIndexOptions(idx);
+      await collection.createIndex(newKey, options);
+      console.log(`   ✅ Created ${JSON.stringify(newKey)} with options ${JSON.stringify(options)}`);
+      updated++;
+    } catch (error) {
+      console.error(`   ⚠️  Error rebuilding index ${idx.name}: ${(error as Error).message}`);
+    }
+  }
+
+  if (updated === 0) {
+    console.log("📇 No indexes required rebuilding");
+  } else {
+    console.log(`📊 Indexes updated: ${updated}`);
+  }
+}
+
+async function runMigration(dryRun: boolean, rollback: boolean) {
+  const client = new MongoClient(MONGO_URI!);
+
+  try {
+    await client.connect();
+    const db = client.db();
+    const collection = db.collection(COLLECTION);
+
+    console.log(
+      `\n🔄 Migration: ${rollback ? "Rollback" : "Forward"} org_id ↔ orgId in ${COLLECTION}`,
+    );
+    console.log(`📋 Mode: ${dryRun ? "DRY RUN (no changes)" : "LIVE"}\n`);
+
+    await renameFields(collection, dryRun, rollback);
+    await rebuildIndexes(collection, dryRun, rollback);
+
+    console.log("\n✅ Migration complete.");
+    if (dryRun) {
+      console.log("⚠️  This was a dry run. Run with DRY_RUN=false to apply changes.");
+    }
+  } catch (error) {
+    console.error("❌ Migration failed:", error);
+    process.exit(1);
+  } finally {
+    await client.close();
+  }
+}
+
+const args = process.argv.slice(2);
+const dryRun = args.includes("--dry-run") || process.env.DRY_RUN !== "false";
+const rollback = args.includes("--rollback") || process.env.ROLLBACK === "true";
+
+runMigration(dryRun, rollback);
+
+]]>
+</file>
+
+<file path="scripts/migrations/2025-12-03-create-qa-logs-indexes.ts">
+<![CDATA[
+#!/usr/bin/env npx tsx
+/**
+ * Migration: Create QA Logs Indexes
+ * 
+ * AUDIT-2025-12-03: Add indexes to qa_logs collection for multi-tenant isolation
+ * 
+ * This migration creates the following indexes:
+ * - { timestamp: -1 } - For efficient reverse chronological queries
+ * - { orgId: 1, timestamp: -1 } - For org-scoped queries (STRICT v4 tenant isolation)
+ * - { orgId: 1, event: 1, timestamp: -1 } - For event-specific org-scoped queries
+ * - { timestamp: 1 } with TTL - Auto-delete after 90 days to bound storage
+ * 
+ * CONTEXT:
+ * Previously qa_logs had no orgId field and allowed anonymous writes.
+ * As of this migration, the qa/log endpoint requires SUPER_ADMIN auth and
+ * includes orgId/userId on all new writes. Historical documents without
+ * orgId will be excluded from org-scoped queries.
+ * 
+ * Run with: npx tsx scripts/migrations/2025-12-03-create-qa-logs-indexes.ts
+ * 
+ * Options:
+ *   --dry-run    Preview changes without applying them
+ */
+
+import "dotenv/config";
+import { getDatabase, disconnectFromDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
+
+const DRY_RUN = process.argv.includes("--dry-run");
+
+const INDEXES_TO_CREATE = [
+  {
+    collection: COLLECTIONS.QA_LOGS,
+    index: { timestamp: -1 },
+    options: { name: "timestamp_desc", background: true },
+  },
+  {
+    collection: COLLECTIONS.QA_LOGS,
+    index: { orgId: 1, timestamp: -1 },
+    options: { 
+      name: "orgId_timestamp", 
+      background: true, 
+      sparse: true,  // Exclude documents without orgId
+    },
+  },
+  {
+    collection: COLLECTIONS.QA_LOGS,
+    index: { orgId: 1, event: 1, timestamp: -1 },
+    options: { 
+      name: "orgId_event_timestamp", 
+      background: true, 
+      sparse: true,  // Exclude documents without orgId
+    },
+  },
+  {
+    // TTL index: Auto-delete qa_logs after 90 days to bound storage growth
+    collection: COLLECTIONS.QA_LOGS,
+    index: { timestamp: 1 },
+    options: { 
+      name: "qa_logs_ttl_90d", 
+      expireAfterSeconds: 90 * 24 * 60 * 60,  // 90 days
+      background: true 
+    },
+  },
+];
+
+async function main() {
+  console.log("🔧 QA Logs Index Migration");
+  console.log(DRY_RUN ? "📝 DRY RUN MODE - No changes will be applied\n" : "\n");
+
+  try {
+    const db = await getDatabase();
+    console.log("✅ Connected to MongoDB");
+
+    // First, check if qa_logs collection exists
+    const collections = await db.listCollections({ name: COLLECTIONS.QA_LOGS }).toArray();
+    if (collections.length === 0) {
+      console.log("⚠️  qa_logs collection does not exist yet, will be created on first insert");
+    } else {
+      // Count documents for context
+      const totalCount = await db.collection(COLLECTIONS.QA_LOGS).countDocuments({});
+      const withOrgId = await db.collection(COLLECTIONS.QA_LOGS).countDocuments({ orgId: { $exists: true } });
+      console.log(`📊 qa_logs stats: ${totalCount} total documents, ${withOrgId} with orgId`);
+      
+      if (totalCount > 0 && withOrgId < totalCount) {
+        console.log(`⚠️  ${totalCount - withOrgId} legacy documents without orgId will be excluded from org-scoped queries`);
+      }
+    }
+
+    for (const { collection, index, options } of INDEXES_TO_CREATE) {
+      console.log(`\n📊 Creating index on ${collection}:`, index);
+      
+      try {
+        // Check if index already exists
+        const existingIndexes = await db.collection(collection).listIndexes().toArray();
+        const indexExists = existingIndexes.some(
+          (existing) => existing.name === options.name
+        );
+
+        if (indexExists) {
+          console.log(`   ⏭️  Index "${options.name}" already exists, skipping`);
+          continue;
+        }
+
+        if (DRY_RUN) {
+          console.log(`   📝 Would create index:`, { ...index, ...options });
+        } else {
+          await db.collection(collection).createIndex(index, options);
+          console.log(`   ✅ Created index "${options.name}"`);
+        }
+      } catch (error) {
+        console.error(`   ❌ Failed to create index:`, error instanceof Error ? error.message : error);
+      }
+    }
+
+    console.log("\n✅ Migration complete");
+    if (DRY_RUN) {
+      console.log("\n⚠️  This was a dry run. Run without --dry-run to apply changes.");
+    }
+  } finally {
+    await disconnectFromDatabase();
+  }
+}
+
+main().catch((error) => {
+  console.error("❌ Migration failed:", error);
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/migrations/2025-12-05-backfill-property-location.ts">
+<![CDATA[
+#!/usr/bin/env npx tsx
+/**
+ * Migration: Backfill address.location GeoJSON points from legacy lat/lng
+ *
+ * Context:
+ * - Property schema now exposes address.location (GeoJSON Point) and a 2dsphere index.
+ * - Legacy documents only have address.coordinates.lat/lng.
+ *
+ * Behavior:
+ * - For each property with numeric lat/lng and missing/invalid address.location,
+ *   set address.location = { type: "Point", coordinates: [lng, lat] }.
+ * - Leaves legacy lat/lng in place for backward compatibility.
+ *
+ * Run:
+ *   DRY_RUN=true  npx tsx scripts/migrations/2025-12-05-backfill-property-location.ts
+ *   DRY_RUN=false npx tsx scripts/migrations/2025-12-05-backfill-property-location.ts
+ */
+
+import { MongoClient } from "mongodb";
+import { config } from "dotenv";
+import { COLLECTIONS } from "../utils/collections";
+
+config({ path: ".env.local" });
+config({ path: ".env" });
+
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
+if (!MONGO_URI) {
+  console.error("❌ MONGODB_URI or MONGO_URI environment variable is required");
+  process.exit(1);
+}
+
+function isValidNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function isValidLocation(loc: any): boolean {
+  return (
+    loc &&
+    loc.type === "Point" &&
+    Array.isArray(loc.coordinates) &&
+    loc.coordinates.length === 2 &&
+    isValidNumber(loc.coordinates[0]) &&
+    isValidNumber(loc.coordinates[1])
+  );
+}
+
+async function runMigration(dryRun: boolean) {
+  const client = new MongoClient(MONGO_URI!);
+  try {
+    await client.connect();
+    const db = client.db();
+    const collection = db.collection(COLLECTIONS.PROPERTIES);
+
+    console.log(`\n🔄 Migration: Backfill address.location on properties`);
+    console.log(`📋 Mode: ${dryRun ? "DRY RUN (no writes)" : "LIVE"}\n`);
+
+    const cursor = collection.find(
+      {
+        "address.coordinates.lat": { $type: "number" },
+        "address.coordinates.lng": { $type: "number" },
+      },
+      { projection: { _id: 1, address: 1 } },
+    );
+
+    let total = 0;
+    let updated = 0;
+    let skippedValid = 0;
+    let skippedInvalid = 0;
+
+    while (await cursor.hasNext()) {
+      const doc = await cursor.next();
+      if (!doc) break;
+      total += 1;
+
+      const lat = doc.address?.coordinates?.lat;
+      const lng = doc.address?.coordinates?.lng;
+      const currentLoc = doc.address?.location;
+
+      if (!isValidNumber(lat) || !isValidNumber(lng)) {
+        skippedInvalid += 1;
+        continue;
+      }
+
+      if (isValidLocation(currentLoc)) {
+        skippedValid += 1;
+        continue;
+      }
+
+      const location = { type: "Point", coordinates: [lng, lat] as [number, number] };
+
+      if (!dryRun) {
+        await collection.updateOne(
+          { _id: doc._id },
+          {
+            $set: {
+              "address.location": location,
+            },
+          },
+        );
+      }
+      updated += 1;
+    }
+
+    console.log(`\n✅ Migration complete`);
+    console.log(`   Scanned:  ${total}`);
+    console.log(`   Updated:  ${updated}`);
+    console.log(`   Skipped (valid location): ${skippedValid}`);
+    console.log(`   Skipped (invalid lat/lng): ${skippedInvalid}`);
+
+    if (dryRun) {
+      console.log("\n⚠️  Dry run only. Re-run with DRY_RUN=false to apply changes.");
+    }
+  } catch (error) {
+    console.error("❌ Migration failed:", error);
+    process.exit(1);
+  } finally {
+    await client.close();
+  }
+}
+
+const dryRun = process.env.DRY_RUN !== "false";
+runMigration(dryRun);
+
+]]>
+</file>
+
+<file path="scripts/migrations/2025-12-05-backfill-souq-ads-fees-orgId.ts">
+<![CDATA[
+#!/usr/bin/env npx tsx
+/**
+ * Migration: Backfill orgId on Souq advertising and fee schedule collections.
+ *
+ * Targets:
+ * - souq_campaigns        (orgId from seller)
+ * - souq_ad_groups        (orgId from campaign -> seller)
+ * - souq_ads              (orgId from adGroup -> campaign -> seller)
+ * - souq_ad_targets       (orgId from adGroup -> campaign -> seller)
+ * - souq_fee_schedules    (no strong linkage; logs unresolved for manual review)
+ *
+ * Usage:
+ *   npx tsx scripts/migrations/2025-12-05-backfill-souq-ads-fees-orgId.ts --dry-run
+ *   npx tsx scripts/migrations/2025-12-05-backfill-souq-ads-fees-orgId.ts
+ */
+
+import "dotenv/config";
+import { ObjectId } from "mongodb";
+import { getDatabase, disconnectFromDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
+
+const DRY_RUN = process.argv.includes("--dry-run");
+const BATCH_SIZE = 200;
+
+type CampaignDoc = { _id: ObjectId; sellerId?: ObjectId | string; orgId?: string };
+type AdGroupDoc = { _id: ObjectId; campaignId?: ObjectId | string; sellerId?: ObjectId | string; orgId?: string };
+type AdDoc = {
+  _id: ObjectId;
+  adGroupId?: ObjectId | string;
+  campaignId?: ObjectId | string;
+  sellerId?: ObjectId | string;
+  orgId?: string;
+};
+type AdTargetDoc = {
+  _id: ObjectId;
+  adGroupId?: ObjectId | string;
+  campaignId?: ObjectId | string;
+  sellerId?: ObjectId | string;
+  orgId?: string;
+};
+type FeeScheduleDoc = { _id: ObjectId; orgId?: string };
+
+async function resolveOrgIdFromSeller(db: Awaited<ReturnType<typeof getDatabase>>, sellerId?: ObjectId | string) {
+  if (!sellerId) return null;
+  const sellers = db.collection(COLLECTIONS.SOUQ_SETTLEMENTS.replace("settlements", "sellers")); // sellers collection is "souq_sellers"
+  const queries: Array<Record<string, unknown>> = [];
+  if (ObjectId.isValid(String(sellerId))) {
+    queries.push({ _id: new ObjectId(String(sellerId)) });
+  }
+  queries.push({ sellerId });
+
+  for (const q of queries) {
+    const seller = await sellers.findOne(q, { projection: { orgId: 1 } });
+    if (seller?.orgId) return typeof seller.orgId === "string" ? seller.orgId : String(seller.orgId);
+  }
+  return null;
+}
+
+async function resolveOrgIdFromCampaign(
+  db: Awaited<ReturnType<typeof getDatabase>>,
+  campaignId?: ObjectId | string,
+): Promise<string | null> {
+  if (!campaignId) return null;
+  const campaigns = db.collection(COLLECTIONS.SOUQ_CAMPAIGNS);
+  const queries: Array<Record<string, unknown>> = [];
+  if (ObjectId.isValid(String(campaignId))) queries.push({ _id: new ObjectId(String(campaignId)) });
+  queries.push({ campaignId });
+
+  for (const q of queries) {
+    const campaign = await campaigns.findOne(q, { projection: { orgId: 1, sellerId: 1 } });
+    if (campaign?.orgId) return typeof campaign.orgId === "string" ? campaign.orgId : String(campaign.orgId);
+    if (campaign?.sellerId) {
+      const orgId = await resolveOrgIdFromSeller(db, campaign.sellerId);
+      if (orgId) return orgId;
+    }
+  }
+  return null;
+}
+
+async function resolveOrgIdFromAdGroup(
+  db: Awaited<ReturnType<typeof getDatabase>>,
+  adGroupId?: ObjectId | string,
+  campaignId?: ObjectId | string,
+  sellerId?: ObjectId | string,
+): Promise<string | null> {
+  if (!adGroupId && !campaignId && !sellerId) return null;
+  const adGroups = db.collection(COLLECTIONS.SOUQ_AD_GROUPS);
+  const queries: Array<Record<string, unknown>> = [];
+  if (adGroupId && ObjectId.isValid(String(adGroupId))) queries.push({ _id: new ObjectId(String(adGroupId)) });
+  if (adGroupId) queries.push({ adGroupId });
+  if (campaignId) queries.push({ campaignId });
+
+  for (const q of queries) {
+    const adGroup = await adGroups.findOne(q, { projection: { orgId: 1, campaignId: 1, sellerId: 1 } });
+    if (adGroup?.orgId) return typeof adGroup.orgId === "string" ? adGroup.orgId : String(adGroup.orgId);
+    const viaCampaign = await resolveOrgIdFromCampaign(db, adGroup?.campaignId ?? campaignId);
+    if (viaCampaign) return viaCampaign;
+    if (adGroup?.sellerId) {
+      const orgId = await resolveOrgIdFromSeller(db, adGroup.sellerId);
+      if (orgId) return orgId;
+    }
+  }
+
+  if (campaignId) {
+    const viaCampaign = await resolveOrgIdFromCampaign(db, campaignId);
+    if (viaCampaign) return viaCampaign;
+  }
+  if (sellerId) {
+    const viaSeller = await resolveOrgIdFromSeller(db, sellerId);
+    if (viaSeller) return viaSeller;
+  }
+  return null;
+}
+
+async function backfillCollection<T extends Record<string, unknown>>(
+  db: Awaited<ReturnType<typeof getDatabase>>,
+  opts: {
+    collection: string;
+    projector: Record<string, unknown>;
+    resolver: (doc: T) => Promise<string | null>;
+    name: string;
+  },
+) {
+  const { collection, projector, resolver, name } = opts;
+  let processed = 0;
+  let updated = 0;
+  let unresolved = 0;
+
+  const cursor = db.collection<T>(collection).find({ orgId: { $exists: false } }, { projection: projector });
+
+  while (await cursor.hasNext()) {
+    const batch: T[] = [];
+    for (let i = 0; i < BATCH_SIZE; i++) {
+      const doc = await cursor.next();
+      if (!doc) break;
+      batch.push(doc);
+    }
+    if (batch.length === 0) break;
+
+    const ops = [];
+    for (const doc of batch) {
+      processed++;
+      // @ts-expect-error _id exists on T
+      const _id = (doc as { _id: ObjectId })._id;
+      const orgId = await resolver(doc);
+      if (!orgId) {
+        unresolved++;
+        continue;
+      }
+      ops.push({ updateOne: { filter: { _id }, update: { $set: { orgId } } } });
+    }
+
+    if (!DRY_RUN && ops.length > 0) {
+      const res = await db.collection(collection).bulkWrite(ops, { ordered: false });
+      updated += res.modifiedCount ?? 0;
+    } else if (DRY_RUN) {
+      updated += ops.length;
+    }
+  }
+
+  console.log(`${name}: processed=${processed}, updated=${updated}, unresolved=${unresolved}`);
+}
+
+async function main() {
+  console.log("🔧 Backfill orgId for Souq advertising and fee schedules");
+  if (DRY_RUN) console.log("📝 DRY RUN - no writes will be performed\n");
+
+  const db = await getDatabase();
+  try {
+    await backfillCollection<CampaignDoc>(db, {
+      collection: COLLECTIONS.SOUQ_CAMPAIGNS,
+      projector: { sellerId: 1 },
+      name: "Campaigns",
+      resolver: async (doc) => resolveOrgIdFromSeller(db, doc.sellerId),
+    });
+
+    await backfillCollection<AdGroupDoc>(db, {
+      collection: COLLECTIONS.SOUQ_AD_GROUPS,
+      projector: { campaignId: 1, sellerId: 1 },
+      name: "AdGroups",
+      resolver: async (doc) => resolveOrgIdFromAdGroup(db, doc._id, doc.campaignId, doc.sellerId),
+    });
+
+    await backfillCollection<AdDoc>(db, {
+      collection: COLLECTIONS.SOUQ_ADS,
+      projector: { adGroupId: 1, campaignId: 1, sellerId: 1 },
+      name: "Ads",
+      resolver: async (doc) =>
+        (await resolveOrgIdFromAdGroup(db, doc.adGroupId, doc.campaignId, doc.sellerId)) ??
+        (await resolveOrgIdFromCampaign(db, doc.campaignId)) ??
+        (await resolveOrgIdFromSeller(db, doc.sellerId)),
+    });
+
+    await backfillCollection<AdTargetDoc>(db, {
+      collection: COLLECTIONS.SOUQ_AD_TARGETS,
+      projector: { adGroupId: 1, campaignId: 1, sellerId: 1 },
+      name: "AdTargets",
+      resolver: async (doc) =>
+        (await resolveOrgIdFromAdGroup(db, doc.adGroupId, doc.campaignId, doc.sellerId)) ??
+        (await resolveOrgIdFromCampaign(db, doc.campaignId)) ??
+        (await resolveOrgIdFromSeller(db, doc.sellerId)),
+    });
+
+    // Fee schedules have no strong linkage; log unresolved for manual follow-up
+    await backfillCollection<FeeScheduleDoc>(db, {
+      collection: COLLECTIONS.SOUQ_FEE_SCHEDULES,
+      projector: {},
+      name: "FeeSchedules",
+      resolver: async () => null, // intentional: requires manual org resolution
+    });
+
+    console.log("\n✅ Backfill complete");
+    if (DRY_RUN) console.log("⚠️  This was a dry run. Run without --dry-run to apply updates.");
+  } finally {
+    await disconnectFromDatabase();
+  }
+}
+
+main().catch((err) => {
+  console.error("❌ Migration failed", err);
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/migrations/2025-12-05-backfill-souq-claims-rmas-orgId.ts">
+<![CDATA[
+#!/usr/bin/env npx tsx
+/**
+ * Migration: Backfill orgId on Souq claims and RMAs
+ *
+ * Why:
+ * - Claim and RMA schemas now require orgId + org-scoped indexes.
+ * - Legacy documents without orgId will fail validation and are excluded from org-scoped queries.
+ *
+ * Strategy:
+ * - For each claim/RMA missing orgId, resolve orgId via:
+ *   1) Matching order (by _id or orderId) and reading order.orgId
+ *   2) Fallback to buyer/seller user.orgId when order is missing
+ * - Bulk update in batches to avoid overwhelming Mongo.
+ *
+ * Usage:
+ *   npx tsx scripts/migrations/2025-12-05-backfill-souq-claims-rmas-orgId.ts
+ *   npx tsx scripts/migrations/2025-12-05-backfill-souq-claims-rmas-orgId.ts --dry-run
+ */
+
+import "dotenv/config";
+import { ObjectId } from "mongodb";
+import { getDatabase, disconnectFromDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
+
+const DRY_RUN = process.argv.includes("--dry-run");
+const BATCH_SIZE = 200;
+
+type ClaimDoc = {
+  _id: ObjectId;
+  orderId?: string;
+  buyerId?: string;
+  sellerId?: string;
+  orgId?: string;
+};
+
+type RMADoc = {
+  _id: ObjectId;
+  orderId?: string;
+  buyerId?: string;
+  sellerId?: string;
+  orgId?: string;
+};
+
+async function resolveOrgIdFromOrder(
+  db: Awaited<ReturnType<typeof getDatabase>>,
+  orderId?: string,
+): Promise<string | null> {
+  if (!orderId) return null;
+
+  const orders = db.collection(COLLECTIONS.SOUQ_ORDERS);
+  const candidates: Array<Record<string, unknown>> = [];
+
+  if (ObjectId.isValid(orderId)) {
+    candidates.push({ _id: new ObjectId(orderId) });
+  }
+  candidates.push({ orderId });
+
+  for (const query of candidates) {
+    const order = await orders.findOne(query, { projection: { orgId: 1 } });
+    if (order?.orgId) {
+      return typeof order.orgId === "string" ? order.orgId : String(order.orgId);
+    }
+  }
+
+  return null;
+}
+
+async function resolveOrgIdFromUsers(
+  db: Awaited<ReturnType<typeof getDatabase>>,
+  ids: Array<string | undefined>,
+): Promise<string | null> {
+  const users = db.collection(COLLECTIONS.USERS);
+  for (const id of ids) {
+    if (!id) continue;
+    const queries: Array<Record<string, unknown>> = [];
+    if (ObjectId.isValid(id)) {
+      queries.push({ _id: new ObjectId(id) });
+    }
+    queries.push({ id });
+
+    for (const q of queries) {
+      const user = await users.findOne(q, { projection: { orgId: 1 } });
+      if (user?.orgId) {
+        return typeof user.orgId === "string" ? user.orgId : String(user.orgId);
+      }
+    }
+  }
+  return null;
+}
+
+async function backfillClaims(db: Awaited<ReturnType<typeof getDatabase>>) {
+  const claims = db.collection<ClaimDoc>(COLLECTIONS.CLAIMS);
+  let processed = 0;
+  let updated = 0;
+  let unresolved = 0;
+
+  const cursor = claims.find({ orgId: { $exists: false } }, { projection: { orderId: 1, buyerId: 1, sellerId: 1 } });
+
+  while (await cursor.hasNext()) {
+    const batch: ClaimDoc[] = [];
+    for (let i = 0; i < BATCH_SIZE; i++) {
+      const doc = await cursor.next();
+      if (!doc) break;
+      batch.push(doc);
+    }
+    if (batch.length === 0) break;
+
+    const ops = [];
+    for (const doc of batch) {
+      processed++;
+      const orgId =
+        (await resolveOrgIdFromOrder(db, doc.orderId)) ||
+        (await resolveOrgIdFromUsers(db, [doc.buyerId, doc.sellerId]));
+
+      if (!orgId) {
+        unresolved++;
+        continue;
+      }
+
+      ops.push({
+        updateOne: {
+          filter: { _id: doc._id },
+          update: { $set: { orgId } },
+        },
+      });
+    }
+
+    if (!DRY_RUN && ops.length > 0) {
+      const res = await claims.bulkWrite(ops, { ordered: false });
+      updated += res.modifiedCount ?? 0;
+    } else if (DRY_RUN && ops.length > 0) {
+      updated += ops.length;
+    }
+  }
+
+  console.log(`Claims: processed=${processed}, updated=${updated}, unresolved=${unresolved}`);
+}
+
+async function backfillRmas(db: Awaited<ReturnType<typeof getDatabase>>) {
+  const rmas = db.collection<RMADoc>(COLLECTIONS.SOUQ_RMAS);
+  let processed = 0;
+  let updated = 0;
+  let unresolved = 0;
+
+  const cursor = rmas.find({ orgId: { $exists: false } }, { projection: { orderId: 1, buyerId: 1, sellerId: 1 } });
+
+  while (await cursor.hasNext()) {
+    const batch: RMADoc[] = [];
+    for (let i = 0; i < BATCH_SIZE; i++) {
+      const doc = await cursor.next();
+      if (!doc) break;
+      batch.push(doc);
+    }
+    if (batch.length === 0) break;
+
+    const ops = [];
+    for (const doc of batch) {
+      processed++;
+      const orgId =
+        (await resolveOrgIdFromOrder(db, doc.orderId)) ||
+        (await resolveOrgIdFromUsers(db, [doc.buyerId, doc.sellerId]));
+
+      if (!orgId) {
+        unresolved++;
+        continue;
+      }
+
+      ops.push({
+        updateOne: {
+          filter: { _id: doc._id },
+          update: { $set: { orgId } },
+        },
+      });
+    }
+
+    if (!DRY_RUN && ops.length > 0) {
+      const res = await rmas.bulkWrite(ops, { ordered: false });
+      updated += res.modifiedCount ?? 0;
+    } else if (DRY_RUN && ops.length > 0) {
+      updated += ops.length;
+    }
+  }
+
+  console.log(`RMAs: processed=${processed}, updated=${updated}, unresolved=${unresolved}`);
+}
+
+async function main() {
+  console.log("🔧 Backfill orgId for Souq claims and RMAs");
+  if (DRY_RUN) console.log("📝 DRY RUN - no writes will be performed\n");
+
+  const db = await getDatabase();
+  try {
+    const claimCount = await db.collection(COLLECTIONS.CLAIMS).countDocuments({ orgId: { $exists: false } });
+    const rmaCount = await db.collection(COLLECTIONS.SOUQ_RMAS).countDocuments({ orgId: { $exists: false } });
+    console.log(`📊 Pending backfill: claims=${claimCount}, rmas=${rmaCount}`);
+
+    await backfillClaims(db);
+    await backfillRmas(db);
+
+    console.log("\n✅ Backfill complete");
+    if (DRY_RUN) {
+      console.log("⚠️  This was a dry run. Run without --dry-run to apply updates.");
+    }
+  } finally {
+    await disconnectFromDatabase();
+  }
+}
+
+main().catch((err) => {
+  console.error("❌ Migration failed", err);
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/migrations/2025-12-07-normalize-souq-payouts-orgId.ts">
+<![CDATA[
+#!/usr/bin/env npx tsx
+/**
+ * Migration: Normalize orgId to STRING for Souq payouts/withdrawals.
+ *
+ * Background:
+ * - `souq_settlements.orgId` is stored as string (per schema).
+ * - `souq_payouts` historically stored ObjectId orgId; new code uses string.
+ * - Mixed storage hurts index selectivity and can duplicate rows per tenant.
+ *
+ * Actions:
+ * 1) Cast ObjectId orgId -> string for `souq_payouts` and `souq_withdrawal_requests`.
+ * 2) Ensure supporting indexes:
+ *    - souq_payouts:    { orgId: 1, payoutId: 1 }
+ *    - souq_withdrawal_requests: { orgId: 1, requestId: 1 }
+ *
+ * Usage:
+ *   npx tsx scripts/migrations/2025-12-07-normalize-souq-payouts-orgId.ts --dry-run
+ *   npx tsx scripts/migrations/2025-12-07-normalize-souq-payouts-orgId.ts
+ */
+
+import "dotenv/config";
+import { ObjectId } from "mongodb";
+import { getDatabase, disconnectFromDatabase } from "@/lib/mongodb-unified";
+
+const DRY_RUN = process.argv.includes("--dry-run");
+const BATCH_SIZE = 500;
+
+async function normalizeOrgId(collection: string, idField: "payoutId" | "requestId") {
+  const db = await getDatabase();
+  const col = db.collection(collection);
+  let processed = 0;
+  let updated = 0;
+
+  const cursor = col.find(
+    { orgId: { $type: "objectId" } },
+    { projection: { _id: 1, orgId: 1, [idField]: 1 } },
+  );
+
+  while (await cursor.hasNext()) {
+    const ops = [];
+    for (let i = 0; i < BATCH_SIZE; i++) {
+      const doc = await cursor.next();
+      if (!doc) break;
+      processed++;
+      const orgIdVal = doc.orgId;
+      const orgIdStr = orgIdVal instanceof ObjectId ? orgIdVal.toHexString() : String(orgIdVal);
+      ops.push({
+        updateOne: {
+          filter: { _id: doc._id },
+          update: { $set: { orgId: orgIdStr } },
+        },
+      });
+    }
+
+    if (ops.length === 0) break;
+    if (!DRY_RUN) {
+      const res = await col.bulkWrite(ops, { ordered: false });
+      updated += res.modifiedCount ?? 0;
+    } else {
+      updated += ops.length;
+    }
+  }
+
+  await col.createIndex({ orgId: 1, [idField]: 1 });
+
+  return { processed, updated };
+}
+
+async function main() {
+  const payouts = await normalizeOrgId("souq_payouts", "payoutId");
+  const withdrawals = await normalizeOrgId("souq_withdrawal_requests", "requestId");
+
+  // eslint-disable-next-line no-console
+  console.log(
+    `[normalize-orgId] souq_payouts processed=${payouts.processed} updated=${payouts.updated} | ` +
+      `souq_withdrawal_requests processed=${withdrawals.processed} updated=${withdrawals.updated} ` +
+      `(dryRun=${DRY_RUN})`,
+  );
+  await disconnectFromDatabase();
+}
+
+main().catch(async (err) => {
+  // eslint-disable-next-line no-console
+  console.error("[normalize-orgId] Migration failed", err);
+  await disconnectFromDatabase();
+  process.exit(1);
+});
+
+]]>
+</file>
+
+</batch_content>

@@ -1,0 +1,3473 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="server/services/ats/application-intake.ts">
+<![CDATA[
+import { Types } from "mongoose";
+import { Candidate } from "@/server/models/Candidate";
+import { Application } from "@/server/models/Application";
+import { AtsSettings } from "@/server/models/AtsSettings";
+import { Job } from "@/server/models/Job";
+import { parseResumePDF } from "@/lib/ats/resume-parser";
+import {
+  scoreApplication,
+  extractSkillsFromText,
+  calculateExperienceFromText,
+} from "@/lib/ats/scoring";
+import { logger } from "@/lib/logger";
+import { buildResumeKey, putObjectBuffer } from "@/lib/storage/s3";
+
+export interface ResumeFileInput {
+  buffer: Buffer;
+  filename: string;
+  mimeType?: string;
+  size?: number;
+}
+
+export interface ApplicationFields {
+  firstName?: string;
+  lastName?: string;
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  coverLetter?: string;
+  skills?: string[];
+  experience?: number;
+  linkedin?: string;
+  consent?: boolean;
+}
+
+const ALLOWED_RESUME_MIME_TYPES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
+const MAX_RESUME_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+const FALLBACK_RESUME_MIME = "application/pdf";
+
+interface ApplicationSubmissionParams {
+  job: {
+    _id: Types.ObjectId | string;
+    orgId?: Types.ObjectId | string | null;
+    status?: string;
+    visibility?: string;
+    skills?: string[];
+    requirements?: string[];
+    screeningRules?: { minYears?: number };
+    [key: string]: unknown;
+  };
+  fields: ApplicationFields;
+  resumeFile?: ResumeFileInput;
+  resumeKey?: string;
+  resumeUrl?: string;
+  resumeMimeType?: string;
+  resumeSize?: number;
+  source: string;
+}
+
+export class ApplicationSubmissionError extends Error {
+  status: number;
+  constructor(message: string, status = 400) {
+    super(message);
+    this.status = status;
+  }
+}
+
+export async function submitApplicationFromForm(
+  params: ApplicationSubmissionParams,
+): Promise<{ applicationId: string; stage: string; score: number }> {
+  const { job, resumeFile, source, resumeKey, resumeMimeType, resumeUrl } =
+    params;
+  const orgId = normalizeOrgId(job?.orgId);
+
+  if (!job?._id || !orgId) {
+    throw new ApplicationSubmissionError("Job not found", 404);
+  }
+
+  if (source === "careers") {
+    if (job.status !== "published") {
+      throw new ApplicationSubmissionError(
+        "Job is not accepting applications at this time",
+        400,
+      );
+    }
+    if (job.visibility === "internal") {
+      throw new ApplicationSubmissionError(
+        "This job is not open to public applications",
+        403,
+      );
+    }
+  }
+
+  const { fields } = params;
+  const normalizedResume =
+    resumeFile ??
+    (resumeKey
+      ? await fetchResumeFromS3(resumeKey, resumeMimeType, resumeUrl)
+      : undefined);
+
+  const resumeDetails = await extractResumeDetails(normalizedResume);
+  const email = (fields.email || resumeDetails.contactEmail || "").trim();
+  if (!email) {
+    throw new ApplicationSubmissionError("Email address is required", 400);
+  }
+
+  let firstName = (fields.firstName || "").trim();
+  let lastName = (fields.lastName || "").trim();
+  const derivedFullName = (fields.fullName || "").trim();
+
+  if (!firstName || !lastName) {
+    const parts = (derivedFullName || email).split(/\s+/).filter(Boolean);
+    if (!firstName && parts.length) {
+      firstName = parts.shift() || "Candidate";
+    }
+    if (!lastName) {
+      lastName = parts.join(" ") || "Applicant";
+    }
+  }
+
+  if (!firstName) firstName = "Candidate";
+  if (!lastName) lastName = "Applicant";
+
+  const phone = (fields.phone || resumeDetails.contactPhone || "").trim();
+  const location = (fields.location || "").trim();
+  const linkedin = (fields.linkedin || "").trim();
+  const coverLetter = (fields.coverLetter || "").trim();
+
+  const skillsFromForm = Array.isArray(fields.skills) ? fields.skills : [];
+  const mergedSkills = new Set<string>();
+  skillsFromForm.forEach((skill) => {
+    if (skill) mergedSkills.add(skill.trim());
+  });
+  resumeDetails.skills.forEach((skill) => mergedSkills.add(skill));
+  extractSkillsFromText(`${resumeDetails.rawText} ${coverLetter}`).forEach(
+    (skill) => mergedSkills.add(skill),
+  );
+
+  const experienceYears =
+    typeof fields.experience === "number"
+      ? fields.experience
+      : resumeDetails.experienceYears > 0
+        ? resumeDetails.experienceYears
+        : calculateExperienceFromText(
+            `${resumeDetails.rawText} ${coverLetter}`,
+          );
+
+  let candidate = await Candidate.findByEmail(orgId, email);
+
+  if (!candidate) {
+    candidate = await Candidate.create({
+      orgId,
+      firstName,
+      lastName,
+      email,
+      phone: phone || undefined,
+      location: location || undefined,
+      linkedin: linkedin || undefined,
+      skills: Array.from(mergedSkills),
+      experience: experienceYears,
+      resumeUrl: resumeDetails.resumeUrl,
+      resumeText: resumeDetails.rawText,
+      source,
+      consents: {
+        privacy: fields.consent ?? true,
+        contact: true,
+        dataRetention: true,
+      },
+    });
+  } else {
+    const merged = new Set([...candidate.skills, ...mergedSkills]);
+    candidate.firstName = firstName || candidate.firstName;
+    candidate.lastName = lastName || candidate.lastName;
+    candidate.phone = phone || candidate.phone;
+    candidate.location = location || candidate.location;
+    candidate.linkedin = linkedin || candidate.linkedin;
+    candidate.experience = Number.isFinite(experienceYears)
+      ? experienceYears
+      : candidate.experience;
+    candidate.skills = Array.from(merged);
+    if (resumeDetails.resumeUrl) {
+      candidate.resumeUrl = resumeDetails.resumeUrl;
+    }
+    if (resumeDetails.rawText) {
+      candidate.resumeText = resumeDetails.rawText;
+    }
+    await candidate.save();
+  }
+
+  if (!candidate) {
+    throw new ApplicationSubmissionError(
+      "Unable to create candidate profile",
+      500,
+    );
+  }
+
+  const existingApplication = await Application.findOne({
+    orgId,
+    jobId: job._id,
+    candidateId: candidate._id,
+  });
+
+  if (existingApplication) {
+    throw new ApplicationSubmissionError(
+      "You have already applied for this position",
+      400,
+    );
+  }
+
+  const atsSettings = await AtsSettings.findOrCreateForOrg(orgId);
+  const jobSkills: string[] = Array.isArray(job.skills) ? job.skills : [];
+  const requiredSkills = jobSkills.length
+    ? jobSkills
+    : Array.isArray(job.requirements)
+      ? job.requirements
+      : [];
+  const score = scoreApplication(
+    {
+      skills: Array.from(mergedSkills),
+      requiredSkills,
+      experience: experienceYears,
+      minExperience: job.screeningRules?.minYears,
+    },
+    atsSettings.scoringWeights || undefined,
+  );
+
+  const knockoutCheck = atsSettings.shouldAutoReject({
+    experience: experienceYears,
+    skills: Array.from(mergedSkills),
+  });
+
+  let stage: string = "applied";
+  if (knockoutCheck.reject) {
+    stage = "rejected";
+  } else if (score >= 70) {
+    stage = "screening";
+  }
+
+  const application = await Application.create({
+    orgId,
+    jobId: job._id,
+    candidateId: candidate._id,
+    stage,
+    score,
+    source,
+    coverLetter,
+    candidateSnapshot: {
+      fullName: `${candidate.firstName} ${candidate.lastName}`.trim(),
+      email: candidate.email,
+      phone: candidate.phone,
+      location: candidate.location,
+      skills: candidate.skills,
+      experience: candidate.experience,
+      resumeUrl: candidate.resumeUrl,
+    },
+    history: [
+      {
+        action: "applied",
+        by: "candidate",
+        at: new Date(),
+        details: knockoutCheck.reason,
+      },
+    ],
+  });
+
+  await Job.findByIdAndUpdate(job._id, { $inc: { applicationCount: 1 } }).catch(
+    (error) => {
+      logger.warn("Failed to increment application count", { error });
+    },
+  );
+
+  return {
+    applicationId: application._id.toString(),
+    stage: application.stage,
+    score: application.score,
+  };
+}
+
+async function fetchResumeFromS3(
+  key: string,
+  mimeType?: string,
+  fallbackUrl?: string,
+): Promise<ResumeFileInput | undefined> {
+  try {
+    const getUrl = await import("@/lib/storage/s3").then((m) =>
+      m.getPresignedGetUrl(key, 300),
+    );
+    const res = await fetch(getUrl);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch resume from S3: ${res.status}`);
+    }
+    const arrayBuffer = await res.arrayBuffer();
+    const contentType =
+      res.headers.get("content-type") || mimeType || FALLBACK_RESUME_MIME;
+    return {
+      buffer: Buffer.from(arrayBuffer),
+      filename: key.split("/").pop() || "resume.pdf",
+      mimeType: contentType,
+      size: arrayBuffer.byteLength,
+    };
+  } catch (error) {
+    logger.error("Failed to fetch resume from S3", error as Error, {
+      key,
+      fallbackUrl,
+    });
+    return undefined;
+  }
+}
+
+async function extractResumeDetails(resumeFile?: ResumeFileInput): Promise<{
+  resumeUrl?: string;
+  skills: string[];
+  contactEmail?: string;
+  contactPhone?: string;
+  experienceYears: number;
+  rawText: string;
+}> {
+  if (!resumeFile?.buffer || resumeFile.buffer.length === 0) {
+    return { skills: [], experienceYears: 0, rawText: "" };
+  }
+
+  ensureValidResumeFile(resumeFile);
+
+  let resumeUrl: string | undefined;
+  try {
+    resumeUrl = await persistResumeFile(resumeFile);
+  } catch (error) {
+    logger.error("Failed to persist resume file", error as Error);
+  }
+
+  try {
+    const parsed = await parseResumePDF(resumeFile.buffer);
+    return {
+      resumeUrl,
+      skills: parsed.skills || [],
+      contactEmail: parsed.contact?.email,
+      contactPhone: parsed.contact?.phone,
+      experienceYears: parsed.experience?.years ?? 0,
+      rawText: parsed.rawText || "",
+    };
+  } catch (error) {
+    logger.error("Resume parsing failed", error as Error);
+    return { resumeUrl, skills: [], experienceYears: 0, rawText: "" };
+  }
+}
+
+async function persistResumeFile(file: ResumeFileInput): Promise<string> {
+  const safeName = file.filename.replace(/[^a-zA-Z0-9.-]+/g, "_");
+  const key = buildResumeKey(null, `${Date.now()}-${safeName}`);
+
+  await putObjectBuffer(
+    key,
+    file.buffer,
+    file.mimeType || "application/octet-stream",
+  );
+
+  const region = process.env.AWS_REGION || "us-east-1";
+  const bucket = process.env.AWS_S3_BUCKET || "";
+  return `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
+}
+
+function normalizeOrgId(value: unknown): string | null {
+  if (!value) return null;
+  if (typeof value === "string") return value;
+  if (value instanceof Types.ObjectId) return value.toHexString();
+  if (typeof value === "object" && value && "_id" in value) {
+    try {
+      const nestedId = (value as { _id?: unknown })._id;
+      if (!nestedId) {
+        return null;
+      }
+      if (nestedId instanceof Types.ObjectId) {
+        return nestedId.toHexString();
+      }
+      if (typeof nestedId === "string" && Types.ObjectId.isValid(nestedId)) {
+        return new Types.ObjectId(nestedId).toHexString();
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+function ensureValidResumeFile(file: ResumeFileInput) {
+  if (file.size && file.size > MAX_RESUME_FILE_SIZE) {
+    throw new ApplicationSubmissionError("Resume file exceeds 10MB limit", 400);
+  }
+
+  const mime = file.mimeType?.toLowerCase();
+  if (mime && !ALLOWED_RESUME_MIME_TYPES.includes(mime)) {
+    throw new ApplicationSubmissionError(
+      "Resume must be a PDF or Word document",
+      400,
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="server/services/ats/ics.ts">
+<![CDATA[
+import ICAL from "ical.js";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
+
+export type InterviewInviteInput = {
+  uid?: string;
+  title: string;
+  description?: string;
+  location?: string;
+  organizer: { name: string; email: string };
+  attendees: Array<{ name?: string; email: string }>;
+  start: Date;
+  end: Date;
+};
+
+function toICSTime(date: Date) {
+  return ICAL.Time.fromJSDate(date, true);
+}
+
+export function generateInterviewICS(input: InterviewInviteInput) {
+  const vCalendar = new ICAL.Component(["vcalendar", [], []]);
+  vCalendar.updatePropertyWithValue(
+    "prodid",
+    "-//Fixzit ATS//Interview Scheduling//EN",
+  );
+  vCalendar.updatePropertyWithValue("version", "2.0");
+
+  const event = new ICAL.Component("vevent");
+  const vevent = new ICAL.Event(event);
+  vevent.uid = input.uid || `${Date.now()}@${EMAIL_DOMAINS.primary}`;
+  vevent.summary = input.title;
+  vevent.description = input.description || "";
+  vevent.location = input.location || "Virtual";
+  vevent.startDate = toICSTime(input.start);
+  vevent.endDate = toICSTime(input.end);
+
+  const organizerProp = new ICAL.Property("organizer");
+  organizerProp.setParameter("cn", input.organizer.name);
+  organizerProp.setValue(`mailto:${input.organizer.email}`);
+  event.addProperty(organizerProp);
+
+  input.attendees.forEach((attendee) => {
+    const attendeeProp = new ICAL.Property("attendee");
+    if (attendee.name) {
+      attendeeProp.setParameter("cn", attendee.name);
+    }
+    attendeeProp.setValue(`mailto:${attendee.email}`);
+    attendeeProp.setParameter("partstat", "NEEDS-ACTION");
+    attendeeProp.setParameter("role", "REQ-PARTICIPANT");
+    event.addProperty(attendeeProp);
+  });
+
+  vCalendar.addSubcomponent(event);
+  return vCalendar.toString();
+}
+
+]]>
+</file>
+
+<file path="server/services/ats/offer-pdf.ts">
+<![CDATA[
+import PDFDocument from "pdfkit";
+
+export type OfferPDFInput = {
+  candidateName: string;
+  jobTitle: string;
+  orgName: string;
+  salary?: { amount: number; currency: string };
+  startDate?: string;
+  benefits?: string[];
+  notes?: string;
+};
+
+export async function generateOfferLetterPDF(
+  input: OfferPDFInput,
+): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ margin: 50 });
+    const chunks: Buffer[] = [];
+
+    doc.on("data", (chunk) => chunks.push(chunk));
+    doc.on("error", reject);
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
+
+    doc
+      .fontSize(18)
+      .fillColor("#0061A8")
+      .text(`${input.orgName} – Offer Letter`, { align: "center" });
+    doc.moveDown();
+
+    doc.fontSize(12).fillColor("black");
+    doc.text(`Date: ${new Date().toLocaleDateString()}`);
+    doc.moveDown();
+
+    doc.text(`Dear ${input.candidateName},`);
+    doc.moveDown();
+    doc.text(
+      `We are pleased to offer you the position of ${input.jobTitle} at ${input.orgName}.`,
+    );
+
+    if (input.salary) {
+      doc.moveDown();
+      doc.text(
+        `Compensation: ${input.salary.amount.toLocaleString(undefined, { style: "currency", currency: input.salary.currency })}`,
+      );
+    }
+
+    if (input.startDate) {
+      doc.moveDown();
+      doc.text(`Proposed Start Date: ${input.startDate}`);
+    }
+
+    if (input.benefits?.length) {
+      doc.moveDown().text("Benefits:", { underline: true });
+      input.benefits.forEach((benefit) => doc.text(`• ${benefit}`));
+    }
+
+    if (input.notes) {
+      doc.moveDown().text(input.notes);
+    }
+
+    doc.moveDown(2);
+    doc.text("Sincerely,");
+    doc.text(input.orgName);
+
+    doc.end();
+  });
+}
+
+]]>
+</file>
+
+<file path="server/services/escalation.service.ts">
+<![CDATA[
+import { Types } from 'mongoose';
+import type { SessionUser } from '@/server/middleware/withAuthRbac';
+import { connectMongo } from '@/lib/mongo';
+import { logger } from '@/lib/logger';
+import { EMAIL_DOMAINS } from '@/lib/config/domains';
+
+export type EscalationContact = {
+  role: string;
+  name?: string;
+  email?: string;
+  user_id?: string;
+};
+
+const PRIORITY_ROLES = [
+  'SUPER_ADMIN',
+  'CORPORATE_ADMIN',
+  'ADMIN',
+  'OWNER',
+  'PROPERTY_OWNER',
+  'CUSTOMER',
+  'MARKETPLACE_ADMIN',
+];
+
+interface UserLike {
+  username?: string;
+  name?: string;
+  personal?: {
+    firstName?: string;
+    lastName?: string;
+  };
+}
+
+function deriveDisplayName(user: UserLike | null | undefined): string | undefined {
+  return (
+    user?.username ||
+    user?.name ||
+    `${user?.personal?.firstName || ''} ${user?.personal?.lastName || ''}`.trim() ||
+    undefined
+  );
+}
+
+export async function resolveEscalationContact(
+  user: SessionUser,
+  context?: string,
+): Promise<EscalationContact> {
+  // Authorization check: Only allow users with elevated roles to query org contacts
+  const allowedRoles = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'ADMIN', 'OWNER', 'TENANT', 'VENDOR', 'AGENT'];
+  if (!allowedRoles.includes(user.role)) {
+    // Return fallback for unauthorized users without exposing org structure
+    return {
+      role: 'SUPPORT',
+      email: process.env.ESCALATION_FALLBACK_EMAIL || EMAIL_DOMAINS.support,
+      name: 'Fixzit Support Team',
+    };
+  }
+
+  if (user?.orgId) {
+    try {
+      await connectMongo();
+      const { User } = await import('@/server/models/User');
+      const contact = await User.findOne({
+        orgId: user.orgId,
+        'professional.role': { $in: PRIORITY_ROLES },
+      })
+        .sort({ 'professional.role': 1, _id: 1 })
+        .select('username email professional.role personal.firstName personal.lastName')
+        .lean<{
+          _id: Types.ObjectId;
+          username?: string;
+          email?: string;
+          professional?: { role?: string };
+          personal?: { firstName?: string; lastName?: string };
+        }>();
+
+      if (contact) {
+        const contactRole = contact.professional?.role || 'ADMIN';
+        return {
+          role: contactRole,
+          name: deriveDisplayName(contact),
+          email: contact.email,
+          user_id: contact._id?.toString?.(),
+        };
+      }
+    } catch (err) {
+      logger.error('[resolveEscalationContact] DB lookup failed, using fallback', {
+        orgId: user.orgId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      // fallback below
+    }
+  }
+
+  const fallbackEmail = process.env.ESCALATION_FALLBACK_EMAIL || EMAIL_DOMAINS.support;
+  
+  logger.info('[resolveEscalationContact] Using fallback contact', {
+    userId: user.id,
+    hasOrgId: !!user.orgId,
+    fallbackEmail,
+    context,
+  });
+
+  return {
+    role: user.role || 'ADMIN',
+    name: user.name || 'Support',
+    email: user.email || fallbackEmail,
+    user_id: user.id,
+  };
+}
+
+]]>
+</file>
+
+<file path="server/services/finance/postingService.ts">
+<![CDATA[
+/**
+ * Posting Service
+ *
+ * Core double-entry bookkeeping engine for Fixzit Finance Pack.
+ * Handles journal entry creation, posting, and ledger updates.
+ *
+ * Features:
+ * - Automatic debit/credit validation
+ * - Balance verification (debits = credits)
+ * - Atomic journal + ledger posting
+ * - Source document tracking
+ * - Rollback support
+ *
+ * Usage:
+ *   const journal = await postingService.createJournal({
+ *     orgId,
+ *     journalDate: new Date(),
+ *     description: 'Work Order #WO-001 - Maintenance Expense',
+ *     sourceType: 'WORK_ORDER',
+ *     sourceId: workOrderId,
+ *     lines: [
+ *       { accountId: maintenanceExpenseAccount, debit: 500, credit: 0 },
+ *       { accountId: cashAccount, debit: 0, credit: 500 }
+ *     ]
+ *   });
+ *
+ *   await postingService.postJournal(journal._id);
+ */
+
+import { logger } from "@/lib/logger";
+import { Types, Document, ClientSession } from "mongoose";
+import Decimal from "decimal.js";
+import JournalModel, {
+  IJournal,
+  IJournalLine,
+} from "../../models/finance/Journal";
+import LedgerEntryModel, {
+  ILedgerEntry,
+} from "../../models/finance/LedgerEntry";
+import ChartAccountModel, {
+  IChartAccount,
+} from "../../models/finance/ChartAccount";
+import { nextNumber } from "../../lib/numbering";
+
+export interface CreateJournalInput {
+  orgId: Types.ObjectId;
+  journalDate: Date;
+  description: string;
+  sourceType:
+    | "WORK_ORDER"
+    | "INVOICE"
+    | "PAYMENT"
+    | "RENT"
+    | "EXPENSE"
+    | "ADJUSTMENT"
+    | "MANUAL";
+  sourceId?: Types.ObjectId;
+  sourceNumber?: string;
+  lines: Array<{
+    accountId: Types.ObjectId;
+    description?: string;
+    debit: number;
+    credit: number;
+    propertyId?: Types.ObjectId;
+    unitId?: Types.ObjectId;
+    ownerId?: Types.ObjectId;
+    tenantId?: Types.ObjectId;
+    vendorId?: Types.ObjectId;
+  }>;
+  userId: Types.ObjectId; // For audit trail
+}
+
+export interface PostJournalResult {
+  journal: IJournal;
+  ledgerEntries: ILedgerEntry[];
+  accountBalances: Array<{
+    accountId: Types.ObjectId;
+    accountCode: string;
+    balance: number;
+  }>;
+}
+
+class PostingService {
+  /**
+   * Create a draft journal entry
+   * Validates balance but does not post to ledger
+   */
+  async createJournal(input: CreateJournalInput): Promise<IJournal> {
+    const {
+      orgId,
+      journalDate,
+      description,
+      sourceType,
+      sourceId,
+      sourceNumber,
+      lines,
+      userId,
+    } = input;
+
+    // Validate: At least 2 lines
+    if (lines.length < 2) {
+      // Message kept for test compatibility
+      throw new Error("At least 2 journal lines required");
+    }
+
+    // Validate: Each line has either debit OR credit
+    const invalidLines = lines.filter(
+      (line) =>
+        (line.debit > 0 && line.credit > 0) ||
+        (line.debit === 0 && line.credit === 0),
+    );
+    if (invalidLines.length > 0) {
+      throw new Error(
+        "Each journal line must have either debit OR credit (not both or neither)",
+      );
+    }
+
+    // Validate: Debits = Credits
+    const totalDebit = lines.reduce((sum, line) => sum + line.debit, 0);
+    const totalCredit = lines.reduce((sum, line) => sum + line.credit, 0);
+    const diff = Math.abs(totalDebit - totalCredit);
+
+    if (diff >= 0.01) {
+      // Tests expect a short, stable error message
+      throw new Error("Journal entries must balance");
+    }
+
+    // Fetch account details for denormalization
+    const accountIds = lines.map((line) => line.accountId);
+    const expectedOrgId = orgId.toString();
+    const accounts = await ChartAccountModel.find({
+      _id: { $in: accountIds },
+      isActive: true,
+    });
+
+    if (
+      accounts.length !== accountIds.length ||
+      accounts.some((acc) => acc.orgId?.toString() !== expectedOrgId)
+    ) {
+      throw new Error("One or more accounts not found or inactive");
+    }
+
+    // Map accountIds to account documents for quick lookup
+    const accountMap = new Map(
+      accounts.map((acc: IChartAccount & Document) => [
+        acc._id.toString(),
+        acc,
+      ]),
+    );
+
+    // Build journal lines with denormalized account data
+    const journalLines: IJournalLine[] = lines.map((line, index) => {
+      const account = accountMap.get(line.accountId.toString());
+      if (!account) {
+        throw new Error(`Account ${line.accountId} not found`);
+      }
+
+      return {
+        lineNumber: index + 1,
+        accountId: line.accountId,
+        accountCode: account.accountCode,
+        accountName: account.accountName,
+        description: line.description || description,
+        debit: line.debit,
+        credit: line.credit,
+        propertyId: line.propertyId,
+        unitId: line.unitId,
+        ownerId: line.ownerId,
+        tenantId: line.tenantId,
+        vendorId: line.vendorId,
+      };
+    });
+
+    // Create journal entry
+    const journalNumber = await nextNumber(orgId.toString(), "JE");
+
+    const journal = await JournalModel.create({
+      orgId,
+      journalNumber,
+      journalDate,
+      description,
+      sourceType,
+      sourceId,
+      sourceNumber,
+      status: "DRAFT",
+      lines: journalLines,
+      fiscalYear: journalDate.getFullYear(),
+      fiscalPeriod: journalDate.getMonth() + 1,
+      createdBy: userId,
+      updatedBy: userId,
+    });
+
+    return journal;
+  }
+
+  /**
+   * Post journal entry to ledger
+   * Creates ledger entries and updates account balances
+   *
+   * FIXES APPLIED (Architect Review Score 2/10 → Target 10/10):
+   * - Uses Decimal.js for monetary precision (no floating-point errors)
+   * - Bulk-fetches all accounts in one query (no N+1 bug)
+   * - Uses MongoDB $inc for atomic balance updates (no race conditions)
+   * - Runs in database transaction (no partial failures)
+   */
+  async postJournal(journalId: Types.ObjectId): Promise<PostJournalResult> {
+    const journal = await JournalModel.findById(journalId);
+
+    if (!journal) {
+      throw new Error("Journal entry not found");
+    }
+
+    if (journal.status !== "DRAFT") {
+      // Keep message text stable for tests (uppercase DRAFT expected in assertions)
+      throw new Error("Only DRAFT journals can be posted");
+    }
+
+    if (!journal.isBalanced) {
+      throw new Error("Cannot post unbalanced journal entry");
+    }
+
+    const executePosting = async (session: ClientSession | null) => {
+      // FIX 2: Bulk-fetch all accounts (eliminates N+1 query bug)
+      const accountIds = [
+        ...new Set(journal.lines.map((line: IJournalLine) => line.accountId)),
+      ];
+      const accountQuery = ChartAccountModel.find({
+        _id: { $in: accountIds },
+        orgId: journal.orgId,
+      });
+      if (session) {
+        accountQuery.session(session);
+      }
+      const accounts = await accountQuery.exec();
+
+      const accountMap = new Map(
+        accounts.map((acc: IChartAccount & Document) => [
+          acc._id.toString(),
+          acc,
+        ]),
+      );
+
+      // FIX 3: Calculate balance changes using Decimal.js (precise monetary arithmetic)
+      const balanceDeltas = new Map<string, Decimal>();
+
+      for (const line of journal.lines) {
+        const accountIdStr = line.accountId.toString();
+        const account = accountMap.get(accountIdStr);
+        if (!account) {
+          throw new Error(`Account ${accountIdStr} not found`);
+        }
+
+        const debit = new Decimal(line.debit || 0);
+        const credit = new Decimal(line.credit || 0);
+
+        // Calculate delta based on account type normal balance
+        let delta: Decimal;
+        if (
+          account.accountType === "REVENUE" ||
+          account.accountType === "LIABILITY" ||
+          account.accountType === "EQUITY"
+        ) {
+          // Credit increases balance for these types
+          delta = credit.minus(debit);
+        } else {
+          // Debit increases balance for ASSET/EXPENSE
+          delta = debit.minus(credit);
+        }
+
+        // Accumulate deltas for same account
+        const existing = balanceDeltas.get(accountIdStr) || new Decimal(0);
+        balanceDeltas.set(accountIdStr, existing.plus(delta));
+      }
+
+      // FIX 4: Create ledger entries with calculated balances
+      const ledgerEntries: ILedgerEntry[] = [];
+      const accountBalances: Array<{
+        accountId: Types.ObjectId;
+        accountCode: string;
+        balance: number;
+      }> = [];
+
+      for (const line of journal.lines) {
+        const accountIdStr = line.accountId.toString();
+        const account = accountMap.get(accountIdStr);
+
+        // Get current balance from database
+        const currentBalance = await LedgerEntryModel.getAccountBalance(
+          journal.orgId,
+          line.accountId,
+          journal.journalDate,
+        );
+
+        const debit = new Decimal(line.debit || 0);
+        const credit = new Decimal(line.credit || 0);
+
+        // Calculate new balance
+        let newBalance: Decimal;
+        if (
+          account!.accountType === "REVENUE" ||
+          account!.accountType === "LIABILITY" ||
+          account!.accountType === "EQUITY"
+        ) {
+          newBalance = new Decimal(currentBalance).plus(credit).minus(debit);
+        } else {
+          newBalance = new Decimal(currentBalance).plus(debit).minus(credit);
+        }
+
+        // Create ledger entry
+        // FIX: For test compatibility, use create without array syntax if no session
+        let ledgerEntry;
+        if (session) {
+          const entries = await LedgerEntryModel.create(
+            [
+              {
+                orgId: journal.orgId,
+                journalId: journal._id,
+                journalNumber: journal.journalNumber,
+                journalDate: journal.journalDate,
+                postingDate: new Date(),
+                accountId: line.accountId,
+                accountCode: line.accountCode!,
+                accountName: line.accountName!,
+                accountType: account!.accountType,
+                description: line.description || journal.description,
+                debit: line.debit,
+                credit: line.credit,
+                balance: newBalance.toNumber(),
+                propertyId: line.propertyId,
+                unitId: line.unitId,
+                ownerId: line.ownerId,
+                tenantId: line.tenantId,
+                vendorId: line.vendorId,
+                fiscalYear: journal.fiscalYear,
+                fiscalPeriod: journal.fiscalPeriod,
+                createdBy: journal.createdBy,
+                updatedBy: journal.updatedBy,
+              },
+            ],
+            { session },
+          );
+          ledgerEntry = entries[0];
+        } else {
+          ledgerEntry = await LedgerEntryModel.create({
+            orgId: journal.orgId,
+            journalId: journal._id,
+            journalNumber: journal.journalNumber,
+            journalDate: journal.journalDate,
+            postingDate: new Date(),
+            accountId: line.accountId,
+            accountCode: line.accountCode!,
+            accountName: line.accountName!,
+            accountType: account!.accountType,
+            description: line.description || journal.description,
+            debit: line.debit,
+            credit: line.credit,
+            balance: newBalance.toNumber(),
+            propertyId: line.propertyId,
+            unitId: line.unitId,
+            ownerId: line.ownerId,
+            tenantId: line.tenantId,
+            vendorId: line.vendorId,
+            fiscalYear: journal.fiscalYear,
+            fiscalPeriod: journal.fiscalPeriod,
+            createdBy: journal.createdBy,
+            updatedBy: journal.updatedBy,
+          });
+        }
+
+        ledgerEntries.push(ledgerEntry);
+
+        accountBalances.push({
+          accountId: line.accountId,
+          accountCode: line.accountCode!,
+          balance: newBalance.toNumber(),
+        });
+      }
+
+      // FIX 5: Use MongoDB $inc for atomic balance updates (no race conditions)
+      // NOTE: In production with real MongoDB, use $inc for atomic updates.
+      // For test compatibility, we use findByIdAndUpdate which the test mocks support.
+      for (const [accountIdStr, delta] of balanceDeltas.entries()) {
+        const account = await ChartAccountModel.findById(
+          new Types.ObjectId(accountIdStr),
+        );
+        if (account) {
+          account.balance = new Decimal(account.balance || 0)
+            .plus(delta)
+            .toNumber();
+          account.updatedBy = journal.updatedBy;
+          await account.save(session ? { session } : {});
+        }
+      }
+
+      // Mark journal as posted
+      journal.status = "POSTED";
+      journal.postingDate = new Date();
+
+      // Optional debug trace
+      try {
+        if (process.env.DEBUG_MOCKS === "1") {
+          logger.debug(
+            `postingService.postJournal: about to save journal id=${journal._id?.toString?.()} status=${journal.status}`,
+          );
+        }
+      } catch {
+        // Ignore debug errors
+      }
+
+      await journal.save(session ? { session } : {});
+
+      return {
+        journal,
+        ledgerEntries,
+        accountBalances,
+      };
+    };
+
+    // FIX 1: Start database transaction for atomicity when supported
+    if (JournalModel.db && typeof JournalModel.db.startSession === "function") {
+      const session = await JournalModel.db.startSession();
+      try {
+        await session.startTransaction();
+        const result = await executePosting(session);
+        await session.commitTransaction();
+        return result;
+      } catch (error) {
+        await session.abortTransaction();
+        const message = (error as Error).message || "";
+        if (message.includes("Transaction numbers are only allowed")) {
+          logger.warn(
+            "[PostingService] Transactions unavailable on this MongoDB instance. Retrying without transactional session.",
+          );
+          return executePosting(null);
+        }
+        throw error;
+      } finally {
+        await session.endSession();
+      }
+    }
+
+    return executePosting(null);
+  }
+
+  /**
+   * Void posted journal entry
+   * Creates reversing journal entry
+   */
+  async voidJournal(
+    journalId: Types.ObjectId,
+    userId: Types.ObjectId,
+    reason: string,
+  ): Promise<{ originalJournal: IJournal; reversingJournal: IJournal }> {
+    const originalJournal = await JournalModel.findById(journalId);
+
+    if (!originalJournal) {
+      throw new Error("Journal entry not found");
+    }
+
+    if (originalJournal.status !== "POSTED") {
+      throw new Error("Only posted journals can be voided");
+    }
+
+    // Mark original as void
+    originalJournal.status = "VOID";
+    originalJournal.voidedAt = new Date();
+    originalJournal.voidedBy = userId;
+    originalJournal.voidReason = reason;
+    await originalJournal.save();
+
+    // Create reversing journal entry (swap debits and credits)
+    const reversingLines = originalJournal.lines.map((line: IJournalLine) => ({
+      accountId: line.accountId,
+      description: `VOID - ${line.description || originalJournal.description}`,
+      debit: line.credit, // Swap
+      credit: line.debit, // Swap
+      propertyId: line.propertyId,
+      unitId: line.unitId,
+      ownerId: line.ownerId,
+      tenantId: line.tenantId,
+      vendorId: line.vendorId,
+    }));
+
+    const reversingJournal = await this.createJournal({
+      orgId: originalJournal.orgId,
+      journalDate: new Date(),
+      // Include REVERSAL marker so tests can identify reversal journals
+      description: `REVERSAL - VOID - ${originalJournal.description} (Original: ${originalJournal.journalNumber})`,
+      sourceType: originalJournal.sourceType,
+      sourceId: originalJournal.sourceId,
+      sourceNumber: originalJournal.sourceNumber,
+      lines: reversingLines,
+      userId,
+    });
+
+    // Post reversing journal
+    const postResult = await this.postJournal(reversingJournal._id);
+    const postedReversing = postResult.journal;
+
+    return {
+      originalJournal,
+      reversingJournal: postedReversing,
+    };
+  }
+
+  /**
+   * Helper: Post Work Order expense to GL
+   */
+  async postWorkOrderExpense(input: {
+    orgId: Types.ObjectId;
+    workOrderId: Types.ObjectId;
+    workOrderNumber: string;
+    amount: number;
+    expenseAccountId: Types.ObjectId; // e.g., Maintenance Expense
+    payableAccountId: Types.ObjectId; // e.g., Accounts Payable - Vendors
+    vendorId?: Types.ObjectId;
+    propertyId?: Types.ObjectId;
+    unitId?: Types.ObjectId;
+    userId: Types.ObjectId;
+  }): Promise<IJournal> {
+    return this.createJournal({
+      orgId: input.orgId,
+      journalDate: new Date(),
+      description: `Work Order ${input.workOrderNumber} - Maintenance Expense`,
+      sourceType: "WORK_ORDER",
+      sourceId: input.workOrderId,
+      sourceNumber: input.workOrderNumber,
+      lines: [
+        {
+          accountId: input.expenseAccountId,
+          description: "Maintenance expense",
+          debit: input.amount,
+          credit: 0,
+          propertyId: input.propertyId,
+          unitId: input.unitId,
+          vendorId: input.vendorId,
+        },
+        {
+          accountId: input.payableAccountId,
+          description: "Vendor payable",
+          debit: 0,
+          credit: input.amount,
+          vendorId: input.vendorId,
+        },
+      ],
+      userId: input.userId,
+    });
+  }
+
+  /**
+   * Helper: Post rent invoice to GL
+   */
+  async postRentInvoice(input: {
+    orgId: Types.ObjectId;
+    invoiceId: Types.ObjectId;
+    invoiceNumber: string;
+    amount: number;
+    receivableAccountId: Types.ObjectId; // e.g., Accounts Receivable - Tenants
+    revenueAccountId: Types.ObjectId; // e.g., Rental Income
+    tenantId: Types.ObjectId;
+    propertyId: Types.ObjectId;
+    unitId: Types.ObjectId;
+    userId: Types.ObjectId;
+  }): Promise<IJournal> {
+    return this.createJournal({
+      orgId: input.orgId,
+      journalDate: new Date(),
+      description: `Rent Invoice ${input.invoiceNumber}`,
+      sourceType: "INVOICE",
+      sourceId: input.invoiceId,
+      sourceNumber: input.invoiceNumber,
+      lines: [
+        {
+          accountId: input.receivableAccountId,
+          description: "Rent receivable",
+          debit: input.amount,
+          credit: 0,
+          tenantId: input.tenantId,
+          propertyId: input.propertyId,
+          unitId: input.unitId,
+        },
+        {
+          accountId: input.revenueAccountId,
+          description: "Rental income",
+          debit: 0,
+          credit: input.amount,
+          propertyId: input.propertyId,
+          unitId: input.unitId,
+        },
+      ],
+      userId: input.userId,
+    });
+  }
+
+  /**
+   * Helper: Post payment to GL
+   */
+  async postPayment(input: {
+    orgId: Types.ObjectId;
+    paymentId: Types.ObjectId;
+    paymentNumber: string;
+    amount: number;
+    cashAccountId: Types.ObjectId; // e.g., Cash - Operating
+    receivableAccountId: Types.ObjectId; // e.g., Accounts Receivable - Tenants
+    tenantId?: Types.ObjectId;
+    propertyId?: Types.ObjectId;
+    userId: Types.ObjectId;
+  }): Promise<IJournal> {
+    return this.createJournal({
+      orgId: input.orgId,
+      journalDate: new Date(),
+      description: `Payment Received ${input.paymentNumber}`,
+      sourceType: "PAYMENT",
+      sourceId: input.paymentId,
+      sourceNumber: input.paymentNumber,
+      lines: [
+        {
+          accountId: input.cashAccountId,
+          description: "Cash received",
+          debit: input.amount,
+          credit: 0,
+          tenantId: input.tenantId,
+          propertyId: input.propertyId,
+        },
+        {
+          accountId: input.receivableAccountId,
+          description: "Receivable collected",
+          debit: 0,
+          credit: input.amount,
+          tenantId: input.tenantId,
+          propertyId: input.propertyId,
+        },
+      ],
+      userId: input.userId,
+    });
+  }
+}
+
+export const postingService = new PostingService();
+export default postingService;
+
+]]>
+</file>
+
+<file path="server/services/hr/attendance.service.ts">
+<![CDATA[
+import {
+  AttendanceRecord,
+  type AttendanceRecordDoc,
+  type AttendanceStatus,
+} from "@/server/models/hr.models";
+import { HrNotificationService } from "@/server/services/hr/hr-notification.service";
+
+export interface LogAttendancePayload {
+  orgId: string;
+  employeeId: string;
+  date: Date;
+  shiftTemplateId?: string;
+  status: AttendanceStatus;
+  clockIn?: Date;
+  clockOut?: Date;
+  source?: AttendanceRecordDoc["source"];
+  notes?: string;
+}
+
+export class AttendanceService {
+  static async logEntry(payload: LogAttendancePayload) {
+    const entry = await AttendanceRecord.findOneAndUpdate(
+      {
+        orgId: payload.orgId,
+        employeeId: payload.employeeId,
+        date: payload.date,
+      },
+      {
+        ...payload,
+        shiftTemplateId: payload.shiftTemplateId,
+        source: payload.source ?? "MANUAL",
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    ).exec();
+
+    if (entry && (entry.status === "ABSENT" || entry.status === "LATE")) {
+      await HrNotificationService.queueAttendanceAlert({
+        orgId: payload.orgId,
+        employeeId: entry.employeeId.toString(),
+        status: entry.status,
+        date: entry.date,
+        shiftTemplateId: entry.shiftTemplateId?.toString(),
+        notes: entry.notes,
+        overtimeMinutes: entry.overtimeMinutes,
+      });
+    }
+
+    return entry;
+  }
+
+  static async list(orgId: string, employeeId: string, from?: Date, to?: Date) {
+    const query: {
+      orgId: string;
+      employeeId: string;
+      isDeleted: boolean;
+      date?: { $gte?: Date; $lte?: Date };
+    } = { orgId, employeeId, isDeleted: false };
+
+    if (from || to) {
+      query.date = {};
+      if (from) {
+        query.date.$gte = from;
+      }
+      if (to) {
+        query.date.$lte = to;
+      }
+    }
+    return AttendanceRecord.find(query).lean<AttendanceRecordDoc>().exec();
+  }
+
+  static async delete(orgId: string, employeeId: string, date: Date) {
+    return AttendanceRecord.findOneAndUpdate(
+      { orgId, employeeId, date },
+      { isDeleted: true },
+      { new: true },
+    ).exec();
+  }
+}
+
+]]>
+</file>
+
+<file path="server/services/hr/employee.service.ts">
+<![CDATA[
+import { type FilterQuery, type UpdateQuery, Types } from "mongoose";
+import {
+  Employee,
+  type EmployeeDoc,
+  type AttendanceRecordDoc,
+  AttendanceRecord,
+  type TechnicianProfile,
+  type EmployeeCompensation,
+} from "@/server/models/hr.models";
+
+export interface EmployeeSearchFilters {
+  orgId: string;
+  departmentId?: string;
+  employmentStatus?: EmployeeDoc["employmentStatus"];
+  skills?: string[];
+  text?: string;
+}
+
+export interface EmployeeSearchOptions {
+  page?: number;
+  limit?: number;
+  includePii?: boolean;
+}
+
+export interface UpsertEmployeePayload {
+  orgId: string;
+  employeeCode: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone?: string;
+  jobTitle: string;
+  departmentId?: string;
+  managerId?: string;
+  employmentType: EmployeeDoc["employmentType"];
+  employmentStatus?: EmployeeDoc["employmentStatus"];
+  hireDate: Date;
+  technicianProfile?: TechnicianProfile;
+  compensation?: EmployeeCompensation;
+  bankDetails?: EmployeeDoc["bankDetails"];
+}
+
+export class EmployeeService {
+  static async getById(orgId: string, id: string) {
+    return Employee.findOne({ orgId, _id: id, isDeleted: false })
+      .lean<EmployeeDoc>()
+      .exec();
+  }
+
+  static async getByCode(orgId: string, employeeCode: string) {
+    return Employee.findOne({ orgId, employeeCode, isDeleted: false })
+      .lean<EmployeeDoc>()
+      .exec();
+  }
+
+  private static buildQuery(
+    filters: EmployeeSearchFilters,
+  ): FilterQuery<EmployeeDoc> {
+    const query: FilterQuery<EmployeeDoc> = {
+      orgId: filters.orgId,
+      isDeleted: false,
+    };
+
+    if (filters.departmentId) {
+      if (Types.ObjectId.isValid(filters.departmentId)) {
+        query.departmentId = new Types.ObjectId(filters.departmentId);
+      }
+    }
+    if (filters.employmentStatus)
+      query.employmentStatus = filters.employmentStatus;
+    if (filters.skills?.length) {
+      query["technicianProfile.skills"] = { $all: filters.skills };
+    }
+    if (filters.text) {
+      // SECURITY: Escape regex special characters to prevent ReDoS
+      const escapedText = filters.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      query.$or = [
+        { firstName: new RegExp(escapedText, "i") },
+        { lastName: new RegExp(escapedText, "i") },
+        { email: new RegExp(escapedText, "i") },
+        { employeeCode: new RegExp(escapedText, "i") },
+      ];
+    }
+    return query;
+  }
+
+  static async search(filters: EmployeeSearchFilters) {
+    return Employee.find(this.buildQuery(filters)).lean<EmployeeDoc>().exec();
+  }
+
+  static async searchWithPagination(
+    filters: EmployeeSearchFilters,
+    options: EmployeeSearchOptions = {},
+  ) {
+    const page = options.page && options.page > 0 ? options.page : 1;
+    const limit = options.limit && options.limit > 0 ? options.limit : 50;
+    const skip = (page - 1) * limit;
+    const query = this.buildQuery(filters);
+    const includePii = options.includePii === true;
+
+    const [items, total] = await Promise.all([
+      Employee.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .select(includePii ? {} : { compensation: 0, bankDetails: 0 })
+        .lean<EmployeeDoc>()
+        .exec(),
+      Employee.countDocuments(query).exec(),
+    ]);
+
+    return { items, total, page, limit };
+  }
+
+  static async upsert(payload: UpsertEmployeePayload) {
+    const update: UpdateQuery<EmployeeDoc> = {
+      firstName: payload.firstName,
+      lastName: payload.lastName,
+      email: payload.email,
+      phone: payload.phone,
+      jobTitle: payload.jobTitle,
+      employmentType: payload.employmentType,
+      employmentStatus: payload.employmentStatus ?? "ACTIVE",
+      hireDate: payload.hireDate,
+    };
+
+    if (payload.departmentId && Types.ObjectId.isValid(payload.departmentId)) {
+      update.departmentId = new Types.ObjectId(payload.departmentId);
+    }
+    if (payload.managerId && Types.ObjectId.isValid(payload.managerId)) {
+      update.managerId = new Types.ObjectId(payload.managerId);
+    }
+
+    if (payload.technicianProfile) {
+      update.technicianProfile = payload.technicianProfile;
+    }
+
+    if (payload.compensation) {
+      const comp = payload.compensation;
+      update.compensation = comp;
+      update.baseSalary = comp.baseSalary;
+      const allowancesTotal =
+        (comp.housingAllowance ?? 0) +
+        (comp.transportAllowance ?? 0) +
+        (comp.otherAllowances?.reduce(
+          (sum, item) => sum + (item.amount || 0),
+          0,
+        ) ?? 0);
+      update.allowanceTotal = allowancesTotal;
+      update.currency = comp.currency ?? update.currency;
+    }
+
+    if (payload.bankDetails) {
+      update.bankDetails = payload.bankDetails;
+    }
+
+    const filter = {
+      orgId: payload.orgId,
+      employeeCode: payload.employeeCode,
+      isDeleted: false,
+    };
+
+    return Employee.findOneAndUpdate(
+      filter,
+      {
+        $set: { ...update, isDeleted: false },
+        $setOnInsert: {
+          orgId: payload.orgId,
+          employeeCode: payload.employeeCode,
+          isDeleted: false,
+        },
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    ).exec();
+  }
+
+  static async updateTechnicianProfile(
+    orgId: string,
+    employeeId: string,
+    profile: TechnicianProfile,
+  ) {
+    return Employee.findOneAndUpdate(
+      { orgId, _id: employeeId, isDeleted: false },
+      { technicianProfile: profile },
+      { new: true },
+    ).exec();
+  }
+
+  static async recordAttendance(
+    entry: Omit<AttendanceRecordDoc, "createdAt" | "updatedAt" | "isDeleted">,
+  ) {
+    return AttendanceRecord.findOneAndUpdate(
+      { orgId: entry.orgId, employeeId: entry.employeeId, date: entry.date },
+      entry,
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    ).exec();
+  }
+}
+
+]]>
+</file>
+
+<file path="server/services/hr/hr-notification.service.ts">
+<![CDATA[
+import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
+import { logger } from "@/lib/logger";
+import type { AttendanceStatus } from "@/server/models/hr.models";
+
+interface LeaveStatusPayload {
+  orgId: string;
+  leaveRequestId: string;
+  employeeId: string;
+  status: string;
+  approverId?: string;
+  reason?: string;
+  startDate?: Date;
+  endDate?: Date;
+}
+
+interface AttendanceAlertPayload {
+  orgId: string;
+  employeeId: string;
+  status: AttendanceStatus;
+  date: Date;
+  shiftTemplateId?: string;
+  notes?: string;
+  overtimeMinutes?: number;
+}
+
+export class HrNotificationService {
+  static async queueLeaveStatusChange(payload: LeaveStatusPayload) {
+    try {
+      await addJob(
+        QUEUE_NAMES.NOTIFICATIONS,
+        "hr.leave.status_changed",
+        payload,
+      );
+    } catch (error) {
+      logger.error("Failed to queue leave status notification", {
+        error,
+        payload,
+      });
+    }
+  }
+
+  static async queueAttendanceAlert(payload: AttendanceAlertPayload) {
+    try {
+      await addJob(QUEUE_NAMES.NOTIFICATIONS, "hr.attendance.alert", payload);
+    } catch (error) {
+      logger.error("Failed to queue attendance alert notification", {
+        error,
+        payload,
+      });
+    }
+  }
+}
+
+]]>
+</file>
+
+<file path="server/services/hr/leave-type.service.ts">
+<![CDATA[
+import { LeaveType, type LeaveTypeDoc } from "@/server/models/hr.models";
+
+interface ListOptions {
+  limit?: number;
+}
+
+export class LeaveTypeService {
+  static async list(orgId: string, search?: string, options: ListOptions = {}) {
+    const query: Record<string, unknown> = { orgId, isDeleted: false };
+    if (search) {
+      // SECURITY: Escape regex special characters to prevent ReDoS
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      query.$or = [
+        { name: new RegExp(escapedSearch, "i") },
+        { code: new RegExp(escapedSearch, "i") },
+      ];
+    }
+
+    let cursor = LeaveType.find(query).sort({ name: 1 });
+    if (options.limit) {
+      cursor = cursor.limit(options.limit);
+    }
+    return cursor.lean<LeaveTypeDoc>().exec();
+  }
+
+  static async create(
+    orgId: string,
+    payload: Pick<
+      LeaveTypeDoc,
+      "code" | "name" | "description" | "isPaid" | "annualEntitlementDays"
+    >,
+  ) {
+    return LeaveType.create({
+      ...payload,
+      orgId,
+    });
+  }
+}
+
+]]>
+</file>
+
+<file path="server/services/hr/leave.service.ts">
+<![CDATA[
+import {
+  LeaveRequest,
+  LeaveBalance,
+  type LeaveRequestDoc,
+} from "@/server/models/hr.models";
+import { HrNotificationService } from "@/server/services/hr/hr-notification.service";
+
+export class LeaveService {
+  static async request(
+    payload: Omit<LeaveRequestDoc, "createdAt" | "updatedAt" | "isDeleted">,
+  ) {
+    return LeaveRequest.create(payload);
+  }
+
+  static async updateStatus(
+    orgId: string,
+    leaveRequestId: string,
+    status: LeaveRequestDoc["status"],
+    approverId: string,
+    comment?: string,
+  ) {
+    const updated = await LeaveRequest.findOneAndUpdate(
+      { orgId, _id: leaveRequestId },
+      {
+        status,
+        approverId,
+        $push: {
+          approvalHistory: {
+            approverId,
+            action: status === "APPROVED" ? "APPROVED" : "REJECTED",
+            comment,
+            at: new Date(),
+          },
+        },
+      },
+      { new: true },
+    ).exec();
+
+    if (updated) {
+      await HrNotificationService.queueLeaveStatusChange({
+        orgId,
+        leaveRequestId,
+        employeeId: updated.employeeId.toString(),
+        status,
+        approverId,
+        reason: updated.reason,
+        startDate: updated.startDate,
+        endDate: updated.endDate,
+      });
+    }
+
+    return updated;
+  }
+
+  static async adjustBalance(
+    orgId: string,
+    employeeId: string,
+    leaveTypeId: string,
+    year: number,
+    diff: { accrued?: number; taken?: number },
+  ) {
+    return LeaveBalance.findOneAndUpdate(
+      { orgId, employeeId, leaveTypeId, year },
+      {
+        $inc: {
+          accrued: diff.accrued ?? 0,
+          taken: diff.taken ?? 0,
+        },
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    ).exec();
+  }
+
+  static async list(orgId: string, status?: LeaveRequestDoc["status"]) {
+    const query: Record<string, unknown> = { orgId, isDeleted: false };
+    if (status) {
+      query.status = status;
+    }
+    return LeaveRequest.find(query)
+      .sort({ startDate: -1 })
+      .populate("employeeId", "firstName lastName employeeCode")
+      .lean<
+        LeaveRequestDoc & {
+          employeeId: {
+            _id: string;
+            firstName: string;
+            lastName: string;
+            employeeCode: string;
+          };
+        }
+      >()
+      .exec();
+  }
+}
+
+]]>
+</file>
+
+<file path="server/services/hr/payroll-finance.integration.ts">
+<![CDATA[
+import { Types } from "mongoose";
+import { logger } from "@/lib/logger";
+import {
+  PayrollRun,
+  type PayrollRunDoc,
+  type PayrollLineDoc,
+} from "@/server/models/hr.models";
+import ChartAccountModel from "@/server/models/finance/ChartAccount";
+
+const DEFAULT_ACCOUNT_CODES = {
+  salaryExpense: "5200",
+  bank: "1010",
+  gosiEmployee: "2100",
+  gosiEmployer: "2101",
+  deductionsPayable: "2105",
+} as const;
+
+type AccountCodeKey = keyof typeof DEFAULT_ACCOUNT_CODES;
+
+function toObjectId(value?: string | Types.ObjectId | null) {
+  if (!value) return undefined;
+  if (value instanceof Types.ObjectId) return value;
+  return Types.ObjectId.isValid(value) ? new Types.ObjectId(value) : undefined;
+}
+
+async function getAccount(orgId: Types.ObjectId, code: string, label: string) {
+  const account = await ChartAccountModel.findOne({ orgId, accountCode: code });
+  if (!account) {
+    throw new Error(
+      `Chart account ${code} (${label}) not found. Configure it in Chart of Accounts before posting payroll.`,
+    );
+  }
+  return account;
+}
+
+function sumGosi(lines: PayrollLineDoc[]) {
+  const initial = { employee: 0, employer: 0 };
+
+  const breakdown = lines.reduce((acc, line) => {
+    const gosi = line.gosiBreakdown || {};
+    acc.employee += (gosi.annuitiesEmployee || 0) + (gosi.sanedEmployee || 0);
+    acc.employer +=
+      (gosi.annuitiesEmployer || 0) +
+      (gosi.sanedEmployer || 0) +
+      (gosi.occupationalHazards || 0);
+
+    return acc;
+  }, initial);
+
+  if (breakdown.employee === 0) {
+    breakdown.employee = lines.reduce(
+      (sum, line) => sum + (line.gosiContribution || 0),
+      0,
+    );
+  }
+
+  return breakdown;
+}
+
+export class PayrollFinanceIntegration {
+  static async postRun(run: PayrollRunDoc, options?: { userId?: string }) {
+    if (run.financePosted) {
+      return;
+    }
+
+    if (!run.lines || run.lines.length === 0) {
+      logger.warn("Skipping payroll finance posting - run has no lines", {
+        runId: run._id?.toString(),
+      });
+      return;
+    }
+
+    const orgObjectId = toObjectId(run.orgId);
+    if (!orgObjectId) {
+      logger.error("Unable to post payroll to finance: invalid orgId", {
+        runId: run._id?.toString(),
+        orgId: run.orgId,
+      });
+      return;
+    }
+
+    try {
+      const { lines } = run;
+      const totals = run.totals || {
+        baseSalary: 0,
+        allowances: 0,
+        overtime: 0,
+        deductions: 0,
+        gosi: 0,
+        net: 0,
+      };
+      const earnings =
+        (totals.baseSalary || 0) +
+        (totals.allowances || 0) +
+        (totals.overtime || 0);
+      const netPay = totals.net || 0;
+      const deductionsTotal = totals.deductions || 0;
+      const gosiTotals = sumGosi(lines);
+      const otherDeductions = Math.max(
+        0,
+        deductionsTotal - gosiTotals.employee,
+      );
+
+      if (earnings <= 0) {
+        logger.warn("Skipping payroll finance posting - no earnings total", {
+          runId: run._id?.toString(),
+        });
+        return;
+      }
+
+      const postingService = (
+        await import("@/server/services/finance/postingService")
+      ).default;
+
+      const accounts: Record<
+        AccountCodeKey,
+        Awaited<ReturnType<typeof getAccount>>
+      > = {
+        salaryExpense: await getAccount(
+          orgObjectId,
+          DEFAULT_ACCOUNT_CODES.salaryExpense,
+          "Salary Expense",
+        ),
+        bank: await getAccount(
+          orgObjectId,
+          DEFAULT_ACCOUNT_CODES.bank,
+          "Payroll Bank / Cash",
+        ),
+        gosiEmployee: await getAccount(
+          orgObjectId,
+          DEFAULT_ACCOUNT_CODES.gosiEmployee,
+          "GOSI Employee Payable",
+        ),
+        gosiEmployer: await getAccount(
+          orgObjectId,
+          DEFAULT_ACCOUNT_CODES.gosiEmployer,
+          "GOSI Employer Payable",
+        ),
+        deductionsPayable: await getAccount(
+          orgObjectId,
+          DEFAULT_ACCOUNT_CODES.deductionsPayable,
+          "Payroll Deductions / Other Payables",
+        ),
+      };
+
+      const periodLabel = new Intl.DateTimeFormat("en", {
+        month: "long",
+        year: "numeric",
+      }).format(run.periodEnd || new Date());
+
+      const description = `Payroll ${periodLabel}`;
+      const journalLines = [];
+
+      const salaryExpenseAmount =
+        Math.round((earnings + gosiTotals.employer) * 100) / 100;
+      journalLines.push({
+        accountId: accounts.salaryExpense._id,
+        debit: salaryExpenseAmount,
+        credit: 0,
+        description,
+      });
+
+      if (gosiTotals.employee > 0) {
+        journalLines.push({
+          accountId: accounts.gosiEmployee._id,
+          debit: 0,
+          credit: Math.round(gosiTotals.employee * 100) / 100,
+          description: `${description} - GOSI Employee`,
+        });
+      }
+
+      if (gosiTotals.employer > 0) {
+        journalLines.push({
+          accountId: accounts.gosiEmployer._id,
+          debit: 0,
+          credit: Math.round(gosiTotals.employer * 100) / 100,
+          description: `${description} - GOSI Employer`,
+        });
+      }
+
+      if (otherDeductions > 0) {
+        journalLines.push({
+          accountId: accounts.deductionsPayable._id,
+          debit: 0,
+          credit: Math.round(otherDeductions * 100) / 100,
+          description: `${description} - Deductions`,
+        });
+      }
+
+      if (netPay > 0) {
+        journalLines.push({
+          accountId: accounts.bank._id,
+          debit: 0,
+          credit: Math.round(netPay * 100) / 100,
+          description: `${description} - Payroll Disbursement`,
+        });
+      }
+
+      const userObjectId =
+        toObjectId(options?.userId) ||
+        toObjectId(run.updatedBy as unknown as Types.ObjectId) ||
+        toObjectId(run.createdBy as unknown as Types.ObjectId) ||
+        orgObjectId;
+
+      const journal = await postingService.createJournal({
+        orgId: orgObjectId,
+        journalDate: run.periodEnd || new Date(),
+        description,
+        sourceType: "EXPENSE",
+        sourceId: run._id as Types.ObjectId,
+        sourceNumber: run.name,
+        lines: journalLines,
+        userId: userObjectId!,
+      });
+
+      await postingService.postJournal(journal._id);
+
+      await PayrollRun.updateOne(
+        { _id: run._id },
+        {
+          financePosted: true,
+          financeJournalId: journal._id,
+          financeReference: journal.journalNumber,
+          financePostedAt: new Date(),
+        },
+      ).exec();
+
+      logger.info("Payroll run posted to finance", {
+        runId: run._id?.toString(),
+        journalId: journal._id.toString(),
+      });
+    } catch (error) {
+      logger.error("Failed to post payroll run to finance", {
+        runId: run._id?.toString(),
+        error,
+      });
+      throw error;
+    }
+  }
+}
+
+]]>
+</file>
+
+<file path="server/services/hr/payroll.service.ts">
+<![CDATA[
+import { PayrollRun, type PayrollRunDoc } from "@/server/models/hr.models";
+import { logger } from "@/lib/logger";
+import { PayrollFinanceIntegration } from "@/server/services/hr/payroll-finance.integration";
+
+export interface PayrollRunFilters {
+  orgId: string;
+  status?: PayrollRunDoc["status"];
+}
+
+export interface CreatePayrollRunPayload {
+  orgId: string;
+  name: string;
+  periodStart: Date;
+  periodEnd: Date;
+}
+
+export class PayrollService {
+  static async list(filters: PayrollRunFilters) {
+    const query: Record<string, unknown> = {
+      orgId: filters.orgId,
+      isDeleted: false,
+    };
+    if (filters.status) {
+      query.status = filters.status;
+    }
+    return PayrollRun.find(query)
+      .sort({ periodEnd: -1 })
+      .lean<PayrollRunDoc>()
+      .exec();
+  }
+
+  static async create(payload: CreatePayrollRunPayload) {
+    return PayrollRun.create({
+      orgId: payload.orgId,
+      name: payload.name,
+      periodStart: payload.periodStart,
+      periodEnd: payload.periodEnd,
+      status: "DRAFT",
+      lines: [],
+      totals: {
+        baseSalary: 0,
+        allowances: 0,
+        overtime: 0,
+        deductions: 0,
+        gosi: 0,
+        net: 0,
+      },
+      employeeCount: 0,
+    });
+  }
+
+  static async existsOverlap(
+    orgId: string,
+    periodStart: Date,
+    periodEnd: Date,
+  ) {
+    return PayrollRun.exists({
+      orgId,
+      isDeleted: false,
+      periodStart: { $lte: periodEnd },
+      periodEnd: { $gte: periodStart },
+    });
+  }
+
+  static async getById(orgId: string, runId: string) {
+    return PayrollRun.findOne({ orgId, _id: runId, isDeleted: false }).exec();
+  }
+
+  static async updateCalculation(
+    orgId: string,
+    runId: string,
+    lines: PayrollRunDoc["lines"],
+    status: PayrollRunDoc["status"] = "IN_REVIEW",
+  ) {
+    const totals = lines.reduce(
+      (acc, line) => {
+        acc.baseSalary += line.baseSalary || 0;
+        acc.allowances += line.allowances || 0;
+        acc.overtime += line.overtimeAmount || 0;
+        acc.deductions += line.deductions || 0;
+        acc.gosi += line.gosiContribution || 0;
+        acc.net += line.netPay || 0;
+        return acc;
+      },
+      {
+        baseSalary: 0,
+        allowances: 0,
+        overtime: 0,
+        deductions: 0,
+        gosi: 0,
+        net: 0,
+      },
+    );
+
+    return PayrollRun.findOneAndUpdate(
+      { orgId, _id: runId, isDeleted: false },
+      {
+        lines,
+        status,
+        calculatedAt: new Date(),
+        employeeCount: lines.length,
+        totals: {
+          baseSalary: Math.round(totals.baseSalary * 100) / 100,
+          allowances: Math.round(totals.allowances * 100) / 100,
+          overtime: Math.round(totals.overtime * 100) / 100,
+          deductions: Math.round(totals.deductions * 100) / 100,
+          gosi: Math.round(totals.gosi * 100) / 100,
+          net: Math.round(totals.net * 100) / 100,
+        },
+      },
+      { new: true },
+    ).exec();
+  }
+
+  static async updateExportReference(
+    orgId: string,
+    runId: string,
+    reference: string,
+  ) {
+    return PayrollRun.findOneAndUpdate(
+      { orgId, _id: runId, isDeleted: false },
+      { exportReference: reference },
+      { new: true },
+    ).exec();
+  }
+
+  static async updateStatus(
+    orgId: string,
+    runId: string,
+    status: PayrollRunDoc["status"],
+  ) {
+    const run = await PayrollRun.findOneAndUpdate(
+      { orgId, _id: runId, isDeleted: false },
+      { status },
+      { new: true },
+    ).exec();
+
+    if (run && status === "LOCKED" && !run.financePosted) {
+      try {
+        await PayrollFinanceIntegration.postRun(run);
+      } catch (error) {
+        logger.error("Failed to post payroll run to finance", {
+          runId,
+          error,
+        });
+      }
+    }
+
+    return run;
+  }
+}
+
+]]>
+</file>
+
+<file path="server/services/onboardingEntities.ts">
+<![CDATA[
+import { Types, startSession } from 'mongoose';
+import { randomUUID } from 'crypto';
+import { setTenantContext } from '@/server/plugins/tenantIsolation';
+import { logger } from '@/lib/logger';
+import { type IOnboardingCase } from '@/server/models/onboarding/OnboardingCase';
+
+type OnboardingCaseLean = IOnboardingCase & { _id: Types.ObjectId };
+
+// i18n messages for support ticket (server-side)
+const ticketMessages = {
+  en: {
+    subject: (role: string) => `Onboarding provisioning needed: ${role}`,
+    message: (caseId: Types.ObjectId | string, role: string) => `Auto-created from onboarding approval. Case: ${caseId}. Role: ${role}.`,
+  },
+  ar: {
+    subject: (role: string) => `مطلوب تجهيز الإعداد: ${role}`,
+    message: (caseId: Types.ObjectId | string, role: string) => `تم الإنشاء تلقائيًا من الموافقة على الإعداد. الحالة: ${caseId}. الدور: ${role}.`,
+  },
+};
+
+/**
+ * Minimal entity wiring that:
+ * - Ensures tenant context is set (orgId) for downstream models with tenantIsolationPlugin.
+ * - Creates a SupportTicket for provisioning so admins can complete org/user/tenancy/vendor wiring.
+ * - Logs ZATCA/Ejar hooks as stubs to be replaced with real integrations.
+ *
+ * This avoids hard failures from partially-known schemas while still creating
+ * a CRM trail and setting the right tenant context.
+ */
+export async function createEntitiesFromCase(onboarding: OnboardingCaseLean): Promise<void> {
+  const role = onboarding.role as string;
+  const orgId =
+    (onboarding as { orgId?: Types.ObjectId }).orgId ??
+    (onboarding as { subjectOrgId?: Types.ObjectId }).subjectOrgId ??
+    // Legacy snake_case fallbacks
+    (onboarding as { org_id?: Types.ObjectId }).org_id ??
+    (onboarding as { subject_org_id?: Types.ObjectId }).subject_org_id;
+
+  if (orgId) {
+    setTenantContext({ orgId });
+  }
+
+  let requesterOrg = orgId?.toString();
+  let requesterUserId = onboarding.created_by_id?.toString?.();
+
+  // Fetch creator to pick up org if missing
+  if (!requesterOrg || !requesterUserId) {
+    try {
+      const { User } = await import('@/server/models/User');
+      const creator = await User.findById(onboarding.created_by_id)
+        .select('orgId')
+        .lean<{ orgId?: Types.ObjectId }>();
+      requesterOrg = requesterOrg || creator?.orgId?.toString();
+      requesterUserId = requesterUserId || onboarding.created_by_id?.toString();
+      if (requesterOrg) setTenantContext({ orgId: requesterOrg });
+    } catch (error) {
+      logger.warn('[Onboarding] Could not resolve creator org', { error });
+    }
+  }
+
+  const summary = {
+    role,
+    onboardingCaseId: onboarding._id?.toString?.(),
+    orgId: requesterOrg,
+    subjectUserId: onboarding.subject_user_id?.toString?.(),
+  };
+
+  // Use transaction to ensure atomicity
+  const session = await startSession();
+  session.startTransaction();
+
+  try {
+    const { SupportTicket } = await import('@/server/models/SupportTicket');
+    const locale = 'en'; // Default to EN, can be enhanced to detect from onboarding.locale
+    const t = ticketMessages[locale];
+    
+    // Use UUID for guaranteed uniqueness
+    const code = `ONB-${randomUUID().substring(0, 8).toUpperCase()}`;
+    const subject = t.subject(role);
+    const ticketModule = ['VENDOR', 'AGENT'].includes(role) ? 'Souq' : 'Account';
+
+    await SupportTicket.create(
+      [
+        {
+          code,
+          subject,
+          module: ticketModule,
+          type: 'Access',
+          priority: 'Medium',
+          requester: {
+            name: onboarding.basic_info?.name,
+            email: onboarding.basic_info?.email,
+          },
+          messages: [
+            {
+              text: t.message(onboarding._id, role),
+            },
+          ],
+          ...(requesterOrg ? { orgId: requesterOrg } : {}),
+          assignment: {},
+        },
+      ],
+      { session },
+    );
+
+    await session.commitTransaction();
+    logger.info('[Onboarding] SupportTicket created successfully', { code, summary });
+  } catch (error) {
+    await session.abortTransaction();
+    logger.error('[Onboarding] Transaction failed, rolling back', { error, summary });
+    throw error; // Re-throw to prevent partial state
+  } finally {
+    session.endSession();
+  }
+
+  // Stub hooks to be replaced with actual integrations.
+  switch (role) {
+    case 'PROPERTY_OWNER':
+    case 'OWNER': {
+      logger.info('[Onboarding] Org provisioning stub (owner)', summary);
+      break;
+    }
+    case 'VENDOR': {
+      logger.info('[Onboarding] Vendor provisioning stub; invoke ZATCA registration here', summary);
+      break;
+    }
+    case 'TENANT': {
+      logger.info('[Onboarding] Tenant provisioning stub; invoke Ejar registration here', summary);
+      break;
+    }
+    case 'AGENT': {
+      logger.info('[Onboarding] Agent provisioning stub', summary);
+      break;
+    }
+    default:
+      logger.info('[Onboarding] Unknown role provisioning stub', summary);
+  }
+}
+
+]]>
+</file>
+
+<file path="server/services/onboardingKpi.service.ts">
+<![CDATA[
+import { Types } from 'mongoose';
+import { OnboardingCase } from '@/server/models/onboarding/OnboardingCase';
+import { VerificationDocument } from '@/server/models/onboarding/VerificationDocument';
+
+export async function getOnboardingKPIs(orgId: string) {
+  const orgObjectId = new Types.ObjectId(orgId);
+
+  const avgTimes = await OnboardingCase.aggregate([
+    { $match: { org_id: orgObjectId, status: 'APPROVED' } },
+    { $group: { _id: '$role', avgTimeMs: { $avg: { $subtract: ['$updatedAt', '$createdAt'] } } } },
+  ]);
+
+  const [drafts, total] = await Promise.all([
+    OnboardingCase.countDocuments({ org_id: orgObjectId, status: 'DRAFT' }),
+    OnboardingCase.countDocuments({ org_id: orgObjectId }),
+  ]);
+
+  const expiredDocs = await VerificationDocument.countDocuments({ status: 'EXPIRED' });
+
+  return {
+    avgTimes,
+    dropOffRate: total > 0 ? drafts / total : 0,
+    expiredDocs,
+  };
+}
+
+]]>
+</file>
+
+<file path="server/services/owner/analytics.ts">
+<![CDATA[
+/**
+ * Owner Portal Analytics Service
+ *
+ * Provides comprehensive financial analytics for property owners:
+ * - Revenue tracking (rental income)
+ * - Maintenance costs analysis
+ * - Utility expenses tracking
+ * - NOI (Net Operating Income) calculations
+ * - ROI (Return on Investment) calculations
+ * - Period comparisons (3/6/9/12 months or custom)
+ *
+ * Uses MongoDB aggregation pipelines for efficient data processing
+ */
+
+import { Types } from "mongoose";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
+
+export interface AnalyticsPeriod {
+  startDate: Date;
+  endDate: Date;
+  label: string; // "3 Months", "6 Months", "YTD", "Custom", etc.
+}
+
+export interface PropertyFinancialSummary {
+  propertyId: Types.ObjectId;
+  propertyName: string;
+  propertyCode: string;
+
+  // Revenue
+  totalRevenue: number;
+  rentalIncome: number;
+  otherIncome: number;
+
+  // Expenses
+  totalExpenses: number;
+  maintenanceCosts: number;
+  utilityCosts: number;
+  managementFees: number;
+  insuranceCosts: number;
+  otherExpenses: number;
+
+  // Calculated Metrics
+  noi: number; // Net Operating Income
+  noiMargin: number; // NOI / Total Revenue * 100
+
+  // Per Unit Breakdown
+  units: Array<{
+    unitNumber: string;
+    revenue: number;
+    maintenanceCosts: number;
+    utilityCosts: number;
+    noi: number;
+    occupancyDays: number;
+  }>;
+}
+
+export interface OwnerPortfolioSummary {
+  ownerId: Types.ObjectId;
+  ownerName: string;
+  period: AnalyticsPeriod;
+
+  // Portfolio Totals
+  totalProperties: number;
+  totalUnits: number;
+  occupiedUnits: number;
+  vacantUnits: number;
+  occupancyRate: number; // Percentage
+
+  // Financial Summary
+  totalRevenue: number;
+  totalExpenses: number;
+  totalNOI: number;
+  averageNOIMargin: number;
+
+  // Investment Metrics
+  totalInvestment: number; // Purchase prices
+  currentValue: number; // Current property values
+  equity: number; // Current value - mortgages
+  totalROI: number; // Percentage
+  cashOnCash: number; // Percentage
+
+  // Detailed Breakdown
+  properties: PropertyFinancialSummary[];
+
+  // Trends
+  monthlyTrends: Array<{
+    month: string; // "2024-01", "2024-02", etc.
+    revenue: number;
+    expenses: number;
+    noi: number;
+  }>;
+}
+
+export interface ROICalculationInput {
+  ownerId: Types.ObjectId;
+  propertyId?: Types.ObjectId; // Optional: specific property or entire portfolio
+  period: AnalyticsPeriod;
+  includeCapitalGains?: boolean;
+  orgId: Types.ObjectId;
+}
+
+/**
+ * Generate standard period definitions
+ */
+export function getStandardPeriods(): AnalyticsPeriod[] {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+
+  return [
+    {
+      startDate: new Date(now.getFullYear(), now.getMonth() - 3, 1),
+      endDate: now,
+      label: "3 Months",
+    },
+    {
+      startDate: new Date(now.getFullYear(), now.getMonth() - 6, 1),
+      endDate: now,
+      label: "6 Months",
+    },
+    {
+      startDate: new Date(now.getFullYear(), now.getMonth() - 9, 1),
+      endDate: now,
+      label: "9 Months",
+    },
+    {
+      startDate: new Date(now.getFullYear(), now.getMonth() - 12, 1),
+      endDate: now,
+      label: "12 Months",
+    },
+    {
+      startDate: new Date(currentYear, 0, 1), // January 1st of current year
+      endDate: now,
+      label: "YTD (Year to Date)",
+    },
+  ];
+}
+
+/**
+ * Calculate Revenue for Owner's Properties
+ *
+ * Aggregates rental income and other revenue sources from:
+ * - Service contracts (rental agreements)
+ * - Payment records
+ * - Invoices
+ */
+export async function calculateRevenue(
+  ownerId: Types.ObjectId,
+  propertyId: Types.ObjectId | null,
+  period: AnalyticsPeriod,
+  orgId: Types.ObjectId,
+): Promise<number> {
+  await connectToDatabase();
+  const db = (await import("mongoose")).default.connection.db!;
+
+  const matchStage: Record<string, unknown> = {
+    orgId,
+    ownerId,
+    paymentDate: {
+      $gte: period.startDate,
+      $lte: period.endDate,
+    },
+    status: "PAID",
+  };
+
+  if (propertyId) {
+    matchStage.propertyId = propertyId;
+  }
+
+  const result = await db
+    .collection(COLLECTIONS.PAYMENTS)
+    .aggregate([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: "$amount" },
+        },
+      },
+    ])
+    .toArray();
+
+  return result[0]?.totalRevenue || 0;
+}
+
+/**
+ * Calculate Maintenance Costs
+ *
+ * Aggregates costs from:
+ * - Work orders (completed)
+ * - Maintenance invoices
+ * - Service provider payments
+ */
+export async function calculateMaintenanceCosts(
+  ownerId: Types.ObjectId,
+  propertyId: Types.ObjectId | null,
+  period: AnalyticsPeriod,
+  orgId: Types.ObjectId,
+  options?: {
+    perUnit?: boolean;
+    postHandoverOnly?: boolean;
+    tenantId?: Types.ObjectId;
+  },
+): Promise<number | Record<string, number>> {
+  await connectToDatabase();
+  const db = (await import("mongoose")).default.connection.db!;
+
+  const matchStage: Record<string, unknown> = {
+    orgId,
+    "property.propertyId": { $exists: true },
+    status: "COMPLETED",
+    completedDate: {
+      $gte: period.startDate,
+      $lte: period.endDate,
+    },
+  };
+
+  if (propertyId) {
+    matchStage["property.propertyId"] = propertyId;
+  }
+
+  // Filter by tenant if specified (for post-handover costs)
+  if (options?.tenantId) {
+    matchStage.tenantId = options.tenantId;
+  }
+
+  // For post-handover only, filter work orders created after move-out
+  if (options?.postHandoverOnly) {
+    // This would require checking against inspection dates
+    // Simplified implementation - would need to join with inspections
+  }
+
+  if (options?.perUnit) {
+    // Group by unit
+    const result = await db
+    .collection(COLLECTIONS.WORK_ORDERS)
+      .aggregate([
+        { $match: matchStage },
+        {
+          $group: {
+            _id: "$property.unitNumber",
+            totalCost: { $sum: "$cost.total" },
+          },
+        },
+      ])
+      .toArray();
+
+    const perUnitCosts: Record<string, number> = {};
+    result.forEach((item) => {
+      perUnitCosts[item._id || "COMMON_AREA"] = item.totalCost || 0;
+    });
+
+    return perUnitCosts;
+  } else {
+    // Total maintenance costs
+    const result = await db
+      .collection(COLLECTIONS.WORK_ORDERS)
+      .aggregate([
+        { $match: matchStage },
+        {
+          $group: {
+            _id: null,
+            totalCost: { $sum: "$cost.total" },
+          },
+        },
+      ])
+      .toArray();
+
+    return result[0]?.totalCost || 0;
+  }
+}
+
+/**
+ * Calculate Utility Costs
+ *
+ * Aggregates utility bills for the specified period
+ */
+export async function calculateUtilityCosts(
+  ownerId: Types.ObjectId,
+  propertyId: Types.ObjectId | null,
+  period: AnalyticsPeriod,
+  orgId: Types.ObjectId,
+): Promise<number> {
+  await connectToDatabase();
+  const db = (await import("mongoose")).default.connection.db!;
+
+  const matchStage: Record<string, unknown> = {
+    orgId,
+    "responsibility.ownerId": ownerId,
+    "period.endDate": {
+      $gte: period.startDate,
+      $lte: period.endDate,
+    },
+    status: { $in: ["PAID", "ISSUED"] },
+  };
+
+  if (propertyId) {
+    matchStage.propertyId = propertyId;
+  }
+
+  const result = await db
+    .collection(COLLECTIONS.UTILITY_BILLS)
+    .aggregate([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: null,
+          totalCost: { $sum: "$charges.totalAmount" },
+        },
+      },
+    ])
+    .toArray();
+
+  return result[0]?.totalCost || 0;
+}
+
+/**
+ * Calculate comprehensive portfolio analytics with NOI and ROI
+ */
+export async function calculatePortfolioAnalytics(
+  input: ROICalculationInput,
+): Promise<OwnerPortfolioSummary> {
+  await connectToDatabase();
+  const mongoose = await import("mongoose");
+  const db = mongoose.default.connection.db!;
+
+  const { ownerId, propertyId, period, orgId } = input;
+
+  // Get owner details
+  const ownerDoc = await db.collection(COLLECTIONS.OWNERS).findOne({
+    _id: ownerId,
+    orgId,
+  });
+
+  if (!ownerDoc) {
+    throw new Error("Owner not found");
+  }
+
+  // Get properties
+  const propertyMatch: Record<string, unknown> = {
+    orgId,
+    "ownerPortal.ownerId": ownerId,
+  };
+
+  if (propertyId) {
+    propertyMatch._id = propertyId;
+  }
+
+  const properties = await db
+    .collection(COLLECTIONS.PROPERTIES)
+    .find(propertyMatch)
+    .toArray();
+
+  // Calculate metrics for each property
+  const propertyAnalytics: PropertyFinancialSummary[] = [];
+  let totalRevenue = 0;
+  let totalExpenses = 0;
+  let totalInvestment = 0;
+  let currentValue = 0;
+
+  for (const property of properties) {
+    const propId = property._id;
+
+    // Revenue
+    const revenue = await calculateRevenue(ownerId, propId, period, orgId);
+
+    // Expenses
+    const maintenanceCosts = (await calculateMaintenanceCosts(
+      ownerId,
+      propId,
+      period,
+      orgId,
+    )) as number;
+    const utilityCosts = await calculateUtilityCosts(
+      ownerId,
+      propId,
+      period,
+      orgId,
+    );
+    const propertyExpenses = maintenanceCosts + utilityCosts;
+
+    // NOI calculation
+    const noi = revenue - propertyExpenses;
+    const noiMargin = revenue > 0 ? (noi / revenue) * 100 : 0;
+
+    // Investment tracking
+    const purchasePrice = property.financial?.purchasePrice || 0;
+    const propCurrentValue = property.financial?.currentValue || purchasePrice;
+
+    totalRevenue += revenue;
+    totalExpenses += propertyExpenses;
+    totalInvestment += purchasePrice;
+    currentValue += propCurrentValue;
+
+    propertyAnalytics.push({
+      propertyId: propId,
+      propertyName: property.name,
+      propertyCode: property.code,
+      totalRevenue: revenue,
+      rentalIncome: revenue, // Simplified - would need breakdown
+      otherIncome: 0,
+      totalExpenses: propertyExpenses,
+      maintenanceCosts,
+      utilityCosts,
+      managementFees: 0,
+      insuranceCosts: 0,
+      otherExpenses: 0,
+      noi,
+      noiMargin,
+      units: [], // Would need detailed unit breakdown
+    });
+  }
+
+  // Calculate portfolio metrics
+  const totalNOI = totalRevenue - totalExpenses;
+  const averageNOIMargin =
+    totalRevenue > 0 ? (totalNOI / totalRevenue) * 100 : 0;
+  const totalROI = totalInvestment > 0 ? (totalNOI / totalInvestment) * 100 : 0;
+
+  // Get occupancy stats
+  const totalUnits = properties.reduce(
+    (sum, p) => sum + (p.units?.length || 0),
+    0,
+  );
+  const occupiedUnits = properties.reduce(
+    (sum, p) =>
+      sum +
+      (p.units?.filter((u: { status: string }) => u.status === "OCCUPIED")
+        .length || 0),
+    0,
+  );
+  const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
+
+  // Calculate equity (simplified - would need mortgage details)
+  const equity = currentValue;
+
+  return {
+    ownerId,
+    ownerName: ownerDoc.name?.full || ownerDoc.companyName || "Unknown",
+    period,
+    totalProperties: properties.length,
+    totalUnits,
+    occupiedUnits,
+    vacantUnits: totalUnits - occupiedUnits,
+    occupancyRate,
+    totalRevenue,
+    totalExpenses,
+    totalNOI,
+    averageNOIMargin,
+    totalInvestment,
+    currentValue,
+    equity,
+    totalROI,
+    cashOnCash: 0, // Would need cash flow details
+    properties: propertyAnalytics,
+    monthlyTrends: [], // Would need time-series aggregation
+  };
+}
+
+/**
+ * Detect utility consumption anomalies
+ * Identifies bills with significantly higher consumption than average
+ */
+export async function detectUtilityAnomalies(
+  ownerId: Types.ObjectId,
+  propertyId: Types.ObjectId,
+  orgId: Types.ObjectId,
+  threshold: number = 30, // Percentage increase threshold
+): Promise<
+  Array<{
+    billId: Types.ObjectId;
+    billNumber: string;
+    utilityType: string;
+    consumption: number;
+    averageConsumption: number;
+    percentageIncrease: number;
+  }>
+> {
+  await connectToDatabase();
+  const db = (await import("mongoose")).default.connection.db!;
+
+  const result = await db
+    .collection(COLLECTIONS.UTILITY_BILLS)
+    .aggregate([
+      {
+        $match: {
+          orgId,
+          propertyId,
+          "responsibility.ownerId": ownerId,
+          "analytics.isAnomaly": true,
+          "analytics.percentageChange": { $gte: threshold },
+        },
+      },
+      {
+        $project: {
+          billNumber: 1,
+          utilityType: "$meterId", // Would need to lookup meter details
+          consumption: "$readings.consumption",
+          averageConsumption: "$analytics.averageConsumptionPast3Months",
+          percentageIncrease: "$analytics.percentageChange",
+        },
+      },
+    ])
+    .toArray();
+
+  return result.map((item) => ({
+    billId: item._id,
+    billNumber: item.billNumber,
+    utilityType: item.utilityType,
+    consumption: item.consumption,
+    averageConsumption: item.averageConsumption,
+    percentageIncrease: item.percentageIncrease,
+  }));
+}
+
+]]>
+</file>
+
+<file path="server/services/owner/financeIntegration.ts">
+<![CDATA[
+/**
+ * Owner Portal Finance Integration Service
+ *
+ * Handles finance posting for Owner Portal operations with:
+ * - Idempotent posting (prevents duplicate entries)
+ * - MongoDB transaction support for atomic operations
+ * - Integration with existing postingService.ts
+ * - AFTER photo validation for work order closure
+ * - Proper error handling and rollback
+ *
+ * Addresses code review findings:
+ * 1. Idempotency checks before posting
+ * 2. MongoDB transactions for atomicity
+ * 3. AFTER photo validation
+ * 4. Unique constraints enforcement
+ */
+
+import { logger } from "@/lib/logger";
+
+import { Types, ClientSession } from "mongoose";
+import mongoose from "mongoose";
+import { WorkOrder, type WorkOrderDoc } from "@/server/models/WorkOrder";
+import { MoveInOutInspectionModel } from "@/server/models/owner/MoveInOutInspection";
+import { UtilityBillModel } from "@/server/models/owner/UtilityBill";
+
+export interface PostFinanceOnCloseInput {
+  workOrderId: Types.ObjectId;
+  workOrderNumber: string;
+  totalCost: number;
+  propertyId: Types.ObjectId;
+  unitNumber?: string;
+  ownerId: Types.ObjectId;
+  vendorId?: Types.ObjectId;
+  userId: Types.ObjectId; // User performing the operation
+  orgId: Types.ObjectId;
+}
+
+export interface PostFinanceOnCloseResult {
+  success: boolean;
+  journalId?: Types.ObjectId;
+  journalNumber?: string;
+  alreadyPosted?: boolean;
+  error?: string;
+}
+
+type WorkOrderFinanceMeta = {
+  financePosted?: boolean;
+  journalEntryId?: Types.ObjectId | string;
+  journalNumber?: string;
+};
+
+/**
+ * Check if work order has AFTER photos (for move-out inspections)
+ * Addresses code review finding: Missing AFTER photo validation
+ */
+async function validateAfterPhotos(
+  workOrderId: Types.ObjectId,
+): Promise<boolean> {
+  // Check if this work order is linked to a move-out inspection
+  const inspection = await MoveInOutInspectionModel.findOne({
+    "references.workOrderId": workOrderId,
+    type: { $in: ["MOVE_OUT", "POST_HANDOVER"] },
+  });
+
+  if (!inspection) {
+    // Not related to inspection, no AFTER photos required
+    return true;
+  }
+
+  // Check if inspection has AFTER photos
+  let hasAfterPhotos = false;
+
+  // Check rooms for AFTER photos
+  if (inspection.rooms && inspection.rooms.length > 0) {
+    for (const room of inspection.rooms) {
+      const roomData = room as {
+        walls?: { photos?: { timestamp?: string }[] };
+        ceiling?: { photos?: { timestamp?: string }[] };
+        floor?: { photos?: { timestamp?: string }[] };
+      };
+      const afterPhotos = [
+        ...(roomData.walls?.photos || []),
+        ...(roomData.ceiling?.photos || []),
+        ...(roomData.floor?.photos || []),
+      ].filter((p) => p.timestamp === "AFTER");
+
+      if (afterPhotos.length > 0) {
+        hasAfterPhotos = true;
+        break;
+      }
+    }
+  }
+
+  // Check issues for AFTER photos
+  if (!hasAfterPhotos && inspection.issues && inspection.issues.length > 0) {
+    for (const issue of inspection.issues) {
+      const afterPhotos = (issue.photos || []).filter((p: unknown) => {
+        const photo = p as { timestamp?: string };
+        return photo.timestamp === "AFTER";
+      });
+      if (afterPhotos.length > 0) {
+        hasAfterPhotos = true;
+        break;
+      }
+    }
+  }
+
+  return hasAfterPhotos;
+}
+
+/**
+ * Post finance entry when work order is closed (IDEMPOTENT)
+ *
+ * Implements:
+ * 1. Status check for idempotency (prevents duplicate posting)
+ * 2. AFTER photo validation for inspections
+ * 3. MongoDB transaction for atomicity
+ * 4. Integration with existing postingService
+ *
+ * @param input Work order details for finance posting
+ * @param session Optional MongoDB session for transaction support
+ * @returns Result indicating success and journal details
+ */
+export async function postFinanceOnClose(
+  input: PostFinanceOnCloseInput,
+  session?: ClientSession,
+): Promise<PostFinanceOnCloseResult> {
+  let localSession: ClientSession | null = null;
+
+  try {
+    // Start transaction if no session provided
+    if (!session) {
+      localSession = await mongoose.startSession();
+      localSession.startTransaction();
+      session = localSession;
+    }
+
+    // ⚡ FIX 1: IDEMPOTENCY CHECK - Check if already posted
+    const workOrder = await WorkOrder.findById(input.workOrderId).session(
+      session,
+    );
+
+    if (!workOrder) {
+      throw new Error(`Work order ${input.workOrderNumber} not found`);
+    }
+
+    // Check if finance already posted for this work order
+    const workOrderFinance = workOrder as WorkOrderDoc & WorkOrderFinanceMeta;
+    if (workOrderFinance.financePosted) {
+      const existingJournalId =
+        workOrderFinance.journalEntryId instanceof Types.ObjectId
+          ? workOrderFinance.journalEntryId
+          : workOrderFinance.journalEntryId
+            ? new Types.ObjectId(workOrderFinance.journalEntryId)
+            : undefined;
+      logger.info("Finance already posted for work order", {
+        workOrderNumber: input.workOrderNumber,
+        workOrderId: input.workOrderId.toString(),
+      });
+      return {
+        success: true,
+        alreadyPosted: true,
+        journalId: existingJournalId,
+        journalNumber: workOrderFinance.journalNumber,
+      };
+    }
+
+    // ⚡ FIX 2: AFTER PHOTO VALIDATION
+    const hasAfterPhotos = await validateAfterPhotos(input.workOrderId);
+    if (!hasAfterPhotos) {
+      throw new Error(
+        `Work order ${input.workOrderNumber} requires AFTER photos before closure. ` +
+          `Please upload AFTER photos for the inspection.`,
+      );
+    }
+
+    // ⚡ FIX 3: CREATE JOURNAL ENTRY VIA POSTING SERVICE
+    // Use postingService instance to avoid circular dependencies
+    const postingService = (await import("../finance/postingService")).default;
+
+    // Get or create maintenance expense and accounts payable accounts
+    // In production, these should be configured per organization
+    const ChartAccountModel = (
+      await import("../../models/finance/ChartAccount")
+    ).default;
+
+    const maintenanceExpenseAccount = await ChartAccountModel.findOne({
+      orgId: input.orgId,
+      code: "5100", // Standard maintenance expense account
+      session,
+    });
+
+    const accountsPayableAccount = await ChartAccountModel.findOne({
+      orgId: input.orgId,
+      code: "2100", // Standard accounts payable account
+      session,
+    });
+
+    if (!maintenanceExpenseAccount || !accountsPayableAccount) {
+      throw new Error(
+        "Chart of accounts not configured. Please set up maintenance expense (5100) " +
+          "and accounts payable (2100) accounts.",
+      );
+    }
+
+    // Create journal entry
+    const journal = await postingService.createJournal({
+      orgId: input.orgId,
+      journalDate: new Date(),
+      description: `Work Order ${input.workOrderNumber} - Maintenance Expense`,
+      sourceType: "WORK_ORDER",
+      sourceId: input.workOrderId,
+      sourceNumber: input.workOrderNumber,
+      lines: [
+        {
+          accountId: maintenanceExpenseAccount._id,
+          description: `Maintenance expense for WO ${input.workOrderNumber}`,
+          debit: input.totalCost,
+          credit: 0,
+          propertyId: input.propertyId,
+          unitId: input.unitNumber ? undefined : undefined, // Would need unit ObjectId
+          ownerId: input.ownerId,
+          vendorId: input.vendorId,
+        },
+        {
+          accountId: accountsPayableAccount._id,
+          description: `Accounts payable for WO ${input.workOrderNumber}`,
+          debit: 0,
+          credit: input.totalCost,
+          vendorId: input.vendorId,
+        },
+      ],
+      userId: input.userId,
+    });
+
+    // Post the journal
+    await postingService.postJournal(journal._id);
+
+    // ⚡ FIX 4: UPDATE WORK ORDER WITH ATOMIC OPERATION
+    // Update work order to mark finance as posted
+    const updateResult = await WorkOrder.findByIdAndUpdate(
+      input.workOrderId,
+      {
+        $set: {
+          financePosted: true,
+          journalEntryId: journal._id,
+          journalNumber: journal.journalNumber,
+          financePostedDate: new Date(),
+          financePostedBy: input.userId,
+        },
+      },
+      {
+        new: true,
+        session,
+        runValidators: true,
+      },
+    );
+
+    if (!updateResult) {
+      throw new Error(`Failed to update work order ${input.workOrderNumber}`);
+    }
+
+    // Commit transaction if we started it
+    if (localSession) {
+      await localSession.commitTransaction();
+    }
+
+    return {
+      success: true,
+      journalId: journal._id,
+      journalNumber: journal.journalNumber,
+      alreadyPosted: false,
+    };
+  } catch (error) {
+    // Rollback transaction on error
+    if (localSession) {
+      await localSession.abortTransaction();
+    }
+
+    logger.error(
+      "Error posting finance on work order close",
+      error instanceof Error ? error : new Error(String(error)),
+      {
+        workOrderId: input.workOrderId.toString(),
+        workOrderNumber: input.workOrderNumber,
+      },
+    );
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    };
+  } finally {
+    // Clean up session if we created it
+    if (localSession) {
+      await localSession.endSession();
+    }
+  }
+}
+
+/**
+ * Post utility bill payment to finance module
+ * Creates journal entry for utility expense
+ */
+export async function postUtilityBillPayment(
+  billId: Types.ObjectId,
+  orgId: Types.ObjectId,
+  userId: Types.ObjectId,
+  session?: ClientSession,
+): Promise<PostFinanceOnCloseResult> {
+  let localSession: ClientSession | null = null;
+
+  try {
+    if (!session) {
+      localSession = await mongoose.startSession();
+      localSession.startTransaction();
+      session = localSession;
+    }
+
+    // Get bill details
+    const bill = await UtilityBillModel.findById(billId).session(session);
+
+    if (!bill) {
+      throw new Error("Utility bill not found");
+    }
+
+    // Check if already posted
+    if (bill.finance?.posted) {
+      return {
+        success: true,
+        alreadyPosted: true,
+        journalId: bill.finance.journalEntryId || undefined,
+      };
+    }
+
+    // Import posting service
+    const postingService = (await import("../finance/postingService")).default;
+    const ChartAccountModel = (
+      await import("../../models/finance/ChartAccount")
+    ).default;
+
+    // Get utility expense and cash/bank accounts
+    const utilityExpenseAccount = await ChartAccountModel.findOne({
+      orgId,
+      code: "5200", // Utility expense account
+      session,
+    });
+
+    const cashAccount = await ChartAccountModel.findOne({
+      orgId,
+      code: "1100", // Cash/Bank account
+      session,
+    });
+
+    if (!utilityExpenseAccount || !cashAccount) {
+      throw new Error("Chart of accounts not configured for utility bills");
+    }
+
+    // Create journal entry
+    const journal = await postingService.createJournal({
+      orgId,
+      journalDate: bill.payment?.paidDate || new Date(),
+      description: `Utility Bill ${bill.billNumber} - ${bill.meterId}`,
+      sourceType: "EXPENSE",
+      sourceId: billId,
+      sourceNumber: bill.billNumber,
+      lines: [
+        {
+          accountId: utilityExpenseAccount._id,
+          description: `Utility expense - ${bill.billNumber}`,
+          debit: bill.charges?.totalAmount || 0,
+          credit: 0,
+          propertyId: bill.propertyId || undefined,
+          ownerId: bill.responsibility?.ownerId || undefined,
+        },
+        {
+          accountId: cashAccount._id,
+          description: `Payment for utility bill ${bill.billNumber}`,
+          debit: 0,
+          credit: bill.charges?.totalAmount || 0,
+        },
+      ],
+      userId,
+    });
+
+    await postingService.postJournal(journal._id);
+
+    // Update bill
+    await UtilityBillModel.findByIdAndUpdate(
+      billId,
+      {
+        $set: {
+          "finance.posted": true,
+          "finance.journalEntryId": journal._id,
+          "finance.postedDate": new Date(),
+          "finance.postedBy": userId,
+        },
+      },
+      { session },
+    );
+
+    if (localSession) {
+      await localSession.commitTransaction();
+    }
+
+    return {
+      success: true,
+      journalId: journal._id,
+      journalNumber: journal.journalNumber,
+    };
+  } catch (error) {
+    if (localSession) {
+      await localSession.abortTransaction();
+    }
+
+    logger.error(
+      "Error posting utility bill payment",
+      error instanceof Error ? error : new Error(String(error)),
+      {
+        billId: billId.toString(),
+        orgId: orgId.toString(),
+      },
+    );
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  } finally {
+    if (localSession) {
+      await localSession.endSession();
+    }
+  }
+}
+
+/**
+ * Calculate Net Operating Income (NOI) for a property
+ * NOI = Total Revenue - Operating Expenses (excluding mortgage, depreciation, taxes)
+ */
+export function calculateNOI(
+  totalRevenue: number,
+  operatingExpenses: number,
+): number {
+  return totalRevenue - operatingExpenses;
+}
+
+/**
+ * Calculate Return on Investment (ROI)
+ * ROI = (NOI / Total Investment) * 100
+ */
+export function calculateROI(noi: number, totalInvestment: number): number {
+  if (totalInvestment === 0) return 0;
+  return (noi / totalInvestment) * 100;
+}
+
+/**
+ * Calculate Cash on Cash Return
+ * CoC = (Annual Cash Flow / Total Cash Invested) * 100
+ */
+export function calculateCashOnCash(
+  annualCashFlow: number,
+  totalCashInvested: number,
+): number {
+  if (totalCashInvested === 0) return 0;
+  return (annualCashFlow / totalCashInvested) * 100;
+}
+
+]]>
+</file>
+
+<file path="server/services/payTabsClient.ts">
+<![CDATA[
+// PayTabs Client for Recurring Payments
+
+import { PayTabsChargeResult } from "./subscriptionBillingService";
+import { logger } from "@/lib/logger";
+
+export class PayTabsClient {
+  private serverKey = process.env.PAYTABS_SERVER_KEY || "";
+  private profileId = process.env.PAYTABS_PROFILE_ID || "";
+
+  async chargeRecurring(input: {
+    profileId?: string;
+    token: string;
+    customerEmail: string;
+    amount: number;
+    currency: string;
+    cartId?: string;
+  }): Promise<PayTabsChargeResult> {
+    if (!this.serverKey || !this.profileId) {
+      throw new Error("PayTabs configuration missing");
+    }
+
+    const payload = {
+      profile_id: input.profileId || this.profileId,
+      tran_type: "sale",
+      tran_class: "recurring",
+      cart_id: input.cartId || `CART-${Date.now()}`,
+      cart_currency: input.currency,
+      cart_amount: input.amount.toFixed(2),
+      token: input.token,
+      customer_details: {
+        email: input.customerEmail,
+      },
+    };
+
+    try {
+      const res = await fetch("https://secure.paytabs.sa/payment/request", {
+        method: "POST",
+        headers: {
+          authorization: this.serverKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        logger.error("[PayTabs] Request failed", {
+          status: res.status,
+          error: errorText,
+        });
+        throw new Error(`PayTabs error: ${errorText}`);
+      }
+
+      const data = await res.json();
+
+      return {
+        tran_ref: data.tran_ref || "",
+        status:
+          data.payment_result?.response_status === "A" ? "SUCCESS" : "FAILED",
+        error_message: data.payment_result?.response_message,
+        amount: input.amount,
+        currency: input.currency,
+      };
+    } catch (error) {
+      logger.error("[PayTabs] Charge failed", { error });
+      return {
+        tran_ref: "",
+        status: "FAILED",
+        error_message: error instanceof Error ? error.message : "Unknown error",
+        amount: input.amount,
+        currency: input.currency,
+      };
+    }
+  }
+}
+
+export const payTabsClient = new PayTabsClient();
+
+]]>
+</file>
+
+</batch_content>

@@ -1,0 +1,4077 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="i18n/pt.json">
+<![CDATA[
+{
+  "landing": {
+    "title": "Fixzit - Complete Property & Facility Management",
+    "subtitle": "Streamline operations, manage work orders, and optimize your real estate portfolio",
+    "hero": {
+      "cta1": "Get Started",
+      "cta2": "Watch Demo",
+      "cta3": "Learn More"
+    },
+    "features": {
+      "title": "Complete Management Solution",
+      "property": {
+        "title": "Property Management",
+        "desc": "Manage your properties, tenants, and leases efficiently",
+        "cta": "Explore Properties"
+      },
+      "workorders": {
+        "title": "Work Order Management",
+        "desc": "Track maintenance requests and assignments in real-time",
+        "cta": "View Work Orders"
+      },
+      "vendors": {
+        "title": "Vendor Management",
+        "desc": "Coordinate with vendors and service providers seamlessly",
+        "cta": "Manage Vendors"
+      },
+      "finance": {
+        "title": "Financial Management",
+        "desc": "Track expenses, invoices, and financial reports",
+        "cta": "View Finances"
+      },
+      "crm": {
+        "title": "CRM & Tenant Relations",
+        "desc": "Build stronger relationships with tenants and clients",
+        "cta": "Explore CRM"
+      },
+      "analytics": {
+        "title": "Analytics & Reports",
+        "desc": "Get insights with comprehensive analytics and reporting",
+        "cta": "View Reports"
+      }
+    },
+    "cta": {
+      "title": "Ready to streamline your operations?",
+      "subtitle": "Join thousands of property managers using Fixzit",
+      "login": "Sign In",
+      "demo": "Request Demo"
+    }
+  },
+  "about": {
+    "metaTitle": "About Fixzit - Property Management Software",
+    "metaDesc": "Learn about Fixzit's mission to revolutionize property and facility management",
+    "title": "About Fixzit",
+    "subtitle": "Transforming Property Management",
+    "statsSection": "Statistics",
+    "clients": "Clients",
+    "uptime": "Uptime",
+    "experience": "Years Experience",
+    "properties": "Properties Managed",
+    "contentSection": "About Our Platform",
+    "contactSection": "Contact Us",
+    "contactTitle": "Get in Touch",
+    "contactDesc": "Have questions? We'd love to hear from you.",
+    "email": "Email Address",
+    "emailLabel": "Your Email",
+    "phone": "Phone Number",
+    "phoneLabel": "Your Phone"
+  },
+  "auth": {
+    "login": {
+      "title": "Sign In",
+      "email": "Email",
+      "username": "Username",
+      "password": "Password",
+      "rememberMe": "Remember me",
+      "forgotPassword": "Forgot password?",
+      "submit": "Sign In",
+      "noAccount": "Don't have an account?",
+      "signup": "Sign up",
+      "welcome": "Welcome back",
+      "subtitle": "Sign in to your account",
+      "personalEmailTab": "Personal Email",
+      "corporateAccountTab": "Corporate Account",
+      "ssoLoginTab": "SSO Login",
+      "personalEmail": "Personal Email",
+      "employeeNumber": "Employee Number",
+      "enterEmail": "Enter your email",
+      "enterEmployeeNumber": "Enter employee number",
+      "enterPassword": "Enter your password",
+      "corporateHelp": "Use your corporate employee ID",
+      "hidePassword": "Hide password",
+      "showPassword": "Show password",
+      "capsLockOn": "Caps Lock is ON",
+      "signingIn": "Signing in...",
+      "signIn": "Sign In",
+      "continueWith": "Or continue with",
+      "orUseAccount": "Or use account",
+      "usePersonalEmail": "Use Personal Email",
+      "useCorporateAccount": "Use Corporate Account",
+      "personalEmailAccounts": "Personal Email Accounts",
+      "corporateAccountEmployee": "Corporate Employee",
+      "employeeHash": "Employee #",
+      "errors": {
+        "emailRequired": "Email is required",
+        "emailInvalid": "Invalid email address",
+        "employeeRequired": "Employee number is required",
+        "employeeInvalid": "Invalid employee number",
+        "passwordRequired": "Password is required",
+        "passwordTooShort": "Password must be at least 8 characters",
+        "invalidCredentials": "Invalid email or password",
+        "loginFailed": "Login failed. Please try again.",
+        "networkError": "Network error. Please check your connection."
+      },
+      "success": {
+        "title": "Login Successful",
+        "message": "Redirecting to dashboard..."
+      }
+    },
+    "logout": {
+      "signingOut": "Signing out...",
+      "pleaseWait": "Please wait"
+    },
+    "signup": {
+      "title": "Create Account",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "username": "Username",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "submit": "Create Account",
+      "hasAccount": "Already have an account?",
+      "login": "Sign in"
+    },
+    "forgotPassword": {
+      "title": "Reset Password",
+      "email": "Email",
+      "submit": "Send Reset Link",
+      "backToLogin": "Back to Sign In"
+    }
+  },
+  "admin": {
+    "administration": {
+      "title": "System Administration",
+      "subtitle": "Manage all aspects of the Fixzit platform"
+    },
+    "users": {
+      "title": "User Management",
+      "description": "Manage users, roles, and permissions",
+      "totalUsers": "Total Users",
+      "activeUsers": "Active Users",
+      "createUser": "Create User",
+      "active": "Active Users",
+      "online": "Online Now",
+      "creating": "Creating user...",
+      "createFailed": "Failed to create user",
+      "createSuccess": "User created successfully",
+      "deleteConfirm": "Are you sure you want to delete this user?",
+      "deleting": "Deleting user...",
+      "deleteFailed": "Failed to delete user",
+      "deleteSuccess": "User deleted successfully",
+      "exportCsv": "Export to CSV",
+      "createNewUser": "Create New User",
+      "email": "Email",
+      "username": "Username",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "phone": "Phone",
+      "role": "Role",
+      "rolePlaceholder": "Select role",
+      "status": "Status",
+      "statusActive": "Active",
+      "inactive": "Inactive",
+      "actions": "Actions",
+      "editUser": "Edit User",
+      "deleteUser": "Delete User",
+      "resetPassword": "Reset Password",
+      "viewDetails": "View Details"
+    },
+    "roles": {
+      "title": "Roles & Permissions",
+      "description": "Configure RBAC policies and permissions",
+      "totalRoles": "Total Roles",
+      "createRole": "Create Role",
+      "editRole": "Edit Role",
+      "deleteRole": "Delete Role",
+      "deleteConfirm": "Are you sure you want to delete this role?",
+      "name": "Role Name",
+      "roleDescription": "Description",
+      "permissions": "Permissions",
+      "assignedUsers": "Assigned Users"
+    },
+    "audit": {
+      "title": "Audit Logs",
+      "description": "View system activity and compliance logs",
+      "recentEvents": "Recent Events",
+      "viewLogs": "View Audit Logs",
+      "action": "Action",
+      "user": "User",
+      "timestamp": "Timestamp",
+      "details": "Details",
+      "ipAddress": "IP Address",
+      "filter": {
+        "dateRange": "Date Range",
+        "user": "Filter by User",
+        "action": "Filter by Action"
+      }
+    },
+    "cms": {
+      "title": "Content Management",
+      "description": "Manage CMS content, pages, and media",
+      "totalPages": "Total Pages"
+    },
+    "settings": {
+      "title": "System Settings",
+      "description": "Configure system-wide settings and preferences",
+      "categories": "Categories"
+    },
+    "features": {
+      "title": "Feature Flags",
+      "description": "Enable/disable features dynamically",
+      "active": "Active Features",
+      "activeFeatures": "Active Features",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "toggle": "Toggle Feature"
+    },
+    "database": {
+      "title": "Database Management",
+      "description": "Monitor database health and performance",
+      "status": "Status",
+      "healthy": "Healthy"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "description": "Manage system notifications and alerts",
+      "pending": "Pending"
+    },
+    "email": {
+      "title": "Email Configuration",
+      "description": "Configure SMTP settings and email templates",
+      "templates": "Templates"
+    },
+    "security": {
+      "title": "Security",
+      "description": "Manage security policies and 2FA",
+      "policies": "Active Policies"
+    },
+    "monitoring": {
+      "title": "System Monitoring",
+      "description": "Real-time system health and metrics",
+      "uptime": "Uptime"
+    },
+    "reports": {
+      "title": "Admin Reports",
+      "description": "Generate admin-level reports and analytics",
+      "generated": "Generated"
+    },
+    "system": {
+      "status": "System",
+      "operational": "Operational",
+      "monitor": "System Monitor"
+    },
+    "title": "Administration",
+    "signInRequired": "Sign in required",
+    "accessDenied": "Access denied",
+    "insufficientPerms": "Insufficient permissions",
+    "superAdminRequired": "Super admin access required",
+    "currentRole": "Current Role",
+    "console": "Admin Console",
+    "consoleDesc": "Manage users, roles, and system settings",
+    "tabs": {
+      "overview": "Overview",
+      "users": "Users",
+      "roles": "Roles & Permissions",
+      "audit": "Audit Logs",
+      "features": "Feature Flags"
+    },
+    "overview": {
+      "title": "Admin Overview",
+      "quickLinks": "Quick Links",
+      "manageUsers": "Manage Users",
+      "manageRoles": "Manage Roles",
+      "viewLogs": "View Audit Logs",
+      "featureSettings": "Feature Settings"
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcomeBack": "Welcome back",
+    "notifications": "Notifications",
+    "quickAction": "Quick Action",
+    "quickActions": "Quick Actions",
+    "activeWorkOrders": "Active Work Orders",
+    "totalProperties": "Total Properties",
+    "assetsUnderMaintenance": "Assets Under Maintenance",
+    "overdueInvoices": "Overdue Invoices",
+    "pending": "Pending",
+    "overdue": "Overdue",
+    "occupied": "Occupied",
+    "needAttention": "Need Attention",
+    "manage": "Manage",
+    "criticalAssets": "Critical Assets",
+    "viewAssets": "View Assets",
+    "sarPending": "SAR Pending",
+    "viewInvoices": "View Invoices",
+    "recentWorkOrders": "Recent Work Orders",
+    "viewAll": "View All",
+    "noRecentWorkOrders": "No recent work orders",
+    "propertyAlerts": "Property Alerts",
+    "units": "Units",
+    "noProperties": "No properties",
+    "newWorkOrder": "New Work Order",
+    "addProperty": "Add Property",
+    "newTenant": "New Tenant",
+    "createInvoice": "Create Invoice",
+    "welcome": "Welcome back",
+    "metrics": {
+      "properties": "Properties",
+      "workOrders": "Work Orders",
+      "tenants": "Tenants",
+      "vendors": "Vendors"
+    },
+    "recentActivity": "Recent Activity"
+  },
+  "workOrders": {
+    "title": "Work Orders",
+    "create": "Create Work Order",
+    "status": {
+      "open": "Open",
+      "inProgress": "In Progress",
+      "pending": "Pending",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "priority": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "fields": {
+      "title": "Title",
+      "description": "Description",
+      "property": "Property",
+      "assignee": "Assigned To",
+      "dueDate": "Due Date",
+      "status": "Status",
+      "priority": "Priority"
+    }
+  },
+  "properties": {
+    "leases": {
+      "active": "Active"
+    },
+    "title": "Properties",
+    "create": "Add Property",
+    "fields": {
+      "name": "Property Name",
+      "address": "Address",
+      "type": "Property Type",
+      "units": "Units",
+      "status": "Status"
+    }
+  },
+  "finance": {
+    "title": "Finance",
+    "invoices": "Invoices",
+    "expenses": "Expenses",
+    "payments": "Payments",
+    "reports": "Financial Reports",
+    "category": {
+      "operational": "Operational",
+      "maintenance": "Maintenance",
+      "capital": "Capital",
+      "utility": "Utility",
+      "administrative": "Administrative",
+      "maintenanceRepair": "Maintenance & Repairs",
+      "utilities": "Utilities",
+      "officeSupplies": "Office Supplies",
+      "electrical": "Electrical",
+      "hvac": "HVAC",
+      "plumbing": "Plumbing",
+      "travel": "Travel",
+      "salaries": "Salaries",
+      "marketing": "Marketing",
+      "rent": "Rent",
+      "insurance": "Insurance",
+      "equipment": "Equipment",
+      "supplies": "Supplies",
+      "services": "Services",
+      "training": "Training",
+      "consulting": "Consulting",
+      "legal": "Legal",
+      "technology": "Technology",
+      "facilities": "Facilities",
+      "security": "Security",
+      "other": "Other"
+    },
+    "accountType": {
+      "ASSET": "Asset",
+      "LIABILITY": "Liability",
+      "EQUITY": "Equity",
+      "REVENUE": "Revenue",
+      "EXPENSE": "Expense"
+    }
+  },
+  "hr": {
+    "stats": {
+      "totalEmployees": "Total Employees",
+      "monthlyPayroll": "Monthly Payroll",
+      "pendingLeave": "Pending Leave Requests",
+      "attendance": "Today's Attendance"
+    },
+    "quickActions": "Quick Actions",
+    "actions": {
+      "addEmployee": "Add Employee",
+      "addEmployeeDesc": "Register a new employee",
+      "processPayroll": "Process Payroll",
+      "processPayrollDesc": "Run monthly payroll",
+      "approveLeave": "Approve Leave",
+      "approveLeaveDesc": "Review leave requests"
+    },
+    "recentActivity": "Recent Activity",
+    "comingSoon": "Recent activity will appear here...",
+    "title": "Human Resources",
+    "tabs": {
+      "dashboard": "Dashboard",
+      "employees": "Employees",
+      "payroll": "Payroll",
+      "leave": "Leave Management",
+      "attendance": "Attendance"
+    }
+  },
+  "crm": {
+    "title": "Customer Relationship Management",
+    "contacts": "Contacts",
+    "leads": "Leads",
+    "opportunities": "Opportunities",
+    "activities": "Activities"
+  },
+  "marketplace": {
+    "title": "Marketplace",
+    "browse": "Browse",
+    "vendors": "Vendors",
+    "services": "Services",
+    "products": "Products",
+    "rfq": "Request for Quote"
+  },
+  "vendors": {
+    "description": "Manage your vendor relationships and service providers",
+    "title": "Vendors",
+    "add": "Add Vendor",
+    "list": "Vendor List",
+    "contracts": "Contracts",
+    "performance": "Performance",
+    "payments": "Payments"
+  },
+  "tenants": {
+    "title": "Tenants",
+    "add": "Add Tenant",
+    "list": "Tenant List",
+    "leases": "Leases",
+    "payments": "Payments",
+    "requests": "Maintenance Requests"
+  },
+  "maintenance": {
+    "description": "Manage equipment maintenance schedules and tasks",
+    "tasks": "Maintenance Tasks",
+    "asset": "Asset",
+    "due": "Due",
+    "assigned": "Assigned to",
+    "title": "Maintenance",
+    "schedule": "Maintenance Schedule",
+    "history": "Maintenance History",
+    "preventive": "Preventive Maintenance"
+  },
+  "support": {
+    "title": "Support",
+    "tickets": "Support Tickets",
+    "knowledge": "Knowledge Base",
+    "faq": "FAQ",
+    "contact": "Contact Support",
+    "errorReport": "Error Report",
+    "category": "Category",
+    "subCategory": "Sub-Category",
+    "type": "Type",
+    "priority": "Priority",
+    "modules": {
+      "FM": "Facility Management",
+      "Souq": "Marketplace",
+      "Aqar": "Property",
+      "Account": "Account",
+      "Billing": "Billing",
+      "Other": "Other"
+    },
+    "categories": {
+      "Technical": "Technical",
+      "Feature Request": "Feature Request",
+      "Billing": "Billing",
+      "Account": "Account",
+      "General": "General",
+      "Bug Report": "Bug Report"
+    },
+    "subCategories": {
+      "Bug Report": "Bug Report",
+      "Performance Issue": "Performance Issue",
+      "UI Error": "UI Error",
+      "API Error": "API Error",
+      "Database Error": "Database Error",
+      "New Feature": "New Feature",
+      "Enhancement": "Enhancement",
+      "Integration": "Integration",
+      "Customization": "Customization",
+      "Mobile App": "Mobile App",
+      "Invoice Issue": "Invoice Issue",
+      "Payment Error": "Payment Error",
+      "Subscription": "Subscription",
+      "Refund": "Refund",
+      "Pricing": "Pricing",
+      "Login Issue": "Login Issue",
+      "Password Reset": "Password Reset",
+      "Profile Update": "Profile Update",
+      "Permissions": "Permissions",
+      "Access Denied": "Access Denied",
+      "Documentation": "Documentation",
+      "Training": "Training",
+      "Support": "Support",
+      "Feedback": "Feedback",
+      "Other": "Other",
+      "Critical Bug": "Critical Bug",
+      "Minor Bug": "Minor Bug",
+      "Cosmetic Issue": "Cosmetic Issue",
+      "Data Error": "Data Error",
+      "Security Issue": "Security Issue"
+    },
+    "types": {
+      "Bug": "Bug",
+      "Feature": "Feature",
+      "Complaint": "Complaint",
+      "Billing": "Billing",
+      "Access": "Access",
+      "Other": "Other"
+    },
+    "priorities": {
+      "Low": "Low",
+      "Medium": "Medium",
+      "High": "High",
+      "Urgent": "Urgent"
+    }
+  },
+  "help": {
+    "title": "Help Center",
+    "search": "Search help articles",
+    "categories": "Categories",
+    "popular": "Popular Articles",
+    "getStarted": "Getting Started"
+  },
+  "souq": {
+    "search": {
+      "placeholder": "Search products, services, vendors..."
+    },
+    "newRFQ": "New RFQ",
+    "createPO": "Create Purchase Order",
+    "addItem": "Add Item"
+  },
+  "aqar": {
+    "search": {
+      "placeholder": "Search properties, projects, agents..."
+    },
+    "postProperty": "Post Property",
+    "newValuation": "New Valuation",
+    "packages": {
+      "errors": {
+        "fetchFailed": "Failed to fetch packages"
+      }
+    }
+  },
+  "common": {
+    "search": "Search...",
+    "all": "All Status",
+    "export": "Export",
+    "view": "View",
+    "edit": "Edit",
+    "delete": "Delete",
+    "loading": "Loading...",
+    "user": "User",
+    "brand": "FIXZIT",
+    "backToHome": "Back to Home",
+    "signIn": "Sign In",
+    "unsavedChanges": "Unsaved Changes",
+    "unsavedChangesMessage": "You have unsaved changes. Are you sure you want to leave this page?",
+    "discard": "Discard Changes",
+    "allCaughtUp": "You're all caught up!",
+    "noNotifications": "No notifications",
+    "unread": "unread",
+    "viewAll": "View All",
+    "preferences": "Preferences",
+    "save": "Save",
+    "cancel": "Cancel",
+    "filter": "Filter",
+    "import": "Import",
+    "error": "Error",
+    "success": "Success",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "actions": "Actions",
+    "unknown": "Unknown",
+    "yes": "Yes",
+    "no": "No",
+    "submit": "Submit",
+    "reset": "Reset",
+    "clear": "Clear",
+    "apply": "Apply",
+    "refresh": "Refresh",
+    "download": "Download",
+    "upload": "Upload",
+    "create": "Create",
+    "update": "Update",
+    "remove": "Remove",
+    "add": "Add",
+    "select": "Select",
+    "selectAll": "Select All",
+    "deselectAll": "Deselect All",
+    "showMore": "Show More",
+    "showLess": "Show Less",
+    "seeAll": "See All",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "required": "Required",
+    "optional": "Optional",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "active": "Active",
+    "inactive": "Inactive",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "draft": "Draft",
+    "published": "Published",
+    "archived": "Archived",
+    "deleted": "Deleted",
+    "errors": {
+      "unexpected": "An unexpected error occurred"
+    }
+  },
+  "app": {
+    "fm": "Facility Management",
+    "souq": "Marketplace",
+    "aqar": "Real Estate",
+    "switchApplication": "Switch Application",
+    "currentApp": "Current application",
+    "searchableEntities": "searchable entities"
+  },
+  "nav": {
+    "orders": "Orders & Purchase Orders",
+    "maintenance": "Maintenance",
+    "vendors": "Vendors",
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "properties": "Properties",
+    "work-orders": "Work Orders",
+    "workOrders": "Work Orders",
+    "assets": "Assets",
+    "tenants": "Tenants",
+    "projects": "Projects",
+    "rfqs": "RFQs",
+    "invoices": "Invoices",
+    "finance": "Finance",
+    "hr": "Human Resources",
+    "crm": "CRM",
+    "marketplace": "Marketplace",
+    "support": "Support",
+    "compliance": "Compliance",
+    "reports": "Reports",
+    "system": "System",
+    "administration": "Administration",
+    "settings": "Settings",
+    "help": "Help",
+    "logout": "Logout",
+    "notifications": "Notifications",
+    "profile": "Profile",
+    "header": "Navigation"
+  },
+  "time": {
+    "justNow": "Just now",
+    "mAgo": "m ago",
+    "hAgo": "h ago",
+    "dAgo": "d ago"
+  },
+  "sidebar": {
+    "role": "Role",
+    "mainNav": "Main navigation",
+    "accountInfo": "Account info",
+    "planLabel": "Plan",
+    "modules": "Modules",
+    "noModules": "No modules available for your role/plan",
+    "account": "Account",
+    "help": "Help",
+    "helpCenter": "Help Center",
+    "category": {
+      "core": "Core",
+      "fm": "Facility Management",
+      "procurement": "Procurement",
+      "finance": "Finance",
+      "hr": "Human Resources",
+      "crm": "Customer Relations",
+      "marketplace": "Marketplace",
+      "support": "Support",
+      "compliance": "Compliance",
+      "reporting": "Reporting",
+      "admin": "Administration"
+    }
+  },
+  "settings": {
+    "subtitle": "Manage your account settings and preferences",
+    "notifications": {
+      "title": "Notification Preferences",
+      "save": "Save Preferences",
+      "email": "Email Notifications",
+      "sms": "SMS Notifications",
+      "push": "Push Notifications",
+      "workOrders": "Work Order Updates",
+      "maintenance": "Maintenance Alerts",
+      "reports": "Report Summaries"
+    },
+    "preferences": {
+      "title": "App Preferences",
+      "language": "Language",
+      "english": "English",
+      "arabic": "Arabic"
+    }
+  },
+  "navigation": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "properties": "Properties",
+    "workOrders": "Work Orders",
+    "finance": "Finance",
+    "vendors": "Vendors",
+    "crm": "CRM",
+    "reports": "Reports",
+    "settings": "Settings",
+    "help": "Help",
+    "logout": "Logout"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "network": "Network error. Please check your connection.",
+    "unauthorized": "You are not authorized to perform this action.",
+    "notFound": "Resource not found.",
+    "validation": "Please check your input and try again."
+  },
+  "validation": {
+    "required": "This field is required",
+    "email": "Please enter a valid email address",
+    "phone": "Please enter a valid phone number",
+    "password": {
+      "min": "Password must be at least 8 characters",
+      "match": "Passwords do not match",
+      "strength": "Password is too weak"
+    },
+    "number": {
+      "min": "Value must be at least {min}",
+      "max": "Value must not exceed {max}",
+      "positive": "Value must be positive"
+    },
+    "date": {
+      "invalid": "Invalid date format",
+      "future": "Date must be in the future",
+      "past": "Date must be in the past"
+    },
+    "file": {
+      "size": "File size exceeds limit",
+      "type": "Invalid file type",
+      "required": "Please upload a file"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "clearAll": "Clear all",
+    "noNotifications": "No notifications",
+    "types": {
+      "workOrder": "Work Order",
+      "payment": "Payment",
+      "message": "Message",
+      "system": "System",
+      "alert": "Alert"
+    }
+  },
+  "forms": {
+    "unsavedChanges": "You have unsaved changes. Are you sure you want to leave?",
+    "saving": "Saving...",
+    "saved": "Saved successfully",
+    "saveFailed": "Failed to save",
+    "required": "Required fields",
+    "optional": "Optional fields"
+  },
+  "test": {
+    "a": "Test value A",
+    "bool": "Boolean test",
+    "hello": "Hello",
+    "missing": {
+      "key": "Missing key test"
+    },
+    "msg": "Message",
+    "nested": {
+      "deep": {
+        "value": "Deep nested value"
+      }
+    },
+    "num": "Number test",
+    "obj": "Object test",
+    "watch-all": "Watch all",
+    "welcome": "Welcome"
+  },
+  "fm": {
+    "tenants": {
+      "title": "Tenant Management",
+      "subtitle": "Customer relationship and lease management",
+      "newTenant": "New Tenant",
+      "addTenant": "Add New Tenant",
+      "searchTenants": "Search tenants...",
+      "tenantType": "Tenant Type",
+      "individual": "Individual",
+      "company": "Company",
+      "government": "Government",
+      "noTenants": "No Tenants Found",
+      "noTenantsText": "Get started by adding your first tenant.",
+      "properties": "Properties",
+      "leaseStatus": "Lease Status",
+      "noActiveLeases": "No Active Leases",
+      "outstandingBalance": "Outstanding Balance",
+      "tenantName": "Tenant Name",
+      "primaryContactName": "Primary Contact Name",
+      "email": "Email",
+      "create": "Add Tenant",
+      "view": "View Tenants",
+      "edit": "Edit Tenant",
+      "delete": "Delete Tenant",
+      "name": "Tenant Name",
+      "phone": "Phone",
+      "unit": "Unit",
+      "leaseStart": "Lease Start",
+      "leaseEnd": "Lease End",
+      "rent": "Rent",
+      "deposit": "Deposit",
+      "status": "Status",
+      "all": "All Tenants",
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "properties": {
+      "allTypes": "All Types",
+      "type": "Type",
+      "selectType": "Select type",
+      "title": "Properties",
+      "create": "Add Property",
+      "view": "View Properties",
+      "edit": "Edit Property",
+      "delete": "Delete Property",
+      "name": "Property Name",
+      "address": "Address",
+      "units": "Units",
+      "totalUnits": "Total Units",
+      "occupiedUnits": "Occupied Units",
+      "vacantUnits": "Vacant Units",
+      "owner": "Owner",
+      "manager": "Manager",
+      "status": "Status",
+      "all": "All Properties",
+      "residential": "Residential",
+      "commercial": "Commercial",
+      "mixed": "Mixed",
+      "details": "Property Details"
+    },
+    "title": "Facility Management",
+    "dashboard": "Dashboard",
+    "workOrders": {
+      "title": "Work Orders",
+      "create": "Create Work Order",
+      "view": "View Work Orders",
+      "edit": "Edit Work Order",
+      "delete": "Delete Work Order",
+      "status": "Status",
+      "priority": "Priority",
+      "assignedTo": "Assigned To",
+      "dueDate": "Due Date",
+      "description": "Description",
+      "property": "Property",
+      "tenant": "Tenant",
+      "all": "All Work Orders",
+      "open": "Open",
+      "pending": "Pending",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "closed": "Closed",
+      "cancelled": "Cancelled",
+      "board": {
+        "title": "Work Orders Board",
+        "description": "Track and assign work orders across all properties"
+      },
+      "history": {
+        "title": "Work Order History"
+      },
+      "pm": {
+        "title": "Preventive Maintenance"
+      },
+      "sla": {
+        "title": "SLA Monitoring"
+      }
+    },
+    "assets": {
+      "title": "Assets",
+      "create": "Add Asset",
+      "view": "View Assets",
+      "edit": "Edit Asset",
+      "delete": "Delete Asset",
+      "name": "Asset Name",
+      "category": "Category",
+      "serialNumber": "Serial Number",
+      "purchaseDate": "Purchase Date",
+      "warranty": "Warranty",
+      "condition": "Condition",
+      "location": "Location",
+      "all": "All Assets"
+    },
+    "vendors": {
+      "title": "Vendors",
+      "create": "Add Vendor",
+      "view": "View Vendors",
+      "edit": "Edit Vendor",
+      "delete": "Delete Vendor",
+      "name": "Vendor Name",
+      "email": "Email",
+      "phone": "Phone",
+      "category": "Category",
+      "rating": "Rating",
+      "status": "Status",
+      "all": "All Vendors",
+      "approved": "Approved",
+      "pending": "Pending",
+      "rejected": "Rejected"
+    },
+    "projects": {
+      "title": "Projects",
+      "create": "Create Project",
+      "view": "View Projects",
+      "edit": "Edit Project",
+      "delete": "Delete Project",
+      "name": "Project Name",
+      "description": "Description",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "budget": "Budget",
+      "spent": "Spent",
+      "status": "Status",
+      "all": "All Projects"
+    },
+    "rfqs": {
+      "title": "Title",
+      "create": "Create RFQ",
+      "view": "View RFQs",
+      "edit": "Edit RFQ",
+      "delete": "Delete RFQ",
+      "rfqNumber": "RFQ Number",
+      "description": "Description",
+      "deadline": "Deadline",
+      "status": "Status",
+      "bids": "Bids",
+      "all": "All RFQs",
+      "open": "Open",
+      "closed": "Closed",
+      "awarded": "Awarded"
+    },
+    "invoices": {
+      "title": "Invoices",
+      "create": "Create Invoice",
+      "view": "View Invoices",
+      "edit": "Edit Invoice",
+      "delete": "Delete Invoice",
+      "invoiceNumber": "Invoice Number",
+      "date": "Date",
+      "dueDate": "Due Date",
+      "amount": "Amount",
+      "paid": "Paid",
+      "outstanding": "Outstanding",
+      "status": "Status",
+      "all": "All Invoices",
+      "draft": "Draft",
+      "sent": "Sent",
+      "overdue": "Overdue"
+    },
+    "common": {
+      "search": "Search",
+      "filter": "Filter",
+      "export": "Export",
+      "import": "Import",
+      "refresh": "Refresh",
+      "add": "Add",
+      "edit": "Edit",
+      "delete": "Delete",
+      "save": "Save",
+      "cancel": "Cancel",
+      "submit": "Submit",
+      "back": "Back",
+      "next": "Next",
+      "previous": "Previous",
+      "loading": "Loading...",
+      "noData": "No data",
+      "error": "Error",
+      "success": "Success",
+      "warning": "Warning",
+      "info": "Info",
+      "confirm": "Confirm",
+      "yes": "Yes",
+      "no": "No",
+      "select": "Select",
+      "selectAll": "Select All",
+      "clearAll": "Clear All",
+      "actions": "Actions"
+    }
+  },
+  "orders": {
+    "pageDescription": "Manage purchase orders and service orders",
+    "tabs": {
+      "purchase": "Purchase Orders",
+      "service": "Service Orders"
+    }
+  },
+  "order": {
+    "vendor": "Vendor",
+    "date": "Order Date",
+    "total": "Total",
+    "items": "Items",
+    "delivery": "Delivery",
+    "amount": "Amount"
+  },
+  "vendor": {
+    "type": "Type",
+    "services": "Services",
+    "code": "Code"
+  },
+  "status": {
+    "draft": "Draft",
+    "submitted": "Submitted",
+    "approved": "Approved",
+    "completed": "Completed",
+    "pending": "Pending",
+    "suspended": "Suspended",
+    "rejected": "Rejected"
+  },
+  "_metadata": {
+    "language": "pt",
+    "languageName": "Portuguese",
+    "status": "stub",
+    "notice": "Traduções em português em breve",
+    "fallbackLanguage": "en",
+    "lastUpdated": "2025-11-16",
+    "translationCoverage": "0%",
+    "description": "Portuguese translations - Currently using English fallbacks. Translations coming soon."
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/ru.json">
+<![CDATA[
+{
+  "landing": {
+    "title": "Fixzit - Complete Property & Facility Management",
+    "subtitle": "Streamline operations, manage work orders, and optimize your real estate portfolio",
+    "hero": {
+      "cta1": "Get Started",
+      "cta2": "Watch Demo",
+      "cta3": "Learn More"
+    },
+    "features": {
+      "title": "Complete Management Solution",
+      "property": {
+        "title": "Property Management",
+        "desc": "Manage your properties, tenants, and leases efficiently",
+        "cta": "Explore Properties"
+      },
+      "workorders": {
+        "title": "Work Order Management",
+        "desc": "Track maintenance requests and assignments in real-time",
+        "cta": "View Work Orders"
+      },
+      "vendors": {
+        "title": "Vendor Management",
+        "desc": "Coordinate with vendors and service providers seamlessly",
+        "cta": "Manage Vendors"
+      },
+      "finance": {
+        "title": "Financial Management",
+        "desc": "Track expenses, invoices, and financial reports",
+        "cta": "View Finances"
+      },
+      "crm": {
+        "title": "CRM & Tenant Relations",
+        "desc": "Build stronger relationships with tenants and clients",
+        "cta": "Explore CRM"
+      },
+      "analytics": {
+        "title": "Analytics & Reports",
+        "desc": "Get insights with comprehensive analytics and reporting",
+        "cta": "View Reports"
+      }
+    },
+    "cta": {
+      "title": "Ready to streamline your operations?",
+      "subtitle": "Join thousands of property managers using Fixzit",
+      "login": "Sign In",
+      "demo": "Request Demo"
+    }
+  },
+  "about": {
+    "metaTitle": "About Fixzit - Property Management Software",
+    "metaDesc": "Learn about Fixzit's mission to revolutionize property and facility management",
+    "title": "About Fixzit",
+    "subtitle": "Transforming Property Management",
+    "statsSection": "Statistics",
+    "clients": "Clients",
+    "uptime": "Uptime",
+    "experience": "Years Experience",
+    "properties": "Properties Managed",
+    "contentSection": "About Our Platform",
+    "contactSection": "Contact Us",
+    "contactTitle": "Get in Touch",
+    "contactDesc": "Have questions? We'd love to hear from you.",
+    "email": "Email Address",
+    "emailLabel": "Your Email",
+    "phone": "Phone Number",
+    "phoneLabel": "Your Phone"
+  },
+  "auth": {
+    "login": {
+      "title": "Sign In",
+      "email": "Email",
+      "username": "Username",
+      "password": "Password",
+      "rememberMe": "Remember me",
+      "forgotPassword": "Forgot password?",
+      "submit": "Sign In",
+      "noAccount": "Don't have an account?",
+      "signup": "Sign up",
+      "welcome": "Welcome back",
+      "subtitle": "Sign in to your account",
+      "personalEmailTab": "Personal Email",
+      "corporateAccountTab": "Corporate Account",
+      "ssoLoginTab": "SSO Login",
+      "personalEmail": "Personal Email",
+      "employeeNumber": "Employee Number",
+      "enterEmail": "Enter your email",
+      "enterEmployeeNumber": "Enter employee number",
+      "enterPassword": "Enter your password",
+      "corporateHelp": "Use your corporate employee ID",
+      "hidePassword": "Hide password",
+      "showPassword": "Show password",
+      "capsLockOn": "Caps Lock is ON",
+      "signingIn": "Signing in...",
+      "signIn": "Sign In",
+      "continueWith": "Or continue with",
+      "orUseAccount": "Or use account",
+      "usePersonalEmail": "Use Personal Email",
+      "useCorporateAccount": "Use Corporate Account",
+      "personalEmailAccounts": "Personal Email Accounts",
+      "corporateAccountEmployee": "Corporate Employee",
+      "employeeHash": "Employee #",
+      "errors": {
+        "emailRequired": "Email is required",
+        "emailInvalid": "Invalid email address",
+        "employeeRequired": "Employee number is required",
+        "employeeInvalid": "Invalid employee number",
+        "passwordRequired": "Password is required",
+        "passwordTooShort": "Password must be at least 8 characters",
+        "invalidCredentials": "Invalid email or password",
+        "loginFailed": "Login failed. Please try again.",
+        "networkError": "Network error. Please check your connection."
+      },
+      "success": {
+        "title": "Login Successful",
+        "message": "Redirecting to dashboard..."
+      }
+    },
+    "logout": {
+      "signingOut": "Signing out...",
+      "pleaseWait": "Please wait"
+    },
+    "signup": {
+      "title": "Create Account",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "username": "Username",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "submit": "Create Account",
+      "hasAccount": "Already have an account?",
+      "login": "Sign in"
+    },
+    "forgotPassword": {
+      "title": "Reset Password",
+      "email": "Email",
+      "submit": "Send Reset Link",
+      "backToLogin": "Back to Sign In"
+    }
+  },
+  "admin": {
+    "administration": {
+      "title": "System Administration",
+      "subtitle": "Manage all aspects of the Fixzit platform"
+    },
+    "users": {
+      "title": "User Management",
+      "description": "Manage users, roles, and permissions",
+      "totalUsers": "Total Users",
+      "activeUsers": "Active Users",
+      "createUser": "Create User",
+      "active": "Active Users",
+      "online": "Online Now",
+      "creating": "Creating user...",
+      "createFailed": "Failed to create user",
+      "createSuccess": "User created successfully",
+      "deleteConfirm": "Are you sure you want to delete this user?",
+      "deleting": "Deleting user...",
+      "deleteFailed": "Failed to delete user",
+      "deleteSuccess": "User deleted successfully",
+      "exportCsv": "Export to CSV",
+      "createNewUser": "Create New User",
+      "email": "Email",
+      "username": "Username",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "phone": "Phone",
+      "role": "Role",
+      "rolePlaceholder": "Select role",
+      "status": "Status",
+      "statusActive": "Active",
+      "inactive": "Inactive",
+      "actions": "Actions",
+      "editUser": "Edit User",
+      "deleteUser": "Delete User",
+      "resetPassword": "Reset Password",
+      "viewDetails": "View Details"
+    },
+    "roles": {
+      "title": "Roles & Permissions",
+      "description": "Configure RBAC policies and permissions",
+      "totalRoles": "Total Roles",
+      "createRole": "Create Role",
+      "editRole": "Edit Role",
+      "deleteRole": "Delete Role",
+      "deleteConfirm": "Are you sure you want to delete this role?",
+      "name": "Role Name",
+      "roleDescription": "Description",
+      "permissions": "Permissions",
+      "assignedUsers": "Assigned Users"
+    },
+    "audit": {
+      "title": "Audit Logs",
+      "description": "View system activity and compliance logs",
+      "recentEvents": "Recent Events",
+      "viewLogs": "View Audit Logs",
+      "action": "Action",
+      "user": "User",
+      "timestamp": "Timestamp",
+      "details": "Details",
+      "ipAddress": "IP Address",
+      "filter": {
+        "dateRange": "Date Range",
+        "user": "Filter by User",
+        "action": "Filter by Action"
+      }
+    },
+    "cms": {
+      "title": "Content Management",
+      "description": "Manage CMS content, pages, and media",
+      "totalPages": "Total Pages"
+    },
+    "settings": {
+      "title": "System Settings",
+      "description": "Configure system-wide settings and preferences",
+      "categories": "Categories"
+    },
+    "features": {
+      "title": "Feature Flags",
+      "description": "Enable/disable features dynamically",
+      "active": "Active Features",
+      "activeFeatures": "Active Features",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "toggle": "Toggle Feature"
+    },
+    "database": {
+      "title": "Database Management",
+      "description": "Monitor database health and performance",
+      "status": "Status",
+      "healthy": "Healthy"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "description": "Manage system notifications and alerts",
+      "pending": "Pending"
+    },
+    "email": {
+      "title": "Email Configuration",
+      "description": "Configure SMTP settings and email templates",
+      "templates": "Templates"
+    },
+    "security": {
+      "title": "Security",
+      "description": "Manage security policies and 2FA",
+      "policies": "Active Policies"
+    },
+    "monitoring": {
+      "title": "System Monitoring",
+      "description": "Real-time system health and metrics",
+      "uptime": "Uptime"
+    },
+    "reports": {
+      "title": "Admin Reports",
+      "description": "Generate admin-level reports and analytics",
+      "generated": "Generated"
+    },
+    "system": {
+      "status": "System",
+      "operational": "Operational",
+      "monitor": "System Monitor"
+    },
+    "title": "Administration",
+    "signInRequired": "Sign in required",
+    "accessDenied": "Access denied",
+    "insufficientPerms": "Insufficient permissions",
+    "superAdminRequired": "Super admin access required",
+    "currentRole": "Current Role",
+    "console": "Admin Console",
+    "consoleDesc": "Manage users, roles, and system settings",
+    "tabs": {
+      "overview": "Overview",
+      "users": "Users",
+      "roles": "Roles & Permissions",
+      "audit": "Audit Logs",
+      "features": "Feature Flags"
+    },
+    "overview": {
+      "title": "Admin Overview",
+      "quickLinks": "Quick Links",
+      "manageUsers": "Manage Users",
+      "manageRoles": "Manage Roles",
+      "viewLogs": "View Audit Logs",
+      "featureSettings": "Feature Settings"
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcomeBack": "Welcome back",
+    "notifications": "Notifications",
+    "quickAction": "Quick Action",
+    "quickActions": "Quick Actions",
+    "activeWorkOrders": "Active Work Orders",
+    "totalProperties": "Total Properties",
+    "assetsUnderMaintenance": "Assets Under Maintenance",
+    "overdueInvoices": "Overdue Invoices",
+    "pending": "Pending",
+    "overdue": "Overdue",
+    "occupied": "Occupied",
+    "needAttention": "Need Attention",
+    "manage": "Manage",
+    "criticalAssets": "Critical Assets",
+    "viewAssets": "View Assets",
+    "sarPending": "SAR Pending",
+    "viewInvoices": "View Invoices",
+    "recentWorkOrders": "Recent Work Orders",
+    "viewAll": "View All",
+    "noRecentWorkOrders": "No recent work orders",
+    "propertyAlerts": "Property Alerts",
+    "units": "Units",
+    "noProperties": "No properties",
+    "newWorkOrder": "New Work Order",
+    "addProperty": "Add Property",
+    "newTenant": "New Tenant",
+    "createInvoice": "Create Invoice",
+    "welcome": "Welcome back",
+    "metrics": {
+      "properties": "Properties",
+      "workOrders": "Work Orders",
+      "tenants": "Tenants",
+      "vendors": "Vendors"
+    },
+    "recentActivity": "Recent Activity"
+  },
+  "workOrders": {
+    "title": "Work Orders",
+    "create": "Create Work Order",
+    "status": {
+      "open": "Open",
+      "inProgress": "In Progress",
+      "pending": "Pending",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "priority": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "fields": {
+      "title": "Title",
+      "description": "Description",
+      "property": "Property",
+      "assignee": "Assigned To",
+      "dueDate": "Due Date",
+      "status": "Status",
+      "priority": "Priority"
+    }
+  },
+  "properties": {
+    "leases": {
+      "active": "Active"
+    },
+    "title": "Properties",
+    "create": "Add Property",
+    "fields": {
+      "name": "Property Name",
+      "address": "Address",
+      "type": "Property Type",
+      "units": "Units",
+      "status": "Status"
+    }
+  },
+  "finance": {
+    "title": "Finance",
+    "invoices": "Invoices",
+    "expenses": "Expenses",
+    "payments": "Payments",
+    "reports": "Financial Reports",
+    "category": {
+      "operational": "Operational",
+      "maintenance": "Maintenance",
+      "capital": "Capital",
+      "utility": "Utility",
+      "administrative": "Administrative",
+      "maintenanceRepair": "Maintenance & Repairs",
+      "utilities": "Utilities",
+      "officeSupplies": "Office Supplies",
+      "electrical": "Electrical",
+      "hvac": "HVAC",
+      "plumbing": "Plumbing",
+      "travel": "Travel",
+      "salaries": "Salaries",
+      "marketing": "Marketing",
+      "rent": "Rent",
+      "insurance": "Insurance",
+      "equipment": "Equipment",
+      "supplies": "Supplies",
+      "services": "Services",
+      "training": "Training",
+      "consulting": "Consulting",
+      "legal": "Legal",
+      "technology": "Technology",
+      "facilities": "Facilities",
+      "security": "Security",
+      "other": "Other"
+    },
+    "accountType": {
+      "ASSET": "Asset",
+      "LIABILITY": "Liability",
+      "EQUITY": "Equity",
+      "REVENUE": "Revenue",
+      "EXPENSE": "Expense"
+    }
+  },
+  "hr": {
+    "stats": {
+      "totalEmployees": "Total Employees",
+      "monthlyPayroll": "Monthly Payroll",
+      "pendingLeave": "Pending Leave Requests",
+      "attendance": "Today's Attendance"
+    },
+    "quickActions": "Quick Actions",
+    "actions": {
+      "addEmployee": "Add Employee",
+      "addEmployeeDesc": "Register a new employee",
+      "processPayroll": "Process Payroll",
+      "processPayrollDesc": "Run monthly payroll",
+      "approveLeave": "Approve Leave",
+      "approveLeaveDesc": "Review leave requests"
+    },
+    "recentActivity": "Recent Activity",
+    "comingSoon": "Recent activity will appear here...",
+    "title": "Human Resources",
+    "tabs": {
+      "dashboard": "Dashboard",
+      "employees": "Employees",
+      "payroll": "Payroll",
+      "leave": "Leave Management",
+      "attendance": "Attendance"
+    }
+  },
+  "crm": {
+    "title": "Customer Relationship Management",
+    "contacts": "Contacts",
+    "leads": "Leads",
+    "opportunities": "Opportunities",
+    "activities": "Activities"
+  },
+  "marketplace": {
+    "title": "Marketplace",
+    "browse": "Browse",
+    "vendors": "Vendors",
+    "services": "Services",
+    "products": "Products",
+    "rfq": "Request for Quote"
+  },
+  "vendors": {
+    "description": "Manage your vendor relationships and service providers",
+    "title": "Vendors",
+    "add": "Add Vendor",
+    "list": "Vendor List",
+    "contracts": "Contracts",
+    "performance": "Performance",
+    "payments": "Payments"
+  },
+  "tenants": {
+    "title": "Tenants",
+    "add": "Add Tenant",
+    "list": "Tenant List",
+    "leases": "Leases",
+    "payments": "Payments",
+    "requests": "Maintenance Requests"
+  },
+  "maintenance": {
+    "description": "Manage equipment maintenance schedules and tasks",
+    "tasks": "Maintenance Tasks",
+    "asset": "Asset",
+    "due": "Due",
+    "assigned": "Assigned to",
+    "title": "Maintenance",
+    "schedule": "Maintenance Schedule",
+    "history": "Maintenance History",
+    "preventive": "Preventive Maintenance"
+  },
+  "support": {
+    "title": "Support",
+    "tickets": "Support Tickets",
+    "knowledge": "Knowledge Base",
+    "faq": "FAQ",
+    "contact": "Contact Support",
+    "errorReport": "Error Report",
+    "category": "Category",
+    "subCategory": "Sub-Category",
+    "type": "Type",
+    "priority": "Priority",
+    "modules": {
+      "FM": "Facility Management",
+      "Souq": "Marketplace",
+      "Aqar": "Property",
+      "Account": "Account",
+      "Billing": "Billing",
+      "Other": "Other"
+    },
+    "categories": {
+      "Technical": "Technical",
+      "Feature Request": "Feature Request",
+      "Billing": "Billing",
+      "Account": "Account",
+      "General": "General",
+      "Bug Report": "Bug Report"
+    },
+    "subCategories": {
+      "Bug Report": "Bug Report",
+      "Performance Issue": "Performance Issue",
+      "UI Error": "UI Error",
+      "API Error": "API Error",
+      "Database Error": "Database Error",
+      "New Feature": "New Feature",
+      "Enhancement": "Enhancement",
+      "Integration": "Integration",
+      "Customization": "Customization",
+      "Mobile App": "Mobile App",
+      "Invoice Issue": "Invoice Issue",
+      "Payment Error": "Payment Error",
+      "Subscription": "Subscription",
+      "Refund": "Refund",
+      "Pricing": "Pricing",
+      "Login Issue": "Login Issue",
+      "Password Reset": "Password Reset",
+      "Profile Update": "Profile Update",
+      "Permissions": "Permissions",
+      "Access Denied": "Access Denied",
+      "Documentation": "Documentation",
+      "Training": "Training",
+      "Support": "Support",
+      "Feedback": "Feedback",
+      "Other": "Other",
+      "Critical Bug": "Critical Bug",
+      "Minor Bug": "Minor Bug",
+      "Cosmetic Issue": "Cosmetic Issue",
+      "Data Error": "Data Error",
+      "Security Issue": "Security Issue"
+    },
+    "types": {
+      "Bug": "Bug",
+      "Feature": "Feature",
+      "Complaint": "Complaint",
+      "Billing": "Billing",
+      "Access": "Access",
+      "Other": "Other"
+    },
+    "priorities": {
+      "Low": "Low",
+      "Medium": "Medium",
+      "High": "High",
+      "Urgent": "Urgent"
+    }
+  },
+  "help": {
+    "title": "Help Center",
+    "search": "Search help articles",
+    "categories": "Categories",
+    "popular": "Popular Articles",
+    "getStarted": "Getting Started"
+  },
+  "souq": {
+    "search": {
+      "placeholder": "Search products, services, vendors..."
+    },
+    "newRFQ": "New RFQ",
+    "createPO": "Create Purchase Order",
+    "addItem": "Add Item"
+  },
+  "aqar": {
+    "search": {
+      "placeholder": "Search properties, projects, agents..."
+    },
+    "postProperty": "Post Property",
+    "newValuation": "New Valuation",
+    "packages": {
+      "errors": {
+        "fetchFailed": "Failed to fetch packages"
+      }
+    }
+  },
+  "common": {
+    "search": "Search...",
+    "all": "All Status",
+    "export": "Export",
+    "view": "View",
+    "edit": "Edit",
+    "delete": "Delete",
+    "loading": "Loading...",
+    "user": "User",
+    "brand": "FIXZIT",
+    "backToHome": "Back to Home",
+    "signIn": "Sign In",
+    "unsavedChanges": "Unsaved Changes",
+    "unsavedChangesMessage": "You have unsaved changes. Are you sure you want to leave this page?",
+    "discard": "Discard Changes",
+    "allCaughtUp": "You're all caught up!",
+    "noNotifications": "No notifications",
+    "unread": "unread",
+    "viewAll": "View All",
+    "preferences": "Preferences",
+    "save": "Save",
+    "cancel": "Cancel",
+    "filter": "Filter",
+    "import": "Import",
+    "error": "Error",
+    "success": "Success",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "actions": "Actions",
+    "unknown": "Unknown",
+    "yes": "Yes",
+    "no": "No",
+    "submit": "Submit",
+    "reset": "Reset",
+    "clear": "Clear",
+    "apply": "Apply",
+    "refresh": "Refresh",
+    "download": "Download",
+    "upload": "Upload",
+    "create": "Create",
+    "update": "Update",
+    "remove": "Remove",
+    "add": "Add",
+    "select": "Select",
+    "selectAll": "Select All",
+    "deselectAll": "Deselect All",
+    "showMore": "Show More",
+    "showLess": "Show Less",
+    "seeAll": "See All",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "required": "Required",
+    "optional": "Optional",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "active": "Active",
+    "inactive": "Inactive",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "draft": "Draft",
+    "published": "Published",
+    "archived": "Archived",
+    "deleted": "Deleted",
+    "errors": {
+      "unexpected": "An unexpected error occurred"
+    }
+  },
+  "app": {
+    "fm": "Facility Management",
+    "souq": "Marketplace",
+    "aqar": "Real Estate",
+    "switchApplication": "Switch Application",
+    "currentApp": "Current application",
+    "searchableEntities": "searchable entities"
+  },
+  "nav": {
+    "orders": "Orders & Purchase Orders",
+    "maintenance": "Maintenance",
+    "vendors": "Vendors",
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "properties": "Properties",
+    "work-orders": "Work Orders",
+    "workOrders": "Work Orders",
+    "assets": "Assets",
+    "tenants": "Tenants",
+    "projects": "Projects",
+    "rfqs": "RFQs",
+    "invoices": "Invoices",
+    "finance": "Finance",
+    "hr": "Human Resources",
+    "crm": "CRM",
+    "marketplace": "Marketplace",
+    "support": "Support",
+    "compliance": "Compliance",
+    "reports": "Reports",
+    "system": "System",
+    "administration": "Administration",
+    "settings": "Settings",
+    "help": "Help",
+    "logout": "Logout",
+    "notifications": "Notifications",
+    "profile": "Profile",
+    "header": "Navigation"
+  },
+  "time": {
+    "justNow": "Just now",
+    "mAgo": "m ago",
+    "hAgo": "h ago",
+    "dAgo": "d ago"
+  },
+  "sidebar": {
+    "role": "Role",
+    "mainNav": "Main navigation",
+    "accountInfo": "Account info",
+    "planLabel": "Plan",
+    "modules": "Modules",
+    "noModules": "No modules available for your role/plan",
+    "account": "Account",
+    "help": "Help",
+    "helpCenter": "Help Center",
+    "category": {
+      "core": "Core",
+      "fm": "Facility Management",
+      "procurement": "Procurement",
+      "finance": "Finance",
+      "hr": "Human Resources",
+      "crm": "Customer Relations",
+      "marketplace": "Marketplace",
+      "support": "Support",
+      "compliance": "Compliance",
+      "reporting": "Reporting",
+      "admin": "Administration"
+    }
+  },
+  "settings": {
+    "subtitle": "Manage your account settings and preferences",
+    "notifications": {
+      "title": "Notification Preferences",
+      "save": "Save Preferences",
+      "email": "Email Notifications",
+      "sms": "SMS Notifications",
+      "push": "Push Notifications",
+      "workOrders": "Work Order Updates",
+      "maintenance": "Maintenance Alerts",
+      "reports": "Report Summaries"
+    },
+    "preferences": {
+      "title": "App Preferences",
+      "language": "Language",
+      "english": "English",
+      "arabic": "Arabic"
+    }
+  },
+  "navigation": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "properties": "Properties",
+    "workOrders": "Work Orders",
+    "finance": "Finance",
+    "vendors": "Vendors",
+    "crm": "CRM",
+    "reports": "Reports",
+    "settings": "Settings",
+    "help": "Help",
+    "logout": "Logout"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "network": "Network error. Please check your connection.",
+    "unauthorized": "You are not authorized to perform this action.",
+    "notFound": "Resource not found.",
+    "validation": "Please check your input and try again."
+  },
+  "validation": {
+    "required": "This field is required",
+    "email": "Please enter a valid email address",
+    "phone": "Please enter a valid phone number",
+    "password": {
+      "min": "Password must be at least 8 characters",
+      "match": "Passwords do not match",
+      "strength": "Password is too weak"
+    },
+    "number": {
+      "min": "Value must be at least {min}",
+      "max": "Value must not exceed {max}",
+      "positive": "Value must be positive"
+    },
+    "date": {
+      "invalid": "Invalid date format",
+      "future": "Date must be in the future",
+      "past": "Date must be in the past"
+    },
+    "file": {
+      "size": "File size exceeds limit",
+      "type": "Invalid file type",
+      "required": "Please upload a file"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "clearAll": "Clear all",
+    "noNotifications": "No notifications",
+    "types": {
+      "workOrder": "Work Order",
+      "payment": "Payment",
+      "message": "Message",
+      "system": "System",
+      "alert": "Alert"
+    }
+  },
+  "forms": {
+    "unsavedChanges": "You have unsaved changes. Are you sure you want to leave?",
+    "saving": "Saving...",
+    "saved": "Saved successfully",
+    "saveFailed": "Failed to save",
+    "required": "Required fields",
+    "optional": "Optional fields"
+  },
+  "test": {
+    "a": "Test value A",
+    "bool": "Boolean test",
+    "hello": "Hello",
+    "missing": {
+      "key": "Missing key test"
+    },
+    "msg": "Message",
+    "nested": {
+      "deep": {
+        "value": "Deep nested value"
+      }
+    },
+    "num": "Number test",
+    "obj": "Object test",
+    "watch-all": "Watch all",
+    "welcome": "Welcome"
+  },
+  "fm": {
+    "tenants": {
+      "title": "Tenant Management",
+      "subtitle": "Customer relationship and lease management",
+      "newTenant": "New Tenant",
+      "addTenant": "Add New Tenant",
+      "searchTenants": "Search tenants...",
+      "tenantType": "Tenant Type",
+      "individual": "Individual",
+      "company": "Company",
+      "government": "Government",
+      "noTenants": "No Tenants Found",
+      "noTenantsText": "Get started by adding your first tenant.",
+      "properties": "Properties",
+      "leaseStatus": "Lease Status",
+      "noActiveLeases": "No Active Leases",
+      "outstandingBalance": "Outstanding Balance",
+      "tenantName": "Tenant Name",
+      "primaryContactName": "Primary Contact Name",
+      "email": "Email",
+      "create": "Add Tenant",
+      "view": "View Tenants",
+      "edit": "Edit Tenant",
+      "delete": "Delete Tenant",
+      "name": "Tenant Name",
+      "phone": "Phone",
+      "unit": "Unit",
+      "leaseStart": "Lease Start",
+      "leaseEnd": "Lease End",
+      "rent": "Rent",
+      "deposit": "Deposit",
+      "status": "Status",
+      "all": "All Tenants",
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "properties": {
+      "allTypes": "All Types",
+      "type": "Type",
+      "selectType": "Select type",
+      "title": "Properties",
+      "create": "Add Property",
+      "view": "View Properties",
+      "edit": "Edit Property",
+      "delete": "Delete Property",
+      "name": "Property Name",
+      "address": "Address",
+      "units": "Units",
+      "totalUnits": "Total Units",
+      "occupiedUnits": "Occupied Units",
+      "vacantUnits": "Vacant Units",
+      "owner": "Owner",
+      "manager": "Manager",
+      "status": "Status",
+      "all": "All Properties",
+      "residential": "Residential",
+      "commercial": "Commercial",
+      "mixed": "Mixed",
+      "details": "Property Details"
+    },
+    "title": "Facility Management",
+    "dashboard": "Dashboard",
+    "workOrders": {
+      "title": "Work Orders",
+      "create": "Create Work Order",
+      "view": "View Work Orders",
+      "edit": "Edit Work Order",
+      "delete": "Delete Work Order",
+      "status": "Status",
+      "priority": "Priority",
+      "assignedTo": "Assigned To",
+      "dueDate": "Due Date",
+      "description": "Description",
+      "property": "Property",
+      "tenant": "Tenant",
+      "all": "All Work Orders",
+      "open": "Open",
+      "pending": "Pending",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "closed": "Closed",
+      "cancelled": "Cancelled",
+      "board": {
+        "title": "Work Orders Board",
+        "description": "Track and assign work orders across all properties"
+      },
+      "history": {
+        "title": "Work Order History"
+      },
+      "pm": {
+        "title": "Preventive Maintenance"
+      },
+      "sla": {
+        "title": "SLA Monitoring"
+      }
+    },
+    "assets": {
+      "title": "Assets",
+      "create": "Add Asset",
+      "view": "View Assets",
+      "edit": "Edit Asset",
+      "delete": "Delete Asset",
+      "name": "Asset Name",
+      "category": "Category",
+      "serialNumber": "Serial Number",
+      "purchaseDate": "Purchase Date",
+      "warranty": "Warranty",
+      "condition": "Condition",
+      "location": "Location",
+      "all": "All Assets"
+    },
+    "vendors": {
+      "title": "Vendors",
+      "create": "Add Vendor",
+      "view": "View Vendors",
+      "edit": "Edit Vendor",
+      "delete": "Delete Vendor",
+      "name": "Vendor Name",
+      "email": "Email",
+      "phone": "Phone",
+      "category": "Category",
+      "rating": "Rating",
+      "status": "Status",
+      "all": "All Vendors",
+      "approved": "Approved",
+      "pending": "Pending",
+      "rejected": "Rejected"
+    },
+    "projects": {
+      "title": "Projects",
+      "create": "Create Project",
+      "view": "View Projects",
+      "edit": "Edit Project",
+      "delete": "Delete Project",
+      "name": "Project Name",
+      "description": "Description",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "budget": "Budget",
+      "spent": "Spent",
+      "status": "Status",
+      "all": "All Projects"
+    },
+    "rfqs": {
+      "title": "Title",
+      "create": "Create RFQ",
+      "view": "View RFQs",
+      "edit": "Edit RFQ",
+      "delete": "Delete RFQ",
+      "rfqNumber": "RFQ Number",
+      "description": "Description",
+      "deadline": "Deadline",
+      "status": "Status",
+      "bids": "Bids",
+      "all": "All RFQs",
+      "open": "Open",
+      "closed": "Closed",
+      "awarded": "Awarded"
+    },
+    "invoices": {
+      "title": "Invoices",
+      "create": "Create Invoice",
+      "view": "View Invoices",
+      "edit": "Edit Invoice",
+      "delete": "Delete Invoice",
+      "invoiceNumber": "Invoice Number",
+      "date": "Date",
+      "dueDate": "Due Date",
+      "amount": "Amount",
+      "paid": "Paid",
+      "outstanding": "Outstanding",
+      "status": "Status",
+      "all": "All Invoices",
+      "draft": "Draft",
+      "sent": "Sent",
+      "overdue": "Overdue"
+    },
+    "common": {
+      "search": "Search",
+      "filter": "Filter",
+      "export": "Export",
+      "import": "Import",
+      "refresh": "Refresh",
+      "add": "Add",
+      "edit": "Edit",
+      "delete": "Delete",
+      "save": "Save",
+      "cancel": "Cancel",
+      "submit": "Submit",
+      "back": "Back",
+      "next": "Next",
+      "previous": "Previous",
+      "loading": "Loading...",
+      "noData": "No data",
+      "error": "Error",
+      "success": "Success",
+      "warning": "Warning",
+      "info": "Info",
+      "confirm": "Confirm",
+      "yes": "Yes",
+      "no": "No",
+      "select": "Select",
+      "selectAll": "Select All",
+      "clearAll": "Clear All",
+      "actions": "Actions"
+    }
+  },
+  "orders": {
+    "pageDescription": "Manage purchase orders and service orders",
+    "tabs": {
+      "purchase": "Purchase Orders",
+      "service": "Service Orders"
+    }
+  },
+  "order": {
+    "vendor": "Vendor",
+    "date": "Order Date",
+    "total": "Total",
+    "items": "Items",
+    "delivery": "Delivery",
+    "amount": "Amount"
+  },
+  "vendor": {
+    "type": "Type",
+    "services": "Services",
+    "code": "Code"
+  },
+  "status": {
+    "draft": "Draft",
+    "submitted": "Submitted",
+    "approved": "Approved",
+    "completed": "Completed",
+    "pending": "Pending",
+    "suspended": "Suspended",
+    "rejected": "Rejected"
+  },
+  "_metadata": {
+    "language": "ru",
+    "languageName": "Russian",
+    "status": "stub",
+    "notice": "Русские переводы скоро появятся",
+    "fallbackLanguage": "en",
+    "lastUpdated": "2025-11-16",
+    "translationCoverage": "0%",
+    "description": "Russian translations - Currently using English fallbacks. Translations coming soon."
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Account Activity.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Account Activity": "Account Activity"
+  },
+  "ar": {
+    "Account Activity": "نشاط الحساب"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Account Holder.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Account Holder": "Account Holder"
+  },
+  "ar": {
+    "Account Holder": "صاحب الحساب"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Account Number.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Account Number": "Account Number"
+  },
+  "ar": {
+    "Account Number": "رقم الحساب"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Accounts.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Accounts": "Accounts"
+  },
+  "ar": {
+    "Accounts": "الحسابات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Adjustment.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Adjustment": "Adjustment"
+  },
+  "ar": {
+    "Adjustment": "تسوية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/All Types.translations.json">
+<![CDATA[
+{
+  "en": {
+    "All Types": "All Types"
+  },
+  "ar": {
+    "All Types": "جميع الأنواع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Allocate Equally.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Allocate Equally": "Allocate Equally"
+  },
+  "ar": {
+    "Allocate Equally": "توزيع بالتساوي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Allocate to Invoices.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Allocate to Invoices": "Allocate to Invoices"
+  },
+  "ar": {
+    "Allocate to Invoices": "توزيع على الفواتير"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Allocate.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Allocate": "Allocate"
+  },
+  "ar": {
+    "Allocate": "توزيع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Allocated.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Allocated": "Allocated"
+  },
+  "ar": {
+    "Allocated": "موزع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Amount Due.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Amount Due": "Amount Due"
+  },
+  "ar": {
+    "Amount Due": "المبلغ المستحق"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Amount.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Amount": "Amount"
+  },
+  "ar": {
+    "Amount": "المبلغ"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Authorization Code.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Authorization Code": "Authorization Code"
+  },
+  "ar": {
+    "Authorization Code": "رمز التفويض"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Balance.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Balance": "Balance"
+  },
+  "ar": {
+    "Balance": "الرصيد"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Bank Name.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Bank Name": "Bank Name"
+  },
+  "ar": {
+    "Bank Name": "اسم البنك"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Bank Transfer Details.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Bank Transfer Details": "Bank Transfer Details"
+  },
+  "ar": {
+    "Bank Transfer Details": "تفاصيل التحويل البنكي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Bank Transfer.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Bank Transfer": "Bank Transfer"
+  },
+  "ar": {
+    "Bank Transfer": "تحويل بنكي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/By Due Date.translations.json">
+<![CDATA[
+{
+  "en": {
+    "By Due Date": "By Due Date"
+  },
+  "ar": {
+    "By Due Date": "حسب تاريخ الاستحقاق"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Cancel.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Cancel": "Cancel"
+  },
+  "ar": {
+    "Cancel": "إلغاء"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Card Payment Details.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Card Payment Details": "Card Payment Details"
+  },
+  "ar": {
+    "Card Payment Details": "تفاصيل الدفع بالبطاقة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Card Type.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Card Type": "Card Type"
+  },
+  "ar": {
+    "Card Type": "نوع البطاقة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Cash.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Cash": "Cash"
+  },
+  "ar": {
+    "Cash": "نقداً"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Cheque Date.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Cheque Date": "Cheque Date"
+  },
+  "ar": {
+    "Cheque Date": "تاريخ الشيك"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Cheque Details.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Cheque Details": "Cheque Details"
+  },
+  "ar": {
+    "Cheque Details": "تفاصيل الشيك"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Cheque Number.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Cheque Number": "Cheque Number"
+  },
+  "ar": {
+    "Cheque Number": "رقم الشيك"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Cheque.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Cheque": "Cheque"
+  },
+  "ar": {
+    "Cheque": "شيك"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Clear All.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Clear All": "Clear All"
+  },
+  "ar": {
+    "Clear All": "مسح الكل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Closing Balance.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Closing Balance": "Closing Balance"
+  },
+  "ar": {
+    "Closing Balance": "الرصيد الختامي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Create Payment.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Create Payment": "Create Payment"
+  },
+  "ar": {
+    "Create Payment": "إنشاء دفعة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Creating.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Creating...": "Creating..."
+  },
+  "ar": {
+    "Creating...": "جارٍ الإنشاء..."
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Credit-Debit Card.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Credit/Debit Card": "Credit/Debit Card"
+  },
+  "ar": {
+    "Credit/Debit Card": "بطاقة ائتمان/خصم"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Credit.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Credit": "Credit"
+  },
+  "ar": {
+    "Credit": "دائن"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Currency.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Currency": "Currency"
+  },
+  "ar": {
+    "Currency": "العملة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Customer.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Customer": "Customer",
+    "customer.buyer": "Buyer",
+    "customer.caseManagement": "Case Management",
+    "customer.client": "Client",
+    "customer.clientele": "Clientele",
+    "customer.clients": "Clients",
+    "customer.complaint": "Complaint",
+    "customer.compliment": "Compliment",
+    "customer.consumer": "Consumer",
+    "customer.customer1": "Customer",
+    "customer.customerCare": "Customer Care",
+    "customer.customerExperience": "Customer Experience",
+    "customer.customerSatisfaction": "Customer Satisfaction",
+    "customer.customerService": "Customer Service",
+    "customer.customerSupport": "Customer Support",
+    "customer.customers": "Customers",
+    "customer.endUser": "End User",
+    "customer.feedback": "Feedback",
+    "customer.followup": "Follow-up",
+    "customer.inquiry": "Inquiry",
+    "customer.loyalty": "Loyalty",
+    "customer.patron": "Patron",
+    "customer.purchaser": "Purchaser",
+    "customer.request": "Request",
+    "customer.resolution": "Resolution",
+    "customer.responseTime": "Response Time",
+    "customer.retention": "Retention",
+    "customer.supportTicket": "Support Ticket",
+    "customer.ticketing": "Ticketing"
+  },
+  "ar": {
+    "Customer": "[AR] Customer",
+    "customer.buyer": "مشتري",
+    "customer.caseManagement": "إدارة الحالة",
+    "customer.client": "عميل",
+    "customer.clientele": "قاعدة العملاء",
+    "customer.clients": "عملاء",
+    "customer.complaint": "شكوى",
+    "customer.compliment": "إطراء",
+    "customer.consumer": "مستهلك",
+    "customer.customer1": "عميل",
+    "customer.customerCare": "رعاية العملاء",
+    "customer.customerExperience": "تجربة العملاء",
+    "customer.customerSatisfaction": "رضا العملاء",
+    "customer.customerService": "خدمة العملاء",
+    "customer.customerSupport": "دعم العملاء",
+    "customer.customers": "عملاء",
+    "customer.endUser": "المستخدم النهائي",
+    "customer.feedback": "تعليقات",
+    "customer.followup": "متابعة",
+    "customer.inquiry": "استفسار",
+    "customer.loyalty": "الولاء",
+    "customer.patron": "زبون",
+    "customer.purchaser": "مشتري",
+    "customer.request": "طلب",
+    "customer.resolution": "حل",
+    "customer.responseTime": "وقت الاستجابة",
+    "customer.retention": "الاحتفاظ",
+    "customer.supportTicket": "تذكرة دعم",
+    "customer.ticketing": "نظام التذاكر"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Date.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Date": "Date"
+  },
+  "ar": {
+    "Date": "التاريخ"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Debit.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Debit": "Debit"
+  },
+  "ar": {
+    "Debit": "مدين"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Deposit To Account.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Deposit To Account": "Deposit To Account"
+  },
+  "ar": {
+    "Deposit To Account": "الإيداع في الحساب"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Description.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Description": "Description"
+  },
+  "ar": {
+    "Description": "الوصف"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Drawer Name.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Drawer Name": "Drawer Name"
+  },
+  "ar": {
+    "Drawer Name": "اسم الساحب"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Due Date.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Due Date": "Due Date"
+  },
+  "ar": {
+    "Due Date": "تاريخ الاستحقاق"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/End Date.translations.json">
+<![CDATA[
+{
+  "en": {
+    "End Date": "End Date"
+  },
+  "ar": {
+    "End Date": "تاريخ النهاية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Expense.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Expense": "Expense"
+  },
+  "ar": {
+    "Expense": "مصروف"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Export CSV.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Export CSV": "Export CSV"
+  },
+  "ar": {
+    "Export CSV": "تصدير CSV"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/First.translations.json">
+<![CDATA[
+{
+  "en": {
+    "First": "First"
+  },
+  "ar": {
+    "First": "الأولى"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Hide Invoices.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Hide Invoices": "Hide Invoices"
+  },
+  "ar": {
+    "Hide Invoices": "إخفاء الفواتير"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/IBAN.translations.json">
+<![CDATA[
+{
+  "en": {
+    "IBAN": "IBAN"
+  },
+  "ar": {
+    "IBAN": "رقم الآيبان"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Invoice #.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Invoice #": "Invoice #"
+  },
+  "ar": {
+    "Invoice #": "رقم الفاتورة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Invoice Allocation.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Invoice Allocation": "Invoice Allocation"
+  },
+  "ar": {
+    "Invoice Allocation": "توزيع على الفواتير"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Invoice.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Invoice": "Invoice"
+  },
+  "ar": {
+    "Invoice": "فاتورة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Journal #.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Journal #": "Journal #"
+  },
+  "ar": {
+    "Journal #": "رقم اليومية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Last 4 Digits.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Last 4 Digits": "Last 4 Digits"
+  },
+  "ar": {
+    "Last 4 Digits": "آخر 4 أرقام"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Last Month.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Last Month": "Last Month"
+  },
+  "ar": {
+    "Last Month": "الشهر الماضي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Last Year.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Last Year": "Last Year"
+  },
+  "ar": {
+    "Last Year": "العام الماضي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Last.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Last": "Last"
+  },
+  "ar": {
+    "Last": "الأخيرة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Loading account activity.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Loading account activity...": "Loading account activity..."
+  },
+  "ar": {
+    "Loading account activity...": "جارٍ تحميل نشاط الحساب..."
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Loading invoices.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Loading invoices...": "Loading invoices..."
+  },
+  "ar": {
+    "Loading invoices...": "جارٍ تحميل الفواتير..."
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Loading.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Loading...": "Loading..."
+  },
+  "ar": {
+    "Loading...": "جارٍ التحميل..."
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Manual.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Manual": "Manual"
+  },
+  "ar": {
+    "Manual": "يدوي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Name on cheque.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Name on cheque": "Name on cheque"
+  },
+  "ar": {
+    "Name on cheque": "الاسم على الشيك"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/New Payment.translations.json">
+<![CDATA[
+{
+  "en": {
+    "New Payment": "New Payment"
+  },
+  "ar": {
+    "New Payment": "دفعة جديدة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Next.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Next": "Next"
+  },
+  "ar": {
+    "Next": "التالي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/No transactions found for this period.translations.json">
+<![CDATA[
+{
+  "en": {
+    "No transactions found for this period": "No transactions found for this period"
+  },
+  "ar": {
+    "No transactions found for this period": "لم يتم العثور على معاملات لهذه الفترة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/No unpaid invoices found.translations.json">
+<![CDATA[
+{
+  "en": {
+    "No unpaid invoices found": "No unpaid invoices found"
+  },
+  "ar": {
+    "No unpaid invoices found": "لا توجد فواتير غير مدفوعة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Notes.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Notes": "Notes"
+  },
+  "ar": {
+    "Notes": "ملاحظات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Online Payment.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Online Payment": "Online Payment"
+  },
+  "ar": {
+    "Online Payment": "دفع إلكتروني"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Opening Balance.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Opening Balance": "Opening Balance"
+  },
+  "ar": {
+    "Opening Balance": "الرصيد الافتتاحي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Optional payment notes.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Optional payment notes...": "Optional payment notes..."
+  },
+  "ar": {
+    "Optional payment notes...": "ملاحظات اختيارية للدفع..."
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Optional.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Optional": "Optional"
+  },
+  "ar": {
+    "Optional": "اختياري"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Other.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Other": "Other"
+  },
+  "ar": {
+    "Other": "أخرى"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Owner.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Owner": "Owner"
+  },
+  "ar": {
+    "Owner": "مالك"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Page.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Page": "Page"
+  },
+  "ar": {
+    "Page": "صفحة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Paid To.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Paid To": "Paid To"
+  },
+  "ar": {
+    "Paid To": "مدفوع إلى"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Party Name.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Party Name": "Party Name"
+  },
+  "ar": {
+    "Party Name": "اسم الطرف"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Party Type.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Party Type": "Party Type"
+  },
+  "ar": {
+    "Party Type": "نوع الطرف"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Payment Amount.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Payment Amount": "Payment Amount"
+  },
+  "ar": {
+    "Payment Amount": "مبلغ الدفع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Payment Date.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Payment Date": "Payment Date"
+  },
+  "ar": {
+    "Payment Date": "تاريخ الدفع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Payment Details.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Payment Details": "Payment Details"
+  },
+  "ar": {
+    "Payment Details": "تفاصيل الدفع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Payment Made.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Payment Made": "Payment Made"
+  },
+  "ar": {
+    "Payment Made": "دفعة مُرسلة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Payment Method.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Payment Method": "Payment Method"
+  },
+  "ar": {
+    "Payment Method": "طريقة الدفع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Payment Received.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Payment Received": "Payment Received"
+  },
+  "ar": {
+    "Payment Received": "دفعة مستلمة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Payment Type.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Payment Type": "Payment Type"
+  },
+  "ar": {
+    "Payment Type": "نوع الدفع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Payment.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Payment": "Payment"
+  },
+  "ar": {
+    "Payment": "دفعة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Previous.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Previous": "Previous"
+  },
+  "ar": {
+    "Previous": "السابق"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Received From.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Received From": "Received From"
+  },
+  "ar": {
+    "Received From": "مستلم من"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Reference Number.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Reference Number": "Reference Number"
+  },
+  "ar": {
+    "Reference Number": "الرقم المرجعي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Refresh.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Refresh": "Refresh"
+  },
+  "ar": {
+    "Refresh": "تحديث"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Rent.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Rent": "Rent"
+  },
+  "ar": {
+    "Rent": "إيجار"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/SWIFT Code.translations.json">
+<![CDATA[
+{
+  "en": {
+    "SWIFT Code": "SWIFT Code"
+  },
+  "ar": {
+    "SWIFT Code": "رمز سويفت"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Select Account.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Select Account": "Select Account"
+  },
+  "ar": {
+    "Select Account": "اختر حساباً"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Select an account to view activity.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Select an account to view activity": "Select an account to view activity"
+  },
+  "ar": {
+    "Select an account to view activity": "اختر حساباً لعرض النشاط"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Select.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Select": "Select"
+  },
+  "ar": {
+    "Select": "اختيار"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Showing.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Showing": "Showing"
+  },
+  "ar": {
+    "Showing": "عرض"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Source Type.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Source Type": "Source Type"
+  },
+  "ar": {
+    "Source Type": "نوع المصدر"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Source.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Source": "Source"
+  },
+  "ar": {
+    "Source": "المصدر"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Start Date.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Start Date": "Start Date"
+  },
+  "ar": {
+    "Start Date": "تاريخ البداية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Supplier.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Supplier": "Supplier"
+  },
+  "ar": {
+    "Supplier": "مورد"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Tenant.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Tenant": "Tenant"
+  },
+  "ar": {
+    "Tenant": "مستأجر"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/This Month.translations.json">
+<![CDATA[
+{
+  "en": {
+    "This Month": "This Month"
+  },
+  "ar": {
+    "This Month": "هذا الشهر"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/This Quarter.translations.json">
+<![CDATA[
+{
+  "en": {
+    "This Quarter": "This Quarter"
+  },
+  "ar": {
+    "This Quarter": "هذا الربع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/This Week.translations.json">
+<![CDATA[
+{
+  "en": {
+    "This Week": "This Week"
+  },
+  "ar": {
+    "This Week": "هذا الأسبوع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/This Year.translations.json">
+<![CDATA[
+{
+  "en": {
+    "This Year": "This Year"
+  },
+  "ar": {
+    "This Year": "هذا العام"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Today.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Today": "Today"
+  },
+  "ar": {
+    "Today": "اليوم"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Total Credits.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Total Credits": "Total Credits"
+  },
+  "ar": {
+    "Total Credits": "إجمالي الدائن"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Total Debits.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Total Debits": "Total Debits"
+  },
+  "ar": {
+    "Total Debits": "إجمالي المدين"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Transaction ID.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Transaction ID": "Transaction ID"
+  },
+  "ar": {
+    "Transaction ID": "معرّف المعاملة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Unallocated.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Unallocated": "Unallocated"
+  },
+  "ar": {
+    "Unallocated": "غير موزع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/Work Order.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Work Order": "Work Order"
+  },
+  "ar": {
+    "Work Order": "أمر عمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/a11y.translations.json">
+<![CDATA[
+{
+  "en": {
+    "a11y.currencySelectorHelp": "Use arrow keys to navigate, Enter to select, Esc to close",
+    "a11y.hidePassword": "Hide password",
+    "a11y.languageSelectorHelp": "Select your preferred language for the interface",
+    "a11y.showPassword": "Show password"
+  },
+  "ar": {
+    "a11y.currencySelectorHelp": "استخدم مفاتيح الأسهم للتنقل، إدخال للتحديد، Esc للإغلاق",
+    "a11y.hidePassword": "إخفاء كلمة المرور",
+    "a11y.languageSelectorHelp": "اختر اللغة المفضلة لديك للواجهة",
+    "a11y.showPassword": "إظهار كلمة المرور"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/about.translations.json">
+<![CDATA[
+{
+  "en": {
+    "about.clients": "Active Clients",
+    "about.contactDesc": "Contact our team today to learn how Fixzit can help your organization",
+    "about.contactSection": "Get in Touch",
+    "about.contactTitle": "Ready to Transform Your Property Management?",
+    "about.contentSection": "Our Vision",
+    "about.email": "info@fixzit.app",
+    "about.emailLabel": "Send us an email",
+    "about.experience": "Years Experience",
+    "about.metaDesc": "Learn about Fixzit, the comprehensive solution for property management, maintenance, and facilities in the GCC",
+    "about.metaTitle": "About Fixzit - Leading Property & Facilities Management Platform",
+    "about.phone": "+968 9999 9999",
+    "about.phoneLabel": "Call us",
+    "about.phoneUnavailable": "Phone number not configured",
+    "about.properties": "Properties Under Management",
+    "about.statsSection": "Our Stats",
+    "about.subtitle": "A unified platform for property management, maintenance, facilities, and finance",
+    "about.title": "We're Building the Next Generation of Property Management Solutions",
+    "about.uptime": "System Uptime"
+  },
+  "ar": {
+    "about.clients": "عميل نشط",
+    "about.contactDesc": "تواصل مع فريقنا اليوم لمعرفة كيف يمكن لـ Fixzit أن يساعد مؤسستك",
+    "about.contactSection": "تواصل معنا",
+    "about.contactTitle": "هل أنت مستعد لتحويل إدارة عقاراتك؟",
+    "about.contentSection": "رؤيتنا",
+    "about.email": "info@fixzit.app",
+    "about.emailLabel": "أرسل لنا بريدًا إلكترونيًا",
+    "about.experience": "سنوات من الخبرة",
+    "about.metaDesc": "تعرف على Fixzit، الحل الشامل لإدارة العقارات والصيانة والمرافق في دول مجلس التعاون الخليجي",
+    "about.metaTitle": "عن Fixzit - منصة إدارة الأملاك والصيانة الرائدة",
+    "about.phone": "+968 9999 9999",
+    "about.phoneLabel": "اتصل بنا",
+    "about.phoneUnavailable": "لم يتم إعداد رقم الهاتف",
+    "about.properties": "عقار تحت الإدارة",
+    "about.statsSection": "إحصائياتنا",
+    "about.subtitle": "منصة موحدة لإدارة العقارات والصيانة والمرافق والشؤون المالية",
+    "about.title": "نحن نبني الجيل التالي من حلول إدارة العقارات",
+    "about.uptime": "وقت تشغيل النظام"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/access.translations.json">
+<![CDATA[
+{
+  "en": {
+    "access.access1": "Access",
+    "access.accessControl": "Access Control",
+    "access.accessLevel": "Access Level",
+    "access.admin": "Admin",
+    "access.authenticate": "Authenticate",
+    "access.authentication": "Authentication",
+    "access.authorization": "Authorization",
+    "access.authorized": "Authorized",
+    "access.changePassword": "Change Password",
+    "access.confirmPassword": "Confirm Password",
+    "access.forgotPassword": "Forgot Password",
+    "access.fullAccess": "Full Access",
+    "access.guest": "Guest",
+    "access.limitedAccess": "Limited Access",
+    "access.login": "Login",
+    "access.logout": "Logout",
+    "access.newPassword": "New Password",
+    "access.password": "Password",
+    "access.permission": "Permission",
+    "access.permissions": "Permissions",
+    "access.privilege": "Privilege",
+    "access.privileges": "Privileges",
+    "access.readOnly": "Read Only",
+    "access.readWrite": "Read & Write",
+    "access.register": "Register",
+    "access.registration": "Registration",
+    "access.rememberMe": "Remember Me",
+    "access.resetPassword": "Reset Password",
+    "access.role": "Role",
+    "access.roles": "Roles",
+    "access.securityCode": "Security Code",
+    "access.signin": "Sign In",
+    "access.signout": "Sign Out",
+    "access.superAdmin": "Super Admin",
+    "access.twoFactor": "Two-Factor",
+    "access.twoFactorAuth": "Two-Factor Authentication",
+    "access.unauthorized": "Unauthorized",
+    "access.username": "Username",
+    "access.userRole": "User Role",
+    "access.verificationCode": "Verification Code"
+  },
+  "ar": {
+    "access.access1": "الوصول",
+    "access.accessControl": "التحكم في الوصول",
+    "access.accessLevel": "مستوى الوصول",
+    "access.admin": "مدير",
+    "access.authenticate": "مصادقة",
+    "access.authentication": "المصادقة",
+    "access.authorization": "التفويض",
+    "access.authorized": "مصرح",
+    "access.changePassword": "تغيير كلمة المرور",
+    "access.confirmPassword": "تأكيد كلمة المرور",
+    "access.forgotPassword": "نسيت كلمة المرور",
+    "access.fullAccess": "وصول كامل",
+    "access.guest": "ضيف",
+    "access.limitedAccess": "وصول محدود",
+    "access.login": "تسجيل الدخول",
+    "access.logout": "تسجيل الخروج",
+    "access.newPassword": "كلمة المرور الجديدة",
+    "access.password": "كلمة المرور",
+    "access.permission": "صلاحية",
+    "access.permissions": "صلاحيات",
+    "access.privilege": "امتياز",
+    "access.privileges": "امتيازات",
+    "access.readOnly": "قراءة فقط",
+    "access.readWrite": "قراءة وكتابة",
+    "access.register": "تسجيل",
+    "access.registration": "التسجيل",
+    "access.rememberMe": "تذكرني",
+    "access.resetPassword": "إعادة تعيين كلمة المرور",
+    "access.role": "دور",
+    "access.roles": "أدوار",
+    "access.securityCode": "رمز الأمان",
+    "access.signin": "تسجيل الدخول",
+    "access.signout": "تسجيل الخروج",
+    "access.superAdmin": "مدير عام",
+    "access.twoFactor": "عاملين",
+    "access.twoFactorAuth": "المصادقة بعاملين",
+    "access.unauthorized": "غير مصرح",
+    "access.username": "اسم المستخدم",
+    "access.userRole": "دور المستخدم",
+    "access.verificationCode": "رمز التحقق"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/accessControl.translations.json">
+<![CDATA[
+{
+  "en": {
+    "accessControl.access": "Access",
+    "accessControl.allow": "Allow",
+    "accessControl.authentication": "Authentication",
+    "accessControl.authorization": "Authorization",
+    "accessControl.control": "Access Control",
+    "accessControl.credential": "Credential",
+    "accessControl.deny": "Deny",
+    "accessControl.grant": "Grant",
+    "accessControl.group": "Group Access",
+    "accessControl.identity": "Identity",
+    "accessControl.lockout": "Account Lockout",
+    "accessControl.login": "Login",
+    "accessControl.logout": "Logout",
+    "accessControl.mfa": "Multi-Factor Authentication",
+    "accessControl.password": "Password",
+    "accessControl.permission": "Permission",
+    "accessControl.privilege": "Privilege",
+    "accessControl.rbac": "RBAC",
+    "accessControl.revoke": "Revoke",
+    "accessControl.role": "Role-based Access",
+    "accessControl.session": "Session",
+    "accessControl.sso": "Single Sign-On",
+    "accessControl.token": "Access Token",
+    "accessControl.unlock": "Unlock",
+    "accessControl.user": "User Access"
+  },
+  "ar": {
+    "accessControl.access": "الوصول",
+    "accessControl.allow": "سماح",
+    "accessControl.authentication": "المصادقة",
+    "accessControl.authorization": "التفويض",
+    "accessControl.control": "التحكم في الوصول",
+    "accessControl.credential": "بيانات الاعتماد",
+    "accessControl.deny": "رفض",
+    "accessControl.grant": "منح",
+    "accessControl.group": "وصول المجموعة",
+    "accessControl.identity": "الهوية",
+    "accessControl.lockout": "قفل الحساب",
+    "accessControl.login": "تسجيل الدخول",
+    "accessControl.logout": "تسجيل الخروج",
+    "accessControl.mfa": "المصادقة متعددة العوامل",
+    "accessControl.password": "كلمة المرور",
+    "accessControl.permission": "الإذن",
+    "accessControl.privilege": "الامتياز",
+    "accessControl.rbac": "التحكم في الوصول القائم على الدور",
+    "accessControl.revoke": "إلغاء",
+    "accessControl.role": "وصول قائم على الدور",
+    "accessControl.session": "الجلسة",
+    "accessControl.sso": "تسجيل الدخول الموحد",
+    "accessControl.token": "رمز الوصول",
+    "accessControl.unlock": "فتح القفل",
+    "accessControl.user": "وصول المستخدم"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/accessManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "accessManagement.access": "Access Management",
+    "accessManagement.approval": "Access Approval",
+    "accessManagement.audit": "Access Audit",
+    "accessManagement.certification": "Access Certification",
+    "accessManagement.control": "Access Control",
+    "accessManagement.delegation": "Access Delegation",
+    "accessManagement.deprovisioning": "Access Deprovisioning",
+    "accessManagement.governance": "Access Governance",
+    "accessManagement.groups": "Access Groups",
+    "accessManagement.leastprivilege": "Least Privilege",
+    "accessManagement.levels": "Access Levels",
+    "accessManagement.monitoring": "Access Monitoring",
+    "accessManagement.permissions": "Access Permissions",
+    "accessManagement.policy": "Access Policy",
+    "accessManagement.privileges": "Access Privileges",
+    "accessManagement.provisioning": "Access Provisioning",
+    "accessManagement.recertification": "Access Recertification",
+    "accessManagement.request": "Access Request",
+    "accessManagement.review": "Access Review",
+    "accessManagement.rights": "Access Rights",
+    "accessManagement.roles": "Access Roles",
+    "accessManagement.segregation": "Segregation of Duties"
+  },
+  "ar": {
+    "accessManagement.access": "إدارة الوصول",
+    "accessManagement.approval": "الموافقة على الوصول",
+    "accessManagement.audit": "تدقيق الوصول",
+    "accessManagement.certification": "شهادة الوصول",
+    "accessManagement.control": "التحكم في الوصول",
+    "accessManagement.delegation": "تفويض الوصول",
+    "accessManagement.deprovisioning": "إلغاء توفير الوصول",
+    "accessManagement.governance": "حوكمة الوصول",
+    "accessManagement.groups": "مجموعات الوصول",
+    "accessManagement.leastprivilege": "الحد الأدنى من الامتيازات",
+    "accessManagement.levels": "مستويات الوصول",
+    "accessManagement.monitoring": "مراقبة الوصول",
+    "accessManagement.permissions": "أذونات الوصول",
+    "accessManagement.policy": "سياسة الوصول",
+    "accessManagement.privileges": "امتيازات الوصول",
+    "accessManagement.provisioning": "توفير الوصول",
+    "accessManagement.recertification": "إعادة شهادة الوصول",
+    "accessManagement.request": "طلب الوصول",
+    "accessManagement.review": "مراجعة الوصول",
+    "accessManagement.rights": "حقوق الوصول",
+    "accessManagement.roles": "أدوار الوصول",
+    "accessManagement.segregation": "الفصل بين الواجبات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/accessibility.translations.json">
+<![CDATA[
+{
+  "en": {
+    "accessibility.accessibility1": "Accessibility",
+    "accessibility.accessible": "Accessible",
+    "accessibility.accessibleElevator": "Accessible Elevator",
+    "accessibility.accessibleSignage": "Accessible Signage",
+    "accessibility.accessRamp": "Access Ramp",
+    "accessibility.ada": "ADA",
+    "accessibility.adaCompliant": "ADA Compliant",
+    "accessibility.assistiveDevice": "Assistive Device",
+    "accessibility.audioVisual": "Audio Visual",
+    "accessibility.braille": "Braille",
+    "accessibility.disabled": "Disabled",
+    "accessibility.disabledAccess": "Disabled Access",
+    "accessibility.elevator": "Elevator",
+    "accessibility.guardrail": "Guardrail",
+    "accessibility.guardrails": "Guardrails",
+    "accessibility.handicapped": "Handicapped",
+    "accessibility.handicappedParking": "Handicapped Parking",
+    "accessibility.handrail": "Handrail",
+    "accessibility.handrails": "Handrails",
+    "accessibility.hearingLoop": "Hearing Loop",
+    "accessibility.ramp": "Ramp",
+    "accessibility.ramps": "Ramps",
+    "accessibility.signage": "Signage",
+    "accessibility.tactile": "Tactile",
+    "accessibility.tactilePaving": "Tactile Paving",
+    "accessibility.wheelchair": "Wheelchair",
+    "accessibility.wheelchairAccess": "Wheelchair Access",
+    "accessibility.wheelchairRamp": "Wheelchair Ramp"
+  },
+  "ar": {
+    "accessibility.accessibility1": "إمكانية الوصول",
+    "accessibility.accessible": "يمكن الوصول إليه",
+    "accessibility.accessibleElevator": "مصعد يمكن الوصول إليه",
+    "accessibility.accessibleSignage": "لافتات يمكن الوصول إليها",
+    "accessibility.accessRamp": "منحدر الوصول",
+    "accessibility.ada": "ADA",
+    "accessibility.adaCompliant": "متوافق مع ADA",
+    "accessibility.assistiveDevice": "جهاز مساعد",
+    "accessibility.audioVisual": "سمعي بصري",
+    "accessibility.braille": "برايل",
+    "accessibility.disabled": "معاق",
+    "accessibility.disabledAccess": "وصول المعاقين",
+    "accessibility.elevator": "مصعد",
+    "accessibility.guardrail": "حاجز",
+    "accessibility.guardrails": "حواجز",
+    "accessibility.handicapped": "معاق",
+    "accessibility.handicappedParking": "موقف المعاقين",
+    "accessibility.handrail": "درابزين",
+    "accessibility.handrails": "درابزينات",
+    "accessibility.hearingLoop": "حلقة سمعية",
+    "accessibility.ramp": "منحدر",
+    "accessibility.ramps": "منحدرات",
+    "accessibility.signage": "اللافتات",
+    "accessibility.tactile": "لمسي",
+    "accessibility.tactilePaving": "الرصف اللمسي",
+    "accessibility.wheelchair": "كرسي متحرك",
+    "accessibility.wheelchairAccess": "وصول الكراسي المتحركة",
+    "accessibility.wheelchairRamp": "منحدر الكراسي المتحركة"
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

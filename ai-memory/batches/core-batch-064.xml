@@ -1,0 +1,2163 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/SMOKE_TEST_ORG_GUARDS.md">
+<![CDATA[
+# SupportOrgSwitcher & Org-Guarded Pages - Smoke Test Plan
+
+**Status:** Ready for Manual Execution / Automated guard coverage available (`pnpm vitest run tests/unit/components/support/SupportOrgSwitcher.test.tsx`)  
+**Priority:** 🔴 CRITICAL - Blocks Deployment  
+**Prerequisites:** Dev server running at http://localhost:3001
+
+---
+
+## Overview
+
+This smoke test validates that:
+
+1. **SupportOrgSwitcher** correctly impersonates organizations
+2. **Org-guarded pages** require organization context (show prompt when missing)
+3. **Tenant context** flows correctly through all FM modules
+4. **Translation keys** exist for all org-selection prompts
+
+---
+
+## Test Environment Setup
+
+### 1. Database Preparation
+
+```bash
+# Ensure test users exist with proper roles
+pnpm tsx scripts/seed-demo-users.ts
+node scripts/create-test-data.js
+
+# Verify users in database
+# - superadmin@fixzit.com (role: superadmin)
+# - support@fixzit.com (role: support)
+# - manager@fixzit.com (role: manager, has organizationId)
+```
+
+### 2. Test Organizations
+
+You need at least 2 test organizations:
+
+- **Org A:** Primary test organization (ID: `org_test_001`)
+- **Org B:** Secondary for switcher testing (ID: `org_test_002`)
+
+### 3. Browser Setup
+
+- Open browser to: http://localhost:3001
+- Open DevTools (F12) → Console tab
+- Keep Network tab visible for API calls
+
+---
+
+## Critical Test 1: SupportOrgSwitcher E2E Flow
+
+### Objective
+
+Verify support users can impersonate organizations and context flows correctly.
+
+> **Automation Shortcut:** `pnpm vitest run tests/unit/components/support/SupportOrgSwitcher.test.tsx` exercises the SupportOrgSwitcher search + selection flow with mocked APIs so we can validate the regression without a seeded environment. Run the manual steps below when you need full-stack assurance.
+
+### Steps
+
+#### 1.1 Login as Support User
+
+- [ ] Navigate to http://localhost:3001/login
+- [ ] Login with: `support@fixzit.com`
+- [ ] Verify successful login → redirects to dashboard
+
+**Expected:** Support user logged in, no organization context yet
+
+#### 1.2 Verify SupportOrgSwitcher Appears
+
+- [ ] Check TopBar for "Organization Switcher" component
+- [ ] Should show: "No Organization Selected" or similar prompt
+- [ ] Click the switcher dropdown
+
+**Expected:** Dropdown opens, shows search input
+
+**Screenshot:** TopBar with org switcher visible
+
+#### 1.3 Search for Organization
+
+- [ ] Type organization name in search input (e.g., "Test Org A")
+- [ ] Verify API call in Network tab: `GET /api/support/organizations/search?q=Test`
+- [ ] Check response has organizations array
+- [ ] Verify dropdown shows search results
+
+**Expected:** Organizations appear in dropdown
+
+**If fails:** Check:
+
+- Console errors?
+- API returns 404/500?
+- `components/support/SupportOrgSwitcher.tsx` rendering?
+
+#### 1.4 Select Organization
+
+- [ ] Click on "Test Org A" from results
+- [ ] Verify API call: `POST /api/support/impersonation`
+- [ ] Check response: `{ success: true, organizationId: "org_test_001" }`
+- [ ] Verify TopBar updates to show: "Test Org A" (selected org name)
+
+**Expected:** Organization context set, TopBar reflects selection
+
+**If fails:** Check:
+
+- `contexts/SupportOrgContext.tsx` → `selectOrganization()` function
+- Session/cookie updated?
+- Console errors from context provider?
+
+#### 1.5 Navigate to Org-Guarded Page
+
+- [ ] Navigate to `/fm/finance/budgets`
+- [ ] Page should load normally (no org prompt)
+- [ ] Check page title displays correctly
+- [ ] Verify budgets table attempts to load (may be empty)
+
+**Expected:** Page loads, uses organization context for data fetching
+
+**If fails:** Page shows "Please select organization" prompt
+
+---
+
+## Critical Test 2: Org-Guard Without Context
+
+### Objective
+
+Verify pages correctly prompt for organization when context is missing.
+
+### Steps
+
+#### 2.1 Exit Impersonation (or login as user without org)
+
+- [ ] If still impersonating, click "Exit Impersonation" button
+- [ ] OR logout and login as: `user@example.com` (no organizationId)
+- [ ] Verify TopBar shows no organization selected
+
+**Expected:** Organization context cleared
+
+#### 2.2 Attempt to Access Guarded Page
+
+- [ ] Navigate directly to: `/fm/finance/budgets`
+- [ ] Page should NOT load data
+- [ ] Should show prompt: "Please select your organization to continue"
+- [ ] Prompt should have translation key visible in source
+
+**Expected:** Org selection prompt appears
+
+**Screenshot:** Org prompt modal/banner
+
+**If fails:** Check:
+
+- `useSupportOrg()` hook in page component
+- Early return with org prompt rendering
+- Translation key exists in `i18n/sources/fm.translations.json`
+
+#### 2.3 Verify Other Guarded Pages
+
+Test the same flow for:
+
+- [ ] `/fm/finance/expenses` → Shows org prompt ✓
+- [ ] `/fm/finance/payments` → Shows org prompt ✓
+- [ ] `/fm/finance/invoices` → Shows org prompt ✓
+- [ ] `/fm/properties` → Shows org prompt ✓
+- [ ] `/fm/system/integrations` → Shows org prompt ✓
+
+**Expected:** ALL pages show org prompt when context missing
+
+---
+
+## Critical Test 3: Tenant Context Data Scoping
+
+### Objective
+
+Verify data fetched is scoped to selected organization.
+
+### Prerequisites
+
+- Support user impersonating "Test Org A"
+- At least 1 budget/expense exists for Org A
+- At least 1 budget/expense exists for Org B (different org)
+
+### Steps
+
+#### 3.1 Verify Data for Org A
+
+- [ ] Select "Test Org A" via SupportOrgSwitcher
+- [ ] Navigate to `/fm/finance/budgets`
+- [ ] Note the budgets displayed (should be Org A's budgets only)
+- [ ] Check API call in Network: `GET /api/fm/finance/budgets?organizationId=org_test_001`
+- [ ] Verify query param includes organizationId
+
+**Expected:** Only Org A's budgets appear
+
+#### 3.2 Switch to Org B
+
+- [ ] Open SupportOrgSwitcher
+- [ ] Search for and select "Test Org B"
+- [ ] Still on `/fm/finance/budgets`
+- [ ] Page should refresh/refetch data
+- [ ] Verify NEW budgets appear (Org B's budgets)
+- [ ] Check API call: `GET /api/fm/finance/budgets?organizationId=org_test_002`
+
+**Expected:** Budgets list updates to Org B's data
+
+**If fails:** Check:
+
+- Context change triggers re-render?
+- `useEffect` dependencies include `currentOrganization`?
+- API correctly filters by organizationId?
+
+#### 3.3 Test Other FM Modules
+
+Repeat org switching test for:
+
+- [ ] `/fm/finance/expenses`
+- [ ] `/fm/properties`
+- [ ] `/fm/work-orders/board`
+
+**Expected:** Data scopes correctly across all modules
+
+---
+
+## Test 4: Translation Keys Verification
+
+### Objective
+
+Verify all org-selection prompts have proper translations (EN/AR).
+
+### Steps
+
+#### 4.1 Check English Prompts
+
+- [ ] Language set to: English (EN)
+- [ ] Clear organization context
+- [ ] Visit `/fm/finance/budgets`
+- [ ] Read org prompt message
+- [ ] Should be clear English text (not translation key like `fm.org.required`)
+
+**Expected:** Human-readable English prompt
+
+#### 4.2 Check Arabic Translations
+
+- [ ] Switch language to: Arabic (AR)
+- [ ] Verify RTL layout applies
+- [ ] Read org prompt message in Arabic
+- [ ] Should be translated Arabic text
+- [ ] UI should maintain proper RTL alignment
+
+**Expected:** Arabic translation exists and displays correctly
+
+**If fails:** Check:
+
+- `i18n/sources/fm.translations.json` has `org.required` key
+- Translation dictionaries rebuilt: `pnpm build:i18n`
+- Component uses `t('fm.org.required')` not hardcoded text
+
+#### 4.3 Verify Translation Keys Exist
+
+```bash
+# Check translation files
+grep -r "org.required\|org.select\|org.prompt" i18n/sources/
+
+# Should find entries in:
+# - fm.translations.json
+# - common.translations.json
+```
+
+---
+
+## Test 5: Extend to Uncovered FM Modules
+
+### Modules Still Needing Org Guards
+
+#### 5.1 Marketplace Module
+
+- [ ] Navigate to `/fm/marketplace/listings/new`
+- [ ] Should show org prompt if no context
+- [ ] After selecting org, page should load
+
+**Status:** ⚠️ Needs implementation
+**Files to update:** `app/fm/marketplace/**/*.tsx`
+
+#### 5.2 HR Module
+
+- [ ] Navigate to `/fm/hr/directory`
+- [ ] Should show org prompt if no context
+- [ ] Navigate to `/fm/hr/employees`
+- [ ] Navigate to `/fm/hr/payroll`
+
+**Status:** ⚠️ Needs implementation
+**Files to update:** `app/fm/hr/**/*.tsx`
+
+#### 5.3 CRM Module
+
+- [ ] Navigate to `/fm/crm`
+- [ ] Should show org prompt if no context
+- [ ] Navigate to `/fm/crm/accounts/new`
+- [ ] Navigate to `/fm/crm/leads/new`
+
+**Status:** ⚠️ Needs implementation
+**Files to update:** `app/fm/crm/**/*.tsx`
+
+#### 5.4 Support Dashboard
+
+- [ ] Navigate to `/fm/support/tickets/new`
+- [ ] Should show org prompt if no context
+
+**Status:** ⚠️ Needs implementation
+**Files to update:** `app/fm/support/**/*.tsx`
+
+---
+
+## Test 6: Edge Cases & Error Handling
+
+### 6.1 Invalid Organization ID
+
+- [ ] Manually set invalid org in SupportOrgSwitcher
+- [ ] Navigate to guarded page
+- [ ] Should show error or fallback to prompt
+
+**Expected:** Graceful error handling
+
+### 6.2 API Failures
+
+- [ ] Disconnect network temporarily
+- [ ] Try to search organizations in switcher
+- [ ] Should show error message
+
+**Expected:** User-friendly error, no crash
+
+### 6.3 Session Expiry
+
+- [ ] Clear cookies/session
+- [ ] Try to access guarded page
+- [ ] Should redirect to login
+
+**Expected:** Auth guard triggers before org guard
+
+---
+
+## Results Documentation
+
+### Test Execution Log
+
+| Test                           | Status          | Notes | Issues Found |
+| ------------------------------ | --------------- | ----- | ------------ |
+| 1. SupportOrgSwitcher E2E      | ☐ Pass / ☐ Fail |       |              |
+| 2. Org-Guard Without Context   | ☐ Pass / ☐ Fail |       |              |
+| 3. Tenant Context Data Scoping | ☐ Pass / ☐ Fail |       |              |
+| 4. Translation Keys            | ☐ Pass / ☐ Fail |       |              |
+| 5. Extend to Uncovered Modules | ☐ Pass / ☐ Fail |       |              |
+| 6. Edge Cases                  | ☐ Pass / ☐ Fail |       |              |
+
+### Issues Found
+
+| ID  | Severity | Component | Description | Fix Required |
+| --- | -------- | --------- | ----------- | ------------ |
+| 1   |          |           |             |              |
+| 2   |          |           |             |              |
+| 3   |          |           |             |              |
+
+### Screenshots Required
+
+- [ ] SupportOrgSwitcher in TopBar
+- [ ] Organization search dropdown
+- [ ] Org selection prompt (EN)
+- [ ] Org selection prompt (AR)
+- [ ] Data scoping before/after org switch
+
+---
+
+## Follow-up Actions
+
+### After Manual Testing
+
+1. **If Tests Pass:**
+
+   ```bash
+   # Re-run deployment verification
+   ./scripts/run-deployment-check.sh --skip-tests
+
+   # Update CI documentation
+   # Document verified flows in DEPLOYMENT_NEXT_STEPS.md
+   ```
+
+2. **If Tests Fail:**
+   - Document exact failure in Issues table above
+   - Create GitHub issue with reproduction steps
+   - Fix implementation before proceeding
+
+3. **Extend to Remaining Modules:**
+   ```typescript
+   // Pattern to apply to all uncovered pages:
+   // 1. Import useSupportOrg hook
+   // 2. Add org guard at top of component
+   // 3. Add translation keys
+   // 4. Test manually
+   ```
+
+---
+
+## Verification Script Updates Needed
+
+✅ **Done.** Run the automated checks anytime via:
+
+```bash
+# Static guard coverage + translation + API verification + smoke tests
+pnpm verify:org-context
+```
+
+This command runs `scripts/verify-org-context.ts` (guard coverage, translation keys, API exports) and executes the Vitest smoke tests located in:
+
+- `tests/smoke/org-context-flow.test.tsx`
+- `tests/server/support/support-org-apis.test.ts`
+
+These are now wired into both `scripts/verify-deployment-readiness.sh` (Step 4) and `.github/workflows/route-quality.yml`, so CI will fail if either the static guard checks or the SupportOrgSwitcher smoke tests regress.
+
+---
+
+## Success Criteria
+
+✅ SupportOrgSwitcher loads and searches organizations  
+✅ Organization selection persists in session/context  
+✅ All FM finance pages show org prompt when context missing  
+✅ Data correctly scopes to selected organization  
+✅ Translation keys exist for EN/AR  
+✅ Remaining FM modules extended with org guards  
+✅ Verification scripts updated with new checks  
+✅ CI workflow includes org guard smoke tests
+
+---
+
+**Current Status:** 🔴 Manual testing required before deployment
+
+**Next Step:** Execute tests above, document results, fix any failures
+
+**Estimated Time:** 30-45 minutes for complete smoke test
+
+]]>
+</file>
+
+<file path="docs/SMS_INTEGRATION_GUIDE.md">
+<![CDATA[
+# SMS Integration - Testing Guide
+
+## ✅ Implementation Complete
+
+All SMS functionality has been integrated using Twilio for Saudi market notifications.
+
+## Configuration
+
+Add these environment variables to your `.env.local` file:
+
+```bash
+# Twilio SMS Configuration (Saudi Arabia)
+TWILIO_ACCOUNT_SID=your_twilio_account_sid
+TWILIO_AUTH_TOKEN=your_twilio_auth_token
+TWILIO_PHONE_NUMBER=+966XXXXXXXXX  # Your Twilio Saudi number
+```
+
+**Note**: These values should already be in your GitHub secrets.
+
+## Features Implemented
+
+### 1. Core SMS Service (`lib/sms.ts`)
+
+```typescript
+import { sendSMS, sendOTP, formatSaudiPhoneNumber } from "@/lib/sms";
+
+// Send SMS
+const result = await sendSMS("+966501234567", "Your message here");
+// Returns: { success: true, messageSid: 'SM...' }
+
+// Send OTP
+await sendOTP("+966501234567", "123456");
+
+// Format phone numbers
+formatSaudiPhoneNumber("0501234567"); // '+966501234567'
+formatSaudiPhoneNumber("966501234567"); // '+966501234567'
+formatSaudiPhoneNumber("501234567"); // '+966501234567'
+```
+
+### 2. Seller Notifications (`services/notifications/seller-notification-service.ts`)
+
+Automatically sends SMS for:
+
+- ✅ **Budget Low**: When ad budget < threshold
+- ✅ **Budget Depleted**: When ad budget runs out
+- ✅ **Refund Processed**: When refund is completed
+- ✅ **Withdrawal Complete**: When payout is sent
+
+All messages are bilingual (Arabic/English) based on seller's preferred locale.
+
+### 3. Test API Endpoint
+
+**Endpoint**: `POST /api/sms/test`
+
+#### Test Configuration
+
+```bash
+curl -X POST http://localhost:3000/api/sms/test \
+  -H "Content-Type: application/json" \
+  -d '{"testConfig": true}'
+```
+
+**Response**:
+
+```json
+{
+  "success": true,
+  "message": "Twilio configuration is valid"
+}
+```
+
+#### Send Test SMS
+
+```bash
+curl -X POST http://localhost:3000/api/sms/test \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone": "0501234567",
+    "message": "Test message from Fixzit"
+  }'
+```
+
+**Response**:
+
+```json
+{
+  "success": true,
+  "messageSid": "SM1234567890abcdef",
+  "message": "SMS sent successfully"
+}
+```
+
+## Phone Number Formats Supported
+
+The system automatically handles these Saudi phone formats:
+
+| Input Format       | Output (E.164)  |
+| ------------------ | --------------- |
+| `0501234567`       | `+966501234567` |
+| `966501234567`     | `+966501234567` |
+| `501234567`        | `+966501234567` |
+| `+966501234567`    | `+966501234567` |
+| `050 123 4567`     | `+966501234567` |
+| `+966 50 123 4567` | `+966501234567` |
+
+## Testing Seller Notifications
+
+### 1. Start Development Server
+
+```bash
+pnpm dev
+```
+
+### 2. Test Configuration
+
+```bash
+# Test if Twilio credentials are valid
+curl -X POST http://localhost:3000/api/sms/test \
+  -H "Content-Type: application/json" \
+  -d '{"testConfig": true}'
+```
+
+### 3. Send Test Message to Your Phone
+
+```bash
+# Replace with your Saudi mobile number
+curl -X POST http://localhost:3000/api/sms/test \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone": "0501234567",
+    "message": "This is a test from Fixzit SMS service"
+  }'
+```
+
+### 4. Test Seller Notification (Budget Alert)
+
+Create a test seller and trigger notification:
+
+```typescript
+import { sendSellerNotification } from "@/services/notifications/seller-notification-service";
+
+// Send budget low alert
+await sendSellerNotification("SELLER123", "BUDGET_LOW", {
+  budgetRemaining: 50,
+  campaignName: "Summer Sale Campaign",
+});
+```
+
+**Expected SMS (Arabic)**:
+
+```
+تنبيه فيكسزت: رصيد إعلانات منخفض - 50 ريال. أضف رصيد للاستمرار.
+```
+
+**Expected SMS (English)**:
+
+```
+Fixzit Alert: Ad budget low - 50 SAR remaining. Add funds to continue.
+```
+
+## Monitoring
+
+### Check SMS Status
+
+```typescript
+import { getSMSStatus } from "@/lib/sms";
+
+const status = await getSMSStatus("SM1234567890abcdef");
+console.log(status);
+// {
+//   status: 'delivered',
+//   dateCreated: 2024-11-16T...,
+//   dateSent: 2024-11-16T...,
+// }
+```
+
+### Message Statuses (Twilio)
+
+- `queued` - Message queued for sending
+- `sending` - Message is being sent
+- `sent` - Message sent to carrier
+- `delivered` - Message delivered to recipient
+- `failed` - Message failed to send
+- `undelivered` - Message not delivered
+
+## Bulk SMS (Marketing)
+
+```typescript
+import { sendBulkSMS } from "@/lib/sms";
+
+const recipients = ["+966501234567", "+966509876543"];
+const message = "Special offer: 20% off all products this weekend!";
+
+const result = await sendBulkSMS(recipients, message, {
+  delayMs: 1000, // 1 second delay between messages
+});
+
+console.log(result);
+// { sent: 2, failed: 0, results: [...] }
+```
+
+## Error Handling
+
+The SMS service includes comprehensive error handling:
+
+```typescript
+const result = await sendSMS("invalid-number", "Test");
+
+if (!result.success) {
+  console.error(result.error);
+  // "Invalid Saudi phone number format: invalid-number"
+}
+```
+
+## Production Checklist
+
+- [x] Twilio account created
+- [x] Saudi Arabia phone number purchased (+966)
+- [ ] Environment variables added to production
+- [ ] Test SMS sent successfully
+- [ ] Seller notification templates verified
+- [ ] Phone number validation tested
+- [ ] Bulk SMS rate limiting configured
+- [ ] Delivery status monitoring set up
+
+## Costs (Twilio Pricing)
+
+**Saudi Arabia SMS Pricing** (as of 2024):
+
+- Outbound SMS: ~$0.07 USD per message
+- Phone number rental: ~$15 USD/month
+
+**Estimate for 1000 sellers**:
+
+- Budget alerts: ~2 SMS/seller/month = 2000 SMS = $140/month
+- Refunds: ~1 SMS/seller/month = 1000 SMS = $70/month
+- Withdrawals: ~2 SMS/seller/month = 2000 SMS = $140/month
+
+**Total**: ~$350/month for 1000 active sellers
+
+## Troubleshooting
+
+### "Twilio not configured"
+
+- Check environment variables are set correctly
+- Verify `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`
+
+### "Invalid phone number format"
+
+- Ensure phone number starts with 05 (Saudi mobile)
+- Valid: 0501234567, +966501234567
+- Invalid: 0112345678 (landline), 0401234567 (wrong prefix)
+
+### "Message failed to send"
+
+- Check Twilio account balance
+- Verify phone number is active
+- Check Twilio dashboard for error details
+
+### "Rate limit exceeded"
+
+- Twilio has rate limits per account
+- Use `sendBulkSMS` with delay for batch sending
+- Consider upgrading Twilio plan for higher limits
+
+## Next Steps
+
+1. **Test with your phone number**:
+
+   ```bash
+   curl -X POST http://localhost:3000/api/sms/test \
+     -H "Content-Type: application/json" \
+     -d '{"phone": "YOUR_PHONE", "message": "Test from Fixzit"}'
+   ```
+
+2. **Monitor first week**:
+   - Check SMS delivery rates
+   - Verify message content in both languages
+   - Track costs in Twilio dashboard
+
+3. **Set up alerts**:
+   - Twilio usage alerts (80% of budget)
+   - Failed message notifications
+   - Daily delivery reports
+
+## Support
+
+For issues or questions:
+
+- Twilio Documentation: https://www.twilio.com/docs
+- Twilio Console: https://console.twilio.com
+- Internal: Contact DevOps team
+
+---
+
+**Implementation Status**: ✅ COMPLETE  
+**Commit**: `a55ed4320` - "feat(sms): Integrate Twilio SMS for Saudi market notifications"  
+**Date**: November 16, 2024
+
+]]>
+</file>
+
+<file path="docs/SMS_OTP_LOGIN_GUIDE.md">
+<![CDATA[
+# SMS OTP Login Enhancement - Implementation Guide
+
+## Overview
+
+Enhanced the login flow with SMS OTP (One-Time Password) verification using Twilio. Users must now verify their identity via SMS after entering valid credentials, adding an extra layer of security.
+
+## Flow Diagram
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    LOGIN WITH SMS OTP FLOW                  │
+└─────────────────────────────────────────────────────────────┘
+
+1. User enters credentials (email/employee number + password)
+   ↓
+2. System validates credentials against database
+   ↓
+3. System sends 6-digit OTP to user's registered phone via Twilio
+   ↓
+4. User receives SMS with OTP code
+   ↓
+5. User enters OTP in verification screen
+   ↓
+6. System validates OTP
+   ↓
+7. User successfully logged in (NextAuth session created)
+```
+
+## Architecture
+
+### Files Created/Modified
+
+#### **New Files:**
+
+1. **`lib/otp-store.ts`** (50 lines)
+   - Shared OTP storage (in-memory)
+   - Rate limiting storage
+   - Constants for OTP expiry, attempts, etc.
+   - Periodic cleanup of expired OTPs
+
+2. **`app/api/auth/otp/send/route.ts`** (250 lines)
+   - POST /api/auth/otp/send
+   - Validates credentials
+   - Sends OTP via Twilio SMS
+   - Rate limiting (5 sends per 15 minutes)
+   - Returns masked phone number
+
+3. **`app/api/auth/otp/verify/route.ts`** (180 lines)
+   - POST /api/auth/otp/verify
+   - Verifies OTP code
+   - Tracks failed attempts (max 3)
+   - Returns short-lived OTP session token (server-managed)
+
+4. **`components/auth/OTPVerification.tsx`** (280 lines)
+   - React component for OTP input
+   - Countdown timer (5 minutes)
+   - Resend functionality with cooldown (60 seconds)
+   - Auto-focus and numeric keyboard
+   - Accessibility features (aria-labels, roles)
+
+#### **Modified Files:**
+
+5. **`app/login/page.tsx`**
+   - Added OTP flow state management
+   - Modified onSubmit to call OTP send endpoint
+   - Added OTP verification success handler
+   - Conditional rendering (login form vs OTP screen)
+
+6. **`i18n/dictionaries/en.ts`**
+   - Added `otp.*` translation keys
+   - Added `login.errors.*` for OTP-specific errors
+
+7. **`i18n/dictionaries/ar.ts`**
+   - Added Arabic translations for OTP flow
+
+## API Endpoints
+
+### 1. Send OTP
+
+**Endpoint:** `POST /api/auth/otp/send`
+
+**Request Body:**
+
+```json
+{
+  "identifier": "user@example.com", // Email or employee number
+  "password": "user_password"
+}
+```
+
+**Success Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "OTP sent successfully",
+  "data": {
+    "phone": "+966 50****4567", // Masked phone
+    "expiresIn": 300, // Seconds (5 minutes)
+    "attemptsRemaining": 3
+  }
+}
+```
+
+**Error Responses:**
+
+- `400`: Validation error, invalid credentials, no phone number
+- `401`: Invalid credentials
+- `403`: Account not active
+- `429`: Rate limit exceeded (5 sends per 15 minutes)
+- `500`: Server error (Twilio failure, database error)
+
+**Rate Limiting:**
+
+- Max 5 OTP sends per 15 minutes per identifier
+- Resets after 15 minutes
+
+### 2. Verify OTP
+
+**Endpoint:** `POST /api/auth/otp/verify`
+
+**Request Body:**
+
+```json
+{
+  "identifier": "user@example.com",
+  "otp": "123456"
+}
+```
+
+**Success Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "OTP verified successfully",
+  "data": {
+    "otpToken": "d45f8c... (server-managed token)",
+    "userId": "507f1f77bcf86cd799439011"
+  }
+}
+```
+
+**Error Responses:**
+
+- `400`: Invalid OTP, expired OTP, OTP not found
+- `429`: Too many incorrect attempts (max 3)
+- `500`: Server error
+
+**Attempt Limiting:**
+
+- Max 3 incorrect attempts
+- OTP deleted after 3 failed attempts
+- User must request new OTP
+
+## Security Features
+
+### 1. Rate Limiting
+
+- **Send OTP:** 5 sends per 15 minutes per identifier
+- Prevents SMS spam and abuse
+- Uses in-memory store (migrate to Redis for production)
+
+### 2. OTP Expiration
+
+- OTPs expire after 5 minutes
+- Expired OTPs automatically deleted from store
+- Clear error message when OTP expires
+
+### 3. Attempt Limiting
+
+- Max 3 incorrect verification attempts
+- OTP invalidated after 3 failed attempts
+- Forces user to request new OTP
+
+### 4. Phone Number Masking
+
+- Only last 4 digits shown to user
+- Format: `+966 50****4567`
+- Prevents phone number exposure in UI
+
+### 5. Credential Validation
+
+- Password verified before sending OTP
+- Prevents OTP spam to random phone numbers
+- User account status checked (must be active)
+
+### 5.1 Super Admin Fallback (optional)
+
+- Set `NEXTAUTH_SUPERADMIN_FALLBACK_PHONE` (or legacy `SUPER_ADMIN_FALLBACK_PHONE`) if your seeded SUPER_ADMIN account lacks a phone.
+- The fallback is only used for SUPER_ADMINs with no stored phone; a warning is logged whenever it is used.
+
+### 6. SMS Content
+
+```
+Your Fixzit verification code is: 123456
+
+This code expires in 5 minutes. Do not share this code with anyone.
+```
+
+### 7. OTP Session Tokens
+
+- `otpToken` values never embed the OTP code itself.
+- Tokens are stored server-side in `otpSessionStore` and expire after 5 minutes.
+- Each token can be used exactly once. After NextAuth consumes it, it is deleted immediately.
+- Credentials provider rejects sign-ins that do not include a valid `otpToken` (enforced unless `NEXTAUTH_REQUIRE_SMS_OTP=false`).
+
+## UI/UX Features
+
+### OTP Verification Screen
+
+**Features:**
+
+- Large numeric input field (6 digits)
+- Auto-focus on mount
+- Numeric keyboard on mobile (`inputMode="numeric"`)
+- Real-time validation (only numbers, max 6 digits)
+- Countdown timer (MM:SS format)
+- Resend button with cooldown (60 seconds)
+- Back to login button
+- Error messages with icons
+- Loading states for verify/resend actions
+
+**Accessibility:**
+
+- ARIA labels for screen readers
+- Role="alert" for error messages
+- High contrast colors for visibility
+- Clear focus indicators
+
+**Internationalization:**
+
+- Full RTL support for Arabic
+- All text translatable via `t()` function
+- Date/time formatting respects locale
+
+## Database Schema
+
+### Users Collection (Existing)
+
+```typescript
+{
+  _id: ObjectId,
+  email: string,
+  username?: string,  // Employee number for corporate users
+  password: string,   // Hashed with bcrypt
+  contact: {
+    phone: string,    // Required for OTP (Saudi format: +966501234567)
+  },
+  personal: {
+    phone?: string,   // Fallback phone number
+  },
+  isActive: boolean,
+  status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED',
+  security: {
+    lastLogin: Date,
+  },
+  // ... other fields
+}
+```
+
+**Phone Number Requirements:**
+
+- Must be in Saudi format: `+966501234567` or `0501234567`
+- Validated by `isValidSaudiPhone()` function
+- Automatically formatted to E.164 format by `formatSaudiPhoneNumber()`
+
+### OTP Store (In-Memory)
+
+```typescript
+// Map<identifier, OTPData>
+interface OTPData {
+  otp: string; // 6-digit code
+  expiresAt: number; // Unix timestamp (ms)
+  attempts: number; // Failed verification attempts (max 3)
+  userId: string; // MongoDB ObjectId
+  phone: string; // E.164 format phone number
+}
+```
+
+**Storage Notes:**
+
+- Currently in-memory (not persistent)
+- ⚠️ For production: Migrate to Redis for distributed systems
+- Periodic cleanup every 10 minutes
+- Automatically deleted after expiry or successful verification
+
+### Rate Limit Store (In-Memory)
+
+```typescript
+// Map<identifier, RateLimitData>
+interface RateLimitData {
+  count: number; // Number of OTP sends
+  resetAt: number; // Unix timestamp (ms) when limit resets
+}
+```
+
+### OTP Login Session Store (In-Memory)
+
+```typescript
+// Map<otpToken, OTPLoginSession>
+interface OTPLoginSession {
+  userId: string;
+  identifier: string;
+  expiresAt: number; // Unix timestamp (ms)
+}
+```
+
+**Usage Notes:**
+
+- Tokens are random 32-byte hex strings generated after successful OTP verification.
+- Stored only in memory/Redis on the server (never exposed as JWTs or cookies).
+- NextAuth credentials provider requires a valid `otpToken` to complete sign-in.
+- Entries expire after 5 minutes and are cleaned up automatically.
+
+## Environment Variables
+
+```env
+# Twilio SMS (Required)
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=your_auth_token
+TWILIO_PHONE_NUMBER=+966501234567
+
+# NextAuth (Required)
+NEXTAUTH_SECRET=your_secret_key
+NEXTAUTH_URL=http://localhost:3000
+
+# Optional: fallback phone for seeded super admin (OTP only)
+# NEXTAUTH_SUPERADMIN_FALLBACK_PHONE=+966501234567
+```
+
+**Testing:**
+
+1. Go to [Twilio Console](https://console.twilio.com/)
+2. Use verified phone numbers for testing
+3. Check SMS logs in Twilio dashboard
+
+## Testing Guide
+
+### Manual Testing
+
+#### Test Case 1: Successful Login with OTP
+
+1. Navigate to `/login`
+2. Enter valid credentials (email + password)
+3. Click "Sign In"
+4. Wait for SMS to arrive (~5 seconds)
+5. Enter 6-digit OTP code
+6. Click "Verify & Continue"
+7. ✅ Successfully redirected to dashboard
+
+#### Test Case 2: Expired OTP
+
+1. Complete Test Case 1 steps 1-4
+2. Wait 5+ minutes (or modify OTP_EXPIRY_MS for faster testing)
+3. Enter OTP code
+4. ✅ Error: "Code expired. Please request a new one."
+
+#### Test Case 3: Incorrect OTP
+
+1. Complete Test Case 1 steps 1-4
+2. Enter wrong OTP (e.g., "111111")
+3. ✅ Error: "Incorrect OTP. 2 attempt(s) remaining."
+4. Enter wrong OTP again
+5. ✅ Error: "Incorrect OTP. 1 attempt(s) remaining."
+6. Enter wrong OTP third time
+7. ✅ Error: "Too many incorrect attempts. Please request a new code."
+
+#### Test Case 4: Resend OTP
+
+1. Complete Test Case 1 steps 1-4
+2. Click "Resend Code"
+3. ✅ New SMS sent, timer reset to 5:00
+4. ✅ Resend button disabled for 60 seconds
+5. Enter new OTP
+6. ✅ Successfully verified
+
+#### Test Case 5: Rate Limiting
+
+1. Attempt to send OTP 5 times within 15 minutes
+2. ✅ 6th attempt: Error "Too many OTP requests. Please try again later."
+
+#### Test Case 6: No Phone Number
+
+1. Remove phone number from user profile in database
+2. Attempt login
+3. ✅ Error: "No phone number registered. Please contact support."
+
+#### Test Case 7: Invalid Credentials
+
+1. Enter wrong password
+2. ✅ Error: "Invalid credentials" (OTP not sent)
+
+### Automated Testing
+
+```typescript
+// TODO: Add Playwright tests
+describe("OTP Login Flow", () => {
+  test("should send OTP after valid credentials", async ({ page }) => {
+    // Test implementation
+  });
+
+  test("should verify OTP and complete login", async ({ page }) => {
+    // Test implementation
+  });
+
+  test("should show error for expired OTP", async ({ page }) => {
+    // Test implementation
+  });
+});
+```
+
+## Production Deployment Checklist
+
+- [ ] **Replace in-memory OTP store with Redis**
+  - Install `ioredis` package
+  - Configure Redis connection
+  - Update `lib/otp-store.ts` to use Redis
+  - Set TTL for OTP keys (5 minutes)
+- [ ] **Monitor SMS costs**
+  - Set up Twilio usage alerts
+  - Implement SMS cost tracking
+  - Consider SMS budget limits per user
+- [ ] **Implement OTP backup methods**
+  - Email fallback for failed SMS
+  - TOTP authenticator app support
+  - Recovery codes
+- [ ] **Add logging and monitoring**
+  - Log all OTP send/verify attempts
+  - Track success/failure rates
+  - Monitor Twilio delivery status
+  - Set up alerts for high failure rates
+- [ ] **Security enhancements**
+  - Implement CAPTCHA before sending OTP
+  - Add IP-based rate limiting
+  - Detect and block suspicious patterns
+  - Add device fingerprinting
+- [ ] **User experience improvements**
+  - Add "Trust this device" option (skip OTP for 30 days)
+  - SMS delivery status tracking
+  - Support for WhatsApp OTP as alternative
+  - Voice call fallback for SMS failures
+
+## Troubleshooting
+
+### Common Issues
+
+#### 1. OTP Not Received
+
+**Possible Causes:**
+
+- Invalid phone number format
+- Phone number not verified in Twilio (development mode)
+- Twilio account suspended or out of credits
+- SMS blocked by carrier
+
+**Debug Steps:**
+
+```bash
+# Check Twilio logs
+# Visit: https://console.twilio.com/us1/monitor/logs/sms
+
+# Test phone number format
+curl -X POST http://localhost:3000/api/sms/test \
+  -H "Content-Type: application/json" \
+  -d '{"to": "+966501234567", "message": "Test"}'
+
+# Check user phone number in database
+db.users.findOne({ email: "user@example.com" }, { "contact.phone": 1 })
+```
+
+#### 2. OTP Verification Fails
+
+**Possible Causes:**
+
+- OTP expired (>5 minutes)
+- Incorrect OTP entered
+- Too many attempts (>3)
+- OTP store cleared (server restart)
+
+**Debug Steps:**
+
+```typescript
+// Check OTP store (add logging in verify endpoint)
+console.log("OTP Data:", otpStore.get(identifier));
+
+// Check expiration
+const now = Date.now();
+const otpData = otpStore.get(identifier);
+if (otpData && now > otpData.expiresAt) {
+  console.log("OTP expired:", new Date(otpData.expiresAt));
+}
+```
+
+#### 3. Rate Limit Errors
+
+**Possible Causes:**
+
+- User requesting OTP too frequently
+- Multiple users sharing same IP (rare)
+- Testing with same account repeatedly
+
+**Debug Steps:**
+
+```typescript
+// Check rate limit data
+console.log("Rate Limit:", rateLimitStore.get(identifier));
+
+// Reset rate limit for testing
+rateLimitStore.delete(identifier);
+```
+
+## Future Enhancements
+
+### Phase 2 Features (Priority: High)
+
+1. **Redis Integration** - Replace in-memory store
+2. **WhatsApp OTP** - Alternative to SMS
+3. **Backup Codes** - Recovery mechanism
+4. **Trust Device** - Skip OTP for known devices
+
+### Phase 3 Features (Priority: Medium)
+
+5. **TOTP Support** - Authenticator app integration
+6. **Biometric Auth** - Face ID / Touch ID on mobile
+7. **Risk-Based Auth** - Skip OTP for low-risk logins
+8. **SMS Templates** - Multi-language SMS content
+
+### Phase 4 Features (Priority: Low)
+
+9. **Voice Call OTP** - Accessibility feature
+10. **Email OTP** - Fallback for SMS failures
+11. **Passwordless Login** - OTP-only authentication
+12. **Session Management** - View/revoke active sessions
+
+## Performance Metrics
+
+### Target Metrics
+
+- **OTP Send Time:** <3 seconds (credential validation + Twilio API)
+- **OTP Delivery Time:** <10 seconds (Twilio → User's phone)
+- **Verification Time:** <1 second (in-memory lookup + validation)
+- **Success Rate:** >95% (OTP delivery + verification)
+
+### Monitoring
+
+- Track average OTP send time
+- Monitor Twilio delivery rates
+- Log failed verification attempts
+- Alert on high failure rates (>10%)
+
+## Cost Analysis
+
+### Twilio SMS Pricing (Saudi Arabia)
+
+- **Outbound SMS:** ~$0.05 - $0.10 per message
+- **Estimated Monthly Cost (1000 users):**
+  - 1 login/day: $1,500 - $3,000
+  - Rate limit (5 OTP/15min): Max $25,000 per day (unlikely)
+
+### Cost Optimization
+
+- Implement "Trust Device" to reduce OTP frequency
+- Use WhatsApp (cheaper alternative) when available
+- Monitor and block SMS abuse
+- Consider SMS-free authentication for trusted devices
+
+## Support
+
+### User Support
+
+- **Help Center:** Add FAQ for OTP login
+- **Contact Support:** support@fixzit.com
+- **Phone:** +966 11 234 5678
+
+### Developer Support
+
+- **Internal Documentation:** This file
+- **API Documentation:** OpenAPI spec at `/docs/api`
+- **Slack Channel:** #auth-team
+
+## Changelog
+
+### v1.0.0 (Current)
+
+- ✅ Initial SMS OTP implementation
+- ✅ Twilio integration
+- ✅ Rate limiting (5 sends / 15 min)
+- ✅ Attempt limiting (3 attempts max)
+- ✅ UI with countdown timer
+- ✅ Bilingual support (EN/AR)
+- ✅ Phone number masking
+
+### Upcoming
+
+- 🔄 Redis integration (v1.1.0)
+- 🔄 WhatsApp OTP (v1.2.0)
+- 🔄 Trust device feature (v1.3.0)
+
+---
+
+**Last Updated:** December 2024  
+**Author:** Fixzit Engineering Team  
+**Status:** Production Ready (with Redis migration pending)
+
+]]>
+</file>
+
+<file path="docs/SMS_OTP_QUICK_START.md">
+<![CDATA[
+# SMS OTP Login - Quick Start Guide
+
+## ✅ Implementation Complete
+
+The login flow now includes **SMS OTP verification** for enhanced security. Users must verify their identity via SMS after entering credentials.
+
+---
+
+## 🚀 Quick Test
+
+### 1. Prerequisites
+
+- ✅ Twilio credentials configured in `.env`
+- ✅ User has phone number in database (Saudi format: `+966501234567` or `0501234567`)
+
+### 2. Test the Flow
+
+```bash
+# Start the development server
+npm run dev
+
+# Visit http://localhost:3000/login
+```
+
+1. **Enter credentials**
+   - Email: `demo@fixzit.com` (or any test user)
+   - Password: Your password
+
+2. **Receive SMS**
+   - 6-digit code sent to registered phone
+   - SMS format: "Your Fixzit verification code is: 123456"
+
+3. **Enter OTP**
+   - Large input field appears
+   - Type the 6-digit code
+   - Click "Verify & Continue"
+
+4. **Success!**
+   - Redirected to dashboard
+   - Session created with NextAuth
+   - The verify API now returns a short-lived `otpToken`, and the UI automatically passes it to the credentials provider so no JWT is exposed during verification
+
+---
+
+## 📱 Features at a Glance
+
+### Security
+
+- ✅ Credentials validated before OTP sent
+- ✅ 5-minute OTP expiration
+- ✅ Max 3 verification attempts
+- ✅ Rate limiting: 5 OTP sends per 15 minutes
+- ✅ Phone number masking (privacy)
+
+### User Experience
+
+- ✅ Countdown timer (5:00 → 0:00)
+- ✅ Resend OTP with 60-second cooldown
+- ✅ Back to login button
+- ✅ Auto-focus on OTP input
+- ✅ Numeric keyboard on mobile
+- ✅ Real-time error messages
+
+### Internationalization
+
+- ✅ Full English support
+- ✅ Full Arabic support (RTL)
+- ✅ All UI text translated
+
+---
+
+## 🔧 Configuration
+
+### Environment Variables
+
+```env
+# Already configured via previous SMS integration
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=your_auth_token
+TWILIO_PHONE_NUMBER=+966501234567
+```
+
+### Constants (lib/otp-store.ts)
+
+```typescript
+OTP_LENGTH = 6; // 6-digit code
+OTP_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
+MAX_ATTEMPTS = 3; // 3 verification attempts
+RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+MAX_SENDS_PER_WINDOW = 5; // 5 OTP sends per window
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### OTP Not Received?
+
+1. **Check phone number format**
+
+   ```typescript
+   // Valid formats:
+   +966501234567   // E.164 (preferred)
+   0501234567      // Local (auto-converted)
+   ```
+
+2. **Check Twilio logs**
+   - Visit: https://console.twilio.com/us1/monitor/logs/sms
+   - Verify message was sent successfully
+
+3. **Test SMS service directly**
+   ```bash
+   curl -X POST http://localhost:3000/api/sms/test \
+     -H "Content-Type: application/json" \
+     -d '{"to": "+966501234567", "message": "Test SMS"}'
+   ```
+
+### OTP Verification Fails?
+
+1. **Check if expired** (>5 minutes)
+   - Request new OTP via "Resend Code"
+
+2. **Check attempts** (>3 failed attempts)
+   - Request new OTP
+
+3. **Server restart clears OTP store**
+   - In-memory store is not persistent
+   - For production: Migrate to Redis
+
+### Rate Limited?
+
+- Wait 15 minutes
+- Or for testing: Clear rate limit manually in code
+
+---
+
+## 📚 Full Documentation
+
+See **`SMS_OTP_LOGIN_GUIDE.md`** for:
+
+- Complete architecture overview
+- API endpoint documentation
+- Security features in detail
+- Production deployment checklist
+- Future enhancement roadmap
+
+---
+
+## 🔄 Next Steps
+
+### Immediate (Optional)
+
+- [ ] Test OTP flow with real users
+- [ ] Monitor SMS delivery rates
+- [ ] Check Twilio costs/usage
+
+### Short Term (Recommended)
+
+- [ ] **Migrate to Redis** (for production)
+  - Replace in-memory OTP store
+  - Enable distributed system support
+- [ ] **Add monitoring**
+  - Log OTP send/verify success rates
+  - Alert on high failure rates
+- [ ] **Add CAPTCHA** (optional)
+  - Prevent automated OTP spam
+
+### Long Term (Nice to Have)
+
+- [ ] WhatsApp OTP (cheaper alternative)
+- [ ] Trust device feature (skip OTP for known devices)
+- [ ] TOTP support (authenticator apps)
+- [ ] Backup codes (recovery mechanism)
+
+---
+
+## 📊 Metrics to Track
+
+### Success Metrics
+
+- **OTP Delivery Rate:** >95% (Twilio success)
+- **Verification Success Rate:** >90% (users complete OTP)
+- **Average Time to Verify:** <60 seconds
+
+### Performance Metrics
+
+- **OTP Send Time:** <3 seconds
+- **OTP Delivery Time:** <10 seconds (carrier dependent)
+- **Verification Time:** <1 second
+
+---
+
+## 💰 Cost Estimate
+
+### Twilio SMS Pricing (Saudi Arabia)
+
+- **Per SMS:** ~$0.05 - $0.10
+- **1000 logins/day:** $50 - $100/day ($1,500 - $3,000/month)
+
+### Cost Optimization
+
+- Implement "Trust Device" → Reduce OTP frequency by 80%
+- Use WhatsApp → ~50% cheaper than SMS
+- Monitor and block abuse
+
+---
+
+## ✨ Key Achievements
+
+✅ **Security:** Two-factor authentication with SMS OTP  
+✅ **User Experience:** Seamless flow with clear feedback  
+✅ **Internationalization:** Full bilingual support (EN/AR)  
+✅ **Documentation:** Comprehensive guides and troubleshooting  
+✅ **Production Ready:** With Redis migration path defined
+
+---
+
+**Status:** Production Ready (with Redis migration pending)  
+**Last Updated:** December 2024  
+**Version:** 1.0.0
+
+]]>
+</file>
+
+<file path="docs/SOUQ_DASHBOARD.md">
+<![CDATA[
+# Fixzit Souq Marketplace - Progress Dashboard
+
+**Last Updated**: November 17, 2025 02:15 UTC  
+**Status**: Phase 0 ✅ | Phase 1.1 ✅ | Phase 1.2 ✅ | Phase 1.3 ✅ | Phase 1.4 🚧
+
+---
+
+## 🎯 Overall System Completion: **62%** (Target: 100%)
+
+```ascii
+███████████████░░░░░░░░░░░░░  62% Complete
+═══════════════════════════════════════════
+Phase 0:  ████████████████████  100% ✅ COMPLETE
+Phase 1:  ████████████░░░░░░░░   60% 🚧 IN PROGRESS
+Phase 2:  ██░░░░░░░░░░░░░░░░░░   10%
+Phase 3:  ███░░░░░░░░░░░░░░░░░   15%
+Phase 4:  ██░░░░░░░░░░░░░░░░░░   10%
+```
+
+**Today's Achievement**: +22% (40% → 62%)  
+**Velocity**: 745 LOC/hour (49% above target)
+
+---
+
+## 📊 Phase Completion Status
+
+| Phase                         | Features      | Complete | In Progress | Remaining | Status      |
+| ----------------------------- | ------------- | -------- | ----------- | --------- | ----------- |
+| **Phase 0: Foundation**       | 14 components | 14       | 0           | 0         | ✅ **100%** |
+| **Phase 1: MVP Foundation**   | 30 tasks      | 18       | 0           | 12        | 🚧 **60%**  |
+| **Phase 2: Revenue Features** | 20 tasks      | 2        | 0           | 18        | ⏳ **10%**  |
+| **Phase 3: Quality & Scale**  | 22 tasks      | 3        | 1           | 18        | ⏳ **15%**  |
+| **Phase 4: Infrastructure**   | 18 tasks      | 2        | 1           | 15        | ⏳ **10%**  |
+| **TOTAL**                     | **104 tasks** | **39**   | **2**       | **63**    | **62%**     |
+
+---
+
+## ✅ Phase 0: Foundation Infrastructure - 100% COMPLETE
+
+### Session 1 Achievements (November 16, 2025 - Morning)
+
+| Component            | Status      | Impact                            | LOC |
+| -------------------- | ----------- | --------------------------------- | --- |
+| Redis Client + Cache | ✅ Complete | Caching, rate limiting foundation | 280 |
+| BullMQ Queue System  | ✅ Complete | Background job infrastructure     | 340 |
+| Coupon Model         | ✅ Complete | Promotional engine                | 190 |
+| Q&A Models           | ✅ Complete | Product questions system          | 180 |
+| Advertising Models   | ✅ Complete | CPC campaign foundation           | 420 |
+| Inventory Model      | ✅ Complete | Stock tracking, reservations      | 380 |
+| RMA Model            | ✅ Complete | Returns management                | 350 |
+| Claim Model          | ✅ Complete | A-to-Z buyer protection           | 390 |
+| FeeSchedule Model    | ✅ Complete | Commission & fee calculations     | 310 |
+| Inventory Service    | ✅ Complete | Complete inventory business logic | 420 |
+| Inventory APIs       | ✅ Complete | 8 REST endpoints                  | 480 |
+
+**Session 1 Total**: 18 files, 4,390 lines
+
+### Session 2 Achievements (November 16, 2025 - Evening)
+
+| Component           | Status      | Impact                 | LOC |
+| ------------------- | ----------- | ---------------------- | --- |
+| Fulfillment Service | ✅ Complete | FBF/FBM orchestration  | 650 |
+| Aramex Carrier      | ✅ Complete | Same-day delivery      | 310 |
+| SMSA Carrier        | ✅ Complete | Express shipping       | 270 |
+| SPL Carrier         | ✅ Complete | Affordable standard    | 270 |
+| Fulfillment APIs    | ✅ Complete | 5 REST endpoints       | 300 |
+| Returns Service     | ✅ Complete | RMA workflow + refunds | 650 |
+| Returns APIs        | ✅ Complete | 8 REST endpoints       | 600 |
+
+**Session 2 Total**: 18 files, 3,050 lines
+
+### Session 3 Achievements (November 17, 2025 - Early Morning)
+
+| Component                          | Status      | Impact                                                      | LOC |
+| ---------------------------------- | ----------- | ----------------------------------------------------------- | --- |
+| Seller KYC Service                 | ✅ Complete | Multi-step onboarding, CR/VAT validation                    | 480 |
+| Account Health Service             | ✅ Complete | ODR/LSR/CR/RR monitoring, auto-enforcement                  | 540 |
+| Seller Central KYC APIs            | ✅ Complete | 5 REST endpoints (submit, status, verify, approve, pending) | 280 |
+| Seller Central Health APIs         | ✅ Complete | 3 REST endpoints (metrics, summary, violation)              | 180 |
+| KYC UI - Main Page                 | ✅ Complete | Multi-step wizard with progress tracking                    | 180 |
+| KYC UI - Company Info              | ✅ Complete | Form with CR/VAT validation                                 | 220 |
+| KYC UI - Documents                 | ✅ Complete | File upload with preview                                    | 180 |
+| KYC UI - Bank Details              | ✅ Complete | IBAN validation, bank selection                             | 200 |
+| KYC UI - Progress Tracker          | ✅ Complete | Visual step indicator                                       | 80  |
+| Health Dashboard - Main            | ✅ Complete | Metrics overview with tabs                                  | 160 |
+| Health Dashboard - Metric Card     | ✅ Complete | Individual metric display with color coding                 | 100 |
+| Health Dashboard - Health Score    | ✅ Complete | Circular score gauge with trend                             | 140 |
+| Health Dashboard - Violations      | ✅ Complete | Policy violations list with severity badges                 | 120 |
+| Health Dashboard - Recommendations | ✅ Complete | Actionable advice panel                                     | 120 |
+
+**Session 3 Total**: 22 files, 2,980 lines
+
+### Day 1 Summary
+
+**Total Files**: 58  
+**Total Lines**: 10,420  
+**Time Spent**: 8 hours  
+**Velocity**: 745 LOC/hour 📈 (+49% above target)
+
+### Complete Infrastructure Stack
+
+✅ **Data Layer**
+
+- 14 MongoDB models (All souq entities)
+- All schemas with proper indexes
+- Audit fields, timestamps, relationships
+
+✅ **Service Layer**
+
+- Buy Box algorithm service (scoring + eligibility)
+- FSIN generator (unique product IDs)
+- Feature flags system (12 flags, dependency mgmt)
+
+✅ **Infrastructure Layer**
+
+- Redis client with helpers (cache, rate limit)
+- BullMQ job queues (9 queues defined)
+- API routes (13 endpoints)
+
+✅ **UI Layer**
+
+- Basic pages (Souq landing, catalog, vendor portal)
+- Component structure
+
+---
+
+## 🚧 Phase 1: MVP Foundation - 60% Complete (Target: Week 12)
+
+### Critical Path Items (Next 4 Weeks)
+
+#### Phase 1.1: Inventory Service - 100% ✅
+
+```
+[████████████████████] 100% - ✅ COMPLETE
+```
+
+**Completed**:
+
+1. ✅ Inventory model (stock, reservations, health tracking)
+2. ✅ RMA model (returns management)
+3. ✅ Claim model (A-to-Z buyer protection)
+4. ✅ FeeSchedule model (commission calculations)
+5. ✅ Inventory service (receive, reserve, release, convert)
+6. ✅ 8 REST API endpoints (list, reserve, release, convert, return, adjust, health)
+
+**Impact**: Inventory tracking, overselling prevention, returns handling  
+**LOC**: 1,730 lines
+
+---
+
+#### Phase 1.2: Fulfillment & Carriers - 100% ✅
+
+```
+[████████████████████] 100% - ✅ COMPLETE
+```
+
+**Completed**:
+
+1. ✅ Fulfillment service (FBF/FBM orchestration)
+2. ✅ Label generation workflow
+3. ✅ Carrier adapters (Aramex, SMSA, SPL)
+4. ✅ Tracking update handling
+5. ✅ SLA computation & Fast Badge assignment
+6. ✅ 5 REST API endpoints (generate-label, sla, rates, update-tracking, assign-fast-badge)
+
+**Impact**: Multi-carrier shipping, automated fulfillment  
+**LOC**: 1,800 lines
+
+---
+
+#### Phase 1.3: Returns Center - 100% ✅
+
+```
+[████████████████████] 100% - ✅ COMPLETE
+```
+
+**Completed**:
+
+1. ✅ Returns service (RMA workflow, auto-approval, refunds)
+2. ✅ 8 REST API endpoints (initiate, cancel, approve, reject, ship, inspect, refund, report)
+
+**Impact**: Automated returns processing, buyer protection  
+**LOC**: 1,250 lines
+
+---
+
+#### Phase 1.4: Seller Central Core - 100% ✅
+
+```
+[████████████████████] 100% - ✅ COMPLETE
+```
+
+**Completed**:
+
+1. ✅ Seller KYC Service (multi-step onboarding, CR/VAT validation, document verification)
+2. ✅ Account Health Service (ODR/LSR/CR/RR monitoring, policy violations, auto-enforcement)
+3. ✅ 8 REST API endpoints:
+   - POST `/api/souq/seller-central/kyc/submit` - Submit KYC step
+   - GET `/api/souq/seller-central/kyc/status` - Get KYC status
+   - POST `/api/souq/seller-central/kyc/verify-document` - Admin verify document
+   - POST `/api/souq/seller-central/kyc/approve` - Admin approve/reject KYC
+   - GET `/api/souq/seller-central/kyc/pending` - Admin review queue
+   - GET `/api/souq/seller-central/health` - Get account health metrics
+   - GET `/api/souq/seller-central/health/summary` - Dashboard data
+   - POST `/api/souq/seller-central/health/violation` - Record policy violation
+4. ✅ Multi-step KYC UI (wizard, company info, documents, bank details, progress tracker)
+5. ✅ Account Health Dashboard UI (metric cards, health score, violations list, recommendations)
+
+**Impact**: Legal compliance (Saudi KYC), quality control (auto-suspend ODR >2%), seller trust  
+**LOC**: 2,980 lines  
+**Status**: ✅ **COMPLETE - Moving to Phase 1.5**
+
+---
+
+#### Phase 1.5: Buy Box Integration
+
+```
+[████████████░░░░░░░░] 60% - NEXT
+```
+
+**Completed**:
+
+- ✅ Buy Box algorithm (scoring, eligibility)
+- ✅ Listing model with guardrails
+- ✅ Basic APIs
+
+**Next Steps**:
+
+1. ⏳ Integrate Buy Box into PDP (winner + "Other offers" tab)
+2. ⏳ Build auto-repricer worker (BullMQ background job)
+3. ⏳ Implement price change event triggers
+4. ⏳ Create Seller Central pricing dashboard
+
+**ETA**: End of Week 10
+
+---
+
+#### Week 7-8: Buy Box & Pricing Integration
+
+```
+[████████████░░░░░░░░] 60% - IN PROGRESS
+```
+
+**Completed**:
+
+- ✅ Buy Box algorithm (100%)
+- ✅ Listing model with guardrails
+- ✅ APIs exist
+
+**Next Steps**:
+
+1. 🚧 Integrate Buy Box into PDP (winner + offers tab)
+2. ⏳ Build auto-repricer worker (BullMQ)
+3. ⏳ Implement price change event triggers
+4. ⏳ Create Seller Central pricing UI
+
+**ETA**: End of Week 8
+
+---
+
+#### Week 9-10: Search Enhancement
+
+```
+[████████░░░░░░░░░░░░] 40% - STARTED
+```
+
+**Completed**:
+
+- ✅ Basic search API
+- ✅ Catalog view with filters
+
+**Next Steps**:
+
+1. ⏳ Set up Meilisearch
+2. ⏳ Implement faceted search (category, price, rating, badges)
+3. ⏳ Build relevance ranking
+4. ⏳ Create recommendation engine (similar items, bought together)
+
+**ETA**: End of Week 10
+
+---
+
+### Phase 1 Summary
+
+**Target Date**: Week 12 (3 months)  
+**Current Progress**: 20%  
+**On Track**: ⚠️ Need to accelerate  
+**Key Success Metrics**:
+
+- [ ] Multi-seller transactions working end-to-end
+- [ ] Inventory never oversold
+- [ ] Returns processing < 48h
+- [ ] Buy Box visible on all PDPs
+- [ ] Search relevance > 80% accuracy
+
+---
+
+## 💰 Phase 2: Revenue & Protection - 10% Complete (Target: Week 22)
+
+### EPIC F: Advertising System - 5% Complete
+
+```
+[█░░░░░░░░░░░░░░░░░░░] 5% - FOUNDATION ONLY
+```
+
+**Completed**:
+
+- ✅ All advertising models (Campaign, AdGroup, Ad, AdTarget)
+- ✅ Schema with performance metrics
+- ✅ Methods for CTR, CPC, ACOS, ROAS
+
+**Critical Remaining (Week 13-18)**:
+
+1. ⏳ CPC auction engine (quality score + second-price)
+2. ⏳ Budget management (Redis tracking, daily roll-ups)
+3. ⏳ Ad placement rendering (Search, PLP, PDP)
+4. ⏳ Campaign management UI (Seller Central)
+5. ⏳ Performance reports
+
+**Revenue Impact**: $50K-$200K/month when live  
+**Priority**: P0 - Major revenue stream
+
+---
+
+### EPIC E: A-to-Z Claims - 0% Complete
+
+```
+[░░░░░░░░░░░░░░░░░░░░] 0% - NOT STARTED
+```
+
+**Critical Path (Week 19-20)**:
+
+1. ⏳ Create Claim model
+2. ⏳ Build claims service (evidence, decisions, funds hold)
+3. ⏳ Create buyer claims UI
+4. ⏳ Create seller response UI
+5. ⏳ Create admin dispute center
+
+**Dependencies**: Returns center, settlement service  
+**Priority**: P0 - Buyer protection
+
+---
+
+### EPIC I: Settlement Engine - 50% Complete
+
+```
+[██████████░░░░░░░░░░] 50% - MODELS EXIST
+```
+
+**Completed**:
+
+- ✅ Settlement model with fee tracking
+- ✅ Basic settlement API
+- ✅ Payout calculation logic
+
+**Critical Remaining (Week 21-22)**:
+
+1. ⏳ Fee schedule configuration
+2. ⏳ Automated payout engine (cron + BullMQ)
+3. ⏳ ZATCA VAT invoice generation
+4. ⏳ Settlement console (admin)
+5. ⏳ Payout dashboard (seller)
+
+**Priority**: P0 - Seller trust & compliance
+
+---
+
+## 🎨 Phase 3: Quality & Scale - 15% Complete (Target: Week 30)
+
+### Quick Status
+
+| EPIC | Feature           | Progress          | ETA     |
+| ---- | ----------------- | ----------------- | ------- |
+| H    | Reviews & Q&A     | 30% (models done) | Week 24 |
+| G    | Deals & Coupons   | 50% (coupon done) | Week 26 |
+| A    | Brand Registry    | 40% (models done) | Week 28 |
+| K    | Reporting & Admin | 10%               | Week 30 |
+
+**Highlights**:
+
+- ✅ Q&A models created today
+- ✅ Coupon model with discount logic
+- 🚧 Review model exists, need moderation
+- 🚧 Deal model exists, need UI
+
+---
+
+## 🔧 Phase 4: Infrastructure & Polish - 10% Complete (Target: Week 36)
+
+### Event Bus & Jobs - 15% Complete
+
+```
+[███░░░░░░░░░░░░░░░░░] 15% - QUEUE INFRA READY
+```
+
+**Completed**:
+
+- ✅ BullMQ setup complete
+- ✅ 9 queues defined
+- ✅ Worker creation helpers
+
+**Critical Remaining**:
+
+1. ⏳ NATS integration (event schemas, pub/sub)
+2. ⏳ All background workers (Buy Box, repricer, settlement, etc.)
+3. ⏳ Scheduled jobs (hourly, daily, weekly)
+
+---
+
+### Security & Testing - 10% Complete
+
+```
+[██░░░░░░░░░░░░░░░░░░] 10% - BASIC ONLY
+```
+
+**Completed**:
+
+- ✅ Rate limiting helpers
+- ✅ Redis-based cache
+
+**Critical Remaining**:
+
+1. ⏳ RBAC audit (all Souq APIs)
+2. ⏳ Zod validation on all inputs
+3. ⏳ Audit logging
+4. ⏳ Unit tests (80% coverage target)
+5. ⏳ Integration tests
+6. ⏳ E2E tests (Playwright)
+7. ⏳ Load tests (k6, 500 RPS)
+8. ⏳ Monitoring (Prometheus + Grafana)
+
+---
+
+## 📈 Velocity Metrics
+
+### Development Velocity
+
+| Metric                  | Value | Target    |
+| ----------------------- | ----- | --------- |
+| **Lines of Code/Day**   | 2,060 | 2,000+ ✅ |
+| **Files Created/Day**   | 6     | 5+ ✅     |
+| **Tasks Completed/Day** | 6     | 5+ ✅     |
+| **Story Points/Week**   | -     | 15        |
+
+### Quality Metrics
+
+| Metric                | Current | Target      |
+| --------------------- | ------- | ----------- |
+| **TypeScript Errors** | 0       | 0 ✅        |
+| **Test Coverage**     | 0%      | 80%         |
+| **API Response Time** | Unknown | p95 < 600ms |
+| **Uptime**            | Unknown | 99.9%       |
+
+---
+
+## 🎯 Next 7 Days Action Plan
+
+### Monday-Tuesday (Nov 18-19)
+
+- [ ] Create Inventory model
+- [ ] Create RMA model
+- [ ] Create Claim model
+- [ ] Create FeeSchedule model
+- [ ] Start Inventory Service implementation
+
+### Wednesday-Thursday (Nov 20-21)
+
+- [ ] Complete Inventory Service (receive, reserve, release)
+- [ ] Start Fulfillment Service
+- [ ] Begin carrier API integration (Aramex)
+
+### Friday (Nov 22)
+
+- [ ] Complete Aramex integration
+- [ ] Start SMSA integration
+- [ ] Progress review & documentation update
+
+### Weekend (Nov 23-24)
+
+- [ ] Complete SPL integration
+- [ ] Implement webhook handler
+- [ ] Test carrier integrations end-to-end
+
+**Week 1 Target**: Inventory & Fulfillment services 80% complete
+
+---
+
+## 🚨 Risks & Blockers
+
+### Current Blockers: NONE ✅
+
+### Upcoming Risks
+
+| Risk                           | Impact | Mitigation                        | Status           |
+| ------------------------------ | ------ | --------------------------------- | ---------------- |
+| Carrier API sandbox access     | High   | Request access early, use mocks   | ⏳ Action needed |
+| Meilisearch performance tuning | Medium | Optimize schema, test with load   | ⏳ Monitor       |
+| ZATCA compliance changes       | Medium | Use adapter pattern, stay updated | ✅ Mitigated     |
+| Team resource availability     | High   | Clear priorities, phased rollout  | ✅ Managed       |
+
+---
+
+## 📊 Business Impact Forecast
+
+### When Features Go Live
+
+| Feature                      | Go Live   | Monthly Revenue Impact   | Seller Impact      | Buyer Impact        |
+| ---------------------------- | --------- | ------------------------ | ------------------ | ------------------- |
+| **Multi-Seller Marketplace** | Month 3   | +$20K                    | Enable 50+ sellers | 10x product variety |
+| **Sponsored Ads**            | Month 5   | +$50K-$200K              | Ad revenue sharing | Better discovery    |
+| **Buy Box Competition**      | Month 2.5 | +$30K                    | Price competition  | Lower prices        |
+| **Returns Center**           | Month 2   | -$10K (reduced disputes) | Trust building     | Confidence boost    |
+| **Settlement Automation**    | Month 5.5 | -$15K (reduced ops)      | Faster payouts     | N/A                 |
+
+**Total Projected Revenue Impact**: +$75K-$225K/month by Month 6
+
+---
+
+## 🏆 Achievements Unlocked
+
+- ✅ **Foundation Complete** - All infrastructure ready (Nov 16)
+- ✅ **Model Mastery** - 14/14 core models created
+- ✅ **Speed Demon** - 2,060 LOC in 4 hours
+- 🎯 **Halfway There** - 42% overall completion
+
+---
+
+## 📞 Stakeholder Communication
+
+### Weekly Status Update Template
+
+**Week**: [Number]  
+**Overall Progress**: [Percentage]  
+**Completed This Week**: [List]  
+**Next Week Goals**: [List]  
+**Blockers**: [List or "None"]  
+**Budget Status**: On track  
+**Timeline Status**: [On track / At risk / Delayed]
+
+---
+
+**Dashboard Version**: 1.0  
+**Refresh Frequency**: Daily  
+**Owner**: Engineering Team  
+**Reviewers**: Product, QA, DevOps
+
+]]>
+</file>
+
+</batch_content>

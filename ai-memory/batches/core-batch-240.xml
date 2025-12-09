@@ -1,0 +1,1360 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="reports/i18n-tracker.md">
+<![CDATA[
+# I18N Translation Tracker
+
+_Last updated: 2025-11-19_
+
+## Snapshot
+
+- **Discovery command:** `rg -l "useTranslation|useAutoTranslator"`
+- **Files detected:** **254** (see regeneration command above)
+- **40 % target:** `ceil(254 × 0.40) = 102` verified files
+- **Verified so far:** **12 / 254** (need 102 for 40 %)
+- **Definition of “verified”:** All user-facing strings in the file map to entries in our dictionaries (English + Arabic) and the file passes lint/build.
+
+## Progress Dashboard
+
+| Category / Module | Files Scoped | Verified (✔) | Pending | Notes |
+|-------------------|--------------|--------------|---------|-------|
+| Global shell & navigation (TopBar, Sidebar, ClientLayout, Support switcher, HtmlAttrs) | 12 | 10 | 2 | Verified: TopBar, GlobalSearch, AppSwitcher, QuickActions, TopMegaMenu, SupportOrgSwitcher, Sidebar, ClientLayout, HtmlAttrs, legacy ClientSidebar |
+| Finance module (`/app/finance/*`) | 5 | 0 | 5 | Includes invoice/budget/payment flows |
+| FM core (`/app/fm/*` excluding finance) | 24 | 9 | 15 | Verified: dashboard, properties, tenants, orders, invoices, vendors, support, support tickets, RFQs. ✅ Nov 18: property + tenant creation flows localized end-to-end. ✅ Nov 19: Finance invoices list/create, Properties index, and System integrations respect SupportOrg context + new i18n keys. |
+| Support & auth flows (support UI, login/OTP, signup/forgot pwd) | 9 | 0 | 9 | Needs new `support` dictionary entries. ✅ Nov 19: `/fm/support/tickets/new` now localized + superadmin-aware. |
+| Dashboard & properties (`/app/dashboard/*`, `/app/properties/*`) | 18 | 0 | 18 | Widgets, tables, documents |
+| Marketplace & Souq (seller portal, souq, vendor tools) | 34 | 12 | 22 | Verified: seller analytics suite + advertising performance, seller health, seller reviews |
+| HR standalone (`/app/hr/*`) | 12 | 0 | 12 | Employee, payroll, ATS. ✅ Nov 18: HR directory + leave approvals strings fully localized (EN/AR) awaiting formal verification. |
+| Admin/system pages (`/app/admin/*`, `/app/settings`, `/app/administration`) | 11 | 1 | 10 | Verified: admin route-metrics dashboard |
+| Reports/compliance/support misc | 8 | 0 | 8 | `/app/reports`, `/app/compliance`, `/app/support` |
+| Marketing/public pages (`/app/page`, `/app/about`, `/app/privacy`, etc.) | 15 | 0 | 15 | Landing, marketing, CMS pages |
+| Component library (finance widgets, marketplace cards, seller widgets, auth components) | 90 | 0 | 90 | Shared components across apps |
+| Docs/scripts/tests referencing translations | 16 | 0 | 16 | Guides, tests, stores |
+| **Total** | **254** | **13** | **241** | Target ✔ count: 102 |
+
+> ⚠️ These counts are derived from directory-scoped ripgrep commands (e.g., `rg -l "useTranslation|useAutoTranslator" app/fm | wc -l`). Update them whenever files move or new translation hooks are added.
+
+## How to Update Status
+
+1. Work a file or module until all strings use dictionary keys (append entries to `i18n/sources/*.translations.json` as needed).
+2. Run `pnpm i18n:build && pnpm lint`.
+3. Mark the entry in this tracker with a check (✔) and optionally link to PR/commit.
+4. Repeat until verified count ≥ 102 (40 %).
+
+## Detailed File List
+
+Re-run the discovery command and store the output when needed:
+
+```bash
+cd Fixzit
+rg -l "useTranslation|useAutoTranslator" | sort > reports/i18n-files-$(date +%Y%m%d).txt
+```
+
+Commit the dated file (or attach to the audit report) whenever we need an immutable snapshot.
+
+]]>
+</file>
+
+<file path="reports/pr-comments-audit-20251130.md">
+<![CDATA[
+# Fixzit PR Comments Audit & Regression Scan (2025-11-30)
+
+**Last Updated**: November 30, 2025 (Revision 2)  
+**Repository**: EngSayh/Fixzit  
+**PRs Merged Since Last Audit**: #372, #373
+
+---
+
+## 1) Summary
+
+### Repository Statistics
+| Metric | Value |
+|--------|-------|
+| Total PRs Analyzed | 373 |
+| Merged PRs | 227 |
+| Closed PRs | 146 |
+| Open PRs | 0 |
+
+### Comment Analysis
+- Human-authored comments analyzed: 928 (bots filtered)
+- Total comments (including bots): 10,458
+- PRs with comments: 331
+
+### Categories by Volume
+| Category | Count | Status |
+|----------|-------|--------|
+| Multi-Tenancy & RBAC | 558 | ✅ RESOLVED |
+| Other general | 205 | ⚠️ ONGOING |
+| Security/PII | 51 | ✅ RESOLVED |
+| Testing | 43 | ⚠️ NEEDS E2E |
+| UI/UX & RTL | 33 | ✅ RESOLVED |
+| Duplicates | 15 | ✅ RESOLVED |
+| Backend/Mongoose | 11 | ✅ RESOLVED |
+| CI/CD | 11 | ✅ RESOLVED |
+| Finance | 1 | ✅ RESOLVED |
+
+### Top Recurring Issues (Historical → Current Status)
+| Issue | Historical Frequency | Current Status |
+|-------|---------------------|----------------|
+| Missing tenant/org scoping (MT-ORG) | 544 BLOCKER | ✅ RESOLVED - All FM schemas have required org_id |
+| RBAC/role gaps (MT-RBAC) | 14 MAJOR | ✅ RESOLVED - 43 parity tests passing |
+| Secrets/env handling (SEC-SECRET/SEC-AUTH) | 48 BLOCKER | ✅ RESOLVED - All workflows use secrets.* |
+| Missing/weak tests (TEST) | 43 MAJOR | ⚠️ NEEDS E2E sub-role tests |
+| UI/RTL correctness (FE-RTL) | 33 MAJOR | ✅ RESOLVED - No violations in components |
+
+## 2) Findings by Category
+
+### Multi-Tenancy & RBAC ✅ RESOLVED
+- Comment stats: 558 (BLOCKER 396 / MAJOR 162).
+- Patterns: MT-ORG (544) – missing org/tenant isolation; MT-RBAC (14) – role/permission checks.
+- **Resolution Status**: 
+  - ✅ PR #373: Fixed 10 FM schemas missing `required: true` on org_id
+  - ✅ PR #373: Added 43 RBAC parity tests
+  - ✅ PR #372: Complete RBAC matrix alignment (9→45 submodules)
+  - ✅ All API routes properly scope by org_id
+
+**Current Codebase Scan Results (November 30, 2025)**:
+```
+Unscoped queries found: 17 (scripts/tests only - ACCEPTABLE)
+Locations:
+- scripts/migrate-rbac-v4.1.ts (migration script)
+- scripts/list-users.ts (admin script)
+- scripts/check-production-db.ts (diagnostic)
+- tests/integration/security/*.ts (test files)
+- app/api/admin/*/route.ts (admin routes - intentionally cross-tenant)
+```
+**Assessment**: ✅ No production multi-tenant violations
+
+### Security & PII ✅ RESOLVED
+- Comment stats: 51 (BLOCKER 33 / MAJOR 17).
+- Patterns: SEC-AUTH (29) – auth/security holes; SEC-SECRET (19) – env/secret handling; SEC-PII (few).
+- **Resolution Status**:
+  - ✅ All workflows use `secrets.*` (not `vars.*`)
+  - ✅ console.log cleaned from production code (only 1 in global-error.tsx - legitimate)
+  - ✅ parseInt calls all have radix parameter
+
+**Current Codebase Scan Results (November 30, 2025)**:
+```
+vars.* in workflows: 0 matches ✅
+console.log in app/: 1 match (global-error.tsx - LEGITIMATE)
+parseInt without radix: 0 matches ✅
+```
+
+### Backend / Mongoose / DB ✅ RESOLVED
+- Comment stats: 11 (BLOCKER 2 / MAJOR 9).
+- Patterns: schema/index/validation correctness, unbounded queries.
+- **Resolution Status**:
+  - ✅ Finance uses Decimal.js for precision
+  - ✅ All FM schemas have org_id with required: true
+  - ✅ Indexes and validators present
+
+### Frontend / RTL / UI / A11y ✅ RESOLVED
+- Comment stats: 33 (BLOCKER 4 / MAJOR 28 / MINOR 1).
+- Patterns: FE-UI (31), FE-RTL (few), FE-A11Y (few).
+- **Resolution Status**:
+  - ✅ RTL violations cleaned from components
+  - ✅ RTL utility in `lib/utils/rtl.ts` handles direction conversion
+
+**Current Codebase Scan Results (November 30, 2025)**:
+```
+pl-/pr-/text-left in components: 0 matches ✅
+RTL classes in lib/utils/rtl.ts: 11 matches (INTENTIONAL - utility file)
+```
+
+### CI/CD & Workflows & Secrets ✅ RESOLVED
+- Comment stats: 11 (MAJOR 11).
+- Patterns: CI-PIPE – workflow/env alignment.
+- **Resolution Status**:
+  - ✅ All workflows use `secrets.*` for sensitive values
+  - ✅ No `vars.*` usage for secrets
+
+### Testing & Coverage ⚠️ NEEDS E2E
+- Comment stats: 43 (all MAJOR).
+- Patterns: TEST – missing/weak/flaky tests.
+- **Resolution Status**:
+  - ✅ 43 RBAC parity tests added
+  - ✅ `pnpm rbac:parity` and `pnpm lint:rbac` scripts available
+  - ⚠️ **MISSING**: E2E tests for sub-role API access patterns
+
+**Action Required**: Add E2E tests for sub-role API access (see Section 4)
+
+### Duplicates & Code Organization ✅ RESOLVED
+- Comment stats: 15 (MAJOR 8 / MINOR 7).
+- Pattern: DUP – duplicate logic noted historically in model/services migrations.
+- **Resolution Status**: ✅ Shared helpers consolidated
+
+### Finance / ZATCA ✅ RESOLVED
+- Comment stats: 1 (MINOR).
+- **Resolution Status**: ✅ Finance services use Decimal.js for precision
+
+---
+
+## 3) Cross-Cutting Themes
+
+### Theme 1: RBAC + Multi-Tenancy Co-Occurrence ✅ RESOLVED
+- RBAC issues frequently co-occurred with multi-tenancy violations
+- **Resolution**: Unified `can()` function with both checks, 43 parity tests
+
+### Theme 2: Client/Server Parity ✅ RESOLVED
+- Multiple categories affected by client/server drift
+- **Resolution**: Parity tests + `pnpm lint:rbac` script
+
+### Theme 3: Admin Routes Exception Pattern ✅ DOCUMENTED
+- Admin/platform routes legitimately bypass tenant scoping
+- **Resolution**: These routes require SUPER_ADMIN role check
+
+---
+
+## 4) Recommended Actions
+
+### Short-term (High Priority)
+| Action | Status | Notes |
+|--------|--------|-------|
+| Add `pnpm rbac:parity` to CI | ✅ DONE | Added to fixzit-quality-gates.yml |
+| Add E2E tests for sub-role API access | ✅ DONE | Created tests/e2e/subrole-api-access.spec.ts |
+| Document RBAC scripts in README | ✅ DONE | Updated CONTRIBUTING.md |
+
+### Medium-term
+| Action | Status | Notes |
+|--------|--------|-------|
+| Add tenant isolation E2E tests | ⏳ FUTURE | Lower priority |
+| Create RBAC drift detection in pre-commit | ⏳ FUTURE | Nice to have |
+| Add Mongoose query linting for org_id | ⏳ FUTURE | Nice to have |
+
+### Automation Suggestions
+- ✅ **Available**: `pnpm rbac:parity` - RBAC parity testing (66 tests)
+- ✅ **Available**: `pnpm lint:rbac` - RBAC linting
+- ✅ **CI Integrated**: Added to fixzit-quality-gates.yml
+
+---
+
+## 5) Issue Register Alignment
+
+### Resolved Issues (from docs/ISSUES_REGISTER.md)
+| Issue ID | Category | Status |
+|----------|----------|--------|
+| TENANT-001 | Multi-Tenancy | ✅ RESOLVED |
+| RBAC-DRIFT-005 | RBAC | ✅ RESOLVED |
+| RBAC-DRIFT-006 | RBAC | ✅ RESOLVED |
+| RBAC-DRIFT-007 | RBAC | ✅ RESOLVED |
+| RBAC-DRIFT-008 | RBAC | ✅ RESOLVED |
+| RBAC-DRIFT-009 | RBAC | ✅ RESOLVED |
+| RBAC-DRIFT-010 | RBAC | ✅ RESOLVED |
+| ABAC-001 | Security | ✅ RESOLVED |
+| ABAC-002 | Security | ✅ RESOLVED |
+| SEC-001 | Security | ✅ RESOLVED |
+| SEC-003 | Security | ✅ RESOLVED |
+
+### New Issues Identified
+| Issue ID | Category | Severity | Description | Status |
+|----------|----------|----------|-------------|--------|
+| E2E-001 | Testing | MINOR | Missing E2E tests for sub-role API access | ✅ RESOLVED |
+| CI-001 | CI/CD | MINOR | rbac:parity not in CI pipeline | ✅ RESOLVED |
+| DOC-001 | Docs | MINOR | RBAC scripts not documented in README | ✅ RESOLVED |
+
+---
+
+## 6) Conclusion
+
+### Overall Health Score: 100/100
+
+| Area | Score | Status |
+|------|-------|--------|
+| Multi-Tenancy | 100% | ✅ All critical paths scoped |
+| RBAC Parity | 100% | ✅ 66 tests passing |
+| RTL Compliance | 100% | ✅ No violations in components |
+| CI/CD Secrets | 100% | ✅ All aligned |
+| Console Logging | 100% | ✅ Only legitimate error handler |
+| parseInt Safety | 100% | ✅ All have radix |
+| Test Coverage | 100% | ✅ E2E sub-role tests added |
+| CI Integration | 100% | ✅ rbac:parity in pipeline |
+
+### Key Wins Since Last Audit
+1. ✅ All 10 RBAC drift issues resolved
+2. ✅ 66 parity tests providing drift protection
+3. ✅ RTL violations eliminated from components
+4. ✅ CI secrets properly managed
+5. ✅ Console logging cleaned up
+6. ✅ PRs #372 and #373 merged successfully
+7. ✅ E2E tests for sub-role API access added
+8. ✅ RBAC parity check integrated into CI pipeline
+9. ✅ CONTRIBUTING.md updated with RBAC documentation
+
+### Remaining Work (0 items)
+All short-term tasks completed! 🎉
+
+---
+
+**Report End**
+**Generated by**: Lead Audit Engineer (Automated)
+**Next Review**: On-demand or after next major RBAC change
+]]>
+</file>
+
+<file path="reports/pr-comments-audit-20251201.md">
+<![CDATA[
+# PR Comments Comprehensive Audit Report
+
+**Generated:** 2025-12-01  
+**Repository:** EngSayh/Fixzit  
+**Total PRs Analyzed:** 188  
+**Current Branch:** `chore/system-organization-cleanup`  
+**Latest Commit:** `b0cd451a0`
+
+---
+
+## Executive Summary
+
+This audit analyzes ALL PR review comments across the repository to:
+1. Verify PR #380 comments were properly addressed
+2. Identify system-wide patterns and persistent issues
+3. Provide actionable recommendations for code health
+
+### PR #380 Status: ✅ ALL COMMENTS ADDRESSED
+
+| Reviewer | Comments | Status |
+|----------|----------|--------|
+| CodeRabbit | 6 reviews, 15+ actionable comments | ✅ All addressed |
+| Gemini Code Assist | 1 review | ✅ Acknowledged |
+| Codex | 1 review | ✅ Acknowledged |
+| Vercel Bot | Deployment status | ✅ Building |
+
+---
+
+## PR #380 Comment Resolution Matrix
+
+### CodeRabbit Comments - RESOLVED
+
+| # | File | Issue | Fix Applied | Commit |
+|---|------|-------|-------------|--------|
+| 1 | `services/aqar/recommendation-engine.ts` | Duplicate tenant scoping (orgId/tenantId) | ✅ Removed redundant block at L253-258 | b0cd451a0 |
+| 2 | `app/api/aqar/leads/route.ts` | Redundant `clearTenantContext` call | ✅ Removed duplicate call at L280 | b0cd451a0 |
+| 3 | `app/api/aqar/listings/[id]/route.ts` | Fire-and-forget analytics without retry | ✅ Added `incrementAnalyticsWithRetry` | b0cd451a0 |
+| 4 | `lib/aqar/recommendation.ts` | Type-only exports without `export type` | ✅ Added explicit type exports | b0cd451a0 |
+| 5 | `types/copilot.ts` | Inconsistent locale/dir union ordering | ✅ Standardized to `"en" \| "ar"` | b0cd451a0 |
+| 6 | `lib/aqar/pricingInsights.ts` | Type casting bypasses validation | ⏭️ Skipped - service validates inputs |  |
+| 7 | `app/api/payments/paytabs/callback/route.ts` | Clarify orgId normalization | ✅ Added clarifying comment | b0cd451a0 |
+| 8 | `server/models/PaymentMethod.ts` | Unused MModel import | ✅ Removed unused import | b0cd451a0 |
+| 9 | `server/models/souq/Brand.ts` | Unused MModel import | ✅ Removed unused import | b0cd451a0 |
+| 10 | `server/models/souq/Seller.ts` | Unused MModel import | ✅ Removed unused import | b0cd451a0 |
+| 11 | `app/api/support/welcome-email/route.ts` | Stale @see reference | ✅ Updated to new config path | b0cd451a0 |
+| 12 | `server/copilot/apartmentSearch.ts` | ReDoS warning on RegExp from variable | ⏭️ Skipped - already has regex escaping |  |
+| 13 | `app/api/owner/statements/route.ts` | Missing `clearTenantContext` cleanup | ✅ Added try/finally block | b0cd451a0 |
+| 14 | `app/api/owner/properties/route.ts` | Missing `clearTenantContext` cleanup | ✅ Added try/finally block | b0cd451a0 |
+| 15 | `app/api/owner/units/[unitId]/history/route.ts` | Missing `clearTenantContext` cleanup | ✅ Added try/finally block | b0cd451a0 |
+
+### Nitpick Comments (Optional/Deferred)
+
+| File | Issue | Decision |
+|------|-------|----------|
+| `components/CustomCursor.tsx` | Hard-coded brand colors | 🔄 Deferred - UI consistency review needed |
+| `components/Tooltip.tsx` | Unnecessary listener re-attachment | 🔄 Deferred - performance optimization |
+| `app/globals.css` | Hard-coded cursor colors | 🔄 Deferred - CSS variables migration |
+| `components/ui/IconButton.tsx` | Spinner size scaling | 🔄 Deferred - design system consistency |
+
+---
+
+## System-Wide Pattern Analysis
+
+### Category 1: Multi-Tenancy & RBAC 🔐
+
+**Severity:** BLOCKER  
+**Historical PRs:** #182, #181, #176, #135-138
+
+#### Pattern Summary
+| Issue | Files Affected | Current Status |
+|-------|----------------|----------------|
+| Missing `clearTenantContext` in finally blocks | 25+ API routes | ✅ Fixed in PR #380 (owner routes) |
+| Tenant bypass via query params/headers | Fixed in PR #182 | ✅ Resolved |
+| Duplicate tenant scoping logic | `recommendation-engine.ts` | ✅ Fixed in PR #380 |
+
+#### Current Codebase Scan Results
+
+**Files with `setTenantContext` but missing `clearTenantContext` in finally:**
+```
+✅ app/api/owner/statements/route.ts - FIXED
+✅ app/api/owner/properties/route.ts - FIXED  
+✅ app/api/owner/units/[unitId]/history/route.ts - FIXED
+✅ app/api/aqar/leads/route.ts - FIXED
+⚠️ modules/users/service.ts - Has try/finally (OK)
+⚠️ app/api/compliance/policies/route.ts - Needs review
+```
+
+**Recommendation:** Audit all `setTenantContext` usages to ensure matching `clearTenantContext` in finally blocks.
+
+---
+
+### Category 2: Security & PII 🛡️
+
+**Severity:** BLOCKER  
+**Historical PRs:** #182, #181, #176
+
+#### Resolved Issues
+| Vulnerability | PR Fixed | Status |
+|--------------|----------|--------|
+| Plaintext password storage | PR #182 | ✅ bcrypt with 12 rounds |
+| Demo login bypass in production | PR #182 | ✅ NODE_ENV check |
+| Predictable user IDs (Date.now()) | PR #182 | ✅ crypto.randomUUID() |
+| PayTabs signature validation | PR #181 | ✅ HMAC-SHA256 |
+| Tenant isolation bypass | PR #182 | ✅ Session-only orgId |
+
+#### Current Codebase Security Checks
+- ✅ No hardcoded credentials found in `app/api/**`
+- ✅ PayTabs callback uses org-scoped updates
+- ✅ Demo endpoints protected by NODE_ENV
+- ⚠️ ReDoS surface exists in `apartmentSearch.ts` (mitigated by escaping)
+
+---
+
+### Category 3: Backend & Mongoose 🗄️
+
+**Severity:** MAJOR  
+**Historical PRs:** #380, #76, #75
+
+#### Pattern Summary
+| Issue | Status |
+|-------|--------|
+| Duplicate model files | ✅ Fixed - 38 files deleted in PR #380 |
+| Inconsistent import paths | ✅ Fixed - 157 paths updated |
+| Missing type exports | ✅ Fixed - explicit `export type` added |
+| Unused imports (MModel) | ✅ Fixed - 3 files cleaned |
+| Schema field inconsistency (orgId vs org_id) | ⚠️ Documented, defensive checks added |
+
+#### Current Import Health
+```
+✅ All models now import from @/server/models/
+✅ Types import from @/types/
+✅ Config imports from @/config/
+```
+
+---
+
+### Category 4: Frontend, RTL & UI 🎨
+
+**Severity:** MINOR  
+**Historical PRs:** #380, #61
+
+#### UI Components Added in PR #380
+| Component | Status | Notes |
+|-----------|--------|-------|
+| `CustomCursor.tsx` | ✅ Added | SSR-safe, uses CSS vars |
+| `Tooltip.tsx` | ✅ Added | Simple wrapper API |
+| `IconButton.tsx` | ✅ Added | Badge/loading states |
+
+#### RTL/i18n Status
+- ✅ Tooltip supports RTL positioning
+- ✅ Sidebar tooltip uses RTL-aware `side` prop
+- ⚠️ Hard-coded colors should use CSS variables
+
+---
+
+### Category 5: Architecture & Structure 📐
+
+**Severity:** MAJOR  
+**Historical PRs:** #380
+
+#### Canonical Locations (Established)
+| Type | Location | Status |
+|------|----------|--------|
+| Models | `server/models/` | ✅ Enforced |
+| Types | `types/` | ✅ Enforced |
+| Config | `config/` | ✅ Enforced |
+| Services | `services/` | ✅ Enforced |
+| Lib utilities | `lib/` | ✅ Enforced |
+
+#### Files Deleted in PR #380
+- 27 duplicate model files from `models/`
+- 9 files from `src/` directory
+- 2 unused shim files (`errors.ts`, `utils/auth.ts`)
+- Config duplicates moved to `config/`
+
+---
+
+### Category 6: CI/CD & Build 🔧
+
+**Severity:** MINOR  
+**Historical PRs:** #380, #79, #65
+
+#### Build Verification
+```
+✅ pnpm typecheck: 0 errors
+✅ pnpm lint: 0 errors
+✅ Pre-push hooks passed
+```
+
+#### CI Health
+- ✅ Vercel deployment building
+- ✅ CodeRabbit review automation working
+- ⚠️ Docstring coverage at 24% (threshold: 80%)
+
+---
+
+### Category 7: Testing 🧪
+
+**Severity:** MODERATE  
+**Historical PRs:** #380, #76, #75
+
+#### Test State Updates
+PR #380 updated JWT session tokens in test fixtures:
+- `tests/state/admin.json`
+- `tests/state/manager.json`
+- `tests/state/superadmin.json`
+- `tests/state/technician.json`
+- `tests/state/tenant.json`
+- `tests/state/vendor.json`
+
+**Verification:** These are intentional fixture regenerations as part of auth refactor.
+
+#### New Test Added
+- `tests/unit/api/api-payments-paytabs-callback-tenancy.test.ts` - PayTabs tenant-scoped update test
+
+---
+
+### Category 8: ZATCA/Finance 💰
+
+**Severity:** BLOCKER  
+**Historical PRs:** #181, #176
+
+#### Compliance Status
+| Requirement | Status |
+|-------------|--------|
+| ZATCA QR field retention | ✅ Maintained |
+| Invoice hash storage | ✅ Maintained |
+| Fatoora IDs | ✅ Maintained |
+| PayTabs org-scoped updates | ✅ Implemented in PR #380 |
+
+---
+
+### Category 9: Performance ⚡
+
+**Severity:** MODERATE
+
+#### Improvements in PR #380
+- ✅ Analytics increment uses retry logic
+- ✅ Fire-and-forget patterns for non-blocking ops
+- ✅ Removed duplicate tenant scoping queries
+
+#### Concerns Addressed
+| Issue | Resolution |
+|-------|------------|
+| Connection pool exhaustion | Fixed in PR #182 (Redis singleton) |
+| ReDoS vulnerability | Mitigated with input escaping |
+
+---
+
+## Historical PR Comment Statistics
+
+### PRs with Most Review Comments
+| PR # | Title | Reviews | Status |
+|------|-------|---------|--------|
+| #380 | System Organization Cleanup | 6 | OPEN (Draft) |
+| #182 | Critical Security Fixes | 9 | MERGED |
+| #176 | IDOR/Decimal Fixes | 10 | MERGED |
+| #177 | Quality Gates | 6 | MERGED |
+| #181 | Payment Security | - | MERGED |
+
+### Cross-Agent Comment Coverage (PR #380)
+
+| Agent | Findings | [Repeat] | [New] |
+|-------|----------|----------|-------|
+| CodeRabbit | 15 | 3 | 12 |
+| Gemini | 1 | 0 | 1 |
+| Codex | 1 | 0 | 1 |
+
+---
+
+## Recommendations
+
+### Immediate Actions (P0)
+1. ✅ **DONE** - All PR #380 review comments addressed
+2. ✅ **DONE** - Tenant context cleanup added to owner routes
+3. ✅ **DONE** - Duplicate scoping removed from recommendation engine
+
+### Short-Term (P1)
+1. Generate docstrings to meet 80% coverage threshold
+2. Audit remaining API routes for tenant context cleanup
+3. Replace hard-coded colors with CSS variables
+
+### Long-Term (P2)
+1. Standardize `orgId` field naming across all models
+2. Add unit tests for all tenant isolation patterns
+3. Implement OpenAPI spec generation automation
+
+---
+
+## Verification Commands
+
+```bash
+# TypeScript check
+pnpm typecheck
+
+# Lint check
+pnpm lint
+
+# Run tests
+pnpm test
+
+# Audit tenant context usage
+grep -r "setTenantContext" app/api --include="*.ts" | wc -l
+grep -r "clearTenantContext" app/api --include="*.ts" | wc -l
+```
+
+---
+
+## Scorecard Summary
+
+```json
+{
+  "pr_380_status": "COMPLETE",
+  "comments_addressed": 15,
+  "comments_deferred": 4,
+  "security_gates": "PASS",
+  "tenant_isolation": "PASS",
+  "build_status": "PASS",
+  "docstring_coverage": "FAIL (24% < 80%)",
+  "overall_health": "GOOD"
+}
+```
+
+---
+
+**Report Generated By:** GitHub Copilot  
+**Audit Methodology:** Comprehensive PR comment analysis + codebase pattern scanning
+
+]]>
+</file>
+
+<file path="reports/pr_comment_audit.json">
+<![CDATA[
+{
+  "totalComments": 928,
+  "categoryStats": [
+    {
+      "key": "multiTenant",
+      "label": "Multi-Tenancy & RBAC",
+      "count": 558,
+      "severities": {
+        "BLOCKER": 396,
+        "MAJOR": 162,
+        "MINOR": 0
+      }
+    },
+    {
+      "key": "security",
+      "label": "Security & PII",
+      "count": 51,
+      "severities": {
+        "BLOCKER": 33,
+        "MAJOR": 17,
+        "MINOR": 1
+      }
+    },
+    {
+      "key": "backend",
+      "label": "Backend / Mongoose / DB",
+      "count": 11,
+      "severities": {
+        "BLOCKER": 2,
+        "MAJOR": 9,
+        "MINOR": 0
+      }
+    },
+    {
+      "key": "frontend",
+      "label": "Frontend / RTL / UI / A11y",
+      "count": 33,
+      "severities": {
+        "BLOCKER": 4,
+        "MAJOR": 28,
+        "MINOR": 1
+      }
+    },
+    {
+      "key": "architecture",
+      "label": "Architecture & Folder Structure",
+      "count": 0,
+      "severities": {
+        "BLOCKER": 0,
+        "MAJOR": 0,
+        "MINOR": 0
+      }
+    },
+    {
+      "key": "cicd",
+      "label": "CI/CD & Workflows & Secrets",
+      "count": 11,
+      "severities": {
+        "BLOCKER": 0,
+        "MAJOR": 11,
+        "MINOR": 0
+      }
+    },
+    {
+      "key": "testing",
+      "label": "Testing & Coverage",
+      "count": 43,
+      "severities": {
+        "BLOCKER": 0,
+        "MAJOR": 43,
+        "MINOR": 0
+      }
+    },
+    {
+      "key": "duplicates",
+      "label": "Duplicates & Code Organization",
+      "count": 15,
+      "severities": {
+        "BLOCKER": 0,
+        "MAJOR": 8,
+        "MINOR": 7
+      }
+    },
+    {
+      "key": "finance",
+      "label": "ZATCA / Finance",
+      "count": 1,
+      "severities": {
+        "BLOCKER": 0,
+        "MAJOR": 0,
+        "MINOR": 1
+      }
+    },
+    {
+      "key": "performance",
+      "label": "Performance & Tech Debt",
+      "count": 0,
+      "severities": {
+        "BLOCKER": 0,
+        "MAJOR": 0,
+        "MINOR": 0
+      }
+    },
+    {
+      "key": "other",
+      "label": "Other",
+      "count": 205,
+      "severities": {
+        "BLOCKER": 0,
+        "MAJOR": 128,
+        "MINOR": 77
+      }
+    }
+  ],
+  "patternStats": [
+    {
+      "id": "MT-ORG",
+      "title": "Missing org/tenant scoping or isolation",
+      "cat": "multiTenant",
+      "count": 544,
+      "severities": {
+        "BLOCKER": 387,
+        "MAJOR": 157,
+        "MINOR": 0
+      },
+      "examples": [
+        {
+          "pr": 35,
+          "state": "MERGED",
+          "title": "System implementation verification and correction",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/35#issuecomment-3328732105",
+          "excerpt": "@codex review this pull request thoroughly: - Check all modules (Dashboard, Work Orders, Properties, Finance, HR, Administration, CRM, Marketplace, Support, Compliance, Reports, System Management). - Verify role-based access and sidebar/top",
+          "severity": "MAJOR"
+        },
+        {
+          "pr": 9,
+          "state": "CLOSED",
+          "title": "Changes from background agent bc-8578344b-0784-4dc6-923d-8406a9b080b7",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/9#issuecomment-3328743210",
+          "excerpt": "@codex review this pull request thoroughly: - Check all modules (Dashboard, Work Orders, Properties, Finance, HR, Administration, CRM, Marketplace, Support, Compliance, Reports, System Management). - Verify role-based access and sidebar/top",
+          "severity": "MAJOR"
+        },
+        {
+          "pr": 35,
+          "state": "MERGED",
+          "title": "System implementation verification and correction",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/35#issuecomment-3328745164",
+          "excerpt": "@codex review this pull request thoroughly: - Check all modules (Dashboard, Work Orders, Properties, Finance, HR, Administration, CRM, Marketplace, Support, Compliance, Reports, System Management). - Verify role-based access and sidebar/top",
+          "severity": "MAJOR"
+        },
+        {
+          "pr": 34,
+          "state": "MERGED",
+          "title": "CodeRabbit Generated Unit Tests: Add Jest/Vitest/Playwright tests for API, components, models, lib",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/34#issuecomment-3328749511",
+          "excerpt": "@codex review this pull request thoroughly: - Check all modules (Dashboard, Work Orders, Properties, Finance, HR, Administration, CRM, Marketplace, Support, Compliance, Reports, System Management). - Verify role-based access and sidebar/top",
+          "severity": "MAJOR"
+        }
+      ]
+    },
+    {
+      "id": "OTHER",
+      "title": "General/other feedback",
+      "cat": "other",
+      "count": 205,
+      "severities": {
+        "BLOCKER": 0,
+        "MAJOR": 128,
+        "MINOR": 77
+      },
+      "examples": [
+        {
+          "pr": 35,
+          "state": "MERGED",
+          "title": "System implementation verification and correction",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/35#issuecomment-3328216460",
+          "excerpt": "@codex review this PR codes for errors",
+          "severity": "MAJOR"
+        },
+        {
+          "pr": 27,
+          "state": "MERGED",
+          "title": "Changes from background agent bc-834b2f5e-dfcd-448b-b3a8-1412c2ce520e",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/27#issuecomment-3328526960",
+          "excerpt": "@codex fix comments @codex review for errors or bugs",
+          "severity": "MAJOR"
+        },
+        {
+          "pr": 1,
+          "state": "CLOSED",
+          "title": "Consolidate duplicate pages and refresh database connections",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/1#issuecomment-3328615423",
+          "excerpt": "Dataabse",
+          "severity": "MINOR"
+        },
+        {
+          "pr": 8,
+          "state": "CLOSED",
+          "title": "Comprehensive Code Review: Fix Critical TypeScript Errors and Implement Missing ATS Models",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/8#issuecomment-3328623577",
+          "excerpt": "@codex review for bugs errors",
+          "severity": "MAJOR"
+        }
+      ]
+    },
+    {
+      "id": "TEST",
+      "title": "Missing/weak/flaky tests",
+      "cat": "testing",
+      "count": 43,
+      "severities": {
+        "BLOCKER": 0,
+        "MAJOR": 43,
+        "MINOR": 0
+      },
+      "examples": [
+        {
+          "pr": 73,
+          "state": "MERGED",
+          "title": "Add vitest configuration and marketplace testing scaffolding",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/73#issuecomment-3338028728",
+          "excerpt": "@cursor fix all the errors from the comments and verift, then test if pass then push the updates here",
+          "severity": "MAJOR"
+        },
+        {
+          "pr": 25,
+          "state": "MERGED",
+          "title": "Implement self-updating knowledge center with AI integration",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/25#issuecomment-3338060709",
+          "excerpt": "@cursor fix all the errors from the comments, verify and then test if pass then push the update here and request for review from all agent in this chat, wait for 10 mins and check if another errors patch then fix loop till you complete all ",
+          "severity": "MAJOR"
+        },
+        {
+          "pr": 70,
+          "state": "MERGED",
+          "title": "Changes from background agent bc-a4c46236-7164-451f-a99f-be2d406d67fe",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/70#issuecomment-3338088129",
+          "excerpt": "@cursor fix all the errors from the comments, verify and then test if pass then push the update here and request for review from all agent in this chat, wait for 10 mins and check if another errors patch then fix loop till you complete all ",
+          "severity": "MAJOR"
+        },
+        {
+          "pr": 61,
+          "state": "CLOSED",
+          "title": "Fix lint blockers and responsive context integration",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/61#issuecomment-3338094037",
+          "excerpt": "@Codex fix all the errors from the comments, verify and then test if pass then push the update here and request for review from all agent in this chat, wait for 10 mins and check if another errors patch then fix loop till you complete all e",
+          "severity": "MAJOR"
+        }
+      ]
+    },
+    {
+      "id": "FE-UI",
+      "title": "UI/UX correctness",
+      "cat": "frontend",
+      "count": 31,
+      "severities": {
+        "BLOCKER": 3,
+        "MAJOR": 27,
+        "MINOR": 1
+      },
+      "examples": [
+        {
+          "pr": 10,
+          "state": "MERGED",
+          "title": "Review test results for errors",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/10#issuecomment-3332782438",
+          "excerpt": "@cursor fix this This branch has conflicts that must be resolved Use the [web editor](https://github.com/EngSayh/Fixzit/pull/10/conflicts) or the command line to resolve conflicts before continuing. app/api/marketplace/products/[slug]/route",
+          "severity": "MAJOR"
+        },
+        {
+          "pr": 10,
+          "state": "MERGED",
+          "title": "Review test results for errors",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/10#issuecomment-3332787857",
+          "excerpt": "@cursor fix this This branch has conflicts that must be resolved Use the [web editor](https://github.com/EngSayh/Fixzit/pull/10/conflicts) or the command line to resolve conflicts before continuing. app/api/marketplace/products/[slug]/route",
+          "severity": "MAJOR"
+        },
+        {
+          "pr": 60,
+          "state": "MERGED",
+          "title": "Refactor cart amount parsing helper",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/60#issuecomment-3333138764",
+          "excerpt": "@codex fix this on the same PR This branch has conflicts that must be resolved Use the [web editor](https://github.com/EngSayh/Fixzit/pull/60/conflicts) or the command line to resolve conflicts before continuing. app/api/marketplace/categor",
+          "severity": "MAJOR"
+        },
+        {
+          "pr": 62,
+          "state": "MERGED",
+          "title": "Fix lint errors in UI text and responsive context",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/62#issuecomment-3336190923",
+          "excerpt": "@codex fix this on the same PR This branch has conflicts that must be resolved Use the [web editor](https://github.com/EngSayh/Fixzit/pull/62/conflicts) or the command line to resolve conflicts before continuing. .eslintrc.json app/api/paym",
+          "severity": "MAJOR"
+        }
+      ]
+    },
+    {
+      "id": "SEC-AUTH",
+      "title": "Auth/security vulnerability",
+      "cat": "security",
+      "count": 29,
+      "severities": {
+        "BLOCKER": 14,
+        "MAJOR": 14,
+        "MINOR": 1
+      },
+      "examples": [
+        {
+          "pr": 41,
+          "state": "MERGED",
+          "title": "📝 Add docstrings to `cursor/bc-63079b91-b28e-4910-b47a-a79cb8a262bf-5e78`",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/41#issuecomment-3328336051",
+          "excerpt": "@codex review for security vulnerabilities @codex review for outdated dependencies @codex review for errors or bugs",
+          "severity": "BLOCKER"
+        },
+        {
+          "pr": 9,
+          "state": "CLOSED",
+          "title": "Changes from background agent bc-8578344b-0784-4dc6-923d-8406a9b080b7",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/9#issuecomment-3328361203",
+          "excerpt": "@codex review for security vulnerabilities @codex review for outdated dependencies @codex review for bugs or errors",
+          "severity": "BLOCKER"
+        },
+        {
+          "pr": 19,
+          "state": "CLOSED",
+          "title": "Changes from background agent bc-43e33fa1-b9c8-4b9e-a214-d16a2b60ae37",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/19#issuecomment-3328363638",
+          "excerpt": "@codex review for security vulnerabilities @codex review for outdated dependencies @codex review for bugs or errors",
+          "severity": "BLOCKER"
+        },
+        {
+          "pr": 32,
+          "state": "MERGED",
+          "title": "Changes from background agent bc-15b0984c-e520-4646-924e-5766a339afa0",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/32#issuecomment-3328366353",
+          "excerpt": "@codex review for security vulnerabilities @codex review for outdated dependencies @codex review for bugs or errors",
+          "severity": "BLOCKER"
+        }
+      ]
+    },
+    {
+      "id": "SEC-SECRET",
+      "title": "Secrets/env handling mistakes",
+      "cat": "security",
+      "count": 19,
+      "severities": {
+        "BLOCKER": 16,
+        "MAJOR": 3,
+        "MINOR": 0
+      },
+      "examples": [
+        {
+          "pr": 21,
+          "state": "MERGED",
+          "title": "Changes from background agent bc-49aa029a-3de1-4a90-aeb1-7db2adae3faf",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/21#issuecomment-3336380512",
+          "excerpt": "@cursor review and implement this 💡 Codex Review Here are some automated review suggestions for this pull request. ℹ️ About Codex in GitHub src/lib/utils.ts Comment on lines 14 to +17 .replace(/-{2,}/g, '-') || 'item'; } >>>>>>> origin/mai",
+          "severity": "BLOCKER"
+        },
+        {
+          "pr": 21,
+          "state": "MERGED",
+          "title": "Changes from background agent bc-49aa029a-3de1-4a90-aeb1-7db2adae3faf",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/21#issuecomment-3336390936",
+          "excerpt": "@cursor review and fix vercel errors and the following too 💡 Codex Review Here are some automated review suggestions for this pull request. ℹ️ About Codex in GitHub src/lib/utils.ts Comment on lines 1 to +5 export function generateSlug(inp",
+          "severity": "BLOCKER"
+        },
+        {
+          "pr": 21,
+          "state": "MERGED",
+          "title": "Changes from background agent bc-49aa029a-3de1-4a90-aeb1-7db2adae3faf",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/21#issuecomment-3336400119",
+          "excerpt": "@cursor review and fix vercel errors and the following too 💡 Codex Review Here are some automated review suggestions for this pull request. ℹ️ About Codex in GitHub src/lib/utils.ts Comment on lines 1 to +5 export function generateSlug(inp",
+          "severity": "BLOCKER"
+        },
+        {
+          "pr": 90,
+          "state": "CLOSED",
+          "title": "System issue audit and breakdown",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/90#issuecomment-3380282305",
+          "excerpt": "Thank you for the comprehensive system audit! ✅ All issues identified in this report have been addressed in the current workspace (branch 86). **Verification:** - **Hardcoded JWT secrets:** Removed (see `SECURITY_CLEANUP_REPORT.md`) - **Uns",
+          "severity": "MAJOR"
+        }
+      ]
+    },
+    {
+      "id": "DUP",
+      "title": "Duplicate logic/code",
+      "cat": "duplicates",
+      "count": 15,
+      "severities": {
+        "BLOCKER": 0,
+        "MAJOR": 8,
+        "MINOR": 7
+      },
+      "examples": [
+        {
+          "pr": 67,
+          "state": "CLOSED",
+          "title": "Checkpoint before follow-up message",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/67#issuecomment-3336593231",
+          "excerpt": "@cursor do not duplicate the PR push the changes to this PR to review it",
+          "severity": "MINOR"
+        },
+        {
+          "pr": 93,
+          "state": "CLOSED",
+          "title": "Find pending system checks",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/93#issuecomment-3393040562",
+          "excerpt": "Closing duplicate - same as #94",
+          "severity": "MINOR"
+        },
+        {
+          "pr": 94,
+          "state": "CLOSED",
+          "title": "Find pending system checks",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/94#issuecomment-3393040590",
+          "excerpt": "Closing duplicate - same as #93",
+          "severity": "MINOR"
+        },
+        {
+          "pr": 95,
+          "state": "CLOSED",
+          "title": "End to end production readiness audit",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/95#issuecomment-3393040620",
+          "excerpt": "Closing duplicate - keeping smaller #96",
+          "severity": "MINOR"
+        }
+      ]
+    },
+    {
+      "id": "MT-RBAC",
+      "title": "RBAC/role/permission gaps",
+      "cat": "multiTenant",
+      "count": 14,
+      "severities": {
+        "BLOCKER": 9,
+        "MAJOR": 5,
+        "MINOR": 0
+      },
+      "examples": [
+        {
+          "pr": 84,
+          "state": "CLOSED",
+          "title": "Fix/consolidation guardrails",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/84#issuecomment-3393038654",
+          "excerpt": "Closing as superseded by commit 53cf6281e which achieved perfect code quality (0 errors, 0 warnings). The core objective of consolidation guardrails has been accomplished in main branch.",
+          "severity": "MAJOR"
+        },
+        {
+          "pr": 130,
+          "state": "MERGED",
+          "title": "fix: critical UX issues - user menu, auto-login, and login layout",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/130#issuecomment-3418143497",
+          "excerpt": "## ✅ PR #130 Review Fixes Complete ### 🎯 Zero-Tolerance Requirements Met **Applied Fixes:** - ✅ **Shellcheck Warnings Resolved** (fix-layout-batch.sh) - SC2034: Removed unused `replacement` parameter - SC2319: Fixed exit code capture befor",
+          "severity": "MAJOR"
+        },
+        {
+          "pr": 130,
+          "state": "MERGED",
+          "title": "fix: critical UX issues - user menu, auto-login, and login layout",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/130#issuecomment-3418196338",
+          "excerpt": "## 🧹 Test Quality Improvements ### Fixed Issues in Test Suite **Commit:** `e16a7d6b` **Changes Applied:** 1. ✅ **Removed empty test placeholders** (TopBar.test.tsx) - Deleted `formatTimeAgo Helper` test with no assertions - Deleted `getPri",
+          "severity": "MAJOR"
+        },
+        {
+          "pr": 130,
+          "state": "MERGED",
+          "title": "fix: critical UX issues - user menu, auto-login, and login layout",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/130#issuecomment-3418357061",
+          "excerpt": "## 🔥 CRITICAL FIX: Auto-Login Behavior Resolved > \"System is logged in by default\" - Users visiting `localhost:3000/` were **automatically redirected** to their dashboard even when they didn't want to be logged in. ### Root Cause Identifie",
+          "severity": "BLOCKER"
+        }
+      ]
+    },
+    {
+      "id": "DB-SCHEMA",
+      "title": "Schema/index/validation issues",
+      "cat": "backend",
+      "count": 11,
+      "severities": {
+        "BLOCKER": 2,
+        "MAJOR": 9,
+        "MINOR": 0
+      },
+      "examples": [
+        {
+          "pr": 6,
+          "state": "CLOSED",
+          "title": "Feature/subscription billing system",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/6#issuecomment-3332194236",
+          "excerpt": "@copilot fix this This branch has conflicts that must be resolved Use the command line to resolve conflicts before continuing. .next/app-build-manifest.json .next/build-manifest.json .next/cache/webpack/client-development/index.pack.gz .nex",
+          "severity": "MAJOR"
+        },
+        {
+          "pr": 10,
+          "state": "MERGED",
+          "title": "Review test results for errors",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/10#issuecomment-3332947822",
+          "excerpt": "@cursor stop bypassing the errors and fix it including the following This branch has conflicts that must be resolved Use the [web editor](https://github.com/EngSayh/Fixzit/pull/10/conflicts) or the command line to resolve conflicts before c",
+          "severity": "MAJOR"
+        },
+        {
+          "pr": 67,
+          "state": "CLOSED",
+          "title": "Checkpoint before follow-up message",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/67#issuecomment-3336557199",
+          "excerpt": "@cursor fix this Pull Request Overview Copilot reviewed 1 out of 1 changed files in this pull request and generated 2 comments. Tip: Customize your code reviews with copilot-instructions.md. [Create the file](https://github.com/EngSayh/Fixz",
+          "severity": "MAJOR"
+        },
+        {
+          "pr": 68,
+          "state": "MERGED",
+          "title": "Changes from background agent bc-49d733b0-e366-418c-a75a-7f01cbe678e9",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/68#issuecomment-3336682563",
+          "excerpt": "@cursor fix the following too Actionable comments posted: 1 🧹 Nitpick comments (5) 📜 Review details src/lib/mongo.ts Comment on lines +167 to +180 deleteOne: async (filter: any, options?: any) => { const initialLength = collectionData.len",
+          "severity": "BLOCKER"
+        }
+      ]
+    },
+    {
+      "id": "CI-PIPE",
+      "title": "CI/CD workflow issues",
+      "cat": "cicd",
+      "count": 11,
+      "severities": {
+        "BLOCKER": 0,
+        "MAJOR": 11,
+        "MINOR": 0
+      },
+      "examples": [
+        {
+          "pr": 58,
+          "state": "CLOSED",
+          "title": "Implement PayTabs callback signature validation",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/58#issuecomment-3332729964",
+          "excerpt": "@codex deployment failed with vercel fix it all",
+          "severity": "MAJOR"
+        },
+        {
+          "pr": 87,
+          "state": "CLOSED",
+          "title": "Analyze test execution errors",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/87#issuecomment-3380289160",
+          "excerpt": "Thank you for the test execution error analysis! ✅ **Current Test Status:** - ✅ **Projects API:** 70/70 tests passing (100%) - ⚠️ **Help Page:** 25/56 tests passing (45% - known issues documented) - ⏳ **Marketplace:** Pending execution - 📋",
+          "severity": "MAJOR"
+        },
+        {
+          "pr": 100,
+          "state": "unknown",
+          "title": "",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/issues/100#issuecomment-3402881063",
+          "excerpt": "✅ **RESOLVED - Target Exceeded** ## Achievement Summary Successfully eliminated **ALL** ESLint `@typescript-eslint/no-explicit-any` warnings from production code, **exceeding** the target goal. ### Metrics - **Initial State:** 222 total 'an",
+          "severity": "MAJOR"
+        },
+        {
+          "pr": 315,
+          "state": "MERGED",
+          "title": "feat: Add type safety and test compatibility to core components",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/315#issuecomment-3567629206",
+          "excerpt": "--- ## 📋 Comprehensive Documentation Available All work from these PRs has been thoroughly documented: **Main Reports**: - 📊 [PR_FIXES_REPORT.md](https://github.com/EngSayh/Fixzit/blob/e3baddcea/PR_FIXES_REPORT.md) - Complete PR comment r",
+          "severity": "MAJOR"
+        }
+      ]
+    },
+    {
+      "id": "SEC-PII",
+      "title": "PII exposure/logging",
+      "cat": "security",
+      "count": 3,
+      "severities": {
+        "BLOCKER": 3,
+        "MAJOR": 0,
+        "MINOR": 0
+      },
+      "examples": [
+        {
+          "pr": 138,
+          "state": "MERGED",
+          "title": "fix: Resolve ALL 9 Critical Issues from PR #137 Review",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/138#issuecomment-3435764607",
+          "excerpt": "## ✅ All CodeRabbit Review Issues Resolved **Commit**: `0de9c9388` (fix/pr137-remaining-issues) **Status**: ✅ **ALL 7 ISSUES RESOLVED** **Quality Gates**: ✅ TypeScript: 0 errors | ✅ ESLint: 0 warnings | ✅ Markdown: 0 errors --- ## 📋 Issue ",
+          "severity": "BLOCKER"
+        },
+        {
+          "pr": 202,
+          "state": "MERGED",
+          "title": "fix(ui): Major Accessibility & Architectural Improvements",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/202#issuecomment-3487055755",
+          "excerpt": "## ✅ All Review Comments Addressed - PR Ready for Re-Review ### Summary of Fixes Applied All CodeRabbit, Qodo, and agent review comments have been addressed with **zero exceptions or shortcuts**. --- ### 📋 Changes Applied (Commit: 0ab0a872",
+          "severity": "BLOCKER"
+        },
+        {
+          "pr": 241,
+          "state": "CLOSED",
+          "title": "🔧 Category 5 Phase 1: Replace console statements in API routes (47 files)",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/241#issuecomment-3497192068",
+          "excerpt": "## 🔧 Critical Logger File Repair + Production Console Fixes ### **MAJOR ISSUE FIXED** The `lib/logger.ts` file was **severely corrupted** with 243 lines of merged duplicate content (two complete implementations smashed together). This has ",
+          "severity": "BLOCKER"
+        }
+      ]
+    },
+    {
+      "id": "FE-A11Y",
+      "title": "Accessibility issues",
+      "cat": "frontend",
+      "count": 2,
+      "severities": {
+        "BLOCKER": 1,
+        "MAJOR": 1,
+        "MINOR": 0
+      },
+      "examples": [
+        {
+          "pr": 224,
+          "state": "MERGED",
+          "title": "fix(security): Category A - Improper Navigation Fixes",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/224#issuecomment-3490894196",
+          "excerpt": "@coderabbitai All issues have been addressed. Could you please re-review? **Summary of fixes since last review:** - ✅ Fixed runtime error with phone number fallback - ✅ Fixed international dialing (preserved '+' prefix) - ✅ Fixed nested anc",
+          "severity": "BLOCKER"
+        },
+        {
+          "pr": 315,
+          "state": "MERGED",
+          "title": "feat: Add type safety and test compatibility to core components",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/315#issuecomment-3567628353",
+          "excerpt": "## ✅ All Review Comments Addressed All review comments from this PR have been systematically reviewed and addressed in commit e3baddcea. ### Issues from PR #315 (Component Type Safety): **Already Fixed (Verified)**: - ✅ All components alrea",
+          "severity": "MAJOR"
+        }
+      ]
+    },
+    {
+      "id": "FIN",
+      "title": "Finance/Decimal/ZATCA",
+      "cat": "finance",
+      "count": 1,
+      "severities": {
+        "BLOCKER": 0,
+        "MAJOR": 0,
+        "MINOR": 1
+      },
+      "examples": [
+        {
+          "pr": 115,
+          "state": "CLOSED",
+          "title": "Preserve locale on logout and localize login page",
+          "path": null,
+          "url": "https://github.com/EngSayh/Fixzit/pull/115#issuecomment-3401950274",
+          "excerpt": "Closing: Locale preservation and logout improvements are included in PR #101.",
+          "severity": "MINOR"
+        }
+      ]
+    }
+  ]
+}
+]]>
+</file>
+
+</batch_content>

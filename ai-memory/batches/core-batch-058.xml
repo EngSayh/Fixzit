@@ -1,0 +1,3356 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/DEPLOYMENT_GUIDE.md">
+<![CDATA[
+# Fixzit Deployment Guide
+
+**Version**: 1.0  
+**Last Updated**: November 17, 2025  
+**Target Platforms**: Vercel, AWS, Docker, Traditional Hosting
+
+---
+
+## 📋 Table of Contents
+
+1. [Prerequisites](#prerequisites)
+2. [Pre-Deployment Checklist](#pre-deployment-checklist)
+3. [Environment Configuration](#environment-configuration)
+4. [Database Setup](#database-setup)
+5. [Build Process](#build-process)
+6. [Deployment Platforms](#deployment-platforms)
+   - [Vercel (Recommended)](#vercel-recommended)
+   - [AWS (EC2/ECS)](#aws-ec2ecs)
+   - [Docker](#docker)
+   - [Traditional Hosting](#traditional-hosting)
+7. [Post-Deployment](#post-deployment)
+8. [Monitoring & Logging](#monitoring--logging)
+9. [Troubleshooting](#troubleshooting)
+10. [Rollback Procedure](#rollback-procedure)
+
+---
+
+## Prerequisites
+
+### Required Software
+
+- **Node.js**: v18.17.0 or higher (v20+ recommended)
+- **pnpm**: v8.0.0 or higher (`npm install -g pnpm`)
+- **MongoDB**: v6.0 or higher
+- **Git**: Latest version
+
+### Optional Tools
+
+- **Docker**: v24.0 or higher (for containerized deployment)
+- **Redis**: v7.0 or higher (for caching and background jobs)
+- **PM2**: v5.0 or higher (for process management on traditional hosting)
+
+### System Requirements
+
+**Minimum** (Development/Staging):
+
+- CPU: 2 cores
+- RAM: 4 GB
+- Storage: 20 GB SSD
+- Network: 10 Mbps
+
+**Recommended** (Production):
+
+- CPU: 4 cores
+- RAM: 8 GB
+- Storage: 100 GB SSD
+- Network: 100 Mbps
+
+---
+
+## Pre-Deployment Checklist
+
+### Code Quality
+
+- [ ] All tests passing (`pnpm test`)
+- [ ] TypeScript compilation successful (`pnpm build`)
+- [ ] No ESLint errors (`pnpm lint`)
+- [ ] No console statements in production code
+- [ ] Security audit passed (`pnpm audit`)
+
+### Configuration
+
+- [ ] `.env.local` created from `.env.example`
+- [ ] All required environment variables set
+- [ ] Secrets rotated (different from development)
+- [ ] Database connection string verified
+- [ ] External service credentials configured
+
+### Security
+
+- [ ] NEXTAUTH_SECRET is strong and unique
+- [ ] API keys rotated for production
+- [ ] CORS origins configured correctly
+- [ ] Rate limiting enabled
+- [ ] Security headers configured
+
+### Documentation
+
+- [ ] Environment variables documented
+- [ ] Deployment steps reviewed
+- [ ] Rollback procedure understood
+- [ ] Team notified of deployment
+
+---
+
+## Environment Configuration
+
+### 1. Copy Environment Template
+
+```bash
+cp .env.example .env.local
+```
+
+### 2. Configure Required Variables
+
+Edit `.env.local` and set these **REQUIRED** variables:
+
+```bash
+# Database
+MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/fixzit
+
+# NextAuth
+NEXTAUTH_URL=https://yourdomain.com
+NEXTAUTH_SECRET=$(openssl rand -base64 32)
+
+# Node Environment
+NODE_ENV=production
+```
+
+### 3. Configure Recommended Variables
+
+For production deployments, also set:
+
+```bash
+# Error Tracking
+NEXT_PUBLIC_SENTRY_DSN=your-sentry-dsn
+
+# Email Service (for password reset)
+SENDGRID_API_KEY=your-sendgrid-key
+SENDGRID_FROM_EMAIL=noreply@yourdomain.com
+
+# Security
+ALLOWED_ORIGINS=https://yourdomain.com
+ENABLE_RATE_LIMITING=true
+```
+
+### 4. Configure Optional Variables
+
+Enable additional features as needed:
+
+```bash
+# SMS Notifications
+TWILIO_ACCOUNT_SID=your-twilio-sid
+TWILIO_AUTH_TOKEN=your-twilio-token
+
+# Payment Gateway (for marketplace)
+PAYTABS_PROFILE_ID=your-profile-id
+PAYTABS_SERVER_KEY=your-server-key
+
+# File Storage
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-key
+AWS_S3_BUCKET=fixzit-uploads
+```
+
+### 5. Verify Configuration
+
+```bash
+# Check environment variables are loaded
+node -e "console.log(process.env.NEXTAUTH_URL || 'NOT SET')"
+```
+
+---
+
+## Database Setup
+
+### MongoDB Atlas (Recommended for Production)
+
+#### 1. Create Cluster
+
+1. Go to [MongoDB Atlas](https://cloud.mongodb.com/)
+2. Create new cluster (M10+ recommended for production)
+3. Select region closest to your users (Middle East - Bahrain for Saudi market)
+4. Wait for cluster to provision (~10 minutes)
+
+#### 2. Configure Security
+
+```bash
+# Add IP whitelist
+# Production: Add server IP
+# Development: Add 0.0.0.0/0 (only for testing)
+
+# Create database user
+Username: fixzit-app
+Password: <generate-strong-password>
+Role: readWrite on fixzit database
+```
+
+#### 3. Get Connection String
+
+```bash
+# Format:
+mongodb+srv://fixzit-app:<password>@cluster.mongodb.net/fixzit?retryWrites=true&w=majority
+
+# Add to .env.local
+MONGODB_URI=<your-connection-string>
+```
+
+#### 4. Create Indexes
+
+```bash
+# Connect to your database
+mongosh "mongodb+srv://cluster.mongodb.net/fixzit" --username fixzit-app
+
+# Run index creation script
+use fixzit
+db.users.createIndex({ orgId: 1, email: 1 }, { unique: true })
+db.users.createIndex({ orgId: 1, employeeId: 1 }, { unique: true })
+db.users.createIndex({ orgId: 1 })
+db.organizations.createIndex({ orgId: 1 }, { unique: true })
+db.workorders.createIndex({ orgId: 1, status: 1 })
+db.properties.createIndex({ orgId: 1 })
+db.assets.createIndex({ orgId: 1, propertyId: 1 })
+db.auditlogs.createIndex({ orgId: 1, timestamp: -1 })
+db.auditlogs.createIndex({ orgId: 1, userId: 1 })
+
+# Exit
+exit
+```
+
+### Self-Hosted MongoDB
+
+#### 1. Install MongoDB
+
+```bash
+# Ubuntu/Debian
+wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo apt-key add -
+echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+sudo apt update
+sudo apt install -y mongodb-org
+
+# Start service
+sudo systemctl start mongod
+sudo systemctl enable mongod
+```
+
+#### 2. Secure MongoDB
+
+```bash
+# Edit config
+sudo nano /etc/mongod.conf
+
+# Enable authentication
+security:
+  authorization: enabled
+
+# Bind to specific IP
+net:
+  bindIp: 127.0.0.1,<your-server-ip>
+
+# Restart
+sudo systemctl restart mongod
+```
+
+#### 3. Create Admin User
+
+```bash
+mongosh
+
+use admin
+db.createUser({
+  user: "admin",
+  pwd: "<strong-password>",
+  roles: [ { role: "root", db: "admin" } ]
+})
+
+use fixzit
+db.createUser({
+  user: "fixzit-app",
+  pwd: "<strong-password>",
+  roles: [ { role: "readWrite", db: "fixzit" } ]
+})
+
+exit
+```
+
+#### 4. Connection String
+
+```bash
+MONGODB_URI=mongodb://fixzit-app:<password>@localhost:27017/fixzit?authSource=fixzit
+```
+
+### Database Seeding (Optional)
+
+#### Seed Initial Data
+
+```bash
+# Run seed script
+pnpm seed
+
+# Or manually import
+mongoimport --uri="$MONGODB_URI" --collection=organizations --file=./data/seeds/organizations.json
+mongoimport --uri="$MONGODB_URI" --collection=users --file=./data/seeds/users.json
+```
+
+---
+
+## Build Process
+
+### 1. Install Dependencies
+
+```bash
+# Clean install
+rm -rf node_modules .next
+pnpm install --frozen-lockfile
+```
+
+### 2. Type Check
+
+```bash
+# Verify TypeScript compilation
+pnpm typecheck
+
+# Expected output: "Found 0 errors"
+```
+
+### 3. Lint
+
+```bash
+# Run ESLint
+pnpm lint
+
+# Fix auto-fixable issues
+pnpm lint --fix
+```
+
+### 4. Run Tests
+
+```bash
+# Unit tests
+pnpm test
+
+# E2E tests (optional, requires dev server)
+pnpm test:e2e
+
+# Coverage
+pnpm test:coverage
+```
+
+### 5. Build
+
+```bash
+# Production build
+pnpm build
+
+# Expected output:
+# Route (app)                              Size     First Load JS
+# ┌ ○ /                                    XYZ kB   XYZ kB
+# ...
+# ○  (Static)  automatically rendered as static HTML
+# ●  (SSG)     automatically generated as static HTML + JSON
+# λ  (Server)  server-side renders at runtime
+```
+
+### 6. Test Build Locally
+
+```bash
+# Start production server locally
+pnpm start
+
+# Verify on http://localhost:3000
+# Test critical flows:
+# - Login/logout
+# - Create work order
+# - Navigate all pages
+# - Check browser console for errors
+```
+
+---
+
+## Deployment Platforms
+
+## Vercel (Recommended)
+
+### Why Vercel?
+
+- ✅ Optimized for Next.js (created by same team)
+- ✅ Automatic deployments on git push
+- ✅ Built-in CDN and edge functions
+- ✅ Zero-config deployment
+- ✅ Free SSL certificates
+- ✅ Preview deployments for PRs
+
+### Setup
+
+#### 1. Install Vercel CLI
+
+```bash
+pnpm install -g vercel
+```
+
+#### 2. Login
+
+```bash
+vercel login
+```
+
+#### 3. Link Project
+
+```bash
+# From project root
+vercel link
+
+# Follow prompts:
+# ? Set up and deploy? Yes
+# ? Which scope? <your-team>
+# ? Link to existing project? No
+# ? What's your project's name? fixzit
+# ? In which directory is your code located? ./
+```
+
+#### 4. Configure Environment Variables
+
+```bash
+# Add via CLI
+vercel env add MONGODB_URI production
+# Paste value when prompted
+
+vercel env add NEXTAUTH_SECRET production
+vercel env add NEXTAUTH_URL production
+
+# Or via dashboard:
+# 1. Go to https://vercel.com/your-team/fixzit/settings/environment-variables
+# 2. Add all variables from .env.local
+# 3. Select "Production" environment
+```
+
+#### 5. Deploy
+
+```bash
+# Deploy to production
+vercel --prod
+
+# Expected output:
+# 🔗  Production: https://fixzit.vercel.app
+```
+
+#### 6. Configure Custom Domain (Optional)
+
+```bash
+# Add domain
+vercel domains add yourdomain.com
+
+# Follow DNS configuration instructions
+# Add DNS records:
+# A    @    76.76.21.21
+# CNAME www  cname.vercel-dns.com
+
+# Verify
+vercel domains verify yourdomain.com
+```
+
+### Automatic Deployments
+
+#### 1. Connect Git Repository
+
+1. Go to [Vercel Dashboard](https://vercel.com/dashboard)
+2. Click "Import Project"
+3. Select your Git provider (GitHub/GitLab/Bitbucket)
+4. Import repository
+5. Configure:
+   - Framework Preset: Next.js
+   - Root Directory: ./
+   - Build Command: `pnpm build`
+   - Output Directory: `.next`
+   - Install Command: `pnpm install`
+
+#### 2. Configure Branches
+
+- **Production Branch**: `main` → Deploys to production
+- **Preview Branches**: All other branches → Preview deployments
+
+#### 3. Environment Variables
+
+- Add all production variables in Vercel dashboard
+- Use different secrets for preview vs production
+
+---
+
+## AWS (EC2/ECS)
+
+### EC2 Deployment
+
+#### 1. Launch EC2 Instance
+
+```bash
+# Instance type: t3.medium or larger
+# AMI: Ubuntu 22.04 LTS
+# Storage: 30 GB gp3 SSD minimum
+# Security group: Allow ports 22 (SSH), 80 (HTTP), 443 (HTTPS)
+```
+
+#### 2. Connect to Instance
+
+```bash
+ssh -i your-key.pem ubuntu@your-instance-ip
+```
+
+#### 3. Install Dependencies
+
+```bash
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install Node.js
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# Install pnpm
+npm install -g pnpm
+
+# Install PM2
+npm install -g pm2
+
+# Install Nginx
+sudo apt install -y nginx
+
+# Install MongoDB (optional, if self-hosting database)
+# See "Self-Hosted MongoDB" section above
+```
+
+#### 4. Clone Repository
+
+```bash
+cd /var/www
+sudo mkdir fixzit
+sudo chown ubuntu:ubuntu fixzit
+cd fixzit
+
+git clone https://github.com/EngSayh/Fixzit.git .
+```
+
+#### 5. Configure Environment
+
+```bash
+cp .env.example .env.local
+nano .env.local
+
+# Set all required variables
+# Save and exit (Ctrl+X, Y, Enter)
+```
+
+#### 6. Build Application
+
+```bash
+pnpm install --frozen-lockfile
+pnpm build
+```
+
+#### 7. Configure PM2
+
+```bash
+# Create ecosystem file
+cat > ecosystem.config.js << 'EOF'
+module.exports = {
+  apps: [{
+    name: 'fixzit',
+    script: 'pnpm',
+    args: 'start',
+    cwd: '/var/www/fixzit',
+    instances: 2,
+    exec_mode: 'cluster',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 3000
+    },
+    error_file: './logs/err.log',
+    out_file: './logs/out.log',
+    log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+    merge_logs: true,
+    max_memory_restart: '1G'
+  }]
+};
+EOF
+
+# Create logs directory
+mkdir -p logs
+
+# Start application
+pm2 start ecosystem.config.js
+
+# Save PM2 config
+pm2 save
+
+# Setup PM2 to start on boot
+pm2 startup
+# Follow the command it outputs
+```
+
+#### 8. Configure Nginx
+
+```bash
+# Create Nginx config
+sudo nano /etc/nginx/sites-available/fixzit
+
+# Add configuration:
+server {
+    listen 80;
+    server_name yourdomain.com www.yourdomain.com;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        proxy_read_timeout 300s;
+        proxy_connect_timeout 75s;
+    }
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # Gzip compression
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml text/javascript;
+}
+
+# Enable site
+sudo ln -s /etc/nginx/sites-available/fixzit /etc/nginx/sites-enabled/
+
+# Test config
+sudo nginx -t
+
+# Restart Nginx
+sudo systemctl restart nginx
+```
+
+#### 9. Setup SSL with Let's Encrypt
+
+```bash
+# Install Certbot
+sudo apt install -y certbot python3-certbot-nginx
+
+# Get certificate
+sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+
+# Follow prompts
+# Certificate will auto-renew
+```
+
+#### 10. Verify Deployment
+
+```bash
+# Check PM2 status
+pm2 status
+
+# Check logs
+pm2 logs fixzit
+
+# Check Nginx status
+sudo systemctl status nginx
+
+# Test URL
+curl https://yourdomain.com
+```
+
+---
+
+## Docker
+
+### Build Docker Image
+
+#### 1. Verify Dockerfile
+
+```dockerfile
+# Dockerfile is already in project root
+# Verify it exists:
+cat Dockerfile
+```
+
+#### 2. Build Image
+
+```bash
+# Build for production
+docker build -t fixzit:latest .
+
+# Build with build args
+docker build \
+  --build-arg NODE_ENV=production \
+  --build-arg NEXT_PUBLIC_SENTRY_DSN=$SENTRY_DSN \
+  -t fixzit:latest .
+```
+
+#### 3. Run Container Locally
+
+```bash
+# Run with environment file
+docker run -d \
+  --name fixzit-app \
+  -p 3000:3000 \
+  --env-file .env.local \
+  fixzit:latest
+
+# Check logs
+docker logs -f fixzit-app
+
+# Stop container
+docker stop fixzit-app
+docker rm fixzit-app
+```
+
+### Docker Compose
+
+#### 1. Use docker-compose.yml
+
+```bash
+# File already exists in project root
+cat docker-compose.yml
+```
+
+#### 2. Start Services
+
+```bash
+# Start all services (app + MongoDB)
+docker-compose up -d
+
+# Check status
+docker-compose ps
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+```
+
+### Deploy to Container Registry
+
+#### AWS ECR
+
+```bash
+# Login to ECR
+aws ecr get-login-password --region us-east-1 | \
+  docker login --username AWS --password-stdin <account>.dkr.ecr.us-east-1.amazonaws.com
+
+# Tag image
+docker tag fixzit:latest <account>.dkr.ecr.us-east-1.amazonaws.com/fixzit:latest
+
+# Push image
+docker push <account>.dkr.ecr.us-east-1.amazonaws.com/fixzit:latest
+```
+
+#### Docker Hub
+
+```bash
+# Login
+docker login
+
+# Tag image
+docker tag fixzit:latest yourusername/fixzit:latest
+
+# Push image
+docker push yourusername/fixzit:latest
+```
+
+---
+
+## Traditional Hosting
+
+### Shared Hosting (Not Recommended)
+
+Next.js requires Node.js server runtime. Shared hosting typically doesn't support this. Use Vercel, VPS, or dedicated server instead.
+
+### VPS Deployment
+
+Follow the [EC2 Deployment](#ec2-deployment) steps above. They work for any Ubuntu/Debian VPS (DigitalOcean, Linode, Vultr, etc.).
+
+---
+
+## Post-Deployment
+
+### 1. Verify Health Endpoint
+
+```bash
+curl https://yourdomain.com/api/health
+
+# Expected response:
+{
+  "status": "healthy",
+  "timestamp": "2025-11-17T...",
+  "uptime": 123.45,
+  "database": {
+    "status": "connected",
+    "latency": 5
+  },
+  "memory": {
+    "used": 350,
+    "total": 512,
+    "unit": "MB"
+  },
+  "environment": "production"
+}
+```
+
+### 2. Test Authentication
+
+```bash
+# Login
+curl -X POST https://yourdomain.com/api/auth/callback/credentials \
+  -H "Content-Type: application/json" \
+  -d '{"loginIdentifier":"admin@fixzit.co","password":"your-password"}'
+
+# Should return session cookie
+```
+
+### 3. Test Protected Endpoints
+
+```bash
+# Should return 401 Unauthorized
+curl https://yourdomain.com/api/work-orders
+
+# With valid session cookie should return 200 OK
+```
+
+### 4. Check Browser Console
+
+1. Open https://yourdomain.com in browser
+2. Open DevTools (F12)
+3. Check Console tab for errors
+4. Check Network tab for failed requests
+
+### 5. Test Critical User Flows
+
+- [ ] Login with email/password
+- [ ] Navigate to dashboard
+- [ ] Create work order
+- [ ] Upload document
+- [ ] Generate report
+- [ ] Logout
+
+### 6. Monitor Logs
+
+```bash
+# Vercel
+vercel logs --prod
+
+# PM2
+pm2 logs fixzit
+
+# Docker
+docker logs -f fixzit-app
+```
+
+---
+
+## Monitoring & Logging
+
+### Sentry (Error Tracking)
+
+#### 1. Create Sentry Project
+
+1. Go to [Sentry.io](https://sentry.io)
+2. Create new project → Next.js
+3. Copy DSN
+
+#### 2. Configure Environment
+
+```bash
+NEXT_PUBLIC_SENTRY_DSN=https://xxx@xxx.ingest.sentry.io/xxx
+SENTRY_ORG=your-org
+SENTRY_PROJECT=fixzit
+```
+
+#### 3. Verify Integration
+
+- Trigger test error
+- Check Sentry dashboard for event
+
+### Application Logs
+
+#### Centralized Logging (Production)
+
+```bash
+# Use Winston with external transport
+# Already configured in lib/logger.ts
+
+# Options:
+# - CloudWatch Logs (AWS)
+# - Datadog
+# - Loggly
+# - Papertrail
+```
+
+#### Log Aggregation
+
+```bash
+# View logs by level
+pm2 logs fixzit --err  # Errors only
+pm2 logs fixzit --out  # Info/debug
+
+# Search logs
+pm2 logs fixzit | grep "error"
+
+# Clear logs
+pm2 flush
+```
+
+### Performance Monitoring
+
+#### Vercel Analytics
+
+```bash
+# Enable in Vercel dashboard
+# Settings → Analytics → Enable
+
+# Add to app
+# Already included in layout.tsx
+```
+
+#### Custom Metrics
+
+```typescript
+// Track custom events
+import { analytics } from "@/lib/analytics";
+
+analytics.track("work_order_created", {
+  orgId: user.orgId,
+  duration: Date.now() - startTime,
+});
+```
+
+### Uptime Monitoring
+
+#### UptimeRobot (Free)
+
+1. Go to [UptimeRobot.com](https://uptimerobot.com)
+2. Add monitor:
+   - Type: HTTPS
+   - URL: https://yourdomain.com/api/health
+   - Interval: 5 minutes
+3. Configure alerts (email, SMS, Slack)
+
+#### Pingdom (Premium)
+
+- More detailed monitoring
+- Global check locations
+- Transaction monitoring
+
+---
+
+## Troubleshooting
+
+### Application Won't Start
+
+#### Check Logs
+
+```bash
+# PM2
+pm2 logs fixzit --lines 100
+
+# Docker
+docker logs fixzit-app
+
+# Vercel
+vercel logs --prod
+```
+
+#### Common Issues
+
+**MongoDB Connection Failed**
+
+```bash
+# Check connection string
+echo $MONGODB_URI
+
+# Test connection
+mongosh "$MONGODB_URI"
+
+# Check IP whitelist (Atlas)
+# Add server IP in Atlas dashboard
+```
+
+**Missing Environment Variables**
+
+```bash
+# Check variables are loaded
+pm2 env 0
+
+# Restart with environment file
+pm2 restart fixzit --update-env
+```
+
+**Port Already in Use**
+
+```bash
+# Find process using port
+lsof -i :3000
+
+# Kill process
+kill -9 <PID>
+
+# Or change port in ecosystem.config.js
+```
+
+### 500 Internal Server Error
+
+#### Check Application Logs
+
+```bash
+pm2 logs fixzit --err
+```
+
+#### Common Causes
+
+1. Database connection failed
+2. Missing environment variable
+3. Unhandled exception in code
+4. Out of memory
+
+#### Debug Mode
+
+```bash
+# Enable debug logging
+pm2 restart fixzit --update-env
+# Set LOG_LEVEL=debug in .env.local
+```
+
+### Authentication Not Working
+
+#### Check NextAuth Configuration
+
+```bash
+# Verify NEXTAUTH_URL matches domain
+echo $NEXTAUTH_URL
+
+# Verify NEXTAUTH_SECRET is set
+echo $NEXTAUTH_SECRET | head -c 10
+
+# Check JWT secret is consistent
+# Must be same across all instances
+```
+
+#### Check Session Cookie
+
+1. Open DevTools → Application → Cookies
+2. Look for `next-auth.session-token`
+3. If missing, check CORS/SameSite settings
+
+### Database Performance Issues
+
+#### Check Indexes
+
+```bash
+mongosh "$MONGODB_URI"
+
+use fixzit
+db.workorders.getIndexes()
+
+# Add missing indexes
+db.workorders.createIndex({ orgId: 1, status: 1 })
+```
+
+#### Enable Profiling
+
+```bash
+# Enable slow query logging
+db.setProfilingLevel(1, { slowms: 100 })
+
+# Check slow queries
+db.system.profile.find().sort({ ts: -1 }).limit(10)
+```
+
+### High Memory Usage
+
+#### Check Memory
+
+```bash
+# PM2
+pm2 info fixzit
+
+# Docker
+docker stats fixzit-app
+
+# System
+free -h
+```
+
+#### Restart Application
+
+```bash
+# PM2 will auto-restart if max_memory_restart exceeded
+pm2 restart fixzit
+
+# Force restart
+pm2 delete fixzit
+pm2 start ecosystem.config.js
+```
+
+---
+
+## Rollback Procedure
+
+### Quick Rollback (Vercel)
+
+#### 1. Find Previous Deployment
+
+```bash
+vercel ls
+
+# Output shows deployment history
+# fixzit – 5 deployments
+# abc123.vercel.app (Production)
+# def456.vercel.app (Previous)
+```
+
+#### 2. Promote Previous Deployment
+
+```bash
+# Via CLI
+vercel promote def456
+
+# Or via dashboard:
+# 1. Go to Deployments tab
+# 2. Find stable deployment
+# 3. Click "..." → "Promote to Production"
+```
+
+#### 3. Verify
+
+```bash
+curl https://yourdomain.com/api/health
+```
+
+### Git Rollback (PM2/Docker)
+
+#### 1. Identify Last Good Commit
+
+```bash
+git log --oneline -10
+
+# Find stable commit hash
+```
+
+#### 2. Rollback Code
+
+```bash
+# Create rollback branch
+git checkout -b rollback-$(date +%Y%m%d)
+
+# Revert to stable commit
+git revert HEAD  # Revert last commit
+# Or
+git reset --hard <stable-commit-hash>  # Reset to specific commit
+
+# Push rollback
+git push origin rollback-$(date +%Y%m%d)
+```
+
+#### 3. Redeploy
+
+```bash
+# Pull rollback branch
+git fetch origin
+git checkout rollback-$(date +%Y%m%d)
+
+# Rebuild
+pnpm install
+pnpm build
+
+# Restart
+pm2 restart fixzit
+```
+
+### Database Rollback
+
+#### 1. Restore from Backup
+
+```bash
+# MongoDB Atlas
+# 1. Go to Clusters → ... → Restore
+# 2. Select backup snapshot
+# 3. Choose restore to original cluster
+
+# Self-hosted MongoDB
+mongorestore --uri="$MONGODB_URI" --archive=backup-2025-11-17.gz --gzip
+```
+
+#### 2. Verify Data
+
+```bash
+mongosh "$MONGODB_URI"
+
+use fixzit
+db.users.countDocuments()
+db.workorders.countDocuments()
+# Verify counts match expected
+```
+
+### Emergency Rollback (Complete)
+
+#### 1. Stop Application
+
+```bash
+pm2 stop fixzit
+```
+
+#### 2. Rollback Code
+
+```bash
+git reset --hard <last-stable-commit>
+```
+
+#### 3. Restore Database
+
+```bash
+mongorestore --uri="$MONGODB_URI" --archive=backup.gz --gzip
+```
+
+#### 4. Restart Application
+
+```bash
+pnpm install
+pnpm build
+pm2 restart fixzit
+```
+
+#### 5. Verify
+
+```bash
+curl https://yourdomain.com/api/health
+```
+
+---
+
+## Backup Strategy
+
+### Automated MongoDB Backups
+
+#### MongoDB Atlas
+
+- Automatic continuous backups (enabled by default)
+- Retention: 2 days (configurable)
+- Point-in-time recovery available
+
+#### Self-Hosted MongoDB
+
+```bash
+# Create backup script
+cat > /usr/local/bin/backup-fixzit.sh << 'EOF'
+#!/bin/bash
+DATE=$(date +%Y-%m-%d)
+BACKUP_DIR="/backups/mongodb"
+mkdir -p $BACKUP_DIR
+
+mongodump --uri="$MONGODB_URI" \
+  --archive="$BACKUP_DIR/fixzit-$DATE.gz" \
+  --gzip
+
+# Delete backups older than 30 days
+find $BACKUP_DIR -name "fixzit-*.gz" -mtime +30 -delete
+EOF
+
+chmod +x /usr/local/bin/backup-fixzit.sh
+
+# Add to crontab (daily at 2 AM)
+crontab -e
+# Add line:
+0 2 * * * /usr/local/bin/backup-fixzit.sh
+```
+
+### Application Backups
+
+#### Code
+
+```bash
+# Git is your backup
+git push origin main
+
+# Tag releases
+git tag -a v1.0.0 -m "Production release"
+git push origin v1.0.0
+```
+
+#### Uploaded Files
+
+```bash
+# If using local storage
+rsync -avz /var/www/fixzit/public/uploads/ user@backup-server:/backups/uploads/
+
+# If using S3
+# Enable versioning in S3 bucket (automatic backups)
+```
+
+---
+
+## Security Best Practices
+
+### 1. Secrets Management
+
+- Never commit secrets to Git
+- Rotate secrets regularly (every 90 days)
+- Use different secrets per environment
+- Store secrets in secure vault (AWS Secrets Manager, Vault)
+
+### 2. Access Control
+
+- Use SSH keys (not passwords)
+- Implement least privilege principle
+- Disable root login
+- Use bastion host for database access
+
+### 3. Network Security
+
+- Enable firewall (ufw on Ubuntu)
+- Close unused ports
+- Use VPC/private networking
+- Enable DDoS protection
+
+### 4. Application Security
+
+- Keep dependencies updated
+- Run security audits (`pnpm audit`)
+- Enable HTTPS everywhere
+- Implement rate limiting
+- Use security headers
+
+### 5. Monitoring
+
+- Set up alerting for errors
+- Monitor resource usage
+- Track failed login attempts
+- Enable audit logging
+
+---
+
+## Performance Optimization
+
+### 1. CDN Configuration
+
+- Use Vercel Edge Network (automatic on Vercel)
+- Or CloudFlare for custom hosting
+- Cache static assets
+- Optimize images with Next.js Image
+
+### 2. Database Optimization
+
+- Create indexes on frequent queries
+- Use lean() for read-only queries
+- Implement connection pooling
+- Consider read replicas for high traffic
+
+### 3. Caching Strategy
+
+- Redis for session storage
+- Cache API responses
+- Use stale-while-revalidate
+- Implement service worker
+
+### 4. Build Optimization
+
+- Enable compression
+- Tree-shake unused code
+- Code split large bundles
+- Use dynamic imports
+
+---
+
+## Support & Resources
+
+### Documentation
+
+- [Next.js Deployment](https://nextjs.org/docs/deployment)
+- [Vercel Docs](https://vercel.com/docs)
+- [MongoDB Atlas Docs](https://docs.atlas.mongodb.com/)
+- [PM2 Docs](https://pm2.keymetrics.io/docs/)
+
+### Community
+
+- GitHub Issues: [EngSayh/Fixzit/issues](https://github.com/EngSayh/Fixzit/issues)
+- Email Support: support@fixzit.co
+
+### Emergency Contacts
+
+- On-Call Developer: [Contact Info]
+- Database Admin: [Contact Info]
+- DevOps Team: [Contact Info]
+
+---
+
+**Last Updated**: November 17, 2025  
+**Version**: 1.0  
+**Maintainer**: Fixzit Development Team
+
+]]>
+</file>
+
+<file path="docs/DUPLICATE_CONSOLIDATION_LOG.md">
+<![CDATA[
+# Duplicate Consolidation Progress Log
+
+**Last Updated:** 2025-10-05
+**Agent Governor Mode:** HARD_AUTO
+
+---
+
+## Summary
+
+## Summary
+
+- **Total Duplicates Identified**: 1,091 files
+- **Duplicates Removed**: 47 (4 PayTabs/contexts + 35 models + 8 src/ duplicates)
+- **TypeScript Status**: 0 errors ✅
+- **Import Verification**: All imports checked before removal
+
+## Phase 2: Model Consolidation Complete ✅
+
+## Phase 3: src/ Directory Consolidation Complete ✅
+
+**Date**: October 5, 2025
+
+### Actions Taken
+
+1. **Fixed imports** in 2 files using `@/src/` paths:
+   - `app/layout.tsx`: Changed `@/src/providers/Providers` → `@/providers/Providers`
+   - `providers/QAProvider.tsx`: Changed `@/src/qa/AutoFixAgent` → `@/qa/AutoFixAgent` and `@/src/qa/ErrorBoundary` → `@/qa/ErrorBoundary`
+
+2. **Removed 8 duplicate files** from `src/` subdirectories:
+   - `src/contexts/TranslationContext.test.tsx` (226 lines)
+   - `src/i18n/I18nProvider.test.tsx` (304 lines)
+   - `src/providers/Providers.test.tsx` (197 lines)
+   - `src/providers/QAProvider.tsx`
+   - `src/core/RuntimeMonitor.tsx`
+   - `src/hooks/useUnsavedChanges.tsx`
+   - `src/qa/AutoFixAgent.tsx` (275 lines)
+   - `src/qa/ErrorBoundary.tsx` (17 lines)
+
+3. **Directories completely removed**:
+   - `src/contexts/` (empty after removal)
+   - `src/i18n/` (empty after removal)
+   - `src/providers/` (empty after removal)
+   - `src/core/` (empty after removal)
+   - `src/hooks/` (empty after removal)
+   - `src/qa/` (empty after removal)
+
+### Verification
+
+- ✅ TypeScript: 0 errors
+- ✅ All imports updated before removal
+- ✅ Canonical locations established: Root-level directories (`contexts/`, `i18n/`, `providers/`, `core/`, `hooks/`, `qa/`)
+
+## Phase 2: Model Consolidation Complete ✅
+
+**Date**: October 5, 2025
+
+### Actions Taken
+
+1. **Copied 8 unique finance models** from `src/db/models/` to `server/models/`:
+   - Benchmark.ts
+   - DiscountRule.ts
+   - Module.ts
+   - OwnerGroup.ts
+   - PaymentMethod.ts
+   - PriceBook.ts
+   - ServiceAgreement.ts
+   - Subscription.ts
+
+2. **Updated imports** in 2 files:
+   - `lib/paytabs/subscription.ts`: Changed from `../../src/db/models/` to `../../server/models/`
+   - `scripts/seed-subscriptions.ts`: Changed from `../src/db/models/` to `../server/models/`
+
+3. **Removed 24 duplicate models** from `src/db/models/`:
+   - Asset.ts, Category.ts, Contract.ts, Employee.ts, Equipment.ts
+   - Invoice.ts, MaintenanceSchedule.ts, Notification.ts, PurchaseOrder.ts
+   - Report.ts, Requisition.ts, Role.ts, Setting.ts, Task.ts, Tenant.ts
+   - Unit.ts, User.ts, Vendor.ts, WorkOrder.ts, Property.ts
+   - Candidate.ts, EmergencyContact.ts, FinancialRecord.ts, KPI.ts
+
+4. **Removed 3 duplicate contexts** from `src/contexts/`:
+   - ResponsiveContext.tsx
+   - ThemeContext.tsx
+   - TopBarContext.tsx
+
+5. **Removed 8 finance models** from `src/db/models/` (now in server/models/):
+   - All 8 unique finance models listed above
+
+### Verification
+
+- ✅ TypeScript: 0 errors
+- ✅ All imports resolved correctly
+- ✅ Canonical locations established: `server/models/` for all models, `contexts/` for all contexts
+
+---
+
+## Consolidated Duplicates
+
+### Session 1: PayTabs Integration (3 files)
+
+**Date:** 2025-10-05  
+**Pattern:** Identical files in `lib/` and `src/lib/`, `services/` and `src/services/`
+
+1. ✅ **lib/paytabs.ts** (CANONICAL) vs `src/lib/paytabs.ts` (REMOVED)
+   - **Status:** Identical duplicates
+   - **Action:** Deleted `src/lib/paytabs.ts`
+   - **Imports:** All use `@/lib/paytabs` (canonical)
+   - **Verification:** No broken imports
+
+2. ✅ **lib/paytabs.config.ts** (CANONICAL) vs `src/lib/paytabs.config.ts` (REMOVED)
+   - **Status:** Identical duplicates
+   - **Action:** Deleted `src/lib/paytabs.config.ts`
+   - **Imports:** All use canonical path
+   - **Verification:** No broken imports
+
+3. ✅ **services/paytabs.ts** (CANONICAL) vs `src/services/paytabs.ts` (REMOVED)
+   - **Status:** Identical duplicates
+   - **Action:** Deleted `src/services/paytabs.ts`
+   - **Imports:** All use `@/services/paytabs` (canonical)
+   - **Verification:** No broken imports
+
+### Session 2: Context Files (1 file confirmed, 3 pending)
+
+**Date:** 2025-10-05  
+**Pattern:** Identical files in `contexts/` and `src/contexts/`
+
+4. ✅ **contexts/CurrencyContext.tsx** (CANONICAL) vs `src/contexts/CurrencyContext.tsx` (REMOVED)
+   - **Status:** 100% identical (verified)
+   - **Action:** Deleted `src/contexts/CurrencyContext.tsx`
+   - **Imports:** None reference `src/contexts/` path
+   - **Verification:** No broken imports
+   - **Features:** SAR (﷼) currency icon using Unicode (governance compliant)
+
+5. 🔄 **contexts/ResponsiveContext.tsx** (CANONICAL) vs `src/contexts/ResponsiveContext.tsx` (PENDING REMOVAL)
+   - **Status:** 100% identical (verified)
+   - **Action:** Ready to delete `src/contexts/ResponsiveContext.tsx`
+   - **Imports:** None reference `src/contexts/` path (verified)
+   - **Lines:** 90 lines each
+
+6. ⏳ **contexts/ThemeContext.tsx** (CANONICAL) vs `src/contexts/ThemeContext.tsx` (TO VERIFY)
+   - **Status:** Needs verification
+   - **Action:** Pending comparison
+
+7. ⏳ **contexts/TopBarContext.tsx** (CANONICAL) vs `src/contexts/TopBarContext.tsx` (TO VERIFY)
+   - **Status:** Needs verification
+   - **Action:** Pending comparison
+
+---
+
+## Consolidation Pattern
+
+**Canonical Location Rule:**
+
+- ✅ `lib/` NOT `src/lib/`
+- ✅ `services/` NOT `src/services/`
+- ✅ `contexts/` NOT `src/contexts/`
+- ✅ `components/` NOT `src/components/`
+
+**Rationale:** Next.js 13+ App Router convention - no `src/` prefix needed
+
+---
+
+## Verification Steps (Per Duplicate)
+
+1. **Read both files** - Compare content
+2. **Check for differences** - Ensure 100% identical
+3. **Search imports** - Verify no references to non-canonical path
+4. **Remove duplicate** - Delete non-canonical file
+5. **Verify TypeScript** - Run typecheck to confirm no breaks
+6. **Document** - Log in this file
+
+---
+
+## High-Priority Remaining Duplicates
+
+From `docs/inventory/duplicate-names.txt`, prioritize:
+
+### Context Files (High Impact)
+
+- ⏳ TranslationContext.test.tsx (exists in both contexts/ and src/contexts/)
+- ⏳ Providers.tsx (if exists)
+- ⏳ Providers.test.tsx (if exists)
+
+### Model Files (High Impact)
+
+- ⏳ Property.ts
+- ⏳ WorkOrder.ts
+- ⏳ Subscription.ts
+- ⏳ Invoice.ts
+- ⏳ Tenant.ts
+- ⏳ User.ts
+- ⏳ Vendor.ts
+- ⏳ Order.ts
+- ⏳ Employee.ts
+- ⏳ Customer.ts
+
+### Test Files (Medium Impact)
+
+- ⏳ I18nProvider.test.tsx
+- ⏳ I18nProvider.tsx
+- ⏳ ErrorBoundary.tsx
+
+### Config Files (Low Impact but Easy Wins)
+
+- ⏳ .editorconfig
+- ⏳ .eslintrc
+- ⏳ Dockerfile
+- ⏳ README.md
+- ⏳ LICENSE files (multiple variants)
+
+---
+
+## Statistics
+
+### By Category
+
+- **Payment Integration:** 3 consolidated ✅
+- **Context Files:** 1 consolidated ✅, 3 pending 🔄
+- **Model Files:** 0 consolidated, ~20+ detected ⏳
+- **Test Files:** 0 consolidated, ~10+ detected ⏳
+- **Config Files:** 0 consolidated, ~10+ detected ⏳
+
+### Progress
+
+- **Completed:** 4 (0.37%)
+- **In Progress:** 3 (0.27%)
+- **Remaining:** 1,084 (99.36%)
+
+---
+
+## Next Steps
+
+1. **Complete context consolidation** - Finish ThemeContext, TopBarContext, test files
+2. **Model consolidation** - Critical for database integrity
+3. **Test file consolidation** - Ensure single test source
+4. **Config consolidation** - Remove duplicate configs
+
+---
+
+## Impact Assessment
+
+### Benefits Achieved
+
+- ✅ **Reduced ambiguity** - Single source of truth for PayTabs and Currency
+- ✅ **Simpler imports** - All use `@/lib`, `@/services`, `@/contexts` paths
+- ✅ **Less maintenance** - Fewer files to update
+- ✅ **Smaller codebase** - 4 files removed
+- ✅ **Governance compliance** - Unicode currency symbols verified
+
+### Risks Mitigated
+
+- ✅ **No broken imports** - Verified before deletion
+- ✅ **No functional changes** - Only removed duplicates
+- ✅ **TypeScript clean** - 0 errors maintained
+
+---
+
+## Automation Recommendation
+
+Create script: `scripts/consolidate-duplicates.sh`
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Pattern: Remove src/* duplicates when /* canonical exists
+
+CANONICAL_DIRS=("lib" "services" "contexts" "components")
+
+for dir in "${CANONICAL_DIRS[@]}"; do
+  if [ -d "$dir" ] && [ -d "src/$dir" ]; then
+    echo "🔍 Checking $dir vs src/$dir"
+    # Compare and remove if identical
+  fi
+done
+```
+
+---
+
+**Log maintained by Agent Governor**  
+**Pattern: Search → Compare → Verify → Remove → Document**
+
+]]>
+</file>
+
+<file path="docs/FINANCE_PACK_INTEGRATION_TODO.md">
+<![CDATA[
+# Finance Pack Integration - Comprehensive TODO
+
+## Status: NOT YET STARTED
+
+**Last Updated:** Phase 3 Completion  
+**Priority:** HIGH (Major Feature)  
+**Estimated Time:** 3-4 hours
+
+---
+
+## Overview
+
+The Finance Pack is a complete double-entry accounting system designed for Saudi market compliance with multi-currency support, escrow management, and integration with Aqar (real estate) and Marketplace modules.
+
+### Current State
+
+- ✅ Basic invoice service exists: `server/finance/invoice.service.ts`
+- ✅ Basic invoice schema exists: `server/finance/invoice.schema.ts`
+- ✅ Finance UI pages exist: `app/finance/` directory
+- ❌ NO double-entry accounting (no Chart of Accounts, Journals, Ledgers)
+- ❌ NO escrow management
+- ❌ NO integration with Aqar rent invoicing
+- ❌ NO integration with Marketplace order settlement
+
+---
+
+## Required Models
+
+### Core Accounting Models (NOT YET CREATED)
+
+1. **ChartAccount** (`server/models/finance/ChartAccount.ts`)
+
+   ```typescript
+   {
+     orgId: ObjectId,
+     code: string,        // "1000", "2000", etc.
+     name: { en: string, ar: string },
+     type: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE',
+     subtype: 'CURRENT' | 'FIXED' | 'CONTRA' | ...,
+     normalBalance: 'DEBIT' | 'CREDIT',
+     currency: string,
+     active: boolean,
+     isSystem: boolean,   // Platform-level accounts
+     parentId?: ObjectId  // For hierarchical COA
+   }
+   ```
+
+2. **Journal** (`server/models/finance/Journal.ts`)
+
+   ```typescript
+   {
+     orgId: ObjectId,
+     number: string,      // "JE-000001"
+     date: Date,
+     type: 'STANDARD' | 'ADJUSTMENT' | 'REVERSAL' | 'CLOSING',
+     description: string,
+     status: 'DRAFT' | 'POSTED' | 'VOID',
+     postings: [{
+       accountId: ObjectId,
+       debit: number,     // Minor units (cents)
+       credit: number,    // Minor units (cents)
+       currency: string,
+       fxRate: number,
+       memo: string,
+       dimensions: {
+         propertyId?: ObjectId,
+         unitId?: ObjectId,
+         workOrderId?: ObjectId,
+         leaseId?: ObjectId,
+         orderId?: ObjectId,
+         vendorId?: ObjectId
+       }
+     }],
+     reversalOf?: ObjectId,  // If this reverses another journal
+     reversedBy?: ObjectId,  // If reversed by another journal
+     createdBy: ObjectId,
+     postedBy?: ObjectId,
+     postedAt?: Date
+   }
+   ```
+
+3. **LedgerEntry** (`server/models/finance/LedgerEntry.ts`)
+   - Immutable records created from posted Journals
+   - Used for generating Trial Balance, Income Statement, Balance Sheet
+
+   ```typescript
+   {
+     orgId: ObjectId,
+     journalId: ObjectId,
+     accountId: ObjectId,
+     date: Date,
+     debit: number,
+     credit: number,
+     balance: number,    // Running balance
+     currency: string,
+     fxRate: number,
+     dimensions: { ... },
+     isReversal: boolean
+   }
+   ```
+
+4. **EscrowAccount** (`server/models/finance/EscrowAccount.ts`)
+
+   ```typescript
+   {
+     orgId: ObjectId,
+     accountId: ObjectId,  // Links to ChartAccount
+     type: 'TENANCY_DEPOSIT' | 'MARKETPLACE_ORDER',
+     linkedEntity: {
+       entityType: 'Lease' | 'MarketplaceOrder',
+       entityId: ObjectId
+     },
+     balance: number,      // Minor units
+     currency: string,
+     status: 'ACTIVE' | 'RELEASED' | 'FORFEITED',
+     transactions: [{
+       date: Date,
+       amount: number,
+       type: 'DEPOSIT' | 'RELEASE' | 'ADJUSTMENT',
+       journalId: ObjectId,
+       memo: string
+     }]
+   }
+   ```
+
+5. **Payment** (`server/models/finance/Payment.ts`)
+
+   ```typescript
+   {
+     orgId: ObjectId,
+     paymentNumber: string,
+     date: Date,
+     invoiceIds: [ObjectId],
+     amount: number,
+     currency: string,
+     method: 'CASH' | 'BANK_TRANSFER' | 'CARD' | 'CHECK',
+     status: 'PENDING' | 'CLEARED' | 'BOUNCED' | 'CANCELLED',
+     bankAccountId?: ObjectId,
+     reference?: string,
+     journalId?: ObjectId,  // Created when posted
+     createdBy: ObjectId
+   }
+   ```
+
+6. **Expense** (`server/models/finance/Expense.ts`)
+   ```typescript
+   {
+     orgId: ObjectId,
+     expenseNumber: string,
+     date: Date,
+     vendor?: ObjectId,
+     category: 'MATERIALS' | 'LABOR' | 'UTILITIES' | 'MAINTENANCE' | ...,
+     amount: number,
+     currency: string,
+     taxAmount: number,
+     total: number,
+     status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'PAID',
+     linkedEntity?: {
+       entityType: 'WorkOrder' | 'Property',
+       entityId: ObjectId
+     },
+     attachments: [{ url: string, name: string }],
+     journalId?: ObjectId,
+     createdBy: ObjectId,
+     approvedBy?: ObjectId
+   }
+   ```
+
+---
+
+## Required Services
+
+### Core Services (NOT YET CREATED)
+
+1. **postingService** (`server/finance/posting.service.ts`)
+   - `createJournal()` - Create draft journal entry
+   - `postJournal()` - Post journal (create ledger entries, mark immutable)
+   - `reverseJournal()` - Create reversal journal
+   - `balanceCheck()` - Verify debits = credits
+   - `updateLedger()` - Create ledger entries from postings
+
+2. **invoiceService** (ENHANCE EXISTING)
+   - `generateRentInvoice()` - Auto-generate from lease
+   - `postInvoiceToGL()` - Create journal entry when invoice posted
+   - `recordPayment()` - Link payment to invoice + create journal
+
+3. **paymentService** (`server/finance/payment.service.ts`)
+   - `recordPayment()` - Create payment record
+   - `clearPayment()` - Mark as cleared + post to GL
+   - `applyToInvoices()` - Allocate payment across multiple invoices
+
+4. **escrowService** (`server/finance/escrow.service.ts`)
+   - `createEscrow()` - Setup escrow account for lease/order
+   - `depositEscrow()` - Record deposit + create journal
+   - `releaseEscrow()` - Release funds + create journal
+   - `forfeitEscrow()` - Forfeit deposit (e.g., lease breach)
+
+5. **reportingService** (`server/finance/reporting.service.ts`)
+   - `trialBalance()` - Generate trial balance for period
+   - `incomeStatement()` - P&L report
+   - `balanceSheet()` - Assets = Liabilities + Equity
+   - `cashFlow()` - Operating/Investing/Financing activities
+   - `agingReport()` - AR aging by customer
+   - `ownerStatement()` - Property owner statement with rent/expenses
+
+6. **aqarService** (ENHANCE EXISTING)
+   - `generateRentInvoices()` - Batch generate for due leases
+   - `postRentReceipt()` - Record rent payment + post to GL
+   - `calculateOwnerPayout()` - Net rent - expenses - commission
+
+7. **marketplaceService** (ENHANCE EXISTING)
+   - `settleOrder()` - Release escrow + pay vendor + record commission
+   - `recordCommission()` - Create commission journal entry
+
+---
+
+## Event → Journal Posting Mappings
+
+### 1. Rent Invoice Generated
+
+```typescript
+// Dr: Accounts Receivable (propertyId dimension)
+// Cr: Rental Revenue (propertyId dimension)
+Postings: [
+  { accountId: AR, debit: rentAmount, dimensions: { propertyId, leaseId } },
+  {
+    accountId: RENTAL_REVENUE,
+    credit: rentAmount,
+    dimensions: { propertyId, leaseId },
+  },
+];
+```
+
+### 2. Rent Payment Received
+
+```typescript
+// Dr: Bank Account
+// Cr: Accounts Receivable
+Postings: [
+  { accountId: BANK_ACCOUNT, debit: amount },
+  { accountId: AR, credit: amount, dimensions: { propertyId, leaseId } },
+];
+```
+
+### 3. Security Deposit Received
+
+```typescript
+// Dr: Bank Account
+// Cr: Tenant Deposits Liability (escrow)
+Postings: [
+  { accountId: BANK_ACCOUNT, debit: depositAmount },
+  {
+    accountId: TENANT_DEPOSITS,
+    credit: depositAmount,
+    dimensions: { leaseId },
+  },
+];
+```
+
+### 4. Work Order Expense
+
+```typescript
+// Dr: Maintenance Expense (propertyId dimension)
+// Cr: Accounts Payable or Cash
+Postings: [
+  {
+    accountId: MAINTENANCE_EXPENSE,
+    debit: expenseAmount,
+    dimensions: { propertyId, workOrderId },
+  },
+  { accountId: AP_OR_CASH, credit: expenseAmount, dimensions: { vendorId } },
+];
+```
+
+### 5. Owner Payout
+
+```typescript
+// Dr: Rental Revenue (reduce owner's share)
+// Cr: Owner Payable
+Postings: [
+  { accountId: RENTAL_REVENUE, debit: ownerShare, dimensions: { propertyId } },
+  { accountId: OWNER_PAYABLE, credit: ownerShare, dimensions: { propertyId } },
+];
+```
+
+### 6. Marketplace Order Escrow
+
+```typescript
+// Dr: Cash (buyer payment)
+// Cr: Marketplace Escrow Liability
+Postings: [
+  { accountId: BANK_ACCOUNT, debit: orderTotal },
+  {
+    accountId: MARKETPLACE_ESCROW,
+    credit: orderTotal,
+    dimensions: { orderId },
+  },
+];
+```
+
+### 7. Marketplace Order Settlement
+
+```typescript
+// Dr: Marketplace Escrow Liability
+// Dr: Commission Expense
+// Cr: Vendor Payable
+// Cr: Commission Revenue
+Postings: [
+  { accountId: MARKETPLACE_ESCROW, debit: orderTotal, dimensions: { orderId } },
+  { accountId: COMMISSION_EXPENSE, debit: commission },
+  { accountId: VENDOR_PAYABLE, credit: vendorPayout, dimensions: { vendorId } },
+  { accountId: COMMISSION_REVENUE, credit: commission },
+];
+```
+
+---
+
+## Integration Points
+
+### 1. Aqar Module Integration
+
+- `app/api/v1/aqar/leases/[id]/rent-invoices/generate` → POST
+  - Trigger: Lease due date reached
+  - Action: Call `aqarService.generateRentInvoices()`
+  - Result: Invoice created + Journal posted (DR: AR, CR: Revenue)
+
+- `app/api/v1/aqar/leases/[id]/payments` → POST
+  - Trigger: Rent payment received
+  - Action: Call `paymentService.recordPayment()` + `postingService.createJournal()`
+  - Result: Payment recorded + Journal posted (DR: Cash, CR: AR)
+
+### 2. Marketplace Module Integration
+
+- `app/api/v1/marketplace/orders/[id]/settle` → POST
+  - Trigger: Order fulfilled + quality check passed
+  - Action: Call `marketplaceService.settleOrder()`
+  - Result: Escrow released + Vendor paid + Commission recorded
+
+### 3. Work Order Module Integration
+
+- `app/api/v1/work-orders/[id]/expenses` → POST
+  - Trigger: Expense submitted by technician
+  - Action: Call `expenseService.create()` + link to WO
+  - Result: Expense recorded with WO dimension
+
+---
+
+## Chart of Accounts Seed Data
+
+Default accounts to create on first setup:
+
+```typescript
+// Assets
+1000 - Cash
+1100 - Bank Account - Operating
+1200 - Accounts Receivable
+1300 - Tenant Deposits Held
+1400 - Marketplace Escrow
+
+// Liabilities
+2000 - Accounts Payable
+2100 - Tenant Deposits Liability
+2200 - Marketplace Escrow Liability
+2300 - Owner Payable
+2400 - Tax Payable (VAT)
+
+// Equity
+3000 - Owner's Capital
+3100 - Retained Earnings
+3200 - Current Year Earnings
+
+// Revenue
+4000 - Rental Revenue
+4100 - Commission Revenue - Aqar
+4200 - Commission Revenue - Marketplace
+4300 - Service Fees
+
+// Expenses
+5000 - Maintenance Expense
+5100 - Utilities Expense
+5200 - Property Management Fees
+5300 - Commission Expense - Marketplace
+5400 - Salaries & Wages
+5500 - Marketing Expense
+```
+
+---
+
+## API Routes to Create
+
+### Core Finance APIs
+
+- `POST /api/v1/finance/chart-accounts` - Create account
+- `GET /api/v1/finance/chart-accounts` - List accounts (with hierarchy)
+- `POST /api/v1/finance/journals` - Create journal entry
+- `POST /api/v1/finance/journals/:id/post` - Post journal to GL
+- `POST /api/v1/finance/journals/:id/reverse` - Create reversal
+- `GET /api/v1/finance/ledger` - Query ledger entries
+- `GET /api/v1/finance/reports/trial-balance` - Trial balance
+- `GET /api/v1/finance/reports/income-statement` - P&L
+- `GET /api/v1/finance/reports/balance-sheet` - Balance sheet
+
+### Payment APIs
+
+- `POST /api/v1/finance/payments` - Record payment
+- `POST /api/v1/finance/payments/:id/clear` - Clear payment
+
+### Escrow APIs
+
+- `POST /api/v1/finance/escrow` - Create escrow account
+- `POST /api/v1/finance/escrow/:id/deposit` - Deposit funds
+- `POST /api/v1/finance/escrow/:id/release` - Release funds
+
+### Integration APIs
+
+- `POST /api/v1/aqar/leases/:id/rent-invoices/generate` - Generate rent invoice
+- `POST /api/v1/aqar/leases/:id/payments` - Record rent payment
+- `POST /api/v1/marketplace/orders/:id/settle` - Settle marketplace order
+- `GET /api/v1/aqar/properties/:id/owner-statement` - Owner statement
+
+---
+
+## UI Components to Create
+
+### Finance Dashboard (`app/finance/page.tsx` - ENHANCE)
+
+- Key metrics: Total AR, Total AP, Cash balance, Monthly revenue
+- Charts: Revenue trend, Expense breakdown, AR aging
+
+### Chart of Accounts (`app/finance/chart-accounts/page.tsx`)
+
+- Tree view of accounts hierarchy
+- Add/Edit/Deactivate accounts
+- Balance display per account
+
+### Journal Entries (`app/finance/journals/page.tsx`)
+
+- List journals with filters (date, status, type)
+- Create manual journal entry
+- Post/Reverse actions
+
+### Reports (`app/finance/reports/`)
+
+- Trial Balance
+- Income Statement (P&L)
+- Balance Sheet
+- Cash Flow Statement
+- AR Aging Report
+- Owner Statements (property-specific)
+
+---
+
+## Migration Strategy
+
+### Phase 1: Setup (Week 1)
+
+1. Create all models with plugins (tenantIsolation + audit)
+2. Create seed script for Chart of Accounts
+3. Create postingService with balance validation
+4. Run migration on staging environment
+
+### Phase 2: Core Integration (Week 2)
+
+1. Enhance invoiceService with GL posting
+2. Create paymentService with journal creation
+3. Create escrowService for deposits
+4. Add event listeners for Aqar rent cycle
+
+### Phase 3: Marketplace Integration (Week 3)
+
+1. Add escrow to order creation
+2. Implement settlement workflow with journal posting
+3. Add commission calculation
+4. Test end-to-end order → payment → settlement
+
+### Phase 4: Reporting (Week 4)
+
+1. Implement reportingService
+2. Create financial statements
+3. Add owner statement generation
+4. Add AR aging report
+
+---
+
+## Testing Requirements
+
+### Unit Tests
+
+- Journal balance validation (debits = credits)
+- Currency conversion with fxRate
+- Reversal journal creation
+- Escrow release logic
+
+### Integration Tests
+
+- Rent invoice → Payment → GL posting
+- Work order expense → GL posting with dimensions
+- Marketplace order → Escrow → Settlement → Vendor payout
+
+### E2E Tests
+
+- Complete rent cycle (lease → invoice → payment → owner payout)
+- Complete marketplace order (create → pay → fulfill → settle)
+- Financial reports generation with real data
+
+---
+
+## Configuration
+
+### Environment Variables Required
+
+```bash
+FINANCE_ENABLE_AUTO_POSTING=true        # Auto-post journals on invoice/payment
+FINANCE_BASE_CURRENCY=SAR               # Default currency
+FINANCE_VAT_RATE=15                     # Saudi VAT rate (15%)
+FINANCE_COMMISSION_RATE_AQAR=10         # Aqar commission (10%)
+FINANCE_COMMISSION_RATE_MARKETPLACE=5   # Marketplace commission (5%)
+FINANCE_FISCAL_YEAR_START=01-01         # Fiscal year start (Jan 1)
+```
+
+---
+
+## Success Criteria
+
+✅ Chart of Accounts seeded with Saudi market structure  
+✅ All financial transactions create journal entries  
+✅ Trial Balance balances (debits = credits)  
+✅ Income Statement shows accurate revenue/expenses  
+✅ Balance Sheet balances (Assets = Liabilities + Equity)  
+✅ Owner statements generated correctly with rent/expenses  
+✅ Marketplace escrow lifecycle works end-to-end  
+✅ All journals have complete audit trail (who/when/what)  
+✅ Multi-currency support working with FX rates  
+✅ No breaking changes to existing invoice functionality
+
+---
+
+## Next Steps
+
+1. Review this document with finance domain expert
+2. Create `domain/finance/finance.behavior.ts` (similar to fm.behavior.ts)
+3. Create all models in `server/models/finance/`
+4. Create all services in `server/finance/`
+5. Create seed script in `scripts/seed-chart-accounts.ts`
+6. Create API routes in `app/api/v1/finance/`
+7. Create UI pages in `app/finance/`
+8. Write comprehensive tests
+9. Run on staging environment
+10. Deploy to production with migration plan
+
+]]>
+</file>
+
+<file path="docs/FIXZIT_AGENT_COMPLETION_REPORT.md">
+<![CDATA[
+# 🎉 Fixzit Agent System - Completion Report
+
+**Generated:** November 6, 2024  
+**Session:** Comprehensive File Organization + Task Categorization + Fixzit Agent Implementation  
+**Status:** ✅ COMPLETE
+
+---
+
+## 📋 Executive Summary
+
+Successfully implemented comprehensive repository stabilization system with three major phases:
+
+### Phase 1: File Organization ✅
+
+- **Reorganized:** 60+ documentation files
+- **Structured into:** 4 main directories (architecture/, development/, operations/, archive/)
+- **Result:** Clear, navigable documentation structure
+
+### Phase 2: Task Categorization ✅
+
+- **Created:** `CATEGORIZED_TASKS_LIST.md`
+- **Catalogued:** 45 tasks across 8 categories
+- **Estimated:** 62-74 hours total work
+- **Prioritized:** P0 blockers (143 failing tests, console statements)
+- **Sprint Planned:** 3 sprints with clear deliverables
+
+### Phase 3: Fixzit Agent Implementation ✅
+
+- **Created:** 7 comprehensive automation files
+- **Purpose:** Repository stabilization, duplicate detection, import normalization, E2E testing
+- **Total Size:** ~1,100 lines of production-ready code
+- **Integration:** Fully integrated with package.json scripts
+
+---
+
+## 🚀 Deliverables
+
+### 1. Administration Module (`app/administration/page.tsx`) ✅
+
+**Size:** 850+ lines  
+**Status:** Lint-clean, production-ready (pending API integration)
+
+**Features:**
+
+- ✅ RBAC protection (Super Admin + Corporate Admin only)
+- ✅ Four main sections: Users, Roles, Audit Logs, Settings
+- ✅ Full CRUD operations with state management
+- ✅ API integration structure (documented with TODO markers)
+- ✅ Loading/Error/Success states
+- ✅ RTL-compliant styling (uses `start`/`end` instead of `left`/`right`)
+- ✅ Accessibility (ARIA labels, semantic HTML)
+- ✅ Mock data for development
+
+**Next Steps:**
+
+1. Replace `useAuth()` mock with actual hook from `@/hooks/useAuth`
+2. Implement real API endpoints:
+   - GET/POST/PUT/DELETE `/api/org/users`
+   - GET `/api/org/roles`
+   - GET `/api/audit/logs`
+   - GET/PUT `/api/system/settings`
+
+### 2. Fixzit Agent Main Script (`scripts/fixzit-agent.mjs`) ✅
+
+**Size:** 500+ lines  
+**Executable:** ✅ chmod +x applied
+
+**Capabilities:**
+
+- ✅ Package manager detection (pnpm/yarn/npm)
+- ✅ Automatic tooling installation (ESLint, TypeScript, jscodeshift, Playwright)
+- ✅ Baseline checks (git status, build test)
+- ✅ Git safety (automatic feature branch creation)
+- ✅ Mine recent fixes (5-day git log analysis)
+- ✅ Sweep similar issues (8 heuristic patterns)
+- ✅ Static analysis (ESLint + TypeScript before/after)
+- ✅ Duplicate audit (SHA-1 hash + name collision detection)
+- ✅ Generate Gov V5 move plan (14 canonical buckets)
+- ✅ Apply codemods (import rewrite + console replacement)
+- ✅ Keep-alive dev server (background PID tracking)
+- ✅ Comprehensive reporting (JSON + Markdown)
+
+**Usage:**
+
+```bash
+pnpm run fixzit:agent              # Dry run (analysis only)
+pnpm run fixzit:agent:apply        # Apply changes (creates branch)
+pnpm run fixzit:agent:stop         # Stop dev server
+```
+
+**Flags:**
+
+- `--apply` - Execute file moves and codemods
+- `--report` - Generate comprehensive reports
+- `--since N` - Analyze fixes from N days ago (default: 5)
+- `--port N` - Dev server port (default: 3000)
+- `--no-keep-alive` - Don't start dev server after completion
+
+### 3. Import Rewrite Codemod (`scripts/codemods/import-rewrite.cjs`) ✅
+
+**Size:** 100+ lines
+
+**Transforms:**
+
+- `@/src/...` → `@/...` (removes redundant `/src`)
+- `../../../...` → `@/...` (deep relatives to aliases)
+- Preserves existing valid `@/...` aliases
+- Handles: import declarations, dynamic imports, require() calls
+
+**Usage:**
+
+```bash
+npx jscodeshift -t scripts/codemods/import-rewrite.cjs app/ --parser=tsx
+```
+
+### 4. Console Replacement Codemod (`scripts/codemods/replace-console.cjs`) ✅
+
+**Size:** 80+ lines
+
+**Transforms:**
+
+- `console.log` → `logger.info`
+- `console.warn` → `logger.warn`
+- `console.error` → `logger.error`
+- `console.info` → `logger.info`
+- `console.debug` → `logger.debug`
+
+**Auto-Injection:**
+
+- Adds `import { logger } from '@/lib/logger'` if not present
+- Merges with existing imports if already present
+
+**Usage:**
+
+```bash
+npx jscodeshift -t scripts/codemods/replace-console.cjs app/ --parser=tsx
+```
+
+### 5. i18n Parity Audit Script (`scripts/i18n-scan.mjs`) ✅
+
+**Size:** 150+ lines  
+**Executable:** ✅ chmod +x applied
+
+**Capabilities:**
+
+- ✅ Loads `i18n/en.json` and `i18n/ar.json`
+- ✅ Flattens nested keys (e.g., `WORK_ORDERS.CREATE_NEW`)
+- ✅ Detects keys only in English (missing Arabic translations)
+- ✅ Detects keys only in Arabic (missing English translations)
+- ✅ Scans source code for translation key usage
+- ✅ Finds keys used in code but missing from both locales
+- ✅ Generates comprehensive JSON report
+
+**Output:** `reports/i18n-missing.json`
+
+**Usage:**
+
+```bash
+node scripts/i18n-scan.mjs
+pnpm run scan:i18n
+```
+
+### 6. API Endpoint Scanner (`scripts/api-scan.mjs`) ✅
+
+**Size:** 100+ lines  
+**Executable:** ✅ chmod +x applied
+
+**Capabilities:**
+
+- ✅ Discovers all Next.js App Router API routes (`**/route.{ts,js}`)
+- ✅ Extracts exported HTTP methods (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS)
+- ✅ Generates route path from directory structure
+- ✅ Counts endpoints by HTTP method
+- ✅ Comprehensive inventory report
+
+**Output:** `reports/api-endpoint-scan.json`
+
+**Usage:**
+
+```bash
+node scripts/api-scan.mjs
+```
+
+### 7. Stop Dev Server Utility (`scripts/stop-dev.js`) ✅
+
+**Size:** 50+ lines  
+**Executable:** ✅ chmod +x applied
+
+**Capabilities:**
+
+- ✅ Reads PID from `.agent-cache/dev.pid`
+- ✅ Sends SIGTERM (graceful shutdown)
+- ✅ Waits 5 seconds
+- ✅ Sends SIGKILL (force kill) if still running
+- ✅ Cleans up PID file
+- ✅ Handles stale PID files
+
+**Usage:**
+
+```bash
+node scripts/stop-dev.js
+pnpm run fixzit:agent:stop
+```
+
+### 8. HFV E2E Test Suite (`tests/hfv.e2e.spec.ts`) ✅
+
+**Size:** 150+ lines
+
+**Test Matrix:**
+
+- ✅ 9 roles × 13 critical pages = 117 test scenarios
+- ✅ Role-based access control (RBAC) verification
+- ✅ Zero console error tolerance
+- ✅ Screenshot evidence capture
+- ✅ Expect 403/404 for unauthorized access
+- ✅ Mock authentication for each role
+
+**Roles:**
+
+- Super Admin
+- Corporate Admin
+- Property Manager
+- Technician
+- Tenant
+- Vendor
+- Service Provider
+- Finance Team
+- Guest
+
+**Critical Pages:**
+
+- Dashboard, Work Orders, Properties, Finance, HR
+- Administration, CRM, Marketplace, Support
+- Compliance, Reports, Login, Landing Page
+
+**Output:** `reports/evidence/*.png` (screenshot evidence)
+
+**Usage:**
+
+```bash
+npx playwright test tests/hfv.e2e.spec.ts
+pnpm run test:e2e tests/hfv.e2e.spec.ts
+```
+
+---
+
+## 📊 Storage & Performance
+
+**Current Usage:**
+
+- Project Size: 3.0GB (unchanged from start)
+- Available Space: 23GB (72% free)
+- Utilization: 23% ✅ HEALTHY
+
+**New Files Added:**
+
+- Total: 7 files
+- Total Size: ~50KB (negligible impact)
+- Estimated Memory Optimized: ✅ All scripts use streaming/chunked processing
+
+**Build Status:**
+
+- Lint Errors: 0 (all files lint-clean)
+- TypeScript Errors: Not blocking (api-scan.mjs JSDoc false positives)
+- Admin Module: Production-ready
+
+---
+
+## 🎯 Priority Blockers (P0)
+
+From `CATEGORIZED_TASKS_LIST.md`:
+
+### 1. Fix 143 Failing Tests ⏸️ PENDING
+
+**Category:** Testing & QA  
+**Priority:** P0  
+**Estimated Time:** 4-6 hours  
+**Blocker Impact:** Blocks all PR merges
+
+**Tests Failing:**
+
+- RBAC tests
+- Secret scan tests
+
+**Action Required:** Run test suite, fix failures before applying fixzit-agent changes
+
+### 2. Console Statements Phase 3 ⏸️ PENDING
+
+**Category:** Code Quality  
+**Priority:** P0  
+**Estimated Time:** 3-4 hours  
+**Blocker Impact:** Production logs polluted
+
+**Affected Files:** ~50 app pages  
+**Solution Ready:** ✅ Console replacement codemod created (`scripts/codemods/replace-console.cjs`)
+
+**Action Required:**
+
+```bash
+# After tests are green:
+npx jscodeshift -t scripts/codemods/replace-console.cjs app/ --parser=tsx --extensions=ts,tsx,js,jsx
+git add .
+git commit -m "chore: replace console with logger across app/ (Phase 3)"
+```
+
+---
+
+## 🚦 Execution Workflow
+
+### Phase A: Dry-Run Analysis (Next Session)
+
+```bash
+# 1. Run fixzit agent in dry-run mode
+pnpm run fixzit:agent
+
+# 2. Review generated reports
+cat reports/fixes_5d.json
+cat reports/similar_hits.json
+cat reports/duplicates.json
+cat reports/move-plan.json
+cat reports/5d_similarity_report.md
+cat reports/i18n-missing.json
+cat reports/api-endpoint-scan.json
+cat tasks/TODO_flat.json
+
+# 3. Review static analysis logs
+cat reports/eslint_initial.log
+cat reports/tsc_initial.log
+cat reports/build-initial.log
+```
+
+**Expected Outputs:**
+
+- `reports/fixes_5d.json` - Recent commit history (5 days)
+- `reports/similar_hits.json` - Potential issues found by heuristics
+- `reports/duplicates.json` - Hash + name collision detection
+- `reports/move-plan.json` - Proposed file moves (Gov V5)
+- `reports/eslint_initial.log` - Initial lint results
+- `reports/tsc_initial.log` - Initial TypeScript results
+- `reports/i18n-missing.json` - Missing translation keys
+- `reports/api-endpoint-scan.json` - API endpoint inventory
+- `reports/5d_similarity_report.md` - Comprehensive Markdown report
+- `tasks/TODO_flat.json` - Flat task list from heuristics
+
+### Phase B: Fix P0 Blockers ⚠️ CRITICAL
+
+```bash
+# 1. Run test suite to identify failing tests
+pnpm run test
+
+# 2. Fix 143 failing tests
+# (Manual work: 4-6 hours)
+
+# 3. Verify tests are green
+pnpm run test
+# Expected: All tests passing ✅
+
+# 4. Run console replacement codemod
+npx jscodeshift -t scripts/codemods/replace-console.cjs app/ --parser=tsx
+git add .
+git commit -m "chore: replace console with logger (Phase 3 - P0 blocker)"
+
+# 5. Verify build
+pnpm run build
+# Expected: Build succeeds ✅
+```
+
+### Phase C: Apply Fixzit Agent (After Tests Green) ✅
+
+```bash
+# 1. Run fixzit agent in apply mode
+pnpm run fixzit:agent:apply
+
+# This will:
+# - Create feature branch (fixzit-agent/TIMESTAMP)
+# - Move files according to Gov V5 plan
+# - Run import rewrite codemod
+# - Commit changes
+# - Keep-alive dev server starts in background
+
+# 2. Review changes
+git log -1
+git diff HEAD~1
+
+# 3. Run tests again
+pnpm run test
+
+# 4. Review static analysis (after)
+cat reports/eslint_after.log
+cat reports/tsc_after.log
+
+# 5. Run HFV E2E tests
+npx playwright test tests/hfv.e2e.spec.ts
+
+# 6. Review evidence screenshots
+ls -lh reports/evidence/
+
+# 7. Push changes and create PR
+git push -u origin HEAD
+gh pr create --fill --draft --title "fixzit-agent: Gov V5 structure + import normalization"
+```
+
+### Phase D: Stop Dev Server (When Done)
+
+```bash
+pnpm run fixzit:agent:stop
+```
+
+---
+
+## 📁 File Structure Summary
+
+### Created Files
+
+```
+/workspaces/Fixzit/
+├── app/
+│   └── administration/
+│       └── page.tsx                          ✅ (850+ lines)
+├── scripts/
+│   ├── fixzit-agent.mjs                      ✅ (500+ lines, executable)
+│   ├── i18n-scan.mjs                         ✅ (150+ lines, executable)
+│   ├── api-scan.mjs                          ✅ (100+ lines, executable)
+│   ├── stop-dev.js                           ✅ (50+ lines, executable)
+│   └── codemods/
+│       ├── import-rewrite.cjs                ✅ (100+ lines)
+│       └── replace-console.cjs               ✅ (80+ lines)
+├── tests/
+│   └── hfv.e2e.spec.ts                       ✅ (150+ lines)
+├── CATEGORIZED_TASKS_LIST.md                 ✅ (45 tasks, 8 categories)
+└── FIXZIT_AGENT_COMPLETION_REPORT.md         ✅ (This file)
+```
+
+### Modified Files
+
+```
+package.json                                  ✅ (Added 3 fixzit:agent scripts)
+```
+
+### Generated Reports (After Dry-Run)
+
+```
+reports/
+├── fixes_5d.json                             ⏸️ (Generated by fixzit:agent)
+├── similar_hits.json                         ⏸️ (Generated by fixzit:agent)
+├── duplicates.json                           ⏸️ (Generated by fixzit:agent)
+├── move-plan.json                            ⏸️ (Generated by fixzit:agent)
+├── eslint_initial.log                        ⏸️ (Generated by fixzit:agent)
+├── tsc_initial.log                           ⏸️ (Generated by fixzit:agent)
+├── build-initial.log                         ⏸️ (Generated by fixzit:agent)
+├── i18n-missing.json                         ⏸️ (Generated by i18n-scan)
+├── api-endpoint-scan.json                    ⏸️ (Generated by api-scan)
+├── 5d_similarity_report.md                   ⏸️ (Generated by fixzit:agent)
+└── evidence/                                 ⏸️ (Generated by HFV E2E tests)
+    └── *.png                                    (Screenshot evidence)
+```
+
+---
+
+## ✅ Verification Checklist
+
+- [x] All 7 scripts created and executable
+- [x] Admin module created with RBAC and API structure
+- [x] All files lint-clean (0 errors)
+- [x] Package.json updated with new scripts
+- [x] Storage usage healthy (23% utilization)
+- [x] Git status clean
+- [x] File permissions set correctly (chmod +x)
+- [ ] Dry-run executed (pnpm run fixzit:agent) - **NEXT SESSION**
+- [ ] Reports generated and reviewed - **NEXT SESSION**
+- [ ] P0 blockers fixed (143 tests) - **NEXT SESSION**
+- [ ] Console codemod applied - **NEXT SESSION**
+- [ ] Apply mode executed (pnpm run fixzit:agent:apply) - **NEXT SESSION**
+- [ ] HFV E2E tests executed - **NEXT SESSION**
+- [ ] PR created and reviewed - **NEXT SESSION**
+
+---
+
+## 🎓 Key Decisions & Rationale
+
+### 1. Why Governance V5 Structure?
+
+**Decision:** Use 14 canonical buckets (app/dashboard, app/work-orders, etc.)  
+**Rationale:**
+
+- Aligns with Next.js App Router conventions
+- Domain-driven design (DDD) principles
+- Clear separation of concerns
+- Easy to navigate for new developers
+- Scalable for future modules
+
+### 2. Why Codemods?
+
+**Decision:** Use jscodeshift for automated refactoring  
+**Rationale:**
+
+- Safe: AST-based transformations (not regex)
+- Reliable: Preserves code structure
+- Fast: Processes hundreds of files in seconds
+- Testable: Can dry-run before applying
+- Industry standard: Used by React, Babel, Next.js teams
+
+### 3. Why Keep-Alive Dev Server?
+
+**Decision:** Start dev server in detached background process  
+**Rationale:**
+
+- Instant feedback: See changes immediately
+- E2E testing: HFV tests require running server
+- Convenience: No manual server management
+- Safety: PID file enables clean shutdown
+
+### 4. Why Zero Console Error Tolerance in E2E?
+
+**Decision:** Fail tests on any console error  
+**Rationale:**
+
+- Production quality: Console errors indicate real issues
+- Early detection: Catch bugs before deployment
+- Compliance: Matches P0 blocker (console statements)
+- Best practice: Industry standard for E2E tests
+
+### 5. Why Mock Authentication in HFV?
+
+**Decision:** Use mock tokens, localStorage, and API interception  
+**Rationale:**
+
+- Test isolation: Don't depend on real auth backend
+- Speed: No network latency
+- Reliability: No flaky auth timeouts
+- Coverage: Test all 9 roles without 9 real users
+
+---
+
+## 📚 Documentation References
+
+### Related Documents
+
+- `CATEGORIZED_TASKS_LIST.md` - Comprehensive task roadmap
+- `README_START_HERE.md` - Project overview
+- `READY_TO_START.md` - Development setup guide
+- `START_3_HOUR_TESTING.md` - E2E testing workflow
+- `docs/architecture/ARCHITECTURE.md` - System architecture
+- `docs/development/DEPENDENCIES.md` - Dependency management
+- `docs/operations/GITHUB_SECRETS_SETUP_PRODUCTION.md` - CI/CD setup
+
+### Package.json Scripts (Updated)
+
+```json
+{
+  "scripts": {
+    "fixzit:agent": "node scripts/fixzit-agent.mjs --report",
+    "fixzit:agent:apply": "node scripts/fixzit-agent.mjs --apply --report",
+    "fixzit:agent:stop": "node scripts/stop-dev.js",
+    "scan:i18n": "node tests/i18n-scan.mjs"
+  }
+}
+```
+
+---
+
+## 🚀 Next Actions (Priority Order)
+
+### Immediate (Next Session)
+
+1. **Run Dry-Run Analysis** ⏸️
+
+   ```bash
+   pnpm run fixzit:agent
+   ```
+
+   - Review all generated reports
+   - Identify issues from heuristics
+   - Review move plan
+
+2. **Fix P0 Blockers** ⚠️ CRITICAL
+   - Fix 143 failing tests (4-6 hours)
+   - Run console replacement codemod (30 minutes)
+   - Verify tests green
+
+3. **Execute Apply Mode** ✅
+
+   ```bash
+   pnpm run fixzit:agent:apply
+   ```
+
+   - Review file moves
+   - Verify imports normalized
+   - Test build succeeds
+
+4. **Run HFV E2E Tests** 🧪
+
+   ```bash
+   npx playwright test tests/hfv.e2e.spec.ts
+   ```
+
+   - Review evidence screenshots
+   - Verify RBAC enforcement
+   - Check for console errors
+
+### Short Term (This Week)
+
+5. **Replace Admin Module Placeholders**
+   - Implement real `useAuth()` hook
+   - Create API endpoints:
+     - `/api/org/users` (GET, POST, PUT, DELETE)
+     - `/api/org/roles` (GET)
+     - `/api/audit/logs` (GET)
+     - `/api/system/settings` (GET, PUT)
+
+6. **Navigation Accessibility** (P1)
+   - 2-3 hours
+   - See `CATEGORIZED_TASKS_LIST.md` Task 3.1
+
+7. **Monitoring Integration** (P1)
+   - 3-4 hours
+   - See `CATEGORIZED_TASKS_LIST.md` Task 4.1
+
+### Medium Term (Next Sprint)
+
+8. **Email Notification Service** (P1)
+   - 3 hours
+   - See `CATEGORIZED_TASKS_LIST.md` Task 4.2
+
+9. **PayTabs Integration** (P2)
+   - 4-6 hours
+   - See `CATEGORIZED_TASKS_LIST.md` Task 6.2
+
+10. **Implementation Guide Tasks 4-15**
+    - 12 features, 15-20 hours
+    - See `docs/archive/reports/IMPLEMENTATION_GUIDE.md`
+
+---
+
+## 🎯 Success Metrics
+
+### Technical Metrics (Achieved)
+
+- ✅ 0 lint errors in new code
+- ✅ 7 scripts created (100% complete)
+- ✅ 850+ lines of production-ready admin module
+- ✅ 1,100+ lines of automation code
+- ✅ 23% storage utilization (healthy)
+- ✅ 100% code coverage in codemods (handles all import types)
+
+### Quality Metrics (Target)
+
+- ⏸️ 0 console statements in app/ (after codemod)
+- ⏸️ 100% test pass rate (after P0 fix)
+- ⏸️ 117 E2E test scenarios executed (after HFV run)
+- ⏸️ 100% i18n parity (en ↔ ar) (after translation work)
+- ⏸️ 0 duplicate files (after move plan applied)
+
+### Developer Experience (Achieved)
+
+- ✅ One-command dry-run analysis (`pnpm run fixzit:agent`)
+- ✅ One-command apply mode (`pnpm run fixzit:agent:apply`)
+- ✅ One-command server stop (`pnpm run fixzit:agent:stop`)
+- ✅ Comprehensive reports (JSON + Markdown)
+- ✅ Screenshot evidence for debugging
+- ✅ Automatic branch creation (safety)
+
+---
+
+## 🙏 Acknowledgments
+
+**Based on User Requirements:**
+
+- 🟡 Yellow Assessment: Admin module must be fully integrated with API and RBAC
+- 🔴 Red Assessment: Critical P0 blockers must be addressed
+- Comprehensive Fixzit Agent stabilization system specification
+
+**Aligned with Project Goals:**
+
+- Gov V5 modular architecture
+- RBAC-first security model
+- RTL-first i18n compliance
+- Zero console error tolerance
+- Production-ready code quality
+
+**Tools & Technologies:**
+
+- Next.js 14+ (App Router)
+- TypeScript (strict mode)
+- jscodeshift (codemods)
+- Playwright (E2E testing)
+- ESLint + TypeScript (static analysis)
+- pnpm (package manager)
+
+---
+
+## 📞 Support & Feedback
+
+**Questions?**
+
+- Review `CATEGORIZED_TASKS_LIST.md` for task details
+- Review `README_START_HERE.md` for project overview
+- Review `docs/architecture/ARCHITECTURE.md` for system design
+
+**Issues?**
+
+- Check `reports/eslint_initial.log` for lint errors
+- Check `reports/tsc_initial.log` for TypeScript errors
+- Check `reports/build-initial.log` for build issues
+- Check `reports/evidence/*.png` for visual debugging
+
+**Next Steps?**
+
+- Follow execution workflow in this document
+- Start with dry-run analysis
+- Fix P0 blockers before apply mode
+- Create PR after verification
+
+---
+
+**Generated by GitHub Copilot**  
+**Session Date:** November 6, 2024  
+**Agent Governor:** Fixzit Agent v1.0  
+**Compliance:** READY_TO_START.md ✅
+
+🎉 **CONGRATULATIONS! Fixzit Agent System Implementation Complete!** 🎉
+
+]]>
+</file>
+
+<file path="docs/FIXZIT_AGENT_QUICKSTART.md">
+<![CDATA[
+# 🚀 Fixzit Agent - Quick Start Guide
+
+**One-page reference for executing the Fixzit Agent stabilization system**
+
+---
+
+## 📦 What Was Created?
+
+✅ **8 Files Total:**
+
+1. `app/administration/page.tsx` - Admin module (850+ lines, RBAC protected)
+2. `scripts/fixzit-agent.mjs` - Main orchestration (500+ lines)
+3. `scripts/codemods/import-rewrite.cjs` - Import path normalization
+4. `scripts/codemods/replace-console.cjs` - Console → logger replacement
+5. `scripts/i18n-scan.mjs` - Translation parity audit
+6. `scripts/api-scan.mjs` - API endpoint scanner
+7. `scripts/stop-dev.js` - Dev server shutdown utility
+8. `tests/hfv.e2e.spec.ts` - Halt-Fix-Verify E2E tests (117 scenarios)
+
+✅ **1 File Modified:**
+
+- `package.json` - Added 3 new scripts
+
+✅ **2 Documentation Files:**
+
+- `CATEGORIZED_TASKS_LIST.md` - 45 tasks across 8 categories
+- `FIXZIT_AGENT_COMPLETION_REPORT.md` - Comprehensive delivery report
+
+---
+
+## ⚡ Quick Commands
+
+### Run Dry-Run Analysis (Safe, No Changes)
+
+```bash
+pnpm run fixzit:agent
+```
+
+**This will:**
+
+- Analyze recent fixes (5 days)
+- Scan for similar issues
+- Check for duplicates
+- Generate move plan
+- Run static analysis
+- Generate comprehensive reports
+
+**Output:** `reports/*.{json,log,md}`
+
+---
+
+### Fix P0 Blockers (REQUIRED Before Apply)
+
+```bash
+# 1. Run tests to see failures
+pnpm run test
+
+# 2. Fix 143 failing tests (manual work: 4-6 hours)
+# ... fix test files ...
+
+# 3. Verify tests pass
+pnpm run test
+
+# 4. Run console replacement codemod (IMPORTANT: Only after tests pass)
+npx jscodeshift -t scripts/codemods/replace-console.cjs app/ --parser=tsx --extensions=ts,tsx
+
+# 5. Commit
+git add .
+git commit -m "chore: replace console with logger (Phase 3 P0)"
+
+# 6. Verify build
+pnpm run build
+```
+
+---
+
+### Apply Mode (After Tests Green)
+
+```bash
+pnpm run fixzit:agent:apply
+```
+
+**⚠️ WARNING:** This creates a new branch and moves files!
+
+**This will:**
+
+- Create feature branch `fixzit-agent/TIMESTAMP`
+- Move files per Gov V5 structure
+- Run import rewrite codemod
+- Commit changes
+- Start keep-alive dev server
+
+---
+
+### Run E2E Tests
+
+```bash
+npx playwright test tests/hfv.e2e.spec.ts
+```
+
+**This will:**
+
+- Test 9 roles × 13 pages = 117 scenarios
+- Verify RBAC enforcement
+- Check for console errors
+- Capture screenshot evidence
+
+**Output:** `reports/evidence/*.png`
+
+---
+
+### Stop Dev Server
+
+```bash
+pnpm run fixzit:agent:stop
+```
+
+---
+
+## 📊 Check Reports
+
+After running dry-run:
+
+```bash
+# Main similarity report
+cat reports/5d_similarity_report.md
+
+# Recent fixes (5 days)
+cat reports/fixes_5d.json
+
+# Potential issues
+cat reports/similar_hits.json
+
+# Duplicate files
+cat reports/duplicates.json
+
+# Move plan
+cat reports/move-plan.json
+
+# i18n missing keys
+cat reports/i18n-missing.json
+
+# API endpoints
+cat reports/api-endpoint-scan.json
+
+# Static analysis
+cat reports/eslint_initial.log
+cat reports/tsc_initial.log
+```
+
+---
+
+## 🚦 Recommended Workflow
+
+### Step 1: Dry-Run (10 minutes)
+
+```bash
+pnpm run fixzit:agent
+cat reports/5d_similarity_report.md
+```
+
+### Step 2: Fix P0 Blockers (4-6 hours) ⚠️ CRITICAL
+
+```bash
+pnpm run test                        # See failures
+# ... fix tests ...
+pnpm run test                        # Verify green ✅
+npx jscodeshift -t scripts/codemods/replace-console.cjs app/ --parser=tsx
+git add . && git commit -m "chore: P0 fixes"
+pnpm run build                       # Verify build ✅
+```
+
+### Step 3: Apply Mode (5 minutes)
+
+```bash
+pnpm run fixzit:agent:apply
+git log -1                           # Review commit
+git diff HEAD~1                      # Review changes
+```
+
+### Step 4: E2E Tests (15 minutes)
+
+```bash
+npx playwright test tests/hfv.e2e.spec.ts
+ls -lh reports/evidence/             # Review screenshots
+```
+
+### Step 5: Create PR
+
+```bash
+git push -u origin HEAD
+gh pr create --fill --draft --title "fixzit-agent: Gov V5 + import normalization"
+```
+
+### Step 6: Stop Server
+
+```bash
+pnpm run fixzit:agent:stop
+```
+
+---
+
+## 🎯 P0 Blockers (Must Fix Before Apply)
+
+### 1. 143 Failing Tests
+
+- **Priority:** P0
+- **Time:** 4-6 hours
+- **Impact:** Blocks all merges
+- **Action:** Run `pnpm run test`, fix failures
+
+### 2. Console Statements Phase 3
+
+- **Priority:** P0
+- **Time:** 30 minutes (automated via codemod)
+- **Impact:** Production logs polluted
+- **Action:** Run console replacement codemod (see Step 2 above)
+
+---
+
+## 🔍 Heuristics Detected (8 Patterns)
+
+The agent scans for:
+
+1. Hydration/Server-Client mismatch
+2. Undefined property access
+3. i18n/RTL issues (`text-left`, `pl-`, etc.)
+4. Fragile relative imports (`../../../`)
+5. Alias misuse (`@/src/`)
+6. NextResponse usage
+7. TypeScript assignability issues
+8. Unhandled promise rejections
+
+**Output:** `reports/similar_hits.json` + `tasks/TODO_flat.json`
+
+---
+
+## 📁 Gov V5 Canonical Buckets (14 Total)
+
+Files will be moved to:
+
+- `app/dashboard`
+- `app/work-orders`
+- `app/properties`
+- `app/finance`
+- `app/hr`
+- `app/administration`
+- `app/crm`
+- `app/marketplace`
+- `app/support`
+- `app/compliance`
+- `app/reports`
+- `app/system`
+- `components`
+- `components/navigation`
+
+**Output:** `reports/move-plan.json`
+
+---
+
+## 🛠️ Codemod Details
+
+### Import Rewrite
+
+```bash
+npx jscodeshift -t scripts/codemods/import-rewrite.cjs app/ --parser=tsx
+```
+
+**Transforms:**
+
+- `@/src/foo` → `@/foo`
+- `../../../lib/bar` → `@/lib/bar`
+
+### Console Replacement
+
+```bash
+npx jscodeshift -t scripts/codemods/replace-console.cjs app/ --parser=tsx
+```
+
+**Transforms:**
+
+- `console.log` → `logger.info`
+- `console.warn` → `logger.warn`
+- `console.error` → `logger.error`
+
+**Auto-adds:** `import { logger } from '@/lib/logger'`
+
+---
+
+## 📞 Troubleshooting
+
+### Issue: "PID file not found"
+
+**Solution:** Dev server not running. Ignore or start manually.
+
+### Issue: "Working directory not clean"
+
+**Solution:** Commit or stash changes before running `--apply` mode.
+
+### Issue: "Tests failing"
+
+**Solution:** Fix P0 blockers first. See Step 2 in workflow.
+
+### Issue: "Import errors after apply"
+
+**Solution:** Run import rewrite codemod again:
+
+```bash
+npx jscodeshift -t scripts/codemods/import-rewrite.cjs app/ --parser=tsx
+```
+
+### Issue: "Build fails after apply"
+
+**Solution:** Check TypeScript errors:
+
+```bash
+cat reports/tsc_after.log
+pnpm exec tsc --noEmit
+```
+
+---
+
+## ✅ Success Checklist
+
+Before marking complete:
+
+- [ ] Dry-run executed (`pnpm run fixzit:agent`)
+- [ ] Reports reviewed (`reports/*.{json,md}`)
+- [ ] P0 blockers fixed (143 tests + console statements)
+- [ ] Tests green (`pnpm run test`)
+- [ ] Build succeeds (`pnpm run build`)
+- [ ] Apply mode executed (`pnpm run fixzit:agent:apply`)
+- [ ] E2E tests executed (`npx playwright test tests/hfv.e2e.spec.ts`)
+- [ ] Evidence reviewed (`reports/evidence/*.png`)
+- [ ] PR created (`gh pr create --fill --draft`)
+
+---
+
+## 📚 Full Documentation
+
+See `FIXZIT_AGENT_COMPLETION_REPORT.md` for:
+
+- Comprehensive feature list
+- Technical architecture
+- Detailed usage examples
+- Decision rationale
+- Success metrics
+
+---
+
+**Generated:** November 6, 2024  
+**Version:** Fixzit Agent v1.0  
+**Storage:** 3.0GB / 23GB available (23% utilization) ✅
+
+🚀 **Ready to execute!** Start with Step 1 (Dry-Run) above.
+
+]]>
+</file>
+
+</batch_content>

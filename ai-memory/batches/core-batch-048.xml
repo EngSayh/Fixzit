@@ -1,0 +1,3159 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="components/finance/TrialBalanceReport.tsx">
+<![CDATA[
+"use client";
+
+import React, { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Select, SelectItem } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import {
+  AlertTriangle,
+  Loader2,
+  RefreshCw,
+  Download,
+  CheckCircle,
+  XCircle,
+  ChevronDown,
+  ChevronRight,
+} from "lucide-react";
+import { logger } from "@/lib/logger";
+
+// ============================================================================
+// INTERFACES
+// ============================================================================
+
+interface ITrialBalanceAccount {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  accountType: string;
+  debit: number;
+  credit: number;
+  balance: number;
+  level: number;
+  hasChildren: boolean;
+}
+
+interface ITrialBalanceData {
+  year: number;
+  period: number;
+  asOfDate: string;
+  accounts: ITrialBalanceAccount[];
+  totalDebits: number;
+  totalCredits: number;
+  isBalanced: boolean;
+  difference: number;
+}
+
+const ACCOUNT_TYPE_LABELS: Record<string, { key: string; fallback: string }> = {
+  ASSET: { key: "finance.accountType.ASSET", fallback: "Asset" },
+  LIABILITY: { key: "finance.accountType.LIABILITY", fallback: "Liability" },
+  EQUITY: { key: "finance.accountType.EQUITY", fallback: "Equity" },
+  REVENUE: { key: "finance.accountType.REVENUE", fallback: "Revenue" },
+  EXPENSE: { key: "finance.accountType.EXPENSE", fallback: "Expense" },
+};
+
+interface ITrialBalanceReportProps {
+  initialYear?: number;
+  initialPeriod?: number;
+  onExport?: (data: ITrialBalanceData) => void;
+}
+
+// Constants
+const API_ENDPOINT = "/api/finance/ledger/trial-balance";
+
+export default function TrialBalanceReport({
+  initialYear = new Date().getFullYear(),
+  initialPeriod = new Date().getMonth() + 1,
+  onExport,
+}: ITrialBalanceReportProps) {
+  const { t, locale } = useTranslation();
+
+  // Filter state
+  const [year, setYear] = useState<number>(initialYear);
+  const [period, setPeriod] = useState<number>(initialPeriod);
+  const [showZeroBalances, setShowZeroBalances] = useState<boolean>(false);
+  const [groupByType, setGroupByType] = useState<boolean>(true);
+
+  // Data state
+  const [data, setData] = useState<ITrialBalanceData | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const getAccountTypeLabel = useCallback(
+    (type: string) => {
+      const entry = ACCOUNT_TYPE_LABELS[type] ?? {
+        key: `finance.accountType.${type}`,
+        fallback: type,
+      };
+      return t(entry.key, entry.fallback);
+    },
+    [t],
+  );
+
+  // UI state
+  const [expandedTypes, setExpandedTypes] = useState<Set<string>>(
+    new Set(["ASSET", "LIABILITY", "EQUITY", "REVENUE", "EXPENSE"]),
+  );
+
+  // Removed unused DEFAULT_TIMEZONE constant
+
+  const loadTrialBalance = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams({
+        year: year.toString(),
+        period: period.toString(),
+      });
+
+      const response = await fetch(`${API_ENDPOINT}?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error(
+          t("finance.trialBalance.error.load", "Failed to load trial balance"),
+        );
+      }
+      const result = await response.json();
+      setData(result);
+    } catch (err) {
+      import("../../lib/logger")
+        .then(({ logError }) => {
+          logError("Error loading trial balance", err as Error, {
+            component: "TrialBalanceReport",
+            action: "loadData",
+            year,
+            period,
+          });
+        })
+        .catch((logErr) =>
+          logger.error("Failed to load logger:", { error: logErr }),
+        );
+      setError(
+        err instanceof Error
+          ? err.message
+          : t("common.error.loadData", "Failed to load data"),
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [year, period, t]);
+
+  useEffect(() => {
+    loadTrialBalance();
+  }, [loadTrialBalance]);
+
+  // ============================================================================
+  // DATA FILTERING & GROUPING
+  // ============================================================================
+
+  const getFilteredAccounts = (): ITrialBalanceAccount[] => {
+    if (!data) return [];
+    let accounts = data.accounts;
+    if (!showZeroBalances) {
+      accounts = accounts.filter((acc) => Math.abs(acc.balance) > 0.01);
+    }
+    return accounts;
+  };
+
+  const getAccountsByType = (): Record<string, ITrialBalanceAccount[]> => {
+    const filtered = getFilteredAccounts();
+    const grouped: Record<string, ITrialBalanceAccount[]> = {};
+    filtered.forEach((acc) => {
+      if (!grouped[acc.accountType]) {
+        grouped[acc.accountType] = [];
+      }
+      grouped[acc.accountType].push(acc);
+    });
+    return grouped;
+  };
+
+  // ============================================================================
+  // TYPE EXPANSION
+  // ============================================================================
+
+  const toggleTypeExpansion = (type: string) => {
+    const newExpanded = new Set(expandedTypes);
+    if (newExpanded.has(type)) {
+      newExpanded.delete(type);
+    } else {
+      newExpanded.add(type);
+    }
+    setExpandedTypes(newExpanded);
+  };
+
+  const expandAll = () => {
+    if (data) {
+      const allTypes = new Set<string>();
+      data.accounts.forEach((acc) => allTypes.add(acc.accountType));
+      setExpandedTypes(allTypes);
+    }
+  };
+
+  const collapseAll = () => {
+    setExpandedTypes(new Set());
+  };
+
+  // ============================================================================
+  // EXPORT FUNCTIONALITY
+  // ============================================================================
+
+  const exportToCSV = () => {
+    if (!data) return;
+
+    const headers = [
+      t("tb.col.code", "Account Code"),
+      t("tb.col.name", "Account Name"),
+      t("tb.col.type", "Type"),
+      t("tb.col.debit", "Debit"),
+      t("tb.col.credit", "Credit"),
+      t("tb.col.balance", "Balance"),
+    ];
+
+    const rows = data.accounts.map((acc) => [
+      acc.accountCode,
+      acc.accountName,
+      acc.accountType,
+      acc.debit.toFixed(2),
+      acc.credit.toFixed(2),
+      acc.balance.toFixed(2),
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `trial-balance-${year}-${period}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleExport = (format: "csv" | "excel") => {
+    if (!data) return;
+    if (onExport) {
+      onExport(data);
+      return;
+    }
+    if (format === "csv") {
+      exportToCSV();
+    }
+  };
+
+  // ============================================================================
+  // RENDER HELPERS
+  // ============================================================================
+
+  const renderAccountRow = (account: ITrialBalanceAccount) => {
+    const indent = account.level * 20;
+    return (
+      <tr
+        key={account.accountId}
+        className="hover:bg-muted border-b border-border"
+      >
+        <td
+          className="px-4 py-2 text-sm"
+          style={{ paddingLeft: `${16 + indent}px` }}
+        >
+          <span
+            className={
+              account.level > 0
+                ? "text-muted-foreground"
+                : "font-medium text-foreground"
+            }
+          >
+            {account.accountCode}
+          </span>
+        </td>
+        <td className="px-4 py-2 text-sm">
+          <span
+            className={
+              account.level > 0
+                ? "text-foreground"
+                : "font-medium text-foreground"
+            }
+          >
+            {account.accountName}
+          </span>
+        </td>
+        <td className="px-4 py-2 text-sm text-end text-success-dark">
+          {account.debit > 0 ? account.debit.toFixed(2) : "-"}
+        </td>
+        <td className="px-4 py-2 text-sm text-end text-destructive-dark">
+          {account.credit > 0 ? account.credit.toFixed(2) : "-"}
+        </td>
+        <td className="px-4 py-2 text-sm text-end font-medium text-foreground">
+          {account.balance.toFixed(2)}
+        </td>
+      </tr>
+    );
+  };
+
+  const renderGroupedAccounts = () => {
+    const grouped = getAccountsByType();
+    const types = Object.keys(grouped).sort();
+
+    return types.map((type) => {
+      const accounts = grouped[type];
+      const typeTotal = accounts.reduce((sum, acc) => sum + acc.balance, 0);
+      const typeDebits = accounts.reduce((sum, acc) => sum + acc.debit, 0);
+      const typeCredits = accounts.reduce((sum, acc) => sum + acc.credit, 0);
+      const isExpanded = expandedTypes.has(type);
+
+      return (
+        <React.Fragment key={type}>
+          <tr
+            className="bg-muted border-t-2 border-border cursor-pointer hover:bg-muted/80"
+            onClick={() => toggleTypeExpansion(type)}
+          >
+            <td colSpan={2} className="px-4 py-3 font-bold text-foreground">
+              {isExpanded ? (
+                <ChevronDown className="inline-block me-2 w-4 h-4" />
+              ) : (
+                <ChevronRight className="inline-block me-2 w-4 h-4" />
+              )}
+              {getAccountTypeLabel(type)}
+            </td>
+            <td className="px-4 py-3 font-bold text-end text-foreground">
+              {typeDebits.toFixed(2)}
+            </td>
+            <td className="px-4 py-3 font-bold text-end text-foreground">
+              {typeCredits.toFixed(2)}
+            </td>
+            <td className="px-4 py-3 font-bold text-end text-foreground">
+              {typeTotal.toFixed(2)}
+            </td>
+          </tr>
+
+          {isExpanded && accounts.map((account) => renderAccountRow(account))}
+        </React.Fragment>
+      );
+    });
+  };
+
+  const renderFlatAccounts = () => {
+    const accounts = getFilteredAccounts();
+    return accounts.map((account) => renderAccountRow(account));
+  };
+
+  // ============================================================================
+  // MAIN RENDER
+  // ============================================================================
+
+  return (
+    <div className="space-y-6">
+      {/* ✅ FIX: Use standard Card and components */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+          <div>
+            <CardTitle className="text-2xl font-bold">
+              {t("finance.trialBalance.title", "Trial Balance Report")}
+            </CardTitle>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleExport("csv")}
+              disabled={!data || loading}
+            >
+              <Download className="w-4 h-4 me-2" />
+              {t("common.exportCsv", "Export CSV")}
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={loadTrialBalance}
+              disabled={loading}
+            >
+              {loading ? (
+                <Loader2 className="w-4 h-4 me-2 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4 me-2" />
+              )}
+              {loading
+                ? t("common.loading", "Loading...")
+                : t("common.refresh", "Refresh")}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Filters */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 border-t pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="fiscal-year">
+                {t("finance.fiscalYear", "Fiscal Year")}
+              </Label>
+              <Select
+                id="fiscal-year"
+                value={String(year)}
+                onValueChange={(v) => setYear(parseInt(v, 10))}
+                disabled={loading}
+                placeholder={t("finance.selectYear", "Select year")}
+              >
+                {[...Array(5)].map((_, i) => {
+                  const y = new Date().getFullYear() - i;
+                  return (
+                    <SelectItem key={y} value={String(y)}>
+                      {y}
+                    </SelectItem>
+                  );
+                })}
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="period">{t("finance.period", "Period")}</Label>
+              <Select
+                id="period"
+                value={String(period)}
+                onValueChange={(v) => setPeriod(parseInt(v, 10))}
+                disabled={loading}
+                placeholder={t("finance.selectPeriod", "Select period")}
+              >
+                {[...Array(12)].map((_, i) => (
+                  <SelectItem key={i + 1} value={String(i + 1)}>
+                    {new Date(2000, i).toLocaleString(locale, {
+                      month: "long",
+                    })}{" "}
+                    ({i + 1})
+                  </SelectItem>
+                ))}
+              </Select>
+            </div>
+
+            <div className="flex items-end pb-2">
+              <Label
+                htmlFor="show-zero"
+                className="flex cursor-pointer items-center justify-between rounded-2xl border border-border p-3 hover:bg-muted flex-1"
+              >
+                <span className="text-sm font-medium">
+                  {t("finance.showZero", "Show Zero Balances")}
+                </span>
+                <Switch
+                  id="show-zero"
+                  checked={showZeroBalances}
+                  onCheckedChange={setShowZeroBalances}
+                  aria-label={t("finance.showZero", "Show Zero Balances")}
+                />
+              </Label>
+            </div>
+
+            <div className="flex items-end pb-2">
+              <Label
+                htmlFor="group-by-type"
+                className="flex cursor-pointer items-center justify-between rounded-2xl border border-border p-3 hover:bg-muted flex-1"
+              >
+                <span className="text-sm font-medium">
+                  {t("finance.groupByType", "Group by Type")}
+                </span>
+                <Switch
+                  id="group-by-type"
+                  checked={groupByType}
+                  onCheckedChange={setGroupByType}
+                  aria-label={t("finance.groupByType", "Group by Type")}
+                />
+              </Label>
+            </div>
+          </div>
+
+          {groupByType && data && (
+            <div className="flex gap-2 border-t pt-4">
+              <Button variant="outline" size="sm" onClick={expandAll}>
+                {t("common.expandAll", "Expand All")}
+              </Button>
+              <Button variant="outline" size="sm" onClick={collapseAll}>
+                {t("common.collapseAll", "Collapse All")}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Error Display */}
+      {error && (
+        <Card className="bg-destructive/10 border-destructive/20">
+          <CardHeader className="flex flex-row items-center gap-3 space-y-0">
+            <AlertTriangle className="w-5 h-5 text-destructive" />
+            <CardTitle className="text-destructive">
+              {t("common.error", "Error")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-destructive-dark">{error}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <Card>
+          <CardContent className="p-12 text-center flex flex-col items-center gap-2">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <p className="text-muted-foreground">
+              {t("finance.trialBalance.loading", "Loading trial balance...")}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Trial Balance Table */}
+      {!loading && data && (
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {t("finance.trialBalance.title", "Trial Balance")}
+            </CardTitle>
+            <CardDescription>
+              {t("common.asOf", "As of")} {data.asOfDate} |{" "}
+              {t("finance.period", "Period")} {period}/{year}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0 overflow-x-auto">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-muted">
+                <tr>
+                  <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {t("tb.col.code", "Account Code")}
+                  </th>
+                  <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {t("tb.col.name", "Account Name")}
+                  </th>
+                  <th className="px-4 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {t("tb.col.debit", "Debit")}
+                  </th>
+                  <th className="px-4 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {t("tb.col.credit", "Credit")}
+                  </th>
+                  <th className="px-4 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {t("tb.col.balance", "Balance")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-card divide-y divide-border">
+                {groupByType ? renderGroupedAccounts() : renderFlatAccounts()}
+              </tbody>
+              <tfoot className="bg-muted border-t-2 border-border">
+                <tr>
+                  <td
+                    colSpan={2}
+                    className="px-4 py-3 text-sm font-bold text-foreground"
+                  >
+                    {t("common.total", "TOTAL")}
+                  </td>
+                  <td className="px-4 py-3 text-sm font-bold text-end text-foreground">
+                    {data.totalDebits.toFixed(2)}
+                  </td>
+                  <td className="px-4 py-3 text-sm font-bold text-end text-foreground">
+                    {data.totalCredits.toFixed(2)}
+                  </td>
+                  <td className="px-4 py-3 text-sm font-bold text-end text-foreground">
+                    {(data.totalDebits - data.totalCredits).toFixed(2)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </CardContent>
+          <CardFooter className="flex-col items-stretch gap-4 pt-4">
+            {/* Balance Status */}
+            <div
+              className={`p-4 rounded-lg flex items-start gap-3 ${data.isBalanced ? "bg-success/10" : "bg-destructive/10"}`}
+            >
+              <div className="flex-shrink-0">
+                {data.isBalanced ? (
+                  <CheckCircle className="w-5 h-5 text-success" />
+                ) : (
+                  <XCircle className="w-5 h-5 text-destructive" />
+                )}
+              </div>
+              <div className="flex-1">
+                <p
+                  className={`font-semibold ${data.isBalanced ? "text-success-dark" : "text-destructive-dark"}`}
+                >
+                  {data.isBalanced
+                    ? t(
+                        "finance.trialBalance.balanced",
+                        "Trial Balance is Balanced",
+                      )
+                    : t(
+                        "finance.trialBalance.unbalanced",
+                        "Trial Balance is Out of Balance",
+                      )}
+                </p>
+                {!data.isBalanced && (
+                  <p className="text-sm text-destructive-dark mt-1">
+                    {t("finance.trialBalance.difference", "Difference")}:{" "}
+                    {Math.abs(data.difference).toFixed(2)}
+                  </p>
+                )}
+              </div>
+              <div className="text-end text-sm text-muted-foreground">
+                <p>
+                  {t("finance.totalAccounts", "Total Accounts")}:{" "}
+                  {data.accounts.length}
+                </p>
+                <p>
+                  {t("finance.displayed", "Displayed")}:{" "}
+                  {getFilteredAccounts().length}
+                </p>
+              </div>
+            </div>
+          </CardFooter>
+        </Card>
+      )}
+
+      {/* Empty State */}
+      {!loading && !data && !error && (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <p className="text-muted-foreground mb-4">
+              {t(
+                "finance.trialBalance.noData",
+                "No trial balance data available",
+              )}
+            </p>
+            <Button variant="default" onClick={loadTrialBalance}>
+              {t("finance.trialBalance.loadData", "Load Trial Balance")}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/fm/FMErrorBoundary.tsx">
+<![CDATA[
+"use client";
+
+import React, { Component, ErrorInfo, ReactNode } from "react";
+import { logger } from "@/lib/logger";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, RefreshCw } from "lucide-react";
+
+interface Props {
+  children: ReactNode;
+  fallback?: ReactNode;
+}
+
+interface State {
+  hasError: boolean;
+  error: Error | null;
+  errorInfo: ErrorInfo | null;
+}
+
+/**
+ * Error Boundary for FM modules
+ * Catches runtime errors and prevents white screen crashes
+ * Provides user-friendly error message and recovery options
+ */
+export class FMErrorBoundary extends Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    this.state = {
+      hasError: false,
+      error: null,
+      errorInfo: null,
+    };
+  }
+
+  static getDerivedStateFromError(error: Error): Partial<State> {
+    return {
+      hasError: true,
+      error,
+    };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    this.setState({
+      error,
+      errorInfo,
+    });
+
+    // Log error to monitoring service
+    logger.error("[FM Error Boundary] Component error caught", error, {
+      component: "FMErrorBoundary",
+      componentStack: errorInfo.componentStack,
+    });
+  }
+
+  handleReset = (): void => {
+    this.setState({
+      hasError: false,
+      error: null,
+      errorInfo: null,
+    });
+  };
+
+  handleReload = (): void => {
+    window.location.reload();
+  };
+
+  render(): ReactNode {
+    if (this.state.hasError) {
+      // Use custom fallback if provided
+      if (this.props.fallback) {
+        return this.props.fallback;
+      }
+
+      // Default error UI
+      return (
+        <div className="min-h-screen flex items-center justify-center p-6">
+          <div className="max-w-md w-full space-y-6 text-center">
+            <div className="flex justify-center">
+              <div className="rounded-full bg-destructive/10 p-4">
+                <AlertCircle className="h-12 w-12 text-destructive" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <h1 className="text-2xl font-semibold tracking-tight">
+                Something went wrong
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                We encountered an unexpected error. Please try refreshing the
+                page or contact support if the problem persists.
+              </p>
+            </div>
+
+            {process.env.NODE_ENV === "development" && this.state.error && (
+              <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4">
+                <p className="font-mono text-xs text-destructive break-all">
+                  {this.state.error.message}
+                </p>
+              </div>
+            )}
+
+            <div className="flex gap-3 justify-center">
+              <Button
+                variant="outline"
+                onClick={this.handleReset}
+                className="gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Try Again
+              </Button>
+              <Button onClick={this.handleReload} className="gap-2">
+                Reload Page
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+]]>
+</file>
+
+<file path="components/fm/FmGuardedPage.tsx">
+<![CDATA[
+"use client";
+
+import React from "react";
+import { useFmOrgGuard } from "./useFmOrgGuard";
+import type { ModuleId } from "@/config/navigation";
+
+type GuardContext = ReturnType<typeof useFmOrgGuard>;
+
+/**
+ * Guaranteed context type passed to children.
+ * orgId is guaranteed to be a non-null string when children render.
+ */
+export type GuaranteedFmContext = Omit<GuardContext, "orgId"> & {
+  orgId: string;
+};
+
+type GuardRender = (ctx: GuaranteedFmContext) => React.ReactNode;
+
+type FmGuardedPageProps = {
+  moduleId: ModuleId;
+  children: GuardRender;
+};
+
+/**
+ * Renders the FM page only when org context is available.
+ * Keeps hooks inside children unconditional, so we can avoid eslint rule-of-hooks waivers.
+ * 
+ * Type safety: orgId is guaranteed non-null when children render (checked in if condition).
+ * Children receive GuaranteedFmContext with orgId: string (not string | null).
+ */
+export function FmGuardedPage({ moduleId, children }: FmGuardedPageProps) {
+  const guardCtx = useFmOrgGuard({ moduleId });
+
+  if (!guardCtx.hasOrgContext || !guardCtx.orgId) {
+    return guardCtx.guard;
+  }
+
+  // Type assertion is safe: we've verified orgId is non-null in the guard above
+  // Create new object with explicit type to ensure proper type narrowing
+  const guaranteedCtx: GuaranteedFmContext = {
+    hasOrgContext: guardCtx.hasOrgContext,
+    orgId: guardCtx.orgId!, // Non-null assertion safe due to guard check above
+    supportOrg: guardCtx.supportOrg,
+    canImpersonate: guardCtx.canImpersonate,
+    loading: guardCtx.loading,
+    guard: guardCtx.guard,
+    supportBanner: guardCtx.supportBanner,
+  };
+
+  return <>{children(guaranteedCtx)}</>;
+}
+
+]]>
+</file>
+
+<file path="components/fm/FmPageShell.tsx">
+<![CDATA[
+'use client';
+
+import React from 'react';
+import { FmGuardedPage } from './FmGuardedPage';
+import type { ModuleId } from '@/config/navigation';
+import type { ReactNode } from 'react';
+
+type GuardContext = {
+  orgId: string;
+  supportBanner?: ReactNode | null;
+  hasOrgContext: boolean;
+  loading: boolean;
+};
+
+type FmPageShellProps = {
+  moduleId: ModuleId;
+  children: (ctx: GuardContext) => ReactNode;
+};
+
+/**
+ * Thin wrapper around FmGuardedPage to encourage a consistent pattern:
+ * - Wrapper handles guard/redirect.
+ * - Inner render function receives orgId/supportBanner and can keep hooks unconditional.
+ */
+export function FmPageShell({ moduleId, children }: FmPageShellProps) {
+  return (
+    <FmGuardedPage moduleId={moduleId}>
+      {(ctx) =>
+        children({
+          orgId: ctx.orgId!,
+          supportBanner: ctx.supportBanner,
+          hasOrgContext: ctx.hasOrgContext,
+          loading: ctx.loading,
+        })
+      }
+    </FmGuardedPage>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/fm/ModulePageHeader.tsx">
+<![CDATA[
+"use client";
+
+import { type ReactNode } from "react";
+import { cn } from "@/lib/utils";
+import { usePageLabels, type PageLabelKey } from "@/hooks/usePageLabels";
+
+interface ModulePageHeaderProps {
+  pageKey: PageLabelKey;
+  className?: string;
+  actions?: ReactNode;
+  children?: ReactNode;
+}
+
+export default function ModulePageHeader({
+  pageKey,
+  className,
+  actions,
+  children,
+}: ModulePageHeaderProps) {
+  const { title, subtitle } = usePageLabels(pageKey);
+
+  return (
+    <div className={cn("space-y-4", className)}>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">{title}</h1>
+          <p className="text-muted-foreground">{subtitle}</p>
+        </div>
+        {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/fm/ModuleViewTabs.tsx">
+<![CDATA[
+"use client";
+
+import React from "react";
+import { useMemo, useTransition } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { useTranslation } from "@/contexts/TranslationContext";
+import {
+  MODULE_SUB_VIEWS,
+  type ModuleId,
+  type ModuleSubView,
+} from "@/config/navigation";
+
+type ModuleKeyLike = ModuleId | string;
+type QueryView = Extract<ModuleSubView, { kind: "query" }>;
+
+const getQueryViews = (moduleId: ModuleKeyLike): QueryView[] => {
+  const views =
+    (MODULE_SUB_VIEWS as Record<string, ModuleSubView[] | undefined>)[
+      moduleId
+    ] ?? [];
+  return views.filter((view): view is QueryView => view.kind === "query");
+};
+
+export function useModuleView(moduleId: ModuleKeyLike) {
+  const searchParams = useSearchParams();
+  const views = useMemo(() => getQueryViews(moduleId), [moduleId]);
+  const requested = searchParams?.get("view");
+  const currentView =
+    views.find((view) => view.value === requested) ??
+    (views.length ? views[0] : undefined);
+
+  return { views, currentView };
+}
+
+interface ModuleViewTabsProps {
+  moduleId: ModuleKeyLike;
+  className?: string;
+}
+
+export default function ModuleViewTabs({
+  moduleId,
+  className,
+}: ModuleViewTabsProps) {
+  const { views, currentView } = useModuleView(moduleId);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const { t } = useTranslation();
+  const [, startTransition] = useTransition();
+
+  if (views.length <= 1) {
+    return null;
+  }
+
+  const handleSelect = (value: string) => {
+    if (currentView?.value === value) return;
+    const paramsString = searchParams?.toString() ?? "";
+    startTransition(() => {
+      const params = new URLSearchParams(paramsString);
+      params.set("view", value);
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    });
+  };
+
+  return (
+    <div
+      className={cn(
+        "flex flex-wrap gap-2 border-b border-border pb-3",
+        className,
+      )}
+    >
+      {views.map((view) => {
+        const active = currentView?.value === view.value;
+        return (
+          <button
+            key={view.id}
+            type="button"
+            onClick={() => handleSelect(view.value)}
+            className={cn(
+              "px-3 py-1.5 text-sm rounded-full border transition-all duration-200",
+              active
+                ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                : "bg-muted border-border text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {t(view.name, view.fallbackLabel)}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/fm/OrgContextGate.tsx">
+<![CDATA[
+"use client";
+
+import { ReactNode } from "react";
+import { OrgContextPrompt } from "@/components/fm/OrgContextPrompt";
+import { FMErrorBoundary } from "@/components/fm/FMErrorBoundary";
+import { useSupportOrg } from "@/contexts/SupportOrgContext";
+
+interface OrgContextGateProps {
+  children: ReactNode;
+}
+
+/**
+ * Client-side gate that blocks module rendering until an organization
+ * context is available. Centralizes the guard logic to avoid duplicating
+ * organization checks across multiple route trees.
+ *
+ * Includes error boundary to prevent white screen crashes.
+ */
+export function OrgContextGate({ children }: OrgContextGateProps) {
+  const { effectiveOrgId, canImpersonate, loading } = useSupportOrg();
+
+  if (loading && !effectiveOrgId) {
+    return (
+      <div className="p-6">
+        <div
+          role="status"
+          aria-live="polite"
+          className="rounded-xl border border-border bg-card/30 p-6 space-y-3 animate-pulse"
+        >
+          <div className="h-4 w-56 rounded-md bg-muted" />
+          <div className="h-3 w-64 rounded-md bg-muted/70" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!effectiveOrgId) {
+    return (
+      <div className="p-6">
+        <OrgContextPrompt canImpersonate={canImpersonate} />
+      </div>
+    );
+  }
+
+  return <FMErrorBoundary>{children}</FMErrorBoundary>;
+}
+
+]]>
+</file>
+
+<file path="components/fm/OrgContextPrompt.tsx">
+<![CDATA[
+"use client";
+
+import React, { PropsWithChildren } from "react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { cn } from "@/lib/utils";
+
+export interface OrgContextPromptProps extends PropsWithChildren {
+  canImpersonate: boolean;
+  className?: string;
+  title?: string;
+  impersonationMessage?: string;
+  fallbackMessage?: string;
+}
+
+export function OrgContextPrompt({
+  canImpersonate,
+  className,
+  title,
+  impersonationMessage,
+  fallbackMessage,
+  children,
+}: OrgContextPromptProps) {
+  const { t } = useTranslation();
+
+  const resolvedTitle = title ?? t("fm.org.required", "Organization Required");
+  const resolvedMessage = canImpersonate
+    ? (impersonationMessage ??
+      t(
+        "fm.org.selectPrompt",
+        "Please select an organization from the top bar to continue.",
+      ))
+    : (fallbackMessage ??
+      t(
+        "fm.org.contactAdmin",
+        "Please contact your administrator to be assigned to an organization.",
+      ));
+
+  return (
+    <div
+      className={cn(
+        "rounded-xl border border-border bg-card/30 p-6 space-y-3",
+        className,
+      )}
+    >
+      <p className="text-destructive font-semibold">{resolvedTitle}</p>
+      <p className="text-sm text-muted-foreground">{resolvedMessage}</p>
+      {children}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/fm/WorkOrderAttachments.tsx">
+<![CDATA[
+"use client";
+
+import React, { useEffect, useRef, useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Loader2,
+  ShieldAlert,
+  X,
+} from "lucide-react";
+
+type ScanStatus = "pending" | "clean" | "infected" | "error";
+
+export interface WorkOrderAttachment {
+  key: string;
+  url: string;
+  name: string;
+  size: number;
+  type?: string;
+  scanStatus: ScanStatus;
+  mimeVerified?: boolean;
+  // Legacy field names for backward compatibility
+  fileSize?: number;
+}
+
+interface Props {
+  workOrderId?: string;
+  onChange?: (attachments: WorkOrderAttachment[]) => void;
+  initialAttachments?: WorkOrderAttachment[];
+  draftCreator?: () => Promise<string | undefined>;
+}
+
+type UploadingFile = {
+  key: string;
+  name: string;
+  size: number;
+  status: "uploading" | "error" | "canceled";
+};
+
+const ALLOWED_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "application/pdf",
+]);
+const ALLOWED_EXTENSIONS = new Set(["png", "jpg", "jpeg", "pdf"]);
+const MAX_SIZE_BYTES = 15 * 1024 * 1024; // 15 MB (aligned with API guard)
+const EXTENSION_MIME_MAP: Record<string, string[]> = {
+  pdf: ["application/pdf", "application/x-pdf"],
+  jpg: ["image/jpeg"],
+  jpeg: ["image/jpeg"],
+  png: ["image/png"],
+};
+
+export function WorkOrderAttachments({
+  workOrderId,
+  onChange,
+  initialAttachments,
+  draftCreator,
+}: Props) {
+  const [attachments, setAttachments] = useState<WorkOrderAttachment[]>(() =>
+    (initialAttachments || []).map((att) => ({
+      ...att,
+      scanStatus: att.scanStatus || "pending",
+    })),
+  );
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<Record<string, number>>({});
+  const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
+  const uploadControllers = useRef<Record<string, XMLHttpRequest>>({});
+
+  // Sync incoming attachments (edit/detail pages)
+  useEffect(() => {
+    if (!initialAttachments) return;
+    const normalized = initialAttachments.map((att) => ({
+      ...att,
+      scanStatus: att.scanStatus || "pending",
+    }));
+    setAttachments((prev) => {
+      const currKeys = new Set(prev.map((a) => a.key));
+      const nextKeys = new Set(normalized.map((a) => a.key));
+      const changed =
+        currKeys.size !== nextKeys.size ||
+        [...currKeys].some((k) => !nextKeys.has(k));
+      return changed ? normalized : prev;
+    });
+  }, [initialAttachments]);
+
+  // Poll AV scan status for pending items
+  useEffect(() => {
+    const pending = attachments.filter((att) => att.scanStatus === "pending");
+    if (pending.length === 0) return undefined;
+
+    const interval = window.setInterval(async () => {
+      const updates = await Promise.all(
+        pending.map(async (att) => {
+          try {
+            const res = await fetch(
+              `/api/upload/scan-status?key=${encodeURIComponent(att.key)}`,
+            );
+            if (!res.ok) return att;
+            const json = await res.json().catch(() => ({}));
+            const nextStatus =
+              typeof json.status === "string"
+                ? (json.status as ScanStatus)
+                : "pending";
+            if (!["pending", "clean", "infected", "error"].includes(nextStatus))
+              return att;
+            return { ...att, scanStatus: nextStatus };
+          } catch {
+            return att;
+          }
+        }),
+      );
+
+      setAttachments((curr) => {
+        const map = new Map(curr.map((a) => [a.key, a] as const));
+        for (const updated of updates) {
+          map.set(updated.key, { ...map.get(updated.key), ...updated });
+        }
+        const next = Array.from(map.values());
+        onChange?.(next);
+        return next;
+      });
+    }, 7000);
+
+    return () => window.clearInterval(interval);
+  }, [attachments, onChange]);
+
+  const ensureWorkOrderId = async () => {
+    if (workOrderId) return workOrderId;
+    if (draftCreator) return draftCreator();
+    return undefined;
+  };
+
+  const validateFiles = (fileList: FileList | null) => {
+    const files = fileList ? Array.from(fileList) : [];
+    const valid: File[] = [];
+    for (const file of files) {
+      const ext = file.name.split(".").pop()?.toLowerCase();
+      if (!ext || !ALLOWED_EXTENSIONS.has(ext)) {
+        setError(
+          `Unsupported file extension: .${ext || "unknown"} (png, jpg, jpeg, pdf only)`,
+        );
+        continue;
+      }
+      if (
+        ext &&
+        EXTENSION_MIME_MAP[ext] &&
+        !EXTENSION_MIME_MAP[ext].includes(file.type)
+      ) {
+        setError(
+          `File type does not match extension (${file.type || "unknown"} for .${ext})`,
+        );
+        continue;
+      }
+      if (!ALLOWED_TYPES.has(file.type)) {
+        setError(
+          `Unsupported file type: ${file.type || "unknown"} (PNG, JPG, PDF only)`,
+        );
+        continue;
+      }
+      if (file.size > MAX_SIZE_BYTES) {
+        setError(
+          `File too large: ${(file.size / 1024 / 1024).toFixed(1)} MB (max 15 MB)`,
+        );
+        continue;
+      }
+      valid.push(file);
+    }
+    return valid;
+  };
+
+  const handleCancel = (key: string) => {
+    const xhr = uploadControllers.current[key];
+    if (xhr) xhr.abort();
+    setUploadingFiles((prev) =>
+      prev.map((f) => (f.key === key ? { ...f, status: "canceled" } : f)),
+    );
+    setProgress((prev) => ({ ...prev, [key]: 0 }));
+    delete uploadControllers.current[key];
+  };
+
+  const verifyMetadata = async (key: string, ext: string | undefined) => {
+    try {
+      const res = await fetch(
+        `/api/upload/verify-metadata?key=${encodeURIComponent(key)}`,
+      );
+      if (!res.ok) return true;
+      const meta = (await res.json().catch(() => ({}))) as {
+        contentType?: string;
+      };
+      const actualMime = meta?.contentType;
+      if (actualMime && ext && EXTENSION_MIME_MAP[ext]) {
+        return EXTENSION_MIME_MAP[ext].includes(actualMime);
+      }
+      return true;
+    } catch {
+      return true;
+    }
+  };
+
+  const handleFiles = async (fileList: FileList | null) => {
+    const files = validateFiles(fileList);
+    if (files.length === 0) return;
+
+    const targetId = await ensureWorkOrderId();
+    if (!targetId) {
+      setError("Save the work order first to enable attachments.");
+      return;
+    }
+
+    setUploading(true);
+    setError(null);
+    const next: WorkOrderAttachment[] = [];
+
+    try {
+      for (const file of files) {
+        const ext = file.name.split(".").pop()?.toLowerCase();
+        const presignRes = await fetch(
+          `/api/fm/work-orders/${targetId}/attachments/presign`,
+          {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: file.name,
+              type: file.type || "application/octet-stream",
+              size: file.size,
+            }),
+          },
+        );
+        if (!presignRes.ok) throw new Error(await presignRes.text());
+        const presign = await presignRes.json();
+        setUploadingFiles((prev) => [
+          ...prev,
+          {
+            key: presign.key,
+            name: file.name,
+            size: file.size,
+            status: "uploading",
+          },
+        ]);
+
+        const headers: Record<string, string> = {
+          ...(presign.headers || {}),
+          "Content-Type": file.type || "application/octet-stream",
+        };
+
+        const uploadOnce = () =>
+          new Promise<void>((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open("PUT", presign.putUrl);
+            uploadControllers.current[presign.key] = xhr;
+            Object.entries(headers).forEach(([k, v]) =>
+              xhr.setRequestHeader(k, v),
+            );
+            xhr.upload.onprogress = (evt) => {
+              if (evt.lengthComputable) {
+                const pct = Math.round((evt.loaded / evt.total) * 100);
+                setProgress((prev) => ({ ...prev, [presign.key]: pct }));
+              }
+            };
+            xhr.onload = () => {
+              setProgress((prev) => ({ ...prev, [presign.key]: 100 }));
+              if (xhr.status >= 200 && xhr.status < 300) resolve();
+              else reject(new Error(`Upload failed (${xhr.status})`));
+            };
+            xhr.onerror = () => reject(new Error("Upload failed"));
+            xhr.onabort = () => reject(new Error("Upload canceled"));
+            xhr.send(file);
+          });
+
+        const delays = [0, 400, 1200, 2500];
+        let uploaded = false;
+        for (let attempt = 0; attempt < delays.length; attempt += 1) {
+          if (attempt > 0)
+            await new Promise((r) => setTimeout(r, delays[attempt]));
+          try {
+            await uploadOnce();
+            uploaded = true;
+            break;
+          } catch (err) {
+            const canceled =
+              err instanceof Error && err.message.includes("canceled");
+            if (attempt === delays.length - 1 || canceled) {
+              setUploadingFiles((prev) =>
+                prev.map((f) =>
+                  f.key === presign.key
+                    ? { ...f, status: canceled ? "canceled" : "error" }
+                    : f,
+                ),
+              );
+              delete uploadControllers.current[presign.key];
+              if (!canceled) {
+                throw err instanceof Error ? err : new Error("Upload failed");
+              }
+              uploaded = false;
+              break;
+            }
+          }
+        }
+
+        if (!uploaded) continue;
+
+        const publicUrl = String(presign.putUrl).split("?")[0];
+        setUploadingFiles((prev) => prev.filter((f) => f.key !== presign.key));
+        delete uploadControllers.current[presign.key];
+
+        let mimeVerified = true;
+        if (ext) {
+          mimeVerified = await verifyMetadata(presign.key, ext);
+        }
+
+        let scanStatus: ScanStatus = "pending";
+        try {
+          const scanRes = await fetch(
+            `/api/upload/scan-status?key=${encodeURIComponent(presign.key)}`,
+          );
+          if (scanRes.ok) {
+            const scanJson = await scanRes.json().catch(() => ({}));
+            if (typeof scanJson.status === "string") {
+              const normalized = scanJson.status as ScanStatus;
+              scanStatus = ["pending", "clean", "infected", "error"].includes(
+                normalized,
+              )
+                ? normalized
+                : "pending";
+            }
+          } else {
+            scanStatus = "error";
+          }
+        } catch (scanErr) {
+          const msg =
+            scanErr instanceof Error ? scanErr.message : "Scan check failed";
+          setError(msg);
+          scanStatus = "error";
+        }
+
+        next.push({
+          key: presign.key,
+          url: publicUrl,
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          scanStatus,
+          mimeVerified,
+        });
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to upload attachment",
+      );
+    } finally {
+      setUploading(false);
+      setProgress({});
+      uploadControllers.current = {};
+      setUploadingFiles([]);
+    }
+
+    if (next.length) {
+      const merged = [...attachments, ...next];
+      setAttachments(merged);
+      onChange?.(merged);
+      if (targetId) {
+        try {
+          const saveRes = await fetch(`/api/fm/work-orders/${targetId}`, {
+            method: "PATCH",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ attachments: merged }),
+          });
+          if (!saveRes.ok)
+            throw new Error("Failed to save attachments to work order");
+        } catch (persistErr) {
+          setError(
+            persistErr instanceof Error
+              ? persistErr.message
+              : "Could not save attachments",
+          );
+          setAttachments(attachments);
+          onChange?.(attachments);
+        }
+      }
+    }
+  };
+
+  const handleRemove = async (key: string) => {
+    if (!workOrderId) return;
+    if (!confirm("Remove this attachment?")) return;
+
+    const updated = attachments.filter((att) => att.key !== key);
+    setAttachments(updated);
+    onChange?.(updated);
+
+    try {
+      const res = await fetch(`/api/fm/work-orders/${workOrderId}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ attachments: updated }),
+      });
+      if (!res.ok) throw new Error("Failed to remove attachment");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to remove attachment",
+      );
+      setAttachments(attachments);
+      onChange?.(attachments);
+    }
+  };
+
+  const statusBadge = (status: ScanStatus) => {
+    const map: Record<
+      ScanStatus,
+      { label: string; className: string; icon: React.ReactNode }
+    > = {
+      pending: {
+        label: "Scan pending",
+        className: "bg-amber-50 text-amber-700",
+        icon: <Loader2 className="h-4 w-4 animate-spin" />,
+      },
+      clean: {
+        label: "Clean",
+        className: "bg-emerald-50 text-emerald-700",
+        icon: <CheckCircle2 className="h-4 w-4" />,
+      },
+      infected: {
+        label: "Infected",
+        className: "bg-red-50 text-red-700",
+        icon: <ShieldAlert className="h-4 w-4" />,
+      },
+      error: {
+        label: "Scan error",
+        className: "bg-slate-100 text-slate-700",
+        icon: <AlertCircle className="h-4 w-4" />,
+      },
+    };
+    const meta = map[status];
+    return (
+      <Badge variant="outline" className={`gap-1 ${meta.className}`}>
+        {meta.icon}
+        {meta.label}
+      </Badge>
+    );
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <Label className="text-sm font-semibold">Attachments</Label>
+        {uploading && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Uploading...
+          </div>
+        )}
+        <Input
+          type="file"
+          multiple
+          onChange={(e) => handleFiles(e.target.files)}
+          disabled={uploading}
+          className="max-w-xs"
+        />
+      </div>
+      {error && (
+        <div className="text-xs text-destructive flex items-center gap-2">
+          <AlertCircle className="h-4 w-4" />
+          {error}
+        </div>
+      )}
+
+      {uploadingFiles.length > 0 && (
+        <div className="space-y-2 rounded border border-border bg-muted/30 p-2 text-xs">
+          <div className="font-medium text-foreground">Uploading</div>
+          {uploadingFiles.map((file) => (
+            <div key={file.key} className="flex items-center gap-2">
+              <span className="truncate flex-1">{file.name}</span>
+              <span className="text-muted-foreground">
+                {progress[file.key] !== undefined
+                  ? `${progress[file.key]}%`
+                  : "…"}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2"
+                onClick={() => handleCancel(file.key)}
+              >
+                Cancel
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="space-y-2">
+        {attachments.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            No attachments uploaded yet.
+          </p>
+        )}
+        {attachments.map((att) => (
+          <div
+            key={att.key}
+            className="flex items-center justify-between rounded border border-border p-2"
+          >
+            <div className="flex-1 space-y-1">
+              <p className="text-sm font-medium">{att.name}</p>
+              <p className="text-xs text-muted-foreground">
+                {(() => {
+                  const bytes = att.size || att.fileSize;
+                  if (typeof bytes === "number" && !Number.isNaN(bytes))
+                    return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+                  return "Size unknown";
+                })()}
+              </p>
+              {progress[att.key] !== undefined && progress[att.key] < 100 && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>Uploading</span>
+                    <span>{progress[att.key]}%</span>
+                  </div>
+                  <div className="h-1.5 w-full rounded bg-muted">
+                    <div
+                      className="h-1.5 rounded bg-primary transition-all"
+                      style={{ width: `${progress[att.key]}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+              {att.mimeVerified === false && (
+                <p className="text-[11px] text-amber-600 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  MIME/extension mismatch detected
+                </p>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {statusBadge(att.scanStatus)}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleRemove(att.key)}
+                disabled={uploading}
+                className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/fm/WorkOrdersView.tsx">
+<![CDATA[
+"use client";
+import { logger } from "@/lib/logger";
+import { toast } from "sonner";
+
+import React, { useEffect, useMemo, useState } from "react";
+import useSWR from "swr";
+import { formatDistanceToNowStrict } from "date-fns";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Loader2,
+  Plus,
+  RefreshCcw,
+  Search,
+  CheckCircle2,
+  AlertCircle,
+  ShieldAlert,
+} from "lucide-react";
+import { WorkOrderPriority } from "@/lib/sla";
+import ClientDate from "@/components/ClientDate";
+import { getWorkOrderStatusLabel } from "@/lib/work-orders/status";
+
+const statusStyles: Record<string, string> = {
+  SUBMITTED: "bg-warning/10 text-warning border border-warning/20",
+  DISPATCHED: "bg-primary/10 text-primary border border-primary/20",
+  IN_PROGRESS: "bg-primary/10 text-primary border border-primary/20",
+  ON_HOLD: "bg-muted text-foreground border border-border",
+  COMPLETED: "bg-success/10 text-success border border-success/20",
+  VERIFIED: "bg-success/10 text-success border border-success/20",
+  CLOSED: "bg-success/10 text-success border border-success/20",
+  CANCELLED: "bg-destructive/10 text-destructive border border-destructive/20",
+};
+
+const priorityStyles: Record<string, string> = {
+  LOW: "bg-muted text-foreground border border-border",
+  MEDIUM: "bg-secondary/10 text-secondary border border-secondary/20",
+  HIGH: "bg-warning/10 text-warning border border-warning/20",
+  CRITICAL: "bg-destructive/10 text-destructive border border-destructive/20",
+};
+
+const PRIORITY_LABELS: Record<
+  WorkOrderPriority,
+  { key: string; fallback: string }
+> = {
+  LOW: { key: "workOrders.priority.low", fallback: "Low" },
+  MEDIUM: { key: "workOrders.priority.medium", fallback: "Medium" },
+  HIGH: { key: "workOrders.priority.high", fallback: "High" },
+  CRITICAL: { key: "workOrders.priority.critical", fallback: "Critical" },
+};
+
+const getPriorityLabelText = (
+  t: (key: string, fallback?: string) => string,
+  priority: WorkOrderPriority,
+) => {
+  const config = PRIORITY_LABELS[priority];
+  return config ? t(config.key, config.fallback) : priority;
+};
+
+const PRIORITY_OPTIONS: WorkOrderPriority[] = [
+  "LOW",
+  "MEDIUM",
+  "HIGH",
+  "CRITICAL",
+];
+const STATUS_OPTIONS = [
+  "SUBMITTED",
+  "DISPATCHED",
+  "IN_PROGRESS",
+  "ON_HOLD",
+  "COMPLETED",
+  "VERIFIED",
+  "CLOSED",
+  "CANCELLED",
+];
+const PAGE_SIZE = 10;
+
+function isWorkOrderPriority(value: string): value is WorkOrderPriority {
+  return (PRIORITY_OPTIONS as string[]).includes(value);
+}
+
+type WorkOrderAttachment = {
+  key: string;
+  url?: string;
+  fileUrl?: string;
+  name?: string;
+  fileName?: string;
+  originalName?: string;
+  size?: number;
+  fileSize?: number;
+  scanStatus?: string;
+};
+
+type WorkOrderRecord = {
+  id: string;
+  code?: string;
+  workOrderNumber?: string;
+  title: string;
+  description?: string;
+  status:
+    | "SUBMITTED"
+    | "DISPATCHED"
+    | "IN_PROGRESS"
+    | "ON_HOLD"
+    | "COMPLETED"
+    | "VERIFIED"
+    | "CLOSED"
+    | "CANCELLED";
+  priority: WorkOrderPriority;
+  createdAt?: string;
+  dueAt?: string;
+  slaMinutes?: number;
+  propertyId?: string;
+  location?: { propertyId?: string; unitNumber?: string };
+  sla?: {
+    resolutionDeadline?: string;
+    resolutionTimeMinutes?: number;
+  };
+  assignment?: {
+    assignedTo?: {
+      userId?: string;
+      vendorId?: string;
+    };
+  };
+  assigneeUserId?: string;
+  assigneeVendorId?: string;
+  category?: string;
+  attachments?: WorkOrderAttachment[];
+};
+
+type ApiResponse = {
+  items: WorkOrderRecord[];
+  page: number;
+  limit: number;
+  total: number;
+};
+
+const fetcher = async (url: string) => {
+  const response = await fetch(url, { credentials: "include" });
+  if (!response.ok) {
+    throw new Error(`Failed to load work orders (${response.status})`);
+  }
+  return response.json() as Promise<ApiResponse>;
+};
+
+function getDueMeta(
+  t: (key: string, fallback?: string) => string,
+  dueAt?: string,
+) {
+  const notScheduled = t(
+    "workOrders.list.values.notScheduled",
+    "Not scheduled",
+  );
+  if (!dueAt) return { label: notScheduled, overdue: false };
+  const dueDate = new Date(dueAt);
+  if (Number.isNaN(dueDate.getTime()))
+    return { label: notScheduled, overdue: false };
+  return {
+    label: formatDistanceToNowStrict(dueDate, { addSuffix: true }),
+    overdue: dueDate.getTime() < Date.now(),
+  };
+}
+
+export type WorkOrdersViewProps = {
+  orgId: string;
+  heading?: string;
+  description?: string;
+};
+
+export function WorkOrdersView({
+  heading,
+  description,
+  orgId,
+}: WorkOrdersViewProps) {
+  const { t } = useTranslation();
+  const resolvedHeading =
+    heading ?? t("workOrders.list.heading", "Work Orders");
+  const resolvedDescription =
+    description ??
+    t(
+      "workOrders.list.description",
+      "Manage and track work orders across all properties",
+    );
+  const [clientReady, setClientReady] = useState(
+    () => typeof window !== "undefined",
+  );
+  const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    if (!clientReady) {
+      setClientReady(true);
+    }
+  }, [clientReady]);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      const trimmed = searchInput.trim();
+      if (trimmed !== search) {
+        setSearch(trimmed);
+        setPage(1);
+      }
+    }, 350);
+    return () => window.clearTimeout(handle);
+  }, [search, searchInput]);
+
+  const query = useMemo(() => {
+    const params = new URLSearchParams();
+    params.set("limit", String(PAGE_SIZE));
+    params.set("page", String(page));
+    if (statusFilter) params.set("status", statusFilter);
+    if (priorityFilter) params.set("priority", priorityFilter);
+    if (search) params.set("q", search);
+    params.set("org", orgId);
+    return params.toString();
+  }, [orgId, page, priorityFilter, statusFilter, search]);
+
+  const { data, error, isLoading, mutate, isValidating } = useSWR(
+    clientReady ? `/api/work-orders?${query}` : null,
+    fetcher,
+    { keepPreviousData: true },
+  );
+
+  const workOrders = data?.items ?? [];
+  const totalPages = data
+    ? Math.max(1, Math.ceil(data.total / (data.limit || PAGE_SIZE)))
+    : 1;
+
+  const statusPlaceholder = t("workOrders.list.filters.status", "Status");
+  const statusAllLabel = t("workOrders.list.filters.statusAll", "All Statuses");
+  const priorityPlaceholder = t("workOrders.list.filters.priority", "Priority");
+  const priorityAllLabel = t(
+    "workOrders.list.filters.priorityAll",
+    "All Priorities",
+  );
+  const refreshLabel = t("workOrders.list.filters.refresh", "Refresh");
+  const loadingLabel = t("workOrders.list.loading", "Loading work orders…");
+  const propertyLabel = t("workOrders.list.labels.property", "Property:");
+  const assignedLabel = t("workOrders.list.labels.assigned", "Assigned to:");
+  const categoryLabel = t("workOrders.list.labels.category", "Category:");
+  const createdLabel = t("workOrders.list.labels.created", "Created:");
+  const priorityLabel = t("workOrders.list.labels.priority", "Priority:");
+  const codeLabel = t("workOrders.list.labels.code", "Code:");
+  const slaWindowLabel = t("workOrders.list.labels.slaWindow", "SLA window:");
+  const dueLabel = t("workOrders.list.labels.due", "Due");
+  const notLinkedText = t("workOrders.list.values.notLinked", "Not linked");
+  const unassignedText = t("workOrders.list.values.unassigned", "Unassigned");
+  const generalText = t("workOrders.list.values.general", "General");
+  const unknownText = t("workOrders.list.values.unknown", "Unknown");
+  const emptyTitle = t(
+    "workOrders.list.empty.title",
+    "No work orders match the current filters.",
+  );
+  const emptySubtitle = t(
+    "workOrders.list.empty.subtitle",
+    "Adjust filters or create a new work order to get started.",
+  );
+  const searchPlaceholder = t(
+    "workOrders.list.searchPlaceholder",
+    "Search by title or description",
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">
+            {resolvedHeading}
+          </h1>
+          <p className="text-muted-foreground">{resolvedDescription}</p>
+        </div>
+        <WorkOrderCreateDialog onCreated={() => mutate()} />
+      </div>
+
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder={searchPlaceholder}
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                className="ps-9"
+              />
+            </div>
+            <Select
+              value={statusFilter}
+              onValueChange={(value) => {
+                setStatusFilter(value);
+                setPage(1);
+              }}
+              placeholder={statusPlaceholder}
+              className="lg:w-48"
+            >
+              <SelectContent>
+                <SelectItem value="">{statusAllLabel}</SelectItem>
+                {STATUS_OPTIONS.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {getWorkOrderStatusLabel(t, status)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={priorityFilter}
+              onValueChange={(value) => {
+                setPriorityFilter(value);
+                setPage(1);
+              }}
+              placeholder={priorityPlaceholder}
+              className="lg:w-40"
+            >
+              <SelectContent>
+                <SelectItem value="">{priorityAllLabel}</SelectItem>
+                {PRIORITY_OPTIONS.map((priority) => (
+                  <SelectItem key={priority} value={priority}>
+                    {getPriorityLabelText(t, priority)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              className="lg:ms-auto"
+              onClick={() => mutate()}
+              disabled={isValidating}
+            >
+              <RefreshCcw
+                className={`me-2 h-4 w-4 ${isValidating ? "animate-spin" : ""}`}
+              />
+              {refreshLabel}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {error && (
+        <Card className="border-destructive/20 bg-destructive/10">
+          <CardContent className="py-6">
+            <p className="text-sm text-destructive-dark">{error.message}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="space-y-4">
+        {isLoading && !data ? (
+          <Card className="border border-dashed">
+            <CardContent className="flex items-center gap-3 py-16 text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              {loadingLabel}
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {workOrders.map((workOrder, index) => {
+          const dueAt = workOrder.sla?.resolutionDeadline || workOrder.dueAt;
+          const dueMeta = getDueMeta(t, dueAt);
+          const slaWindowMinutes =
+            workOrder.sla?.resolutionTimeMinutes ?? workOrder.slaMinutes;
+          const code =
+            workOrder.workOrderNumber || workOrder.code || workOrder.id;
+          const assignedUser =
+            workOrder.assignment?.assignedTo?.userId ||
+            workOrder.assigneeUserId;
+          const assignedVendor =
+            workOrder.assignment?.assignedTo?.vendorId ||
+            workOrder.assigneeVendorId;
+          const propertyId =
+            workOrder.location?.propertyId || workOrder.propertyId;
+          const workOrderKey =
+            workOrder.id ||
+            workOrder.workOrderNumber ||
+            workOrder.code ||
+            `work-order-${index}`;
+          const priorityName = getPriorityLabelText(t, workOrder.priority);
+          const attachmentCount = workOrder.attachments?.length || 0;
+          return (
+            <Card key={workOrderKey} className="border border-border shadow-sm">
+              <CardHeader className="flex flex-col gap-2 pb-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <CardTitle className="text-lg font-semibold text-foreground">
+                      {workOrder.title}
+                    </CardTitle>
+                    <Badge
+                      className={
+                        priorityStyles[workOrder.priority] ||
+                        priorityStyles.MEDIUM
+                      }
+                    >
+                      {priorityLabel} {priorityName}
+                    </Badge>
+                    <Badge
+                      className={
+                        statusStyles[workOrder.status] ||
+                        "bg-muted text-foreground border border-border"
+                      }
+                    >
+                      {getWorkOrderStatusLabel(t, workOrder.status)}
+                    </Badge>
+                    {attachmentCount > 0 && (
+                      <Badge variant="secondary" className="gap-1">
+                        📎 {attachmentCount}{" "}
+                        {attachmentCount === 1 ? "file" : "files"}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {codeLabel} {code}
+                  </p>
+                </div>
+                <div className="text-end text-sm text-muted-foreground">
+                  <p>
+                    {slaWindowLabel}{" "}
+                    {slaWindowMinutes
+                      ? t(
+                          "workOrders.list.values.slaHours",
+                          "{{hours}}h",
+                        ).replace(
+                          "{{hours}}",
+                          String(Math.round(slaWindowMinutes / 60)),
+                        )
+                      : t("common.notAvailable", "N/A")}
+                  </p>
+                  <p
+                    className={
+                      dueMeta.overdue ? "text-destructive font-semibold" : ""
+                    }
+                  >
+                    {dueLabel} {dueMeta.label}
+                  </p>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {workOrder.description && (
+                  <p className="text-sm text-foreground">
+                    {workOrder.description}
+                  </p>
+                )}
+                <div className="grid grid-cols-1 gap-3 text-sm text-muted-foreground md:grid-cols-2">
+                  <div>
+                    <span className="font-medium text-foreground">
+                      {propertyLabel}
+                    </span>{" "}
+                    {propertyId || notLinkedText}
+                  </div>
+                  <div>
+                    <span className="font-medium text-foreground">
+                      {assignedLabel}
+                    </span>{" "}
+                    {assignedUser || assignedVendor || unassignedText}
+                  </div>
+                  <div>
+                    <span className="font-medium text-foreground">
+                      {categoryLabel}
+                    </span>{" "}
+                    {workOrder.category || generalText}
+                  </div>
+                  <div>
+                    <span className="font-medium text-foreground">
+                      {createdLabel}
+                    </span>{" "}
+                    {workOrder.createdAt ? (
+                      <ClientDate date={workOrder.createdAt} format="medium" />
+                    ) : (
+                      unknownText
+                    )}
+                  </div>
+                </div>
+                {attachmentCount > 0 && workOrder.attachments && (
+                  <div className="mt-3 space-y-2 border-t border-border pt-3">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      {t("workOrders.attachments", "Attachments")} (
+                      {attachmentCount})
+                    </p>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {workOrder.attachments.slice(0, 4).map((att, idx) => {
+                        const status = att.scanStatus as string;
+                        // Support legacy field names for backward compatibility
+                        const attAny = att as typeof att & {
+                          fileName?: string;
+                          originalName?: string;
+                          fileUrl?: string;
+                        };
+                        const name =
+                          att.name ||
+                          attAny.fileName ||
+                          attAny.originalName ||
+                          "Attachment";
+                        const url = att.url || attAny.fileUrl;
+                        const content = (
+                          <>
+                            <span className="truncate flex-1">{name}</span>
+                            {status === "clean" && (
+                              <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                            )}
+                            {(!status || status === "pending") && (
+                              <Loader2 className="h-3 w-3 animate-spin text-amber-600" />
+                            )}
+                            {status === "infected" && (
+                              <ShieldAlert className="h-3 w-3 text-red-600" />
+                            )}
+                            {status === "error" && (
+                              <AlertCircle className="h-3 w-3 text-slate-600" />
+                            )}
+                          </>
+                        );
+
+                        if (!url) {
+                          return (
+                            <div
+                              key={att.key || idx}
+                              className="flex items-center gap-2 rounded border border-border bg-muted/30 px-2 py-1.5 text-xs opacity-70"
+                              title={t(
+                                "workOrders.attachments.missingUrl",
+                                "Attachment URL unavailable",
+                              )}
+                            >
+                              {content}
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <a
+                            key={att.key || idx}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 rounded border border-border bg-muted/30 px-2 py-1.5 text-xs hover:bg-muted/50"
+                          >
+                            {content}
+                          </a>
+                        );
+                      })}
+                      {attachmentCount > 4 && (
+                        <span className="text-xs text-muted-foreground">
+                          +{attachmentCount - 4} more
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {!isLoading && workOrders.length === 0 && !error && (
+        <Card className="border border-border">
+          <CardContent className="py-12 text-center text-muted-foreground">
+            <p className="font-medium text-foreground">{emptyTitle}</p>
+            <p className="text-sm">{emptySubtitle}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="flex flex-col items-center gap-3 border-t pt-4 sm:flex-row sm:justify-between">
+        <span className="text-sm text-muted-foreground">
+          {t(
+            "workOrders.list.pagination.summary",
+            "Showing {{count}} of {{total}} work orders",
+          )
+            .replace("{{count}}", String(data ? data.items.length : 0))
+            .replace("{{total}}", String(data?.total ?? 0))}
+        </span>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page <= 1}
+            onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+          >
+            {t("workOrders.list.pagination.previous", "Previous")}
+          </Button>
+          <span className="text-sm text-foreground">
+            {t(
+              "workOrders.list.pagination.pageXofY",
+              "Page {{page}} of {{total}}",
+            )
+              .replace("{{page}}", String(page))
+              .replace("{{total}}", String(totalPages))}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page >= totalPages}
+            onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+          >
+            {t("workOrders.list.pagination.next", "Next")}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type WorkOrderFormState = {
+  title: string;
+  description: string;
+  priority: WorkOrderPriority;
+  category: string;
+  propertyId: string;
+};
+
+function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [form, setForm] = useState<WorkOrderFormState>({
+    title: "",
+    description: "",
+    priority: "MEDIUM",
+    category: "GENERAL",
+    propertyId: "",
+  });
+
+  const reset = () => {
+    setForm({
+      title: "",
+      description: "",
+      priority: "MEDIUM",
+      category: "GENERAL",
+      propertyId: "",
+    });
+  };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSubmitting(true);
+    try {
+      const payload: Record<string, unknown> = {
+        title: form.title,
+        description: form.description,
+        priority: form.priority,
+        category: form.category,
+      };
+      if (form.propertyId) payload.propertyId = form.propertyId;
+
+      const response = await fetch("/api/work-orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || "Failed to create work order");
+      }
+
+      onCreated();
+      toast.success(t("workOrders.create.toast.success", "Work order created"));
+      reset();
+      setOpen(false);
+    } catch (error: unknown) {
+      logger.error("Failed to create work order", { error });
+      const message = error instanceof Error ? error.message : "Unknown error";
+      toast.error(
+        t("workOrders.create.toast.error", "Unable to create work order"),
+        {
+          description: message,
+        },
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!submitting) setOpen(nextOpen);
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button className="bg-success hover:bg-success-dark">
+          <Plus className="me-2 h-4 w-4" />
+          {t("workOrders.create.button", "New Work Order")}
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-4xl w-full">
+        <DialogHeader>
+          <DialogTitle>
+            {t("workOrders.create.title", "Create work order")}
+          </DialogTitle>
+        </DialogHeader>
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-foreground">
+              {t("workOrders.create.form.titleLabel", "Title *")}
+            </label>
+            <Input
+              required
+              value={form.title}
+              onChange={(event) =>
+                setForm((prev) => ({ ...prev, title: event.target.value }))
+              }
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-foreground">
+              {t("workOrders.create.form.descriptionLabel", "Description")}
+            </label>
+            <Textarea
+              rows={4}
+              value={form.description}
+              onChange={(event) =>
+                setForm((prev) => ({
+                  ...prev,
+                  description: event.target.value,
+                }))
+              }
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-foreground">
+                {t("workOrders.create.form.priorityLabel", "Priority")}
+              </label>
+              <Select
+                value={form.priority}
+                onValueChange={(value) => {
+                  if (isWorkOrderPriority(value)) {
+                    setForm((prev) => ({ ...prev, priority: value }));
+                  }
+                }}
+                placeholder={t(
+                  "workOrders.create.form.priorityPlaceholder",
+                  "Select priority",
+                )}
+              >
+                <SelectTrigger></SelectTrigger>
+                <SelectContent>
+                  {PRIORITY_OPTIONS.map((priority) => (
+                    <SelectItem key={priority} value={priority}>
+                      {getPriorityLabelText(t, priority)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-foreground">
+                {t("workOrders.create.form.categoryLabel", "Category")}
+              </label>
+              <Input
+                value={form.category}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, category: event.target.value }))
+                }
+              />
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-foreground">
+              {t("workOrders.create.form.propertyIdLabel", "Property ID")}
+            </label>
+            <Input
+              placeholder={t(
+                "workOrders.create.form.propertyIdPlaceholder",
+                "Optional — link to a property",
+              )}
+              value={form.propertyId}
+              onChange={(event) =>
+                setForm((prev) => ({ ...prev, propertyId: event.target.value }))
+              }
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                reset();
+                setOpen(false);
+              }}
+              disabled={submitting}
+            >
+              {t("workOrders.create.form.cancelButton", "Cancel")}
+            </Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+              {t("workOrders.create.form.submitButton", "Create")}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export default WorkOrdersView;
+
+]]>
+</file>
+
+<file path="components/fm/tenants/CreateTenantForm.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import { toast } from "sonner";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
+
+const createInitialTenantForm = () => ({
+  name: "",
+  type: "",
+  contact: {
+    primary: {
+      name: "",
+      title: "",
+      email: "",
+      phone: "",
+      mobile: "",
+    },
+    secondary: {
+      name: "",
+      email: "",
+      phone: "",
+    },
+    emergency: {
+      name: "",
+      relationship: "",
+      phone: "",
+    },
+  },
+  identification: {
+    nationalId: "",
+    companyRegistration: "",
+    taxId: "",
+    licenseNumber: "",
+  },
+  address: {
+    current: {
+      street: "",
+      city: "",
+      region: "",
+      postalCode: "",
+    },
+    permanent: {
+      street: "",
+      city: "",
+      region: "",
+      postalCode: "",
+    },
+  },
+  preferences: {
+    communication: {
+      email: true,
+      sms: false,
+      phone: false,
+      app: false,
+    },
+    notifications: {
+      maintenance: true,
+      rent: true,
+      events: false,
+      announcements: false,
+    },
+    language: "ar",
+    timezone: "Asia/Riyadh",
+  },
+  tags: [] as string[],
+});
+
+type TenantFormState = ReturnType<typeof createInitialTenantForm>;
+
+type CreateTenantFormProps = {
+  orgId: string;
+  onCreated: () => void;
+};
+
+export function CreateTenantForm({ orgId, onCreated }: CreateTenantFormProps) {
+  const { t } = useTranslation();
+  const [formData, setFormData] = useState<TenantFormState>(() =>
+    createInitialTenantForm(),
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!orgId) {
+      toast.error(
+        t(
+          "fm.errors.noOrgSession",
+          "Error: No organization ID found in session",
+        ),
+      );
+      return;
+    }
+
+    if (!formData.type) {
+      toast.error(
+        t("fm.tenants.errors.typeRequired", "Please select a tenant type."),
+      );
+      return;
+    }
+
+    setIsSubmitting(true);
+    const toastId = toast.loading(
+      t("fm.tenants.toast.creating", "Creating tenant..."),
+    );
+
+    try {
+      const response = await fetch("/api/tenants", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tenant-id": orgId,
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        const message =
+          error &&
+          typeof error === "object" &&
+          "error" in error &&
+          typeof error.error === "string"
+            ? error.error
+            : t("fm.tenants.errors.unknown", "Unknown error");
+        toast.error(
+          t(
+            "fm.tenants.toast.createFailed",
+            "Failed to create tenant: {{message}}",
+          ).replace("{{message}}", message),
+          { id: toastId },
+        );
+        return;
+      }
+
+      toast.success(
+        t("fm.tenants.toast.createSuccess", "Tenant created successfully"),
+        { id: toastId },
+      );
+      setFormData(createInitialTenantForm());
+      onCreated();
+    } catch (error) {
+      logger.error("Error creating tenant:", error);
+      toast.error(
+        t(
+          "fm.tenants.toast.createUnknown",
+          "Error creating tenant. Please try again.",
+        ),
+        { id: toastId },
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-4 max-h-96 overflow-y-auto"
+    >
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="mb-1 block text-sm font-medium">
+            {t("fm.tenants.tenantName", "Tenant Name")} *
+          </label>
+          <Input
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            required
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium">
+            {t("fm.properties.type", "Type")} *
+          </label>
+          <Select
+            value={formData.type}
+            onValueChange={(value) => setFormData({ ...formData, type: value })}
+          >
+            <SelectTrigger>
+              <SelectValue
+                placeholder={t("fm.properties.selectType", "Select type")}
+              />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="INDIVIDUAL">
+                {t("fm.tenants.individual", "Individual")}
+              </SelectItem>
+              <SelectItem value="COMPANY">
+                {t("fm.tenants.company", "Company")}
+              </SelectItem>
+              <SelectItem value="GOVERNMENT">
+                {t("fm.tenants.government", "Government")}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="mb-1 block text-sm font-medium">
+            {t("fm.tenants.primaryContactName", "Primary Contact Name")} *
+          </label>
+          <Input
+            value={formData.contact.primary.name}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                contact: {
+                  ...formData.contact,
+                  primary: {
+                    ...formData.contact.primary,
+                    name: e.target.value,
+                  },
+                },
+              })
+            }
+            required
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium">
+            {t("fm.tenants.email", "Email")} *
+          </label>
+          <Input
+            type="email"
+            value={formData.contact.primary.email}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                contact: {
+                  ...formData.contact,
+                  primary: {
+                    ...formData.contact.primary,
+                    email: e.target.value,
+                  },
+                },
+              })
+            }
+            required
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="mb-1 block text-sm font-medium">
+            {t("fm.tenants.phone", "Phone")}
+          </label>
+          <Input
+            value={formData.contact.primary.phone}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                contact: {
+                  ...formData.contact,
+                  primary: {
+                    ...formData.contact.primary,
+                    phone: e.target.value,
+                  },
+                },
+              })
+            }
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium">
+            {t("fm.tenants.mobile", "Mobile")}
+          </label>
+          <Input
+            value={formData.contact.primary.mobile}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                contact: {
+                  ...formData.contact,
+                  primary: {
+                    ...formData.contact.primary,
+                    mobile: e.target.value,
+                  },
+                },
+              })
+            }
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="mb-1 block text-sm font-medium">
+            {t("fm.properties.city", "City")} *
+          </label>
+          <Input
+            value={formData.address.current.city}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                address: {
+                  ...formData.address,
+                  current: {
+                    ...formData.address.current,
+                    city: e.target.value,
+                  },
+                },
+              })
+            }
+            required
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium">
+            {t("fm.properties.region", "Region")} *
+          </label>
+          <Input
+            value={formData.address.current.region}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                address: {
+                  ...formData.address,
+                  current: {
+                    ...formData.address.current,
+                    region: e.target.value,
+                  },
+                },
+              })
+            }
+            required
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium">
+          {t("fm.properties.streetAddress", "Street Address")} *
+        </label>
+        <Input
+          value={formData.address.current.street}
+          onChange={(e) =>
+            setFormData({
+              ...formData,
+              address: {
+                ...formData.address,
+                current: {
+                  ...formData.address.current,
+                  street: e.target.value,
+                },
+              },
+            })
+          }
+          required
+        />
+      </div>
+
+      <div className="flex justify-end space-x-2 pt-4">
+        <Button
+          type="submit"
+          className="bg-secondary hover:bg-secondary/90"
+          disabled={isSubmitting}
+          aria-busy={isSubmitting}
+        >
+          {isSubmitting
+            ? t("common.saving", "Saving...")
+            : t("fm.tenants.createTenant", "Create Tenant")}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/fm/useFmOrgGuard.tsx">
+<![CDATA[
+"use client";
+
+import React, { useMemo } from "react";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import {
+  OrgContextPrompt,
+  type OrgContextPromptProps,
+} from "@/components/fm/OrgContextPrompt";
+import type { ModuleId } from "@/config/navigation";
+import { useSupportOrg } from "@/contexts/SupportOrgContext";
+import { useTranslation } from "@/contexts/TranslationContext";
+
+type PromptOverrides = Pick<
+  OrgContextPromptProps,
+  | "title"
+  | "impersonationMessage"
+  | "fallbackMessage"
+  | "children"
+  | "className"
+>;
+
+interface UseFmOrgGuardOptions {
+  moduleId?: ModuleId | string;
+  includeTabsInFallback?: boolean;
+  promptOverrides?: PromptOverrides;
+}
+
+export function useFmOrgGuard(options: UseFmOrgGuardOptions = {}) {
+  const { moduleId, promptOverrides, includeTabsInFallback } = options;
+  const showTabs = includeTabsInFallback ?? Boolean(moduleId);
+  const { effectiveOrgId, canImpersonate, supportOrg, loading } =
+    useSupportOrg();
+  const { t } = useTranslation();
+  const hasOrgContext = Boolean(effectiveOrgId);
+
+  const guard = useMemo(() => {
+    if (hasOrgContext) {
+      return null;
+    }
+
+    const fallbackContent = loading ? (
+      <div
+        role="status"
+        aria-live="polite"
+        className="rounded-xl border border-border bg-card/30 p-6 space-y-3 animate-pulse"
+      >
+        <div className="h-4 w-56 rounded-md bg-muted" />
+        <div className="h-3 w-64 rounded-md bg-muted/70" />
+      </div>
+    ) : (
+      <OrgContextPrompt canImpersonate={canImpersonate} {...promptOverrides} />
+    );
+
+    return (
+      <div className="space-y-6">
+        {moduleId && showTabs ? <ModuleViewTabs moduleId={moduleId} /> : null}
+        {fallbackContent}
+      </div>
+    );
+  }, [
+    hasOrgContext,
+    loading,
+    canImpersonate,
+    promptOverrides,
+    moduleId,
+    showTabs,
+  ]);
+
+  const supportBanner = useMemo(() => {
+    if (!supportOrg) {
+      return null;
+    }
+
+    return (
+      <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+        {t("fm.org.supportContext", "Support context: {{name}}", {
+          name: supportOrg.name,
+        })}
+      </div>
+    );
+  }, [supportOrg, t]);
+
+  return {
+    hasOrgContext,
+    orgId: effectiveOrgId,
+    supportOrg,
+    canImpersonate,
+    loading,
+    guard,
+    supportBanner,
+  };
+}
+
+]]>
+</file>
+
+<file path="components/fm/useFmPermissions.ts">
+<![CDATA[
+// Backwards compatibility shim for the old import path
+// All FM permission logic now lives in hooks/useFMPermissions
+export { useFMPermissions } from "@/hooks/useFMPermissions";
+
+]]>
+</file>
+
+<file path="components/forms/ExampleForm.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect, useState } from "react";
+import { useFormState } from "@/contexts/FormStateContext";
+import { logger } from "@/lib/logger";
+
+export default function ExampleForm() {
+  const { markFormDirty, markFormClean, onSaveRequest } = useFormState();
+  const [formData, setFormData] = useState({ name: "", email: "" });
+  const [pristine, setPristine] = useState(true);
+  const formId = "exampleForm";
+
+  // Register save handler on mount
+  useEffect(() => {
+    const handleSave = async () => {
+      try {
+        const response = await fetch("/api/save", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Save failed: ${response.status} ${errorText}`);
+        }
+
+        // Mark form as clean after successful save
+        markFormClean(formId);
+
+        // Success handled silently - form state cleared
+        await response.json();
+      } catch (error) {
+        logger.error("Error saving form:", { error });
+        // Optionally show user-facing error state
+        // You could add state like setErrorMessage(error.message);
+        throw error; // Re-throw to let FormStateContext handle it if needed
+      }
+    };
+
+    const dispose = onSaveRequest(formId, handleSave);
+    return dispose;
+  }, [formData, onSaveRequest, formId, markFormClean]);
+
+  // Track changes
+  const handleChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (pristine) {
+      setPristine(false);
+      markFormDirty(formId);
+    }
+  };
+
+  return (
+    <form>
+      <input
+        value={formData.name}
+        onChange={(e) => handleChange("name", e.target.value)}
+      />
+      {/* ...existing code... */}
+    </form>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/i18n/CompactCurrencySelector.tsx">
+<![CDATA[
+"use client";
+
+import { DollarSign } from "lucide-react";
+import { useCurrency } from "@/contexts/CurrencyContext";
+
+// Simplified currency options for auth pages
+const AUTH_CURRENCIES = [
+  { code: "SAR", symbol: "﷼", name: "Saudi Riyal" },
+  { code: "USD", symbol: "$", name: "US Dollar" },
+  { code: "EUR", symbol: "€", name: "Euro" },
+];
+
+interface CompactCurrencySelectorProps {
+  className?: string;
+}
+
+/**
+ * Simplified currency selector for authentication pages.
+ * Shows only 2-3 common currencies in a simple dropdown.
+ */
+export default function CompactCurrencySelector({
+  className = "",
+}: CompactCurrencySelectorProps) {
+  const { currency, setCurrency } = useCurrency();
+
+  const handleChange = (newCurrency: string) => {
+    // Trust context to handle persistence - it already manages localStorage
+    if (setCurrency) {
+      (setCurrency as (val: string) => void)(newCurrency);
+    }
+  };
+
+  return (
+    <div className={`relative inline-block ${className}`}>
+      <div className="relative flex items-center gap-2 bg-white/50 backdrop-blur-sm rounded-2xl px-3 py-2 border border-border hover:border-border transition-colors">
+        <DollarSign className="h-4 w-4 text-muted-foreground" />
+        <select
+          value={currency}
+          onChange={(e) => handleChange(e.target.value)}
+          className="appearance-none bg-transparent border-none outline-none text-sm text-foreground font-medium cursor-pointer pe-1"
+          aria-label="Select currency"
+        >
+          {AUTH_CURRENCIES.map((curr) => (
+            <option key={curr.code} value={curr.code}>
+              {curr.symbol} {curr.code}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+</batch_content>

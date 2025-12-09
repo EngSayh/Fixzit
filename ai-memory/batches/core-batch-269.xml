@@ -1,0 +1,3360 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="services/souq/settlements/escrow-events.contract.ts">
+<![CDATA[
+import { z } from "zod";
+import type { EscrowEventName } from "./escrow-service";
+
+export const baseEscrowEventSchema = z
+  .object({
+    escrowAccountId: z.string().min(1),
+    orgId: z.string().min(1),
+    idempotencyKey: z.string().optional(),
+    amount: z.number().nonnegative().optional(),
+    currency: z.string().min(1).optional(),
+    transactionId: z.string().optional(),
+    releaseId: z.string().optional(),
+    reason: z.string().optional(),
+  })
+  .passthrough();
+
+const eventRequiredFields: Record<EscrowEventName, z.ZodType<unknown>> = {
+  "escrow.created": baseEscrowEventSchema,
+  "escrow.funded": baseEscrowEventSchema.extend({
+    amount: z.number().nonnegative(),
+    currency: z.string().min(1),
+    transactionId: z.string().optional(),
+  }),
+  "escrow.release.requested": baseEscrowEventSchema.extend({
+    releaseId: z.string().optional(),
+    amount: z.number().nonnegative(),
+  }),
+  "escrow.released": baseEscrowEventSchema.extend({
+    amount: z.number().nonnegative(),
+    transactionId: z.string().optional(),
+  }),
+  "escrow.refunded": baseEscrowEventSchema.extend({
+    amount: z.number().nonnegative(),
+    transactionId: z.string().optional(),
+  }),
+  "escrow.failed": baseEscrowEventSchema.extend({
+    reason: z.string().optional(),
+  }),
+};
+
+export function validateEscrowEventPayload(
+  event: EscrowEventName,
+  payload: Record<string, unknown>,
+): z.infer<typeof baseEscrowEventSchema> {
+  const schema = eventRequiredFields[event] ?? baseEscrowEventSchema;
+  const parsed = schema.parse(payload);
+  // Parsed payload always contains the base fields; cast to a stable return type for callers.
+  return parsed as z.infer<typeof baseEscrowEventSchema>;
+}
+
+]]>
+</file>
+
+<file path="services/souq/settlements/escrow-service.ts">
+<![CDATA[
+import { Types } from "mongoose";
+import {
+  EscrowAccount,
+  EscrowSource,
+  EscrowState,
+} from "@/server/models/finance/EscrowAccount";
+import {
+  EscrowTransaction,
+  EscrowTransactionStatus,
+  EscrowTransactionType,
+} from "@/server/models/finance/EscrowTransaction";
+import {
+  EscrowRelease,
+  EscrowReleaseStatus,
+} from "@/server/models/finance/EscrowRelease";
+import { connectDb, getDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
+import { metricsRegistry } from "@/lib/monitoring/metrics-registry";
+import { Counter, Histogram } from "prom-client";
+import { validateEscrowEventPayload } from "./escrow-events.contract";
+
+export type EscrowEventName =
+  | "escrow.created"
+  | "escrow.funded"
+  | "escrow.release.requested"
+  | "escrow.released"
+  | "escrow.refunded"
+  | "escrow.failed";
+
+type EscrowSourceContext = {
+  source: (typeof EscrowSource)[keyof typeof EscrowSource];
+  sourceId: Types.ObjectId;
+  orgId: Types.ObjectId;
+  buyerId?: Types.ObjectId;
+  sellerId?: Types.ObjectId;
+  bookingId?: Types.ObjectId;
+  orderId?: Types.ObjectId;
+  expectedAmount: number;
+  currency?: string;
+  releaseAfter?: Date;
+  idempotencyKey?: string;
+  riskHold?: boolean;
+};
+
+type EscrowMoneyMovement = {
+  escrowAccountId: Types.ObjectId;
+  orgId: Types.ObjectId;
+  amount: number;
+  currency?: string;
+  idempotencyKey?: string;
+  provider?: "PAYTABS" | "SADAD" | "SPAN" | "MANUAL" | "UNKNOWN";
+  actorId?: Types.ObjectId;
+  reason?: string;
+  force?: boolean;
+};
+
+const escrowEventCounter = new Counter({
+  name: "fixzit_escrow_events_total",
+  help: "Escrow lifecycle events",
+  labelNames: ["event"],
+  registers: [metricsRegistry],
+});
+
+const escrowLatency = new Histogram({
+  name: "fixzit_escrow_operation_seconds",
+  help: "Latency for escrow operations",
+  buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2, 5],
+  registers: [metricsRegistry],
+});
+
+const FEATURE_FLAG = process.env.FEATURE_ESCROW_ENABLED ?? "true";
+
+function assertEscrowEnabled() {
+  if (FEATURE_FLAG === "false") {
+    throw new Error(
+      "Escrow feature flag disabled (FEATURE_ESCROW_ENABLED=false)",
+    );
+  }
+}
+
+async function emitEscrowEvent(
+  event: EscrowEventName,
+  payload: Record<string, unknown>,
+): Promise<void> {
+  const validatedPayload = validateEscrowEventPayload(event, payload);
+  escrowEventCounter.inc({ event });
+  const idempotencyKey =
+    (validatedPayload.idempotencyKey as string | undefined) ??
+    `${event}-${validatedPayload.escrowAccountId ?? ""}-${validatedPayload.transactionId ?? ""}`;
+
+  try {
+    const db = await getDatabase();
+    await db.collection("finance_escrow_events").updateOne(
+      { event, idempotencyKey },
+      {
+        $setOnInsert: { createdAt: new Date() },
+        $set: {
+          payload: validatedPayload,
+          status: "queued",
+          updatedAt: new Date(),
+        },
+      },
+      { upsert: true },
+    );
+  } catch (_storeError) {
+    const storeError =
+      _storeError instanceof Error
+        ? _storeError
+        : new Error(String(_storeError));
+    logger.warn("[Escrow] Failed to persist event outbox", {
+      event,
+      error: storeError.message,
+      payload: validatedPayload,
+    });
+  }
+
+  try {
+    await addJob(QUEUE_NAMES.SETTLEMENT, event, validatedPayload, {
+      jobId: idempotencyKey,
+    });
+    await addJob(
+      QUEUE_NAMES.NOTIFICATIONS,
+      "escrow.notification",
+      { event, payload: validatedPayload, idempotencyKey },
+      { jobId: `notify-${idempotencyKey}` },
+    );
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    logger.warn("[Escrow] Failed to enqueue event, falling back to log-only", {
+      event,
+      error: error.message,
+      payload: validatedPayload,
+    });
+  }
+  logger.info(`[Escrow] Event emitted ${event}`, validatedPayload);
+}
+
+export class EscrowService {
+  async createEscrowAccount(context: EscrowSourceContext) {
+    assertEscrowEnabled();
+    const endTimer = escrowLatency.startTimer({ operation: "create_account" });
+    await connectDb();
+
+    const existing = await EscrowAccount.findOne({
+      orgId: context.orgId,
+      source: context.source,
+      sourceId: context.sourceId,
+    });
+
+    if (existing) {
+      endTimer();
+      return existing;
+    }
+
+    const escrowNumber = `ESC-${Date.now()}-${context.sourceId.toString().slice(-6)}`;
+
+    const account = await EscrowAccount.create({
+      orgId: context.orgId,
+      escrowNumber,
+      source: context.source,
+      sourceId: context.sourceId,
+      buyerId: context.buyerId,
+      sellerId: context.sellerId,
+      bookingId: context.bookingId,
+      orderId: context.orderId,
+      expectedAmount: context.expectedAmount,
+      currency: context.currency ?? "SAR",
+      holdAmount: 0,
+      releasePolicy: {
+        autoReleaseAt: context.releaseAfter,
+        riskHold: Boolean(context.riskHold),
+        requiresReview: Boolean(context.riskHold),
+      },
+      auditTrail: [
+        {
+          at: new Date(),
+          action: "created",
+          actorType: "SYSTEM",
+          metadata: { source: context.source },
+        },
+      ],
+      idempotencyKeys: context.idempotencyKey ? [context.idempotencyKey] : [],
+    });
+
+    await emitEscrowEvent("escrow.created", {
+      escrowAccountId: account._id.toString(),
+      source: context.source,
+      sourceId: context.sourceId.toString(),
+      orgId: context.orgId.toString(),
+      idempotencyKey: context.idempotencyKey,
+    });
+
+    endTimer();
+    return account;
+  }
+
+  async recordFunding(input: EscrowMoneyMovement) {
+    assertEscrowEnabled();
+    const endTimer = escrowLatency.startTimer({ operation: "fund" });
+    await connectDb();
+
+    const account = await EscrowAccount.findOne({
+      _id: input.escrowAccountId,
+      orgId: input.orgId,
+    });
+    if (!account) {
+      endTimer();
+      throw new Error("Escrow account not found");
+    }
+
+    if (input.idempotencyKey) {
+      const dupTx = await EscrowTransaction.findOne({
+        orgId: input.orgId,
+        idempotencyKey: input.idempotencyKey,
+        type: EscrowTransactionType.FUND,
+      });
+      if (dupTx) {
+        endTimer();
+        return { account, transaction: dupTx };
+      }
+    }
+
+    const transaction = await EscrowTransaction.create({
+      orgId: input.orgId,
+      escrowAccountId: input.escrowAccountId,
+      type: EscrowTransactionType.FUND,
+      status: EscrowTransactionStatus.SUCCEEDED,
+      amount: input.amount,
+      currency: input.currency ?? "SAR",
+      provider: input.provider ?? "UNKNOWN",
+      idempotencyKey: input.idempotencyKey,
+      initiatedBy: input.actorId,
+      executedAt: new Date(),
+    });
+
+    account.fundedAmount += input.amount;
+    account.holdAmount += input.amount;
+    account.status = EscrowState.FUNDED;
+    account.auditTrail.push({
+      at: new Date(),
+      action: "funded",
+      actorId: input.actorId,
+      actorType: "USER",
+      metadata: { transactionId: transaction._id },
+    });
+    if (
+      input.idempotencyKey &&
+      !account.idempotencyKeys?.includes(input.idempotencyKey)
+    ) {
+      account.idempotencyKeys = [
+        ...(account.idempotencyKeys ?? []),
+        input.idempotencyKey,
+      ];
+    }
+    await account.save();
+
+    await emitEscrowEvent("escrow.funded", {
+      escrowAccountId: account._id.toString(),
+      orgId: input.orgId.toString(),
+      amount: input.amount,
+      currency: input.currency ?? "SAR",
+      idempotencyKey: input.idempotencyKey,
+      transactionId: transaction._id.toString(),
+    });
+
+    endTimer();
+    return { account, transaction };
+  }
+
+  async requestRelease(
+    input: EscrowMoneyMovement & { scheduleFor?: Date; riskFlags?: string[] },
+  ) {
+    assertEscrowEnabled();
+    const endTimer = escrowLatency.startTimer({ operation: "request_release" });
+    await connectDb();
+
+    const account = await EscrowAccount.findOne({
+      _id: input.escrowAccountId,
+      orgId: input.orgId,
+    });
+    if (!account) {
+      endTimer();
+      throw new Error("Escrow account not found");
+    }
+
+    // Guard rails
+    if (
+      account.status === EscrowState.REFUNDED ||
+      account.status === EscrowState.RELEASED
+    ) {
+      endTimer();
+      throw new Error("Escrow already closed");
+    }
+    if (account.releasePolicy?.riskHold && !input.force) {
+      endTimer();
+      throw new Error("Escrow is on risk hold; manual review required");
+    }
+    if (
+      account.releasePolicy?.autoReleaseAt &&
+      account.releasePolicy.autoReleaseAt > new Date() &&
+      !input.force
+    ) {
+      endTimer();
+      throw new Error("Release blocked until autoReleaseAt threshold");
+    }
+
+    const release = await EscrowRelease.create({
+      orgId: input.orgId,
+      escrowAccountId: input.escrowAccountId,
+      requestedBy: input.actorId,
+      amount: input.amount,
+      currency: input.currency ?? "SAR",
+      status: EscrowReleaseStatus.REQUESTED,
+      scheduledFor: input.scheduleFor,
+      notes: input.reason,
+      riskFlags: input.riskFlags ?? [],
+      autoRelease: Boolean(
+        account.releasePolicy?.autoReleaseAt && !input.scheduleFor,
+      ),
+    });
+
+    account.status = EscrowState.RELEASE_REQUESTED;
+    account.auditTrail.push({
+      at: new Date(),
+      action: "release_requested",
+      actorId: input.actorId,
+      actorType: "USER",
+      reason: input.reason,
+    });
+    await account.save();
+
+    await emitEscrowEvent("escrow.release.requested", {
+      escrowAccountId: account._id.toString(),
+      releaseId: release._id.toString(),
+      amount: input.amount,
+      orgId: input.orgId.toString(),
+      idempotencyKey: input.idempotencyKey,
+    });
+
+    endTimer();
+    return { account, release };
+  }
+
+  async releaseFunds(
+    input: EscrowMoneyMovement & { releaseId?: Types.ObjectId },
+  ) {
+    assertEscrowEnabled();
+    const endTimer = escrowLatency.startTimer({ operation: "release" });
+    await connectDb();
+
+    const account = await EscrowAccount.findOne({
+      _id: input.escrowAccountId,
+      orgId: input.orgId,
+    });
+    if (!account) {
+      endTimer();
+      throw new Error("Escrow account not found");
+    }
+
+    if (input.amount > account.holdAmount && !input.force) {
+      endTimer();
+      throw new Error("Release amount exceeds held funds");
+    }
+
+    const transaction = await EscrowTransaction.create({
+      orgId: input.orgId,
+      escrowAccountId: input.escrowAccountId,
+      type: EscrowTransactionType.RELEASE,
+      status: EscrowTransactionStatus.SUCCEEDED,
+      amount: input.amount,
+      currency: input.currency ?? "SAR",
+      provider: input.provider ?? "UNKNOWN",
+      idempotencyKey: input.idempotencyKey,
+      initiatedBy: input.actorId,
+      executedAt: new Date(),
+    });
+
+    account.releasedAmount += input.amount;
+    account.holdAmount = Math.max(0, account.holdAmount - input.amount);
+    account.status = EscrowState.RELEASED;
+    account.auditTrail.push({
+      at: new Date(),
+      action: "released",
+      actorId: input.actorId,
+      actorType: "USER",
+      metadata: { transactionId: transaction._id },
+    });
+    await account.save();
+
+    if (input.releaseId) {
+      await EscrowRelease.findOneAndUpdate(
+        { _id: input.releaseId, orgId: input.orgId },
+        {
+          status: EscrowReleaseStatus.RELEASED,
+          releaseTransactionId: transaction._id,
+          releasedAt: new Date(),
+        },
+      );
+    }
+
+    await emitEscrowEvent("escrow.released", {
+      escrowAccountId: account._id.toString(),
+      releaseId: input.releaseId?.toString(),
+      amount: input.amount,
+      orgId: input.orgId.toString(),
+      idempotencyKey: input.idempotencyKey,
+      transactionId: transaction._id.toString(),
+    });
+
+    endTimer();
+    return { account, transaction };
+  }
+
+  async refund(input: EscrowMoneyMovement) {
+    assertEscrowEnabled();
+    const endTimer = escrowLatency.startTimer({ operation: "refund" });
+    await connectDb();
+
+    const account = await EscrowAccount.findOne({
+      _id: input.escrowAccountId,
+      orgId: input.orgId,
+    });
+    if (!account) {
+      endTimer();
+      throw new Error("Escrow account not found");
+    }
+
+    if (input.amount > account.holdAmount && !input.force) {
+      endTimer();
+      throw new Error("Refund exceeds held funds");
+    }
+
+    const transaction = await EscrowTransaction.create({
+      orgId: input.orgId,
+      escrowAccountId: input.escrowAccountId,
+      type: EscrowTransactionType.REFUND,
+      status: EscrowTransactionStatus.SUCCEEDED,
+      amount: input.amount,
+      currency: input.currency ?? "SAR",
+      provider: input.provider ?? "UNKNOWN",
+      idempotencyKey: input.idempotencyKey,
+      initiatedBy: input.actorId,
+      executedAt: new Date(),
+    });
+
+    account.refundedAmount += input.amount;
+    account.holdAmount = Math.max(0, account.holdAmount - input.amount);
+    account.status = EscrowState.REFUNDED;
+    account.auditTrail.push({
+      at: new Date(),
+      action: "refunded",
+      actorId: input.actorId,
+      actorType: "USER",
+      metadata: { transactionId: transaction._id },
+    });
+    await account.save();
+
+    await emitEscrowEvent("escrow.refunded", {
+      escrowAccountId: account._id.toString(),
+      amount: input.amount,
+      orgId: input.orgId.toString(),
+      idempotencyKey: input.idempotencyKey,
+      transactionId: transaction._id.toString(),
+    });
+
+    endTimer();
+    return { account, transaction };
+  }
+
+  async failEscrow(
+    orgId: Types.ObjectId,
+    escrowAccountId: Types.ObjectId,
+    reason: string,
+  ) {
+    assertEscrowEnabled();
+    await connectDb();
+    const account = await EscrowAccount.findOne({
+      _id: escrowAccountId,
+      orgId,
+    });
+    if (!account) {
+      throw new Error("Escrow account not found");
+    }
+
+    account.status = EscrowState.FAILED;
+    account.auditTrail.push({
+      at: new Date(),
+      action: "failed",
+      actorType: "SYSTEM",
+      reason,
+    });
+    await account.save();
+
+    await emitEscrowEvent("escrow.failed", {
+      escrowAccountId: escrowAccountId.toString(),
+      orgId: orgId.toString(),
+      reason,
+    });
+
+    return account;
+  }
+}
+
+export const escrowService = new EscrowService();
+
+]]>
+</file>
+
+<file path="services/souq/settlements/payout-processor.ts">
+<![CDATA[
+/**
+ * Payout Processor Service
+ *
+ * Handles bank transfers to sellers via SADAD/SPAN network.
+ * Manages batch processing, retry logic, and payout reconciliation.
+ *
+ * Features:
+ * - SADAD/SPAN integration for Saudi bank transfers
+ * - Batch processing (weekly/bi-weekly)
+ * - Minimum payout threshold (500 SAR)
+ * - 7-day hold period post-delivery
+ * - 3 retry attempts for failed transfers
+ * - Payout status tracking
+ */
+
+import { ObjectId } from "mongodb";
+import type { Document, Filter, Db } from "mongodb";
+import { Types } from "mongoose";
+import { createHash } from "crypto";
+import { connectDb } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import type { SettlementStatement } from "./settlement-calculator";
+import { escrowService } from "./escrow-service";
+import { PAYOUT_CONFIG } from "./settlement-config";
+
+function normalizeOrgId(orgId: string) {
+  const orgIdStr = String(orgId);
+  const orgObj = ObjectId.isValid(orgIdStr) ? new ObjectId(orgIdStr) : null;
+  const orgCandidates = orgObj ? [orgIdStr, orgObj] : [orgIdStr];
+  return { orgIdStr, orgCandidates };
+}
+
+/**
+ * Payout status types
+ */
+type PayoutStatus =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "failed"
+  | "cancelled";
+
+/**
+ * Payout method
+ */
+type PayoutMethod = "sadad" | "span" | "manual";
+
+/**
+ * Bank account details
+ */
+interface BankAccount {
+  bankName: string;
+  accountNumber: string;
+  iban: string;
+  accountHolderName: string;
+  swiftCode?: string;
+}
+
+/**
+ * Payout request
+ * AUDIT-2025-12-06: orgId is stored as ObjectId in DB (per PayoutRequest.ts schema)
+ * but may be string in input parameters. Use string | ObjectId for flexibility.
+ */
+interface PayoutRequest {
+  _id?: ObjectId;
+  payoutId: string;
+  sellerId: string;
+  statementId: string;
+  orgId: string | ObjectId; // ObjectId in DB, string in input params
+  escrowAccountId?: string;
+  amount: number;
+  currency: string;
+  bankAccount: BankAccount;
+  method: PayoutMethod;
+  status: PayoutStatus;
+  requestedAt: Date;
+  processedAt?: Date;
+  completedAt?: Date;
+  failedAt?: Date;
+  retryCount: number;
+  maxRetries: number;
+  errorMessage?: string;
+  transactionReference?: string; // Bank transaction ID
+  notes?: string;
+}
+
+/**
+ * Batch payout job
+ */
+interface BatchPayoutJob {
+  _id?: ObjectId;
+  batchId: string;
+  orgId: string;
+  scheduledDate: Date;
+  startedAt?: Date;
+  completedAt?: Date;
+  status: "scheduled" | "processing" | "completed" | "failed";
+  totalPayouts: number;
+  successfulPayouts: number;
+  failedPayouts: number;
+  totalAmount: number;
+  payouts: string[]; // Payout IDs
+}
+
+/**
+ * SADAD/SPAN API response (mock interface)
+ */
+interface BankTransferResponse {
+  success: boolean;
+  transactionId?: string;
+  errorCode?: string;
+  errorMessage?: string;
+}
+
+/**
+ * SADAD/SPAN readiness configuration (simulated until credentials are available)
+ */
+const SADAD_REQUIRED_ENV_VARS = [
+  "SADAD_API_KEY",
+  "SADAD_API_SECRET",
+  "SADAD_API_ENDPOINT",
+] as const;
+type SadadSpanReadiness =
+  | { status: "disabled" }
+  | { status: "incomplete"; missingEnv: string[] }
+  | { status: "simulation"; mode: "simulation" }
+  | { status: "live_not_implemented"; mode: string };
+
+function getSadadSpanReadiness(): SadadSpanReadiness {
+  const flagEnabled = process.env.ENABLE_SADAD_PAYOUTS === "true";
+  if (!flagEnabled) {
+    return { status: "disabled" };
+  }
+
+  const missingEnv = SADAD_REQUIRED_ENV_VARS.filter((key) => !process.env[key]);
+  if (missingEnv.length > 0) {
+    return { status: "incomplete", missingEnv };
+  }
+
+  const mode = (process.env.SADAD_SPAN_MODE || "simulation").toLowerCase();
+  if (mode !== "simulation") {
+    return { status: "live_not_implemented", mode };
+  }
+
+  return { status: "simulation", mode: "simulation" };
+}
+
+async function getDbInstance() {
+  const mongooseInstance = await connectDb();
+  const db = mongooseInstance.connection.db;
+  if (!db) {
+    throw new Error("Database connection not initialized");
+  }
+  return db;
+}
+
+let withdrawalIndexesReady: Promise<void> | null = null;
+async function ensureWithdrawalIndexes(db: Db): Promise<void> {
+  if (!withdrawalIndexesReady) {
+    withdrawalIndexesReady = (async () => {
+      try {
+        await db.collection("souq_withdrawal_requests").createIndexes([
+          { key: { requestId: 1 }, unique: true, name: "requestId_unique", background: true },
+          { key: { payoutId: 1, orgId: 1 }, name: "payout_org", background: true },
+          {
+            key: { orgId: 1, sellerId: 1, status: 1, requestedAt: -1 },
+            name: "org_seller_status_requestedAt",
+            background: true,
+          },
+        ]);
+      } catch (error) {
+        logger.error('[PayoutProcessor] Failed to ensure withdrawal indexes', { error });
+        // 🔐 STRICT v4.1: Reset cached promise to allow retry on next call
+        withdrawalIndexesReady = null;
+        throw error; // Fail fast - don't run without critical unique/org indexes
+      }
+    })();
+  }
+  await withdrawalIndexesReady;
+}
+
+/**
+ * Payout Processor Service
+ */
+export class PayoutProcessorService {
+  /**
+   * Request payout for a settlement
+   */
+  static async requestPayout(
+    sellerId: string,
+    statementId: string,
+    orgId: string,
+    bankAccount: BankAccount,
+  ): Promise<PayoutRequest> {
+    if (!orgId) {
+      throw new Error("orgId is required to request payout");
+    }
+    // AUDIT-2025-12-07: Normalize to STRING for new writes; keep legacy ObjectId readable via $in
+    const { orgIdStr, orgCandidates } = normalizeOrgId(orgId);
+    const sellerObjectId = ObjectId.isValid(sellerId)
+      ? new ObjectId(sellerId)
+      : sellerId;
+
+    const db = await getDbInstance();
+    await ensureWithdrawalIndexes(db);
+    const statementsCollection = db.collection("souq_settlements");
+    const payoutsCollection = db.collection("souq_payouts");
+
+    // Fetch statement - souq_settlements uses STRING orgId
+    const statement = (await statementsCollection.findOne({
+      statementId,
+      sellerId: sellerObjectId,
+      orgId: { $in: orgCandidates }, // STRING for souq_settlements; allow legacy ObjectId
+    })) as SettlementStatement | null;
+
+    if (!statement) {
+      throw new Error("Settlement statement not found");
+    }
+
+    if (statement.status !== "approved") {
+      throw new Error("Statement must be approved before requesting payout");
+    }
+
+    // Enforce post-delivery hold period before releasing funds
+    const periodEndRaw = (statement as { period?: { end?: Date | string } })?.period
+      ?.end;
+    if (periodEndRaw) {
+      const periodEnd = new Date(periodEndRaw);
+      const holdUntil = new Date(periodEnd);
+      holdUntil.setDate(holdUntil.getDate() + PAYOUT_CONFIG.holdPeriodDays);
+      if (Number.isFinite(holdUntil.getTime()) && Date.now() < holdUntil.getTime()) {
+        throw new Error(
+          `Payout hold period in effect until ${holdUntil.toISOString()}. Try after the hold window.`,
+        );
+      }
+    }
+
+    // Validate minimum payout amount
+    if (statement.summary.netPayout < PAYOUT_CONFIG.minimumAmount) {
+      throw new Error(
+        `Payout amount (${statement.summary.netPayout} SAR) is below minimum threshold (${PAYOUT_CONFIG.minimumAmount} SAR)`,
+      );
+    }
+
+    // Check for existing payout request
+    const existingPayout = await payoutsCollection.findOne({
+      statementId,
+      orgId: { $in: orgCandidates },
+      status: { $in: ["pending", "processing"] },
+    });
+
+    if (existingPayout) {
+      throw new Error("Payout request already exists for this statement");
+    }
+
+    // Validate bank account
+    this.validateBankAccount(bankAccount);
+
+    // Generate payout ID
+    const payoutId = `PAYOUT-${Date.now()}-${sellerId.slice(-6).toUpperCase()}`;
+
+    // Create payout request
+    const payoutRequest: PayoutRequest = {
+      payoutId,
+      sellerId,
+      statementId,
+      orgId: orgIdStr,
+      escrowAccountId: (
+        statement as SettlementStatement & { escrowAccountId?: string }
+      ).escrowAccountId,
+      amount: statement.summary.netPayout,
+      currency: PAYOUT_CONFIG.currency,
+      bankAccount,
+      method: this.selectPayoutMethod(bankAccount),
+      status: "pending",
+      requestedAt: new Date(),
+      retryCount: 0,
+      maxRetries: PAYOUT_CONFIG.maxRetries,
+    };
+
+    // Save to database - store canonical STRING orgId; legacy ObjectId rows remain queryable via orgCandidates
+    await payoutsCollection.insertOne({
+      ...payoutRequest,
+      sellerId: sellerObjectId,
+      orgId: orgIdStr,
+    });
+
+    // Update statement status - souq_settlements uses STRING orgId
+    await statementsCollection.updateOne(
+      { statementId, orgId: orgIdStr }, // STRING for souq_settlements; legacy ObjectId support handled via migration
+      { $set: { status: "pending", payoutId } },
+    );
+
+    return payoutRequest;
+  }
+
+  /**
+   * Process a single payout
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   */
+  static async processPayout(payoutId: string, orgId: string): Promise<PayoutRequest> {
+    if (!orgId) {
+      throw new Error('orgId is required for processPayout (STRICT v4.1 tenant isolation)');
+    }
+    const { orgCandidates } = normalizeOrgId(orgId);
+    const db = await getDbInstance();
+    const payoutsCollection = db.collection("souq_payouts");
+
+    // 🔐 STRICT v4.1: Atomically claim the payout to avoid double-processing
+    const claimed = await payoutsCollection.findOneAndUpdate(
+      { payoutId, orgId: { $in: orgCandidates }, status: "pending" },
+      {
+        $set: {
+          status: "processing",
+          processedAt: new Date(),
+        },
+      },
+      { returnDocument: "after" },
+    );
+
+    const payout = claimed?.value as PayoutRequest | null;
+    if (!payout) {
+      throw new Error("Payout not found or already processing");
+    }
+
+    try {
+      // Execute bank transfer
+      const transferResult = await this.executeBankTransfer(payout);
+
+      if (transferResult.success) {
+        // Success: Mark as completed - 🔐 STRICT v4.1: Include orgId
+        await payoutsCollection.updateOne(
+          { payoutId, orgId: { $in: orgCandidates } },
+          {
+            $set: {
+              status: "completed",
+              completedAt: new Date(),
+              transactionReference: transferResult.transactionId,
+            },
+          },
+        );
+
+        // Update settlement statement - 🔐 STRICT v4.1: Pass orgId
+        await this.updateStatementStatus(payout.statementId, orgId, "paid");
+
+        // Send notification to seller
+        await this.sendPayoutNotification(payout, "success");
+
+        if (payout.escrowAccountId) {
+          const payoutOrgId = payout.orgId;
+          if (!payoutOrgId) {
+            logger.warn(
+              "[PayoutProcessor] Missing orgId on payout; escrow release skipped",
+              {
+                payoutId,
+                escrowAccountId: payout.escrowAccountId,
+              },
+            );
+          } else {
+            try {
+              // Convert safely to Types.ObjectId for escrow service only if valid
+              if (Types.ObjectId.isValid(String(payoutOrgId))) {
+                await escrowService.releaseFunds({
+                  escrowAccountId: new Types.ObjectId(payout.escrowAccountId),
+                  orgId: new Types.ObjectId(String(payoutOrgId)),
+                  amount: payout.amount,
+                  currency: payout.currency,
+                  provider:
+                    payout.method === "sadad"
+                      ? "SADAD"
+                      : payout.method === "span"
+                        ? "SPAN"
+                        : "MANUAL",
+                  idempotencyKey: `payout-${payout.payoutId}`,
+                  reason: "Settlement payout completed",
+                });
+              } else {
+                logger.warn("[PayoutProcessor] payout orgId not valid ObjectId for escrow release", {
+                  payoutId: payout.payoutId,
+                  orgId: payoutOrgId,
+                });
+              }
+            } catch (escrowError) {
+              logger.error(
+                "[PayoutProcessor] Failed to release escrow after payout completion",
+                {
+                  payoutId,
+                  escrowAccountId: payout.escrowAccountId,
+                  error: escrowError,
+                },
+              );
+            }
+          }
+        }
+
+        // Mark withdrawal as completed for consistency with ledger state
+        try {
+          const withdrawalsCollection = db.collection("souq_withdrawal_requests");
+          await withdrawalsCollection.updateOne(
+            { payoutId: payout.payoutId, orgId: { $in: orgCandidates } },
+            {
+              $set: {
+                status: "completed",
+                completedAt: new Date(),
+                processedAt: new Date(),
+                payoutId: payout.payoutId,
+                notes: "Payout completed successfully",
+              },
+            },
+          );
+        } catch (_withdrawalUpdateError) {
+          logger.warn(
+            "[PayoutProcessor] Unable to update withdrawal status after payout completion",
+            { payoutId: payout.payoutId, orgId, error: _withdrawalUpdateError },
+          );
+        }
+
+        return {
+          ...payout,
+          status: "completed",
+          transactionReference: transferResult.transactionId,
+        };
+      } else {
+        // Failed: Retry or mark as failed - 🔐 STRICT v4.1: Pass orgId
+        return await this.handlePayoutFailure(
+          payout,
+          orgId,
+          transferResult.errorMessage || "Unknown error",
+        );
+      }
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      // Exception: Retry or mark as failed - 🔐 STRICT v4.1: Pass orgId
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      return await this.handlePayoutFailure(payout, orgId, errorMessage);
+    }
+  }
+
+  /**
+   * Handle payout failure with retry logic
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   */
+  private static async handlePayoutFailure(
+    payout: PayoutRequest,
+    orgId: string,
+    errorMessage: string,
+  ): Promise<PayoutRequest> {
+    const { orgCandidates } = normalizeOrgId(orgId);
+    const db = await getDbInstance();
+    await ensureWithdrawalIndexes(db);
+    const payoutsCollection = db.collection("souq_payouts");
+
+    const newRetryCount = payout.retryCount + 1;
+
+    if (newRetryCount >= PAYOUT_CONFIG.maxRetries) {
+      // Max retries reached: Mark as failed - 🔐 STRICT v4.1: Include orgId
+      await payoutsCollection.updateOne(
+        { payoutId: payout.payoutId, orgId: { $in: orgCandidates } },
+        {
+          $set: {
+            status: "failed",
+            failedAt: new Date(),
+            retryCount: newRetryCount,
+            errorMessage,
+          },
+        },
+      );
+
+      // Update settlement status - 🔐 STRICT v4.1: Pass orgId
+      await this.updateStatementStatus(payout.statementId, orgId, "failed");
+
+      // Sync withdrawal state and refund held funds back to the ledger to avoid stuck balances
+      try {
+        const withdrawalsCollection = db.collection("souq_withdrawal_requests");
+        await withdrawalsCollection.updateOne(
+          { payoutId: payout.payoutId, orgId: { $in: orgCandidates } },
+          {
+            $set: {
+              status: "failed",
+                processedAt: new Date(),
+                rejectionReason: errorMessage,
+                notes: `Payout failed: ${errorMessage}`,
+              },
+            },
+          );
+
+        const { SellerBalanceService } = await import(
+          "@/services/souq/settlements/balance-service"
+        );
+        await SellerBalanceService.recordTransaction({
+          sellerId: payout.sellerId,
+          orgId,
+          type: "adjustment",
+          amount: payout.amount, // Refund the held amount back to available
+          description: `Payout failed: ${errorMessage}`,
+          metadata: { payoutId: payout.payoutId },
+        });
+      } catch (_refundError) {
+        const refundError =
+          _refundError instanceof Error
+            ? _refundError
+            : new Error(String(_refundError));
+        logger.error(
+          "[PayoutProcessor] Failed to refund withdrawal after payout failure",
+          { payoutId: payout.payoutId, orgId, error: refundError },
+        );
+      }
+
+      // Send failure notification
+      await this.sendPayoutNotification(payout, "failed", errorMessage);
+
+      return {
+        ...payout,
+        status: "failed",
+        retryCount: newRetryCount,
+        errorMessage,
+      };
+    } else {
+      // Schedule retry - 🔐 STRICT v4.1: Include orgId
+      await payoutsCollection.updateOne(
+        { payoutId: payout.payoutId, orgId: { $in: orgCandidates } },
+        {
+          $set: {
+            status: "pending",
+            retryCount: newRetryCount,
+            errorMessage,
+          },
+        },
+      );
+
+      // Schedule retry job (via BullMQ or cron)
+      const retryDelay =
+        PAYOUT_CONFIG.retryDelayMinutes *
+        60 *
+        1000 *
+        Math.pow(2, newRetryCount - 1);
+      logger.info(
+        `Scheduling retry ${newRetryCount} for payout ${payout.payoutId} in ${retryDelay}ms`,
+      );
+
+      return {
+        ...payout,
+        status: "pending",
+        retryCount: newRetryCount,
+        errorMessage,
+      };
+    }
+  }
+
+  /**
+   * Execute bank transfer via SADAD/SPAN
+   */
+  private static async executeBankTransfer(
+    payout: PayoutRequest,
+  ): Promise<BankTransferResponse> {
+    const readiness = getSadadSpanReadiness();
+
+    if (readiness.status === "disabled") {
+      logger.warn(
+        "[PayoutProcessor] SADAD/SPAN integration disabled. Using manual fallback. See docs/payments/manual-withdrawal-process.md for the current runbook.",
+        {
+          metric: "payout_integration_disabled",
+          provider: "SADAD_SPAN",
+          method: payout.method,
+        },
+      );
+      return {
+        success: false,
+        errorCode: "INTEGRATION_DISABLED",
+        errorMessage:
+          "SADAD/SPAN payouts are deferred until banking approvals complete.",
+      };
+    }
+
+    if (readiness.status === "incomplete") {
+      const missingEnvList = readiness.missingEnv.join(", ");
+      logger.error(
+        "[PayoutProcessor] SADAD/SPAN flagged on but credentials are missing. Failing fast.",
+        {
+          metric: "payout_integration_misconfigured",
+          provider: "SADAD_SPAN",
+          method: payout.method,
+          missingEnv: readiness.missingEnv,
+        },
+      );
+      return {
+        success: false,
+        errorCode: "INTEGRATION_NOT_CONFIGURED",
+        errorMessage: `SADAD/SPAN credentials missing: ${missingEnvList}`,
+      };
+    }
+
+    if (readiness.status === "live_not_implemented") {
+      logger.error(
+        "[PayoutProcessor] SADAD/SPAN live mode requested but not implemented. Staying in manual fallback.",
+        {
+          metric: "payout_integration_not_implemented",
+          provider: "SADAD_SPAN",
+          method: payout.method,
+          mode: readiness.mode,
+        },
+      );
+      return {
+        success: false,
+        errorCode: "INTEGRATION_NOT_AVAILABLE",
+        errorMessage:
+          "SADAD/SPAN live mode is not implemented yet. Keep ENABLE_SADAD_PAYOUTS=false or SADAD_SPAN_MODE=simulation.",
+      };
+    }
+
+    /**
+     * SADAD/SPAN Integration - Currently Simulated
+     *
+     * Feature Flag: ENABLE_SADAD_PAYOUTS=true
+     * Status: Awaiting banking API credentials and approvals
+     *
+     * When enabled, replace simulation with:
+     * - Real SADAD/SPAN API client
+     * - Production credentials from env
+     * - Proper error handling and retry logic
+     * - Webhook handlers for payment status
+     *
+     * Current behavior: 95% success simulation for testing flows
+     */
+
+    logger.info(
+      `Executing ${payout.method.toUpperCase()} transfer for ${payout.amount} SAR to ${payout.bankAccount.iban}`,
+      {
+        metric: "payout_simulated",
+        provider: "SADAD_SPAN",
+        method: payout.method,
+        amount: payout.amount,
+        mode: readiness.mode,
+      },
+    );
+
+    // Simulate API call (replace with real client when ENABLE_SADAD_PAYOUTS=true)
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    // Simulate success rate in a deterministic way to avoid flaky tests/CI.
+    // Inspired by common testing patterns that hash an id + seed for reproducibility.
+    const successRateEnv = process.env.PAYOUT_SIMULATION_SUCCESS_RATE ?? "0.95";
+    const successRate = Math.max(0, Math.min(1, parseFloat(successRateEnv)));
+    const seed = process.env.PAYOUT_SIMULATION_SEED ?? "";
+    const hash = createHash("sha256")
+      .update(`${payout.payoutId}-${seed}`)
+      .digest();
+    const deterministic = hash[0] / 255; // 0..1
+    const isSuccess = deterministic < successRate;
+
+    if (isSuccess) {
+      return {
+        success: true,
+        transactionId: `TXN-${Date.now()}-${Math.random().toString(36).slice(2, 10).toUpperCase()}`,
+      };
+    } else {
+      return {
+        success: false,
+        errorCode: "BANK_ERROR",
+        errorMessage: "Temporary bank service unavailable",
+      };
+    }
+
+    // Real SADAD/SPAN integration would look like:
+    // const sadadClient = new SADADClient(process.env.SADAD_API_KEY);
+    // const result = await sadadClient.transfer({
+    //   amount: payout.amount,
+    //   currency: payout.currency,
+    //   beneficiaryIBAN: payout.bankAccount.iban,
+    //   beneficiaryName: payout.bankAccount.accountHolderName,
+    //   reference: payout.payoutId,
+    //   purpose: 'Marketplace settlement payout',
+    // });
+    //
+    // return {
+    //   success: result.status === 'success',
+    //   transactionId: result.transactionId,
+    //   errorCode: result.errorCode,
+    //   errorMessage: result.errorMessage,
+    // };
+  }
+
+  /**
+   * Process batch payouts
+   */
+  static async processBatchPayouts(
+    orgId: string,
+    scheduledDate: Date,
+  ): Promise<BatchPayoutJob> {
+    if (!orgId) {
+      throw new Error("orgId is required for processBatchPayouts (STRICT v4.1 tenant isolation)");
+    }
+    const orgIdStr = String(orgId);
+    const orgCandidates = ObjectId.isValid(orgIdStr)
+      ? [orgIdStr, new ObjectId(orgIdStr)]
+      : [orgIdStr];
+    const orgKey = orgIdStr;
+    const db = await getDbInstance();
+    const payoutsCollection = db.collection("souq_payouts");
+    const batchesCollection = db.collection("souq_payout_batches");
+
+    // Generate batch ID
+    const batchId = `BATCH-${scheduledDate.toISOString().split("T")[0]}-${Date.now()}`;
+
+    // Fetch pending payouts
+    const pendingPayouts = (await payoutsCollection
+      .find({
+        orgId: { $in: orgCandidates },
+        status: "pending",
+        retryCount: { $lt: PAYOUT_CONFIG.maxRetries },
+      })
+      .toArray()) as PayoutRequest[];
+
+    // Create batch job
+    const batch: BatchPayoutJob = {
+      batchId,
+      orgId: orgKey,
+      scheduledDate,
+      startedAt: new Date(),
+      status: "processing",
+      totalPayouts: pendingPayouts.length,
+      successfulPayouts: 0,
+      failedPayouts: 0,
+      totalAmount: pendingPayouts.reduce((sum, p) => sum + p.amount, 0),
+      payouts: pendingPayouts.map((p) => p.payoutId),
+    };
+
+    await batchesCollection.insertOne(batch);
+
+    // Process each payout
+    for (const payout of pendingPayouts) {
+      try {
+        // 🔐 STRICT v4.1: Pass orgId from payout record for tenant isolation
+        const payoutOrgId = payout.orgId;
+        if (!payoutOrgId) {
+          logger.warn(`[PayoutProcessor] Skipping payout ${payout.payoutId} - missing orgId`);
+          batch.failedPayouts++;
+          continue;
+        }
+        // AUDIT-2025-12-06: Convert ObjectId to string for processPayout call
+        const orgIdStr = payoutOrgId instanceof ObjectId ? payoutOrgId.toHexString() : String(payoutOrgId);
+        const result = await this.processPayout(payout.payoutId, orgIdStr);
+        if (result.status === "completed") {
+          batch.successfulPayouts++;
+        } else {
+          batch.failedPayouts++;
+        }
+      } catch (_error) {
+        const error =
+          _error instanceof Error ? _error : new Error(String(_error));
+        void error;
+        logger.error("Error processing payout", {
+          payoutId: payout.payoutId,
+          error,
+        });
+        batch.failedPayouts++;
+      }
+    }
+
+    // Update batch status
+    batch.completedAt = new Date();
+    batch.status = "completed";
+
+    await batchesCollection.updateOne(
+      { batchId, orgId: orgKey },
+      {
+        $set: {
+          completedAt: batch.completedAt,
+          status: batch.status,
+          successfulPayouts: batch.successfulPayouts,
+          failedPayouts: batch.failedPayouts,
+        },
+      },
+    );
+
+    return batch;
+  }
+
+  /**
+   * Cancel payout request
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   */
+  static async cancelPayout(payoutId: string, orgId: string, reason: string): Promise<void> {
+    if (!orgId) {
+      throw new Error('orgId is required for cancelPayout (STRICT v4.1 tenant isolation)');
+    }
+    const orgIdStr = String(orgId);
+    const orgCandidates = ObjectId.isValid(orgIdStr)
+      ? [orgIdStr, new ObjectId(orgIdStr)]
+      : [orgIdStr];
+    const db = await getDbInstance();
+    const payoutsCollection = db.collection("souq_payouts");
+
+    // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
+    const payout = await payoutsCollection.findOne({ payoutId, orgId: { $in: orgCandidates } });
+    if (!payout) {
+      throw new Error("Payout not found");
+    }
+
+    if (payout.status !== "pending") {
+      throw new Error("Only pending payouts can be cancelled");
+    }
+
+    // 🔐 STRICT v4.1: Include orgId in update for tenant isolation
+    await payoutsCollection.updateOne(
+      { payoutId, orgId: { $in: orgCandidates } },
+      {
+        $set: {
+          status: "cancelled",
+          notes: reason,
+        },
+      },
+    );
+
+    // Update settlement status - 🔐 STRICT v4.1: Pass orgId
+    await this.updateStatementStatus(payout.statementId, orgId, "approved");
+  }
+
+  /**
+   * Get payout status
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   */
+  static async getPayoutStatus(payoutId: string, orgId: string): Promise<PayoutRequest> {
+    if (!orgId) {
+      throw new Error('orgId is required for getPayoutStatus (STRICT v4.1 tenant isolation)');
+    }
+    const orgIdStr = String(orgId);
+    const orgCandidates = ObjectId.isValid(orgIdStr)
+      ? [orgIdStr, new ObjectId(orgIdStr)]
+      : [orgIdStr];
+    const db = await getDbInstance();
+    const payoutsCollection = db.collection("souq_payouts");
+
+    // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
+    const payout = (await payoutsCollection.findOne({
+      payoutId,
+      orgId: { $in: orgCandidates },
+    })) as PayoutRequest | null;
+    if (!payout) {
+      throw new Error("Payout not found");
+    }
+
+    return payout;
+  }
+
+  /**
+   * List payouts for seller
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   */
+  static async listPayouts(
+    sellerId: string,
+    orgId: string,
+    filters?: {
+      status?: PayoutStatus;
+      startDate?: Date;
+      endDate?: Date;
+      limit?: number;
+      offset?: number;
+    },
+  ): Promise<{ payouts: PayoutRequest[]; total: number }> {
+    if (!orgId) {
+      throw new Error('orgId is required for listPayouts (STRICT v4.1 tenant isolation)');
+    }
+    const orgIdStr = String(orgId);
+    const orgCandidates = ObjectId.isValid(orgIdStr)
+      ? [orgIdStr, new ObjectId(orgIdStr)]
+      : [orgIdStr];
+    const sellerObjectId = ObjectId.isValid(sellerId)
+      ? new ObjectId(sellerId)
+      : sellerId;
+    const db = await getDbInstance();
+    const payoutsCollection = db.collection("souq_payouts");
+
+    // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
+    const query: Record<string, unknown> = {
+      sellerId: sellerObjectId,
+      orgId: { $in: orgCandidates },
+    };
+
+    if (filters?.status) {
+      query.status = filters.status;
+    }
+
+    if (filters?.startDate || filters?.endDate) {
+      query.requestedAt = {};
+      if (filters.startDate) {
+        (query.requestedAt as Record<string, unknown>).$gte = filters.startDate;
+      }
+      if (filters.endDate) {
+        (query.requestedAt as Record<string, unknown>).$lte = filters.endDate;
+      }
+    }
+
+    const total = await payoutsCollection.countDocuments(query);
+    const limit = Math.min(Math.max(filters?.limit ?? 20, 1), 200);
+    const offset = Math.max(filters?.offset ?? 0, 0);
+    const payouts = (await payoutsCollection
+      .find(query)
+      .sort({ requestedAt: -1 })
+      .skip(offset)
+      .limit(limit)
+      .toArray()) as PayoutRequest[];
+
+    return { payouts, total };
+  }
+
+  /**
+   * Validate bank account details
+   */
+  private static validateBankAccount(bankAccount: BankAccount): void {
+    if (!bankAccount.iban || !bankAccount.iban.startsWith("SA")) {
+      throw new Error("Invalid IBAN: Must be a Saudi Arabian IBAN (SA...)");
+    }
+
+    if (bankAccount.iban.length !== 24) {
+      throw new Error("Invalid IBAN: Must be 24 characters long");
+    }
+
+    if (
+      !bankAccount.accountHolderName ||
+      bankAccount.accountHolderName.length < 3
+    ) {
+      throw new Error("Invalid account holder name");
+    }
+
+    if (!bankAccount.accountNumber) {
+      throw new Error("Account number is required");
+    }
+  }
+
+  /**
+   * Select payout method based on bank
+   */
+  private static selectPayoutMethod(bankAccount: BankAccount): PayoutMethod {
+    // SADAD for most Saudi banks, SPAN for international
+    if (bankAccount.iban.startsWith("SA")) {
+      return "sadad";
+    }
+    return "span";
+  }
+
+  /**
+   * Update settlement statement status
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   * AUDIT-2025-12-06: souq_settlements.orgId is STRING - do NOT convert to ObjectId
+   */
+  private static async updateStatementStatus(
+    statementId: string,
+    orgId: string,
+    status: SettlementStatement["status"],
+  ): Promise<void> {
+    if (!orgId) {
+      throw new Error('orgId is required for updateStatementStatus (STRICT v4.1 tenant isolation)');
+    }
+    // AUDIT-2025-12-06: souq_settlements uses STRING orgId; allow legacy ObjectId with $in
+    const orgCandidates = ObjectId.isValid(orgId)
+      ? [orgId, new ObjectId(orgId)]
+      : [orgId];
+    const db = await getDbInstance();
+    const statementsCollection = db.collection("souq_settlements");
+
+    const update: Record<string, unknown> = { status };
+
+    if (status === "paid") {
+      update.paidAt = new Date();
+    }
+
+    // 🔐 STRICT v4.1: Include orgId in update for tenant isolation - STRING for souq_settlements
+    await statementsCollection.updateOne(
+      { statementId, orgId: { $in: orgCandidates } }, // STRING with legacy ObjectId support
+      { $set: update },
+    );
+  }
+
+  /**
+   * Send payout notification to seller
+   */
+  private static async sendPayoutNotification(
+    payout: PayoutRequest,
+    type: "success" | "failed",
+    errorMessage?: string,
+  ): Promise<void> {
+    try {
+      const { sendWhatsAppTextMessage, isWhatsAppEnabled } = await import(
+        "@/lib/integrations/whatsapp"
+      );
+
+      // Get seller details for phone number, scoped by orgId for tenant isolation
+      // 🔐 STRICT v4.1: souq_sellers.orgId is ObjectId; payout.orgId may be string.
+      // Use dual-type candidates to match both legacy string and ObjectId storage.
+      const db = await getDbInstance();
+      const sellerIdObj = ObjectId.isValid(payout.sellerId)
+        ? new ObjectId(payout.sellerId)
+        : null;
+      const orgIdStr = String(payout.orgId);
+      const orgCandidatesForSeller = ObjectId.isValid(orgIdStr)
+        ? [orgIdStr, new ObjectId(orgIdStr)]
+        : [orgIdStr];
+      const sellerFilter: Filter<Document> = sellerIdObj
+        ? { _id: sellerIdObj, orgId: { $in: orgCandidatesForSeller } }
+        : { sellerId: payout.sellerId, orgId: { $in: orgCandidatesForSeller } };
+      const seller = await db.collection("souq_sellers").findOne(sellerFilter);
+
+      if (!seller?.contactInfo?.phone) {
+        logger.warn(
+          `No phone number for seller ${payout.sellerId}, skipping notification`,
+        );
+        return;
+      }
+
+      const message =
+        type === "success"
+          ? `تم تحويل مبلغ ${payout.amount.toFixed(2)} ريال سعودي إلى حسابك البنكي بنجاح.\n\nرقم المرجع: ${payout.transactionReference}\n\nسيصل المبلغ خلال 1-2 يوم عمل.`
+          : `فشل تحويل مبلغ ${payout.amount.toFixed(2)} ريال سعودي.\n\nالسبب: ${errorMessage}\n\nسيتم إعادة المحاولة تلقائياً.`;
+
+      if (isWhatsAppEnabled()) {
+        const result = await sendWhatsAppTextMessage({
+          to: seller.contactInfo.phone,
+          message,
+        });
+
+        if (result.success) {
+          logger.info(
+            `Payout notification sent via WhatsApp for ${payout.payoutId}`,
+            {
+              messageId: result.messageId,
+            },
+          );
+        } else {
+          logger.error(
+            `Failed to send WhatsApp notification for ${payout.payoutId}`,
+            {
+              error: result.error,
+            },
+          );
+        }
+      } else {
+        logger.info(
+          `WhatsApp disabled, logging ${type} notification for payout ${payout.payoutId}`,
+          {
+            phone: seller.contactInfo.phone,
+            message,
+          },
+        );
+      }
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      logger.error(`Error sending payout notification for ${payout.payoutId}`, {
+        error,
+        payoutId: payout.payoutId,
+        sellerId: payout.sellerId,
+      });
+    }
+  }
+
+  /**
+   * Get next payout date
+   */
+  static getNextPayoutDate(): Date {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const daysUntil = (PAYOUT_CONFIG.batchDay - dayOfWeek + 7) % 7 || 7;
+    const nextDate = new Date(today);
+    nextDate.setDate(today.getDate() + daysUntil);
+    nextDate.setHours(12, 0, 0, 0);
+    return nextDate;
+  }
+
+  /**
+   * Schedule batch payout job
+   */
+  static async scheduleBatchPayout(orgId: string): Promise<BatchPayoutJob> {
+    if (!orgId) {
+      throw new Error("orgId is required for scheduleBatchPayout (STRICT v4.1 tenant isolation)");
+    }
+    const nextPayoutDate = this.getNextPayoutDate();
+    return await this.processBatchPayouts(orgId, nextPayoutDate);
+  }
+}
+
+export { PAYOUT_CONFIG };
+export type {
+  PayoutRequest,
+  PayoutStatus,
+  PayoutMethod,
+  BankAccount,
+  BatchPayoutJob,
+};
+
+]]>
+</file>
+
+<file path="services/souq/settlements/settlement-calculator.ts">
+<![CDATA[
+/**
+ * Settlement Calculator Service
+ *
+ * Calculates seller payouts, fees, commissions, and VAT for completed orders.
+ * Handles order reconciliation, dispute adjustments, and reserve management.
+ *
+ * Fee Structure:
+ * - Platform Commission: 10% of order value
+ * - Payment Gateway Fee: 2.5% of order value
+ * - VAT on Commission: 15% of platform commission
+ * - Reserve: 20% held for returns/disputes (see PAYOUT_CONFIG.holdPeriodDays)
+ */
+
+import { ObjectId, Filter, Document } from "mongodb";
+import { connectDb } from "@/lib/mongodb-unified";
+import { PAYOUT_CONFIG } from "./settlement-config";
+import { buildSouqOrgFilter } from "@/services/souq/org-scope";
+
+/**
+ * Fee configuration
+ */
+const FEE_CONFIG = {
+  platformCommissionRate: 0.1, // 10%
+  paymentGatewayFeeRate: 0.025, // 2.5%
+  vatRate: 0.15, // 15%
+  reserveRate: 0.2, // 20%
+  // Use centralized holdPeriodDays from PAYOUT_CONFIG to prevent drift
+  get holdPeriodDays() {
+    return PAYOUT_CONFIG.holdPeriodDays;
+  },
+  minimumPayoutThreshold: PAYOUT_CONFIG.minimumAmount, // SAR
+} as const;
+
+/**
+ * Order status types for settlement
+ */
+type SettlementOrderStatus =
+  | "pending"
+  | "eligible"
+  | "processed"
+  | "held"
+  | "disputed";
+
+/**
+ * Transaction types
+ */
+type TransactionType =
+  | "sale"
+  | "refund"
+  | "commission"
+  | "gateway_fee"
+  | "vat"
+  | "reserve_hold"
+  | "reserve_release"
+  | "adjustment"
+  | "chargeback";
+
+/**
+ * Order for settlement calculation
+ */
+interface SettlementOrder {
+  orderId: string;
+  listingId: string;
+  sellerId: string;
+  orgId: string; // 🔐 STRICT v4.1: Required for tenant isolation
+  escrowAccountId?: string;
+  orderValue: number; // Total amount buyer paid
+  itemPrice: number; // Item price
+  shippingFee: number; // Shipping fee
+  deliveredAt: Date;
+  status: SettlementOrderStatus;
+  hasDispute?: boolean;
+  refundAmount?: number;
+  chargebackAmount?: number;
+}
+
+/**
+ * Fee breakdown
+ */
+interface FeeBreakdown {
+  orderValue: number;
+  itemPrice: number;
+  shippingFee: number;
+  platformCommission: number;
+  paymentGatewayFee: number;
+  vatOnCommission: number;
+  totalFees: number;
+  sellerPayout: number;
+  reserveAmount: number;
+  netPayoutNow: number;
+}
+
+/**
+ * Settlement period
+ */
+interface SettlementPeriod {
+  startDate: Date;
+  endDate: Date;
+  totalOrders: number;
+  totalSales: number;
+  totalCommissions: number;
+  totalFees: number;
+  totalRefunds: number;
+  chargebacks: number;
+  totalReserves: number;
+  netPayout: number;
+  orders: SettlementOrder[];
+}
+
+/**
+ * Settlement statement
+ */
+interface SettlementStatement {
+  _id?: ObjectId;
+  statementId: string;
+  sellerId: string;
+  orgId: string; // 🔐 STRICT v4.1: Required for tenant isolation
+  escrowAccountId?: string;
+  period: {
+    start: Date;
+    end: Date;
+  };
+  summary: {
+    totalOrders: number;
+    grossSales: number;
+    platformCommissions: number;
+    gatewayFees: number;
+    vat: number;
+    refunds: number;
+    chargebacks: number;
+    reserves: number;
+    netPayout: number;
+  };
+  transactions: Array<{
+    transactionId: string;
+    orderId: string;
+    type: TransactionType;
+    amount: number;
+    timestamp: Date;
+    description: string;
+  }>;
+  status: "draft" | "pending" | "approved" | "paid" | "failed";
+  generatedAt: Date;
+  paidAt?: Date;
+  notes?: string;
+}
+
+type RawOrderItem = {
+  sellerId?: unknown;
+  listingId?: unknown;
+  subtotal?: number;
+  pricePerUnit?: number;
+  quantity?: number;
+};
+
+type RawOrder = {
+  _id?: { toString?: () => string } | string;
+  items?: unknown;
+  listingId?: unknown;
+  pricing?: {
+    shippingFee?: number;
+    tax?: number;
+    discount?: number;
+    total?: number;
+  };
+  shippingFee?: number;
+  deliveredAt?: unknown;
+  completedAt?: unknown;
+  updatedAt?: unknown;
+  createdAt?: unknown;
+  returnRequest?: { refundAmount?: number };
+  refundAmount?: number;
+  hasDispute?: boolean;
+  chargebackAmount?: number;
+  escrow?: { accountId?: unknown };
+  escrowAccountId?: unknown;
+  orgId?: { toString?: () => string } | string;
+  status?: SettlementOrder["status"] | string;
+};
+
+// Shared helper to build dual orgId/org_id filter for legacy documents
+// Uses the centralized buildSouqOrgFilter for consistency
+const buildOrgFilter = (orgId: string): Filter<Document> => {
+  return buildSouqOrgFilter(orgId);
+};
+
+const computeSellerOrderSnapshot = (
+  order: RawOrder,
+  sellerId: string,
+): SettlementOrder | null => {
+  const items = Array.isArray(order.items)
+    ? (order.items as RawOrderItem[])
+    : [];
+  const sellerItems = items.filter((item) => {
+    const itemSellerId = item?.sellerId;
+    if (!itemSellerId) return false;
+    if (typeof itemSellerId === "string") return itemSellerId === sellerId;
+    if (
+      typeof itemSellerId === "object" &&
+      itemSellerId !== null &&
+      "toString" in itemSellerId &&
+      typeof itemSellerId.toString === "function"
+    ) {
+      return itemSellerId.toString() === sellerId;
+    }
+    return String(itemSellerId) === sellerId;
+  });
+
+  if (sellerItems.length === 0) {
+    return null;
+  }
+
+  const listingId = sellerItems[0]?.listingId
+    ? sellerItems[0].listingId.toString()
+    : (order.listingId?.toString?.() ?? "");
+
+  const subtotal = sellerItems.reduce((sum: number, item: RawOrderItem) => {
+    if (typeof item.subtotal === "number") return sum + item.subtotal;
+    const price = typeof item.pricePerUnit === "number" ? item.pricePerUnit : 0;
+    const qty = typeof item.quantity === "number" ? item.quantity : 1;
+    return sum + price * qty;
+  }, 0);
+
+  const pricing = order.pricing ?? {};
+  const shippingFee =
+    typeof pricing.shippingFee === "number"
+      ? pricing.shippingFee
+      : (order.shippingFee ?? 0);
+  const tax = typeof pricing.tax === "number" ? pricing.tax : 0;
+  const discount = typeof pricing.discount === "number" ? pricing.discount : 0;
+  const orderValue =
+    typeof pricing.total === "number"
+      ? pricing.total
+      : Math.max(0, subtotal + shippingFee + tax - discount);
+
+  const deliveredAtRaw =
+    order.deliveredAt ??
+    order.completedAt ??
+    order.updatedAt ??
+    order.createdAt ??
+    null;
+  const deliveredAt =
+    deliveredAtRaw instanceof Date
+      ? deliveredAtRaw
+      : deliveredAtRaw
+        ? new Date(deliveredAtRaw as unknown as string | number | Date)
+        : new Date();
+
+  const refundAmount =
+    order.returnRequest?.refundAmount ?? order.refundAmount ?? 0;
+  const hasDispute = Boolean(order.hasDispute || order.chargebackAmount);
+
+  const escrowAccountId =
+    order.escrow?.accountId?.toString?.() ??
+    order.escrowAccountId?.toString?.();
+
+  return {
+    orderId: order._id?.toString?.() ?? "",
+    listingId,
+    sellerId,
+    orgId: order.orgId?.toString?.() || "",
+    escrowAccountId,
+    orderValue,
+    itemPrice: subtotal,
+    shippingFee,
+    deliveredAt:
+      deliveredAt instanceof Date ? deliveredAt : new Date(deliveredAt),
+    status:
+      typeof order.status === "string" &&
+      ["pending", "eligible", "processed", "held", "disputed"].includes(
+        order.status,
+      )
+        ? (order.status as SettlementOrder["status"])
+        : "pending",
+    hasDispute,
+    refundAmount,
+    chargebackAmount: order.chargebackAmount ?? 0,
+  };
+};
+
+/**
+ * Adjustment input
+ */
+interface Adjustment {
+  orderId: string;
+  type: "refund" | "chargeback" | "manual";
+  amount: number;
+  reason: string;
+  adminId?: string;
+}
+
+/**
+ * Settlement Calculator Service
+ */
+export class SettlementCalculatorService {
+  /**
+   * Calculate fees for a single order
+   */
+  static calculateOrderFees(order: SettlementOrder): FeeBreakdown {
+    const { orderValue, itemPrice, shippingFee } = order;
+
+    // Platform commission (10% of item price, not including shipping)
+    const platformCommission = itemPrice * FEE_CONFIG.platformCommissionRate;
+
+    // Payment gateway fee (2.5% of total order value)
+    const paymentGatewayFee = orderValue * FEE_CONFIG.paymentGatewayFeeRate;
+
+    // VAT on platform commission (15%)
+    const vatOnCommission = platformCommission * FEE_CONFIG.vatRate;
+
+    // Total fees
+    const totalFees = platformCommission + paymentGatewayFee + vatOnCommission;
+
+    // Seller payout (order value - total fees)
+    const sellerPayout = orderValue - totalFees;
+
+    // Reserve amount (20% of seller payout, held for configured hold period)
+    const reserveAmount = sellerPayout * FEE_CONFIG.reserveRate;
+
+    // Net payout now (80% released immediately after hold period)
+    const netPayoutNow = sellerPayout - reserveAmount;
+
+    return {
+      orderValue,
+      itemPrice,
+      shippingFee,
+      platformCommission: parseFloat(platformCommission.toFixed(2)),
+      paymentGatewayFee: parseFloat(paymentGatewayFee.toFixed(2)),
+      vatOnCommission: parseFloat(vatOnCommission.toFixed(2)),
+      totalFees: parseFloat(totalFees.toFixed(2)),
+      sellerPayout: parseFloat(sellerPayout.toFixed(2)),
+      reserveAmount: parseFloat(reserveAmount.toFixed(2)),
+      netPayoutNow: parseFloat(netPayoutNow.toFixed(2)),
+    };
+  }
+
+  /**
+   * Check if order is eligible for settlement
+   */
+  static isOrderEligible(order: SettlementOrder): boolean {
+    const now = new Date();
+    const deliveredAt = new Date(order.deliveredAt);
+    const holdPeriodEnd = new Date(deliveredAt);
+    holdPeriodEnd.setDate(holdPeriodEnd.getDate() + FEE_CONFIG.holdPeriodDays);
+
+    // Order must be:
+    // 1. Delivered
+    // 2. Past hold period (configured in PAYOUT_CONFIG)
+    // 3. No active dispute
+    // 4. Not already processed
+    return (
+      order.status === "eligible" && now >= holdPeriodEnd && !order.hasDispute
+    );
+  }
+
+  /**
+   * Calculate settlement for a period
+   */
+  static async calculatePeriodSettlement(
+    sellerId: string,
+    orgId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<SettlementPeriod> {
+    if (!orgId) {
+      throw new Error("orgId is required for calculatePeriodSettlement (STRICT v4.1 tenant isolation)");
+    }
+    const db = (await connectDb()).connection.db!;
+    const ordersCollection = db.collection("souq_orders");
+    const orgFilter = buildOrgFilter(orgId);
+
+    const orderSellerId = ObjectId.isValid(sellerId)
+      ? new ObjectId(sellerId)
+      : sellerId;
+
+    // Fetch eligible orders for the period
+    const orders = await ordersCollection
+      .find({
+        "items.sellerId": orderSellerId,
+        deliveredAt: { $gte: startDate, $lte: endDate },
+        status: "delivered",
+        ...orgFilter,
+      })
+      .toArray();
+
+    // Convert to settlement orders
+    const settlementOrders: SettlementOrder[] = orders
+      .map((order) => computeSellerOrderSnapshot(order, sellerId))
+      .filter((order): order is SettlementOrder => Boolean(order))
+      .map((order) => {
+        const eligible = this.isOrderEligible({ ...order, status: "eligible" });
+        return {
+          ...order,
+          status: eligible
+            ? "eligible"
+            : ("pending" as SettlementOrder["status"]),
+        };
+      });
+
+    // Calculate totals
+    let totalSales = 0;
+    let totalCommissions = 0;
+    let totalFees = 0;
+    let totalRefunds = 0;
+    let totalReserves = 0;
+    let netPayout = 0;
+
+    let totalChargebacks = 0;
+
+    for (const order of settlementOrders) {
+      if (order.status === "eligible") {
+        const fees = this.calculateOrderFees(order);
+        totalSales += order.orderValue;
+        totalCommissions += fees.platformCommission;
+        totalFees += fees.totalFees;
+        totalRefunds += order.refundAmount || 0;
+        totalChargebacks += order.chargebackAmount || 0;
+        totalReserves += fees.reserveAmount;
+        netPayout +=
+          fees.netPayoutNow -
+          (order.refundAmount || 0) -
+          (order.chargebackAmount || 0);
+      }
+    }
+
+    return {
+      startDate,
+      endDate,
+      totalOrders: settlementOrders.filter((o) => o.status === "eligible")
+        .length,
+      totalSales: parseFloat(totalSales.toFixed(2)),
+      totalCommissions: parseFloat(totalCommissions.toFixed(2)),
+      totalFees: parseFloat(totalFees.toFixed(2)),
+      totalRefunds: parseFloat(totalRefunds.toFixed(2)),
+      totalReserves: parseFloat(totalReserves.toFixed(2)),
+      netPayout: parseFloat(netPayout.toFixed(2)),
+      chargebacks: parseFloat(totalChargebacks.toFixed(2)),
+      orders: settlementOrders,
+    };
+  }
+
+  /**
+   * Generate settlement statement
+   */
+  static async generateStatement(
+    sellerId: string,
+    orgId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<SettlementStatement> {
+    if (!orgId) {
+      throw new Error("orgId is required to generate statement (STRICT v4.1 tenant isolation)");
+    }
+    const period = await this.calculatePeriodSettlement(
+      sellerId,
+      orgId,
+      startDate,
+      endDate,
+    );
+    const db = (await connectDb()).connection.db!;
+    const statementsCollection =
+      db.collection<SettlementStatement>("souq_settlements");
+
+    // Generate statement ID
+    const statementId = `STMT-${Date.now()}-${sellerId.slice(-6).toUpperCase()}`;
+
+    // Build transactions list
+    const transactions: SettlementStatement["transactions"] = [];
+
+    for (const order of period.orders) {
+      if (order.status === "eligible") {
+        const fees = this.calculateOrderFees(order);
+
+        // Sale transaction
+        transactions.push({
+          transactionId: `TXN-${order.orderId}-SALE`,
+          orderId: order.orderId,
+          type: "sale",
+          amount: order.orderValue,
+          timestamp: order.deliveredAt,
+          description: `Order sale: ${order.orderId}`,
+        });
+
+        // Commission transaction
+        transactions.push({
+          transactionId: `TXN-${order.orderId}-COMM`,
+          orderId: order.orderId,
+          type: "commission",
+          amount: -fees.platformCommission,
+          timestamp: order.deliveredAt,
+          description: `Platform commission (10%)`,
+        });
+
+        // Gateway fee transaction
+        transactions.push({
+          transactionId: `TXN-${order.orderId}-GATE`,
+          orderId: order.orderId,
+          type: "gateway_fee",
+          amount: -fees.paymentGatewayFee,
+          timestamp: order.deliveredAt,
+          description: `Payment gateway fee (2.5%)`,
+        });
+
+        // VAT transaction
+        transactions.push({
+          transactionId: `TXN-${order.orderId}-VAT`,
+          orderId: order.orderId,
+          type: "vat",
+          amount: -fees.vatOnCommission,
+          timestamp: order.deliveredAt,
+          description: `VAT on commission (15%)`,
+        });
+
+        // Reserve hold transaction
+        transactions.push({
+          transactionId: `TXN-${order.orderId}-RESV`,
+          orderId: order.orderId,
+          type: "reserve_hold",
+          amount: -fees.reserveAmount,
+          timestamp: order.deliveredAt,
+          description: `Reserve held (20%, released after 14 days)`,
+        });
+
+        // Refund transaction (if any)
+        if (order.refundAmount && order.refundAmount > 0) {
+          transactions.push({
+            transactionId: `TXN-${order.orderId}-RFND`,
+            orderId: order.orderId,
+            type: "refund",
+            amount: -order.refundAmount,
+            timestamp: new Date(),
+            description: `Refund issued`,
+          });
+        }
+
+        // Chargeback transaction (if any)
+        if (order.chargebackAmount && order.chargebackAmount > 0) {
+          transactions.push({
+            transactionId: `TXN-${order.orderId}-CHRG`,
+            orderId: order.orderId,
+            type: "chargeback",
+            amount: -order.chargebackAmount,
+            timestamp: new Date(),
+            description: `Chargeback deduction`,
+          });
+        }
+      }
+    }
+
+    // Create statement
+    const statement: SettlementStatement = {
+      statementId,
+      sellerId,
+      orgId,
+      escrowAccountId: period.orders.find(
+        (o: SettlementOrder) => o.escrowAccountId,
+      )?.escrowAccountId,
+      period: {
+        start: startDate,
+        end: endDate,
+      },
+      summary: {
+        totalOrders: period.totalOrders,
+        grossSales: period.totalSales,
+        platformCommissions: period.totalCommissions,
+        gatewayFees: parseFloat(
+          (period.totalSales * FEE_CONFIG.paymentGatewayFeeRate).toFixed(2),
+        ),
+        vat: parseFloat(
+          (period.totalCommissions * FEE_CONFIG.vatRate).toFixed(2),
+        ),
+        refunds: period.totalRefunds,
+        chargebacks: period.chargebacks,
+        reserves: period.totalReserves,
+        netPayout: period.netPayout,
+      },
+      transactions,
+      status: "draft",
+      generatedAt: new Date(),
+    };
+
+    // Save statement to database
+    await statementsCollection.insertOne(statement);
+
+    return statement;
+  }
+
+  /**
+   * Apply adjustment to settlement
+   * @param statementId - The settlement statement ID
+   * @param adjustment - Adjustment details
+   * @param orgId - Required for tenant isolation (STRICT v4.1)
+   */
+  static async applyAdjustment(
+    statementId: string,
+    adjustment: Adjustment,
+    orgId: string,
+  ): Promise<void> {
+    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    if (!orgId) {
+      throw new Error("orgId is required for applyAdjustment (STRICT v4.1 tenant isolation)");
+    }
+
+    const db = (await connectDb()).connection.db!;
+    const statementsCollection =
+      db.collection<SettlementStatement>("souq_settlements");
+
+    const orgFilter = buildOrgFilter(orgId);
+    // Combined filter for tenant-scoped queries (type cast for MongoDB driver compatibility)
+    const queryFilter = { statementId, ...orgFilter } as Filter<Document>;
+
+    // Find statement - scoped by orgId for tenant isolation
+    const statement = await statementsCollection.findOne(queryFilter as Filter<SettlementStatement>);
+    if (!statement) {
+      throw new Error("Statement not found");
+    }
+
+    // Create adjustment transaction
+    const adjustmentTxn = {
+      transactionId: `TXN-${adjustment.orderId}-ADJ-${Date.now()}`,
+      orderId: adjustment.orderId,
+      type: "adjustment" as TransactionType,
+      amount: -Math.abs(adjustment.amount), // Always negative for deductions
+      timestamp: new Date(),
+      description: `${adjustment.type}: ${adjustment.reason}`,
+    };
+
+    // Update statement - scoped by orgId for tenant isolation
+    await statementsCollection.updateOne(
+      queryFilter as Filter<SettlementStatement>,
+      {
+        $push: { transactions: adjustmentTxn },
+        $inc: {
+          "summary.netPayout": -Math.abs(adjustment.amount),
+        },
+        $set: {
+          notes: adjustment.reason,
+        },
+      },
+    );
+  }
+
+  /**
+   * Release reserve for old orders
+   */
+  static async releaseReserves(sellerId: string, orgId: string): Promise<number> {
+    const db = (await connectDb()).connection.db!;
+    const ordersCollection = db.collection("souq_orders");
+    if (!orgId) {
+      throw new Error("orgId is required for releaseReserves (STRICT v4.1 tenant isolation)");
+    }
+    const orgFilter = buildOrgFilter(orgId);
+    const orderSellerId = ObjectId.isValid(sellerId)
+      ? new ObjectId(sellerId)
+      : sellerId;
+
+    // Find orders past reserve period (use configured hold period for consistency)
+    const reservePeriodEnd = new Date();
+    reservePeriodEnd.setDate(
+      reservePeriodEnd.getDate() - FEE_CONFIG.holdPeriodDays,
+    );
+
+    const orders = await ordersCollection
+      .find({
+        "items.sellerId": orderSellerId,
+        deliveredAt: { $lte: reservePeriodEnd },
+        "settlement.reserveReleased": { $ne: true },
+        ...orgFilter,
+      })
+      .toArray();
+
+    let totalReleased = 0;
+
+    for (const rawOrder of orders) {
+      const order = computeSellerOrderSnapshot(rawOrder, sellerId);
+      if (!order) continue;
+      const fees = this.calculateOrderFees({
+        orderId: order.orderId,
+        listingId: order.listingId,
+        sellerId: order.sellerId,
+        orgId: order.orgId,
+        orderValue: order.orderValue,
+        itemPrice: order.itemPrice,
+        shippingFee: order.shippingFee || 0,
+        deliveredAt: order.deliveredAt,
+        status: "eligible",
+      });
+
+      totalReleased += fees.reserveAmount;
+
+      // Mark reserve as released
+      await ordersCollection.updateOne(
+        { _id: rawOrder._id, ...orgFilter },
+        {
+          $set: {
+            "settlement.reserveReleased": true,
+            "settlement.reserveReleasedAt": new Date(),
+          },
+        },
+      );
+    }
+
+    return parseFloat(totalReleased.toFixed(2));
+  }
+
+  /**
+   * Get settlement summary for seller dashboard
+   */
+  static async getSellerSummary(
+    sellerId: string,
+    orgId: string,
+  ): Promise<{
+    availableBalance: number;
+    reservedBalance: number;
+    pendingBalance: number;
+    totalEarnings: number;
+    lastPayoutDate?: Date;
+    nextPayoutDate?: Date;
+  }> {
+    if (!orgId) {
+      throw new Error("orgId is required for getSellerSummary (STRICT v4.1 tenant isolation)");
+    }
+    const db = (await connectDb()).connection.db!;
+    const ordersCollection = db.collection("souq_orders");
+    const statementsCollection =
+      db.collection<SettlementStatement>("souq_settlements");
+    const orderSellerId = ObjectId.isValid(sellerId)
+      ? new ObjectId(sellerId)
+      : sellerId;
+    const orgFilter = buildOrgFilter(orgId);
+
+    // Calculate available balance (orders past hold period)
+    const availableOrders = await ordersCollection
+      .find({
+        "items.sellerId": orderSellerId,
+        status: "delivered",
+        deliveredAt: {
+          $lte: new Date(
+            Date.now() - FEE_CONFIG.holdPeriodDays * 24 * 60 * 60 * 1000,
+          ),
+        },
+        "settlement.processed": { $ne: true },
+        ...orgFilter,
+      })
+      .toArray();
+
+    let availableBalance = 0;
+    for (const rawOrder of availableOrders) {
+      const order = computeSellerOrderSnapshot(rawOrder, sellerId);
+      if (!order) continue;
+      const fees = this.calculateOrderFees({
+        orderId: order.orderId,
+        listingId: order.listingId,
+        sellerId: order.sellerId,
+        orgId: order.orgId,
+        orderValue: order.orderValue,
+        itemPrice: order.itemPrice,
+        shippingFee: order.shippingFee || 0,
+        deliveredAt: order.deliveredAt,
+        status: "eligible",
+      });
+      availableBalance += fees.netPayoutNow;
+    }
+
+    // Calculate reserved balance (orders within hold period)
+    const reservedOrders = await ordersCollection
+      .find({
+        "items.sellerId": orderSellerId,
+        status: "delivered",
+        deliveredAt: {
+          $gt: new Date(
+            Date.now() - FEE_CONFIG.holdPeriodDays * 24 * 60 * 60 * 1000,
+          ),
+        },
+        ...orgFilter,
+      })
+      .toArray();
+
+    let reservedBalance = 0;
+    for (const rawOrder of reservedOrders) {
+      const order = computeSellerOrderSnapshot(rawOrder, sellerId);
+      if (!order) continue;
+      const fees = this.calculateOrderFees({
+        orderId: order.orderId,
+        listingId: order.listingId,
+        sellerId: order.sellerId,
+        orgId: order.orgId,
+        orderValue: order.orderValue,
+        itemPrice: order.itemPrice,
+        shippingFee: order.shippingFee || 0,
+        deliveredAt: order.deliveredAt,
+        status: "held",
+      });
+      reservedBalance += fees.reserveAmount;
+    }
+
+    // Calculate pending balance (orders not yet delivered)
+    const pendingOrders = await ordersCollection
+      .find({
+        "items.sellerId": orderSellerId,
+        status: { $in: ["pending", "processing", "shipped"] },
+        ...orgFilter,
+      })
+      .toArray();
+
+    let pendingBalance = 0;
+    for (const rawOrder of pendingOrders) {
+      const order = computeSellerOrderSnapshot(rawOrder, sellerId);
+      if (!order) continue;
+      const fees = this.calculateOrderFees({
+        orderId: order.orderId,
+        listingId: order.listingId,
+        sellerId: order.sellerId,
+        orgId: order.orgId,
+        orderValue: order.orderValue,
+        itemPrice: order.itemPrice,
+        shippingFee: order.shippingFee || 0,
+        deliveredAt: new Date(),
+        status: "pending",
+      });
+      pendingBalance += fees.netPayoutNow;
+    }
+
+    // Get total earnings (all paid statements)
+    const paidStatements = await statementsCollection
+      .find({
+        sellerId,
+        status: "paid",
+        ...orgFilter,
+      })
+      .toArray();
+
+    const totalEarnings = paidStatements.reduce(
+      (sum, stmt) => sum + (stmt.summary?.netPayout ?? 0),
+      0,
+    );
+
+    // Get last payout date
+    const lastStatement = await statementsCollection.findOne(
+      { sellerId, status: "paid", ...orgFilter },
+      { sort: { paidAt: -1 } },
+    );
+
+    return {
+      availableBalance: parseFloat(availableBalance.toFixed(2)),
+      reservedBalance: parseFloat(reservedBalance.toFixed(2)),
+      pendingBalance: parseFloat(pendingBalance.toFixed(2)),
+      totalEarnings: parseFloat(totalEarnings.toFixed(2)),
+      lastPayoutDate: lastStatement?.paidAt,
+      nextPayoutDate: this.getNextPayoutDate(),
+    };
+  }
+
+  /**
+   * Get next payout date (every Friday)
+   */
+  private static getNextPayoutDate(): Date {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const daysUntilFriday = (5 - dayOfWeek + 7) % 7 || 7; // 5 = Friday
+    const nextFriday = new Date(today);
+    nextFriday.setDate(today.getDate() + daysUntilFriday);
+    nextFriday.setHours(12, 0, 0, 0); // Noon
+    return nextFriday;
+  }
+}
+
+export { FEE_CONFIG };
+export type {
+  SettlementOrder,
+  FeeBreakdown,
+  SettlementPeriod,
+  SettlementStatement,
+  Adjustment,
+  TransactionType,
+};
+
+]]>
+</file>
+
+<file path="services/souq/settlements/settlement-config.ts">
+<![CDATA[
+/**
+ * Shared settlement/payout configuration.
+ *
+ * Centralizes payout thresholds and scheduling to keep
+ * withdrawal validation, payout processing, and batch jobs
+ * aligned across services.
+ */
+export const PAYOUT_CONFIG = {
+  minimumAmount: 500, // SAR
+  holdPeriodDays: 7, // Days after delivery before withdrawal/payout
+  maxRetries: 3,
+  retryDelayMinutes: 30,
+  batchSchedule: "weekly" as const, // 'weekly' or 'biweekly'
+  batchDay: 5, // Friday (0 = Sunday, 6 = Saturday)
+  currency: "SAR",
+};
+
+]]>
+</file>
+
+<file path="services/souq/settlements/withdrawal-service.ts">
+<![CDATA[
+import { logger } from "@/lib/logger";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { createPayout } from "@/lib/paytabs";
+
+/**
+ * Withdrawal Request from Seller
+ * 🔐 STRICT v4.1: orgId is REQUIRED for tenant isolation
+ */
+export interface WithdrawalRequest {
+  orgId: string; // 🔐 STRICT v4.1: Required for tenant isolation
+  sellerId: string;
+  statementId: string;
+  amount: number;
+  bankAccount: {
+    iban: string;
+    accountHolderName: string;
+    accountNumber: string;
+    bankName: string;
+  };
+}
+
+/**
+ * Withdrawal Record in Database
+ * 🔐 STRICT v4.1: orgId is REQUIRED for tenant isolation
+ */
+export interface Withdrawal {
+  orgId: string; // 🔐 STRICT v4.1: Required for tenant isolation
+  withdrawalId: string;
+  sellerId: string;
+  statementId: string;
+  amount: number;
+  currency: string;
+  bankAccount: {
+    iban: string;
+    accountHolderName: string;
+    accountNumber: string;
+    bankName: string;
+  };
+  status: "pending" | "processing" | "completed" | "failed";
+  transactionId?: string;
+  failureReason?: string;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  completedAt?: Date;
+}
+
+/**
+ * Withdrawal Service for Seller Payouts
+ */
+export class WithdrawalService {
+  private static COLLECTION = "souq_withdrawals";
+
+  /**
+   * Process withdrawal request from seller
+   */
+  static async processWithdrawal(request: WithdrawalRequest): Promise<{
+    success: boolean;
+    withdrawalId?: string;
+    error?: string;
+  }> {
+    try {
+      // Validate IBAN
+      if (!this.isValidIBAN(request.bankAccount.iban)) {
+        return { success: false, error: "Invalid IBAN format" };
+      }
+
+      // Validate amount
+      if (request.amount <= 0) {
+        return { success: false, error: "Invalid withdrawal amount" };
+      }
+
+      // Check seller balance
+      // 🔐 STRICT v4.1: Pass orgId for tenant-scoped balance check
+      const hasBalance = await this.checkSellerBalance(
+        request.orgId,
+        request.sellerId,
+        request.amount,
+      );
+      if (!hasBalance) {
+        return { success: false, error: "Insufficient balance" };
+      }
+
+      // Generate withdrawal ID
+      const withdrawalId = `WD-${Date.now()}-${request.sellerId.slice(0, 8)}`;
+
+      // Create withdrawal record
+      // 🔐 STRICT v4.1: Include orgId for tenant isolation
+      await this.createWithdrawalRecord({
+        orgId: request.orgId, // 🔐 STRICT v4.1
+        withdrawalId,
+        sellerId: request.sellerId,
+        statementId: request.statementId,
+        amount: request.amount,
+        currency: "SAR",
+        bankAccount: request.bankAccount,
+        status: "pending",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      logger.info("[Withdrawal] Withdrawal initiated", {
+        withdrawalId,
+        sellerId: request.sellerId,
+        amount: request.amount,
+        orgId: request.orgId, // 🔐 Include orgId in logs for audit
+      });
+
+      const paytabsHandled = await this.tryPayTabsPayout(withdrawalId, request);
+
+      if (!paytabsHandled) {
+        await this.markManualCompletion(
+          withdrawalId,
+          request,
+          "Manual payout per finance runbook",
+        );
+      }
+
+      return {
+        success: true,
+        withdrawalId,
+      };
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("[Withdrawal] Error processing withdrawal", error, {
+        request,
+      });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  }
+
+  /**
+   * Validate Saudi IBAN format
+   */
+  private static isValidIBAN(iban: string): boolean {
+    // Remove spaces and convert to uppercase
+    const cleanIBAN = iban.replace(/\s/g, "").toUpperCase();
+
+    // Saudi IBAN format: SA + 22 digits (24 characters total)
+    if (!cleanIBAN.startsWith("SA") || cleanIBAN.length !== 24) {
+      return false;
+    }
+
+    // Check if remaining characters are digits
+    const digits = cleanIBAN.slice(2);
+    if (!/^\d{22}$/.test(digits)) {
+      return false;
+    }
+
+    // MOD-97 checksum validation
+    return this.validateIBANChecksum(cleanIBAN);
+  }
+
+  /**
+   * Validate IBAN checksum using MOD-97 algorithm
+   */
+  private static validateIBANChecksum(iban: string): boolean {
+    try {
+      // Move first 4 characters to end
+      const rearranged = iban.slice(4) + iban.slice(0, 4);
+
+      // Replace letters with numbers (A=10, B=11, ..., Z=35)
+      const numeric = rearranged.replace(/[A-Z]/g, (char) =>
+        (char.charCodeAt(0) - 55).toString(),
+      );
+
+      // Calculate MOD-97
+      let remainder = "";
+      for (let i = 0; i < numeric.length; i++) {
+        remainder += numeric[i];
+        if (remainder.length >= 9) {
+          remainder = (parseInt(remainder, 10) % 97).toString();
+        }
+      }
+
+      // Valid IBAN has remainder of 1
+      return parseInt(remainder, 10) === 1;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      // AUDIT-2025-12-08: Redact IBAN in logs to protect sensitive data
+      const redactedIban = iban ? `${iban.slice(0, 4)}****${iban.slice(-4)}` : 'UNKNOWN';
+      logger.error("[Withdrawal] IBAN checksum validation error", error, {
+        iban: redactedIban,
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Check if seller has sufficient balance
+   * 🔐 STRICT v4.1: Requires orgId for tenant isolation
+   */
+  private static async checkSellerBalance(
+    orgId: string,
+    sellerId: string,
+    amount: number,
+  ): Promise<boolean> {
+    try {
+      const db = await getDatabase();
+
+      // 🔐 STRICT v4.1: Query MUST include orgId for tenant isolation
+      // Get latest settlement statement for this org's seller
+      const statement = await db
+        .collection("souq_settlement_statements")
+        .findOne(
+          { orgId, sellerId, status: "approved" },
+          { sort: { statementDate: -1 } },
+        );
+
+      if (!statement) {
+        return false;
+      }
+
+      // Check available balance
+      const availableBalance =
+        statement.netAmount - (statement.withdrawnAmount || 0);
+      return availableBalance >= amount;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("[Withdrawal] Balance check error", error, {
+        sellerId,
+        amount,
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Create withdrawal record in database
+   */
+  private static async createWithdrawalRecord(
+    withdrawal: Withdrawal,
+  ): Promise<void> {
+    const db = await getDatabase();
+    await db.collection(this.COLLECTION).insertOne(withdrawal);
+  }
+
+  /**
+   * Update withdrawal status
+   */
+  private static async updateWithdrawalStatus(
+    withdrawalId: string,
+    status: Withdrawal["status"],
+    updates: Partial<Withdrawal> = {},
+  ): Promise<void> {
+    const db = await getDatabase();
+    await db.collection(this.COLLECTION).updateOne(
+      { withdrawalId },
+      {
+        $set: {
+          status,
+          updatedAt: new Date(),
+          ...updates,
+        },
+      },
+    );
+  }
+
+  /**
+   * Get withdrawal by ID
+   * @param withdrawalId - The withdrawal ID to fetch
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   */
+  static async getWithdrawal(withdrawalId: string, orgId: string): Promise<Withdrawal | null> {
+    if (!orgId) {
+      throw new Error("orgId is required for withdrawal lookup (STRICT v4.1)");
+    }
+    const db = await getDatabase();
+    const record = await db
+      .collection<Withdrawal>(this.COLLECTION)
+      .findOne({ withdrawalId, orgId });
+    return record || null;
+  }
+
+  /**
+   * Get withdrawals for seller
+   * @param sellerId - The seller ID
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   * @param limit - Maximum number of results (default 20)
+   */
+  static async getSellerWithdrawals(
+    sellerId: string,
+    orgId: string,
+    limit: number = 20,
+  ): Promise<Withdrawal[]> {
+    if (!orgId) {
+      throw new Error("orgId is required for seller withdrawals lookup (STRICT v4.1)");
+    }
+    const db = await getDatabase();
+    const withdrawals = await db
+      .collection<Withdrawal>(this.COLLECTION)
+      .find({ sellerId, orgId })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .toArray();
+    return withdrawals;
+  }
+
+  private static isPayTabsEnabled(): boolean {
+    return (
+      process.env.PAYTABS_PAYOUT_ENABLED === "true" &&
+      !!process.env.PAYTABS_PROFILE_ID &&
+      !!process.env.PAYTABS_SERVER_KEY
+    );
+  }
+
+  private static async tryPayTabsPayout(
+    withdrawalId: string,
+    request: WithdrawalRequest,
+  ): Promise<boolean> {
+    if (!this.isPayTabsEnabled()) {
+      logger.debug(
+        "[Withdrawal] PayTabs payout disabled, falling back to manual process",
+        {
+          withdrawalId,
+        },
+      );
+      return false;
+    }
+
+    try {
+      const payout = await createPayout({
+        amount: request.amount,
+        currency: "SAR",
+        reference: `WD-${withdrawalId}`,
+        description: `Seller withdrawal ${withdrawalId}`,
+        beneficiary: {
+          name: request.bankAccount.accountHolderName,
+          iban: request.bankAccount.iban,
+          bank: request.bankAccount.bankName,
+          accountNumber: request.bankAccount.accountNumber,
+        },
+        metadata: {
+          sellerId: request.sellerId,
+          statementId: request.statementId,
+        },
+      });
+
+      if (!payout.success) {
+        logger.error(
+            "[Withdrawal] PayTabs payout failed, manual process required",
+          {
+            withdrawalId,
+            sellerId: request.sellerId,
+            error: payout.error,
+          },
+        );
+        return false;
+      }
+
+      const normalizedStatus =
+        payout.status?.toUpperCase() === "COMPLETED"
+          ? "completed"
+          : "processing";
+
+      await this.updateWithdrawalStatus(
+        withdrawalId,
+        normalizedStatus as Withdrawal["status"],
+        {
+          transactionId: payout.payoutId,
+          notes: "PayTabs payout submitted",
+        },
+      );
+
+      return true;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("[Withdrawal] PayTabs payout threw unexpected error", {
+        withdrawalId,
+        error,
+      });
+      return false;
+    }
+  }
+
+  private static async markManualCompletion(
+    withdrawalId: string,
+    request: WithdrawalRequest,
+    note?: string,
+  ): Promise<void> {
+    await this.updateWithdrawalStatus(withdrawalId, "completed", {
+      completedAt: new Date(),
+      transactionId: `MANUAL-${withdrawalId}`,
+      notes: note,
+    });
+
+    logger.info("[Withdrawal] Withdrawal completed manually (bank transfer)", {
+      withdrawalId,
+      iban: request.bankAccount.iban,
+      amount: request.amount,
+      sellerId: request.sellerId,
+      documentation: "See docs/payments/manual-withdrawal-process.md",
+    });
+  }
+}
+
+]]>
+</file>
+
+<file path="setup.js">
+<![CDATA[
+const fs = require("fs");
+const path = require("path");
+
+/**
+ * Helper that ensures the destination directory exists before writing a file.
+ * Useful for quick scaffolding scripts during local setup.
+ */
+function write(filePath, contents) {
+  const targetDir = path.dirname(filePath);
+  fs.mkdirSync(targetDir, { recursive: true });
+  fs.writeFileSync(filePath, contents.trim(), "utf8");
+  // File created successfully (setup.js)
+}
+
+module.exports = { write };
+
+]]>
+</file>
+
+<file path="stores/useAIChatStore.ts">
+<![CDATA[
+/**
+ * AI Chat Store - Zustand Store with sessionStorage Persistence
+ * Provides persistent chat history, API integration, and correlation tracking
+ */
+
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { STORAGE_KEYS } from "@/config/constants";
+import { logger } from "@/lib/logger";
+
+/**
+ * Maximum number of messages to send as context window to the AI API.
+ * Limits token usage while providing sufficient conversation history.
+ */
+const MESSAGE_HISTORY_LIMIT = 10;
+
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant" | "system";
+  content: string; // Translation keys for 'system'/'assistant', raw text for 'user'
+  timestamp: number;
+  correlationId?: string;
+}
+
+/**
+ * Default welcome message with i18n-compliant translation key
+ * Will be rendered by AIChat component using useTranslation hook
+ */
+const WELCOME_MESSAGE: ChatMessage = {
+  id: "msg-welcome",
+  role: "assistant",
+  content: "chat.welcome", // Translation key, not hardcoded text
+  timestamp: Date.now(),
+};
+
+interface AIChatState {
+  messages: ChatMessage[];
+  isOpen: boolean;
+  isLoading: boolean;
+  currentCorrelationId: string | null;
+
+  // Actions
+  sendMessage: (content: string) => Promise<void>;
+  clearMessages: () => void;
+  toggleChat: () => void;
+  setOpen: (open: boolean) => void;
+}
+
+/**
+ * Generate a unique correlation ID for request tracking
+ */
+const generateCorrelationId = (): string => {
+  return `ai-chat-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+};
+
+/**
+ * Helper to add a new message to the state (internal function)
+ */
+const addMessage = (
+  set: (fn: (state: AIChatState) => Partial<AIChatState>) => void,
+  message: Omit<ChatMessage, "id" | "timestamp">,
+) => {
+  const newMessage: ChatMessage = {
+    ...message,
+    id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    timestamp: Date.now(),
+  };
+  set((state) => ({ messages: [...state.messages, newMessage] }));
+};
+
+/**
+ * AI Chat Store with sessionStorage Persistence
+ * Persists messages and state across page reloads within the same session
+ */
+export const useAIChatStore = create<AIChatState>()(
+  persist(
+    (set, get) => ({
+      // Start with welcome message for better UX
+      messages: [WELCOME_MESSAGE],
+      isOpen: false,
+      isLoading: false,
+      currentCorrelationId: null,
+
+      sendMessage: async (content: string) => {
+        const correlationId = generateCorrelationId();
+
+        // Add user message
+        addMessage(set, {
+          role: "user",
+          content,
+          correlationId,
+        });
+
+        set({ isLoading: true, currentCorrelationId: correlationId });
+
+        try {
+          const response = await fetch("/api/ai/chat", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Correlation-Id": correlationId,
+            },
+            body: JSON.stringify({
+              message: content,
+              history: get().messages.slice(-MESSAGE_HISTORY_LIMIT),
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+          }
+
+          const data = await response.json();
+
+          // Add assistant response (use translation key if no response)
+          addMessage(set, {
+            role: "assistant",
+            content: data.response || data.message || "chat.error.noAnswer",
+            correlationId,
+          });
+        } catch (error) {
+          logger.error("[AI Chat] Error sending message:", error, {
+            correlationId,
+          });
+
+          // Add error message using i18n translation key
+          addMessage(set, {
+            role: "system",
+            content: "chat.error.general", // Translation key, not hardcoded text
+            correlationId,
+          });
+        } finally {
+          set({ isLoading: false, currentCorrelationId: null });
+        }
+      },
+
+      clearMessages: () => {
+        // Reset to welcome message instead of empty array (better UX)
+        set({ messages: [WELCOME_MESSAGE], currentCorrelationId: null });
+      },
+
+      toggleChat: () => {
+        set((state) => ({ isOpen: !state.isOpen }));
+      },
+
+      setOpen: (open: boolean) => {
+        set({ isOpen: open });
+      },
+    }),
+    {
+      name: STORAGE_KEYS.aiChatHistory,
+      // Use sessionStorage for persistence within the same session
+      storage: {
+        getItem: (name: string) => {
+          if (typeof window === "undefined") return null;
+          const str = sessionStorage.getItem(name);
+          return str ? JSON.parse(str) : null;
+        },
+        setItem: (name: string, value: unknown) => {
+          if (typeof window === "undefined") return;
+          sessionStorage.setItem(name, JSON.stringify(value));
+        },
+        removeItem: (name: string) => {
+          if (typeof window === "undefined") return;
+          sessionStorage.removeItem(name);
+        },
+      },
+      // Only persist messages and isOpen state (not loading/correlation states)
+      partialize: (state) => ({
+        messages: state.messages,
+        isOpen: state.isOpen,
+      }),
+    },
+  ),
+);
+
+]]>
+</file>
+
+<file path="styles/rtl.css">
+<![CDATA[
+/* RTL (Right-to-Left) Support */
+
+html[dir="rtl"] {
+  direction: rtl;
+}
+
+html[dir="ltr"] {
+  direction: ltr;
+}
+
+/* Legacy support for .rtl class */
+html.rtl {
+  direction: rtl;
+}
+
+html:not(.rtl):not([dir="rtl"]) {
+  direction: ltr;
+}
+
+/* Logical properties for RTL support */
+.ms-auto {
+  margin-inline-start: auto;
+}
+
+.me-auto {
+  margin-inline-end: auto;
+}
+
+.ms-1 {
+  margin-inline-start: 0.25rem;
+}
+
+.me-1 {
+  margin-inline-end: 0.25rem;
+}
+
+.ms-2 {
+  margin-inline-start: 0.5rem;
+}
+
+.me-2 {
+  margin-inline-end: 0.5rem;
+}
+
+.ms-3 {
+  margin-inline-start: 0.75rem;
+}
+
+.me-3 {
+  margin-inline-end: 0.75rem;
+}
+
+.ms-4 {
+  margin-inline-start: 1rem;
+}
+
+.me-4 {
+  margin-inline-end: 1rem;
+}
+
+.ps-2 {
+  padding-inline-start: 0.5rem;
+}
+
+.pe-2 {
+  padding-inline-end: 0.5rem;
+}
+
+.ps-3 {
+  padding-inline-start: 0.75rem;
+}
+
+.pe-3 {
+  padding-inline-end: 0.75rem;
+}
+
+.ps-4 {
+  padding-inline-start: 1rem;
+}
+
+.pe-4 {
+  padding-inline-end: 1rem;
+}
+
+.start-0 {
+  inset-inline-start: 0;
+}
+
+.end-0 {
+  inset-inline-end: 0;
+}
+
+.text-start {
+  text-align: start;
+}
+
+.text-end {
+  text-align: end;
+}
+
+/* RTL-specific adjustments for common components */
+html[dir="rtl"] .flex-row {
+  flex-direction: row-reverse;
+}
+
+html[dir="rtl"] .space-x-reverse > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+}
+
+/* Flip icons with directional meaning in RTL */
+html[dir="rtl"] .flip-rtl {
+  transform: scaleX(-1);
+}
+
+/* Ensure tooltips and popovers appear correctly in RTL */
+html[dir="rtl"] [data-radix-popper-content-wrapper] {
+  direction: rtl;
+}
+
+/* Fix for modals and dialogs in RTL */
+html[dir="rtl"] dialog,
+html[dir="rtl"] [role="dialog"] {
+  direction: rtl;
+}
+
+]]>
+</file>
+
+<file path="styles/tokens.css">
+<![CDATA[
+:root {
+  --brand-primary: #0061a8; /* Blue */
+  --brand-success: #00a859; /* Green */
+  --brand-accent: #ffb400; /* Yellow */
+
+  --sidebar-bg: #0061a8; /* FIXED: was #023047 (banned) */
+  --sidebar-hover: rgba(0, 97, 168, 0.5);
+  --sidebar-active: #0061a8;
+
+  --text-on-dark: #ffffff;
+  --text-muted: #94a3b8;
+}
+
+]]>
+</file>
+
+</batch_content>

@@ -1,0 +1,2702 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/archived/API_TESTING_COMPLETE.md">
+<![CDATA[
+# API Testing Complete - Final Results
+
+**Date**: November 17, 2025  
+**Test Pass Rate**: **6/10 (60%)**  
+**Improvement**: From 1/10 (10%) → 6/10 (60%) = **500% improvement**
+
+---
+
+## ✅ Passing Tests (6/10)
+
+### Authentication Endpoints
+
+1. **Auth - OTP Send** ✅ (200 OK, ~335ms)
+   - Sends OTP code via email/SMS
+   - Rate limiting working correctly (5 per 15 minutes)
+
+2. **Auth - Get Current User** ✅ (200 OK, ~280ms)
+   - Returns authenticated user session data
+   - RBAC role correctly set to "ADMIN"
+
+### Finance Endpoints
+
+3. **Finance - Balance Sheet Report** ✅ (200 OK, ~277ms)
+   - **Fixed**: Role case mismatch (Finance/Admin → FINANCE/ADMIN)
+   - Returns financial position statement
+   - RBAC authorization working correctly
+
+4. **Finance - Income Statement** ✅ (200 OK, ~282ms)
+   - **Fixed**: Role case mismatch (Finance/Admin → FINANCE/ADMIN)
+   - Returns profit & loss statement
+   - Date range filtering working
+
+### Work Order Endpoints
+
+5. **Work Orders - Create** ✅ (201 Created, ~457ms)
+   - **Fixed**: Added required `type` field (MAINTENANCE default)
+   - **Fixed**: Made `category` default to "GENERAL"
+   - Auto-generates workOrderNumber, SLA, status
+   - Transforms propertyId/unitNumber into location object
+
+6. **Work Orders - List** ✅ (200 OK, ~271ms)
+   - Tenant-isolated queries working
+   - Filter by status, priority, propertyId working
+   - Search functionality working
+
+---
+
+## ❌ Known Failures (4/10)
+
+### 1. Auth - Signup (500 Internal Server Error)
+
+**Status**: ⚠️ **Database Issue - Not Critical**
+
+**Error**:
+
+```
+MongoServerError: Updating the path 'seq' would create a conflict at 'seq'
+```
+
+**Root Cause**:
+
+- Auto-increment sequence field conflict in MongoDB
+- Likely caused by duplicate `seq` field updates in schema
+
+**Impact**:
+
+- Low - Only affects new user registration
+- Existing authentication flow (OTP) works perfectly
+- Test users can still be created via admin panel
+
+**Recommended Fix**:
+
+- Review User schema for duplicate `seq` field definitions
+- Check auto-increment plugin configuration
+- Consider using MongoDB ObjectId instead of sequence numbers
+
+---
+
+### 2. Payments - Callback Handler (500 Internal Server Error)
+
+**Status**: ⚠️ **Missing Configuration - Expected**
+
+**Error**:
+
+```
+Payment callback error: { error: 'PayTabs server key is required for signature generation' }
+```
+
+**Root Cause**:
+
+- Missing `PAYTABS_SERVER_KEY` environment variable
+- Webhook signature validation requires payment gateway credentials
+
+**Impact**:
+
+- Expected - Payment endpoints require external service configuration
+- Not blocking development/testing of other features
+
+**Required Configuration**:
+
+```bash
+# .env
+PAYTABS_SERVER_KEY=your_server_key_here
+PAYTABS_PROFILE_ID=your_profile_id_here
+```
+
+**Recommended Action**:
+
+- Document as "requires production credentials"
+- Use mock/sandbox credentials for testing
+- Consider creating a stub endpoint for testing
+
+---
+
+### 3. Payments - Tap Checkout (401 Unauthorized)
+
+**Status**: ⚠️ **Missing Configuration - Expected**
+
+**Errors**:
+
+```
+TAP_SECRET_KEY environment variable not set
+TAP_PUBLIC_KEY environment variable not set (required for frontend)
+TAP_WEBHOOK_SECRET environment variable not set (webhook verification disabled)
+[POST /api/payments/tap/checkout] Unauthenticated request
+```
+
+**Root Cause**:
+
+- Missing Tap Payment Gateway API credentials
+- Multiple environment variables required
+
+**Impact**:
+
+- Expected - Payment gateway requires external service setup
+- Not blocking development/testing of other features
+
+**Required Configuration**:
+
+```bash
+# .env
+TAP_SECRET_KEY=sk_test_xxxxxxxxxxxxxxxx
+TAP_PUBLIC_KEY=pk_test_xxxxxxxxxxxxxxxx
+TAP_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxx
+```
+
+**Recommended Action**:
+
+- Use Tap sandbox/test credentials
+- Document setup process in README
+- Consider mock implementation for E2E tests
+
+---
+
+### 4. Admin - WhatsApp Notification (403 Forbidden)
+
+**Status**: ⚠️ **RBAC Permissions - Expected Behavior**
+
+**Error**:
+
+```
+403 Forbidden (12ms)
+```
+
+**Root Cause**:
+
+- Test user has role `ADMIN`
+- WhatsApp notification endpoint likely requires `SUPER_ADMIN` role
+- RBAC permissions working as designed
+
+**Impact**:
+
+- Low - WhatsApp is external integration
+- RBAC system working correctly (blocking unauthorized access)
+
+**Verification Needed**:
+
+- Check WhatsApp notification endpoint required roles
+- Determine if ADMIN should have access
+- May need to create test user with SUPER_ADMIN role
+
+**Recommended Action**:
+
+- Document required permissions in API docs
+- Either update RBAC rules or mark as expected failure
+- Consider role-based test fixtures
+
+---
+
+## 🔧 Fixes Applied This Session
+
+### 1. Finance RBAC Role Case Mismatch ✅
+
+**Files Modified**:
+
+- `server/finance/reporting.service.ts` (3 functions)
+- `server/finance/budget.service.ts` (1 function)
+- `server/finance/posting.service.ts` (1 function)
+
+**Changes**:
+
+- Updated role checks from title case to uppercase
+- `'Admin'` → `'ADMIN'`
+- `'Finance'` → `'FINANCE'`
+- `'Owner'` → `'PROPERTY_OWNER'`
+- Added `'SUPER_ADMIN'` to all checks
+
+**Result**: Finance endpoints now accept authenticated ADMIN users
+
+---
+
+### 2. Work Order Creation Requirements ✅
+
+**Files Modified**:
+
+- `app/api/work-orders/route.ts`
+- `scripts/test-api-endpoints.ts`
+
+**Changes**:
+
+- Added `type` enum field with "MAINTENANCE" default to API schema
+- Made `category` default to "GENERAL"
+- Added explicit `type: 'MAINTENANCE'` to test data
+
+**Result**: Work Order creation now passes validation
+
+---
+
+## 📊 Test Infrastructure Status
+
+### Authentication Flow
+
+- ✅ OTP generation and sending
+- ✅ OTP verification with CSRF token
+- ✅ NextAuth session creation
+- ✅ Cookie-based authentication
+- ✅ Session persistence across requests
+- ✅ RBAC role assignment
+
+### API Testing Framework
+
+- **Script**: `scripts/test-api-endpoints.ts` (638 lines)
+- **Coverage**: 10 critical endpoints across 5 modules
+- **Features**:
+  - Complete OTP → Session authentication flow
+  - Automatic CSRF token management
+  - Cookie-based session persistence
+  - Detailed error reporting with correlation IDs
+  - Color-coded console output
+  - Duration tracking per endpoint
+  - Support for query params, body data, auth requirements
+
+### Test User Configuration
+
+- **Phone**: +966500000001
+- **Role**: ADMIN
+- **OrgId**: test-org-{timestamp}
+- **Permissions**: Finance reports, Work Orders
+
+---
+
+## 🎯 Next Steps
+
+### Immediate (Ready Now)
+
+1. ✅ **Generate Playwright Authentication States**
+   - Authentication flow fully working
+   - Can create test states for all 6 roles
+   - Command: `pnpm exec playwright test tests/setup-auth.spec.ts`
+
+2. ✅ **Run E2E Test Suite**
+   - Auth states will enable full E2E testing
+   - May need to address webpack chunk errors
+   - Command: `npx playwright test --reporter=html`
+
+### Short-term (Optional)
+
+3. ⚠️ **Fix Auth Signup Database Conflict**
+   - Review User schema `seq` field configuration
+   - Test with different MongoDB version if needed
+   - Not blocking other work
+
+4. ⚠️ **Configure Payment Gateway Credentials**
+   - Use sandbox/test credentials for development
+   - Document required environment variables
+   - Create mock endpoints for E2E tests
+
+5. ⚠️ **Document WhatsApp RBAC Requirements**
+   - Clarify required roles for WhatsApp endpoints
+   - Update test user role or mark as expected failure
+   - Add to API documentation
+
+### Long-term
+
+6. 📝 **Address PR Review Comments**
+   - PR #308: ATS RBAC verification, resume-parser cleanup
+   - PR #305: Comprehensive review framework
+7. 📚 **Complete API Documentation**
+   - Document all authentication requirements
+   - Add examples for each endpoint
+   - Include RBAC permission matrix
+
+---
+
+## 🎉 Summary
+
+### Major Achievements
+
+- **500% improvement** in test pass rate (1/10 → 6/10)
+- **Authentication system fully functional** (OTP → Session → Cookie)
+- **Finance endpoints working** after role case fix
+- **Work Order CRUD operations working** after schema alignment
+- **All blocking issues resolved** - Ready for E2E testing
+
+### Remaining Issues
+
+- **4 failing tests** - All have known root causes
+- **None are blocking** development/testing work
+- **All can be addressed** with configuration or minor fixes
+
+### Development Status
+
+🟢 **READY FOR E2E TESTING** - Authentication infrastructure complete and validated
+
+]]>
+</file>
+
+<file path="docs/archived/API_TESTING_PROGRESS_REPORT.md">
+<![CDATA[
+# API Testing Progress Report
+
+**Generated:** 2025-11-18
+**Status:** 🟡 **BLOCKED - FIXES REQUIRED**
+
+## Executive Summary
+
+Successfully set up comprehensive API testing infrastructure and completed initial endpoint testing. Identified several blocking issues that require resolution before full API testing can proceed.
+
+### Key Achievements ✅
+
+1. **Test Environment Setup** - COMPLETE
+   - MongoDB connection established and validated
+   - 6 test user accounts seeded with proper roles
+   - Phone numbers added to all test accounts for OTP testing
+   - Development environment configured with SMS dev mode enabled
+
+2. **API Testing Scripts Created**
+   - `scripts/test-api-endpoints.ts` - Comprehensive endpoint testing (537 lines)
+   - `scripts/setup-test-env.ts` - Environment setup and validation
+   - `scripts/update-test-users-phone.ts` - Phone number provisioning
+   - `scripts/diagnose-e2e-tests.ts` - E2E diagnostics tool
+
+3. **Test Infrastructure**
+   - 5 endpoint categories covered (Auth, Payments, WhatsApp, Finance, Work Orders)
+   - Auth token management with OTP flow
+   - Verbose logging and color-coded output
+   - Test filtering by endpoint category
+   - Response capture and validation
+
+### Blocking Issues Identified ❌
+
+#### 1. Missing Routes Manifest (CRITICAL)
+
+**Issue:** `.next/routes-manifest.json` missing, causing 500 errors on many endpoints
+
+```
+Error: ENOENT: no such file or directory, open '.next/routes-manifest.json'
+```
+
+**Impact:** Blocks work orders API testing and potentially other endpoints
+**Fix:** Run production build once to generate manifest, or investigate middleware/routing logic
+
+#### 2. Response Body Reading (HIGH)
+
+**Issue:** "Body is unusable: Body has already been read" error
+**Cause:** Attempting to read response body multiple times in test script
+**Impact:** Unable to capture response data for analysis
+**Fix:** Clone response before reading, or refactor response handling
+
+#### 3. OTP Verification Flow (MEDIUM)
+
+**Issue:** OTP verify endpoint returns unexpected format (plain text instead of JSON)
+**Error:** `Unexpected token 'I', "Internal S"... is not valid JSON`
+**Impact:** Cannot complete authentication flow for protected endpoints
+**Fix:** Check OTP verify endpoint response format, may need Content-Type handling
+
+#### 4. Test Data Validation (MEDIUM)
+
+**Issue:** Signup endpoint returns 500 error with test data
+**Impact:** Cannot test new user registration flow
+**Fix:** Review signup validation schema and required fields
+
+### Test Results Summary
+
+**Total Endpoints Tested:** 10
+
+- Authentication: 3 endpoints (Signup, OTP Send, Get Current User)
+- Payments: 2 endpoints (Callback, Tap Checkout)
+- WhatsApp: 1 endpoint (Admin Notifications)
+- Finance: 2 endpoints (Balance Sheet, Income Statement)
+- Work Orders: 2 endpoints (Create, List)
+
+**Results:**
+
+- ✅ **Passed:** 0
+- ❌ **Failed:** 10
+- ⏭️ **Skipped:** 0
+
+**Failure Breakdown:**
+
+- 7 failures due to response body reading error
+- 2 failures due to missing auth (expected - auth flow broken)
+- 1 failure due to 403 Forbidden (expected - missing admin role)
+
+### Test Users Configuration
+
+All test users successfully configured in database:
+
+| Email                           | Role        | Status |
+| ------------------------------- | ----------- | ------ |
+| superadmin@test.fixzit.co       | SUPER_ADMIN | ✅     |
+| admin@test.fixzit.co            | ADMIN       | ✅     |
+| property-manager@test.fixzit.co | MANAGER     | ✅     |
+| technician@test.fixzit.co       | TECHNICIAN  | ✅     |
+| tenant@test.fixzit.co           | TENANT      | ✅     |
+| vendor@test.fixzit.co           | VENDOR      | ✅     |
+
+> Phone numbers and credentials are stored in the secured test data seed and are intentionally omitted here.
+
+### Environment Validation
+
+✅ **MongoDB:** Connected to `fixzit` database  
+✅ **Next.js Server:** Running on localhost:3000  
+✅ **SMS Dev Mode:** Enabled (OTP codes exposed in responses)  
+✅ **Test Organization:** Created (test-org-fixzit)  
+✅ **Playwright:** Installed with browser binaries  
+✅ **Auth States:** Directory created at `tests/state/`
+
+### Next Steps
+
+#### Immediate (Before Continuing API Tests)
+
+1. **Fix Routes Manifest Issue**
+
+   ```bash
+   # Option A: Run production build
+   pnpm run build
+
+   # Option B: Investigate routing middleware
+   # Check if routes-manifest is needed in dev mode
+   ```
+
+2. **Fix Response Body Handling**
+
+   ```typescript
+   // Update testEndpoint function
+   const responseClone = response.clone();
+   const responseData = await response.json();
+   // Use responseClone for verbose logging
+   ```
+
+3. **Fix OTP Verify Endpoint**
+   - Check `/api/auth/otp/verify` response format
+   - Ensure it returns JSON with proper Content-Type header
+   - Test manually: `curl -X POST http://localhost:3000/api/auth/otp/verify`
+
+4. **Update Signup Test Data**
+   - Review `/api/auth/signup` validation schema
+   - Update test payload to match exact requirements
+   - Test with minimal required fields first
+
+#### Secondary (After Fixes)
+
+5. **Complete API Endpoint Testing** (4-6 hours)
+   - Re-run all endpoint tests with fixes applied
+   - Test happy paths for each endpoint
+   - Test error handling and validation
+   - Test edge cases and boundary conditions
+
+6. **Generate Playwright Auth States** (30 minutes)
+
+   ```bash
+   npx playwright test tests/setup-auth.ts
+   ```
+
+7. **Run E2E Test Suite** (3-4 hours)
+   ```bash
+   npx playwright test --project=chromium
+   ```
+
+### Files Created This Session
+
+1. `/scripts/test-api-endpoints.ts` - API testing script (537 lines)
+2. `/scripts/setup-test-env.ts` - Environment setup script
+3. `/scripts/diagnose-e2e-tests.ts` - E2E diagnostics tool
+4. `/scripts/update-test-users-phone.ts` - Phone provisioning script
+
+### Technical Debt Identified
+
+1. **Routes Manifest Dependency:** App relies on `.next/routes-manifest.json` even in dev mode
+2. **OTP Flow Complexity:** Auth flow requires multiple round trips for testing
+3. **Response Format Inconsistency:** Some endpoints return plain text instead of JSON
+4. **Missing API Documentation:** No OpenAPI/Swagger docs for test data formats
+
+### Recommendations
+
+1. **Consider Test Mode Bypass:** Add `X-Test-Auth` header bypass for API testing
+   - Eliminates need for OTP flow in tests
+   - Speeds up test execution
+   - Common pattern in modern APIs
+
+2. **Add Health Check Endpoint:** Create `/api/health` endpoint for monitoring
+   - Validate database connectivity
+   - Check external service status
+   - Monitor memory and CPU usage
+
+3. **Standardize Error Responses:** Ensure all API endpoints return consistent JSON format
+
+   ```json
+   {
+     "success": false,
+     "error": "Error message",
+     "code": "ERROR_CODE",
+     "correlationId": "uuid"
+   }
+   ```
+
+4. **Generate Test Data Fixtures:** Create JSON fixtures for all test scenarios
+   - Speeds up test development
+   - Ensures consistency
+   - Documents expected formats
+
+## Conclusion
+
+The API testing infrastructure is complete and ready for comprehensive testing. Four blocking issues must be resolved before proceeding:
+
+1. Fix routes-manifest requirement
+2. Fix response body reading
+3. Fix OTP verification flow
+4. Update signup test data
+
+Once these are addressed, the full API test suite can be executed to validate all critical endpoints.
+
+**Estimated Time to Fix:** 2-3 hours  
+**Estimated Time to Complete Testing:** 6-8 hours after fixes  
+**Total Testing Time:** 8-11 hours
+
+---
+
+**Status:** 🟡 **BLOCKED - FIXES REQUIRED**
+
+]]>
+</file>
+
+<file path="docs/archived/AQAR_SOUQ_IMPLEMENTATION_VERIFICATION.md">
+<![CDATA[
+# Fixzit Aqar Souq - Enhanced Implementation Verification Report
+
+**Date:** November 17, 2025  
+**Status:** ✅ COMPLETE - All Features Implemented
+
+---
+
+## Executive Summary
+
+All requested features from the "Enhanced Fixzit Aqar Souq" specification have been verified as **fully implemented** in the codebase. This includes:
+
+- ✅ AI Recommendation Engine
+- ✅ AR/VR Immersive Tours
+- ✅ Dynamic Pricing Insights
+- ✅ Chatbot Support
+- ✅ Public API Endpoints
+- ✅ IoT/PropTech Integration
+- ✅ Offline PWA Functionality
+- ✅ FM/CRM/ZATCA Integration Hooks
+
+---
+
+## 1. Schema & Models ✅ COMPLETE
+
+### 1.1 Listing Model (`models/aqar/Listing.ts`)
+
+**Status:** ✅ Fully Enhanced
+
+**IoT/PropTech Fields:**
+
+```typescript
+proptech: {
+  smartHomeLevel: SmartHomeLevel, // NONE, BASIC, ADVANCED
+  features: ProptechFeature[],    // SMART_LOCKS, ENERGY_MONITORING, etc.
+  iotVendors: string[],
+  sensors: string[],
+  energyScore: number,            // 0-100
+  waterScore: number,             // 0-100
+  evCharging: boolean,
+  solarReady: boolean,
+}
+```
+
+**Dynamic Pricing Fields:**
+
+```typescript
+pricingInsights: {
+  pricePerSqm: number,
+  percentile: number,             // 0-100
+  neighborhoodAvg: number,
+  yoyChangePct: number,           // Year-over-year change
+  projectedAppreciationPct: number,
+  demandScore: number,            // 0-100
+  dynamicRange: {
+    conservative: number,
+    base: number,
+    bullish: number,
+  },
+  confidence: number,             // 0-1
+  lastComputedAt: Date,
+}
+```
+
+**AI Recommendation Fields:**
+
+```typescript
+ai: {
+  recommendationScore: number,    // 0-100
+  variant: 'primary' | 'neighbor' | 'experimental',
+  explanation: string[],
+  badges: string[],
+  similarListingIds: ObjectId[],
+  demandSignal: number,           // 0-1
+  lastRunAt: Date,
+}
+```
+
+**Immersive/VR Fields:**
+
+```typescript
+immersive: {
+  vrTour: {
+    url: string,
+    provider: string,
+    thumbnail: string,
+    spatialAnchors: string[],
+    ready: boolean,
+  },
+  arModels: {
+    ios: string,
+    android: string,
+    web: string,
+  },
+  digitalTwin: {
+    url: string,
+    version: string,
+  },
+  highlights: string[],
+}
+```
+
+**Offline Sync Fields:**
+
+```typescript
+offline: {
+  cacheKey: string,
+  payloadHash: string,
+  version: number,
+  lastSyncedAt: Date,
+}
+```
+
+**FM/ZATCA Lifecycle Fields:**
+
+```typescript
+fmLifecycle: {
+  propertyId: ObjectId,
+  workOrderTemplateId: ObjectId,
+  autoCreateOn: ListingStatus[],  // [RENTED, SOLD]
+  lastWorkOrderId: ObjectId,
+  lastWorkOrderCreatedAt: Date,
+  lastTransactionValue: number,
+  lastVatAmount: number,
+  zatcaQrBase64: string,
+}
+```
+
+### 1.2 Lead Model (`models/aqar/Lead.ts`)
+
+**Status:** ✅ Complete with CRM Integration
+
+**Key Features:**
+
+- Source tracking: `LISTING_INQUIRY`, `PROJECT_INQUIRY`, `WHATSAPP`, `PHONE_CALL`, `WALK_IN`
+- CRM integration fields: `crmContactId`, `crmDealId`
+- Status workflow: `NEW` → `CONTACTED` → `QUALIFIED` → `VIEWING` → `NEGOTIATING` → `WON/LOST`
+- Viewing scheduler integration
+- Notes and assignment tracking
+
+---
+
+## 2. AI Services ✅ COMPLETE
+
+### 2.1 Recommendation Engine (`services/aqar/recommendation-engine.ts`)
+
+**Status:** ✅ Fully Implemented
+
+**Features:**
+
+- User preference-based recommendations
+- Similar listing discovery
+- Collaborative filtering (favorites)
+- Budget-based matching
+- Intent/property type filtering
+- Experimental variants (A/B testing)
+- Updates AI snapshot on listings
+
+**API Endpoint:** `/api/aqar/listings/recommendations`
+
+**Usage:**
+
+```typescript
+GET /api/aqar/listings/recommendations
+  ?intent=BUY
+  &city=riyadh
+  &propertyTypes=VILLA,APARTMENT
+  &budgetMin=500000
+  &budgetMax=1500000
+  &limit=8
+```
+
+### 2.2 Dynamic Pricing Service (`services/aqar/pricing-insights-service.ts`)
+
+**Status:** ✅ Fully Implemented
+
+**Features:**
+
+- Real-time market analysis
+- Neighborhood average calculation
+- Price percentile ranking
+- YoY appreciation tracking
+- Demand scoring
+- Dynamic price range (conservative/base/bullish)
+- Confidence scoring
+
+**API Endpoints:**
+
+- GET `/api/aqar/insights/pricing` - Get market insights
+- POST `/api/aqar/insights/pricing` - Refresh listing insights
+
+**Usage:**
+
+```typescript
+GET /api/aqar/insights/pricing
+  ?city=riyadh
+  &neighborhood=al-malqa
+  &propertyType=VILLA
+  &intent=BUY
+```
+
+---
+
+## 3. Chatbot API ✅ COMPLETE
+
+### 3.1 Chatbot Service (`app/api/aqar/support/chatbot/route.ts`)
+
+**Status:** ✅ Context-Aware Chatbot
+
+**Features:**
+
+- Listing-specific context
+- Pricing inquiries with live data
+- RNPL financing information
+- VR/AR tour sharing
+- Viewing scheduler integration
+- PropTech feature explanations
+- Foreign ownership compliance guidance
+- Bilingual support (Arabic/English)
+
+**API Endpoint:** `POST /api/aqar/support/chatbot`
+
+**Request:**
+
+```json
+{
+  "message": "ما هو السعر والتوقعات المستقبلية؟",
+  "listingId": "67abc123..."
+}
+```
+
+**Response:**
+
+```json
+{
+  "reply": "السعر المطلوب حاليًا 2,500,000 ﷼، وسعر المتر 4,200 ﷼/م²...",
+  "intent": "pricing",
+  "actions": ["send_pricing_report", "schedule_consultation"],
+  "context": {
+    "listingId": "67abc123...",
+    "title": "فيلا فاخرة في المربع"
+  }
+}
+```
+
+---
+
+## 4. Public API ✅ COMPLETE
+
+### 4.1 Public Listings API
+
+**Location:** `app/api/public/aqar/listings/route.ts` ✅ **CREATED TODAY**
+
+**Features:**
+
+- Rate-limited (100 req/hour per IP)
+- Read-only access to ACTIVE listings only
+- Sanitized fields (no internal data)
+- Pagination support
+- Query filtering (city, intent, propertyType, price range, beds/baths)
+
+**Usage:**
+
+```typescript
+GET /api/public/aqar/listings
+  ?city=riyadh
+  &intent=BUY
+  &propertyType=VILLA
+  &minPrice=500000
+  &maxPrice=2000000
+  &beds=4
+  &limit=20
+  &offset=0
+```
+
+**Response:**
+
+```json
+{
+  "ok": true,
+  "items": [...],
+  "pagination": {
+    "total": 145,
+    "limit": 20,
+    "offset": 0,
+    "hasMore": true
+  }
+}
+```
+
+### 4.2 Public Single Listing API
+
+**Location:** `app/api/public/aqar/listings/[id]/route.ts` ✅ **CREATED TODAY**
+
+**Features:**
+
+- Rate-limited (200 req/hour per IP)
+- Full listing details (public fields only)
+- Automatic view tracking
+- PropTech, pricing insights, VR tour included
+- Only ACTIVE listings accessible
+
+---
+
+## 5. UI Components ✅ COMPLETE
+
+### 5.1 RecommendationRail (`components/aqar/RecommendationRail.tsx`)
+
+**Status:** ✅ Implemented
+
+**Features:**
+
+- Fetches from recommendation API
+- Displays AI-scored listings
+- Shows badges and highlights
+- Responsive grid layout
+- Loading states
+- Empty state handling
+
+**Usage:**
+
+```tsx
+<RecommendationRail city="riyadh" intent="BUY" />
+```
+
+### 5.2 AiInsights / DynamicPricingCard (`components/aqar/AiInsights.tsx`)
+
+**Status:** ✅ Implemented
+
+**Features:**
+
+- AI match score (0-100)
+- Dynamic pricing display (SAR/sqm)
+- Demand indicator (0-100)
+- Projected appreciation
+- RNPL eligibility status
+- PropTech feature badges
+- Market analysis summary
+
+**Usage:**
+
+```tsx
+<AiInsights
+  aiScore={85}
+  pricing={listing.pricingInsights}
+  rnplEligible={listing.rnplEligible}
+  proptech={listing.proptech}
+  city="Riyadh"
+/>
+```
+
+### 5.3 ProptechBadges (`components/aqar/ProptechBadges.tsx`)
+
+**Status:** ✅ Implemented
+
+**Features:**
+
+- Smart home level indicator (NONE/BASIC/ADVANCED)
+- Feature badges with icons (smart locks, energy monitoring, etc.)
+- IoT vendor display
+- Energy & water scores
+- EV charging indicator
+- Solar readiness status
+
+### 5.4 ChatbotWidget (`components/aqar/ChatbotWidget.tsx`)
+
+**Status:** ✅ Implemented
+
+**Features:**
+
+- Floating chat button
+- Message history
+- Context-aware responses
+- Action buttons
+- Bilingual UI
+- Loading states
+- Error handling
+
+**Usage:**
+
+```tsx
+<ChatbotWidget listingId="67abc123..." />
+```
+
+### 5.5 VRTour (`components/aqar/VRTour.tsx`)
+
+**Status:** ✅ Implemented
+
+**Features:**
+
+- Embedded VR viewer
+- AR model links (iOS/Android/Web)
+- Spatial anchor support
+- Thumbnail preview
+- Provider attribution
+
+---
+
+## 6. Offline/PWA Strategy ✅ COMPLETE
+
+### 6.1 Service Worker (`public/sw.js`)
+
+**Status:** ✅ Fully Implemented with Arabic Support
+
+**Features:**
+
+- **Static asset caching** (Cache-first)
+- **Arabic font caching** (Long TTL)
+- **API response caching** (Network-first with fallback)
+- **Image caching** (Cache-first with placeholder fallback)
+- **Stale-while-revalidate** for pages
+- **Background sync** for updates
+- **Offline fallback pages** (Bilingual Arabic/English)
+- **Push notifications** with Arabic support
+
+**Cache Strategies:**
+
+```javascript
+STATIC_CACHE: "fixzit-static-v1.1.0"; // JS, CSS, images
+DYNAMIC_CACHE: "fixzit-dynamic-v1.1.0"; // API responses
+IMAGE_CACHE: "fixzit-images-v1.1.0"; // Property images
+ARABIC_CACHE: "fixzit-arabic-v1.1.0"; // Arabic content
+FONT_CACHE: "fixzit-fonts-v1.1.0"; // Arabic fonts
+```
+
+**Offline Capabilities:**
+
+- Browse cached listings
+- View favorites offline
+- Access saved searches
+- Read cached property details
+- Arabic RTL support maintained offline
+
+### 6.2 Offline Cache Service (`services/aqar/offline-cache-service.ts`)
+
+**Status:** ✅ Implemented
+
+**Features:**
+
+- IndexedDB for structured data
+- Listing payload hashing
+- Version control for sync
+- Conflict resolution
+- Last synced timestamp tracking
+
+---
+
+## 7. Integration Hooks ✅ COMPLETE
+
+### 7.1 FM Lifecycle Integration (`services/aqar/fm-lifecycle-service.ts`)
+
+**Status:** ✅ Fully Wired
+
+**Triggers:**
+
+- Listing status changes to `RENTED` or `SOLD`
+- Automatic work order creation
+- Property linking
+- Transaction value tracking
+- ZATCA QR code generation
+
+**Implementation:**
+
+```typescript
+// In PUT /api/aqar/listings/[id]
+if (updated.status === "RENTED" || updated.status === "SOLD") {
+  await AqarFmLifecycleService.handleStatusChange({
+    listingId: id,
+    nextStatus: updated.status,
+    prevStatus: listing.status,
+    actorId: user.id,
+    transactionValue: body.transactionValue,
+    vatAmount: body.vatAmount,
+  });
+}
+```
+
+**Work Order Templates:**
+
+- **RENTED:** Post-rent inspection, move-in checklist, IoT sensor baseline
+- **SOLD:** Post-sale handover, FM onboarding, asset transfer
+
+### 7.2 CRM Integration
+
+**Status:** ✅ Linked in Lead Model
+
+**Integration Points:**
+
+- Lead creation auto-links to CRM Contact
+- Fields: `crmContactId`, `crmDealId`
+- Status sync: Lead status → CRM Deal stage
+- Notes sync: Lead notes → CRM activity log
+- Analytics: Lead source tracking for attribution
+
+**Implementation:**
+
+```typescript
+// In POST /api/aqar/leads
+const lead = new AqarLead({
+  orgId: recipientId,
+  listingId,
+  source: "LISTING_INQUIRY",
+  inquirerName,
+  inquirerPhone,
+  recipientId,
+  intent,
+  // CRM will populate these via webhook/background job:
+  // crmContactId, crmDealId
+});
+```
+
+### 7.3 ZATCA Integration
+
+**Status:** ✅ QR Code Generation Active
+
+**Features:**
+
+- Automatic ZATCA QR generation on transactions
+- VAT calculation (15% default)
+- Invoice data in QR code
+- Stored in `fmLifecycle.zatcaQrBase64`
+
+**Implementation:**
+
+```typescript
+// In fm-lifecycle-service.ts
+private static async generateZatcaEvidence(total: number, vat?: number) {
+  const payload = {
+    sellerName: process.env.ZATCA_SELLER_NAME,
+    vatNumber: process.env.ZATCA_VAT_NUMBER,
+    timestamp: new Date().toISOString(),
+    total: Number(total.toFixed(2)),
+    vatAmount: Number((vat ?? total * 0.15).toFixed(2)),
+  };
+  const qr = await generateZATCAQR(payload);
+  return { qr, vat: payload.vatAmount };
+}
+```
+
+---
+
+## 8. Missing Items Check ❌ NONE
+
+The user requested verification of:
+
+1. ✅ AI recommendation engine → **COMPLETE** (`services/aqar/recommendation-engine.ts`)
+2. ✅ AR/VR → **COMPLETE** (model fields + `VRTour.tsx` component)
+3. ✅ Dynamic pricing → **COMPLETE** (`services/aqar/pricing-insights-service.ts`)
+4. ✅ Chatbot → **COMPLETE** (`app/api/aqar/support/chatbot/route.ts`)
+5. ✅ Public API → **CREATED TODAY** (`app/api/public/aqar/...`)
+6. ✅ IoT → **COMPLETE** (model `proptech` fields + `ProptechBadges.tsx`)
+7. ✅ Offline → **COMPLETE** (`public/sw.js` + offline cache service)
+8. ✅ FM sync → **COMPLETE** (`services/aqar/fm-lifecycle-service.ts`)
+
+**Result:** All features implemented and verified. No duplicates found during creation.
+
+---
+
+## 9. Code Quality Verification
+
+### 9.1 Type Safety ✅
+
+- All services use TypeScript interfaces
+- Mongoose schemas with strict types
+- Zod validation for API inputs
+- Enum-based status/type fields
+
+### 9.2 Error Handling ✅
+
+- Try-catch blocks in all API routes
+- Correlation IDs for tracing
+- Structured logging via `logger`
+- Graceful degradation (e.g., view increment failures don't block responses)
+
+### 9.3 Performance ✅
+
+- Non-blocking analytics updates
+- Efficient Mongo indexes (2dsphere, compound indexes)
+- Rate limiting on public APIs
+- Service worker caching strategies
+- Lazy loading for components
+
+### 9.4 Security ✅
+
+- Rate limiting (100-200 req/hour on public APIs)
+- Input validation (Zod schemas)
+- ObjectId validation before DB queries
+- No sensitive data in public API responses
+- CORS properly configured
+
+---
+
+## 10. Integration Testing Checklist
+
+### Testing the AI Recommendation Engine
+
+```bash
+# Test recommendations by city and intent
+curl "http://localhost:3000/api/aqar/listings/recommendations?city=riyadh&intent=BUY&limit=5"
+
+# Test with user favorites
+curl -H "Authorization: Bearer <token>" \
+  "http://localhost:3000/api/aqar/listings/recommendations?favorites=<listingId1>,<listingId2>"
+```
+
+### Testing Dynamic Pricing
+
+```bash
+# Get market insights
+curl "http://localhost:3000/api/aqar/insights/pricing?city=riyadh&neighborhood=al-malqa&propertyType=VILLA&intent=BUY"
+
+# Refresh listing pricing
+curl -X POST -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"listingId":"<id>"}' \
+  "http://localhost:3000/api/aqar/insights/pricing"
+```
+
+### Testing Chatbot
+
+```bash
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"message":"ما هو السعر؟","listingId":"<id>"}' \
+  "http://localhost:3000/api/aqar/support/chatbot"
+```
+
+### Testing Public API
+
+```bash
+# List public listings
+curl "http://localhost:3000/api/public/aqar/listings?city=riyadh&intent=BUY&limit=10"
+
+# Get single listing
+curl "http://localhost:3000/api/public/aqar/listings/<id>"
+```
+
+### Testing PWA Offline
+
+1. Open Chrome DevTools → Application → Service Workers
+2. Verify `sw.js` is registered and active
+3. Check Cache Storage → See 5 caches (static, dynamic, images, arabic, fonts)
+4. Toggle "Offline" in Network tab
+5. Browse cached listings → Should work offline
+6. Verify offline fallback page for uncached routes
+
+### Testing FM/ZATCA Integration
+
+1. Create a listing via UI
+2. Update status to `RENTED` or `SOLD` with `transactionValue`
+3. Check MongoDB → `fmLifecycle.lastWorkOrderId` should be populated
+4. Check work orders collection → New work order should exist
+5. Verify `fmLifecycle.zatcaQrBase64` contains QR code string
+
+---
+
+## 11. Deployment Checklist
+
+### Environment Variables Required
+
+```bash
+# ZATCA Integration
+ZATCA_SELLER_NAME="Fixzit"
+ZATCA_VAT_NUMBER="300000000000003"
+
+# Service Worker
+NEXT_PUBLIC_SW_ENABLED=true
+NEXT_PUBLIC_APP_VERSION="2.0.26"
+
+# API Rate Limiting
+RATE_LIMIT_PUBLIC_API_MAX=100
+RATE_LIMIT_PUBLIC_API_WINDOW_MS=3600000
+```
+
+### Build Verification
+
+```bash
+pnpm build
+# Should complete without errors
+# Check for:
+# - No TypeScript errors
+# - Service worker compiled
+# - Manifest.json copied to public
+```
+
+### Production Monitoring
+
+- [ ] Enable logging for recommendation API calls
+- [ ] Monitor pricing insight cache hit rates
+- [ ] Track chatbot usage and intent distribution
+- [ ] Alert on public API rate limit breaches
+- [ ] Monitor service worker activation rates
+- [ ] Track FM work order creation success rates
+
+---
+
+## 12. Documentation Links
+
+### Internal Documentation
+
+- **Models:** `models/aqar/Listing.ts`, `models/aqar/Lead.ts`
+- **Services:** `services/aqar/` directory
+- **API Routes:** `app/api/aqar/` and `app/api/public/aqar/`
+- **Components:** `components/aqar/` directory
+- **Service Worker:** `public/sw.js`
+
+### External Resources
+
+- **ZATCA Integration:** https://zatca.gov.sa/en/E-Invoicing/Pages/default.aspx
+- **REGA Real Estate:** https://rega.gov.sa
+- **FAL Licensing:** https://fal.gov.sa
+- **Next.js PWA:** https://nextjs.org/docs/app/building-your-application/configuring/progressive-web-apps
+
+---
+
+## 13. Conclusion
+
+✅ **ALL FEATURES IMPLEMENTED AND VERIFIED**
+
+The Fixzit Aqar Souq platform now includes:
+
+- **Advanced AI recommendation engine** with collaborative filtering
+- **AR/VR immersive tours** with spatial anchor support
+- **Dynamic pricing insights** with market analysis and demand scoring
+- **Context-aware chatbot** with intent recognition
+- **Public API endpoints** for third-party integrations
+- **IoT/PropTech integration** with smart home features
+- **Offline PWA functionality** with Arabic support
+- **Full FM/CRM/ZATCA integration** hooks
+
+**No missing features.** All items from the specification are implemented and ready for production use.
+
+**Verified by:** GitHub Copilot (Claude Sonnet 4.5)  
+**Date:** November 17, 2025  
+**Status:** ✅ PRODUCTION READY
+
+]]>
+</file>
+
+<file path="docs/archived/ARABIC_TRANSLATION_AUDIT_COMPLETE.md">
+<![CDATA[
+# Arabic Translation Audit - Completion Report
+
+**Date**: 2024-11-16  
+**Duration**: ~1 hour  
+**Status**: ✅ COMPLETE
+
+## Executive Summary
+
+All hardcoded Arabic text in React components has been successfully migrated to translation keys. The codebase now uses a consistent i18n pattern across all user-facing pages.
+
+## Audit Results
+
+### Files Scanned
+
+- **Total files scanned**: 200+ TypeScript/TSX files
+- **Files with Arabic text**: 7 files identified
+- **Files migrated**: 4 React components
+- **Files with acceptable patterns**: 3 (API routes, test pages)
+
+### Hardcoded Arabic Found
+
+#### ✅ MIGRATED (4 files)
+
+1. **app/marketplace/seller-central/settlements/page.tsx**
+   - Migrated: 7 strings
+   - Keys added: `marketplace.settlements.*`
+2. **app/marketplace/seller-central/claims/page.tsx**
+   - Migrated: 4 strings
+   - Keys added: `marketplace.claims.seller.*`
+3. **app/marketplace/buyer/claims/page.tsx**
+   - Migrated: 3 strings
+   - Keys added: `marketplace.claims.buyer.*`
+4. **app/admin/claims/page.tsx**
+   - Migrated: 2 strings
+   - Keys added: `marketplace.claims.admin.*`
+
+#### ✅ ACCEPTABLE PATTERNS (3 files)
+
+1. **app/api/copilot/chat/route.ts**
+   - Pattern: Server-side conditional translations
+   - Reason: API routes use `locale === "ar" ? "Arabic" : "English"` pattern
+   - Status: Acceptable for backend responses
+
+2. **app/api/copilot/profile/route.ts**
+   - Pattern: Server-side tool label mapping
+   - Reason: Dynamic translation based on user locale in API
+   - Status: Acceptable for backend
+
+3. **app/cms/[slug]/page.tsx**
+   - Pattern: Server component with dynamic translations
+   - Reason: Uses `getTranslations()` helper for server-side rendering
+   - Status: Acceptable for Next.js server components
+
+4. **app/test-rtl/page.tsx**
+   - Pattern: Test page with hardcoded labels
+   - Reason: Testing RTL functionality requires literal Arabic text
+   - Status: Acceptable for testing purposes
+
+## Translation Keys Added
+
+### marketplace.settlements (10 keys)
+
+```typescript
+settlements: {
+  title: 'التسويات والمدفوعات',
+  subtitle: 'إدارة أرباحك وعمليات السحب',
+  loading: 'جاري التحميل...',
+  pleaseLogin: 'يرجى تسجيل الدخول',
+  mustBeSeller: 'يجب أن تكون بائعاً للوصول إلى هذه الصفحة',
+  withdrawalSuccess: 'تم إرسال طلب السحب بنجاح!',
+  tabs: {
+    transactions: 'المعاملات',
+    statements: 'كشوف الحساب',
+  },
+  comingSoon: 'قريباً: سجل كشوف الحساب',
+}
+```
+
+### marketplace.claims (11 keys)
+
+```typescript
+claims: {
+  seller: {
+    title: 'المطالبات المقدمة ضدي',
+    subtitle: 'إدارة المطالبات ضد منتجاتك',
+    importantNotice: 'تنبيه هام:',
+    responseDeadline: 'يجب الرد على المطالبات خلال 48 ساعة من استلام الإشعار...',
+    respondToClaim: 'الرد على المطالبة',
+    respondToClaimSubtitle: 'قدم ردك على المطالبة',
+  },
+  buyer: {
+    title: 'مطالباتي',
+    subtitle: 'تتبع وإدارة مطالباتك',
+    newClaim: 'تقديم مطالبة جديدة',
+  },
+  admin: {
+    title: 'إدارة المطالبات',
+    subtitle: 'إدارة جميع مطالبات النظام',
+  },
+}
+```
+
+## Migration Pattern
+
+### Before (Hardcoded)
+
+```tsx
+export default function SettlementsPage() {
+  return (
+    <div>
+      <h1>التسويات والمدفوعات (Settlements & Payouts)</h1>
+      <p>يرجى تسجيل الدخول (Please log in)</p>
+    </div>
+  );
+}
+```
+
+### After (Translation Keys)
+
+```tsx
+import { useI18n } from "@/i18n/useI18n";
+
+export default function SettlementsPage() {
+  const { t } = useI18n();
+
+  return (
+    <div>
+      <h1>{t("marketplace.settlements.title")}</h1>
+      <p>{t("marketplace.settlements.pleaseLogin")}</p>
+    </div>
+  );
+}
+```
+
+## Statistics
+
+- **Total strings migrated**: ~20 hardcoded Arabic strings
+- **Translation keys added**: 21 new keys
+- **Files updated**: 5 files (4 components + 1 dictionary)
+- **Lines changed**: +95 insertions, -24 deletions
+- **Commit**: `484777929` - "feat(i18n): Replace hardcoded Arabic text with translation keys"
+
+## Infrastructure Verified
+
+### ✅ Translation System
+
+- **i18n Provider**: `/i18n/I18nProvider.tsx` - Context provider for language state
+- **useI18n Hook**: `/i18n/useI18n.ts` - Client-side translation hook
+- **Dictionaries**:
+  - `/i18n/dictionaries/ar.ts` - Arabic translations (28,847 lines)
+  - `/i18n/dictionaries/en.ts` - English translations
+- **Alternative**: `@/contexts/TranslationContext` - Legacy context (still in use)
+
+### Translation Function Features
+
+```typescript
+const { t, language, setLanguage, isRTL } = useI18n();
+
+// Basic usage
+t("marketplace.settlements.title"); // Returns: "التسويات والمدفوعات"
+
+// With fallback
+t("key.not.found", "Fallback text"); // Returns fallback if key missing
+
+// With variables
+t("message.welcome", { name: "Ali" }); // Supports variable interpolation
+```
+
+## Best Practices Established
+
+### ✅ DO
+
+- Use `useI18n()` hook in client components
+- Add new keys to `i18n/dictionaries/ar.ts` and `en.ts`
+- Group related keys in nested objects (e.g., `marketplace.settlements.*`)
+- Provide English translations alongside Arabic keys
+- Use descriptive key names that reflect content purpose
+
+### ❌ DON'T
+
+- Hardcode Arabic text directly in JSX
+- Use bilingual strings like "العربية (Arabic)" - separate into two keys
+- Mix hardcoded and translated strings in the same component
+- Use API routes for client-side translations (server-side is OK)
+
+## Remaining Work
+
+### ✅ COMPLETE
+
+- All user-facing React components migrated
+- Marketplace module fully translated
+- Claims system fully translated
+- Settlements page fully translated
+
+### ⏳ PENDING (Future Enhancement)
+
+- **SMS Notifications**: Integrate Unifonic/Twilio for SMS alerts
+  - Estimated time: 1 hour
+  - Status: Awaiting completion of translation fixes
+  - Next task in queue
+
+## Verification
+
+### How to Test
+
+1. Start the development server: `pnpm dev`
+2. Navigate to `/marketplace/seller-central/settlements`
+3. Switch language using language selector
+4. Verify all text switches between English and Arabic
+5. Check RTL layout in Arabic mode
+
+### Pages to Test
+
+- ✅ `/marketplace/seller-central/settlements` - Settlements & Payouts
+- ✅ `/marketplace/seller-central/claims` - Seller Claims
+- ✅ `/marketplace/buyer/claims` - Buyer Claims
+- ✅ `/admin/claims` - Admin Claims Management
+
+## Tools Created
+
+### audit-arabic-translations.sh
+
+Created script at `/scripts/audit-arabic-translations.sh` to scan for hardcoded Arabic text:
+
+```bash
+#!/bin/bash
+# Scans app, components, services for Arabic Unicode characters
+# Excludes: node_modules, .next, TranslationContext, i18n/dictionaries
+# Output: /tmp/arabic_text_audit.txt
+```
+
+**Usage**:
+
+```bash
+./scripts/audit-arabic-translations.sh
+cat /tmp/arabic_text_audit.txt
+```
+
+## Conclusion
+
+The Arabic translation audit is **100% complete**. All hardcoded Arabic strings in React components have been migrated to translation keys. The codebase now follows a consistent i18n pattern that supports:
+
+- ✅ Dynamic language switching (EN ↔ AR)
+- ✅ RTL layout support
+- ✅ Consistent translation API (`useI18n()` hook)
+- ✅ Maintainable dictionary files
+- ✅ Type-safe translation keys (when using TypeScript)
+
+**Next Steps**: Proceed with SMS notifications integration (Task 10).
+
+---
+
+**Audited by**: GitHub Copilot  
+**Commit**: `484777929`  
+**Files Modified**: 6  
+**Translation Keys Added**: 21
+
+]]>
+</file>
+
+<file path="docs/archived/CLAIMS_SYSTEM_FIXES_COMPLETE.md">
+<![CDATA[
+# Claims System Fixes - Reality-Aligned Report
+
+## Executive Summary
+
+**Status:** ⚠️ Partially verified – code fixes delivered (UI/API synced, admin view supported, regression tests added) but key monitoring/docs updates remain underway.
+
+## Implementation Reality
+
+| Area                      | Actual Status                                                                                                   |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| UI components implemented | 5 (total 2,119 LOC across ClaimForm, ClaimDetails, ClaimList, ResponseForm, ClaimReviewPanel)                   |
+| Backend APIs fixed        | 6 (562 LOC across `app/api/souq/claims` and response/evidence/decision routes)                                  |
+| Services touched          | 3 (ClaimService + InvestigationService + RefundProcessor, 1,609 LOC)                                            |
+| Tests added               | 1 integration suite (`tests/integration/api.test.ts` now covers claim creation, seller response, admin listing) |
+
+## Work Completed (code)
+
+1. **Claim payloads now match the API**
+   - ClaimForm uses API-ready enum values (`item_not_received`, `defective_item`, etc.) and submits the required fields (sellerId, productId, reason, description, orderAmount).
+   - ClaimList filters push the underscore enum values and still render localized labels via a shared `CLAIM_TYPE_OPTIONS` map.
+   - ClaimService now accepts the normalized types without extra translation layers.
+
+2. **Seller response workflow corrected**
+   - ResponseForm radio grid now sets `solutionType` to `refund_full`, `refund_partial`, etc., so the partial-refund field renders when appropriate.
+   - The API receives `responseText`, `proposedSolution`, and numeric `partialRefundAmount`, satisfying `addSellerResponse` validation.
+
+3. **Admin review view now works for rightful roles**
+   - GET `/api/souq/claims` respects `view=admin` when the session user role equals `ADMIN` or `SUPER_ADMIN`; otherwise, it scopes to buyer or seller.
+   - ClaimReviewPanel can reuse the shared endpoint without hitting a missing `/admin/review` route.
+
+4. **Regression coverage added**
+   - `tests/integration/api.test.ts` seeds a mock Souq order and runs end-to-end flows: claim creation, rejection of invalid types, seller response, and admin listing.
+   - Additional assertions ensure admin view returns arrays of claims and endpoints respond as expected.
+
+## Remaining Enhancements/Data Points
+
+| Item                   | Status & Next Step                                                                                                                                      |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Claim admin fraud data | Demonstrator still injects default `fraudScore`/`riskLevel`; future work should hook to `InvestigationService` or a dedicated `/admin/review` endpoint. |
+| Documentation          | `CLAIMS_SYSTEM_FIXES_COMPLETE.md` now matches reality, but `SECURITY_REALITY_CHECK` and pending task reports need aligned status snapshots.             |
+| Monitoring/validation  | Rate limiting/CORS/Mongo checks promised in the security plan remain to be executed.                                                                    |
+| Notification tooling   | Smoke tests and RTL verification still pending (per Phase 2 plan).                                                                                      |
+
+## Metrics After Fixes
+
+- UI components: 2,119 lines across 5 React files
+- API surface: 562 lines (6 TypeScript routes)
+- Services touched: ~1,609 lines (3 modules)
+- Key tests added: Claim creation, seller response, admin listing in `tests/integration/api.test.ts`
+
+## Next Steps (per earlier plan)
+
+1. ✅ Finish claims code & tests (this report covers that work). (~85% of the claim action plan)
+2. ⏳ Update security docs/testing (ongoing, see `SECURITY_REALITY_CHECK_NOV_18.md`).
+3. ⏳ Execute manual security validations and notification credentials per the Phase 2 checklist.
+
+]]>
+</file>
+
+<file path="docs/archived/CLEANUP_ROUND2_COMPLETE.md">
+<![CDATA[
+# Duplicate Content Cleanup - Complete Report
+
+**Date:** November 16, 2025  
+**Session:** Post-Phase 2 Cleanup Round 2  
+**Status:** ✅ Complete
+
+---
+
+## 🎯 Objectives
+
+1. ✅ Keep dev server running on `http://localhost:3000`
+2. ✅ Remove all duplicate backup files (`.bak3`, `.final3`)
+3. ✅ Remove duplicate binary assets (logos)
+4. ✅ Remove duplicate documentation
+5. ✅ Remove generated test artifacts
+6. ✅ Document FM route stubs technical debt
+
+---
+
+## 📊 Summary of Changes
+
+### Files Deleted: 34 Total
+
+#### 1. Backup Files (5 files)
+
+- `tests/system/verify-passwords.ts.final3` - Had merge conflict markers (`>>>>>>> feat/souq-marketplace-advanced`)
+- `docs/guides/PR84_CONFLICT_RESOLUTION_GUIDE.md.bak3`
+- `scripts/resolve-json-conflicts.py.bak3`
+- `scripts/smart-merge-conflicts.ts.bak3`
+- `scripts/resolve-all-conflicts.sh.bak3`
+
+#### 2. Duplicate Assets (1 file)
+
+- `public/img/fixzit-logo.jpg` - 50KB, MD5: `75e21576543266dac8097b521be818ca`
+- ✅ **Kept:** `assets/logos/fixzit_official_logo.jpg` (canonical copy)
+
+#### 3. Duplicate Documentation (1 file)
+
+- `docs/audits/PENDING_TASKS_REPORT.md` - 16KB, identical to planning version
+- ✅ **Kept:** `docs/planning/PENDING_TASKS_REPORT.md` (canonical copy)
+
+#### 4. Generated Test Artifacts (27 files, 172KB)
+
+- `tests/playwright-artifacts/` entire directory removed
+  - 18 identical `test-failed-1.png` screenshots
+  - 6 `video.webm` recordings
+  - 1 `.last-run.json` metadata file
+- **Reason:** Generated on each test run, not needed in version control
+
+---
+
+## 🛡️ .gitignore Updates
+
+Added patterns to prevent future backup file commits:
+
+```gitignore
+# Archives & reports & backups
+*.bak
+*.bak3          # NEW
+*.backup
+*.tmp
+*.log
+*.final         # NEW
+*.final3        # NEW
+*.emergency-bak # NEW
+```
+
+**Impact:**
+
+- ✅ Future merge conflict backups won't be committed
+- ✅ Emergency backup files auto-ignored
+- ✅ Playwright artifacts already covered (`/playwright-artifacts/`)
+
+---
+
+## 📝 Documentation Created
+
+### FM_ROUTES_REFACTORING_PLAN.md (347 lines)
+
+**Problem Identified:**
+
+- **47 duplicate FM route files** with identical 2-line re-export pattern:
+  ```typescript
+  export { default } from "@/app/fm/dashboard/page";
+  export { metadata } from "@/app/fm/dashboard/page";
+  ```
+
+**Examples:**
+
+- `app/fm/finance/payments/page.tsx`
+- `app/fm/finance/expenses/page.tsx`
+- `app/fm/hr/directory/page.tsx`
+- `app/fm/marketplace/orders/new/page.tsx`
+- ...and 43 more
+
+**Proposed Solution:**
+
+- Replace 47 stub files with **1 catch-all route**: `app/fm/[[...slug]]/page.tsx`
+- **Estimated Savings:** 96% file reduction (47 → 1 files)
+- **Priority:** Medium technical debt
+- **Timeline:** Sprint 3 implementation
+
+**Benefits:**
+
+- ✅ Cleaner codebase
+- ✅ Easier maintenance (add routes by editing a Set, not creating files)
+- ✅ Faster builds (fewer modules to process)
+- ✅ Single source of truth
+- ✅ Better developer experience
+
+---
+
+## 🚀 System Status
+
+### Dev Server
+
+```
+Status: ✅ RUNNING
+URL: http://localhost:3000
+Network: http://192.168.1.2:3000
+Process: PID 10156 (Next.js 15.5.6 with Turbopack)
+Uptime: Running in background with nohup
+```
+
+**How to Check:**
+
+```bash
+curl -s http://localhost:3000 > /dev/null && echo "✅ Server running" || echo "❌ Server down"
+ps aux | grep "next dev" | grep -v grep
+```
+
+**How to View Logs:**
+
+```bash
+tail -f /tmp/fixzit-dev.log
+```
+
+---
+
+## 📈 Impact Analysis
+
+### Repository Cleanup
+
+| Metric                  | Before   | After  | Change    |
+| ----------------------- | -------- | ------ | --------- |
+| **Backup Files**        | 5        | 0      | -100%     |
+| **Duplicate Assets**    | 2 logos  | 1 logo | -50%      |
+| **Duplicate Docs**      | 2 copies | 1 copy | -50%      |
+| **Test Artifacts**      | 172KB    | 0KB    | -100%     |
+| **Total Files Removed** | -        | 34     | -34 files |
+| **Disk Space Saved**    | -        | ~250KB | -         |
+
+### Code Quality
+
+| Metric                        | Status                    |
+| ----------------------------- | ------------------------- |
+| **Merge Conflicts**           | ✅ 0 remaining            |
+| **Duplicate Binaries**        | ✅ 0 found                |
+| **Generated Artifacts**       | ✅ 0 committed            |
+| **Backup Files**              | ✅ 0 remaining            |
+| **Technical Debt Documented** | ✅ FM routes plan created |
+
+---
+
+## 🔄 Cleanup History
+
+### Round 1 (Commit: `b94f13cca`)
+
+**Date:** Earlier today  
+**Removed:**
+
+- 14 `.final` files
+- 59 `.emergency-bak` files
+- `.archive-2025-11-14/` directory (480KB)
+- 6 unused npm packages
+  **Impact:** 35,283 lines deleted, 101 files changed
+
+### Round 2 (Commit: `30a2bc46a`) - **THIS SESSION**
+
+**Date:** November 16, 2025  
+**Removed:**
+
+- 5 `.bak3`/`.final3` backup files
+- 1 duplicate logo (50KB)
+- 1 duplicate doc (16KB)
+- 27 Playwright test artifacts (172KB)
+  **Created:**
+- `FM_ROUTES_REFACTORING_PLAN.md` (347 lines)
+  **Impact:** 1,906 lines deleted, 34 files changed
+
+---
+
+## ✅ Verification Checklist
+
+- [x] Dev server running on `http://localhost:3000`
+- [x] All backup files deleted (`.final`, `.final3`, `.bak3`, `.emergency-bak`)
+- [x] Duplicate logo removed (kept canonical in `assets/logos/`)
+- [x] Duplicate docs consolidated (kept canonical in `docs/planning/`)
+- [x] Test artifacts removed (`tests/playwright-artifacts/`)
+- [x] `.gitignore` updated to prevent future backups
+- [x] FM route stubs documented for future refactoring
+- [x] Changes committed and pushed to `origin/main`
+- [x] Repository cleaner and more maintainable
+
+---
+
+## 🎯 Next Steps
+
+### Immediate (Completed)
+
+- ✅ System cleaned up
+- ✅ Server running continuously
+- ✅ Technical debt documented
+
+### Short-Term (Next 1-2 Weeks)
+
+1. **Test Application** - Comprehensive QA on localhost:3000
+2. **Address Lint Warnings** - 665 warnings remaining
+3. **Professional Translations** - 7 languages pending (of 9 total)
+4. **Review Dependabot Alert #7** - Moderate security issue
+
+### Medium-Term (Sprint 3)
+
+1. **Implement FM Route Refactoring**
+   - Replace 47 stub files with 1 catch-all route
+   - Estimated: 3-4 hours
+   - Savings: 46 fewer files
+2. **E2E Testing** - Write Playwright tests for critical paths
+3. **Performance Optimization** - Lazy-load i18n files
+
+### Long-Term (Next Month)
+
+1. **Production Deployment**
+   - Staging environment first
+   - 24-hour monitoring
+   - Phased rollout
+2. **Complete Translations** - Bring all 9 languages to 100% (7 currently pending)
+
+---
+
+## 📝 Commands Used
+
+```bash
+# Find and remove backups
+find . -name "*.bak3" -o -name "*.final3" | xargs rm -v
+
+# Compare and remove duplicate logo
+md5 public/img/fixzit-logo.jpg assets/logos/fixzit_official_logo.jpg
+rm public/img/fixzit-logo.jpg
+
+# Compare and remove duplicate docs
+diff docs/audits/PENDING_TASKS_REPORT.md docs/planning/PENDING_TASKS_REPORT.md
+rm docs/audits/PENDING_TASKS_REPORT.md
+
+# Remove test artifacts
+rm -rf tests/playwright-artifacts
+
+# Update .gitignore
+# Added: *.bak3, *.final, *.final3, *.emergency-bak
+
+# Commit and push
+git add -A
+git commit -m "chore: Remove duplicate files and generated artifacts"
+git push origin main
+```
+
+---
+
+## 🔗 Related Documentation
+
+- `DEPENDENCY_RESOLUTION.md` - Dependency cleanup (previous session)
+- `FM_ROUTES_REFACTORING_PLAN.md` - FM routes technical debt
+- `PHASE_2_MERGE_COMPLETE.md` - Phase 2 merge summary
+- `.gitignore` - Updated backup file patterns
+
+---
+
+## 📊 Git Commits This Session
+
+1. **8f1458e1c** - Resolved missing production dependencies (`redis`, `@faker-js/faker`)
+2. **30a2bc46a** - Removed duplicate files and generated artifacts (THIS COMMIT)
+
+**Total Changes Today:**
+
+- 37 files changed
+- 319 insertions (+)
+- 37,189 deletions (-)
+- 2 commits pushed to main
+
+---
+
+## ✨ Final Status
+
+```
+🎉 CLEANUP COMPLETE
+
+✅ Dev Server:     Running on http://localhost:3000
+✅ Backups:        0 files remaining
+✅ Duplicates:     All removed
+✅ Test Artifacts: Cleaned up
+✅ .gitignore:     Updated to prevent future issues
+✅ Documentation:  FM routes plan created
+✅ Git Status:     Clean, synced with origin/main
+
+Repository is now in optimal state for development and testing.
+```
+
+---
+
+**Session Duration:** ~20 minutes  
+**Files Processed:** 34 deleted, 2 created, 1 modified  
+**Lines Changed:** 1,906 deleted, 347 added  
+**Success Rate:** 100%
+
+🚀 **Ready for next phase: Testing and professional translations**
+
+]]>
+</file>
+
+<file path="docs/archived/COMMUNICATION_DASHBOARD_GUIDE.md">
+<![CDATA[
+# Communication Dashboard - Implementation Summary
+
+## ✅ Implementation Complete
+
+A comprehensive communication tracking dashboard has been created for super admins to monitor all SMS, Email, WhatsApp, and OTP communications with full history logging per customer.
+
+---
+
+## 🎯 Features Implemented
+
+### 1. Communication Logging System (`lib/communication-logger.ts`)
+
+**Core Functions:**
+
+- ✅ `logCommunication()` - Log any communication (SMS/Email/WhatsApp/OTP)
+- ✅ `updateCommunicationStatus()` - Update delivery status
+- ✅ `getUserCommunications()` - Get history for specific user
+- ✅ `getCommunicationStats()` - Calculate delivery/failure rates
+
+**Data Structure:**
+
+```typescript
+interface CommunicationLog {
+  userId: string; // Customer ID
+  channel: "sms" | "email" | "whatsapp" | "otp";
+  type: "notification" | "otp" | "marketing" | "transactional" | "alert";
+  recipient: string; // Phone or email
+  subject?: string; // For email
+  message: string;
+  status: "pending" | "sent" | "delivered" | "failed" | "read";
+  metadata: {
+    twilioSid?: string; // For tracking
+    sendgridId?: string;
+    cost?: number; // Cost tracking
+    segments?: number; // SMS segments
+    otpCode?: string; // For OTP audit
+    triggeredBy?: string; // Admin ID or 'system'
+  };
+  createdAt: Date;
+  deliveredAt?: Date;
+  failedAt?: Date;
+  errorMessage?: string;
+}
+```
+
+### 2. Admin API Endpoint (`app/api/admin/communications/route.ts`)
+
+**GET /api/admin/communications**
+
+**Query Parameters:**
+
+- `userId` - Filter by specific user
+- `channel` - Filter by channel (sms/email/whatsapp/otp/all)
+- `status` - Filter by status (sent/delivered/failed/pending)
+- `startDate` / `endDate` - Date range filter
+- `search` - Search in recipient, subject, or message
+- `limit` / `skip` - Pagination (default: 50 per page, max: 100)
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "communications": [...],
+    "pagination": {
+      "total": 1234,
+      "limit": 50,
+      "skip": 0,
+      "pages": 25,
+      "currentPage": 1
+    },
+    "statistics": {
+      "totalSent": 1234,
+      "totalDelivered": 1150,
+      "totalFailed": 34,
+      "totalPending": 50,
+      "smsCount": 800,
+      "emailCount": 300,
+      "whatsappCount": 100,
+      "otpCount": 34,
+      "deliveryRate": "93.19%",
+      "failureRate": "2.75%"
+    }
+  }
+}
+```
+
+**Security:**
+
+- ✅ Super admin authentication required
+- ✅ Session validation with NextAuth
+- ✅ User data joined from users collection
+
+### 3. Dashboard UI Component (`components/admin/CommunicationDashboard.tsx`)
+
+**Features:**
+
+- 📊 **Statistics Cards**:
+  - Total Sent
+  - Delivery Rate (with delivered count)
+  - Failure Rate (with failed count)
+  - By Channel breakdown (SMS/Email/WhatsApp/OTP)
+
+- 🔍 **Filters**:
+  - Search by user name, phone, or email
+  - Filter by channel (All/SMS/Email/WhatsApp/OTP)
+  - Filter by status (All/Pending/Sent/Delivered/Failed)
+
+- 📋 **Communications Table**:
+  - Date/Time
+  - User details (name + email)
+  - Channel with icon
+  - Recipient (phone/email)
+  - Status badge
+  - Message preview
+  - View details button
+
+- 🔄 **Actions**:
+  - Export to CSV
+  - Refresh data
+  - Paginated view (50 per page)
+
+- 👁️ **Detail Modal**:
+  - Full communication details
+  - User information
+  - Channel & status
+  - Complete message
+  - Timestamps (sent, delivered)
+  - Error messages (if failed)
+  - Metadata (Twilio SID, cost, etc.)
+
+**Internationalization:**
+
+- ✅ Full bilingual support (English/Arabic)
+- ✅ RTL layout support
+- ✅ All text translatable
+
+---
+
+## 📁 Files Created
+
+1. **`lib/communication-logger.ts`** (320 lines)
+   - Communication logging utility
+   - Database operations
+   - Statistics calculator
+
+2. **`app/api/admin/communications/route.ts`** (200 lines)
+   - REST API endpoint
+   - Advanced filtering & aggregation
+   - Super admin authorization
+
+3. **`components/admin/CommunicationDashboard.tsx`** (600+ lines)
+   - Full dashboard UI
+   - Search, filter, pagination
+   - Export to CSV
+   - Detail modal
+
+---
+
+## 🗄️ Database Schema
+
+### Collection: `communication_logs`
+
+**Indexes (Recommended):**
+
+```javascript
+db.communication_logs.createIndex({ userId: 1, createdAt: -1 });
+db.communication_logs.createIndex({ channel: 1, status: 1 });
+db.communication_logs.createIndex({ createdAt: -1 });
+db.communication_logs.createIndex({ status: 1 });
+db.communication_logs.createIndex({ "metadata.twilioSid": 1 });
+db.communication_logs.createIndex({ "metadata.sendgridId": 1 });
+```
+
+**Aggregation Pipeline:**
+
+- Lookup user details from `users` collection
+- Filter by multiple criteria
+- Sort by creation date (newest first)
+- Count matching documents
+- Paginate results
+- Calculate statistics
+
+---
+
+## 🔌 Integration Guide
+
+### 1. Integrate with SMS Service (`lib/sms.ts`)
+
+**Current:**
+
+```typescript
+export async function sendSMS(to: string, message: string): Promise<SMSResult>;
+```
+
+**Enhanced (add userId parameter):**
+
+```typescript
+export async function sendSMS(to: string, message: string, userId?: string): Promise<SMSResult> {
+  let logId: string | undefined;
+
+  // Log as pending
+  if (userId) {
+    const { logCommunication } = await import('./communication-logger');
+    const result = await logCommunication({
+      userId,
+      channel: 'sms',
+      type: 'notification',
+      recipient: to,
+      message,
+      status: 'pending',
+      metadata: { segments: Math.ceil(message.length / 160) },
+    });
+    logId = result.logId;
+  }
+
+  // Send SMS via Twilio
+  const smsResult = await client.messages.create({ ... });
+
+  // Update status to sent
+  if (logId) {
+    const { updateCommunicationStatus } = await import('./communication-logger');
+    await updateCommunicationStatus(logId, 'sent', {
+      twilioSid: smsResult.sid,
+    });
+  }
+
+  return smsResult;
+}
+```
+
+**Update OTP Send Endpoint:**
+
+```typescript
+// app/api/auth/otp/send/route.ts
+
+// After user validation, before sending OTP:
+const { logCommunication } = await import("@/lib/communication-logger");
+const logResult = await logCommunication({
+  userId: user._id.toString(),
+  channel: "otp",
+  type: "otp",
+  recipient: userPhone,
+  message: `Your Fixzit verification code is: ${otp}`,
+  status: "pending",
+  metadata: {
+    otpCode: otp, // For audit
+    otpExpiresAt: new Date(expiresAt),
+  },
+});
+
+const smsResult = await sendOTP(userPhone, otp);
+
+// Update status
+if (smsResult.success && logResult.logId) {
+  const { updateCommunicationStatus } = await import(
+    "@/lib/communication-logger"
+  );
+  await updateCommunicationStatus(logResult.logId, "sent", {
+    twilioSid: smsResult.messageSid,
+  });
+}
+```
+
+### 2. Integrate with Email Service (`lib/email.ts`)
+
+**Enhanced:**
+
+```typescript
+export async function sendEmail(
+  to: string,
+  subject: string,
+  body: string,
+  userId?: string,
+  options?: { ... }
+): Promise<EmailResult> {
+  let logId: string | undefined;
+
+  // Log as pending
+  if (userId) {
+    const { logCommunication } = await import('./communication-logger');
+    const result = await logCommunication({
+      userId,
+      channel: 'email',
+      type: 'notification',
+      recipient: to,
+      subject,
+      message: body,
+      status: 'pending',
+    });
+    logId = result.logId;
+  }
+
+  // Send via SendGrid
+  const emailResult = await sgMail.send({ ... });
+
+  // Update status
+  if (logId) {
+    const { updateCommunicationStatus } = await import('./communication-logger');
+    await updateCommunicationStatus(logId, 'sent', {
+      sendgridId: emailResult[0].headers['x-message-id'],
+    });
+  }
+
+  return emailResult;
+}
+```
+
+### 3. Integrate WhatsApp Channel (`lib/whatsapp.ts`)
+
+**Configuration:**
+
+- `WHATSAPP_BUSINESS_API_KEY`, `WHATSAPP_PHONE_NUMBER_ID`
+- `WHATSAPP_TEMPLATE_NAMESPACE` (Meta/Cloud API) or Twilio sandbox credentials
+
+**Sending Helper:**
+
+```typescript
+export async function sendWhatsAppMessage(
+  to: string,
+  template: string,
+  variables: string[],
+  userId?: string,
+) {
+  let logId: string | undefined;
+
+  if (userId) {
+    const { logCommunication } = await import("./communication-logger");
+    const result = await logCommunication({
+      userId,
+      channel: "whatsapp",
+      type: "notification",
+      recipient: to,
+      message: `${template} ${variables.join(" ")}`.trim(),
+      status: "pending",
+    });
+    logId = result.logId;
+  }
+
+  const payload = buildWhatsAppPayload({ to, template, variables });
+  const response = await fetch(WHATSAPP_API_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.WHATSAPP_BUSINESS_API_KEY}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (logId) {
+    const { updateCommunicationStatus } = await import(
+      "./communication-logger"
+    );
+    await updateCommunicationStatus(logId, response.ok ? "sent" : "failed", {
+      whatsappMessageId: response.ok
+        ? (await response.json()).messages?.[0]?.id
+        : undefined,
+      errorMessage: response.ok ? undefined : await response.text(),
+    });
+  }
+
+  return response;
+}
+```
+
+**Delivery Receipts:**
+
+- Register a webhook (`/api/webhooks/whatsapp`) to update message status.
+- Map incoming `statuses` events to `updateCommunicationStatus(logId, 'delivered' | 'failed', metadata)`.
+
+### 4. Integrate with Admin Notifications
+
+**Update `app/api/admin/notifications/send/route.ts`:**
+
+```typescript
+// For each recipient, log the communication:
+const { logCommunication } = await import("@/lib/communication-logger");
+
+for (const recipient of allRecipients) {
+  // Send SMS
+  if (channels.includes("sms") && recipient.phone) {
+    await logCommunication({
+      userId: recipient.id,
+      channel: "sms",
+      type: "broadcast",
+      recipient: recipient.phone,
+      message: body.message,
+      status: "pending",
+      metadata: {
+        broadcastId: notificationId, // Link to broadcast campaign
+        triggeredBy: session.user.id, // Admin who sent it
+      },
+    });
+
+    await sendSMS(recipient.phone, body.message, recipient.id);
+  }
+
+  // Send Email
+  if (channels.includes("email") && recipient.email) {
+    await logCommunication({
+      userId: recipient.id,
+      channel: "email",
+      type: "broadcast",
+      recipient: recipient.email,
+      subject: body.subject,
+      message: body.message,
+      status: "pending",
+      metadata: {
+        broadcastId: notificationId,
+        triggeredBy: session.user.id,
+      },
+    });
+
+    await sendEmail(recipient.email, body.subject, body.message, recipient.id);
+  }
+}
+```
+
+---
+
+## 🎨 Add to Admin Panel
+
+### Update `app/administration/page.tsx`
+
+**1. Add Import:**
+
+```typescript
+import CommunicationDashboard from "@/components/admin/CommunicationDashboard";
+import { MessageSquare } from "lucide-react";
+```
+
+**2. Add Tab:**
+
+```typescript
+const tabs = [
+  // ... existing tabs
+  {
+    id: "communications",
+    label: t("admin.tabs.communications", "Communications"),
+    icon: MessageSquare,
+    superAdminOnly: true,
+  },
+];
+```
+
+**3. Add Content:**
+
+```typescript
+{activeTab === 'communications' && isSuperAdmin && (
+  <CommunicationDashboard t={t} isRTL={isRTL} />
+)}
+```
+
+---
+
+## 🌍 Translation Keys
+
+### English (`i18n/dictionaries/en.ts`)
+
+```typescript
+communications: {
+  title: 'Communication Dashboard',
+  subtitle: 'Track all SMS, Email, and WhatsApp communications',
+  export: 'Export',
+  refresh: 'Refresh',
+  loading: 'Loading communications...',
+  noData: 'No communications found',
+  search: 'Search by user, phone, email...',
+  stats: {
+    totalSent: 'Total Sent',
+    deliveryRate: 'Delivery Rate',
+    failureRate: 'Failure Rate',
+    byChannel: 'By Channel',
+  },
+  filter: {
+    allChannels: 'All Channels',
+    allStatuses: 'All Statuses',
+  },
+  table: {
+    date: 'Date',
+    user: 'User',
+    channel: 'Channel',
+    recipient: 'Recipient',
+    status: 'Status',
+    message: 'Message',
+    actions: 'Actions',
+  },
+  view: 'View',
+  previous: 'Previous',
+  next: 'Next',
+  page: 'Page',
+  of: 'of',
+  details: {
+    title: 'Communication Details',
+    user: 'User',
+    channel: 'Channel',
+    status: 'Status',
+    recipient: 'Recipient',
+    subject: 'Subject',
+    message: 'Message',
+    sent: 'Sent At',
+    delivered: 'Delivered At',
+    error: 'Error',
+    metadata: 'Metadata',
+  },
+},
+```
+
+### Arabic (`i18n/dictionaries/ar.ts`)
+
+```typescript
+communications: {
+  title: 'لوحة الاتصالات',
+  subtitle: 'تتبع جميع اتصالات الرسائل النصية والبريد الإلكتروني والواتساب',
+  export: 'تصدير',
+  refresh: 'تحديث',
+  loading: 'جاري تحميل الاتصالات...',
+  noData: 'لا توجد اتصالات',
+  search: 'البحث بالمستخدم أو الهاتف أو البريد...',
+  stats: {
+    totalSent: 'إجمالي المرسلة',
+    deliveryRate: 'معدل التسليم',
+    failureRate: 'معدل الفشل',
+    byChannel: 'حسب القناة',
+  },
+  // ... etc
+},
+```
+
+---
+
+## 📊 Usage Examples
+
+### Example 1: View All Communications
+
+```http
+GET /api/admin/communications?limit=50&skip=0
+```
+
+### Example 2: Filter by User
+
+```http
+GET /api/admin/communications?userId=507f1f77bcf86cd799439011
+```
+
+### Example 3: Filter by Channel & Status
+
+```http
+GET /api/admin/communications?channel=sms&status=failed
+```
+
+### Example 4: Search + Date Range
+
+```http
+GET /api/admin/communications?search=+966501234567&startDate=2024-12-01&endDate=2024-12-31
+```
+
+### Example 5: Export Failed SMS
+
+1. Filter: channel=sms, status=failed
+2. Click "Export" button
+3. Downloads CSV with all failed SMS
+
+---
+
+## 🔍 Monitoring & Analytics
+
+### Key Metrics to Track
+
+**Delivery Performance:**
+
+- Delivery Rate (target: >95%)
+- Failure Rate (target: <5%)
+- Average delivery time
+
+**By Channel:**
+
+- SMS: Count, cost, segments, delivery rate
+- Email: Count, open rate (if tracked), bounce rate
+- WhatsApp: Count, read status
+- OTP: Count, verification success rate
+
+**By User:**
+
+- Total communications per user
+- Most communicated users
+- Users with failed deliveries
+
+**Cost Tracking:**
+
+- Total SMS cost (segments × price)
+- Email cost (SendGrid usage)
+- Cost per user
+- Cost per campaign
+
+### Recommended Queries
+
+**1. Daily Communication Summary:**
+
+```javascript
+db.communication_logs.aggregate([
+  {
+    $match: {
+      createdAt: {
+        $gte: ISODate("2024-12-01"),
+        $lte: ISODate("2024-12-31"),
+      },
+    },
+  },
+  {
+    $group: {
+      _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+      total: { $sum: 1 },
+      sms: { $sum: { $cond: [{ $eq: ["$channel", "sms"] }, 1, 0] } },
+      email: { $sum: { $cond: [{ $eq: ["$channel", "email"] }, 1, 0] } },
+      delivered: { $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] } },
+      failed: { $sum: { $cond: [{ $eq: ["$status", "failed"] }, 1, 0] } },
+    },
+  },
+  { $sort: { _id: 1 } },
+]);
+```
+
+**2. Top 10 Users by Communication:**
+
+```javascript
+db.communication_logs.aggregate([
+  {
+    $group: {
+      _id: "$userId",
+      total: { $sum: 1 },
+      sms: { $sum: { $cond: [{ $eq: ["$channel", "sms"] }, 1, 0] } },
+      email: { $sum: { $cond: [{ $eq: ["$channel", "email"] }, 1, 0] } },
+    },
+  },
+  { $sort: { total: -1 } },
+  { $limit: 10 },
+  {
+    $lookup: {
+      from: "users",
+      localField: "_id",
+      foreignField: "_id",
+      as: "user",
+    },
+  },
+]);
+```
+
+**3. Failed Communications Report:**
+
+```javascript
+db.communication_logs
+  .find({
+    status: "failed",
+    createdAt: { $gte: ISODate("2024-12-01") },
+  })
+  .sort({ createdAt: -1 });
+```
+
+---
+
+## 🚀 Next Steps
+
+### Phase 1: Integration (Immediate)
+
+- [ ] Add `userId` parameter to `sendSMS()` and `sendEmail()`
+- [ ] Update OTP send endpoint to log communications
+- [ ] Update admin notification broadcast to log communications
+- [ ] Add Communication Dashboard tab to admin panel
+- [ ] Add translation keys to dictionaries
+
+### Phase 2: Delivery Tracking (Short-term)
+
+- [ ] Twilio webhook for delivery status (`/api/webhooks/twilio`)
+- [ ] SendGrid webhook for email events (`/api/webhooks/sendgrid`)
+- [ ] Auto-update communication status on webhook events
+- [ ] Email open tracking (SendGrid pixel)
+
+### Phase 3: Advanced Features (Medium-term)
+
+- [ ] Real-time dashboard updates (WebSocket/SSE)
+- [ ] Advanced analytics charts (Chart.js/Recharts)
+- [ ] Cost calculator per communication
+- [ ] Budget alerts (SMS/Email limits)
+- [ ] Automated retry for failed communications
+- [ ] Communication templates library
+
+### Phase 4: Compliance (Long-term)
+
+- [ ] GDPR compliance (data retention policies)
+- [ ] Audit trail for all communications
+- [ ] User consent tracking
+- [ ] Unsubscribe management
+- [ ] Communication preferences per user
+
+---
+
+## 🛠️ Testing Checklist
+
+- [ ] Log communication for test user
+- [ ] View communication in dashboard
+- [ ] Filter by channel (SMS/Email/OTP)
+- [ ] Filter by status (Sent/Failed)
+- [ ] Search by user name/phone/email
+- [ ] View communication details
+- [ ] Export to CSV
+- [ ] Check statistics accuracy
+- [ ] Test pagination
+- [ ] Test RTL layout (Arabic)
+- [ ] Test on mobile/tablet
+- [ ] Verify super admin access only
+
+---
+
+## 📝 Documentation Links
+
+- **API Docs:** `SMS_OTP_LOGIN_GUIDE.md` (SMS/OTP integration)
+- **Admin Notifications:** Previous commit message (broadcast system)
+- **Database:** `lib/mongodb-unified.ts` (connection management)
+- **Authentication:** `auth.config.ts` (super admin checks)
+
+---
+
+**Status:** ✅ **Ready for Integration**  
+**Last Updated:** December 2024  
+**Version:** 1.0.0
+
+]]>
+</file>
+
+</batch_content>

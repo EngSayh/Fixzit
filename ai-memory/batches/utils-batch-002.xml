@@ -1,0 +1,3148 @@
+
+You are the "Fixzit Memory Builder" for category: "utils".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "utils",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="tests/lib/finance/pricing.test.ts">
+<![CDATA[
+/**
+ * Unit tests for pricing service
+ * Tests: quotePrice, PricingError, Zod validation, tier selection, discount calculations
+ */
+
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  vi,
+} from "vitest";
+import mongoose from "mongoose";
+import { quotePrice, PricingError } from "@/lib/finance/pricing";
+import PriceBook from "@/server/models/PriceBook";
+import DiscountRule from "@/server/models/DiscountRule";
+
+const TEST_ORG_ID = new mongoose.Types.ObjectId();
+const CREATOR_ID = new mongoose.Types.ObjectId();
+
+describe("Pricing Service Unit Tests", () => {
+  let priceBookId: mongoose.Types.ObjectId;
+  let discountRuleId: mongoose.Types.ObjectId;
+  const seedPriceBooks = async () => {
+    const priceBook = await PriceBook.create({
+      name: "USD Price Book",
+      createdBy: CREATOR_ID,
+      orgId: TEST_ORG_ID,
+      currency: "USD",
+      active: true,
+      tiers: [
+        {
+          min_seats: 1,
+          max_seats: 10,
+          discount_pct: 0,
+          prices: [
+            { module_key: "AQAR", monthly_usd: 50, monthly_sar: 187.5 },
+            { module_key: "FM", monthly_usd: 40, monthly_sar: 150 },
+            { module_key: "HR", monthly_usd: 30, monthly_sar: 112.5 },
+          ],
+        },
+        {
+          min_seats: 11,
+          max_seats: 50,
+          discount_pct: 0.1, // 10% discount
+          prices: [
+            { module_key: "AQAR", monthly_usd: 50, monthly_sar: 187.5 },
+            { module_key: "FM", monthly_usd: 40, monthly_sar: 150 },
+            { module_key: "HR", monthly_usd: 30, monthly_sar: 112.5 },
+          ],
+        },
+        {
+          min_seats: 51,
+          max_seats: 200,
+          discount_pct: 0.2, // 20% discount
+          prices: [
+            { module_key: "AQAR", monthly_usd: 50, monthly_sar: 187.5 },
+            { module_key: "FM", monthly_usd: 40, monthly_sar: 150 },
+            { module_key: "HR", monthly_usd: 30, monthly_sar: 112.5 },
+          ],
+        },
+      ],
+    });
+    priceBookId = priceBook._id as mongoose.Types.ObjectId;
+
+    await PriceBook.create({
+      name: "SAR Price Book",
+      createdBy: CREATOR_ID,
+      orgId: TEST_ORG_ID,
+      currency: "SAR",
+      active: true,
+      tiers: [
+        {
+          min_seats: 1,
+          max_seats: 10,
+          discount_pct: 0,
+          prices: [
+            { module_key: "AQAR", monthly_usd: 50, monthly_sar: 187.5 },
+            { module_key: "FM", monthly_usd: 40, monthly_sar: 150 },
+          ],
+        },
+      ],
+    });
+
+    const discountRule = await DiscountRule.create({
+      orgId: TEST_ORG_ID,
+      createdBy: CREATOR_ID,
+      key: "ANNUAL_PREPAY",
+      percentage: 0.15, // 15% discount for annual prepayment
+      active: true,
+    });
+    discountRuleId = discountRule._id as mongoose.Types.ObjectId;
+  };
+
+  beforeAll(async () => {
+    // Connect to test database (reuse existing connection if available)
+    if (mongoose.connection.readyState === 0) {
+      const MONGODB_URI =
+        process.env.MONGODB_URI || "mongodb://localhost:27017/fixzit-test";
+      await mongoose.connect(MONGODB_URI);
+    }
+  });
+
+  afterAll(async () => {
+    // Cleanup test data
+    await PriceBook.deleteMany({ orgId: TEST_ORG_ID });
+    await DiscountRule.deleteMany({ orgId: TEST_ORG_ID });
+    // Don't disconnect - let vitest.setup handle it
+    // await mongoose.disconnect();
+  });
+
+  beforeEach(async () => {
+    // Clear any mocks
+    vi.clearAllMocks();
+    await PriceBook.deleteMany({ orgId: TEST_ORG_ID });
+    await DiscountRule.deleteMany({ orgId: TEST_ORG_ID });
+    return seedPriceBooks();
+  });
+
+  describe("Input Validation", () => {
+    it("should reject invalid currency", async () => {
+      await expect(
+        quotePrice({
+          priceBookCurrency: "EUR" as any,
+          seats: 5,
+          modules: ["AQAR"],
+          billingCycle: "MONTHLY",
+        }),
+      ).rejects.toThrow(PricingError);
+    });
+
+    it("should reject negative seats", async () => {
+      await expect(
+        quotePrice({
+          priceBookCurrency: "USD",
+          seats: -5,
+          modules: ["AQAR"],
+          billingCycle: "MONTHLY",
+        }),
+      ).rejects.toThrow(PricingError);
+
+      try {
+        await quotePrice({
+          priceBookCurrency: "USD",
+          seats: -5,
+          modules: ["AQAR"],
+          billingCycle: "MONTHLY",
+        });
+      } catch (error: unknown) {
+        expect(error).toBeInstanceOf(PricingError);
+        const pricingError = error as PricingError;
+        expect(pricingError.code).toBe("INVALID_INPUT");
+        expect(pricingError.message).toContain("Invalid pricing parameters");
+      }
+    });
+
+    it("should reject zero seats", async () => {
+      await expect(
+        quotePrice({
+          priceBookCurrency: "USD",
+          seats: 0,
+          modules: ["AQAR"],
+          billingCycle: "MONTHLY",
+        }),
+      ).rejects.toThrow(PricingError);
+    });
+
+    it("should reject seats exceeding 10,000", async () => {
+      await expect(
+        quotePrice({
+          priceBookCurrency: "USD",
+          seats: 10001,
+          modules: ["AQAR"],
+          billingCycle: "MONTHLY",
+        }),
+      ).rejects.toThrow(PricingError);
+    });
+
+    it("should reject empty modules array", async () => {
+      await expect(
+        quotePrice({
+          priceBookCurrency: "USD",
+          seats: 5,
+          modules: [],
+          billingCycle: "MONTHLY",
+        }),
+      ).rejects.toThrow(PricingError);
+    });
+
+    it("should reject invalid billing cycle", async () => {
+      await expect(
+        quotePrice({
+          priceBookCurrency: "USD",
+          seats: 5,
+          modules: ["AQAR"],
+          billingCycle: "QUARTERLY" as any,
+        }),
+      ).rejects.toThrow(PricingError);
+    });
+
+    it("should reject non-integer seats", async () => {
+      await expect(
+        quotePrice({
+          priceBookCurrency: "USD",
+          seats: 5.5,
+          modules: ["AQAR"],
+          billingCycle: "MONTHLY",
+        }),
+      ).rejects.toThrow(PricingError);
+    });
+  });
+
+  describe("Enterprise Quotes", () => {
+    it("should require quote for >200 seats", async () => {
+      const result = await quotePrice({
+        priceBookCurrency: "USD",
+        seats: 201,
+        modules: ["AQAR", "FM"],
+        billingCycle: "MONTHLY",
+      });
+
+      expect(result.requiresQuote).toBe(true);
+      expect(result.total).toBe(0);
+      expect(result.lines).toEqual([]);
+    });
+
+    it("should require quote for exactly 201 seats", async () => {
+      const result = await quotePrice({
+        priceBookCurrency: "USD",
+        seats: 201,
+        modules: ["AQAR"],
+        billingCycle: "ANNUAL",
+      });
+
+      expect(result.requiresQuote).toBe(true);
+      expect(result.annualDiscount).toBe(0);
+    });
+
+    it("should require quote for 1000 seats", async () => {
+      const result = await quotePrice({
+        priceBookCurrency: "USD",
+        seats: 1000,
+        modules: ["AQAR", "FM", "HR"],
+        billingCycle: "MONTHLY",
+      });
+
+      expect(result.requiresQuote).toBe(true);
+    });
+  });
+
+  describe("Tier Selection", () => {
+    it("should select tier 1 for 5 seats", async () => {
+      const result = await quotePrice({
+        priceBookCurrency: "USD",
+        seats: 5,
+        modules: ["AQAR"],
+        billingCycle: "MONTHLY",
+      });
+
+      expect(result.requiresQuote).toBe(false);
+      // Tier 1: 0% discount, AQAR = $50/seat
+      // Total = 5 seats * $50 = $250
+      expect(result.total).toBe(250);
+    });
+
+    it("should select tier 1 for exactly 10 seats (upper boundary)", async () => {
+      const result = await quotePrice({
+        priceBookCurrency: "USD",
+        seats: 10,
+        modules: ["FM"],
+        billingCycle: "MONTHLY",
+      });
+
+      expect(result.requiresQuote).toBe(false);
+      // Tier 1: 0% discount, FM = $40/seat
+      // Total = 10 seats * $40 = $400
+      expect(result.total).toBe(400);
+    });
+
+    it("should select tier 2 for 11 seats (lower boundary)", async () => {
+      const result = await quotePrice({
+        priceBookCurrency: "USD",
+        seats: 11,
+        modules: ["AQAR"],
+        billingCycle: "MONTHLY",
+      });
+
+      expect(result.requiresQuote).toBe(false);
+      // Tier 2: 10% discount, AQAR = $50/seat
+      // Discounted price = $50 * 0.9 = $45/seat
+      // Total = 11 seats * $45 = $495
+      expect(result.total).toBe(495);
+    });
+
+    it("should select tier 2 for 25 seats (mid-range)", async () => {
+      const result = await quotePrice({
+        priceBookCurrency: "USD",
+        seats: 25,
+        modules: ["HR"],
+        billingCycle: "MONTHLY",
+      });
+
+      expect(result.requiresQuote).toBe(false);
+      // Tier 2: 10% discount, HR = $30/seat
+      // Discounted price = $30 * 0.9 = $27/seat
+      // Total = 25 seats * $27 = $675
+      expect(result.total).toBe(675);
+    });
+
+    it("should select tier 3 for 51 seats (lower boundary)", async () => {
+      const result = await quotePrice({
+        priceBookCurrency: "USD",
+        seats: 51,
+        modules: ["FM"],
+        billingCycle: "MONTHLY",
+      });
+
+      expect(result.requiresQuote).toBe(false);
+      // Tier 3: 20% discount, FM = $40/seat
+      // Discounted price = $40 * 0.8 = $32/seat
+      // Total = 51 seats * $32 = $1,632
+      expect(result.total).toBe(1632);
+    });
+
+    it("should select tier 3 for 200 seats (upper boundary)", async () => {
+      const result = await quotePrice({
+        priceBookCurrency: "USD",
+        seats: 200,
+        modules: ["AQAR"],
+        billingCycle: "MONTHLY",
+      });
+
+      expect(result.requiresQuote).toBe(false);
+      // Tier 3: 20% discount, AQAR = $50/seat
+      // Discounted price = $50 * 0.8 = $40/seat
+      // Total = 200 seats * $40 = $8,000
+      expect(result.total).toBe(8000);
+    });
+
+    it("should throw error for seats outside all tiers", async () => {
+      // Create price book with gap (no tier for 11-20 seats)
+      await PriceBook.updateMany({ currency: "SAR" }, { active: false });
+      await PriceBook.create({
+        orgId: TEST_ORG_ID,
+        name: "SAR Gap Price Book",
+        createdBy: CREATOR_ID,
+        currency: "SAR",
+        active: true,
+        tiers: [
+          {
+            min_seats: 1,
+            max_seats: 10,
+            discount_pct: 0,
+            prices: [
+              { module_key: "TEST", monthly_usd: 10, monthly_sar: 37.5 },
+            ],
+          },
+          {
+            min_seats: 21,
+            max_seats: 50,
+            discount_pct: 0,
+            prices: [
+              { module_key: "TEST", monthly_usd: 10, monthly_sar: 37.5 },
+            ],
+          },
+        ],
+      });
+
+      try {
+        await quotePrice({
+          priceBookCurrency: "SAR",
+          seats: 15, // Falls in gap
+          modules: ["TEST"],
+          billingCycle: "MONTHLY",
+        });
+        throw new Error("Should have thrown PricingError");
+      } catch (error: unknown) {
+        expect(error).toBeInstanceOf(PricingError);
+        const pricingError = error as PricingError;
+        expect(pricingError.code).toBe("TIER_NOT_FOUND");
+        expect(pricingError.details?.seats).toBe(15);
+        expect(pricingError.details?.availableTiers).toBeDefined();
+      }
+    });
+  });
+
+  describe("Multi-Module Pricing", () => {
+    it("should calculate total for multiple modules", async () => {
+      const result = await quotePrice({
+        priceBookCurrency: "USD",
+        seats: 5,
+        modules: ["AQAR", "FM", "HR"],
+        billingCycle: "MONTHLY",
+      });
+
+      expect(result.requiresQuote).toBe(false);
+      expect(result.lines).toHaveLength(3);
+
+      // Tier 1: 0% discount
+      // AQAR: $50/seat, FM: $40/seat, HR: $30/seat
+      // Total per seat = $50 + $40 + $30 = $120
+      // Total = 5 seats * $120 = $600
+      expect(result.total).toBe(600);
+
+      // Verify individual line items
+      const aqarLine = result.lines.find((l) => l.module === "AQAR");
+      const fmLine = result.lines.find((l) => l.module === "FM");
+      const hrLine = result.lines.find((l) => l.module === "HR");
+
+      expect(aqarLine?.perSeatMonthly).toBe(50);
+      expect(aqarLine?.discountedPerSeatMonthly).toBe(50);
+
+      expect(fmLine?.perSeatMonthly).toBe(40);
+      expect(fmLine?.discountedPerSeatMonthly).toBe(40);
+
+      expect(hrLine?.perSeatMonthly).toBe(30);
+      expect(hrLine?.discountedPerSeatMonthly).toBe(30);
+    });
+
+    it("should apply tier discount to all modules", async () => {
+      const result = await quotePrice({
+        priceBookCurrency: "USD",
+        seats: 25,
+        modules: ["AQAR", "FM"],
+        billingCycle: "MONTHLY",
+      });
+
+      expect(result.requiresQuote).toBe(false);
+
+      // Tier 2: 10% discount
+      // AQAR: $50 * 0.9 = $45/seat, FM: $40 * 0.9 = $36/seat
+      // Total per seat = $45 + $36 = $81
+      // Total = 25 seats * $81 = $2,025
+      expect(result.total).toBe(2025);
+
+      const aqarLine = result.lines.find((l) => l.module === "AQAR");
+      const fmLine = result.lines.find((l) => l.module === "FM");
+
+      expect(aqarLine?.discountedPerSeatMonthly).toBe(45);
+      expect(fmLine?.discountedPerSeatMonthly).toBe(36);
+    });
+
+    it("should throw error for non-existent module", async () => {
+      try {
+        await quotePrice({
+          priceBookCurrency: "USD",
+          seats: 5,
+          modules: ["AQAR", "NONEXISTENT"],
+          billingCycle: "MONTHLY",
+        });
+        throw new Error("Should have thrown PricingError");
+      } catch (error: unknown) {
+        expect(error).toBeInstanceOf(PricingError);
+        const pricingError = error as PricingError;
+        expect(pricingError.code).toBe("MODULE_NOT_FOUND");
+        expect(pricingError.details?.module).toBe("NONEXISTENT");
+        expect(pricingError.details?.availableModules).toEqual([
+          "AQAR",
+          "FM",
+          "HR",
+        ]);
+      }
+    });
+  });
+
+  describe("Annual Billing & Discounts", () => {
+    it("should apply annual discount for ANNUAL billing", async () => {
+      const result = await quotePrice({
+        priceBookCurrency: "USD",
+        seats: 5,
+        modules: ["AQAR"],
+        billingCycle: "ANNUAL",
+      });
+
+      expect(result.requiresQuote).toBe(false);
+
+      // Monthly: 5 seats * $50 = $250
+      // Annual before discount: $250 * 12 = $3,000
+      // Annual discount: 15%
+      // Final: $3,000 * 0.85 = $2,550
+      expect(result.total).toBe(2550);
+      expect(result.annualDiscount).toBe(0.15);
+    });
+
+    it("should not apply annual discount for MONTHLY billing", async () => {
+      const result = await quotePrice({
+        priceBookCurrency: "USD",
+        seats: 5,
+        modules: ["AQAR"],
+        billingCycle: "MONTHLY",
+      });
+
+      expect(result.requiresQuote).toBe(false);
+      expect(result.total).toBe(250);
+      expect(result.annualDiscount).toBeUndefined();
+    });
+
+    it("should combine tier discount + annual discount correctly", async () => {
+      const result = await quotePrice({
+        priceBookCurrency: "USD",
+        seats: 25,
+        modules: ["FM"],
+        billingCycle: "ANNUAL",
+      });
+
+      expect(result.requiresQuote).toBe(false);
+
+      // Tier 2: 10% discount
+      // FM: $40 * 0.9 = $36/seat
+      // Monthly: 25 seats * $36 = $900
+      // Annual before annual discount: $900 * 12 = $10,800
+      // Annual discount: 15%
+      // Final: $10,800 * 0.85 = $9,180
+      expect(result.total).toBe(9180);
+      expect(result.annualDiscount).toBe(0.15);
+    });
+
+    it("should handle missing annual discount rule gracefully", async () => {
+      // Delete the discount rule temporarily
+      await DiscountRule.deleteMany({ key: "ANNUAL_PREPAY" });
+
+      const result = await quotePrice({
+        priceBookCurrency: "USD",
+        seats: 5,
+        modules: ["AQAR"],
+        billingCycle: "ANNUAL",
+      });
+
+      // Should still work, just without discount
+      expect(result.requiresQuote).toBe(false);
+      // Monthly: $250, Annual: $250 * 12 = $3,000 (no discount)
+      expect(result.total).toBe(3000);
+      expect(result.annualDiscount).toBe(0);
+
+      // Restore discount rule
+      await DiscountRule.create({
+        orgId: TEST_ORG_ID,
+        createdBy: CREATOR_ID,
+        key: "ANNUAL_PREPAY",
+        percentage: 0.15,
+        active: true,
+      });
+    });
+  });
+
+  describe("Currency Support", () => {
+    it("should calculate pricing in SAR", async () => {
+      const result = await quotePrice({
+        priceBookCurrency: "SAR",
+        seats: 5,
+        modules: ["AQAR"],
+        billingCycle: "MONTHLY",
+      });
+
+      expect(result.requiresQuote).toBe(false);
+      // AQAR SAR price: 187.5/seat
+      // Total = 5 seats * 187.5 = 937.5
+      expect(result.total).toBe(937.5);
+    });
+
+    it("should use correct currency pricing from tier", async () => {
+      const usdResult = await quotePrice({
+        priceBookCurrency: "USD",
+        seats: 5,
+        modules: ["FM"],
+        billingCycle: "MONTHLY",
+      });
+
+      const sarResult = await quotePrice({
+        priceBookCurrency: "SAR",
+        seats: 5,
+        modules: ["FM"],
+        billingCycle: "MONTHLY",
+      });
+
+      // USD: $40/seat, SAR: 150/seat
+      expect(usdResult.total).toBe(200); // 5 * $40
+      expect(sarResult.total).toBe(750); // 5 * 150 SAR
+    });
+
+    it("should throw error for inactive price book", async () => {
+      // Deactivate USD price book
+      await PriceBook.updateMany({ currency: "USD" }, { active: false });
+
+      try {
+        await quotePrice({
+          priceBookCurrency: "USD",
+          seats: 5,
+          modules: ["AQAR"],
+          billingCycle: "MONTHLY",
+        });
+        throw new Error("Should have thrown PricingError");
+      } catch (error: unknown) {
+        expect(error).toBeInstanceOf(PricingError);
+        const pricingError = error as PricingError;
+        expect(pricingError.code).toBe("PRICEBOOK_NOT_FOUND");
+        expect(pricingError.details?.currency).toBe("USD");
+      }
+
+      // Reactivate for other tests
+      await PriceBook.updateOne(
+        { currency: "USD", orgId: TEST_ORG_ID },
+        { active: true },
+      );
+    });
+
+    it("should throw error for non-existent currency", async () => {
+      try {
+        await quotePrice({
+          priceBookCurrency: "GBP" as any,
+          seats: 5,
+          modules: ["AQAR"],
+          billingCycle: "MONTHLY",
+        });
+        throw new Error("Should have thrown PricingError");
+      } catch (error: unknown) {
+        expect(error).toBeInstanceOf(PricingError);
+        const pricingError = error as PricingError;
+        expect(pricingError.code).toBe("INVALID_INPUT");
+      }
+    });
+  });
+
+  describe("Edge Cases & Rounding", () => {
+    it("should round totals to 2 decimal places", async () => {
+      const result = await quotePrice({
+        priceBookCurrency: "USD",
+        seats: 3,
+        modules: ["HR"],
+        billingCycle: "MONTHLY",
+      });
+
+      // HR: $30/seat * 3 seats = $90.00
+      expect(result.total).toBe(90);
+      expect(Number.isInteger(result.total * 100)).toBe(true); // Verify cents precision
+    });
+
+    it("should handle complex rounding with discounts", async () => {
+      const result = await quotePrice({
+        priceBookCurrency: "USD",
+        seats: 25,
+        modules: ["AQAR", "FM", "HR"],
+        billingCycle: "ANNUAL",
+      });
+
+      // Tier 2: 10% discount
+      // AQAR: $50 * 0.9 = $45, FM: $40 * 0.9 = $36, HR: $30 * 0.9 = $27
+      // Per seat: $45 + $36 + $27 = $108
+      // Monthly: 25 * $108 = $2,700
+      // Annual: $2,700 * 12 = $32,400
+      // Annual discount (15%): $32,400 * 0.85 = $27,540
+      expect(result.total).toBe(27540);
+    });
+
+    it("should handle minimum valid input (1 seat, 1 module)", async () => {
+      const result = await quotePrice({
+        priceBookCurrency: "USD",
+        seats: 1,
+        modules: ["AQAR"],
+        billingCycle: "MONTHLY",
+      });
+
+      expect(result.requiresQuote).toBe(false);
+      expect(result.total).toBe(50); // 1 seat * $50
+      expect(result.lines).toHaveLength(1);
+    });
+
+    it("should handle maximum seats before enterprise quote (200)", async () => {
+      const result = await quotePrice({
+        priceBookCurrency: "USD",
+        seats: 200,
+        modules: ["AQAR"],
+        billingCycle: "MONTHLY",
+      });
+
+      expect(result.requiresQuote).toBe(false);
+      // Tier 3: 20% discount, AQAR = $50 * 0.8 = $40/seat
+      // Total = 200 * $40 = $8,000
+      expect(result.total).toBe(8000);
+    });
+  });
+
+  describe("PricingError Structure", () => {
+    it("should include error code and details in validation errors", async () => {
+      try {
+        await quotePrice({
+          priceBookCurrency: "USD",
+          seats: -10,
+          modules: [],
+          billingCycle: "INVALID" as any,
+        });
+      } catch (error: unknown) {
+        expect(error).toBeInstanceOf(PricingError);
+        const pricingError = error as PricingError;
+        expect(pricingError.name).toBe("PricingError");
+        expect(pricingError.code).toBe("INVALID_INPUT");
+        expect(pricingError.message).toContain("Invalid pricing parameters");
+        const details = pricingError.details as
+          | { errors?: unknown[] }
+          | undefined;
+        expect(details).toBeDefined();
+        expect(Array.isArray(details?.errors)).toBe(true);
+        expect((details?.errors ?? []).length).toBeGreaterThan(0);
+      }
+    });
+
+    it("should provide actionable error messages", async () => {
+      try {
+        await quotePrice({
+          priceBookCurrency: "USD",
+          seats: 5,
+          modules: ["NONEXISTENT_MODULE"],
+          billingCycle: "MONTHLY",
+        });
+      } catch (error: unknown) {
+        expect(error).toBeInstanceOf(PricingError);
+        const pricingError = error as PricingError;
+        expect(pricingError.message).toContain("NONEXISTENT_MODULE");
+        expect(pricingError.details?.module).toBe("NONEXISTENT_MODULE");
+        expect(pricingError.details?.availableModules).toBeInstanceOf(Array);
+        // Error should tell user what modules ARE available
+        expect(pricingError.details?.availableModules).toContain("AQAR");
+      }
+    });
+  });
+
+  describe("Performance & Parallel Queries", () => {
+    it("should only query discount rule for annual billing", async () => {
+      // Spy on DiscountRule queries
+      const findOneSpy = vi.spyOn(DiscountRule, "findOne");
+
+      // Monthly billing - should NOT query discount rule
+      await quotePrice({
+        priceBookCurrency: "USD",
+        seats: 5,
+        modules: ["AQAR"],
+        billingCycle: "MONTHLY",
+      });
+
+      // Note: The implementation uses Promise.resolve(null) for MONTHLY,
+      // so findOne won't be called at all for monthly billing
+      expect(findOneSpy).not.toHaveBeenCalled();
+
+      findOneSpy.mockClear();
+
+      // Annual billing - SHOULD query discount rule
+      await quotePrice({
+        priceBookCurrency: "USD",
+        seats: 5,
+        modules: ["AQAR"],
+        billingCycle: "ANNUAL",
+      });
+
+      expect(findOneSpy).toHaveBeenCalledTimes(1);
+      expect(findOneSpy).toHaveBeenCalledWith({ key: "ANNUAL_PREPAY" });
+
+      findOneSpy.mockRestore();
+    });
+
+    it("should execute PriceBook and DiscountRule queries in parallel", async () => {
+      const pbSpy = vi.spyOn(PriceBook, "findOne");
+      const drSpy = vi.spyOn(DiscountRule, "findOne");
+
+      await quotePrice({
+        priceBookCurrency: "USD",
+        seats: 5,
+        modules: ["AQAR"],
+        billingCycle: "ANNUAL",
+      });
+
+      // Both should be called (via Promise.all)
+      expect(pbSpy).toHaveBeenCalledTimes(1);
+      expect(drSpy).toHaveBeenCalledTimes(1);
+
+      pbSpy.mockRestore();
+      drSpy.mockRestore();
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/lib/hr/attendance-export.test.ts">
+<![CDATA[
+import { describe, it, expect } from "vitest";
+import { buildAttendanceCsv } from "@/lib/hr/attendance-export";
+
+describe("buildAttendanceCsv", () => {
+  it("renders header and rows with ISO dates", () => {
+    const csv = buildAttendanceCsv(
+      [
+        {
+          date: "2025-05-15T00:00:00.000Z",
+          status: "PRESENT",
+          clockIn: "2025-05-15T06:00:00.000Z",
+          clockOut: "2025-05-15T14:00:00.000Z",
+          overtimeMinutes: 30,
+          source: "MANUAL",
+          notes: "On-site",
+        },
+      ],
+      { employeeCode: "EMP-1", dateFrom: "2025-05-01", dateTo: "2025-05-31" },
+    );
+
+    const lines = csv.split("\n");
+    expect(lines[0]).toContain("EMP-1");
+    expect(lines[1]).toContain("Date");
+    expect(lines[2]).toContain('"PRESENT"');
+    expect(lines[2]).toContain('"2025-05-15T06:00:00.000Z"');
+  });
+
+  it("escapes commas and quotes in notes", () => {
+    const csv = buildAttendanceCsv(
+      [
+        {
+          date: new Date("2025-06-01"),
+          status: "ABSENT",
+          notes: 'Doctor said "rest", urgent',
+        },
+      ],
+      { employeeCode: "EMP-2", dateFrom: "2025-06-01", dateTo: "2025-06-01" },
+    );
+
+    expect(csv).toContain('"Doctor said ""rest"", urgent"');
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/lib/payments/paytabs-callback.contract.test.ts">
+<![CDATA[
+import { describe, expect, it } from 'vitest';
+
+import {
+  buildPaytabsIdempotencyKey,
+  enforcePaytabsPayloadSize,
+  extractPaytabsSignature,
+  normalizePaytabsCallbackPayload,
+  PaytabsCallbackValidationError,
+} from '@/lib/payments/paytabs-callback.contract';
+
+type CallbackPayload = Parameters<typeof extractPaytabsSignature>[1];
+
+describe('normalizePaytabsCallbackPayload', () => {
+  it('normalizes required fields and metadata sources', () => {
+    const normalized = normalizePaytabsCallbackPayload({
+      tran_ref: 'T-123',
+      cart_id: 'C-456',
+      payment_result: { response_status: 'a', response_message: 'Approved' },
+      cart_amount: '100.50',
+      cart_currency: 'SAR',
+      metadata: { source: 'primary' },
+      udf1: '{"trackingId":"ABC"}',
+      payment_info: {
+        payment_method: 'mada',
+        payment_description: '****1111',
+        card_scheme: 'mada',
+      },
+    });
+
+    expect(normalized).toMatchObject({
+      tranRef: 'T-123',
+      cartId: 'C-456',
+      respStatus: 'A',
+      respMessage: 'Approved',
+      amount: 100.5,
+      currency: 'SAR',
+      paymentMethod: 'mada',
+      maskedCard: '****1111',
+      paymentScheme: 'mada',
+      metadata: {
+        source: 'primary',
+        trackingId: 'ABC',
+      },
+    });
+  });
+
+  it('throws validation error when required fields are missing', () => {
+    expect(() =>
+      normalizePaytabsCallbackPayload({
+        cart_id: 'X',
+        payment_result: { response_status: 'A' },
+      })
+    ).toThrow(PaytabsCallbackValidationError);
+  });
+});
+
+describe('extractPaytabsSignature', () => {
+  it('prefers headers over payload values', () => {
+    const req = {
+      headers: new Headers({ signature: 'header-sig' }),
+    };
+    const signature = extractPaytabsSignature(req, {
+      signature: 'body-sig',
+    } as CallbackPayload);
+    expect(signature).toBe('header-sig');
+  });
+
+  it('falls back to payload signature fields when headers missing', () => {
+    const req = { headers: new Headers() };
+    const signature = extractPaytabsSignature(req, {
+      payment_signature: 'payload-sig',
+    } as CallbackPayload);
+    expect(signature).toBe('payload-sig');
+  });
+});
+
+describe('enforcePaytabsPayloadSize', () => {
+  it('throws when body exceeds max bytes', () => {
+    expect(() =>
+      enforcePaytabsPayloadSize('a'.repeat(11), 10)
+    ).toThrow(PaytabsCallbackValidationError);
+  });
+});
+
+describe('buildPaytabsIdempotencyKey', () => {
+  it('generates deterministic key for normalized payloads', () => {
+    const key = buildPaytabsIdempotencyKey({
+      tranRef: 'TRX',
+      cartId: 'CART',
+      respStatus: 'A',
+    });
+    expect(key.startsWith('paytabs:callback:')).toBe(true);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/server/lib/email.test.ts">
+<![CDATA[
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
+
+const originalEnv = { ...process.env };
+
+const mockSend = vi.fn();
+const mockSetApiKey = vi.fn();
+
+// Helper to reload the email module after mocking
+async function loadEmailModule() {
+  vi.resetModules();
+  const emailModule = await import("@/lib/email");
+  const { logger } = await import("@/lib/logger");
+  return { emailModule, logger };
+}
+
+beforeEach(() => {
+  process.env = { ...originalEnv };
+  vi.clearAllMocks();
+});
+
+afterEach(() => {
+  process.env = { ...originalEnv };
+});
+
+vi.doMock("@sendgrid/mail", () => ({
+  default: {
+    setApiKey: (...args: unknown[]) => mockSetApiKey(...args),
+    send: (...args: unknown[]) => mockSend(...args),
+  },
+}));
+
+describe("lib/email.sendEmail", () => {
+  it("returns failure when SENDGRID_API_KEY is missing", async () => {
+    delete process.env.SENDGRID_API_KEY;
+    const { emailModule, logger } = await loadEmailModule();
+    const warnSpy = vi.spyOn(logger, "warn");
+
+    const result = await emailModule.sendEmail(
+      "user@test.local",
+      "Subject",
+      "Body",
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("SendGrid not configured");
+    expect(mockSend).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith(
+      "[Email] Configuration missing",
+      expect.objectContaining({ to: expect.stringContaining("***") }),
+    );
+  });
+
+  it("sends email successfully and returns message id", async () => {
+    process.env.SENDGRID_API_KEY = "test-key";
+    process.env.SENDGRID_FROM_EMAIL = "noreply@test.local";
+    mockSend.mockResolvedValueOnce([
+      { headers: { "x-message-id": "abc-123" } },
+    ]);
+
+    const { emailModule, logger } = await loadEmailModule();
+    const infoSpy = vi.spyOn(logger, "info");
+    const result = await emailModule.sendEmail(
+      "user@test.local",
+      "Hello",
+      "World",
+    );
+
+    expect(mockSetApiKey).toHaveBeenCalledWith("test-key");
+    expect(mockSend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "user@test.local",
+        subject: "Hello",
+      }),
+    );
+    expect(result.success).toBe(true);
+    expect(result.messageId).toBe("abc-123");
+    expect(infoSpy).toHaveBeenCalledWith(
+      "[Email] Message sent successfully",
+      expect.objectContaining({ to: "us***@test.local" }),
+    );
+  });
+
+  it("returns failure when SendGrid throws", async () => {
+    process.env.SENDGRID_API_KEY = "test-key";
+    process.env.SENDGRID_FROM_EMAIL = "noreply@test.local";
+    mockSend.mockRejectedValueOnce(new Error("boom"));
+    const { emailModule, logger } = await loadEmailModule();
+    const errorSpy = vi.spyOn(logger, "error");
+
+    const result = await emailModule.sendEmail(
+      "user@test.local",
+      "Hello",
+      "World",
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("boom");
+    expect(errorSpy).toHaveBeenCalled();
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/server/lib/resilience/circuit-breaker-integration.test.ts">
+<![CDATA[
+/**
+ * Circuit Breaker Integration Tests
+ * 
+ * Tests the circuit breaker pattern integration with SMS and Email providers.
+ * Validates isOpen(), getState(), and provider selection logic.
+ */
+
+import { describe, it, expect, beforeEach } from "vitest";
+import { CircuitBreaker } from "@/lib/resilience/circuit-breaker";
+
+describe("CircuitBreaker", () => {
+  let breaker: CircuitBreaker;
+
+  beforeEach(() => {
+    breaker = new CircuitBreaker({
+      name: "test-breaker",
+      failureThreshold: 3,
+      successThreshold: 2,
+      cooldownMs: 100, // Short cooldown for testing
+    });
+  });
+
+  describe("isOpen()", () => {
+    it("should return false when breaker is closed", () => {
+      expect(breaker.isOpen()).toBe(false);
+      expect(breaker.getState()).toBe("closed");
+    });
+
+    it("should return true after failure threshold reached", async () => {
+      // Cause failures to open the breaker
+      for (let i = 0; i < 3; i++) {
+        try {
+          await breaker.run(async () => {
+            throw new Error("Test failure");
+          });
+        } catch {
+          // Expected
+        }
+      }
+
+      expect(breaker.isOpen()).toBe(true);
+      expect(breaker.getState()).toBe("open");
+    });
+
+    it("should return false after cooldown expires", async () => {
+      // Open the breaker
+      for (let i = 0; i < 3; i++) {
+        try {
+          await breaker.run(async () => {
+            throw new Error("Test failure");
+          });
+        } catch {
+          // Expected
+        }
+      }
+
+      expect(breaker.isOpen()).toBe(true);
+
+      // Wait for cooldown
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      // Should be ready to try again (half-open)
+      expect(breaker.isOpen()).toBe(false);
+    });
+  });
+
+  describe("getState()", () => {
+    it("should start in closed state", () => {
+      expect(breaker.getState()).toBe("closed");
+    });
+
+    it("should transition to open after failures", async () => {
+      for (let i = 0; i < 3; i++) {
+        try {
+          await breaker.run(async () => {
+            throw new Error("Test failure");
+          });
+        } catch {
+          // Expected
+        }
+      }
+
+      expect(breaker.getState()).toBe("open");
+    });
+  });
+
+  describe("run()", () => {
+    it("should execute operation when closed", async () => {
+      const result = await breaker.run(async () => "success");
+      expect(result).toBe("success");
+    });
+
+    it("should throw CircuitBreakerOpenError when open", async () => {
+      // Open the breaker
+      for (let i = 0; i < 3; i++) {
+        try {
+          await breaker.run(async () => {
+            throw new Error("Test failure");
+          });
+        } catch {
+          // Expected
+        }
+      }
+
+      // Should throw immediately without executing
+      await expect(breaker.run(async () => "should not run")).rejects.toThrow(
+        /Circuit breaker "test-breaker" is open/
+      );
+    });
+  });
+});
+
+describe("Service Circuit Breakers", () => {
+  it("should have all expected breakers configured", async () => {
+    const { serviceCircuitBreakers } = await import(
+      "@/lib/resilience/service-circuit-breakers"
+    );
+
+    expect(serviceCircuitBreakers).toHaveProperty("twilio");
+    expect(serviceCircuitBreakers).toHaveProperty("unifonic");
+    expect(serviceCircuitBreakers).toHaveProperty("aws-sns");
+    expect(serviceCircuitBreakers).toHaveProperty("nexmo");
+    expect(serviceCircuitBreakers).toHaveProperty("sendgrid");
+    expect(serviceCircuitBreakers).toHaveProperty("paytabs");
+    expect(serviceCircuitBreakers).toHaveProperty("meilisearch");
+    expect(serviceCircuitBreakers).toHaveProperty("zatca");
+  });
+
+  it("should return breaker instances with isOpen method", async () => {
+    const { getCircuitBreaker } = await import(
+      "@/lib/resilience/service-circuit-breakers"
+    );
+
+    const twilioBreaker = getCircuitBreaker("twilio");
+    expect(typeof twilioBreaker.isOpen).toBe("function");
+    expect(typeof twilioBreaker.getState).toBe("function");
+    expect(typeof twilioBreaker.run).toBe("function");
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/smoke/utils/rtl-helpers.ts">
+<![CDATA[
+import type { Page } from "@playwright/test";
+import { existsSync } from "node:fs";
+
+export const ADMIN_STATE_PATH =
+  process.env.RTL_SMOKE_ADMIN_STATE ?? "tests/state/admin.json";
+export const hasAdminState = existsSync(ADMIN_STATE_PATH);
+
+export const setLocaleToArabic = async (page: Page) => {
+  await page.evaluate(() => {
+    localStorage.setItem("locale", "ar");
+    localStorage.setItem("fxz.locale", "ar-SA");
+    localStorage.setItem("fxz.lang", "ar");
+  });
+};
+
+]]>
+</file>
+
+<file path="tests/unit/lib/__tests__/audit.test.ts">
+<![CDATA[
+/**
+ * Unit Tests for lib/audit.ts
+ * 
+ * Tests all critical audit logging functionality:
+ * - AUDIT-001: orgId enforcement for multi-tenant isolation
+ * - AUDIT-002: Action mapping to ActionType enum
+ * - AUDIT-003: Entity type mapping to EntityType enum
+ * - AUDIT-004: PII redaction in metadata
+ * - AUDIT-005: Success default handling
+ * - AUDIT-006: Helper function orgId enforcement
+ * 
+ * Framework: Vitest (NOT Jest)
+ * API Alignment: Matches lib/audit.ts exports and signatures
+ */
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+// Mock Sentry to prevent real error reporting during tests
+vi.mock('@sentry/nextjs', () => ({
+  captureException: vi.fn(),
+  captureMessage: vi.fn(),
+}));
+
+// Mock logger - define inline to avoid hoisting issues
+vi.mock('@/lib/logger', () => ({
+  logger: {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+  },
+}));
+
+// Mock AuditLogModel - define inline to avoid hoisting issues
+vi.mock('@/server/models/AuditLog', () => ({
+  AuditLogModel: {
+    log: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+// Import after mocks are set up
+import { audit, auditSuperAdminAction, auditImpersonation } from '@/lib/audit';
+import type { AuditEvent } from '@/lib/audit';
+import { logger } from '@/lib/logger';
+import { AuditLogModel } from '@/server/models/AuditLog';
+
+// Get mock references
+const mockLogger = vi.mocked(logger);
+const mockAuditLogModel = vi.mocked(AuditLogModel);
+
+describe('lib/audit.ts - AUDIT-001: orgId Enforcement', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should reject audit event with missing orgId', async () => {
+    const event: AuditEvent = {
+      actorId: 'user-123',
+      actorEmail: 'user@example.com',
+      action: 'user.create',
+      targetType: 'user',
+      success: true,
+      // orgId missing - VIOLATION
+    };
+
+    await audit(event);
+
+    // Should log critical error and skip audit
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      expect.stringContaining('[AUDIT] CRITICAL: orgId missing'),
+      expect.any(Object)
+    );
+    
+    // Should NOT call database
+    expect(mockAuditLogModel.log).not.toHaveBeenCalled();
+  });
+
+  it('should reject audit event with empty string orgId', async () => {
+    const event: AuditEvent = {
+      actorId: 'user-123',
+      actorEmail: 'user@example.com',
+      action: 'user.create',
+      targetType: 'user',
+      orgId: '',  // Empty string - VIOLATION
+      success: true,
+    };
+
+    await audit(event);
+
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      expect.stringContaining('[AUDIT] CRITICAL: orgId missing'),
+      expect.any(Object)
+    );
+    expect(mockAuditLogModel.log).not.toHaveBeenCalled();
+  });
+
+  it('should reject audit event with whitespace-only orgId', async () => {
+    const event: AuditEvent = {
+      actorId: 'user-123',
+      actorEmail: 'user@example.com',
+      action: 'user.create',
+      targetType: 'user',
+      orgId: '   ',  // Whitespace only - VIOLATION
+      success: true,
+    };
+
+    await audit(event);
+
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      expect.stringContaining('[AUDIT] CRITICAL: orgId missing'),
+      expect.any(Object)
+    );
+    expect(mockAuditLogModel.log).not.toHaveBeenCalled();
+  });
+
+  it('should accept audit event with valid orgId', async () => {
+    const event: AuditEvent = {
+      actorId: 'user-123',
+      actorEmail: 'user@example.com',
+      action: 'user.create',
+      targetType: 'user',
+      orgId: 'org-abc-123',  // Valid orgId
+      success: true,
+    };
+
+    await audit(event);
+
+    // Should NOT log error
+    expect(mockLogger.error).not.toHaveBeenCalledWith(
+      expect.stringContaining('[AUDIT] CRITICAL: orgId missing'),
+      expect.any(Object)
+    );
+    
+    // Should call database with valid event
+    expect(mockAuditLogModel.log).toHaveBeenCalled();
+  });
+});
+
+describe('lib/audit.ts - AUDIT-002: Action Mapping', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should map user.create to CREATE action', async () => {
+    const event: AuditEvent = {
+      actorId: 'user-123',
+      actorEmail: 'user@example.com',
+      action: 'user.create',
+      targetType: 'user',
+      orgId: 'org-abc-123',
+      success: true,
+    };
+
+    await audit(event);
+
+    expect(mockAuditLogModel.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'CREATE',
+        metadata: expect.objectContaining({
+          rawAction: 'user.create',
+        }),
+      })
+    );
+  });
+
+  it('should map user.grantSuperAdmin to UPDATE action', async () => {
+    const event: AuditEvent = {
+      actorId: 'admin-123',
+      actorEmail: 'admin@example.com',
+      action: 'user.grantSuperAdmin',
+      targetType: 'user',
+      orgId: 'org-abc-123',
+      success: true,
+    };
+
+    await audit(event);
+
+    expect(mockAuditLogModel.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'UPDATE',
+        metadata: expect.objectContaining({
+          rawAction: 'user.grantSuperAdmin',
+        }),
+      })
+    );
+  });
+
+  it('should map unmapped actions to CUSTOM', async () => {
+    const event: AuditEvent = {
+      actorId: 'user-123',
+      actorEmail: 'user@example.com',
+      action: 'unknown.action',
+      targetType: 'user',
+      orgId: 'org-abc-123',
+      success: true,
+    };
+
+    await audit(event);
+
+    // Should map to CUSTOM (no warning needed)
+    expect(mockAuditLogModel.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'CUSTOM',
+        metadata: expect.objectContaining({
+          rawAction: 'unknown.action',
+        }),
+      })
+    );
+  });
+
+  it('should map role.update to UPDATE action', async () => {
+    const event: AuditEvent = {
+      actorId: 'admin-123',
+      actorEmail: 'admin@example.com',
+      action: 'role.update',
+      targetType: 'user',
+      orgId: 'org-abc-123',
+      success: true,
+    };
+
+    await audit(event);
+
+    expect(mockAuditLogModel.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'UPDATE',
+        metadata: expect.objectContaining({
+          rawAction: 'role.update',
+        }),
+      })
+    );
+  });
+
+  it('should map security.apiKeyRevoke to DEACTIVATE', async () => {
+    const event: AuditEvent = {
+      actorId: 'admin-123',
+      actorEmail: 'admin@example.com',
+      action: 'security.apiKeyRevoke',
+      targetType: 'user',
+      orgId: 'org-abc-123',
+      success: true,
+    };
+
+    await audit(event);
+
+    expect(mockAuditLogModel.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'DEACTIVATE',
+        metadata: expect.objectContaining({
+          rawAction: 'security.apiKeyRevoke',
+        }),
+      })
+    );
+  });
+
+  it('should keep already-normalized ActionType values', async () => {
+    const event: AuditEvent = {
+      actorId: 'admin-123',
+      actorEmail: 'admin@example.com',
+      action: 'CREATE',
+      targetType: 'user',
+      orgId: 'org-abc-123',
+      success: true,
+    };
+
+    await audit(event);
+
+    expect(mockAuditLogModel.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'CREATE',
+        metadata: expect.objectContaining({
+          rawAction: 'CREATE',
+        }),
+      })
+    );
+  });
+});
+
+describe('lib/audit.ts - AUDIT-003: Entity Type Mapping', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should map user targetType to USER enum', async () => {
+    const event: AuditEvent = {
+      actorId: 'user-123',
+      actorEmail: 'user@example.com',
+      action: 'user.update',
+      targetType: 'user',
+      orgId: 'org-abc-123',
+      success: true,
+    };
+
+    await audit(event);
+
+    expect(mockAuditLogModel.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entityType: 'USER',
+      })
+    );
+  });
+
+  it('should map WorkOrder targetType to WORKORDER enum', async () => {
+    const event: AuditEvent = {
+      actorId: 'user-123',
+      actorEmail: 'user@example.com',
+      action: 'workOrder.complete',
+      targetType: 'WorkOrder',
+      orgId: 'org-abc-123',
+      success: true,
+    };
+
+    await audit(event);
+
+    expect(mockAuditLogModel.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entityType: 'WORKORDER',
+      })
+    );
+  });
+
+  it('should map unmapped targetType to OTHER', async () => {
+    const event: AuditEvent = {
+      actorId: 'user-123',
+      actorEmail: 'user@example.com',
+      action: 'entity.update',
+      targetType: 'UnknownEntity',
+      orgId: 'org-abc-123',
+      success: true,
+    };
+
+    await audit(event);
+
+    // Should map to OTHER (no warning needed)
+    expect(mockAuditLogModel.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entityType: 'OTHER',
+      })
+    );
+  });
+});
+
+describe('lib/audit.ts - AUDIT-004: PII Redaction', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should redact email addresses in metadata', async () => {
+    const event: AuditEvent = {
+      actorId: 'user-123',
+      actorEmail: 'user@example.com',
+      action: 'user.update',
+      targetType: 'user',
+      orgId: 'org-abc-123',
+      success: true,
+      meta: {
+        email: 'sensitive@example.com',  // Not redacted - emails kept for audit trail
+        name: 'John Doe',
+      },
+    };
+
+    await audit(event);
+
+    // Email is NOT redacted in audits - needed for accountability
+    expect(mockAuditLogModel.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          email: 'sensitive@example.com',  // Kept for audit trail
+          name: 'John Doe',
+        }),
+      })
+    );
+  });
+
+  it('should redact phone numbers in metadata', async () => {
+    const event: AuditEvent = {
+      actorId: 'user-123',
+      actorEmail: 'user@example.com',
+      action: 'user.update',
+      targetType: 'user',
+      orgId: 'org-abc-123',
+      success: true,
+      meta: {
+        phone: '+1-555-123-4567',  // Not redacted - may be needed for audit
+        address: '123 Main St',
+      },
+    };
+
+    await audit(event);
+
+    // Phone numbers not redacted by default in current implementation
+    expect(mockAuditLogModel.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          phone: '+1-555-123-4567',  // Kept in audit logs
+          address: '123 Main St',
+        }),
+      })
+    );
+  });
+
+  it('should redact SSN/national IDs in metadata', async () => {
+    const event: AuditEvent = {
+      actorId: 'user-123',
+      actorEmail: 'user@example.com',
+      action: 'user.update',
+      targetType: 'user',
+      orgId: 'org-abc-123',
+      success: true,
+      meta: {
+        ssn: '123-45-6789',  // Should be redacted (ssn is in sensitiveKeys)
+        nationalId: '9876543210',  // Not currently in sensitiveKeys
+        department: 'Engineering',
+      },
+    };
+
+    await audit(event);
+
+    expect(mockAuditLogModel.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          ssn: '[REDACTED]',  // SSN is redacted
+          nationalId: '9876543210',  // nationalId not in sensitiveKeys
+          department: 'Engineering',
+        }),
+      })
+    );
+  });
+
+  it('should redact API tokens regardless of casing', async () => {
+    const event: AuditEvent = {
+      actorId: 'user-123',
+      actorEmail: 'user@example.com',
+      action: 'user.update',
+      targetType: 'user',
+      orgId: 'org-abc-123',
+      success: true,
+      meta: {
+        apiKey: 'SUPER-SECRET-KEY',  // Camel case key must be redacted
+        bearerToken: 'shhh-123',  // Mixed case key must be redacted
+        nested: {
+          authToken: 'nested-secret',  // Nested sensitive field must be redacted
+        },
+      },
+    };
+
+    await audit(event);
+
+    expect(mockAuditLogModel.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          apiKey: '[REDACTED]',
+          bearerToken: '[REDACTED]',
+          nested: expect.objectContaining({
+            authToken: '[REDACTED]',
+          }),
+        }),
+      })
+    );
+  });
+});
+
+describe('lib/audit.ts - AUDIT-005: Success Default', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should default success to true when not provided and no error/failure indicator', async () => {
+    const event: AuditEvent = {
+      actorId: 'user-123',
+      actorEmail: 'user@example.com',
+      action: 'user.create',
+      targetType: 'user',
+      orgId: 'org-abc-123',
+      // success not provided - should default to true
+    };
+
+    await audit(event);
+
+    expect(mockAuditLogModel.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        result: expect.objectContaining({
+          success: true,
+        }),
+      })
+    );
+  });
+
+  it('should default success to false when error is present', async () => {
+    const event: AuditEvent = {
+      actorId: 'user-123',
+      actorEmail: 'user@example.com',
+      action: 'user.create',
+      targetType: 'user',
+      orgId: 'org-abc-123',
+      error: 'DB failure',
+      // success not provided - inferred false due to error
+    };
+
+    await audit(event);
+
+    expect(mockAuditLogModel.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        result: expect.objectContaining({
+          success: false,
+        }),
+      })
+    );
+  });
+
+  it('should default success to false for auth.failedLogin when success is undefined', async () => {
+    const event: AuditEvent = {
+      actorId: 'user-123',
+      actorEmail: 'user@example.com',
+      action: 'auth.failedLogin',
+      targetType: 'user',
+      orgId: 'org-abc-123',
+      // success not provided - inferred false due to failed login action
+    };
+
+    await audit(event);
+
+    expect(mockAuditLogModel.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        result: expect.objectContaining({
+          success: false,
+        }),
+      })
+    );
+  });
+
+  it('should respect explicit success=false', async () => {
+    const event: AuditEvent = {
+      actorId: 'user-123',
+      actorEmail: 'user@example.com',
+      action: 'user.create',
+      targetType: 'user',
+      orgId: 'org-abc-123',
+      success: false,  // Explicit false
+    };
+
+    await audit(event);
+
+    expect(mockAuditLogModel.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        result: expect.objectContaining({
+          success: false,
+        }),
+      })
+    );
+  });
+});
+
+describe('lib/audit.ts - AUDIT-004: PII redaction in logger output', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should log redacted actorEmail/target and redacted meta to logger.info', async () => {
+    const event: AuditEvent = {
+      actorId: 'user-123',
+      actorEmail: 'user@example.com',
+      action: 'user.update',
+      target: 'target-user@example.com',
+      targetType: 'user',
+      orgId: 'org-abc-123',
+      success: true,
+      meta: {
+        email: 'sensitive@example.com',
+        token: 'super-secret',
+      },
+    };
+
+    await audit(event);
+
+    expect(mockLogger.info).toHaveBeenCalledWith(
+      '[AUDIT]',
+      expect.objectContaining({
+        actorEmail: '[REDACTED]',
+        target: '[REDACTED]',
+        meta: expect.objectContaining({
+          email: '[REDACTED]',
+          token: '[REDACTED]',
+        }),
+      })
+    );
+  });
+});
+
+describe('lib/audit.ts - AUDIT-006: Helper Function orgId Enforcement', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should reject auditSuperAdminAction with missing orgId', async () => {
+    await auditSuperAdminAction(
+      '',  // Empty orgId - VIOLATION
+      'user.grantSuperAdmin',
+      'admin-123',
+      'admin@example.com',
+      'target-456',
+      'target@example.com'
+    );
+
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      expect.stringContaining('[AUDIT] CRITICAL: orgId missing'),
+      expect.any(Object)
+    );
+    expect(mockAuditLogModel.log).not.toHaveBeenCalled();
+  });
+
+  it('should accept auditSuperAdminAction with valid orgId', async () => {
+    await auditSuperAdminAction(
+      'org-abc-123',  // Valid orgId
+      'user.grantSuperAdmin',
+      'admin-123',
+      'admin@example.com',
+      'target-456',
+      'target@example.com',
+      { reason: 'Approved escalation' }
+    );
+
+    expect(mockLogger.error).not.toHaveBeenCalledWith(
+      expect.stringContaining('[AUDIT] CRITICAL: orgId missing'),
+      expect.any(Object)
+    );
+    expect(mockAuditLogModel.log).toHaveBeenCalled();
+  });
+
+  it('should reject auditImpersonation with missing orgId', async () => {
+    await auditImpersonation(
+      '   ',  // Whitespace - VIOLATION
+      'admin-123',
+      'admin@example.com',
+      'target-456',
+      'target@example.com',
+      'start'
+    );
+
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      expect.stringContaining('[AUDIT] CRITICAL: orgId missing'),
+      expect.any(Object)
+    );
+    expect(mockAuditLogModel.log).not.toHaveBeenCalled();
+  });
+
+  it('should accept auditImpersonation with valid orgId', async () => {
+    await auditImpersonation(
+      'org-abc-123',  // Valid orgId
+      'admin-123',
+      'admin@example.com',
+      'target-456',
+      'target@example.com',
+      'start',
+      { reason: 'Technical troubleshooting' }
+    );
+
+    expect(mockLogger.error).not.toHaveBeenCalledWith(
+      expect.stringContaining('[AUDIT] CRITICAL: orgId missing'),
+      expect.any(Object)
+    );
+    expect(mockAuditLogModel.log).toHaveBeenCalled();
+  });
+});
+
+describe('lib/audit.ts - Integration Tests', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should handle complete audit flow with all fixes applied', async () => {
+    const event: AuditEvent = {
+      actorId: 'tech-123',
+      actorEmail: 'tech@example.com',
+      action: 'workOrder.complete',
+      targetType: 'WorkOrder',
+      orgId: 'org-abc-123',  // AUDIT-001: Valid orgId
+      success: true,  // AUDIT-005: Explicit success
+      meta: {  // AUDIT-004: PII redaction
+        completedBy: 'tech-123',
+        email: 'tech@example.com',  // Email kept for audit trail
+        notes: 'Work completed successfully',
+      },
+    };
+
+    await audit(event);
+
+    // All validations passed
+    expect(mockLogger.error).not.toHaveBeenCalled();
+    expect(mockAuditLogModel.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orgId: 'org-abc-123',
+        action: 'CUSTOM',  // AUDIT-002: Mapped action
+        entityType: 'WORKORDER',  // AUDIT-003: Mapped entity
+        result: expect.objectContaining({
+          success: true,
+        }),
+        metadata: expect.objectContaining({
+          email: 'tech@example.com',  // Email kept for accountability
+          notes: 'Work completed successfully',
+        }),
+      })
+    );
+  });
+
+  it('should reject audit with missing orgId (critical violation)', async () => {
+    const event: AuditEvent = {
+      actorId: 'user-123',
+      actorEmail: 'user@example.com',
+      action: 'unknown.action',
+      targetType: 'UnknownEntity',
+      orgId: '',  // AUDIT-001: Missing orgId - critical violation
+    };
+
+    await audit(event);
+
+    // Should log critical error and skip processing
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      expect.stringContaining('[AUDIT] CRITICAL: orgId missing'),
+      expect.any(Object)
+    );
+    expect(mockAuditLogModel.log).not.toHaveBeenCalled();
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/lib/ats/scoring.test.ts">
+<![CDATA[
+// Tests generated using Vitest test framework (describe/it/expect from vitest).
+// Note: These tests require Vitest only in CI; skip TypeScript typechecking dependency.
+// Using ambient globals if vitest not present.
+// @ts-ignore
+import { describe, it, expect } from "vitest";
+import {
+  extractSkillsFromText,
+  calculateExperienceFromText,
+  scoreApplication,
+} from "@/lib/ats/scoring";
+
+describe("extractSkillsFromText", () => {
+  it("returns empty array for empty or falsy input", () => {
+    expect(extractSkillsFromText("")).toEqual([]);
+    // @ts-ignore testing runtime with non-string-like falsy converted upstream
+    expect(extractSkillsFromText(undefined)).toEqual([]);
+    // @ts-ignore null as unexpected input
+    expect(extractSkillsFromText(null as unknown)).toEqual([]);
+  });
+
+  it("extracts known skills ignoring case", () => {
+    const text =
+      "Strong with React, Node, and TypeScript. Some SQL and AWS exposure.";
+    const skills = extractSkillsFromText(text);
+    expect(skills).toEqual(
+      expect.arrayContaining(["react", "node", "typescript", "sql", "aws"]),
+    );
+  });
+
+  it("does not include unknown words", () => {
+    const text = "Experienced in Elm and Rust";
+    const skills = extractSkillsFromText(text);
+    expect(skills).toEqual([]);
+  });
+
+  it("handles punctuation and special characters inside tokens", () => {
+    const text =
+      "C#, C++, and Golang with Docker/Kubernetes. JavaScript & Python 3.9.";
+    const skills = extractSkillsFromText(text);
+    // From known list: 'c#','golang','docker','kubernetes','javascript','python'
+    expect(skills).toEqual(
+      expect.arrayContaining([
+        "c#",
+        "golang",
+        "docker",
+        "kubernetes",
+        "javascript",
+        "python",
+      ]),
+    );
+    // Ensure no duplicates
+    const uniq = new Set(skills);
+    expect(uniq.size).toBe(skills.length);
+  });
+
+  it("returns unique skills only when repeated", () => {
+    const text = "react React REACT node Node";
+    const skills = extractSkillsFromText(text);
+    expect(skills.sort()).toEqual(["node", "react"]);
+  });
+});
+
+describe("calculateExperienceFromText", () => {
+  it("returns 0 when experience is not mentioned", () => {
+    expect(calculateExperienceFromText("No explicit years here")).toBe(0);
+  });
+
+  it("parses simple year formats", () => {
+    expect(calculateExperienceFromText("3 years of experience")).toBe(3);
+    expect(calculateExperienceFromText("10 yrs exp")).toBe(10);
+    expect(calculateExperienceFromText("5 y")).toBe(5);
+  });
+
+  it("parses numbers followed by + as years", () => {
+    expect(calculateExperienceFromText("7+ years")).toBe(7);
+    expect(calculateExperienceFromText("12+")).toBe(12);
+  });
+
+  it("caps experience at 40 years", () => {
+    expect(calculateExperienceFromText("65 years total")).toBe(40);
+    expect(calculateExperienceFromText("99+")).toBe(40);
+  });
+
+  it("extracts the first matching number", () => {
+    expect(
+      calculateExperienceFromText("Experience: 2 years in A, 4 years in B"),
+    ).toBe(2);
+  });
+
+  it("handles nullish input gracefully", () => {
+    expect(calculateExperienceFromText(null as unknown as string)).toBe(0);
+    expect(calculateExperienceFromText(undefined as unknown as string)).toBe(0);
+  });
+});
+
+describe("scoreApplication", () => {
+  it("returns 100 when no requirements/minExperience are specified (full match by default)", () => {
+    const score = scoreApplication({ skills: [], experience: 0 });
+    expect(score).toBe(100);
+  });
+
+  it("scores skill matching proportionally with default weights (60% skills, 40% experience)", () => {
+    const input = {
+      skills: ["react", "node"],
+      requiredSkills: ["react", "typescript", "aws"],
+      experience: 5,
+      minExperience: 5,
+    };
+    // matched skills = 1/3 => 0.333..., expOk = 1
+    // score = round((0.3333*0.6 + 1*0.4) * 100) = round((0.2 + 0.4) * 100) = 60
+    const score = scoreApplication(input);
+    expect(score).toBe(60);
+  });
+
+  it("is case-insensitive for skills comparison", () => {
+    const score = scoreApplication({
+      skills: ["React", "NODE"],
+      requiredSkills: ["react", "node"],
+      experience: 1,
+      minExperience: 1,
+    });
+    expect(score).toBe(100);
+  });
+
+  it("handles partial experience toward minExperience", () => {
+    const score = scoreApplication({
+      skills: ["x"],
+      requiredSkills: ["a", "b", "c", "d"], // 0/4 matched = 0
+      experience: 2,
+      minExperience: 10,
+    });
+    // matched=0 => skills contribution 0
+    // expOk = 0.2 => exp contribution 0.2 * 0.4 = 0.08
+    // total = 0.08 * 100 = 8
+    expect(score).toBe(8);
+  });
+
+  it("treats missing requiredSkills as full skills match (matched=1)", () => {
+    const score = scoreApplication({
+      skills: ["anything"],
+      experience: 0,
+      // no minExperience means expOk=1
+    });
+    // matched=1 -> 0.6; expOk=1 -> 0.4; total 1.0 => 100
+    expect(score).toBe(100);
+  });
+
+  it("uses custom weights when provided", () => {
+    const input = {
+      skills: ["react"],
+      requiredSkills: ["react", "node"],
+      experience: 1,
+      minExperience: 2,
+    };
+    // matched = 1/2 = 0.5; expOk = 0.5
+    // weights skills=0.7, exp=0.3 -> 0.5*0.7 + 0.5*0.3 = 0.35 + 0.15 = 0.5 => 50
+    const score = scoreApplication(input, { skills: 0.7, experience: 0.3 });
+    expect(score).toBe(50);
+  });
+
+  it("rounds to nearest integer", () => {
+    // Create a value that yields a fractional score: matched=2/3=0.666..., expOk=0.75
+    const score = scoreApplication(
+      {
+        skills: ["a", "b", "c"],
+        requiredSkills: ["a", "b", "x"],
+        experience: 3,
+        minExperience: 4,
+      },
+      { skills: 0.5, experience: 0.5 },
+    );
+    // 0.6666*0.5=0.3333; 0.75*0.5=0.375; total=0.7083 => 70.83 => 71
+    expect(score).toBe(71);
+  });
+
+  it("handles zero minExperience as expOk=1 per implementation", () => {
+    const score = scoreApplication({
+      skills: ["x"],
+      requiredSkills: ["x"],
+      experience: 0,
+      minExperience: 0,
+    });
+    expect(score).toBe(100);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/lib/audit.test.ts">
+<![CDATA[
+/**
+ * Audit Logging System Unit Tests
+ * 
+ * Tests for lib/audit.ts - Comprehensive coverage for:
+ * - orgId enforcement (empty/whitespace/valid)
+ * - Action enum mapping (known actions, unknown actions, case-insensitive)
+ * - PII redaction (passwords, tokens, SSNs, credit cards)
+ * - Success default behavior
+ * - Helper functions (auditSuperAdminAction, auditImpersonation)
+ * - Entity type mapping
+ * 
+ * @see docs/CATEGORIZED_TASKS_LIST.md Task 0.4
+ */
+
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+// Mock the logger before importing audit
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+// Mock the AuditLogModel
+vi.mock("@/server/models/AuditLog", () => ({
+  AuditLogModel: {
+    log: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+// Mock Sentry
+vi.mock("@sentry/nextjs", () => ({
+  captureMessage: vi.fn(),
+}));
+
+import { audit, auditSuperAdminAction, auditImpersonation, AuditActions, AuditCategories } from "@/lib/audit";
+import { logger } from "@/lib/logger";
+import { AuditLogModel } from "@/server/models/AuditLog";
+
+describe("Audit Logging System", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  describe("orgId enforcement", () => {
+    it("rejects audit events with missing orgId", async () => {
+      await audit({
+        actorId: "user-123",
+        actorEmail: "test@example.com",
+        action: "user.create",
+        // orgId intentionally missing
+      });
+
+      expect(logger.error).toHaveBeenCalledWith(
+        "[AUDIT] CRITICAL: orgId missing",
+        expect.objectContaining({
+          event: expect.objectContaining({
+            actorId: "user-123",
+          }),
+        })
+      );
+      // Should NOT write to database
+      expect(AuditLogModel.log).not.toHaveBeenCalled();
+    });
+
+    it("rejects audit events with empty string orgId", async () => {
+      await audit({
+        actorId: "user-123",
+        actorEmail: "test@example.com",
+        action: "user.create",
+        orgId: "",
+      });
+
+      expect(logger.error).toHaveBeenCalledWith(
+        "[AUDIT] CRITICAL: orgId missing",
+        expect.anything()
+      );
+      expect(AuditLogModel.log).not.toHaveBeenCalled();
+    });
+
+    it("rejects audit events with whitespace-only orgId", async () => {
+      await audit({
+        actorId: "user-123",
+        actorEmail: "test@example.com",
+        action: "user.create",
+        orgId: "   ",
+      });
+
+      expect(logger.error).toHaveBeenCalledWith(
+        "[AUDIT] CRITICAL: orgId missing",
+        expect.anything()
+      );
+      expect(AuditLogModel.log).not.toHaveBeenCalled();
+    });
+
+    it("accepts audit events with valid orgId", async () => {
+      await audit({
+        actorId: "user-123",
+        actorEmail: "test@example.com",
+        action: "user.create",
+        orgId: "org-456",
+      });
+
+      expect(logger.error).not.toHaveBeenCalled();
+      expect(AuditLogModel.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orgId: "org-456",
+        })
+      );
+    });
+
+    it("trims whitespace from orgId", async () => {
+      await audit({
+        actorId: "user-123",
+        actorEmail: "test@example.com",
+        action: "user.create",
+        orgId: "  org-456  ",
+      });
+
+      expect(AuditLogModel.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orgId: "org-456",
+        })
+      );
+    });
+  });
+
+  describe("action enum mapping", () => {
+    it("maps user.grantSuperAdmin to UPDATE", async () => {
+      await audit({
+        actorId: "admin-1",
+        actorEmail: "admin@example.com",
+        action: "user.grantSuperAdmin",
+        orgId: "org-1",
+      });
+
+      expect(AuditLogModel.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: "UPDATE",
+        })
+      );
+    });
+
+    it("maps user.create to CREATE", async () => {
+      await audit({
+        actorId: "admin-1",
+        actorEmail: "admin@example.com",
+        action: "user.create",
+        orgId: "org-1",
+      });
+
+      expect(AuditLogModel.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: "CREATE",
+        })
+      );
+    });
+
+    it("maps auth.login to LOGIN", async () => {
+      await audit({
+        actorId: "user-1",
+        actorEmail: "user@example.com",
+        action: "auth.login",
+        orgId: "org-1",
+      });
+
+      expect(AuditLogModel.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: "LOGIN",
+        })
+      );
+    });
+
+    it("maps user.delete to DELETE", async () => {
+      await audit({
+        actorId: "admin-1",
+        actorEmail: "admin@example.com",
+        action: "user.delete",
+        orgId: "org-1",
+      });
+
+      expect(AuditLogModel.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: "DELETE",
+        })
+      );
+    });
+
+    it("maps impersonate.start to CUSTOM", async () => {
+      await audit({
+        actorId: "super-admin",
+        actorEmail: "super@example.com",
+        action: "impersonate.start",
+        orgId: "org-1",
+      });
+
+      expect(AuditLogModel.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: "CUSTOM",
+        })
+      );
+    });
+
+    it("handles case-insensitive action mapping", async () => {
+      await audit({
+        actorId: "admin-1",
+        actorEmail: "admin@example.com",
+        action: "USER.CREATE",
+        orgId: "org-1",
+      });
+
+      expect(AuditLogModel.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: "CREATE",
+        })
+      );
+    });
+
+    it("maps unknown actions to CUSTOM", async () => {
+      await audit({
+        actorId: "user-1",
+        actorEmail: "user@example.com",
+        action: "some.unknown.action",
+        orgId: "org-1",
+      });
+
+      expect(AuditLogModel.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: "CUSTOM",
+        })
+      );
+    });
+
+    it("preserves rawAction in metadata", async () => {
+      await audit({
+        actorId: "admin-1",
+        actorEmail: "admin@example.com",
+        action: "user.grantSuperAdmin",
+        orgId: "org-1",
+      });
+
+      expect(AuditLogModel.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            rawAction: "user.grantSuperAdmin",
+          }),
+        })
+      );
+    });
+  });
+
+  describe("PII redaction", () => {
+    it("redacts password fields", async () => {
+      await audit({
+        actorId: "user-1",
+        actorEmail: "user@example.com",
+        action: "auth.passwordChange",
+        orgId: "org-1",
+        meta: {
+          oldPassword: "secret123",
+          newPassword: "newsecret456",
+          username: "testuser",
+        },
+      });
+
+      expect(AuditLogModel.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            oldPassword: "[REDACTED]",
+            newPassword: "[REDACTED]",
+            username: "testuser",
+          }),
+        })
+      );
+    });
+
+    it("redacts token fields", async () => {
+      await audit({
+        actorId: "user-1",
+        actorEmail: "user@example.com",
+        action: "auth.login",
+        orgId: "org-1",
+        meta: {
+          accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+          refreshToken: "refresh-token-value",
+          sessionId: "session-123",
+        },
+      });
+
+      expect(AuditLogModel.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            accessToken: "[REDACTED]",
+            refreshToken: "[REDACTED]",
+            sessionId: "session-123",
+          }),
+        })
+      );
+    });
+
+    it("redacts SSN patterns", async () => {
+      await audit({
+        actorId: "hr-admin",
+        actorEmail: "hr@example.com",
+        action: "user.update",
+        orgId: "org-1",
+        meta: {
+          ssn: "123-45-6789",
+          socialSecurityNumber: "987-65-4321",
+          employeeId: "EMP-001",
+        },
+      });
+
+      expect(AuditLogModel.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            ssn: "[REDACTED]",
+            socialSecurityNumber: "[REDACTED]",
+            employeeId: "EMP-001",
+          }),
+        })
+      );
+    });
+
+    it("redacts credit card fields", async () => {
+      await audit({
+        actorId: "finance-1",
+        actorEmail: "finance@example.com",
+        action: "payment.process",
+        orgId: "org-1",
+        meta: {
+          creditCard: "4111-1111-1111-1111",
+          cardNumber: "5500-0000-0000-0004",
+          cvv: "123",
+          pin: "4567",
+          transactionId: "TXN-001",
+        },
+      });
+
+      expect(AuditLogModel.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            creditCard: "[REDACTED]",
+            cardNumber: "[REDACTED]",
+            cvv: "[REDACTED]",
+            pin: "[REDACTED]",
+            transactionId: "TXN-001",
+          }),
+        })
+      );
+    });
+
+    it("redacts API keys and secrets", async () => {
+      await audit({
+        actorId: "admin-1",
+        actorEmail: "admin@example.com",
+        action: "security.apiKeyCreate",
+        orgId: "org-1",
+        meta: {
+          apiKey: "sk_live_abc123",
+          api_key: "pk_test_xyz789",
+          secret: "super-secret-value",
+          privateKey: "-----BEGIN RSA PRIVATE KEY-----",
+          keyName: "Production API Key",
+        },
+      });
+
+      expect(AuditLogModel.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            apiKey: "[REDACTED]",
+            api_key: "[REDACTED]",
+            secret: "[REDACTED]",
+            privateKey: "[REDACTED]",
+            keyName: "Production API Key",
+          }),
+        })
+      );
+    });
+
+    it("handles nested objects without breaking", async () => {
+      // Nested objects should be handled gracefully even if redaction
+      // only applies at certain levels due to how metadata is flattened
+      await audit({
+        actorId: "user-1",
+        actorEmail: "user@example.com",
+        action: "user.update",
+        orgId: "org-1",
+        meta: {
+          user: {
+            name: "Test User",
+            credentials: {
+              password: "secret123",
+              token: "jwt-token",
+            },
+          },
+        },
+      });
+
+      // Verify the database log was called successfully
+      expect(AuditLogModel.log).toHaveBeenCalled();
+      
+      // Verify the log call includes metadata
+      const dbCall = vi.mocked(AuditLogModel.log).mock.calls[0][0];
+      expect(dbCall.metadata).toBeDefined();
+      
+      // The user object should be present in metadata
+      expect(dbCall.metadata?.user).toBeDefined();
+    });
+
+    it("redacts actorEmail in log output", async () => {
+      await audit({
+        actorId: "user-1",
+        actorEmail: "sensitive@example.com",
+        action: "user.create",
+        orgId: "org-1",
+      });
+
+      // Check that logger.info was called with redacted email
+      expect(logger.info).toHaveBeenCalledWith(
+        "[AUDIT]",
+        expect.objectContaining({
+          actorEmail: "[REDACTED]",
+        })
+      );
+    });
+  });
+
+  describe("success default behavior", () => {
+    it("defaults success to true when not specified", async () => {
+      await audit({
+        actorId: "user-1",
+        actorEmail: "user@example.com",
+        action: "user.create",
+        orgId: "org-1",
+      });
+
+      expect(AuditLogModel.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          result: expect.objectContaining({
+            success: true,
+          }),
+        })
+      );
+    });
+
+    it("defaults success to false when error is present", async () => {
+      await audit({
+        actorId: "user-1",
+        actorEmail: "user@example.com",
+        action: "user.create",
+        orgId: "org-1",
+        error: "Validation failed",
+      });
+
+      expect(AuditLogModel.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          result: expect.objectContaining({
+            success: false,
+            errorMessage: "Validation failed",
+          }),
+        })
+      );
+    });
+
+    it("respects explicit success=true even with error", async () => {
+      await audit({
+        actorId: "user-1",
+        actorEmail: "user@example.com",
+        action: "user.create",
+        orgId: "org-1",
+        success: true,
+        error: "Warning only",
+      });
+
+      expect(AuditLogModel.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          result: expect.objectContaining({
+            success: true,
+          }),
+        })
+      );
+    });
+
+    it("logs warning when success flag is missing", async () => {
+      await audit({
+        actorId: "user-1",
+        actorEmail: "user@example.com",
+        action: "user.create",
+        orgId: "org-1",
+        // success intentionally omitted
+      });
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        "[AUDIT] success flag missing; inferring from context",
+        expect.objectContaining({
+          inferredSuccess: true,
+        })
+      );
+    });
+  });
+
+  describe("entity type mapping", () => {
+    it("maps user targetType to USER", async () => {
+      await audit({
+        actorId: "admin-1",
+        actorEmail: "admin@example.com",
+        action: "user.create",
+        orgId: "org-1",
+        targetType: "user",
+      });
+
+      expect(AuditLogModel.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entityType: "USER",
+        })
+      );
+    });
+
+    it("maps role targetType to SETTING", async () => {
+      await audit({
+        actorId: "admin-1",
+        actorEmail: "admin@example.com",
+        action: "role.create",
+        orgId: "org-1",
+        targetType: "role",
+      });
+
+      expect(AuditLogModel.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entityType: "SETTING",
+        })
+      );
+    });
+
+    it("maps property targetType to PROPERTY", async () => {
+      await audit({
+        actorId: "pm-1",
+        actorEmail: "pm@example.com",
+        action: "property.update",
+        orgId: "org-1",
+        targetType: "property",
+      });
+
+      expect(AuditLogModel.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entityType: "PROPERTY",
+        })
+      );
+    });
+
+    it("maps workorder targetType to WORKORDER", async () => {
+      await audit({
+        actorId: "tech-1",
+        actorEmail: "tech@example.com",
+        action: "workorder.update",
+        orgId: "org-1",
+        targetType: "workorder",
+      });
+
+      expect(AuditLogModel.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entityType: "WORKORDER",
+        })
+      );
+    });
+
+    it("maps unknown targetType to OTHER", async () => {
+      await audit({
+        actorId: "user-1",
+        actorEmail: "user@example.com",
+        action: "custom.action",
+        orgId: "org-1",
+        targetType: "unknownEntity",
+      });
+
+      expect(AuditLogModel.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entityType: "OTHER",
+        })
+      );
+    });
+  });
+
+  describe("helper functions", () => {
+    describe("auditSuperAdminAction", () => {
+      it("requires orgId parameter", async () => {
+        await auditSuperAdminAction(
+          "", // empty orgId
+          "user.grantSuperAdmin",
+          "super-admin-1",
+          "super@example.com",
+          "target-user-1",
+          "target@example.com"
+        );
+
+        expect(logger.error).toHaveBeenCalledWith(
+          "[AUDIT] CRITICAL: orgId missing for super admin action",
+          expect.anything()
+        );
+        expect(AuditLogModel.log).not.toHaveBeenCalled();
+      });
+
+      it("logs super admin actions with critical severity", async () => {
+        await auditSuperAdminAction(
+          "org-1",
+          "user.grantSuperAdmin",
+          "super-admin-1",
+          "super@example.com",
+          "target-user-1",
+          "target@example.com"
+        );
+
+        expect(AuditLogModel.log).toHaveBeenCalledWith(
+          expect.objectContaining({
+            orgId: "org-1",
+            userId: "super-admin-1",
+            metadata: expect.objectContaining({
+              category: "super.admin",
+              severity: "critical",
+            }),
+          })
+        );
+      });
+
+      it("includes target information", async () => {
+        await auditSuperAdminAction(
+          "org-1",
+          "user.revokeSuperAdmin",
+          "super-admin-1",
+          "super@example.com",
+          "target-user-1",
+          "target@example.com",
+          { reason: "Security review" }
+        );
+
+        expect(AuditLogModel.log).toHaveBeenCalledWith(
+          expect.objectContaining({
+            entityName: "target@example.com",
+            metadata: expect.objectContaining({
+              reason: "Security review",
+            }),
+          })
+        );
+      });
+    });
+
+    describe("auditImpersonation", () => {
+      it("requires orgId parameter", async () => {
+        await auditImpersonation(
+          "  ", // whitespace-only orgId
+          "admin-1",
+          "admin@example.com",
+          "user-1",
+          "user@example.com",
+          "start"
+        );
+
+        expect(logger.error).toHaveBeenCalledWith(
+          "[AUDIT] CRITICAL: orgId missing for impersonation action",
+          expect.anything()
+        );
+        expect(AuditLogModel.log).not.toHaveBeenCalled();
+      });
+
+      it("logs impersonation start with correct action", async () => {
+        await auditImpersonation(
+          "org-1",
+          "admin-1",
+          "admin@example.com",
+          "user-1",
+          "user@example.com",
+          "start"
+        );
+
+        expect(AuditLogModel.log).toHaveBeenCalledWith(
+          expect.objectContaining({
+            action: "CUSTOM", // impersonate.start maps to CUSTOM
+            metadata: expect.objectContaining({
+              category: "impersonation",
+              severity: "critical",
+              targetId: "user-1",
+            }),
+          })
+        );
+      });
+
+      it("logs impersonation end with correct action", async () => {
+        await auditImpersonation(
+          "org-1",
+          "admin-1",
+          "admin@example.com",
+          "user-1",
+          "user@example.com",
+          "end"
+        );
+
+        expect(AuditLogModel.log).toHaveBeenCalledWith(
+          expect.objectContaining({
+            action: "CUSTOM", // impersonate.end maps to CUSTOM
+          })
+        );
+      });
+    });
+  });
+
+  describe("critical action alerts", () => {
+    it("triggers warning for grant actions", async () => {
+      await audit({
+        actorId: "super-admin",
+        actorEmail: "super@example.com",
+        action: "user.grantSuperAdmin",
+        orgId: "org-1",
+        target: "new-admin@example.com",
+      });
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining("[AUDIT CRITICAL]"),
+        expect.objectContaining({
+          severity: "critical",
+        })
+      );
+    });
+
+    it("triggers warning for impersonation actions", async () => {
+      await audit({
+        actorId: "super-admin",
+        actorEmail: "super@example.com",
+        action: "impersonate.start",
+        orgId: "org-1",
+        target: "user@example.com",
+      });
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining("[AUDIT CRITICAL]"),
+        expect.objectContaining({
+          severity: "critical",
+        })
+      );
+    });
+
+    it("triggers warning for revoke actions", async () => {
+      await audit({
+        actorId: "super-admin",
+        actorEmail: "super@example.com",
+        action: "user.revokeSuperAdmin",
+        orgId: "org-1",
+        target: "former-admin@example.com",
+      });
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining("[AUDIT CRITICAL]"),
+        expect.anything()
+      );
+    });
+  });
+
+  describe("AuditActions constants", () => {
+    it("exports all expected user management actions", () => {
+      expect(AuditActions.USER_CREATE).toBe("user.create");
+      expect(AuditActions.USER_UPDATE).toBe("user.update");
+      expect(AuditActions.USER_DELETE).toBe("user.delete");
+      expect(AuditActions.USER_GRANT_SUPER).toBe("user.grantSuperAdmin");
+      expect(AuditActions.USER_REVOKE_SUPER).toBe("user.revokeSuperAdmin");
+    });
+
+    it("exports all expected auth actions", () => {
+      expect(AuditActions.AUTH_LOGIN).toBe("auth.login");
+      expect(AuditActions.AUTH_LOGOUT).toBe("auth.logout");
+      expect(AuditActions.AUTH_FAILED_LOGIN).toBe("auth.failedLogin");
+      expect(AuditActions.AUTH_PASSWORD_CHANGE).toBe("auth.passwordChange");
+    });
+
+    it("exports impersonation actions", () => {
+      expect(AuditActions.IMPERSONATE_START).toBe("impersonate.start");
+      expect(AuditActions.IMPERSONATE_END).toBe("impersonate.end");
+    });
+  });
+
+  describe("AuditCategories constants", () => {
+    it("exports all expected categories", () => {
+      expect(AuditCategories.AUTH).toBe("auth");
+      expect(AuditCategories.USER_MANAGEMENT).toBe("user.management");
+      expect(AuditCategories.SUPER_ADMIN).toBe("super.admin");
+      expect(AuditCategories.IMPERSONATION).toBe("impersonation");
+      expect(AuditCategories.SECURITY).toBe("security");
+      expect(AuditCategories.COMPLIANCE).toBe("compliance");
+    });
+  });
+
+  describe("database error handling", () => {
+    it("continues execution when database write fails", async () => {
+      vi.mocked(AuditLogModel.log).mockRejectedValueOnce(new Error("DB connection failed"));
+
+      // Should not throw
+      await expect(
+        audit({
+          actorId: "user-1",
+          actorEmail: "user@example.com",
+          action: "user.create",
+          orgId: "org-1",
+        })
+      ).resolves.not.toThrow();
+
+      expect(logger.error).toHaveBeenCalledWith(
+        "[AUDIT] Database write failed:",
+        expect.any(Error)
+      );
+    });
+  });
+
+  describe("timestamp handling", () => {
+    it("adds timestamp when not provided", async () => {
+      const beforeTime = new Date().toISOString();
+
+      await audit({
+        actorId: "user-1",
+        actorEmail: "user@example.com",
+        action: "user.create",
+        orgId: "org-1",
+      });
+
+      const afterTime = new Date().toISOString();
+
+      expect(logger.info).toHaveBeenCalledWith(
+        "[AUDIT]",
+        expect.objectContaining({
+          timestamp: expect.any(String),
+        })
+      );
+
+      // Verify timestamp is in valid range
+      const call = vi.mocked(logger.info).mock.calls[0][1] as { timestamp: string };
+      expect(call.timestamp >= beforeTime).toBe(true);
+      expect(call.timestamp <= afterTime).toBe(true);
+    });
+
+    it("preserves provided timestamp", async () => {
+      const customTimestamp = "2025-01-01T00:00:00.000Z";
+
+      await audit({
+        actorId: "user-1",
+        actorEmail: "user@example.com",
+        action: "user.create",
+        orgId: "org-1",
+        timestamp: customTimestamp,
+      });
+
+      expect(logger.info).toHaveBeenCalledWith(
+        "[AUDIT]",
+        expect.objectContaining({
+          timestamp: customTimestamp,
+        })
+      );
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/lib/auth/passwordReset.test.ts">
+<![CDATA[
+import { describe, it, expect } from "vitest";
+import {
+  signPasswordResetToken,
+  verifyPasswordResetToken,
+  passwordResetLink,
+} from "@/lib/auth/passwordReset";
+
+describe("Password Reset Token", () => {
+  const TEST_SECRET = "test-secret-key-12345";
+  const TEST_EMAIL = "user@example.com";
+
+  describe("signPasswordResetToken", () => {
+    it("generates a base64url encoded token", () => {
+      const token = signPasswordResetToken(TEST_EMAIL, TEST_SECRET);
+      expect(token).toBeTruthy();
+      expect(typeof token).toBe("string");
+      // base64url should not contain + / =
+      expect(token).not.toMatch(/[+/=]/);
+    });
+
+    it("generates different tokens for same email (due to random component)", () => {
+      const token1 = signPasswordResetToken(TEST_EMAIL, TEST_SECRET);
+      const token2 = signPasswordResetToken(TEST_EMAIL, TEST_SECRET);
+      expect(token1).not.toBe(token2);
+    });
+
+    it("generates different tokens with different secrets", () => {
+      const token1 = signPasswordResetToken(TEST_EMAIL, "secret1");
+      const token2 = signPasswordResetToken(TEST_EMAIL, "secret2");
+      expect(token1).not.toBe(token2);
+    });
+  });
+
+  describe("verifyPasswordResetToken", () => {
+    it("validates a correctly signed token", () => {
+      const now = Date.now();
+      const token = signPasswordResetToken(TEST_EMAIL, TEST_SECRET, now);
+      const result = verifyPasswordResetToken(token, TEST_SECRET, now);
+      
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.email).toBe(TEST_EMAIL);
+      }
+    });
+
+    it("rejects token signed with different secret", () => {
+      const token = signPasswordResetToken(TEST_EMAIL, "secret1");
+      const result = verifyPasswordResetToken(token, "secret2");
+      
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.reason).toBe("signature");
+      }
+    });
+
+    it("rejects expired token (after 1 hour)", () => {
+      const now = Date.now();
+      const token = signPasswordResetToken(TEST_EMAIL, TEST_SECRET, now);
+      
+      // Verify just before expiry works
+      const almostExpired = now + 59 * 60 * 1000; // 59 minutes later
+      const result1 = verifyPasswordResetToken(token, TEST_SECRET, almostExpired);
+      expect(result1.ok).toBe(true);
+      
+      // Verify after expiry fails
+      const afterExpiry = now + 61 * 60 * 1000; // 61 minutes later
+      const result2 = verifyPasswordResetToken(token, TEST_SECRET, afterExpiry);
+      expect(result2.ok).toBe(false);
+      if (!result2.ok) {
+        expect(result2.reason).toBe("expired");
+      }
+    });
+
+    it("rejects malformed token", () => {
+      const result = verifyPasswordResetToken("invalid-token", TEST_SECRET);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.reason).toBe("invalid");
+      }
+    });
+
+    it("rejects empty token", () => {
+      const result = verifyPasswordResetToken("", TEST_SECRET);
+      expect(result.ok).toBe(false);
+    });
+
+    it("rejects token with tampered email", () => {
+      const token = signPasswordResetToken(TEST_EMAIL, TEST_SECRET);
+      // Decode, modify, and re-encode (won't have valid signature)
+      const decoded = Buffer.from(token, "base64url").toString("utf8");
+      const parts = decoded.split("|");
+      parts[0] = "hacker@evil.com"; // tamper email
+      const tampered = Buffer.from(parts.join("|")).toString("base64url");
+      
+      const result = verifyPasswordResetToken(tampered, TEST_SECRET);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.reason).toBe("signature");
+      }
+    });
+  });
+
+  describe("passwordResetLink", () => {
+    it("builds correct reset URL", () => {
+      const token = "test-token-123";
+      const origin = "https://fixzit.co";
+      const link = passwordResetLink(origin, token);
+      
+      expect(link).toBe("https://fixzit.co/forgot-password/reset?token=test-token-123");
+    });
+
+    it("handles origin without trailing slash", () => {
+      const link = passwordResetLink("https://example.com", "abc");
+      expect(link).toBe("https://example.com/forgot-password/reset?token=abc");
+    });
+  });
+});
+
+]]>
+</file>
+
+</batch_content>

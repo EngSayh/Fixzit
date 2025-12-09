@@ -1,0 +1,1581 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="i18n/sources/costManagementAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "costManagementAdv.accounting": "Cost Accounting",
+    "costManagementAdv.actual": "Actual Cost",
+    "costManagementAdv.allocation": "Cost Allocation",
+    "costManagementAdv.analysis": "Cost Analysis",
+    "costManagementAdv.avoidance": "Cost Avoidance",
+    "costManagementAdv.baseline": "Cost Baseline",
+    "costManagementAdv.benefit": "Cost-Benefit Analysis",
+    "costManagementAdv.budgeted": "Budgeted Cost",
+    "costManagementAdv.center": "Cost Center",
+    "costManagementAdv.control": "Cost Control",
+    "costManagementAdv.cost": "Cost Management",
+    "costManagementAdv.driver": "Cost Driver",
+    "costManagementAdv.estimation": "Cost Estimation",
+    "costManagementAdv.forecast": "Cost Forecast",
+    "costManagementAdv.monitoring": "Cost Monitoring",
+    "costManagementAdv.optimization": "Cost Optimization",
+    "costManagementAdv.reduction": "Cost Reduction",
+    "costManagementAdv.reporting": "Cost Reporting",
+    "costManagementAdv.saving": "Cost Saving",
+    "costManagementAdv.structure": "Cost Structure",
+    "costManagementAdv.tracking": "Cost Tracking",
+    "costManagementAdv.variance": "Cost Variance"
+  },
+  "ar": {
+    "costManagementAdv.accounting": "محاسبة التكاليف",
+    "costManagementAdv.actual": "التكلفة الفعلية",
+    "costManagementAdv.allocation": "تخصيص التكلفة",
+    "costManagementAdv.analysis": "تحليل التكلفة",
+    "costManagementAdv.avoidance": "تجنب التكلفة",
+    "costManagementAdv.baseline": "خط الأساس للتكلفة",
+    "costManagementAdv.benefit": "تحليل التكلفة والفائدة",
+    "costManagementAdv.budgeted": "التكلفة المدرجة في الميزانية",
+    "costManagementAdv.center": "مركز التكلفة",
+    "costManagementAdv.control": "التحكم في التكلفة",
+    "costManagementAdv.cost": "إدارة التكاليف",
+    "costManagementAdv.driver": "محرك التكلفة",
+    "costManagementAdv.estimation": "تقدير التكلفة",
+    "costManagementAdv.forecast": "توقع التكلفة",
+    "costManagementAdv.monitoring": "مراقبة التكلفة",
+    "costManagementAdv.optimization": "تحسين التكلفة",
+    "costManagementAdv.reduction": "خفض التكلفة",
+    "costManagementAdv.reporting": "الإبلاغ عن التكلفة",
+    "costManagementAdv.saving": "توفير التكلفة",
+    "costManagementAdv.structure": "هيكل التكلفة",
+    "costManagementAdv.tracking": "تتبع التكلفة",
+    "costManagementAdv.variance": "تباين التكلفة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/costManagementExt.translations.json">
+<![CDATA[
+{
+  "en": {
+    "costManagementExt.actuals": "Actual Costs",
+    "costManagementExt.allocation": "Cost Allocation",
+    "costManagementExt.analysis": "Cost Analysis",
+    "costManagementExt.avoidance": "Cost Avoidance",
+    "costManagementExt.baseline": "Cost Baseline",
+    "costManagementExt.benefit": "Cost Benefit Analysis",
+    "costManagementExt.budgeting": "Cost Budgeting",
+    "costManagementExt.center": "Cost Center",
+    "costManagementExt.control": "Cost Control",
+    "costManagementExt.cost": "Cost Management",
+    "costManagementExt.driver": "Cost Driver",
+    "costManagementExt.efficiency": "Cost Efficiency",
+    "costManagementExt.estimation": "Cost Estimation",
+    "costManagementExt.forecasting": "Cost Forecasting",
+    "costManagementExt.optimization": "Cost Optimization",
+    "costManagementExt.overrun": "Cost Overrun",
+    "costManagementExt.projected": "Projected Costs",
+    "costManagementExt.reduction": "Cost Reduction",
+    "costManagementExt.reporting": "Cost Reporting",
+    "costManagementExt.savings": "Cost Savings",
+    "costManagementExt.tracking": "Cost Tracking",
+    "costManagementExt.variance": "Cost Variance"
+  },
+  "ar": {
+    "costManagementExt.actuals": "التكاليف الفعلية",
+    "costManagementExt.allocation": "تخصيص التكاليف",
+    "costManagementExt.analysis": "تحليل التكاليف",
+    "costManagementExt.avoidance": "تجنب التكاليف",
+    "costManagementExt.baseline": "خط أساس التكلفة",
+    "costManagementExt.benefit": "تحليل فائدة التكلفة",
+    "costManagementExt.budgeting": "ميزانية التكاليف",
+    "costManagementExt.center": "مركز التكلفة",
+    "costManagementExt.control": "التحكم في التكاليف",
+    "costManagementExt.cost": "إدارة التكاليف",
+    "costManagementExt.driver": "محرك التكلفة",
+    "costManagementExt.efficiency": "كفاءة التكاليف",
+    "costManagementExt.estimation": "تقدير التكاليف",
+    "costManagementExt.forecasting": "التنبؤ بالتكاليف",
+    "costManagementExt.optimization": "تحسين التكاليف",
+    "costManagementExt.overrun": "تجاوز التكاليف",
+    "costManagementExt.projected": "التكاليف المتوقعة",
+    "costManagementExt.reduction": "خفض التكاليف",
+    "costManagementExt.reporting": "إعداد تقارير التكاليف",
+    "costManagementExt.savings": "توفير التكاليف",
+    "costManagementExt.tracking": "تتبع التكاليف",
+    "costManagementExt.variance": "تباين التكاليف"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/costReduction.translations.json">
+<![CDATA[
+{
+  "en": {
+    "costReduction.analysis": "Cost Analysis",
+    "costReduction.avoidance": "Cost Avoidance",
+    "costReduction.control": "Cost Control",
+    "costReduction.efficiency": "Cost Efficiency",
+    "costReduction.identification": "Cost Identification",
+    "costReduction.implementation": "Cost Implementation",
+    "costReduction.initiative": "Cost Initiative",
+    "costReduction.management": "Cost Management",
+    "costReduction.metrics": "Cost Metrics",
+    "costReduction.monitoring": "Cost Monitoring",
+    "costReduction.opportunity": "Cost Opportunity",
+    "costReduction.optimization": "Cost Optimization",
+    "costReduction.program": "Cost Program",
+    "costReduction.project": "Cost Project",
+    "costReduction.realization": "Savings Realization",
+    "costReduction.reduction": "Cost Reduction",
+    "costReduction.reporting": "Cost Reporting",
+    "costReduction.savings": "Cost Savings",
+    "costReduction.strategy": "Cost Strategy",
+    "costReduction.target": "Cost Target",
+    "costReduction.tracking": "Cost Tracking",
+    "costReduction.validation": "Savings Validation"
+  },
+  "ar": {
+    "costReduction.analysis": "تحليل التكاليف",
+    "costReduction.avoidance": "تجنب التكاليف",
+    "costReduction.control": "التحكم في التكاليف",
+    "costReduction.efficiency": "كفاءة التكلفة",
+    "costReduction.identification": "تحديد التكاليف",
+    "costReduction.implementation": "تنفيذ التكلفة",
+    "costReduction.initiative": "مبادرة التكلفة",
+    "costReduction.management": "إدارة التكاليف",
+    "costReduction.metrics": "مقاييس التكلفة",
+    "costReduction.monitoring": "مراقبة التكاليف",
+    "costReduction.opportunity": "فرصة التكلفة",
+    "costReduction.optimization": "تحسين التكاليف",
+    "costReduction.program": "برنامج التكلفة",
+    "costReduction.project": "مشروع التكلفة",
+    "costReduction.realization": "تحقيق التوفير",
+    "costReduction.reduction": "تخفيض التكاليف",
+    "costReduction.reporting": "إعداد تقارير التكاليف",
+    "costReduction.savings": "توفير التكاليف",
+    "costReduction.strategy": "استراتيجية التكلفة",
+    "costReduction.target": "هدف التكلفة",
+    "costReduction.tracking": "تتبع التكاليف",
+    "costReduction.validation": "التحقق من التوفير"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/crm.translations.json">
+<![CDATA[
+{
+  "en": {
+    "crm.activities": "Activities",
+    "crm.addContact": "Add Contact",
+    "crm.closingDate": "Closing Date",
+    "crm.company": "Company",
+    "crm.contactDetails": "Contact Details",
+    "crm.contactName": "Contact Name",
+    "crm.contacts": "Contacts",
+    "crm.dealValue": "Deal Value",
+    "crm.description": "Coming online — UI wired, API scaffolded.",
+    "crm.industry": "Industry",
+    "crm.leads": "Leads",
+    "crm.leadSource": "Lead Source",
+    "crm.leadStatus": "Lead Status",
+    "crm.notes": "Notes",
+    "crm.opportunities": "Opportunities",
+    "crm.pipeline": "Pipeline",
+    "crm.title": "CRM"
+  },
+  "ar": {
+    "crm.activities": "الأنشطة",
+    "crm.addContact": "إضافة جهة اتصال",
+    "crm.closingDate": "تاريخ الإغلاق",
+    "crm.company": "الشركة",
+    "crm.contactDetails": "تفاصيل جهة الاتصال",
+    "crm.contactName": "الاسم",
+    "crm.contacts": "جهات الاتصال",
+    "crm.dealValue": "قيمة الصفقة",
+    "crm.description": "قريباً - الواجهة جاهزة وواجهة البرمجة قيد الإعداد.",
+    "crm.industry": "الصناعة",
+    "crm.leads": "العملاء المحتملون",
+    "crm.leadSource": "مصدر العميل المحتمل",
+    "crm.leadStatus": "حالة العميل المحتمل",
+    "crm.notes": "الملاحظات",
+    "crm.opportunities": "الفرص",
+    "crm.pipeline": "خط الأنابيب",
+    "crm.title": "إدارة علاقات العملاء"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/cryptographyManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "cryptographyManagement.algorithm": "Cryptographic Algorithm",
+    "cryptographyManagement.asymmetric": "Asymmetric Encryption",
+    "cryptographyManagement.certificate": "Digital Certificate",
+    "cryptographyManagement.cryptography": "Cryptography Management",
+    "cryptographyManagement.decryption": "Decryption",
+    "cryptographyManagement.distribution": "Key Distribution",
+    "cryptographyManagement.encryption": "Encryption",
+    "cryptographyManagement.escrow": "Key Escrow",
+    "cryptographyManagement.generation": "Key Generation",
+    "cryptographyManagement.hashing": "Cryptographic Hashing",
+    "cryptographyManagement.hsm": "Hardware Security Module",
+    "cryptographyManagement.key": "Cryptographic Key",
+    "cryptographyManagement.keyManagement": "Key Management",
+    "cryptographyManagement.lifecycle": "Key Lifecycle",
+    "cryptographyManagement.pki": "Public Key Infrastructure",
+    "cryptographyManagement.revocation": "Key Revocation",
+    "cryptographyManagement.rotation": "Key Rotation",
+    "cryptographyManagement.signing": "Digital Signature",
+    "cryptographyManagement.storage": "Key Storage",
+    "cryptographyManagement.symmetric": "Symmetric Encryption",
+    "cryptographyManagement.tls": "TLS/SSL",
+    "cryptographyManagement.verification": "Signature Verification"
+  },
+  "ar": {
+    "cryptographyManagement.algorithm": "خوارزمية التشفير",
+    "cryptographyManagement.asymmetric": "التشفير غير المتماثل",
+    "cryptographyManagement.certificate": "الشهادة الرقمية",
+    "cryptographyManagement.cryptography": "إدارة التشفير",
+    "cryptographyManagement.decryption": "فك التشفير",
+    "cryptographyManagement.distribution": "توزيع المفاتيح",
+    "cryptographyManagement.encryption": "التشفير",
+    "cryptographyManagement.escrow": "ضمان المفاتيح",
+    "cryptographyManagement.generation": "توليد المفاتيح",
+    "cryptographyManagement.hashing": "التجزئة التشفيرية",
+    "cryptographyManagement.hsm": "وحدة الأمان للأجهزة",
+    "cryptographyManagement.key": "مفتاح التشفير",
+    "cryptographyManagement.keyManagement": "إدارة المفاتيح",
+    "cryptographyManagement.lifecycle": "دورة حياة المفاتيح",
+    "cryptographyManagement.pki": "البنية التحتية للمفتاح العام",
+    "cryptographyManagement.revocation": "إبطال المفاتيح",
+    "cryptographyManagement.rotation": "تدوير المفاتيح",
+    "cryptographyManagement.signing": "التوقيع الرقمي",
+    "cryptographyManagement.storage": "تخزين المفاتيح",
+    "cryptographyManagement.symmetric": "التشفير المتماثل",
+    "cryptographyManagement.tls": "طبقة النقل الآمنة",
+    "cryptographyManagement.verification": "التحقق من التوقيع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/culturalChange.translations.json">
+<![CDATA[
+{
+  "en": {
+    "culturalChange.alignment": "Culture Alignment",
+    "culturalChange.analysis": "Culture Analysis",
+    "culturalChange.assessment": "Culture Assessment",
+    "culturalChange.attitudes": "Cultural Attitudes",
+    "culturalChange.behaviors": "Cultural Behaviors",
+    "culturalChange.beliefs": "Cultural Beliefs",
+    "culturalChange.change": "Culture Change",
+    "culturalChange.climate": "Organizational Climate",
+    "culturalChange.cultural": "Cultural Change",
+    "culturalChange.culture": "Culture Transformation",
+    "culturalChange.development": "Culture Development",
+    "culturalChange.diagnosis": "Culture Diagnosis",
+    "culturalChange.diversity": "Cultural Diversity",
+    "culturalChange.environment": "Cultural Environment",
+    "culturalChange.evolution": "Culture Evolution",
+    "culturalChange.identity": "Cultural Identity",
+    "culturalChange.inclusion": "Cultural Inclusion",
+    "culturalChange.management": "Culture Management",
+    "culturalChange.mindset": "Cultural Mindset",
+    "culturalChange.norms": "Cultural Norms",
+    "culturalChange.survey": "Culture Survey",
+    "culturalChange.transformation": "Culture Transformation",
+    "culturalChange.values": "Cultural Values"
+  },
+  "ar": {
+    "culturalChange.alignment": "مواءمة الثقافة",
+    "culturalChange.analysis": "تحليل الثقافة",
+    "culturalChange.assessment": "تقييم الثقافة",
+    "culturalChange.attitudes": "المواقف الثقافية",
+    "culturalChange.behaviors": "السلوكيات الثقافية",
+    "culturalChange.beliefs": "المعتقدات الثقافية",
+    "culturalChange.change": "تغيير الثقافة",
+    "culturalChange.climate": "المناخ التنظيمي",
+    "culturalChange.cultural": "التغيير الثقافي",
+    "culturalChange.culture": "تحول الثقافة",
+    "culturalChange.development": "تطوير الثقافة",
+    "culturalChange.diagnosis": "تشخيص الثقافة",
+    "culturalChange.diversity": "التنوع الثقافي",
+    "culturalChange.environment": "البيئة الثقافية",
+    "culturalChange.evolution": "تطور الثقافة",
+    "culturalChange.identity": "الهوية الثقافية",
+    "culturalChange.inclusion": "الشمول الثقافي",
+    "culturalChange.management": "إدارة الثقافة",
+    "culturalChange.mindset": "العقلية الثقافية",
+    "culturalChange.norms": "الأعراف الثقافية",
+    "culturalChange.survey": "مسح الثقافة",
+    "culturalChange.transformation": "تحول الثقافة",
+    "culturalChange.values": "القيم الثقافية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/currencySettings.translations.json">
+<![CDATA[
+{
+  "en": {
+    "currencySettings.after": "After Amount",
+    "currencySettings.auto": "Auto Update",
+    "currencySettings.base": "Base Currency",
+    "currencySettings.before": "Before Amount",
+    "currencySettings.code": "Currency Code",
+    "currencySettings.convert": "Convert",
+    "currencySettings.currency": "Currency",
+    "currencySettings.decimal": "Decimal Separator",
+    "currencySettings.default": "Default Currency",
+    "currencySettings.exchange": "Exchange Rate",
+    "currencySettings.format": "Format",
+    "currencySettings.manual": "Manual Update",
+    "currencySettings.name": "Currency Name",
+    "currencySettings.position": "Symbol Position",
+    "currencySettings.precision": "Decimal Places",
+    "currencySettings.settings": "Currency Settings",
+    "currencySettings.symbol": "Symbol",
+    "currencySettings.thousand": "Thousand Separator",
+    "currencySettings.update": "Update Rates"
+  },
+  "ar": {
+    "currencySettings.after": "بعد المبلغ",
+    "currencySettings.auto": "تحديث تلقائي",
+    "currencySettings.base": "العملة الأساسية",
+    "currencySettings.before": "قبل المبلغ",
+    "currencySettings.code": "رمز العملة",
+    "currencySettings.convert": "تحويل",
+    "currencySettings.currency": "العملة",
+    "currencySettings.decimal": "فاصل عشري",
+    "currencySettings.default": "العملة الافتراضية",
+    "currencySettings.exchange": "سعر الصرف",
+    "currencySettings.format": "التنسيق",
+    "currencySettings.manual": "تحديث يدوي",
+    "currencySettings.name": "اسم العملة",
+    "currencySettings.position": "موضع الرمز",
+    "currencySettings.precision": "المنازل العشرية",
+    "currencySettings.settings": "إعدادات العملة",
+    "currencySettings.symbol": "الرمز",
+    "currencySettings.thousand": "فاصل الآلاف",
+    "currencySettings.update": "تحديث الأسعار"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/curriculumManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "curriculumManagement.accommodation": "Student Accommodations",
+    "curriculumManagement.adoption": "Curriculum Adoption",
+    "curriculumManagement.alignment": "Standards Alignment",
+    "curriculumManagement.assessment": "Assessment Alignment",
+    "curriculumManagement.competencies": "Core Competencies",
+    "curriculumManagement.curriculum": "Curriculum Development",
+    "curriculumManagement.description": "Curriculum Planning and Development",
+    "curriculumManagement.design": "Instructional Design",
+    "curriculumManagement.differentiation": "Differentiated Instruction",
+    "curriculumManagement.digital": "Digital Resources",
+    "curriculumManagement.enrichment": "Enrichment Programs",
+    "curriculumManagement.evaluation": "Curriculum Evaluation",
+    "curriculumManagement.horizontal": "Horizontal Alignment",
+    "curriculumManagement.implementation": "Curriculum Implementation",
+    "curriculumManagement.integration": "Subject Integration",
+    "curriculumManagement.interdisciplinary": "Interdisciplinary Learning",
+    "curriculumManagement.lessons": "Lesson Planning",
+    "curriculumManagement.mapping": "Curriculum Mapping",
+    "curriculumManagement.materials": "Teaching Materials",
+    "curriculumManagement.modification": "Curriculum Modification",
+    "curriculumManagement.objectives": "Learning Objectives",
+    "curriculumManagement.outcomes": "Learning Outcomes",
+    "curriculumManagement.pacing": "Pacing Guides",
+    "curriculumManagement.planning": "Curriculum Planning",
+    "curriculumManagement.professional": "Professional Development",
+    "curriculumManagement.remediation": "Remedial Programs",
+    "curriculumManagement.resources": "Instructional Resources",
+    "curriculumManagement.review": "Curriculum Review",
+    "curriculumManagement.revision": "Curriculum Revision",
+    "curriculumManagement.scope": "Scope and Sequence",
+    "curriculumManagement.standards": "Educational Standards",
+    "curriculumManagement.technology": "Educational Technology",
+    "curriculumManagement.textbooks": "Textbook Selection",
+    "curriculumManagement.title": "Curriculum Management",
+    "curriculumManagement.training": "Teacher Training",
+    "curriculumManagement.units": "Unit Planning",
+    "curriculumManagement.vertical": "Vertical Alignment"
+  },
+  "ar": {
+    "curriculumManagement.accommodation": "تكييف الطلاب",
+    "curriculumManagement.adoption": "اعتماد المناهج",
+    "curriculumManagement.alignment": "التوافق مع المعايير",
+    "curriculumManagement.assessment": "التوافق مع التقييم",
+    "curriculumManagement.competencies": "الكفاءات الأساسية",
+    "curriculumManagement.curriculum": "تطوير المناهج",
+    "curriculumManagement.description": "تخطيط وتطوير المناهج",
+    "curriculumManagement.design": "التصميم التعليمي",
+    "curriculumManagement.differentiation": "التعليم المتمايز",
+    "curriculumManagement.digital": "الموارد الرقمية",
+    "curriculumManagement.enrichment": "برامج الإثراء",
+    "curriculumManagement.evaluation": "تقييم المناهج",
+    "curriculumManagement.horizontal": "التوافق الأفقي",
+    "curriculumManagement.implementation": "تنفيذ المناهج",
+    "curriculumManagement.integration": "تكامل المواد",
+    "curriculumManagement.interdisciplinary": "التعلم متعدد التخصصات",
+    "curriculumManagement.lessons": "تخطيط الدروس",
+    "curriculumManagement.mapping": "رسم خرائط المناهج",
+    "curriculumManagement.materials": "المواد التعليمية",
+    "curriculumManagement.modification": "تعديل المناهج",
+    "curriculumManagement.objectives": "أهداف التعلم",
+    "curriculumManagement.outcomes": "نتائج التعلم",
+    "curriculumManagement.pacing": "أدلة السرعة",
+    "curriculumManagement.planning": "تخطيط المناهج",
+    "curriculumManagement.professional": "التطوير المهني",
+    "curriculumManagement.remediation": "البرامج العلاجية",
+    "curriculumManagement.resources": "الموارد التعليمية",
+    "curriculumManagement.review": "مراجعة المناهج",
+    "curriculumManagement.revision": "تنقيح المناهج",
+    "curriculumManagement.scope": "النطاق والتسلسل",
+    "curriculumManagement.standards": "المعايير التعليمية",
+    "curriculumManagement.technology": "التكنولوجيا التعليمية",
+    "curriculumManagement.textbooks": "اختيار الكتب المدرسية",
+    "curriculumManagement.title": "إدارة المناهج الدراسية",
+    "curriculumManagement.training": "تدريب المعلمين",
+    "curriculumManagement.units": "تخطيط الوحدات",
+    "curriculumManagement.vertical": "التوافق الرأسي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/customFields.translations.json">
+<![CDATA[
+{
+  "en": {
+    "customFields.boolean": "Boolean",
+    "customFields.create": "Create Field",
+    "customFields.date": "Date",
+    "customFields.default": "Default Value",
+    "customFields.delete": "Delete Field",
+    "customFields.edit": "Edit Field",
+    "customFields.field": "Custom Field",
+    "customFields.label": "Field Label",
+    "customFields.multiSelect": "Multi-select",
+    "customFields.name": "Field Name",
+    "customFields.number": "Number",
+    "customFields.optional": "Optional",
+    "customFields.options": "Options",
+    "customFields.order": "Display Order",
+    "customFields.placeholder": "Placeholder",
+    "customFields.required": "Required",
+    "customFields.select": "Dropdown",
+    "customFields.text": "Text",
+    "customFields.textarea": "Text Area",
+    "customFields.type": "Field Type",
+    "customFields.validation": "Validation"
+  },
+  "ar": {
+    "customFields.boolean": "منطقي",
+    "customFields.create": "إنشاء حقل",
+    "customFields.date": "تاريخ",
+    "customFields.default": "القيمة الافتراضية",
+    "customFields.delete": "حذف حقل",
+    "customFields.edit": "تحرير حقل",
+    "customFields.field": "حقل مخصص",
+    "customFields.label": "تسمية الحقل",
+    "customFields.multiSelect": "متعدد الاختيار",
+    "customFields.name": "اسم الحقل",
+    "customFields.number": "رقم",
+    "customFields.optional": "اختياري",
+    "customFields.options": "الخيارات",
+    "customFields.order": "ترتيب العرض",
+    "customFields.placeholder": "العنصر النائب",
+    "customFields.required": "مطلوب",
+    "customFields.select": "قائمة منسدلة",
+    "customFields.text": "نص",
+    "customFields.textarea": "منطقة نصية",
+    "customFields.type": "نوع الحقل",
+    "customFields.validation": "التحقق"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/customerAnalytics.translations.json">
+<![CDATA[
+{
+  "en": {
+    "customerAnalytics.acquisition": "Acquisition Analytics",
+    "customerAnalytics.advocacy": "Customer Advocacy",
+    "customerAnalytics.attribution": "Attribution Modeling",
+    "customerAnalytics.behavior": "Behavior Analysis",
+    "customerAnalytics.churn": "Churn Analysis",
+    "customerAnalytics.clv": "CLV",
+    "customerAnalytics.conversion": "Conversion Analysis",
+    "customerAnalytics.customer": "Customer Analytics",
+    "customerAnalytics.engagement": "Engagement Analytics",
+    "customerAnalytics.feedback": "Feedback Analysis",
+    "customerAnalytics.journey": "Customer Journey",
+    "customerAnalytics.lifetime": "Customer Lifetime Value",
+    "customerAnalytics.loyalty": "Loyalty Analytics",
+    "customerAnalytics.personas": "Customer Personas",
+    "customerAnalytics.profiling": "Customer Profiling",
+    "customerAnalytics.recommendations": "Recommendation Engine",
+    "customerAnalytics.retention": "Retention Analysis",
+    "customerAnalytics.satisfaction": "Satisfaction Analysis",
+    "customerAnalytics.segmentation": "Customer Segmentation",
+    "customerAnalytics.sentiment": "Sentiment Analysis",
+    "customerAnalytics.touchpoints": "Touchpoint Analysis"
+  },
+  "ar": {
+    "customerAnalytics.acquisition": "تحليلات الاستحواذ",
+    "customerAnalytics.advocacy": "دعوة العملاء",
+    "customerAnalytics.attribution": "نمذجة الإسناد",
+    "customerAnalytics.behavior": "تحليل السلوك",
+    "customerAnalytics.churn": "تحليل فقدان العملاء",
+    "customerAnalytics.clv": "القيمة الدائمة للعميل",
+    "customerAnalytics.conversion": "تحليل التحويل",
+    "customerAnalytics.customer": "تحليلات العملاء",
+    "customerAnalytics.engagement": "تحليلات المشاركة",
+    "customerAnalytics.feedback": "تحليل الملاحظات",
+    "customerAnalytics.journey": "رحلة العميل",
+    "customerAnalytics.lifetime": "القيمة الدائمة للعميل",
+    "customerAnalytics.loyalty": "تحليلات الولاء",
+    "customerAnalytics.personas": "شخصيات العملاء",
+    "customerAnalytics.profiling": "توصيف العملاء",
+    "customerAnalytics.recommendations": "محرك التوصيات",
+    "customerAnalytics.retention": "تحليل الاحتفاظ",
+    "customerAnalytics.satisfaction": "تحليل الرضا",
+    "customerAnalytics.segmentation": "تقسيم العملاء",
+    "customerAnalytics.sentiment": "تحليل المشاعر",
+    "customerAnalytics.touchpoints": "تحليل نقاط الاتصال"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/customerDataPlatform.translations.json">
+<![CDATA[
+{
+  "en": {
+    "customerDataPlatform.activation": "Data Activation",
+    "customerDataPlatform.analytics": "Customer Analytics",
+    "customerDataPlatform.behavior": "Customer Behavior",
+    "customerDataPlatform.cdp": "Customer Data Platform",
+    "customerDataPlatform.compliance": "Privacy Compliance",
+    "customerDataPlatform.consent": "Consent Management",
+    "customerDataPlatform.customer": "Customer Data",
+    "customerDataPlatform.engagement": "Customer Engagement",
+    "customerDataPlatform.enrichment": "Data Enrichment",
+    "customerDataPlatform.identity": "Identity Resolution",
+    "customerDataPlatform.insight": "Customer Insight",
+    "customerDataPlatform.journey": "Customer Journey",
+    "customerDataPlatform.orchestration": "Campaign Orchestration",
+    "customerDataPlatform.personalization": "Personalization",
+    "customerDataPlatform.platform": "Data Platform",
+    "customerDataPlatform.preference": "Customer Preference",
+    "customerDataPlatform.privacy": "Data Privacy",
+    "customerDataPlatform.profile": "Customer Profile",
+    "customerDataPlatform.segment": "Customer Segment",
+    "customerDataPlatform.segmentation": "Customer Segmentation",
+    "customerDataPlatform.touchpoint": "Customer Touchpoint",
+    "customerDataPlatform.unification": "Data Unification"
+  },
+  "ar": {
+    "customerDataPlatform.activation": "تفعيل البيانات",
+    "customerDataPlatform.analytics": "تحليلات العملاء",
+    "customerDataPlatform.behavior": "سلوك العميل",
+    "customerDataPlatform.cdp": "منصة بيانات العملاء",
+    "customerDataPlatform.compliance": "الامتثال للخصوصية",
+    "customerDataPlatform.consent": "إدارة الموافقة",
+    "customerDataPlatform.customer": "بيانات العملاء",
+    "customerDataPlatform.engagement": "مشاركة العملاء",
+    "customerDataPlatform.enrichment": "إثراء البيانات",
+    "customerDataPlatform.identity": "حل الهوية",
+    "customerDataPlatform.insight": "رؤية العملاء",
+    "customerDataPlatform.journey": "رحلة العميل",
+    "customerDataPlatform.orchestration": "تنسيق الحملات",
+    "customerDataPlatform.personalization": "التخصيص",
+    "customerDataPlatform.platform": "منصة البيانات",
+    "customerDataPlatform.preference": "تفضيلات العميل",
+    "customerDataPlatform.privacy": "خصوصية البيانات",
+    "customerDataPlatform.profile": "ملف العميل",
+    "customerDataPlatform.segment": "شريحة العملاء",
+    "customerDataPlatform.segmentation": "تقسيم العملاء",
+    "customerDataPlatform.touchpoint": "نقطة التواصل مع العميل",
+    "customerDataPlatform.unification": "توحيد البيانات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/customerExperience.translations.json">
+<![CDATA[
+{
+  "en": {
+    "customerExperience.advocacy": "Customer Advocacy",
+    "customerExperience.ces": "Customer Effort Score",
+    "customerExperience.csat": "CSAT",
+    "customerExperience.cx": "CX",
+    "customerExperience.delight": "Customer Delight",
+    "customerExperience.engagement": "Engagement",
+    "customerExperience.experience": "Customer Experience",
+    "customerExperience.feedback": "Customer Feedback",
+    "customerExperience.interaction": "Interaction",
+    "customerExperience.journey": "Customer Journey",
+    "customerExperience.loyalty": "Customer Loyalty",
+    "customerExperience.mapping": "Journey Mapping",
+    "customerExperience.moment": "Moment of Truth",
+    "customerExperience.nps": "Net Promoter Score",
+    "customerExperience.optimization": "CX Optimization",
+    "customerExperience.pain": "Pain Points",
+    "customerExperience.persona": "Customer Persona",
+    "customerExperience.satisfaction": "Satisfaction",
+    "customerExperience.sentiment": "Sentiment Analysis",
+    "customerExperience.survey": "Survey",
+    "customerExperience.touchpoint": "Touchpoint",
+    "customerExperience.voice": "Voice of Customer"
+  },
+  "ar": {
+    "customerExperience.advocacy": "دعم العملاء",
+    "customerExperience.ces": "نقاط جهد العميل",
+    "customerExperience.csat": "CSAT",
+    "customerExperience.cx": "CX",
+    "customerExperience.delight": "إسعاد العملاء",
+    "customerExperience.engagement": "المشاركة",
+    "customerExperience.experience": "تجربة العملاء",
+    "customerExperience.feedback": "ملاحظات العملاء",
+    "customerExperience.interaction": "التفاعل",
+    "customerExperience.journey": "رحلة العميل",
+    "customerExperience.loyalty": "ولاء العملاء",
+    "customerExperience.mapping": "رسم خريطة الرحلة",
+    "customerExperience.moment": "لحظة الحقيقة",
+    "customerExperience.nps": "صافي نقاط الترويج",
+    "customerExperience.optimization": "تحسين تجربة العملاء",
+    "customerExperience.pain": "نقاط الألم",
+    "customerExperience.persona": "شخصية العميل",
+    "customerExperience.satisfaction": "الرضا",
+    "customerExperience.sentiment": "تحليل المشاعر",
+    "customerExperience.survey": "الاستبيان",
+    "customerExperience.touchpoint": "نقطة الاتصال",
+    "customerExperience.voice": "صوت العميل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/customerExperienceAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "customerExperienceAdv.advocacy": "Customer Advocacy",
+    "customerExperienceAdv.ces": "Customer Effort Score",
+    "customerExperienceAdv.churn": "Customer Churn",
+    "customerExperienceAdv.csat": "CSAT",
+    "customerExperienceAdv.customer": "Customer Experience",
+    "customerExperienceAdv.engagement": "Customer Engagement",
+    "customerExperienceAdv.experience": "CX",
+    "customerExperienceAdv.feedback": "Customer Feedback",
+    "customerExperienceAdv.journey": "Customer Journey",
+    "customerExperienceAdv.lifetime": "Customer Lifetime Value",
+    "customerExperienceAdv.loyalty": "Customer Loyalty",
+    "customerExperienceAdv.mapping": "Journey Mapping",
+    "customerExperienceAdv.nps": "Net Promoter Score",
+    "customerExperienceAdv.persona": "Customer Persona",
+    "customerExperienceAdv.retention": "Customer Retention",
+    "customerExperienceAdv.satisfaction": "Customer Satisfaction",
+    "customerExperienceAdv.service": "Customer Service",
+    "customerExperienceAdv.success": "Customer Success",
+    "customerExperienceAdv.support": "Customer Support",
+    "customerExperienceAdv.survey": "Customer Survey",
+    "customerExperienceAdv.touchpoint": "Customer Touchpoint",
+    "customerExperienceAdv.voice": "Voice of Customer"
+  },
+  "ar": {
+    "customerExperienceAdv.advocacy": "دفاع العملاء",
+    "customerExperienceAdv.ces": "نقاط جهد العميل",
+    "customerExperienceAdv.churn": "فقدان العملاء",
+    "customerExperienceAdv.csat": "رضا العملاء",
+    "customerExperienceAdv.customer": "تجربة العميل",
+    "customerExperienceAdv.engagement": "مشاركة العملاء",
+    "customerExperienceAdv.experience": "تجربة العملاء",
+    "customerExperienceAdv.feedback": "ملاحظات العملاء",
+    "customerExperienceAdv.journey": "رحلة العميل",
+    "customerExperienceAdv.lifetime": "قيمة عمر العميل",
+    "customerExperienceAdv.loyalty": "ولاء العملاء",
+    "customerExperienceAdv.mapping": "رسم خريطة الرحلة",
+    "customerExperienceAdv.nps": "صافي نقاط الترويج",
+    "customerExperienceAdv.persona": "شخصية العميل",
+    "customerExperienceAdv.retention": "الاحتفاظ بالعملاء",
+    "customerExperienceAdv.satisfaction": "رضا العملاء",
+    "customerExperienceAdv.service": "خدمة العملاء",
+    "customerExperienceAdv.success": "نجاح العملاء",
+    "customerExperienceAdv.support": "دعم العملاء",
+    "customerExperienceAdv.survey": "استطلاع العملاء",
+    "customerExperienceAdv.touchpoint": "نقطة تواصل العميل",
+    "customerExperienceAdv.voice": "صوت العميل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/customerInsights.translations.json">
+<![CDATA[
+{
+  "en": {
+    "customerInsights.analysis": "Customer Analysis",
+    "customerInsights.analytics": "Customer Analytics",
+    "customerInsights.behavior": "Customer Behavior",
+    "customerInsights.customer": "Customer Insights",
+    "customerInsights.data": "Customer Data",
+    "customerInsights.expectations": "Customer Expectations",
+    "customerInsights.feedback": "Customer Feedback",
+    "customerInsights.insights": "Insights Management",
+    "customerInsights.intelligence": "Customer Intelligence",
+    "customerInsights.journey": "Customer Journey",
+    "customerInsights.lifetime": "Customer Lifetime Value",
+    "customerInsights.loyalty": "Customer Loyalty",
+    "customerInsights.needs": "Customer Needs",
+    "customerInsights.personas": "Customer Personas",
+    "customerInsights.preferences": "Customer Preferences",
+    "customerInsights.profiling": "Customer Profiling",
+    "customerInsights.reporting": "Insights Reporting",
+    "customerInsights.research": "Customer Research",
+    "customerInsights.satisfaction": "Customer Satisfaction",
+    "customerInsights.segmentation": "Customer Segmentation",
+    "customerInsights.touchpoints": "Customer Touchpoints",
+    "customerInsights.voice": "Voice of Customer"
+  },
+  "ar": {
+    "customerInsights.analysis": "تحليل العملاء",
+    "customerInsights.analytics": "تحليلات العملاء",
+    "customerInsights.behavior": "سلوك العملاء",
+    "customerInsights.customer": "رؤى العملاء",
+    "customerInsights.data": "بيانات العملاء",
+    "customerInsights.expectations": "توقعات العملاء",
+    "customerInsights.feedback": "ملاحظات العملاء",
+    "customerInsights.insights": "إدارة الرؤى",
+    "customerInsights.intelligence": "ذكاء العملاء",
+    "customerInsights.journey": "رحلة العميل",
+    "customerInsights.lifetime": "القيمة الدائمة للعميل",
+    "customerInsights.loyalty": "ولاء العملاء",
+    "customerInsights.needs": "احتياجات العملاء",
+    "customerInsights.personas": "شخصيات العملاء",
+    "customerInsights.preferences": "تفضيلات العملاء",
+    "customerInsights.profiling": "إنشاء ملفات تعريف العملاء",
+    "customerInsights.reporting": "تقارير الرؤى",
+    "customerInsights.research": "أبحاث العملاء",
+    "customerInsights.satisfaction": "رضا العملاء",
+    "customerInsights.segmentation": "تقسيم العملاء",
+    "customerInsights.touchpoints": "نقاط الاتصال مع العميل",
+    "customerInsights.voice": "صوت العميل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/customerJourneyAnalytics.translations.json">
+<![CDATA[
+{
+  "en": {
+    "customerJourneyAnalytics.analytics": "CX Analytics",
+    "customerJourneyAnalytics.ces": "Customer Effort Score",
+    "customerJourneyAnalytics.consistency": "Experience Consistency",
+    "customerJourneyAnalytics.csat": "Customer Satisfaction Score",
+    "customerJourneyAnalytics.customer": "Customer Journey Analytics",
+    "customerJourneyAnalytics.cx": "CX Management",
+    "customerJourneyAnalytics.emotions": "Emotion Tracking",
+    "customerJourneyAnalytics.engagement": "Customer Engagement",
+    "customerJourneyAnalytics.feedback": "Customer Feedback",
+    "customerJourneyAnalytics.insights": "Customer Insights",
+    "customerJourneyAnalytics.interactions": "Customer Interactions",
+    "customerJourneyAnalytics.journey": "Journey Analytics",
+    "customerJourneyAnalytics.mapping": "Journey Mapping",
+    "customerJourneyAnalytics.nps": "Net Promoter Score",
+    "customerJourneyAnalytics.omnichannel": "Omnichannel Experience",
+    "customerJourneyAnalytics.optimization": "Experience Optimization",
+    "customerJourneyAnalytics.personalization": "Experience Personalization",
+    "customerJourneyAnalytics.satisfaction": "Customer Satisfaction",
+    "customerJourneyAnalytics.sentiment": "Sentiment Analysis",
+    "customerJourneyAnalytics.surveys": "Customer Surveys",
+    "customerJourneyAnalytics.touchpoints": "Customer Touchpoints",
+    "customerJourneyAnalytics.voice": "Voice of Customer"
+  },
+  "ar": {
+    "customerJourneyAnalytics.analytics": "تحليلات تجربة العميل",
+    "customerJourneyAnalytics.ces": "درجة جهد العميل",
+    "customerJourneyAnalytics.consistency": "اتساق التجربة",
+    "customerJourneyAnalytics.csat": "درجة رضا العميل",
+    "customerJourneyAnalytics.customer": "تحليلات رحلة العميل",
+    "customerJourneyAnalytics.cx": "إدارة تجربة العميل",
+    "customerJourneyAnalytics.emotions": "تتبع العواطف",
+    "customerJourneyAnalytics.engagement": "مشاركة العميل",
+    "customerJourneyAnalytics.feedback": "ملاحظات العميل",
+    "customerJourneyAnalytics.insights": "رؤى العملاء",
+    "customerJourneyAnalytics.interactions": "تفاعلات العميل",
+    "customerJourneyAnalytics.journey": "تحليلات الرحلة",
+    "customerJourneyAnalytics.mapping": "رسم خرائط الرحلة",
+    "customerJourneyAnalytics.nps": "صافي نقاط الترويج",
+    "customerJourneyAnalytics.omnichannel": "تجربة متعددة القنوات",
+    "customerJourneyAnalytics.optimization": "تحسين التجربة",
+    "customerJourneyAnalytics.personalization": "تخصيص التجربة",
+    "customerJourneyAnalytics.satisfaction": "رضا العميل",
+    "customerJourneyAnalytics.sentiment": "تحليل المشاعر",
+    "customerJourneyAnalytics.surveys": "استطلاعات العملاء",
+    "customerJourneyAnalytics.touchpoints": "نقاط اتصال العميل",
+    "customerJourneyAnalytics.voice": "صوت العميل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/customerRelations.translations.json">
+<![CDATA[
+{
+  "en": {
+    "customerRelations.churn": "Churn Rate",
+    "customerRelations.communication": "Communication",
+    "customerRelations.contact": "Contact",
+    "customerRelations.conversion": "Conversion",
+    "customerRelations.crm": "CRM",
+    "customerRelations.customer": "Customer",
+    "customerRelations.deal": "Deal",
+    "customerRelations.engagement": "Engagement",
+    "customerRelations.followup": "Follow-up",
+    "customerRelations.funnel": "Sales Funnel",
+    "customerRelations.history": "Purchase History",
+    "customerRelations.interaction": "Interaction",
+    "customerRelations.lead": "Lead",
+    "customerRelations.lifetime": "Lifetime Value",
+    "customerRelations.opportunity": "Opportunity",
+    "customerRelations.pipeline": "Sales Pipeline",
+    "customerRelations.profile": "Customer Profile",
+    "customerRelations.prospect": "Prospect",
+    "customerRelations.retention": "Retention",
+    "customerRelations.satisfaction": "Customer Satisfaction",
+    "customerRelations.segment": "Customer Segment",
+    "customerRelations.touchpoint": "Touchpoint"
+  },
+  "ar": {
+    "customerRelations.churn": "معدل التوقف",
+    "customerRelations.communication": "التواصل",
+    "customerRelations.contact": "جهة الاتصال",
+    "customerRelations.conversion": "التحويل",
+    "customerRelations.crm": "إدارة علاقات العملاء",
+    "customerRelations.customer": "العميل",
+    "customerRelations.deal": "الصفقة",
+    "customerRelations.engagement": "المشاركة",
+    "customerRelations.followup": "المتابعة",
+    "customerRelations.funnel": "قمع المبيعات",
+    "customerRelations.history": "تاريخ الشراء",
+    "customerRelations.interaction": "التفاعل",
+    "customerRelations.lead": "العميل المحتمل",
+    "customerRelations.lifetime": "القيمة الدائمة",
+    "customerRelations.opportunity": "الفرصة",
+    "customerRelations.pipeline": "خط المبيعات",
+    "customerRelations.profile": "ملف العميل",
+    "customerRelations.prospect": "المحتمل",
+    "customerRelations.retention": "الاحتفاظ",
+    "customerRelations.satisfaction": "رضا العملاء",
+    "customerRelations.segment": "شريحة العملاء",
+    "customerRelations.touchpoint": "نقطة الاتصال"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/customerRelationshipManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "customerRelationshipManagement.accountManagement": "Account Management",
+    "customerRelationshipManagement.activityTracking": "Activity Tracking",
+    "customerRelationshipManagement.calendarSync": "Calendar Synchronization",
+    "customerRelationshipManagement.campaignTracking": "Campaign Tracking",
+    "customerRelationshipManagement.caseManagement": "Case Management",
+    "customerRelationshipManagement.communicationHistory": "Communication History",
+    "customerRelationshipManagement.contactManagement": "Contact Management",
+    "customerRelationshipManagement.contractManagement": "Contract Management",
+    "customerRelationshipManagement.customerInteractions": "Customer Interactions",
+    "customerRelationshipManagement.customerSegmentation": "Customer Segmentation",
+    "customerRelationshipManagement.customerService": "Customer Service",
+    "customerRelationshipManagement.customReports": "Custom Reports",
+    "customerRelationshipManagement.dealTracking": "Deal Tracking",
+    "customerRelationshipManagement.description": "Customer engagement and relationship management",
+    "customerRelationshipManagement.emailIntegration": "Email Integration",
+    "customerRelationshipManagement.followUpSequences": "Follow-Up Sequences",
+    "customerRelationshipManagement.forecastingAnalytics": "Forecasting & Analytics",
+    "customerRelationshipManagement.knowledgeBase": "Knowledge Base",
+    "customerRelationshipManagement.leadAssignment": "Lead Assignment",
+    "customerRelationshipManagement.leadManagement": "Lead Management",
+    "customerRelationshipManagement.marketingIntegration": "Marketing Integration",
+    "customerRelationshipManagement.opportunityManagement": "Opportunity Management",
+    "customerRelationshipManagement.performanceMetrics": "Performance Metrics",
+    "customerRelationshipManagement.personalizedMarketing": "Personalized Marketing",
+    "customerRelationshipManagement.quoteGeneration": "Quote Generation",
+    "customerRelationshipManagement.reminderAlerts": "Reminder & Alerts",
+    "customerRelationshipManagement.reportingDashboards": "Reporting & Dashboards",
+    "customerRelationshipManagement.salesAutomation": "Sales Automation",
+    "customerRelationshipManagement.salesPipeline": "Sales Pipeline",
+    "customerRelationshipManagement.salesReports": "Sales Reports",
+    "customerRelationshipManagement.selfServicePortal": "Self-Service Portal",
+    "customerRelationshipManagement.taskManagement": "Task Management",
+    "customerRelationshipManagement.ticketingSystem": "Ticketing System",
+    "customerRelationshipManagement.title": "Customer Relationship Management",
+    "customerRelationshipManagement.workflowAutomation": "Workflow Automation"
+  },
+  "ar": {
+    "customerRelationshipManagement.accountManagement": "إدارة الحسابات",
+    "customerRelationshipManagement.activityTracking": "تتبع الأنشطة",
+    "customerRelationshipManagement.calendarSync": "مزامنة التقويم",
+    "customerRelationshipManagement.campaignTracking": "تتبع الحملات",
+    "customerRelationshipManagement.caseManagement": "إدارة الحالات",
+    "customerRelationshipManagement.communicationHistory": "سجل الاتصالات",
+    "customerRelationshipManagement.contactManagement": "إدارة جهات الاتصال",
+    "customerRelationshipManagement.contractManagement": "إدارة العقود",
+    "customerRelationshipManagement.customerInteractions": "تفاعلات العملاء",
+    "customerRelationshipManagement.customerSegmentation": "تقسيم العملاء",
+    "customerRelationshipManagement.customerService": "خدمة العملاء",
+    "customerRelationshipManagement.customReports": "التقارير المخصصة",
+    "customerRelationshipManagement.dealTracking": "تتبع الصفقات",
+    "customerRelationshipManagement.description": "إدارة مشاركة العملاء والعلاقات",
+    "customerRelationshipManagement.emailIntegration": "تكامل البريد الإلكتروني",
+    "customerRelationshipManagement.followUpSequences": "تسلسلات المتابعة",
+    "customerRelationshipManagement.forecastingAnalytics": "التنبؤ والتحليلات",
+    "customerRelationshipManagement.knowledgeBase": "قاعدة المعرفة",
+    "customerRelationshipManagement.leadAssignment": "تعيين العملاء المحتملين",
+    "customerRelationshipManagement.leadManagement": "إدارة العملاء المحتملين",
+    "customerRelationshipManagement.marketingIntegration": "تكامل التسويق",
+    "customerRelationshipManagement.opportunityManagement": "إدارة الفرص",
+    "customerRelationshipManagement.performanceMetrics": "مقاييس الأداء",
+    "customerRelationshipManagement.personalizedMarketing": "التسويق الشخصي",
+    "customerRelationshipManagement.quoteGeneration": "إنشاء عروض الأسعار",
+    "customerRelationshipManagement.reminderAlerts": "التذكيرات والتنبيهات",
+    "customerRelationshipManagement.reportingDashboards": "التقارير ولوحات المعلومات",
+    "customerRelationshipManagement.salesAutomation": "أتمتة المبيعات",
+    "customerRelationshipManagement.salesPipeline": "خط أنابيب المبيعات",
+    "customerRelationshipManagement.salesReports": "تقارير المبيعات",
+    "customerRelationshipManagement.selfServicePortal": "بوابة الخدمة الذاتية",
+    "customerRelationshipManagement.taskManagement": "إدارة المهام",
+    "customerRelationshipManagement.ticketingSystem": "نظام التذاكر",
+    "customerRelationshipManagement.title": "إدارة علاقات العملاء",
+    "customerRelationshipManagement.workflowAutomation": "أتمتة سير العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/customerService.translations.json">
+<![CDATA[
+{
+  "en": {
+    "customerService.assignment": "Ticket Assignment",
+    "customerService.case": "Service Case",
+    "customerService.category": "Service Category",
+    "customerService.escalation": "Escalation",
+    "customerService.feedback": "Customer Feedback",
+    "customerService.helpdesk": "Help Desk",
+    "customerService.incident": "Incident",
+    "customerService.knowledge": "Knowledge Base",
+    "customerService.priority": "Priority",
+    "customerService.queue": "Support Queue",
+    "customerService.request": "Service Request",
+    "customerService.resolution": "Resolution",
+    "customerService.response": "Response Time",
+    "customerService.routing": "Ticket Routing",
+    "customerService.satisfaction": "Customer Satisfaction",
+    "customerService.service": "Customer Service",
+    "customerService.severity": "Severity",
+    "customerService.sla": "Service SLA",
+    "customerService.status": "Ticket Status",
+    "customerService.support": "Customer Support",
+    "customerService.survey": "Service Survey",
+    "customerService.ticket": "Support Ticket"
+  },
+  "ar": {
+    "customerService.assignment": "إسناد التذكرة",
+    "customerService.case": "حالة خدمة",
+    "customerService.category": "فئة الخدمة",
+    "customerService.escalation": "التصعيد",
+    "customerService.feedback": "ملاحظات العملاء",
+    "customerService.helpdesk": "مكتب المساعدة",
+    "customerService.incident": "حادث",
+    "customerService.knowledge": "قاعدة المعرفة",
+    "customerService.priority": "الأولوية",
+    "customerService.queue": "طابور الدعم",
+    "customerService.request": "طلب خدمة",
+    "customerService.resolution": "الحل",
+    "customerService.response": "زمن الاستجابة",
+    "customerService.routing": "توجيه التذاكر",
+    "customerService.satisfaction": "رضا العملاء",
+    "customerService.service": "خدمة العملاء",
+    "customerService.severity": "مستوى الخطورة",
+    "customerService.sla": "اتفاقية مستوى الخدمة",
+    "customerService.status": "حالة التذكرة",
+    "customerService.support": "الدعم الفني",
+    "customerService.survey": "استبيان الخدمة",
+    "customerService.ticket": "تذكرة دعم"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/customerServiceManagementAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "customerServiceManagementAdv.care": "Customer Care",
+    "customerServiceManagementAdv.channel": "Service Channel",
+    "customerServiceManagementAdv.churn": "Customer Churn",
+    "customerServiceManagementAdv.complaint": "Complaint Handling",
+    "customerServiceManagementAdv.delivery": "Service Delivery",
+    "customerServiceManagementAdv.engagement": "Customer Engagement",
+    "customerServiceManagementAdv.escalation": "Escalation",
+    "customerServiceManagementAdv.excellence": "Service Excellence",
+    "customerServiceManagementAdv.experience": "Service Experience",
+    "customerServiceManagementAdv.interaction": "Customer Interaction",
+    "customerServiceManagementAdv.level": "Service Level",
+    "customerServiceManagementAdv.lifetime": "Customer Lifetime Value",
+    "customerServiceManagementAdv.omnichannel": "Omnichannel",
+    "customerServiceManagementAdv.quality": "Service Quality",
+    "customerServiceManagementAdv.recovery": "Service Recovery",
+    "customerServiceManagementAdv.resolution": "Resolution",
+    "customerServiceManagementAdv.response": "Response",
+    "customerServiceManagementAdv.retention": "Customer Retention",
+    "customerServiceManagementAdv.satisfaction": "Customer Satisfaction",
+    "customerServiceManagementAdv.service": "Customer Service",
+    "customerServiceManagementAdv.standard": "Service Standards",
+    "customerServiceManagementAdv.support": "Customer Support"
+  },
+  "ar": {
+    "customerServiceManagementAdv.care": "رعاية العملاء",
+    "customerServiceManagementAdv.channel": "قناة الخدمة",
+    "customerServiceManagementAdv.churn": "فقدان العملاء",
+    "customerServiceManagementAdv.complaint": "معالجة الشكاوى",
+    "customerServiceManagementAdv.delivery": "تقديم الخدمة",
+    "customerServiceManagementAdv.engagement": "مشاركة العملاء",
+    "customerServiceManagementAdv.escalation": "التصعيد",
+    "customerServiceManagementAdv.excellence": "التميز في الخدمة",
+    "customerServiceManagementAdv.experience": "تجربة الخدمة",
+    "customerServiceManagementAdv.interaction": "تفاعل العملاء",
+    "customerServiceManagementAdv.level": "مستوى الخدمة",
+    "customerServiceManagementAdv.lifetime": "القيمة الدائمة للعميل",
+    "customerServiceManagementAdv.omnichannel": "متعدد القنوات",
+    "customerServiceManagementAdv.quality": "جودة الخدمة",
+    "customerServiceManagementAdv.recovery": "استعادة الخدمة",
+    "customerServiceManagementAdv.resolution": "الحل",
+    "customerServiceManagementAdv.response": "الاستجابة",
+    "customerServiceManagementAdv.retention": "الاحتفاظ بالعملاء",
+    "customerServiceManagementAdv.satisfaction": "رضا العملاء",
+    "customerServiceManagementAdv.service": "خدمة العملاء",
+    "customerServiceManagementAdv.standard": "معايير الخدمة",
+    "customerServiceManagementAdv.support": "دعم العملاء"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/customerSupport.translations.json">
+<![CDATA[
+{
+  "en": {
+    "customerSupport.agent": "Support Agent",
+    "customerSupport.assign": "Assign",
+    "customerSupport.case": "Case",
+    "customerSupport.channel": "Channel",
+    "customerSupport.chat": "Chat",
+    "customerSupport.complaint": "Complaint",
+    "customerSupport.email": "Email",
+    "customerSupport.escalate": "Escalate",
+    "customerSupport.feedback": "Feedback",
+    "customerSupport.help": "Help Request",
+    "customerSupport.inquiry": "Inquiry",
+    "customerSupport.issue": "Issue",
+    "customerSupport.link": "Link Tickets",
+    "customerSupport.merge": "Merge",
+    "customerSupport.phone": "Phone",
+    "customerSupport.portal": "Portal",
+    "customerSupport.problem": "Problem",
+    "customerSupport.question": "Question",
+    "customerSupport.rating": "Rating",
+    "customerSupport.satisfaction": "Customer Satisfaction",
+    "customerSupport.sla": "SLA",
+    "customerSupport.split": "Split",
+    "customerSupport.support": "Customer Support",
+    "customerSupport.team": "Support Team",
+    "customerSupport.ticket": "Support Ticket",
+    "customerSupport.transfer": "Transfer"
+  },
+  "ar": {
+    "customerSupport.agent": "مندوب الدعم",
+    "customerSupport.assign": "تعيين",
+    "customerSupport.case": "الحالة",
+    "customerSupport.channel": "القناة",
+    "customerSupport.chat": "الدردشة",
+    "customerSupport.complaint": "الشكوى",
+    "customerSupport.email": "البريد الإلكتروني",
+    "customerSupport.escalate": "تصعيد",
+    "customerSupport.feedback": "الملاحظات",
+    "customerSupport.help": "طلب المساعدة",
+    "customerSupport.inquiry": "الاستفسار",
+    "customerSupport.issue": "المشكلة",
+    "customerSupport.link": "ربط التذاكر",
+    "customerSupport.merge": "دمج",
+    "customerSupport.phone": "الهاتف",
+    "customerSupport.portal": "البوابة",
+    "customerSupport.problem": "المشكلة",
+    "customerSupport.question": "السؤال",
+    "customerSupport.rating": "التقييم",
+    "customerSupport.satisfaction": "رضا العملاء",
+    "customerSupport.sla": "اتفاقية مستوى الخدمة",
+    "customerSupport.split": "تقسيم",
+    "customerSupport.support": "دعم العملاء",
+    "customerSupport.team": "فريق الدعم",
+    "customerSupport.ticket": "تذكرة الدعم",
+    "customerSupport.transfer": "تحويل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/cyberPhysicalSystems.translations.json">
+<![CDATA[
+{
+  "en": {
+    "cyberPhysicalSystems.actuator": "Actuator Network",
+    "cyberPhysicalSystems.automation": "System Automation",
+    "cyberPhysicalSystems.autonomous": "Autonomous CPS",
+    "cyberPhysicalSystems.communication": "System Communication",
+    "cyberPhysicalSystems.control": "Control System",
+    "cyberPhysicalSystems.coordination": "System Coordination",
+    "cyberPhysicalSystems.cps": "Cyber-Physical Systems",
+    "cyberPhysicalSystems.cyber": "Cyber System",
+    "cyberPhysicalSystems.embedded": "Embedded System",
+    "cyberPhysicalSystems.feedback": "Feedback Loop",
+    "cyberPhysicalSystems.industrial": "Industrial CPS",
+    "cyberPhysicalSystems.integration": "System Integration",
+    "cyberPhysicalSystems.monitoring": "System Monitoring",
+    "cyberPhysicalSystems.physical": "Physical System",
+    "cyberPhysicalSystems.realtime": "Real-time System",
+    "cyberPhysicalSystems.reliability": "System Reliability",
+    "cyberPhysicalSystems.resilience": "System Resilience",
+    "cyberPhysicalSystems.safety": "System Safety",
+    "cyberPhysicalSystems.security": "CPS Security",
+    "cyberPhysicalSystems.sensor": "Sensor Network",
+    "cyberPhysicalSystems.smart": "Smart CPS",
+    "cyberPhysicalSystems.synchronization": "Synchronization"
+  },
+  "ar": {
+    "cyberPhysicalSystems.actuator": "شبكة المحركات",
+    "cyberPhysicalSystems.automation": "أتمتة النظام",
+    "cyberPhysicalSystems.autonomous": "الأنظمة السيبرانية الفيزيائية المستقلة",
+    "cyberPhysicalSystems.communication": "اتصال النظام",
+    "cyberPhysicalSystems.control": "نظام التحكم",
+    "cyberPhysicalSystems.coordination": "تنسيق النظام",
+    "cyberPhysicalSystems.cps": "الأنظمة السيبرانية الفيزيائية",
+    "cyberPhysicalSystems.cyber": "النظام السيبراني",
+    "cyberPhysicalSystems.embedded": "النظام المدمج",
+    "cyberPhysicalSystems.feedback": "حلقة التغذية الراجعة",
+    "cyberPhysicalSystems.industrial": "الأنظمة السيبرانية الفيزيائية الصناعية",
+    "cyberPhysicalSystems.integration": "تكامل الأنظمة",
+    "cyberPhysicalSystems.monitoring": "مراقبة النظام",
+    "cyberPhysicalSystems.physical": "النظام الفيزيائي",
+    "cyberPhysicalSystems.realtime": "النظام في الوقت الفعلي",
+    "cyberPhysicalSystems.reliability": "موثوقية النظام",
+    "cyberPhysicalSystems.resilience": "مرونة النظام",
+    "cyberPhysicalSystems.safety": "سلامة النظام",
+    "cyberPhysicalSystems.security": "أمن الأنظمة السيبرانية الفيزيائية",
+    "cyberPhysicalSystems.sensor": "شبكة المستشعرات",
+    "cyberPhysicalSystems.smart": "الأنظمة السيبرانية الفيزيائية الذكية",
+    "cyberPhysicalSystems.synchronization": "المزامنة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/cybersecurity.translations.json">
+<![CDATA[
+{
+  "en": {
+    "cybersecurity.access": "Access Control",
+    "cybersecurity.antivirus": "Antivirus",
+    "cybersecurity.attack": "Cyber Attack",
+    "cybersecurity.audit": "Security Audit",
+    "cybersecurity.authentication": "Authentication",
+    "cybersecurity.authorization": "Authorization",
+    "cybersecurity.breach": "Data Breach",
+    "cybersecurity.cybersecurity1": "Cybersecurity",
+    "cybersecurity.encryption": "Encryption",
+    "cybersecurity.firewall": "Firewall",
+    "cybersecurity.incident": "Security Incident",
+    "cybersecurity.infosec": "InfoSec",
+    "cybersecurity.malware": "Malware",
+    "cybersecurity.patch": "Security Patch",
+    "cybersecurity.phishing": "Phishing",
+    "cybersecurity.ransomware": "Ransomware",
+    "cybersecurity.response": "Incident Response",
+    "cybersecurity.risk": "Security Risk",
+    "cybersecurity.security": "Information Security",
+    "cybersecurity.threat": "Threat",
+    "cybersecurity.virus": "Virus",
+    "cybersecurity.vulnerability": "Vulnerability"
+  },
+  "ar": {
+    "cybersecurity.access": "التحكم في الوصول",
+    "cybersecurity.antivirus": "مكافح الفيروسات",
+    "cybersecurity.attack": "هجوم سيبراني",
+    "cybersecurity.audit": "تدقيق أمني",
+    "cybersecurity.authentication": "المصادقة",
+    "cybersecurity.authorization": "التفويض",
+    "cybersecurity.breach": "اختراق البيانات",
+    "cybersecurity.cybersecurity1": "الأمن السيبراني",
+    "cybersecurity.encryption": "التشفير",
+    "cybersecurity.firewall": "جدار الحماية",
+    "cybersecurity.incident": "حادث أمني",
+    "cybersecurity.infosec": "أمن المعلومات",
+    "cybersecurity.malware": "البرامج الضارة",
+    "cybersecurity.patch": "تصحيح أمني",
+    "cybersecurity.phishing": "التصيد الاحتيالي",
+    "cybersecurity.ransomware": "برامج الفدية",
+    "cybersecurity.response": "الاستجابة للحوادث",
+    "cybersecurity.risk": "المخاطر الأمنية",
+    "cybersecurity.security": "أمن المعلومات",
+    "cybersecurity.threat": "التهديد",
+    "cybersecurity.virus": "فيروس",
+    "cybersecurity.vulnerability": "الثغرة الأمنية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/cybersecurityAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "cybersecurityAdv.attack": "Cyber Attack",
+    "cybersecurityAdv.blue": "Blue Team",
+    "cybersecurityAdv.cyber": "Cybersecurity",
+    "cybersecurityAdv.ddos": "DDoS",
+    "cybersecurityAdv.defense": "Cyber Defense",
+    "cybersecurityAdv.edr": "EDR",
+    "cybersecurityAdv.exploit": "Exploit",
+    "cybersecurityAdv.forensics": "Digital Forensics",
+    "cybersecurityAdv.hunt": "Threat Hunting",
+    "cybersecurityAdv.malware": "Malware",
+    "cybersecurityAdv.patch": "Patch Management",
+    "cybersecurityAdv.penetration": "Penetration Testing",
+    "cybersecurityAdv.phishing": "Phishing",
+    "cybersecurityAdv.purple": "Purple Team",
+    "cybersecurityAdv.ransomware": "Ransomware",
+    "cybersecurityAdv.red": "Red Team",
+    "cybersecurityAdv.soar": "SOAR",
+    "cybersecurityAdv.social": "Social Engineering",
+    "cybersecurityAdv.threat": "Cyber Threat",
+    "cybersecurityAdv.vulnerability": "Vulnerability",
+    "cybersecurityAdv.xdr": "XDR",
+    "cybersecurityAdv.zero": "Zero Day"
+  },
+  "ar": {
+    "cybersecurityAdv.attack": "الهجوم السيبراني",
+    "cybersecurityAdv.blue": "الفريق الأزرق",
+    "cybersecurityAdv.cyber": "الأمن السيبراني",
+    "cybersecurityAdv.ddos": "هجوم حجب الخدمة",
+    "cybersecurityAdv.defense": "الدفاع السيبراني",
+    "cybersecurityAdv.edr": "الكشف والاستجابة في نقطة النهاية",
+    "cybersecurityAdv.exploit": "الاستغلال",
+    "cybersecurityAdv.forensics": "الطب الشرعي الرقمي",
+    "cybersecurityAdv.hunt": "البحث عن التهديدات",
+    "cybersecurityAdv.malware": "البرمجيات الخبيثة",
+    "cybersecurityAdv.patch": "إدارة التصحيحات",
+    "cybersecurityAdv.penetration": "اختبار الاختراق",
+    "cybersecurityAdv.phishing": "التصيد الاحتيالي",
+    "cybersecurityAdv.purple": "الفريق البنفسجي",
+    "cybersecurityAdv.ransomware": "برامج الفدية",
+    "cybersecurityAdv.red": "الفريق الأحمر",
+    "cybersecurityAdv.soar": "أتمتة الأمن وتنسيق الاستجابة",
+    "cybersecurityAdv.social": "الهندسة الاجتماعية",
+    "cybersecurityAdv.threat": "التهديد السيبراني",
+    "cybersecurityAdv.vulnerability": "الثغرة الأمنية",
+    "cybersecurityAdv.xdr": "الكشف والاستجابة الموسعة",
+    "cybersecurityAdv.zero": "اليوم صفر"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/cybersecurityExtended.translations.json">
+<![CDATA[
+{
+  "en": {
+    "cybersecurityExtended.access": "Access Control",
+    "cybersecurityExtended.analysis": "Threat Analysis",
+    "cybersecurityExtended.antimalware": "Anti-Malware",
+    "cybersecurityExtended.antivirus": "Antivirus",
+    "cybersecurityExtended.audit": "Security Audit",
+    "cybersecurityExtended.authentication": "Authentication",
+    "cybersecurityExtended.authorization": "Authorization",
+    "cybersecurityExtended.awareness": "Security Awareness",
+    "cybersecurityExtended.backup": "Data Backup",
+    "cybersecurityExtended.compliance": "Security Compliance",
+    "cybersecurityExtended.continuity": "Business Continuity",
+    "cybersecurityExtended.decryption": "Decryption",
+    "cybersecurityExtended.description": "Manage security operations and threats",
+    "cybersecurityExtended.encryption": "Encryption",
+    "cybersecurityExtended.endpoint": "Endpoint Security",
+    "cybersecurityExtended.firewall": "Firewall Management",
+    "cybersecurityExtended.forensics": "Digital Forensics",
+    "cybersecurityExtended.gateway": "Security Gateway",
+    "cybersecurityExtended.identity": "Identity Management",
+    "cybersecurityExtended.ids": "Intrusion Detection",
+    "cybersecurityExtended.incident": "Incident Response",
+    "cybersecurityExtended.intelligence": "Threat Intelligence",
+    "cybersecurityExtended.ips": "Intrusion Prevention",
+    "cybersecurityExtended.malware": "Malware Analysis",
+    "cybersecurityExtended.mfa": "Multi-Factor Auth",
+    "cybersecurityExtended.mitigation": "Risk Mitigation",
+    "cybersecurityExtended.monitoring": "Security Monitoring",
+    "cybersecurityExtended.oauth": "OAuth",
+    "cybersecurityExtended.patch": "Patch Management",
+    "cybersecurityExtended.penetration": "Penetration Testing",
+    "cybersecurityExtended.phishing": "Phishing Prevention",
+    "cybersecurityExtended.policy": "Security Policy",
+    "cybersecurityExtended.privilege": "Privilege Management",
+    "cybersecurityExtended.proxy": "Proxy Services",
+    "cybersecurityExtended.ransomware": "Ransomware Protection",
+    "cybersecurityExtended.recovery": "Disaster Recovery",
+    "cybersecurityExtended.risk": "Risk Assessment",
+    "cybersecurityExtended.scanning": "Security Scanning",
+    "cybersecurityExtended.siem": "SIEM",
+    "cybersecurityExtended.sso": "Single Sign-On",
+    "cybersecurityExtended.threat": "Threat Detection",
+    "cybersecurityExtended.title": "Cybersecurity",
+    "cybersecurityExtended.training": "Security Training",
+    "cybersecurityExtended.update": "Security Updates",
+    "cybersecurityExtended.vpn": "VPN",
+    "cybersecurityExtended.vulnerability": "Vulnerability Assessment"
+  },
+  "ar": {
+    "cybersecurityExtended.access": "التحكم في الوصول",
+    "cybersecurityExtended.analysis": "تحليل التهديدات",
+    "cybersecurityExtended.antimalware": "مكافحة البرامج الضارة",
+    "cybersecurityExtended.antivirus": "مكافحة الفيروسات",
+    "cybersecurityExtended.audit": "التدقيق الأمني",
+    "cybersecurityExtended.authentication": "المصادقة",
+    "cybersecurityExtended.authorization": "التفويض",
+    "cybersecurityExtended.awareness": "الوعي الأمني",
+    "cybersecurityExtended.backup": "النسخ الاحتياطي للبيانات",
+    "cybersecurityExtended.compliance": "الامتثال الأمني",
+    "cybersecurityExtended.continuity": "استمرارية الأعمال",
+    "cybersecurityExtended.decryption": "فك التشفير",
+    "cybersecurityExtended.description": "إدارة عمليات الأمن والتهديدات",
+    "cybersecurityExtended.encryption": "التشفير",
+    "cybersecurityExtended.endpoint": "أمن نقاط النهاية",
+    "cybersecurityExtended.firewall": "إدارة جدار الحماية",
+    "cybersecurityExtended.forensics": "التحقيقات الرقمية",
+    "cybersecurityExtended.gateway": "بوابة الأمان",
+    "cybersecurityExtended.identity": "إدارة الهوية",
+    "cybersecurityExtended.ids": "كشف التسلل",
+    "cybersecurityExtended.incident": "الاستجابة للحوادث",
+    "cybersecurityExtended.intelligence": "معلومات التهديدات",
+    "cybersecurityExtended.ips": "منع التسلل",
+    "cybersecurityExtended.malware": "تحليل البرامج الضارة",
+    "cybersecurityExtended.mfa": "المصادقة متعددة العوامل",
+    "cybersecurityExtended.mitigation": "تخفيف المخاطر",
+    "cybersecurityExtended.monitoring": "المراقبة الأمنية",
+    "cybersecurityExtended.oauth": "OAuth",
+    "cybersecurityExtended.patch": "إدارة التحديثات",
+    "cybersecurityExtended.penetration": "اختبار الاختراق",
+    "cybersecurityExtended.phishing": "منع التصيد الاحتيالي",
+    "cybersecurityExtended.policy": "السياسة الأمنية",
+    "cybersecurityExtended.privilege": "إدارة الامتيازات",
+    "cybersecurityExtended.proxy": "خدمات الوكيل",
+    "cybersecurityExtended.ransomware": "الحماية من الفدية",
+    "cybersecurityExtended.recovery": "التعافي من الكوارث",
+    "cybersecurityExtended.risk": "تقييم المخاطر",
+    "cybersecurityExtended.scanning": "الفحص الأمني",
+    "cybersecurityExtended.siem": "إدارة الأحداث الأمنية",
+    "cybersecurityExtended.sso": "تسجيل الدخول الموحد",
+    "cybersecurityExtended.threat": "اكتشاف التهديدات",
+    "cybersecurityExtended.title": "الأمن السيبراني",
+    "cybersecurityExtended.training": "التدريب الأمني",
+    "cybersecurityExtended.update": "التحديثات الأمنية",
+    "cybersecurityExtended.vpn": "الشبكة الخاصة الافتراضية",
+    "cybersecurityExtended.vulnerability": "تقييم الثغرات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/cybersecurityOperations.translations.json">
+<![CDATA[
+{
+  "en": {
+    "cybersecurityOperations.alerts": "Security Alerts",
+    "cybersecurityOperations.analysis": "Threat Analysis",
+    "cybersecurityOperations.automation": "Security Automation",
+    "cybersecurityOperations.containment": "Threat Containment",
+    "cybersecurityOperations.correlation": "Event Correlation",
+    "cybersecurityOperations.cybersecurity": "Cybersecurity Operations",
+    "cybersecurityOperations.detection": "Threat Detection",
+    "cybersecurityOperations.eradication": "Threat Eradication",
+    "cybersecurityOperations.forensics": "Digital Forensics",
+    "cybersecurityOperations.hunting": "Threat Hunting",
+    "cybersecurityOperations.intelligence": "Threat Intelligence",
+    "cybersecurityOperations.investigation": "Incident Investigation",
+    "cybersecurityOperations.monitoring": "Security Monitoring",
+    "cybersecurityOperations.operations": "Security Operations",
+    "cybersecurityOperations.playbooks": "Response Playbooks",
+    "cybersecurityOperations.recovery": "System Recovery",
+    "cybersecurityOperations.remediation": "Threat Remediation",
+    "cybersecurityOperations.response": "Incident Response",
+    "cybersecurityOperations.siem": "SIEM Platform",
+    "cybersecurityOperations.soar": "Security Orchestration",
+    "cybersecurityOperations.soc": "Security Operations Center",
+    "cybersecurityOperations.triage": "Alert Triage"
+  },
+  "ar": {
+    "cybersecurityOperations.alerts": "التنبيهات الأمنية",
+    "cybersecurityOperations.analysis": "تحليل التهديدات",
+    "cybersecurityOperations.automation": "أتمتة الأمان",
+    "cybersecurityOperations.containment": "احتواء التهديدات",
+    "cybersecurityOperations.correlation": "ارتباط الأحداث",
+    "cybersecurityOperations.cybersecurity": "عمليات الأمن السيبراني",
+    "cybersecurityOperations.detection": "كشف التهديدات",
+    "cybersecurityOperations.eradication": "القضاء على التهديدات",
+    "cybersecurityOperations.forensics": "الطب الشرعي الرقمي",
+    "cybersecurityOperations.hunting": "البحث عن التهديدات",
+    "cybersecurityOperations.intelligence": "معلومات التهديدات",
+    "cybersecurityOperations.investigation": "التحقيق في الحوادث",
+    "cybersecurityOperations.monitoring": "المراقبة الأمنية",
+    "cybersecurityOperations.operations": "العمليات الأمنية",
+    "cybersecurityOperations.playbooks": "كتيبات الاستجابة",
+    "cybersecurityOperations.recovery": "استعادة النظام",
+    "cybersecurityOperations.remediation": "معالجة التهديدات",
+    "cybersecurityOperations.response": "الاستجابة للحوادث",
+    "cybersecurityOperations.siem": "منصة SIEM",
+    "cybersecurityOperations.soar": "تنسيق الأمان",
+    "cybersecurityOperations.soc": "مركز العمليات الأمنية",
+    "cybersecurityOperations.triage": "فرز التنبيهات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/cybersecurityOps.translations.json">
+<![CDATA[
+{
+  "en": {
+    "cybersecurityOps.analysis": "Security Analysis",
+    "cybersecurityOps.automation": "Security Automation",
+    "cybersecurityOps.containment": "Threat Containment",
+    "cybersecurityOps.cybersecurity": "Cybersecurity Operations",
+    "cybersecurityOps.detection": "Threat Detection",
+    "cybersecurityOps.edr": "Endpoint Detection and Response",
+    "cybersecurityOps.eradication": "Threat Eradication",
+    "cybersecurityOps.forensics": "Digital Forensics",
+    "cybersecurityOps.hunting": "Threat Hunting",
+    "cybersecurityOps.intelligence": "Threat Intelligence",
+    "cybersecurityOps.investigation": "Security Investigation",
+    "cybersecurityOps.monitoring": "Security Monitoring",
+    "cybersecurityOps.ndr": "Network Detection and Response",
+    "cybersecurityOps.orchestration": "Security Orchestration",
+    "cybersecurityOps.playbook": "Security Playbook",
+    "cybersecurityOps.recovery": "Security Recovery",
+    "cybersecurityOps.remediation": "Security Remediation",
+    "cybersecurityOps.response": "Incident Response",
+    "cybersecurityOps.siem": "SIEM",
+    "cybersecurityOps.soar": "SOAR",
+    "cybersecurityOps.soc": "Security Operations Center",
+    "cybersecurityOps.xdr": "Extended Detection and Response"
+  },
+  "ar": {
+    "cybersecurityOps.analysis": "التحليل الأمني",
+    "cybersecurityOps.automation": "الأتمتة الأمنية",
+    "cybersecurityOps.containment": "احتواء التهديدات",
+    "cybersecurityOps.cybersecurity": "عمليات الأمن السيبراني",
+    "cybersecurityOps.detection": "اكتشاف التهديدات",
+    "cybersecurityOps.edr": "الكشف والاستجابة لنقطة النهاية",
+    "cybersecurityOps.eradication": "القضاء على التهديدات",
+    "cybersecurityOps.forensics": "الطب الشرعي الرقمي",
+    "cybersecurityOps.hunting": "البحث عن التهديدات",
+    "cybersecurityOps.intelligence": "المعلومات الاستخباراتية عن التهديدات",
+    "cybersecurityOps.investigation": "التحقيق الأمني",
+    "cybersecurityOps.monitoring": "المراقبة الأمنية",
+    "cybersecurityOps.ndr": "الكشف والاستجابة للشبكة",
+    "cybersecurityOps.orchestration": "تنسيق الأمن",
+    "cybersecurityOps.playbook": "دليل العمليات الأمنية",
+    "cybersecurityOps.recovery": "الاسترداد الأمني",
+    "cybersecurityOps.remediation": "المعالجة الأمنية",
+    "cybersecurityOps.response": "الاستجابة للحوادث",
+    "cybersecurityOps.siem": "سيم",
+    "cybersecurityOps.soar": "سوار",
+    "cybersecurityOps.soc": "مركز العمليات الأمنية",
+    "cybersecurityOps.xdr": "الكشف والاستجابة الموسعة"
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

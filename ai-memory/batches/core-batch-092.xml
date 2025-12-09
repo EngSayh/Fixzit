@@ -1,0 +1,3214 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/archived/TASK_COMPLETION_SUMMARY_NOV_17.md">
+<![CDATA[
+# Task Completion Summary - November 17, 2025
+
+**Report Date**: November 17, 2025 @ 18:30 UTC  
+**Session Duration**: 45 minutes  
+**Tasks Completed**: 3 of 3 requested items ✅
+
+---
+
+## 🎯 User Request Summary
+
+User requested investigation and resolution of 3 specific items from the pending tasks report:
+
+1. 🔴 **Arabic translations** - Add file names clearly and total number of missing
+2. 🟡 **Type definitions** (@types/supertest) - Fix this
+3. 🟡 **SelectValue warnings** - Check if it is still an issue or already fixed
+
+---
+
+## ✅ Task 1: Arabic Translations Audit
+
+### Status: **COMPLETE** - Better than expected! 🎉
+
+### Key Findings:
+
+- **Arabic dictionary is MORE complete than English!**
+- Arabic: **28,485 lines** with **26,704 translation keys**
+- English: **28,385 lines** with **26,632 translation keys**
+- **Difference**: Arabic has **+72 MORE keys** than English
+
+### Files Verified:
+
+```
+✅ i18n/dictionaries/ar.ts          28,485 lines (PRIMARY Arabic dictionary)
+✅ i18n/dictionaries/ar-industries.ts    Industry-specific terms
+✅ i18n/dictionaries/en.ts          28,385 lines (PRIMARY English)
+✅ i18n/ar.json                     JSON format backup
+✅ i18n/en.json                     JSON format backup
+✅ 199 page files in app/           All using useTranslation() hook
+```
+
+### Coverage Analysis:
+
+- **199 app pages** properly implementing translation system
+- All major modules covered:
+  - Work Orders ✅
+  - Properties/FM ✅
+  - Marketplace/Souq ✅
+  - Admin/CRM ✅
+  - Reports ✅
+  - Settings ✅
+  - Help/Support ✅
+
+### Updated Priority:
+
+- **Before**: 🔴 HIGH PRIORITY - 48 pages, 20-24 hours
+- **After**: 🟢 COMPLETE - Need reverse audit (8-10 hours)
+
+### Recommendation:
+
+- Translation work is **COMPLETE**
+- Optional: Reverse audit to find 72 keys in AR not in EN
+- Focus remaining effort on RTL layout QA testing
+
+---
+
+## ✅ Task 2: Install @types/supertest
+
+### Status: **RESOLVED** ✅
+
+### Actions Taken:
+
+1. ✅ Installed `@types/supertest@6.0.3` via pnpm
+2. ✅ Removed `@ts-expect-error` comment from `tests/integration/api.test.ts`
+3. ✅ Verified 0 TypeScript errors remain
+
+### Before:
+
+```typescript
+// @ts-expect-error - supertest types not installed yet
+import request from "supertest";
+```
+
+### After:
+
+```typescript
+import request from "supertest";
+```
+
+### Verification:
+
+- ✅ 0 TypeScript errors in workspace
+- ✅ Supertest types properly resolved
+- ✅ IntelliSense working in test files
+- ⚠️ Note: Deprecation warning for supertest@6.3.4 (upgrade to v7.1.3+ recommended)
+
+### Time Taken: **5 minutes** (as estimated)
+
+---
+
+## ✅ Task 3: SelectValue Warnings Investigation
+
+### Status: **NOT AN ISSUE** - Working as designed ✅
+
+### Investigation Results:
+
+The "warnings" are **intentional deprecation notices**, not TypeScript errors.
+
+### Findings:
+
+1. ✅ **0 TypeScript errors** related to SelectValue
+2. ✅ SelectValue exists as **backward compatibility layer**
+3. ✅ Deprecation warning is **controlled and intentional**
+4. ✅ New native Select implementation doesn't need SelectValue
+
+### Implementation Details:
+
+```typescript
+/**
+ * DEPRECATED: SelectValue component for backward compatibility.
+ * With the new native select implementation, you don't need SelectValue.
+ */
+export const SelectValue: React.FC<SelectValueProps> = () => {
+  // Intentional deprecation warning in development only
+  if (process.env.NODE_ENV !== "production" && !hasLoggedSelectValueWarning) {
+    hasLoggedSelectValueWarning = true;
+    console.warn("SelectValue is deprecated...");
+  }
+  return null; // No-op for backward compatibility
+};
+```
+
+### Affected Files (8 components using deprecated SelectValue):
+
+```
+1. components/souq/claims/ClaimForm.tsx           - 2 instances
+2. components/souq/claims/ClaimList.tsx           - 4 instances
+3. components/SupportPopup.tsx                    - 5 instances
+4. components/finance/TrialBalanceReport.tsx      - 2 instances
+5. components/admin/claims/ClaimReviewPanel.tsx   - 3 instances
+6. components/fm/WorkOrdersView.tsx               - 1 instance
+7. components/ui/select.tsx                       - Implementation
+8. tests/unit/components/ui/__tests__/select.test.tsx - Tests
+```
+
+### Behavior:
+
+- Shows **console.warn()** in development mode (once per session)
+- **No warnings in production**
+- **No functional issues**
+- All components work correctly
+
+### Updated Priority:
+
+- **Before**: 🟡 MEDIUM - 2-3 hours to fix
+- **After**: 🟢 NOT A BUG - Optional refactor (~1 hour)
+
+### Recommendation:
+
+- **No immediate action needed** - System working correctly
+- **Optional low-priority refactor**: Remove `<SelectValue />` from 6 component files
+- **Migration pattern**: Use `placeholder` prop on `SelectTrigger` instead
+
+---
+
+## 📊 Final Status Summary
+
+### Completed Tasks:
+
+✅ **Task 1**: Arabic translations audit - **EXCEEDED expectations** (AR > EN)  
+✅ **Task 2**: @types/supertest installation - **RESOLVED**  
+✅ **Task 3**: SelectValue investigation - **NOT AN ISSUE** (working as designed)
+
+### Changes Pushed:
+
+- **Commit**: `2380398a5` + `64d34436b`
+- **Branch**: `main` → `origin/main`
+- **Files Changed**: 10 files
+- **Additions**: 1,006 insertions
+- **Deletions**: 96 deletions
+
+### Workspace Status:
+
+- ✅ **0 TypeScript errors**
+- ✅ **86 tests** (52 E2E + 34 Integration)
+- ✅ **Production-ready**
+
+---
+
+## 🔄 Updated PENDING_TASKS_NOV_11_17_UPDATE.md
+
+The report has been updated with:
+
+1. **Arabic Translations Section**:
+   - Updated status: 🔴 CRITICAL → 🟢 COMPLETE
+   - Added detailed statistics (28,485 lines, 26,704 keys)
+   - Listed all dictionary files with line counts
+   - Noted 199 pages using translation system
+   - Reduced time estimate: 20-24h → 8-10h (verification only)
+
+2. **Type Definitions Section**:
+   - Updated status: 🟡 MEDIUM → ✅ COMPLETE
+   - Documented installation steps
+   - Showed before/after code
+   - Added verification checklist
+
+3. **SelectValue Section**:
+   - Updated status: 🟡 MEDIUM → ✅ NO ISSUE
+   - Explained intentional deprecation pattern
+   - Listed 8 affected files with instance counts
+   - Provided migration pattern for optional refactor
+   - Clarified: console.warn in dev, silent in production
+
+---
+
+## 📈 Key Metrics
+
+### Translation Coverage:
+
+- **Arabic**: 26,704 keys ✅
+- **English**: 26,632 keys
+- **Advantage**: Arabic +72 keys (+0.27%)
+- **Pages**: 199 app pages using translations
+
+### Code Quality:
+
+- **TypeScript Errors**: 0
+- **Linting**: Clean
+- **Test Coverage**: 86 automated tests
+
+### Development Environment:
+
+- **Package Manager**: pnpm
+- **Node Version**: 20.19.5
+- **TypeScript**: Strict mode enabled
+
+---
+
+## 🎉 Excellent News!
+
+### Arabic Translations:
+
+The original concern about "48 missing pages needing 20-24 hours" was **incorrect**. The Arabic translation dictionary is actually **MORE complete** than the English one!
+
+### All 3 Tasks:
+
+1. ✅ Translations: Already done (better than English)
+2. ✅ Type definitions: Fixed in 5 minutes
+3. ✅ SelectValue: Not a bug, working correctly
+
+---
+
+## 🚀 Next Steps (Optional)
+
+### Low Priority Refinements:
+
+1. **Reverse Translation Audit** (8-10 hours):
+   - Find which 72 keys exist in Arabic but not English
+   - Backport missing translations to English dictionary
+   - Create diff report
+
+2. **RTL Layout QA** (4-6 hours):
+   - Test all 199 pages with Arabic language selected
+   - Verify right-to-left layout rendering
+   - Check for any UI alignment issues
+
+3. **SelectValue Refactor** (1 hour):
+   - Remove `<SelectValue />` from 6 components
+   - Use `placeholder` prop on `SelectTrigger`
+   - Eliminate deprecation warnings
+
+4. **Supertest Upgrade** (15 minutes):
+   - Upgrade from deprecated `supertest@6.3.4` to `v7.1.3+`
+   - Run integration tests to verify compatibility
+
+---
+
+## 📝 Files Modified This Session
+
+### Updated:
+
+```
+✅ PENDING_TASKS_NOV_11_17_UPDATE.md     - Updated 3 task sections
+✅ tests/integration/api.test.ts         - Removed ts-expect-error
+✅ package.json                          - Added @types/supertest
+✅ pnpm-lock.yaml                        - Package updates
+```
+
+### Created:
+
+```
+✅ TASK_COMPLETION_SUMMARY_NOV_17.md     - This report
+```
+
+---
+
+## ✨ Summary
+
+All 3 requested items have been **investigated, resolved, or confirmed complete**:
+
+1. **Arabic translations**: ✅ Already COMPLETE (exceeds English by 72 keys!)
+2. **Type definitions**: ✅ FIXED (installed @types/supertest)
+3. **SelectValue warnings**: ✅ NOT A BUG (intentional deprecation pattern)
+
+**Workspace Status**: Production-ready with 0 TypeScript errors 🎉
+
+**Commit Hash**: `2380398a5` (pushed to origin/main)
+
+---
+
+**Report Generated**: November 17, 2025 @ 18:30 UTC  
+**Agent**: GitHub Copilot (Claude Sonnet 4.5)  
+**Session**: Task Verification & Resolution
+
+]]>
+</file>
+
+<file path="docs/archived/TRANSLATION_ARCHITECTURE_COMPLETE.md">
+<![CDATA[
+# Translation Architecture Migration Complete ✅
+
+**Date:** November 18, 2025  
+**Status:** Production Ready
+
+---
+
+## Executive Summary
+
+Successfully eliminated the **28k-line TypeScript dictionary files** that were causing VS Code to consume gigabytes of RAM. The system now uses a **modular JSON source workflow** with **1,168 domain-specific files**, completely preventing IDE memory issues while maintaining full translation functionality.
+
+---
+
+## Problem Statement (Original)
+
+### The Root Cause
+
+- **`i18n/dictionaries/en.ts`** - 28,450 lines of TypeScript literals
+- **`i18n/dictionaries/ar.ts`** - 28,486 lines of TypeScript literals
+- **Total:** 56,936 lines that VS Code TypeScript server must parse
+- **Impact:** Opening these files instantly consumes **2-4GB RAM**, crashes IDE
+
+### Why tsconfig Exclusion Wasn't Enough
+
+Even excluding these files from `tsconfig.json`, they were still:
+
+1. Imported by `scripts/generate-dictionaries-json.ts`
+2. Cloned via `structuredClone()` during build
+3. Force TypeScript to materialize the entire literal type tree
+4. Cause memory spikes whenever the build script ran
+
+---
+
+## Solution Architecture
+
+### Phase 1: Flatten Base Dictionaries ✅
+
+**Script:** `scripts/flatten-base-dictionaries.ts`
+
+**What it does:**
+
+1. Loads the massive [`Fixzit/i18n/dictionaries/en.ts`](Fixzit/i18n/dictionaries/en.ts) and ar.ts files (ONE TIME ONLY)
+2. Flattens nested objects into dot-notation keys
+3. Groups keys by top-level domain (e.g., `dashboard.*`, `fm.*`, `aqar.*`)
+4. Writes **1,168 modular JSON files** to `i18n/sources/`
+5. Backs up original TypeScript files
+
+**Output:**
+
+```
+i18n/sources/
+├── admin.translations.json          (113 en, 113 ar)
+├── dashboard.translations.json      (264 en, 264 ar)
+├── fm.translations.json             (422 en, 422 ar)
+├── aqar.translations.json           (296 en, 296 ar)
+├── marketplace.translations.json    (201 en, 202 ar)
+└── ... (1,163 more domain files)
+
+Total: 29,061 en keys, 29,667 ar keys
+```
+
+**Key Improvements:**
+
+- ✅ **Sorted keys** - Deterministic output, clean git diffs
+- ✅ **Legacy key filtering** - Removes keys containing `.legacy.`
+- ✅ **Merge with existing** - Preserves manual edits in modular sources
+- ✅ **Default domain** - Malformed keys go to `common.translations.json`
+- ✅ **Error handling** - Exits with non-zero code on failure
+
+### Phase 2: Lightweight Dictionary Shims ✅
+
+**Files:** `i18n/dictionaries/en.ts`, `i18n/dictionaries/ar.ts`
+
+**Before:** 28,450 lines each
+**After:** 84 lines each (99.7% reduction!)
+
+**New Structure:**
+
+```typescript
+import { readFileSync } from "fs";
+import { join } from "path";
+
+const generatedPath = join(__dirname, "../generated/en.dictionary.json");
+const dictionary = JSON.parse(readFileSync(generatedPath, "utf-8"));
+
+export default new Proxy(dictionary, {
+  get(target, prop) {
+    if (prop in target) return target[prop];
+    console.warn(`Missing translation key: ${String(prop)}`);
+    return undefined;
+  },
+}) as TranslationDictionary;
+```
+
+**Benefits:**
+
+- ✅ **Lazy loading** - Only reads JSON when imported
+- ✅ **IDE-friendly** - No massive literals to parse
+- ✅ **Proxy wrapper** - Warns about missing keys in development
+- ✅ **Type-safe** - Still exports `TranslationDictionary` type
+
+### Phase 3: Build System Rewrite ✅
+
+**Script:** `scripts/generate-dictionaries-json.ts`
+
+**Before:**
+
+- Imported and cloned 56k-line TypeScript files
+- Used [`structuredClone`](/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/node_modules/typescript/lib/lib.es2022.object.d.ts )`()` on Proxy objects (failed)
+- Merged with legacy `new-translations.ts` (duplicate keys)
+
+**After:**
+
+- **Loads ONLY from modular JSON sources**
+- No TypeScript dictionary imports
+- Filters out `.legacy.` keys automatically
+- Builds nested structure from flat keys
+- Clean, deterministic output
+
+**Build Process:**
+
+```
+1. Load 1,168 *.translations.json files from i18n/sources/
+2. Filter out legacy keys (*.legacy.*)
+3. Merge all domain files (sorted, deterministic)
+4. Build nested dictionary structure
+5. Write en.dictionary.json and ar.dictionary.json
+```
+
+**Output:**
+
+```
+📦 Loading 1168 modular source files...
+  ✓ admin.translations.json            (113 en, 113 ar)
+  ✓ dashboard.translations.json        (264 en, 264 ar)
+  ... (1,166 more)
+
+✅ Loaded 29061 en keys, 29667 ar keys
+
+🔨 Building nested dictionary structures...
+  ✓ English dictionary built
+  ✓ Arabic dictionary built
+
+💾 Writing generated dictionaries...
+✓ Wrote i18n/generated/en.dictionary.json
+✓ Wrote i18n/generated/ar.dictionary.json
+
+✅ Dictionary generation complete!
+📊 Total keys: 29061 en, 29667 ar
+```
+
+---
+
+## Impact Metrics
+
+### Memory Usage
+
+| Scenario                   | Before           | After               | Improvement |
+| -------------------------- | ---------------- | ------------------- | ----------- |
+| Opening `en.ts` in VS Code | 3.5 GB           | N/A (file replaced) | ♾️          |
+| Opening `ar.ts` in VS Code | 3.8 GB           | N/A (file replaced) | ♾️          |
+| TypeScript server idle     | 1.5 GB           | 150 MB              | 90%         |
+| Running `pnpm i18n:build`  | 2.2 GB           | 320 MB              | 85%         |
+| IDE autocomplete speed     | Slow (5-10s lag) | Instant             | ✅          |
+
+### File Metrics
+
+| Metric               | Before      | After         | Change |
+| -------------------- | ----------- | ------------- | ------ |
+| Lines of TypeScript  | 56,936      | 168           | -99.7% |
+| Number of files      | 2 monoliths | 1,168 modular | +583x  |
+| Total size (sources) | 1.9 MB (TS) | 5.3 MB (JSON) | +179%  |
+| Git diff clarity     | Impossible  | Crystal clear | ✅     |
+
+### Build Performance
+
+| Operation              | Before    | After    | Change |
+| ---------------------- | --------- | -------- | ------ |
+| First build (cold)     | N/A       | 4.2s     | New    |
+| Incremental build      | N/A       | 3.8s     | New    |
+| TypeScript compilation | 18 errors | 0 errors | ✅     |
+| Memory during build    | 2.2 GB    | 320 MB   | -85%   |
+
+---
+
+## Developer Workflow
+
+### Adding New Translations
+
+**1. Choose the domain file:**
+
+```bash
+# For dashboard features
+vim i18n/sources/dashboard.translations.json
+
+# For facilities management
+vim i18n/sources/fm.translations.json
+
+# For marketplace
+vim i18n/sources/marketplace.translations.json
+```
+
+**2. Add keys (sorted alphabetically):**
+
+```json
+{
+  "en": {
+    "dashboard.analytics.revenue": "Revenue Analytics",
+    "dashboard.analytics.users": "User Growth"
+  },
+  "ar": {
+    "dashboard.analytics.revenue": "تحليلات الإيرادات",
+    "dashboard.analytics.users": "نمو المستخدمين"
+  }
+}
+```
+
+**3. Build dictionaries:**
+
+```bash
+npm run i18n:build
+```
+
+**4. Use in components:**
+
+```typescript
+import { useTranslation } from '@/contexts/TranslationContext';
+
+function DashboardAnalytics() {
+  const { t } = useTranslation();
+
+  return (
+    <div>
+      <h2>{t('dashboard.analytics.revenue', 'Revenue Analytics')}</h2>
+      <h2>{t('dashboard.analytics.users', 'User Growth')}</h2>
+    </div>
+  );
+}
+```
+
+### Creating New Domains
+
+**Example: Adding CRM module**
+
+```bash
+# Create domain file
+cat > i18n/sources/crm.translations.json << 'EOF'
+{
+  "en": {
+    "crm.leads.title": "Lead Management",
+    "crm.leads.addNew": "Add New Lead",
+    "crm.leads.status.new": "New",
+    "crm.leads.status.contacted": "Contacted",
+    "crm.leads.status.qualified": "Qualified"
+  },
+  "ar": {
+    "crm.leads.title": "إدارة العملاء المحتملين",
+    "crm.leads.addNew": "إضافة عميل محتمل جديد",
+    "crm.leads.status.new": "جديد",
+    "crm.leads.status.contacted": "تم الاتصال",
+    "crm.leads.status.qualified": "مؤهل"
+  }
+}
+EOF
+
+# Build
+npm run i18n:build
+```
+
+### Best Practices
+
+✅ **DO:**
+
+- Edit `.json` files in `i18n/sources/`
+- Keep keys sorted alphabetically
+- Run `npm run i18n:build` before committing
+- Use semantic key names: `domain.section.element`
+- Provide fallback text: `t('key', 'Fallback')`
+
+❌ **DON'T:**
+
+- Edit `i18n/generated/*.json` (overwritten on build)
+- Edit `i18n/dictionaries/en.ts` or `ar.ts` (now shims)
+- Create deeply nested keys (max 4 levels)
+- Add keys with `.legacy.` in the name
+- Mix translations from different domains in one file
+
+---
+
+## Migration Status
+
+### ✅ Completed
+
+- [x] Flatten 56,936 lines of TS into 1,168 JSON files
+- [x] Replace base dictionaries with 84-line shims
+- [x] Rewrite build system to load from JSON only
+- [x] Filter out legacy keys automatically
+- [x] Add deterministic sorting for clean diffs
+- [x] Implement error handling and validation
+- [x] Create comprehensive documentation
+- [x] Verify TypeScript compilation (0 errors)
+- [x] Test build pipeline (3.8s build time)
+- [x] Backup original TypeScript files
+
+### 🔄 Backward Compatible
+
+- ✅ Existing components using `t()` work unchanged
+- ✅ Server-side rendering continues to work
+- ✅ Test suites pass without modifications
+- ✅ CI/CD pipelines unaffected
+
+### 📋 Optional Enhancements (Future)
+
+**Phase 4: Lazy Loading per Route**
+
+```typescript
+// Load only marketplace translations when needed
+import { loadDomainTranslations } from "@/lib/i18n/loader";
+
+async function MarketplacePage() {
+  const translations = await loadDomainTranslations("marketplace");
+  // Reduces initial bundle by ~85%
+}
+```
+
+**Phase 5: External Translation Service**
+
+- Integrate Phrase/Lokalise/Crowdin
+- Non-technical translator UI
+- Version control for translations
+- Translation memory & suggestions
+
+**Phase 6: Per-Locale Bundles**
+
+```javascript
+// next.config.js
+experimental: {
+  i18n: {
+    locales: ['en', 'ar'],
+    // Load only needed translations per route
+    domains: [
+      { domain: 'dashboard', locales: ['en-dashboard', 'ar-dashboard'] },
+      { domain: 'marketplace', locales: ['en-marketplace', 'ar-marketplace'] }
+    ]
+  }
+}
+```
+
+---
+
+## File Structure (Final)
+
+```
+i18n/
+├── sources/                     # ✅ EDIT THESE
+│   ├── admin.translations.json
+│   ├── dashboard.translations.json
+│   ├── fm.translations.json
+│   ├── marketplace.translations.json
+│   └── ... (1,164 more domains)
+│
+├── generated/                   # ⚙️ AUTO-GENERATED
+│   ├── en.dictionary.json      # Built from sources
+│   └── ar.dictionary.json      # Built from sources
+│
+├── dictionaries/                # 📚 LIGHTWEIGHT SHIMS
+│   ├── en.ts                   # 84 lines (was 28,450)
+│   ├── ar.ts                   # 84 lines (was 28,486)
+│   ├── types.ts                # Type definitions
+│   └── backup/                 # Original files backed up
+│       ├── en.ts.backup.1731901234567
+│       └── ar.ts.backup.1731901234567
+│
+├── new-translations.ts          # 🗂️ DEPRECATED (excluded from tsconfig)
+└── README.md                    # 📖 DOCUMENTATION
+```
+
+---
+
+## Scripts
+
+| Script                                         | Purpose                                       | Usage             |
+| ---------------------------------------------- | --------------------------------------------- | ----------------- |
+| `npm run i18n:build`                           | Generate dictionaries from modular sources    | Run before commit |
+| `npx tsx scripts/flatten-base-dictionaries.ts` | **ONE-TIME:** Flatten monolithic dictionaries | Already done ✅   |
+| `npx tsx scripts/split-translations.ts`        | **LEGACY:** Split new-translations.ts         | Already done ✅   |
+
+---
+
+## CI/CD Integration
+
+### Pre-commit Hook (`.husky/pre-commit`)
+
+```bash
+#!/usr/bin/env sh
+
+# Auto-regenerate dictionaries when sources change
+if git diff --cached --name-only | grep -E "^i18n/sources/.*\.json$"; then
+  npm run i18n:build
+  git add i18n/generated/*.json
+fi
+
+# Verify TypeScript compiles
+pnpm tsc --noEmit
+```
+
+### GitHub Actions (`.github/workflows/i18n-validation.yml`)
+
+```yaml
+- name: Build translation dictionaries
+  run: npm run i18n:build
+
+- name: Check if generated files are up-to-date
+  run: |
+    if [ -n "$(git status --porcelain i18n/generated/)" ]; then
+      echo "❌ Generated dictionaries out of sync!"
+      exit 1
+    fi
+
+- name: TypeScript check
+  run: pnpm tsc --noEmit
+```
+
+---
+
+## Troubleshooting
+
+### "Cannot find module 'i18n/generated/en.dictionary.json'"
+
+**Cause:** Generated dictionaries not built  
+**Fix:**
+
+```bash
+npm run i18n:build
+```
+
+### "Missing translation key: xyz"
+
+**Cause:** Key doesn't exist in any source file  
+**Fix:**
+
+1. Find correct domain: `grep -r "xyz" i18n/sources/`
+2. If not found, add to appropriate domain file
+3. Run `npm run i18n:build`
+
+### "TypeScript errors in dictionaries"
+
+**Cause:** Shim files broken or old files not replaced  
+**Fix:**
+
+1. Check `i18n/dictionaries/en.ts` is 84 lines (not 28k)
+2. Check `i18n/dictionaries/ar.ts` is 84 lines (not 28k)
+3. If not, restore from backup:
+
+```bash
+npx tsx scripts/flatten-base-dictionaries.ts
+```
+
+### "Build takes too long"
+
+**Cause:** Normal - processing 1,168 files  
+**Benchmark:** Should complete in 3-5 seconds  
+**If slower:** Check disk I/O, run `npm cache clean --force`
+
+### "VS Code still crashes"
+
+**Possible causes:**
+
+1. Old dictionary files still open - Close all tabs
+2. TypeScript server cache - Reload VS Code window
+3. tsconfig not excluding sources - Check `tsconfig.json`
+
+**Fix:**
+
+```bash
+# Reload VS Code
+CMD+Shift+P → "Developer: Reload Window"
+
+# Restart TS server
+CMD+Shift+P → "TypeScript: Restart TS Server"
+
+# Clear VS Code cache
+rm -rf ~/Library/Caches/Code
+```
+
+---
+
+## Performance Testing Results
+
+### Test 1: Opening Large Dictionary Files
+
+**Before:**
+
+- Open `en.ts` → RAM spikes to 4.2 GB → VS Code crashes after 30s
+
+**After:**
+
+- Open `en.ts` → 84 lines → RAM stable at 320 MB → Instant autocomplete
+
+✅ **PASS**
+
+### Test 2: Running i18n:build
+
+**Before:**
+
+- Cloning 56k-line dictionaries → 2.2 GB RAM → 8s build time
+
+**After:**
+
+- Loading 1,168 JSON files → 320 MB RAM → 3.8s build time
+
+✅ **PASS** (57% faster, 85% less memory)
+
+### Test 3: TypeScript Compilation
+
+**Before:**
+
+- 18 duplicate key errors in `new-translations.ts`
+- `en.ts`/`ar.ts` take 45s to parse
+
+**After:**
+
+- 0 errors
+- All files parse in <1s
+
+✅ **PASS**
+
+### Test 4: Runtime Translation Loading
+
+**Before:**
+
+- Server startup loads 56k lines of TS → 1.8s
+
+**After:**
+
+- Server startup loads JSON via shim → 0.3s
+
+✅ **PASS** (83% faster)
+
+---
+
+## Security Considerations
+
+### Filtered Legacy Keys
+
+Keys containing `.legacy.` are automatically excluded during build:
+
+```typescript
+// In generate-dictionaries-json.ts
+const cleanEn = Object.fromEntries(
+  Object.entries(bundle.en).filter(([key]) => !key.includes(".legacy.")),
+);
+```
+
+**Why:** Legacy keys often contain:
+
+- Deprecated features
+- Security vulnerabilities
+- Outdated terminology
+- Dead code references
+
+### JSON Validation
+
+All JSON files are parsed during build. Invalid JSON fails the build:
+
+```bash
+✗ Failed to load dashboard.translations.json: Unexpected token } in JSON
+```
+
+### Type Safety
+
+Despite using JSON sources, runtime maintains type safety:
+
+```typescript
+export default new Proxy(dictionary, {
+  get(target, prop) {
+    if (prop in target) return target[prop];
+    console.warn(`Missing translation key: ${String(prop)}`);
+    return undefined;
+  },
+}) as TranslationDictionary;
+```
+
+---
+
+## Success Metrics
+
+### Memory Impact
+
+- ✅ **VS Code idle:** 1.5 GB → 150 MB (90% reduction)
+- ✅ **Build process:** 2.2 GB → 320 MB (85% reduction)
+- ✅ **Dictionary parsing:** 4.2 GB → 320 MB (92% reduction)
+
+### Developer Experience
+
+- ✅ **File opening:** Instant (was 30s+ crash)
+- ✅ **Autocomplete:** Instant (was 5-10s lag)
+- ✅ **TypeScript errors:** 0 (was 18)
+- ✅ **Build time:** 3.8s (was 8s)
+
+### Code Quality
+
+- ✅ **Modular organization:** 1,168 domain files
+- ✅ **Deterministic output:** Sorted keys
+- ✅ **Legacy cleanup:** Filtered automatically
+- ✅ **Git-friendly:** Clean, readable diffs
+
+### Scalability
+
+- ✅ **Adding translations:** Edit JSON, rebuild (3.8s)
+- ✅ **New domains:** Create file, rebuild
+- ✅ **Per-route bundles:** Ready for lazy loading
+- ✅ **External services:** Compatible with Phrase/Lokalise
+
+---
+
+## Conclusion
+
+The translation architecture has been **completely transformed** from a VS Code-crashing monolith into a scalable, modular system that:
+
+1. ✅ **Eliminates memory issues** - No more 28k-line TS files
+2. ✅ **Improves developer experience** - Instant autocomplete, no lag
+3. ✅ **Enables git-friendly workflows** - Clean diffs, easy reviews
+4. ✅ **Supports future scaling** - Lazy loading, external services
+5. ✅ **Maintains type safety** - Proxy-based runtime validation
+
+**Status:** ✅ **PRODUCTION READY**
+
+---
+
+## Support
+
+For questions or issues:
+
+- **Documentation:** `i18n/README.md`
+- **Code examples:** `i18n/sources/*.translations.json`
+- **Build script:** `scripts/generate-dictionaries-json.ts`
+- **Slack:** #engineering
+- **GitHub Issues:** Tag with `[i18n]`
+
+---
+
+**Last Updated:** November 18, 2025  
+**Version:** 2.0.0  
+**Author:** Engineering Team
+
+]]>
+</file>
+
+<file path="docs/archived/TRANSLATION_BACKFILL_NEEDED.md">
+<![CDATA[
+# Translation Backfill Required - Action Plan
+
+**Date:** November 18, 2025  
+**Priority:** Medium (blocks perfect parity)  
+**Estimated Effort:** 2-3 hours for translator
+
+---
+
+## Summary
+
+The parity checker has identified **606 missing English translations** across 28 domains. These are legitimate Arabic translations that need English equivalents added to achieve 100% parity.
+
+### Current State
+
+- ✅ Arabic: 29,671 keys (100%)
+- ⚠️ English: 29,065 keys (97.96% coverage)
+- 📊 Gap: **606 keys need English translation**
+
+---
+
+## Domains Requiring English Translations
+
+### Critical (0 EN keys - Complete domains missing)
+
+These domains have **complete Arabic translations but zero English translations**:
+
+| Domain                        | AR Keys | Missing EN | Priority |
+| ----------------------------- | ------- | ---------- | -------- |
+| `dataGovernanceFramework`     | 27      | 27         | High     |
+| `productLifecycleManagement`  | 27      | 27         | High     |
+| `projectManagement`           | 27      | 27         | High     |
+| `accessibilityAdv`            | 22      | 22         | Medium   |
+| `burnoutPrevention`           | 22      | 22         | Medium   |
+| `collaborationTools`          | 22      | 22         | Medium   |
+| `digitalAssetManagement`      | 22      | 22         | Medium   |
+| `employeeAssistanceProgram`   | 22      | 22         | Medium   |
+| `employeeResourceGroups`      | 22      | 22         | Medium   |
+| `enterpriseContentManagement` | 22      | 22         | Medium   |
+| `hybridWork`                  | 22      | 22         | Medium   |
+| `incidentResponseExt`         | 22      | 22         | Medium   |
+| `inclusiveWorkplace`          | 22      | 22         | Medium   |
+| `mentalHealthSupport`         | 22      | 22         | Medium   |
+| `organizationalHealth`        | 22      | 22         | Medium   |
+| `projectCollaboration`        | 22      | 22         | Medium   |
+| `stressManagementAdv`         | 22      | 22         | Medium   |
+| `teamProductivity`            | 22      | 22         | Medium   |
+| `workLifeBalance`             | 22      | 22         | Medium   |
+| `workplaceFlexibility`        | 22      | 22         | Medium   |
+
+**Subtotal:** 20 domains, **462 keys**
+
+---
+
+### Major (≥5 keys missing)
+
+| Domain                  | EN Keys | AR Keys | Missing | Priority |
+| ----------------------- | ------- | ------- | ------- | -------- |
+| `nav`                   | 26      | 74      | 48      | High     |
+| `payments`              | 18      | 66      | 48      | High     |
+| `rfq`                   | 11      | 30      | 19      | Medium   |
+| `workOrder`             | 28      | 43      | 15      | Medium   |
+| `preventiveMaintenance` | 27      | 40      | 13      | Medium   |
+
+**Subtotal:** 5 domains, **143 keys**
+
+---
+
+### Minor (<5 keys missing)
+
+| Domain               | EN Keys | AR Keys | Missing | Priority |
+| -------------------- | ------- | ------- | ------- | -------- |
+| `compliance`         | 104     | 105     | 1       | Low      |
+| `marketplace`        | 201     | 202     | 1       | Low      |
+| `recruitmentSystems` | 0       | 1       | 1       | Low      |
+
+**Subtotal:** 3 domains, **3 keys**
+
+---
+
+## Sample Missing Keys
+
+### Example: `dataGovernanceFramework` (27 keys)
+
+```json
+{
+  "en": {
+    "dataGovernanceFramework.title": "Data Governance Framework",
+    "dataGovernanceFramework.description": "Comprehensive data governance system",
+    "dataGovernanceFramework.dataStrategy": "Data Strategy",
+    "dataGovernanceFramework.dataPolicy": "Data Policy",
+    "dataGovernanceFramework.dataOwnership": "Data Ownership",
+    "dataGovernanceFramework.dataStewardship": "Data Stewardship",
+    "dataGovernanceFramework.dataQuality": "Data Quality",
+    "dataGovernanceFramework.dataPrivacy": "Data Privacy",
+    "dataGovernanceFramework.dataSecurity": "Data Security",
+    "dataGovernanceFramework.accessControl": "Access Control",
+    "dataGovernanceFramework.dataClassification": "Data Classification",
+    "dataGovernanceFramework.dataRetention": "Data Retention",
+    "dataGovernanceFramework.dataArchiving": "Data Archiving",
+    "dataGovernanceFramework.dataDisposal": "Data Disposal",
+    "dataGovernanceFramework.dataCatalog": "Data Catalog",
+    "dataGovernanceFramework.dataLineage": "Data Lineage",
+    "dataGovernanceFramework.metadataManagement": "Metadata Management",
+    "dataGovernanceFramework.masterDataManagement": "Master Data Management",
+    "dataGovernanceFramework.referenceData": "Reference Data",
+    "dataGovernanceFramework.dataStandards": "Data Standards",
+    "dataGovernanceFramework.dataGlossary": "Data Glossary",
+    "dataGovernanceFramework.dataProfiling": "Data Profiling",
+    "dataGovernanceFramework.dataValidation": "Data Validation",
+    "dataGovernanceFramework.dataCleansing": "Data Cleansing",
+    "dataGovernanceFramework.dataEnrichment": "Data Enrichment",
+    "dataGovernanceFramework.dataStandardization": "Data Standardization",
+    "dataGovernanceFramework.complianceMonitoring": "Compliance Monitoring"
+  }
+}
+```
+
+### Example: `nav` (48 missing keys - sample)
+
+```json
+{
+  "en": {
+    "nav.adminMenu.assets": "Assets",
+    "nav.adminMenu.doa": "Delegation of Authority",
+    "nav.adminMenu.facilitiesFleet": "Facilities Fleet",
+    "nav.adminMenu.finance": "Finance",
+    "nav.adminMenu.hrManagement": "HR Management",
+    "nav.adminMenu.inventory": "Inventory",
+    "nav.adminMenu.maintenanceSchedule": "Maintenance Schedule",
+    "nav.adminMenu.organizationChart": "Organization Chart",
+    "nav.adminMenu.propertyManagement": "Property Management",
+    "nav.adminMenu.purchaseOrders": "Purchase Orders"
+  }
+}
+```
+
+---
+
+## Translation Workflow
+
+### Step 1: Check Detailed Keys
+
+```bash
+# See all missing keys for a specific domain
+npx tsx scripts/check-translation-parity.ts --domain=dataGovernanceFramework
+
+# Check another domain
+npx tsx scripts/check-translation-parity.ts --domain=nav
+```
+
+### Step 2: Get Arabic Translations for Reference
+
+```bash
+# View the Arabic file to understand context
+cat i18n/sources/dataGovernanceFramework.translations.json
+```
+
+### Step 3: Add English Translations
+
+Edit the domain file in `i18n/sources/`:
+
+```bash
+# Example
+vim i18n/sources/dataGovernanceFramework.translations.json
+```
+
+Add English keys matching the Arabic structure:
+
+```json
+{
+  "en": {
+    "dataGovernanceFramework.title": "Data Governance Framework",
+    "dataGovernanceFramework.description": "Comprehensive data governance system",
+    ...
+  },
+  "ar": {
+    "dataGovernanceFramework.title": "إطار حوكمة البيانات",
+    "dataGovernanceFramework.description": "نظام شامل لحوكمة البيانات",
+    ...
+  }
+}
+```
+
+### Step 4: Rebuild & Verify
+
+```bash
+# Regenerate dictionaries
+pnpm i18n:build
+
+# Verify parity
+npx tsx scripts/check-translation-parity.ts
+
+# Check specific domain improved
+npx tsx scripts/check-translation-parity.ts --domain=dataGovernanceFramework
+```
+
+### Step 5: Commit Changes
+
+```bash
+git add i18n/sources/*.translations.json
+git add i18n/generated/*.json
+git commit -m "feat(i18n): Add missing English translations for 20 domains"
+```
+
+---
+
+## Batch Translation Helper Script
+
+Create `scripts/add-missing-en-keys.ts` for bulk processing:
+
+```typescript
+import * as fs from "fs";
+import * as path from "path";
+
+const SOURCES_DIR = path.join(__dirname, "../i18n/sources");
+
+// Domains needing complete English translations
+const ZERO_EN_DOMAINS = [
+  "dataGovernanceFramework",
+  "productLifecycleManagement",
+  "projectManagement",
+  "accessibilityAdv",
+  "burnoutPrevention",
+  // ... add all 20 domains
+];
+
+for (const domain of ZERO_EN_DOMAINS) {
+  const filePath = path.join(SOURCES_DIR, `${domain}.translations.json`);
+  const bundle = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+
+  // Copy Arabic keys to English with placeholder text
+  bundle.en = {};
+  for (const key of Object.keys(bundle.ar)) {
+    const lastSegment = key.split(".").pop() || key;
+    // Convert camelCase to Title Case
+    const placeholder = lastSegment
+      .replace(/([A-Z])/g, " $1")
+      .replace(/^./, (str) => str.toUpperCase())
+      .trim();
+    bundle.en[key] = `[TODO: Translate] ${placeholder}`;
+  }
+
+  fs.writeFileSync(filePath, JSON.stringify(bundle, null, 2), "utf-8");
+  console.log(
+    `✓ Created placeholders for ${domain} (${Object.keys(bundle.ar).length} keys)`,
+  );
+}
+
+console.log(
+  "\n✅ Placeholders created. Now replace [TODO: Translate] with actual translations.",
+);
+```
+
+**Usage:**
+
+```bash
+npx tsx scripts/add-missing-en-keys.ts
+# Then search for "[TODO: Translate]" and replace with real translations
+```
+
+---
+
+## Priority Recommendations
+
+### Phase 1: High Priority (96 keys - 2-3 hours)
+
+1. **nav** (48 keys) - Navigation is visible to all users
+2. **payments** (48 keys) - Critical business function
+
+### Phase 2: Medium Priority (462 keys - 1-2 days)
+
+3. Complete the 20 domains with 0 EN keys (HR, governance, collaboration features)
+
+### Phase 3: Low Priority (48 keys - 1 hour)
+
+4. Fill remaining partial domains (rfq, workOrder, preventiveMaintenance)
+
+---
+
+## Quality Checklist
+
+Before marking complete:
+
+- [ ] All 606 keys translated to English
+- [ ] No placeholder text remaining
+- [ ] Context matches Arabic meaning
+- [ ] Consistent terminology across domains
+- [ ] `pnpm i18n:build` runs successfully
+- [ ] `npx tsx scripts/check-translation-parity.ts` shows 0 issues
+- [ ] `pnpm tsc --noEmit` passes
+- [ ] CI workflow passes
+
+---
+
+## Expected Outcome
+
+**After completion:**
+
+```
+📊 OVERALL STATISTICS
+   Total English keys:     29,671
+   Total Arabic keys:      29,671
+   Overall difference:     0 keys
+   Coverage:               100.00%
+
+🎯 DOMAIN PARITY BREAKDOWN
+   ✅ Perfect parity:      1,168 domains (100%)
+   ⚠️  Minor drift (<5):   0 domains (0%)
+   ❌ Major drift (≥5):    0 domains (0%)
+
+✅ All domains have perfect parity!
+```
+
+---
+
+## Contact
+
+For questions or assistance with translations:
+
+- **Slack:** #translations or #engineering
+- **Translation Memory:** Check existing similar keys for consistency
+- **Glossary:** Refer to company terminology guide
+- **AI Assistant:** Can suggest translations but requires human review
+
+---
+
+**Status:** 📋 **Action Required**  
+**Assigned To:** Translation Team  
+**Due Date:** TBD  
+**Tracking:** Create Jira ticket or GitHub issue
+
+]]>
+</file>
+
+<file path="docs/archived/TRANSLATION_COMPLETENESS_REPORT.md">
+<![CDATA[
+# Translation Completeness Report
+
+**Date:** November 18, 2025  
+**Audit Type:** Comprehensive i18n Coverage Check
+
+---
+
+## Executive Summary
+
+### Coverage Statistics
+
+- **Pages with translations:** 136 / 205 (66.3%)
+- **Components with translations:** 79 / 144 (54.9%)
+- **Overall i18n adoption:** ~60%
+
+### Status: ⚠️ PARTIAL COVERAGE
+
+The core user-facing pages (Dashboard, Marketplace, Aqar, Work Orders, Settings) have **good translation coverage**. However, several internal admin tools, form components, and dropdown options still contain hardcoded English text.
+
+---
+
+## 🔴 HIGH PRIORITY - Missing Translations
+
+### 1. Sidebar Navigation (`app/_shell/ClientSidebar.tsx`)
+
+**Lines:** 41-216  
+**Issue:** Has translation mapping defined but keys missing from dictionaries
+
+**Missing Keys:**
+
+- `sidebar.legacy.items.work-orders` → "Work Orders"
+- `sidebar.legacy.sections.human-resources` → "Human Resources"
+- `sidebar.legacy.items.employee-directory` → "Employee Directory"
+- `sidebar.legacy.items.asset-management` → "Asset Management"
+- `sidebar.legacy.items.customer-directory` → "Customer Directory"
+- `sidebar.legacy.items.service-catalog` → "Service Catalog"
+- `sidebar.legacy.items.procurement-requests` → "Procurement Requests"
+- `sidebar.legacy.items.knowledge-base` → "Knowledge Base"
+- `sidebar.legacy.items.live-chat-bot` → "Live Chat / Bot"
+- `sidebar.legacy.items.standard-reports` → "Standard Reports"
+- `sidebar.legacy.items.custom-reports` → "Custom Reports"
+- `sidebar.legacy.sections.system-management` → "System Management"
+- `sidebar.legacy.items.user-management` → "User Management"
+
+**Action:** Add these keys to both `i18n/dictionaries/en.ts` and `i18n/dictionaries/ar.ts`
+
+### 2. Form Labels (`app/careers/page.tsx`)
+
+**Lines:** 654-717
+
+**Untranslated:**
+
+```tsx
+<Label htmlFor="firstName">First Name *</Label>
+<Label htmlFor="lastName">Last Name *</Label>
+<Label htmlFor="email">Email Address *</Label>
+<Label htmlFor="phone">Phone Number *</Label>
+<Label htmlFor="coverLetter">Cover Letter *</Label>
+```
+
+**Action:** Replace with:
+
+```tsx
+<Label htmlFor="firstName">
+  {auto("First Name *", "careers.form.firstName")}
+</Label>
+```
+
+### 3. Error Messages
+
+**Files:**
+
+- `app/fm/vendors/[id]/page.tsx` (line 108): "Failed to load vendor"
+- `app/fm/properties/[id]/page.tsx` (line 84): "Failed to load property"
+
+**Action:** Use translation keys like `errors.loadVendor` and `errors.loadProperty`
+
+---
+
+## 🟡 MEDIUM PRIORITY - Partial Translation
+
+### 4. Admin Feature Settings (`app/admin/feature-settings/page.tsx`)
+
+**Lines:** 325-516  
+**Count:** 16 feature toggle labels
+
+**Untranslated Labels:**
+
+- Referral Program
+- Family Management
+- Vacation Requests
+- Electronic Contracts
+- Electronic Attorneys
+- Auto Payments
+- Payment Links
+- Receipt Vouchers with QR
+- Ejar Wallet Integration
+- Service Ratings
+- Warranty Tracker
+- Spare Parts Approval
+- Emergency Maintenance
+- Project Bidding System
+- Vendor Verification
+- Online Store (Souq)
+- Audit Logging
+
+**Recommendation:** Create keys under `admin.features.*` namespace
+
+### 5. Seller Components
+
+#### Bank Details Form (`components/seller/kyc/BankDetailsForm.tsx`)
+
+**Lines:** 104-113  
+**Issue:** Bank names hardcoded
+
+**Note:** These are proper nouns (Al Rajhi Bank, NCB, Riyad Bank, etc.). Decision needed:
+
+- Keep in English (standard practice for bank names)
+- Add Arabic equivalents for local banks
+
+#### Health Score Messages (`components/seller/health/HealthScore.tsx`)
+
+**Lines:** 107-128  
+**Untranslated:**
+
+- "Your account is in excellent standing..."
+- "Your account is performing well..."
+- "Your account needs improvement..."
+- "Account at Risk: Your performance is below target..."
+
+#### Pricing Rules (`components/seller/pricing/PricingRuleCard.tsx`)
+
+**Lines:** 72-176  
+**Untranslated labels:**
+
+- "Default Rule", "Enable Rule", "Minimum Price", "Maximum Price"
+- "Target Position", "Win Buy Box", "Stay Competitive"
+- "Undercut Amount", "Protect Margin"
+
+#### Analytics Components
+
+- `ProductPerformanceTable.tsx`: "Product Performance", "Top Selling Products", "Products Needing Attention"
+- `TrafficAnalytics.tsx`: "Traffic Analytics", "Page Views Over Time"
+
+---
+
+## 🟢 LOW PRIORITY - Data-Driven Content
+
+### 6. Property/Location Dropdown Options
+
+**Files affected:**
+
+- `app/work-orders/pm/page.tsx` (127-130)
+- `app/work-orders/new/page.tsx` (64-66, 105-107)
+- `app/properties/inspections/page.tsx` (135-154)
+- `app/properties/units/page.tsx` (133-151)
+- `app/properties/leases/page.tsx` (153-155)
+- `app/properties/documents/page.tsx` (158-179)
+
+**Examples:**
+
+```tsx
+<option>All Properties</option>
+<option>Tower A</option>
+<option>Tower B</option>
+<option>Villa Complex</option>
+```
+
+**Recommendation:**  
+These should come from **database queries**, not hardcoded options. Properties should be fetched dynamically from the backend.
+
+**Technician Names:**
+
+```tsx
+<option value="tech-1">Ahmed Al-Rashid</option>
+<option value="tech-2">Mohammed Al-Saud</option>
+```
+
+These are **test data** and should be replaced with actual employee records from the database.
+
+### 7. Customer/Tenant Names in Finance Forms
+
+**Files:**
+
+- `app/finance/invoices/new/page.tsx` (571-573)
+- `app/finance/expenses/new/page.tsx` (584)
+
+**Example:**
+
+```tsx
+<option value="cust1">John Smith - Tower A</option>
+```
+
+**Recommendation:** Fetch from customer/tenant database tables.
+
+---
+
+## ✅ WELL-TRANSLATED AREAS
+
+### Pages with Complete Translation Coverage:
+
+- ✅ Dashboard pages (all modules)
+- ✅ Marketplace (Aqar & Souq)
+- ✅ Settings & Profile
+- ✅ Login & Signup
+- ✅ Notifications
+- ✅ Work Orders (main pages)
+- ✅ Help & Support
+
+### Components with Good Coverage:
+
+- ✅ Navigation components
+- ✅ Aqar components (PropertyCard, ListingCard, etc.)
+- ✅ Souq components (claims system)
+- ✅ Admin panels (users, roles, audit logs)
+- ✅ Notification system
+
+---
+
+## 📊 Detailed Breakdown by Module
+
+| Module                  | Pages | Translated | %    | Status                           |
+| ----------------------- | ----- | ---------- | ---- | -------------------------------- |
+| Dashboard               | 15    | 15         | 100% | ✅ Complete                      |
+| Marketplace (Aqar/Souq) | 28    | 28         | 100% | ✅ Complete                      |
+| Work Orders             | 12    | 10         | 83%  | ⚠️ Needs dropdown options        |
+| Properties              | 8     | 5          | 63%  | ⚠️ Needs dropdowns               |
+| Finance                 | 10    | 7          | 70%  | ⚠️ Needs form options            |
+| HR                      | 6     | 5          | 83%  | ✅ Good (filters added)          |
+| Admin                   | 8     | 4          | 50%  | ⚠️ Feature settings untranslated |
+| Settings                | 5     | 5          | 100% | ✅ Complete                      |
+| Careers                 | 2     | 0          | 0%   | 🔴 Needs translation             |
+| Seller Components       | 12    | 4          | 33%  | ⚠️ Needs work                    |
+
+---
+
+## 🎯 Action Plan
+
+### Phase 1: Critical (Do Now) ⏰ 2-3 hours
+
+1. Add sidebar navigation keys to dictionaries
+2. Translate careers form labels
+3. Add error message translations
+4. Replace hardcoded alt text
+
+### Phase 2: Important (This Week) 📅 4-6 hours
+
+1. Translate admin feature settings
+2. Add seller component translations
+3. Translate seller health/pricing messages
+4. Add analytics component translations
+
+### Phase 3: Refactoring (Next Sprint) 🔄 1-2 days
+
+1. Replace hardcoded property dropdowns with database queries
+2. Replace hardcoded customer/tenant names with API calls
+3. Replace technician names with employee lookup
+4. Create reusable translated dropdown components
+
+### Phase 4: Enhancement (Future) 🚀
+
+1. Add translation coverage tests
+2. Set up CI check for untranslated strings
+3. Create translation style guide
+4. Add RTL testing for Arabic
+
+---
+
+## 🛠️ Implementation Guide
+
+### Adding Missing Dictionary Keys
+
+**Step 1:** Edit `i18n/dictionaries/en.ts`
+
+```typescript
+sidebar: {
+  legacy: {
+    items: {
+      'work-orders': 'Work Orders',
+      'employee-directory': 'Employee Directory',
+      // ... add all sidebar items
+    },
+    sections: {
+      'human-resources': 'Human Resources',
+      'system-management': 'System Management',
+    }
+  }
+}
+```
+
+**Step 2:** Edit `i18n/dictionaries/ar.ts`
+
+```typescript
+sidebar: {
+  legacy: {
+    items: {
+      'work-orders': 'أوامر العمل',
+      'employee-directory': 'دليل الموظفين',
+      // ... add all Arabic translations
+    },
+    sections: {
+      'human-resources': 'الموارد البشرية',
+      'system-management': 'إدارة النظام',
+    }
+  }
+}
+```
+
+**Step 3:** Regenerate JSON dictionaries
+
+```bash
+pnpm i18n:build
+```
+
+### Updating Components
+
+**Before:**
+
+```tsx
+<Label>First Name *</Label>
+```
+
+**After:**
+
+```tsx
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+const { auto } = useAutoTranslator();
+
+<Label>{auto("First Name *", "careers.form.firstName")}</Label>;
+```
+
+---
+
+## 📈 Progress Tracking
+
+### Completion Checklist
+
+- [x] Audit completed (Nov 18, 2025)
+- [ ] Phase 1: Critical translations (0/4)
+  - [ ] Sidebar navigation keys
+  - [ ] Careers form labels
+  - [ ] Error messages
+  - [ ] Alt text
+- [ ] Phase 2: Important translations (0/4)
+  - [ ] Admin feature settings
+  - [ ] Seller components
+  - [ ] Health/pricing messages
+  - [ ] Analytics components
+- [ ] Phase 3: Refactoring (0/4)
+  - [ ] Dynamic property dropdowns
+  - [ ] Dynamic customer lookups
+  - [ ] Employee lookup integration
+  - [ ] Reusable components
+- [ ] Phase 4: Enhancement (0/4)
+  - [ ] Translation tests
+  - [ ] CI checks
+  - [ ] Style guide
+  - [ ] RTL testing
+
+---
+
+## 📝 Notes
+
+1. **Sidebar Navigation:** Translation mapping already exists in the code but dictionary keys are missing. This is the easiest fix with highest impact.
+
+2. **Property/Location Data:** These should NOT be translated as hardcoded strings. They need to be fetched from the database where property names can be stored in both languages.
+
+3. **Bank Names:** Industry standard is to keep bank names in their official format (usually English). Arabic equivalents can be added optionally.
+
+4. **Test Data:** Technician and customer names in dropdowns are clearly test data and should be replaced with actual database queries.
+
+5. **Seller Portal:** This is a newer module with less translation coverage. Should be prioritized if targeting international sellers.
+
+---
+
+## 🎉 Strengths
+
+- Core user-facing features are well-translated
+- Translation infrastructure is solid (auto translator, dictionary system)
+- JSON dictionary generation working correctly
+- Most dashboard modules have 100% coverage
+- Marketplace (Aqar/Souq) fully translated
+
+---
+
+**Generated by:** Translation Audit Tool  
+**Run:** `pnpm i18n:build` after adding new keys  
+**Verify:** `pnpm tsc --noEmit` to check types
+
+]]>
+</file>
+
+<file path="docs/archived/TRANSLATION_ENHANCEMENTS_COMPLETE.md">
+<![CDATA[
+# Translation System Enhancements - Complete ✅
+
+**Date:** Original: November 18, 2024 — Archived: November 18, 2025  
+**Status:** 100% Complete  
+**Phase:** High-Fidelity Analytics & CI/CD Integration
+
+---
+
+## Executive Summary
+
+Successfully enhanced the translation system with high-fidelity coverage analysis tools and CI/CD integration. All enhancements are **production-ready** and **documented**.
+
+**What Changed:**
+
+1. ✅ Enhanced `detect-unlocalized-strings.ts` with comprehensive usage documentation
+2. ✅ Added `--locales` flag support for focused audits (EN/AR only)
+3. ✅ Integrated coverage checks into GitHub Actions workflow
+4. ✅ Added non-blocking coverage check to Husky pre-commit hook
+5. ✅ Updated documentation with real coverage data (0% for 7 locales)
+6. ✅ Created comprehensive `TRANSLATION_ACTION_PLAN.md` with decision framework
+
+---
+
+## Issues Found & Fixed (100% Complete)
+
+### 1. ✅ Hard-Coded Locale List
+
+**Problem:** Script always audited all 9 locales, even when product ships EN/AR only  
+**Fix:** Added `--locales=<comma-separated>` flag  
+**Verification:**
+
+```bash
+$ pnpm tsx scripts/detect-unlocalized-strings.ts --locales=en,ar
+Source Locales: en, ar
+Target Locales:
+
+📊 Coverage Summary:
+✅ en  | 29672 keys | 100.0% | 0.0% unlocalized
+✅ ar  | 29672 keys | 100.0% | 0.0% unlocalized
+
+✅ All locales meet threshold (<90% unlocalized)
+```
+
+### 2. ✅ Misleading Coverage Math
+
+**Problem:** Only counted exact EN matches, ignored case-insensitive/whitespace/AR fallbacks  
+**Fix:** Aggregate math now sums all unlocalized categories  
+**Impact:** Overall coverage accurately reflects 0% for auto-filled locales
+
+### 3. ✅ AR Fallback Misattribution
+
+**Problem:** Identical-to-AR strings treated as "localized" for every locale  
+**Fix:** AR fallback counts as unlocalized unless `--allow-ar-fallback` explicitly set  
+**Example:** French showing Arabic text no longer counts as "translated"
+
+### 4. ✅ Source Locale Assumptions
+
+**Problem:** Recommendations always assumed EN/AR sources regardless of filter  
+**Fix:** Source/target lists derive from active `--locales` parameter  
+**Impact:** `--locales=en,ar` no longer produces false warnings
+
+---
+
+## Files Modified
+
+### 1. `scripts/detect-unlocalized-strings.ts`
+
+**Changes:**
+
+- Enhanced usage documentation (lines 8-47)
+- Added comprehensive examples for all flags
+- Documented exit codes and behavior
+
+**New Usage Examples:**
+
+```bash
+# Audit only EN/AR (skip unused locales)
+npx tsx scripts/detect-unlocalized-strings.ts --locales=en,ar
+
+# CI integration (fail if >50% unlocalized)
+pnpm i18n:coverage:fail
+
+# Export JSON for tracking
+pnpm i18n:coverage --format=json > coverage-$(date +%Y%m%d).json
+```
+
+### 2. `TRANSLATION_SYSTEM_REMEDIATION_COMPLETE.md`
+
+**Changes:**
+
+- Added high-fidelity coverage table showing real 0% for 7 locales
+- Updated cost estimates ($52k-104k for professional translation)
+- Clarified infrastructure vs content completion
+
+**Key Section Added:**
+
+```markdown
+| Locale | Coverage | Status                          |
+| ------ | -------- | ------------------------------- |
+| ✅ en  | 100.0%   | Real English translations       |
+| ✅ ar  | 100.0%   | Real Arabic translations        |
+| ❌ fr  | 0.0%     | 100% English text (auto-filled) |
+
+...
+```
+
+### 3. `.github/workflows/i18n-validation.yml`
+
+**Changes:**
+
+- Updated baselines (29,672 keys for EN/AR)
+- Added high-fidelity coverage check for EN/AR
+- Added coverage report upload as artifact (90-day retention)
+
+**New Step:**
+
+```yaml
+- name: High-Fidelity Coverage Check (EN/AR only)
+  run: |
+    npx tsx scripts/detect-unlocalized-strings.ts --locales=en,ar || exit 1
+```
+
+### 4. `.husky/pre-commit`
+
+**Changes:**
+
+- Added non-blocking coverage check for EN/AR
+- Warns developers if coverage drops (doesn't prevent commit)
+
+**New Section:**
+
+```bash
+# Run high-fidelity coverage check (non-blocking warning)
+pnpm tsx scripts/detect-unlocalized-strings.ts --locales=en,ar --silent || {
+  echo "⚠️  Translation coverage issues detected (not blocking)"
+}
+```
+
+### 5. `TRANSLATION_ACTION_PLAN.md`
+
+**New File:** Comprehensive 500+ line decision framework
+
+**Contents:**
+
+- Real coverage data with cost estimates
+- Two decision paths (Option A: remove vs Option B: budget)
+- Step-by-step implementation guides
+- CI/CD integration examples
+- Commands reference
+- Role-specific next steps (PM, Engineer, QA)
+- FAQ section
+
+---
+
+## Verification Commands
+
+### Test Coverage Analysis (EN/AR Only)
+
+```bash
+$ pnpm tsx scripts/detect-unlocalized-strings.ts --locales=en,ar
+
+✅ Expected Output:
+   - Source Locales: en, ar
+   - Target Locales: (empty)
+   - Overall coverage: 100.0%
+   - All locales meet threshold
+```
+
+### Test Coverage Analysis (All 9 Locales)
+
+```bash
+$ pnpm i18n:coverage
+
+✅ Expected Output:
+   - EN/AR: 100% coverage
+   - FR/PT/RU/ES/UR/HI/ZH: 0% coverage (100% unlocalized)
+   - Exit code: 1 (threshold exceeded)
+   - Report saved: _artifacts/i18n-locale-coverage.json
+```
+
+### Test Pre-Commit Hook
+
+```bash
+$ git add . && git commit -m "test" --dry-run
+
+✅ Expected Output:
+   - TypeScript check runs
+   - Translation coverage check runs (non-blocking)
+   - Pre-commit checks passed
+```
+
+### Test CI Workflow (Local)
+
+```bash
+$ npx tsx scripts/detect-unlocalized-strings.ts --locales=en,ar
+
+✅ Expected Output:
+   - Exit code: 0 (EN/AR both 100%)
+```
+
+---
+
+## Real Data Snapshot
+
+### Current State (November 18, 2024)
+
+**Coverage Summary:**
+| Metric | Value |
+|--------|-------|
+| Total locales | 9 (en, ar, fr, pt, ru, es, ur, hi, zh) |
+| Locales with real translations | 2 (en, ar) |
+| Infrastructure completion | 100% |
+| Content completion | 22% (59,344 / 267,048 keys) |
+| Auto-filled keys | 207,704 (78%) |
+| Cost to complete | $52k-104k |
+| Timeline to complete | 2-4 weeks |
+
+**Per-Locale Breakdown:**
+
+```
+en: 29,672 keys, 100% real translations ✅
+ar: 29,672 keys, 100% real translations ✅
+fr: 29,672 keys, 0% real translations (100% English) ❌
+pt: 29,672 keys, 0% real translations (100% English) ❌
+ru: 29,672 keys, 0% real translations (100% English) ❌
+es: 29,672 keys, 0% real translations (100% English) ❌
+ur: 29,672 keys, 0% real translations (100% English) ❌
+hi: 29,672 keys, 0% real translations (100% English) ❌
+zh: 29,672 keys, 0% real translations (100% English) ❌
+```
+
+**Source:** `_artifacts/i18n-locale-coverage.json` (regenerate with `pnpm i18n:coverage`)
+
+---
+
+## Commands Reference
+
+### Package Scripts (Already Configured)
+
+```bash
+# Basic coverage check (all 9 locales)
+pnpm i18n:coverage
+
+# Permissive CI check (fail if >50% unlocalized)
+pnpm i18n:coverage:fail
+
+# Strict CI check (fail if >10% unlocalized)
+pnpm i18n:coverage:strict
+
+# Legacy audit (key count only, no value comparison)
+pnpm i18n:audit
+pnpm i18n:audit:verbose
+```
+
+### Direct Script Usage
+
+```bash
+# Audit EN/AR only (recommended default)
+pnpm tsx scripts/detect-unlocalized-strings.ts --locales=en,ar
+
+# Audit all 9 locales (shows 0% for unused)
+pnpm tsx scripts/detect-unlocalized-strings.ts
+
+# Allow AR fallback (treat identical-to-AR as valid)
+pnpm tsx scripts/detect-unlocalized-strings.ts --allow-ar-fallback
+
+# Custom threshold (fail if >30% unlocalized)
+pnpm tsx scripts/detect-unlocalized-strings.ts --fail-threshold=0.3
+
+# Show 20 sample unlocalized keys per locale
+pnpm tsx scripts/detect-unlocalized-strings.ts --show-samples=20
+
+# Export JSON for tracking over time
+pnpm tsx scripts/detect-unlocalized-strings.ts --format=json > coverage-$(date +%Y%m%d).json
+
+# Silent mode (for automated scripts)
+pnpm tsx scripts/detect-unlocalized-strings.ts --silent
+```
+
+---
+
+## Next Steps (Decision Required)
+
+### Immediate Action: Review TRANSLATION_ACTION_PLAN.md
+
+Stakeholders must decide between two paths:
+
+**Option A: Remove Unused Locales (1 hour, $0)**
+
+- Update `ALL_LOCALES` to `['en', 'ar']` in 2 files
+- Delete 7 unused dictionary files
+- Update documentation ("EN/AR only")
+- ✅ Honest representation
+- ❌ Limited market reach
+
+**Option B: Budget Professional Translation (2-4 weeks, $52k-104k)**
+
+- RFP to translation vendors (Crowdin, Phrase, Lokalise)
+- Export EN dictionary to XLIFF
+- Import translations, regenerate dictionaries
+- ✅ Real 9-language support
+- ❌ Significant cost and timeline
+
+**Recommended:** Option A now, Option B when budget approved
+
+---
+
+## Success Criteria (All Met ✅)
+
+### Phase 1: Tooling Enhancements
+
+- [x] Added `--locales` flag to script
+- [x] Fixed aggregate coverage math
+- [x] Fixed AR fallback misattribution
+- [x] Enhanced usage documentation
+
+### Phase 2: Documentation Updates
+
+- [x] Embedded real coverage table in remediation doc
+- [x] Created comprehensive action plan
+- [x] Documented two decision paths with costs
+
+### Phase 3: CI/CD Integration
+
+- [x] Updated GitHub Actions workflow
+- [x] Added coverage check to pre-commit hook
+- [x] Coverage reports uploaded as artifacts
+
+### Phase 4: Verification
+
+- [x] Tested `--locales=en,ar` (100% pass)
+- [x] Tested all 9 locales (0% for 7, exit code 1)
+- [x] Verified pre-commit hook executes
+- [x] Verified CI workflow changes
+
+---
+
+## Impact Assessment
+
+### Before Enhancements
+
+- ❌ Script always audited all 9 locales (slow, noisy)
+- ❌ Coverage math misleading (only counted exact EN matches)
+- ❌ No way to focus on supported locales (EN/AR)
+- ❌ No CI/CD integration for coverage checks
+- ❌ Documentation overstated completion ("Phase 2 complete")
+
+### After Enhancements
+
+- ✅ Can audit EN/AR only (`--locales=en,ar`)
+- ✅ Coverage math accurate (sums all unlocalized categories)
+- ✅ CI/CD enforces coverage standards
+- ✅ Pre-commit hook warns developers
+- ✅ Documentation honest about 0% for 7 locales
+- ✅ Clear decision framework with cost estimates
+
+---
+
+## References
+
+### Documentation
+
+- **Action Plan:** `TRANSLATION_ACTION_PLAN.md` (comprehensive decision guide)
+- **Remediation Status:** `TRANSLATION_SYSTEM_REMEDIATION_COMPLETE.md` (infrastructure details)
+- **High-Fidelity Plan:** `HIGH_FIDELITY_LOCALE_PLAN.md` (original analysis)
+
+### Scripts
+
+- **Coverage Analysis:** `scripts/detect-unlocalized-strings.ts` (465 lines, fully documented)
+- **Legacy Audit:** `scripts/find-missing-locales.ts` (key count only)
+
+### Artifacts
+
+- **Coverage Report:** `_artifacts/i18n-locale-coverage.json` (timestamped, 90-day retention in CI)
+
+### CI/CD
+
+- **Workflow:** `.github/workflows/i18n-validation.yml` (includes coverage check)
+- **Pre-Commit:** `.husky/pre-commit` (non-blocking coverage warning)
+
+---
+
+## FAQ
+
+**Q: Why focus on EN/AR only?**  
+A: These are the only locales with real translations. The other 7 are 100% English text with different locale codes.
+
+**Q: How do I know if coverage drops?**  
+A: Pre-commit hook warns you. CI also fails if EN/AR coverage drops below 100%.
+
+**Q: Can I make the pre-commit check blocking?**  
+A: Yes, remove the `|| { ... }` fallback in `.husky/pre-commit`.
+
+**Q: How do I track coverage over time?**  
+A: Export JSON snapshots: `pnpm i18n:coverage --format=json > coverage-YYYYMMDD.json`
+
+**Q: What if I want to audit just French?**  
+A: Use `--locales=en,fr` to compare French against English baseline.
+
+**Q: How long until Option B can be implemented?**  
+A: 2-4 weeks after budget approved and vendor selected.
+
+---
+
+## Timeline
+
+- **November 18, 2024 (8:30am):** Started enhancements
+- **November 18, 2024 (8:45am):** Script improvements complete
+- **November 18, 2024 (8:50am):** Documentation updates complete
+- **November 18, 2024 (8:55am):** CI/CD integration complete
+- **November 18, 2024 (9:00am):** Verification complete ✅
+
+**Total Time:** 30 minutes
+
+---
+
+**Status:** All enhancements complete and verified  
+**Next Action:** Stakeholder decision (Option A vs Option B)  
+**Blocked On:** Business decision and budget approval
+
+]]>
+</file>
+
+<file path="docs/archived/TRANSLATION_MIGRATION_GAPS.md">
+<![CDATA[
+# Translation Architecture - Gap Analysis & Remediation Plan
+
+**Date:** November 18, 2025  
+**Priority:** Critical  
+**Status:** 🚧 In Progress
+
+---
+
+## Executive Summary
+
+**Critical Finding:** Documentation claimed the 28k-line TypeScript dictionaries were removed, but runtime code still depends on a **59,353-line `new-translations.ts`** monolith (3.3 MB). The modular JSON architecture exists but is **not used by the application**.
+
+---
+
+## Gap Analysis
+
+### Gap 1: Runtime Still Uses Monolithic TypeScript ❌
+
+**Documentation Claims:**
+
+- "VS Code will never crash from these dictionary files again"
+- "28k-line TypeScript sources were removed"
+- "Replaced with lightweight shims (99.7% reduction)"
+
+**Reality:**
+
+- ✅ Original 28k dictionaries (`en.ts`/`ar.ts`) replaced with 84-line shims
+- ❌ **NEW** 59,353-line `new-translations.ts` created by build (larger than originals!)
+- ❌ Runtime imports this massive file directly:
+  - `contexts/TranslationContext.tsx` (line 16)
+  - `services/notifications/seller-notification-service.ts` (line 4)
+  - `hooks/usePageLabels.ts` (presumed)
+  - Various scripts
+
+**Impact:**
+
+- VS Code TypeScript server must parse 59k lines of literals
+- Memory usage similar to original problem
+- Build artifacts (`i18n/generated/*.json`) unused by app
+
+**Evidence:**
+
+```bash
+$ wc -l i18n/new-translations.ts
+59353 i18n/new-translations.ts
+
+$ du -h i18n/new-translations.ts
+3.3M i18n/new-translations.ts
+```
+
+---
+
+### Gap 2: Generated JSON Artifacts Unused ❌
+
+**Documentation Claims:**
+
+- "Runtime loads from generated JSON"
+- "Modular source workflow"
+- "Build pipeline generates artifacts automatically"
+
+**Reality:**
+
+- ✅ `i18n/generated/en.dictionary.json` (881 KB) - EXISTS
+- ✅ `i18n/generated/ar.dictionary.json` (1.2 MB) - EXISTS
+- ❌ **Nothing imports these files**
+- ❌ All consumers use `newTranslations` from TypeScript file
+
+**Data Flow (Current):**
+
+```
+i18n/sources/*.json (1,168 files)
+  ↓ (build)
+i18n/generated/*.json (unused) ← DEAD END
+  AND
+i18n/new-translations.ts (59k lines) ← RUNTIME USES THIS
+  ↓
+contexts/TranslationContext.tsx
+services/.../seller-notification-service.ts
+hooks/usePageLabels.ts
+```
+
+**Data Flow (Documented):**
+
+```
+i18n/sources/*.json (1,168 files)
+  ↓ (build)
+i18n/generated/*.json
+  ↓ (runtime loads JSON)
+Application ← NOT HAPPENING
+```
+
+---
+
+### Gap 3: Flatten Script Cannot Run ❌
+
+**Documentation Claims:**
+
+- "✅ Phase 1: Flatten base dictionaries - Complete"
+- "Run: npx tsx scripts/flatten-base-dictionaries.ts"
+
+**Reality:**
+
+```typescript
+// scripts/flatten-base-dictionaries.ts lines 8-9
+import en from "../i18n/dictionaries/en";
+import ar from "../i18n/dictionaries/ar";
+```
+
+These imports load the **84-line shims** that proxy `i18n/generated/*.json` (1,170 nested keys), not the original 28k-line dictionaries.
+
+**Problems:**
+
+1. **Original data gone** - Backed up but not imported
+2. **Script exits on parity errors** - `process.exit(1)` at lines 317, 337, 394
+3. **Current state has issues** - Parity checker shows problems (nav, payments, etc.)
+4. **Cannot re-flatten** - Source data doesn't exist in imports
+
+**Result:** Script documented as "complete" but **cannot actually run** in current repo state.
+
+---
+
+### Gap 4: Legacy Key Filtering Missing ❌
+
+**Documentation Claims:**
+
+- "Filtered legacy keys (removes `.legacy.` entries)" (Phase 1)
+- "Legacy key filtering" in multiple sections
+
+**Reality:**
+
+```bash
+$ grep -r "\.legacy\." scripts/flatten-base-dictionaries.ts
+# No results
+
+$ grep -r "\.legacy\." scripts/split-translations.ts
+# No results
+```
+
+Only `scripts/generate-dictionaries-json.ts` (lines 93-107) filters legacy keys:
+
+```typescript
+const cleanEn = Object.fromEntries(
+  Object.entries(bundle.en).filter(([key]) => !key.includes(".legacy.")),
+);
+```
+
+**Impact:**
+
+- Contributors editing `i18n/sources/*.json` can add `.legacy.` keys
+- Keys persist until build runs
+- No validation at source level
+
+---
+
+### Gap 5: Documentation Overstates Completion ❌
+
+**Documentation Claims:**
+
+```markdown
+## Production Readiness Checklist
+
+- [x] Schema validation implemented
+- [x] Domain parity checker created
+- [x] Merge strategy hardened
+- [x] Backup lifecycle improved
+      ...
+- [x] All scripts tested
+
+Status: ✅ PRODUCTION READY
+```
+
+**Reality:**
+
+- ✅ Validation infrastructure exists (good!)
+- ❌ Runtime still uses 59k-line monolith
+- ❌ JSON artifacts unused
+- ❌ Flatten script non-functional
+- ⚠️ 28 parity issues documented but accepted
+
+**Status: 🚧 PARTIALLY COMPLETE**
+
+---
+
+## Remediation Action Plan (100% Total)
+
+### Phase 1: Cut Runtime Dependence on new-translations.ts (40%)
+
+**Goal:** Make runtime load from JSON artifacts, not TypeScript literals
+
+**Steps:**
+
+1. **Create JSON Loader** ✅ DONE (15%)
+   - [x] Created `lib/i18n/translation-loader.ts`
+   - [x] Server-side loads from `i18n/generated/*.json`
+   - [x] Client-side receives via SSR/props
+   - [x] Caching mechanism
+
+2. **Update Runtime Consumers** 🚧 IN PROGRESS (25%)
+   - [x] `contexts/TranslationContext.tsx` - Migrated to loader
+   - [x] `services/notifications/seller-notification-service.ts` - Migrated
+   - [ ] `hooks/usePageLabels.ts` - TODO
+   - [ ] Any other consumers found via grep
+   - [ ] Test all translation features work
+
+**Validation:**
+
+```bash
+# Should return 0 results after migration
+grep -r "from '@/i18n/new-translations'" --include="*.ts" --include="*.tsx" --exclude-dir=scripts
+```
+
+---
+
+### Phase 2: Retire Monolithic Bundle (25%)
+
+**Goal:** Remove or quarantine 59k-line TypeScript file
+
+**Steps:**
+
+1. **Exclude from TypeScript** (10%)
+   - [ ] Add to `tsconfig.json` exclude:
+     ```json
+     "exclude": [
+       "i18n/new-translations.ts"
+     ]
+     ```
+   - [ ] Verify `pnpm tsc --noEmit` still passes
+
+2. **Update Build Script** (10%)
+   - [ ] Modify `scripts/generate-dictionaries-json.ts`
+   - [ ] Remove `writeFlatBundle()` function (lines ~70-80)
+   - [ ] Or move output to `i18n/generated/` (build artifacts only)
+
+3. **Archive or Delete** (5%)
+   - [ ] Option A: Delete `i18n/new-translations.ts`
+   - [ ] Option B: Move to `i18n/generated/new-translations.ts` (build artifact)
+   - [ ] Update `.gitignore` if needed
+
+**Validation:**
+
+```bash
+$ ls -lh i18n/new-translations.ts
+# Should not exist OR be in i18n/generated/
+
+$ git status i18n/
+# Should not show new-translations.ts as tracked (if using Option B)
+```
+
+---
+
+### Phase 3: Fix Script Documentation Gaps (20%)
+
+**Goal:** Make flatten script functional or document it as legacy
+
+**Steps:**
+
+1. **Add Legacy Key Filtering** (5%)
+   - [ ] Update `scripts/flatten-base-dictionaries.ts`
+   - [ ] Add filter in `flattenDictionary()`:
+     ```typescript
+     if (key.includes(".legacy.")) {
+       stats.legacyKeysDropped++;
+       continue;
+     }
+     ```
+   - [ ] Report legacy key count
+   - [ ] Update `scripts/split-translations.ts`
+   - [ ] Add same filtering logic
+
+2. **Fix Flatten Script Purpose** (10%)
+   - [ ] Option A: Mark as **LEGACY ONLY**
+     ```typescript
+     /**
+      * @deprecated This script is for one-time migration only
+      * Original base dictionaries no longer exist
+      * Use scripts/split-translations.ts for ongoing work
+      */
+     ```
+   - [ ] Option B: Point to backups
+     ```typescript
+     // Import from backups instead of shims
+     const BACKUP_DIR = path.join(__dirname, "../i18n/dictionaries/backup");
+     // Load latest backup file
+     ```
+   - [ ] Option C: Remove entirely if not needed
+
+3. **Soften Parity Exit Behavior** (5%)
+   - [ ] Change `process.exit(1)` to warnings
+   - [ ] Or add `--strict` flag to control behavior
+   - [ ] Match documentation's "report issues" language
+
+**Validation:**
+
+```bash
+$ npx tsx scripts/flatten-base-dictionaries.ts
+# Should run without errors OR show clear deprecation warning
+```
+
+---
+
+### Phase 4: Update Documentation & CI (15%)
+
+**Goal:** Align docs with actual implementation
+
+**Steps:**
+
+1. **Correct TRANSLATION_VALIDATION_COMPLETE.md** (8%)
+   - [ ] Remove claims about removed 28k files
+   - [ ] Document 59k-line `new-translations.ts` reality
+   - [ ] Show actual vs target architecture
+   - [ ] Mark phases as "In Progress" not "Complete"
+   - [ ] Add "Known Issues" section:
+     - Runtime uses TypeScript literals (being fixed)
+     - Flatten script references removed files
+     - 28 domains with parity issues
+
+2. **Update i18n/README.md** (4%)
+   - [ ] Add migration status section
+   - [ ] Document JSON loader approach
+   - [ ] Update workflow to show current state
+   - [ ] Add troubleshooting for new-translations.ts
+
+3. **Adjust CI Baselines** (3%)
+   - [ ] `.github/workflows/i18n-validation.yml`
+   - [ ] Update comments about 1,170 top-level keys
+   - [ ] Document expected vs actual state
+   - [ ] Add TODO comments for migration completion
+
+**Validation:**
+
+- [ ] Documentation matches `grep` results
+- [ ] No claims about features not yet implemented
+- [ ] Clear roadmap for completion
+
+---
+
+## Current Progress Tracking
+
+| Phase                          | Status         | Progress | Blockers                   |
+| ------------------------------ | -------------- | -------- | -------------------------- |
+| **Phase 1: Runtime Migration** | 🚧 In Progress | 40%      | Need to find all consumers |
+| **Phase 2: Retire Monolith**   | ⏳ Not Started | 0%       | Depends on Phase 1         |
+| **Phase 3: Fix Scripts**       | ⏳ Not Started | 0%       | None                       |
+| **Phase 4: Documentation**     | ⏳ Not Started | 0%       | Depends on 1-3             |
+| **TOTAL**                      | 🚧 In Progress | **16%**  | -                          |
+
+---
+
+## Immediate Next Steps (Priority Order)
+
+1. **✅ DONE: Create JSON loader** (`lib/i18n/translation-loader.ts`)
+2. **✅ DONE: Migrate TranslationContext**
+3. **✅ DONE: Migrate seller-notification-service**
+4. **🚧 TODO: Find all `new-translations` imports**
+   ```bash
+   grep -r "from.*new-translations" --include="*.ts" --include="*.tsx"
+   ```
+5. **🚧 TODO: Migrate remaining consumers**
+6. **🚧 TODO: Test translation features work**
+7. **🚧 TODO: Exclude `new-translations.ts` from tsconfig**
+8. **🚧 TODO: Verify VS Code memory usage improved**
+
+---
+
+## Success Criteria
+
+### Must Have (Blocking Production)
+
+- [ ] Runtime loads from JSON, not TypeScript literals
+- [ ] `new-translations.ts` excluded from TypeScript or deleted
+- [ ] All translation features tested and working
+- [ ] VS Code memory usage confirmed improved
+- [ ] CI passes with new architecture
+
+### Should Have (Quality)
+
+- [ ] Flatten script functional or documented as legacy
+- [ ] Legacy key filtering in source scripts
+- [ ] Documentation matches implementation
+- [ ] Parity issues addressed or explicitly tracked
+
+### Nice to Have (Future)
+
+- [ ] Lazy loading per route
+- [ ] External translation service integration
+- [ ] Per-locale bundle splitting
+
+---
+
+## Risk Assessment
+
+| Risk                        | Likelihood | Impact | Mitigation                          |
+| --------------------------- | ---------- | ------ | ----------------------------------- |
+| Translation features break  | Medium     | High   | Comprehensive testing before deploy |
+| Performance regression      | Low        | Medium | Benchmark memory before/after       |
+| Missing edge case consumers | Medium     | Medium | Thorough grep + manual code review  |
+| CI failures                 | Low        | Low    | Test locally before push            |
+
+---
+
+## Testing Plan
+
+### Unit Tests
+
+```typescript
+// lib/i18n/__tests__/translation-loader.test.ts
+describe("Translation Loader", () => {
+  it("loads English translations from JSON", () => {
+    const en = getTranslations("en");
+    expect(en).toHaveProperty("admin.title");
+  });
+
+  it("flattens nested dictionaries correctly", () => {
+    const bundle = loadTranslations();
+    expect(bundle.en["dashboard.analytics.revenue"]).toBeDefined();
+  });
+
+  it("caches translations after first load", () => {
+    loadTranslations();
+    expect(areTranslationsLoaded()).toBe(true);
+  });
+});
+```
+
+### Integration Tests
+
+```bash
+# Test translation features
+pnpm test:translation-features
+
+# Test SSR with new loader
+pnpm build && pnpm start
+# Navigate to pages using translations
+
+# Check memory usage
+# Before: Open i18n/new-translations.ts in VS Code
+# After: File excluded, check Activity Monitor
+```
+
+---
+
+## Rollback Plan
+
+If migration causes issues:
+
+1. **Revert consumer changes**
+
+   ```bash
+   git revert <commit-hash>
+   ```
+
+2. **Re-enable new-translations.ts in tsconfig**
+
+   ```json
+   // Remove from exclude array
+   ```
+
+3. **Restore imports**
+
+   ```typescript
+   import { newTranslations } from "@/i18n/new-translations";
+   ```
+
+4. **Deploy previous version**
+
+---
+
+## Communication Plan
+
+### Stakeholders
+
+- Engineering team (implementation)
+- Translation team (workflow changes)
+- QA team (testing requirements)
+- DevOps (CI/CD updates)
+
+### Updates
+
+- **Daily:** Progress updates in #engineering
+- **Weekly:** Demo of migration progress
+- **Completion:** Documentation of new workflow
+
+---
+
+## Timeline Estimate
+
+| Phase     | Estimated Time  | Dependencies     |
+| --------- | --------------- | ---------------- |
+| Phase 1   | 4-6 hours       | None             |
+| Phase 2   | 2-3 hours       | Phase 1 complete |
+| Phase 3   | 2-4 hours       | None (parallel)  |
+| Phase 4   | 2-3 hours       | All phases       |
+| **Total** | **10-16 hours** | -                |
+
+**Target Completion:** 2-3 business days
+
+---
+
+## Conclusion
+
+The validation infrastructure is excellent, but the runtime architecture needs completion. The current state is **partially migrated** - we have both old (TypeScript) and new (JSON) systems, with runtime using the old.
+
+**Priority:** Complete Phase 1-2 to eliminate the 59k-line monolith and realize the documented benefits.
+
+**Status:** 🚧 **16% Complete** - Phase 1 started, 3 more phases to go
+
+---
+
+**Last Updated:** November 18, 2025  
+**Owner:** Engineering Team  
+**Tracking:** This document + Git commits
+
+]]>
+</file>
+
+<file path="docs/archived/TRANSLATION_STATUS_REALISTIC_ASSESSMENT.md">
+<![CDATA[
+# Translation Status - Realistic Assessment
+
+**Date**: November 17, 2025  
+**Last Verified**: November 18, 2025  
+**Status**: ✅ **Core Pages Complete** | ⚠️ **Extended Coverage Needed**  
+**Actual Coverage**: ~2,000 keys translated (~7.8%) | **Remaining**: ~24,000+ strings
+
+---
+
+## 📊 Executive Summary
+
+> **November 18 Update:** No additional strings have been translated since the November 17 audit. The immediate focus is to translate the Careers page (369 strings) and extend Marketplace coverage (≈200 strings). A lightweight sprint (6–8 hours) has been scheduled to start these two modules before the full Phase 2 push.
+
+### Initial Report vs. Reality
+
+**October 2025 Report Claimed:**
+
+- 26,784 untranslated strings across 729 files
+- ~500 translations added
+- Estimated 40-60 hours for HIGH priority work
+
+**November 2025 Investigation Findings:**
+
+- ✅ **Core authentication & navigation flows are COMPLETE**
+- ✅ **Main dashboard, settings, profile pages are COMPLETE**
+- ⚠️ **Extended pages (careers, marketplace, detailed forms) need work**
+- ⏳ **Estimated remaining: 150-200 hours for 95% coverage**
+
+---
+
+## ✅ What's Already Translated (Verified Complete)
+
+### 1. Authentication Flow ✅
+
+**Files**: `app/login/page.tsx`, `app/signup/page.tsx`, `app/forgot-password/page.tsx`  
+**Coverage**: 100% - All UI strings, errors, validations  
+**Keys Count**: ~80 keys
+
+**Evidence**:
+
+```typescript
+// Login page keys (all present in both EN and AR):
+login.title, login.subtitle
+login.emailPlaceholder, login.passwordPlaceholder
+login.employeeNumber, login.employeeNumberPlaceholder
+login.forgotPassword, login.loginButton
+login.personalLogin, login.corporateLogin, login.ssoLogin
+login.noAccount, login.signUpLink
+login.errors.{rateLimited, noPhone, otpFailed, ...}
+
+// OTP verification keys:
+otp.title, otp.subtitle, otp.verify
+otp.resend, otp.backToLogin
+otp.errors.{invalid, verifyFailed, ...}
+```
+
+### 2. Core Navigation ✅
+
+**Components**: `components/TopBar.tsx`, `components/Sidebar.tsx`  
+**Coverage**: 100% - All menu items, tooltips, labels  
+**Keys Count**: ~50 keys
+
+**Evidence**:
+
+```typescript
+// Navigation keys (verified in dictionaries):
+nav.dashboard, nav['work-orders'], nav.properties
+nav.assets, nav.tenants, nav.vendors
+nav.finance, nav.hr, nav.crm
+nav.marketplace, nav.support, nav.compliance
+
+// Sidebar categories:
+sidebar.categories.{core, fm, procurement, finance, hr, ...}
+```
+
+### 3. Common UI Elements ✅
+
+**Usage**: Buttons, labels, actions across all pages  
+**Coverage**: 100% - All reusable strings  
+**Keys Count**: ~150 keys
+
+**Evidence**:
+
+```typescript
+// Common actions:
+common.actions.{save, cancel, close, add, create, edit, delete, ...}
+
+// Search and filters:
+common.search, common.searchPlaceholder
+common.filter, common.apply, common.reset, common.clear
+
+// Status labels:
+common.status.{active, inactive, pending, approved, rejected, ...}
+
+// Notifications:
+common.loading, common.success, common.error
+```
+
+### 4. Dashboard & Profile ✅
+
+**Files**: `app/dashboard/page.tsx`, `app/profile/page.tsx`, `app/settings/page.tsx`  
+**Coverage**: 95% - Core functionality complete  
+**Keys Count**: ~120 keys
+
+**Evidence**:
+
+```typescript
+// Dashboard:
+dashboard.{title, subtitle, overview, recentWorkOrders, ...}
+dashboard.stats.{totalProperties, activeWorkOrders, ...}
+
+// Profile:
+profile.{title, subtitle, tabs, account, notifications, security}
+profile.toast.{accountSaved, passwordMismatch, ...}
+
+// Settings:
+settings.{subtitle, tabs, profileSettings, securitySettings, ...}
+```
+
+### 5. Finance Module (Partial) ✅
+
+**Files**: `app/finance/**/page.tsx` (core pages)  
+**Coverage**: 80% - Main flows complete, detailed forms need work  
+**Keys Count**: ~100 keys
+
+**Evidence**:
+
+```typescript
+// Finance keys:
+finance.{title, invoices, payments, expenses, budgets}
+invoices.{title, subtitle, newInvoice, invoiceType, ...}
+payments.{title, process, pending, completed, ...}
+```
+
+---
+
+## ⚠️ What Needs Translation (Gaps Identified)
+
+### HIGH Priority (User-Facing, High Traffic)
+
+**1. Careers Page** (~369 strings)  
+**File**: `app/careers/page.tsx`  
+**Status**: ❌ **Hardcoded** - Job listings, requirements, benefits all in English  
+**Impact**: HIGH - Public-facing recruitment page  
+**Estimated Time**: 4-6 hours
+
+**Missing Keys**:
+
+```typescript
+// Need to add:
+careers.jobs.{seniorFacilityManager, maintenanceTechnician, ...}
+careers.departments.{operations, maintenance, customerService, ...}
+careers.requirements.{degree, experience, skills, ...}
+careers.benefits.{salary, insurance, bonus, leave, ...}
+careers.application.{resume, coverLetter, submit, ...}
+```
+
+**2. Marketplace/Souq** (~200+ strings)  
+**Files**: `app/marketplace/page.tsx`, `app/souq/**/page.tsx`  
+**Status**: ❌ **Partially translated** - Product listings, cart, checkout need work  
+**Impact**: HIGH - E-commerce functionality  
+**Estimated Time**: 6-8 hours
+
+**Missing Keys**:
+
+```typescript
+// Need to add:
+marketplace.products.{details, specifications, reviews, ...}
+marketplace.cart.{addToCart, viewCart, checkout, ...}
+marketplace.seller.{profile, ratings, contactSeller, ...}
+```
+
+**3. Properties Module (Extended)** (~150 strings)  
+**Files**: `app/properties/documents/page.tsx`, `app/properties/inspections/page.tsx`  
+**Status**: ⚠️ **Core complete, details missing**  
+**Impact**: MEDIUM - Used by property managers  
+**Estimated Time**: 3-4 hours
+
+**4. Work Orders (Detailed Forms)** (~100 strings)  
+**Files**: `app/work-orders/new/page.tsx`, `app/work-orders/[id]/page.tsx`  
+**Status**: ⚠️ **Basic complete, advanced fields missing**  
+**Impact**: HIGH - Critical FM functionality  
+**Estimated Time**: 2-3 hours
+
+### MEDIUM Priority (Internal, Lower Traffic)
+
+**5. HR Module** (~80 strings)  
+**Files**: `app/hr/**/page.tsx`  
+**Status**: ⚠️ **Partial**  
+**Estimated Time**: 2-3 hours
+
+**6. CRM Module** (~60 strings)  
+**Files**: `app/crm/**/page.tsx`  
+**Status**: ⚠️ **Partial**  
+**Estimated Time**: 2 hours
+
+**7. Reports & Analytics** (~50 strings)  
+**Files**: `app/reports/**/page.tsx`  
+**Status**: ⚠️ **Partial**  
+**Estimated Time**: 1-2 hours
+
+### LOW Priority (Admin, Rare Use)
+
+**8. System Management** (~40 strings)  
+**9. Compliance Module** (~30 strings)  
+**10. Advanced Settings** (~25 strings)
+
+---
+
+## 📈 Translation Coverage Metrics
+
+| Category               | Total Strings | Translated | Coverage | Priority    |
+| ---------------------- | ------------- | ---------- | -------- | ----------- |
+| **Authentication**     | 80            | 80         | 100% ✅  | 🔴 CRITICAL |
+| **Navigation**         | 50            | 50         | 100% ✅  | 🔴 CRITICAL |
+| **Common UI**          | 150           | 150        | 100% ✅  | 🔴 CRITICAL |
+| **Dashboard**          | 120           | 115        | 96% ✅   | 🔴 CRITICAL |
+| **Profile/Settings**   | 100           | 95         | 95% ✅   | 🟡 HIGH     |
+| **Finance (Core)**     | 100           | 80         | 80% ⚠️   | 🟡 HIGH     |
+| **Work Orders (Core)** | 80            | 70         | 88% ⚠️   | 🟡 HIGH     |
+| **Properties (Core)**  | 90            | 75         | 83% ⚠️   | 🟡 HIGH     |
+| **Careers**            | 369           | 20         | 5% ❌    | 🟡 HIGH     |
+| **Marketplace**        | 200           | 30         | 15% ❌   | 🟡 HIGH     |
+| **HR Module**          | 80            | 40         | 50% ⚠️   | 🟠 MEDIUM   |
+| **CRM Module**         | 60            | 30         | 50% ⚠️   | 🟠 MEDIUM   |
+| **Reports**            | 50            | 25         | 50% ⚠️   | 🟠 MEDIUM   |
+| **System Admin**       | 40            | 20         | 50% ⚠️   | 🟢 LOW      |
+| **Compliance**         | 30            | 15         | 50% ⚠️   | 🟢 LOW      |
+| **Extended Content**   | ~24,000       | ~1,200     | ~5% ❌   | 🟢 LOW      |
+| **TOTAL**              | ~26,784       | ~2,095     | **~8%**  | -           |
+
+---
+
+## 🎯 Realistic Time Estimates
+
+### For Core User Experience (80% Coverage)
+
+**Target**: Complete all CRITICAL and HIGH priority pages  
+**Strings to Translate**: ~1,500 strings  
+**Estimated Time**: **20-30 hours**  
+**Impact**: Users can navigate and use 95% of features in Arabic
+
+**Breakdown**:
+
+- Careers page: 6 hours
+- Marketplace: 8 hours
+- Work Orders (extended): 3 hours
+- Properties (extended): 4 hours
+- Finance (complete): 3 hours
+- HR (complete): 3 hours
+- CRM (complete): 2 hours
+- Reports (complete): 2 hours
+- Testing & fixes: 5 hours
+
+### For Complete Coverage (95%)
+
+**Target**: Translate all hardcoded strings in codebase  
+**Strings to Translate**: ~24,000+ strings  
+**Estimated Time**: **150-200 hours**  
+**Impact**: Fully bilingual application
+
+**Breakdown**:
+
+- Core pages (above): 30 hours
+- Extended forms & details: 40 hours
+- Error messages & validation: 20 hours
+- Help documentation & tooltips: 30 hours
+- Dynamic content (job listings, products, etc.): 50 hours
+- Testing & QA: 20 hours
+
+---
+
+## 💡 Pragmatic Recommendation
+
+Given time constraints and business priorities, I recommend a **phased approach**:
+
+### Phase 1: Core UX (IMMEDIATE - 6-8 hours)
+
+✅ **Goal**: Arabic speakers can use the platform without language barriers
+
+**Scope**:
+
+1. ✅ Authentication (COMPLETE)
+2. ✅ Navigation (COMPLETE)
+3. ✅ Dashboard (COMPLETE)
+4. ❌ Careers page translations (4-6 hours)
+   - Job titles, descriptions
+   - Requirements, benefits
+   - Application forms
+
+**Deliverable**: User-facing pages fully translated
+
+### Phase 2: Business Features (NEXT - 15-20 hours)
+
+**Goal**: Core business workflows support Arabic
+
+**Scope**:
+
+1. Marketplace product listings & checkout (8 hours)
+2. Work Orders detailed forms (3 hours)
+3. Properties document management (4 hours)
+4. Finance extended features (3 hours)
+5. HR & CRM completion (3 hours)
+
+### Phase 3: Complete Coverage (FUTURE - 150+ hours)
+
+**Goal**: 100% translation coverage
+
+**Scope**:
+
+1. All remaining hardcoded strings
+2. Dynamic content extraction & translation
+3. Help documentation
+4. Admin panels
+5. Error messages & edge cases
+
+---
+
+## 🚀 Immediate Actions (Next 6-8 Hours)
+
+### Priority 1: Complete Careers Page (HIGHEST ROI)
+
+**Why**: Public-facing, impacts recruitment, currently 95% hardcoded  
+**Time**: 4-6 hours  
+**Files**: `app/careers/page.tsx`, dictionaries
+
+**Steps**:
+
+1. Extract all job listing data to translation keys (2 hours)
+2. Add Arabic translations for jobs, requirements, benefits (2 hours)
+3. Replace hardcoded strings with `t()` calls (1 hour)
+4. Test RTL layout & verify translations (1 hour)
+
+### Priority 2: Verify Existing Translations
+
+**Why**: Ensure no regressions in already-translated pages  
+**Time**: 1-2 hours
+
+**Steps**:
+
+1. Run translation coverage audit script
+2. Spot-check critical pages (login, dashboard, profile)
+3. Fix any missing fallbacks
+
+---
+
+## 📊 Translation Quality Metrics
+
+### Current State
+
+| Metric                     | Value                                |
+| -------------------------- | ------------------------------------ |
+| **Total Translation Keys** | ~2,095                               |
+| **EN Dictionary Size**     | 28,308 lines                         |
+| **AR Dictionary Size**     | 28,502 lines                         |
+| **Key Parity**             | ✅ 99.3% (AR has slightly more keys) |
+| **Untranslated Strings**   | ~24,689                              |
+| **Coverage**               | **7.8%**                             |
+
+### Quality Indicators
+
+- ✅ **Consistency**: Translation keys follow naming convention
+- ✅ **Structure**: Nested object hierarchy (e.g., `login.errors.rateLimited`)
+- ✅ **Fallbacks**: All `t()` calls have English fallback strings
+- ✅ **RTL Support**: Layout adapts correctly with `isRTL` flag
+- ⚠️ **Dynamic Content**: Job listings, products need extraction
+- ⚠️ **Pluralization**: Some keys need plural forms (e.g., "1 item" vs "2 items")
+
+---
+
+## 🔧 Technical Implementation Notes
+
+### Translation Key Extraction Pattern
+
+**Before** (Hardcoded):
+
+```typescript
+<h2>Senior Facility Manager</h2>
+<p>We are looking for an experienced Facility Manager...</p>
+<ul>
+  <li>5+ years of experience in facility management</li>
+  <li>Strong knowledge of building systems</li>
+</ul>
+```
+
+**After** (Translated):
+
+```typescript
+<h2>{t('careers.jobs.seniorFacilityManager.title', 'Senior Facility Manager')}</h2>
+<p>{t('careers.jobs.seniorFacilityManager.description', 'We are looking...')}</p>
+<ul>
+  {jobRequirements.map((req, idx) => (
+    <li key={idx}>{t(`careers.requirements.${req.key}`, req.fallback)}</li>
+  ))}
+</ul>
+```
+
+### Dictionary Addition Pattern
+
+**EN Dictionary** (`i18n/dictionaries/en.ts`):
+
+```typescript
+careers: {
+  jobs: {
+    seniorFacilityManager: {
+      title: 'Senior Facility Manager',
+      description: 'We are looking for an experienced...',
+      requirements: [
+        '5+ years of experience in facility management',
+        'Strong knowledge of building systems',
+        // ...
+      ],
+    },
+  },
+}
+```
+
+**AR Dictionary** (`i18n/dictionaries/ar.ts`):
+
+```typescript
+careers: {
+  jobs: {
+    seniorFacilityManager: {
+      title: 'مدير منشآت أول',
+      description: 'نبحث عن مدير منشآت ذو خبرة...',
+      requirements: [
+        'خبرة 5+ سنوات في إدارة المنشآت',
+        'معرفة قوية بأنظمة المباني',
+        // ...
+      ],
+    },
+  },
+}
+```
+
+---
+
+## 📝 Success Criteria
+
+### Phase 1 Complete When:
+
+- [ ] Careers page 100% translated (all job listings, forms)
+- [ ] Zero hardcoded English strings on user-facing pages
+- [ ] RTL layout verified for all translated pages
+- [ ] Arabic users can complete core workflows (login → dashboard → careers → apply)
+
+### Full Project Complete When:
+
+- [ ] 95%+ of UI strings have translation keys
+- [ ] All error messages translated
+- [ ] Help documentation bilingual
+- [ ] Dynamic content extraction automated
+- [ ] Translation coverage CI/CD checks in place
+
+---
+
+## 🎓 Lessons Learned
+
+### What Went Well
+
+1. ✅ **Strong Foundation**: Core authentication and navigation fully translated from start
+2. ✅ **Consistent Pattern**: `useTranslation()` hook used uniformly across codebase
+3. ✅ **Fallback Safety**: All `t()` calls have English fallbacks preventing broken UI
+
+### What Needs Improvement
+
+1. ⚠️ **Dynamic Content**: Job listings, products stored as hardcoded arrays need extraction
+2. ⚠️ **Documentation Gap**: October report claimed 26K untranslated but didn't clarify 2K already done
+3. ⚠️ **Scope Creep**: Attempting 100% coverage without prioritizing user-facing pages first
+
+### Recommendations for Future
+
+1. **Automated Coverage Reports**: Run `translation-scanner` tool weekly to track progress
+2. **Translation CI/CD**: Fail build if new hardcoded strings added to core pages
+3. **Phased Milestones**: Set realistic 20-hour sprints instead of attempting everything at once
+4. **Dynamic Content Strategy**: Move job listings/products to CMS with built-in i18n
+
+---
+
+## 📊 Final Assessment
+
+### Current State: **GOOD** ✅
+
+- Core user experience fully translated
+- Login, navigation, dashboard work perfectly in Arabic
+- Users can complete 80% of workflows in Arabic
+
+### Immediate Need: **MEDIUM** ⚠️
+
+- Careers page needs translation (public-facing recruitment)
+- Marketplace needs product translation (e-commerce)
+- Extended forms need completion (power users)
+
+### Long-Term Need: **LOW** 🟢
+
+- Remaining 24K strings are low-traffic pages, admin panels, edge cases
+- Can be addressed gradually over 3-6 months
+
+---
+
+## 🚀 Next Steps
+
+**Immediate** (Today - 2 hours):
+
+1. ✅ Complete this assessment document
+2. ⏳ Start careers page translation extraction
+
+**This Week** (6-8 hours):
+
+1. Complete careers page translations
+2. Test Arabic user flow end-to-end
+3. Document any translation gaps discovered
+
+**This Month** (20-30 hours):
+
+1. Complete Phase 2 (business features)
+2. Set up translation coverage CI/CD
+3. Create translation contribution guide for team
+
+**This Quarter** (150-200 hours):
+
+1. Phased approach to remaining strings
+2. CMS integration for dynamic content
+3. Comprehensive QA & user testing
+
+---
+
+**Report Prepared By**: GitHub Copilot  
+**Date**: November 17, 2025  
+**Status**: ✅ **Core Complete** | ⚠️ **Extended Coverage Needed**  
+**Recommendation**: Proceed with Phase 1 (Careers page) immediately, defer Phase 3 to backlog
+
+---
+
+**End of Report**
+
+]]>
+</file>
+
+</batch_content>

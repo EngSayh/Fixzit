@@ -1,0 +1,3421 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/archived/planning/LONG_TERM_ROADMAP.md">
+<![CDATA[
+# Long-Term Communication Enhancement Roadmap
+
+## Overview
+
+This document outlines the long-term (Priority 3) enhancements for the Fixzit communication system, including SMS delivery monitoring, Redis migration, and WhatsApp integration.
+
+---
+
+## 🎯 Priority 3 Tasks
+
+### 1. Monitor SMS Delivery Rates
+
+#### Objective
+
+Implement comprehensive monitoring and analytics for SMS delivery to track success rates, identify issues, and optimize costs.
+
+#### Implementation Steps
+
+**A. Twilio Webhook Integration**
+Create webhook endpoint to receive delivery status updates:
+
+```typescript
+// app/api/webhooks/twilio/status/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { updateCommunicationStatus } from "@/lib/communication-logger";
+import { logger } from "@/lib/logger";
+
+export async function POST(req: NextRequest) {
+  try {
+    const formData = await req.formData();
+    const messageSid = formData.get("MessageSid") as string;
+    const messageStatus = formData.get("MessageStatus") as string;
+    const errorCode = formData.get("ErrorCode") as string;
+
+    // Map Twilio status to our status
+    const statusMap: Record<string, string> = {
+      sent: "sent",
+      delivered: "delivered",
+      undelivered: "failed",
+      failed: "failed",
+    };
+
+    const status = statusMap[messageStatus] || messageStatus;
+
+    // Find communication log by Twilio SID
+    const db = await getDatabase();
+    const log = await db.collection("communication_logs").findOne({
+      "metadata.twilioSid": messageSid,
+    });
+
+    if (log) {
+      await updateCommunicationStatus(log._id.toString(), status, {
+        twilioStatus: messageStatus,
+        errorCode: errorCode || undefined,
+        statusUpdatedAt: new Date().toISOString(),
+      });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    logger.error("[Twilio Webhook] Error processing status", { error });
+    return NextResponse.json({ success: false }, { status: 500 });
+  }
+}
+```
+
+**B. Configure Twilio Webhook**
+
+1. Log into Twilio Console
+2. Go to Phone Numbers → Active Numbers → [Your Number]
+3. Under "Messaging", set Status Callback URL:
+   ```
+   https://your-domain.com/api/webhooks/twilio/status
+   ```
+4. Select events: Sent, Delivered, Undelivered, Failed
+
+**C. Create Analytics Dashboard**
+
+Add analytics component to Communication Dashboard:
+
+```typescript
+// components/admin/SMSAnalytics.tsx
+interface SMSAnalytics {
+  totalSent: number;
+  deliveryRate: number;
+  averageDeliveryTime: string;
+  failuresByCarrier: Record<string, number>;
+  costAnalysis: {
+    totalCost: number;
+    costPerMessage: number;
+    segments: { single: number; multi: number };
+  };
+  hourlyTrends: Array<{ hour: number; sent: number; delivered: number }>;
+}
+
+// Query example
+const analytics = await db
+  .collection("communication_logs")
+  .aggregate([
+    {
+      $match: { channel: "sms", createdAt: { $gte: startDate, $lte: endDate } },
+    },
+    {
+      $group: {
+        _id: null,
+        totalSent: { $sum: 1 },
+        delivered: {
+          $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] },
+        },
+        failed: { $sum: { $cond: [{ $eq: ["$status", "failed"] }, 1, 0] } },
+        totalCost: { $sum: "$metadata.cost" },
+      },
+    },
+  ])
+  .toArray();
+```
+
+**D. Alerting System**
+
+```typescript
+// jobs/sms-monitoring.ts
+import { logger } from "@/lib/logger";
+import { sendEmail } from "@/lib/email";
+
+export async function monitorSMSHealth() {
+  const db = await getDatabase();
+
+  // Check last hour failure rate
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+
+  const stats = await db
+    .collection("communication_logs")
+    .aggregate([
+      { $match: { channel: "sms", createdAt: { $gte: oneHourAgo } } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          failed: { $sum: { $cond: [{ $eq: ["$status", "failed"] }, 1, 0] } },
+        },
+      },
+    ])
+    .toArray();
+
+  if (stats[0]) {
+    const failureRate = (stats[0].failed / stats[0].total) * 100;
+
+    // Alert if failure rate > 10%
+    if (failureRate > 10) {
+      await sendEmail(
+        "admin@fixzit.com",
+        "⚠️ High SMS Failure Rate Alert",
+        `SMS failure rate is ${failureRate.toFixed(2)}% in the last hour. 
+         Total: ${stats[0].total}, Failed: ${stats[0].failed}`,
+      );
+
+      logger.error("[SMS Monitoring] High failure rate detected", {
+        failureRate,
+        total: stats[0].total,
+        failed: stats[0].failed,
+      });
+    }
+  }
+}
+
+// Schedule with cron (runs every 15 minutes)
+// Add to deployment/cron.yaml or use node-cron
+```
+
+---
+
+### 2. Migrate OTP Storage from Memory to Redis (Production)
+
+#### Objective
+
+Move OTP storage from in-memory store to Redis for scalability, persistence, and multi-instance support.
+
+#### Why Redis?
+
+- **Persistence**: Survives app restarts
+- **Scalability**: Supports multiple app instances
+- **TTL**: Native expiration support
+- **Atomic operations**: Race condition prevention
+
+#### Implementation Steps
+
+**A. Install Redis Client**
+
+```bash
+pnpm add ioredis
+pnpm add -D @types/ioredis
+```
+
+**B. Create Redis Client**
+
+```typescript
+// lib/redis-otp.ts
+import Redis from "ioredis";
+import { logger } from "./logger";
+
+let redis: Redis | null = null;
+
+export function getRedisClient(): Redis {
+  if (!redis) {
+    redis = new Redis({
+      host: process.env.REDIS_HOST || "localhost",
+      port: parseInt(process.env.REDIS_PORT || "6379"),
+      password: process.env.REDIS_PASSWORD,
+      db: parseInt(process.env.REDIS_OTP_DB || "1"), // Separate DB for OTP
+      retryStrategy: (times) => {
+        const delay = Math.min(times * 50, 2000);
+        return delay;
+      },
+      maxRetriesPerRequest: 3,
+    });
+
+    redis.on("error", (error) => {
+      logger.error("[Redis OTP] Connection error", { error });
+    });
+
+    redis.on("connect", () => {
+      logger.info("[Redis OTP] Connected successfully");
+    });
+  }
+
+  return redis;
+}
+
+interface OTPData {
+  code: string;
+  phone: string;
+  userId: string;
+  attempts: number;
+  createdAt: number;
+  expiresAt: number;
+}
+
+export class RedisOTPStore {
+  private redis: Redis;
+  private readonly OTP_TTL = 5 * 60; // 5 minutes in seconds
+  private readonly MAX_ATTEMPTS = 3;
+  private readonly RATE_LIMIT_TTL = 15 * 60; // 15 minutes
+
+  constructor() {
+    this.redis = getRedisClient();
+  }
+
+  private getOTPKey(phone: string): string {
+    return `otp:${phone}`;
+  }
+
+  private getRateLimitKey(phone: string): string {
+    return `otp:ratelimit:${phone}`;
+  }
+
+  async storeOTP(phone: string, code: string, userId: string): Promise<void> {
+    const key = this.getOTPKey(phone);
+    const data: OTPData = {
+      code,
+      phone,
+      userId,
+      attempts: 0,
+      createdAt: Date.now(),
+      expiresAt: Date.now() + this.OTP_TTL * 1000,
+    };
+
+    await this.redis.setex(key, this.OTP_TTL, JSON.stringify(data));
+    logger.info("[Redis OTP] Stored OTP", { phone, userId });
+  }
+
+  async verifyOTP(
+    phone: string,
+    code: string,
+  ): Promise<{
+    success: boolean;
+    userId?: string;
+    error?: string;
+  }> {
+    const key = this.getOTPKey(phone);
+    const dataStr = await this.redis.get(key);
+
+    if (!dataStr) {
+      return { success: false, error: "OTP expired or not found" };
+    }
+
+    const data: OTPData = JSON.parse(dataStr);
+
+    // Check expiration
+    if (Date.now() > data.expiresAt) {
+      await this.redis.del(key);
+      return { success: false, error: "OTP expired" };
+    }
+
+    // Check attempts
+    if (data.attempts >= this.MAX_ATTEMPTS) {
+      await this.redis.del(key);
+      return {
+        success: false,
+        error: "Maximum verification attempts exceeded",
+      };
+    }
+
+    // Verify code
+    if (data.code !== code) {
+      data.attempts++;
+      await this.redis.setex(
+        key,
+        Math.ceil((data.expiresAt - Date.now()) / 1000),
+        JSON.stringify(data),
+      );
+      return {
+        success: false,
+        error: `Invalid OTP. ${this.MAX_ATTEMPTS - data.attempts} attempts remaining`,
+      };
+    }
+
+    // Success - delete OTP
+    await this.redis.del(key);
+    logger.info("[Redis OTP] Verified successfully", {
+      phone,
+      userId: data.userId,
+    });
+
+    return { success: true, userId: data.userId };
+  }
+
+  async checkRateLimit(phone: string): Promise<{
+    allowed: boolean;
+    remaining: number;
+    resetAt?: number;
+  }> {
+    const key = this.getRateLimitKey(phone);
+    const count = await this.redis.incr(key);
+
+    if (count === 1) {
+      // First request - set expiration
+      await this.redis.expire(key, this.RATE_LIMIT_TTL);
+    }
+
+    const ttl = await this.redis.ttl(key);
+    const maxAttempts = 5;
+
+    if (count > maxAttempts) {
+      return {
+        allowed: false,
+        remaining: 0,
+        resetAt: Date.now() + ttl * 1000,
+      };
+    }
+
+    return {
+      allowed: true,
+      remaining: maxAttempts - count,
+    };
+  }
+
+  async deleteOTP(phone: string): Promise<void> {
+    await this.redis.del(this.getOTPKey(phone));
+  }
+
+  async getOTPInfo(phone: string): Promise<OTPData | null> {
+    const key = this.getOTPKey(phone);
+    const dataStr = await this.redis.get(key);
+    return dataStr ? JSON.parse(dataStr) : null;
+  }
+}
+
+export const redisOTPStore = new RedisOTPStore();
+```
+
+**C. Update OTP Send Endpoint**
+
+```typescript
+// app/api/auth/otp/send/route.ts
+import { redisOTPStore } from "@/lib/redis-otp";
+
+// Replace memoryOTPStore with redisOTPStore
+const rateLimit = await redisOTPStore.checkRateLimit(userPhone);
+if (!rateLimit.allowed) {
+  return NextResponse.json(
+    {
+      success: false,
+      error: `Too many OTP requests. Try again in ${Math.ceil((rateLimit.resetAt! - Date.now()) / 60000)} minutes.`,
+    },
+    { status: 429 },
+  );
+}
+
+await redisOTPStore.storeOTP(userPhone, otp, user._id.toString());
+```
+
+**D. Update OTP Verify Endpoint**
+
+```typescript
+// app/api/auth/otp/verify/route.ts
+import { redisOTPStore } from "@/lib/redis-otp";
+
+const result = await redisOTPStore.verifyOTP(phone, otp);
+
+if (!result.success) {
+  return NextResponse.json(
+    {
+      success: false,
+      error: result.error,
+    },
+    { status: 400 },
+  );
+}
+
+// Continue with login...
+```
+
+**E. Environment Variables**
+
+```bash
+# .env
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=your_redis_password
+REDIS_OTP_DB=1
+```
+
+**F. Docker Compose (Development)**
+
+```yaml
+# docker-compose.yml
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+
+volumes:
+  redis_data:
+```
+
+**G. Production Deployment (AWS/Azure/GCP)**
+
+**AWS ElastiCache:**
+
+```bash
+# Create Redis cluster
+aws elasticache create-cache-cluster \
+  --cache-cluster-id fixzit-otp-redis \
+  --cache-node-type cache.t3.micro \
+  --engine redis \
+  --num-cache-nodes 1 \
+  --security-group-ids sg-xxxxx
+
+# Get endpoint
+aws elasticache describe-cache-clusters \
+  --cache-cluster-id fixzit-otp-redis \
+  --show-cache-node-info
+```
+
+**Azure Cache for Redis:**
+
+```bash
+az redis create \
+  --name fixzit-otp-redis \
+  --resource-group fixzit-rg \
+  --location saudiarabia \
+  --sku Basic \
+  --vm-size c0
+```
+
+---
+
+### 3. Consider WhatsApp OTP as Cheaper Alternative
+
+#### Objective
+
+Evaluate and implement WhatsApp Business API for OTP delivery as a cost-effective alternative to SMS.
+
+#### Cost Comparison
+
+| Method    | Cost (Saudi Arabia)        | Delivery Rate | Notes                     |
+| --------- | -------------------------- | ------------- | ------------------------- |
+| SMS       | $0.05 - $0.08 per message  | 95-98%        | Reliable, universal       |
+| WhatsApp  | $0.005 - $0.01 per message | 90-95%        | Requires WhatsApp account |
+| Voice OTP | $0.02 - $0.05 per call     | 85-90%        | Backup option             |
+
+**Potential Savings:** 80-90% cost reduction
+
+#### Prerequisites
+
+1. WhatsApp Business Account
+2. WhatsApp Business API access (requires Meta approval)
+3. Verified business profile
+4. 24-hour message template approval
+
+#### Implementation Options
+
+**Option A: Twilio WhatsApp API**
+
+```typescript
+// lib/whatsapp.ts
+import twilio from "twilio";
+
+const client = twilio(
+  process.env.TWILIO_ACCOUNT_SID,
+  process.env.TWILIO_AUTH_TOKEN,
+);
+
+export async function sendWhatsAppOTP(
+  to: string,
+  otp: string,
+): Promise<{ success: boolean; messageSid?: string }> {
+  try {
+    // Format: +966XXXXXXXXX → whatsapp:+966XXXXXXXXX
+    const whatsappNumber = `whatsapp:${to}`;
+    const from = `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`;
+
+    const message = await client.messages.create({
+      from,
+      to: whatsappNumber,
+      body: `Your Fixzit verification code is: ${otp}\nValid for 5 minutes.\nDo not share this code.`,
+      // Use approved template
+      contentSid: process.env.TWILIO_WHATSAPP_TEMPLATE_SID,
+      contentVariables: JSON.stringify({ "1": otp }),
+    });
+
+    return { success: true, messageSid: message.sid };
+  } catch (error) {
+    logger.error("[WhatsApp] Send failed", { error });
+    return { success: false };
+  }
+}
+```
+
+**Option B: Meta Cloud API (Direct)**
+
+```typescript
+// lib/whatsapp-meta.ts
+import axios from "axios";
+
+export async function sendWhatsAppOTP(
+  to: string,
+  otp: string,
+): Promise<{ success: boolean; messageId?: string }> {
+  try {
+    const response = await axios.post(
+      `https://graph.facebook.com/v17.0/${process.env.WHATSAPP_PHONE_ID}/messages`,
+      {
+        messaging_product: "whatsapp",
+        to: to.replace("+", ""),
+        type: "template",
+        template: {
+          name: "otp_verification", // Your approved template name
+          language: { code: "ar" },
+          components: [
+            {
+              type: "body",
+              parameters: [{ type: "text", text: otp }],
+            },
+          ],
+        },
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    return { success: true, messageId: response.data.messages[0].id };
+  } catch (error) {
+    logger.error("[WhatsApp Meta] Send failed", { error });
+    return { success: false };
+  }
+}
+```
+
+#### Message Template (Submit to Meta for Approval)
+
+```
+Category: AUTHENTICATION
+Name: otp_verification
+Language: Arabic (ar)
+
+Body:
+رمز التحقق الخاص بك في فيكزيت هو: {{1}}
+صالح لمدة 5 دقائق.
+لا تشارك هذا الرمز مع أي شخص.
+
+Variables:
+{{1}} = OTP code
+
+English version:
+Your Fixzit verification code is: {{1}}
+Valid for 5 minutes.
+Do not share this code.
+```
+
+#### Fallback Strategy
+
+Implement intelligent channel selection:
+
+```typescript
+// lib/otp-delivery.ts
+export async function sendOTPWithFallback(
+  phone: string,
+  otp: string,
+  userId: string,
+): Promise<{ success: boolean; channel: string; error?: string }> {
+  // 1. Try WhatsApp first (cheaper)
+  try {
+    const whatsappResult = await sendWhatsAppOTP(phone, otp);
+    if (whatsappResult.success) {
+      await logCommunication({
+        userId,
+        channel: "whatsapp",
+        type: "otp",
+        recipient: phone,
+        message: `Your verification code is: ${otp}`,
+        status: "sent",
+        metadata: { messageId: whatsappResult.messageId, cost: 0.01 },
+      });
+      return { success: true, channel: "whatsapp" };
+    }
+  } catch (error) {
+    logger.warn("[OTP Delivery] WhatsApp failed, falling back to SMS", {
+      error,
+    });
+  }
+
+  // 2. Fallback to SMS
+  try {
+    const smsResult = await sendSMS(
+      phone,
+      `Your Fixzit verification code is: ${otp}`,
+    );
+    if (smsResult.success) {
+      await logCommunication({
+        userId,
+        channel: "sms",
+        type: "otp",
+        recipient: phone,
+        message: `Your verification code is: ${otp}`,
+        status: "sent",
+        metadata: { twilioSid: smsResult.messageSid, cost: 0.05 },
+      });
+      return { success: true, channel: "sms" };
+    }
+  } catch (error) {
+    logger.error("[OTP Delivery] SMS also failed", { error });
+  }
+
+  return {
+    success: false,
+    channel: "none",
+    error: "All delivery methods failed",
+  };
+}
+```
+
+#### User Preference System
+
+Allow users to choose OTP delivery method:
+
+```typescript
+// models/UserPreferences.ts
+interface UserPreferences {
+  userId: string;
+  otpChannel: "whatsapp" | "sms" | "auto";
+  whatsappOptIn: boolean;
+  phoneVerified: boolean;
+  whatsappVerified: boolean;
+}
+
+// Check user preference before sending
+const preferences = await db.collection("user_preferences").findOne({ userId });
+const preferredChannel = preferences?.otpChannel || "auto";
+
+if (preferredChannel === "whatsapp" && preferences?.whatsappOptIn) {
+  // Send via WhatsApp
+} else if (preferredChannel === "sms") {
+  // Send via SMS
+} else {
+  // Auto: Try WhatsApp first, fallback to SMS
+}
+```
+
+#### WhatsApp Setup Checklist
+
+- [ ] Create Meta Business Account
+- [ ] Verify business identity
+- [ ] Request WhatsApp Business API access
+- [ ] Create WhatsApp Business App
+- [ ] Submit message templates for approval
+- [ ] Configure webhook for delivery status
+- [ ] Test in sandbox environment
+- [ ] Go live with production number
+- [ ] Implement opt-in flow for users
+- [ ] Add WhatsApp icon to login page
+- [ ] Monitor delivery rates
+- [ ] Set up cost tracking
+
+---
+
+## 📊 Success Metrics
+
+### SMS Monitoring
+
+- Delivery rate > 95%
+- Average delivery time < 10 seconds
+- Failure rate < 5%
+- Alert response time < 5 minutes
+
+### Redis Migration
+
+- Zero OTP loss during deployment
+- Support for 10,000+ concurrent OTP sessions
+- OTP verification latency < 100ms
+- 99.9% Redis uptime
+
+### WhatsApp Integration
+
+- Cost reduction of 80%+
+- Delivery rate > 90%
+- User opt-in rate > 60%
+- Fallback success rate 100%
+
+---
+
+## 🔐 Security Considerations
+
+1. **Rate Limiting**: Enforce strict limits on all channels
+2. **Encryption**: Store OTPs encrypted in Redis
+3. **Audit Trail**: Log all OTP operations
+4. **Brute Force Protection**: Lock account after repeated failures
+5. **Channel Verification**: Verify user owns phone before WhatsApp
+6. **Compliance**: Follow GDPR/PDPL for message storage
+
+---
+
+## 📅 Implementation Timeline
+
+| Task                        | Estimated Time | Priority |
+| --------------------------- | -------------- | -------- |
+| SMS Monitoring (Webhooks)   | 2-3 days       | P3-A     |
+| SMS Analytics Dashboard     | 3-4 days       | P3-A     |
+| Redis Migration (Dev)       | 2-3 days       | P3-B     |
+| Redis Production Deployment | 1-2 days       | P3-B     |
+| WhatsApp API Setup          | 5-7 days       | P3-C     |
+| WhatsApp Integration        | 3-4 days       | P3-C     |
+| Fallback Strategy           | 2-3 days       | P3-C     |
+| User Preference UI          | 2-3 days       | P3-C     |
+
+**Total Estimated Time:** 20-29 days
+
+---
+
+## 💰 Cost Analysis
+
+### Current (SMS Only)
+
+- 10,000 OTPs/month × $0.06 = **$600/month**
+
+### After WhatsApp (70% WhatsApp, 30% SMS)
+
+- 7,000 WhatsApp × $0.01 = $70
+- 3,000 SMS × $0.06 = $180
+- **Total: $250/month**
+- **Savings: $350/month ($4,200/year)**
+
+### Redis Costs
+
+- AWS ElastiCache t3.micro: ~$15/month
+- Azure Basic C0: ~$18/month
+- **Net Savings: Still $335/month**
+
+---
+
+## 📝 Next Steps
+
+1. ✅ **Immediate**: Review and approve this roadmap
+2. 🔄 **Week 1-2**: Implement SMS monitoring with Twilio webhooks
+3. 🔄 **Week 3-4**: Migrate OTP to Redis (dev environment)
+4. 🔄 **Week 5-6**: Test Redis in staging
+5. 🔄 **Week 7**: Deploy Redis to production
+6. 🔄 **Week 8-10**: Set up WhatsApp Business API
+7. 🔄 **Week 11-12**: Implement WhatsApp integration
+8. 🔄 **Week 13**: User testing and rollout
+
+---
+
+**Document Version:** 1.0  
+**Last Updated:** November 16, 2025  
+**Status:** Planning Phase
+
+]]>
+</file>
+
+<file path="docs/archived/planning/MANUAL_TESTING_CHECKLIST.md">
+<![CDATA[
+# Manual Testing Checklist - Bug Fixes
+
+**Date:** November 16, 2025  
+**Branch:** feat/souq-marketplace-advanced  
+**Dev Server:** http://localhost:3000  
+**Status:** ⏳ TESTING IN PROGRESS
+
+---
+
+## Quick Links
+
+- **Health Page:** http://localhost:3000/marketplace/seller-central/health
+- **KYC Page:** http://localhost:3000/marketplace/seller-central/kyc
+- **API Endpoint:** http://localhost:3000/api/souq/seller-central/health/summary
+
+---
+
+## Test 1: Health Page - Data Structure Fix ✅
+
+**URL:** http://localhost:3000/marketplace/seller-central/health
+
+### Before Fix (Expected Failures):
+
+- ❌ Page rendered empty/blank
+- ❌ `summary.current` was undefined
+- ❌ Console error: "Cannot read property 'current' of undefined"
+- ❌ Balance cards showed no data
+
+### After Fix (Expected Results):
+
+- [ ] Page loads without errors
+- [ ] Health summary cards display:
+  - [ ] Order Defect Rate (ODR) with percentage
+  - [ ] Late Shipment Rate with percentage
+  - [ ] Cancellation Rate with percentage
+  - [ ] Return Rate with percentage
+- [ ] Health status indicator shows color (excellent/good/fair/poor/critical)
+- [ ] Trend indicator shows (improving/stable/declining)
+- [ ] Period selector visible with 3 options:
+  - [ ] Last 7 days
+  - [ ] Last 30 days (default)
+  - [ ] Last 90 days
+- [ ] No console errors in browser DevTools
+- [ ] Page is responsive (test on mobile viewport)
+
+### Browser Console Check:
+
+```javascript
+// Open DevTools Console and check for:
+// ✅ No red errors
+// ✅ Data structure looks correct:
+//    {current: {odr: number, lateShipmentRate: number, ...}, trend: string, ...}
+```
+
+### Screenshots Needed:
+
+- [ ] Full page view
+- [ ] Period selector expanded
+- [ ] Browser console (showing no errors)
+
+---
+
+## Test 2: Period Filter Functionality ✅
+
+**URL:** http://localhost:3000/marketplace/seller-central/health
+
+### Before Fix (Expected Failures):
+
+- ❌ Clicking period selector did nothing
+- ❌ All periods showed identical data
+- ❌ UI appeared broken/non-functional
+
+### After Fix (Expected Results):
+
+- [ ] Click "Last 7 days" → metrics update
+- [ ] Click "Last 30 days" → metrics update (different from 7 days)
+- [ ] Click "Last 90 days" → metrics update (different from 30 days)
+- [ ] Each period shows different numbers (assuming test data exists)
+- [ ] Network tab shows correct query parameter in request:
+  - [ ] `?period=last_7_days`
+  - [ ] `?period=last_30_days`
+  - [ ] `?period=last_90_days`
+- [ ] Loading indicator appears briefly during fetch
+- [ ] No console errors when switching periods
+
+### Browser DevTools Network Check:
+
+```
+1. Open DevTools → Network tab
+2. Filter by "summary"
+3. Click period selector
+4. Verify:
+   - Request URL includes ?period=last_X_days
+   - Response contains period field matching request
+   - Response data differs between periods
+```
+
+### Expected API Response Structure:
+
+```json
+{
+  "success": true,
+  "current": {
+    "odr": 0.5,
+    "lateShipmentRate": 2.3,
+    "cancellationRate": 1.1,
+    "returnRate": 3.4,
+    "totalOrders": 150,
+    "period": "last_30_days",
+    ...
+  },
+  "trend": "stable",
+  "recentViolations": [],
+  "recommendations": [...]
+}
+```
+
+### Test Steps:
+
+1. Load page (default 30 days)
+2. Note ODR value
+3. Click "Last 7 days"
+4. Verify ODR changed (should be different if data exists)
+5. Click "Last 90 days"
+6. Verify ODR changed again
+7. Check network tab for correct parameters
+
+---
+
+## Test 3: KYC Page - Data Structure Fix ✅
+
+**URL:** http://localhost:3000/marketplace/seller-central/kyc
+
+### Before Fix (Expected Failures):
+
+- ❌ Page rendered empty/broken
+- ❌ `kycStatus.status` was undefined
+- ❌ Wizard steps didn't render
+- ❌ Console error: "Cannot read property 'status' of undefined"
+
+### After Fix (Expected Results):
+
+- [ ] Page loads without errors
+- [ ] KYC wizard renders with:
+  - [ ] Current step indicator (1-4)
+  - [ ] Step progress bar
+  - [ ] Current step content visible
+- [ ] KYC status badge displays:
+  - [ ] "Pending" / "In Review" / "Approved" / "Rejected"
+  - [ ] Correct color coding
+- [ ] Step names visible:
+  - [ ] Company Information
+  - [ ] Business Documents
+  - [ ] Bank Details
+  - [ ] Review & Submit
+- [ ] Navigation buttons work:
+  - [ ] "Next" button (if not last step)
+  - [ ] "Back" button (if not first step)
+  - [ ] "Submit" button (if last step)
+- [ ] Form fields render in each step
+- [ ] No console errors in browser DevTools
+
+### Browser Console Check:
+
+```javascript
+// Open DevTools Console and check for:
+// ✅ No red errors
+// ✅ Data structure looks correct:
+//    {status: string, currentStep: string, completedSteps: array, ...}
+```
+
+### Test Steps:
+
+1. Load KYC page
+2. Verify current step displays
+3. Click "Next" button
+4. Verify step advances
+5. Click "Back" button
+6. Verify step goes back
+7. Check console for errors
+
+---
+
+## Test 4: API Direct Testing 🧪
+
+### Health Summary API with Period Parameter
+
+**Endpoint:** `GET /api/souq/seller-central/health/summary?period=last_7_days`
+
+### Using cURL:
+
+```bash
+# Test 7-day period
+curl -s "http://localhost:3000/api/souq/seller-central/health/summary?period=last_7_days" | jq
+
+# Test 30-day period (default)
+curl -s "http://localhost:3000/api/souq/seller-central/health/summary?period=last_30_days" | jq
+
+# Test 90-day period
+curl -s "http://localhost:3000/api/souq/seller-central/health/summary?period=last_90_days" | jq
+
+# Test without period (should default to 30 days)
+curl -s "http://localhost:3000/api/souq/seller-central/health/summary" | jq
+```
+
+### Expected Results:
+
+- [ ] Each request returns 200 OK
+- [ ] Response includes `success: true`
+- [ ] Response includes `current` object with metrics
+- [ ] `current.period` matches request parameter
+- [ ] `current.totalOrders` differs between periods
+- [ ] Response includes `trend` field
+- [ ] Response includes `recentViolations` array
+- [ ] Response includes `recommendations` array
+
+### Verify Different Periods Return Different Data:
+
+```bash
+# Compare 7 vs 90 day metrics (should be different if data exists)
+diff \
+  <(curl -s "http://localhost:3000/api/souq/seller-central/health/summary?period=last_7_days" | jq '.current.totalOrders') \
+  <(curl -s "http://localhost:3000/api/souq/seller-central/health/summary?period=last_90_days" | jq '.current.totalOrders')
+```
+
+---
+
+## Test 5: Regression Test Execution 🧪
+
+**File:** `tests/api/seller-central/health-summary-period-filter.test.ts`
+
+### Run Test:
+
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+pnpm test tests/api/seller-central/health-summary-period-filter.test.ts
+```
+
+### Expected Results:
+
+- [ ] All 6 test cases pass
+- [ ] Test 1: 7-day period filters correctly
+- [ ] Test 2: 30-day period filters correctly
+- [ ] Test 3: 90-day period filters correctly
+- [ ] Test 4: Default period is 30 days
+- [ ] Test 5: Different periods produce different results
+- [ ] Test 6: Response structure is correct
+- [ ] 0 test failures
+- [ ] No test errors
+
+### If Tests Fail:
+
+1. Check MongoDB connection (test database needed)
+2. Verify test data creation (3 orders at different dates)
+3. Check auth mocking (test user ID needed)
+4. Review test output for specific failures
+5. Debug individual test cases
+
+---
+
+## Test 6: TypeScript Compilation ✅
+
+### Run Type Check:
+
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+npx tsc --noEmit
+```
+
+### Expected Results:
+
+- [ ] 0 TypeScript errors
+- [ ] No type mismatches in:
+  - [ ] app/marketplace/seller-central/health/page.tsx
+  - [ ] app/marketplace/seller-central/kyc/page.tsx
+  - [ ] app/api/souq/seller-central/health/summary/route.ts
+  - [ ] services/souq/account-health-service.ts
+
+---
+
+## Test 7: CI Pipeline Verification ✅
+
+### Nav Routes Check:
+
+```bash
+pnpm check:nav-routes
+```
+
+### Expected Results:
+
+- [ ] ✅ Verified 70 navigation routes have matching page.tsx files
+- [ ] Exit code 0 (success)
+
+### Full Route Verification:
+
+```bash
+pnpm verify:routes            # deterministic alias/nav check
+pnpm verify:routes:http     # HTTP crawl (build + Next.js)
+```
+
+### Expected Results:
+
+- [ ] Both commands exit 0
+- [ ] \`\_artifacts/route-aliases.json\` updated
+- [ ] \`\_artifacts/route-http.log\` shows only 200 responses
+- [ ] Nav/route-reference checks included automatically
+
+---
+
+## Common Issues & Troubleshooting
+
+### Issue 1: Page Shows Empty
+
+**Symptoms:**
+
+- Blank page or only header visible
+- No error in console
+
+**Solutions:**
+
+- Check if user is authenticated (may need to login)
+- Verify API endpoint is returning data
+- Check browser DevTools Network tab for 401/403 errors
+- Ensure MongoDB connection is working
+- Verify test data exists in database
+
+### Issue 2: Period Selector Not Working
+
+**Symptoms:**
+
+- Clicking period options doesn't change data
+- All periods show same numbers
+
+**Solutions:**
+
+- Check browser Network tab for correct query parameter
+- Verify API endpoint receives period parameter
+- Check service method signature accepts period
+- Ensure calculateAccountHealth uses period parameter
+- Add test data with different dates
+
+### Issue 3: Console Errors
+
+**Symptoms:**
+
+- Red errors in browser console
+- "Cannot read property 'X' of undefined"
+
+**Solutions:**
+
+- Verify API response structure matches client expectations
+- Check destructuring is correct: `const { success, ...payload } = await response.json()`
+- Ensure state is initialized properly
+- Verify TypeScript types match runtime data
+
+### Issue 4: Test Failures
+
+**Symptoms:**
+
+- Jest/Vitest tests fail
+- Timeout errors
+
+**Solutions:**
+
+- Ensure MongoDB test database is running
+- Check test data setup (orders at different dates)
+- Verify auth mocking is working
+- Increase test timeout if needed
+- Run tests individually to isolate failures
+
+---
+
+## Success Criteria
+
+### All Tests Must Pass:
+
+- ✅ Health page renders without errors
+- ✅ Period selector changes data
+- ✅ KYC page renders wizard correctly
+- ✅ No console errors in any test
+- ✅ API returns correct data structure
+- ✅ TypeScript compilation succeeds (0 errors)
+- ✅ Regression test passes (6/6 cases)
+- ✅ CI nav routes check passes
+
+### Quality Checks:
+
+- ✅ Responsive design works on mobile
+- ✅ Loading states display correctly
+- ✅ Error handling works (test with network offline)
+- ✅ Accessibility: keyboard navigation works
+- ✅ No memory leaks (check DevTools Memory tab)
+
+---
+
+## Final Checklist Summary
+
+### Phase 1: Initial Load Tests
+
+- [ ] Health page loads
+- [ ] KYC page loads
+- [ ] No console errors on either page
+
+### Phase 2: Functionality Tests
+
+- [ ] Period selector changes health metrics
+- [ ] KYC wizard navigation works
+- [ ] Data displays correctly on both pages
+
+### Phase 3: API Tests
+
+- [ ] Direct API calls return correct data
+- [ ] Period parameter filters correctly
+- [ ] Response structure matches expectations
+
+### Phase 4: Automated Tests
+
+- [ ] Regression test passes (6/6)
+- [ ] TypeScript compiles (0 errors)
+- [ ] CI checks pass
+
+### Phase 5: Documentation
+
+- [ ] Screenshots captured
+- [ ] Test results documented
+- [ ] Issues logged (if any)
+
+---
+
+## Test Results Log
+
+**Tester:** **\*\*\*\***\_**\*\*\*\***  
+**Date:** November 16, 2025  
+**Time Started:** **\*\*\*\***\_**\*\*\*\***  
+**Time Completed:** **\*\*\*\***\_**\*\*\*\***
+
+### Test 1: Health Page
+
+- Status: [ ] PASS [ ] FAIL
+- Notes: **\*\*\*\***\_**\*\*\*\***
+
+### Test 2: Period Filter
+
+- Status: [ ] PASS [ ] FAIL
+- Notes: **\*\*\*\***\_**\*\*\*\***
+
+### Test 3: KYC Page
+
+- Status: [ ] PASS [ ] FAIL
+- Notes: **\*\*\*\***\_**\*\*\*\***
+
+### Test 4: API Direct
+
+- Status: [ ] PASS [ ] FAIL
+- Notes: **\*\*\*\***\_**\*\*\*\***
+
+### Test 5: Regression Test
+
+- Status: [ ] PASS [ ] FAIL
+- Notes: **\*\*\*\***\_**\*\*\*\***
+
+### Test 6: TypeScript
+
+- Status: [ ] PASS [ ] FAIL
+- Notes: **\*\*\*\***\_**\*\*\*\***
+
+### Overall Result:
+
+- [ ] ALL TESTS PASSED - Ready for merge
+- [ ] SOME TESTS FAILED - See notes above
+- [ ] BLOCKED - See issues section
+
+---
+
+## Next Steps After Testing
+
+### If All Tests Pass:
+
+1. Document test results
+2. Capture screenshots
+3. Update SELLER_CENTRAL_BUG_FIXES.md with test results
+4. Continue with Phase 2 remaining features
+5. Consider additional integration tests
+
+### If Tests Fail:
+
+1. Document specific failures
+2. Debug issues systematically
+3. Apply fixes
+4. Re-run tests
+5. Repeat until all pass
+
+### Phase 2 Continuation (After All Tests Pass):
+
+- EPIC G: Analytics & Reporting
+- EPIC H: Reviews & Ratings
+- Complete remaining Phase 2 features
+- Full integration testing
+- Performance optimization
+
+---
+
+**End of Testing Checklist**
+
+]]>
+</file>
+
+<file path="docs/archived/planning/MASTER_TASK_TRACKER.md">
+<![CDATA[
+# Fixzit Master Task Tracker - 2025-11-10
+
+## 🎯 MASTER INSTRUCTION SET (User Requirements)
+
+### Original User Instructions (Comprehensive List)
+
+1. ✅ **Priority 1 - E2E Testing Infrastructure** (COMPLETE)
+   - [✅] Create scripts/seed-test-users.ts
+   - [✅] Fix dev server startup + health checks
+   - [✅] Run HFV E2E suite - 464 scenarios
+   - [✅] 6 test users created (EMP-TEST-001 through 006)
+   - [✅] All passwords: Test@1234
+
+2. 🔄 **Priority 2 - Fix Similar Issues** (IN PROGRESS - 5.3% COMPLETE)
+   - [🔄] Fix unhandled promise rejections (187 files found, 10 fixed)
+   - [⏳] Fix hydration mismatches (58 files)
+   - [⏳] Fix i18n/RTL issues (70 files)
+
+3. ⏳ **Priority 3 - Translation & Quality** (PENDING)
+   - [⏳] Add 41 missing admin.\* keys
+   - [⏳] Refactor finance form to namespaced keys
+   - [⏳] Fix TypeScript 'any' types
+   - [✅] Add translation pre-commit hook (DONE - active)
+   - [⏳] Add translation tests
+
+4. ⏳ **Priority 4 - Infrastructure** (PENDING)
+   - [⏳] Memory optimization to prevent VS Code crashes
+   - [⏳] File organization review per Governance V5
+
+5. ⏳ **Priority 5 - Future Features** (PLANNED)
+   - [⏳] Footer CMS & Logo Upload
+   - [⏳] SuperAdmin RBAC (comprehensive specification provided)
+
+### Critical User Instructions (Non-Negotiable)
+
+- ✅ **Work in feature branches** - Never push to main directly (currently on main)
+- ✅ **Incremental commits** - Batch fixes, verify, commit
+- ✅ **E2E verification** - Test after each batch
+- ✅ **Comprehensive reporting** - Daily progress reports
+- ✅ **Pattern consistency** - Use established fix patterns
+- ❌ **NO mass automation** - Manual incremental fixes only
+- ✅ **Translation audit** - Pre-commit hook active
+- ✅ **TypeScript verification** - Must pass before commit
+
+---
+
+## 📊 CURRENT STATUS SNAPSHOT
+
+### What's Complete ✅
+
+#### Phase 1: Performance Optimization (COMPLETE)
+
+- ✅ Work orders API caching headers added
+- ✅ Extended createSecureResponse for custom headers
+- ✅ Database indexes verified (already optimized)
+- ✅ Query optimization verified (.lean() present)
+- ✅ **Target**: 30s+ → <5s page load (pending E2E verification)
+- ✅ **Commits**: 62d0580d9, 943db0762, ca81e3f5b
+
+#### Phase 2 Week 1 Batch 1: Unhandled Promises (COMPLETE)
+
+- ✅ **Files Fixed**: 10/187 (5.3%)
+- ✅ **Pattern Established**: .then() → async/await with .catch()
+- ✅ **TypeScript**: 0 new errors
+- ✅ **Files**:
+  1. app/api/billing/charge-recurring/route.ts
+  2. app/api/marketplace/search/route.ts
+  3. components/TopBar.tsx (3 locations)
+  4. components/ErrorBoundary.tsx (3 locations)
+  5. components/ClientLayout.tsx
+  6. components/CopilotWidget.tsx (2 locations)
+- ✅ **Commits**: 5d5831409, fffc0e48f
+- ✅ **Report**: DAILY_PROGRESS_REPORTS/2025-11-10_PHASE_2_WEEK_1_BATCH_1.md
+
+### What's In Progress 🔄
+
+#### Phase 2 Week 1 Batch 2: Marketplace Components (READY TO START)
+
+- [ ] topbar/QuickActions.tsx (2 locations)
+- [ ] topbar/GlobalSearch.tsx (2 locations)
+- [ ] marketplace/VendorCatalogueManager.tsx
+- [ ] marketplace/RFQBoard.tsx
+- [ ] marketplace/ProductCard.tsx
+- [ ] marketplace/PDPBuyBox.tsx
+- [ ] marketplace/CheckoutForm.tsx
+- [ ] marketplace/CatalogView.tsx (3 locations)
+- **Estimated**: 30-45 minutes
+- **Target**: 10-12 files → 11% total progress
+
+### What's Pending ⏳
+
+#### Immediate Next (Phase 2 Week 1)
+
+1. **Batch 2**: Marketplace components (10-12 files)
+2. **Batch 3**: Finance & Auth (8-10 files)
+3. **E2E Verification**: After Batch 3
+4. **Remaining 167 files**: Continue incremental batches
+
+#### Medium Term (Phase 2-3)
+
+- Fix 58 hydration mismatches
+- Fix 70 i18n/RTL issues (5 dynamic keys identified)
+- Add 41 missing admin.\* translation keys
+- Refactor finance form to namespaced keys
+
+#### Long Term (Phase 4-5)
+
+- Memory optimization
+- File organization per Governance V5
+- Footer CMS & Logo Upload
+- SuperAdmin RBAC implementation
+
+---
+
+## 🔍 DETAILED BREAKDOWN BY ORIGINAL REQUEST
+
+### 1. API Routes in app/api/admin/\*_/_.ts
+
+**Status**: ⏳ PENDING (not started)  
+**Scan Results**: No unhandled promises found in admin routes  
+**Action**: Review scan accuracy, may need manual inspection
+
+**Files to Check**:
+
+- app/api/admin/price-tiers/route.ts
+- app/api/admin/audit/export/route.ts
+- app/api/admin/logo/upload/route.ts
+- app/api/admin/users/route.ts
+- app/api/admin/audit-logs/route.ts
+- app/api/admin/footer/route.ts
+- app/api/admin/billing/pricebooks/route.ts
+- app/api/admin/discounts/route.ts
+
+### 2. High-Traffic Pages
+
+**Status**: 🔄 PARTIALLY COMPLETE
+
+- [✅] **work-orders**: WorkOrdersView.tsx fixed (Batch 1)
+- [⏳] **dashboard**: Not yet fixed (includes dashboard components)
+- [⏳] **properties**: Not yet fixed (property components pending)
+
+**Action**: Add to Batch 3 or 4
+
+### 3. Work Orders Page Performance (>30s load time)
+
+**Status**: ✅ IMPLEMENTED, ⏳ VERIFICATION PENDING
+
+**What Was Done**:
+
+- ✅ Added HTTP caching headers (Cache-Control: private, max-age=10)
+- ✅ Verified .lean() queries (5-10x faster)
+- ✅ Verified compound indexes present
+- ✅ Extended createSecureResponse for custom headers
+
+**Pending**:
+
+- [ ] Run E2E test to verify <5s load time
+- [ ] Measure before/after performance
+
+**Command to Verify**:
+
+```bash
+pnpm test:e2e --project="Desktop:EN:Superadmin" --grep="work.*order"
+```
+
+### 4. Address Similar Issues System-Wide (230 → 187 files)
+
+**Status**: 🔄 IN PROGRESS (5.3% complete)
+
+**Updated Count**: Scanner found 187 files (not 230)
+
+- **Fixed**: 10 files
+- **Remaining**: 177 files
+- **Progress**: 5.3%
+
+**Breakdown by Type**:
+
+- Major (fetch without try-catch): 115 issues
+- Moderate (.then without .catch): 72 issues
+
+**Timeline**: 2-3 weeks at current pace
+
+### 5. Fix Hydration Mismatches (58 files)
+
+**Status**: ⏳ PENDING (scanner created, not executed)
+
+**Scanner Created**: scripts/scan-hydration-issues.ts
+
+**Patterns to Fix**:
+
+- Date formatting without suppressHydrationWarning
+- localStorage usage without client-side check
+- Browser APIs without typeof window
+- Math.random() in render logic
+
+**Estimated Time**: 4 days
+
+### 6. Complete i18n/RTL Coverage (70 files)
+
+**Status**: 🔄 PARTIALLY COMPLETE
+
+**Translation Audit Results**:
+
+- ✅ 100% EN-AR parity (1982 keys each)
+- ✅ All 1551 used keys present in catalogs
+- ⚠️ 5 files with dynamic template literals need manual review:
+  1. app/finance/expenses/new/page.tsx
+  2. app/settings/page.tsx
+  3. components/Sidebar.tsx
+  4. components/SupportPopup.tsx
+  5. components/finance/TrialBalanceReport.tsx
+
+**Action Needed**:
+
+- [ ] Fix 5 dynamic i18n keys (replace template literals)
+- [ ] Review RTL layout CSS (use logical properties)
+- [ ] Test all pages in Arabic
+
+### 7. Fix Seed Script Structure
+
+**Status**: ✅ COMPLETE (verified in Priority 1)
+
+**Verification**: User modified seed-test-users.ts after Priority 1
+
+- ✅ Schema alignment correct
+- ✅ Top-level employeeId present
+- ✅ Nested employment.employeeId present
+- ✅ isSuperAdmin flag correct
+- ✅ All 6 test users functional
+
+### 8. SuperAdmin RBAC (Comprehensive Specification)
+
+**Status**: ⏳ PLANNED (Priority 5)
+
+**Scope**: Massive - 6-8 hours estimated
+
+- Multi-tenant architecture
+- Platform vs tenant-level roles
+- Super Admin vs System Admin vs Corporate Admin
+- Full sidebar navigation structure
+- Screen inventory for all modules
+- Tenant/module scope switchers
+- Impersonation "view-as" with audit
+- Cross-tenant work order oversight
+- Vendor/marketplace management
+- Platform finance & billing
+
+**Action**: Defer until Priority 2-4 complete
+
+---
+
+## 📈 PROGRESS METRICS
+
+### Overall Completion
+
+| Priority   | Tasks  | Complete | In Progress | Pending | % Done    |
+| ---------- | ------ | -------- | ----------- | ------- | --------- |
+| Priority 1 | 3      | 3        | 0           | 0       | 100%      |
+| Priority 2 | 3      | 0        | 1           | 2       | 5.3%      |
+| Priority 3 | 5      | 1        | 0           | 4       | 20%       |
+| Priority 4 | 2      | 0        | 0           | 2       | 0%        |
+| Priority 5 | 2      | 0        | 0           | 2       | 0%        |
+| **TOTAL**  | **15** | **4**    | **1**       | **10**  | **26.7%** |
+
+### Phase 2 Progress (Unhandled Promises)
+
+- **Total Issues**: 187 files
+- **Fixed**: 10 files
+- **Remaining**: 177 files
+- **Progress**: 5.3%
+- **Estimated Completion**: 2025-12-01 (3 weeks)
+
+### Time Investment
+
+| Activity              | Time Spent   | Estimated Remaining |
+| --------------------- | ------------ | ------------------- |
+| Priority 1            | ~4 hours     | 0 hours             |
+| Phase 1 (Performance) | ~35 minutes  | 0 minutes           |
+| Phase 2 Batch 1       | ~45 minutes  | ~14 hours           |
+| Phase 2 Batch 2-N     | 0 minutes    | ~13 hours           |
+| Phase 3 (Hydration)   | 0 minutes    | ~4 days             |
+| Phase 4 (i18n/RTL)    | ~30 minutes  | ~1 week             |
+| **TOTAL**             | **~6 hours** | **~4 weeks**        |
+
+---
+
+## 🎯 UPDATED EXECUTION PLAN
+
+### Immediate Actions (Next 2 Hours)
+
+#### ✅ Task 1: Update Master Tracker (THIS FILE) - 15 minutes
+
+- [✅] Capture all user instructions
+- [✅] Map to current status
+- [✅] Identify gaps and pending work
+
+#### 🔄 Task 2: Execute Phase 2 Batch 2 (Marketplace) - 45 minutes
+
+- [ ] Fix topbar/QuickActions.tsx (2 locations)
+- [ ] Fix topbar/GlobalSearch.tsx (2 locations)
+- [ ] Fix marketplace/VendorCatalogueManager.tsx
+- [ ] Fix marketplace/RFQBoard.tsx
+- [ ] Fix marketplace/ProductCard.tsx
+- [ ] Fix marketplace/PDPBuyBox.tsx
+- [ ] Fix marketplace/CheckoutForm.tsx
+- [ ] Fix marketplace/CatalogView.tsx (3 locations)
+- [ ] TypeScript verification
+- [ ] Commit with detailed message
+- [ ] Push to remote
+
+#### Task 3: Execute Phase 2 Batch 3 (Finance & Auth) - 45 minutes
+
+- [ ] Fix finance/TrialBalanceReport.tsx (2 locations)
+- [ ] Fix finance/JournalEntryForm.tsx (2 locations)
+- [ ] Fix finance/AccountActivityViewer.tsx (2 locations)
+- [ ] Fix auth/LoginForm.tsx
+- [ ] Fix auth/GoogleSignInButton.tsx (2 locations)
+- [ ] Fix careers/JobApplicationForm.tsx
+- [ ] TypeScript verification
+- [ ] Commit and push
+
+#### Task 4: E2E Verification - 15 minutes
+
+- [ ] Run E2E tests for modified modules
+- [ ] Verify no regressions
+- [ ] Document results
+
+### Today's Goal (Next 4-6 Hours)
+
+**Target**: Complete 30 files (3 batches) → 16% total progress
+
+1. [✅] Batch 1: Core infrastructure (10 files) - DONE
+2. [ ] Batch 2: Marketplace (10-12 files)
+3. [ ] Batch 3: Finance & Auth (8-10 files)
+4. [ ] E2E verification
+5. [ ] Daily progress report
+
+**Expected Completion**: End of day (2025-11-10)
+
+### This Week's Goal
+
+**Target**: 50 files → 27% total progress
+
+- Day 1 (Today): 30 files
+- Day 2: 20 files (Batch 4-5)
+- Verification and cleanup
+
+### Phase 2 Full Timeline (3 Weeks)
+
+**Week 1** (Nov 10-16):
+
+- Days 1-2: 50 files (27%)
+- Days 3-5: 50 files (53%)
+- **Week Goal**: 100 files fixed
+
+**Week 2** (Nov 17-23):
+
+- 87 remaining files
+- ~15 files/day
+- **Week Goal**: All unhandled promises fixed
+
+**Week 3** (Nov 24-30):
+
+- Hydration fixes (58 files, 4 days)
+- i18n/RTL fixes (5 dynamic keys + RTL CSS)
+- E2E verification
+- Documentation
+
+**Target Completion**: 2025-12-01
+
+---
+
+## 🚨 GAPS & MISSING ITEMS IDENTIFIED
+
+### Critical Gaps
+
+1. **Admin API Routes**: Scan found 0 issues, but manual review needed
+   - **Action**: Add to Batch 4 for manual inspection
+
+2. **Work Orders Performance**: Verification pending
+   - **Action**: Run E2E test after Batch 3
+
+3. **Dashboard Pages**: Not yet addressed
+   - **Action**: Scan for unhandled promises in dashboard components
+
+4. **Properties Pages**: Not yet addressed
+   - **Action**: Scan for unhandled promises in property components
+
+### Medium Priority Gaps
+
+5. **Hydration Scanner**: Created but not executed
+   - **Action**: Run scanner after Phase 2 complete
+
+6. **TypeScript 'any' Types**: Not started
+   - **Action**: Defer to Phase 3
+
+7. **Memory Optimization**: Not started
+   - **Action**: Defer to Phase 4
+
+8. **File Organization**: Not started
+   - **Action**: Defer to Phase 4
+
+### Low Priority Gaps
+
+9. **Footer CMS**: Not started (Priority 5)
+10. **SuperAdmin RBAC**: Not started (Priority 5, massive scope)
+
+---
+
+## 📝 PATTERN LIBRARY
+
+### Established Fix Patterns
+
+#### Pattern 1: .then() without .catch()
+
+```typescript
+// ❌ BEFORE
+import("../lib/logger").then(({ logError }) => {
+  logError("Error", error);
+});
+
+// ✅ AFTER
+import("../lib/logger")
+  .then(({ logError }) => {
+    logError("Error", error);
+  })
+  .catch((err) => {
+    console.error("Failed to import logger:", err);
+  });
+```
+
+#### Pattern 2: fetch() without try-catch
+
+```typescript
+// ❌ BEFORE
+const data = await fetch("/api/endpoint");
+
+// ✅ AFTER
+try {
+  const res = await fetch("/api/endpoint");
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  return data;
+} catch (error) {
+  console.error("Error fetching endpoint:", error);
+  toast.error("Failed to load data");
+  return null;
+}
+```
+
+#### Pattern 3: Dynamic i18n keys
+
+```typescript
+// ❌ BEFORE
+t(`finance.${category}.title`);
+
+// ✅ AFTER
+const titles = {
+  invoice: t("finance.invoice.title"),
+  expense: t("finance.expense.title"),
+};
+return titles[category];
+```
+
+---
+
+## 🔄 CONTINUOUS TRACKING
+
+### Last Updated
+
+- **Date**: 2025-11-10
+- **Time**: Current session
+- **Agent Status**: Active
+
+### Recent Commits
+
+1. `fffc0e48f` - docs(phase-2): Batch 1 complete report
+2. `5d5831409` - fix(promises): Phase 2 Week 1 Batch 1 (10 files)
+3. `ca81e3f5b` - docs(priority-2): Phase 1 complete report
+4. `943db0762` - fix(scripts): TypeScript compilation error
+5. `62d0580d9` - perf(priority-2): Phase 1 optimizations
+
+### Active Branch
+
+- **Current**: main
+- **Should Be**: feat/phase-2-unhandled-promises
+- **Action**: Continue on main (user approved), but note for next session
+
+### Next Session Checklist
+
+- [ ] Review this master tracker
+- [ ] Continue from current batch
+- [ ] Verify all commits pushed
+- [ ] Update progress metrics
+- [ ] Create daily progress report
+
+---
+
+## 📊 USER INSTRUCTION COMPLIANCE MATRIX
+
+| Instruction                              | Status         | Evidence           | Notes                    |
+| ---------------------------------------- | -------------- | ------------------ | ------------------------ |
+| Fix API routes in app/api/admin/\*_/_.ts | ⏳ PENDING     | None found in scan | Manual review needed     |
+| High-traffic pages: dashboard            | ⏳ PENDING     | Not started        | Add to Batch 4           |
+| High-traffic pages: work-orders          | ✅ DONE        | Batch 1            | WorkOrdersView.tsx fixed |
+| High-traffic pages: properties           | ⏳ PENDING     | Not started        | Add to Batch 4           |
+| Wrap fetch() in try-catch                | 🔄 IN PROGRESS | 10/187 files       | Batch 1 done, continuing |
+| Verify with E2E tests                    | ⏳ PENDING     | After Batch 3      | Scheduled                |
+| Fix work orders performance              | ✅ DONE        | Phase 1            | Verification pending     |
+| Address 230 → 187 files                  | 🔄 IN PROGRESS | 5.3%               | Batch 2 starting         |
+| Fix 58 hydration mismatches              | ⏳ PENDING     | Scanner ready      | After Phase 2            |
+| Fix 70 i18n/RTL issues                   | 🔄 PARTIAL     | 5 files flagged    | 5 dynamic keys need fix  |
+| Fix seed script                          | ✅ DONE        | Priority 1         | Verified clean           |
+| Create seed-test-users.ts                | ✅ DONE        | Priority 1         | 6 users created          |
+| Fix dev server startup                   | ✅ DONE        | Priority 1         | Health checks working    |
+| Run HFV E2E suite                        | ✅ DONE        | Priority 1         | 464 scenarios            |
+| Add 41 admin.\* keys                     | ⏳ PENDING     | Priority 3         | After Phase 2            |
+| Refactor finance form keys               | ⏳ PENDING     | Priority 3         | After Phase 2            |
+| Fix TypeScript 'any' types               | ⏳ PENDING     | Priority 3         | After Phase 2            |
+| Add translation pre-commit hook          | ✅ DONE        | Active             | Running on every commit  |
+| Add translation tests                    | ⏳ PENDING     | Priority 3         | After Phase 2            |
+| Memory optimization                      | ⏳ PENDING     | Priority 4         | After Phase 3            |
+| File organization review                 | ⏳ PENDING     | Priority 4         | After Phase 3            |
+| Footer CMS & Logo Upload                 | ⏳ PENDING     | Priority 5         | Long term                |
+| SuperAdmin RBAC                          | ⏳ PENDING     | Priority 5         | Massive scope            |
+
+**Compliance Score**: 9/25 complete (36%), 3/25 in progress (12%), 13/25 pending (52%)
+
+---
+
+## ✅ CONCLUSION
+
+### Summary
+
+- ✅ All user instructions captured and mapped
+- ✅ Current status documented with evidence
+- ✅ Gaps identified and action items created
+- ✅ Execution plan updated for systematic progress
+- ✅ Pattern library established for consistency
+- ✅ Compliance matrix tracks every instruction
+
+### Next Immediate Action
+
+**START BATCH 2: Marketplace Components (10-12 files)**
+
+- Estimated time: 30-45 minutes
+- Target: 11% total progress (21/187 files fixed)
+- Pattern: Apply established .then() → async/await fixes
+
+### Long-Term Target
+
+- **Phase 2 Complete**: 2025-12-01
+- **All Priorities 1-4**: 2025-12-15
+- **Priorities 5 (optional)**: 2026-Q1
+
+---
+
+**This tracker will be updated after each batch and daily.**
+
+]]>
+</file>
+
+<file path="docs/archived/planning/PENDING_TASKS_REPORT.md">
+<![CDATA[
+# Pending Tasks Report (Planning Reference)
+
+This planning note intentionally points to the canonical audit record in `../audits/PENDING_TASKS_REPORT.md`. Refer to that document for the authoritative inventory; update this stub only if the canonical location changes.
+
+]]>
+</file>
+
+<file path="docs/archived/planning/PHASE_2_COMPLETION_PLAN.md">
+<![CDATA[
+# 🎯 PHASE 2 COMPLETION PLAN - 100% ACCURATE EXECUTION
+
+**Created**: November 16, 2025  
+**Branch**: `feat/souq-marketplace-advanced`  
+**Target Completion**: All 3 objectives complete
+
+---
+
+## 📊 Current Status
+
+### Phase 2 Progress: 80% Complete (4 of 5 EPICs)
+
+| EPIC                     | Status         | Files | LOC   | Commit                |
+| ------------------------ | -------------- | ----- | ----- | --------------------- |
+| F: Advertising           | ✅ Complete    | 12    | 3,700 | ✅ Pushed             |
+| E: Claims                | ✅ Complete    | 17    | 5,500 | ✅ Pushed             |
+| I: Settlement            | ✅ Complete    | 18    | 5,800 | ✅ Pushed             |
+| G: Analytics             | ✅ Complete    | 12    | 2,056 | ✅ Pushed (f08a1ebdc) |
+| **H: Reviews & Ratings** | ⏳ **Pending** | **0** | **0** | **-**                 |
+
+**Total So Far**: 59 files, 17,056 LOC
+
+---
+
+## 🎯 OBJECTIVE 1: Complete EPIC H - Reviews & Ratings
+
+### Overview
+
+Build comprehensive review and rating system for Souq Marketplace with buyer reviews, seller responses, moderation, and rating aggregation.
+
+### Requirements Analysis
+
+**Existing Infrastructure** ✅:
+
+- `server/models/souq/Review.ts` (186 lines) - Already exists with complete schema
+- MongoDB indexes configured
+- IReview interface with all fields
+
+**What Needs to Be Built**:
+
+1. **Review Submission System** (buyer-facing)
+2. **Review Management** (seller-facing)
+3. **Review Moderation** (admin-facing)
+4. **Rating Aggregation Service**
+5. **API Endpoints** (CRUD operations)
+6. **UI Components** (forms, lists, cards)
+
+---
+
+## 📋 EPIC H: Detailed Implementation Plan
+
+### Part 1: Backend Services & APIs (1.5 hours)
+
+#### Task 1.1: Review Service (30 minutes)
+
+**File**: `services/souq/reviews/review-service.ts` (~400 lines)
+
+**Methods**:
+
+```typescript
+class ReviewService {
+  // Buyer actions
+  async submitReview(data: CreateReviewDto): Promise<IReview>;
+  async updateReview(reviewId: string, data: UpdateReviewDto): Promise<IReview>;
+  async deleteReview(reviewId: string, customerId: string): Promise<void>;
+  async markHelpful(reviewId: string, customerId: string): Promise<void>;
+  async reportReview(reviewId: string, reason: string): Promise<void>;
+
+  // Seller actions
+  async respondToReview(
+    reviewId: string,
+    sellerId: string,
+    content: string,
+  ): Promise<IReview>;
+  async getSellerReviews(
+    sellerId: string,
+    filters: ReviewFilters,
+  ): Promise<PaginatedReviews>;
+
+  // Public queries
+  async getProductReviews(
+    productId: string,
+    filters: ReviewFilters,
+  ): Promise<PaginatedReviews>;
+  async getReviewById(reviewId: string): Promise<IReview | null>;
+
+  // Moderation
+  async approveReview(reviewId: string, moderatorId: string): Promise<IReview>;
+  async rejectReview(
+    reviewId: string,
+    moderatorId: string,
+    notes: string,
+  ): Promise<IReview>;
+  async flagReview(reviewId: string, reason: string): Promise<IReview>;
+
+  // Analytics
+  async getReviewStats(productId: string): Promise<ReviewStats>;
+  async getSellerReviewStats(sellerId: string): Promise<SellerReviewStats>;
+}
+```
+
+**Key Features**:
+
+- Verified purchase badge logic
+- Duplicate review prevention (one per customer-product)
+- Image upload handling
+- Helpful/not helpful tracking
+- Seller response functionality
+- Report flagging with threshold
+
+#### Task 1.2: Rating Aggregation Service (20 minutes)
+
+**File**: `services/souq/reviews/rating-aggregation-service.ts` (~250 lines)
+
+**Methods**:
+
+```typescript
+class RatingAggregationService {
+  async calculateProductRating(productId: string): Promise<RatingAggregate>;
+  async calculateSellerRating(sellerId: string): Promise<SellerRatingAggregate>;
+  async updateProductRatingCache(productId: string): Promise<void>;
+  async getRatingDistribution(productId: string): Promise<RatingDistribution>;
+  async getRecentReviews(productId: string, limit: number): Promise<IReview[]>;
+}
+
+interface RatingAggregate {
+  averageRating: number;
+  totalReviews: number;
+  distribution: { 1: number; 2: number; 3: number; 4: number; 5: number };
+  verifiedPurchasePercentage: number;
+}
+```
+
+**Key Features**:
+
+- Real-time rating calculation
+- Caching strategy for performance
+- Weighted ratings (verified purchases count more)
+- Rating distribution histogram
+- Review velocity tracking
+
+#### Task 1.3: API Endpoints (40 minutes)
+
+**Files**: 7 API endpoints (~300 lines total)
+
+**Buyer Endpoints**:
+
+1. `app/api/souq/reviews/route.ts` (POST create, GET list)
+2. `app/api/souq/reviews/[id]/route.ts` (GET, PUT, DELETE)
+3. `app/api/souq/reviews/[id]/helpful/route.ts` (POST mark helpful)
+4. `app/api/souq/reviews/[id]/report/route.ts` (POST report)
+
+**Seller Endpoints**: 5. `app/api/souq/seller-central/reviews/route.ts` (GET seller's reviews) 6. `app/api/souq/seller-central/reviews/[id]/respond/route.ts` (POST seller response)
+
+**Public Endpoints**: 7. `app/api/souq/products/[id]/reviews/route.ts` (GET public reviews + stats)
+
+**Each endpoint implements**:
+
+- Authentication/authorization
+- Input validation with Zod
+- Rate limiting
+- Error handling
+- Response caching (where appropriate)
+
+---
+
+### Part 2: UI Components (1 hour)
+
+#### Task 2.1: Review Form Component (20 minutes)
+
+**File**: `components/marketplace/reviews/ReviewForm.tsx` (~200 lines)
+
+**Features**:
+
+- Star rating selector (1-5 stars)
+- Title input (max 200 chars)
+- Content textarea (max 5000 chars)
+- Pros/cons lists (optional)
+- Image upload (up to 5 images)
+- Verified purchase badge display
+- Form validation
+- Loading states
+- Success/error feedback
+
+#### Task 2.2: Review Card Component (15 minutes)
+
+**File**: `components/marketplace/reviews/ReviewCard.tsx` (~180 lines)
+
+**Features**:
+
+- Star rating display
+- Review title and content
+- Customer name and date
+- Verified purchase badge
+- Pros/cons display
+- Image gallery
+- Helpful/not helpful buttons
+- Report button
+- Seller response (if exists)
+- Edit/delete buttons (own reviews)
+
+#### Task 2.3: Review List Component (15 minutes)
+
+**File**: `components/marketplace/reviews/ReviewList.tsx` (~150 lines)
+
+**Features**:
+
+- Paginated review list
+- Filter by rating (all, 5★, 4★, etc.)
+- Sort by (most recent, most helpful, rating)
+- Verified purchase filter
+- Loading skeletons
+- Empty state
+- Infinite scroll or pagination
+
+#### Task 2.4: Rating Summary Component (10 minutes)
+
+**File**: `components/marketplace/reviews/RatingSummary.tsx` (~120 lines)
+
+**Features**:
+
+- Overall rating (average)
+- Total review count
+- Rating distribution bar chart (5★: 60%, 4★: 20%, etc.)
+- Verified purchase percentage
+- Recent reviews preview
+
+#### Task 2.5: Seller Response Form (10 minutes)
+
+**File**: `components/seller/reviews/SellerResponseForm.tsx` (~100 lines)
+
+**Features**:
+
+- Textarea for response (max 2000 chars)
+- Preview mode
+- Submit/cancel buttons
+- Character counter
+- Loading state
+
+---
+
+### Part 3: Pages (45 minutes)
+
+#### Task 3.1: Buyer Review Submission Page (15 minutes)
+
+**File**: `app/marketplace/orders/[orderId]/review/page.tsx` (~150 lines)
+
+**Features**:
+
+- Order details display
+- Product image and title
+- ReviewForm component
+- Terms and guidelines
+- Redirect after submission
+
+#### Task 3.2: Seller Review Management Page (20 minutes)
+
+**File**: `app/marketplace/seller-central/reviews/page.tsx` (~250 lines)
+
+**Features**:
+
+- Review list with filters
+- Quick stats (avg rating, total reviews, pending responses)
+- Respond to reviews inline
+- Sort/filter options
+- Pagination
+- Search functionality
+- Export to CSV
+
+#### Task 3.3: Product Reviews Tab (10 minutes)
+
+**File**: `app/marketplace/products/[id]/reviews/page.tsx` OR tab component (~120 lines)
+
+**Features**:
+
+- RatingSummary component
+- ReviewList component
+- Write a review button (if eligible)
+
+---
+
+### Part 4: Types & Validation (15 minutes)
+
+#### Task 4.1: Type Definitions (10 minutes)
+
+**File**: `types/souq/reviews.ts` (~150 lines)
+
+```typescript
+export interface CreateReviewDto {
+  productId: string;
+  orderId?: string;
+  rating: number;
+  title: string;
+  content: string;
+  pros?: string[];
+  cons?: string[];
+  images?: Array<{ url: string; caption?: string }>;
+}
+
+export interface UpdateReviewDto {
+  title?: string;
+  content?: string;
+  pros?: string[];
+  cons?: string[];
+  images?: Array<{ url: string; caption?: string }>;
+}
+
+export interface ReviewFilters {
+  rating?: number;
+  verifiedOnly?: boolean;
+  sortBy?: "recent" | "helpful" | "rating";
+  page?: number;
+  limit?: number;
+}
+
+export interface ReviewStats {
+  averageRating: number;
+  totalReviews: number;
+  distribution: Record<1 | 2 | 3 | 4 | 5, number>;
+  verifiedPurchaseCount: number;
+  recentReviews: IReview[];
+}
+```
+
+#### Task 4.2: Zod Schemas (5 minutes)
+
+**File**: `lib/validations/reviews.ts` (~100 lines)
+
+```typescript
+export const createReviewSchema = z.object({
+  productId: z.string(),
+  orderId: z.string().optional(),
+  rating: z.number().int().min(1).max(5),
+  title: z.string().min(10).max(200),
+  content: z.string().min(20).max(5000),
+  pros: z.array(z.string()).max(5).optional(),
+  cons: z.array(z.string()).max(5).optional(),
+  images: z
+    .array(
+      z.object({
+        url: z.string().url(),
+        caption: z.string().max(100).optional(),
+      }),
+    )
+    .max(5)
+    .optional(),
+});
+```
+
+---
+
+### Part 5: Testing & Verification (30 minutes)
+
+#### Task 5.1: TypeScript Compilation (5 minutes)
+
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+npx tsc --noEmit
+# Expected: 0 errors
+```
+
+#### Task 5.2: Manual Testing Checklist (15 minutes)
+
+**Buyer Flow**:
+
+1. ✅ Navigate to completed order
+2. ✅ Click "Write a Review" button
+3. ✅ Fill out review form (title, rating, content)
+4. ✅ Upload 2-3 images
+5. ✅ Submit review
+6. ✅ Verify review appears as "pending"
+7. ✅ Mark another review as "helpful"
+8. ✅ Report a review with reason
+
+**Seller Flow**:
+
+1. ✅ Navigate to `/marketplace/seller-central/reviews`
+2. ✅ View list of reviews
+3. ✅ Filter by rating (5★ only)
+4. ✅ Click "Respond" on a review
+5. ✅ Submit seller response
+6. ✅ Verify response appears under review
+
+**Public Flow**:
+
+1. ✅ Navigate to product page
+2. ✅ Click "Reviews" tab
+3. ✅ View rating summary (avg, distribution)
+4. ✅ Scroll through reviews
+5. ✅ Filter by "Verified Purchase Only"
+6. ✅ Sort by "Most Helpful"
+
+#### Task 5.3: API Testing (10 minutes)
+
+```bash
+# Test review submission
+curl -X POST http://localhost:3000/api/souq/reviews \
+  -H "Content-Type: application/json" \
+  -d '{
+    "productId": "...",
+    "orderId": "...",
+    "rating": 5,
+    "title": "Great product!",
+    "content": "This product exceeded my expectations..."
+  }'
+
+# Test get product reviews
+curl "http://localhost:3000/api/souq/products/PROD123/reviews?page=1&limit=10"
+
+# Test seller response
+curl -X POST http://localhost:3000/api/souq/seller-central/reviews/REV123/respond \
+  -H "Content-Type: application/json" \
+  -d '{"content": "Thank you for your feedback!"}'
+```
+
+---
+
+### Part 6: Commit & Push (10 minutes)
+
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+
+# Stage all files
+git add -A
+
+# Commit with detailed message
+git commit -m "feat(souq): Complete EPIC H - Reviews & Ratings System
+
+Comprehensive review and rating system for Souq Marketplace:
+
+Backend Services:
+- ReviewService with CRUD operations, moderation, analytics
+- RatingAggregationService for real-time rating calculation
+- Verified purchase badge logic
+- Duplicate review prevention
+- Report flagging and moderation workflow
+
+API Endpoints (7 endpoints):
+- Buyer: Create, update, delete reviews, mark helpful, report
+- Seller: View reviews, respond to reviews
+- Public: Get product reviews with stats and filters
+
+UI Components (5 components):
+- ReviewForm: Star rating, title, content, pros/cons, images
+- ReviewCard: Display review with helpful buttons, seller response
+- ReviewList: Paginated list with filters and sorting
+- RatingSummary: Overall rating, distribution chart, stats
+- SellerResponseForm: Seller response textarea
+
+Pages (3 pages):
+- Buyer review submission page
+- Seller review management dashboard
+- Product reviews tab
+
+Features:
+- Star ratings (1-5) with distribution histogram
+- Written reviews with title and content
+- Review photos (up to 5 images)
+- Seller response to reviews
+- Review moderation (pending, published, rejected, flagged)
+- Verified purchase badges
+- Helpful/not helpful voting
+- Report inappropriate reviews
+- Rating aggregation and caching
+- Sort/filter options (recent, helpful, rating, verified)
+- Pagination and infinite scroll
+
+Technical:
+- TypeScript interfaces and Zod validation
+- Real-time rating calculation
+- Duplicate prevention (one review per customer-product)
+- Rate limiting on submission
+- Image upload handling
+- 0 TypeScript errors
+
+Files Created:
+- services/souq/reviews/review-service.ts (400 lines)
+- services/souq/reviews/rating-aggregation-service.ts (250 lines)
+- app/api/souq/reviews/** (7 endpoints, ~300 lines)
+- components/marketplace/reviews/** (4 components, ~650 lines)
+- components/seller/reviews/** (1 component, ~100 lines)
+- app/marketplace/orders/[orderId]/review/page.tsx (150 lines)
+- app/marketplace/seller-central/reviews/page.tsx (250 lines)
+- app/marketplace/products/[id]/reviews/page.tsx (120 lines)
+- types/souq/reviews.ts (150 lines)
+- lib/validations/reviews.ts (100 lines)
+
+Total: ~15 files, ~2,470 LOC, 0 errors
+
+EPIC H Status: ✅ 100% Complete
+Phase 2 Status: ✅ 100% Complete (5 of 5 EPICs)"
+
+# Push to remote
+git push origin feat/souq-marketplace-advanced
+```
+
+---
+
+## 🎯 OBJECTIVE 2: Manual Testing of EPIC G (Analytics)
+
+### Overview
+
+Comprehensive manual testing of the analytics dashboard to verify all components render correctly, data flows properly, and responsive design works.
+
+### Prerequisites
+
+✅ EPIC G backend and frontend complete  
+✅ Dev server not currently running  
+✅ MongoDB connection available
+
+---
+
+## 📋 EPIC G Testing Plan (45 minutes)
+
+### Phase 1: Environment Setup (5 minutes)
+
+#### Step 1.1: Start Development Server
+
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+pnpm dev
+# Wait for "Ready in X ms"
+# Server should start at http://localhost:3000
+```
+
+#### Step 1.2: Verify Server Running
+
+```bash
+# In another terminal
+curl http://localhost:3000/api/qa/health
+# Expected: {"status":"ok",...}
+```
+
+#### Step 1.3: Login as Seller
+
+```
+Navigate to: http://localhost:3000/login
+Email: seller@test.com (or create test seller account)
+Password: (test password)
+Verify authentication works
+```
+
+---
+
+### Phase 2: Analytics Dashboard Testing (20 minutes)
+
+#### Step 2.1: Navigate to Analytics Page (2 minutes)
+
+```
+URL: http://localhost:3000/marketplace/seller-central/analytics
+Expected: Page loads without errors
+Check: No console errors in DevTools
+Check: Loading spinner displays while fetching data
+```
+
+#### Step 2.2: Test Overview Tab (5 minutes)
+
+**Visual Verification**:
+
+- [ ] Page header displays "Analytics Dashboard"
+- [ ] Period selector dropdown visible (default: "Last 30 Days")
+- [ ] Export CSV button visible
+- [ ] Export PDF button visible
+- [ ] Tab navigation shows: Overview, Sales, Products, Customers, Traffic
+- [ ] "Overview" tab is active (highlighted)
+
+**Component Rendering**:
+
+- [ ] **SalesChart** component renders
+  - Area chart with revenue trends visible
+  - 4 metric cards display: Total Revenue, Total Orders, Avg Order Value, Conversion Rate
+  - Each card shows current value and trend % (green/red arrow)
+  - Hover over chart shows tooltip with date and revenue
+- [ ] **ProductPerformanceTable** component renders
+  - "Top Selling Products" table displays
+  - Shows product rank, name, units sold, revenue, conversion rate
+  - Up to 10 products listed
+  - "Products Needing Attention" section (if any underperforming products)
+  - Low stock alert card (if any products low on stock)
+- [ ] **CustomerInsightsCard** component renders
+  - "Customer Acquisition" card shows new customers count
+  - Acquisition sources breakdown (direct, search, social, etc.)
+  - "Customer Retention" card shows repeat rate % and LTV
+  - "Customer Geography" pie chart displays top cities
+  - Top regions list with rankings
+- [ ] **TrafficAnalytics** component renders
+  - 4 metric cards: Total Page Views, Avg Session Duration, Pages/Session, Bounce Rate
+  - "Page Views Over Time" bar chart displays
+  - "Traffic Sources" pie chart shows breakdown
+  - "Device Breakdown" pie chart shows desktop/mobile/tablet distribution
+
+**Data Verification**:
+
+- [ ] All numbers appear realistic (not NaN, Infinity, or null)
+- [ ] Currency formatted correctly (SAR with proper decimals)
+- [ ] Percentages formatted correctly (% symbol, 1-2 decimals)
+- [ ] Dates formatted correctly (e.g., "Nov 15")
+- [ ] Charts have data points (not empty)
+
+#### Step 2.3: Test Period Selector (5 minutes)
+
+**Test Each Period**:
+
+1. Select "Last 7 Days"
+   - [ ] URL updates with `?period=last_7_days`
+   - [ ] Loading indicator shows briefly
+   - [ ] All charts/tables refresh with new data
+   - [ ] Chart x-axis shows 7 data points
+2. Select "Last 30 Days" (default)
+   - [ ] Data refreshes
+   - [ ] Chart shows ~30 data points
+3. Select "Last 90 Days"
+   - [ ] Data refreshes
+   - [ ] Chart shows ~90 data points (may be grouped)
+4. Select "Year to Date"
+   - [ ] Data refreshes
+   - [ ] Chart shows full year data
+
+**Verification**:
+
+- [ ] Period change triggers API call (check Network tab)
+- [ ] API call goes to `/api/souq/analytics/dashboard?period=...`
+- [ ] Response status 200
+- [ ] No errors in console
+
+#### Step 2.4: Test Individual Tabs (5 minutes)
+
+**Sales Tab**:
+
+- [ ] Click "Sales" tab
+- [ ] Only SalesChart component renders
+- [ ] All metrics display correctly
+- [ ] Revenue chart renders
+- [ ] Period selector still works
+
+**Products Tab**:
+
+- [ ] Click "Products" tab
+- [ ] Only ProductPerformanceTable component renders
+- [ ] Top products table displays
+- [ ] Underperforming products section (if applicable)
+- [ ] Low stock alerts (if applicable)
+
+**Customers Tab**:
+
+- [ ] Click "Customers" tab
+- [ ] Only CustomerInsightsCard components render
+- [ ] Acquisition and retention metrics display
+- [ ] Geography pie chart renders
+- [ ] Demographics pie chart renders (if data available)
+
+**Traffic Tab**:
+
+- [ ] Click "Traffic" tab
+- [ ] Only TrafficAnalytics component renders
+- [ ] All 4 metric cards display
+- [ ] Page views bar chart renders
+- [ ] Traffic sources pie chart renders
+- [ ] Device breakdown pie chart renders
+
+**Tab Navigation**:
+
+- [ ] Tab switching is instant (no page reload)
+- [ ] Active tab highlighted correctly
+- [ ] URL does NOT change when switching tabs
+- [ ] Period selector persists across tabs
+
+#### Step 2.5: Test Error Handling (3 minutes)
+
+**Simulate Network Failure**:
+
+1. Open DevTools → Network tab
+2. Enable "Offline" mode
+3. Refresh page (F5)
+4. **Expected**:
+   - [ ] Error card displays: "Error Loading Analytics"
+   - [ ] Error message visible
+   - [ ] "Retry" button displayed
+5. Disable "Offline" mode
+6. Click "Retry" button
+7. **Expected**:
+   - [ ] Page refreshes
+   - [ ] Data loads successfully
+
+**Simulate API Error**:
+
+```bash
+# In another terminal, kill the dev server
+# Then try to change period in UI
+```
+
+- [ ] Error handling triggers
+- [ ] User-friendly error message displayed
+
+---
+
+### Phase 3: Responsive Design Testing (10 minutes)
+
+#### Step 3.1: Desktop View (Already tested above)
+
+- [ ] Resolution: 1920x1080
+- [ ] All components fit width
+- [ ] No horizontal scrollbar
+- [ ] Charts render at good size
+
+#### Step 3.2: Tablet View (iPad) (5 minutes)
+
+```
+DevTools → Toggle device toolbar → iPad Pro (1024x1366)
+```
+
+- [ ] Page header stacks properly
+- [ ] Period selector and export buttons fit
+- [ ] Tabs still horizontal (not wrapped)
+- [ ] Charts resize appropriately
+- [ ] Tables remain readable
+- [ ] 2-column grid for metric cards
+
+#### Step 3.3: Mobile View (iPhone) (5 minutes)
+
+```
+DevTools → iPhone 14 Pro (393x852)
+```
+
+- [ ] Page header stacks vertically
+- [ ] Period selector full width
+- [ ] Export buttons stack vertically
+- [ ] Tabs become scrollable (horizontal scroll if needed)
+- [ ] Charts resize to fit width
+- [ ] Tables become scrollable horizontally OR cards
+- [ ] 1-column grid for metric cards
+- [ ] All text remains readable (not cut off)
+- [ ] Touch targets large enough (buttons, tabs)
+
+#### Step 3.4: Landscape Mobile
+
+```
+Rotate to landscape mode
+```
+
+- [ ] Layout adjusts properly
+- [ ] Charts utilize width effectively
+- [ ] No content hidden
+
+---
+
+### Phase 4: Performance & Accessibility (10 minutes)
+
+#### Step 4.1: Performance Checks (5 minutes)
+
+**Page Load Performance**:
+
+- [ ] Analytics page loads in <3 seconds (with data)
+- [ ] No layout shift during load
+- [ ] Images/charts load progressively (if applicable)
+
+**Interaction Performance**:
+
+- [ ] Period selector change responds in <500ms
+- [ ] Tab switching instant (<100ms)
+- [ ] Chart tooltips responsive (no lag on hover)
+
+**Memory Check**:
+
+```
+DevTools → Performance → Memory
+1. Record while interacting with page
+2. Switch tabs multiple times
+3. Change periods multiple times
+4. Stop recording
+Expected: No significant memory increase (no leaks)
+```
+
+#### Step 4.2: Accessibility Checks (5 minutes)
+
+**Keyboard Navigation**:
+
+- [ ] Tab key navigates through interactive elements
+- [ ] Period selector accessible via keyboard
+- [ ] Tab navigation works with arrow keys
+- [ ] Export buttons focusable and clickable with Enter
+
+**Screen Reader (Optional)**:
+
+- [ ] Charts have aria-labels
+- [ ] Tables have proper headers
+- [ ] Buttons have descriptive labels
+
+**Color Contrast**:
+
+- [ ] Text readable against backgrounds
+- [ ] Chart colors distinguishable
+- [ ] Trend indicators (green/red) visible
+
+---
+
+### Phase 5: Documentation & Screenshots (5 minutes)
+
+#### Step 5.1: Capture Screenshots
+
+Save screenshots of:
+
+1. Analytics Overview (all components visible)
+2. Sales tab with chart
+3. Products tab with table
+4. Customers tab with insights
+5. Traffic tab with charts
+6. Mobile view (iPhone)
+7. Error state
+
+#### Step 5.2: Document Results
+
+Create file: `EPIC_G_TESTING_RESULTS.md`
+
+```markdown
+# EPIC G Analytics Dashboard - Testing Results
+
+**Date**: November 16, 2025
+**Tester**: [Your name]
+**Environment**: Development (localhost:3000)
+**Browser**: Chrome 120.0
+
+## Summary
+
+- ✅ All components render correctly
+- ✅ Period selector works (7/30/90 days, YTD)
+- ✅ All tabs functional
+- ✅ Responsive design verified (desktop, tablet, mobile)
+- ✅ Error handling works
+- ✅ Performance acceptable (<3s load)
+- ✅ No console errors
+
+## Issues Found
+
+- None
+
+## Screenshots
+
+See `_artifacts/screenshots/epic-g-testing/`
+
+## Recommendation
+
+✅ EPIC G ready for production
+```
+
+---
+
+## 🎯 OBJECTIVE 3: Integration Testing - Phase 2
+
+### Overview
+
+Test complete seller workflow with all Phase 2 EPICs (F, E, I, G, H) working together seamlessly.
+
+---
+
+## 📋 Integration Testing Plan (1.5 hours)
+
+### Part 1: End-to-End Seller Journey (45 minutes)
+
+#### Journey 1: New Seller Onboarding & First Sale
+
+**Step 1: Seller Registration & KYC (5 minutes)**
+
+```
+1. Navigate to /marketplace/seller-central
+2. Complete KYC wizard (already tested)
+3. Upload identity documents
+4. Submit for verification
+5. Verify status changes to "pending"
+```
+
+**Step 2: Create Product Listings (5 minutes)**
+
+```
+6. Navigate to /marketplace/seller-central/products
+7. Click "Add Product"
+8. Fill product details (title, description, price, images)
+9. Set inventory and variants
+10. Publish product
+11. Verify product appears in marketplace
+```
+
+**Step 3: Create Advertising Campaign (5 minutes)** (EPIC F)
+
+```
+12. Navigate to /marketplace/seller-central/advertising
+13. Click "Create Campaign"
+14. Select product to advertise
+15. Set budget and bid amount
+16. Choose keywords
+17. Set campaign duration
+18. Submit campaign
+19. Verify campaign status "active"
+```
+
+**Step 4: Receive Order & Process (5 minutes)**
+
+```
+20. (Simulate buyer purchase on frontend)
+21. Navigate to /marketplace/seller-central/orders
+22. View new order notification
+23. Click "Confirm Order"
+24. Update status to "Processing"
+25. Mark as "Shipped" with tracking number
+26. Verify order status updates
+```
+
+**Step 5: Handle Customer Claim (5 minutes)** (EPIC E)
+
+```
+27. (Simulate buyer files claim)
+28. Navigate to /marketplace/seller-central/claims
+29. View claim details
+30. Respond to claim with explanation
+31. Upload evidence (photos, documents)
+32. Submit response
+33. Verify claim status changes to "under review"
+```
+
+**Step 6: Receive Settlement (5 minutes)** (EPIC I)
+
+```
+34. Navigate to /marketplace/seller-central/settlements
+35. View settlement dashboard
+36. Check "Pending Balance"
+37. Click "Request Payout"
+38. Enter bank account details
+39. Submit payout request
+40. Verify payout status "processing"
+41. View payout history
+```
+
+**Step 7: Monitor Analytics (5 minutes)** (EPIC G)
+
+```
+42. Navigate to /marketplace/seller-central/analytics
+43. View sales performance (revenue from orders)
+44. Check product performance (advertised product rankings)
+45. Monitor customer insights
+46. Review traffic analytics
+47. Verify metrics reflect actual activity
+```
+
+**Step 8: Manage Reviews (5 minutes)** (EPIC H)
+
+```
+48. Navigate to /marketplace/seller-central/reviews
+49. View review notification (customer reviewed product)
+50. Read customer review
+51. Click "Respond"
+52. Write seller response
+53. Submit response
+54. Verify response appears under review
+55. Check rating aggregation updates
+```
+
+**Step 9: Review Complete Dashboard (5 minutes)**
+
+```
+56. Navigate to /marketplace/seller-central
+57. Verify dashboard shows:
+    - Total sales (from settlements)
+    - Active campaigns (from advertising)
+    - Open claims (from claims)
+    - Pending reviews (from reviews)
+    - Analytics summary (from analytics)
+58. Check notification center
+59. Verify cross-module data consistency
+```
+
+---
+
+### Part 2: Cross-Module Integration Checks (30 minutes)
+
+#### Integration 2.1: Advertising → Analytics (5 minutes)
+
+**Verify**:
+
+- [ ] Advertising spend appears in analytics costs
+- [ ] Ad-driven sales tracked in traffic sources
+- [ ] ROI calculation correct (sales - ad spend)
+- [ ] Campaign performance metrics accurate
+
+**Test**:
+
+```
+1. Create ad campaign with $100 budget
+2. Wait/simulate 2 sales from ads
+3. Navigate to analytics
+4. Verify:
+   - Traffic sources show "paid" traffic
+   - Sales attributed to ads
+   - ROI calculated: (revenue - $100) / $100
+```
+
+#### Integration 2.2: Claims → Settlement (5 minutes)
+
+**Verify**:
+
+- [ ] Claim refunds deducted from settlement balance
+- [ ] Claim resolution timeline affects payout
+- [ ] Partial refunds handled correctly
+- [ ] Multiple claims aggregated
+
+**Test**:
+
+```
+1. Note settlement balance (e.g., $500)
+2. Resolve claim with $50 refund
+3. Navigate to settlements
+4. Verify:
+   - Balance reduced to $450
+   - Refund transaction listed
+   - Payout schedule adjusted
+```
+
+#### Integration 2.3: Orders → Reviews → Analytics (5 minutes)
+
+**Verify**:
+
+- [ ] Completed orders enable review prompts
+- [ ] Reviews affect product analytics
+- [ ] Rating changes impact conversion rate
+- [ ] Verified purchase badge appears
+
+**Test**:
+
+```
+1. Complete order #123
+2. Submit review (5 stars)
+3. Navigate to analytics
+4. Verify:
+   - Product performance shows updated rating
+   - Conversion rate reflects positive review
+   - Top products ranking adjusted
+```
+
+#### Integration 2.4: Settlement → Analytics (5 minutes)
+
+**Verify**:
+
+- [ ] Payout history matches revenue in analytics
+- [ ] Settlement fees deducted correctly
+- [ ] Currency calculations consistent
+- [ ] Date ranges align
+
+**Test**:
+
+```
+1. Navigate to analytics, note revenue ($1,000)
+2. Navigate to settlements
+3. Request payout
+4. Verify:
+   - Payout amount = revenue - fees (e.g., $950)
+   - Dates match analytics period
+   - Transaction IDs trackable
+```
+
+#### Integration 2.5: Advertising → Reviews (5 minutes)
+
+**Verify**:
+
+- [ ] Ad campaigns link to reviewed products
+- [ ] Review ratings influence ad performance
+- [ ] Negative reviews pause auto-campaigns (optional)
+
+**Test**:
+
+```
+1. View advertised product
+2. Check reviews on product page
+3. Verify review rating displayed in ad (if applicable)
+4. Submit low rating (2 stars)
+5. Check if campaign CPC increases or pauses (business logic)
+```
+
+#### Integration 2.6: Full Data Consistency (5 minutes)
+
+**Verify**:
+
+- [ ] Order count matches across modules
+- [ ] Revenue totals consistent everywhere
+- [ ] Product IDs resolve correctly
+- [ ] Customer IDs link properly
+- [ ] Dates/timestamps synchronized
+
+**Test**:
+
+```
+# Run data consistency check
+curl http://localhost:3000/api/souq/seller-central/health/consistency
+
+Expected response:
+{
+  "ordersCount": { "orders": 25, "analytics": 25, "settlements": 25 },
+  "revenue": { "orders": 5000, "analytics": 5000, "settlements": 4750 },
+  "productsCount": { "listings": 10, "analytics": 10, "ads": 10 },
+  "reviewsCount": { "reviews": 8, "analytics": 8 },
+  "consistent": true
+}
+```
+
+---
+
+### Part 3: Performance Testing Under Load (15 minutes)
+
+#### Load Test 3.1: Concurrent Users (5 minutes)
+
+**Tool**: Apache Bench or `autocannon`
+
+```bash
+# Install autocannon
+npm install -g autocannon
+
+# Test analytics endpoint
+autocannon -c 50 -d 30 http://localhost:3000/api/souq/analytics/dashboard?period=last_30_days
+
+# Expected:
+# - Avg latency: <200ms
+# - 95th percentile: <500ms
+# - 0 errors
+# - Throughput: >100 req/sec
+```
+
+#### Load Test 3.2: Review Submission (5 minutes)
+
+```bash
+# Test review creation (requires auth token)
+autocannon -c 20 -d 20 -m POST \
+  -H "Content-Type: application/json" \
+  -b '{"productId":"PROD123","rating":5,"title":"Test","content":"Test review content goes here with sufficient length"}' \
+  http://localhost:3000/api/souq/reviews
+
+# Expected:
+# - Avg latency: <300ms
+# - 0 errors
+# - Rate limit triggers at 100 requests (if configured)
+```
+
+#### Load Test 3.3: Database Query Performance (5 minutes)
+
+```bash
+# Check slow queries in MongoDB
+# Enable profiling:
+mongo
+> use fixzit_prod
+> db.setProfilingLevel(1, { slowms: 100 })
+
+# Then run typical queries and check:
+> db.system.profile.find({millis: {$gt: 100}}).pretty()
+
+# Expected:
+# - <5 slow queries (>100ms)
+# - Most queries <50ms
+# - Indexes being used
+```
+
+---
+
+### Part 4: Phase 2 Completion Report (10 minutes)
+
+#### Create Comprehensive Report
+
+**File**: `PHASE_2_COMPLETION_REPORT.md`
+
+```markdown
+# Phase 2 Souq Marketplace - Completion Report
+
+**Completion Date**: November 16, 2025  
+**Branch**: feat/souq-marketplace-advanced  
+**Final Commit**: [commit hash]
+
+## Executive Summary
+
+Phase 2 of the Souq Marketplace is **100% complete** with all 5 EPICs implemented, tested, and verified.
+
+### EPICs Completed
+
+| EPIC                 | Status      | Files | LOC   | Key Features                                             |
+| -------------------- | ----------- | ----- | ----- | -------------------------------------------------------- |
+| F: Advertising       | ✅ Complete | 12    | 3,700 | Campaign management, bidding, performance tracking       |
+| E: Claims            | ✅ Complete | 17    | 5,500 | Dispute resolution, evidence upload, admin moderation    |
+| I: Settlement        | ✅ Complete | 18    | 5,800 | Payout processing, transaction history, bank integration |
+| G: Analytics         | ✅ Complete | 12    | 2,056 | Sales charts, product insights, traffic analytics        |
+| H: Reviews & Ratings | ✅ Complete | 15    | 2,470 | Review submission, seller responses, rating aggregation  |
+
+**Total**: 74 files, 19,526 lines of code
+
+## Technical Achievements
+
+### Architecture
+
+- ✅ Service layer pattern (clean separation of concerns)
+- ✅ RESTful API design (consistent endpoints)
+- ✅ MongoDB integration (optimized schemas and indexes)
+- ✅ TypeScript strict mode (0 compilation errors)
+- ✅ Component-based UI (reusable React components)
+
+### Performance
+
+- ✅ Analytics page load: <3s
+- ✅ API response time: <200ms (avg)
+- ✅ Database queries: <50ms (avg)
+- ✅ Concurrent users: 50+ without degradation
+- ✅ Review submission: <300ms (avg)
+
+### Quality
+
+- ✅ TypeScript coverage: 100%
+- ✅ Type safety: No `any` types in new code
+- ✅ Error handling: Try-catch on all async operations
+- ✅ Input validation: Zod schemas for all API inputs
+- ✅ Responsive design: Mobile, tablet, desktop tested
+
+### Testing
+
+- ✅ Manual testing: All user flows verified
+- ✅ Integration testing: Cross-module data consistency
+- ✅ Performance testing: Load tests passed
+- ✅ Error handling: Network failures handled gracefully
+- ✅ Accessibility: Keyboard navigation works
+
+## Integration Verification
+
+### Cross-Module Data Flow
+```
+
+Orders → Reviews → Analytics ✅
+Advertising → Analytics ✅
+Claims → Settlement ✅
+Settlement → Analytics ✅
+Reviews → Analytics ✅
+
+```
+
+### Data Consistency Checks
+- [ ] Order counts match across modules
+- [ ] Revenue totals consistent
+- [ ] Product IDs resolve correctly
+- [ ] Customer IDs link properly
+- [ ] Timestamps synchronized
+
+## Known Limitations
+
+1. **CSV/PDF Export**: Placeholders implemented, full functionality pending
+2. **Image Optimization**: Review images not yet optimized/resized
+3. **Email Notifications**: Not yet integrated with SendGrid
+4. **Real-time Updates**: Using polling, WebSocket integration pending
+5. **Advanced Analytics**: Cohort analysis and LTV projections not yet implemented
+
+## Production Readiness Checklist
+
+- [x] All TypeScript errors resolved
+- [x] All manual tests passed
+- [x] Integration tests passed
+- [x] Performance tests passed
+- [x] Responsive design verified
+- [x] Error handling implemented
+- [x] API rate limiting configured
+- [x] Database indexes optimized
+- [ ] Production environment variables configured
+- [ ] Monitoring and logging setup (pending)
+- [ ] CI/CD pipeline integration (pending)
+- [ ] Security audit (pending)
+
+## Next Steps
+
+### Immediate (Pre-Production)
+1. Configure production MongoDB connection string
+2. Setup Sentry for error tracking
+3. Enable CloudWatch logging
+4. Configure CloudFront CDN for images
+5. Run full E2E test suite
+6. Perform security audit
+
+### Post-Launch (Phase 3)
+1. Implement CSV/PDF export functionality
+2. Add email notification system
+3. Integrate WebSocket for real-time updates
+4. Add advanced analytics features
+5. Implement image optimization pipeline
+6. A/B testing framework for ads
+
+### Future Enhancements
+1. AI-powered review sentiment analysis
+2. Predictive analytics (forecasting)
+3. Automated ad optimization
+4. Multi-language review translation
+5. Video review support
+
+## Metrics & KPIs
+
+### Development Metrics
+- Total development time: ~8 hours
+- Commits: 12
+- Lines of code: 19,526
+- TypeScript errors fixed: 30+
+- Files created: 74
+
+### Expected Business Impact
+- Seller retention: +30% (analytics visibility)
+- Product discoverability: +50% (advertising)
+- Dispute resolution time: -60% (claims system)
+- Seller payout speed: -40% (settlement automation)
+- Customer trust: +25% (review system)
+
+## Conclusion
+
+Phase 2 of the Souq Marketplace is **production-ready** with comprehensive features for sellers to manage their business effectively. All EPICs are complete, tested, and integrated seamlessly.
+
+**Status**: ✅ READY FOR DEPLOYMENT
+
+---
+
+**Report Generated**: November 16, 2025
+**Author**: GitHub Copilot
+**Approved By**: [Pending]
+```
+
+---
+
+## 📊 EXECUTION TIMELINE
+
+### Total Estimated Time: 3.5-4 hours
+
+| Objective                        | Duration        | Status     |
+| -------------------------------- | --------------- | ---------- |
+| **1. EPIC H: Reviews & Ratings** | **2-2.5 hours** | ⏳ Pending |
+| - Backend Services & APIs        | 1.5 hours       | ⏳         |
+| - UI Components                  | 1 hour          | ⏳         |
+| - Pages                          | 45 minutes      | ⏳         |
+| - Types & Validation             | 15 minutes      | ⏳         |
+| - Testing                        | 30 minutes      | ⏳         |
+| - Commit & Push                  | 10 minutes      | ⏳         |
+| **2. EPIC G Testing**            | **45 minutes**  | ⏳ Pending |
+| - Environment Setup              | 5 minutes       | ⏳         |
+| - Dashboard Testing              | 20 minutes      | ⏳         |
+| - Responsive Design              | 10 minutes      | ⏳         |
+| - Performance & A11y             | 10 minutes      | ⏳         |
+| **3. Integration Testing**       | **1.5 hours**   | ⏳ Pending |
+| - E2E Seller Journey             | 45 minutes      | ⏳         |
+| - Cross-Module Checks            | 30 minutes      | ⏳         |
+| - Performance Testing            | 15 minutes      | ⏳         |
+| - Completion Report              | 10 minutes      | ⏳         |
+
+---
+
+## ✅ SUCCESS CRITERIA
+
+### EPIC H Complete When:
+
+- [x] All 15 files created (~2,470 LOC)
+- [x] 0 TypeScript compilation errors
+- [x] All API endpoints respond correctly
+- [x] UI components render without errors
+- [x] Review submission flow works end-to-end
+- [x] Seller response flow works
+- [x] Rating aggregation accurate
+- [x] Committed and pushed to remote
+
+### EPIC G Testing Complete When:
+
+- [x] Dev server running successfully
+- [x] All tabs load and render correctly
+- [x] Period selector changes data
+- [x] Charts display data accurately
+- [x] Responsive design works (mobile, tablet, desktop)
+- [x] Error handling verified
+- [x] Performance acceptable (<3s load)
+- [x] Screenshots captured
+- [x] Testing report documented
+
+### Phase 2 Integration Complete When:
+
+- [x] E2E seller journey successful (9 steps)
+- [x] Cross-module data consistent
+- [x] Performance tests passed
+- [x] Load tests passed (50+ concurrent users)
+- [x] Completion report documented
+- [x] All EPICs working together seamlessly
+
+### Overall Phase 2 Complete When:
+
+- [x] All 5 EPICs implemented (F, E, I, G, H)
+- [x] Total 74 files created (~19,526 LOC)
+- [x] 0 TypeScript errors
+- [x] All manual tests passed
+- [x] Integration verified
+- [x] Performance benchmarks met
+- [x] Documentation complete
+- [x] Ready for production deployment
+
+---
+
+## 🚨 RISK MITIGATION
+
+### Potential Issues & Solutions
+
+**Issue 1: TypeScript Errors**
+
+- **Risk**: New code introduces type errors
+- **Mitigation**: Run `npx tsc --noEmit` after each major section
+- **Fallback**: Fix errors immediately before proceeding
+
+**Issue 2: API Endpoint Failures**
+
+- **Risk**: Endpoints return 500 errors
+- **Mitigation**: Test each endpoint with curl after creation
+- **Fallback**: Check server logs, fix business logic
+
+**Issue 3: Missing Dependencies**
+
+- **Risk**: Review image upload needs new package
+- **Mitigation**: Install required packages early
+- **Fallback**: Use existing image handling patterns
+
+**Issue 4: Performance Degradation**
+
+- **Risk**: Analytics + Reviews slow down seller dashboard
+- **Mitigation**: Implement caching, pagination
+- **Fallback**: Add loading states, optimize queries
+
+**Issue 5: Integration Failures**
+
+- **Risk**: Cross-module data inconsistency
+- **Mitigation**: Test integration points thoroughly
+- **Fallback**: Add data reconciliation script
+
+---
+
+## 📞 CHECKPOINTS
+
+### After EPIC H Backend (1.5 hours)
+
+**Verify**:
+
+```bash
+npx tsc --noEmit  # 0 errors
+curl http://localhost:3000/api/souq/reviews  # 200 OK
+git status  # All files staged
+```
+
+**Decision**: Continue to UI or debug?
+
+### After EPIC H UI (2.5 hours total)
+
+**Verify**:
+
+```bash
+npx tsc --noEmit  # 0 errors
+# Navigate to review submission page
+# Verify form renders
+```
+
+**Decision**: Continue to testing or debug?
+
+### After EPIC H Complete (3 hours total)
+
+**Verify**:
+
+```bash
+git log --oneline -1  # "feat(souq): Complete EPIC H"
+git push origin feat/souq-marketplace-advanced  # Pushed
+```
+
+**Decision**: Continue to EPIC G testing or take break?
+
+### After All Testing (4 hours total)
+
+**Verify**:
+
+```bash
+ls PHASE_2_COMPLETION_REPORT.md  # Exists
+cat EPIC_G_TESTING_RESULTS.md  # Complete
+```
+
+**Decision**: Ready for production deployment?
+
+---
+
+## 📝 NOTES
+
+- All times are estimates; adjust based on actual progress
+- Take 5-minute breaks between major sections
+- Commit after each EPIC section (not at the end)
+- Test incrementally, not all at once
+- Document issues as they arise
+- Keep browser DevTools open during testing
+- Use MongoDB Compass to verify data if needed
+- Keep Postman/curl handy for API testing
+
+---
+
+**Plan Status**: ✅ READY TO EXECUTE  
+**Created**: November 16, 2025  
+**Next Action**: Start EPIC H Backend Services
+
+---
+
+**END OF PLAN**
+
+]]>
+</file>
+
+</batch_content>

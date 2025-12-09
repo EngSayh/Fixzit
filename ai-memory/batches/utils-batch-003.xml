@@ -1,0 +1,3036 @@
+
+You are the "Fixzit Memory Builder" for category: "utils".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "utils",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="tests/unit/lib/auth.test.ts">
+<![CDATA[
+import { logger } from "@/lib/logger";
+
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import type { AuthToken } from "@/lib/auth";
+
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
+// Store original env
+const originalEnv = { ...process.env };
+
+// Defer module import to control env and mocks per test
+const loadAuthModule = async () => {
+  // Clear module cache to re-evaluate JWT secret resolution each time
+  vi.resetModules();
+  return await import("@/lib/auth");
+};
+
+// FIX: Move all function implementations INSIDE the factory to avoid top-level variable references
+vi.mock("bcryptjs", () => ({
+  __esModule: true,
+  default: {
+    hash: vi.fn(async (pwd: string, _rounds: number) => `hashed:${pwd}`),
+    compare: vi.fn(
+      async (pwd: string, hashed: string) => hashed === `hashed:${pwd}`,
+    ),
+  },
+  hash: vi.fn(async (pwd: string, _rounds: number) => `hashed:${pwd}`),
+  compare: vi.fn(
+    async (pwd: string, hashed: string) => hashed === `hashed:${pwd}`,
+  ),
+}));
+
+// FIX: Create factory function inside the mock to avoid hoisting issues
+const mockSign = vi.fn((payload: object, _secret: string, _opts?: unknown) => {
+  return `token:${Buffer.from(JSON.stringify(payload)).toString("base64")}`;
+});
+const mockVerify = vi.fn((token: string, _secret: string) => {
+  if (!token.startsWith("token:")) {
+    throw new Error("invalid token format");
+  }
+  const b64 = token.slice("token:".length);
+  const json = Buffer.from(b64, "base64").toString("utf8");
+  return JSON.parse(json);
+});
+
+vi.mock("jsonwebtoken", () => {
+  return {
+    __esModule: true,
+    default: {
+      sign: mockSign,
+      verify: mockVerify,
+    },
+    sign: mockSign,
+    verify: mockVerify,
+  };
+});
+
+// Export spies for test assertions
+const signSpy = mockSign;
+const verifySpy = mockVerify;
+
+// Mock database flag
+let mockIsMockDB = true;
+
+// FIX: Move dbConnectSpy declaration OUTSIDE mock factory
+vi.mock("@/lib/mongo", () => ({
+  __esModule: true,
+  connectDb: vi.fn(async () => Promise.resolve()),
+  get isMockDB() {
+    return mockIsMockDB;
+  },
+  db: Promise.resolve(),
+}));
+
+// Mock secrets service for JWT_SECRET management
+const mockGetJWTSecret = vi.fn();
+const mockGetSecret = vi.fn();
+vi.mock("@/lib/secrets", () => ({
+  __esModule: true,
+  getJWTSecret: mockGetJWTSecret,
+  getSecret: mockGetSecret,
+  getDatabaseURL: vi.fn(async () => "mongodb://mock"),
+  getSendGridAPIKey: vi.fn(async () => null),
+  clearSecretCache: vi.fn(),
+}));
+
+// Mock User model
+const mockFindOne = vi.fn();
+const mockFindById = vi.fn();
+vi.mock("@/server/models/User", () => ({
+  __esModule: true,
+  User: {
+    findOne: mockFindOne,
+    findById: mockFindById,
+  },
+  UserRole: {},
+}));
+
+// Capture console.warn for JWT_SECRET fallback tests
+const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+beforeEach(() => {
+  // Restore env to original state
+  process.env = { ...originalEnv };
+  vi.clearAllMocks();
+});
+
+afterEach(() => {
+  // Clean up after each test
+  process.env = { ...originalEnv };
+});
+
+describe("auth lib - crypto and password helpers", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("hashPassword hashes with bcrypt and verifyPassword validates correctly (happy path)", async () => {
+    const auth = await loadAuthModule();
+    const password = "P@ssw0rd!";
+    const hashed = await auth.hashPassword(password);
+    expect(hashed).toBe(`hashed:${password}`);
+
+    await expect(auth.verifyPassword(password, hashed)).resolves.toBe(true);
+    await expect(auth.verifyPassword("wrong", hashed)).resolves.toBe(false);
+  });
+});
+
+describe("auth lib - JWT generation and verification", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    delete process.env.JWT_SECRET;
+    Object.defineProperty(process.env, "NODE_ENV", {
+      value: "test",
+      writable: true,
+      configurable: true,
+    });
+    mockIsMockDB = true; // keep mock DB for model stubbing in module
+    // Default: return a mock secret
+    mockGetJWTSecret.mockResolvedValue("test-secret-key");
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("generateToken uses jsonwebtoken.sign and verifyToken returns payload on valid token", async () => {
+    const auth = await loadAuthModule();
+
+    const payload: AuthToken = {
+      id: "1",
+      email: "test@test.com",
+      role: "user",
+      orgId: "org1",
+      tenantId: "t",
+    };
+    const token = await auth.generateToken(payload);
+    expect(typeof token).toBe("string");
+    expect(signSpy).toHaveBeenCalledTimes(1);
+    expect(signSpy.mock.calls[0][0]).toEqual(payload);
+
+    const verified = await auth.verifyToken(token);
+    expect(verified).toEqual(payload);
+    expect(verifySpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("verifyToken returns null when jsonwebtoken throws", async () => {
+    // Use mockImplementationOnce so we don't need to restore the implementation
+    verifySpy.mockImplementationOnce(() => {
+      throw new Error("bad token");
+    });
+
+    const auth = await loadAuthModule();
+    const result = await auth.verifyToken("token:invalid");
+    expect(result).toBeNull();
+  });
+
+  it("uses ephemeral secret when JWT_SECRET is unset (non-production) and warns once on module init", async () => {
+    delete process.env.JWT_SECRET;
+    Object.defineProperty(process.env, "NODE_ENV", {
+      value: "development",
+      writable: true,
+      configurable: true,
+    });
+
+    // Mock getJWTSecret to return ephemeral secret and log warning
+    const ephemeralSecret =
+      "ephemeral-dev-secret-12345678901234567890123456789012";
+    mockGetJWTSecret.mockImplementation(async () => {
+      logger.warn(
+        "[Secrets] No JWT_SECRET configured. Using ephemeral secret for development.",
+      );
+      return ephemeralSecret;
+    });
+
+    const beforeWarns = consoleWarnSpy.mock.calls.length;
+    const auth = await loadAuthModule();
+
+    // Call a function that uses the secret to trigger the warning
+    await auth.generateToken({
+      id: "1",
+      email: "test@test.com",
+      role: "user",
+      orgId: "org1",
+      tenantId: "t",
+    });
+
+    const afterWarns = consoleWarnSpy.mock.calls.length;
+    expect(afterWarns).toBe(beforeWarns + 1);
+    const msg = consoleWarnSpy.mock.calls.at(-1)?.[0] as string;
+    expect(String(msg)).toMatch(
+      /No JWT_SECRET configured\. Using ephemeral secret/,
+    );
+  });
+
+  it("throws on module init if in production without JWT_SECRET", async () => {
+    delete process.env.JWT_SECRET;
+    Object.defineProperty(process.env, "NODE_ENV", {
+      value: "production",
+      writable: true,
+      configurable: true,
+    });
+
+    // Mock getJWTSecret to throw production error
+    mockGetJWTSecret.mockRejectedValue(
+      new Error(
+        "JWT_SECRET is required in production. Configure it in AWS Secrets Manager (using secret name 'prod/fixzit/jwt-secret') or as environment variable 'JWT_SECRET'.",
+      ),
+    );
+
+    const auth = await loadAuthModule();
+
+    // The error happens when trying to generate a token, not at module load
+    await expect(
+      auth.generateToken({
+        id: "1",
+        email: "test@test.com",
+        role: "user",
+        orgId: "org1",
+        tenantId: "t",
+      }),
+    ).rejects.toThrow(/JWT_SECRET.*required.*production/);
+  });
+
+  it("uses provided JWT_SECRET when set", async () => {
+    Object.defineProperty(process.env, "NODE_ENV", {
+      value: "test",
+      writable: true,
+      configurable: true,
+    });
+    process.env.JWT_SECRET = "fixed-secret";
+
+    // Mock getJWTSecret to return the fixed secret
+    mockGetJWTSecret.mockResolvedValue("fixed-secret");
+
+    await loadAuthModule();
+
+    // Call generateToken to ensure sign receives the fixed secret
+    const auth = await import("@/lib/auth");
+    const payload: AuthToken = {
+      id: "id-1",
+      email: "e@x.com",
+      role: "USER",
+      tenantId: "t",
+      orgId: "t",
+    };
+    await auth.generateToken(payload);
+    expect(signSpy).toHaveBeenCalledWith(
+      payload,
+      "fixed-secret",
+      expect.any(Object),
+    );
+  });
+});
+
+describe("auth lib - authenticateUser", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Ensure stable env and mock DB to use inline mock User model path
+    Object.defineProperty(process.env, "NODE_ENV", {
+      value: "test",
+      writable: true,
+      configurable: true,
+    });
+    delete process.env.JWT_SECRET;
+    mockIsMockDB = true;
+    mockGetJWTSecret.mockResolvedValue("test-secret-key");
+  });
+
+  type MockUser = {
+    _id: { toString: () => string };
+    code: string;
+    username: string;
+    email: string;
+    password: string;
+    personal: { firstName: string; lastName: string };
+    professional: { role: string };
+    status: string;
+    tenantId: string;
+    orgId: { toString: () => string };
+    [key: string]: unknown;
+  };
+
+  const makeUser = (overrides: Partial<MockUser> = {}): MockUser => ({
+    _id: { toString: () => "1" }, // Mock MongoDB ObjectId
+    code: "USR-001",
+    username: "superadmin",
+    email: `superadmin@${EMAIL_DOMAIN}`,
+    password: "hashed:admin123", // matches bcrypt mock behavior
+    personal: { firstName: "System", lastName: "Administrator" },
+    professional: { role: "SUPER_ADMIN" },
+    status: "ACTIVE",
+    tenantId: "demo-tenant",
+    orgId: { toString: () => "org1" }, // Mock MongoDB ObjectId
+    ...overrides,
+  });
+
+  it("authenticates with personal login (email) and returns token and user profile", async () => {
+    const user = makeUser();
+    mockFindOne.mockResolvedValue(user);
+
+    const auth = await loadAuthModule();
+    const result = await auth.authenticateUser(
+      `superadmin@${EMAIL_DOMAIN}`,
+      "admin123",
+      "personal",
+      "org1", // orgId required for personal login
+    );
+
+    expect(mockFindOne).toHaveBeenCalledWith({ email: `superadmin@${EMAIL_DOMAIN}`, orgId: "org1" });
+    expect(result).toHaveProperty("token");
+    expect(result.user).toEqual({
+      id: expect.any(String),
+      email: `superadmin@${EMAIL_DOMAIN}`,
+      name: "System Administrator",
+      role: "SUPER_ADMIN",
+      orgId: expect.any(String),
+    });
+  });
+
+  it("authenticates with corporate login (username) path", async () => {
+    const user = makeUser();
+    mockFindOne.mockResolvedValue(user);
+
+    const auth = await loadAuthModule();
+    const res = await auth.authenticateUser(
+      "superadmin",
+      "admin123",
+      "corporate",
+      undefined,
+      "ACME-001", // companyCode required for corporate login
+    );
+
+    expect(mockFindOne).toHaveBeenCalledWith({ username: "superadmin", code: "ACME-001" });
+    expect(res.user.email).toBe(`superadmin@${EMAIL_DOMAIN}`);
+  });
+
+  it("fails when user not found", async () => {
+    mockFindOne.mockResolvedValue(null);
+
+    const auth = await loadAuthModule();
+    await expect(
+      auth.authenticateUser("unknown@x.com", "any", "personal", "org1"),
+    ).rejects.toThrow("Invalid credentials");
+  });
+
+  it("fails when password invalid", async () => {
+    const user = makeUser();
+    mockFindOne.mockResolvedValue(user);
+
+    const auth = await loadAuthModule();
+    await expect(
+      auth.authenticateUser(`superadmin@${EMAIL_DOMAIN}`, "wrong", "personal", "org1"),
+    ).rejects.toThrow("Invalid credentials");
+  });
+
+  it("fails when account is not active", async () => {
+    const inactiveUser = makeUser({
+      status: "SUSPENDED",
+      email: "inactive@x.com",
+    });
+    mockFindOne.mockResolvedValue(inactiveUser);
+
+    const auth = await loadAuthModule();
+    await expect(
+      auth.authenticateUser("inactive@x.com", "admin123", "personal", "org1"),
+    ).rejects.toThrow("Account is not active");
+  });
+
+  it("fails when orgId is missing for personal login", async () => {
+    const auth = await loadAuthModule();
+    await expect(
+      auth.authenticateUser("user@example.com", "password", "personal"),
+    ).rejects.toThrow("orgId required for personal login");
+  });
+
+  it("fails when companyCode is missing for corporate login", async () => {
+    const auth = await loadAuthModule();
+    await expect(
+      auth.authenticateUser("EMP001", "password", "corporate"),
+    ).rejects.toThrow("companyCode required for corporate login");
+  });
+});
+
+describe("auth lib - getUserFromToken", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    Object.defineProperty(process.env, "NODE_ENV", {
+      value: "test",
+      writable: true,
+      configurable: true,
+    });
+    delete process.env.JWT_SECRET;
+    // CRITICAL: Re-set the mock after clearAllMocks
+    mockGetJWTSecret.mockResolvedValue("test-secret-key");
+  });
+
+  it("returns null when token is invalid or verification fails", async () => {
+    const auth = await loadAuthModule();
+
+    // Make verify throw
+    verifySpy.mockImplementationOnce(() => {
+      throw new Error("bad token");
+    });
+
+    const res = await auth.getUserFromToken("not-a-valid-token");
+    expect(res).toBeNull();
+  });
+
+  it("returns null when user not found", async () => {
+    mockFindById.mockResolvedValue(null);
+
+    const auth = await loadAuthModule();
+
+    const payload: AuthToken = {
+      id: "missing-id",
+      email: "none@x.com",
+      role: "USER",
+      orgId: "org1",
+      tenantId: "t",
+    };
+    const token = await auth.generateToken(payload);
+    const res = await auth.getUserFromToken(token);
+    expect(res).toBeNull();
+  });
+
+  it("returns null when user is not ACTIVE", async () => {
+    const inactiveUser = {
+      _id: { toString: () => "1" }, // Mock MongoDB ObjectId
+      email: "blocked@x.com",
+      personal: { firstName: "Blocked", lastName: "User" },
+      professional: { role: "USER" },
+      status: "SUSPENDED",
+      tenantId: "t",
+      orgId: { toString: () => "org1" }, // Mock MongoDB ObjectId
+    };
+    mockFindById.mockResolvedValue(inactiveUser);
+
+    const auth = await loadAuthModule();
+    const token = await auth.generateToken({
+      id: "1",
+      email: "blocked@x.com",
+      role: "USER",
+      orgId: "org1",
+      tenantId: "t",
+    });
+    const res = await auth.getUserFromToken(token);
+    expect(res).toBeNull();
+  });
+
+  it("returns trimmed public user object for ACTIVE users", async () => {
+    const auth = await loadAuthModule();
+
+    const activeUser = {
+      _id: { toString: () => "42" }, // Mock MongoDB ObjectId
+      email: "ok@x.com",
+      personal: { firstName: "Ok", lastName: "User" },
+      professional: { role: "ADMIN" },
+      status: "ACTIVE",
+      tenantId: "tenant-42",
+      orgId: { toString: () => "org42" }, // Mock MongoDB ObjectId
+    };
+    mockFindById.mockResolvedValue(activeUser);
+
+    const token = await auth.generateToken({
+      id: "42",
+      email: "ok@x.com",
+      role: "ADMIN",
+      tenantId: "tenant-42",
+      orgId: "org42",
+    });
+
+    const res = await auth.getUserFromToken(token);
+    expect(res).toEqual({
+      id: "42",
+      email: "ok@x.com",
+      name: "Ok User",
+      role: "ADMIN",
+      orgId: "org42",
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/lib/env-validation.test.ts">
+<![CDATA[
+/**
+ * Environment Validation Tests
+ *
+ * Tests for lib/env-validation.ts config status functions.
+ */
+
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+describe("Environment Validation", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.unstubAllEnvs();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  describe("getConfigStatus", () => {
+    describe("Unifonic configuration", () => {
+      it("returns configured: false when neither key is set", async () => {
+        vi.stubEnv("UNIFONIC_APP_SID", "");
+        vi.stubEnv("UNIFONIC_SENDER_ID", "");
+        
+        const { getConfigStatus } = await import("@/lib/env-validation");
+        const status = getConfigStatus();
+        
+        expect(status.unifonic.configured).toBe(false);
+      });
+
+      it("returns configured: false when only APP_SID is set", async () => {
+        vi.stubEnv("UNIFONIC_APP_SID", "test-app-sid");
+        vi.stubEnv("UNIFONIC_SENDER_ID", "");
+        
+        vi.resetModules();
+        const { getConfigStatus } = await import("@/lib/env-validation");
+        const status = getConfigStatus();
+        
+        expect(status.unifonic.configured).toBe(false);
+      });
+
+      it("returns configured: false when only SENDER_ID is set", async () => {
+        vi.stubEnv("UNIFONIC_APP_SID", "");
+        vi.stubEnv("UNIFONIC_SENDER_ID", "test-sender-id");
+        
+        vi.resetModules();
+        const { getConfigStatus } = await import("@/lib/env-validation");
+        const status = getConfigStatus();
+        
+        expect(status.unifonic.configured).toBe(false);
+      });
+
+      it("returns configured: true when BOTH keys are set", async () => {
+        vi.stubEnv("UNIFONIC_APP_SID", "test-app-sid");
+        vi.stubEnv("UNIFONIC_SENDER_ID", "test-sender-id");
+        
+        vi.resetModules();
+        const { getConfigStatus } = await import("@/lib/env-validation");
+        const status = getConfigStatus();
+        
+        expect(status.unifonic.configured).toBe(true);
+      });
+    });
+
+    describe("Twilio configuration", () => {
+      it("returns configured: false when any key is missing", async () => {
+        vi.stubEnv("TWILIO_ACCOUNT_SID", "test-sid");
+        vi.stubEnv("TWILIO_AUTH_TOKEN", "");
+        vi.stubEnv("TWILIO_PHONE_NUMBER", "+1234567890");
+        
+        vi.resetModules();
+        const { getConfigStatus } = await import("@/lib/env-validation");
+        const status = getConfigStatus();
+        
+        expect(status.twilio.configured).toBe(false);
+      });
+
+      it("returns configured: true when all three keys are set", async () => {
+        vi.stubEnv("TWILIO_ACCOUNT_SID", "test-sid");
+        vi.stubEnv("TWILIO_AUTH_TOKEN", "test-token");
+        vi.stubEnv("TWILIO_PHONE_NUMBER", "+1234567890");
+        
+        vi.resetModules();
+        const { getConfigStatus } = await import("@/lib/env-validation");
+        const status = getConfigStatus();
+        
+        expect(status.twilio.configured).toBe(true);
+      });
+    });
+
+    describe("Redis configuration", () => {
+      it("returns configured: true when REDIS_URL is set", async () => {
+        vi.stubEnv("REDIS_URL", "redis://localhost:6379");
+        vi.stubEnv("UPSTASH_REDIS_REST_URL", "");
+        
+        vi.resetModules();
+        const { getConfigStatus } = await import("@/lib/env-validation");
+        const status = getConfigStatus();
+        
+        expect(status.redis.configured).toBe(true);
+      });
+
+      it("returns configured: true when UPSTASH_REDIS_REST_URL is set", async () => {
+        vi.stubEnv("REDIS_URL", "");
+        vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://upstash-url");
+        
+        vi.resetModules();
+        const { getConfigStatus } = await import("@/lib/env-validation");
+        const status = getConfigStatus();
+        
+        expect(status.redis.configured).toBe(true);
+      });
+
+      it("returns configured: false when neither Redis env is set", async () => {
+        vi.stubEnv("REDIS_URL", "");
+        vi.stubEnv("UPSTASH_REDIS_REST_URL", "");
+        
+        vi.resetModules();
+        const { getConfigStatus } = await import("@/lib/env-validation");
+        const status = getConfigStatus();
+        
+        expect(status.redis.configured).toBe(false);
+      });
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/lib/env.test.ts">
+<![CDATA[
+import { describe, it, expect } from "vitest";
+import { isTruthy } from "@/lib/utils/env";
+
+describe("isTruthy", () => {
+  it("returns true for string true/1", () => {
+    expect(isTruthy("true")).toBe(true);
+    expect(isTruthy("1")).toBe(true);
+  });
+
+  it("returns false for other values", () => {
+    expect(isTruthy(undefined)).toBe(false);
+    expect(isTruthy(null as unknown as string)).toBe(false);
+    expect(isTruthy("false")).toBe(false);
+    expect(isTruthy("0")).toBe(false);
+    expect(isTruthy("yes")).toBe(false);
+    expect(isTruthy("")).toBe(false);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/lib/mongo.test.ts">
+<![CDATA[
+/**
+ * Unit tests for MongoDB Unified Connection
+ * Tests the new unified MongoDB connection implementation
+ */
+
+describe("MongoDB Unified Connection", () => {
+  test("MongoDB unified module should be available", async () => {
+    // Test that the MongoDB unified module can be imported without errors
+    const mongoModule = await import("@/lib/mongodb-unified");
+    expect(mongoModule).toBeDefined();
+    expect(typeof mongoModule.getDatabase).toBe("function");
+    expect(typeof mongoModule.connectToDatabase).toBe("function");
+    expect(typeof mongoModule.getMongooseConnection).toBe("function");
+  });
+
+  test("MongoDB connection requires MONGODB_URI environment variable", () => {
+    // Test that MONGODB_URI is required for database connection
+    const originalUri = process.env.MONGODB_URI;
+    delete process.env.MONGODB_URI;
+
+    // Test implementation would check for required environment variables
+    expect(process.env.MONGODB_URI).toBeUndefined();
+
+    // Restore original environment
+    if (originalUri) {
+      process.env.MONGODB_URI = originalUri;
+    }
+  });
+
+  test("MongoDB unified connection configuration is properly structured", async () => {
+    // Test that the MongoDB unified configuration is properly structured
+    const mongoModule = await import("@/lib/mongodb-unified");
+    expect(mongoModule).toBeDefined();
+
+    // Verify that the module exports the expected functions
+    expect(mongoModule.getDatabase).toBeDefined();
+    expect(mongoModule.connectToDatabase).toBeDefined();
+    expect(mongoModule.getMongooseConnection).toBeDefined();
+
+    // Verify legacy compatibility functions are available
+    expect(mongoModule.connectDb).toBeDefined();
+    expect(mongoModule.connectMongo).toBeDefined();
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/lib/notifications.bulk.test.ts">
+<![CDATA[
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  sendBulkNotifications,
+  type BulkNotificationResult,
+} from "@/lib/integrations/notifications";
+import type {
+  NotificationPayload,
+  NotificationRecipient,
+} from "@/lib/fm-notifications";
+
+function buildNotification(): NotificationPayload {
+  return {
+    id: "NOTIF-TEST",
+    event: "onTicketCreated",
+    recipients: [],
+    title: "Test notification",
+    body: "Body",
+    priority: "high",
+    createdAt: new Date(),
+    status: "pending",
+  };
+}
+
+describe("sendBulkNotifications", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("tracks successful attempts across channels", async () => {
+    const notification = buildNotification();
+    const recipients: NotificationRecipient[] = [
+      {
+        userId: "user-1",
+        name: "One",
+        email: "one@example.com",
+        phone: "+15555550001",
+        preferredChannels: ["push", "email"],
+      },
+      {
+        userId: "user-2",
+        name: "Two",
+        phone: "+15555550002",
+        preferredChannels: ["sms", "whatsapp"],
+      },
+    ];
+
+    const senders = {
+      push: vi.fn().mockResolvedValue(undefined),
+      email: vi.fn().mockResolvedValue(undefined),
+      sms: vi.fn().mockResolvedValue(undefined),
+      whatsapp: vi.fn().mockResolvedValue(undefined),
+    };
+
+    const result = await sendBulkNotifications(notification, recipients, {
+      senders,
+    });
+
+    expect(senders.push).toHaveBeenCalledTimes(1);
+    expect(senders.email).toHaveBeenCalledTimes(1);
+    expect(senders.sms).toHaveBeenCalledTimes(1);
+    expect(senders.whatsapp).toHaveBeenCalledTimes(1);
+
+    expect(result).toMatchObject<BulkNotificationResult>({
+      attempted: 4,
+      succeeded: 4,
+      failed: 0,
+      skipped: 0,
+      issues: expect.any(Array),
+      channelMetrics: expect.any(Object),
+    });
+  });
+
+  it("skips channels missing required contact info", async () => {
+    const notification = buildNotification();
+    const recipients: NotificationRecipient[] = [
+      {
+        userId: "user-1",
+        name: "MissingEmail",
+        preferredChannels: ["email"],
+      },
+      {
+        userId: "user-2",
+        name: "MissingPhone",
+        preferredChannels: ["sms", "whatsapp"],
+      },
+    ];
+
+    const senders = {
+      push: vi.fn(),
+      email: vi.fn(),
+      sms: vi.fn(),
+      whatsapp: vi.fn(),
+    };
+
+    const result = await sendBulkNotifications(notification, recipients, {
+      senders,
+    });
+
+    expect(senders.email).not.toHaveBeenCalled();
+    expect(senders.sms).not.toHaveBeenCalled();
+    expect(senders.whatsapp).not.toHaveBeenCalled();
+
+    expect(result.skipped).toBe(3);
+    expect(result.attempted).toBe(0);
+    expect(result.issues).toHaveLength(3);
+    expect(result.issues.map((issue) => issue.type)).toEqual([
+      "skipped",
+      "skipped",
+      "skipped",
+    ]);
+  });
+
+  it("records failures when providers reject send attempts", async () => {
+    const notification = buildNotification();
+    const recipients: NotificationRecipient[] = [
+      {
+        userId: "user-1",
+        name: "FailureCase",
+        phone: "+15555550001",
+        preferredChannels: ["sms"],
+      },
+    ];
+
+    const senders = {
+      push: vi.fn(),
+      email: vi.fn(),
+      sms: vi.fn().mockRejectedValue(new Error("Channel outage")),
+      whatsapp: vi.fn(),
+    };
+
+    const result = await sendBulkNotifications(notification, recipients, {
+      senders,
+    });
+
+    expect(result.attempted).toBe(1);
+    expect(result.failed).toBe(1);
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        userId: "user-1",
+        channel: "sms",
+        type: "failed",
+        reason: "Channel outage",
+      }),
+    ]);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/lib/otp-store-redis.test.ts">
+<![CDATA[
+/**
+ * @fileoverview Unit tests for Redis OTP store
+ * Tests async Redis-backed OTP storage with in-memory fallback.
+ *
+ * CRITICAL: These tests verify the fix for the multi-instance OTP verification
+ * race condition where sync wrappers caused OTP verification failures in
+ * distributed deployments.
+ */
+
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import {
+  redisOtpStore,
+  redisRateLimitStore,
+  redisOtpSessionStore,
+  OTP_LENGTH,
+  OTP_EXPIRY_MS,
+  MAX_ATTEMPTS,
+  RATE_LIMIT_WINDOW_MS,
+  MAX_SENDS_PER_WINDOW,
+  OTP_SESSION_EXPIRY_MS,
+  type OTPData,
+  type RateLimitData,
+  type OTPLoginSession,
+} from "@/lib/otp-store";
+
+// Mock Redis module to test both Redis and fallback scenarios
+vi.mock("@/lib/redis", () => ({
+  getRedisClient: vi.fn(() => null),
+  safeRedisOp: vi.fn(),
+}));
+
+describe("OTP Store Redis", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe("Constants", () => {
+    it("should export OTP configuration constants", () => {
+      expect(OTP_LENGTH).toBe(6);
+      expect(OTP_EXPIRY_MS).toBe(5 * 60 * 1000); // 5 minutes
+      expect(MAX_ATTEMPTS).toBe(3);
+      expect(RATE_LIMIT_WINDOW_MS).toBe(15 * 60 * 1000); // 15 minutes
+      expect(MAX_SENDS_PER_WINDOW).toBe(5);
+      expect(OTP_SESSION_EXPIRY_MS).toBe(5 * 60 * 1000); // 5 minutes
+    });
+  });
+
+  describe("redisOtpStore", () => {
+    const testIdentifier = "test@example.com";
+    const createTestOtpData = (): OTPData => ({
+      otp: "123456",
+      attempts: 0,
+      expiresAt: Date.now() + OTP_EXPIRY_MS,
+      userId: "user-123",
+      phone: "+96812345678",
+    });
+
+    describe("Basic Operations (Memory Fallback)", () => {
+      it("should set and get OTP data", async () => {
+        const testOtpData = createTestOtpData();
+        await redisOtpStore.set(testIdentifier, testOtpData);
+        const result = await redisOtpStore.get(testIdentifier);
+
+        expect(result).toBeDefined();
+        expect(result?.otp).toBe(testOtpData.otp);
+        expect(result?.userId).toBe(testOtpData.userId);
+      });
+
+      it("should return undefined for non-existent identifier", async () => {
+        const result = await redisOtpStore.get("non-existent@example.com");
+        expect(result).toBeUndefined();
+      });
+
+      it("should delete OTP data", async () => {
+        const testOtpData = createTestOtpData();
+        await redisOtpStore.set(testIdentifier, testOtpData);
+        await redisOtpStore.delete(testIdentifier);
+        const result = await redisOtpStore.get(testIdentifier);
+
+        expect(result).toBeUndefined();
+      });
+
+      it("should update OTP data", async () => {
+        const testOtpData = createTestOtpData();
+        await redisOtpStore.set(testIdentifier, testOtpData);
+
+        const updatedData: OTPData = { ...testOtpData, attempts: 1 };
+        await redisOtpStore.update(testIdentifier, updatedData);
+
+        const result = await redisOtpStore.get(testIdentifier);
+        expect(result?.attempts).toBe(1);
+        expect(result?.otp).toBe(testOtpData.otp);
+      });
+    });
+
+    describe("Expiry Handling", () => {
+      it("should return undefined for expired OTP", async () => {
+        const expiredOtpData: OTPData = {
+          otp: "654321",
+          attempts: 0,
+          expiresAt: Date.now() - 1000, // Already expired
+          userId: "user-123",
+          phone: "+96812345678",
+        };
+
+        await redisOtpStore.set("expired@example.com", expiredOtpData);
+        const result = await redisOtpStore.get("expired@example.com");
+
+        expect(result).toBeUndefined();
+      });
+
+      it("should not return expired OTP even if in memory", async () => {
+        const identifier = "will-expire@example.com";
+        const nearFutureOtp: OTPData = {
+          otp: "111111",
+          attempts: 0,
+          expiresAt: Date.now() + 100, // Expires in 100ms
+          userId: "user-123",
+          phone: "+96812345678",
+        };
+
+        await redisOtpStore.set(identifier, nearFutureOtp);
+
+        // Verify it's accessible immediately
+        const resultBefore = await redisOtpStore.get(identifier);
+        expect(resultBefore).toBeDefined();
+
+        // Wait for expiry
+        await new Promise((resolve) => setTimeout(resolve, 150));
+
+        // Should be undefined after expiry
+        const resultAfter = await redisOtpStore.get(identifier);
+        expect(resultAfter).toBeUndefined();
+      });
+    });
+
+    describe("Multi-Instance Simulation", () => {
+      it("should persist OTP across async operations", async () => {
+        // This test simulates what happens in a multi-instance deployment
+        // where Instance A sends OTP and Instance B verifies it
+
+        // Instance A: Send OTP (set)
+        const identifier = "multi-instance@test.com";
+        const otpData: OTPData = {
+          otp: "999888",
+          attempts: 0,
+          expiresAt: Date.now() + OTP_EXPIRY_MS,
+          userId: "user-multi",
+          phone: "+96899988877",
+        };
+
+        await redisOtpStore.set(identifier, otpData);
+
+        // Instance B: Verify OTP (get, update, delete)
+        // In real scenario, this would be a different server reading from Redis
+        const fetchedOtp = await redisOtpStore.get(identifier);
+        expect(fetchedOtp).toBeDefined();
+        expect(fetchedOtp?.otp).toBe("999888");
+
+        // Simulate failed attempt
+        const updatedData: OTPData = { ...otpData, attempts: 1 };
+        await redisOtpStore.update(identifier, updatedData);
+
+        // Verify attempt count persisted
+        const afterAttempt = await redisOtpStore.get(identifier);
+        expect(afterAttempt?.attempts).toBe(1);
+
+        // Simulate successful verification - delete OTP
+        await redisOtpStore.delete(identifier);
+
+        // Verify OTP is gone
+        const afterDelete = await redisOtpStore.get(identifier);
+        expect(afterDelete).toBeUndefined();
+      });
+
+      it("should properly update attempts", async () => {
+        const identifier = "atomic-test@example.com";
+        const otpData: OTPData = {
+          otp: "777666",
+          attempts: 0,
+          expiresAt: Date.now() + OTP_EXPIRY_MS,
+          userId: "user-atomic",
+          phone: "+96877766655",
+        };
+
+        await redisOtpStore.set(identifier, otpData);
+
+        // Update attempts
+        const updated = { ...otpData, attempts: 1 };
+        await redisOtpStore.update(identifier, updated);
+
+        const result = await redisOtpStore.get(identifier);
+        expect(result?.attempts).toBe(1);
+      });
+    });
+  });
+
+  describe("redisRateLimitStore", () => {
+    const testIdentifier = "ratelimit:test@example.com";
+
+    describe("Basic Operations", () => {
+      it("should set and get rate limit data", async () => {
+        const rateLimitData: RateLimitData = {
+          count: 1,
+          resetAt: Date.now() + RATE_LIMIT_WINDOW_MS,
+        };
+
+        await redisRateLimitStore.set(testIdentifier, rateLimitData);
+        const result = await redisRateLimitStore.get(testIdentifier);
+
+        expect(result).toBeDefined();
+        expect(result?.count).toBe(1);
+      });
+
+      it("should return undefined for non-existent identifier", async () => {
+        const result = await redisRateLimitStore.get("non-existent-rate");
+        expect(result).toBeUndefined();
+      });
+
+      it("should increment rate limit counter", async () => {
+        const identifier = "increment-test@example.com";
+        const windowMs = RATE_LIMIT_WINDOW_MS;
+        const maxCount = MAX_SENDS_PER_WINDOW;
+
+        // First increment
+        const result1 = await redisRateLimitStore.increment(
+          identifier,
+          maxCount,
+          windowMs
+        );
+        expect(result1.count).toBe(1);
+        expect(result1.allowed).toBe(true);
+
+        // Second increment
+        const result2 = await redisRateLimitStore.increment(
+          identifier,
+          maxCount,
+          windowMs
+        );
+        expect(result2.count).toBe(2);
+        expect(result2.allowed).toBe(true);
+      });
+
+      it("should enforce rate limit after max count", async () => {
+        const identifier = "rate-limit-enforce@example.com";
+        const windowMs = RATE_LIMIT_WINDOW_MS;
+        const maxCount = 3; // Low limit for testing
+
+        // Fill up the limit
+        for (let i = 0; i < maxCount; i++) {
+          const result = await redisRateLimitStore.increment(
+            identifier,
+            maxCount,
+            windowMs
+          );
+          expect(result.count).toBe(i + 1);
+          expect(result.allowed).toBe(true);
+        }
+
+        // Next request should be rate limited
+        const limitedResult = await redisRateLimitStore.increment(
+          identifier,
+          maxCount,
+          windowMs
+        );
+        expect(limitedResult.count).toBe(maxCount + 1);
+        expect(limitedResult.allowed).toBe(false);
+      });
+    });
+
+    describe("Window Reset", () => {
+      it("should return undefined for expired rate limit", async () => {
+        const expiredData: RateLimitData = {
+          count: 5,
+          resetAt: Date.now() - 1000, // Already expired
+        };
+
+        await redisRateLimitStore.set("expired-rate", expiredData);
+        const result = await redisRateLimitStore.get("expired-rate");
+
+        expect(result).toBeUndefined();
+      });
+    });
+  });
+
+  describe("redisOtpSessionStore", () => {
+    const testToken = "test-session-token-abc123";
+
+    describe("Basic Operations", () => {
+      it("should set and get OTP session", async () => {
+        const sessionData: OTPLoginSession = {
+          userId: "user-session",
+          identifier: "user@example.com",
+          expiresAt: Date.now() + OTP_SESSION_EXPIRY_MS,
+        };
+
+        await redisOtpSessionStore.set(testToken, sessionData);
+        const result = await redisOtpSessionStore.get(testToken);
+
+        expect(result).toBeDefined();
+        expect(result?.userId).toBe("user-session");
+      });
+
+      it("should return undefined for non-existent token", async () => {
+        const result = await redisOtpSessionStore.get("non-existent-token");
+        expect(result).toBeUndefined();
+      });
+
+      it("should delete OTP session", async () => {
+        const token = "delete-test-token";
+        const sessionData: OTPLoginSession = {
+          userId: "user-delete",
+          identifier: "delete@example.com",
+          expiresAt: Date.now() + OTP_SESSION_EXPIRY_MS,
+        };
+
+        await redisOtpSessionStore.set(token, sessionData);
+        await redisOtpSessionStore.delete(token);
+        const result = await redisOtpSessionStore.get(token);
+
+        expect(result).toBeUndefined();
+      });
+    });
+
+    describe("Auth Flow Simulation", () => {
+      it("should support complete OTP verification flow", async () => {
+        // Step 1: User requests OTP, session created
+        const token = "auth-flow-token";
+        const identifier = "authflow@example.com";
+
+        // Initial session
+        const initialSession: OTPLoginSession = {
+          userId: "user-flow",
+          identifier,
+          expiresAt: Date.now() + OTP_SESSION_EXPIRY_MS,
+        };
+
+        await redisOtpSessionStore.set(token, initialSession);
+
+        // Step 2: Auth system retrieves session
+        const fetchedSession = await redisOtpSessionStore.get(token);
+        expect(fetchedSession).toBeDefined();
+        expect(fetchedSession?.identifier).toBe(identifier);
+
+        // Step 3: After successful login, session is consumed (deleted)
+        await redisOtpSessionStore.delete(token);
+
+        // Step 4: Verify token cannot be reused
+        const reusedSession = await redisOtpSessionStore.get(token);
+        expect(reusedSession).toBeUndefined();
+      });
+    });
+
+    describe("Expiry Handling", () => {
+      it("should return undefined for expired session", async () => {
+        const expiredSession: OTPLoginSession = {
+          userId: "user-expired",
+          identifier: "expired@example.com",
+          expiresAt: Date.now() - 1000, // Already expired
+        };
+
+        await redisOtpSessionStore.set("expired-session", expiredSession);
+        const result = await redisOtpSessionStore.get("expired-session");
+
+        expect(result).toBeUndefined();
+      });
+    });
+  });
+
+  describe("Async Store Interface Compliance", () => {
+    it("redisOtpStore should have async interface", () => {
+      const testOtp: OTPData = {
+        otp: "123456",
+        attempts: 0,
+        expiresAt: Date.now() + OTP_EXPIRY_MS,
+        userId: "test",
+        phone: "+968",
+      };
+      // Verify all methods return promises
+      expect(redisOtpStore.get("test")).toBeInstanceOf(Promise);
+      expect(redisOtpStore.set("test", testOtp)).toBeInstanceOf(Promise);
+      expect(redisOtpStore.delete("test")).toBeInstanceOf(Promise);
+      expect(redisOtpStore.update("test", testOtp)).toBeInstanceOf(Promise);
+    });
+
+    it("redisRateLimitStore should have async interface", () => {
+      const testRate: RateLimitData = { count: 0, resetAt: Date.now() };
+      expect(redisRateLimitStore.get("test")).toBeInstanceOf(Promise);
+      expect(redisRateLimitStore.set("test", testRate)).toBeInstanceOf(Promise);
+      expect(redisRateLimitStore.increment("test", 1000, 5)).toBeInstanceOf(Promise);
+    });
+
+    it("redisOtpSessionStore should have async interface", () => {
+      const testSession: OTPLoginSession = {
+        userId: "test",
+        identifier: "test",
+        expiresAt: Date.now(),
+      };
+      expect(redisOtpSessionStore.get("test")).toBeInstanceOf(Promise);
+      expect(redisOtpSessionStore.set("test", testSession)).toBeInstanceOf(Promise);
+      expect(redisOtpSessionStore.delete("test")).toBeInstanceOf(Promise);
+    });
+  });
+
+  describe("Regression Tests", () => {
+    describe("Multi-Instance OTP Verification (PR #400 Fix)", () => {
+      /**
+       * This test verifies the fix for the critical race condition where:
+       * 1. Instance A sends OTP (stores in Redis)
+       * 2. Instance B receives verification request (sync wrapper returns undefined)
+       * 3. Verification fails even though OTP is valid in Redis
+       *
+       * The fix: All routes now use async Redis stores directly
+       */
+      it("should verify OTP across async operations", async () => {
+        const identifier = "regression-test@example.com";
+        const correctOtp = "555444";
+
+        // Instance A: Send OTP
+        const otpData: OTPData = {
+          otp: correctOtp,
+          attempts: 0,
+          expiresAt: Date.now() + OTP_EXPIRY_MS,
+          userId: "user-regression",
+          phone: "+96855544433",
+        };
+        await redisOtpStore.set(identifier, otpData);
+
+        // Instance B: Verify OTP (this is what the old sync wrapper failed at)
+        const storedOtp = await redisOtpStore.get(identifier);
+
+        // CRITICAL: This should NOT be undefined
+        expect(storedOtp).toBeDefined();
+        expect(storedOtp?.otp).toBe(correctOtp);
+
+        // Simulate verification logic
+        const userOtp = "555444";
+        const isValid = storedOtp?.otp === userOtp;
+        expect(isValid).toBe(true);
+
+        // On success, delete OTP
+        if (isValid) {
+          await redisOtpStore.delete(identifier);
+        }
+
+        // Verify OTP is consumed
+        const afterVerify = await redisOtpStore.get(identifier);
+        expect(afterVerify).toBeUndefined();
+      });
+
+      it("should track attempts across async operations", async () => {
+        const identifier = "attempt-tracking@example.com";
+
+        const baseOtpData: OTPData = {
+          otp: "333222",
+          attempts: 0,
+          expiresAt: Date.now() + OTP_EXPIRY_MS,
+          userId: "user-attempts",
+          phone: "+96833322211",
+        };
+        await redisOtpStore.set(identifier, baseOtpData);
+
+        // First failed attempt
+        await redisOtpStore.update(identifier, { ...baseOtpData, attempts: 1 });
+
+        // Verify attempt was persisted (this failed with sync wrappers)
+        let stored = await redisOtpStore.get(identifier);
+        expect(stored?.attempts).toBe(1);
+
+        // Second failed attempt
+        await redisOtpStore.update(identifier, { ...baseOtpData, attempts: 2 });
+
+        stored = await redisOtpStore.get(identifier);
+        expect(stored?.attempts).toBe(2);
+
+        // Third failed attempt - should lock out
+        await redisOtpStore.update(identifier, { ...baseOtpData, attempts: 3 });
+
+        stored = await redisOtpStore.get(identifier);
+        expect(stored?.attempts).toBe(3);
+        expect(stored!.attempts >= MAX_ATTEMPTS).toBe(true);
+      });
+
+      it("should share rate limits across async operations", async () => {
+        const identifier = "rate-test@example.com";
+
+        // Instance A: User sends first OTP request
+        const result1 = await redisRateLimitStore.increment(
+          identifier,
+          MAX_SENDS_PER_WINDOW,
+          RATE_LIMIT_WINDOW_MS
+        );
+        expect(result1.count).toBe(1);
+
+        // Instance B: Same user, different instance
+        const result2 = await redisRateLimitStore.increment(
+          identifier,
+          MAX_SENDS_PER_WINDOW,
+          RATE_LIMIT_WINDOW_MS
+        );
+        // CRITICAL: This should be 2, not 1
+        expect(result2.count).toBe(2);
+
+        // Continue until rate limited
+        for (let i = 3; i <= MAX_SENDS_PER_WINDOW; i++) {
+          await redisRateLimitStore.increment(
+            identifier,
+            MAX_SENDS_PER_WINDOW,
+            RATE_LIMIT_WINDOW_MS
+          );
+        }
+
+        // Next request should be rate limited
+        const limitedResult = await redisRateLimitStore.increment(
+          identifier,
+          MAX_SENDS_PER_WINDOW,
+          RATE_LIMIT_WINDOW_MS
+        );
+        expect(limitedResult.allowed).toBe(false);
+      });
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/lib/otp-utils.test.ts">
+<![CDATA[
+/**
+ * @fileoverview Unit tests for OTP utility functions
+ * Tests authentication-related helpers including identifier redaction for GDPR compliance.
+ */
+
+import { describe, it, expect } from "vitest";
+import {
+  EMPLOYEE_ID_REGEX,
+  normalizeCompanyCode,
+  buildOtpKey,
+  isValidCompanyCode,
+  redactIdentifier,
+  redactMetadata,
+  hashIdentifier,
+} from "@/lib/otp-utils";
+
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+
+describe("OTP Utils", () => {
+  describe("EMPLOYEE_ID_REGEX", () => {
+    it("should match valid employee IDs", () => {
+      expect(EMPLOYEE_ID_REGEX.test("EMP001")).toBe(true);
+      expect(EMPLOYEE_ID_REGEX.test("EMP-001")).toBe(true);
+      expect(EMPLOYEE_ID_REGEX.test("EMPA12345")).toBe(true);
+      expect(EMPLOYEE_ID_REGEX.test("EMP-ABC-123")).toBe(true);
+    });
+
+    it("should reject invalid employee IDs", () => {
+      expect(EMPLOYEE_ID_REGEX.test("001")).toBe(false);
+      expect(EMPLOYEE_ID_REGEX.test("emp001")).toBe(false); // lowercase
+      expect(EMPLOYEE_ID_REGEX.test("USER001")).toBe(false);
+      expect(EMPLOYEE_ID_REGEX.test("user@email.com")).toBe(false);
+    });
+  });
+
+  describe("normalizeCompanyCode", () => {
+    it("should normalize company codes to uppercase", () => {
+      expect(normalizeCompanyCode("acme-001")).toBe("ACME-001");
+      expect(normalizeCompanyCode("Demo")).toBe("DEMO");
+    });
+
+    it("should trim whitespace", () => {
+      expect(normalizeCompanyCode("  ACME  ")).toBe("ACME");
+    });
+
+    it("should return null for empty or undefined inputs", () => {
+      expect(normalizeCompanyCode("")).toBe(null);
+      expect(normalizeCompanyCode("   ")).toBe(null);
+      expect(normalizeCompanyCode(null)).toBe(null);
+      expect(normalizeCompanyCode(undefined)).toBe(null);
+    });
+  });
+
+  describe("buildOtpKey", () => {
+    it("should build composite key for corporate logins", () => {
+      expect(buildOtpKey("EMP001", "ACME-001", "ORG123")).toBe("EMP001::ACME-001::ORG123");
+      expect(buildOtpKey("EMP-ABC", "DEMO", "ORG123")).toBe("EMP-ABC::DEMO::ORG123");
+    });
+
+    it("should return identifier only for personal logins", () => {
+      expect(buildOtpKey("user@email.com", null, "ORG123")).toBe("user@email.com::ORG123");
+      expect(buildOtpKey("test@example.com", null, "ORG123")).toBe("test@example.com::ORG123");
+    });
+  });
+
+  describe("isValidCompanyCode", () => {
+    it("should accept valid company codes", () => {
+      expect(isValidCompanyCode("ACME-001")).toBe(true);
+      expect(isValidCompanyCode("AB")).toBe(true);
+      expect(isValidCompanyCode("COMPANY123")).toBe(true);
+    });
+
+    it("should reject invalid company codes", () => {
+      expect(isValidCompanyCode("A")).toBe(false); // too short
+      expect(isValidCompanyCode("acme")).toBe(false); // lowercase
+      expect(isValidCompanyCode(null)).toBe(false);
+      expect(isValidCompanyCode("")).toBe(false);
+    });
+  });
+
+  describe("redactIdentifier", () => {
+    describe("GDPR/PII Compliance", () => {
+      it("should redact email addresses showing only first 3 chars", () => {
+        expect(redactIdentifier("user@email.com")).toBe("use***");
+        expect(redactIdentifier(`admin@${EMAIL_DOMAIN}`)).toBe("adm***");
+        expect(redactIdentifier("longusername@domain.com")).toBe("lon***");
+      });
+
+      it("should redact employee IDs showing only first 3 chars", () => {
+        expect(redactIdentifier("EMP001")).toBe("EMP***");
+        expect(redactIdentifier("EMP-ABC-123")).toBe("EMP***");
+      });
+
+      it("should redact composite OTP keys", () => {
+        expect(redactIdentifier("EMP001::ACME")).toBe("EMP***");
+        expect(redactIdentifier("user@email.com::DEMO")).toBe("use***");
+      });
+    });
+
+    describe("Edge Cases", () => {
+      it("should handle short identifiers by returning full redaction", () => {
+        expect(redactIdentifier("ab")).toBe("***");
+        expect(redactIdentifier("abc")).toBe("***");
+        expect(redactIdentifier("a")).toBe("***");
+      });
+
+      it("should handle empty string", () => {
+        expect(redactIdentifier("")).toBe("***");
+      });
+
+      it("should handle exactly 4 character identifiers", () => {
+        expect(redactIdentifier("abcd")).toBe("abc***");
+      });
+    });
+
+    describe("Security Assertions", () => {
+      it("should never expose more than 3 characters", () => {
+        const sensitiveEmail = "secret.user.with.long.email@confidential.com";
+        const redacted = redactIdentifier(sensitiveEmail);
+        
+        // Verify only first 3 chars visible
+        expect(redacted).toBe("sec***");
+        expect(redacted.replace("***", "").length).toBeLessThanOrEqual(3);
+        
+        // Verify domain is not exposed
+        expect(redacted).not.toContain("@");
+        expect(redacted).not.toContain("confidential");
+      });
+
+      it("should not leak company code from composite keys", () => {
+        const compositeKey = "EMP-12345::ACME-SECRET-CODE";
+        const redacted = redactIdentifier(compositeKey);
+        
+        expect(redacted).not.toContain("ACME");
+        expect(redacted).not.toContain("SECRET");
+        expect(redacted).not.toContain("::");
+      });
+    });
+  });
+
+  describe("redactMetadata", () => {
+    describe("Sensitive Key Redaction", () => {
+      it("should fully redact password fields", () => {
+        const result = redactMetadata({ password: "secret123", name: "John" });
+        expect(result).toEqual({ password: "[REDACTED]", name: "John" });
+      });
+
+      it("should fully redact token fields", () => {
+        const result = redactMetadata({
+          token: "abc123",
+          accessToken: "xyz789",
+          sessionToken: "sess123",
+        });
+        expect(result).toEqual({
+          token: "[REDACTED]",
+          accessToken: "[REDACTED]",
+          sessionToken: "[REDACTED]",
+        });
+      });
+
+      it("should fully redact financial fields", () => {
+        const result = redactMetadata({
+          ssn: "123-45-6789",
+          creditCard: "4111111111111111",
+          bankAccount: "123456789",
+          salary: "50000",
+        });
+        expect(result).toEqual({
+          ssn: "[REDACTED]",
+          creditCard: "[REDACTED]",
+          bankAccount: "[REDACTED]",
+          salary: "[REDACTED]",
+        });
+      });
+
+      it("should redact OTP codes", () => {
+        const result = redactMetadata({ otp: "123456", otpCode: "654321" });
+        expect(result).toEqual({ otp: "[REDACTED]", otpCode: "[REDACTED]" });
+      });
+    });
+
+    describe("Identifier Partial Redaction", () => {
+      it("should partially redact email fields", () => {
+        const result = redactMetadata({ email: "user@test.com", name: "John" });
+        expect(result).toEqual({ email: "use***", name: "John" });
+      });
+
+      it("should partially redact phone fields", () => {
+        const result = redactMetadata({ phone: "+1234567890", mobile: "+9876543210" });
+        expect(result).toEqual({ phone: "+12***", mobile: "+98***" });
+      });
+
+      it("should partially redact IP addresses", () => {
+        const result = redactMetadata({ ip: "192.168.1.1", ipAddress: "10.0.0.1" });
+        expect(result).toEqual({ ip: "192***", ipAddress: "10.***" });
+      });
+
+      it("should partially redact user IDs", () => {
+        const result = redactMetadata({ userId: "user123", employeeId: "EMP001" });
+        expect(result).toEqual({ userId: "use***", employeeId: "EMP***" });
+      });
+    });
+
+    describe("Nested Objects", () => {
+      it("should recursively redact nested objects", () => {
+        const result = redactMetadata({
+          user: { email: "nested@test.com", password: "secret" },
+          data: { safe: "value" },
+        });
+        expect(result).toEqual({
+          user: { email: "nes***", password: "[REDACTED]" },
+          data: { safe: "value" },
+        });
+      });
+
+      it("should handle deeply nested structures", () => {
+        const result = redactMetadata({
+          level1: {
+            level2: {
+              email: "deep@test.com",
+            },
+          },
+        });
+        expect(result).toEqual({
+          level1: {
+            level2: {
+              email: "dee***",
+            },
+          },
+        });
+      });
+    });
+
+    describe("Edge Cases", () => {
+      it("should return undefined for null/undefined input", () => {
+        expect(redactMetadata(null)).toBeUndefined();
+        expect(redactMetadata(undefined)).toBeUndefined();
+      });
+
+      it("should handle empty objects", () => {
+        expect(redactMetadata({})).toEqual({});
+      });
+
+      it("should pass through safe values unchanged", () => {
+        const result = redactMetadata({
+          count: 42,
+          enabled: true,
+          items: ["a", "b"],
+          message: "Hello world",
+        });
+        expect(result).toEqual({
+          count: 42,
+          enabled: true,
+          items: ["a", "b"],
+          message: "Hello world",
+        });
+      });
+
+      it("should handle non-string sensitive values", () => {
+        const result = redactMetadata({ password: 12345, email: null });
+        expect(result).toEqual({ password: "[REDACTED]", email: "[REDACTED]" });
+      });
+    });
+
+    describe("Case Insensitivity", () => {
+      it("should redact regardless of key casing", () => {
+        const result = redactMetadata({
+          PASSWORD: "secret",
+          Email: "test@example.com",
+          SSN: "123-45-6789",
+        });
+        expect(result).toEqual({
+          PASSWORD: "[REDACTED]",
+          Email: "tes***",
+          SSN: "[REDACTED]",
+        });
+      });
+    });
+  });
+
+  describe("hashIdentifier", () => {
+    describe("Basic Functionality", () => {
+      it("should return a 16-character hex string", () => {
+        const hash = hashIdentifier("user@email.com");
+        expect(hash).toMatch(/^[0-9a-f]{16}$/);
+        expect(hash.length).toBe(16);
+      });
+
+      it("should produce deterministic output for same input", () => {
+        const hash1 = hashIdentifier("user@email.com");
+        const hash2 = hashIdentifier("user@email.com");
+        expect(hash1).toBe(hash2);
+      });
+
+      it("should produce different hashes for different inputs", () => {
+        const hash1 = hashIdentifier("user1@email.com");
+        const hash2 = hashIdentifier("user2@email.com");
+        expect(hash1).not.toBe(hash2);
+      });
+    });
+
+    describe("Salt Support", () => {
+      it("should produce different hashes with different salts", () => {
+        const hash1 = hashIdentifier("user@email.com", "salt1");
+        const hash2 = hashIdentifier("user@email.com", "salt2");
+        expect(hash1).not.toBe(hash2);
+      });
+
+      it("should produce same hash with same salt", () => {
+        const hash1 = hashIdentifier("user@email.com", "monitoring");
+        const hash2 = hashIdentifier("user@email.com", "monitoring");
+        expect(hash1).toBe(hash2);
+      });
+
+      it("should use empty string as default salt", () => {
+        const hash1 = hashIdentifier("test");
+        const hash2 = hashIdentifier("test", "");
+        expect(hash1).toBe(hash2);
+      });
+    });
+
+    describe("Distribution Quality", () => {
+      it("should produce unique hashes for similar inputs", () => {
+        // Test that small changes produce different hashes
+        const inputs = [
+          "user1@email.com",
+          "user2@email.com",
+          "user3@email.com",
+          "userA@email.com",
+          "userB@email.com",
+        ];
+        const hashes = inputs.map(i => hashIdentifier(i));
+        const uniqueHashes = new Set(hashes);
+        expect(uniqueHashes.size).toBe(inputs.length);
+      });
+
+      it("should produce different hashes for truncation-equivalent inputs", () => {
+        // These would all become "use***" with redactIdentifier
+        const collisionProne = [
+          "user1@a.com",
+          "user2@b.com",
+          "user3@c.com",
+          "user_different",
+          "username123",
+        ];
+        const hashes = collisionProne.map(i => hashIdentifier(i));
+        const uniqueHashes = new Set(hashes);
+        expect(uniqueHashes.size).toBe(collisionProne.length);
+      });
+    });
+
+    describe("Edge Cases", () => {
+      it("should handle empty string", () => {
+        const hash = hashIdentifier("");
+        expect(hash).toMatch(/^[0-9a-f]{16}$/);
+      });
+
+      it("should handle very long strings", () => {
+        const longString = "a".repeat(10000);
+        const hash = hashIdentifier(longString);
+        expect(hash).toMatch(/^[0-9a-f]{16}$/);
+        expect(hash.length).toBe(16);
+      });
+
+      it("should handle unicode characters", () => {
+        const hash = hashIdentifier("مستخدم@بريد.com");
+        expect(hash).toMatch(/^[0-9a-f]{16}$/);
+      });
+
+      it("should handle special characters", () => {
+        const hash = hashIdentifier("user+test@email.com!#$%");
+        expect(hash).toMatch(/^[0-9a-f]{16}$/);
+      });
+    });
+
+    describe("Security Properties", () => {
+      it("should not be reversible (one-way)", () => {
+        const hash = hashIdentifier("secret@email.com");
+        // Hash should not contain any recognizable part of input
+        expect(hash).not.toContain("secret");
+        expect(hash).not.toContain("email");
+        expect(hash).not.toContain("@");
+      });
+
+      it("should produce consistent output across multiple calls", () => {
+        // Verify determinism across 100 calls
+        const expected = hashIdentifier("test@example.com");
+        for (let i = 0; i < 100; i++) {
+          expect(hashIdentifier("test@example.com")).toBe(expected);
+        }
+      });
+
+      it("should produce different hashes with env salt vs no salt", () => {
+        // When explicit salt is provided, it should differ from empty salt
+        const hashNoSalt = hashIdentifier("user@email.com", "");
+        const hashWithSalt = hashIdentifier("user@email.com", "production-secret");
+        expect(hashNoSalt).not.toBe(hashWithSalt);
+      });
+
+      it("should be resistant to dictionary attacks when salted", () => {
+        // With a proper salt, even common emails should not be precomputable
+        const salt = "random-production-salt-xyz123";
+        const commonEmails = [
+          "admin@company.com",
+          "test@test.com",
+          "user@example.com",
+        ];
+        const hashes = commonEmails.map(e => hashIdentifier(e, salt));
+        // All hashes should be unique
+        expect(new Set(hashes).size).toBe(commonEmails.length);
+        // And not match unsalted versions
+        const unsaltedHashes = commonEmails.map(e => hashIdentifier(e, ""));
+        for (let i = 0; i < hashes.length; i++) {
+          expect(hashes[i]).not.toBe(unsaltedHashes[i]);
+        }
+      });
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/lib/parse.test.ts">
+<![CDATA[
+/**
+ * Unit tests for parse utility functions
+ * @see lib/utils/parse.ts
+ */
+import { describe, it, expect } from "vitest";
+import {
+  parseIntSafe,
+  parseIntFromQuery,
+  parseFloatSafe,
+} from "@/lib/utils/parse";
+
+describe("parseIntSafe", () => {
+  it("should parse valid integers with radix 10", () => {
+    expect(parseIntSafe("42", 0)).toBe(42);
+    expect(parseIntSafe("0755", 0)).toBe(755);
+    expect(parseIntSafe("010", 0)).toBe(10);
+  });
+
+  it("should return fallback for null/undefined/empty", () => {
+    expect(parseIntSafe(null, 10)).toBe(10);
+    expect(parseIntSafe(undefined, 5)).toBe(5);
+    expect(parseIntSafe("", 7)).toBe(7);
+  });
+
+  it("should return fallback for invalid input", () => {
+    expect(parseIntSafe("abc", 99)).toBe(99);
+  });
+});
+
+describe("parseIntFromQuery", () => {
+  it("should parse query params", () => {
+    expect(parseIntFromQuery("5", 1)).toBe(5);
+    expect(parseIntFromQuery(null, 10)).toBe(10);
+  });
+});
+
+describe("parseFloatSafe", () => {
+  it("should parse valid floats", () => {
+    expect(parseFloatSafe("3.14", 0)).toBe(3.14);
+    expect(parseFloatSafe("100.5", 0)).toBe(100.5);
+  });
+
+  it("should return fallback for null/undefined/empty", () => {
+    expect(parseFloatSafe(null, 1.5)).toBe(1.5);
+    expect(parseFloatSafe(undefined, 2.5)).toBe(2.5);
+    expect(parseFloatSafe("", 3.5)).toBe(3.5);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/lib/paytabs-payout.test.ts">
+<![CDATA[
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+
+const originalEnv = { ...process.env };
+const runtimeGlobal = globalThis as Omit<typeof globalThis, "fetch"> & {
+  fetch?: typeof fetch;
+};
+let createPayout: (typeof import("../../../lib/paytabs.ts"))["createPayout"];
+let queryPayoutStatus: (typeof import("../../../lib/paytabs.ts"))["queryPayoutStatus"];
+
+describe("PayTabs payouts", () => {
+  beforeEach(async () => {
+    vi.restoreAllMocks();
+    process.env.PAYTABS_PROFILE_ID = "PT-123";
+    process.env.PAYTABS_SERVER_KEY = "sk_test_xxx";
+    process.env.PAYTABS_BASE_URL = "https://secure.paytabs.test";
+    vi.resetModules();
+    ({ createPayout, queryPayoutStatus } = await import(
+      "../../../lib/paytabs.ts"
+    ));
+  });
+
+  afterEach(() => {
+    Object.assign(process.env, originalEnv);
+    vi.resetAllMocks();
+    runtimeGlobal.fetch = undefined;
+  });
+
+  it("builds payout request payload and handles success responses", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        payout_id: "PO-123",
+        payout_status: "COMPLETED",
+        message: "Accepted",
+      }),
+    });
+    runtimeGlobal.fetch = fetchMock as unknown as typeof fetch;
+
+    const result = await createPayout({
+      amount: 1500.5,
+      currency: "SAR",
+      reference: "WD-1",
+      description: "Seller withdrawal",
+      beneficiary: {
+        name: "ACME Seller",
+        iban: "SA4420000001234567891234",
+        bank: "Example Bank",
+        accountNumber: "1234567890",
+      },
+      metadata: { sellerId: "seller-1" },
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://secure.paytabs.test/payment/payouts",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          Authorization: "sk_test_xxx",
+          "Content-Type": "application/json",
+        }),
+      }),
+    );
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
+    expect(body.profile_id).toBe("PT-123");
+    expect(body.payout_reference).toBe("WD-1");
+    expect(body.payout_amount).toBe("1500.50");
+    expect(body.beneficiary?.name).toBe("ACME Seller");
+
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      throw new Error("Expected payout success");
+    }
+    expect(result.payoutId).toBe("PO-123");
+    expect(result.status).toBe("COMPLETED");
+  });
+
+  it("returns failure result when API responds with error", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      statusText: "Bad Request",
+      json: async () => ({ message: "Invalid IBAN" }),
+    });
+    runtimeGlobal.fetch = fetchMock as unknown as typeof fetch;
+
+    const result = await createPayout({
+      amount: 100,
+      currency: "SAR",
+      reference: "WD-2",
+      beneficiary: {
+        name: "Bad Seller",
+        iban: "SA00BAD",
+      },
+    });
+
+    expect(result.success).toBe(false);
+    if (result.success) {
+      throw new Error("Expected payout failure");
+    }
+    expect(result.error).toContain("Invalid IBAN");
+  });
+
+  it("queries payout status from PayTabs", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        payout_id: "PO-123",
+        payout_status: "PROCESSING",
+        payout_reference: "WD-3",
+      }),
+    });
+    runtimeGlobal.fetch = fetchMock as unknown as typeof fetch;
+
+    const status = await queryPayoutStatus("PO-123");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://secure.paytabs.test/payment/payouts/query",
+      expect.objectContaining({
+        method: "POST",
+      }),
+    );
+    expect(status.payout_reference).toBe("WD-3");
+    expect(status.payout_status).toBe("PROCESSING");
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/lib/qa/sanitize.test.ts">
+<![CDATA[
+/**
+ * Unit tests for QA payload sanitization
+ */
+
+import { describe, it, expect } from 'vitest';
+import { sanitizeQaPayload, estimatePayloadSize } from '@/lib/qa/sanitize';
+
+describe('sanitizeQaPayload', () => {
+  describe('null/undefined handling', () => {
+    it('returns null for null input', () => {
+      expect(sanitizeQaPayload(null)).toBeNull();
+    });
+
+    it('returns null for undefined input', () => {
+      expect(sanitizeQaPayload(undefined)).toBeNull();
+    });
+  });
+
+  describe('primitive values', () => {
+    it('passes through numbers unchanged', () => {
+      expect(sanitizeQaPayload(42)).toBe(42);
+      expect(sanitizeQaPayload(3.14)).toBe(3.14);
+      expect(sanitizeQaPayload(-100)).toBe(-100);
+    });
+
+    it('passes through booleans unchanged', () => {
+      expect(sanitizeQaPayload(true)).toBe(true);
+      expect(sanitizeQaPayload(false)).toBe(false);
+    });
+
+    it('passes through short strings unchanged', () => {
+      expect(sanitizeQaPayload('hello')).toBe('hello');
+    });
+
+    it('truncates long strings', () => {
+      const longString = 'x'.repeat(600);
+      const result = sanitizeQaPayload(longString) as string;
+      expect(result.length).toBeLessThan(600);
+      expect(result).toContain('[TRUNCATED]');
+    });
+  });
+
+  describe('email redaction', () => {
+    it('redacts email addresses in strings', () => {
+      const input = 'Contact user@example.com for help';
+      const result = sanitizeQaPayload(input);
+      expect(result).toBe('Contact [REDACTED_EMAIL] for help');
+    });
+
+    it('redacts multiple emails', () => {
+      const input = 'From: sender@test.com To: receiver@test.com';
+      const result = sanitizeQaPayload(input);
+      expect(result).toBe('From: [REDACTED_EMAIL] To: [REDACTED_EMAIL]');
+    });
+
+    it('redacts emails in nested objects', () => {
+      const input = { user: { email: 'test@example.com', name: 'Test' } };
+      const result = sanitizeQaPayload(input) as Record<string, Record<string, string>>;
+      expect(result.user.email).toBe('[REDACTED_EMAIL]');
+      expect(result.user.name).toBe('Test');
+    });
+  });
+
+  describe('sensitive key redaction', () => {
+    it('redacts password fields', () => {
+      const input = { password: 'secret123', username: 'admin' };
+      const result = sanitizeQaPayload(input) as Record<string, string>;
+      expect(result.password).toBe('[REDACTED]');
+      expect(result.username).toBe('admin');
+    });
+
+    it('redacts token fields', () => {
+      const input = { accessToken: 'abc123', refreshToken: 'xyz789', userId: '123' };
+      const result = sanitizeQaPayload(input) as Record<string, string>;
+      expect(result.accessToken).toBe('[REDACTED]');
+      expect(result.refreshToken).toBe('[REDACTED]');
+      expect(result.userId).toBe('123');
+    });
+
+    it('redacts secret fields', () => {
+      const input = { clientSecret: 'shh', publicKey: 'pk123' };
+      const result = sanitizeQaPayload(input) as Record<string, string>;
+      expect(result.clientSecret).toBe('[REDACTED]');
+      expect(result.publicKey).toBe('pk123');
+    });
+
+    it('redacts api key fields', () => {
+      const input = { apiKey: 'key123', api_key: 'key456' };
+      const result = sanitizeQaPayload(input) as Record<string, string>;
+      expect(result.apiKey).toBe('[REDACTED]');
+      expect(result.api_key).toBe('[REDACTED]');
+    });
+
+    it('redacts session-related fields', () => {
+      const input = { sessionId: 'sess123', sessionToken: 'tok456' };
+      const result = sanitizeQaPayload(input) as Record<string, string>;
+      expect(result.sessionId).toBe('[REDACTED]');
+      expect(result.sessionToken).toBe('[REDACTED]');
+    });
+
+    it('redacts credit card fields', () => {
+      const input = { creditCard: '4111...', cardNumber: '4111', cvv: '123' };
+      const result = sanitizeQaPayload(input) as Record<string, string>;
+      expect(result.creditCard).toBe('[REDACTED]');
+      expect(result.cardNumber).toBe('[REDACTED]');
+      expect(result.cvv).toBe('[REDACTED]');
+    });
+
+    it('does NOT redact "author" field (word boundary check)', () => {
+      const input = { author: 'John Doe', authority: 'admin', authenticate: true };
+      const result = sanitizeQaPayload(input) as Record<string, unknown>;
+      expect(result.author).toBe('John Doe');
+      expect(result.authority).toBe('admin');
+      expect(result.authenticate).toBe(true);
+    });
+
+    it('does NOT redact "session" as part of larger word', () => {
+      const input = { sessionDetails: { userId: '123' }, sessionState: 'active' };
+      const result = sanitizeQaPayload(input) as Record<string, unknown>;
+      // sessionDetails should NOT be redacted (not word boundary match for session_id or session_token)
+      expect(result.sessionDetails).toEqual({ userId: '123' });
+      expect(result.sessionState).toBe('active');
+    });
+
+    it('redacts camelCase token fields (authToken, bearerToken, jwtToken)', () => {
+      const input = {
+        authToken: 'secret-auth-token-value',
+        bearerToken: 'secret-bearer-token-value',
+        jwtToken: 'secret-jwt-token-value',
+        accessToken: 'secret-access-token-value',
+        refreshToken: 'secret-refresh-token-value',
+        idToken: 'secret-id-token-value',
+        apiToken: 'secret-api-token-value',
+        userToken: 'secret-user-token-value',
+        clientToken: 'secret-client-token-value',
+        // GENERALIZED: These should also be redacted by the *Token pattern
+        csrfToken: 'secret-csrf-token-value',
+        deviceToken: 'secret-device-token-value',
+        serviceToken: 'secret-service-token-value',
+        xToken: 'secret-x-token-value',
+        myCustomToken: 'secret-custom-token-value',
+        // These should NOT be redacted
+        authorName: 'John Doe',
+        tokenCount: 5,
+      };
+      const result = sanitizeQaPayload(input) as Record<string, unknown>;
+      // All camelCase token fields should be redacted
+      expect(result.authToken).toBe('[REDACTED]');
+      expect(result.bearerToken).toBe('[REDACTED]');
+      expect(result.jwtToken).toBe('[REDACTED]');
+      expect(result.accessToken).toBe('[REDACTED]');
+      expect(result.refreshToken).toBe('[REDACTED]');
+      expect(result.idToken).toBe('[REDACTED]');
+      expect(result.apiToken).toBe('[REDACTED]');
+      expect(result.userToken).toBe('[REDACTED]');
+      expect(result.clientToken).toBe('[REDACTED]');
+      // GENERALIZED patterns should catch these too
+      expect(result.csrfToken).toBe('[REDACTED]');
+      expect(result.deviceToken).toBe('[REDACTED]');
+      expect(result.serviceToken).toBe('[REDACTED]');
+      expect(result.xToken).toBe('[REDACTED]');
+      expect(result.myCustomToken).toBe('[REDACTED]');
+      // These should NOT be redacted
+      expect(result.authorName).toBe('John Doe');
+      expect(result.tokenCount).toBe(5);
+    });
+
+    it('redacts snake_case token fields (csrf_token, device_token, etc.)', () => {
+      const input = {
+        csrf_token: 'secret-csrf-value',
+        device_token: 'secret-device-value',
+        service_token: 'secret-service-value',
+        auth_token: 'secret-auth-value',
+        api_token: 'secret-api-value',
+        // Should NOT be redacted - doesn't end in _token
+        token_count: 5,
+        token_prefix: 'prefix-value',
+      };
+      const result = sanitizeQaPayload(input) as Record<string, unknown>;
+      // All snake_case *_token fields should be redacted
+      expect(result.csrf_token).toBe('[REDACTED]');
+      expect(result.device_token).toBe('[REDACTED]');
+      expect(result.service_token).toBe('[REDACTED]');
+      expect(result.auth_token).toBe('[REDACTED]');
+      expect(result.api_token).toBe('[REDACTED]');
+      // These should NOT be redacted - they start with "token" not end with it
+      expect(result.token_count).toBe(5);
+      expect(result.token_prefix).toBe('prefix-value');
+    });
+
+    it('redacts nested camelCase token fields', () => {
+      const input = {
+        auth: {
+          authToken: 'nested-auth-token',
+          bearerToken: 'nested-bearer-token',
+        },
+        user: {
+          id: '123',
+          jwtToken: 'nested-jwt-token',
+        },
+      };
+      const result = sanitizeQaPayload(input) as Record<string, Record<string, unknown>>;
+      expect(result.auth.authToken).toBe('[REDACTED]');
+      expect(result.auth.bearerToken).toBe('[REDACTED]');
+      expect(result.user.id).toBe('123');
+      expect(result.user.jwtToken).toBe('[REDACTED]');
+    });
+  });
+
+  describe('value-based sensitive pattern redaction', () => {
+    it('redacts Bearer tokens in string values', () => {
+      const input = { message: 'Request failed with Bearer abc123xyz' };
+      const result = sanitizeQaPayload(input) as Record<string, string>;
+      expect(result.message).toBe('Request failed with [REDACTED_BEARER_TOKEN]');
+    });
+
+    it('redacts Bearer tokens case-insensitively', () => {
+      const input = 'Authorization: bearer mySecretToken123';
+      const result = sanitizeQaPayload(input);
+      expect(result).toBe('Authorization: [REDACTED_BEARER_TOKEN]');
+    });
+
+    it('redacts JWT tokens in values', () => {
+      const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U';
+      const input = { error: `Invalid token: ${jwt}` };
+      const result = sanitizeQaPayload(input) as Record<string, string>;
+      expect(result.error).toBe('Invalid token: [REDACTED_JWT]');
+      expect(result.error).not.toContain('eyJ');
+    });
+
+    it('redacts API key patterns in values', () => {
+      const input = { log: 'api_key=sk_live_abc123xyz' };
+      const result = sanitizeQaPayload(input) as Record<string, string>;
+      expect(result.log).toBe('[REDACTED_API_KEY]');
+    });
+
+    it('redacts Basic auth headers', () => {
+      const input = 'Authorization: Basic dXNlcjpwYXNzd29yZA==';
+      const result = sanitizeQaPayload(input);
+      expect(result).toBe('Authorization: [REDACTED_BASIC_AUTH]');
+    });
+
+    it('redacts MongoDB connection strings', () => {
+      const input = { connectionString: 'mongodb+srv://user:password123@cluster.mongodb.net/db' };
+      const result = sanitizeQaPayload(input) as Record<string, string>;
+      expect(result.connectionString).toBe('[REDACTED_MONGO_URI]');
+    });
+
+    it('redacts password patterns in key-value format', () => {
+      const input = 'Connection failed: password=mysecret123';
+      const result = sanitizeQaPayload(input);
+      expect(result).toBe('Connection failed: [REDACTED_PASSWORD]');
+    });
+
+    it('redacts URLs with embedded credentials', () => {
+      const input = { url: 'https://admin:secret@api.example.com/data' };
+      const result = sanitizeQaPayload(input) as Record<string, string>;
+      expect(result.url).toBe('https://[REDACTED_CREDENTIALS]@api.example.com/data');
+    });
+
+    it('redacts AWS access key IDs', () => {
+      const input = { awsKey: 'AKIAIOSFODNN7EXAMPLE' };
+      const result = sanitizeQaPayload(input) as Record<string, string>;
+      expect(result.awsKey).toBe('[REDACTED_AWS_KEY_ID]');
+    });
+
+    it('redacts multiple sensitive values in one string', () => {
+      const input = 'Auth: Bearer token123 and password=secret';
+      const result = sanitizeQaPayload(input);
+      expect(result).toBe('Auth: [REDACTED_BEARER_TOKEN] and [REDACTED_PASSWORD]');
+    });
+
+    it('redacts sensitive values in nested arrays', () => {
+      const input = {
+        logs: [
+          { message: 'Bearer secretToken123 used' },
+          { message: 'Normal log entry' },
+        ],
+      };
+      const result = sanitizeQaPayload(input) as Record<string, Array<Record<string, string>>>;
+      expect(result.logs[0].message).toBe('[REDACTED_BEARER_TOKEN] used');
+      expect(result.logs[1].message).toBe('Normal log entry');
+    });
+
+    it('redacts Bearer tokens containing base64 characters (+/=)', () => {
+      // Real OAuth2 tokens often contain base64 characters
+      const input = { message: 'Auth failed: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9+abc/def=' };
+      const result = sanitizeQaPayload(input) as Record<string, string>;
+      expect(result.message).toBe('Auth failed: [REDACTED_BEARER_TOKEN]');
+      expect(result.message).not.toContain('+');
+      expect(result.message).not.toContain('/');
+      expect(result.message).not.toContain('=');
+    });
+
+    it('redacts Bearer tokens with URL-safe base64 variants (~_)', () => {
+      const input = 'Authorization: Bearer abc123~def_456';
+      const result = sanitizeQaPayload(input);
+      expect(result).toBe('Authorization: [REDACTED_BEARER_TOKEN]');
+    });
+
+    it('redacts API keys containing base64 characters', () => {
+      // Many API keys use base64 encoding
+      const input = { log: 'api_key=sk_live_abc123+xyz/456==' };
+      const result = sanitizeQaPayload(input) as Record<string, string>;
+      expect(result.log).toBe('[REDACTED_API_KEY]');
+      expect(result.log).not.toContain('+');
+      expect(result.log).not.toContain('/');
+    });
+
+    it('redacts x-api-key header with base64 value', () => {
+      const input = { header: 'x-api-key: abc123+def/ghi==' };
+      const result = sanitizeQaPayload(input) as Record<string, string>;
+      expect(result.header).toBe('[REDACTED_API_KEY]');
+    });
+
+    it('redacts session values with base64 characters', () => {
+      const input = 'session=abc123+def/ghi==jklmnopqrstuvwxyz';
+      const result = sanitizeQaPayload(input);
+      expect(result).toBe('[REDACTED_SESSION]');
+    });
+  });
+
+  describe('array handling', () => {
+    it('sanitizes array elements', () => {
+      const input = ['safe', 'user@email.com', { password: 'secret' }];
+      const result = sanitizeQaPayload(input) as unknown[];
+      expect(result[0]).toBe('safe');
+      expect(result[1]).toBe('[REDACTED_EMAIL]');
+      expect((result[2] as Record<string, string>).password).toBe('[REDACTED]');
+    });
+
+    it('truncates long arrays', () => {
+      const input = Array.from({ length: 100 }, (_, i) => i);
+      const result = sanitizeQaPayload(input) as unknown[];
+      expect(result.length).toBe(51); // 50 items + truncation message
+      expect(result[50]).toContain('more items');
+    });
+  });
+
+  describe('nested object handling', () => {
+    it('handles nested objects', () => {
+      const input = {
+        level1: {
+          level2: {
+            value: 'test',
+            email: 'nested@test.com'
+          }
+        }
+      };
+      const result = sanitizeQaPayload(input) as Record<string, Record<string, Record<string, string>>>;
+      expect(result.level1.level2.value).toBe('test');
+      expect(result.level1.level2.email).toBe('[REDACTED_EMAIL]');
+    });
+
+    it('limits object depth', () => {
+      // Create a deeply nested object
+      let deep: Record<string, unknown> = { value: 'deep' };
+      for (let i = 0; i < 10; i++) {
+        deep = { nested: deep };
+      }
+      
+      const result = sanitizeQaPayload(deep);
+      // Should not throw and should contain truncation marker at some depth
+      expect(JSON.stringify(result)).toContain('MAX_DEPTH_EXCEEDED');
+    });
+  });
+
+  describe('special type handling', () => {
+    it('converts Date objects to ISO strings', () => {
+      const testDate = new Date('2025-01-15T10:30:00.000Z');
+      const input = {
+        createdAt: testDate,
+        metadata: {
+          lastModified: new Date('2025-01-16T12:00:00.000Z'),
+          name: 'test'
+        }
+      };
+      
+      const result = sanitizeQaPayload(input) as Record<string, unknown>;
+      expect(result.createdAt).toBe('2025-01-15T10:30:00.000Z');
+      expect((result.metadata as Record<string, unknown>).lastModified).toBe('2025-01-16T12:00:00.000Z');
+      expect((result.metadata as Record<string, unknown>).name).toBe('test');
+    });
+
+    it('handles Date as top-level value', () => {
+      const testDate = new Date('2025-01-15T10:30:00.000Z');
+      const result = sanitizeQaPayload(testDate);
+      expect(result).toBe('2025-01-15T10:30:00.000Z');
+    });
+
+    it('converts Buffer to size marker', () => {
+      const buffer = Buffer.from('hello world', 'utf-8');
+      const input = {
+        data: buffer,
+        filename: 'test.bin'
+      };
+      
+      const result = sanitizeQaPayload(input) as Record<string, unknown>;
+      expect(result.data).toBe('[BUFFER:11 bytes]');
+      expect(result.filename).toBe('test.bin');
+    });
+
+    it('handles Buffer as top-level value', () => {
+      const buffer = Buffer.from('test data');
+      const result = sanitizeQaPayload(buffer);
+      expect(result).toBe('[BUFFER:9 bytes]');
+    });
+
+    it('converts Uint8Array to binary marker', () => {
+      const uint8 = new Uint8Array([1, 2, 3, 4, 5]);
+      const input = {
+        binaryData: uint8,
+        type: 'binary'
+      };
+      
+      const result = sanitizeQaPayload(input) as Record<string, unknown>;
+      expect(result.binaryData).toBe('[BINARY:5 bytes]');
+      expect(result.type).toBe('binary');
+    });
+
+    it('converts ArrayBuffer to buffer marker', () => {
+      const arrayBuffer = new ArrayBuffer(16);
+      const input = {
+        rawBuffer: arrayBuffer,
+        size: 16
+      };
+      
+      const result = sanitizeQaPayload(input) as Record<string, unknown>;
+      expect(result.rawBuffer).toBe('[ARRAYBUFFER:16 bytes]');
+      expect(result.size).toBe(16);
+    });
+
+    it('handles mixed special types in nested structure', () => {
+      const input = {
+        timestamp: new Date('2025-01-15T10:30:00.000Z'),
+        payload: {
+          binary: Buffer.from('secret data'),
+          metadata: {
+            created: new Date('2025-01-14T08:00:00.000Z'),
+            password: 'should-be-redacted'
+          }
+        }
+      };
+      
+      const result = sanitizeQaPayload(input) as Record<string, unknown>;
+      expect(result.timestamp).toBe('2025-01-15T10:30:00.000Z');
+      
+      const payload = result.payload as Record<string, unknown>;
+      expect(payload.binary).toBe('[BUFFER:11 bytes]');
+      
+      const metadata = payload.metadata as Record<string, unknown>;
+      expect(metadata.created).toBe('2025-01-14T08:00:00.000Z');
+      expect(metadata.password).toBe('[REDACTED]');
+    });
+  });
+
+  describe('real-world payloads', () => {
+    it('sanitizes a typical form submission payload', () => {
+      const input = {
+        event: 'form_submit',
+        formData: {
+          email: 'user@company.com',
+          password: 'mypassword123',
+          rememberMe: true
+        },
+        metadata: {
+          timestamp: 1234567890,
+          userAgent: 'Mozilla/5.0'
+        }
+      };
+      
+      const result = sanitizeQaPayload(input) as Record<string, unknown>;
+      const formData = result.formData as Record<string, unknown>;
+      
+      expect(formData.email).toBe('[REDACTED_EMAIL]');
+      expect(formData.password).toBe('[REDACTED]');
+      expect(formData.rememberMe).toBe(true);
+    });
+
+    it('sanitizes an API error payload with bearer token in error message', () => {
+      const input = {
+        error: 'Authentication failed with Bearer mySecretToken123',
+        details: {
+          attemptedEmail: 'admin@test.com',
+          author: 'John Doe'  // Should NOT be redacted
+        }
+      };
+      
+      const result = sanitizeQaPayload(input) as Record<string, unknown>;
+      const details = result.details as Record<string, unknown>;
+      
+      // Value-based redaction of bearer token
+      expect(result.error).toBe('Authentication failed with [REDACTED_BEARER_TOKEN]');
+      expect(details.attemptedEmail).toBe('[REDACTED_EMAIL]');
+      // Word boundary: author should NOT be redacted
+      expect(details.author).toBe('John Doe');
+    });
+
+    it('sanitizes a log entry with embedded JWT', () => {
+      const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOiIxMjMifQ.signature123';
+      const input = {
+        level: 'error',
+        message: `Token validation failed: ${jwt}`,
+        context: {
+          authority: 'system',  // Should NOT be redacted (word boundary)
+          endpoint: '/api/login'
+        }
+      };
+      
+      const result = sanitizeQaPayload(input) as Record<string, unknown>;
+      const context = result.context as Record<string, unknown>;
+      
+      expect(result.message).toBe('Token validation failed: [REDACTED_JWT]');
+      expect(context.authority).toBe('system');
+      expect(context.endpoint).toBe('/api/login');
+    });
+
+    it('sanitizes connection string errors', () => {
+      const input = {
+        errorType: 'DatabaseConnectionError',
+        message: 'Failed to connect to mongodb+srv://admin:password123@cluster.net/db',
+        stack: 'Error at connection.js:42'
+      };
+      
+      const result = sanitizeQaPayload(input) as Record<string, unknown>;
+      
+      expect(result.message).toBe('Failed to connect to [REDACTED_MONGO_URI]');
+      expect(result.errorType).toBe('DatabaseConnectionError');
+    });
+  });
+});
+
+describe('estimatePayloadSize', () => {
+  it('returns 0 for null', () => {
+    expect(estimatePayloadSize(null)).toBe(0);
+  });
+
+  it('returns 0 for undefined', () => {
+    expect(estimatePayloadSize(undefined)).toBe(0);
+  });
+
+  it('estimates size of simple string', () => {
+    const size = estimatePayloadSize('hello');
+    expect(size).toBe(7); // "hello" with quotes
+  });
+
+  it('estimates size of object', () => {
+    const obj = { key: 'value' };
+    const size = estimatePayloadSize(obj);
+    expect(size).toBe(JSON.stringify(obj).length);
+  });
+
+  it('handles circular references gracefully', () => {
+    const circular: Record<string, unknown> = { a: 1 };
+    circular.self = circular;
+    // Should return 0 instead of throwing
+    expect(estimatePayloadSize(circular)).toBe(0);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/lib/queries.kpi.test.ts">
+<![CDATA[
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { COLLECTIONS } from "@/lib/db/collections";
+
+// Mock Mongo connection
+const mockCollections: Record<string, any> = {};
+const collectionMock = vi.fn((name: string) => mockCollections[name]);
+
+vi.mock("@/lib/mongodb-unified", () => ({
+  getDatabase: vi.fn(async () => ({
+    collection: collectionMock,
+  })),
+}));
+
+import {
+  getInvoiceCounters,
+  getRevenueStats,
+  getWorkOrderStats,
+} from "@/lib/queries";
+
+describe("lib/queries KPI correctness", () => {
+  beforeEach(() => {
+    Object.keys(mockCollections).forEach((k) => delete mockCollections[k]);
+    collectionMock.mockReset();
+  });
+
+  it("getWorkOrderStats uses canonical statuses/fields with soft-delete guard", async () => {
+    const woCollection = {
+      countDocuments: vi
+        .fn()
+        // total
+        .mockResolvedValueOnce(10)
+        // open (SUBMITTED/ASSIGNED)
+        .mockResolvedValueOnce(3)
+        // in progress
+        .mockResolvedValueOnce(4)
+        // overdue
+        .mockResolvedValueOnce(2)
+        // completed/verified/closed
+        .mockResolvedValueOnce(1),
+    };
+    mockCollections[COLLECTIONS.WORK_ORDERS] = woCollection;
+
+    const stats = await getWorkOrderStats("org1");
+
+    // All queries should include soft-delete guard
+    expect(woCollection.countDocuments).toHaveBeenCalledWith({
+      orgId: "org1",
+      isDeleted: { $ne: true },
+      deletedAt: { $exists: false },
+    });
+    expect(stats).toEqual({
+      total: 10,
+      open: 3,
+      inProgress: 4,
+      overdue: 2,
+      completed: 1,
+      completionRate: "10.0",
+    });
+  });
+
+  it("getInvoiceCounters uses canonical statuses/fields with soft-delete guard", async () => {
+    const invoicesCollection = {
+      countDocuments: vi
+        .fn()
+        .mockResolvedValueOnce(5) // unpaid (ISSUED/OVERDUE)
+        .mockResolvedValueOnce(2) // overdue with dueDate
+        .mockResolvedValueOnce(7) // paid
+        .mockResolvedValueOnce(12), // total
+    };
+    mockCollections[COLLECTIONS.INVOICES] = invoicesCollection;
+
+    const counters = await getInvoiceCounters("org1");
+
+    // All queries should include soft-delete guard
+    expect(invoicesCollection.countDocuments).toHaveBeenNthCalledWith(1, {
+      orgId: "org1",
+      isDeleted: { $ne: true },
+      deletedAt: { $exists: false },
+      status: { $in: ["ISSUED", "OVERDUE"] },
+    });
+    expect(invoicesCollection.countDocuments).toHaveBeenNthCalledWith(2, {
+      orgId: "org1",
+      isDeleted: { $ne: true },
+      deletedAt: { $exists: false },
+      status: { $in: ["ISSUED", "OVERDUE"] },
+      dueDate: { $lt: expect.any(Date) },
+    });
+    expect(invoicesCollection.countDocuments).toHaveBeenNthCalledWith(3, {
+      orgId: "org1",
+      isDeleted: { $ne: true },
+      deletedAt: { $exists: false },
+      status: "PAID",
+    });
+    expect(counters).toEqual({ unpaid: 5, overdue: 2, paid: 7, total: 12 });
+  });
+
+  it("getRevenueStats aggregates by paidAt and total/total_amount", async () => {
+    const toArrayMock = vi.fn().mockResolvedValue([{ _id: null, total: 120, count: 3 }]);
+    const aggregateMock = vi.fn(() => ({ toArray: toArrayMock }));
+    mockCollections[COLLECTIONS.INVOICES] = {
+      aggregate: aggregateMock,
+    };
+
+    const res = await getRevenueStats("org1", 30);
+
+    expect(aggregateMock).toHaveBeenCalled();
+    const matchStage = aggregateMock.mock.calls[0][0][0].$match;
+    expect(matchStage).toMatchObject({
+      orgId: "org1",
+      status: "PAID",
+    });
+    expect(matchStage.paidAt).toBeDefined();
+    expect(res).toEqual({ total: 120, count: 3, currency: "SAR" });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/lib/queues/sms-queue.test.ts">
+<![CDATA[
+/**
+ * SMS Queue Tests
+ *
+ * Tests for lib/queues/sms-queue.ts worker configuration.
+ */
+
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+// Mock all dependencies
+vi.mock("bullmq", () => ({
+  Queue: vi.fn().mockImplementation(() => ({
+    add: vi.fn().mockResolvedValue({ id: "test-job-id" }),
+    close: vi.fn().mockResolvedValue(undefined),
+  })),
+  Worker: vi.fn().mockImplementation(() => ({
+    on: vi.fn(),
+    close: vi.fn().mockResolvedValue(undefined),
+  })),
+}));
+
+vi.mock("@/lib/redis", () => ({
+  getRedisClient: vi.fn(() => null),
+}));
+
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+vi.mock("@/lib/mongo", () => ({
+  db: Promise.resolve({
+    collection: vi.fn().mockReturnValue({
+      findOne: vi.fn().mockResolvedValue(null),
+      updateOne: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
+    }),
+  }),
+}));
+
+describe("SMS Queue", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.unstubAllEnvs();
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  describe("SMS Worker Rate Limiting", () => {
+    it("uses default 120/min when SMS_WORKER_MAX_PER_MIN is not set", async () => {
+      vi.stubEnv("SMS_WORKER_MAX_PER_MIN", "");
+      vi.stubEnv("REDIS_URL", "redis://localhost:6379");
+      
+      vi.doMock("@/lib/redis", () => ({
+        getRedisClient: vi.fn(() => ({ ping: vi.fn() })),
+      }));
+
+      const { Worker } = await import("bullmq");
+      const { startSMSWorker } = await import("@/lib/queues/sms-queue");
+      
+      startSMSWorker();
+      
+      // Worker should be called with limiter.max = 120
+      expect(Worker).toHaveBeenCalled();
+      const workerCall = vi.mocked(Worker).mock.calls[0];
+      if (workerCall && workerCall[2]) {
+        expect(workerCall[2].limiter?.max).toBe(120);
+      }
+    });
+
+    it("uses parsed value when SMS_WORKER_MAX_PER_MIN is valid number", async () => {
+      vi.stubEnv("SMS_WORKER_MAX_PER_MIN", "200");
+      vi.stubEnv("REDIS_URL", "redis://localhost:6379");
+      
+      vi.resetModules();
+      
+      vi.doMock("@/lib/redis", () => ({
+        getRedisClient: vi.fn(() => ({ ping: vi.fn() })),
+      }));
+
+      const { Worker } = await import("bullmq");
+      const { startSMSWorker } = await import("@/lib/queues/sms-queue");
+      
+      startSMSWorker();
+      
+      expect(Worker).toHaveBeenCalled();
+      const workerCall = vi.mocked(Worker).mock.calls[0];
+      if (workerCall && workerCall[2]) {
+        expect(workerCall[2].limiter?.max).toBe(200);
+      }
+    });
+
+    it("uses default when SMS_WORKER_MAX_PER_MIN is NaN", async () => {
+      vi.stubEnv("SMS_WORKER_MAX_PER_MIN", "not-a-number");
+      vi.stubEnv("REDIS_URL", "redis://localhost:6379");
+      
+      vi.resetModules();
+      
+      vi.doMock("@/lib/redis", () => ({
+        getRedisClient: vi.fn(() => ({ ping: vi.fn() })),
+      }));
+
+      const { Worker } = await import("bullmq");
+      const { logger } = await import("@/lib/logger");
+      const { startSMSWorker } = await import("@/lib/queues/sms-queue");
+      
+      startSMSWorker();
+      
+      // Should log warning
+      expect(logger.warn).toHaveBeenCalledWith(
+        "[SMS Worker] Invalid SMS_WORKER_MAX_PER_MIN value, using default",
+        expect.objectContaining({ value: "not-a-number", default: 120 })
+      );
+      
+      // Should use default
+      expect(Worker).toHaveBeenCalled();
+      const workerCall = vi.mocked(Worker).mock.calls[0];
+      if (workerCall && workerCall[2]) {
+        expect(workerCall[2].limiter?.max).toBe(120);
+      }
+    });
+
+    it("uses default when SMS_WORKER_MAX_PER_MIN is negative", async () => {
+      vi.stubEnv("SMS_WORKER_MAX_PER_MIN", "-50");
+      vi.stubEnv("REDIS_URL", "redis://localhost:6379");
+      
+      vi.resetModules();
+      
+      vi.doMock("@/lib/redis", () => ({
+        getRedisClient: vi.fn(() => ({ ping: vi.fn() })),
+      }));
+
+      const { Worker } = await import("bullmq");
+      const { startSMSWorker } = await import("@/lib/queues/sms-queue");
+      
+      startSMSWorker();
+      
+      expect(Worker).toHaveBeenCalled();
+      const workerCall = vi.mocked(Worker).mock.calls[0];
+      if (workerCall && workerCall[2]) {
+        expect(workerCall[2].limiter?.max).toBe(120);
+      }
+    });
+
+    it("enforces minimum of 30/min when value is too low", async () => {
+      vi.stubEnv("SMS_WORKER_MAX_PER_MIN", "10");
+      vi.stubEnv("REDIS_URL", "redis://localhost:6379");
+      
+      vi.resetModules();
+      
+      vi.doMock("@/lib/redis", () => ({
+        getRedisClient: vi.fn(() => ({ ping: vi.fn() })),
+      }));
+
+      const { Worker } = await import("bullmq");
+      const { startSMSWorker } = await import("@/lib/queues/sms-queue");
+      
+      startSMSWorker();
+      
+      expect(Worker).toHaveBeenCalled();
+      const workerCall = vi.mocked(Worker).mock.calls[0];
+      if (workerCall && workerCall[2]) {
+        expect(workerCall[2].limiter?.max).toBe(30); // Minimum enforced
+      }
+    });
+
+    it("returns null when Redis is not configured", async () => {
+      vi.stubEnv("REDIS_URL", "");
+      
+      vi.resetModules();
+      
+      vi.doMock("@/lib/redis", () => ({
+        getRedisClient: vi.fn(() => null),
+      }));
+
+      const { startSMSWorker } = await import("@/lib/queues/sms-queue");
+      
+      const worker = startSMSWorker();
+      
+      expect(worker).toBeNull();
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/lib/resilience/circuit-breaker-metrics.test.ts">
+<![CDATA[
+import { describe, it, expect } from "vitest";
+import {
+  getAllCircuitBreakerMetrics,
+  getPrometheusMetrics,
+  getCircuitBreakerSummary,
+} from "@/lib/resilience/circuit-breaker-metrics";
+
+describe("Circuit Breaker Metrics", () => {
+  describe("getAllCircuitBreakerMetrics", () => {
+    it("returns metrics for all registered breakers", () => {
+      const metrics = getAllCircuitBreakerMetrics();
+
+      expect(Array.isArray(metrics)).toBe(true);
+      expect(metrics.length).toBeGreaterThan(0);
+
+      // Check that each metric has required fields
+      for (const m of metrics) {
+        expect(m).toHaveProperty("name");
+        expect(m).toHaveProperty("state");
+        expect(m).toHaveProperty("stateNumeric");
+        expect(m).toHaveProperty("failureCount");
+        expect(m).toHaveProperty("successCount");
+        expect(m).toHaveProperty("cooldownMs");
+      }
+    });
+
+    it("returns valid state values", () => {
+      const metrics = getAllCircuitBreakerMetrics();
+
+      for (const m of metrics) {
+        expect(["closed", "open", "half-open"]).toContain(m.state);
+        expect([0, 1, 2]).toContain(m.stateNumeric);
+      }
+    });
+
+    it("includes known circuit breakers", () => {
+      const metrics = getAllCircuitBreakerMetrics();
+      const names = metrics.map((m) => m.name);
+
+      // Should include at least these service breakers
+      expect(names).toContain("paytabs");
+      expect(names).toContain("twilio");
+      expect(names).toContain("meilisearch");
+    });
+  });
+
+  describe("getPrometheusMetrics", () => {
+    it("returns Prometheus text format", () => {
+      const output = getPrometheusMetrics();
+
+      expect(typeof output).toBe("string");
+      expect(output).toContain("# HELP circuit_breaker_state");
+      expect(output).toContain("# TYPE circuit_breaker_state gauge");
+      expect(output).toContain("circuit_breaker_state{name=");
+    });
+
+    it("includes all metric types", () => {
+      const output = getPrometheusMetrics();
+
+      expect(output).toContain("circuit_breaker_failures_total");
+      expect(output).toContain("circuit_breaker_successes_total");
+      expect(output).toContain("circuit_breaker_cooldown_ms");
+    });
+
+    it("uses proper Prometheus metric format", () => {
+      const output = getPrometheusMetrics();
+
+      // Check metric format: name{label="value"} number
+      const stateLines = output
+        .split("\n")
+        .filter((l) => l.startsWith("circuit_breaker_state{"));
+
+      for (const line of stateLines) {
+        // Should match pattern: circuit_breaker_state{name="xxx"} N
+        expect(line).toMatch(/circuit_breaker_state\{name="[^"]+"\} \d+/);
+      }
+    });
+  });
+
+  describe("getCircuitBreakerSummary", () => {
+    it("returns summary with counts", () => {
+      const summary = getCircuitBreakerSummary();
+
+      expect(summary).toHaveProperty("total");
+      expect(summary).toHaveProperty("open");
+      expect(summary).toHaveProperty("closed");
+      expect(summary).toHaveProperty("halfOpen");
+      expect(summary).toHaveProperty("breakers");
+
+      expect(typeof summary.total).toBe("number");
+      expect(typeof summary.open).toBe("number");
+      expect(typeof summary.closed).toBe("number");
+      expect(typeof summary.halfOpen).toBe("number");
+    });
+
+    it("counts add up correctly", () => {
+      const summary = getCircuitBreakerSummary();
+
+      expect(summary.open + summary.closed + summary.halfOpen).toBe(
+        summary.total
+      );
+    });
+
+    it("breakers array matches total count", () => {
+      const summary = getCircuitBreakerSummary();
+
+      expect(summary.breakers.length).toBe(summary.total);
+    });
+  });
+});
+
+]]>
+</file>
+
+</batch_content>

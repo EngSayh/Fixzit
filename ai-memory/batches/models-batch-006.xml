@@ -1,0 +1,3478 @@
+
+You are the "Fixzit Memory Builder" for category: "models".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "models",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="server/models/aqar/Lead.ts">
+<![CDATA[
+/**
+ * Aqar Souq - Lead Model
+ *
+ * Property inquiry leads for CRM integration
+ * Links to Fixzit CRM module
+ */
+
+import mongoose, { Schema, Document, Model } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
+
+export enum LeadStatus {
+  NEW = "NEW", // Fresh inquiry
+  CONTACTED = "CONTACTED", // Agent reached out
+  QUALIFIED = "QUALIFIED", // Genuine interest
+  VIEWING = "VIEWING", // Scheduled property viewing
+  NEGOTIATING = "NEGOTIATING", // In negotiation
+  WON = "WON", // Deal closed
+  LOST = "LOST", // Deal lost
+  SPAM = "SPAM", // Marked as spam
+}
+
+/**
+ * BIZ-001 FIX: Lead State Machine Transition Rules
+ *
+ * Defines valid state transitions to prevent invalid business logic.
+ * Terminal states (WON, LOST, SPAM) have no outgoing transitions.
+ */
+const LEAD_STATE_TRANSITIONS: Record<LeadStatus, LeadStatus[]> = {
+  [LeadStatus.NEW]: [LeadStatus.CONTACTED, LeadStatus.QUALIFIED, LeadStatus.SPAM],
+  [LeadStatus.CONTACTED]: [LeadStatus.QUALIFIED, LeadStatus.VIEWING, LeadStatus.LOST, LeadStatus.SPAM],
+  [LeadStatus.QUALIFIED]: [LeadStatus.VIEWING, LeadStatus.NEGOTIATING, LeadStatus.LOST],
+  [LeadStatus.VIEWING]: [LeadStatus.NEGOTIATING, LeadStatus.QUALIFIED, LeadStatus.LOST],
+  [LeadStatus.NEGOTIATING]: [LeadStatus.WON, LeadStatus.LOST, LeadStatus.VIEWING],
+  [LeadStatus.WON]: [], // Terminal state
+  [LeadStatus.LOST]: [], // Terminal state
+  [LeadStatus.SPAM]: [], // Terminal state
+};
+
+/**
+ * Validate that a state transition is allowed
+ * @param from - Current status
+ * @param to - Target status
+ * @throws Error if transition is invalid
+ */
+function validateTransition(from: LeadStatus, to: LeadStatus): void {
+  const allowed = LEAD_STATE_TRANSITIONS[from] || [];
+  if (!allowed.includes(to)) {
+    throw new Error(
+      `Invalid lead status transition: ${from} → ${to}. ` +
+        `Allowed transitions from ${from}: ${allowed.length > 0 ? allowed.join(", ") : "none (terminal state)"}`
+    );
+  }
+}
+
+export enum LeadIntent {
+  BUY = "BUY",
+  RENT = "RENT",
+  DAILY = "DAILY",
+}
+
+export enum LeadSource {
+  LISTING_INQUIRY = "LISTING_INQUIRY", // From listing detail page
+  PROJECT_INQUIRY = "PROJECT_INQUIRY", // From project page
+  PHONE_CALL = "PHONE_CALL", // Phone inquiry
+  WHATSAPP = "WHATSAPP", // WhatsApp inquiry
+  EMAIL = "EMAIL", // Email inquiry
+  WALK_IN = "WALK_IN", // Walk-in to office
+}
+
+export enum LeadChannel {
+  FORM = "FORM",
+  CALL_REVEAL = "CALL_REVEAL",
+  WHATSAPP_CLICK = "WHATSAPP_CLICK",
+  BOOKING_REQUEST = "BOOKING_REQUEST",
+  AUCTION_BID = "AUCTION_BID",
+}
+
+export interface ILead extends Document {
+  // Organization
+  orgId: mongoose.Types.ObjectId;
+
+  // Source
+  listingId?: mongoose.Types.ObjectId;
+  projectId?: mongoose.Types.ObjectId;
+  source: LeadSource;
+
+  // Inquirer (potential client)
+  inquirerId?: mongoose.Types.ObjectId; // User ID if logged in
+  inquirerName: string;
+  inquirerPhone: string;
+  inquirerEmail?: string;
+  inquirerNationalId?: string; // If Nafath verified
+
+  // Owner/Agent (recipient)
+  recipientId: mongoose.Types.ObjectId;
+
+  // Intent
+  intent: LeadIntent;
+  message?: string;
+  channel: LeadChannel;
+
+  // Status & assignment
+  status: LeadStatus;
+  assignedTo?: mongoose.Types.ObjectId; // Agent/salesperson
+  assignedAt?: Date;
+
+  // Follow-up
+  notes: Array<{
+    authorId: mongoose.Types.ObjectId;
+    content: string;
+    createdAt: Date;
+  }>;
+
+  // Viewing
+  viewingScheduledAt?: Date;
+  viewingCompletedAt?: Date;
+
+  // Outcome
+  closedAt?: Date;
+  closedBy?: mongoose.Types.ObjectId;
+  lostReason?: string;
+
+  // Integration
+  crmContactId?: mongoose.Types.ObjectId; // Link to CRM Contact
+  crmDealId?: mongoose.Types.ObjectId; // Link to CRM Deal
+
+  // Instance methods
+  addNote(authorId: mongoose.Types.ObjectId, content: string): Promise<void>;
+  assign(agentId: mongoose.Types.ObjectId): Promise<void>;
+  scheduleViewing(dateTime: Date): Promise<void>;
+  completeViewing(): Promise<void>;
+  markAsWon(userId: mongoose.Types.ObjectId): Promise<void>;
+  markAsLost(userId: mongoose.Types.ObjectId, reason?: string): Promise<void>;
+  markAsSpam(): Promise<void>;
+
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const LeadSchema = new Schema<ILead>(
+  {
+    orgId: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      index: true,
+    },
+
+    listingId: { type: Schema.Types.ObjectId, ref: "AqarListing", index: true },
+    projectId: { type: Schema.Types.ObjectId, ref: "AqarProject", index: true },
+    source: {
+      type: String,
+      enum: Object.values(LeadSource),
+      required: true,
+      index: true,
+    },
+
+    inquirerId: { type: Schema.Types.ObjectId, ref: "User", index: true },
+    inquirerName: { type: String, required: true, maxlength: 200 },
+    inquirerPhone: { type: String, required: true },
+    inquirerEmail: { type: String, maxlength: 200 },
+    inquirerNationalId: { type: String },
+
+    recipientId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+
+    intent: {
+      type: String,
+      enum: Object.values(LeadIntent),
+      required: true,
+      index: true,
+    },
+    message: { type: String, maxlength: 2000 },
+    channel: {
+      type: String,
+      enum: Object.values(LeadChannel),
+      default: LeadChannel.FORM,
+    },
+
+    status: {
+      type: String,
+      enum: Object.values(LeadStatus),
+      default: LeadStatus.NEW,
+      required: true,
+      index: true,
+    },
+    assignedTo: { type: Schema.Types.ObjectId, ref: "User", index: true },
+    assignedAt: { type: Date },
+
+    notes: [
+      {
+        authorId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+        content: { type: String, required: true, maxlength: 2000 },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
+
+    viewingScheduledAt: { type: Date },
+    viewingCompletedAt: { type: Date },
+
+    closedAt: { type: Date },
+    closedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    lostReason: { type: String, maxlength: 500 },
+
+    crmContactId: { type: Schema.Types.ObjectId, ref: "Contact" },
+    crmDealId: { type: Schema.Types.ObjectId, ref: "Deal" },
+  },
+  {
+    timestamps: true,
+    collection: "aqar_leads",
+  },
+);
+
+// Indexes
+LeadSchema.index({ recipientId: 1, status: 1, createdAt: -1 });
+LeadSchema.index({ assignedTo: 1, status: 1, createdAt: -1 });
+LeadSchema.index({ inquirerPhone: 1 });
+LeadSchema.index({ createdAt: -1 });
+LeadSchema.index({ orgId: 1, status: 1, createdAt: -1 });
+
+// =============================================================================
+// DATA-001 FIX: Apply tenantIsolationPlugin for multi-tenant data isolation
+// CRITICAL: Prevents cross-tenant data access in Aqar CRM leads
+// =============================================================================
+LeadSchema.plugin(tenantIsolationPlugin);
+
+// Methods
+LeadSchema.methods.addNote = async function (
+  this: ILead,
+  authorId: mongoose.Types.ObjectId,
+  content: string,
+) {
+  this.notes.push({
+    authorId,
+    content,
+    createdAt: new Date(),
+  });
+  await this.save();
+};
+
+LeadSchema.methods.assign = async function (
+  this: ILead,
+  agentId: mongoose.Types.ObjectId,
+) {
+  this.assignedTo = agentId;
+  this.assignedAt = new Date();
+  if (this.status === LeadStatus.NEW) {
+    // BIZ-001 FIX: Validate transition to CONTACTED
+    validateTransition(this.status, LeadStatus.CONTACTED);
+    this.status = LeadStatus.CONTACTED;
+  }
+  await this.save();
+};
+
+LeadSchema.methods.scheduleViewing = async function (
+  this: ILead,
+  dateTime: Date,
+) {
+  // BIZ-001 FIX: Use state machine validation instead of hardcoded list
+  validateTransition(this.status, LeadStatus.VIEWING);
+  this.viewingScheduledAt = dateTime;
+  this.status = LeadStatus.VIEWING;
+  await this.save();
+};
+
+LeadSchema.methods.completeViewing = async function (this: ILead) {
+  if (!this.viewingScheduledAt) {
+    throw new Error("No viewing scheduled");
+  }
+  // BIZ-001 FIX: Validate transition to NEGOTIATING
+  validateTransition(this.status, LeadStatus.NEGOTIATING);
+  this.viewingCompletedAt = new Date();
+  this.status = LeadStatus.NEGOTIATING;
+  await this.save();
+};
+
+LeadSchema.methods.markAsWon = async function (
+  this: ILead,
+  userId: mongoose.Types.ObjectId,
+) {
+  // BIZ-001 FIX: Validate transition to WON (only from NEGOTIATING)
+  validateTransition(this.status, LeadStatus.WON);
+  this.status = LeadStatus.WON;
+  this.closedAt = new Date();
+  this.closedBy = userId;
+  await this.save();
+};
+
+LeadSchema.methods.markAsLost = async function (
+  this: ILead,
+  userId: mongoose.Types.ObjectId,
+  reason?: string,
+) {
+  // BIZ-001 FIX: Validate transition to LOST
+  validateTransition(this.status, LeadStatus.LOST);
+  this.status = LeadStatus.LOST;
+  this.closedAt = new Date();
+  this.closedBy = userId;
+  this.lostReason = reason;
+  await this.save();
+};
+
+LeadSchema.methods.markAsSpam = async function (this: ILead) {
+  // BIZ-001 FIX: Validate transition to SPAM (only from early states)
+  validateTransition(this.status, LeadStatus.SPAM);
+  this.status = LeadStatus.SPAM;
+  await this.save();
+};
+
+const Lead = getModel<ILead>("AqarLead", LeadSchema);
+
+export default Lead;
+
+]]>
+</file>
+
+<file path="server/models/aqar/Listing.ts">
+<![CDATA[
+/**
+ * Aqar Souq - Listing Model (2025 enhancements)
+ *
+ * Supports auctions, RNPL, VR media, compliance (FAL/Nafath/foreign ownership),
+ * boost forecasting, analytics, and geospatial search.
+ */
+
+import mongoose, { Schema, Document } from "mongoose";
+import { getModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
+
+// Enums
+export enum ListingIntent {
+  BUY = "BUY",
+  RENT = "RENT",
+  DAILY = "DAILY",
+  AUCTION = "AUCTION",
+}
+
+export enum PropertyType {
+  APARTMENT = "APARTMENT",
+  VILLA = "VILLA",
+  LAND = "LAND",
+  COMMERCIAL = "COMMERCIAL",
+  BUILDING = "BUILDING",
+  FLOOR = "FLOOR",
+  ROOM = "ROOM",
+  SHOP = "SHOP",
+  OFFICE = "OFFICE",
+  WAREHOUSE = "WAREHOUSE",
+  REST_HOUSE = "REST_HOUSE",
+  CHALET = "CHALET",
+  FARM = "FARM",
+  OTHER = "OTHER",
+}
+
+export enum FurnishingStatus {
+  FURNISHED = "FURNISHED",
+  UNFURNISHED = "UNFURNISHED",
+  PARTLY = "PARTLY",
+}
+
+export enum ListerType {
+  OWNER = "OWNER",
+  AGENT = "AGENT",
+  DEVELOPER = "DEVELOPER",
+}
+
+export enum ListingStatus {
+  DRAFT = "DRAFT",
+  PENDING = "PENDING",
+  ACTIVE = "ACTIVE",
+  INACTIVE = "INACTIVE",
+  REJECTED = "REJECTED",
+  SOLD = "SOLD",
+  RENTED = "RENTED",
+}
+
+export enum RentFrequency {
+  DAILY = "DAILY",
+  WEEKLY = "WEEKLY",
+  MONTHLY = "MONTHLY",
+  YEARLY = "YEARLY",
+}
+
+export enum SmartHomeLevel {
+  NONE = "NONE",
+  BASIC = "BASIC",
+  ADVANCED = "ADVANCED",
+}
+
+export enum ProptechFeature {
+  SMART_LOCKS = "SMART_LOCKS",
+  ENERGY_MONITORING = "ENERGY_MONITORING",
+  WATER_LEAK_SENSORS = "WATER_LEAK_SENSORS",
+  AIR_QUALITY = "AIR_QUALITY",
+  SOLAR = "SOLAR",
+  EV_CHARGER = "EV_CHARGER",
+  SECURITY_AI = "SECURITY_AI",
+}
+
+// Interfaces
+export interface IListingMedia {
+  url: string;
+  kind: "IMAGE" | "VIDEO" | "TOUR" | "VR";
+  order: number;
+}
+
+export interface IListingCompliance {
+  falLicenseNo?: string;
+  adPermitNo?: string;
+  brokerageContractId?: string;
+  verifiedOwner?: boolean;
+  nafathVerified?: boolean;
+  foreignOwnerCompliant?: boolean;
+  verifiedAt?: Date;
+}
+
+export interface IListingAnalytics {
+  views: number;
+  favorites: number;
+  inquiries: number;
+  lastViewedAt?: Date;
+  ctr?: number;
+}
+
+export interface IListingModeration {
+  riskFlags: string[];
+  lastReviewAt?: Date;
+  reviewerId?: mongoose.Types.ObjectId;
+  notes?: string;
+}
+
+export interface IListingImmersive {
+  vrTour?: {
+    url: string;
+    provider?: string;
+    thumbnail?: string;
+    spatialAnchors?: string[];
+    ready?: boolean;
+  };
+  arModels?: {
+    ios?: string;
+    android?: string;
+    web?: string;
+  };
+  digitalTwin?: {
+    url: string;
+    version?: string;
+  };
+  highlights?: string[];
+}
+
+export interface IListingAI {
+  recommendationScore: number;
+  variant?: "primary" | "neighbor" | "experimental";
+  explanation: string[];
+  badges: string[];
+  similarListingIds: mongoose.Types.ObjectId[];
+  demandSignal?: number;
+  lastRunAt?: Date;
+}
+
+export interface IListingPricingInsights {
+  pricePerSqm?: number;
+  percentile?: number;
+  neighborhoodAvg?: number;
+  yoyChangePct?: number;
+  projectedAppreciationPct?: number;
+  demandScore?: number;
+  dynamicRange?: {
+    conservative?: number;
+    base?: number;
+    bullish?: number;
+  };
+  confidence?: number;
+  lastComputedAt?: Date;
+}
+
+export interface IListingProptech {
+  smartHomeLevel: SmartHomeLevel;
+  features: ProptechFeature[];
+  iotVendors: string[];
+  sensors: string[];
+  energyScore?: number;
+  waterScore?: number;
+  evCharging?: boolean;
+  solarReady?: boolean;
+}
+
+export interface IListingIotFeature {
+  key?: string;
+  label?: string;
+}
+
+export interface IListingPricingMeta {
+  lastUpdatedAt?: Date;
+  currentBand?: string;
+  marketAverage?: number;
+  marketRangeMin?: number;
+  marketRangeMax?: number;
+  yoyChangePct?: number;
+  suggestedPrice?: number;
+}
+
+export interface IListingOffline {
+  cacheKey?: string;
+  payloadHash?: string;
+  version: number;
+  lastSyncedAt?: Date;
+}
+
+export interface IListingFmLifecycle {
+  propertyId?: mongoose.Types.ObjectId;
+  workOrderTemplateId?: mongoose.Types.ObjectId;
+  autoCreateOn: ListingStatus[];
+  lastWorkOrderId?: mongoose.Types.ObjectId;
+  lastWorkOrderCreatedAt?: Date;
+  lastTransactionValue?: number;
+  lastVatAmount?: number;
+  zatcaQrBase64?: string;
+}
+
+export interface IListing extends Document {
+  orgId: mongoose.Types.ObjectId;
+  listerId: mongoose.Types.ObjectId;
+  propertyRef?: mongoose.Types.ObjectId;
+  intent: ListingIntent;
+  propertyType: PropertyType;
+  title?: string;
+  description?: string;
+  address: string;
+  city: string;
+  neighborhood?: string;
+  location: {
+    addressLine?: string;
+    cityId?: string;
+    neighborhoodId?: string;
+    geo: {
+      type: "Point";
+      coordinates: [number, number];
+    };
+  };
+  areaSqm?: number;
+  beds?: number;
+  baths?: number;
+  kitchens?: number;
+  ageYears?: number;
+  furnishing?: FurnishingStatus;
+  amenities: string[];
+  streetWidthM?: number;
+  facing?: "N" | "S" | "E" | "W";
+  media: IListingMedia[];
+  price: {
+    amount: number;
+    currency: string;
+    frequency?: RentFrequency | null;
+  };
+  vatRate?: number;
+  source: ListerType;
+  compliance: IListingCompliance;
+  status: ListingStatus;
+  featuredLevel?: number;
+  pinnedUntil?: Date;
+  analytics: IListingAnalytics;
+  moderation: IListingModeration;
+  boost?: {
+    dailyBudget?: number;
+    startAt?: Date;
+    endAt?: Date;
+    impressionsForecast?: number;
+  };
+  ratings?: {
+    average?: number;
+    count?: number;
+  };
+  auction?: {
+    isAuction?: boolean;
+    startAt?: Date;
+    endAt?: Date;
+    reserve?: number;
+    deposit?: number;
+    externalLink?: string;
+  };
+  rnplEligible?: boolean;
+  immersive?: IListingImmersive;
+  ai?: IListingAI;
+  pricingInsights?: IListingPricingInsights;
+  proptech?: IListingProptech;
+  iotFeatures?: IListingIotFeature[];
+  pricing?: IListingPricingMeta;
+  offline?: IListingOffline;
+  fmLifecycle?: IListingFmLifecycle;
+  createdAt: Date;
+  updatedAt: Date;
+  publishedAt?: Date;
+}
+
+const GeoPointSchema = new Schema(
+  {
+    type: { type: String, enum: ["Point"], default: "Point" },
+    coordinates: {
+      type: [Number],
+      required: true,
+      validate: {
+        validator: (coords: number[]) =>
+          Array.isArray(coords) && coords.length === 2,
+        message: "Geo coordinates must be [lng, lat]",
+      },
+    },
+  },
+  { _id: false },
+);
+
+const MediaSchema = new Schema(
+  {
+    url: { type: String, required: true },
+    kind: {
+      type: String,
+      enum: ["IMAGE", "VIDEO", "TOUR", "VR"],
+      required: true,
+    },
+    order: { type: Number, required: true },
+  },
+  { _id: false },
+);
+
+const ImmersiveSchema = new Schema(
+  {
+    vrTour: {
+      url: { type: String },
+      provider: { type: String },
+      thumbnail: { type: String },
+      spatialAnchors: { type: [String], default: [] },
+      ready: { type: Boolean, default: false },
+    },
+    arModels: {
+      ios: { type: String },
+      android: { type: String },
+      web: { type: String },
+    },
+    digitalTwin: {
+      url: { type: String },
+      version: { type: String },
+    },
+    highlights: { type: [String], default: [] },
+  },
+  { _id: false },
+);
+
+const AiSchema = new Schema(
+  {
+    recommendationScore: { type: Number, default: 0, min: 0, max: 100 },
+    variant: {
+      type: String,
+      enum: ["primary", "neighbor", "experimental"],
+      default: "primary",
+    },
+    explanation: { type: [String], default: [] },
+    badges: { type: [String], default: [] },
+    similarListingIds: [{ type: Schema.Types.ObjectId, ref: "AqarListing" }],
+    demandSignal: { type: Number, min: 0, max: 1 },
+    lastRunAt: { type: Date },
+  },
+  { _id: false },
+);
+
+const PricingInsightsSchema = new Schema(
+  {
+    pricePerSqm: { type: Number, min: 0 },
+    percentile: { type: Number, min: 0, max: 100 },
+    neighborhoodAvg: { type: Number, min: 0 },
+    yoyChangePct: { type: Number },
+    projectedAppreciationPct: { type: Number },
+    demandScore: { type: Number, min: 0, max: 100 },
+    dynamicRange: {
+      conservative: { type: Number },
+      base: { type: Number },
+      bullish: { type: Number },
+    },
+    confidence: { type: Number, min: 0, max: 1 },
+    lastComputedAt: { type: Date },
+  },
+  { _id: false },
+);
+
+const ProptechSchema = new Schema(
+  {
+    smartHomeLevel: {
+      type: String,
+      enum: Object.values(SmartHomeLevel),
+      default: SmartHomeLevel.NONE,
+    },
+    features: {
+      type: [{ type: String, enum: Object.values(ProptechFeature) }],
+      default: [],
+    },
+    iotVendors: { type: [String], default: [] },
+    sensors: { type: [String], default: [] },
+    energyScore: { type: Number, min: 0, max: 100 },
+    waterScore: { type: Number, min: 0, max: 100 },
+    evCharging: { type: Boolean, default: false },
+    solarReady: { type: Boolean, default: false },
+  },
+  { _id: false },
+);
+
+const IotFeaturesSchema = new Schema(
+  {
+    key: { type: String },
+    label: { type: String },
+  },
+  { _id: false },
+);
+
+const PricingSchema = new Schema(
+  {
+    lastUpdatedAt: { type: Date },
+    currentBand: { type: String },
+    marketAverage: { type: Number },
+    marketRangeMin: { type: Number },
+    marketRangeMax: { type: Number },
+    yoyChangePct: { type: Number },
+    suggestedPrice: { type: Number },
+  },
+  { _id: false },
+);
+
+const OfflineSchema = new Schema(
+  {
+    cacheKey: { type: String },
+    payloadHash: { type: String },
+    version: { type: Number, default: 1 },
+    lastSyncedAt: { type: Date },
+  },
+  { _id: false },
+);
+
+const FmLifecycleSchema = new Schema(
+  {
+    propertyId: { type: Schema.Types.ObjectId, ref: "Property" },
+    workOrderTemplateId: {
+      type: Schema.Types.ObjectId,
+      ref: "WorkOrderTemplate",
+    },
+    autoCreateOn: {
+      type: [{ type: String, enum: Object.values(ListingStatus) }],
+      default: [ListingStatus.RENTED],
+    },
+    lastWorkOrderId: { type: Schema.Types.ObjectId, ref: "WorkOrder" },
+    lastWorkOrderCreatedAt: { type: Date },
+    lastTransactionValue: { type: Number },
+    lastVatAmount: { type: Number },
+    zatcaQrBase64: { type: String },
+  },
+  { _id: false },
+);
+
+// Schema
+const ListingSchema = new Schema<IListing>(
+  {
+    orgId: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      index: true,
+    },
+    listerId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    propertyRef: { type: Schema.Types.ObjectId, ref: "Property" },
+    intent: {
+      type: String,
+      enum: Object.values(ListingIntent),
+      required: true,
+      index: true,
+    },
+    propertyType: {
+      type: String,
+      enum: Object.values(PropertyType),
+      required: true,
+      index: true,
+    },
+    title: { type: String, maxlength: 200 },
+    description: { type: String, maxlength: 5000 },
+    address: { type: String, required: true },
+    city: { type: String, required: true, index: true },
+    neighborhood: { type: String, index: true },
+    location: {
+      addressLine: { type: String },
+      cityId: { type: String, index: true },
+      neighborhoodId: { type: String, index: true },
+      geo: { type: GeoPointSchema, required: true },
+    },
+    areaSqm: { type: Number, min: 0 },
+    beds: { type: Number, min: 0, index: true },
+    baths: { type: Number, min: 0, index: true },
+    kitchens: { type: Number, min: 0 },
+    ageYears: { type: Number, min: 0 },
+    furnishing: { type: String, enum: Object.values(FurnishingStatus) },
+    amenities: { type: [String], default: [] },
+    streetWidthM: { type: Number, min: 0 },
+    facing: { type: String, enum: ["N", "S", "E", "W"] },
+    media: { type: [MediaSchema], default: [] },
+    price: {
+      amount: { type: Number, required: true, min: 0 },
+      currency: { type: String, default: "SAR" },
+      frequency: {
+        type: String,
+        enum: [...Object.values(RentFrequency), null],
+        default: null,
+      },
+    },
+    vatRate: { type: Number, default: 15 },
+    source: {
+      type: String,
+      enum: Object.values(ListerType),
+      required: true,
+      index: true,
+    },
+    compliance: {
+      falLicenseNo: { type: String },
+      adPermitNo: { type: String },
+      brokerageContractId: { type: String },
+      verifiedOwner: { type: Boolean, default: false },
+      nafathVerified: { type: Boolean, default: false },
+      foreignOwnerCompliant: { type: Boolean, default: false },
+      verifiedAt: { type: Date },
+    },
+    status: {
+      type: String,
+      enum: Object.values(ListingStatus),
+      default: ListingStatus.DRAFT,
+      required: true,
+      index: true,
+    },
+    featuredLevel: { type: Number, default: 0, index: true },
+    pinnedUntil: { type: Date },
+    analytics: {
+      views: { type: Number, default: 0 },
+      favorites: { type: Number, default: 0 },
+      inquiries: { type: Number, default: 0 },
+      lastViewedAt: { type: Date },
+      ctr: { type: Number, default: 0 },
+    },
+    moderation: {
+      riskFlags: { type: [String], default: [] },
+      lastReviewAt: { type: Date },
+      reviewerId: { type: Schema.Types.ObjectId, ref: "User" },
+      notes: { type: String },
+    },
+    boost: {
+      dailyBudget: { type: Number, min: 0 },
+      startAt: { type: Date },
+      endAt: { type: Date },
+      impressionsForecast: { type: Number, min: 0 },
+    },
+    ratings: {
+      average: { type: Number, min: 0, max: 5 },
+      count: { type: Number, min: 0 },
+    },
+    auction: {
+      isAuction: { type: Boolean, default: false },
+      startAt: { type: Date },
+      endAt: { type: Date },
+      reserve: { type: Number, min: 0 },
+      deposit: { type: Number, min: 0 },
+      externalLink: { type: String },
+    },
+    rnplEligible: { type: Boolean, default: false },
+    immersive: { type: ImmersiveSchema, default: () => ({}) },
+    ai: { type: AiSchema, default: () => ({}) },
+    pricingInsights: { type: PricingInsightsSchema, default: () => ({}) },
+    proptech: { type: ProptechSchema, default: () => ({}) },
+    iotFeatures: { type: [IotFeaturesSchema], default: [] },
+    pricing: { type: PricingSchema },
+    offline: { type: OfflineSchema, default: () => ({ version: 1 }) },
+    fmLifecycle: { type: FmLifecycleSchema },
+    publishedAt: { type: Date },
+  },
+  {
+    timestamps: true,
+    collection: "aqar_listings",
+  },
+);
+
+// Indexes
+ListingSchema.index({ "location.geo": "2dsphere" });
+ListingSchema.index({
+  city: 1,
+  neighborhood: 1,
+  intent: 1,
+  propertyType: 1,
+  "price.amount": 1,
+  status: 1,
+});
+ListingSchema.index({ "compliance.adPermitNo": 1 }, { sparse: true });
+ListingSchema.index({ "compliance.nafathVerified": 1 }, { sparse: true });
+ListingSchema.index({ "auction.isAuction": 1, status: 1 });
+ListingSchema.index({ rnplEligible: 1, status: 1 });
+ListingSchema.index({ createdAt: -1 });
+ListingSchema.index({ publishedAt: -1 });
+ListingSchema.index({ featuredLevel: -1, publishedAt: -1 });
+ListingSchema.index({ "ai.recommendationScore": -1, status: 1 });
+ListingSchema.index({ "pricingInsights.pricePerSqm": 1, city: 1 });
+ListingSchema.index({ "proptech.smartHomeLevel": 1, status: 1 });
+ListingSchema.index({ "offline.cacheKey": 1 }, { sparse: true });
+
+// =============================================================================
+// DATA-001 FIX: Apply tenantIsolationPlugin for multi-tenant data isolation
+// CRITICAL: Prevents cross-tenant data access in Aqar Marketplace listings
+// =============================================================================
+ListingSchema.plugin(tenantIsolationPlugin);
+
+// Virtual text for Atlas Search
+ListingSchema.virtual("searchText").get(function (this: IListing) {
+  const amenitiesText = Array.isArray(this.amenities)
+    ? this.amenities.join(" ")
+    : "";
+  const proptechText = Array.isArray(this.proptech?.features)
+    ? this.proptech.features.join(" ")
+    : "";
+  return `${this.title || ""} ${this.description || ""} ${amenitiesText} ${proptechText}`;
+});
+
+// Methods
+ListingSchema.methods.incrementViews = async function (this: IListing) {
+  await (this.constructor as typeof mongoose.Model).updateOne(
+    { _id: this._id },
+    {
+      $inc: { "analytics.views": 1 },
+      $set: { "analytics.lastViewedAt": new Date() },
+    },
+  );
+};
+
+ListingSchema.methods.incrementFavorites = async function (this: IListing) {
+  await (this.constructor as typeof mongoose.Model).updateOne(
+    { _id: this._id },
+    { $inc: { "analytics.favorites": 1 } },
+  );
+};
+
+ListingSchema.methods.incrementInquiries = async function (this: IListing) {
+  await (this.constructor as typeof mongoose.Model).updateOne(
+    { _id: this._id },
+    { $inc: { "analytics.inquiries": 1 } },
+  );
+};
+
+// Compliance guard for agents
+ListingSchema.pre("save", function (this: IListing, next) {
+  if (this.source === ListerType.AGENT) {
+    const hasFal =
+      typeof this.compliance?.falLicenseNo === "string" &&
+      this.compliance.falLicenseNo.trim().length > 0;
+    const hasAdPermit =
+      typeof this.compliance?.adPermitNo === "string" &&
+      this.compliance.adPermitNo.trim().length > 0;
+    if (!hasFal || !hasAdPermit || !this.compliance?.nafathVerified) {
+      const err = new Error(
+        "Broker ads require valid FAL license, ad permit, and Nafath verification",
+      );
+      err.name = "ValidationError";
+      return next(err);
+    }
+  }
+  next();
+});
+
+export const Listing = getModel<IListing>("AqarListing", ListingSchema);
+
+export default Listing;
+
+]]>
+</file>
+
+<file path="server/models/aqar/MarketingRequest.ts">
+<![CDATA[
+/**
+ * Aqar Souq - MarketingRequest Model
+ *
+ * Property owners requesting brokers to market their property
+ * Broker receives lead, negotiates commission, posts listing
+ */
+
+import mongoose, { Schema, Document, Model } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
+
+export enum MarketingRequestStatus {
+  PENDING = "PENDING", // Awaiting broker response
+  ACCEPTED = "ACCEPTED", // Broker accepted
+  LISTING_CREATED = "LISTING_CREATED", // Broker posted listing
+  REJECTED = "REJECTED", // Broker rejected
+  EXPIRED = "EXPIRED", // Request expired (30 days)
+}
+
+export interface IMarketingRequest extends Document {
+  // Owner
+  ownerId: mongoose.Types.ObjectId;
+  orgId: mongoose.Types.ObjectId;
+
+  // Property details
+  intent: "BUY" | "RENT" | "DAILY";
+  propertyType: string;
+  city: string;
+  neighborhood?: string;
+  address?: string;
+  geo?: {
+    type: "Point";
+    coordinates: [number, number]; // [lng, lat]
+  };
+
+  // Specifications
+  areaSqm: number;
+  beds?: number;
+  baths?: number;
+  price: number;
+  description?: string;
+
+  // Owner contact
+  ownerName: string;
+  ownerPhone: string;
+  ownerEmail?: string;
+
+  // Broker
+  brokerId?: mongoose.Types.ObjectId;
+  proposedCommissionPercent?: number;
+
+  // Status
+  status: MarketingRequestStatus;
+
+  // Outcome
+  listingId?: mongoose.Types.ObjectId; // Created listing
+  acceptedAt?: Date;
+  rejectedAt?: Date;
+  rejectionReason?: string;
+  expiresAt: Date;
+
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const MarketingRequestSchema = new Schema<IMarketingRequest>(
+  {
+    ownerId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    orgId: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      index: true,
+    },
+
+    intent: {
+      type: String,
+      enum: ["BUY", "RENT", "DAILY"],
+      required: true,
+      index: true,
+    },
+    propertyType: { type: String, required: true },
+    city: { type: String, required: true, index: true },
+    neighborhood: { type: String },
+    address: { type: String, maxlength: 500 },
+    geo: {
+      type: { type: String, enum: ["Point"] },
+      coordinates: { type: [Number] },
+    },
+
+    areaSqm: { type: Number, required: true, min: 0 },
+    beds: { type: Number, min: 0 },
+    baths: { type: Number, min: 0 },
+    price: { type: Number, required: true, min: 0 },
+    description: { type: String, maxlength: 2000 },
+
+    ownerName: { type: String, required: true, maxlength: 200 },
+    ownerPhone: { type: String, required: true },
+    ownerEmail: { type: String, maxlength: 200 },
+
+    brokerId: { type: Schema.Types.ObjectId, ref: "User", index: true },
+    proposedCommissionPercent: { type: Number, min: 0, max: 100 },
+
+    status: {
+      type: String,
+      enum: Object.values(MarketingRequestStatus),
+      default: MarketingRequestStatus.PENDING,
+      required: true,
+      index: true,
+    },
+
+    listingId: { type: Schema.Types.ObjectId, ref: "AqarListing" },
+    acceptedAt: { type: Date },
+    rejectedAt: { type: Date },
+    rejectionReason: { type: String, maxlength: 500 },
+    expiresAt: { type: Date, required: true, index: true },
+  },
+  {
+    timestamps: true,
+    collection: "aqar_marketing_requests",
+  },
+);
+
+// Indexes
+MarketingRequestSchema.index({ brokerId: 1, status: 1, createdAt: -1 });
+MarketingRequestSchema.index({ city: 1, status: 1 });
+MarketingRequestSchema.index({ geo: "2dsphere" });
+
+// Pre-save: Set expiration (30 days)
+MarketingRequestSchema.pre("save", function (next) {
+  if (this.isNew && !this.expiresAt) {
+    this.expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+  }
+  next();
+});
+
+// Methods
+MarketingRequestSchema.methods.accept = async function (
+  this: IMarketingRequest,
+  brokerId: mongoose.Types.ObjectId,
+  commissionPercent: number,
+) {
+  if (commissionPercent < 0 || commissionPercent > 100) {
+    throw new Error("Commission percentage must be between 0 and 100");
+  }
+
+  // Use atomic update with status filter to prevent race conditions
+  const result = await (
+    this.constructor as typeof import("mongoose").Model
+  ).findOneAndUpdate(
+    {
+      _id: this._id,
+      status: MarketingRequestStatus.PENDING,
+    },
+    {
+      $set: {
+        brokerId,
+        proposedCommissionPercent: commissionPercent,
+        status: MarketingRequestStatus.ACCEPTED,
+        acceptedAt: new Date(),
+      },
+    },
+    { new: true },
+  );
+
+  if (!result) {
+    throw new Error("Only pending requests can be accepted");
+  }
+
+  // Update this instance with new values
+  Object.assign(this, result.toObject());
+};
+
+MarketingRequestSchema.methods.reject = async function (
+  this: IMarketingRequest,
+  reason?: string,
+) {
+  if (this.status !== MarketingRequestStatus.PENDING) {
+    throw new Error("Only pending requests can be rejected");
+  }
+  this.status = MarketingRequestStatus.REJECTED;
+  this.rejectedAt = new Date();
+  this.rejectionReason = reason;
+  await this.save();
+};
+
+MarketingRequestSchema.methods.linkListing = async function (
+  this: IMarketingRequest,
+  listingId: mongoose.Types.ObjectId,
+) {
+  // Validate listing exists
+  const Listing = mongoose.model("AqarListing");
+  const listing = await Listing.findById(listingId);
+  if (!listing) {
+    throw new Error("Listing not found");
+  }
+
+  // Use atomic update with status filter
+  const result = await (
+    this.constructor as typeof import("mongoose").Model
+  ).findOneAndUpdate(
+    {
+      _id: this._id,
+      status: MarketingRequestStatus.ACCEPTED,
+    },
+    {
+      $set: {
+        listingId,
+        status: MarketingRequestStatus.LISTING_CREATED,
+      },
+    },
+    { new: true },
+  );
+
+  if (!result) {
+    throw new Error("Can only link listing to accepted requests");
+  }
+
+  // Update this instance
+  Object.assign(this, result.toObject());
+};
+
+// =============================================================================
+// DATA-001 FIX: Apply tenantIsolationPlugin for multi-tenant data isolation
+// CRITICAL: Prevents cross-tenant data access in Aqar marketing requests
+// =============================================================================
+MarketingRequestSchema.plugin(tenantIsolationPlugin);
+
+const MarketingRequest = getModel<IMarketingRequest>(
+  "AqarMarketingRequest",
+  MarketingRequestSchema,
+);
+
+export default MarketingRequest;
+
+]]>
+</file>
+
+<file path="server/models/aqar/Package.ts">
+<![CDATA[
+/**
+ * Aqar Souq - Package Model
+ *
+ * Listing packages for brokers/developers
+ * Pricing: 50 SAR (5 ads), 150 SAR (20 ads), 250 SAR (50 ads)
+ */
+
+import mongoose, { Schema, Document, Model } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
+
+export enum PackageType {
+  STARTER = "STARTER", // 50 SAR, 5 listings, 30 days
+  STANDARD = "STANDARD", // 150 SAR, 20 listings, 30 days
+  PREMIUM = "PREMIUM", // 250 SAR, 50 listings, 30 days
+}
+
+export interface IPackageMethods {
+  activate(): Promise<void>;
+  consumeListing(): Promise<void>;
+  checkExpiry(): Promise<void>;
+}
+
+export interface IPackage extends Document, IPackageMethods {
+  // User
+  userId: mongoose.Types.ObjectId;
+  orgId: mongoose.Types.ObjectId;
+
+  // Package details
+  type: PackageType;
+  listingsAllowed: number;
+  listingsUsed: number;
+  validityDays: number;
+
+  // Pricing
+  price: number; // SAR
+
+  // Payment
+  paymentId?: mongoose.Types.ObjectId;
+  paidAt?: Date;
+
+  // Validity
+  activatedAt?: Date;
+  expiresAt?: Date;
+  active: boolean;
+
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const PackageSchema = new Schema<IPackage>(
+  {
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    orgId: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      index: true,
+    },
+
+    type: {
+      type: String,
+      enum: Object.values(PackageType),
+      required: true,
+      index: true,
+    },
+    listingsAllowed: { type: Number, required: true, min: 1 },
+    listingsUsed: { type: Number, default: 0, min: 0 },
+    validityDays: { type: Number, required: true, min: 1 },
+
+    price: { type: Number, required: true, min: 0 },
+
+    paymentId: { type: Schema.Types.ObjectId, ref: "Payment" },
+    paidAt: { type: Date },
+
+    activatedAt: { type: Date },
+    expiresAt: { type: Date, index: true },
+    active: { type: Boolean, default: false, index: true },
+  },
+  {
+    timestamps: true,
+    collection: "aqar_packages",
+  },
+);
+
+// Indexes
+PackageSchema.index({ userId: 1, active: 1, expiresAt: -1 });
+
+// Static: Get package pricing
+PackageSchema.statics.getPricing = function (type: PackageType) {
+  const pricing = {
+    [PackageType.STARTER]: { price: 50, listings: 5, days: 30 },
+    [PackageType.STANDARD]: { price: 150, listings: 20, days: 30 },
+    [PackageType.PREMIUM]: { price: 250, listings: 50, days: 30 },
+  };
+  return pricing[type];
+};
+
+// Methods
+PackageSchema.methods.activate = async function (
+  this: IPackage,
+): Promise<void> {
+  if (this.active) {
+    throw new Error("Package already activated");
+  }
+  if (!this.paidAt) {
+    throw new Error("Package not paid");
+  }
+  this.active = true;
+  this.activatedAt = new Date();
+  this.expiresAt = new Date(
+    Date.now() + this.validityDays * 24 * 60 * 60 * 1000,
+  );
+  await this.save();
+};
+
+PackageSchema.methods.consumeListing = async function (this: IPackage) {
+  // Atomic update to avoid race conditions
+  const now = new Date();
+  const filter: Record<string, unknown> = {
+    _id: this._id,
+    active: true,
+    $expr: { $lt: ["$listingsUsed", "$listingsAllowed"] },
+  };
+
+  // Add expiry check only if expiresAt is set
+  if (this.expiresAt) {
+    filter.expiresAt = { $gt: now };
+  }
+
+  const updated = await (
+    this.constructor as unknown as typeof import("mongoose").Model
+  ).findOneAndUpdate(filter, { $inc: { listingsUsed: 1 } }, { new: true });
+
+  if (!updated) {
+    // Determine specific error
+    if (!this.active) {
+      throw new Error("Package not active");
+    }
+    if (this.expiresAt && this.expiresAt < now) {
+      throw new Error("Package expired");
+    }
+    if (this.listingsUsed >= this.listingsAllowed) {
+      throw new Error("Package listings exhausted");
+    }
+    throw new Error("Failed to consume listing");
+  }
+
+  // Update current instance
+  this.listingsUsed = updated.listingsUsed as number;
+};
+
+PackageSchema.methods.checkExpiry = async function (this: IPackage) {
+  if (this.active && this.expiresAt && this.expiresAt < new Date()) {
+    this.active = false;
+    await this.save();
+  }
+};
+
+// =============================================================================
+// DATA-001 FIX: Apply tenantIsolationPlugin for multi-tenant data isolation
+// CRITICAL: Prevents cross-tenant data access in Aqar packages
+// =============================================================================
+PackageSchema.plugin(tenantIsolationPlugin);
+
+const Package = getModel<IPackage>("AqarPackage", PackageSchema);
+
+export default Package;
+
+]]>
+</file>
+
+<file path="server/models/aqar/Payment.ts">
+<![CDATA[
+/**
+ * Aqar Souq - Payment Model
+ *
+ * Payment records for packages, boosts, fees
+ * Integration with Fixzit Finance module
+ */
+
+import mongoose, { Schema, Document, Model } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
+
+export enum PaymentType {
+  PACKAGE = "PACKAGE", // Listing package
+  BOOST = "BOOST", // Listing boost
+  LISTING_FEE = "LISTING_FEE", // 999 SAR SALE, 199 SAR RENT/DAILY
+  EJAR_FEE = "EJAR_FEE", // 299 SAR single, 499 SAR multiple
+  PLATFORM_FEE = "PLATFORM_FEE", // Booking platform fee (15%)
+}
+
+export enum PaymentStatus {
+  PENDING = "PENDING", // Awaiting payment
+  PROCESSING = "PROCESSING", // Payment in progress
+  COMPLETED = "COMPLETED", // Payment successful
+  FAILED = "FAILED", // Payment failed
+  PARTIALLY_REFUNDED = "PARTIALLY_REFUNDED", // Partially refunded
+  REFUNDED = "REFUNDED", // Fully refunded
+}
+
+export enum PaymentMethod {
+  CREDIT_CARD = "CREDIT_CARD",
+  MADA = "MADA", // KSA domestic cards
+  APPLE_PAY = "APPLE_PAY",
+  STC_PAY = "STC_PAY", // KSA mobile wallet
+}
+
+export interface IPayment extends Document {
+  // User
+  userId: mongoose.Types.ObjectId;
+  orgId: mongoose.Types.ObjectId;
+
+  // Payment details
+  type: PaymentType;
+  amount: number; // SAR
+  currency: string; // SAR
+
+  // Related entity
+  relatedId?: mongoose.Types.ObjectId; // Package/Boost/Listing/Booking ID
+  relatedModel?: string; // 'AqarPackage', 'AqarBoost', etc.
+
+  // Status
+  status: PaymentStatus;
+
+  // Payment method
+  method?: PaymentMethod;
+
+  // Gateway response
+  gatewayTransactionId?: string;
+  gatewayResponse?: Record<string, unknown>;
+
+  // Timestamps
+  paidAt?: Date;
+  failedAt?: Date;
+  refundedAt?: Date;
+  refundAmount?: number; // SAR - preserved original amount
+
+  // Integration
+  invoiceId?: mongoose.Types.ObjectId; // Link to Finance Invoice
+
+  // Failure tracking
+  failureReason?: string;
+  lastError?: string;
+
+  // ZATCA compliance (Saudi Arabia e-invoicing)
+  zatca?: {
+    complianceStatus?: "NOT_REQUIRED" | "PENDING_RETRY" | "CLEARED" | "FAILED";
+    lastRetryAt?: Date;
+    lastRetryError?: string;
+    retryAttempts?: number;
+    lastAttemptAt?: Date;
+    qrCode?: string;
+    invoiceHash?: string;
+    clearanceId?: string;
+    clearedAt?: Date;
+    retryCompletedAt?: Date;
+    // Evidence fields for compliance audit trail
+    lastError?: string;
+    submittedAt?: Date;
+    invoicePayload?: Record<string, unknown>;
+  };
+
+  // Metadata
+  metadata?: Record<string, unknown>;
+}
+
+const PaymentSchema = new Schema<IPayment>(
+  {
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    orgId: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      index: true,
+    },
+
+    type: {
+      type: String,
+      enum: Object.values(PaymentType),
+      required: true,
+      index: true,
+    },
+    amount: { type: Number, required: true, min: 0 },
+    currency: { type: String, default: "SAR", required: true },
+
+    relatedId: { type: Schema.Types.ObjectId, index: true },
+    relatedModel: {
+      type: String,
+      enum: ["AqarPackage", "AqarBoost", "AqarListing", "Booking"], // Explicit allowed values
+    },
+
+    status: {
+      type: String,
+      enum: Object.values(PaymentStatus),
+      default: PaymentStatus.PENDING,
+      required: true,
+    },
+
+    method: {
+      type: String,
+      enum: Object.values(PaymentMethod),
+    },
+
+    gatewayTransactionId: { type: String },
+    // Sensitive: Gateway response may contain PII, tokens, or internal gateway data
+    // Use select: false to prevent accidental exposure in queries
+    gatewayResponse: { type: Schema.Types.Mixed, select: false },
+
+    paidAt: { type: Date },
+    failedAt: { type: Date },
+    refundedAt: { type: Date },
+    refundAmount: { type: Number, min: 0, default: null },
+
+    invoiceId: { type: Schema.Types.ObjectId, ref: "Invoice" },
+
+    // Failure tracking
+    failureReason: { type: String },
+    lastError: { type: String },
+
+    // ZATCA compliance (Saudi Arabia e-invoicing)
+    zatca: {
+      complianceStatus: {
+        type: String,
+        enum: ["NOT_REQUIRED", "PENDING_RETRY", "CLEARED", "FAILED"],
+        index: true,
+      },
+      lastRetryAt: { type: Date },
+      lastRetryError: { type: String },
+      retryAttempts: { type: Number, default: 0 },
+      lastAttemptAt: { type: Date },
+      qrCode: { type: String },
+      invoiceHash: { type: String },
+      clearanceId: { type: String },
+      clearedAt: { type: Date },
+      retryCompletedAt: { type: Date },
+      // Evidence fields for compliance audit trail (written by PayTabs callback)
+      lastError: { type: String },
+      submittedAt: { type: Date },
+      // Sensitive: Invoice payload may contain business details
+      // Use select: false to prevent accidental exposure in queries
+      invoicePayload: { type: Schema.Types.Mixed, select: false },
+    },
+
+    // Sensitive: Metadata may contain internal notes, debugging info, or PII
+    // Use select: false to prevent accidental exposure in queries
+    metadata: { type: Schema.Types.Mixed, select: false },
+  },
+  {
+    timestamps: true,
+    collection: "aqar_payments",
+  },
+);
+
+// Indexes (compound index covers status queries)
+PaymentSchema.index({ userId: 1, status: 1, createdAt: -1 });
+PaymentSchema.index({ gatewayTransactionId: 1 });
+// ZATCA retry query index: supports scanAndEnqueuePendingRetries() in jobs/zatca-retry-queue.ts
+// Leading key is zatca.complianceStatus to support cross-org scans (which don't filter by orgId)
+// Partial filter keeps index tight by only including PENDING_RETRY documents
+PaymentSchema.index(
+  { "zatca.complianceStatus": 1, "zatca.lastRetryAt": 1, orgId: 1 },
+  { partialFilterExpression: { "zatca.complianceStatus": "PENDING_RETRY" } }
+);
+
+// Enable virtuals in JSON/Object output for API responses
+PaymentSchema.set("toJSON", { virtuals: true });
+PaymentSchema.set("toObject", { virtuals: true });
+// Legacy org_id index: covers $or queries for documents with org_id field
+// Required until all legacy documents are migrated to orgId
+// Leading key is zatca.complianceStatus to support cross-org scans
+PaymentSchema.index(
+  { "zatca.complianceStatus": 1, "zatca.lastRetryAt": 1, org_id: 1 },
+  { partialFilterExpression: { "zatca.complianceStatus": "PENDING_RETRY" } }
+);
+
+// Static: Get standard fees
+PaymentSchema.statics.getStandardFees = function () {
+  return {
+    SALE_LISTING: 999, // SAR
+    RENT_LISTING: 199, // SAR
+    DAILY_LISTING: 199, // SAR
+    EJAR_SINGLE: 299, // SAR
+    EJAR_MULTIPLE: 499, // SAR
+    BOOKING_PLATFORM_FEE: 0.15, // 15%
+  };
+};
+
+// Methods
+
+/**
+ * Scrub sensitive data from gatewayResponse for safe logging/display
+ * Removes PII, tokens, and internal gateway details
+ * Note: Currently does shallow scrubbing (depth 1). Nested objects shown as '[OBJECT]'
+ * to prevent accidental leakage. For full recursive scrubbing, implement depth-limited recursion.
+ */
+PaymentSchema.methods.getSafeGatewayResponse = function (
+  this: IPayment,
+): Record<string, unknown> | undefined {
+  if (!this.gatewayResponse) return undefined;
+
+  const scrubbed: Record<string, unknown> = {};
+  const sensitiveKeys = [
+    "card",
+    "cardNumber",
+    "cvv",
+    "pan",
+    "token",
+    "accessToken",
+    "apiKey",
+    "customer",
+    "email",
+    "phone",
+    "name",
+    "address",
+    "ip",
+    "userAgent",
+    "password",
+    "secret",
+    "key",
+    "authorization",
+    "signature",
+  ];
+
+  for (const [key, value] of Object.entries(this.gatewayResponse)) {
+    const keyLower = key.toLowerCase();
+    const isSensitive = sensitiveKeys.some((sk) =>
+      keyLower.includes(sk.toLowerCase()),
+    );
+
+    if (isSensitive) {
+      scrubbed[key] = "[REDACTED]";
+    } else if (typeof value === "object" && value !== null) {
+      // Shallow scrubbing: nested objects replaced with '[OBJECT]' placeholder
+      scrubbed[key] = "[OBJECT]";
+    } else {
+      scrubbed[key] = value;
+    }
+  }
+
+  return scrubbed;
+};
+
+PaymentSchema.methods.markAsCompleted = async function (
+  this: IPayment,
+  transactionId?: string,
+  response?: Record<string, unknown>,
+) {
+  // SECURITY: Require orgId to prevent cross-tenant mutations even if caller context is missing
+  if (!this.orgId) {
+    throw new Error("Cannot mark payment as completed: orgId is required for tenant isolation");
+  }
+
+  // Atomic update with state precondition to prevent invalid transitions
+  // SECURITY: Include orgId in predicate to enforce tenant isolation at data layer
+  const result = await (
+    this.constructor as typeof mongoose.Model
+  ).findOneAndUpdate(
+    {
+      _id: this._id,
+      orgId: this.orgId, // SECURITY: Explicit org scoping
+      status: PaymentStatus.PENDING, // Only allow PENDING → COMPLETED
+    },
+    {
+      $set: {
+        status: PaymentStatus.COMPLETED,
+        paidAt: new Date(),
+        ...(transactionId && { gatewayTransactionId: transactionId }),
+        ...(response && { gatewayResponse: response }),
+      },
+    },
+    { new: true },
+  );
+
+  if (!result) {
+    throw new Error(
+      `Cannot mark payment as completed: not in PENDING status (current: ${this.status})`,
+    );
+  }
+
+  // Update local instance
+  this.status = (result as IPayment).status;
+  this.paidAt = (result as IPayment).paidAt;
+  if (transactionId)
+    this.gatewayTransactionId = (result as IPayment).gatewayTransactionId;
+  if (response) this.gatewayResponse = (result as IPayment).gatewayResponse;
+};
+
+PaymentSchema.methods.markAsFailed = async function (
+  this: IPayment,
+  response?: Record<string, unknown>,
+) {
+  // SECURITY: Require orgId to prevent cross-tenant mutations even if caller context is missing
+  if (!this.orgId) {
+    throw new Error("Cannot mark payment as failed: orgId is required for tenant isolation");
+  }
+
+  // Atomic update with state precondition to prevent invalid transitions
+  // SECURITY: Include orgId in predicate to enforce tenant isolation at data layer
+  const PaymentModel = this.constructor as typeof mongoose.Model;
+  const result = await PaymentModel.findOneAndUpdate(
+    {
+      _id: this._id,
+      orgId: this.orgId, // SECURITY: Explicit org scoping
+      status: PaymentStatus.PENDING, // Only allow PENDING → FAILED
+    },
+    {
+      $set: {
+        status: PaymentStatus.FAILED,
+        failedAt: new Date(),
+        ...(response && { gatewayResponse: response }),
+      },
+    },
+    { new: true },
+  );
+
+  if (!result) {
+    throw new Error(
+      `Cannot mark payment as failed: not in PENDING status (current: ${this.status})`,
+    );
+  }
+
+  // Update local instance
+  this.status = (result as IPayment).status;
+  this.failedAt = (result as IPayment).failedAt;
+  if (response) this.gatewayResponse = (result as IPayment).gatewayResponse;
+};
+
+PaymentSchema.methods.markAsRefunded = async function (
+  this: IPayment,
+  refundAmount?: number,
+) {
+  const actualRefundAmount = refundAmount ?? this.amount;
+
+  // Validate refund amount
+  if (actualRefundAmount <= 0 || actualRefundAmount > this.amount) {
+    throw new Error(`Refund amount must be between 0 and ${this.amount}`);
+  }
+
+  // Atomic update with predicates to prevent race conditions
+  const currentRefundAmount = this.refundAmount ?? 0;
+  const newTotalRefunded = currentRefundAmount + actualRefundAmount;
+
+  // Validate total before attempting DB update
+  if (newTotalRefunded > this.amount) {
+    throw new Error(
+      `Total refund (${newTotalRefunded}) exceeds payment amount (${this.amount})`,
+    );
+  }
+
+  const newStatus =
+    newTotalRefunded >= this.amount
+      ? PaymentStatus.REFUNDED
+      : PaymentStatus.PARTIALLY_REFUNDED;
+
+  // SECURITY: Require orgId to prevent cross-tenant mutations even if caller context is missing
+  if (!this.orgId) {
+    throw new Error("Cannot mark payment as refunded: orgId is required for tenant isolation");
+  }
+
+  // SECURITY: Include orgId in predicate to enforce tenant isolation at data layer
+  const result = await (
+    this.constructor as typeof import("mongoose").Model
+  ).findOneAndUpdate(
+    {
+      _id: this._id,
+      orgId: this.orgId, // SECURITY: Explicit org scoping
+      status: {
+        $in: [PaymentStatus.COMPLETED, PaymentStatus.PARTIALLY_REFUNDED],
+      },
+      // Ensure we don't exceed refundable amount in the DB query
+      $expr: {
+        $lte: [
+          { $add: [{ $ifNull: ["$refundAmount", 0] }, actualRefundAmount] },
+          "$amount",
+        ],
+      },
+    },
+    {
+      $inc: { refundAmount: actualRefundAmount },
+      $set: {
+        status: newStatus,
+        refundedAt: new Date(),
+      },
+    },
+    { new: true },
+  );
+
+  if (!result) {
+    // Re-check current state for better error message
+    if (
+      this.status !== PaymentStatus.COMPLETED &&
+      this.status !== PaymentStatus.PARTIALLY_REFUNDED
+    ) {
+      throw new Error(
+        "Can only refund completed or partially refunded payments",
+      );
+    }
+    throw new Error(
+      "Refund failed: concurrent modification or refund amount exceeded",
+    );
+  }
+
+  // Update in-memory instance
+  this.refundAmount = (result as IPayment).refundAmount;
+  this.status = (result as IPayment).status;
+  this.refundedAt = (result as IPayment).refundedAt;
+};
+
+// =============================================================================
+// DATA-001 FIX: Apply tenantIsolationPlugin for multi-tenant data isolation
+// CRITICAL: Prevents cross-tenant data access in Aqar payments
+// =============================================================================
+PaymentSchema.plugin(tenantIsolationPlugin);
+
+const Payment = getModel<IPayment>("AqarPayment", PaymentSchema);
+
+export default Payment;
+
+]]>
+</file>
+
+<file path="server/models/aqar/Project.ts">
+<![CDATA[
+/**
+ * Aqar Souq - Project Model
+ *
+ * Off-plan / new development projects for developers
+ * Matches sa.aqar.fm Projects functionality
+ */
+
+import mongoose, { Schema, Document, Model } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
+
+export enum ProjectStatus {
+  DRAFT = "DRAFT",
+  ACTIVE = "ACTIVE",
+  INACTIVE = "INACTIVE",
+  COMPLETED = "COMPLETED",
+}
+
+export interface IUnitType {
+  name: string; // e.g., "2 Bedroom Apartment"
+  minArea: number; // sqm
+  minPrice: number; // SAR
+  description?: string;
+}
+
+export interface IPaymentPlanStep {
+  name: string; // e.g., "Down Payment"
+  percent: number; // 10, 20, etc.
+  dueDate?: Date;
+}
+
+export interface IPaymentPlan {
+  title: string; // e.g., "Standard Payment Plan"
+  steps: IPaymentPlanStep[];
+}
+
+export interface IProject extends Document {
+  // Developer
+  developerId: mongoose.Types.ObjectId;
+  orgId: mongoose.Types.ObjectId;
+
+  // Project details
+  name: string;
+  city: string;
+  neighborhood?: string;
+  geo: {
+    type: "Point";
+    coordinates: [number, number]; // [lng, lat]
+  };
+  overview: string;
+
+  // Units
+  unitTypes: IUnitType[];
+
+  // Media
+  brochures: Array<{ url: string; label?: string }>;
+  videos: Array<{ url: string; label?: string }>;
+  masterPlanImage?: string;
+
+  // Payment plans
+  paymentPlans: IPaymentPlan[];
+
+  // Status
+  status: ProjectStatus;
+  handoverDate?: Date;
+
+  // Analytics
+  views: number;
+  inquiries: number;
+
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const ProjectSchema = new Schema<IProject>(
+  {
+    developerId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    orgId: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      index: true,
+    },
+
+    name: { type: String, required: true, maxlength: 200 },
+    city: { type: String, required: true, index: true },
+    neighborhood: { type: String, index: true },
+    geo: {
+      type: { type: String, enum: ["Point"], default: "Point", required: true },
+      coordinates: { type: [Number], required: true },
+    },
+    overview: { type: String, required: true, maxlength: 5000 },
+
+    unitTypes: [
+      {
+        name: { type: String, required: true },
+        minArea: { type: Number, required: true, min: 0 },
+        minPrice: { type: Number, required: true, min: 0 },
+        description: { type: String },
+      },
+    ],
+
+    brochures: [
+      {
+        url: { type: String, required: true },
+        label: { type: String },
+      },
+    ],
+    videos: [
+      {
+        url: { type: String, required: true },
+        label: { type: String },
+      },
+    ],
+    masterPlanImage: { type: String },
+
+    paymentPlans: [
+      {
+        title: { type: String, required: true },
+        steps: [
+          {
+            name: { type: String, required: true },
+            percent: { type: Number, required: true, min: 0, max: 100 },
+            dueDate: { type: Date },
+          },
+        ],
+      },
+    ],
+
+    status: {
+      type: String,
+      enum: Object.values(ProjectStatus),
+      default: ProjectStatus.DRAFT,
+      required: true,
+      index: true,
+    },
+    handoverDate: { type: Date },
+
+    views: { type: Number, default: 0 },
+    inquiries: { type: Number, default: 0 },
+  },
+  {
+    timestamps: true,
+    collection: "aqar_projects",
+  },
+);
+
+// Indexes
+ProjectSchema.index({ geo: "2dsphere" });
+ProjectSchema.index({ city: 1, status: 1, handoverDate: 1 });
+ProjectSchema.index({ createdAt: -1 });
+
+// =============================================================================
+// DATA-001 FIX: Apply tenantIsolationPlugin for multi-tenant data isolation
+// CRITICAL: Prevents cross-tenant data access in Aqar projects
+// =============================================================================
+ProjectSchema.plugin(tenantIsolationPlugin);
+
+// Methods
+ProjectSchema.methods.incrementViews = async function (this: IProject) {
+  await (this.constructor as typeof import("mongoose").Model).updateOne(
+    { _id: this._id },
+    { $inc: { views: 1 } },
+  );
+};
+
+ProjectSchema.methods.incrementInquiries = async function (this: IProject) {
+  await (this.constructor as typeof import("mongoose").Model).updateOne(
+    { _id: this._id },
+    { $inc: { inquiries: 1 } },
+  );
+};
+
+const Project = getModel<IProject>("AqarProject", ProjectSchema);
+
+export default Project;
+
+]]>
+</file>
+
+<file path="server/models/aqar/PropertyListing.ts">
+<![CDATA[
+import { Schema, model, models, Types } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
+
+export type PropertyType =
+  | "APARTMENT"
+  | "VILLA"
+  | "TOWNHOUSE"
+  | "PENTHOUSE"
+  | "STUDIO"
+  | "LAND"
+  | "COMMERCIAL"
+  | "WAREHOUSE"
+  | "OFFICE";
+export type ListingType = "SALE" | "RENT" | "LEASE";
+export type PropertyStatus =
+  | "AVAILABLE"
+  | "RESERVED"
+  | "SOLD"
+  | "RENTED"
+  | "OFF_MARKET";
+export type FurnishingStatus =
+  | "UNFURNISHED"
+  | "SEMI_FURNISHED"
+  | "FULLY_FURNISHED";
+
+export interface PropertyLocation {
+  address: {
+    street: string;
+    district: string;
+    city: string;
+    region: string;
+    country: string;
+    postalCode?: string;
+  };
+  coordinates: {
+    lat: number;
+    lng: number;
+  };
+  nearby?: {
+    schools?: number; // distance in km
+    hospitals?: number;
+    malls?: number;
+    mosques?: number;
+    metro?: number;
+  };
+}
+
+export interface PropertyFeatures {
+  bedrooms: number;
+  bathrooms: number;
+  area: {
+    built: number; // sqm
+    plot?: number; // sqm (for villas/land)
+    unit: "sqm" | "sqft";
+  };
+  floor?: number;
+  totalFloors?: number;
+  parking?: number;
+  furnished: FurnishingStatus;
+  amenities: string[]; // pool, gym, security, garden, balcony, etc.
+  yearBuilt?: number;
+  lastRenovated?: number;
+}
+
+export interface PropertyPricing {
+  amount: number;
+  currency: string; // SAR, AED, etc.
+  period?: "MONTH" | "YEAR" | "ONE_TIME"; // for rent/sale
+  negotiable: boolean;
+  includesUtilities?: boolean;
+  includesMaintenanceFee?: boolean;
+  securityDeposit?: number;
+  agentCommission?: {
+    percentage?: number;
+    amount?: number;
+    paidBy: "BUYER" | "SELLER" | "SHARED";
+  };
+}
+
+export interface PropertyMedia {
+  url: string;
+  type: "IMAGE" | "VIDEO" | "VIRTUAL_TOUR" | "FLOOR_PLAN";
+  caption?: string;
+  order: number;
+  isPrimary?: boolean;
+}
+
+export interface PropertyListing {
+  _id: Types.ObjectId;
+  orgId: Types.ObjectId; // Organization/Company managing this
+  agentId?: Types.ObjectId; // Real estate agent
+  ownerId?: Types.ObjectId; // Property owner (if different from agent)
+
+  // Basic Info
+  title: {
+    en: string;
+    ar?: string;
+  };
+  description: {
+    en: string;
+    ar?: string;
+  };
+  propertyType: PropertyType;
+  listingType: ListingType;
+  status: PropertyStatus;
+
+  // Property Details
+  location: PropertyLocation;
+  features: PropertyFeatures;
+  pricing: PropertyPricing;
+
+  // Media
+  media: PropertyMedia[];
+  virtualTourUrl?: string;
+
+  // Additional Info
+  referenceNumber: string; // Unique property reference
+  permitNumber?: string; // RERA permit or equivalent
+  trakheesiNumber?: string; // Dubai specific
+
+  // Engagement
+  views: number;
+  favorites: number;
+  inquiries: number;
+  viewingRequests: Types.ObjectId[]; // Reference to ViewingRequest
+
+  // Metadata
+  featured: boolean;
+  verified: boolean;
+  publishedAt?: Date;
+  expiresAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const PropertyListingSchema = new Schema<PropertyListing>(
+  {
+    // Note: index: true removed from orgId to avoid duplicate index warning
+    // orgId is indexed via composite indexes below (orgId+status, etc.)
+    orgId: { type: Schema.Types.ObjectId, required: true },
+    agentId: { type: Schema.Types.ObjectId, index: true },
+    ownerId: { type: Schema.Types.ObjectId },
+
+    title: {
+      en: { type: String, required: true, trim: true },
+      ar: { type: String, trim: true },
+    },
+    description: {
+      en: { type: String, required: true },
+      ar: { type: String },
+    },
+    propertyType: {
+      type: String,
+      enum: [
+        "APARTMENT",
+        "VILLA",
+        "TOWNHOUSE",
+        "PENTHOUSE",
+        "STUDIO",
+        "LAND",
+        "COMMERCIAL",
+        "WAREHOUSE",
+        "OFFICE",
+      ],
+      required: true,
+      index: true,
+    },
+    listingType: {
+      type: String,
+      enum: ["SALE", "RENT", "LEASE"],
+      required: true,
+      index: true,
+    },
+    status: {
+      type: String,
+      enum: ["AVAILABLE", "RESERVED", "SOLD", "RENTED", "OFF_MARKET"],
+      default: "AVAILABLE",
+      index: true,
+    },
+
+    location: {
+      address: {
+        street: { type: String, required: true },
+        district: { type: String, required: true, index: true },
+        city: { type: String, required: true, index: true },
+        region: { type: String, required: true },
+        country: { type: String, default: "Saudi Arabia" },
+        postalCode: String,
+      },
+      coordinates: {
+        lat: { type: Number, required: true },
+        lng: { type: Number, required: true },
+      },
+      nearby: {
+        schools: Number,
+        hospitals: Number,
+        malls: Number,
+        mosques: Number,
+        metro: Number,
+      },
+    },
+
+    features: {
+      bedrooms: { type: Number, required: true, min: 0, index: true },
+      bathrooms: { type: Number, required: true, min: 0 },
+      area: {
+        built: { type: Number, required: true, min: 0 },
+        plot: { type: Number, min: 0 },
+        unit: { type: String, enum: ["sqm", "sqft"], default: "sqm" },
+      },
+      floor: Number,
+      totalFloors: Number,
+      parking: { type: Number, default: 0 },
+      furnished: {
+        type: String,
+        enum: ["UNFURNISHED", "SEMI_FURNISHED", "FULLY_FURNISHED"],
+        default: "UNFURNISHED",
+        index: true,
+      },
+      amenities: [{ type: String }],
+      yearBuilt: Number,
+      lastRenovated: Number,
+    },
+
+    pricing: {
+      amount: { type: Number, required: true, min: 0, index: true },
+      currency: { type: String, default: "SAR" },
+      period: {
+        type: String,
+        enum: ["MONTH", "YEAR", "ONE_TIME"],
+      },
+      negotiable: { type: Boolean, default: false },
+      includesUtilities: Boolean,
+      includesMaintenanceFee: Boolean,
+      securityDeposit: Number,
+      agentCommission: {
+        percentage: Number,
+        amount: Number,
+        paidBy: {
+          type: String,
+          enum: ["BUYER", "SELLER", "SHARED"],
+        },
+      },
+    },
+
+    media: [
+      {
+        url: { type: String, required: true },
+        type: {
+          type: String,
+          enum: ["IMAGE", "VIDEO", "VIRTUAL_TOUR", "FLOOR_PLAN"],
+          default: "IMAGE",
+        },
+        caption: String,
+        order: { type: Number, default: 0 },
+        isPrimary: { type: Boolean, default: false },
+      },
+    ],
+    virtualTourUrl: String,
+
+    referenceNumber: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+    permitNumber: String,
+    trakheesiNumber: String,
+
+    views: { type: Number, default: 0 },
+    favorites: { type: Number, default: 0 },
+    inquiries: { type: Number, default: 0 },
+    viewingRequests: [{ type: Schema.Types.ObjectId, ref: "ViewingRequest" }],
+
+    featured: { type: Boolean, default: false, index: true },
+    verified: { type: Boolean, default: false, index: true },
+    publishedAt: Date,
+    expiresAt: Date,
+  },
+  {
+    timestamps: true,
+    collection: "aqar_listings",
+  },
+);
+
+// Indexes for efficient querying
+PropertyListingSchema.index({ orgId: 1, status: 1 });
+PropertyListingSchema.index({ "location.coordinates": "2dsphere" }); // Geospatial index
+PropertyListingSchema.index({ propertyType: 1, listingType: 1, status: 1 });
+PropertyListingSchema.index({ "pricing.amount": 1, listingType: 1 });
+PropertyListingSchema.index({
+  "features.bedrooms": 1,
+  "features.bathrooms": 1,
+});
+PropertyListingSchema.index({ createdAt: -1 });
+PropertyListingSchema.index({ featured: 1, publishedAt: -1 });
+
+// Text index for search
+PropertyListingSchema.index({
+  "title.en": "text",
+  "title.ar": "text",
+  "description.en": "text",
+  "description.ar": "text",
+  "location.address.district": "text",
+  "location.address.city": "text",
+});
+
+/**
+ * Multi-tenancy Plugin - Auto-filters queries by orgId
+ * SECURITY: Ensures property listings are isolated per organization
+ */
+PropertyListingSchema.plugin(tenantIsolationPlugin);
+
+const PropertyListingModel = getModel<PropertyListing>(
+  "PropertyListing",
+  PropertyListingSchema,
+);
+
+export default PropertyListingModel;
+
+]]>
+</file>
+
+<file path="server/models/aqar/PropertyTransaction.ts">
+<![CDATA[
+import { Schema, model, models, Types } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
+import { auditPlugin } from "../../plugins/auditPlugin";
+
+export type TransactionType = "SALE" | "RENTAL" | "LEASE";
+export type TransactionStatus =
+  | "DRAFT"
+  | "PENDING"
+  | "SIGNED"
+  | "COMPLETED"
+  | "CANCELLED";
+export type PaymentStatus = "PENDING" | "PARTIAL" | "PAID" | "REFUNDED";
+
+export interface TransactionParty {
+  userId?: Types.ObjectId; // Changed for ref attribute
+  name: string;
+  email: string;
+  phone: string;
+  idNumber: string; // National ID, Iqama, etc.
+  idType: "NATIONAL_ID" | "IQAMA" | "PASSPORT" | "CR"; // Commercial Registration
+  address?: string;
+}
+
+export interface PaymentSchedule {
+  dueDate: Date;
+  amount: number;
+  description: string;
+  status: PaymentStatus;
+  paidDate?: Date;
+  paymentMethod?: string;
+  referenceNumber?: string;
+}
+
+export interface TransactionDocument {
+  name: string;
+  url: string;
+  type: "CONTRACT" | "PROOF_OF_PAYMENT" | "TITLE_DEED" | "ID_COPY" | "OTHER";
+  uploadedAt: Date;
+  uploadedBy: Types.ObjectId;
+}
+
+export interface PropertyTransaction {
+  _id: Types.ObjectId;
+  orgId: Types.ObjectId; // This will be added by tenantIsolationPlugin
+  propertyId: Types.ObjectId;
+  agentId: Types.ObjectId;
+
+  // Transaction Details
+  type: TransactionType;
+  status: TransactionStatus;
+  referenceNumber: string;
+
+  // Parties
+  buyer?: TransactionParty; // For sale
+  seller?: TransactionParty;
+  tenant?: TransactionParty; // For rental
+  landlord?: TransactionParty;
+
+  // Financial
+  totalAmount: number;
+  currency: string;
+  paymentSchedule: PaymentSchedule[];
+  securityDeposit?: number;
+  agentCommission: {
+    amount: number;
+    percentage?: number;
+    paidBy: "BUYER" | "SELLER" | "SHARED";
+    status: PaymentStatus;
+  };
+
+  // Contract
+  contractStartDate?: Date;
+  contractEndDate?: Date;
+  contractDuration?: number; // months
+  renewalOption?: boolean;
+  earlyTerminationClause?: string;
+
+  // Documents
+  documents: TransactionDocument[];
+
+  // Completion
+  completedAt?: Date;
+  handoverDate?: Date;
+
+  // Notes
+  terms?: string;
+  specialConditions?: string;
+  internalNotes?: string;
+
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const PropertyTransactionSchema = new Schema<PropertyTransaction>(
+  {
+    // orgId will be added by tenantIsolationPlugin
+    propertyId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: "PropertyListing",
+      index: true,
+    },
+    agentId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: "RealEstateAgent",
+      index: true,
+    },
+
+    type: {
+      type: String,
+      enum: ["SALE", "RENTAL", "LEASE"],
+      required: true,
+      index: true,
+    },
+    status: {
+      type: String,
+      enum: ["DRAFT", "PENDING", "SIGNED", "COMPLETED", "CANCELLED"],
+      default: "DRAFT",
+      index: true,
+    },
+    referenceNumber: { type: String, required: true }, // unique will be tenant-scoped below
+
+    buyer: {
+      userId: { type: Schema.Types.ObjectId, ref: "User" },
+      name: String,
+      email: String,
+      phone: String,
+      idNumber: String,
+      idType: {
+        type: String,
+        enum: ["NATIONAL_ID", "IQAMA", "PASSPORT", "CR"],
+      },
+      address: String,
+    },
+    seller: {
+      userId: { type: Schema.Types.ObjectId, ref: "User" },
+      name: String,
+      email: String,
+      phone: String,
+      idNumber: String,
+      idType: {
+        type: String,
+        enum: ["NATIONAL_ID", "IQAMA", "PASSPORT", "CR"],
+      },
+      address: String,
+    },
+    tenant: {
+      userId: { type: Schema.Types.ObjectId, ref: "User" },
+      name: String,
+      email: String,
+      phone: String,
+      idNumber: String,
+      idType: {
+        type: String,
+        enum: ["NATIONAL_ID", "IQAMA", "PASSPORT", "CR"],
+      },
+      address: String,
+    },
+    landlord: {
+      userId: { type: Schema.Types.ObjectId, ref: "User" },
+      name: String,
+      email: String,
+      phone: String,
+      idNumber: String,
+      idType: {
+        type: String,
+        enum: ["NATIONAL_ID", "IQAMA", "PASSPORT", "CR"],
+      },
+      address: String,
+    },
+
+    totalAmount: { type: Number, required: true, min: 0 },
+    currency: { type: String, default: "SAR" },
+    paymentSchedule: [
+      {
+        dueDate: { type: Date, required: true },
+        amount: { type: Number, required: true },
+        description: String,
+        status: {
+          type: String,
+          enum: ["PENDING", "PARTIAL", "PAID", "REFUNDED"],
+          default: "PENDING",
+        },
+        paidDate: Date,
+        paymentMethod: String,
+        referenceNumber: String,
+      },
+    ],
+    securityDeposit: Number,
+    agentCommission: {
+      amount: { type: Number, required: true },
+      percentage: Number,
+      paidBy: {
+        type: String,
+        enum: ["BUYER", "SELLER", "SHARED"],
+        required: true,
+      },
+      status: {
+        type: String,
+        enum: ["PENDING", "PARTIAL", "PAID", "REFUNDED"],
+        default: "PENDING",
+      },
+    },
+
+    contractStartDate: Date,
+    contractEndDate: Date,
+    contractDuration: Number,
+    renewalOption: Boolean,
+    earlyTerminationClause: String,
+
+    documents: [
+      {
+        name: { type: String, required: true },
+        url: { type: String, required: true },
+        type: {
+          type: String,
+          enum: [
+            "CONTRACT",
+            "PROOF_OF_PAYMENT",
+            "TITLE_DEED",
+            "ID_COPY",
+            "OTHER",
+          ],
+          required: true,
+        },
+        uploadedAt: { type: Date, default: Date.now },
+        uploadedBy: { type: Schema.Types.ObjectId, ref: "User" },
+      },
+    ],
+
+    completedAt: Date,
+    handoverDate: Date,
+
+    terms: String,
+    specialConditions: String,
+    internalNotes: String,
+  },
+  {
+    timestamps: true,
+    collection: "aqar_transactions",
+  },
+);
+
+// APPLY PLUGINS (BEFORE INDEXES)
+PropertyTransactionSchema.plugin(tenantIsolationPlugin);
+PropertyTransactionSchema.plugin(auditPlugin);
+
+// INDEXES (AFTER PLUGINS) - orgId is now added by the plugin
+// ⚡ CRITICAL FIX: Tenant-scoped unique index for referenceNumber
+PropertyTransactionSchema.index(
+  { orgId: 1, referenceNumber: 1 },
+  { unique: true },
+);
+
+// ⚡ FIXED: All indexes now tenant-scoped
+PropertyTransactionSchema.index({ orgId: 1, propertyId: 1, status: 1 });
+PropertyTransactionSchema.index({ orgId: 1, agentId: 1, createdAt: -1 });
+PropertyTransactionSchema.index({ orgId: 1, type: 1, status: 1 });
+PropertyTransactionSchema.index({ orgId: 1, "buyer.userId": 1 });
+PropertyTransactionSchema.index({ orgId: 1, "seller.userId": 1 });
+PropertyTransactionSchema.index({ orgId: 1, "tenant.userId": 1 });
+PropertyTransactionSchema.index({ orgId: 1, "landlord.userId": 1 });
+
+const PropertyTransactionModel = getModel<PropertyTransaction>(
+  "PropertyTransaction",
+  PropertyTransactionSchema,
+);
+
+export default PropertyTransactionModel;
+
+]]>
+</file>
+
+<file path="server/models/aqar/RealEstateAgent.ts">
+<![CDATA[
+import { Schema, model, models, Types } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
+import { encryptionPlugin } from "../../plugins/encryptionPlugin";
+
+export type AgentStatus = "ACTIVE" | "INACTIVE" | "SUSPENDED";
+export type AgentTier = "BASIC" | "PREMIUM" | "ELITE";
+
+export interface AgentLicense {
+  number: string;
+  authority: string; // RERA, DLD, etc.
+  issueDate: Date;
+  expiryDate: Date;
+  verified: boolean;
+}
+
+export interface AgentStatistics {
+  totalListings: number;
+  activeListings: number;
+  soldProperties: number;
+  rentedProperties: number;
+  totalSalesValue: number;
+  averageRating: number;
+  totalReviews: number;
+  responseTime: number; // in minutes
+  viewingCompletionRate: number; // percentage
+}
+
+export interface AgentContact {
+  phone: string;
+  whatsapp?: string;
+  email: string;
+  website?: string;
+  officeAddress?: string;
+  socialMedia?: {
+    linkedin?: string;
+    instagram?: string;
+    twitter?: string;
+  };
+}
+
+export interface RealEstateAgent {
+  _id: Types.ObjectId;
+  userId: Types.ObjectId; // Link to User account
+  orgId: Types.ObjectId; // Real estate company/organization
+
+  // Personal Info
+  firstName: string;
+  lastName: string;
+  displayName?: string;
+  photo?: string;
+  bio: {
+    en?: string;
+    ar?: string;
+  };
+
+  // Professional Info
+  license: AgentLicense;
+  specializations: string[]; // residential, commercial, luxury, investment
+  languages: string[]; // English, Arabic, Urdu, etc.
+  experience: number; // years
+
+  // Contact
+  contact: AgentContact;
+
+  // Performance
+  statistics: AgentStatistics;
+  tier: AgentTier;
+  verified: boolean;
+  featured: boolean;
+
+  // Availability
+  workingHours?: {
+    [key: string]: {
+      // monday, tuesday, etc.
+      start: string; // "09:00"
+      end: string; // "18:00"
+      available: boolean;
+    };
+  };
+
+  // Settings
+  notificationPreferences?: {
+    email: boolean;
+    sms: boolean;
+    whatsapp: boolean;
+  };
+
+  status: AgentStatus;
+  joinedAt: Date;
+  lastActiveAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const RealEstateAgentSchema = new Schema<RealEstateAgent>(
+  {
+    // ⚡ FIXED: Remove global unique: true - will be enforced via compound index with orgId
+    // Note: index: true removed from userId and orgId to avoid duplicate index warnings
+    // These fields are indexed via composite indexes below (orgId+userId, orgId+status, etc.)
+    userId: { type: Schema.Types.ObjectId, required: true },
+    orgId: { type: Schema.Types.ObjectId, required: true },
+
+    firstName: { type: String, required: true, trim: true },
+    lastName: { type: String, required: true, trim: true },
+    displayName: { type: String, trim: true },
+    photo: String,
+    bio: {
+      en: String,
+      ar: String,
+    },
+
+    license: {
+      // ⚡ FIXED: Remove global unique: true - will be enforced via compound index with orgId
+      number: { type: String, required: true },
+      authority: { type: String, required: true },
+      issueDate: { type: Date, required: true },
+      expiryDate: { type: Date, required: true },
+      verified: { type: Boolean, default: false },
+    },
+    specializations: [{ type: String }],
+    languages: [{ type: String }],
+    experience: { type: Number, default: 0 },
+
+    contact: {
+      phone: { type: String, required: true },
+      whatsapp: String,
+      email: { type: String, required: true },
+      website: String,
+      officeAddress: String,
+      socialMedia: {
+        linkedin: String,
+        instagram: String,
+        twitter: String,
+      },
+    },
+
+    statistics: {
+      totalListings: { type: Number, default: 0 },
+      activeListings: { type: Number, default: 0 },
+      soldProperties: { type: Number, default: 0 },
+      rentedProperties: { type: Number, default: 0 },
+      totalSalesValue: { type: Number, default: 0 },
+      averageRating: { type: Number, default: 0 },
+      totalReviews: { type: Number, default: 0 },
+      responseTime: { type: Number, default: 0 },
+      viewingCompletionRate: { type: Number, default: 0 },
+    },
+
+    tier: {
+      type: String,
+      enum: ["BASIC", "PREMIUM", "ELITE"],
+      default: "BASIC",
+      index: true,
+    },
+    verified: { type: Boolean, default: false, index: true },
+    featured: { type: Boolean, default: false, index: true },
+
+    workingHours: Schema.Types.Mixed,
+
+    notificationPreferences: {
+      email: { type: Boolean, default: true },
+      sms: { type: Boolean, default: true },
+      whatsapp: { type: Boolean, default: true },
+    },
+
+    status: {
+      type: String,
+      enum: ["ACTIVE", "INACTIVE", "SUSPENDED"],
+      default: "ACTIVE",
+      index: true,
+    },
+    joinedAt: { type: Date, default: Date.now },
+    lastActiveAt: Date,
+  },
+  {
+    timestamps: true,
+    collection: "aqar_agents",
+  },
+);
+
+// Indexes
+RealEstateAgentSchema.index({ orgId: 1, status: 1 });
+RealEstateAgentSchema.index({ verified: 1, featured: 1 });
+RealEstateAgentSchema.index({ "statistics.averageRating": -1 });
+RealEstateAgentSchema.index({ tier: 1, "statistics.totalListings": -1 });
+// ⚡ FIXED: Add compound tenant-scoped unique indexes
+RealEstateAgentSchema.index(
+  { orgId: 1, userId: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
+RealEstateAgentSchema.index(
+  { orgId: 1, "license.number": 1 },
+  { unique: true },
+);
+
+// ⚡ FIXED: Add orgId prefix to text search for tenant isolation
+RealEstateAgentSchema.index({
+  orgId: 1,
+  firstName: "text",
+  lastName: "text",
+  displayName: "text",
+  "bio.en": "text",
+  "bio.ar": "text",
+});
+
+/**
+ * Multi-tenancy Plugin - Auto-filters queries by orgId
+ * SECURITY: Ensures agent profiles are isolated per organization
+ */
+RealEstateAgentSchema.plugin(tenantIsolationPlugin);
+
+/**
+ * PII Encryption (GDPR Article 32 - Security of Processing)
+ * Encrypts sensitive contact information
+ */
+RealEstateAgentSchema.plugin(encryptionPlugin, {
+  fields: {
+    "contact.email": "Agent Email",
+    "contact.phone": "Agent Phone",
+  },
+});
+
+const RealEstateAgentModel = getModel<RealEstateAgent>(
+  "RealEstateAgent",
+  RealEstateAgentSchema,
+);
+
+export default RealEstateAgentModel;
+
+]]>
+</file>
+
+<file path="server/models/aqar/SavedSearch.ts">
+<![CDATA[
+/**
+ * Aqar Souq - SavedSearch Model
+ *
+ * User saved searches with email/SMS alerts
+ * Auto-notify when new listings match criteria
+ */
+
+import mongoose, { Schema, Document, Model } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
+
+export interface ISavedSearchCriteria {
+  intent?: "BUY" | "RENT" | "DAILY";
+  propertyTypes?: string[];
+  city?: string;
+  neighborhoods?: string[];
+  minPrice?: number;
+  maxPrice?: number;
+  minBeds?: number;
+  maxBeds?: number;
+  minArea?: number;
+  maxArea?: number;
+  furnishing?: "FURNISHED" | "UNFURNISHED" | "PARTLY";
+  amenities?: string[];
+
+  // Geo (radius search)
+  geoCenter?: {
+    type: "Point";
+    coordinates: [number, number]; // [lng, lat]
+  };
+  geoRadiusKm?: number;
+}
+
+export interface ISavedSearch extends Document {
+  // User
+  userId: mongoose.Types.ObjectId;
+  orgId: mongoose.Types.ObjectId;
+
+  // Search details
+  name: string;
+  criteria: ISavedSearchCriteria;
+
+  // Notifications
+  emailAlerts: boolean;
+  smsAlerts: boolean;
+  whatsappAlerts: boolean;
+
+  // Frequency
+  alertFrequency: "INSTANT" | "DAILY" | "WEEKLY";
+
+  // Tracking
+  lastNotifiedAt?: Date;
+  matchCount: number; // Total matches found
+  notificationsSent: number; // Total alerts sent
+
+  // Status
+  active: boolean;
+
+  // Instance methods
+  recordMatch(): Promise<void>;
+  recordNotification(): Promise<void>;
+  toggleActive(): Promise<void>;
+
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const SavedSearchSchema = new Schema<ISavedSearch>(
+  {
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    orgId: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      index: true,
+    },
+
+    name: { type: String, required: true, maxlength: 200 },
+    criteria: {
+      intent: { type: String, enum: ["BUY", "RENT", "DAILY"] },
+      propertyTypes: [{ type: String }],
+      city: { type: String },
+      neighborhoods: [{ type: String }],
+      minPrice: { type: Number, min: 0 },
+      maxPrice: { type: Number, min: 0 },
+      minBeds: { type: Number, min: 0 },
+      maxBeds: { type: Number, min: 0 },
+      minArea: { type: Number, min: 0 },
+      maxArea: { type: Number, min: 0 },
+      furnishing: {
+        type: String,
+        enum: ["FURNISHED", "UNFURNISHED", "PARTLY"],
+      },
+      amenities: [{ type: String }],
+      geoCenter: {
+        type: { type: String, enum: ["Point"] },
+        coordinates: { type: [Number] },
+      },
+      geoRadiusKm: { type: Number, min: 0 },
+    },
+
+    emailAlerts: { type: Boolean, default: true },
+    smsAlerts: { type: Boolean, default: false },
+    whatsappAlerts: { type: Boolean, default: false },
+
+    alertFrequency: {
+      type: String,
+      enum: ["INSTANT", "DAILY", "WEEKLY"],
+      default: "DAILY",
+      required: true,
+    },
+
+    lastNotifiedAt: { type: Date },
+    matchCount: { type: Number, default: 0 },
+    notificationsSent: { type: Number, default: 0 },
+
+    active: { type: Boolean, default: true, index: true },
+  },
+  {
+    timestamps: true,
+    collection: "aqar_saved_searches",
+  },
+);
+
+// Indexes
+SavedSearchSchema.index({ userId: 1, active: 1, createdAt: -1 });
+SavedSearchSchema.index({ "criteria.city": 1 });
+SavedSearchSchema.index({ "criteria.geoCenter": "2dsphere" });
+
+// Methods
+SavedSearchSchema.methods.recordMatch = async function (this: ISavedSearch) {
+  this.matchCount += 1;
+  await this.save();
+};
+
+SavedSearchSchema.methods.recordNotification = async function (
+  this: ISavedSearch,
+) {
+  this.notificationsSent += 1;
+  this.lastNotifiedAt = new Date();
+  await this.save();
+};
+
+SavedSearchSchema.methods.toggleActive = async function (this: ISavedSearch) {
+  this.active = !this.active;
+  await this.save();
+};
+
+// =============================================================================
+// DATA-001 FIX: Apply tenantIsolationPlugin for multi-tenant data isolation
+// CRITICAL: Prevents cross-tenant data access in Aqar saved searches
+// =============================================================================
+SavedSearchSchema.plugin(tenantIsolationPlugin);
+
+const SavedSearch = getModel<ISavedSearch>(
+  "AqarSavedSearch",
+  SavedSearchSchema,
+);
+
+export default SavedSearch;
+
+]]>
+</file>
+
+<file path="server/models/aqar/ViewingRequest.ts">
+<![CDATA[
+import { Schema, model, models, Types } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
+import { auditPlugin } from "../../plugins/auditPlugin";
+
+export type ViewingStatus =
+  | "REQUESTED"
+  | "CONFIRMED"
+  | "CANCELLED"
+  | "COMPLETED"
+  | "NO_SHOW";
+export type ViewingType = "IN_PERSON" | "VIRTUAL" | "VIDEO_CALL";
+
+export interface ViewingParticipant {
+  userId?: Types.ObjectId;
+  name: string;
+  email: string;
+  phone: string;
+  relationship?: "SELF" | "SPOUSE" | "FAMILY" | "AGENT" | "INVESTOR";
+}
+
+export interface ViewingFeedback {
+  rating?: number; // 1-5
+  comments?: string;
+  interested: boolean;
+  followUpRequested: boolean;
+  submittedAt?: Date;
+}
+
+export interface ViewingRequest {
+  _id: Types.ObjectId;
+  orgId: Types.ObjectId; // This will be added by tenantIsolationPlugin
+  propertyId: Types.ObjectId;
+  agentId: Types.ObjectId;
+  requesterId: Types.ObjectId; // User who requested
+
+  // Scheduling
+  preferredDate: Date;
+  preferredTime: string; // "10:00", "14:30"
+  alternativeDates?: Array<{
+    date: Date;
+    time: string;
+  }>;
+  confirmedDate?: Date;
+  confirmedTime?: string;
+  duration: number; // minutes
+
+  // Type
+  viewingType: ViewingType;
+  virtualMeetingLink?: string;
+
+  // Participants
+  participants: ViewingParticipant[];
+
+  // Status
+  status: ViewingStatus;
+  statusHistory: Array<{
+    status: ViewingStatus;
+    timestamp: Date;
+    changedBy: Types.ObjectId;
+    reason?: string;
+  }>;
+
+  // Communication
+  specialRequests?: string;
+  agentNotes?: string;
+  internalNotes?: string;
+
+  // Feedback
+  feedback?: ViewingFeedback;
+
+  // Notifications
+  reminderSent: boolean;
+  confirmationSent: boolean;
+
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const ViewingRequestSchema = new Schema<ViewingRequest>(
+  {
+    propertyId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: "PropertyListing",
+      index: true,
+    },
+    agentId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: "RealEstateAgent",
+      index: true,
+    },
+    requesterId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: "User",
+      index: true,
+    },
+
+    preferredDate: { type: Date, required: true, index: true },
+    preferredTime: { type: String, required: true },
+    alternativeDates: [
+      {
+        date: Date,
+        time: String,
+      },
+    ],
+    confirmedDate: Date,
+    confirmedTime: String,
+    duration: { type: Number, default: 30 }, // 30 minutes default
+
+    viewingType: {
+      type: String,
+      enum: ["IN_PERSON", "VIRTUAL", "VIDEO_CALL"],
+      default: "IN_PERSON",
+    },
+    virtualMeetingLink: String,
+
+    participants: [
+      {
+        userId: { type: Schema.Types.ObjectId, ref: "User" },
+        name: { type: String, required: true },
+        email: { type: String, required: true },
+        phone: { type: String, required: true },
+        relationship: {
+          type: String,
+          enum: ["SELF", "SPOUSE", "FAMILY", "AGENT", "INVESTOR"],
+        },
+      },
+    ],
+
+    status: {
+      type: String,
+      enum: ["REQUESTED", "CONFIRMED", "CANCELLED", "COMPLETED", "NO_SHOW"],
+      default: "REQUESTED",
+      index: true,
+    },
+    statusHistory: [
+      {
+        status: {
+          type: String,
+          enum: ["REQUESTED", "CONFIRMED", "CANCELLED", "COMPLETED", "NO_SHOW"],
+        },
+        timestamp: { type: Date, default: Date.now },
+        changedBy: { type: Schema.Types.ObjectId, ref: "User" },
+        reason: String,
+      },
+    ],
+
+    specialRequests: String,
+    agentNotes: String,
+    internalNotes: String,
+
+    feedback: {
+      rating: { type: Number, min: 1, max: 5 },
+      comments: String,
+      interested: { type: Boolean, default: false },
+      followUpRequested: { type: Boolean, default: false },
+      submittedAt: Date,
+    },
+
+    reminderSent: { type: Boolean, default: false },
+    confirmationSent: { type: Boolean, default: false },
+  },
+  {
+    timestamps: true,
+    collection: "aqar_viewing_requests",
+  },
+);
+
+// Apply plugins BEFORE indexes for proper tenant isolation
+ViewingRequestSchema.plugin(tenantIsolationPlugin);
+ViewingRequestSchema.plugin(auditPlugin);
+
+// All indexes MUST be tenant-scoped to prevent cross-org data access
+ViewingRequestSchema.index({ orgId: 1, propertyId: 1, status: 1 });
+ViewingRequestSchema.index({
+  orgId: 1,
+  agentId: 1,
+  status: 1,
+  preferredDate: 1,
+});
+ViewingRequestSchema.index({ orgId: 1, requesterId: 1, createdAt: -1 });
+ViewingRequestSchema.index({ orgId: 1, confirmedDate: 1, status: 1 });
+ViewingRequestSchema.index({ orgId: 1, status: 1 });
+ViewingRequestSchema.index({ orgId: 1, preferredDate: 1 });
+
+const ViewingRequestModel = getModel<ViewingRequest>(
+  "ViewingRequest",
+  ViewingRequestSchema,
+);
+
+export default ViewingRequestModel;
+
+]]>
+</file>
+
+<file path="server/models/aqar/index.ts">
+<![CDATA[
+/**
+ * Aqar Souq - Models Index
+ *
+ * Central export for all Aqar marketplace models
+ */
+
+export { default as AqarListing } from "./Listing";
+export { default as AqarProject } from "./Project";
+export { default as AqarBooking } from "./Booking";
+export { default as AqarLead } from "./Lead";
+export { default as AqarSavedSearch } from "./SavedSearch";
+export { default as AqarFavorite } from "./Favorite";
+export { default as AqarMarketingRequest } from "./MarketingRequest";
+export { default as AqarPackage } from "./Package";
+export { default as AqarBoost } from "./Boost";
+export { default as AqarPayment } from "./Payment";
+
+// Export types
+export * from "./Listing";
+export * from "./Project";
+export * from "./Booking";
+export * from "./Lead";
+export * from "./SavedSearch";
+export * from "./Favorite";
+export * from "./MarketingRequest";
+export * from "./Package";
+export * from "./Boost";
+export * from "./Payment";
+
+]]>
+</file>
+
+<file path="server/models/ats/Interview.ts">
+<![CDATA[
+import {
+  Schema,
+  model,
+  models,
+  InferSchemaType,
+  Model,
+  Document,
+} from "mongoose";
+import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
+import { auditPlugin } from "../../plugins/auditPlugin";
+
+const InterviewStages = [
+  "screening",
+  "technical",
+  "hr",
+  "final",
+  "panel",
+] as const;
+const InterviewStatuses = [
+  "scheduled",
+  "completed",
+  "cancelled",
+  "rescheduled",
+  "no-show",
+] as const;
+
+type InterviewStage = (typeof InterviewStages)[number];
+type InterviewStatus = (typeof InterviewStatuses)[number];
+
+const InterviewSchema = new Schema(
+  {
+    applicationId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: "Application",
+    },
+    jobId: { type: Schema.Types.ObjectId, required: true, ref: "Job" },
+    candidateId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: "Candidate",
+    },
+    interviewers: { type: [String], default: [] },
+    stage: { type: String, enum: InterviewStages, default: "screening" },
+    status: { type: String, enum: InterviewStatuses, default: "scheduled" },
+    scheduledAt: { type: Date, required: true },
+    duration: { type: Number, default: 60 }, // minutes
+    location: { type: String },
+    meetingUrl: { type: String },
+    notes: { type: String },
+    feedback: {
+      technical: { type: Number, min: 1, max: 5 },
+      communication: { type: Number, min: 1, max: 5 },
+      cultural: { type: Number, min: 1, max: 5 },
+      overall: { type: Number, min: 1, max: 5 },
+      comments: { type: String },
+      recommendation: {
+        type: String,
+        enum: ["strong-yes", "yes", "maybe", "no", "strong-no"],
+      },
+    },
+    metadata: { type: Schema.Types.Mixed, default: {} },
+  },
+  { timestamps: true },
+);
+
+// Apply plugins BEFORE indexes for proper tenant isolation
+InterviewSchema.plugin(tenantIsolationPlugin);
+InterviewSchema.plugin(auditPlugin);
+
+// Tenant-scoped indexes for data isolation and performance
+InterviewSchema.index({ orgId: 1, applicationId: 1 });
+InterviewSchema.index({ orgId: 1, jobId: 1, scheduledAt: -1 });
+InterviewSchema.index({ orgId: 1, candidateId: 1 });
+InterviewSchema.index({ orgId: 1, scheduledAt: 1, status: 1 });
+
+export type InterviewDoc = InferSchemaType<typeof InterviewSchema> &
+  Document & {
+    orgId: string;
+    createdBy?: Schema.Types.ObjectId;
+    updatedBy?: Schema.Types.ObjectId;
+    version?: number;
+    changeHistory?: unknown[];
+  };
+
+export type InterviewModel = Model<InterviewDoc>;
+
+// Pre-save middleware to set defaults
+InterviewSchema.pre("save", function () {
+  if (this.isNew) {
+    this.stage = this.stage || "screening";
+    this.status = this.status || "scheduled";
+    this.duration = this.duration || 60;
+  }
+});
+
+const existingInterviewModel = (
+  typeof models !== "undefined" ? models.Interview : undefined
+) as InterviewModel | undefined;
+export const Interview: InterviewModel =
+  existingInterviewModel ||
+  model<InterviewDoc, InterviewModel>("Interview", InterviewSchema);
+
+export type { InterviewStage, InterviewStatus };
+
+]]>
+</file>
+
+<file path="server/models/finance/Budget.ts">
+<![CDATA[
+import mongoose, { Schema } from "mongoose";
+import { ensureMongoConnection } from "@/server/lib/db";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
+import { auditPlugin } from "@/server/plugins/auditPlugin";
+
+ensureMongoConnection();
+
+const BudgetSchema = new Schema(
+  {
+    propertyId: {
+      type: Schema.Types.ObjectId,
+      ref: "Property",
+      required: true,
+    },
+    period: { type: String, required: true },
+    amountMinor: { type: Schema.Types.Decimal128, required: true },
+    currency: { type: String, default: "SAR" },
+  },
+  { timestamps: true },
+);
+
+tenantIsolationPlugin(BudgetSchema);
+auditPlugin(BudgetSchema);
+BudgetSchema.index(
+  { orgId: 1, propertyId: 1, period: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
+
+export const Budget =
+  mongoose.models.Budget || mongoose.model("Budget", BudgetSchema);
+export default Budget;
+
+]]>
+</file>
+
+</batch_content>

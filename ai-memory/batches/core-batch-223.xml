@@ -1,0 +1,3014 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="lib/payments/paytabs-callback.contract.ts">
+<![CDATA[
+import type { NextRequest } from "next/server";
+import { z } from "zod";
+
+import { createIdempotencyKey } from "@/server/security/idempotency";
+
+export const PAYTABS_CALLBACK_MAX_BYTES = Number(
+  process.env.PAYTABS_CALLBACK_MAX_BYTES ?? 32_768,
+);
+
+export const PAYTABS_CALLBACK_RATE_LIMIT = {
+  requests: Number(process.env.PAYTABS_CALLBACK_RATE_LIMIT ?? 60),
+  windowMs: Number(process.env.PAYTABS_CALLBACK_RATE_WINDOW_MS ?? 60_000),
+};
+
+export const PAYTABS_CALLBACK_IDEMPOTENCY_TTL_MS = Number(
+  process.env.PAYTABS_CALLBACK_IDEMPOTENCY_TTL_MS ?? 5 * 60_000,
+);
+
+export class PaytabsCallbackValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PaytabsCallbackValidationError";
+  }
+}
+
+const RawPaytabsPayloadSchema = z
+  .object({
+    tran_ref: z.union([z.string(), z.number(), z.bigint()]).optional(),
+    tranRef: z.union([z.string(), z.number(), z.bigint()]).optional(),
+    transaction_reference: z
+      .union([z.string(), z.number(), z.bigint()])
+      .optional(),
+    transactionReference: z
+      .union([z.string(), z.number(), z.bigint()])
+      .optional(),
+    cart_id: z.union([z.string(), z.number(), z.bigint()]).optional(),
+    cartId: z.union([z.string(), z.number(), z.bigint()]).optional(),
+    invoice_id: z.union([z.string(), z.number(), z.bigint()]).optional(),
+    order_id: z.union([z.string(), z.number(), z.bigint()]).optional(),
+    resp_status: z.union([z.string(), z.number()]).optional(),
+    respStatus: z.union([z.string(), z.number()]).optional(),
+    resp_message: z.string().optional(),
+    respMessage: z.string().optional(),
+    token: z.string().optional(),
+    payment_signature: z.string().optional(),
+    sign: z.string().optional(),
+    signature: z.string().optional(),
+    cart_amount: z.union([z.string(), z.number()]).optional(),
+    cartAmount: z.union([z.string(), z.number()]).optional(),
+    tran_total: z.union([z.string(), z.number()]).optional(),
+    amount: z.union([z.string(), z.number()]).optional(),
+    cart_currency: z.string().optional(),
+    tran_currency: z.string().optional(),
+    currency: z.string().optional(),
+    payment_method: z.string().optional(),
+    customer_email: z.string().optional(),
+    customerEmail: z.string().optional(),
+    metadata: z.unknown().optional(),
+    user_defined: z.unknown().optional(),
+    userDefined: z.unknown().optional(),
+    udf1: z.unknown().optional(),
+    udf_1: z.unknown().optional(),
+    udf01: z.unknown().optional(),
+    payment_info: z
+      .object({
+        payment_method: z.string().optional(),
+        payment_description: z.string().optional(),
+        card_scheme: z.string().optional(),
+        masked_card: z.string().optional(),
+        metadata: z.unknown().optional(),
+        customer_email: z.string().optional(),
+      })
+      .passthrough()
+      .optional(),
+    paymentInfo: z
+      .object({
+        payment_method: z.string().optional(),
+        payment_description: z.string().optional(),
+        card_scheme: z.string().optional(),
+        masked_card: z.string().optional(),
+        metadata: z.unknown().optional(),
+        customer_email: z.string().optional(),
+      })
+      .passthrough()
+      .optional(),
+    payment_result: z
+      .object({
+        response_status: z.string().optional(),
+        resp_status: z.string().optional(),
+        response_message: z.string().optional(),
+      })
+      .passthrough()
+      .optional(),
+    paymentResult: z
+      .object({
+        response_status: z.string().optional(),
+        resp_status: z.string().optional(),
+        response_message: z.string().optional(),
+      })
+      .passthrough()
+      .optional(),
+    customer_details: z
+      .object({
+        email: z.string().optional(),
+      })
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
+
+export const PaytabsCallbackPayloadSchema = z.object({
+  tranRef: z.string().min(1, "PayTabs callback missing tran_ref/tranRef"),
+  cartId: z.string().min(1, "PayTabs callback missing cart_id/cartId"),
+  respStatus: z.string().min(1, "PayTabs callback missing respStatus"),
+  respMessage: z.string().optional(),
+  token: z.string().optional(),
+  amount: z.number().nonnegative().optional(),
+  currency: z.string().min(1).optional(),
+  customerEmail: z.string().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+  paymentMethod: z.string().optional(),
+  paymentScheme: z.string().optional(),
+  maskedCard: z.string().optional(),
+});
+
+export type PaytabsCallbackPayload = z.infer<
+  typeof PaytabsCallbackPayloadSchema
+>;
+
+export type RawPaytabsCallbackPayload = z.infer<typeof RawPaytabsPayloadSchema>;
+
+export function parsePaytabsJsonPayload(
+  rawBody: string,
+): RawPaytabsCallbackPayload {
+  try {
+    const data = JSON.parse(rawBody);
+    if (!data || typeof data !== "object") {
+      throw new PaytabsCallbackValidationError(
+        "PayTabs payload must be a JSON object",
+      );
+    }
+    return RawPaytabsPayloadSchema.parse(data);
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    if (error instanceof PaytabsCallbackValidationError) throw error;
+    if (error instanceof z.ZodError) {
+      throw new PaytabsCallbackValidationError(
+        error.issues[0]?.message || "Invalid PayTabs payload structure",
+      );
+    }
+    throw new PaytabsCallbackValidationError("Invalid JSON payload");
+  }
+}
+
+export function normalizePaytabsCallbackPayload(
+  data: unknown,
+): PaytabsCallbackPayload {
+  if (!data || typeof data !== "object") {
+    throw new PaytabsCallbackValidationError(
+      "PayTabs payload must be an object",
+    );
+  }
+  const parsed = RawPaytabsPayloadSchema.parse(data);
+
+  const tranRef = coerceString([
+    parsed.tran_ref,
+    parsed.tranRef,
+    parsed.transaction_reference,
+    parsed.transactionReference,
+  ]);
+  if (!tranRef) {
+    throw new PaytabsCallbackValidationError(
+      "Missing transaction reference (tran_ref)",
+    );
+  }
+
+  const cartId = coerceString([
+    parsed.cart_id,
+    parsed.cartId,
+    parsed.invoice_id,
+    parsed.order_id,
+  ]);
+  if (!cartId) {
+    throw new PaytabsCallbackValidationError(
+      "Missing cart identifier (cart_id)",
+    );
+  }
+
+  const respStatus = coerceString([
+    parsed.payment_result?.response_status,
+    parsed.payment_result?.resp_status,
+    parsed.paymentResult?.response_status,
+    parsed.paymentResult?.resp_status,
+    parsed.resp_status,
+    parsed.respStatus,
+  ])?.toUpperCase();
+  if (!respStatus) {
+    throw new PaytabsCallbackValidationError(
+      "Missing payment status (respStatus)",
+    );
+  }
+
+  const normalized = {
+    tranRef,
+    cartId,
+    respStatus,
+    respMessage:
+      coerceString([
+        parsed.payment_result?.response_message,
+        parsed.paymentResult?.response_message,
+        parsed.resp_message,
+        parsed.respMessage,
+      ]) ?? undefined,
+    token: parsed.token,
+    amount: coerceNumber([
+      parsed.cart_amount,
+      parsed.cartAmount,
+      parsed.tran_total,
+      parsed.amount,
+    ]),
+    currency: coerceString([
+      parsed.cart_currency,
+      parsed.tran_currency,
+      parsed.currency,
+    ]),
+    customerEmail: coerceString([
+      parsed.customer_details?.email,
+      parsed.customer_email,
+      parsed.customerEmail,
+      parsed.payment_info?.customer_email,
+      parsed.paymentInfo?.customer_email,
+    ]),
+    metadata: mergeMetadata([
+      parsed.metadata,
+      parsed.user_defined,
+      parsed.userDefined,
+      parsed.udf1,
+      parsed.udf_1,
+      parsed.udf01,
+      parsed.payment_info?.metadata,
+      parsed.paymentInfo?.metadata,
+    ]),
+    paymentMethod: coerceString([
+      parsed.payment_info?.payment_method,
+      parsed.paymentInfo?.payment_method,
+      parsed.payment_method,
+    ]),
+    paymentScheme: coerceString([
+      parsed.payment_info?.card_scheme,
+      parsed.paymentInfo?.card_scheme,
+    ]),
+    maskedCard: coerceString([
+      parsed.payment_info?.payment_description,
+      parsed.paymentInfo?.payment_description,
+      parsed.payment_info?.masked_card,
+      parsed.paymentInfo?.masked_card,
+    ]),
+  };
+
+  return PaytabsCallbackPayloadSchema.parse(normalized);
+}
+
+export function enforcePaytabsPayloadSize(
+  rawBody: string,
+  maxBytes: number = PAYTABS_CALLBACK_MAX_BYTES,
+): void {
+  const size = Buffer.byteLength(rawBody, "utf8");
+  if (!Number.isFinite(maxBytes) || maxBytes <= 0) return;
+  if (size > maxBytes) {
+    throw new PaytabsCallbackValidationError(
+      `PayTabs payload exceeds limit (${size} > ${maxBytes} bytes)`,
+    );
+  }
+}
+
+export function extractPaytabsSignature(
+  req: Pick<NextRequest, "headers">,
+  payload?: RawPaytabsCallbackPayload,
+): string | null {
+  const headerCandidates = [
+    "x-paytabs-signature",
+    "paytabs-signature",
+    "signature",
+  ];
+  for (const header of headerCandidates) {
+    const value = req.headers.get(header);
+    if (value) return value;
+  }
+  if (!payload) return null;
+  const payloadCandidates: Array<keyof RawPaytabsCallbackPayload> = [
+    "signature",
+    "payment_signature",
+    "sign",
+  ];
+  for (const key of payloadCandidates) {
+    const raw = payload[key];
+    if (typeof raw === "string" && raw.trim()) {
+      return raw.trim();
+    }
+  }
+  return null;
+}
+
+export function buildPaytabsIdempotencyKey(
+  payload: PaytabsCallbackPayload,
+  extra?: Record<string, unknown>,
+): string {
+  return createIdempotencyKey("paytabs:callback", {
+    tranRef: payload.tranRef,
+    cartId: payload.cartId,
+    status: payload.respStatus,
+    ...(extra || {}),
+  });
+}
+
+function coerceString(values: Array<unknown>): string | undefined {
+  for (const value of values) {
+    if (value === undefined || value === null) continue;
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (trimmed) return trimmed;
+      continue;
+    }
+    if (typeof value === "number" || typeof value === "bigint") {
+      const str = String(value);
+      if (str) return str;
+    }
+  }
+  return undefined;
+}
+
+function coerceNumber(values: Array<unknown>): number | undefined {
+  for (const value of values) {
+    if (value === undefined || value === null) continue;
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+    if (typeof value === "string" && value.trim()) {
+      const num = Number(value);
+      if (Number.isFinite(num)) {
+        return num;
+      }
+    }
+  }
+  return undefined;
+}
+
+function mergeMetadata(
+  candidates: Array<unknown>,
+): Record<string, unknown> | undefined {
+  const merged: Record<string, unknown> = {};
+  let hasData = false;
+  for (const candidate of candidates) {
+    const next = toMetadata(candidate);
+    if (next) {
+      Object.assign(merged, next);
+      hasData = true;
+    }
+  }
+  return hasData ? merged : undefined;
+}
+
+function toMetadata(value: unknown): Record<string, unknown> | undefined {
+  if (!value) return undefined;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return undefined;
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return { ...parsed } as Record<string, unknown>;
+      }
+    } catch {
+      return undefined;
+    }
+    return undefined;
+  }
+  if (typeof value === "object" && !Array.isArray(value)) {
+    return { ...(value as Record<string, unknown>) };
+  }
+  return undefined;
+}
+
+]]>
+</file>
+
+<file path="lib/paytabs.ts">
+<![CDATA[
+import { createHmac, timingSafeEqual } from "crypto";
+import { logger } from "./logger";
+import { fetchWithRetry } from "@/lib/http/fetchWithRetry";
+import { SERVICE_RESILIENCE } from "@/config/service-timeouts";
+import { getCircuitBreaker } from "@/lib/resilience";
+
+const REGIONS: Record<string, string> = {
+  KSA: "https://secure.paytabs.sa",
+  UAE: "https://secure.paytabs.com",
+  EGYPT: "https://secure-egypt.paytabs.com",
+  OMAN: "https://secure-oman.paytabs.com",
+  JORDAN: "https://secure-jordan.paytabs.com",
+  KUWAIT: "https://secure-kuwait.paytabs.com",
+  GLOBAL: "https://secure-global.paytabs.com",
+};
+
+export function paytabsBase(region = "GLOBAL") {
+  return REGIONS[region] || REGIONS.GLOBAL;
+}
+
+export async function createHppRequest(
+  region: string,
+  payload: Record<string, unknown>,
+) {
+  const authHeader =
+    process.env.PAYTABS_SERVER_KEY || process.env.PAYTABS_API_SERVER_KEY || "";
+  const response = await fetchWithRetry(
+    `${paytabsBase(region)}/payment/request`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        authorization: authHeader,
+      },
+      body: JSON.stringify(payload),
+    },
+    {
+      timeoutMs: paytabsResilience.timeouts.paymentMs,
+      maxAttempts: paytabsResilience.retries.maxAttempts,
+      retryDelayMs: paytabsResilience.retries.baseDelayMs,
+      circuitBreaker: paytabsBreaker,
+      label: "paytabs-hpp",
+    },
+  );
+  return response.json();
+}
+
+export type SimplePaymentRequest = {
+  amount: number;
+  currency: string;
+  customerDetails: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    state: string;
+    country: string;
+    zip: string;
+  };
+  description: string;
+  invoiceId?: string;
+  returnUrl: string;
+  callbackUrl: string;
+};
+
+export type SimplePaymentResponse =
+  | { success: true; paymentUrl: string; transactionId: string }
+  | { success: false; error: string };
+
+const paytabsResilience = SERVICE_RESILIENCE.paytabs;
+const paytabsBreaker = getCircuitBreaker("paytabs");
+
+type PaytabsOverride = {
+  profileId?: string;
+  serverKey?: string;
+  baseUrl?: string;
+};
+
+const getPaytabsConfig = () => {
+  const override = (globalThis as { PAYTABS_CONFIG?: PaytabsOverride })
+    .PAYTABS_CONFIG;
+
+  if (override) {
+    return {
+      profileId: override.profileId,
+      serverKey: override.serverKey,
+      baseUrl: override.baseUrl || paytabsBase("GLOBAL"),
+    };
+  }
+
+  return {
+    profileId: process.env.PAYTABS_PROFILE_ID,
+    serverKey:
+      process.env.PAYTABS_SERVER_KEY || process.env.PAYTABS_API_SERVER_KEY,
+    baseUrl: process.env.PAYTABS_BASE_URL || paytabsBase("GLOBAL"),
+  };
+};
+
+/**
+ * Validates that PayTabs credentials are configured
+ * @throws Error if credentials are missing
+ */
+function validatePayTabsConfig(): void {
+  const config = getPaytabsConfig();
+  if (!config.profileId || !config.serverKey) {
+    throw new Error(
+      "PayTabs credentials not configured. Please set PAYTABS_PROFILE_ID and PAYTABS_SERVER_KEY environment variables. " +
+        "See documentation: https://docs.paytabs.com/setup",
+    );
+  }
+}
+
+type PaytabsPaymentResponse = {
+  redirect_url?: string;
+  tran_ref?: string;
+  message?: string;
+  [key: string]: unknown;
+};
+
+export async function createPaymentPage(
+  request: SimplePaymentRequest,
+): Promise<SimplePaymentResponse> {
+  // Validate credentials before making API call
+  validatePayTabsConfig();
+  const config = getPaytabsConfig();
+
+  try {
+    const cartAmount = (Math.round(request.amount * 100) / 100).toFixed(2);
+    const payload = {
+      profile_id: config.profileId,
+      tran_type: "sale",
+      tran_class: "ecom",
+      cart_id: request.invoiceId || `CART-${Date.now()}`,
+      cart_currency: request.currency,
+      cart_amount: cartAmount,
+      cart_description: request.description,
+
+      // URLs
+      return: request.returnUrl,
+      callback: request.callbackUrl,
+
+      // Customer details
+      customer_details: {
+        name: request.customerDetails.name,
+        email: request.customerDetails.email,
+        phone: request.customerDetails.phone,
+        street1: request.customerDetails.address,
+        city: request.customerDetails.city,
+        state: request.customerDetails.state,
+        country: request.customerDetails.country,
+        zip: request.customerDetails.zip,
+      },
+
+      // Hide shipping
+      hide_shipping: true,
+
+      // Language
+      paypage_lang: "ar",
+    };
+
+    const response = await fetchWithRetry(
+      `${config.baseUrl}/payment/request`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: config.serverKey!,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      },
+      {
+        timeoutMs: paytabsResilience.timeouts.paymentMs,
+        maxAttempts: paytabsResilience.retries.maxAttempts,
+        retryDelayMs: paytabsResilience.retries.baseDelayMs,
+        circuitBreaker: paytabsBreaker,
+        label: "paytabs-payment-create",
+      },
+    );
+
+    const data = (await response.json()) as PaytabsPaymentResponse;
+
+    if (data.redirect_url) {
+      return {
+        success: true,
+        paymentUrl: data.redirect_url,
+        transactionId: data.tran_ref ?? "",
+      };
+    } else {
+      return {
+        success: false,
+        error: data.message ?? "Payment initialization failed",
+      } as const;
+    }
+  } catch (_error: unknown) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    const errorMessage =
+      error instanceof Error ? error.message : "Payment gateway error";
+    logger.error("PayTabs error", { error });
+    return {
+      success: false,
+      error: errorMessage,
+    } as const;
+  }
+}
+
+type PaytabsVerifyResponse = Record<string, unknown>;
+
+export async function verifyPayment(
+  tranRef: string,
+): Promise<PaytabsVerifyResponse> {
+  // Validate credentials before making API call
+  validatePayTabsConfig();
+  const config = getPaytabsConfig();
+
+  try {
+    const response = await fetchWithRetry(
+      `${config.baseUrl}/payment/query`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: config.serverKey!,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          profile_id: config.profileId,
+          tran_ref: tranRef,
+        }),
+      },
+      {
+        timeoutMs: paytabsResilience.timeouts.verifyMs,
+        maxAttempts: paytabsResilience.retries.maxAttempts,
+        retryDelayMs: paytabsResilience.retries.baseDelayMs,
+        circuitBreaker: paytabsBreaker,
+        label: "paytabs-verify",
+      },
+    );
+
+    return (await response.json()) as PaytabsVerifyResponse;
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("PayTabs verification error", { error });
+    throw error;
+  }
+}
+
+export function validateCallback(
+  payload: Record<string, unknown>,
+  signature: string,
+): boolean {
+  const config = getPaytabsConfig();
+  if (!payload || typeof payload !== "object") {
+    return false;
+  }
+
+  if (!config.serverKey) {
+    logger.warn(
+      "PayTabs server key missing - skipping signature validation in development",
+    );
+    return true;
+  }
+
+  // SECURITY: Reject missing signatures (fail closed)
+  if (!signature) {
+    logger.error("PayTabs callback signature missing - rejecting callback");
+    return false;
+  }
+
+  // Implement signature validation according to PayTabs documentation
+  const calculatedSignature = generateSignature(payload, config.serverKey);
+
+  // Use timing-safe comparison to prevent timing attacks
+  try {
+    return timingSafeEqual(
+      Buffer.from(calculatedSignature, "hex"),
+      Buffer.from(signature, "hex"),
+    );
+  } catch {
+    // If buffers are different lengths, timingSafeEqual will throw
+    return false;
+  }
+}
+
+export async function validateCallbackRaw(
+  payload: unknown,
+  signature?: string | null,
+): Promise<boolean> {
+  const config = getPaytabsConfig();
+  const serverKey = config.serverKey;
+
+  if (!serverKey || !signature) {
+    return false;
+  }
+
+  try {
+    const encoder = new TextEncoder();
+    const data =
+      typeof payload === "string" ? payload : JSON.stringify(payload);
+    const cryptoKey = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode(serverKey),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    const digest = new Uint8Array(
+      await crypto.subtle.sign("HMAC", cryptoKey, encoder.encode(data ?? "")),
+    );
+    const computed = Buffer.from(digest).toString("hex");
+    return timingSafeEqual(
+      Buffer.from(computed, "hex"),
+      Buffer.from(String(signature), "hex"),
+    );
+  } catch (error) {
+    logger.error("PayTabs raw callback validation error", { error });
+    return false;
+  }
+}
+
+function generateSignature(
+  payload: Record<string, unknown>,
+  serverKey?: string,
+): string {
+  // Ensure server key is configured
+  if (!serverKey) {
+    throw new Error("PayTabs server key is required for signature generation");
+  }
+
+  // Canonically serialize payload according to PayTabs specification:
+  // 1. Sort keys alphabetically
+  // 2. Exclude 'signature' field itself if present
+  // 3. Flatten nested objects (if any) before serialization
+  // 4. Join as key=value pairs with & delimiter
+  const sortedKeys = Object.keys(payload)
+    .filter((key) => key !== "signature") // Exclude signature field itself
+    .sort();
+
+  const canonicalString = sortedKeys
+    .map((key) => {
+      const value = payload[key];
+      // Convert to string, handling null/undefined
+      const stringValue = value != null ? String(value) : "";
+      return `${key}=${stringValue}`;
+    })
+    .join("&");
+
+  // Compute HMAC-SHA256 hex digest using the server key
+  const hmac = createHmac("sha256", serverKey);
+  hmac.update(canonicalString);
+  return hmac.digest("hex");
+}
+
+/**
+ * Generate a PayTabs callback signature for a given payload.
+ * Useful for local testing utilities and the signing script.
+ */
+export function generateCallbackSignature(
+  payload: Record<string, unknown>,
+): string {
+  const config = getPaytabsConfig();
+  return generateSignature(payload, config.serverKey);
+}
+
+export interface PaytabsPayoutRequest {
+  amount: number;
+  currency: string;
+  reference: string;
+  description?: string;
+  beneficiary: {
+    name: string;
+    iban: string;
+    bank?: string;
+    accountNumber?: string;
+  };
+  metadata?: Record<string, unknown>;
+}
+
+export type PaytabsPayoutResult =
+  | { success: true; payoutId: string; status?: string }
+  | { success: false; error: string };
+
+export async function createPayout(
+  input: PaytabsPayoutRequest,
+): Promise<PaytabsPayoutResult> {
+  validatePayTabsConfig();
+  const config = getPaytabsConfig();
+
+  const payload = {
+    profile_id: config.profileId,
+    payout_reference: input.reference,
+    payout_amount: input.amount.toFixed(2),
+    payout_currency: input.currency,
+    payout_description: input.description ?? "Fixzit payout",
+    beneficiary: {
+      name: input.beneficiary.name,
+      iban: input.beneficiary.iban,
+      bank: input.beneficiary.bank,
+      account_number: input.beneficiary.accountNumber,
+    },
+    metadata: input.metadata,
+  };
+
+  try {
+    const response = await fetchWithRetry(
+      `${config.baseUrl}/payment/payouts`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: config.serverKey!,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      },
+      {
+        timeoutMs: paytabsResilience.timeouts.payoutMs,
+        maxAttempts: paytabsResilience.retries.maxAttempts,
+        retryDelayMs: paytabsResilience.retries.baseDelayMs,
+        circuitBreaker: paytabsBreaker,
+        label: "paytabs-payout",
+      },
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      const errorMessage =
+        data?.message || response.statusText || "Payout request failed";
+      return { success: false, error: errorMessage };
+    }
+
+    return {
+      success: true,
+      payoutId: data?.payout_id ?? input.reference,
+      status: data?.payout_status,
+    };
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("PayTabs payout error", { error });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "PayTabs payout error",
+    };
+  }
+}
+
+export async function queryPayoutStatus(
+  payoutId: string,
+): Promise<Record<string, unknown>> {
+  validatePayTabsConfig();
+  const config = getPaytabsConfig();
+
+  const response = await fetchWithRetry(
+    `${config.baseUrl}/payment/payouts/query`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: config.serverKey!,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        profile_id: config.profileId,
+        payout_id: payoutId,
+      }),
+    },
+    {
+      timeoutMs: paytabsResilience.timeouts.payoutMs,
+      maxAttempts: paytabsResilience.retries.maxAttempts,
+      retryDelayMs: paytabsResilience.retries.baseDelayMs,
+      circuitBreaker: paytabsBreaker,
+      label: "paytabs-payout-status",
+    },
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    const message =
+      data?.message || response.statusText || "Failed to query payout";
+    throw new Error(message);
+  }
+
+  return data as Record<string, unknown>;
+}
+
+// Payment methods supported in Saudi Arabia
+export const PAYMENT_METHODS = {
+  MADA: "mada",
+  VISA: "visa",
+  MASTERCARD: "mastercard",
+  APPLE_PAY: "applepay",
+  STC_PAY: "stcpay",
+  TAMARA: "tamara", // Buy Now Pay Later
+  TABBY: "tabby", // Buy Now Pay Later
+} as const;
+
+// Currency codes
+export const CURRENCIES = {
+  SAR: "SAR", // Saudi Riyal
+  USD: "USD",
+  EUR: "EUR",
+  AED: "AED", // UAE Dirham
+} as const;
+
+export interface PaymentMethod {
+  id: string;
+  name: string;
+  icon: string;
+  enabled: boolean;
+}
+
+export const getAvailablePaymentMethods = (): PaymentMethod[] => {
+  return [
+    {
+      id: PAYMENT_METHODS.MADA,
+      name: "mada",
+      icon: "/icons/mada.svg",
+      enabled: true,
+    },
+    {
+      id: PAYMENT_METHODS.VISA,
+      name: "Visa",
+      icon: "/icons/visa.svg",
+      enabled: true,
+    },
+    {
+      id: PAYMENT_METHODS.MASTERCARD,
+      name: "Mastercard",
+      icon: "/icons/mastercard.svg",
+      enabled: true,
+    },
+    {
+      id: PAYMENT_METHODS.APPLE_PAY,
+      name: "Apple Pay",
+      icon: "/icons/apple-pay.svg",
+      enabled: true,
+    },
+    {
+      id: PAYMENT_METHODS.STC_PAY,
+      name: "STC Pay",
+      icon: "/icons/stc-pay.svg",
+      enabled: true,
+    },
+    {
+      id: PAYMENT_METHODS.TAMARA,
+      name: "Tamara - Buy Now Pay Later",
+      icon: "/icons/tamara.svg",
+      enabled: true,
+    },
+  ];
+};
+
+/**
+ * Refund Request Parameters
+ */
+export interface RefundRequest {
+  /** Original transaction reference from PayTabs */
+  originalTransactionId: string;
+  /** Unique refund identifier for tracking */
+  refundId: string;
+  /** Amount to refund in major currency units (e.g., SAR not halalas) */
+  amount: number;
+  /** Currency code (SAR, AED, etc.) */
+  currency: string;
+  /** Reason for refund */
+  reason?: string;
+  /** Additional metadata for tracking */
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Refund Response
+ */
+export interface RefundResponse {
+  /** Whether the refund was successful */
+  success: boolean;
+  /** PayTabs refund transaction reference */
+  refundId?: string;
+  /** Refund status: A = Approved, P = Pending, D = Declined */
+  status?: string;
+  /** Human-readable message */
+  message?: string;
+  /** Error message if failed */
+  error?: string;
+}
+
+/**
+ * Refund Status Query Response
+ */
+export interface RefundStatusResponse {
+  /** Transaction reference */
+  tran_ref: string;
+  /** Payment result details */
+  payment_result: {
+    /** Response status: A = Approved, D = Declined, P = Pending */
+    response_status: string;
+    /** Numeric response code */
+    response_code: string;
+    /** Human-readable message */
+    response_message: string;
+  };
+  /** Cart/Order ID */
+  cart_id: string;
+  /** Refund amount */
+  cart_amount: string;
+  /** Currency code */
+  cart_currency: string;
+  /** Transaction type */
+  tran_type: string;
+}
+
+/**
+ * Create a refund for a previous transaction
+ * @param request - Refund request parameters
+ * @returns Refund response with status
+ */
+export async function createRefund(
+  request: RefundRequest,
+): Promise<RefundResponse> {
+  validatePayTabsConfig();
+  const config = getPaytabsConfig();
+
+  try {
+    const payload = {
+      profile_id: config.profileId,
+      tran_ref: request.originalTransactionId,
+      tran_type: "refund",
+      tran_class: "ecom",
+      cart_id: request.refundId,
+      cart_currency: request.currency,
+      cart_amount: request.amount.toFixed(2),
+      cart_description: request.reason || "Refund",
+      // Include metadata if provided
+      ...(request.metadata && Object.keys(request.metadata).length > 0
+        ? {
+            udf1: JSON.stringify(request.metadata),
+          }
+        : {}),
+    };
+
+    logger.info("[PayTabs] Creating refund", {
+      refundId: request.refundId,
+      originalTxn: request.originalTransactionId,
+      amount: request.amount,
+      currency: request.currency,
+    });
+
+    const response = await fetchWithRetry(
+      `${config.baseUrl}/payment/request`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: config.serverKey!,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      },
+      {
+        timeoutMs: paytabsResilience.timeouts.refundMs,
+        maxAttempts: paytabsResilience.retries.maxAttempts,
+        retryDelayMs: paytabsResilience.retries.baseDelayMs,
+        circuitBreaker: paytabsBreaker,
+        label: "paytabs-refund",
+      },
+    );
+
+    const data = await response.json();
+
+    logger.info("[PayTabs] Refund response", { data });
+
+    if (data.tran_ref) {
+      const status = data.payment_result?.response_status || "P";
+      const message =
+        data.payment_result?.response_message || "Refund initiated";
+
+      return {
+        success: status === "A" || status === "P", // Approved or Pending
+        refundId: data.tran_ref,
+        status,
+        message,
+      };
+    } else {
+      return {
+        success: false,
+        error: data.result || data.message || "Refund failed",
+      };
+    }
+  } catch (_error: unknown) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    const errorMessage =
+      error instanceof Error ? error.message : "Refund processing error";
+    logger.error("[PayTabs] Refund error", { error, request });
+    return {
+      success: false,
+      error: errorMessage,
+    };
+  }
+}
+
+/**
+ * Query the status of a refund transaction
+ * @param tranRef - Transaction reference from PayTabs
+ * @returns Refund status details
+ */
+export async function queryRefundStatus(
+  tranRef: string,
+): Promise<RefundStatusResponse> {
+  validatePayTabsConfig();
+  const config = getPaytabsConfig();
+
+  try {
+    logger.info("[PayTabs] Querying refund status", { tranRef });
+
+    const response = await fetchWithRetry(
+      `${config.baseUrl}/payment/query`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: config.serverKey!,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          profile_id: config.profileId,
+          tran_ref: tranRef,
+        }),
+      },
+      {
+        timeoutMs: paytabsResilience.timeouts.refundMs,
+        maxAttempts: paytabsResilience.retries.maxAttempts,
+        retryDelayMs: paytabsResilience.retries.baseDelayMs,
+        circuitBreaker: paytabsBreaker,
+        label: "paytabs-refund-status",
+      },
+    );
+
+    const data = await response.json();
+
+    logger.info("[PayTabs] Refund status response", { data });
+
+    return data;
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[PayTabs] Refund status query error", { error, tranRef });
+    throw error;
+  }
+}
+
+]]>
+</file>
+
+<file path="lib/performance.ts">
+<![CDATA[
+import { logger } from "@/lib/logger";
+/**
+ * Performance Monitoring Middleware for Fixzit
+ *
+ * Tracks page load times and ensures < 30 seconds target
+ * Integrates with Next.js middleware for automatic monitoring
+ *
+ * Usage: Import in middleware.ts or individual pages
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+
+export interface PerformanceMetrics {
+  url: string;
+  method: string;
+  status: number;
+  duration: number;
+  timestamp: Date;
+  userAgent?: string;
+  threshold: number;
+  exceeded: boolean;
+}
+
+// Performance threshold (30 seconds in milliseconds)
+const PERFORMANCE_THRESHOLD_MS = 30000;
+
+// In-memory store for recent metrics (last 1000 requests)
+const metricsStore: PerformanceMetrics[] = [];
+const MAX_METRICS_STORE = 1000;
+
+/**
+ * Log performance metrics
+ */
+function logMetrics(metrics: PerformanceMetrics) {
+  // Add to store
+  metricsStore.push(metrics);
+
+  // Keep only last MAX_METRICS_STORE entries
+  if (metricsStore.length > MAX_METRICS_STORE) {
+    metricsStore.shift();
+  }
+
+  // Log to console
+  const emoji = metrics.exceeded ? "⚠️" : "✅";
+  const durationSec = (metrics.duration / 1000).toFixed(2);
+
+  logger.info(
+    `${emoji} [Performance] ${metrics.method} ${metrics.url} - ` +
+      `${durationSec}s (${metrics.status}) ${metrics.exceeded ? "⚠️ EXCEEDED THRESHOLD" : ""}`,
+  );
+
+  // Alert if threshold exceeded
+  if (metrics.exceeded) {
+    logger.warn(
+      `⚠️ PERFORMANCE WARNING: Request exceeded ${PERFORMANCE_THRESHOLD_MS / 1000}s threshold\n` +
+        `   URL: ${metrics.url}\n` +
+        `   Duration: ${durationSec}s\n` +
+        `   Status: ${metrics.status}\n` +
+        `   Timestamp: ${metrics.timestamp.toISOString()}`,
+    );
+  }
+}
+
+/**
+ * Performance monitoring middleware
+ */
+export function withPerformanceMonitoring(
+  handler: (req: NextRequest) => Promise<NextResponse> | NextResponse,
+) {
+  return async (req: NextRequest): Promise<NextResponse> => {
+    const startTime = Date.now();
+
+    try {
+      // Execute the actual handler
+      const response = await handler(req);
+
+      const duration = Date.now() - startTime;
+      const metrics: PerformanceMetrics = {
+        url: req.url,
+        method: req.method,
+        status: response.status,
+        duration,
+        timestamp: new Date(),
+        userAgent: req.headers.get("user-agent") || undefined,
+        threshold: PERFORMANCE_THRESHOLD_MS,
+        exceeded: duration > PERFORMANCE_THRESHOLD_MS,
+      };
+
+      logMetrics(metrics);
+
+      // Add performance headers to response
+      response.headers.set("X-Response-Time", `${duration}ms`);
+      response.headers.set(
+        "X-Performance-Threshold",
+        `${PERFORMANCE_THRESHOLD_MS}ms`,
+      );
+
+      if (metrics.exceeded) {
+        response.headers.set("X-Performance-Warning", "threshold-exceeded");
+      }
+
+      return response;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      const duration = Date.now() - startTime;
+      const metrics: PerformanceMetrics = {
+        url: req.url,
+        method: req.method,
+        status: 500,
+        duration,
+        timestamp: new Date(),
+        userAgent: req.headers.get("user-agent") || undefined,
+        threshold: PERFORMANCE_THRESHOLD_MS,
+        exceeded: duration > PERFORMANCE_THRESHOLD_MS,
+      };
+
+      logMetrics(metrics);
+      throw error;
+    }
+  };
+}
+
+/**
+ * Get performance statistics
+ */
+export function getPerformanceStats() {
+  if (metricsStore.length === 0) {
+    return {
+      totalRequests: 0,
+      avgDuration: 0,
+      maxDuration: 0,
+      minDuration: 0,
+      exceededCount: 0,
+      exceededPercentage: 0,
+      p50: 0,
+      p95: 0,
+      p99: 0,
+    };
+  }
+
+  const durations = metricsStore.map((m) => m.duration).sort((a, b) => a - b);
+  const exceededCount = metricsStore.filter((m) => m.exceeded).length;
+
+  const p50Index = Math.floor(durations.length * 0.5);
+  const p95Index = Math.floor(durations.length * 0.95);
+  const p99Index = Math.floor(durations.length * 0.99);
+
+  return {
+    totalRequests: metricsStore.length,
+    avgDuration: durations.reduce((a, b) => a + b, 0) / durations.length,
+    maxDuration: Math.max(...durations),
+    minDuration: Math.min(...durations),
+    exceededCount,
+    exceededPercentage: (exceededCount / metricsStore.length) * 100,
+    p50: durations[p50Index],
+    p95: durations[p95Index],
+    p99: durations[p99Index],
+    threshold: PERFORMANCE_THRESHOLD_MS,
+  };
+}
+
+/**
+ * Get recent performance metrics
+ */
+export function getRecentMetrics(limit: number = 100): PerformanceMetrics[] {
+  return metricsStore.slice(-limit);
+}
+
+/**
+ * Get metrics that exceeded threshold
+ */
+export function getExceededMetrics(): PerformanceMetrics[] {
+  return metricsStore.filter((m) => m.exceeded);
+}
+
+/**
+ * Clear metrics store
+ */
+export function clearMetrics() {
+  metricsStore.length = 0;
+}
+
+// Type for Web Vitals metric
+interface WebVitalsMetric {
+  name: string;
+  value: number;
+  id: string;
+  delta?: number;
+  rating?: "good" | "needs-improvement" | "poor";
+}
+
+// Extend Window interface for gtag
+declare global {
+  interface Window {
+    gtag?: (
+      command: string,
+      name: string,
+      params: Record<string, string | number | boolean>,
+    ) => void;
+  }
+}
+
+/**
+ * Client-side performance monitoring
+ *
+ * Usage in pages:
+ * ```tsx
+ * import { reportWebVitals } from '@/lib/performance'
+ *
+ * export function reportWebVitals(metric: WebVitalsMetric) {
+ *   reportWebVitals(metric)
+ * }
+ * ```
+ */
+export function reportWebVitals(metric: WebVitalsMetric) {
+  const { name, value, id } = metric;
+
+  // Log Web Vitals
+  logger.info(`[Web Vitals] ${name}: ${value.toFixed(2)}ms (id: ${id})`);
+
+  // Check against thresholds
+  const thresholds: Record<string, number> = {
+    FCP: 1800, // First Contentful Paint
+    LCP: 2500, // Largest Contentful Paint
+    FID: 100, // First Input Delay
+    CLS: 0.1, // Cumulative Layout Shift
+    TTFB: 800, // Time to First Byte
+  };
+
+  const threshold = thresholds[name];
+  if (threshold && value > threshold) {
+    logger.warn(
+      `⚠️ [Web Vitals] ${name} exceeded threshold: ${value.toFixed(2)} > ${threshold}`,
+    );
+  }
+
+  // Send to analytics (optional)
+  if (typeof window !== "undefined" && window.gtag) {
+    window.gtag("event", name, {
+      value: Math.round(name === "CLS" ? value * 1000 : value),
+      event_category: "Web Vitals",
+      event_label: id,
+      non_interaction: true,
+    });
+  }
+}
+
+// Export types
+export type { WebVitalsMetric };
+
+]]>
+</file>
+
+<file path="lib/pricing.ts">
+<![CDATA[
+/**
+ * Pricing Utilities
+ *
+ * Common pricing calculations and utilities used across the application
+ */
+
+export interface PriceCalculation {
+  basePrice: number;
+  discount: number;
+  discountAmount: number;
+  finalPrice: number;
+  savings: number;
+  tax?: number;
+  taxAmount?: number;
+  totalWithTax?: number;
+}
+
+export interface PricingTier {
+  name: string;
+  tier: number;
+  discountPercentage: number;
+  minimumOrderValue?: number;
+}
+
+/**
+ * Calculate price with discount applied
+ */
+export function calculateDiscountedPrice(
+  basePrice: number,
+  discountPercentage: number,
+): PriceCalculation {
+  const discount = Math.max(0, Math.min(100, discountPercentage));
+  const discountAmount = (basePrice * discount) / 100;
+  const finalPrice = basePrice - discountAmount;
+
+  return {
+    basePrice,
+    discount,
+    discountAmount,
+    finalPrice,
+    savings: discountAmount,
+  };
+}
+
+/**
+ * Calculate price with tax
+ */
+export function calculatePriceWithTax(
+  price: number,
+  taxPercentage: number = 15, // VAT in Saudi Arabia
+): { price: number; taxAmount: number; totalWithTax: number } {
+  const taxAmount = (price * taxPercentage) / 100;
+  const totalWithTax = price + taxAmount;
+
+  return {
+    price,
+    taxAmount,
+    totalWithTax,
+  };
+}
+
+/**
+ * Get applicable pricing tier based on order value
+ */
+export function getApplicableTier(
+  orderValue: number,
+  availableTiers: PricingTier[],
+): PricingTier | null {
+  const applicableTiers = availableTiers
+    .filter(
+      (tier) => !tier.minimumOrderValue || orderValue >= tier.minimumOrderValue,
+    )
+    .sort((a, b) => b.discountPercentage - a.discountPercentage);
+
+  return applicableTiers[0] || null;
+}
+
+/**
+ * Calculate bulk pricing with quantity discounts
+ */
+export function calculateBulkPricing(
+  unitPrice: number,
+  quantity: number,
+  bulkTiers: Array<{ minQuantity: number; discountPercentage: number }>,
+): PriceCalculation {
+  const applicableTier = bulkTiers
+    .filter((tier) => quantity >= tier.minQuantity)
+    .sort((a, b) => b.discountPercentage - a.discountPercentage)[0];
+
+  const discountPercentage = applicableTier?.discountPercentage || 0;
+  const basePrice = unitPrice * quantity;
+
+  return calculateDiscountedPrice(basePrice, discountPercentage);
+}
+
+/**
+ * Format price for display
+ */
+export function formatPrice(
+  amount: number,
+  currency: string = "SAR",
+  locale: string = "ar-SA",
+): string {
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+/**
+ * Compare prices and calculate percentage difference
+ */
+export function comparePrices(
+  currentPrice: number,
+  comparePrice: number,
+): {
+  difference: number;
+  percentageDifference: number;
+  isHigher: boolean;
+  isLower: boolean;
+} {
+  const difference = currentPrice - comparePrice;
+  const percentageDifference =
+    comparePrice > 0 ? (difference / comparePrice) * 100 : 0;
+
+  return {
+    difference,
+    percentageDifference,
+    isHigher: difference > 0,
+    isLower: difference < 0,
+  };
+}
+
+/**
+ * Calculate payment terms pricing (e.g., net 30, net 60)
+ */
+export function calculatePaymentTermsDiscount(
+  amount: number,
+  paymentTerms: "immediate" | "net30" | "net60" | "net90",
+): PriceCalculation {
+  const discountRates = {
+    immediate: 2, // 2% discount for immediate payment
+    net30: 1, // 1% discount for 30-day terms
+    net60: 0, // No discount for 60-day terms
+    net90: -1, // 1% penalty for 90-day terms
+  };
+
+  const discountPercentage = discountRates[paymentTerms];
+  return calculateDiscountedPrice(amount, discountPercentage);
+}
+
+// Subscription pricing calculation
+export interface SubscriptionQuote {
+  items: Array<{
+    module: string;
+    seatCount: number;
+    unitPriceMonthly: number;
+    billingCategory: string;
+    total: number;
+  }>;
+  subtotal: number;
+  tax: number;
+  total: number;
+  monthly: number;
+  annualTotal: number;
+  annualDiscountPct: number;
+  currency: string;
+  contactSales?: boolean;
+}
+
+interface QuoteItem {
+  moduleCode?: string;
+  module?: string;
+  unitPriceMonthly?: number;
+  seatCount?: number;
+  billingCategory?: string;
+}
+
+export function computeQuote(params: {
+  items: QuoteItem[];
+  seatTotal: number;
+  billingCycle: "monthly" | "annual";
+  isUnlimited?: boolean; // For enterprise plans with unlimited seats
+}): SubscriptionQuote {
+  const { items, seatTotal, isUnlimited } = params;
+
+  // For unlimited plans (Enterprise), use a fixed enterprise pricing model
+  // instead of per-seat calculation
+  if (isUnlimited) {
+    return {
+      items: items.map((item) => ({
+        module: item.moduleCode || item.module || "UNKNOWN",
+        seatCount: -1, // Unlimited
+        unitPriceMonthly: 0, // Enterprise uses custom pricing
+        billingCategory: item.billingCategory || "ENTERPRISE",
+        total: 0,
+      })),
+      subtotal: 0,
+      tax: 0,
+      total: 0,
+      monthly: 0,
+      annualTotal: 0,
+      annualDiscountPct: 0,
+      currency: "SAR",
+      contactSales: true, // Enterprise plans require sales contact
+    };
+  }
+
+  // Process items with seat-based pricing
+  const processedItems = items.map((item) => {
+    const unitPriceMonthly = item.unitPriceMonthly || 50; // Default $50/seat/month
+    const seatCount = item.seatCount || seatTotal;
+    const total = seatCount * unitPriceMonthly;
+
+    return {
+      module: item.moduleCode || item.module || "UNKNOWN",
+      seatCount,
+      unitPriceMonthly,
+      billingCategory: item.billingCategory || "CORE",
+      total,
+    };
+  });
+
+  const subtotal = processedItems.reduce((sum, item) => sum + item.total, 0);
+  const tax = subtotal * 0.15; // 15% VAT
+  const total = subtotal + tax;
+  const monthly = total;
+
+  // Annual discount: 15% off
+  const annualDiscountPct = 15;
+  const annualTotal = monthly * 12 * (1 - annualDiscountPct / 100);
+
+  return {
+    items: processedItems,
+    subtotal,
+    tax,
+    total,
+    monthly,
+    annualTotal,
+    annualDiscountPct,
+    currency: "SAR",
+  };
+}
+
+const pricingUtils = {
+  calculateDiscountedPrice,
+  calculatePriceWithTax,
+  getApplicableTier,
+  calculateBulkPricing,
+  formatPrice,
+  comparePrices,
+  calculatePaymentTermsDiscount,
+  computeQuote,
+};
+
+export default pricingUtils;
+
+]]>
+</file>
+
+<file path="lib/qa/models.ts">
+<![CDATA[
+import { Schema } from "mongoose";
+import { getModel } from "@/types/mongoose-compat";
+
+interface QaEventDoc {
+  type: string;
+  route?: string;
+  role?: string;
+  orgId?: string;
+  ts?: number;
+  meta?: Record<string, unknown>;
+  screenshot?: string;
+}
+
+const QaEventSchema = new Schema<QaEventDoc>(
+  {
+    type: { type: String, required: true },
+    route: String,
+    role: String,
+    orgId: String,
+    ts: Number,
+    meta: Schema.Types.Mixed,
+    screenshot: String,
+  },
+  { timestamps: true },
+);
+
+export const QaEvent = getModel<QaEventDoc>("QaEvent", QaEventSchema);
+
+]]>
+</file>
+
+<file path="lib/qa/sanitize.ts">
+<![CDATA[
+/**
+ * QA Payload Sanitization Utilities
+ * 
+ * Provides data sanitization for QA logs/alerts to:
+ * - Prevent PII/credential leakage (both key-based and value-based)
+ * - Limit field sizes
+ * - Enforce consistent schema structure
+ * 
+ * SECURITY: This module protects against storing sensitive data in QA collections.
+ * TTL (90d logs, 30d alerts) means any leaked credentials remain accessible for weeks.
+ */
+
+// ============================================================================
+// SENSITIVE KEY PATTERNS - Word-boundary matching to avoid false positives
+// ============================================================================
+
+/**
+ * Patterns that indicate sensitive field names.
+ * Uses word boundaries (\b) to avoid matching substrings like "author" or "authority".
+ * 
+ * IMPORTANT: We use GENERALIZED patterns for camelCase/snake_case token fields
+ * to catch ALL variants like csrfToken, deviceToken, serviceToken, etc.
+ * without needing to enumerate each one explicitly.
+ */
+const SENSITIVE_KEY_PATTERNS = [
+  /\bpassword\b/i,
+  /\bpasswd\b/i,
+  /\bsecret\b/i,
+  /\btoken\b/i,
+  /\bauthentication\b/i,
+  /\bauthorization\b/i,
+  /\bbearer\b/i,
+  /\bapi[_-]?key\b/i,
+  /\bsession[_-]?id\b/i,
+  /\bsession[_-]?token\b/i,
+  /\bcookie\b/i,
+  /\bcredential\b/i,
+  /\bcredentials\b/i,
+  /\bssn\b/i,
+  /\bcredit[_-]?card\b/i,
+  /\bcard[_-]?number\b/i,
+  /\bcvv\b/i,
+  /\bpin\b/i,
+  /\bprivate[_-]?key\b/i,
+  /\baccess[_-]?token\b/i,
+  /\brefresh[_-]?token\b/i,
+  /\bid[_-]?token\b/i,
+  /\bauth[_-]?code\b/i,
+  /\bclient[_-]?secret\b/i,
+  /\bsigning[_-]?key\b/i,
+  /\bencryption[_-]?key\b/i,
+  // GENERALIZED camelCase token pattern: catches ANY field ending in "Token"
+  // Examples: authToken, bearerToken, csrfToken, deviceToken, serviceToken, xToken, etc.
+  // This pattern matches: lowercase letters/digits followed by capital T and "oken"
+  /[a-z0-9]Token$/i,
+  // GENERALIZED snake_case token pattern: catches ANY field ending in "_token"
+  // Examples: auth_token, csrf_token, device_token, service_token, etc.
+  /[a-z0-9]_token$/i,
+];
+
+// ============================================================================
+// VALUE-BASED SENSITIVE PATTERNS - Detect secrets in string values
+// ============================================================================
+
+/**
+ * Patterns to detect sensitive data IN VALUES (not just key names).
+ * These catch bearer tokens, API keys, JWTs, etc. that might appear
+ * in generic fields like "message", "error", "details".
+ * 
+ * IMPORTANT: Character classes include base64 alphabet (+, /, =) and URL-safe
+ * variants (~, _) to catch real-world OAuth2/API tokens.
+ */
+const SENSITIVE_VALUE_PATTERNS: Array<{ pattern: RegExp; replacement: string }> = [
+  // Bearer tokens: "Bearer abc123..." or "bearer abc123..."
+  // Includes base64 chars (+/=) and URL-safe variants (~_) for OAuth2 tokens
+  { pattern: /\bbearer\s+[A-Za-z0-9._~+/=-]+/gi, replacement: '[REDACTED_BEARER_TOKEN]' },
+  
+  // API key patterns: "api_key=xxx", "apiKey: xxx", "x-api-key: xxx"
+  // Includes base64 chars for API keys that use base64 encoding
+  { pattern: /\b(api[_-]?key|x-api-key)\s*[:=]\s*["']?[A-Za-z0-9._~+/=-]+["']?/gi, replacement: '[REDACTED_API_KEY]' },
+  
+  // JWT tokens (header.payload.signature format)
+  // JWT uses base64url encoding (A-Za-z0-9_-) without padding
+  { pattern: /\beyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, replacement: '[REDACTED_JWT]' },
+  
+  // Basic auth header: "Basic base64string"
+  { pattern: /\bbasic\s+[A-Za-z0-9+/=]+/gi, replacement: '[REDACTED_BASIC_AUTH]' },
+  
+  // AWS-style access key IDs: AKIA...
+  { pattern: /\bAKIA[A-Z0-9]{16}\b/g, replacement: '[REDACTED_AWS_KEY_ID]' },
+  
+  // MongoDB connection strings
+  { pattern: /mongodb(\+srv)?:\/\/[^@\s]+@[^\s]+/gi, replacement: '[REDACTED_MONGO_URI]' },
+  
+  // Generic connection strings with passwords
+  { pattern: /:\/\/[^:]+:[^@]+@/gi, replacement: '://[REDACTED_CREDENTIALS]@' },
+  
+  // Password patterns in URLs or key-value pairs
+  { pattern: /\b(password|passwd|pwd)\s*[:=]\s*["']?[^\s"',}]+["']?/gi, replacement: '[REDACTED_PASSWORD]' },
+  
+  // Session/cookie values that look like tokens (20+ chars)
+  // Includes base64 chars for session tokens
+  { pattern: /\b(session|sess|sid)\s*[:=]\s*["']?[A-Za-z0-9._~+/=-]{20,}["']?/gi, replacement: '[REDACTED_SESSION]' },
+];
+
+// Email pattern for redaction
+const EMAIL_PATTERN = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+
+// Max string length to store (truncate longer values)
+const MAX_STRING_LENGTH = 500;
+
+// Max depth for nested objects
+const MAX_DEPTH = 5;
+
+// Max array length
+const MAX_ARRAY_LENGTH = 50;
+
+// Max number of keys in an object
+const MAX_OBJECT_KEYS = 100;
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Check if a key name suggests sensitive data.
+ * Uses word-boundary matching to avoid false positives like "author".
+ */
+function isSensitiveKey(key: string): boolean {
+  return SENSITIVE_KEY_PATTERNS.some(pattern => pattern.test(key));
+}
+
+/**
+ * Redact email addresses in a string
+ */
+function redactEmails(value: string): string {
+  return value.replace(EMAIL_PATTERN, '[REDACTED_EMAIL]');
+}
+
+/**
+ * Redact sensitive patterns found in string VALUES.
+ * This catches tokens, API keys, JWTs, etc. that appear in generic fields.
+ */
+function redactSensitiveValues(value: string): string {
+  let sanitized = value;
+  
+  for (const { pattern, replacement } of SENSITIVE_VALUE_PATTERNS) {
+    // Reset lastIndex for global patterns
+    pattern.lastIndex = 0;
+    sanitized = sanitized.replace(pattern, replacement);
+  }
+  
+  return sanitized;
+}
+
+/**
+ * Sanitize a single value (recursive for nested structures)
+ * 
+ * @param value - The value to sanitize
+ * @param depth - Current recursion depth
+ * @param seen - WeakSet to track visited objects and prevent circular reference loops
+ */
+function sanitizeValue(value: unknown, depth: number, seen: WeakSet<object> = new WeakSet()): unknown {
+  if (depth > MAX_DEPTH) {
+    return '[MAX_DEPTH_EXCEEDED]';
+  }
+
+  if (value === null || value === undefined) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    // Apply all string sanitizations in order:
+    // IMPORTANT: Sensitive value patterns (connection strings, URLs with credentials)
+    // must run BEFORE email redaction, because user:pass@host looks like an email
+    // 1. Redact sensitive value patterns first (connection strings, tokens, JWTs, etc.)
+    let sanitized = redactSensitiveValues(value);
+    // 2. Redact emails (after connection strings are already handled)
+    sanitized = redactEmails(sanitized);
+    // 3. Truncate long strings
+    if (sanitized.length > MAX_STRING_LENGTH) {
+      sanitized = sanitized.substring(0, MAX_STRING_LENGTH) + '...[TRUNCATED]';
+    }
+    return sanitized;
+  }
+
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return value;
+  }
+
+  // Handle Date objects - preserve temporal context as ISO string
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  // Handle Buffer objects - redact raw binary data
+  if (typeof Buffer !== 'undefined' && Buffer.isBuffer(value)) {
+    return `[BUFFER:${value.length} bytes]`;
+  }
+
+  // Handle ArrayBuffer and typed arrays (Uint8Array, etc.) - redact raw binary data
+  if (value instanceof ArrayBuffer) {
+    return `[ARRAYBUFFER:${value.byteLength} bytes]`;
+  }
+  if (ArrayBuffer.isView(value)) {
+    return `[BINARY:${(value as ArrayBufferView).byteLength} bytes]`;
+  }
+
+  // Circular reference protection for arrays
+  if (Array.isArray(value)) {
+    if (seen.has(value)) {
+      return '[CIRCULAR_REFERENCE]';
+    }
+    seen.add(value);
+    const truncated = value.slice(0, MAX_ARRAY_LENGTH);
+    const sanitized = truncated.map(item => sanitizeValue(item, depth + 1, seen));
+    if (value.length > MAX_ARRAY_LENGTH) {
+      sanitized.push(`[...${value.length - MAX_ARRAY_LENGTH} more items]`);
+    }
+    return sanitized;
+  }
+
+  // Circular reference protection for objects
+  if (typeof value === 'object') {
+    if (seen.has(value as object)) {
+      return '[CIRCULAR_REFERENCE]';
+    }
+    seen.add(value as object);
+    return sanitizeObject(value as Record<string, unknown>, depth + 1, seen);
+  }
+
+  // For functions, symbols, etc.
+  return '[UNSUPPORTED_TYPE]';
+}
+
+/**
+ * Sanitize an object, redacting sensitive keys and limiting depth/size
+ * 
+ * @param obj - The object to sanitize
+ * @param depth - Current recursion depth
+ * @param seen - WeakSet to track visited objects and prevent circular reference loops
+ */
+function sanitizeObject(obj: Record<string, unknown>, depth: number, seen: WeakSet<object> = new WeakSet()): Record<string, unknown> {
+  if (depth > MAX_DEPTH) {
+    return { _truncated: '[MAX_DEPTH_EXCEEDED]' };
+  }
+
+  const result: Record<string, unknown> = {};
+  const keys = Object.keys(obj).slice(0, MAX_OBJECT_KEYS);
+
+  for (const key of keys) {
+    if (isSensitiveKey(key)) {
+      result[key] = '[REDACTED]';
+    } else {
+      result[key] = sanitizeValue(obj[key], depth, seen);
+    }
+  }
+
+  if (Object.keys(obj).length > MAX_OBJECT_KEYS) {
+    result._truncatedKeys = `[...${Object.keys(obj).length - MAX_OBJECT_KEYS} more keys]`;
+  }
+
+  return result;
+}
+
+// ============================================================================
+// PUBLIC API
+// ============================================================================
+
+/**
+ * Sanitize QA payload data before storage
+ * 
+ * This function provides comprehensive sanitization:
+ * - Redacts sensitive field names (password, token, secret, etc.) using word boundaries
+ * - Redacts email addresses anywhere in string values
+ * - Redacts sensitive patterns IN VALUES (bearer tokens, JWTs, API keys, etc.)
+ * - Truncates long strings (>500 chars)
+ * - Limits object depth (max 5 levels)
+ * - Limits array length (max 50 items)
+ * - Returns null for undefined/null input
+ * 
+ * @param data - The payload data to sanitize
+ * @returns Sanitized data safe for storage
+ */
+export function sanitizeQaPayload(data: unknown): unknown {
+  if (data === null || data === undefined) {
+    return null;
+  }
+
+  return sanitizeValue(data, 0);
+}
+
+/**
+ * Estimate the byte size of a JSON-serializable value
+ * Uses TextEncoder as a fallback for edge runtime environments where Buffer is unavailable
+ */
+export function estimatePayloadSize(data: unknown): number {
+  if (data === null || data === undefined) {
+    return 0;
+  }
+  try {
+    const json = JSON.stringify(data);
+    // Use Buffer if available (Node.js), otherwise TextEncoder (Edge/Browser)
+    if (typeof Buffer !== 'undefined') {
+      return Buffer.byteLength(json, 'utf8');
+    }
+    return new TextEncoder().encode(json).length;
+  } catch {
+    return 0;
+  }
+}
+
+]]>
+</file>
+
+<file path="lib/qa/telemetry.ts">
+<![CDATA[
+/**
+ * QA Telemetry utilities
+ *
+ * Provides lightweight in-process counters for QA storage failures (alerts/logs)
+ * and emits an optional webhook when repeated failures are detected within a
+ * short window. This helps surface DB outages that would otherwise be hidden
+ * behind 503 responses.
+ */
+
+import { logger } from "@/lib/logger";
+
+type QaChannel = "alert" | "log";
+type QaOperation = "read" | "write";
+
+type CounterState = {
+  count: number;
+  windowStart: number;
+};
+
+const WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+const ALERT_THRESHOLD = 3; // Trigger alert on 3 failures within window
+const counters: Record<QaChannel, CounterState> = {
+  alert: { count: 0, windowStart: 0 },
+  log: { count: 0, windowStart: 0 },
+};
+
+const webhookUrl = process.env.QA_TELEMETRY_WEBHOOK;
+
+function resetWindow(channel: QaChannel, now: number) {
+  counters[channel] = { count: 0, windowStart: now };
+}
+
+async function postToWebhook(payload: Record<string, unknown>): Promise<void> {
+  if (!webhookUrl) return;
+  try {
+    await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.warn("[QA Telemetry] Failed to emit webhook", { error: error.message });
+  }
+}
+
+function formatError(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error ?? "unknown");
+  }
+}
+
+/**
+ * Record a QA storage failure and emit telemetry if it crosses threshold.
+ * Non-blocking: safe to call inline in route catch blocks.
+ */
+export async function recordQaStorageFailure(
+  channel: QaChannel,
+  operation: QaOperation,
+  error: unknown,
+): Promise<void> {
+  const now = Date.now();
+  const state = counters[channel];
+
+  // Reset rolling window if expired
+  if (now - state.windowStart > WINDOW_MS) {
+    resetWindow(channel, now);
+  }
+
+  state.count += 1;
+
+  logger.error("[QA Telemetry] Storage failure", {
+    channel,
+    operation,
+    countInWindow: state.count,
+    windowStart: new Date(state.windowStart).toISOString(),
+    error: formatError(error),
+  });
+
+  // Emit a webhook when threshold is reached (once per window)
+  if (state.count === ALERT_THRESHOLD) {
+    void postToWebhook({
+      channel,
+      operation,
+      severity: "error",
+      countInWindow: state.count,
+      windowStart: new Date(state.windowStart).toISOString(),
+      timestamp: new Date(now).toISOString(),
+      message: "Repeated QA storage failures detected",
+    });
+  }
+}
+
+]]>
+</file>
+
+<file path="lib/queries.ts">
+<![CDATA[
+// MongoDB Queries Library - Server-Side Only
+// All queries MUST include orgId for multi-tenant isolation
+// Use these in Server Components, Server Actions, or API Routes only
+// AUDIT-2025-11-29: Standardized from org_id to orgId
+// AUDIT-2025-12-04: Fixed collection names to use COLLECTIONS constant
+
+import { ObjectId } from "mongodb";
+import { getDatabase } from "./mongodb-unified";
+import { COLLECTIONS, createIndexes } from "./db/collections";
+
+// Alias for consistency
+const getDb = getDatabase;
+type MongoDb = Awaited<ReturnType<typeof getDb>>;
+
+// Standard soft-delete guard to exclude deleted documents
+const softDeleteGuard = { isDeleted: { $ne: true }, deletedAt: { $exists: false } };
+
+const normalizeId = (id: string | ObjectId): ObjectId | string =>
+  id instanceof ObjectId ? id : ObjectId.isValid(id) ? new ObjectId(id) : id;
+
+const normalizeOrgId = (orgId: string): ObjectId | string => normalizeId(orgId);
+
+// ==========================================
+// WORK ORDERS MODULE
+// ==========================================
+
+/**
+ * Get SLA Watchlist - Work orders nearing SLA deadline
+ */
+export async function getSLAWatchlist(orgId: string, limit = 50) {
+  const db = await getDb();
+  const nOrgId = normalizeOrgId(orgId);
+  return db
+    .collection(COLLECTIONS.WORK_ORDERS)
+    .aggregate([
+      {
+        $match: {
+          orgId: nOrgId,
+          ...softDeleteGuard,
+          status: { $in: ["Open", "In Progress", "Pending Approval"] },
+          sla_due: { $exists: true },
+        },
+      },
+      {
+        $addFields: {
+          hours_remaining: {
+            $divide: [{ $subtract: ["$sla_due", new Date()] }, 3600000],
+          },
+        },
+      },
+      { $match: { hours_remaining: { $lt: 24, $gt: 0 } } },
+      { $sort: { sla_due: 1 } },
+      { $limit: limit },
+      {
+        $project: {
+          _id: 1,
+          wo_number: 1,
+          title: 1,
+          priority: 1,
+          status: 1,
+          assignee: 1,
+          sla_due: 1,
+          hours_remaining: 1,
+          property: 1,
+          created_at: 1,
+        },
+      },
+    ])
+    .toArray();
+}
+
+/**
+ * Get work order statistics
+ */
+export async function getWorkOrderStats(orgId: string) {
+  const db = await getDb();
+  const collection = db.collection(COLLECTIONS.WORK_ORDERS);
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
+
+  const [total, open, inProgress, overdue, completed] = await Promise.all([
+    collection.countDocuments(base),
+    collection.countDocuments({ ...base, status: { $in: ["SUBMITTED", "ASSIGNED"] } }),
+    collection.countDocuments({ ...base, status: "IN_PROGRESS" }),
+    collection.countDocuments({
+      ...base,
+      status: { $in: ["ASSIGNED", "IN_PROGRESS", "PENDING_APPROVAL"] },
+      "sla.resolutionDeadline": { $lt: new Date() },
+    }),
+    collection.countDocuments({ ...base, status: { $in: ["COMPLETED", "VERIFIED", "CLOSED"] } }),
+  ]);
+
+  return {
+    total,
+    open,
+    inProgress,
+    overdue,
+    completed,
+    completionRate: total > 0 ? ((completed / total) * 100).toFixed(1) : "0",
+  };
+}
+
+// ==========================================
+// FINANCE MODULE
+// ==========================================
+
+/**
+ * Get invoice counters
+ */
+export async function getInvoiceCounters(orgId: string) {
+  const db = await getDb();
+  const collection = db.collection(COLLECTIONS.INVOICES);
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
+
+  const [unpaid, overdue, paid, total] = await Promise.all([
+    collection.countDocuments({ ...base, status: { $in: ["ISSUED", "OVERDUE"] } }),
+    collection.countDocuments({
+      ...base,
+      status: { $in: ["ISSUED", "OVERDUE"] },
+      dueDate: { $lt: new Date() },
+    }),
+    collection.countDocuments({ ...base, status: "PAID" }),
+    collection.countDocuments(base),
+  ]);
+
+  return { unpaid, overdue, paid, total };
+}
+
+/**
+ * Get revenue statistics
+ */
+export async function getRevenueStats(orgId: string, days = 30) {
+  const db = await getDb();
+  const nOrgId = normalizeOrgId(orgId);
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+
+  const result = await db
+    .collection(COLLECTIONS.INVOICES)
+    .aggregate([
+      {
+        $match: {
+          orgId: nOrgId,
+          ...softDeleteGuard,
+          status: "PAID",
+          paidAt: { $gte: startDate },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: { $ifNull: ["$total", "$total_amount"] } },
+          count: { $sum: 1 },
+        },
+      },
+    ])
+    .toArray();
+
+  return {
+    total: result[0]?.total || 0,
+    count: result[0]?.count || 0,
+    currency: "SAR",
+  };
+}
+
+// ==========================================
+// HR MODULE
+// ==========================================
+
+/**
+ * Get employee counters
+ */
+export async function getEmployeeCounters(orgId: string) {
+  const db = await getDb();
+  const collection = db.collection(COLLECTIONS.EMPLOYEES);
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
+
+  const [total, active, onLeave, probation] = await Promise.all([
+    collection.countDocuments(base),
+    collection.countDocuments({ ...base, status: "Active" }),
+    collection.countDocuments({ ...base, status: "On Leave" }),
+    collection.countDocuments({ ...base, status: "Probation" }),
+  ]);
+
+  return { total, active, onLeave, probation };
+}
+
+/**
+ * Get attendance summary
+ */
+export async function getAttendanceSummary(orgId: string) {
+  const db = await getDb();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const nOrgId = normalizeOrgId(orgId);
+
+  const result = await db
+    .collection(COLLECTIONS.ATTENDANCE)
+    .aggregate([
+      {
+        $match: {
+          orgId: nOrgId,
+          ...softDeleteGuard,
+          date: { $gte: today },
+        },
+      },
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 },
+        },
+      },
+    ])
+    .toArray();
+
+  interface AttendanceSummaryResult {
+    _id: string;
+    count: number;
+  }
+
+  const summary: Record<string, number> = {};
+  (result as unknown as AttendanceSummaryResult[]).forEach(
+    (item: AttendanceSummaryResult) => {
+      summary[item._id] = item.count;
+    },
+  );
+
+  return {
+    present: summary.present || 0,
+    absent: summary.absent || 0,
+    late: summary.late || 0,
+    onLeave: summary.on_leave || 0,
+  };
+}
+
+// ==========================================
+// PROPERTIES MODULE
+// ==========================================
+
+/**
+ * Get property counters
+ */
+export async function getPropertyCounters(orgId: string) {
+  const db = await getDb();
+  const collection = db.collection(COLLECTIONS.PROPERTIES);
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
+
+  const [total, active, maintenance, leased] = await Promise.all([
+    collection.countDocuments(base),
+    collection.countDocuments({ ...base, status: "Active" }),
+    collection.countDocuments({ ...base, status: "Under Maintenance" }),
+    collection.countDocuments({ ...base, lease_status: "Leased" }),
+  ]);
+
+  const occupancyRate = total > 0 ? ((leased / total) * 100).toFixed(1) : "0";
+
+  return { total, active, maintenance, leased, occupancyRate };
+}
+
+// ==========================================
+// CRM MODULE
+// ==========================================
+
+/**
+ * Get customer counters
+ */
+export async function getCustomerCounters(orgId: string) {
+  const db = await getDb();
+  const collection = db.collection(COLLECTIONS.CUSTOMERS);
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
+
+  const [total, active, leads, contracts] = await Promise.all([
+    collection.countDocuments(base),
+    collection.countDocuments({ ...base, status: "Active" }),
+    collection.countDocuments({ ...base, type: "Lead" }),
+    db.collection(COLLECTIONS.CONTRACTS).countDocuments({ ...base, status: "Active" }),
+  ]);
+
+  return { total, active, leads, contracts };
+}
+
+// ==========================================
+// SUPPORT MODULE
+// ==========================================
+
+/**
+ * Get support ticket counters
+ */
+export async function getSupportCounters(orgId: string) {
+  const db = await getDb();
+  const collection = db.collection(COLLECTIONS.SUPPORT_TICKETS);
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
+
+  const [total, open, pending, resolved] = await Promise.all([
+    collection.countDocuments(base),
+    collection.countDocuments({ ...base, status: "Open" }),
+    collection.countDocuments({ ...base, status: "Pending" }),
+    collection.countDocuments({ ...base, status: "Resolved" }),
+  ]);
+
+  return { total, open, pending, resolved };
+}
+
+// ==========================================
+// APPROVALS MODULE
+// ==========================================
+
+/**
+ * Get approval counters (tenant-scoped)
+ * - pending: approvals awaiting action
+ * - overdue: pending approvals past dueDate
+ * - total: all approvals in org
+ */
+export async function getApprovalCounters(orgId: string) {
+  const db = await getDb();
+  const collection = db.collection(COLLECTIONS.FM_APPROVALS);
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
+  const now = new Date();
+
+  const [total, pending, overdue] = await Promise.all([
+    collection.countDocuments(base),
+    collection.countDocuments({ ...base, status: "PENDING" }),
+    collection.countDocuments({
+      ...base,
+      status: "PENDING",
+      dueDate: { $lt: now },
+    }),
+  ]);
+
+  return { total, pending, overdue };
+}
+
+// ==========================================
+// SOUQ MARKETPLACE MODULE
+// ==========================================
+
+/**
+ * Get marketplace counters (for sellers)
+ */
+export async function getMarketplaceCounters(orgId: string, sellerId: string) {
+  const db = await getDb();
+  const nOrgId = normalizeOrgId(orgId);
+  const seller = normalizeId(sellerId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
+
+  const [listings, orders, reviews, activeListings] = await Promise.all([
+    db.collection(COLLECTIONS.SOUQ_LISTINGS).countDocuments({ ...base, sellerId: seller }),
+    db
+      .collection(COLLECTIONS.SOUQ_ORDERS)
+      .countDocuments({ ...base, "items.sellerId": seller }),
+    db.collection(COLLECTIONS.SOUQ_REVIEWS).countDocuments({
+      ...base,
+      productId: { $in: await getSellerProductIds(nOrgId, seller, db) },
+    }),
+    db
+      .collection(COLLECTIONS.SOUQ_LISTINGS)
+      .countDocuments({ ...base, sellerId: seller, status: "active" }),
+  ]);
+
+  return { listings, activeListings, orders, reviews };
+}
+
+/**
+ * Get marketplace counters for entire organization (admin dashboard)
+ * ✅ FIXED: Implements org-level aggregation with proper tenant isolation
+ */
+export async function getMarketplaceCountersForOrg(orgId: string) {
+  const db = await getDb();
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
+
+  const [listings, orders, reviews] = await Promise.all([
+    db.collection(COLLECTIONS.SOUQ_LISTINGS).countDocuments(base), // ✅ Tenant-scoped
+    db.collection(COLLECTIONS.SOUQ_ORDERS).countDocuments(base), // ✅ Tenant-scoped
+    db.collection(COLLECTIONS.SOUQ_REVIEWS).countDocuments(base), // ✅ Tenant-scoped
+  ]);
+
+  return { listings, orders, reviews };
+}
+
+/**
+ * Get RFQ counters for organization
+ */
+export async function getRfqCounters(orgId: string) {
+  const db = await getDb();
+  const collection = db.collection(COLLECTIONS.RFQS);
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
+
+  const [total, open, awarded, closed] = await Promise.all([
+    collection.countDocuments(base),
+    collection.countDocuments({ ...base, status: "OPEN" }),
+    collection.countDocuments({ ...base, status: "AWARDED" }),
+    collection.countDocuments({ ...base, status: "CLOSED" }),
+  ]);
+
+  return { total, open, awarded, closed };
+}
+
+async function getSellerProductIds(
+  orgId: string | ObjectId,
+  sellerId: string | ObjectId,
+  db: MongoDb,
+): Promise<unknown[]> {
+  const listings = await db
+    .collection(COLLECTIONS.SOUQ_LISTINGS)
+    .find({ orgId, sellerId, ...softDeleteGuard })
+    .project({ productId: 1 })
+    .toArray();
+  return listings.map((l) => l.productId);
+}
+
+// ==========================================
+// ADMIN MODULE
+// ==========================================
+
+/**
+ * Get system-wide counters (admin only)
+ */
+export async function getSystemCounters(orgId: string) {
+  const db = await getDb();
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
+
+  const [users, roles, tenants, apiKeys] = await Promise.all([
+    db.collection(COLLECTIONS.USERS).countDocuments(base),
+    db.collection(COLLECTIONS.ROLES).countDocuments(base),
+    db.collection(COLLECTIONS.TENANTS).countDocuments(base),
+    db.collection(COLLECTIONS.API_KEYS).countDocuments({ ...base, status: "Active" }),
+  ]);
+
+  return { users, roles, tenants, apiKeys };
+}
+
+// ==========================================
+// DASHBOARD KPIs
+// ==========================================
+
+/**
+ * Get all counters for dashboard (optimized single call)
+ */
+export async function getAllCounters(orgId: string) {
+  const [
+    workOrders,
+    invoices,
+    employees,
+    properties,
+    customers,
+    support,
+    marketplace,
+    system,
+    approvals,
+    rfqs,
+    hrApplications,
+  ] = await Promise.all([
+    getWorkOrderStats(orgId),
+    getInvoiceCounters(orgId),
+    getEmployeeCounters(orgId),
+    getPropertyCounters(orgId),
+    getCustomerCounters(orgId),
+    getSupportCounters(orgId),
+    getMarketplaceCountersForOrg(orgId),
+    getSystemCounters(orgId),
+    getApprovalCounters(orgId),
+    getRfqCounters(orgId),
+    getApplicationCounters(orgId),
+  ]);
+
+  return {
+    workOrders,
+    finance: invoices,
+    hr: employees,
+    invoices, // ✅ Add key expected by client
+    employees, // ✅ Add key expected by client
+    properties,
+    crm: customers,
+    customers, // ✅ Add key expected by client
+    support,
+    marketplace,
+    approvals,
+    rfqs,
+    hrApplications,
+    system, // ✅ Add system counters
+    lastUpdated: new Date().toISOString(),
+  };
+}
+
+// ==========================================
+// ATS MODULE (HR Applications)
+// ==========================================
+
+/**
+ * Get ATS application counters
+ */
+export async function getApplicationCounters(orgId: string) {
+  const db = await getDb();
+  const collection = db.collection(COLLECTIONS.ATS_APPLICATIONS);
+  const nOrgId = normalizeOrgId(orgId);
+  const base = { orgId: nOrgId, ...softDeleteGuard };
+
+  const [total, applied, screening, interview] = await Promise.all([
+    collection.countDocuments(base),
+    collection.countDocuments({ ...base, stage: "applied" }),
+    collection.countDocuments({ ...base, stage: "screening" }),
+    collection.countDocuments({ ...base, stage: "interview" }),
+  ]);
+
+  // pending = early pipeline stages (applied + screening + interview)
+  const pending = applied + screening + interview;
+
+  return { total, pending, applied, screening, interview };
+}
+
+// ==========================================
+// UTILITY FUNCTIONS
+// ==========================================
+
+/**
+ * @deprecated Use createIndexes() from lib/db/collections instead.
+ * Backward-compatible shim to avoid IndexOptionsConflict drift.
+ */
+export async function createPerformanceIndexes() {
+  // Delegates to centralized index management to prevent drift and IndexOptionsConflict.
+  await createIndexes();
+}
+
+]]>
+</file>
+
+<file path="lib/queues/setup.ts">
+<![CDATA[
+/**
+ * BullMQ Queue Setup - Background job processing
+ * @module lib/queues/setup
+ */
+
+import { Queue, Worker, QueueEvents, type Job, type Processor } from 'bullmq';
+import type Redis from 'ioredis';
+import { getRedisClient } from '@/lib/redis';
+import { logger } from '@/lib/logger';
+
+// Queue names
+export const QUEUE_NAMES = {
+  BUY_BOX_RECOMPUTE: 'souq:buybox-recompute',
+  AUTO_REPRICER: 'souq:auto-repricer',
+  SETTLEMENT: 'souq:settlement',
+  REFUNDS: 'souq:refunds',
+  INVENTORY_HEALTH: 'souq:inventory-health',
+  ADS_AUCTION: 'souq:ads-auction',
+  POLICY_SWEEP: 'souq:policy-sweep',
+  SEARCH_INDEX: 'souq:search-index',
+  ACCOUNT_HEALTH: 'souq:account-health',
+  NOTIFICATIONS: 'souq:notifications',
+} as const;
+
+export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];
+
+// Queue instances registry
+const queues = new Map<QueueName, Queue>();
+const workers = new Map<QueueName, Worker>();
+const queueEvents = new Map<QueueName, QueueEvents>();
+
+function requireRedisConnection(context: string): Redis {
+  const connection = getRedisClient();
+  if (!connection) {
+    throw new Error(`[Queues] Redis not configured (${context}). Set REDIS_URL or REDIS_KEY to enable BullMQ queues.`);
+  }
+  return connection;
+}
+
+/**
+ * Get or create a queue instance
+ */
+export function getQueue(name: QueueName): Queue {
+  if (!queues.has(name)) {
+    const connection = requireRedisConnection(`queue:${name}`);
+    
+    const queue = new Queue(name, {
+      connection,
+      defaultJobOptions: {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 2000,
+        },
+        removeOnComplete: {
+          age: 24 * 3600, // Keep completed jobs for 24 hours
+          count: 1000,
+        },
+        removeOnFail: {
+          age: 7 * 24 * 3600, // Keep failed jobs for 7 days
+        },
+      },
+    });
+
+    queues.set(name, queue);
+    
+    logger.info(`📬 Queue created: ${name}`);
+  }
+
+  return queues.get(name)!;
+}
+
+/**
+ * Create a worker for a queue
+ */
+export function createWorker<T = unknown, R = unknown>(
+  name: QueueName,
+  processor: Processor<T, R>,
+  concurrency = 1
+): Worker {
+  if (workers.has(name)) {
+    logger.warn(`Worker for ${name} already exists, returning existing worker`);
+    return workers.get(name)!;
+  }
+
+  const connection = requireRedisConnection(`worker:${name}`);
+
+  const worker = new Worker<T, R>(name, processor, {
+    connection,
+    concurrency,
+    limiter: {
+      max: 10, // Max 10 jobs per duration
+      duration: 1000, // 1 second
+    },
+  });
+
+  // Worker event handlers
+  worker.on('completed', (job: Job<T, R>) => {
+    logger.info(`✅ Job completed`, {
+      queue: name,
+      jobId: job.id,
+      duration: job.finishedOn ? job.finishedOn - (job.processedOn || 0) : 0,
+    });
+  });
+
+  worker.on('failed', (job: Job<T, R> | undefined, error: Error) => {
+    logger.error(`❌ Job failed`, {
+      queue: name,
+      jobId: job?.id,
+      error: error.message,
+      attempts: job?.attemptsMade,
+    });
+  });
+
+  worker.on('error', (error: Error) => {
+    logger.error(`Worker error on ${name}`, { error });
+  });
+
+  worker.on('stalled', (jobId: string) => {
+    logger.warn(`Job stalled`, { queue: name, jobId });
+  });
+
+  workers.set(name, worker);
+  
+  logger.info(`👷 Worker started: ${name} (concurrency: ${concurrency})`);
+
+  return worker;
+}
+
+/**
+ * Create queue events listener
+ */
+export function createQueueEvents(name: QueueName): QueueEvents {
+  if (queueEvents.has(name)) {
+    return queueEvents.get(name)!;
+  }
+
+  const connection = requireRedisConnection(`events:${name}`);
+
+  const events = new QueueEvents(name, { connection });
+
+  events.on('waiting', ({ jobId }) => {
+    logger.debug(`Job waiting`, { queue: name, jobId });
+  });
+
+  events.on('active', ({ jobId }) => {
+    logger.debug(`Job active`, { queue: name, jobId });
+  });
+
+  events.on('progress', ({ jobId, data }) => {
+    logger.debug(`Job progress`, { queue: name, jobId, progress: data });
+  });
+
+  queueEvents.set(name, events);
+
+  return events;
+}
+
+/**
+ * Add a job to a queue
+ */
+export async function addJob<T>(
+  queueName: QueueName,
+  jobName: string,
+  data: T,
+  options?: {
+    delay?: number;
+    priority?: number;
+    jobId?: string;
+    repeat?: {
+      pattern?: string; // Cron pattern
+      every?: number; // Milliseconds
+    };
+  }
+): Promise<Job<T>> {
+  const queue = getQueue(queueName);
+
+  const job = await queue.add(jobName, data, options);
+
+  logger.info(`📝 Job added`, {
+    queue: queueName,
+    jobName,
+    jobId: job.id,
+    delay: options?.delay,
+    repeat: options?.repeat,
+  });
+
+  return job;
+}
+
+/**
+ * Get job counts for a queue
+ */
+export async function getQueueStats(name: QueueName): Promise<{
+  waiting: number;
+  active: number;
+  completed: number;
+  failed: number;
+  delayed: number;
+  paused: number;
+}> {
+  const queue = getQueue(name);
+
+  const [waiting, active, completed, failed, delayed, paused] = await Promise.all([
+    queue.getWaitingCount(),
+    queue.getActiveCount(),
+    queue.getCompletedCount(),
+    queue.getFailedCount(),
+    queue.getDelayedCount(),
+    queue.getJobCountByTypes('paused'),
+  ]);
+
+  return { waiting, active, completed, failed, delayed, paused };
+}
+
+/**
+ * Pause a queue
+ */
+export async function pauseQueue(name: QueueName): Promise<void> {
+  const queue = getQueue(name);
+  await queue.pause();
+  logger.info(`⏸️  Queue paused: ${name}`);
+}
+
+/**
+ * Resume a queue
+ */
+export async function resumeQueue(name: QueueName): Promise<void> {
+  const queue = getQueue(name);
+  await queue.resume();
+  logger.info(`▶️  Queue resumed: ${name}`);
+}
+
+/**
+ * Clean old jobs from a queue
+ */
+export async function cleanQueue(
+  name: QueueName,
+  status: 'completed' | 'failed',
+  ageMs: number
+): Promise<number> {
+  const queue = getQueue(name);
+  const jobs = await queue.clean(ageMs, 1000, status);
+  
+  logger.info(`🧹 Queue cleaned`, {
+    queue: name,
+    status,
+    count: jobs.length,
+  });
+
+  return jobs.length;
+}
+
+/**
+ * Obliterate a queue (remove all jobs and metadata)
+ */
+export async function obliterateQueue(name: QueueName): Promise<void> {
+  const queue = getQueue(name);
+  await queue.obliterate({ force: true });
+  logger.warn(`💥 Queue obliterated: ${name}`);
+}
+
+/**
+ * Gracefully close all queues and workers
+ */
+export async function closeAllQueues(): Promise<void> {
+  logger.info('Closing all queues and workers...');
+
+  // Close workers first
+  for (const [name, worker] of workers.entries()) {
+    await worker.close();
+    logger.info(`Worker closed: ${name}`);
+  }
+
+  // Close queue events
+  for (const [name, events] of queueEvents.entries()) {
+    await events.close();
+    logger.info(`Queue events closed: ${name}`);
+  }
+
+  // Close queues
+  for (const [name, queue] of queues.entries()) {
+    await queue.close();
+    logger.info(`Queue closed: ${name}`);
+  }
+
+  queues.clear();
+  workers.clear();
+  queueEvents.clear();
+
+  logger.info('✅ All queues and workers closed');
+}
+
+/**
+ * Initialize all queues (call on app startup)
+ */
+export async function initializeQueues(): Promise<void> {
+  logger.info('🚀 Initializing BullMQ queues...');
+
+  // Create all queues
+  Object.values(QUEUE_NAMES).forEach((name) => {
+    getQueue(name);
+  });
+
+  logger.info(`✅ Initialized ${queues.size} queues`);
+}
+
+export default {
+  getQueue,
+  createWorker,
+  createQueueEvents,
+  addJob,
+  getQueueStats,
+  pauseQueue,
+  resumeQueue,
+  cleanQueue,
+  obliterateQueue,
+  closeAllQueues,
+  initializeQueues,
+  QUEUE_NAMES,
+};
+
+]]>
+</file>
+
+</batch_content>

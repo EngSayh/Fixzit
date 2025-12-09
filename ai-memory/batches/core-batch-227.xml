@@ -1,0 +1,3205 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="package.json">
+<![CDATA[
+{
+  "name": "fixzit-frontend",
+  "version": "2.0.26",
+  "engines": {
+    "node": ">=18.18 <23"
+  },
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "dev": "cross-env NODE_OPTIONS='--max-old-space-size=8192' ./node_modules/.bin/next dev --turbo",
+    "dev:mem": "cross-env NODE_OPTIONS=--max-old-space-size=8192 ./node_modules/.bin/next dev --turbo",
+    "dev:webpack": "cross-env NODE_OPTIONS=--max-old-space-size=8192 next dev",
+    "dev:clean": "bash scripts/cleanup-dev-cache.sh && cross-env NODE_OPTIONS=--max-old-space-size=8192 next dev --turbo",
+    "build": "bash scripts/prebuild-cache-clean.sh && cross-env NODE_OPTIONS=--max-old-space-size=8192 next build",
+    "start": "next start",
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx --max-warnings 50 --ignore-pattern '.next/**' --ignore-pattern 'public/**' --ignore-pattern '_artifacts/**' --ignore-pattern 'deployment/**' --ignore-pattern 'playwright-report/**' --ignore-pattern 'e2e-test-results/**' --ignore-pattern 'qa/**' --ignore-pattern 'scripts/**' --ignore-pattern 'tools/**' --ignore-pattern 'tests/playwright-report/**'",
+    "lint:prod": "eslint app components lib services --ext .ts,.tsx,.js,.jsx --max-warnings 0 --report-unused-disable-directives",
+    "lint:prod:fix": "eslint app components lib services --ext .ts,.tsx,.js,.jsx --fix",
+    "lint:e2e-env": "node scripts/check-e2e-env.js",
+    "lint:rbac-perms": "node scripts/check-no-wildcard-perms.js",
+    "lint:inventory-org": "tsx scripts/lint-inventory-orgid.ts",
+    "lint:mongo-unwrap": "node tools/check-mongo-unwrap.js",
+    "lint:prod:baseline": "eslint app components lib services --ext .ts,.tsx,.js,.jsx --format json -o _artifacts/eslint-baseline.json",
+    "lint:scripts": "eslint scripts tools --ext .ts,.tsx,.js,.jsx",
+    "lint:collections": "node scripts/lint-collections.js",
+    "lint:ci": "npm run lint:prod && npm run lint:inventory-org && npm run rbac:client:check && npm run lint:rbac && npm run typecheck",
+    "lint:next": "next lint",
+    "lint:rtl": "node scripts/check-rtl-logical.js",
+    "lint:rbac": "npx tsx scripts/lint-rbac-parity.ts",
+    "style:scan": "node scripts/scan-hex.js",
+    "typecheck": "tsc -p .",
+    "type-check:last": "node scripts/typecheck-tail.mjs",
+    "agent:inventory": "bash scripts/inventory.sh",
+    "agent:cleanup": "bash scripts/cleanup-space.sh",
+    "agent:run": "bash tools/agent-runner.sh",
+    "cleanup": "bash scripts/cleanup-space.sh",
+    "cleanup:cache": "bash scripts/cleanup-dev-cache.sh",
+    "agent:verify": "npm run typecheck && npm run lint && npm run build",
+    "qa:verify": "node scripts/qa/halt-fix-verify.mjs",
+    "verify": "node qa/scripts/verify.mjs --fast",
+    "verify:fast": "node qa/scripts/verify.mjs --fast",
+    "verify:full": "VERIFY_FULL=true node qa/scripts/verify.mjs",
+    "qa:seed": "node qa/scripts/seed.mjs",
+    "qa:db": "node qa/scripts/dbConnectivity.mjs",
+    "qa:scan:placeholders": "node qa/scripts/scanPlaceholders.mjs",
+    "qa:scan:duplicates": "node qa/scripts/scanDuplicates.mjs",
+    "db:clear": "tsx scripts/clear-test-data.ts",
+    "db:clear:force": "SKIP_CONFIRMATION=true tsx scripts/clear-test-data.ts",
+    "qa:e2e": "bash scripts/run-playwright.sh",
+    "notifications:replay-dlq": "tsx scripts/notifications/replay-dlq.ts",
+    "refunds:worker": "tsx jobs/refund-retry-worker.ts",
+    "verify:prep": "node -e \"require('fs').mkdirSync('_artifacts',{recursive:true})\"",
+    "check:route-refs": "tsx scripts/check-route-references.ts",
+    "verify:routes": "tsx scripts/check-route-aliases.ts && tsx scripts/check-route-references.ts && tsx scripts/verify-routes.ts && tsx scripts/check-nav-routes.ts",
+    "verify:routes:http": "tsx scripts/run-route-http-check.ts",
+    "verify:org-context": "tsx scripts/verify-org-context.ts && SKIP_GLOBAL_MONGO=true vitest run tests/smoke/org-context-flow.test.tsx tests/server/support/support-org-apis.test.ts",
+    "guard:static": "bash scripts/check-org-guards.sh",
+    "guard:prod-env": "node scripts/ci/verify-prod-env.js",
+    "check:route-aliases": "tsx scripts/check-route-aliases.ts",
+    "check:route-aliases:json": "tsx scripts/check-route-aliases.ts --json _artifacts/route-aliases.json",
+    "archive:route-metrics": "tsx scripts/archive-route-aliases.ts",
+    "check:nav-routes": "tsx scripts/check-nav-routes.ts",
+    "verify:api": "tsx scripts/verify-api.ts",
+    "verify:mongo": "tsx scripts/mongo-check.ts",
+    "verify:all": "npm run verify:prep && npm run build && concurrently -k -s first \"npm run start\" \"wait-on http://localhost:3000 && npm run verify:routes && npm run verify:api && npm run verify:mongo\"",
+    "doctor": "npm run lint && npm run typecheck && npm run verify:all",
+    "test:search": "vitest -c vitest.config.api.ts run tests/unit/app/api/search/search-scope.test.ts",
+    "test": "npm run test:production",
+    "test:production": "npm run test:models && npm run test:e2e",
+    "test:counters": "vitest -c vitest.config.ts --project client run tests/unit/counters.test.ts",
+    "test:counters-api": "vitest -c vitest.config.ts --project server run tests/server/api/counters.contract.test.ts",
+    "test:fast": "npm run test:ci",
+    "test:legacy": "vitest -c vitest.config.api.ts run",
+    "test:models": "vitest -c vitest.config.models.ts run",
+    "test:services": "pnpm exec vitest run tests/services",
+    "test:auth": "vitest -c vitest.config.api.ts run tests/api/auth/**/*.test.{ts,tsx}",
+    "test:api": "vitest -c vitest.config.api.ts run",
+    "test:watch": "vitest",
+    "test:ci": "vitest run --bail 1",
+    "test:peek": "pnpm test 2>&1 | head -n 200",
+    "test:fail": "pnpm test 2>&1 | grep -A 8 -E 'FAIL|✖|Error|AssertionError|Test Files|failed'",
+    "test:summary": "pnpm test 2>&1 | tail -n 50",
+    "test:verbose": "vitest run --reporter=verbose",
+    "test:single": "vitest run",
+    "test:changed": "vitest run --changed",
+    "test:e2e": "bash scripts/run-playwright.sh",
+    "test:e2e:loop": "node tests/loop-runner.mjs",
+    "test:e2e:setup": "bash scripts/run-playwright.sh tests/setup-auth.ts",
+    "scan:i18n": "cross-env I18N_IGNORE=watch-all node tests/i18n-scan.mjs",
+    "scan:i18n:v2": "node scripts/i18n-scan-v2.mjs",
+    "scan:i18n:audit": "node scripts/audit-translations.mjs",
+    "scan:api": "node scripts/api-scan-v2.mjs",
+    "i18n:build": "tsx scripts/generate-dictionaries-json.ts",
+    "i18n:audit": "tsx scripts/find-missing-locales.ts",
+    "i18n:audit:verbose": "tsx scripts/find-missing-locales.ts --show-samples",
+    "i18n:coverage": "tsx scripts/detect-unlocalized-strings.ts",
+    "i18n:coverage:fail": "tsx scripts/detect-unlocalized-strings.ts --fail-threshold=0.5",
+    "i18n:coverage:strict": "tsx scripts/detect-unlocalized-strings.ts --fail-threshold=0.1",
+    "fixzit:agent": "node scripts/fixzit-agent.mjs --report --port 3000 --keepAlive true --limit=0",
+    "fixzit:agent:apply": "node scripts/fixzit-agent.mjs --apply --report --port 3000 --keepAlive true --limit=0",
+    "fixzit:agent:stop": "node scripts/stop-dev.js",
+    "verify:gate": "npm run typecheck && npm run lint && npm run scan:i18n && npm run test:e2e",
+    "test:headed": "bash scripts/run-playwright.sh --headed",
+    "test:debug": "bash scripts/run-playwright.sh --debug",
+    "test:ui": "bash scripts/run-playwright.sh --ui",
+    "test:install": "playwright install",
+    "test:e2e:db": "PLAYWRIGHT_CONFIG=playwright.config.ts bash scripts/run-playwright.sh tests/e2e/database.spec.ts",
+    "verify:db:deploy": "tsx scripts/deploy-db-verify.ts",
+    "setup:production:db": "tsx scripts/setup-production-db.ts",
+    "artifacts:init": "mkdir -p _artifacts",
+    "test:env-check": "node scripts/testing/env-check.js",
+    "reports:clean": "node -e \"require('fs').rmSync('_artifacts', {recursive:true, force:true}); require('fs').mkdirSync('_artifacts', {recursive:true});\"",
+    "pack:reports": "npm run artifacts:init && tar -czf _artifacts/reports-$(date +%Y%m%d-%H%M%S).tar.gz _artifacts || true",
+    "test:stable": "pnpm exec vitest run --reporter=dot --maxWorkers=1 --fileParallelism=false",
+    "clean:root": "tsx scripts/janitor.ts --apply",
+    "bundle:check": "webpack --config webpack.config.js --mode=production",
+    "seed:marketplace": "tsx scripts/seed-marketplace.ts",
+    "seed:prod-data": "tsx scripts/seed-production-data.ts",
+    "seed:test": "pnpm exec tsx scripts/seed-test-users.ts",
+    "scripts:backfill:subscription-periods": "tsx scripts/backfill-subscription-periods.ts",
+    "scripts:backfill:ads-bids-orgid": "tsx scripts/backfill-souq-ad-bids-orgid.ts",
+    "check:env": "tsx scripts/check-required-env.ts",
+    "docs:marketplace-bible": "node scripts/generate-marketplace-bible.js",
+    "replace:in-file": "tsx scripts/replace-string-in-file.ts",
+    "replace:in-file:verbose": "tsx scripts/replace-string-in-file-verbose.ts",
+    "verify:imports": "node analyze-imports.js",
+    "verify:imports:py": "python3 verify-imports.py",
+    "install:missing": "pwsh install-missing-packages.ps1",
+    "install:missing:py": "python3 install-missing-packages.py",
+    "test:tool": "bash verify-final.sh",
+    "consolidate:dry": "tsx scripts/dedup/consolidate.ts --dry",
+    "consolidate:apply": "tsx scripts/dedup/consolidate.ts",
+    "ui:freeze:check": "tsx scripts/ui/ui_freeze_check.ts",
+    "sidebar:snapshot": "tsx scripts/sidebar/snapshot_check.ts",
+    "i18n:check": "tsx scripts/i18n/check_language_selector.ts",
+    "mongo:normalize": "tsx scripts/mongo/normalize_org_ids.ts",
+    "mongo:normalize:apply": "tsx scripts/mongo/normalize_org_ids.ts --apply",
+    "guardrails:all": "npm run sidebar:snapshot && npm run ui:freeze:check && npm run i18n:check && npm run consolidate:dry",
+    "guard:ci": "bash scripts/ci-guard-checks.sh",
+    "check:mock-flags": "node scripts/check-mock-flags.js",
+    "rbac:client:generate": "tsx scripts/rbac/generate-client-roles.ts",
+    "rbac:client:check": "tsx scripts/rbac/generate-client-roles.ts --check",
+    "rbac:parity": "node scripts/rbac/check-parity.mjs",
+    "lint:md": "markdownlint \"**/*.md\" \"!node_modules\" \"!.next\"",
+    "lint:md:fix": "markdownlint --fix \"**/*.md\" \"!node_modules\" \"!.next\"",
+    "guard:fm-hooks": "node -e \"const {execSync} = require('child_process'); try { const result = execSync('grep -rn \\'eslint-disable react-hooks/rules-of-hooks\\' app/fm 2>/dev/null || true', {encoding: 'utf8'}); if (result.trim()) { console.log('❌ Found react-hooks/rules-of-hooks disables in app/fm (use FmGuardedPage)'); process.exit(1); } } catch(e) { }\"",
+    "health": "bash scripts/system-health-check.sh",
+    "health:watch": "watch -n 30 'bash scripts/system-health-check.sh'",
+    "lint:weak-passwords": "node scripts/check-weak-passwords.js",
+    "guard:seeds": "node scripts/check-seed-guards.js",
+    "prepare": "simple-git-hooks"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^2.0.71",
+    "@auth/core": "0.41.0",
+    "@aws-sdk/client-s3": "^3.933.0",
+    "@aws-sdk/client-secrets-manager": "^3.933.0",
+    "@aws-sdk/client-sns": "^3.946.0",
+    "@aws-sdk/middleware-logger": "^3.930.0",
+    "@aws-sdk/s3-request-presigner": "^3.933.0",
+    "@hello-pangea/dnd": "^18.0.1",
+    "@hookform/resolvers": "^3.10.0",
+    "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-radio-group": "^1.3.8",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@radix-ui/react-tooltip": "^1.2.8",
+    "@sendgrid/mail": "^8.1.6",
+    "@sentry/nextjs": "^10.27.0",
+    "@smithy/smithy-client": "^4.9.7",
+    "@tanstack/react-query": "^5.90.10",
+    "@types/redis": "^4.0.11",
+    "@vercel/functions": "^3.3.3",
+    "ai": "^5.0.98",
+    "axios": "^1.13.2",
+    "bcryptjs": "^3.0.3",
+    "bullmq": "^5.63.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "date-fns": "^2.30.0",
+    "decimal.js": "^10.6.0",
+    "dompurify": "^3.3.0",
+    "dotenv": "^17.2.3",
+    "express": "^4.22.0",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^7.5.1",
+    "express-validator": "^7.3.0",
+    "firebase-admin": "^13.6.0",
+    "framer-motion": "^11.18.2",
+    "helmet": "^7.2.0",
+    "html2canvas": "^1.4.1",
+    "ical.js": "^2.2.1",
+    "import-in-the-middle": "1.15.0",
+    "ioredis": "^5.8.2",
+    "isomorphic-dompurify": "^2.32.0",
+    "jose": "^5.10.0",
+    "jsonwebtoken": "^9.0.3",
+    "libphonenumber-js": "^1.12.26",
+    "lru-cache": "^11.2.2",
+    "lucide-react": "^0.294.0",
+    "meilisearch": "^0.54.0",
+    "mongodb": "^6.21.0",
+    "mongoose": "^8.20.1",
+    "morgan": "^1.10.1",
+    "nanoid": "^5.1.6",
+    "nats": "^2.29.3",
+    "next": "^15.5.7",
+    "next-auth": "5.0.0-beta.30",
+    "node-cron": "^4.2.1",
+    "pdf-parse": "^2.4.5",
+    "pdfkit": "^0.17.2",
+    "prom-client": "^15.1.3",
+    "qrcode": "^1.5.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.66.1",
+    "react-hot-toast": "^2.6.0",
+    "recharts": "^3.4.1",
+    "rehype-sanitize": "^6.0.0",
+    "rehype-stringify": "^10.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
+    "require-in-the-middle": "7.5.2",
+    "server-only": "^0.0.1",
+    "sonner": "^2.0.7",
+    "swr": "^2.3.6",
+    "tailwind-merge": "^2.6.0",
+    "tailwindcss-animate": "^1.0.7",
+    "twilio": "^5.10.5",
+    "unified": "^11.0.5",
+    "zod": "^4.1.12",
+    "zustand": "^5.0.8"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@faker-js/faker": "^10.1.0",
+    "@next/bundle-analyzer": "^16.0.3",
+    "@next/eslint-plugin-next": "^16.0.3",
+    "@playwright/test": "^1.56.1",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/google.maps": "^3.58.1",
+    "@types/js-yaml": "^4.0.9",
+    "@types/jsdom": "^27.0.0",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24.10.1",
+    "@types/node-cron": "^3.0.11",
+    "@types/pdfkit": "^0.17.3",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^18.3.27",
+    "@types/react-dom": "^18.3.7",
+    "@types/supertest": "^6.0.3",
+    "autoprefixer": "^10.4.22",
+    "chalk": "^4.1.2",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "eslint": "^9.39.1",
+    "eslint-import-resolver-alias": "^1.1.2",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "fast-glob": "^3.3.3",
+    "glob": "^11.1.0",
+    "globals": "^16.5.0",
+    "globby": "^15.0.0",
+    "js-yaml": "^4.1.1",
+    "jsdom": "^27.2.0",
+    "k6": "0.0.0",
+    "markdownlint-cli": "^0.46.0",
+    "mongodb-memory-server": "^10.3.0",
+    "ora": "^5.4.1",
+    "picocolors": "^1.1.1",
+    "playwright": "^1.56.1",
+    "postcss": "^8.5.6",
+    "prettier": "^3.6.2",
+    "puppeteer": "^24.30.0",
+    "recast": "^0.23.11",
+    "redis": "^5.9.0",
+    "simple-git-hooks": "^2.9.0",
+    "supertest": "^6.3.4",
+    "tailwindcss": "^3.4.18",
+    "tailwindcss-logical": "^3.0.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.47.0",
+    "vitest": "^3.2.4",
+    "webpack": "^5.103.0",
+    "zx": "^8.8.5"
+  },
+  "pnpm": {
+    "overrides": {
+      "postcss-selector-parser": "6.0.13",
+      "vite": "^7.1.11",
+      "import-in-the-middle": "1.15.0",
+      "require-in-the-middle": "7.5.2",
+      "mongodb": "6.21.0",
+      "node-forge": ">=1.3.2",
+      "jws@^3": "3.2.3",
+      "jws@^4": "4.0.1"
+    }
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm lint:prod && pnpm lint:inventory-org && pnpm guard:fm-hooks && bash scripts/security/check-hardcoded-uris.sh",
+    "pre-push": "pnpm lint:mongo-unwrap && pnpm typecheck"
+  }
+}
+
+]]>
+</file>
+
+<file path="pages/_app.tsx">
+<![CDATA[
+/**
+ * Minimal _app.tsx - Required companion for _document.tsx
+ *
+ * This file ensures proper Next.js pages directory initialization.
+ * The actual application uses App Router (/app directory).
+ *
+ * @module pages/_app
+ */
+import type { AppProps } from "next/app";
+
+export default function App({ Component, pageProps }: AppProps) {
+  return <Component {...pageProps} />;
+}
+
+]]>
+</file>
+
+<file path="pages/_document.tsx">
+<![CDATA[
+/**
+ * Custom _document.tsx - Required for Next.js 15 build compatibility
+ *
+ * This file is required to prevent the "Cannot find module for page: /_document"
+ * error during production builds in Next.js 15, even when using pure App Router.
+ *
+ * @see https://github.com/vercel/next.js/issues/58684
+ * @module pages/_document
+ */
+import { Html, Head, Main, NextScript } from "next/document";
+
+export default function Document() {
+  return (
+    <Html>
+      <Head />
+      <body>
+        <Main />
+        <NextScript />
+      </body>
+    </Html>
+  );
+}
+
+]]>
+</file>
+
+<file path="playwright-report/data/815e9aecf27fc700b40506d929b21fe4dab72138.md">
+<![CDATA[
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic:
+    - button: Language English عربي
+    - generic:
+      - option: SAR
+      - option: USD
+  - link "Skip to content" [ref=e2]:
+    - /url: "#main-content"
+  - button "Open Next.js Dev Tools" [ref=e8] [cursor=pointer]:
+    - img [ref=e9]
+  - alert [ref=e12]
+  - generic [ref=e13]:
+    - generic [ref=e14]:
+      - banner "Fixzit global navigation" [ref=e16]:
+        - generic [ref=e17]:
+          - generic [ref=e18]:
+            - button "Back to Home" [ref=e19]:
+              - img "FIXZIT ENTERPRISE logo - Fixzit" [ref=e20]
+              - generic [ref=e21]:
+                - generic [ref=e22]: FIXZIT ENTERPRISE
+                - generic [ref=e23]:
+                  - generic [ref=e24]: Facility Management (FM)
+                  - generic [ref=e25]: Administration
+            - button "Switch Application" [ref=e27]:
+              - img [ref=e28]
+              - generic [ref=e32]: Facility Management (FM)
+              - img [ref=e33]
+            - generic [ref=e35]:
+              - generic [ref=e36]: Modules
+              - generic [ref=e37]:
+                - button "Dashboard" [ref=e38]
+                - button "Work Orders" [ref=e39]
+                - button "Properties" [ref=e40]
+                - button "Finance" [ref=e41]
+                - button "Human Resources" [ref=e42]
+                - button "Administration" [ref=e43]
+                - button "CRM" [ref=e44]
+                - button "Marketplace" [ref=e45]
+                - button "Support" [ref=e46]
+                - button "Compliance" [ref=e47]
+                - button "Reports" [ref=e48]
+                - button "System" [ref=e49]
+              - button "Hide menu" [ref=e50]:
+                - img [ref=e51]
+          - generic:
+            - generic:
+              - generic:
+                - img [ref=e53]
+                - combobox "Global search" [ref=e56]
+                - generic [ref=e57]:
+                  - img [ref=e58]
+                  - generic [ref=e60]: K
+              - generic:
+                - button "Administration" [ref=e61]
+                - button "All" [ref=e62]
+          - generic [ref=e63]:
+            - button "Select customer" [ref=e64]
+            - button "Quick Actions" [ref=e66]:
+              - img [ref=e67]
+              - generic [ref=e68]: Quick Actions
+              - img [ref=e69]
+            - 'button "Select language: English — United Kingdom (EN-GB)" [ref=e72]':
+              - img [ref=e73]
+              - generic [ref=e76]:
+                - generic [ref=e77]: 🇬🇧
+                - generic [ref=e78]: EN-GB
+            - generic [ref=e79]:
+              - generic:
+                - option: SAR
+                - option: USD
+              - button "Select currency SAR" [ref=e80]:
+                - img [ref=e81]
+                - generic [ref=e84]:
+                  - generic [ref=e85]: 🇸🇦
+                  - generic [ref=e86]: SAR
+            - button "Notifications" [ref=e88]:
+              - img [ref=e89]
+            - generic "Admin" [ref=e92]
+            - button "Profile" [ref=e94]:
+              - img [ref=e95]
+              - img [ref=e98]
+      - generic [ref=e100]:
+        - navigation "Main Navigation" [ref=e102]:
+          - generic [ref=e103]:
+            - button "Collapse sidebar" [ref=e104]:
+              - img [ref=e105]
+            - generic [ref=e107]: FIXZIT ENTERPRISE
+            - region "Account Info" [ref=e108]:
+              - generic [ref=e109]: Role
+              - generic [ref=e110]: SUPER ADMIN
+              - generic [ref=e111]: "Plan: DEFAULT"
+            - navigation "Modules" [ref=e112]:
+              - region "Core" [ref=e113]:
+                - generic [ref=e114]: Core
+                - list [ref=e115]:
+                  - listitem [ref=e116]:
+                    - link "Dashboard" [ref=e117]:
+                      - /url: /fm/dashboard
+                      - img [ref=e118]
+                      - generic [ref=e123]: Dashboard
+                  - listitem [ref=e124]:
+                    - link "Work Orders" [ref=e125]:
+                      - /url: /fm/work-orders
+                      - img [ref=e126]
+                      - generic [ref=e128]: Work Orders
+                    - list [ref=e129]:
+                      - listitem [ref=e130]:
+                        - link "Create Work Order" [ref=e131]:
+                          - /url: /fm/work-orders?view=create
+                          - generic [ref=e133]: Create Work Order
+                      - listitem [ref=e134]:
+                        - link "Track & Assign" [ref=e135]:
+                          - /url: /fm/work-orders?view=track
+                          - generic [ref=e137]: Track & Assign
+                      - listitem [ref=e138]:
+                        - link "Preventive Maintenance" [ref=e139]:
+                          - /url: /fm/work-orders?view=preventive
+                          - generic [ref=e141]: Preventive Maintenance
+                      - listitem [ref=e142]:
+                        - link "Service History" [ref=e143]:
+                          - /url: /fm/work-orders?view=history
+                          - generic [ref=e145]: Service History
+                  - listitem [ref=e146]:
+                    - link "Properties" [ref=e147]:
+                      - /url: /fm/properties
+                      - img [ref=e148]
+                      - generic [ref=e152]: Properties
+                    - list [ref=e153]:
+                      - listitem [ref=e154]:
+                        - link "Property List & Details" [ref=e155]:
+                          - /url: /fm/properties?view=overview
+                          - generic [ref=e157]: Property List & Details
+                      - listitem [ref=e158]:
+                        - link "Units & Tenants" [ref=e159]:
+                          - /url: /fm/properties?view=units
+                          - generic [ref=e161]: Units & Tenants
+                      - listitem [ref=e162]:
+                        - link "Lease Management" [ref=e163]:
+                          - /url: /fm/properties?view=leases
+                          - generic [ref=e165]: Lease Management
+                      - listitem [ref=e166]:
+                        - link "Inspections" [ref=e167]:
+                          - /url: /fm/properties?view=inspections
+                          - generic [ref=e169]: Inspections
+                      - listitem [ref=e170]:
+                        - link "Documents" [ref=e171]:
+                          - /url: /fm/properties?view=documents
+                          - generic [ref=e173]: Documents
+                  - listitem [ref=e174]:
+                    - link "Finance" [ref=e175]:
+                      - /url: /fm/finance
+                      - img [ref=e176]
+                      - generic [ref=e180]: Finance
+                    - list [ref=e181]:
+                      - listitem [ref=e182]:
+                        - link "Invoices" [ref=e183]:
+                          - /url: /fm/finance?view=invoices
+                          - generic [ref=e185]: Invoices
+                      - listitem [ref=e186]:
+                        - link "Payments" [ref=e187]:
+                          - /url: /fm/finance?view=payments
+                          - generic [ref=e189]: Payments
+                      - listitem [ref=e190]:
+                        - link "Expenses" [ref=e191]:
+                          - /url: /fm/finance?view=expenses
+                          - generic [ref=e193]: Expenses
+                      - listitem [ref=e194]:
+                        - link "Budgets" [ref=e195]:
+                          - /url: /fm/finance?view=budgets
+                          - generic [ref=e197]: Budgets
+                      - listitem [ref=e198]:
+                        - link "Finance Reports" [ref=e199]:
+                          - /url: /fm/finance?view=reports
+                          - generic [ref=e201]: Finance Reports
+                  - listitem [ref=e202]:
+                    - link "Human Resources" [ref=e203]:
+                      - /url: /fm/hr
+                      - img [ref=e204]
+                      - generic [ref=e209]: Human Resources
+                    - list [ref=e210]:
+                      - listitem [ref=e211]:
+                        - link "Employee Directory" [ref=e212]:
+                          - /url: /fm/hr/fm/hr/employees
+                          - generic [ref=e214]: Employee Directory
+                      - listitem [ref=e215]:
+                        - link "Attendance & Leave" [ref=e216]:
+                          - /url: /fm/hr?view=attendance
+                          - generic [ref=e218]: Attendance & Leave
+                      - listitem [ref=e219]:
+                        - link "Payroll" [ref=e220]:
+                          - /url: /fm/hr/fm/hr/payroll
+                          - generic [ref=e222]: Payroll
+                      - listitem [ref=e223]:
+                        - link "Recruitment (ATS)" [ref=e224]:
+                          - /url: /fm/hr?view=recruitment
+                          - generic [ref=e226]: Recruitment (ATS)
+                      - listitem [ref=e227]:
+                        - link "Training" [ref=e228]:
+                          - /url: /fm/hr?view=training
+                          - generic [ref=e230]: Training
+                      - listitem [ref=e231]:
+                        - link "Performance" [ref=e232]:
+                          - /url: /fm/hr?view=performance
+                          - generic [ref=e234]: Performance
+              - region "Business" [ref=e235]:
+                - generic [ref=e236]: Business
+                - list [ref=e237]:
+                  - listitem [ref=e238]:
+                    - link "CRM" [ref=e239]:
+                      - /url: /fm/crm
+                      - img [ref=e240]
+                      - generic [ref=e252]: CRM
+                    - list [ref=e253]:
+                      - listitem [ref=e254]:
+                        - link "Customer Directory" [ref=e255]:
+                          - /url: /fm/crm?view=customers
+                          - generic [ref=e257]: Customer Directory
+                      - listitem [ref=e258]:
+                        - link "Leads & Opportunities" [ref=e259]:
+                          - /url: /fm/crm?view=leads
+                          - generic [ref=e261]: Leads & Opportunities
+                      - listitem [ref=e262]:
+                        - link "Contracts & Renewals" [ref=e263]:
+                          - /url: /fm/crm?view=contracts
+                          - generic [ref=e265]: Contracts & Renewals
+                      - listitem [ref=e266]:
+                        - link "Feedback & Complaints" [ref=e267]:
+                          - /url: /fm/crm?view=feedback
+                          - generic [ref=e269]: Feedback & Complaints
+                  - listitem [ref=e270]:
+                    - link "Marketplace" [ref=e271]:
+                      - /url: /fm/marketplace
+                      - img [ref=e272]
+                      - generic [ref=e275]: Marketplace
+                    - list [ref=e276]:
+                      - listitem [ref=e277]:
+                        - link "Vendors & Suppliers" [ref=e278]:
+                          - /url: /fm/marketplace?view=vendors
+                          - generic [ref=e280]: Vendors & Suppliers
+                      - listitem [ref=e281]:
+                        - link "Service Catalog" [ref=e282]:
+                          - /url: /fm/marketplace?view=catalog
+                          - generic [ref=e284]: Service Catalog
+                      - listitem [ref=e285]:
+                        - link "Procurement" [ref=e286]:
+                          - /url: /fm/marketplace?view=procurement
+                          - generic [ref=e288]: Procurement
+                      - listitem [ref=e289]:
+                        - link "Bidding & RFQs" [ref=e290]:
+                          - /url: /fm/marketplace?view=rfqs
+                          - generic [ref=e292]: Bidding & RFQs
+                  - listitem [ref=e293]:
+                    - link "Support" [ref=e294]:
+                      - /url: /fm/support
+                      - img [ref=e295]
+                      - generic [ref=e297]: Support
+                    - list [ref=e298]:
+                      - listitem [ref=e299]:
+                        - link "Tickets" [ref=e300]:
+                          - /url: /fm/support?view=tickets
+                          - generic [ref=e302]: Tickets
+                      - listitem [ref=e303]:
+                        - link "Knowledge Base" [ref=e304]:
+                          - /url: /fm/support?view=kb
+                          - generic [ref=e306]: Knowledge Base
+                      - listitem [ref=e307]:
+                        - link "Live Chat" [ref=e308]:
+                          - /url: /fm/support?view=chat
+                          - generic [ref=e310]: Live Chat
+                      - listitem [ref=e311]:
+                        - link "SLA Monitoring" [ref=e312]:
+                          - /url: /fm/support?view=sla
+                          - generic [ref=e314]: SLA Monitoring
+                  - listitem [ref=e315]:
+                    - link "Compliance" [ref=e316]:
+                      - /url: /fm/compliance
+                      - img [ref=e317]
+                      - generic [ref=e320]: Compliance
+                    - list [ref=e321]:
+                      - listitem [ref=e322]:
+                        - link "Contracts" [ref=e323]:
+                          - /url: /fm/compliance?view=contracts
+                          - generic [ref=e325]: Contracts
+                      - listitem [ref=e326]:
+                        - link "Disputes & Claims" [ref=e327]:
+                          - /url: /fm/compliance?view=disputes
+                          - generic [ref=e329]: Disputes & Claims
+                      - listitem [ref=e330]:
+                        - link "Audit & Risk" [ref=e331]:
+                          - /url: /fm/compliance?view=audit
+                          - generic [ref=e333]: Audit & Risk
+                  - listitem [ref=e334]:
+                    - link "Reports" [ref=e335]:
+                      - /url: /fm/reports
+                      - img [ref=e336]
+                      - generic [ref=e338]: Reports
+                    - list [ref=e339]:
+                      - listitem [ref=e340]:
+                        - link "Standard Reports" [ref=e341]:
+                          - /url: /fm/reports?view=standard
+                          - generic [ref=e343]: Standard Reports
+                      - listitem [ref=e344]:
+                        - link "Custom Reports" [ref=e345]:
+                          - /url: /fm/reports?view=custom
+                          - generic [ref=e347]: Custom Reports
+                      - listitem [ref=e348]:
+                        - link "Dashboards" [ref=e349]:
+                          - /url: /fm/reports?view=dashboards
+                          - generic [ref=e351]: Dashboards
+              - region "System" [ref=e352]:
+                - generic [ref=e353]: System
+                - list [ref=e354]:
+                  - listitem [ref=e355]:
+                    - link "System" [ref=e356]:
+                      - /url: /fm/system
+                      - img [ref=e357]
+                      - generic [ref=e360]: System
+                    - list [ref=e361]:
+                      - listitem [ref=e362]:
+                        - link "User Management" [ref=e363]:
+                          - /url: /fm/system?view=users
+                          - generic [ref=e365]: User Management
+                      - listitem [ref=e366]:
+                        - link "Roles & Permissions" [ref=e367]:
+                          - /url: /fm/system?view=roles
+                          - generic [ref=e369]: Roles & Permissions
+                      - listitem [ref=e370]:
+                        - link "Subscriptions & Billing" [ref=e371]:
+                          - /url: /fm/system?view=billing
+                          - generic [ref=e373]: Subscriptions & Billing
+                      - listitem [ref=e374]:
+                        - link "Integrations" [ref=e375]:
+                          - /url: /fm/system?view=integrations
+                          - generic [ref=e377]: Integrations
+                      - listitem [ref=e378]:
+                        - link "System Settings" [ref=e379]:
+                          - /url: /fm/system?view=settings
+                          - generic [ref=e381]: System Settings
+                  - listitem [ref=e382]:
+                    - link "Administration" [ref=e383]:
+                      - /url: /fm/administration
+                      - img [ref=e384]
+                      - generic [ref=e387]: Administration
+                    - list [ref=e389]:
+                      - listitem [ref=e390]:
+                        - link "Delegation of Authority" [ref=e391]:
+                          - /url: /fm/administration?view=doa
+                          - generic [ref=e393]: Delegation of Authority
+                      - listitem [ref=e394]:
+                        - link "Policies & Procedures" [ref=e395]:
+                          - /url: /fm/administration?view=policies
+                          - generic [ref=e397]: Policies & Procedures
+                      - listitem [ref=e398]:
+                        - link "Asset Management" [ref=e399]:
+                          - /url: /fm/administration?view=assets
+                          - generic [ref=e401]: Asset Management
+                      - listitem [ref=e402]:
+                        - link "Facilities & Fleet" [ref=e403]:
+                          - /url: /fm/administration?view=fleet
+                          - generic [ref=e405]: Facilities & Fleet
+            - generic [ref=e406]:
+              - generic [ref=e407]: Account
+              - list "Account" [ref=e408]:
+                - listitem [ref=e409]:
+                  - link "Profile" [ref=e410]:
+                    - /url: /account/profile
+                    - img [ref=e411]
+                    - generic [ref=e414]: Profile
+                - listitem [ref=e415]:
+                  - link "Preferences" [ref=e416]:
+                    - /url: /account/preferences
+                    - img [ref=e417]
+                    - generic [ref=e420]: Preferences
+                - listitem [ref=e421]:
+                  - link "Billing & Plans" [ref=e422]:
+                    - /url: /account/billing
+                    - img [ref=e423]
+                    - generic [ref=e425]: Billing & Plans
+                - listitem [ref=e426]:
+                  - link "Notifications" [ref=e427]:
+                    - /url: /account/notifications
+                    - img [ref=e428]
+                    - generic [ref=e431]: Notifications
+                - listitem [ref=e432]:
+                  - link "Security & Audit" [ref=e433]:
+                    - /url: /account/security
+                    - img [ref=e434]
+                    - generic [ref=e436]: Security & Audit
+            - generic [ref=e437]:
+              - generic [ref=e438]: Help
+              - link "Help Center" [ref=e439]:
+                - /url: /help
+                - img [ref=e440]
+                - generic [ref=e442]: Help Center
+        - main [ref=e443]:
+          - generic [ref=e446]:
+            - generic [ref=e447]:
+              - heading "Administration" [level=1] [ref=e448]
+              - paragraph [ref=e449]: Manage all aspects of the Fixzit platform
+              - generic [ref=e450]:
+                - generic [ref=e451]:
+                  - img [ref=e452]
+                  - generic [ref=e454]: "Role: SUPER ADMIN"
+                - generic [ref=e455]:
+                  - img [ref=e456]
+                  - generic [ref=e458]: "System: Operational"
+            - generic [ref=e459]:
+              - generic [ref=e460]:
+                - img [ref=e462]
+                - heading "User Management" [level=3] [ref=e467]
+                - paragraph [ref=e468]: Manage users, roles, and permissions
+                - generic [ref=e470]:
+                  - generic [ref=e471]: Total Users
+                  - generic [ref=e472]: "---"
+              - generic [ref=e473]:
+                - img [ref=e475]
+                - heading "Role Management" [level=3] [ref=e477]
+                - paragraph [ref=e478]: Configure RBAC policies and permissions
+                - generic [ref=e480]:
+                  - generic [ref=e481]: Total Roles
+                  - generic [ref=e482]: "---"
+              - generic [ref=e483]:
+                - img [ref=e485]
+                - heading "Audit Logs" [level=3] [ref=e488]
+                - paragraph [ref=e489]: View system activity and compliance logs
+                - generic [ref=e491]:
+                  - generic [ref=e492]: Recent Events
+                  - generic [ref=e493]: "---"
+              - generic [ref=e494]:
+                - img [ref=e496]
+                - heading "CMS Pages" [level=3] [ref=e501]
+                - paragraph [ref=e502]: Manage CMS content, pages, and media
+                - generic [ref=e504]:
+                  - generic [ref=e505]: Total Pages
+                  - generic [ref=e506]: "---"
+              - generic [ref=e507]:
+                - img [ref=e509]
+                - heading "System Settings" [level=3] [ref=e512]
+                - paragraph [ref=e513]: Configure system-wide settings and preferences
+                - generic [ref=e515]:
+                  - generic [ref=e516]: Categories
+                  - generic [ref=e517]: 10+
+              - generic [ref=e518]:
+                - img [ref=e520]
+                - heading "Feature Settings" [level=3] [ref=e522]
+                - paragraph [ref=e523]: Enable/disable features dynamically
+                - generic [ref=e525]:
+                  - generic [ref=e526]: Active Features
+                  - generic [ref=e527]: "---"
+              - generic [ref=e528]:
+                - img [ref=e530]
+                - heading "Database Management" [level=3] [ref=e534]
+                - paragraph [ref=e535]: Monitor database health and performance
+                - generic [ref=e537]:
+                  - generic [ref=e538]: Status
+                  - generic [ref=e539]: Healthy
+              - generic [ref=e540]:
+                - img [ref=e542]
+                - heading "Notifications" [level=3] [ref=e545]
+                - paragraph [ref=e546]: Manage system notifications and alerts
+                - generic [ref=e548]:
+                  - generic [ref=e549]: Pending
+                  - generic [ref=e550]: "---"
+              - generic [ref=e551]:
+                - img [ref=e553]
+                - heading "Email Configuration" [level=3] [ref=e556]
+                - paragraph [ref=e557]: Configure SMTP settings and email templates
+                - generic [ref=e559]:
+                  - generic [ref=e560]: Templates
+                  - generic [ref=e561]: "12"
+              - generic [ref=e562]:
+                - img [ref=e564]
+                - heading "Security" [level=3] [ref=e567]
+                - paragraph [ref=e568]: Manage security policies and 2FA
+                - generic [ref=e570]:
+                  - generic [ref=e571]: Active Policies
+                  - generic [ref=e572]: "5"
+              - generic [ref=e573]:
+                - img [ref=e575]
+                - heading "System Monitoring" [level=3] [ref=e577]
+                - paragraph [ref=e578]: Real-time system health and metrics
+                - generic [ref=e580]:
+                  - generic [ref=e581]: Uptime
+                  - generic [ref=e582]: 99.9%
+              - generic [ref=e583]:
+                - img [ref=e585]
+                - heading "Admin Reports" [level=3] [ref=e587]
+                - paragraph [ref=e588]: Generate admin-level reports and analytics
+                - generic [ref=e590]:
+                  - generic [ref=e591]: Generated
+                  - generic [ref=e592]: "---"
+            - generic [ref=e593]:
+              - heading "Quick Actions" [level=2] [ref=e594]
+              - generic [ref=e595]:
+                - button "Create User" [ref=e596]
+                - button "Create Role" [ref=e597]
+                - button "View Audit Logs" [ref=e598]
+                - button "System Monitor" [ref=e599]
+            - generic [ref=e600]:
+              - generic [ref=e601]:
+                - generic [ref=e602]:
+                  - img [ref=e603]
+                  - heading "Database Management" [level=3] [ref=e607]
+                - paragraph [ref=e608]: Status
+                - paragraph [ref=e609]: Healthy
+              - generic [ref=e610]:
+                - generic [ref=e611]:
+                  - img [ref=e612]
+                  - heading "System Monitoring" [level=3] [ref=e614]
+                - paragraph [ref=e615]: Uptime
+                - paragraph [ref=e616]: 99.9%
+              - generic [ref=e617]:
+                - generic [ref=e618]:
+                  - img [ref=e619]
+                  - heading "Active" [level=3] [ref=e624]
+                - paragraph [ref=e625]: Online
+                - paragraph [ref=e626]: "---"
+      - contentinfo [ref=e628]:
+        - generic [ref=e629]:
+          - generic [ref=e630]:
+            - generic [ref=e631]: Fixzit
+            - link "Back to Home" [ref=e632]:
+              - /url: /
+              - img [ref=e633]
+              - generic [ref=e636]: Back to Home
+            - generic [ref=e637]:
+              - 'button "Select language: English — United Kingdom (EN-GB)" [ref=e639]':
+                - img [ref=e640]
+                - generic [ref=e643]:
+                  - generic [ref=e644]: 🇬🇧
+                  - generic [ref=e645]: EN-GB
+              - generic [ref=e646]:
+                - generic:
+                  - option: SAR
+                  - option: USD
+                - button "Select currency SAR" [ref=e647]:
+                  - img [ref=e648]
+                  - generic [ref=e651]:
+                    - generic [ref=e652]: 🇸🇦
+                    - generic [ref=e653]: SAR
+          - generic [ref=e654]:
+            - generic [ref=e655]:
+              - generic [ref=e656]: Company
+              - list [ref=e657]:
+                - listitem [ref=e658]:
+                  - link "About" [ref=e659]:
+                    - /url: /about
+                - listitem [ref=e660]:
+                  - link "Careers" [ref=e661]:
+                    - /url: /careers
+                - listitem [ref=e662]:
+                  - link "Pricing" [ref=e663]:
+                    - /url: /pricing
+            - generic [ref=e664]:
+              - generic [ref=e665]: Legal
+              - list [ref=e666]:
+                - listitem [ref=e667]:
+                  - link "Privacy" [ref=e668]:
+                    - /url: /privacy
+                - listitem [ref=e669]:
+                  - link "Terms" [ref=e670]:
+                    - /url: /terms
+            - generic [ref=e671]:
+              - generic [ref=e672]: Support
+              - list [ref=e673]:
+                - listitem [ref=e674]:
+                  - link "Help Center" [ref=e675]:
+                    - /url: /help
+                - listitem [ref=e676]:
+                  - button "Open a ticket" [ref=e677]
+          - generic [ref=e678]:
+            - generic [ref=e679]:
+              - generic [ref=e680]: © 2025 Fixzit. All rights reserved.
+              - navigation "Fixzit trail" [ref=e681]:
+                - generic [ref=e682]: Fixzit
+                - generic [ref=e683]: ›
+                - generic [ref=e684]: Design System
+                - generic [ref=e685]: ›
+                - generic [ref=e686]: v2
+            - generic [ref=e687]:
+              - link "Privacy" [ref=e688]:
+                - /url: /privacy
+              - link "Terms" [ref=e689]:
+                - /url: /terms
+              - link "Support" [ref=e690]:
+                - /url: /support
+    - button "Ask Fixzit" [ref=e692]:
+      - img [ref=e693]
+  - region "Notifications alt+T"
+```
+]]>
+</file>
+
+<file path="playwright.config.ts">
+<![CDATA[
+import { defineConfig, devices } from '@playwright/test';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+import crypto from 'node:crypto';
+
+const isCI = !!process.env.CI;
+const requestedProjects = process.env.PLAYWRIGHT_PROJECTS
+  ?.split(',')
+  .map((p) => p.trim())
+  .filter(Boolean);
+const ARTIFACTS_DIR = path.join(__dirname, '_artifacts/playwright');
+const RESULTS_DIR = path.join(ARTIFACTS_DIR, 'results');
+
+// 🔐 Resolve a non-guessable auth secret for Playwright runs
+const resolvedAuthSecret = (() => {
+  if (process.env.NEXTAUTH_SECRET) return process.env.NEXTAUTH_SECRET;
+  if (process.env.AUTH_SECRET) {
+    process.env.NEXTAUTH_SECRET = process.env.AUTH_SECRET;
+    return process.env.AUTH_SECRET;
+  }
+
+  if (isCI) {
+    throw new Error('NEXTAUTH_SECRET or AUTH_SECRET is required for Playwright in CI.');
+  }
+
+  // Local/dev convenience: generate a strong secret per run (no static fallback)
+  const generated = crypto.randomBytes(32).toString('hex');
+  process.env.NEXTAUTH_SECRET = generated;
+  process.env.AUTH_SECRET = generated;
+  return generated;
+})();
+
+const useBuild = process.env.PW_USE_BUILD === 'true';
+const WEB_COMMAND = process.env.PW_WEB_SERVER
+  ? process.env.PW_WEB_SERVER
+  : useBuild
+    ? 'sh -c "mkdir -p .next/standalone/.next && cp -R .next/static .next/standalone/.next/static 2>/dev/null || true; cp -R public .next/standalone/public 2>/dev/null || true; node .next/standalone/server.js"'
+    : 'npm run dev:webpack -- --hostname 0.0.0.0 --port 3000';
+const WEB_URL = process.env.PW_WEB_URL || 'http://localhost:3000';
+
+// Load environment variables from .env.test if it exists
+// This ensures GOOGLE_CLIENT_ID/SECRET and other test credentials are available
+const envPath = path.resolve(process.cwd(), '.env.test');
+try {
+  const result = dotenv.config({ path: envPath });
+  if (result.parsed && Object.keys(result.parsed).length > 0) {
+    process.stdout.write('✅ Loaded test environment variables from .env.test\n');
+  }
+} catch (error) {
+  process.stderr.write('⚠️  .env.test not found. Copy .env.test.example to .env.test and add your credentials.\n');
+}
+
+/**
+ * See https://playwright.dev/docs/test-configuration.
+ */
+// MongoDB-only configuration
+export default defineConfig({
+  testDir: './',
+  globalSetup: path.join(__dirname, 'tests/setup-auth.ts'),
+  // Restrict to Playwright suites only; avoid pulling in Vitest unit specs that also use *.spec.ts
+  testMatch: [
+    'tests/e2e/**/*.spec.ts',
+    'tests/specs/**/*.spec.ts',
+    'tests/smoke/**/*.spec.ts',
+    'tests/copilot/**/*.spec.ts',
+    'tests/copilot.spec.ts',
+    'tests/marketplace.smoke.spec.ts',
+    'tests/hfv.e2e.spec.ts',
+    'qa/tests/**/*.spec.ts',
+    '**/*.e2e.ts',
+  ],
+  testIgnore: [
+    '**/*.test.ts',
+    '**/*.test.tsx',
+    '**/node_modules/**',
+    '**/i18n-en.unit.spec.ts',
+    'tests/unit/**',
+    'tests/config/**',
+    'tests/policy.spec.ts',
+    'tests/tools.spec.ts',
+  ],
+  /* Run tests in files in parallel */
+  fullyParallel: false,
+  /* Fail the build on CI if you accidentally left test.only in the source code. */
+  forbidOnly: !!process.env.CI,
+  /* Retry on CI only */
+  retries: process.env.CI ? 2 : 0,
+  /* Opt out of parallel tests on CI. */
+  workers: 1,
+  /* Reporter to use. See https://playwright.dev/docs/test-reporters */
+  reporter: [
+    // Keep HTML artifacts but never launch the preview server (it was keeping CLI runs alive)
+    ['html', { outputFolder: path.join(ARTIFACTS_DIR, 'html-report'), open: 'never' }],
+    ['json', { outputFile: path.join(RESULTS_DIR, 'results.json') }],
+    ['list']
+  ],
+  // Centralize Playwright artifacts away from tracked source folders (absolute to avoid config-dir drift)
+  outputDir: RESULTS_DIR,
+  /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
+  use: {
+    /* Base URL to use in actions like `await page.goto('/')`. */
+    baseURL: 'http://localhost:3000',
+    storageState: 'tests/state/superadmin.json',
+    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
+    trace: 'on-first-retry',
+    /* Screenshot on failure */
+    screenshot: 'only-on-failure',
+    /* Video recording */
+    video: 'retain-on-failure',
+  },
+
+  /* Configure projects for major browsers */
+  projects: (() => {
+    const allProjects = [
+      {
+        name: 'chromium',
+        use: { ...devices['Desktop Chrome'] },
+      },
+      {
+        name: 'firefox',
+        use: { ...devices['Desktop Firefox'] },
+      },
+      {
+        name: 'webkit',
+        use: { ...devices['Desktop Safari'] },
+      },
+      // Mobile viewports
+      {
+        name: 'Mobile Chrome',
+        use: { ...devices['Pixel 5'] },
+      },
+      {
+        name: 'Mobile Safari',
+        use: { ...devices['iPhone 12'] },
+      },
+    ];
+
+    // Local default: run only chromium to avoid multi-browser slowdown.
+    // CI or explicit PLAYWRIGHT_PROJECTS runs full matrix.
+    if (!requestedProjects || requestedProjects.length === 0) {
+      return isCI
+        ? allProjects
+        : allProjects.filter((p) => p.name === 'chromium');
+    }
+
+    const selected = allProjects.filter((p) =>
+      requestedProjects.includes(p.name),
+    );
+
+    // Fallback to chromium if filtering removed everything
+    return selected.length > 0
+      ? selected
+      : allProjects.filter((p) => p.name === 'chromium');
+  })(),
+
+  /* Run your local dev server before starting the tests */
+  webServer: {
+    // Command is configurable so CI can prefer `pnpm start` after a build
+    command: WEB_COMMAND,
+    url: WEB_URL,
+    reuseExistingServer: !process.env.CI,
+    timeout: 180 * 1000, // Increased to 3 minutes for slower builds
+    stdout: 'pipe',
+    stderr: 'pipe',
+    env: {
+      PLAYWRIGHT: 'true',
+      NODE_ENV: useBuild ? 'production' : 'test',
+      PORT: process.env.PW_PORT || '3000',
+      HOSTNAME: process.env.PW_HOSTNAME || '0.0.0.0',
+      NEXTAUTH_SECRET: resolvedAuthSecret,
+      AUTH_SECRET: resolvedAuthSecret,
+      NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+      CORS_ORIGINS: process.env.CORS_ORIGINS || 'http://localhost:3000',
+      // Pass Google OAuth credentials to prevent warning logs
+      GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
+      GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',
+      // Skip validation in test environment (credentials loaded from .env.test)
+      SKIP_ENV_VALIDATION: process.env.CI ? 'false' : 'true',
+      // Allow MongoDB offline mode for tests
+      ALLOW_OFFLINE_MONGODB: 'true',
+      AUTH_TRUST_HOST: 'true',
+      NEXTAUTH_TRUST_HOST: 'true',
+      LOGIN_RATE_LIMIT_MAX_ATTEMPTS: '100',
+      LOGIN_RATE_LIMIT_WINDOW_MS: '120000',
+      // Reduce noise from telemetry/instrumentation in E2E
+      NEXT_TELEMETRY_DISABLED: '1',
+      SENTRY_SKIP_INIT: '1',
+      OTEL_SDK_DISABLED: '1',
+    },
+  },
+});
+
+]]>
+</file>
+
+<file path="postcss.config.js">
+<![CDATA[
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+};
+
+]]>
+</file>
+
+<file path="providers/AuthenticatedProviders.tsx">
+<![CDATA[
+// ⚡ PERFORMANCE OPTIMIZATION: Full provider tree for authenticated pages
+// Adds authentication-specific providers on top of PublicProviders
+// Only loaded for protected routes (not public pages)
+
+"use client";
+import React from "react";
+import { TranslationProvider } from "@/contexts/TranslationContext";
+import PublicProviders from "./PublicProviders";
+import QueryProvider from "./QueryProvider";
+import type { Locale } from "@/i18n/config";
+
+/**
+ * Complete provider tree for authenticated pages
+ *
+ * Wraps PublicProviders and adds authentication-specific providers:
+ * - QueryProvider (TanStack Query for data fetching and caching)
+ * - TranslationProvider (user-specific translations with backend sync)
+ *
+ * PublicProviders already includes:
+ * - ErrorBoundary, SessionProvider, I18nProvider, ThemeProvider,
+ *   ResponsiveProvider, CurrencyProvider, FormStateProvider, TopBarProvider
+ *
+ * Provider hierarchy (outer → inner):
+ * PublicProviders (all base providers including TopBarProvider) →
+ * QueryProvider (TanStack Query) →
+ * TranslationProvider → children
+ *
+ * @param {React.ReactNode} children - Application content to render inside provider tree
+ * @returns {JSX.Element} The complete provider tree with error protection
+ */
+export default function AuthenticatedProviders({
+  children,
+  initialLocale,
+}: {
+  children: React.ReactNode;
+  initialLocale?: Locale;
+}) {
+  return (
+    <PublicProviders initialLocale={initialLocale}>
+      <QueryProvider>
+        <TranslationProvider initialLanguage={initialLocale}>
+          {children}
+        </TranslationProvider>
+      </QueryProvider>
+    </PublicProviders>
+  );
+}
+
+]]>
+</file>
+
+<file path="providers/ConditionalProviders.tsx">
+<![CDATA[
+// ⚡ PERFORMANCE OPTIMIZATION: Conditional provider wrapper
+// Automatically selects PublicProviders or AuthenticatedProviders based on current route
+// Reduces bundle size on public pages by ~35-40 KB
+
+"use client";
+import { usePathname } from "next/navigation";
+import PublicProviders from "@/providers/PublicProviders";
+import AuthenticatedProviders from "@/providers/AuthenticatedProviders";
+import type { Locale } from "@/i18n/config";
+
+// Define public routes that only need minimal providers
+const publicRoutes = new Set<string>([
+  "/",
+  "/about",
+  "/privacy",
+  "/terms",
+  "/help",
+  "/careers",
+  "/cms/privacy",
+  "/cms/terms",
+  "/cms/about",
+]);
+
+// Define public route prefixes (paths that start with these are public)
+const publicRoutePrefixes = [
+  "/aqar", // Public marketplace
+  "/souq", // Public marketplace
+  "/marketplace", // Public marketplace browse
+  "/test", // Test pages
+];
+
+/**
+ * Intelligently selects provider tree based on current route
+ *
+ * - Public pages get PublicProviders (lightweight: ~15 KB)
+ * - Protected pages get AuthenticatedProviders (full: ~50 KB)
+ * - Auth pages (/login, /signup) get PublicProviders (no session needed yet)
+ *
+ * Performance impact:
+ * - Public page first load: -35-40 KB
+ * - Homepage LCP improvement: -0.3-0.4s
+ * - Auth page load: Faster (no unnecessary providers)
+ */
+export default function ConditionalProviders({
+  children,
+  initialLocale,
+}: {
+  children: React.ReactNode;
+  initialLocale?: Locale;
+}) {
+  const pathname = usePathname() || "";
+
+  // Check if current route is public
+  const isPublicRoute =
+    publicRoutes.has(pathname) ||
+    publicRoutePrefixes.some((prefix) => pathname.startsWith(prefix));
+
+  // Auth pages (/login, /signup, /forgot-password) use public providers
+  // They don't need session context until after authentication
+  const isAuthPage =
+    pathname === "/login" ||
+    pathname === "/signup" ||
+    pathname === "/forgot-password" ||
+    pathname === "/reset-password";
+
+  // Use PublicProviders for public routes and auth pages
+  // Use AuthenticatedProviders for protected routes
+  const ProviderComponent =
+    isPublicRoute || isAuthPage ? PublicProviders : AuthenticatedProviders;
+
+  return (
+    <ProviderComponent initialLocale={initialLocale}>
+      {children}
+    </ProviderComponent>
+  );
+}
+
+]]>
+</file>
+
+<file path="providers/Providers.tsx">
+<![CDATA[
+"use client";
+import React from "react";
+import { SessionProvider } from "next-auth/react";
+import { ThemeProvider } from "@/contexts/ThemeContext";
+import { TranslationProvider } from "@/contexts/TranslationContext";
+import { CurrencyProvider } from "@/contexts/CurrencyContext";
+import { ResponsiveProvider } from "@/contexts/ResponsiveContext";
+import { TopBarProvider } from "@/contexts/TopBarContext";
+import { FormStateProvider } from "@/contexts/FormStateContext";
+import { I18nProvider } from "@/i18n/I18nProvider";
+import ErrorBoundary from "@/components/ErrorBoundary";
+
+/**
+ * Global provider tree wrapper for the application
+ *
+ * 🔒 ARCHITECTURE FIX: ErrorBoundary now wraps ALL providers (not just FormStateProvider)
+ * - This protects 100% of the app from crashes in any provider initialization
+ * - Previously only FormStateProvider was protected (~10% coverage)
+ *
+ * 🚀 SSR FIX: Removed isClient anti-pattern that blocked server-side rendering
+ * - All providers now support SSR properly
+ * - Improves initial page load performance and SEO
+ * - Providers use proper SSR-safe patterns internally
+ *
+ * Provider hierarchy (outer → inner):
+ * ErrorBoundary → SessionProvider → I18nProvider → TranslationProvider →
+ * ResponsiveProvider → CurrencyProvider → ThemeProvider → TopBarProvider →
+ * FormStateProvider → children
+ *
+ * @param {React.ReactNode} children - Application content to render inside provider tree
+ * @returns {JSX.Element} The complete provider tree with error protection
+ */
+export default function Providers({ children }: { children: React.ReactNode }) {
+  return (
+    <ErrorBoundary>
+      <SessionProvider>
+        <I18nProvider>
+          <TranslationProvider>
+            <ResponsiveProvider>
+              <CurrencyProvider>
+                <ThemeProvider>
+                  <TopBarProvider>
+                    <FormStateProvider>{children}</FormStateProvider>
+                  </TopBarProvider>
+                </ThemeProvider>
+              </CurrencyProvider>
+            </ResponsiveProvider>
+          </TranslationProvider>
+        </I18nProvider>
+      </SessionProvider>
+    </ErrorBoundary>
+  );
+}
+
+]]>
+</file>
+
+<file path="providers/PublicProviders.tsx">
+<![CDATA[
+// ⚡ PERFORMANCE OPTIMIZATION: Essential provider tree for all pages
+// Includes all providers needed by global UI components (TopBar, ClientLayout)
+// These components render on ALL routes, so providers must always be available
+
+"use client";
+import React from "react";
+import { SessionProvider } from "next-auth/react";
+import { ThemeProvider } from "@/contexts/ThemeContext";
+import { I18nProvider } from "@/i18n/I18nProvider";
+import { TranslationProvider } from "@/contexts/TranslationContext";
+import { CurrencyProvider } from "@/contexts/CurrencyContext";
+import { ResponsiveProvider } from "@/contexts/ResponsiveContext";
+import { FormStateProvider } from "@/contexts/FormStateContext";
+import { TopBarProvider } from "@/contexts/TopBarContext";
+import { SupportOrgProvider } from "@/contexts/SupportOrgContext";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import type { Locale } from "@/i18n/config";
+
+/**
+ * Essential provider tree for public pages (homepage, about, privacy, terms)
+ *
+ * Provider hierarchy (outer → inner):
+ * ErrorBoundary → SessionProvider → I18nProvider → ThemeProvider →
+ * ResponsiveProvider → CurrencyProvider → FormStateProvider → TopBarProvider → children
+ *
+ * All these providers are required because TopBar and ClientLayout use:
+ * - useSession() - authentication state
+ * - useTranslation() - i18n context
+ * - useTheme() - theme switching
+ * - useResponsive() - responsive layout
+ * - useCurrency() - currency formatting
+ * - useFormState() - unsaved changes tracking
+ * - useTopBar() - app context and routing (AppSwitcher)
+ *
+ * @param {React.ReactNode} children - Application content to render inside provider tree
+ * @returns {JSX.Element} The complete provider tree with error protection
+ */
+export default function PublicProviders({
+  children,
+  initialLocale,
+}: {
+  children: React.ReactNode;
+  initialLocale?: Locale;
+}) {
+  return (
+    <ErrorBoundary>
+      <SessionProvider>
+        <I18nProvider initialLocale={initialLocale}>
+          <ThemeProvider>
+            <ResponsiveProvider>
+              <CurrencyProvider>
+                <FormStateProvider>
+                  {/* Provide translations for public pages (TopBar and other global UI) */}
+                  <TranslationProvider initialLanguage={initialLocale}>
+                    <SupportOrgProvider>
+                      <TopBarProvider>{children}</TopBarProvider>
+                    </SupportOrgProvider>
+                  </TranslationProvider>
+                </FormStateProvider>
+              </CurrencyProvider>
+            </ResponsiveProvider>
+          </ThemeProvider>
+        </I18nProvider>
+      </SessionProvider>
+    </ErrorBoundary>
+  );
+}
+
+]]>
+</file>
+
+<file path="providers/QAProvider.tsx">
+<![CDATA[
+"use client";
+
+import React, { useMemo } from "react";
+import { AutoFixAgent } from "@/qa/AutoFixAgent";
+import { ErrorBoundary } from "@/qa/ErrorBoundary";
+
+type Props = {
+  children: React.ReactNode;
+  enabled?: boolean;
+  role:
+    | "Super Admin"
+    | "Admin"
+    | "Corporate Owner"
+    | "Team Member"
+    | "Technician"
+    | "Property Manager"
+    | "Tenant"
+    | "Vendor"
+    | "Guest"
+    | string;
+  orgId: string;
+};
+
+export const QAContext = React.createContext<{
+  enabled: boolean;
+  role: string;
+  orgId: string;
+}>({ enabled: false, role: "Guest", orgId: "unknown" });
+
+export function QAProvider({ children, enabled = false, role, orgId }: Props) {
+  const value = useMemo(
+    () => ({ enabled, role, orgId }),
+    [enabled, role, orgId],
+  );
+  // Do not alter layout; we only mount an overlay/hook listeners.
+  return (
+    <QAContext.Provider value={value}>
+      <ErrorBoundary>
+        {children}
+        {enabled && <AutoFixAgent />}
+      </ErrorBoundary>
+    </QAContext.Provider>
+  );
+}
+
+]]>
+</file>
+
+<file path="providers/QueryProvider.tsx">
+<![CDATA[
+"use client";
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useState } from "react";
+
+/**
+ * React Query Provider for data fetching and caching
+ * 
+ * Configuration:
+ * - staleTime: 5 minutes - Data considered fresh for 5 minutes
+ * - cacheTime: 10 minutes - Cached data retained for 10 minutes
+ * - retry: 1 - Retry failed queries once
+ * - refetchOnWindowFocus: false - Don't refetch when window regains focus
+ */
+export default function QueryProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 5 * 60 * 1000, // 5 minutes
+            gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+            retry: 1,
+            refetchOnWindowFocus: false,
+          },
+        },
+      })
+  );
+
+  return (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+}
+
+]]>
+</file>
+
+<file path="public/app-fixed.js">
+<![CDATA[
+// Secure App.js with XSS prevention and secure token storage
+
+// Sanitize HTML to prevent XSS
+const DOMPurify = require("isomorphic-dompurify");
+
+function sanitizeHTML(dirty) {
+  return DOMPurify.sanitize(dirty, {
+    ALLOWED_TAGS: ["b", "i", "em", "strong", "a", "p", "br"],
+    ALLOWED_ATTR: ["href", "title", "target"],
+  });
+}
+
+// Safe element update without innerHTML
+function safeUpdateElement(element, content) {
+  // Clear existing content
+  while (element.firstChild) {
+    element.removeChild(element.firstChild);
+  }
+
+  // Add sanitized content
+  const sanitized = sanitizeHTML(content);
+  const temp = document.createElement("div");
+  temp.innerHTML = sanitized;
+
+  while (temp.firstChild) {
+    element.appendChild(temp.firstChild);
+  }
+}
+
+class FixzitApp {
+  constructor() {
+    this.init();
+  }
+
+  init() {
+    // Use secure cookie-based authentication instead of localStorage
+    this.checkAuthentication();
+    this.setupEventListeners();
+  }
+
+  checkAuthentication() {
+    // Check for httpOnly cookie presence via API call
+    fetch("/api/auth/check", {
+      credentials: "include",
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.authenticated) {
+          this.loadDashboard();
+        } else {
+          this.showLogin();
+        }
+      });
+  }
+
+  updateDashboard(data) {
+    const dashboard = document.getElementById("dashboard");
+    if (!dashboard) return;
+
+    // Safe update without innerHTML
+    safeUpdateElement(dashboard, data.content);
+  }
+
+  displayWorkOrders(orders) {
+    const container = document.getElementById("work-orders");
+    if (!container) return;
+
+    // Clear and rebuild safely
+    container.innerHTML = ""; // Clear first
+
+    orders.forEach((order) => {
+      const orderEl = document.createElement("div");
+      orderEl.className = "work-order";
+
+      // Create elements safely
+      const title = document.createElement("h3");
+      title.textContent = order.title; // textContent is XSS-safe
+
+      const description = document.createElement("p");
+      description.textContent = order.description;
+
+      const status = document.createElement("span");
+      status.className = `status ${order.status}`;
+      status.textContent = order.status;
+
+      orderEl.appendChild(title);
+      orderEl.appendChild(description);
+      orderEl.appendChild(status);
+      container.appendChild(orderEl);
+    });
+  }
+
+  setupEventListeners() {
+    // Prevent form-based XSS
+    document.querySelectorAll("form").forEach((form) => {
+      form.addEventListener("submit", (e) => {
+        const inputs = form.querySelectorAll("input, textarea");
+        inputs.forEach((input) => {
+          // Sanitize input values
+          if (input.type !== "password") {
+            input.value = DOMPurify.sanitize(input.value);
+          }
+        });
+      });
+    });
+  }
+}
+
+// Initialize app
+document.addEventListener("DOMContentLoaded", () => {
+  new FixzitApp();
+});
+
+]]>
+</file>
+
+<file path="public/app.css">
+<![CDATA[
+/* Fixzit Souq Enterprise Platform - Styles */
+
+:root {
+  --primary-color: #b46b2f;
+  --primary-dark: #8c4d1f;
+  --secondary-color: #d68b4a;
+  --accent-color: #f0b46a;
+  --purple-color: #9c6c3b;
+  --danger-color: #dc3545;
+  --success-color: #28a745;
+  --warning-color: #ffc107;
+  --info-color: #17a2b8;
+
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-dark: #2d3748;
+  --text-primary: #2d3748;
+  --text-secondary: #718096;
+  --text-light: #ffffff;
+
+  --border-color: #e2e8f0;
+  --shadow-light: 0 2px 10px rgba(0, 0, 0, 0.1);
+  --shadow-medium: 0 4px 20px rgba(0, 0, 0, 0.15);
+  --shadow-heavy: 0 8px 30px rgba(0, 0, 0, 0.2);
+
+  --border-radius: 8px;
+  --border-radius-large: 12px;
+  --transition: all 0.3s ease;
+}
+
+/* Reset and Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family:
+    "Inter",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  overflow-x: hidden;
+}
+
+/* Utility Classes */
+.hidden {
+  display: none !important;
+}
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.95);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  backdrop-filter: blur(5px);
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid var(--border-color);
+  border-top: 4px solid var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Login Screen */
+.login-screen {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(
+    135deg,
+    var(--primary-color),
+    var(--primary-dark)
+  );
+  padding: 20px;
+}
+
+.login-container {
+  background: var(--bg-primary);
+  padding: 40px;
+  border-radius: var(--border-radius-large);
+  box-shadow: var(--shadow-heavy);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.login-header {
+  margin-bottom: 30px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.logo-icon {
+  font-size: 2rem;
+}
+
+.logo-text {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.login-header h1 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.login-header p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+/* Form Styles */
+.login-form {
+  text-align: left;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+  transition: var(--transition);
+  background: var(--bg-primary);
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.1);
+}
+
+.login-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--primary-color);
+  color: var(--text-light);
+  border: none;
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+  margin-bottom: 15px;
+}
+
+.login-btn:hover:not(:disabled) {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+.login-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-loader {
+  display: inline-block;
+}
+
+.error-message {
+  background: #fee;
+  color: var(--danger-color);
+  padding: 10px;
+  border-radius: var(--border-radius);
+  font-size: 0.9rem;
+  margin-top: 10px;
+  border: 1px solid rgba(220, 53, 69, 0.2);
+}
+
+.login-footer {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+  text-align: center;
+}
+
+.login-footer p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+}
+
+.demo-info {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Dashboard Screen */
+.dashboard-screen {
+  min-height: 100vh;
+  background: var(--bg-secondary);
+}
+
+/* Dashboard Header */
+.dashboard-header {
+  background: var(--bg-primary);
+  padding: 15px 30px;
+  box-shadow: var(--shadow-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+}
+
+.breadcrumb {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.user-role {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.logout-btn {
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 0.9rem;
+}
+
+.logout-btn:hover {
+  background: var(--danger-color);
+  color: var(--text-light);
+  border-color: var(--danger-color);
+}
+
+/* Dashboard Main */
+.dashboard-main {
+  padding: 30px;
+}
+
+.dashboard-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Welcome Section */
+.welcome-section {
+  background: linear-gradient(
+    135deg,
+    var(--primary-color),
+    var(--primary-dark)
+  );
+  color: var(--text-light);
+  padding: 30px;
+  border-radius: var(--border-radius-large);
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.welcome-section h1 {
+  font-size: 2.2rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.welcome-section p {
+  font-size: 1.1rem;
+  opacity: 0.9;
+  margin-bottom: 20px;
+}
+
+.system-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success-color);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* KPI Section */
+.kpi-section {
+  margin-bottom: 40px;
+}
+
+.kpi-section h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: var(--text-primary);
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.kpi-card {
+  background: var(--bg-primary);
+  padding: 25px;
+  border-radius: var(--border-radius-large);
+  box-shadow: var(--shadow-light);
+  border-left: 4px solid var(--primary-color);
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-medium);
+}
+
+.kpi-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.kpi-content h3 {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin-bottom: 5px;
+}
+
+.kpi-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 5px;
+  line-height: 1;
+}
+
+.kpi-label {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+/* Actions Section */
+.actions-section {
+  margin-bottom: 40px;
+}
+
+.actions-section h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: var(--text-primary);
+}
+
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.action-card {
+  background: var(--bg-primary);
+  padding: 25px;
+  border-radius: var(--border-radius-large);
+  box-shadow: var(--shadow-light);
+  text-align: center;
+  cursor: pointer;
+  transition: var(--transition);
+  border: 1px solid transparent;
+}
+
+.action-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-medium);
+  border-color: var(--primary-color);
+}
+
+.action-icon {
+  font-size: 3rem;
+  margin-bottom: 15px;
+  display: block;
+}
+
+.action-card h3 {
+  color: var(--text-primary);
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.action-card p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Error Notification */
+.error-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: var(--danger-color);
+  color: var(--text-light);
+  padding: 15px 20px;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-medium);
+  z-index: 1000;
+  max-width: 300px;
+  font-size: 0.9rem;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .dashboard-header {
+    padding: 15px 20px;
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+
+  .header-left {
+    justify-content: center;
+  }
+
+  .header-right {
+    justify-content: center;
+  }
+
+  .dashboard-main {
+    padding: 20px;
+  }
+
+  .welcome-section {
+    padding: 25px 20px;
+  }
+
+  .welcome-section h1 {
+    font-size: 1.8rem;
+  }
+
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .actions-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .login-container {
+    padding: 30px 25px;
+    margin: 0 10px;
+  }
+
+  .logo-text {
+    font-size: 1.3rem;
+  }
+
+  .login-header h1 {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-main {
+    padding: 15px;
+  }
+
+  .welcome-section {
+    padding: 20px 15px;
+  }
+
+  .welcome-section h1 {
+    font-size: 1.6rem;
+  }
+
+  .kpi-card {
+    padding: 20px;
+    flex-direction: column;
+    text-align: center;
+    gap: 15px;
+  }
+
+  .action-card {
+    padding: 20px;
+  }
+
+  .login-container {
+    padding: 25px 20px;
+  }
+}
+
+]]>
+</file>
+
+<file path="public/app.js">
+<![CDATA[
+// Fixzit Souq Enterprise Platform - Frontend Application
+// 🔐 Email domain comes from window for rebranding; falls back to generic demo domain.
+const EMAIL_DOMAIN = window.EMAIL_DOMAIN || window.__EMAIL_DOMAIN__ || "example.com";
+
+class FixzitApp {
+  constructor() {
+    this.token = localStorage.getItem("fixzit_token");
+    this.user = JSON.parse(localStorage.getItem("fixzit_user") || "null");
+    this.apiBase = "/api";
+
+    this.init();
+  }
+
+  init() {
+    console.log("🚀 Fixzit Souq Enterprise Platform Loading...");
+
+    // Check if user is already logged in
+    if (this.token && this.user) {
+      this.showDashboard();
+      this.loadDashboardData();
+    } else {
+      this.showLogin();
+    }
+
+    this.bindEvents();
+  }
+
+  bindEvents() {
+    // Login form submission
+    const loginForm = document.getElementById("loginForm");
+    if (loginForm) {
+      loginForm.addEventListener("submit", (e) => this.handleLogin(e));
+    }
+
+    // Logout button
+    const logoutBtn = document.getElementById("logoutBtn");
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", () => this.handleLogout());
+    }
+
+    // Auto-refresh dashboard every 5 minutes
+    if (this.token) {
+      setInterval(() => this.loadDashboardData(), 5 * 60 * 1000);
+    }
+  }
+
+  async handleLogin(e) {
+    e.preventDefault();
+
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+    const loginBtn = document.getElementById("loginBtn");
+    const btnText = loginBtn.querySelector(".btn-text");
+    const btnLoader = loginBtn.querySelector(".btn-loader");
+    const errorDiv = document.getElementById("loginError");
+
+    // Show loading state
+    loginBtn.disabled = true;
+    btnText.classList.add("hidden");
+    btnLoader.classList.remove("hidden");
+    errorDiv.classList.add("hidden");
+
+    try {
+      const response = await fetch(`${this.apiBase}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Store authentication data
+        this.token = data.token;
+        this.user = data.user;
+        localStorage.setItem("fixzit_token", this.token);
+        localStorage.setItem("fixzit_user", JSON.stringify(this.user));
+
+        console.log("✅ Login successful:", this.user.name);
+
+        // Show dashboard
+        this.showDashboard();
+        this.loadDashboardData();
+      } else {
+        throw new Error(data.error || "Login failed");
+      }
+    } catch (error) {
+      console.error("❌ Login error:", error);
+      errorDiv.textContent =
+        error.message || "Login failed. Please check your credentials.";
+      errorDiv.classList.remove("hidden");
+    } finally {
+      // Reset button state
+      loginBtn.disabled = false;
+      btnText.classList.remove("hidden");
+      btnLoader.classList.add("hidden");
+    }
+  }
+
+  handleLogout() {
+    console.log("🚪 Logging out...");
+
+    // Clear stored data
+    localStorage.removeItem("fixzit_token");
+    localStorage.removeItem("fixzit_user");
+    this.token = null;
+    this.user = null;
+
+    // Show login screen
+    this.showLogin();
+  }
+
+  showLogin() {
+    const loginScreen = document.getElementById("loginScreen");
+    const dashboardScreen = document.getElementById("dashboardScreen");
+    const loadingOverlay = document.getElementById("loadingOverlay");
+
+    loginScreen.classList.remove("hidden");
+    dashboardScreen.classList.add("hidden");
+    loadingOverlay.classList.add("hidden");
+
+    // Show demo credentials only in development mode
+    this.handleDemoCredentials();
+  }
+
+  handleDemoCredentials() {
+    // Check if we're in development mode
+    const isDevelopment =
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1" ||
+      window.location.hostname.includes(".replit.dev") ||
+      window.location.hostname.includes(".repl.co");
+
+    const loginFooter = document.getElementById("loginFooter");
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+
+    if (isDevelopment) {
+      // Show demo credentials footer in development
+      if (loginFooter) {
+        loginFooter.style.display = "block";
+      }
+
+      // Pre-fill credentials only in development (NOT FOR PRODUCTION)
+      // Removed hardcoded password for security. Use browser autofill or password manager.
+      if (emailInput && passwordInput) {
+        emailInput.value = `admin@${EMAIL_DOMAIN}`;
+        // Password must be entered manually - no default for security
+      }
+    } else {
+      // Hide demo credentials in production
+      if (loginFooter) {
+        loginFooter.style.display = "none";
+      }
+
+      // Clear any pre-filled values in production
+      if (emailInput) emailInput.value = "";
+      if (passwordInput) passwordInput.value = "";
+    }
+  }
+
+  showDashboard() {
+    const loginScreen = document.getElementById("loginScreen");
+    const dashboardScreen = document.getElementById("dashboardScreen");
+
+    loginScreen.classList.add("hidden");
+    dashboardScreen.classList.remove("hidden");
+
+    // Update user info in header
+    if (this.user) {
+      const userName = document.getElementById("userName");
+      const userRole = document.getElementById("userRole");
+      if (userName) userName.textContent = this.user.name;
+      if (userRole) userRole.textContent = this.user.role.replace("_", " ");
+    }
+  }
+
+  async loadDashboardData() {
+    console.log("📊 Loading dashboard data...");
+
+    const loadingOverlay = document.getElementById("loadingOverlay");
+    loadingOverlay.classList.remove("hidden");
+
+    try {
+      // Load KPIs
+      await this.loadKPIs();
+
+      console.log("✅ Dashboard data loaded successfully");
+    } catch (error) {
+      console.error("❌ Failed to load dashboard data:", error);
+      this.showError("Failed to load dashboard data. Please refresh the page.");
+    } finally {
+      loadingOverlay.classList.add("hidden");
+    }
+  }
+
+  async loadKPIs() {
+    try {
+      const response = await fetch(`${this.apiBase}/dashboard/kpis`, {
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const kpiData = await response.json();
+      this.renderKPIs(kpiData);
+    } catch (error) {
+      console.warn("⚠️ KPI endpoint not available, using fallback data");
+      // Use fallback data if API endpoint doesn't exist
+      this.renderKPIs(this.getFallbackKPIs());
+    }
+  }
+
+  renderKPIs(kpiData) {
+    const kpiGrid = document.getElementById("kpiGrid");
+    if (!kpiGrid) return;
+
+    // Clear loading cards
+    kpiGrid.innerHTML = "";
+
+    // Create KPI cards
+    const kpis = [
+      {
+        icon: "🏢",
+        title: "Properties",
+        value: kpiData.properties || "30",
+        label: "Total Properties",
+        color: "#0078D4",
+      },
+      {
+        icon: "🔧",
+        title: "Work Orders",
+        value: kpiData.workOrders || "12",
+        label: "Open Orders",
+        color: "#107C10",
+      },
+      {
+        icon: "💰",
+        title: "Revenue",
+        value: kpiData.revenue || "125,000 SAR",
+        label: "This Month",
+        color: "#FF8C00",
+      },
+      {
+        icon: "📈",
+        title: "Compliance",
+        value: kpiData.compliance || "98%",
+        label: "ZATCA Compliant",
+        color: "#5C2D91",
+      },
+    ];
+
+    kpis.forEach((kpi) => {
+      const kpiCard = document.createElement("div");
+      kpiCard.className = "kpi-card";
+      kpiCard.innerHTML = `
+                <div class="kpi-icon" style="color: ${kpi.color}">${kpi.icon}</div>
+                <div class="kpi-content">
+                    <h3>${kpi.title}</h3>
+                    <div class="kpi-value">${kpi.value}</div>
+                    <div class="kpi-label">${kpi.label}</div>
+                </div>
+            `;
+      kpiGrid.appendChild(kpiCard);
+    });
+  }
+
+  getFallbackKPIs() {
+    return {
+      properties: "30",
+      workOrders: "12",
+      revenue: "125,000 SAR",
+      compliance: "98%",
+      users: "15",
+      vendors: "24",
+    };
+  }
+
+  showError(message) {
+    console.error("❌ Error:", message);
+    // Create a simple error notification
+    const errorDiv = document.createElement("div");
+    errorDiv.className = "error-notification";
+    errorDiv.textContent = message;
+    errorDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #dc3545;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 5px;
+            z-index: 1000;
+            max-width: 300px;
+        `;
+
+    document.body.appendChild(errorDiv);
+
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+      if (errorDiv.parentNode) {
+        errorDiv.parentNode.removeChild(errorDiv);
+      }
+    }, 5000);
+  }
+
+  // API helper method
+  async apiCall(endpoint, options = {}) {
+    const url = `${this.apiBase}${endpoint}`;
+    const defaultOptions = {
+      headers: {
+        "Content-Type": "application/json",
+        ...(this.token && { Authorization: `Bearer ${this.token}` }),
+      },
+    };
+
+    const response = await fetch(url, { ...defaultOptions, ...options });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        // Token expired, logout
+        this.handleLogout();
+        throw new Error("Session expired. Please log in again.");
+      }
+      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+}
+
+// Module navigation function
+function navigateToModule(module) {
+  console.log(`🔗 Navigating to module: ${module}`);
+  // In a real application, this would handle routing
+  // For now, just show an alert with module info
+  alert(
+    `Module: ${module.toUpperCase()}\n\nAPI Endpoint: /api/${module}\nStatus: Implemented ✅\n\nThis module is fully operational and ready for use!`,
+  );
+}
+
+// Initialize the application when DOM is loaded
+document.addEventListener("DOMContentLoaded", () => {
+  window.fixzitApp = new FixzitApp();
+  console.log("✅ Fixzit Souq Enterprise Platform Initialized");
+});
+
+// Health check function
+setInterval(() => {
+  fetch("/health")
+    .then((response) => response.json())
+    .then((data) => console.log("System health check:", data.status))
+    .catch((error) => console.log("Health check failed:", error));
+}, 30000);
+
+]]>
+</file>
+
+<file path="public/arabic-support.js">
+<![CDATA[
+// Arabic/RTL Support for Fixzit Souq
+const ArabicSupport = {
+  // Arabic translations
+  translations: {
+    en: {
+      dashboard: "Dashboard",
+      properties: "Properties",
+      workorders: "Work Orders",
+      finance: "Finance",
+      marketplace: "Marketplace",
+      hr: "Human Resources",
+      tickets: "Support Tickets",
+      compliance: "Compliance",
+      reports: "Reports",
+      login: "Login",
+      logout: "Logout",
+      email: "Email",
+      password: "Password",
+      welcome: "Welcome to Fixzit Souq",
+      total_properties: "Total Properties",
+      open_orders: "Open Orders",
+      this_month: "This Month",
+      zatca_compliant: "ZATCA Compliant",
+    },
+    ar: {
+      dashboard: "لوحة التحكم",
+      properties: "العقارات",
+      workorders: "أوامر العمل",
+      finance: "المالية",
+      marketplace: "السوق",
+      hr: "الموارد البشرية",
+      tickets: "تذاكر الدعم",
+      compliance: "الامتثال",
+      reports: "التقارير",
+      login: "تسجيل الدخول",
+      logout: "تسجيل الخروج",
+      email: "البريد الإلكتروني",
+      password: "كلمة المرور",
+      welcome: "أهلاً بك في فكزت سوق",
+      total_properties: "إجمالي العقارات",
+      open_orders: "الطلبات المفتوحة",
+      this_month: "هذا الشهر",
+      zatca_compliant: "متوافق مع زاتكا",
+    },
+  },
+
+  currentLanguage: "en",
+
+  // Initialize Arabic support
+  init() {
+    // Check for saved language preference
+    const savedLang = localStorage.getItem("fxz.lang") || "en";
+    this.setLanguage(savedLang);
+
+    // Add language toggle button
+    this.addLanguageToggle();
+  },
+
+  // Set language and apply RTL if Arabic
+  setLanguage(lang) {
+    this.currentLanguage = lang;
+    localStorage.setItem("fxz.lang", lang);
+
+    const html = document.documentElement;
+    const body = document.body;
+
+    if (lang === "ar") {
+      html.setAttribute("dir", "rtl");
+      html.setAttribute("lang", "ar");
+      body.classList.add("rtl");
+      this.loadArabicFonts();
+    } else {
+      html.setAttribute("dir", "ltr");
+      html.setAttribute("lang", "en");
+      body.classList.remove("rtl");
+    }
+
+    // Update all text elements
+    this.updateTextElements();
+  },
+
+  // Get translated text
+  t(key) {
+    return this.translations[this.currentLanguage][key] || key;
+  },
+
+  // Load Arabic fonts
+  loadArabicFonts() {
+    if (!document.getElementById("arabic-fonts")) {
+      const link = document.createElement("link");
+      link.id = "arabic-fonts";
+      link.href =
+        "https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@300;400;500;600;700&display=swap";
+      link.rel = "stylesheet";
+      document.head.appendChild(link);
+
+      // Apply Arabic font
+      const style = document.createElement("style");
+      style.innerHTML = `
+        .rtl {
+          font-family: 'Noto Sans Arabic', Arial, sans-serif !important;
+        }
+        .rtl .sidebar {
+          right: 0;
+          left: auto;
+        }
+        .rtl .main-content {
+          margin-right: 250px;
+          margin-left: 0;
+        }
+        .rtl .nav-menu li {
+          flex-direction: row-reverse;
+        }
+        .rtl .stat-card {
+          border-right: 4px solid #0078D4;
+          border-left: none;
+          text-align: right;
+        }
+        .rtl .login-form {
+          text-align: right;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  },
+
+  // Add language toggle button
+  addLanguageToggle() {
+    const toggleBtn = document.createElement("button");
+    toggleBtn.id = "lang-toggle";
+    toggleBtn.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #0078D4;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      z-index: 1000;
+      font-weight: bold;
+    `;
+
+    toggleBtn.textContent =
+      this.currentLanguage === "en" ? "العربية" : "English";
+    toggleBtn.onclick = () => {
+      const newLang = this.currentLanguage === "en" ? "ar" : "en";
+      this.setLanguage(newLang);
+      toggleBtn.textContent = newLang === "en" ? "العربية" : "English";
+    };
+
+    document.body.appendChild(toggleBtn);
+  },
+
+  // Update all text elements with translations
+  updateTextElements() {
+    // This would integrate with React component updates
+    // For now, just dispatch a custom event
+    window.dispatchEvent(
+      new CustomEvent("languageChanged", {
+        detail: { language: this.currentLanguage },
+      }),
+    );
+  },
+
+  // Hijri calendar support
+  hijriCalendar: {
+    // Convert Gregorian to Hijri (simplified)
+    toHijri(gregorianDate) {
+      // Basic conversion - in production use a proper library
+      const greg = new Date(gregorianDate);
+      const hijriYear = Math.floor((greg.getFullYear() - 622) * 1.030684);
+      const hijriMonth = greg.getMonth() + 1;
+      const hijriDay = greg.getDate();
+
+      return {
+        year: hijriYear,
+        month: hijriMonth,
+        day: hijriDay,
+        formatted: `${hijriDay}/${hijriMonth}/${hijriYear} هـ`,
+      };
+    },
+
+    // Hijri month names
+    monthNames: [
+      "محرم",
+      "صفر",
+      "ربيع الأول",
+      "ربيع الثاني",
+      "جمادى الأولى",
+      "جمادى الثانية",
+      "رجب",
+      "شعبان",
+      "رمضان",
+      "شوال",
+      "ذو القعدة",
+      "ذو الحجة",
+    ],
+  },
+
+  // Format numbers for Arabic locale
+  formatNumber(number) {
+    if (this.currentLanguage === "ar") {
+      return new Intl.NumberFormat("ar-SA").format(number);
+    }
+    return new Intl.NumberFormat("en-US").format(number);
+  },
+
+  // Format currency for Saudi Riyal
+  formatCurrency(amount) {
+    const options = {
+      style: "currency",
+      currency: "SAR",
+      minimumFractionDigits: 2,
+    };
+
+    if (this.currentLanguage === "ar") {
+      return new Intl.NumberFormat("ar-SA", options).format(amount);
+    }
+    return new Intl.NumberFormat("en-US", options).format(amount);
+  },
+};
+
+// Initialize on page load
+document.addEventListener("DOMContentLoaded", () => {
+  ArabicSupport.init();
+});
+
+// Make available globally
+window.ArabicSupport = ArabicSupport;
+
+]]>
+</file>
+
+<file path="public/assets/css/theme.css">
+<![CDATA[
+:root {
+  --background: 0 0% 98%;
+  --foreground: 24 15% 20%;
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 45%;
+  --primary: 30 60% 40%;
+  --primary-dark: 30 55% 32%;
+  --accent: 32 70% 52%;
+  --success: 28 45% 34%;
+  --warning: 35 80% 45%;
+  --border: 0 0% 90%;
+  --card-radius: 1.25rem;
+  --shadow-card: 0 10px 30px hsl(0 0% 0% / 0.08);
+}
+
+body {
+  font-family: "Inter", "Noto Sans Arabic", system-ui, sans-serif;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+::selection {
+  background-color: hsl(var(--primary) / 0.2);
+  color: #fff;
+}
+
+.text-brand {
+  color: hsl(var(--foreground));
+}
+
+.text-muted {
+  color: hsl(var(--muted-foreground));
+}
+
+.text-primary {
+  color: hsl(var(--primary));
+}
+
+.text-success {
+  color: hsl(var(--success));
+}
+
+.text-warning {
+  color: hsl(var(--warning));
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  font-weight: 600;
+  padding: 0.65rem 1.4rem;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.btn-primary {
+  background-color: hsl(var(--primary));
+  color: #fff;
+  box-shadow: var(--shadow-card);
+  border: 1px solid hsl(var(--primary));
+}
+
+.btn-primary:hover {
+  background-color: hsl(var(--primary-dark));
+}
+
+.btn-secondary {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+}
+
+.btn-secondary:hover {
+  background-color: hsl(var(--foreground) / 0.05);
+}
+
+.btn-ghost {
+  background-color: transparent;
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+}
+
+.btn-ghost:hover {
+  background-color: hsl(var(--muted));
+}
+
+.nav-link {
+  color: hsl(var(--muted-foreground));
+  transition: color 0.2s ease;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  color: hsl(var(--foreground));
+}
+
+.side-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.side-link:hover {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
+}
+
+.side-link.active {
+  background-color: hsl(var(--primary) / 0.12);
+  color: hsl(var(--foreground));
+  font-weight: 600;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  border: 1px solid hsl(var(--border));
+  background-color: #fff;
+  color: hsl(var(--foreground));
+  font-size: 0.9rem;
+}
+
+.card {
+  background-color: #fff;
+  border-radius: var(--card-radius);
+  border: 1px solid hsl(var(--border));
+  padding: 1.5rem;
+  box-shadow: var(--shadow-card);
+}
+
+.card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin-bottom: 0.5rem;
+}
+
+.card-body {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.95rem;
+}
+
+.tab {
+  padding: 0.55rem 1.5rem;
+  border-radius: 999px;
+  border: 1px solid hsl(var(--border));
+  background-color: #fff;
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.tab:hover {
+  background-color: hsl(var(--muted));
+}
+
+.tab.active {
+  border-color: hsl(var(--primary));
+  color: hsl(var(--primary));
+}
+
+.table-wrap {
+  background-color: #fff;
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--card-radius);
+  overflow: hidden;
+}
+
+.fxz-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.fxz-table thead th {
+  text-align: left;
+  padding: 0.85rem 1rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+  background-color: hsl(var(--muted));
+}
+
+.fxz-table tbody td {
+  padding: 0.85rem 1rem;
+  font-size: 0.9rem;
+  color: hsl(var(--foreground));
+  border-top: 1px solid hsl(var(--border));
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  height: 1.5rem;
+  padding: 0 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+.badge.green {
+  background-color: hsl(var(--success) / 0.08);
+  color: hsl(var(--success));
+  border-color: hsl(var(--success) / 0.2);
+}
+
+.badge.gray {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+  border-color: hsl(var(--border));
+}
+
+.badge.amber {
+  background-color: hsl(var(--warning) / 0.1);
+  color: hsl(var(--warning));
+  border-color: hsl(var(--warning) / 0.3);
+}
+
+.table-empty {
+  text-align: center;
+  padding: 2rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.table-pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+}
+
+.pager-btn {
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid hsl(var(--border));
+  background-color: #fff;
+  color: hsl(var(--foreground));
+  font-size: 0.85rem;
+}
+
+.pager-page {
+  font-size: 0.85rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.menu-item {
+  display: block;
+  padding: 0.65rem 1rem;
+  font-size: 0.9rem;
+  color: hsl(var(--foreground));
+}
+
+.menu-item:hover {
+  background-color: hsl(var(--muted));
+}
+
+.bg-gradient-hero {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--primary) / 0.92),
+    hsl(var(--accent) / 0.92)
+  );
+}
+
+]]>
+</file>
+
+<file path="public/assets/js/app.js">
+<![CDATA[
+(function () {
+  const DEFAULT = localStorage.getItem("fxz.lang") || "en";
+  function applyLang(lang) {
+    const dict = (window.FXZ_I18N && window.FXZ_I18N[lang]) || {};
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+    document.querySelectorAll("[data-i18n]").forEach((el) => {
+      const k = el.getAttribute("data-i18n");
+      if (dict[k]) el.textContent = dict[k];
+    });
+    localStorage.setItem("fxz.lang", lang);
+  }
+  window.FXZ = { setLang: applyLang };
+  applyLang(DEFAULT);
+
+  // mark active nav by hash
+  const setActive = () => {
+    const hash = location.hash;
+    document.querySelectorAll(".side-link").forEach((a) => {
+      a.classList.toggle("active", a.getAttribute("href").endsWith(hash));
+    });
+  };
+  window.addEventListener("hashchange", setActive);
+  setActive();
+
+  // footer year
+  const y = document.getElementById("year");
+  if (y) y.textContent = new Date().getFullYear();
+})();
+
+]]>
+</file>
+
+</batch_content>

@@ -1,0 +1,3592 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="lib/marketplace/serializers.ts">
+<![CDATA[
+import { Types } from "mongoose";
+import { MarketplaceCategory } from "@/server/models/marketplace/Category";
+import { MarketplaceProduct } from "@/server/models/marketplace/Product";
+import { MarketplaceOrder } from "@/server/models/marketplace/Order";
+import { MarketplaceRFQ } from "@/server/models/marketplace/RFQ";
+
+function normalizeId(id: Types.ObjectId | string | undefined | null) {
+  if (!id) return undefined;
+  return typeof id === "string" ? id : id.toString();
+}
+
+interface DocumentWithToObject {
+  toObject: () => Record<string, unknown>;
+}
+
+export function serializeCategory(
+  doc: MarketplaceCategory | Record<string, unknown>,
+) {
+  const category =
+    "toObject" in doc
+      ? (doc as unknown as DocumentWithToObject).toObject()
+      : doc;
+  return {
+    ...category,
+    _id: normalizeId(category._id as Types.ObjectId | string | undefined),
+    orgId: normalizeId((category as { orgId?: Types.ObjectId | string }).orgId),
+    parentId: normalizeId(
+      (category as { parentId?: Types.ObjectId | string }).parentId,
+    ),
+    attrSetId: normalizeId(
+      (category as { attrSetId?: Types.ObjectId | string }).attrSetId,
+    ),
+  };
+}
+
+export function serializeProduct(
+  doc: MarketplaceProduct | Record<string, unknown>,
+) {
+  const product =
+    "toObject" in doc
+      ? (doc as unknown as DocumentWithToObject).toObject()
+      : doc;
+  return {
+    ...product,
+    _id: normalizeId((product as { _id?: Types.ObjectId | string })._id),
+    orgId: normalizeId((product as { orgId?: Types.ObjectId | string }).orgId),
+    vendorId: normalizeId(
+      (product as { vendorId?: Types.ObjectId | string }).vendorId,
+    ),
+    categoryId: normalizeId(
+      (product as { categoryId?: Types.ObjectId | string }).categoryId,
+    ),
+  };
+}
+
+interface OrderLine {
+  productId?: Types.ObjectId | string;
+  [key: string]: unknown;
+}
+
+export function serializeOrder(
+  doc: MarketplaceOrder | Record<string, unknown>,
+) {
+  const order =
+    "toObject" in doc
+      ? (doc as unknown as DocumentWithToObject).toObject()
+      : doc;
+  return {
+    ...order,
+    _id: normalizeId((order as { _id?: Types.ObjectId | string })._id),
+    orgId: normalizeId((order as { orgId?: Types.ObjectId | string }).orgId),
+    buyerUserId: normalizeId(
+      (order as { buyerUserId?: Types.ObjectId | string }).buyerUserId,
+    ),
+    vendorId: normalizeId(
+      (order as { vendorId?: Types.ObjectId | string }).vendorId,
+    ),
+    lines: (order as { lines?: OrderLine[] }).lines?.map((line: OrderLine) => ({
+      ...line,
+      productId: normalizeId(line.productId),
+    })),
+  };
+}
+
+interface RFQBid {
+  vendorId?: Types.ObjectId | string;
+  [key: string]: unknown;
+}
+
+export function serializeRFQ(doc: MarketplaceRFQ | Record<string, unknown>) {
+  const rfq =
+    "toObject" in doc
+      ? (doc as unknown as DocumentWithToObject).toObject()
+      : doc;
+  return {
+    ...rfq,
+    _id: normalizeId((rfq as { _id?: Types.ObjectId | string })._id),
+    orgId: normalizeId((rfq as { orgId?: Types.ObjectId | string }).orgId),
+    requesterId: normalizeId(
+      (rfq as { requesterId?: Types.ObjectId | string }).requesterId,
+    ),
+    categoryId: normalizeId(
+      (rfq as { categoryId?: Types.ObjectId | string }).categoryId,
+    ),
+    bids: (rfq as { bids?: RFQBid[] }).bids?.map((bid: RFQBid) => ({
+      ...bid,
+      vendorId: normalizeId(bid.vendorId),
+    })),
+  };
+}
+
+]]>
+</file>
+
+<file path="lib/marketplace/serverFetch.ts">
+<![CDATA[
+import { cookies, headers } from "next/headers";
+import { logger } from "@/lib/logger";
+import { randomUUID } from "node:crypto";
+
+function getEnvBaseUrl() {
+  const envUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.APP_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined);
+
+  if (!envUrl) {
+    return undefined;
+  }
+
+  return envUrl.replace(/\/$/, "");
+}
+
+async function getHeaderBaseUrl() {
+  let headerList: Awaited<ReturnType<typeof headers>> | undefined;
+  try {
+    headerList = await headers();
+  } catch {
+    // headers() unavailable
+    headerList = undefined;
+  }
+  if (!headerList) {
+    return undefined;
+  }
+  const host = headerList.get("x-forwarded-host") ?? headerList.get("host");
+  if (!host) {
+    return undefined;
+  }
+
+  const protocolHeader = headerList.get("x-forwarded-proto");
+  const protocol =
+    protocolHeader ?? (host.includes("localhost") ? "http" : "https");
+  return `${protocol}://${host}`;
+}
+
+export async function getMarketplaceBaseUrl() {
+  const envUrl = getEnvBaseUrl();
+  if (envUrl) return envUrl;
+
+  const headerUrl = await getHeaderBaseUrl();
+  return headerUrl ?? "http://localhost:3000";
+}
+
+export async function serverFetchWithTenant(path: string, init?: RequestInit) {
+  const baseUrl = await getMarketplaceBaseUrl();
+  const url = new URL(path, baseUrl).toString();
+  let authCookieValue: string | undefined;
+  let errorCorrelationId: string | undefined;
+  try {
+    const cookieStore = await cookies();
+    authCookieValue = cookieStore.get("fixzit_auth")?.value;
+  } catch {
+    // cookies() unavailable
+    authCookieValue = undefined;
+  }
+  const headersInit = new Headers(init?.headers ?? {});
+
+  if (authCookieValue) {
+    const existing = headersInit.get("Cookie");
+    const parsedCookies = existing
+      ? existing
+          .split(";")
+          .map((cookie) => cookie.trim())
+          .filter(Boolean)
+          .filter((cookie) => !cookie.toLowerCase().startsWith("fixzit_auth="))
+      : [];
+    parsedCookies.push(`fixzit_auth=${authCookieValue}`);
+    headersInit.set("Cookie", parsedCookies.join("; "));
+  }
+
+  const response = await fetch(url, {
+    ...init,
+    cache: init?.cache ?? "no-store",
+    headers: headersInit,
+  });
+
+  if (!response.ok) {
+    const correlationId = errorCorrelationId ?? randomUUID();
+    const errorPayload = {
+      name: "MarketplaceFetchError",
+      code: "HTTP_ERROR",
+      userMessage:
+        "Unable to reach marketplace services. Please try again shortly.",
+      devMessage: `Request failed: ${response.status} ${response.statusText} for ${url}`,
+      correlationId,
+    };
+
+    logger.error("[MarketplaceFetch] request failed", errorPayload);
+    throw new Error(JSON.stringify(errorPayload));
+  }
+
+  return response;
+}
+
+export async function serverFetchJsonWithTenant<T>(
+  path: string,
+  init?: RequestInit,
+): Promise<T> {
+  const response = await serverFetchWithTenant(path, init);
+  return response.json() as Promise<T>;
+}
+
+]]>
+</file>
+
+<file path="lib/meilisearch-client.ts">
+<![CDATA[
+import { MeiliSearch } from "meilisearch";
+import { logger } from "@/lib/logger";
+import { withMeiliResilience } from "@/lib/meilisearch-resilience";
+
+let client: MeiliSearch | null = null;
+
+const buildProductId = (orgId: string, id: string) => `${orgId}_${id}`;
+
+/**
+ * Get or create the shared Meilisearch client instance
+ * @returns MeiliSearch client or null if not configured
+ */
+export function getMeiliSearchClient(): MeiliSearch | null {
+  // Canonical env vars (STRICT): MEILI_HOST / MEILI_MASTER_KEY
+  const host =
+    process.env.MEILI_HOST ||
+    process.env.MEILISEARCH_HOST || // backwards compatibility
+    "";
+  const apiKey =
+    process.env.MEILI_MASTER_KEY ||
+    process.env.MEILISEARCH_API_KEY || // backwards compatibility
+    "";
+
+  if (!client && host && apiKey) {
+    client = new MeiliSearch({ host, apiKey });
+  }
+  return client;
+}
+
+/**
+ * Initialize Meilisearch indexes with proper settings
+ * Call this during application startup
+ */
+export async function initializeMeilisearch(): Promise<void> {
+  const client = getMeiliSearchClient();
+  if (!client) {
+    logger.warn("[Meilisearch] Not configured, skipping initialization");
+    return;
+  }
+
+  try {
+    // Configure products index
+    await withMeiliResilience("products-configure", "index", () =>
+      client.index("products").updateSettings({
+        filterableAttributes: ["categoryId", "brandId", "isActive", "orgId"],
+        sortableAttributes: ["createdAt", "updatedAt"],
+        searchableAttributes: [
+          "title",
+          "description",
+          "searchKeywords",
+          "fsin",
+        ],
+        rankingRules: [
+          "words",
+          "typo",
+          "proximity",
+          "attribute",
+          "sort",
+          "exactness",
+        ],
+      }),
+    );
+
+    logger.info("[Meilisearch] Initialized products index");
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[Meilisearch] Failed to initialize indexes:", error);
+    throw error;
+  }
+}
+
+/**
+ * Index a single product document
+ * @param product Product data to index
+ */
+export async function indexProduct(product: {
+  id: string;
+  fsin: string;
+  title: string;
+  description?: string;
+  categoryId: string;
+  brandId?: string;
+  searchKeywords?: string[];
+  isActive: boolean;
+  orgId: string;
+}): Promise<void> {
+  const client = getMeiliSearchClient();
+  if (!client) return;
+
+  if (!product.orgId) {
+    logger.error("[Meilisearch] orgId is required for product indexing (STRICT v4.1 tenant isolation)");
+    return;
+  }
+
+  try {
+    const compositeId = buildProductId(product.orgId, product.id);
+    await withMeiliResilience("product-index", "index", () =>
+      client
+        .index("products")
+        .addDocuments([{ ...product, id: compositeId }]),
+    );
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[Meilisearch] Failed to index product:", error);
+    // Don't throw - indexing failure shouldn't break product creation
+  }
+}
+
+/**
+ * Update an existing product document
+ * @param productId Product ID
+ * @param updates Partial product data to update
+ */
+export async function updateProduct(
+  productId: string,
+  orgId: string,
+  updates: Partial<{
+    title: string;
+    description: string;
+    isActive: boolean;
+    searchKeywords: string[];
+  }>,
+): Promise<void> {
+  const client = getMeiliSearchClient();
+  if (!client) return;
+
+  if (!orgId) {
+    logger.error("[Meilisearch] orgId is required for product update (STRICT v4.1 tenant isolation)");
+    return;
+  }
+
+  try {
+    const compositeId = buildProductId(orgId, productId);
+    await withMeiliResilience("product-update", "index", () =>
+      client
+        .index("products")
+        .updateDocuments([{ id: compositeId, orgId, ...updates }]),
+    );
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[Meilisearch] Failed to update product:", error);
+  }
+}
+
+/**
+ * Delete a product document from the index
+ * @param productId Product ID to delete
+ */
+export async function deleteProduct(productId: string, orgId: string): Promise<void> {
+  const client = getMeiliSearchClient();
+  if (!client) return;
+
+  if (!orgId) {
+    logger.error("[Meilisearch] orgId is required for product delete (STRICT v4.1 tenant isolation)");
+    return;
+  }
+
+  try {
+    const compositeId = buildProductId(orgId, productId);
+    await withMeiliResilience("product-delete", "index", () =>
+      client.index("products").deleteDocument(compositeId),
+    );
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[Meilisearch] Failed to delete product:", error);
+  }
+}
+
+/**
+ * Bulk index multiple products
+ * @param products Array of products to index
+ */
+export async function bulkIndexProducts(
+  products: Array<{
+    id: string;
+    fsin: string;
+    title: string;
+    description?: string;
+    categoryId: string;
+    brandId?: string;
+    searchKeywords?: string[];
+    isActive: boolean;
+    orgId: string;
+  }>,
+): Promise<void> {
+  const client = getMeiliSearchClient();
+  if (!client) return;
+
+  try {
+    const safeProducts = products
+      .map((product) => {
+        if (!product.orgId) {
+          logger.error(
+            "[Meilisearch] Skipping product without orgId (STRICT v4.1 tenant isolation)",
+            { productId: product.id },
+          );
+          return null;
+        }
+        return { ...product, id: buildProductId(product.orgId, product.id) };
+      })
+      .filter(Boolean) as typeof products;
+
+    await withMeiliResilience("product-bulk-index", "index", () =>
+      client.index("products").addDocuments(safeProducts),
+    );
+    logger.info(`[Meilisearch] Bulk indexed ${safeProducts.length} products`);
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[Meilisearch] Failed to bulk index products:", error);
+  }
+}
+
+]]>
+</file>
+
+<file path="lib/meilisearch-resilience.ts">
+<![CDATA[
+import { SERVICE_RESILIENCE } from "@/config/service-timeouts";
+import {
+  executeWithRetry,
+  withTimeout,
+  getCircuitBreaker,
+} from "@/lib/resilience";
+
+const meiliResilience = SERVICE_RESILIENCE.meilisearch;
+const meiliBreaker = getCircuitBreaker("meilisearch");
+
+export type MeiliOperationType = "search" | "index";
+
+export async function withMeiliResilience<T>(
+  label: string,
+  type: MeiliOperationType,
+  operation: () => Promise<T>,
+): Promise<T> {
+  const timeoutMs =
+    type === "search"
+      ? meiliResilience.timeouts.searchMs
+      : meiliResilience.timeouts.indexingMs;
+
+  return executeWithRetry(
+    () => meiliBreaker.run(() => withTimeout(() => operation(), { timeoutMs })),
+    {
+      maxAttempts: meiliResilience.retries.maxAttempts,
+      baseDelayMs: meiliResilience.retries.baseDelayMs,
+      label: `meili-${label}`,
+    },
+  );
+}
+
+]]>
+</file>
+
+<file path="lib/meilisearch.ts">
+<![CDATA[
+import { MeiliSearch } from "meilisearch";
+import { logger } from "@/lib/logger";
+import { requireEnv } from "@/lib/env";
+import { withMeiliResilience } from "@/lib/meilisearch-resilience";
+
+// Lazy initialization - only validate and create client when actually used
+let searchClientInstance: MeiliSearch | undefined;
+export const getSearchClient = (): MeiliSearch => {
+  if (searchClientInstance === undefined) {
+    const meiliHost = process.env.MEILI_HOST || "http://localhost:7700";
+    const meiliMasterKey = requireEnv("MEILI_MASTER_KEY", {
+      testFallback: "test-meili-master-key-32-characters-long-for-ci",
+    });
+    searchClientInstance = new MeiliSearch({
+      host: meiliHost,
+      apiKey: meiliMasterKey,
+    });
+  }
+  return searchClientInstance;
+};
+
+// For backwards compatibility, export searchClient as a getter
+export const searchClient = new Proxy({} as MeiliSearch, {
+  get(_target, prop: keyof MeiliSearch) {
+    const client = getSearchClient();
+    const value = client[prop];
+    return typeof value === 'function' ? value.bind(client) : value;
+  }
+});
+
+// Index names
+export const INDEXES = {
+  PRODUCTS: "products",
+  SELLERS: "sellers",
+} as const;
+
+// Product document interface
+export interface ProductDocument {
+  id: string; // Composite key: {orgId}_{fsin} for tenant isolation
+  fsin: string;
+  orgId: string; // Required for tenant isolation
+  title: string;
+  description: string;
+  brand: string;
+  category: string;
+  subcategory: string;
+  price: number;
+  rating: number;
+  totalReviews: number;
+  badges: string[];
+  inStock: boolean;
+  imageUrl: string;
+  sellerId: string;
+  sellerName: string;
+  createdAt: number; // Timestamp for sorting
+}
+
+// Seller document interface
+export interface SellerDocument {
+  id: string; // Composite key: {orgId}_{sellerId} for tenant isolation
+  sellerId: string;
+  orgId: string; // Required for tenant isolation
+  tradeName: string;
+  legalName: string;
+  accountHealth: number;
+  rating: number;
+  totalOrders: number;
+  onTimeShippingRate: number;
+  odr: number;
+  badges: string[];
+  createdAt: number;
+}
+
+// Configure products index
+export async function configureProductsIndex() {
+  const index = getSearchClient().index(INDEXES.PRODUCTS);
+
+  // Wait for index to be created
+  await withMeiliResilience("products-configure", "index", () =>
+    index.updateSettings({
+      // Searchable attributes (weighted)
+      searchableAttributes: [
+        "title", // Weight: 100
+        "brand", // Weight: 50
+        "description", // Weight: 25
+        "category",
+        "subcategory",
+      ],
+
+      // Attributes for filtering
+      filterableAttributes: [
+        "orgId", // Required for tenant isolation
+        "category",
+        "subcategory",
+        "price",
+        "rating",
+        "badges",
+        "inStock",
+        "sellerId",
+      ],
+
+      // Attributes for sorting
+      sortableAttributes: ["price", "rating", "createdAt", "totalReviews"],
+
+      // Attributes to display
+      displayedAttributes: [
+        "id",
+        "fsin",
+        "orgId",
+        "title",
+        "brand",
+        "category",
+        "price",
+        "rating",
+        "totalReviews",
+        "badges",
+        "inStock",
+        "imageUrl",
+        "sellerId",
+        "sellerName",
+      ],
+
+      // Ranking rules (order matters)
+      rankingRules: [
+        "words", // Number of query words matched
+        "typo", // Typo tolerance (fewer typos = higher rank)
+        "proximity", // Proximity of query words
+        "attribute", // Order of searchableAttributes
+        "sort", // User-defined sorting
+        "exactness", // Similarity of matched words
+      ],
+
+      // Typo tolerance
+      typoTolerance: {
+        enabled: true,
+        minWordSizeForTypos: {
+          oneTypo: 5, // Allow 1 typo for words >= 5 chars
+          twoTypos: 9, // Allow 2 typos for words >= 9 chars
+        },
+      },
+
+      // Pagination
+      pagination: {
+        maxTotalHits: 1000,
+      },
+
+      // Faceting
+      faceting: {
+        maxValuesPerFacet: 100,
+      },
+    }),
+  );
+
+  logger.info(`Products index configured: ${INDEXES.PRODUCTS}`);
+}
+
+// Configure sellers index
+export async function configureSellersIndex() {
+  const index = getSearchClient().index(INDEXES.SELLERS);
+
+  await withMeiliResilience("sellers-configure", "index", () =>
+    index.updateSettings({
+      searchableAttributes: ["tradeName", "legalName"],
+
+      filterableAttributes: [
+        "orgId", // Required for tenant isolation (STRICT v4.1)
+        "accountHealth",
+        "rating",
+        "badges",
+      ],
+
+      sortableAttributes: ["rating", "totalOrders", "createdAt"],
+
+      displayedAttributes: [
+        "id",
+        "sellerId",
+        "orgId",
+        "tradeName",
+        "legalName",
+        "accountHealth",
+        "rating",
+        "totalOrders",
+        "onTimeShippingRate",
+        "odr",
+        "badges",
+      ],
+
+      rankingRules: [
+        "words",
+        "typo",
+        "proximity",
+        "attribute",
+        "sort",
+        "exactness",
+      ],
+    }),
+  );
+
+  logger.info(`Sellers index configured: ${INDEXES.SELLERS}`);
+}
+
+// Initialize all indexes
+export async function initializeSearchIndexes() {
+  const client = getSearchClient();
+
+  // Helper to verify/migrate index primary key using raw info (avoids stale metadata)
+  async function ensureIndexWithPrimaryKey(
+    indexName: string,
+    expectedPrimaryKey: string,
+  ): Promise<void> {
+    let index = client.index(indexName);
+
+    // Attempt to create (harmless if already exists)
+    try {
+      await withMeiliResilience(`create-${indexName}-index`, "index", () =>
+        client.createIndex(indexName, { primaryKey: expectedPrimaryKey }),
+      );
+      index = client.index(indexName);
+    } catch (_error) {
+      // Index likely exists; continue to validation
+    }
+
+    // Validate current primary key; recreate if mismatched or unset
+    try {
+      const info = await withMeiliResilience(
+        `${indexName}-info`,
+        "index",
+        () => index.getRawInfo(),
+      );
+      const currentPrimaryKey = info.primaryKey;
+
+      if (!currentPrimaryKey || currentPrimaryKey !== expectedPrimaryKey) {
+        logger.warn(
+          `[Meilisearch] Recreating index ${indexName} to enforce primaryKey='${expectedPrimaryKey}' (was '${currentPrimaryKey || "unset"}')`,
+          { indexName, currentPrimaryKey, expectedPrimaryKey },
+        );
+        await withMeiliResilience(`delete-${indexName}-index`, "index", () =>
+          client.deleteIndex(indexName),
+        );
+        await withMeiliResilience(`recreate-${indexName}-index`, "index", () =>
+          client.createIndex(indexName, { primaryKey: expectedPrimaryKey }),
+        );
+        index = client.index(indexName);
+      } else {
+        logger.info(
+          `[Meilisearch] Index ${indexName} verified with primaryKey='${expectedPrimaryKey}'`,
+        );
+      }
+    } catch (_error) {
+      logger.warn(
+        `[Meilisearch] Could not validate primary key for ${indexName}; forcing recreation`,
+        { error: _error instanceof Error ? _error.message : String(_error) },
+      );
+      await withMeiliResilience(`delete-${indexName}-index`, "index", () =>
+        client.deleteIndex(indexName),
+      );
+      await withMeiliResilience(`recreate-${indexName}-index`, "index", () =>
+        client.createIndex(indexName, { primaryKey: expectedPrimaryKey }),
+      );
+    }
+  }
+
+  try {
+    // 🔐 STRICT v4.1: Verify/migrate indexes with composite 'id' primary key for tenant isolation
+    await ensureIndexWithPrimaryKey(INDEXES.PRODUCTS, "id");
+    await ensureIndexWithPrimaryKey(INDEXES.SELLERS, "id");
+
+    // Configure indexes
+    await configureProductsIndex();
+    await configureSellersIndex();
+
+    logger.info("All search indexes initialized and verified successfully");
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    logger.error("[Meilisearch] Failed to initialize search indexes", error);
+    throw error;
+  }
+}
+
+]]>
+</file>
+
+<file path="lib/middleware/enhanced-cors.ts">
+<![CDATA[
+/**
+ * Enhanced CORS middleware with monitoring
+ * Updates middleware.ts CORS handling
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import {
+  isOriginAllowed,
+  resolveAllowedOrigin,
+} from "@/lib/security/cors-allowlist";
+import { trackCorsViolation } from "@/lib/security/monitoring";
+
+export function handleCorsRequest(request: NextRequest): NextResponse | null {
+  const origin = request.headers.get("origin");
+  const pathname = new URL(request.url).pathname;
+  
+  // Extract orgId from request headers for multi-tenant monitoring.
+  // NOTE: Header-based orgId is used for TELEMETRY ONLY (monitoring/alerting isolation).
+  // This does NOT grant any permissions - it only affects how CORS violations are grouped.
+  // Spoofing would only misclassify the attacker's own events in monitoring dashboards.
+  // For security-critical operations, use session.user.orgId from authenticated context.
+  const orgId = request.headers.get("X-Org-ID") 
+    ?? request.headers.get("X-Tenant-ID")
+    ?? undefined;
+
+  // Check if origin is allowed
+  if (origin && !isOriginAllowed(origin)) {
+    // Track CORS violation for monitoring (with org context)
+    trackCorsViolation(origin, pathname, orgId ?? undefined);
+
+    return new NextResponse("Forbidden: Origin not allowed", {
+      status: 403,
+      headers: {
+        "Content-Type": "text/plain",
+      },
+    });
+  }
+
+  // Origin is allowed - add CORS headers
+  const allowedOrigin = resolveAllowedOrigin(origin);
+
+  if (request.method === "OPTIONS") {
+    return new NextResponse(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": allowedOrigin || "*",
+        "Access-Control-Allow-Methods":
+          "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+        "Access-Control-Allow-Headers":
+          "Content-Type, Authorization, X-Tenant-ID, X-Org-ID",
+        "Access-Control-Max-Age": "86400",
+        "Access-Control-Allow-Credentials": "true",
+      },
+    });
+  }
+
+  return null;
+}
+
+export function addCorsHeaders(
+  response: NextResponse,
+  origin: string | null,
+): NextResponse {
+  const allowedOrigin = resolveAllowedOrigin(origin);
+
+  if (allowedOrigin) {
+    response.headers.set("Access-Control-Allow-Origin", allowedOrigin);
+    response.headers.set("Access-Control-Allow-Credentials", "true");
+  }
+
+  return response;
+}
+
+]]>
+</file>
+
+<file path="lib/middleware/enhanced-rate-limit.ts">
+<![CDATA[
+/**
+ * Enhanced rate limiting with monitoring
+ * Based on lib/security/rate-limit.ts
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
+import { trackRateLimitHit } from "@/lib/security/monitoring";
+
+export type RateLimitOptions = {
+  identifier?: string;
+  keyPrefix?: string;
+  requests?: number;
+  windowMs?: number;
+  orgId?: string; // For multi-tenant isolation in monitoring
+};
+
+export function enforceRateLimit(
+  request: NextRequest,
+  options: RateLimitOptions = {},
+): NextResponse | null {
+  const identifier = options.identifier ?? getClientIP(request);
+  const prefix = options.keyPrefix ?? new URL(request.url).pathname;
+  const key = `${prefix}:${identifier}`;
+  
+  // Extract orgId from options or request headers for multi-tenant tracking.
+  // NOTE: Header-based orgId is used for TELEMETRY ONLY (monitoring/alerting isolation).
+  // This does NOT grant any permissions - it only affects how events are grouped.
+  // Spoofing would only misclassify the attacker's own events in monitoring dashboards.
+  // For security-critical operations, use session.user.orgId from authenticated context.
+  const orgId = options.orgId 
+    ?? request.headers.get("X-Org-ID") 
+    ?? request.headers.get("X-Tenant-ID")
+    ?? undefined;
+
+  const result = rateLimit(
+    key,
+    options.requests ?? 30,
+    options.windowMs ?? 60_000,
+  );
+
+  if (!result.allowed) {
+    // Track rate limit event for monitoring (with org context)
+    trackRateLimitHit(identifier, prefix, orgId ?? undefined);
+    return rateLimitError();
+  }
+
+  // Add rate limit headers
+  const response = NextResponse.next();
+  response.headers.set("X-RateLimit-Limit", String(options.requests ?? 30));
+  response.headers.set("X-RateLimit-Remaining", String(result.remaining));
+  response.headers.set(
+    "X-RateLimit-Reset",
+    String(Date.now() + (options.windowMs ?? 60_000)),
+  );
+
+  return null;
+}
+
+]]>
+</file>
+
+<file path="lib/middleware/orgId-validation.ts">
+<![CDATA[
+import { NextResponse } from "next/server";
+import type { Session } from "next-auth";
+
+/**
+ * Validates orgId from session for tenant isolation.
+ * Extracted to eliminate duplication across admin/API routes.
+ *
+ * @param orgId - The orgId from session.user.orgId
+ * @returns Object with valid flag and sanitized orgId if valid
+ *
+ * @example
+ * const { valid, orgId, errorResponse } = validateOrgId(session.user.orgId);
+ * if (!valid) return errorResponse;
+ * // Use orgId safely - guaranteed non-empty string
+ */
+export function validateOrgId(orgId: string | null | undefined): {
+  valid: true;
+  orgId: string;
+  errorResponse?: never;
+} | {
+  valid: false;
+  orgId?: never;
+  errorResponse: NextResponse;
+} {
+  if (!orgId || typeof orgId !== "string" || orgId.trim() === "") {
+    return {
+      valid: false,
+      errorResponse: NextResponse.json(
+        { error: "Unauthorized: Invalid organization context" },
+        { status: 403 }
+      ),
+    };
+  }
+
+  return { valid: true, orgId: orgId.trim() };
+}
+
+/**
+ * Extracts and validates orgId from a NextAuth session.
+ * Convenience wrapper combining session check and orgId validation.
+ *
+ * @param session - NextAuth session object
+ * @returns Object with valid flag and validated orgId
+ *
+ * @example
+ * const session = await auth();
+ * const { valid, orgId, errorResponse } = validateOrgIdFromSession(session);
+ * if (!valid) return errorResponse;
+ */
+export function validateOrgIdFromSession(session: Session | null): {
+  valid: true;
+  orgId: string;
+  errorResponse?: never;
+} | {
+  valid: false;
+  orgId?: never;
+  errorResponse: NextResponse;
+} {
+  if (!session?.user) {
+    return {
+      valid: false,
+      errorResponse: NextResponse.json(
+        { error: "Unauthorized: No session" },
+        { status: 401 }
+      ),
+    };
+  }
+
+  return validateOrgId(session.user.orgId);
+}
+
+]]>
+</file>
+
+<file path="lib/middleware/rate-limit.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
+import { logSecurityEvent } from "@/lib/monitoring/security-events";
+import { logger } from "@/lib/logger";
+
+type RateLimitOptions = {
+  /**
+   * Prefix used as the logical resource key (e.g., "souq-claims:create")
+   */
+  keyPrefix?: string;
+  /**
+   * Maximum number of requests allowed within the window (default 30)
+   */
+  requests?: number;
+  /**
+   * Rate limit window in milliseconds (default 60_000)
+   */
+  windowMs?: number;
+  /**
+   * Optional override for identifier (defaults to client IP)
+   */
+  identifier?: string;
+};
+
+/**
+ * Shared API rate-limiter helper for App Router handlers.
+ * Returns a NextResponse when the caller should short-circuit (429),
+ * otherwise returns null so the route can continue.
+ */
+export function enforceRateLimit(
+  request: NextRequest,
+  options: RateLimitOptions = {},
+): NextResponse | null {
+  const identifier = options.identifier ?? getClientIP(request);
+  const prefix = options.keyPrefix ?? new URL(request.url).pathname;
+  const key = `${prefix}:${identifier}`;
+  const limit = options.requests ?? 30;
+  const windowMs = options.windowMs ?? 60_000;
+
+  const result = rateLimit(key, limit, windowMs);
+  if (!result.allowed) {
+    // Log security event for monitoring
+    logSecurityEvent({
+      type: "rate_limit",
+      ip: identifier,
+      path: new URL(request.url).pathname,
+      timestamp: new Date().toISOString(),
+      metadata: {
+        limit,
+        windowMs,
+        keyPrefix: prefix,
+        remaining: result.remaining,
+      },
+    }).catch((err) => {
+      // Silently fail logging to avoid blocking rate limit enforcement
+      // Error is already handled by logSecurityEvent internal logging
+      logger.error("[RateLimit] Failed to log security event", err);
+    });
+
+    const response = rateLimitError();
+    response.headers.set("Retry-After", String(Math.ceil(windowMs / 1000)));
+    response.headers.set("X-RateLimit-Limit", String(limit));
+    response.headers.set("X-RateLimit-Remaining", "0");
+    response.headers.set("X-RateLimit-Reset", String(Date.now() + windowMs));
+
+    return response;
+  }
+
+  return null;
+}
+
+]]>
+</file>
+
+<file path="lib/mongo-uri-validator.ts">
+<![CDATA[
+/**
+ * MongoDB URI validation helper
+ * Use this to validate MongoDB URIs in scripts and services
+ * Enforces Atlas-only URIs in production
+ */
+
+import { getEnv } from "./env";
+import { logger } from "@/lib/logger";
+
+const isProd = process.env.NODE_ENV === "production";
+
+export function getValidatedMongoUri(): string {
+  const rawMongoUri = getEnv("MONGODB_URI");
+
+  if (rawMongoUri && rawMongoUri.trim().length > 0) {
+    assertNotLocalhostInProd(rawMongoUri);
+    assertAtlasUriInProd(rawMongoUri);
+    return rawMongoUri;
+  }
+
+  if (!isProd) {
+    logger.warn("MONGODB_URI not set, using localhost fallback", {
+      component: "MongoDB",
+    });
+    return "mongodb://127.0.0.1:27017";
+  }
+
+  throw new Error("FATAL: MONGODB_URI is required in production");
+}
+
+function assertNotLocalhostInProd(uri: string): void {
+  if (!isProd) return;
+
+  const localPatterns = [
+    "mongodb://localhost",
+    "mongodb://127.0.0.1",
+    "mongodb://0.0.0.0",
+  ];
+
+  if (localPatterns.some((pattern) => uri.startsWith(pattern))) {
+    throw new Error(
+      "FATAL: Local MongoDB URIs not allowed in production. Use MongoDB Atlas.",
+    );
+  }
+}
+
+function assertAtlasUriInProd(uri: string): void {
+  if (!isProd) return;
+  if (!uri.startsWith("mongodb+srv://")) {
+    throw new Error(
+      "FATAL: Production deployments require a MongoDB Atlas connection string (mongodb+srv://).",
+    );
+  }
+}
+
+export function validateMongoUri(uri: string | undefined): void {
+  if (!uri) {
+    if (isProd) {
+      throw new Error("FATAL: MONGODB_URI is required in production");
+    }
+    return;
+  }
+
+  assertNotLocalhostInProd(uri);
+  assertAtlasUriInProd(uri);
+}
+
+]]>
+</file>
+
+<file path="lib/mongo.ts">
+<![CDATA[
+import mongoose from "mongoose";
+import { logger } from "@/lib/logger";
+import { getEnv } from "@/lib/env";
+import { isTruthy } from "@/lib/utils/env";
+
+// Vercel Functions database pool management for serverless optimization
+let attachDatabasePool: ((client: unknown) => void) | undefined;
+
+async function loadAttachDatabasePool(): Promise<typeof attachDatabasePool> {
+  if (attachDatabasePool !== undefined) return attachDatabasePool;
+  try {
+    const mod = await import("@vercel/functions");
+    attachDatabasePool = mod.attachDatabasePool as unknown as (
+      client: unknown,
+    ) => void;
+  } catch {
+    attachDatabasePool = undefined;
+  }
+  return attachDatabasePool;
+}
+
+// Safe TLS detection function
+function isTlsEnabled(uri: string): boolean {
+  if (!uri) return false;
+  // MongoDB Atlas (srv) always uses TLS
+  if (uri.includes("mongodb+srv://")) return true;
+  // Check for explicit TLS/SSL parameters
+  if (uri.includes("tls=true") || uri.includes("ssl=true")) return true;
+  return false;
+}
+
+/**
+ * MongoDB Database Abstraction Layer
+ *
+ * This module provides a robust database abstraction that:
+ * - ✅ Prevents silent fallback to MockDB on production failures (fail-fast security)
+ * - ✅ Uses strong TypeScript interfaces (DatabaseHandle, Collection, FindCursor)
+ * - ✅ Implements stateful MockDB with realistic ObjectId generation
+ * - ✅ Provides structured error handling with correlation IDs
+ * - ✅ Ensures backward compatibility with getNativeDb function
+ *
+ * 🎯 ALL REVIEWER ISSUES RESOLVED:
+ * - Merge conflicts removed ✅
+ * - Security vulnerability fixed ✅
+ * - Type safety enhanced ✅
+ * - MockDB improved ✅
+ * - Build successful ✅
+ */
+
+// Define interfaces for MongoDB database abstraction
+interface Collection {
+  find: (query: Record<string, unknown>) => unknown;
+  findOne: (query: Record<string, unknown>) => Promise<unknown>;
+  insertOne: (doc: Record<string, unknown>) => Promise<unknown>;
+  insertMany: (docs: Record<string, unknown>[]) => Promise<unknown>;
+  updateOne: (
+    filter: Record<string, unknown>,
+    update: Record<string, unknown>,
+    options?: Record<string, unknown>,
+  ) => Promise<unknown>;
+  updateMany: (
+    filter: Record<string, unknown>,
+    update: Record<string, unknown>,
+  ) => Promise<unknown>;
+  deleteOne: (filter: Record<string, unknown>) => Promise<unknown>;
+  deleteMany: (filter: Record<string, unknown>) => Promise<unknown>;
+  countDocuments: (filter: Record<string, unknown>) => Promise<number>;
+  aggregate: (pipeline: unknown[]) => { toArray: () => Promise<unknown[]> };
+  [key: string]: unknown;
+}
+
+interface DatabaseHandle {
+  collection: (name: string) => Collection;
+  listCollections?: () => { toArray: () => Promise<unknown[]> };
+}
+
+// MongoDB-only implementation - no mock database
+
+// Environment configuration
+const rawMongoUri = getEnv("MONGODB_URI");
+const dbName = process.env.MONGODB_DB || "fixzit";
+const isProd = process.env.NODE_ENV === "production";
+const allowLocalMongo = isTruthy(process.env.ALLOW_LOCAL_MONGODB);
+const isNextBuild = process.env.NEXT_PHASE === "phase-production-build";
+const disableMongoForBuild =
+  isTruthy(process.env.DISABLE_MONGODB_FOR_BUILD) || isNextBuild;
+const allowOfflineMongo = isTruthy(process.env.ALLOW_OFFLINE_MONGODB);
+
+function resolveMongoUri(): string {
+  if (disableMongoForBuild) {
+    return "mongodb://disabled-for-build";
+  }
+
+  if (rawMongoUri && rawMongoUri.trim().length > 0) {
+    return rawMongoUri;
+  }
+
+  if (!isProd) {
+    logger.warn(
+      "[Mongo] MONGODB_URI not set, using localhost fallback (development only)",
+    );
+    return "mongodb://127.0.0.1:27017";
+  }
+
+  throw new Error("FATAL: MONGODB_URI is required in production environment.");
+}
+
+function validateMongoUri(uri: string): void {
+  if (!uri.startsWith("mongodb://") && !uri.startsWith("mongodb+srv://")) {
+    throw new Error(
+      "FATAL: MONGODB_URI must start with mongodb:// or mongodb+srv://",
+    );
+  }
+}
+
+function assertNotLocalhostInProd(uri: string): void {
+  if (!isProd || allowLocalMongo || disableMongoForBuild) return;
+  const localPatterns = [
+    "mongodb://localhost",
+    "mongodb://127.0.0.1",
+    "mongodb://0.0.0.0",
+  ];
+  if (localPatterns.some((pattern) => uri.startsWith(pattern))) {
+    throw new Error(
+      "FATAL: Local MongoDB URIs are not allowed in production. Point MONGODB_URI to your managed cluster.",
+    );
+  }
+}
+
+function assertAtlasUriInProd(uri: string): void {
+  if (!isProd || allowLocalMongo || disableMongoForBuild) return;
+  if (!uri.startsWith("mongodb+srv://")) {
+    throw new Error(
+      "FATAL: Production deployments require a MongoDB Atlas connection string (mongodb+srv://).",
+    );
+  }
+}
+
+export const isMockDB = false; // Always use real MongoDB
+
+// Extend globalThis for MongoDB connection caching
+declare global {
+  var _mongoose: Promise<DatabaseHandle> | undefined;
+}
+
+// Global connection promise
+// Check if global is available (not in Edge Runtime)
+const globalObj = (
+  typeof global !== "undefined" ? global : globalThis
+) as typeof global;
+let conn = globalObj._mongoose as Promise<DatabaseHandle>;
+
+function createOfflineHandle(): DatabaseHandle {
+  const offlineOperation = () => {
+    throw new Error(
+      "MongoDB offline fallback: no database connection available",
+    );
+  };
+  const offlineCollection = new Proxy(
+    {},
+    {
+      get: () => offlineOperation,
+    },
+  ) as Collection;
+  return {
+    collection: () => offlineCollection,
+  };
+}
+
+if (!conn) {
+  if (disableMongoForBuild) {
+    logger.warn(
+      "[Mongo] DISABLE_MONGODB_FOR_BUILD enabled – returning stub database handle",
+    );
+    conn = globalObj._mongoose = Promise.resolve({
+      collection: () => {
+        throw new Error("MongoDB disabled via DISABLE_MONGODB_FOR_BUILD");
+      },
+    } as DatabaseHandle);
+  } else {
+    const connectionUri = resolveMongoUri();
+    validateMongoUri(connectionUri);
+    assertNotLocalhostInProd(connectionUri);
+    assertAtlasUriInProd(connectionUri);
+
+    conn = globalObj._mongoose = mongoose
+      .connect(connectionUri, {
+        dbName,
+        autoIndex: true,
+        maxPoolSize: 10,
+        minPoolSize: 2, // Maintain minimum connections for faster response
+        maxIdleTimeMS: 30000, // Close idle connections after 30s
+        serverSelectionTimeoutMS: 8000,
+        connectTimeoutMS: 8000,
+        socketTimeoutMS: 45000, // Socket timeout for long-running queries
+        retryWrites: true,
+        retryReads: true, // Enable read retries
+        tls: isTlsEnabled(connectionUri),
+        w: "majority",
+        // Vercel-optimized settings
+        compressors: ["zlib"], // Enable compression for bandwidth savings
+      })
+      .then(async (m) => {
+        // Attach database pool for Vercel Functions optimization
+        // This ensures proper cleanup when functions suspend and resume
+        const pool = await loadAttachDatabasePool();
+        if (pool && m.connection.getClient) {
+          try {
+            const client = m.connection.getClient();
+            if (client) {
+              pool(client);
+              logger.info(
+                "[Mongo] ✅ Vercel database pool attached for optimal serverless performance",
+              );
+            }
+          } catch (poolError) {
+            // Non-critical: Log but don't fail if pool attachment fails
+            logger.warn(
+              "[Mongo] Could not attach database pool (non-critical):",
+              {
+                error:
+                  poolError instanceof Error
+                    ? poolError.message
+                    : String(poolError),
+              },
+            );
+          }
+        }
+
+        logger.info("[Mongo] ✅ Connected successfully to MongoDB");
+        return m.connection.db as unknown as DatabaseHandle;
+      })
+      .catch((err) => {
+        const errorObj = err instanceof Error ? err : new Error(String(err));
+        logger.error("ERROR: mongoose.connect() failed", errorObj);
+        if (allowOfflineMongo && !isProd) {
+          logger.warn(
+            "[Mongo] Offline fallback enabled – continuing without database connection",
+          );
+          return createOfflineHandle();
+        }
+        throw new Error(
+          `MongoDB connection failed: ${err?.message || err}. Please ensure MongoDB is running.`,
+        );
+      });
+  }
+}
+
+export const db = conn;
+
+// Provide a Database-like handle for consumers expecting a MongoDB Database API
+export async function getDatabase(): Promise<DatabaseHandle> {
+  try {
+    const connection = await db;
+
+    // Both MockDB and native DB expose collection directly
+    if (connection && typeof connection.collection === "function") {
+      return connection;
+    }
+
+    throw new Error("No database handle available");
+  } catch (_error: unknown) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    const correlationId = new mongoose.Types.ObjectId().toString();
+    const devMessage = `Failed to get database handle: ${error}`;
+    const err = new Error(devMessage) as Error & {
+      code: string;
+      userMessage: string;
+      correlationId: string;
+    };
+    err.name = "DatabaseConnectionError";
+    err.code = "DB_CONNECTION_FAILED";
+    err.userMessage =
+      "Database connection is currently unavailable. Please try again later.";
+    err.correlationId = correlationId;
+    logger.error("Database connection error:", err, {
+      devMessage,
+      correlationId,
+    });
+    throw err;
+  }
+}
+
+// Backward compatibility: Restore getNativeDb function
+export async function getNativeDb(): Promise<DatabaseHandle> {
+  if (isMockDB) {
+    return await db;
+  }
+
+  const m = await db;
+
+  // If m already is the native database object (from the connection promise),
+  // return it directly. Otherwise, extract it from the mongoose instance.
+  if (m && typeof m.collection === "function") {
+    return m as DatabaseHandle;
+  }
+
+  // Fallback: try to get it from mongoose connection
+  const connection =
+    (m as { connection?: typeof mongoose.connection })?.connection ||
+    mongoose.connection;
+
+  if (!connection || !connection.db) {
+    throw new Error("Mongoose connection not ready");
+  }
+
+  return connection.db as unknown as DatabaseHandle;
+}
+
+// Export connectDb function for API route compatibility
+export async function connectDb(): Promise<DatabaseHandle> {
+  return await getDatabase();
+}
+
+// Export connectMongo for backward compatibility
+export async function connectMongo(): Promise<DatabaseHandle> {
+  return await getDatabase();
+}
+
+]]>
+</file>
+
+<file path="lib/mongoUtils.server.ts">
+<![CDATA[
+// Next.js guard: ensures this file is treated as server-only in real app.
+// Skip the hard throw when running vitest (VITEST=1) by using a dynamic import.
+if (!process.env.VITEST) {
+  void import("server-only");
+}
+import mongoose from "mongoose";
+import type { ModifyResult, WithId } from "mongodb";
+
+/**
+ * SERVER-ONLY: Atomic counter for generating unique sequential user codes
+ * Uses MongoDB's findOneAndUpdate with $inc to guarantee uniqueness
+ * even under high concurrency (race condition safe)
+ *
+ * ⚡ CRITICAL: This file is marked as server-only and will error if imported in client/edge code
+ */
+
+interface CounterDoc {
+  _id: string; // MongoDB native _id field used as counter name
+  seq: number;
+}
+
+/**
+ * Generate next atomic user code (e.g., USR000001, USR000002, etc.)
+ *
+ * @param session - Optional MongoDB session for transactions
+ * @returns Promise<string> - Formatted user code (e.g., "USR000123")
+ * @throws Error if database connection is not available
+ */
+export async function getNextAtomicUserCode(
+  session?: mongoose.ClientSession,
+): Promise<string> {
+  const conn = mongoose.connection;
+
+  if (!conn.db) {
+    throw new Error(
+      "Database connection not available. Call connectToDatabase() first.",
+    );
+  }
+
+  // Use MongoDB's atomic findOneAndUpdate with $inc
+  // This guarantees uniqueness even if multiple requests happen simultaneously
+  const collection = conn.db.collection<CounterDoc>("counters");
+  const rawResult = await collection.findOneAndUpdate(
+    { _id: "userCode" },
+    {
+      $inc: { seq: 1 }, // Atomically increment (Mongo treats missing field as 0)
+    },
+    {
+      upsert: true, // Create if doesn't exist
+      returnDocument: "after", // Return updated document
+      session, // Support transactions
+    },
+  );
+
+  const result = rawResult as ModifyResult<CounterDoc> | CounterDoc | null;
+  const seqFromResult =
+    (result && typeof (result as ModifyResult<CounterDoc>).value === "object"
+      ? (result as ModifyResult<CounterDoc>).value?.seq
+      : (result as CounterDoc | null)?.seq) ?? undefined;
+
+  let seqValue = seqFromResult;
+  if (typeof seqValue !== "number" || Number.isNaN(seqValue)) {
+    // Fallback to direct read (rare but safe when result is missing)
+    const fallbackDoc = await collection.findOne({ _id: "userCode" });
+    seqValue = fallbackDoc?.seq;
+  }
+
+  if (typeof seqValue !== "number" || Number.isNaN(seqValue)) {
+    throw new Error(
+      `Failed to generate atomic user code: findOneAndUpdate returned invalid seq. ` +
+        `Result: ${JSON.stringify(result)}. Check database connection and counter document.`,
+    );
+  }
+
+  // Format as USR000001, USR000002, etc.
+  return `USR${String(seqValue).padStart(6, "0")}`;
+}
+
+/**
+ * Normalize MongoDB findOneAndUpdate/findOneAndDelete results across driver versions.
+ * - Driver v4/v5 returned ModifyResult<{ value?: T }>
+ * - Driver v6 returns the document directly
+ */
+export function unwrapFindOneResult<T>(
+  result: ModifyResult<T> | WithId<T> | null | undefined,
+): WithId<T> | null {
+  if (!result) return null;
+  if (typeof result === "object" && "value" in result) {
+    const value = (result as ModifyResult<T>).value;
+    return (value ?? null) as WithId<T> | null;
+  }
+  return result as WithId<T>;
+}
+
+]]>
+</file>
+
+<file path="lib/mongodb-unified.ts">
+<![CDATA[
+import { logger } from "@/lib/logger";
+import mongoose from "mongoose";
+import { connectMongo as ensureDatabaseHandle } from "@/lib/mongo";
+import { isTruthy } from "@/lib/utils/env";
+
+declare global {
+  var _mongooseConnection: typeof mongoose | undefined;
+}
+
+const isNextBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
+const disableMongoForBuild =
+  isTruthy(process.env.DISABLE_MONGODB_FOR_BUILD) ||
+  (isNextBuildPhase && !isTruthy(process.env.ALLOW_MONGODB_DURING_BUILD));
+let connectPromise: Promise<typeof mongoose> | null = null;
+
+function createBuildDisabledError(): Error & { code: string } {
+  const error = new Error(
+    "MongoDB connections are disabled during build (DISABLE_MONGODB_FOR_BUILD/phase-production-build). Set ALLOW_MONGODB_DURING_BUILD=true to override.",
+  ) as Error & { code: string };
+  error.code = "MONGO_DISABLED_FOR_BUILD";
+  return error;
+}
+
+export async function connectToDatabase(): Promise<typeof mongoose> {
+  // Offline/CI shortcut: avoid actual MongoDB connection attempts
+  if (isTruthy(process.env.ALLOW_OFFLINE_MONGODB)) {
+    logger.warn(
+      "[MongoDB] Skipping connection (ALLOW_OFFLINE_MONGODB=true) - returning mock mongoose handle",
+    );
+    return mongoose;
+  }
+
+  if (disableMongoForBuild) {
+    throw createBuildDisabledError();
+  }
+
+  if (globalThis._mongooseConnection && mongoose.connection.readyState === 1) {
+    return globalThis._mongooseConnection;
+  }
+
+  if (!connectPromise) {
+    connectPromise = ensureDatabaseHandle()
+      .then(() => {
+        if (process.env.NODE_ENV === "development") {
+          globalThis._mongooseConnection = mongoose;
+        }
+        logger.info("✅ MongoDB connected successfully");
+        return mongoose;
+      })
+      .catch((error: unknown) => {
+        connectPromise = null;
+        logger.error(
+          "[MongoDB] Connection failed",
+          error instanceof Error ? error : undefined,
+        );
+        throw error;
+      });
+  }
+
+  return connectPromise;
+}
+
+export async function disconnectFromDatabase(): Promise<void> {
+  if (disableMongoForBuild) {
+    connectPromise = null;
+    return;
+  }
+
+  if (mongoose.connection.readyState !== 0) {
+    await mongoose.disconnect();
+    connectPromise = null;
+    globalThis._mongooseConnection = undefined;
+  }
+}
+
+export async function checkDatabaseHealth(): Promise<boolean> {
+  if (disableMongoForBuild) {
+    logger.warn(
+      "[MongoDB] Health check skipped because database access is disabled for build.",
+    );
+    return true;
+  }
+
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      await connectToDatabase();
+    }
+
+    if (!mongoose.connection.db) {
+      throw new Error("Database connection not established");
+    }
+
+    await mongoose.connection.db.admin().ping();
+    return true;
+  } catch (_error: unknown) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error(
+      "Database health check failed",
+      error instanceof Error ? error : undefined,
+    );
+    return false;
+  }
+}
+
+export type ConnectionDb = NonNullable<typeof mongoose.connection.db>;
+
+export async function getDatabase(): Promise<ConnectionDb> {
+  if (disableMongoForBuild) {
+    throw createBuildDisabledError();
+  }
+
+  await connectToDatabase();
+  const db = mongoose.connection.db;
+  if (!db) {
+    throw new Error("Database not available");
+  }
+  return db as ConnectionDb;
+}
+
+export async function getMongooseConnection() {
+  return await connectToDatabase();
+}
+
+export const connectDb = connectToDatabase;
+export const dbConnect = connectToDatabase;
+export const connectMongo = connectToDatabase;
+
+export default connectToDatabase;
+
+]]>
+</file>
+
+<file path="lib/mongoose-typed.ts">
+<![CDATA[
+import { model, models, type Schema } from "mongoose";
+import type { MModel } from "@/types/mongoose-compat";
+
+export function typedModel<T>(
+  name: string,
+  schema: Schema<T>,
+  makeModel: typeof model = model,
+): MModel<T> {
+  const make = makeModel as unknown as <U>(
+    _n: string,
+    _s: Schema<U>,
+  ) => MModel<U>;
+  return (models[name] as MModel<T>) || make<T>(name, schema);
+}
+
+]]>
+</file>
+
+<file path="lib/monitoring/metrics-registry.ts">
+<![CDATA[
+import client from "prom-client";
+
+/**
+ * Shared Prometheus registry for Fixzit metrics.
+ * Collects default Node.js metrics once and exposes helpers for domain modules.
+ */
+export const metricsRegistry = new client.Registry();
+
+if (process.env.PROM_METRICS_DISABLE_DEFAULTS !== "true") {
+  client.collectDefaultMetrics({
+    register: metricsRegistry,
+    prefix: "fixzit_",
+  });
+}
+
+export function getMetricsRegistry(): client.Registry {
+  return metricsRegistry;
+}
+
+]]>
+</file>
+
+<file path="lib/monitoring/notification-metrics.ts">
+<![CDATA[
+import client, {
+  type Counter,
+  type CounterConfiguration,
+  type Gauge,
+  type GaugeConfiguration,
+  type Histogram,
+  type HistogramConfiguration,
+} from "prom-client";
+import type {
+  NotificationPayload,
+  NotificationChannel,
+} from "@/lib/fm-notifications";
+import type { BulkNotificationResult } from "@/lib/integrations/notifications";
+import { metricsRegistry } from "@/lib/monitoring/metrics-registry";
+
+type NotificationChannelLabel = NotificationChannel;
+
+const CHANNELS: NotificationChannelLabel[] = [
+  "push",
+  "email",
+  "sms",
+  "whatsapp",
+];
+
+function getOrCreateCounter<T extends string>(
+  config: CounterConfiguration<T>,
+): Counter<T> {
+  const existing = metricsRegistry.getSingleMetric(config.name) as
+    | Counter<T>
+    | undefined;
+  if (existing) {
+    return existing;
+  }
+
+  const counter = new client.Counter({
+    ...config,
+    registers: [metricsRegistry],
+  });
+  return counter;
+}
+
+function getOrCreateHistogram<T extends string>(
+  config: HistogramConfiguration<T>,
+): Histogram<T> {
+  const existing = metricsRegistry.getSingleMetric(config.name) as
+    | Histogram<T>
+    | undefined;
+  if (existing) {
+    return existing;
+  }
+
+  const histogram = new client.Histogram({
+    ...config,
+    registers: [metricsRegistry],
+  });
+  return histogram;
+}
+
+function getOrCreateGauge<T extends string>(
+  config: GaugeConfiguration<T>,
+): Gauge<T> {
+  const existing = metricsRegistry.getSingleMetric(config.name) as
+    | Gauge<T>
+    | undefined;
+  if (existing) {
+    return existing;
+  }
+
+  const gauge = new client.Gauge({
+    ...config,
+    registers: [metricsRegistry],
+  });
+  return gauge;
+}
+
+const notificationDispatchCounter = getOrCreateCounter({
+  name: "fixzit_notifications_dispatched_total",
+  help: "Total FM notifications dispatched by event, status, and priority",
+  labelNames: ["event", "status", "priority"],
+});
+
+const notificationChannelCounter = getOrCreateCounter({
+  name: "fixzit_notification_channel_attempts_total",
+  help: "Notification channel attempts grouped by outcome",
+  labelNames: ["event", "channel", "outcome"],
+});
+
+const notificationDurationHistogram = getOrCreateHistogram({
+  name: "fixzit_notification_dispatch_duration_seconds",
+  help: "Notification dispatch latency in seconds",
+  labelNames: ["event"],
+  buckets: [0.1, 0.25, 0.5, 1, 2.5, 5, 10, 15, 30, 60],
+});
+
+const notificationIssueCounter = getOrCreateCounter({
+  name: "fixzit_notification_issues_total",
+  help: "Notification issues by channel and type",
+  labelNames: ["channel", "type"],
+});
+
+const notificationDlqGauge = getOrCreateGauge({
+  name: "fixzit_notification_dlq_backlog",
+  help: "Pending notification DLQ entries per channel",
+  labelNames: ["channel"],
+});
+
+interface RecordMetricsParams {
+  notification: NotificationPayload;
+  result: BulkNotificationResult;
+  durationMs: number;
+}
+
+export function recordNotificationMetrics({
+  notification,
+  result,
+  durationMs,
+}: RecordMetricsParams): void {
+  notificationDispatchCounter.inc({
+    event: notification.event,
+    status: notification.status,
+    priority: notification.priority,
+  });
+
+  notificationDurationHistogram.observe(
+    { event: notification.event },
+    Math.max(durationMs, 0) / 1000,
+  );
+
+  Object.values(result.channelMetrics).forEach((metric) => {
+    if (metric.succeeded > 0) {
+      notificationChannelCounter.inc(
+        {
+          event: notification.event,
+          channel: metric.channel,
+          outcome: "succeeded",
+        },
+        metric.succeeded,
+      );
+    }
+    if (metric.failed > 0) {
+      notificationChannelCounter.inc(
+        {
+          event: notification.event,
+          channel: metric.channel,
+          outcome: "failed",
+        },
+        metric.failed,
+      );
+    }
+    if (metric.skipped > 0) {
+      notificationChannelCounter.inc(
+        {
+          event: notification.event,
+          channel: metric.channel,
+          outcome: "skipped",
+        },
+        metric.skipped,
+      );
+    }
+  });
+
+  result.issues.forEach((issue) => {
+    notificationIssueCounter.inc({
+      channel: issue.channel,
+      type: issue.type,
+    });
+  });
+}
+
+export function setDeadLetterBacklog(
+  counts: Partial<Record<NotificationChannelLabel, number>>,
+): void {
+  CHANNELS.forEach((channel) => {
+    notificationDlqGauge.set({ channel }, counts[channel] ?? 0);
+  });
+}
+
+]]>
+</file>
+
+<file path="lib/monitoring/security-events.ts">
+<![CDATA[
+import { logger } from "@/lib/logger";
+import { redactIdentifier, redactMetadata } from "@/lib/otp-utils";
+import {
+  trackAuthFailure,
+  trackCorsViolation,
+  trackRateLimitHit,
+} from "@/lib/security/monitoring";
+
+export type SecurityEventType =
+  | "rate_limit"
+  | "cors_block"
+  | "auth_failure"
+  | "csrf_violation";
+
+export async function logSecurityEvent(event: {
+  type: SecurityEventType;
+  ip: string;
+  path: string;
+  timestamp: string;
+  metadata?: Record<string, unknown>;
+}) {
+  // Redact IP and metadata for logging (PII protection)
+  const redactedIp = redactIdentifier(event.ip);
+  const redactedMetadata = redactMetadata(event.metadata);
+  
+  // Extract orgId from metadata for multi-tenant isolation.
+  // NOTE: Metadata-based orgId is used for TELEMETRY ONLY (monitoring/alerting isolation).
+  // This does NOT grant any permissions - it only affects how security events are grouped.
+  // Spoofing would only misclassify the attacker's own events in monitoring dashboards.
+  // For security-critical operations, use session.user.orgId from authenticated context.
+  const orgId = typeof event.metadata?.orgId === "string" 
+    ? event.metadata.orgId 
+    : undefined;
+  
+  logger.warn("[SecurityEvent]", { 
+    ...event, 
+    ip: redactedIp,
+    metadata: redactedMetadata,
+  });
+  try {
+    switch (event.type) {
+      case "rate_limit": {
+        const endpoint = String(event.metadata?.keyPrefix ?? event.path);
+        trackRateLimitHit(event.ip, endpoint, orgId);
+        break;
+      }
+      case "cors_block": {
+        const origin =
+          typeof event.metadata?.origin === "string"
+            ? (event.metadata.origin as string)
+            : event.path;
+        trackCorsViolation(origin, event.path, orgId);
+        break;
+      }
+      case "auth_failure": {
+        const identifier =
+          (typeof event.metadata?.identifier === "string"
+            ? (event.metadata.identifier as string)
+            : null) ?? event.ip;
+        const reason =
+          typeof event.metadata?.reason === "string"
+            ? (event.metadata.reason as string)
+            : "unknown";
+        trackAuthFailure(identifier, reason, orgId);
+        break;
+      }
+      case "csrf_violation": {
+        const reason =
+          typeof event.metadata?.reason === "string"
+            ? (event.metadata.reason as string)
+            : "csrf_violation";
+        trackAuthFailure(event.ip, reason, orgId);
+        break;
+      }
+    }
+  } catch (monitoringError) {
+    logger.error("[SecurityEvent] Failed to forward event to monitoring", {
+      error:
+        monitoringError instanceof Error
+          ? monitoringError.message
+          : monitoringError,
+      eventType: event.type,
+    });
+  }
+}
+
+]]>
+</file>
+
+<file path="lib/nats-client.ts">
+<![CDATA[
+import { connect, NatsConnection, JSONCodec } from "nats";
+import { logger } from "@/lib/logger";
+
+let nc: NatsConnection | null = null;
+const jc = JSONCodec();
+
+/**
+ * Get or create the shared NATS connection
+ * @returns NATS connection or null if not configured
+ */
+export async function getNatsConnection(): Promise<NatsConnection | null> {
+  if (!process.env.NATS_URL) {
+    return null;
+  }
+
+  if (!nc || nc.isClosed()) {
+    try {
+      nc = await connect({
+        servers: process.env.NATS_URL,
+        reconnect: true,
+        maxReconnectAttempts: -1,
+        reconnectTimeWait: 2000,
+        name: "fixzit-web-app",
+      });
+
+      // Log connection status
+      (async () => {
+        for await (const status of nc!.status()) {
+          logger.info(`[NATS] Status update: ${status.type}`);
+        }
+      })();
+
+      logger.info("[NATS] Connected successfully");
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("[NATS] Connection failed:", error);
+      nc = null;
+      throw error;
+    }
+  }
+
+  return nc;
+}
+
+/**
+ * Publish an event to NATS
+ * @param subject Event subject (e.g., 'product.created', 'order.placed')
+ * @param data Event data
+ */
+export async function publish(
+  subject: string,
+  data: Record<string, unknown>,
+): Promise<void> {
+  try {
+    const connection = await getNatsConnection();
+    if (!connection) {
+      logger.warn("[NATS] Not configured, skipping publish", { subject });
+      return;
+    }
+
+    connection.publish(subject, jc.encode(data));
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error(`[NATS] Failed to publish to ${subject}:`, error);
+    // Don't throw - publishing failure shouldn't break application flow
+  }
+}
+
+/**
+ * Gracefully close the NATS connection
+ */
+export async function closeNatsConnection(): Promise<void> {
+  if (nc) {
+    try {
+      await nc.drain();
+      logger.info("[NATS] Connection closed gracefully");
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("[NATS] Error closing connection:", error);
+    } finally {
+      nc = null;
+    }
+  }
+}
+
+// Graceful shutdown handlers
+if (typeof process !== "undefined") {
+  process.on("SIGTERM", async () => {
+    await closeNatsConnection();
+  });
+
+  process.on("SIGINT", async () => {
+    await closeNatsConnection();
+  });
+}
+
+]]>
+</file>
+
+<file path="lib/nats-events.ts">
+<![CDATA[
+/**
+ * NATS Event Type Definitions
+ *
+ * This file defines the structure of all events published to NATS.
+ * Type-safe event schemas help maintain consistency across services.
+ */
+
+/**
+ * Product lifecycle events
+ */
+export type ProductCreatedEvent = {
+  type: "product.created";
+  productId: string;
+  fsin: string;
+  orgId: string;
+  categoryId: string;
+  brandId?: string;
+  title: string;
+  price: number;
+  timestamp: string;
+};
+
+export type ProductUpdatedEvent = {
+  type: "product.updated";
+  productId: string;
+  fsin: string;
+  orgId: string;
+  changes: Record<string, unknown>;
+  timestamp: string;
+};
+
+export type ProductDeletedEvent = {
+  type: "product.deleted";
+  productId: string;
+  fsin: string;
+  orgId: string;
+  timestamp: string;
+};
+
+/**
+ * Order lifecycle events
+ */
+export type OrderPlacedEvent = {
+  type: "order.placed";
+  orderId: string;
+  customerId: string;
+  orgId: string;
+  total: number;
+  currency: string;
+  items: Array<{
+    productId: string;
+    quantity: number;
+    price: number;
+  }>;
+  placedAt: string;
+};
+
+export type OrderShippedEvent = {
+  type: "order.shipped";
+  orderId: string;
+  customerId: string;
+  orgId: string;
+  trackingNumber: string;
+  shippedAt: string;
+};
+
+export type OrderDeliveredEvent = {
+  type: "order.delivered";
+  orderId: string;
+  customerId: string;
+  orgId: string;
+  deliveredAt: string;
+};
+
+export type OrderCancelledEvent = {
+  type: "order.cancelled";
+  orderId: string;
+  customerId: string;
+  orgId: string;
+  reason: string;
+  cancelledAt: string;
+};
+
+/**
+ * Invoice lifecycle events
+ */
+export type InvoicePaidEvent = {
+  type: "invoice.paid";
+  invoiceId: string;
+  invoiceNumber: string;
+  orgId: string;
+  amount: number;
+  currency: string;
+  paymentMethod: string;
+  paidAt: string;
+};
+
+export type InvoiceOverdueEvent = {
+  type: "invoice.overdue";
+  invoiceId: string;
+  invoiceNumber: string;
+  orgId: string;
+  amount: number;
+  currency: string;
+  dueDate: string;
+  daysOverdue: number;
+  timestamp: string;
+};
+
+/**
+ * Work order events
+ */
+export type WorkOrderCreatedEvent = {
+  type: "workorder.created";
+  workOrderId: string;
+  workOrderNumber: string;
+  orgId: string;
+  propertyId?: string;
+  priority: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  createdAt: string;
+};
+
+export type WorkOrderAssignedEvent = {
+  type: "workorder.assigned";
+  workOrderId: string;
+  workOrderNumber: string;
+  orgId: string;
+  assignedTo: string;
+  assignedBy: string;
+  assignedAt: string;
+};
+
+export type WorkOrderCompletedEvent = {
+  type: "workorder.completed";
+  workOrderId: string;
+  workOrderNumber: string;
+  orgId: string;
+  completedBy: string;
+  completedAt: string;
+};
+
+/**
+ * Payment events
+ */
+export type PaymentProcessedEvent = {
+  type: "payment.processed";
+  paymentId: string;
+  invoiceId?: string;
+  orgId: string;
+  amount: number;
+  currency: string;
+  method: string;
+  status: "SUCCESS" | "FAILED" | "PENDING";
+  processedAt: string;
+};
+
+export type PaymentRefundedEvent = {
+  type: "payment.refunded";
+  paymentId: string;
+  invoiceId?: string;
+  orgId: string;
+  amount: number;
+  currency: string;
+  reason: string;
+  refundedAt: string;
+};
+
+/**
+ * Union type of all possible events
+ */
+export type NatsEvent =
+  | ProductCreatedEvent
+  | ProductUpdatedEvent
+  | ProductDeletedEvent
+  | OrderPlacedEvent
+  | OrderShippedEvent
+  | OrderDeliveredEvent
+  | OrderCancelledEvent
+  | InvoicePaidEvent
+  | InvoiceOverdueEvent
+  | WorkOrderCreatedEvent
+  | WorkOrderAssignedEvent
+  | WorkOrderCompletedEvent
+  | PaymentProcessedEvent
+  | PaymentRefundedEvent;
+
+/**
+ * Event subject patterns for subscriptions
+ */
+export const EventSubjects = {
+  PRODUCT: {
+    ALL: "product.*",
+    CREATED: "product.created",
+    UPDATED: "product.updated",
+    DELETED: "product.deleted",
+  },
+  ORDER: {
+    ALL: "order.*",
+    PLACED: "order.placed",
+    SHIPPED: "order.shipped",
+    DELIVERED: "order.delivered",
+    CANCELLED: "order.cancelled",
+  },
+  INVOICE: {
+    ALL: "invoice.*",
+    PAID: "invoice.paid",
+    OVERDUE: "invoice.overdue",
+  },
+  WORKORDER: {
+    ALL: "workorder.*",
+    CREATED: "workorder.created",
+    ASSIGNED: "workorder.assigned",
+    COMPLETED: "workorder.completed",
+  },
+  PAYMENT: {
+    ALL: "payment.*",
+    PROCESSED: "payment.processed",
+    REFUNDED: "payment.refunded",
+  },
+} as const;
+
+]]>
+</file>
+
+<file path="lib/numbers.ts">
+<![CDATA[
+/**
+ * Numeric utility helpers shared between finance/FM modules.
+ * Provides safe parsing that preserves legitimate zero values while
+ * filtering out NaN/undefined inputs.
+ */
+export function toFiniteNumber(value: unknown, fallback = 0): number {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : fallback;
+  }
+
+  if (typeof value === "string") {
+    const normalized = value.trim();
+    if (normalized.length === 0) {
+      return fallback;
+    }
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  return fallback;
+}
+
+/**
+ * Helper specifically for <input type="number" /> values which can be
+ * string, number, empty string, or undefined.
+ */
+export function fromInputValue(
+  value: string | number | null | undefined,
+  fallback = 0,
+): number {
+  if (value === null || value === undefined) {
+    return fallback;
+  }
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : fallback;
+  }
+  return toFiniteNumber(value, fallback);
+}
+
+]]>
+</file>
+
+<file path="lib/otp-store-redis.ts">
+<![CDATA[
+/**
+ * Redis-backed OTP Store for Multi-Instance Deployments
+ *
+ * Provides distributed state management for:
+ * - OTP codes (with automatic TTL expiry)
+ * - Rate limiting (atomic increments with window reset)
+ * - OTP login sessions (server-side session tokens)
+ *
+ * Key Features:
+ * - Automatic fallback to in-memory when Redis unavailable
+ * - Atomic operations for rate limiting
+ * - TTL-based auto-expiry (no cleanup cron needed)
+ * - JSON serialization for complex data structures
+ *
+ * Key Namespacing:
+ * - otp:{identifier} - OTP data
+ * - ratelimit:otp:{identifier} - Rate limit counters
+ * - otpsession:{token} - OTP login sessions
+ *
+ * CRITICAL: This module uses DYNAMIC imports for lib/redis to prevent
+ * webpack from bundling ioredis into Edge/client bundles.
+ * The 'dns' module required by ioredis is NOT available in Edge/browser runtime.
+ *
+ * @module lib/otp-store-redis
+ */
+
+import { logger } from "@/lib/logger";
+
+// CRITICAL FIX: Dynamic import pattern for Redis functions
+// This prevents ioredis from being bundled into Edge/client bundles
+// The import is deferred until runtime in Node.js context only
+let _redisModule: typeof import("@/lib/redis") | null = null;
+
+async function getRedisModule(): Promise<typeof import("@/lib/redis") | null> {
+  // Return cached module if already loaded
+  if (_redisModule) return _redisModule;
+  
+  // Only attempt to load Redis in Node.js runtime (not Edge/browser)
+  if (typeof window !== "undefined") {
+    return null;
+  }
+  
+  try {
+    _redisModule = await import("@/lib/redis");
+    return _redisModule;
+  } catch (error) {
+    logger.warn("[OTP Redis] Failed to load Redis module", { error });
+    return null;
+  }
+}
+
+// Lazy wrapper for getRedisClient
+async function getRedisClientLazy(): Promise<ReturnType<typeof import("@/lib/redis").getRedisClient> | null> {
+  const mod = await getRedisModule();
+  if (!mod) return null;
+  return mod.getRedisClient();
+}
+
+// Lazy wrapper for safeRedisOp
+async function safeRedisOpLazy<T>(
+  operation: (client: RedisClient) => Promise<T>,
+  fallback: T,
+): Promise<T> {
+  const mod = await getRedisModule();
+  if (!mod) return fallback;
+  return mod.safeRedisOp(operation, fallback);
+}
+
+// Use 'any' for Redis client type to avoid importing ioredis
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RedisClient = any;
+
+// Re-export types from otp-store for compatibility
+export interface OTPData {
+  otp: string;
+  expiresAt: number;
+  attempts: number;
+  userId: string;
+  phone: string;
+  orgId?: string | null;
+  companyCode?: string | null;
+  /** Indicates this OTP was created via production bypass for authorized users */
+  __bypassed?: boolean;
+}
+
+export interface RateLimitData {
+  count: number;
+  resetAt: number;
+}
+
+export interface OTPLoginSession {
+  userId: string;
+  identifier: string;
+  orgId?: string | null;
+  companyCode?: string | null;
+  expiresAt: number;
+  /** Indicates this session was created via production bypass for authorized users */
+  __bypassed?: boolean;
+}
+
+// Constants (imported from otp-store for consistency)
+export const OTP_LENGTH = 6;
+export const OTP_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
+export const MAX_ATTEMPTS = 3;
+export const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+export const MAX_SENDS_PER_WINDOW = 5;
+export const OTP_SESSION_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
+
+// Key prefixes for Redis namespacing
+const KEY_PREFIX = {
+  OTP: "otp:",
+  RATE_LIMIT: "ratelimit:otp:",
+  SESSION: "otpsession:",
+} as const;
+
+// In-memory fallbacks (used when Redis unavailable)
+const memoryOtpStore = new Map<string, OTPData>();
+const memoryRateLimitStore = new Map<string, RateLimitData>();
+const memorySessionStore = new Map<string, OTPLoginSession>();
+
+let warnedMemoryFallback = false;
+
+/**
+ * Check if Redis is available for OTP storage.
+ * Now async due to dynamic import pattern.
+ * Prefixed with underscore - reserved for future use.
+ */
+async function _isRedisAvailableAsync(): Promise<boolean> {
+  const client = await getRedisClientLazy();
+  return client !== null && (client.status === "ready" || client.status === "connecting");
+}
+
+/**
+ * Log warning when falling back to in-memory storage
+ */
+function warnMemoryFallback(): void {
+  if (!warnedMemoryFallback && process.env.NODE_ENV === "production") {
+    logger.warn(
+      "[OTP Redis] Redis unavailable, falling back to in-memory storage. " +
+      "OTP state will NOT be shared across instances. " +
+      "Set REDIS_URL, REDIS_KEY, or OTP_STORE_REDIS_URL for distributed deployments."
+    );
+    warnedMemoryFallback = true;
+  }
+}
+
+// ============================================================================
+// OTP STORE
+// ============================================================================
+
+/**
+ * Redis-backed OTP store with in-memory fallback
+ */
+export const redisOtpStore = {
+  /**
+   * Get OTP data by identifier
+   */
+  async get(identifier: string): Promise<OTPData | undefined> {
+    const client = await getRedisClientLazy();
+    if (client) {
+      const data = await safeRedisOpLazy(
+        async (c: RedisClient) => c.get(`${KEY_PREFIX.OTP}${identifier}`),
+        null
+      );
+      if (data) {
+        try {
+          return JSON.parse(data) as OTPData;
+        } catch {
+          logger.error("[OTP Redis] Failed to parse OTP data", { identifier });
+        }
+      }
+      return undefined;
+    }
+
+    // Fallback to in-memory
+    warnMemoryFallback();
+    const memData = memoryOtpStore.get(identifier);
+    if (memData && Date.now() > memData.expiresAt) {
+      memoryOtpStore.delete(identifier);
+      return undefined;
+    }
+    return memData;
+  },
+
+  /**
+   * Store OTP data with TTL
+   */
+  async set(identifier: string, data: OTPData): Promise<void> {
+    const ttlMs = data.expiresAt - Date.now();
+    const ttlSec = Math.max(1, Math.ceil(ttlMs / 1000));
+
+    const client = await getRedisClientLazy();
+    if (client) {
+      await safeRedisOpLazy(
+        async (c: RedisClient) => c.setex(
+          `${KEY_PREFIX.OTP}${identifier}`,
+          ttlSec,
+          JSON.stringify(data)
+        ),
+        undefined
+      );
+      return;
+    }
+
+    // Fallback to in-memory
+    warnMemoryFallback();
+    memoryOtpStore.set(identifier, data);
+  },
+
+  /**
+   * Delete OTP data
+   */
+  async delete(identifier: string): Promise<void> {
+    const client = await getRedisClientLazy();
+    if (client) {
+      await safeRedisOpLazy(
+        async (c: RedisClient) => c.del(`${KEY_PREFIX.OTP}${identifier}`),
+        0
+      );
+      return;
+    }
+
+    // Fallback to in-memory
+    memoryOtpStore.delete(identifier);
+  },
+
+  /**
+   * Update OTP data (e.g., increment attempts)
+   * Re-sets with remaining TTL
+   */
+  async update(identifier: string, data: OTPData): Promise<void> {
+    const client = await getRedisClientLazy();
+    if (client) {
+      // Get remaining TTL
+      const ttl = await safeRedisOpLazy(
+        async (c: RedisClient) => c.ttl(`${KEY_PREFIX.OTP}${identifier}`),
+        -1
+      );
+      const ttlSec = ttl > 0 ? ttl : Math.ceil(OTP_EXPIRY_MS / 1000);
+
+      await safeRedisOpLazy(
+        async (c: RedisClient) => c.setex(
+          `${KEY_PREFIX.OTP}${identifier}`,
+          ttlSec,
+          JSON.stringify(data)
+        ),
+        undefined
+      );
+      return;
+    }
+
+    // Fallback to in-memory
+    memoryOtpStore.set(identifier, data);
+  },
+};
+
+// ============================================================================
+// RATE LIMIT STORE
+// ============================================================================
+
+/**
+ * Redis-backed rate limit store with in-memory fallback
+ */
+export const redisRateLimitStore = {
+  /**
+   * Get rate limit data by identifier
+   */
+  async get(identifier: string): Promise<RateLimitData | undefined> {
+    const client = await getRedisClientLazy();
+    if (client) {
+      const data = await safeRedisOpLazy(
+        async (c: RedisClient) => c.get(`${KEY_PREFIX.RATE_LIMIT}${identifier}`),
+        null
+      );
+      if (data) {
+        try {
+          return JSON.parse(data) as RateLimitData;
+        } catch {
+          logger.error("[OTP Redis] Failed to parse rate limit data", { identifier });
+        }
+      }
+      return undefined;
+    }
+
+    // Fallback to in-memory
+    warnMemoryFallback();
+    const memData = memoryRateLimitStore.get(identifier);
+    if (memData && Date.now() > memData.resetAt) {
+      memoryRateLimitStore.delete(identifier);
+      return undefined;
+    }
+    return memData;
+  },
+
+  /**
+   * Store rate limit data with TTL
+   */
+  async set(identifier: string, data: RateLimitData): Promise<void> {
+    const ttlMs = data.resetAt - Date.now();
+    const ttlSec = Math.max(1, Math.ceil(ttlMs / 1000));
+
+    const client = await getRedisClientLazy();
+    if (client) {
+      await safeRedisOpLazy(
+        async (c: RedisClient) => c.setex(
+          `${KEY_PREFIX.RATE_LIMIT}${identifier}`,
+          ttlSec,
+          JSON.stringify(data)
+        ),
+        undefined
+      );
+      return;
+    }
+
+    // Fallback to in-memory
+    warnMemoryFallback();
+    memoryRateLimitStore.set(identifier, data);
+  },
+
+  /**
+   * Atomic increment for rate limiting
+   * Returns new count and whether limit was exceeded
+   */
+  async increment(
+    identifier: string,
+    limit: number,
+    windowMs: number
+  ): Promise<{ count: number; allowed: boolean; remaining: number }> {
+    const key = `${KEY_PREFIX.RATE_LIMIT}${identifier}`;
+    const windowSec = Math.ceil(windowMs / 1000);
+
+    const client = await getRedisClientLazy();
+    if (client) {
+      // Use MULTI for atomic increment + TTL set
+      const result = await safeRedisOpLazy(
+        async (c: RedisClient) => {
+          const multi = c.multi();
+          multi.incr(key);
+          multi.ttl(key);
+          const results = await multi.exec();
+          if (!results) return null;
+
+          const count = (results[0]?.[1] as number) || 0;
+          const ttl = (results[1]?.[1] as number) || -1;
+
+          // Set TTL on first increment (when TTL is -1 or -2)
+          if (ttl < 0) {
+            await c.expire(key, windowSec);
+          }
+
+          return count;
+        },
+        null
+      );
+
+      if (result !== null) {
+        const allowed = result <= limit;
+        return {
+          count: result,
+          allowed,
+          remaining: Math.max(0, limit - result),
+        };
+      }
+    }
+
+    // Fallback to in-memory
+    warnMemoryFallback();
+    const now = Date.now();
+    let data = memoryRateLimitStore.get(identifier);
+
+    if (!data || now > data.resetAt) {
+      data = { count: 1, resetAt: now + windowMs };
+      memoryRateLimitStore.set(identifier, data);
+      return { count: 1, allowed: true, remaining: limit - 1 };
+    }
+
+    data.count += 1;
+    const allowed = data.count <= limit;
+    return {
+      count: data.count,
+      allowed,
+      remaining: Math.max(0, limit - data.count),
+    };
+  },
+};
+
+// ============================================================================
+// OTP SESSION STORE
+// ============================================================================
+
+/**
+ * Redis-backed OTP session store with in-memory fallback
+ */
+export const redisOtpSessionStore = {
+  /**
+   * Get session by token
+   */
+  async get(token: string): Promise<OTPLoginSession | undefined> {
+    const client = await getRedisClientLazy();
+    if (client) {
+      const data = await safeRedisOpLazy(
+        async (c: RedisClient) => c.get(`${KEY_PREFIX.SESSION}${token}`),
+        null
+      );
+      if (data) {
+        try {
+          return JSON.parse(data) as OTPLoginSession;
+        } catch {
+          logger.error("[OTP Redis] Failed to parse session data", { tokenPrefix: token.slice(0, 8) });
+        }
+      }
+      return undefined;
+    }
+
+    // Fallback to in-memory
+    warnMemoryFallback();
+    const memData = memorySessionStore.get(token);
+    if (memData && Date.now() > memData.expiresAt) {
+      memorySessionStore.delete(token);
+      return undefined;
+    }
+    return memData;
+  },
+
+  /**
+   * Store session with TTL
+   */
+  async set(token: string, data: OTPLoginSession): Promise<void> {
+    const ttlMs = data.expiresAt - Date.now();
+    const ttlSec = Math.max(1, Math.ceil(ttlMs / 1000));
+
+    const client = await getRedisClientLazy();
+    if (client) {
+      await safeRedisOpLazy(
+        async (c: RedisClient) => c.setex(
+          `${KEY_PREFIX.SESSION}${token}`,
+          ttlSec,
+          JSON.stringify(data)
+        ),
+        undefined
+      );
+      return;
+    }
+
+    // Fallback to in-memory
+    warnMemoryFallback();
+    memorySessionStore.set(token, data);
+  },
+
+  /**
+   * Delete session (single-use token pattern)
+   */
+  async delete(token: string): Promise<void> {
+    const client = await getRedisClientLazy();
+    if (client) {
+      await safeRedisOpLazy(
+        async (c: RedisClient) => c.del(`${KEY_PREFIX.SESSION}${token}`),
+        0
+      );
+      return;
+    }
+
+    // Fallback to in-memory
+    memorySessionStore.delete(token);
+  },
+};
+
+// ============================================================================
+// SYNCHRONOUS WRAPPERS (for backward compatibility)
+// ============================================================================
+// DEPRECATED SYNC WRAPPERS REMOVED
+// ============================================================================
+// The synchronous Map-like wrappers (SyncOTPStore, SyncRateLimitStore,
+// SyncOTPSessionStore) have been removed as they caused race conditions
+// in multi-instance deployments.
+//
+// All code should use the async Redis stores directly:
+// - redisOtpStore
+// - redisRateLimitStore
+// - redisOtpSessionStore
+// ============================================================================
+
+// Cleanup interval for memory stores (fallback mode only)
+if (typeof setInterval !== "undefined") {
+  setInterval(() => {
+    const now = Date.now();
+
+    // Cleanup expired OTPs from memory
+    for (const [id, data] of memoryOtpStore.entries()) {
+      if (now > data.expiresAt) {
+        memoryOtpStore.delete(id);
+      }
+    }
+
+    // Cleanup expired rate limits from memory
+    for (const [id, data] of memoryRateLimitStore.entries()) {
+      if (now > data.resetAt) {
+        memoryRateLimitStore.delete(id);
+      }
+    }
+
+    // Cleanup expired sessions from memory
+    for (const [token, session] of memorySessionStore.entries()) {
+      if (now > session.expiresAt) {
+        memorySessionStore.delete(token);
+      }
+    }
+  }, 10 * 60 * 1000); // 10 minutes
+}
+
+]]>
+</file>
+
+<file path="lib/otp-store.ts">
+<![CDATA[
+/**
+ * Shared OTP store for SMS verification
+ *
+ * This module provides a unified interface for OTP storage that:
+ * - Uses Redis when REDIS_URL is configured (production/distributed)
+ * - Falls back to in-memory Maps when Redis unavailable (dev/local)
+ *
+ * For multi-instance deployments (Vercel, K8s, etc.), configure REDIS_URL
+ * to ensure OTP state is shared across all instances.
+ *
+ * @module lib/otp-store
+ */
+
+import {
+  // Re-export types
+  type OTPData,
+  type RateLimitData,
+  type OTPLoginSession,
+  // Re-export constants
+  OTP_LENGTH,
+  OTP_EXPIRY_MS,
+  MAX_ATTEMPTS,
+  RATE_LIMIT_WINDOW_MS,
+  MAX_SENDS_PER_WINDOW,
+  OTP_SESSION_EXPIRY_MS,
+  // Re-export async stores
+  redisOtpStore,
+  redisRateLimitStore,
+  redisOtpSessionStore,
+} from "@/lib/otp-store-redis";
+
+// Re-export types
+export type { OTPData, RateLimitData, OTPLoginSession };
+
+// Re-export constants
+export {
+  OTP_LENGTH,
+  OTP_EXPIRY_MS,
+  MAX_ATTEMPTS,
+  RATE_LIMIT_WINDOW_MS,
+  MAX_SENDS_PER_WINDOW,
+  OTP_SESSION_EXPIRY_MS,
+};
+
+// Re-export async stores for distributed OTP operations
+export {
+  redisOtpStore,
+  redisRateLimitStore,
+  redisOtpSessionStore,
+};
+
+// NOTE: Cleanup is handled in otp-store-redis.ts
+// The Redis stores use TTL for automatic expiry, memory stores have cleanup interval
+
+]]>
+</file>
+
+<file path="lib/otp-utils.ts">
+<![CDATA[
+/**
+ * Shared OTP utilities for authentication flows.
+ * Extracted from send/verify routes to eliminate duplication.
+ * 
+ * @module lib/otp-utils
+ */
+
+/**
+ * Regex pattern for validating corporate employee IDs.
+ * Matches format: EMP followed by alphanumeric characters and dashes.
+ * Example: EMP-001, EMPA12345
+ */
+export const EMPLOYEE_ID_REGEX = /^EMP[-A-Z0-9]+$/;
+
+/**
+ * Normalizes a company code to uppercase, trimmed format.
+ * Returns null if empty or undefined.
+ * 
+ * @param code - Raw company code input
+ * @returns Normalized uppercase company code or null
+ * 
+ * @example
+ * normalizeCompanyCode("  acme-001  ") // "ACME-001"
+ * normalizeCompanyCode("") // null
+ * normalizeCompanyCode(null) // null
+ */
+export const normalizeCompanyCode = (code?: string | null): string | null =>
+  code?.trim() ? code.trim().toUpperCase() : null;
+
+/**
+ * Builds a composite OTP key that includes company code and orgId for tenant isolation.
+ * For personal logins (no company code), returns identifier + orgId.
+ * 
+ * @param identifier - Login identifier (email or employee ID)
+ * @param companyCode - Normalized company code (null for personal logins)
+ * @param orgId - Tenant orgId for isolation (optional but recommended)
+ * @returns Composite key for OTP storage: "identifier::companyCode::orgId" or parts joined when provided
+ * 
+ * @example
+ * buildOtpKey("EMP001", "ACME-001", "ORG123") // "EMP001::ACME-001::ORG123"
+ * buildOtpKey("user@email.com", null, "ORG123") // "user@email.com::ORG123"
+ */
+export const buildOtpKey = (
+  identifier: string,
+  companyCode: string | null,
+  orgId?: string | null,
+): string => {
+  const parts = [identifier];
+  if (companyCode) parts.push(companyCode);
+  if (orgId) parts.push(orgId);
+  return parts.join("::");
+};
+
+/**
+ * Company code validation regex pattern.
+ * Allows uppercase alphanumeric characters and dashes, 2-20 chars.
+ */
+export const COMPANY_CODE_REGEX = /^[A-Z0-9-]{2,20}$/;
+
+/**
+ * Validates if a company code matches the expected format.
+ * 
+ * @param code - Company code to validate (should be normalized first)
+ * @returns true if valid format, false otherwise
+ */
+export const isValidCompanyCode = (code: string | null): boolean => {
+  if (!code) return false;
+  return COMPANY_CODE_REGEX.test(code);
+};
+
+/**
+ * Redact identifier for logging (GDPR/Saudi Labor Law data minimization).
+ * Shows first 3 chars + *** to allow debugging without exposing full PII.
+ * 
+ * @param identifier - Login identifier (email, employee ID, or composite OTP key)
+ * @returns Redacted string showing only first 3 characters
+ * 
+ * @example
+ * redactIdentifier("user@email.com") // "use***"
+ * redactIdentifier("EMP001::ACME") // "EMP***"
+ * redactIdentifier("ab") // "***"
+ */
+export const redactIdentifier = (identifier: string): string => {
+  if (!identifier || identifier.length <= 3) return '***';
+  return identifier.slice(0, 3) + '***';
+};
+
+/**
+ * Get the monitoring hash salt from environment.
+ * Falls back to LOG_HASH_SALT if MONITORING_HASH_SALT is not set.
+ * In production, a salt is required; in dev, empty string is used as fallback.
+ * 
+ * Note: This is a low-level utility that cannot import logger to avoid circular deps.
+ * Missing salt is a configuration issue that should be caught by env validation.
+ */
+const getMonitoringSalt = (): string => {
+  // Check for dedicated monitoring salt first
+  const monitoringSalt = typeof process !== 'undefined' ? process.env?.MONITORING_HASH_SALT : undefined;
+  if (monitoringSalt && monitoringSalt.trim().length > 0) {
+    return monitoringSalt;
+  }
+  
+  // Fall back to LOG_HASH_SALT (used for email hashing)
+  const logSalt = typeof process !== 'undefined' ? process.env?.LOG_HASH_SALT : undefined;
+  if (logSalt && logSalt.trim().length > 0) {
+    return logSalt;
+  }
+  
+  // In production without salt, hashes will be deterministic (not ideal but functional)
+  // ENV validation scripts (check-vercel-env.ts) should catch missing salts at deploy time
+  return '';
+};
+
+/**
+ * Create a non-reversible hash of an identifier for monitoring keys.
+ * Uses FNV-1a hash with salt for dictionary-attack resistance.
+ * 
+ * This is useful when you need to track unique identifiers in monitoring
+ * without the collision issues of 3-char truncation.
+ * 
+ * @param identifier - The identifier to hash (email, IP, user ID, etc.)
+ * @param salt - Optional explicit salt. If not provided, uses MONITORING_HASH_SALT or LOG_HASH_SALT from env.
+ * @returns A 16-character hex hash suitable for monitoring keys
+ * 
+ * @example
+ * hashIdentifier("user@email.com") // Uses env salt automatically
+ * hashIdentifier("user@email.com", "explicit-salt") // Uses provided salt
+ * 
+ * @note When salt is provided from env, the hash is resistant to dictionary attacks.
+ * Without salt, hashes are deterministic and could be reversed via precomputation.
+ */
+export const hashIdentifier = (identifier: string, salt?: string): string => {
+  // Use provided salt, or get from environment
+  const effectiveSalt = salt !== undefined ? salt : getMonitoringSalt();
+  
+  // Simple FNV-1a hash - fast, good distribution, deterministic
+  // With salt, resistant to dictionary attacks
+  const input = effectiveSalt + identifier;
+  let hash = 2166136261; // FNV offset basis
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619); // FNV prime
+  }
+  // Convert to unsigned 32-bit and then to hex, padded to 8 chars
+  const hex1 = (hash >>> 0).toString(16).padStart(8, '0');
+  
+  // Generate second half with different seed for better distribution
+  hash = 2166136261;
+  for (let i = input.length - 1; i >= 0; i--) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  const hex2 = (hash >>> 0).toString(16).padStart(8, '0');
+  
+  return hex1 + hex2;
+};
+
+/**
+ * Keys that should be fully redacted when found in metadata objects.
+ * Includes common PII field names for GDPR/Saudi Labor Law compliance.
+ */
+const SENSITIVE_KEYS = new Set([
+  'password', 'token', 'secret', 'apiKey', 'api_key', 'accessToken', 'access_token',
+  'refreshToken', 'refresh_token', 'ssn', 'nationalId', 'national_id', 'creditCard',
+  'credit_card', 'cvv', 'pin', 'bankAccount', 'bank_account', 'iban', 'salary',
+  'privateKey', 'private_key', 'otp', 'otpCode', 'otp_code', 'sessionToken',
+]);
+
+/**
+ * Keys containing identifiers that should be partially redacted (show first 3 chars).
+ */
+const IDENTIFIER_KEYS = new Set([
+  'identifier', 'email', 'phone', 'ip', 'ipAddress', 'ip_address', 'userId',
+  'user_id', 'employeeId', 'employee_id', 'username', 'mobile', 'cellphone',
+]);
+
+/**
+ * Redact sensitive fields in a metadata object for safe logging.
+ * - Fully redacts sensitive keys (passwords, tokens, SSN, etc.)
+ * - Partially redacts identifier keys (shows first 3 chars)
+ * - Recursively handles nested objects
+ * 
+ * @param metadata - Object potentially containing sensitive data
+ * @returns New object with sensitive fields redacted
+ * 
+ * @example
+ * redactMetadata({ email: "user@test.com", password: "secret123" })
+ * // { email: "use***", password: "[REDACTED]" }
+ */
+export const redactMetadata = (
+  metadata: Record<string, unknown> | undefined | null
+): Record<string, unknown> | undefined => {
+  if (!metadata || typeof metadata !== 'object') return undefined;
+
+  const result: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(metadata)) {
+    const lowerKey = key.toLowerCase();
+    
+    // Fully redact sensitive keys
+    if (SENSITIVE_KEYS.has(key) || SENSITIVE_KEYS.has(lowerKey)) {
+      result[key] = '[REDACTED]';
+      continue;
+    }
+
+    // Partially redact identifier keys
+    if (IDENTIFIER_KEYS.has(key) || IDENTIFIER_KEYS.has(lowerKey)) {
+      if (typeof value === 'string') {
+        result[key] = redactIdentifier(value);
+      } else {
+        result[key] = '[REDACTED]';
+      }
+      continue;
+    }
+
+    // Recursively handle nested objects
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      result[key] = redactMetadata(value as Record<string, unknown>);
+      continue;
+    }
+
+    // Pass through safe values
+    result[key] = value;
+  }
+
+  return result;
+};
+
+]]>
+</file>
+
+<file path="lib/payments/currencyUtils.ts">
+<![CDATA[
+// Unified currency formatting utilities for consistent USD/AED handling
+import { logger } from "@/lib/logger";
+// Consolidates payment parsing logic across the application
+
+import { parseCartAmount, parseCartAmountOrThrow } from "./parseCartAmount";
+
+export type SupportedCurrency = "USD" | "AED" | "SAR" | "EUR" | "GBP";
+
+export interface CurrencyConfig {
+  code: SupportedCurrency;
+  symbol: string;
+  symbolPosition: "before" | "after";
+  locale: string;
+  decimalDigits: number;
+  thousandSeparator: string;
+  decimalSeparator: string;
+}
+
+// Currency configurations for consistent formatting
+export const CURRENCY_CONFIGS: Record<SupportedCurrency, CurrencyConfig> = {
+  USD: {
+    code: "USD",
+    symbol: "$",
+    symbolPosition: "before",
+    locale: "en-US",
+    decimalDigits: 2,
+    thousandSeparator: ",",
+    decimalSeparator: ".",
+  },
+  AED: {
+    code: "AED",
+    symbol: "د.إ",
+    symbolPosition: "after",
+    locale: "ar-AE",
+    decimalDigits: 2,
+    thousandSeparator: ",",
+    decimalSeparator: ".",
+  },
+  SAR: {
+    code: "SAR",
+    symbol: "ر.س",
+    symbolPosition: "after",
+    locale: "ar-SA",
+    decimalDigits: 2,
+    thousandSeparator: ",",
+    decimalSeparator: ".",
+  },
+  EUR: {
+    code: "EUR",
+    symbol: "€",
+    symbolPosition: "after",
+    locale: "de-DE",
+    decimalDigits: 2,
+    thousandSeparator: ".",
+    decimalSeparator: ",",
+  },
+  GBP: {
+    code: "GBP",
+    symbol: "£",
+    symbolPosition: "before",
+    locale: "en-GB",
+    decimalDigits: 2,
+    thousandSeparator: ",",
+    decimalSeparator: ".",
+  },
+};
+
+/**
+ * Unified currency formatter that handles both USD and AED consistently
+ */
+export function formatCurrency(
+  amount: unknown,
+  currency: SupportedCurrency = "USD",
+  options: {
+    showSymbol?: boolean;
+    compact?: boolean;
+    fallback?: string;
+  } = {},
+): string {
+  const { showSymbol = true, compact = false, fallback = "0.00" } = options;
+
+  // Parse the amount using our unified parser
+  const parsedAmount = parseCartAmount(amount, 0);
+
+  if (!Number.isFinite(parsedAmount)) {
+    return fallback;
+  }
+
+  const config = CURRENCY_CONFIGS[currency];
+  if (!config) {
+    // Fallback to USD if currency not supported
+    return formatCurrency(amount, "USD", options);
+  }
+
+  try {
+    // Use Intl.NumberFormat for proper locale formatting
+    const numberFormat = new Intl.NumberFormat(config.locale, {
+      style: "currency",
+      currency: config.code,
+      minimumFractionDigits: compact ? 0 : config.decimalDigits,
+      maximumFractionDigits: config.decimalDigits,
+      ...(compact && parsedAmount >= 1000
+        ? {
+            notation: "compact",
+            compactDisplay: "short",
+          }
+        : {}),
+    });
+
+    let formatted = numberFormat.format(parsedAmount);
+
+    // Handle symbol display preference
+    if (!showSymbol) {
+      formatted = formatted.replace(config.symbol, "").trim();
+    }
+
+    return formatted;
+  } catch {
+    // Fallback to manual formatting if Intl fails
+    const formattedNumber = parsedAmount.toFixed(config.decimalDigits);
+    const parts = formattedNumber.split(".");
+
+    // Add thousand separators
+    parts[0] = parts[0].replace(
+      /\B(?=(\d{3})+(?!\d))/g,
+      config.thousandSeparator,
+    );
+
+    const number = parts.join(config.decimalSeparator);
+
+    if (!showSymbol) {
+      return number;
+    }
+
+    return config.symbolPosition === "before"
+      ? `${config.symbol} ${number}`
+      : `${number} ${config.symbol}`;
+  }
+}
+
+/**
+ * Parse and format currency in one step
+ */
+export function parseAndFormatCurrency(
+  value: unknown,
+  currency: SupportedCurrency = "USD",
+  options?: Parameters<typeof formatCurrency>[2],
+): string {
+  return formatCurrency(value, currency, options);
+}
+
+/**
+ * Convert between currencies (requires exchange rates)
+ */
+export function convertCurrency(
+  amount: unknown,
+  fromCurrency: SupportedCurrency,
+  toCurrency: SupportedCurrency,
+  exchangeRates?: Record<string, number>,
+): number {
+  const parsedAmount = parseCartAmount(amount, 0);
+
+  if (!Number.isFinite(parsedAmount) || fromCurrency === toCurrency) {
+    return parsedAmount;
+  }
+
+  // Default exchange rates (these should come from an API in production)
+  const defaultRates: Record<string, number> = {
+    "USD-AED": 3.6725,
+    "AED-USD": 1 / 3.6725,
+    "USD-SAR": 3.75,
+    "SAR-USD": 1 / 3.75,
+    "USD-EUR": 0.85,
+    "EUR-USD": 1 / 0.85,
+    "USD-GBP": 0.73,
+    "GBP-USD": 1 / 0.73,
+    "AED-SAR": 1.02,
+    "SAR-AED": 1 / 1.02,
+  };
+
+  const rates = { ...defaultRates, ...exchangeRates };
+  const rateKey = `${fromCurrency}-${toCurrency}`;
+  const rate = rates[rateKey];
+
+  if (!rate) {
+    // Try reverse conversion
+    const reverseKey = `${toCurrency}-${fromCurrency}`;
+    const reverseRate = rates[reverseKey];
+    if (reverseRate) {
+      return parsedAmount / reverseRate;
+    }
+
+    // No conversion available, return original amount
+    logger.warn(
+      `No exchange rate available for ${fromCurrency} to ${toCurrency}`,
+    );
+    return parsedAmount;
+  }
+
+  return parsedAmount * rate;
+}
+
+/**
+ * Get currency symbol for a given currency code
+ */
+export function getCurrencySymbol(currency: SupportedCurrency): string {
+  return CURRENCY_CONFIGS[currency]?.symbol || "$";
+}
+
+/**
+ * Check if a currency uses RTL (right-to-left) display
+ */
+export function isCurrencyRTL(currency: SupportedCurrency): boolean {
+  const rtlCurrencies: SupportedCurrency[] = ["AED", "SAR"];
+  return rtlCurrencies.includes(currency);
+}
+
+/**
+ * Validate currency amount with proper error handling
+ */
+export function validateCurrencyAmount(
+  value: unknown,
+  currency: SupportedCurrency = "USD",
+  options: {
+    min?: number;
+    max?: number;
+    required?: boolean;
+  } = {},
+): { isValid: boolean; value?: number; error?: string } {
+  const { min = 0, max = Number.MAX_SAFE_INTEGER, required = false } = options;
+
+  if (value === null || value === undefined || value === "") {
+    if (required) {
+      return { isValid: false, error: `Amount is required` };
+    }
+    return { isValid: true, value: 0 };
+  }
+
+  try {
+    const parsed = parseCartAmountOrThrow(
+      value,
+      `Invalid ${currency} amount format`,
+    );
+
+    if (parsed < min) {
+      return {
+        isValid: false,
+        error: `Amount must be at least ${formatCurrency(min, currency)}`,
+      };
+    }
+
+    if (parsed > max) {
+      return {
+        isValid: false,
+        error: `Amount cannot exceed ${formatCurrency(max, currency)}`,
+      };
+    }
+
+    return { isValid: true, value: parsed };
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    return {
+      isValid: false,
+      error: error instanceof Error ? error.message : "Invalid amount format",
+    };
+  }
+}
+
+// Re-export parseCartAmount utilities for convenience
+export { parseCartAmount, parseCartAmountOrThrow };
+
+// Default export for unified payments utilities
+const currencyUtils = {
+  formatCurrency,
+  parseAndFormatCurrency,
+  convertCurrency,
+  getCurrencySymbol,
+  isCurrencyRTL,
+  validateCurrencyAmount,
+  parseCartAmount,
+  parseCartAmountOrThrow,
+  CURRENCY_CONFIGS,
+};
+
+export default currencyUtils;
+
+]]>
+</file>
+
+<file path="lib/payments/parseCartAmount.ts">
+<![CDATA[
+export function parseCartAmount(value: unknown, fallback = 0): number {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : fallback;
+  }
+
+  if (typeof value === "string") {
+    let s = value.trim();
+    if (!s) return fallback;
+    // Normalize unicode minus and whitespace (incl NBSP)
+    s = s.replace(/\u2212/g, "-").replace(/[\s\u00A0]/g, "");
+    // Parentheses negative e.g. (1,234.56)
+    if (/^\(.*\)$/.test(s)) s = "-" + s.slice(1, -1);
+    // Keep only digits, separators, and a leading '-'
+    s = s.replace(/[^0-9.,-]/g, "").replace(/(?!^)-/g, "");
+    // Remove leading dots that might remain from currency symbols
+    s = s.replace(/^\.+/, "");
+
+    // Count occurrences of each separator
+    const dotCount = (s.match(/\./g) || []).length;
+    const commaCount = (s.match(/,/g) || []).length;
+
+    // Validate: if multiple dots, must be valid thousand separator pattern
+    if (dotCount > 1 && !/^-?\d{1,3}(\.\d{3})+$/.test(s)) return fallback;
+    // Validate: if multiple commas, must be valid thousand separator pattern
+    if (commaCount > 1 && !/^-?\d{1,3}(,\d{3})+$/.test(s)) return fallback;
+
+    const lastDot = s.lastIndexOf(".");
+    const lastComma = s.lastIndexOf(",");
+    if (lastDot !== -1 && lastComma !== -1) {
+      const decimalSep = lastComma > lastDot ? "," : ".";
+      const thousandSep = decimalSep === "," ? "." : ",";
+      s = s.replace(new RegExp("\\" + thousandSep, "g"), "");
+      if (decimalSep === ",") s = s.replace(/,/g, ".");
+    } else if (lastComma !== -1) {
+      if (/^-?\d{1,3}(,\d{3})+$/.test(s)) s = s.replace(/,/g, "");
+      else s = s.replace(/,/g, ".");
+    } else if (lastDot !== -1) {
+      if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, "");
+    }
+    const parsed = Number.parseFloat(s);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  if (
+    value &&
+    typeof value === "object" &&
+    "amount" in (value as Record<string, unknown>)
+  ) {
+    return parseCartAmount((value as Record<string, unknown>).amount, fallback);
+  }
+
+  return fallback;
+}
+
+export function parseCartAmountOrThrow(
+  value: unknown,
+  message = "Invalid cart amount",
+): number {
+  const parsed = parseCartAmount(value, Number.NaN);
+  if (!Number.isFinite(parsed)) {
+    throw new Error(message);
+  }
+  return parsed;
+}
+
+]]>
+</file>
+
+</batch_content>

@@ -1,0 +1,3227 @@
+
+You are the "Fixzit Memory Builder" for category: "routes".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "routes",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/api/souq/inventory/return/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { inventoryService } from "@/services/souq/inventory-service";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { SouqInventory } from "@/server/models/souq/Inventory";
+import mongoose from "mongoose";
+import {
+  Role,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
+
+const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
+  const orgString = typeof orgId === "string" ? orgId : orgId?.toString?.();
+  const candidates: Array<string | mongoose.Types.ObjectId> = [];
+  if (orgString) {
+    const trimmed = orgString.trim();
+    candidates.push(trimmed);
+    if (mongoose.Types.ObjectId.isValid(trimmed)) {
+      candidates.push(new mongoose.Types.ObjectId(trimmed));
+    }
+  }
+  return candidates.length ? { orgId: { $in: candidates } } : { orgId };
+};
+
+/**
+ * POST /api/souq/inventory/return
+ * Process return (RMA) and restock inventory
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    const body = await request.json();
+    const { listingId, rmaId, quantity, condition } = body;
+
+    // Validation
+    if (!listingId || !rmaId || !quantity || !condition) {
+      return NextResponse.json(
+        {
+          error:
+            "Missing required fields: listingId, rmaId, quantity, condition",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (!["sellable", "unsellable"].includes(condition)) {
+      return NextResponse.json(
+        {
+          error: "Invalid condition. Must be: sellable or unsellable",
+        },
+        { status: 400 },
+      );
+    }
+
+    const inventoryRecord = await SouqInventory.findOne({
+      listingId,
+      ...buildOrgFilter(orgId),
+    }).select({ sellerId: 1 });
+
+    if (!inventoryRecord) {
+      return NextResponse.json(
+        { error: "Inventory not found for listing" },
+        { status: 404 },
+      );
+    }
+
+    const rawSubRole = (session.user as { subRole?: string | null }).subRole;
+    const normalizedSubRole =
+      normalizeSubRole(rawSubRole) ??
+      inferSubRoleFromRole(session.user.role);
+    const normalizedRole = normalizeRole(session.user.role, normalizedSubRole);
+
+    const isPlatformAdmin =
+      normalizedRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const isOrgAdmin =
+      normalizedRole !== null &&
+      [Role.ADMIN, Role.CORPORATE_OWNER].includes(normalizedRole);
+    const isOpsOrSupport =
+      normalizedRole === Role.TEAM_MEMBER &&
+      !!normalizedSubRole &&
+      [SubRole.OPERATIONS_MANAGER, SubRole.SUPPORT_AGENT].includes(
+        normalizedSubRole,
+      );
+    const isSellerOwner =
+      inventoryRecord.sellerId?.toString() === session.user.id;
+
+    if (!isPlatformAdmin && !isOrgAdmin && !isOpsOrSupport && !isSellerOwner) {
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Inventory not found" }, { status: 404 });
+    }
+
+    const inventory = await inventoryService.processReturn({
+      listingId,
+      rmaId,
+      quantity,
+      condition,
+      orgId,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `Return processed successfully. ${quantity} units restocked as ${condition}`,
+      inventory: {
+        inventoryId: inventory.inventoryId,
+        availableQuantity: inventory.availableQuantity,
+        totalQuantity: inventory.totalQuantity,
+        health: inventory.health,
+      },
+    });
+  } catch (error) {
+    logger.error("POST /api/souq/inventory/return error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/inventory/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { inventoryService } from "@/services/souq/inventory-service";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import {
+  Role,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
+import { SouqListing } from "@/server/models/souq/Listing";
+import mongoose from "mongoose";
+
+const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
+  const orgString = typeof orgId === "string" ? orgId : orgId?.toString?.();
+  const candidates: Array<string | mongoose.Types.ObjectId> = [];
+  if (orgString) {
+    const trimmed = orgString.trim();
+    candidates.push(trimmed);
+    if (mongoose.Types.ObjectId.isValid(trimmed)) {
+      candidates.push(new mongoose.Types.ObjectId(trimmed));
+    }
+  }
+  return candidates.length ? { orgId: { $in: candidates } } : { orgId };
+};
+
+/**
+ * GET /api/souq/inventory
+ * Get seller's inventory list with optional filters
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+    const orgIdStr = orgId;
+
+    const searchParams = request.nextUrl.searchParams;
+    const sellerId = searchParams.get("sellerId") || session.user.id;
+    const status = searchParams.get("status") || undefined;
+    const fulfillmentType = searchParams.get("fulfillmentType") as
+      | "FBM"
+      | "FBF"
+      | undefined;
+    const lowStockOnly = searchParams.get("lowStockOnly") === "true";
+
+    const rawSubRole = (session.user as { subRole?: string | null }).subRole;
+    const normalizedSubRole =
+      normalizeSubRole(rawSubRole) ?? inferSubRoleFromRole(session.user.role);
+    const normalizedRole = normalizeRole(session.user.role, normalizedSubRole);
+
+    const isPlatformAdmin =
+      normalizedRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const isOrgAdmin =
+      normalizedRole !== null &&
+      [Role.ADMIN, Role.CORPORATE_OWNER].includes(normalizedRole);
+    const isOpsOrSupport =
+      normalizedRole === Role.TEAM_MEMBER &&
+      !!normalizedSubRole &&
+      [SubRole.OPERATIONS_MANAGER, SubRole.SUPPORT_AGENT].includes(
+        normalizedSubRole,
+      );
+
+    // Authorization: Can only view own inventory unless admin/ops/support
+    if (sellerId !== session.user.id && !isPlatformAdmin && !isOrgAdmin && !isOpsOrSupport) {
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Inventory not found" }, { status: 404 });
+    }
+
+    const inventory = await inventoryService.getSellerInventory(sellerId, {
+      status,
+      fulfillmentType,
+      lowStockOnly,
+      orgId: orgIdStr,
+    });
+
+    return NextResponse.json({
+      success: true,
+      inventory,
+      count: inventory.length,
+    });
+  } catch (error) {
+    logger.error("GET /api/souq/inventory error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * POST /api/souq/inventory
+ * Initialize or receive inventory
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+    const orgIdStr = orgId;
+
+    const body = await request.json();
+    const {
+      action,
+      listingId,
+      productId,
+      quantity,
+      fulfillmentType,
+      warehouseId,
+      binLocation,
+      reason,
+    } = body as {
+      action?: "initialize" | "receive";
+      listingId?: string;
+      productId?: string;
+      quantity?: number;
+      fulfillmentType?: string;
+      warehouseId?: string;
+      binLocation?: string;
+      reason?: string;
+    };
+    const actionType = action ?? "receive";
+    if (!["initialize", "receive"].includes(actionType)) {
+      return NextResponse.json(
+        { error: "Invalid action. Must be initialize or receive" },
+        { status: 400 },
+      );
+    }
+
+    // Validation
+    if (!listingId || !quantity || quantity <= 0) {
+      return NextResponse.json(
+        {
+          error: "Missing or invalid required fields: listingId, quantity",
+        },
+        { status: 400 },
+      );
+    }
+
+    const rawSubRole = (session.user as { subRole?: string | null }).subRole;
+    const normalizedSubRole =
+      normalizeSubRole(rawSubRole) ?? inferSubRoleFromRole(session.user.role);
+    const normalizedRole = normalizeRole(session.user.role, normalizedSubRole);
+
+    const isPlatformAdmin =
+      normalizedRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const isOrgAdmin =
+      normalizedRole !== null &&
+      [Role.ADMIN, Role.CORPORATE_OWNER].includes(normalizedRole);
+    const isOpsOrSupport =
+      normalizedRole === Role.TEAM_MEMBER &&
+      !!normalizedSubRole &&
+      [SubRole.OPERATIONS_MANAGER, SubRole.SUPPORT_AGENT].includes(
+        normalizedSubRole,
+      );
+
+    const listing = await SouqListing.findOne({
+      listingId,
+      ...buildOrgFilter(orgIdStr),
+    }).select({ sellerId: 1, orgId: 1 });
+
+    if (!listing) {
+      return NextResponse.json(
+        { error: "Listing not found for this organization" },
+        { status: 404 },
+      );
+    }
+
+    const listingSellerId = listing.sellerId?.toString();
+    const isSellerOwner = listingSellerId === session.user.id;
+
+    if (!isPlatformAdmin && !isOrgAdmin && !isOpsOrSupport && !isSellerOwner) {
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Listing not found" }, { status: 404 });
+    }
+
+    if (!listingSellerId) {
+      return NextResponse.json(
+        { error: "Listing is missing seller ownership" },
+        { status: 400 },
+      );
+    }
+
+    if (actionType === "initialize") {
+      // Initialize new inventory
+      if (!productId || !fulfillmentType) {
+        return NextResponse.json(
+          {
+            error:
+              "Missing required fields for initialization: productId, fulfillmentType",
+          },
+          { status: 400 },
+        );
+      }
+
+      const inventory = await inventoryService.initializeInventory({
+        listingId: listingId as string,
+        productId: productId as string,
+        sellerId: listingSellerId,
+        orgId: orgIdStr,
+        quantity: quantity as number,
+        fulfillmentType: fulfillmentType as "FBM" | "FBF",
+        warehouseId,
+        binLocation,
+        performedBy: session.user.id,
+        reason,
+      });
+
+      return NextResponse.json(
+        {
+          success: true,
+          inventory,
+          message: "Inventory initialized successfully",
+        },
+        { status: 201 },
+      );
+    } else {
+      // Receive additional stock
+      const inventory = await inventoryService.receiveStock(
+        listingId as string,
+        quantity as number,
+        session.user.id,
+        orgIdStr,
+        reason,
+      );
+
+      return NextResponse.json({
+        success: true,
+        inventory,
+        message: "Stock received successfully",
+      });
+    }
+  } catch (error) {
+    logger.error("POST /api/souq/inventory error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/listings/route.ts">
+<![CDATA[
+/**
+ * Souq Listings API - Seller offers management
+ * @route /api/souq/listings
+ */
+
+import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import type { NextRequest } from "next/server";
+import { z } from "zod";
+import { SouqListing } from "@/server/models/souq/Listing";
+import { SouqProduct } from "@/server/models/souq/Product";
+import { SouqSeller } from "@/server/models/souq/Seller";
+import { connectDb } from "@/lib/mongodb-unified";
+import { nanoid } from "nanoid";
+import { getServerSession } from "@/lib/auth/getServerSession";
+
+const listingCreateSchema = z.object({
+  productId: z.string(),
+  fsin: z.string(),
+  sellerId: z.string(),
+  variationId: z.string().optional(),
+  sku: z.string().optional(),
+  price: z.number().positive(),
+  compareAtPrice: z.number().positive().optional(),
+  stockQuantity: z.number().int().min(0),
+  fulfillmentMethod: z.enum(["fbf", "fbm"]),
+  handlingTime: z.number().int().min(0).max(30),
+  shippingOptions: z.array(
+    z.object({
+      method: z.enum(["standard", "express", "overnight"]),
+      carrier: z.string().optional(),
+      price: z.number().min(0),
+      estimatedDays: z.number().int().min(0),
+    }),
+  ),
+  freeShipping: z.boolean(),
+  condition: z.enum([
+    "new",
+    "refurbished",
+    "used-like-new",
+    "used-good",
+    "used-acceptable",
+  ]),
+  conditionNotes: z.string().max(500).optional(),
+});
+
+export async function POST(request: NextRequest) {
+  try {
+    // Authentication check
+    const session = await getServerSession();
+    if (!session || !session.user) {
+      return NextResponse.json(
+        { error: "Unauthorized", message: "Authentication required" },
+        { status: 401 },
+      );
+    }
+
+    if (!session.user.orgId) {
+      return NextResponse.json(
+        { error: "Forbidden", message: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    await connectDb();
+
+    const body = await request.json();
+    const validatedData = listingCreateSchema.parse(body);
+
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+    const [product, seller] = await Promise.all([
+      SouqProduct.findOne({
+        _id: validatedData.productId,
+        orgId: session.user.orgId,
+      }),
+      SouqSeller.findOne({
+        _id: validatedData.sellerId,
+        orgId: session.user.orgId,
+      }),
+    ]);
+
+    if (!product) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
+
+    if (!seller) {
+      return NextResponse.json({ error: "Seller not found" }, { status: 404 });
+    }
+
+    const sellerDoc = seller as unknown as {
+      canCreateListings?: () => boolean;
+    };
+    const canCreateListings =
+      typeof sellerDoc.canCreateListings === "function"
+        ? sellerDoc.canCreateListings()
+        : true;
+    if (!canCreateListings) {
+      return NextResponse.json(
+        { error: "Seller account not eligible to create listings" },
+        { status: 403 },
+      );
+    }
+
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+    const existingListing = await SouqListing.findOne({
+      productId: validatedData.productId,
+      sellerId: validatedData.sellerId,
+      orgId: session.user.orgId,
+    });
+
+    if (existingListing) {
+      return NextResponse.json(
+        { error: "Listing already exists for this product and seller" },
+        { status: 400 },
+      );
+    }
+
+    const listingId = `LST-${nanoid(10).toUpperCase()}`;
+
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+    const listing = await SouqListing.create({
+      ...validatedData,
+      listingId,
+      orgId: session.user.orgId,
+      availableQuantity: validatedData.stockQuantity,
+      reservedQuantity: 0,
+      status: "active",
+      buyBoxEligible: false,
+      isPrime: validatedData.fulfillmentMethod === "fbf",
+      metrics: {
+        orderCount: 0,
+        cancelRate: 0,
+        defectRate: 0,
+        onTimeShipRate: 100,
+        customerRating: 0,
+        priceCompetitiveness: 50,
+      },
+    });
+
+    const listingDoc = listing as unknown as {
+      checkBuyBoxEligibility?: () => Promise<void>;
+    };
+    if (typeof listingDoc.checkBuyBoxEligibility === "function") {
+      await listingDoc.checkBuyBoxEligibility();
+    }
+    await listing.save();
+
+    return NextResponse.json({
+      success: true,
+      data: listing,
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Validation failed", issues: error.issues },
+        { status: 400 },
+      );
+    }
+
+    logger.error("Listing creation error:", error as Error);
+    return NextResponse.json(
+      { error: "Failed to create listing" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    // Authentication check
+    const session = await getServerSession();
+    if (!session || !session.user) {
+      return NextResponse.json(
+        { error: "Unauthorized", message: "Authentication required" },
+        { status: 401 },
+      );
+    }
+
+    if (!session.user.orgId) {
+      return NextResponse.json(
+        { error: "Forbidden", message: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    await connectDb();
+
+    const { searchParams } = new URL(request.url);
+    const fsin = searchParams.get("fsin");
+    const sellerId = searchParams.get("sellerId");
+    const status = searchParams.get("status");
+    const condition = searchParams.get("condition");
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = Math.min(
+      parseInt(searchParams.get("limit") || "20", 10),
+      100,
+    );
+
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+    const query: Record<string, unknown> = {
+      orgId: session.user.orgId,
+    };
+
+    if (fsin) {
+      query.fsin = fsin;
+    }
+
+    if (sellerId) {
+      query.sellerId = sellerId;
+    }
+
+    if (status) {
+      query.status = status;
+    }
+
+    if (condition) {
+      query.condition = condition;
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [listings, total] = await Promise.all([
+      SouqListing.find(query)
+        .populate("sellerId", "legalName tradeName accountHealth.status")
+        .populate("productId", "title images")
+        .sort({ price: 1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      SouqListing.countDocuments(query),
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      data: listings,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    logger.error("Listing fetch error:", error as Error);
+    return NextResponse.json(
+      { error: "Failed to fetch listings" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/orders/route.ts">
+<![CDATA[
+/**
+ * Souq Orders API - Order management
+ * @route /api/souq/orders
+ */
+
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { z } from "zod";
+import { nanoid } from "nanoid";
+import { Types } from "mongoose";
+import { logger } from "@/lib/logger";
+import { connectDb } from "@/lib/mongodb-unified";
+import { SouqErrors } from "../errors";
+import { auth } from "@/auth";
+import { SouqOrder } from "@/server/models/souq/Order";
+import { SouqListing } from "@/server/models/souq/Listing";
+import { escrowService } from "@/services/souq/settlements/escrow-service";
+import { EscrowSource } from "@/server/models/finance/EscrowAccount";
+
+const objectIdSchema = z
+  .string()
+  .regex(/^[a-f\d]{24}$/i, "Invalid identifier format");
+
+interface ListingDocument {
+  _id: Types.ObjectId;
+  availableQuantity?: number;
+  reservedQuantity?: number;
+  reserveStock?: (quantity: number) => Promise<boolean>;
+  releaseStock?: (quantity: number) => Promise<void>;
+  save?: () => Promise<unknown>;
+  [key: string]: unknown;
+}
+
+interface DocumentWithId {
+  _id: Types.ObjectId;
+  [key: string]: unknown;
+}
+
+const getDocumentId = (
+  value: DocumentWithId | Types.ObjectId | unknown,
+): Types.ObjectId | unknown => {
+  if (value && typeof value === "object" && "_id" in value) {
+    return (value as { _id: Types.ObjectId })._id;
+  }
+  return value;
+};
+
+const orderCreateSchema = z.object({
+  customerId: objectIdSchema,
+  customerEmail: z.string().email(),
+  customerPhone: z.string().min(10),
+  items: z
+    .array(
+      z.object({
+        listingId: objectIdSchema,
+        quantity: z.number().int().positive(),
+      }),
+    )
+    .min(1, "At least one item is required"),
+  shippingAddress: z.object({
+    name: z.string().min(2),
+    phone: z.string().min(10),
+    addressLine1: z.string().min(5),
+    addressLine2: z.string().optional(),
+    city: z.string().min(2),
+    state: z.string().optional(),
+    country: z.string(),
+    postalCode: z.string().min(5),
+  }),
+  billingAddress: z
+    .object({
+      name: z.string(),
+      phone: z.string(),
+      addressLine1: z.string(),
+      addressLine2: z.string().optional(),
+      city: z.string(),
+      state: z.string().optional(),
+      country: z.string(),
+      postalCode: z.string(),
+    })
+    .optional(),
+  paymentMethod: z.enum(["card", "cod", "wallet", "installment"]),
+});
+
+export async function POST(request: NextRequest) {
+  type Reservation = {
+    listing: ListingDocument;
+    quantity: number;
+    manualFallback: boolean;
+  };
+
+  const reservations: Reservation[] = [];
+
+  const releaseReservations = async () => {
+    if (!reservations.length) return;
+    await Promise.all(
+      reservations.map(async ({ listing, quantity, manualFallback }) => {
+        try {
+          if (typeof listing.releaseStock === "function") {
+            await listing.releaseStock(quantity);
+            return;
+          }
+          if (manualFallback) {
+            const currentReserved =
+              typeof listing.reservedQuantity === "number"
+                ? listing.reservedQuantity
+                : 0;
+            const currentAvailable =
+              typeof listing.availableQuantity === "number"
+                ? listing.availableQuantity
+                : 0;
+            listing.reservedQuantity = Math.max(0, currentReserved - quantity);
+            listing.availableQuantity = currentAvailable + quantity;
+            await listing.save?.();
+          }
+        } catch (releaseError) {
+          logger.error(
+            "Failed to release reserved stock",
+            releaseError as Error,
+            {
+              listingId: listing?._id?.toString?.(),
+            },
+          );
+        }
+      }),
+    );
+    reservations.length = 0;
+  };
+
+  const reserveStockForListing = async (
+    listingDoc: ListingDocument,
+    quantity: number,
+  ) => {
+    if (typeof listingDoc.reserveStock === "function") {
+      const success = await listingDoc.reserveStock(quantity);
+      return { success, manualFallback: false };
+    }
+
+    const available =
+      typeof listingDoc.availableQuantity === "number"
+        ? listingDoc.availableQuantity
+        : 0;
+    if (available < quantity) {
+      return { success: false, manualFallback: false };
+    }
+    const currentReserved =
+      typeof listingDoc.reservedQuantity === "number"
+        ? listingDoc.reservedQuantity
+        : 0;
+    listingDoc.availableQuantity = available - quantity;
+    listingDoc.reservedQuantity = currentReserved + quantity;
+    await listingDoc.save?.();
+    return { success: true, manualFallback: true };
+  };
+
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return SouqErrors.unauthorized();
+    }
+    const sellerOrgId = (session.user as { orgId?: string }).orgId;
+    if (!sellerOrgId) {
+      return SouqErrors.forbidden("Seller organization context required");
+    }
+
+    await connectDb();
+
+    const body = await request.json();
+    const validatedData = orderCreateSchema.parse(body);
+    const customerObjectId = new Types.ObjectId(validatedData.customerId);
+    const listingObjectIds = validatedData.items.map(
+      (item) => new Types.ObjectId(item.listingId),
+    );
+
+    if (process.env.NODE_ENV === "test") {
+      logger.error("[Souq orders debug] SouqListing.find type", {
+        type: typeof SouqListing.find,
+      });
+    }
+    const listingsQuery = SouqListing.find({
+      _id: { $in: listingObjectIds },
+    });
+    const listingsResult =
+      typeof (
+        listingsQuery as { populate?: (fields: string) => Promise<unknown> }
+      ).populate === "function"
+        ? await (
+            listingsQuery as { populate: (fields: string) => Promise<unknown> }
+          ).populate("productId sellerId")
+        : await listingsQuery;
+    const listings = (
+      Array.isArray(listingsResult) ? listingsResult : []
+    ) as ListingDocument[];
+
+    if (listings.length !== validatedData.items.length) {
+      if (process.env.NODE_ENV === "test") {
+        logger.error("[Souq orders debug] listings mismatch", {
+          requestedIds: listingObjectIds.map((id) => id.toString()),
+          resultLength: listings.length,
+          rawResult: listingsResult,
+        });
+      }
+      const missingListingIds = listingObjectIds
+        .map((id) => id.toString())
+        .filter(
+          (id) => !listings.some((listing) => listing._id.toString() === id),
+        );
+      return SouqErrors.notFound("Listing", { missingListingIds });
+    }
+
+    const orderItems = [];
+    let subtotal = 0;
+
+    for (const itemRequest of validatedData.items) {
+      const listing = listings.find(
+        (l) => l._id.toString() === itemRequest.listingId,
+      );
+
+      if (!listing) {
+        await releaseReservations();
+        return SouqErrors.notFound("Listing", {
+          listingId: itemRequest.listingId,
+        });
+      }
+
+      const listingSellerId =
+        (listing.sellerId && typeof listing.sellerId === "object"
+          ? listing.sellerId.toString?.()
+          : typeof listing.sellerId === "string"
+            ? listing.sellerId
+            : null) ?? null;
+      if (listingSellerId && listingSellerId !== sellerOrgId) {
+        await releaseReservations();
+        return SouqErrors.forbidden("Cannot create orders for another seller");
+      }
+
+      const availableQty =
+        typeof listing.availableQuantity === "number"
+          ? listing.availableQuantity
+          : 0;
+      if (availableQty < itemRequest.quantity) {
+        await releaseReservations();
+        return SouqErrors.conflict("Insufficient stock", {
+          listingId: listing._id.toString(),
+          requested: itemRequest.quantity,
+          available: availableQty,
+        });
+      }
+
+      const listingDoc: ListingDocument = {
+        ...(listing as unknown as Record<string, unknown>),
+        _id: listing._id as Types.ObjectId,
+      };
+      const { success, manualFallback } = await reserveStockForListing(
+        listingDoc,
+        itemRequest.quantity,
+      );
+      if (!success) {
+        await releaseReservations();
+        return SouqErrors.conflict("Unable to reserve stock", {
+          listingId: listing._id.toString(),
+        });
+      }
+      reservations.push({
+        listing: listingDoc,
+        quantity: itemRequest.quantity,
+        manualFallback,
+      });
+
+      const pricePerUnit =
+        typeof listing.price === "number" ? listing.price : 0;
+      const itemSubtotal = pricePerUnit * itemRequest.quantity;
+      subtotal += itemSubtotal;
+
+      orderItems.push({
+        listingId: listing._id,
+        productId: getDocumentId(listing.productId),
+        fsin: listing.fsin,
+        sellerId: getDocumentId(listing.sellerId),
+        title:
+          typeof listing.productId === "object" &&
+          listing.productId !== null &&
+          "title" in listing.productId
+            ? ((listing.productId as { title?: string }).title ?? "Product")
+            : "Product",
+        quantity: itemRequest.quantity,
+        pricePerUnit,
+        subtotal: itemSubtotal,
+        fulfillmentMethod: listing.fulfillmentMethod,
+        status: "pending",
+      });
+    }
+
+    const tax = subtotal * 0.15;
+    const shippingFee = 0;
+    const discount = 0;
+    const total = subtotal + tax + shippingFee - discount;
+
+    const orderId = `ORD-${nanoid(10).toUpperCase()}`;
+
+    const order = await SouqOrder.create({
+      orderId,
+      customerId: customerObjectId,
+      customerEmail: validatedData.customerEmail,
+      customerPhone: validatedData.customerPhone,
+      items: orderItems,
+      shippingAddress: validatedData.shippingAddress,
+      billingAddress:
+        validatedData.billingAddress || validatedData.shippingAddress,
+      pricing: {
+        subtotal,
+        shippingFee,
+        tax,
+        discount,
+        total,
+        currency: "SAR",
+      },
+      payment: {
+        method: validatedData.paymentMethod,
+        status:
+          validatedData.paymentMethod === "cod" ? "authorized" : "pending",
+      },
+      status: "pending",
+      orgId: new Types.ObjectId(sellerOrgId),
+    });
+
+    const sellerIds = Array.from(
+      new Set(
+        orderItems
+          .map((item) => {
+            const value = item.sellerId as unknown;
+            if (!value) return undefined;
+            if (value instanceof Types.ObjectId) return value.toString();
+            if (typeof value === "string") return value;
+            if (
+              typeof value === "object" &&
+              "_id" in (value as { _id?: Types.ObjectId })
+            ) {
+              const ref = (value as { _id?: Types.ObjectId })._id;
+              return ref?.toString();
+            }
+            return undefined;
+          })
+          .filter(Boolean) as string[],
+      ),
+    );
+
+    const escrowSellerId =
+      sellerIds.length === 1 && Types.ObjectId.isValid(sellerIds[0])
+        ? new Types.ObjectId(sellerIds[0])
+        : undefined;
+
+    const escrowFeatureFlag =
+      process.env.FEATURE_ESCROW_ENABLED ??
+      (process.env.NODE_ENV === "test" ? "false" : "true");
+
+    if (escrowFeatureFlag !== "false" && typeof order.save === "function") {
+      try {
+        const escrowAccount = await escrowService.createEscrowAccount({
+          source: EscrowSource.MARKETPLACE_ORDER,
+          sourceId: order._id,
+          orderId: order._id,
+          orgId: new Types.ObjectId(sellerOrgId),
+          buyerId: customerObjectId,
+          sellerId: escrowSellerId,
+          expectedAmount: total,
+          currency: "SAR",
+          releaseAfter: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          idempotencyKey: request.headers.get("x-idempotency-key") ?? orderId,
+          riskHold: false,
+        });
+
+        order.escrow = {
+          accountId: escrowAccount._id,
+          status: escrowAccount.status,
+          releaseAfter: escrowAccount.releasePolicy?.autoReleaseAt,
+          idempotencyKey: escrowAccount.idempotencyKeys?.[0],
+        };
+        await order.save();
+      } catch (escrowError) {
+        // **COMPENSATING ACTION**: Cancel order and release reservations on escrow failure
+        logger.error("[Escrow] Failed to create account for order, applying compensating action", {
+          orderId,
+          error: escrowError instanceof Error ? escrowError.message : String(escrowError),
+        });
+
+        try {
+          // Mark order as cancelled with reason (preserves audit trail)
+          order.status = "cancelled";
+          order.cancelledAt = new Date();
+          order.cancellationReason = "Escrow creation failed - system rollback";
+          await order.save();
+
+          // Release stock reservations
+          await releaseReservations();
+
+          logger.warn("[Escrow] Order cancelled due to escrow failure (inventory released)", {
+            orderId,
+          });
+        } catch (compensationError) {
+          // If compensation fails, try hard delete as last resort
+          logger.error("[Escrow] Compensation failed, attempting hard delete", {
+            orderId,
+            compensationError: compensationError instanceof Error ? compensationError.message : String(compensationError),
+          });
+          try {
+            await SouqOrder.deleteOne({ _id: order._id });
+            await releaseReservations();
+            logger.warn("[Escrow] Order hard-deleted after escrow failure", { orderId });
+          } catch (deleteError) {
+            logger.error("[Escrow] CRITICAL: Unable to clean up order after escrow failure - manual intervention required", {
+              orderId,
+              deleteError: deleteError instanceof Error ? deleteError.message : String(deleteError),
+            });
+          }
+        }
+
+        return SouqErrors.internalError("Order creation failed: Unable to create escrow account", {
+          orderId,
+          error: escrowError instanceof Error ? escrowError.message : "Unknown escrow error",
+        });
+      }
+    } else {
+      if (typeof logger?.info === "function") {
+        logger.info(
+          "[Escrow] Skipping escrow creation (feature flag disabled)",
+          { orderId },
+        );
+      } else if (typeof logger?.error === "function") {
+        logger.error(
+          "[Escrow] Skipping escrow creation (feature flag disabled)",
+          { orderId },
+        );
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: order,
+    });
+  } catch (error) {
+    await releaseReservations();
+    if (error instanceof z.ZodError) {
+      return SouqErrors.validationError("Invalid order payload", {
+        issues: error.issues,
+      });
+    }
+
+    if (process.env.NODE_ENV === "test") {
+      logger.error("[Souq orders error]", {
+        message: (error as Error)?.message,
+      });
+    }
+
+    logger.error("Order creation error:", error as Error);
+    const debugDetails =
+      process.env.NODE_ENV === "test"
+        ? { message: (error as Error)?.message ?? "unknown error" }
+        : undefined;
+    return SouqErrors.internalError("Failed to create order", debugDetails);
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return SouqErrors.unauthorized();
+    }
+    const sellerOrgId = (session.user as { orgId?: string }).orgId;
+    if (!sellerOrgId) {
+      return SouqErrors.forbidden("Seller organization context required");
+    }
+    const isSuperAdmin = Boolean(
+      (session.user as { isSuperAdmin?: boolean }).isSuperAdmin,
+    );
+
+    await connectDb();
+
+    const { searchParams } = new URL(request.url);
+    const customerId = searchParams.get("customerId");
+    const sellerId = searchParams.get("sellerId");
+    const status = searchParams.get("status");
+    const pageParam = Number(searchParams.get("page"));
+    const limitParam = Number(searchParams.get("limit"));
+    const page =
+      Number.isFinite(pageParam) && pageParam > 0 ? Math.floor(pageParam) : 1;
+    const limitCandidate =
+      Number.isFinite(limitParam) && limitParam > 0
+        ? Math.floor(limitParam)
+        : 20;
+    const limit = Math.min(Math.max(limitCandidate, 1), 100);
+
+    const query: Record<string, unknown> = {};
+
+    if (customerId) {
+      if (!Types.ObjectId.isValid(customerId)) {
+        return SouqErrors.validationError("Invalid customerId");
+      }
+      query.customerId = new Types.ObjectId(customerId);
+    }
+
+    if (!Types.ObjectId.isValid(sellerOrgId)) {
+      return SouqErrors.validationError(
+        "Seller organization context is invalid",
+      );
+    }
+    let sellerFilterId: Types.ObjectId = new Types.ObjectId(sellerOrgId);
+    if (sellerId) {
+      if (!Types.ObjectId.isValid(sellerId)) {
+        return SouqErrors.validationError("Invalid sellerId");
+      }
+      if (sellerId !== sellerOrgId && !isSuperAdmin) {
+        return SouqErrors.forbidden("Cannot access orders for other sellers");
+      }
+      if (sellerId !== sellerOrgId && isSuperAdmin) {
+        sellerFilterId = new Types.ObjectId(sellerId);
+      }
+    }
+    query["items.sellerId"] = sellerFilterId;
+
+    if (status) {
+      query.status = status;
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [orders, total] = await Promise.all([
+      SouqOrder.find(query)
+        .populate("customerId", "name email")
+        .populate("items.sellerId", "legalName tradeName")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      SouqOrder.countDocuments(query),
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      data: orders,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    logger.error("Order fetch error:", error as Error);
+    return SouqErrors.internalError("Failed to fetch orders");
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/products/[id]/reviews/route.ts">
+<![CDATA[
+/**
+ * GET /api/souq/products/[id]/reviews - Get product reviews with stats
+ */
+import { NextRequest, NextResponse } from "next/server";
+import { reviewService } from "@/services/souq/reviews/review-service";
+import { ratingAggregationService } from "@/services/souq/reviews/rating-aggregation-service";
+import { connectDb } from "@/lib/mongodb-unified";
+import { z } from "zod";
+import { logger } from "@/lib/logger";
+
+type RouteContext = {
+  params: Promise<{
+    id: string;
+  }>;
+};
+
+const productReviewFiltersSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  rating: z.coerce.number().int().min(1).max(5).optional(),
+  verifiedOnly: z
+    .union([z.literal("true"), z.literal("false")])
+    .transform((val) => val === "true")
+    .optional(),
+  sortBy: z.enum(["recent", "helpful", "rating"]).default("recent"),
+});
+
+export async function GET(req: NextRequest, context: RouteContext) {
+  try {
+    const { id: productId } = await context.params;
+    const connection = await connectDb();
+    const db = connection.connection.db!;
+    
+    // Fetch product to get orgId for tenant-scoped queries
+    const product = await db.collection("souq_products").findOne(
+      { productId },
+      { projection: { orgId: 1 } }
+    );
+    const orgId = (product as { orgId?: string })?.orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Product orgId missing; cannot fetch tenant-scoped reviews" },
+        { status: 404 },
+      );
+    }
+    
+    const { searchParams } = new URL(req.url);
+    const filters = productReviewFiltersSchema.parse({
+      page: searchParams.get("page") ?? undefined,
+      limit: searchParams.get("limit") ?? undefined,
+      rating: searchParams.get("rating") ?? undefined,
+      verifiedOnly: searchParams.get("verifiedOnly") ?? undefined,
+      sortBy: searchParams.get("sortBy") ?? undefined,
+    });
+
+    // Get reviews
+    const reviews = await reviewService.getProductReviews(productId, orgId, {
+      page: filters.page,
+      limit: filters.limit,
+      rating: filters.rating,
+      verifiedOnly: filters.verifiedOnly,
+      sortBy: filters.sortBy,
+    });
+
+    // Get stats
+    const stats = await reviewService.getReviewStats(productId, orgId);
+    const distribution = await ratingAggregationService.getRatingDistribution(productId, orgId);
+
+    return NextResponse.json({
+      ...reviews,
+      stats,
+      distribution,
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Validation failed", issues: error.issues },
+        { status: 400 },
+      );
+    }
+
+    logger.error("[GET /api/souq/products/[id]/reviews]", error as Error);
+    return NextResponse.json(
+      { error: "Failed to fetch product reviews" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/products/route.ts">
+<![CDATA[
+export { GET, POST } from "@/app/api/souq/catalog/products/route";
+
+]]>
+</file>
+
+<file path="app/api/souq/repricer/analysis/[fsin]/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { AutoRepricerService } from "@/services/souq/auto-repricer-service";
+
+interface RouteContext {
+  params: Promise<{ fsin: string }>;
+}
+
+/**
+ * GET /api/souq/repricer/analysis/[fsin]
+ * Get competitor price analysis for a product
+ */
+export async function GET(request: NextRequest, context: RouteContext) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const orgId = session.user.orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 400 },
+      );
+    }
+
+    const { fsin } = await context.params;
+
+    if (!fsin) {
+      return NextResponse.json({ error: "FSIN is required" }, { status: 400 });
+    }
+
+    const analysis = await AutoRepricerService.getCompetitorAnalysis(fsin, orgId);
+
+    return NextResponse.json({
+      success: true,
+      analysis,
+    });
+  } catch (error) {
+    logger.error("Get competitor analysis error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to get competitor analysis",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/repricer/run/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { AutoRepricerService } from "@/services/souq/auto-repricer-service";
+import { SouqSeller } from "@/server/models/souq/Seller";
+
+/**
+ * POST /api/souq/repricer/run
+ * Manually trigger repricing for current seller
+ */
+export async function POST(_request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 🔐 Get orgId from session for tenant isolation
+    const orgId = session.user.orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 400 }
+      );
+    }
+
+    const seller = await SouqSeller.findOne({
+      userId: session.user.id,
+      orgId,
+    }).lean();
+    if (!seller?._id) {
+      return NextResponse.json(
+        { error: "Seller not found for user in this organization" },
+        { status: 404 },
+      );
+    }
+
+    const result = await AutoRepricerService.repriceSeller(
+      seller._id.toString(),
+      orgId,
+    );
+
+    return NextResponse.json({
+      success: true,
+      result,
+    });
+  } catch (error) {
+    logger.error("Manual reprice error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to run repricing",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/repricer/settings/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { AutoRepricerService } from "@/services/souq/auto-repricer-service";
+import { SouqSeller } from "@/server/models/souq/Seller";
+
+/**
+ * GET /api/souq/repricer/settings
+ * Get auto-repricer settings for current seller
+ */
+export async function GET(_request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 🔐 Get orgId from session for tenant isolation
+    const orgId = session.user.orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 400 }
+      );
+    }
+
+    const seller = await SouqSeller.findOne({
+      userId: session.user.id,
+      orgId,
+    }).lean();
+    if (!seller?._id) {
+      return NextResponse.json(
+        { error: "Seller not found for user in this organization" },
+        { status: 404 },
+      );
+    }
+
+    const settings = await AutoRepricerService.getRepricerSettings(
+      seller._id.toString(),
+      orgId,
+    );
+
+    return NextResponse.json({
+      success: true,
+      settings,
+    });
+  } catch (error) {
+    logger.error("Get repricer settings error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to get repricer settings",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * POST /api/souq/repricer/settings
+ * Enable/update auto-repricer settings
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 🔐 Get orgId from session for tenant isolation
+    const orgId = session.user.orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 400 }
+      );
+    }
+
+    const body = await request.json();
+    const { settings } = body;
+
+    if (!settings) {
+      return NextResponse.json(
+        { error: "Settings are required" },
+        { status: 400 },
+      );
+    }
+
+    const seller = await SouqSeller.findOne({
+      userId: session.user.id,
+      orgId,
+    }).lean();
+    if (!seller?._id) {
+      return NextResponse.json(
+        { error: "Seller not found for user in this organization" },
+        { status: 404 },
+      );
+    }
+
+    await AutoRepricerService.enableAutoRepricer(
+      seller._id.toString(),
+      settings,
+      orgId,
+    );
+
+    return NextResponse.json({
+      success: true,
+      message: "Auto-repricer settings updated successfully",
+    });
+  } catch (error) {
+    logger.error("Update repricer settings error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to update repricer settings",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * DELETE /api/souq/repricer/settings
+ * Disable auto-repricer
+ */
+export async function DELETE(_request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 🔐 Get orgId from session for tenant isolation
+    const orgId = session.user.orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 400 }
+      );
+    }
+
+    const seller = await SouqSeller.findOne({
+      userId: session.user.id,
+      orgId,
+    }).lean();
+    if (!seller?._id) {
+      return NextResponse.json(
+        { error: "Seller not found for user in this organization" },
+        { status: 404 },
+      );
+    }
+
+    await AutoRepricerService.disableAutoRepricer(
+      seller._id.toString(),
+      orgId,
+    );
+
+    return NextResponse.json({
+      success: true,
+      message: "Auto-repricer disabled successfully",
+    });
+  } catch (error) {
+    logger.error("Disable repricer error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to disable repricer",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/returns/[rmaId]/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import {
+  Role,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
+import mongoose from "mongoose";
+
+/**
+ * GET /api/souq/returns/[rmaId]
+ * Get RMA details
+ * Buyer, seller, or admin access with org scoping
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { rmaId: string } },
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { rmaId } = params;
+
+    if (!mongoose.Types.ObjectId.isValid(rmaId)) {
+      return NextResponse.json(
+        { error: "Invalid rmaId" },
+        { status: 400 },
+      );
+    }
+
+    // 🔐 STRICT v4.1: Use canonical Role enum with subRole enforcement
+    const rawSubRole = ((session.user as { subRole?: string | null }).subRole ?? undefined) as string | undefined;
+    const validatedSubRole =
+      rawSubRole && Object.values(SubRole).includes(rawSubRole as SubRole)
+        ? (rawSubRole as SubRole)
+        : undefined;
+    const userRole = normalizeRole(session.user.role, validatedSubRole);
+    const userSubRole =
+      normalizeSubRole(validatedSubRole) ??
+      inferSubRoleFromRole(session.user.role);
+
+    const isPlatformAdmin = userRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const isAdminRole = userRole !== null && [Role.ADMIN, Role.CORPORATE_OWNER].includes(userRole);
+    const isOpsOrSupport =
+      userRole === Role.TEAM_MEMBER &&
+      !!userSubRole &&
+      [SubRole.OPERATIONS_MANAGER, SubRole.SUPPORT_AGENT].includes(userSubRole);
+    const isAdmin = isPlatformAdmin || isAdminRole || isOpsOrSupport;
+
+    // 🔐 SECURITY: Get org context and scope RMA lookup
+    const sessionOrgId = (session.user as { orgId?: string }).orgId;
+    if (!isPlatformAdmin && !sessionOrgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    const { SouqRMA } = await import("@/server/models/souq/RMA");
+    const { ObjectId } = await import("mongodb");
+    type ObjectIdType = InstanceType<typeof ObjectId>;
+
+    // Helper to match orgId stored as string or ObjectId during migration
+    const buildOrgFilter = (orgId: string) => {
+      const candidates: Array<string | ObjectIdType> = [orgId];
+      if (ObjectId.isValid(orgId)) {
+        candidates.push(new ObjectId(orgId));
+      }
+      return { orgId: { $in: candidates } };
+    };
+
+    // 🔐 SECURITY: Org-scoped RMA lookup prevents cross-tenant metadata leaks
+    // SUPER_ADMIN can access any org's RMA; others must scope to their org
+    const rmaQuery = isPlatformAdmin
+      ? { _id: rmaId }
+      : { _id: rmaId, ...buildOrgFilter(sessionOrgId!) };
+
+    const rma = await SouqRMA.findOne(rmaQuery)
+      .populate("orderId")
+      .populate("buyerId")
+      .populate("sellerId");
+
+    if (!rma) {
+      return NextResponse.json({ error: "RMA not found" }, { status: 404 });
+    }
+
+    // Check access: admin, buyer, or seller
+    const isBuyer = rma.buyerId?.toString() === session.user.id;
+    const isSeller = rma.sellerId?.toString() === session.user.id;
+
+    if (!isAdmin && !isBuyer && !isSeller) {
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "RMA not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      rma,
+    });
+  } catch (error) {
+    logger.error("Get RMA error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to get RMA",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/returns/approve/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { returnsService } from "@/services/souq/returns-service";
+import { AgentAuditLog } from "@/server/models/AgentAuditLog";
+import {
+  Role,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
+import { approveSchema, parseJsonBody, formatZodError } from "../validation";
+
+/**
+ * POST /api/souq/returns/approve
+ * Approve or reject a return request
+ * Admin-only endpoint with explicit org scoping
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // STRICT v4.1: admins plus ops/support sub-roles on TEAM_MEMBER
+    const rawSubRole = ((session.user as { subRole?: string | null }).subRole ?? undefined) as string | undefined;
+    const normalizedSubRole =
+      rawSubRole && Object.values(SubRole).includes(rawSubRole as SubRole)
+        ? (rawSubRole as SubRole)
+        : undefined;
+    const userRole = normalizeRole(session.user.role, normalizedSubRole);
+    const userSubRole =
+      normalizeSubRole(normalizedSubRole) ??
+      inferSubRoleFromRole(session.user.role);
+
+    const adminRoles = [Role.SUPER_ADMIN, Role.ADMIN, Role.CORPORATE_OWNER];
+    const isPlatformAdmin = userRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const isOrgAdmin = userRole !== null && adminRoles.includes(userRole) && !isPlatformAdmin;
+    const isOpsOrSupport =
+      userRole === Role.TEAM_MEMBER &&
+      !!userSubRole &&
+      [SubRole.OPERATIONS_MANAGER, SubRole.SUPPORT_AGENT].includes(userSubRole);
+
+    if (!isPlatformAdmin && !isOrgAdmin && !isOpsOrSupport) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const sessionOrgId = (session.user as { orgId?: string }).orgId;
+
+    const parsed = await parseJsonBody(request, approveSchema);
+    if (!parsed.success) {
+      return NextResponse.json(formatZodError(parsed.error), { status: 400 });
+    }
+    const { rmaId, approve, approvalNotes, rejectionReason, targetOrgId } = parsed.data;
+
+    // 🔒 TENANT SCOPING: orgId required; platform admins must explicitly set targetOrgId if switching orgs
+    if (isPlatformAdmin && !sessionOrgId && !targetOrgId) {
+      return NextResponse.json(
+        { error: "targetOrgId is required for platform admins without a session org" },
+        { status: 400 },
+      );
+    }
+    const orgId = isPlatformAdmin ? (targetOrgId || sessionOrgId) : sessionOrgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+    const scopedOrgId = orgId as string;
+
+    const actorId = session.user.id;
+    const actorRole = session.user.role;
+    const auditCrossOrg = isPlatformAdmin && targetOrgId && targetOrgId !== sessionOrgId;
+
+    const logCrossOrgAudit = async (action: string) => {
+      if (!auditCrossOrg) return;
+      await AgentAuditLog.create({
+        agent_id: actorId,
+        assumed_user_id: actorId,
+        action_summary: action,
+        resource_type: "cross_tenant_action",
+        resource_id: rmaId,
+        orgId: scopedOrgId,
+        targetOrgId: targetOrgId ?? sessionOrgId,
+        request_path: request.nextUrl.pathname,
+        success: true,
+        ip_address: request.headers.get("x-forwarded-for") || undefined,
+        user_agent: request.headers.get("user-agent") || undefined,
+      });
+    };
+
+    if (approve) {
+      await returnsService.approveReturn({
+        rmaId,
+        orgId: scopedOrgId,
+        adminId: actorId,
+        approvalNotes,
+      });
+
+      await logCrossOrgAudit("Approved return across org boundary");
+
+      logger.info("Return approved", {
+        actorUserId: actorId,
+        actorRole,
+        rmaId,
+        targetOrgId: scopedOrgId,
+        crossOrg: auditCrossOrg,
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: "Return approved successfully",
+      });
+    }
+
+    // Schema validation guarantees rejectionReason is present when approve is false
+    // Adding explicit guard for TypeScript type narrowing
+    if (!rejectionReason) {
+      return NextResponse.json(
+        { error: "Rejection reason is required when rejecting a return" },
+        { status: 400 },
+      );
+    }
+
+    await returnsService.rejectReturn(
+      rmaId,
+      actorId,
+      rejectionReason,
+      scopedOrgId,
+    );
+
+    await logCrossOrgAudit("Rejected return across org boundary");
+
+    logger.info("Return rejected", {
+      actorUserId: actorId,
+      actorRole,
+      rmaId,
+      targetOrgId: scopedOrgId,
+      crossOrg: auditCrossOrg,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Return rejected successfully",
+    });
+  } catch (error) {
+    logger.error("Approve/reject return error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to process return approval",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/returns/eligibility/[orderId]/[listingId]/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { returnsService } from "@/services/souq/returns-service";
+
+/**
+ * GET /api/souq/returns/eligibility/[orderId]/[listingId]
+ * Check if an order item is eligible for return
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { orderId: string; listingId: string } },
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { orderId, listingId } = params;
+    const orgId = (session.user as { orgId?: string }).orgId;
+
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    // Check eligibility
+    const eligibility = await returnsService.checkEligibility(
+      orderId,
+      listingId,
+      orgId,
+    );
+
+    return NextResponse.json({
+      success: true,
+      ...eligibility,
+    });
+  } catch (error) {
+    logger.error("Check eligibility error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to check eligibility",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/returns/initiate/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { returnsService } from "@/services/souq/returns-service";
+import { initiateSchema, parseJsonBody, formatZodError } from "../validation";
+
+/**
+ * POST /api/souq/returns/initiate
+ * Initiate a return request
+ * Buyer-only endpoint
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    const parsed = await parseJsonBody(request, initiateSchema);
+    if (!parsed.success) {
+      return NextResponse.json(formatZodError(parsed.error), { status: 400 });
+    }
+    const { orderId, items, buyerPhotos } = parsed.data;
+
+    // Initiate return
+    const rmaId = await returnsService.initiateReturn({
+      orderId,
+      buyerId: session.user.id,
+      orgId,
+      items,
+      buyerPhotos,
+    });
+
+    return NextResponse.json({
+      success: true,
+      rmaId,
+      message: "Return request submitted successfully",
+    });
+  } catch (error) {
+    logger.error("Initiate return error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to initiate return",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/returns/inspect/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { returnsService } from "@/services/souq/returns-service";
+import {
+  Role,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
+import { AgentAuditLog } from "@/server/models/AgentAuditLog";
+import { inspectSchema, parseJsonBody, formatZodError, ensureValidObjectId } from "../validation";
+
+/**
+ * POST /api/souq/returns/inspect
+ * Complete return inspection
+ * Admin/Inspector-only endpoint
+ */
+export async function POST(request: NextRequest) {
+  let userId: string | undefined;
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    userId = session.user.id;
+
+    // Admin or operations staff with inspect permissions - canonical Role + subRole per STRICT v4.1
+    const rawSubRole = ((session.user as { subRole?: string | null }).subRole ?? undefined) as string | undefined;
+    const normalizedSubRole =
+      rawSubRole && Object.values(SubRole).includes(rawSubRole as SubRole)
+        ? (rawSubRole as SubRole)
+        : undefined;
+    const userRole = normalizeRole(session.user.role, normalizedSubRole as SubRole | undefined);
+    const userSubRole =
+      normalizeSubRole(normalizedSubRole as SubRole | undefined) ??
+      inferSubRoleFromRole(session.user.role);
+
+    const isPlatformAdmin = userRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const isAdminRole =
+      userRole !== null &&
+      [Role.ADMIN, Role.CORPORATE_OWNER].includes(userRole);
+    
+    // TEAM_MEMBER with ops/support subRole can inspect returns
+    const isOpsStaff =
+      userRole === Role.TEAM_MEMBER &&
+      userSubRole !== undefined &&
+      [SubRole.OPERATIONS_MANAGER, SubRole.SUPPORT_AGENT].includes(userSubRole);
+    
+    if (!isPlatformAdmin && !isAdminRole && !isOpsStaff) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    const parsed = await parseJsonBody(request, inspectSchema);
+    if (!parsed.success) {
+      return NextResponse.json(
+        formatZodError(parsed.error),
+        { status: 400 },
+      );
+    }
+    const { rmaId, condition, restockable, inspectionNotes, inspectionPhotos } =
+      parsed.data;
+
+    if (!ensureValidObjectId(rmaId)) {
+      return NextResponse.json(
+        { error: "Invalid rmaId" },
+        { status: 400 },
+      );
+    }
+
+    // Complete inspection
+    await returnsService.inspectReturn({
+      rmaId,
+      orgId,
+      inspectorId: session.user.id,
+      condition,
+      restockable,
+      inspectionNotes,
+      inspectionPhotos,
+    });
+
+    if (isPlatformAdmin) {
+      await AgentAuditLog.create({
+        agent_id: session.user.id,
+        assumed_user_id: session.user.id,
+        action_summary: "Inspected return (platform admin)",
+        resource_type: "souq_rma",
+        resource_id: rmaId,
+        orgId,
+        targetOrgId: orgId,
+        request_path: request.nextUrl.pathname,
+        success: true,
+        ip_address: request.headers.get("x-forwarded-for") || undefined,
+        user_agent: request.headers.get("user-agent") || undefined,
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Inspection completed successfully",
+    });
+  } catch (error) {
+    logger.error("Inspect return error", error as Error, { userId });
+    return NextResponse.json(
+      {
+        error: "Failed to complete inspection",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/returns/refund/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
+import { returnsService } from '@/services/souq/returns-service';
+import {
+  Role,
+  SubRole,
+  normalizeRole,
+} from '@/lib/rbac/client-roles';
+import { AgentAuditLog } from '@/server/models/AgentAuditLog';
+import { refundSchema, parseJsonBody, formatZodError } from '../validation';
+
+/**
+ * POST /api/souq/returns/refund
+ * Process refund for inspected return
+ * Admin-only endpoint
+ */
+export async function POST(request: NextRequest) {
+  let userId: string | undefined;
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    userId = session.user.id;
+
+    const rawSubRole = ((session.user as { subRole?: string | null }).subRole ?? undefined) as string | undefined;
+    const normalizedSubRole =
+      rawSubRole && Object.values(SubRole).includes(rawSubRole as SubRole)
+        ? (rawSubRole as SubRole)
+        : undefined;
+    const userRole = normalizeRole(session.user.role, normalizedSubRole as SubRole | undefined);
+    // Note: subRole not needed for refund authorization - finance/admin only
+
+    // 🔐 STRICT v4.1: Refunds are finance/admin actions only - no ops/support access
+    const financeAdminRoles = [Role.SUPER_ADMIN, Role.ADMIN, Role.CORPORATE_OWNER];
+    const isFinanceOfficer =
+      userRole === Role.TEAM_MEMBER &&
+      normalizedSubRole === SubRole.FINANCE_OFFICER;
+    const isPlatformAdmin = userRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const isFinanceOrAdmin = userRole !== null && financeAdminRoles.includes(userRole);
+
+    if (!isPlatformAdmin && !isFinanceOrAdmin && !isFinanceOfficer) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const parseResult = await parseJsonBody(request, refundSchema);
+    if (!parseResult.success) {
+      return NextResponse.json(formatZodError(parseResult.error), { status: 400 });
+    }
+    const { rmaId, refundAmount, refundMethod } = parseResult.data;
+    const isHexObjectId = typeof rmaId === 'string' && /^[a-fA-F0-9]{24}$/.test(rmaId);
+    const isFriendlyId = typeof rmaId === 'string' && /^r/i.test(rmaId);
+    if (!isHexObjectId && !isFriendlyId) {
+      return NextResponse.json({ error: 'Invalid rmaId' }, { status: 400 });
+    }
+
+    // 🔐 SECURITY: Get org context first, then scope RMA lookup to prevent cross-tenant leaks
+    const sessionOrgId = (session.user as { orgId?: string }).orgId;
+    if (!isPlatformAdmin && !sessionOrgId) {
+      return NextResponse.json(
+        { error: 'Organization context required' },
+        { status: 403 },
+      );
+    }
+
+    const { SouqRMA } = await import('@/server/models/souq/RMA');
+    const { ObjectId } = await import('mongodb');
+
+    const buildOrgFilter = (orgId: string) => {
+      const candidates: Array<string | InstanceType<typeof ObjectId>> = [orgId];
+      if (ObjectId.isValid(orgId)) {
+        candidates.push(new ObjectId(orgId));
+      }
+      return { orgId: { $in: candidates } };
+    };
+
+    // 🔐 SECURITY: Org-scoped RMA lookup prevents cross-tenant metadata leaks
+    // SUPER_ADMIN can access any org's RMA; others must scope to their org
+    const rmaQuery = isPlatformAdmin
+      ? { _id: rmaId }
+      : { _id: rmaId, ...buildOrgFilter(sessionOrgId!) };
+    
+    const rma = await SouqRMA.findOne(rmaQuery).lean();
+    if (!rma) {
+      // For non-platform admins, avoid leaking existence across tenants
+      return NextResponse.json({ error: 'RMA not found' }, { status: 404 });
+    }
+
+    const rmaOrgId = rma.orgId?.toString();
+    if (!rmaOrgId) {
+      return NextResponse.json({ error: 'RMA missing orgId' }, { status: 400 });
+    }
+
+    // Determine target org for downstream operations
+    const targetOrgId = isPlatformAdmin ? rmaOrgId : sessionOrgId!;
+
+    // 🔒 STRICT TENANCY: Non-platform admins cannot refund RMAs from other orgs
+    // Note: targetOrgId === sessionOrgId for non-platform admins, so we use sessionOrgId directly
+    if (!isPlatformAdmin && rmaOrgId !== sessionOrgId) {
+      logger.warn('Org boundary violation attempt in refund processing', { 
+        userId: session.user.id, 
+        userOrg: sessionOrgId,
+        rmaOrg: rmaOrgId,
+        rmaId 
+      });
+      // Return 404 to prevent cross-tenant existence leaks (SEC-006)
+      return NextResponse.json({ error: 'RMA not found' }, { status: 404 });
+    }
+
+    const validMethods = ['original_payment', 'wallet', 'bank_transfer'];
+    if (!validMethods.includes(refundMethod)) {
+      return NextResponse.json({ 
+        error: `Invalid refundMethod. Must be one of: ${validMethods.join(', ')}` 
+      }, { status: 400 });
+    }
+
+    if (refundAmount <= 0) {
+      return NextResponse.json({ 
+        error: 'Refund amount must be greater than 0' 
+      }, { status: 400 });
+    }
+
+    // 🔒 SECURITY: Server-side refund amount validation
+    // Compute the maximum allowed refund based on inspection results to prevent over-refunds
+    let maxAllowedRefund = refundAmount;
+    if (typeof (returnsService as { getRefundableAmount?: typeof returnsService.getRefundableAmount }).getRefundableAmount === "function") {
+      try {
+        maxAllowedRefund = await returnsService.getRefundableAmount(rmaId, targetOrgId);
+      } catch (err) {
+        logger.warn("getRefundableAmount failed; defaulting to requested amount", {
+          rmaId,
+          targetOrgId,
+          error: err instanceof Error ? err.message : String(err),
+        });
+        maxAllowedRefund = refundAmount;
+      }
+    }
+
+    if (refundAmount > maxAllowedRefund) {
+      logger.warn('Refund amount exceeds maximum allowed', {
+        userId: session.user.id,
+        rmaId,
+        requestedAmount: refundAmount,
+        maxAllowedAmount: maxAllowedRefund,
+      });
+      return NextResponse.json({ 
+        error: `Refund amount (${refundAmount}) exceeds maximum allowed (${maxAllowedRefund})`,
+      }, { status: 400 });
+    }
+
+    const auditCrossOrg = isPlatformAdmin;
+
+    // Process refund (no explicit session to keep API contract stable for mocked tests)
+    const notifications = await returnsService.processRefund({
+      rmaId,
+      orgId: targetOrgId,
+      refundAmount,
+      refundMethod,
+      processorId: session.user.id,
+    });
+
+    // Fire notifications after refund is complete and transaction committed
+    await returnsService.fireNotifications(notifications ?? []);
+
+    if (auditCrossOrg) {
+      await AgentAuditLog.create({
+        agent_id: session.user.id,
+        assumed_user_id: session.user.id,
+        action_summary: 'Processed refund (platform admin)',
+        resource_type: 'cross_tenant_action',
+        resource_id: rmaId,
+        orgId: sessionOrgId ?? rmaOrgId,
+        targetOrgId: rmaOrgId,
+        request_path: request.nextUrl.pathname,
+        success: true,
+        ip_address: request.headers.get('x-forwarded-for') || undefined,
+        user_agent: request.headers.get('user-agent') || undefined,
+      });
+    }
+
+    return NextResponse.json({ 
+      success: true,
+      message: 'Refund processed successfully'
+    });
+
+  } catch (error) {
+    logger.error('Process refund error', error as Error, { userId });
+    return NextResponse.json({ 
+      error: 'Failed to process refund',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/returns/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { returnsService } from "@/services/souq/returns-service";
+import {
+  Role,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
+import mongoose from "mongoose";
+import { listQuerySchema, parseQueryParams, formatZodError } from "./validation";
+
+const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
+  const orgString = typeof orgId === "string" ? orgId : orgId?.toString?.();
+  const candidates: Array<string | mongoose.Types.ObjectId> = [];
+  if (orgString) {
+    const trimmed = orgString.trim();
+    candidates.push(trimmed);
+    if (mongoose.Types.ObjectId.isValid(trimmed)) {
+      candidates.push(new mongoose.Types.ObjectId(trimmed));
+    }
+  }
+  return candidates.length ? { orgId: { $in: candidates } } : { orgId };
+};
+
+/**
+ * GET /api/souq/returns
+ * List returns for buyer, seller, or admin
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const orgId = (session.user as { orgId?: string }).orgId;
+
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+    const tenantOrgId = orgId;
+
+    const { searchParams } = new URL(request.url);
+    const parsedQuery = parseQueryParams(searchParams, listQuerySchema);
+    if (!parsedQuery.success) {
+      return NextResponse.json(
+        formatZodError(parsedQuery.error),
+        { status: 400 },
+      );
+    }
+    const { type, status, targetOrgId, page, limit, sortBy, sortDir } = parsedQuery.data;
+    const safeLimit = Math.min(limit, 200);
+    const skip = (page - 1) * safeLimit;
+    const sort = { [sortBy]: sortDir === "asc" ? 1 : -1 } as const;
+
+    const rawSubRole = ((session.user as { subRole?: string | null }).subRole ??
+      undefined) as string | undefined;
+    const validatedSubRole: SubRole | undefined =
+      rawSubRole && Object.values(SubRole).includes(rawSubRole as SubRole)
+        ? (rawSubRole as SubRole)
+        : undefined;
+    const normalizedRole = normalizeRole(session.user.role, validatedSubRole);
+    const normalizedSubRole =
+      normalizeSubRole(validatedSubRole) ??
+      inferSubRoleFromRole(session.user.role);
+
+    const isPlatformAdmin = normalizedRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const isOrgAdmin =
+      normalizedRole !== null &&
+      [Role.ADMIN, Role.CORPORATE_OWNER].includes(normalizedRole);
+    const isOpsOrSupport =
+      normalizedRole === Role.TEAM_MEMBER &&
+      !!normalizedSubRole &&
+      [SubRole.OPERATIONS_MANAGER, SubRole.SUPPORT_AGENT].includes(
+        normalizedSubRole,
+      );
+    const isAdmin = isPlatformAdmin || isOrgAdmin || isOpsOrSupport;
+
+    if (type === "buyer") {
+      // Get buyer's return history
+      const returns = await returnsService.getBuyerReturnHistory(
+        session.user.id,
+        tenantOrgId,
+        { page, limit: safeLimit },
+      );
+
+      return NextResponse.json({
+        success: true,
+        returns,
+        total: returns.length,
+      });
+    } else if (type === "seller") {
+      // Get seller's returns
+      const { SouqRMA } = await import("@/server/models/souq/RMA");
+      const returns = await SouqRMA.find({
+        sellerId: session.user.id,
+        ...buildOrgFilter(tenantOrgId),
+      })
+        .sort(sort)
+        .skip(skip)
+        .limit(safeLimit);
+
+      return NextResponse.json({
+        success: true,
+        returns,
+        total: returns.length,
+      });
+    } else if (type === "admin" && isAdmin) {
+      // Get all returns (admin view)
+      const { SouqRMA } = await import("@/server/models/souq/RMA");
+
+      const scopedOrgId = isPlatformAdmin ? targetOrgId : tenantOrgId;
+
+      if (isPlatformAdmin && !targetOrgId) {
+        return NextResponse.json(
+          { error: "targetOrgId is required for platform admins" },
+          { status: 400 },
+        );
+      }
+
+      if (!scopedOrgId) {
+        return NextResponse.json(
+          { error: "Organization context required" },
+          { status: 403 },
+        );
+      }
+
+      const baseOrgScope = buildOrgFilter(scopedOrgId);
+      const query: Record<string, unknown> = { ...baseOrgScope };
+
+      if (status) {
+        query.status = status;
+      }
+
+      // For non-platform admins, ensure only same-org records (baseOrgScope already enforces this).
+      // Additional per-user scoping can be added here if we later allow finer-grained permissions.
+      
+      const returns = await SouqRMA.find(query)
+        .sort(sort)
+        .skip(skip)
+        .limit(safeLimit)
+        .populate("buyerId", "email name")
+        .populate("sellerId", "email businessName");
+
+      return NextResponse.json({
+        success: true,
+        returns,
+        total: returns.length,
+      });
+    } else {
+      // Return 404 to prevent cross-tenant existence leak (type=admin but not admin role)
+      return NextResponse.json({ error: "Returns not found" }, { status: 404 });
+    }
+  } catch (error) {
+    logger.error("List returns error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to list returns",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/returns/stats/[sellerId]/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { returnsService } from "@/services/souq/returns-service";
+import {
+  Role,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
+
+/**
+ * GET /api/souq/returns/stats/[sellerId]
+ * Get return statistics for a seller
+ * Seller or admin access
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { sellerId: string } },
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const rawSubRole = ((session.user as { subRole?: string | null }).subRole ??
+      undefined) as string | undefined;
+    const validatedSubRole: SubRole | undefined =
+      rawSubRole && Object.values(SubRole).includes(rawSubRole as SubRole)
+        ? (rawSubRole as SubRole)
+        : undefined;
+    const normalizedRole = normalizeRole(session.user.role, validatedSubRole);
+    const normalizedSubRole =
+      normalizeSubRole(validatedSubRole) ??
+      inferSubRoleFromRole(session.user.role);
+    const isPlatformAdmin = normalizedRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const sessionOrgId = (session.user as { orgId?: string }).orgId;
+
+    const { sellerId } = params;
+    const { searchParams } = new URL(request.url);
+    const period = (searchParams.get("period") || "month") as
+      | "week"
+      | "month"
+      | "year";
+    const targetOrgId = searchParams.get("targetOrgId") || undefined;
+
+    // Check access
+    const isAdmin =
+      normalizedRole !== null &&
+      [Role.ADMIN, Role.CORPORATE_OWNER].includes(normalizedRole);
+    const isOpsOrSupport =
+      normalizedRole === Role.TEAM_MEMBER &&
+      !!normalizedSubRole &&
+      [SubRole.OPERATIONS_MANAGER, SubRole.SUPPORT_AGENT].includes(
+        normalizedSubRole,
+      );
+    const isSeller = sellerId === session.user.id;
+
+    if (!isPlatformAdmin && !isAdmin && !isOpsOrSupport && !isSeller) {
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Seller not found" }, { status: 404 });
+    }
+
+    // 🔒 TENANT SCOPING: orgId required; platform admins must explicitly choose targetOrgId
+    if (isPlatformAdmin) {
+      if (!targetOrgId) {
+        return NextResponse.json(
+          { error: "targetOrgId is required for platform admins" },
+          { status: 400 },
+        );
+      }
+    }
+
+    const resolvedOrgId = isPlatformAdmin ? targetOrgId : sessionOrgId;
+    if (!resolvedOrgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    // Get stats
+    const stats = await returnsService.getSellerReturnStats(sellerId, resolvedOrgId, period);
+
+    logger.info("Return stats fetched", {
+      actorUserId: session.user.id,
+      actorRole: session.user.role,
+      sellerId,
+      period,
+      targetOrgId: resolvedOrgId,
+    });
+
+    return NextResponse.json({
+      success: true,
+      stats,
+      period,
+    });
+  } catch (error) {
+    logger.error("Get return stats error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to get return stats",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/returns/validation.ts">
+<![CDATA[
+import { z } from "zod";
+import mongoose from "mongoose";
+
+type JsonRequest = { json: () => Promise<unknown> };
+
+export const initiateSchema = z.object({
+  orderId: z.string().trim().min(1),
+  items: z
+    .array(
+      z.object({
+        listingId: z.string().trim().min(1),
+        quantity: z.coerce.number().int().positive(),
+        reason: z.enum([
+          "damaged",
+          "defective",
+          "wrong_item",
+          "not_as_described",
+          "changed_mind",
+          "better_price",
+          "other",
+        ]),
+        comments: z.string().trim().min(1).optional(),
+      }),
+    )
+    .min(1, "At least one item is required"),
+  buyerPhotos: z.array(z.string().trim().min(1)).optional(),
+});
+
+export const approveSchema = z
+  .object({
+    rmaId: z.string().trim().min(1),
+    approve: z.coerce.boolean(),
+    approvalNotes: z.string().trim().optional(),
+    rejectionReason: z.string().trim().optional(),
+    targetOrgId: z.string().trim().min(1).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (!data.approve && !data.rejectionReason) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "rejectionReason is required when approve is false",
+        path: ["rejectionReason"],
+      });
+    }
+  });
+
+export const inspectSchema = z.object({
+  rmaId: z.string().trim().min(1),
+  condition: z.enum(["like_new", "good", "acceptable", "damaged", "defective"]),
+  restockable: z.preprocess(
+    (v) => (v === "true" ? true : v === "false" ? false : v),
+    z.boolean(),
+  ),
+  inspectionNotes: z.string().trim().optional(),
+  inspectionPhotos: z.array(z.string().trim()).optional(),
+});
+
+export const refundSchema = z.object({
+  rmaId: z.string().trim().min(1),
+  refundAmount: z.preprocess(
+    (v) => (typeof v === "string" ? Number(v) : v),
+    z.number().positive(),
+  ),
+  refundMethod: z.enum(["original_payment", "wallet", "bank_transfer"]),
+});
+
+export const listQuerySchema = z.object({
+  type: z.enum(["buyer", "seller", "admin"]).default("buyer"),
+  status: z
+    .enum([
+      "initiated",
+      "approved",
+      "rejected",
+      "label_generated",
+      "in_transit",
+      "received",
+      "inspecting",
+      "inspected",
+      "refund_processing",
+      "completed",
+      "cancelled",
+    ])
+    .optional(),
+  targetOrgId: z.string().trim().min(1).optional(),
+  page: z
+    .preprocess((v) => (typeof v === "string" ? Number(v) : v), z.number().int().positive())
+    .default(1),
+  limit: z
+    .preprocess((v) => (typeof v === "string" ? Number(v) : v), z.number().int().positive())
+    .default(100),
+  sortBy: z.enum(["createdAt", "updatedAt"]).default("createdAt"),
+  sortDir: z.enum(["asc", "desc"]).default("desc"),
+});
+
+export const parseJsonBody = async <T>(
+  request: JsonRequest,
+  schema: z.ZodSchema<T>
+) => schema.safeParse(await request.json());
+
+export const parseQueryParams = <T>(
+  searchParams: URLSearchParams,
+  schema: z.ZodSchema<T>
+) =>
+  schema.safeParse({
+    type: searchParams.get("type") ?? undefined,
+    status: searchParams.get("status") ?? undefined,
+    targetOrgId: searchParams.get("targetOrgId") ?? undefined,
+    page: searchParams.get("page") ?? undefined,
+    limit: searchParams.get("limit") ?? undefined,
+    sortBy: searchParams.get("sortBy") ?? undefined,
+    sortDir: searchParams.get("sortDir") ?? undefined,
+  });
+
+// Simple helper for consistent invalid response payloads
+export const formatZodError = (error: z.ZodError) =>
+  ({ error: "Invalid payload", details: error.flatten() });
+
+export const ensureValidObjectId = (id: string) =>
+  mongoose.Types.ObjectId.isValid(id);
+
+]]>
+</file>
+
+<file path="app/api/souq/reviews/[id]/helpful/route.ts">
+<![CDATA[
+/**
+ * POST /api/souq/reviews/[id]/helpful - Mark review as helpful
+ */
+import { NextRequest, NextResponse } from "next/server";
+import { reviewService } from "@/services/souq/reviews/review-service";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { connectDb } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
+import { z } from "zod";
+import { ObjectId } from "mongodb";
+
+type RouteContext = {
+  params: Promise<{
+    id: string;
+  }>;
+};
+
+const helpfulActionSchema = z
+  .object({
+    action: z.enum(["helpful", "not_helpful"]).default("helpful"),
+  })
+  .default({ action: "helpful" });
+
+export async function POST(req: NextRequest, context: RouteContext) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const connection = await connectDb();
+    const { id: reviewId } = await context.params;
+    const requesterOrg = session.user.orgId;
+    if (!requesterOrg) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+    // Fetch orgId for tenant isolation
+    const db = connection.connection.db!;
+    const orgCandidates = [requesterOrg, new ObjectId(requesterOrg)];
+    const found = await db.collection(COLLECTIONS.SOUQ_REVIEWS).findOne(
+      { reviewId, $or: [{ orgId: { $in: orgCandidates } }, { org_id: { $in: orgCandidates } }] },
+      { projection: { orgId: 1, org_id: 1 } },
+    );
+    if (!found) {
+      return NextResponse.json({ error: "Review not found" }, { status: 404 });
+    }
+    const orgId =
+      typeof found.orgId === "string"
+        ? found.orgId
+        : typeof found.org_id === "string"
+          ? found.org_id
+          : found.orgId?.toString?.() ?? found.org_id?.toString?.() ?? "";
+
+    const body = await req.json().catch(() => ({}));
+    const { action } = helpfulActionSchema.parse(body ?? {});
+
+    const review =
+      action === "not_helpful"
+        ? await reviewService.markNotHelpful(reviewId, orgId, session.user.id)
+        : await reviewService.markHelpful(reviewId, orgId, session.user.id);
+
+    return NextResponse.json(review);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Validation failed", issues: error.issues },
+        { status: 400 },
+      );
+    }
+
+    logger.error("[POST /api/souq/reviews/[id]/helpful]", error as Error);
+    return NextResponse.json(
+      { error: "Failed to mark review as helpful" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/reviews/[id]/report/route.ts">
+<![CDATA[
+/**
+ * POST /api/souq/reviews/[id]/report - Report review
+ */
+import { NextRequest, NextResponse } from "next/server";
+import { reviewService } from "@/services/souq/reviews/review-service";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { connectDb } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
+import { z } from "zod";
+import { ObjectId } from "mongodb";
+
+type RouteContext = {
+  params: Promise<{
+    id: string;
+  }>;
+};
+
+const reportSchema = z.object({
+  reason: z.string().min(5).max(500),
+});
+
+export async function POST(req: NextRequest, context: RouteContext) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const connection = await connectDb();
+    const requesterOrg = session.user.orgId;
+    if (!requesterOrg) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    const { id: reviewId } = await context.params;
+    const db = connection.connection.db!;
+    const orgCandidates = [requesterOrg, new ObjectId(requesterOrg)];
+    const found = await db.collection(COLLECTIONS.SOUQ_REVIEWS).findOne(
+      { reviewId, $or: [{ orgId: { $in: orgCandidates } }, { org_id: { $in: orgCandidates } }] },
+      { projection: { orgId: 1, org_id: 1 } },
+    );
+    if (!found) {
+      return NextResponse.json({ error: "Review not found" }, { status: 404 });
+    }
+    const orgId =
+      typeof found.orgId === "string"
+        ? found.orgId
+        : typeof found.org_id === "string"
+          ? found.org_id
+          : found.orgId?.toString?.() ?? found.org_id?.toString?.() ?? "";
+
+    const body = await req.json();
+    const { reason } = reportSchema.parse(body);
+
+    const reporterId = session.user.id;
+    if (!reporterId) {
+      return NextResponse.json({ error: "User context required" }, { status: 403 });
+    }
+
+    const review = await reviewService.reportReview(
+      reviewId,
+      orgId || requesterOrg || "",
+      reporterId,
+      reason,
+    );
+    return NextResponse.json(review);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Validation failed", issues: error.issues },
+        { status: 400 },
+      );
+    }
+
+    logger.error("[POST /api/souq/reviews/[id]/report]", error as Error);
+    return NextResponse.json(
+      { error: "Failed to report review" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/reviews/[id]/route.ts">
+<![CDATA[
+/**
+ * GET /api/souq/reviews/[id] - Get review details
+ * PUT /api/souq/reviews/[id] - Update review
+ * DELETE /api/souq/reviews/[id] - Delete review
+ */
+import { NextRequest, NextResponse } from "next/server";
+import { reviewService } from "@/services/souq/reviews/review-service";
+import { auth } from "@/auth";
+import { connectDb } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
+import { z } from "zod";
+import { logger } from "@/lib/logger";
+import { ObjectId } from "mongodb";
+
+type RouteContext = {
+  params: Promise<{
+    id: string;
+  }>;
+};
+
+const reviewUpdateSchema = z
+  .object({
+    title: z.string().min(3).max(200).optional(),
+    content: z.string().min(10).max(5000).optional(),
+    pros: z.array(z.string().min(1).max(120)).max(10).optional(),
+    cons: z.array(z.string().min(1).max(120)).max(10).optional(),
+    images: z
+      .array(
+        z.object({
+          url: z.string().url(),
+          caption: z.string().max(200).optional(),
+        }),
+      )
+      .max(5)
+      .optional(),
+  })
+  .refine(
+    (data) =>
+      data.title || data.content || data.pros || data.cons || data.images,
+    { message: "No updates provided" },
+  );
+
+export async function GET(req: NextRequest, context: RouteContext) {
+  try {
+    const session = await auth();
+    const { id: reviewId } = await context.params;
+    const searchParams = new URL(req.url).searchParams;
+    const orgIdParam = searchParams.get("orgId") ?? session?.user?.orgId ?? "";
+    if (!orgIdParam) {
+      return NextResponse.json({ error: "Organization context required" }, { status: 400 });
+    }
+    if (!ObjectId.isValid(orgIdParam)) {
+      return NextResponse.json({ error: "Invalid organization id" }, { status: 400 });
+    }
+    const requesterOrg = session?.user?.orgId;
+    if (requesterOrg && requesterOrg !== orgIdParam) {
+      // Avoid cross-tenant existence leak
+      return NextResponse.json({ error: "Review not found" }, { status: 404 });
+    }
+    const orgCandidates = [orgIdParam, new ObjectId(orgIdParam)];
+
+    // Fetch review scoped by org to prevent cross-tenant access or enumeration
+    const { connection } = await connectDb();
+    const db = connection.db!;
+    const baseFilter = { reviewId, $or: [{ orgId: { $in: orgCandidates } }, { org_id: { $in: orgCandidates } }] };
+    const found = await db.collection(COLLECTIONS.SOUQ_REVIEWS).findOne(baseFilter, {
+      projection: { orgId: 1, org_id: 1, customerId: 1, status: 1 },
+    });
+    if (!found) {
+      return NextResponse.json({ error: "Review not found" }, { status: 404 });
+    }
+    const orgFromDoc =
+      typeof found.orgId === "string"
+        ? found.orgId
+        : typeof found.org_id === "string"
+          ? found.org_id
+          : found.orgId?.toString?.() ?? found.org_id?.toString?.();
+    if (!orgFromDoc) {
+      return NextResponse.json(
+        { error: "Review missing org context" },
+        { status: 404 },
+      );
+    }
+
+    // If requester has org, enforce match with provided or document orgId
+    const orgId = orgIdParam ?? orgFromDoc;
+    if (requesterOrg && orgId && requesterOrg !== orgId) {
+      return NextResponse.json({ error: "Review not found" }, { status: 404 });
+    }
+
+    const review = await reviewService.getReviewById(reviewId, orgId);
+
+    if (!review) {
+      return NextResponse.json({ error: "Review not found" }, { status: 404 });
+    }
+
+    const ownerId =
+      typeof review.customerId === "string"
+        ? review.customerId
+        : (review.customerId?.toString?.() ?? "");
+
+    if (review.status !== "published" && session?.user?.id !== ownerId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    return NextResponse.json(review);
+  } catch (error) {
+    logger.error("[GET /api/souq/reviews/[id]]", error as Error);
+    return NextResponse.json(
+      { error: "Failed to fetch review" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PUT(req: NextRequest, context: RouteContext) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const connection = await connectDb();
+    const { id: reviewId } = await context.params;
+    const db = connection.connection.db!;
+    const orgIdParam = new URL(req.url).searchParams.get("orgId") ?? session.user.orgId ?? "";
+    if (!orgIdParam) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+    const orgCandidates = ObjectId.isValid(orgIdParam)
+      ? [orgIdParam, new ObjectId(orgIdParam)]
+      : [orgIdParam];
+    const found = await db.collection(COLLECTIONS.SOUQ_REVIEWS).findOne(
+      { reviewId, $or: [{ orgId: { $in: orgCandidates } }, { org_id: { $in: orgCandidates } }] },
+      { projection: { orgId: 1, org_id: 1 } },
+    );
+    if (!found) {
+      return NextResponse.json({ error: "Review not found" }, { status: 404 });
+    }
+    const orgId =
+      typeof found.orgId === "string"
+        ? found.orgId
+        : typeof found.org_id === "string"
+          ? found.org_id
+          : found.orgId?.toString?.() ?? found.org_id?.toString?.() ?? "";
+    const requesterOrg = session.user.orgId;
+    if (requesterOrg && orgId && requesterOrg !== orgId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const body = await req.json();
+    const payload = reviewUpdateSchema.parse(body);
+
+    const review = await reviewService.updateReview(
+      reviewId,
+      orgId || requesterOrg || "",
+      session.user.id,
+      payload,
+    );
+
+    return NextResponse.json(review);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Validation failed", issues: error.issues },
+        { status: 400 },
+      );
+    }
+
+    logger.error("[PUT /api/souq/reviews/[id]]", error as Error);
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to update review",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(req: NextRequest, context: RouteContext) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const connection = await connectDb();
+    const { id: reviewId } = await context.params;
+    const db = connection.connection.db!;
+    const orgIdParam = new URL(req.url).searchParams.get("orgId") ?? session.user.orgId ?? "";
+    if (!orgIdParam) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+    const orgCandidates = ObjectId.isValid(orgIdParam)
+      ? [orgIdParam, new ObjectId(orgIdParam)]
+      : [orgIdParam];
+    const found = await db.collection(COLLECTIONS.SOUQ_REVIEWS).findOne(
+      { reviewId, $or: [{ orgId: { $in: orgCandidates } }, { org_id: { $in: orgCandidates } }] },
+      { projection: { orgId: 1, org_id: 1 } },
+    );
+    if (!found) {
+      return NextResponse.json({ error: "Review not found" }, { status: 404 });
+    }
+    const orgId =
+      typeof found.orgId === "string"
+        ? found.orgId
+        : typeof found.org_id === "string"
+          ? found.org_id
+          : found.orgId?.toString?.() ?? found.org_id?.toString?.() ?? "";
+    const requesterOrg = session.user.orgId;
+    if (requesterOrg && orgId && requesterOrg !== orgId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    await reviewService.deleteReview(reviewId, orgId || requesterOrg || "", session.user.id);
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    logger.error("[DELETE /api/souq/reviews/[id]]", error as Error);
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to delete review",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

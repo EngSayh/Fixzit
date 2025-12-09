@@ -1,0 +1,1790 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="services/souq/fulfillment-service.ts">
+<![CDATA[
+import { SouqOrder } from "@/server/models/souq/Order";
+import { SouqListing } from "@/server/models/souq/Listing";
+import { SouqInventory } from "@/server/models/souq/Inventory";
+import { aramexCarrier } from "@/lib/carriers/aramex";
+import { smsaCarrier } from "@/lib/carriers/smsa";
+import { splCarrier } from "@/lib/carriers/spl";
+import { addJob } from "@/lib/queues/setup";
+import { logger } from "@/lib/logger";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
+import type { IOrder } from "@/server/models/souq/Order";
+import { buildSouqOrgFilter } from "@/services/souq/org-scope";
+
+type OrderItem = IOrder["items"][number];
+type FbfShipmentItem = OrderItem & { warehouseId?: string };
+
+/**
+ * Fulfillment Service
+ * Manages FBF (Fulfillment by Fixzit) and FBM (Fulfilled by Merchant) operations
+ * Includes label generation, carrier selection, SLA computation, and Fast Badge assignment
+ */
+
+export interface ICarrierInterface {
+  name: string;
+  createShipment(params: ICreateShipmentParams): Promise<IShipmentResponse>;
+  getTracking(trackingNumber: string): Promise<ITrackingResponse>;
+  cancelShipment(shipmentId: string): Promise<boolean>;
+  getRates(params: IRateParams): Promise<IRate[]>;
+}
+
+export interface ICreateShipmentParams {
+  orderId: string;
+  orderNumber: string;
+  shipFrom: IAddress;
+  shipTo: IAddress;
+  packages: IPackage[];
+  serviceType: "standard" | "express" | "same_day";
+  declaredValue: number;
+  codAmount?: number;
+  reference?: string;
+}
+
+export interface IAddress {
+  name: string;
+  phone: string;
+  email?: string;
+  street: string;
+  city: string;
+  state?: string;
+  postalCode: string;
+  country: string;
+}
+
+export interface IPackage {
+  weight: number; // kg
+  length: number; // cm
+  width: number;
+  height: number;
+  description: string;
+}
+
+export interface IShipmentResponse {
+  shipmentId: string;
+  trackingNumber: string;
+  labelUrl: string;
+  estimatedDelivery: Date;
+  cost: number;
+}
+
+export interface ITrackingResponse {
+  trackingNumber: string;
+  status:
+    | "pending"
+    | "picked_up"
+    | "in_transit"
+    | "out_for_delivery"
+    | "delivered"
+    | "failed"
+    | "returned";
+  events: ITrackingEvent[];
+  estimatedDelivery?: Date;
+  actualDelivery?: Date;
+}
+
+export interface ITrackingEvent {
+  timestamp: Date;
+  status: string;
+  location: string;
+  description: string;
+}
+
+export interface IRateParams {
+  origin: string; // City
+  destination: string; // City
+  weight: number;
+  serviceType: "standard" | "express" | "same_day";
+  dimensions?: {
+    length: number;
+    width: number;
+    height: number;
+    unit?: string;
+  };
+}
+
+export interface IRate {
+  carrier: string;
+  serviceType: string;
+  cost: number;
+  estimatedDays: number;
+}
+
+export interface IFulfillmentRequest {
+  orderId: string;
+  orgId: string;
+  orderItems: Array<{
+    orderItemId: string;
+    listingId: string;
+    productId: string;
+    quantity: number;
+  }>;
+  shippingAddress: IAddress;
+  buyerPhone: string;
+  buyerEmail: string;
+}
+
+export interface ISLAMetrics {
+  orderDate: Date;
+  handlingDeadline: Date; // When seller must ship by
+  deliveryPromise: Date; // When buyer expects delivery
+  currentStatus: string;
+  isOnTime: boolean;
+  daysRemaining: number;
+  urgency: "normal" | "warning" | "critical";
+}
+
+class FulfillmentService {
+  private carriers: Map<string, ICarrierInterface>;
+
+  constructor() {
+    this.carriers = new Map();
+    this.carriers.set("aramex", aramexCarrier);
+    this.carriers.set("smsa", smsaCarrier);
+    this.carriers.set("spl", splCarrier);
+  }
+
+  /**
+   * Initiate fulfillment for an order
+   */
+  async fulfillOrder(request: IFulfillmentRequest): Promise<void> {
+    try {
+      if (!request.orgId) {
+        throw new Error("orgId is required to fulfill order (tenant scoping)");
+      }
+
+      const orgFilter = buildSouqOrgFilter(request.orgId) as Record<string, unknown>;
+      const scopedQuery = {
+        orderId: request.orderId,
+        ...orgFilter,
+      };
+      const order = await SouqOrder.findOne(scopedQuery);
+
+      const orderOrg = order?.orgId?.toString?.();
+      if (!order || !orderOrg || orderOrg !== request.orgId.toString()) {
+        throw new Error("Order not found for org");
+      }
+
+      // Group items by fulfillment type
+      const fbfItems: FbfShipmentItem[] = [];
+      const fbmItems: OrderItem[] = [];
+
+      // 🚀 PERFORMANCE: Batch fetch all inventory records instead of N+1 queries
+      const listingIds = request.orderItems.map((item) => item.listingId);
+      const inventories = await SouqInventory.find({
+        listingId: { $in: listingIds },
+        ...orgFilter,
+      }).lean();
+
+      // Create a map for O(1) lookup
+      const inventoryMap = new Map(
+        inventories.map((inv) => [inv.listingId?.toString(), inv])
+      );
+
+      for (const item of request.orderItems) {
+        const inventory = inventoryMap.get(item.listingId);
+
+        if (!inventory) {
+          throw new Error(
+            `Inventory not found for listing/org: ${item.listingId}`,
+          );
+        }
+
+        const orderItem = order.items.find((orderItemDoc) => {
+          const listingId = orderItemDoc.listingId.toString();
+          return listingId === item.listingId;
+        });
+
+        if (!orderItem) {
+          throw new Error(
+            `Order item ${item.orderItemId} not found on order ${order.orderId}`,
+          );
+        }
+
+        if (inventory.fulfillmentType === "FBF") {
+          fbfItems.push({
+            ...orderItem,
+            warehouseId: inventory.warehouseId?.toString(),
+          });
+        } else {
+          fbmItems.push(orderItem);
+        }
+      }
+
+      // Process FBF items
+      if (fbfItems.length > 0) {
+        await this.processFBFShipment(order, fbfItems, request.shippingAddress);
+      }
+
+      // Process FBM items (notify sellers)
+      if (fbmItems.length > 0) {
+        await this.processFBMShipment(order, fbmItems, request.shippingAddress);
+      }
+
+      logger.info("Order fulfillment initiated", {
+        orderId: request.orderId,
+        fbfItems: fbfItems.length,
+        fbmItems: fbmItems.length,
+      });
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("Failed to fulfill order", error, {
+        orderId: request.orderId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Process FBF (Fulfillment by Fixzit) shipment
+   */
+  private async processFBFShipment(
+    order: IOrder,
+    items: FbfShipmentItem[],
+    shippingAddress: IAddress,
+  ): Promise<void> {
+    try {
+      // Get warehouse address (mock for now)
+      const warehouseAddress: IAddress = {
+        name: "Fixzit Fulfillment Center",
+        phone: "+966123456789",
+        email: EMAIL_DOMAINS.fulfillment,
+        street: "King Fahd Road",
+        city: "Riyadh",
+        postalCode: "11564",
+        country: "SA",
+      };
+
+      // Calculate package dimensions
+      const packages: IPackage[] = [
+        {
+          weight: items.reduce((sum, item) => sum + item.quantity * 0.5, 0), // Mock weight
+          length: 30,
+          width: 20,
+          height: 15,
+          description: `Order ${order.orderId} - ${items.length} items`,
+        },
+      ];
+
+      // Select carrier based on delivery speed preference
+      const carrier = this.selectCarrier(order.shippingSpeed || "standard");
+
+      // Create shipment
+      const shipmentParams: ICreateShipmentParams = {
+        orderId: order.orderId,
+        orderNumber: order.orderId,
+        shipFrom: warehouseAddress,
+        shipTo: shippingAddress,
+        packages,
+        serviceType: order.shippingSpeed || "standard",
+        declaredValue: order.pricing.total,
+        codAmount:
+          order.payment.method === "cod" ? order.pricing.total : undefined,
+        reference: order.orderId,
+      };
+
+      const shipment = await carrier.createShipment(shipmentParams);
+
+      // Update order with tracking info
+      order.shippingCarrier = carrier.name;
+      order.trackingNumber = shipment.trackingNumber;
+      order.shippingLabelUrl = shipment.labelUrl;
+      order.estimatedDeliveryDate = shipment.estimatedDelivery;
+      order.fulfillmentStatus = "in_transit";
+      await order.save();
+
+      // Queue notification
+      await addJob("souq:notifications", "order_shipped", {
+        orderId: order.orderId,
+        buyerId: order.customerId,
+        trackingNumber: shipment.trackingNumber,
+        carrier: carrier.name,
+        orgId: order.orgId?.toString?.(),
+      });
+
+      logger.info("FBF shipment created", {
+        orderId: order.orderId,
+        trackingNumber: shipment.trackingNumber,
+      });
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("Failed to process FBF shipment", error, {
+        orderId: order.orderId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Process FBM (Fulfilled by Merchant) shipment
+   */
+  private async processFBMShipment(
+    order: IOrder,
+    items: OrderItem[],
+    shippingAddress: IAddress,
+  ): Promise<void> {
+    try {
+      // Group items by seller
+      const itemsBySeller = items.reduce<Record<string, OrderItem[]>>(
+        (acc, item) => {
+          const sellerKey = item.sellerId.toString();
+          if (!acc[sellerKey]) {
+            acc[sellerKey] = [];
+          }
+          acc[sellerKey].push(item);
+          return acc;
+        },
+        {},
+      );
+
+      // Notify each seller to fulfill their items
+      for (const [sellerId, sellerItems] of Object.entries(itemsBySeller)) {
+        await addJob("souq:notifications", "fbm_fulfillment_required", {
+          orderId: order.orderId,
+          sellerId,
+          orgId: order.orgId?.toString?.(), // 🔒 SECURITY: Include orgId for tenant routing
+          items: sellerItems,
+          shippingAddress,
+          deadline: this.calculateHandlingDeadline(order.createdAt, "standard"),
+        });
+      }
+
+      order.fulfillmentStatus = "pending_seller";
+      await order.save();
+
+      logger.info("FBM fulfillment notifications sent", {
+        orderId: order.orderId,
+        sellerCount: Object.keys(itemsBySeller).length,
+      });
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("Failed to process FBM shipment", error, {
+        orderId: order.orderId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Generate shipping label for FBM seller
+   */
+  async generateFBMLabel(params: {
+    orderId: string;
+    sellerId: string;
+    sellerAddress: IAddress;
+    carrierName: string;
+    orgId: string;
+  }): Promise<IShipmentResponse> {
+    const { orderId, sellerId, sellerAddress, carrierName, orgId } = params;
+    try {
+      if (!orgId) {
+        throw new Error("orgId is required to generate FBM label");
+      }
+
+      const orgFilter = buildSouqOrgFilter(orgId) as Record<string, unknown>;
+      const order = await SouqOrder.findOne({ orderId, ...orgFilter });
+
+      if (!order) {
+        throw new Error(`Order not found for org: ${orderId}`);
+      }
+
+      // 🔒 SECURITY: Validate that the seller has items in this order
+      const sellerItems = order.items.filter(
+        (item) => item.sellerId?.toString() === sellerId
+      );
+      if (sellerItems.length === 0) {
+        throw new Error(
+          `Seller ${sellerId} does not have items in order ${orderId}`
+        );
+      }
+
+      const carrier = this.carriers.get(carrierName.toLowerCase());
+
+      if (!carrier) {
+        throw new Error(`Carrier not supported: ${carrierName}`);
+      }
+
+      // Get buyer shipping address
+      const shippingAddress: IAddress = {
+        name: order.shippingAddress.name,
+        phone: order.shippingAddress.phone,
+        email: order.customerEmail,
+        street: [
+          order.shippingAddress.addressLine1,
+          order.shippingAddress.addressLine2,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .trim(),
+        city: order.shippingAddress.city,
+        state: order.shippingAddress.state,
+        postalCode: order.shippingAddress.postalCode,
+        country: order.shippingAddress.country,
+      };
+
+      // Mock package dimensions
+      const packages: IPackage[] = [
+        {
+          weight: 1.0,
+          length: 30,
+          width: 20,
+          height: 15,
+          description: `Order ${order.orderId}`,
+        },
+      ];
+
+      const shipmentParams: ICreateShipmentParams = {
+        orderId: order.orderId,
+        orderNumber: order.orderId,
+        shipFrom: sellerAddress,
+        shipTo: shippingAddress,
+        packages,
+        serviceType: order.shippingSpeed || "standard",
+        declaredValue: order.pricing.total,
+        codAmount:
+          order.payment.method === "cod" ? order.pricing.total : undefined,
+        reference: `${order.orderId}-${sellerId}`,
+      };
+
+      const shipment = await carrier.createShipment(shipmentParams);
+
+      // Update order
+      order.shippingCarrier = carrier.name;
+      order.trackingNumber = shipment.trackingNumber;
+      order.shippingLabelUrl = shipment.labelUrl;
+      order.estimatedDeliveryDate = shipment.estimatedDelivery;
+      order.fulfillmentStatus = "shipped";
+      await order.save();
+
+      logger.info("FBM label generated", {
+        orderId,
+        sellerId,
+        trackingNumber: shipment.trackingNumber,
+      });
+
+      return shipment;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("Failed to generate FBM label", error, {
+        orderId,
+        sellerId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Update tracking status (called by webhook)
+   */
+  async updateTracking(
+    trackingNumber: string,
+    carrierName: string,
+    orgId: string,
+  ): Promise<void> {
+    try {
+      if (!orgId) {
+        throw new Error("orgId is required to update tracking");
+      }
+
+      const carrier = this.carriers.get(carrierName.toLowerCase());
+
+      if (!carrier) {
+        logger.warn("Unknown carrier for tracking update", {
+          carrierName,
+          trackingNumber,
+        });
+        return;
+      }
+
+      const tracking = await carrier.getTracking(trackingNumber);
+
+      const order = await SouqOrder.findOne({
+        trackingNumber,
+        ...(buildSouqOrgFilter(orgId) as Record<string, unknown>),
+      });
+
+      if (!order) {
+        logger.warn("Order not found for tracking number", { trackingNumber });
+        return;
+      }
+
+      // Update order status based on tracking
+      const oldStatus = order.fulfillmentStatus;
+
+      switch (tracking.status) {
+        case "picked_up":
+          order.fulfillmentStatus = "shipped";
+          break;
+        case "in_transit":
+          order.fulfillmentStatus = "in_transit";
+          break;
+        case "out_for_delivery":
+          order.fulfillmentStatus = "out_for_delivery";
+          break;
+        case "delivered":
+          order.fulfillmentStatus = "delivered";
+          order.deliveredAt = tracking.actualDelivery || new Date();
+          break;
+        case "failed":
+        case "returned":
+          order.fulfillmentStatus = "delivery_failed";
+          break;
+      }
+
+      await order.save();
+
+      // Notify buyer if status changed
+      if (oldStatus !== order.fulfillmentStatus) {
+        await addJob("souq:notifications", "order_status_update", {
+          orderId: order.orderId,
+          buyerId: order.customerId,
+          oldStatus,
+          newStatus: order.fulfillmentStatus,
+          trackingNumber,
+          orgId: order.orgId?.toString?.(),
+        });
+      }
+
+      logger.info("Tracking updated", {
+        orderId: order.orderId,
+        trackingNumber,
+        status: tracking.status,
+      });
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("Failed to update tracking", error, { trackingNumber });
+      throw error;
+    }
+  }
+
+  /**
+   * Calculate SLA metrics for an order
+   * @param orderId - The order ID
+   * @param orgId - Required: Organization ID for tenant isolation
+   */
+  async calculateSLA(orderId: string, orgId: string): Promise<ISLAMetrics> {
+    // 🔒 SECURITY: orgId is mandatory for tenant isolation
+    if (!orgId) {
+      throw new Error("orgId is required for SLA calculation");
+    }
+
+    const orgFilter = buildSouqOrgFilter(orgId) as Record<string, unknown>;
+    const order = await SouqOrder.findOne({
+      orderId,
+      ...orgFilter,
+    });
+
+    const orderOrg = order?.orgId?.toString?.();
+    if (!order || !orderOrg || orderOrg !== orgId.toString()) {
+      throw new Error("Order not found for org");
+    }
+
+    const orderDate = order.createdAt;
+    const shippingSpeed = order.shippingSpeed || "standard";
+
+    // Calculate deadlines based on shipping speed
+    const handlingTime =
+      shippingSpeed === "express" ? 1 : shippingSpeed === "same_day" ? 0 : 2;
+    const transitTime =
+      shippingSpeed === "express" ? 1 : shippingSpeed === "same_day" ? 0 : 3;
+
+    const handlingDeadline = new Date(orderDate);
+    handlingDeadline.setDate(handlingDeadline.getDate() + handlingTime);
+
+    const deliveryPromise = new Date(handlingDeadline);
+    deliveryPromise.setDate(deliveryPromise.getDate() + transitTime);
+
+    const now = new Date();
+    const daysRemaining = Math.ceil(
+      (deliveryPromise.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
+    let urgency: "normal" | "warning" | "critical" = "normal";
+    let isOnTime = true;
+
+    if (
+      order.fulfillmentStatus === "pending" ||
+      order.fulfillmentStatus === "pending_seller"
+    ) {
+      if (now > handlingDeadline) {
+        urgency = "critical";
+        isOnTime = false;
+      } else if (daysRemaining <= 1) {
+        urgency = "warning";
+      }
+    } else if (order.fulfillmentStatus !== "delivered") {
+      if (now > deliveryPromise) {
+        urgency = "critical";
+        isOnTime = false;
+      } else if (daysRemaining <= 1) {
+        urgency = "warning";
+      }
+    }
+
+    return {
+      orderDate,
+      handlingDeadline,
+      deliveryPromise,
+      currentStatus: order.fulfillmentStatus ?? "pending",
+      isOnTime,
+      daysRemaining,
+      urgency,
+    };
+  }
+
+  /**
+   * Assign Fast Badge to listings that meet criteria
+   * 🔒 SECURITY: orgId is REQUIRED to prevent cross-tenant mutations
+   */
+  async assignFastBadge(listingId: string, orgId: string): Promise<boolean> {
+    try {
+      // 🔒 SECURITY FIX: Always require orgId - no unscoped fallback
+      if (!orgId) {
+        logger.warn("assignFastBadge called without orgId - rejecting", { listingId });
+        return false;
+      }
+
+      const query: Record<string, unknown> = {
+        listingId,
+        ...(buildSouqOrgFilter(orgId) as Record<string, unknown>),
+      };
+
+      const listing = await SouqListing.findOne(query);
+
+      if (!listing) {
+        return false;
+      }
+
+      const inventory = await SouqInventory.findOne({
+        listingId,
+        ...(buildSouqOrgFilter(orgId) as Record<string, unknown>),
+      });
+
+      if (!inventory) {
+        return false;
+      }
+
+      // Fast Badge criteria:
+      // 1. FBF fulfillment OR seller has 95%+ on-time delivery rate
+      // 2. In stock with at least 5 units
+      // 3. Located in major city for same-day delivery
+
+      let qualifies = false;
+
+      if (inventory.fulfillmentType === "FBF") {
+        qualifies = inventory.availableQuantity >= 5;
+      } else {
+        // Check seller's delivery performance (mock for now)
+        const sellerOnTimeRate = 0.96; // Would query from seller metrics
+        qualifies =
+          sellerOnTimeRate >= 0.95 && inventory.availableQuantity >= 5;
+      }
+
+      listing.badges = listing.badges || [];
+
+      if (listing.badges.includes("fast") !== qualifies) {
+        if (qualifies) {
+          listing.badges.push("fast");
+        } else {
+          listing.badges = listing.badges.filter((b) => b !== "fast");
+        }
+        await listing.save();
+      }
+
+      return qualifies;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("Failed to assign fast badge", error, { listingId });
+      return false;
+    }
+  }
+
+  /**
+   * Get shipping rates from all carriers
+   */
+  async getRates(params: IRateParams): Promise<IRate[]> {
+    const rates: IRate[] = [];
+
+    for (const [name, carrier] of this.carriers.entries()) {
+      try {
+        const carrierRates = await carrier.getRates(params);
+        rates.push(...carrierRates);
+      } catch (_error) {
+        const error =
+          _error instanceof Error ? _error : new Error(String(_error));
+        void error;
+        logger.warn("Failed to get rates from carrier", {
+          carrier: name,
+          error,
+        });
+      }
+    }
+
+    // Sort by cost
+    return rates.sort((a, b) => a.cost - b.cost);
+  }
+
+  /**
+   * Select best carrier based on service type and cost
+   */
+  private selectCarrier(
+    serviceType: "standard" | "express" | "same_day",
+  ): ICarrierInterface {
+    // Default carrier selection logic
+    if (serviceType === "same_day") {
+      return this.carriers.get("aramex")!; // Aramex for same-day
+    } else if (serviceType === "express") {
+      return this.carriers.get("smsa")!; // SMSA for express
+    }
+    return this.carriers.get("spl")!; // SPL for standard
+  }
+
+  /**
+   * Calculate handling deadline based on order date and shipping speed
+   */
+  private calculateHandlingDeadline(
+    orderDate: Date,
+    shippingSpeed: string,
+  ): Date {
+    const deadline = new Date(orderDate);
+    const handlingDays =
+      shippingSpeed === "express" ? 1 : shippingSpeed === "same_day" ? 0 : 2;
+    deadline.setDate(deadline.getDate() + handlingDays);
+    return deadline;
+  }
+}
+
+export const fulfillmentService = new FulfillmentService();
+
+]]>
+</file>
+
+<file path="services/souq/inventory-service.ts">
+<![CDATA[
+import { SouqInventory, IInventory, type IInventoryReservation } from "@/server/models/souq/Inventory";
+import { SouqListing } from "@/server/models/souq/Listing";
+import { addJob } from "@/lib/queues/setup";
+import { logger } from "@/lib/logger";
+import mongoose, { type ClientSession } from "mongoose";
+import { buildSouqOrgFilter } from "@/services/souq/org-scope";
+
+// 🔐 STRICT v4.1: Use shared org filter helper for consistent tenant isolation
+// Handles both orgId and legacy org_id fields with proper ObjectId matching
+const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) =>
+  buildSouqOrgFilter(orgId.toString()) as Record<string, unknown>;
+
+// Type for reservation record
+interface InventoryReservation {
+  reservationId: string;
+  quantity: number;
+  reservedAt: Date;
+  expiresAt: Date;
+  status: "active" | "expired" | "converted";
+}
+
+// Type for inventory with polyfilled methods
+interface PolyfillableInventory {
+  reservations?: InventoryReservation[];
+  reservedQuantity?: number;
+  availableQuantity?: number;
+  totalQuantity?: number;
+  health?: {
+    reservedUnits?: number;
+    sellableUnits?: number;
+  };
+  cleanExpiredReservations?: () => number;
+  reserve?: (reservationId: string, quantity: number, expirationMinutes?: number) => boolean;
+  release?: (reservationId: string) => boolean;
+  convertReservation?: (reservationId: string, orderId: string) => boolean;
+  isOutOfStock?: () => boolean;
+}
+
+// Some tests use lightweight/mocked models; polyfill core inventory methods to keep behavior stable
+const ensureInventoryMethods = (inventory: PolyfillableInventory | null): PolyfillableInventory | null => {
+  if (!inventory) return inventory;
+
+  if (typeof inventory.cleanExpiredReservations !== "function") {
+    inventory.cleanExpiredReservations = () => {
+      const now = Date.now();
+      const before = inventory.reservations?.length ?? 0;
+      inventory.reservations = (inventory.reservations || []).filter(
+        (r: InventoryReservation) => r.status === "active" && new Date(r.expiresAt || now).getTime() > now,
+      );
+      const removed = before - (inventory.reservations?.length ?? 0);
+      if (removed > 0) {
+        inventory.reservedQuantity = Math.max(
+          0,
+          (inventory.reservedQuantity ?? 0) - removed,
+        );
+      }
+      return removed;
+    };
+  }
+
+  if (typeof inventory.reserve !== "function") {
+    inventory.reserve = (reservationId: string, quantity: number, expirationMinutes = 15) => {
+      if ((inventory.availableQuantity ?? 0) < quantity) return false;
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + expirationMinutes);
+      inventory.reservations = inventory.reservations || [];
+      inventory.reservations.push({
+        reservationId,
+        quantity,
+        reservedAt: new Date(),
+        expiresAt,
+        status: "active",
+      });
+      inventory.reservedQuantity = (inventory.reservedQuantity ?? 0) + quantity;
+      inventory.availableQuantity = (inventory.availableQuantity ?? 0) - quantity;
+      inventory.health = inventory.health || {};
+      inventory.health.reservedUnits = (inventory.health.reservedUnits ?? 0) + quantity;
+      return true;
+    };
+  }
+
+  if (typeof inventory.release !== "function") {
+    inventory.release = (reservationId: string) => {
+      const reservation = (inventory.reservations || []).find(
+        (r: IInventoryReservation) => r.reservationId === reservationId && r.status === "active",
+      ) as IInventoryReservation | undefined;
+      if (!reservation) return false;
+      reservation.status = "expired";
+      inventory.reservedQuantity = Math.max(
+        0,
+        (inventory.reservedQuantity ?? 0) - reservation.quantity,
+      );
+      inventory.availableQuantity = (inventory.availableQuantity ?? 0) + reservation.quantity;
+      inventory.health = inventory.health || {};
+      inventory.health.reservedUnits = Math.max(
+        0,
+        (inventory.health.reservedUnits ?? 0) - reservation.quantity,
+      );
+      return true;
+    };
+  }
+
+  if (typeof inventory.convertReservation !== "function") {
+    inventory.convertReservation = (reservationId: string, _orderId: string) => {
+      const reservation = (inventory.reservations || []).find(
+        (r: IInventoryReservation) => r.reservationId === reservationId && r.status === "active",
+      ) as IInventoryReservation | undefined;
+      if (!reservation) return false;
+      reservation.status = "converted";
+      inventory.reservedQuantity = Math.max(
+        0,
+        (inventory.reservedQuantity ?? 0) - reservation.quantity,
+      );
+      inventory.totalQuantity = Math.max(
+        0,
+        (inventory.totalQuantity ?? 0) - reservation.quantity,
+      );
+      inventory.availableQuantity = Math.max(
+        0,
+        (inventory.availableQuantity ?? 0),
+      );
+      inventory.health = inventory.health || {};
+      inventory.health.sellableUnits = Math.max(
+        0,
+        (inventory.health.sellableUnits ?? 0) - reservation.quantity,
+      );
+      return true;
+    };
+  }
+
+  if (typeof inventory.isOutOfStock !== "function") {
+    inventory.isOutOfStock = () => (inventory.availableQuantity ?? 0) <= 0;
+  }
+
+  return inventory;
+};
+
+/**
+ * Inventory Service
+ * Manages stock levels, reservations, and inventory health across FBM/FBF fulfillment
+ */
+
+export interface IReceiveInventoryParams {
+  listingId: string;
+  productId: string;
+  sellerId: string;
+  quantity: number;
+  fulfillmentType: "FBM" | "FBF";
+  orgId: string;
+  warehouseId?: string;
+  binLocation?: string;
+  performedBy: string;
+  reason?: string;
+}
+
+export interface IReserveInventoryParams {
+  listingId: string;
+  quantity: number;
+  reservationId: string;
+  orgId: string;
+  expirationMinutes?: number;
+}
+
+export interface IReleaseInventoryParams {
+  listingId: string;
+  reservationId: string;
+  orgId: string;
+}
+
+export interface IConvertReservationParams {
+  listingId: string;
+  reservationId: string;
+  orderId: string;
+  orgId: string;
+}
+
+export interface IReturnInventoryParams {
+  listingId: string;
+  rmaId: string;
+  quantity: number;
+  condition: "sellable" | "unsellable";
+  orgId: string;
+  session?: ClientSession;
+}
+
+export interface IAdjustInventoryParams {
+  listingId: string;
+  quantity: number;
+  type: "damage" | "lost";
+  reason: string;
+  performedBy: string;
+  orgId: string;
+}
+
+export interface IInventoryHealthReport {
+  totalListings: number;
+  totalUnits: number;
+  availableUnits: number;
+  reservedUnits: number;
+  lowStockCount: number;
+  outOfStockCount: number;
+  strandedCount: number;
+  agingCount: number; // Inventory older than 90 days
+}
+
+class InventoryService {
+  /**
+   * Initialize inventory for a new listing
+   */
+  async initializeInventory(
+    params: IReceiveInventoryParams,
+  ): Promise<IInventory> {
+    try {
+      if (!params.orgId) {
+        throw new Error("orgId is required to initialize inventory");
+      }
+
+      const inventoryId = `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      const inventory = await SouqInventory.create({
+        inventoryId,
+        listingId: params.listingId,
+        productId: params.productId,
+        sellerId: params.sellerId,
+        orgId: params.orgId,
+        availableQuantity: params.quantity,
+        totalQuantity: params.quantity,
+        reservedQuantity: 0,
+        fulfillmentType: params.fulfillmentType,
+        warehouseId: params.warehouseId,
+        binLocation: params.binLocation,
+        reservations: [],
+        transactions: [
+          {
+            transactionId: `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            type: "receive",
+            quantity: params.quantity,
+            reason: params.reason || "Initial inventory",
+            performedBy: params.performedBy,
+            performedAt: new Date(),
+          },
+        ],
+        health: {
+          sellableUnits: params.quantity,
+          unsellableUnits: 0,
+          inboundUnits: 0,
+          reservedUnits: 0,
+          agingDays: 0,
+          isStranded: false,
+        },
+        status: "active",
+      });
+
+      // Update listing stock status
+      await this.updateListingStockStatus(
+        params.listingId,
+        params.quantity,
+        params.orgId,
+      );
+
+      logger.info("Inventory initialized", {
+        inventoryId,
+        listingId: params.listingId,
+        quantity: params.quantity,
+      });
+
+      return inventory;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("Failed to initialize inventory", error, { params });
+      throw error;
+    }
+  }
+
+  /**
+   * Receive additional stock for existing inventory
+   */
+  async receiveStock(
+    listingId: string,
+    quantity: number,
+    performedBy: string,
+    orgId: string,
+    reason?: string
+  ): Promise<IInventory> {
+    try {
+      if (!orgId) {
+        throw new Error("orgId is required to receive stock");
+      }
+
+      const inventory = await SouqInventory.findOne({
+        listingId,
+        status: { $ne: "suspended" },
+        ...buildOrgFilter(orgId),
+      });
+
+      if (!inventory) {
+        throw new Error(`Inventory not found for listing: ${listingId}`);
+      }
+
+      inventory.receive(quantity, performedBy, reason);
+      await inventory.save();
+
+      // Update listing stock status
+      await this.updateListingStockStatus(
+        listingId,
+        inventory.availableQuantity,
+        orgId,
+      );
+
+      logger.info("Stock received", {
+        listingId,
+        quantity,
+        availableQuantity: inventory.availableQuantity,
+      });
+
+      return inventory;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("Failed to receive stock", error, { listingId, quantity });
+      throw error;
+    }
+  }
+
+  /**
+   * Reserve inventory for a pending checkout
+   */
+  async reserveInventory(params: IReserveInventoryParams): Promise<boolean> {
+    try {
+      if (!params.orgId) {
+        throw new Error("orgId is required to reserve inventory");
+      }
+
+      const inventory = await SouqInventory.findOne({
+        listingId: params.listingId,
+        status: "active",
+        ...buildOrgFilter(params.orgId),
+      });
+      ensureInventoryMethods(inventory);
+
+      if (!inventory) {
+        logger.warn("Inventory not found", { listingId: params.listingId });
+        return false;
+      }
+
+      // Clean expired reservations first
+      if (typeof (inventory as { cleanExpiredReservations?: () => number }).cleanExpiredReservations === "function") {
+        (inventory as { cleanExpiredReservations: () => number }).cleanExpiredReservations();
+      }
+
+      // Try to reserve
+      const reserved = inventory.reserve(
+        params.reservationId,
+        params.quantity,
+        params.expirationMinutes || 15,
+      );
+
+      if (!reserved) {
+        logger.warn("Insufficient stock for reservation", {
+          listingId: params.listingId,
+          requested: params.quantity,
+          available: inventory.availableQuantity,
+        });
+        return false;
+      }
+
+      await inventory.save();
+
+      // Update listing if out of stock
+      if (inventory.isOutOfStock()) {
+        await this.updateListingStockStatus(
+          params.listingId,
+          0,
+          params.orgId,
+        );
+      }
+
+      logger.info("Inventory reserved", {
+        reservationId: params.reservationId,
+        listingId: params.listingId,
+        quantity: params.quantity,
+      });
+
+      return true;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("Failed to reserve inventory", error, { params });
+      throw error;
+    }
+  }
+
+  /**
+   * Release a reservation (order cancelled or expired)
+   */
+  async releaseReservation(params: IReleaseInventoryParams): Promise<boolean> {
+    try {
+      if (!params.orgId) {
+        throw new Error("orgId is required to release reservation");
+      }
+
+      const inventory = await SouqInventory.findOne({
+        listingId: params.listingId,
+        ...buildOrgFilter(params.orgId),
+      });
+      ensureInventoryMethods(inventory);
+
+      if (!inventory) {
+        logger.warn("Inventory not found", { listingId: params.listingId });
+        return false;
+      }
+
+      const released = inventory.release(params.reservationId);
+
+      if (!released) {
+        logger.warn("Reservation not found or already released", {
+          reservationId: params.reservationId,
+        });
+        return false;
+      }
+
+      await inventory.save();
+
+      // Update listing stock status
+      await this.updateListingStockStatus(
+        params.listingId,
+        inventory.availableQuantity,
+        params.orgId,
+      );
+
+      logger.info("Reservation released", {
+        reservationId: params.reservationId,
+        listingId: params.listingId,
+      });
+
+      return true;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("Failed to release reservation", error, { params });
+      throw error;
+    }
+  }
+
+  /**
+   * Convert reservation to sale (order confirmed)
+   */
+  async convertReservationToSale(
+    params: IConvertReservationParams,
+  ): Promise<boolean> {
+    try {
+      if (!params.orgId) {
+        throw new Error("orgId is required to convert reservation");
+      }
+
+      const inventory = await SouqInventory.findOne({
+        listingId: params.listingId,
+        ...buildOrgFilter(params.orgId),
+      });
+      ensureInventoryMethods(inventory);
+
+      if (!inventory) {
+        throw new Error(`Inventory not found for listing: ${params.listingId}`);
+      }
+
+      const converted = inventory.convertReservation(
+        params.reservationId,
+        params.orderId,
+      );
+
+      if (!converted) {
+        throw new Error(`Reservation not found: ${params.reservationId}`);
+      }
+
+      await inventory.save();
+
+      // Update listing stock status
+      await this.updateListingStockStatus(
+        params.listingId,
+        inventory.availableQuantity,
+        params.orgId,
+      );
+
+      // Trigger Buy Box recompute if stock changed significantly
+      if (inventory.isLowStock()) {
+        await addJob("souq:buybox-recompute", "recompute", {
+          productId: inventory.productId,
+        });
+      }
+
+      logger.info("Reservation converted to sale", {
+        reservationId: params.reservationId,
+        orderId: params.orderId,
+        listingId: params.listingId,
+      });
+
+      return true;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("Failed to convert reservation", error, { params });
+      throw error;
+    }
+  }
+
+  /**
+   * Process return (RMA)
+   */
+  async processReturn(params: IReturnInventoryParams): Promise<IInventory> {
+    try {
+      if (!params.orgId) {
+        throw new Error("orgId is required to process returns");
+      }
+
+      const inventoryQuery = SouqInventory.findOne({
+        listingId: params.listingId,
+        ...buildOrgFilter(params.orgId),
+      });
+      const inventory = params.session
+        ? await inventoryQuery.session(params.session)
+        : await inventoryQuery;
+      ensureInventoryMethods(inventory);
+
+      if (!inventory) {
+        throw new Error(`Inventory not found for listing: ${params.listingId}`);
+      }
+
+      inventory.processReturn(params.rmaId, params.quantity, params.condition);
+      await inventory.save(params.session ? { session: params.session } : undefined);
+
+      // Update listing stock status
+      await this.updateListingStockStatus(
+        params.listingId,
+        inventory.availableQuantity,
+        params.orgId,
+        params.session,
+      );
+
+      logger.info("Return processed", {
+        rmaId: params.rmaId,
+        listingId: params.listingId,
+        quantity: params.quantity,
+        condition: params.condition,
+      });
+
+      return inventory;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("Failed to process return", error, { params });
+      throw error;
+    }
+  }
+
+  /**
+   * Adjust inventory for damage/loss
+   */
+  async adjustInventory(params: IAdjustInventoryParams): Promise<IInventory> {
+    try {
+      if (!params.orgId) {
+        throw new Error("orgId is required to adjust inventory");
+      }
+
+      const inventory = await SouqInventory.findOne({
+        listingId: params.listingId,
+        orgId: params.orgId,
+      });
+
+      if (!inventory) {
+        throw new Error(`Inventory not found for listing: ${params.listingId}`);
+      }
+
+      inventory.adjustUnsellable(
+        params.quantity,
+        params.type,
+        params.performedBy,
+        params.reason,
+      );
+      await inventory.save();
+
+      logger.info("Inventory adjusted", {
+        listingId: params.listingId,
+        quantity: params.quantity,
+        type: params.type,
+      });
+
+      return inventory;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("Failed to adjust inventory", error, { params });
+      throw error;
+    }
+  }
+
+  /**
+   * Get inventory for a listing
+   */
+  async getInventory(
+    listingId: string,
+    orgId: string,
+  ): Promise<IInventory | null> {
+    if (!orgId) {
+      throw new Error("orgId is required to fetch inventory");
+    }
+
+    const doc = await SouqInventory.findOne({
+      listingId,
+      ...buildOrgFilter(orgId),
+    }).lean();
+
+    return doc ? (doc as unknown as IInventory) : null;
+  }
+
+  /**
+   * Get all inventory for a seller
+   */
+  async getSellerInventory(
+    sellerId: string,
+    filters?: {
+      status?: string;
+      fulfillmentType?: "FBM" | "FBF";
+      lowStockOnly?: boolean;
+      orgId: string;
+    },
+  ): Promise<IInventory[]> {
+    const orgId = filters?.orgId;
+    if (!orgId) {
+      throw new Error("orgId is required to fetch seller inventory");
+    }
+
+    const query: Record<string, unknown> = { sellerId, ...buildOrgFilter(orgId) };
+
+    if (filters?.status) {
+      query.status = filters.status;
+    }
+
+    if (filters?.fulfillmentType) {
+      query.fulfillmentType = filters.fulfillmentType;
+    }
+
+    if (filters?.orgId) {
+      query.orgId = filters.orgId;
+    }
+
+    let inventory = await SouqInventory.find(query).sort({ updatedAt: -1 });
+
+    if (filters?.lowStockOnly) {
+      inventory = inventory.filter((inv: IInventory) => inv.isLowStock());
+    }
+
+    return inventory;
+  }
+
+  /**
+   * Get inventory health report for a seller
+   */
+  async getInventoryHealthReport(
+    sellerId: string,
+    orgId: string,
+  ): Promise<IInventoryHealthReport> {
+    if (!orgId) {
+      throw new Error("orgId is required to fetch inventory health");
+    }
+
+    const inventory = await SouqInventory.find({
+      sellerId,
+      status: "active",
+      ...buildOrgFilter(orgId),
+    });
+
+    const report: IInventoryHealthReport = {
+      totalListings: inventory.length,
+      totalUnits: 0,
+      availableUnits: 0,
+      reservedUnits: 0,
+      lowStockCount: 0,
+      outOfStockCount: 0,
+      strandedCount: 0,
+      agingCount: 0,
+    };
+
+    inventory.forEach((inv: IInventory) => {
+      report.totalUnits += inv.totalQuantity;
+      report.availableUnits += inv.availableQuantity;
+      report.reservedUnits += inv.reservedQuantity;
+
+      if (inv.isLowStock()) report.lowStockCount++;
+      if (inv.isOutOfStock()) report.outOfStockCount++;
+      if (inv.health.isStranded) report.strandedCount++;
+      if (inv.health.agingDays > 90) report.agingCount++;
+    });
+
+    return report;
+  }
+
+  /**
+   * Clean expired reservations (run periodically via cron)
+   */
+  async cleanExpiredReservations(orgId: string): Promise<{
+    cleaned: number;
+    released: number;
+  }> {
+    if (!orgId) {
+      throw new Error("orgId is required to clean expired reservations");
+    }
+
+    let cleaned = 0;
+    let released = 0;
+
+    try {
+      const inventories = await SouqInventory.find({
+        status: "active",
+        "reservations.status": "active",
+        ...buildOrgFilter(orgId),
+      });
+
+      for (const inventory of inventories) {
+        const count = inventory.cleanExpiredReservations();
+        if (count > 0) {
+          await inventory.save();
+          await this.updateListingStockStatus(
+            inventory.listingId,
+            inventory.availableQuantity,
+            orgId,
+          );
+          cleaned++;
+          released += count;
+        }
+      }
+
+      logger.info("Expired reservations cleaned", { cleaned, released });
+
+      return { cleaned, released };
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("Failed to clean expired reservations", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update inventory health metrics (run daily)
+   */
+  async updateHealthMetrics(sellerId: string | undefined, orgId: string): Promise<void> {
+    try {
+      if (!orgId) {
+        throw new Error("orgId is required to update health metrics");
+      }
+
+      const query: Record<string, unknown> = { status: "active", ...buildOrgFilter(orgId) };
+      if (sellerId) query.sellerId = sellerId;
+
+      const inventories = await SouqInventory.find(query);
+
+      for (const inventory of inventories) {
+        inventory.updateHealth();
+
+        // Check if listing still exists (stranded check)
+        // legacy fallback: second query intentionally omits orgId for backward compatibility with legacy records
+        const listing =
+          (await SouqListing.findOne({
+            listingId: inventory.listingId,
+            ...buildOrgFilter(orgId),
+          })) ?? (await SouqListing.findOne({ listingId: inventory.listingId }));
+        inventory.health.isStranded = !listing || listing.status !== "active";
+
+        await inventory.save();
+      }
+
+      logger.info("Health metrics updated", { count: inventories.length });
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("Failed to update health metrics", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Queue low stock alerts
+   */
+  async queueLowStockAlerts(sellerId: string | undefined, orgId: string): Promise<number> {
+    try {
+      if (!orgId) {
+        throw new Error("orgId is required to queue low stock alerts");
+      }
+
+      const query: Record<string, unknown> = { status: "active", ...buildOrgFilter(orgId) };
+      if (sellerId) query.sellerId = sellerId;
+
+      const inventories = await SouqInventory.find(query);
+      let alertCount = 0;
+
+      for (const inventory of inventories) {
+        if (inventory.isLowStock()) {
+          await addJob("souq:notifications", "low_stock_alert", {
+            sellerId: inventory.sellerId,
+            listingId: inventory.listingId,
+            productId: inventory.productId,
+            availableQuantity: inventory.availableQuantity,
+            threshold: inventory.lowStockThreshold,
+            orgId,
+          });
+          alertCount++;
+        }
+      }
+
+      logger.info("Low stock alerts queued", { alertCount });
+      return alertCount;
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("Failed to queue low stock alerts", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Private helper: Update listing stock status
+   */
+  private async updateListingStockStatus(
+    listingId: string,
+    availableQuantity: number,
+    orgId?: string,
+    session?: ClientSession,
+  ): Promise<void> {
+    try {
+      if (!orgId) {
+        logger.warn("Listing stock update skipped (orgId missing)", { listingId });
+        return;
+      }
+
+      const query: Record<string, unknown> = { listingId, ...buildOrgFilter(orgId) };
+
+      const listingQuery = SouqListing.findOne(query);
+      let listing = session ? await listingQuery.session(session) : await listingQuery;
+
+      // Backward compatibility: allow legacy records missing orgId, but do not cross orgs
+      // legacy fallback: intentionally omits orgId for backward compatibility, with explicit org mismatch check below
+      if (!listing) {
+        const fallbackQuery = SouqListing.findOne({ listingId });
+        const fallback = session ? await fallbackQuery.session(session) : await fallbackQuery;
+        if (fallback?.orgId && fallback.orgId.toString() !== orgId.toString()) {
+          logger.warn("Listing org mismatch during stock update; skipping", {
+            listingId,
+            orgId,
+            listingOrgId: fallback.orgId.toString(),
+          });
+          return;
+        }
+        listing = fallback ?? null;
+      }
+
+      if (!listing) {
+        logger.warn("Listing not found for inventory update", { listingId });
+        return;
+      }
+
+      listing.stockQuantity = availableQuantity;
+      await listing.save(session ? { session } : undefined);
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("Failed to update listing stock status", error, {
+        listingId,
+      });
+      // Don't throw - this is a secondary operation
+    }
+  }
+}
+
+export const inventoryService = new InventoryService();
+
+]]>
+</file>
+
+<file path="services/souq/org-scope.ts">
+<![CDATA[
+import { Types } from 'mongoose';
+import { ObjectId as MongoObjectId, type Filter, type Document } from 'mongodb';
+
+/**
+ * Shared tenant filter for Souq services/routes.
+ * 
+ * ## 3-Variant ObjectId Matching (PERMANENT - Dec 2024)
+ * 
+ * This function implements a permanent 3-variant ObjectId matching strategy to handle
+ * data stored in different formats across the codebase and database:
+ * 
+ * 1. **String format**: Plain string representation of ObjectId (e.g., "507f1f77bcf86cd799439011")
+ * 2. **MongoDB driver ObjectId**: Native driver ObjectId (`new mongodb.ObjectId(...)`)
+ * 3. **Mongoose Types.ObjectId**: Mongoose wrapper ObjectId (`new mongoose.Types.ObjectId(...)`)
+ * 
+ * This is necessary because:
+ * - Legacy data may have been stored as strings
+ * - Different parts of the codebase may use different ObjectId implementations
+ * - MongoDB driver and Mongoose ObjectId are technically different classes
+ * - Prevents "no documents found" issues due to type mismatches
+ * 
+ * @note This 3-variant matching is INTENTIONAL and PERMANENT. Do not reduce to 2 variants.
+ * @see PR #464 for the history of this decision
+ * 
+ * Behavior:
+ * - Throws on empty orgId by default (STRICT v4.1).
+ * - Accepts string/ObjectId and matches all three forms for robust tenant isolation.
+ * - allowOrgless is for tests/legacy only.
+ */
+export const buildSouqOrgFilter = (
+  orgId: string | Types.ObjectId,
+  options: { allowOrgless?: boolean } = {},
+): Filter<Document> => {
+  const raw = typeof orgId === 'string' ? orgId?.trim?.() : orgId;
+  if (!raw && !options.allowOrgless) {
+    throw new Error('orgId is required for tenant-scoped operations (Souq STRICT v4.1)');
+  }
+  const candidates: Array<string | Types.ObjectId | MongoObjectId> = [];
+  if (raw) {
+    const asString = raw.toString();
+    candidates.push(asString);
+    if (MongoObjectId.isValid(asString)) {
+      candidates.push(new MongoObjectId(asString));
+      // Ensure we also match documents created with mongoose.Types.ObjectId (driver ObjectId)
+      candidates.push(new Types.ObjectId(asString));
+    }
+    if (raw instanceof Types.ObjectId) {
+      candidates.push(raw);
+    }
+  }
+  if (options.allowOrgless) {
+    return candidates.length
+      ? {
+          $or: [
+            { orgId: { $in: candidates } },
+            { org_id: { $in: candidates } },
+            { orgId: { $exists: false } },
+            { org_id: { $exists: false } },
+          ],
+        }
+      : { $or: [{ orgId: { $exists: false } }, { org_id: { $exists: false } }] };
+  }
+  if (!candidates.length) {
+    return { orgId: raw as string };
+  }
+  return {
+    $or: [{ orgId: { $in: candidates } }, { org_id: { $in: candidates } }],
+  };
+};
+
+/**
+ * Build a simpler org filter that only uses orgId field (not org_id).
+ * Used by claims API routes.
+ * 
+ * @deprecated Prefer buildSouqOrgFilter which handles both orgId and org_id
+ */
+export const buildOrgScopeFilter = (orgId: string | MongoObjectId) => {
+  const normalized =
+    typeof orgId === "string" ? orgId.trim() : orgId?.toString?.();
+  const candidates: Array<string | MongoObjectId> = [];
+  if (normalized) {
+    candidates.push(normalized);
+    if (MongoObjectId.isValid(normalized)) {
+      candidates.push(new MongoObjectId(normalized));
+    }
+  }
+  return candidates.length ? { orgId: { $in: candidates } } : { orgId: normalized };
+};
+
+]]>
+</file>
+
+</batch_content>

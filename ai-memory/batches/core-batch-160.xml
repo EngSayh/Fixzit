@@ -1,0 +1,2545 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/notifications/SMOKE_TEST_STATUS.md">
+<![CDATA[
+# Notification System Smoke Test Status
+
+**Date:** December 19, 2024  
+**Status:** ⚠️ BLOCKED BY CREDENTIALS
+
+---
+
+## Test Overview
+
+**Script:** `qa/notifications/run-smoke.ts`  
+**Purpose:** Validate email, SMS, WhatsApp, and push notification delivery
+
+---
+
+## Attempted Test: Email Channel
+
+### Command
+
+```bash
+pnpm tsx qa/notifications/run-smoke.ts --channel email
+```
+
+### Error Output
+
+```
+Testing email notifications...
+ERROR: SendGrid API returned 401 Unauthorized
+```
+
+---
+
+## Analysis
+
+### Root Cause
+
+**Missing or invalid SendGrid API credentials**
+
+The notification system requires the following environment variables:
+
+- `SENDGRID_API_KEY` - API key from SendGrid account
+- `SENDGRID_FROM_EMAIL` - Verified sender email (e.g., `noreply@fixzit.sa`)
+- `SENDGRID_FROM_NAME` - Sender display name (e.g., `Fixzit`)
+
+### Current State
+
+Environment variables not configured in `.env.local` or invalid API key provided.
+
+---
+
+## Required Setup
+
+### Step 1: Obtain SendGrid Credentials
+
+**Option A: Use Existing SendGrid Account**
+
+1. Log in to SendGrid dashboard
+2. Navigate to Settings → API Keys
+3. Create new API key with "Mail Send" permission
+4. Copy API key (shown only once)
+
+**Option B: Create New SendGrid Account**
+
+1. Sign up at https://sendgrid.com
+2. Verify email and complete onboarding
+3. Add and verify sender domain (`fixzit.sa`)
+4. Generate API key with "Mail Send" permission
+
+### Step 2: Configure Environment Variables
+
+Add to `.env.local`:
+
+```bash
+SENDGRID_API_KEY=SG.your_actual_api_key_here
+SENDGRID_FROM_EMAIL=noreply@fixzit.sa
+SENDGRID_FROM_NAME=Fixzit
+```
+
+### Step 3: Verify Sender Domain
+
+**Important:** SendGrid requires domain verification for production sending.
+
+1. In SendGrid dashboard → Settings → Sender Authentication
+2. Click "Verify a Single Sender" or "Authenticate Your Domain"
+3. For domain authentication (recommended):
+   - Add DNS records provided by SendGrid
+   - Wait for DNS propagation (can take 24-48 hours)
+   - Verify in SendGrid dashboard
+
+4. For single sender verification (quick setup):
+   - Enter sender email (e.g., `noreply@fixzit.sa`)
+   - Verify email by clicking link sent to address
+   - Can send immediately after verification
+
+---
+
+## Test Plan (After Setup)
+
+### Email Notification Test
+
+```bash
+# Test email delivery
+pnpm tsx qa/notifications/run-smoke.ts --channel email
+
+# Expected output:
+# ✅ Email notification sent successfully
+# Recipient: test@example.com
+# Subject: Test Email from Fixzit
+# Status: Delivered
+```
+
+### SMS Notification Test
+
+```bash
+# Requires Twilio credentials
+pnpm tsx qa/notifications/run-smoke.ts --channel sms
+
+# Required env vars:
+# - TWILIO_ACCOUNT_SID
+# - TWILIO_AUTH_TOKEN
+# - TWILIO_PHONE_NUMBER
+```
+
+### WhatsApp Notification Test
+
+```bash
+# Requires WhatsApp Business API
+pnpm tsx qa/notifications/run-smoke.ts --channel whatsapp
+
+# Required env vars:
+# - WHATSAPP_API_KEY
+# - WHATSAPP_PHONE_NUMBER
+```
+
+### Push Notification Test
+
+```bash
+# Requires Firebase Cloud Messaging
+pnpm tsx qa/notifications/run-smoke.ts --channel push
+
+# Required env vars:
+# - FCM_SERVER_KEY
+# - FCM_PROJECT_ID
+```
+
+---
+
+## Notification System Architecture
+
+### Email Provider: SendGrid
+
+- **Status:** ⚠️ Credentials needed
+- **Use Cases:**
+  - Order confirmations
+  - Password resets
+  - Work order updates
+  - Claim notifications
+  - Weekly summaries
+
+### SMS Provider: Twilio (assumed)
+
+- **Status:** ⏸️ Not tested (credentials needed)
+- **Use Cases:**
+  - OTP verification
+  - Critical alerts
+  - Urgent work order updates
+
+### WhatsApp Provider: TBD
+
+- **Status:** ⏸️ Not tested (provider/credentials needed)
+- **Use Cases:**
+  - Customer support
+  - Order status updates
+  - Interactive notifications
+
+### Push Notifications: Firebase CM (assumed)
+
+- **Status:** ⏸️ Not tested (credentials needed)
+- **Use Cases:**
+  - Real-time alerts
+  - Work order assignments
+  - Chat messages
+
+---
+
+## Production Readiness Checklist
+
+### Email (SendGrid) - Priority: HIGH
+
+- [ ] Obtain SendGrid API key
+- [ ] Add credentials to `.env.local` and production environment
+- [ ] Verify sender domain (`fixzit.sa`)
+- [ ] Test email delivery
+- [ ] Verify email templates render correctly
+- [ ] Test email in multiple clients (Gmail, Outlook, Apple Mail)
+- [ ] Configure bounce/spam handling
+
+### SMS (Twilio) - Priority: MEDIUM
+
+- [ ] Set up Twilio account
+- [ ] Purchase phone number for SMS sending
+- [ ] Add credentials to environment
+- [ ] Test SMS delivery
+- [ ] Verify OTP flow works
+- [ ] Test international numbers (if applicable)
+
+### WhatsApp - Priority: LOW
+
+- [ ] Determine provider (Twilio, 360dialog, or WhatsApp Business API)
+- [ ] Complete business verification
+- [ ] Set up message templates
+- [ ] Add credentials to environment
+- [ ] Test delivery
+
+### Push Notifications - Priority: MEDIUM
+
+- [ ] Confirm Firebase project exists
+- [ ] Generate FCM server key
+- [ ] Add credentials to environment
+- [ ] Test push delivery on iOS/Android
+- [ ] Verify notification permissions flow
+
+---
+
+## Impact Assessment
+
+### ⚠️ Deployment Risk: MEDIUM
+
+**Can deploy without notification testing?**
+**Answer:** Yes, with caveats
+
+**Critical Dependencies:**
+
+- ✅ **OTP Authentication** - Can work with SMS fallback or manual verification during initial rollout
+- ⚠️ **Email notifications** - Users expect order confirmations, work order updates
+- ✅ **Core platform** - Not blocked by notification issues
+
+**Recommended Approach:**
+
+1. **Deploy platform** with notification system disabled/stubbed
+2. **Configure SendGrid** in production environment
+3. **Enable email notifications** after verification
+4. **Gradually enable** SMS, WhatsApp, push as providers are configured
+
+**Risk Mitigation:**
+
+- Add fallback to in-app notifications for critical updates
+- Display warnings in UI if email delivery fails
+- Provide manual notification options in admin panel
+- Log all notification attempts for debugging
+
+---
+
+## Recommendations
+
+### Immediate (Pre-deployment)
+
+1. **Configure SendGrid** - Required for email (highest priority channel)
+2. **Test email delivery** - Verify templates and delivery
+3. **Document credentials** - Add to secrets management system (not in git)
+
+### Short-term (Week 1)
+
+1. **Set up Twilio** - Required for OTP SMS if not using email OTP
+2. **Test SMS delivery** - Verify OTP flow works
+3. **Monitor notification metrics** - Track delivery rates, bounces
+
+### Long-term (Month 1)
+
+1. **WhatsApp integration** - For customer support use cases
+2. **Push notifications** - For real-time mobile app alerts
+3. **Notification analytics** - Track open rates, click-throughs
+
+---
+
+## Current Status Summary
+
+| Channel  | Provider      | Status                | Blocking? | Priority |
+| -------- | ------------- | --------------------- | --------- | -------- |
+| Email    | SendGrid      | ⚠️ Credentials needed | No        | HIGH     |
+| SMS      | TBD (Twilio?) | ⏸️ Not configured     | Maybe\*   | MEDIUM   |
+| WhatsApp | TBD           | ⏸️ Not configured     | No        | LOW      |
+| Push     | Firebase?     | ⏸️ Not configured     | No        | MEDIUM   |
+
+\* Blocking only if OTP authentication requires SMS and email OTP not implemented
+
+---
+
+## Decision: Proceed with Deployment
+
+**Recommendation:** ✅ **APPROVED** (with notification system initially disabled)
+
+**Deployment Strategy:**
+
+1. Deploy platform with notifications disabled or stubbed
+2. Configure SendGrid credentials in production
+3. Enable email notifications after smoke test passes
+4. Add SMS/WhatsApp/Push incrementally
+
+**Alternative:** If email notifications are critical for launch:
+
+1. **Block deployment** until SendGrid configured
+2. Estimated time: 2-4 hours (obtain credentials + test)
+3. Run smoke test to verify delivery
+4. Then deploy
+
+---
+
+**Next Steps:**
+
+1. Obtain SendGrid API key from team lead/DevOps
+2. Add credentials to production environment (use secrets manager)
+3. Rerun smoke test: `pnpm tsx qa/notifications/run-smoke.ts --channel email`
+4. Document results in this file
+
+---
+
+**Last Updated:** December 19, 2024  
+**Next Review:** After SendGrid configuration
+
+]]>
+</file>
+
+<file path="docs/notifications/observability.md">
+<![CDATA[
+# FM Notifications – Durability & Observability
+
+This document captures the operational contract for the FM notification engine introduced in November 2025. It covers persistence, retention, DLQ handling, metrics, and alerting so SRE/Platform teams can plug the pipeline into Grafana/Prometheus or CloudWatch.
+
+## Persistence & Retention
+
+| Store             | Collection               | Purpose                                                                                          | Retention                                                                                                  |
+| ----------------- | ------------------------ | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| Primary audit log | `NotificationLog`        | One document per notification (payload, recipients, channel results, metrics, telemetry issues). | `NOTIFICATION_LOG_TTL_DAYS` (default **90** days). TTL index is applied on `createdAt`.                    |
+| Dead letter queue | `NotificationDeadLetter` | One document per failed channel attempt + recipient metadata.                                    | `NOTIFICATION_DLQ_TTL_DAYS` (default **30** days). TTL index ensures the backlog can never grow unbounded. |
+
+> Both TTLs are configurable via `.env` / infra secret managers so compliance teams can tighten/relax retention per region.
+
+## Durable Logging Flow
+
+1. `sendNotification` now seeds an audit document before dispatch so every notification has traceability even if providers time out.
+2. When dispatch completes, the document is updated with:
+   - per-channel success/failure counters,
+   - structured issues (`userId`, `channel`, `type`, `reason`, attempt number, timestamp),
+   - timing metadata (`sentAt`, `failureReason`).
+3. Failed channel attempts are inserted into the DLQ with recipient contact data so replay jobs can rehydrate the message.
+
+## Dead Letter Operations
+
+- **Monitoring:** `fixzit_notification_dlq_backlog{channel="<channel>"}` exposes the pending queue depth per transport (push/email/sms/whatsapp).
+- **Replay strategy:** run `pnpm notifications:replay-dlq --channel email --limit 25` (script lives in `scripts/notifications/replay-dlq.ts`). The script:
+  1. Queries `NotificationDeadLetter` for `status: 'pending'`.
+  2. Replays channel-specific senders (SendGrid/Twilio/FCM/WhatsApp).
+  3. Marks documents as `status: 'replayed'` (success) or leaves them pending with incremented attempt metadata.
+  4. Updates `NotificationLog.channelResults` so audit records stay in sync.
+- **Alerting guidance:**
+  - Trigger PagerDuty/SNS when `fixzit_notification_dlq_backlog` > 25 per channel for >5 minutes.
+  - Trigger warning dashboards when backlog increases steadily (use Grafana Rate/Delta panels).
+
+## Prometheus Metrics
+
+Metrics are registered under a shared registry (`lib/monitoring/metrics-registry.ts`) and are exposed via **`GET /api/metrics`** (Node runtime only).
+
+| Metric                                          | Type      | Labels                        | Description                                                    |
+| ----------------------------------------------- | --------- | ----------------------------- | -------------------------------------------------------------- |
+| `fixzit_notifications_dispatched_total`         | Counter   | `event`, `status`, `priority` | Number of notifications finalized (sent, failed, partial).     |
+| `fixzit_notification_channel_attempts_total`    | Counter   | `event`, `channel`, `outcome` | Per-channel successes/failures/skips.                          |
+| `fixzit_notification_dispatch_duration_seconds` | Histogram | `event`                       | End-to-end dispatch latency buckets.                           |
+| `fixzit_notification_issues_total`              | Counter   | `channel`, `type`             | Structured issue log (failed/skipped).                         |
+| `fixzit_notification_dlq_backlog`               | Gauge     | `channel`                     | Pending DLQ entries (auto-refreshed after each failure batch). |
+
+### Grafana/Alerting Playbook
+
+1. **Dashboards**
+   - Panel 1: Notification volume (`fixzit_notifications_dispatched_total` rate) split by event + status.
+   - Panel 2: Latency histogram overlay vs. SLA (p50/p95 from PromQL quantiles).
+   - Panel 3: Channel failure rates (failed / (failed + succeeded)).
+   - Panel 4: DLQ backlog gauge with sparkline.
+2. **Alerts**
+   - **High latency:** `histogram_quantile(0.95, rate(fixzit_notification_dispatch_duration_seconds_bucket[5m])) > 15`.
+   - **Channel outage:** `rate(fixzit_notification_channel_attempts_total{outcome="failed"}[5m]) > 0` AND success rate < 80% for same channel.
+   - **DLQ backlog:** gauge > threshold for configurable duration.
+
+## Integrations
+
+- **Prometheus:** Scrape `/api/metrics` from the Next.js server or via the provided Docker compose stack (port 9090). A ready-to-use config lives in `deployment/prometheus.yml` and targets the `web:3000` service automatically.
+- **CloudWatch/Datadog:** Use the same registry output if you proxy metrics via the statd or OpenMetrics sidecar.
+- **Telemetry Webhook:** `NOTIFICATIONS_TELEMETRY_WEBHOOK` still receives JSON payloads for ops teams that prefer push-based monitoring (Datadog/PagerDuty Events API).
+
+## Runbook Checklist
+
+- [ ] Set `NOTIFICATION_LOG_TTL_DAYS` / `NOTIFICATION_DLQ_TTL_DAYS` in the environment (match org retention policy).
+- [ ] Configure Grafana dashboard + alerts using the metrics listed above.
+- [ ] Ensure SRE on-call has access to `/api/metrics` (network / auth rules).
+- [ ] Schedule DLQ replay job or manual SOP (documented per tenant).
+
+With these pieces in place the FM notification engine now has durable audit logs, recoverable DLQ workflows, and observable metrics for proactive alerting.
+
+]]>
+</file>
+
+<file path="docs/operations/DOCUMENTATION_ORG_ACTION_PLAN.md">
+<![CDATA[
+# Documentation & Organization Action Plan
+
+**Date:** November 18, 2025  
+**Owner:** DocOps / QA Enablement  
+**Scope:** Stabilize the documentation set for payment readiness, UI QA, smoke testing, and org-guard rollout while retiring stale files (60+ docs) into `docs/archived`.
+
+---
+
+## Objectives
+
+- Provide a single source of truth for the four required runbooks (payment integration, manual UI, smoke tests, org guard tracker).
+- Document concrete issues found during the audit and define the remediation tasks with owners + timelines.
+- Archive at least 60 legacy or superseded documents so the active docs index stays relevant.
+- Publish verification steps so future agents can confirm the documentation remains up to date.
+
+---
+
+## Status Dashboard
+
+| Workstream          | Artifact                                | Status               | Owner        | Notes                                                                                              |
+| ------------------- | --------------------------------------- | -------------------- | ------------ | -------------------------------------------------------------------------------------------------- |
+| Payment Integration | `docs/payment-integration-checklist.md` | 🟢 Ready for testing | Payments Pod | Checklist now includes sample payloads, error taxonomy, and SLA matrix; awaiting MSW mock (PI-03). |
+| Manual UI Testing   | `docs/MANUAL_UI_TESTING_CHECKLIST.md`   | ✅ Ready             | QA Team      | Execution template complete; needs data guardrails + summary board.                                |
+| Org Guard Smoke Log | `SMOKE_TEST_EXECUTION_LOG.md`           | 🚧 Pending           | Release QA   | Template exists but missing execution summary + blocker capture.                                   |
+| Org Guard Tracker   | `docs/ORG_GUARD_STATUS.md`              | ⚠️ 40% coverage      | Platform     | Tracker up but lacks snapshot + dependency mapping.                                                |
+| Archive Legacy Docs | `docs/archived/**`                      | 🟢 On Track          | DocOps       | New `legacy-sessions/` + `workspace-org/` folders bring archive count to 459 files.                |
+
+_These rows correspond to the backlog summary in `CODE_QUALITY_IMPROVEMENTS_REPORT.md`._
+
+---
+
+## Step-by-Step Plan
+
+### 1. Harden the Payment Integration Checklist
+
+- [x] Add a status summary so engineers see which payment areas are blocked/unblocked.
+- [x] Capture explicit action items (backend spec review, timeout inventory, monitoring design).
+- [x] Link to scripts + log locations for reproducibility.
+
+### 2. Enrich the Manual UI Testing Checklist
+
+- [ ] Provide rapid status dashboard for each suite + test data call-outs.
+- [ ] Document the support org switcher credentials + safety checks.
+- [ ] Keep the execution log + sign-off template intact for traceability.
+
+### 3. Formalize the Smoke Test Execution Log
+
+- [x] Add a summary board with per-test status.
+- [x] Promote the blockers (lack of seeded orgs, impersonation cookies) so the team can unblock.
+- [x] Tie in follow-up issues and reference scripts.
+
+### 4. Upgrade the Org Guard Status Tracker
+
+- [ ] Insert a metrics snapshot (modules vs. coverage) that can be copy/pasted to status reports.
+- [ ] Clarify dependencies (translations, SupportOrg context, CI gate) for each phase.
+- [ ] Document verification scripts + owners.
+
+### 5. Archive ≥60 Legacy Documents
+
+- [ ] Create `docs/archived/legacy-sessions/` and `docs/archived/workspace-org/` for themed storage.
+- [ ] Move dormant status/plan docs (Day 1 summaries, workspace org plans, etc.) into archive folders.
+- [ ] Update this plan once archive count confirmed ≥60 using `find docs/archived -type f | wc -l`.
+
+### 6. Verification & Reporting
+
+- [ ] Re-run smoke + manual checklists after updates (to be executed by QA when environment ready).
+- [ ] Add references in `DEPLOYMENT_NEXT_STEPS.md` if blockers remain.
+- [ ] Share summary + commands in the final PR description so reviewers can validate quickly.
+
+---
+
+## Execution Log
+
+| Timestamp            | Action                                                                                           |
+| -------------------- | ------------------------------------------------------------------------------------------------ |
+| 2025-11-18 13:05 UTC | Audited existing doc set; identified missing summary boards + low archive count (46).            |
+| 2025-11-18 13:20 UTC | Drafted this action plan to guide documentation + archival work.                                 |
+| 2025-11-18 13:55 UTC | Updated key artifacts + moved Day 1/session/workspace docs into archive folders (count now 459). |
+| _Next_               | Keep plan/table dates in sync after QA finishes execution logs.                                  |
+
+---
+
+## Verification Commands
+
+```bash
+# Validate archive target
+find docs/archived -type f | wc -l
+
+# Surface org-guard coverage gaps
+./scripts/check-org-guards.sh
+# Optional deeper validation
+pnpm run verify:org-context
+```
+
+---
+
+## Dependencies & Risks
+
+- Payment payload specs now published, but QA still needs MSW/prism mock (PI-03) to automate negative testing.
+- QA needs superadmin credentials + seeded organizations to finish SupportOrg smoke tests.
+- Archival must preserve git history; never delete without moving to `docs/archived`.
+
+Mitigation: Document every blocker, commit partial updates, and keep the summary tables at the top of each artifact up to date.
+
+]]>
+</file>
+
+<file path="docs/operations/GITHUB_SECRETS_SETUP_PRODUCTION.md">
+<![CDATA[
+# GitHub Secrets Configuration Guide
+
+## Production-Ready CI/CD Secrets Setup
+
+This guide provides step-by-step instructions for configuring repository secrets for GitHub Actions workflows.
+
+## Required Secrets
+
+### 1. Database & Authentication
+
+| Secret Name       | Description                                      | Required    | Example                                                                          |
+| ----------------- | ------------------------------------------------ | ----------- | -------------------------------------------------------------------------------- |
+| `MONGODB_URI`     | MongoDB connection string (Atlas or self-hosted) | ✅ Required | `mongodb+srv://user:pass@cluster.mongodb.net/fixzit?retryWrites=true&w=majority` |
+| `NEXTAUTH_SECRET` | NextAuth.js session encryption key (32+ chars)   | ✅ Required | Generate: `openssl rand -base64 32`                                              |
+| `JWT_SECRET`      | JWT signing secret (64 hex chars)                | ✅ Required | Generate: `openssl rand -hex 32`                                                 |
+| `NEXTAUTH_URL`    | Production URL for NextAuth callbacks            | ✅ Required | `https://fixzit.yourdomain.com`                                                  |
+
+### 2. External Services
+
+| Secret Name                       | Description                    | Required    | Example                                 |
+| --------------------------------- | ------------------------------ | ----------- | --------------------------------------- |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Google Maps JavaScript API key | 📋 Optional | `AIza...`                               |
+| `GOOGLE_CLIENT_ID`                | Google OAuth 2.0 Client ID     | 📋 Optional | `123456-abc.apps.googleusercontent.com` |
+| `GOOGLE_CLIENT_SECRET`            | Google OAuth 2.0 Client Secret | 📋 Optional | `GOCSPX-...`                            |
+
+### 3. Internal API
+
+| Secret Name          | Description                                | Required       | Example                          |
+| -------------------- | ------------------------------------------ | -------------- | -------------------------------- |
+| `INTERNAL_API_TOKEN` | Token for internal service-to-service auth | ⚠️ Recommended | Generate: `openssl rand -hex 32` |
+
+### 4. CI/CD (GitHub Actions Only)
+
+| Secret Name    | Description                              | Required         | Example |
+| -------------- | ---------------------------------------- | ---------------- | ------- |
+| `GITHUB_TOKEN` | Automatically provided by GitHub Actions | ✅ Auto-provided | N/A     |
+
+## Setup Instructions
+
+### Option 1: GitHub Web UI (Recommended)
+
+1. **Navigate to Repository Settings**
+
+   ```
+   GitHub.com → Your Repo → Settings → Secrets and variables → Actions
+   ```
+
+2. **Click "New repository secret"**
+
+3. **Add each secret individually:**
+   - Name: `MONGODB_URI`
+   - Value: `mongodb+srv://...`
+   - Click "Add secret"
+
+4. **Repeat for all required secrets**
+
+### Option 2: GitHub CLI (Faster)
+
+```bash
+# Install GitHub CLI if not already installed
+# brew install gh  (macOS)
+# sudo apt install gh  (Ubuntu/Debian)
+
+# Authenticate
+gh auth login
+
+# Add secrets from environment variables
+gh secret set MONGODB_URI --body "$MONGODB_URI"
+gh secret set NEXTAUTH_SECRET --body "$NEXTAUTH_SECRET"
+gh secret set JWT_SECRET --body "$JWT_SECRET"
+gh secret set NEXTAUTH_URL --body "https://fixzit.yourdomain.com"
+
+# Or add secrets interactively (paste value when prompted)
+gh secret set MONGODB_URI
+gh secret set GOOGLE_CLIENT_ID
+gh secret set GOOGLE_CLIENT_SECRET
+
+# Verify secrets were added
+gh secret list
+```
+
+### Option 3: GitHub CLI from File
+
+```bash
+# Create .env.secrets file (DO NOT COMMIT THIS)
+cat << 'EOF' > .env.secrets
+MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/fixzit
+NEXTAUTH_SECRET=$(openssl rand -base64 32)
+JWT_SECRET=$(openssl rand -hex 32)
+NEXTAUTH_URL=https://fixzit.yourdomain.com
+GOOGLE_CLIENT_ID=your-client-id
+GOOGLE_CLIENT_SECRET=your-client-secret
+EOF
+
+# Load and set secrets
+set -a
+source .env.secrets
+set +a
+
+gh secret set MONGODB_URI --body "$MONGODB_URI"
+gh secret set NEXTAUTH_SECRET --body "$NEXTAUTH_SECRET"
+gh secret set JWT_SECRET --body "$JWT_SECRET"
+gh secret set NEXTAUTH_URL --body "$NEXTAUTH_URL"
+gh secret set GOOGLE_CLIENT_ID --body "$GOOGLE_CLIENT_ID"
+gh secret set GOOGLE_CLIENT_SECRET --body "$GOOGLE_CLIENT_SECRET"
+
+# IMPORTANT: Delete the file after setting secrets
+rm .env.secrets
+```
+
+## Workflow Integration
+
+### Update Existing Workflows
+
+Your workflows in `.github/workflows/` should reference secrets like this:
+
+```yaml
+# Example: .github/workflows/fixzit-quality-gates.yml
+name: Quality Gates
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      # Reference secrets
+      MONGODB_URI: ${{ secrets.MONGODB_URI }}
+      NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+      NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run type check
+        run: pnpm typecheck
+
+      - name: Run linter
+        run: pnpm lint
+
+      - name: Run tests
+        run: pnpm test
+```
+
+## Secret Generation Commands
+
+### NEXTAUTH_SECRET (32+ characters)
+
+```bash
+openssl rand -base64 32
+```
+
+### JWT_SECRET (64 hex characters)
+
+```bash
+openssl rand -hex 32
+```
+
+### INTERNAL_API_TOKEN (64 hex characters)
+
+```bash
+openssl rand -hex 32
+```
+
+### Verify Secret Strength
+
+```bash
+# Check length of generated secret
+echo "NEXTAUTH_SECRET=$(openssl rand -base64 32)" | wc -c
+# Should output: 45+ characters
+```
+
+## Security Best Practices
+
+### 1. Never Commit Secrets
+
+```bash
+# Add to .gitignore
+echo ".env.secrets" >> .gitignore
+echo ".env.production" >> .gitignore
+```
+
+### 2. Rotate Secrets Regularly
+
+- **High Priority**: Every 90 days
+  - `JWT_SECRET`
+  - `NEXTAUTH_SECRET`
+  - `INTERNAL_API_TOKEN`
+
+- **Medium Priority**: Every 180 days
+  - OAuth client secrets
+  - API keys
+
+### 3. Use Different Secrets for Different Environments
+
+```
+Development:   .env.local (local machine, not committed)
+Staging:       GitHub Secrets → staging-* secrets
+Production:    GitHub Secrets → production-* secrets
+```
+
+### 4. Limit Secret Access
+
+- Only add secrets needed for CI/CD
+- Don't expose production secrets in development
+- Use environment-specific secret names if needed
+
+## Verification Checklist
+
+After setting up secrets, verify:
+
+- [ ] All required secrets added to repository
+- [ ] Workflows updated to reference `${{ secrets.SECRET_NAME }}`
+- [ ] No secrets hardcoded in workflow files
+- [ ] `.env.secrets` file deleted (if created)
+- [ ] Secrets not exposed in logs
+- [ ] CI/CD pipeline runs successfully
+- [ ] Production deployment uses secrets correctly
+
+## Testing GitHub Secrets
+
+### 1. Create Test Workflow
+
+Create `.github/workflows/test-secrets.yml`:
+
+```yaml
+name: Test Secrets
+
+on:
+  workflow_dispatch: # Manual trigger only
+
+jobs:
+  test-secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check MongoDB URI exists
+        run: |
+          if [ -z "$MONGODB_URI" ]; then
+            echo "❌ MONGODB_URI not set"
+            exit 1
+          else
+            echo "✅ MONGODB_URI is set"
+          fi
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+
+      - name: Check NEXTAUTH_SECRET exists
+        run: |
+          if [ -z "$NEXTAUTH_SECRET" ]; then
+            echo "❌ NEXTAUTH_SECRET not set"
+            exit 1
+          else
+            echo "✅ NEXTAUTH_SECRET is set (length: ${#NEXTAUTH_SECRET})"
+          fi
+        env:
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+
+      - name: Check JWT_SECRET exists
+        run: |
+          if [ -z "$JWT_SECRET" ]; then
+            echo "❌ JWT_SECRET not set"
+            exit 1
+          else
+            echo "✅ JWT_SECRET is set (length: ${#JWT_SECRET})"
+          fi
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+```
+
+### 2. Run Test Workflow
+
+```bash
+# Trigger manually from GitHub UI
+Actions → Test Secrets → Run workflow
+
+# Or use GitHub CLI
+gh workflow run test-secrets.yml
+```
+
+## Common Issues
+
+### Issue 1: Secret Not Available in Workflow
+
+**Problem**: `${{ secrets.MY_SECRET }}` is empty in workflow
+
+**Solution**:
+
+1. Check secret name matches exactly (case-sensitive)
+2. Verify secret is set at repository level (not environment level)
+3. Re-add secret if needed
+
+### Issue 2: Secret Exposed in Logs
+
+**Problem**: Secret value appears in workflow logs
+
+**Solution**:
+
+```yaml
+# ❌ Bad - exposes secret
+- name: Debug
+  run: echo "Secret is ${{ secrets.MY_SECRET }}"
+
+# ✅ Good - masks secret
+- name: Debug
+  run: echo "Secret exists"
+  env:
+    MY_SECRET: ${{ secrets.MY_SECRET }}
+```
+
+### Issue 3: Workflow Can't Access Secret
+
+**Problem**: Workflow fails with "Secret not found"
+
+**Solution**:
+
+- Check if running on fork (forks can't access secrets)
+- Verify workflow has correct permissions
+- Ensure secret isn't environment-specific
+
+## Status: READY FOR PRODUCTION ✅
+
+All required secrets documented. Follow steps above to configure GitHub repository secrets for CI/CD pipelines.
+
+## Quick Reference
+
+```bash
+# Generate all secrets at once
+echo "NEXTAUTH_SECRET=$(openssl rand -base64 32)"
+echo "JWT_SECRET=$(openssl rand -hex 32)"
+echo "INTERNAL_API_TOKEN=$(openssl rand -hex 32)"
+
+# Set all secrets (paste values when prompted)
+gh secret set MONGODB_URI
+gh secret set NEXTAUTH_SECRET
+gh secret set JWT_SECRET
+gh secret set NEXTAUTH_URL
+gh secret set GOOGLE_CLIENT_ID
+gh secret set GOOGLE_CLIENT_SECRET
+gh secret set INTERNAL_API_TOKEN
+
+# Verify
+gh secret list
+```
+
+]]>
+</file>
+
+<file path="docs/operations/PII_MIGRATION_BREAK_GLASS_RUNBOOK.md">
+<![CDATA[
+# PII Migration Break-Glass Runbook
+
+## Overview
+
+This runbook documents the emergency procedure for using the `MIGRATION_ALLOW_PLAINTEXT=true` break-glass flag when running the Finance PII encryption migration script (`scripts/migrate-encrypt-finance-pii.ts`).
+
+**⚠️ CRITICAL**: This flag bypasses security safeguards that prevent plaintext PII from persisting indefinitely. Use **ONLY** in emergency situations with proper approvals.
+
+---
+
+## When to Use This Procedure
+
+The break-glass procedure is **ONLY** appropriate when:
+
+1. **TTL Index Creation Fails** - MongoDB cannot create the TTL index on backup collections
+2. **Migration is Time-Critical** - Business continuity requires immediate migration completion
+3. **Manual Cleanup is Guaranteed** - A responsible party commits to delete backups within 24 hours
+
+### When NOT to Use
+
+- For convenience or to skip safeguards
+- In development/staging without understanding the implications
+- Without documented approval
+- Without a committed cleanup owner
+
+---
+
+## Risk Assessment
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Plaintext PII persists in backup collections | **HIGH** - Compliance violation (GDPR, local regulations) | Manual deletion within 24h |
+| Backup collections forgotten | **HIGH** - Long-term PII exposure | Incident ticket tracks cleanup |
+| Unauthorized use of flag | **MEDIUM** - Accidental PII retention | Production guard + approval workflow |
+
+---
+
+## Required Approvals
+
+Before proceeding, obtain **written approval** from:
+
+1. **Engineering Lead or CTO** - Technical approval for bypassing safeguards
+2. **Security/Compliance Officer** - Acknowledgment of compliance risk
+3. **DBA or Platform Owner** - Commitment to manual backup cleanup
+
+### Approval Documentation Template
+
+```
+APPROVAL: Finance PII Migration Break-Glass Procedure
+Date: YYYY-MM-DD HH:MM UTC
+Environment: [production/staging]
+
+Reason for Break-Glass:
+- [Describe why TTL creation failed]
+- [Describe business urgency]
+
+Approvers:
+- Engineering Lead: [Name] - Approved: [Yes/No]
+- Security Officer: [Name] - Approved: [Yes/No]
+- DBA/Platform: [Name] - Approved: [Yes/No]
+
+Cleanup Owner: [Name]
+Cleanup Deadline: [Date/Time - must be within 24 hours]
+
+Incident Ticket: [JIRA/Linear ticket number]
+```
+
+---
+
+## Pre-Migration Checklist
+
+Before running the migration with the break-glass flag:
+
+- [ ] **Incident ticket created** with break-glass justification
+- [ ] **All approvals documented** in the incident ticket
+- [ ] **Cleanup owner identified** with explicit 24h commitment
+- [ ] **Backup of current database state** taken independently
+- [ ] **Verify environment** - Confirm you're targeting the correct environment
+- [ ] **Communication sent** to relevant stakeholders about the emergency procedure
+
+---
+
+## Procedure
+
+### Step 1: Verify Environment
+
+```bash
+# Confirm you're connecting to the correct database
+echo $MONGODB_URI | grep -o "@[^/]*" # Should show expected cluster
+
+# Verify production environment
+echo $NODE_ENV # Should be 'production' if targeting prod
+```
+
+### Step 2: Set Break-Glass Environment Variable
+
+```bash
+# Set the break-glass flag (keeps NODE_ENV=production)
+export MIGRATION_ALLOW_PLAINTEXT=true
+```
+
+**Important**: Do NOT override `NODE_ENV` to bypass the production guard. The `MIGRATION_ALLOW_PLAINTEXT` flag exists specifically for this purpose.
+
+### Step 3: Run Migration
+
+```bash
+# Run with explicit encryption key
+ENCRYPTION_KEY=<your-256-bit-key> \
+MIGRATION_ALLOW_PLAINTEXT=true \
+pnpm tsx scripts/migrate-encrypt-finance-pii.ts [--org=<orgId>]
+```
+
+### Step 4: Verify Migration Success
+
+1. Check migration logs for:
+   - `✅ Encryption key strength validated: 256-bit (AES-256 compliant)`
+   - `[FINANCE PII MIGRATION] Completed Invoice/FMFinancialTransaction`
+   - No error entries in `failedIds`
+
+2. Verify encrypted data:
+   ```javascript
+   // In MongoDB shell
+   db.invoices.findOne({ "issuer.taxId": /^v1:/ })
+   // Should return a document with encrypted fields (v1: prefix)
+   ```
+
+### Step 5: Document Backup Collections
+
+Record the backup collection names created:
+
+```bash
+# Example backup names (from migration logs):
+# - invoices_backup_finance_pii_<timestamp>
+# - fm_financial_transactions_backup_finance_pii_<timestamp>
+```
+
+Add these to the incident ticket for cleanup tracking.
+
+---
+
+## Mandatory Cleanup Procedure
+
+**DEADLINE**: Within 24 hours of migration completion
+
+### Step 1: Verify Migration Was Successful
+
+Before deleting backups, confirm:
+- [ ] No errors in migration logs
+- [ ] Encrypted data is readable (decryption works)
+- [ ] Business-critical workflows function correctly
+
+### Step 2: Delete Backup Collections
+
+```javascript
+// In MongoDB Atlas UI or shell
+// CAUTION: Triple-check collection names before dropping
+
+// List backup collections
+db.getCollectionNames().filter(n => n.includes('_backup_finance_pii_'))
+
+// Drop each backup collection
+db.invoices_backup_finance_pii_<timestamp>.drop()
+db.fm_financial_transactions_backup_finance_pii_<timestamp>.drop()
+```
+
+### Step 3: Verify Cleanup
+
+```javascript
+// Confirm no backup collections remain
+db.getCollectionNames().filter(n => n.includes('_backup_finance_pii_'))
+// Should return empty array []
+```
+
+### Step 4: Close Incident
+
+Update the incident ticket with:
+- [ ] Backup collection names that were deleted
+- [ ] Timestamp of deletion
+- [ ] Confirmation that cleanup is complete
+- [ ] Any lessons learned or recommended improvements
+
+---
+
+## Rollback Procedure
+
+If migration fails and you need to restore from backup:
+
+```bash
+# Rollback using the migration script's built-in rollback
+ENCRYPTION_KEY=<key> pnpm tsx scripts/migrate-encrypt-finance-pii.ts --rollback [--org=<orgId>]
+```
+
+**Note**: Rollback will restore plaintext data from the backup collections. After rollback, the backup collections should still be manually deleted once the underlying issue is resolved.
+
+---
+
+## Post-Incident Review
+
+Within 1 week of using the break-glass procedure:
+
+1. **Root Cause Analysis**: Why did TTL creation fail?
+2. **Prevention**: Can MongoDB configuration be improved?
+3. **Process Improvement**: Should the script handle this case differently?
+4. **Documentation Update**: Update this runbook with lessons learned
+
+---
+
+## Related Documentation
+
+- [Production Auth Checklist](./PRODUCTION_AUTH_CHECKLIST.md) - Environment variables
+- [Finance Encryption Tests](../tests/unit/finance/finance-encryption.test.ts) - Test coverage
+- [Migration Script](../scripts/migrate-encrypt-finance-pii.ts) - Implementation details
+
+---
+
+## Audit Trail
+
+| Date | Author | Change |
+|------|--------|--------|
+| 2025-12-02 | GitHub Copilot | Initial runbook creation |
+
+---
+
+**Last Updated**: 2025-12-02  
+**Owner**: Engineering Team  
+**Review Cycle**: Quarterly or after each use
+
+]]>
+</file>
+
+<file path="docs/operations/SENDGRID_PRODUCTION_GUIDE.md">
+<![CDATA[
+# SendGrid Production Configuration Guide
+
+## Overview
+
+Fixzit now has a **production-ready SendGrid integration** with support for:
+
+- ✅ Multiple sender identities (from/reply-to)
+- ✅ Dynamic templates
+- ✅ Webhook event tracking (delivery, opens, clicks, bounces)
+- ✅ Unsubscribe groups
+- ✅ IP pools for better deliverability
+- ✅ MongoDB tracking for all email events
+- ✅ Webhook signature verification
+
+## Quick Setup
+
+### 1. Basic Configuration (Required)
+
+Add these secrets to GitHub Actions or your `.env` file:
+
+```bash
+SENDGRID_API_KEY=SG.your_api_key_here
+SENDGRID_FROM_EMAIL=noreply@fixzit.co
+SENDGRID_FROM_NAME=Fixzit
+```
+
+### 2. Advanced Configuration (Recommended for Production)
+
+```bash
+# Reply-To Configuration (for customer responses)
+SENDGRID_REPLY_TO_EMAIL=support@fixzit.co
+SENDGRID_REPLY_TO_NAME=Fixzit Support
+
+# Unsubscribe Group (for email preference management)
+SENDGRID_UNSUBSCRIBE_GROUP_ID=12345
+
+# IP Pool (for better deliverability with dedicated IPs)
+SENDGRID_IP_POOL_NAME=your_pool_name
+
+# Webhook Verification (for security)
+SENDGRID_WEBHOOK_VERIFICATION_KEY=your_verification_key
+```
+
+### 3. Dynamic Templates (Optional but Recommended)
+
+SendGrid dynamic templates provide:
+
+- Professional, consistent branding
+- Easy A/B testing
+- No code deployments for email changes
+- Better deliverability
+
+```bash
+SENDGRID_TEMPLATE_WELCOME=d-abc123...
+SENDGRID_TEMPLATE_PASSWORD_RESET=d-def456...
+SENDGRID_TEMPLATE_NOTIFICATION=d-ghi789...
+SENDGRID_TEMPLATE_INVOICE=d-jkl012...
+```
+
+## SendGrid Dashboard Setup
+
+### Step 1: Verify Sender Identity
+
+1. Go to **Settings** → **Sender Authentication**
+2. Verify your domain OR single sender
+3. Add DNS records (SPF, DKIM, DMARC)
+4. Wait for verification (~24-48 hours)
+
+**Domain Authentication (Recommended)**:
+
+- Better deliverability
+- Can send from any `@fixzit.co` address
+- Professional appearance
+
+**Single Sender (Quick Start)**:
+
+- Verify single email address
+- Faster setup (~5 minutes)
+- Limited to one sender
+
+### Step 2: Create Dynamic Templates
+
+1. Go to **Email API** → **Dynamic Templates**
+2. Click **Create a Dynamic Template**
+3. Name it (e.g., "Welcome Email")
+4. Design your template using the editor
+5. Add handlebar variables: `{{errorId}}`, `{{registrationLink}}`, etc.
+6. Save and get the Template ID (e.g., `d-abc123...`)
+7. Add to environment: `SENDGRID_TEMPLATE_WELCOME=d-abc123...`
+
+**Template Variables Available**:
+
+```javascript
+{
+  errorId: "ERR-ABC123",
+  registrationLink: "https://fixzit.co/register?token=...",
+  subject: "Welcome to Fixzit",
+  currentYear: 2025,
+  supportEmail: "support@fixzit.co"
+}
+```
+
+### Step 3: Configure Unsubscribe Groups
+
+1. Go to **Suppressions** → **Unsubscribe Groups**
+2. Create groups:
+   - Marketing Emails
+   - System Notifications
+   - Transactional Emails
+   - Product Updates
+3. Get the Group ID (e.g., `12345`)
+4. Add to environment: `SENDGRID_UNSUBSCRIBE_GROUP_ID=12345`
+
+### Step 4: Setup Event Webhook
+
+1. Go to **Settings** → **Mail Settings** → **Event Webhook**
+2. **HTTP Post URL**: `https://yourdomain.com/api/webhooks/sendgrid`
+3. **Select Actions to Post**:
+   - ✅ Processed
+   - ✅ Delivered
+   - ✅ Opened
+   - ✅ Clicked
+   - ✅ Bounced
+   - ✅ Dropped
+   - ✅ Spam Reports
+   - ✅ Unsubscribes
+4. **Enable Signed Event Webhook**: ✅ Enabled
+5. **Verification Key**: Copy the key
+6. Add to environment: `SENDGRID_WEBHOOK_VERIFICATION_KEY=your_key_here`
+7. Click **Test Your Integration** to verify
+
+### Step 5: IP Pools (Enterprise Only)
+
+If you have dedicated IPs:
+
+1. Go to **Settings** → **IP Addresses**
+2. Create IP Pool (e.g., "Production")
+3. Add your dedicated IPs to the pool
+4. Add to environment: `SENDGRID_IP_POOL_NAME=Production`
+
+## GitHub Secrets Setup
+
+### Via GitHub Web Interface
+
+1. Go to: https://github.com/EngSayh/Fixzit/settings/secrets/actions
+2. Click **New repository secret**
+3. Add each secret:
+
+| Secret Name                         | Value             | Required                 |
+| ----------------------------------- | ----------------- | ------------------------ |
+| `SENDGRID_API_KEY`                  | Your API key      | ✅ Required              |
+| `SENDGRID_FROM_EMAIL`               | noreply@fixzit.co | ✅ Required              |
+| `SENDGRID_FROM_NAME`                | Fixzit            | ⚠️ Recommended           |
+| `SENDGRID_REPLY_TO_EMAIL`           | support@fixzit.co | ⚠️ Recommended           |
+| `SENDGRID_REPLY_TO_NAME`            | Fixzit Support    | ⚠️ Recommended           |
+| `SENDGRID_UNSUBSCRIBE_GROUP_ID`     | Your group ID     | 📋 Optional              |
+| `SENDGRID_IP_POOL_NAME`             | Your pool name    | 📋 Optional (Enterprise) |
+| `SENDGRID_WEBHOOK_VERIFICATION_KEY` | Your key          | ⚠️ Recommended           |
+| `SENDGRID_TEMPLATE_WELCOME`         | d-abc123...       | 📋 Optional              |
+| `SENDGRID_TEMPLATE_PASSWORD_RESET`  | d-def456...       | 📋 Optional              |
+| `SENDGRID_TEMPLATE_NOTIFICATION`    | d-ghi789...       | 📋 Optional              |
+| `SENDGRID_TEMPLATE_INVOICE`         | d-jkl012...       | 📋 Optional              |
+
+### Via GitHub CLI
+
+```bash
+# Required secrets
+gh secret set SENDGRID_API_KEY --body "SG.your_api_key_here"
+gh secret set SENDGRID_FROM_EMAIL --body "noreply@fixzit.co"
+gh secret set SENDGRID_FROM_NAME --body "Fixzit"
+
+# Recommended secrets
+gh secret set SENDGRID_REPLY_TO_EMAIL --body "support@fixzit.co"
+gh secret set SENDGRID_REPLY_TO_NAME --body "Fixzit Support"
+gh secret set SENDGRID_WEBHOOK_VERIFICATION_KEY --body "your_key_here"
+
+# Optional secrets
+gh secret set SENDGRID_UNSUBSCRIBE_GROUP_ID --body "12345"
+gh secret set SENDGRID_TEMPLATE_WELCOME --body "d-abc123..."
+```
+
+## Code Usage
+
+### Sending Basic Email
+
+```typescript
+import sgMail from "@sendgrid/mail";
+import { getSendGridConfig, getBaseEmailOptions } from "@/lib/sendgrid-config";
+
+const config = getSendGridConfig();
+sgMail.setApiKey(config.apiKey);
+
+const baseOptions = getBaseEmailOptions();
+
+await sgMail.send({
+  ...baseOptions,
+  to: "user@example.com",
+  subject: "Welcome to Fixzit",
+  html: "<h1>Welcome!</h1>",
+  text: "Welcome!",
+  customArgs: {
+    emailId: "unique-id",
+    type: "welcome",
+  },
+});
+```
+
+### Using Dynamic Template
+
+```typescript
+import { getTemplateId } from "@/lib/sendgrid-config";
+
+const templateId = getTemplateId("welcome");
+
+if (templateId) {
+  await sgMail.send({
+    ...baseOptions,
+    to: "user@example.com",
+    templateId,
+    dynamicTemplateData: {
+      errorId: "ERR-123",
+      registrationLink: "https://...",
+      currentYear: 2025,
+    },
+  });
+}
+```
+
+## Monitoring & Analytics
+
+### Email Logs Collection
+
+All emails are tracked in MongoDB `email_logs` collection:
+
+```javascript
+{
+  emailId: "WEL-ABC123",
+  type: "welcome_email",
+  recipient: "user@example.com",
+  subject: "Welcome to Fixzit",
+  status: "delivered",
+  sentAt: ISODate("2025-10-24T12:00:00Z"),
+  deliveredAt: ISODate("2025-10-24T12:00:05Z"),
+  opened: true,
+  openedAt: ISODate("2025-10-24T12:05:00Z"),
+  clicked: true,
+  clickedAt: ISODate("2025-10-24T12:06:00Z"),
+  openCount: 3,
+  clickCount: 2,
+  clickedUrls: ["https://fixzit.co/register"],
+  provider: "sendgrid",
+  events: {
+    processed: ISODate("..."),
+    delivered: ISODate("..."),
+    open: ISODate("..."),
+    click: ISODate("...")
+  }
+}
+```
+
+### Query Email Status
+
+```bash
+# Check delivery status
+curl "https://yourdomain.com/api/support/welcome-email?email=user@example.com"
+```
+
+### SendGrid Dashboard
+
+1. Go to **Activity** → **Email Activity Feed**
+2. Filter by:
+   - Email address
+   - Status (delivered, opened, clicked, bounced)
+   - Date range
+3. View detailed event logs
+
+## Testing
+
+### Local Development
+
+```bash
+# Set environment variables
+cp env.example .env.local
+# Add your SendGrid credentials
+
+# Start dev server
+pnpm dev
+
+# Send test email
+curl -X POST http://localhost:3000/api/support/welcome-email \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "subject": "Test Email",
+    "errorId": "TEST-123",
+    "registrationLink": "https://fixzit.co/register"
+  }'
+```
+
+### Webhook Testing
+
+```bash
+# Install ngrok for local webhook testing
+npm install -g ngrok
+
+# Expose local server
+ngrok http 3000
+
+# Use ngrok URL in SendGrid webhook settings
+# https://abc123.ngrok.io/api/webhooks/sendgrid
+```
+
+## Troubleshooting
+
+### Issue: "Email service not configured"
+
+**Solution**: Ensure `SENDGRID_API_KEY` is set:
+
+```bash
+echo $SENDGRID_API_KEY
+# Should output: SG.xxx...
+```
+
+### Issue: "Invalid signature" on webhook
+
+**Solution**:
+
+1. Verify `SENDGRID_WEBHOOK_VERIFICATION_KEY` is correct
+2. Check webhook is enabled in SendGrid dashboard
+3. Ensure raw body is used for signature verification
+
+### Issue: Emails going to spam
+
+**Solution**:
+
+1. Complete domain authentication (SPF, DKIM, DMARC)
+2. Warm up IP addresses gradually
+3. Monitor sender reputation
+4. Use dedicated IP pool
+5. Clean your email list regularly
+
+### Issue: Template not found
+
+**Solution**:
+
+1. Verify template ID is correct: `d-abc123...`
+2. Check template is active in SendGrid dashboard
+3. Ensure environment variable is set correctly
+
+## Best Practices
+
+### 1. Deliverability
+
+- ✅ Authenticate your domain (SPF, DKIM, DMARC)
+- ✅ Use consistent "from" addresses
+- ✅ Include unsubscribe links
+- ✅ Monitor bounce rates (<5%)
+- ✅ Clean email lists regularly
+- ✅ Warm up new IPs gradually
+
+### 2. Security
+
+- ✅ Enable webhook signature verification
+- ✅ Use HTTPS for webhook endpoints
+- ✅ Rotate API keys regularly
+- ✅ Use separate keys for dev/staging/production
+- ✅ Monitor for unauthorized sends
+
+### 3. Performance
+
+- ✅ Use dynamic templates (faster than inline HTML)
+- ✅ Batch send for bulk emails
+- ✅ Monitor API rate limits
+- ✅ Use IP pools to segregate traffic
+- ✅ Track and optimize open/click rates
+
+### 4. Compliance
+
+- ✅ Include CAN-SPAM compliant footer
+- ✅ Honor unsubscribe requests immediately
+- ✅ Maintain suppression lists
+- ✅ Include physical mailing address
+- ✅ Follow GDPR requirements for EU users
+
+## Support
+
+- **SendGrid Dashboard**: https://app.sendgrid.com/
+- **API Documentation**: https://docs.sendgrid.com/
+- **Support**: support@sendgrid.com
+- **Status Page**: https://status.sendgrid.com/
+
+## Upgrade Path
+
+### Trial Account Limitations
+
+- 100 emails/day
+- Expires: Check your account
+- No dedicated IPs
+
+### Production Account
+
+1. Upgrade to Pro or Premier plan
+2. Benefits:
+   - Unlimited emails
+   - Dedicated IPs
+   - Priority support
+   - Advanced analytics
+   - Subuser management
+3. Pricing: https://sendgrid.com/pricing/
+
+---
+
+**Last Updated**: October 24, 2025  
+**Version**: 2.0.0 - Production Ready
+
+]]>
+</file>
+
+<file path="docs/operations/external-service-resilience.md">
+<![CDATA[
+# External Service Resilience Playbook
+
+This runbook captures how Fixzit handles latency budgets, retries, and circuit
+breakers when calling external services. It also documents the default timeout
+values so engineers no longer need to reverse–engineer them from source files.
+
+## Shared utilities
+
+| Utility                               | Location                                     | Description                                                                                  |
+| ------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `executeWithRetry`                    | `lib/resilience/retry.ts`                    | Exponential backoff with jitter, optional retry hooks, and consistent logging.               |
+| `withTimeout` / `createTimeoutSignal` | `lib/resilience/timeout.ts`                  | Extracted AbortController pattern for HTTP requests and SDK calls.                           |
+| `CircuitBreaker`                      | `lib/resilience/circuit-breaker.ts`          | Simple half‑open breaker with configurable thresholds.                                       |
+| `SERVICE_RESILIENCE`                  | `config/service-timeouts.ts`                 | Declarative timeout and retry budgets per integration (PayTabs, Twilio, Meilisearch, ZATCA). |
+| `serviceCircuitBreakers`              | `lib/resilience/service-circuit-breakers.ts` | Named breakers reused across API routes and services.                                        |
+
+Code samples (Twilio SMS, PayTabs, Meilisearch) now delegate to these helpers so
+that every integration shares the same resilience behavior.
+
+## Timeout, retry, and breaker matrix
+
+| Service         | Operation                  | Timeout (ms)                         | Retries                       | Breaker Cooldown | Notes / Files                                                    |
+| --------------- | -------------------------- | ------------------------------------ | ----------------------------- | ---------------- | ---------------------------------------------------------------- |
+| **PayTabs**     | Payment page request       | 15 000 (`PAYTABS_TIMEOUT_MS`)        | 3 attempts, 750 ms base delay | 30 s             | `lib/paytabs.ts`, `app/api/payments/paytabs/route.ts`            |
+|                 | Refund / status query      | 12 000 (`PAYTABS_REFUND_TIMEOUT_MS`) | 3 attempts                    | 30 s             | `services/souq/claims/refund-processor.ts` via `lib/paytabs`     |
+|                 | Payout submission / status | 15 000 (`PAYTABS_PAYOUT_TIMEOUT_MS`) | 3 attempts                    | 30 s             | `services/souq/settlements/withdrawal-service.ts`                |
+|                 | Transaction verify         | 8 000 (`PAYTABS_VERIFY_TIMEOUT_MS`)  | 3 attempts                    | 30 s             | `lib/paytabs.ts`                                                 |
+| **Twilio**      | SMS send / WhatsApp send   | 10 000 (`TWILIO_TIMEOUT_MS`)         | 3 attempts, 500 ms delay      | 20 s             | `lib/sms.ts`, `services/notifications/fm-notification-engine.ts` |
+|                 | Delivery status            | 5 000 (`TWILIO_STATUS_TIMEOUT_MS`)   | 3 attempts                    | 20 s             | `lib/sms.ts#getSMSStatus`                                        |
+| **Meilisearch** | Product search queries     | 3 000 (`MEILI_SEARCH_TIMEOUT_MS`)    | 3 attempts, 400 ms delay      | 15 s             | `app/api/souq/search/route.ts`, `lib/meilisearch-client.ts`      |
+|                 | Index writes / reindex     | 5 000 (`MEILI_INDEXING_TIMEOUT_MS`)  | 3 attempts                    | 15 s             | `services/souq/search-indexer-service.ts`                        |
+| **ZATCA**       | Invoice clearance API      | 10 000 (`ZATCA_TIMEOUT_MS`)          | 3 attempts, 1 s delay         | 60 s             | `app/api/payments/paytabs/callback/route.ts`                     |
+
+All numbers live in `config/service-timeouts.ts` and may be overridden by the
+environment variables shown above.
+
+## PayTabs latency guarantees
+
+- PayTabs publishes a 15 s SLA for payment requests and recommends issuing a
+  duplicate `tran_ref` query before failing the transaction. We encode that as
+  the default `PAYTABS_TIMEOUT_MS` and limit retries to three.
+- Payout submissions and refunds tend to complete faster, but we still budget
+  12–15 s, aligned with PayTabs’ Saudi data-center round-trip averages.
+- Verification calls (`payment/query`) use a tighter 8 s budget because they
+  execute synchronously in the payment callback route and must return within the
+  HTTP timeout window.
+
+## Twilio timeout recommendations
+
+Twilio’s REST guidelines recommend a 5–10 s read timeout. We standardize on:
+
+- `TWILIO_TIMEOUT_MS=10000` for SMS/WhatsApp sends.
+- `TWILIO_STATUS_TIMEOUT_MS=5000` for delivery lookups.
+- All Twilio SDK calls pass through `withTwilioResilience` in `lib/sms.ts`.
+
+Retries only occur on connection-level failures; Twilio responses with a valid
+SID are treated as final to avoid double-sending messages.
+
+## Meilisearch query timeouts
+
+- Query endpoints now use `withMeiliResilience('products-search', 'search', …)`
+  so every search request inherits the 3 s timeout and breaker.
+- Index writes run through the same helper with the 5 s indexing budget.
+- These budgets are intentionally lower than the API gateway timeouts to fail
+  fast and trigger retries inside Fixzit instead of letting user requests hang.
+
+## Implementation references
+
+- PayTabs resilience: `lib/paytabs.ts`, `app/api/payments/paytabs/*`.
+- Twilio resilience: `lib/sms.ts`, `services/notifications/fm-notification-engine.ts`.
+- Meilisearch resilience: `lib/meilisearch-client.ts`, `services/souq/search-indexer-service.ts`, `app/api/souq/search/route.ts`.
+- Shared tooling: `lib/resilience/*`, `config/service-timeouts.ts`.
+
+Refer back to this playbook whenever adding a new integration or adjusting the
+budgets so that every service follows the same patterns.
+
+]]>
+</file>
+
+<file path="docs/payment-integration-checklist.md">
+<![CDATA[
+# Payment Integration Testing Checklist
+
+**Status:** Draft - Requires Backend Access & Monitoring Setup
+
+## Quick Status Snapshot
+
+| Area                            | Status                          | Owner               | Notes                                                                                      |
+| ------------------------------- | ------------------------------- | ------------------- | ------------------------------------------------------------------------------------------ |
+| Form/API Payload Validation     | ⚠️ Blocked (needs backend spec) | Payments Pod        | Waiting on final API contracts + example payloads before promoting checklist to \"Ready\". |
+| Timeout & Retry Patterns        | 🚧 In Discovery                 | Platform Enablement | Fetch call inventory not yet documented; need idempotency policy & SLA inputs.             |
+| Notification Logging Durability | ✅ Base Layer Ready             | Notifications Team  | Mongo TTL collections + DLQ wired; only monitoring hooks outstanding.                      |
+| Monitoring & Alerting           | 🔴 Not Defined                  | SRE / Observability | Dashboards + alert rules undefined; must coordinate with infra before rollout.             |
+| Test Harness                    | 🟡 Partially Ready              | QA Automation       | Signing script exists, but chaos + retry simulations still TBD.                            |
+
+_Tracked in `CODE_QUALITY_IMPROVEMENTS_REPORT.md` under “Outstanding Backlog & Action Plan” row #1._
+
+## Context
+
+This checklist documents what needs verification before implementing payment flow improvements. These items require runtime visibility and backend access that isn't currently available.
+
+---
+
+## 1. Form/API Payload Validation
+
+### Current State
+
+- PayTabs callback handlers live in:
+  - `app/api/paytabs/callback/route.ts` → subscription activation
+  - `app/api/payments/paytabs/callback/route.ts` → marketplace/ZATCA compliance
+  - `app/api/billing/callback/paytabs/route.ts` → invoice settlement
+- All handlers are required to use `lib/payments/paytabs-callback.contract.ts` which provides:
+  - `PaytabsCallbackPayloadSchema` (zod) for canonical validation
+  - `normalizePaytabsCallbackPayload()` for consistent field mapping + metadata parsing (`metadata`, `user_defined`, `udf1`)
+  - `extractPaytabsSignature()` for header/body fallback
+  - `PAYTABS_CALLBACK_MAX_BYTES` (default 32 KB) enforced via `enforcePaytabsPayloadSize()`
+  - `buildPaytabsIdempotencyKey()` to combine `tranRef`, `cartId`, and `respStatus`
+- Signature validation still requires the `signature` header and now falls back to `x-paytabs-signature`, `paytabs-signature`, `signature`, `sign`, or `payment_signature` fields before rejecting the request.
+- Canonical normalized fields:
+  | Field | Source |
+  | --- | --- |
+  | `tranRef` | `tran_ref`, `tranRef`, `transaction_reference` |
+  | `cartId` | `cart_id`, `cartId`, `invoice_id`, `order_id` |
+  | `respStatus` | `payment_result.response_status`, `resp_status`, `respStatus` |
+  | `respMessage` | `payment_result.response_message`, `resp_message` |
+  | `token` | `token` |
+  | `customerEmail` | `customer_details.email`, `customer_email`, `payment_info.customer_email` |
+  | `amount` | `cart_amount`, `cartAmount`, `tran_total`, `amount` |
+  | `currency` | `cart_currency`, `tran_currency`, `currency` |
+  | `metadata` | `metadata`, `user_defined`, `udf1` (JSON string or object) |
+  | `maskedCard` | `payment_info.payment_description`, `payment_info.masked_card` |
+- Rate limits:
+  - Shared defaults: `PAYTABS_CALLBACK_RATE_LIMIT` (requests/minute, default 60) and `PAYTABS_CALLBACK_RATE_WINDOW_MS` (default 60s).
+  - Payloads exceeding `PAYTABS_CALLBACK_MAX_BYTES` receive HTTP 413.
+- Idempotency:
+  - `buildPaytabsIdempotencyKey()` + `withIdempotency()` wrap subscription, marketplace, and billing callbacks.
+  - TTL controlled via `PAYTABS_CALLBACK_IDEMPOTENCY_TTL_MS` (default 5 minutes).
+
+### Tap Webhook Guard Status
+
+- Tap Payments webhook (`app/api/payments/tap/webhook/route.ts`) now mirrors the same perimeter controls:
+  - Rate limit: `TAP_WEBHOOK_RATE_LIMIT` per `TAP_WEBHOOK_RATE_WINDOW_MS` (defaults 60 requests / 60s).
+  - Payload cap: `TAP_WEBHOOK_MAX_BYTES` (default 64 KB) enforced before signature validation.
+  - Signature verification still uses `x-tap-signature` and `tapPayments.parseWebhookEvent`.
+  - Idempotency: each Tap event is wrapped in `withIdempotency('tap:webhook:${event.id}')` with TTL controlled by `TAP_WEBHOOK_IDEMPOTENCY_TTL_MS` (default 5 minutes).
+
+### Status Summary (Updated: 2025-11-18)
+
+| Requirement                         | Owner            | Status                                                                                        | Notes |
+| ----------------------------------- | ---------------- | --------------------------------------------------------------------------------------------- | ----- |
+| Backend API documentation / OpenAPI | Payments Pod     | ✅ Available (`openapi.yaml` section `payments-paytabs` & `payments-tap`)                     |
+| Sample successful payloads          | DocOps           | ✅ Added in _Sample Payload Library_ below                                                    |
+| Sample error responses / taxonomy   | DocOps + Backend | ✅ Added in _Error Response Matrix_ below                                                     |
+| Field validation rules              | Backend          | ✅ Documented below (required/optional per gateway)                                           |
+| Payload size limits                 | Platform         | ✅ Enforced via `PAYTABS_CALLBACK_MAX_BYTES` (32KB) / `TAP_CALLBACK_MAX_BYTES` (32KB)         |
+| Content-Type requirements           | Platform         | ✅ Both callbacks expect `application/json`; rejects others with `415 Unsupported Media Type` |
+
+### Required Before Changes
+
+- [x] Backend API documentation or OpenAPI spec for payment endpoints
+- [x] Sample successful request/response payloads
+- [x] Sample error responses with status codes
+- [x] Field validation rules (required/optional fields)
+- [x] Payload size limits
+- [x] Content-Type requirements
+
+### Sample Payload Library
+
+#### PayTabs — Success (Subscription Invoice Paid)
+
+```json
+{
+  "tran_ref": "TST0001234567",
+  "cart_id": "order-12345",
+  "customer_details": {
+    "name": "Sara Al-Qahtani",
+    "email": "finance@example.com"
+  },
+  "resp_status": "A",
+  "resp_message": "Approved",
+  "amount": 150.0,
+  "currency": "SAR",
+  "payment_result": {
+    "status": "CAPTURED",
+    "code": "000",
+    "message": "Captured"
+  },
+  "metadata": {
+    "invoiceId": "INV-2025-00045",
+    "tenantId": "tenant_souq_01"
+  }
+}
+```
+
+#### PayTabs — Failure (Signature / Fraud)
+
+```json
+{
+  "tran_ref": "TST0009999999",
+  "cart_id": "order-fraud-01",
+  "resp_status": "D",
+  "resp_message": "Declined",
+  "amount": 75.0,
+  "currency": "SAR",
+  "payment_result": {
+    "status": "DECLINED",
+    "code": "401",
+    "message": "Signature mismatch"
+  },
+  "metadata": {
+    "invoiceId": "INV-2025-00092",
+    "tenantId": "tenant_retail_02"
+  }
+}
+```
+
+#### Tap — Success (Charge Captured)
+
+```json
+{
+  "id": "chg_TS01234567890",
+  "object": "charge",
+  "status": "CAPTURED",
+  "amount": 250.0,
+  "currency": "SAR",
+  "description": "Marketplace fulfillment",
+  "metadata": {
+    "order_id": "market-94812",
+    "tenantId": "tenant_fm_03"
+  }
+}
+```
+
+#### Tap — Failure (Insufficient Funds / Retry)
+
+```json
+{
+  "id": "chg_FAIL001",
+  "object": "charge",
+  "status": "FAILED",
+  "response": {
+    "code": "3008",
+    "message": "Insufficient funds",
+    "advice": "Ask customer to contact issuing bank"
+  },
+  "amount": 110.0,
+  "currency": "SAR",
+  "metadata": {
+    "order_id": "market-94899"
+  }
+}
+```
+
+### Field Validation Rules
+
+| Field                                      | Gateway     | Required?   | Notes                                                 |
+| ------------------------------------------ | ----------- | ----------- | ----------------------------------------------------- |
+| `tran_ref`                                 | PayTabs     | ✅          | Used as idempotency key (`paytabsTranRef`)            |
+| `cart_id`                                  | PayTabs     | ✅          | Maps to internal invoice/order id                     |
+| `resp_status`                              | PayTabs     | ✅          | `A` (approved) or `D` (declined); any other → 400     |
+| `amount`                                   | PayTabs/Tap | ✅          | Number; rejects strings                               |
+| `currency`                                 | PayTabs/Tap | ✅          | Must match tenant currency; SAR for Saudi deployments |
+| `metadata.invoiceId` / `metadata.order_id` | Both        | 🟡 Optional | When present, used to enrich audit logs               |
+| `payment_result.status`                    | PayTabs     | 🟡 Optional | If missing, fallback derived from `resp_status`       |
+| `response.code/message`                    | Tap         | 🟡 Optional | Required for failed charges                           |
+
+### Error Response Matrix
+
+| Scenario                      | Status                       | Response Body                                                                            |
+| ----------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------- |
+| Invalid signature             | `401 Unauthorized`           | `{"error":"invalid_signature","message":"PayTabs callback rejected: Invalid signature"}` |
+| Payload exceeds limit (>32KB) | `413 Payload Too Large`      | `{"error":"payload_too_large","limit":32768}`                                            |
+| Unsupported media type        | `415 Unsupported Media Type` | `{"error":"unsupported_media_type","expected":"application/json"}`                       |
+| Rate limit exceeded (>60/min) | `429 Too Many Requests`      | `{"error":"rate_limited","retryAfterMs":60000}`                                          |
+| Duplicate idempotency key     | `200 OK`                     | `{"status":"duplicate","message":"Event replay ignored"}`                                |
+| Server error                  | `500 Internal Server Error`  | `{"error":"internal_error","referenceId":"<sentryId>"}`                                  |
+
+**Monitoring & SLA Notes**
+
+- **Idempotency TTL**: 5 minutes (`PAYTABS_CALLBACK_IDEMPOTENCY_TTL_MS` / `TAP_WEBHOOK_IDEMPOTENCY_TTL_MS`)
+- **Rate limit**: 60 requests / minute per gateway.
+- **Payload ceiling**: 32KB enforced at Fastify middleware level.
+- **Observability**: `pnpm tsx tools/log-tail.ts payments` plus Sentry project `payments-webhooks`.
+
+### Verification Steps
+
+```bash
+# 1) Generate a valid signature for a local payload
+pnpm tsx scripts/sign-paytabs-payload.ts --json '{
+  "cart_id": "SUB-123",
+  "tran_ref": "TRX-001",
+  "resp_status": "A",
+  "amount": 100
+}'
+
+# 2) Use the emitted header to call the callback route
+curl -X POST http://localhost:3000/api/paytabs/callback \
+  -H "Content-Type: application/json" \
+  -H "signature: <output-from-script>" \
+  -d '{"cart_id":"SUB-123","tran_ref":"TRX-001","resp_status":"A","amount":100}'
+
+# 3) Check runtime logs (stdout) or deployment monitor
+tail -f /tmp/route-verify.log | grep "PayTabs"
+# or run ./scripts/monitor-deployment.sh while verify-deployment-readiness.sh executes
+```
+
+### Questions to Answer
+
+1. Does backend accept enriched metadata fields?
+2. Are there rate limits on payment endpoints?
+3. What's the retry policy for failed webhooks?
+4. How are duplicate transactions handled (idempotency)?
+
+### Open Issues / Action Items
+
+| ID    | Owner   | Description                                                        | Status                                      |
+| ----- | ------- | ------------------------------------------------------------------ | ------------------------------------------- |
+| PI-01 | Backend | Provide signed sample payloads for subscriptions + invoices        | ✅ Completed (see _Sample Payload Library_) |
+| PI-02 | Backend | Share error taxonomy + status codes for PayTabs + Twilio hooks     | ✅ Completed (see _Error Response Matrix_)  |
+| PI-03 | QA      | Build MSW/prism mock that exercises signature validation + retries | 🚧 Planned                                  |
+
+---
+
+## 2. Timeout & Retry Patterns
+
+### Current State
+
+- No shared retry utility exists
+- Only one test mentions timeout: `tests/unit/api/api-paytabs.spec.ts`
+- `AbortSignal` pattern used but not extracted
+
+### Required Before Refactoring
+
+- [ ] Inventory all payment-related `fetch()` calls
+- [ ] Current timeout values (if any)
+- [ ] Identify which APIs are:
+  - Idempotent (safe to retry)
+  - Non-idempotent (requires different handling)
+- [ ] Third-party SLA/timeout documentation:
+  - PayTabs API latency guarantees
+  - Twilio timeout recommendations
+  - Meilisearch query timeouts
+
+### Files to Audit
+
+```typescript
+// Search for payment fetch calls
+grep -r "fetch.*payment" app/api/
+grep -r "fetch.*paytabs" app/api/
+grep -r "fetch.*billing" app/api/
+
+// Search for external API calls
+grep -r "twilio" services/
+grep -r "meilisearch" lib/
+```
+
+### Design Decisions Needed
+
+1. **Timeout Strategy:**
+   - Should all APIs use same timeout (15s)?
+   - Different timeouts for sync vs async operations?
+   - Should timeouts be configurable per environment?
+
+2. **Retry Strategy:**
+   - Exponential backoff parameters (initial delay, max retries)?
+   - Which HTTP status codes trigger retry (5xx, 429, etc)?
+   - Circuit breaker needed for degraded services?
+
+3. **Observability:**
+   - Where should timeout/retry metrics be logged?
+   - How to correlate retries with original request?
+   - Alert thresholds for retry failures?
+
+---
+
+## 3. Notification Logging Durability
+
+### Current State
+
+- FM notification engine exists: `services/notifications/fm-notification-engine.ts`
+- NotificationLog collection (`server/models/NotificationLog.ts`) persists each notification with channel results (TTL: `NOTIFICATION_LOG_TTL_DAYS`, default 90 days)
+- NotificationDeadLetter collection captures failed channel attempts for replay (TTL: `NOTIFICATION_DLQ_TTL_DAYS`, default 30 days)
+- Metrics/observability for these collections still missing
+
+### Required Infrastructure
+
+- [ ] **Monitoring Stack:**
+  - Is Prometheus/Grafana available?
+  - CloudWatch/DataDog/New Relic?
+  - Custom metrics endpoint?
+
+- [x] **Persistence Layer:**
+  - `NotificationLog` Mongo collection with TTL (configurable via `NOTIFICATION_LOG_TTL_DAYS`)
+  - Stores recipients, payload summary, per-channel attempts/results
+
+- [x] **Dead Letter Queue (DLQ):**
+  - `NotificationDeadLetter` Mongo collection (`NOTIFICATION_DLQ_TTL_DAYS` TTL)
+  - Records failed channel deliveries with attempt counts for replay jobs
+
+### Questions to Answer
+
+1. **Retention Policy:**
+   - How long to keep notification logs? (30 days? 1 year?)
+   - Compliance requirements (GDPR, SOC2)?
+
+2. **Query Patterns:**
+   - Need to query by user ID?
+   - Search by notification type/status?
+   - Time-range queries for debugging?
+
+3. **Alert Strategy:**
+   - When to alert on delivery failures?
+   - Threshold for DLQ size before escalation?
+   - Dashboard for real-time monitoring?
+
+### Example Schema (Pending Approval)
+
+```typescript
+// MongoDB NotificationLog collection (DRAFT)
+interface NotificationLog {
+  id: string;
+  userId: string;
+  type: "email" | "sms" | "push";
+  provider: "twilio" | "sendgrid" | "expo";
+  status: "pending" | "sent" | "delivered" | "failed" | "dlq";
+  payload: Record<string, any>;
+  attempts: number;
+  lastAttemptAt: Date;
+  errorMessage?: string;
+  deliveredAt?: Date;
+  createdAt: Date;
+}
+```
+
+---
+
+## Testing Requirements
+
+### Local Development
+
+1. **Mock Backend Setup:**
+
+   ```bash
+   # Option 1: Prism mock server from OpenAPI spec
+   npx @stoplight/prism-cli mock openapi.yaml
+
+   # Option 2: MSW (Mock Service Worker)
+   # See: tests/mocks/payment-handlers.ts
+   ```
+
+2. **Environment Variables:**
+   ```bash
+   # .env.test
+   PAYTABS_WEBHOOK_SECRET="test_secret_123"
+   PAYTABS_SERVER_KEY="test_key_456"
+   PAYMENT_TIMEOUT_MS=15000
+   RETRY_MAX_ATTEMPTS=3
+   NOTIFICATION_LOG_ENABLED=true
+   NOTIFICATION_LOG_TTL_DAYS=90
+   NOTIFICATION_DLQ_TTL_DAYS=30
+   ```
+
+```
+
+### Integration Testing Checklist
+- [ ] Test timeout behavior with slow API responses
+- [ ] Test retry logic with transient failures (503, 429)
+- [ ] Test idempotency with duplicate webhook deliveries
+- [ ] Test payload validation with malformed JSON
+- [ ] Test signature verification with invalid signatures
+- [ ] Test notification delivery with DLQ fallback
+
+### Production Readiness
+- [ ] Load testing with expected transaction volume
+- [ ] Chaos testing (network failures, service outages)
+- [ ] Monitoring dashboards configured
+- [ ] Alerting rules defined
+- [ ] Runbook for common failure scenarios
+- [ ] Feature flags for gradual rollout
+
+### Monitoring / Alerting TODOs
+| Item | Owner | Notes |
+|------|-------|-------|
+| Dashboard wiring | SRE | Plug NotificationLog + DLQ metrics into whichever stack is approved (Grafana/CloudWatch). |
+| Alert thresholds | Payments | Define DLQ growth + retry failure alerts; align with incident policy. |
+| Runbook draft | DocOps | Capture failure -> mitigation steps referencing `scripts/monitor-deployment.sh`. |
+
+---
+
+## Next Steps
+
+**Before implementing any changes:**
+
+1. **Schedule Backend Review:**
+   - Meet with backend team to review API contracts
+   - Document payload expectations
+   - Establish SLA for payment endpoints
+
+2. **Infrastructure Planning:**
+   - Choose monitoring stack
+   - Design DLQ architecture
+   - Define metric requirements
+
+3. **Create Test Harness:**
+   - Set up mock payment server
+   - Write integration test suite
+   - Implement chaos testing scenarios
+
+4. **Incremental Rollout:**
+   - Start with non-critical notification types
+   - Monitor metrics for 1 week
+   - Gradually enable for payment flows
+
+### Execution Tracker
+| Milestone | Target Date | Owner | Status |
+|-----------|-------------|-------|--------|
+| Backend contract review scheduled | Nov 20, 2025 | Payments PM | ⏳ Pending |
+| Timeout inventory complete | Nov 22, 2025 | Platform Enablement | 🚧 In Progress |
+| Monitoring plan approved | Nov 25, 2025 | SRE | ⏳ Pending |
+| Test harness demo | Nov 26, 2025 | QA Automation | 🟡 Drafting |
+
+---
+
+## References
+
+- **PayTabs Documentation:** https://site.paytabs.com/en/developer/
+- **Webhook Best Practices:** https://webhooks.fyi/best-practices/
+- **Idempotency Patterns:** https://stripe.com/docs/api/idempotent_requests
+- **Circuit Breaker Pattern:** https://martinfowler.com/bliki/CircuitBreaker.html
+
+---
+
+**Last Updated:** November 18, 2025
+**Owner:** Engineering Team
+**Status:** Draft - Awaiting Backend Access
+```
+
+]]>
+</file>
+
+<file path="docs/payments/idempotency-matrix.md">
+<![CDATA[
+# Payment Idempotency & Retry Matrix
+
+This reference enumerates every payment-adjacent operation and documents whether
+it is idempotent, safe to retry automatically, and which safeguards are in
+place. Engineers should consult this table before adding new retries or queues.
+
+## Shared primitives
+
+- `server/security/idempotency.ts` exposes `createIdempotencyKey` and
+  `withIdempotency` for deterministic deduplication.
+- `lib/resilience/retry.ts` + `lib/resilience/circuit-breaker.ts` provide the
+  only approved retry/backoff implementation.
+- `config/service-timeouts.ts` defines timeout & retry budgets so that retry
+  policies stay in sync with the external vendor SLAs.
+
+## Operation matrix
+
+| Operation                                                                    | Resource                   | Idempotent?                 | Safe to retry?                      | Mechanism                                                                                                      | Notes                                                                                                                                                                        |
+| ---------------------------------------------------------------------------- | -------------------------- | --------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PayTabs payment page creation (`createPaymentPage`, `/api/payments/paytabs`) | `cart_id` (order id)       | ✅ (per PayTabs docs)       | ✅ (3 retries, 15 s timeout)        | Deterministic `cart_id` + `fetchWithRetry`                                                                     | Duplicate requests reuse the same `cart_id` so PayTabs returns the existing `tran_ref`.                                                                                      |
+| PayTabs verification (`verifyPayment`)                                       | `tran_ref`                 | ✅                          | ✅ (3 retries, 8 s timeout)         | Queries are read-only.                                                                                         | Always call before marking an order as paid.                                                                                                                                 |
+| PayTabs refund (`createRefund`)                                              | `refundId` + `tran_ref`    | ⚠️ (application-level only) | ⚠️ Only via `withIdempotency`       | `RefundProcessor` stores retry state in Mongo + uses `createRefund`.                                           | Replaying the same refund payload may duplicate refund attempts if the upstream request succeeded but Fixzit crashed. Guard with `withIdempotency` and refund status checks. |
+| PayTabs payout (`createPayout`)                                              | `payout_reference`         | ⚠️                          | ❌ automatic retries disabled       | `services/souq/settlements/withdrawal-service.ts` logs and falls back to manual flow when PayTabs declines.    | Finance must review declines before resubmitting.                                                                                                                            |
+| ZATCA clearance (`handleSuccessfulMarketplacePayment`)                       | `PAY-{cartId}` invoice     | ✅                          | ✅ (3 retries, 10 s timeout)        | Clearance API wrapped in `withIdempotency` and persisted to DB.                                                | Failing to persist evidence aborts the payment callback.                                                                                                                     |
+| Twilio SMS send (`sendSMS`, `sendBulkSMS`)                                   | Phone recipient            | ❌                          | ❌ unless Twilio never issued a SID | `withTwilioResilience` only retries network failures; once Twilio returns a SID, the send is considered final. | Duplicate sends create customer-facing noise and costs.                                                                                                                      |
+| Twilio status lookup (`getSMSStatus`)                                        | Message SID                | ✅                          | ✅ (3 retries, 5 s timeout)         | Read-only Twilio API.                                                                                          |
+| Meilisearch indexing (`SearchIndexerService`)                                | Product/Seller document ID | ✅                          | ✅ (3 retries, 5 s timeout)         | Index writes overwrite existing documents; safe under retries.                                                 |
+| Meilisearch search (`/api/souq/search`)                                      | Query                      | ✅                          | ✅ (3 retries, 3 s timeout)         | Read-only with breaker to avoid cascading failures.                                                            |
+
+## Non-idempotent operations
+
+These actions **must never** be retried automatically because they either charge
+customers or communicate externally:
+
+1. **Twilio outbound sends** (SMS + WhatsApp) – only retry on transport errors
+   before a SID is issued. All other failures should be surfaced to engineers.
+2. **PayTabs payouts** – PayTabs will requeue payouts when we submit the same
+   reference multiple times, leading to duplicate withdrawals.
+3. **Manual finance adjustments** (e.g., souq settlements) – rely on human
+   review workflows instead of programmatic retries.
+
+Document any new non-idempotent operations here so everyone knows which flows
+are safe to auto-retry and which require manual interventions.
+
+]]>
+</file>
+
+<file path="docs/payments/manual-withdrawal-process.md">
+<![CDATA[
+# PayTabs Withdrawal Strategy & Manual Process
+
+**Last Updated:** November 18, 2025  
+**Owners:** Payments Engineering + Finance Operations
+
+---
+
+## 1. Overview
+
+Fixzit now supports two payout paths for Souq seller withdrawals:
+
+1. **PayTabs payout API** (automated) – used whenever PayTabs credentials are present and the feature flag is enabled.
+2. **Manual bank transfer** (fallback) – used when PayTabs payouts are disabled or if the banking partner rejects the request.
+
+The service layer chooses the path automatically:
+
+| Mode                          | How to Enable                                                                      | Code Path                                                 |
+| ----------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Automated PayTabs payout      | Set `PAYTABS_PAYOUT_ENABLED=true` plus `PAYTABS_PROFILE_ID` & `PAYTABS_SERVER_KEY` | `WithdrawalService.processWithdrawal` → `createPayout()`  |
+| Manual transfer fallback      | Leave `PAYTABS_PAYOUT_ENABLED` unset/false or handle PayTabs errors                | `WithdrawalService.processWithdrawal` → manual completion |
+| SADAD / SPAN bank integration | (Deferred) `ENABLE_SADAD_PAYOUTS=true` once banking partnership is ready           | `PayoutProcessorService.executeBankTransfer`              |
+
+---
+
+## 2. Automated PayTabs Payouts
+
+1. Ensure the following environment variables are set in the deployment target:
+   - `PAYTABS_PROFILE_ID`
+   - `PAYTABS_SERVER_KEY`
+   - `PAYTABS_BASE_URL` (optional – defaults to KSA endpoint)
+   - `PAYTABS_PAYOUT_ENABLED=true`
+2. When a seller submits a withdrawal request, `WithdrawalService` calls `createPayout` with a unique reference (`WD-{timestamp}-{seller}`).
+3. PayTabs responds with a payout id and status (`PROCESSING` or `COMPLETED`). We persist the payout id on the withdrawal record so admins can track status inside Fixzit.
+4. Use the PayTabs back office to verify settlement completion if the status remains `PROCESSING` longer than 24 hours.
+
+**Monitoring**
+
+- Logs are tagged with `[Withdrawal]` and include the withdrawal id, seller id, and PayTabs payout id.
+- Any API error triggers a fallback to manual processing and is visible in Sentry/Datadog.
+
+---
+
+## 3. Manual Bank Transfer Process
+
+Manual processing is still required when:
+
+- PayTabs payouts are disabled (`PAYTABS_PAYOUT_ENABLED=false`).
+- PayTabs responds with a validation or banking error (invalid IBAN, payout limitation, etc.).
+- The seller requests a payout lower than PayTabs’ minimum.
+
+**Runbook**
+
+1. Finance downloads the approved settlement statement from Fixzit.
+2. Verify the withdrawal record in Mongo (`souq_withdrawals`) is marked `processing` and contains the seller bank details.
+3. Execute the transfer through the company banking portal (SARIE/SWIFT).
+4. Record the transaction id in Fixzit by calling `WithdrawalService.updateWithdrawalStatus(...)` or using the admin UI (when available). The `transactionId` field should match the banking confirmation reference.
+5. Notify the seller via email/SMS (the notification queue job is triggered automatically when the status changes to `completed`).
+
+**Tip:** Keep supporting documents (bank confirmations) in the finance shared drive. Use the withdrawal id (`WD-*`) as part of the filename for easy correlation.
+
+---
+
+## 4. SADAD / SPAN Integration Status
+
+The fully automated SADAD/SPAN rail is **deferred to Q1 2026** pending a banking partnership and SAMA approvals.
+
+- Toggle: `ENABLE_SADAD_PAYOUTS`
+- Current default: `false` – the `PayoutProcessorService.executeBankTransfer` method detects this flag and returns a “integration deferred” error, which routes the payout back to manual handling.
+- Required secrets when enabling: `SADAD_API_KEY`, `SADAD_API_SECRET`, `SADAD_API_ENDPOINT`
+- Mode flag: `SADAD_SPAN_MODE=simulation` (default). Live mode is not implemented yet; setting other values will fail fast to avoid accidental activation without a real client.
+- If `ENABLE_SADAD_PAYOUTS=true` but any required secret is missing, the service returns `INTEGRATION_NOT_CONFIGURED` and logs an error, keeping payouts in manual mode.
+- When the partnership is ready, flip the flag to `true`, set the secrets in the secret manager, and replace the simulator with the real client before deployment.
+
+Refer to `services/souq/settlements/payout-processor.ts` for the status check and `docs/completion/EPIC_I_SETTLEMENT_AUTOMATION_COMPLETE.md` for the original implementation plan.
+
+---
+
+## 5. Admin Checklist
+
+1. **Before enabling PayTabs payouts**
+   - Verify credentials in staging.
+   - Dry-run a payout with a test seller.
+   - Confirm notifications reach finance + seller.
+2. **Weekly**
+   - Review `souq_withdrawals` for stuck statuses.
+   - Cross-check PayTabs dashboard totals vs Fixzit ledger.
+3. **Monthly**
+   - Export completed withdrawals for reconciliation.
+   - Audit at least one manual payout trail to ensure the hand-off procedure is still followed.
+
+---
+
+## 6. References
+
+- `services/souq/settlements/withdrawal-service.ts` – entry point that routes between PayTabs and manual flows.
+- `services/souq/settlements/balance-service.ts` – admin approval path that now calls `PayoutProcessorService`.
+- `services/souq/settlements/payout-processor.ts` – SADAD/SPAN pipeline (deferred).
+- `lib/paytabs.ts` – PayTabs payout helper functions.
+
+]]>
+</file>
+
+<file path="docs/performance/BUILD_RESULTS_LATEST.md">
+<![CDATA[
+# Latest Build Results - November 7, 2025
+
+## Build Information
+
+**Date**: November 7, 2025
+**Next.js Version**: 15.5.6
+**Build Type**: Production
+**Environment**: Codespace (Debian GNU/Linux 12)
+
+## Bundle Analysis Summary
+
+### Middleware
+
+- **Size**: 105 KB
+- **Status**: Unchanged (edge runtime limitation prevents optimization)
+- **Note**: Attempted dynamic import optimization had no effect
+
+### Shared Bundle (First Load JS)
+
+- **Size**: 102 KB
+- **Components**: Core Next.js runtime + shared dependencies
+- **Status**: Optimal for current requirements
+
+### Key Page Sizes
+
+#### Public Pages
+
+| Route          | Page Size | First Load | Status               |
+| -------------- | --------- | ---------- | -------------------- |
+| `/` (Homepage) | 24.8 KB   | 221 KB     | Baseline             |
+| `/about`       | -         | -          | Uses PublicProviders |
+| `/privacy`     | 26.0 KB   | 222 KB     | Standard             |
+| `/terms`       | 26.8 KB   | 223 KB     | Standard             |
+| `/help`        | 26.1 KB   | 222 KB     | Standard             |
+
+#### Auth Pages
+
+| Route              | Page Size | First Load | Status              |
+| ------------------ | --------- | ---------- | ------------------- |
+| `/login`           | 30.9 KB   | 227 KB     | Optimized (-1.3 KB) |
+| `/signup`          | 30.9 KB   | 227 KB     | Standard            |
+| `/forgot-password` | 2.11 KB   | 198 KB     | Minimal             |
+
+#### Protected Pages (Dashboard)
+
+| Route           | Page Size | First Load | Status        |
+| --------------- | --------- | ---------- | ------------- |
+| `/dashboard`    | 24.7 KB   | 221 KB     | Standard      |
+| `/fm/dashboard` | 27.4 KB   | 224 KB     | Standard      |
+| `/finance`      | 40.8 KB   | 237 KB     | Heavy (forms) |
+| `/hr`           | 25.0 KB   | 221 KB     | Standard      |
+
+#### Marketplace
+
+| Route                         | Page Size | First Load | Status      |
+| ----------------------------- | --------- | ---------- | ----------- |
+| `/marketplace`                | 2.9 KB    | 199 KB     | Lightweight |
+| `/marketplace/product/[slug]` | 3.96 KB   | 200 KB     | Dynamic     |
+| `/marketplace/cart`           | 173 B     | 196 KB     | Minimal     |
+
+#### Aqar (Real Estate)
+
+| Route           | Page Size | First Load | Status      |
+| --------------- | --------- | ---------- | ----------- |
+| `/aqar`         | 1.3 KB    | 198 KB     | Minimal     |
+| `/aqar/filters` | 26.5 KB   | 223 KB     | Heavy (UI)  |
+| `/aqar/map`     | 2.77 KB   | 199 KB     | Lightweight |
+
+## Provider Optimization Impact
+
+### Implementation
+
+- ✅ Created `PublicProviders` (3 providers: ErrorBoundary, I18nProvider, ThemeProvider)
+- ✅ Created `AuthenticatedProviders` (wraps PublicProviders + 6 auth providers)
+- ✅ Created `ConditionalProviders` (route-based selection)
+- ✅ Updated `app/layout.tsx` to use ConditionalProviders
+
+### Expected Runtime Impact
+
+The provider optimization affects **runtime behavior**, not static bundle size:
+
+**Public Routes** (/, /about, /privacy, /terms, /help, /careers, /aqar/_, /souq/_):
+
+- Runtime providers: 3 (ErrorBoundary, I18nProvider, ThemeProvider)
+- Avoided loading: SessionProvider, TranslationProvider, ResponsiveProvider, CurrencyProvider, TopBarProvider, FormStateProvider
+- **Expected impact**: Faster hydration, reduced initial JavaScript execution
+
+**Auth Routes** (/login, /signup, /forgot-password):
+
+- Runtime providers: 3 (same as public)
+- **Expected impact**: Faster login page load and interaction
+
+**Protected Routes** (/fm/_, /admin/_, /profile, /settings):
+
+- Runtime providers: 9 (full provider tree)
+- **Expected impact**: No change (already optimal for authenticated experience)
+
+### Why Bundle Size Unchanged?
+
+Static bundle analysis shows all code included for code-splitting purposes. The optimization works at runtime:
+
+- Public pages load fewer provider contexts
+- Smaller React tree during hydration
+- Less JavaScript execution during mount
+- Faster Time to Interactive (TTI)
+
+## Optimizations Completed This Session
+
+### 1. Bundle Analyzer Viewing Fix ✅
+
+- **Problem**: vscode-remote:// URLs not working in Codespace
+- **Solution**: Python HTTP server on port 8080
+- **Result**: Bundle analyzer now accessible at http://localhost:8080/client.html
+
+### 2. Login Page Optimization ✅
+
+- **Changes**:
+  - Dynamic import for GoogleSignInButton
+  - Extracted DemoCredentialsSection component
+  - Reduced icon imports (11 → 8)
+- **Result**: 32.2 KB → 30.9 KB (-1.3 KB, -4%)
+
+### 3. Provider Architecture Split ✅
+
+- **Changes**:
+  - Created PublicProviders.tsx (30 lines)
+  - Created AuthenticatedProviders.tsx (56 lines)
+  - Created ConditionalProviders.tsx (67 lines)
+  - Updated app/layout.tsx
+- **Result**: Runtime optimization (validation pending)
+
+## Performance Baseline
+
+**Lighthouse Score**: 82/100 (validated in production)
+
+### Metrics Breakdown
+
+- **Performance**: 82/100
+- **LCP** (Largest Contentful Paint): 3.2s (target <2.5s for 90+)
+- **TBT** (Total Blocking Time): 460ms (target <200ms for 90+)
+- **FCP** (First Contentful Paint): 0.8s ✅
+- **CLS** (Cumulative Layout Shift): 0 ✅
+- **Font-display**: 1.0 ✅ (perfect, already optimal)
+
+### Bottlenecks Identified
+
+1. **LCP**: -0.7s improvement needed
+2. **TBT**: -260ms reduction needed
+3. **JavaScript execution time**: Primary bottleneck
+
+## Next Steps
+
+### Immediate Validation Required
+
+1. **Test Runtime Behavior**
+
+   ```bash
+   pnpm start
+   # Test public page: curl http://localhost:3000/
+   # Test login page: curl http://localhost:3000/login
+   # Test protected page: curl http://localhost:3000/fm/dashboard
+   ```
+
+2. **Lighthouse Audit**
+
+   ```bash
+   lighthouse http://localhost:3000 --output=json --output-path=./reports/lighthouse/post-provider-opt.json
+   # Expected: 85-87/100 (+3-5 points)
+   ```
+
+3. **Chrome DevTools Profiling**
+   - Record page load performance
+   - Measure JavaScript execution time
+   - Compare public vs protected routes
+
+### Future Optimizations (Priority Order)
+
+#### High Priority (Target: 87-90/100)
+
+1. **ClientLayout Dynamic Imports** - Expected: +1-2 points
+   - TopBar, Sidebar, Footer components
+   - Estimated impact: -15-20 KB, -30-40ms TBT
+
+2. **Mongoose Index Cleanup** - Expected: Clean builds
+   - Fix duplicate index warnings
+   - No performance impact, improves maintainability
+
+#### Medium Priority (Target: 90+/100)
+
+3. **SSR Optimization** - Expected: +2-3 points
+   - Database query profiling
+   - Redis caching layer
+   - ISR for semi-static pages
+
+4. **Route Prefetching** - Expected: +1 point
+   - Intelligent link prefetching
+   - Route-based code splitting
+
+#### Low Priority (Polish)
+
+5. **Service Worker** - Expected: +1 point
+   - Offline support
+   - Asset caching strategy
+
+## Build Warnings
+
+### Mongoose Duplicate Indexes
+
+```
+(node:19032) [MONGODB DRIVER] Warning: Index with name already exists with different options
+```
+
+**Affected Models**:
+
+- Documents schema: expiryDate field
+- Vendors schema: code field
+- Multiple schemas: orgId field
+- Owners schema: createdAt field
+
+**Fix Required**: Remove duplicate index definitions in model files
+
+### No ESLint/TypeScript Errors
+
+- ✅ All files passing type checks
+- ✅ All files passing linter checks
+- ✅ Production build successful
+
+## Bundle Analyzer Access
+
+### Starting the Server
+
+```bash
+python3 -m http.server 8080 --directory .next/analyze
+```
+
+### Viewing Reports
+
+- **Client Bundle**: http://localhost:8080/client.html
+- **Server Bundle**: http://localhost:8080/nodejs.html
+- **Edge Runtime**: http://localhost:8080/edge.html
+
+### Key Insights
+
+1. **Largest Packages**:
+   - @auth/\* (authentication) - 30 KB
+   - next runtime - 25 KB
+   - react-dom - 20 KB
+   - i18n libs - 15 KB
+
+2. **Optimization Opportunities**:
+   - ✅ Login page optimized
+   - ✅ Provider split implemented
+   - ⏭️ ClientLayout components (next)
+   - ⏭️ Heavy form libraries (low priority)
+
+## Conclusion
+
+**Session Status**: ✅ Implementation Complete, ⏸️ Validation Pending
+
+**Achievements**:
+
+- Fixed bundle analyzer viewing in Codespace
+- Optimized login page (-1.3 KB)
+- Implemented provider architecture split
+- Organized all documentation
+- Created comprehensive index and guides
+
+**Expected Next Session Outcome**:
+
+- Lighthouse: 85-87/100 (+3-5 points from 82)
+- Runtime performance improvement on public pages
+- Validation of provider optimization strategy
+
+**Risk Assessment**: Low
+
+- All code passing quality gates
+- Architecture sound and tested
+- No breaking changes introduced
+- Backwards compatible implementation
+
+---
+
+**Build Command**: `pnpm build`
+**Build Time**: ~2-3 minutes
+**Build Output**: 180+ routes compiled successfully
+**Status**: ✅ Production Ready
+
+]]>
+</file>
+
+</batch_content>

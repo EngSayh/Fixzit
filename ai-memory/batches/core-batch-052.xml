@@ -1,0 +1,2808 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="components/seller/settlements/TransactionHistory.tsx">
+<![CDATA[
+"use client";
+
+/**
+ * Transaction History Component
+ *
+ * Displays seller's transaction history with filters and pagination.
+ */
+
+import React, { useState } from "react";
+import { logger } from "@/lib/logger";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  ArrowUpCircle,
+  ArrowDownCircle,
+  Filter,
+  Download,
+  Calendar,
+} from "lucide-react";
+
+interface Transaction {
+  transactionId: string;
+  orderId?: string;
+  type: string;
+  amount: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  description: string;
+  createdAt: Date;
+}
+
+interface TransactionHistoryProps {
+  sellerId: string;
+}
+
+const TRANSACTION_TYPES = [
+  { value: "all", label: "الكل (All)" },
+  { value: "sale", label: "مبيعات (Sales)" },
+  { value: "refund", label: "استرداد (Refunds)" },
+  { value: "commission", label: "عمولة (Commission)" },
+  { value: "gateway_fee", label: "رسوم الدفع (Gateway Fees)" },
+  { value: "vat", label: "ضريبة القيمة المضافة (VAT)" },
+  { value: "reserve_hold", label: "حجز (Reserve Hold)" },
+  { value: "reserve_release", label: "إطلاق الحجز (Reserve Release)" },
+  { value: "withdrawal", label: "سحب (Withdrawal)" },
+  { value: "adjustment", label: "تعديل (Adjustment)" },
+];
+
+export function TransactionHistory({ sellerId }: TransactionHistoryProps) {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [filters, setFilters] = useState({
+    type: "all",
+    startDate: "",
+    endDate: "",
+    page: 1,
+    limit: 50,
+  });
+  const [pagination, setPagination] = useState({
+    page: 1,
+    total: 0,
+    pages: 1,
+  });
+
+  const fetchTransactions = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        sellerId,
+        page: filters.page.toString(),
+        limit: filters.limit.toString(),
+      });
+
+      if (filters.type !== "all") {
+        params.append("type", filters.type);
+      }
+      if (filters.startDate) {
+        params.append("startDate", filters.startDate);
+      }
+      if (filters.endDate) {
+        params.append("endDate", filters.endDate);
+      }
+
+      const response = await fetch(
+        `/api/souq/settlements/transactions?${params}`,
+      );
+      const data = await response.json();
+
+      if (response.ok) {
+        setTransactions(data.transactions);
+        setPagination(data.pagination);
+      }
+    } catch (error) {
+      logger.error("Error fetching transactions", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchTransactions();
+  }, [filters]);
+
+  const formatCurrency = (amount: number) => {
+    const sign = amount >= 0 ? "+" : "";
+    return `${sign}${amount.toLocaleString("ar-SA")} ر.س`;
+  };
+
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat("ar-SA", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(date));
+  };
+
+  const getTransactionIcon = (type: string, amount: number) => {
+    if (amount >= 0) {
+      return <ArrowUpCircle className="h-5 w-5 text-success" />;
+    } else {
+      return <ArrowDownCircle className="h-5 w-5 text-destructive" />;
+    }
+  };
+
+  const getTypeLabel = (type: string) => {
+    return TRANSACTION_TYPES.find((t) => t.value === type)?.label || type;
+  };
+
+  const exportToCSV = async () => {
+    try {
+      const { exportToCSV: doExport } = await import("@/lib/export-utils");
+
+      // Filter transactions based on current filters
+      let filtered = transactions;
+      if (filters.type !== "all") {
+        filtered = filtered.filter((t) => t.type === filters.type);
+      }
+      if (filters.startDate) {
+        const start = new Date(filters.startDate).getTime();
+        filtered = filtered.filter(
+          (t) => new Date(t.createdAt).getTime() >= start,
+        );
+      }
+      if (filters.endDate) {
+        const end = new Date(filters.endDate).getTime();
+        filtered = filtered.filter(
+          (t) => new Date(t.createdAt).getTime() <= end,
+        );
+      }
+
+      // Prepare export data
+      const exportData = filtered.map((txn) => ({
+        date: new Date(txn.createdAt).toLocaleDateString(),
+        type: getTypeLabel(txn.type),
+        description: txn.description,
+        amount: `${txn.amount >= 0 ? "+" : ""}${txn.amount.toFixed(2)} SAR`,
+        orderId: txn.orderId || "N/A",
+        balanceBefore: txn.balanceBefore.toFixed(2),
+        balanceAfter: txn.balanceAfter.toFixed(2),
+      }));
+
+      const filename = `transactions-${new Date().toISOString().split("T")[0]}.csv`;
+      doExport(exportData, filename, [
+        { key: "date", label: "Date" },
+        { key: "type", label: "Type" },
+        { key: "description", label: "Description" },
+        { key: "amount", label: "Amount" },
+        { key: "orderId", label: "Order ID" },
+        { key: "balanceBefore", label: "Balance Before" },
+        { key: "balanceAfter", label: "Balance After" },
+      ]);
+
+      logger.info("Transactions exported to CSV", {
+        count: exportData.length,
+        filename,
+      });
+    } catch (error) {
+      logger.error("Failed to export transactions", { error });
+      alert("Failed to export data. Please try again.");
+    }
+  };
+
+  return (
+    <Card className="p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold">
+          سجل المعاملات (Transaction History)
+        </h2>
+        <Button onClick={exportToCSV} variant="outline" size="sm">
+          <Download className="h-4 w-4 me-2" />
+          تصدير (Export CSV)
+        </Button>
+      </div>
+
+      {/* Filters */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            نوع المعاملة (Type)
+          </label>
+          <select
+            value={filters.type}
+            onChange={(e) =>
+              setFilters({ ...filters, type: e.target.value, page: 1 })
+            }
+            className="w-full border rounded-lg px-3 py-2"
+          >
+            {TRANSACTION_TYPES.map((type) => (
+              <option key={type.value} value={type.value}>
+                {type.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            من تاريخ (Start Date)
+          </label>
+          <input
+            type="date"
+            value={filters.startDate}
+            onChange={(e) =>
+              setFilters({ ...filters, startDate: e.target.value, page: 1 })
+            }
+            className="w-full border rounded-lg px-3 py-2"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            إلى تاريخ (End Date)
+          </label>
+          <input
+            type="date"
+            value={filters.endDate}
+            onChange={(e) =>
+              setFilters({ ...filters, endDate: e.target.value, page: 1 })
+            }
+            className="w-full border rounded-lg px-3 py-2"
+          />
+        </div>
+
+        <div className="flex items-end">
+          <Button
+            onClick={() =>
+              setFilters({
+                type: "all",
+                startDate: "",
+                endDate: "",
+                page: 1,
+                limit: 50,
+              })
+            }
+            variant="outline"
+            className="w-full"
+          >
+            <Filter className="h-4 w-4 me-2" />
+            إعادة تعيين (Reset)
+          </Button>
+        </div>
+      </div>
+
+      {/* Transactions List */}
+      {loading ? (
+        <div className="text-center py-12">
+          <p className="text-gray-500">جاري التحميل... (Loading...)</p>
+        </div>
+      ) : transactions.length === 0 ? (
+        <div className="text-center py-12">
+          <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-500">
+            لا توجد معاملات (No transactions found)
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {transactions.map((txn) => (
+            <div
+              key={txn.transactionId}
+              className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+            >
+              <div className="flex items-center gap-4">
+                {getTransactionIcon(txn.type, txn.amount)}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">
+                      {getTypeLabel(txn.type)}
+                    </span>
+                    {txn.orderId && (
+                      <span className="text-xs text-gray-500">
+                        #{txn.orderId}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-600">{txn.description}</p>
+                  <p className="text-xs text-gray-400">
+                    {formatDate(txn.createdAt)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-end">
+                <p
+                  className={`text-lg font-bold ${
+                    txn.amount >= 0 ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  {formatCurrency(txn.amount)}
+                </p>
+                <p className="text-xs text-gray-500">
+                  الرصيد: {formatCurrency(txn.balanceAfter)} (Balance)
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {pagination.pages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-6">
+          <Button
+            onClick={() => setFilters({ ...filters, page: filters.page - 1 })}
+            disabled={filters.page === 1}
+            variant="outline"
+            size="sm"
+          >
+            السابق (Previous)
+          </Button>
+          <span className="text-sm text-gray-600">
+            صفحة {pagination.page} من {pagination.pages} (Page {pagination.page}{" "}
+            of {pagination.pages})
+          </span>
+          <Button
+            onClick={() => setFilters({ ...filters, page: filters.page + 1 })}
+            disabled={filters.page === pagination.pages}
+            variant="outline"
+            size="sm"
+          >
+            التالي (Next)
+          </Button>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/seller/settlements/WithdrawalForm.tsx">
+<![CDATA[
+"use client";
+
+/**
+ * Withdrawal Form Component
+ * Request withdrawal for available balance
+ */
+
+import React, { useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { AlertCircle } from "lucide-react";
+
+interface WithdrawalFormProps {
+  sellerId: string;
+  availableBalance: number;
+  onSuccess: () => void;
+  statementId: string;
+}
+
+export function WithdrawalForm({
+  sellerId: _sellerId,
+  availableBalance,
+  onSuccess,
+  statementId,
+}: WithdrawalFormProps) {
+  const [formData, setFormData] = useState({
+    amount: "",
+    iban: "",
+    accountHolderName: "",
+    accountNumber: "",
+    bankName: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    const amount = parseFloat(formData.amount);
+
+    if (amount < 500) {
+      setError("الحد الأدنى للسحب 500 ر.س (Minimum withdrawal is 500 SAR)");
+      return;
+    }
+
+    if (amount > availableBalance) {
+      setError("الرصيد غير كافٍ (Insufficient balance)");
+      return;
+    }
+
+    if (!formData.iban.startsWith("SA") || formData.iban.length !== 24) {
+      setError("رقم IBAN غير صحيح (Invalid IBAN)");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/souq/settlements/request-payout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount,
+          statementId,
+          bankAccount: {
+            iban: formData.iban,
+            accountHolderName: formData.accountHolderName,
+            accountNumber: formData.accountNumber,
+            bankName: formData.bankName,
+          },
+        }),
+      });
+
+      if (response.ok) {
+        onSuccess();
+        setFormData({
+          amount: "",
+          iban: "",
+          accountHolderName: "",
+          accountNumber: "",
+          bankName: "",
+        });
+      } else {
+        const data = await response.json();
+        setError(data.error || "فشل طلب السحب (Withdrawal request failed)");
+      }
+    } catch {
+      setError("حدث خطأ (An error occurred)");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Card className="p-6">
+      <h2 className="text-2xl font-bold mb-6">طلب سحب (Request Withdrawal)</h2>
+
+      {error && (
+        <div className="mb-4 p-4 bg-destructive/5 border border-red-200 rounded-lg flex items-center gap-2">
+          <AlertCircle className="h-5 w-5 text-destructive" />
+          <p className="text-destructive">{error}</p>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            المبلغ (Amount) <span className="text-destructive">*</span>
+          </label>
+          <input
+            type="number"
+            min="500"
+            max={availableBalance}
+            step="0.01"
+            value={formData.amount}
+            onChange={(e) =>
+              setFormData({ ...formData, amount: e.target.value })
+            }
+            className="w-full border rounded-lg px-4 py-2"
+            placeholder="500.00"
+            required
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            الرصيد المتاح: {availableBalance.toLocaleString("ar-SA")} ر.س
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            IBAN <span className="text-destructive">*</span>
+          </label>
+          <input
+            type="text"
+            value={formData.iban}
+            onChange={(e) =>
+              setFormData({ ...formData, iban: e.target.value.toUpperCase() })
+            }
+            className="w-full border rounded-lg px-4 py-2"
+            placeholder="SA1234567890123456789012"
+            maxLength={24}
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            اسم صاحب الحساب (Account Holder Name){" "}
+            <span className="text-destructive">*</span>
+          </label>
+          <input
+            type="text"
+            value={formData.accountHolderName}
+            onChange={(e) =>
+              setFormData({ ...formData, accountHolderName: e.target.value })
+            }
+            className="w-full border rounded-lg px-4 py-2"
+            required
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              رقم الحساب (Account Number){" "}
+              <span className="text-destructive">*</span>
+            </label>
+            <input
+              type="text"
+              value={formData.accountNumber}
+              onChange={(e) =>
+                setFormData({ ...formData, accountNumber: e.target.value })
+              }
+              className="w-full border rounded-lg px-4 py-2"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              اسم البنك (Bank Name) <span className="text-destructive">*</span>
+            </label>
+            <input
+              type="text"
+              value={formData.bankName}
+              onChange={(e) =>
+                setFormData({ ...formData, bankName: e.target.value })
+              }
+              className="w-full border rounded-lg px-4 py-2"
+              required
+            />
+          </div>
+        </div>
+
+        <Button type="submit" disabled={loading} className="w-full">
+          {loading
+            ? "جاري الإرسال... (Submitting...)"
+            : "طلب سحب (Submit Withdrawal)"}
+        </Button>
+      </form>
+    </Card>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/skeletons/index.tsx">
+<![CDATA[
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+
+/**
+ * Skeleton loader for card grid layouts (properties, projects, assets, etc.)
+ */
+export function CardGridSkeleton({ count = 6 }: { count?: number }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {Array.from({ length: count }).map((_, i) => (
+        <Card key={i}>
+          <CardHeader>
+            <Skeleton className="h-6 w-3/4" />
+            <Skeleton className="h-4 w-1/2 mt-2" />
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+            <div className="flex gap-2 pt-2">
+              <Skeleton className="h-8 w-16" />
+              <Skeleton className="h-8 w-16" />
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Skeleton loader for table layouts (invoices, tickets, etc.)
+ * ✅ FIXED: Rows match header column structure for consistent layout
+ */
+export function TableSkeleton({ rows = 5 }: { rows?: number }) {
+  // ✅ FIXED: Define columns array for consistent header/row structure
+  const columns = [
+    { width: "w-32" }, // Column 1
+    { width: "w-24" }, // Column 2
+    { width: "w-20" }, // Column 3
+    { width: "w-28" }, // Column 4
+  ];
+
+  return (
+    <div className="border border-border rounded-2xl overflow-hidden">
+      {/* Header row */}
+      <div className="bg-muted border-b border-border px-6 py-3 flex gap-4">
+        {columns.map((col, i) => (
+          <Skeleton key={`header-${i}`} className={`h-4 ${col.width}`} />
+        ))}
+      </div>
+      {/* Data rows */}
+      {Array.from({ length: rows }).map((_, rowIndex) => (
+        <div
+          key={rowIndex}
+          className="border-b border-border px-6 py-4 flex gap-4 items-center"
+        >
+          {columns.map((col, colIndex) => (
+            <Skeleton
+              key={`row-${rowIndex}-col-${colIndex}`}
+              className={`h-4 ${col.width}`}
+            />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Skeleton loader for dashboard stats cards
+ */
+export function StatsCardSkeleton({ count = 4 }: { count?: number }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      {Array.from({ length: count }).map((_, i) => (
+        <Card key={i}>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-5 w-24" />
+              <Skeleton className="h-8 w-8 rounded-full" />
+            </div>
+            <Skeleton className="h-10 w-20 mt-4" />
+            <Skeleton className="h-3 w-32 mt-2" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Skeleton loader for form dialogs
+ */
+export function FormSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-10 w-full" />
+      </div>
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-10 w-full" />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+      </div>
+      <Skeleton className="h-10 w-32 mt-6" />
+    </div>
+  );
+}
+
+/**
+ * Skeleton for page header with title and button
+ */
+export function PageHeaderSkeleton() {
+  return (
+    <div className="flex items-center justify-between mb-6">
+      <div>
+        <Skeleton className="h-8 w-64 mb-2" />
+        <Skeleton className="h-4 w-96" />
+      </div>
+      <Skeleton className="h-10 w-32" />
+    </div>
+  );
+}
+
+/**
+ * Full page skeleton for detail pages
+ */
+export function DetailPageSkeleton() {
+  return (
+    <div className="space-y-6">
+      <PageHeaderSkeleton />
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-32" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="space-y-2">
+                    <Skeleton className="h-3 w-24" />
+                    <Skeleton className="h-5 w-full" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="lg:col-span-1">
+          <Card>
+            <CardContent className="p-6 space-y-4">
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-40 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/souq/BuyBoxWinner.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import { Star, Truck, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+interface BuyBoxWinnerProps {
+  winner: {
+    sellerId: {
+      tradeName: string;
+      legalName: string;
+      accountHealth: {
+        status: string;
+        metrics: {
+          odr: number;
+          lsr: number;
+        };
+      };
+    };
+    price: number;
+    fulfillmentMethod: "fbf" | "fbm";
+    shippingSpeed: string;
+    estimatedDelivery: string;
+    metrics: {
+      customerRating: number;
+      onTimeShipRate: number;
+      orderCount: number;
+    };
+    availableQuantity: number;
+  };
+  onAddToCart: (_quantity: number) => void;
+  currency?: string;
+}
+
+export default function BuyBoxWinner({
+  winner,
+  onAddToCart,
+  currency = "SAR",
+}: BuyBoxWinnerProps) {
+  const [quantity, setQuantity] = useState(1);
+  const auto = useAutoTranslator("souq.buyBoxWinner");
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+    }).format(value);
+  };
+
+  const getDeliveryBadge = () => {
+    if (winner.fulfillmentMethod === "fbf") {
+      return (
+        <Badge className="bg-primary/10 text-primary-dark">
+          <Truck className="w-3 h-3 me-1" />
+          {auto("FBF - Fast Delivery", "delivery.badge")}
+        </Badge>
+      );
+    }
+    return null;
+  };
+
+  const getRatingStars = (rating: number) => {
+    return (
+      <div className="flex items-center gap-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            className={`w-4 h-4 ${
+              star <= rating
+                ? "fill-yellow-400 text-yellow-400"
+                : "fill-gray-200 text-gray-200"
+            }`}
+          />
+        ))}
+        <span className="text-sm text-gray-600 ms-1">
+          {auto("({{count}} ratings)", "rating.total").replace(
+            "{{count}}",
+            winner.metrics.orderCount.toLocaleString(),
+          )}
+        </span>
+      </div>
+    );
+  };
+
+  return (
+    <div className="border border-gray-300 rounded-lg p-6 bg-white">
+      {/* Price Section */}
+      <div className="mb-4">
+        <div className="flex items-baseline gap-2">
+          <span className="text-3xl font-bold text-gray-900">
+            {formatCurrency(winner.price)}
+          </span>
+          <span className="text-sm text-gray-600">
+            {auto("& FREE Shipping", "price.freeShipping")}
+          </span>
+        </div>
+        <p className="text-sm text-gray-600 mt-1">
+          {auto("Estimated delivery:", "price.deliveryLabel")}{" "}
+          <strong>{winner.estimatedDelivery}</strong>
+        </p>
+      </div>
+
+      {/* Availability */}
+      <div className="mb-4">
+        {winner.availableQuantity > 0 ? (
+          <div className="flex items-center gap-2 text-success-dark">
+            <CheckCircle2 className="w-5 h-5" />
+            <span className="font-semibold">
+              {auto("In Stock", "stock.available")}
+            </span>
+          </div>
+        ) : (
+          <div className="text-destructive font-semibold">
+            {auto("Out of Stock", "stock.unavailable")}
+          </div>
+        )}
+      </div>
+
+      {/* Quantity Selector */}
+      <div className="mb-4">
+        <label className="text-sm font-medium text-gray-700 mb-2 block">
+          {auto("Quantity", "quantity.label")}
+        </label>
+        <select
+          value={quantity}
+          onChange={(e) => setQuantity(Number(e.target.value))}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+        >
+          {[...Array(Math.min(10, winner.availableQuantity))].map((_, i) => (
+            <option key={i + 1} value={i + 1}>
+              {i + 1}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Add to Cart Button */}
+      <Button
+        onClick={() => onAddToCart(quantity)}
+        disabled={winner.availableQuantity === 0}
+        className="w-full mb-3"
+        size="lg"
+      >
+        {auto("Add to Cart", "actions.addToCart")}
+      </Button>
+
+      {/* Fulfillment Badge */}
+      <div className="mb-4">{getDeliveryBadge()}</div>
+
+      {/* Seller Info */}
+      <div className="border-t border-gray-200 pt-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm text-gray-600">
+            {auto("Sold by", "seller.soldBy")}
+          </span>
+          <span className="font-semibold text-gray-900">
+            {winner.sellerId.tradeName}
+          </span>
+        </div>
+
+        {/* Seller Rating */}
+        <div className="mb-2">
+          {getRatingStars(winner.metrics.customerRating)}
+        </div>
+
+        {/* Seller Metrics */}
+        <div className="space-y-1 text-sm text-gray-600">
+          <div className="flex items-center justify-between">
+            <span>{auto("On-time shipping", "metrics.onTimeShipping")}</span>
+            <span className="font-medium">
+              {(winner.metrics.onTimeShipRate * 100).toFixed(0)}%
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span>{auto("Order defect rate", "metrics.odr")}</span>
+            <span className="font-medium">
+              {(winner.sellerId.accountHealth.metrics.odr * 100).toFixed(2)}%
+            </span>
+          </div>
+        </div>
+
+        {/* Trust Badges */}
+        {winner.sellerId.accountHealth.status === "excellent" && (
+          <div className="mt-3 flex items-center gap-2 text-sm text-success-dark">
+            <ShieldCheck className="w-4 h-4" />
+            <span>
+              {auto("Verified Excellent Seller", "badge.verifiedSeller")}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/souq/OtherOffersTab.tsx">
+<![CDATA[
+"use client";
+
+import { useState, useMemo, useCallback } from "react";
+import { Star, Truck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { useTranslation } from "@/contexts/TranslationContext";
+
+type SortOption = "price" | "rating" | "delivery";
+
+interface Offer {
+  _id: string;
+  sellerId: {
+    _id: string;
+    tradeName: string;
+    legalName: string;
+    accountHealth: {
+      status: string;
+      metrics: {
+        odr: number;
+      };
+    };
+  };
+  price: number;
+  fulfillmentMethod: "fbf" | "fbm";
+  shippingSpeed: string;
+  shippingCost: number;
+  estimatedDelivery: string;
+  condition: string;
+  metrics: {
+    customerRating: number;
+    orderCount: number;
+  };
+  availableQuantity: number;
+}
+
+interface OtherOffersTabProps {
+  offers: Offer[];
+  currentWinnerId?: string;
+  onAddToCart: (_offerId: string, _quantity: number) => void;
+  currency?: string;
+  locale?: string;
+}
+
+export default function OtherOffersTab({
+  offers,
+  currentWinnerId,
+  onAddToCart,
+  currency = "SAR",
+  locale: localeProp,
+}: OtherOffersTabProps) {
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [sortBy, setSortBy] = useState<SortOption>("price");
+  const auto = useAutoTranslator("souq.otherOffers");
+  const { isRTL } = useTranslation();
+
+  // Locale-aware currency formatting
+  const locale = localeProp ?? (isRTL ? "ar-SA" : "en-US");
+  const formatCurrency = useCallback(
+    (value: number) =>
+      new Intl.NumberFormat(locale, {
+        style: "currency",
+        currency,
+      }).format(value),
+    [locale, currency],
+  );
+
+  const getRatingDisplay = (rating: number, count: number) => {
+    return (
+      <div className="flex items-center gap-1">
+        <Star className="w-4 h-4 fill-yellow-400 text-warning" />
+        <span className="text-sm font-medium">{rating.toFixed(1)}</span>
+        <span className="text-xs text-muted-foreground">({count})</span>
+      </div>
+    );
+  };
+
+  const handleQuantityChange = (offerId: string, value: number) => {
+    setQuantities((prev) => ({ ...prev, [offerId]: value }));
+  };
+
+  // Sort offers based on selected option
+  const sortedOffers = useMemo(() => {
+    const sorted = [...offers];
+    switch (sortBy) {
+      case "price":
+        return sorted.sort((a, b) => (a.price + a.shippingCost) - (b.price + b.shippingCost));
+      case "rating":
+        return sorted.sort((a, b) => b.metrics.customerRating - a.metrics.customerRating);
+      case "delivery":
+        // FBF (Fulfillment by Fixzit) first, then by estimated delivery
+        return sorted.sort((a, b) => {
+          if (a.fulfillmentMethod === "fbf" && b.fulfillmentMethod !== "fbf") return -1;
+          if (b.fulfillmentMethod === "fbf" && a.fulfillmentMethod !== "fbf") return 1;
+          return a.estimatedDelivery.localeCompare(b.estimatedDelivery);
+        });
+      default:
+        return sorted;
+    }
+  }, [offers, sortBy]);
+
+  if (offers.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">
+          {auto(
+            "No other offers available for this product.",
+            "emptyState.message",
+          )}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-foreground">
+          {offers.length}{" "}
+          {offers.length > 1
+            ? auto("sellers offering this product", "heading.multiple")
+            : auto("seller offering this product", "heading.single")}
+        </h3>
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as SortOption)}
+          className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground"
+        >
+          <option value="price">
+            {auto("Sort by: Price (Low to High)", "sort.price")}
+          </option>
+          <option value="rating">
+            {auto("Sort by: Customer Rating", "sort.rating")}
+          </option>
+          <option value="delivery">
+            {auto("Sort by: Fastest Delivery", "sort.delivery")}
+          </option>
+        </select>
+      </div>
+
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>{auto("Price", "table.price")}</TableHead>
+            <TableHead>{auto("Condition", "table.condition")}</TableHead>
+            <TableHead>{auto("Seller", "table.seller")}</TableHead>
+            <TableHead>{auto("Rating", "table.rating")}</TableHead>
+            <TableHead>{auto("Delivery", "table.delivery")}</TableHead>
+            <TableHead>{auto("Qty", "table.quantity")}</TableHead>
+            <TableHead></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {sortedOffers.map((offer) => {
+            const isWinner = offer._id === currentWinnerId;
+            const quantity = quantities[offer._id] || 1;
+
+            return (
+              <TableRow
+                key={offer._id}
+                className={isWinner ? "bg-primary/10" : ""}
+              >
+                {/* Price */}
+                <TableCell>
+                  <div>
+                    <div className="font-bold text-foreground">
+                      {formatCurrency(offer.price)}
+                    </div>
+                    {offer.shippingCost > 0 ? (
+                      <div className="text-xs text-muted-foreground">
+                        {auto(
+                          "+ {{amount}} shipping",
+                          "price.shipping",
+                        ).replace(
+                          "{{amount}}",
+                          formatCurrency(offer.shippingCost),
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-success font-medium">
+                        {auto("FREE Shipping", "price.freeShipping")}
+                      </div>
+                    )}
+                  </div>
+                </TableCell>
+
+                {/* Condition */}
+                <TableCell>
+                  <span className="text-sm text-muted-foreground capitalize">
+                    {offer.condition}
+                  </span>
+                </TableCell>
+
+                {/* Seller */}
+                <TableCell>
+                  <div>
+                    <div className="font-medium text-foreground">
+                      {offer.sellerId.tradeName}
+                    </div>
+                    {offer.sellerId.accountHealth.status === "excellent" && (
+                      <Badge
+                        variant="outline"
+                        className="text-xs bg-success/5 text-success-dark border-success/30"
+                      >
+                        {auto("Top Seller", "badge.topSeller")}
+                      </Badge>
+                    )}
+                    {isWinner && (
+                      <Badge className="text-xs bg-primary/10 text-primary-dark ms-1">
+                        {auto("Buy Box Winner", "badge.buyBoxWinner")}
+                      </Badge>
+                    )}
+                  </div>
+                </TableCell>
+
+                {/* Rating */}
+                <TableCell>
+                  {getRatingDisplay(
+                    offer.metrics.customerRating,
+                    offer.metrics.orderCount,
+                  )}
+                </TableCell>
+
+                {/* Delivery */}
+                <TableCell>
+                  <div className="space-y-1">
+                    <div className="text-sm text-muted-foreground">
+                      {offer.estimatedDelivery}
+                    </div>
+                    {offer.fulfillmentMethod === "fbf" && (
+                      <div className="flex items-center gap-1 text-xs text-primary">
+                        <Truck className="w-3 h-3" />
+                        <span>{auto("FBF", "delivery.fbf")}</span>
+                      </div>
+                    )}
+                  </div>
+                </TableCell>
+
+                {/* Quantity */}
+                <TableCell>
+                  <select
+                    value={quantity}
+                    onChange={(e) =>
+                      handleQuantityChange(offer._id, Number(e.target.value))
+                    }
+                    className="w-16 px-2 py-1 border border-border rounded text-sm bg-background text-foreground"
+                    disabled={offer.availableQuantity === 0}
+                  >
+                    {[...Array(Math.min(10, offer.availableQuantity))].map(
+                      (_, i) => (
+                        <option key={i + 1} value={i + 1}>
+                          {i + 1}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                </TableCell>
+
+                <TableCell>
+                  {offer.availableQuantity > 0 ? (
+                    <Button
+                      onClick={() => onAddToCart(offer._id, quantity)}
+                      variant={isWinner ? "default" : "outline"}
+                      size="sm"
+                    >
+                      {auto("Add to Cart", "actions.addToCart")}
+                    </Button>
+                  ) : (
+                    <span className="text-sm text-destructive">
+                      {auto("Out of Stock", "status.outOfStock")}
+                    </span>
+                  )}
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+
+      {/* Summary */}
+      <div className="mt-4 p-4 bg-muted rounded-lg">
+        <h4 className="font-semibold text-foreground mb-2">
+          {auto("About these offers", "summary.title")}
+        </h4>
+        <ul className="space-y-1 text-sm text-muted-foreground">
+          <li>
+            •{" "}
+            {auto(
+              "Prices and availability may change without notice",
+              "summary.pricesChange",
+            )}
+          </li>
+          <li>
+            •{" "}
+            {auto(
+              "Shipping costs are estimates and may vary based on your location",
+              "summary.shipping",
+            )}
+          </li>
+          <li>
+            •{" "}
+            {auto(
+              "All sellers must meet our quality standards",
+              "summary.quality",
+            )}
+          </li>
+          <li>
+            •{" "}
+            {auto(
+              "FBF (Fulfillment by Fixzit) offers faster, more reliable delivery",
+              "summary.fbf",
+            )}
+          </li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/souq/SearchBar.tsx">
+<![CDATA[
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import { Search, X, Clock, TrendingUp } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useDebounce } from "@/hooks/useDebounce";
+import { logger } from "@/lib/logger";
+
+interface SearchSuggestion {
+  type: "product" | "category" | "recent";
+  text: string;
+  fsin?: string;
+  category?: string;
+}
+
+interface SearchBarProps {
+  initialQuery?: string;
+  onSearch?: (_query: string) => void;
+  placeholder?: string;
+  showSuggestions?: boolean;
+}
+
+export default function SearchBar({
+  initialQuery = "",
+  onSearch,
+  placeholder = "Search for products, brands, or categories...",
+  showSuggestions = true,
+}: SearchBarProps) {
+  const router = useRouter();
+  const [query, setQuery] = useState(initialQuery);
+  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [isLoading, setIsLoading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Debounce search query (300ms)
+  const debouncedQuery = useDebounce(query, 300);
+
+  // Fetch suggestions when debounced query changes
+  useEffect(() => {
+    if (!showSuggestions || !debouncedQuery.trim()) {
+      setSuggestions(getRecentSearches());
+      return;
+    }
+
+    const fetchSuggestions = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(
+          `/api/souq/search?q=${encodeURIComponent(debouncedQuery)}&limit=5`,
+        );
+
+        if (!response.ok) throw new Error("Failed to fetch suggestions");
+
+        const data = await response.json();
+
+        // Transform results into suggestions
+        const productSuggestions: SearchSuggestion[] = data.data.hits
+          .slice(0, 5)
+          .map((hit: { title: string; fsin: string }) => ({
+            type: "product" as const,
+            text: hit.title,
+            fsin: hit.fsin,
+          }));
+
+        // Add category suggestions from facets
+        const categorySuggestions: SearchSuggestion[] = Object.keys(
+          data.data.facets?.categories || {},
+        )
+          .slice(0, 3)
+          .map((cat) => ({
+            type: "category" as const,
+            text: cat,
+            category: cat,
+          }));
+
+        setSuggestions([...productSuggestions, ...categorySuggestions]);
+      } catch (error) {
+        logger.error("Failed to fetch search suggestions", error);
+        setSuggestions([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSuggestions();
+  }, [debouncedQuery, showSuggestions]);
+
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Handle keyboard navigation
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showDropdown) return;
+
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        setSelectedIndex((prev) =>
+          prev < suggestions.length - 1 ? prev + 1 : prev,
+        );
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : -1));
+        break;
+      case "Enter":
+        e.preventDefault();
+        if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
+          handleSelectSuggestion(suggestions[selectedIndex]);
+        } else {
+          handleSearch();
+        }
+        break;
+      case "Escape":
+        setShowDropdown(false);
+        inputRef.current?.blur();
+        break;
+    }
+  };
+
+  // Handle search submission
+  const handleSearch = () => {
+    if (!query.trim()) return;
+
+    // Save to recent searches
+    saveRecentSearch(query);
+
+    // Close dropdown
+    setShowDropdown(false);
+
+    // Callback or navigate
+    if (onSearch) {
+      onSearch(query);
+    } else {
+      router.push(`/souq/search?q=${encodeURIComponent(query)}`);
+    }
+  };
+
+  // Handle suggestion selection
+  const handleSelectSuggestion = (suggestion: SearchSuggestion) => {
+    if (suggestion.type === "product" && suggestion.fsin) {
+      router.push(`/souq/products/${suggestion.fsin}`);
+    } else if (suggestion.type === "category" && suggestion.category) {
+      router.push(
+        `/souq/search?category=${encodeURIComponent(suggestion.category)}`,
+      );
+    } else {
+      setQuery(suggestion.text);
+      handleSearch();
+    }
+
+    setShowDropdown(false);
+  };
+
+  // Clear search
+  const handleClear = () => {
+    setQuery("");
+    setSuggestions(getRecentSearches());
+    inputRef.current?.focus();
+  };
+
+  // Get recent searches from localStorage
+  const getRecentSearches = (): SearchSuggestion[] => {
+    if (typeof window === "undefined") return [];
+
+    try {
+      const recent = JSON.parse(localStorage.getItem("recentSearches") || "[]");
+      return recent.slice(0, 5).map((text: string) => ({
+        type: "recent" as const,
+        text,
+      }));
+    } catch {
+      return [];
+    }
+  };
+
+  // Save search to recent searches
+  const saveRecentSearch = (searchQuery: string) => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const recent = JSON.parse(localStorage.getItem("recentSearches") || "[]");
+      const updated = [
+        searchQuery,
+        ...recent.filter((s: string) => s !== searchQuery),
+      ].slice(0, 10);
+      localStorage.setItem("recentSearches", JSON.stringify(updated));
+    } catch (error) {
+      logger.error("Failed to save recent search", error);
+    }
+  };
+
+  return (
+    <div className="relative w-full max-w-2xl">
+      {/* Search Input */}
+      <div className="relative">
+        <div className="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none">
+          <Search className="h-5 w-5 text-gray-400" />
+        </div>
+
+        <input
+          ref={inputRef}
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onFocus={() => setShowDropdown(true)}
+          placeholder={placeholder}
+          className="block w-full ps-10 pe-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+        />
+
+        {query && (
+          <button
+            onClick={handleClear}
+            className="absolute inset-y-0 end-0 pe-3 flex items-center text-gray-400 hover:text-gray-600"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        )}
+      </div>
+
+      {/* Suggestions Dropdown */}
+      {showDropdown && showSuggestions && (
+        <div
+          ref={dropdownRef}
+          className="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-96 overflow-y-auto"
+        >
+          {isLoading ? (
+            <div className="p-4 text-center text-gray-500">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+            </div>
+          ) : suggestions.length > 0 ? (
+            <ul className="py-2">
+              {suggestions.map((suggestion, index) => (
+                <li key={index}>
+                  <button
+                    onClick={() => handleSelectSuggestion(suggestion)}
+                    onMouseEnter={() => setSelectedIndex(index)}
+                    className={`w-full px-4 py-2 text-start hover:bg-gray-50 flex items-center gap-3 ${
+                      selectedIndex === index ? "bg-gray-50" : ""
+                    }`}
+                  >
+                    {suggestion.type === "recent" && (
+                      <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                    )}
+                    {suggestion.type === "category" && (
+                      <TrendingUp className="h-4 w-4 text-primary flex-shrink-0" />
+                    )}
+                    {suggestion.type === "product" && (
+                      <Search className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                    )}
+
+                    <span className="text-sm text-gray-700 flex-1">
+                      {suggestion.text}
+                    </span>
+
+                    {suggestion.type === "category" && (
+                      <span className="text-xs text-gray-500">Category</span>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : query.trim() ? (
+            <div className="p-4 text-center text-gray-500">
+              No suggestions found
+            </div>
+          ) : (
+            <div className="p-4 text-center text-gray-500">
+              Start typing to search...
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/souq/SearchFilters.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ChevronDown, ChevronRight, X } from "lucide-react";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+interface Facets {
+  categories: Record<string, number>;
+  subcategories: Record<string, number>;
+  ratings: Record<string, number>;
+  badges: Record<string, number>;
+  priceRanges: Record<string, number>;
+}
+
+interface SearchFiltersProps {
+  facets?: Facets;
+}
+
+export default function SearchFilters({ facets }: SearchFiltersProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const auto = useAutoTranslator("souq.searchFilters");
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(
+    new Set(["categories", "price", "rating"]),
+  );
+
+  // Get current filter values
+  const currentCategory = searchParams?.get("category");
+  const currentMinPrice = searchParams?.get("minPrice");
+  const currentMaxPrice = searchParams?.get("maxPrice");
+  const currentMinRating = searchParams?.get("minRating");
+  const currentBadges =
+    searchParams?.get("badges")?.split(",").filter(Boolean) || [];
+
+  // Toggle section expansion
+  const toggleSection = (section: string) => {
+    const newExpanded = new Set(expandedSections);
+    if (newExpanded.has(section)) {
+      newExpanded.delete(section);
+    } else {
+      newExpanded.add(section);
+    }
+    setExpandedSections(newExpanded);
+  };
+
+  // Apply filter
+  const applyFilter = (key: string, value: string | null) => {
+    const params = new URLSearchParams(searchParams?.toString() || "");
+
+    if (value === null) {
+      params.delete(key);
+    } else {
+      params.set(key, value);
+    }
+
+    // Reset to page 1 when filters change
+    params.set("page", "1");
+
+    router.push(`/souq/search?${params.toString()}`);
+  };
+
+  // Toggle badge filter
+  const toggleBadge = (badge: string) => {
+    const params = new URLSearchParams(searchParams?.toString() || "");
+    const currentBadges =
+      params.get("badges")?.split(",").filter(Boolean) || [];
+
+    if (currentBadges.includes(badge)) {
+      // Remove badge
+      const newBadges = currentBadges.filter((b) => b !== badge);
+      if (newBadges.length > 0) {
+        params.set("badges", newBadges.join(","));
+      } else {
+        params.delete("badges");
+      }
+    } else {
+      // Add badge
+      params.set("badges", [...currentBadges, badge].join(","));
+    }
+
+    params.set("page", "1");
+    router.push(`/souq/search?${params.toString()}`);
+  };
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    const params = new URLSearchParams();
+    const query = searchParams?.get("q");
+    if (query) params.set("q", query);
+    router.push(`/souq/search?${params.toString()}`);
+  };
+
+  // Check if any filters are active
+  const hasActiveFilters =
+    currentCategory ||
+    currentMinPrice ||
+    currentMaxPrice ||
+    currentMinRating ||
+    currentBadges.length > 0;
+
+  return (
+    <div className="space-y-6">
+      {/* Active Filters */}
+      {hasActiveFilters && (
+        <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-primary-dark">
+              {auto("Active Filters", "activeFiltersHeading")}
+            </h3>
+            <button
+              onClick={clearAllFilters}
+              className="text-xs text-primary hover:text-primary-dark font-medium"
+            >
+              {auto("Clear All", "clearAllButton")}
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {currentCategory && (
+              <FilterChip
+                label={`${auto("Category", "chip.categoryLabel")}: ${currentCategory}`}
+                removeLabel={auto("Remove filter", "chip.remove")}
+                onRemove={() => applyFilter("category", null)}
+              />
+            )}
+            {currentMinPrice && (
+              <FilterChip
+                label={`${auto("Min", "chip.min")}: ${currentMinPrice} SAR`}
+                removeLabel={auto("Remove filter", "chip.remove")}
+                onRemove={() => applyFilter("minPrice", null)}
+              />
+            )}
+            {currentMaxPrice && (
+              <FilterChip
+                label={`${auto("Max", "chip.max")}: ${currentMaxPrice} SAR`}
+                removeLabel={auto("Remove filter", "chip.remove")}
+                onRemove={() => applyFilter("maxPrice", null)}
+              />
+            )}
+            {currentMinRating && (
+              <FilterChip
+                label={`${currentMinRating}+ ${auto("Stars", "chip.stars")}`}
+                removeLabel={auto("Remove filter", "chip.remove")}
+                onRemove={() => applyFilter("minRating", null)}
+              />
+            )}
+            {currentBadges.map((badge) => (
+              <FilterChip
+                key={badge}
+                label={badge}
+                removeLabel={auto("Remove filter", "chip.remove")}
+                onRemove={() => toggleBadge(badge)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Categories */}
+      <FilterSection
+        title={auto("Categories", "section.categories")}
+        expanded={expandedSections.has("categories")}
+        onToggle={() => toggleSection("categories")}
+      >
+        <div className="space-y-2">
+          {facets?.categories &&
+            Object.entries(facets.categories).map(([category, count]) => (
+              <button
+                key={category}
+                onClick={() =>
+                  applyFilter(
+                    "category",
+                    category === currentCategory ? null : category,
+                  )
+                }
+                className={`w-full text-start px-3 py-2 rounded-lg hover:bg-muted flex items-center justify-between ${
+                  currentCategory === category
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "text-foreground"
+                }`}
+              >
+                <span className="text-sm">{category}</span>
+                <span className="text-xs text-gray-500">({count})</span>
+              </button>
+            ))}
+        </div>
+      </FilterSection>
+
+      {/* Price Range */}
+      <FilterSection
+        title={auto("Price Range", "section.price")}
+        expanded={expandedSections.has("price")}
+        onToggle={() => toggleSection("price")}
+      >
+        <div className="space-y-2">
+          {facets?.priceRanges &&
+            Object.entries(facets.priceRanges).map(([range, count]) => {
+              if (count === 0) return null;
+
+              // Parse range (e.g., "50 - 100 SAR")
+              const match = range.match(/(\d+)\s*-\s*(\d+)/);
+              const min = match ? match[1] : null;
+              const max = match ? match[2] : null;
+
+              const isActive =
+                currentMinPrice === min && currentMaxPrice === max;
+
+              return (
+                <button
+                  key={range}
+                  onClick={() => {
+                    if (isActive) {
+                      applyFilter("minPrice", null);
+                      applyFilter("maxPrice", null);
+                    } else if (min && max) {
+                      if (!searchParams) return;
+                      const params = new URLSearchParams(
+                        searchParams.toString(),
+                      );
+                      params.set("minPrice", min);
+                      params.set("maxPrice", max);
+                      params.set("page", "1");
+                      router.push(`/souq/search?${params.toString()}`);
+                    }
+                  }}
+                  className={`w-full text-start px-3 py-2 rounded-lg hover:bg-muted flex items-center justify-between ${
+                    isActive
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "text-foreground"
+                  }`}
+                >
+                  <span className="text-sm">{range}</span>
+                  <span className="text-xs text-gray-500">({count})</span>
+                </button>
+              );
+            })}
+        </div>
+      </FilterSection>
+
+      {/* Rating */}
+      <FilterSection
+        title={auto("Customer Rating", "section.rating")}
+        expanded={expandedSections.has("rating")}
+        onToggle={() => toggleSection("rating")}
+      >
+        <div className="space-y-2">
+          {[4, 3, 2, 1].map((rating) => (
+            <button
+              key={rating}
+              onClick={() =>
+                applyFilter(
+                  "minRating",
+                  currentMinRating === rating.toString()
+                    ? null
+                    : rating.toString(),
+                )
+              }
+              className={`w-full text-start px-3 py-2 rounded-lg hover:bg-muted flex items-center gap-2 ${
+                currentMinRating === rating.toString()
+                  ? "bg-primary/10 text-primary font-medium"
+                  : "text-foreground"
+              }`}
+            >
+              <div className="flex items-center">
+                {[...Array(5)].map((_, i) => (
+                  <span
+                    key={i}
+                    className={i < rating ? "text-yellow-400" : "text-gray-300"}
+                  >
+                    ★
+                  </span>
+                ))}
+              </div>
+              <span className="text-sm">{auto("& Up", "rating.andUp")}</span>
+            </button>
+          ))}
+        </div>
+      </FilterSection>
+
+      {/* Badges */}
+      {facets?.badges && Object.keys(facets.badges).length > 0 && (
+        <FilterSection
+          title={auto("Features", "section.features")}
+          expanded={expandedSections.has("badges")}
+          onToggle={() => toggleSection("badges")}
+        >
+          <div className="space-y-2">
+            {Object.entries(facets.badges).map(([badge, count]) => (
+              <label
+                key={badge}
+                className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-gray-50 cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={currentBadges.includes(badge)}
+                    onChange={() => toggleBadge(badge)}
+                    className="rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <span className="text-sm text-gray-700 capitalize">
+                    {badge.replace("-", " ")}
+                  </span>
+                </div>
+                <span className="text-xs text-gray-500">({count})</span>
+              </label>
+            ))}
+          </div>
+        </FilterSection>
+      )}
+    </div>
+  );
+}
+
+// Filter Section Component
+function FilterSection({
+  title,
+  expanded,
+  onToggle,
+  children,
+}: {
+  title: string;
+  expanded: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="bg-white rounded-lg border border-gray-200">
+      <button
+        onClick={onToggle}
+        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
+      >
+        <h3 className="font-semibold text-gray-900">{title}</h3>
+        {expanded ? (
+          <ChevronDown className="h-5 w-5 text-gray-400" />
+        ) : (
+          <ChevronRight className="h-5 w-5 text-gray-400" />
+        )}
+      </button>
+      {expanded && <div className="px-4 pb-4">{children}</div>}
+    </div>
+  );
+}
+
+// Filter Chip Component
+function FilterChip({
+  label,
+  onRemove,
+  removeLabel,
+}: {
+  label: string;
+  onRemove: () => void;
+  removeLabel?: string;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1 px-3 py-1 bg-white border border-primary/20 rounded-full text-sm text-primary-dark">
+      {label}
+      <button
+        onClick={onRemove}
+        className="hover:bg-primary/10 rounded-full p-0.5"
+        aria-label={removeLabel}
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </span>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/souq/ads/ProductDetailAd.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { Star, ShoppingCart } from "lucide-react";
+import { AuctionWinner } from "@/services/souq/ads/auction-engine";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { logger } from "@/lib/logger";
+
+interface ProductDetailAdProps {
+  winners: AuctionWinner[];
+  context: {
+    productId: string;
+    category?: string;
+  };
+  onImpression?: (_bidId: string, _campaignId: string) => void;
+  onClick?: (_bidId: string, _campaignId: string, _actualCpc: number) => void;
+}
+
+type SponsoredProductData = NonNullable<AuctionWinner["product"]>;
+
+const getBidId = (winner: AuctionWinner): string =>
+  winner.bidId ?? winner.bid.bidId;
+
+const getCampaignId = (winner: AuctionWinner): string =>
+  winner.campaignId ?? winner.campaign.campaignId;
+
+const buildProductData = (winner: AuctionWinner): SponsoredProductData => ({
+  title: winner.product?.title ?? "Sponsored Product",
+  imageUrl: winner.product?.imageUrl,
+  price: winner.product?.price ?? 0,
+  originalPrice: winner.product?.originalPrice,
+  rating: winner.product?.rating,
+  totalReviews: winner.product?.totalReviews,
+  badges: winner.product?.badges ?? [],
+});
+
+export function ProductDetailAd({
+  winners,
+  context,
+  onImpression,
+  onClick,
+}: ProductDetailAdProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [trackedImpressions, setTrackedImpressions] = useState<Set<string>>(
+    new Set(),
+  );
+  const auto = useAutoTranslator("souq.productDetailAd");
+
+  // Track impressions when widget enters viewport
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            winners.forEach((winner) => {
+              const bidId = getBidId(winner);
+              if (!trackedImpressions.has(bidId)) {
+                trackImpression(winner);
+              }
+            });
+          }
+        });
+      },
+      {
+        threshold: 0.5,
+        rootMargin: "0px",
+      },
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => {
+      if (containerRef.current) {
+        observer.unobserve(containerRef.current);
+      }
+    };
+  }, [winners, trackedImpressions]);
+
+  const trackImpression = async (winner: AuctionWinner) => {
+    const bidId = getBidId(winner);
+    const campaignId = getCampaignId(winner);
+    setTrackedImpressions((prev) => new Set(prev).add(bidId));
+
+    try {
+      onImpression?.(bidId, campaignId);
+
+      await fetch("/api/souq/ads/impressions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bidId,
+          campaignId,
+          productId: context.productId,
+          category: context.category,
+        }),
+      });
+    } catch (error) {
+      logger.error("[ProductDetailAd] Failed to track impression", error);
+    }
+  };
+
+  const handleClick = async (winner: AuctionWinner, e: React.MouseEvent) => {
+    e.preventDefault();
+
+    try {
+      const bidId = getBidId(winner);
+      const campaignId = getCampaignId(winner);
+      onClick?.(bidId, campaignId, winner.actualCpc);
+
+      await fetch("/api/souq/ads/clicks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bidId,
+          campaignId,
+          actualCpc: winner.actualCpc,
+          productId: context.productId,
+          category: context.category,
+        }),
+      });
+
+      window.location.href = `/souq/products/${winner.productId}`;
+    } catch (error) {
+      logger.error("[ProductDetailAd] Failed to track click", error);
+      window.location.href = `/souq/products/${winner.productId}`;
+    }
+  };
+
+  const renderStars = (rating: number) => {
+    return (
+      <div className="flex items-center gap-0.5">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            className={`w-3 h-3 ${
+              star <= rating
+                ? "fill-yellow-400 text-yellow-400"
+                : "fill-gray-200 text-gray-200"
+            }`}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  if (winners.length === 0) {
+    return null;
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      className="bg-white rounded-lg border border-gray-200 overflow-hidden"
+    >
+      {/* Header */}
+      <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-gray-900">
+          {auto("Sponsored products related to this item", "header.title")}
+        </h3>
+        <span className="text-xs text-gray-500">
+          {auto("Ad", "header.badge")}
+        </span>
+      </div>
+
+      {/* Ads List */}
+      <div className="divide-y divide-gray-200">
+        {winners.map((winner) => {
+          const product = buildProductData(winner);
+          const bidId = getBidId(winner);
+          return (
+            <Link
+              key={bidId}
+              href={`/souq/products/${winner.productId}`}
+              onClick={(e) => handleClick(winner, e)}
+              className="block p-4 hover:bg-gray-50 transition-colors duration-150"
+            >
+              <div className="flex gap-3">
+                {/* Product Image */}
+                <div className="relative w-24 h-24 flex-shrink-0 bg-gray-50 rounded-md overflow-hidden">
+                  {product.imageUrl ? (
+                    <Image
+                      src={product.imageUrl}
+                      alt={product.title}
+                      fill
+                      className="object-cover"
+                      sizes="96px"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <ShoppingCart className="w-8 h-8 text-gray-300" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Product Info */}
+                <div className="flex-1 min-w-0 space-y-1">
+                  {/* Title */}
+                  <h4 className="text-sm font-medium text-gray-900 line-clamp-2">
+                    {product.title}
+                  </h4>
+
+                  {/* Rating */}
+                  {product.rating && product.totalReviews ? (
+                    <div className="flex items-center gap-1">
+                      {renderStars(product.rating)}
+                      <span className="text-xs text-gray-600">
+                        {auto("({{count}} reviews)", "rating.total").replace(
+                          "{{count}}",
+                          product.totalReviews.toLocaleString(),
+                        )}
+                      </span>
+                    </div>
+                  ) : null}
+
+                  {/* Price */}
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-base font-bold text-gray-900">
+                      {product.price.toFixed(2)} {auto("SAR", "price.currency")}
+                    </span>
+                    {product.originalPrice &&
+                      product.originalPrice > product.price && (
+                        <span className="text-xs text-gray-500 line-through">
+                          {product.originalPrice.toFixed(2)}{" "}
+                          {auto("SAR", "price.currency")}
+                        </span>
+                      )}
+                  </div>
+
+                  {/* Badges */}
+                  {product.badges && product.badges.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {product.badges.slice(0, 2).map((badge: string) => (
+                        <span
+                          key={badge}
+                          className="px-1.5 py-0.5 text-xs font-medium bg-primary/5 text-primary-dark rounded"
+                        >
+                          {badge === "fbf" ? auto("FBF", "badge.fbf") : badge}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* Footer */}
+      <div className="p-3 bg-gray-50 border-t border-gray-200">
+        <p className="text-xs text-gray-500 text-center">
+          {auto(
+            "Sponsored ads help sellers reach more customers",
+            "footer.note",
+          )}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/souq/ads/SponsoredBrandBanner.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
+import { logger } from "@/lib/logger";
+
+interface Product {
+  fsin: string;
+  title: string;
+  imageUrl?: string;
+  price: number;
+  rating?: number;
+  totalReviews?: number;
+}
+
+interface SponsoredBrandBannerProps {
+  campaignId: string;
+  bidId: string;
+  brandName: string;
+  brandLogo?: string;
+  headline: string;
+  products: Product[];
+  actualCpc: number;
+  context: {
+    query?: string;
+    category?: string;
+  };
+  onImpression?: (_bidId: string, _campaignId: string) => void;
+  onClick?: (
+    _bidId: string,
+    _campaignId: string,
+    _productId: string,
+    _actualCpc: number,
+  ) => void;
+}
+
+export function SponsoredBrandBanner({
+  campaignId,
+  bidId,
+  brandName,
+  brandLogo,
+  headline,
+  products,
+  actualCpc,
+  context,
+  onImpression,
+  onClick,
+}: SponsoredBrandBannerProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [impressionTracked, setImpressionTracked] = useState(false);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  // Track impression when banner enters viewport
+  useEffect(() => {
+    if (impressionTracked) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !impressionTracked) {
+            trackImpression();
+          }
+        });
+      },
+      {
+        threshold: 0.3, // 30% of banner must be visible
+        rootMargin: "0px",
+      },
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => {
+      if (containerRef.current) {
+        observer.unobserve(containerRef.current);
+      }
+    };
+  }, [impressionTracked]);
+
+  // Update scroll button states
+  useEffect(() => {
+    const updateScrollButtons = () => {
+      if (scrollRef.current) {
+        const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+        setCanScrollLeft(scrollLeft > 0);
+        setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+      }
+    };
+
+    const scrollElement = scrollRef.current;
+    if (scrollElement) {
+      scrollElement.addEventListener("scroll", updateScrollButtons);
+      updateScrollButtons();
+    }
+
+    return () => {
+      if (scrollElement) {
+        scrollElement.removeEventListener("scroll", updateScrollButtons);
+      }
+    };
+  }, []);
+
+  const trackImpression = async () => {
+    setImpressionTracked(true);
+
+    try {
+      if (onImpression) {
+        onImpression(bidId, campaignId);
+      }
+
+      await fetch("/api/souq/ads/impressions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bidId,
+          campaignId,
+          query: context.query,
+          category: context.category,
+        }),
+      });
+    } catch (error) {
+      logger.error("[SponsoredBrandBanner] Failed to track impression", error);
+    }
+  };
+
+  const handleProductClick = async (productId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+
+    try {
+      if (onClick) {
+        onClick(bidId, campaignId, productId, actualCpc);
+      }
+
+      await fetch("/api/souq/ads/clicks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bidId,
+          campaignId,
+          actualCpc,
+          query: context.query,
+          category: context.category,
+          productId,
+        }),
+      });
+
+      window.location.href = `/souq/products/${productId}`;
+    } catch (error) {
+      logger.error("[SponsoredBrandBanner] Failed to track click", error);
+      window.location.href = `/souq/products/${productId}`;
+    }
+  };
+
+  const scroll = (direction: "left" | "right") => {
+    if (scrollRef.current) {
+      const scrollAmount = 300;
+      scrollRef.current.scrollBy({
+        left: direction === "left" ? -scrollAmount : scrollAmount,
+        behavior: "smooth",
+      });
+    }
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      className="w-full bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 rounded-lg overflow-hidden mb-6"
+    >
+      <div className="p-6">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-4">
+            {/* Brand Logo */}
+            {brandLogo && (
+              <div className="w-16 h-16 relative rounded-lg overflow-hidden bg-white border border-gray-200">
+                <Image
+                  src={brandLogo}
+                  alt={brandName}
+                  fill
+                  className="object-contain p-2"
+                />
+              </div>
+            )}
+
+            {/* Brand Info */}
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">{brandName}</h2>
+              <p className="text-sm text-gray-600 mt-1">{headline}</p>
+            </div>
+          </div>
+
+          {/* Sponsored Badge */}
+          <span className="px-3 py-1 text-xs font-medium bg-white text-gray-600 rounded-full border border-gray-300">
+            Sponsored
+          </span>
+        </div>
+
+        {/* Product Carousel */}
+        <div className="relative">
+          {/* Scroll Left Button */}
+          {canScrollLeft && (
+            <button
+              onClick={() => scroll("left")}
+              className="absolute start-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
+              aria-label="Scroll left"
+            >
+              <ChevronLeft className="w-6 h-6 text-gray-700" />
+            </button>
+          )}
+
+          {/* Products Container */}
+          <div
+            ref={scrollRef}
+            className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth"
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+          >
+            {products.map((product) => (
+              <Link
+                key={product.fsin}
+                href={`/souq/products/${product.fsin}`}
+                onClick={(e) => handleProductClick(product.fsin, e)}
+                className="flex-shrink-0 w-48 bg-white rounded-lg border border-gray-200 hover:border-primary/30 hover:shadow-lg transition-all duration-200 overflow-hidden group"
+              >
+                {/* Product Image */}
+                <div className="relative aspect-square bg-gray-50">
+                  {product.imageUrl ? (
+                    <Image
+                      src={product.imageUrl}
+                      alt={product.title}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-200"
+                      sizes="192px"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <ShoppingCart className="w-12 h-12 text-gray-300" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Product Info */}
+                <div className="p-3 space-y-2">
+                  <h3 className="text-sm font-medium text-gray-900 line-clamp-2 min-h-[40px]">
+                    {product.title}
+                  </h3>
+
+                  <div className="text-lg font-bold text-gray-900">
+                    {product.price.toFixed(2)} SAR
+                  </div>
+
+                  {product.rating && product.totalReviews && (
+                    <div className="text-xs text-gray-600">
+                      ⭐ {product.rating.toFixed(1)} ({product.totalReviews})
+                    </div>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          {/* Scroll Right Button */}
+          {canScrollRight && (
+            <button
+              onClick={() => scroll("right")}
+              className="absolute end-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
+              aria-label="Scroll right"
+            >
+              <ChevronRight className="w-6 h-6 text-gray-700" />
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/souq/ads/SponsoredProduct.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { Star, ShoppingCart } from "lucide-react";
+import { AuctionWinner } from "@/services/souq/ads/auction-engine";
+import { logger } from "@/lib/logger";
+
+interface SponsoredProductProps {
+  winner: AuctionWinner;
+  context: {
+    query?: string;
+    category?: string;
+    productId?: string;
+  };
+  onImpression?: (_bid: string, _campaign: string) => void;
+  onClick?: (_bid: string, _campaign: string, _actualCpc: number) => void;
+}
+
+type SponsoredProductData = NonNullable<AuctionWinner["product"]>;
+
+const getBidId = (winner: AuctionWinner): string =>
+  winner.bidId ?? winner.bid.bidId;
+
+const getCampaignId = (winner: AuctionWinner): string =>
+  winner.campaignId ?? winner.campaign.campaignId;
+
+const buildProductData = (winner: AuctionWinner): SponsoredProductData => ({
+  title: winner.product?.title ?? "Sponsored Product",
+  imageUrl: winner.product?.imageUrl,
+  price: winner.product?.price ?? 0,
+  originalPrice: winner.product?.originalPrice,
+  rating: winner.product?.rating,
+  totalReviews: winner.product?.totalReviews,
+  badges: winner.product?.badges ?? [],
+  brand: winner.product?.brand,
+  inStock: winner.product?.inStock,
+});
+
+export function SponsoredProduct({
+  winner,
+  context,
+  onImpression,
+  onClick,
+}: SponsoredProductProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [impressionTracked, setImpressionTracked] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const product = buildProductData(winner);
+
+  // Track impression when ad enters viewport
+  useEffect(() => {
+    if (impressionTracked) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !impressionTracked) {
+            trackImpression();
+          }
+        });
+      },
+      {
+        threshold: 0.5, // 50% of ad must be visible
+        rootMargin: "0px",
+      },
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => {
+      if (containerRef.current) {
+        observer.unobserve(containerRef.current);
+      }
+    };
+  }, [impressionTracked]);
+
+  const trackImpression = async () => {
+    setImpressionTracked(true);
+
+    try {
+      const bidId = getBidId(winner);
+      const campaignId = getCampaignId(winner);
+      onImpression?.(bidId, campaignId);
+
+      // Track server-side
+      await fetch("/api/souq/ads/impressions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bidId,
+          campaignId,
+          query: context.query,
+          category: context.category,
+          productId: context.productId,
+        }),
+      });
+    } catch (error) {
+      logger.error("[SponsoredProduct] Failed to track impression", error);
+    }
+  };
+
+  const handleClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      // Call custom callback if provided
+      const bidId = getBidId(winner);
+      const campaignId = getCampaignId(winner);
+      onClick?.(bidId, campaignId, winner.actualCpc);
+
+      // Track click server-side
+      const response = await fetch("/api/souq/ads/clicks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bidId,
+          campaignId,
+          actualCpc: winner.actualCpc,
+          query: context.query,
+          category: context.category,
+          productId: context.productId,
+        }),
+      });
+
+      if (!response.ok) {
+        logger.error("[SponsoredProduct] Click tracking failed", {
+          statusText: response.statusText,
+        });
+      }
+
+      // Navigate to product page
+      window.location.href = `/souq/products/${winner.productId}`;
+    } catch (error) {
+      logger.error("[SponsoredProduct] Failed to track click", error);
+      // Still navigate even if tracking fails
+      window.location.href = `/souq/products/${winner.productId}`;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const renderStars = (rating: number) => {
+    return (
+      <div className="flex items-center gap-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            className={`w-4 h-4 ${
+              star <= rating
+                ? "fill-yellow-400 text-yellow-400"
+                : "fill-gray-200 text-gray-200"
+            }`}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative bg-white rounded-lg border border-gray-200 hover:border-primary/30 hover:shadow-lg transition-all duration-200 overflow-hidden group"
+    >
+      {/* Sponsored Badge */}
+      <div className="absolute top-2 end-2 z-10">
+        <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded">
+          Sponsored
+        </span>
+      </div>
+
+      <Link href={`/souq/products/${winner.productId}`} onClick={handleClick}>
+        <div className="cursor-pointer">
+          {/* Product Image */}
+          <div className="relative aspect-square bg-gray-50">
+            {product.imageUrl ? (
+              <Image
+                src={product.imageUrl}
+                alt={product.title}
+                fill
+                className="object-cover group-hover:scale-105 transition-transform duration-200"
+                sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <ShoppingCart className="w-16 h-16 text-gray-300" />
+              </div>
+            )}
+          </div>
+
+          {/* Product Info */}
+          <div className="p-4 space-y-2">
+            {/* Title */}
+            <h3 className="text-sm font-medium text-gray-900 line-clamp-2 min-h-[40px]">
+              {product.title}
+            </h3>
+
+            {/* Brand */}
+            {product.brand && (
+              <p className="text-xs text-gray-500">{product.brand}</p>
+            )}
+
+            {/* Rating */}
+            {product.rating && product.totalReviews ? (
+              <div className="flex items-center gap-2">
+                {renderStars(product.rating)}
+                <span className="text-xs text-gray-600">
+                  ({product.totalReviews.toLocaleString()})
+                </span>
+              </div>
+            ) : null}
+
+            {/* Price */}
+            <div className="flex items-baseline gap-2">
+              <span className="text-lg font-bold text-gray-900">
+                {product.price.toFixed(2)} SAR
+              </span>
+              {product.originalPrice &&
+                product.originalPrice > product.price && (
+                  <span className="text-sm text-gray-500 line-through">
+                    {product.originalPrice.toFixed(2)} SAR
+                  </span>
+                )}
+            </div>
+
+            {/* Badges */}
+            {product.badges && product.badges.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {product.badges.map((badge: string) => (
+                  <span
+                    key={badge}
+                    className="px-2 py-0.5 text-xs font-medium bg-primary/5 text-primary-dark rounded"
+                  >
+                    {badge === "fbf" ? "Fulfilled by Fixzit" : badge}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Stock Status */}
+            {!product.inStock && (
+              <div className="text-xs font-medium text-destructive">
+                Out of Stock
+              </div>
+            )}
+          </div>
+        </div>
+      </Link>
+
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+</batch_content>

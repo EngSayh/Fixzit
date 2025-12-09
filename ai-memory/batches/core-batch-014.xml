@@ -1,0 +1,2911 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/admin/audit-logs/page.tsx">
+<![CDATA[
+"use client";
+
+import React, { useState, useEffect, useCallback } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import ClientDate from "@/components/ClientDate";
+import { formatServerDate } from "@/lib/formatServerDate";
+import { logger } from "@/lib/logger";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ShieldAlert, Loader2 } from "lucide-react";
+
+// Roles allowed to access audit logs
+const ADMIN_ROLES = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"];
+
+// Fixzit primary timezone for audit logs (canonical timeline)
+const DEFAULT_TIMEZONE = "Asia/Riyadh";
+// Constants at module scope
+const LOGS_PER_PAGE = 20;
+const API_ENDPOINT = "/api/admin/audit-logs";
+
+interface AuditLog {
+  id: string;
+  timestamp: Date;
+  action: string;
+  entityType: string;
+  entityId?: string;
+  entityName?: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  userRole: string;
+  context: {
+    method: string;
+    endpoint: string;
+    ipAddress: string;
+    browser: string;
+    os: string;
+    device: string;
+  };
+  result: {
+    success: boolean;
+    errorCode?: string;
+    duration?: number;
+  };
+  changes?: Array<{
+    field: string;
+    oldValue: unknown;
+    newValue: unknown;
+  }>;
+}
+
+interface AuditLogFilters {
+  userId?: string;
+  entityType?: string;
+  action?: string;
+  startDate?: Date;
+  endDate?: Date;
+}
+
+export default function AuditLogViewer() {
+  const auto = useAutoTranslator("admin.auditLogs");
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  
+  const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState<AuditLogFilters>({});
+  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalLogs, setTotalLogs] = useState(0);
+
+  // RBAC Check: Only allow admin roles
+  const userRole = session?.user?.role as string | undefined;
+  const hasAccess = userRole && ADMIN_ROLES.includes(userRole);
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login?callbackUrl=/admin/audit-logs");
+    }
+  }, [status, router]);
+
+  const fetchLogs = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams();
+      if (filters.userId) params.append("userId", filters.userId);
+      if (filters.entityType) params.append("entityType", filters.entityType);
+      if (filters.action) params.append("action", filters.action);
+      if (filters.startDate) {
+        // Convert to ISO string at start of day in UTC
+        const startDate = new Date(filters.startDate);
+        startDate.setUTCHours(0, 0, 0, 0);
+        params.append("startDate", startDate.toISOString());
+      }
+      if (filters.endDate) {
+        // Convert to ISO string at end of day in UTC
+        const endDate = new Date(filters.endDate);
+        endDate.setUTCHours(23, 59, 59, 999);
+        params.append("endDate", endDate.toISOString());
+      }
+      params.append("page", page.toString());
+      params.append("limit", LOGS_PER_PAGE.toString());
+
+      const response = await fetch(`${API_ENDPOINT}?${params}`, {
+        credentials: "include", // Ensure cookies are sent for authentication
+      });
+      if (!response.ok) {
+        // Provide more specific error messages based on status
+        let errorMessage = auto(
+          "An unexpected error occurred while loading audit logs",
+          "errors.loadUnexpected",
+        );
+        if (response.status === 401) {
+          errorMessage = auto(
+            "You are not authorized to view audit logs. Please log in again.",
+            "errors.unauthorized",
+          );
+        } else if (response.status === 403) {
+          errorMessage = auto(
+            "You do not have permission to access audit logs.",
+            "errors.forbidden",
+          );
+        } else if (response.status === 404) {
+          errorMessage = auto(
+            "Audit log service not found. Please contact support.",
+            "errors.notFound",
+          );
+        } else if (response.status >= 500) {
+          errorMessage = auto(
+            "Server error occurred while fetching audit logs. Please try again later.",
+            "errors.server",
+          );
+        } else if (response.status >= 400) {
+          errorMessage = auto(
+            "Invalid request. Please check your filters and try again.",
+            "errors.invalidRequest",
+          );
+        }
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+
+      // Validate response structure
+      if (!data || typeof data !== "object") {
+        throw new Error(
+          auto(
+            "Invalid response format from audit log service",
+            "errors.invalidResponse",
+          ),
+        );
+      }
+
+      setLogs(data.logs || []);
+      setTotalLogs(data.total || 0);
+      setTotalPages(Math.ceil((data.total || 0) / LOGS_PER_PAGE));
+    } catch (err) {
+      logger.error(
+        "Failed to fetch audit logs",
+        err instanceof Error ? err : new Error(String(err)),
+        { route: "/admin/audit-logs", page, filters },
+      );
+
+      // Handle different error types with user-friendly messages
+      let errorMessage = auto(
+        "An unexpected error occurred. Please try again.",
+        "errors.generic",
+      );
+
+      if (err instanceof TypeError && err.message.includes("fetch")) {
+        errorMessage = auto(
+          "Network error occurred. Please check your connection and try again.",
+          "errors.network",
+        );
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+
+      setError(errorMessage);
+      setLogs([]);
+      setTotalLogs(0);
+      setTotalPages(1);
+    } finally {
+      setLoading(false);
+    }
+  }, [auto, filters, page]);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
+
+  // Show loading while checking session
+  if (status === "loading") {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Show access denied if no permission
+  if (status === "authenticated" && !hasAccess) {
+    return (
+      <div className="container max-w-2xl py-16 px-4">
+        <Card className="border-destructive/50">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+              <ShieldAlert className="h-6 w-6 text-destructive" />
+            </div>
+            <CardTitle className="text-xl">
+              {auto("Access Denied", "accessDenied")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-center text-muted-foreground">
+            <p className="mb-4">
+              {auto(
+                "You do not have permission to access Audit Logs. This page is restricted to Admin users only.",
+                "noPermission"
+              )}
+            </p>
+            <Button variant="outline" onClick={() => router.push("/dashboard")}>
+              {auto("Back to Dashboard", "backToDashboard")}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const getActionColor = (action: string) => {
+    switch (action) {
+      case "CREATE":
+        return "text-success bg-success/10 dark:bg-success/10 dark:text-success";
+      case "UPDATE":
+        return "text-primary bg-primary/10 dark:bg-primary/10 dark:text-primary";
+      case "DELETE":
+        return "text-destructive bg-destructive/10 dark:bg-destructive/10 dark:text-destructive";
+      case "LOGIN":
+        return "text-secondary bg-secondary/10 dark:bg-secondary/10 dark:text-secondary";
+      case "LOGOUT":
+        return "text-muted-foreground bg-muted";
+      default:
+        return "text-muted-foreground bg-muted";
+    }
+  };
+
+  const pageStart = (page - 1) * LOGS_PER_PAGE + 1;
+  const pageEnd = Math.min(page * LOGS_PER_PAGE, totalLogs);
+
+  return (
+    <div className="max-w-7xl mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-foreground">
+          {auto("Audit Log", "header.title")}
+        </h1>
+        <p className="mt-2 text-muted-foreground">
+          {auto("View all system activity and user actions", "header.subtitle")}
+        </p>
+      </div>
+
+      {/* Error Alert - Show at top level for better visibility */}
+      {error && (
+        <div className="bg-destructive/10 dark:bg-destructive/10 border border-destructive/20 dark:border-destructive/30 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <svg
+              className="w-5 h-5 text-destructive dark:text-destructive flex-shrink-0 mt-0.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-sm font-semibold text-destructive-foreground dark:text-destructive-foreground mb-1">
+                {auto("Error Loading Audit Logs", "errors.alertTitle")}
+              </h3>
+              <p className="text-sm text-destructive dark:text-destructive break-words">
+                {error}
+              </p>
+              <div className="mt-3 flex gap-2">
+                <button
+                  onClick={() => {
+                    setError(null);
+                    fetchLogs();
+                  }}
+                  className="inline-flex items-center gap-1 text-sm font-medium text-destructive-foreground dark:text-destructive-foreground hover:text-destructive-foreground dark:hover:text-destructive-foreground focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-offset-2 dark:focus:ring-offset-destructive rounded px-2 py-1"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                  {auto("Try Again", "common.tryAgain")}
+                </button>
+                <button
+                  onClick={() => setError(null)}
+                  className="text-sm font-medium text-destructive dark:text-destructive hover:text-destructive dark:hover:text-destructive focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-offset-2 dark:focus:ring-offset-destructive rounded px-2 py-1"
+                >
+                  {auto("Dismiss", "common.dismiss")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Filters */}
+      <div className="bg-card rounded-2xl border border-border p-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">
+              {auto("Action", "filters.actionLabel")}
+            </label>
+            <select
+              className="w-full rounded-2xl border-border bg-background text-foreground"
+              value={filters.action || ""}
+              onChange={(e) =>
+                setFilters({ ...filters, action: e.target.value || undefined })
+              }
+            >
+              <option value="">
+                {auto("All Actions", "filters.actions.all")}
+              </option>
+              <option value="CREATE">
+                {auto("Create", "filters.actions.create")}
+              </option>
+              <option value="READ">
+                {auto("Read", "filters.actions.read")}
+              </option>
+              <option value="UPDATE">
+                {auto("Update", "filters.actions.update")}
+              </option>
+              <option value="DELETE">
+                {auto("Delete", "filters.actions.delete")}
+              </option>
+              <option value="LOGIN">
+                {auto("Login", "filters.actions.login")}
+              </option>
+              <option value="LOGOUT">
+                {auto("Logout", "filters.actions.logout")}
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">
+              {auto("Entity Type", "filters.entityTypeLabel")}
+            </label>
+            <select
+              className="w-full rounded-2xl border-border bg-background text-foreground"
+              value={filters.entityType || ""}
+              onChange={(e) =>
+                setFilters({
+                  ...filters,
+                  entityType: e.target.value || undefined,
+                })
+              }
+            >
+              <option value="">
+                {auto("All Types", "filters.entityTypes.all")}
+              </option>
+              <option value="USER">
+                {auto("User", "filters.entityTypes.user")}
+              </option>
+              <option value="PROPERTY">
+                {auto("Property", "filters.entityTypes.property")}
+              </option>
+              <option value="TENANT">
+                {auto("Tenant", "filters.entityTypes.tenant")}
+              </option>
+              <option value="CONTRACT">
+                {auto("Contract", "filters.entityTypes.contract")}
+              </option>
+              <option value="PAYMENT">
+                {auto("Payment", "filters.entityTypes.payment")}
+              </option>
+              <option value="WORKORDER">
+                {auto("Work Order", "filters.entityTypes.workOrder")}
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label
+              htmlFor="start-date"
+              className="block text-sm font-medium text-foreground mb-1"
+            >
+              {auto("Start Date", "filters.startDate")}
+            </label>
+            <input
+              id="start-date"
+              type="date"
+              className="w-full rounded-2xl border-border bg-background text-foreground"
+              value={
+                filters.startDate
+                  ? filters.startDate.toISOString().split("T")[0]
+                  : ""
+              }
+              max={
+                filters.endDate
+                  ? filters.endDate.toISOString().split("T")[0]
+                  : undefined
+              }
+              onChange={(e) => {
+                const value = e.target.value
+                  ? new Date(e.target.value + "T00:00:00")
+                  : undefined;
+                setFilters({ ...filters, startDate: value });
+              }}
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="end-date"
+              className="block text-sm font-medium text-foreground mb-1"
+            >
+              {auto("End Date", "filters.endDate")}
+            </label>
+            <input
+              id="end-date"
+              type="date"
+              className="w-full rounded-2xl border-border bg-background text-foreground"
+              value={
+                filters.endDate
+                  ? filters.endDate.toISOString().split("T")[0]
+                  : ""
+              }
+              min={
+                filters.startDate
+                  ? filters.startDate.toISOString().split("T")[0]
+                  : undefined
+              }
+              onChange={(e) => {
+                const value = e.target.value
+                  ? new Date(e.target.value + "T23:59:59")
+                  : undefined;
+                setFilters({ ...filters, endDate: value });
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="mt-4 flex justify-end">
+          <button
+            onClick={() => setFilters({})}
+            className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground rounded-2xl"
+          >
+            {auto("Clear Filters", "filters.clear")}
+          </button>
+        </div>
+      </div>
+
+      {/* Logs Table */}
+      <div className="bg-card rounded-2xl border border-border overflow-hidden">
+        {loading ? (
+          <div className="p-12 text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <p className="mt-4 text-muted-foreground">
+              {auto("Loading audit logs...", "table.loading")}
+            </p>
+          </div>
+        ) : logs.length === 0 ? (
+          <div className="p-12 text-center">
+            <p className="text-muted-foreground">
+              {auto("No audit logs found", "table.empty")}
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-muted">
+                <tr>
+                  <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {auto("Timestamp", "table.columns.timestamp")}
+                  </th>
+                  <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {auto("Action", "table.columns.action")}
+                  </th>
+                  <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {auto("Entity", "table.columns.entity")}
+                  </th>
+                  <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {auto("User", "table.columns.user")}
+                  </th>
+                  <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {auto("IP Address", "table.columns.ip")}
+                  </th>
+                  <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {auto("Status", "table.columns.status")}
+                  </th>
+                  <th className="px-6 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {auto("Actions", "table.columns.actions")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-card divide-y divide-border">
+                {logs.map((log) => (
+                  <tr key={log.id} className="hover:bg-muted">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                      {formatServerDate(
+                        log.timestamp,
+                        "medium",
+                        undefined,
+                        DEFAULT_TIMEZONE,
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-2 py-1 text-xs font-medium rounded-full ${getActionColor(log.action)}`}
+                      >
+                        {log.action}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                      <div>{log.entityType}</div>
+                      {log.entityName && (
+                        <div className="text-xs text-muted-foreground">
+                          {log.entityName}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                      <div>{log.userName}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {log.userEmail}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                      {log.context.ipAddress}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {log.result.success ? (
+                        <span className="text-success">
+                          ✓ {auto("Success", "table.status.success")}
+                        </span>
+                      ) : (
+                        <span className="text-destructive">
+                          ✗ {auto("Failed", "table.status.failed")}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-end text-sm">
+                      <button
+                        onClick={() => setSelectedLog(log)}
+                        className="text-primary hover:text-primary-foreground dark:text-primary dark:hover:text-primary/80"
+                      >
+                        {auto("View Details", "table.actions.viewDetails")}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Pagination */}
+      {!loading && !error && logs.length > 0 && (
+        <div className="bg-card rounded-2xl border border-border p-4">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-foreground">
+              {auto(
+                "Showing {{start}} to {{end}} of {{total}} results",
+                "pagination.summary",
+                {
+                  start: pageStart,
+                  end: pageEnd,
+                  total: totalLogs,
+                },
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-4 py-2 text-sm font-medium text-foreground bg-background border border-border rounded-2xl hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {auto("Previous", "pagination.previous")}
+              </button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  // Show pages around current page
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (page <= 3) {
+                    pageNum = i + 1;
+                  } else if (page >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = page - 2 + i;
+                  }
+
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setPage(pageNum)}
+                      className={`px-4 py-2 text-sm font-medium rounded-2xl ${
+                        page === pageNum
+                          ? "bg-primary text-white"
+                          : "text-foreground bg-background border border-border hover:bg-muted"
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="px-4 py-2 text-sm font-medium text-foreground bg-background border border-border rounded-2xl hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {auto("Next", "pagination.next")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Detail Modal */}
+      {selectedLog && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-title"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelectedLog(null);
+          }}
+        >
+          <div className="bg-popover rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-border">
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-4">
+                <h2
+                  id="modal-title"
+                  className="text-2xl font-bold text-foreground"
+                >
+                  {auto("Audit Log Details", "modal.title")}
+                </h2>
+                <button
+                  onClick={() => setSelectedLog(null)}
+                  className="text-muted-foreground hover:text-foreground"
+                  aria-label={auto("Close modal", "modal.closeAria")}
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground">
+                    {auto("Timestamp", "modal.timestamp")}
+                  </h3>
+                  <p className="mt-1 text-foreground">
+                    <ClientDate
+                      date={selectedLog.timestamp}
+                      format="full"
+                      timeZone={DEFAULT_TIMEZONE}
+                    />
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground">
+                    {auto("Action", "modal.action")}
+                  </h3>
+                  <p className="mt-1 text-foreground">
+                    <span
+                      className={`px-2 py-1 text-xs font-medium rounded-full ${getActionColor(selectedLog.action)}`}
+                    >
+                      {selectedLog.action}
+                    </span>
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground">
+                    {auto("User", "modal.user")}
+                  </h3>
+                  <p className="mt-1 text-foreground">
+                    {selectedLog.userName} ({selectedLog.userEmail})
+                    <span className="ms-2 text-xs text-muted-foreground">
+                      {auto("Role", "modal.roleLabel")}: {selectedLog.userRole}
+                    </span>
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground">
+                    {auto("Entity", "modal.entity")}
+                  </h3>
+                  <p className="mt-1 text-foreground">
+                    {selectedLog.entityType}
+                    {selectedLog.entityName && ` - ${selectedLog.entityName}`}
+                    {selectedLog.entityId && (
+                      <span className="ms-2 text-xs text-muted-foreground">
+                        {auto("ID", "modal.entityId")}: {selectedLog.entityId}
+                      </span>
+                    )}
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground">
+                    {auto("Context", "modal.context")}
+                  </h3>
+                  <div className="mt-1 grid grid-cols-2 gap-2 text-sm">
+                    <div className="bg-muted p-2 rounded-2xl">
+                      <span className="font-medium">
+                        {auto("Method", "modal.contextMethod")}:
+                      </span>{" "}
+                      {selectedLog.context.method}
+                    </div>
+                    <div className="bg-muted p-2 rounded-2xl">
+                      <span className="font-medium">
+                        {auto("IP", "modal.contextIp")}:
+                      </span>{" "}
+                      {selectedLog.context.ipAddress}
+                    </div>
+                    <div className="bg-muted p-2 rounded-2xl">
+                      <span className="font-medium">
+                        {auto("Browser", "modal.contextBrowser")}:
+                      </span>{" "}
+                      {selectedLog.context.browser}
+                    </div>
+                    <div className="bg-muted p-2 rounded-2xl">
+                      <span className="font-medium">
+                        {auto("OS", "modal.contextOs")}:
+                      </span>{" "}
+                      {selectedLog.context.os}
+                    </div>
+                    <div className="bg-muted p-2 rounded-2xl">
+                      <span className="font-medium">
+                        {auto("Device", "modal.contextDevice")}:
+                      </span>{" "}
+                      {selectedLog.context.device}
+                    </div>
+                    <div className="bg-muted p-2 rounded-2xl">
+                      <span className="font-medium">
+                        {auto("Endpoint", "modal.contextEndpoint")}:
+                      </span>{" "}
+                      {selectedLog.context.endpoint}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground">
+                    {auto("Result", "modal.result")}
+                  </h3>
+                  <div className="mt-1 grid grid-cols-2 gap-2 text-sm">
+                    <div className="bg-muted p-2 rounded-2xl">
+                      <span className="font-medium">
+                        {auto("Success", "modal.resultSuccess")}:
+                      </span>{" "}
+                      {selectedLog.result.success
+                        ? auto("Yes", "modal.resultYes")
+                        : auto("No", "modal.resultNo")}
+                    </div>
+                    {selectedLog.result.errorCode && (
+                      <div className="bg-destructive/10 dark:bg-destructive/10 p-2 rounded-2xl">
+                        <span className="font-medium text-destructive dark:text-destructive">
+                          {auto("Error Code", "modal.resultErrorCode")}:
+                        </span>{" "}
+                        {selectedLog.result.errorCode}
+                      </div>
+                    )}
+                    {selectedLog.result.duration !== undefined && (
+                      <div className="bg-muted p-2 rounded-2xl">
+                        <span className="font-medium">
+                          {auto("Duration", "modal.resultDuration")}:
+                        </span>{" "}
+                        {selectedLog.result.duration}{" "}
+                        {auto("ms", "modal.durationUnit")}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {selectedLog.changes && selectedLog.changes.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">
+                      {auto("Changes", "modal.changes")}
+                    </h3>
+                    <div className="mt-1 space-y-2">
+                      {selectedLog.changes.map((change) => (
+                        <div
+                          key={change.field}
+                          className="p-2 rounded-2xl bg-muted"
+                        >
+                          <div className="flex gap-2">
+                            <span className="font-medium">{change.field}:</span>
+                            <span className="text-foreground">
+                              {JSON.stringify(change.oldValue)}
+                            </span>
+                          </div>
+                          <div className="flex gap-2">
+                            <span className="font-medium">→</span>
+                            <span className="text-foreground">
+                              {JSON.stringify(change.newValue)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/admin/claims/page.tsx">
+<![CDATA[
+"use client";
+
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import ClaimReviewPanel from "@/components/admin/claims/ClaimReviewPanel";
+import { Shield, ShieldAlert, Loader2 } from "lucide-react";
+import { useI18n } from "@/i18n/useI18n";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useEffect } from "react";
+
+// Roles allowed to access admin claims
+const ADMIN_ROLES = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN", "SUPPORT"];
+
+export default function AdminClaimsPage() {
+  const { t, isRTL } = useI18n();
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  // RBAC Check: Only allow admin roles
+  const userRole = session?.user?.role as string | undefined;
+  const hasAccess = userRole && ADMIN_ROLES.includes(userRole);
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login?callbackUrl=/admin/claims");
+    }
+  }, [status, router]);
+
+  // Show loading while checking session
+  if (status === "loading") {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Show access denied if no permission
+  if (status === "authenticated" && !hasAccess) {
+    return (
+      <div className="container max-w-2xl py-16 px-4">
+        <Card className="border-destructive/50">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+              <ShieldAlert className="h-6 w-6 text-destructive" />
+            </div>
+            <CardTitle className="text-xl">
+              {isRTL ? "الوصول مرفوض" : "Access Denied"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-center text-muted-foreground">
+            <p className="mb-4">
+              {isRTL
+                ? "ليس لديك صلاحية للوصول إلى مراجعة المطالبات. هذه الصفحة مخصصة للمسؤولين فقط."
+                : "You do not have permission to access Claim Reviews. This page is restricted to Admin users only."}
+            </p>
+            <Button variant="outline" onClick={() => router.push("/dashboard")}>
+              {isRTL ? "العودة للوحة التحكم" : "Back to Dashboard"}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto py-8 space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Shield className="w-8 h-8" />
+        <div>
+          <h1 className="text-3xl font-bold">
+            {t("marketplace.claims.admin.title")}
+          </h1>
+          <p className="text-muted-foreground">
+            {t("marketplace.claims.admin.subtitle")}
+          </p>
+        </div>
+      </div>
+
+      {/* Review Panel */}
+      <ClaimReviewPanel />
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/admin/cms/footer/page.tsx">
+<![CDATA[
+"use client";
+import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { logger } from "@/lib/logger";
+
+/**
+ * Footer CMS Admin Page
+ * Super Admin only - Manage footer content for About Us, Privacy Policy, Terms of Service
+ * Features:
+ * - Tab selector for page (About, Privacy, Terms)
+ * - Dual textboxes (EN left, AR right) for bilingual content
+ * - Save button with validation
+ * - Auto-load on tab switch
+ */
+export default function FooterCMS() {
+  const { t } = useTranslation();
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  const [page, setPage] = useState<"about" | "privacy" | "terms">("about");
+  const [contentEn, setContentEn] = useState("");
+  const [contentAr, setContentAr] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Authorization check
+  useEffect(() => {
+    if (status === "loading") return;
+
+    if (!session) {
+      router.push("/login?callbackUrl=/admin/cms/footer");
+      return;
+    }
+
+    if (session.user?.role !== "SUPER_ADMIN") {
+      toast.error(
+        t(
+          "admin.footer.accessDenied",
+          "Access Denied: SUPER_ADMIN role required",
+        ),
+      );
+      router.push("/dashboard");
+      return;
+    }
+  }, [session, status, router, t]);
+
+  // Load footer content when page changes
+  useEffect(() => {
+    if (session?.user?.role !== "SUPER_ADMIN") return;
+
+    const loadContent = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(`/api/admin/footer?page=${page}`);
+
+        if (response.ok) {
+          const data = await response.json();
+          setContentEn(data.contentEn || "");
+          setContentAr(data.contentAr || "");
+        } else {
+          const error = await response.text();
+          toast.error(
+            t("admin.footer.loadFailed", "Failed to load content") +
+              `: ${error}`,
+          );
+        }
+      } catch (error) {
+        logger.error("Footer CMS load error", { error, page });
+        toast.error(
+          t("admin.footer.networkError", "Network error while loading content"),
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadContent();
+  }, [page, session, t]);
+
+  // Save footer content
+  const handleSave = async () => {
+    if (!contentEn.trim() || !contentAr.trim()) {
+      toast.error(
+        t(
+          "admin.footer.validation.bothRequired",
+          "Both English and Arabic content are required",
+        ),
+      );
+      return;
+    }
+
+    setSaving(true);
+    const toastId = toast.loading(
+      t("admin.footer.saving", "Saving footer content..."),
+    );
+
+    try {
+      const response = await fetch("/api/admin/footer", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          page,
+          contentEn,
+          contentAr,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success(
+          t("admin.footer.saveSuccess", "Footer content saved successfully"),
+          { id: toastId },
+        );
+      } else {
+        const error = await response.text();
+        toast.error(
+          `${t("admin.footer.saveFailed", "Save failed")}: ${error}`,
+          { id: toastId },
+        );
+      }
+    } catch (error) {
+      logger.error("Footer CMS save error", { error, page });
+      toast.error(
+        t("admin.footer.saveNetworkError", "Network error while saving"),
+        { id: toastId },
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Don't render if not authorized
+  if (status === "loading") {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-muted-foreground">
+          {t("common.loading", "Loading...")}
+        </div>
+      </div>
+    );
+  }
+
+  if (!session || session.user?.role !== "SUPER_ADMIN") {
+    return null;
+  }
+
+  const pages: Array<{ key: "about" | "privacy" | "terms"; label: string }> = [
+    { key: "about", label: t("admin.footer.pages.about", "About Us") },
+    {
+      key: "privacy",
+      label: t("admin.footer.pages.privacy", "Privacy Policy"),
+    },
+    { key: "terms", label: t("admin.footer.pages.terms", "Terms of Service") },
+  ];
+
+  return (
+    <div className="mx-auto max-w-7xl p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">
+            {t("admin.footer.title", "Footer Content Management")}
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {t(
+              "admin.footer.subtitle",
+              "Manage bilingual content for footer pages (Super Admin only)",
+            )}
+          </p>
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={saving || loading}
+          className="px-6 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+        >
+          {saving ? t("common.saving", "Saving...") : t("common.save", "Save")}
+        </button>
+      </div>
+
+      {/* Page Tabs */}
+      <div className="flex gap-2 border-b border-border">
+        {pages.map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setPage(key)}
+            className={`px-6 py-3 font-medium border-b-2 transition-colors ${
+              page === key
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Dual Textbox Editor */}
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-muted-foreground">
+            {t("common.loading", "Loading...")}
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* English Content (Left) */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-foreground">
+              {t("admin.footer.contentEn", "English Content")}
+              <span className="text-destructive ms-1">*</span>
+            </label>
+            <textarea
+              value={contentEn}
+              onChange={(e) => setContentEn(e.target.value)}
+              placeholder={t(
+                "admin.footer.contentEnPlaceholder",
+                "Enter English content here...",
+              )}
+              className="w-full h-[500px] px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-primary resize-none font-mono text-sm"
+              dir="ltr"
+            />
+            <div className="text-xs text-muted-foreground">
+              {contentEn.length} {t("common.characters", "characters")}
+            </div>
+          </div>
+
+          {/* Arabic Content (Right) */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-foreground">
+              {t("admin.footer.contentAr", "Arabic Content")}
+              <span className="text-destructive ms-1">*</span>
+            </label>
+            <textarea
+              value={contentAr}
+              onChange={(e) => setContentAr(e.target.value)}
+              placeholder={t(
+                "admin.footer.contentArPlaceholder",
+                "أدخل المحتوى العربي هنا...",
+              )}
+              className="w-full h-[500px] px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-primary resize-none font-mono text-sm"
+              dir="rtl"
+            />
+            <div className="text-xs text-muted-foreground">
+              {contentAr.length} {t("common.characters", "characters")}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Helper Text */}
+      <div className="bg-muted/50 rounded-2xl p-4 space-y-2">
+        <h3 className="font-medium text-sm text-foreground">
+          {t("admin.footer.helpTitle", "Usage Guidelines")}
+        </h3>
+        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+          <li>
+            {t(
+              "admin.footer.help.both",
+              "Both English and Arabic content are required",
+            )}
+          </li>
+          <li>
+            {t(
+              "admin.footer.help.markdown",
+              "Supports plain text and Markdown formatting",
+            )}
+          </li>
+          <li>
+            {t(
+              "admin.footer.help.auto",
+              "Content is automatically published after saving",
+            )}
+          </li>
+          <li>
+            {t(
+              "admin.footer.help.public",
+              "Public users will see this content in footer links",
+            )}
+          </li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/admin/cms/page.tsx">
+<![CDATA[
+"use client";
+import { useEffect, useState } from "react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { toast } from "sonner";
+import { logger } from "@/lib/logger";
+
+/**
+ * Admin UI for viewing and editing CMS pages.
+ *
+ * Renders a simple editor that lets you select a page by slug, edit its title,
+ * markdown content, and publication status, and save changes back to the server.
+ *
+ * Behavior:
+ * - Loads page data from GET /api/cms/pages/{slug} whenever the slug changes. If the page exists,
+ *   title, content, and status are populated; otherwise fields are cleared and status defaults to DRAFT.
+ * - Saves edits by sending a PATCH request with JSON body { title, content, status } to /api/cms/pages/{slug}.
+ *   Shows a browser alert with "Saved" on success or "Failed" on failure.
+ *
+ * @returns A React element containing the CMS page editor UI.
+ */
+export default function AdminCMS() {
+  const { t } = useTranslation();
+  const [slug, setSlug] = useState("privacy");
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [status, setStatus] = useState<"DRAFT" | "PUBLISHED">("DRAFT");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await fetch(`/api/cms/pages/${slug}`);
+        if (r.ok) {
+          const p = await r.json();
+          setTitle(p.title);
+          setContent(p.content);
+          setStatus(p.status);
+        } else {
+          setTitle("");
+          setContent("");
+          setStatus("DRAFT");
+        }
+      } catch (error) {
+        logger.error("Failed to load CMS page", { error, slug });
+        setTitle("");
+        setContent("");
+        setStatus("DRAFT");
+        toast.error(t("admin.cms.loadError", "Failed to load page"));
+      }
+    })();
+  }, [slug]);
+
+  const save = async () => {
+    const toastId = toast.loading(t("save.saving", "Saving..."));
+    try {
+      const r = await fetch(`/api/cms/pages/${slug}`, {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ title, content, status }),
+        credentials: "same-origin",
+      });
+      if (r.ok) {
+        toast.success(t("save.success", "Saved successfully"), { id: toastId });
+      } else {
+        const errorText = await r.text();
+        toast.error(`${t("save.failed", "Save failed")}: ${errorText}`, {
+          id: toastId,
+        });
+      }
+    } catch (error) {
+      logger.error("Failed to save CMS page", { error, slug });
+      toast.error(t("save.networkError", "Failed: network error"), {
+        id: toastId,
+      });
+    }
+  };
+
+  return (
+    <div className="mx-auto max-w-5xl p-6 space-y-3">
+      <h1 className="text-2xl font-semibold">
+        {t("admin.cms.title", "CMS Pages")}
+      </h1>
+      <div className="flex gap-2">
+        <input
+          className="px-3 py-2 border border-border rounded-2xl"
+          value={slug}
+          onChange={(e) => setSlug(e.target.value)}
+          placeholder={t("admin.cms.slug", "Slug (e.g., privacy)")}
+        />
+        <select
+          className="px-3 py-2 border border-border rounded-2xl"
+          value={status}
+          onChange={(e) => setStatus(e.target.value as "DRAFT" | "PUBLISHED")}
+        >
+          <option value="DRAFT">{t("admin.cms.draft", "DRAFT")}</option>
+          <option value="PUBLISHED">
+            {t("admin.cms.published", "PUBLISHED")}
+          </option>
+        </select>
+        <button
+          type="button"
+          className="px-4 py-2 bg-primary text-white rounded-2xl hover:bg-primary/90"
+          onClick={save}
+        >
+          {t("common.save", "Save")}
+        </button>
+      </div>
+      <input
+        className="w-full px-3 py-2 border border-border rounded-2xl"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder={t("admin.cms.titleLabel", "Title")}
+      />
+      <textarea
+        className="w-full px-3 py-2 border border-border rounded-2xl h-[420px]"
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        placeholder={t("admin.cms.content", "Markdown content...")}
+      />
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/admin/error.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect } from "react";
+import { RefreshCw, Home, Shield } from "lucide-react";
+import Link from "next/link";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
+
+/**
+ * Admin Error Boundary
+ *
+ * STRICT v4 COMPLIANCE:
+ * - Uses semantic color tokens
+ * - Supports RTL via TranslationContext
+ * - Logs errors via centralized logger
+ */
+export default function AdminError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  const { t, isRTL } = useTranslation();
+
+  useEffect(() => {
+    logger.error("Admin error caught by error boundary", {
+      error: error.message,
+      digest: error.digest,
+      stack: error.stack,
+      component: "app/admin/error.tsx",
+    });
+  }, [error]);
+
+  return (
+    <div
+      className="min-h-[60vh] flex flex-col items-center justify-center px-4"
+      dir={isRTL ? "rtl" : "ltr"}
+    >
+      <div className="max-w-md w-full text-center">
+        <div className="mb-6">
+          <div className="w-16 h-16 mx-auto bg-destructive/10 rounded-full flex items-center justify-center">
+            <Shield className="w-8 h-8 text-destructive" />
+          </div>
+        </div>
+
+        <h1 className="text-xl font-bold text-foreground mb-2">
+          {t("errors.admin.title", "Administration Error")}
+        </h1>
+        <p className="text-muted-foreground mb-6">
+          {t(
+            "errors.admin.message",
+            "There was a problem loading the admin panel. Please try again."
+          )}
+        </p>
+
+        {process.env.NODE_ENV === "development" && (
+          <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-3 text-start mb-6">
+            <p className="text-sm font-mono text-destructive break-all">
+              {error.message}
+            </p>
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Button onClick={reset} variant="default">
+            <RefreshCw className="w-4 h-4 me-2" />
+            {t("common.actions.tryAgain", "Try Again")}
+          </Button>
+
+          <Button asChild variant="outline">
+            <Link href="/dashboard">
+              <Home className="w-4 h-4 me-2" />
+              {t("common.actions.goToDashboard", "Dashboard")}
+            </Link>
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/admin/feature-settings/page.tsx">
+<![CDATA[
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import {
+  FeatureToggle,
+  FeatureToggleGroup,
+} from "@/components/ui/feature-toggle";
+import { FeatureToggleGroupSkeleton } from "@/components/ui/feature-toggle-skeleton";
+import { UpgradeModal } from "@/components/admin/UpgradeModal";
+import toast from "react-hot-toast";
+
+import { logger } from "@/lib/logger";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+/**
+ * Feature flags configuration type
+ */
+interface FeatureFlags {
+  // Module 2: Customer & User Lifecycle
+  referralProgram: boolean;
+  familyManagement: boolean;
+  hrModule: boolean;
+  vacationRequests: boolean;
+
+  // Module 3: Legal & Contract Management
+  electronicContracts: boolean;
+  electronicAttorneys: boolean;
+
+  // Module 4: Financial & Accounting
+  autoPayments: boolean;
+  paymentLinks: boolean;
+  receiptVouchers: boolean;
+  ejarWallet: boolean;
+
+  // Module 5: Service & Maintenance
+  serviceRatings: boolean;
+  warrantyTracker: boolean;
+  sparePartsApproval: boolean;
+  emergencyMaintenance: boolean;
+
+  // Module 6: Marketplace & Project Bidding
+  projectBidding: boolean;
+  vendorVerification: boolean;
+  onlineStore: boolean;
+
+  // Module 7: System & Administration
+  auditLogging: boolean;
+  twoFactorAuth: boolean;
+  apiAccess: boolean;
+  dataExport: boolean;
+
+  // Cross-Platform Features
+  mobileApp: boolean;
+  pushNotifications: boolean;
+  smsNotifications: boolean;
+  whatsappNotifications: boolean;
+}
+
+/**
+ * Admin Feature Settings Page
+ *
+ * Allows Super Admin to enable/disable platform features using iOS-style toggles
+ */
+export default function FeatureSettingsPage() {
+  const { data: session, status } = useSession();
+  const auto = useAutoTranslator("admin.featureSettings");
+  const [loading, setLoading] = useState(true);
+  const [loadingFeatures, setLoadingFeatures] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [lockedFeatureName, setLockedFeatureName] = useState<string>("");
+
+  // Initialize with null to handle loading state explicitly
+  const [features, setFeatures] = useState<FeatureFlags | null>(null);
+
+  /**
+   * Fetch feature flags from API on mount
+   */
+  useEffect(() => {
+    const fetchFeatureFlags = async () => {
+      try {
+        const response = await fetch("/api/admin/feature-flags");
+        if (!response.ok) {
+          throw new Error("Failed to fetch feature flags");
+        }
+        const data = await response.json();
+        setFeatures(data.features || data);
+        setError(null); // Clear any previous errors
+      } catch (err) {
+        logger.error(
+          "Failed to fetch feature flags",
+          err instanceof Error ? err : new Error(String(err)),
+          { route: "/admin/feature-settings" },
+        );
+        // Proper Error instance check with fallback
+        const errorMessage =
+          err instanceof Error
+            ? err.message
+            : "An unknown error occurred while loading feature settings";
+        setError(errorMessage);
+        toast.error(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeatureFlags();
+  }, []);
+
+  /**
+   * Handle feature toggle change
+   */
+  const handleFeatureChange = async (
+    featureKey: keyof FeatureFlags,
+    enabled: boolean,
+  ) => {
+    if (!features) return; // Guard against null state
+
+    // Store previous value for rollback on error
+    const previousValue = features[featureKey];
+
+    // Optimistic update - update UI immediately
+    setFeatures((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        [featureKey]: enabled,
+      };
+    });
+
+    // Add to loading state
+    setLoadingFeatures((prev) => [...prev, featureKey]);
+
+    try {
+      // Save to backend API
+      const response = await fetch("/api/admin/feature-flags", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          key: featureKey,
+          enabled,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error || `Failed to update feature: ${response.statusText}`,
+        );
+      }
+
+      // Show success toast with feature name
+      const featureName = featureKey
+        .replace(/([A-Z])/g, " $1")
+        .replace(/^./, (str) => str.toUpperCase());
+      toast.success(
+        `${featureName} ${enabled ? "enabled" : "disabled"} successfully`,
+      );
+
+      // Note: We don't overwrite all features to avoid race conditions
+      // The optimistic update is kept unless there's an error
+    } catch (err) {
+      logger.error(
+        "Failed to update feature",
+        err instanceof Error ? err : new Error(String(err)),
+        { route: "/admin/feature-settings", featureKey, enabled },
+      );
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "An unknown error occurred while updating feature";
+
+      // Rollback to previous value on error
+      setFeatures((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          [featureKey]: previousValue,
+        };
+      });
+
+      // Show error toast
+      toast.error(errorMessage);
+    } finally {
+      // Remove from loading state
+      setLoadingFeatures((prev) => prev.filter((k) => k !== featureKey));
+    }
+  };
+
+  /**
+   * Handle locked feature click (upgrade required)
+   * Opens modal instead of alert for better UX
+   */
+  const handleLockedFeatureClick = (featureName: string) => {
+    setLockedFeatureName(featureName);
+    setUpgradeModalOpen(true);
+  };
+
+  // Check authentication and authorization
+  if (status === "loading") {
+    return (
+      <div className="max-w-4xl mx-auto p-6 space-y-8">
+        <div>
+          <div className="h-8 bg-muted dark:bg-gray-700 rounded w-1/3 mb-2 animate-pulse"></div>
+          <div className="h-4 bg-muted dark:bg-gray-700 rounded w-2/3 animate-pulse"></div>
+        </div>
+        <FeatureToggleGroupSkeleton />
+      </div>
+    );
+  }
+
+  // Check if user is authenticated
+  if (status === "unauthenticated" || !session) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="bg-warning/10 dark:bg-warning/10 border border-warning/20 dark:border-warning/30 rounded-2xl p-6">
+          <div className="flex items-start">
+            <svg
+              className="w-6 h-6 text-warning dark:text-warning mt-0.5"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <div className="ms-3">
+              <h3 className="text-lg font-medium text-warning-foreground dark:text-warning-foreground">
+                {auto("Authentication Required", "authRequired.title")}
+              </h3>
+              <p className="mt-2 text-sm text-warning dark:text-warning">
+                {auto(
+                  "You must be logged in to access Feature Settings.",
+                  "authRequired.description",
+                )}
+              </p>
+              <a
+                href="/login"
+                className="mt-4 inline-block px-4 py-2 bg-warning text-white rounded hover:bg-warning/90"
+              >
+                {auto("Go to Login", "authRequired.cta")}
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if user is Super Admin
+  if (session.user?.role !== "SUPER_ADMIN") {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="bg-destructive/10 dark:bg-destructive/10 border border-destructive/20 dark:border-destructive/30 rounded-2xl p-6">
+          <div className="flex items-start">
+            <svg
+              className="w-6 h-6 text-destructive dark:text-destructive mt-0.5"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <div className="ms-3">
+              <h3 className="text-lg font-medium text-destructive-foreground dark:text-destructive-foreground">
+                {auto("Access Denied", "accessDenied.title")}
+              </h3>
+              <p className="mt-2 text-sm text-destructive dark:text-destructive">
+                {auto(
+                  "You do not have permission to access Feature Settings. This page is restricted to Super Admin users only.",
+                  "accessDenied.description",
+                )}
+              </p>
+              <p className="mt-2 text-sm text-destructive dark:text-destructive">
+                {auto("Your role", "accessDenied.roleLabel")}:{" "}
+                <strong>{session.user?.role || "Unknown"}</strong>
+              </p>
+              <a
+                href="/dashboard"
+                className="mt-4 inline-block px-4 py-2 bg-destructive text-white rounded hover:bg-destructive/90"
+              >
+                {auto("Return to Dashboard", "accessDenied.cta")}
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show skeleton loaders during initial load
+  if (loading || !features) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 space-y-8">
+        <div>
+          <div className="h-8 bg-muted dark:bg-gray-700 rounded w-1/3 mb-2 animate-pulse"></div>
+          <div className="h-4 bg-muted dark:bg-gray-700 rounded w-2/3 animate-pulse"></div>
+        </div>
+        <FeatureToggleGroupSkeleton />
+        <FeatureToggleGroupSkeleton />
+        <FeatureToggleGroupSkeleton />
+        <FeatureToggleGroupSkeleton />
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto p-6 space-y-8">
+      {/* Error Display */}
+      {error && (
+        <div className="bg-destructive/10 dark:bg-destructive/10 border border-destructive/20 dark:border-destructive/30 rounded-2xl p-4">
+          <div className="flex items-start">
+            <svg
+              className="w-5 h-5 text-destructive dark:text-destructive mt-0.5"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <div className="ms-3 flex-1">
+              <h3 className="text-sm font-medium text-destructive-foreground dark:text-destructive-foreground">
+                {auto("Error Loading Feature Settings", "errors.loadTitle")}
+              </h3>
+              <p className="mt-1 text-sm text-destructive dark:text-destructive">
+                {error}
+              </p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-3 text-sm font-medium text-destructive dark:text-destructive hover:text-destructive dark:hover:text-destructive"
+              >
+                {auto("Retry", "errors.retry")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-foreground dark:text-white">
+          {auto("Feature Settings", "header.title")}
+        </h1>
+        <p className="mt-2 text-muted-foreground dark:text-muted-foreground">
+          {auto(
+            "Enable or disable platform features. Changes take effect immediately.",
+            "header.subtitle",
+          )}
+        </p>
+      </div>
+
+      {/* Customer & User Lifecycle */}
+      <FeatureToggleGroup
+        title={auto("Customer & User Management", "groups.customer.title")}
+        description={auto(
+          "Features related to customer lifecycle, family management, and HR",
+          "groups.customer.description",
+        )}
+      >
+        <FeatureToggle
+          id="referral-program"
+          label={auto("Referral Program", "features.referralProgram.label")}
+          description={auto(
+            "Allow users to refer others and earn rewards",
+            "features.referralProgram.description",
+          )}
+          enabled={features.referralProgram}
+          onChange={(enabled) =>
+            handleFeatureChange("referralProgram", enabled)
+          }
+          loading={loadingFeatures.includes("referralProgram")}
+          badge={auto("New", "badges.new")}
+        />
+
+        <FeatureToggle
+          id="family-management"
+          label={auto("Family Management", "features.familyManagement.label")}
+          description={auto(
+            "Enable family member invitations and shared access",
+            "features.familyManagement.description",
+          )}
+          enabled={features.familyManagement}
+          onChange={(enabled) =>
+            handleFeatureChange("familyManagement", enabled)
+          }
+          loading={loadingFeatures.includes("familyManagement")}
+          badge={auto("Beta", "badges.beta")}
+        />
+
+        <FeatureToggle
+          id="hr-module"
+          label={auto("HR Module", "features.hrModule.label")}
+          description={auto(
+            "Employee management and vacation tracking",
+            "features.hrModule.description",
+          )}
+          enabled={features.hrModule}
+          onChange={(enabled) => handleFeatureChange("hrModule", enabled)}
+          loading={loadingFeatures.includes("hrModule")}
+        />
+
+        <FeatureToggle
+          id="vacation-requests"
+          label={auto("Vacation Requests", "features.vacationRequests.label")}
+          description={auto(
+            "Allow employees to submit vacation requests",
+            "features.vacationRequests.description",
+          )}
+          enabled={features.vacationRequests}
+          onChange={(enabled) =>
+            handleFeatureChange("vacationRequests", enabled)
+          }
+          loading={loadingFeatures.includes("vacationRequests")}
+        />
+      </FeatureToggleGroup>
+
+      {/* Legal & Contract Management */}
+      <FeatureToggleGroup
+        title={auto("Legal & Contracts", "groups.legal.title")}
+        description={auto(
+          "Contract management and legal document features",
+          "groups.legal.description",
+        )}
+      >
+        <FeatureToggle
+          id="electronic-contracts"
+          label={auto(
+            "Electronic Contracts",
+            "features.electronicContracts.label",
+          )}
+          description={auto(
+            "Enable digital contract signing via Ejar",
+            "features.electronicContracts.description",
+          )}
+          enabled={features.electronicContracts}
+          onChange={(enabled) =>
+            handleFeatureChange("electronicContracts", enabled)
+          }
+          loading={loadingFeatures.includes("electronicContracts")}
+        />
+
+        <FeatureToggle
+          id="electronic-attorneys"
+          label={auto(
+            "Electronic Attorneys",
+            "features.electronicAttorneys.label",
+          )}
+          description={auto(
+            "Power of Attorney management system",
+            "features.electronicAttorneys.description",
+          )}
+          enabled={features.electronicAttorneys}
+          onChange={(enabled) =>
+            handleFeatureChange("electronicAttorneys", enabled)
+          }
+          loading={loadingFeatures.includes("electronicAttorneys")}
+          badge={auto("Coming Soon", "badges.comingSoon")}
+        />
+      </FeatureToggleGroup>
+
+      {/* Financial & Accounting */}
+      <FeatureToggleGroup
+        title={auto("Financial & Accounting", "groups.finance.title")}
+        description={auto(
+          "Payment processing, invoicing, and financial features",
+          "groups.finance.description",
+        )}
+      >
+        <FeatureToggle
+          id="auto-payments"
+          label={auto("Auto Payments", "features.autoPayments.label")}
+          description={auto(
+            "Automatic payment processing via Stripe/Tap",
+            "features.autoPayments.description",
+          )}
+          enabled={features.autoPayments}
+          onChange={(enabled) => handleFeatureChange("autoPayments", enabled)}
+          loading={loadingFeatures.includes("autoPayments")}
+        />
+
+        <FeatureToggle
+          id="payment-links"
+          label={auto("Payment Links", "features.paymentLinks.label")}
+          description={auto(
+            "Generate payment links for tenants",
+            "features.paymentLinks.description",
+          )}
+          enabled={features.paymentLinks}
+          onChange={(enabled) => handleFeatureChange("paymentLinks", enabled)}
+          loading={loadingFeatures.includes("paymentLinks")}
+        />
+
+        <FeatureToggle
+          id="receipt-vouchers"
+          label={auto(
+            "Receipt Vouchers with QR",
+            "features.receiptVouchers.label",
+          )}
+          description={auto(
+            "Generate receipt vouchers with QR codes",
+            "features.receiptVouchers.description",
+          )}
+          enabled={features.receiptVouchers}
+          onChange={(enabled) =>
+            handleFeatureChange("receiptVouchers", enabled)
+          }
+          loading={loadingFeatures.includes("receiptVouchers")}
+          badge={auto("New", "badges.new")}
+        />
+
+        <FeatureToggle
+          id="ejar-wallet"
+          label={auto("Ejar Wallet Integration", "features.ejarWallet.label")}
+          description={auto(
+            "Connect with Ejar digital wallet",
+            "features.ejarWallet.description",
+          )}
+          enabled={features.ejarWallet}
+          onChange={(enabled) => handleFeatureChange("ejarWallet", enabled)}
+          loading={loadingFeatures.includes("ejarWallet")}
+          locked={true}
+          onLockedClick={() =>
+            handleLockedFeatureClick(
+              auto("Ejar Wallet Integration", "features.ejarWallet.label"),
+            )
+          }
+        />
+      </FeatureToggleGroup>
+
+      {/* Service & Maintenance */}
+      <FeatureToggleGroup
+        title={auto("Service & Maintenance", "groups.service.title")}
+        description={auto(
+          "Maintenance request management and service provider features",
+          "groups.service.description",
+        )}
+      >
+        <FeatureToggle
+          id="service-ratings"
+          label={auto("Service Ratings", "features.serviceRatings.label")}
+          description={auto(
+            "Allow customers to rate service providers",
+            "features.serviceRatings.description",
+          )}
+          enabled={features.serviceRatings}
+          onChange={(enabled) => handleFeatureChange("serviceRatings", enabled)}
+          loading={loadingFeatures.includes("serviceRatings")}
+        />
+
+        <FeatureToggle
+          id="warranty-tracker"
+          label={auto("Warranty Tracker", "features.warrantyTracker.label")}
+          description={auto(
+            "Track appliance and equipment warranties",
+            "features.warrantyTracker.description",
+          )}
+          enabled={features.warrantyTracker}
+          onChange={(enabled) =>
+            handleFeatureChange("warrantyTracker", enabled)
+          }
+          loading={loadingFeatures.includes("warrantyTracker")}
+          badge={auto("Beta", "badges.beta")}
+        />
+
+        <FeatureToggle
+          id="spare-parts-approval"
+          label={auto(
+            "Spare Parts Approval",
+            "features.sparePartsApproval.label",
+          )}
+          description={auto(
+            "Require tenant approval for spare parts purchases",
+            "features.sparePartsApproval.description",
+          )}
+          enabled={features.sparePartsApproval}
+          onChange={(enabled) =>
+            handleFeatureChange("sparePartsApproval", enabled)
+          }
+          loading={loadingFeatures.includes("sparePartsApproval")}
+        />
+
+        <FeatureToggle
+          id="emergency-maintenance"
+          label={auto(
+            "Emergency Maintenance",
+            "features.emergencyMaintenance.label",
+          )}
+          description={auto(
+            "24/7 emergency maintenance requests",
+            "features.emergencyMaintenance.description",
+          )}
+          enabled={features.emergencyMaintenance}
+          onChange={(enabled) =>
+            handleFeatureChange("emergencyMaintenance", enabled)
+          }
+          loading={loadingFeatures.includes("emergencyMaintenance")}
+        />
+      </FeatureToggleGroup>
+
+      {/* Marketplace & Project Bidding */}
+      <FeatureToggleGroup
+        title={auto("Marketplace & Projects", "groups.marketplace.title")}
+        description={auto(
+          "Project bidding, vendor management, and e-commerce",
+          "groups.marketplace.description",
+        )}
+      >
+        <FeatureToggle
+          id="project-bidding"
+          label={auto(
+            "Project Bidding System",
+            "features.projectBidding.label",
+          )}
+          description={auto(
+            "Allow contractors to bid on projects",
+            "features.projectBidding.description",
+          )}
+          enabled={features.projectBidding}
+          onChange={(enabled) => handleFeatureChange("projectBidding", enabled)}
+          loading={loadingFeatures.includes("projectBidding")}
+          badge={auto("New", "badges.new")}
+        />
+
+        <FeatureToggle
+          id="vendor-verification"
+          label={auto(
+            "Vendor Verification",
+            "features.vendorVerification.label",
+          )}
+          description={auto(
+            "Background checks and document verification for vendors",
+            "features.vendorVerification.description",
+          )}
+          enabled={features.vendorVerification}
+          onChange={(enabled) =>
+            handleFeatureChange("vendorVerification", enabled)
+          }
+          loading={loadingFeatures.includes("vendorVerification")}
+        />
+
+        <FeatureToggle
+          id="online-store"
+          label={auto("Online Store (Souq)", "features.onlineStore.label")}
+          description={auto(
+            "Public e-commerce store for products and services",
+            "features.onlineStore.description",
+          )}
+          enabled={features.onlineStore}
+          onChange={(enabled) => handleFeatureChange("onlineStore", enabled)}
+          loading={loadingFeatures.includes("onlineStore")}
+        />
+      </FeatureToggleGroup>
+
+      {/* System & Administration */}
+      <FeatureToggleGroup
+        title={auto("System & Security", "groups.system.title")}
+        description={auto(
+          "Administrative and security features",
+          "groups.system.description",
+        )}
+      >
+        <FeatureToggle
+          id="audit-logging"
+          label={auto("Audit Logging", "features.auditLogging.label")}
+          description={auto(
+            "Track all database changes and user actions",
+            "features.auditLogging.description",
+          )}
+          enabled={features.auditLogging}
+          onChange={(enabled) => handleFeatureChange("auditLogging", enabled)}
+          loading={loadingFeatures.includes("auditLogging")}
+          danger={!features.auditLogging}
+        />
+
+        <FeatureToggle
+          id="two-factor-auth"
+          label={auto(
+            "Two-Factor Authentication",
+            "features.twoFactorAuth.label",
+          )}
+          description={auto(
+            "Require 2FA for admin accounts",
+            "features.twoFactorAuth.description",
+          )}
+          enabled={features.twoFactorAuth}
+          onChange={(enabled) => handleFeatureChange("twoFactorAuth", enabled)}
+          loading={loadingFeatures.includes("twoFactorAuth")}
+          badge={auto("Recommended", "badges.recommended")}
+        />
+
+        <FeatureToggle
+          id="api-access"
+          label={auto("API Access", "features.apiAccess.label")}
+          description={auto(
+            "Enable third-party API integrations",
+            "features.apiAccess.description",
+          )}
+          enabled={features.apiAccess}
+          onChange={(enabled) => handleFeatureChange("apiAccess", enabled)}
+          loading={loadingFeatures.includes("apiAccess")}
+          locked={true}
+          onLockedClick={() =>
+            handleLockedFeatureClick(
+              auto("API Access", "features.apiAccess.label"),
+            )
+          }
+        />
+
+        <FeatureToggle
+          id="data-export"
+          label={auto("Data Export", "features.dataExport.label")}
+          description={auto(
+            "Allow users to export their data",
+            "features.dataExport.description",
+          )}
+          enabled={features.dataExport}
+          onChange={(enabled) => handleFeatureChange("dataExport", enabled)}
+          loading={loadingFeatures.includes("dataExport")}
+        />
+      </FeatureToggleGroup>
+
+      {/* Cross-Platform Features */}
+      <FeatureToggleGroup
+        title={auto("Cross-Platform Features", "groups.crossPlatform.title")}
+        description={auto(
+          "Mobile app and notification settings",
+          "groups.crossPlatform.description",
+        )}
+      >
+        <FeatureToggle
+          id="mobile-app"
+          label={auto("Mobile App Access", "features.mobileApp.label")}
+          description={auto(
+            "Enable iOS and Android mobile applications",
+            "features.mobileApp.description",
+          )}
+          enabled={features.mobileApp}
+          onChange={(enabled) => handleFeatureChange("mobileApp", enabled)}
+          loading={loadingFeatures.includes("mobileApp")}
+          badge={auto("Coming Soon", "badges.comingSoon")}
+        />
+
+        <FeatureToggle
+          id="push-notifications"
+          label={auto("Push Notifications", "features.pushNotifications.label")}
+          description={auto(
+            "Send push notifications to mobile devices",
+            "features.pushNotifications.description",
+          )}
+          enabled={features.pushNotifications}
+          onChange={(enabled) =>
+            handleFeatureChange("pushNotifications", enabled)
+          }
+          loading={loadingFeatures.includes("pushNotifications")}
+        />
+
+        <FeatureToggle
+          id="sms-notifications"
+          label={auto("SMS Notifications", "features.smsNotifications.label")}
+          description={auto(
+            "Send SMS notifications via Twilio/Unifonic",
+            "features.smsNotifications.description",
+          )}
+          enabled={features.smsNotifications}
+          onChange={(enabled) =>
+            handleFeatureChange("smsNotifications", enabled)
+          }
+          loading={loadingFeatures.includes("smsNotifications")}
+        />
+
+        <FeatureToggle
+          id="whatsapp-notifications"
+          label={auto(
+            "WhatsApp Notifications",
+            "features.whatsappNotifications.label",
+          )}
+          description={auto(
+            "Send notifications via WhatsApp Business API",
+            "features.whatsappNotifications.description",
+          )}
+          enabled={features.whatsappNotifications}
+          onChange={(enabled) =>
+            handleFeatureChange("whatsappNotifications", enabled)
+          }
+          loading={loadingFeatures.includes("whatsappNotifications")}
+          locked={true}
+          onLockedClick={() =>
+            handleLockedFeatureClick(
+              auto(
+                "WhatsApp Notifications",
+                "features.whatsappNotifications.label",
+              ),
+            )
+          }
+        />
+      </FeatureToggleGroup>
+
+      {/* Save Button (optional, changes are auto-saved) */}
+      <div className="flex justify-end pt-6 border-t border-border dark:border-gray-700">
+        <p className="text-sm text-muted-foreground dark:text-muted-foreground">
+          {auto("Changes are saved automatically", "footer.autoSaved")}
+        </p>
+      </div>
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        isOpen={upgradeModalOpen}
+        onClose={() => setUpgradeModalOpen(false)}
+        featureName={lockedFeatureName}
+      />
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/admin/help-articles/page.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { RefreshCw, Globe2, Lock, Shield, FileText } from "lucide-react";
+
+type Article = {
+  slug: string;
+  title: string;
+  category?: string;
+  status?: string;
+  updatedAt?: string;
+};
+
+const formatDate = (value?: string) => {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toISOString().slice(0, 10);
+};
+
+export default function AdminHelpArticlesPage() {
+  const [items, setItems] = useState<Article[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/help/articles?status=ALL&limit=100", {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      const articles = Array.isArray(data?.items) ? data.items : [];
+      setItems(articles);
+    } catch (_err) {
+      setError("Failed to load articles");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const published = useMemo(
+    () => items.filter((a) => a.status === "PUBLISHED"),
+    [items],
+  );
+  const drafts = useMemo(
+    () => items.filter((a) => a.status !== "PUBLISHED"),
+    [items],
+  );
+
+  const renderRow = (article: Article) => (
+    <div
+      key={article.slug}
+      className="grid grid-cols-4 gap-3 items-center py-2 px-3 rounded-lg border border-border bg-card"
+    >
+      <div className="flex items-center gap-2 truncate">
+        <FileText className="w-4 h-4 text-muted-foreground" />
+        <div className="truncate">
+          <div className="font-medium text-foreground truncate">
+            {article.title || "Untitled"}
+          </div>
+          <div className="text-xs text-muted-foreground truncate">
+            {article.slug}
+          </div>
+        </div>
+      </div>
+      <div className="text-sm text-muted-foreground">
+        {article.category || "General"}
+      </div>
+      <div className="flex items-center gap-2 text-sm">
+        {article.status === "PUBLISHED" ? (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-success/10 text-success-foreground border border-success/20">
+            <Globe2 className="w-3 h-3" />
+            Published
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-muted text-foreground border border-border">
+            <Lock className="w-3 h-3" />
+            Draft
+          </span>
+        )}
+      </div>
+      <div className="flex items-center justify-end gap-3 text-sm">
+        <span className="text-muted-foreground">
+          {formatDate(article.updatedAt)}
+        </span>
+        <Link
+          className="text-primary hover:text-primary/80 font-medium"
+          href={`/help/${article.slug}`}
+          target="_blank"
+        >
+          View
+        </Link>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="mx-auto max-w-6xl py-10 px-6 space-y-8">
+      <header className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-muted-foreground">
+            Superadmin · Help & Knowledge Center
+          </p>
+          <h1 className="text-2xl font-semibold text-foreground flex items-center gap-2">
+            <Shield className="w-5 h-5 text-primary" />
+            Help Articles
+          </h1>
+        </div>
+        <button
+          onClick={load}
+          disabled={loading}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-card hover:bg-muted text-sm font-medium disabled:opacity-50"
+        >
+          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+          Refresh
+        </button>
+      </header>
+
+      {error ? <p className="text-destructive text-sm">{error}</p> : null}
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Published</h2>
+            <span className="text-sm text-muted-foreground">
+              {published.length}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {published.length ? (
+              published.map(renderRow)
+            ) : (
+              <p className="text-sm text-muted-foreground border border-dashed border-border rounded-lg p-3">
+                No published articles.
+              </p>
+            )}
+          </div>
+        </section>
+
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Drafts</h2>
+            <span className="text-sm text-muted-foreground">
+              {drafts.length}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {drafts.length ? (
+              drafts.map(renderRow)
+            ) : (
+              <p className="text-sm text-muted-foreground border border-dashed border-border rounded-lg p-3">
+                No drafts.
+              </p>
+            )}
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/admin/logo/page.tsx">
+<![CDATA[
+"use client";
+import { useState, useEffect, useRef } from "react";
+import { useSession } from "next-auth/react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { logger } from "@/lib/logger";
+
+/**
+ * Logo Upload Admin Page
+ * Super Admin only - Upload and manage platform logo
+ * Features:
+ * - File upload with drag & drop
+ * - Image preview
+ * - File validation (type, size)
+ * - Current logo display
+ * - Replace logo functionality
+ */
+export default function LogoUpload() {
+  const { t } = useTranslation();
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [currentLogoUrl, setCurrentLogoUrl] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [dragActive, setDragActive] = useState(false);
+
+  // Authorization check
+  useEffect(() => {
+    if (status === "loading") return;
+
+    if (!session) {
+      router.push("/login?callbackUrl=/admin/logo");
+      return;
+    }
+
+    if (session.user?.role !== "SUPER_ADMIN") {
+      toast.error(
+        t(
+          "admin.logo.accessDenied",
+          "Access Denied: SUPER_ADMIN role required",
+        ),
+      );
+      router.push("/dashboard");
+      return;
+    }
+  }, [session, status, router, t]);
+
+  // Load current logo
+  useEffect(() => {
+    if (session?.user?.role !== "SUPER_ADMIN") return;
+
+    const loadCurrentLogo = async () => {
+      try {
+        const response = await fetch("/api/admin/logo/upload");
+
+        if (response.ok) {
+          const data = await response.json();
+          setCurrentLogoUrl(data.logoUrl);
+        }
+      } catch (error) {
+        logger.error("Failed to load current logo", { error });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadCurrentLogo();
+  }, [session]);
+
+  // Handle file selection
+  const handleFileSelect = (file: File) => {
+    // Validate file type
+    const allowedTypes = [
+      "image/png",
+      "image/jpeg",
+      "image/jpg",
+      "image/svg+xml",
+      "image/webp",
+    ];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error(
+        t(
+          "admin.logo.invalidType",
+          "Invalid file type. Please upload PNG, JPEG, SVG, or WebP",
+        ),
+      );
+      return;
+    }
+
+    // Validate file size (5MB max)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error(
+        t("admin.logo.fileTooLarge", "File too large. Maximum size: 5MB"),
+      );
+      return;
+    }
+
+    setSelectedFile(file);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setPreviewUrl(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Handle file input change
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileSelect(file);
+    }
+  };
+
+  // Handle drag events
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  // Handle drop
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      handleFileSelect(file);
+    }
+  };
+
+  // Handle upload
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      toast.error(
+        t("admin.logo.noFileSelected", "Please select a file to upload"),
+      );
+      return;
+    }
+
+    setUploading(true);
+    const toastId = toast.loading(
+      t("admin.logo.uploading", "Uploading logo..."),
+    );
+
+    try {
+      const formData = new FormData();
+      formData.append("logo", selectedFile);
+
+      const response = await fetch("/api/admin/logo/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentLogoUrl(data.data.logoUrl);
+        setSelectedFile(null);
+        setPreviewUrl(null);
+        toast.success(
+          t("admin.logo.uploadSuccess", "Logo uploaded successfully"),
+          { id: toastId },
+        );
+
+        // Trigger a page reload after 1 second to show new logo in TopBar
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        const error = await response.text();
+        toast.error(
+          `${t("admin.logo.uploadFailed", "Upload failed")}: ${error}`,
+          { id: toastId },
+        );
+      }
+    } catch (error) {
+      logger.error("Logo upload error", {
+        error,
+        fileName: selectedFile?.name,
+      });
+      toast.error(
+        t("admin.logo.uploadNetworkError", "Network error while uploading"),
+        { id: toastId },
+      );
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Handle cancel
+  const handleCancel = () => {
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  // Don't render if not authorized
+  if (status === "loading" || loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-muted-foreground">
+          {t("common.loading", "Loading...")}
+        </div>
+      </div>
+    );
+  }
+
+  if (!session || session.user?.role !== "SUPER_ADMIN") {
+    return null;
+  }
+
+  return (
+    <div className="mx-auto max-w-4xl p-6 space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-foreground">
+          {t("admin.logo.title", "Logo Management")}
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          {t(
+            "admin.logo.subtitle",
+            "Upload and manage platform logo (Super Admin only)",
+          )}
+        </p>
+      </div>
+
+      {/* Current Logo */}
+      {currentLogoUrl && (
+        <div className="bg-card border border-border rounded-2xl p-6 space-y-3">
+          <h2 className="text-lg font-semibold text-foreground">
+            {t("admin.logo.currentLogo", "Current Logo")}
+          </h2>
+          <div className="flex items-center justify-center bg-muted/30 rounded-xl p-8 border border-border">
+            <Image
+              src={currentLogoUrl}
+              alt={t("admin.logo.currentLogoAlt", "Current logo")}
+              width={200}
+              height={80}
+              className="max-h-20 w-auto object-contain"
+            />
+          </div>
+          <p className="text-xs text-muted-foreground text-center">
+            {t(
+              "admin.logo.visibleInTopBar",
+              "This logo is visible in the top navigation bar",
+            )}
+          </p>
+        </div>
+      )}
+
+      {/* Upload Area */}
+      <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
+        <h2 className="text-lg font-semibold text-foreground">
+          {currentLogoUrl
+            ? t("admin.logo.replaceLogo", "Replace Logo")
+            : t("admin.logo.uploadLogo", "Upload Logo")}
+        </h2>
+
+        {/* Drag & Drop Zone */}
+        <div
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDragOver={handleDrag}
+          onDrop={handleDrop}
+          className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-colors ${
+            dragActive
+              ? "border-primary bg-primary/5"
+              : "border-border hover:border-primary/50"
+          }`}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+            onChange={handleInputChange}
+            className="hidden"
+            id="logo-upload"
+          />
+
+          {previewUrl ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-center">
+                <Image
+                  src={previewUrl}
+                  alt={t("admin.logo.previewAlt", "Logo preview")}
+                  width={200}
+                  height={80}
+                  className="max-h-32 w-auto object-contain"
+                />
+              </div>
+              <p className="text-sm text-foreground font-medium">
+                {selectedFile?.name}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {selectedFile && `${(selectedFile.size / 1024).toFixed(2)} KB`}
+              </p>
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={handleUpload}
+                  disabled={uploading}
+                  className="px-6 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                >
+                  {uploading
+                    ? t("admin.logo.uploading", "Uploading...")
+                    : t("admin.logo.uploadButton", "Upload")}
+                </button>
+                <button
+                  onClick={handleCancel}
+                  disabled={uploading}
+                  className="px-6 py-2 bg-muted text-foreground rounded-2xl hover:bg-muted/80 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                >
+                  {t("common.cancel", "Cancel")}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex justify-center">
+                <svg
+                  className="w-16 h-16 text-muted-foreground"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                  />
+                </svg>
+              </div>
+              <div>
+                <label
+                  htmlFor="logo-upload"
+                  className="cursor-pointer text-primary hover:text-primary/80 font-medium"
+                >
+                  {t("admin.logo.chooseFile", "Choose a file")}
+                </label>
+                <span className="text-muted-foreground">
+                  {" "}
+                  {t("admin.logo.orDragDrop", "or drag and drop")}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {t(
+                  "admin.logo.supportedFormats",
+                  "PNG, JPEG, SVG, or WebP (max 5MB)",
+                )}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Guidelines */}
+      <div className="bg-muted/50 rounded-2xl p-4 space-y-2">
+        <h3 className="font-medium text-sm text-foreground">
+          {t("admin.logo.guidelinesTitle", "Logo Guidelines")}
+        </h3>
+        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+          <li>
+            {t(
+              "admin.logo.guideline.formats",
+              "Supported formats: PNG, JPEG, SVG, WebP",
+            )}
+          </li>
+          <li>{t("admin.logo.guideline.size", "Maximum file size: 5MB")}</li>
+          <li>
+            {t(
+              "admin.logo.guideline.dimensions",
+              "Recommended dimensions: 200x80 pixels (or proportional)",
+            )}
+          </li>
+          <li>
+            {t(
+              "admin.logo.guideline.transparent",
+              "Use PNG with transparent background for best results",
+            )}
+          </li>
+          <li>
+            {t(
+              "admin.logo.guideline.topbar",
+              "Logo will appear in the top navigation bar",
+            )}
+          </li>
+          <li>
+            {t(
+              "admin.logo.guideline.clickable",
+              "Logo will be clickable and link to the landing page",
+            )}
+          </li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+</batch_content>

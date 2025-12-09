@@ -1,0 +1,2223 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="i18n/sources/complianceRegulatory.translations.json">
+<![CDATA[
+{
+  "en": {
+    "complianceRegulatory.accreditation": "Accreditation",
+    "complianceRegulatory.audit": "Audit",
+    "complianceRegulatory.certification": "Certification",
+    "complianceRegulatory.code": "Code of Conduct",
+    "complianceRegulatory.compliance": "Compliance",
+    "complianceRegulatory.compliant": "Compliant",
+    "complianceRegulatory.enforce": "Enforce",
+    "complianceRegulatory.ethics": "Ethics",
+    "complianceRegulatory.fine": "Fine",
+    "complianceRegulatory.guideline": "Guideline",
+    "complianceRegulatory.inspection": "Inspection",
+    "complianceRegulatory.law": "Law",
+    "complianceRegulatory.legislation": "Legislation",
+    "complianceRegulatory.license": "License",
+    "complianceRegulatory.monitor": "Monitor",
+    "complianceRegulatory.nonCompliant": "Non-compliant",
+    "complianceRegulatory.penalty": "Penalty",
+    "complianceRegulatory.permit": "Permit",
+    "complianceRegulatory.policy": "Policy",
+    "complianceRegulatory.procedure": "Procedure",
+    "complianceRegulatory.regulation": "Regulation",
+    "complianceRegulatory.regulatory": "Regulatory",
+    "complianceRegulatory.requirement": "Requirement",
+    "complianceRegulatory.sanction": "Sanction",
+    "complianceRegulatory.standard": "Standard",
+    "complianceRegulatory.violation": "Violation"
+  },
+  "ar": {
+    "complianceRegulatory.accreditation": "الاعتماد",
+    "complianceRegulatory.audit": "التدقيق",
+    "complianceRegulatory.certification": "الاعتماد",
+    "complianceRegulatory.code": "مدونة السلوك",
+    "complianceRegulatory.compliance": "الامتثال",
+    "complianceRegulatory.compliant": "ملتزم",
+    "complianceRegulatory.enforce": "إنفاذ",
+    "complianceRegulatory.ethics": "الأخلاقيات",
+    "complianceRegulatory.fine": "الغرامة",
+    "complianceRegulatory.guideline": "الدليل الإرشادي",
+    "complianceRegulatory.inspection": "التفتيش",
+    "complianceRegulatory.law": "القانون",
+    "complianceRegulatory.legislation": "التشريع",
+    "complianceRegulatory.license": "الترخيص",
+    "complianceRegulatory.monitor": "مراقبة",
+    "complianceRegulatory.nonCompliant": "غير ملتزم",
+    "complianceRegulatory.penalty": "العقوبة",
+    "complianceRegulatory.permit": "التصريح",
+    "complianceRegulatory.policy": "السياسة",
+    "complianceRegulatory.procedure": "الإجراء",
+    "complianceRegulatory.regulation": "اللائحة",
+    "complianceRegulatory.regulatory": "تنظيمي",
+    "complianceRegulatory.requirement": "المتطلب",
+    "complianceRegulatory.sanction": "العقوبة",
+    "complianceRegulatory.standard": "المعيار",
+    "complianceRegulatory.violation": "المخالفة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/complianceTerms.translations.json">
+<![CDATA[
+{
+  "en": {
+    "complianceTerms.accreditation": "Accreditation",
+    "complianceTerms.approval": "Approval",
+    "complianceTerms.audit": "Compliance Audit",
+    "complianceTerms.authorization": "Authorization",
+    "complianceTerms.breach": "Breach",
+    "complianceTerms.certification": "Certification",
+    "complianceTerms.code": "Code",
+    "complianceTerms.compliance": "Compliance",
+    "complianceTerms.corrective": "Corrective Action",
+    "complianceTerms.exemption": "Exemption",
+    "complianceTerms.fine": "Fine",
+    "complianceTerms.guideline": "Guideline",
+    "complianceTerms.infringement": "Infringement",
+    "complianceTerms.license": "License",
+    "complianceTerms.mandate": "Mandate",
+    "complianceTerms.nonCompliance": "Non-Compliance",
+    "complianceTerms.penalty": "Penalty",
+    "complianceTerms.permit": "Permit",
+    "complianceTerms.policy": "Policy",
+    "complianceTerms.procedure": "Procedure",
+    "complianceTerms.protocol": "Protocol",
+    "complianceTerms.regulation": "Regulation",
+    "complianceTerms.remediation": "Remediation",
+    "complianceTerms.requirement": "Requirement",
+    "complianceTerms.review": "Compliance Review",
+    "complianceTerms.sanction": "Sanction",
+    "complianceTerms.standard": "Standard",
+    "complianceTerms.violation": "Violation",
+    "complianceTerms.waiver": "Waiver"
+  },
+  "ar": {
+    "complianceTerms.accreditation": "الاعتماد",
+    "complianceTerms.approval": "الموافقة",
+    "complianceTerms.audit": "تدقيق الامتثال",
+    "complianceTerms.authorization": "التفويض",
+    "complianceTerms.breach": "الانتهاك",
+    "complianceTerms.certification": "الشهادة",
+    "complianceTerms.code": "القانون",
+    "complianceTerms.compliance": "الامتثال",
+    "complianceTerms.corrective": "الإجراء التصحيحي",
+    "complianceTerms.exemption": "الإعفاء",
+    "complianceTerms.fine": "الجزاء",
+    "complianceTerms.guideline": "الدليل الإرشادي",
+    "complianceTerms.infringement": "التعدي",
+    "complianceTerms.license": "الترخيص",
+    "complianceTerms.mandate": "التكليف",
+    "complianceTerms.nonCompliance": "عدم الامتثال",
+    "complianceTerms.penalty": "الغرامة",
+    "complianceTerms.permit": "التصريح",
+    "complianceTerms.policy": "السياسة",
+    "complianceTerms.procedure": "الإجراء",
+    "complianceTerms.protocol": "البروتوكول",
+    "complianceTerms.regulation": "اللائحة",
+    "complianceTerms.remediation": "المعالجة",
+    "complianceTerms.requirement": "المتطلبات",
+    "complianceTerms.review": "مراجعة الامتثال",
+    "complianceTerms.sanction": "العقوبة",
+    "complianceTerms.standard": "المعيار",
+    "complianceTerms.violation": "المخالفة",
+    "complianceTerms.waiver": "التنازل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/complianceTrainingAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "complianceTrainingAdv.annual": "Annual Training",
+    "complianceTrainingAdv.audit": "Compliance Audit",
+    "complianceTrainingAdv.certificate": "Completion Certificate",
+    "complianceTrainingAdv.completion": "Training Completion",
+    "complianceTrainingAdv.compliance": "Compliance Training",
+    "complianceTrainingAdv.conduct": "Code of Conduct",
+    "complianceTrainingAdv.data": "Data Privacy Training",
+    "complianceTrainingAdv.deadline": "Compliance Deadline",
+    "complianceTrainingAdv.discrimination": "Anti-Discrimination",
+    "complianceTrainingAdv.ethics": "Ethics Training",
+    "complianceTrainingAdv.harassment": "Anti-Harassment",
+    "complianceTrainingAdv.legal": "Legal Compliance",
+    "complianceTrainingAdv.mandatory": "Mandatory Training",
+    "complianceTrainingAdv.overdue": "Overdue Training",
+    "complianceTrainingAdv.policy": "Policy Training",
+    "complianceTrainingAdv.refresher": "Refresher Training",
+    "complianceTrainingAdv.regulatory": "Regulatory Compliance",
+    "complianceTrainingAdv.reminder": "Training Reminder",
+    "complianceTrainingAdv.required": "Required Training",
+    "complianceTrainingAdv.security": "Security Training",
+    "complianceTrainingAdv.tracking": "Compliance Tracking",
+    "complianceTrainingAdv.workplace": "Workplace Safety"
+  },
+  "ar": {
+    "complianceTrainingAdv.annual": "التدريب السنوي",
+    "complianceTrainingAdv.audit": "تدقيق الامتثال",
+    "complianceTrainingAdv.certificate": "شهادة الإنجاز",
+    "complianceTrainingAdv.completion": "إتمام التدريب",
+    "complianceTrainingAdv.compliance": "التدريب على الامتثال",
+    "complianceTrainingAdv.conduct": "مدونة السلوك",
+    "complianceTrainingAdv.data": "التدريب على خصوصية البيانات",
+    "complianceTrainingAdv.deadline": "الموعد النهائي للامتثال",
+    "complianceTrainingAdv.discrimination": "مكافحة التمييز",
+    "complianceTrainingAdv.ethics": "التدريب الأخلاقي",
+    "complianceTrainingAdv.harassment": "مكافحة التحرش",
+    "complianceTrainingAdv.legal": "الامتثال القانوني",
+    "complianceTrainingAdv.mandatory": "التدريب الإلزامي",
+    "complianceTrainingAdv.overdue": "التدريب المتأخر",
+    "complianceTrainingAdv.policy": "التدريب على السياسات",
+    "complianceTrainingAdv.refresher": "التدريب التنشيطي",
+    "complianceTrainingAdv.regulatory": "الامتثال التنظيمي",
+    "complianceTrainingAdv.reminder": "تذكير التدريب",
+    "complianceTrainingAdv.required": "التدريب المطلوب",
+    "complianceTrainingAdv.security": "التدريب الأمني",
+    "complianceTrainingAdv.tracking": "تتبع الامتثال",
+    "complianceTrainingAdv.workplace": "السلامة في مكان العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/computerVision.translations.json">
+<![CDATA[
+{
+  "en": {
+    "computerVision.annotation": "Image Annotation",
+    "computerVision.augmentation": "Data Augmentation",
+    "computerVision.classification": "Image Classification",
+    "computerVision.cnn": "CNN",
+    "computerVision.convolution": "Convolution",
+    "computerVision.detection": "Object Detection",
+    "computerVision.edge": "Edge Detection",
+    "computerVision.face": "Face Recognition",
+    "computerVision.facial": "Facial Analysis",
+    "computerVision.feature": "Feature Extraction",
+    "computerVision.filter": "Image Filter",
+    "computerVision.image": "Image Processing",
+    "computerVision.labeling": "Image Labeling",
+    "computerVision.ocr": "OCR",
+    "computerVision.pooling": "Pooling",
+    "computerVision.realtime": "Real-time Vision",
+    "computerVision.recognition": "Image Recognition",
+    "computerVision.segmentation": "Image Segmentation",
+    "computerVision.tracking": "Object Tracking",
+    "computerVision.transformation": "Image Transformation",
+    "computerVision.video": "Video Analysis",
+    "computerVision.vision": "Computer Vision"
+  },
+  "ar": {
+    "computerVision.annotation": "تعليق الصور",
+    "computerVision.augmentation": "تعزيز البيانات",
+    "computerVision.classification": "تصنيف الصور",
+    "computerVision.cnn": "الشبكة العصبية التلافيفية",
+    "computerVision.convolution": "التلافيف",
+    "computerVision.detection": "الكشف عن الأشياء",
+    "computerVision.edge": "الكشف عن الحواف",
+    "computerVision.face": "التعرف على الوجوه",
+    "computerVision.facial": "تحليل الوجه",
+    "computerVision.feature": "استخراج الميزات",
+    "computerVision.filter": "مرشح الصور",
+    "computerVision.image": "معالجة الصور",
+    "computerVision.labeling": "وسم الصور",
+    "computerVision.ocr": "التعرف الضوئي على الأحرف",
+    "computerVision.pooling": "التجميع",
+    "computerVision.realtime": "الرؤية في الوقت الفعلي",
+    "computerVision.recognition": "التعرف على الصور",
+    "computerVision.segmentation": "تقسيم الصور",
+    "computerVision.tracking": "تتبع الأشياء",
+    "computerVision.transformation": "تحويل الصور",
+    "computerVision.video": "تحليل الفيديو",
+    "computerVision.vision": "رؤية الكمبيوتر"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/conferenceRoom.translations.json">
+<![CDATA[
+{
+  "en": {
+    "conferenceRoom.availability": "Room Availability",
+    "conferenceRoom.boardroom": "Boardroom",
+    "conferenceRoom.booking": "Room Booking",
+    "conferenceRoom.calendar": "Room Calendar",
+    "conferenceRoom.cancellation": "Cancellation",
+    "conferenceRoom.capacity": "Room Capacity",
+    "conferenceRoom.catering": "Room Catering",
+    "conferenceRoom.classroom": "Classroom Style",
+    "conferenceRoom.conference": "Conference Room",
+    "conferenceRoom.configuration": "Room Configuration",
+    "conferenceRoom.equipment": "Room Equipment",
+    "conferenceRoom.hollow": "Hollow Square",
+    "conferenceRoom.layout": "Room Layout",
+    "conferenceRoom.meeting": "Meeting Room",
+    "conferenceRoom.reservation": "Room Reservation",
+    "conferenceRoom.scheduling": "Room Scheduling",
+    "conferenceRoom.services": "Room Services",
+    "conferenceRoom.setup": "Room Setup",
+    "conferenceRoom.support": "Technical Support",
+    "conferenceRoom.technology": "Room Technology",
+    "conferenceRoom.theater": "Theater Style",
+    "conferenceRoom.uturn": "U-Shape"
+  },
+  "ar": {
+    "conferenceRoom.availability": "توفر الغرفة",
+    "conferenceRoom.boardroom": "غرفة مجلس الإدارة",
+    "conferenceRoom.booking": "حجز الغرفة",
+    "conferenceRoom.calendar": "تقويم الغرفة",
+    "conferenceRoom.cancellation": "الإلغاء",
+    "conferenceRoom.capacity": "سعة الغرفة",
+    "conferenceRoom.catering": "تقديم الطعام في الغرفة",
+    "conferenceRoom.classroom": "نمط الفصل الدراسي",
+    "conferenceRoom.conference": "غرفة المؤتمرات",
+    "conferenceRoom.configuration": "تكوين الغرفة",
+    "conferenceRoom.equipment": "معدات الغرفة",
+    "conferenceRoom.hollow": "مربع مجوف",
+    "conferenceRoom.layout": "تخطيط الغرفة",
+    "conferenceRoom.meeting": "غرفة الاجتماعات",
+    "conferenceRoom.reservation": "حجز الغرفة",
+    "conferenceRoom.scheduling": "جدولة الغرفة",
+    "conferenceRoom.services": "خدمات الغرفة",
+    "conferenceRoom.setup": "إعداد الغرفة",
+    "conferenceRoom.support": "الدعم الفني",
+    "conferenceRoom.technology": "تقنية الغرفة",
+    "conferenceRoom.theater": "نمط المسرح",
+    "conferenceRoom.uturn": "شكل حرف U"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/configurationManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "configurationManagement.active": "Active",
+    "configurationManagement.attribute": "Attribute",
+    "configurationManagement.audit": "Configuration Audit",
+    "configurationManagement.baseline": "Baseline",
+    "configurationManagement.category": "Category",
+    "configurationManagement.ci": "CI",
+    "configurationManagement.cmdb": "CMDB",
+    "configurationManagement.configuration": "Configuration",
+    "configurationManagement.control": "Configuration Control",
+    "configurationManagement.dependency": "Dependency",
+    "configurationManagement.deployed": "Deployed",
+    "configurationManagement.history": "Configuration History",
+    "configurationManagement.identification": "Identification",
+    "configurationManagement.item": "Configuration Item",
+    "configurationManagement.lifecycle": "Lifecycle State",
+    "configurationManagement.owner": "Owner",
+    "configurationManagement.relationship": "Relationship",
+    "configurationManagement.retired": "Retired",
+    "configurationManagement.snapshot": "Snapshot",
+    "configurationManagement.status": "Status Accounting",
+    "configurationManagement.tracking": "Change Tracking",
+    "configurationManagement.type": "CI Type",
+    "configurationManagement.verification": "Verification",
+    "configurationManagement.version": "Version"
+  },
+  "ar": {
+    "configurationManagement.active": "نشط",
+    "configurationManagement.attribute": "السمة",
+    "configurationManagement.audit": "مراجعة التكوين",
+    "configurationManagement.baseline": "الخط الأساسي",
+    "configurationManagement.category": "الفئة",
+    "configurationManagement.ci": "عنصر التكوين",
+    "configurationManagement.cmdb": "قاعدة بيانات التكوين",
+    "configurationManagement.configuration": "التكوين",
+    "configurationManagement.control": "التحكم في التكوين",
+    "configurationManagement.dependency": "الاعتماد",
+    "configurationManagement.deployed": "منشور",
+    "configurationManagement.history": "سجل التكوين",
+    "configurationManagement.identification": "التعريف",
+    "configurationManagement.item": "عنصر التكوين",
+    "configurationManagement.lifecycle": "حالة دورة الحياة",
+    "configurationManagement.owner": "المالك",
+    "configurationManagement.relationship": "العلاقة",
+    "configurationManagement.retired": "متقاعد",
+    "configurationManagement.snapshot": "لقطة",
+    "configurationManagement.status": "محاسبة الحالة",
+    "configurationManagement.tracking": "تتبع التغييرات",
+    "configurationManagement.type": "نوع العنصر",
+    "configurationManagement.verification": "التحقق",
+    "configurationManagement.version": "الإصدار"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/conflictResolution.translations.json">
+<![CDATA[
+{
+  "en": {
+    "conflictResolution.analysis": "Conflict Analysis",
+    "conflictResolution.approach": "Resolution Approach",
+    "conflictResolution.arbitration": "Arbitration",
+    "conflictResolution.coaching": "Conflict Coaching",
+    "conflictResolution.communication": "Conflict Communication",
+    "conflictResolution.competency": "Conflict Competency",
+    "conflictResolution.conflict": "Conflict Resolution",
+    "conflictResolution.culture": "Conflict Culture",
+    "conflictResolution.de": "De-escalation",
+    "conflictResolution.diagnosis": "Conflict Diagnosis",
+    "conflictResolution.facilitation": "Conflict Facilitation",
+    "conflictResolution.intervention": "Conflict Intervention",
+    "conflictResolution.management": "Conflict Management",
+    "conflictResolution.mediation": "Mediation",
+    "conflictResolution.negotiation": "Negotiation",
+    "conflictResolution.prevention": "Conflict Prevention",
+    "conflictResolution.resolution": "Resolution Strategies",
+    "conflictResolution.skill": "Conflict Skills",
+    "conflictResolution.style": "Conflict Style",
+    "conflictResolution.technique": "Resolution Technique",
+    "conflictResolution.training": "Conflict Training",
+    "conflictResolution.transformation": "Conflict Transformation"
+  },
+  "ar": {
+    "conflictResolution.analysis": "تحليل النزاعات",
+    "conflictResolution.approach": "نهج الحل",
+    "conflictResolution.arbitration": "التحكيم",
+    "conflictResolution.coaching": "التدريب على النزاعات",
+    "conflictResolution.communication": "التواصل في النزاعات",
+    "conflictResolution.competency": "كفاءة النزاع",
+    "conflictResolution.conflict": "حل النزاعات",
+    "conflictResolution.culture": "ثقافة النزاع",
+    "conflictResolution.de": "تخفيف التصعيد",
+    "conflictResolution.diagnosis": "تشخيص النزاعات",
+    "conflictResolution.facilitation": "تيسير النزاعات",
+    "conflictResolution.intervention": "التدخل في النزاعات",
+    "conflictResolution.management": "إدارة النزاعات",
+    "conflictResolution.mediation": "الوساطة",
+    "conflictResolution.negotiation": "التفاوض",
+    "conflictResolution.prevention": "الوقاية من النزاعات",
+    "conflictResolution.resolution": "استراتيجيات الحل",
+    "conflictResolution.skill": "مهارات النزاع",
+    "conflictResolution.style": "أسلوب النزاع",
+    "conflictResolution.technique": "تقنية الحل",
+    "conflictResolution.training": "التدريب على النزاعات",
+    "conflictResolution.transformation": "تحول النزاع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/construction.translations.json">
+<![CDATA[
+{
+  "en": {
+    "construction.asBuilt": "As-Built",
+    "construction.asDrwan": "As-Drawn",
+    "construction.blueprint": "Blueprint",
+    "construction.blueprints": "Blueprints",
+    "construction.builder": "Builder",
+    "construction.buildingCode": "Building Code",
+    "construction.buildingConstruction": "Building Construction",
+    "construction.buildingPermit": "Building Permit",
+    "construction.construction1": "Construction",
+    "construction.constructionPermit": "Construction Permit",
+    "construction.constructionSite": "Construction Site",
+    "construction.constructionWork": "Construction Work",
+    "construction.contractor": "Contractor",
+    "construction.contractors": "Contractors",
+    "construction.demolition": "Demolition",
+    "construction.drawing": "Drawing",
+    "construction.drawings": "Drawings",
+    "construction.excavation": "Excavation",
+    "construction.foreman": "Foreman",
+    "construction.generalContractor": "General Contractor",
+    "construction.permit": "Permit",
+    "construction.projectManager": "Project Manager",
+    "construction.site": "Site",
+    "construction.siteManager": "Site Manager",
+    "construction.siteWork": "Site Work",
+    "construction.specifications": "Specifications",
+    "construction.specs": "Specs",
+    "construction.subcontractor": "Subcontractor"
+  },
+  "ar": {
+    "construction.asBuilt": "كما بني",
+    "construction.asDrwan": "كما رسم",
+    "construction.blueprint": "مخطط",
+    "construction.blueprints": "مخططات",
+    "construction.builder": "باني",
+    "construction.buildingCode": "كود البناء",
+    "construction.buildingConstruction": "بناء المباني",
+    "construction.buildingPermit": "تصريح بناء",
+    "construction.construction1": "البناء",
+    "construction.constructionPermit": "تصريح بناء",
+    "construction.constructionSite": "موقع البناء",
+    "construction.constructionWork": "أعمال البناء",
+    "construction.contractor": "مقاول",
+    "construction.contractors": "مقاولون",
+    "construction.demolition": "هدم",
+    "construction.drawing": "رسم",
+    "construction.drawings": "رسومات",
+    "construction.excavation": "حفر",
+    "construction.foreman": "المشرف",
+    "construction.generalContractor": "مقاول عام",
+    "construction.permit": "تصريح",
+    "construction.projectManager": "مدير المشروع",
+    "construction.site": "موقع",
+    "construction.siteManager": "مدير الموقع",
+    "construction.siteWork": "أعمال الموقع",
+    "construction.specifications": "المواصفات",
+    "construction.specs": "المواصفات",
+    "construction.subcontractor": "مقاول فرعي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/constructionManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "constructionManagement.budgeting": "Budget Management",
+    "constructionManagement.closeout": "Project Closeout",
+    "constructionManagement.compliance": "Building Compliance",
+    "constructionManagement.construction": "Construction Management",
+    "constructionManagement.contracts": "Contract Management",
+    "constructionManagement.cost": "Cost Control",
+    "constructionManagement.documentation": "Project Documentation",
+    "constructionManagement.drawings": "Construction Drawings",
+    "constructionManagement.equipment": "Equipment Management",
+    "constructionManagement.inspection": "Site Inspection",
+    "constructionManagement.labor": "Labor Management",
+    "constructionManagement.management": "Construction Management",
+    "constructionManagement.materials": "Materials Management",
+    "constructionManagement.permits": "Permit Management",
+    "constructionManagement.planning": "Project Planning",
+    "constructionManagement.procurement": "Procurement Management",
+    "constructionManagement.projects": "Project Management",
+    "constructionManagement.quality": "Quality Assurance",
+    "constructionManagement.safety": "Safety Management",
+    "constructionManagement.scheduling": "Project Scheduling",
+    "constructionManagement.specifications": "Project Specifications",
+    "constructionManagement.subcontractors": "Subcontractor Management"
+  },
+  "ar": {
+    "constructionManagement.budgeting": "إدارة الميزانية",
+    "constructionManagement.closeout": "إغلاق المشروع",
+    "constructionManagement.compliance": "امتثال البناء",
+    "constructionManagement.construction": "إدارة البناء",
+    "constructionManagement.contracts": "إدارة العقود",
+    "constructionManagement.cost": "مراقبة التكاليف",
+    "constructionManagement.documentation": "توثيق المشروع",
+    "constructionManagement.drawings": "رسومات البناء",
+    "constructionManagement.equipment": "إدارة المعدات",
+    "constructionManagement.inspection": "فحص الموقع",
+    "constructionManagement.labor": "إدارة العمالة",
+    "constructionManagement.management": "إدارة البناء",
+    "constructionManagement.materials": "إدارة المواد",
+    "constructionManagement.permits": "إدارة التصاريح",
+    "constructionManagement.planning": "تخطيط المشاريع",
+    "constructionManagement.procurement": "إدارة المشتريات",
+    "constructionManagement.projects": "إدارة المشاريع",
+    "constructionManagement.quality": "ضمان الجودة",
+    "constructionManagement.safety": "إدارة السلامة",
+    "constructionManagement.scheduling": "جدولة المشاريع",
+    "constructionManagement.specifications": "مواصفات المشروع",
+    "constructionManagement.subcontractors": "إدارة المقاولين من الباطن"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/consultingServices.translations.json">
+<![CDATA[
+{
+  "en": {
+    "consultingServices.assessmentTools": "Assessment Tools",
+    "consultingServices.bestPractices": "Best Practices Library",
+    "consultingServices.changeManagement": "Change Management",
+    "consultingServices.clientManagement": "Client Management",
+    "consultingServices.clientSatisfaction": "Client Satisfaction",
+    "consultingServices.deliverableTracking": "Deliverable Tracking",
+    "consultingServices.description": "Professional consulting and advisory services",
+    "consultingServices.diagnosticServices": "Diagnostic Services",
+    "consultingServices.engagementManagement": "Engagement Management",
+    "consultingServices.expertiseMapping": "Expertise Mapping",
+    "consultingServices.implementationSupport": "Implementation Support",
+    "consultingServices.knowledgeManagement": "Knowledge Management",
+    "consultingServices.methodologyFrameworks": "Methodology & Frameworks",
+    "consultingServices.peerReview": "Peer Review",
+    "consultingServices.projectScoping": "Project Scoping",
+    "consultingServices.qualityAssurance": "Quality Assurance",
+    "consultingServices.recommendationTracking": "Recommendation Tracking",
+    "consultingServices.reportGeneration": "Report Generation",
+    "consultingServices.resourceAllocation": "Resource Allocation",
+    "consultingServices.stakeholderEngagement": "Stakeholder Engagement",
+    "consultingServices.strategicPlanning": "Strategic Planning",
+    "consultingServices.timesheetManagement": "Timesheet Management",
+    "consultingServices.title": "Consulting Services",
+    "consultingServices.trainingServices": "Training Services",
+    "consultingServices.workshopFacilitation": "Workshop Facilitation"
+  },
+  "ar": {
+    "consultingServices.assessmentTools": "أدوات التقييم",
+    "consultingServices.bestPractices": "مكتبة أفضل الممارسات",
+    "consultingServices.changeManagement": "إدارة التغيير",
+    "consultingServices.clientManagement": "إدارة العملاء",
+    "consultingServices.clientSatisfaction": "رضا العملاء",
+    "consultingServices.deliverableTracking": "تتبع المخرجات",
+    "consultingServices.description": "الخدمات الاستشارية والإرشادية المهنية",
+    "consultingServices.diagnosticServices": "خدمات التشخيص",
+    "consultingServices.engagementManagement": "إدارة المشاركة",
+    "consultingServices.expertiseMapping": "تخطيط الخبرات",
+    "consultingServices.implementationSupport": "دعم التنفيذ",
+    "consultingServices.knowledgeManagement": "إدارة المعرفة",
+    "consultingServices.methodologyFrameworks": "المنهجيات والأطر",
+    "consultingServices.peerReview": "مراجعة الأقران",
+    "consultingServices.projectScoping": "تحديد نطاق المشروع",
+    "consultingServices.qualityAssurance": "ضمان الجودة",
+    "consultingServices.recommendationTracking": "تتبع التوصيات",
+    "consultingServices.reportGeneration": "إنشاء التقارير",
+    "consultingServices.resourceAllocation": "تخصيص الموارد",
+    "consultingServices.stakeholderEngagement": "مشاركة أصحاب المصلحة",
+    "consultingServices.strategicPlanning": "التخطيط الاستراتيجي",
+    "consultingServices.timesheetManagement": "إدارة جداول الوقت",
+    "consultingServices.title": "خدمات الاستشارات",
+    "consultingServices.trainingServices": "خدمات التدريب",
+    "consultingServices.workshopFacilitation": "تيسير ورش العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/containerOrchestration.translations.json">
+<![CDATA[
+{
+  "en": {
+    "containerOrchestration.autoscaling": "Auto-scaling",
+    "containerOrchestration.cluster": "Cluster",
+    "containerOrchestration.container": "Container",
+    "containerOrchestration.deployment": "Container Deployment",
+    "containerOrchestration.docker": "Docker",
+    "containerOrchestration.image": "Container Image",
+    "containerOrchestration.ingress": "Ingress",
+    "containerOrchestration.kubernetes": "Kubernetes",
+    "containerOrchestration.lifecycle": "Container Lifecycle",
+    "containerOrchestration.logging": "Container Logging",
+    "containerOrchestration.monitoring": "Container Monitoring",
+    "containerOrchestration.namespace": "Namespace",
+    "containerOrchestration.networking": "Container Networking",
+    "containerOrchestration.node": "Node",
+    "containerOrchestration.orchestration": "Container Orchestration",
+    "containerOrchestration.pod": "Pod",
+    "containerOrchestration.registry": "Container Registry",
+    "containerOrchestration.scaling": "Container Scaling",
+    "containerOrchestration.security": "Container Security",
+    "containerOrchestration.service": "Service",
+    "containerOrchestration.storage": "Container Storage",
+    "containerOrchestration.volume": "Volume"
+  },
+  "ar": {
+    "containerOrchestration.autoscaling": "التوسيع التلقائي",
+    "containerOrchestration.cluster": "العنقود",
+    "containerOrchestration.container": "الحاوية",
+    "containerOrchestration.deployment": "نشر الحاويات",
+    "containerOrchestration.docker": "دوكر",
+    "containerOrchestration.image": "صورة الحاوية",
+    "containerOrchestration.ingress": "المدخل",
+    "containerOrchestration.kubernetes": "كوبرنيتس",
+    "containerOrchestration.lifecycle": "دورة حياة الحاوية",
+    "containerOrchestration.logging": "تسجيل الحاويات",
+    "containerOrchestration.monitoring": "مراقبة الحاويات",
+    "containerOrchestration.namespace": "مساحة الاسم",
+    "containerOrchestration.networking": "شبكات الحاويات",
+    "containerOrchestration.node": "العقدة",
+    "containerOrchestration.orchestration": "تنسيق الحاويات",
+    "containerOrchestration.pod": "البود",
+    "containerOrchestration.registry": "سجل الحاويات",
+    "containerOrchestration.scaling": "توسيع الحاويات",
+    "containerOrchestration.security": "أمن الحاويات",
+    "containerOrchestration.service": "الخدمة",
+    "containerOrchestration.storage": "تخزين الحاويات",
+    "containerOrchestration.volume": "الحجم"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/containerOrchestrationAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "containerOrchestrationAdv.chart": "Chart",
+    "containerOrchestrationAdv.cluster": "Cluster",
+    "containerOrchestrationAdv.configmap": "ConfigMap",
+    "containerOrchestrationAdv.container": "Container",
+    "containerOrchestrationAdv.controller": "Controller",
+    "containerOrchestrationAdv.deployment": "Deployment",
+    "containerOrchestrationAdv.helm": "Helm",
+    "containerOrchestrationAdv.ingress": "Ingress",
+    "containerOrchestrationAdv.k8s": "K8s",
+    "containerOrchestrationAdv.kubernetes": "Kubernetes",
+    "containerOrchestrationAdv.namespace": "Namespace",
+    "containerOrchestrationAdv.node": "Node",
+    "containerOrchestrationAdv.operator": "Operator",
+    "containerOrchestrationAdv.orchestration": "Orchestration",
+    "containerOrchestrationAdv.pod": "Pod",
+    "containerOrchestrationAdv.replica": "Replica",
+    "containerOrchestrationAdv.rolling": "Rolling Update",
+    "containerOrchestrationAdv.scale": "Scale",
+    "containerOrchestrationAdv.secret": "Secret",
+    "containerOrchestrationAdv.service": "Service",
+    "containerOrchestrationAdv.volume": "Volume"
+  },
+  "ar": {
+    "containerOrchestrationAdv.chart": "المخطط",
+    "containerOrchestrationAdv.cluster": "العنقود",
+    "containerOrchestrationAdv.configmap": "خريطة الإعداد",
+    "containerOrchestrationAdv.container": "الحاوية",
+    "containerOrchestrationAdv.controller": "المتحكم",
+    "containerOrchestrationAdv.deployment": "النشر",
+    "containerOrchestrationAdv.helm": "هيلم",
+    "containerOrchestrationAdv.ingress": "الدخول",
+    "containerOrchestrationAdv.k8s": "K8s",
+    "containerOrchestrationAdv.kubernetes": "كوبرنيتس",
+    "containerOrchestrationAdv.namespace": "مساحة الاسم",
+    "containerOrchestrationAdv.node": "العقدة",
+    "containerOrchestrationAdv.operator": "المشغل",
+    "containerOrchestrationAdv.orchestration": "التنسيق",
+    "containerOrchestrationAdv.pod": "البود",
+    "containerOrchestrationAdv.replica": "النسخة المتماثلة",
+    "containerOrchestrationAdv.rolling": "التحديث المتدرج",
+    "containerOrchestrationAdv.scale": "التوسع",
+    "containerOrchestrationAdv.secret": "السر",
+    "containerOrchestrationAdv.service": "الخدمة",
+    "containerOrchestrationAdv.volume": "الحجم"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/containerizationAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "containerizationAdv.build": "Image Build",
+    "containerizationAdv.chart": "Helm Chart",
+    "containerizationAdv.compose": "Docker Compose",
+    "containerizationAdv.container": "Container",
+    "containerizationAdv.deployment": "Deployment",
+    "containerizationAdv.docker": "Docker",
+    "containerizationAdv.helm": "Helm",
+    "containerizationAdv.image": "Container Image",
+    "containerizationAdv.kubernetes": "Kubernetes",
+    "containerizationAdv.namespace": "Namespace",
+    "containerizationAdv.networking": "Container Networking",
+    "containerizationAdv.orchestration": "Orchestration",
+    "containerizationAdv.pod": "Pod",
+    "containerizationAdv.pull": "Image Pull",
+    "containerizationAdv.push": "Image Push",
+    "containerizationAdv.registry": "Container Registry",
+    "containerizationAdv.repository": "Image Repository",
+    "containerizationAdv.run": "Container Run",
+    "containerizationAdv.service": "Service",
+    "containerizationAdv.swarm": "Docker Swarm",
+    "containerizationAdv.tag": "Image Tag",
+    "containerizationAdv.volume": "Volume"
+  },
+  "ar": {
+    "containerizationAdv.build": "بناء الصورة",
+    "containerizationAdv.chart": "مخطط Helm",
+    "containerizationAdv.compose": "Docker Compose",
+    "containerizationAdv.container": "الحاوية",
+    "containerizationAdv.deployment": "النشر",
+    "containerizationAdv.docker": "Docker",
+    "containerizationAdv.helm": "Helm",
+    "containerizationAdv.image": "صورة الحاوية",
+    "containerizationAdv.kubernetes": "Kubernetes",
+    "containerizationAdv.namespace": "مساحة الأسماء",
+    "containerizationAdv.networking": "شبكات الحاويات",
+    "containerizationAdv.orchestration": "التنسيق",
+    "containerizationAdv.pod": "Pod",
+    "containerizationAdv.pull": "سحب الصورة",
+    "containerizationAdv.push": "دفع الصورة",
+    "containerizationAdv.registry": "سجل الحاويات",
+    "containerizationAdv.repository": "مستودع الصور",
+    "containerizationAdv.run": "تشغيل الحاوية",
+    "containerizationAdv.service": "الخدمة",
+    "containerizationAdv.swarm": "Docker Swarm",
+    "containerizationAdv.tag": "علامة الصورة",
+    "containerizationAdv.volume": "الحجم"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/contentCreation.translations.json">
+<![CDATA[
+{
+  "en": {
+    "contentCreation.article": "Article",
+    "contentCreation.blog": "Blog Post",
+    "contentCreation.brief": "Content Brief",
+    "contentCreation.calendar": "Content Calendar",
+    "contentCreation.case": "Case Study",
+    "contentCreation.content": "Content Creation",
+    "contentCreation.copywriting": "Copywriting",
+    "contentCreation.ebook": "E-book",
+    "contentCreation.editing": "Editing",
+    "contentCreation.guideline": "Style Guide",
+    "contentCreation.infographic": "Infographic",
+    "contentCreation.podcast": "Podcast",
+    "contentCreation.presentation": "Presentation",
+    "contentCreation.proofreading": "Proofreading",
+    "contentCreation.script": "Script",
+    "contentCreation.slide": "Slide Deck",
+    "contentCreation.storyboard": "Storyboard",
+    "contentCreation.video": "Video Content",
+    "contentCreation.webinar": "Webinar",
+    "contentCreation.whitepaper": "Whitepaper",
+    "contentCreation.workflow": "Content Workflow",
+    "contentCreation.writing": "Content Writing"
+  },
+  "ar": {
+    "contentCreation.article": "المقال",
+    "contentCreation.blog": "منشور المدونة",
+    "contentCreation.brief": "موجز المحتوى",
+    "contentCreation.calendar": "تقويم المحتوى",
+    "contentCreation.case": "دراسة الحالة",
+    "contentCreation.content": "إنشاء المحتوى",
+    "contentCreation.copywriting": "كتابة الإعلانات",
+    "contentCreation.ebook": "الكتاب الإلكتروني",
+    "contentCreation.editing": "التحرير",
+    "contentCreation.guideline": "دليل الأسلوب",
+    "contentCreation.infographic": "الإنفوجرافيك",
+    "contentCreation.podcast": "البودكاست",
+    "contentCreation.presentation": "العرض التقديمي",
+    "contentCreation.proofreading": "التدقيق اللغوي",
+    "contentCreation.script": "النص",
+    "contentCreation.slide": "مجموعة الشرائح",
+    "contentCreation.storyboard": "لوحة القصة",
+    "contentCreation.video": "محتوى الفيديو",
+    "contentCreation.webinar": "الندوة عبر الإنترنت",
+    "contentCreation.whitepaper": "الورقة البيضاء",
+    "contentCreation.workflow": "سير عمل المحتوى",
+    "contentCreation.writing": "كتابة المحتوى"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/contentManagementAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "contentManagementAdv.article": "Article",
+    "contentManagementAdv.author": "Author",
+    "contentManagementAdv.blog": "Blog",
+    "contentManagementAdv.category": "Category",
+    "contentManagementAdv.cms": "CMS",
+    "contentManagementAdv.content": "Content",
+    "contentManagementAdv.document": "Document",
+    "contentManagementAdv.draft": "Draft",
+    "contentManagementAdv.editor": "Editor",
+    "contentManagementAdv.image": "Image",
+    "contentManagementAdv.media": "Media Library",
+    "contentManagementAdv.metadata": "Metadata",
+    "contentManagementAdv.page": "Page",
+    "contentManagementAdv.permalink": "Permalink",
+    "contentManagementAdv.post": "Post",
+    "contentManagementAdv.publish": "Publish",
+    "contentManagementAdv.revision": "Revision",
+    "contentManagementAdv.schedule": "Schedule",
+    "contentManagementAdv.seo": "SEO",
+    "contentManagementAdv.tag": "Tag",
+    "contentManagementAdv.template": "Template",
+    "contentManagementAdv.version": "Version",
+    "contentManagementAdv.video": "Video"
+  },
+  "ar": {
+    "contentManagementAdv.article": "المقال",
+    "contentManagementAdv.author": "المؤلف",
+    "contentManagementAdv.blog": "المدونة",
+    "contentManagementAdv.category": "الفئة",
+    "contentManagementAdv.cms": "نظام إدارة المحتوى",
+    "contentManagementAdv.content": "المحتوى",
+    "contentManagementAdv.document": "الوثيقة",
+    "contentManagementAdv.draft": "المسودة",
+    "contentManagementAdv.editor": "المحرر",
+    "contentManagementAdv.image": "الصورة",
+    "contentManagementAdv.media": "مكتبة الوسائط",
+    "contentManagementAdv.metadata": "البيانات الوصفية",
+    "contentManagementAdv.page": "الصفحة",
+    "contentManagementAdv.permalink": "الرابط الدائم",
+    "contentManagementAdv.post": "المنشور",
+    "contentManagementAdv.publish": "النشر",
+    "contentManagementAdv.revision": "المراجعة",
+    "contentManagementAdv.schedule": "الجدولة",
+    "contentManagementAdv.seo": "تحسين محركات البحث",
+    "contentManagementAdv.tag": "الوسم",
+    "contentManagementAdv.template": "القالب",
+    "contentManagementAdv.version": "الإصدار",
+    "contentManagementAdv.video": "الفيديو"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/contentManagementExt.translations.json">
+<![CDATA[
+{
+  "en": {
+    "contentManagementExt.approval": "Content Approval",
+    "contentManagementExt.article": "Article",
+    "contentManagementExt.asset": "Digital Asset",
+    "contentManagementExt.author": "Author",
+    "contentManagementExt.category": "Content Category",
+    "contentManagementExt.cms": "CMS",
+    "contentManagementExt.content": "Content Management",
+    "contentManagementExt.contributor": "Contributor",
+    "contentManagementExt.draft": "Draft",
+    "contentManagementExt.editor": "Editor",
+    "contentManagementExt.library": "Media Library",
+    "contentManagementExt.media": "Media",
+    "contentManagementExt.page": "Page",
+    "contentManagementExt.post": "Post",
+    "contentManagementExt.publish": "Publish",
+    "contentManagementExt.publishing": "Publishing",
+    "contentManagementExt.revision": "Revision",
+    "contentManagementExt.schedule": "Schedule Publishing",
+    "contentManagementExt.tag": "Content Tag",
+    "contentManagementExt.taxonomy": "Taxonomy",
+    "contentManagementExt.version": "Version Control",
+    "contentManagementExt.workflow": "Content Workflow"
+  },
+  "ar": {
+    "contentManagementExt.approval": "الموافقة على المحتوى",
+    "contentManagementExt.article": "مقال",
+    "contentManagementExt.asset": "الأصول الرقمية",
+    "contentManagementExt.author": "المؤلف",
+    "contentManagementExt.category": "فئة المحتوى",
+    "contentManagementExt.cms": "نظام إدارة المحتوى",
+    "contentManagementExt.content": "إدارة المحتوى",
+    "contentManagementExt.contributor": "المساهم",
+    "contentManagementExt.draft": "مسودة",
+    "contentManagementExt.editor": "المحرر",
+    "contentManagementExt.library": "مكتبة الوسائط",
+    "contentManagementExt.media": "الوسائط",
+    "contentManagementExt.page": "صفحة",
+    "contentManagementExt.post": "منشور",
+    "contentManagementExt.publish": "نشر",
+    "contentManagementExt.publishing": "النشر",
+    "contentManagementExt.revision": "المراجعة",
+    "contentManagementExt.schedule": "جدولة النشر",
+    "contentManagementExt.tag": "وسم المحتوى",
+    "contentManagementExt.taxonomy": "التصنيف",
+    "contentManagementExt.version": "التحكم في الإصدار",
+    "contentManagementExt.workflow": "سير عمل المحتوى"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/contentManagementSystem.translations.json">
+<![CDATA[
+{
+  "en": {
+    "contentManagementSystem.analyticsIntegration": "Analytics Integration",
+    "contentManagementSystem.approvalProcess": "Approval Process",
+    "contentManagementSystem.assetManagement": "Asset Management",
+    "contentManagementSystem.caching": "Caching Strategies",
+    "contentManagementSystem.categoryHierarchy": "Category Hierarchy",
+    "contentManagementSystem.cdnIntegration": "CDN Integration",
+    "contentManagementSystem.contentCollaboration": "Content Collaboration",
+    "contentManagementSystem.contentCreation": "Content Creation",
+    "contentManagementSystem.contentOrganization": "Content Organization",
+    "contentManagementSystem.contentScheduling": "Content Scheduling",
+    "contentManagementSystem.description": "Digital content creation and publishing",
+    "contentManagementSystem.documentManagement": "Document Management",
+    "contentManagementSystem.draftPublish": "Draft & Publish",
+    "contentManagementSystem.imageOptimization": "Image Optimization",
+    "contentManagementSystem.mediaLibrary": "Media Library",
+    "contentManagementSystem.metadataManagement": "Metadata Management",
+    "contentManagementSystem.multilingualSupport": "Multilingual Support",
+    "contentManagementSystem.performanceMonitoring": "Performance Monitoring",
+    "contentManagementSystem.revisionHistory": "Revision History",
+    "contentManagementSystem.richTextEditing": "Rich Text Editing",
+    "contentManagementSystem.seoOptimization": "SEO Optimization",
+    "contentManagementSystem.sitemapGeneration": "Sitemap Generation",
+    "contentManagementSystem.taggingSystem": "Tagging System",
+    "contentManagementSystem.taxonomyManagement": "Taxonomy Management",
+    "contentManagementSystem.title": "Content Management System",
+    "contentManagementSystem.translationManagement": "Translation Management",
+    "contentManagementSystem.urlManagement": "URL Management",
+    "contentManagementSystem.userRoles": "User Roles & Permissions",
+    "contentManagementSystem.versionControl": "Version Control",
+    "contentManagementSystem.videoManagement": "Video Management",
+    "contentManagementSystem.workflowManagement": "Workflow Management",
+    "contentManagementSystem.wysiwyg": "WYSIWYG Editor"
+  },
+  "ar": {
+    "contentManagementSystem.analyticsIntegration": "تكامل التحليلات",
+    "contentManagementSystem.approvalProcess": "عملية الموافقة",
+    "contentManagementSystem.assetManagement": "إدارة الأصول",
+    "contentManagementSystem.caching": "استراتيجيات التخزين المؤقت",
+    "contentManagementSystem.categoryHierarchy": "التسلسل الهرمي للفئات",
+    "contentManagementSystem.cdnIntegration": "تكامل CDN",
+    "contentManagementSystem.contentCollaboration": "التعاون في المحتوى",
+    "contentManagementSystem.contentCreation": "إنشاء المحتوى",
+    "contentManagementSystem.contentOrganization": "تنظيم المحتوى",
+    "contentManagementSystem.contentScheduling": "جدولة المحتوى",
+    "contentManagementSystem.description": "إنشاء ونشر المحتوى الرقمي",
+    "contentManagementSystem.documentManagement": "إدارة المستندات",
+    "contentManagementSystem.draftPublish": "المسودة والنشر",
+    "contentManagementSystem.imageOptimization": "تحسين الصور",
+    "contentManagementSystem.mediaLibrary": "مكتبة الوسائط",
+    "contentManagementSystem.metadataManagement": "إدارة البيانات الوصفية",
+    "contentManagementSystem.multilingualSupport": "الدعم متعدد اللغات",
+    "contentManagementSystem.performanceMonitoring": "مراقبة الأداء",
+    "contentManagementSystem.revisionHistory": "سجل المراجعات",
+    "contentManagementSystem.richTextEditing": "تحرير النص المنسق",
+    "contentManagementSystem.seoOptimization": "تحسين محركات البحث",
+    "contentManagementSystem.sitemapGeneration": "إنشاء خريطة الموقع",
+    "contentManagementSystem.taggingSystem": "نظام الوسوم",
+    "contentManagementSystem.taxonomyManagement": "إدارة التصنيف",
+    "contentManagementSystem.title": "نظام إدارة المحتوى",
+    "contentManagementSystem.translationManagement": "إدارة الترجمة",
+    "contentManagementSystem.urlManagement": "إدارة عناوين URL",
+    "contentManagementSystem.userRoles": "أدوار المستخدمين والأذونات",
+    "contentManagementSystem.versionControl": "التحكم في الإصدارات",
+    "contentManagementSystem.videoManagement": "إدارة الفيديو",
+    "contentManagementSystem.workflowManagement": "إدارة سير العمل",
+    "contentManagementSystem.wysiwyg": "محرر WYSIWYG"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/contentManagementSystems.translations.json">
+<![CDATA[
+{
+  "en": {
+    "contentManagementSystems.analytics": "Content Analytics",
+    "contentManagementSystems.approval": "Content Approval",
+    "contentManagementSystems.authoring": "Content Authoring",
+    "contentManagementSystems.content": "Content Management Systems",
+    "contentManagementSystems.contentManagement": "Content Management",
+    "contentManagementSystems.creation": "Content Creation",
+    "contentManagementSystems.delivery": "Content Delivery",
+    "contentManagementSystems.editing": "Content Editing",
+    "contentManagementSystems.enterprise": "Enterprise CMS",
+    "contentManagementSystems.governance": "Content Governance",
+    "contentManagementSystems.management": "CMS Platform",
+    "contentManagementSystems.optimization": "Content Optimization",
+    "contentManagementSystems.organization": "Content Organization",
+    "contentManagementSystems.personalization": "Content Personalization",
+    "contentManagementSystems.platform": "CMS Platform",
+    "contentManagementSystems.publishing": "Content Publishing",
+    "contentManagementSystems.search": "Content Search",
+    "contentManagementSystems.security": "Content Security",
+    "contentManagementSystems.systems": "CMS Systems",
+    "contentManagementSystems.taxonomy": "Content Taxonomy",
+    "contentManagementSystems.versioning": "Content Versioning",
+    "contentManagementSystems.web": "Web CMS",
+    "contentManagementSystems.workflow": "Content Workflow"
+  },
+  "ar": {
+    "contentManagementSystems.analytics": "تحليلات المحتوى",
+    "contentManagementSystems.approval": "الموافقة على المحتوى",
+    "contentManagementSystems.authoring": "تأليف المحتوى",
+    "contentManagementSystems.content": "أنظمة إدارة المحتوى",
+    "contentManagementSystems.contentManagement": "إدارة المحتوى",
+    "contentManagementSystems.creation": "إنشاء المحتوى",
+    "contentManagementSystems.delivery": "توصيل المحتوى",
+    "contentManagementSystems.editing": "تحرير المحتوى",
+    "contentManagementSystems.enterprise": "نظام إدارة المحتوى المؤسسي",
+    "contentManagementSystems.governance": "حوكمة المحتوى",
+    "contentManagementSystems.management": "منصة نظام إدارة المحتوى",
+    "contentManagementSystems.optimization": "تحسين المحتوى",
+    "contentManagementSystems.organization": "تنظيم المحتوى",
+    "contentManagementSystems.personalization": "تخصيص المحتوى",
+    "contentManagementSystems.platform": "منصة نظام إدارة المحتوى",
+    "contentManagementSystems.publishing": "نشر المحتوى",
+    "contentManagementSystems.search": "البحث في المحتوى",
+    "contentManagementSystems.security": "أمن المحتوى",
+    "contentManagementSystems.systems": "أنظمة إدارة المحتوى",
+    "contentManagementSystems.taxonomy": "تصنيف المحتوى",
+    "contentManagementSystems.versioning": "إصدارات المحتوى",
+    "contentManagementSystems.web": "نظام إدارة محتوى الويب",
+    "contentManagementSystems.workflow": "سير عمل المحتوى"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/continuityManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "continuityManagement.activation": "Plan Activation",
+    "continuityManagement.awareness": "Awareness",
+    "continuityManagement.bcm": "BCM",
+    "continuityManagement.bia": "BIA",
+    "continuityManagement.contingency": "Contingency Planning",
+    "continuityManagement.continuity": "Business Continuity",
+    "continuityManagement.crisis": "Crisis Management",
+    "continuityManagement.disaster": "Disaster Recovery",
+    "continuityManagement.dr": "DR",
+    "continuityManagement.drill": "Drill",
+    "continuityManagement.emergency": "Emergency Response",
+    "continuityManagement.exercise": "Exercise",
+    "continuityManagement.impact": "Business Impact Analysis",
+    "continuityManagement.plan": "Continuity Plan",
+    "continuityManagement.procedure": "Recovery Procedures",
+    "continuityManagement.resilience": "Resilience",
+    "continuityManagement.restoration": "Service Restoration",
+    "continuityManagement.review": "Plan Review",
+    "continuityManagement.risk": "Risk Assessment",
+    "continuityManagement.strategy": "Recovery Strategy",
+    "continuityManagement.testing": "Testing",
+    "continuityManagement.training": "Training",
+    "continuityManagement.update": "Plan Update"
+  },
+  "ar": {
+    "continuityManagement.activation": "تفعيل الخطة",
+    "continuityManagement.awareness": "الوعي",
+    "continuityManagement.bcm": "إدارة استمرارية الأعمال",
+    "continuityManagement.bia": "تحليل تأثير الأعمال",
+    "continuityManagement.contingency": "التخطيط للطوارئ",
+    "continuityManagement.continuity": "استمرارية الأعمال",
+    "continuityManagement.crisis": "إدارة الأزمات",
+    "continuityManagement.disaster": "التعافي من الكوارث",
+    "continuityManagement.dr": "التعافي من الكوارث",
+    "continuityManagement.drill": "التدريب",
+    "continuityManagement.emergency": "الاستجابة للطوارئ",
+    "continuityManagement.exercise": "التمرين",
+    "continuityManagement.impact": "تحليل تأثير الأعمال",
+    "continuityManagement.plan": "خطة الاستمرارية",
+    "continuityManagement.procedure": "إجراءات التعافي",
+    "continuityManagement.resilience": "المرونة",
+    "continuityManagement.restoration": "استعادة الخدمة",
+    "continuityManagement.review": "مراجعة الخطة",
+    "continuityManagement.risk": "تقييم المخاطر",
+    "continuityManagement.strategy": "استراتيجية التعافي",
+    "continuityManagement.testing": "الاختبار",
+    "continuityManagement.training": "التدريب",
+    "continuityManagement.update": "تحديث الخطة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/continuousImprovement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "continuousImprovement.act": "Act",
+    "continuousImprovement.blitz": "Kaizen Blitz",
+    "continuousImprovement.check": "Check",
+    "continuousImprovement.continuous": "Continuous Improvement",
+    "continuousImprovement.culture": "CI Culture",
+    "continuousImprovement.cycle": "Improvement Cycle",
+    "continuousImprovement.do": "Do",
+    "continuousImprovement.events": "Kaizen Events",
+    "continuousImprovement.framework": "CI Framework",
+    "continuousImprovement.ideas": "Improvement Ideas",
+    "continuousImprovement.initiatives": "CI Initiatives",
+    "continuousImprovement.kaizen": "Kaizen",
+    "continuousImprovement.methodology": "CI Methodology",
+    "continuousImprovement.metrics": "CI Metrics",
+    "continuousImprovement.mindset": "CI Mindset",
+    "continuousImprovement.pdca": "PDCA Cycle",
+    "continuousImprovement.plan": "Plan",
+    "continuousImprovement.projects": "CI Projects",
+    "continuousImprovement.recognition": "CI Recognition",
+    "continuousImprovement.reporting": "CI Reporting",
+    "continuousImprovement.suggestions": "Improvement Suggestions",
+    "continuousImprovement.tracking": "CI Tracking"
+  },
+  "ar": {
+    "continuousImprovement.act": "العمل",
+    "continuousImprovement.blitz": "كايزن بليتز",
+    "continuousImprovement.check": "الفحص",
+    "continuousImprovement.continuous": "التحسين المستمر",
+    "continuousImprovement.culture": "ثقافة التحسين المستمر",
+    "continuousImprovement.cycle": "دورة التحسين",
+    "continuousImprovement.do": "التنفيذ",
+    "continuousImprovement.events": "فعاليات كايزن",
+    "continuousImprovement.framework": "إطار التحسين المستمر",
+    "continuousImprovement.ideas": "أفكار التحسين",
+    "continuousImprovement.initiatives": "مبادرات التحسين المستمر",
+    "continuousImprovement.kaizen": "كايزن",
+    "continuousImprovement.methodology": "منهجية التحسين المستمر",
+    "continuousImprovement.metrics": "مقاييس التحسين المستمر",
+    "continuousImprovement.mindset": "عقلية التحسين المستمر",
+    "continuousImprovement.pdca": "دورة بي دي سي إيه",
+    "continuousImprovement.plan": "التخطيط",
+    "continuousImprovement.projects": "مشاريع التحسين المستمر",
+    "continuousImprovement.recognition": "تقدير التحسين المستمر",
+    "continuousImprovement.reporting": "إعداد تقارير التحسين المستمر",
+    "continuousImprovement.suggestions": "مقترحات التحسين",
+    "continuousImprovement.tracking": "تتبع التحسين المستمر"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/continuousImprovementAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "continuousImprovementAdv.action": "Action Plan",
+    "continuousImprovementAdv.baseline": "Baseline",
+    "continuousImprovementAdv.benchmark": "Benchmarking",
+    "continuousImprovementAdv.continuous": "Continuous Improvement",
+    "continuousImprovementAdv.dmaic": "Define-Measure-Analyze-Improve-Control",
+    "continuousImprovementAdv.evaluation": "Idea Evaluation",
+    "continuousImprovementAdv.gap": "Gap Analysis",
+    "continuousImprovementAdv.idea": "Improvement Idea",
+    "continuousImprovementAdv.implementation": "Implementation",
+    "continuousImprovementAdv.improvement": "Improvement",
+    "continuousImprovementAdv.initiative": "Improvement Initiative",
+    "continuousImprovementAdv.kaizen": "Kaizen",
+    "continuousImprovementAdv.kpi": "Key Performance Indicators",
+    "continuousImprovementAdv.lean": "Lean",
+    "continuousImprovementAdv.measurement": "Performance Measurement",
+    "continuousImprovementAdv.methodology": "Improvement Methodology",
+    "continuousImprovementAdv.metrics": "Improvement Metrics",
+    "continuousImprovementAdv.opportunity": "Improvement Opportunity",
+    "continuousImprovementAdv.pdca": "Plan-Do-Check-Act",
+    "continuousImprovementAdv.six": "Six Sigma",
+    "continuousImprovementAdv.suggestion": "Suggestion",
+    "continuousImprovementAdv.target": "Target"
+  },
+  "ar": {
+    "continuousImprovementAdv.action": "خطة العمل",
+    "continuousImprovementAdv.baseline": "الخط الأساسي",
+    "continuousImprovementAdv.benchmark": "المعايير القياسية",
+    "continuousImprovementAdv.continuous": "التحسين المستمر",
+    "continuousImprovementAdv.dmaic": "عرّف-قس-حلل-حسّن-تحكم",
+    "continuousImprovementAdv.evaluation": "تقييم الفكرة",
+    "continuousImprovementAdv.gap": "تحليل الفجوة",
+    "continuousImprovementAdv.idea": "فكرة التحسين",
+    "continuousImprovementAdv.implementation": "التنفيذ",
+    "continuousImprovementAdv.improvement": "التحسين",
+    "continuousImprovementAdv.initiative": "مبادرة التحسين",
+    "continuousImprovementAdv.kaizen": "كايزن",
+    "continuousImprovementAdv.kpi": "مؤشرات الأداء الرئيسية",
+    "continuousImprovementAdv.lean": "لين",
+    "continuousImprovementAdv.measurement": "قياس الأداء",
+    "continuousImprovementAdv.methodology": "منهجية التحسين",
+    "continuousImprovementAdv.metrics": "مقاييس التحسين",
+    "continuousImprovementAdv.opportunity": "فرصة التحسين",
+    "continuousImprovementAdv.pdca": "خطط-نفذ-افحص-تصرف",
+    "continuousImprovementAdv.six": "سيكس سيجما",
+    "continuousImprovementAdv.suggestion": "الاقتراح",
+    "continuousImprovementAdv.target": "الهدف"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/contractManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "contractManagement.addendum": "Addendum",
+    "contractManagement.agreement": "Agreement",
+    "contractManagement.amendment": "Amendment",
+    "contractManagement.approval": "Contract Approval",
+    "contractManagement.clause": "Clause",
+    "contractManagement.compliance": "Contract Compliance",
+    "contractManagement.contract": "Contract Management",
+    "contractManagement.deliverable": "Deliverable",
+    "contractManagement.duration": "Duration",
+    "contractManagement.end": "End Date",
+    "contractManagement.expiration": "Expiration",
+    "contractManagement.lifecycle": "Contract Lifecycle",
+    "contractManagement.milestone": "Milestone",
+    "contractManagement.modification": "Modification",
+    "contractManagement.obligation": "Obligation",
+    "contractManagement.payment": "Payment Terms",
+    "contractManagement.penalty": "Penalty",
+    "contractManagement.renewal": "Renewal",
+    "contractManagement.repository": "Contract Repository",
+    "contractManagement.sla": "SLA",
+    "contractManagement.start": "Start Date",
+    "contractManagement.term": "Contract Term"
+  },
+  "ar": {
+    "contractManagement.addendum": "الملحق",
+    "contractManagement.agreement": "الاتفاقية",
+    "contractManagement.amendment": "التعديل",
+    "contractManagement.approval": "الموافقة على العقد",
+    "contractManagement.clause": "البند",
+    "contractManagement.compliance": "امتثال العقد",
+    "contractManagement.contract": "إدارة العقود",
+    "contractManagement.deliverable": "المخرجات",
+    "contractManagement.duration": "المدة",
+    "contractManagement.end": "تاريخ الانتهاء",
+    "contractManagement.expiration": "انتهاء الصلاحية",
+    "contractManagement.lifecycle": "دورة حياة العقد",
+    "contractManagement.milestone": "المعلم",
+    "contractManagement.modification": "التحوير",
+    "contractManagement.obligation": "الالتزام",
+    "contractManagement.payment": "شروط الدفع",
+    "contractManagement.penalty": "الغرامة",
+    "contractManagement.renewal": "التجديد",
+    "contractManagement.repository": "مستودع العقود",
+    "contractManagement.sla": "اتفاقية مستوى الخدمة",
+    "contractManagement.start": "تاريخ البدء",
+    "contractManagement.term": "مدة العقد"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/contractManagementAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "contractManagementAdv.amendment": "Contract Amendment",
+    "contractManagementAdv.analytics": "Contract Analytics",
+    "contractManagementAdv.approval": "Contract Approval",
+    "contractManagementAdv.closeout": "Contract Closeout",
+    "contractManagementAdv.compliance": "Contract Compliance",
+    "contractManagementAdv.contract": "Contract Management",
+    "contractManagementAdv.database": "Contract Database",
+    "contractManagementAdv.drafting": "Contract Drafting",
+    "contractManagementAdv.execution": "Contract Execution",
+    "contractManagementAdv.lifecycle": "Contract Lifecycle",
+    "contractManagementAdv.management": "Contract Administration",
+    "contractManagementAdv.monitoring": "Contract Monitoring",
+    "contractManagementAdv.negotiation": "Contract Negotiation",
+    "contractManagementAdv.obligations": "Contract Obligations",
+    "contractManagementAdv.performance": "Contract Performance",
+    "contractManagementAdv.renewal": "Contract Renewal",
+    "contractManagementAdv.reporting": "Contract Reporting",
+    "contractManagementAdv.repository": "Contract Repository",
+    "contractManagementAdv.review": "Contract Review",
+    "contractManagementAdv.risk": "Contract Risk",
+    "contractManagementAdv.termination": "Contract Termination",
+    "contractManagementAdv.tracking": "Contract Tracking"
+  },
+  "ar": {
+    "contractManagementAdv.amendment": "تعديل العقود",
+    "contractManagementAdv.analytics": "تحليلات العقود",
+    "contractManagementAdv.approval": "الموافقة على العقود",
+    "contractManagementAdv.closeout": "إغلاق العقود",
+    "contractManagementAdv.compliance": "الامتثال للعقود",
+    "contractManagementAdv.contract": "إدارة العقود",
+    "contractManagementAdv.database": "قاعدة بيانات العقود",
+    "contractManagementAdv.drafting": "صياغة العقود",
+    "contractManagementAdv.execution": "تنفيذ العقود",
+    "contractManagementAdv.lifecycle": "دورة حياة العقد",
+    "contractManagementAdv.management": "إدارة العقود",
+    "contractManagementAdv.monitoring": "مراقبة العقود",
+    "contractManagementAdv.negotiation": "التفاوض على العقود",
+    "contractManagementAdv.obligations": "التزامات العقود",
+    "contractManagementAdv.performance": "أداء العقود",
+    "contractManagementAdv.renewal": "تجديد العقود",
+    "contractManagementAdv.reporting": "إعداد تقارير العقود",
+    "contractManagementAdv.repository": "مستودع العقود",
+    "contractManagementAdv.review": "مراجعة العقود",
+    "contractManagementAdv.risk": "مخاطر العقود",
+    "contractManagementAdv.termination": "إنهاء العقود",
+    "contractManagementAdv.tracking": "تتبع العقود"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/contractManagementExt.translations.json">
+<![CDATA[
+{
+  "en": {
+    "contractManagementExt.administration": "Contract Administration",
+    "contractManagementExt.amendment": "Contract Amendment",
+    "contractManagementExt.approval": "Contract Approval",
+    "contractManagementExt.audit": "Contract Audit",
+    "contractManagementExt.automation": "Contract Automation",
+    "contractManagementExt.clause": "Contract Clause",
+    "contractManagementExt.compliance": "Contract Compliance",
+    "contractManagementExt.contract": "Contract Management",
+    "contractManagementExt.creation": "Contract Creation",
+    "contractManagementExt.deliverable": "Contract Deliverable",
+    "contractManagementExt.execution": "Contract Execution",
+    "contractManagementExt.expiry": "Contract Expiry",
+    "contractManagementExt.lifecycle": "Contract Lifecycle",
+    "contractManagementExt.milestone": "Contract Milestone",
+    "contractManagementExt.negotiation": "Contract Negotiation",
+    "contractManagementExt.obligation": "Contract Obligation",
+    "contractManagementExt.performance": "Contract Performance",
+    "contractManagementExt.renewal": "Contract Renewal",
+    "contractManagementExt.repository": "Contract Repository",
+    "contractManagementExt.risk": "Contract Risk",
+    "contractManagementExt.template": "Contract Template",
+    "contractManagementExt.termination": "Contract Termination"
+  },
+  "ar": {
+    "contractManagementExt.administration": "إدارة العقد",
+    "contractManagementExt.amendment": "تعديل العقد",
+    "contractManagementExt.approval": "الموافقة على العقد",
+    "contractManagementExt.audit": "تدقيق العقد",
+    "contractManagementExt.automation": "أتمتة العقود",
+    "contractManagementExt.clause": "بند العقد",
+    "contractManagementExt.compliance": "امتثال العقد",
+    "contractManagementExt.contract": "إدارة العقود",
+    "contractManagementExt.creation": "إنشاء العقد",
+    "contractManagementExt.deliverable": "مخرجات العقد",
+    "contractManagementExt.execution": "تنفيذ العقد",
+    "contractManagementExt.expiry": "انتهاء صلاحية العقد",
+    "contractManagementExt.lifecycle": "دورة حياة العقد",
+    "contractManagementExt.milestone": "معالم العقد",
+    "contractManagementExt.negotiation": "التفاوض على العقد",
+    "contractManagementExt.obligation": "التزام العقد",
+    "contractManagementExt.performance": "أداء العقد",
+    "contractManagementExt.renewal": "تجديد العقد",
+    "contractManagementExt.repository": "مستودع العقود",
+    "contractManagementExt.risk": "مخاطر العقد",
+    "contractManagementExt.template": "قالب العقد",
+    "contractManagementExt.termination": "إنهاء العقد"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/contractsDocs.translations.json">
+<![CDATA[
+{
+  "en": {
+    "contractsDocs.agreement": "Agreement",
+    "contractsDocs.agreements": "Agreements",
+    "contractsDocs.certificate": "Certificate",
+    "contractsDocs.certificates": "Certificates",
+    "contractsDocs.contract": "Contract",
+    "contractsDocs.contracts": "Contracts",
+    "contractsDocs.digitalCopy": "Digital Copy",
+    "contractsDocs.document": "Document",
+    "contractsDocs.documentNumber": "Document Number",
+    "contractsDocs.documents": "Documents",
+    "contractsDocs.documentType": "Document Type",
+    "contractsDocs.draft": "Draft",
+    "contractsDocs.drafts": "Drafts",
+    "contractsDocs.estimate": "Estimate",
+    "contractsDocs.estimates": "Estimates",
+    "contractsDocs.expiryDate": "Expiry Date",
+    "contractsDocs.hardCopy": "Hard Copy",
+    "contractsDocs.issueDate": "Issue Date",
+    "contractsDocs.license": "License",
+    "contractsDocs.licenses": "Licenses",
+    "contractsDocs.originalCopy": "Original Copy",
+    "contractsDocs.permit": "Permit",
+    "contractsDocs.permits": "Permits",
+    "contractsDocs.policies": "Policies",
+    "contractsDocs.policy": "Policy",
+    "contractsDocs.proposal": "Proposal",
+    "contractsDocs.proposals": "Proposals",
+    "contractsDocs.quote": "Quote",
+    "contractsDocs.quotes": "Quotes",
+    "contractsDocs.revision": "Revision",
+    "contractsDocs.revisions": "Revisions",
+    "contractsDocs.scan": "Scan",
+    "contractsDocs.scannedDocument": "Scanned Document",
+    "contractsDocs.signedCopy": "Signed Copy",
+    "contractsDocs.specification": "Specification",
+    "contractsDocs.specifications": "Specifications",
+    "contractsDocs.template": "Template",
+    "contractsDocs.templates": "Templates",
+    "contractsDocs.terms": "Terms",
+    "contractsDocs.termsAndConditions": "Terms and Conditions",
+    "contractsDocs.validUntil": "Valid Until",
+    "contractsDocs.version": "Version",
+    "contractsDocs.versions": "Versions"
+  },
+  "ar": {
+    "contractsDocs.agreement": "اتفاقية",
+    "contractsDocs.agreements": "اتفاقيات",
+    "contractsDocs.certificate": "شهادة",
+    "contractsDocs.certificates": "شهادات",
+    "contractsDocs.contract": "عقد",
+    "contractsDocs.contracts": "عقود",
+    "contractsDocs.digitalCopy": "نسخة رقمية",
+    "contractsDocs.document": "وثيقة",
+    "contractsDocs.documentNumber": "رقم الوثيقة",
+    "contractsDocs.documents": "وثائق",
+    "contractsDocs.documentType": "نوع الوثيقة",
+    "contractsDocs.draft": "مسودة",
+    "contractsDocs.drafts": "مسودات",
+    "contractsDocs.estimate": "تقدير",
+    "contractsDocs.estimates": "تقديرات",
+    "contractsDocs.expiryDate": "تاريخ الانتهاء",
+    "contractsDocs.hardCopy": "نسخة ورقية",
+    "contractsDocs.issueDate": "تاريخ الإصدار",
+    "contractsDocs.license": "رخصة",
+    "contractsDocs.licenses": "رخص",
+    "contractsDocs.originalCopy": "النسخة الأصلية",
+    "contractsDocs.permit": "تصريح",
+    "contractsDocs.permits": "تصاريح",
+    "contractsDocs.policies": "سياسات",
+    "contractsDocs.policy": "سياسة",
+    "contractsDocs.proposal": "مقترح",
+    "contractsDocs.proposals": "مقترحات",
+    "contractsDocs.quote": "عرض سعر",
+    "contractsDocs.quotes": "عروض أسعار",
+    "contractsDocs.revision": "مراجعة",
+    "contractsDocs.revisions": "مراجعات",
+    "contractsDocs.scan": "مسح ضوئي",
+    "contractsDocs.scannedDocument": "وثيقة ممسوحة",
+    "contractsDocs.signedCopy": "نسخة موقعة",
+    "contractsDocs.specification": "مواصفة",
+    "contractsDocs.specifications": "مواصفات",
+    "contractsDocs.template": "قالب",
+    "contractsDocs.templates": "قوالب",
+    "contractsDocs.terms": "شروط",
+    "contractsDocs.termsAndConditions": "الشروط والأحكام",
+    "contractsDocs.validUntil": "صالح حتى",
+    "contractsDocs.version": "نسخة",
+    "contractsDocs.versions": "نسخ"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/conversionOptimization.translations.json">
+<![CDATA[
+{
+  "en": {
+    "conversionOptimization.checkout": "Checkout Optimization",
+    "conversionOptimization.confidence": "Confidence Level",
+    "conversionOptimization.control": "Control",
+    "conversionOptimization.cro": "Conversion Rate Optimization",
+    "conversionOptimization.cta": "CTA Optimization",
+    "conversionOptimization.experiment": "Experiment",
+    "conversionOptimization.form": "Form Optimization",
+    "conversionOptimization.headline": "Headline Testing",
+    "conversionOptimization.hypothesis": "Hypothesis",
+    "conversionOptimization.landing": "Landing Page Optimization",
+    "conversionOptimization.multivariate": "Multivariate Testing",
+    "conversionOptimization.optimization": "Optimization",
+    "conversionOptimization.personalization": "Personalization",
+    "conversionOptimization.recommendation": "Recommendations",
+    "conversionOptimization.scarcity": "Scarcity",
+    "conversionOptimization.significance": "Statistical Significance",
+    "conversionOptimization.social": "Social Proof",
+    "conversionOptimization.split": "Split Testing",
+    "conversionOptimization.testing": "A/B Testing",
+    "conversionOptimization.urgency": "Urgency",
+    "conversionOptimization.variant": "Variant",
+    "conversionOptimization.winner": "Winner"
+  },
+  "ar": {
+    "conversionOptimization.checkout": "تحسين الدفع",
+    "conversionOptimization.confidence": "مستوى الثقة",
+    "conversionOptimization.control": "الضابط",
+    "conversionOptimization.cro": "تحسين معدل التحويل",
+    "conversionOptimization.cta": "تحسين الدعوة إلى اتخاذ إجراء",
+    "conversionOptimization.experiment": "التجربة",
+    "conversionOptimization.form": "تحسين النموذج",
+    "conversionOptimization.headline": "اختبار العنوان",
+    "conversionOptimization.hypothesis": "الفرضية",
+    "conversionOptimization.landing": "تحسين الصفحة المقصودة",
+    "conversionOptimization.multivariate": "الاختبار متعدد المتغيرات",
+    "conversionOptimization.optimization": "التحسين",
+    "conversionOptimization.personalization": "التخصيص",
+    "conversionOptimization.recommendation": "التوصيات",
+    "conversionOptimization.scarcity": "الندرة",
+    "conversionOptimization.significance": "الأهمية الإحصائية",
+    "conversionOptimization.social": "الدليل الاجتماعي",
+    "conversionOptimization.split": "الاختبار المقسم",
+    "conversionOptimization.testing": "اختبار A/B",
+    "conversionOptimization.urgency": "الاستعجال",
+    "conversionOptimization.variant": "المتغير",
+    "conversionOptimization.winner": "الفائز"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/conversionRateOptimization.translations.json">
+<![CDATA[
+{
+  "en": {
+    "conversionRateOptimization.abandonment": "Cart Abandonment",
+    "conversionRateOptimization.analytics": "Conversion Analytics",
+    "conversionRateOptimization.button": "Button Optimization",
+    "conversionRateOptimization.cart": "Shopping Cart",
+    "conversionRateOptimization.checkout": "Checkout Optimization",
+    "conversionRateOptimization.conversion": "Conversion Rate Optimization",
+    "conversionRateOptimization.copy": "Copywriting",
+    "conversionRateOptimization.cro": "CRO",
+    "conversionRateOptimization.cta": "Call-to-Action",
+    "conversionRateOptimization.design": "Design Optimization",
+    "conversionRateOptimization.form": "Form Optimization",
+    "conversionRateOptimization.funnel": "Conversion Funnel",
+    "conversionRateOptimization.goal": "Conversion Goal",
+    "conversionRateOptimization.heatmap": "Heatmap",
+    "conversionRateOptimization.landing": "Landing Page",
+    "conversionRateOptimization.multivariate": "Multivariate Testing",
+    "conversionRateOptimization.optimization": "Optimization",
+    "conversionRateOptimization.rate": "Conversion Rate",
+    "conversionRateOptimization.split": "Split Testing",
+    "conversionRateOptimization.testing": "A/B Testing",
+    "conversionRateOptimization.usability": "Usability Testing",
+    "conversionRateOptimization.ux": "User Experience"
+  },
+  "ar": {
+    "conversionRateOptimization.abandonment": "التخلي عن السلة",
+    "conversionRateOptimization.analytics": "تحليلات التحويل",
+    "conversionRateOptimization.button": "تحسين الزر",
+    "conversionRateOptimization.cart": "سلة التسوق",
+    "conversionRateOptimization.checkout": "تحسين الخروج",
+    "conversionRateOptimization.conversion": "تحسين معدل التحويل",
+    "conversionRateOptimization.copy": "كتابة النصوص",
+    "conversionRateOptimization.cro": "تحسين معدل التحويل",
+    "conversionRateOptimization.cta": "الدعوة لاتخاذ إجراء",
+    "conversionRateOptimization.design": "تحسين التصميم",
+    "conversionRateOptimization.form": "تحسين النموذج",
+    "conversionRateOptimization.funnel": "مسار التحويل",
+    "conversionRateOptimization.goal": "هدف التحويل",
+    "conversionRateOptimization.heatmap": "خريطة حرارية",
+    "conversionRateOptimization.landing": "صفحة الهبوط",
+    "conversionRateOptimization.multivariate": "اختبار متعدد المتغيرات",
+    "conversionRateOptimization.optimization": "التحسين",
+    "conversionRateOptimization.rate": "معدل التحويل",
+    "conversionRateOptimization.split": "اختبار الانقسام",
+    "conversionRateOptimization.testing": "اختبار A/B",
+    "conversionRateOptimization.usability": "اختبار قابلية الاستخدام",
+    "conversionRateOptimization.ux": "تجربة المستخدم"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/corporateGovernance.translations.json">
+<![CDATA[
+{
+  "en": {
+    "corporateGovernance.accountability": "Accountability",
+    "corporateGovernance.audit": "Audit Committee",
+    "corporateGovernance.board": "Board of Directors",
+    "corporateGovernance.ceo": "CEO",
+    "corporateGovernance.cfo": "CFO",
+    "corporateGovernance.chairman": "Chairman",
+    "corporateGovernance.committee": "Committee",
+    "corporateGovernance.compensation": "Compensation Committee",
+    "corporateGovernance.director": "Director",
+    "corporateGovernance.disclosure": "Disclosure",
+    "corporateGovernance.executive": "Executive",
+    "corporateGovernance.governance": "Corporate Governance",
+    "corporateGovernance.meeting": "Board Meeting",
+    "corporateGovernance.nomination": "Nomination Committee",
+    "corporateGovernance.officer": "Officer",
+    "corporateGovernance.proxy": "Proxy",
+    "corporateGovernance.quorum": "Quorum",
+    "corporateGovernance.resolution": "Resolution",
+    "corporateGovernance.shareholder": "Shareholder",
+    "corporateGovernance.stakeholder": "Stakeholder",
+    "corporateGovernance.transparency": "Transparency",
+    "corporateGovernance.vote": "Vote"
+  },
+  "ar": {
+    "corporateGovernance.accountability": "المساءلة",
+    "corporateGovernance.audit": "لجنة المراجعة",
+    "corporateGovernance.board": "مجلس الإدارة",
+    "corporateGovernance.ceo": "الرئيس التنفيذي",
+    "corporateGovernance.cfo": "المدير المالي",
+    "corporateGovernance.chairman": "رئيس مجلس الإدارة",
+    "corporateGovernance.committee": "اللجنة",
+    "corporateGovernance.compensation": "لجنة التعويضات",
+    "corporateGovernance.director": "المدير",
+    "corporateGovernance.disclosure": "الإفصاح",
+    "corporateGovernance.executive": "التنفيذي",
+    "corporateGovernance.governance": "الحوكمة المؤسسية",
+    "corporateGovernance.meeting": "اجتماع مجلس الإدارة",
+    "corporateGovernance.nomination": "لجنة الترشيحات",
+    "corporateGovernance.officer": "المسؤول",
+    "corporateGovernance.proxy": "الوكالة",
+    "corporateGovernance.quorum": "النصاب القانوني",
+    "corporateGovernance.resolution": "القرار",
+    "corporateGovernance.shareholder": "المساهم",
+    "corporateGovernance.stakeholder": "صاحب المصلحة",
+    "corporateGovernance.transparency": "الشفافية",
+    "corporateGovernance.vote": "التصويت"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/corporateGovernanceAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "corporateGovernanceAdv.accountability": "Accountability",
+    "corporateGovernanceAdv.audit": "Audit Committee",
+    "corporateGovernanceAdv.board": "Board of Directors",
+    "corporateGovernanceAdv.bylaws": "Corporate Bylaws",
+    "corporateGovernanceAdv.charter": "Corporate Charter",
+    "corporateGovernanceAdv.committee": "Governance Committee",
+    "corporateGovernanceAdv.compensation": "Compensation Committee",
+    "corporateGovernanceAdv.compliance": "Governance Compliance",
+    "corporateGovernanceAdv.disclosure": "Corporate Disclosure",
+    "corporateGovernanceAdv.ethics": "Business Ethics",
+    "corporateGovernanceAdv.executive": "Executive Management",
+    "corporateGovernanceAdv.governance": "Corporate Governance",
+    "corporateGovernanceAdv.integrity": "Integrity",
+    "corporateGovernanceAdv.meetings": "Board Meetings",
+    "corporateGovernanceAdv.nomination": "Nomination Committee",
+    "corporateGovernanceAdv.policy": "Corporate Policy",
+    "corporateGovernanceAdv.reporting": "Corporate Reporting",
+    "corporateGovernanceAdv.risk": "Risk Oversight",
+    "corporateGovernanceAdv.shareholder": "Shareholder Relations",
+    "corporateGovernanceAdv.stakeholder": "Stakeholder Management",
+    "corporateGovernanceAdv.succession": "Succession Planning",
+    "corporateGovernanceAdv.transparency": "Transparency",
+    "corporateGovernanceAdv.voting": "Voting Rights"
+  },
+  "ar": {
+    "corporateGovernanceAdv.accountability": "المساءلة",
+    "corporateGovernanceAdv.audit": "لجنة التدقيق",
+    "corporateGovernanceAdv.board": "مجلس الإدارة",
+    "corporateGovernanceAdv.bylaws": "اللوائح الداخلية للشركة",
+    "corporateGovernanceAdv.charter": "ميثاق الشركة",
+    "corporateGovernanceAdv.committee": "لجنة الحوكمة",
+    "corporateGovernanceAdv.compensation": "لجنة التعويضات",
+    "corporateGovernanceAdv.compliance": "الامتثال للحوكمة",
+    "corporateGovernanceAdv.disclosure": "الإفصاح المؤسسي",
+    "corporateGovernanceAdv.ethics": "أخلاقيات العمل",
+    "corporateGovernanceAdv.executive": "الإدارة التنفيذية",
+    "corporateGovernanceAdv.governance": "حوكمة الشركات",
+    "corporateGovernanceAdv.integrity": "النزاهة",
+    "corporateGovernanceAdv.meetings": "اجتماعات مجلس الإدارة",
+    "corporateGovernanceAdv.nomination": "لجنة الترشيحات",
+    "corporateGovernanceAdv.policy": "سياسة الشركة",
+    "corporateGovernanceAdv.reporting": "التقارير المؤسسية",
+    "corporateGovernanceAdv.risk": "الإشراف على المخاطر",
+    "corporateGovernanceAdv.shareholder": "علاقات المساهمين",
+    "corporateGovernanceAdv.stakeholder": "إدارة أصحاب المصلحة",
+    "corporateGovernanceAdv.succession": "تخطيط التعاقب",
+    "corporateGovernanceAdv.transparency": "الشفافية",
+    "corporateGovernanceAdv.voting": "حقوق التصويت"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/corporateLearning.translations.json">
+<![CDATA[
+{
+  "en": {
+    "corporateLearning.assessment": "Skills Assessment",
+    "corporateLearning.blended": "Blended Learning",
+    "corporateLearning.career": "Career Development",
+    "corporateLearning.certification": "Certification Programs",
+    "corporateLearning.classroom": "Classroom Training",
+    "corporateLearning.coaching": "Coaching Programs",
+    "corporateLearning.competencies": "Competency Management",
+    "corporateLearning.complianceTraining": "Compliance Training",
+    "corporateLearning.content": "Learning Content",
+    "corporateLearning.courses": "Course Management",
+    "corporateLearning.curriculum": "Curriculum Design",
+    "corporateLearning.delivery": "Content Delivery",
+    "corporateLearning.elearning": "E-Learning",
+    "corporateLearning.gap": "Skills Gap Analysis",
+    "corporateLearning.learning": "Corporate Learning",
+    "corporateLearning.lms": "Learning Management System",
+    "corporateLearning.mentoring": "Mentoring Programs",
+    "corporateLearning.skills": "Skills Development",
+    "corporateLearning.succession": "Succession Planning",
+    "corporateLearning.training": "Training Management",
+    "corporateLearning.virtual": "Virtual Training"
+  },
+  "ar": {
+    "corporateLearning.assessment": "تقييم المهارات",
+    "corporateLearning.blended": "التعلم المدمج",
+    "corporateLearning.career": "التطوير الوظيفي",
+    "corporateLearning.certification": "برامج الشهادات",
+    "corporateLearning.classroom": "التدريب في الفصول الدراسية",
+    "corporateLearning.coaching": "برامج التدريب",
+    "corporateLearning.competencies": "إدارة الكفاءات",
+    "corporateLearning.complianceTraining": "تدريب الامتثال",
+    "corporateLearning.content": "محتوى التعلم",
+    "corporateLearning.courses": "إدارة الدورات",
+    "corporateLearning.curriculum": "تصميم المناهج",
+    "corporateLearning.delivery": "تقديم المحتوى",
+    "corporateLearning.elearning": "التعلم الإلكتروني",
+    "corporateLearning.gap": "تحليل فجوة المهارات",
+    "corporateLearning.learning": "التعلم المؤسسي",
+    "corporateLearning.lms": "نظام إدارة التعلم",
+    "corporateLearning.mentoring": "برامج الإرشاد",
+    "corporateLearning.skills": "تطوير المهارات",
+    "corporateLearning.succession": "تخطيط التعاقب",
+    "corporateLearning.training": "إدارة التدريب",
+    "corporateLearning.virtual": "التدريب الافتراضي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/corporateRestructuring.translations.json">
+<![CDATA[
+{
+  "en": {
+    "corporateRestructuring.analysis": "Restructuring Analysis",
+    "corporateRestructuring.assessment": "Restructuring Assessment",
+    "corporateRestructuring.change": "Restructuring Change",
+    "corporateRestructuring.communication": "Restructuring Communication",
+    "corporateRestructuring.corporate": "Corporate Restructuring",
+    "corporateRestructuring.debt": "Debt Restructuring",
+    "corporateRestructuring.design": "Restructuring Design",
+    "corporateRestructuring.execution": "Restructuring Execution",
+    "corporateRestructuring.financial": "Financial Restructuring",
+    "corporateRestructuring.implementation": "Restructuring Implementation",
+    "corporateRestructuring.monitoring": "Restructuring Monitoring",
+    "corporateRestructuring.operational": "Operational Restructuring",
+    "corporateRestructuring.organizational": "Organizational Restructuring",
+    "corporateRestructuring.performance": "Restructuring Performance",
+    "corporateRestructuring.planning": "Restructuring Planning",
+    "corporateRestructuring.portfolio": "Portfolio Restructuring",
+    "corporateRestructuring.restructuring": "Restructuring Strategy",
+    "corporateRestructuring.stakeholder": "Stakeholder Management",
+    "corporateRestructuring.strategy": "Restructuring Strategy",
+    "corporateRestructuring.transformation": "Corporate Transformation",
+    "corporateRestructuring.transition": "Restructuring Transition",
+    "corporateRestructuring.turnaround": "Business Turnaround"
+  },
+  "ar": {
+    "corporateRestructuring.analysis": "تحليل إعادة الهيكلة",
+    "corporateRestructuring.assessment": "تقييم إعادة الهيكلة",
+    "corporateRestructuring.change": "التغيير في إعادة الهيكلة",
+    "corporateRestructuring.communication": "التواصل في إعادة الهيكلة",
+    "corporateRestructuring.corporate": "إعادة هيكلة الشركات",
+    "corporateRestructuring.debt": "إعادة هيكلة الديون",
+    "corporateRestructuring.design": "تصميم إعادة الهيكلة",
+    "corporateRestructuring.execution": "تنفيذ إعادة الهيكلة",
+    "corporateRestructuring.financial": "إعادة الهيكلة المالية",
+    "corporateRestructuring.implementation": "تنفيذ إعادة الهيكلة",
+    "corporateRestructuring.monitoring": "مراقبة إعادة الهيكلة",
+    "corporateRestructuring.operational": "إعادة الهيكلة التشغيلية",
+    "corporateRestructuring.organizational": "إعادة الهيكلة التنظيمية",
+    "corporateRestructuring.performance": "أداء إعادة الهيكلة",
+    "corporateRestructuring.planning": "تخطيط إعادة الهيكلة",
+    "corporateRestructuring.portfolio": "إعادة هيكلة المحفظة",
+    "corporateRestructuring.restructuring": "استراتيجية إعادة الهيكلة",
+    "corporateRestructuring.stakeholder": "إدارة أصحاب المصلحة",
+    "corporateRestructuring.strategy": "استراتيجية إعادة الهيكلة",
+    "corporateRestructuring.transformation": "تحول الشركات",
+    "corporateRestructuring.transition": "انتقال إعادة الهيكلة",
+    "corporateRestructuring.turnaround": "إنعاش الأعمال"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/corporateSocialResponsibility.translations.json">
+<![CDATA[
+{
+  "en": {
+    "corporateSocialResponsibility.assessment": "CSR Assessment",
+    "corporateSocialResponsibility.community": "Community Engagement",
+    "corporateSocialResponsibility.corporate": "Corporate Social Responsibility",
+    "corporateSocialResponsibility.development": "Community Development",
+    "corporateSocialResponsibility.disclosure": "CSR Disclosure",
+    "corporateSocialResponsibility.ethics": "Corporate Ethics",
+    "corporateSocialResponsibility.evaluation": "CSR Evaluation",
+    "corporateSocialResponsibility.giving": "Corporate Giving",
+    "corporateSocialResponsibility.governance": "CSR Governance",
+    "corporateSocialResponsibility.impact": "Social Impact",
+    "corporateSocialResponsibility.initiatives": "CSR Initiatives",
+    "corporateSocialResponsibility.investment": "Social Investment",
+    "corporateSocialResponsibility.measurement": "CSR Measurement",
+    "corporateSocialResponsibility.outreach": "Community Outreach",
+    "corporateSocialResponsibility.partnerships": "Community Partnerships",
+    "corporateSocialResponsibility.philanthropy": "Corporate Philanthropy",
+    "corporateSocialResponsibility.programs": "CSR Programs",
+    "corporateSocialResponsibility.projects": "CSR Projects",
+    "corporateSocialResponsibility.reporting": "CSR Reporting",
+    "corporateSocialResponsibility.responsibility": "Social Responsibility",
+    "corporateSocialResponsibility.social": "CSR Strategy",
+    "corporateSocialResponsibility.volunteering": "Employee Volunteering"
+  },
+  "ar": {
+    "corporateSocialResponsibility.assessment": "تقييم المسؤولية الاجتماعية",
+    "corporateSocialResponsibility.community": "المشاركة المجتمعية",
+    "corporateSocialResponsibility.corporate": "المسؤولية الاجتماعية للشركات",
+    "corporateSocialResponsibility.development": "التنمية المجتمعية",
+    "corporateSocialResponsibility.disclosure": "الإفصاح عن المسؤولية الاجتماعية",
+    "corporateSocialResponsibility.ethics": "أخلاقيات الشركات",
+    "corporateSocialResponsibility.evaluation": "تقييم المسؤولية الاجتماعية",
+    "corporateSocialResponsibility.giving": "العطاء المؤسسي",
+    "corporateSocialResponsibility.governance": "حوكمة المسؤولية الاجتماعية",
+    "corporateSocialResponsibility.impact": "التأثير الاجتماعي",
+    "corporateSocialResponsibility.initiatives": "مبادرات المسؤولية الاجتماعية",
+    "corporateSocialResponsibility.investment": "الاستثمار الاجتماعي",
+    "corporateSocialResponsibility.measurement": "قياس المسؤولية الاجتماعية",
+    "corporateSocialResponsibility.outreach": "التواصل المجتمعي",
+    "corporateSocialResponsibility.partnerships": "الشراكات المجتمعية",
+    "corporateSocialResponsibility.philanthropy": "الأعمال الخيرية للشركات",
+    "corporateSocialResponsibility.programs": "برامج المسؤولية الاجتماعية",
+    "corporateSocialResponsibility.projects": "مشاريع المسؤولية الاجتماعية",
+    "corporateSocialResponsibility.reporting": "تقارير المسؤولية الاجتماعية",
+    "corporateSocialResponsibility.responsibility": "المسؤولية الاجتماعية",
+    "corporateSocialResponsibility.social": "استراتيجية المسؤولية الاجتماعية",
+    "corporateSocialResponsibility.volunteering": "تطوع الموظفين"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/corporateStrategy.translations.json">
+<![CDATA[
+{
+  "en": {
+    "corporateStrategy.acquisition": "Acquisition",
+    "corporateStrategy.competitive": "Competitive Advantage",
+    "corporateStrategy.corporate": "Corporate Strategy",
+    "corporateStrategy.differentiation": "Differentiation",
+    "corporateStrategy.direction": "Strategic Direction",
+    "corporateStrategy.diversification": "Diversification",
+    "corporateStrategy.divestiture": "Divestiture",
+    "corporateStrategy.expansion": "Expansion",
+    "corporateStrategy.growth": "Growth Strategy",
+    "corporateStrategy.integration": "Integration",
+    "corporateStrategy.merger": "Merger",
+    "corporateStrategy.mission": "Corporate Mission",
+    "corporateStrategy.objectives": "Corporate Objectives",
+    "corporateStrategy.planning": "Corporate Planning",
+    "corporateStrategy.portfolio": "Corporate Portfolio",
+    "corporateStrategy.positioning": "Strategic Positioning",
+    "corporateStrategy.restructuring": "Restructuring",
+    "corporateStrategy.strategy": "Corporate Strategy",
+    "corporateStrategy.synergy": "Synergy",
+    "corporateStrategy.turnaround": "Turnaround Strategy",
+    "corporateStrategy.value": "Value Creation",
+    "corporateStrategy.vision": "Corporate Vision"
+  },
+  "ar": {
+    "corporateStrategy.acquisition": "الاستحواذ",
+    "corporateStrategy.competitive": "الميزة التنافسية",
+    "corporateStrategy.corporate": "استراتيجية الشركة",
+    "corporateStrategy.differentiation": "التمايز",
+    "corporateStrategy.direction": "التوجه الاستراتيجي",
+    "corporateStrategy.diversification": "التنويع",
+    "corporateStrategy.divestiture": "التصفية",
+    "corporateStrategy.expansion": "التوسع",
+    "corporateStrategy.growth": "النمو",
+    "corporateStrategy.integration": "التكامل",
+    "corporateStrategy.merger": "الاندماج",
+    "corporateStrategy.mission": "مهمة الشركة",
+    "corporateStrategy.objectives": "أهداف الشركة",
+    "corporateStrategy.planning": "التخطيط الاستراتيجي للشركة",
+    "corporateStrategy.portfolio": "محفظة الشركة",
+    "corporateStrategy.positioning": "الموقع الاستراتيجي",
+    "corporateStrategy.restructuring": "إعادة الهيكلة",
+    "corporateStrategy.strategy": "استراتيجية الشركة",
+    "corporateStrategy.synergy": "التآزر",
+    "corporateStrategy.turnaround": "التحول الاستراتيجي",
+    "corporateStrategy.value": "خلق القيمة",
+    "corporateStrategy.vision": "رؤية الشركة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/corporateTravelManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "corporateTravelManagement.alerts": "Travel Alerts",
+    "corporateTravelManagement.analytics": "Travel Analytics",
+    "corporateTravelManagement.approval": "Travel Approval",
+    "corporateTravelManagement.authorization": "Travel Authorization",
+    "corporateTravelManagement.booking": "Travel Booking",
+    "corporateTravelManagement.compliance": "Policy Compliance",
+    "corporateTravelManagement.corporate": "Corporate Travel",
+    "corporateTravelManagement.duty": "Duty of Care",
+    "corporateTravelManagement.expense": "Travel Expense",
+    "corporateTravelManagement.itinerary": "Itinerary Management",
+    "corporateTravelManagement.negotiated": "Negotiated Rates",
+    "corporateTravelManagement.policy": "Travel Policy",
+    "corporateTravelManagement.preferred": "Preferred Vendors",
+    "corporateTravelManagement.receipts": "Receipt Management",
+    "corporateTravelManagement.reimbursement": "Expense Reimbursement",
+    "corporateTravelManagement.reports": "Travel Reports",
+    "corporateTravelManagement.reservations": "Travel Reservations",
+    "corporateTravelManagement.savings": "Cost Savings",
+    "corporateTravelManagement.spend": "Travel Spend",
+    "corporateTravelManagement.tracking": "Traveler Tracking",
+    "corporateTravelManagement.travel": "Travel Management",
+    "corporateTravelManagement.vendors": "Travel Vendors"
+  },
+  "ar": {
+    "corporateTravelManagement.alerts": "تنبيهات السفر",
+    "corporateTravelManagement.analytics": "تحليلات السفر",
+    "corporateTravelManagement.approval": "الموافقة على السفر",
+    "corporateTravelManagement.authorization": "تفويض السفر",
+    "corporateTravelManagement.booking": "حجز السفر",
+    "corporateTravelManagement.compliance": "الامتثال للسياسة",
+    "corporateTravelManagement.corporate": "سفر الشركات",
+    "corporateTravelManagement.duty": "واجب الرعاية",
+    "corporateTravelManagement.expense": "نفقات السفر",
+    "corporateTravelManagement.itinerary": "إدارة خط سير الرحلة",
+    "corporateTravelManagement.negotiated": "الأسعار المتفاوض عليها",
+    "corporateTravelManagement.policy": "سياسة السفر",
+    "corporateTravelManagement.preferred": "البائعون المفضلون",
+    "corporateTravelManagement.receipts": "إدارة الإيصالات",
+    "corporateTravelManagement.reimbursement": "سداد النفقات",
+    "corporateTravelManagement.reports": "تقارير السفر",
+    "corporateTravelManagement.reservations": "حجوزات السفر",
+    "corporateTravelManagement.savings": "توفير التكاليف",
+    "corporateTravelManagement.spend": "إنفاق السفر",
+    "corporateTravelManagement.tracking": "تتبع المسافرين",
+    "corporateTravelManagement.travel": "إدارة السفر",
+    "corporateTravelManagement.vendors": "بائعي السفر"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/corporateTreasury.translations.json">
+<![CDATA[
+{
+  "en": {
+    "corporateTreasury.bankAccounts": "Bank Accounts",
+    "corporateTreasury.bankingOps": "Banking Operations",
+    "corporateTreasury.bankRecon": "Bank Reconciliation",
+    "corporateTreasury.borrowing": "Borrowing Management",
+    "corporateTreasury.cashForecasting": "Cash Forecasting",
+    "corporateTreasury.cashMgmt": "Cash Management",
+    "corporateTreasury.cashPooling": "Cash Pooling",
+    "corporateTreasury.cashPosition": "Cash Position",
+    "corporateTreasury.concentration": "Cash Concentration",
+    "corporateTreasury.debtMgmt": "Debt Management",
+    "corporateTreasury.derivatives": "Derivative Management",
+    "corporateTreasury.financialRisk": "Financial Risk",
+    "corporateTreasury.fundTransfers": "Fund Transfers",
+    "corporateTreasury.fxMgmt": "FX Management",
+    "corporateTreasury.hedging": "Risk Hedging",
+    "corporateTreasury.investmentMgmt": "Investment Management",
+    "corporateTreasury.liquidity": "Liquidity Management",
+    "corporateTreasury.paymentOps": "Payment Operations",
+    "corporateTreasury.receiptOps": "Receipt Operations",
+    "corporateTreasury.treasury": "Corporate Treasury",
+    "corporateTreasury.treasuryReporting": "Treasury Reporting"
+  },
+  "ar": {
+    "corporateTreasury.bankAccounts": "الحسابات المصرفية",
+    "corporateTreasury.bankingOps": "العمليات المصرفية",
+    "corporateTreasury.bankRecon": "التسوية المصرفية",
+    "corporateTreasury.borrowing": "إدارة الاقتراض",
+    "corporateTreasury.cashForecasting": "التنبؤ بالنقد",
+    "corporateTreasury.cashMgmt": "إدارة النقد",
+    "corporateTreasury.cashPooling": "تجميع النقد",
+    "corporateTreasury.cashPosition": "الوضع النقدي",
+    "corporateTreasury.concentration": "تركيز النقد",
+    "corporateTreasury.debtMgmt": "إدارة الديون",
+    "corporateTreasury.derivatives": "إدارة المشتقات",
+    "corporateTreasury.financialRisk": "المخاطر المالية",
+    "corporateTreasury.fundTransfers": "تحويل الأموال",
+    "corporateTreasury.fxMgmt": "إدارة الصرف الأجنبي",
+    "corporateTreasury.hedging": "التحوط من المخاطر",
+    "corporateTreasury.investmentMgmt": "إدارة الاستثمار",
+    "corporateTreasury.liquidity": "إدارة السيولة",
+    "corporateTreasury.paymentOps": "عمليات الدفع",
+    "corporateTreasury.receiptOps": "عمليات الاستلام",
+    "corporateTreasury.treasury": "الخزينة المؤسسية",
+    "corporateTreasury.treasuryReporting": "تقارير الخزينة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/correctiveAction.translations.json">
+<![CDATA[
+{
+  "en": {
+    "correctiveAction.action": "Action Management",
+    "correctiveAction.analysis": "Cause Analysis",
+    "correctiveAction.closure": "Action Closure",
+    "correctiveAction.corrective": "Corrective Action",
+    "correctiveAction.documentation": "Action Documentation",
+    "correctiveAction.effectiveness": "Action Effectiveness",
+    "correctiveAction.identification": "Issue Identification",
+    "correctiveAction.implementation": "Action Implementation",
+    "correctiveAction.investigation": "Issue Investigation",
+    "correctiveAction.monitoring": "Action Monitoring",
+    "correctiveAction.owner": "Action Owner",
+    "correctiveAction.plan": "Action Plan",
+    "correctiveAction.process": "CAPA Process",
+    "correctiveAction.register": "Action Register",
+    "correctiveAction.reporting": "Action Reporting",
+    "correctiveAction.request": "Action Request",
+    "correctiveAction.solution": "Solution Development",
+    "correctiveAction.status": "Action Status",
+    "correctiveAction.timeline": "Action Timeline",
+    "correctiveAction.tracking": "Action Tracking",
+    "correctiveAction.validation": "Action Validation",
+    "correctiveAction.verification": "Action Verification"
+  },
+  "ar": {
+    "correctiveAction.action": "إدارة الإجراءات",
+    "correctiveAction.analysis": "تحليل السبب",
+    "correctiveAction.closure": "إغلاق الإجراء",
+    "correctiveAction.corrective": "الإجراء التصحيحي",
+    "correctiveAction.documentation": "توثيق الإجراء",
+    "correctiveAction.effectiveness": "فعالية الإجراء",
+    "correctiveAction.identification": "تحديد المشكلة",
+    "correctiveAction.implementation": "تنفيذ الإجراء",
+    "correctiveAction.investigation": "التحقيق في المشكلة",
+    "correctiveAction.monitoring": "مراقبة الإجراء",
+    "correctiveAction.owner": "مالك الإجراء",
+    "correctiveAction.plan": "خطة الإجراء",
+    "correctiveAction.process": "عملية كابا",
+    "correctiveAction.register": "سجل الإجراءات",
+    "correctiveAction.reporting": "إعداد تقارير الإجراء",
+    "correctiveAction.request": "طلب الإجراء",
+    "correctiveAction.solution": "تطوير الحل",
+    "correctiveAction.status": "حالة الإجراء",
+    "correctiveAction.timeline": "الجدول الزمني للإجراء",
+    "correctiveAction.tracking": "تتبع الإجراء",
+    "correctiveAction.validation": "التحقق من صحة الإجراء",
+    "correctiveAction.verification": "التحقق من الإجراء"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/correspondence.translations.json">
+<![CDATA[
+{
+  "en": {
+    "correspondence.acknowledgment": "Acknowledgment",
+    "correspondence.alert": "Alert",
+    "correspondence.announcement": "Announcement",
+    "correspondence.broadcast": "Broadcast",
+    "correspondence.bulletin": "Bulletin",
+    "correspondence.circular": "Circular",
+    "correspondence.clarification": "Clarification",
+    "correspondence.communicate": "Communicate",
+    "correspondence.communication": "Communication",
+    "correspondence.confirmation": "Confirmation",
+    "correspondence.correspondence1": "Correspondence",
+    "correspondence.email": "Email",
+    "correspondence.feedback": "Feedback",
+    "correspondence.followUp": "Follow-up",
+    "correspondence.inquiry": "Inquiry",
+    "correspondence.letter": "Letter",
+    "correspondence.memo": "Memo",
+    "correspondence.memorandum": "Memorandum",
+    "correspondence.message": "Message",
+    "correspondence.messages": "Messages",
+    "correspondence.newsletter": "Newsletter",
+    "correspondence.notice": "Notice",
+    "correspondence.notification": "Notification",
+    "correspondence.query": "Query",
+    "correspondence.reminder": "Reminder",
+    "correspondence.reply": "Reply",
+    "correspondence.request": "Request",
+    "correspondence.response": "Response"
+  },
+  "ar": {
+    "correspondence.acknowledgment": "إقرار",
+    "correspondence.alert": "تنبيه",
+    "correspondence.announcement": "إعلان",
+    "correspondence.broadcast": "بث",
+    "correspondence.bulletin": "نشرة",
+    "correspondence.circular": "تعميم",
+    "correspondence.clarification": "توضيح",
+    "correspondence.communicate": "التواصل",
+    "correspondence.communication": "التواصل",
+    "correspondence.confirmation": "تأكيد",
+    "correspondence.correspondence1": "المراسلات",
+    "correspondence.email": "بريد إلكتروني",
+    "correspondence.feedback": "تعليقات",
+    "correspondence.followUp": "متابعة",
+    "correspondence.inquiry": "استفسار",
+    "correspondence.letter": "خطاب",
+    "correspondence.memo": "مذكرة",
+    "correspondence.memorandum": "مذكرة",
+    "correspondence.message": "رسالة",
+    "correspondence.messages": "رسائل",
+    "correspondence.newsletter": "نشرة إخبارية",
+    "correspondence.notice": "إشعار",
+    "correspondence.notification": "إخطار",
+    "correspondence.query": "استعلام",
+    "correspondence.reminder": "تذكير",
+    "correspondence.reply": "رد",
+    "correspondence.request": "طلب",
+    "correspondence.response": "استجابة"
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

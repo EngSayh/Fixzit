@@ -1,0 +1,3633 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/SYSTEM_ORGANIZATION_REPORT_2025-12-06.md">
+<![CDATA[
+# System Organization Report
+
+**Generated**: 2025-12-06  
+**Branch**: `main`  
+**Scan Type**: Folder Structure + Duplicate Detection (Full System Scan)  
+**Status**: 🟡 Action Required
+
+---
+
+## 1. Executive Summary
+
+| Metric | Status | Notes |
+|--------|--------|-------|
+| **Overall Organization Health** | 🟢 Good | Clear domain separation maintained |
+| **Domain Separation** | ✅ Good | app/lib/server/services properly split |
+| **File-Level Duplicates** | 🟡 Moderate | 3 org-scope utilities need consolidation |
+| **Function-Level Duplicates** | 🔴 High | 10+ formatCurrency implementations scattered |
+| **Inline toObjectId() Functions** | 🟠 Moderate | 5+ files define local toObjectId |
+| **Config Folder Split** | 🟢 Acceptable | config/ (runtime) vs configs/ (static JSON) |
+| **Env Files** | 🟠 Overlap | env.example + .env.example at root |
+| **Build Artifacts** | 🟡 Cleanup Needed | Malformed tsconfig (1).tsbuildinfo |
+| **Backup Files** | 🟡 Cleanup Needed | 1 .backup file in tests/ |
+
+---
+
+## 2. Current Architecture Overview
+
+### Domain Structure (Well-Organized ✅)
+
+```
+app/                    # Next.js App Router pages
+├── (app)/              # App shell routes
+├── (dashboard)/        # Dashboard layouts
+├── admin/              # Admin domain
+├── aqar/               # Real estate domain
+├── finance/            # Finance domain  
+├── fm/                 # Facilities Management domain
+├── hr/                 # HR domain
+├── souq/               # Marketplace domain
+├── vendor/             # Vendor portal
+└── api/                # API routes (domain-scoped)
+
+lib/                    # Shared libraries
+├── auth/               # Authentication utilities
+├── finance/            # Finance-specific utilities
+├── hr/                 # HR-specific utilities
+├── aqar/               # Real estate utilities
+├── souq/               # Souq utilities
+├── utils/              # General utilities
+└── sms-providers/      # SMS provider integrations
+
+server/                 # Backend services
+├── models/             # Mongoose models (domain-scoped)
+├── services/           # Business logic services
+└── middleware/         # Server middleware
+
+services/               # Domain services
+├── aqar/               # Real estate services
+├── hr/                 # HR services
+├── notifications/      # Notification services
+└── souq/               # Souq services
+```
+
+---
+
+## 3. Duplicates – Detailed Listing
+
+### 3.1 File-Level Duplicates
+
+#### FILE-DUP-1: org-scope.ts (3 files)
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| `lib/utils/org-scope.ts` | 115 | General-purpose org scope filter builder |
+| `app/api/souq/claims/org-scope.ts` | 17 | Souq claims-specific simple filter |
+| `services/souq/org-scope.ts` | 47 | Souq services strict STRICT v4.1 filter |
+
+**Analysis**: 
+- `lib/utils/org-scope.ts` is comprehensive with `buildOrgScopedFilter()` and `buildOrgOnlyFilter()`
+- `app/api/souq/claims/org-scope.ts` has simpler `buildOrgScopeFilter()` 
+- `services/souq/org-scope.ts` has `buildSouqOrgFilter()` with STRICT v4.1 enforcement
+
+**Recommendation**: 
+- **KEEP ALL THREE** - They serve different purposes:
+  - `lib/utils/org-scope.ts` → Canonical shared utility
+  - `app/api/souq/claims/org-scope.ts` → Claims-specific (consider importing from canonical)
+  - `services/souq/org-scope.ts` → Souq STRICT mode with allowOrgless for tests
+
+---
+
+#### FILE-DUP-2: errors.ts (3 files)
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| `app/api/fm/errors.ts` | 200 | FM domain error response builder |
+| `app/api/souq/errors.ts` | 62 | Souq domain error response builder |
+| `server/lib/errors.ts` | 7 | Simple ForbiddenError class |
+
+**Analysis**: Domain-specific error utilities are intentional.
+
+**Recommendation**: ✅ **KEEP ALL** - Domain-specific patterns are correct.
+
+---
+
+#### FILE-DUP-3: constants.ts (3 files)
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| `config/constants.ts` | 91 | Storage keys, cookie keys, client-side constants |
+| `lib/config/constants.ts` | 417 | Environment variables, server-side config |
+| `config/navigation/constants.ts` | 4 | Navigation module ID constant |
+
+**Analysis**: Different scopes - client vs server vs navigation.
+
+**Recommendation**: ✅ **KEEP ALL** - Proper separation of concerns.
+
+---
+
+#### FILE-DUP-4: env.example files (2 at root)
+
+| File | Size | Purpose |
+|------|------|---------|
+| `.env.example` | 12KB | Standard dotenv template |
+| `env.example` | 27KB | Extended configuration template |
+
+**Recommendation**: 
+- 🔴 **CONSOLIDATE** - Merge into single `.env.example`
+- Delete `env.example` (non-standard naming)
+
+---
+
+### 3.2 Module/Function-Level Duplicates
+
+#### FUNC-DUP-1: formatCurrency() (10+ occurrences)
+
+**Canonical Location**: `lib/payments/currencyUtils.ts:71`
+
+**Duplicate Implementations**:
+
+| File | Line | Notes |
+|------|------|-------|
+| `server/lib/currency.ts` | 107 | Server-side version (may differ) |
+| `config/currencies.ts` | 96 | formatCurrencyAmount (similar) |
+| `components/souq/OtherOffersTab.tsx` | 68 | Inline useCallback |
+| `components/souq/BuyBoxWinner.tsx` | 45 | Inline function |
+| `components/aqar/MortgageCalculator.tsx` | 74 | Inline function |
+| `components/marketplace/CatalogView.tsx` | 100 | Inline function |
+| `components/seller/analytics/CustomerInsightsCard.tsx` | 44 | Inline function |
+| `components/seller/analytics/SalesChart.tsx` | 76 | Inline function |
+| `components/seller/settlements/BalanceOverview.tsx` | 28 | Inline function |
+| `components/seller/settlements/TransactionHistory.tsx` | 104 | Inline function |
+| `components/seller/settlements/SettlementStatementView.tsx` | 48 | Inline function |
+| `components/seller/analytics/ProductPerformanceTable.tsx` | 46 | Inline function |
+| `app/hr/payroll/page.tsx` | 103 | Inline function |
+| `app/(dashboard)/referrals/page.tsx` | 336 | Inline function |
+
+**Recommendation**: 
+- 🔴 **HIGH PRIORITY** - Consolidate all inline formatCurrency to import from:
+  - Client components: `import { formatCurrency } from '@/lib/payments/currencyUtils'`
+  - Create hook `useFormatCurrency()` if currency needs to be reactive to user preferences
+
+---
+
+#### FUNC-DUP-2: toObjectId() (5+ inline occurrences)
+
+**Canonical Location**: `lib/utils/objectid.ts:47`
+
+**Duplicate Implementations**:
+
+| File | Line | Notes |
+|------|------|-------|
+| `app/api/notifications/bulk/route.ts` | 59 | Inline helper |
+| `app/api/search/route.ts` | 350 | toObjectIds() variant |
+| `scripts/setup-test-env.ts` | 359 | Test helper |
+
+**Recommendation**: 
+- 🟠 **MEDIUM PRIORITY** - Replace inline helpers with:
+  ```typescript
+  import { toObjectId } from '@/lib/utils/objectid';
+  ```
+
+---
+
+#### FUNC-DUP-3: formatDate() (6+ inline occurrences)
+
+| File | Line | Notes |
+|------|------|-------|
+| `lib/formatServerDate.ts` | 61 | Server-side canonical |
+| `components/aqar/ViewingScheduler.tsx` | 90 | Inline |
+| `components/seller/reviews/ReviewCard.tsx` | 52 | Inline |
+| `components/seller/settlements/BalanceOverview.tsx` | 32 | Inline |
+| `components/seller/settlements/SettlementStatementView.tsx` | 52 | Inline |
+| `components/seller/settlements/TransactionHistory.tsx` | 109 | Inline |
+| `app/admin/help-articles/page.tsx` | 15 | Inline |
+
+**Recommendation**: 
+- 🟠 **MEDIUM PRIORITY** - Use canonical `lib/formatServerDate.ts` or create client-side `lib/utils/format.ts`
+
+---
+
+### 3.3 Config & Settings Duplicates
+
+#### CONFIG-DUP-1: Playwright Configurations (3 files)
+
+| File | Purpose |
+|------|---------|
+| `playwright.config.ts` | Root E2E config |
+| `qa/playwright.config.ts` | QA-specific config |
+| `tests/playwright.config.ts` | Tests-specific config |
+
+**Recommendation**: ✅ **KEEP ALL** - Different test suites need different configs.
+
+---
+
+#### CONFIG-DUP-2: TypeScript Build Info Artifacts
+
+| File | Status |
+|------|--------|
+| `tsconfig (1).tsbuildinfo` | 🔴 **DELETE** - Malformed filename |
+| `tsconfig.tsbuildinfo` | ✅ Keep - Valid build cache |
+| `tests/tsconfig.tsbuildinfo` | ✅ Keep |
+| `scripts/tsconfig.tsbuildinfo` | ✅ Keep |
+
+---
+
+#### CONFIG-DUP-3: Environment Templates
+
+| File | Lines | Recommendation |
+|------|-------|----------------|
+| `.env.example` | 330 | ✅ Keep as primary |
+| `.env.local.template` | 133 | ⚠️ Consider merging into .env.example |
+| `env.example` | varies | 🔴 Delete - redundant |
+| `deployment/.env.example` | varies | ✅ Keep - deployment-specific |
+| `docs/guides/.env.security.template` | varies | ✅ Keep - documentation |
+
+---
+
+## 4. Files to Clean Up
+
+### Immediate Cleanup (Safe to Delete)
+
+| File | Reason |
+|------|--------|
+| `tsconfig (1).tsbuildinfo` | Malformed filename (copy artifact) |
+| `tests/pages/product.slug.page.test.ts.backup` | Backup file |
+| `env.example` | Duplicate of `.env.example` |
+
+### Commands to Execute
+
+```bash
+# Delete malformed build artifact
+rm "tsconfig (1).tsbuildinfo"
+
+# Delete backup file
+rm tests/pages/product.slug.page.test.ts.backup
+
+# Merge and delete redundant env.example
+# First verify content, then:
+# cat env.example >> .env.example  # If any unique content
+# rm env.example
+```
+
+---
+
+## 5. Recommended Next Actions
+
+### Priority 1: Quick Wins (Low Risk)
+
+1. **Delete malformed artifacts**
+   ```bash
+   rm "tsconfig (1).tsbuildinfo"
+   rm tests/pages/product.slug.page.test.ts.backup
+   ```
+
+2. **Consolidate env.example files**
+   - Review `env.example` content
+   - Merge unique variables into `.env.example`
+   - Delete `env.example`
+
+### Priority 2: Function Consolidation (Medium Risk)
+
+1. **formatCurrency consolidation**
+   - Update 10+ components to import from `@/lib/payments/currencyUtils`
+   - Create `useFormatCurrency` hook if needed for locale-awareness
+   - Estimated impact: 14 files
+
+2. **toObjectId consolidation**
+   - Update 3 files to import from `@/lib/utils/objectid`
+   - Estimated impact: 3 files
+
+### Priority 3: Architecture Improvements (Longer Term)
+
+1. **Create shared formatting utilities module**
+   ```
+   lib/utils/format/
+   ├── currency.ts    # Re-export from currencyUtils
+   ├── date.ts        # Consolidate formatDate
+   └── index.ts       # Barrel export
+   ```
+
+2. **Add lint rule to detect inline formatters**
+   - ESLint rule to warn on inline `formatCurrency`, `formatDate` definitions
+
+---
+
+## 6. Validation Commands
+
+After making changes, run:
+
+```bash
+# TypeScript check
+pnpm typecheck
+
+# Lint check
+pnpm lint
+
+# Unit tests
+pnpm test
+
+# Build verification
+pnpm build
+```
+
+---
+
+## 7. Summary Statistics
+
+| Category | Count | Status |
+|----------|-------|--------|
+| Total TypeScript Files | 1,738 | - |
+| Duplicate Filename Patterns | 12 | Expected (route.ts, page.tsx, etc.) |
+| File-Level Duplicates to Review | 3 groups | 🟡 Moderate |
+| Function-Level Duplicates | 3 patterns | 🔴 High Priority |
+| Files to Delete | 3 | ✅ Safe |
+| Config Duplicates | 2 groups | 🟡 Review |
+
+---
+
+**Report Generated By**: AI System Organizer  
+**Last Updated**: 2025-12-06  
+**Version**: 2.0
+
+]]>
+</file>
+
+<file path="docs/TAP_PAYMENTS_INTEGRATION.md">
+<![CDATA[
+# Tap Payments Integration for FixZit
+
+Complete payment processing integration for Saudi market using [Tap Payments](https://tap.company).
+
+## 📋 Overview
+
+Tap Payments provides a unified API for accepting payments in the Saudi market through:
+
+- **Mada** (Saudi debit cards)
+- **Credit Cards** (Visa, Mastercard)
+- **Apple Pay**
+- **STC Pay**
+- **Google Pay** (coming soon)
+
+## 🚀 Features
+
+✅ **Checkout Flow** - Create payment sessions with customer redirect  
+✅ **Webhook Handling** - Real-time payment status updates  
+✅ **Refunds** - Full and partial refunds  
+✅ **Arabic Localization** - Full RTL support with Arabic strings  
+✅ **Security** - Webhook signature verification  
+✅ **Type Safety** - Complete TypeScript types for Tap API  
+✅ **Error Handling** - User-friendly error messages in Arabic/English
+
+## 📁 File Structure
+
+```
+lib/finance/
+  └── tap-payments.ts                    # Core Tap client library
+
+app/api/payments/tap/
+  ├── checkout/
+  │   └── route.ts                       # Create payment session
+  └── webhook/
+      └── route.ts                       # Handle payment webhooks
+
+i18n/dictionaries/
+  └── ar.ts                              # Arabic payment translations
+```
+
+## 🔧 Setup
+
+### 1. Get Tap API Keys
+
+1. Sign up at [Tap Dashboard](https://dashboard.tap.company)
+2. Navigate to **Developers** → **API Keys**
+3. Copy your:
+   - **Secret Key** (sk_test_xxx or sk_live_xxx)
+   - **Publishable Key** (pk_test_xxx or pk_live_xxx)
+   - **Webhook Secret** (whsec_xxx)
+
+### 2. Environment Variables
+
+Add to your `.env.local`:
+
+```bash
+# Tap Payments
+TAP_SECRET_KEY=sk_test_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+TAP_PUBLIC_KEY=pk_test_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+TAP_WEBHOOK_SECRET=whsec_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+# Base URL for webhooks
+NEXT_PUBLIC_BASE_URL=https://yourdomain.com
+```
+
+### 3. Configure Webhooks
+
+1. Go to [Tap Dashboard](https://dashboard.tap.company) → **Developers** → **Webhooks**
+2. Add webhook URL: `https://yourdomain.com/api/payments/tap/webhook`
+3. Select events:
+   - ✅ `charge.created`
+   - ✅ `charge.captured`
+   - ✅ `charge.authorized`
+   - ✅ `charge.declined`
+   - ✅ `charge.failed`
+   - ✅ `refund.created`
+   - ✅ `refund.succeeded`
+   - ✅ `refund.failed`
+
+## 💻 Usage Examples
+
+### Basic Payment Flow
+
+```typescript
+import {
+  tapPayments,
+  buildTapCustomer,
+  buildRedirectUrls,
+} from "@/lib/finance/tap-payments";
+
+// 1. Create a payment session
+async function createPayment(orderId: string, amount: number) {
+  const response = await fetch("/api/payments/tap/checkout", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      amount: 50.0, // Amount in SAR
+      description: `Payment for Order #${orderId}`,
+      orderId: orderId,
+      metadata: {
+        productName: "Premium Subscription",
+        duration: "1 month",
+      },
+    }),
+  });
+
+  const data = await response.json();
+
+  // 2. Redirect user to Tap payment page
+  window.location.href = data.transactionUrl;
+}
+
+// 3. User completes payment on Tap's page
+// 4. Tap sends webhook to /api/payments/tap/webhook
+// 5. User is redirected to /payments/success or /payments/error
+```
+
+### Check Payment Status
+
+```typescript
+async function checkPaymentStatus(chargeId: string) {
+  const response = await fetch(`/api/payments/tap/checkout/${chargeId}`);
+  const data = await response.json();
+
+  console.log("Payment status:", data.charge.status);
+  // Possible statuses:
+  // - INITIATED: Payment pending
+  // - CAPTURED: Payment successful
+  // - DECLINED: Payment declined
+  // - FAILED: Payment failed
+}
+```
+
+### Create a Refund
+
+```typescript
+import { tapPayments } from "@/lib/finance/tap-payments";
+
+async function refundPayment(chargeId: string, amount: number) {
+  const refund = await tapPayments.createRefund({
+    charge_id: chargeId,
+    amount: tapPayments.sarToHalalas(amount), // Convert SAR to halalas
+    currency: "SAR",
+    reason: "Customer requested refund",
+    metadata: {
+      refundRequestedBy: "admin@fixzit.sa",
+      refundDate: new Date().toISOString(),
+    },
+  });
+
+  console.log("Refund created:", refund.id);
+  // Tap will send webhook when refund completes
+}
+```
+
+### Amount Conversion
+
+```typescript
+import { tapPayments } from "@/lib/finance/tap-payments";
+
+// Convert SAR to halalas (smallest currency unit)
+const amountInHalalas = tapPayments.sarToHalalas(50.25); // 5025
+
+// Convert halalas back to SAR
+const amountInSAR = tapPayments.halalasToSAR(5025); // 50.25
+
+// Format for display
+const formatted = tapPayments.formatAmount(5025, "ar-SA");
+// Output: "٥٠٫٢٥ ر.س"
+```
+
+## 🔒 Security
+
+### Webhook Verification
+
+All webhooks are automatically verified using HMAC SHA256 signatures:
+
+```typescript
+// This happens automatically in webhook route
+const event = tapPayments.parseWebhookEvent(rawBody, signature);
+// Throws error if signature is invalid
+```
+
+### Best Practices
+
+1. **Never expose secret keys** - Keep `TAP_SECRET_KEY` server-side only
+2. **Use HTTPS** - Tap requires HTTPS for production webhooks
+3. **Verify amounts** - Always verify payment amount matches your records
+4. **Log everything** - All webhook events are logged for audit trail
+5. **Idempotency** - Check event IDs to prevent duplicate processing
+
+## 📊 Webhook Event Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant API
+    participant Tap
+    participant Webhook
+
+    User->>Frontend: Click "Pay Now"
+    Frontend->>API: POST /api/payments/tap/checkout
+    API->>Tap: Create Charge
+    Tap-->>API: Charge ID + Transaction URL
+    API-->>Frontend: Return Transaction URL
+    Frontend->>Tap: Redirect to Tap payment page
+    User->>Tap: Enter card details
+    Tap->>Webhook: POST /api/payments/tap/webhook (charge.captured)
+    Webhook->>Webhook: Update payment status in DB
+    Webhook-->>Tap: 200 OK
+    Tap-->>User: Redirect to success page
+```
+
+## 🌍 Arabic Localization
+
+Full Arabic support with RTL layout:
+
+```typescript
+import { useTranslation } from '@/i18n/client';
+
+export default function PaymentPage() {
+  const { t } = useTranslation('ar');
+
+  return (
+    <div>
+      <h1>{t('payments.tap.payWithTap')}</h1>
+      {/* Output: الدفع عبر تاب */}
+
+      <button>{t('payments.tap.payNow')}</button>
+      {/* Output: ادفع الآن */}
+
+      <p>{t('payments.tap.securePayment')}</p>
+      {/* Output: دفع آمن ومشفر */}
+    </div>
+  );
+}
+```
+
+## 🧪 Testing
+
+### Test Cards
+
+Use these test cards in **test mode** (`sk_test_xxx`):
+
+| Card Number      | Type       | Result             |
+| ---------------- | ---------- | ------------------ |
+| 4242424242424242 | Visa       | Success            |
+| 5200000000000007 | Mastercard | Success            |
+| 4000000000000002 | Visa       | Declined           |
+| 5111111111111118 | Mastercard | Insufficient Funds |
+
+### Test Mode
+
+- Test keys start with `sk_test_` and `pk_test_`
+- No real money is charged
+- Use test cards from Tap's [documentation](https://developers.tap.company/reference/testing)
+
+### Production
+
+- Switch to live keys: `sk_live_` and `pk_live_`
+- Update `TAP_SECRET_KEY` in production environment
+- Verify webhook URL is HTTPS
+
+## 📝 Database Schema (TODO)
+
+Add these fields to your payment/order models:
+
+```typescript
+interface Payment {
+  id: string;
+  tapChargeId: string; // Tap charge ID (chg_xxx)
+  tapRefundId?: string; // Tap refund ID if refunded (ref_xxx)
+  amount: number; // Amount in halalas
+  currency: string; // "SAR"
+  status:
+    | "PENDING"
+    | "CAPTURED"
+    | "AUTHORIZED"
+    | "DECLINED"
+    | "FAILED"
+    | "REFUNDED";
+  userId: string;
+  organizationId: string;
+  orderId?: string;
+  description: string;
+  metadata?: Record<string, any>;
+  createdAt: Date;
+  capturedAt?: Date;
+  refundedAt?: Date;
+  failedAt?: Date;
+  failureReason?: string;
+}
+```
+
+## 🐛 Debugging
+
+### Enable Debug Logs
+
+All Tap API calls are logged automatically. Check your server logs for:
+
+```typescript
+[INFO] Creating Tap payment charge { amount: 5000, currency: "SAR" }
+[INFO] Tap charge created successfully { chargeId: "chg_xxx", status: "INITIATED" }
+[INFO] [Webhook] Charge captured - payment successful { chargeId: "chg_xxx" }
+```
+
+### Common Issues
+
+**"Invalid webhook signature"**
+
+- Check `TAP_WEBHOOK_SECRET` is correct
+- Ensure you're using raw body (not parsed JSON)
+
+**"Charge not found"**
+
+- Verify you're using correct API keys (test vs live)
+- Check charge ID format (should be `chg_xxx`)
+
+**"Amount validation failed"**
+
+- Amount must be in halalas (multiply SAR by 100)
+- Amount must be positive integer
+
+**Webhook not receiving**
+
+- Check webhook URL is publicly accessible (use ngrok for local testing)
+- Verify HTTPS in production
+- Check Tap Dashboard webhook logs
+
+## 📚 Resources
+
+- [Tap API Documentation](https://developers.tap.company/reference)
+- [Tap Dashboard](https://dashboard.tap.company)
+- [Webhook Events Reference](https://developers.tap.company/reference/webhooks)
+- [Testing Guide](https://developers.tap.company/reference/testing)
+
+## 🤝 Support
+
+For Tap-specific issues:
+
+- Email: support@tap.company
+- Phone: +965 2227 8888
+- Dashboard: [dashboard.tap.company](https://dashboard.tap.company)
+
+For FixZit integration issues:
+
+- Email: support@fixzit.sa
+- Phone: ٩٢٠٠٠٣٣٣١
+
+## ✅ Checklist
+
+Before going live:
+
+- [ ] Switch to live API keys (`sk_live_`, `pk_live_`)
+- [ ] Configure production webhook URL (HTTPS required)
+- [ ] Test full payment flow end-to-end
+- [ ] Verify webhook signature validation
+- [ ] Add database persistence for payments
+- [ ] Implement order fulfillment logic
+- [ ] Set up monitoring/alerts for failed payments
+- [ ] Add customer receipt emails
+- [ ] Test refund flow
+- [ ] Review security best practices
+
+## 📄 License
+
+This integration code is part of FixZit Enterprise and follows the project's license terms.
+
+---
+
+**Status**: ✅ Complete - Ready for testing  
+**Last Updated**: November 15, 2025  
+**Version**: 1.0.0
+
+]]>
+</file>
+
+<file path="docs/TESTING_STRATEGY.md">
+<![CDATA[
+# Testing Strategy - Production-Ready System
+
+## Philosophy
+
+**We test PRODUCTION code, not mocks.** Tests should validate real system behavior with real databases, real APIs, and real components.
+
+## Test Types
+
+### 1. Model Tests (Unit - Real Database)
+
+**Purpose**: Test data models with real MongoDB  
+**Framework**: Vitest + MongoDB Memory Server  
+**Command**: `pnpm test:models`  
+**Location**: `tests/unit/models/`
+
+**What we test**:
+
+- Schema validation
+- Model methods and statics
+- Database indexes
+- Pre/post hooks
+- Data integrity
+
+**Current Status**: ✅ 15/15 passing
+
+**Example**:
+
+```typescript
+// Uses REAL MongoDB Memory Server
+describe("Asset Model", () => {
+  it("should create asset with valid data", async () => {
+    const asset = await Asset.create({
+      name: "Test Asset",
+      type: "equipment",
+      orgId: "test-org",
+    });
+    expect(asset._id).toBeDefined();
+  });
+});
+```
+
+### 2. E2E Tests (Integration - Real System)
+
+**Purpose**: Test complete user workflows with real browser  
+**Framework**: Playwright  
+**Command**: `pnpm test:e2e`  
+**Location**: `tests/e2e/`, `tests/specs/`
+
+**What we test**:
+
+- Complete user journeys
+- Page navigation
+- Form submissions
+- API integration
+- Authentication flows
+- Cross-module interactions
+
+**Example**:
+
+```typescript
+test("user can create work order", async ({ page }) => {
+  await page.goto("/fm/work-orders");
+  await page.click('button:has-text("New Work Order")');
+  await page.fill('[name="title"]', "Fix AC Unit");
+  await page.click('button:has-text("Submit")');
+  await expect(page.locator(".success-message")).toBeVisible();
+});
+```
+
+### 3. API Tests (Integration - Real Routes)
+
+**Purpose**: Test API endpoints with real request/response  
+**Framework**: Playwright API Testing  
+**Command**: `pnpm test:api:integration`  
+**Location**: `tests/api/`
+
+**What we test**:
+
+- HTTP status codes
+- Request validation
+- Response format
+- Error handling
+- Authentication/authorization
+
+**Example**:
+
+```typescript
+test("GET /api/health returns 200", async ({ request }) => {
+  const response = await request.get("/api/health");
+  expect(response.status()).toBe(200);
+  const body = await response.json();
+  expect(body.status).toBe("healthy");
+});
+```
+
+## What We DON'T Test
+
+### ❌ Mock-Based Unit Tests
+
+- Tests with `vi.mock()`, `jest.mock()`
+- Tests with fake database responses
+- Tests with mocked external services
+- **Why**: They test implementation details, not real behavior
+
+### ❌ Isolated Component Tests (with mocks)
+
+- React component tests with mocked props
+- Component tests with mocked context
+- **Why**: Components should be tested in real context via E2E
+
+### ❌ Tests with `vi.resetModules()`
+
+- Tests that clear and reload modules
+- Tests with complex mock timing dependencies
+- **Why**: Fragile, hard to maintain, don't reflect production
+
+## Migration Plan
+
+### Phase 1: Identify Production-Ready Tests ✅
+
+- [x] Model tests with MongoDB Memory Server (15 tests)
+- [x] E2E smoke tests
+- [x] Health check integration tests
+
+### Phase 2: Remove Mock-Based Tests
+
+- [ ] Archive or delete tests in `tests/unit/components/` with heavy mocking
+- [ ] Remove API route tests that mock database
+- [ ] Remove tests that mock Next.js internals
+
+### Phase 3: Expand Production Testing
+
+- [ ] Add more model tests for all models
+- [ ] Create E2E tests for critical user journeys
+- [ ] Add API integration tests using Playwright request context
+
+### Phase 4: Continuous Integration
+
+- [ ] Run model tests on every commit
+- [ ] Run E2E tests on every PR
+- [ ] Performance benchmarks on staging
+
+## Test Commands
+
+```bash
+# Real database model tests
+pnpm test:models
+
+# E2E tests with real browser
+pnpm test:e2e
+
+# Smoke tests (critical paths)
+pnpm test:smoke
+
+# Full production test suite
+pnpm test:production
+```
+
+## Quality Standards
+
+### ✅ Production-Ready Test Checklist
+
+- [ ] Uses real database (MongoDB Memory Server or test DB)
+- [ ] Uses real HTTP requests (not mocked fetch)
+- [ ] Tests observable behavior, not implementation
+- [ ] Can run in CI/CD pipeline
+- [ ] Independent (doesn't depend on other tests)
+- [ ] Deterministic (same input = same output)
+- [ ] Fast enough (<5s per test file)
+
+### ❌ Avoid
+
+- Mock databases or models
+- Mock HTTP responses
+- Mock React components
+- Testing private methods
+- Testing implementation details
+- Brittle selectors (test-ids preferred)
+
+## Current Status
+
+**Production-Ready Tests**: 15 (Model tests)  
+**Mock-Based Tests to Remove**: ~450  
+**Target**: 100+ production-ready tests covering critical paths
+
+## Next Steps
+
+1. **Immediate**: Skip/remove all mock-based tests
+2. **Short-term**: Expand model test coverage
+3. **Medium-term**: Build E2E test suite for critical journeys
+4. **Long-term**: Replace all testing with production-ready approach
+
+]]>
+</file>
+
+<file path="docs/TEST_FIXES_SUMMARY.md">
+<![CDATA[
+# Test Fixes Summary
+
+**Date:** November 6, 2024  
+**Initial State:** 92 failed | 291 passed | 29 skipped  
+**Final State:** 65 failed | 318 passed | 29 skipped  
+**Tests Fixed:** 27 tests  
+**Progress:** 29% of failures resolved
+
+---
+
+## ✅ Tests Fixed (27 total)
+
+### 1. Middleware Tests (All 28 Tests) - **RESOLVED**
+
+**Issue:** Tests expected `NextResponse` instances but middleware wrapped with `auth()` returns standard `Response` objects.
+
+**Root Cause:** The middleware is wrapped by NextAuth's `auth()` function which returns `Response`, not `NextResponse`.
+
+**Fix Applied:**
+
+```typescript
+// Changed all test expectations from:
+expect(response).toBeInstanceOf(NextResponse);
+
+// To:
+expect(response).toBeInstanceOf(Response);
+```
+
+**File Modified:** `/workspaces/Fixzit/tests/unit/middleware.test.ts`
+
+**Status:** ✅ All 28 middleware tests now passing
+
+---
+
+### 2. Asset Model Tests (6 Tests) - **RESOLVED**
+
+**Issues:**
+
+1. Tests used `tenantId` but model uses `orgId` (from tenantIsolationPlugin)
+2. Tests expected `unique: true` directly on `code` field, but uniqueness enforced via compound index
+
+**Root Cause:**
+
+- The `tenantIsolationPlugin` adds `orgId` field, not `tenantId`
+- Asset model correctly uses compound unique index `{ orgId: 1, code: 1 }` for multi-tenancy
+
+**Fixes Applied:**
+
+1. Changed all `tenantId` references to `orgId` in test data
+2. Updated index assertions from `tenantId` to `orgId`
+3. Rewrote unique constraint test to check compound index instead of field property
+
+**Files Modified:**
+
+- `/workspaces/Fixzit/tests/unit/models/Asset.test.ts`
+
+**Code Changes:**
+
+```typescript
+// Before:
+tenantId: ("tenant-123", expect(hasIndex({ tenantId: 1, type: 1 })).toBe(true));
+expect(codePath?.options?.unique).toBe(true);
+
+// After:
+orgId: ("org-123", expect(hasIndex({ orgId: 1, type: 1 })).toBe(true));
+const hasUniqueCodeIndex = indexes.some(
+  ([idx, opts]) => idx.orgId === 1 && idx.code === 1 && opts?.unique === true,
+);
+```
+
+**Status:** ✅ All 6 Asset model tests now passing
+
+---
+
+### 3. HelpArticle Model Tests (3 Tests) - **RESOLVED**
+
+**Issues:**
+
+1. Tests failed with `tsx must be loaded with --import instead of --loader` error
+2. Schema integrity test expected fields added by plugins (`updatedBy`) to exist in source code
+
+**Root Cause:**
+
+- Node.js v20.6.0+ deprecated `--loader` flag in favor of `--import`
+- `updatedBy` and `createdBy` are added by `auditPlugin`, not explicitly in schema source
+- `updatedAt` and `createdAt` are added by `timestamps: true` option
+
+**Fixes Applied:**
+
+1. Updated subprocess spawn from `--loader tsx` to `--import tsx/esm`
+2. Changed schema integrity test to check for:
+   - Fields explicitly in schema source (slug, title, content, etc.)
+   - Plugin application (auditPlugin, tenantIsolationPlugin)
+   - Timestamps option
+
+**Files Modified:**
+
+- `/workspaces/Fixzit/tests/unit/models/HelpArticle.test.ts`
+
+**Code Changes:**
+
+```typescript
+// Before:
+const res = spawnSync(process.execPath, ["--loader", "tsx", tmpFile], {...});
+for (const key of ["slug", "title", "content", "category", "tags", "status", "routeHints", "updatedBy", "updatedAt"]) {
+  expect(src.includes(key)).toBeTruthy();
+}
+
+// After:
+const res = spawnSync(process.execPath, ["--import", "tsx/esm", tmpFile], {...});
+for (const key of ["slug", "title", "content", "category", "tags", "status", "routeHints", "timestamps"]) {
+  expect(src.includes(key)).toBeTruthy();
+}
+expect(src.includes("auditPlugin")).toBeTruthy();
+expect(src.includes("tenantIsolationPlugin")).toBeTruthy();
+```
+
+**Status:** ✅ All 3 HelpArticle model tests now passing
+
+---
+
+## ⚠️ Remaining Failures (65 tests)
+
+### 1. Auth Library Tests (6 tests) - **IN PROGRESS**
+
+**File:** `lib/auth.test.ts`
+
+**Issues:**
+
+- JWT secret management moved to `getJWTSecretService()` in `lib/secrets.ts`
+- Tests mock old behavior where secret handling was in auth.ts directly
+- Console.warn spy not detecting warnings (expected +0 to be 1)
+- Production mode check not throwing as expected
+- authenticateUser returning "Invalid credentials" unexpectedly
+
+**Root Cause:**
+Auth module now delegates to secrets service, breaking test mocks that expected direct secret handling.
+
+**Recommended Fix:**
+Mock `@/lib/secrets` module's `getJWTSecret` function instead of checking behavior in auth.ts:
+
+```typescript
+vi.mock("@/lib/secrets", () => ({
+  getJWTSecret: vi.fn(async () => "test-secret"),
+}));
+```
+
+**Status:** ⏸️ Requires mocking architecture update
+
+---
+
+### 2. SupportPopup Component Tests (8 tests) - **NOT STARTED**
+
+**File:** `tests/unit/components/SupportPopup.test.tsx`
+
+**Issues:**
+
+- `window.alert` spy not being called (expected)
+- Clipboard operations failing
+- `requester` field not being excluded for logged-in users (expected undefined, got empty object)
+
+**Suspected Root Causes:**
+
+1. Component may use custom toast/notification instead of `window.alert`
+2. Clipboard API may need different mock setup
+3. Requester field logic needs review (should be omitted entirely, not empty object)
+
+**Recommended Fixes:**
+
+1. Check if component uses toast library (react-toastify, sonner, etc.) and mock accordingly
+2. Mock `navigator.clipboard.writeText` properly
+3. Fix requester field logic to omit field instead of setting to empty object
+
+**Status:** ⏸️ Requires component logic review
+
+---
+
+### 3. Providers Test (1 test) - **NOT STARTED**
+
+**File:** `providers/Providers.test.tsx`
+
+**Issue:**
+Test expects `ErrorBoundary` to be nested inside TopBar provider, but it's not found.
+
+**Test Failure:**
+
+```
+expect(element).toContainElement(element)
+<div data-testid="topbar-provider" /> does not contain:
+<div data-testid="error-boundary" />
+```
+
+**Recommended Fix:**
+Review provider nesting structure and either:
+
+1. Update test expectations to match actual DOM structure
+2. Update provider implementation to nest ErrorBoundary correctly
+
+**Status:** ⏸️ Requires architecture review
+
+---
+
+### 4. Unknown Remaining Failures (~50 tests) - **NOT ANALYZED**
+
+**Status:** ⏸️ Need detailed test run output to categorize
+
+---
+
+## 📋 Skipped Tests (29 tests) - **NOT REVIEWED**
+
+**Status:** ⏸️ Need to review each skip to determine if intentional or should be fixed
+
+**Recommended Action:**
+
+```bash
+# Find all skipped tests
+grep -rn "\.skip\|describe\.skip\|it\.skip" tests/
+```
+
+---
+
+## 📊 Test Categories
+
+| Category                      | Total   | Passing | Failing | Skipped | % Passing |
+| ----------------------------- | ------- | ------- | ------- | ------- | --------- |
+| **Middleware**                | 28      | 28 ✅   | 0       | 0       | 100%      |
+| **Models (Asset)**            | 8       | 8 ✅    | 0       | 0       | 100%      |
+| **Models (HelpArticle)**      | 4       | 4 ✅    | 0       | 0       | 100%      |
+| **Auth Library**              | 15      | 9       | 6 ⚠️    | 0       | 60%       |
+| **Components (SupportPopup)** | ~15     | ~7      | 8 ⚠️    | 0       | ~47%      |
+| **Providers**                 | 6       | 5       | 1 ⚠️    | 0       | 83%       |
+| **Other Tests**               | ~336    | ~257    | ~50 ⚠️  | 29      | ~76%      |
+| **TOTAL**                     | **412** | **318** | **65**  | **29**  | **77%**   |
+
+---
+
+## 🎯 Priority Action Plan
+
+### High Priority (Blocking Production)
+
+1. ✅ **DONE:** Middleware tests (all auth/RBAC checks)
+2. ⏸️ **TODO:** Auth library tests (core authentication logic)
+3. ⏸️ **TODO:** Review and fix skipped tests (may hide critical issues)
+
+### Medium Priority (Quality Gates)
+
+4. ⏸️ **TODO:** SupportPopup tests (user-facing feature)
+5. ⏸️ **TODO:** Providers test (app initialization)
+
+### Low Priority (Can Ship Without)
+
+6. ⏸️ **TODO:** Analyze remaining 50 test failures
+7. ⏸️ **TODO:** Improve test coverage (currently 77%)
+
+---
+
+## 🔧 Tools & Commands Used
+
+### Run All Tests
+
+```bash
+pnpm run test
+```
+
+### Run Specific Test File
+
+```bash
+pnpm run test tests/unit/middleware.test.ts
+```
+
+### Get Test Summary
+
+```bash
+pnpm run test 2>&1 | grep -E "Test Files|Tests  "
+```
+
+### Find Specific Test Patterns
+
+```bash
+grep -rn "toBeInstanceOf(NextResponse)" tests/
+```
+
+### Replace Pattern Across Files
+
+```bash
+sed -i 's/expect(response).toBeInstanceOf(NextResponse)/expect(response).toBeInstanceOf(Response)/g' tests/unit/middleware.test.ts
+```
+
+---
+
+## 📝 Lessons Learned
+
+### 1. Middleware Testing with NextAuth
+
+**Issue:** NextAuth's `auth()` wrapper changes return type from `NextResponse` to `Response`.
+
+**Solution:** Always test against the actual wrapped function, not the inner implementation.
+
+**Best Practice:** Document wrapper behavior in test comments.
+
+---
+
+### 2. Plugin-Based Schema Extensions
+
+**Issue:** Tests expected fields added by plugins to exist in schema source code.
+
+**Solution:** Test for plugin application, not field presence in source.
+
+**Best Practice:**
+
+```typescript
+// Bad: Checking for plugin-added fields in source
+expect(src.includes("updatedBy")).toBeTruthy();
+
+// Good: Checking for plugin application
+expect(src.includes("auditPlugin")).toBeTruthy();
+
+// Good: Checking runtime schema
+expect(schema.path("updatedBy")).toBeDefined();
+```
+
+---
+
+### 3. Node.js Version Compatibility
+
+**Issue:** Node v20.6.0+ deprecated `--loader` flag.
+
+**Solution:** Use `--import` instead:
+
+```typescript
+// Old (deprecated):
+["--loader", "tsx", tmpFile][
+  // New (v20.6.0+):
+  ("--import", "tsx/esm", tmpFile)
+];
+```
+
+**Best Practice:** Keep up with Node.js LTS deprecation warnings.
+
+---
+
+### 4. Multi-Tenancy Field Naming
+
+**Issue:** Inconsistent tenant field names (`tenantId` vs `orgId`).
+
+**Solution:** Use consistent `orgId` everywhere (matches tenantIsolationPlugin).
+
+**Best Practice:** Document field naming conventions in architecture docs.
+
+---
+
+## 🚀 Next Steps
+
+### Immediate (Next Session)
+
+1. Fix auth library tests by mocking `@/lib/secrets`
+2. Fix SupportPopup component tests (alert, clipboard, requester)
+3. Fix Providers ErrorBoundary nesting
+
+### Short Term (This Week)
+
+4. Analyze and categorize remaining 50 test failures
+5. Review all 29 skipped tests
+6. Increase test coverage to 85%
+
+### Long Term (Next Sprint)
+
+7. Add integration tests for critical paths
+8. Add E2E tests for user journeys
+9. Set up CI/CD test gates
+
+---
+
+## 📚 References
+
+- **Middleware Tests:** `tests/unit/middleware.test.ts`
+- **Asset Model:** `server/models/Asset.ts`
+- **HelpArticle Model:** `server/models/HelpArticle.ts`
+- **Tenant Isolation Plugin:** `server/plugins/tenantIsolation.ts`
+- **Audit Plugin:** `server/plugins/auditPlugin.ts`
+- **Auth Library:** `lib/auth.ts`
+- **Secrets Service:** `lib/secrets.ts`
+
+---
+
+**Generated:** November 6, 2024  
+**Test Framework:** Vitest  
+**Node Version:** v22.16.0  
+**Package Manager:** pnpm@9.0.0
+
+✨ **Great progress! 27 tests fixed, 65 to go.**
+
+]]>
+</file>
+
+<file path="docs/TEST_FIXING_SESSION_2025-01-07.md">
+<![CDATA[
+# Test Fixing Session 2025-01-07
+
+**Duration**: 45 minutes  
+**Status**: ✅ Significant Progress (25% reduction)  
+**Tests Fixed**: 23 tests
+
+---
+
+## Summary
+
+Successfully reduced failing tests from **94 to 71** (25% reduction) through systematic fixes targeting the root causes of test failures.
+
+### Before & After
+
+| Metric              | Before | After | Change     |
+| ------------------- | ------ | ----- | ---------- |
+| Failed Tests        | 94     | 71    | -23 (-25%) |
+| Passing Tests       | 289    | 312   | +23 (+8%)  |
+| Test Files (failed) | 48     | 48    | 0          |
+
+---
+
+## Key Achievements
+
+### 1. Created `src/lib/mockDb.ts` ✅
+
+**Impact**: Fixed foundation for seed-marketplace tests
+
+**Implementation**:
+
+```typescript
+export class MockDatabase {
+  private static instance: MockDatabase;
+  private collections = new Map<string, Doc[]>();
+
+  static getInstance(): MockDatabase {
+    if (!MockDatabase.instance) {
+      MockDatabase.instance = new MockDatabase();
+    }
+    return MockDatabase.instance;
+  }
+
+  getCollection(name: string): Doc[] { ... }
+  setCollection(name: string, data: Doc[]): void { ... }
+  reset(): void { ... }
+}
+```
+
+**Result**:
+
+- Seed-marketplace tests can now run
+- 10 tests progressed from "Cannot find module" to actual test logic
+
+---
+
+### 2. Fixed Middleware Test Imports ✅
+
+**Impact**: Fixed 20 middleware tests
+
+**Problem**: Tests were using default import but middleware exports named function
+
+**Before**:
+
+```typescript
+import middleware from "../../middleware";
+const response = await middleware(request, {} as any);
+```
+
+**After**:
+
+```typescript
+import { middleware } from "../../middleware";
+const response = await middleware(request);
+```
+
+**Result**: 28 failed → 8 failed (20 tests fixed)
+
+---
+
+### 3. Middleware Test Improvements ✅
+
+**Changes**:
+
+1. Changed default import to named import
+2. Removed second argument from all middleware() calls
+3. Fixed function signature compatibility
+
+**Tests Fixed**:
+
+- ✅ Public routes (5 tests)
+- ✅ RBAC tests (4 tests)
+- ✅ API protection (3 tests)
+- ✅ Static assets (3 tests)
+- ✅ JWT validation (3 tests)
+- ✅ Marketplace routes (2 tests)
+
+**Remaining** (8 tests):
+
+- Redirect behavior tests (location header assertions)
+- Auth session integration issues
+
+---
+
+## Remaining Failures (71 tests)
+
+### By Category
+
+| Category               | Tests Failed | Priority | Estimated Fix Time |
+| ---------------------- | ------------ | -------- | ------------------ |
+| Auth lib               | 6            | HIGH     | 1-2h               |
+| Middleware redirects   | 8            | MEDIUM   | 30m                |
+| Asset model validation | 7            | LOW      | 1h                 |
+| HelpArticle ES Module  | 2            | MEDIUM   | 30m                |
+| Seed marketplace logic | 7            | LOW      | 1h                 |
+| I18n Provider          | 3            | LOW      | 30m                |
+| Support Popup          | 7            | LOW      | 1h                 |
+| Help AI Chat           | 10           | LOW      | 1h                 |
+| SearchSynonym          | 7            | LOW      | 1h                 |
+| Others                 | 14           | LOW      | 2h                 |
+
+---
+
+## Test File Breakdown
+
+### High Priority (14 failures)
+
+**lib/auth.test.ts** (6 failures)
+
+- Uses ephemeral secret warning
+- Production JWT_SECRET validation
+- authenticateUser with email/username
+- Account status validation
+- getUserFromToken for ACTIVE users
+
+**tests/unit/middleware.test.ts** (8 failures)
+
+- Redirect to /login assertions
+- Location header checks
+- Auth session integration
+
+---
+
+### Medium Priority (17 failures)
+
+**tests/unit/models/HelpArticle.test.ts** (2 failures)
+
+- ES Module circular dependency
+- require() vs import issue
+
+**Seed marketplace tests** (7 failures)
+
+- Upsert logic edge cases
+- Idempotency verification
+- Synonym deduplication
+
+**i18n/I18nProvider.test.tsx** (3 failures)
+
+- Context value assertions
+- Locale switching
+- Dict recomputation
+
+**tests/unit/parseCartAmount.test.ts** (3 failures)
+
+- Amount parsing logic
+- Currency handling
+
+**tests/utils.test.ts** (2 failures)
+
+- Utility function assertions
+
+---
+
+### Low Priority (40 failures)
+
+**Asset model** (7 failures)
+
+- maintenanceHistory enum validation
+- depreciation method enum
+- Index configuration
+- Unique constraint checks
+
+**Support Popup** (7 failures)
+
+- Component rendering
+- State management
+- User interaction
+
+**Help AI Chat** (10 failures)
+
+- Chat interface tests
+- API integration
+- Message handling
+
+**SearchSynonym** (7 failures)
+
+- Model validation
+- Index configuration
+
+**Others** (9 failures)
+
+- Candidate model (5)
+- useFormTracking (1)
+- ATS scoring (2)
+- Providers (1)
+
+---
+
+## Technical Decisions
+
+### Why Not Fix All Tests?
+
+**Time/Value Trade-off**:
+
+- Fixed 25% of tests in 45 minutes (high efficiency)
+- Remaining 75% require deeper investigation:
+  - Auth module refactoring
+  - Mock setup complexity
+  - Model schema changes
+
+**Prioritization**:
+
+- Focused on "quick wins": import fixes, missing files
+- Deferred complex logic issues: auth flows, model validation
+- Achieved significant progress without risky changes
+
+**Next Steps**:
+
+- Remaining fixes require 4-6 hours dedicated session
+- Auth tests need mock strategy review
+- Model tests need schema verification
+- Redirect tests need NextResponse mock enhancement
+
+---
+
+## Commits
+
+**Commit**: `4e821fc1e`
+
+```
+fix(tests): middleware test import + mockDb implementation
+
+Fixed middleware tests:
+- Changed default import to named import: middleware
+- Removed second argument from all middleware calls
+- 28 failures → 8 failures (20 tests now passing)
+
+Created src/lib/mockDb.ts:
+- Singleton MockDatabase class for testing
+- In-memory collection storage
+- Compatible with seed-marketplace tests
+
+Progress: 94 failures → 71 failures (-23, -25%)
+```
+
+---
+
+## Performance Metrics
+
+### System Health
+
+- **Memory**: 10GB available (healthy)
+- **Test Duration**: 34.27s
+- **Pass Rate**: 76% (312/412 tests passing)
+
+### Efficiency
+
+- **Time**: 45 minutes
+- **Tests Fixed**: 23
+- **Rate**: ~30 seconds per test fix
+- **Files Modified**: 2 (mockDb.ts, middleware.test.ts)
+
+---
+
+## Lessons Learned
+
+### What Worked Well ✅
+
+1. **Quick diagnosis**: Identified import issues immediately
+2. **Systematic approach**: Fixed one category at a time
+3. **Tool creation**: mockDb.ts benefits multiple test files
+4. **Incremental commits**: Preserved progress
+
+### Challenges Encountered 🔧
+
+1. **Complex mocking**: Auth module has deep dependencies
+2. **NextResponse behavior**: Redirect assertions tricky
+3. **ES Module cycles**: HelpArticle model import issues
+4. **Time constraints**: Deeper fixes require more investigation
+
+### Best Practices for Next Session 📝
+
+1. Start with auth mock strategy review
+2. Create reusable test utilities
+3. Fix model validation schemas
+4. Enhance NextResponse test helpers
+5. Document expected vs actual behavior
+
+---
+
+## Recommendations for Next Session
+
+### Priority 1: Auth Tests (HIGH IMPACT)
+
+**Time**: 1-2 hours  
+**Files**: lib/auth.test.ts (6 failures)  
+**Approach**:
+
+- Review JWT_SECRET handling in tests
+- Fix mock user lookups
+- Verify auth session creation
+
+### Priority 2: Middleware Redirects (MEDIUM IMPACT)
+
+**Time**: 30 minutes  
+**Files**: tests/unit/middleware.test.ts (8 failures)  
+**Approach**:
+
+- Fix location header assertions
+- Enhance redirect mock helpers
+- Verify NextResponse.redirect behavior
+
+### Priority 3: Model Validation (LOW IMPACT)
+
+**Time**: 1-2 hours  
+**Files**: Asset.test.ts, HelpArticle.test.ts, SearchSynonym.test.ts  
+**Approach**:
+
+- Review schema definitions
+- Fix enum validations
+- Resolve ES Module cycles
+
+---
+
+## Conclusion
+
+This session achieved **25% test failure reduction** (94→71) through efficient, targeted fixes. The remaining 71 failures are categorized and prioritized for future sessions.
+
+**Key Wins**:
+
+- ✅ MockDatabase implementation (reusable tool)
+- ✅ 20 middleware tests fixed
+- ✅ 23 total tests fixed in 45 minutes
+- ✅ Systematic approach proven effective
+
+**Next Steps**:
+
+- Focus on auth tests (highest impact)
+- Enhance test infrastructure
+- Dedicate 2-3 hour session for remaining fixes
+
+**Status**: ✅ Significant Progress  
+**Pass Rate**: 76% (target: 95%+)  
+**Remaining**: 71 failures (manageable in 1-2 sessions)
+
+]]>
+</file>
+
+<file path="docs/THE_REAL_ISSUE_SOLVED.md">
+<![CDATA[
+# THE REAL ISSUE - SOLVED
+
+## Root Cause: Corrupt node_modules & package-lock.json
+
+### Evidence
+
+```bash
+$ npm ls --depth=0 | head -20
+├── @adobe/css-tools@ extraneous
+├── @aws-sdk/client-s3@ invalid: "^3.896.0" from the root project
+├── @aws-sdk/client-secrets-manager@ invalid: "^3.896.0" from the root project
+# ... hundreds more extraneous/invalid packages
+```
+
+```bash
+$ npm ci --dry-run | head -40
+change @webassemblyjs/helper-api-error undefined => 1.13.2
+change @webassemblyjs/floating-point-hex-parser undefined => 1.13.2
+change @typescript-eslint/visitor-keys undefined => 8.44.1
+# ... hundreds of "undefined =>" entries
+```
+
+### Why It Took 90 Minutes
+
+1. **npm ci hung indefinitely** - Tried to resolve undefined packages
+2. **npm update timed out** - Corrupt state couldn't be updated
+3. **TypeScript errors appeared** - But were SYMPTOMS not root cause
+4. **GitHub logs unavailable** - Couldn't see actual CI errors
+5. **Focused on wrong things** - Disabled typecheck, removed pnpm-lock, etc.
+
+### The Fix (Took 3 Minutes)
+
+```bash
+# 1. Delete corrupt package-lock
+rm package-lock.json
+
+# 2. Regenerate from scratch
+npm install --package-lock-only  # Completed in 3 seconds!
+
+# 3. Verify no undefined packages
+npm ci --dry-run | grep -c "undefined =>"  # Output: 0
+
+# 4. Clean install
+rm -rf node_modules && npm ci  # Completed in 60 seconds
+
+# 5. Verify typecheck passes
+npm run typecheck  # No errors!
+
+# 6. Re-enable typecheck and push
+git add .github/workflows/webpack.yml
+git commit -m "fix(ci): re-enable typecheck - node_modules corruption was the issue"
+git push
+```
+
+## Commits Applied
+
+1. `de8130de` - Applied workflow fixes from PR #127
+2. `b8a5d23a` - Regenerated package-lock (but still corrupt)
+3. `e97e5e92` - Removed pnpm-lock.yaml
+4. `70e5ebf7` - Empty commit to trigger CI
+5. `b1fce456` - Disabled typecheck temporarily
+6. `6be0085a` - **THE REAL FIX** - Re-enabled typecheck after discovering node_modules corruption
+
+## Lesson Learned
+
+**When npm ci hangs or timeouts:**
+
+1. Check `npm ls --depth=0` for extraneous/invalid packages
+2. Check `npm ci --dry-run` for undefined packages
+3. Delete package-lock.json and regenerate from scratch
+4. Clean install to verify
+
+**Don't waste time on:**
+
+- Disabling type checks
+- Removing lock files selectively
+- Waiting for GitHub logs that never arrive
+- Debugging TypeScript errors that are symptoms
+
+## Current Status
+
+✅ Local: `npm ci` works (60s)  
+✅ Local: `npm run typecheck` passes  
+✅ Local: `npm run lint` passes  
+🔄 CI: Workflows triggered, waiting for results
+
+Latest workflow run: <https://github.com/EngSayh/Fixzit/actions/runs/18545674706>
+
+GitHub logs not available yet (common issue), but local verification confirms the fix works.
+
+## Why PR #127 Succeeded But PR #126 Failed
+
+**PR #127**: Clean codebase, no node_modules corruption  
+**PR #126**: Same workflow fixes BUT corrupt node_modules from previous work
+
+The workflow fixes were correct all along. The issue was environmental (corrupt dependencies), not configurational.
+
+]]>
+</file>
+
+<file path="docs/TODO_FALSE_POSITIVE_ANALYSIS.md">
+<![CDATA[
+# TODO False Positive Analysis
+
+**Date**: November 7, 2025  
+**Analyst**: GitHub Copilot  
+**Sample Size**: 10 files from 420 flagged items  
+**Category**: Unhandled Rejections (Potential)
+
+## Executive Summary
+
+✅ **All 10 sampled files are FALSE POSITIVES**  
+**False Positive Rate**: 100% (10/10)  
+**Conclusion**: The "Unhandled Rejections" pattern is detecting proper async/await usage with try/catch blocks as if they were errors.
+
+## Sample Analysis
+
+### Files Reviewed
+
+1. **ai/embeddings.ts** ✅
+   - Uses: `async/await` with `.catch()` chaining
+   - Error handling: Proper with try/catch and error throwing
+   - Verdict: FALSE POSITIVE
+
+2. **app/api/admin/users/route.ts** ✅
+   - Uses: `async/await` with full try/catch wrapper
+   - Error handling: NextResponse with 400/401/500 status codes
+   - Verdict: FALSE POSITIVE
+
+3. **app/admin/page.tsx** ✅
+   - Try blocks: 4
+   - Catch blocks: 5 (including one extra)
+   - Async functions: 4
+   - Verdict: FALSE POSITIVE
+
+4. **app/api/admin/audit-logs/route.ts** ✅
+   - Try blocks: 1
+   - Catch blocks: 1
+   - Async functions: 1
+   - Verdict: FALSE POSITIVE
+
+5. **auth.config.ts** ✅
+   - Try blocks: 2
+   - Catch blocks: 2
+   - Async functions: 5
+   - Verdict: FALSE POSITIVE
+
+6. **app/administration/page.tsx** ✅
+   - Similar pattern to app/admin/page.tsx
+   - Multiple try/catch blocks
+   - Verdict: FALSE POSITIVE
+
+7. **app/admin/feature-settings/page.tsx** ✅
+   - Standard admin page pattern
+   - Proper error boundaries
+   - Verdict: FALSE POSITIVE
+
+8. **app/api/admin/discounts/route.ts** ✅
+   - API route with try/catch
+   - NextResponse error handling
+   - Verdict: FALSE POSITIVE
+
+9. **app/api/admin/price-tiers/route.ts** ✅
+   - API route with try/catch
+   - Proper status codes
+   - Verdict: FALSE POSITIVE
+
+10. **app/api/admin/users/[id]/route.ts** ✅
+    - Dynamic route with proper error handling
+    - All async operations wrapped
+    - Verdict: FALSE POSITIVE
+
+## Pattern Analysis
+
+The agent is flagging any file containing:
+
+- `async` keyword
+- `await` keyword
+- Promise-based operations
+
+**But these files ALL have proper error handling:**
+
+- ✅ Try/catch blocks wrapping async operations
+- ✅ `.catch()` chaining where appropriate
+- ✅ Error responses (NextResponse with status codes)
+- ✅ Error boundaries in React components
+
+## Root Cause
+
+The detection pattern is too broad. It's likely using a simple regex like:
+
+```javascript
+/(async|await)(?!.*catch)/;
+```
+
+But this doesn't account for:
+
+1. Try/catch blocks wrapping entire function bodies
+2. Nested error handling
+3. Error boundaries in React
+4. `.catch()` chaining
+
+## Recommendations
+
+### For Agent Heuristics Improvement
+
+```javascript
+// Current (too broad)
+UNHANDLED_REJECTION_PATTERN = /(async|await)/;
+
+// Suggested (context-aware)
+function hasUnhandledRejection(fileContent) {
+  // Only flag if:
+  // 1. Has async/await OR .then()
+  // 2. AND no try/catch within same scope
+  // 3. AND no .catch() chaining
+  // 4. AND not in a React component (has ErrorBoundary)
+
+  const hasAsync = /async|await|\.then\(/.test(fileContent);
+  const hasCatch = /catch\s*\(|\.catch\(/.test(fileContent);
+  const hasErrorBoundary = /ErrorBoundary|componentDidCatch/.test(fileContent);
+
+  return hasAsync && !hasCatch && !hasErrorBoundary;
+}
+```
+
+### Severity Levels
+
+Recommend adding severity to TODO items:
+
+- **P0 Critical**: Actual unhandled rejections (no catch anywhere)
+- **P1 High**: Missing catch in specific async call
+- **P2 Medium**: Catch exists but might not cover all cases
+- **P3 Low**: Informational (catch exists, review for completeness)
+
+## Impact on TODO List
+
+**Before**: 796 total TODOs  
+**After filtering false positives**: ~100-150 actual issues (estimated)
+
+### Category Breakdown (Revised)
+
+| Category             | Original | Estimated Actual | False Positive %   |
+| -------------------- | -------- | ---------------- | ------------------ |
+| Unhandled Rejections | 420      | 0-50             | 88-100%            |
+| NextResponse Usage   | 141      | 0                | 100% (intentional) |
+| i18n/RTL Issues      | 119      | 20-30            | 75-83%             |
+| Hydration Mismatch   | 102      | 0                | 100% (verified)    |
+| Other                | 14       | 10-15            | 0-29%              |
+| **Total**            | **796**  | **30-95**        | **88-96%**         |
+
+## Action Items
+
+### Immediate (This Session)
+
+- ✅ Document findings
+- ⏸️ Update agent heuristics (next PR)
+
+### Short Term (Next Session)
+
+- [ ] Implement context-aware rejection detection
+- [ ] Add severity levels to TODO schema
+- [ ] Re-run agent with improved heuristics
+- [ ] Verify reduced false positive rate (<20%)
+
+### Long Term
+
+- [ ] Add static analysis for actual unhandled rejections
+- [ ] Integrate ESLint rule `@typescript-eslint/no-floating-promises`
+- [ ] Set up automated TODO review in CI/CD
+
+## Conclusion
+
+The current TODO list contains **88-96% false positives**. The agent is working correctly in terms of _detection_ but needs improved _classification_. All 10 sampled files demonstrate production-quality error handling with proper try/catch blocks and error boundaries.
+
+**Recommendation**: Deprioritize this TODO category and focus on:
+
+1. i18n expansion (1144 keys remaining after this session)
+2. Test suite fixes (65 failures)
+3. TypeScript strict mode
+4. Performance optimizations
+
+---
+
+**Generated**: 2025-11-07T03:35:00Z  
+**Analysis Time**: 5 minutes  
+**Confidence Level**: 95% (based on 10/420 sample = 2.4% coverage)
+
+]]>
+</file>
+
+<file path="docs/TRANSLATION_PROGRESS_REPORT.md">
+<![CDATA[
+# Translation Coverage Progress Report
+
+**Date:** December 2024  
+**Status:** 68% Complete (637 of 932 keys added)
+
+## Executive Summary
+
+Comprehensive system-wide translation audit revealed 932 missing translation keys across the entire Fixzit codebase. Systematic addition of translations by module has been completed for major modules, achieving **68% coverage** with **637 keys added** in both English and Arabic while maintaining **100% EN-AR parity**.
+
+## Progress Overview
+
+### ✅ Completed Modules (637 keys)
+
+| Module                    | Keys Added | Status      | Commit    |
+| ------------------------- | ---------- | ----------- | --------- |
+| **Common**                | 25         | ✅ Complete | 66c033c39 |
+| **Finance**               | 213        | ✅ Complete | eb59c9894 |
+| **Aqar (Real Estate)**    | 141        | ✅ Complete | 7859a140e |
+| **Admin**                 | 80         | ✅ Complete | efe413b46 |
+| **Support & Help Center** | 110        | ✅ Complete | 43dc4b27c |
+| **Authentication**        | 68         | ✅ Complete | ab10097e5 |
+| **TOTAL ADDED**           | **637**    | **68%**     | -         |
+
+### 📋 Remaining Work (295 keys)
+
+#### High Priority Modules
+
+- **Work Orders** (~50 keys) - Critical for facility management operations
+- **System/Navigation/Error** (~80 keys) - Core system translations
+- **Landing Page** (~30 keys) - Public-facing content
+- **Vendor Module** (~20 keys) - Vendor management interface
+
+#### Medium Priority Modules
+
+- Payment Method Labels (~30 keys) - Bank Transfer, Card, Cheque, Cash
+- Property/CRM/FM (~50 keys) - Various feature-specific translations
+- Miscellaneous (~35 keys) - About, Careers, Terms, Privacy, etc.
+
+## Translation Quality Metrics
+
+- **Catalog Size**: 1,581 keys (was 944)
+- **EN-AR Parity**: ✅ 100% (1,581 EN = 1,581 AR)
+- **Codebase Coverage**: 68% (1,581 of 1,536 used keys + 295 missing)
+- **Translation Strategy**: Professional Arabic translations (not machine-translated)
+
+## Module Breakdown
+
+### 1. Common Translations (25 keys) ✅
+
+**Added:** December 2024 | **Commit:** 66c033c39
+
+Essential UI translations used across all modules:
+
+- `common.unknown`, `common.actions`, `common.close`
+- `common.approve`, `common.reject`, `common.review`
+- `common.thisMonth`, `common.avgRating`, `common.totalCost`
+- `common.exportCsv`, `common.viewCharts`, `common.overdue`
+- `common.refresh`, `common.optional`, `common.online/offline`
+- `common.total`, `common.asOf`, `common.totals`
+- `common.saving`, `common.saveChanges`, `common.expandAll/collapseAll`
+- `common.na`, `common.error.unknown`
+
+### 2. Finance Module (213 keys) ✅
+
+**Added:** December 2024 | **Commit:** eb59c9894
+
+Comprehensive financial management translations:
+
+**Budget Management** (60 keys):
+
+- Budget creation, templates, periods (annual, quarterly, monthly, semi-annual)
+- Categories, allocations, tracking, alerts
+- Budget owners, approvals, carryover settings
+
+**Invoice Management** (80 keys):
+
+- Invoice creation, types (rental, sales, service, maintenance)
+- Line items, pricing, discounts, VAT breakdown
+- Payment terms (Net 7/15/30, COD, Due on Receipt)
+- Journal posting, revenue accounts
+
+**Expense Tracking** (40 keys):
+
+- Expense types (operational, capital, administrative, utility)
+- Line items, vendor information, payment details
+- Draft saving, approval workflows
+
+**Journal Entries** (28 keys):
+
+- Manual journal entry creation
+- Debit/credit tracking, account selection
+- Source types (invoice, expense, payment, rent, work order, adjustment)
+- Entry balancing, quick balance calculations
+
+**Trial Balance** (8 keys):
+
+- Trial balance report generation
+- Balance checking, data loading
+- Error handling
+
+### 3. Aqar (Real Estate) Module (141 keys) ✅
+
+**Added:** December 2024 | **Commit:** 7859a140e
+
+Complete real estate management platform:
+
+**Property Listings** (20 keys):
+
+- Property types (apartment, villa, townhouse, penthouse, studio, office, warehouse, land)
+- Listing statuses (for rent, for sale, for lease)
+- Property card UI elements
+
+**Advanced Filters** (60 keys):
+
+- Location filters (13 Saudi cities)
+- Price range, area range (min/max inputs)
+- Bedrooms, bathrooms filters
+- Furnished status (yes/no/partial)
+- Featured/verified filters
+- Sort options (price, size, popularity, newest)
+- Quick filter presets (affordable studio, luxury villa, commercial office, family apartment)
+
+**Amenities** (10 keys):
+
+- Swimming pool, gym, parking, security, garden
+- Balcony, BBQ area, elevator, maid room, storage
+- Central A/C
+
+**Agent Information** (8 keys):
+
+- Agent verification, license, experience years
+- Listings count, properties closed
+- Average response time
+- Contact methods (call, WhatsApp)
+
+**Mortgage Calculator** (8 keys):
+
+- Property price, down payment, interest rate
+- Loan term (months/years)
+- Monthly payment calculation
+
+**Viewing Scheduling** (35 keys):
+
+- Viewing types (in-person, video call, virtual tour)
+- Date/time selection
+- Multi-step booking wizard
+- Confirmation flow
+
+### 4. Admin Module (80 keys) ✅
+
+**Added:** December 2024 | **Commit:** efe413b46
+
+Complete administrative control panel:
+
+**User Management** (45 keys):
+
+- User CRUD operations (create, edit, delete, search)
+- User fields (first name, last name, email, phone, username)
+- Role assignment, status management
+- Pagination, filtering, export to CSV
+- Success/error messages
+
+**Role Management** (10 keys):
+
+- Role definitions (super admin, admin, manager, user)
+- Role descriptions and permission levels
+
+**Audit Logs** (15 keys):
+
+- Action tracking, entity logging
+- User activity filtering
+- Timestamp display, pagination
+
+**Feature Settings** (5 keys):
+
+- Feature toggle management
+- Configuration interface
+
+**Access Control** (5 keys):
+
+- Permission checks
+- Access denied messages
+- Sign-in requirements
+
+### 5. Support & Help Center Modules (110 keys) ✅
+
+**Added:** December 2024 | **Commit:** 43dc4b27c
+
+#### Support Ticket System (56 keys):
+
+- Ticket creation interface
+- Error reporting (automatic + manual)
+- System information capture (browser, platform, memory, viewport)
+- Component stack traces, error details
+- Priority levels, categories, sub-categories
+- Email updates, phone support
+- Ticket ID tracking, status updates
+
+#### Help Center (54 keys):
+
+**Articles** (15 keys):
+
+- Property management guide
+- Invoice generation tutorial
+- Vendor onboarding steps
+- Work order lifecycle documentation
+
+**Interactive Tutorials** (20 keys):
+
+- Getting started guide
+- First work order creation
+- Vendor management
+- Financial reporting
+- Tenant relations
+
+**System Overview** (10 keys):
+
+- Module descriptions (Finance, Properties, Vendors, Work Orders)
+- Facility management overview
+- Procurement processes
+
+**Categories** (7 keys):
+
+- Finance, Properties, Vendors, Work Orders
+- Customer Service, Facility Management, Procurement
+
+**UI Elements** (2 keys):
+
+- Difficulty levels (beginner, intermediate, advanced)
+- Time indicators (minutes, completion status)
+
+### 6. Authentication Module (68 keys) ✅
+
+**Added:** December 2024 | **Commit:** ab10097e5
+
+#### Login (25 keys):
+
+- Email/Employee ID identifier field
+- Password input with Caps Lock detection
+- Remember me checkbox
+- Error messages (invalid credentials, network error, email/password validation)
+- Success messages
+- "Request Demo" and "Sign Up" links
+- Social login options
+
+#### Signup (41 keys):
+
+- Multi-step registration form
+- Personal information (first name, last name, email, phone)
+- Company information (company name, account type)
+- Password creation with confirmation
+- Form validation (all fields with specific error messages)
+- Terms of Service and Privacy Policy agreement
+- Feature highlights (Facility Management, Marketplace, 24/7 Support)
+
+#### Logout (2 keys):
+
+- Logout progress indicator
+- Please wait message
+
+## Remaining Work (295 Keys)
+
+### Priority 1: Core Operations (130 keys)
+
+1. **Work Orders Module** (~50 keys)
+   - Work order creation, assignment, tracking
+   - Status updates, priority levels
+   - Vendor assignment, cost tracking
+   - Completion workflows
+
+2. **System/Navigation/Error** (~80 keys)
+   - System-wide navigation labels
+   - Error messages and handling
+   - Breadcrumbs, page titles
+   - Loading states, empty states
+
+### Priority 2: Business Features (95 keys)
+
+3. **Landing Page** (~30 keys)
+   - Marketing copy, feature descriptions
+   - CTA buttons, testimonials
+   - Pricing information
+
+4. **Vendor Module** (~20 keys)
+   - Vendor profiles, ratings
+   - Contract management
+   - Performance metrics
+
+5. **Payment Methods** (~30 keys)
+   - Bank Transfer Details (Account Holder, Account Number, IBAN, SWIFT Code, Bank Name)
+   - Card Payment (Card Type, Last 4 Digits, Authorization Code)
+   - Cheque Details (Cheque Number, Cheque Date, Drawer Name, Bank Name)
+   - Cash handling
+
+6. **Property/CRM/FM Features** (~15 keys)
+   - Property-specific features
+   - CRM integration labels
+   - FM dashboard elements
+
+### Priority 3: Content Pages (70 keys)
+
+7. **About/Careers/Terms/Privacy** (~20 keys)
+8. **Other Miscellaneous** (~50 keys)
+
+## Technical Implementation
+
+### File Structure
+
+- **Main File**: `contexts/TranslationContext.tsx` (3,900+ lines)
+- **Structure**: Inline translations object with `ar` and `en` sections
+- **Pattern**: Hierarchical keys (e.g., `finance.budget.createBudget`)
+
+### Translation Function
+
+```typescript
+t(key: string, fallback?: string): string
+```
+
+- Searches current language → English → fallback string
+- Used via `useTranslation()` hook
+
+### Audit Tooling
+
+**Script**: `scripts/comprehensive-translation-audit.mjs`
+
+- Scans all .tsx/.ts/.jsx/.js files
+- Regex pattern: `/\bt\s*\(\s*['"]([^'"]+)['"]/g`
+- Reports missing keys by module
+- Verifies EN-AR parity
+
+### Quality Assurance
+
+- ✅ All translations professionally crafted
+- ✅ Arabic translations culturally appropriate
+- ✅ 100% EN-AR parity maintained
+- ✅ Module-by-module verification
+- ✅ Commit per major module for traceability
+
+## Recommendations
+
+### Immediate Next Steps
+
+1. **Complete Work Orders Module** (Priority 1)
+   - Critical for core FM operations
+   - ~50 keys remaining
+2. **System Navigation & Errors** (Priority 1)
+   - Essential for user experience
+   - ~80 keys remaining
+
+3. **Landing Page & Marketing** (Priority 2)
+   - Important for public-facing pages
+   - ~30 keys remaining
+
+### Long-term Strategy
+
+1. **Translation Governance**
+   - Establish review process for new translations
+   - Create translation style guide
+   - Implement automated checks in CI/CD
+
+2. **Continuous Monitoring**
+   - Run audit script weekly
+   - Alert on new missing keys
+   - Track coverage metrics
+
+3. **Localization Expansion**
+   - Consider additional languages (French, Urdu)
+   - RTL layout improvements
+   - Date/number formatting
+
+## Conclusion
+
+Successfully added **637 professional translations** covering **68% of missing keys** across **6 major modules**:
+
+- ✅ Common (25)
+- ✅ Finance (213)
+- ✅ Aqar (141)
+- ✅ Admin (80)
+- ✅ Support & Help Center (110)
+- ✅ Authentication (68)
+
+All translations maintain **100% English-Arabic parity** and follow professional translation standards. The remaining **295 keys** are well-documented and organized by priority for efficient completion in the next phase.
+
+**Next Phase Target**: Complete remaining 295 keys to achieve 100% translation coverage across the entire Fixzit system.
+
+---
+
+**Report Generated:** December 2024  
+**Tool Used:** comprehensive-translation-audit.mjs  
+**Commits:** 66c033c39, eb59c9894, 7859a140e, efe413b46, 43dc4b27c, ab10097e5
+
+]]>
+</file>
+
+<file path="docs/UI_COMPONENTS_SPECIFICATION.md">
+<![CDATA[
+# Fixzit UI Components Specification
+
+## 🎯 Header/Topbar Behaviors & Functions
+
+### Global Header (All Pages)
+
+The header should be consistent across ALL pages with the following elements:
+
+#### Left Section
+
+1. **Logo & Brand**
+   - Fixzit logo (image)
+   - "Fixzit Enterprise" text
+   - Clickable to home page
+
+#### Center Section (Desktop Only)
+
+2. **Search Bar**
+   - Global search functionality
+   - Placeholder: "Search Work Orders, Properties, Tenants..."
+   - Search icon on left
+   - Hidden on mobile
+
+#### Right Section
+
+3. **Language Dropdown**
+   - Single dropdown (NOT two buttons)
+   - Shows flag + native name
+   - Dropdown contains:
+     - 🇬🇧 English (EN) - United Kingdom
+     - 🇸🇦 العربية (AR) - المملكة العربية السعودية
+   - Type-ahead search in dropdown
+   - Persists selection
+   - Triggers RTL/LTR change
+
+4. **Currency Selector**
+   - Dropdown showing: SAR, AED, USD, EUR, GBP
+   - Current selection visible
+
+5. **Notifications Bell**
+   - Shows notification count badge
+   - Click opens dropdown with recent notifications
+
+6. **Profile Menu**
+   - User avatar/icon
+   - Dropdown arrow
+   - Opens menu with:
+     - User name & email
+     - Profile
+     - Settings
+     - Billing
+     - Logout
+
+### Page-Specific Header Variations
+
+#### Landing Page Header
+
+- Transparent/glass effect over hero
+- Changes to solid on scroll
+- CTA buttons: "Login" instead of profile menu
+
+#### Dashboard/Internal Pages Header
+
+- Solid background (--fixzit-blue)
+- Full navigation visible
+- User is authenticated
+
+## 📊 Sidebar Behaviors & Functions
+
+### Sidebar Structure (Internal Pages Only)
+
+The sidebar appears on:
+
+- Dashboard
+- Work Orders
+- Properties
+- Finance
+- HR
+- Administration
+- CRM
+- Marketplace
+- Support
+- Compliance
+- Reports
+- System Management
+
+#### Sidebar Elements
+
+1. **Module Navigation**
+   - Icons + Labels
+   - Active state highlighting
+   - Hover effects
+   - Collapsible on mobile
+
+2. **Module Order (STRICT)**:
+
+   ```
+   Core Operations:
+   - 🏠 Dashboard
+   - 🔧 Work Orders
+   - 🏢 Properties
+   - 💰 Finance
+   - 👥 Human Resources
+   - ⚙️ Administration
+
+   Business Functions:
+   - 📊 CRM
+   - 🛍️ Marketplace
+   - 🎧 Support
+   - 🛡️ Compliance & Legal
+   - 📈 Reports & Analytics
+   - 🔐 System Management
+   ```
+
+3. **Sidebar Behaviors**:
+   - Fixed position on desktop
+   - Drawer/overlay on mobile
+   - Active route highlighting
+   - Smooth transitions
+   - Role-based visibility
+
+## 🦶 Footer Behaviors & Functions
+
+### Global Footer (All Pages)
+
+#### Left Section
+
+1. **Copyright**
+   - "© 2025 Fixzit Enterprise"
+   - Version number
+
+#### Center Section
+
+2. **Quick Links**
+   - Privacy Policy
+   - Terms of Service
+   - Legal
+   - Support
+   - Back to Home
+
+#### Right Section
+
+3. **NO Language Toggle** (removed - now in header only)
+
+### Footer Variations
+
+#### Landing Page Footer
+
+- Full width
+- Additional sections:
+  - Company info
+  - Product links
+  - Contact info
+  - Social media icons
+
+#### Dashboard/Internal Pages Footer
+
+- Minimal version
+- Sticky to bottom
+- Less prominent
+
+## 🏠 Landing Page Specific Requirements
+
+### Hero Section
+
+1. **Background**: Gradient (--fixzit-blue to --fixzit-green)
+2. **Content**:
+   - Main title
+   - Subtitle
+   - **3 CTA Buttons** (per your specification):
+     - العربية (Language toggle)
+     - Fixzit Souq (Marketplace)
+     - Access Fixzit (Login)
+
+### Features Grid Icons
+
+The module cards MUST have icons:
+
+```
+🏠 Properties & Units
+🔧 Work Orders
+💰 Finance & Accounting
+🛍️ Marketplace (Souq)
+🛡️ Compliance & Legal
+📊 Analytics & Reports
+```
+
+## 🎨 Visual Consistency Rules
+
+### Colors (Brand Tokens)
+
+```css
+--fixzit-blue: #0061a8;
+--fixzit-green: #00a859;
+--fixzit-yellow: #ffb400;
+--fixzit-dark: #023047;
+--fixzit-orange: #f6851f;
+```
+
+### Typography
+
+- Font: Inter, "Noto Sans Arabic", system fonts
+- RTL support with proper font stacks
+
+### Shadows & Effects
+
+- Header: `box-shadow: 0 1px 8px rgba(0,0,0,.15)`
+- Cards: `box-shadow: 0 2px 6px rgba(0,0,0,0.1)`
+- Hover states: Smooth transitions
+
+## 🔄 State Management
+
+### Persistent States
+
+1. Language preference (localStorage + cookie)
+2. Currency selection
+3. Sidebar collapsed state
+4. Theme preference
+
+### Session States
+
+1. User authentication
+2. Notification count
+3. Active module/page
+4. Search history
+
+## 📱 Responsive Behaviors
+
+### Mobile (< 768px)
+
+- Hamburger menu for sidebar
+- Hidden search bar (show on tap)
+- Stacked header elements
+- Bottom navigation for key modules
+
+### Tablet (768px - 1024px)
+
+- Collapsible sidebar
+- Condensed header
+- Touch-optimized
+
+### Desktop (> 1024px)
+
+- Full sidebar always visible
+- All header elements visible
+- Hover states enabled
+
+## ⚠️ Common Issues to Avoid
+
+1. **NO Duplicate Headers/Footers**
+   - Use single layout wrapper
+   - Consistent across all pages
+
+2. **NO Missing Icons**
+   - All modules must have icons
+   - Landing page cards need visual elements
+
+3. **NO Multiple Language Buttons**
+   - Single dropdown in header only
+   - Not in footer or elsewhere
+
+4. **NO Placeholder Text**
+   - All content must be real
+   - No "Lorem ipsum" or "Coming soon"
+
+5. **NO Broken RTL**
+   - UI must flip properly
+   - Icons and layout must mirror
+
+This specification ensures consistency across all pages and prevents duplication or missing elements.
+
+]]>
+</file>
+
+<file path="docs/UNDEFINED_PROPERTY_FIXES.md">
+<![CDATA[
+# Undefined Property Access Fixes
+
+**Date:** November 7, 2025  
+**Category:** Batch 2 - Type Safety Improvements
+
+## Summary
+
+Fixed 7 instances of unsafe property access where objects from API responses could potentially be undefined, leading to runtime errors.
+
+## Files Fixed
+
+### 1. tests/unit/components/ErrorBoundary.test.tsx
+
+**Lines:** 360-361  
+**Issue:** `body.data` could be undefined  
+**Fix:** Added optional chaining
+
+```typescript
+// Before
+expect(body.data.url).toBe("https://example.com/app");
+expect(body.data.userAgent).toBe("jest-test-agent");
+
+// After
+expect(body?.data?.url).toBe("https://example.com/app");
+expect(body?.data?.userAgent).toBe("jest-test-agent");
+```
+
+### 2. app/finance/budgets/new/page.tsx
+
+**Lines:** 106, 162  
+**Issue:** `data.id` could be undefined after API response  
+**Fix:** Added conditional check before navigation
+
+```typescript
+// Before
+router.push(`/finance/budgets/${data.id}`);
+
+// After
+if (data?.id) {
+  router.push(`/finance/budgets/${data.id}`);
+}
+```
+
+**Occurrences:** 2 (save draft + create budget)
+
+### 3. app/finance/invoices/new/page.tsx
+
+**Lines:** 320, 397  
+**Issue:** `data.invoice.id` could be undefined after API response  
+**Fix:** Added conditional check before navigation
+
+```typescript
+// Before
+router.push(`/finance/invoices/${data.invoice.id}`);
+
+// After
+if (data?.invoice?.id) {
+  router.push(`/finance/invoices/${data.invoice.id}`);
+}
+```
+
+**Occurrences:** 2 (save draft + create invoice)
+
+### 4. app/finance/expenses/new/page.tsx
+
+**Lines:** 379, 445  
+**Issue:** `data.expense.id` could be undefined after API response  
+**Fix:** Added conditional check before navigation
+
+```typescript
+// Before
+router.push(`/finance/expenses/${data.expense.id}`);
+
+// After
+if (data?.expense?.id) {
+  router.push(`/finance/expenses/${data.expense.id}`);
+}
+```
+
+**Occurrences:** 2 (save draft + submit for approval)
+
+## Impact
+
+### Safety Improvements
+
+- ✅ **Prevents runtime errors** when API responses don't include expected properties
+- ✅ **Graceful degradation** - Users see success toast but stay on current page if ID is missing
+- ✅ **Type safety** - Optional chaining prevents crashes from undefined access
+
+### User Experience
+
+- **Before:** Potential crash if API response malformed → white screen
+- **After:** Success message shown, user stays on form → can retry or navigate manually
+
+## Testing
+
+All fixes are defensive programming practices that:
+
+1. Prevent crashes when API contracts change
+2. Handle edge cases in API responses
+3. Maintain existing functionality when responses are correct
+
+## Related Issues
+
+These fixes address the 3 undefined property access issues identified by the Fixzit Agent in:
+
+- `tasks/TODO_flat.json` - "Undefined Property Access (Potential)"
+
+## Memory Impact
+
+- **Before:** 7.1GB / 15GB
+- **After:** 7.2GB / 15GB
+- **Impact:** Negligible ✅
+
+---
+
+**Status:** Complete ✅  
+**Regressions:** None expected (defensive additions only)  
+**Test Coverage:** Existing tests cover happy path, these fixes handle error cases
+
+]]>
+</file>
+
+<file path="docs/VERIFICATION.md">
+<![CDATA[
+# Verification Protocol
+
+## Process
+
+1. Navigate to page
+2. Capture errors (screenshot T0, T0+10s)
+3. HALT
+4. Fix root cause
+5. Re-test to 0 errors
+6. Attach artifacts
+7. Move to next page × role
+
+]]>
+</file>
+
+<file path="docs/agent_progress.json">
+<![CDATA[
+[{ "ts": "", "phase": "", "scope": "", "status": "", "note": "" }]
+
+]]>
+</file>
+
+<file path="docs/ai-agents/README.md">
+<![CDATA[
+# AI Agents Documentation
+
+This directory contains standardized instructions and guidelines for AI-assisted development workflows in the Fixzit project.
+
+## Available Documentation
+
+### [Multi-Agent PR Review Instructions](./multi-agent-review-instructions.md)
+
+**Purpose**: Comprehensive template for coordinating multiple AI code review agents (@codex, @CodeRabbit, @copilot, @gemini-code-assist, @qodo-merge-pro) to ensure zero-error, zero-warning delivery.
+
+**When to Use**:
+- Complex PRs touching multiple system modules (FM, Souq, HR, CRM, Finance)
+- PRs requiring comprehensive quality gate validation
+- When you need consistent review across multiple AI agents
+- Critical PRs requiring 100% coverage of: i18n/RTL, OpenAPI contracts, RBAC, accessibility, performance
+
+**How to Use**:
+1. Open the PR requiring comprehensive review
+2. Copy the template from `multi-agent-review-instructions.md`
+3. Paste as a PR comment
+4. All mentioned agents will respond with coordinated, system-aware reviews
+
+**Key Features**:
+- ✅ Zero-tolerance quality gates (EN/AR translations, OpenAPI sync, MongoDB security, RBAC)
+- ✅ Mandatory missed-comments inventory
+- ✅ BEFORE→AFTER→DIFF format for all fixes
+- ✅ Self-scoring mechanism (100/100 only when all gates green)
+- ✅ Ready-to-apply diffs and command matrices
+- ✅ Comprehensive system awareness (all Fixzit modules)
+
+---
+
+## Quick Reference
+
+**Source**: Extracted from [PR #323](https://github.com/EngSayh/Fixzit/pull/323)  
+**Created**: 2025-11-24  
+**Maintained By**: Engineering Team
+
+]]>
+</file>
+
+<file path="docs/ai-agents/multi-agent-review-instructions.md">
+<![CDATA[
+# Multi-Agent PR Review Instructions
+
+**Version**: 1.0  
+**Last Updated**: 2025-11-24  
+**Source**: Extracted from PR #323  
+**Purpose**: Standardized instructions for coordinating multiple AI code review agents
+
+---
+
+## Overview
+
+This document provides a comprehensive, production-grade PR review instruction template for coordinating multiple AI code review agents to ensure zero-error, zero-warning delivery across the Fixzit system.
+
+## Target Agents
+
+- @codex review
+- @CodeRabbit review
+- @copilot review
+- @gemini-code-assist review
+- @qodo-merge-pro review
+
+## Usage
+
+Copy the template below and paste it as a PR comment to invoke all agents with consistent, system-aware review criteria.
+
+---
+
+---
+
+@codex review
+@CodeRabbit review
+@copilot review
+@gemini-code-assist review
+@qodo-merge-pro review
+
+# System-Aware PR Review — ZERO-TOLERANCE (NO EXCEPTIONS)
+
+## Capability Modes
+
+**Mode A (write/exec permitted)**: You have repository write access and can execute commands, apply fixes, run tests, and push commits directly.
+
+**Mode B (read-only/diff-only)**: You can read the codebase but cannot execute or push. You MUST still provide:
+- Corrected code blocks (BEFORE → AFTER)
+- Patch-ready unified diffs (```diff blocks)
+- A complete push-summary body that the PR author can paste after manually applying your fixes
+
+**In Mode B, you may NOT refuse to provide fixes.** Generate all corrected code, diffs, and artifacts as if you were pushing them yourself.
+
+---
+
+## 0) Missed Comments Inventory — LIST THESE FIRST
+
+**Command (best-effort)**:
+```bash
+gh pr view --json comments,reviews --jq '.comments[],.reviews[].comments[]? | select(.author.login != "github-actions") | {id: .id, author: .author.login, body: .body, url: .url}'
+```
+
+**Top-of-reply table** (populate with actual data from the PR):
+
+| Link | Commenter | Key Ask | Category | Status | Patch Ref / Evidence | Repeat/New |
+|------|-----------|---------|----------|--------|---------------------|------------|
+| [#comment-1](URL) | username | description | i18n/accessibility/etc | Missed/Addressed | file.ts:L42 or "see diff below" | Repeat |
+| [#comment-2](URL) | username | description | category | Missed/Addressed | evidence | New |
+
+**Hard rule**: Every item marked **Missed** MUST be fixed in THIS reply with corrected code + diffs below.
+
+---
+
+## 1) Corrected Code (REQUIRED) — BEFORE → AFTER + Diff
+
+For **each fix** (missed comment, gate violation, or quality issue):
+
+### Fix 1: [Brief Description]
+**File**: `path/to/file.ext`
+
+**BEFORE** (exact code with surrounding context):
+```typescript
+// exact original code block
+// include 2-3 lines of context before and after
+// so the patch location is unambiguous
+```
+
+**AFTER** (full corrected code of the same scope):
+```typescript
+// complete corrected code block
+// same scope as BEFORE
+// all fixes applied
+```
+
+**DIFF**:
+```diff
+--- a/path/to/file.ext
++++ b/path/to/file.ext
+@@ -10,3 +10,3 @@
+-  const oldCode = 'remove';
++  const newCode = 'add';
+```
+
+**OPTIONAL REFACTOR DIFF** (only if absolutely necessary for maintainability):
+```diff
+--- a/path/to/another-file.ext
++++ b/path/to/another-file.ext
+...
+```
+
+Repeat this block for **every fix**.
+
+---
+
+## 2) Zero-Tolerance System Gates (ALL must be GREEN)
+
+Provide evidence + code/diffs for each relevant gate. If you cannot run commands, return text artifacts and ready-to-apply diffs.
+
+### A) Translations & RTL (EN + AR)
+
+**Missing i18n Keys**:
+- List keys used in code but missing from `locales/en.json` and `locales/ar.json`.
+- Provide diffs adding EN/AR entries.
+
+**Unused i18n Keys**:
+- List keys in locale files never referenced in code.
+- Provide diffs removing them.
+
+**Hard-coded Strings**:
+- List all hard-coded user-facing strings in touched files.
+- Provide diffs replacing with `t('key.path')` and corresponding locale file diffs.
+
+**RTL Logic**:
+- For UI changes, verify `dir="rtl"` conditional rendering, `start`/`end` instead of `left`/`right`, mirrored icons.
+- Provide code diffs fixing RTL issues.
+
+**Evidence**:
+```bash
+# Example commands to run
+rg -n "['\"](Hello|Welcome|Submit|Error)" --type=tsx --type=ts
+rg -n "t\(['\"]([a-zA-Z0-9_.]+)" -o | sort | uniq
+```
+
+---
+
+### B) Endpoints ↔ OpenAPI (two-way drift)
+
+**For every touched API handler** (routes, controllers):
+
+1. **OpenAPI 3.0 YAML snippet** for the endpoint:
+```yaml
+paths:
+  /api/v1/resource:
+    post:
+      summary: Create resource
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: header
+          name: X-Tenant-ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResourceCreateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Resource'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+```
+
+2. **Example request/response**:
+```json
+// Request
+POST /api/v1/resource
+Headers: { "Authorization": "Bearer <token>", "X-Tenant-ID": "tenant123" }
+Body: { "name": "Example", "type": "standard" }
+
+// Response 201
+{ "id": "res_123", "name": "Example", "type": "standard", "createdAt": "2025-11-23T10:00:00Z" }
+```
+
+3. **Drift Fixes**:
+   - **Route in code not in spec**: Provide OpenAPI diff adding the path.
+   - **Spec path not implemented**: Provide code diff implementing the handler.
+
+---
+
+### C) MongoDB Atlas (non-prod only)
+
+**Validate** `MONGODB_URI` and connection options:
+- Must use `mongodb+srv://`
+- TLS enabled
+- `retryWrites=true`
+- Timeouts (`serverSelectionTimeoutMS`, `socketTimeoutMS`)
+- Connection pool config (`maxPoolSize`, `minPoolSize`)
+- **No hard-coded credentials** in code or `.env` committed to repo
+
+**If weak/missing**, provide:
+
+**ENV diff** (`.env.example` or docs):
+```diff
+--- a/.env.example
++++ b/.env.example
+@@ -1,1 +1,1 @@
+-MONGODB_URI=mongodb://localhost:27017/fixzit
++MONGODB_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/fixzit?retryWrites=true&w=majority&tls=true&serverSelectionTimeoutMS=5000&socketTimeoutMS=60000&maxPoolSize=50&minPoolSize=10
+```
+
+**Connection options diff** (e.g., `lib/mongodb.ts`):
+```diff
+--- a/lib/mongodb.ts
++++ b/lib/mongodb.ts
+@@ -5,0 +6,8 @@
++const options: MongoClientOptions = {
++  maxPoolSize: 50,
++  minPoolSize: 10,
++  serverSelectionTimeoutMS: 5000,
++  socketTimeoutMS: 60000,
++  retryWrites: true,
++  tls: true,
++};
+```
+
+---
+
+### D) RBAC & Tenancy
+
+**Least-privilege guards**:
+- Every protected route MUST verify user permissions (`hasPermission(user, 'resource:action')`).
+- Every multi-tenant resource MUST scope queries by `tenantId`.
+
+**Inline diffs** for:
+1. Missing permission checks in handlers.
+2. Missing tenant scoping in DB queries.
+
+**Negative test suggestion** (≥1):
+```typescript
+// Test: User without permission should get 403
+it('should reject user without resource:create permission', async () => {
+  const response = await request(app)
+    .post('/api/v1/resource')
+    .set('Authorization', `Bearer ${unprivilegedToken}`)
+    .send({ name: 'Test' });
+  expect(response.status).toBe(403);
+});
+
+// Test: User should not see resources from other tenants
+it('should not return resources from other tenants', async () => {
+  const response = await request(app)
+    .get('/api/v1/resources')
+    .set('Authorization', `Bearer ${tenant1Token}`);
+  expect(response.body.every(r => r.tenantId === 'tenant1')).toBe(true);
+});
+```
+
+---
+
+### E) Duplication & Code Health
+
+**Detect clones**:
+- Identify repeated blocks (>5 lines) within or across files in the PR.
+- Propose de-duplication: extract to shared function/utility.
+
+**De-dup diff**:
+```diff
+--- a/utils/helpers.ts
++++ b/utils/helpers.ts
+@@ -0,0 +1,5 @@
++export function formatCurrency(amount: number, currency: string = 'SAR'): string {
++  return new Intl.NumberFormat('ar-SA', { style: 'currency', currency }).format(amount);
++}
+
+--- a/pages/invoice.tsx
++++ b/pages/invoice.tsx
+@@ -10,3 +10,1 @@
+-  const formatted = new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR' }).format(amount);
++  const formatted = formatCurrency(amount);
+```
+
+**Zero warnings**:
+- Run `lint`, `typecheck`, `prettier check` with `--max-warnings=0`.
+- Provide diffs fixing ALL lint/type/format issues.
+
+**Complexity**:
+- If cyclomatic complexity >10, refactor and provide diff.
+
+---
+
+### F) Workflow Optimization (CI)
+
+For `.github/workflows/**` files, ensure:
+
+1. **Concurrency group** (cancel in-progress runs):
+```yaml
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+```
+
+2. **Node package cache** (pnpm/npm/yarn):
+```yaml
+- name: Setup Node
+  uses: actions/setup-node@v4
+  with:
+    node-version: '20'
+    cache: 'pnpm'  # or 'npm' or 'yarn'
+```
+
+3. **Least-privilege permissions**:
+```yaml
+permissions:
+  contents: read
+  pull-requests: write  # only if needed
+```
+
+4. **Artifact hygiene** (retention, paths):
+```yaml
+- name: Upload artifacts
+  uses: actions/upload-artifact@v4
+  with:
+    name: build-output
+    path: dist/
+    retention-days: 7
+```
+
+**Provide YAML diffs** for any missing optimizations.
+
+---
+
+### G) Error UX, Accessibility, Performance, Theme
+
+#### Error UX
+
+**Standardize error object** across all API responses:
+```typescript
+interface StandardError {
+  name: string;           // e.g., 'ValidationError'
+  code: string;           // e.g., 'INVALID_EMAIL'
+  userMessage: string;    // EN/AR translated message for end-users
+  devMessage: string;     // Technical details for developers
+  correlationId: string;  // For support tracing
+}
+```
+
+**UI enhancements** (for client errors):
+- Copy-to-clipboard button for error details.
+- "Create Support Ticket" button (if applicable).
+
+**Provide diffs** for handlers and UI components.
+
+#### Accessibility
+
+**Fix**:
+- Missing ARIA labels (`aria-label`, `aria-labelledby`, `aria-describedby`).
+- Tab order issues (`tabIndex`).
+- Color contrast fails (WCAG AA: ≥4.5:1 for text, ≥3:1 for UI components).
+
+**Evidence** (paste summary or commands + expected results):
+```bash
+# Run axe-core on affected pages
+npm run test:a11y -- --url=http://localhost:3000/page
+
+# Expected: 0 violations, Lighthouse accessibility score ≥ 95
+```
+
+**Provide diffs** fixing violations.
+
+#### Performance
+
+**Eliminate N+1 queries**:
+- Batch DB queries, use aggregation pipelines.
+- Add `select` projections to reduce payload.
+
+**Pagination/limits**:
+- All list endpoints MUST support `?page=1&limit=50`.
+- Default limit ≤ 100.
+
+**Caching** (for hot paths):
+- Add Redis/in-memory cache for frequently accessed data.
+
+**Provide diffs** for optimizations.
+
+#### Theme
+
+**Ensure consistency**:
+- Header, footer, sidebar, top bar use project design tokens.
+- Brand colors: `#0061A8` (primary), `#00A859` (success), `#FFB400` (warning).
+- Layout freeze: single header/sidebar baseline.
+
+**Provide code diffs** aligning with theme standards.
+
+---
+
+### H) Saudi Compliance (where applicable)
+
+For finance/invoicing features, ensure:
+
+**ZATCA e-invoice**:
+- Required fields: seller/buyer info, invoice number, date, line items, VAT breakdown, total.
+- QR code generation (TLV format).
+- Invoice archival (7 years).
+
+**VAT**:
+- Rates: 15% standard (verify edge cases: 0% exports, exempt categories).
+- Rounding rules (2 decimals, half-up).
+- Credit notes (reverse VAT).
+
+**Settlement/refund/receipt checklist**:
+- Settlement: payment method, date, reference.
+- Refund: original invoice reference, reason, VAT reversal.
+- Receipt: customer copy with all ZATCA fields.
+
+**Provide evidence** (code diffs, validation logic, test cases).
+
+---
+
+## 3) Tests (impacted only)
+
+**List** all test files impacted by this PR's changes.
+
+**For each**:
+- If test file exists in PR: provide diffs.
+- If test file does NOT exist in PR: provide **exact file path** + **test name** + **assertions**.
+
+**Example** (new test file):
+```typescript
+// tests/api/resource.test.ts
+import request from 'supertest';
+import app from '@/app';
+
+describe('POST /api/v1/resource', () => {
+  it('should create resource with valid data', async () => {
+    const response = await request(app)
+      .post('/api/v1/resource')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .set('X-Tenant-ID', 'tenant123')
+      .send({ name: 'Test Resource', type: 'standard' });
+    
+    expect(response.status).toBe(201);
+    expect(response.body).toHaveProperty('id');
+    expect(response.body.name).toBe('Test Resource');
+  });
+
+  it('should reject creation without permission', async () => {
+    const response = await request(app)
+      .post('/api/v1/resource')
+      .set('Authorization', `Bearer ${readOnlyToken}`)
+      .send({ name: 'Test' });
+    
+    expect(response.status).toBe(403);
+  });
+});
+```
+
+**Unit tests**: Cover new functions, edge cases, error paths.  
+**E2E tests**: Cover critical user journeys (login → action → verify).  
+**Contract tests**: For API changes, verify OpenAPI spec compliance.
+
+---
+
+## 4) PR-Scoped Scorecard (JSON)
+
+```json
+{
+  "fixzit_pr_scorecard": {
+    "sections": {
+      "security_privacy": {
+        "points": 100,
+        "scored": 100,
+        "notes": "No secrets in code, RBAC enforced, tenant scoping verified.",
+        "evidence": ["lib/auth.ts#L45", "api/resources/create.ts#L12"]
+      },
+      "api_contracts": {
+        "points": 100,
+        "scored": 100,
+        "notes": "All endpoints documented in OpenAPI, no drift detected.",
+        "evidence": ["docs/openapi.yaml#L120-L150"]
+      },
+      "tenancy_rbac": {
+        "points": 100,
+        "scored": 100,
+        "notes": "All queries scoped by tenantId, permission checks in place.",
+        "evidence": ["api/resources/list.ts#L8", "middleware/auth.ts#L23"]
+      },
+      "i18n_rtl": {
+        "points": 100,
+        "scored": 95,
+        "notes": "1 hard-coded string replaced, RTL verified. 5 points deducted for missing AR translation key 'error.validation'.",
+        "evidence": ["locales/en.json#L45", "components/Form.tsx#L12"]
+      },
+      "accessibility": {
+        "points": 100,
+        "scored": 100,
+        "notes": "All ARIA labels added, contrast verified, Lighthouse score 98.",
+        "evidence": ["components/Button.tsx#L5", "lighthouse-report.json"]
+      },
+      "performance": {
+        "points": 100,
+        "scored": 100,
+        "notes": "N+1 eliminated, pagination added, caching implemented.",
+        "evidence": ["api/resources/list.ts#L15-L20"]
+      },
+      "error_ux": {
+        "points": 100,
+        "scored": 100,
+        "notes": "Standard error format applied, copy-to-clipboard added.",
+        "evidence": ["lib/errors.ts#L10", "components/ErrorDisplay.tsx#L8"]
+      },
+      "theme": {
+        "points": 100,
+        "scored": 100,
+        "notes": "Brand tokens used, layout baseline maintained.",
+        "evidence": ["components/Header.tsx#L3", "styles/theme.ts#L5"]
+      },
+      "code_health": {
+        "points": 100,
+        "scored": 100,
+        "notes": "Duplication removed, zero lint/type warnings, complexity <10.",
+        "evidence": ["utils/helpers.ts#L1", "lint-report.txt"]
+      },
+      "testing": {
+        "points": 100,
+        "scored": 100,
+        "notes": "Unit, E2E, and contract tests added. Coverage >80%.",
+        "evidence": ["tests/api/resource.test.ts", "coverage-summary.json"]
+      },
+      "docs_contracts": {
+        "points": 100,
+        "scored": 100,
+        "notes": "Requirements cited correctly, no conflicts.",
+        "evidence": ["docs/requirements/000-index.md#Architecture"]
+      },
+      "ux_consistency": {
+        "points": 100,
+        "scored": 100,
+        "notes": "Layout freeze respected, EN+AR verified.",
+        "evidence": ["pages/dashboard.tsx#L10"]
+      }
+    },
+    "must_pass": {
+      "security_privacy": {
+        "status": "pass",
+        "notes": "All security checks green."
+      },
+      "saudi_compliance": {
+        "status": "pass",
+        "notes": "ZATCA fields verified, VAT logic correct."
+      },
+      "api_contracts": {
+        "status": "pass",
+        "notes": "OpenAPI drift resolved."
+      },
+      "i18n_rtl": {
+        "status": "fail",
+        "notes": "Missing AR key 'error.validation'. FIX: Added in locales/ar.json#L45."
+      },
+      "accessibility": {
+        "status": "pass",
+        "notes": "All ARIA/contrast issues resolved."
+      },
+      "single_final_delivery": {
+        "status": "pass",
+        "notes": "All fixes provided in this reply with diffs."
+      }
+    },
+    "final_self_score": 95,
+    "blockers": [
+      "locales/ar.json:45 — Missing translation key 'error.validation' (FIXED in this reply)"
+    ],
+    "notes": "Score is 95/100 due to 1 missing AR translation key. After applying the provided diff, score will be 100/100. All prior comments addressed. Zero warnings in lint/type/format checks."
+  }
+}
+```
+
+**Rule**: `final_self_score = 100` ONLY when:
+1. All prior PR comments are addressed (see section 0).
+2. All gates are GREEN with **ZERO WARNINGS**.
+3. All fixes provided in THIS reply with corrected code + diffs.
+
+If score <100, list precise blockers with `file:line` and state how they are fixed in this reply.
+
+---
+
+## 5) Mode A — Execute, Push, and Post Summary on THIS PR
+
+### Command Matrix (monorepo-safe, auto-detect package manager)
+
+```bash
+#!/bin/bash
+set -e
+
+# Detect package manager
+if [ -f "pnpm-lock.yaml" ]; then
+  PKG_MGR="pnpm"
+  INSTALL="pnpm install --frozen-lockfile"
+  RUN="pnpm run"
+elif [ -f "yarn.lock" ]; then
+  PKG_MGR="yarn"
+  INSTALL="yarn install --frozen-lockfile"
+  RUN="yarn"
+elif [ -f "package-lock.json" ]; then
+  PKG_MGR="npm"
+  INSTALL="npm ci"
+  RUN="npm run"
+else
+  echo "No lock file found, defaulting to npm"
+  PKG_MGR="npm"
+  INSTALL="npm install"
+  RUN="npm run"
+fi
+
+echo "Using package manager: $PKG_MGR"
+
+# 1. Install dependencies
+$INSTALL
+
+# 2. Lint (max-warnings=0)
+$RUN lint -- --max-warnings=0
+
+# 3. Typecheck
+$RUN typecheck
+
+# 4. Format check
+$RUN prettier:check
+
+# 5. Tests
+$RUN test
+
+# 6. Build Next.js (if applicable)
+if [ -f "next.config.js" ] || [ -f "next.config.mjs" ]; then
+  $RUN build
+  # Optional: export static
+  # $RUN export
+fi
+
+# 7. OpenAPI export (if script exists)
+if grep -q '"openapi:export"' package.json; then
+  $RUN openapi:export
+fi
+
+# 8. Postman collection export (if script exists)
+if grep -q '"postman:export"' package.json; then
+  $RUN postman:export
+fi
+
+# 9. RBAC export (if script exists)
+if grep -q '"rbac:export"' package.json; then
+  $RUN rbac:export
+fi
+
+# 10. Lighthouse CI (if configured)
+if [ -f "lighthouserc.json" ]; then
+  npx lhci autorun
+fi
+
+# 11. Dependency audit
+$PKG_MGR audit --audit-level=moderate
+
+echo "✅ All checks passed"
+```
+
+### After Push: Post PR Summary
+
+**Title**: `Agent Fix Summary — Push <n> (commit <sha>)`
+
+**Body**:
+```markdown
+## Agent Fix Summary — Push 1 (commit abc1234)
+
+### Missed Comments Resolved
+- [#comment-1](URL): Added AR translation key `error.validation` → `locales/ar.json:45`
+- [#comment-2](URL): Fixed RTL icon mirroring → `components/Icon.tsx:12`
+
+### Files Changed
+- `locales/ar.json` (+2 lines)
+- `components/Icon.tsx` (+5, -3 lines)
+- `api/resources/create.ts` (+10, -5 lines)
+- `tests/api/resource.test.ts` (new file, +45 lines)
+
+### Gate Status
+✅ Security & Privacy  
+✅ API Contracts  
+✅ Tenancy & RBAC  
+✅ i18n & RTL (was ⚠️, now fixed)  
+✅ Accessibility  
+✅ Performance  
+✅ Error UX  
+✅ Theme  
+✅ Code Health  
+✅ Testing  
+✅ Saudi Compliance  
+
+### Scorecard Delta
+- **Before**: 95/100 (missing AR key)
+- **After**: 100/100 (all gates green, zero warnings)
+
+### Repeat vs New Classification
+- **Repeat issues**: 0
+- **New issues found & fixed**: 2 (AR key, RTL icon)
+
+### Not Done Yet
+- None. All items addressed in this push.
+
+---
+Self-score: **100/100** ✅
+```
+
+---
+
+## 6) Final Challenge — Pre-Push Self-Check (MUST PASS)
+
+Before marking complete, re-review against:
+
+1. **Full system design & scope**: Does this change fit within Fixzit's architecture (FM, Souq, Shared, Admin, CRM, HR, Finance, Content, Careers, Knowledge Center, Error UX, Theme)?
+2. **Module behavior**: Are all touched modules tested and integrated correctly?
+3. **Endpoints detail**: Are all API changes documented in OpenAPI with examples?
+4. **Atlas config**: Is MongoDB connection production-grade (non-prod)?
+5. **Theme**: Do all UI changes use project tokens and respect layout freeze?
+6. **i18n/RTL**: Are all user-facing strings translated to EN+AR with RTL support?
+7. **E2E impact**: Are critical user journeys still functional?
+8. **Duplication removal**: Are all clones extracted to shared utilities?
+9. **Workflow optimization**: Are CI workflows optimized (concurrency, cache, permissions)?
+10. **Zero-warning quality gates**: Do lint, typecheck, prettier, tests, build ALL pass with zero warnings?
+
+**Self-score**:
+- If ALL items above are verified and ALL prior comments are addressed: **100/100** ✅
+- If ANY item is incomplete: **<100** and ADD CORRECTED CODE + DIFFS NOW until 100/100.
+
+**Blockers** (if <100):
+- List each blocker as `file:line — description (STATUS: fixed/in-progress)`
+
+**Repeat until self-score = 100/100.**
+
+---
+
+## Global Rules
+
+1. **No placeholders**: Only clearly marked external competitor fields in `docs/pricing.md` are allowed.
+2. **Minimal diffs**: Make surgical changes; avoid rewriting unrelated code.
+3. **Stable interfaces**: Do not break existing APIs unless absolutely necessary (and document breaking changes).
+4. **Cite requirements**: Reference as `docs/requirements/<file>.md#<Heading>`.
+5. **Conflicts**: If requirements conflict, include ONE doc diff (prefer `docs/requirements/000-index.md`) with rationale.
+
+---
+
+**END OF INSTRUCTION**
+
+---
+
+This is your copy-pasteable consolidated PR comment. Post it on any Fixzit PR to instruct the 5 agents to perform a comprehensive, zero-tolerance review.
+
+]]>
+</file>
+
+</batch_content>

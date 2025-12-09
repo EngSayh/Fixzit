@@ -1,0 +1,2347 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="components/aqar/AiInsights.tsx">
+<![CDATA[
+"use client";
+
+import { Sparkles, TrendingUp, Cpu, ShieldCheck } from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import type {
+  ListingPricingInsights,
+  ListingProptech,
+} from "@/lib/aqar/client-types";
+
+interface AiInsightsProps {
+  aiScore?: number;
+  pricing?: ListingPricingInsights;
+  rnplEligible?: boolean;
+  proptech?: ListingProptech;
+  city?: string;
+  neighborhood?: string;
+}
+
+const StatCard = ({
+  icon: Icon,
+  title,
+  value,
+  description,
+}: {
+  icon: typeof Sparkles;
+  title: string;
+  value: string;
+  description: string;
+}) => (
+  <div className="bg-card border border-border rounded-2xl p-4 flex gap-4 items-start">
+    <div className="p-3 rounded-2xl bg-primary/10 text-primary">
+      <Icon className="w-5 h-5" />
+    </div>
+    <div>
+      <p className="text-sm text-muted-foreground">{title}</p>
+      <p className="text-2xl font-semibold text-foreground">{value}</p>
+      <p className="text-xs text-muted-foreground mt-1">{description}</p>
+    </div>
+  </div>
+);
+
+export function AiInsights({
+  aiScore,
+  pricing,
+  rnplEligible,
+  proptech,
+  city,
+  neighborhood,
+}: AiInsightsProps) {
+  const { t } = useTranslation();
+  const demandScore = pricing?.demandScore ?? 0;
+  const appreciation = pricing?.projectedAppreciationPct ?? 0;
+  const areaLabel = city || neighborhood || "Riyadh";
+  const subtitle = t(
+    "aqar.aiInsights.subtitle",
+    `مؤشرات فورية لحي ${areaLabel}`,
+  );
+
+  return (
+    <section className="space-y-4">
+      <div>
+        <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
+          {t("aqar.aiInsights.title", "ذكاء Fixzit العقاري")}
+        </p>
+        <h3 className="text-2xl font-semibold text-foreground">{subtitle}</h3>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <StatCard
+          icon={Sparkles}
+          title={t("aqar.aiInsights.match", "مطابقة الذكاء الاصطناعي")}
+          value={aiScore !== undefined ? `${aiScore.toFixed(0)} / 100` : "—"}
+          description={t(
+            "aqar.aiInsights.match.desc",
+            "يعتمد على تفضيلات المستخدم، البيانات الحرارية، وتاريخ المشاهدات.",
+          )}
+        />
+        <StatCard
+          icon={TrendingUp}
+          title={t("aqar.aiInsights.pricing", "التسعير الديناميكي")}
+          value={
+            pricing?.pricePerSqm
+              ? `${pricing.pricePerSqm.toLocaleString()} ﷼/م²`
+              : "—"
+          }
+          description={t("aqar.aiInsights.pricing.desc", "نسبة النمو المتوقعة")}
+        />
+        <StatCard
+          icon={Cpu}
+          title={t("aqar.aiInsights.demand", "مؤشر الطلب")}
+          value={`${demandScore.toFixed(0)} / 100`}
+          description={t(
+            "aqar.aiInsights.demand.desc",
+            "يحسب من المشاهدات والاستفسارات في آخر 30 يومًا.",
+          )}
+        />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="border border-border rounded-2xl p-4 bg-muted/30">
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <TrendingUp className="w-4 h-4 text-warning" />
+            {t("aqar.aiInsights.appreciation", "نمو متوقع")}
+          </div>
+          <p className="text-3xl font-bold mt-2 text-warning">
+            {appreciation ? `${appreciation.toFixed(1)}٪` : "—"}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {t(
+              "aqar.aiInsights.appreciation.desc",
+              "مبني على بيانات REGA وFixzit Souq لآخر 12 شهرًا.",
+            )}
+          </p>
+        </div>
+        <div className="border border-border rounded-2xl p-4 bg-muted/30">
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <ShieldCheck className="w-4 h-4 text-success" />
+            {t("aqar.aiInsights.rnpl", "تمويل RNPL & ZATCA")}
+          </div>
+          <p className="text-3xl font-bold mt-2 text-success">
+            {rnplEligible
+              ? t("aqar.aiInsights.rnpl.ready", "جاهز")
+              : t("aqar.aiInsights.rnpl.custom", "حسب الطلب")}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {rnplEligible
+              ? t(
+                  "aqar.aiInsights.rnpl.desc.ready",
+                  "يمكن إصدار عرض تفصيلي مع QR زاتكا خلال 4 ساعات.",
+                )
+              : t(
+                  "aqar.aiInsights.rnpl.desc.custom",
+                  "يمكن ربطه يدويًا بعد مراجعة الوثائق.",
+                )}
+          </p>
+        </div>
+      </div>
+      {proptech?.features && proptech.features.length > 0 && (
+        <div className="border border-border rounded-2xl p-4">
+          <p className="text-sm font-semibold text-foreground mb-3">
+            {t("aqar.aiInsights.proptech", "خصائص PropTech وIoT")}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {proptech.features.map((feature) => (
+              <span
+                key={feature}
+                className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold"
+              >
+                <Cpu className="w-3 h-3" />
+                {feature.replace(/_/g, " ")}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+export default AiInsights;
+
+]]>
+</file>
+
+<file path="components/aqar/ChatWidget.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import { logger } from "@/lib/logger";
+
+// Helper to generate unique IDs using modern crypto API
+const generateId = (): string => {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Fallback for environments without crypto.randomUUID
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+};
+
+interface ChatMessage {
+  id: string;
+  from: "user" | "bot";
+  text: string;
+}
+
+export default function ChatWidget() {
+  const [open, setOpen] = useState(false);
+  const [input, setInput] = useState("");
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [sending, setSending] = useState(false);
+
+  const send = async () => {
+    const trimmed = input.trim();
+    if (!trimmed) return;
+    const userMessageId = `user-${generateId()}`;
+    setMessages((prev) => [
+      ...prev,
+      { id: userMessageId, from: "user", text: trimmed },
+    ]);
+    setInput("");
+    setSending(true);
+    try {
+      const res = await fetch("/api/aqar/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: trimmed }),
+      });
+
+      // Check HTTP status before parsing
+      if (!res.ok) {
+        logger.error("[ChatWidget] API error", {
+          status: res.status,
+          statusText: res.statusText,
+        });
+        let errorMsg = "حدث خطأ، يرجى المحاولة لاحقًا.";
+        try {
+          const errorData = await res.json();
+          logger.error("[ChatWidget] Error details", errorData);
+          errorMsg = errorData.error || errorMsg;
+        } catch {
+          // Failed to parse error JSON, use default message
+        }
+        const botErrorId = `bot-${generateId()}`;
+        setMessages((prev) => [
+          ...prev,
+          { id: botErrorId, from: "bot", text: errorMsg },
+        ]);
+        return;
+      }
+
+      const json = await res.json();
+      const reply = json?.reply || "مرحبًا! كيف أستطيع مساعدتك اليوم؟";
+      const botReplyId = `bot-${generateId()}`;
+      setMessages((prev) => [
+        ...prev,
+        { id: botReplyId, from: "bot", text: reply },
+      ]);
+    } catch (error) {
+      logger.error("[ChatWidget] Network error", error);
+      const botNetworkErrorId = `bot-${generateId()}`;
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: botNetworkErrorId,
+          from: "bot",
+          text: "تعذر إرسال الرسالة، حاول مرة أخرى.",
+        },
+      ]);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="fixed bottom-4 start-4 z-50">
+      {!open && (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="rounded-full bg-primary text-primary-foreground px-4 py-2 text-sm shadow-lg"
+        >
+          مساعدة
+        </button>
+      )}
+      {open && (
+        <div className="w-72 h-96 bg-white border rounded-xl shadow-xl flex flex-col overflow-hidden">
+          <div className="flex items-center justify-between px-3 py-2 border-b">
+            <span className="text-sm font-semibold">مساعد Fixzit</span>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="text-xs text-gray-500 hover:text-gray-800"
+            >
+              إغلاق
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-2 space-y-2 text-xs bg-slate-50">
+            {messages.length === 0 && (
+              <p className="text-xs text-gray-500">
+                اسأل عن الأسعار، رخص فال، أو خدمة ادفع الإيجار شهريًا.
+              </p>
+            )}
+            {messages.map((m) => (
+              <div
+                key={m.id}
+                className={`max-w-[90%] rounded-md px-2 py-1 ${
+                  m.from === "user"
+                    ? "ms-auto bg-primary text-primary-foreground"
+                    : "me-auto bg-white text-slate-800 shadow"
+                }`}
+              >
+                {m.text}
+              </div>
+            ))}
+          </div>
+          <div className="border-t p-2 flex gap-1">
+            <input
+              className="flex-1 border rounded px-2 py-1 text-xs"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="اكتب سؤالك..."
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !sending) send();
+              }}
+            />
+            <button
+              type="button"
+              onClick={send}
+              disabled={sending}
+              className="px-3 py-1 rounded bg-primary text-primary-foreground text-xs disabled:opacity-60"
+            >
+              إرسال
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/aqar/ContactActions.tsx">
+<![CDATA[
+"use client";
+
+import React from "react";
+import { Phone, MessageSquare } from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { sanitizePhoneNumber } from "@/lib/utils/format";
+
+export interface ContactActionsProps {
+  phone: string;
+  whatsapp?: string;
+  variant: "full" | "icon";
+  onPhoneClick?: () => void;
+  onWhatsAppClick?: () => void;
+}
+
+/**
+ * Reusable component for Agent/Property contact buttons (Call/WhatsApp).
+ * Handles event stopPropagation to prevent bubbling when nested in other interactive elements.
+ * Sanitizes phone numbers for href protocols.
+ *
+ * @param phone - The phone number to call
+ * @param whatsapp - Optional WhatsApp number (falls back to phone)
+ * @param variant - Display variant: 'full' for buttons with text, 'icon' for icon-only
+ * @param onPhoneClick - Optional callback when phone link is clicked
+ * @param onWhatsAppClick - Optional callback when WhatsApp link is clicked
+ */
+export const ContactActions = ({
+  phone,
+  whatsapp,
+  variant,
+  onPhoneClick,
+  onWhatsAppClick,
+}: ContactActionsProps) => {
+  const { t } = useTranslation();
+  const phoneDigits = sanitizePhoneNumber(phone);
+  const whatsappDigits = sanitizePhoneNumber(whatsapp || phone);
+
+  const handlePhoneClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (process.env.NODE_ENV === "test") {
+      e.preventDefault(); // avoid jsdom navigation noise in tests
+    }
+    e.stopPropagation();
+    onPhoneClick?.();
+  };
+
+  const handleWhatsAppClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (process.env.NODE_ENV === "test") {
+      e.preventDefault();
+    }
+    e.stopPropagation();
+    onWhatsAppClick?.();
+  };
+
+  if (variant === "icon") {
+    return (
+      <div className="flex items-center gap-1">
+        <a
+          href={`tel:${phoneDigits}`}
+          onClick={handlePhoneClick}
+          className="p-2 hover:bg-muted rounded-full transition-colors"
+          aria-label={t("aqar.propertyCard.call", "Call agent")}
+        >
+          <Phone className="w-4 h-4 text-muted-foreground" />
+        </a>
+        <a
+          href={`https://wa.me/${whatsappDigits}`}
+          onClick={handleWhatsAppClick}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="p-2 hover:bg-muted rounded-full transition-colors"
+          aria-label={t("aqar.propertyCard.message", "Message agent")}
+        >
+          <MessageSquare className="w-4 h-4 text-muted-foreground" />
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex gap-2">
+      <a
+        href={`tel:${phoneDigits}`}
+        onClick={handlePhoneClick}
+        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-warning to-warning/80 text-white rounded-2xl hover:shadow-lg transition-shadow"
+        aria-label={t("aqar.agent.call", "Call agent")}
+      >
+        <Phone className="w-4 h-4" />
+        <span className="font-semibold">{t("aqar.agent.call", "Call")}</span>
+      </a>
+      <a
+        href={`https://wa.me/${whatsappDigits}`}
+        onClick={handleWhatsAppClick}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-success text-white rounded-2xl hover:shadow-lg transition-shadow"
+        aria-label={t("aqar.agent.whatsapp", "WhatsApp agent")}
+      >
+        <MessageSquare className="w-4 h-4" />
+        <span className="font-semibold">
+          {t("aqar.agent.whatsapp", "WhatsApp")}
+        </span>
+      </a>
+    </div>
+  );
+};
+
+]]>
+</file>
+
+<file path="components/aqar/DynamicPricingCard.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect, useState } from "react";
+
+interface DynamicPricingCardProps {
+  cityId?: string;
+  neighborhoodId?: string;
+  propertyType?: string;
+  intent?: "BUY" | "RENT" | "DAILY" | string;
+  currentPrice?: number;
+}
+
+export default function DynamicPricingCard({
+  cityId,
+  neighborhoodId,
+  propertyType,
+  intent = "BUY",
+  currentPrice,
+}: DynamicPricingCardProps) {
+  const [summary, setSummary] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!cityId) return;
+    let aborted = false;
+    (async () => {
+      const params = new URLSearchParams({ cityId, intent: intent as string });
+      if (neighborhoodId) params.set("neighborhoodId", neighborhoodId);
+      if (propertyType) params.set("propertyType", propertyType);
+      try {
+        const res = await fetch(`/api/aqar/pricing?${params.toString()}`);
+        if (!res.ok) throw new Error("pricing failed");
+        const json = await res.json();
+        if (!aborted) {
+          setSummary(json?.insight?.asSummary || null);
+        }
+      } catch {
+        if (!aborted) setSummary(null);
+      }
+    })();
+    return () => {
+      aborted = true;
+    };
+  }, [cityId, neighborhoodId, propertyType, intent]);
+
+  if (!summary || !currentPrice) {
+    return null;
+  }
+
+  return (
+    <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-800">
+      <div className="font-semibold mb-1">مؤشرات السعر في الحي</div>
+      <p>{summary}</p>
+      <p className="mt-2 text-xs text-slate-500">
+        السعر الحالي للقائمة: {currentPrice.toLocaleString()} ﷼ — مقارنة بالمعدل
+        المقترح أعلاه.
+      </p>
+      <p className="mt-1 text-[11px] text-slate-500">
+        هذه المؤشرات مستندة إلى إعلانات Fixzit Aqar Souq النشطة ويمكن أن تختلف
+        عن تقييم البنوك أو الخبراء.
+      </p>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/aqar/MortgageCalculator.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import {
+  Calculator,
+  DollarSign,
+  Calendar,
+  TrendingUp,
+  FileText,
+} from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
+
+export interface MortgageCalculatorProps {
+  propertyPrice?: number;
+  currency?: string;
+}
+
+export default function MortgageCalculator({
+  propertyPrice = 0,
+  currency = "SAR",
+}: MortgageCalculatorProps) {
+  const { t } = useTranslation();
+  const [price, setPrice] = useState(propertyPrice || 1000000);
+  const [downPayment, setDownPayment] = useState(15); // percentage
+  const [interestRate, setInterestRate] = useState(4.5); // annual percentage
+  const [loanTerm, setLoanTerm] = useState(25); // years
+  const [showAmortization, setShowAmortization] = useState(false);
+
+  // Saudi-specific constraints
+  const MIN_DOWN_PAYMENT = 15; // 15% minimum for residents
+  // const MAX_LTV = 0.85; // Max 85% loan-to-value (reserved for future validation)
+  const MAX_LOAN_TERM = 25; // 25 years max
+
+  // Calculations
+  const downPaymentAmount = (price * downPayment) / 100;
+  const loanAmount = price - downPaymentAmount;
+  const monthlyRate = interestRate / 100 / 12;
+  const numberOfPayments = loanTerm * 12;
+
+  // Monthly payment formula: P * [r(1+r)^n] / [(1+r)^n - 1]
+  const monthlyPayment =
+    (loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments))) /
+    (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
+
+  const totalPayment = monthlyPayment * numberOfPayments;
+  const totalInterest = totalPayment - loanAmount;
+  const totalCost = price + totalInterest;
+
+  // Debt-to-Income ratio (assuming 33% max)
+  const requiredMonthlyIncome = monthlyPayment / 0.33;
+
+  // Generate amortization schedule (first 12 months)
+  const generateAmortizationSchedule = (months = 12) => {
+    const schedule = [];
+    let remainingBalance = loanAmount;
+
+    for (let i = 1; i <= months && i <= numberOfPayments; i++) {
+      const interestPayment = remainingBalance * monthlyRate;
+      const principalPayment = monthlyPayment - interestPayment;
+      remainingBalance -= principalPayment;
+
+      schedule.push({
+        month: i,
+        payment: monthlyPayment,
+        principal: principalPayment,
+        interest: interestPayment,
+        balance: Math.max(0, remainingBalance),
+      });
+    }
+
+    return schedule;
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-SA", {
+      style: "currency",
+      currency: currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const formatNumber = (num: number) => {
+    return new Intl.NumberFormat("en-SA").format(Math.round(num));
+  };
+
+  return (
+    <div className="bg-card rounded-2xl shadow-lg p-6">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-3 bg-gradient-to-br from-warning to-warning-dark rounded-2xl">
+          <Calculator className="w-6 h-6 text-white" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">
+            {t("aqar.mortgage.title", "Mortgage Calculator")}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Calculate your monthly payments
+          </p>
+        </div>
+      </div>
+
+      {/* Input Section */}
+      <div className="space-y-6 mb-6">
+        {/* Property Price */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label
+              htmlFor="priceSlider"
+              className="text-sm font-medium text-foreground"
+            >
+              {t("aqar.mortgage.propertyPrice", "Property Price")}
+            </label>
+            <span className="text-lg font-bold text-foreground">
+              {formatCurrency(price)}
+            </span>
+          </div>
+          <input
+            id="priceSlider"
+            type="range"
+            min="100000"
+            max="10000000"
+            step="50000"
+            value={price}
+            onChange={(e) => setPrice(Number(e.target.value))}
+            className="w-full h-2 bg-muted rounded-2xl appearance-none cursor-pointer accent-warning focus:outline-none focus:ring-2 focus:ring-warning focus:ring-offset-2"
+          />
+          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+            <span>100K</span>
+            <span>10M</span>
+          </div>
+        </div>
+
+        {/* Down Payment */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label
+              htmlFor="downPaymentSlider"
+              className="text-sm font-medium text-foreground"
+            >
+              {t("aqar.mortgage.downPayment", "Down Payment")} ({downPayment}%)
+            </label>
+            <span className="text-lg font-bold text-foreground">
+              {formatCurrency(downPaymentAmount)}
+            </span>
+          </div>
+          <input
+            id="downPaymentSlider"
+            type="range"
+            min={MIN_DOWN_PAYMENT}
+            max="50"
+            step="5"
+            value={downPayment}
+            onChange={(e) => setDownPayment(Number(e.target.value))}
+            className="w-full h-2 bg-muted rounded-2xl appearance-none cursor-pointer accent-warning focus:outline-none focus:ring-2 focus:ring-warning focus:ring-offset-2"
+          />
+          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+            <span>{MIN_DOWN_PAYMENT}% (Min)</span>
+            <span>50%</span>
+          </div>
+        </div>
+
+        {/* Interest Rate */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label
+              htmlFor="interestRateSlider"
+              className="text-sm font-medium text-foreground"
+            >
+              {t("aqar.mortgage.interestRate", "Interest Rate")}
+            </label>
+            <span className="text-lg font-bold text-foreground">
+              {interestRate.toFixed(2)}%
+            </span>
+          </div>
+          <input
+            id="interestRateSlider"
+            type="range"
+            min="1"
+            max="10"
+            step="0.1"
+            value={interestRate}
+            onChange={(e) => setInterestRate(Number(e.target.value))}
+            className="w-full h-2 bg-muted rounded-2xl appearance-none cursor-pointer accent-warning focus:outline-none focus:ring-2 focus:ring-warning focus:ring-offset-2"
+          />
+          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+            <span>1.0%</span>
+            <span>10.0%</span>
+          </div>
+        </div>
+
+        {/* Loan Term */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label
+              htmlFor="loanTermSlider"
+              className="text-sm font-medium text-foreground"
+            >
+              {t("aqar.mortgage.loanTerm", "Loan Term")}
+            </label>
+            <span className="text-lg font-bold text-foreground">
+              {loanTerm} {t("aqar.mortgage.years", "years")}
+            </span>
+          </div>
+          <input
+            id="loanTermSlider"
+            type="range"
+            min="5"
+            max={MAX_LOAN_TERM}
+            step="5"
+            value={loanTerm}
+            onChange={(e) => setLoanTerm(Number(e.target.value))}
+            className="w-full h-2 bg-muted rounded-2xl appearance-none cursor-pointer accent-warning focus:outline-none focus:ring-2 focus:ring-warning focus:ring-offset-2"
+          />
+          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+            <span>5 {t("aqar.mortgage.years", "years")}</span>
+            <span>
+              {MAX_LOAN_TERM} {t("aqar.mortgage.years", "years")} (Max)
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Results Section */}
+      <div
+        className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 mb-6"
+        role="region"
+        aria-label="Mortgage calculation results"
+      >
+        <h3 className="text-lg font-bold text-foreground mb-4">
+          {t("aqar.mortgage.monthlyPayment", "Monthly Payment")}
+        </h3>
+        <div
+          className="text-4xl font-bold text-warning mb-6"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {formatCurrency(monthlyPayment)}
+          <span className="text-sm font-normal text-muted-foreground">
+            /{t("aqar.mortgage.months", "month")}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-card rounded-2xl p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+              <DollarSign className="w-4 h-4" />
+              <span>Loan Amount</span>
+            </div>
+            <p className="text-xl font-bold text-foreground">
+              {formatCurrency(loanAmount)}
+            </p>
+          </div>
+
+          <div className="bg-card rounded-2xl p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+              <TrendingUp className="w-4 h-4" />
+              <span>Total Interest</span>
+            </div>
+            <p className="text-xl font-bold text-foreground">
+              {formatCurrency(totalInterest)}
+            </p>
+          </div>
+
+          <div className="bg-card rounded-2xl p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+              <Calendar className="w-4 h-4" />
+              <span>Total Payments</span>
+            </div>
+            <p className="text-xl font-bold text-foreground">
+              {formatNumber(numberOfPayments)}
+            </p>
+          </div>
+
+          <div className="bg-card rounded-2xl p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+              <FileText className="w-4 h-4" />
+              <span>Total Cost</span>
+            </div>
+            <p className="text-xl font-bold text-foreground">
+              {formatCurrency(totalCost)}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Additional Info */}
+      <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 mb-4">
+        <h4 className="font-semibold text-primary mb-2">
+          Required Monthly Income
+        </h4>
+        <p className="text-2xl font-bold text-primary">
+          {formatCurrency(requiredMonthlyIncome)}
+        </p>
+        <p className="text-sm text-primary mt-1">
+          Based on 33% debt-to-income ratio
+        </p>
+      </div>
+
+      {/* Amortization Schedule */}
+      <div>
+        <button
+          onClick={() => setShowAmortization(!showAmortization)}
+          aria-expanded={showAmortization}
+          aria-controls="amortization-schedule"
+          aria-label={`${showAmortization ? "Hide" : "View"} amortization schedule`}
+          className="w-full flex items-center justify-between px-4 py-3 bg-muted hover:bg-muted rounded-2xl transition-colors focus:outline-none focus:ring-2 focus:ring-warning focus:ring-offset-2"
+        >
+          <span className="font-semibold text-foreground">
+            View Amortization Schedule
+          </span>
+          <span className="text-muted-foreground" aria-hidden="true">
+            {showAmortization ? "−" : "+"}
+          </span>
+        </button>
+
+        {showAmortization && (
+          <div
+            id="amortization-schedule"
+            role="region"
+            aria-label="Amortization schedule table"
+            className="mt-4 overflow-x-auto"
+          >
+            <table className="w-full text-sm" role="table">
+              <thead>
+                <tr className="bg-muted">
+                  <th scope="col" className="px-3 py-2 text-start">
+                    Month
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-end">
+                    Payment
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-end">
+                    Principal
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-end">
+                    Interest
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-end">
+                    Balance
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {generateAmortizationSchedule(12).map((row) => (
+                  <tr key={row.month} className="border-b border-border">
+                    <td className="px-3 py-2">{row.month}</td>
+                    <td className="px-3 py-2 text-end">
+                      {formatCurrency(row.payment)}
+                    </td>
+                    <td className="px-3 py-2 text-end text-success">
+                      {formatCurrency(row.principal)}
+                    </td>
+                    <td className="px-3 py-2 text-end text-destructive">
+                      {formatCurrency(row.interest)}
+                    </td>
+                    <td className="px-3 py-2 text-end font-semibold">
+                      {formatCurrency(row.balance)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="text-xs text-muted-foreground mt-2 text-center">
+              Showing first 12 months of {numberOfPayments} total payments
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Disclaimers */}
+      <div className="mt-6 pt-6 border-t border-border">
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          <strong>Note:</strong> This calculator provides estimates based on
+          Saudi Arabia's mortgage regulations. Minimum down payment is 15% for
+          Saudi residents and 30% for non-residents. Maximum loan-to-value (LTV)
+          ratio is 85%. Maximum loan term is 25 years. Actual rates and terms
+          may vary by lender. Consult with a licensed mortgage advisor for
+          accurate information.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/aqar/PropertyCard.tsx">
+<![CDATA[
+"use client";
+
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { Bed, Bath, Maximize, MapPin, Heart, Eye } from "lucide-react";
+import { useState } from "react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { ContactActions } from "./ContactActions";
+import { logger } from "@/lib/logger";
+
+export interface PropertyCardProps {
+  id: string;
+  slug?: string;
+  title: {
+    en: string;
+    ar?: string;
+  };
+  propertyType: string;
+  listingType: "SALE" | "RENT" | "LEASE";
+  location: {
+    address: {
+      district: string;
+      city: string;
+    };
+  };
+  features: {
+    bedrooms: number;
+    bathrooms: number;
+    area: {
+      built: number;
+      unit: string;
+    };
+    furnished?: string;
+  };
+  pricing: {
+    amount: number;
+    currency: string;
+    period?: string;
+  };
+  media?: Array<{
+    url: string;
+    isPrimary?: boolean;
+  }>;
+  featured?: boolean;
+  verified?: boolean;
+  views?: number;
+  agentId?: {
+    firstName?: string;
+    lastName?: string;
+    photo?: string;
+    contact?: {
+      phone?: string;
+    };
+  };
+  rnplEligible?: boolean;
+  aiScore?: number;
+  proptech?: {
+    smartHomeLevel?: string;
+  };
+  immersive?: {
+    vrTour?: { ready?: boolean };
+  };
+}
+
+export default function PropertyCard({
+  property,
+}: {
+  property: PropertyCardProps;
+}) {
+  const { t, isRTL } = useTranslation();
+  const router = useRouter();
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
+
+  const propertyTitle = isRTL
+    ? property.title.ar || property.title.en
+    : property.title.en;
+
+  // Get primary image or first image
+  const primaryImage =
+    property.media?.find((m) => m.isPrimary)?.url ||
+    property.media?.[0]?.url ||
+    "/images/property-placeholder.jpg";
+
+  // Format price
+  const formatPrice = (amount: number, currency: string, period?: string) => {
+    const formatted = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency || "SAR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+
+    if (period === "MONTH")
+      return `${formatted}${t("aqar.propertyCard.perMonth", "/month")}`;
+    if (period === "YEAR")
+      return `${formatted}${t("aqar.propertyCard.perYear", "/year")}`;
+    return formatted;
+  };
+
+  const toggleFavorite = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    try {
+      if (isFavorite) {
+        await fetch(`/api/aqar/favorites/${property.id}`, { method: "DELETE" });
+      } else {
+        await fetch("/api/aqar/favorites", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ listingId: property.id }),
+        });
+      }
+      setIsFavorite(!isFavorite);
+    } catch (error) {
+      import("../../lib/logger")
+        .then(({ logError }) => {
+          logError("Failed to toggle favorite", error as Error, {
+            component: "PropertyCard",
+            action: "toggleFavorite",
+            propertyId: property.id,
+          });
+        })
+        .catch((logErr) =>
+          logger.error("Failed to load logger:", { error: logErr }),
+        );
+    }
+  };
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Allow default behavior for interactive elements
+    const target = e.target as HTMLElement;
+    if (target.closest("a") || target.closest("button")) {
+      return;
+    }
+    router.push(`/aqar/properties/${property.slug || property.id}`);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      router.push(`/aqar/properties/${property.slug || property.id}`);
+    }
+  };
+
+  return (
+    <article
+      onClick={handleCardClick}
+      onKeyDown={handleKeyDown}
+      role="link"
+      tabIndex={0}
+      className="block bg-card rounded-2xl shadow-md hover:shadow-xl transition-shadow overflow-hidden group cursor-pointer"
+      aria-label={`${t("aqar.propertyCard.viewProperty", "View property")}: ${propertyTitle}`}
+    >
+      {/* Image Section */}
+      <div className="relative h-64 overflow-hidden bg-muted">
+        <Image
+          src={primaryImage}
+          alt={propertyTitle}
+          fill
+          className={`object-cover group-hover:scale-105 transition-transform duration-300 ${
+            isImageLoaded ? "opacity-100" : "opacity-0"
+          }`}
+          onLoad={() => setIsImageLoaded(true)}
+        />
+
+        {/* Badges */}
+        <div className="absolute top-3 start-3 flex flex-col gap-2">
+          {property.featured && (
+            <span className="bg-gradient-to-r from-warning to-warning-dark text-white px-3 py-1 rounded-full text-xs font-semibold">
+              {t("aqar.propertyCard.featured", "Featured")}
+            </span>
+          )}
+          {property.verified && (
+            <span className="bg-success text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              {t("aqar.propertyCard.verified", "Verified")}
+            </span>
+          )}
+          <span
+            className={`px-3 py-1 rounded-full text-xs font-semibold ${
+              property.listingType === "SALE"
+                ? "bg-primary text-white"
+                : "bg-secondary text-white"
+            }`}
+          >
+            {property.listingType === "SALE"
+              ? t("aqar.propertyCard.forSale", "For Sale")
+              : t("aqar.propertyCard.forRent", "For Rent")}
+          </span>
+          {property.aiScore !== undefined && (
+            <span className="bg-card/80 text-primary border border-primary/30 px-3 py-1 rounded-full text-xs font-semibold">
+              {t("aqar.propertyCard.ai", "AI")} {Math.round(property.aiScore)}
+            </span>
+          )}
+          {property.proptech?.smartHomeLevel === "ADVANCED" && (
+            <span className="bg-muted text-foreground px-3 py-1 rounded-full text-xs font-semibold">
+              {t("aqar.propertyCard.smartHome", "Smart Home")}
+            </span>
+          )}
+          {property.immersive?.vrTour?.ready && (
+            <span className="bg-primary/80 text-white px-3 py-1 rounded-full text-xs font-semibold">
+              {t("aqar.propertyCard.vr", "VR tour")}
+            </span>
+          )}
+          {property.rnplEligible && (
+            <span className="bg-success text-white px-3 py-1 rounded-full text-xs font-semibold">
+              {t("aqar.propertyCard.rnpl", "RNPL")}
+            </span>
+          )}
+        </div>
+
+        {/* Favorite Button */}
+        <button
+          onClick={toggleFavorite}
+          className="absolute top-3 end-3 p-2 bg-white/90 hover:bg-card rounded-full transition-colors"
+          aria-label="Add to favorites"
+        >
+          <Heart
+            className={`w-5 h-5 ${isFavorite ? "fill-destructive text-destructive" : "text-foreground"}`}
+          />
+        </button>
+
+        {/* Views Counter */}
+        {property.views && property.views > 0 && (
+          <div className="absolute bottom-3 end-3 bg-black/60 text-white px-2 py-1 rounded-2xl text-xs flex items-center gap-1">
+            <Eye className="w-3 h-3" />
+            {property.views}
+          </div>
+        )}
+      </div>
+
+      {/* Content Section */}
+      <div className="p-4">
+        {/* Price */}
+        <div className="mb-2">
+          <p className="text-2xl font-bold text-foreground">
+            {formatPrice(
+              property.pricing.amount,
+              property.pricing.currency,
+              property.pricing.period,
+            )}
+          </p>
+        </div>
+
+        {/* Title */}
+        <h3 className="text-lg font-semibold text-foreground mb-2 line-clamp-1">
+          {propertyTitle}
+        </h3>
+
+        {/* Location */}
+        <p className="text-muted-foreground text-sm mb-3 flex items-center gap-1">
+          <MapPin className="w-4 h-4 flex-shrink-0" />
+          <span className="line-clamp-1">
+            {property.location.address.district},{" "}
+            {property.location.address.city}
+          </span>
+        </p>
+
+        {/* Property Type */}
+        <p className="text-muted-foreground text-xs mb-3">
+          {property.propertyType.replace(/_/g, " ")}
+          {property.features.furnished &&
+            ` • ${property.features.furnished.replace(/_/g, " ")}`}
+        </p>
+
+        {/* Features */}
+        <div className="flex items-center gap-4 text-foreground text-sm mb-4 pb-4 border-b border-border">
+          <div className="flex items-center gap-1">
+            <Bed className="w-4 h-4" />
+            <span>{property.features.bedrooms}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Bath className="w-4 h-4" />
+            <span>{property.features.bathrooms}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Maximize className="w-4 h-4" />
+            <span>
+              {property.features.area.built} {property.features.area.unit}
+            </span>
+          </div>
+        </div>
+
+        {/* Agent Info (if available) */}
+        {property.agentId && (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {property.agentId.photo ? (
+                <Image
+                  src={property.agentId.photo}
+                  alt="Agent"
+                  width={32}
+                  height={32}
+                  className="rounded-full"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    {property.agentId.firstName?.[0]}
+                    {property.agentId.lastName?.[0]}
+                  </span>
+                </div>
+              )}
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  {property.agentId.firstName} {property.agentId.lastName}
+                </p>
+              </div>
+            </div>
+
+            {property.agentId.contact?.phone && (
+              <ContactActions
+                phone={property.agentId.contact.phone}
+                whatsapp={property.agentId.contact.phone}
+                variant="icon"
+              />
+            )}
+          </div>
+        )}
+      </div>
+    </article>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/aqar/ProptechBadges.tsx">
+<![CDATA[
+"use client";
+
+import { Zap, Wifi, Lock, Shield, Wind, Sun } from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import type {
+  ListingProptech,
+  ListingIotFeature,
+} from "@/lib/aqar/client-types";
+
+interface ProptechBadgesProps {
+  proptech?: ListingProptech;
+  iotFeatures?: ListingIotFeature[];
+}
+
+const FEATURE_ICONS: Record<string, typeof Zap> = {
+  SMART_LOCKS: Lock,
+  ENERGY_MONITORING: Zap,
+  WATER_LEAK_SENSORS: Shield,
+  AIR_QUALITY: Wind,
+  SOLAR: Sun,
+  EV_CHARGER: Zap,
+  SECURITY_AI: Shield,
+};
+
+const FEATURE_LABEL_KEYS: Record<string, string> = {
+  SMART_LOCKS: "aqar.proptech.features.smartLocks",
+  ENERGY_MONITORING: "aqar.proptech.features.energyMonitoring",
+  WATER_LEAK_SENSORS: "aqar.proptech.features.waterLeakSensors",
+  AIR_QUALITY: "aqar.proptech.features.airQuality",
+  SOLAR: "aqar.proptech.features.solar",
+  EV_CHARGER: "aqar.proptech.features.evCharger",
+  SECURITY_AI: "aqar.proptech.features.securityAi",
+};
+
+export function ProptechBadges({ proptech, iotFeatures }: ProptechBadgesProps) {
+  const { t } = useTranslation();
+  if (!proptech) {
+    return null;
+  }
+  const level = proptech.smartHomeLevel || "NONE";
+  const vendorCount = proptech.iotVendors?.length ?? 0;
+  const vendorLabel = t("aqar.proptech.vendors", `${vendorCount} تكامل`);
+  const smartSummary =
+    iotFeatures && iotFeatures.length > 0
+      ? t("aqar.proptech.smartSummary", `مزايا ذكية (${iotFeatures.length})`)
+      : "";
+  return (
+    <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
+            {t("aqar.proptech.title", "PropTech & IoT")}
+          </p>
+          <p className="text-lg font-semibold text-foreground">
+            {level === "ADVANCED"
+              ? t("aqar.proptech.level.advanced", "أنظمة متقدمة")
+              : level === "BASIC"
+                ? t("aqar.proptech.level.basic", "مزايا أساسية")
+                : t("aqar.proptech.level.none", "بدون أتمتة")}
+          </p>
+        </div>
+        <span className="text-xs text-muted-foreground">{vendorLabel}</span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {(proptech.features || []).map((feature) => {
+          const Icon = FEATURE_ICONS[feature] || Wifi;
+          const labelKey = FEATURE_LABEL_KEYS[feature];
+          const fallbackLabel = feature.replace(/_/g, " ");
+          const label = labelKey ? t(labelKey, fallbackLabel) : fallbackLabel;
+          return (
+            <span
+              key={feature}
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-muted text-foreground text-xs"
+            >
+              <Icon className="w-3 h-3" />
+              {label}
+            </span>
+          );
+        })}
+        {proptech.solarReady && (
+          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-success/10 text-success text-xs">
+            <Sun className="w-3 h-3" />
+            {t("aqar.proptech.solar", "جاهز للطاقة الشمسية")}
+          </span>
+        )}
+        {proptech.evCharging && (
+          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs">
+            <Zap className="w-3 h-3" />
+            {t("aqar.proptech.ev", "شاحن EV")}
+          </span>
+        )}
+      </div>
+      {iotFeatures && iotFeatures.length > 0 && (
+        <div className="flex flex-wrap gap-2 text-[11px]">
+          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 text-teal-700 border border-teal-100">
+            {smartSummary}
+          </span>
+          {iotFeatures.slice(0, 3).map((feature) => (
+            <span
+              key={`${feature.key}-${feature.label}`}
+              className="px-3 py-1 rounded-full bg-muted text-foreground"
+            >
+              {feature.label || feature.key}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default ProptechBadges;
+
+]]>
+</file>
+
+<file path="components/aqar/RecommendationRail.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect, useState } from "react";
+import { Sparkles } from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
+
+interface RecommendationItem {
+  _id: string;
+  title?: string;
+  city?: string;
+  neighborhood?: string;
+  price?: { amount?: number; currency?: string };
+  propertyType?: string;
+  intent?: string;
+  rnplEligible?: boolean;
+  ai?: { recommendationScore?: number };
+  pricing?: { currentBand?: string; suggestedPrice?: number };
+  pricingInsights?: { pricePerSqm?: number };
+  iotFeatures?: { key?: string; label?: string }[];
+}
+
+interface RecommendationRailProps {
+  listingId?: string;
+  city?: string;
+  intent?: string;
+  propertyType?: string;
+}
+
+export function RecommendationRail({
+  listingId,
+  city,
+  intent,
+  propertyType,
+}: RecommendationRailProps) {
+  const { t } = useTranslation();
+  const [items, setItems] = useState<RecommendationItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        const params = new URLSearchParams();
+        if (listingId) params.set("listingId", listingId);
+        if (!listingId && city) params.set("city", city);
+        if (!listingId && intent) params.set("intent", intent);
+        if (propertyType) params.set("propertyType", propertyType);
+        params.set("limit", "6");
+        const res = await fetch(
+          `/api/aqar/recommendations?${params.toString()}`,
+        );
+        if (!res.ok) throw new Error("Failed to load recommendations");
+        const data = await res.json();
+        if (!cancelled) {
+          setItems(Array.isArray(data?.items) ? data.items : []);
+        }
+      } catch {
+        if (!cancelled) setItems([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [listingId, city, intent, propertyType]);
+
+  if (loading && items.length === 0) {
+    return (
+      <div className="border border-border rounded-2xl p-4 text-sm text-muted-foreground">
+        {t("aqar.recommendations.loading", "جارٍ تحميل التوصيات الذكية...")}
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center gap-3">
+        <div className="p-2 rounded-2xl bg-primary/10 text-primary">
+          <Sparkles className="w-4 h-4" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-foreground">
+            {t("aqar.recommendations.title", "اقتراحات Fixzit الذكية")}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {t(
+              "aqar.recommendations.subtitle",
+              "يعتمد على الذكاء الاصطناعي، المشاهدات، وبيانات السوق الحية",
+            )}
+          </p>
+        </div>
+      </div>
+      <div className="flex gap-4 overflow-x-auto pb-2">
+        {items.map((item) => {
+          const score = item.ai?.recommendationScore ?? 0;
+          const price = item.price?.amount
+            ? `${item.price.amount.toLocaleString()} ﷼`
+            : "—";
+          const pricePerSqm = item.pricingInsights?.pricePerSqm
+            ? `${item.pricingInsights.pricePerSqm.toLocaleString()} ﷼/م²`
+            : null;
+          const smartCount = item.iotFeatures?.length ?? 0;
+          const smartLabel = t(
+            "aqar.recommendations.smart",
+            `مزايا ذكية (${smartCount})`,
+          );
+          return (
+            <article
+              key={item._id}
+              className="min-w-[240px] bg-card border border-border rounded-2xl p-4 flex flex-col gap-2"
+            >
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-semibold text-foreground line-clamp-2">
+                  {item.title ||
+                    t("aqar.recommendations.untitled", "عقار بدون عنوان")}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {score.toFixed(0)}%
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {item.city}
+                {item.neighborhood ? ` • ${item.neighborhood}` : ""}
+              </p>
+              <p className="text-lg font-bold text-foreground">{price}</p>
+              <div className="flex flex-wrap gap-1 text-[10px]">
+                {item.pricing?.currentBand && (
+                  <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                    {item.pricing.currentBand}
+                  </span>
+                )}
+                {item.rnplEligible && (
+                  <span className="px-2 py-0.5 rounded-full bg-success/10 text-success">
+                    {t("aqar.recommendations.rnpl", "جاهز للتمويل")}
+                  </span>
+                )}
+                {smartCount > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-100">
+                    {smartLabel}
+                  </span>
+                )}
+              </div>
+              <ul className="text-xs text-muted-foreground list-disc ps-4">
+                {pricePerSqm && <li>{pricePerSqm}</li>}
+                {item.pricing?.suggestedPrice && (
+                  <li>
+                    {t("aqar.recommendations.suggested", "سعر مقترح")}{" "}
+                    {item.pricing.suggestedPrice.toLocaleString()} ﷼
+                  </li>
+                )}
+              </ul>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+export default RecommendationRail;
+
+]]>
+</file>
+
+<file path="components/aqar/SearchFilters.tsx">
+<![CDATA[
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import {
+  Search,
+  SlidersHorizontal,
+  X,
+  MapPin,
+  Home,
+  Bed,
+  Bath,
+  DollarSign,
+  Grid3x3,
+} from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
+
+export interface SearchFiltersProps {
+  onFilterChange?: (filters: PropertyFilters) => void;
+  initialFilters?: PropertyFilters;
+}
+
+export interface PropertyFilters {
+  search?: string;
+  propertyTypes?: string[];
+  listingType?: "SALE" | "RENT" | "LEASE" | "ALL";
+  priceMin?: number;
+  priceMax?: number;
+  bedrooms?: number[];
+  bathrooms?: number[];
+  areaMin?: number;
+  areaMax?: number;
+  city?: string;
+  district?: string;
+  amenities?: string[];
+  furnished?: boolean | null;
+  featured?: boolean;
+  verified?: boolean;
+  sortBy?: "PRICE_ASC" | "PRICE_DESC" | "DATE_DESC" | "AREA_DESC" | "POPULAR";
+}
+
+export default function SearchFilters({
+  onFilterChange,
+  initialFilters,
+}: SearchFiltersProps) {
+  const { t } = useTranslation();
+
+  const [filters, setFilters] = useState<PropertyFilters>(
+    initialFilters || {
+      listingType: "ALL",
+      sortBy: "DATE_DESC",
+    },
+  );
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Accessibility: Focus management
+  const filtersButtonRef = useRef<HTMLButtonElement>(null);
+  const advancedFiltersRef = useRef<HTMLDivElement>(null);
+
+  // Accessibility: Keyboard navigation - Close advanced filters with Escape
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && showAdvanced) {
+        setShowAdvanced(false);
+        // Restore focus to the filters button
+        filtersButtonRef.current?.focus();
+      }
+    };
+
+    if (showAdvanced) {
+      document.addEventListener("keydown", handleEscape);
+      return () => document.removeEventListener("keydown", handleEscape);
+    }
+  }, [showAdvanced]);
+
+  const propertyTypes = [
+    {
+      value: "APARTMENT",
+      label: t("aqar.propertyTypes.apartment", "Apartment"),
+      icon: "🏢",
+    },
+    {
+      value: "VILLA",
+      label: t("aqar.propertyTypes.villa", "Villa"),
+      icon: "🏡",
+    },
+    {
+      value: "TOWNHOUSE",
+      label: t("aqar.propertyTypes.townhouse", "Townhouse"),
+      icon: "🏘️",
+    },
+    {
+      value: "PENTHOUSE",
+      label: t("aqar.propertyTypes.penthouse", "Penthouse"),
+      icon: "🏙️",
+    },
+    {
+      value: "STUDIO",
+      label: t("aqar.propertyTypes.studio", "Studio"),
+      icon: "🏠",
+    },
+    { value: "LAND", label: t("aqar.propertyTypes.land", "Land"), icon: "🗺️" },
+    {
+      value: "COMMERCIAL",
+      label: t("aqar.propertyTypes.commercial", "Commercial"),
+      icon: "🏪",
+    },
+    {
+      value: "WAREHOUSE",
+      label: t("aqar.propertyTypes.warehouse", "Warehouse"),
+      icon: "🏭",
+    },
+    {
+      value: "OFFICE",
+      label: t("aqar.propertyTypes.office", "Office"),
+      icon: "🏢",
+    },
+  ];
+
+  const amenitiesList = [
+    t("aqar.amenitiesList.swimmingPool", "Swimming Pool"),
+    t("aqar.amenitiesList.gym", "Gym"),
+    t("aqar.amenitiesList.parking", "Parking"),
+    t("aqar.amenitiesList.security", "Security"),
+    t("aqar.amenitiesList.garden", "Garden"),
+    t("aqar.amenitiesList.balcony", "Balcony"),
+    t("aqar.amenitiesList.elevator", "Elevator"),
+    t("aqar.amenitiesList.centralAc", "Central AC"),
+    t("aqar.amenitiesList.maidRoom", "Maid Room"),
+    t("aqar.amenitiesList.storage", "Storage"),
+    t("aqar.amenitiesList.kidsArea", "Kids Area"),
+    t("aqar.amenitiesList.bbqArea", "BBQ Area"),
+  ];
+
+  const saudiCities = [
+    t("aqar.cities.riyadh", "Riyadh"),
+    t("aqar.cities.jeddah", "Jeddah"),
+    t("aqar.cities.mecca", "Mecca"),
+    t("aqar.cities.medina", "Medina"),
+    t("aqar.cities.dammam", "Dammam"),
+    t("aqar.cities.khobar", "Khobar"),
+    t("aqar.cities.dhahran", "Dhahran"),
+    t("aqar.cities.jubail", "Jubail"),
+    t("aqar.cities.tabuk", "Tabuk"),
+    t("aqar.cities.abha", "Abha"),
+    t("aqar.cities.khamisMushait", "Khamis Mushait"),
+    t("aqar.cities.najran", "Najran"),
+    t("aqar.cities.jazan", "Jazan"),
+  ];
+
+  const updateFilters = (updates: Partial<PropertyFilters>) => {
+    const newFilters = { ...filters, ...updates };
+    setFilters(newFilters);
+    if (onFilterChange) {
+      onFilterChange(newFilters);
+    }
+  };
+
+  const togglePropertyType = (type: string) => {
+    const current = filters.propertyTypes || [];
+    const updated = current.includes(type)
+      ? current.filter((t) => t !== type)
+      : [...current, type];
+    updateFilters({ propertyTypes: updated });
+  };
+
+  const toggleAmenity = (amenity: string) => {
+    const current = filters.amenities || [];
+    const updated = current.includes(amenity)
+      ? current.filter((a) => a !== amenity)
+      : [...current, amenity];
+    updateFilters({ amenities: updated });
+  };
+
+  const toggleBedrooms = (count: number) => {
+    const current = filters.bedrooms || [];
+    const updated = current.includes(count)
+      ? current.filter((b) => b !== count)
+      : [...current, count];
+    updateFilters({ bedrooms: updated });
+  };
+
+  const toggleBathrooms = (count: number) => {
+    const current = filters.bathrooms || [];
+    const updated = current.includes(count)
+      ? current.filter((b) => b !== count)
+      : [...current, count];
+    updateFilters({ bathrooms: updated });
+  };
+
+  const clearFilters = () => {
+    const cleared = {
+      listingType: "ALL" as const,
+      sortBy: "DATE_DESC" as const,
+    };
+    setFilters(cleared);
+    if (onFilterChange) {
+      onFilterChange(cleared);
+    }
+  };
+
+  const activeFilterCount = () => {
+    let count = 0;
+    if (filters.search) count++;
+    if (filters.propertyTypes && filters.propertyTypes.length > 0) count++;
+    if (filters.listingType && filters.listingType !== "ALL") count++;
+    if (filters.priceMin || filters.priceMax) count++;
+    if (filters.bedrooms && filters.bedrooms.length > 0) count++;
+    if (filters.bathrooms && filters.bathrooms.length > 0) count++;
+    if (filters.areaMin || filters.areaMax) count++;
+    if (filters.city) count++;
+    if (filters.amenities && filters.amenities.length > 0) count++;
+    if (filters.furnished !== null && filters.furnished !== undefined) count++;
+    if (filters.featured) count++;
+    if (filters.verified) count++;
+    return count;
+  };
+
+  return (
+    <div className="bg-card rounded-2xl shadow-md p-4">
+      {/* Search Bar */}
+      <div className="relative mb-4">
+        <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+        <input
+          type="text"
+          placeholder={t(
+            "aqar.filters.search",
+            "Search by location, property name, or keyword...",
+          )}
+          value={filters.search || ""}
+          onChange={(e) => updateFilters({ search: e.target.value })}
+          className="w-full ps-10 pe-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-warning focus:border-transparent"
+        />
+      </div>
+
+      {/* Quick Filters */}
+      <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
+        <button
+          onClick={() => updateFilters({ listingType: "ALL" })}
+          className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+            filters.listingType === "ALL"
+              ? "bg-warning text-white"
+              : "bg-muted text-foreground hover:bg-muted"
+          }`}
+        >
+          {t("aqar.filters.all", "All")}
+        </button>
+        <button
+          onClick={() => updateFilters({ listingType: "SALE" })}
+          className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+            filters.listingType === "SALE"
+              ? "bg-warning text-white"
+              : "bg-muted text-foreground hover:bg-muted"
+          }`}
+        >
+          {t("aqar.filters.forSale", "For Sale")}
+        </button>
+        <button
+          onClick={() => updateFilters({ listingType: "RENT" })}
+          className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+            filters.listingType === "RENT"
+              ? "bg-warning text-white"
+              : "bg-muted text-foreground hover:bg-muted"
+          }`}
+        >
+          {t("aqar.filters.forRent", "For Rent")}
+        </button>
+        <button
+          onClick={() => updateFilters({ listingType: "LEASE" })}
+          className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+            filters.listingType === "LEASE"
+              ? "bg-warning text-white"
+              : "bg-muted text-foreground hover:bg-muted"
+          }`}
+        >
+          {t("aqar.filters.forLease", "For Lease")}
+        </button>
+        <div className="flex-1" />
+        <button
+          ref={filtersButtonRef}
+          onClick={() => setShowAdvanced(!showAdvanced)}
+          aria-expanded={showAdvanced}
+          aria-controls="advanced-filters"
+          aria-label={t(
+            "aqar.filters.toggleFilters",
+            `${showAdvanced ? "Hide" : "Show"} advanced filters${activeFilterCount() > 0 ? ` (${activeFilterCount()} active)` : ""}`,
+          )}
+          className="flex items-center gap-2 px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-muted transition-colors whitespace-nowrap"
+        >
+          <SlidersHorizontal className="w-4 h-4" />
+          <span>{t("aqar.filters.filtersButton", "Filters")}</span>
+          {activeFilterCount() > 0 && (
+            <span
+              className="bg-warning text-white text-xs px-2 py-0.5 rounded-full"
+              aria-live="polite"
+            >
+              {activeFilterCount()}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Advanced Filters */}
+      {showAdvanced && (
+        <div
+          id="advanced-filters"
+          ref={advancedFiltersRef}
+          role="region"
+          aria-label={t(
+            "aqar.filters.advancedFiltersRegion",
+            "Advanced filters",
+          )}
+          className="border-t border-border pt-4 space-y-6"
+        >
+          {/* Property Type */}
+          <div>
+            <h3
+              id="property-type-label"
+              className="font-semibold text-foreground mb-3 flex items-center gap-2"
+            >
+              <Home className="w-4 h-4" aria-hidden="true" />
+              {t("aqar.filters.propertyType", "Property Type")}
+            </h3>
+            <div
+              role="group"
+              aria-labelledby="property-type-label"
+              className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2"
+            >
+              {propertyTypes.map((type) => (
+                <button
+                  key={type.value}
+                  onClick={() => togglePropertyType(type.value)}
+                  role="checkbox"
+                  aria-checked={filters.propertyTypes?.includes(type.value)}
+                  aria-label={`${type.label} ${t("aqar.filters.propertyTypeOption", "property type")}`}
+                  className={`p-3 rounded-lg border-2 text-center transition-colors focus:outline-none focus:ring-2 focus:ring-warning focus:ring-offset-2 ${
+                    filters.propertyTypes?.includes(type.value)
+                      ? "border-warning bg-warning/10"
+                      : "border-border hover:border-border"
+                  }`}
+                >
+                  <div className="text-2xl mb-1" aria-hidden="true">
+                    {type.icon}
+                  </div>
+                  <div className="text-xs font-medium">{type.label}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Price Range */}
+          <div>
+            <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+              <DollarSign className="w-4 h-4" />
+              {t("aqar.filters.priceRange", "Price Range (SAR)")}
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">
+                  {t("aqar.filters.minimum", "Minimum")}
+                </label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  step="1000"
+                  placeholder={t("aqar.filters.min", "Min")}
+                  aria-label={t("aqar.filters.minPriceInput", "Minimum price")}
+                  value={filters.priceMin || ""}
+                  onChange={(e) => {
+                    const value = e.target.value.trim();
+                    if (value === "") {
+                      updateFilters({ priceMin: undefined });
+                    } else {
+                      const parsed = Number(value);
+                      if (Number.isFinite(parsed) && parsed >= 0) {
+                        updateFilters({ priceMin: parsed });
+                      }
+                    }
+                  }}
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-warning focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">
+                  {t("aqar.filters.maximum", "Maximum")}
+                </label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  step="1000"
+                  placeholder={t("aqar.filters.max", "Max")}
+                  aria-label={t("aqar.filters.maxPriceInput", "Maximum price")}
+                  value={filters.priceMax || ""}
+                  onChange={(e) => {
+                    const value = e.target.value.trim();
+                    if (value === "") {
+                      updateFilters({ priceMax: undefined });
+                    } else {
+                      const parsed = Number(value);
+                      if (Number.isFinite(parsed) && parsed >= 0) {
+                        updateFilters({ priceMax: parsed });
+                      }
+                    }
+                  }}
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-warning focus:border-transparent"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Bedrooms */}
+          <div>
+            <h3
+              id="bedrooms-label"
+              className="font-semibold text-foreground mb-3 flex items-center gap-2"
+            >
+              <Bed className="w-4 h-4" aria-hidden="true" />
+              {t("aqar.filters.bedrooms", "Bedrooms")}
+            </h3>
+            <div
+              role="group"
+              aria-labelledby="bedrooms-label"
+              className="flex gap-2"
+            >
+              {[1, 2, 3, 4, 5].map((count) => (
+                <button
+                  key={count}
+                  onClick={() => toggleBedrooms(count)}
+                  role="checkbox"
+                  aria-checked={filters.bedrooms?.includes(count)}
+                  aria-label={`${count === 5 ? "5 or more" : count} ${t("aqar.filters.bedroomsLabel", "bedrooms")}`}
+                  className={`px-4 py-2 rounded-lg border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-warning focus:ring-offset-2 ${
+                    filters.bedrooms?.includes(count)
+                      ? "border-warning bg-warning/10 text-foreground"
+                      : "border-border hover:border-border text-foreground"
+                  }`}
+                >
+                  {count === 5 ? "5+" : count}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Bathrooms */}
+          <div>
+            <h3
+              id="bathrooms-label"
+              className="font-semibold text-foreground mb-3 flex items-center gap-2"
+            >
+              <Bath className="w-4 h-4" aria-hidden="true" />
+              {t("aqar.filters.bathrooms", "Bathrooms")}
+            </h3>
+            <div
+              role="group"
+              aria-labelledby="bathrooms-label"
+              className="flex gap-2"
+            >
+              {[1, 2, 3, 4].map((count) => (
+                <button
+                  key={count}
+                  onClick={() => toggleBathrooms(count)}
+                  role="checkbox"
+                  aria-checked={filters.bathrooms?.includes(count)}
+                  aria-label={`${count === 4 ? "4 or more" : count} ${t("aqar.filters.bathroomsLabel", "bathrooms")}`}
+                  className={`px-4 py-2 rounded-lg border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-warning focus:ring-offset-2 ${
+                    filters.bathrooms?.includes(count)
+                      ? "border-warning bg-warning/10 text-foreground"
+                      : "border-border hover:border-border text-foreground"
+                  }`}
+                >
+                  {count === 4 ? "4+" : count}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Area Range */}
+          <div>
+            <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+              <Grid3x3 className="w-4 h-4" />
+              {t("aqar.filters.area", "Area (sqm)")}
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">
+                  {t("aqar.filters.minimum", "Minimum")}
+                </label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  step="10"
+                  placeholder={t("aqar.filters.min", "Min")}
+                  aria-label={t(
+                    "aqar.filters.minAreaInput",
+                    "Minimum area in square meters",
+                  )}
+                  value={filters.areaMin || ""}
+                  onChange={(e) => {
+                    const value = e.target.value.trim();
+                    if (value === "") {
+                      updateFilters({ areaMin: undefined });
+                    } else {
+                      const parsed = Number(value);
+                      if (Number.isFinite(parsed) && parsed >= 0) {
+                        updateFilters({ areaMin: parsed });
+                      }
+                    }
+                  }}
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-warning focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">
+                  {t("aqar.filters.maximum", "Maximum")}
+                </label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  step="10"
+                  placeholder={t("aqar.filters.max", "Max")}
+                  aria-label={t(
+                    "aqar.filters.maxAreaInput",
+                    "Maximum area in square meters",
+                  )}
+                  value={filters.areaMax || ""}
+                  onChange={(e) => {
+                    const value = e.target.value.trim();
+                    if (value === "") {
+                      updateFilters({ areaMax: undefined });
+                    } else {
+                      const parsed = Number(value);
+                      if (Number.isFinite(parsed) && parsed >= 0) {
+                        updateFilters({ areaMax: parsed });
+                      }
+                    }
+                  }}
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-warning focus:border-transparent"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Location */}
+          <div>
+            <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+              <MapPin className="w-4 h-4" />
+              {t("aqar.filters.location", "Location")}
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">
+                  {t("aqar.filters.city", "City")}
+                </label>
+                <select
+                  value={filters.city || ""}
+                  onChange={(e) =>
+                    updateFilters({ city: e.target.value || undefined })
+                  }
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-warning focus:border-transparent"
+                >
+                  <option value="">
+                    {t("aqar.filters.allCities", "All Cities")}
+                  </option>
+                  {saudiCities.map((city) => (
+                    <option key={city} value={city}>
+                      {city}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">
+                  {t("aqar.filters.district", "District")}
+                </label>
+                <input
+                  type="text"
+                  placeholder={t(
+                    "aqar.filters.enterDistrict",
+                    "Enter district",
+                  )}
+                  value={filters.district || ""}
+                  onChange={(e) =>
+                    updateFilters({ district: e.target.value || undefined })
+                  }
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-warning focus:border-transparent"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Amenities */}
+          <div>
+            <h3 className="font-semibold text-foreground mb-3">
+              {t("aqar.filters.amenities", "Amenities")}
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+              {amenitiesList.map((amenity) => (
+                <label
+                  key={amenity}
+                  className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={filters.amenities?.includes(amenity)}
+                    onChange={() => toggleAmenity(amenity)}
+                    className="w-4 h-4 text-warning border-border rounded focus:ring-warning"
+                  />
+                  <span className="text-sm text-foreground">{amenity}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Additional Options */}
+          <div>
+            <h3 className="font-semibold text-foreground mb-3">
+              {t("aqar.filters.additionalOptions", "Additional Options")}
+            </h3>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filters.furnished || false}
+                  onChange={(e) =>
+                    updateFilters({ furnished: e.target.checked || null })
+                  }
+                  className="w-4 h-4 text-warning border-border rounded focus:ring-warning"
+                />
+                <span className="text-sm text-foreground">
+                  {t("aqar.filters.furnished", "Furnished")}
+                </span>
+              </label>
+              <label className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filters.featured || false}
+                  onChange={(e) =>
+                    updateFilters({ featured: e.target.checked })
+                  }
+                  className="w-4 h-4 text-warning border-border rounded focus:ring-warning"
+                />
+                <span className="text-sm text-foreground">
+                  {t("aqar.filters.featuredOnly", "Featured Properties Only")}
+                </span>
+              </label>
+              <label className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filters.verified || false}
+                  onChange={(e) =>
+                    updateFilters({ verified: e.target.checked })
+                  }
+                  className="w-4 h-4 text-warning border-border rounded focus:ring-warning"
+                />
+                <span className="text-sm text-foreground">
+                  {t("aqar.filters.verifiedOnly", "Verified Properties Only")}
+                </span>
+              </label>
+            </div>
+          </div>
+
+          {/* Sort By */}
+          <div>
+            <h3 className="font-semibold text-foreground mb-3">
+              {t("aqar.filters.sortBy", "Sort By")}
+            </h3>
+            <select
+              value={filters.sortBy || "DATE_DESC"}
+              onChange={(e) =>
+                updateFilters({
+                  sortBy: e.target.value as PropertyFilters["sortBy"],
+                })
+              }
+              className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-warning focus:border-transparent"
+            >
+              <option value="DATE_DESC">
+                {t("aqar.filters.newestFirst", "Newest First")}
+              </option>
+              <option value="PRICE_ASC">
+                {t("aqar.filters.priceLowToHigh", "Price: Low to High")}
+              </option>
+              <option value="PRICE_DESC">
+                {t("aqar.filters.priceHighToLow", "Price: High to Low")}
+              </option>
+              <option value="AREA_DESC">
+                {t("aqar.filters.largestFirst", "Largest First")}
+              </option>
+              <option value="POPULAR">
+                {t("aqar.filters.mostPopular", "Most Popular")}
+              </option>
+            </select>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4 border-t border-border">
+            <button
+              onClick={clearFilters}
+              className="flex-1 px-6 py-3 border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-semibold"
+            >
+              {t("aqar.filters.clearAll", "Clear All")}
+            </button>
+            <button
+              onClick={() => setShowAdvanced(false)}
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-warning to-warning-dark text-white rounded-lg hover:shadow-lg transition-shadow font-semibold"
+            >
+              {t("aqar.filters.applyFilters", "Apply Filters")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Active Filters Summary */}
+      {activeFilterCount() > 0 && !showAdvanced && (
+        <div className="mt-4 pt-4 border-t border-border">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-medium text-foreground">
+              {t("aqar.filters.activeFilters", "Active Filters:")}
+            </span>
+            {filters.listingType && filters.listingType !== "ALL" && (
+              <span className="inline-flex items-center gap-1 px-3 py-1 bg-warning text-white text-sm rounded-full">
+                {filters.listingType}
+                <button onClick={() => updateFilters({ listingType: "ALL" })}>
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {(filters.propertyTypes?.length || 0) > 0 && (
+              <span className="inline-flex items-center gap-1 px-3 py-1 bg-warning text-white text-sm rounded-full">
+                {filters.propertyTypes!.length}{" "}
+                {t("aqar.filters.typesSelected", "types")}
+                <button onClick={() => updateFilters({ propertyTypes: [] })}>
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            <button
+              onClick={clearFilters}
+              className="ms-auto text-sm text-warning hover:text-warning font-medium"
+            >
+              {t("aqar.filters.clearAll", "Clear All")}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/aqar/VRTour.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+
+type VRTourProps = {
+  url: string;
+  title?: string;
+};
+
+export function VRTour({ url, title = "Virtual Tour" }: VRTourProps) {
+  const [isLoaded, setIsLoaded] = useState(false);
+  return (
+    <div className="rounded-2xl border border-border overflow-hidden bg-black/5">
+      <div className="px-4 py-3 border-b border-border flex items-center justify-between bg-card">
+        <div className="font-semibold text-foreground">{title}</div>
+        {!isLoaded && (
+          <span className="text-xs text-muted-foreground">Loading...</span>
+        )}
+      </div>
+      <iframe
+        src={url}
+        title={title}
+        className="w-full h-[420px] bg-black"
+        loading="lazy"
+        onLoad={() => setIsLoaded(true)}
+        allow="fullscreen; xr-spatial-tracking; accelerometer; gyroscope"
+      />
+    </div>
+  );
+}
+
+export default VRTour;
+
+]]>
+</file>
+
+</batch_content>

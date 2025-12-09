@@ -1,0 +1,2605 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/fm/hr/payroll/run/page.tsx">
+<![CDATA[
+"use client";
+
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { Banknote, CheckCircle2, Loader2, Shield, Upload } from "lucide-react";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
+
+export default function PayrollRunWizardPage() {
+  const auto = useAutoTranslator("fm.hr.payrollRun");
+  const { t } = useTranslation();
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({
+    moduleId: "hr",
+  });
+  const steps = useMemo(
+    () => [
+      {
+        label: auto("Collect changes & allowances", "steps.collectChanges"),
+        status: "done" as const,
+        statusLabel: auto("Completed", "steps.status.done"),
+      },
+      {
+        label: auto(
+          "Validate compliance & accruals",
+          "steps.validateCompliance",
+        ),
+        status: "done" as const,
+        statusLabel: auto("Completed", "steps.status.done"),
+      },
+      {
+        label: auto("Reconcile with finance forecast", "steps.reconcile"),
+        status: "active" as const,
+        statusLabel: auto("In progress", "steps.status.active"),
+      },
+      {
+        label: auto("Submit payout to treasury", "steps.submitTreasury"),
+        status: "pending" as const,
+        statusLabel: auto("Pending", "steps.status.pending"),
+      },
+    ],
+    [auto],
+  );
+  const [isSubmitting, setSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    periodStart: "",
+    periodEnd: "",
+    notes: "",
+  });
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!formData.name || !formData.periodStart || !formData.periodEnd) {
+      toast.error(
+        auto("Please fill in the required fields.", "actions.validation"),
+      );
+      return;
+    }
+    setSubmitting(true);
+    fetch("/api/hr/payroll/runs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        orgId,
+        name: formData.name,
+        periodStart: formData.periodStart,
+        periodEnd: formData.periodEnd,
+      }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const payload = await res.json().catch(() => ({}));
+          throw new Error(payload?.error ?? "Failed to create payroll run");
+        }
+        toast.success(
+          auto("Payroll run created successfully.", "actions.success"),
+        );
+        setFormData({ name: "", periodStart: "", periodEnd: "", notes: "" });
+      })
+      .catch((err: Error) => toast.error(err.message))
+      .finally(() => setSubmitting(false));
+  };
+
+  if (!hasOrgContext) {
+    return guard;
+  }
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="hr" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t("fm.org.supportContext", "Support context: {{name}}", {
+            name: supportOrg.name,
+          })}
+        </div>
+      )}
+
+      <header className="space-y-2">
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+          {auto("Payroll run wizard", "header.kicker")}
+        </p>
+        <h1 className="text-3xl font-semibold">
+          {auto("Month-end payroll run", "header.title")}
+        </h1>
+        <p className="text-muted-foreground">
+          {auto(
+            "Complete the final reconciliation before dispatching files to treasury.",
+            "header.subtitle",
+          )}
+        </p>
+      </header>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{auto("Run status", "steps.title")}</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {auto(
+              "Keep all stakeholders aligned on progress.",
+              "steps.subtitle",
+            )}
+          </p>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+          {steps.map((step) => (
+            <div
+              key={step.label}
+              className={`rounded-xl border p-3 ${
+                step.status === "active"
+                  ? "border-primary bg-primary/5"
+                  : step.status === "done"
+                    ? "border-border bg-muted/40"
+                    : "border-dashed border-border"
+              }`}
+            >
+              <p className="text-xs uppercase text-muted-foreground">
+                {step.statusLabel}
+              </p>
+              <p className="font-medium">{step.label}</p>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {auto("Adjustments & attachments", "adjustments.title")}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {auto(
+                "Attach OT sheets, incentives, or manual overrides.",
+                "adjustments.subtitle",
+              )}
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="cycle">
+                  {auto("Payroll cycle", "adjustments.cycle")}
+                </Label>
+                <Input
+                  id="cycle"
+                  value={formData.name}
+                  onChange={(event) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      name: event.target.value,
+                    }))
+                  }
+                  placeholder={auto(
+                    "e.g., February 2025 · Month end",
+                    "adjustments.cycle.placeholder",
+                  )}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="start">
+                  {auto("Period start", "adjustments.start")}
+                </Label>
+                <Input
+                  id="start"
+                  type="date"
+                  value={formData.periodStart}
+                  onChange={(event) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      periodStart: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="end">
+                  {auto("Period end", "adjustments.end")}
+                </Label>
+                <Input
+                  id="end"
+                  type="date"
+                  value={formData.periodEnd}
+                  onChange={(event) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      periodEnd: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="fx">
+                  {auto("FX rate (if applicable)", "adjustments.fx")}
+                </Label>
+                <Input id="fx" placeholder="1 SAR" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="notes">
+                {auto("Notes for finance", "adjustments.notes")}
+              </Label>
+              <Textarea
+                id="notes"
+                rows={3}
+                value={formData.notes}
+                onChange={(event) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    notes: event.target.value,
+                  }))
+                }
+                placeholder={auto(
+                  "Highlight unusual movements...",
+                  "adjustments.placeholder",
+                )}
+              />
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button type="button" variant="outline">
+                <Upload className="me-2 h-4 w-4" />
+                {auto("Upload allowance sheet", "adjustments.upload")}
+              </Button>
+              <Button type="button" variant="outline">
+                <Shield className="me-2 h-4 w-4" />
+                {auto("Attach compliance sign-off", "adjustments.compliance")}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {auto("Treasury payout summary", "payout.title")}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {auto(
+                "Confirm totals match finance forecast before submission.",
+                "payout.subtitle",
+              )}
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-muted-foreground">
+            <div className="flex items-center justify-between rounded-lg border border-border/70 p-3 text-foreground">
+              <span className="flex items-center gap-2 font-medium">
+                <Banknote className="h-4 w-4 text-primary" />
+                {auto("Gross payroll total", "payout.gross")}
+              </span>
+              <span className="font-semibold">SAR 9,643,200</span>
+            </div>
+            <div className="flex items-center justify-between rounded-lg border border-border/70 p-3 text-foreground">
+              <span className="flex items-center gap-2 font-medium">
+                <Shield className="h-4 w-4 text-primary" />
+                {auto("Statutory deductions", "payout.deductions")}
+              </span>
+              <span className="font-semibold">SAR 1,062,400</span>
+            </div>
+            <div className="flex items-center justify-between rounded-lg border border-border/70 p-3 text-foreground">
+              <span className="flex items-center gap-2 font-medium">
+                <CheckCircle2 className="h-4 w-4 text-primary" />
+                {auto("Net payout", "payout.net")}
+              </span>
+              <span className="font-semibold">SAR 8,580,800</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <Button type="button" variant="outline">
+            {auto("Save draft", "actions.saveDraft")}
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="me-2 h-4 w-4 animate-spin" />
+                {auto("Submitting...", "actions.submitting")}
+              </>
+            ) : (
+              <>
+                <Banknote className="me-2 h-4 w-4" />
+                {auto("Submit to treasury", "actions.submit")}
+              </>
+            )}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/hr/recruitment/page.tsx">
+<![CDATA[
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Search, Loader2 } from "lucide-react";
+import ClientDate from "@/components/ClientDate";
+import { logger } from "@/lib/logger";
+
+interface JobPosting {
+  _id: string;
+  title: string;
+  department?: string;
+  status: string;
+  jobType?: string;
+  visibility?: string;
+  location?: {
+    city?: string;
+    country?: string;
+    mode?: string;
+  };
+  salaryRange?: {
+    min?: number;
+    max?: number;
+    currency?: string;
+  };
+  applicationCount?: number;
+  publishedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+const statusOrder: Record<string, number> = {
+  published: 1,
+  pending: 2,
+  draft: 3,
+  closed: 4,
+  archived: 5,
+};
+
+export default function AtsJobsPage() {
+  const { t } = useTranslation();
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({
+    moduleId: "hr",
+  });
+  const [jobs, setJobs] = useState<JobPosting[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<
+    "published" | "pending" | "draft" | "closed" | "archived" | "all"
+  >("published");
+  const [jobTypeFilter, setJobTypeFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(id);
+  }, [search]);
+
+  useEffect(() => {
+    if (!orgId) return;
+    void fetchJobs();
+  }, [orgId, statusFilter, jobTypeFilter, debouncedSearch]);
+
+  const fetchJobs = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const params = new URLSearchParams();
+      params.set("status", statusFilter);
+      if (jobTypeFilter !== "all") {
+        params.set("jobType", jobTypeFilter);
+      }
+      if (debouncedSearch) {
+        params.set("q", debouncedSearch);
+      }
+      params.set("limit", "100");
+      const response = await fetch(`/api/ats/jobs?${params.toString()}`);
+      const payload = await response.json();
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || "Failed to load jobs");
+      }
+      setJobs(Array.isArray(payload.data) ? payload.data : []);
+    } catch (err) {
+      logger.error("Failed to load ATS jobs", { err });
+      setError(
+        err instanceof Error
+          ? err.message
+          : t("hr.ats.jobs.error.generic", "Unable to load job postings."),
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const summary = useMemo(() => {
+    const counts: Record<string, number> = {
+      published: 0,
+      pending: 0,
+      draft: 0,
+      closed: 0,
+    };
+    jobs.forEach((job) => {
+      if (counts[job.status] !== undefined) {
+        counts[job.status] += 1;
+      }
+    });
+    return counts;
+  }, [jobs]);
+
+  const statusOptions: { value: typeof statusFilter; label: string }[] = [
+    {
+      value: "published",
+      label: t("hr.ats.jobs.filters.statusPublished", "Published"),
+    },
+    {
+      value: "pending",
+      label: t("hr.ats.jobs.filters.statusPending", "Pending"),
+    },
+    { value: "draft", label: t("hr.ats.jobs.filters.statusDraft", "Draft") },
+    { value: "closed", label: t("hr.ats.jobs.filters.statusClosed", "Closed") },
+    {
+      value: "archived",
+      label: t("hr.ats.jobs.filters.statusArchived", "Archived"),
+    },
+    { value: "all", label: t("hr.ats.jobs.filters.statusAll", "All statuses") },
+  ];
+  const jobStatusLabels: Record<string, { key: string; fallback: string }> = {
+    published: { key: "hr.ats.jobs.status.published", fallback: "Published" },
+    pending: { key: "hr.ats.jobs.status.pending", fallback: "Pending" },
+    draft: { key: "hr.ats.jobs.status.draft", fallback: "Draft" },
+    closed: { key: "hr.ats.jobs.status.closed", fallback: "Closed" },
+    archived: { key: "hr.ats.jobs.status.archived", fallback: "Archived" },
+  };
+  const jobTypeLabels: Record<string, { key: string; fallback: string }> = {
+    "full-time": {
+      key: "hr.ats.jobs.jobType.full-time",
+      fallback: "Full-time",
+    },
+    "part-time": {
+      key: "hr.ats.jobs.jobType.part-time",
+      fallback: "Part-time",
+    },
+    contract: { key: "hr.ats.jobs.jobType.contract", fallback: "Contract" },
+    temporary: { key: "hr.ats.jobs.jobType.temporary", fallback: "Temporary" },
+    internship: {
+      key: "hr.ats.jobs.jobType.internship",
+      fallback: "Internship",
+    },
+    remote: { key: "hr.ats.jobs.jobType.remote", fallback: "Remote" },
+    hybrid: { key: "hr.ats.jobs.jobType.hybrid", fallback: "Hybrid" },
+    unspecified: {
+      key: "hr.ats.jobs.jobType.unspecified",
+      fallback: "Unspecified",
+    },
+  };
+  const jobVisibilityLabels: Record<string, { key: string; fallback: string }> =
+    {
+      internal: {
+        key: "hr.ats.jobs.visibility.internal",
+        fallback: "Internal",
+      },
+      public: { key: "hr.ats.jobs.visibility.public", fallback: "Public" },
+    };
+
+  const jobTypeOptions: { value: string; label: string }[] = [
+    {
+      value: "all",
+      label: t("hr.ats.jobs.filters.jobTypeAll", "All job types"),
+    },
+    {
+      value: "full-time",
+      label: t("hr.ats.jobs.filters.jobTypeFullTime", "Full-time"),
+    },
+    {
+      value: "part-time",
+      label: t("hr.ats.jobs.filters.jobTypePartTime", "Part-time"),
+    },
+    {
+      value: "contract",
+      label: t("hr.ats.jobs.filters.jobTypeContract", "Contract"),
+    },
+    {
+      value: "temporary",
+      label: t("hr.ats.jobs.filters.jobTypeTemporary", "Temporary"),
+    },
+    {
+      value: "internship",
+      label: t("hr.ats.jobs.filters.jobTypeInternship", "Internship"),
+    },
+    {
+      value: "remote",
+      label: t("hr.ats.jobs.filters.jobTypeRemote", "Remote"),
+    },
+    {
+      value: "hybrid",
+      label: t("hr.ats.jobs.filters.jobTypeHybrid", "Hybrid"),
+    },
+  ];
+  const locationModeLabels: Record<string, { key: string; fallback: string }> =
+    {
+      remote: { key: "hr.ats.jobs.location.remote", fallback: "Remote" },
+      hybrid: { key: "hr.ats.jobs.location.hybrid", fallback: "Hybrid" },
+      onsite: { key: "hr.ats.jobs.location.onsite", fallback: "Onsite" },
+    };
+
+  const formatStatusBadge = (status: string) => {
+    switch (status) {
+      case "published":
+        return "bg-success/10 text-success border-success/30";
+      case "pending":
+        return "bg-warning/10 text-warning border-warning/30";
+      case "draft":
+        return "bg-muted text-muted-foreground border-border";
+      case "closed":
+      case "archived":
+        return "bg-destructive/10 text-destructive border-destructive/30";
+      default:
+        return "bg-secondary text-secondary-foreground";
+    }
+  };
+
+  const sortedJobs = useMemo(() => {
+    return [...jobs].sort((a, b) => {
+      const statusDiff =
+        (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99);
+      if (statusDiff !== 0) return statusDiff;
+      return (
+        new Date(b.updatedAt || b.publishedAt || b.createdAt || "").getTime() -
+        new Date(a.updatedAt || a.publishedAt || a.createdAt || "").getTime()
+      );
+    });
+  }, [jobs]);
+
+  const formatLocation = (job: JobPosting) => {
+    const parts = [job.location?.city, job.location?.country].filter(Boolean);
+    const locationString = parts.join(", ");
+    const mode = job.location?.mode;
+    if (mode && mode !== "onsite") {
+      const modeConfig = locationModeLabels[mode] ?? {
+        key: "hr.ats.jobs.location.unspecifiedMode",
+        fallback: mode,
+      };
+      const modeLabel = t(modeConfig.key, modeConfig.fallback);
+      return locationString ? `${locationString} • ${modeLabel}` : modeLabel;
+    }
+    if (!locationString && mode === "onsite") {
+      return t(
+        locationModeLabels.onsite.key,
+        locationModeLabels.onsite.fallback,
+      );
+    }
+    return locationString || t("hr.ats.jobs.location.unspecified", "TBD");
+  };
+
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="hr" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t("fm.org.supportContext", "Support context: {{name}}", {
+            name: supportOrg.name,
+          })}
+        </div>
+      )}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">
+            {t("hr.ats.jobs.title", "Talent & ATS")}
+          </h2>
+          <p className="text-muted-foreground">
+            {t(
+              "hr.ats.jobs.subtitle",
+              "Track open roles, publishing status, and application flow.",
+            )}
+          </p>
+        </div>
+        <Button asChild>
+          <Link href="/hr/ats/jobs/new">
+            {t("hr.ats.jobs.actions.new", "Post a new job")}
+          </Link>
+        </Button>
+      </div>
+
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base text-muted-foreground">
+            {t("hr.ats.jobs.filters.title", "Filters")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4 md:flex-row md:items-end">
+          <div className="flex-1">
+            <label className="text-xs uppercase tracking-wide text-muted-foreground mb-1 block">
+              {t("hr.ats.jobs.filters.search", "Search")}
+            </label>
+            <div className="relative">
+              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                className="ps-9"
+                placeholder={t(
+                  "hr.ats.jobs.filters.searchPlaceholder",
+                  "Title, dept, keyword...",
+                )}
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex-1">
+            <label className="text-xs uppercase tracking-wide text-muted-foreground mb-1 block">
+              {t("hr.ats.jobs.filters.statusLabel", "Status")}
+            </label>
+            <Select
+              value={statusFilter}
+              onValueChange={(value) =>
+                setStatusFilter(value as typeof statusFilter)
+              }
+            >
+              <SelectTrigger>
+                <SelectValue>
+                  {statusOptions.find((o) => o.value === statusFilter)?.label ||
+                    t("hr.ats.jobs.filters.statusLabel", "Status")}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {statusOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex-1">
+            <label className="text-xs uppercase tracking-wide text-muted-foreground mb-1 block">
+              {t("hr.ats.jobs.filters.jobTypeLabel", "Job type")}
+            </label>
+            <Select
+              value={jobTypeFilter}
+              onValueChange={(value) => setJobTypeFilter(value)}
+            >
+              <SelectTrigger>
+                <SelectValue>
+                  {jobTypeOptions.find((o) => o.value === jobTypeFilter)
+                    ?.label ||
+                    t("hr.ats.jobs.filters.jobTypeLabel", "Job type")}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {jobTypeOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardContent className="py-4">
+            <p className="text-sm text-muted-foreground">
+              {t("hr.ats.jobs.stats.published", "Published")}
+            </p>
+            <p className="text-2xl font-semibold mt-2">{summary.published}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="py-4">
+            <p className="text-sm text-muted-foreground">
+              {t("hr.ats.jobs.stats.pending", "Pending review")}
+            </p>
+            <p className="text-2xl font-semibold mt-2">{summary.pending}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="py-4">
+            <p className="text-sm text-muted-foreground">
+              {t("hr.ats.jobs.stats.draft", "Drafts")}
+            </p>
+            <p className="text-2xl font-semibold mt-2">{summary.draft}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="py-4">
+            <p className="text-sm text-muted-foreground">
+              {t("hr.ats.jobs.stats.closed", "Closed")}
+            </p>
+            <p className="text-2xl font-semibold mt-2">{summary.closed}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40">
+                <tr>
+                  <th className="px-4 py-3 text-start">
+                    {t("hr.ats.jobs.table.role", "Role")}
+                  </th>
+                  <th className="px-4 py-3 text-start">
+                    {t("hr.ats.jobs.table.department", "Department")}
+                  </th>
+                  <th className="px-4 py-3 text-start">
+                    {t("hr.ats.jobs.table.location", "Location")}
+                  </th>
+                  <th className="px-4 py-3 text-start">
+                    {t("hr.ats.jobs.table.jobType", "Job type")}
+                  </th>
+                  <th className="px-4 py-3 text-start">
+                    {t("hr.ats.jobs.table.applications", "Applications")}
+                  </th>
+                  <th className="px-4 py-3 text-start">
+                    {t("hr.ats.jobs.table.published", "Published")}
+                  </th>
+                  <th className="px-4 py-3 text-start">
+                    {t("hr.ats.jobs.table.visibility", "Visibility")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="py-8 text-center text-muted-foreground"
+                    >
+                      <Loader2 className="mx-auto h-5 w-5 animate-spin text-primary" />
+                      <p className="mt-2 text-sm">
+                        {t("common.loading", "Loading...")}
+                      </p>
+                    </td>
+                  </tr>
+                ) : error ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="py-6 text-center text-destructive"
+                    >
+                      {error}
+                    </td>
+                  </tr>
+                ) : sortedJobs.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="py-6 text-center text-muted-foreground"
+                    >
+                      {t(
+                        "hr.ats.jobs.empty",
+                        "No job postings match your filters yet.",
+                      )}
+                    </td>
+                  </tr>
+                ) : (
+                  sortedJobs.map((job) => (
+                    <tr key={job._id} className="border-b border-border/60">
+                      <td className="px-4 py-3 align-top">
+                        <div className="flex flex-col gap-1">
+                          <span className="font-semibold text-foreground">
+                            {job.title}
+                          </span>
+                          <Badge className={formatStatusBadge(job.status)}>
+                            {(() => {
+                              const statusKey = (
+                                job.status || ""
+                              ).toLowerCase();
+                              const label = jobStatusLabels[statusKey];
+                              return t(
+                                label?.key ?? "hr.ats.jobs.status.pending",
+                                label?.fallback ?? job.status,
+                              );
+                            })()}
+                          </Badge>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 align-top">
+                        {job.department || t("common.notAvailable", "N/A")}
+                      </td>
+                      <td className="px-4 py-3 align-top text-muted-foreground">
+                        {formatLocation(job)}
+                      </td>
+                      <td className="px-4 py-3 align-top">
+                        {(() => {
+                          const typeKey = (
+                            job.jobType || "unspecified"
+                          ).toLowerCase();
+                          const label =
+                            jobTypeLabels[typeKey] ?? jobTypeLabels.unspecified;
+                          return t(label.key, label.fallback);
+                        })()}
+                      </td>
+                      <td className="px-4 py-3 align-top">
+                        {job.applicationCount ?? 0}
+                      </td>
+                      <td className="px-4 py-3 align-top">
+                        {job.publishedAt ? (
+                          <ClientDate date={job.publishedAt} format="medium" />
+                        ) : (
+                          t("hr.ats.jobs.notPublished", "Not yet published")
+                        )}
+                      </td>
+                      <td className="px-4 py-3 align-top">
+                        <Badge variant="outline">
+                          {(() => {
+                            const visibilityKey = (
+                              job.visibility || "internal"
+                            ).toLowerCase();
+                            const label =
+                              jobVisibilityLabels[visibilityKey] ??
+                              jobVisibilityLabels.internal;
+                            return t(label.key, label.fallback);
+                          })()}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/invoices/new/page.tsx">
+<![CDATA[
+"use client";
+
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { ClipboardCheck, Mail, Users } from "lucide-react";
+import { BaseSyntheticEvent, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+
+const stakeholders = [
+  {
+    name: "Project Ops",
+    expectation: "Needs invoice draft 3 days before go-live.",
+  },
+  {
+    name: "Customer Success",
+    expectation: "Needs copy for portal + email templates.",
+  },
+  {
+    name: "Finance AP",
+    expectation: "Requires bundled invoices for enterprise accounts.",
+  },
+];
+
+type InvoiceFormValues = {
+  customer: string;
+  project: string;
+  amount: string;
+  billingContact: string;
+  narrative: string;
+};
+
+export default function InvoiceCreationForOpsPage() {
+  const { hasOrgContext, guard, supportBanner, orgId } = useFmOrgGuard({
+    moduleId: "finance",
+  });
+  const auto = useAutoTranslator("fm.invoices.new");
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<InvoiceFormValues>({
+    defaultValues: {
+      customer: "",
+      project: "",
+      amount: "",
+      billingContact: "",
+      narrative: "",
+    },
+  });
+  const [activeAction, setActiveAction] = useState<"review" | "send" | null>(
+    null,
+  );
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const onSubmit = async (
+    values: InvoiceFormValues,
+    event?: BaseSyntheticEvent,
+  ) => {
+    const action = (
+      (event?.nativeEvent as SubmitEvent)?.submitter as HTMLButtonElement | null
+    )?.dataset?.action as "review" | "send" | undefined;
+    const currentAction = action ?? "review";
+    setActiveAction(currentAction);
+    setSubmitError(null);
+    if (!orgId) {
+      const message = auto(
+        "Organization context required before submitting.",
+        "form.orgRequired",
+      );
+      setSubmitError(message);
+      toast.error(message);
+      return;
+    }
+    try {
+      const amount = Number(values.amount);
+      const payload = {
+        customer: values.customer.trim(),
+        project: values.project.trim(),
+        amount,
+        billingContact: values.billingContact.trim(),
+        narrative: values.narrative.trim(),
+        action: currentAction,
+      };
+
+      const endpoint =
+        currentAction === "send"
+          ? "/api/invoices/send"
+          : "/api/invoices/review";
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tenant-id": orgId,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(
+          body?.error ?? auto("Failed to process invoice.", "form.error"),
+        );
+      }
+
+      toast.success(
+        currentAction === "send"
+          ? auto("Invoice sent to customer.", "form.sent")
+          : auto("Finance review requested.", "form.requested"),
+      );
+      reset();
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : auto("Failed to process invoice.", "form.error");
+      setSubmitError(message);
+      toast.error(message);
+    } finally {
+      setActiveAction(null);
+    }
+  };
+
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="finance" />
+      {supportBanner}
+
+      <header className="space-y-2">
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+          {auto("Field & ops workflow", "header.kicker")}
+        </p>
+        <h1 className="text-3xl font-semibold">
+          {auto("Create customer-ready invoices", "header.title")}
+        </h1>
+        <p className="text-muted-foreground">
+          {auto(
+            "Designed for AM / ops teams who need a guided invoice flow with customer comms baked in.",
+            "header.subtitle",
+          )}
+        </p>
+      </header>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>{auto("Quick draft", "form.title")}</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {auto(
+                "Ops-friendly fields. Finance-only fields stay hidden unless required.",
+                "form.subtitle",
+              )}
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="customer">
+                  {auto("Customer name", "form.customer")}
+                </Label>
+                <Input
+                  id="customer"
+                  placeholder={auto(
+                    "e.g., Fixzit Facilities KSA",
+                    "form.customer.placeholder",
+                  )}
+                  disabled={isSubmitting}
+                  {...register("customer", {
+                    required: auto(
+                      "Customer name is required.",
+                      "form.customer.validation",
+                    ),
+                  })}
+                />
+                {errors.customer && (
+                  <p className="text-sm text-destructive">
+                    {errors.customer.message}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="project">
+                  {auto("Project / site", "form.project")}
+                </Label>
+                <Input
+                  id="project"
+                  placeholder="HQ Upgrades - Riyadh"
+                  disabled={isSubmitting}
+                  {...register("project", {
+                    required: auto(
+                      "Project reference is required.",
+                      "form.project.validation",
+                    ),
+                  })}
+                />
+                {errors.project && (
+                  <p className="text-sm text-destructive">
+                    {errors.project.message}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="amount">
+                  {auto("Amount (SAR)", "form.amount")}
+                </Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  placeholder="78000"
+                  disabled={isSubmitting}
+                  {...register("amount", {
+                    required: auto(
+                      "Amount is required.",
+                      "form.amount.validation",
+                    ),
+                    validate: (value) =>
+                      Number(value) > 0 ||
+                      auto(
+                        "Amount must be greater than zero.",
+                        "form.amount.positive",
+                      ),
+                  })}
+                />
+                {errors.amount && (
+                  <p className="text-sm text-destructive">
+                    {errors.amount.message}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="billingContact">
+                  {auto("Billing contact email", "form.contact")}
+                </Label>
+                <Input
+                  id="billingContact"
+                  type="email"
+                  placeholder="billing@customer.com"
+                  disabled={isSubmitting}
+                  {...register("billingContact", {
+                    required: auto(
+                      "Billing contact is required.",
+                      "form.contact.validation",
+                    ),
+                    pattern: {
+                      value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                      message: auto(
+                        "Enter a valid email address.",
+                        "form.contact.email",
+                      ),
+                    },
+                  })}
+                />
+                {errors.billingContact && (
+                  <p className="text-sm text-destructive">
+                    {errors.billingContact.message}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="narrative">
+                {auto("Narrative for customer email", "form.narrative")}
+              </Label>
+              <Textarea
+                id="narrative"
+                rows={4}
+                placeholder={auto(
+                  "Hi team, here is the March invoice…",
+                  "form.narrative.placeholder",
+                )}
+                disabled={isSubmitting}
+                {...register("narrative", {
+                  minLength: {
+                    value: 12,
+                    message: auto(
+                      "Add a bit more context for the customer.",
+                      "form.narrative.validation",
+                    ),
+                  },
+                })}
+              />
+              {errors.narrative && (
+                <p className="text-sm text-destructive">
+                  {errors.narrative.message}
+                </p>
+              )}
+            </div>
+            {submitError && (
+              <p className="text-sm text-destructive">{submitError}</p>
+            )}
+            <div className="flex flex-wrap gap-3">
+              <Button
+                type="submit"
+                variant="outline"
+                data-action="review"
+                disabled={isSubmitting}
+              >
+                <ClipboardCheck className="me-2 h-4 w-4" />
+                {isSubmitting && activeAction === "review"
+                  ? auto("Requesting...", "form.requestReview.loading")
+                  : auto("Request finance review", "form.requestReview")}
+              </Button>
+              <Button type="submit" data-action="send" disabled={isSubmitting}>
+                <Mail className="me-2 h-4 w-4" />
+                {isSubmitting && activeAction === "send"
+                  ? auto("Sending...", "form.send.loading")
+                  : auto("Send to customer", "form.send")}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </form>
+
+      <Card className="border-dashed border-border/70">
+        <CardHeader>
+          <CardTitle>
+            {auto("Stakeholder expectations", "stakeholders.title")}
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {auto(
+              "Keep everyone aligned when invoices leave the door.",
+              "stakeholders.subtitle",
+            )}
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {stakeholders.map((stakeholder) => (
+            <div
+              key={stakeholder.name}
+              className="rounded-lg border border-border/60 p-3"
+            >
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-primary" />
+                <p className="font-semibold">{stakeholder.name}</p>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {stakeholder.expectation}
+              </p>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/invoices/page.tsx">
+<![CDATA[
+// Re-export the finance invoices page which already wires useFmOrgGuard.
+export { default } from "@/app/fm/finance/invoices/page";
+export * from "@/app/fm/finance/invoices/page";
+
+]]>
+</file>
+
+<file path="app/fm/maintenance/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Eye,
+  Edit,
+  Trash2,
+  Wrench,
+  Calendar,
+  Clock,
+  AlertTriangle,
+  CheckCircle,
+  Loader2,
+} from "lucide-react";
+import ClientDate from "@/components/ClientDate";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { CardGridSkeleton } from "@/components/skeletons";
+
+interface MaintenanceTask {
+  id: string;
+  title: string;
+  asset: string;
+  priority: "Low" | "Medium" | "High" | "Urgent";
+  status: "Scheduled" | "In Progress" | "Completed" | "Overdue";
+  dueDate: string;
+  assignedTo: string;
+  description: string;
+}
+
+export default function MaintenancePage() {
+  const router = useRouter();
+  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({
+    moduleId: "administration",
+  });
+  const { t } = useTranslation();
+  const [tasks, setTasks] = useState<MaintenanceTask[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<MaintenanceTask | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Mock data - in production, this would be fetched from API
+  const mockTasks: MaintenanceTask[] = [
+    {
+      id: "MT-001",
+      title: "AC Unit Maintenance - Tower A",
+      asset: "AC-001",
+      priority: "Medium",
+      status: "Scheduled",
+      dueDate: "2025-10-15",
+      assignedTo: "John Smith",
+      description: "Quarterly maintenance check for AC unit in Tower A lobby",
+    },
+    {
+      id: "MT-002",
+      title: "Elevator Inspection - Building 1",
+      asset: "ELV-001",
+      priority: "High",
+      status: "In Progress",
+      dueDate: "2025-09-25",
+      assignedTo: "Mike Johnson",
+      description: "Annual elevator safety inspection and certification",
+    },
+    {
+      id: "MT-003",
+      title: "Fire Alarm System Test",
+      asset: "FA-001",
+      priority: "Urgent",
+      status: "Overdue",
+      dueDate: "2025-09-20",
+      assignedTo: "Sarah Wilson",
+      description: "Monthly fire alarm system test and battery replacement",
+    },
+  ];
+
+  const fetchTasks = useCallback(async () => {
+    if (!orgId) return;
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/fm/maintenance?orgId=${orgId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setTasks(Array.isArray(data?.tasks) ? data.tasks : mockTasks);
+      } else {
+        // Fallback to mock data if API not ready
+        setTasks(mockTasks);
+      }
+    } catch {
+      // Fallback to mock data
+      setTasks(mockTasks);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [orgId]);
+
+  useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
+
+  const handleView = (task: MaintenanceTask) => {
+    router.push(`/fm/maintenance/${task.id}`);
+  };
+
+  const handleEdit = (task: MaintenanceTask) => {
+    router.push(`/fm/maintenance/${task.id}/edit`);
+  };
+
+  const handleDeleteClick = (task: MaintenanceTask) => {
+    setTaskToDelete(task);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!taskToDelete) return;
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/fm/maintenance/${taskToDelete.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orgId }),
+      });
+      if (response.ok) {
+        toast.success(t("maintenance.deleteSuccess", "Task deleted successfully"));
+        setTasks((prev) => prev.filter((t) => t.id !== taskToDelete.id));
+      } else {
+        const data = await response.json().catch(() => ({}));
+        toast.error(data?.error || t("maintenance.deleteError", "Failed to delete task"));
+      }
+    } catch {
+      toast.error(t("maintenance.deleteError", "Failed to delete task"));
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+      setTaskToDelete(null);
+    }
+  };
+
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority.toLowerCase()) {
+      case "urgent":
+        return "bg-destructive/10 text-destructive-foreground border-destructive/20";
+      case "high":
+        return "bg-warning/10 text-warning border-warning";
+      case "medium":
+        return "bg-warning/10 text-warning-foreground border-warning/20";
+      case "low":
+        return "bg-success/10 text-success-foreground border-success/20";
+      default:
+        return "bg-muted text-foreground border-border";
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "completed":
+        return "bg-success/10 text-success-foreground border-success/20";
+      case "in progress":
+        return "bg-primary/10 text-primary-foreground border-primary/20";
+      case "scheduled":
+        return "bg-muted text-foreground border-border";
+      case "overdue":
+        return "bg-destructive/10 text-destructive-foreground border-destructive/20";
+      default:
+        return "bg-muted text-foreground border-border";
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "completed":
+        return <CheckCircle className="h-4 w-4" />;
+      case "in progress":
+        return <Clock className="h-4 w-4" />;
+      case "scheduled":
+        return <Calendar className="h-4 w-4" />;
+      case "overdue":
+        return <AlertTriangle className="h-4 w-4" />;
+      default:
+        return <Wrench className="h-4 w-4" />;
+    }
+  };
+
+  if (!orgId) {
+    return (
+      <div className="space-y-6">
+        {supportBanner}
+        {guard}
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        {supportBanner}
+        <CardGridSkeleton count={4} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {supportBanner}
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("maintenance.deleteTitle", "Delete Task")}</DialogTitle>
+            <DialogDescription>
+              {t("maintenance.deleteConfirm", "Are you sure you want to delete \"{{title}}\"? This action cannot be undone.").replace("{{title}}", taskToDelete?.title || "")}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting}>
+              {t("common.cancel", "Cancel")}
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm} disabled={isDeleting}>
+              {isDeleting && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
+              {t("common.delete", "Delete")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-foreground mb-2">
+          {t("nav.maintenance", "Maintenance")}
+        </h1>
+        <p className="text-muted-foreground">
+          {t(
+            "maintenance.description",
+            "Manage equipment maintenance schedules and tasks",
+          )}
+        </p>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-primary/10 rounded-2xl">
+                <Wrench className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Total Tasks
+                </p>
+                <p className="text-2xl font-bold text-foreground">24</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-success/10 rounded-2xl">
+                <CheckCircle className="h-6 w-6 text-success" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Completed
+                </p>
+                <p className="text-2xl font-bold text-foreground">18</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-accent/10 rounded-2xl">
+                <Clock className="h-6 w-6 text-accent" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  In Progress
+                </p>
+                <p className="text-2xl font-bold text-foreground">4</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-destructive/10 rounded-2xl">
+                <AlertTriangle className="h-6 w-6 text-destructive" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Overdue
+                </p>
+                <p className="text-2xl font-bold text-foreground">2</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Maintenance Tasks */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Wrench className="h-5 w-5" />
+            {t("maintenance.tasks", "Maintenance Tasks")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {tasks.map((task) => (
+              <div
+                key={task.id}
+                className="border border-border rounded-2xl p-4 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-3">
+                      <h3 className="text-lg font-semibold text-foreground">
+                        {task.title}
+                      </h3>
+                      <Badge className={getPriorityColor(task.priority)}>
+                        {task.priority}
+                      </Badge>
+                      <Badge className={getStatusColor(task.status)}>
+                        {getStatusIcon(task.status)}
+                        <span className="ms-1">{task.status}</span>
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span className="font-medium">
+                          {t("maintenance.asset", "Asset")}:
+                        </span>
+                        {task.asset}
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="h-4 w-4" />
+                        {t("maintenance.due", "Due")}:{" "}
+                        <ClientDate date={task.dueDate} format="date-only" />
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span className="font-medium">
+                          {t("maintenance.assigned", "Assigned to")}:
+                        </span>
+                        {task.assignedTo}
+                      </div>
+                    </div>
+
+                    <p className="text-muted-foreground text-sm">
+                      {task.description}
+                    </p>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleView(task)}
+                      aria-label={t("maintenance.viewTask", "View task {{title}}").replace("{{title}}", task.title)}
+                    >
+                      <Eye className="h-4 w-4 me-2" />
+                      {t("common.view", "View")}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleEdit(task)}
+                      aria-label={t("maintenance.editTask", "Edit task {{title}}").replace("{{title}}", task.title)}
+                    >
+                      <Edit className="h-4 w-4 me-2" />
+                      {t("common.edit", "Edit")}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => handleDeleteClick(task)}
+                      aria-label={t("maintenance.deleteTask", "Delete task {{title}}").replace("{{title}}", task.title)}
+                    >
+                      <Trash2 className="h-4 w-4 me-2" />
+                      {t("common.delete", "Delete")}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/marketplace/listings/new/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import { toast } from "sonner";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { cn } from "@/lib/utils";
+
+const CATEGORY_OPTIONS = [
+  "Electronics",
+  "Home & Kitchen",
+  "Industrial Supplies",
+  "Automotive",
+  "Services",
+];
+
+const COMPLIANCE_CHECKS = [
+  {
+    id: "authentic",
+    label: "I confirm this product is authentic and sourced legally",
+  },
+  { id: "safety", label: "Safety documentation uploaded when required" },
+  { id: "warranty", label: "Warranty and return policy specified" },
+  { id: "media", label: "High quality media assets attached" },
+];
+
+export default function MarketplaceNewListingPage() {
+  const auto = useAutoTranslator("fm.marketplace.listings.new");
+  const { t } = useTranslation();
+  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({
+    moduleId: "marketplace",
+  });
+  const [formState, setFormState] = useState({
+    title: "",
+    sku: "",
+    fsin: "",
+    category: "",
+    description: "",
+    price: "",
+    stock: "",
+  });
+  const [compliance, setCompliance] = useState<Record<string, boolean>>({});
+  const [submitting, setSubmitting] = useState(false);
+
+  const updateField = (field: keyof typeof formState, value: string) =>
+    setFormState((prev) => ({ ...prev, [field]: value }));
+
+  const toggleCompliance = (id: string, value: boolean) =>
+    setCompliance((prev) => ({ ...prev, [id]: value }));
+
+  const canSubmit =
+    formState.title.trim().length > 3 &&
+    formState.sku.trim().length > 0 &&
+    formState.price.trim().length > 0 &&
+    COMPLIANCE_CHECKS.every((item) => compliance[item.id]);
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    const toastId = toast.loading(
+      auto("Publishing listing...", "actions.submitting"),
+    );
+    try {
+      const payload = {
+        title: formState.title,
+        sku: formState.sku,
+        fsin: formState.fsin || undefined,
+        category: formState.category,
+        price: Number(formState.price),
+        stock: Number(formState.stock || 0),
+        description: formState.description,
+        compliance: Object.entries(compliance)
+          .filter(([, checked]) => checked)
+          .map(([id]) => id),
+      };
+
+      if (!Number.isFinite(payload.price) || payload.price <= 0) {
+        throw new Error(
+          auto("Price must be greater than 0", "actions.priceInvalid"),
+        );
+      }
+      if (!Number.isFinite(payload.stock) || payload.stock < 0) {
+        throw new Error(
+          auto("Stock must be zero or greater", "actions.stockInvalid"),
+        );
+      }
+
+      const res = await fetch("/api/fm/marketplace/listings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.success) {
+        throw new Error(body?.error || "Failed to publish listing");
+      }
+
+      toast.success(auto("Listing submitted for review", "actions.success"), {
+        id: toastId,
+      });
+      setFormState({
+        title: "",
+        sku: "",
+        fsin: "",
+        category: "",
+        description: "",
+        price: "",
+        stock: "",
+      });
+      setCompliance({});
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : auto("Failed to publish listing", "actions.error");
+      toast.error(message, { id: toastId });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!hasOrgContext) {
+    return guard;
+  }
+
+  return (
+    <div className="space-y-6 p-6">
+      <ModuleViewTabs moduleId="marketplace" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t("fm.org.supportContext", "Support context: {{name}}", {
+            name: supportOrg.name,
+          })}
+        </div>
+      )}
+
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <p className="text-sm uppercase tracking-wide text-muted-foreground">
+            {auto("Listings", "breadcrumbs.scope")}
+          </p>
+          <h1 className="text-3xl font-semibold text-foreground">
+            {auto("Create Marketplace Listing", "header.title")}
+          </h1>
+          <p className="text-muted-foreground">
+            {auto(
+              "Share product details, pricing, and compliance notes before publishing to buyers.",
+              "header.subtitle",
+            )}
+          </p>
+        </div>
+        <Button onClick={handleSubmit} disabled={!canSubmit || submitting}>
+          {submitting
+            ? auto("Submitting…", "actions.submitting")
+            : auto("Publish Listing", "actions.submit")}
+        </Button>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>
+              {auto("Product Information", "sections.productInfo.title")}
+            </CardTitle>
+            <CardDescription>
+              {auto(
+                "Core data shoppers see while browsing the marketplace.",
+                "sections.productInfo.desc",
+              )}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <Label htmlFor="title">
+                  {auto("Title", "fields.title.label")}
+                </Label>
+                <Input
+                  id="title"
+                  value={formState.title}
+                  placeholder={auto(
+                    "E.g., Smart HVAC Controller",
+                    "fields.title.placeholder",
+                  )}
+                  onChange={(event) => updateField("title", event.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="sku">{auto("SKU", "fields.sku.label")}</Label>
+                <Input
+                  id="sku"
+                  value={formState.sku}
+                  placeholder="SKU-001"
+                  onChange={(event) => updateField("sku", event.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <Label htmlFor="fsin">
+                  {auto("FSIN (optional)", "fields.fsin.label")}
+                </Label>
+                <Input
+                  id="fsin"
+                  value={formState.fsin}
+                  placeholder="FSIN-12345"
+                  onChange={(event) => updateField("fsin", event.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="category">
+                  {auto("Category", "fields.category.label")}
+                </Label>
+                <select
+                  id="category"
+                  className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+                  value={formState.category}
+                  onChange={(event) =>
+                    updateField("category", event.target.value)
+                  }
+                >
+                  <option value="">
+                    {auto("Select category", "fields.category.placeholder")}
+                  </option>
+                  {CATEGORY_OPTIONS.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="price">
+                  {auto("Price (SAR)", "fields.price.label")}
+                </Label>
+                <Input
+                  id="price"
+                  value={formState.price}
+                  onChange={(event) => updateField("price", event.target.value)}
+                  placeholder="100.00"
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <Label htmlFor="stock">
+                  {auto("Available stock", "fields.stock.label")}
+                </Label>
+                <Input
+                  id="stock"
+                  value={formState.stock}
+                  onChange={(event) => updateField("stock", event.target.value)}
+                  placeholder="50"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="description">
+                {auto("Description", "fields.description.label")}
+              </Label>
+              <Textarea
+                id="description"
+                rows={6}
+                value={formState.description}
+                placeholder={auto(
+                  "Describe use cases, specifications, SLAs, and delivery lead time.",
+                  "fields.description.placeholder",
+                )}
+                onChange={(event) =>
+                  updateField("description", event.target.value)
+                }
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {auto("Compliance Checklist", "sections.compliance.title")}
+              </CardTitle>
+              <CardDescription>
+                {auto(
+                  "Confirm mandatory policies before publishing.",
+                  "sections.compliance.desc",
+                )}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {COMPLIANCE_CHECKS.map((item) => (
+                <label key={item.id} className="flex items-start gap-3 text-sm">
+                  <Checkbox
+                    checked={compliance[item.id] ?? false}
+                    onCheckedChange={(value) =>
+                      toggleCompliance(item.id, Boolean(value))
+                    }
+                  />
+                  <span>
+                    {auto(item.label, `sections.compliance.item.${item.id}`)}
+                  </span>
+                </label>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {auto("Media & Assets", "sections.media.title")}
+              </CardTitle>
+              <CardDescription>
+                {auto(
+                  "Upload hero images, spec sheets, and compliance files.",
+                  "sections.media.desc",
+                )}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="rounded-lg border border-dashed border-border/80 p-4 text-center">
+                <p className="text-sm text-muted-foreground">
+                  {auto(
+                    "Drag & drop files or click to browse",
+                    "sections.media.dropzone",
+                  )}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {["Hero shot", "Spec sheet", "Warranty"].map((tag) => (
+                  <Badge key={tag} variant="outline" className="border-dashed">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{auto("Preview", "sections.preview.title")}</CardTitle>
+          <CardDescription>
+            {auto(
+              "Live rendering of the listing card buyers will see.",
+              "sections.preview.desc",
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-2xl border border-border bg-card/60 p-6 shadow-sm">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                  {formState.category ||
+                    auto("Category TBD", "sections.preview.categoryFallback")}
+                </p>
+                <h3 className="text-2xl font-semibold text-foreground">
+                  {formState.title ||
+                    auto(
+                      "Listing title pending",
+                      "sections.preview.titleFallback",
+                    )}
+                </h3>
+                <p className="text-muted-foreground">
+                  {auto("SKU", "sections.preview.skuLabel")}:{" "}
+                  {formState.sku || "--"}
+                </p>
+              </div>
+              <Badge className={cn("text-base px-4 py-1")}>
+                {formState.price
+                  ? `SAR ${formState.price}`
+                  : auto("Set price", "sections.preview.priceFallback")}
+              </Badge>
+            </div>
+            <p className="mt-4 text-sm text-muted-foreground leading-relaxed">
+              {formState.description ||
+                auto(
+                  "Describe the product benefits, supported SLAs, and delivery promise to improve conversions.",
+                  "sections.preview.descFallback",
+                )}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/marketplace/orders/new/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import { toast } from "sonner";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { Trash2 } from "lucide-react";
+
+interface OrderItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unitCost: number;
+  deliveryNeed: string;
+}
+
+export default function MarketplaceNewOrderPage() {
+  const auto = useAutoTranslator("fm.marketplace.orders.new");
+  const { t } = useTranslation();
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({
+    moduleId: "marketplace",
+  });
+  const [requester, setRequester] = useState("");
+  const [department, setDepartment] = useState("");
+  const [justification, setJustification] = useState("");
+  const [items, setItems] = useState<OrderItem[]>([
+    {
+      id: crypto.randomUUID(),
+      description: "",
+      quantity: 1,
+      unitCost: 0,
+      deliveryNeed: "",
+    },
+  ]);
+  const [submitting, setSubmitting] = useState(false);
+
+  const addItem = () =>
+    setItems((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        description: "",
+        quantity: 1,
+        unitCost: 0,
+        deliveryNeed: "",
+      },
+    ]);
+
+  const removeItem = (id: string) =>
+    setItems((prev) => prev.filter((item) => item.id !== id));
+
+  const updateItem = (id: string, patch: Partial<OrderItem>) =>
+    setItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, ...patch } : item)),
+    );
+
+  const totalValue = items.reduce(
+    (sum, item) => sum + item.quantity * item.unitCost,
+    0,
+  );
+  const canSubmit =
+    requester.trim().length > 0 &&
+    department.trim().length > 0 &&
+    justification.trim().length > 10 &&
+    items.every(
+      (item) => item.description.trim().length > 0 && item.quantity > 0,
+    );
+
+  const submitOrder = async () => {
+    setSubmitting(true);
+    const toastId = toast.loading(
+      auto("Submitting order...", "actions.submitting"),
+    );
+    try {
+      const res = await fetch("/api/fm/marketplace/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orgId,
+          requester,
+          department,
+          justification,
+          items,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.success) {
+        throw new Error(body?.error || "Failed to submit order");
+      }
+      toast.success(auto("Order submitted for approval", "actions.success"), {
+        id: toastId,
+      });
+      setRequester("");
+      setDepartment("");
+      setJustification("");
+      setItems([
+        {
+          id: crypto.randomUUID(),
+          description: "",
+          quantity: 1,
+          unitCost: 0,
+          deliveryNeed: "",
+        },
+      ]);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : auto("Failed to submit order", "actions.error");
+      toast.error(message, { id: toastId });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!hasOrgContext) {
+    return guard;
+  }
+
+  return (
+    <div className="space-y-6 p-6">
+      <ModuleViewTabs moduleId="marketplace" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t("fm.org.supportContext", "Support context: {{name}}", {
+            name: supportOrg.name,
+          })}
+        </div>
+      )}
+
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <p className="text-sm uppercase tracking-wide text-muted-foreground">
+            {auto("Orders", "breadcrumbs.scope")}
+          </p>
+          <h1 className="text-3xl font-semibold text-foreground">
+            {auto("Create Marketplace Order", "header.title")}
+          </h1>
+          <p className="text-muted-foreground">
+            {auto(
+              "Bundle sourcing needs, attach line items, and route for approval.",
+              "header.subtitle",
+            )}
+          </p>
+        </div>
+        <Button onClick={submitOrder} disabled={!canSubmit || submitting}>
+          {submitting
+            ? auto("Submitting…", "actions.submitting")
+            : auto("Submit RFQ", "actions.submit")}
+        </Button>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            {auto("Request Details", "sections.request.title")}
+          </CardTitle>
+          <CardDescription>
+            {auto(
+              "Captured for routing and SLA tracking.",
+              "sections.request.desc",
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          <div>
+            <Label htmlFor="requester">
+              {auto("Requester name", "fields.requester.label")}
+            </Label>
+            <Input
+              id="requester"
+              value={requester}
+              placeholder={auto(
+                "Who is requesting the purchase?",
+                "fields.requester.placeholder",
+              )}
+              onChange={(event) => setRequester(event.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="department">
+              {auto("Department", "fields.department.label")}
+            </Label>
+            <Input
+              id="department"
+              value={department}
+              placeholder={auto(
+                "Facilities, IT, etc.",
+                "fields.department.placeholder",
+              )}
+              onChange={(event) => setDepartment(event.target.value)}
+            />
+          </div>
+          <div className="md:col-span-2">
+            <Label htmlFor="justification">
+              {auto("Business justification", "fields.justification.label")}
+            </Label>
+            <Textarea
+              id="justification"
+              rows={4}
+              value={justification}
+              placeholder={auto(
+                "Explain the operational impact, budget source, or customer obligation.",
+                "fields.justification.placeholder",
+              )}
+              onChange={(event) => setJustification(event.target.value)}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{auto("Line Items", "sections.items.title")}</CardTitle>
+          <CardDescription>
+            {auto(
+              "Describe the services or goods required and expected delivery dates.",
+              "sections.items.desc",
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {items.map((item, index) => (
+            <div
+              key={item.id}
+              className="rounded-xl border border-border/70 p-4 space-y-3 bg-card/40"
+            >
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>
+                  {auto("Line item", "sections.items.lineLabel")} #{index + 1}
+                </span>
+                {items.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive"
+                    onClick={() => removeItem(item.id)}
+                  >
+                    <Trash2 className="me-1 h-4 w-4" />
+                    {auto("Remove", "sections.items.remove")}
+                  </Button>
+                )}
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <Label>
+                    {auto("Description", "fields.item.description")}
+                  </Label>
+                  <Textarea
+                    rows={3}
+                    value={item.description}
+                    placeholder={auto(
+                      "E.g., Annual HVAC preventive maintenance",
+                      "fields.item.descriptionPlaceholder",
+                    )}
+                    onChange={(event) =>
+                      updateItem(item.id, { description: event.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label>
+                    {auto("Delivery timeline / SLA", "fields.item.delivery")}
+                  </Label>
+                  <Textarea
+                    rows={3}
+                    value={item.deliveryNeed}
+                    placeholder={auto(
+                      "Requested completion date or milestone",
+                      "fields.item.deliveryPlaceholder",
+                    )}
+                    onChange={(event) =>
+                      updateItem(item.id, { deliveryNeed: event.target.value })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-3">
+                <div>
+                  <Label>{auto("Quantity", "fields.item.quantity")}</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={item.quantity}
+                    onChange={(event) =>
+                      updateItem(item.id, {
+                        quantity: Number(event.target.value),
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label>
+                    {auto("Unit cost (SAR)", "fields.item.unitCost")}
+                  </Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={item.unitCost}
+                    onChange={(event) =>
+                      updateItem(item.id, {
+                        unitCost: Number(event.target.value),
+                      })
+                    }
+                  />
+                </div>
+                <div className="flex flex-col justify-end">
+                  <p className="text-sm text-muted-foreground">
+                    {auto("Estimated line total", "fields.item.total")}
+                  </p>
+                  <p className="text-2xl font-semibold">
+                    SAR {(item.quantity * item.unitCost).toFixed(2)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          <div className="flex justify-between items-center">
+            <p className="text-sm text-muted-foreground">
+              {auto(
+                "Need additional materials? Add another line item.",
+                "sections.items.addHint",
+              )}
+            </p>
+            <Button variant="secondary" onClick={addItem}>
+              {auto("Add line item", "sections.items.add")}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{auto("Summary", "sections.summary.title")}</CardTitle>
+          <CardDescription>
+            {auto(
+              "Calculated values that approvers will see.",
+              "sections.summary.desc",
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-3">
+          <div className="rounded-lg bg-muted/40 border border-border/50 p-4">
+            <p className="text-xs uppercase text-muted-foreground tracking-wide">
+              {auto("Line items", "sections.summary.lines")}
+            </p>
+            <p className="text-3xl font-semibold">{items.length}</p>
+          </div>
+          <div className="rounded-lg bg-muted/40 border border-border/50 p-4">
+            <p className="text-xs uppercase text-muted-foreground tracking-wide">
+              {auto("Requested value", "sections.summary.value")}
+            </p>
+            <p className="text-3xl font-semibold">
+              SAR {totalValue.toFixed(2)}
+            </p>
+          </div>
+          <div className="rounded-lg bg-muted/40 border border-border/50 p-4">
+            <p className="text-xs uppercase text-muted-foreground tracking-wide">
+              {auto("Next step", "sections.summary.nextStep")}
+            </p>
+            <p className="text-xl font-semibold">
+              {auto("Finance approval", "sections.summary.approval")}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/marketplace/page.tsx">
+<![CDATA[
+"use client";
+
+import React from "react";
+import ModuleViewTabs, { useModuleView } from "@/components/fm/ModuleViewTabs";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+export default function MarketplacePage() {
+  const auto = useAutoTranslator("fm.marketplace");
+  const { t } = useTranslation();
+  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({
+    moduleId: "marketplace",
+  });
+  const { currentView } = useModuleView("marketplace");
+  const sections: Record<string, { label: string; description: string }> = {
+    catalog: {
+      label: auto("Catalog", "sections.catalog.label"),
+      description: auto(
+        "Browse products and services",
+        "sections.catalog.description",
+      ),
+    },
+    vendors: {
+      label: auto("Vendors", "sections.vendors.label"),
+      description: auto(
+        "Manage approved suppliers",
+        "sections.vendors.description",
+      ),
+    },
+    procurement: {
+      label: auto("Procurement", "sections.procurement.label"),
+      description: auto(
+        "Create purchase requests and compare bids",
+        "sections.procurement.description",
+      ),
+    },
+    rfqs: {
+      label: auto("RFQs & Bids", "sections.rfqs.label"),
+      description: auto(
+        "Request and evaluate vendor quotations",
+        "sections.rfqs.description",
+      ),
+    },
+  };
+  const activeKey = currentView?.value ?? "catalog";
+  const activeSection = sections[activeKey] ?? sections.catalog;
+
+  if (!hasOrgContext) {
+    return guard;
+  }
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            {auto("Fixzit Marketplace", "header.title")}
+          </h1>
+          <p className="text-muted-foreground">
+            {auto(
+              "Browse products, vendors, and manage procurement",
+              "header.subtitle",
+            )}
+          </p>
+        </div>
+      </div>
+
+      <ModuleViewTabs moduleId="marketplace" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t("fm.org.supportContext", "Support context: {{name}}", {
+            name: supportOrg.name,
+          })}
+        </div>
+      )}
+
+      <div className="bg-card rounded-2xl border border-border p-6">
+        <div className="text-center py-12">
+          <h3 className="text-lg font-medium text-foreground mb-2">
+            {activeSection.label}
+          </h3>
+          <p className="text-muted-foreground mb-4">
+            {activeSection.description}
+          </p>
+          <button className="px-4 py-2 bg-primary text-white rounded-2xl hover:bg-primary/90 transition-colors">
+            {auto("Browse {{section}}", "actions.browseSection").replace(
+              "{{section}}",
+              activeSection.label,
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+</batch_content>

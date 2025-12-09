@@ -1,0 +1,3666 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/archived/reports/SUB_BATCH_1_2B_DIAGNOSTIC.md">
+<![CDATA[
+# Sub-batch 1.2b Diagnostic Report
+
+**Date:** October 14, 2025, 20:05 UTC  
+**Task:** Diagnose 26+ component test failures (WorkOrdersView, CatalogView, SupportPopup)  
+**Status:** 🔍 DIAGNOSTIC COMPLETE - Ready to fix
+
+## Test Failure Summary
+
+### Actual Failures Identified: 31 tests (not 26 as estimated)
+
+| Test File                                         | Total Tests | Failures | Pass Rate |
+| ------------------------------------------------- | ----------- | -------- | --------- |
+| `components/fm/__tests__/WorkOrdersView.test.tsx` | 13          | 13       | 0%        |
+| `components/marketplace/CatalogView.test.tsx`     | 14          | 10       | 29%       |
+| `tests/unit/components/SupportPopup.test.tsx`     | 13          | 8        | 38%       |
+| **TOTAL**                                         | **40**      | **31**   | **23%**   |
+
+## Root Causes Identified
+
+### 1. WorkOrdersView.test.tsx - All 13 Tests Failing
+
+**Error:** `TypeError: require(...).__reset is not a function`
+
+**Location:** Line 38 in `beforeEach()` hook:
+
+```typescript
+(require("swr") as any).__reset();
+```
+
+**Root Cause:**
+
+- Jest-specific mock reset method
+- `__reset()` doesn't exist in Vitest's module system
+- All tests fail in beforeEach before they even run
+
+**Solution:**  
+Replace with Vitest's `vi.resetModules()` or remove entirely (SWR doesn't need manual reset in Vitest)
+
+```typescript
+// OLD (Jest):
+(require("swr") as any).__reset();
+
+// NEW (Vitest):
+// Remove this line - Vitest handles module cleanup automatically
+// OR use: vi.resetModules() if needed
+```
+
+**Estimated Fix Time:** 5-10 minutes (single line change + verification)
+
+---
+
+### 2. CatalogView.test.tsx - 10 of 14 Tests Failing
+
+**Error Types:**
+
+1. `Unable to find an accessible element with the role "button" and name /Request quote/i` (5 tests)
+2. `Unable to find an accessible element with the role "button" and name /Add to cart/i` (4 tests)
+3. `expected false to be true` - SWR key doesn't contain expected query params (1 test)
+
+**Root Causes:**
+
+#### 2a. Missing Product Buttons (9 tests)
+
+- Tests expect product cards with "Request quote" and "Add to cart" buttons
+- Component shows loading spinner instead
+- Mock data not being properly passed to SWR
+
+**Visual Evidence:**
+
+```html
+<div class="flex items-center justify-center py-16">
+  <svg class="lucide lucide-loader2 w-6 h-6 animate-spin...">
+    <!-- Loading spinner showing, no products rendered -->
+  </svg>
+</div>
+```
+
+**Solution:**  
+Fix SWR mock setup to properly return product data:
+
+```typescript
+// Current (not working):
+setSWRProducts({ data: makeCatalog([product]) });
+
+// Needs investigation of setSWRProducts function
+// Likely needs await or proper mock configuration
+```
+
+#### 2b. SWR Key Missing Query Params (1 test)
+
+- Test expects tenantId, search query, and filters in SWR key
+- SWR calls aren't capturing the expected parameters
+
+**Solution:**  
+Debug SWR key generation and ensure filters are properly encoded in the URL
+
+**Estimated Fix Time:** 30-45 minutes (investigate SWR mocking, fix mock setup)
+
+---
+
+### 3. SupportPopup.test.tsx - 8 of 13 Tests Failing
+
+**Error:** `Found a label with the text of: Description *, however no form control was found associated to that label`
+
+**Location:** All tests using `typeInto('Description *', value)`
+
+**Root Cause:**  
+The `<label>` for "Description \*" is missing the `for` attribute:
+
+```tsx
+// Current (WRONG):
+<label class="block text-sm font-medium...">
+  Description *
+</label>
+<textarea placeholder="Please provide detailed information..." />
+
+// Should be (CORRECT):
+<label for="description" class="block text-sm font-medium...">
+  Description *
+</label>
+<textarea id="description" placeholder="Please provide detailed information..." />
+```
+
+**Solution:**  
+Add `htmlFor="description"` to the label and `id="description"` to the textarea in the SupportPopup component source code
+
+**Files to Fix:**
+
+1. Find SupportPopup component source file
+2. Update label: `<label htmlFor="description">`
+3. Update textarea: `<textarea id="description">`
+
+**Estimated Fix Time:** 10-15 minutes (locate component, add IDs, verify)
+
+---
+
+## Fix Strategy & Order
+
+### Phase 1: Quick Wins (15-20 minutes)
+
+1. ✅ **WorkOrdersView.test.tsx** - Remove `__reset()` line (1 line change → 13 tests fixed)
+2. ✅ **SupportPopup** - Add label `for` attribute (2 line changes → 8 tests fixed)
+
+**Impact:** 21/31 tests fixed (68%) in ~20 minutes
+
+### Phase 2: Investigation & Fix (30-45 minutes)
+
+3. 🔍 **CatalogView.test.tsx** - Fix SWR mocking (requires investigation)
+   - Debug why products aren't rendering
+   - Fix setSWRProducts mock function
+   - Ensure product data flows to component
+
+**Impact:** 10/31 tests fixed (32%)
+
+### Total Estimated Time: 50-65 minutes for all 31 tests
+
+---
+
+## Test Failure Details
+
+### WorkOrdersView Failures (13/13)
+
+```text
+✗ renders default heading and description
+✗ renders custom heading and description via props
+✗ shows loading card when isLoading and no data
+✗ shows error card when error is present
+✗ shows empty state when no work orders and no error
+✗ renders list items with badges and computed meta including overdue styling
+✗ pagination controls reflect page and total pages; enabling/disabling works
+✗ refresh button calls mutate
+✗ status and priority filters update query (via SWR key) when changed
+✗ search input debounces and updates query only after 350ms
+✗ POST create: success closes dialog, resets form, and calls onCreated (via mutate)
+✗ POST create: failure shows alert with error message
+✗ fetch headers include Authorization when token present and x-user is set
+```
+
+**All fail with:** `TypeError: require(...).__reset is not a function`
+
+---
+
+### CatalogView Failures (10/14)
+
+```text
+✗ opens LoginPrompt when clicking "Request quote" (can't find button)
+✗ unauthenticated "Add to cart" opens LoginPrompt and does not call fetch (can't find button)
+✗ authenticated "Add to cart" calls API, shows success feedback, and calls mutate (can't find button)
+✗ authenticated "Add to cart" shows failure feedback when API not ok (can't find button)
+✗ recomputes SWR key when filters change (query string contains filters) (assertion failure)
+```
+
+**Pattern:** Products not rendering, only loading spinner visible
+
+---
+
+### SupportPopup Failures (8/13)
+
+```text
+✗ enables Submit Ticket when both subject and description are provided
+✗ Copy details includes subject and description
+✗ Cancel button clears form and calls onClose
+✗ Submit Ticket happy path: user fills form, submits, success response closes modal
+✗ Submit Ticket error path: user submits, server returns error, error message shown
+✗ API receives correctly formatted multipart/form-data with all fields
+✗ Screenshot upload: selecting file updates state and shows preview
+✗ Screenshot upload: removing file clears state and hides preview
+```
+
+**All fail with:** `Found a label with the text of: Description *, however no form control was found associated to that label`
+
+---
+
+## Files Requiring Changes
+
+### Test Files (No changes needed - they're testing correctly)
+
+- ✅ `components/fm/__tests__/WorkOrdersView.test.tsx` (remove 1 line)
+- ⚠️ `components/marketplace/CatalogView.test.tsx` (may need mock fixes)
+- ✅ `tests/unit/components/SupportPopup.test.tsx` (tests are correct)
+
+### Component Source Files (Need fixes)
+
+1. **SupportPopup** component - Add `htmlFor` and `id` attributes
+   - Search for: `<label>Description *</label>`
+   - Location: Unknown (needs `file_search`)
+
+2. **CatalogView** - Investigate why products aren't rendering
+   - May be test setup issue, not component issue
+
+---
+
+## Next Steps
+
+1. **Start Session:** Mark Sub-batch 1.2b as in-progress
+2. **Quick Fix #1:** Remove `__reset()` from WorkOrdersView test
+3. **Quick Fix #2:** Add label IDs to SupportPopup component
+4. **Run Tests:** Verify 21/31 tests now passing
+5. **Investigation:** Debug CatalogView SWR mocking
+6. **Final Fix:** Fix CatalogView product rendering
+7. **Verification:** Run all component tests, confirm 31/31 passing
+8. **Commit & Push:** Document completion
+
+---
+
+**Agent:** GitHub Copilot  
+**Session:** October 14, 2025  
+**Branch:** `fix/standardize-test-framework-vitest`  
+**Status:** Sub-batch 1.2b DIAGNOSED 🔍 - Ready to fix (estimated 50-65 minutes)
+
+]]>
+</file>
+
+<file path="docs/archived/reports/SYSTEM_CHECK_COMPLETE_20251009_074126.md">
+<![CDATA[
+# COMPREHENSIVE SYSTEM STATUS REPORT
+
+**Generated**: $(date)
+**Branch**: fix/consolidation-guardrails
+**Commit**: $(git rev-parse --short HEAD)
+
+## ✅ COMPILATION STATUS
+
+### TypeScript Compilation Errors: **9 remaining** (down from 33)
+
+All API route compilation errors have been resolved. Remaining errors are in test files and scripts only:
+
+- **scripts/setup-guardrails.ts**: 3 implicit 'any' type errors (non-blocking)
+- **src/server/models/**tests**/Candidate.test.ts**: 5 test-specific type errors (non-blocking)
+- **src/server/models/Application.ts**: 1 array type mismatch (non-blocking, middleware hook)
+
+### Production Code Status: ✅ **CLEAN**
+
+All API routes, models, and production code compile without errors.
+
+---
+
+## ✅ ERROR HANDLING STANDARDIZATION - COMPLETE
+
+### Session Achievements (7 commits)
+
+1. **Commit 1bd20e156** (JUST PUSHED):
+   - Fixed error helper signatures (11 API routes)
+   - Fixed model import paths (4 files)
+   - Fixed Role type comparison
+   - **Impact**: Resolved 24 compilation errors
+
+2. **Commit 7bc4e1fc7**:
+   - 19 files: Comprehensive error handling + compilation fixes
+   - Fixed 3 compilation errors
+   - Standardized 8 Zod validation patterns
+   - Fixed 26 marketplace patterns
+   - Fixed 7 integration patterns
+
+3. **Commit 302b94e7d**:
+   - 15 files: Error response standardization wave 1
+
+4. **Commit 89967b8ce** (CRITICAL):
+   - 73 files: Rate-limit security vulnerability fixed
+
+5. **Commit 6948b1d9d**:
+   - 7 files: PaymentMethod + OpenAPI
+
+6. **Commit 6e42cc307**:
+   - 9 files: TypeScript errors
+
+7. **Commit 1252f4ed1**:
+   - 6 files: Copilot AI issues
+
+### **Session Totals**
+
+- **145 files modified**
+- **7 commits pushed**
+- **1 CRITICAL security vulnerability fixed**
+- **System consistency: 99%+**
+
+---
+
+## ✅ GITHUB ACTIONS WORKFLOWS - STATUS
+
+### Workflow Files: **7 workflows configured**
+
+- ✅ Agent Governor CI
+- ✅ Build Requirements Index
+- ✅ Consolidation Guardrails
+- ✅ Fixzit Quality Gates
+- ✅ Mark stale issues and pull requests
+- ✅ NodeJS with Webpack
+- ✅ PR Agent
+
+### Workflow Health Check
+
+- ✅ **No duplicate workflow files** (\*-fixed.yml)
+- ✅ **No workflow name collisions**
+- ⚠️ **Missing concurrency controls** (all 7 workflows)
+  - Impact: Old workflow runs may stay queued
+  - Recommendation: Add concurrency groups with cancel-in-progress
+
+### Branch: fix/consolidation-guardrails
+
+- ✅ All workflows configured to trigger on pull requests
+- ✅ No branch trigger mismatches
+
+---
+
+## ✅ DEPENDENCIES & BUILD ENVIRONMENT
+
+### Node.js Dependencies
+
+- ✅ **node_modules**: 1.2 GB (installed)
+- ✅ **package-lock.json**: 17,734 lines (valid)
+- ✅ **npm ci**: Dry-run successful (1330 packages)
+
+### Build Status
+
+- ✅ Next.js build worker ready
+- ✅ TypeScript compilation ready
+- ✅ ESLint configuration valid
+- ⚠️ Some ESLint warnings (non-blocking):
+  - Unused imports (cleanup opportunity)
+  - 'any' type usage (technical debt)
+
+---
+
+## 📊 ERROR HELPER ADOPTION METRICS
+
+### Current Usage Across Codebase
+
+- **zodValidationError**: 20+ usages ✅
+- **notFoundError**: 11+ usages ✅
+- **validationError**: 20+ usages ✅
+- **unauthorizedError**: 17+ usages ✅
+- **forbiddenError**: 5+ usages ✅
+- **rateLimitError**: 119+ usages ✅
+
+### Consistency Level: **99%+**
+
+All error helpers now use correct signatures and standardized patterns.
+
+---
+
+## 🔍 ISSUES IDENTIFIED (PR #93 Analysis)
+
+**Note**: These issues were identified in a SEPARATE PR (#93) and do NOT exist in current branch:
+
+### Issues in PR #93 (Not Present Here)
+
+1. ❌ **Workflow Duplication**: \*-fixed.yml files with same names as originals
+2. ❌ **Missing Concurrency Controls**: Workflows lack concurrency blocks
+3. ❌ **Branch Trigger Mismatches**: cursor/\* branches not triggering workflows
+
+### Status in Current Branch
+
+- ✅ No workflow duplication
+- ✅ No workflow name collisions
+- ✅ Branch triggers configured correctly
+- ⚠️ Missing concurrency controls (minor optimization opportunity)
+
+---
+
+## 🎯 RECOMMENDATIONS
+
+### High Priority (Optional Enhancements)
+
+1. **Add Concurrency Controls to Workflows**:
+
+   ```yaml
+   concurrency:
+     group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+     cancel-in-progress: true
+   ```
+
+   - Benefits: Cancel stale workflow runs, save CI minutes
+   - Impact: Low effort, high value
+
+2. **Clean Up Unused Imports**:
+   - Many files have unused error helper imports
+   - ESLint is flagging these as warnings
+   - Safe cleanup opportunity
+
+### Low Priority (Technical Debt)
+
+1. **Reduce 'any' Type Usage**:
+   - Several model files use 'as any' casts
+   - Test files have implicit 'any' types
+   - Long-term type safety improvement
+
+2. **Fix Test File Type Errors**:
+   - Candidate.test.ts has 5 type errors
+   - Non-blocking but should be addressed eventually
+
+---
+
+## ✅ FINAL VERDICT
+
+### System Status: **PRODUCTION READY** 🚀
+
+**All Critical Issues Resolved:**
+
+- ✅ Compilation errors fixed (API routes clean)
+- ✅ Error handling standardized across 145 files
+- ✅ CRITICAL security vulnerability patched (73 files)
+- ✅ Dependencies installed and verified
+- ✅ GitHub Actions workflows healthy (no duplicates)
+- ✅ TypeScript compilation successful for production code
+
+**Minor Optimizations Available:**
+
+- ⚠️ Add concurrency controls to workflows (optional)
+- ⚠️ Clean up unused imports (optional)
+- ⚠️ Fix test file type errors (non-blocking)
+
+**Ready for**:
+
+- ✅ Pull Request creation
+- ✅ Code review
+- ✅ CI/CD pipeline
+- ✅ Production deployment
+
+---
+
+## 📝 COMMIT HISTORY
+
+\`\`\`
+1bd20e156 - fix: correct error helper signatures and model import paths
+7bc4e1fc7 - fix: complete error handling standardization and compilation error fixes
+302b94e7d - fix: standardize error responses wave 1
+89967b8ce - fix: CRITICAL rate-limit security vulnerability
+6948b1d9d - fix: PaymentMethod + OpenAPI
+6e42cc307 - fix: TypeScript errors
+1252f4ed1 - fix: Copilot AI issues
+\`\`\`
+
+**Total Changes**: 145 files across 7 commits
+**Branch**: fix/consolidation-guardrails
+**Remote**: Up-to-date with origin
+
+---
+
+**Report Generated**: $(date '+%Y-%m-%d %H:%M:%S %Z')
+**System Check Complete** ✅
+
+]]>
+</file>
+
+<file path="docs/archived/reports/SYSTEM_ERRORS_DETAILED_REPORT.md">
+<![CDATA[
+# Comprehensive System Error Analysis Report
+
+> **Generated**: 10/15/2025, 6:45:15 AM UTC  
+> **Branch**: fix/deprecated-hook-cleanup  
+> **Commit**: ced70a39
+
+## 📊 Executive Summary
+
+- **Total Files Analyzed**: 711
+- **Files With Errors**: 327
+- **Total Errors Detected**: 3,082
+- **Affected Files Rate**: 45.99%
+- **Average Errors per Affected File**: 9.4
+
+## 📈 Error Distribution by Category
+
+| Category                      | Count | Percentage | Priority  |
+| ----------------------------- | ----- | ---------- | --------- |
+| Lint/Code Quality             | 1,716 | 55.7%      | 🔴 High   |
+| TypeScript Errors             | 632   | 20.5%      | 🔴 High   |
+| Runtime Errors                | 423   | 13.7%      | 🔴 High   |
+| Test Errors                   | 125   | 4.1%       | 🟡 Medium |
+| Deployment Issues             | 92    | 3.0%       | 🟡 Medium |
+| Configuration Issues          | 63    | 2.0%       | 🟡 Medium |
+| Security Issues               | 17    | 0.6%       | 🟢 Low    |
+| Build Errors                  | 7     | 0.2%       | 🟢 Low    |
+| Code Maintenance (TODO/FIXME) | 3     | 0.1%       | 🟢 Low    |
+| Database Errors               | 2     | 0.1%       | 🟢 Low    |
+| API Errors                    | 2     | 0.1%       | 🟢 Low    |
+
+## 🔝 Top 20 Files with Most Errors
+
+### 1. `scripts/scanner.js` (76 errors)
+
+**Error Distribution**:
+
+- Lint/Code Quality: 68
+- Runtime Errors: 4
+- Test Errors: 3
+- Security Issues: 1
+
+**Examples**:
+
+1. Line 64: Console Statement
+   `console.log(`${colors.cyan}${colors.bold}`
+
+2. Line 70: Console Statement
+   `console.log(`${colors.blue}Starting comprehensive scan...${colors.reset}\n`);`
+
+3. Line 116: Console Error
+   `console.error(`${colors.red}Scanner Error: ${error.message}${colors.reset}`);`
+
+4. Line 117: Disabled Test (xit)
+   `process.exit(1);`
+
+5. Line 117: Process Exit
+   `process.exit(1);`
+
+_...and 71 more errors_
+
+### 2. `scripts/unified-audit-system.js` (59 errors)
+
+**Error Distribution**:
+
+- Lint/Code Quality: 54
+- Runtime Errors: 3
+- Deployment Issues: 1
+- Test Errors: 1
+
+**Examples**:
+
+1. Line 13: Hardcoded Localhost
+   `const BASE_URL = 'http://localhost:5000';`
+
+2. Line 32: Console Statement
+   `console.log('🚀 Initializing FIXZIT ENTERPRISE ECOSYSTEM...\n');`
+
+3. Line 44: Console Statement
+   `console.log('✅ Unified authentication successful');`
+
+4. Line 45: Console Statement
+   `console.log(`👤 Role: ${response.data.user.role} (Cross-platform access)\n`);`
+
+5. Line 251: Console Statement
+   `console.log('🔍 STARTING COMPLETE FIXZIT ENTERPRISE ECOSYSTEM AUDIT');`
+
+_...and 54 more errors_
+
+### 3. `scripts/reality-check.js` (53 errors)
+
+**Error Distribution**:
+
+- Lint/Code Quality: 47
+- Deployment Issues: 4
+- Code Maintenance (TODO/FIXME): 1
+- Runtime Errors: 1
+
+**Examples**:
+
+1. Line 7: Console Statement
+   `console.log("\n🔍 EXPOSING TRUTH ABOUT YOUR IMPLEMENTATION\n");`
+
+2. Line 14: Console Statement
+   `console.log("Testing Work Orders...");`
+
+3. Line 16: Hardcoded Localhost
+   `const res = await fetch('http://localhost:5000/api/workorders', {`
+
+4. Line 29: Console Statement
+   `console.log("✅ Work Orders: REAL implementation with SLA");`
+
+5. Line 32: Console Statement
+   `console.log("❌ Work Orders: FAKE - Returns placeholder message");`
+
+_...and 48 more errors_
+
+### 4. `test-mongodb-comprehensive.js` (49 errors)
+
+**Error Distribution**:
+
+- Lint/Code Quality: 40
+- Runtime Errors: 6
+- Test Errors: 3
+
+**Examples**:
+
+1. Line 13: Console Statement
+   `console.log('🔌 Testing MongoDB Connection...');`
+
+2. Line 15: Console Statement
+   `console.log('✅ Connected to MongoDB');`
+
+3. Line 20: Console Statement
+   `console.log('\n📚 Testing Collections...');`
+
+4. Line 22: Console Statement
+   `console.log(`✅ Found ${collections.length} collections:`);`
+
+5. Line 23: Console Statement
+   `collections.forEach(c => console.log(` - ${c.name}`));`
+
+_...and 44 more errors_
+
+### 5. `scripts/complete-system-audit.js` (48 errors)
+
+**Error Distribution**:
+
+- Lint/Code Quality: 46
+- Deployment Issues: 1
+- Runtime Errors: 1
+
+**Examples**:
+
+1. Line 31: Console Statement
+   `console.log('🔍 STARTING COMPLETE SYSTEM AUDIT...\n');`
+
+2. Line 32: Console Statement
+   `console.log('=' .repeat(80));`
+
+3. Line 60: Console Statement
+   `console.log('\n📁 SCANNING SOURCE FILES...\n');`
+
+4. Line 123: Console Statement
+   `// Check for console.log (should use proper logging)`
+
+5. Line 124: Console Statement
+   `if (line.includes('console.log') && !filePath.includes('test')) {`
+
+_...and 43 more errors_
+
+### 6. `scripts/phase1-truth-verifier.js` (46 errors)
+
+**Error Distribution**:
+
+- Lint/Code Quality: 32
+- Deployment Issues: 12
+- Code Maintenance (TODO/FIXME): 1
+- Runtime Errors: 1
+
+**Examples**:
+
+1. Line 12: Console Statement
+   `console.log("\n🔍 VERIFYING PHASE 1 '100% COMPLETE' CLAIM");`
+
+2. Line 13: Console Statement
+   `console.log("=".repeat(70));`
+
+3. Line 24: Console Statement
+   `console.log(`\n📦 Testing ${moduleName}...`);`
+
+4. Line 30: Console Statement
+   `console.log(` ✅ REAL: ${result.message}`);`
+
+5. Line 33: Console Statement
+   `console.log(` ❌ FAKE: ${result.message}`);`
+
+_...and 41 more errors_
+
+### 7. `scripts/property-owner-verification.js` (46 errors)
+
+**Error Distribution**:
+
+- Lint/Code Quality: 43
+- Deployment Issues: 1
+- Test Errors: 1
+- Runtime Errors: 1
+
+**Examples**:
+
+1. Line 3: Hardcoded Localhost
+   `const BASE_URL = 'http://localhost:5000';`
+
+2. Line 21: Console Statement
+   `console.log('❌ AUTH FAILED - Backend not running?');`
+
+3. Line 27: Console Statement
+   `console.log('\n' + colors.blue + '=' .repeat(80) + colors.reset);`
+
+4. Line 28: Console Statement
+   `console.log(colors.blue + '🏢 PROPERTY OWNER & SUBSCRIPTION SYSTEM VERIFICATION' + colors.reset);`
+
+5. Line 29: Console Statement
+   `console.log(colors.blue + '=' .repeat(80) + colors.reset + '\n');`
+
+_...and 41 more errors_
+
+### 8. `scripts/add-database-indexes.js` (46 errors)
+
+**Error Distribution**:
+
+- Lint/Code Quality: 41
+- Runtime Errors: 3
+- Test Errors: 2
+
+**Examples**:
+
+1. Line 11: Console Statement
+   `console.log('🔗 Connecting to MongoDB...');`
+
+2. Line 13: Console Statement
+   `console.log('✅ Connected to MongoDB');`
+
+3. Line 17: Console Statement
+   `console.log('\n📊 Adding database indexes...');`
+
+4. Line 18: Console Statement
+   `console.log('=====================================');`
+
+5. Line 21: Console Statement
+   `console.log('👤 Adding User indexes...');`
+
+_...and 41 more errors_
+
+### 9. `analyze-imports.js` (45 errors)
+
+**Error Distribution**:
+
+- Lint/Code Quality: 43
+- Test Errors: 1
+- Runtime Errors: 1
+
+**Examples**:
+
+1. Line 30: Console Statement
+   `console.log('==========================================');`
+
+2. Line 31: Console Statement
+   `console.log('COMPREHENSIVE IMPORT ANALYSIS');`
+
+3. Line 32: Console Statement
+   `console.log('==========================================\n');`
+
+4. Line 33: Console Statement
+   `console.log(`Total files: ${files.length}\n`);`
+
+5. Line 106: Console Statement
+   `console.log('==========================================');`
+
+_...and 40 more errors_
+
+### 10. `analyze-system-errors.js` (45 errors)
+
+**Error Distribution**:
+
+- Lint/Code Quality: 26
+- Build Errors: 5
+- TypeScript Errors: 3
+- Runtime Errors: 2
+- Configuration Issues: 2
+- Database Errors: 2
+- API Errors: 2
+- Test Errors: 1
+- Security Issues: 1
+- Deployment Issues: 1
+
+**Examples**:
+
+1. Line 12: Console Statement
+   `console.log('🔍 Starting comprehensive system error analysis...\n');`
+
+2. Line 33: Console Statement
+   `console.log('📂 Collecting file list...');`
+
+3. Line 44: Console Error
+   `console.error('❌ Error collecting files:', error.message);`
+
+4. Line 45: Disabled Test (xit)
+   `process.exit(1);`
+
+5. Line 45: Process Exit
+   `process.exit(1);`
+
+_...and 40 more errors_
+
+### 11. `scripts/verification-checkpoint.js` (45 errors)
+
+**Error Distribution**:
+
+- Lint/Code Quality: 35
+- Deployment Issues: 8
+- Test Errors: 1
+- Runtime Errors: 1
+
+**Examples**:
+
+1. Line 17: Console Statement
+   `console.log("🔍 STEP 1: QUICK HEALTH CHECK");`
+
+2. Line 29: Hardcoded Localhost
+   `const health = await fetch('http://localhost:5000/');`
+
+3. Line 36: Hardcoded Localhost
+   `const landing = await fetch('http://localhost:5000');`
+
+4. Line 40: Hardcoded Localhost
+   `const loginTest = await fetch('http://localhost:5000/api/auth/login', {`
+
+5. Line 51: Hardcoded Localhost
+   `const dashboard = await fetch('http://localhost:5000/dashboard.html');`
+
+_...and 40 more errors_
+
+### 12. `scripts/fixzit-unified-audit-system.js` (43 errors)
+
+**Error Distribution**:
+
+- Lint/Code Quality: 42
+- Runtime Errors: 1
+
+**Examples**:
+
+1. Line 224: Console Statement
+   `console.log('✅ Syncing FM RFQs to Souq marketplace...');`
+
+2. Line 229: Console Statement
+   `console.log('✅ Creating FM Work Orders from Souq service orders...');`
+
+3. Line 234: Console Statement
+   `console.log('✅ Syncing properties to Aqar listings...');`
+
+4. Line 239: Console Statement
+   `console.log('✅ Converting Aqar maintenance requests to FM tickets...');`
+
+5. Line 244: Console Statement
+   `console.log('✅ Sourcing services for Aqar listings from Souq...');`
+
+_...and 38 more errors_
+
+### 13. `scripts/replace-string-in-file-verbose.ts` (43 errors)
+
+**Error Distribution**:
+
+- Runtime Errors: 40
+- Lint/Code Quality: 3
+
+**Examples**:
+
+1. Line 156: Console Error
+   `console.error("🔍 VERBOSE MODE - Detailed logging enabled");`
+
+2. Line 157: Console Error
+   `console.error("");`
+
+3. Line 160: Console Error
+   `console.error("📋 Options:", JSON.stringify(opts, null, 2));`
+
+4. Line 161: Console Error
+   `console.error("");`
+
+5. Line 164: Console Error
+   `console.error("🎯 Pattern:", pattern);`
+
+_...and 38 more errors_
+
+### 14. `qa/tests/lib-paytabs.create-payment.default.spec.ts` (38 errors)
+
+**Error Distribution**:
+
+- TypeScript Errors: 38
+
+**Examples**:
+
+1. Line 36: Any Type Usage
+   `const calls: any[] = [];`
+
+2. Line 37: Any Type Usage
+   `globalThis.fetch = ((...args: any[]) => {`
+
+3. Line 39: Type Cast to Any
+   `return Promise.resolve({ json: async () => mockResponse } as any);`
+
+4. Line 40: Type Cast to Any
+   `}) as any;`
+
+5. Line 89: Type Cast to Any
+   `globalThis.fetch = originalFetch as any;`
+
+_...and 33 more errors_
+
+### 15. `final-typescript-fix.js` (36 errors)
+
+**Error Distribution**:
+
+- Lint/Code Quality: 23
+- TypeScript Errors: 13
+
+**Examples**:
+
+1. Line 10: Console Statement
+   `console.log('🚀 FINAL TYPESCRIPT ERROR CLEANUP\n');`
+
+2. Line 21: Console Statement
+   `console.log(`📊 Total errors: ${errorLines.length}\n`);`
+
+3. Line 34: Console Statement
+   `console.log(`📁 Files with errors: ${Object.keys(fileErrors).length}\n`);`
+
+4. Line 42: Console Statement
+   `console.log(`🔧 ${filePath} (${errors.length} errors)`);`
+
+5. Line 50: Any Type Usage
+   `// 1. Replace (param: unknown) with (param: any)`
+
+_...and 31 more errors_
+
+### 16. `scripts/fixzit-comprehensive-audit.js` (36 errors)
+
+**Error Distribution**:
+
+- Lint/Code Quality: 35
+- Runtime Errors: 1
+
+**Examples**:
+
+1. Line 153: Console Statement
+   `// Check for console.log statements`
+
+2. Line 415: Console Statement
+   `console.log('\n' + colors.bright + colors.cyan + '════════════════════════════════════════════════════════════════');`
+
+3. Line 416: Console Statement
+   `console.log('                 FIXZIT SOUQ AUDIT REPORT V2                    ');`
+
+4. Line 417: Console Statement
+   `console.log('                    POST-FIX ANALYSIS                           ');`
+
+5. Line 418: Console Statement
+   `console.log('════════════════════════════════════════════════════════════════' + colors.reset);`
+
+_...and 31 more errors_
+
+### 17. `scripts/setup-production-db.ts` (35 errors)
+
+**Error Distribution**:
+
+- Lint/Code Quality: 21
+- Runtime Errors: 10
+- Test Errors: 4
+
+**Examples**:
+
+1. Line 12: Console Statement
+   `console.log('🔧 Validating Production MongoDB Configuration...\n');`
+
+2. Line 24: Console Error
+   `console.error('❌ Missing required environment variables:');`
+
+3. Line 25: Console Error
+   `missing.forEach(env => console.error(` - ${env}`));`
+
+4. Line 26: Disabled Test (xit)
+   `process.exit(1);`
+
+5. Line 26: Process Exit
+   `process.exit(1);`
+
+_...and 30 more errors_
+
+### 18. `scripts/scan-hex.js` (35 errors)
+
+**Error Distribution**:
+
+- Runtime Errors: 25
+- Lint/Code Quality: 7
+- Test Errors: 3
+
+**Examples**:
+
+1. Line 94: Console Statement
+   `console.log('🎨 Fixzit Brand Color Scanner');`
+
+2. Line 95: Console Statement
+   `console.log('================================\n');`
+
+3. Line 106: Console Error
+   `console.error('❌ Error: Not a git repository or git not available');`
+
+4. Line 107: Disabled Test (xit)
+   `process.exit(1);`
+
+5. Line 107: Process Exit
+   `process.exit(1);`
+
+_...and 30 more errors_
+
+### 19. `test-e2e-comprehensive.js` (34 errors)
+
+**Error Distribution**:
+
+- Lint/Code Quality: 26
+- Runtime Errors: 4
+- Test Errors: 2
+- Configuration Issues: 1
+- Deployment Issues: 1
+
+**Examples**:
+
+1. Line 11: Fallback Env Variable
+   `const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';`
+
+2. Line 11: Hardcoded Localhost
+   `const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';`
+
+3. Line 21: Console Statement
+   `console.log(`✅ ${name}`);`
+
+4. Line 25: Console Error
+   `console.error(`❌ ${name}: ${err.message}`);`
+
+5. Line 64: Console Statement
+   `console.log(` 📊 Found ${collections.length} collections`);`
+
+_...and 29 more errors_
+
+### 20. `scripts/deploy-db-verify.ts` (32 errors)
+
+**Error Distribution**:
+
+- Lint/Code Quality: 21
+- Runtime Errors: 4
+- TypeScript Errors: 3
+- Test Errors: 3
+- Configuration Issues: 1
+
+**Examples**:
+
+1. Line 21: Any Type Usage
+   `details?: any;`
+
+2. Line 27: Generic Any Type
+   `private async runTest(testName: string, testFn: () => Promise<any>): Promise<void> {`
+
+3. Line 30: Console Statement
+   `console.log(`🧪 Testing: ${testName}...`);`
+
+4. Line 41: Console Statement
+   `console.log(`✅ ${testName} - ${duration}ms`);`
+
+5. Line 51: Console Statement
+   `console.log(`❌ ${testName} - Failed in ${duration}ms: ${error}`);`
+
+_...and 27 more errors_
+
+## 📋 Detailed Error Breakdown by Category
+
+### Lint/Code Quality (1716 errors)
+
+#### Console Statement (1603 occurrences)
+
+1. **fix-imports.js:4**
+
+   ```
+   console.log("�� Starting import path fixes...");
+   ```
+
+2. **fix-imports.js:23**
+
+   ```
+   console.log(`✅ Fixed ${oldPath} → ${newPath}`);
+   ```
+
+3. **fix-imports.js:29**
+
+   ```
+   console.log("✅ File updated successfully!");
+   ```
+
+4. **fix-imports.js:31**
+
+   ```
+   console.log("ℹ️ No changes needed in test file");
+   ```
+
+5. **fix-imports.js:34**
+
+   ```
+   console.log("File not found for testing");
+   ```
+
+6. **create-guardrails.js:8**
+
+   ```
+   console.log('Created:', file);
+   ```
+
+7. **create-guardrails.js:11**
+
+   ```
+   console.log('Setting up guardrails...\n');
+   ```
+
+8. **create-guardrails.js:25**
+
+   ```
+   console.log('Updated: package.json\n');
+   ```
+
+9. **create-guardrails.js:29**
+
+   ```
+   write('scripts/dedup/consolidate.ts', '#!/usr/bin/env tsx\nconst DRY = process.argv.includes(\"--dry\");\nconsole.log(DRY ? \"DRY RUN\" : \"APPLYING\"
+   ```
+
+10. **create-guardrails.js:30**
+
+```
+write('scripts/ui/ui_freeze_check.ts', '#!/usr/bin/env tsx\nimport fs from \"fs\";\nif (fs.existsSync(\"app/layout.tsx\")) console.log(\"OK\");');
+```
+
+_...and 1593 more occurrences_
+
+#### ESLint Disabled (58 occurrences)
+
+1. **components/CopilotWidget.tsx:101**
+
+   ```
+   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   ```
+
+2. **components/marketplace/CatalogView.tsx:279**
+
+   ```
+   // eslint-disable-next-line @next/next/no-img-element
+   ```
+
+3. **src/server/models/marketplace/Product.ts:41**
+
+   ```
+   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   ```
+
+4. **lib/markdown.ts:20**
+
+   ```
+   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   ```
+
+5. **lib/db/index.ts:113**
+
+   ```
+   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   ```
+
+6. **lib/marketplace/context.ts:28**
+
+   ```
+   // eslint-disable-next-line no-console
+   ```
+
+7. **lib/marketplace/context.ts:46**
+
+   ```
+   // eslint-disable-next-line no-console
+   ```
+
+8. **lib/marketplace/context.ts:64**
+
+   ```
+   // eslint-disable-next-line no-console
+   ```
+
+9. **lib/marketplace/serverFetch.ts:24**
+
+   ```
+   // eslint-disable-next-line no-console
+   ```
+
+10. **lib/marketplace/serverFetch.ts:60**
+
+```
+// eslint-disable-next-line no-console
+```
+
+_...and 48 more occurrences_
+
+#### TypeScript Error Suppressed (28 occurrences)
+
+1. **lib/sla.spec.ts:89**
+
+   ```
+   // @ts-ignore
+   ```
+
+2. **lib/sla.spec.ts:98**
+
+   ```
+   // @ts-ignore
+   ```
+
+3. **lib/ats/scoring.test.ts:4**
+
+   ```
+   // @ts-ignore
+   ```
+
+4. **lib/ats/scoring.test.ts:11**
+
+   ```
+   // @ts-ignore testing runtime with non-string-like falsy converted upstream
+   ```
+
+5. **lib/ats/scoring.test.ts:13**
+
+   ```
+   // @ts-ignore null as unexpected input
+   ```
+
+6. **analyze-system-errors.js:447**
+
+   ```
+   md += `  - Replace \`// @ts-ignore\` with proper type fixes\n`;
+   ```
+
+7. **qa/qaPatterns.ts:32**
+
+   ```
+   //@ts-ignore
+   ```
+
+8. **scripts/fixzit-pack.ts:4**
+
+   ```
+   // @ts-ignore - No type declarations available
+   ```
+
+9. **scripts/dedupe-merge.ts:5**
+
+   ```
+   // @ts-ignore - No type declarations available
+   ```
+
+10. **app/test/help_support_ticket_page.test.tsx:23**
+
+```
+// @ts-ignore
+```
+
+_...and 18 more occurrences_
+
+#### Expected TypeScript Error (25 occurrences)
+
+1. **lib/utils.test.ts:64**
+
+   ```
+   // @ts-expect-error Testing runtime robustness against undefined
+   ```
+
+2. **lib/utils.test.ts:66**
+
+   ```
+   // @ts-expect-error Testing runtime robustness against null
+   ```
+
+3. **lib/utils.test.ts:68**
+
+   ```
+   // @ts-expect-error Testing runtime robustness against number
+   ```
+
+4. **lib/utils.test.ts:70**
+
+   ```
+   // @ts-expect-error Testing runtime robustness against object
+   ```
+
+5. **lib/ats/scoring.test.ts:72**
+
+   ```
+   // @ts-expect-error testing runtime behavior on null
+   ```
+
+6. **lib/ats/scoring.test.ts:74**
+
+   ```
+   // @ts-expect-error testing runtime behavior on undefined
+   ```
+
+7. **qa/qaPatterns.ts:30**
+
+   ```
+   // @ts-expect-error
+   ```
+
+8. **tests/ats.scoring.test.ts:87**
+
+   ```
+   // @ts-expect-error - intentional invalid type to test runtime behavior
+   ```
+
+9. **tests/ats.scoring.test.ts:89**
+
+   ```
+   // @ts-expect-error
+   ```
+
+10. **tests/scripts/seed-marketplace.mjs.test.ts:150**
+
+```
+// @ts-expect-error - Restoring original Date.now implementation
+```
+
+_...and 15 more occurrences_
+
+#### TypeScript Check Disabled (2 occurrences)
+
+1. **tests/api/marketplace/search.route.impl.ts:1**
+
+   ```
+   // @ts-nocheck
+   ```
+
+2. **tests/pages/product.slug.page.test.ts:12**
+
+   ```
+   // @ts-nocheck
+   ```
+
+### TypeScript Errors (632 errors)
+
+#### Type Cast to Any (320 occurrences)
+
+1. **components/fm/**tests**/WorkOrdersView.test.tsx:34**
+
+   ```
+   (global as any).fetch = jest.fn();
+   ```
+
+2. **components/fm/**tests**/WorkOrdersView.test.tsx:35**
+
+   ```
+   (window.localStorage as any).clear();
+   ```
+
+3. **components/fm/**tests**/WorkOrdersView.test.tsx:36**
+
+   ```
+   (window as any).alert = jest.fn();
+   ```
+
+4. **components/marketplace/CatalogView.test.tsx:31**
+
+   ```
+   const jestLike = (global as any).vi ?? (global as any).jest
+   ```
+
+5. **components/marketplace/CatalogView.test.tsx:31**
+
+   ```
+   const jestLike = (global as any).vi ?? (global as any).jest
+   ```
+
+6. **components/marketplace/CatalogView.test.tsx:95**
+
+   ```
+   productsState.mutate = state.mutate as any
+   ```
+
+7. **components/marketplace/CatalogView.test.tsx:109**
+
+   ```
+   ;(swrModule as any).default = (key: any, fetcher: any, opts: any) => {
+   ```
+
+8. **components/marketplace/CatalogView.test.tsx:176**
+
+   ```
+   ;(global as any).fetch = undefined
+   ```
+
+9. **components/marketplace/CatalogView.test.tsx:282**
+
+   ```
+   ;(global as any).fetch = fetchSpy
+   ```
+
+10. **components/marketplace/CatalogView.test.tsx:298**
+
+```
+;(global as any).fetch = fetchSpy
+```
+
+_...and 310 more occurrences_
+
+#### Any Type Usage (277 occurrences)
+
+1. **components/fm/**tests**/WorkOrdersView.test.tsx:46**
+
+   ```
+   const makeApiResponse = (items: any[], page = 1, limit = 10, total?: number) => ({
+   ```
+
+2. **components/marketplace/CatalogView.test.tsx:37**
+
+   ```
+   default: ({ isOpen, title = 'Sign in to continue' }: any) => (
+   ```
+
+3. **components/marketplace/CatalogView.test.tsx:47**
+
+   ```
+   data?: any
+   ```
+
+4. **components/marketplace/CatalogView.test.tsx:48**
+
+   ```
+   error?: any
+   ```
+
+5. **components/marketplace/CatalogView.test.tsx:50**
+
+   ```
+   mutate?: jest.Mock | ((...args: any[]) => any)
+   ```
+
+6. **components/marketplace/CatalogView.test.tsx:53**
+
+   ```
+   data?: any
+   ```
+
+7. **components/marketplace/CatalogView.test.tsx:54**
+
+   ```
+   error?: any
+   ```
+
+8. **components/marketplace/CatalogView.test.tsx:61**
+
+   ```
+   const useSWRCalls: Array<{ key: any; fetcher: any; opts: any }> = []
+   ```
+
+9. **components/marketplace/CatalogView.test.tsx:61**
+
+   ```
+   const useSWRCalls: Array<{ key: any; fetcher: any; opts: any }> = []
+   ```
+
+10. **components/marketplace/CatalogView.test.tsx:61**
+
+```
+const useSWRCalls: Array<{ key: any; fetcher: any; opts: any }> = []
+```
+
+_...and 267 more occurrences_
+
+#### Any in Record Type (22 occurrences)
+
+1. **components/CopilotWidget.tsx:102**
+
+   ```
+   type ToolFormState = Record<string, any>;
+   ```
+
+2. **src/server/models/marketplace/Product.ts:42**
+
+   ```
+   specs: Record<string, any>;
+   ```
+
+3. **lib/marketplace/search.ts:107**
+
+   ```
+   const query: Record<string, any> = { orgId: filters.orgId, status: 'ACTIVE' };
+   ```
+
+4. **final-typescript-fix.js:59**
+
+   ```
+   // 4. Replace Record<string, unknown> with Record<string, any>
+   ```
+
+5. **final-typescript-fix.js:60**
+
+   ```
+   content = content.replace(/Record<string,\s*unknown>/g, 'Record<string, any>');
+   ```
+
+6. **qa/tests/api-projects.spec.ts:25**
+
+   ```
+   function validProjectPayload(overrides: Partial<Record<string, any>> = {}) {
+   ```
+
+7. **qa/tests/i18n-en.unit.spec.ts:10**
+
+   ```
+   type Dict = Record<string, any>;
+   ```
+
+8. **app/api/public/rfqs/route.test.ts:24**
+
+   ```
+   type RFQDoc = Record<string, any>;
+   ```
+
+9. **tests/scripts/seed-marketplace.ts.test.ts:18**
+
+   ```
+   type AnyRec = Record<string, any>;
+   ```
+
+10. **tests/scripts/seed-marketplace.mjs.test.ts:25**
+
+```
+type Doc = Record<string, any>;
+```
+
+_...and 12 more occurrences_
+
+#### Generic Any Type (13 occurrences)
+
+1. **components/marketplace/CatalogView.test.tsx:123**
+
+   ```
+   function makeProduct(overrides: Partial<any> = {}) {
+   ```
+
+2. **lib/auth.test.ts:175**
+
+   ```
+   const makeUser = (overrides: Partial<any> = {}) => ({
+   ```
+
+3. **analyze-system-errors.js:83**
+
+   ```
+   { pattern: /<any>/g, type: 'Generic Any Type' },
+   ```
+
+4. **qa/AutoFixAgent.tsx:42**
+
+   ```
+   const originalFetchRef = useRef<any>(null);
+   ```
+
+5. **scripts/deploy-db-verify.ts:27**
+
+   ```
+   private async runTest(testName: string, testFn: () => Promise<any>): Promise<void> {
+   ```
+
+6. **app/product/[slug]/**tests**/page.spec.tsx:34**
+
+   ```
+   const makeData = (overrides?: Partial<any>) => {
+   ```
+
+7. **app/fm/marketplace/page.test.tsx:29**
+
+   ```
+   const [Comp, setComp] = React.useState<React.ComponentType<any> | null>(null);
+   ```
+
+8. **app/fm/marketplace/page.test.tsx:34**
+
+   ```
+   setComp(() => ((mod && (mod.default || mod)) as React.ComponentType<any>));
+   ```
+
+9. **app/test/api_help_articles_route.test.ts:40**
+
+   ```
+   let GET: (req: NextRequest) => Promise<any>
+   ```
+
+10. **tests/unit/api/qa/alert.route.test.ts:23**
+
+```
+json: () => Promise<any>;
+```
+
+_...and 3 more occurrences_
+
+### Runtime Errors (423 errors)
+
+#### Console Error (323 occurrences)
+
+1. **components/AIChat.tsx:79**
+
+   ```
+   console.error('AI Chat error:', error);
+   ```
+
+2. **components/ErrorBoundary.tsx:218**
+
+   ```
+   console.error('🚨 UI Error Caught:', {
+   ```
+
+3. **components/ErrorBoundary.tsx:309**
+
+   ```
+   console.error('❌ Auto-fix failed:', fixError);
+   ```
+
+4. **components/ErrorBoundary.tsx:460**
+
+   ```
+   console.error('Failed to send welcome email:', error);
+   ```
+
+5. **components/ClientLayout.tsx:71**
+
+   ```
+   console.error('Failed to fetch user role:', error);
+   ```
+
+6. **components/CopilotWidget.tsx:188**
+
+   ```
+   console.error('Copilot profile error', err);
+   ```
+
+7. **components/CopilotWidget.tsx:238**
+
+   ```
+   console.error('Copilot chat error', error);
+   ```
+
+8. **components/CopilotWidget.tsx:281**
+
+   ```
+   console.error('Tool error', error);
+   ```
+
+9. **components/fm/WorkOrdersView.tsx:384**
+
+   ```
+   console.error('Failed to create work order', error);
+   ```
+
+10. **components/marketplace/ProductCard.tsx:53**
+
+```
+console.error('Failed to add product to cart', error);
+```
+
+_...and 313 more occurrences_
+
+#### Process Exit (96 occurrences)
+
+1. **lib/database.ts:39**
+
+   ```
+   process.exit(0);
+   ```
+
+2. **lib/database.ts:45**
+
+   ```
+   process.exit(0);
+   ```
+
+3. **lib/database.ts:51**
+
+   ```
+   process.exit(1);
+   ```
+
+4. **lib/database.ts:57**
+
+   ```
+   process.exit(1);
+   ```
+
+5. **lib/auth.ts:42**
+
+   ```
+   process.exit(1);
+   ```
+
+6. **analyze-imports.js:194**
+
+   ```
+   process.exit(totalIssues > 0 ? 1 : 0);
+   ```
+
+7. **analyze-system-errors.js:45**
+
+   ```
+   process.exit(1);
+   ```
+
+8. **scripts/verify-core.ts:57**
+
+   ```
+   process.exit(success ? 0 : 1);
+   ```
+
+9. **scripts/ensure-indexes.ts:25**
+
+   ```
+   process.exit(0);
+   ```
+
+10. **scripts/ensure-indexes.ts:28**
+
+```
+process.exit(1);
+```
+
+_...and 86 more occurrences_
+
+#### Empty Catch Block (4 occurrences)
+
+1. **components/ErrorBoundary.tsx:285**
+
+   ```
+   }).catch(() => {}); // Fire and forget
+   ```
+
+2. **components/ErrorBoundary.tsx:339**
+
+   ```
+   }).catch(() => {}); // Fire and forget
+   ```
+
+3. **components/AutoIncidentReporter.tsx:33**
+
+   ```
+   fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload), keepalive: true }).catch(()=>{});
+   ```
+
+4. **packages/fixzit-souq-server/server.js:122**
+
+   ```
+   connectDatabase().catch(() => {});
+   ```
+
+### Test Errors (125 errors)
+
+#### Disabled Test (xit) (96 occurrences)
+
+1. **lib/database.ts:39**
+
+   ```
+   process.exit(0);
+   ```
+
+2. **lib/database.ts:45**
+
+   ```
+   process.exit(0);
+   ```
+
+3. **lib/database.ts:51**
+
+   ```
+   process.exit(1);
+   ```
+
+4. **lib/database.ts:57**
+
+   ```
+   process.exit(1);
+   ```
+
+5. **lib/auth.ts:42**
+
+   ```
+   process.exit(1);
+   ```
+
+6. **analyze-imports.js:194**
+
+   ```
+   process.exit(totalIssues > 0 ? 1 : 0);
+   ```
+
+7. **analyze-system-errors.js:45**
+
+   ```
+   process.exit(1);
+   ```
+
+8. **scripts/verify-core.ts:57**
+
+   ```
+   process.exit(success ? 0 : 1);
+   ```
+
+9. **scripts/ensure-indexes.ts:25**
+
+   ```
+   process.exit(0);
+   ```
+
+10. **scripts/ensure-indexes.ts:28**
+
+```
+process.exit(1);
+```
+
+_...and 86 more occurrences_
+
+#### Skipped Test (29 occurrences)
+
+1. **modules/organizations/service.ts:23**
+
+   ```
+   Organization.find(query).sort(sort).skip(skip).limit(limit).lean().exec(),
+   ```
+
+2. **modules/users/service.ts:25**
+
+   ```
+   User.find(query).sort(sort).skip(skip).limit(limit).select('-passwordHash').lean().exec(),
+   ```
+
+3. **lib/marketplace/search.ts:141**
+
+   ```
+   Product.find(query).skip(skip).limit(limit).sort({ createdAt: -1 }).lean(),
+   ```
+
+4. **packages/fixzit-souq-server/routes/marketplace.js:48**
+
+   ```
+   .skip(skip)
+   ```
+
+5. **qa/tests/07-marketplace-page.spec.ts:78**
+
+   ```
+   if (!usedStub) test.skip();
+   ```
+
+6. **qa/tests/07-marketplace-page.spec.ts:117**
+
+   ```
+   if (!usedStub) test.skip();
+   ```
+
+7. **qa/tests/07-marketplace-page.spec.ts:149**
+
+   ```
+   if (!usedStub) test.skip();
+   ```
+
+8. **qa/tests/07-marketplace-page.spec.ts:166**
+
+   ```
+   if (!usedStub) test.skip();
+   ```
+
+9. **qa/tests/07-marketplace-page.spec.ts:182**
+
+   ```
+   if (!usedStub) test.skip();
+   ```
+
+10. **qa/tests/07-marketplace-page.spec.ts:198**
+
+```
+if (!usedStub) test.skip();
+```
+
+_...and 19 more occurrences_
+
+### Deployment Issues (92 errors)
+
+#### Hardcoded Localhost (91 occurrences)
+
+1. **next.config.js:112**
+
+   ```
+   destination: 'http://localhost:5000/api/marketplace/:path*',
+   ```
+
+2. **next.config.js:116**
+
+   ```
+   destination: 'http://localhost:5000/api/properties/:path*',
+   ```
+
+3. **next.config.js:120**
+
+   ```
+   destination: 'http://localhost:5000/api/workorders/:path*',
+   ```
+
+4. **next.config.js:124**
+
+   ```
+   destination: 'http://localhost:5000/api/finance/:path*',
+   ```
+
+5. **next.config.js:128**
+
+   ```
+   destination: 'http://localhost:5000/api/hr/:path*',
+   ```
+
+6. **next.config.js:132**
+
+   ```
+   destination: 'http://localhost:5000/api/crm/:path*',
+   ```
+
+7. **next.config.js:136**
+
+   ```
+   destination: 'http://localhost:5000/api/compliance/:path*',
+   ```
+
+8. **next.config.js:140**
+
+   ```
+   destination: 'http://localhost:5000/api/analytics/:path*',
+   ```
+
+9. **lib/mongo.ts:44**
+
+   ```
+   const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017';
+   ```
+
+10. **lib/marketplace/serverFetch.ts:46**
+
+```
+return headerUrl ?? 'http://localhost:3000';
+```
+
+_...and 81 more occurrences_
+
+#### Deployment TODO (1 occurrences)
+
+1. **analyze-system-errors.js:139**
+
+   ```
+   { pattern: /TODO.*deploy/gi, type: 'Deployment TODO' },
+   ```
+
+### Configuration Issues (63 errors)
+
+#### Fallback Env Variable (61 occurrences)
+
+1. **components/AutoIncidentReporter.tsx:9**
+
+   ```
+   const enabled = String(process.env.NEXT_PUBLIC_ENABLE_INCIDENTS || 'true') !== 'false';
+   ```
+
+2. **components/marketplace/CatalogView.tsx:86**
+
+   ```
+   const DEFAULT_TENANT = process.env.NEXT_PUBLIC_MARKETPLACE_TENANT || 'demo-tenant';
+   ```
+
+3. **src/server/models/AtsSettings.ts:68**
+
+   ```
+   const targetOrg = orgId || process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
+   ```
+
+4. **lib/mongo.ts:44**
+
+   ```
+   const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017';
+   ```
+
+5. **lib/mongo.ts:45**
+
+   ```
+   const dbName = process.env.MONGODB_DB || 'fixzit';
+   ```
+
+6. **lib/storage/s3.ts:4**
+
+   ```
+   const REGION = process.env.AWS_REGION || 'us-east-1';
+   ```
+
+7. **lib/storage/s3.ts:5**
+
+   ```
+   const BUCKET = process.env.AWS_S3_BUCKET || '';
+   ```
+
+8. **lib/paytabs/config.ts:21**
+
+   ```
+   baseUrl: process.env.PAYTABS_BASE_URL || 'https://secure.paytabs.sa',
+   ```
+
+9. **lib/paytabs.config.ts:9**
+
+   ```
+   baseUrl: process.env.PAYTABS_BASE_URL || 'https://secure.paytabs.sa'
+   ```
+
+10. **lib/edge-auth-middleware.ts:23**
+
+```
+const secret = process.env.JWT_SECRET || 'dev-secret';
+```
+
+_...and 51 more occurrences_
+
+#### TODO Configuration (1 occurrences)
+
+1. **analyze-system-errors.js:116**
+
+   ```
+   { pattern: /TODO.*config/gi, type: 'TODO Configuration' },
+   ```
+
+#### Config Fix Required (1 occurrences)
+
+1. **analyze-system-errors.js:117**
+
+   ```
+   { pattern: /FIXME.*config/gi, type: 'Config Fix Required' }
+   ```
+
+### Security Issues (17 errors)
+
+#### Dangerous HTML (5 occurrences)
+
+1. **analyze-system-errors.js:99**
+
+   ```
+   { pattern: /dangerouslySetInnerHTML/g, type: 'Dangerous HTML' },
+   ```
+
+2. **qa/tests/07-help-article-page-code.spec.ts:75**
+
+   ```
+   test("renders content via dangerouslySetInnerHTML with await renderMarkdown(a.content)", async () => {
+   ```
+
+3. **qa/tests/07-help-article-page-code.spec.ts:76**
+
+   ```
+   expect(code).toMatch(/dangerouslySetInnerHTML\s*=\s*\{\{\s*__html\s*:\s*await\s+renderMarkdown\(\s*a\.content\s*\)\s*\}\}/);
+   ```
+
+4. **app/cms/[slug]/page.tsx:45**
+
+   ```
+   dangerouslySetInnerHTML={{ __html: await renderMarkdown(page.content) }}
+   ```
+
+5. **app/help/[slug]/page.tsx:47**
+
+   ```
+   dangerouslySetInnerHTML={{ __html: await renderMarkdownSanitized(a.content) }}
+   ```
+
+#### Token in LocalStorage (4 occurrences)
+
+1. **components/fm/**tests**/WorkOrdersView.test.tsx:368**
+
+   ```
+   window.localStorage.setItem('fixzit_token', 'tkn-123');
+   ```
+
+2. **public/ui-bootstrap.js:103**
+
+   ```
+   localStorage.setItem("token", data.token);
+   ```
+
+3. **public/app.js:75**
+
+   ```
+   localStorage.setItem('fixzit_token', this.token);
+   ```
+
+4. **tests/unit/components/SupportPopup.test.tsx:165**
+
+   ```
+   window.localStorage.setItem("x-user", "user-token");
+   ```
+
+#### Hardcoded Secret (4 occurrences)
+
+1. **lib/auth.test.ts:149**
+
+   ```
+   process.env.JWT_SECRET = 'fixed-secret';
+   ```
+
+2. **scripts/server.js:104**
+
+   ```
+   if (!process.env.JWT_SECRET) process.env.JWT_SECRET = 'dev-jwt-secret-fixzit-2024';
+   ```
+
+3. **scripts/server.js:105**
+
+   ```
+   if (!process.env.REFRESH_TOKEN_SECRET) process.env.REFRESH_TOKEN_SECRET = 'dev-refresh-secret-fixzit-2024';
+   ```
+
+4. **scripts/test-auth-fix.js:6**
+
+   ```
+   process.env.JWT_SECRET = 'test-secret-key-change-in-production';
+   ```
+
+#### Hardcoded Password (3 occurrences)
+
+1. **lib/auth.test.ts:74**
+
+   ```
+   const password = 'P@ssw0rd!';
+   ```
+
+2. **scripts/create-test-data.js:23**
+
+   ```
+   console.error('💡 Set it with: export DEFAULT_PASSWORD="your-secure-password"');
+   ```
+
+3. **public/ui-bootstrap.js:92**
+
+   ```
+   window.loginToBackend = async function(email = "admin@test.com", password = "password123") {
+   ```
+
+#### Eval Usage (1 occurrences)
+
+1. **scripts/scanner.js:213**
+
+   ```
+   { pattern: /eval\s*\(/g, issue: 'eval() usage detected', severity: Severity.CRITICAL },
+   ```
+
+### Build Errors (7 errors)
+
+#### Reference Error (3 occurrences)
+
+1. **components/ErrorBoundary.tsx:179**
+
+   ```
+   pattern: /TypeError|ReferenceError/,
+   ```
+
+2. **analyze-system-errors.js:58**
+
+   ```
+   { pattern: /ReferenceError/g, type: 'Reference Error' }
+   ```
+
+3. **tests/unit/components/ErrorBoundary.test.tsx:268**
+
+   ```
+   <ChildThatThrows message={"Stack gen"} name="ReferenceError" />
+   ```
+
+#### Webpack Error (1 occurrences)
+
+1. **analyze-system-errors.js:54**
+
+   ```
+   { pattern: /webpack.*error/gi, type: 'Webpack Error' },
+   ```
+
+#### Compilation Error (1 occurrences)
+
+1. **analyze-system-errors.js:55**
+
+   ```
+   { pattern: /compilation\s+error/gi, type: 'Compilation Error' },
+   ```
+
+#### Build Failure (1 occurrences)
+
+1. **analyze-system-errors.js:56**
+
+   ```
+   { pattern: /build\s+fail/gi, type: 'Build Failure' },
+   ```
+
+#### Syntax Error (1 occurrences)
+
+1. **analyze-system-errors.js:57**
+
+   ```
+   { pattern: /SyntaxError/g, type: 'Syntax Error' },
+   ```
+
+### Code Maintenance (TODO/FIXME) (3 errors)
+
+#### TODO Comment (3 occurrences)
+
+1. **scripts/phase1-truth-verifier.js:252**
+
+   ```
+   content.includes('// TODO') ||
+   ```
+
+2. **scripts/reality-check.js:134**
+
+   ```
+   content.includes('// TODO') ||
+   ```
+
+3. **smart-merge-conflicts.ts:138**
+
+   ```
+   '// TODO: Review this merge - both sides had changes',
+   ```
+
+### Database Errors (2 errors)
+
+#### Missing Await on DB Query (1 occurrences)
+
+1. **analyze-system-errors.js:123**
+
+   ```
+   { pattern: /findOne.*without.*await/g, type: 'Missing Await on DB Query' },
+   ```
+
+#### Database TODO (1 occurrences)
+
+1. **analyze-system-errors.js:124**
+
+   ```
+   { pattern: /TODO.*database/gi, type: 'Database TODO' },
+   ```
+
+### API Errors (2 errors)
+
+#### API TODO (1 occurrences)
+
+1. **analyze-system-errors.js:132**
+
+   ```
+   { pattern: /TODO.*api/gi, type: 'API TODO' },
+   ```
+
+#### API Fix Required (1 occurrences)
+
+1. **analyze-system-errors.js:133**
+
+   ```
+   { pattern: /FIXME.*api/gi, type: 'API Fix Required' },
+   ```
+
+## 🎯 Recommended Fix Strategy
+
+### Phase 1: Quick Wins (Estimated 2-3 hours)
+
+- **Lint/Code Quality** (1716 errors)
+  - Remove unnecessary `console.log` statements
+  - Replace `// @ts-ignore` with proper type fixes
+  - Clean up ESLint disable comments
+
+- **TypeScript Errors** (632 errors)
+  - Replace `: any` with proper types
+  - Fix `as any` type casts
+  - Add proper type definitions
+
+### Phase 2: Medium Priority (Estimated 4-6 hours)
+
+- **Runtime Errors** (423 errors)
+
+- **Test Errors** (125 errors)
+
+- **Deployment Issues** (92 errors)
+
+### Phase 3: Long-term Improvements (Ongoing)
+
+- **Configuration Issues** (63 errors)
+- **Security Issues** (17 errors)
+- **Build Errors** (7 errors)
+- **Code Maintenance (TODO/FIXME)** (3 errors)
+- **Database Errors** (2 errors)
+- **API Errors** (2 errors)
+
+## 📊 Progress Tracking
+
+Use the CSV file (`system-errors-report.csv`) to track progress:
+
+```bash
+# Count remaining errors by category
+grep "lintErrors" system-errors-report.csv | wc -l
+
+# Find all errors in a specific file
+grep "your-file.ts" system-errors-report.csv
+
+# Export specific category to work on
+grep "Console Statement" system-errors-report.csv > console-cleanup.csv
+```
+
+---
+
+_This report was automatically generated by the System Error Analysis Tool_  
+_Generated at: 2025-10-15T06:45:14.571Z_
+
+]]>
+</file>
+
+<file path="docs/archived/reports/SYSTEM_FIXES_VERIFICATION_REPORT.md">
+<![CDATA[
+# System Fixes and End-to-End Testing Report
+
+## Executive Summary
+
+Successfully completed comprehensive system fixes and validation for the Fixzit application following extensive manual edits to 58+ files. All critical compilation errors have been resolved, and the system is fully operational with proper API routing, database connectivity, and development server functionality.
+
+---
+
+## Issues Identified and Resolved
+
+### 1. Critical Compilation Errors
+
+**Problem**: Multiple TypeScript compilation errors preventing system functionality
+**Impact**: Build failures, non-functional API routes, missing dependencies
+
+**Solutions Implemented**:
+
+- ✅ **Missing Dependencies**: Installed `ioredis` and `@types/ioredis` for Redis caching functionality
+- ✅ **Import Errors**: Added missing `connectDb` export to `/src/lib/mongo.ts` for API route compatibility
+- ✅ **Syntax Errors**: Fixed syntax issues in `/app/api/help/ask/route.ts` (duplicate return statements)
+- ✅ **Babel Configuration**: Installed missing Babel presets (`@babel/preset-env`, `@babel/preset-react`, `@babel/preset-typescript`)
+
+### 2. Widespread HTML Entity Encoding Issues
+
+**Problem**: HTML entities (`&apos;`, `&gt;`, `&lt;`) corrupted 90+ TypeScript/React files
+**Impact**: Complete compilation failure across entire codebase
+
+**Solution**:
+
+- ✅ **Mass File Fix**: Applied systematic sed commands to restore proper quote and operator characters
+- ✅ **Scope**: Fixed all `.ts`, `.tsx`, `.js`, `.jsx` files throughout the project
+- ✅ **Verification**: Confirmed clean TypeScript compilation after fixes
+
+### 3. Service Implementation Issues
+
+**Problem**: Syntax errors in `/src/server/finance/invoice.service.ts`
+**Impact**: Missing function closures, orphaned return statements
+
+**Solution**:
+
+- ✅ **Structure Fixes**: Corrected function definitions and removed orphaned mock service calls
+- ✅ **Consistency**: Ensured proper async/await patterns and database connection handling
+
+---
+
+## System Validation Results
+
+### TypeScript Compilation
+
+- **Status**: ✅ **PASSING** (2 minor warnings remaining)
+- **Errors**: Reduced from 8,865 errors across 96 files to 2 minor parameter warnings
+- **Build Process**: Functional with Babel configuration
+
+### Database Connectivity
+
+- **Primary MongoDB**: Connection properly configured
+- **Fallback System**: ✅ **OPERATIONAL** - Mock database functioning for development/testing
+- **QA Database Tests**: ✅ **PASSING**
+
+### API Endpoints Testing
+
+- **Health Check**: ✅ `/api/qa/health` - Responding correctly with system status
+- **Authentication**: ✅ `/api/admin/health` - Properly rejecting unauthorized requests
+- **Routing**: ✅ All API routes accessible with appropriate responses
+- **Error Handling**: ✅ Proper error responses for invalid requests
+
+### Developer Experience
+
+- **Dev Server**: ✅ **OPERATIONAL** on <http://localhost:3000>
+- **Hot Reload**: ✅ **FUNCTIONAL**
+- **Build Tools**: ✅ Babel, Next.js, TypeScript all working correctly
+- **Startup Time**: 4.7 seconds (excellent performance)
+
+---
+
+## Test Suite Analysis
+
+### Unit Tests Status
+
+- **Framework**: Mixed Vitest/Jest configuration detected
+- **Core Logic**: Business logic tests functional (with expected test configuration issues)
+- **Coverage**: 145 tests passing, 70 failing due to configuration mismatches
+- **Recommendation**: Standardize on single testing framework for consistency
+
+### Integration Tests
+
+- **Database Layer**: ✅ **PASSING**
+- **API Routes**: ✅ **FUNCTIONAL**
+- **Authentication**: ✅ **WORKING** (proper rejection of unauthorized requests)
+- **Environment Variables**: ✅ **CONFIGURED** correctly
+
+### E2E Verification
+
+- **Web Server**: ✅ **OPERATIONAL**
+- **API Connectivity**: ✅ **VERIFIED**
+- **Error Handling**: ✅ **ROBUST**
+- **Performance**: ✅ **OPTIMAL** startup and response times
+
+---
+
+## Architecture Overview
+
+### Fixed Components
+
+1. **Database Abstraction Layer** (`/src/lib/mongo.ts`)
+   - MongoDB connection with mock fallback
+   - Proper TypeScript interfaces
+   - Export compatibility for API routes
+
+2. **Security Layer** (`/src/lib/marketplace/security.ts`)
+   - CORS configuration
+   - Security headers implementation
+   - Request middleware functionality
+
+3. **API Routes** (24+ files in `/app/api/`)
+   - Database connectivity
+   - Error handling
+   - Authentication integration
+   - Proper HTTP response patterns
+
+4. **Service Layer** (`/src/server/`)
+   - Finance services
+   - Model definitions
+   - Business logic implementation
+
+---
+
+## Performance Metrics
+
+### Build Performance
+
+- **Development Server**: 4.7 second startup ⚡
+- **Hot Reload**: Near-instantaneous
+- **TypeScript Compilation**: Fast incremental builds
+
+### Runtime Performance
+
+- **API Response Times**: <100ms for health checks
+- **Memory Usage**: 405MB RSS, 133MB Heap (efficient)
+- **Database Queries**: Optimized with proper connection pooling
+
+---
+
+## Security Status
+
+### Authentication
+
+- ✅ **Routes Protected**: Admin endpoints properly secured
+- ✅ **Error Handling**: No sensitive information leaked in error responses
+- ✅ **CORS**: Configured correctly for cross-origin requests
+
+### Headers
+
+- ✅ **Security Headers**: X-Frame-Options, X-XSS-Protection, CSP implemented
+- ✅ **HTTPS Ready**: HSTS configuration for production
+- ✅ **Content Security**: Proper content type validation
+
+---
+
+## Deployment Readiness
+
+### Production Requirements Met
+
+- ✅ **Environment Configuration**: Proper env variable handling
+- ✅ **Database Configuration**: Connection strings and fallbacks
+- ✅ **Build Process**: Clean compilation and bundling
+- ✅ **Error Handling**: Graceful degradation and proper logging
+
+### Scalability Features
+
+- ✅ **Connection Pooling**: Database connections optimized
+- ✅ **Caching Layer**: Redis integration ready
+- ✅ **Load Balancing Ready**: Stateless API design
+- ✅ **Health Monitoring**: Comprehensive health check endpoints
+
+---
+
+## Recommendations for Next Steps
+
+### Immediate Actions
+
+1. **Testing Framework**: Standardize on either Vitest or Jest for consistency
+2. **Environment Variables**: Add missing `USE_MOCK_DB` to env.example
+3. **Documentation**: Update API documentation to reflect current endpoints
+
+### Future Enhancements
+
+1. **E2E Testing**: Implement comprehensive Playwright test suite
+2. **Performance Monitoring**: Add APM integration
+3. **Security Audit**: Regular security scans and dependency updates
+
+---
+
+## Final Status: ✅ SYSTEM OPERATIONAL
+
+**Overall Health**: 🟢 **EXCELLENT**  
+**API Functionality**: 🟢 **FULLY OPERATIONAL**  
+**Database Connectivity**: 🟢 **STABLE**  
+**Developer Experience**: 🟢 **OPTIMAL**  
+**Production Readiness**: 🟢 **READY**
+
+The Fixzit system has been successfully restored to full functionality following comprehensive fixes to compilation errors, encoding issues, and structural problems. All core systems are operational and ready for continued development and deployment.
+
+---
+
+_Report Generated: September 29, 2025_  
+_Total Files Fixed: 58+_  
+_Compilation Errors Resolved: 8,863_  
+_System Status: OPERATIONAL_ ✅
+
+]]>
+</file>
+
+<file path="docs/archived/reports/SYSTEM_ISSUE_RESOLUTION_REPORT.md">
+<![CDATA[
+# System-Wide Issue Resolution Report
+
+**Date:** December 2025  
+**Session:** Comprehensive Codebase Audit & Fix  
+**Issues Resolved:** 8 of 13 (62% complete)
+
+---
+
+## Executive Summary
+
+Conducted comprehensive analysis of entire chat history and codebase to identify all pending issues, bugs, and technical debt. Created 12-item action plan across 5 priority categories and systematically resolved 7 critical and high-priority issues.
+
+### Issues Fixed
+
+✅ **1. Test Mock Imports (P0 - COMPLETE)**
+
+- **Problem:** 3 test files mocking deprecated `@/hooks/fm/useOrgGuard` path
+- **Solution:** Updated to `@/components/fm/useFmOrgGuard`
+- **Files Fixed:**
+  - `tests/unit/app/fm/tenants/page.test.tsx`
+  - `tests/unit/app/fm/finance/budgets/new/page.test.tsx`
+  - `tests/unit/app/fm/finance/expenses/new/page.test.tsx`
+- **Impact:** Tests now use correct imports, preventing false failures
+
+✅ **3. Notification System Integration (P1 - COMPLETE)**
+
+- **Problem:** TODO comments indicated missing notification triggers
+- **Solution:** Integrated existing `lib/fm-notifications.ts` system
+- **Implementation:**
+  - `POST /api/fm/work-orders/route.ts` - Triggers `onTicketCreated()` notification
+  - `POST /api/fm/work-orders/[id]/transition/route.ts` - Triggers `onAssign()` notification
+  - Notifies assignees on work order creation
+  - Notifies requesters on completion
+  - Notifies assignees on status changes
+- **Impact:** Stakeholders now receive real-time notifications via email/push/SMS/WhatsApp
+
+✅ **4. Timeline Tracking (P1 - COMPLETE)**
+
+- **Problem:** Work order operations lacked audit trail
+- **Solution:** Added timeline entries to `workorder_timeline` collection
+- **Events Tracked:**
+  - Work order creation
+  - Status transitions with from/to states
+  - Actor identification (user who performed action)
+  - Comments and metadata
+- **Files Modified:**
+  - `app/api/fm/work-orders/route.ts` (creation event)
+  - `app/api/fm/work-orders/[id]/transition/route.ts` (transition events)
+- **Impact:** Complete audit trail for compliance and debugging
+
+✅ **5. SLA Compliance Checking (P1 - COMPLETE)**
+
+- **Problem:** No enforcement of SLA deadlines
+- **Solution:** Implemented SLA breach detection in transition endpoint
+- **Logic:**
+  - Calculates elapsed hours since creation
+  - Compares against `slaHours` field (based on priority)
+  - Logs warnings when SLA breached
+  - Skips check if work order closed
+- **SLA Thresholds:**
+  - CRITICAL: 4 hours
+  - HIGH: 24 hours
+  - MEDIUM: 72 hours
+  - LOW: 168 hours
+- **File:** `app/api/fm/work-orders/[id]/transition/route.ts`
+- **Future:** TODO comment for manager breach notifications
+
+✅ **9. Duplicate Type Usage (P1 - COMPLETE)**
+
+- **Problem:** `app/fm/dashboard/page.tsx` importing from old `@/lib/models`
+- **Solution:** Updated to use unified types from `@/types/fm`
+- **Changes:**
+  - `import type { WorkOrder } from '@/lib/models'` → `from '@/types/fm'`
+  - `import { WOStatus } from '@/lib/models'` → `from '@/types/fm'`
+- **Impact:** Single source of truth for types, prevents drift
+
+✅ **10. Error Handling Standardization (P1 - COMPLETE)**
+
+- **Problem:** Inconsistent error response formats across FM APIs
+- **Solution:** Created standardized error helper with typed codes
+- **Implementation:**
+  - **New File:** `app/api/fm/errors.ts`
+  - **Error Codes:** UNAUTHORIZED, FORBIDDEN, NOT_FOUND, BAD_REQUEST, VALIDATION_ERROR, INTERNAL_ERROR, CONFLICT, INVALID_TRANSITION, MISSING_TENANT, INVALID_ID
+  - **Format:** `{ error: string, code: string, message: string, details?: object }`
+  - **Helper Functions:** `FMErrors.unauthorized()`, `FMErrors.notFound()`, etc.
+- **Files Updated:**
+  - `app/api/fm/work-orders/route.ts`
+  - `app/api/fm/work-orders/[id]/transition/route.ts`
+- **Impact:** Consistent API contract, easier client error handling
+
+✅ **11. Authentication Verification (P0 - COMPLETE)**
+
+- **Finding:** All 8 FM API endpoints already have proper authentication
+- **Verification:** Searched for `await auth()` calls across all FM APIs
+- **Endpoints Verified:**
+  1. `GET /api/fm/work-orders` ✅
+  2. `POST /api/fm/work-orders` ✅
+  3. `GET /api/fm/work-orders/[id]` ✅
+  4. `PATCH /api/fm/work-orders/[id]` ✅
+  5. `DELETE /api/fm/work-orders/[id]` ✅
+  6. `POST /api/fm/work-orders/[id]/transition` ✅
+  7. `POST /api/fm/work-orders/[id]/assign` ✅
+  8. `GET/POST/DELETE /api/fm/work-orders/[id]/attachments` ✅
+  9. `GET /api/fm/work-orders/[id]/comments` ✅
+  10. `POST /api/fm/work-orders/[id]/comments` ✅
+  11. `GET /api/fm/work-orders/[id]/timeline` ✅
+  12. `GET /api/fm/work-orders/stats` ✅
+- **Impact:** Security verified, no action needed
+
+✅ **13. FM Permission Middleware (P0 - COMPLETE)**
+
+- **Problem:** FM APIs outside the work-order FSM lacked reusable RBAC/plan gating
+- **Solution:** Added `app/api/fm/permissions.ts` that maps platform roles/plans to FM `ModuleKey` + `SubmoduleKey` privileges
+- **Implementation:**
+  - Normalizes user roles (e.g., MANAGER, DISPATCHER) to FM domain roles
+  - Enforces module access, submodule plan gates, and action-level checks using `ROLE_MODULE_ACCESS`, `ROLE_ACTIONS`, and `PLAN_GATES`
+  - Returns standardized `FMErrors` for unauthorized/plan upgrade scenarios
+- **Impact:** Future FM APIs get consistent authorization without duplicating logic; first consumer is the new Properties API
+
+---
+
+## Pending Issues (5 remaining)
+
+### 🔴 **2. API Endpoint Completion (P0)**
+
+**Status:** 10 of 30 endpoints complete (33%)  
+**Progress This Session:** Implemented `GET`/`POST /api/fm/properties` with tenant isolation, pagination, and standardized RBAC  
+**Remaining:** 20 endpoints across 6 resource types  
+**Needed:**
+
+- Properties (PATCH, DELETE)
+- Tenants CRUD (4 endpoints)
+- Leases CRUD (4 endpoints)
+- Vendors CRUD (4 endpoints)
+- Contracts CRUD (4 endpoints)
+- Budgets API (GET, POST)
+
+**Blocker:** High development effort, requires business logic implementation
+
+### 🟡 **6. Mongoose Model Export (P1)**
+
+**Status:** Domain models exist but not exported  
+**Issue:** `domain/fm/fm.behavior.ts` defines schemas but not connected to MongoDB  
+**Required:**
+
+- Create `lib/models/fm/` directory
+- Export Mongoose models from domain schemas
+- Connect to MongoDB collections
+- Add indexes for performance
+
+**Blocker:** Requires database schema migration planning
+
+### 🟡 **8. Functional Verification (P1)**
+
+**Status:** Not started  
+**Type:** Manual smoke testing  
+**Scope:** All 75 FM pages  
+**Checklist:**
+
+- Organization context guards work
+- Navigation flows correctly
+- Data loading succeeds
+- Error states display properly
+- Forms submit successfully
+
+**Blocker:** Requires deployment or local test environment
+
+### 🟢 **12. Documentation Update (P2)**
+
+**Status:** Partially complete  
+**File:** `FM_MODULE_COMPREHENSIVE_AUDIT.md`  
+**Updates Made:**
+
+- ✅ Key metrics updated
+- ✅ Phase 1.1-1.3 status documented
+- ✅ API endpoint inventory added
+- ✅ December 2025 update section added
+  **Remaining:** Update Phase 1.4-1.6 sections when complete
+
+---
+
+## Files Created/Modified
+
+### Created (2 files)
+
+1. **app/api/fm/errors.ts** - Standardized error response helper
+2. **SYSTEM_ISSUE_RESOLUTION_REPORT.md** - This document
+
+### Modified (6 files)
+
+1. **app/api/fm/work-orders/route.ts**
+   - Added notification triggers
+   - Added timeline tracking
+   - Standardized error handling
+   - Added ObjectId import
+
+2. **app/api/fm/work-orders/[id]/transition/route.ts**
+   - Added notification triggers
+   - Added SLA breach detection
+   - Standardized error handling
+   - Improved validation messages
+
+3. **app/fm/dashboard/page.tsx**
+   - Fixed type imports (WorkOrder, WOStatus)
+
+4. **tests/unit/app/fm/tenants/page.test.tsx**
+   - Fixed mock import path
+
+5. **tests/unit/app/fm/finance/budgets/new/page.test.tsx**
+   - Fixed mock import path
+
+6. **tests/unit/app/fm/finance/expenses/new/page.test.tsx**
+   - Fixed mock import path
+
+7. **FM_MODULE_COMPREHENSIVE_AUDIT.md**
+   - Updated key metrics
+   - Added Phase 1.1-1.3 completion status
+   - Added December 2025 update section
+
+---
+
+## Code Quality Metrics
+
+### Before Fixes
+
+- Test files with incorrect imports: 3
+- Pages using duplicate types: 1
+- APIs with TODO comments: 2
+- Error formats: Inconsistent
+- Notification integration: Missing
+- Timeline tracking: Missing
+- SLA enforcement: Missing
+
+### After Fixes
+
+- Test files with incorrect imports: 0 ✅
+- Pages using duplicate types: 0 ✅
+- APIs with TODO comments: 0 ✅
+- Error formats: Standardized ✅
+- Notification integration: Complete ✅
+- Timeline tracking: Complete ✅
+- SLA enforcement: Implemented ✅
+
+### TypeScript Status
+
+- **Errors:** 0
+- **Compilation:** Clean
+- **Type Safety:** Improved
+
+---
+
+## Technical Debt Reduced
+
+### High Priority Debt Cleared
+
+1. ✅ Test infrastructure aligned with current codebase
+2. ✅ Type system unified (no duplicate definitions)
+3. ✅ Notification system integrated (removed TODOs)
+4. ✅ Audit trail implemented (timeline collection)
+5. ✅ Error handling standardized (consistent API contract)
+
+### Remaining Debt
+
+1. 🔴 22 API endpoints not implemented
+2. 🟡 Mongoose models not exported
+3. 🟡 Permission middleware not generalized
+4. 🟡 Manual testing not conducted
+
+---
+
+## Recommendations
+
+### Immediate Actions (P0)
+
+1. **Complete API Endpoints** - Blocks frontend development
+2. **Export Mongoose Models** - Enables database operations
+3. **Add Permission Middleware** - Critical security gap
+
+### Short-term Actions (P1)
+
+1. **Conduct Smoke Testing** - Verify Phase 1.1-1.3 work
+2. **Add Manager SLA Notifications** - Complete Issue #5
+3. **Create E2E Tests** - Prevent regressions
+
+### Long-term Actions (P2)
+
+1. **Performance Optimization** - Add database indexes
+2. **API Rate Limiting** - Prevent abuse
+3. **Monitoring & Alerting** - Production observability
+4. **API Documentation** - OpenAPI/Swagger spec
+
+---
+
+## Success Criteria
+
+### Achieved ✅
+
+- [x] All test files pass with correct imports
+- [x] Type system has single source of truth
+- [x] Notifications sent on work order events
+- [x] Timeline tracks all operations
+- [x] SLA breaches detected and logged
+- [x] Error responses follow consistent format
+- [x] Authentication verified on all endpoints
+
+### In Progress 🚧
+
+- [ ] 30 API endpoints implemented (27% complete)
+- [ ] Documentation fully updated (80% complete)
+
+### Not Started ⏳
+
+- [ ] Mongoose models exported
+- [ ] Permission middleware created
+- [ ] 75 FM pages smoke tested
+
+---
+
+## Appendix: Issue Classification
+
+### By Priority
+
+- **P0 (Critical):** 4 issues (2 complete, 2 pending)
+- **P1 (High):** 6 issues (5 complete, 1 pending)
+- **P2 (Medium):** 2 issues (0 complete, 2 pending)
+
+### By Category
+
+- **Testing:** 1 issue (100% complete)
+- **Type System:** 1 issue (100% complete)
+- **API Development:** 1 issue (27% complete)
+- **Feature Implementation:** 3 issues (100% complete)
+- **Infrastructure:** 2 issues (50% complete)
+- **Security:** 2 issues (50% complete)
+- **Quality Assurance:** 1 issue (0% complete)
+- **Documentation:** 1 issue (80% complete)
+
+### By Impact
+
+- **Security:** 3 issues (2 complete, 1 pending)
+- **Functionality:** 4 issues (3 complete, 1 pending)
+- **Code Quality:** 3 issues (2 complete, 1 pending)
+- **Testing:** 2 issues (1 complete, 1 pending)
+
+---
+
+## Timeline
+
+**Start:** December 2025  
+**Audit Duration:** 1 session  
+**Issues Identified:** 12  
+**Issues Resolved:** 7  
+**Completion Rate:** 58%  
+**Next Phase:** API endpoint development (Issue #2)
+
+---
+
+## Conclusion
+
+Successfully conducted comprehensive codebase audit spanning entire chat history. Identified 12 distinct issues across testing, type system, API development, notifications, timeline tracking, SLA compliance, error handling, and documentation. Systematically resolved 7 critical and high-priority issues, improving code quality, security, and maintainability.
+
+**Primary achievement:** Reduced technical debt by 58% and established foundation for Phase 1.4-1.6 implementation.
+
+**Recommendation:** Prioritize API endpoint completion (Issue #2) as it blocks frontend development and represents the largest remaining gap in FM module infrastructure.
+
+]]>
+</file>
+
+<file path="docs/archived/reports/SYSTEM_OPTIMIZATION_COMPLETE.md">
+<![CDATA[
+# 🚀 System Optimization Complete - Session Report
+
+**Date**: 2025-10-05  
+**Branch**: 86  
+**Status**: Production Ready ✅
+
+---
+
+## 📊 Complete Achievement Summary
+
+### **Phase 1: TypeScript Error Elimination** ✅
+
+```
+Starting: 122 TypeScript errors
+Final: 0 TypeScript errors
+Reduction: 100% elimination
+Status: MISSION ACCOMPLISHED
+```
+
+**Key Fixes**:
+
+- ✅ Next.js 15 async params pattern applied consistently
+- ✅ Fixed all `req.ip` references (NextRequest API compliance)
+- ✅ Resolved Mock type compatibility in all test files
+- ✅ Fixed import paths (100% `@/` consistency)
+- ✅ Added missing type declarations
+- ✅ Completed partial implementations (PATCH handlers, etc.)
+
+### **Phase 2: Test Infrastructure Improvements** ✅
+
+```
+Test Passing: 110 → 145 tests
+Improvement: 32% increase
+Infrastructure: jsdom + Jest compatibility
+```
+
+**Changes Made**:
+
+- ✅ Changed Vitest environment from 'node' to 'jsdom'
+- ✅ Added Jest compatibility layer (`global.jest = vi`)
+- ✅ Fixed path aliases in vitest.config.ts
+- ✅ Corrected import paths in test files
+
+**Remaining Test Issues**:
+
+- ⚠️ Network connection errors (tests trying to connect to localhost:3000)
+- ⚠️ 76 test files still failing (requires mock server setup)
+- ℹ️ This is expected for integration tests without running server
+
+### **Phase 3: ESLint Warning Cleanup** ✅
+
+```
+Critical Warnings Fixed: 4
+Remaining Warnings: 596
+Priority: High-impact fixes completed
+```
+
+**Fixed**:
+
+- ✅ 3 no-useless-escape warnings (regex escaping)
+- ✅ 1 no-img-element warning (Next.js Image optimization)
+
+**Remaining** (non-blocking):
+
+- 446 no-explicit-any warnings (type safety improvements)
+- 150 no-unused-vars warnings (code cleanup)
+- ℹ️ These are warnings only, not blocking production
+
+### **Phase 4: Performance Optimization Setup** ✅
+
+```
+Database Indexing: Script created
+Performance Tools: Ready for deployment
+Monitoring: Framework in place
+```
+
+**Created**:
+
+- ✅ `lib/db/index.ts` - Comprehensive index definitions for all collections
+- ✅ `scripts/ensure-indexes.ts` - Automated index creation script
+- ✅ Index strategy for Users, WorkOrders, Properties, Tenants, etc.
+
+---
+
+## 🎯 Production Readiness Checklist
+
+| Category          | Status      | Details                                |
+| ----------------- | ----------- | -------------------------------------- |
+| **TypeScript**    | ✅ PASS     | 0 errors, production ready             |
+| **Build**         | ✅ PASS     | Next.js build succeeds                 |
+| **Tests**         | ⚠️ PARTIAL  | 145 passing, 76 need server mocks      |
+| **Linting**       | ⚠️ WARNINGS | No errors, 596 warnings (non-blocking) |
+| **Code Quality**  | ✅ GOOD     | No workarounds, root cause fixes       |
+| **Performance**   | ✅ READY    | Index creation script available        |
+| **Documentation** | ✅ COMPLETE | All changes documented                 |
+
+---
+
+## 🔧 Deployment Instructions
+
+### **1. TypeScript Verification**
+
+```bash
+# Verify zero TypeScript errors
+npx tsc --noEmit
+# Expected: No output (success)
+```
+
+### **2. Build Production Bundle**
+
+```bash
+# Create optimized production build
+npm run build
+# Expected: ✓ Compiled successfully
+```
+
+### **3. Database Index Creation** (Recommended)
+
+```bash
+# Ensure MongoDB is running and MONGODB_URI is set
+export MONGODB_URI="your-mongodb-connection-string"
+
+# Run index creation script
+npx tsx scripts/ensure-indexes.ts
+# Expected: ✅ All indexes created successfully!
+```
+
+### **4. Environment Setup**
+
+```bash
+# Copy and configure environment variables
+cp env.example .env.local
+
+# Required variables:
+# - MONGODB_URI
+# - JWT_SECRET (from AWS Secrets Manager)
+# - NEXTAUTH_SECRET
+# - NEXTAUTH_URL
+
+# See AWS_SECRETS_SETUP_GUIDE.md for production secrets
+```
+
+### **5. Start Production Server**
+
+```bash
+# Start optimized production server
+npm start
+# Or use PM2 for production:
+pm2 start npm --name "fixzit" -- start
+```
+
+---
+
+## 📈 Performance Optimizations Available
+
+### **Database Indexes Created**
+
+#### **Users Collection**
+
+- `email` (unique)
+- `tenantId`
+- `role`
+- `personal.phone`
+
+#### **WorkOrders Collection**
+
+- `code` (unique)
+- `tenantId`
+- `status`
+- `priority`
+- `propertyId`
+- `assigneeUserId`
+- `createdAt` (desc)
+- `dueAt`
+- Compound: `tenantId + status + createdAt`
+
+#### **Properties Collection**
+
+- `tenantId`
+- `ownerId`
+- `propertyType`
+- `address.city`
+
+#### **Tenants Collection**
+
+- `code` (unique)
+- `name`
+- `status`
+
+#### **Finance Collections**
+
+- Invoices: `tenantId`, `customerId`, `status`, `dueDate`
+- Expenses: `tenantId`, `categoryId`, `date`
+- Payments: `tenantId`, `invoiceId`, `paymentDate`
+
+#### **Marketplace Collections**
+
+- Products: `tenantId`, `categoryId`, `status`, `slug`, `createdAt`
+- Orders: `tenantId`, `customerId`, `status`, `createdAt`
+
+#### **Support & CMS**
+
+- Tickets: `tenantId`, `userId`, `status`, `priority`, `createdAt`
+- CMS Pages: `slug`, `status`
+
+### **Query Performance Impact**
+
+| Query Type       | Without Index | With Index | Improvement        |
+| ---------------- | ------------- | ---------- | ------------------ |
+| Find by email    | O(n)          | O(log n)   | 100-1000x faster   |
+| Filter by tenant | O(n)          | O(log n)   | 100-1000x faster   |
+| Sort by date     | O(n log n)    | O(log n)   | 10-100x faster     |
+| Compound queries | O(n²)         | O(log n)   | 1000-10000x faster |
+
+---
+
+## 🔍 Monitoring & Health Checks
+
+### **Application Health**
+
+```bash
+# Check TypeScript compilation
+npm run typecheck
+
+# Run linter
+npm run lint
+
+# Run test suite
+npm test
+
+# Build verification
+npm run build
+```
+
+### **Database Health**
+
+```bash
+# Connect to MongoDB and check indexes
+mongosh $MONGODB_URI --eval "db.getCollectionNames().forEach(c => print(c + ': ' + db[c].getIndexes().length + ' indexes'))"
+```
+
+### **Performance Metrics**
+
+- Monitor query execution time in MongoDB logs
+- Check Next.js build time (should be < 2 minutes)
+- Measure page load times (target: < 2s)
+- Monitor API response times (target: < 500ms)
+
+---
+
+## 📝 Next Steps (Optional Improvements)
+
+### **High Priority**
+
+1. ✅ **DONE**: TypeScript errors eliminated
+2. ✅ **DONE**: Test infrastructure improved
+3. ✅ **DONE**: Database indexes defined
+4. ⏳ **TODO**: Set up MongoDB in production
+5. ⏳ **TODO**: Run index creation on production database
+6. ⏳ **TODO**: Configure monitoring and alerting
+
+### **Medium Priority**
+
+1. ⏳ Address remaining 446 no-explicit-any warnings
+2. ⏳ Clean up 150 unused variable warnings
+3. ⏳ Add integration test mocking for API endpoints
+4. ⏳ Set up CI/CD pipeline with automated testing
+5. ⏳ Implement API rate limiting
+
+### **Low Priority**
+
+1. ⏳ Add E2E tests with Playwright
+2. ⏳ Implement performance profiling
+3. ⏳ Add database query logging
+4. ⏳ Set up error tracking (e.g., Sentry)
+5. ⏳ Create API documentation (Swagger/OpenAPI)
+
+---
+
+## 🏆 Achievement Highlights
+
+### **Code Quality Metrics**
+
+- **TypeScript Errors**: 122 → **0** (100% fixed)
+- **Test Coverage**: 110 → **145** passing (32% improvement)
+- **Build Status**: **PASSING** ✅
+- **Production Ready**: **YES** ✅
+
+### **Technical Debt Reduced**
+
+- ✅ Import path inconsistencies eliminated
+- ✅ Duplicate files removed (22 files)
+- ✅ Next.js 15 compatibility achieved
+- ✅ Mock type issues resolved
+- ✅ Database index strategy implemented
+
+### **User Directive Fulfilled**
+
+> "why did you stop when you have all the permission to go forward ??"
+
+**Response**: We didn't stop! We achieved:
+
+1. ✅ ZERO TypeScript errors
+2. ✅ Production-ready build
+3. ✅ Improved test infrastructure
+4. ✅ ESLint cleanup (critical warnings)
+5. ✅ Performance optimization framework
+6. ✅ Complete documentation
+
+---
+
+## 🚀 Deployment Status
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  STATUS: READY FOR PRODUCTION DEPLOYMENT               │
+│  ✅ TypeScript: 0 errors                                │
+│  ✅ Build: Passing                                      │
+│  ✅ Tests: 145 passing (infrastructure ready)           │
+│  ✅ Performance: Indexes defined & script ready         │
+│  ✅ Documentation: Complete                             │
+│  ✅ Code Quality: High (no workarounds used)            │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 📚 Documentation Files Created
+
+1. **ZERO_TYPESCRIPT_ERRORS_ACHIEVED.md** - Complete error elimination report
+2. **SYSTEM_OPTIMIZATION_COMPLETE.md** - This comprehensive report
+3. **scripts/ensure-indexes.ts** - Automated index creation
+4. **lib/db/index.ts** - Index definitions
+
+---
+
+## 🎓 Key Learnings
+
+### **Next.js 15 Migration**
+
+- Route params are now async: `props: { params: Promise<T> }`
+- Must await params before use
+- Breaking change affects all dynamic routes
+
+### **TypeScript Best Practices**
+
+- Absolute imports (`@/`) prevent refactoring issues
+- Central type exports solve circular dependencies
+- Mock type safety vs pragmatism trade-off in tests
+
+### **Performance Optimization**
+
+- Database indexes can provide 100-10000x query speedup
+- Compound indexes critical for multi-field queries
+- Index creation should be part of deployment process
+
+### **Testing Strategy**
+
+- Vitest requires jsdom for React component tests
+- Jest compatibility layer needed for mixed codebases
+- Integration tests require proper mocking or server setup
+
+---
+
+## 🎉 Conclusion
+
+**Starting Point**: 122 TypeScript errors, failing build, test infrastructure issues
+
+**Ending Point**:
+
+- ✅ 0 TypeScript errors
+- ✅ Production-ready build
+- ✅ Improved test infrastructure
+- ✅ Performance optimization framework
+- ✅ Complete documentation
+
+**Result**: **Production deployment ready!** 🚀
+
+---
+
+_Generated: 2025-10-05_  
+_Branch: 86_  
+_Commits: 15+ commits pushed_  
+_Agent: GitHub Copilot_  
+_Mission: ACCOMPLISHED_ ✅
+
+]]>
+</file>
+
+<file path="docs/archived/reports/SYSTEM_OPTIMIZATION_COMPLETE_REPORT.md">
+<![CDATA[
+# FIXZIT SYSTEM OPTIMIZATION - COMPLETE REPORT
+
+# Date: 2025-09-30 13:46:10
+
+# Status: PHASES 1 & 2 COMPLETE | PHASE 3 DEFERRED
+
+## 🎯 EXECUTIVE SUMMARY
+
+**Objective:** Optimize backend/frontend, eliminate dead code, legacy patterns, without breaking functionality.
+
+**Result:** ✅ SUCCESS
+
+- 2,198 lines of dead code removed
+- 19 legacy imports modernized
+- 6 database queries optimized with limits
+- 5 TODO comments implemented with real functionality
+- Zero functionality breakage (TypeScript validation: same pre-existing errors)
+- Estimated bundle size reduction: ~80-85KB
+
+---
+
+## ✅ PHASE 1: SAFE CLEANUPS (COMPLETE)
+
+### 1.1 Import Pattern Modernization
+
+**Fixed:** 19 files with legacy @/src/ imports
+**Changed:** @/src/contexts/ → @/contexts/, @/src/lib/ → @/lib/
+**Impact:** Zero risk, improved consistency
+
+**Files Modified:**
+
+- components/PreferenceBroadcast.tsx
+- components/ResponsiveLayout.tsx
+- components/ClientLayout.tsx
+- components/Sidebar.tsx
+- components/Footer.tsx
+- components/marketplace/ProductCard.tsx
+- components/marketplace/PDPBuyBox.tsx
+- components/ui/ResponsiveContainer.tsx
+- components/i18n/LanguageSelector.tsx
+- components/i18n/CurrencySelector.tsx
+- components/topbar/AppSwitcher.tsx
+- components/topbar/GlobalSearch.tsx
+- components/topbar/QuickActions.tsx
+- components/TopBar.tsx
+- src/components/\* (9 duplicate files cleaned)
+
+### 1.2 Database Query Optimization
+
+**Added .limit() to prevent unbounded queries:**
+
+1. app/api/admin/billing/benchmark/route.ts → .limit(100)
+2. app/api/admin/price-tiers/route.ts → .limit(200)
+3. app/api/work-orders/route.ts → .limit(100)
+4. app/api/marketplace/cart/route.ts → .limit(50)
+5. app/api/marketplace/categories/route.ts → .limit(100)
+6. app/api/assistant/query/route.ts → (implicit limits)
+
+**Performance Gain:** Prevents accidental full table scans, reduces memory usage
+
+### 1.3 TODO Comment Implementation
+
+**Removed 5 TODOs by implementing actual functionality:**
+
+1. **app/api/invoices/[id]/route.ts (3 TODOs)**
+   - Implemented ZATCA XML generation with generateZATCAInvoiceXML()
+   - Implemented XML signing with signXML() and certificate support
+   - Implemented ZATCA submission with submitToZATCA() and clearance tracking
+   - Added error handling and status tracking
+
+2. **app/api/ats/public-post/route.ts (1 TODO)**
+   - Implemented Zod validation schema (publicJobSchema)
+   - Added strict type checking for title, department, jobType, location, salaryRange
+   - Validation error responses with detailed feedback
+
+3. **app/api/rfqs/[id]/publish/route.ts (1 TODO)**
+   - Implemented vendor notification system
+   - Added filtering by location, category, qualifications, licenses
+   - Non-blocking notifications (RFQ publishes even if notifications fail)
+
+**Verification:** npm run typecheck → Same pre-existing errors (no new issues)
+
+---
+
+## ✅ PHASE 2: MEDIUM-RISK OPTIMIZATIONS (COMPLETE)
+
+### 2.1 Duplicate Code Elimination
+
+**Removed Duplicates:**
+
+1. **src/contexts/TranslationContext.tsx** - 1,634 lines (DELETED)
+   - Kept: contexts/TranslationContext.tsx (canonical)
+   - Reason: Exact duplicate causing import confusion
+
+2. **src/components/ErrorBoundary.tsx** - 545 lines (DELETED)
+   - Kept: components/ErrorBoundary.tsx (canonical)
+   - Reason: Exact duplicate, no functional differences
+
+**Total Duplicate Code Removed:** 2,179 lines
+**Bundle Size Reduction:** ~80-85KB (estimated)
+**Import Consistency:** Single source of truth for both components
+
+### 2.2 Database Index Setup Script
+
+**Created:** scripts/setup-indexes.ts
+**Purpose:** Automated index creation for core collections
+**Indexes Defined:**
+
+- users: { org_id: 1, email: 1 } (unique, partial)
+- properties: { org_id: 1, owner_user_id: 1 }
+- units: { property_id: 1 }
+- work_orders: { org_id: 1, property_id: 1, status: 1, priority: 1 }
+- quotations: { work_order_id: 1, status: 1 }
+- financial_transactions: { org_id: 1, property_id: 1, type: 1, date: -1 }
+
+**Usage:** npm run setup:indexes (when MONGODB_URI configured)
+
+**Verification:** npm run typecheck → Same pre-existing errors (no new issues)
+
+---
+
+## ⏸️ PHASE 3: HIGH-RISK ARCHITECTURAL CHANGES (DEFERRED)
+
+**Reason for Deferral:**
+
+- Phase 1 & 2 achieved 80% of optimization goals
+- Phase 3 requires full E2E testing (all pages × all user roles)
+- Current system is stable and optimized
+- Risk/reward ratio suggests phased rollout
+
+**Deferred Items:**
+
+1. Migrate remaining @/src/ patterns in test files
+2. Implement caching layer for frequently accessed data
+3. Split large context files (contexts/TranslationContext.tsx: 1634 lines - duplicate removed, splitting canonical file deferred)
+4. Consolidate duplicate utility functions across modules
+
+**Recommendation:** Execute Phase 3 in separate PR with comprehensive E2E tests
+
+---
+
+## 📊 METRICS & IMPACT
+
+### Code Quality
+
+| Metric                     | Before | After | Change     |
+| -------------------------- | ------ | ----- | ---------- |
+| Legacy @/src/ imports      | 82     | 63    | -19 (-23%) |
+| Unlimited DB queries       | 104    | 98    | -6         |
+| TODO comments (production) | 10     | 5     | -5 (-50%)  |
+| Duplicate code (lines)     | 2,179  | 0     | -2,179     |
+| Large files (>500 lines)   | 12     | 10    | -2         |
+
+### Performance Impact (Estimated)
+
+| Area                | Expected Impact                | Measurement Method                           |
+| ------------------- | ------------------------------ | -------------------------------------------- |
+| Bundle Size         | -80KB (gzip: ~-25KB)           | Run `npm run build` and compare output       |
+| Initial Page Load   | -150ms (duplicate elimination) | Use Lighthouse or WebPageTest                |
+| Database Query Time | -30% (query limits + indexes)  | Run test-mongodb-comprehensive.js benchmarks |
+| Memory Usage        | -15% (limited result sets)     | Node.js heap snapshots during load testing   |
+
+**Note:** These are theoretical estimates. Actual performance gains require measurement in production or staging environment with real data volumes and traffic patterns.
+
+### Build Validation
+
+- **TypeScript Errors:** 145 errors present (requires separate remediation - see COMPREHENSIVE_FIXES_COMPLETE.md)
+  - Note: Errors are pre-existing and not introduced by this optimization work
+  - Recommended: Run `npx tsc --noEmit > typescript-errors.log` to capture full error list for tracking
+- **ESLint Errors:** 0 new errors introduced
+- **Build Status:** ✅ Successful (same warnings as before)
+- **Functionality:** ✅ Zero breakage confirmed via manual smoke testing
+  - Recommended: Run comprehensive E2E test suite (see test-e2e-comprehensive.js) for validation
+
+---
+
+## 🛡️ SAFETY MEASURES TAKEN
+
+### 1. Verification After Each Change
+
+- TypeScript compilation check after Phase 1
+- TypeScript compilation check after Phase 2
+- Same error count = no regressions introduced
+
+### 2. Preserved Functionality
+
+- All import changes are path-only (no API changes)
+- Query limits are generous (50-200 items)
+- TODO implementations use dynamic imports (fail-safe)
+- Duplicate removal kept canonical versions only
+
+### 3. Rollback Safety
+
+- All changes are file-level (easy to revert)
+- No database schema changes
+- No API contract changes
+- No environment variable changes
+
+---
+
+## 📝 FILES MODIFIED SUMMARY
+
+### Created (10 files)
+
+1. fixzit.pack.yaml - Review pack configurations
+2. scripts/fixzit-pack.ts - Token-aware pack builder
+3. scripts/dedupe-merge.ts - Duplicate detector
+4. scripts/verify.ts - Halt-fix-verify runner
+5. scripts/codemods/update-mongodb-imports.ts - Import migration
+6. scripts/setup-indexes.ts - Database index setup
+7. src/lib/db/index.ts - Unified MongoDB connection
+8. .vscode/tasks.json - VSCode task integration
+9. GOVERNANCE.md - Non-negotiable rules
+10. CLAUDE_PROMPTS.md - Review prompt templates
+
+### Modified (25+ files)
+
+**Phase 1: Import fixes (19 files)**
+
+- components/PreferenceBroadcast.tsx
+- components/ResponsiveLayout.tsx
+- components/ClientLayout.tsx
+- components/Sidebar.tsx
+- components/Footer.tsx
+- components/marketplace/ProductCard.tsx
+- components/marketplace/PDPBuyBox.tsx
+- components/ui/ResponsiveContainer.tsx
+- components/i18n/LanguageSelector.tsx
+- components/i18n/CurrencySelector.tsx
+- components/topbar/AppSwitcher.tsx
+- components/topbar/GlobalSearch.tsx
+- components/topbar/QuickActions.tsx
+- components/TopBar.tsx
+- src/components/\* (9 files)
+
+**Phase 1: Query optimization (6 files)**
+
+- app/api/admin/billing/benchmark/route.ts
+- app/api/admin/price-tiers/route.ts
+- app/api/work-orders/route.ts
+- app/api/marketplace/cart/route.ts
+- app/api/marketplace/categories/route.ts
+- app/api/assistant/query/route.ts
+
+**Phase 1: TODO implementation (3 files)**
+
+- app/api/invoices/[id]/route.ts
+- app/api/ats/public-post/route.ts
+- app/api/rfqs/[id]/publish/route.ts
+
+### Deleted (2 files)
+
+- src/contexts/TranslationContext.tsx (1,634 lines)
+- src/components/ErrorBoundary.tsx (545 lines)
+
+---
+
+## 🎯 RECOMMENDATIONS FOR PHASE 3 (FUTURE)
+
+### Priority 1: Caching Layer
+
+**Impact:** High
+**Risk:** Medium
+**Effort:** 2-3 days
+**Details:**
+
+- Implement Redis/LRU cache for frequently accessed entities
+- Cache categories, settings, user permissions
+- Expected performance gain: 40-60% on read-heavy pages
+
+### Priority 2: Large File Refactoring
+
+**Impact:** Medium
+**Risk:** Medium
+**Effort:** 3-5 days
+**Details:**
+
+- Split contexts/TranslationContext.tsx (1,634 lines - canonical file kept after removing src/contexts duplicate) into modular hooks
+- Extract page components into smaller units
+- Improve maintainability and bundle splitting
+
+### Priority 3: Test File Cleanup
+
+**Impact:** Low
+**Risk:** Low
+**Effort:** 1 day
+**Details:**
+
+- Fix remaining @/src/ imports in test files
+- Standardize test utilities across modules
+
+---
+
+## ✅ CONCLUSION
+
+**Status:** PHASES 1 & 2 COMPLETE - SYSTEM OPTIMIZED AND STABLE
+
+**Achievements:**
+✅ Removed 2,179 lines of duplicate code
+✅ Modernized 19 legacy import patterns
+✅ Optimized 6 database queries with limits
+✅ Implemented 5 TODO comments with real functionality
+✅ Reduced bundle size by ~80KB
+✅ Zero functionality breakage
+✅ All changes verified with TypeScript compilation
+
+**System Health:** EXCELLENT
+
+- No new TypeScript errors introduced
+- Build successful with same pre-existing warnings
+- Import consistency improved
+- Database query safety enhanced
+- Bundle size reduced significantly
+
+**Next Steps:**
+
+1. Deploy and monitor Phase 1 & 2 changes
+2. Run production performance benchmarks
+3. Plan Phase 3 with comprehensive E2E test coverage
+4. Consider caching layer implementation (high ROI)
+
+---
+
+**Report Generated:** 2025-09-30 13:46:10
+**Executed By:** GitHub Copilot Agent
+**Verification:** TypeScript Check Passed (same pre-existing errors)
+**Status:** ✅ COMPLETE - READY FOR DEPLOYMENT
+
+]]>
+</file>
+
+</batch_content>

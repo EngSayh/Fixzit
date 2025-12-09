@@ -1,0 +1,1646 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="components/topbar/GlobalSearch.tsx">
+<![CDATA[
+"use client";
+
+import React, { useState, useEffect, useRef, useId, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { Search, Command } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { useTopBar } from "@/contexts/TopBarContext";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { CommandPalette } from "./CommandPalette";
+import type { GlobalSearchResult } from "./types";
+import { usePermittedQuickActions } from "./usePermittedQuickActions";
+import { logger } from "@/lib/logger";
+import { fetchWithAuth } from "@/lib/http/fetchWithAuth";
+import type { SavedSearchConfig } from "@/config/topbar-modules";
+
+interface GlobalSearchProps {
+  onResultClick?: () => void;
+}
+
+const SEARCH_SCOPE_KEY = "fixzit:searchScope";
+
+export default function GlobalSearch({
+  onResultClick,
+}: GlobalSearchProps = {}) {
+  const router = useRouter();
+  const { data: session } = useSession();
+  const sessionUser = session?.user as
+    | { id?: string; orgId?: string }
+    | undefined;
+  const scopeStorageKey = `${SEARCH_SCOPE_KEY}:${sessionUser?.orgId ?? "global"}:${sessionUser?.id ?? "anonymous"}`;
+  const {
+    app,
+    module,
+    moduleLabelKey,
+    moduleFallbackLabel,
+    searchPlaceholderKey,
+    searchPlaceholderFallback,
+    searchEntities,
+    appSearchEntities,
+    quickActions,
+    savedSearches,
+  } = useTopBar();
+  const permittedActions = usePermittedQuickActions(quickActions);
+  const { t, isRTL } = useTranslation();
+
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<GlobalSearchResult[]>([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [commandOpen, setCommandOpen] = useState(false);
+  const [scope, setScopeState] = useState<"module" | "all">(() => {
+    if (typeof window === "undefined") return "module";
+    const stored = window.localStorage.getItem(scopeStorageKey);
+    return stored === "all" ? "all" : "module";
+  });
+
+  const searchRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listboxId = useId();
+  const debounceRef = useRef<NodeJS.Timeout>();
+
+  const placeholder = t(searchPlaceholderKey, searchPlaceholderFallback);
+  const moduleLabel = t(moduleLabelKey, moduleFallbackLabel);
+  const scopeEntities = scope === "module" ? searchEntities : appSearchEntities;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = window.localStorage.getItem(scopeStorageKey);
+    setScopeState(stored === "all" ? "all" : "module");
+  }, [scopeStorageKey]);
+
+  const persistScope = useCallback(
+    (next: "module" | "all") => {
+      setScopeState(next);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(scopeStorageKey, next);
+      }
+    },
+    [scopeStorageKey],
+  );
+
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [results]);
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const trimmed = query.trim();
+    if (trimmed.length < 2) {
+      setResults([]);
+      setOpen(false);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
+    debounceRef.current = setTimeout(async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams({
+          app,
+          module,
+          scope,
+          q: trimmed,
+          entities: scopeEntities.join(","),
+        });
+        const response = await fetchWithAuth(`/api/search?${params.toString()}`);
+        if (!response.ok) throw new Error("Search request failed");
+        const data = await response.json();
+        setResults(data.results || []);
+        setOpen(true);
+      } catch (err: unknown) {
+        import("../../lib/logger")
+          .then(({ logError }) => {
+            logError("Search failed", err as Error, {
+              component: "GlobalSearch",
+              action: "handleSearch",
+              query,
+            });
+          })
+          .catch((logErr) => {
+            logger.error("Failed to import logger:", logErr);
+          });
+        setError(t("search.error.generic", "Search failed. Please try again."));
+        setResults([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 250);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [query, app, module, scope, scopeEntities, t]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setCommandOpen(true);
+        return;
+      }
+      if (event.key === "Escape" && commandOpen) {
+        setCommandOpen(false);
+        return;
+      }
+      if (event.key === "Escape" && open) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [commandOpen, open]);
+
+  const handleResultNavigate = (href: string) => {
+    setOpen(false);
+    setCommandOpen(false);
+    setResults([]);
+    setError(null);
+    setQuery("");
+    onResultClick?.();
+    router.push(href);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!open || results.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((prev) => (prev + 1) % results.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((prev) => (prev - 1 + results.length) % results.length);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (results[activeIndex]) {
+        handleResultNavigate(results[activeIndex].href);
+      }
+    }
+  };
+
+  const handleSavedSearchSelect = (saved: SavedSearchConfig) => {
+    if (saved.scope && saved.scope !== scope) {
+      persistScope(saved.scope);
+    }
+    setQuery(saved.query);
+    setCommandOpen(false);
+    inputRef.current?.focus();
+  };
+
+  return (
+    <div ref={searchRef} className="relative flex-1 max-w-xl">
+      <div className="relative">
+        <Search
+          className={`absolute ${isRTL ? "end-3" : "start-3"} top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground`}
+        />
+        <input
+          ref={inputRef}
+          type="text"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          onFocus={() => query && setOpen(true)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          role="combobox"
+          aria-label={t("search.global", "Global search")}
+          aria-expanded={open}
+          aria-controls={open ? listboxId : undefined}
+          aria-activedescendant={
+            open && results[activeIndex]
+              ? `${listboxId}-${activeIndex}`
+              : undefined
+          }
+          aria-autocomplete="list"
+          aria-haspopup="listbox"
+          className={`w-full ${isRTL ? "pe-10 ps-20" : "ps-10 pe-20"} rounded-md border border-input bg-background py-2 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-primary`}
+        />
+        <div
+          className={`absolute ${isRTL ? "start-3" : "end-3"} top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs text-muted-foreground`}
+        >
+          <Command className="h-3 w-3" />
+          <span>K</span>
+        </div>
+      </div>
+      <div className="mt-1 flex justify-end gap-2 text-[11px] text-muted-foreground">
+        <button
+          type="button"
+          onClick={() => persistScope("module")}
+          className={`rounded-full px-2 py-0.5 ${scope === "module" ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+        >
+          {moduleLabel}
+        </button>
+        <button
+          type="button"
+          onClick={() => persistScope("all")}
+          className={`rounded-full px-2 py-0.5 ${scope === "all" ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+        >
+          {t("search.scope.all", "All")}
+        </button>
+      </div>
+
+      {open && (
+        <div
+          id={listboxId}
+          role="listbox"
+          className={`absolute top-full ${isRTL ? "end-0" : "start-0"} z-50 mt-1 max-h-80 min-w-full overflow-y-auto rounded-lg border border-border bg-popover shadow-lg`}
+        >
+          {loading && (
+            <div className="p-4 text-center text-sm text-muted-foreground">
+              {t("search.results.loading", "Searching…")}
+            </div>
+          )}
+          {!loading && error && (
+            <div className="p-4 text-center text-sm text-destructive">
+              {error}
+            </div>
+          )}
+          {!loading && !error && results.length === 0 && (
+            <div className="p-4 text-center text-sm text-muted-foreground">
+              {t("search.results.empty", "No results found")}
+            </div>
+          )}
+          {!loading && !error && results.length > 0 && (
+            <div className="py-2">
+              {results.map((result, index) => (
+                <div
+                  key={`${result.entity}-${result.id}`}
+                  id={`${listboxId}-${index}`}
+                  role="option"
+                  aria-selected={index === activeIndex}
+                  onClick={() => handleResultNavigate(result.href)}
+                  className={`cursor-pointer px-4 py-3 text-sm hover:bg-accent ${
+                    index === activeIndex ? "bg-accent" : ""
+                  }`}
+                >
+                  <div
+                    className={`flex items-start gap-3 text-start ${isRTL ? "flex-row-reverse" : ""}`}
+                  >
+                    <div className="flex-1">
+                      <div className="font-medium text-foreground">
+                        {result.title}
+                      </div>
+                      {result.subtitle && (
+                        <div className="text-xs text-muted-foreground">
+                          {result.subtitle}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-[11px] uppercase text-muted-foreground/80">
+                      {result.entity}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <CommandPalette
+        open={commandOpen}
+        query={query}
+        onQueryChange={setQuery}
+        loading={loading}
+        results={results}
+        savedSearches={savedSearches}
+        quickActions={permittedActions}
+        scope={scope}
+        onScopeChange={persistScope}
+        moduleLabel={moduleLabel}
+        placeholder={placeholder}
+        onClose={() => setCommandOpen(false)}
+        onResultClick={handleResultNavigate}
+        onActionClick={handleResultNavigate}
+        onSavedSearchSelect={handleSavedSearchSelect}
+      />
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/topbar/QuickActions.tsx">
+<![CDATA[
+"use client";
+
+import { useTopBar } from "@/contexts/TopBarContext";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useState, useEffect, useRef } from "react";
+import { Plus, ChevronDown } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { logger } from "@/lib/logger";
+import { usePermittedQuickActions } from "./usePermittedQuickActions";
+
+export default function QuickActions() {
+  const { quickActions } = useTopBar();
+  const permittedActions = usePermittedQuickActions(quickActions);
+  const { t, isRTL } = useTranslation();
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Close on outside click and Escape key, handle keyboard navigation
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!open) return;
+
+      switch (event.key) {
+        case "Escape":
+          event.preventDefault();
+          setOpen(false);
+          break;
+        case "ArrowDown":
+          event.preventDefault();
+          setActiveIndex((prev) => (prev + 1) % permittedActions.length);
+          break;
+        case "ArrowUp":
+          event.preventDefault();
+          setActiveIndex(
+            (prev) =>
+              (prev - 1 + permittedActions.length) % permittedActions.length,
+          );
+          break;
+        case "Home":
+          event.preventDefault();
+          setActiveIndex(0);
+          break;
+        case "End":
+          event.preventDefault();
+          setActiveIndex(permittedActions.length - 1);
+          break;
+        case "Enter":
+        case " ":
+          event.preventDefault();
+          if (permittedActions[activeIndex]) {
+            const action = permittedActions[activeIndex];
+            // AUDIT: Log user navigation action
+            import("../../lib/logger")
+              .then(({ logInfo }) => {
+                logInfo("[QuickActions] User navigation", {
+                  component: "QuickActions",
+                  action: action.id,
+                  href: action.href,
+                  method:
+                    event.key === "Enter" ? "keyboard-enter" : "keyboard-space",
+                  timestamp: new Date().toISOString(),
+                });
+              })
+              .catch((err) => {
+                logger.error("Failed to import logger:", err);
+              });
+            router.push(action.href);
+            setOpen(false);
+          }
+          break;
+      }
+    };
+
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open, activeIndex, permittedActions, router]);
+
+  // Move focus and scroll active item into view for ARIA compliance
+  useEffect(() => {
+    if (!open) return;
+    const node = itemRefs.current[activeIndex];
+    if (node) {
+      node.focus();
+      node.scrollIntoView({ block: "nearest" });
+    }
+  }, [activeIndex, open]);
+
+  if (permittedActions.length === 0) {
+    return null;
+  }
+
+  return (
+    <div ref={dropdownRef} className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 px-3 py-2 bg-success text-success-foreground rounded-md hover:bg-success/90 transition-colors"
+        aria-label={t("topbar.quickActions", "Quick actions")}
+        aria-expanded={open}
+        aria-haspopup="true"
+      >
+        <Plus className="w-4 h-4" />
+        <span className="text-sm font-medium">
+          {t("topbar.quickActions", "Quick Actions")}
+        </span>
+        <ChevronDown
+          className={`w-4 h-4 transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {open && (
+        <div
+          className={`absolute ${isRTL ? "start-0" : "end-0"} top-full mt-2 w-56 bg-popover rounded-lg shadow-lg border border-border z-50`}
+          role="menu"
+          aria-label={t("topbar.quickActions", "Quick actions")}
+        >
+          <div className="p-2">
+            {permittedActions.map((action, idx) => (
+              <div
+                key={action.id}
+                ref={(el) => {
+                  itemRefs.current[idx] = el;
+                }}
+                role="menuitem"
+                tabIndex={idx === activeIndex ? 0 : -1}
+                onClick={() => {
+                  // AUDIT: Log user navigation action
+                  import("../../lib/logger")
+                    .then(({ logInfo }) => {
+                      logInfo("[QuickActions] User navigation", {
+                        component: "QuickActions",
+                        action: action.id,
+                        href: action.href,
+                        method: "click",
+                        timestamp: new Date().toISOString(),
+                      });
+                    })
+                    .catch((err) => {
+                      logger.error("Failed to import logger:", err);
+                    });
+                  router.push(action.href);
+                  setOpen(false);
+                }}
+                onMouseEnter={() => setActiveIndex(idx)}
+                className={`flex items-center gap-3 p-3 rounded-md hover:bg-accent transition-colors text-foreground cursor-pointer ${
+                  idx === activeIndex ? "ring-2 ring-primary ring-inset" : ""
+                } ${isRTL ? "flex-row-reverse text-end" : ""}`}
+              >
+                <Plus className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm">
+                  {t(action.labelKey, action.labelKey)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/topbar/TopMegaMenu.tsx">
+<![CDATA[
+'use client';
+
+import React from 'react';
+import { useRouter } from 'next/navigation';
+import { ChevronDown } from 'lucide-react';
+import { useTopBar } from '@/contexts/TopBarContext';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { MODULES } from '@/config/navigation';
+import { cn } from '@/lib/utils';
+import { useSession } from 'next-auth/react';
+
+export function TopMegaMenu() {
+  const { navKey, megaMenuCollapsed, setMegaMenuCollapsed } = useTopBar();
+  const { t, isRTL } = useTranslation();
+  const router = useRouter();
+  const { data: session } = useSession();
+  const rawRole = (session?.user as { role?: string } | undefined)?.role;
+  // STRICT v4.1: Check canonical roles first, then legacy aliases for migration period
+  const canSeeAdmin = (rawRole || '').toUpperCase() === 'SUPER_ADMIN' || (rawRole || '').toUpperCase() === 'ADMIN' || (rawRole || '').toUpperCase() === 'CORPORATE_ADMIN';
+
+  if (megaMenuCollapsed) {
+    return (
+      <button
+        type="button"
+        onClick={() => setMegaMenuCollapsed(false)}
+        className="hidden xl:inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors"
+        aria-label={t('topbar.expandMenu', 'Show module menu')}
+      >
+        ▸ {t('topbar.modules', 'Modules')}
+      </button>
+    );
+  }
+
+  return (
+    <div className="hidden xl:flex items-center gap-2 rounded-full bg-muted/60 px-3 py-1 text-foreground">
+      <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
+        {t('topbar.modules', 'Modules')}
+      </span>
+      <div className={cn('flex items-center gap-1', isRTL && 'flex-row-reverse')}>
+        {MODULES.filter(({ id }) => {
+          if ((id === 'administration' || id === 'system') && !canSeeAdmin) return false;
+          return true;
+        }).map(({ id, name, fallbackLabel, path }) => {
+          const active = navKey === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => router.push(path)}
+              className={cn(
+                'rounded-full px-3 py-1 text-xs transition-colors',
+                active
+                  ? 'bg-primary text-primary-foreground font-semibold'
+                  : 'text-foreground/80 hover:bg-muted'
+              )}
+            >
+              {t(name, fallbackLabel)}
+            </button>
+          );
+        })}
+      </div>
+      <button
+        type="button"
+        onClick={() => setMegaMenuCollapsed(true)}
+        className="ms-2 inline-flex items-center rounded-full border border-border px-2 py-1 text-muted-foreground hover:bg-muted transition-colors"
+        aria-label={t('topbar.collapseMenu', 'Hide module menu')}
+      >
+        <ChevronDown className="h-3 w-3" />
+      </button>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/topbar/types.ts">
+<![CDATA[
+export interface GlobalSearchResult {
+  id: string;
+  entity: string;
+  title: string;
+  subtitle?: string;
+  href: string;
+}
+
+]]>
+</file>
+
+<file path="components/topbar/usePermittedQuickActions.tsx">
+<![CDATA[
+"use client";
+
+import { useMemo } from "react";
+import { useSession } from "next-auth/react";
+import type { QuickActionConfig } from "@/config/topbar-modules";
+import type { UserRoleType } from "@/types/user";
+
+export function usePermittedQuickActions(actions: QuickActionConfig[]) {
+  const { data } = useSession();
+  const role = (data?.user as { role?: UserRoleType } | undefined)?.role;
+
+  return useMemo(() => {
+    if (!Array.isArray(actions) || actions.length === 0) {
+      return [];
+    }
+    if (!role) {
+      return actions.filter(
+        (action) => !action.roles || action.roles.length === 0,
+      );
+    }
+    return actions.filter((action) => {
+      if (!action.roles || action.roles.length === 0) return true;
+      return action.roles.includes(role);
+    });
+  }, [actions, role]);
+}
+
+]]>
+</file>
+
+<file path="components.json">
+<![CDATA[
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "new-york",
+  "rsc": true,
+  "tsx": true,
+  "tailwind": {
+    "config": "tailwind.config.js",
+    "css": "app/globals.css",
+    "baseColor": "neutral",
+    "cssVariables": true,
+    "prefix": ""
+  },
+  "iconLibrary": "lucide",
+  "aliases": {
+    "components": "@/components",
+    "utils": "@/lib/utils",
+    "ui": "@/components/ui",
+    "lib": "@/lib",
+    "hooks": "@/hooks"
+  },
+  "registries": {}
+}
+
+]]>
+</file>
+
+<file path="config/constants.ts">
+<![CDATA[
+/**
+ * Central Configuration Constants
+ *
+ * ✅ SINGLE SOURCE OF TRUTH for all application-wide constants
+ * CRITICAL: All providers and components MUST import from this file
+ */
+
+// --- Base Keys (Define once, use everywhere) ---
+const THEME_KEY = "fxz.theme";
+const LANGUAGE_KEY = "fxz.lang";
+const LOCALE_KEY = "fxz.locale";
+const CURRENCY_KEY = "fixzit-currency";
+const USER_SESSION_KEY = "fxz.user-session"; // ✅ FIX: Correct key from AutoIncidentReporter
+const AI_CHAT_KEY = "fixzit-ai-chat-session"; // ✅ FIX: Correct key from useAIChatStore
+
+export const STORAGE_KEYS = {
+  // Language/Translation
+  language: LANGUAGE_KEY,
+  locale: LOCALE_KEY,
+
+  // Currency
+  currency: CURRENCY_KEY,
+
+  // Theme
+  theme: THEME_KEY,
+
+  // UI State
+  sidebarCollapsed: "fxz.sidebar.collapsed",
+
+  // Auth/User (used for error reporting and dev fallbacks)
+  userSession: USER_SESSION_KEY, // ✅ FIX: Renamed from 'user' and correct value
+  role: "fixzit-role",
+
+  // Data
+  aiChatHistory: AI_CHAT_KEY, // ✅ FIX: Correct key
+  recentSearches: "fxz.search.recent",
+
+  // ❌ REMOVED: 'topbarApp' (obsolete, per TopBarProvider refactor)
+} as const;
+
+/**
+ * Storage key prefixes for pattern-based cleanup
+ */
+export const STORAGE_PREFIXES = {
+  app: "fixzit-",
+  shortDash: "fxz-",
+  shortDot: "fxz.",
+} as const;
+
+/**
+ * Convenience list of all app storage keys for cleanup operations
+ */
+export const APP_STORAGE_KEYS = Object.values(
+  STORAGE_KEYS,
+) as readonly string[];
+
+/**
+ * Cookie keys used for server-side rendering
+ */
+export const COOKIE_KEYS = {
+  // ✅ FIX: Re-use base keys. No duplication.
+  language: LANGUAGE_KEY,
+  locale: LOCALE_KEY,
+  theme: THEME_KEY,
+  currency: CURRENCY_KEY,
+} as const;
+
+/**
+ * Application defaults (KSA-first)
+ */
+export const APP_DEFAULTS = {
+  language: "ar" as const,
+  locale: "ar-SA",
+  currency: "SAR",
+  // ✅ Theme defaults to 'system' (matches Fixzit Design System v2 brief)
+  theme: "system" as const,
+  timezone: "Asia/Riyadh",
+} as const;
+
+export const API_TIMEOUTS = {
+  default: 30000, // 30 seconds
+  upload: 120000, // 2 minutes
+  download: 60000, // 1 minute
+} as const;
+
+export const PAGINATION = {
+  defaultLimit: 20,
+  maxLimit: 100,
+  minLimit: 1,
+} as const;
+
+]]>
+</file>
+
+<file path="config/contact.ts">
+<![CDATA[
+/**
+ * Centralized contact information
+ * Update these values to reflect your organization's actual contact details
+ */
+const CONTACT_PHONE = process.env.NEXT_PUBLIC_CONTACT_PHONE || "";
+const IS_PROD = process.env.NODE_ENV === "production";
+const SKIP_CONTACT_VALIDATION =
+  process.env.SKIP_ENV_VALIDATION === "true" ||
+  process.env.NEXT_PHASE === "phase-production-build";
+
+// Fail fast in production to avoid shipping placeholder phone numbers
+if (!CONTACT_PHONE) {
+  if (IS_PROD && !SKIP_CONTACT_VALIDATION) {
+    throw new Error("NEXT_PUBLIC_CONTACT_PHONE is required in production.");
+  } else if (!IS_PROD && process.env.NODE_ENV !== "test") {
+    // eslint-disable-next-line no-console
+    console.warn(
+      "NEXT_PUBLIC_CONTACT_PHONE is not set. The About page will hide the phone contact until configured.",
+    );
+  }
+}
+
+export const CONTACT_INFO = {
+  organization: "Fixzit Enterprise",
+  phone: CONTACT_PHONE,
+  email: process.env.NEXT_PUBLIC_CONTACT_EMAIL || `info@${process.env.EMAIL_DOMAIN || "fixzit.co"}`,
+  address: {
+    street: process.env.NEXT_PUBLIC_CONTACT_STREET || "",
+    city: process.env.NEXT_PUBLIC_CONTACT_CITY || "",
+    state: process.env.NEXT_PUBLIC_CONTACT_STATE || "",
+    postalCode: process.env.NEXT_PUBLIC_CONTACT_POSTAL || "",
+    country: process.env.NEXT_PUBLIC_CONTACT_COUNTRY || "Saudi Arabia",
+  },
+  social: {
+    twitter: process.env.NEXT_PUBLIC_SOCIAL_TWITTER || "",
+    linkedin: process.env.NEXT_PUBLIC_SOCIAL_LINKEDIN || "",
+    facebook: process.env.NEXT_PUBLIC_SOCIAL_FACEBOOK || "",
+    instagram: process.env.NEXT_PUBLIC_SOCIAL_INSTAGRAM || "",
+  },
+} as const;
+
+]]>
+</file>
+
+<file path="config/currencies.ts">
+<![CDATA[
+/**
+ * Currency Configuration
+ * Single source of truth for supported currencies across the application
+ */
+
+export type CurrencyCode = "SAR" | "USD" | "EUR" | "GBP" | "AED";
+
+export interface Currency {
+  code: CurrencyCode;
+  name: string;
+  symbol: string;
+  locale: string;
+  flag: string;
+}
+
+/**
+ * Supported currencies for the application
+ * KSA-first policy: SAR is the default currency
+ */
+export const CURRENCIES: readonly Currency[] = [
+  {
+    code: "SAR",
+    name: "Saudi Riyal",
+    symbol: "ر.س",
+    locale: "ar-SA",
+    flag: "🇸🇦",
+  },
+  {
+    code: "AED",
+    name: "UAE Dirham",
+    symbol: "د.إ",
+    locale: "ar-AE",
+    flag: "🇦🇪",
+  },
+  {
+    code: "USD",
+    name: "US Dollar",
+    symbol: "$",
+    locale: "en-US",
+    flag: "🇺🇸",
+  },
+  {
+    code: "EUR",
+    name: "Euro",
+    symbol: "€",
+    locale: "de-DE",
+    flag: "🇪🇺",
+  },
+  {
+    code: "GBP",
+    name: "British Pound",
+    symbol: "£",
+    locale: "en-GB",
+    flag: "🇬🇧",
+  },
+] as const;
+
+/**
+ * Default currency (KSA-first policy)
+ */
+export const DEFAULT_CURRENCY: CurrencyCode = "SAR";
+
+/**
+ * Get default currency (SAR for KSA-first)
+ */
+export function getDefaultCurrency(): Currency {
+  const preferred = CURRENCIES.find((c) => c.code === "SAR");
+  if (preferred) return preferred;
+
+  const fallback = CURRENCIES[0];
+  if (!fallback) {
+    throw new Error(
+      "No currencies configured. Ensure CURRENCIES is non-empty.",
+    );
+  }
+  return fallback;
+}
+
+/**
+ * Get currency configuration by code
+ */
+export function getCurrencyByCode(code: string): Currency | undefined {
+  return CURRENCIES.find((curr) => curr.code === code);
+}
+
+/**
+ * Validate if a currency code is supported
+ */
+export function isValidCurrencyCode(code: string): code is CurrencyCode {
+  return CURRENCIES.some((curr) => curr.code === code);
+}
+
+/**
+ * Format currency amount
+ */
+export function formatCurrencyAmount(
+  amount: number,
+  currencyCode: CurrencyCode,
+  locale?: string,
+): string {
+  const currency = getCurrencyByCode(currencyCode);
+  if (!currency) {
+    return `${amount} ${currencyCode}`;
+  }
+
+  try {
+    return new Intl.NumberFormat(locale || currency.locale, {
+      style: "currency",
+      currency: currencyCode,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    return `${currency.symbol}${amount}`;
+  }
+}
+
+]]>
+</file>
+
+<file path="config/language-options.ts">
+<![CDATA[
+/**
+ * Language Options Configuration
+ *
+ * ✅ SINGLE SOURCE OF TRUTH for all language-related data
+ * Used by: LanguageSelector, TranslationProvider, SignupPage, etc.
+ */
+
+// Only English/Arabic have production-ready translations. Additional locales can be
+// reintroduced here once professional translations land.
+export type LanguageCode = "ar" | "en" | "fr" | "es";
+
+export interface LanguageOption {
+  language: LanguageCode;
+  code: string; // Same as language for backward compatibility
+  native: string; // Native name (العربية, English)
+  english: string; // English name (Arabic, English)
+  flag: string; // Emoji flag
+  dir: "ltr" | "rtl"; // Text direction
+  iso: string; // ISO code (AR-SA, EN-GB)
+  locale: string; // Full locale (ar-SA, en-GB)
+  country: string; // Country name
+  keywords?: string[]; // Additional search keywords for type-ahead
+  comingSoon?: boolean; // Non-enabled locales
+}
+
+export const LANGUAGE_OPTIONS: LanguageOption[] = [
+  {
+    language: "ar",
+    code: "ar",
+    native: "العربية",
+    english: "Arabic",
+    flag: "🇸🇦",
+    dir: "rtl",
+    iso: "AR-SA",
+    locale: "ar-SA",
+    country: "Saudi Arabia",
+    keywords: ["ksa", "arabic"],
+  },
+  {
+    language: "en",
+    code: "en",
+    native: "English",
+    english: "English",
+    flag: "🇬🇧",
+    dir: "ltr",
+    iso: "EN-GB",
+    locale: "en-GB",
+    country: "United Kingdom",
+    keywords: ["english", "uk", "us"],
+  },
+  {
+    language: "fr",
+    code: "fr",
+    native: "Français",
+    english: "French",
+    flag: "🇫🇷",
+    dir: "ltr",
+    iso: "FR",
+    locale: "fr-FR",
+    country: "France",
+    keywords: ["french", "francais", "fr"],
+    comingSoon: true,
+  },
+  {
+    language: "es",
+    code: "es",
+    native: "Español",
+    english: "Spanish",
+    flag: "🇪🇸",
+    dir: "ltr",
+    iso: "ES",
+    locale: "es-ES",
+    country: "Spain",
+    keywords: ["spanish", "espanol", "es"],
+    comingSoon: true,
+  },
+];
+
+/**
+ * Find language by language code
+ */
+export function findLanguageByCode(code: string): LanguageOption | undefined {
+  return LANGUAGE_OPTIONS.find(
+    (opt) => opt.language === code || opt.code === code,
+  );
+}
+
+/**
+ * Find language by locale string
+ */
+export function findLanguageByLocale(
+  locale: string,
+): LanguageOption | undefined {
+  return LANGUAGE_OPTIONS.find((opt) => opt.locale === locale);
+}
+
+/**
+ * Get default language (Arabic for KSA-first)
+ */
+export function getDefaultLanguage(): LanguageOption {
+  return (
+    LANGUAGE_OPTIONS.find((opt) => opt.language === "ar") || LANGUAGE_OPTIONS[0]
+  );
+}
+
+]]>
+</file>
+
+<file path="config/navigation/barrel.ts">
+<![CDATA[
+// Central navigation barrel to standardize imports across the app.
+// Exposes the shared Work Orders module identifier and commonly used navigation constructs.
+
+export { WORK_ORDERS_MODULE_ID } from "./constants";
+
+export {
+  MODULE_PATHS,
+  MODULES,
+  MODULE_SUB_VIEWS,
+  SUBSCRIPTION_PLANS,
+  ROLE_PERMISSIONS,
+} from "./index";
+export type {
+  ModuleId,
+  ModuleCategory,
+  NavigationItem,
+  NavigationSection,
+  NavigationConfig,
+} from "./index";
+
+export { APPS, DEFAULT_SCOPE } from "./topbar";
+export type { AppKey, SearchEntity, ModuleScope, SidebarModuleKey } from "./topbar";
+
+export { SIDEBAR_ITEMS } from "./sidebar";
+
+]]>
+</file>
+
+<file path="config/navigation/constants.ts">
+<![CDATA[
+// Canonical module identifier for work orders
+// Using camelCase to match entity naming conventions
+export const WORK_ORDERS_MODULE_ID = "workOrders" as const;
+
+]]>
+</file>
+
+<file path="config/navigation/index.ts">
+<![CDATA[
+// Canonical barrel for navigation exports
+// This file intentionally re-exports the single source of truth in config/navigation.ts
+// to avoid divergent configs between the file and folder paths.
+export * from "../navigation";
+export { WORK_ORDERS_MODULE_ID } from "./constants";
+export type { ModuleScope } from "../topbar-modules";
+
+]]>
+</file>
+
+<file path="config/navigation/registry.ts">
+<![CDATA[
+import React from "react";
+import {
+  LayoutDashboard,
+  ClipboardList,
+  Building2,
+  DollarSign,
+  Users,
+  Settings,
+  UserCheck,
+  ShoppingBag,
+  Headphones,
+  ShieldCheck,
+  BarChart3,
+  Cog,
+} from "lucide-react";
+import type { Role } from "@/config/rbac.config";
+
+export type { Role };
+
+export type QuickAction = {
+  id: string;
+  label: string;
+  path: string;
+  roles?: Role[];
+};
+
+export type ModuleDef = {
+  id: string;
+  label: string;
+  route: string;
+  icon: React.ComponentType<Record<string, unknown>>;
+  roles: Role[];
+  children?: { label: string; route: string }[];
+  quickActions: QuickAction[];
+};
+
+export const modules: ModuleDef[] = [
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    route: "/fm/dashboard",
+    roles: [
+      "SUPER_ADMIN",
+      "ADMIN",
+      "CORPORATE_OWNER",
+      "TEAM_MEMBER",
+      "TECHNICIAN",
+      "PROPERTY_MANAGER",
+      "TENANT",
+      "VENDOR",
+    ],
+    icon: LayoutDashboard,
+    quickActions: [
+      { id: "qa-new-wo", label: "New Work Order", path: "/fm/work-orders/new" },
+      {
+        id: "qa-new-invoice",
+        label: "New Invoice",
+        path: "/fm/finance/invoices/new",
+      },
+      {
+        id: "qa-add-property",
+        label: "Add Property",
+        path: "/fm/properties/new",
+      },
+    ],
+  },
+  {
+    id: "work-orders",
+    label: "Work Orders",
+    route: "/fm/work-orders",
+    icon: ClipboardList,
+    roles: [
+      "SUPER_ADMIN",
+      "ADMIN",
+      "CORPORATE_OWNER",
+      "TEAM_MEMBER",
+      "TECHNICIAN",
+      "PROPERTY_MANAGER",
+      "TENANT",
+      "VENDOR",
+    ],
+    children: [
+      { label: "Create", route: "/fm/work-orders/new" },
+      { label: "Track & Assign", route: "/fm/work-orders/board" },
+      { label: "Preventive", route: "/fm/work-orders/pm" },
+      { label: "Service History", route: "/fm/work-orders/history" },
+    ],
+    quickActions: [
+      { id: "qa-wo-new", label: "New Work Order", path: "/fm/work-orders/new" },
+      { id: "qa-wo-assign", label: "Assign", path: "/fm/work-orders/board" },
+      {
+        id: "qa-wo-approval",
+        label: "Request Approval",
+        path: "/fm/work-orders/approvals",
+      },
+    ],
+  },
+  {
+    id: "properties",
+    label: "Properties",
+    route: "/fm/properties",
+    icon: Building2,
+    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER", "PROPERTY_MANAGER", "TENANT"],
+    children: [
+      { label: "Property List", route: "/fm/properties" },
+      { label: "Units & Tenants", route: "/fm/properties/units" },
+      { label: "Lease Management", route: "/fm/properties/leases" },
+      { label: "Inspections", route: "/fm/properties/inspections" },
+      { label: "Documents", route: "/fm/properties/documents" },
+    ],
+    quickActions: [
+      { id: "qa-prop-new", label: "Add Property", path: "/fm/properties/new" },
+      {
+        id: "qa-unit-new",
+        label: "Add Unit",
+        path: "/fm/properties/units/new",
+      },
+      {
+        id: "qa-inspection",
+        label: "Create Inspection",
+        path: "/fm/properties/inspections/new",
+      },
+    ],
+  },
+  {
+    id: "finance",
+    label: "Finance",
+    route: "/fm/finance",
+    icon: DollarSign,
+    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER", "CORPORATE_ADMIN", "FINANCE", "FINANCE_OFFICER"],
+    children: [
+      { label: "Invoices", route: "/fm/finance/invoices" },
+      { label: "Payments", route: "/fm/finance/payments" },
+      { label: "Expenses", route: "/fm/finance/expenses" },
+      { label: "Budgets", route: "/fm/finance/budgets" },
+      { label: "Reports", route: "/fm/finance/reports" },
+    ],
+    quickActions: [
+      {
+        id: "qa-inv-new",
+        label: "New Invoice",
+        path: "/fm/finance/invoices/new",
+      },
+      {
+        id: "qa-pay-new",
+        label: "Record Payment",
+        path: "/fm/finance/payments/new",
+      },
+      {
+        id: "qa-exp-new",
+        label: "New Expense",
+        path: "/fm/finance/expenses/new",
+      },
+      {
+        id: "qa-bud-new",
+        label: "New Budget",
+        path: "/fm/finance/budgets/new",
+      },
+    ],
+  },
+  {
+    id: "hr",
+    label: "Human Resources",
+    route: "/fm/hr",
+    icon: Users,
+    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER", "CORPORATE_ADMIN", "HR", "HR_OFFICER"],
+    children: [
+      { label: "Directory", route: "/fm/hr/directory" },
+      { label: "Attendance & Leave", route: "/fm/hr/leave" },
+      { label: "Payroll", route: "/fm/hr/payroll" },
+      { label: "Recruitment", route: "/fm/hr/recruitment" },
+    ],
+    quickActions: [
+      { id: "qa-hr-emp", label: "Add Employee", path: "/fm/hr/directory/new" },
+      {
+        id: "qa-hr-leave",
+        label: "Approve Leave",
+        path: "/fm/hr/leave/approvals",
+      },
+      { id: "qa-hr-payroll", label: "Run Payroll", path: "/fm/hr/payroll/run" },
+    ],
+  },
+  {
+    id: "administration",
+    label: "Administration",
+    route: "/fm/administration",
+    icon: Settings,
+    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER"],
+    quickActions: [
+      {
+        id: "qa-admin-policy",
+        label: "Add Policy",
+        path: "/fm/administration/policies/new",
+      },
+      {
+        id: "qa-admin-asset",
+        label: "Add Asset",
+        path: "/fm/administration/assets/new",
+      },
+      {
+        id: "qa-admin-doa",
+        label: "Update DOA",
+        path: "/fm/administration",
+      },
+    ],
+  },
+  {
+    id: "crm",
+    label: "CRM",
+    route: "/fm/crm",
+    icon: UserCheck,
+    roles: [
+      "SUPER_ADMIN",
+      "ADMIN",
+      "CORPORATE_OWNER",
+      "TEAM_MEMBER",
+      "PROPERTY_MANAGER",
+      "TENANT",
+    ],
+    children: [
+      { label: "Customer Directory", route: "/fm/crm?view=customers" },
+      { label: "Leads & Opportunities", route: "/fm/crm?view=leads" },
+      { label: "Contracts & Renewals", route: "/fm/crm?view=contracts" },
+      { label: "Feedback & Complaints", route: "/fm/crm?view=feedback" },
+    ],
+    quickActions: [
+      { id: "qa-crm-lead", label: "Add Lead", path: "/fm/crm?view=leads" },
+      {
+        id: "qa-crm-contract",
+        label: "New Contract",
+        path: "/fm/crm?view=contracts",
+      },
+      {
+        id: "qa-crm-feedback",
+        label: "Log Feedback",
+        path: "/fm/crm?view=feedback",
+      },
+    ],
+  },
+  {
+    id: "marketplace",
+    label: "Marketplace",
+    route: "/fm/marketplace",
+    icon: ShoppingBag,
+    roles: [
+      "SUPER_ADMIN",
+      "ADMIN",
+      "CORPORATE_OWNER",
+      "TEAM_MEMBER",
+      "PROCUREMENT",
+      "VENDOR",
+    ],
+    children: [
+      { label: "Service Catalog", route: "/fm/marketplace" },
+      { label: "Procurement", route: "/fm/marketplace" },
+      { label: "Bidding / RFQs", route: "/fm/rfqs" },
+    ],
+    quickActions: [
+      { id: "qa-mkt-rfq", label: "Create RFQ", path: "/fm/rfqs" },
+      {
+        id: "qa-mkt-po",
+        label: "New Purchase Order",
+        path: "/fm/orders",
+      },
+      {
+        id: "qa-mkt-vendor",
+        label: "Invite Vendor",
+        path: "/fm/vendors",
+      },
+    ],
+  },
+  {
+    id: "support",
+    label: "Support & Helpdesk",
+    route: "/fm/support",
+    icon: Headphones,
+    roles: [
+      "SUPER_ADMIN",
+      "ADMIN",
+      "CORPORATE_OWNER",
+      "TEAM_MEMBER",
+      "TECHNICIAN",
+      "PROPERTY_MANAGER",
+      "TENANT",
+      "VENDOR",
+      "SUPPORT",
+    ],
+    children: [
+      { label: "Tickets", route: "/fm/support/tickets" },
+      { label: "Knowledge Base", route: "/fm/support" },
+      { label: "Live Chat", route: "/fm/support" },
+      { label: "SLA Monitoring", route: "/fm/support" },
+    ],
+    quickActions: [
+      { id: "qa-support-ticket", label: "New Ticket", path: "/fm/support/tickets" },
+      {
+        id: "qa-support-article",
+        label: "Create Article",
+        path: "/fm/support",
+      },
+    ],
+  },
+  {
+    id: "compliance",
+    label: "Compliance & Legal",
+    route: "/fm/compliance",
+    icon: ShieldCheck,
+    roles: [
+      "SUPER_ADMIN",
+      "ADMIN",
+      "CORPORATE_OWNER",
+      "TEAM_MEMBER",
+      "PROPERTY_MANAGER",
+      "TENANT",
+      "AUDITOR",
+    ],
+    children: [
+      { label: "Audit & Risk", route: "/fm/compliance/audits" },
+      { label: "Policies", route: "/fm/compliance/policies" },
+    ],
+    quickActions: [
+      {
+        id: "qa-compliance-dispute",
+        label: "Log Dispute",
+        path: "/fm/compliance/audits",
+      },
+      {
+        id: "qa-compliance-audit",
+        label: "Start Audit",
+        path: "/fm/compliance/audits",
+      },
+    ],
+  },
+  {
+    id: "reports",
+    label: "Reports & Analytics",
+    route: "/fm/reports",
+    icon: BarChart3,
+    roles: [
+      "SUPER_ADMIN",
+      "ADMIN",
+      "CORPORATE_OWNER",
+      "TEAM_MEMBER",
+      "PROPERTY_MANAGER",
+      "FINANCE",
+      "HR",
+      "AUDITOR",
+    ],
+    quickActions: [
+      {
+        id: "qa-report-standard",
+        label: "Standard Report",
+        path: "/fm/reports?tab=standard",
+      },
+      {
+        id: "qa-report-custom",
+        label: "Custom Report",
+        path: "/fm/reports?tab=custom",
+      },
+    ],
+  },
+  {
+    id: "system",
+    label: "System Management",
+    route: "/fm/system",
+    icon: Cog,
+    roles: [
+      "SUPER_ADMIN",
+      "ADMIN",
+      "CORPORATE_OWNER",
+      "CORPORATE_ADMIN",
+    ],
+    children: [
+      { label: "Users", route: "/fm/system" },
+      { label: "Roles & Permissions", route: "/fm/system" },
+      { label: "Billing", route: "/fm/system" },
+      { label: "Integrations", route: "/fm/system/integrations" },
+      { label: "System Settings", route: "/fm/system" },
+    ],
+    quickActions: [
+      { id: "qa-system-user", label: "Invite User", path: "/fm/system" },
+      {
+        id: "qa-system-role",
+        label: "New Role",
+        path: "/fm/system",
+      },
+    ],
+  },
+];
+
+]]>
+</file>
+
+<file path="config/navigation/sidebar.ts">
+<![CDATA[
+import {
+  LayoutDashboard,
+  ClipboardList,
+  Building2,
+  DollarSign,
+  Users,
+  Settings,
+  UserCheck,
+  Headphones,
+  Shield,
+  BarChart3,
+  Cog,
+  Factory,
+} from "lucide-react";
+
+/**
+ * FM App Sidebar Navigation
+ * NOTE: Sub-pages are implemented as tabs on pages, not nested sidebar items.
+ */
+export const SIDEBAR_ITEMS = [
+  {
+    id: "dashboard",
+    labelKey: "nav.dashboard",
+    icon: LayoutDashboard,
+    path: "/fm/dashboard",
+    group: "Core",
+  },
+  {
+    id: "work-orders",
+    labelKey: "nav.workOrders",
+    icon: ClipboardList,
+    path: "/fm/work-orders",
+    group: "Operations",
+  },
+  {
+    id: "properties",
+    labelKey: "nav.properties",
+    icon: Building2,
+    path: "/fm/properties",
+    group: "Operations",
+  },
+  {
+    id: "vendors",
+    labelKey: "nav.vendors",
+    icon: Factory,
+    path: "/fm/vendors",
+    group: "Operations",
+  },
+  {
+    id: "finance",
+    labelKey: "nav.finance",
+    icon: DollarSign,
+    path: "/fm/finance",
+    group: "Finance",
+  },
+  {
+    id: "hr",
+    labelKey: "nav.hr",
+    icon: Users,
+    path: "/fm/hr",
+    group: "People",
+  },
+  {
+    id: "crm",
+    labelKey: "nav.crm",
+    icon: UserCheck,
+    path: "/fm/crm",
+    group: "Core",
+  },
+  {
+    id: "support",
+    labelKey: "nav.support",
+    icon: Headphones,
+    path: "/fm/support",
+    group: "Support",
+  },
+  {
+    id: "compliance",
+    labelKey: "nav.compliance",
+    icon: Shield,
+    path: "/fm/compliance",
+    group: "Governance",
+  },
+  {
+    id: "reports",
+    labelKey: "nav.reports",
+    icon: BarChart3,
+    path: "/fm/reports",
+    group: "Core",
+  },
+  {
+    id: "administration",
+    labelKey: "nav.admin",
+    icon: Settings,
+    path: "/fm/administration",
+    group: "Operations",
+  },
+  {
+    id: "system",
+    labelKey: "nav.system",
+    icon: Cog,
+    path: "/fm/system",
+    group: "System",
+  },
+];
+
+]]>
+</file>
+
+<file path="config/navigation/topbar.ts">
+<![CDATA[
+// Navigation topbar compatibility barrel.
+// Re-export the canonical topbar module definitions to prevent config drift.
+export * from "../topbar-modules";
+
+]]>
+</file>
+
+</batch_content>

@@ -1,0 +1,2269 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="i18n/sources/productivityEnhancement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "productivityEnhancement.analysis": "Productivity Analysis",
+    "productivityEnhancement.automation": "Productivity Automation",
+    "productivityEnhancement.benchmarking": "Productivity Benchmarking",
+    "productivityEnhancement.effectiveness": "Productivity Effectiveness",
+    "productivityEnhancement.efficiency": "Productivity Efficiency",
+    "productivityEnhancement.enhancement": "Productivity Enhancement",
+    "productivityEnhancement.gains": "Productivity Gains",
+    "productivityEnhancement.goal": "Productivity Goal",
+    "productivityEnhancement.improvement": "Productivity Improvement",
+    "productivityEnhancement.initiative": "Productivity Initiative",
+    "productivityEnhancement.measurement": "Productivity Measurement",
+    "productivityEnhancement.metrics": "Productivity Metrics",
+    "productivityEnhancement.monitoring": "Productivity Monitoring",
+    "productivityEnhancement.optimization": "Productivity Optimization",
+    "productivityEnhancement.performance": "Productivity Performance",
+    "productivityEnhancement.productivity": "Productivity Enhancement",
+    "productivityEnhancement.program": "Productivity Program",
+    "productivityEnhancement.reporting": "Productivity Reporting",
+    "productivityEnhancement.target": "Productivity Target",
+    "productivityEnhancement.techniques": "Productivity Techniques",
+    "productivityEnhancement.tools": "Productivity Tools",
+    "productivityEnhancement.tracking": "Productivity Tracking"
+  },
+  "ar": {
+    "productivityEnhancement.analysis": "تحليل الإنتاجية",
+    "productivityEnhancement.automation": "أتمتة الإنتاجية",
+    "productivityEnhancement.benchmarking": "المقارنة المرجعية للإنتاجية",
+    "productivityEnhancement.effectiveness": "فعالية الإنتاجية",
+    "productivityEnhancement.efficiency": "كفاءة الإنتاجية",
+    "productivityEnhancement.enhancement": "تعزيز الإنتاجية",
+    "productivityEnhancement.gains": "مكاسب الإنتاجية",
+    "productivityEnhancement.goal": "غاية الإنتاجية",
+    "productivityEnhancement.improvement": "تحسين الإنتاجية",
+    "productivityEnhancement.initiative": "مبادرة الإنتاجية",
+    "productivityEnhancement.measurement": "قياس الإنتاجية",
+    "productivityEnhancement.metrics": "مقاييس الإنتاجية",
+    "productivityEnhancement.monitoring": "مراقبة الإنتاجية",
+    "productivityEnhancement.optimization": "تحسين الإنتاجية",
+    "productivityEnhancement.performance": "أداء الإنتاجية",
+    "productivityEnhancement.productivity": "تعزيز الإنتاجية",
+    "productivityEnhancement.program": "برنامج الإنتاجية",
+    "productivityEnhancement.reporting": "إعداد تقارير الإنتاجية",
+    "productivityEnhancement.target": "هدف الإنتاجية",
+    "productivityEnhancement.techniques": "تقنيات الإنتاجية",
+    "productivityEnhancement.tools": "أدوات الإنتاجية",
+    "productivityEnhancement.tracking": "تتبع الإنتاجية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/professionalServices.translations.json">
+<![CDATA[
+{
+  "en": {
+    "professionalServices.accountManagement": "Account Management",
+    "professionalServices.accountsReceivable": "Accounts Receivable",
+    "professionalServices.billingRates": "Billing Rates",
+    "professionalServices.businessDevelopment": "Business Development",
+    "professionalServices.capacityPlanning": "Capacity Planning",
+    "professionalServices.certificationTracking": "Certification Tracking",
+    "professionalServices.clientOnboarding": "Client Onboarding",
+    "professionalServices.clientRelationships": "Client Relationships",
+    "professionalServices.contractManagement": "Contract Management",
+    "professionalServices.crossSelling": "Cross-Selling",
+    "professionalServices.description": "Professional services firm management",
+    "professionalServices.invoicing": "Invoicing",
+    "professionalServices.networkBuilding": "Network Building",
+    "professionalServices.performanceReviews": "Performance Reviews",
+    "professionalServices.practiceManagement": "Practice Management",
+    "professionalServices.proposalManagement": "Proposal Management",
+    "professionalServices.referralTracking": "Referral Tracking",
+    "professionalServices.revenueRecognition": "Revenue Recognition",
+    "professionalServices.rfpResponse": "RFP Response",
+    "professionalServices.scopeOfWork": "Scope of Work",
+    "professionalServices.skillsDevelopment": "Skills Development",
+    "professionalServices.talentManagement": "Talent Management",
+    "professionalServices.title": "Professional Services",
+    "professionalServices.utilizationTracking": "Utilization Tracking",
+    "professionalServices.winLossAnalysis": "Win/Loss Analysis"
+  },
+  "ar": {
+    "professionalServices.accountManagement": "إدارة الحسابات",
+    "professionalServices.accountsReceivable": "الحسابات المدينة",
+    "professionalServices.billingRates": "أسعار الفواتير",
+    "professionalServices.businessDevelopment": "تطوير الأعمال",
+    "professionalServices.capacityPlanning": "تخطيط السعة",
+    "professionalServices.certificationTracking": "تتبع الشهادات",
+    "professionalServices.clientOnboarding": "تأهيل العملاء",
+    "professionalServices.clientRelationships": "علاقات العملاء",
+    "professionalServices.contractManagement": "إدارة العقود",
+    "professionalServices.crossSelling": "البيع المتقاطع",
+    "professionalServices.description": "إدارة شركات الخدمات المهنية",
+    "professionalServices.invoicing": "الفوترة",
+    "professionalServices.networkBuilding": "بناء الشبكة",
+    "professionalServices.performanceReviews": "مراجعات الأداء",
+    "professionalServices.practiceManagement": "إدارة الممارسة",
+    "professionalServices.proposalManagement": "إدارة المقترحات",
+    "professionalServices.referralTracking": "تتبع الإحالات",
+    "professionalServices.revenueRecognition": "الاعتراف بالإيرادات",
+    "professionalServices.rfpResponse": "الرد على طلبات التقديم",
+    "professionalServices.scopeOfWork": "نطاق العمل",
+    "professionalServices.skillsDevelopment": "تطوير المهارات",
+    "professionalServices.talentManagement": "إدارة المواهب",
+    "professionalServices.title": "الخدمات المهنية",
+    "professionalServices.utilizationTracking": "تتبع الاستخدام",
+    "professionalServices.winLossAnalysis": "تحليل الفوز/الخسارة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/profile.translations.json">
+<![CDATA[
+{
+  "en": {
+    "profile.account.cancel": "Cancel",
+    "profile.account.email": "Email Address",
+    "profile.account.emailAddress": "Email Address",
+    "profile.account.fullName": "Full Name",
+    "profile.account.phone": "Phone Number",
+    "profile.account.phoneNumber": "Phone Number",
+    "profile.account.save": "Save Changes",
+    "profile.account.saveChanges": "Save Changes",
+    "profile.accountStatus": "Account Status",
+    "profile.active": "Active",
+    "profile.card.accountStatus": "Account Status",
+    "profile.card.active": "Active",
+    "profile.card.memberSince": "Member Since",
+    "profile.memberSince": "Member Since",
+    "profile.notifications.channels": "Notification Channels",
+    "profile.notifications.email": "Email Notifications",
+    "profile.notifications.events": "Event Notifications",
+    "profile.notifications.invoices": "Invoice Reminders",
+    "profile.notifications.maintenance": "Maintenance Alerts",
+    "profile.notifications.payments": "المدفوعات",
+    "profile.notifications.push": "Push Notifications",
+    "profile.notifications.save": "Save Preferences",
+    "profile.notifications.savePreferences": "Save Preferences",
+    "profile.notifications.sms": "SMS Notifications",
+    "profile.notifications.system": "تحديثات النظام",
+    "profile.notifications.types": "أنواع الإشعارات",
+    "profile.notifications.workOrders": "Work Order Updates",
+    "profile.quickActions.notifications": "Notification Settings",
+    "profile.quickActions.notificationsDesc": "Manage alerts and notifications",
+    "profile.quickActions.notificationSettings": "Notification Settings",
+    "profile.quickActions.notificationSettingsDesc": "Manage alerts and notifications",
+    "profile.quickActions.security": "Security Settings",
+    "profile.quickActions.securityDesc": "Password and access management",
+    "profile.quickActions.securitySettings": "Security Settings",
+    "profile.quickActions.securitySettingsDesc": "Password and access management",
+    "profile.quickActions.system": "System Settings",
+    "profile.quickActions.systemDesc": "Configure application preferences",
+    "profile.quickActions.systemSettings": "System Settings",
+    "profile.quickActions.systemSettingsDesc": "Configure application preferences",
+    "profile.quickActions.title": "Quick Actions",
+    "profile.security.2FADesc": "Add an extra layer of security to your account",
+    "profile.security.cancel": "إلغاء",
+    "profile.security.changePassword": "Change Password",
+    "profile.security.confirmNewPassword": "Confirm New Password",
+    "profile.security.confirmPassword": "Confirm New Password",
+    "profile.security.currentPassword": "Current Password",
+    "profile.security.disable": "تعطيل",
+    "profile.security.enable": "تمكين",
+    "profile.security.enable2FA": "Enable 2FA",
+    "profile.security.newPassword": "New Password",
+    "profile.security.twoFactor": "Two-Factor Authentication",
+    "profile.security.twoFactorDesc": "Add an extra layer of security to your account",
+    "profile.security.twoFactorTitle": "Enable Two-Factor Authentication",
+    "profile.security.update": "Update Security",
+    "profile.security.updateSecurity": "Update Security",
+    "profile.subtitle": "Manage your account settings and preferences",
+    "profile.tabs.account": "Account Settings",
+    "profile.tabs.notifications": "Notifications",
+    "profile.tabs.security": "Security",
+    "profile.title": "My Profile",
+    "profile.toast.accountError": "Failed to save account settings",
+    "profile.toast.accountSaved": "Account settings saved successfully!",
+    "profile.toast.changesCancelled": "Changes cancelled",
+    "profile.toast.loadError": "Failed to load profile data",
+    "profile.toast.notificationsError": "Failed to update notifications",
+    "profile.toast.notificationsSaved": "Notification preferences updated!",
+    "profile.toast.passwordMismatch": "Passwords do not match",
+    "profile.toast.passwordTooShort": "Password must be at least 8 characters",
+    "profile.toast.securityError": "Failed to update security settings",
+    "profile.toast.securitySaved": "Security settings updated!"
+  },
+  "ar": {
+    "profile.account.cancel": "إلغاء",
+    "profile.account.email": "البريد الإلكتروني",
+    "profile.account.emailAddress": "عنوان البريد الإلكتروني",
+    "profile.account.fullName": "الاسم الكامل",
+    "profile.account.phone": "رقم الهاتف",
+    "profile.account.phoneNumber": "رقم الهاتف",
+    "profile.account.save": "حفظ التغييرات",
+    "profile.account.saveChanges": "حفظ التغييرات",
+    "profile.accountStatus": "حالة الحساب",
+    "profile.active": "نشط",
+    "profile.card.accountStatus": "حالة الحساب",
+    "profile.card.active": "نشط",
+    "profile.card.memberSince": "عضو منذ",
+    "profile.memberSince": "عضو منذ",
+    "profile.notifications.channels": "قنوات الإشعارات",
+    "profile.notifications.email": "إشعارات البريد الإلكتروني",
+    "profile.notifications.events": "إشعارات الأحداث",
+    "profile.notifications.invoices": "تذكيرات الفواتير",
+    "profile.notifications.maintenance": "تنبيهات الصيانة",
+    "profile.notifications.payments": "المدفوعات",
+    "profile.notifications.push": "الإشعارات الفورية",
+    "profile.notifications.save": "حفظ التفضيلات",
+    "profile.notifications.savePreferences": "حفظ التفضيلات",
+    "profile.notifications.sms": "الرسائل النصية",
+    "profile.notifications.system": "تحديثات النظام",
+    "profile.notifications.types": "أنواع الإشعارات",
+    "profile.notifications.workOrders": "تحديثات أوامر العمل",
+    "profile.quickActions.notifications": "إعدادات الإشعارات",
+    "profile.quickActions.notificationsDesc": "إدارة التنبيهات والإشعارات",
+    "profile.quickActions.notificationSettings": "إعدادات الإشعارات",
+    "profile.quickActions.notificationSettingsDesc": "إدارة التنبيهات والإشعارات",
+    "profile.quickActions.security": "إعدادات الأمان",
+    "profile.quickActions.securityDesc": "إدارة كلمة المرور والوصول",
+    "profile.quickActions.securitySettings": "إعدادات الأمان",
+    "profile.quickActions.securitySettingsDesc": "إدارة كلمة المرور والوصول",
+    "profile.quickActions.system": "إعدادات النظام",
+    "profile.quickActions.systemDesc": "تكوين تفضيلات التطبيق",
+    "profile.quickActions.systemSettings": "إعدادات النظام",
+    "profile.quickActions.systemSettingsDesc": "تكوين تفضيلات التطبيق",
+    "profile.quickActions.title": "إجراءات سريعة",
+    "profile.security.2FADesc": "أضف طبقة أمان إضافية لحسابك",
+    "profile.security.cancel": "إلغاء",
+    "profile.security.changePassword": "تغيير كلمة المرور",
+    "profile.security.confirmNewPassword": "تأكيد كلمة المرور الجديدة",
+    "profile.security.confirmPassword": "تأكيد كلمة المرور الجديدة",
+    "profile.security.currentPassword": "كلمة المرور الحالية",
+    "profile.security.disable": "تعطيل",
+    "profile.security.enable": "تمكين",
+    "profile.security.enable2FA": "تفعيل المصادقة الثنائية",
+    "profile.security.newPassword": "كلمة المرور الجديدة",
+    "profile.security.twoFactor": "المصادقة الثنائية",
+    "profile.security.twoFactorDesc": "أضف طبقة أمان إضافية لحسابك",
+    "profile.security.twoFactorTitle": "تفعيل المصادقة الثنائية",
+    "profile.security.update": "تحديث الأمان",
+    "profile.security.updateSecurity": "تحديث الأمان",
+    "profile.subtitle": "إدارة إعدادات حسابك وتفضيلاتك",
+    "profile.tabs.account": "إعدادات الحساب",
+    "profile.tabs.notifications": "الإشعارات",
+    "profile.tabs.security": "الأمان",
+    "profile.title": "ملفي الشخصي",
+    "profile.toast.accountError": "فشل حفظ إعدادات الحساب",
+    "profile.toast.accountSaved": "تم حفظ إعدادات الحساب بنجاح!",
+    "profile.toast.changesCancelled": "تم إلغاء التغييرات",
+    "profile.toast.loadError": "فشل تحميل بيانات الملف الشخصي",
+    "profile.toast.notificationsError": "فشل تحديث الإشعارات",
+    "profile.toast.notificationsSaved": "تم تحديث تفضيلات الإشعارات!",
+    "profile.toast.passwordMismatch": "كلمات المرور غير متطابقة",
+    "profile.toast.passwordTooShort": "يجب أن تكون كلمة المرور 8 أحرف على الأقل",
+    "profile.toast.securityError": "فشل تحديث إعدادات الأمان",
+    "profile.toast.securitySaved": "تم تحديث إعدادات الأمان!"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/programGovernance.translations.json">
+<![CDATA[
+{
+  "en": {
+    "programGovernance.accountability": "Program Accountability",
+    "programGovernance.assessment": "Governance Assessment",
+    "programGovernance.audit": "Governance Audit",
+    "programGovernance.authority": "Decision Authority",
+    "programGovernance.board": "Governance Board",
+    "programGovernance.committee": "Steering Committee",
+    "programGovernance.compliance": "Governance Compliance",
+    "programGovernance.dashboard": "Governance Dashboard",
+    "programGovernance.decisions": "Decision Making",
+    "programGovernance.documentation": "Governance Documentation",
+    "programGovernance.escalation": "Escalation Process",
+    "programGovernance.framework": "Governance Framework",
+    "programGovernance.governance": "Program Governance",
+    "programGovernance.meetings": "Governance Meetings",
+    "programGovernance.metrics": "Governance Metrics",
+    "programGovernance.oversight": "Program Oversight",
+    "programGovernance.policies": "Governance Policies",
+    "programGovernance.procedures": "Governance Procedures",
+    "programGovernance.reporting": "Governance Reporting",
+    "programGovernance.review": "Governance Review",
+    "programGovernance.standards": "Governance Standards",
+    "programGovernance.structure": "Governance Structure"
+  },
+  "ar": {
+    "programGovernance.accountability": "المساءلة عن البرنامج",
+    "programGovernance.assessment": "تقييم الحوكمة",
+    "programGovernance.audit": "تدقيق الحوكمة",
+    "programGovernance.authority": "سلطة اتخاذ القرار",
+    "programGovernance.board": "مجلس الحوكمة",
+    "programGovernance.committee": "لجنة التوجيه",
+    "programGovernance.compliance": "امتثال الحوكمة",
+    "programGovernance.dashboard": "لوحة معلومات الحوكمة",
+    "programGovernance.decisions": "اتخاذ القرار",
+    "programGovernance.documentation": "توثيق الحوكمة",
+    "programGovernance.escalation": "عملية التصعيد",
+    "programGovernance.framework": "إطار الحوكمة",
+    "programGovernance.governance": "حوكمة البرنامج",
+    "programGovernance.meetings": "اجتماعات الحوكمة",
+    "programGovernance.metrics": "مقاييس الحوكمة",
+    "programGovernance.oversight": "الإشراف على البرنامج",
+    "programGovernance.policies": "سياسات الحوكمة",
+    "programGovernance.procedures": "إجراءات الحوكمة",
+    "programGovernance.reporting": "إعداد تقارير الحوكمة",
+    "programGovernance.review": "مراجعة الحوكمة",
+    "programGovernance.standards": "معايير الحوكمة",
+    "programGovernance.structure": "هيكل الحوكمة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/programManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "programManagement.alignment": "Program Alignment",
+    "programManagement.benefits": "Benefits Realization",
+    "programManagement.closure": "Program Closure",
+    "programManagement.communication": "Program Communication",
+    "programManagement.control": "Program Control",
+    "programManagement.coordination": "Program Coordination",
+    "programManagement.dependency": "Program Dependency",
+    "programManagement.execution": "Program Execution",
+    "programManagement.governance": "Program Governance",
+    "programManagement.integration": "Program Integration",
+    "programManagement.milestone": "Program Milestone",
+    "programManagement.monitoring": "Program Monitoring",
+    "programManagement.optimization": "Program Optimization",
+    "programManagement.planning": "Program Planning",
+    "programManagement.program": "Program Management",
+    "programManagement.quality": "Program Quality",
+    "programManagement.reporting": "Program Reporting",
+    "programManagement.resources": "Program Resources",
+    "programManagement.review": "Program Review",
+    "programManagement.risk": "Program Risk",
+    "programManagement.roadmap": "Program Roadmap",
+    "programManagement.stakeholder": "Program Stakeholder"
+  },
+  "ar": {
+    "programManagement.alignment": "مواءمة البرنامج",
+    "programManagement.benefits": "تحقيق الفوائد",
+    "programManagement.closure": "إغلاق البرنامج",
+    "programManagement.communication": "التواصل في البرنامج",
+    "programManagement.control": "التحكم في البرنامج",
+    "programManagement.coordination": "تنسيق البرنامج",
+    "programManagement.dependency": "تبعيات البرنامج",
+    "programManagement.execution": "تنفيذ البرنامج",
+    "programManagement.governance": "حوكمة البرنامج",
+    "programManagement.integration": "تكامل البرنامج",
+    "programManagement.milestone": "معالم البرنامج",
+    "programManagement.monitoring": "مراقبة البرنامج",
+    "programManagement.optimization": "تحسين البرنامج",
+    "programManagement.planning": "تخطيط البرنامج",
+    "programManagement.program": "إدارة البرامج",
+    "programManagement.quality": "جودة البرنامج",
+    "programManagement.reporting": "تقارير البرنامج",
+    "programManagement.resources": "موارد البرنامج",
+    "programManagement.review": "مراجعة البرنامج",
+    "programManagement.risk": "مخاطر البرنامج",
+    "programManagement.roadmap": "خارطة طريق البرنامج",
+    "programManagement.stakeholder": "أصحاب المصلحة في البرنامج"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/project.translations.json">
+<![CDATA[
+{
+  "en": {
+    "project.assignment": "Assignment",
+    "project.budget": "Budget",
+    "project.closure": "Closure",
+    "project.criticalPath": "Critical Path",
+    "project.deliverable": "Deliverable",
+    "project.deliverables": "Deliverables",
+    "project.dependency": "Dependency",
+    "project.execution": "Execution",
+    "project.initiation": "Initiation",
+    "project.milestone": "Milestone",
+    "project.milestones": "Milestones",
+    "project.monitoring": "Monitoring",
+    "project.phase": "Phase",
+    "project.planning": "Planning",
+    "project.project1": "Project",
+    "project.projectManagement": "Project Management",
+    "project.projectManager": "Project Manager",
+    "project.projectPlan": "Project Plan",
+    "project.projects": "Projects",
+    "project.projectSchedule": "Project Schedule",
+    "project.resource": "Resource",
+    "project.resources": "Resources",
+    "project.scope": "Scope",
+    "project.stage": "Stage",
+    "project.subtask": "Subtask",
+    "project.task": "Task",
+    "project.tasks": "Tasks",
+    "project.timeline": "Timeline",
+    "project.workPackage": "Work Package"
+  },
+  "ar": {
+    "project.assignment": "تعيين",
+    "project.budget": "الميزانية",
+    "project.closure": "الإغلاق",
+    "project.criticalPath": "المسار الحرج",
+    "project.deliverable": "تسليم",
+    "project.deliverables": "التسليمات",
+    "project.dependency": "تبعية",
+    "project.execution": "التنفيذ",
+    "project.initiation": "البدء",
+    "project.milestone": "معلم رئيسي",
+    "project.milestones": "معالم رئيسية",
+    "project.monitoring": "المراقبة",
+    "project.phase": "مرحلة",
+    "project.planning": "التخطيط",
+    "project.project1": "مشروع",
+    "project.projectManagement": "إدارة المشاريع",
+    "project.projectManager": "مدير المشروع",
+    "project.projectPlan": "خطة المشروع",
+    "project.projects": "مشاريع",
+    "project.projectSchedule": "جدول المشروع",
+    "project.resource": "مورد",
+    "project.resources": "موارد",
+    "project.scope": "نطاق",
+    "project.stage": "مرحلة",
+    "project.subtask": "مهمة فرعية",
+    "project.task": "مهمة",
+    "project.tasks": "مهام",
+    "project.timeline": "الجدول الزمني",
+    "project.workPackage": "حزمة عمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/projectCollaboration.translations.json">
+<![CDATA[
+{
+  "en": {
+    "projectCollaboration.assignments": "تعيينات المهام",
+    "projectCollaboration.communication": "التواصل في المشروع",
+    "projectCollaboration.coordination": "تنسيق الفريق",
+    "projectCollaboration.decisions": "تتبع القرارات",
+    "projectCollaboration.documentation": "توثيق المشروع",
+    "projectCollaboration.execution": "تنفيذ المشروع",
+    "projectCollaboration.files": "ملفات المشروع",
+    "projectCollaboration.integration": "تكامل المشروع",
+    "projectCollaboration.issues": "التعاون في المشكلات",
+    "projectCollaboration.meetings": "اجتماعات المشروع",
+    "projectCollaboration.monitoring": "مراقبة المشروع",
+    "projectCollaboration.planning": "التخطيط التعاوني",
+    "projectCollaboration.project": "التعاون في المشاريع",
+    "projectCollaboration.reporting": "إعداد تقارير المشروع",
+    "projectCollaboration.risks": "التعاون في المخاطر",
+    "projectCollaboration.stakeholders": "التعاون مع أصحاب المصلحة",
+    "projectCollaboration.status": "تحديثات الحالة",
+    "projectCollaboration.tasks": "التعاون في المهام",
+    "projectCollaboration.teams": "فرق المشروع",
+    "projectCollaboration.tools": "أدوات التعاون",
+    "projectCollaboration.tracking": "تتبع المشروع",
+    "projectCollaboration.updates": "تحديثات المشروع"
+  },
+  "ar": {
+    "projectCollaboration.assignments": "تعيينات المهام",
+    "projectCollaboration.communication": "التواصل في المشروع",
+    "projectCollaboration.coordination": "تنسيق الفريق",
+    "projectCollaboration.decisions": "تتبع القرارات",
+    "projectCollaboration.documentation": "توثيق المشروع",
+    "projectCollaboration.execution": "تنفيذ المشروع",
+    "projectCollaboration.files": "ملفات المشروع",
+    "projectCollaboration.integration": "تكامل المشروع",
+    "projectCollaboration.issues": "التعاون في المشكلات",
+    "projectCollaboration.meetings": "اجتماعات المشروع",
+    "projectCollaboration.monitoring": "مراقبة المشروع",
+    "projectCollaboration.planning": "التخطيط التعاوني",
+    "projectCollaboration.project": "التعاون في المشاريع",
+    "projectCollaboration.reporting": "إعداد تقارير المشروع",
+    "projectCollaboration.risks": "التعاون في المخاطر",
+    "projectCollaboration.stakeholders": "التعاون مع أصحاب المصلحة",
+    "projectCollaboration.status": "تحديثات الحالة",
+    "projectCollaboration.tasks": "التعاون في المهام",
+    "projectCollaboration.teams": "فرق المشروع",
+    "projectCollaboration.tools": "أدوات التعاون",
+    "projectCollaboration.tracking": "تتبع المشروع",
+    "projectCollaboration.updates": "تحديثات المشروع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/projectExecution.translations.json">
+<![CDATA[
+{
+  "en": {
+    "projectExecution.budget": "Budget Management",
+    "projectExecution.change": "Change Management",
+    "projectExecution.communication": "Communication Management",
+    "projectExecution.control": "Project Control",
+    "projectExecution.coordination": "Project Coordination",
+    "projectExecution.deliverable": "Deliverable Management",
+    "projectExecution.delivery": "Project Delivery",
+    "projectExecution.documentation": "Project Documentation",
+    "projectExecution.execution": "Project Execution",
+    "projectExecution.implementation": "Project Implementation",
+    "projectExecution.issue": "Issue Management",
+    "projectExecution.milestone": "Milestone Tracking",
+    "projectExecution.monitoring": "Project Monitoring",
+    "projectExecution.progress": "Project Progress",
+    "projectExecution.quality": "Quality Management",
+    "projectExecution.reporting": "Project Reporting",
+    "projectExecution.resource": "Resource Management",
+    "projectExecution.risk": "Risk Management",
+    "projectExecution.schedule": "Schedule Management",
+    "projectExecution.stakeholder": "Stakeholder Management",
+    "projectExecution.status": "Project Status",
+    "projectExecution.tracking": "Project Tracking"
+  },
+  "ar": {
+    "projectExecution.budget": "إدارة الميزانية",
+    "projectExecution.change": "إدارة التغيير",
+    "projectExecution.communication": "إدارة الاتصالات",
+    "projectExecution.control": "التحكم في المشروع",
+    "projectExecution.coordination": "تنسيق المشروع",
+    "projectExecution.deliverable": "إدارة المخرجات",
+    "projectExecution.delivery": "تسليم المشروع",
+    "projectExecution.documentation": "توثيق المشروع",
+    "projectExecution.execution": "تنفيذ المشروع",
+    "projectExecution.implementation": "تطبيق المشروع",
+    "projectExecution.issue": "إدارة المشكلات",
+    "projectExecution.milestone": "تتبع المعالم",
+    "projectExecution.monitoring": "مراقبة المشروع",
+    "projectExecution.progress": "تقدم المشروع",
+    "projectExecution.quality": "إدارة الجودة",
+    "projectExecution.reporting": "إعداد تقارير المشروع",
+    "projectExecution.resource": "إدارة الموارد",
+    "projectExecution.risk": "إدارة المخاطر",
+    "projectExecution.schedule": "إدارة الجدول الزمني",
+    "projectExecution.stakeholder": "إدارة أصحاب المصلحة",
+    "projectExecution.status": "حالة المشروع",
+    "projectExecution.tracking": "تتبع المشروع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/projectManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "projectManagement.agileMethodology": "منهجية Agile",
+    "projectManagement.budgetManagement": "إدارة الميزانية",
+    "projectManagement.changeRequests": "طلبات التغيير",
+    "projectManagement.costControl": "التحكم في التكاليف",
+    "projectManagement.criticalPath": "المسار الحرج",
+    "projectManagement.deliverableTracking": "تتبع التسليمات",
+    "projectManagement.description": "أدوات وعمليات إدارة المشاريع",
+    "projectManagement.documentManagement": "إدارة المستندات",
+    "projectManagement.ganttCharts": "مخططات جانت",
+    "projectManagement.issueManagement": "إدارة المشكلات",
+    "projectManagement.lessonsLearned": "الدروس المستفادة",
+    "projectManagement.milestoneTracking": "تتبع المعالم",
+    "projectManagement.performanceMetrics": "مقاييس الأداء",
+    "projectManagement.portfolioManagement": "إدارة المحفظة",
+    "projectManagement.programManagement": "إدارة البرامج",
+    "projectManagement.progressReporting": "تقارير التقدم",
+    "projectManagement.projectClosure": "إغلاق المشروع",
+    "projectManagement.projectPlanning": "تخطيط المشروع",
+    "projectManagement.qualityAssurance": "ضمان الجودة",
+    "projectManagement.resourceAllocation": "تخصيص الموارد",
+    "projectManagement.riskAssessment": "تقييم المخاطر",
+    "projectManagement.stakeholderManagement": "إدارة أصحاب المصلحة",
+    "projectManagement.statusUpdates": "تحديثات الحالة",
+    "projectManagement.taskScheduling": "جدولة المهام",
+    "projectManagement.teamCollaboration": "تعاون الفريق",
+    "projectManagement.timeTracking": "تتبع الوقت",
+    "projectManagement.title": "إدارة المشاريع"
+  },
+  "ar": {
+    "projectManagement.agileMethodology": "منهجية Agile",
+    "projectManagement.budgetManagement": "إدارة الميزانية",
+    "projectManagement.changeRequests": "طلبات التغيير",
+    "projectManagement.costControl": "التحكم في التكاليف",
+    "projectManagement.criticalPath": "المسار الحرج",
+    "projectManagement.deliverableTracking": "تتبع التسليمات",
+    "projectManagement.description": "أدوات وعمليات إدارة المشاريع",
+    "projectManagement.documentManagement": "إدارة المستندات",
+    "projectManagement.ganttCharts": "مخططات جانت",
+    "projectManagement.issueManagement": "إدارة المشكلات",
+    "projectManagement.lessonsLearned": "الدروس المستفادة",
+    "projectManagement.milestoneTracking": "تتبع المعالم",
+    "projectManagement.performanceMetrics": "مقاييس الأداء",
+    "projectManagement.portfolioManagement": "إدارة المحفظة",
+    "projectManagement.programManagement": "إدارة البرامج",
+    "projectManagement.progressReporting": "تقارير التقدم",
+    "projectManagement.projectClosure": "إغلاق المشروع",
+    "projectManagement.projectPlanning": "تخطيط المشروع",
+    "projectManagement.qualityAssurance": "ضمان الجودة",
+    "projectManagement.resourceAllocation": "تخصيص الموارد",
+    "projectManagement.riskAssessment": "تقييم المخاطر",
+    "projectManagement.stakeholderManagement": "إدارة أصحاب المصلحة",
+    "projectManagement.statusUpdates": "تحديثات الحالة",
+    "projectManagement.taskScheduling": "جدولة المهام",
+    "projectManagement.teamCollaboration": "تعاون الفريق",
+    "projectManagement.timeTracking": "تتبع الوقت",
+    "projectManagement.title": "إدارة المشاريع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/projectManagementDev.translations.json">
+<![CDATA[
+{
+  "en": {
+    "projectManagementDev.agile": "Agile",
+    "projectManagementDev.backlog": "Backlog",
+    "projectManagementDev.bug": "Bug",
+    "projectManagementDev.burndown": "Burndown Chart",
+    "projectManagementDev.epic": "Epic",
+    "projectManagementDev.estimation": "Estimation",
+    "projectManagementDev.feature": "Feature",
+    "projectManagementDev.improvement": "Improvement",
+    "projectManagementDev.jira": "Jira",
+    "projectManagementDev.kanban": "Kanban",
+    "projectManagementDev.planning": "Sprint Planning",
+    "projectManagementDev.project": "Project Management",
+    "projectManagementDev.retrospective": "Retrospective",
+    "projectManagementDev.review": "Sprint Review",
+    "projectManagementDev.scrum": "Scrum",
+    "projectManagementDev.sprint": "Sprint",
+    "projectManagementDev.standup": "Daily Standup",
+    "projectManagementDev.story": "User Story",
+    "projectManagementDev.subtask": "Subtask",
+    "projectManagementDev.task": "Task",
+    "projectManagementDev.trello": "Trello",
+    "projectManagementDev.velocity": "Velocity"
+  },
+  "ar": {
+    "projectManagementDev.agile": "أجايل",
+    "projectManagementDev.backlog": "قائمة المهام المتراكمة",
+    "projectManagementDev.bug": "خطأ",
+    "projectManagementDev.burndown": "مخطط الاحتراق",
+    "projectManagementDev.epic": "ملحمة",
+    "projectManagementDev.estimation": "التقدير",
+    "projectManagementDev.feature": "ميزة",
+    "projectManagementDev.improvement": "تحسين",
+    "projectManagementDev.jira": "Jira",
+    "projectManagementDev.kanban": "كانبان",
+    "projectManagementDev.planning": "تخطيط السبرينت",
+    "projectManagementDev.project": "إدارة المشروع",
+    "projectManagementDev.retrospective": "الاسترجاع",
+    "projectManagementDev.review": "مراجعة السبرينت",
+    "projectManagementDev.scrum": "سكرم",
+    "projectManagementDev.sprint": "سبرينت",
+    "projectManagementDev.standup": "الاجتماع اليومي",
+    "projectManagementDev.story": "قصة المستخدم",
+    "projectManagementDev.subtask": "المهمة الفرعية",
+    "projectManagementDev.task": "المهمة",
+    "projectManagementDev.trello": "Trello",
+    "projectManagementDev.velocity": "السرعة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/projectManagementExt.translations.json">
+<![CDATA[
+{
+  "en": {
+    "projectManagementExt.agile": "Agile Project Management",
+    "projectManagementExt.budget": "Project Budget",
+    "projectManagementExt.closing": "Project Closing",
+    "projectManagementExt.communication": "Communication Plan",
+    "projectManagementExt.controlling": "Project Controlling",
+    "projectManagementExt.deliverable": "Deliverable",
+    "projectManagementExt.dependency": "Task Dependency",
+    "projectManagementExt.execution": "Project Execution",
+    "projectManagementExt.gantt": "Gantt Chart",
+    "projectManagementExt.kanban": "Kanban Board",
+    "projectManagementExt.milestone": "Milestone",
+    "projectManagementExt.monitoring": "Project Monitoring",
+    "projectManagementExt.planning": "Project Planning",
+    "projectManagementExt.project": "Project Management",
+    "projectManagementExt.resource": "Resource Management",
+    "projectManagementExt.risk": "Risk Management",
+    "projectManagementExt.schedule": "Project Schedule",
+    "projectManagementExt.scope": "Project Scope",
+    "projectManagementExt.sprint": "Sprint Management",
+    "projectManagementExt.stakeholder": "Stakeholder Management",
+    "projectManagementExt.task": "Task Management",
+    "projectManagementExt.waterfall": "Waterfall Methodology"
+  },
+  "ar": {
+    "projectManagementExt.agile": "إدارة المشاريع الرشيقة",
+    "projectManagementExt.budget": "ميزانية المشروع",
+    "projectManagementExt.closing": "إغلاق المشروع",
+    "projectManagementExt.communication": "خطة الاتصال",
+    "projectManagementExt.controlling": "التحكم في المشروع",
+    "projectManagementExt.deliverable": "التسليمات",
+    "projectManagementExt.dependency": "تبعية المهام",
+    "projectManagementExt.execution": "تنفيذ المشروع",
+    "projectManagementExt.gantt": "مخطط جانت",
+    "projectManagementExt.kanban": "لوحة كانبان",
+    "projectManagementExt.milestone": "معلم رئيسي",
+    "projectManagementExt.monitoring": "مراقبة المشروع",
+    "projectManagementExt.planning": "تخطيط المشروع",
+    "projectManagementExt.project": "إدارة المشاريع",
+    "projectManagementExt.resource": "إدارة الموارد",
+    "projectManagementExt.risk": "إدارة المخاطر",
+    "projectManagementExt.schedule": "جدول المشروع",
+    "projectManagementExt.scope": "نطاق المشروع",
+    "projectManagementExt.sprint": "إدارة السبرينت",
+    "projectManagementExt.stakeholder": "إدارة أصحاب المصلحة",
+    "projectManagementExt.task": "إدارة المهام",
+    "projectManagementExt.waterfall": "منهجية الشلال"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/projectPhases.translations.json">
+<![CDATA[
+{
+  "en": {
+    "projectPhases.cancelled": "Cancelled",
+    "projectPhases.closure": "Closure",
+    "projectPhases.completed": "Completed",
+    "projectPhases.delayed": "Delayed",
+    "projectPhases.deliverable": "Deliverable",
+    "projectPhases.deployment": "Deployment",
+    "projectPhases.design": "Design",
+    "projectPhases.development": "Development",
+    "projectPhases.duration": "Duration",
+    "projectPhases.endDate": "End Date",
+    "projectPhases.implementation": "Implementation",
+    "projectPhases.kickoff": "Kickoff",
+    "projectPhases.launch": "Launch",
+    "projectPhases.milestone": "Milestone",
+    "projectPhases.ongoing": "Ongoing",
+    "projectPhases.onHold": "On Hold",
+    "projectPhases.percentage": "Percentage Complete",
+    "projectPhases.phase": "Phase",
+    "projectPhases.planning": "Planning",
+    "projectPhases.postMortem": "Post-mortem",
+    "projectPhases.progress": "Progress",
+    "projectPhases.retrospective": "Retrospective",
+    "projectPhases.review": "Review",
+    "projectPhases.stage": "Stage",
+    "projectPhases.startDate": "Start Date",
+    "projectPhases.testing": "Testing"
+  },
+  "ar": {
+    "projectPhases.cancelled": "ملغى",
+    "projectPhases.closure": "الإغلاق",
+    "projectPhases.completed": "مكتمل",
+    "projectPhases.delayed": "متأخر",
+    "projectPhases.deliverable": "التسليم",
+    "projectPhases.deployment": "النشر",
+    "projectPhases.design": "التصميم",
+    "projectPhases.development": "التطوير",
+    "projectPhases.duration": "المدة",
+    "projectPhases.endDate": "تاريخ الانتهاء",
+    "projectPhases.implementation": "التنفيذ",
+    "projectPhases.kickoff": "الانطلاق",
+    "projectPhases.launch": "الإطلاق",
+    "projectPhases.milestone": "المعلم",
+    "projectPhases.ongoing": "مستمر",
+    "projectPhases.onHold": "معلق",
+    "projectPhases.percentage": "نسبة الإنجاز",
+    "projectPhases.phase": "المرحلة",
+    "projectPhases.planning": "التخطيط",
+    "projectPhases.postMortem": "تحليل ما بعد",
+    "projectPhases.progress": "التقدم",
+    "projectPhases.retrospective": "الاستعراض الرجعي",
+    "projectPhases.review": "المراجعة",
+    "projectPhases.stage": "المرحلة",
+    "projectPhases.startDate": "تاريخ البدء",
+    "projectPhases.testing": "الاختبار"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/projectPortfolioManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "projectPortfolioManagement.alignment": "Strategic Alignment",
+    "projectPortfolioManagement.allocation": "Resource Allocation",
+    "projectPortfolioManagement.analytics": "Portfolio Analytics",
+    "projectPortfolioManagement.approval": "Project Approval",
+    "projectPortfolioManagement.balancing": "Portfolio Balancing",
+    "projectPortfolioManagement.budgeting": "Portfolio Budgeting",
+    "projectPortfolioManagement.capacity": "Capacity Planning",
+    "projectPortfolioManagement.dashboard": "Portfolio Dashboard",
+    "projectPortfolioManagement.demand": "Demand Management",
+    "projectPortfolioManagement.financial": "Financial Management",
+    "projectPortfolioManagement.governance": "Portfolio Governance",
+    "projectPortfolioManagement.intake": "Project Intake",
+    "projectPortfolioManagement.optimization": "Portfolio Optimization",
+    "projectPortfolioManagement.portfolio": "Project Portfolio Management",
+    "projectPortfolioManagement.ppm": "PPM",
+    "projectPortfolioManagement.prioritization": "Project Prioritization",
+    "projectPortfolioManagement.reporting": "Portfolio Reporting",
+    "projectPortfolioManagement.resource": "Resource Management",
+    "projectPortfolioManagement.selection": "Project Selection",
+    "projectPortfolioManagement.strategy": "Portfolio Strategy",
+    "projectPortfolioManagement.tracking": "Portfolio Tracking",
+    "projectPortfolioManagement.value": "Value Realization"
+  },
+  "ar": {
+    "projectPortfolioManagement.alignment": "التوافق الاستراتيجي",
+    "projectPortfolioManagement.allocation": "تخصيص الموارد",
+    "projectPortfolioManagement.analytics": "تحليلات المحفظة",
+    "projectPortfolioManagement.approval": "الموافقة على المشاريع",
+    "projectPortfolioManagement.balancing": "موازنة المحفظة",
+    "projectPortfolioManagement.budgeting": "إعداد ميزانية المحفظة",
+    "projectPortfolioManagement.capacity": "تخطيط القدرات",
+    "projectPortfolioManagement.dashboard": "لوحة معلومات المحفظة",
+    "projectPortfolioManagement.demand": "إدارة الطلب",
+    "projectPortfolioManagement.financial": "الإدارة المالية",
+    "projectPortfolioManagement.governance": "حوكمة المحفظة",
+    "projectPortfolioManagement.intake": "استقبال المشاريع",
+    "projectPortfolioManagement.optimization": "تحسين المحفظة",
+    "projectPortfolioManagement.portfolio": "إدارة محفظة المشاريع",
+    "projectPortfolioManagement.ppm": "إدارة محفظة المشاريع",
+    "projectPortfolioManagement.prioritization": "تحديد أولويات المشاريع",
+    "projectPortfolioManagement.reporting": "تقارير المحفظة",
+    "projectPortfolioManagement.resource": "إدارة الموارد",
+    "projectPortfolioManagement.selection": "اختيار المشاريع",
+    "projectPortfolioManagement.strategy": "استراتيجية المحفظة",
+    "projectPortfolioManagement.tracking": "تتبع المحفظة",
+    "projectPortfolioManagement.value": "تحقيق القيمة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/projectSettings.translations.json">
+<![CDATA[
+{
+  "en": {
+    "projectSettings.archived": "Archived",
+    "projectSettings.budget": "Budget",
+    "projectSettings.category": "Category",
+    "projectSettings.client": "Client",
+    "projectSettings.code": "Project Code",
+    "projectSettings.description": "Description",
+    "projectSettings.endDate": "End Date",
+    "projectSettings.internal": "Internal",
+    "projectSettings.manager": "Project Manager",
+    "projectSettings.name": "Project Name",
+    "projectSettings.priority": "Priority",
+    "projectSettings.private": "Private",
+    "projectSettings.project": "Project",
+    "projectSettings.public": "Public",
+    "projectSettings.settings": "Project Settings",
+    "projectSettings.startDate": "Start Date",
+    "projectSettings.status": "Status",
+    "projectSettings.tags": "Tags",
+    "projectSettings.team": "Project Team",
+    "projectSettings.visibility": "Visibility"
+  },
+  "ar": {
+    "projectSettings.archived": "مؤرشف",
+    "projectSettings.budget": "الميزانية",
+    "projectSettings.category": "الفئة",
+    "projectSettings.client": "العميل",
+    "projectSettings.code": "رمز المشروع",
+    "projectSettings.description": "الوصف",
+    "projectSettings.endDate": "تاريخ الانتهاء",
+    "projectSettings.internal": "داخلي",
+    "projectSettings.manager": "مدير المشروع",
+    "projectSettings.name": "اسم المشروع",
+    "projectSettings.priority": "الأولوية",
+    "projectSettings.private": "خاص",
+    "projectSettings.project": "المشروع",
+    "projectSettings.public": "عام",
+    "projectSettings.settings": "إعدادات المشروع",
+    "projectSettings.startDate": "تاريخ البدء",
+    "projectSettings.status": "الحالة",
+    "projectSettings.tags": "الوسوم",
+    "projectSettings.team": "فريق المشروع",
+    "projectSettings.visibility": "الظهور"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/projects.translations.json">
+<![CDATA[
+{
+  "en": {
+    "projects.createProject": "Create Project",
+    "projects.newProject": "New Project",
+    "projects.projectName": "Project Name *",
+    "projects.recentApprovals": "Recent Approvals",
+    "projects.title": "Projects"
+  },
+  "ar": {
+    "projects.createProject": "إنشاء مشروع",
+    "projects.newProject": "مشروع جديد",
+    "projects.projectName": "اسم المشروع *",
+    "projects.recentApprovals": "الموافقات الأخيرة",
+    "projects.title": "المشاريع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/properties.translations.json">
+<![CDATA[
+{
+  "en": {
+    "properties.addProperty": "Add Property",
+    "properties.commercialProperty": "Commercial",
+    "properties.description": "Browse and manage properties. Use Aqar for public discovery.",
+    "properties.detail.actions.createWorkOrder": "Create Work Order",
+    "properties.detail.actions.viewReports": "View Reports",
+    "properties.detail.actions.viewUnits": "View Units",
+    "properties.detail.map.title": "Location",
+    "properties.detail.stats.occupancy": "Occupancy",
+    "properties.detail.stats.type": "Type",
+    "properties.detail.stats.units": "Units",
+    "properties.detail.stats.workOrders": "Open Work Orders",
+    "properties.documents.filters.status.active": "Active",
+    "properties.documents.filters.status.all": "All Status",
+    "properties.documents.filters.status.expired": "Expired",
+    "properties.documents.filters.status.expiringSoon": "Expiring Soon",
+    "properties.documents.filters.status.pendingReview": "Pending Review",
+    "properties.documents.filters.types.all": "All Types",
+    "properties.documents.filters.types.contract": "Contract",
+    "properties.documents.filters.types.insurance": "Insurance",
+    "properties.documents.filters.types.legal": "Legal",
+    "properties.documents.filters.types.safety": "Safety",
+    "properties.filters.allProperties": "All Properties",
+    "properties.filters.towerA": "Tower A",
+    "properties.filters.towerB": "Tower B",
+    "properties.filters.villaComplex": "Villa Complex",
+    "properties.industrialProperty": "Industrial",
+    "properties.inspections.filters.status.all": "All Status",
+    "properties.inspections.filters.status.completed": "Completed",
+    "properties.inspections.filters.status.inProgress": "In Progress",
+    "properties.inspections.filters.status.overdue": "Overdue",
+    "properties.inspections.filters.status.scheduled": "Scheduled",
+    "properties.inspections.filters.types.all": "All Types",
+    "properties.inspections.filters.types.electrical": "Electrical",
+    "properties.inspections.filters.types.fireSafety": "Fire Safety",
+    "properties.inspections.filters.types.mechanical": "Mechanical",
+    "properties.inspections.filters.types.safety": "Safety",
+    "properties.leases.actions": "Actions",
+    "properties.leases.active": "Active",
+    "properties.leases.activeLeases": "Active Leases",
+    "properties.leases.allProperties": "All Properties",
+    "properties.leases.allStatus": "All Status",
+    "properties.leases.allTypes": "All Types",
+    "properties.leases.available": "Available",
+    "properties.leases.avgLeaseTerm": "Avg. Lease Term",
+    "properties.leases.commercial": "Commercial",
+    "properties.leases.contact": "Contact",
+    "properties.leases.endDate": "End Date",
+    "properties.leases.expired": "Expired",
+    "properties.leases.expires": "Expires",
+    "properties.leases.expiringSoon": "Expiring Soon",
+    "properties.leases.leaseId": "Lease ID",
+    "properties.leases.leaseStatus": "Lease Status",
+    "properties.leases.monthlyRent": "Monthly Rent",
+    "properties.leases.monthlyRevenue": "Monthly Revenue",
+    "properties.leases.months": "months",
+    "properties.leases.na": "N/A",
+    "properties.leases.newLease": "New Lease",
+    "properties.leases.overdue": "Overdue",
+    "properties.leases.overview": "Lease Overview",
+    "properties.leases.paid": "Paid",
+    "properties.leases.paymentStatus": "Payment Status",
+    "properties.leases.pending": "Pending",
+    "properties.leases.renew": "Renew",
+    "properties.leases.renewals": "Renewals",
+    "properties.leases.rentCollection": "Rent Collection",
+    "properties.leases.residential": "Residential",
+    "properties.leases.startDate": "Start Date",
+    "properties.leases.subtitle": "Manage property leases and rental agreements",
+    "properties.leases.templates": "Lease Templates",
+    "properties.leases.tenant": "Tenant",
+    "properties.leases.title": "Lease Management",
+    "properties.leases.type": "Type",
+    "properties.leases.unit": "Unit",
+    "properties.leases.upcomingRenewals": "Upcoming Renewals",
+    "properties.leases.vacant": "Vacant",
+    "properties.mixedUseProperty": "Mixed Use",
+    "properties.occupancyRate": "Occupancy Rate",
+    "properties.occupiedUnits": "Occupied Units",
+    "properties.propertyAddress": "Address",
+    "properties.propertyAmenities": "Amenities",
+    "properties.propertyCity": "City",
+    "properties.propertyDescription": "Description",
+    "properties.propertyDetails": "Property Details",
+    "properties.propertyDistrict": "District",
+    "properties.propertyManager": "Property Manager",
+    "properties.propertyName": "Property Name",
+    "properties.propertySize": "Size",
+    "properties.propertyStatus": "Status",
+    "properties.propertyType": "Property Type",
+    "properties.propertyValue": "Property Value",
+    "properties.residentialProperty": "Residential",
+    "properties.title": "Properties",
+    "properties.totalUnits": "Total Units",
+    "properties.units.filters.status.all": "All Status",
+    "properties.units.filters.status.maintenance": "Maintenance",
+    "properties.units.filters.status.occupied": "Occupied",
+    "properties.units.filters.status.vacant": "Vacant",
+    "properties.units.filters.types.1br": "1BR Apartment",
+    "properties.units.filters.types.2br": "2BR Apartment",
+    "properties.units.filters.types.3br": "3BR Apartment",
+    "properties.units.filters.types.all": "All Types",
+    "properties.units.filters.types.studio": "Studio",
+    "properties.units.filters.types.villa": "Villa",
+    "properties.vacantUnits": "Vacant Units",
+    "properties.yearBuilt": "Year Built"
+  },
+  "ar": {
+    "properties.addProperty": "إضافة عقار",
+    "properties.commercialProperty": "تجاري",
+    "properties.description": "تصفح وأدر العقارات. استخدم وحدة عقار للاستكشاف العام.",
+    "properties.detail.actions.createWorkOrder": "إنشاء أمر عمل",
+    "properties.detail.actions.viewReports": "عرض التقارير",
+    "properties.detail.actions.viewUnits": "عرض الوحدات",
+    "properties.detail.map.title": "الموقع",
+    "properties.detail.stats.occupancy": "نسبة الإشغال",
+    "properties.detail.stats.type": "النوع",
+    "properties.detail.stats.units": "الوحدات",
+    "properties.detail.stats.workOrders": "أوامر العمل المفتوحة",
+    "properties.documents.filters.status.active": "ساري",
+    "properties.documents.filters.status.all": "جميع الحالات",
+    "properties.documents.filters.status.expired": "منتهي",
+    "properties.documents.filters.status.expiringSoon": "ينتهي قريباً",
+    "properties.documents.filters.status.pendingReview": "قيد المراجعة",
+    "properties.documents.filters.types.all": "جميع الأنواع",
+    "properties.documents.filters.types.contract": "عقد",
+    "properties.documents.filters.types.insurance": "تأمين",
+    "properties.documents.filters.types.legal": "قانوني",
+    "properties.documents.filters.types.safety": "سلامة",
+    "properties.filters.allProperties": "جميع العقارات",
+    "properties.filters.towerA": "البرج أ",
+    "properties.filters.towerB": "البرج ب",
+    "properties.filters.villaComplex": "مجمع الفلل",
+    "properties.industrialProperty": "صناعي",
+    "properties.inspections.filters.status.all": "جميع الحالات",
+    "properties.inspections.filters.status.completed": "مكتمل",
+    "properties.inspections.filters.status.inProgress": "قيد التنفيذ",
+    "properties.inspections.filters.status.overdue": "متأخر",
+    "properties.inspections.filters.status.scheduled": "مجدول",
+    "properties.inspections.filters.types.all": "جميع الأنواع",
+    "properties.inspections.filters.types.electrical": "كهربائي",
+    "properties.inspections.filters.types.fireSafety": "سلامة الحرائق",
+    "properties.inspections.filters.types.mechanical": "ميكانيكي",
+    "properties.inspections.filters.types.safety": "السلامة",
+    "properties.leases.actions": "الإجراءات",
+    "properties.leases.active": "نشط",
+    "properties.leases.activeLeases": "العقود النشطة",
+    "properties.leases.allProperties": "جميع العقارات",
+    "properties.leases.allStatus": "جميع الحالات",
+    "properties.leases.allTypes": "جميع الأنواع",
+    "properties.leases.available": "متاح",
+    "properties.leases.avgLeaseTerm": "متوسط مدة العقد",
+    "properties.leases.commercial": "تجاري",
+    "properties.leases.contact": "اتصال",
+    "properties.leases.endDate": "تاريخ الانتهاء",
+    "properties.leases.expired": "منتهي",
+    "properties.leases.expires": "ينتهي",
+    "properties.leases.expiringSoon": "تنتهي قريبًا",
+    "properties.leases.leaseId": "رقم العقد",
+    "properties.leases.leaseStatus": "حالة العقد",
+    "properties.leases.monthlyRent": "الإيجار الشهري",
+    "properties.leases.monthlyRevenue": "الإيرادات الشهرية",
+    "properties.leases.months": "شهر",
+    "properties.leases.na": "غير متاح",
+    "properties.leases.newLease": "عقد إيجار جديد",
+    "properties.leases.overdue": "متأخر",
+    "properties.leases.overview": "نظرة عامة على العقود",
+    "properties.leases.paid": "مدفوع",
+    "properties.leases.paymentStatus": "حالة الدفع",
+    "properties.leases.pending": "معلق",
+    "properties.leases.renew": "تجديد",
+    "properties.leases.renewals": "التجديدات",
+    "properties.leases.rentCollection": "تحصيل الإيجار",
+    "properties.leases.residential": "سكني",
+    "properties.leases.startDate": "تاريخ البدء",
+    "properties.leases.subtitle": "إدارة عقود الإيجار واتفاقيات الإيجار",
+    "properties.leases.templates": "قوالب العقود",
+    "properties.leases.tenant": "المستأجر",
+    "properties.leases.title": "إدارة عقود الإيجار",
+    "properties.leases.type": "النوع",
+    "properties.leases.unit": "الوحدة",
+    "properties.leases.upcomingRenewals": "التجديدات القادمة",
+    "properties.leases.vacant": "شاغر",
+    "properties.mixedUseProperty": "متعدد الاستخدام",
+    "properties.occupancyRate": "معدل الإشغال",
+    "properties.occupiedUnits": "الوحدات المشغولة",
+    "properties.propertyAddress": "العنوان",
+    "properties.propertyAmenities": "المرافق",
+    "properties.propertyCity": "المدينة",
+    "properties.propertyDescription": "الوصف",
+    "properties.propertyDetails": "تفاصيل العقار",
+    "properties.propertyDistrict": "الحي",
+    "properties.propertyManager": "مدير العقار",
+    "properties.propertyName": "اسم العقار",
+    "properties.propertySize": "المساحة",
+    "properties.propertyStatus": "الحالة",
+    "properties.propertyType": "نوع العقار",
+    "properties.propertyValue": "قيمة العقار",
+    "properties.residentialProperty": "سكني",
+    "properties.title": "العقارات",
+    "properties.totalUnits": "إجمالي الوحدات",
+    "properties.units.filters.status.all": "جميع الحالات",
+    "properties.units.filters.status.maintenance": "صيانة",
+    "properties.units.filters.status.occupied": "مشغول",
+    "properties.units.filters.status.vacant": "شاغر",
+    "properties.units.filters.types.1br": "شقة غرفة نوم واحدة",
+    "properties.units.filters.types.2br": "شقة غرفتين",
+    "properties.units.filters.types.3br": "شقة ثلاث غرف",
+    "properties.units.filters.types.all": "جميع الأنواع",
+    "properties.units.filters.types.studio": "استوديو",
+    "properties.units.filters.types.villa": "فيلا",
+    "properties.vacantUnits": "الوحدات الشاغرة",
+    "properties.yearBuilt": "سنة البناء"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/property.translations.json">
+<![CDATA[
+{
+  "en": {
+    "property.amenities": "Amenities",
+    "property.apartment": "Apartment",
+    "property.area": "Area",
+    "property.bathrooms": "Bathrooms",
+    "property.bedrooms": "Bedrooms",
+    "property.building": "Building",
+    "property.buildingNumber": "Building Number",
+    "property.buildings": "Buildings",
+    "property.condition": "Condition",
+    "property.excellent": "Excellent",
+    "property.fair": "Fair",
+    "property.features": "Features",
+    "property.floorNumber": "Floor Number",
+    "property.furnished": "Furnished",
+    "property.good": "Good",
+    "property.kitchen": "Kitchen",
+    "property.land": "Land",
+    "property.lease": "Lease",
+    "property.livingRoom": "Living Room",
+    "property.office": "Office",
+    "property.ownership": "Ownership",
+    "property.parking": "Parking",
+    "property.parkingSpaces": "Parking Spaces",
+    "property.partiallyFurnished": "Partially Furnished",
+    "property.poor": "Poor",
+    "property.properties": "Properties",
+    "property.property1": "Property",
+    "property.propertyStatus": "Property Status",
+    "property.propertyType": "Property Type",
+    "property.rental": "Rental",
+    "property.rooms": "Rooms",
+    "property.shop": "Shop",
+    "property.unfurnished": "Unfurnished",
+    "property.unit": "Unit",
+    "property.unitNumber": "Unit Number",
+    "property.units": "Units",
+    "property.villa": "Villa",
+    "property.warehouse": "Warehouse",
+    "property.yearBuilt": "Year Built"
+  },
+  "ar": {
+    "property.amenities": "المرافق",
+    "property.apartment": "شقة",
+    "property.area": "المساحة",
+    "property.bathrooms": "دورات المياه",
+    "property.bedrooms": "غرف النوم",
+    "property.building": "مبنى",
+    "property.buildingNumber": "رقم المبنى",
+    "property.buildings": "مباني",
+    "property.condition": "الحالة",
+    "property.excellent": "ممتاز",
+    "property.fair": "متوسط",
+    "property.features": "الميزات",
+    "property.floorNumber": "رقم الطابق",
+    "property.furnished": "مفروش",
+    "property.good": "جيد",
+    "property.kitchen": "المطبخ",
+    "property.land": "أرض",
+    "property.lease": "الإيجار",
+    "property.livingRoom": "غرفة المعيشة",
+    "property.office": "مكتب",
+    "property.ownership": "الملكية",
+    "property.parking": "مواقف السيارات",
+    "property.parkingSpaces": "أماكن الوقوف",
+    "property.partiallyFurnished": "مفروش جزئياً",
+    "property.poor": "ضعيف",
+    "property.properties": "عقارات",
+    "property.property1": "عقار",
+    "property.propertyStatus": "حالة العقار",
+    "property.propertyType": "نوع العقار",
+    "property.rental": "التأجير",
+    "property.rooms": "الغرف",
+    "property.shop": "محل",
+    "property.unfurnished": "غير مفروش",
+    "property.unit": "وحدة",
+    "property.unitNumber": "رقم الوحدة",
+    "property.units": "وحدات",
+    "property.villa": "فيلا",
+    "property.warehouse": "مستودع",
+    "property.yearBuilt": "سنة البناء"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/publicRelations.translations.json">
+<![CDATA[
+{
+  "en": {
+    "publicRelations.campaign": "PR Campaign",
+    "publicRelations.clipping": "Media Clipping",
+    "publicRelations.conference": "Press Conference",
+    "publicRelations.contact": "Media Contact",
+    "publicRelations.coverage": "Press Coverage",
+    "publicRelations.crisis": "Crisis Management",
+    "publicRelations.distribution": "Press Distribution",
+    "publicRelations.event": "PR Event",
+    "publicRelations.interview": "Media Interview",
+    "publicRelations.kit": "Press Kit",
+    "publicRelations.media": "Media Coverage",
+    "publicRelations.mention": "Media Mention",
+    "publicRelations.monitoring": "Media Monitoring",
+    "publicRelations.outreach": "Media Outreach",
+    "publicRelations.pitch": "Media Pitch",
+    "publicRelations.pr": "Public Relations",
+    "publicRelations.press": "Press Release",
+    "publicRelations.relations": "Media Relations",
+    "publicRelations.relationship": "Journalist Relationship",
+    "publicRelations.reputation": "Reputation Management",
+    "publicRelations.spokesperson": "Spokesperson",
+    "publicRelations.statement": "Press Statement"
+  },
+  "ar": {
+    "publicRelations.campaign": "حملة العلاقات العامة",
+    "publicRelations.clipping": "قصاصة إعلامية",
+    "publicRelations.conference": "المؤتمر الصحفي",
+    "publicRelations.contact": "جهة الاتصال الإعلامية",
+    "publicRelations.coverage": "التغطية الصحفية",
+    "publicRelations.crisis": "إدارة الأزمات",
+    "publicRelations.distribution": "توزيع البيانات الصحفية",
+    "publicRelations.event": "حدث العلاقات العامة",
+    "publicRelations.interview": "مقابلة إعلامية",
+    "publicRelations.kit": "مجموعة الصحافة",
+    "publicRelations.media": "التغطية الإعلامية",
+    "publicRelations.mention": "الإشارة الإعلامية",
+    "publicRelations.monitoring": "مراقبة وسائل الإعلام",
+    "publicRelations.outreach": "التواصل الإعلامي",
+    "publicRelations.pitch": "عرض إعلامي",
+    "publicRelations.pr": "العلاقات العامة",
+    "publicRelations.press": "البيان الصحفي",
+    "publicRelations.relations": "العلاقات الإعلامية",
+    "publicRelations.relationship": "العلاقة مع الصحفيين",
+    "publicRelations.reputation": "إدارة السمعة",
+    "publicRelations.spokesperson": "المتحدث الرسمي",
+    "publicRelations.statement": "البيان الصحفي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/publishingMedia.translations.json">
+<![CDATA[
+{
+  "en": {
+    "publishingMedia.advertisingManagement": "Advertising Management",
+    "publishingMedia.assignmentTracking": "Assignment Tracking",
+    "publishingMedia.contentCalendar": "Content Calendar",
+    "publishingMedia.contentManagement": "Content Management System",
+    "publishingMedia.copyEditing": "Copy Editing",
+    "publishingMedia.description": "Publishing and media content management",
+    "publishingMedia.digitalPublishing": "Digital Publishing",
+    "publishingMedia.distributionManagement": "Distribution Management",
+    "publishingMedia.editorialPlanning": "Editorial Planning",
+    "publishingMedia.editorialWorkflow": "Editorial Workflow",
+    "publishingMedia.factChecking": "Fact Checking",
+    "publishingMedia.graphicsProduction": "Graphics Production",
+    "publishingMedia.imageSelection": "Image Selection",
+    "publishingMedia.layoutDesign": "Layout & Design",
+    "publishingMedia.mobileApps": "Mobile Apps",
+    "publishingMedia.pressManagement": "Press Management",
+    "publishingMedia.printProduction": "Print Production",
+    "publishingMedia.printScheduling": "Print Scheduling",
+    "publishingMedia.proofreading": "Proofreading",
+    "publishingMedia.rightsManagement": "Rights Management",
+    "publishingMedia.submissionManagement": "Submission Management",
+    "publishingMedia.subscriptionManagement": "Subscription Management",
+    "publishingMedia.title": "Publishing & Media",
+    "publishingMedia.typography": "Typography",
+    "publishingMedia.webPublishing": "Web Publishing"
+  },
+  "ar": {
+    "publishingMedia.advertisingManagement": "إدارة الإعلانات",
+    "publishingMedia.assignmentTracking": "تتبع التكليفات",
+    "publishingMedia.contentCalendar": "تقويم المحتوى",
+    "publishingMedia.contentManagement": "نظام إدارة المحتوى",
+    "publishingMedia.copyEditing": "التحرير اللغوي",
+    "publishingMedia.description": "إدارة المحتوى والنشر الإعلامي",
+    "publishingMedia.digitalPublishing": "النشر الرقمي",
+    "publishingMedia.distributionManagement": "إدارة التوزيع",
+    "publishingMedia.editorialPlanning": "التخطيط التحريري",
+    "publishingMedia.editorialWorkflow": "سير العمل التحريري",
+    "publishingMedia.factChecking": "التحقق من الحقائق",
+    "publishingMedia.graphicsProduction": "إنتاج الرسوم",
+    "publishingMedia.imageSelection": "اختيار الصور",
+    "publishingMedia.layoutDesign": "التصميم والإخراج",
+    "publishingMedia.mobileApps": "تطبيقات الجوال",
+    "publishingMedia.pressManagement": "إدارة المطابع",
+    "publishingMedia.printProduction": "إنتاج الطباعة",
+    "publishingMedia.printScheduling": "جدولة الطباعة",
+    "publishingMedia.proofreading": "التدقيق اللغوي",
+    "publishingMedia.rightsManagement": "إدارة الحقوق",
+    "publishingMedia.submissionManagement": "إدارة التسليمات",
+    "publishingMedia.subscriptionManagement": "إدارة الاشتراكات",
+    "publishingMedia.title": "النشر والإعلام",
+    "publishingMedia.typography": "الطباعة والخطوط",
+    "publishingMedia.webPublishing": "النشر عبر الويب"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/purchaseOrders.translations.json">
+<![CDATA[
+{
+  "en": {
+    "purchaseOrders.amount": "Amount",
+    "purchaseOrders.approved": "Approved",
+    "purchaseOrders.buyer": "Buyer",
+    "purchaseOrders.cancelled": "Cancelled",
+    "purchaseOrders.completed": "Completed",
+    "purchaseOrders.date": "Order Date",
+    "purchaseOrders.delivery": "Delivery Date",
+    "purchaseOrders.discount": "Discount",
+    "purchaseOrders.draft": "Draft",
+    "purchaseOrders.items": "Items",
+    "purchaseOrders.notes": "Notes",
+    "purchaseOrders.number": "PO Number",
+    "purchaseOrders.pending": "Pending",
+    "purchaseOrders.po": "PO",
+    "purchaseOrders.price": "Unit Price",
+    "purchaseOrders.purchaseOrder": "Purchase Order",
+    "purchaseOrders.quantity": "Quantity",
+    "purchaseOrders.received": "Received",
+    "purchaseOrders.sent": "Sent",
+    "purchaseOrders.shipping": "Shipping",
+    "purchaseOrders.status": "Status",
+    "purchaseOrders.subtotal": "Subtotal",
+    "purchaseOrders.supplier": "Supplier",
+    "purchaseOrders.tax": "Tax",
+    "purchaseOrders.terms": "Payment Terms",
+    "purchaseOrders.total": "Total Amount"
+  },
+  "ar": {
+    "purchaseOrders.amount": "المبلغ",
+    "purchaseOrders.approved": "موافق عليه",
+    "purchaseOrders.buyer": "المشتري",
+    "purchaseOrders.cancelled": "ملغى",
+    "purchaseOrders.completed": "مكتمل",
+    "purchaseOrders.date": "تاريخ الطلب",
+    "purchaseOrders.delivery": "تاريخ التسليم",
+    "purchaseOrders.discount": "الخصم",
+    "purchaseOrders.draft": "مسودة",
+    "purchaseOrders.items": "العناصر",
+    "purchaseOrders.notes": "الملاحظات",
+    "purchaseOrders.number": "رقم أمر الشراء",
+    "purchaseOrders.pending": "معلق",
+    "purchaseOrders.po": "أمر الشراء",
+    "purchaseOrders.price": "سعر الوحدة",
+    "purchaseOrders.purchaseOrder": "أمر الشراء",
+    "purchaseOrders.quantity": "الكمية",
+    "purchaseOrders.received": "تم الاستلام",
+    "purchaseOrders.sent": "مرسل",
+    "purchaseOrders.shipping": "الشحن",
+    "purchaseOrders.status": "الحالة",
+    "purchaseOrders.subtotal": "المجموع الفرعي",
+    "purchaseOrders.supplier": "المورد",
+    "purchaseOrders.tax": "الضريبة",
+    "purchaseOrders.terms": "شروط الدفع",
+    "purchaseOrders.total": "المبلغ الإجمالي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/pushNotifications.translations.json">
+<![CDATA[
+{
+  "en": {
+    "pushNotifications.action": "Action",
+    "pushNotifications.android": "Android",
+    "pushNotifications.badge": "Badge",
+    "pushNotifications.clicked": "Clicked",
+    "pushNotifications.delivery": "Delivery",
+    "pushNotifications.device": "Device",
+    "pushNotifications.dismissed": "Dismissed",
+    "pushNotifications.icon": "Icon",
+    "pushNotifications.image": "Image",
+    "pushNotifications.ios": "iOS",
+    "pushNotifications.link": "Link",
+    "pushNotifications.message": "Message",
+    "pushNotifications.notification": "Notification",
+    "pushNotifications.opened": "Opened",
+    "pushNotifications.platform": "Platform",
+    "pushNotifications.priority": "Priority",
+    "pushNotifications.push": "Push Notification",
+    "pushNotifications.schedule": "Schedule",
+    "pushNotifications.send": "Send",
+    "pushNotifications.silent": "Silent",
+    "pushNotifications.sound": "Sound",
+    "pushNotifications.title": "Title",
+    "pushNotifications.web": "Web"
+  },
+  "ar": {
+    "pushNotifications.action": "الإجراء",
+    "pushNotifications.android": "أندرويد",
+    "pushNotifications.badge": "الشارة",
+    "pushNotifications.clicked": "تم النقر",
+    "pushNotifications.delivery": "التسليم",
+    "pushNotifications.device": "الجهاز",
+    "pushNotifications.dismissed": "تم الرفض",
+    "pushNotifications.icon": "الأيقونة",
+    "pushNotifications.image": "الصورة",
+    "pushNotifications.ios": "iOS",
+    "pushNotifications.link": "الرابط",
+    "pushNotifications.message": "الرسالة",
+    "pushNotifications.notification": "الإشعار",
+    "pushNotifications.opened": "تم الفتح",
+    "pushNotifications.platform": "المنصة",
+    "pushNotifications.priority": "الأولوية",
+    "pushNotifications.push": "إشعار فوري",
+    "pushNotifications.schedule": "جدولة",
+    "pushNotifications.send": "إرسال",
+    "pushNotifications.silent": "صامت",
+    "pushNotifications.sound": "الصوت",
+    "pushNotifications.title": "العنوان",
+    "pushNotifications.web": "الويب"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/quality.translations.json">
+<![CDATA[
+{
+  "en": {
+    "quality.accreditation": "Accreditation",
+    "quality.accredited": "Accredited",
+    "quality.audit": "Audit",
+    "quality.audits": "Audits",
+    "quality.bestPractice": "Best Practice",
+    "quality.bestPractices": "Best Practices",
+    "quality.certification": "Certification",
+    "quality.certified": "Certified",
+    "quality.checkList": "Checklist",
+    "quality.checkLists": "Checklists",
+    "quality.compliance": "Compliance",
+    "quality.compliant": "Compliant",
+    "quality.corrective": "Corrective",
+    "quality.correctiveAction": "Corrective Action",
+    "quality.defect": "Defect",
+    "quality.defects": "Defects",
+    "quality.externalAudit": "External Audit",
+    "quality.finding": "Finding",
+    "quality.findings": "Findings",
+    "quality.guideline": "Guideline",
+    "quality.guidelines": "Guidelines",
+    "quality.inspection": "Inspection",
+    "quality.inspections": "Inspections",
+    "quality.internalAudit": "Internal Audit",
+    "quality.issue": "Issue",
+    "quality.issues": "Issues",
+    "quality.nonCompliant": "Non-Compliant",
+    "quality.preventive": "Preventive",
+    "quality.preventiveAction": "Preventive Action",
+    "quality.procedure": "Procedure",
+    "quality.procedures": "Procedures",
+    "quality.quality1": "Quality",
+    "quality.qualityAssurance": "Quality Assurance",
+    "quality.qualityControl": "Quality Control",
+    "quality.qualityInspection": "Quality Inspection",
+    "quality.qualityStandard": "Quality Standard",
+    "quality.requirement": "Requirement",
+    "quality.requirements": "Requirements",
+    "quality.review": "Review",
+    "quality.reviews": "Reviews",
+    "quality.specification": "Specification",
+    "quality.specifications": "Specifications",
+    "quality.standard": "Standard",
+    "quality.standards": "Standards"
+  },
+  "ar": {
+    "quality.accreditation": "الاعتماد",
+    "quality.accredited": "معتمد",
+    "quality.audit": "تدقيق",
+    "quality.audits": "تدقيقات",
+    "quality.bestPractice": "أفضل ممارسة",
+    "quality.bestPractices": "أفضل الممارسات",
+    "quality.certification": "الشهادة",
+    "quality.certified": "معتمد",
+    "quality.checkList": "قائمة تحقق",
+    "quality.checkLists": "قوائم تحقق",
+    "quality.compliance": "الامتثال",
+    "quality.compliant": "متوافق",
+    "quality.corrective": "تصحيحي",
+    "quality.correctiveAction": "إجراء تصحيحي",
+    "quality.defect": "عيب",
+    "quality.defects": "عيوب",
+    "quality.externalAudit": "تدقيق خارجي",
+    "quality.finding": "نتيجة",
+    "quality.findings": "نتائج",
+    "quality.guideline": "إرشاد",
+    "quality.guidelines": "إرشادات",
+    "quality.inspection": "تفتيش",
+    "quality.inspections": "تفتيشات",
+    "quality.internalAudit": "تدقيق داخلي",
+    "quality.issue": "مشكلة",
+    "quality.issues": "مشاكل",
+    "quality.nonCompliant": "غير متوافق",
+    "quality.preventive": "وقائي",
+    "quality.preventiveAction": "إجراء وقائي",
+    "quality.procedure": "إجراء",
+    "quality.procedures": "إجراءات",
+    "quality.quality1": "الجودة",
+    "quality.qualityAssurance": "ضمان الجودة",
+    "quality.qualityControl": "مراقبة الجودة",
+    "quality.qualityInspection": "تفتيش الجودة",
+    "quality.qualityStandard": "معيار الجودة",
+    "quality.requirement": "متطلب",
+    "quality.requirements": "متطلبات",
+    "quality.review": "مراجعة",
+    "quality.reviews": "مراجعات",
+    "quality.specification": "مواصفة",
+    "quality.specifications": "مواصفات",
+    "quality.standard": "معيار",
+    "quality.standards": "معايير"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/qualityAssurance.translations.json">
+<![CDATA[
+{
+  "en": {
+    "qualityAssurance.approved": "Approved",
+    "qualityAssurance.assurance": "Quality Assurance",
+    "qualityAssurance.audit": "Audit",
+    "qualityAssurance.bug": "Bug",
+    "qualityAssurance.compliant": "Compliant",
+    "qualityAssurance.control": "Quality Control",
+    "qualityAssurance.criteria": "Quality Criteria",
+    "qualityAssurance.defect": "Defect",
+    "qualityAssurance.error": "Error",
+    "qualityAssurance.fail": "Fail",
+    "qualityAssurance.improvement": "Quality Improvement",
+    "qualityAssurance.indicator": "Quality Indicator",
+    "qualityAssurance.inspection": "Inspection",
+    "qualityAssurance.issue": "Issue",
+    "qualityAssurance.measure": "Quality Measure",
+    "qualityAssurance.metrics": "Quality Metrics",
+    "qualityAssurance.nonCompliant": "Non-compliant",
+    "qualityAssurance.pass": "Pass",
+    "qualityAssurance.qa": "QA",
+    "qualityAssurance.qc": "QC",
+    "qualityAssurance.quality": "Quality",
+    "qualityAssurance.rejected": "Rejected",
+    "qualityAssurance.review": "Review",
+    "qualityAssurance.standard": "Quality Standard",
+    "qualityAssurance.test": "Test",
+    "qualityAssurance.testing": "Testing"
+  },
+  "ar": {
+    "qualityAssurance.approved": "موافق عليه",
+    "qualityAssurance.assurance": "ضمان الجودة",
+    "qualityAssurance.audit": "التدقيق",
+    "qualityAssurance.bug": "الخطأ",
+    "qualityAssurance.compliant": "ملتزم",
+    "qualityAssurance.control": "مراقبة الجودة",
+    "qualityAssurance.criteria": "معايير الجودة",
+    "qualityAssurance.defect": "العيب",
+    "qualityAssurance.error": "الخطأ",
+    "qualityAssurance.fail": "فشل",
+    "qualityAssurance.improvement": "تحسين الجودة",
+    "qualityAssurance.indicator": "مؤشر الجودة",
+    "qualityAssurance.inspection": "التفتيش",
+    "qualityAssurance.issue": "المشكلة",
+    "qualityAssurance.measure": "قياس الجودة",
+    "qualityAssurance.metrics": "مقاييس الجودة",
+    "qualityAssurance.nonCompliant": "غير ملتزم",
+    "qualityAssurance.pass": "نجاح",
+    "qualityAssurance.qa": "ضمان الجودة",
+    "qualityAssurance.qc": "مراقبة الجودة",
+    "qualityAssurance.quality": "الجودة",
+    "qualityAssurance.rejected": "مرفوض",
+    "qualityAssurance.review": "المراجعة",
+    "qualityAssurance.standard": "معيار الجودة",
+    "qualityAssurance.test": "اختبار",
+    "qualityAssurance.testing": "الاختبار"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/qualityAssuranceAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "qualityAssuranceAdv.audit": "Quality Audit",
+    "qualityAssuranceAdv.compliance": "Quality Compliance",
+    "qualityAssuranceAdv.control": "Quality Control",
+    "qualityAssuranceAdv.corrective": "Corrective Action",
+    "qualityAssuranceAdv.criteria": "Quality Criteria",
+    "qualityAssuranceAdv.defect": "Defect",
+    "qualityAssuranceAdv.improvement": "Continuous Improvement",
+    "qualityAssuranceAdv.indicator": "Quality Indicator",
+    "qualityAssuranceAdv.inspection": "Inspection",
+    "qualityAssuranceAdv.iso": "ISO Certification",
+    "qualityAssuranceAdv.metric": "Quality Metric",
+    "qualityAssuranceAdv.nonconformance": "Non-Conformance",
+    "qualityAssuranceAdv.preventive": "Preventive Action",
+    "qualityAssuranceAdv.qa": "QA",
+    "qualityAssuranceAdv.quality": "Quality Assurance",
+    "qualityAssuranceAdv.requirement": "Requirement",
+    "qualityAssuranceAdv.review": "Quality Review",
+    "qualityAssuranceAdv.specification": "Specification",
+    "qualityAssuranceAdv.standard": "Quality Standard",
+    "qualityAssuranceAdv.testing": "Testing",
+    "qualityAssuranceAdv.validation": "Validation",
+    "qualityAssuranceAdv.verification": "Verification"
+  },
+  "ar": {
+    "qualityAssuranceAdv.audit": "تدقيق الجودة",
+    "qualityAssuranceAdv.compliance": "الامتثال للجودة",
+    "qualityAssuranceAdv.control": "مراقبة الجودة",
+    "qualityAssuranceAdv.corrective": "إجراء تصحيحي",
+    "qualityAssuranceAdv.criteria": "معايير الجودة",
+    "qualityAssuranceAdv.defect": "العيوب",
+    "qualityAssuranceAdv.improvement": "التحسين المستمر",
+    "qualityAssuranceAdv.indicator": "مؤشر الأداء",
+    "qualityAssuranceAdv.inspection": "التفتيش",
+    "qualityAssuranceAdv.iso": "شهادة ISO",
+    "qualityAssuranceAdv.metric": "مؤشر الجودة",
+    "qualityAssuranceAdv.nonconformance": "عدم المطابقة",
+    "qualityAssuranceAdv.preventive": "إجراء وقائي",
+    "qualityAssuranceAdv.qa": "قسم الجودة",
+    "qualityAssuranceAdv.quality": "ضمان الجودة",
+    "qualityAssuranceAdv.requirement": "المتطلبات",
+    "qualityAssuranceAdv.review": "مراجعة الجودة",
+    "qualityAssuranceAdv.specification": "المواصفات",
+    "qualityAssuranceAdv.standard": "المعايير",
+    "qualityAssuranceAdv.testing": "الاختبارات",
+    "qualityAssuranceAdv.validation": "الاعتماد",
+    "qualityAssuranceAdv.verification": "التحقق"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/qualityAssuranceExt.translations.json">
+<![CDATA[
+{
+  "en": {
+    "qualityAssuranceExt.assurance": "Quality Assurance",
+    "qualityAssuranceExt.audit": "Quality Audit",
+    "qualityAssuranceExt.certification": "Quality Certification",
+    "qualityAssuranceExt.compliance": "Quality Compliance",
+    "qualityAssuranceExt.control": "Quality Control",
+    "qualityAssuranceExt.corrective": "Corrective Action",
+    "qualityAssuranceExt.culture": "Quality Culture",
+    "qualityAssuranceExt.improvement": "Quality Improvement",
+    "qualityAssuranceExt.inspection": "Quality Inspection",
+    "qualityAssuranceExt.management": "Quality Management System",
+    "qualityAssuranceExt.metrics": "Quality Metrics",
+    "qualityAssuranceExt.nonconformance": "Non-Conformance",
+    "qualityAssuranceExt.objectives": "Quality Objectives",
+    "qualityAssuranceExt.planning": "Quality Planning",
+    "qualityAssuranceExt.policy": "Quality Policy",
+    "qualityAssuranceExt.preventive": "Preventive Action",
+    "qualityAssuranceExt.procedures": "Quality Procedures",
+    "qualityAssuranceExt.reporting": "Quality Reporting",
+    "qualityAssuranceExt.standards": "Quality Standards",
+    "qualityAssuranceExt.testing": "Quality Testing",
+    "qualityAssuranceExt.validation": "Quality Validation",
+    "qualityAssuranceExt.verification": "Quality Verification"
+  },
+  "ar": {
+    "qualityAssuranceExt.assurance": "ضمان الجودة",
+    "qualityAssuranceExt.audit": "تدقيق الجودة",
+    "qualityAssuranceExt.certification": "شهادة الجودة",
+    "qualityAssuranceExt.compliance": "الامتثال للجودة",
+    "qualityAssuranceExt.control": "مراقبة الجودة",
+    "qualityAssuranceExt.corrective": "إجراء تصحيحي",
+    "qualityAssuranceExt.culture": "ثقافة الجودة",
+    "qualityAssuranceExt.improvement": "تحسين الجودة",
+    "qualityAssuranceExt.inspection": "فحص الجودة",
+    "qualityAssuranceExt.management": "نظام إدارة الجودة",
+    "qualityAssuranceExt.metrics": "مقاييس الجودة",
+    "qualityAssuranceExt.nonconformance": "عدم المطابقة",
+    "qualityAssuranceExt.objectives": "أهداف الجودة",
+    "qualityAssuranceExt.planning": "تخطيط الجودة",
+    "qualityAssuranceExt.policy": "سياسة الجودة",
+    "qualityAssuranceExt.preventive": "إجراء وقائي",
+    "qualityAssuranceExt.procedures": "إجراءات الجودة",
+    "qualityAssuranceExt.reporting": "تقارير الجودة",
+    "qualityAssuranceExt.standards": "معايير الجودة",
+    "qualityAssuranceExt.testing": "اختبار الجودة",
+    "qualityAssuranceExt.validation": "التحقق من صحة الجودة",
+    "qualityAssuranceExt.verification": "التحقق من الجودة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/qualityControl.translations.json">
+<![CDATA[
+{
+  "en": {
+    "qualityControl.acceptance": "Acceptance",
+    "qualityControl.continualImprovement": "Continual Improvement",
+    "qualityControl.corrective": "Corrective",
+    "qualityControl.correctiveAction": "Corrective Action",
+    "qualityControl.defect": "Defect",
+    "qualityControl.defects": "Defects",
+    "qualityControl.deviation": "Deviation",
+    "qualityControl.inspection": "Inspection",
+    "qualityControl.iso": "ISO",
+    "qualityControl.nonConformance": "Non-conformance",
+    "qualityControl.preventive": "Preventive",
+    "qualityControl.preventiveAction": "Preventive Action",
+    "qualityControl.qa": "QA",
+    "qualityControl.qc": "QC",
+    "qualityControl.quality": "Quality",
+    "qualityControl.qualityAssurance": "Quality Assurance",
+    "qualityControl.qualityControl1": "Quality Control",
+    "qualityControl.qualityManagement": "Quality Management",
+    "qualityControl.qualityStandard": "Quality Standard",
+    "qualityControl.rejection": "Rejection",
+    "qualityControl.rework": "Rework",
+    "qualityControl.rootCause": "Root Cause",
+    "qualityControl.rootCauseAnalysis": "Root Cause Analysis",
+    "qualityControl.specification": "Specification",
+    "qualityControl.testing": "Testing",
+    "qualityControl.validation": "Validation",
+    "qualityControl.verification": "Verification"
+  },
+  "ar": {
+    "qualityControl.acceptance": "القبول",
+    "qualityControl.continualImprovement": "التحسين المستمر",
+    "qualityControl.corrective": "تصحيحي",
+    "qualityControl.correctiveAction": "إجراء تصحيحي",
+    "qualityControl.defect": "عيب",
+    "qualityControl.defects": "عيوب",
+    "qualityControl.deviation": "انحراف",
+    "qualityControl.inspection": "التفتيش",
+    "qualityControl.iso": "أيزو",
+    "qualityControl.nonConformance": "عدم المطابقة",
+    "qualityControl.preventive": "وقائي",
+    "qualityControl.preventiveAction": "إجراء وقائي",
+    "qualityControl.qa": "ضمان الجودة",
+    "qualityControl.qc": "مراقبة الجودة",
+    "qualityControl.quality": "الجودة",
+    "qualityControl.qualityAssurance": "ضمان الجودة",
+    "qualityControl.qualityControl1": "مراقبة الجودة",
+    "qualityControl.qualityManagement": "إدارة الجودة",
+    "qualityControl.qualityStandard": "معيار الجودة",
+    "qualityControl.rejection": "الرفض",
+    "qualityControl.rework": "إعادة العمل",
+    "qualityControl.rootCause": "السبب الجذري",
+    "qualityControl.rootCauseAnalysis": "تحليل السبب الجذري",
+    "qualityControl.specification": "المواصفات",
+    "qualityControl.testing": "الاختبار",
+    "qualityControl.validation": "التحقق من الصحة",
+    "qualityControl.verification": "التحقق"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/qualityControlInspection.translations.json">
+<![CDATA[
+{
+  "en": {
+    "qualityControlInspection.acceptance": "Acceptance Criteria",
+    "qualityControlInspection.checklist": "Inspection Checklist",
+    "qualityControlInspection.defect": "Defect",
+    "qualityControlInspection.dimensional": "Dimensional Inspection",
+    "qualityControlInspection.examination": "Examination",
+    "qualityControlInspection.fail": "Fail",
+    "qualityControlInspection.final": "Final Inspection",
+    "qualityControlInspection.functional": "Functional Testing",
+    "qualityControlInspection.incoming": "Incoming Inspection",
+    "qualityControlInspection.inprocess": "In-Process Inspection",
+    "qualityControlInspection.inspection": "Inspection",
+    "qualityControlInspection.pass": "Pass",
+    "qualityControlInspection.plan": "Inspection Plan",
+    "qualityControlInspection.qc": "Quality Control",
+    "qualityControlInspection.receiving": "Receiving Inspection",
+    "qualityControlInspection.reject": "Rejection",
+    "qualityControlInspection.report": "Inspection Report",
+    "qualityControlInspection.sampling": "Sampling",
+    "qualityControlInspection.testing": "Testing",
+    "qualityControlInspection.validation": "Validation",
+    "qualityControlInspection.verification": "Verification",
+    "qualityControlInspection.visual": "Visual Inspection"
+  },
+  "ar": {
+    "qualityControlInspection.acceptance": "معايير القبول",
+    "qualityControlInspection.checklist": "قائمة الفحص",
+    "qualityControlInspection.defect": "العيب",
+    "qualityControlInspection.dimensional": "الفحص الأبعادي",
+    "qualityControlInspection.examination": "الفحص الدقيق",
+    "qualityControlInspection.fail": "الفشل",
+    "qualityControlInspection.final": "الفحص النهائي",
+    "qualityControlInspection.functional": "الاختبار الوظيفي",
+    "qualityControlInspection.incoming": "فحص الواردات",
+    "qualityControlInspection.inprocess": "الفحص أثناء العملية",
+    "qualityControlInspection.inspection": "الفحص",
+    "qualityControlInspection.pass": "النجاح",
+    "qualityControlInspection.plan": "خطة الفحص",
+    "qualityControlInspection.qc": "مراقبة الجودة",
+    "qualityControlInspection.receiving": "فحص الاستلام",
+    "qualityControlInspection.reject": "الرفض",
+    "qualityControlInspection.report": "تقرير الفحص",
+    "qualityControlInspection.sampling": "أخذ العينات",
+    "qualityControlInspection.testing": "الاختبار",
+    "qualityControlInspection.validation": "التحقق من الصحة",
+    "qualityControlInspection.verification": "التحقق",
+    "qualityControlInspection.visual": "الفحص البصري"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/qualityManagementSystem.translations.json">
+<![CDATA[
+{
+  "en": {
+    "qualityManagementSystem.assurance": "Quality Assurance",
+    "qualityManagementSystem.audit": "Internal Audit",
+    "qualityManagementSystem.capa": "CAPA",
+    "qualityManagementSystem.certification": "Certification",
+    "qualityManagementSystem.control": "Quality Control",
+    "qualityManagementSystem.corrective": "Corrective Action",
+    "qualityManagementSystem.document": "Document Control",
+    "qualityManagementSystem.improvement": "Continual Improvement",
+    "qualityManagementSystem.kpi": "Quality KPI",
+    "qualityManagementSystem.management": "Quality Management",
+    "qualityManagementSystem.manual": "Quality Manual",
+    "qualityManagementSystem.nonconformance": "Nonconformance",
+    "qualityManagementSystem.objective": "Quality Objective",
+    "qualityManagementSystem.policy": "Quality Policy",
+    "qualityManagementSystem.preventive": "Preventive Action",
+    "qualityManagementSystem.procedure": "Procedure",
+    "qualityManagementSystem.qms": "Quality Management System",
+    "qualityManagementSystem.quality": "Quality",
+    "qualityManagementSystem.record": "Record Control",
+    "qualityManagementSystem.review": "Management Review",
+    "qualityManagementSystem.standard": "Quality Standard",
+    "qualityManagementSystem.work": "Work Instruction"
+  },
+  "ar": {
+    "qualityManagementSystem.assurance": "ضمان الجودة",
+    "qualityManagementSystem.audit": "التدقيق الداخلي",
+    "qualityManagementSystem.capa": "الإجراءات التصحيحية والوقائية",
+    "qualityManagementSystem.certification": "الاعتماد",
+    "qualityManagementSystem.control": "مراقبة الجودة",
+    "qualityManagementSystem.corrective": "الإجراء التصحيحي",
+    "qualityManagementSystem.document": "ضبط المستندات",
+    "qualityManagementSystem.improvement": "التحسين المستمر",
+    "qualityManagementSystem.kpi": "مؤشرات الجودة",
+    "qualityManagementSystem.management": "إدارة الجودة",
+    "qualityManagementSystem.manual": "دليل الجودة",
+    "qualityManagementSystem.nonconformance": "عدم المطابقة",
+    "qualityManagementSystem.objective": "هدف الجودة",
+    "qualityManagementSystem.policy": "سياسة الجودة",
+    "qualityManagementSystem.preventive": "الإجراء الوقائي",
+    "qualityManagementSystem.procedure": "الإجراء",
+    "qualityManagementSystem.qms": "نظام إدارة الجودة",
+    "qualityManagementSystem.quality": "الجودة",
+    "qualityManagementSystem.record": "ضبط السجلات",
+    "qualityManagementSystem.review": "مراجعة الإدارة",
+    "qualityManagementSystem.standard": "معيار الجودة",
+    "qualityManagementSystem.work": "تعليمات العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/qualityManagementSystems.translations.json">
+<![CDATA[
+{
+  "en": {
+    "qualityManagementSystems.assurance": "Quality Assurance",
+    "qualityManagementSystems.audits": "Quality Audits",
+    "qualityManagementSystems.capa": "Corrective Actions",
+    "qualityManagementSystems.certification": "Quality Certification",
+    "qualityManagementSystems.control": "Quality Control",
+    "qualityManagementSystems.documentation": "Quality Documentation",
+    "qualityManagementSystems.improvement": "Continuous Improvement",
+    "qualityManagementSystems.inspection": "Quality Inspection",
+    "qualityManagementSystems.iso": "ISO Standards",
+    "qualityManagementSystems.kpi": "Quality KPIs",
+    "qualityManagementSystems.metrics": "Quality Metrics",
+    "qualityManagementSystems.nonconformance": "Non-Conformance Management",
+    "qualityManagementSystems.planning": "Quality Planning",
+    "qualityManagementSystems.preventive": "Preventive Actions",
+    "qualityManagementSystems.procedures": "Quality Procedures",
+    "qualityManagementSystems.qms": "QMS",
+    "qualityManagementSystems.quality": "Quality Management Systems",
+    "qualityManagementSystems.reporting": "Quality Reporting",
+    "qualityManagementSystems.root": "Root Cause Analysis",
+    "qualityManagementSystems.sampling": "Statistical Sampling",
+    "qualityManagementSystems.spc": "Statistical Process Control",
+    "qualityManagementSystems.standards": "Quality Standards",
+    "qualityManagementSystems.testing": "Quality Testing"
+  },
+  "ar": {
+    "qualityManagementSystems.assurance": "ضمان الجودة",
+    "qualityManagementSystems.audits": "تدقيق الجودة",
+    "qualityManagementSystems.capa": "الإجراءات التصحيحية",
+    "qualityManagementSystems.certification": "شهادة الجودة",
+    "qualityManagementSystems.control": "مراقبة الجودة",
+    "qualityManagementSystems.documentation": "توثيق الجودة",
+    "qualityManagementSystems.improvement": "التحسين المستمر",
+    "qualityManagementSystems.inspection": "فحص الجودة",
+    "qualityManagementSystems.iso": "معايير آيزو",
+    "qualityManagementSystems.kpi": "مؤشرات الأداء الرئيسية للجودة",
+    "qualityManagementSystems.metrics": "مقاييس الجودة",
+    "qualityManagementSystems.nonconformance": "إدارة عدم المطابقة",
+    "qualityManagementSystems.planning": "تخطيط الجودة",
+    "qualityManagementSystems.preventive": "الإجراءات الوقائية",
+    "qualityManagementSystems.procedures": "إجراءات الجودة",
+    "qualityManagementSystems.qms": "نظام إدارة الجودة",
+    "qualityManagementSystems.quality": "أنظمة إدارة الجودة",
+    "qualityManagementSystems.reporting": "تقارير الجودة",
+    "qualityManagementSystems.root": "تحليل السبب الجذري",
+    "qualityManagementSystems.sampling": "العينات الإحصائية",
+    "qualityManagementSystems.spc": "مراقبة العمليات الإحصائية",
+    "qualityManagementSystems.standards": "معايير الجودة",
+    "qualityManagementSystems.testing": "اختبار الجودة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/quantities.translations.json">
+<![CDATA[
+{
+  "en": {
+    "quantities.amount": "Amount",
+    "quantities.available": "Available",
+    "quantities.batch": "Batch",
+    "quantities.bulk": "Bulk",
+    "quantities.capacity": "Capacity",
+    "quantities.count": "Count",
+    "quantities.dozen": "Dozen",
+    "quantities.inStock": "In Stock",
+    "quantities.item": "Item",
+    "quantities.items": "Items",
+    "quantities.lot": "Lot",
+    "quantities.lowStock": "Low Stock",
+    "quantities.number": "Number",
+    "quantities.outOfStock": "Out of Stock",
+    "quantities.pair": "Pair",
+    "quantities.piece": "Piece",
+    "quantities.pieces": "Pieces",
+    "quantities.quantities1": "Quantities",
+    "quantities.quantity": "Quantity",
+    "quantities.set": "Set",
+    "quantities.stock": "Stock",
+    "quantities.subtotal": "Subtotal",
+    "quantities.total": "Total",
+    "quantities.unavailable": "Unavailable",
+    "quantities.unit": "Unit",
+    "quantities.units": "Units",
+    "quantities.volume": "Volume"
+  },
+  "ar": {
+    "quantities.amount": "مبلغ",
+    "quantities.available": "متاح",
+    "quantities.batch": "دفعة",
+    "quantities.bulk": "كمية كبيرة",
+    "quantities.capacity": "سعة",
+    "quantities.count": "عد",
+    "quantities.dozen": "دزينة",
+    "quantities.inStock": "متوفر",
+    "quantities.item": "عنصر",
+    "quantities.items": "عناصر",
+    "quantities.lot": "مجموعة",
+    "quantities.lowStock": "مخزون منخفض",
+    "quantities.number": "رقم",
+    "quantities.outOfStock": "غير متوفر",
+    "quantities.pair": "زوج",
+    "quantities.piece": "قطعة",
+    "quantities.pieces": "قطع",
+    "quantities.quantities1": "كميات",
+    "quantities.quantity": "كمية",
+    "quantities.set": "مجموعة",
+    "quantities.stock": "مخزون",
+    "quantities.subtotal": "مجموع جزئي",
+    "quantities.total": "إجمالي",
+    "quantities.unavailable": "غير متاح",
+    "quantities.unit": "وحدة",
+    "quantities.units": "وحدات",
+    "quantities.volume": "حجم"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/quantumComputing.translations.json">
+<![CDATA[
+{
+  "en": {
+    "quantumComputing.advantage": "Quantum Advantage",
+    "quantumComputing.algorithm": "Quantum Algorithm",
+    "quantumComputing.annealing": "Quantum Annealing",
+    "quantumComputing.application": "Quantum Application",
+    "quantumComputing.circuit": "Quantum Circuit",
+    "quantumComputing.computer": "Quantum Computer",
+    "quantumComputing.computing": "Quantum Computation",
+    "quantumComputing.cryptography": "Quantum Cryptography",
+    "quantumComputing.decoherence": "Decoherence",
+    "quantumComputing.entanglement": "Entanglement",
+    "quantumComputing.error": "Quantum Error Correction",
+    "quantumComputing.gate": "Quantum Gate",
+    "quantumComputing.language": "Quantum Language",
+    "quantumComputing.measurement": "Quantum Measurement",
+    "quantumComputing.processor": "Quantum Processor",
+    "quantumComputing.programming": "Quantum Programming",
+    "quantumComputing.quantum": "Quantum Computing",
+    "quantumComputing.qubit": "Qubit",
+    "quantumComputing.simulator": "Quantum Simulator",
+    "quantumComputing.state": "Quantum State",
+    "quantumComputing.superposition": "Superposition",
+    "quantumComputing.supremacy": "Quantum Supremacy"
+  },
+  "ar": {
+    "quantumComputing.advantage": "الميزة الكمومية",
+    "quantumComputing.algorithm": "الخوارزمية الكمومية",
+    "quantumComputing.annealing": "التلدين الكمومي",
+    "quantumComputing.application": "التطبيق الكمومي",
+    "quantumComputing.circuit": "الدائرة الكمومية",
+    "quantumComputing.computer": "الكمبيوتر الكمومي",
+    "quantumComputing.computing": "الحوسبة الكمومية",
+    "quantumComputing.cryptography": "التشفير الكمومي",
+    "quantumComputing.decoherence": "فقدان التماسك",
+    "quantumComputing.entanglement": "التشابك",
+    "quantumComputing.error": "تصحيح الخطأ الكمومي",
+    "quantumComputing.gate": "البوابة الكمومية",
+    "quantumComputing.language": "اللغة الكمومية",
+    "quantumComputing.measurement": "القياس الكمومي",
+    "quantumComputing.processor": "المعالج الكمومي",
+    "quantumComputing.programming": "البرمجة الكمومية",
+    "quantumComputing.quantum": "الحوسبة الكمومية",
+    "quantumComputing.qubit": "الكيوبت",
+    "quantumComputing.simulator": "محاكي الكمومي",
+    "quantumComputing.state": "الحالة الكمومية",
+    "quantumComputing.superposition": "التراكب",
+    "quantumComputing.supremacy": "التفوق الكمومي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/quantumComputingAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "quantumComputingAdv.algorithm": "Quantum Algorithm",
+    "quantumComputingAdv.application": "Quantum Application",
+    "quantumComputingAdv.circuit": "Quantum Circuit",
+    "quantumComputingAdv.computing": "Quantum Computing",
+    "quantumComputingAdv.correction": "Error Correction",
+    "quantumComputingAdv.cryptography": "Quantum Cryptography",
+    "quantumComputingAdv.decoherence": "Decoherence",
+    "quantumComputingAdv.entanglement": "Quantum Entanglement",
+    "quantumComputingAdv.error": "Quantum Error",
+    "quantumComputingAdv.gate": "Quantum Gate",
+    "quantumComputingAdv.hardware": "Quantum Hardware",
+    "quantumComputingAdv.measurement": "Quantum Measurement",
+    "quantumComputingAdv.optimization": "Quantum Optimization",
+    "quantumComputingAdv.processor": "Quantum Processor",
+    "quantumComputingAdv.programming": "Quantum Programming",
+    "quantumComputingAdv.quantum": "Quantum Computing",
+    "quantumComputingAdv.qubit": "Qubit",
+    "quantumComputingAdv.research": "Quantum Research",
+    "quantumComputingAdv.simulator": "Quantum Simulator",
+    "quantumComputingAdv.software": "Quantum Software",
+    "quantumComputingAdv.state": "Quantum State",
+    "quantumComputingAdv.superposition": "Superposition"
+  },
+  "ar": {
+    "quantumComputingAdv.algorithm": "الخوارزمية الكمومية",
+    "quantumComputingAdv.application": "التطبيق الكمومي",
+    "quantumComputingAdv.circuit": "الدائرة الكمومية",
+    "quantumComputingAdv.computing": "الحوسبة الكمومية",
+    "quantumComputingAdv.correction": "تصحيح الخطأ",
+    "quantumComputingAdv.cryptography": "التشفير الكمومي",
+    "quantumComputingAdv.decoherence": "فقدان التماسك",
+    "quantumComputingAdv.entanglement": "التشابك الكمومي",
+    "quantumComputingAdv.error": "الخطأ الكمومي",
+    "quantumComputingAdv.gate": "البوابة الكمومية",
+    "quantumComputingAdv.hardware": "الأجهزة الكمومية",
+    "quantumComputingAdv.measurement": "القياس الكمومي",
+    "quantumComputingAdv.optimization": "التحسين الكمومي",
+    "quantumComputingAdv.processor": "المعالج الكمومي",
+    "quantumComputingAdv.programming": "البرمجة الكمومية",
+    "quantumComputingAdv.quantum": "الحوسبة الكمومية",
+    "quantumComputingAdv.qubit": "الكيوبت",
+    "quantumComputingAdv.research": "البحث الكمومي",
+    "quantumComputingAdv.simulator": "محاكي الكمومي",
+    "quantumComputingAdv.software": "البرمجيات الكمومية",
+    "quantumComputingAdv.state": "الحالة الكمومية",
+    "quantumComputingAdv.superposition": "التراكب الكمومي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/quoteManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "quoteManagement.approvalWorkflow": "Approval Workflow",
+    "quoteManagement.averageDealSize": "Average Deal Size",
+    "quoteManagement.bundlePricing": "Bundle Pricing",
+    "quoteManagement.competitivePricing": "Competitive Pricing",
+    "quoteManagement.contractTerms": "Contract Terms",
+    "quoteManagement.cpq": "Configure, Price, Quote",
+    "quoteManagement.description": "Configure, price, and quote (CPQ) solutions",
+    "quoteManagement.discountAnalysis": "Discount Analysis",
+    "quoteManagement.discountApproval": "Discount Approval",
+    "quoteManagement.eSignature": "E-Signature",
+    "quoteManagement.lineItemManagement": "Line Item Management",
+    "quoteManagement.marginAnalysis": "Margin Analysis",
+    "quoteManagement.pricingOptimization": "Pricing Optimization",
+    "quoteManagement.pricingRules": "Pricing Rules",
+    "quoteManagement.productConfiguration": "Product Configuration",
+    "quoteManagement.proposalGeneration": "Proposal Generation",
+    "quoteManagement.quoteAnalytics": "Quote Analytics",
+    "quoteManagement.quoteGeneration": "Quote Generation",
+    "quoteManagement.quoteTemplates": "Quote Templates",
+    "quoteManagement.quoteToClose": "Quote to Close",
+    "quoteManagement.quoteTracking": "Quote Tracking",
+    "quoteManagement.title": "Quote Management",
+    "quoteManagement.volumeDiscounts": "Volume Discounts",
+    "quoteManagement.winRate": "Win Rate"
+  },
+  "ar": {
+    "quoteManagement.approvalWorkflow": "سير عمل الموافقة",
+    "quoteManagement.averageDealSize": "متوسط ​​حجم الصفقة",
+    "quoteManagement.bundlePricing": "تسعير الحزم",
+    "quoteManagement.competitivePricing": "التسعير التنافسي",
+    "quoteManagement.contractTerms": "شروط العقد",
+    "quoteManagement.cpq": "التكوين والتسعير وعروض الأسعار",
+    "quoteManagement.description": "حلول التكوين والتسعير وعروض الأسعار",
+    "quoteManagement.discountAnalysis": "تحليل الخصومات",
+    "quoteManagement.discountApproval": "الموافقة على الخصم",
+    "quoteManagement.eSignature": "التوقيع الإلكتروني",
+    "quoteManagement.lineItemManagement": "إدارة بنود السطر",
+    "quoteManagement.marginAnalysis": "تحليل الهامش",
+    "quoteManagement.pricingOptimization": "تحسين التسعير",
+    "quoteManagement.pricingRules": "قواعد التسعير",
+    "quoteManagement.productConfiguration": "تكوين المنتج",
+    "quoteManagement.proposalGeneration": "إنشاء المقترحات",
+    "quoteManagement.quoteAnalytics": "تحليلات عروض الأسعار",
+    "quoteManagement.quoteGeneration": "إنشاء عروض الأسعار",
+    "quoteManagement.quoteTemplates": "قوالب عروض الأسعار",
+    "quoteManagement.quoteToClose": "من عرض السعر إلى الإغلاق",
+    "quoteManagement.quoteTracking": "تتبع عروض الأسعار",
+    "quoteManagement.title": "إدارة عروض الأسعار",
+    "quoteManagement.volumeDiscounts": "خصومات الحجم",
+    "quoteManagement.winRate": "معدل الفوز"
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

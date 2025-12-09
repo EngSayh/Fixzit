@@ -1,0 +1,2987 @@
+
+You are the "Fixzit Memory Builder" for category: "routes".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "routes",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/api/projects/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+
+/**
+ * SECURITY: This is a TEST-ONLY endpoint for Playwright E2E tests.
+ * It uses in-memory storage and is NOT suitable for production.
+ * The endpoint is locked to NODE_ENV=test or PLAYWRIGHT_TESTS=true.
+ */
+
+// Environment check - must be test environment
+const IS_TEST_ENV = process.env.NODE_ENV === "test" || process.env.PLAYWRIGHT_TESTS === "true";
+
+// In-memory store for test runs (Playwright uses mock headers)
+const projects: Array<Record<string, unknown>> = [];
+
+const locationSchema = z.object({
+  address: z.string().optional(),
+  city: z.string().optional(),
+  coordinates: z.object({
+    lat: z.number(),
+    lng: z.number(),
+  }),
+});
+
+const projectSchema = z.object({
+  name: z.string().min(1, "name required"),
+  description: z.string().optional(),
+  type: z.enum([
+    "NEW_CONSTRUCTION",
+    "RENOVATION",
+    "MAINTENANCE",
+    "PLANNING",
+  ]),
+  propertyId: z.string().optional(),
+  location: locationSchema.optional(),
+  timeline: z
+    .object({
+      startDate: z.string().optional(),
+      endDate: z.string().optional(),
+      duration: z.number().optional(),
+    })
+    .optional(),
+  budget: z
+    .object({
+      total: z.number(),
+      currency: z.string().optional(),
+    })
+    .optional(),
+  tags: z.array(z.string()).optional(),
+});
+
+// SECURITY FIX: Only parse x-user header in test environment
+// In production, always use getSessionUser for proper authentication
+async function getAuthenticatedUser(req: NextRequest): Promise<
+  | { id: string; orgId: string; tenantId?: string }
+  | null
+> {
+  // In test environment (NODE_ENV=test), allow x-user header for Playwright
+  if (IS_TEST_ENV) {
+    const header = req.headers.get("x-user");
+    if (header) {
+      try {
+        const parsed = JSON.parse(header);
+        if (parsed && parsed.id) {
+          return {
+            id: parsed.id,
+            orgId: parsed.orgId || "test-org",
+            tenantId: parsed.tenantId,
+          };
+        }
+      } catch {
+        // Invalid header, fall through to session auth
+      }
+    }
+  }
+
+  // Production: Use proper session authentication
+  try {
+    const user = await getSessionUser(req);
+    return {
+      id: user.id,
+      orgId: user.orgId,
+      tenantId: user.tenantId,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function unauthorized() {
+  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+}
+
+function notFound() {
+  return NextResponse.json({ error: "Not Found" }, { status: 404 });
+}
+
+export async function POST(req: NextRequest) {
+  // SECURITY: This endpoint is test-only - return 404 in production
+  if (!IS_TEST_ENV) {
+    return notFound();
+  }
+
+  const user = await getAuthenticatedUser(req);
+  if (!user) return unauthorized();
+
+  const body = await req.json().catch(() => null);
+  const result = projectSchema.safeParse(body);
+  if (!result.success) {
+    const { fieldErrors, formErrors } = result.error.flatten();
+    return NextResponse.json(
+      { error: { fieldErrors, formErrors } },
+      { status: 422 },
+    );
+  }
+
+  const data = result.data;
+  const code = `PRJ-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  const now = new Date().toISOString();
+
+  const record = {
+    _id: code,
+    code,
+    tenantId: user.tenantId || user.orgId || "tenant-default",
+    createdBy: user.id,
+    status: "PLANNING",
+    progress: {
+      overall: 0,
+      schedule: 0,
+      quality: 0,
+      cost: 0,
+      lastUpdated: now,
+    },
+    name: data.name,
+    description: data.description ?? "",
+    type: data.type,
+    propertyId: data.propertyId,
+    location: data.location,
+    budget: {
+      total: data.budget?.total ?? 0,
+      currency: data.budget?.currency || "SAR",
+    },
+    timeline: data.timeline ?? {},
+    tags: data.tags ?? [],
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  projects.push(record);
+
+  return NextResponse.json(record, { status: 201 });
+}
+
+export async function GET(req: NextRequest) {
+  // SECURITY: This endpoint is test-only - return 404 in production
+  if (!IS_TEST_ENV) {
+    return notFound();
+  }
+
+  const user = await getAuthenticatedUser(req);
+  if (!user) return unauthorized();
+
+  const url = new URL(req.url);
+  const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
+  const limit = Math.min(
+    100,
+    Math.max(1, Number(url.searchParams.get("limit")) || 20),
+  );
+  const type = url.searchParams.get("type");
+  const status = url.searchParams.get("status");
+  const search = url.searchParams.get("search");
+
+  let items = projects.filter(
+    (p) => p.tenantId === (user.tenantId || user.orgId || "tenant-default"),
+  );
+
+  if (type) {
+    items = items.filter((p) => p.type === type);
+  }
+  if (status) {
+    items = items.filter((p) => p.status === status);
+  }
+  if (search) {
+    items = items.filter(
+      (p) =>
+        String(p.name || "").includes(search) ||
+        String(p.description || "").includes(search),
+    );
+  }
+
+  const total = items.length;
+  const pages = Math.max(1, Math.ceil(total / limit));
+  const start = (page - 1) * limit;
+  const paged = items.slice(start, start + limit);
+
+  return NextResponse.json({
+    items: paged,
+    page,
+    limit,
+    total,
+    pages,
+  });
+}
+
+]]>
+</file>
+
+<file path="app/api/properties/[id]/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Property } from "@/server/models/Property";
+import { z } from "zod";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError, handleApiError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+
+const updatePropertySchema = z.object({
+  name: z.string().min(1).optional(),
+  description: z.string().optional(),
+  type: z
+    .enum(["RESIDENTIAL", "COMMERCIAL", "INDUSTRIAL", "MIXED_USE", "LAND"])
+    .optional(),
+  subtype: z.string().optional(),
+  address: z
+    .object({
+      street: z.string().optional(),
+      city: z.string().optional(),
+      region: z.string().optional(),
+      postalCode: z.string().optional(),
+      coordinates: z
+        .object({
+          lat: z.number(),
+          lng: z.number(),
+        })
+        .optional(),
+      nationalAddress: z.string().optional(),
+      district: z.string().optional(),
+    })
+    .optional(),
+  details: z
+    .object({
+      totalArea: z.number().optional(),
+      builtArea: z.number().optional(),
+      bedrooms: z.number().optional(),
+      bathrooms: z.number().optional(),
+      floors: z.number().optional(),
+      parkingSpaces: z.number().optional(),
+      yearBuilt: z.number().optional(),
+      occupancyRate: z.number().min(0).max(100).optional(),
+    })
+    .optional(),
+  ownership: z
+    .object({
+      type: z.enum(["OWNED", "LEASED", "MANAGED"]).optional(),
+      owner: z
+        .object({
+          name: z.string().optional(),
+          contact: z.string().optional(),
+          id: z.string().optional(),
+        })
+        .optional(),
+      lease: z
+        .object({
+          startDate: z.string().optional(),
+          endDate: z.string().optional(),
+          monthlyRent: z.number().optional(),
+          landlord: z.string().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  features: z
+    .object({
+      amenities: z.array(z.string()).optional(),
+      utilities: z
+        .object({
+          electricity: z.string().optional(),
+          water: z.string().optional(),
+          gas: z.string().optional(),
+          internet: z.string().optional(),
+        })
+        .optional(),
+      accessibility: z
+        .object({
+          elevator: z.boolean().optional(),
+          ramp: z.boolean().optional(),
+          parking: z.boolean().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  tags: z.array(z.string()).optional(),
+});
+
+/**
+ * @openapi
+ * /api/properties/[id]:
+ *   get:
+ *     summary: properties/[id] operations
+ *     tags: [properties]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const user = await getSessionUser(req);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+    await connectToDatabase();
+
+    const property = await Property.findOne({
+      _id: params.id,
+      orgId: user.orgId,
+    });
+
+    if (!property) {
+      return createSecureResponse({ error: "Property not found" }, 404, req);
+    }
+
+    return createSecureResponse(property, 200, req);
+  } catch (error: unknown) {
+    return handleApiError(error);
+  }
+}
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const user = await getSessionUser(req);
+    await connectToDatabase();
+
+    const data = updatePropertySchema.parse(await req.json());
+
+    const property = await Property.findOneAndUpdate(
+      { _id: params.id, orgId: user.orgId },
+      { $set: { ...data, updatedBy: user.id } },
+      { new: true },
+    );
+
+    if (!property) {
+      return createSecureResponse({ error: "Property not found" }, 404, req);
+    }
+
+    return createSecureResponse(property, 200, req);
+  } catch (error: unknown) {
+    return handleApiError(error);
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const user = await getSessionUser(req);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+    await connectToDatabase();
+
+    // Soft delete by updating status
+    const property = await Property.findOneAndUpdate(
+      { _id: params.id, orgId: user.orgId },
+      { $set: { "units.$[].status": "SOLD", updatedBy: user.id } },
+      { new: true },
+    );
+
+    if (!property) {
+      return createSecureResponse({ error: "Property not found" }, 404, req);
+    }
+
+    return createSecureResponse({ success: true }, 200, req);
+  } catch (error: unknown) {
+    return handleApiError(error);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/properties/route.ts">
+<![CDATA[
+/**
+ * Properties API Routes - Refactored with CRUD Factory
+ * BEFORE: 194 lines of duplicated boilerplate
+ * AFTER: ~100 lines using reusable factory
+ * REDUCTION: 48% less code
+ */
+
+import { createCrudHandlers } from "@/lib/api/crud-factory";
+import { Property } from "@/server/models/Property";
+import { z } from "zod";
+
+/**
+ * Property Creation Schema
+ */
+const createPropertySchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  type: z.enum([
+    "RESIDENTIAL",
+    "COMMERCIAL",
+    "INDUSTRIAL",
+    "MIXED_USE",
+    "LAND",
+  ]),
+  subtype: z.string().optional(),
+  address: z.object({
+    street: z.string(),
+    city: z.string(),
+    region: z.string(),
+    postalCode: z.string().optional(),
+    coordinates: z.object({
+      lat: z.number(),
+      lng: z.number(),
+    }),
+    nationalAddress: z.string().optional(),
+    district: z.string().optional(),
+  }),
+  details: z
+    .object({
+      totalArea: z.number().optional(),
+      builtArea: z.number().optional(),
+      bedrooms: z.number().optional(),
+      bathrooms: z.number().optional(),
+      floors: z.number().optional(),
+      parkingSpaces: z.number().optional(),
+      yearBuilt: z.number().optional(),
+      occupancyRate: z.number().min(0).max(100).optional(),
+    })
+    .optional(),
+  ownership: z
+    .object({
+      type: z.enum(["OWNED", "LEASED", "MANAGED"]),
+      owner: z
+        .object({
+          name: z.string(),
+          contact: z.string().optional(),
+          id: z.string().optional(),
+        })
+        .optional(),
+      lease: z
+        .object({
+          startDate: z.string().optional(),
+          endDate: z.string().optional(),
+          monthlyRent: z.number().optional(),
+          landlord: z.string().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  features: z
+    .object({
+      amenities: z.array(z.string()).optional(),
+      utilities: z
+        .object({
+          electricity: z.string().optional(),
+          water: z.string().optional(),
+          gas: z.string().optional(),
+          internet: z.string().optional(),
+        })
+        .optional(),
+      accessibility: z
+        .object({
+          elevator: z.boolean().optional(),
+          ramp: z.boolean().optional(),
+          parking: z.boolean().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  tags: z.array(z.string()).optional(),
+});
+
+/**
+ * Build Property Filter
+ */
+// 🔒 TYPE SAFETY: Using Record<string, unknown> for MongoDB filter
+function buildPropertyFilter(searchParams: URLSearchParams, orgId: string) {
+  const filter: Record<string, unknown> = { orgId };
+
+  const type = searchParams.get("type");
+  if (
+    type &&
+    ["RESIDENTIAL", "COMMERCIAL", "INDUSTRIAL", "MIXED_USE", "LAND"].includes(
+      type,
+    )
+  ) {
+    filter.type = type;
+  }
+
+  const status = searchParams.get("status");
+  if (status) {
+    filter["units.status"] = status;
+  }
+
+  const city = searchParams.get("city");
+  if (city) {
+    filter["address.city"] = city;
+  }
+
+  const search = searchParams.get("search");
+  if (search) {
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    filter.$or = [
+      { name: { $regex: escapedSearch, $options: "i" } },
+      { code: { $regex: escapedSearch, $options: "i" } },
+      { description: { $regex: escapedSearch, $options: "i" } },
+      { "address.street": { $regex: escapedSearch, $options: "i" } },
+      { "address.city": { $regex: escapedSearch, $options: "i" } },
+    ];
+  }
+
+  return filter;
+}
+
+/**
+ * Export CRUD Handlers
+ */
+export const { GET, POST } = createCrudHandlers({
+  Model: Property,
+  createSchema: createPropertySchema,
+  entityName: "property",
+  generateCode: () =>
+    `PROP-${crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase()}`,
+  defaultSort: { createdAt: -1 },
+  searchFields: [
+    "name",
+    "code",
+    "description",
+    "address.street",
+    "address.city",
+  ],
+  buildFilter: buildPropertyFilter,
+});
+
+]]>
+</file>
+
+<file path="app/api/public/aqar/listings/[id]/route.ts">
+<![CDATA[
+/**
+ * Public API - Single Aqar Listing
+ *
+ * GET /api/public/aqar/listings/[id] - Get single listing details (read-only)
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
+import { logger } from "@/lib/logger";
+import { connectDb } from "@/lib/mongo";
+import { AqarListing } from "@/server/models/aqar";
+import { ListingStatus, type IListing } from "@/server/models/aqar/Listing";
+import { isValidObjectIdSafe } from "@/lib/api/validation";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import type { Model } from "mongoose";
+
+export const runtime = "nodejs";
+
+const listingModel = AqarListing as unknown as Model<IListing>;
+
+/**
+ * GET /api/public/aqar/listings/[id]
+ *
+ * Returns public-safe fields only for active listings.
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const correlationId = crypto.randomUUID();
+
+  try {
+    // Rate limiting: 200 requests per hour per IP
+    const rateLimitResponse = enforceRateLimit(request, {
+      requests: 200,
+      windowMs: 60 * 60 * 1000,
+    });
+
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
+    const { id } = await params;
+
+    if (!isValidObjectIdSafe(id)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Invalid listing ID",
+          correlationId,
+        },
+        { status: 400 },
+      );
+    }
+
+    await connectDb();
+
+    // Only return ACTIVE listings
+    const listing = await listingModel
+      .findOne({
+        _id: id,
+        status: ListingStatus.ACTIVE,
+      })
+      .select({
+        _id: 1,
+        title: 1,
+        description: 1,
+        intent: 1,
+        propertyType: 1,
+        price: 1,
+        areaSqm: 1,
+        beds: 1,
+        baths: 1,
+        kitchens: 1,
+        ageYears: 1,
+        furnishing: 1,
+        location: 1,
+        media: 1,
+        amenities: 1,
+        rnplEligible: 1,
+        "auction.isAuction": 1,
+        "auction.startAt": 1,
+        "auction.endAt": 1,
+        "auction.reserve": 1,
+        "proptech.smartHomeLevel": 1,
+        "proptech.features": 1,
+        "proptech.iotVendors": 1,
+        "proptech.energyScore": 1,
+        "proptech.waterScore": 1,
+        "proptech.evCharging": 1,
+        "proptech.solarReady": 1,
+        iotFeatures: 1,
+        "pricingInsights.pricePerSqm": 1,
+        "pricingInsights.percentile": 1,
+        "pricingInsights.neighborhoodAvg": 1,
+        "pricingInsights.projectedAppreciationPct": 1,
+        "pricingInsights.demandScore": 1,
+        "immersive.vrTour": 1,
+        "immersive.highlights": 1,
+        "ai.recommendationScore": 1,
+        "ai.badges": 1,
+        "analytics.views": 1,
+        "analytics.favorites": 1,
+        createdAt: 1,
+        publishedAt: 1,
+      })
+      .lean();
+
+    if (!listing) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Listing not found or not available",
+          correlationId,
+        },
+        { status: 404 },
+      );
+    }
+
+    // Increment views (async, don't wait)
+    listingModel
+      .findByIdAndUpdate(id, {
+        $inc: { "analytics.views": 1 },
+        $set: { "analytics.lastViewedAt": new Date() },
+      })
+      .exec()
+      .catch((err: Error) => {
+        logger.warn("PUBLIC_API_VIEW_INC_FAILED", {
+          correlationId,
+          id,
+          error: err.message,
+        });
+      });
+
+    return NextResponse.json({
+      ok: true,
+      listing,
+      correlationId,
+    });
+  } catch (error) {
+    logger.error("PUBLIC_API_LISTING_DETAIL_FAILED", {
+      error: (error as Error)?.message ?? String(error),
+      stack: (error as Error)?.stack,
+      correlationId,
+    });
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Failed to fetch listing",
+        correlationId,
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/public/aqar/listings/route.ts">
+<![CDATA[
+/**
+ * Public API - Aqar Souq Listings
+ *
+ * GET /api/public/aqar/listings - Browse active listings (read-only, rate-limited)
+ *
+ * This endpoint provides sanitized, public access to active property listings.
+ * No authentication required, but rate-limited to prevent abuse.
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
+import { logger } from "@/lib/logger";
+import { connectDb } from "@/lib/mongo";
+import { AqarListing } from "@/server/models/aqar";
+import {
+  ListingIntent,
+  PropertyType,
+  ListingStatus,
+  type IListing,
+} from "@/server/models/aqar/Listing";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import type { Model } from "mongoose";
+
+interface ListingQuery {
+  status: string;
+  "location.cityId"?: string;
+  intent?: string;
+  propertyType?: string;
+  price?: { $gte?: number; $lte?: number };
+  beds?: number;
+  baths?: number;
+  [key: string]: unknown;
+}
+
+export const runtime = "nodejs";
+
+const listingModel = AqarListing as unknown as Model<IListing>;
+
+const sanitizeEnum = <T extends string>(
+  value: string | null,
+  allowed: readonly T[],
+): T | undefined =>
+  value && (allowed as readonly string[]).includes(value)
+    ? (value as T)
+    : undefined;
+
+const parseIntegerParam = (
+  value: string | null,
+  fallback: number,
+  bounds: { min?: number; max?: number } = {},
+) => {
+  if (!value) {
+    return fallback;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+
+  let normalized = Math.floor(parsed);
+  if (typeof bounds.min === "number" && normalized < bounds.min) {
+    normalized = bounds.min;
+  }
+  if (typeof bounds.max === "number" && normalized > bounds.max) {
+    normalized = bounds.max;
+  }
+
+  return normalized;
+};
+
+/**
+ * GET /api/public/aqar/listings
+ *
+ * Query Parameters:
+ * - city: Filter by city (string)
+ * - intent: Filter by intent (BUY, RENT, DAILY)
+ * - propertyType: Filter by property type
+ * - minPrice, maxPrice: Price range
+ * - beds, baths: Exact match
+ * - limit: Max results (default 20, max 50)
+ * - offset: Pagination offset
+ */
+export async function GET(request: NextRequest) {
+  const correlationId = crypto.randomUUID();
+
+  try {
+    // Rate limiting: 100 requests per hour per IP
+    const rateLimitResponse = enforceRateLimit(request, {
+      keyPrefix: "public-aqar-listings",
+      requests: 100,
+      windowMs: 60 * 60 * 1000,
+    });
+
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
+    await connectDb();
+
+    const { searchParams } = new URL(request.url);
+
+    // Parse and validate query parameters
+    const city = searchParams.get("city") || undefined;
+    const intent = sanitizeEnum<ListingIntent>(
+      searchParams.get("intent"),
+      Object.values(ListingIntent),
+    );
+    const propertyType = sanitizeEnum<PropertyType>(
+      searchParams.get("propertyType"),
+      Object.values(PropertyType),
+    );
+
+    // Parse numeric parameters with validation to prevent NaN propagation
+    const parseNumericParam = (value: string | null): number | undefined => {
+      if (!value) return undefined;
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : undefined;
+    };
+
+    const minPrice = parseNumericParam(searchParams.get("minPrice"));
+    const maxPrice = parseNumericParam(searchParams.get("maxPrice"));
+    const beds = parseIntegerParam(searchParams.get("beds"), NaN, { min: 0 });
+    const baths = parseIntegerParam(searchParams.get("baths"), NaN, { min: 0 });
+
+    const limit = parseIntegerParam(searchParams.get("limit"), 20, {
+      min: 1,
+      max: 50,
+    });
+    const offset = parseIntegerParam(searchParams.get("offset"), 0, { min: 0 });
+
+    // Build query - only active listings
+    const query: ListingQuery = {
+      status: ListingStatus.ACTIVE,
+    };
+
+    if (city) {
+      query["location.cityId"] = city;
+    }
+
+    if (intent) {
+      query.intent = intent;
+    }
+
+    if (propertyType) {
+      query.propertyType = propertyType;
+    }
+
+    // Only add price filter if we have valid numbers
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      const priceRange: { $gte?: number; $lte?: number } = {};
+      if (minPrice !== undefined && minPrice > 0) {
+        priceRange.$gte = minPrice;
+      }
+      if (maxPrice !== undefined && maxPrice > 0) {
+        priceRange.$lte = maxPrice;
+      }
+      if (Object.keys(priceRange).length > 0) {
+        query["price.amount"] = priceRange;
+      }
+    }
+
+    // Only add beds/baths filters if valid integers were parsed
+    if (!Number.isNaN(beds) && beds >= 0) {
+      query.beds = beds;
+    }
+
+    if (!Number.isNaN(baths) && baths >= 0) {
+      query.baths = baths;
+    }
+
+    // Execute query - select only safe, public fields
+    const listings = await listingModel
+      .find(query)
+      .select({
+        _id: 1,
+        title: 1,
+        intent: 1,
+        propertyType: 1,
+        price: 1,
+        areaSqm: 1,
+        beds: 1,
+        baths: 1,
+        location: 1,
+        media: { $slice: 1 }, // Only first image
+        amenities: 1,
+        rnplEligible: 1,
+        "auction.isAuction": 1,
+        "auction.endAt": 1,
+        "proptech.smartHomeLevel": 1,
+        "proptech.features": 1,
+        iotFeatures: 1,
+        "pricingInsights.pricePerSqm": 1,
+        "immersive.vrTour.url": 1,
+        createdAt: 1,
+        publishedAt: 1,
+      })
+      .sort({ featuredLevel: -1, publishedAt: -1 })
+      .limit(limit)
+      .skip(offset)
+      .lean();
+
+    // Get total count for pagination
+    const total = await listingModel.countDocuments(query);
+
+    return NextResponse.json({
+      ok: true,
+      items: listings,
+      pagination: {
+        total,
+        limit,
+        offset,
+        hasMore: offset + limit < total,
+      },
+      correlationId,
+    });
+  } catch (error) {
+    logger.error("PUBLIC_API_LISTINGS_FAILED", {
+      error: (error as Error)?.message ?? String(error),
+      stack: (error as Error)?.stack,
+      correlationId,
+    });
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Failed to fetch listings",
+        correlationId,
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/public/footer/[page]/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
+
+/**
+ * GET /api/public/footer/:page
+ * Public endpoint to fetch footer content by page (about, privacy, terms)
+ * Returns content in both EN and AR
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { page: string } },
+) {
+  try {
+    // Rate limiting: 60 req/min per IP for public content
+    const clientIp = getClientIP(request);
+    const rl = await smartRateLimit(`/api/public/footer:${clientIp}`, 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    await connectToDatabase();
+
+    const { page } = params;
+
+    // Validate page parameter
+    if (!["about", "privacy", "terms"].includes(page)) {
+      return NextResponse.json(
+        { error: "Invalid page. Must be one of: about, privacy, terms" },
+        { status: 400 },
+      );
+    }
+
+    // Find footer content for this page
+    const { FooterContent } = await import("@/server/models/FooterContent");
+    const footerContent = (await FooterContent.findOne({ page })
+      .lean()
+      .exec()) as {
+      page: string;
+      contentEn: string;
+      contentAr: string;
+      updatedAt: Date;
+    } | null;
+
+    if (!footerContent) {
+      // Return default empty content if not found
+      return NextResponse.json({
+        page,
+        contentEn: "",
+        contentAr: "",
+        updatedAt: null,
+      });
+    }
+
+    // Return public-safe data
+    return NextResponse.json({
+      page: footerContent.page,
+      contentEn: footerContent.contentEn,
+      contentAr: footerContent.contentAr,
+      updatedAt: footerContent.updatedAt,
+    });
+  } catch (error) {
+    logger.error(`[GET /api/public/footer/${params.page}] Error`, error as Error);
+    return NextResponse.json(
+      { error: "Failed to fetch footer content" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/public/rfqs/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
+
+const DEFAULT_PUBLIC_STATUSES = ["PUBLISHED", "BIDDING"];
+
+async function ensureDatabaseConnection() {
+  if (process.env.NODE_ENV === "test") {
+    return;
+  }
+  const { connectToDatabase } = await import("@/lib/mongodb-unified");
+  await connectToDatabase();
+}
+
+const QuerySchema = z.object({
+  tenantId: z.string().optional(),
+  status: z.string().optional(),
+  category: z.string().optional(),
+  city: z.string().optional(),
+  search: z.string().optional(),
+  page: z.coerce.number().default(1),
+  limit: z.coerce
+    .number()
+    .default(12)
+    .refine((val) => val <= 50, { message: "Limit must be 50 or less" }),
+});
+
+const toIsoString = (value: unknown) => {
+  if (!value) return null;
+  if (value instanceof Date) return value.toISOString();
+  const date = new Date(value as string);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+};
+
+/**
+ * @openapi
+ * /api/public/rfqs:
+ *   get:
+ *     summary: public/rfqs operations
+ *     tags: [public]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  try {
+    await ensureDatabaseConnection();
+
+    const { searchParams } = new URL(req.url);
+    const query = QuerySchema.parse(Object.fromEntries(searchParams));
+
+    const defaultTenant =
+      process.env.NEXT_PUBLIC_MARKETPLACE_TENANT || "demo-tenant";
+    const tenantId = query.tenantId || defaultTenant;
+
+    const page = Math.max(1, query.page);
+    const limit = query.limit;
+    const skip = (page - 1) * limit;
+
+    const filter: Record<string, unknown> = {
+      tenantId,
+      status: query.status ? query.status : { $in: DEFAULT_PUBLIC_STATUSES },
+    };
+
+    if (query.category) {
+      filter.category = query.category;
+    }
+
+    if (query.city) {
+      filter["location.city"] = query.city;
+    }
+
+    if (query.search) {
+      filter.$text = { $search: query.search };
+    }
+
+    const { RFQ } = await import("@/server/models/RFQ");
+    const [items, total] = await Promise.all([
+      RFQ.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      RFQ.countDocuments(filter),
+    ]);
+
+    interface RFQItem {
+      _id?: { toString?: () => string } | string;
+      tenantId?: string;
+      code?: string;
+      title?: string;
+      description?: string;
+      category?: string;
+      subcategory?: string;
+      status?: string;
+      location?: { city?: string; region?: string; radius?: number };
+      budget?: { estimated?: number; currency?: string; range?: string };
+      timeline?: {
+        publishDate?: unknown;
+        bidDeadline?: unknown;
+        startDate?: unknown;
+        completionDate?: unknown;
+      };
+      bidding?: {
+        targetBids?: number;
+        maxBids?: number;
+        anonymous?: boolean;
+        bidLeveling?: boolean;
+      };
+      requirements?: unknown;
+      bids?: unknown[];
+      contact?: { name?: string; email?: string; phone?: string };
+      attachments?: unknown[];
+      createdAt?: unknown;
+      updatedAt?: unknown;
+    }
+
+    const normalized = (items as unknown as RFQItem[]).map((item) => ({
+      id: item._id?.toString?.() ?? String(item._id),
+      tenantId: item.tenantId,
+      code: item.code,
+      title: item.title,
+      description: item.description,
+      category: item.category,
+      subcategory: item.subcategory ?? null,
+      status: item.status,
+      location: item.location
+        ? {
+            city: item.location.city ?? null,
+            region: item.location.region ?? null,
+            radius: item.location.radius ?? null,
+          }
+        : null,
+      budget: item.budget
+        ? {
+            estimated: item.budget.estimated ?? null,
+            currency: item.budget.currency ?? "SAR",
+            range: item.budget.range ?? null,
+          }
+        : null,
+      timeline: item.timeline
+        ? {
+            publishDate: toIsoString(item.timeline.publishDate),
+            bidDeadline: toIsoString(item.timeline.bidDeadline),
+            startDate: toIsoString(item.timeline.startDate),
+            completionDate: toIsoString(item.timeline.completionDate),
+          }
+        : null,
+      bidding: item.bidding
+        ? {
+            targetBids: item.bidding.targetBids ?? 0,
+            maxBids: item.bidding.maxBids ?? null,
+            anonymous: item.bidding.anonymous ?? true,
+            bidLeveling: item.bidding.bidLeveling ?? false,
+          }
+        : null,
+      requirements: item.requirements ?? null,
+      bidsCount: Array.isArray(item.bids) ? item.bids.length : 0,
+      createdAt: toIsoString(item.createdAt),
+      updatedAt: toIsoString(item.updatedAt),
+    }));
+
+    return NextResponse.json({
+      ok: true,
+      data: {
+        items: normalized,
+        pagination: {
+          page,
+          limit,
+          total,
+          pages: Math.ceil(total / limit),
+          tenantId,
+        },
+      },
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Invalid query parameters", details: error.issues },
+        { status: 400 },
+      );
+    }
+
+    logger.error(
+      "Public RFQ fetch error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse({ error: "Internal server error" }, 500, req);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/qa/alert/route.ts">
+<![CDATA[
+import { NextRequest } from 'next/server';
+import { z } from 'zod';
+import { logger } from '@/lib/logger';
+import { getDatabase, type ConnectionDb } from '@/lib/mongodb-unified';
+import { ensureQaIndexes, COLLECTIONS } from '@/lib/db/collections';
+import { sanitizeQaPayload } from '@/lib/qa/sanitize';
+import { recordQaStorageFailure } from '@/lib/qa/telemetry';
+import { getClientIP } from '@/server/security/headers';
+
+import { smartRateLimit, buildOrgAwareRateLimitKey } from '@/server/security/rateLimit';
+import { rateLimitError, unauthorizedError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+import { requireSuperAdmin, type AuthContext } from '@/lib/authz';
+
+type GetDbFn = () => Promise<ConnectionDb>;
+
+// VALIDATION: Strict schema for QA alert payloads
+const qaAlertSchema = z.object({
+  event: z.string().min(1, 'Event name is required').max(128, 'Event name too long'),
+  data: z.unknown().optional(),
+});
+
+// SECURITY: Max payload size to prevent storage bloat (10KB)
+const MAX_PAYLOAD_SIZE = 10 * 1024;
+
+async function resolveDatabase() {
+  const mock = (globalThis as Record<string, unknown>).__mockGetDatabase;
+  const override = typeof mock === 'function' ? (mock as GetDbFn) : undefined;
+  if (typeof override === 'function') {
+    return override();
+  }
+  return getDatabase();
+}
+
+/**
+ * @openapi
+ * /api/qa/alert:
+ *   get:
+ *     summary: qa/alert operations
+ *     tags: [qa]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  // SECURITY: Require SUPER_ADMIN to write QA alerts - prevents abuse and spam
+  let authContext: AuthContext;
+  try {
+    authContext = await requireSuperAdmin(req);
+  } catch (error) {
+    // requireSuperAdmin throws Response objects for auth failures
+    if (error instanceof Response) {
+      return error;
+    }
+    return unauthorizedError('Authentication failed');
+  }
+
+  // SECURITY: Extract org/user context for attribution and rate limiting
+  const orgId = authContext.tenantId || null;
+  const userId = authContext.id;
+
+  // Rate limiting - SECURITY: Use org-aware key for proper tenant isolation
+  const key = buildOrgAwareRateLimitKey(req, orgId, userId);
+  const rl = await smartRateLimit(key, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  try {
+    // VALIDATION: Parse and validate request body
+    let rawBody: unknown;
+    try {
+      rawBody = await req.json();
+    } catch {
+      return createSecureResponse({ error: 'Invalid JSON body' }, 400, req);
+    }
+
+    // VALIDATION: Check payload size before processing (use byte length for accurate UTF-8 sizing)
+    const bodyStr = JSON.stringify(rawBody);
+    const bodyBytes = Buffer.byteLength(bodyStr, 'utf8');
+    if (bodyBytes > MAX_PAYLOAD_SIZE) {
+      return createSecureResponse({ error: 'Payload too large (max 10KB)' }, 400, req);
+    }
+
+    // VALIDATION: Validate against schema
+    const parsed = qaAlertSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      const errorMessage = parsed.error.issues[0]?.message || 'Invalid alert payload';
+      return createSecureResponse({ error: errorMessage }, 400, req);
+    }
+
+    const { event, data } = parsed.data;
+
+    try {
+      // INDEXES: Ensure QA indexes/TTL exist for optimal query performance and retention
+      await ensureQaIndexes();
+
+      // Log the alert to database with org/user attribution for multi-tenant auditing
+      const native = await resolveDatabase();
+      // SECURITY: Sanitize payload to redact PII/credentials before storage
+      const sanitizedData = sanitizeQaPayload(data);
+      await native.collection(COLLECTIONS.QA_ALERTS).insertOne({
+        event,
+        data: sanitizedData,
+        timestamp: new Date(),
+        // ORG ATTRIBUTION: Required for multi-tenant isolation and audit trails
+        orgId,
+        userId,
+        ip: getClientIP(req),
+        userAgent: req.headers.get('user-agent'),
+      });
+
+      // Log event for observability (redact data to prevent PII leakage)
+      logger.warn(`🚨 QA Alert: ${event}`, { orgId, userId, payloadBytes: bodyBytes });
+
+      return createSecureResponse({ success: true }, 200, req);
+    } catch (dbError) {
+      // RELIABILITY: Surface DB failures to callers/monitoring - do not mask with mock success
+      void recordQaStorageFailure('alert', 'write', dbError);
+      logger.error(
+        '[QA Alert] DB unavailable',
+        dbError instanceof Error ? dbError : new Error(String(dbError ?? '')),
+        { operation: 'write' }
+      );
+      return createSecureResponse({ error: 'Alert storage unavailable' }, 503, req);
+    }
+  } catch (error) {
+    logger.error('Failed to process QA alert:', error instanceof Error ? error.message : 'Unknown error');
+    return createSecureResponse({ error: 'Failed to process alert' }, 500, req);
+  }
+}
+
+export async function GET(req: NextRequest) {
+  // SECURITY: Require SUPER_ADMIN to read QA alerts - contains sensitive debugging info
+  let authContext: AuthContext;
+  try {
+    authContext = await requireSuperAdmin(req);
+  } catch (error) {
+    // requireSuperAdmin throws Response objects for auth failures
+    if (error instanceof Response) {
+      return error;
+    }
+    return unauthorizedError('Authentication failed');
+  }
+
+  // SECURITY: Extract org/user context for filtering and rate limiting
+  const orgId = authContext.tenantId || null;
+  const userId = authContext.id;
+
+  // Rate limiting - SECURITY: Use org-aware key for proper tenant isolation
+  const key = buildOrgAwareRateLimitKey(req, orgId, userId);
+  const rl = await smartRateLimit(key, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  try {
+    const { searchParams } = new URL(req.url);
+    const parsed = Number(searchParams.get('limit'));
+    // PERFORMANCE: Lower default limit (50) and cap at 200 to prevent large responses (parity with logs)
+    const limit = Math.min(
+      Number.isFinite(parsed) && parsed > 0 ? parsed : 50,
+      200
+    );
+    const eventType = searchParams.get('event');
+    // PERFORMANCE: Optionally include data field (excluded by default to reduce payload size)
+    const includeData = searchParams.get('includeData') === 'true';
+
+    // ORG SCOPING: Filter alerts by org to prevent cross-tenant data exposure
+    // Super-admins without tenantId see all alerts (platform-level debugging)
+    const query: Record<string, unknown> = orgId ? { orgId } : {};
+    if (eventType) {
+      query.event = eventType;
+    }
+
+    try {
+      // INDEXES: Ensure QA indexes/TTL exist for optimal query performance and retention
+      await ensureQaIndexes();
+
+      const native = await resolveDatabase();
+      // PERFORMANCE: Exclude large data field by default to keep responses small
+      const projection = includeData ? {} : { data: 0 };
+      
+      const alerts = await native.collection(COLLECTIONS.QA_ALERTS)
+        .find(query, { projection })
+        .sort({ timestamp: -1 })
+        .limit(limit)
+        .toArray();
+
+      return createSecureResponse({ alerts }, 200, req);
+  } catch (dbError) {
+    // RELIABILITY: Surface DB failures to callers/monitoring - do not mask with mock success
+    void recordQaStorageFailure('alert', 'read', dbError);
+    logger.error(
+      '[QA Alert] DB unavailable',
+      dbError instanceof Error ? dbError : new Error(String(dbError ?? '')),
+      { operation: 'read' }
+    );
+    return createSecureResponse({ error: 'Alert retrieval unavailable' }, 503, req);
+  }
+  } catch (error) {
+    logger.error(
+      'Failed to fetch QA alerts:',
+      error instanceof Error ? error.message : 'Unknown error'
+    );
+    return createSecureResponse({ error: 'Failed to fetch alerts' }, 500, req);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/qa/health/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import type mongoose from "mongoose";
+import { requireSuperAdmin } from "@/lib/authz";
+
+type ConnectFn = () => Promise<typeof mongoose>;
+
+async function getDatabaseConnection() {
+  const mock = (globalThis as Record<string, unknown>).__connectToDatabaseMock;
+  const override = typeof mock === "function" ? (mock as ConnectFn) : undefined;
+  if (typeof override === "function") {
+    return override();
+  }
+  const { connectToDatabase } = await import("@/lib/mongodb-unified");
+  return connectToDatabase();
+}
+
+// Force dynamic rendering for this route
+export const dynamic = "force-dynamic";
+
+/**
+ * @openapi
+ * /api/qa/health:
+ *   get:
+ *     summary: qa/health operations
+ *     tags: [qa]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(req: NextRequest) {
+  // Require SUPER_ADMIN to access health diagnostics
+  let authContext: { id: string; tenantId: string } | null = null;
+  try {
+    authContext = await requireSuperAdmin(req);
+  } catch (error) {
+    if (error instanceof Response) {
+      return error;
+    }
+    return NextResponse.json({ error: "Authentication failed" }, { status: 401 });
+  }
+
+  // SECURITY: Require tenant context before using it in rate-limit key (org isolation)
+  if (!authContext?.tenantId) {
+    return NextResponse.json({ error: "Missing organization context" }, { status: 400 });
+  }
+
+  // Rate limiting - org-aware key for tenant isolation
+  const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, authContext.tenantId, authContext.id), 60, 60_000);
+  if (!rl.allowed) return rateLimitError();
+
+  const healthStatus = {
+    timestamp: new Date().toISOString(),
+    status: "healthy",
+    database: "unknown",
+    memory: "unknown",
+    uptime: process.uptime(),
+    version: process.env.npm_package_version || "unknown",
+    mockDatabase: false,
+  };
+
+  // Check database connectivity
+  try {
+    const mongoose = await getDatabaseConnection();
+    healthStatus.database = "connected";
+
+    const db = mongoose?.connection?.db;
+    if (db?.listCollections) {
+      try {
+        const collections = await db.listCollections().toArray();
+        const count = Array.isArray(collections) ? collections.length : 0;
+        const label = count === 1 ? "collection" : "collections";
+        healthStatus.database = `connected (${count} ${label})`;
+      } catch {
+        healthStatus.database = "connected (query failed)";
+      }
+    }
+  } catch (error) {
+    healthStatus.status = "critical";
+    healthStatus.database = "disconnected";
+    logger.error("Database health check failed", {
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+
+  // Check memory usage
+  try {
+    const memUsage = process.memoryUsage();
+    healthStatus.memory = `RSS: ${Math.round(memUsage.rss / 1024 / 1024)}MB, Heap: ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`;
+  } catch {
+    healthStatus.memory = "unknown";
+  }
+
+  // Determine overall status
+  if (healthStatus.database === "disconnected") {
+    healthStatus.status = "critical";
+  } else if (
+    healthStatus.database.startsWith("connected") ||
+    healthStatus.database === "mock-connected"
+  ) {
+    healthStatus.status = "healthy";
+  } else {
+    healthStatus.status = "degraded";
+  }
+
+  const statusCode =
+    healthStatus.status === "healthy"
+      ? 200
+      : healthStatus.status === "degraded"
+        ? 206
+        : 503;
+
+  return NextResponse.json(healthStatus, { status: statusCode });
+}
+
+export async function POST(req: NextRequest) {
+  // Require SUPER_ADMIN to trigger reconnects
+  let authContext: { id: string; tenantId: string } | null = null;
+  try {
+    authContext = await requireSuperAdmin(req);
+  } catch (error) {
+    if (error instanceof Response) {
+      return error;
+    }
+    return NextResponse.json({ error: "Authentication failed" }, { status: 401 });
+  }
+
+  // SECURITY: Require tenant context before using it in rate-limit key (org isolation)
+  if (!authContext?.tenantId) {
+    return NextResponse.json({ error: "Missing organization context" }, { status: 400 });
+  }
+
+  // Rate limiting - org-aware key for tenant isolation
+  const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, authContext.tenantId, authContext.id), 60, 60_000);
+  if (!rl.allowed) return rateLimitError();
+
+  // Force database reconnection
+  try {
+    await getDatabaseConnection();
+    return NextResponse.json({
+      success: true,
+      message: "Database reconnected",
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to reconnect database",
+        details: (error as Error).message,
+        timestamp: new Date().toISOString(),
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/qa/log/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { z } from "zod";
+import { createHash } from "crypto";
+import { logger } from "@/lib/logger";
+import { getDatabase, type ConnectionDb } from "@/lib/mongodb-unified";
+import { ensureQaIndexes, COLLECTIONS } from "@/lib/db/collections";
+import { sanitizeQaPayload } from "@/lib/qa/sanitize";
+import { recordQaStorageFailure } from "@/lib/qa/telemetry";
+import { getClientIP, createSecureResponse } from "@/server/security/headers";
+import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rateLimit";
+import { rateLimitError, unauthorizedError } from "@/server/utils/errorResponses";
+import { requireSuperAdmin, type AuthContext } from "@/lib/authz";
+
+type GetDbFn = () => Promise<ConnectionDb>;
+
+// VALIDATION: Strict schema for QA log payloads
+const qaLogSchema = z.object({
+  event: z.string().min(1, "Event name is required").max(128, "Event name too long"),
+  data: z.unknown().optional(),
+});
+
+// SECURITY: Max payload size to prevent storage bloat (10KB)
+const MAX_PAYLOAD_SIZE = 10 * 1024;
+
+async function resolveDatabase() {
+  const mock = (globalThis as Record<string, unknown>).__mockGetDatabase;
+  const override = typeof mock === 'function' ? (mock as GetDbFn) : undefined;
+  if (typeof override === 'function') {
+    return override();
+  }
+  return getDatabase();
+}
+
+/**
+ * @openapi
+ * /api/qa/log:
+ *   get:
+ *     summary: qa/log operations
+ *     tags: [qa]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  // SECURITY: Require SUPER_ADMIN to write QA logs - prevents abuse and spam
+  let authContext: AuthContext;
+  try {
+    authContext = await requireSuperAdmin(req);
+  } catch (error) {
+    if (error instanceof Response) {
+      return error;
+    }
+    return unauthorizedError("Authentication failed");
+  }
+
+  // SECURITY: Extract org/user context for attribution and rate limiting
+  const orgId = authContext.tenantId || null;
+  const userId = authContext.id;
+
+  // Rate limiting - SECURITY: Use org-aware key for proper tenant isolation
+  const key = buildOrgAwareRateLimitKey(req, orgId, userId);
+  const rl = await smartRateLimit(key, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  try {
+    // VALIDATION: Parse and validate request body
+    let rawBody: unknown;
+    try {
+      rawBody = await req.json();
+    } catch {
+      return createSecureResponse({ error: "Invalid JSON body" }, 400, req);
+    }
+
+    // VALIDATION: Check payload size before processing (use byte length for accurate UTF-8 sizing)
+    const bodyStr = JSON.stringify(rawBody);
+    const bodyBytes = Buffer.byteLength(bodyStr, 'utf8');
+    if (bodyBytes > MAX_PAYLOAD_SIZE) {
+      return createSecureResponse({ error: "Payload too large (max 10KB)" }, 400, req);
+    }
+
+    // VALIDATION: Validate against schema
+    const parsed = qaLogSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      const errorMessage = parsed.error.issues[0]?.message || "Invalid log payload";
+      return createSecureResponse({ error: errorMessage }, 400, req);
+    }
+
+    const { event, data } = parsed.data;
+
+    try {
+      // INDEXES: Ensure QA indexes/TTL exist for optimal query performance and retention
+      await ensureQaIndexes();
+
+      // SECURITY: Hash session ID to enable correlation without storing raw credential
+      const rawSessionId = req.cookies.get("sessionId")?.value;
+      const sessionIdHash = rawSessionId 
+        ? createHash("sha256").update(rawSessionId).digest("hex").substring(0, 16)
+        : undefined;
+
+      const native = await resolveDatabase();
+      // SECURITY: Sanitize payload to redact PII/credentials before storage
+      const sanitizedData = sanitizeQaPayload(data);
+      await native.collection(COLLECTIONS.QA_LOGS).insertOne({
+        event,
+        data: sanitizedData,
+        timestamp: new Date(),
+        // ORG ATTRIBUTION: Required for multi-tenant isolation and audit trails
+        orgId,
+        userId,
+        ip: getClientIP(req),
+        userAgent: req.headers.get("user-agent"),
+        sessionIdHash, // Hashed for correlation, not raw credential
+      });
+      
+      // Log event for observability (redact data to prevent PII leakage)
+      logger.info(`📝 QA Log: ${event}`, { orgId, userId, payloadBytes: bodyBytes });
+      return createSecureResponse({ success: true }, 200, req);
+    } catch (dbError) {
+      // RELIABILITY: Surface DB failures to callers/monitoring - do not mask with mock success
+      void recordQaStorageFailure("log", "write", dbError);
+      logger.error(
+        "[QA Log] DB unavailable",
+        dbError instanceof Error ? dbError : new Error(String(dbError ?? "")),
+        { operation: "write" }
+      );
+      return createSecureResponse({ error: "Log storage unavailable" }, 503, req);
+    }
+  } catch (error) {
+    logger.error(
+      "Failed to log QA event:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse({ error: "Failed to log event" }, 500, req);
+  }
+}
+
+export async function GET(req: NextRequest) {
+  // SECURITY: Require SUPER_ADMIN to read QA logs - contains sensitive debugging info
+  let authContext: AuthContext;
+  try {
+    authContext = await requireSuperAdmin(req);
+  } catch (error) {
+    if (error instanceof Response) {
+      return error;
+    }
+    return unauthorizedError("Authentication failed");
+  }
+
+  // SECURITY: Extract org/user context for filtering and rate limiting
+  const orgId = authContext.tenantId || null;
+  const userId = authContext.id;
+
+  // Rate limiting - SECURITY: Use org-aware key for proper tenant isolation
+  const key = buildOrgAwareRateLimitKey(req, orgId, userId);
+  const rl = await smartRateLimit(key, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  try {
+    const { searchParams } = new URL(req.url);
+    const parsed = Number(searchParams.get("limit"));
+    // PERFORMANCE: Lower default limit (100) and cap at 200 to prevent large responses
+    const limit = Math.min(
+      Number.isFinite(parsed) && parsed > 0 ? parsed : 100,
+      200,
+    );
+    const eventType = searchParams.get("event");
+    // PERFORMANCE: Optionally exclude data field to reduce payload size
+    const includeData = searchParams.get("includeData") === "true";
+
+    // ORG SCOPING: Filter logs by org to prevent cross-tenant data exposure
+    // Super-admins without tenantId see all logs (platform-level debugging)
+    const query: Record<string, unknown> = orgId ? { orgId } : {};
+    if (eventType) {
+      query.event = eventType;
+    }
+
+    try {
+      // INDEXES: Ensure QA indexes/TTL exist for optimal query performance and retention
+      await ensureQaIndexes();
+
+      const native = await resolveDatabase();
+      // PERFORMANCE: Exclude large data field by default to keep responses small
+      const projection = includeData ? {} : { data: 0 };
+      const logs = await native
+        .collection(COLLECTIONS.QA_LOGS)
+        .find(query, { projection })
+        .sort({ timestamp: -1 })
+        .limit(limit)
+        .toArray();
+
+      return createSecureResponse({ logs }, 200, req);
+    } catch (dbError) {
+      // RELIABILITY: Surface DB failures to callers/monitoring - do not mask with mock success
+      void recordQaStorageFailure("log", "read", dbError);
+      logger.error(
+        "[QA Log] DB unavailable",
+        dbError instanceof Error ? dbError : new Error(String(dbError ?? "")),
+        { operation: "read" }
+      );
+      return createSecureResponse({ error: "Log retrieval unavailable" }, 503, req);
+    }
+  } catch (error) {
+    logger.error(
+      "Failed to fetch QA logs:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse({ error: "Failed to fetch logs" }, 500, req);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/qa/reconnect/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+
+import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+
+import { logger } from "@/lib/logger";
+import { requireSuperAdmin } from "@/lib/authz";
+/**
+ * @openapi
+ * /api/qa/reconnect:
+ *   get:
+ *     summary: qa/reconnect operations
+ *     tags: [qa]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  // Require SUPER_ADMIN to trigger reconnect
+  let authContext: { id: string; tenantId: string } | null = null;
+  try {
+    authContext = await requireSuperAdmin(req);
+  } catch (error) {
+    if (error instanceof Response) {
+      return error;
+    }
+    return NextResponse.json({ error: "Authentication failed" }, { status: 401 });
+  }
+
+  // SECURITY: Require tenant context before using it in rate-limit key (org isolation)
+  if (!authContext?.tenantId) {
+    return NextResponse.json({ error: "Missing organization context" }, { status: 400 });
+  }
+
+  // Rate limiting - org-aware key for tenant isolation
+  const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, authContext.tenantId, authContext.id), 60, 60_000);
+  if (!rl.allowed) return rateLimitError();
+
+  try {
+    // Force database reconnection by accessing it
+    await connectToDatabase();
+    logger.info("🔄 Database reconnected successfully");
+
+    return NextResponse.json({
+      success: true,
+      message: "Database reconnected successfully",
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error(
+      "❌ Database reconnection failed:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Database reconnection failed",
+        details: (error as Error).message,
+        timestamp: new Date().toISOString(),
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/referrals/generate/route.ts">
+<![CDATA[
+import { NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { ReferralCodeModel } from "@/server/models/ReferralCode";
+import { connectDb } from "@/lib/mongo";
+import {
+  REFERRAL_REWARD,
+  REFERRAL_LIMITS,
+  getReferralValidity,
+} from "@/config/referrals.config";
+import { Types } from "mongoose";
+
+import { logger } from "@/lib/logger";
+/**
+ * POST /api/referrals/generate
+ *
+ * Generate a new referral code for the current user
+ */
+export async function POST() {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    await connectDb();
+
+    // Get orgId from session and convert to ObjectId
+    const orgIdString = session.user.orgId;
+    if (!orgIdString) {
+      return NextResponse.json(
+        { error: "Organization ID not found in session" },
+        { status: 400 },
+      );
+    }
+
+    const orgId = new Types.ObjectId(orgIdString);
+
+    // Check if user already has an active referral code
+    const existing = await ReferralCodeModel.findOne({
+      orgId,
+      referrerId: session.user.id,
+      status: "ACTIVE",
+    });
+
+    if (existing) {
+      return NextResponse.json({ code: existing });
+    }
+
+    // Generate new code (tenant-aware)
+    const code = await ReferralCodeModel.generateCode(orgId);
+
+    // Build referral URL from environment variable
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.BASE_URL;
+    if (!baseUrl) {
+      return NextResponse.json(
+        { error: "BASE_URL not configured. Contact system administrator." },
+        { status: 500 },
+      );
+    }
+
+    // Construct referral URL safely
+    const shortUrl = new URL(`/ref/${code}`, baseUrl).toString();
+
+    // Get validity dates from config
+    const { validFrom, validUntil } = getReferralValidity();
+
+    // Create referral code with centralized config
+    const referralCode = await ReferralCodeModel.create({
+      orgId,
+      referrerId: session.user.id,
+      referrerName: session.user.name,
+      referrerEmail: session.user.email,
+      code,
+      shortUrl,
+      reward: {
+        type: REFERRAL_REWARD.type,
+        referrerAmount: REFERRAL_REWARD.referrerAmount,
+        referredAmount: REFERRAL_REWARD.referredAmount,
+        currency: REFERRAL_REWARD.currency,
+        description: REFERRAL_REWARD.description,
+      },
+      limits: {
+        maxUses: REFERRAL_LIMITS.maxUses,
+        maxUsesPerUser: REFERRAL_LIMITS.maxUsesPerUser,
+        minPurchaseAmount: REFERRAL_LIMITS.minPurchaseAmount,
+        validFrom,
+        validUntil,
+      },
+      status: "ACTIVE",
+    });
+
+    return NextResponse.json({ code: referralCode });
+  } catch (error) {
+    logger.error("Failed to generate referral code:", error);
+    return NextResponse.json(
+      { error: "Failed to generate referral code" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/referrals/my-code/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { ReferralCodeModel } from "@/server/models/ReferralCode";
+import { connectDb } from "@/lib/mongo";
+
+import { logger } from "@/lib/logger";
+/**
+ * GET /api/referrals/my-code
+ *
+ * Get current user's referral code and statistics with pagination
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    await connectDb();
+
+    // Parse pagination params with validation
+    const { searchParams } = request.nextUrl;
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(searchParams.get("limit") || "20", 10)),
+    );
+    const offset = (page - 1) * limit;
+
+    // Find user's referral code
+    const referralCode = await ReferralCodeModel.findOne({
+      referrerId: session.user.id,
+      status: "ACTIVE",
+    });
+
+    if (!referralCode) {
+      return NextResponse.json({
+        code: null,
+        referrals: [],
+        pagination: { total: 0, page, limit, totalPages: 0 },
+      });
+    }
+
+    const referralDoc =
+      typeof referralCode.toObject === "function"
+        ? referralCode.toObject()
+        : (referralCode as unknown as { referrals?: unknown[] });
+
+    // Paginate referrals array
+    const total = Array.isArray(referralDoc.referrals)
+      ? referralDoc.referrals.length
+      : 0;
+    const totalPages = Math.ceil(total / limit);
+    const paginatedReferrals = (referralDoc.referrals || []).slice(
+      offset,
+      offset + limit,
+    );
+
+    return NextResponse.json({
+      code: referralDoc,
+      referrals: paginatedReferrals,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+      },
+    });
+  } catch (error) {
+    logger.error("Failed to fetch referral code:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch referral code" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/rfqs/[id]/bids/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { RFQ } from "@/server/models/RFQ";
+import { z } from "zod";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { Types } from "mongoose";
+import { ProjectBidModel } from "@/server/models/ProjectBid";
+import { logger } from "@/lib/logger";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError, handleApiError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+
+// Comprehensive Bid interface matching all properties a bid can have
+interface Bid {
+  bidId: string;
+  vendorId: string;
+  vendorName: string;
+  amount: number;
+  currency: string;
+  validity: string;
+  deliveryTime: number;
+  paymentTerms: string;
+  technicalProposal?: string;
+  commercialProposal?: string;
+  alternates?: Array<{
+    description: string;
+    priceAdjustment: number;
+  }>;
+  exceptions?: string[];
+  submitted: Date;
+  status: string;
+}
+
+type RFQWithBids = {
+  bids: Bid[];
+  timeline?: { bidDeadline?: Date | string };
+  bidding?: { targetBids?: number; maxBids?: number; anonymous?: boolean };
+  workflow?: { closedBy?: string; closedAt?: Date };
+  status: string;
+  save: () => Promise<unknown>;
+};
+
+const submitBidSchema = z.object({
+  // vendorId and vendorName are derived from the authenticated user to prevent spoofing
+  amount: z.number().positive(),
+  currency: z.string().default("SAR"),
+  validity: z.union([z.string(), z.number()]).transform((value) =>
+    typeof value === "number" ? `${value}` : value.trim(),
+  ),
+  deliveryTime: z.number().positive(),
+  paymentTerms: z.string(),
+  technicalProposal: z.string().optional(),
+  commercialProposal: z.string().optional(),
+  alternates: z
+    .array(
+      z.object({
+        description: z.string(),
+        priceAdjustment: z.number(),
+      }),
+    )
+    .optional(),
+  exceptions: z.array(z.string()).optional(),
+});
+
+/**
+ * @openapi
+ * /api/rfqs/[id]/bids:
+ *   get:
+ *     summary: rfqs/[id]/bids operations
+ *     tags: [rfqs]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const user = await getSessionUser(req);
+    const userRole = (user as { role?: string }).role;
+    const allowedBidderRoles = new Set([
+      "VENDOR",
+      "SUPPLIER",
+      "TENANT",
+      "END_USER",
+      "CORPORATE_EMPLOYEE",
+    ]);
+    if (!user?.orgId) {
+      return createSecureResponse(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        401,
+        req,
+      );
+    }
+    if (userRole && !allowedBidderRoles.has(userRole.toUpperCase())) {
+      return createSecureResponse(
+        { error: "Forbidden", message: "Insufficient role to submit bid" },
+        403,
+        req,
+      );
+    }
+    if (!params?.id || typeof params.id !== "string" || !Types.ObjectId.isValid(params.id)) {
+      return createSecureResponse({ error: "Invalid RFQ id" }, 400, req);
+    }
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+    await connectToDatabase();
+
+    const data = submitBidSchema.parse(await req.json());
+
+    const rfq = await RFQ.findOne({ _id: params.id, orgId: user.orgId }).lean();
+
+    if (!rfq) {
+      return createSecureResponse({ error: "RFQ not found" }, 404, req);
+    }
+
+    const rfqDoc = rfq as unknown as RFQWithBids;
+
+    if (rfqDoc.status !== "PUBLISHED" && rfqDoc.status !== "BIDDING") {
+      return createSecureResponse(
+        { error: "RFQ is not accepting bids" },
+        400,
+        req,
+      );
+    }
+
+    if (!Types.ObjectId.isValid(String(user.id))) {
+      return createSecureResponse(
+        { error: "Invalid vendor identifier" },
+        400,
+        req,
+      );
+    }
+
+    const vendorObjectId = new Types.ObjectId(String(user.id));
+    const currentBidCount = await ProjectBidModel.countDocuments({
+      rfqId: rfq._id,
+      orgId: user.orgId,
+    });
+
+    // Check if vendor already submitted a bid
+    const existingBid = await ProjectBidModel.findOne({
+      rfqId: rfq._id,
+      vendorId: vendorObjectId,
+      orgId: user.orgId,
+    })
+      .lean()
+      .exec();
+    if (existingBid) {
+      return createSecureResponse(
+        { error: "Vendor has already submitted a bid" },
+        400,
+        req,
+      );
+    }
+
+    if (
+      rfqDoc.bidding?.maxBids &&
+      currentBidCount >= rfqDoc.bidding.maxBids
+    ) {
+      return createSecureResponse(
+        { error: "RFQ is no longer accepting bids (max reached)" },
+        400,
+        req,
+      );
+    }
+
+    // Check bid deadline
+    if (
+      rfqDoc.timeline?.bidDeadline &&
+      new Date() > new Date(rfqDoc.timeline.bidDeadline)
+    ) {
+      return createSecureResponse(
+        { error: "Bid deadline has passed" },
+        400,
+        req,
+      );
+    }
+
+    // Add bid as standalone ProjectBid document (schema uses references, not embedded)
+    const bidDoc = await ProjectBidModel.create({
+      orgId: user.orgId,
+      rfqId: rfq._id,
+      rfqCode: (rfq as { code?: string }).code,
+      bidAmount: data.amount,
+      currency: data.currency,
+      validityText: data.validity,
+      deliveryTimeDays: data.deliveryTime,
+      paymentTermsNote: data.paymentTerms,
+      technicalProposal: data.technicalProposal,
+      commercialProposal: data.commercialProposal,
+      alternates: data.alternates,
+      exceptions: data.exceptions,
+      status: "SUBMITTED",
+      vendorId: vendorObjectId,
+      vendorName:
+        (user as { name?: string; email?: string }).name ??
+        (user as { email?: string }).email ??
+        "Vendor",
+      submittedAt: new Date(),
+    });
+
+    // Update RFQ status and reference list atomically
+    const update: Record<string, unknown> = {
+      $addToSet: { bids: bidDoc._id },
+    };
+    const nextStatus: Record<string, unknown> = {};
+    if (rfqDoc.status === "PUBLISHED") {
+      nextStatus.status = "BIDDING";
+    }
+
+    const totalBidCount = currentBidCount + 1;
+
+    if (
+      rfqDoc.bidding?.targetBids &&
+      totalBidCount >= rfqDoc.bidding.targetBids
+    ) {
+      nextStatus.status = "CLOSED";
+      nextStatus["workflow.closedBy"] = user.id;
+      nextStatus["workflow.closedAt"] = new Date();
+    }
+
+    if (Object.keys(nextStatus).length > 0) {
+      update.$set = nextStatus;
+    }
+
+    await RFQ.updateOne({ _id: rfq._id, orgId: user.orgId }, update);
+
+    logger.info("[RFQ] Bid submitted", {
+      rfqId: params.id,
+      orgId: user.orgId,
+      userId: user.id,
+      role: userRole,
+      bidId: bidDoc._id.toString(),
+    });
+
+    return createSecureResponse(
+      {
+        bidId: bidDoc._id.toString(),
+        vendorId: vendorObjectId.toString(),
+        vendorName: bidDoc.vendorName,
+        amount: data.amount,
+        currency: data.currency,
+        validity: data.validity,
+        deliveryTime: data.deliveryTime,
+        paymentTerms: data.paymentTerms,
+        status: "SUBMITTED",
+        submitted: bidDoc.submittedAt,
+      },
+      201,
+      req,
+    );
+  } catch (error: unknown) {
+    return handleApiError(error);
+  }
+}
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const user = await getSessionUser(req);
+    if (!user?.orgId) {
+      return createSecureResponse(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        401,
+        req,
+      );
+    }
+    if (!params?.id || typeof params.id !== "string" || !Types.ObjectId.isValid(params.id)) {
+      return createSecureResponse({ error: "Invalid RFQ id" }, 400, req);
+    }
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+    await connectToDatabase();
+
+    const rfq = await RFQ.findOne({ _id: params.id, orgId: user.orgId });
+
+    if (!rfq) {
+      return createSecureResponse({ error: "RFQ not found" }, 404, req);
+    }
+
+    const rfqDoc = rfq as unknown as RFQWithBids;
+
+    const bids = await ProjectBidModel.find({
+      rfqId: rfq._id,
+      orgId: user.orgId,
+    })
+      .sort({ submittedAt: -1 })
+      .limit(200) // Safety cap to prevent unbounded responses
+      .lean()
+      .exec();
+
+    const shaped = bids.map((bid, index: number) => {
+      const bidId =
+        (bid as { _id?: Types.ObjectId | string })?._id?.toString?.() ??
+        (bid as { _id?: Types.ObjectId | string })._id?.toString?.() ??
+        "";
+      const vendorId = (bid as { vendorId?: Types.ObjectId | string }).vendorId;
+      const vendorIdString =
+        typeof vendorId === "string"
+          ? vendorId
+          : vendorId?.toString?.() ?? "UNKNOWN";
+      const base = {
+        bidId,
+        vendorId: vendorIdString,
+        vendorName: (bid as { vendorName?: string }).vendorName ?? vendorIdString,
+        amount: (bid as { bidAmount?: number }).bidAmount,
+        currency: (bid as { currency?: string }).currency,
+        validity: (bid as { validityText?: string }).validityText,
+        deliveryTime: (bid as { deliveryTimeDays?: number }).deliveryTimeDays,
+        paymentTerms: (bid as { paymentTermsNote?: string }).paymentTermsNote,
+        technicalProposal: (bid as { technicalProposal?: string }).technicalProposal,
+        commercialProposal: (bid as { commercialProposal?: string }).commercialProposal,
+        alternates: (bid as { alternates?: Bid["alternates"] }).alternates ?? [],
+        exceptions: (bid as { exceptions?: Bid["exceptions"] }).exceptions ?? [],
+        submitted: (bid as { submittedAt?: Date }).submittedAt,
+        status: (bid as { status?: string }).status ?? "SUBMITTED",
+      };
+
+      if (rfqDoc.bidding?.anonymous && rfqDoc.status !== "AWARDED") {
+        return {
+          ...base,
+          vendorId: `VENDOR-${index + 1}`,
+          vendorName: `Anonymous Vendor ${index + 1}`,
+        };
+      }
+
+      return base;
+    });
+
+    return createSecureResponse(shaped, 200, req);
+  } catch (error: unknown) {
+    return handleApiError(error);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/rfqs/[id]/publish/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import {
+  getSessionUser,
+  UnauthorizedError,
+} from "@/server/middleware/withAuthRbac";
+import { Types } from "mongoose";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError, handleApiError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+import { logger } from "@/lib/logger";
+
+interface RFQDocument {
+  _id: unknown;
+  code?: string;
+  status?: string;
+  workflow?: {
+    publishedAt?: Date | null;
+  };
+  [key: string]: unknown;
+}
+
+/**
+ * Publishes a draft RFQ by id for the current user's tenant.
+ *
+ * Finds a draft RFQ matching the provided `id` and the session user's tenant, atomically updates its
+ * status to "PUBLISHED", records who published it and when, and returns a JSON response with the
+ * updated RFQ metadata. If no matching draft is found, returns a 404 error response.
+ *
+ * @param params.id - RFQ identifier to publish
+ * @returns JSON NextResponse with:
+ *  - On success (200): { success: true, rfq: { id, code, status, publishedAt } }
+ *  - If not found (404): { error: "RFQ not found or already published" }
+ *  - On server error (500): { error: string }
+ */
+/**
+ * @openapi
+ * /api/rfqs/[id]/publish:
+ *   post:
+ *     summary: rfqs/[id]/publish operations
+ *     tags: [rfqs]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(
+  req: NextRequest,
+  props: { params: { id: string } },
+) {
+  try {
+    const { id } = props.params;
+    const user = await getSessionUser(req);
+    const userRole = (user as { role?: string }).role;
+    const allowedPublisherRoles = new Set([
+      "SUPER_ADMIN",
+      "CORPORATE_ADMIN",
+      "ADMIN",
+      "MANAGEMENT",
+      "OPS",
+      "PROCUREMENT",
+    ]);
+    if (userRole && !allowedPublisherRoles.has(userRole.toUpperCase())) {
+      return createSecureResponse(
+        { error: "Forbidden", message: "Insufficient role to publish RFQ" },
+        403,
+        req,
+      );
+    }
+    if (!user?.orgId) {
+      return createSecureResponse(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        401,
+        req,
+      );
+    }
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    if (!Types.ObjectId.isValid(id)) {
+      return createSecureResponse({ error: "Invalid RFQ id" }, 400, req);
+    }
+
+    await connectToDatabase();
+
+    const { RFQ } = await import("@/server/models/RFQ");
+    const rfq = await RFQ.findOneAndUpdate(
+      { _id: id, orgId: user.orgId, status: "DRAFT" },
+      {
+        $set: {
+          status: "PUBLISHED",
+          "workflow.publishedBy": user.id,
+          "workflow.publishedAt": new Date(),
+          "timeline.publishDate": new Date(),
+        },
+      },
+      { new: true },
+    );
+
+    if (!rfq) {
+      return createSecureResponse(
+        { error: "RFQ not found or already published" },
+        404,
+        req,
+      );
+    }
+
+    // Vendor notifications sent via background job
+    logger.info("[RFQ] Published", {
+      rfqId: id,
+      orgId: user.orgId,
+      userId: user.id,
+      role: userRole,
+    });
+
+    const rfqTyped = rfq as unknown as RFQDocument;
+    return NextResponse.json({
+      success: true,
+      rfq: {
+        id: rfqTyped._id,
+        code: rfqTyped.code,
+        status: rfqTyped.status,
+        publishedAt: rfqTyped.workflow?.publishedAt || null,
+      },
+    });
+  } catch (error: unknown) {
+    if (error instanceof UnauthorizedError) {
+      return createSecureResponse({ error: "Unauthorized" }, 401, req);
+    }
+    return handleApiError(error);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/rfqs/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { z } from "zod";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { Types } from "mongoose";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import {
+  zodValidationError,
+  rateLimitError,
+  handleApiError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+
+const createRFQSchema = z.object({
+  title: z.string().min(1),
+  description: z.string().min(1),
+  category: z.string().min(1),
+  subcategory: z.string().optional(),
+  type: z.enum(["GOODS", "SERVICES", "WORKS"]).default("WORKS"),
+  location: z.object({
+    city: z.string(),
+    region: z.string().optional(),
+    address: z.string().optional(),
+    coordinates: z
+      .object({
+        lat: z.number(),
+        lng: z.number(),
+      })
+      .optional(),
+    radius: z.number().optional(),
+    nationalAddress: z.string().optional(),
+  }),
+  projectId: z.string().optional(),
+  specifications: z
+    .array(
+      z.object({
+        item: z.string(),
+        description: z.string(),
+        quantity: z.number(),
+        unit: z.string(),
+        // Include array support to match contracts route pattern and frontend usage
+        specifications: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.array(z.string())])).optional(),
+      }),
+    )
+    .optional(),
+  timeline: z.object({
+    bidDeadline: z.string(),
+    startDate: z.string(),
+    completionDate: z.string(),
+  }),
+  budget: z.object({
+    estimated: z.number(),
+    currency: z.string().default("SAR"),
+    range: z
+      .object({
+        min: z.number().optional(),
+        max: z.number().optional(),
+      })
+      .optional(),
+  }),
+  requirements: z
+    .object({
+      qualifications: z.array(z.string()).optional(),
+      experience: z.string().optional(),
+      insurance: z
+        .object({
+          required: z.boolean(),
+          minimum: z.number().optional(),
+        })
+        .optional(),
+      licenses: z.array(z.string()).optional(),
+      references: z.number().optional(),
+    })
+    .optional(),
+  bidding: z
+    .object({
+      anonymous: z.boolean().default(true),
+      maxBids: z.number().optional(),
+      targetBids: z.number().default(3),
+      bidLeveling: z.boolean().default(true),
+      alternates: z.boolean().optional(),
+      validity: z.number().default(30),
+    })
+    .optional(),
+  compliance: z
+    .object({
+      cityBounded: z.boolean().optional(),
+      insuranceRequired: z.boolean().optional(),
+      licenseRequired: z.boolean().optional(),
+      backgroundCheck: z.boolean().optional(),
+    })
+    .optional(),
+  tags: z.array(z.string()).optional(),
+});
+
+function isUnauthenticatedError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.message.toLowerCase().includes("unauthenticated")
+  );
+}
+
+async function resolveSessionUser(req: NextRequest) {
+  try {
+    return await getSessionUser(req);
+  } catch (error) {
+    if (isUnauthenticatedError(error)) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+/**
+ * Create a new RFQ (Request for Quotation) from the incoming JSON payload.
+ *
+ * Validates the request body against the `createRFQSchema`, ensures a database
+ * connection and a signed-in user session, and inserts a new RFQ document.
+ * The created RFQ is assigned the tenant ID from the session, a generated
+ * `code` (`RFQ-<timestamp>`), `status` set to `"DRAFT"`, `timeline` taken
+ * directly from the validated input, and `workflow.createdBy` and
+ * `createdBy` set to the session user's ID.
+ *
+ * @returns A NextResponse containing the created RFQ with status 201 on success,
+ * or a JSON error message with status 400 if validation or creation fails.
+ */
+/**
+ * @openapi
+ * /api/rfqs:
+ *   get:
+ *     summary: rfqs operations
+ *     tags: [rfqs]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const user = await resolveSessionUser(req);
+    if (!user) {
+      return createSecureResponse(
+        { error: "Authentication required" },
+        401,
+        req,
+      );
+    }
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        { status: 401 },
+      );
+    }
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+    await connectToDatabase();
+
+    const data = createRFQSchema.parse(await req.json());
+
+    const { RFQ } = await import("@/server/models/RFQ");
+    const rfq = await RFQ.create({
+      orgId: user.orgId,
+      code: `RFQ-${crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase()}`,
+      ...data,
+      status: "DRAFT",
+      timeline: data.timeline,
+      workflow: {
+        createdBy: user.id,
+      },
+      createdBy: user.id,
+    });
+
+    return createSecureResponse(rfq, 201, req);
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      return zodValidationError(error, req);
+    }
+    return handleApiError(error);
+  }
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const user = await resolveSessionUser(req);
+    if (!user) {
+      return createSecureResponse(
+        { error: "Authentication required" },
+        401,
+        req,
+      );
+    }
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        { status: 401 },
+      );
+    }
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+    await connectToDatabase();
+
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, Number(searchParams.get("page")) || 1);
+    const limit = Math.min(100, Number(searchParams.get("limit")) || 20);
+    const status = searchParams.get("status");
+    const category = searchParams.get("category");
+    const city = searchParams.get("city");
+    const search = searchParams.get("search");
+
+    const orgCandidates =
+      Types.ObjectId.isValid(user.orgId) ? [user.orgId, new Types.ObjectId(user.orgId)] : [user.orgId];
+    const match: Record<string, unknown> = { orgId: { $in: orgCandidates } };
+
+    if (status) match.status = status;
+    if (category) match.category = category;
+    if (city) match["location.city"] = city;
+    if (search) {
+      match.$text = { $search: search };
+    }
+
+    const { RFQ } = await import("@/server/models/RFQ");
+    const [items, total] = await Promise.all([
+      RFQ.find(match)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit),
+      RFQ.countDocuments(match),
+    ]);
+
+    return NextResponse.json({
+      items,
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit),
+    });
+  } catch (error: unknown) {
+    return handleApiError(error);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/search/queryHelpers.ts">
+<![CDATA[
+// Lightweight typed wrappers for Mongoose-like query chains used by the search API
+
+type MongooseSort =
+  | Record<string, 1 | -1 | "asc" | "desc" | "ascending" | "descending">
+  | string
+  | [string, 1 | -1][]
+  | undefined
+  | null;
+
+type MongooseFilter = Record<string, unknown>;
+
+interface MongooseQueryChain<T> {
+  sort(sort: MongooseSort): MongooseQueryChain<T>;
+  limit(n: number): MongooseQueryChain<T>;
+  lean(): Promise<T[]>;
+}
+
+export type QueryChain<T> = {
+  sort(sort: MongooseSort): QueryChain<T>;
+  limit(n: number): QueryChain<T>;
+  lean(): Promise<T[]>;
+};
+
+export type QueryableModel<T> = {
+  find(filter: MongooseFilter): QueryChain<T>;
+};
+
+export function makeQueryableModel<T>(model: {
+  find: (filter: MongooseFilter) => MongooseQueryChain<T>;
+}): QueryableModel<T> {
+  const wrapChain = (chain: MongooseQueryChain<T>): QueryChain<T> => ({
+    sort(sortParam: MongooseSort) {
+      const next = chain.sort(sortParam);
+      return wrapChain(next);
+    },
+    limit(limitParam: number) {
+      const next = chain.limit(limitParam);
+      return wrapChain(next);
+    },
+    async lean() {
+      return await chain.lean();
+    },
+  });
+
+  return {
+    find(filterParam: MongooseFilter) {
+      return wrapChain(model.find(filterParam));
+    },
+  } as QueryableModel<T>;
+}
+
+]]>
+</file>
+
+</batch_content>

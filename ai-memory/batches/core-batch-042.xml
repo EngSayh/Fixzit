@@ -1,0 +1,3061 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="components/Guard.tsx">
+<![CDATA[
+/**
+ * RBAC Guard Component
+ *
+ * Conditionally renders children based on permission checks.
+ * Uses NextAuth session data with RBAC fields.
+ *
+ * Usage:
+ * ```typescript
+ * import Guard from '@/components/Guard';
+ *
+ * // Simple permission check
+ * <Guard permission="finance:invoice.create">
+ *   <CreateInvoiceButton />
+ * </Guard>
+ *
+ * // Check multiple permissions (ANY)
+ * <Guard permissions={['finance:invoice.read', 'finance:invoice.create']} requireAny>
+ *   <InvoiceList />
+ * </Guard>
+ *
+ * // Check multiple permissions (ALL)
+ * <Guard permissions={['finance:invoice.read', 'finance:invoice.export']} requireAll>
+ *   <ExportInvoicesButton />
+ * </Guard>
+ *
+ * // Role-based rendering
+ * <Guard role="admin">
+ *   <AdminPanel />
+ * </Guard>
+ *
+ * // Super Admin only
+ * <Guard superAdminOnly>
+ *   <SystemSettings />
+ * </Guard>
+ *
+ * // Custom fallback
+ * <Guard permission="finance:invoice.create" fallback={<p>Access denied</p>}>
+ *   <CreateInvoiceButton />
+ * </Guard>
+ * ```
+ */
+
+"use client";
+
+import { logger } from "@/lib/logger";
+import { useAuthRbac } from "@/hooks/useAuthRbac";
+import { ReactNode } from "react";
+
+export interface GuardProps {
+  children: ReactNode;
+
+  // Single permission check
+  permission?: string;
+
+  // Multiple permission checks
+  permissions?: string[];
+  requireAny?: boolean; // If true, user needs ANY of the permissions
+  requireAll?: boolean; // If true, user needs ALL of the permissions
+
+  // Role-based checks
+  role?: string;
+  roles?: string[];
+  requireAnyRole?: boolean;
+
+  // Super Admin check
+  superAdminOnly?: boolean;
+
+  // Invert the check (render if user does NOT have permission)
+  invert?: boolean;
+
+  // Custom fallback element (default: null)
+  fallback?: ReactNode;
+
+  // Show loading state (default: null)
+  loadingFallback?: ReactNode;
+}
+
+/**
+ * Guard component for permission-based rendering
+ */
+export default function Guard({
+  children,
+  permission,
+  permissions,
+  requireAny = false,
+  requireAll = false,
+  role,
+  roles,
+  requireAnyRole = false,
+  superAdminOnly = false,
+  invert = false,
+  fallback = null,
+  loadingFallback = null,
+}: GuardProps) {
+  const { can, canAny, canAll, hasRole, hasAnyRole, isSuperAdmin, isLoading } =
+    useAuthRbac();
+
+  // Show loading state if provided
+  if (isLoading && loadingFallback) {
+    return <>{loadingFallback}</>;
+  }
+
+  // Wait for auth to load
+  if (isLoading) {
+    return null;
+  }
+
+  let allowed = false;
+
+  // Super Admin check (highest priority)
+  if (superAdminOnly) {
+    allowed = isSuperAdmin;
+  }
+  // Single permission check
+  else if (permission) {
+    allowed = can(permission);
+  }
+  // Multiple permission checks
+  else if (permissions && permissions.length > 0) {
+    if (requireAll) {
+      allowed = canAll(permissions);
+    } else if (requireAny) {
+      allowed = canAny(permissions);
+    } else {
+      // Default: require ANY
+      allowed = canAny(permissions);
+    }
+  }
+  // Single role check
+  else if (role) {
+    allowed = hasRole(role);
+  }
+  // Multiple role checks
+  else if (roles && roles.length > 0) {
+    if (requireAnyRole) {
+      allowed = hasAnyRole(roles);
+    } else {
+      // Default: require ANY
+      allowed = hasAnyRole(roles);
+    }
+  }
+  // No checks specified, allow by default (guard is misconfigured)
+  else {
+    logger.warn(
+      "[Guard] No permission or role checks specified. Allowing by default.",
+    );
+    allowed = true;
+  }
+
+  // Invert check if requested
+  if (invert) {
+    allowed = !allowed;
+  }
+
+  // Render children if allowed, otherwise render fallback
+  return allowed ? <>{children}</> : <>{fallback}</>;
+}
+
+/**
+ * Convenience components for common patterns
+ */
+
+export function SuperAdminOnly({
+  children,
+  fallback = null,
+}: {
+  children: ReactNode;
+  fallback?: ReactNode;
+}) {
+  return (
+    <Guard superAdminOnly fallback={fallback}>
+      {children}
+    </Guard>
+  );
+}
+
+export function RequirePermission({
+  permission,
+  children,
+  fallback = null,
+}: {
+  permission: string;
+  children: ReactNode;
+  fallback?: ReactNode;
+}) {
+  return (
+    <Guard permission={permission} fallback={fallback}>
+      {children}
+    </Guard>
+  );
+}
+
+export function RequireAnyPermission({
+  permissions,
+  children,
+  fallback = null,
+}: {
+  permissions: string[];
+  children: ReactNode;
+  fallback?: ReactNode;
+}) {
+  return (
+    <Guard permissions={permissions} requireAny fallback={fallback}>
+      {children}
+    </Guard>
+  );
+}
+
+export function RequireAllPermissions({
+  permissions,
+  children,
+  fallback = null,
+}: {
+  permissions: string[];
+  children: ReactNode;
+  fallback?: ReactNode;
+}) {
+  return (
+    <Guard permissions={permissions} requireAll fallback={fallback}>
+      {children}
+    </Guard>
+  );
+}
+
+export function RequireRole({
+  role,
+  children,
+  fallback = null,
+}: {
+  role: string;
+  children: ReactNode;
+  fallback?: ReactNode;
+}) {
+  return (
+    <Guard role={role} fallback={fallback}>
+      {children}
+    </Guard>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/HtmlAttrs.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect } from "react";
+import { useTranslation } from "@/contexts/TranslationContext";
+
+/**
+ * Updates the html element's lang and dir attributes based on the current language context.
+ * Must be used within TranslationProvider.
+ */
+export default function HtmlAttrs() {
+  const { language, isRTL } = useTranslation();
+
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      const resolvedLang = language || "en";
+      const resolvedDir = isRTL ? "rtl" : "ltr";
+      // Explicitly set both attributes to avoid null dir reads in tests
+      document.documentElement.setAttribute("lang", resolvedLang);
+      document.documentElement.setAttribute("dir", resolvedDir);
+      document.documentElement.lang = resolvedLang;
+      document.documentElement.dir = resolvedDir;
+    }
+  }, [language, isRTL]);
+
+  return null;
+}
+
+]]>
+</file>
+
+<file path="components/LoginPrompt.tsx">
+<![CDATA[
+"use client";
+
+import React from "react";
+import { LogIn, UserPlus } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+
+// ✅ FIXED: Use standard components
+import { Button } from "./ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "./ui/dialog";
+
+// ✅ FIXED: Add i18n support
+import { useTranslation } from "@/contexts/TranslationContext";
+
+interface LoginPromptProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title?: string;
+  description?: string;
+  action?: string;
+  redirectTo?: string;
+}
+
+/**
+ * ✅ REFACTORED LoginPrompt Component
+ *
+ * ARCHITECTURE IMPROVEMENTS:
+ * 1. ✅ Standard Dialog/Button components (no hardcoded modal/buttons)
+ * 2. ✅ Full i18n support (all strings translatable)
+ * 3. ✅ useRouter for navigation (no window.location.href)
+ * 4. ✅ Semantic tokens (text-primary, bg-primary, text-success, border-success)
+ * 5. ✅ Removed unused isSignUp state
+ * 6. ✅ Fixed all hardcoded English strings
+ */
+export default function LoginPrompt({
+  isOpen,
+  onClose,
+  title,
+  description,
+  action,
+  redirectTo = "/",
+}: LoginPromptProps) {
+  const { t } = useTranslation();
+  const router = useRouter();
+
+  // ✅ REMOVED: unused isSignUp state
+
+  // ✅ FIXED: Use useRouter for navigation (no window.location.href)
+  const handleSignIn = () => {
+    const params = new URLSearchParams();
+    if (redirectTo) params.set("redirect", redirectTo);
+    if (action) params.set("action", action);
+    router.push(`/login?${params.toString()}`);
+  };
+
+  const handleSignUp = () => {
+    const params = new URLSearchParams();
+    if (redirectTo) params.set("redirect", redirectTo);
+    if (action) params.set("action", action);
+    router.push(`/signup?${params.toString()}`);
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        {/* Header */}
+        <DialogHeader>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+              <LogIn className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <DialogTitle>
+                {title || t("loginPrompt.title", "Sign In Required")}
+              </DialogTitle>
+              <DialogDescription>
+                {description ||
+                  t(
+                    "loginPrompt.description",
+                    "Please sign in to continue with this action.",
+                  )}
+              </DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
+
+        {/* Content */}
+        <div className="space-y-6">
+          {/* Centered Icon */}
+          <div className="text-center">
+            <div className="w-16 h-16 bg-gradient-to-br from-primary to-success rounded-full flex items-center justify-center mx-auto mb-4">
+              <LogIn className="w-8 h-8 text-white" />
+            </div>
+            <h4 className="text-lg font-semibold text-foreground mb-2">
+              {t("loginPrompt.welcomeBack", "Welcome Back")}
+            </h4>
+            <p className="text-muted-foreground text-sm">
+              {t(
+                "loginPrompt.welcomeMessage",
+                "Sign in to your Fixzit account to continue.",
+              )}
+            </p>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="space-y-3">
+            <Button onClick={handleSignIn} className="w-full" size="lg">
+              <LogIn className="w-5 h-5 me-2" />
+              {t("loginPrompt.signInButton", "Sign In with Email")}
+            </Button>
+
+            <Button
+              onClick={handleSignUp}
+              variant="outline"
+              className="w-full border-success text-success hover:bg-success hover:text-white"
+              size="lg"
+            >
+              <UserPlus className="w-5 h-5 me-2" />
+              {t("loginPrompt.signUpButton", "Create New Account")}
+            </Button>
+          </div>
+
+          {/* Benefits */}
+          <div className="p-4 bg-muted rounded-2xl">
+            <h5 className="font-medium text-foreground mb-2">
+              {t("loginPrompt.benefitsTitle", "Why Sign In?")}
+            </h5>
+            <ul className="text-sm text-muted-foreground space-y-1">
+              <li>
+                • {t("loginPrompt.benefit1", "Save items to your wishlist")}
+              </li>
+              <li>
+                • {t("loginPrompt.benefit2", "Track your orders and purchases")}
+              </li>
+              <li>
+                •{" "}
+                {t("loginPrompt.benefit3", "Access exclusive deals and offers")}
+              </li>
+              <li>
+                •{" "}
+                {t("loginPrompt.benefit4", "Get personalized recommendations")}
+              </li>
+              <li>
+                •{" "}
+                {t(
+                  "loginPrompt.benefit5",
+                  "Manage your account and preferences",
+                )}
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <DialogFooter className="flex-row items-center justify-between sm:justify-between">
+          <span className="text-sm text-muted-foreground">
+            {t("loginPrompt.needHelp", "Need help?")}
+          </span>
+          <Link href="/help" className="text-sm text-primary hover:underline">
+            {t("loginPrompt.contactSupport", "Contact Support")}
+          </Link>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/Portal.tsx">
+<![CDATA[
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+
+export default function Portal({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  if (!mounted) return null;
+
+  return createPortal(children, document.body);
+}
+
+]]>
+</file>
+
+<file path="components/PreferenceBroadcast.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect } from "react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useCurrency } from "@/contexts/CurrencyContext";
+
+/**
+ * Broadcasts user locale/currency preferences to non-React scripts via CustomEvent.
+ *
+ * **React Architecture Compliance:**
+ * - This component ONLY dispatches a CustomEvent for legacy non-React scripts
+ * - React components should use `useTranslation()` and `useCurrency()` hooks directly
+ * - DOM manipulation (querySelectorAll, textContent) has been REMOVED
+ *
+ * **For React Components:**
+ * ```tsx
+ * // ✅ CORRECT - Use hooks
+ * const { language, isRTL } = useTranslation();
+ * const { currency } = useCurrency();
+ *
+ * // ❌ WRONG - Don't use data attributes
+ * <span data-lang-text>...</span>
+ * ```
+ *
+ * **Event Details:**
+ * - Event: `fixzit:preferences`
+ * - Payload: `{ language: string, currency: string, dir: 'ltr' | 'rtl' }`
+ * - Target: `window`
+ *
+ * The component performs no rendering (returns `null`) and is a no-op on the server.
+ */
+export default function PreferenceBroadcast() {
+  const { language, isRTL } = useTranslation();
+  const { currency } = useCurrency();
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    // ✅ ONLY dispatch CustomEvent for non-React scripts (e.g., public/*.js, legacy HTML)
+    const detail = { language, currency, dir: isRTL ? "rtl" : "ltr" };
+    window.dispatchEvent(new CustomEvent("fixzit:preferences", { detail }));
+
+    // ❌ REMOVED: DOM manipulation (querySelectorAll, textContent)
+    // React components should use useTranslation() and useCurrency() hooks instead
+    // If you need language/currency in a React component, import the hooks:
+    //   import { useTranslation } from '@/contexts/TranslationContext';
+    //   import { useCurrency } from '@/contexts/CurrencyContext';
+  }, [language, currency, isRTL]);
+
+  return null;
+}
+
+]]>
+</file>
+
+<file path="components/README.md">
+<![CDATA[
+# Components Directory
+
+## 📋 Overview
+
+This directory contains all reusable React components for the Fixzit application organized by feature and purpose.
+
+## 📁 Structure
+
+```
+components/
+├── auth/               # Authentication components (LoginForm, LoginHeader, etc.)
+├── topbar/            # TopBar submodules (AppSwitcher, GlobalSearch, QuickActions)
+├── ui/                # Shadcn UI components (Button, Dialog, Input, etc.)
+├── i18n/              # Internationalization components (LanguageSelector)
+├── admin/             # Admin panel components (UpgradeModal, etc.)
+├── aqar/              # Real estate marketplace components
+├── marketplace/       # General marketplace components
+├── careers/           # Career/recruitment components
+├── fm/                # Facility Management components
+├── forms/             # Form-related components
+├── accessibility/     # Accessibility testing components
+├── __tests__/         # Component tests
+├── TopBar.tsx         # Main navigation bar
+├── Sidebar.tsx        # Side navigation
+├── Footer.tsx         # Page footer
+├── ClientLayout.tsx   # Client-side layout wrapper
+├── ErrorBoundary.tsx  # Error handling component
+└── [Other shared components]
+```
+
+## 🎯 Key Components
+
+### Navigation
+
+- **TopBar.tsx** - Main navigation bar with app switcher, search, and user menu
+- **Sidebar.tsx** - Collapsible side navigation with role-based menu items
+- **Footer.tsx** - Page footer with links and company info
+- **ClientLayout.tsx** - Wraps pages with TopBar, Sidebar, and Footer
+
+### Authentication
+
+See [auth/README.md](./auth/README.md) for detailed authentication component documentation.
+
+- **LoginPrompt.tsx** - Inline prompt for unauthenticated users
+- **auth/LoginForm.tsx** - Main login form
+- **auth/LoginHeader.tsx** - Login page branding
+- **auth/LoginFooter.tsx** - Login page footer
+- **auth/LoginSuccess.tsx** - Post-login success screen
+
+### Core Utilities
+
+- **ErrorBoundary.tsx** - Catches and displays React errors gracefully
+- **SystemVerifier.tsx** - System health monitoring component
+- **Portal.tsx** - React portal for modals and overlays
+- **AIChat.tsx** - Copilot AI chat widget
+- **CopilotWidget.tsx** - Copilot integration component
+
+### Forms
+
+- **forms/** - Reusable form components and utilities
+
+### UI Components
+
+- **ui/** - Shadcn UI component library (Button, Dialog, Input, Select, etc.)
+
+## 🔧 Usage Guidelines
+
+### Importing Components
+
+```typescript
+// Import from root components/
+import { TopBar } from "@/components/TopBar";
+import { ClientLayout } from "@/components/ClientLayout";
+
+// Import from subdirectories
+import { LoginForm } from "@/components/auth/LoginForm";
+import { Button } from "@/components/ui/button";
+import { LanguageSelector } from "@/components/i18n/LanguageSelector";
+```
+
+### Component Conventions
+
+1. **PascalCase** for component files: `TopBar.tsx`, `LoginForm.tsx`
+2. **kebab-case** for UI library components: `button.tsx`, `dialog.tsx`
+3. **Colocation** - Place related components in feature directories
+4. **Tests** - Place in `__tests__/` with `.test.tsx` extension
+
+### Creating New Components
+
+```typescript
+// components/MyComponent.tsx
+'use client'; // If component uses client-side hooks
+
+import { useTranslation } from '@/contexts/TranslationContext';
+
+export default function MyComponent() {
+  const t = useTranslation();
+
+  return (
+    <div>
+      <h1>{t('myComponent.title', 'Default Title')}</h1>
+    </div>
+  );
+}
+```
+
+## 🧪 Testing
+
+Component tests are located in `__tests__/` subdirectories. Run tests with:
+
+```bash
+pnpm test
+```
+
+## 📚 Related Documentation
+
+- [Auth Components](./auth/README.md) - Authentication component documentation
+- [UI Components](./ui/) - Shadcn UI component library
+- [TopBar Testing Guide](../docs/guides/TOPBAR_TESTING_GUIDE.md)
+- [Form Save Events](../docs/archived/FORM_SAVE_EVENTS.md)
+
+## 🎨 Styling
+
+Components use:
+
+- **Tailwind CSS** for utility-first styling
+- **CSS Modules** for scoped styles when needed
+- **Semantic tokens** from design system
+
+## 🌍 Internationalization
+
+Most components support i18n via `useTranslation()` hook:
+
+```typescript
+const t = useTranslation();
+const text = t("key.path", "Default text");
+```
+
+## ♿ Accessibility
+
+- All interactive components should have proper ARIA labels
+- Keyboard navigation must be supported
+- Focus management for modals and dialogs
+- See `accessibility/` folder for testing utilities
+
+## 📦 Dependencies
+
+Key dependencies:
+
+- `react` - UI framework
+- `next` - React framework
+- `lucide-react` - Icon library
+- `@radix-ui/*` - Headless UI primitives
+- `tailwindcss` - Utility-first CSS
+
+## 🚀 Best Practices
+
+1. **Keep components small** - Single responsibility principle
+2. **Use TypeScript** - Proper type definitions
+3. **Document props** - JSDoc comments for component interfaces
+4. **Handle errors** - Use ErrorBoundary for error handling
+5. **Optimize performance** - Use React.memo for expensive renders
+6. **Accessibility first** - ARIA labels and keyboard support
+
+---
+
+**Last Updated:** 2025-11-01  
+**Maintained by:** Fixzit Development Team
+
+]]>
+</file>
+
+<file path="components/ResponsiveLayout.tsx">
+<![CDATA[
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { useResponsiveLayout } from "@/contexts/ResponsiveContext";
+import { Menu, X } from "lucide-react";
+
+// ✅ FIXED: Use standard Button component
+import { Button } from "./ui/button";
+
+// ✅ FIXED: Define sidebar width constant (no magic numbers)
+const SIDEBAR_WIDTH_CLASS = "md:w-64";
+
+interface ResponsiveLayoutProps {
+  children: React.ReactNode;
+  sidebar?: React.ReactNode;
+  showSidebarToggle?: boolean;
+  header?: React.ReactNode;
+  footer?: React.ReactNode;
+  className?: string;
+}
+
+/**
+ * ✅ REFACTORED ResponsiveLayout Component
+ *
+ * ARCHITECTURE IMPROVEMENTS:
+ * 1. ✅ Use standard Button for toggle (no hardcoded button)
+ * 2. ✅ Semantic color tokens (bg-primary instead of bg-brand-500)
+ * 3. ✅ No magic numbers (SIDEBAR_WIDTH_CLASS constant instead of ms-64)
+ * 4. ✅ Deleted duplicate ResponsiveCard and ResponsiveButton (use Card/Button from ui/)
+ * 5. ✅ Fixed all hardcoded colors
+ */
+export default function ResponsiveLayout({
+  children,
+  sidebar,
+  showSidebarToggle = true,
+  header,
+  footer,
+  className = "",
+}: ResponsiveLayoutProps) {
+  const { screenInfo, responsiveClasses } = useResponsiveLayout();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Close sidebar on mobile when screen size changes to desktop
+  useEffect(() => {
+    if (!screenInfo.isMobile && !screenInfo.isTablet && sidebarOpen) {
+      setSidebarOpen(false);
+    }
+  }, [screenInfo.isMobile, screenInfo.isTablet, sidebarOpen]);
+
+  const showSidebar =
+    sidebar && (screenInfo.isDesktop || screenInfo.isLarge || sidebarOpen);
+
+  return (
+    <div className={`min-h-screen flex flex-col bg-background ${className}`}>
+      {/* Header */}
+      {header && <div className="sticky top-0 z-40">{header}</div>}
+
+      {/* Mobile sidebar toggle - ✅ FIXED: Use standard Button */}
+      {sidebar &&
+        showSidebarToggle &&
+        (screenInfo.isMobile || screenInfo.isTablet) && (
+          <Button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            size="icon"
+            className="fixed top-16 start-4 z-50 md:hidden shadow-lg"
+            aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+          >
+            {sidebarOpen ? (
+              <X className="w-5 h-5" />
+            ) : (
+              <Menu className="w-5 h-5" />
+            )}
+          </Button>
+        )}
+
+      <div className="flex flex-1">
+        {/* Sidebar */}
+        {sidebar && (
+          <div
+            className={`
+            ${showSidebar ? "translate-x-0 rtl:translate-x-0" : "-translate-x-full rtl:translate-x-full"}
+            ${screenInfo.isMobile || screenInfo.isTablet ? "fixed inset-y-0 start-0 z-40" : "relative"}
+            ${SIDEBAR_WIDTH_CLASS}
+            transition-transform duration-300 ease-in-out
+          `}
+          >
+            {sidebar}
+          </div>
+        )}
+
+        {/* Mobile overlay */}
+        {sidebar &&
+          sidebarOpen &&
+          (screenInfo.isMobile || screenInfo.isTablet) && (
+            <div
+              className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
+              onClick={() => setSidebarOpen(false)}
+            />
+          )}
+
+        {/* Main content - ✅ FIXED: Use SIDEBAR_WIDTH_CLASS constant */}
+        <main
+          id="main-content"
+          className={`
+            flex-1 flex flex-col transition-all duration-300
+            ${sidebar && (screenInfo.isDesktop || screenInfo.isLarge) ? `md:ms-64` : "ms-0"}
+          `}
+        >
+          <div className={`${responsiveClasses.container} py-6`}>
+            {children}
+          </div>
+        </main>
+      </div>
+
+      {/* Footer - anchor to bottom using mt-auto */}
+      {footer && <div className="w-full">{footer}</div>}
+    </div>
+  );
+}
+
+/**
+ * ✅ DELETED: ResponsiveCard component
+ *
+ * REASON: Duplicates functionality of standard Card component from @/components/ui/card
+ *
+ * MIGRATION:
+ * - Replace ResponsiveCard with Card from @/components/ui/card
+ * - Card already handles padding via CardHeader/CardContent
+ * - Use className for custom responsive padding if needed
+ */
+
+/**
+ * ✅ DELETED: ResponsiveButton component
+ *
+ * REASON: Duplicates functionality of standard Button component from @/components/ui/button
+ *
+ * MIGRATION:
+ * - Replace ResponsiveButton with Button from @/components/ui/button
+ * - Button already has variants: default, secondary, outline, ghost
+ * - Button already has sizes: default, sm, lg, icon
+ * - Use semantic tokens (Button uses design system colors automatically)
+ */
+
+]]>
+</file>
+
+<file path="components/SLATimer.tsx">
+<![CDATA[
+"use client";
+
+import React, { useEffect, useState } from "react";
+
+interface SLATimerProps {
+  dueDate: Date | string;
+  status: string;
+  priority?: string;
+  size?: "sm" | "md" | "lg";
+}
+
+/**
+ * SLATimer Component
+ *
+ * Displays a live countdown timer showing time remaining until SLA breach.
+ * Color-coded based on urgency:
+ * - Green (safe): 4+ hours remaining
+ * - Yellow (warning): 2-4 hours remaining
+ * - Red (critical): Less than 2 hours remaining OR breached
+ *
+ * The timer updates every minute and displays appropriate visual indicators.
+ */
+export default function SLATimer({
+  dueDate,
+  status,
+  priority,
+  size = "md",
+}: SLATimerProps) {
+  const [timeRemaining, setTimeRemaining] = useState<string>("");
+  const [urgencyLevel, setUrgencyLevel] = useState<
+    "safe" | "warning" | "critical"
+  >("safe");
+  const [isBreached, setIsBreached] = useState(false);
+
+  useEffect(() => {
+    // Don't show timer for closed/cancelled statuses
+    if (["CLOSED", "CANCELLED", "ARCHIVED"].includes(status)) {
+      return;
+    }
+
+    const calculateTimeRemaining = () => {
+      const now = new Date();
+      const due = new Date(dueDate);
+      const diff = due.getTime() - now.getTime();
+
+      // Check if breached
+      if (diff <= 0) {
+        setIsBreached(true);
+        const overdue = Math.abs(diff);
+        const hours = Math.floor(overdue / (1000 * 60 * 60));
+        const minutes = Math.floor((overdue % (1000 * 60 * 60)) / (1000 * 60));
+        setTimeRemaining(`${hours}h ${minutes}m overdue`);
+        setUrgencyLevel("critical");
+        return;
+      }
+
+      // Calculate remaining time
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+      setTimeRemaining(`${hours}h ${minutes}m`);
+
+      // Set urgency level
+      if (hours < 2) {
+        setUrgencyLevel("critical");
+      } else if (hours < 4) {
+        setUrgencyLevel("warning");
+      } else {
+        setUrgencyLevel("safe");
+      }
+    };
+
+    // Initial calculation
+    calculateTimeRemaining();
+
+    // Update every minute
+    const interval = setInterval(calculateTimeRemaining, 60000);
+
+    return () => clearInterval(interval);
+  }, [dueDate, status]);
+
+  // Don't render for closed/cancelled
+  if (["CLOSED", "CANCELLED", "ARCHIVED"].includes(status)) {
+    return null;
+  }
+
+  const sizeClasses = {
+    sm: "text-xs px-2 py-0.5",
+    md: "text-sm px-2.5 py-1",
+    lg: "text-base px-3 py-1.5",
+  };
+
+  const urgencyColors = {
+    safe: "bg-success/10 text-success border-success/20",
+    warning: "bg-warning/5 text-warning border-warning/20",
+    critical: "bg-destructive/10 text-destructive border-destructive/20",
+  };
+
+  const icon = isBreached
+    ? "⚠️"
+    : urgencyLevel === "critical"
+      ? "⏰"
+      : urgencyLevel === "warning"
+        ? "⏰"
+        : "✓";
+
+  return (
+    <div
+      className={`inline-flex items-center gap-1.5 font-medium rounded-md border ${sizeClasses[size]} ${urgencyColors[urgencyLevel]}`}
+      title={`SLA ${isBreached ? "BREACHED" : "Due"}: ${new Date(dueDate).toLocaleString()}`}
+    >
+      <span className="text-base leading-none">{icon}</span>
+      <span className="font-mono">{timeRemaining}</span>
+      {priority === "URGENT" && <span className="text-xs">🔥</span>}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/Sidebar.tsx">
+<![CDATA[
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Headphones as HeadphonesIcon,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useResponsiveLayout } from "@/contexts/ResponsiveContext";
+import { STORAGE_KEYS } from "@/config/constants";
+import { SimpleTooltip } from "@/components/ui/tooltip";
+import {
+  MODULES,
+  MODULE_SUB_VIEWS,
+  USER_LINKS,
+  ROLE_PERMISSIONS,
+  SUBSCRIPTION_PLANS,
+  resolveNavigationRole,
+  type ModuleItem,
+  type UserLinkItem,
+  type ModuleId,
+  type BadgeCounts,
+} from "@/config/navigation";
+import { logger } from "@/lib/logger";
+
+interface SidebarProps {
+  className?: string;
+  onNavigate?: () => void;
+  badgeCounts?: BadgeCounts;
+}
+
+type GovernanceGroup = "core" | "business" | "system";
+
+type SubModuleItem = {
+  id: string;
+  name: string;
+  fallbackLabel: string;
+  path: string;
+};
+
+const COLLAPSE_KEY = STORAGE_KEYS.sidebarCollapsed;
+
+const GOVERNANCE_GROUPS: Record<GovernanceGroup, ModuleId[]> = {
+  core: ["dashboard", "workOrders", "properties", "finance", "hr"],
+  business: ["crm", "marketplace", "support", "compliance", "reports"],
+  system: ["system", "administration"],
+};
+
+const GOVERNANCE_CATEGORY_LABELS: Record<
+  GovernanceGroup,
+  { key: string; fallback: string }
+> = {
+  core: { key: "sidebar.category.core", fallback: "Core" },
+  business: { key: "sidebar.category.business", fallback: "Business" },
+  system: { key: "sidebar.category.system", fallback: "System Management" },
+};
+
+type SubscriptionPlanKey = keyof typeof SUBSCRIPTION_PLANS;
+const PLAN_ALIASES: Record<string, SubscriptionPlanKey> = {
+  STANDARD: "STANDARD",
+  STARTER: "STANDARD",
+  BASIC: "BASIC",
+  PREMIUM: "PREMIUM",
+  PROFESSIONAL: "PREMIUM",
+  PRO_PLUS: "PREMIUM",
+  ENTERPRISE_PLUS: "ENTERPRISE",
+  ENTERPRISE_GROWTH: "ENTERPRISE",
+};
+
+const modulePathMap = MODULES.reduce<Record<ModuleId, string>>(
+  (acc, module) => {
+    acc[module.id] = module.path;
+    return acc;
+  },
+  {} as Record<ModuleId, string>,
+);
+
+const buildSubModuleMap = (): Record<string, SubModuleItem[]> => {
+  const map: Record<string, SubModuleItem[]> = {};
+  Object.entries(MODULE_SUB_VIEWS).forEach(([moduleId, subItems]) => {
+    const basePath = modulePathMap[moduleId as ModuleId];
+    if (!basePath || !subItems?.length) return;
+    const items = subItems.map((item) => ({
+      id: item.id,
+      name: item.name,
+      fallbackLabel: item.fallbackLabel,
+      path:
+        item.kind === "path"
+          ? `${basePath}${item.value}`
+          : `${basePath}?view=${encodeURIComponent(item.value)}`,
+    }));
+    if (items.length) {
+      map[basePath] = items;
+    }
+  });
+  return map;
+};
+
+const SUB_MODULES_BY_PATH = buildSubModuleMap();
+
+const normalizePlan = (value?: string): SubscriptionPlanKey => {
+  if (!value) return "DEFAULT";
+  const normalized = value.toUpperCase().replace(/[\s-]+/g, "_");
+  if ((SUBSCRIPTION_PLANS as Record<string, readonly ModuleId[]>)[normalized]) {
+    return normalized as SubscriptionPlanKey;
+  }
+  return PLAN_ALIASES[normalized] ?? "DEFAULT";
+};
+
+const formatLabel = (value?: string) => value?.replace(/_/g, " ") ?? "";
+
+export default function Sidebar({
+  className,
+  onNavigate,
+  badgeCounts,
+}: SidebarProps) {
+  const pathname = usePathname() || "";
+  const { data: session, status } = useSession();
+  const sessionUser = session?.user as
+    | { role?: string; subscriptionPlan?: string; plan?: string; orgId?: string }
+    | undefined;
+  const [planOverride, setPlanOverride] = useState<string | null>(null);
+
+  const { t, isRTL } = useTranslation();
+  const { screenInfo } = useResponsiveLayout();
+
+  const isAuthenticated = status === "authenticated" && !!sessionUser;
+  const role = resolveNavigationRole(sessionUser?.role);
+  const subscription = normalizePlan(
+    planOverride ?? sessionUser?.subscriptionPlan ?? sessionUser?.plan,
+  );
+
+  // Tenant-scoped collapse key to prevent cross-tenant UI state bleed
+  // Uses orgId prefix so different tenants have separate sidebar preferences
+  const tenantScopedCollapseKey = useMemo(() => {
+    const orgId = sessionUser?.orgId || "public";
+    return `${orgId}:${COLLAPSE_KEY}`;
+  }, [sessionUser?.orgId]);
+
+  // Fetch subscription plan when not present in session to enforce gating
+  useEffect(() => {
+    const fetchPlan = async () => {
+      if (!isAuthenticated || planOverride) return;
+      try {
+        const resp = await fetch("/api/subscriptions/tenant", {
+          credentials: "include",
+        });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        const plan =
+          (data?.metadata?.plan as string) ||
+          (data?.plan as string) ||
+          (data?.subscription_plan as string);
+        if (typeof plan === "string" && plan.trim()) {
+          const normalized = normalizePlan(plan);
+          if (normalized !== "DEFAULT") {
+            setPlanOverride(normalized);
+          }
+        }
+      } catch (error) {
+        if (process.env.NODE_ENV === "development") {
+          logger.warn("[Sidebar] Failed to fetch subscription plan", { error });
+        }
+      }
+    };
+    fetchPlan();
+  }, [isAuthenticated, planOverride]);
+
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Load collapsed state from tenant-scoped localStorage
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const stored = window.localStorage.getItem(tenantScopedCollapseKey);
+      if (stored) {
+        setIsCollapsed(Boolean(JSON.parse(stored)));
+      }
+    } catch {
+      // ignore corrupted state
+    }
+  }, [tenantScopedCollapseKey]);
+
+  const toggleCollapse = useCallback(() => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      if (typeof window !== "undefined") {
+        try {
+          window.localStorage.setItem(tenantScopedCollapseKey, JSON.stringify(next));
+        } catch {
+          // ignore storage issues
+        }
+      }
+      return next;
+    });
+  }, [tenantScopedCollapseKey]);
+
+  const allowedModules = useMemo(() => {
+    const roleModules = (ROLE_PERMISSIONS[role] ??
+      ROLE_PERMISSIONS.guest) as readonly ModuleId[];
+    const planModules = (SUBSCRIPTION_PLANS[subscription] ??
+      SUBSCRIPTION_PLANS.DEFAULT) as readonly ModuleId[];
+    const allowedIds = planModules.filter((id): id is ModuleId =>
+      roleModules.includes(id as ModuleId),
+    );
+
+    if (
+      process.env.NODE_ENV !== "production" &&
+      roleModules.length > 0 &&
+      planModules.length > 0 &&
+      allowedIds.length === 0
+    ) {
+      logger.warn("[Sidebar] RBAC mismatch detected", {
+        component: "Sidebar",
+        role,
+        subscription,
+      });
+    }
+
+    const allowedSet = new Set(allowedIds);
+    return MODULES.filter((module) => allowedSet.has(module.id));
+  }, [role, subscription]);
+
+  const groupedModules = useMemo(() => {
+    const allowedById = new Map(
+      allowedModules.map((module) => [module.id, module]),
+    );
+    return (
+      Object.entries(GOVERNANCE_GROUPS) as [GovernanceGroup, ModuleId[]][]
+    )
+      .map(([group, ids]) => {
+        const modules = ids
+          .map((id) => allowedById.get(id))
+          .filter((module): module is ModuleItem => Boolean(module));
+        return modules.length ? [group, modules] : null;
+      })
+      .filter(Boolean) as Array<[GovernanceGroup, ModuleItem[]]]]><![CDATA[>;
+  }, [allowedModules]);
+
+  const getCategoryName = useCallback(
+    (group: GovernanceGroup) => {
+      const label = GOVERNANCE_CATEGORY_LABELS[group];
+      return t(label.key, label.fallback);
+    },
+    [t],
+  );
+
+  const isMobile = screenInfo.isMobile || screenInfo.isTablet;
+  const asideWidth = isCollapsed ? "w-16" : "w-64";
+  const CollapseIcon = isCollapsed
+    ? isRTL
+      ? ChevronLeft
+      : ChevronRight
+    : isRTL
+      ? ChevronRight
+      : ChevronLeft;
+
+  const asideBase = isMobile
+    ? `fixed inset-y-0 z-50 ${asideWidth} transform transition-transform duration-300 ease-in-out start-0`
+    : `sticky top-16 ${asideWidth} h-[calc(100vh-4rem)] transition-[width] duration-300 ease-in-out`;
+
+  const handleNavigate = useCallback(() => {
+    if (isMobile && onNavigate) {
+      onNavigate();
+    }
+  }, [isMobile, onNavigate]);
+
+  const renderBadge = (module: ModuleItem) => {
+    if (!module.badgeKey || !badgeCounts) return null;
+    const value = badgeCounts[module.badgeKey];
+    if (typeof value !== "number" || value <= 0) return null;
+    return (
+      <span
+        className="fxz-sidebar-badge"
+        aria-label={`${value} ${module.fallbackLabel}`}
+      >
+        {value}
+      </span>
+    );
+  };
+
+  return (
+    <aside
+      className={cn(
+        asideBase,
+        "fxz-sidebar overflow-y-auto flex flex-col",
+        className,
+      )}
+      role="navigation"
+      aria-label={t("sidebar.mainNav", "Main navigation")}
+      dir={isRTL ? "rtl" : "ltr"}
+      data-testid="sidebar"
+    >
+      <div className={cn(isMobile ? "p-3" : "p-4", "flex flex-col h-full")}>
+        {!isMobile && (
+          <SimpleTooltip 
+            content={isCollapsed ? t("sidebar.expand", "Expand sidebar") : t("sidebar.collapse", "Collapse sidebar")}
+            side={isRTL ? "left" : "right"}
+          >
+            <button
+              onClick={toggleCollapse}
+              className="mb-4 p-2 rounded-full border border-sidebar-border hover:bg-sidebar-accent transition-all duration-200 ms-auto text-sidebar-foreground"
+              aria-label={
+                isCollapsed
+                  ? t("sidebar.expand", "Expand sidebar")
+                  : t("sidebar.collapse", "Collapse sidebar")
+              }
+              data-cursor-interactive
+            >
+              <CollapseIcon className="h-4 w-4" aria-hidden />
+            </button>
+          </SimpleTooltip>
+        )}
+
+        {!isCollapsed && (
+          <div className="font-bold text-lg mb-6 text-start text-sidebar-foreground">
+            {t("common.brand", "Fixzit Enterprise")}
+          </div>
+        )}
+
+        {isAuthenticated && !isCollapsed && (
+          <section
+            aria-label={t("sidebar.accountInfo", "Account info")}
+            className="mb-4 rounded-2xl border border-sidebar-border bg-sidebar-accent/30 p-3"
+          >
+            <div className="text-xs opacity-80 mb-1 text-start text-sidebar-foreground">
+              {t("sidebar.role", "Role")}
+            </div>
+            <div className="text-sm font-medium capitalize text-start text-sidebar-foreground">
+              {formatLabel(role)}
+            </div>
+            <div className="text-xs opacity-80 mt-1 text-start text-sidebar-foreground">
+              {t("sidebar.planLabel", "Plan")}: {formatLabel(subscription)}
+            </div>
+          </section>
+        )}
+
+        <nav
+          className="flex-1 space-y-6"
+          aria-label={t("sidebar.modules", "Modules")}
+        >
+          {groupedModules.map(([group, modules]) => (
+            <section key={group} aria-label={getCategoryName(group)}>
+              {!isCollapsed && (
+                <div className="px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                  {getCategoryName(group)}
+                </div>
+              )}
+
+              <ul className="space-y-1">
+                {modules.map((module) => {
+                  const Icon = module.icon;
+                  const isActive =
+                    pathname === module.path ||
+                    pathname.startsWith(`${module.path}/`);
+                  const subModules = SUB_MODULES_BY_PATH[module.path] || [];
+                  const badge = renderBadge(module);
+
+                  return (
+                    <li key={module.id}>
+                      <Link
+                        href={module.path}
+                        className={cn(
+                          "fxz-sidebar-item",
+                          isActive && "fxz-sidebar-item-active",
+                          isCollapsed && "justify-center",
+                        )}
+                        aria-current={isActive ? "page" : undefined}
+                        data-testid={`nav-${module.id}`}
+                        prefetch={false}
+                        onClick={handleNavigate}
+                      >
+                        <Icon className="h-5 w-5 flex-shrink-0" aria-hidden />
+                        {!isCollapsed && (
+                          <>
+                            <span className="flex-1">
+                              {t(
+                                module.name,
+                                module.fallbackLabel ||
+                                  module.name.replace("nav.", ""),
+                              )}
+                            </span>
+                            {badge}
+                            {isActive && (
+                              <span
+                                className="inline-block h-2 w-2 rounded-full bg-sidebar-primary ms-auto"
+                                aria-hidden
+                              />
+                            )}
+                          </>
+                        )}
+                      </Link>
+
+                      {!isCollapsed && subModules.length > 0 && (
+                        <ul className="mt-1 space-y-1">
+                          {subModules.map((sub) => {
+                            const isSubActive =
+                              pathname === sub.path ||
+                              pathname.startsWith(`${sub.path}/`);
+                            return (
+                              <li key={sub.id}>
+                                <Link
+                                  href={sub.path}
+                                  className={cn(
+                                    "flex items-center gap-2 rounded-xl px-4 py-1.5 text-xs transition-all duration-200 ms-2 text-sidebar-foreground/80",
+                                    isSubActive
+                                      ? "bg-sidebar-accent text-sidebar-foreground"
+                                      : "hover:bg-sidebar-accent/50",
+                                  )}
+                                  aria-current={
+                                    isSubActive ? "page" : undefined
+                                  }
+                                  data-testid={`nav-${sub.id}`}
+                                  prefetch={false}
+                                  onClick={handleNavigate}
+                                >
+                                  <span
+                                    className="inline-block h-1.5 w-1.5 rounded-full bg-sidebar-primary flex-shrink-0"
+                                    aria-hidden
+                                  />
+                                  <span className="truncate">
+                                    {t(sub.name, sub.fallbackLabel)}
+                                  </span>
+                                </Link>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ))}
+
+          {groupedModules.length === 0 && !isCollapsed && (
+            <p className="px-3 text-xs opacity-80" data-testid="sidebar-empty">
+              {t(
+                "sidebar.noModules",
+                "No modules available for your role/plan.",
+              )}
+            </p>
+          )}
+        </nav>
+
+        {!isCollapsed && (
+          <div className="border-t border-sidebar-border pt-4 mt-4">
+            <div className="fxz-sidebar-title mb-3">
+              {t("sidebar.account", "Account")}
+            </div>
+            <ul
+              className="space-y-1"
+              aria-label={t("sidebar.account", "Account")}
+            >
+              {USER_LINKS.map((link: UserLinkItem) => {
+                if (!isAuthenticated && link.requiresAuth) {
+                  return null;
+                }
+                const Icon = link.icon;
+                const isActive =
+                  pathname === link.path ||
+                  pathname.startsWith(`${link.path}/`);
+                return (
+                  <li key={link.id}>
+                    <Link
+                      href={link.path}
+                      className={cn(
+                        "fxz-sidebar-item",
+                        isActive && "fxz-sidebar-item-active",
+                      )}
+                      aria-current={isActive ? "page" : undefined}
+                      data-testid={`account-${link.id}`}
+                      prefetch={false}
+                      onClick={handleNavigate}
+                    >
+                      <Icon className="h-4 w-4 flex-shrink-0" aria-hidden />
+                      <span className="text-sm font-medium">
+                        {t(
+                          link.name,
+                          link.fallbackLabel ||
+                            link.name.replace("sidebar.", ""),
+                        )}
+                      </span>
+                      {isActive && (
+                        <span
+                          className="inline-block h-2 w-2 rounded-full bg-sidebar-primary ms-auto"
+                          aria-hidden
+                        />
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
+        {isAuthenticated && !isCollapsed && (
+          <div className="border-t border-sidebar-border pt-4 mt-4">
+            <div className="fxz-sidebar-title mb-3">
+              {t("sidebar.help", "Help")}
+            </div>
+            <Link
+              href="/help"
+              className={cn(
+                "fxz-sidebar-item",
+                isRTL ? "flex-row-reverse" : "",
+              )}
+              data-testid="nav-help"
+              prefetch={false}
+              onClick={handleNavigate}
+            >
+              <HeadphonesIcon className="h-5 w-5 flex-shrink-0" aria-hidden />
+              <span>{t("sidebar.helpCenter", "Help Center")}</span>
+            </Link>
+          </div>
+        )}
+      </div>
+    </aside>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/SupportPopup.tsx">
+<![CDATA[
+"use client";
+
+import React, { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { toast } from "react-hot-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectItem } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Copy, Loader2 } from "lucide-react";
+import { logger } from "@/lib/logger";
+
+// ============================================================================
+// API HELPER
+// ============================================================================
+
+const api = async (url: string, opts?: RequestInit) => {
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+  };
+  const res = await fetch(url, {
+    ...opts,
+    headers: { ...headers, ...opts?.headers },
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+};
+
+// ============================================================================
+// INTERFACES
+// ============================================================================
+
+interface ErrorDetails {
+  error?: {
+    name?: string;
+    message?: string;
+    stack?: string;
+    componentStack?: string;
+  };
+  errorId?: string;
+  timestamp?: string;
+  url?: string;
+  userAgent?: string;
+  viewport?: string;
+  type?: string;
+  system?: {
+    platform?: string;
+    language?: string;
+    onLine?: boolean;
+    memory?: {
+      used?: number;
+      total?: number;
+      limit?: number;
+    } | null;
+  };
+  localStorage?: {
+    hasAuth?: boolean;
+    hasUser?: boolean;
+    hasLang?: boolean;
+    hasTheme?: boolean;
+  };
+}
+
+interface ISupportPopupProps {
+  open: boolean;
+  onClose: () => void;
+  errorDetails?: ErrorDetails;
+}
+
+// ============================================================================
+// MODULE OPTIONS
+// ============================================================================
+
+const MODULES = ["FM", "Souq", "Aqar", "Account", "Billing", "Other"];
+const CATEGORIES = [
+  "Technical",
+  "Feature Request",
+  "Billing",
+  "Account",
+  "General",
+  "Bug Report",
+];
+const TYPES = ["Bug", "Feature", "Complaint", "Billing", "Access", "Other"];
+const PRIORITIES = ["Low", "Medium", "High", "Urgent"];
+
+const MODULE_LABELS: Record<string, { key: string; fallback: string }> = {
+  FM: { key: "support.modules.fm", fallback: "Facility Management" },
+  Souq: { key: "support.modules.souq", fallback: "Souq Marketplace" },
+  Aqar: { key: "support.modules.aqar", fallback: "Aqar" },
+  Account: { key: "support.modules.account", fallback: "Account" },
+  Billing: { key: "support.modules.billing", fallback: "Billing" },
+  Other: { key: "support.modules.other", fallback: "Other" },
+};
+
+const CATEGORY_LABELS: Record<string, { key: string; fallback: string }> = {
+  Technical: { key: "support.categories.technical", fallback: "Technical" },
+  "Feature Request": {
+    key: "support.categories.featureRequest",
+    fallback: "Feature Request",
+  },
+  Billing: { key: "support.categories.billing", fallback: "Billing" },
+  Account: { key: "support.categories.account", fallback: "Account" },
+  General: { key: "support.categories.general", fallback: "General" },
+  "Bug Report": { key: "support.categories.bugReport", fallback: "Bug Report" },
+};
+
+const SUB_CATEGORY_LABELS: Record<string, { key: string; fallback: string }> = {
+  "Bug Report": {
+    key: "support.subCategories.bugReport",
+    fallback: "Bug Report",
+  },
+  "Performance Issue": {
+    key: "support.subCategories.performanceIssue",
+    fallback: "Performance Issue",
+  },
+  "UI Error": { key: "support.subCategories.uiError", fallback: "UI Error" },
+  "API Error": { key: "support.subCategories.apiError", fallback: "API Error" },
+  "Database Error": {
+    key: "support.subCategories.databaseError",
+    fallback: "Database Error",
+  },
+  "New Feature": {
+    key: "support.subCategories.newFeature",
+    fallback: "New Feature",
+  },
+  Enhancement: {
+    key: "support.subCategories.enhancement",
+    fallback: "Enhancement",
+  },
+  Integration: {
+    key: "support.subCategories.integration",
+    fallback: "Integration",
+  },
+  Customization: {
+    key: "support.subCategories.customization",
+    fallback: "Customization",
+  },
+  "Mobile App": {
+    key: "support.subCategories.mobileApp",
+    fallback: "Mobile App",
+  },
+  "Invoice Issue": {
+    key: "support.subCategories.invoiceIssue",
+    fallback: "Invoice Issue",
+  },
+  "Payment Error": {
+    key: "support.subCategories.paymentError",
+    fallback: "Payment Error",
+  },
+  Subscription: {
+    key: "support.subCategories.subscription",
+    fallback: "Subscription",
+  },
+  Refund: { key: "support.subCategories.refund", fallback: "Refund" },
+  Pricing: { key: "support.subCategories.pricing", fallback: "Pricing" },
+  "Login Issue": {
+    key: "support.subCategories.loginIssue",
+    fallback: "Login Issue",
+  },
+  "Password Reset": {
+    key: "support.subCategories.passwordReset",
+    fallback: "Password Reset",
+  },
+  "Profile Update": {
+    key: "support.subCategories.profileUpdate",
+    fallback: "Profile Update",
+  },
+  Permissions: {
+    key: "support.subCategories.permissions",
+    fallback: "Permissions",
+  },
+  "Access Denied": {
+    key: "support.subCategories.accessDenied",
+    fallback: "Access Denied",
+  },
+  Documentation: {
+    key: "support.subCategories.documentation",
+    fallback: "Documentation",
+  },
+  Training: { key: "support.subCategories.training", fallback: "Training" },
+  Support: { key: "support.subCategories.support", fallback: "Support" },
+  Feedback: { key: "support.subCategories.feedback", fallback: "Feedback" },
+  Other: { key: "support.subCategories.other", fallback: "Other" },
+  "Critical Bug": {
+    key: "support.subCategories.criticalBug",
+    fallback: "Critical Bug",
+  },
+  "Minor Bug": { key: "support.subCategories.minorBug", fallback: "Minor Bug" },
+  "Cosmetic Issue": {
+    key: "support.subCategories.cosmeticIssue",
+    fallback: "Cosmetic Issue",
+  },
+  "Data Error": {
+    key: "support.subCategories.dataError",
+    fallback: "Data Error",
+  },
+  "Security Issue": {
+    key: "support.subCategories.securityIssue",
+    fallback: "Security Issue",
+  },
+};
+
+const TYPE_LABELS: Record<string, { key: string; fallback: string }> = {
+  Bug: { key: "support.types.bug", fallback: "Bug" },
+  Feature: { key: "support.types.feature", fallback: "Feature" },
+  Complaint: { key: "support.types.complaint", fallback: "Complaint" },
+  Billing: { key: "support.types.billing", fallback: "Billing" },
+  Access: { key: "support.types.access", fallback: "Access" },
+  Other: { key: "support.types.other", fallback: "Other" },
+};
+
+const PRIORITY_LABELS: Record<string, { key: string; fallback: string }> = {
+  Low: { key: "support.priorities.low", fallback: "Low" },
+  Medium: { key: "support.priorities.medium", fallback: "Medium" },
+  High: { key: "support.priorities.high", fallback: "High" },
+  Urgent: { key: "support.priorities.urgent", fallback: "Urgent" },
+};
+
+const SUB_CATEGORIES: Record<string, string[]> = {
+  Technical: [
+    "Bug Report",
+    "Performance Issue",
+    "UI Error",
+    "API Error",
+    "Database Error",
+  ],
+  "Feature Request": [
+    "New Feature",
+    "Enhancement",
+    "Integration",
+    "Customization",
+    "Mobile App",
+  ],
+  Billing: [
+    "Invoice Issue",
+    "Payment Error",
+    "Subscription",
+    "Refund",
+    "Pricing",
+  ],
+  Account: [
+    "Login Issue",
+    "Password Reset",
+    "Profile Update",
+    "Permissions",
+    "Access Denied",
+  ],
+  General: ["Documentation", "Training", "Support", "Feedback", "Other"],
+  "Bug Report": [
+    "Critical Bug",
+    "Minor Bug",
+    "Cosmetic Issue",
+    "Data Error",
+    "Security Issue",
+  ],
+};
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
+
+export default function SupportPopup({
+  open,
+  onClose,
+  errorDetails,
+}: ISupportPopupProps) {
+  const { t } = useTranslation();
+
+  // Form state
+  const [subject, setSubject] = useState(
+    errorDetails
+      ? `${t("support.errorReport", "Error Report")}: ${errorDetails.type}`
+      : "",
+  );
+  const [moduleKey, setModule] = useState("Other");
+  const [type, setType] = useState("Bug");
+  const [priority, setPriority] = useState("Medium");
+  const [text, setText] = useState("");
+  const [category, setCategory] = useState("Technical");
+  const [subCategory, setSubCategory] = useState("Bug Report");
+
+  // Guest fields
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+
+  // UI state
+  const [submitting, setSubmitting] = useState(false);
+  const getModuleLabel = useCallback(
+    (value: string) => {
+      const entry = MODULE_LABELS[value] ?? {
+        key: `support.modules.${value}`,
+        fallback: value,
+      };
+      return t(entry.key, entry.fallback);
+    },
+    [t],
+  );
+  const getCategoryLabel = useCallback(
+    (value: string) => {
+      const entry = CATEGORY_LABELS[value] ?? {
+        key: `support.categories.${value}`,
+        fallback: value,
+      };
+      return t(entry.key, entry.fallback);
+    },
+    [t],
+  );
+  const getSubCategoryLabel = useCallback(
+    (value: string) => {
+      const entry = SUB_CATEGORY_LABELS[value] ?? {
+        key: `support.subCategories.${value}`,
+        fallback: value,
+      };
+      return t(entry.key, entry.fallback);
+    },
+    [t],
+  );
+  const getTypeLabel = useCallback(
+    (value: string) => {
+      const entry = TYPE_LABELS[value] ?? {
+        key: `support.types.${value}`,
+        fallback: value,
+      };
+      return t(entry.key, entry.fallback);
+    },
+    [t],
+  );
+  const getPriorityLabel = useCallback(
+    (value: string) => {
+      const entry = PRIORITY_LABELS[value] ?? {
+        key: `support.priorities.${value}`,
+        fallback: value,
+      };
+      return t(entry.key, entry.fallback);
+    },
+    [t],
+  );
+
+  // ✅ FIX: Detect legacy session key (x-user) used by existing tests/flows
+  const getSessionToken = useCallback(() => {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem("x-user");
+  }, []);
+  const sessionTokenRaw = getSessionToken();
+  const hasSession =
+    Boolean(sessionTokenRaw) &&
+    sessionTokenRaw !== "undefined" &&
+    sessionTokenRaw !== "null" &&
+    sessionTokenRaw !== "false";
+  const showGuestFields = !hasSession;
+  useEffect(() => {
+    if (process.env.NODE_ENV === "test") {
+      return () => {
+        try {
+          localStorage.removeItem("x-user");
+        } catch {
+          // ignore
+        }
+      };
+    }
+  }, []);
+
+  // Error description generator
+  const generateErrorDescription = (errorDetails: ErrorDetails): string => {
+    const memoryUsed = errorDetails.system?.memory?.used
+      ? Math.round(errorDetails.system.memory.used / 1024 / 1024)
+      : 0;
+
+    const errorIdLine = `${t("support.errorId", "Error ID")}: \`${errorDetails.errorId}\``;
+
+    return `🚨 **${t("support.autoErrorReport", "Automated Error Report")}**
+
+**${errorIdLine}**
+${t("support.timestamp", "Timestamp")}: ${errorDetails.timestamp}
+${t("support.url", "URL")}: ${errorDetails.url}
+${t("support.userAgent", "User Agent")}: ${errorDetails.userAgent}
+
+${t("support.errorDetails", "Error Details")}:
+- ${t("support.type", "Type")}: ${errorDetails.error?.name || t("common.unknown", "Unknown")}
+- ${t("support.message", "Message")}: ${errorDetails.error?.message || t("support.noMessage", "No message available")}
+- ${t("support.viewport", "Viewport")}: ${errorDetails.viewport}
+- ${t("support.platform", "Platform")}: ${errorDetails.system?.platform || t("common.unknown", "Unknown")}
+
+${t("support.systemInfo", "System Information")}:
+- ${t("support.language", "Language")}: ${errorDetails.system?.language || t("common.unknown", "Unknown")}
+- ${t("support.onlineStatus", "Online Status")}: ${errorDetails.system?.onLine ? t("common.online", "Online") : t("common.offline", "Offline")}
+${errorDetails.system?.memory ? `- ${t("support.memoryUsage", "Memory Usage")}: ${memoryUsed}MB ${t("support.used", "used")}` : ""}
+
+${t("support.appState", "Application State")}:
+- ${t("support.authenticated", "Authenticated")}: ${errorDetails.localStorage?.hasAuth ? "✅" : "❌"}
+- ${t("support.userData", "User Data")}: ${errorDetails.localStorage?.hasUser ? "✅" : "❌"}
+- ${t("support.languageSet", "Language Set")}: ${errorDetails.localStorage?.hasLang ? "✅" : "❌"}
+- ${t("support.themeSet", "Theme Set")}: ${errorDetails.localStorage?.hasTheme ? "✅" : "❌"}
+
+**${t("support.stackTrace", "Stack Trace")}:**
+\`\`\`
+${errorDetails.error?.stack || t("support.noStackTrace", "No stack trace available")}
+\`\`\`
+
+**${t("support.componentStack", "Component Stack")}:**
+\`\`\`
+${errorDetails.error?.componentStack || t("support.noComponentStack", "No component stack available")}
+\`\`\`
+
+---
+
+*${t("support.autoCreated", "This ticket was automatically created from an error boundary. Please investigate and resolve the issue.")}*`;
+  };
+
+  // Auto-populate fields if error details are provided
+  useEffect(() => {
+    if (errorDetails) {
+      const errorName =
+        errorDetails.error?.name || t("common.unknown", "Unknown");
+      const errorMsg = errorDetails.error?.message?.substring(0, 50) || "";
+      setSubject(
+        `${t("support.systemError", "System Error")}: ${errorName} - ${errorMsg}...`,
+      );
+      setModule("Other");
+      setType("Bug");
+      setPriority("High");
+      setText(generateErrorDescription(errorDetails));
+    }
+  }, [errorDetails]);
+
+  const submit = async () => {
+    const payload: Record<string, unknown> = {
+      subject,
+      module: moduleKey,
+      type,
+      priority,
+      text,
+      category,
+      subCategory,
+    };
+
+    try {
+      // ✅ FIX: Accept both current and legacy session markers
+      const userSession = hasSession ? sessionTokenRaw : null;
+      if (!userSession) {
+        payload.requester = { name, email, phone };
+      }
+
+      setSubmitting(true);
+
+      const res = await api("/api/support/tickets", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+
+      // ✅ FIX: Use react-hot-toast instead of alert()
+      const successMessage = `🎯 ${t("support.ticketCreated", "Support Ticket Created Successfully")}!
+
+${t("support.ticketId", "Ticket ID")}: ${res.code}
+${t("support.subject", "Subject")}: ${subject}
+${t("support.priority", "Priority")}: ${priority}
+${t("support.module", "Module")}: ${moduleKey}
+${t("support.type", "Type")}: ${type}
+${t("support.category", "Category")}: ${category}
+${t("support.subCategory", "Sub-Category")}: ${subCategory}
+
+${t("support.emailUpdates", "You will receive updates via email. Our support team will respond within 24 hours.")}
+
+${t("support.thankYou", "Thank you for contacting Fixzit Support!")}
+
+${!userSession && email ? `\n\n📧 ${t("support.welcomeEmailSent", "Welcome Email Sent")}!\n${t("support.welcomeEmailDesc", "We've sent a welcome email to")} ${email} ${t("support.welcomeEmailNext", "with registration instructions and next steps.")}.` : ""}`;
+
+      toast.success(successMessage, { duration: 8000 });
+      // Legacy alert support for existing tests/tooling
+      window.alert(successMessage);
+      onClose();
+    } catch (e: unknown) {
+      logger.error("Ticket creation error:", { error: e });
+      const errorMessage =
+        e instanceof Error
+          ? e.message
+          : t(
+              "support.tryAgain",
+              "Please try again or contact support directly.",
+            );
+
+      // ✅ FIX: Use react-hot-toast instead of alert()
+      const failureMessage = `❌ ${t("support.failedToCreate", "Failed to create ticket")}: ${errorMessage}`;
+      toast.error(failureMessage, { duration: 6000 });
+      window.alert(failureMessage);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const copyDetails = async () => {
+    try {
+      await navigator.clipboard.writeText(text || subject);
+      // ✅ FIX: Use react-hot-toast instead of alert()
+      const copiedMsg = t(
+        "support.copiedToClipboard",
+        "Details copied to clipboard",
+      );
+      toast.success(copiedMsg, { duration: 2000 });
+      window.alert(copiedMsg);
+    } catch {
+      toast.error(t("support.failedToCopy", "Failed to copy to clipboard"), {
+        duration: 2000,
+      });
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">
+            {t("support.createTicket", "Create Support Ticket")}
+          </DialogTitle>
+          <DialogDescription>
+            {t(
+              "support.description",
+              "Fill out the form below and our support team will get back to you within 24 hours.",
+            )}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 mt-4">
+          {/* Subject and Module */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="subject">
+                {t("support.subject", "Subject")} *
+              </Label>
+              <Input
+                id="subject"
+                placeholder={t(
+                  "support.subjectPlaceholder",
+                  "Brief description of your issue",
+                )}
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="module">{t("support.module", "Module")}</Label>
+              <Select
+                id="module"
+                value={moduleKey}
+                onValueChange={setModule}
+                placeholder={t("support.modulePlaceholder", "Select module")}
+              >
+                {MODULES.map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {getModuleLabel(m)}
+                  </SelectItem>
+                ))}
+              </Select>
+            </div>
+          </div>
+
+          {/* Category and Sub-Category */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="category">
+                {t("support.category", "Category")}
+              </Label>
+              <Select
+                id="category"
+                value={category}
+                onValueChange={setCategory}
+                placeholder={t(
+                  "support.categoryPlaceholder",
+                  "Select category",
+                )}
+              >
+                {CATEGORIES.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {getCategoryLabel(c)}
+                  </SelectItem>
+                ))}
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="subCategory">
+                {t("support.subCategory", "Sub-Category")}
+              </Label>
+              <Select
+                id="subCategory"
+                value={subCategory}
+                onValueChange={setSubCategory}
+                placeholder={t(
+                  "support.subCategoryPlaceholder",
+                  "Select sub-category",
+                )}
+              >
+                {(SUB_CATEGORIES[category] || []).map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {getSubCategoryLabel(s)}
+                  </SelectItem>
+                ))}
+              </Select>
+            </div>
+          </div>
+
+          {/* Type and Priority */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="type">{t("support.type", "Type")}</Label>
+              <Select
+                id="type"
+                value={type}
+                onValueChange={setType}
+                placeholder={t("support.typePlaceholder", "Select type")}
+              >
+                {TYPES.map((t_val) => (
+                  <SelectItem key={t_val} value={t_val}>
+                    {getTypeLabel(t_val)}
+                  </SelectItem>
+                ))}
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="priority">
+                {t("support.priority", "Priority")}
+              </Label>
+              <Select
+                id="priority"
+                value={priority}
+                onValueChange={setPriority}
+                placeholder={t(
+                  "support.priorityPlaceholder",
+                  "Select priority",
+                )}
+              >
+                {PRIORITIES.map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {getPriorityLabel(p)}
+                  </SelectItem>
+                ))}
+              </Select>
+            </div>
+          </div>
+
+          {/* Description */}
+          <div className="space-y-2">
+            <Label htmlFor="description">
+              {t("support.description", "Description")} *
+            </Label>
+            <Textarea
+              id="description"
+              placeholder={t(
+                "support.descriptionPlaceholder",
+                "Please provide detailed information about your issue or request...",
+              )}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              required
+              className="h-32 resize-none"
+            />
+          </div>
+
+          {/* Guest-only fields */}
+          {showGuestFields && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted rounded-2xl">
+              <div className="space-y-2">
+                <Label htmlFor="name">
+                  {t("support.yourName", "Your Name")} *
+                </Label>
+                <Input
+                  id="name"
+                  placeholder={t(
+                    "support.namePlaceholder",
+                    "Enter your full name",
+                  )}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">{t("common.email", "Email")} *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder={t(
+                    "support.emailPlaceholder",
+                    "your.email@example.com",
+                  )}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">
+                  {t("support.phone", "Phone")} (
+                  {t("common.optional", "optional")})
+                </Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder={t(
+                    "support.phonePlaceholder",
+                    "+966 XX XXX XXXX",
+                  )}
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button variant="outline" onClick={onClose}>
+              {t("common.cancel", "Cancel")}
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={copyDetails}
+              disabled={!subject.trim() && !text.trim()}
+            >
+              <Copy className="w-4 h-4 me-2" />
+              {t("support.copyDetails", "Copy details")}
+            </Button>
+            <Button
+              variant="default"
+              onClick={submit}
+              disabled={!subject.trim() || !text.trim() || submitting}
+              data-testid="submit-btn"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 me-2 animate-spin" />
+                  {t("support.creating", "Creating Ticket...")}
+                </>
+              ) : (
+                t("support.submitTicket", "Submit Ticket")
+              )}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/SystemVerifier.tsx">
+<![CDATA[
+"use client";
+
+import { useState, useEffect } from "react";
+import { autoFixManager } from "@/lib/AutoFixManager";
+import {
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  RefreshCw,
+  Activity,
+  Database,
+  Network,
+  Shield,
+  Zap,
+} from "lucide-react";
+import ClientDate from "@/components/ClientDate";
+
+// ✅ FIXED: Use standard components
+import { Button } from "./ui/button";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "./ui/card";
+
+// ✅ FIXED: Add i18n support
+import { useTranslation } from "@/contexts/TranslationContext";
+import { logger } from "@/lib/logger";
+
+interface SystemStatus {
+  overall: "healthy" | "degraded" | "critical";
+  issues: string[];
+  fixes: string[];
+  lastCheck: string;
+}
+
+/**
+ * ✅ REFACTORED SystemVerifier Component
+ *
+ * ARCHITECTURE IMPROVEMENTS:
+ * 1. ✅ Standard Button/Card components (no hardcoded UI)
+ * 2. ✅ Full i18n support (30+ strings now translatable)
+ * 3. ✅ Semantic tokens (text-success, text-destructive, text-warning)
+ * 4. ✅ Consistent rounded-2xl (16px border radius)
+ * 5. ✅ ComponentStatus and SystemSetting helper components
+ * 6. ✅ TODO markers for dynamic API integration
+ */
+export default function SystemVerifier() {
+  const { t } = useTranslation();
+  const [status, setStatus] = useState<SystemStatus | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isMonitoring, setIsMonitoring] = useState(false);
+
+  const runVerification = async () => {
+    setIsLoading(true);
+    try {
+      const result = await autoFixManager.verifySystemHealth();
+      setStatus({
+        ...result,
+        lastCheck: new Date().toISOString(),
+      });
+    } catch (error) {
+      logger.error("Verification failed:", { error });
+      setStatus({
+        overall: "critical",
+        issues: [
+          t("system.verification.failed", "Verification process failed"),
+        ],
+        fixes: [],
+        lastCheck: new Date().toISOString(),
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const startMonitoring = () => {
+    setIsMonitoring(true);
+    autoFixManager.startAutoMonitoring(1);
+  };
+
+  const stopMonitoring = () => {
+    setIsMonitoring(false);
+    autoFixManager.stopAutoMonitoring();
+  };
+
+  // ✅ FIXED: Semantic token colors
+  const getStatusColor = (overall: string) => {
+    switch (overall) {
+      case "healthy":
+        return "text-success bg-success/10";
+      case "degraded":
+        return "text-warning bg-warning/10";
+      case "critical":
+        return "text-destructive bg-destructive/10";
+      default:
+        return "text-muted-foreground bg-muted";
+    }
+  };
+
+  const getStatusIcon = (overall: string) => {
+    switch (overall) {
+      case "healthy":
+        return <CheckCircle className="w-5 h-5" />;
+      case "degraded":
+        return <AlertTriangle className="w-5 h-5" />;
+      case "critical":
+        return <XCircle className="w-5 h-5" />;
+      default:
+        return <Activity className="w-5 h-5" />;
+    }
+  };
+
+  useEffect(() => {
+    runVerification();
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">
+            {t("system.verification.title", "System Verification")}
+          </h2>
+          <p className="text-muted-foreground">
+            {t(
+              "system.verification.description",
+              "Monitor and verify system health with auto-fix capabilities",
+            )}
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <Button
+            onClick={startMonitoring}
+            disabled={isMonitoring}
+            variant="default"
+          >
+            {isMonitoring
+              ? t("system.monitoring.active", "Monitoring...")
+              : t("system.monitoring.start", "Start Monitoring")}
+          </Button>
+          <Button
+            onClick={stopMonitoring}
+            disabled={!isMonitoring}
+            variant="secondary"
+          >
+            {t("system.monitoring.stop", "Stop Monitoring")}
+          </Button>
+          <Button
+            onClick={runVerification}
+            disabled={isLoading}
+            variant="success"
+            className="flex items-center gap-2"
+          >
+            <RefreshCw
+              className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
+            />
+            {isLoading
+              ? t("system.verification.checking", "Checking...")
+              : t("system.verification.verify", "Verify Now")}
+          </Button>
+        </div>
+      </div>
+
+      {/* System Status */}
+      {status && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Overall Status */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                {getStatusIcon(status.overall)}
+                <div>
+                  <h3 className="font-semibold text-foreground">
+                    {t("system.status.overall", "Overall Status")}
+                  </h3>
+                  <div
+                    className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(status.overall)}`}
+                  >
+                    {getStatusIcon(status.overall)}
+                    {status.overall.toUpperCase()}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Issues Count */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <XCircle className="w-8 h-8 text-destructive" />
+                <div>
+                  <h3 className="font-semibold text-foreground">
+                    {t("system.issues.found", "Issues Found")}
+                  </h3>
+                  <div className="text-2xl font-bold text-destructive">
+                    {status.issues.length}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Fixes Applied */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="w-8 h-8 text-success" />
+                <div>
+                  <h3 className="font-semibold text-foreground">
+                    {t("system.fixes.applied", "Fixes Applied")}
+                  </h3>
+                  <div className="text-2xl font-bold text-success">
+                    {status.fixes.length}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Last Check */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <Activity className="w-8 h-8 text-primary" />
+                <div>
+                  <h3 className="font-semibold text-foreground">
+                    {t("system.lastCheck", "Last Check")}
+                  </h3>
+                  <div className="text-sm text-muted-foreground">
+                    <ClientDate date={status.lastCheck} format="time-only" />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Issues & Fixes */}
+      {status && (status.issues.length > 0 || status.fixes.length > 0) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Issues */}
+          {status.issues.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <XCircle className="w-5 h-5 text-destructive" />
+                  {t("system.issues.detected", "Issues Detected")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {status.issues.map((issue, index) => (
+                    <ComponentStatus
+                      key={index}
+                      icon={<XCircle className="w-4 h-4" />}
+                      text={issue}
+                      variant="destructive"
+                    />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Fixes */}
+          {status.fixes.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-success" />
+                  {t("system.fixes.applied", "Fixes Applied")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {status.fixes.map((fix, index) => (
+                    <ComponentStatus
+                      key={index}
+                      icon={<CheckCircle className="w-4 h-4" />}
+                      text={fix}
+                      variant="success"
+                    />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* System Components Status */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="w-5 h-5 text-primary" />
+            {t("system.components.title", "System Components")}
+          </CardTitle>
+          <CardDescription>
+            {t(
+              "system.components.description",
+              "Real-time status of system components",
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* Note: Component status is currently static. Dynamic fetching via autoFixManager.getComponentStatus() can be added in future enhancement */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <SystemSetting
+              icon={<Database className="w-5 h-5 text-primary" />}
+              title={t("system.component.database", "Database")}
+              description={t(
+                "system.component.database.desc",
+                "MongoDB Connection",
+              )}
+              status="healthy"
+            />
+            <SystemSetting
+              icon={<Network className="w-5 h-5 text-success" />}
+              title={t("system.component.network", "Network")}
+              description={t(
+                "system.component.network.desc",
+                "API Connectivity",
+              )}
+              status="healthy"
+            />
+            <SystemSetting
+              icon={<Zap className="w-5 h-5 text-warning" />}
+              title={t("system.component.performance", "Performance")}
+              description={t(
+                "system.component.performance.desc",
+                "System Health",
+              )}
+              status="healthy"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Auto-Fix Status */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <RefreshCw className="w-5 h-5 text-primary" />
+            {t("system.autofix.title", "Auto-Fix System")}
+          </CardTitle>
+          <CardDescription>
+            {t(
+              "system.autofix.description",
+              "Automated error detection and recovery systems",
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <SystemSetting
+              icon={<Shield className="w-5 h-5" />}
+              title={t("system.autofix.errorBoundary", "Error Boundary")}
+              description={t(
+                "system.autofix.errorBoundary.desc",
+                "Automatic error detection and recovery",
+              )}
+              status="healthy"
+              variant="brand"
+            />
+            <SystemSetting
+              icon={<Activity className="w-5 h-5" />}
+              title={t("system.autofix.healthMonitoring", "Health Monitoring")}
+              description={t(
+                "system.autofix.healthMonitoring.desc",
+                "Continuous system health checks",
+              )}
+              status={isMonitoring ? "healthy" : "inactive"}
+              statusText={
+                isMonitoring
+                  ? t("system.status.running", "Running")
+                  : t("system.status.stopped", "Stopped")
+              }
+              variant="success"
+            />
+            <SystemSetting
+              icon={<RefreshCw className="w-5 h-5" />}
+              title={t("system.autofix.autoRecovery", "Auto Recovery")}
+              description={t(
+                "system.autofix.autoRecovery.desc",
+                "Automatic error fixing and recovery",
+              )}
+              status="healthy"
+              variant="purple"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Emergency Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            {t("system.emergency.title", "Emergency Actions")}
+          </CardTitle>
+          <CardDescription>
+            {t(
+              "system.emergency.description",
+              "Critical system recovery and reset options",
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-3">
+            <Button
+              onClick={() => autoFixManager.emergencyRecovery()}
+              variant="destructive"
+            >
+              🚨 {t("system.emergency.recovery", "Emergency Recovery")}
+            </Button>
+
+            <Button
+              onClick={() => {
+                if (
+                  window.confirm(
+                    t(
+                      "system.reset.confirm",
+                      "⚠️ WARNING: This will clear ALL local data and reload the page.\n\nAre you sure you want to perform a full reset? This action cannot be undone.",
+                    ),
+                  )
+                ) {
+                  localStorage.clear();
+                  sessionStorage.clear();
+                  window.location.reload();
+                }
+              }}
+              variant="destructive"
+              className="bg-warning hover:bg-warning/90"
+            >
+              🔄 {t("system.reset.full", "Full Reset")}
+            </Button>
+
+            <Button
+              onClick={() => window.open("/help", "_blank")}
+              variant="default"
+            >
+              📚 {t("system.help", "Get Help")}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+/**
+ * ✅ EXTRACTED: ComponentStatus Helper
+ * Displays a status message with icon and semantic color
+ */
+interface ComponentStatusProps {
+  icon: React.ReactNode;
+  text: string;
+  variant: "success" | "destructive" | "warning";
+}
+
+function ComponentStatus({ icon, text, variant }: ComponentStatusProps) {
+  const variantClasses = {
+    success: "bg-success/10 text-success",
+    destructive: "bg-destructive/10 text-destructive",
+    warning: "bg-warning/10 text-warning",
+  };
+
+  return (
+    <div
+      className={`flex items-start gap-3 p-3 rounded-2xl ${variantClasses[variant]}`}
+    >
+      <div className="mt-0.5 flex-shrink-0">{icon}</div>
+      <span className="text-sm">{text}</span>
+    </div>
+  );
+}
+
+/**
+ * ✅ EXTRACTED: SystemSetting Helper
+ * Displays a system component setting with icon, title, description, and status
+ */
+interface SystemSettingProps {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  status: "healthy" | "inactive";
+  statusText?: string;
+  variant?: "brand" | "success" | "purple";
+}
+
+function SystemSetting({
+  icon,
+  title,
+  description,
+  status,
+  statusText,
+  variant = "success",
+}: SystemSettingProps) {
+  const variantClasses = {
+    brand: "bg-primary/10",
+    success: "bg-success/10",
+    purple: "bg-secondary/10",
+  };
+
+  const statusColor =
+    status === "healthy" ? "bg-success" : "bg-muted-foreground";
+
+  return (
+    <div
+      className={`flex items-center gap-3 p-3 rounded-2xl ${variantClasses[variant]}`}
+    >
+      {icon}
+      <div className="flex-1">
+        <div className="font-medium text-foreground">{title}</div>
+        <div className="text-sm text-muted-foreground">{description}</div>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className={`w-3 h-3 rounded-full ${statusColor}`}></div>
+        {statusText && (
+          <span className="text-sm text-muted-foreground">{statusText}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/Tabs.tsx">
+<![CDATA[
+// components/Tabs.tsx
+"use client";
+
+import { useState, useEffect, useRef, type ReactNode } from "react";
+import { cn } from "@/lib/utils";
+
+/**
+ * Accessible Tabs Component
+ *
+ * Features:
+ * - Keyboard navigation (Cmd/Ctrl + 1-9 for quick tab switching)
+ * - ARIA roles and states
+ * - Focus management
+ * - RTL-aware styling
+ * - Theme-consistent colors
+ */
+
+interface Tab {
+  id: string;
+  label: string;
+  content: ReactNode;
+  badge?: number;
+  disabled?: boolean;
+}
+
+interface TabsProps {
+  tabs: Tab[];
+  defaultTab?: string;
+  onChange?: (_tabId: string) => void;
+  className?: string;
+}
+
+export function Tabs({ tabs, defaultTab, onChange, className }: TabsProps) {
+  const [active, setActive] = useState(defaultTab || tabs[0]?.id);
+  const tabRefs = useRef<HTMLButtonElement[]>([]);
+
+  // Keyboard shortcuts (Cmd/Ctrl + 1-9)
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        const num = parseInt(e.key);
+        if (num > 0 && num <= tabs.length) {
+          const targetTab = tabs[num - 1];
+          if (targetTab && !targetTab.disabled) {
+            e.preventDefault();
+            setActive(targetTab.id);
+            tabRefs.current[num - 1]?.focus();
+            onChange?.(targetTab.id);
+          }
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [tabs, onChange]);
+
+  const currentTab = tabs.find((t) => t.id === active);
+
+  const handleTabClick = (tab: Tab, index: number) => {
+    if (tab.disabled) return;
+    setActive(tab.id);
+    onChange?.(tab.id);
+    tabRefs.current[index]?.focus();
+  };
+
+  return (
+    <div className={cn("tabs-container", className)} aria-label="Tabs">
+      {/* Tab List */}
+      <div
+        className="flex gap-2 border-b border-border bg-card/50"
+        role="tablist"
+      >
+        {tabs.map((tab, i) => {
+          const isActive = active === tab.id;
+          return (
+            <button
+              key={tab.id}
+              ref={(el) => {
+                if (el) tabRefs.current[i] = el;
+              }}
+              onClick={() => handleTabClick(tab, i)}
+              disabled={tab.disabled}
+              className={cn(
+                "relative px-4 py-2.5 text-sm font-medium rounded-t-lg transition-all",
+                "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+                isActive
+                  ? "bg-card text-foreground border-b-2 border-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted",
+                tab.disabled && "opacity-50 cursor-not-allowed",
+              )}
+              role="tab"
+              aria-selected={isActive}
+              aria-controls={`tabpanel-${tab.id}`}
+              aria-disabled={tab.disabled}
+              tabIndex={isActive ? 0 : -1}
+            >
+              <span className="flex items-center gap-2">
+                {tab.label}
+                {tab.badge !== undefined && tab.badge > 0 && (
+                  <span
+                    className={cn(
+                      "px-1.5 py-0.5 text-xs font-semibold rounded-full",
+                      isActive
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    {tab.badge > 99 ? "99+" : tab.badge}
+                  </span>
+                )}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Tab Panel */}
+      <div
+        id={`tabpanel-${currentTab?.id}`}
+        className="bg-card rounded-b-lg rounded-tr-lg border border-border border-t-0 p-6"
+        role="tabpanel"
+        aria-labelledby={`tab-${currentTab?.id}`}
+        tabIndex={0}
+      >
+        {currentTab?.content || (
+          <div className="text-center text-muted-foreground py-8">
+            No content available
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Simple Tabs variant (no border/card styling)
+ */
+export function SimpleTabs({ tabs, defaultTab, onChange }: TabsProps) {
+  const [active, setActive] = useState(defaultTab || tabs[0]?.id);
+  const currentTab = tabs.find((t) => t.id === active);
+
+  const handleTabClick = (tab: Tab) => {
+    if (tab.disabled) return;
+    setActive(tab.id);
+    onChange?.(tab.id);
+  };
+
+  return (
+    <div className="simple-tabs">
+      <div className="flex gap-1 mb-4" role="tablist">
+        {tabs.map((tab) => {
+          const isActive = active === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => handleTabClick(tab)}
+              disabled={tab.disabled}
+              className={cn(
+                "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
+                isActive
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                tab.disabled && "opacity-50 cursor-not-allowed",
+              )}
+              role="tab"
+              aria-selected={isActive}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+      <div role="tabpanel">{currentTab?.content}</div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/Tooltip.tsx">
+<![CDATA[
+"use client";
+
+/**
+ * Tooltip Component
+ * 
+ * Re-exports the SimpleTooltip from ui/tooltip for convenience.
+ * This provides a consistent tooltip experience across the app.
+ * 
+ * Features:
+ * - Theme-aware (light/dark mode via CSS variables)
+ * - RTL-compatible
+ * - Accessible (uses Radix UI primitives)
+ * - Smooth animations
+ * 
+ * @example
+ * ```tsx
+ * import Tooltip from '@/components/Tooltip';
+ * 
+ * <Tooltip content="Click to submit">
+ *   <button>Submit</button>
+ * </Tooltip>
+ * ```
+ */
+
+export { SimpleTooltip as default } from '@/components/ui/tooltip';
+export { 
+  SimpleTooltip,
+  Tooltip as TooltipRoot,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+
+]]>
+</file>
+
+</batch_content>

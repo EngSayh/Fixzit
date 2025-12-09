@@ -1,0 +1,3271 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/guides/NEXTAUTH_V5_PRODUCTION_READINESS.md">
+<![CDATA[
+# NextAuth.js v5 Beta Production Readiness Assessment
+
+**Date**: October 19, 2025  
+**Current Version**: next-auth@5.0.0-beta.29  
+**Recommendation**: **✅ CONDITIONALLY APPROVED FOR PRODUCTION (pending test completion)**
+
+---
+
+## Executive Decision
+
+**✅ CONDITIONALLY APPROVED FOR PRODUCTION (pending test completion)**
+
+This approval is conditional on completing the outstanding integration, E2E and load testing items and ensuring OAuth redirect URIs are configured. See "Approval Conditions" near the end of this document for gating criteria.
+
+### Rationale Summary
+
+1. **Next.js 15 Compatibility**: NextAuth v4.24.11 is compatible with Next.js 15.5.4 (verified in NEXTAUTH_VERSION_VALIDATION_2025_10_20.md lines 14-24). However, the team chose v5 beta for the following strategic reasons:
+2. **Beta Maturity**: 29 beta releases demonstrate extensive production testing
+3. **Zero Current Issues**: All quality checks passing, no runtime errors
+4. **Downgrade Risk**: Reverting to v4 introduces 5-7 hours work + medium-high authentication risk
+5. **Forward Path**: v5 will become stable; migration from beta→stable is minimal
+
+---
+
+## Security Architecture: User Approval Status
+
+**⚠️ CRITICAL SECURITY PRINCIPLE**: User approval status (`user.isApproved`) is controlled **server-side only** and **NEVER** by client session updates.
+
+### How Approval Works
+
+1. **Admin Action (Server-Side)**:
+   - Admin updates `user.isApproved` in MongoDB via API route
+   - Change persists in database immediately
+   - Example: `PATCH /api/users/[id]` with admin authentication
+
+2. **Session Refresh (Automatic)**:
+   - User's next request fetches fresh session via NextAuth callbacks
+   - `jwt()` callback queries MongoDB: `User.findById(token.sub)`
+   - `session()` callback populates `session.user.isApproved` from DB
+   - Client receives updated session data
+
+3. **Client Session (Read-Only)**:
+   - Client calls `useSession()` or `getSession()`
+   - Receives current approval status from server
+   - **CANNOT** modify approval status via client-side code
+   - Any client tampering is ignored (DB is source of truth)
+
+### Why This Matters
+
+- **Authorization Bypass Prevention**: Clients cannot elevate their own privileges
+- **Single Source of Truth**: MongoDB database is authoritative
+- **Session Consistency**: All requests see same approval status until next refresh
+- **Audit Trail**: All approval changes logged in server-side admin actions
+
+### Implementation Reference
+
+See `auth.ts` callbacks (lines ~15-45) for session hydration logic:
+
+- `jwt()` callback: Fetches user from DB, populates token
+- `session()` callback: Transfers DB state to session object
+- Middleware: Enforces approval check on protected routes
+
+**DO NOT**: Attempt to update `session.user.isApproved` from client code
+**DO**: Use admin API routes with proper authentication to modify user approval
+
+---
+
+## Comprehensive Testing Plan
+
+### ✅ Phase 1: Static Analysis (COMPLETED)
+
+**TypeScript Compilation**:
+
+```bash
+$ pnpm typecheck
+✅ PASS - 0 errors
+```
+
+**ESLint Verification**:
+
+```bash
+$ pnpm lint
+✅ PASS - 0 warnings, 0 errors
+```
+
+**Dependency Audit**:
+
+```bash
+$ pnpm audit
+Status: Reviewed and mitigated
+```
+
+### ✅ Phase 2: Unit Tests (COMPLETED)
+
+**Authentication Flow Tests**:
+
+- ✅ OAuth sign-in callback with email validation
+- ✅ JWT token generation and validation
+- ✅ Session persistence across requests
+- ✅ Redirect logic based on user roles
+- ✅ Access control enforcement
+
+**Test Coverage**:
+
+- Components: 85%+ coverage
+- Authentication logic: 95%+ coverage
+- Middleware: 90%+ coverage
+
+### 🔄 Phase 3: Integration Tests (IN PROGRESS)
+
+**OAuth Provider Testing**:
+
+1. **Google OAuth Flow**:
+
+   ```bash
+   Test Scenario: User signs in with Google account
+   ✅ Authorization redirect works
+   ✅ Callback handling successful
+   ✅ Email domain whitelist enforced (@fixzit.com, @fixzit.co)
+   ✅ Unauthorized domains rejected
+   ✅ Session created with correct user data
+   ✅ Session data refreshed from DB on each request (maxAge: 30 days)
+   ```
+
+2. **Session Management**:
+
+   ```bash
+   Test Scenario: Session lifecycle
+   ✅ Session persists across page navigations
+   ✅ Session expires after 30 days (maxAge)
+   ✅ Expired session redirects to login
+   ✅ Multiple concurrent sessions handled
+   ✅ Session revocation works (logout clears session)
+
+   ⚠️ Token refresh mechanism: NOT YET IMPLEMENTED
+   Current: Sessions rely on maxAge expiry (30 days)
+   Backlog: Implement automatic token refresh with provider refresh tokens
+   ```
+
+3. **Middleware Protection**:
+
+   ```bash
+   Test Scenario: Route protection
+   ✅ Public routes accessible without auth
+   ✅ Protected routes redirect to login
+   ✅ API routes return 401 for unauthorized
+   ✅ JWT signature verification prevents forgery
+   ✅ Admin routes enforce RBAC correctly
+   ```
+
+**Current Session Behavior**:
+
+- Sessions are valid for 30 days (maxAge configuration)
+- No automatic token refresh implemented
+- Users must re-authenticate after session expiry
+- Session data refreshed from database on each request (user approval status, role updates)
+
+**Token Refresh Backlog Item**:
+
+```typescript
+// Future enhancement: Implement token refresh
+// - Add expiry checks in jwt() callback
+// - Store refresh tokens securely
+// - Implement automatic refresh before expiry
+// - Handle refresh token expiration gracefully
+// Estimated effort: 4-6 hours
+```
+
+### 🔄 Phase 4: End-to-End Tests (PLANNED)
+
+**User Journey Testing**:
+
+1. **New User Registration via OAuth**:
+   - Navigate to /login
+   - Click "Sign in with Google"
+   - Authorize Google OAuth consent
+   - Verify email domain whitelist
+   - Create session and redirect to dashboard
+   - Verify user data in session
+
+2. **Returning User Login**:
+   - Navigate to /login
+   - Sign in with existing Google account
+   - Session restored immediately
+   - Previous preferences preserved
+   - Role-based redirect works
+
+3. **Session Expiry & Refresh**:
+   - Wait for token to near expiration
+   - Verify automatic refresh triggers
+   - Continue using app without interruption
+   - Manual logout clears session
+
+4. **Unauthorized Access Attempts**:
+   - Try signing in with non-whitelisted domain
+   - Verify rejection with error message
+   - Try accessing /fm/\* without auth
+   - Verify redirect to login
+   - Try forging JWT token
+   - Verify signature verification rejects it
+
+### 📊 Phase 5: Load & Performance Tests
+
+**Metrics to Monitor**:
+
+- OAuth callback response time: < 500ms
+- JWT verification latency: < 10ms
+- Session lookup time: < 50ms
+- Concurrent user capacity: 1000+ sessions
+- Memory footprint: Stable over 24h
+
+**Stress Testing**:
+
+```bash
+# Simulate 1000 concurrent OAuth sign-ins
+$ artillery run auth-load-test.yml
+Target: Pass without errors or timeouts
+
+# Monitor for memory leaks
+$ node --inspect middleware.test.js
+Target: Stable memory usage over time
+```
+
+---
+
+## Security Hardening (COMPLETED)
+
+### ✅ Critical Security Fixes Applied
+
+1. **JWT Signature Verification** (CRITICAL):
+   - ✅ Removed unsafe `atob()` decoding
+   - ✅ Implemented `jwtVerify()` from `jose` library
+   - ✅ Validates signature before trusting payload
+   - ✅ Prevents token forgery attacks
+
+2. **OAuth Access Control** (CRITICAL):
+   - ✅ Email domain whitelist implemented
+   - ✅ Configured domains: `fixzit.com`, `fixzit.co`
+   - ✅ Rejects unauthorized email domains
+   - ✅ Handles missing/malformed emails safely
+   - ✅ Audit logging for rejected sign-ins
+
+3. **Environment Variable Validation**:
+   - ✅ Startup validation for required secrets
+   - ✅ Fails fast with descriptive errors
+   - ✅ No hardcoded fallback secrets
+   - ✅ Removed 'fallback-secret-change-in-production'
+
+4. **Secret Management**:
+   - ✅ All secrets in environment variables
+   - ✅ No credentials in source code
+   - ✅ `.env.local` in `.gitignore`
+   - ✅ GitHub Secrets configured for CI/CD
+
+### 🔒 Security Best Practices
+
+**Environment Variables Required**:
+
+```bash
+# NextAuth Configuration
+NEXTAUTH_SECRET=<strong-random-secret-256-bits>
+NEXTAUTH_URL=https://fixzit.co  # Production URL
+
+# OAuth Provider
+GOOGLE_CLIENT_ID=<your-client-id>
+GOOGLE_CLIENT_SECRET=<your-client-secret>
+
+# JWT Legacy Token Support
+JWT_SECRET=<strong-random-secret-256-bits>
+```
+
+**Secret Generation**:
+
+```bash
+# Generate secure secrets
+openssl rand -base64 32
+
+# Or use Node.js
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+**Access Control Configuration**:
+
+```typescript
+// auth.config.ts
+import { getUserByEmail } from '@/lib/db/users';
+
+const allowedDomains = ['fixzit.com', 'fixzit.co'];
+
+// Database verification for production
+async signIn({ user, account }) {
+  if (account?.provider === 'google') {
+    try {
+      const dbUser = await getUserByEmail(user.email);
+
+      // Deny access if user not in database or inactive
+      if (!dbUser) {
+        console.warn('OAuth login denied: User not found in database');
+        return false;
+      }
+
+      if (!dbUser.isActive) {
+        console.warn('OAuth login denied: User account is inactive');
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      // Sanitized error logging - no PII (email), no connection strings, no stack traces
+      console.error('Database verification failed during OAuth login', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        type: error instanceof Error ? error.constructor.name : typeof error
+      });
+      // Fail secure: deny access on error
+      return false;
+    }
+  }
+  return true;
+}
+```
+
+---
+
+## Risk Assessment & Mitigation
+
+### Risk Matrix
+
+| Risk                       | Severity | Likelihood | Impact   | Mitigation                                          |
+| -------------------------- | -------- | ---------- | -------- | --------------------------------------------------- |
+| Beta instability           | Medium   | Low        | High     | 29 releases, extensive testing, zero current issues |
+| Breaking changes in stable | Low      | Medium     | Medium   | Monitor releases, test in staging first             |
+| Security vulnerability     | High     | Low        | Critical | Applied all security hardening, regular updates     |
+| Performance degradation    | Medium   | Low        | Medium   | Load testing, monitoring, rollback plan             |
+| OAuth provider issues      | Medium   | Low        | High     | Error handling, fallback to email login             |
+
+### Mitigation Strategies
+
+1. **Monitoring & Alerting**:
+
+   ```bash
+   # Monitor authentication errors
+   - OAuth callback failures
+   - JWT verification failures
+   - Session creation errors
+   - Middleware protection bypasses
+
+   # Set up alerts for:
+   - Error rate > 1% of auth requests
+   - Response time > 2s for OAuth callback
+   - Sudden spike in failed sign-ins
+   ```
+
+2. **Rollback Plan**:
+
+   ```bash
+   # If critical issues arise:
+
+   # Step 1: Immediate hotfix
+   - Revert to previous commit
+   - Deploy emergency patch
+   - Notify users of temporary maintenance
+
+   # Step 2: Downgrade path (if needed)
+   - See NEXTAUTH_VERSION_ANALYSIS.md for v4 migration
+   - Estimated time: 5-7 hours
+   - Requires code changes to 7 files
+
+   # Step 3: Post-mortem
+   - Document issue and root cause
+   - Implement additional safeguards
+   - Update testing procedures
+   ```
+
+3. **Staged Rollout**:
+
+   ```bash
+   # Week 1: Staging environment
+   - Deploy to staging
+   - Run full E2E test suite
+   - Monitor for 7 days
+   - Collect metrics and feedback
+
+   # Week 2: Canary deployment (10% traffic)
+   - Deploy to 10% of production users
+   - Monitor error rates and performance
+   - Collect user feedback
+   - Expand to 50% if stable
+
+   # Week 3: Full production rollout
+   - Deploy to 100% of users
+   - Monitor closely for 48 hours
+   - Keep rollback plan ready
+   ```
+
+---
+
+## Known Limitations & Workarounds
+
+### 1. Beta Warning Messages
+
+**Issue**: Console may show beta software warnings
+
+**Impact**: Low - cosmetic only
+
+**Workaround**:
+
+```typescript
+// Suppress ONLY NextAuth beta warnings in production
+// IMPORTANT: This preserves all other console.warn calls
+if (process.env.NODE_ENV === "production") {
+  const originalWarn = console.warn;
+  console.warn = (...args) => {
+    // Only suppress warnings that mention 'next-auth' AND 'beta'
+    const message = args[0]?.toString() || "";
+    if (message.includes("next-auth") && message.includes("beta")) {
+      // Suppress NextAuth beta warnings
+      return;
+    }
+    // Preserve all other warnings
+    originalWarn.apply(console, args);
+  };
+}
+```
+
+**Note**: The above implementation is more precise than the original. It:
+
+1. Saves the original console.warn function
+2. Only suppresses warnings that mention BOTH 'next-auth' AND 'beta'
+3. Preserves all other warnings (React, Next.js, custom warnings, etc.)
+
+### 2. OAuth Users Default to USER Role
+
+**Issue**: OAuth sign-ins don't automatically sync roles from database
+
+**Impact**: Medium - requires manual role assignment
+
+**Operational Questions & Answers**:
+
+1. **Can the system operate safely with OAuth users defaulting to USER role?**  
+   Yes. New OAuth users default to USER role on first login, which provides read-only access with no sensitive operations. The system can operate safely in this configuration.
+
+2. **How do admins assign roles manually?**  
+   After first OAuth login, admins can update user roles directly in the database:
+   - Connect to MongoDB: `mongosh <MONGODB_URI>`
+   - Update user role: `db.users.updateOne({email: "user@example.com"}, {$set: {role: "ADMIN"}})`
+   - User will receive updated role on next login/token refresh
+
+3. **What permissions does USER role grant?**
+   - Read-only access to dashboard and profile
+   - View work orders (own organization only)
+   - View marketplace products
+   - No create/update/delete operations
+   - No access to admin panels or sensitive data
+   - **Security**: Safe default with minimal privilege
+
+**Operational Workaround**: New OAuth users default to USER role. Admins can manually update roles in the database after first login. USER role is read-only with no sensitive operations permitted.
+
+**Backlog**: Implement automatic role sync from database in Sprint 2 (estimated 2-4 hours)
+
+### 3. No Email/Password Provider
+
+**Issue**: Only OAuth is configured, no fallback for users without Google accounts
+
+**Impact**: Low - organization uses Google Workspace
+
+**Workaround**:
+
+```typescript
+// If needed, add Credentials provider:
+import Credentials from "next-auth/providers/credentials";
+
+providers: [
+  Google({
+    /* ... */
+  }),
+  Credentials({
+    credentials: {
+      email: { label: "Email", type: "email" },
+      password: { label: "Password", type: "password" },
+    },
+    async authorize(credentials) {
+      // Implement password verification
+      const user = await validateCredentials(credentials);
+      return user;
+    },
+  }),
+];
+```
+
+---
+
+## Production Deployment Checklist
+
+## Pre-Deployment Readiness Checklist
+
+**Note**: This is an aspirational checklist of recommended deployment readiness items. The "Approval Conditions" section below lists the actual verified gating criteria that must be met before production deployment.
+
+- [x] All security fixes applied and committed
+- [x] TypeScript compilation passes
+- [x] ESLint passes with no warnings
+- [x] Unit tests pass (95%+ coverage for auth)
+- [ ] Integration tests pass (OAuth flow, session management)
+- [ ] E2E tests pass (user journeys)
+- [ ] Load tests pass (1000+ concurrent users)
+- [x] Environment variables documented
+- [x] Secrets configured in production environment
+- [ ] OAuth redirect URIs added to Google Console
+- [x] Rollback plan documented and tested
+- [x] Monitoring and alerting configured
+
+### Deployment Day
+
+- [ ] Deploy to staging environment
+- [ ] Run smoke tests on staging
+- [ ] Verify OAuth flow works end-to-end
+- [ ] Check monitoring dashboards
+- [ ] Deploy to production (canary 10%)
+- [ ] Monitor error rates for 2 hours
+- [ ] Expand to 50% if stable
+- [ ] Monitor for 4 hours
+- [ ] Deploy to 100%
+- [ ] Monitor for 24 hours
+
+### Post-Deployment
+
+- [ ] Verify authentication metrics are normal
+- [ ] Check for any error spikes
+- [ ] Collect user feedback
+- [ ] Review logs for anomalies
+- [ ] Document any issues encountered
+- [ ] Update runbooks based on learnings
+
+---
+
+## Continuous Monitoring Plan
+
+### Key Metrics to Track
+
+**Authentication Success Rate**:
+
+```
+Target: > 99.5%
+Alert: < 98%
+
+Breakdown:
+- OAuth sign-in success rate
+- JWT verification success rate
+- Session creation success rate
+```
+
+**Performance Metrics**:
+
+```
+OAuth Callback: < 500ms (p95)
+JWT Verification: < 10ms (p95)
+Session Lookup: < 50ms (p95)
+
+Alert if:
+- p95 latency > 2x target
+- p99 latency > 5x target
+```
+
+**Error Types to Monitor**:
+
+```
+- OAuth provider errors (Google API down)
+- JWT verification failures (signature mismatch)
+- Session creation failures (database issues)
+- Middleware protection bypasses (security concern)
+- Email domain rejections (expected, track volume)
+```
+
+**Security Events**:
+
+```
+- Failed sign-in attempts (potential attacks)
+- JWT forgery attempts (signature verification failures)
+- Unauthorized domain sign-in attempts
+- Role escalation attempts
+- Session hijacking attempts
+```
+
+### Alerting Thresholds
+
+**Critical Alerts** (immediate response):
+
+- Authentication success rate < 95%
+- JWT signature verification failures > 10/min
+- Middleware protection bypass detected
+- OAuth provider returning 500 errors
+
+**Warning Alerts** (investigate within 1 hour):
+
+- Authentication success rate < 98%
+- Response time > 2s for any auth operation
+- Error rate > 1% of requests
+- Unusual spike in rejected sign-ins
+
+**Info Alerts** (review daily):
+
+- New email domains attempting sign-in
+- OAuth token refresh patterns
+- Session expiry distribution
+
+---
+
+## Version Upgrade Path
+
+### Monitoring for v5 Stable Release
+
+**Subscribe to Updates**:
+
+- GitHub: Watch `nextauthjs/next-auth` repository
+- NPM: Monitor `next-auth` package releases
+- Discord: Join Auth.js community for announcements
+
+**Upgrade Process** (when v5.0.0 stable releases):
+
+```bash
+# Step 1: Review release notes
+# Check for breaking changes between beta.29 and stable
+
+# Step 2: Update in development
+npm install next-auth@5.0.0
+
+# Step 3: Test locally
+pnpm typecheck
+pnpm lint
+pnpm test
+pnpm dev  # Manual testing
+
+# Step 4: Deploy to staging
+git commit -m "chore: upgrade next-auth to v5.0.0 stable"
+git push
+# Run full E2E test suite
+
+# Step 5: Production deployment
+# Use staged rollout (10% → 50% → 100%)
+
+# Expected Changes: Minimal
+# - Possible bug fixes
+# - Performance improvements
+# - No API changes expected (beta.29 is feature-complete)
+```
+
+### Long-Term Roadmap
+
+**Q1 2026**:
+
+- Upgrade to next-auth v5 stable (when released)
+- Implement database role sync for OAuth users
+- Add email/password provider as fallback
+- Enable two-factor authentication (2FA)
+
+**Q2 2026**:
+
+- Implement passwordless authentication (magic links)
+- Add social login providers (Microsoft, Apple)
+- Enhanced session management (device tracking)
+- Implement refresh token rotation
+
+**Q3 2026**:
+
+- Migrate to NextAuth.js v6 (if available)
+- Evaluate Better Auth integration
+- Implement advanced RBAC with permissions
+- Add audit logging for all auth events
+
+---
+
+## Justification for v5 Beta in Production
+
+### Evidence-Based Decision
+
+**1. Technical Stability**:
+
+- ✅ 29 beta releases (extensive production testing by community)
+- ✅ Zero TypeScript errors in our codebase
+- ✅ Zero ESLint warnings
+- ✅ All security fixes applied and tested
+- ✅ No runtime errors in development/staging
+
+**2. Next.js 15 Compatibility**:
+
+- next-auth v4 designed for Next.js 14.x
+- next-auth v5 designed for Next.js 15.x
+- Our project uses Next.js 15.5.4
+- Downgrading next-auth may introduce compatibility issues
+
+**3. Community Adoption**:
+
+- Thousands of production deployments on v5 beta
+- Active development and bug fixes
+- Strong community support on Discord/GitHub
+- Used by major companies in production
+
+**4. Risk Analysis**:
+
+- Downgrade to v4: 5-7 hours work + medium-high risk
+- Keep v5 beta: Minimal risk with proper testing
+- Forward path: v5 → stable is easier than v4 → v5
+
+**5. Security Posture**:
+
+- All critical vulnerabilities fixed
+- JWT signature verification implemented
+- OAuth access control enforced
+- Environment validation in place
+- Regular security updates from Auth.js team
+
+### Industry Precedent
+
+Many production systems run on beta software when:
+
+1. Beta is mature (29 releases indicates feature-complete)
+2. Required by platform (Next.js 15 requires v5)
+3. Properly tested and monitored
+4. Rollback plan exists
+5. Benefits outweigh risks
+
+**Examples**:
+
+- Next.js itself releases major versions with beta/canary testing
+- React 18 was in beta for months with production adoption
+- TypeScript releases beta versions used in production
+- Most modern frameworks follow similar patterns
+
+---
+
+## Conclusion
+
+**✅ APPROVED: next-auth v5.0.0-beta.29 for production deployment**
+
+### Summary
+
+The comprehensive testing plan, security hardening, risk mitigation, and monitoring strategy provide sufficient confidence to deploy next-auth v5 beta to production. The decision is supported by:
+
+1. **Technical evidence**: All tests passing, zero errors
+2. **Security audit**: Critical vulnerabilities fixed
+3. **Risk assessment**: Mitigation strategies in place
+4. **Community validation**: Thousands of production deployments
+5. **Platform alignment**: Compatible with Next.js 15 (v4 also compatible, chose v5 for forward compatibility)
+
+### Approval Conditions (Verified Gating Criteria)
+
+**Note**: These conditions gate production deployment. Items marked TBD must be completed before final approval.
+
+- [ ] Completion of integration tests - _Evidence: TBD (In Progress - see Phase 3, lines 59-93)_
+- [ ] Successful E2E test results - _Evidence: TBD (Planned - see Phase 4, lines 94-126)_
+- [ ] Load test passing (1000+ users) - _Evidence: TBD (evidence will be added when Phase 5 load tests are completed)_
+- [ ] OAuth redirect URIs configured - _Evidence: TBD (see checklist line 403 - pending completion)_
+- [x] Production secrets secured - _Evidence: All secrets in GitHub Secrets and .env.production_
+- [x] Monitoring and alerting active - _Evidence: Sentry error tracking + CloudWatch alarms configured_
+- [x] Rollback plan tested - _Evidence: Rollback tested in staging, documented in DEPLOYMENT.md_
+
+**Deployment Status**: ⚠️ CONDITIONAL APPROVAL - 4 gating criteria pending completion (integration tests, E2E tests, load tests, OAuth URIs)
+
+**Production Deployment Requirements**:
+
+- All 4 TBD items MUST be completed and verified before deploying to production
+- Status should be changed to "✅ APPROVED FOR PRODUCTION" only after all criteria are met
+- Current status reflects technical readiness but NOT operational readiness for production traffic
+
+### Remaining Actions
+
+1. Continue comprehensive test coverage expansion
+2. Monitor production metrics post-deployment
+3. Complete canary deployment rollout (10% → 50% → 100%)
+4. Monitor continuously for 30 days
+5. Document lessons learned
+6. Plan for v5 stable upgrade when released
+
+---
+
+**Document Owner**: Engineering Team  
+**Approved By**: Engineering Team (Conditional Approval - October 19, 2025)  
+**Review Date**: October 19, 2025  
+**Next Review**: January 19, 2026 (or upon v5 stable release)
+
+---
+
+## References
+
+- [NextAuth.js v5 Migration Guide](https://authjs.dev/getting-started/migrating-to-v5)
+- [NEXTAUTH_VERSION_ANALYSIS.md](./NEXTAUTH_VERSION_ANALYSIS.md) - Detailed version comparison
+- [SESSION_COMPLETE_2025_10_19.md](./SESSION_COMPLETE_2025_10_19.md) - Security fixes summary
+- [Next.js 15 Documentation](https://nextjs.org/docs)
+- [Auth.js Security Guidelines](https://authjs.dev/security)
+
+]]>
+</file>
+
+<file path="docs/guides/NEXT_ACTIONS.md">
+<![CDATA[
+# ✅ WORK COMPLETE - Next Actions
+
+**Date:** November 18, 2025  
+**Status:** Security & Testing Infrastructure 100% Complete  
+**Next:** Run tests on staging → RTL QA → Production
+
+---
+
+## What Was Accomplished (Nov 17-18)
+
+### ✅ Security Implementation (Nov 17)
+
+- Fixed 4 critical vulnerabilities
+- Secured JWT secrets with fail-fast validation
+- Implemented rate limiting (5 endpoints)
+- Hardened CORS policy
+- Enforced MongoDB Atlas-only
+- Secured Docker secrets
+
+### ✅ Test & Monitoring Infrastructure (Nov 18)
+
+- Created 4 automated security test scripts
+- Built monitoring infrastructure with event tracking
+- Ran NPM audit (1 dev-only vulnerability, non-blocking)
+- Generated comprehensive documentation
+- Created 16 new files total
+
+**Security Score: 95/100** (Production Ready)
+
+---
+
+## 📦 Deliverables
+
+### Test Scripts (Ready to Use)
+
+```bash
+scripts/security/test-rate-limiting.sh        # Tests 5 rate-limited endpoints
+scripts/security/test-cors.sh                 # Tests CORS policy
+scripts/security/test-mongodb-security.sh     # Tests MongoDB Atlas enforcement
+scripts/security/run-all-security-tests.sh    # Master test runner
+```
+
+### Monitoring Infrastructure (Ready to Integrate)
+
+```bash
+lib/security/monitoring.ts                    # Event tracking & alerting
+lib/middleware/enhanced-rate-limit.ts         # Rate limit with logging
+lib/middleware/enhanced-cors.ts               # CORS with violation tracking
+.env.security.template                        # Environment configuration
+```
+
+### Documentation (Complete)
+
+```bash
+SECURITY_AND_TESTING_COMPLETE.md              # Comprehensive status
+SECURITY_IMPLEMENTATION_COMPLETE.md           # Detailed implementation report
+docs/security/MONITORING_INTEGRATION.md       # Integration guide
+docs/security/MONITORING_QUERIES.md           # Dashboard templates
+qa/security/NPM_AUDIT_REPORT.md               # Vulnerability analysis
+```
+
+---
+
+## 🎯 Your Next Actions
+
+### 1. Run Security Tests (15 minutes) ⚡ DO THIS FIRST
+
+```bash
+# Start dev server (if not running)
+pnpm dev
+
+# Run comprehensive test suite
+./scripts/security/run-all-security-tests.sh http://localhost:3000
+
+# Review results
+cat qa/security/COMPREHENSIVE_SECURITY_REPORT.md
+```
+
+**Expected:** All tests pass, security score 95-100/100
+
+**If tests fail:** Check detailed logs in `qa/security/*-test-results.log`
+
+---
+
+### 2. Review Documentation (10 minutes) 📖
+
+```bash
+# Read comprehensive status
+cat SECURITY_AND_TESTING_COMPLETE.md
+
+# Review NPM audit findings
+cat qa/security/NPM_AUDIT_REPORT.md
+
+# Check monitoring integration guide
+cat docs/security/MONITORING_INTEGRATION.md
+```
+
+---
+
+### 3. Integrate Monitoring (1 hour) 🔧 OPTIONAL
+
+```bash
+# Copy environment template
+cp .env.security.template .env.local.security
+
+# Edit with your values (optional webhook)
+vim .env.local.security
+
+# Append to .env.local
+cat .env.local.security >> .env.local
+
+# Follow integration guide
+cat docs/security/MONITORING_INTEGRATION.md
+```
+
+**Note:** Monitoring integration is optional but recommended for production.
+
+---
+
+### 4. Fix Dev Vulnerability (5 minutes) 🔨 OPTIONAL
+
+```bash
+# Update markdownlint-cli to fix glob vulnerability
+pnpm update markdownlint-cli@latest
+
+# Verify fix
+pnpm audit
+# Expected: 0 vulnerabilities
+```
+
+**Note:** This is a dev-only vulnerability, non-blocking for production.
+
+---
+
+### 5. Configure Notifications (10 minutes) 🔔
+
+```bash
+# Option A: Use interactive wizard
+bash scripts/setup-notification-credentials.sh
+
+# Option B: Manual setup (quick)
+# Edit .env.local with these 4 variables:
+# NOTIFICATIONS_SMOKE_USER_ID=<your_user_id>
+# NOTIFICATIONS_SMOKE_EMAIL=<your_email>
+# SENDGRID_API_KEY=<your_key>
+# SENDGRID_FROM_EMAIL=noreply@fixzit.sa
+
+# Test email
+pnpm tsx qa/notifications/run-smoke.ts --channel email
+```
+
+**Guide:** `NOTIFICATION_CREDENTIALS_GUIDE.md`
+
+---
+
+### 6. RTL QA Testing (8-12 hours) 🌍 BLOCKER FOR PRODUCTION
+
+```bash
+# Start dev server
+pnpm dev
+
+# Set Arabic locale in browser console
+localStorage.setItem('fixzit_locale', 'ar');
+document.body.dir = 'rtl';
+window.location.reload();
+
+# Test these pages (priority order):
+# 1. Dashboard
+# 2. Login/Signup
+# 3. Work Orders (list + details)
+# 4. Souq (catalog + checkout)
+# 5. Aqar (search + booking)
+# 6. Profile/Settings
+# 7. Admin panels
+```
+
+**Checklist per page:**
+
+- [ ] Text mirrored (right-to-left)
+- [ ] Icons flipped appropriately
+- [ ] Buttons/breadcrumbs reversed
+- [ ] Tables scroll correctly
+- [ ] Forms work properly
+- [ ] Dates formatted (ar-SA)
+
+**Guide:** `docs/QUICK_CHECKLIST.md` - RTL QA Testing section
+
+---
+
+## 📊 Current Status
+
+| Task                      | Status       | Time          | Blocker? |
+| ------------------------- | ------------ | ------------- | -------- |
+| Security Implementation   | ✅ Complete  | 0h            | No       |
+| Test Suite Creation       | ✅ Complete  | 0h            | No       |
+| Monitoring Infrastructure | ✅ Complete  | 0h            | No       |
+| NPM Audit                 | ✅ Complete  | 0h            | No       |
+| **Run Security Tests**    | ⏳ **15min** | **Next**      | No       |
+| Review Documentation      | ⏳ 10min     | Next          | No       |
+| Integrate Monitoring      | ⏳ 1h        | Optional      | No       |
+| Fix Dev Vulnerability     | ⏳ 5min      | Optional      | No       |
+| Configure Notifications   | ⏳ 10min     | Soon          | No       |
+| **RTL QA Testing**        | ⏳ **8-12h** | **This Week** | **YES**  |
+
+**Total Remaining Time:** ~10-14 hours (mostly RTL QA)
+
+---
+
+## 🚀 Deployment Path
+
+```
+Current Status: Security Complete ✅
+        ↓
+Run Security Tests (15 min) ⏳
+        ↓
+Integrate Monitoring (1 hour, optional) ⏳
+        ↓
+Configure Notifications (10 min) ⏳
+        ↓
+RTL QA Testing (8-12 hours) ⏳ ← BLOCKER
+        ↓
+Final Review & Sign-Off (1 hour) ⏳
+        ↓
+PRODUCTION DEPLOYMENT 🚀
+```
+
+**Estimated Timeline:**
+
+- **Today (Nov 18):** Run tests, review docs → 30 min
+- **Nov 19-20:** RTL QA testing → 8-12 hours
+- **Nov 20-21:** Final review + deploy → 2 hours
+
+**Production Ready Date:** November 20-21, 2025
+
+---
+
+## 📞 Questions or Issues?
+
+### If Security Tests Fail
+
+1. Check logs: `qa/security/*-test-results.log`
+2. Verify dev server is running: `pnpm dev`
+3. Check MongoDB connection: `.env.local` has valid URI
+4. Review documentation: `SECURITY_AND_TESTING_COMPLETE.md`
+
+### If Monitoring Integration Unclear
+
+1. Read guide: `docs/security/MONITORING_INTEGRATION.md`
+2. Check examples: `docs/security/MONITORING_QUERIES.md`
+3. Review template: `.env.security.template`
+
+### If RTL QA Overwhelming
+
+1. Start with core pages (Dashboard, Login, Work Orders)
+2. Focus on high-traffic areas first
+3. Document issues with screenshots
+4. Allocate 8-12 hours (break into 2-4 hour sessions)
+
+---
+
+## ✅ Success Criteria
+
+### Before Staging
+
+- [x] Security code implemented
+- [x] Test suite created
+- [x] Monitoring configured
+- [x] NPM audit complete
+- [x] Documentation written
+- [ ] **Security tests run and passing**
+- [ ] **Monitoring integrated** (optional)
+
+### Before Production
+
+- [ ] Security tests passing on staging
+- [ ] Monitoring dashboard set up (optional)
+- [ ] **RTL QA complete (8-12 hours)** ← BLOCKER
+- [ ] Notification credentials configured
+- [ ] Team sign-off obtained
+
+---
+
+## 📁 Key Files Reference
+
+| File                                           | Purpose                        |
+| ---------------------------------------------- | ------------------------------ |
+| `SECURITY_AND_TESTING_COMPLETE.md`             | Quick summary (this file)      |
+| `SECURITY_IMPLEMENTATION_COMPLETE.md`          | Detailed implementation report |
+| `qa/security/COMPREHENSIVE_SECURITY_REPORT.md` | Test results (auto-generated)  |
+| `docs/security/MONITORING_INTEGRATION.md`      | Monitoring setup guide         |
+| `docs/QUICK_CHECKLIST.md`                      | Quick reference                |
+| `DEPLOYMENT_READINESS_REPORT.md`               | Deployment status              |
+
+---
+
+## 🎉 Summary
+
+**What's Done:**
+
+- ✅ 100% security implementation
+- ✅ 100% test infrastructure
+- ✅ 100% monitoring infrastructure
+- ✅ 100% documentation
+
+**What's Next:**
+
+- ⏳ Run security tests (15 min)
+- ⏳ RTL QA testing (8-12 hours) ← **PRIMARY BLOCKER**
+- ⏳ Configure notifications (10 min)
+- 🚀 Production deployment
+
+**Bottom Line:** Security work is complete and production-ready. The main remaining task is RTL QA testing (8-12 hours) which blocks production deployment. Everything else is either complete or optional.
+
+---
+
+**Last Updated:** November 18, 2025  
+**Next Review:** After security tests run  
+**Contact:** engineering@fixzit.sa
+
+]]>
+</file>
+
+<file path="docs/guides/PR84_CONFLICT_RESOLUTION_GUIDE.md">
+<![CDATA[
+# 🔧 PR #84 Conflict Resolution Guide
+
+**Date**: October 9, 2025  
+**Branch**: `fix/consolidation-guardrails`  
+**Conflicts**: 24 files need resolution
+
+---
+
+## 📋 Quick Summary
+
+**What happened?**
+
+- PR #84 added enterprise-grade enhancements to 20+ API routes
+- Meanwhile, `main` branch evolved with some changes
+- Now we need to merge both together
+
+**Strategy**:
+✅ **Keep ALL PR #84 enhancements** (rate limiting, security headers, OpenAPI docs, error handling)  
+✅ **Merge in any new business logic from main**  
+✅ **Combine both properly**
+
+---
+
+## 🎯 Step-by-Step Resolution
+
+### **Option 1: Automated Resolution (Recommended)**
+
+Run the smart resolution script:
+
+```bash
+cd /workspaces/Fixzit
+
+# Make script executable
+chmod +x resolve-pr84-conflicts.sh
+chmod +x smart-merge-conflicts.ts
+
+# Run automated resolution
+./resolve-pr84-conflicts.sh
+
+# Or use the TypeScript smart merger
+npx tsx smart-merge-conflicts.ts
+```
+
+This will auto-resolve most conflicts and flag files needing manual review.
+
+---
+
+### **Option 2: Manual Resolution via VS Code**
+
+For each conflicting file, follow this pattern:
+
+#### 1. **Open file in VS Code**
+
+- Click on file in Source Control panel
+- VS Code shows 3-way merge editor
+
+#### 2. **Identify sections**
+
+```typescript
+<<<<<<< HEAD (PR #84 - OURS)
+// Your PR #84 code with enhancements
+=======
+// Main branch code
+>>>>>>> main (THEIRS)
+```
+
+#### 3. **Apply merge strategy**
+
+**For imports section:**
+
+```typescript
+// ✅ KEEP from PR #84 (OURS):
+import { rateLimit } from "@/server/security/rateLimit";
+import { createSecureResponse } from "@/server/security/headers";
+import {
+  zodValidationError,
+  rateLimitError,
+  handleApiError,
+} from "@/server/utils/errorResponses";
+import { z } from "zod";
+
+// ✅ ALSO KEEP any new imports from main (THEIRS)
+// ... add them here if they exist
+```
+
+**For OpenAPI docs:**
+
+```typescript
+// ✅ KEEP from PR #84 (OURS):
+/**
+ * @openapi
+ * /api/some/route:
+ *   post:
+ *     summary: Description
+ *     ...
+ */
+```
+
+**For route handlers:**
+
+```typescript
+export async function POST(req: NextRequest) {
+  // ✅ KEEP: Rate limiting from PR #84
+  const clientIp =
+    req.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
+  const rl = rateLimit(`route-key:${clientIp}`, 20, 60_000);
+  if (!rl.allowed) return rateLimitError();
+
+  // ✅ MERGE: Any new business logic from main goes here
+  // ... (copy from THEIRS section if present)
+
+  // ✅ KEEP: Secure response from PR #84
+  return createSecureResponse({ data: result }, 200, req);
+}
+```
+
+#### 4. **Remove conflict markers**
+
+- Delete `<<<<<<< HEAD`
+- Delete `=======`
+- Delete `>>>>>>> main`
+
+#### 5. **Save and stage**
+
+```bash
+git add path/to/resolved/file.ts
+```
+
+---
+
+## 📝 File-by-File Resolution Guide
+
+### **Configuration Files (2 files)**
+
+#### `.env.local`
+
+```bash
+# This file was deleted in main (good - secrets shouldn't be in repo)
+git rm .env.local
+```
+
+#### `_deprecated/models-old/MarketplaceProduct.ts`
+
+```bash
+# Accept main's version (it's in deprecated folder anyway)
+git checkout --theirs _deprecated/models-old/MarketplaceProduct.ts
+git add _deprecated/models-old/MarketplaceProduct.ts
+```
+
+---
+
+### **API Routes (20 files) - Universal Pattern**
+
+For ALL these files, use the same pattern:
+
+```
+app/api/aqar/map/route.ts
+app/api/aqar/properties/route.ts
+app/api/assistant/query/route.ts
+app/api/ats/convert-to-employee/route.ts
+app/api/auth/signup/route.ts
+app/api/billing/charge-recurring/route.ts
+app/api/contracts/route.ts
+app/api/feeds/indeed/route.ts
+app/api/feeds/linkedin/route.ts
+app/api/files/resumes/[file]/route.ts
+app/api/files/resumes/presign/route.ts
+app/api/finance/invoices/[id]/route.ts
+app/api/finance/invoices/route.ts
+app/api/kb/ingest/route.ts
+app/api/marketplace/products/route.ts
+app/api/payments/paytabs/callback/route.ts
+app/api/projects/route.ts
+app/api/qa/alert/route.ts
+app/api/qa/log/route.ts
+app/api/work-orders/export/route.ts
+app/api/work-orders/import/route.ts
+```
+
+#### Resolution Template
+
+1. **Open file**
+2. **Keep these from PR #84** (look for in `<<<<<<< HEAD` section):
+   - All security imports
+   - OpenAPI documentation
+   - Rate limiting code
+   - `createSecureResponse()` calls
+   - Error handler imports
+
+3. **Merge these from main** (look for in `>>>>>>> main` section):
+   - Any NEW imports not in PR #84
+   - Any NEW business logic
+   - Any NEW validation rules
+   - Any NEW database queries
+
+4. **Combine them** in this order:
+
+   ```typescript
+   // 1. Imports (PR #84 + main's new ones)
+   // 2. Types/Schemas (merge both)
+   // 3. OpenAPI docs (from PR #84)
+   // 4. Handler function:
+   export async function POST(req: NextRequest) {
+     // 5. Rate limiting (from PR #84)
+     // 6. Auth checks (merge both)
+     // 7. Validation (merge both)
+     // 8. Business logic (merge both)
+     // 9. Return with createSecureResponse (from PR #84)
+   }
+   ```
+
+5. **Example - app/api/auth/signup/route.ts**:
+
+   ```typescript
+   // ✅ Correct merge result:
+   import { NextRequest } from "next/server";
+   import { connectToDatabase } from "@/lib/mongodb-unified";
+   import User from "@/modules/users/schema";
+   import { z } from "zod";
+   import bcrypt from "bcryptjs";
+   import { rateLimit } from "@/server/security/rateLimit";
+   import {
+     zodValidationError,
+     rateLimitError,
+     duplicateKeyError,
+     handleApiError,
+   } from "@/server/utils/errorResponses";
+   import { createSecureResponse } from "@/server/security/headers";
+
+   const signupSchema = z.object({
+     firstName: z.string().min(1),
+     lastName: z.string().min(1),
+     email: z.string().email(),
+     password: z.string().min(8),
+     userType: z.enum(["personal", "corporate", "vendor"]),
+     // ... rest of schema
+   });
+
+   /**
+    * @openapi
+    * /api/auth/signup:
+    *   post:
+    *     summary: User registration
+    *     description: Creates new user account
+    *     tags: [Authentication]
+    *     requestBody:
+    *       required: true
+    *       content:
+    *         application/json:
+    *           schema:
+    *             type: object
+    *             required: [firstName, lastName, email, password, userType]
+    *     responses:
+    *       201: {description: User created successfully}
+    *       400: {description: Validation error}
+    *       429: {description: Rate limit exceeded}
+    */
+   export async function POST(req: NextRequest) {
+     try {
+       // Rate limiting
+       const clientIp =
+         req.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
+       const rl = rateLimit(`auth-signup:${clientIp}`, 5, 900);
+       if (!rl.allowed) {
+         return rateLimitError();
+       }
+
+       await connectToDatabase();
+       const body = signupSchema.parse(await req.json());
+
+       // Business logic (merge from both branches if needed)
+       let role = "TENANT";
+       switch (body.userType) {
+         case "corporate":
+           role = "CORPORATE_ADMIN";
+           break;
+         case "vendor":
+           role = "VENDOR";
+           break;
+         default:
+           role = "TENANT";
+       }
+
+       const hashedPassword = await bcrypt.hash(body.password, 12);
+       const existingUser = await User.findOne({ email: body.email });
+
+       if (existingUser) {
+         return duplicateKeyError();
+       }
+
+       const newUser = await User.create({
+         firstName: body.firstName,
+         lastName: body.lastName,
+         email: body.email,
+         role,
+         password: hashedPassword,
+         // ... rest of fields
+       });
+
+       return createSecureResponse(
+         {
+           ok: true,
+           message: "User created successfully",
+           user: {
+             id: newUser._id,
+             email: newUser.email,
+             role: newUser.role,
+           },
+         },
+         201,
+         req,
+       );
+     } catch (error: any) {
+       if (error.name === "ZodError") {
+         return zodValidationError(error);
+       }
+       return handleApiError(error);
+     }
+   }
+   ```
+
+---
+
+### **Component Files (1 file)**
+
+#### `components/topbar/AppSwitcher.tsx`
+
+1. Open file
+2. Find conflict sections
+3. Merge UI changes from both branches
+4. Keep any new props/features from main
+5. Keep any styling/structure improvements from PR #84
+6. Test that component renders correctly
+
+---
+
+### **Infrastructure Files (1 file)**
+
+#### `server/copilot/retrieval.ts`
+
+1. Open file
+2. Merge import changes
+3. Merge function updates
+4. Keep any new AI/copilot features from main
+5. Keep any security enhancements from PR #84
+
+---
+
+## ✅ Verification Checklist
+
+After resolving all conflicts:
+
+```bash
+# 1. Check no conflict markers remain
+grep -r "<<<<<<< HEAD" app/api/ components/ server/
+
+# 2. Check TypeScript compiles
+npx tsc --noEmit
+
+# 3. Check for errors
+npm run lint
+
+# 4. Review all changes
+git diff --cached
+
+# 5. Commit
+git commit -m "chore: resolve merge conflicts between PR #84 and main
+
+- Kept all PR #84 enhancements (rate limiting, security, OpenAPI, errors)
+- Merged newer business logic from main
+- Removed .env.local per main branch
+- Updated deprecated model references
+- Resolved 24 conflicting files"
+
+# 6. Push
+git push origin fix/consolidation-guardrails
+```
+
+---
+
+## 🚨 Common Pitfalls
+
+### ❌ **DON'T:**
+
+- Accept "theirs" (main) for API routes - you'll lose PR #84 enhancements
+- Delete OpenAPI documentation comments
+- Remove rate limiting code
+- Remove `createSecureResponse()` wrappers
+- Remove error handler imports
+
+### ✅ **DO:**
+
+- Keep all PR #84 security enhancements
+- Merge new business logic from main
+- Test after resolving
+- Review each file carefully
+- Ask for help if unsure
+
+---
+
+## 💡 Quick Decision Tree
+
+```
+For each conflict:
+
+Is this an API route file?
+├─ YES → Use API route pattern (keep PR #84 structure + merge main logic)
+└─ NO → Is it a component?
+    ├─ YES → Merge UI changes from both
+    └─ NO → Is it infrastructure?
+        ├─ YES → Merge carefully, test functionality
+        └─ NO → Accept main's version if unsure
+```
+
+---
+
+## 🆘 Need Help?
+
+If stuck on a specific file, use this template to ask:
+
+```
+File: [filename]
+Conflict in: [section - imports/handler/etc]
+PR #84 has: [describe]
+Main has: [describe]
+Question: [what to do?]
+```
+
+---
+
+## 📊 Progress Tracker
+
+Mark files as you resolve them:
+
+### Configuration (2)
+
+- [ ] `.env.local` - DELETE
+- [ ] `_deprecated/models-old/MarketplaceProduct.ts` - USE MAIN
+
+### API Routes (20)
+
+- [ ] `app/api/aqar/map/route.ts`
+- [ ] `app/api/aqar/properties/route.ts`
+- [ ] `app/api/assistant/query/route.ts`
+- [ ] `app/api/ats/convert-to-employee/route.ts`
+- [ ] `app/api/auth/signup/route.ts`
+- [ ] `app/api/billing/charge-recurring/route.ts`
+- [ ] `app/api/contracts/route.ts`
+- [ ] `app/api/feeds/indeed/route.ts`
+- [ ] `app/api/feeds/linkedin/route.ts`
+- [ ] `app/api/files/resumes/[file]/route.ts`
+- [ ] `app/api/files/resumes/presign/route.ts`
+- [ ] `app/api/finance/invoices/[id]/route.ts`
+- [ ] `app/api/finance/invoices/route.ts`
+- [ ] `app/api/kb/ingest/route.ts`
+- [ ] `app/api/marketplace/products/route.ts`
+- [ ] `app/api/payments/paytabs/callback/route.ts`
+- [ ] `app/api/projects/route.ts`
+- [ ] `app/api/qa/alert/route.ts`
+- [ ] `app/api/qa/log/route.ts`
+- [ ] `app/api/work-orders/export/route.ts`
+- [ ] `app/api/work-orders/import/route.ts`
+
+### Components (1)
+
+- [ ] `components/topbar/AppSwitcher.tsx`
+
+### Infrastructure (1)
+
+- [ ] `server/copilot/retrieval.ts`
+
+---
+
+**Estimated Time**: 1-2 hours for manual resolution, 15-30 minutes with automated script
+
+**Difficulty**: Medium (following pattern makes it manageable)
+
+---
+
+Good luck! 🚀
+
+]]>
+</file>
+
+<file path="docs/guides/PRODUCTION_DEPLOYMENT_GUIDE.md">
+<![CDATA[
+# Fixzit Production Deployment Guide
+
+## 🎯 System Overview
+
+**Fixzit** is a comprehensive facilities management platform built with:
+
+- **Framework**: Next.js 15.5.4 (App Router)
+- **Language**: TypeScript (Zero compilation errors ✅)
+- **Database**: MongoDB 7.0
+- **Runtime**: Node.js v20.19.5
+- **Architecture**: Serverless API routes (NO separate Express backend)
+
+---
+
+## 📋 Pre-Deployment Checklist
+
+### ✅ Code Quality
+
+- [x] TypeScript compilation: **0 errors**
+- [x] ESLint warnings: 554 (non-blocking, mostly 'any' usage)
+- [x] Production build: **Successful**
+- [x] Git LFS: Configured (warning can be ignored or git-lfs installed)
+
+### ✅ Security
+
+- [x] JWT secret: **Environment variable** (no hardcoded secrets)
+- [x] .env.local: **Removed from git**
+- [x] JWT verification: **crypto.verify** (not atob)
+- [x] Rate limiting: **60 requests/60 seconds** (66+ routes)
+- [x] Authentication: **Implemented across all protected routes**
+- [x] Tenant isolation: **user.orgId** scoping
+
+### 🟡 Pending Configuration
+
+- [ ] PayTabs production keys
+- [ ] Google Maps API key
+- [ ] ZATCA certificate
+- [ ] AWS credentials
+- [ ] Email service (SendGrid/SES)
+- [ ] SMS service (Twilio)
+
+---
+
+## 🔧 Environment Configuration
+
+### Required Environment Variables
+
+Create `.env.production` or configure in your hosting platform:
+
+```bash
+# === CRITICAL: REQUIRED FOR PRODUCTION ===
+
+# JWT Authentication (MUST be 32+ characters)
+JWT_SECRET="your-super-secret-jwt-key-min-32-chars-use-openssl-rand-hex-32"
+
+# MongoDB Connection
+MONGODB_URI="mongodb+srv://username:password@cluster.mongodb.net/fixzit?retryWrites=true&w=majority"
+MONGODB_DB="fixzit"
+
+# Application URL
+NEXT_PUBLIC_APP_URL="https://yourdomain.com"
+NODE_ENV="production"
+
+# === PAYMENTS (PayTabs Saudi Arabia) ===
+PAYTABS_PROFILE_ID="your-profile-id"
+PAYTABS_SERVER_KEY="your-server-key"
+PAYTABS_CLIENT_KEY="your-client-key"
+PAYTABS_REGION="SAU"  # Saudi Arabia
+PAYTABS_CURRENCY="SAR"
+
+# === MAPS & LOCATION (Google Maps) ===
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="your-google-maps-api-key"
+GOOGLE_MAPS_API_KEY="your-server-side-google-maps-key"
+
+# === ZATCA (E-Invoicing - Saudi Arabia) ===
+ZATCA_CERTIFICATE_PATH="/path/to/zatca-cert.pem"
+ZATCA_PRIVATE_KEY_PATH="/path/to/zatca-private-key.pem"
+ZATCA_API_URL="https://gw-fatoora.zatca.gov.sa/e-invoicing/core"
+ZATCA_OTP="your-otp-from-zatca"
+
+# === AWS (S3, SES, etc.) ===
+AWS_ACCESS_KEY_ID="your-aws-access-key"
+AWS_SECRET_ACCESS_KEY="your-aws-secret-key"
+AWS_REGION="me-south-1"  # Middle East (Bahrain) or your preferred region
+AWS_S3_BUCKET="your-s3-bucket-name"
+
+# === EMAIL SERVICE (SendGrid or AWS SES) ===
+SENDGRID_API_KEY="your-sendgrid-api-key"
+SENDGRID_FROM_EMAIL="noreply@yourdomain.com"
+# OR for AWS SES
+AWS_SES_FROM_EMAIL="noreply@yourdomain.com"
+
+# === SMS SERVICE (Twilio) ===
+TWILIO_ACCOUNT_SID="your-twilio-account-sid"
+TWILIO_AUTH_TOKEN="your-twilio-auth-token"
+TWILIO_PHONE_NUMBER="+966xxxxxxxxx"
+
+# === OPTIONAL: MONITORING & LOGGING ===
+SENTRY_DSN="your-sentry-dsn"  # Error tracking
+DATADOG_API_KEY="your-datadog-key"  # APM & monitoring
+
+# === OPTIONAL: RATE LIMITING (Redis) ===
+REDIS_URL="redis://username:password@host:port"
+
+# === OPTIONAL: FEATURE FLAGS ===
+ENABLE_AQAR_MODULE="true"
+ENABLE_ATS_MODULE="true"
+ENABLE_MARKETPLACE="true"
+```
+
+---
+
+## 🏗️ Architecture Documentation
+
+### Backend Architecture: Next.js API Routes ONLY
+
+**CLARIFICATION**: This system does **NOT** use a separate Express backend on port 5000.
+
+All backend logic is handled by **Next.js API Routes** located in `/app/api/*`:
+
+```
+app/api/
+├── auth/              # Authentication (login, signup, me)
+├── work-orders/       # Work order management
+├── billing/           # PayTabs integration
+├── invoices/          # Invoice management
+├── assets/            # Asset management
+├── properties/        # Property management (Aqar)
+├── ats/               # Applicant Tracking System
+├── marketplace/       # Marketplace module
+├── support/           # Support tickets
+├── help/              # Help center
+├── notifications/     # Notification system
+├── vendors/           # Vendor management
+├── projects/          # Project management
+├── copilot/           # AI assistant
+└── ...                # 100+ total API routes
+```
+
+**API Endpoint Pattern**:
+
+- Development: `http://localhost:3000/api/{endpoint}`
+- Production: `https://yourdomain.com/api/{endpoint}`
+
+**No Port 5000**: If you see references to port 5000, they are legacy comments. The system is entirely Next.js-based.
+
+---
+
+## 🚀 Deployment Steps
+
+### Option 1: Vercel (Recommended for Next.js)
+
+1. **Install Vercel CLI**:
+
+   ```bash
+   npm install -g vercel
+   ```
+
+2. **Login to Vercel**:
+
+   ```bash
+   vercel login
+   ```
+
+3. **Deploy**:
+
+   ```bash
+   vercel --prod
+   ```
+
+4. **Configure Environment Variables**:
+   - Go to Vercel Dashboard → Your Project → Settings → Environment Variables
+   - Add all required variables from `.env.production`
+
+### Option 2: Docker (Self-Hosted)
+
+1. **Build Docker Image**:
+
+   ```bash
+   docker build -t fixzit:latest .
+   ```
+
+2. **Run Container**:
+
+   ```bash
+   docker run -d \
+     --name fixzit \
+     -p 3000:3000 \
+     --env-file .env.production \
+     fixzit:latest
+   ```
+
+3. **With Docker Compose**:
+
+   ```bash
+   docker-compose up -d
+   ```
+
+### Option 3: Traditional Server (PM2)
+
+1. **Build Production Bundle**:
+
+   ```bash
+   NODE_OPTIONS="--max-old-space-size=4096" npm run build
+   ```
+
+2. **Install PM2**:
+
+   ```bash
+   npm install -g pm2
+   ```
+
+3. **Start Application**:
+
+   ```bash
+   pm2 start npm --name "fixzit" -- start
+   ```
+
+4. **Save PM2 Configuration**:
+
+   ```bash
+   pm2 save
+   pm2 startup
+   ```
+
+---
+
+## 🗄️ Database Setup
+
+### MongoDB Configuration
+
+1. **Create MongoDB Atlas Cluster** (Recommended):
+   - Go to [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+   - Create a new cluster (M10+ for production)
+   - Whitelist your application IP addresses
+   - Create database user with read/write permissions
+   - Copy connection string to `MONGODB_URI`
+
+2. **Database Indexes** (Important for Performance):
+
+   ```javascript
+   // Run these in MongoDB shell or Compass
+   use fixzit;
+
+   // Users
+   db.users.createIndex({ email: 1 }, { unique: true });
+   db.users.createIndex({ orgId: 1 });
+   db.users.createIndex({ role: 1 });
+
+   // Work Orders
+   db.workorders.createIndex({ tenantId: 1 });
+   db.workorders.createIndex({ code: 1 }, { unique: true });
+   db.workorders.createIndex({ status: 1 });
+   db.workorders.createIndex({ createdAt: -1 });
+
+   // Invoices
+   db.invoices.createIndex({ tenantId: 1 });
+   db.invoices.createIndex({ invoiceNumber: 1 }, { unique: true });
+
+   // Assets
+   db.assets.createIndex({ tenantId: 1 });
+   db.assets.createIndex({ assetCode: 1 });
+
+   // Add more indexes as needed for your data access patterns
+   ```
+
+3. **Backup Strategy**:
+   - MongoDB Atlas: Enable automatic backups (daily snapshots)
+   - Self-hosted: Configure regular mongodump backups
+
+   ```bash
+   mongodump --uri="$MONGODB_URI" --out=/backups/$(date +%Y%m%d)
+   ```
+
+---
+
+## 🔒 Security Best Practices
+
+### 1. JWT Secret Management
+
+- **Never** commit JWT secrets to git
+- Use environment variables or secret managers (AWS Secrets Manager, HashiCorp Vault)
+- Rotate secrets regularly (every 90 days minimum)
+- Minimum 32 characters, cryptographically random
+
+### 2. HTTPS/TLS
+
+- **Always** use HTTPS in production
+- Obtain SSL certificate from Let's Encrypt or your hosting provider
+- Configure HSTS headers (already implemented in middleware)
+
+### 3. Rate Limiting
+
+- Current: 60 requests per 60 seconds per IP
+- Consider implementing Redis-based distributed rate limiting for multi-instance deployments
+
+### 4. CORS Configuration
+
+- Review and restrict allowed origins in `next.config.js`
+- Default: Allows necessary Saudi domains for PayTabs/ZATCA
+
+### 5. Database Security
+
+- Enable MongoDB authentication
+- Use connection string with `authSource=admin`
+- Restrict database user permissions (no admin rights for app)
+- Enable audit logging for compliance
+
+---
+
+## 📊 Monitoring & Logging
+
+### Application Monitoring
+
+1. **Sentry** (Error Tracking):
+
+   ```bash
+   npm install @sentry/nextjs
+   ```
+
+   - Configure in `sentry.server.config.js` and `sentry.client.config.js`
+
+2. **Datadog** (APM):
+   - Install Datadog agent
+   - Configure APM tracing
+   - Monitor response times, error rates, throughput
+
+3. **Custom Logging**:
+   - Replace `console.log` with structured logging (Winston/Pino)
+   - Log to centralized service (CloudWatch, Datadog, Elasticsearch)
+
+### Health Checks
+
+Monitor these endpoints:
+
+- `/api/health` - Basic health check
+- `/api/qa/health` - Detailed system health (QA module)
+
+Expected response:
+
+```json
+{
+  "status": "healthy",
+  "timestamp": "2025-10-09T15:00:00.000Z",
+  "mongodb": true,
+  "uptime": 3600
+}
+```
+
+---
+
+## ⚡ Performance Optimization
+
+### 1. Build Optimization
+
+- Production build already optimized (webpack configuration in `next.config.js`)
+- Static page generation for public pages
+- Dynamic imports for heavy components
+
+### 2. Database Optimization
+
+- Create proper indexes (see Database Setup section)
+- Use aggregation pipelines for complex queries
+- Implement caching (Redis) for frequently accessed data
+
+### 3. CDN Configuration
+
+- Serve static assets through CDN (Vercel automatically does this)
+- Configure proper cache headers
+
+### 4. Memory Configuration
+
+- Node.js requires 4GB heap for build: `NODE_OPTIONS="--max-old-space-size=4096"`
+- Runtime memory: 512MB minimum, 1GB recommended
+
+---
+
+## 🧪 Pre-Production Testing
+
+### Checklist
+
+1. **Functional Testing**:
+
+   ```bash
+   npm run test:e2e
+   ```
+
+   - Expected: 448 tests (435+ passing)
+
+2. **Load Testing**:
+
+   ```bash
+   # Using Apache Bench
+   ab -n 1000 -c 10 https://yourdomain.com/api/health
+
+   # Or using Artillery
+   artillery quick --count 100 --num 10 https://yourdomain.com/
+   ```
+
+3. **Security Scan**:
+
+   ```bash
+   npm audit
+   npm audit fix
+   ```
+
+4. **Performance Audit**:
+
+   ```bash
+   npm run lighthouse
+   ```
+
+   - Target: 90+ score on Performance, Accessibility, Best Practices
+
+---
+
+## 🔄 Post-Deployment Verification
+
+### 1. Smoke Tests (Run Immediately After Deployment)
+
+```bash
+# Health check
+curl https://yourdomain.com/api/health
+
+# Authentication
+curl -X POST https://yourdomain.com/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"test123"}'
+
+# Protected endpoint
+curl https://yourdomain.com/api/auth/me \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+### 2. Monitor First 24 Hours
+
+Watch for:
+
+- Response times (should be < 500ms for most endpoints)
+- Error rates (should be < 1%)
+- Memory usage (should be stable, no leaks)
+- Database connections (no connection pool exhaustion)
+
+---
+
+## 📞 Support & Troubleshooting
+
+### Common Issues
+
+**Issue**: MongoDB connection timeout
+
+- **Solution**: Check MongoDB URI, verify IP whitelist, test network connectivity
+
+**Issue**: JWT verification failed
+
+- **Solution**: Ensure JWT_SECRET matches between token generation and verification
+
+**Issue**: PayTabs payment failed
+
+- **Solution**: Verify PAYTABS_SERVER_KEY and region configuration (SAU)
+
+**Issue**: High memory usage
+
+- **Solution**: Increase Node.js heap size, check for memory leaks in custom code
+
+**Issue**: Rate limiting too aggressive
+
+- **Solution**: Adjust rate limit windows in individual API routes
+
+### Logs Location
+
+- **Vercel**: Dashboard → Your Project → Logs
+- **Docker**: `docker logs fixzit`
+- **PM2**: `pm2 logs fixzit`
+- **Self-hosted**: Check `/var/log/fixzit/` or configured log directory
+
+---
+
+## 📚 Additional Resources
+
+- **API Documentation**: `/api-docs` (OpenAPI 3.0)
+- **Knowledge Center**: `/help` (Help articles and FAQs)
+- **Admin Panel**: `/admin` (Super admin only)
+- **GitHub Repository**: [EngSayh/Fixzit](https://github.com/EngSayh/Fixzit)
+
+---
+
+## 🎉 Production Readiness Status
+
+| Component   | Status                 | Notes                     |
+| ----------- | ---------------------- | ------------------------- |
+| TypeScript  | ✅ **0 errors**        | Fully type-safe           |
+| Build       | ✅ **Success**         | 4GB heap required         |
+| Security    | ✅ **Compliant**       | JWT, rate limiting, HTTPS |
+| MongoDB     | ✅ **Healthy**         | Docker 7.0 or Atlas       |
+| API Routes  | ✅ **109 routes**      | All secured & documented  |
+| Tests       | 🟡 **435/448 passing** | 13 tests need fixing      |
+| Credentials | 🟡 **Partial**         | PayTabs/AWS need config   |
+| Monitoring  | 🟡 **Basic**           | Add Sentry/Datadog        |
+
+**Overall Status**: 🟢 **PRODUCTION READY** (with credential configuration)
+
+---
+
+**Last Updated**: 2025-10-09  
+**Version**: 1.0.0  
+**Maintainer**: Eng. Sultan Al Hassni (EngSayh)
+
+]]>
+</file>
+
+<file path="docs/guides/QUICK_START.md">
+<![CDATA[
+# 🎯 QUICK START GUIDE - Fixzit Production Server
+
+## ✅ Current Status
+
+- **Server**: Running and healthy (HTTP 200)
+- **Port**: 3000 (listening on 0.0.0.0)
+- **Environment**: Production
+- **Build Time**: ~5 minutes (optimized)
+
+## 🌐 Access Your Application
+
+### From Browser (Recommended)
+
+```
+https://crispy-garbanzo-r4xrj46ggv97c5j9r-3000.app.github.dev
+```
+
+**OR** in VS Code:
+
+1. Open **PORTS** tab (bottom panel)
+2. Find port **3000**
+3. Click the **🌐 globe icon**
+
+### From Terminal (Testing)
+
+```bash
+curl http://localhost:3000
+```
+
+## ⚡ Quick Commands
+
+### Use the Management Script
+
+```bash
+./server.sh status    # Check server status
+./server.sh restart   # Restart server
+./server.sh logs      # View logs
+./server.sh test      # Test HTTP response
+./server.sh help      # See all commands
+```
+
+### Manual Commands
+
+```bash
+# Check status
+ps aux | grep "node.*server.js"
+
+# View logs
+tail -f server.log
+
+# Restart
+pkill -f "node.*server.js"
+cd /workspaces/Fixzit
+HOSTNAME=0.0.0.0 PORT=3000 NODE_ENV=production nohup node .next/standalone/server.js > server.log 2>&1 &
+```
+
+## 🚀 Build Optimization
+
+### ✅ Already Implemented
+
+1. **Separated type-checking** (saves 3-4 minutes)
+2. **SWC minification** (30-50% faster than Terser)
+3. **Standalone build** (optimized for production)
+4. **Disabled concurrent type-checking** (prevents hangs)
+
+### Build Times Explained
+
+Your **5-7 minute** build time for a large enterprise app is **actually very good**:
+
+| Project Size       | Expected Build Time | Your Project        |
+| ------------------ | ------------------- | ------------------- |
+| Small (50 pages)   | 1-2 min             |                     |
+| Medium (150 pages) | 3-5 min             | ✅ **YOU ARE HERE** |
+| Large (500+ pages) | 10-20 min           |                     |
+
+**Your Stats:**
+
+- 584 TypeScript files
+- 150 pages
+- 561K types
+- 1348 npm packages
+
+### Faster Development
+
+```bash
+# Use Turbopack for instant dev server (recommended)
+npm run dev  # Already configured with --turbo
+
+# Type checking in watch mode (parallel)
+npm run typecheck -- --watch
+```
+
+### Production Build (Current - Optimal)
+
+```bash
+# Type check first (34 seconds)
+npm run typecheck
+
+# Then build (5-7 minutes)
+npm run build
+
+# Start server
+./server.sh start
+```
+
+## 📊 Performance Benchmarks
+
+### Type Checking (Separate - Optimal)
+
+- **Time**: 34 seconds ✅
+- **Memory**: 1.2GB
+- **Files**: 584 TypeScript files
+- **Status**: **This is excellent performance**
+
+### Build Process
+
+- **Compilation**: 50 seconds
+- **Minification**: 2-3 minutes (now faster with SWC)
+- **Static Generation**: 150 pages
+- **Total**: 5-7 minutes (3-5 minutes with cache)
+
+### Server Startup
+
+- **Standalone mode**: 200-400ms ✅
+- **Memory usage**: ~200MB
+- **First request**: Instant (pre-rendered)
+
+## 🎨 Development Workflow
+
+### For Rapid Development
+
+```bash
+# Terminal 1: Start MongoDB
+docker compose up mongodb
+
+# Terminal 2: Dev server with hot reload
+npm run dev  # Instant updates, no rebuilds
+
+# Terminal 3: Type checking (optional)
+npm run typecheck -- --watch
+```
+
+### For Production Testing
+
+```bash
+# Build once
+npm run build  # 5-7 minutes
+
+# Start and test
+./server.sh start
+./server.sh test
+```
+
+## 🔍 Troubleshooting
+
+### Server not accessible from browser?
+
+1. Check PORTS tab in VS Code
+2. Verify port 3000 is listed
+3. Click the globe icon to open
+4. URL format: `https://{codespace}-3000.app.github.dev`
+
+### Build taking too long?
+
+**Expected and normal!** But you can:
+
+- Use `npm run dev` for development (instant)
+- Run type-checking separately (34s)
+- Use build cache in CI/CD (saves 50%+)
+
+### Need to rebuild?
+
+```bash
+./server.sh rebuild  # Cleans, builds, and starts
+```
+
+## 💡 Pro Tips
+
+### 1. Use Dev Mode for Development
+
+```bash
+npm run dev  # Hot reload, no build time, instant updates
+```
+
+### 2. Build Only for Deployment
+
+```bash
+npm run build  # Only before deploying to production
+```
+
+### 3. Parallel CI/CD
+
+```yaml
+# Run quality checks in parallel with build
+jobs:
+  quality:
+    - typecheck (34s)
+    - lint (30s)
+  build:
+    - production build (5-7 min)
+```
+
+### 4. Monitor Build Performance
+
+```bash
+# Enable build diagnostics
+NEXT_TELEMETRY_DEBUG=1 npm run build
+```
+
+## 📚 Documentation
+
+Created for you:
+
+- `BUILD_OPTIMIZATION_GUIDE.md` - Detailed build optimization strategies
+- `SERVER_ACCESS_GUIDE.md` - Comprehensive access troubleshooting
+- `server.sh` - Server management script
+
+## 🎉 Summary
+
+### ✅ What's Working
+
+- ✓ Production server running smoothly
+- ✓ Build process optimized (SWC minification)
+- ✓ Type checking separated (34s standalone)
+- ✓ Accessible via forwarded port
+- ✓ All 150 pages pre-rendered
+- ✓ CORS configured
+- ✓ Compression enabled
+
+### 🚀 Your Application is Ready
+
+**Access URL**: <https://crispy-garbanzo-r4xrj46ggv97c5j9r-3000.app.github.dev>
+
+**Or**: Open the PORTS tab and click the globe icon next to port 3000
+
+---
+
+## ❓ Common Questions
+
+**Q: Why does the build take 5-7 minutes?**
+A: This is normal and optimized for your project size (584 TS files, 150 pages). Most similar-sized apps take 5-10 minutes.
+
+**Q: Can I make it faster?**
+A: Yes! Use `npm run dev` for development (instant). Production builds are optimized but intentionally thorough.
+
+**Q: Why separate type checking?**
+A: Running type-checking during build causes memory issues and hangs. Separating them (your current setup) is the industry best practice for large projects.
+
+**Q: The server says it's ready but I can't access it?**
+A: You need to use the forwarded URL from the PORTS tab, not localhost. Codespaces requires HTTPS and a forwarded domain.
+
+## 🎯 Next Steps
+
+1. ✅ Server is running
+2. ✅ Build is optimized
+3. → Open PORTS tab
+4. → Click globe icon for port 3000
+5. → Test your application!
+
+Need help? Run `./server.sh help`
+
+]]>
+</file>
+
+<file path="docs/guides/QUICK_START_AI.md">
+<![CDATA[
+# Quick Start: Deploy Now & Configure AI
+
+## 🚀 Deploy (Choose One)
+
+### Option A: Vercel Dashboard (Easiest - 2 minutes)
+
+1. Visit: https://vercel.com/fixzit/fixzit
+2. Click "Deployments" → "Deploy" → "Redeploy to Production"
+3. Wait 2-4 minutes
+
+### Option B: Fix Auto-Deploy (10 minutes - Permanent Solution)
+
+1. Visit: https://vercel.com/fixzit/settings/members
+2. Click "Invite Member"
+3. Add GitHub username: `EngSayh`
+4. Future commits will auto-deploy
+
+---
+
+## 🔑 Configure OpenAI API Key (REQUIRED)
+
+### Method 1: Vercel Dashboard
+
+1. Go to: https://vercel.com/fixzit/fixzit/settings/environment-variables
+2. Add new variable:
+   - Name: `OPENAI_API_KEY`
+   - Value: `sk-proj-...` (get from https://platform.openai.com/api-keys)
+   - Environment: **Production**
+3. Click "Save"
+4. **Redeploy** (go to Deployments → click "Redeploy")
+
+### Method 2: CLI
+
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+vercel env add OPENAI_API_KEY production
+# Paste your key when prompted
+vercel deploy --prod --yes
+```
+
+---
+
+## ✅ Test AI Bot
+
+```bash
+# Check if deployed
+curl https://fixzit.co/api/health
+
+# Test AI streaming (replace YOUR_TOKEN)
+curl -X POST https://fixzit.co/api/copilot/stream \
+  -H "Content-Type: application/json" \
+  -H "Cookie: fixzit_auth=YOUR_TOKEN" \
+  -d '{"message":"What is Fixzit?","locale":"en"}'
+```
+
+## 🧠 Seed Copilot Knowledge (FAQ)
+
+```bash
+# Populate Copilot with system FAQs and overviews (desktop run, requires Mongo)
+pnpm tsx scripts/seed-copilot-knowledge.ts
+```
+
+The seed adds global knowledge for architecture, deployment/env FAQs, Copilot usage, background jobs, Souq claims, and testing commands. Re-run after major changes to refresh embeddings.
+
+---
+
+## 📊 What's New
+
+### New API Endpoint
+
+- `POST /api/copilot/stream` - Real-time AI streaming responses
+
+### System Governors
+
+- **Role-based access:** Different permissions per role
+- **Content safety:** Blocks SQL injection, command injection
+- **Data isolation:** Enforces tenant separation
+- **Rate limiting:** 30 requests/minute
+
+### Environment Variables
+
+- `OPENAI_API_KEY` - Your OpenAI API key (REQUIRED)
+- `COPILOT_MODEL` - Model to use (default: gpt-4o-mini)
+- `ENFORCE_AI_BUSINESS_HOURS` - Restrict to business hours (default: false)
+
+---
+
+## 💸 Costs
+
+**OpenAI Pricing (gpt-4o-mini):**
+
+- $0.15 per 1M input tokens
+- $0.60 per 1M output tokens
+- ~$0.0001 per chat message
+
+**Monthly estimate:** $10-50 depending on usage
+
+---
+
+## 🐛 Troubleshooting
+
+### Deployment fails?
+
+→ Use Vercel Dashboard (Option A above)
+
+### AI not responding?
+
+→ Check OPENAI_API_KEY is set in production
+→ View logs: `vercel logs https://fixzit.co`
+
+### Permission denied?
+
+→ Check user role in database
+→ Review governors in `server/copilot/governors.ts`
+
+---
+
+## 📞 Support
+
+- **Docs:** `AI_ENHANCEMENT_COMPLETE.md`
+- **Code:** Commit `696e9bc43`
+- **Logs:** `vercel logs https://fixzit.co --follow`
+
+]]>
+</file>
+
+<file path="docs/guides/README-KnowledgeCenter.md">
+<![CDATA[
+# Knowledge Center / AI Help
+
+## Endpoints
+
+- GET `/api/help/articles` — list published, tenant-scoped articles. Query: `q`, `category`, `page`, `limit`. Returns `{ items, page, limit, total, hasMore }`.
+- PATCH `/api/help/articles/[id]` — SUPER_ADMIN; updates article by id or slug; triggers KB ingest.
+- POST `/api/help/ask` — Auth required; body `{ question, limit?, category?, lang?, route? }`. Uses vector → text → regex; returns `{ answer, citations }`.
+- POST `/api/kb/search` — Auth; body `{ query: number[], q?: string, lang?, role?, route?, limit? }` returns `{ results }`.
+- POST `/api/kb/ingest` — SUPER_ADMIN/ADMIN; body `{ articleId, content, lang?, roleScopes?, route? }` upserts chunks.
+- DELETE `/api/kb/ingest?articleId=...` — SUPER_ADMIN/ADMIN; deletes chunks for article.
+- POST `/api/files/resumes/presign` — SUPER_ADMIN/ADMIN/HR; body `{ fileName, contentType }` returns `{ url, key }` for S3 PUT.
+- GET `/api/files/resumes/[file]?token=...&exp=...` — SUPER_ADMIN/ADMIN/HR; verifies token+expiry and redirects to S3 signed GET or streams local.
+
+## Behavior
+
+- Article edits trigger ingestion via API; optional change-stream watcher auto-syncs embeddings.
+- Ask endpoint redacts PII and truncates context before OpenAI call.
+- Markdown is sanitized (remark/rehype + rehype-sanitize).
+
+## Security
+
+- Tenant isolation on all Help/KB queries; RBAC enforced.
+- Signed URLs with expiry for resumes; non-public storage; optional S3 backend.
+
+## Setup
+
+- Run `node scripts/add-database-indexes.js`.
+- Optional: `npm run kb:watch` to keep embeddings in sync.
+- Env: `MONGODB_URI`, `OPENAI_API_KEY`, `KB_EMBEDDING_MODEL`, `AWS_S3_BUCKET`, `AWS_REGION`, `FILE_SIGNING_SECRET`.
+
+]]>
+</file>
+
+<file path="docs/guides/README_START_HERE.md">
+<![CDATA[
+# 🎯 COMPLETE - Ready for 3 Hours of Unattended Testing
+
+## ✅ Everything is Ready
+
+All infrastructure has been created, tested, and pushed to GitHub.  
+You can now leave for 3 hours while VS Code runs comprehensive E2E tests.
+
+---
+
+## 🚀 THREE WAYS TO START
+
+### **Option 1: VS Code Task (Easiest)**
+
+1. Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac)
+2. Type: `Tasks: Run Task`
+3. Select: **🚀 START: 3-Hour Unattended E2E Testing**
+4. Walk away for 3 hours ☕
+
+### **Option 2: Bash Script (Automated)**
+
+```bash
+bash scripts/start-e2e-testing.sh
+```
+
+This will:
+
+- ✅ Check prerequisites (port 3000, dependencies, Playwright)
+- ✅ Run TypeScript validation
+- ✅ Start dev server
+- ✅ Launch 3-hour E2E loop
+- ✅ Clean up when done
+
+### **Option 3: Manual (Two Terminals)**
+
+Terminal 1:
+
+```bash
+pnpm dev
+```
+
+Terminal 2 (wait 10 seconds):
+
+```bash
+pnpm test:e2e:loop
+```
+
+---
+
+## 📊 What Will Happen (While You're Gone)
+
+### Continuous Verification Loop (~12 cycles over 3 hours)
+
+Each cycle runs:
+
+1. **TypeScript Check** (`pnpm typecheck`)
+2. **ESLint** (`pnpm lint --max-warnings=0`)
+3. **i18n Key Scan** (`pnpm scan:i18n` - STRICT mode)
+4. **E2E Tests** (168 scenarios)
+
+### Test Coverage
+
+- **14 Pages**: Landing, App, Dashboard, Work Orders, Properties, Finance, HR, Admin, CRM, Marketplace, Support, Compliance, Reports, System
+- **6 Roles**: SuperAdmin, Admin, Manager, Technician, Tenant, Vendor
+- **2 Locales**: English (LTR), Arabic (RTL)
+- **Total**: 168 test scenarios per cycle × 12 cycles = **2,016 tests**
+
+### What Gets Validated
+
+- ✅ Pages load without 500 errors
+- ✅ Header, sidebar, footer present
+- ✅ Language & currency selectors visible
+- ✅ RTL/LTR direction correct
+- ✅ Zero console errors
+- ✅ Zero failed network requests (4xx/5xx)
+- ✅ All translation keys exist
+- ✅ Layout integrity maintained
+
+---
+
+## 📁 Where to Find Results (When You Return)
+
+### 1. **HTML Report** (Main)
+
+```
+playwright-report/index.html
+```
+
+**Open with**:
+
+```bash
+npx playwright show-report playwright-report
+```
+
+Contains:
+
+- Pass/fail status for all 168 scenarios
+- Videos of failed tests
+- Traces for debugging
+- Screenshots
+- Network logs
+- Console outputs
+
+### 2. **Execution Log**
+
+```
+tests/loop-runner.log
+```
+
+Timestamped record of all 12 cycles with:
+
+- Start/end times
+- Exit codes
+- Error summaries
+- Progress tracking
+
+### 3. **Dev Server Log** (if using script)
+
+```
+tests/logs/dev-server.log
+```
+
+### 4. **Test Artifacts**
+
+```
+test-results/
+├── videos/       # MP4 recordings of failed tests
+├── traces/       # Playwright traces (open with: npx playwright show-trace <file>)
+└── screenshots/  # PNG captures of failures
+```
+
+---
+
+## 📋 Pre-Flight Checklist (Do These Before Starting)
+
+### ✅ 1. Port 3000 is Free
+
+```bash
+lsof -i :3000
+# If occupied: kill -9 $(lsof -t -i:3000)
+```
+
+### ✅ 2. Dependencies Installed
+
+```bash
+pnpm install
+```
+
+### ✅ 3. Playwright Browsers Installed
+
+```bash
+pnpm test:install
+# OR: npx playwright install --with-deps chromium
+```
+
+### ✅ 4. TypeScript Compiles
+
+```bash
+pnpm typecheck
+# Should exit with code 0 (no errors)
+```
+
+### ✅ 5. Test Environment (Optional)
+
+If you want auth testing:
+
+```bash
+cp .env.test .env.local
+# Edit .env.local with your test credentials
+pnpm test:e2e:setup  # Generate auth storage states
+```
+
+---
+
+## 🎯 Success Criteria
+
+When you return after 3 hours, the system **succeeded** if:
+
+✅ **Loop log shows**: "3-HOUR VERIFICATION LOOP COMPLETED SUCCESSFULLY"  
+✅ **Playwright report**: All tests green (or documented known failures)  
+✅ **No build errors**: TypeScript + ESLint passed all cycles  
+✅ **No missing i18n keys**: Scanner passed all cycles  
+✅ **Dev server stable**: No crashes or OOM errors
+
+---
+
+## 🚨 If Something Goes Wrong
+
+### Dev Server Won't Start
+
+```bash
+# Check what's using port 3000
+lsof -i :3000
+# Kill it
+kill -9 $(lsof -t -i:3000)
+```
+
+### Tests Failing
+
+```bash
+# Run single test in debug mode
+pnpm exec playwright test --grep "Dashboard" --debug
+```
+
+### View Failed Test Traces
+
+```bash
+# Find trace file in test-results/
+npx playwright show-trace test-results/<test-name>/trace.zip
+```
+
+### Check Logs
+
+```bash
+# Loop execution
+tail -f tests/loop-runner.log
+
+# Dev server
+tail -f tests/logs/dev-server.log
+```
+
+---
+
+## 📦 What's Been Committed
+
+**Branch**: `fix/auth-duplicate-requests-and-debug-logs`  
+**Commits**: 5 commits pushed
+
+- `f4be5aa8f` - ServiceProvider model production-ready enhancements
+- `60aee7626` - Production-ready fixes report
+- `71e978244` - 3-hour E2E testing infrastructure
+- `ffed1fb7d` - Final status report and quick-start guide
+- `31857433e` - Automated start script
+
+**Files Created**: 16 new files
+
+- ✅ Tests infrastructure (Playwright config, loop runner, specs)
+- ✅ i18n scanner (STRICT mode validator)
+- ✅ VS Code tasks and settings
+- ✅ Comprehensive documentation
+- ✅ Automated start script
+- ✅ Error tracking report (15 days)
+
+---
+
+## 📝 What Was Accomplished Today
+
+### 1. ServiceProvider Model - Production Ready ✅
+
+- Tenant isolation with compound indexes
+- GeoJSON coordinates for geospatial queries
+- E.164 phone validation
+- KSA compliance (CR, VAT, IBAN, National ID)
+- Status state machine
+- Time-window availability validation
+- Ratings recalculation
+- Pre-save data normalization
+
+**Result**: +233 lines, -103 lines, TypeScript passed
+
+### 2. Marketplace API 501 Error - Fixed ✅
+
+- Root cause: Missing `MARKETPLACE_ENABLED` env var
+- Solution documented
+- Template created in `.env.test`
+
+### 3. 3-Hour E2E Testing Infrastructure - Complete ✅
+
+- 12-project test matrix (6 roles × 2 locales)
+- 168 test scenarios per cycle
+- Continuous verification loop
+- Zero-prompt operation
+- Comprehensive reporting
+- Automated start script
+
+### 4. Error Tracking - 15 Days Documented ✅
+
+- 48 commits analyzed
+- 12 critical fixes
+- 23 moderate fixes
+- 13 minor fixes
+- Metrics: TypeScript 47→0, ESLint 183→50, Console errors 23→0
+
+---
+
+## 🎬 FINAL COMMAND TO START
+
+**Just run this:**
+
+```bash
+bash scripts/start-e2e-testing.sh
+```
+
+**Or use VS Code Task:**
+
+`Ctrl+Shift+P` → `Tasks: Run Task` → `🚀 START: 3-Hour Unattended E2E Testing`
+
+---
+
+## ✅ YOU'RE ALL SET!
+
+Everything is configured, tested, and ready.  
+The system will run for exactly 3 hours with zero interaction needed.
+
+**When you return**, check:
+
+1. `playwright-report/index.html` - Main results
+2. `tests/loop-runner.log` - Execution log
+3. `test-results/` - Failure artifacts
+
+---
+
+## 📚 Documentation Files
+
+- **`START_3_HOUR_TESTING.md`** - Detailed instructions
+- **`READY_TO_START.md`** - This file (quick reference)
+- **`tests/README.md`** - Technical documentation
+- **`docs/archived/reports/ERRORS_FIXED_PAST_15_DAYS.md`** - Fix history
+- **`docs/archived/reports/PRODUCTION_READY_FIXES_2025-10-26.md`** - ServiceProvider changes
+
+---
+
+## 🎉 ENJOY YOUR 3-HOUR BREAK!
+
+The system will handle everything.  
+See you in 3 hours! ☕🎯
+
+---
+
+**Prepared by**: GitHub Copilot Agent  
+**Date**: October 26, 2025  
+**Branch**: fix/auth-duplicate-requests-and-debug-logs  
+**Status**: ✅ PRODUCTION READY
+
+]]>
+</file>
+
+<file path="docs/guides/READY_TO_START.md">
+<![CDATA[
+# 🎯 FINAL STATUS REPORT - 3-Hour E2E System Ready
+
+**Generated**: October 27, 2025, 6:00 PM  
+**Branch**: `fix/auth-duplicate-requests-and-debug-logs`  
+**Commits Pushed**: 3 (f4be5aa8f, 60aee7626, 71e978244)
+
+---
+
+## ✅ WHAT'S BEEN COMPLETED
+
+### 1. **ServiceProvider Model - Production Ready** ✅
+
+**Commit**: `f4be5aa8f`
+
+- ✅ Tenant isolation with compound index `(orgId, code)`
+- ✅ GeoJSON Point coordinates with 2dsphere index
+- ✅ E.164 phone number validation
+- ✅ KSA compliance validators (CR, VAT, IBAN, National ID)
+- ✅ ObjectId references for proper population
+- ✅ Status state machine with transition guards
+- ✅ Time-window availability validation
+- ✅ Ratings recalculation method
+- ✅ Pre-save data normalization
+
+**Changes**: +233 lines, -103 lines  
+**Testing**: TypeScript compilation passed
+
+---
+
+### 2. **Marketplace API 501 Error - Fixed** ✅
+
+**Documented**: `60aee7626`
+
+- ✅ Root cause identified: Missing `MARKETPLACE_ENABLED` env var
+- ✅ Solution documented in report
+- ✅ `.env.test` template created
+- ⚠️ **ACTION REQUIRED**: User must add `MARKETPLACE_ENABLED=true` to local `.env`
+
+---
+
+### 3. **3-Hour Unattended E2E Testing Infrastructure** ✅
+
+**Commit**: `71e978244`
+
+#### Files Created (14 new files):
+
+1. ✅ `tests/playwright.config.ts` - 12-project test matrix
+2. ✅ `tests/loop-runner.mjs` - 3-hour orchestration
+3. ✅ `tests/i18n-scan.mjs` - Translation key validator
+4. ✅ `tests/setup-auth.ts` - Auth state generator
+5. ✅ `tests/specs/smoke.spec.ts` - Page smoke tests
+6. ✅ `tests/specs/i18n.spec.ts` - i18n validation
+7. ✅ `tests/README.md` - Comprehensive documentation
+8. ✅ `.env.test` - Test credentials template (gitignored)
+9. ✅ `START_3_HOUR_TESTING.md` - Quick-start guide
+10. ✅ `docs/archived/reports/ERRORS_FIXED_PAST_15_DAYS.md` - Fix log (48 commits)
+
+#### Files Modified (4 files):
+
+1. ✅ `.vscode/settings.json` - No-prompt configuration
+2. ✅ `.vscode/tasks.json` - Added E2E task
+3. ✅ `package.json` - Added test scripts
+4. ✅ `pnpm-lock.yaml` - Added cross-env, glob
+
+#### Test Coverage:
+
+- **Pages**: 14 (Landing, App, Dashboard, Work Orders, Properties, Finance, HR, Admin, CRM, Marketplace, Support, Compliance, Reports, System)
+- **Roles**: 6 (SuperAdmin, Admin, Manager, Technician, Tenant, Vendor)
+- **Locales**: 2 (English LTR, Arabic RTL)
+- **Total Scenarios**: 168 (14 × 6 × 2)
+
+#### Verification Loop (Each Cycle):
+
+1. TypeScript type checking
+2. ESLint linting (max-warnings=0)
+3. i18n key scanning (STRICT mode)
+4. Playwright E2E tests (168 scenarios)
+
+---
+
+### 4. **Error Tracking Report** ✅
+
+**File**: `docs/archived/reports/ERRORS_FIXED_PAST_15_DAYS.md`
+
+Documented **48 commits** with fixes from October 11-26:
+
+- 🔴 **12 Critical**: ServiceProvider model, Marketplace API, RTL overflow, auth duplicates, SSR errors, hardcoded colors
+- 🟡 **23 Moderate**: NextAuth v5 migration, TypeScript nulls, form validation, pagination, accessibility
+- 🟢 **13 Minor**: UI/UX polish, component upgrades, quality improvements
+
+**Metrics Improvement**:
+
+- TypeScript errors: 47 → **0** ✅
+- ESLint warnings: 183 → **<50** ✅
+- Console errors: 23 pages → **0** ✅
+- Hydration mismatches: 8 → **0** ✅
+- RTL layout breaks: 5 → **0** ✅
+- Hardcoded colors: 92 → **0** ✅
+
+---
+
+## 🚀 HOW TO START THE 3-HOUR TEST
+
+### OPTION 1: VS Code Task (Easiest)
+
+1. Press `Ctrl+Shift+P` (Windows/Linux) or `Cmd+Shift+P` (Mac)
+2. Type: `Tasks: Run Task`
+3. Select: **"🚀 START: 3-Hour Unattended E2E Testing"**
+4. Walk away for 3 hours ☕
+
+### OPTION 2: Command Line
+
+```bash
+# Terminal 1: Start dev server
+pnpm dev
+
+# Terminal 2: Wait 10 seconds, then run loop
+pnpm test:e2e:loop
+```
+
+---
+
+## 📊 WHAT WILL HAPPEN (While You're Away)
+
+### System Actions:
+
+1. ✅ Keep system awake (3 hours)
+2. ✅ Start Next.js dev server on port 3000
+3. ✅ Run verification loops every ~15-20 minutes
+4. ✅ Test all 168 scenarios across all roles and locales
+5. ✅ Validate TypeScript, ESLint, i18n keys
+6. ✅ Save HTML reports, traces, videos, screenshots
+7. ✅ Log everything to `tests/loop-runner.log`
+
+### Zero Interaction:
+
+- ❌ No confirmation dialogs
+- ❌ No update prompts
+- ❌ No extension recommendations
+- ❌ No Git confirmations
+- ❌ No file save dialogs
+
+### Expected Output:
+
+- **Total Cycles**: ~12 (one every 15-20 min)
+- **Total Tests**: ~2,016 (168 scenarios × 12 cycles)
+- **Duration**: Exactly 3 hours
+
+---
+
+## 📁 WHERE TO FIND RESULTS
+
+When you return, check:
+
+### 1. **HTML Report** (Primary)
+
+```
+playwright-report/index.html
+```
+
+Open in browser → See all pass/fail with videos/traces
+
+### 2. **Execution Log**
+
+```
+tests/loop-runner.log
+```
+
+Timestamped record of every cycle
+
+### 3. **Terminal Output**
+
+- Terminal 1: Keep-alive countdown
+- Terminal 2: Dev server logs
+- Terminal 3: Loop runner progress
+
+### 4. **Artifacts**
+
+```
+test-results/
+├── videos/       # Failed test videos
+├── traces/       # Playwright traces
+└── screenshots/  # Failure screenshots
+```
+
+---
+
+## ⚠️ BEFORE YOU LEAVE: PRE-FLIGHT CHECKLIST
+
+### 1. ✅ Port 3000 is Free
+
+```bash
+lsof -i :3000
+# If occupied: kill -9 <PID>
+```
+
+### 2. ✅ Dependencies Installed
+
+```bash
+pnpm install
+```
+
+### 3. ✅ Playwright Browsers Installed
+
+```bash
+pnpm test:install
+# Or: npx playwright install --with-deps chromium
+```
+
+### 4. ✅ TypeScript Compiles
+
+```bash
+pnpm typecheck
+# Should exit with code 0
+```
+
+### 5. ✅ Dev Server Starts
+
+```bash
+pnpm dev
+# Should see "Local: http://localhost:3000" within 10 seconds
+# Press Ctrl+C to stop
+```
+
+### 6. ✅ Environment & Test Accounts
+
+```bash
+# Confirm marketplace env vars are set (fails fast if missing)
+pnpm check:env
+
+# Seed the .env.test users into your local database
+pnpm seed:test
+```
+
+- `pnpm check:env` ensures `MARKETPLACE_ENABLED=true` matches `env.example`.
+- `pnpm seed:test` replays `scripts/seed-test-users.ts` so Playwright credentials from `.env.test` exist in MongoDB.
+
+### 6. ⚠️ Test Users Exist (Optional)
+
+If you want to test authentication flows:
+
+```bash
+# Generate auth storage states
+pnpm test:e2e:setup
+```
+
+This requires test users in your database matching `.env.test` credentials.
+
+**For now, tests will run without auth** (landing pages, public routes work without login).
+
+---
+
+## 📋 PENDING TASKS (From Original Request)
+
+### ✅ Completed Today:
+
+1. ✅ **Task A**: ServiceProvider Model - Production-ready enhancements
+2. ✅ **Task C**: Marketplace API 501 Error - Root cause identified and fixed
+3. ✅ **E2E Infrastructure**: 3-hour unattended testing system
+4. ✅ **Error Tracking**: Comprehensive 15-day fix report
+
+### ⏳ Deferred (Awaiting Clarification):
+
+1. ⏳ **Task B**: i18n Consolidation - Large change (1951-line file), recommend separate PR
+2. ⏳ **Task D**: "90+ comments" - Need specific list from user
+
+### 📝 Next Steps After 3-Hour Test:
+
+1. Review `playwright-report/index.html` for any failures
+2. Address i18n consolidation if approved (Task B)
+3. Get clarification on "90 comments" reference (Task D)
+4. Backfill GeoJSON for existing ServiceProvider records
+5. Create PR for merging to `main`
+
+---
+
+## 🎯 SUCCESS CRITERIA
+
+When you return, the system **succeeded** if:
+
+✅ **Loop log shows**: "3-HOUR VERIFICATION LOOP COMPLETED SUCCESSFULLY"  
+✅ **Playwright report**: All tests green (or known failures documented)  
+✅ **No build errors**: TypeScript + ESLint passed all cycles  
+✅ **No missing i18n keys**: Scanner passed all cycles  
+✅ **Dev server stable**: No crashes or OOM errors
+
+---
+
+## 🚨 EMERGENCY STOP (If Needed)
+
+Press `Ctrl+C` in any terminal to gracefully stop.
+
+Or:
+
+```
+Terminal → Kill All Terminals
+```
+
+---
+
+## 📦 COMMITS PUSHED
+
+All work has been committed and pushed to GitHub:
+
+1. **f4be5aa8f**: ServiceProvider model production-ready enhancements
+2. **60aee7626**: Production-ready fixes report
+3. **71e978244**: 3-hour E2E testing infrastructure
+
+**Branch**: `fix/auth-duplicate-requests-and-debug-logs`  
+**Remote**: https://github.com/EngSayh/Fixzit  
+**PR**: #141 (active)
+
+---
+
+## 🎬 FINAL COMMAND TO START
+
+**Run this task in VS Code:**
+
+```
+Ctrl+Shift+P → Tasks: Run Task → 🚀 START: 3-Hour Unattended E2E Testing
+```
+
+**Then walk away for 3 hours.**
+
+When you return, check `playwright-report/index.html` and `tests/loop-runner.log`.
+
+---
+
+## ✅ SYSTEM STATUS: READY
+
+All infrastructure in place:
+
+- ✅ E2E framework configured
+- ✅ 168 test scenarios defined
+- ✅ Verification loop orchestrated
+- ✅ VS Code task ready to run
+- ✅ No-prompt settings active
+- ✅ Comprehensive documentation created
+- ✅ All changes committed and pushed
+
+**🚀 YOU ARE CLEARED FOR TAKEOFF! 🚀**
+
+---
+
+**Prepared by**: GitHub Copilot Agent  
+**Date**: October 27, 2025  
+**Duration**: ~3 hours of work compressed into one session  
+**Quality**: Production-ready, no workarounds, root causes fixed
+
+**Enjoy your 3-hour break! The system will handle everything.** ☕🎯
+
+]]>
+</file>
+
+</batch_content>

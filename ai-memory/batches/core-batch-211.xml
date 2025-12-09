@@ -1,0 +1,2177 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="i18n/sources/spaceManagementExtended.translations.json">
+<![CDATA[
+{
+  "en": {
+    "spaceManagementExtended.allocation": "Space Allocation",
+    "spaceManagementExtended.analysis": "Space Analysis",
+    "spaceManagementExtended.availability": "Space Availability",
+    "spaceManagementExtended.booking": "Space Booking",
+    "spaceManagementExtended.breakout": "Breakout Areas",
+    "spaceManagementExtended.cafeteria": "Cafeteria",
+    "spaceManagementExtended.calculation": "Space Calculation",
+    "spaceManagementExtended.calendar": "Space Calendar",
+    "spaceManagementExtended.collaborative": "Collaborative Spaces",
+    "spaceManagementExtended.conference": "Conference Rooms",
+    "spaceManagementExtended.configuration": "Space Configuration",
+    "spaceManagementExtended.data": "Data Centers",
+    "spaceManagementExtended.database": "Space Database",
+    "spaceManagementExtended.density": "Space Density",
+    "spaceManagementExtended.description": "Space Planning and Utilization",
+    "spaceManagementExtended.design": "Space Design",
+    "spaceManagementExtended.desk": "Desk Assignment",
+    "spaceManagementExtended.electrical": "Electrical Rooms",
+    "spaceManagementExtended.equipment": "Equipment Placement",
+    "spaceManagementExtended.fixtures": "Fixtures Management",
+    "spaceManagementExtended.furniture": "Furniture Management",
+    "spaceManagementExtended.guidelines": "Space Guidelines",
+    "spaceManagementExtended.hotdesk": "Hot Desking",
+    "spaceManagementExtended.hoteling": "Desk Hoteling",
+    "spaceManagementExtended.huddle": "Huddle Rooms",
+    "spaceManagementExtended.inventory": "Space Inventory",
+    "spaceManagementExtended.kitchen": "Kitchen Facilities",
+    "spaceManagementExtended.layout": "Space Layout",
+    "spaceManagementExtended.lounge": "Lounge Areas",
+    "spaceManagementExtended.measurement": "Space Measurement",
+    "spaceManagementExtended.mechanical": "Mechanical Rooms",
+    "spaceManagementExtended.meeting": "Meeting Rooms",
+    "spaceManagementExtended.occupancy": "Occupancy Tracking",
+    "spaceManagementExtended.optimization": "Space Optimization",
+    "spaceManagementExtended.phone": "Phone Booths",
+    "spaceManagementExtended.planning": "Space Planning",
+    "spaceManagementExtended.policies": "Space Policies",
+    "spaceManagementExtended.quiet": "Quiet Zones",
+    "spaceManagementExtended.reservation": "Space Reservation",
+    "spaceManagementExtended.restroom": "Restroom Facilities",
+    "spaceManagementExtended.scheduling": "Space Scheduling",
+    "spaceManagementExtended.server": "Server Rooms",
+    "spaceManagementExtended.shared": "Shared Spaces",
+    "spaceManagementExtended.standards": "Space Standards",
+    "spaceManagementExtended.storage": "Storage Areas",
+    "spaceManagementExtended.telecom": "Telecom Rooms",
+    "spaceManagementExtended.title": "Space Management",
+    "spaceManagementExtended.tracking": "Space Tracking",
+    "spaceManagementExtended.utilization": "Space Utilization",
+    "spaceManagementExtended.workstation": "Workstation Management"
+  },
+  "ar": {
+    "spaceManagementExtended.allocation": "تخصيص المساحات",
+    "spaceManagementExtended.analysis": "تحليل المساحات",
+    "spaceManagementExtended.availability": "توفر المساحات",
+    "spaceManagementExtended.booking": "حجز المساحات",
+    "spaceManagementExtended.breakout": "مناطق الاستراحة",
+    "spaceManagementExtended.cafeteria": "الكافتيريا",
+    "spaceManagementExtended.calculation": "حساب المساحات",
+    "spaceManagementExtended.calendar": "تقويم المساحات",
+    "spaceManagementExtended.collaborative": "المساحات التعاونية",
+    "spaceManagementExtended.conference": "قاعات المؤتمرات",
+    "spaceManagementExtended.configuration": "تكوين المساحات",
+    "spaceManagementExtended.data": "مراكز البيانات",
+    "spaceManagementExtended.database": "قاعدة بيانات المساحات",
+    "spaceManagementExtended.density": "كثافة المساحات",
+    "spaceManagementExtended.description": "تخطيط واستخدام المساحات",
+    "spaceManagementExtended.design": "تصميم المساحات",
+    "spaceManagementExtended.desk": "تعيين المكاتب",
+    "spaceManagementExtended.electrical": "غرف الكهرباء",
+    "spaceManagementExtended.equipment": "وضع المعدات",
+    "spaceManagementExtended.fixtures": "إدارة التجهيزات",
+    "spaceManagementExtended.furniture": "إدارة الأثاث",
+    "spaceManagementExtended.guidelines": "إرشادات المساحات",
+    "spaceManagementExtended.hotdesk": "المكاتب المشتركة",
+    "spaceManagementExtended.hoteling": "نظام المكتب المرن",
+    "spaceManagementExtended.huddle": "غرف الاجتماعات الصغيرة",
+    "spaceManagementExtended.inventory": "جرد المساحات",
+    "spaceManagementExtended.kitchen": "مرافق المطبخ",
+    "spaceManagementExtended.layout": "تخطيط المساحات",
+    "spaceManagementExtended.lounge": "مناطق الصالات",
+    "spaceManagementExtended.measurement": "قياس المساحات",
+    "spaceManagementExtended.mechanical": "غرف الميكانيكا",
+    "spaceManagementExtended.meeting": "غرف الاجتماعات",
+    "spaceManagementExtended.occupancy": "تتبع الإشغال",
+    "spaceManagementExtended.optimization": "تحسين المساحات",
+    "spaceManagementExtended.phone": "كبائن الهاتف",
+    "spaceManagementExtended.planning": "تخطيط المساحات",
+    "spaceManagementExtended.policies": "سياسات المساحات",
+    "spaceManagementExtended.quiet": "المناطق الهادئة",
+    "spaceManagementExtended.reservation": "حجز المساحات",
+    "spaceManagementExtended.restroom": "مرافق دورات المياه",
+    "spaceManagementExtended.scheduling": "جدولة المساحات",
+    "spaceManagementExtended.server": "غرف الخوادم",
+    "spaceManagementExtended.shared": "المساحات المشتركة",
+    "spaceManagementExtended.standards": "معايير المساحات",
+    "spaceManagementExtended.storage": "مناطق التخزين",
+    "spaceManagementExtended.telecom": "غرف الاتصالات",
+    "spaceManagementExtended.title": "إدارة المساحات",
+    "spaceManagementExtended.tracking": "تتبع المساحات",
+    "spaceManagementExtended.utilization": "استخدام المساحات",
+    "spaceManagementExtended.workstation": "إدارة محطات العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/spacingUnits.translations.json">
+<![CDATA[
+{
+  "en": {
+    "spacingUnits.all": "All Sides",
+    "spacingUnits.auto": "Auto",
+    "spacingUnits.bottom": "Bottom",
+    "spacingUnits.custom": "Custom",
+    "spacingUnits.em": "EM",
+    "spacingUnits.extraLarge": "Extra Large",
+    "spacingUnits.extraSmall": "Extra Small",
+    "spacingUnits.gap": "Gap",
+    "spacingUnits.horizontal": "Horizontal",
+    "spacingUnits.large": "Large",
+    "spacingUnits.left": "Left",
+    "spacingUnits.margin": "Margin",
+    "spacingUnits.medium": "Medium",
+    "spacingUnits.none": "None",
+    "spacingUnits.padding": "Padding",
+    "spacingUnits.percent": "Percent",
+    "spacingUnits.pixel": "Pixels",
+    "spacingUnits.rem": "REM",
+    "spacingUnits.right": "Right",
+    "spacingUnits.small": "Small",
+    "spacingUnits.spacing": "Spacing",
+    "spacingUnits.top": "Top",
+    "spacingUnits.unit": "Unit",
+    "spacingUnits.vertical": "Vertical",
+    "spacingUnits.viewport": "Viewport"
+  },
+  "ar": {
+    "spacingUnits.all": "جميع الجوانب",
+    "spacingUnits.auto": "تلقائي",
+    "spacingUnits.bottom": "أسفل",
+    "spacingUnits.custom": "مخصص",
+    "spacingUnits.em": "EM",
+    "spacingUnits.extraLarge": "كبير جداً",
+    "spacingUnits.extraSmall": "صغير جداً",
+    "spacingUnits.gap": "الفجوة",
+    "spacingUnits.horizontal": "أفقي",
+    "spacingUnits.large": "كبير",
+    "spacingUnits.left": "يسار",
+    "spacingUnits.margin": "الهامش",
+    "spacingUnits.medium": "متوسط",
+    "spacingUnits.none": "بدون",
+    "spacingUnits.padding": "الحشو",
+    "spacingUnits.percent": "نسبة مئوية",
+    "spacingUnits.pixel": "بكسل",
+    "spacingUnits.rem": "REM",
+    "spacingUnits.right": "يمين",
+    "spacingUnits.small": "صغير",
+    "spacingUnits.spacing": "التباعد",
+    "spacingUnits.top": "أعلى",
+    "spacingUnits.unit": "الوحدة",
+    "spacingUnits.vertical": "عمودي",
+    "spacingUnits.viewport": "منفذ العرض"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/spareparts.translations.json">
+<![CDATA[
+{
+  "en": {
+    "spareparts.alternative": "Alternative",
+    "spareparts.backorder": "Backorder",
+    "spareparts.bin": "Bin",
+    "spareparts.compatible": "Compatible",
+    "spareparts.component": "Component",
+    "spareparts.consumable": "Consumable",
+    "spareparts.consumables": "Consumables",
+    "spareparts.description": "Description",
+    "spareparts.issued": "Issued",
+    "spareparts.leadTime": "Lead Time",
+    "spareparts.location": "Location",
+    "spareparts.maximumStock": "Maximum Stock",
+    "spareparts.minimumStock": "Minimum Stock",
+    "spareparts.partNumber": "Part Number",
+    "spareparts.reorderPoint": "Reorder Point",
+    "spareparts.reorderQuantity": "Reorder Quantity",
+    "spareparts.returned": "Returned",
+    "spareparts.safetyStock": "Safety Stock",
+    "spareparts.sparePart": "Spare Part",
+    "spareparts.spareParts": "Spare Parts",
+    "spareparts.stockLevel": "Stock Level",
+    "spareparts.stockout": "Stockout",
+    "spareparts.storeroom": "Storeroom",
+    "spareparts.substitute": "Substitute",
+    "spareparts.usage": "Usage",
+    "spareparts.warehouse": "Warehouse"
+  },
+  "ar": {
+    "spareparts.alternative": "خيار بديل",
+    "spareparts.backorder": "طلبات متأخرة",
+    "spareparts.bin": "حاوية التخزين",
+    "spareparts.compatible": "متوافق",
+    "spareparts.component": "مكوّن",
+    "spareparts.consumable": "مادة مستهلكة",
+    "spareparts.consumables": "مواد مستهلكة",
+    "spareparts.description": "الوصف",
+    "spareparts.issued": "مصروف",
+    "spareparts.leadTime": "مهلة التوريد",
+    "spareparts.location": "الموقع",
+    "spareparts.maximumStock": "الحد الأقصى للمخزون",
+    "spareparts.minimumStock": "الحد الأدنى للمخزون",
+    "spareparts.partNumber": "رقم القطعة",
+    "spareparts.reorderPoint": "نقطة إعادة الطلب",
+    "spareparts.reorderQuantity": "كمية إعادة الطلب",
+    "spareparts.returned": "مرتجع",
+    "spareparts.safetyStock": "مخزون الأمان",
+    "spareparts.sparePart": "قطعة غيار",
+    "spareparts.spareParts": "قطع الغيار",
+    "spareparts.stockLevel": "مستوى المخزون",
+    "spareparts.stockout": "نفاد المخزون",
+    "spareparts.storeroom": "غرفة المخزون",
+    "spareparts.substitute": "بديل",
+    "spareparts.usage": "الاستهلاك",
+    "spareparts.warehouse": "المستودع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/spatialAnalytics.translations.json">
+<![CDATA[
+{
+  "en": {
+    "spatialAnalytics.buffer": "Buffer Analysis",
+    "spatialAnalytics.clustering": "Spatial Clustering",
+    "spatialAnalytics.coordinates": "Coordinates",
+    "spatialAnalytics.distance": "Distance Calculation",
+    "spatialAnalytics.geo": "Geospatial Analysis",
+    "spatialAnalytics.geocoding": "Geocoding",
+    "spatialAnalytics.gis": "GIS",
+    "spatialAnalytics.heat": "Heat Maps",
+    "spatialAnalytics.latitude": "Latitude/Longitude",
+    "spatialAnalytics.layers": "Map Layers",
+    "spatialAnalytics.mapping": "Mapping",
+    "spatialAnalytics.network": "Network Analysis",
+    "spatialAnalytics.overlay": "Overlay Analysis",
+    "spatialAnalytics.projection": "Map Projection",
+    "spatialAnalytics.proximity": "Proximity Analysis",
+    "spatialAnalytics.reverse": "Reverse Geocoding",
+    "spatialAnalytics.routing": "Route Optimization",
+    "spatialAnalytics.spatial": "Spatial Analytics",
+    "spatialAnalytics.temporal": "Temporal Analysis",
+    "spatialAnalytics.topology": "Topology",
+    "spatialAnalytics.visualization": "Spatial Visualization"
+  },
+  "ar": {
+    "spatialAnalytics.buffer": "تحليل المنطقة العازلة",
+    "spatialAnalytics.clustering": "التجميع المكاني",
+    "spatialAnalytics.coordinates": "الإحداثيات",
+    "spatialAnalytics.distance": "حساب المسافة",
+    "spatialAnalytics.geo": "التحليل الجغرافي المكاني",
+    "spatialAnalytics.geocoding": "الترميز الجغرافي",
+    "spatialAnalytics.gis": "نظم المعلومات الجغرافية",
+    "spatialAnalytics.heat": "خرائط الحرارة",
+    "spatialAnalytics.latitude": "خط العرض/خط الطول",
+    "spatialAnalytics.layers": "طبقات الخريطة",
+    "spatialAnalytics.mapping": "رسم الخرائط",
+    "spatialAnalytics.network": "تحليل الشبكة",
+    "spatialAnalytics.overlay": "تحليل التراكب",
+    "spatialAnalytics.projection": "إسقاط الخريطة",
+    "spatialAnalytics.proximity": "تحليل القرب",
+    "spatialAnalytics.reverse": "الترميز الجغرافي العكسي",
+    "spatialAnalytics.routing": "تحسين المسار",
+    "spatialAnalytics.spatial": "التحليلات المكانية",
+    "spatialAnalytics.temporal": "التحليل الزمني",
+    "spatialAnalytics.topology": "الطبولوجيا",
+    "spatialAnalytics.visualization": "التصور المكاني"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/spatialComputing.translations.json">
+<![CDATA[
+{
+  "en": {
+    "spatialComputing.anchor": "Spatial Anchor",
+    "spatialComputing.application": "Spatial Application",
+    "spatialComputing.awareness": "Spatial Awareness",
+    "spatialComputing.collision": "Collision Detection",
+    "spatialComputing.computing": "Spatial Technology",
+    "spatialComputing.coordinate": "Coordinate System",
+    "spatialComputing.environment": "Environment Mapping",
+    "spatialComputing.interaction": "Spatial Interaction",
+    "spatialComputing.localization": "Localization",
+    "spatialComputing.mapping": "3D Mapping",
+    "spatialComputing.mesh": "Spatial Mesh",
+    "spatialComputing.modeling": "3D Modeling",
+    "spatialComputing.navigation": "Spatial Navigation",
+    "spatialComputing.perception": "Spatial Perception",
+    "spatialComputing.physics": "Physics Simulation",
+    "spatialComputing.positioning": "Positioning",
+    "spatialComputing.reconstruction": "Scene Reconstruction",
+    "spatialComputing.rendering": "3D Rendering",
+    "spatialComputing.scanning": "3D Scanning",
+    "spatialComputing.spatial": "Spatial Computing",
+    "spatialComputing.tracking": "Spatial Tracking",
+    "spatialComputing.visualization": "3D Visualization"
+  },
+  "ar": {
+    "spatialComputing.anchor": "المرساة المكانية",
+    "spatialComputing.application": "التطبيق المكاني",
+    "spatialComputing.awareness": "الوعي المكاني",
+    "spatialComputing.collision": "اكتشاف الاصطدام",
+    "spatialComputing.computing": "التقنية المكانية",
+    "spatialComputing.coordinate": "نظام الإحداثيات",
+    "spatialComputing.environment": "رسم خرائط البيئة",
+    "spatialComputing.interaction": "التفاعل المكاني",
+    "spatialComputing.localization": "التوطين",
+    "spatialComputing.mapping": "الخرائط ثلاثية الأبعاد",
+    "spatialComputing.mesh": "الشبكة المكانية",
+    "spatialComputing.modeling": "النمذجة ثلاثية الأبعاد",
+    "spatialComputing.navigation": "التنقل المكاني",
+    "spatialComputing.perception": "الإدراك المكاني",
+    "spatialComputing.physics": "محاكاة الفيزياء",
+    "spatialComputing.positioning": "تحديد المواقع",
+    "spatialComputing.reconstruction": "إعادة بناء المشهد",
+    "spatialComputing.rendering": "العرض ثلاثي الأبعاد",
+    "spatialComputing.scanning": "المسح ثلاثي الأبعاد",
+    "spatialComputing.spatial": "الحوسبة المكانية",
+    "spatialComputing.tracking": "التتبع المكاني",
+    "spatialComputing.visualization": "التصور ثلاثي الأبعاد"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/sportsManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "sportsManagement.broadcastRights": "Broadcast Rights",
+    "sportsManagement.complianceRegulations": "Compliance & Regulations",
+    "sportsManagement.description": "Sports facility and team management",
+    "sportsManagement.equipmentManagement": "Equipment Management",
+    "sportsManagement.eventManagement": "Event Management",
+    "sportsManagement.facilityManagement": "Facility Management",
+    "sportsManagement.fanEngagement": "Fan Engagement",
+    "sportsManagement.fieldMaintenance": "Field Maintenance",
+    "sportsManagement.fitnessTracking": "Fitness Tracking",
+    "sportsManagement.gameScheduling": "Game Scheduling",
+    "sportsManagement.injuryManagement": "Injury Management",
+    "sportsManagement.medicalRecords": "Medical Records",
+    "sportsManagement.membershipManagement": "Membership Management",
+    "sportsManagement.merchandising": "Merchandising",
+    "sportsManagement.performanceTracking": "Performance Tracking",
+    "sportsManagement.playerDevelopment": "Player Development",
+    "sportsManagement.registrationSystem": "Registration System",
+    "sportsManagement.rosterManagement": "Roster Management",
+    "sportsManagement.sponsorshipManagement": "Sponsorship Management",
+    "sportsManagement.teamManagement": "Team Management",
+    "sportsManagement.ticketing": "Ticketing",
+    "sportsManagement.title": "Sports Management",
+    "sportsManagement.tournamentManagement": "Tournament Management",
+    "sportsManagement.trainingSchedules": "Training Schedules",
+    "sportsManagement.venueBooking": "Venue Booking"
+  },
+  "ar": {
+    "sportsManagement.broadcastRights": "حقوق البث",
+    "sportsManagement.complianceRegulations": "الامتثال واللوائح",
+    "sportsManagement.description": "إدارة المنشآت الرياضية والفرق",
+    "sportsManagement.equipmentManagement": "إدارة المعدات",
+    "sportsManagement.eventManagement": "إدارة الفعاليات",
+    "sportsManagement.facilityManagement": "إدارة المنشآت",
+    "sportsManagement.fanEngagement": "تفاعل المشجعين",
+    "sportsManagement.fieldMaintenance": "صيانة الملاعب",
+    "sportsManagement.fitnessTracking": "تتبع اللياقة",
+    "sportsManagement.gameScheduling": "جدولة المباريات",
+    "sportsManagement.injuryManagement": "إدارة الإصابات",
+    "sportsManagement.medicalRecords": "السجلات الطبية",
+    "sportsManagement.membershipManagement": "إدارة العضويات",
+    "sportsManagement.merchandising": "السلع التجارية",
+    "sportsManagement.performanceTracking": "تتبع الأداء",
+    "sportsManagement.playerDevelopment": "تطوير اللاعبين",
+    "sportsManagement.registrationSystem": "نظام التسجيل",
+    "sportsManagement.rosterManagement": "إدارة القائمة",
+    "sportsManagement.sponsorshipManagement": "إدارة الرعاية",
+    "sportsManagement.teamManagement": "إدارة الفريق",
+    "sportsManagement.ticketing": "التذاكر",
+    "sportsManagement.title": "إدارة الرياضة",
+    "sportsManagement.tournamentManagement": "إدارة البطولات",
+    "sportsManagement.trainingSchedules": "جداول التدريب",
+    "sportsManagement.venueBooking": "حجز المكان"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/stakeholderEngagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "stakeholderEngagement.analysis": "Stakeholder Analysis",
+    "stakeholderEngagement.classification": "Stakeholder Classification",
+    "stakeholderEngagement.collaboration": "Stakeholder Collaboration",
+    "stakeholderEngagement.communication": "Stakeholder Communication",
+    "stakeholderEngagement.concerns": "Stakeholder Concerns",
+    "stakeholderEngagement.consultation": "Stakeholder Consultation",
+    "stakeholderEngagement.engagement": "Engagement Strategy",
+    "stakeholderEngagement.expectations": "Expectation Management",
+    "stakeholderEngagement.feedback": "Stakeholder Feedback",
+    "stakeholderEngagement.identification": "Stakeholder Identification",
+    "stakeholderEngagement.influence": "Stakeholder Influence",
+    "stakeholderEngagement.interests": "Stakeholder Interests",
+    "stakeholderEngagement.involvement": "Stakeholder Involvement",
+    "stakeholderEngagement.management": "Stakeholder Management",
+    "stakeholderEngagement.mapping": "Stakeholder Mapping",
+    "stakeholderEngagement.participation": "Stakeholder Participation",
+    "stakeholderEngagement.power": "Stakeholder Power",
+    "stakeholderEngagement.prioritization": "Stakeholder Prioritization",
+    "stakeholderEngagement.relationship": "Relationship Management",
+    "stakeholderEngagement.satisfaction": "Stakeholder Satisfaction",
+    "stakeholderEngagement.stakeholder": "Stakeholder Engagement",
+    "stakeholderEngagement.trust": "Trust Building"
+  },
+  "ar": {
+    "stakeholderEngagement.analysis": "تحليل أصحاب المصلحة",
+    "stakeholderEngagement.classification": "تصنيف أصحاب المصلحة",
+    "stakeholderEngagement.collaboration": "التعاون مع أصحاب المصلحة",
+    "stakeholderEngagement.communication": "التواصل مع أصحاب المصلحة",
+    "stakeholderEngagement.concerns": "مخاوف أصحاب المصلحة",
+    "stakeholderEngagement.consultation": "استشارة أصحاب المصلحة",
+    "stakeholderEngagement.engagement": "استراتيجية الإشراك",
+    "stakeholderEngagement.expectations": "إدارة التوقعات",
+    "stakeholderEngagement.feedback": "ملاحظات أصحاب المصلحة",
+    "stakeholderEngagement.identification": "تحديد أصحاب المصلحة",
+    "stakeholderEngagement.influence": "تأثير أصحاب المصلحة",
+    "stakeholderEngagement.interests": "مصالح أصحاب المصلحة",
+    "stakeholderEngagement.involvement": "إشراك أصحاب المصلحة",
+    "stakeholderEngagement.management": "إدارة أصحاب المصلحة",
+    "stakeholderEngagement.mapping": "رسم خريطة أصحاب المصلحة",
+    "stakeholderEngagement.participation": "مشاركة أصحاب المصلحة",
+    "stakeholderEngagement.power": "قوة أصحاب المصلحة",
+    "stakeholderEngagement.prioritization": "تحديد الأولويات",
+    "stakeholderEngagement.relationship": "إدارة العلاقات",
+    "stakeholderEngagement.satisfaction": "رضا أصحاب المصلحة",
+    "stakeholderEngagement.stakeholder": "إشراك أصحاب المصلحة",
+    "stakeholderEngagement.trust": "بناء الثقة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/stakeholderManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "stakeholderManagement.analysis": "Stakeholder Analysis",
+    "stakeholderManagement.collaboration": "Stakeholder Collaboration",
+    "stakeholderManagement.communication": "Stakeholder Communication",
+    "stakeholderManagement.consultation": "Stakeholder Consultation",
+    "stakeholderManagement.engagement": "Stakeholder Engagement",
+    "stakeholderManagement.expectation": "Stakeholder Expectation",
+    "stakeholderManagement.feedback": "Stakeholder Feedback",
+    "stakeholderManagement.governance": "Stakeholder Governance",
+    "stakeholderManagement.identification": "Stakeholder Identification",
+    "stakeholderManagement.influence": "Stakeholder Influence",
+    "stakeholderManagement.interest": "Stakeholder Interest",
+    "stakeholderManagement.involvement": "Stakeholder Involvement",
+    "stakeholderManagement.mapping": "Stakeholder Mapping",
+    "stakeholderManagement.plan": "Stakeholder Plan",
+    "stakeholderManagement.power": "Stakeholder Power",
+    "stakeholderManagement.register": "Stakeholder Register",
+    "stakeholderManagement.relationship": "Stakeholder Relationship",
+    "stakeholderManagement.reporting": "Stakeholder Reporting",
+    "stakeholderManagement.requirement": "Stakeholder Requirement",
+    "stakeholderManagement.satisfaction": "Stakeholder Satisfaction",
+    "stakeholderManagement.stakeholder": "Stakeholder Management",
+    "stakeholderManagement.strategy": "Stakeholder Strategy"
+  },
+  "ar": {
+    "stakeholderManagement.analysis": "تحليل أصحاب المصلحة",
+    "stakeholderManagement.collaboration": "تعاون أصحاب المصلحة",
+    "stakeholderManagement.communication": "التواصل مع أصحاب المصلحة",
+    "stakeholderManagement.consultation": "استشارة أصحاب المصلحة",
+    "stakeholderManagement.engagement": "مشاركة أصحاب المصلحة",
+    "stakeholderManagement.expectation": "توقعات أصحاب المصلحة",
+    "stakeholderManagement.feedback": "ملاحظات أصحاب المصلحة",
+    "stakeholderManagement.governance": "حوكمة أصحاب المصلحة",
+    "stakeholderManagement.identification": "تحديد أصحاب المصلحة",
+    "stakeholderManagement.influence": "تأثير أصحاب المصلحة",
+    "stakeholderManagement.interest": "اهتمام أصحاب المصلحة",
+    "stakeholderManagement.involvement": "مشاركة أصحاب المصلحة",
+    "stakeholderManagement.mapping": "رسم خريطة أصحاب المصلحة",
+    "stakeholderManagement.plan": "خطة أصحاب المصلحة",
+    "stakeholderManagement.power": "قوة أصحاب المصلحة",
+    "stakeholderManagement.register": "سجل أصحاب المصلحة",
+    "stakeholderManagement.relationship": "علاقات أصحاب المصلحة",
+    "stakeholderManagement.reporting": "تقارير أصحاب المصلحة",
+    "stakeholderManagement.requirement": "متطلبات أصحاب المصلحة",
+    "stakeholderManagement.satisfaction": "رضا أصحاب المصلحة",
+    "stakeholderManagement.stakeholder": "إدارة أصحاب المصلحة",
+    "stakeholderManagement.strategy": "استراتيجية أصحاب المصلحة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/standardsCompliance.translations.json">
+<![CDATA[
+{
+  "en": {
+    "standardsCompliance.accreditation": "Standards Accreditation",
+    "standardsCompliance.adherence": "Standards Adherence",
+    "standardsCompliance.adoption": "Standards Adoption",
+    "standardsCompliance.assessment": "Standards Assessment",
+    "standardsCompliance.audit": "Standards Audit",
+    "standardsCompliance.certification": "Standards Certification",
+    "standardsCompliance.compliance": "Standards Management",
+    "standardsCompliance.conformance": "Standards Conformance",
+    "standardsCompliance.documentation": "Standards Documentation",
+    "standardsCompliance.framework": "Standards Framework",
+    "standardsCompliance.implementation": "Standards Implementation",
+    "standardsCompliance.improvement": "Standards Improvement",
+    "standardsCompliance.industry": "Industry Standards",
+    "standardsCompliance.international": "International Standards",
+    "standardsCompliance.iso": "ISO Standards",
+    "standardsCompliance.maintenance": "Standards Maintenance",
+    "standardsCompliance.quality": "Quality Standards",
+    "standardsCompliance.standards": "Standards Compliance",
+    "standardsCompliance.technical": "Technical Standards",
+    "standardsCompliance.training": "Standards Training",
+    "standardsCompliance.validation": "Standards Validation",
+    "standardsCompliance.verification": "Standards Verification"
+  },
+  "ar": {
+    "standardsCompliance.accreditation": "الاعتماد للمعايير",
+    "standardsCompliance.adherence": "الالتزام بالمعايير",
+    "standardsCompliance.adoption": "تبني المعايير",
+    "standardsCompliance.assessment": "تقييم المعايير",
+    "standardsCompliance.audit": "تدقيق المعايير",
+    "standardsCompliance.certification": "اعتماد المعايير",
+    "standardsCompliance.compliance": "إدارة المعايير",
+    "standardsCompliance.conformance": "المطابقة للمعايير",
+    "standardsCompliance.documentation": "توثيق المعايير",
+    "standardsCompliance.framework": "إطار المعايير",
+    "standardsCompliance.implementation": "تنفيذ المعايير",
+    "standardsCompliance.improvement": "تحسين المعايير",
+    "standardsCompliance.industry": "معايير الصناعة",
+    "standardsCompliance.international": "المعايير الدولية",
+    "standardsCompliance.iso": "معايير الأيزو",
+    "standardsCompliance.maintenance": "صيانة المعايير",
+    "standardsCompliance.quality": "معايير الجودة",
+    "standardsCompliance.standards": "الامتثال للمعايير",
+    "standardsCompliance.technical": "المعايير الفنية",
+    "standardsCompliance.training": "تدريب المعايير",
+    "standardsCompliance.validation": "التحقق من صحة المعايير",
+    "standardsCompliance.verification": "التحقق من المعايير"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/stateManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "stateManagement.active": "Active",
+    "stateManagement.blurred": "Blurred",
+    "stateManagement.checked": "Checked",
+    "stateManagement.collapsed": "Collapsed",
+    "stateManagement.complete": "Complete",
+    "stateManagement.disabled": "Disabled",
+    "stateManagement.empty": "Empty",
+    "stateManagement.enabled": "Enabled",
+    "stateManagement.error": "Error",
+    "stateManagement.expanded": "Expanded",
+    "stateManagement.failed": "Failed",
+    "stateManagement.focused": "Focused",
+    "stateManagement.hidden": "Hidden",
+    "stateManagement.hovered": "Hovered",
+    "stateManagement.idle": "Idle",
+    "stateManagement.inactive": "Inactive",
+    "stateManagement.loaded": "Loaded",
+    "stateManagement.loading": "Loading",
+    "stateManagement.pending": "Pending",
+    "stateManagement.processing": "Processing",
+    "stateManagement.selected": "Selected",
+    "stateManagement.state": "State",
+    "stateManagement.success": "Success",
+    "stateManagement.unchecked": "Unchecked",
+    "stateManagement.unselected": "Unselected",
+    "stateManagement.visible": "Visible"
+  },
+  "ar": {
+    "stateManagement.active": "نشط",
+    "stateManagement.blurred": "غير مركز",
+    "stateManagement.checked": "محدد",
+    "stateManagement.collapsed": "مطوي",
+    "stateManagement.complete": "مكتمل",
+    "stateManagement.disabled": "معطل",
+    "stateManagement.empty": "فارغ",
+    "stateManagement.enabled": "مفعل",
+    "stateManagement.error": "خطأ",
+    "stateManagement.expanded": "موسع",
+    "stateManagement.failed": "فشل",
+    "stateManagement.focused": "مركز",
+    "stateManagement.hidden": "مخفي",
+    "stateManagement.hovered": "عند التمرير",
+    "stateManagement.idle": "خامل",
+    "stateManagement.inactive": "غير نشط",
+    "stateManagement.loaded": "تم التحميل",
+    "stateManagement.loading": "جاري التحميل",
+    "stateManagement.pending": "معلق",
+    "stateManagement.processing": "قيد المعالجة",
+    "stateManagement.selected": "محدد",
+    "stateManagement.state": "الحالة",
+    "stateManagement.success": "نجاح",
+    "stateManagement.unchecked": "غير محدد",
+    "stateManagement.unselected": "غير محدد",
+    "stateManagement.visible": "مرئي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/status.translations.json">
+<![CDATA[
+{
+  "en": {
+    "status.active": "Active",
+    "status.approved": "Approved",
+    "status.approval": "Awaiting approval",
+    "status.cancelled": "Cancelled",
+    "status.closed": "Closed",
+    "status.completed": "Completed",
+    "status.dispatched": "Dispatched",
+    "status.draft": "Draft",
+    "status.inactive": "Inactive",
+    "status.inProgress": "In Progress",
+    "status.onHold": "On Hold",
+    "status.open": "Open",
+    "status.pending": "Pending",
+    "status.published": "Published",
+    "status.rejected": "Rejected",
+    "status.submitted": "Submitted",
+    "status.suspended": "Suspended",
+    "status.verified": "Verified"
+  },
+  "ar": {
+    "status.active": "نشط",
+    "status.approved": "تمت الموافقة",
+    "status.approval": "بانتظار الموافقة",
+    "status.cancelled": "تم الإلغاء",
+    "status.closed": "مغلق",
+    "status.completed": "مكتمل",
+    "status.dispatched": "مُرسَل",
+    "status.draft": "مسودة",
+    "status.inactive": "غير نشط",
+    "status.inProgress": "في تَقَدم",
+    "status.onHold": "في الانتظار",
+    "status.open": "مفتوح",
+    "status.pending": "معلق",
+    "status.published": "منشور",
+    "status.rejected": "مرفوض",
+    "status.submitted": "تم التقديم",
+    "status.suspended": "موقوف",
+    "status.verified": "تم التحقق منه"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/statuses.translations.json">
+<![CDATA[
+{
+  "en": {
+    "statuses.active": "Active",
+    "statuses.approved": "Approved",
+    "statuses.archived": "Archived",
+    "statuses.available": "Available",
+    "statuses.cancelled": "Cancelled",
+    "statuses.closed": "Closed",
+    "statuses.completed": "Completed",
+    "statuses.critical": "Critical",
+    "statuses.deleted": "Deleted",
+    "statuses.disabled": "Disabled",
+    "statuses.draft": "Draft",
+    "statuses.dueSoon": "Due Soon",
+    "statuses.dueToday": "Due Today",
+    "statuses.enabled": "Enabled",
+    "statuses.error": "Error",
+    "statuses.expired": "Expired",
+    "statuses.failed": "Failed",
+    "statuses.high": "High",
+    "statuses.inactive": "Inactive",
+    "statuses.info": "Info",
+    "statuses.inProgress": "In Progress",
+    "statuses.inReview": "In Review",
+    "statuses.locked": "Locked",
+    "statuses.low": "Low",
+    "statuses.maintenance": "Maintenance",
+    "statuses.medium": "Medium",
+    "statuses.normal": "Normal",
+    "statuses.notStarted": "Not Started",
+    "statuses.occupied": "Occupied",
+    "statuses.onHold": "On Hold",
+    "statuses.open": "Open",
+    "statuses.overdue": "Overdue",
+    "statuses.paid": "Paid",
+    "statuses.partiallyPaid": "Partially Paid",
+    "statuses.pending": "Pending",
+    "statuses.processing": "Processing",
+    "statuses.published": "Published",
+    "statuses.refunded": "Refunded",
+    "statuses.rejected": "Rejected",
+    "statuses.resolved": "Resolved",
+    "statuses.scheduled": "Scheduled",
+    "statuses.success": "Success",
+    "statuses.unavailable": "Unavailable",
+    "statuses.unlocked": "Unlocked",
+    "statuses.unpaid": "Unpaid",
+    "statuses.unverified": "Unverified",
+    "statuses.urgent": "Urgent",
+    "statuses.vacant": "Vacant",
+    "statuses.verified": "Verified",
+    "statuses.warning": "Warning"
+  },
+  "ar": {
+    "statuses.active": "نشط",
+    "statuses.approved": "موافق عليه",
+    "statuses.archived": "مؤرشف",
+    "statuses.available": "متاح",
+    "statuses.cancelled": "ملغي",
+    "statuses.closed": "مغلق",
+    "statuses.completed": "مكتمل",
+    "statuses.critical": "حرج",
+    "statuses.deleted": "محذوف",
+    "statuses.disabled": "معطّل",
+    "statuses.draft": "مسودة",
+    "statuses.dueSoon": "مستحق قريباً",
+    "statuses.dueToday": "مستحق اليوم",
+    "statuses.enabled": "مفعّل",
+    "statuses.error": "خطأ",
+    "statuses.expired": "منتهي الصلاحية",
+    "statuses.failed": "فشل",
+    "statuses.high": "عالي",
+    "statuses.inactive": "غير نشط",
+    "statuses.info": "معلومات",
+    "statuses.inProgress": "قيد التنفيذ",
+    "statuses.inReview": "قيد المراجعة",
+    "statuses.locked": "مقفل",
+    "statuses.low": "منخفض",
+    "statuses.maintenance": "صيانة",
+    "statuses.medium": "متوسط",
+    "statuses.normal": "عادي",
+    "statuses.notStarted": "لم يبدأ",
+    "statuses.occupied": "مشغول",
+    "statuses.onHold": "معلق",
+    "statuses.open": "مفتوح",
+    "statuses.overdue": "متأخر",
+    "statuses.paid": "مدفوع",
+    "statuses.partiallyPaid": "مدفوع جزئياً",
+    "statuses.pending": "قيد الانتظار",
+    "statuses.processing": "قيد المعالجة",
+    "statuses.published": "منشور",
+    "statuses.refunded": "مسترد",
+    "statuses.rejected": "مرفوض",
+    "statuses.resolved": "محلول",
+    "statuses.scheduled": "مجدول",
+    "statuses.success": "نجح",
+    "statuses.unavailable": "غير متاح",
+    "statuses.unlocked": "مفتوح",
+    "statuses.unpaid": "غير مدفوع",
+    "statuses.unverified": "غير موثق",
+    "statuses.urgent": "عاجل",
+    "statuses.vacant": "شاغر",
+    "statuses.verified": "موثق",
+    "statuses.warning": "تحذير"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/storeOperationsManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "storeOperationsManagement.cashManagement": "Cash Management",
+    "storeOperationsManagement.customerService": "Customer Service",
+    "storeOperationsManagement.description": "Physical store management and retail execution",
+    "storeOperationsManagement.footfallAnalysis": "Footfall Analysis",
+    "storeOperationsManagement.giftCards": "Gift Cards",
+    "storeOperationsManagement.inventoryManagement": "Inventory Management",
+    "storeOperationsManagement.loyaltyPrograms": "Loyalty Programs",
+    "storeOperationsManagement.markdownManagement": "Markdown Management",
+    "storeOperationsManagement.merchandising": "Merchandising",
+    "storeOperationsManagement.paymentProcessing": "Payment Processing",
+    "storeOperationsManagement.planogram": "Planogram Compliance",
+    "storeOperationsManagement.pointOfSale": "Point of Sale (POS)",
+    "storeOperationsManagement.priceManagement": "Price Management",
+    "storeOperationsManagement.productDisplay": "Product Display",
+    "storeOperationsManagement.promotionExecution": "Promotion Execution",
+    "storeOperationsManagement.refundProcessing": "Refund Processing",
+    "storeOperationsManagement.shelfManagement": "Shelf Management",
+    "storeOperationsManagement.stockReplenishment": "Stock Replenishment",
+    "storeOperationsManagement.storeAnalytics": "Store Analytics",
+    "storeOperationsManagement.storeLayout": "Store Layout",
+    "storeOperationsManagement.storeOperations": "Store Operations",
+    "storeOperationsManagement.title": "Store Operations",
+    "storeOperationsManagement.transactionProcessing": "Transaction Processing",
+    "storeOperationsManagement.visualMerchandising": "Visual Merchandising"
+  },
+  "ar": {
+    "storeOperationsManagement.cashManagement": "إدارة النقد",
+    "storeOperationsManagement.customerService": "خدمة العملاء",
+    "storeOperationsManagement.description": "إدارة المتجر الفعلي وتنفيذ البيع بالتجزئة",
+    "storeOperationsManagement.footfallAnalysis": "تحليل حركة المرور",
+    "storeOperationsManagement.giftCards": "بطاقات الهدايا",
+    "storeOperationsManagement.inventoryManagement": "إدارة المخزون",
+    "storeOperationsManagement.loyaltyPrograms": "برامج الولاء",
+    "storeOperationsManagement.markdownManagement": "إدارة التخفيضات",
+    "storeOperationsManagement.merchandising": "عرض البضائع",
+    "storeOperationsManagement.paymentProcessing": "معالجة المدفوعات",
+    "storeOperationsManagement.planogram": "الامتثال للمخطط",
+    "storeOperationsManagement.pointOfSale": "نقطة البيع",
+    "storeOperationsManagement.priceManagement": "إدارة الأسعار",
+    "storeOperationsManagement.productDisplay": "عرض المنتجات",
+    "storeOperationsManagement.promotionExecution": "تنفيذ العروض الترويجية",
+    "storeOperationsManagement.refundProcessing": "معالجة المبالغ المستردة",
+    "storeOperationsManagement.shelfManagement": "إدارة الرفوف",
+    "storeOperationsManagement.stockReplenishment": "تجديد المخزون",
+    "storeOperationsManagement.storeAnalytics": "تحليلات المتجر",
+    "storeOperationsManagement.storeLayout": "تخطيط المتجر",
+    "storeOperationsManagement.storeOperations": "عمليات المتجر",
+    "storeOperationsManagement.title": "عمليات المتجر",
+    "storeOperationsManagement.transactionProcessing": "معالجة المعاملات",
+    "storeOperationsManagement.visualMerchandising": "عرض البضائع المرئي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/strategicForesight.translations.json">
+<![CDATA[
+{
+  "en": {
+    "strategicForesight.adaptation": "Strategic Adaptation",
+    "strategicForesight.anticipation": "Future Anticipation",
+    "strategicForesight.disruption": "Disruption Anticipation",
+    "strategicForesight.exploration": "Future Exploration",
+    "strategicForesight.foresight": "Foresight Planning",
+    "strategicForesight.futures": "Futures Thinking",
+    "strategicForesight.horizon": "Horizon Scanning",
+    "strategicForesight.implications": "Strategic Implications",
+    "strategicForesight.innovation": "Future Innovation",
+    "strategicForesight.management": "Foresight Management",
+    "strategicForesight.megatrends": "Megatrends",
+    "strategicForesight.preparation": "Future Preparation",
+    "strategicForesight.readiness": "Future Readiness",
+    "strategicForesight.roadmapping": "Future Roadmapping",
+    "strategicForesight.scanning": "Environmental Scanning",
+    "strategicForesight.scenarios": "Future Scenarios",
+    "strategicForesight.signals": "Weak Signals",
+    "strategicForesight.strategic": "Strategic Foresight",
+    "strategicForesight.strategy": "Foresight Strategy",
+    "strategicForesight.thinking": "Future Thinking",
+    "strategicForesight.trends": "Emerging Trends",
+    "strategicForesight.visioning": "Future Visioning"
+  },
+  "ar": {
+    "strategicForesight.adaptation": "التكيف الاستراتيجي",
+    "strategicForesight.anticipation": "التوقع المستقبلي",
+    "strategicForesight.disruption": "توقع التعطيل",
+    "strategicForesight.exploration": "استكشاف المستقبل",
+    "strategicForesight.foresight": "تخطيط الاستشراف",
+    "strategicForesight.futures": "التفكير في المستقبل",
+    "strategicForesight.horizon": "مسح الأفق",
+    "strategicForesight.implications": "الآثار الاستراتيجية",
+    "strategicForesight.innovation": "الابتكار المستقبلي",
+    "strategicForesight.management": "إدارة الاستشراف",
+    "strategicForesight.megatrends": "الاتجاهات الكبرى",
+    "strategicForesight.preparation": "التحضير للمستقبل",
+    "strategicForesight.readiness": "الجاهزية للمستقبل",
+    "strategicForesight.roadmapping": "خريطة طريق المستقبل",
+    "strategicForesight.scanning": "المسح البيئي",
+    "strategicForesight.scenarios": "سيناريوهات المستقبل",
+    "strategicForesight.signals": "الإشارات الضعيفة",
+    "strategicForesight.strategic": "الاستشراف الاستراتيجي",
+    "strategicForesight.strategy": "استراتيجية الاستشراف",
+    "strategicForesight.thinking": "التفكير المستقبلي",
+    "strategicForesight.trends": "الاتجاهات الناشئة",
+    "strategicForesight.visioning": "تصور المستقبل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/strategicPlanning.translations.json">
+<![CDATA[
+{
+  "en": {
+    "strategicPlanning.alignment": "Strategic Alignment",
+    "strategicPlanning.analysis": "Strategic Analysis",
+    "strategicPlanning.assessment": "Strategic Assessment",
+    "strategicPlanning.competitive": "Competitive Analysis",
+    "strategicPlanning.execution": "Strategy Execution",
+    "strategicPlanning.forecasting": "Strategic Forecasting",
+    "strategicPlanning.framework": "Strategic Framework",
+    "strategicPlanning.goals": "Strategic Goals",
+    "strategicPlanning.initiatives": "Strategic Initiatives",
+    "strategicPlanning.market": "Market Analysis",
+    "strategicPlanning.mission": "Mission",
+    "strategicPlanning.objectives": "Strategic Objectives",
+    "strategicPlanning.planning": "Strategic Planning",
+    "strategicPlanning.positioning": "Strategic Positioning",
+    "strategicPlanning.priorities": "Strategic Priorities",
+    "strategicPlanning.review": "Strategy Review",
+    "strategicPlanning.roadmap": "Strategic Roadmap",
+    "strategicPlanning.scenarios": "Scenario Planning",
+    "strategicPlanning.strategy": "Strategy",
+    "strategicPlanning.swot": "SWOT Analysis",
+    "strategicPlanning.values": "Core Values",
+    "strategicPlanning.vision": "Vision"
+  },
+  "ar": {
+    "strategicPlanning.alignment": "التوافق",
+    "strategicPlanning.analysis": "التحليل الاستراتيجي",
+    "strategicPlanning.assessment": "التقييم الاستراتيجي",
+    "strategicPlanning.competitive": "التحليل التنافسي",
+    "strategicPlanning.execution": "التنفيذ",
+    "strategicPlanning.forecasting": "التنبؤ الاستراتيجي",
+    "strategicPlanning.framework": "الإطار الاستراتيجي",
+    "strategicPlanning.goals": "الأهداف",
+    "strategicPlanning.initiatives": "المبادرات",
+    "strategicPlanning.market": "تحليل السوق",
+    "strategicPlanning.mission": "الرسالة",
+    "strategicPlanning.objectives": "الأهداف المحددة",
+    "strategicPlanning.planning": "التخطيط الاستراتيجي",
+    "strategicPlanning.positioning": "تحديد الموقع",
+    "strategicPlanning.priorities": "الأولويات",
+    "strategicPlanning.review": "المراجعة الاستراتيجية",
+    "strategicPlanning.roadmap": "خارطة الطريق",
+    "strategicPlanning.scenarios": "تخطيط السيناريوهات",
+    "strategicPlanning.strategy": "الاستراتيجية",
+    "strategicPlanning.swot": "تحليل SWOT",
+    "strategicPlanning.values": "القيم",
+    "strategicPlanning.vision": "الرؤية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/streamAnalytics.translations.json">
+<![CDATA[
+{
+  "en": {
+    "streamAnalytics.aggregation": "Stream Aggregation",
+    "streamAnalytics.cep": "Complex Event Processing",
+    "streamAnalytics.enrichment": "Stream Enrichment",
+    "streamAnalytics.events": "Event Streams",
+    "streamAnalytics.filtering": "Stream Filtering",
+    "streamAnalytics.flink": "Apache Flink",
+    "streamAnalytics.ingestion": "Stream Ingestion",
+    "streamAnalytics.joins": "Stream Joins",
+    "streamAnalytics.kafka": "Kafka Streams",
+    "streamAnalytics.latency": "Processing Latency",
+    "streamAnalytics.monitoring": "Stream Monitoring",
+    "streamAnalytics.patterns": "Pattern Detection",
+    "streamAnalytics.processing": "Stream Processing",
+    "streamAnalytics.realtime": "Real-Time Analytics",
+    "streamAnalytics.session": "Session Windows",
+    "streamAnalytics.sliding": "Sliding Windows",
+    "streamAnalytics.spark": "Spark Streaming",
+    "streamAnalytics.stream": "Stream Analytics",
+    "streamAnalytics.streaming": "Streaming Data",
+    "streamAnalytics.tumbling": "Tumbling Windows",
+    "streamAnalytics.windows": "Time Windows"
+  },
+  "ar": {
+    "streamAnalytics.aggregation": "تجميع التدفق",
+    "streamAnalytics.cep": "معالجة الأحداث المعقدة",
+    "streamAnalytics.enrichment": "إثراء التدفق",
+    "streamAnalytics.events": "تدفقات الأحداث",
+    "streamAnalytics.filtering": "تصفية التدفق",
+    "streamAnalytics.flink": "Apache Flink",
+    "streamAnalytics.ingestion": "استيعاب التدفق",
+    "streamAnalytics.joins": "ضم التدفقات",
+    "streamAnalytics.kafka": "تدفقات Kafka",
+    "streamAnalytics.latency": "زمن المعالجة",
+    "streamAnalytics.monitoring": "مراقبة التدفق",
+    "streamAnalytics.patterns": "كشف الأنماط",
+    "streamAnalytics.processing": "معالجة التدفق",
+    "streamAnalytics.realtime": "التحليلات في الوقت الفعلي",
+    "streamAnalytics.session": "نوافذ الجلسة",
+    "streamAnalytics.sliding": "النوافذ المنزلقة",
+    "streamAnalytics.spark": "تدفق Spark",
+    "streamAnalytics.stream": "تحليلات التدفق",
+    "streamAnalytics.streaming": "تدفق البيانات",
+    "streamAnalytics.tumbling": "النوافذ المتدحرجة",
+    "streamAnalytics.windows": "نوافذ الوقت"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/stressManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "stressManagement.assessment": "Stress Assessment",
+    "stressManagement.balance": "Work-Life Balance",
+    "stressManagement.burnout": "Burnout Prevention",
+    "stressManagement.coping": "Coping Strategies",
+    "stressManagement.counseling": "Stress Counseling",
+    "stressManagement.exercise": "Stress Exercise",
+    "stressManagement.identification": "Stress Identification",
+    "stressManagement.management": "Stress Management",
+    "stressManagement.meditation": "Meditation",
+    "stressManagement.mindfulness": "Mindfulness",
+    "stressManagement.nutrition": "Stress Nutrition",
+    "stressManagement.prevention": "Stress Prevention",
+    "stressManagement.reduction": "Stress Reduction",
+    "stressManagement.relaxation": "Relaxation Techniques",
+    "stressManagement.relief": "Stress Relief",
+    "stressManagement.resilience": "Stress Resilience",
+    "stressManagement.sleep": "Sleep Management",
+    "stressManagement.stress": "Stress Management",
+    "stressManagement.support": "Stress Support",
+    "stressManagement.time": "Time Management",
+    "stressManagement.wellbeing": "Wellbeing",
+    "stressManagement.wellness": "Wellness"
+  },
+  "ar": {
+    "stressManagement.assessment": "تقييم الضغط",
+    "stressManagement.balance": "التوازن بين العمل والحياة",
+    "stressManagement.burnout": "الوقاية من الإرهاق",
+    "stressManagement.coping": "استراتيجيات التكيف",
+    "stressManagement.counseling": "الإرشاد النفسي للضغط",
+    "stressManagement.exercise": "تمارين الضغط",
+    "stressManagement.identification": "تحديد الضغط",
+    "stressManagement.management": "إدارة الضغط",
+    "stressManagement.meditation": "التأمل",
+    "stressManagement.mindfulness": "اليقظة الذهنية",
+    "stressManagement.nutrition": "تغذية الضغط",
+    "stressManagement.prevention": "الوقاية من الضغط",
+    "stressManagement.reduction": "تقليل الضغط",
+    "stressManagement.relaxation": "تقنيات الاسترخاء",
+    "stressManagement.relief": "تخفيف الضغط",
+    "stressManagement.resilience": "المرونة في مواجهة الضغط",
+    "stressManagement.sleep": "إدارة النوم",
+    "stressManagement.stress": "إدارة الضغط",
+    "stressManagement.support": "دعم الضغط",
+    "stressManagement.time": "إدارة الوقت",
+    "stressManagement.wellbeing": "الرفاهية",
+    "stressManagement.wellness": "الصحة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/stressManagementAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "stressManagementAdv.assessment": "تقييم الإجهاد",
+    "stressManagementAdv.breathing": "تمارين التنفس",
+    "stressManagementAdv.coping": "استراتيجيات التكيف",
+    "stressManagementAdv.counseling": "استشارة الإجهاد",
+    "stressManagementAdv.exercise": "التمارين البدنية",
+    "stressManagementAdv.identification": "تحديد الإجهاد",
+    "stressManagementAdv.lifestyle": "تغييرات نمط الحياة",
+    "stressManagementAdv.management": "تقليل الإجهاد",
+    "stressManagementAdv.meditation": "التأمل",
+    "stressManagementAdv.mindfulness": "ممارسة اليقظة الذهنية",
+    "stressManagementAdv.prevention": "الوقاية من الإجهاد",
+    "stressManagementAdv.relaxation": "تقنيات الاسترخاء",
+    "stressManagementAdv.resilience": "المرونة في الإجهاد",
+    "stressManagementAdv.resources": "موارد الإجهاد",
+    "stressManagementAdv.response": "استجابة الإجهاد",
+    "stressManagementAdv.sources": "مصادر الإجهاد",
+    "stressManagementAdv.stress": "إدارة الإجهاد",
+    "stressManagementAdv.support": "دعم الإجهاد",
+    "stressManagementAdv.techniques": "تقنيات الإجهاد",
+    "stressManagementAdv.training": "تدريب الإجهاد",
+    "stressManagementAdv.triggers": "محفزات الإجهاد",
+    "stressManagementAdv.workplace": "إجهاد مكان العمل"
+  },
+  "ar": {
+    "stressManagementAdv.assessment": "تقييم الإجهاد",
+    "stressManagementAdv.breathing": "تمارين التنفس",
+    "stressManagementAdv.coping": "استراتيجيات التكيف",
+    "stressManagementAdv.counseling": "استشارة الإجهاد",
+    "stressManagementAdv.exercise": "التمارين البدنية",
+    "stressManagementAdv.identification": "تحديد الإجهاد",
+    "stressManagementAdv.lifestyle": "تغييرات نمط الحياة",
+    "stressManagementAdv.management": "تقليل الإجهاد",
+    "stressManagementAdv.meditation": "التأمل",
+    "stressManagementAdv.mindfulness": "ممارسة اليقظة الذهنية",
+    "stressManagementAdv.prevention": "الوقاية من الإجهاد",
+    "stressManagementAdv.relaxation": "تقنيات الاسترخاء",
+    "stressManagementAdv.resilience": "المرونة في الإجهاد",
+    "stressManagementAdv.resources": "موارد الإجهاد",
+    "stressManagementAdv.response": "استجابة الإجهاد",
+    "stressManagementAdv.sources": "مصادر الإجهاد",
+    "stressManagementAdv.stress": "إدارة الإجهاد",
+    "stressManagementAdv.support": "دعم الإجهاد",
+    "stressManagementAdv.techniques": "تقنيات الإجهاد",
+    "stressManagementAdv.training": "تدريب الإجهاد",
+    "stressManagementAdv.triggers": "محفزات الإجهاد",
+    "stressManagementAdv.workplace": "إجهاد مكان العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/structural.translations.json">
+<![CDATA[
+{
+  "en": {
+    "structural.beam": "Beam",
+    "structural.beams": "Beams",
+    "structural.column": "Column",
+    "structural.columns": "Columns",
+    "structural.concreteSlab": "Concrete Slab",
+    "structural.footing": "Footing",
+    "structural.footings": "Footings",
+    "structural.foundation": "Foundation",
+    "structural.foundations": "Foundations",
+    "structural.frame": "Frame",
+    "structural.framing": "Framing",
+    "structural.girder": "Girder",
+    "structural.joist": "Joist",
+    "structural.joists": "Joists",
+    "structural.loadBearingWall": "Load Bearing Wall",
+    "structural.pillar": "Pillar",
+    "structural.pillars": "Pillars",
+    "structural.rebar": "Rebar",
+    "structural.reinforcement": "Reinforcement",
+    "structural.retainingWall": "Retaining Wall",
+    "structural.shearWall": "Shear Wall",
+    "structural.slab": "Slab",
+    "structural.steel": "Steel",
+    "structural.steelStructure": "Steel Structure",
+    "structural.structural1": "Structural",
+    "structural.structuralIntegrity": "Structural Integrity",
+    "structural.structuralSupport": "Structural Support",
+    "structural.structure": "Structure",
+    "structural.support": "Support",
+    "structural.truss": "Truss"
+  },
+  "ar": {
+    "structural.beam": "عارضة",
+    "structural.beams": "عوارض",
+    "structural.column": "عمود",
+    "structural.columns": "أعمدة",
+    "structural.concreteSlab": "بلاطة خرسانية",
+    "structural.footing": "قاعدة",
+    "structural.footings": "قواعد",
+    "structural.foundation": "أساس",
+    "structural.foundations": "أساسات",
+    "structural.frame": "إطار",
+    "structural.framing": "التأطير",
+    "structural.girder": "كمرة",
+    "structural.joist": "عارضة أرضية",
+    "structural.joists": "عوارض أرضية",
+    "structural.loadBearingWall": "جدار حامل",
+    "structural.pillar": "ركيزة",
+    "structural.pillars": "ركائز",
+    "structural.rebar": "حديد التسليح",
+    "structural.reinforcement": "تسليح",
+    "structural.retainingWall": "جدار استنادي",
+    "structural.shearWall": "جدار قص",
+    "structural.slab": "بلاطة",
+    "structural.steel": "فولاذ",
+    "structural.steelStructure": "هيكل فولاذي",
+    "structural.structural1": "إنشائي",
+    "structural.structuralIntegrity": "السلامة الإنشائية",
+    "structural.structuralSupport": "دعم إنشائي",
+    "structural.structure": "هيكل",
+    "structural.support": "دعم",
+    "structural.truss": "جمالون"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/studentAssessment.translations.json">
+<![CDATA[
+{
+  "en": {
+    "studentAssessment.accommodations": "Testing Accommodations",
+    "studentAssessment.administration": "Test Administration",
+    "studentAssessment.analysis": "Data Analysis",
+    "studentAssessment.assessment": "Student Assessment",
+    "studentAssessment.authentic": "Authentic Assessment",
+    "studentAssessment.benchmark": "Benchmark Testing",
+    "studentAssessment.competency": "Competency Assessment",
+    "studentAssessment.criteria": "Grading Criteria",
+    "studentAssessment.description": "Student Evaluation and Testing",
+    "studentAssessment.diagnostic": "Diagnostic Assessment",
+    "studentAssessment.evaluation": "Student Evaluation",
+    "studentAssessment.feedback": "Student Feedback",
+    "studentAssessment.formative": "Formative Assessment",
+    "studentAssessment.growth": "Growth Measurement",
+    "studentAssessment.international": "International Testing",
+    "studentAssessment.interpretation": "Score Interpretation",
+    "studentAssessment.intervention": "Intervention Planning",
+    "studentAssessment.mastery": "Mastery-Based Assessment",
+    "studentAssessment.modifications": "Testing Modifications",
+    "studentAssessment.national": "National Testing",
+    "studentAssessment.parent": "Parent Communication",
+    "studentAssessment.performance": "Performance Assessment",
+    "studentAssessment.portfolio": "Portfolio Assessment",
+    "studentAssessment.proctoring": "Test Proctoring",
+    "studentAssessment.progress": "Progress Monitoring",
+    "studentAssessment.reporting": "Score Reporting",
+    "studentAssessment.rubrics": "Assessment Rubrics",
+    "studentAssessment.scoring": "Test Scoring",
+    "studentAssessment.screening": "Universal Screening",
+    "studentAssessment.security": "Test Security",
+    "studentAssessment.standardized": "Standardized Testing",
+    "studentAssessment.standards": "Standards-Based Grading",
+    "studentAssessment.state": "State Testing",
+    "studentAssessment.summative": "Summative Assessment",
+    "studentAssessment.testing": "Student Testing",
+    "studentAssessment.title": "Student Assessment",
+    "studentAssessment.value": "Value-Added Assessment"
+  },
+  "ar": {
+    "studentAssessment.accommodations": "تكييفات الاختبار",
+    "studentAssessment.administration": "إدارة الاختبار",
+    "studentAssessment.analysis": "تحليل البيانات",
+    "studentAssessment.assessment": "تقييم الطلاب",
+    "studentAssessment.authentic": "التقييم الأصيل",
+    "studentAssessment.benchmark": "الاختبار المعياري",
+    "studentAssessment.competency": "تقييم الكفاءة",
+    "studentAssessment.criteria": "معايير التصنيف",
+    "studentAssessment.description": "تقييم واختبار الطلاب",
+    "studentAssessment.diagnostic": "التقييم التشخيصي",
+    "studentAssessment.evaluation": "تقييم الطلاب",
+    "studentAssessment.feedback": "ملاحظات الطلاب",
+    "studentAssessment.formative": "التقييم التكويني",
+    "studentAssessment.growth": "قياس النمو",
+    "studentAssessment.international": "الاختبار الدولي",
+    "studentAssessment.interpretation": "تفسير النتائج",
+    "studentAssessment.intervention": "تخطيط التدخل",
+    "studentAssessment.mastery": "تقييم الإتقان",
+    "studentAssessment.modifications": "تعديلات الاختبار",
+    "studentAssessment.national": "الاختبار الوطني",
+    "studentAssessment.parent": "التواصل مع أولياء الأمور",
+    "studentAssessment.performance": "تقييم الأداء",
+    "studentAssessment.portfolio": "تقييم الحافظة",
+    "studentAssessment.proctoring": "مراقبة الاختبار",
+    "studentAssessment.progress": "مراقبة التقدم",
+    "studentAssessment.reporting": "الإبلاغ عن النتائج",
+    "studentAssessment.rubrics": "معايير التقييم",
+    "studentAssessment.scoring": "تصحيح الاختبار",
+    "studentAssessment.screening": "الفحص الشامل",
+    "studentAssessment.security": "أمن الاختبار",
+    "studentAssessment.standardized": "الاختبارات الموحدة",
+    "studentAssessment.standards": "التصنيف على أساس المعايير",
+    "studentAssessment.state": "اختبار الولاية",
+    "studentAssessment.summative": "التقييم الختامي",
+    "studentAssessment.testing": "اختبار الطلاب",
+    "studentAssessment.title": "تقييم الطلاب",
+    "studentAssessment.value": "التقييم ذو القيمة المضافة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/subscription.translations.json">
+<![CDATA[
+{
+  "en": {
+    "subscription.active": "Active",
+    "subscription.annually": "Annually",
+    "subscription.autoRenew": "Auto-Renew",
+    "subscription.basic": "Basic",
+    "subscription.billingCycle": "Billing Cycle",
+    "subscription.billingDate": "Billing Date",
+    "subscription.cancelled": "Cancelled",
+    "subscription.downgrade": "Downgrade",
+    "subscription.enterprise": "Enterprise",
+    "subscription.expired": "Expired",
+    "subscription.features": "Features",
+    "subscription.free": "Free",
+    "subscription.freeTrial": "Free Trial",
+    "subscription.inactive": "Inactive",
+    "subscription.includedFeatures": "Included Features",
+    "subscription.limitations": "Limitations",
+    "subscription.management.actions.addSeats": "Add Seats",
+    "subscription.management.actions.cancel": "Cancel Subscription",
+    "subscription.management.actions.title": "Actions",
+    "subscription.management.actions.upgrade": "Upgrade Plan",
+    "subscription.management.empty.description": "You don't have an active subscription.",
+    "subscription.management.empty.title": "No Subscription",
+    "subscription.management.header.title": "Subscription Management",
+    "subscription.management.loading": "Loading subscription...",
+    "subscription.management.modules.title": "Active Modules",
+    "subscription.management.plan.amount": "Amount:",
+    "subscription.management.plan.billingCycle": "Billing Cycle:",
+    "subscription.management.plan.nextBilling": "Next Billing:",
+    "subscription.management.plan.seats": "Seats:",
+    "subscription.management.plan.title": "Plan Details",
+    "subscription.management.status.active": "Active",
+    "subscription.management.status.canceled": "Canceled",
+    "subscription.management.status.incomplete": "Incomplete",
+    "subscription.management.status.pastDue": "Past due",
+    "subscription.monthly": "Monthly",
+    "subscription.nextBillingDate": "Next Billing Date",
+    "subscription.plan": "Plan",
+    "subscription.plans": "Plans",
+    "subscription.premium": "Premium",
+    "subscription.professional": "Professional",
+    "subscription.quarterly": "Quarterly",
+    "subscription.quotaExceeded": "Quota Exceeded",
+    "subscription.renew": "Renew",
+    "subscription.renewal": "Renewal",
+    "subscription.subscribe": "Subscribe",
+    "subscription.subscription1": "Subscription",
+    "subscription.subscriptions": "Subscriptions",
+    "subscription.subscriptionStatus": "Subscription Status",
+    "subscription.suspended": "Suspended",
+    "subscription.tier": "Tier",
+    "subscription.tiers": "Tiers",
+    "subscription.trial": "Trial",
+    "subscription.trialPeriod": "Trial Period",
+    "subscription.unsubscribe": "Unsubscribe",
+    "subscription.upgrade": "Upgrade",
+    "subscription.usage": "Usage",
+    "subscription.usageLimit": "Usage Limit"
+  },
+  "ar": {
+    "subscription.active": "نشط",
+    "subscription.annually": "سنوي",
+    "subscription.autoRenew": "تجديد تلقائي",
+    "subscription.basic": "أساسي",
+    "subscription.billingCycle": "دورة الفوترة",
+    "subscription.billingDate": "تاريخ الفوترة",
+    "subscription.cancelled": "ملغى",
+    "subscription.downgrade": "تخفيض",
+    "subscription.enterprise": "المؤسسات",
+    "subscription.expired": "منتهي",
+    "subscription.features": "الميزات",
+    "subscription.free": "مجاني",
+    "subscription.freeTrial": "تجربة مجانية",
+    "subscription.inactive": "غير نشط",
+    "subscription.includedFeatures": "الميزات المضمنة",
+    "subscription.limitations": "القيود",
+    "subscription.management.actions.addSeats": "إضافة مقاعد",
+    "subscription.management.actions.cancel": "إلغاء الاشتراك",
+    "subscription.management.actions.title": "إجراءات",
+    "subscription.management.actions.upgrade": "ترقية الخطة",
+    "subscription.management.empty.description": "لا يوجد لديك اشتراك نشط.",
+    "subscription.management.empty.title": "لا يوجد اشتراك",
+    "subscription.management.header.title": "إدارة الاشتراك",
+    "subscription.management.loading": "جارٍ تحميل الاشتراك...",
+    "subscription.management.modules.title": "الوحدات المفعلة",
+    "subscription.management.plan.amount": "المبلغ:",
+    "subscription.management.plan.billingCycle": "دورة الفوترة:",
+    "subscription.management.plan.nextBilling": "الفاتورة القادمة:",
+    "subscription.management.plan.seats": "المقاعد:",
+    "subscription.management.plan.title": "تفاصيل الخطة",
+    "subscription.management.status.active": "نشط",
+    "subscription.management.status.canceled": "ملغى",
+    "subscription.management.status.incomplete": "غير مكتمل",
+    "subscription.management.status.pastDue": "متأخر الدفع",
+    "subscription.monthly": "شهري",
+    "subscription.nextBillingDate": "تاريخ الفوترة التالي",
+    "subscription.plan": "خطة",
+    "subscription.plans": "خطط",
+    "subscription.premium": "مميز",
+    "subscription.professional": "احترافي",
+    "subscription.quarterly": "ربع سنوي",
+    "subscription.quotaExceeded": "تم تجاوز الحصة",
+    "subscription.renew": "تجديد",
+    "subscription.renewal": "التجديد",
+    "subscription.subscribe": "اشترك",
+    "subscription.subscription1": "اشتراك",
+    "subscription.subscriptions": "اشتراكات",
+    "subscription.subscriptionStatus": "حالة الاشتراك",
+    "subscription.suspended": "معلق",
+    "subscription.tier": "مستوى",
+    "subscription.tiers": "مستويات",
+    "subscription.trial": "تجريبي",
+    "subscription.trialPeriod": "فترة تجريبية",
+    "subscription.unsubscribe": "إلغاء الاشتراك",
+    "subscription.upgrade": "ترقية",
+    "subscription.usage": "الاستخدام",
+    "subscription.usageLimit": "حد الاستخدام"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/subscriptionBilling.translations.json">
+<![CDATA[
+{
+  "en": {
+    "subscriptionBilling.annual": "Annual",
+    "subscriptionBilling.basic": "Basic Plan",
+    "subscriptionBilling.billing": "Billing",
+    "subscriptionBilling.cancel": "Cancel Subscription",
+    "subscriptionBilling.card": "Credit Card",
+    "subscriptionBilling.cycle": "Billing Cycle",
+    "subscriptionBilling.downgrade": "Downgrade",
+    "subscriptionBilling.enterprise": "Enterprise Plan",
+    "subscriptionBilling.free": "Free Plan",
+    "subscriptionBilling.invoice": "Invoice",
+    "subscriptionBilling.monthly": "Monthly",
+    "subscriptionBilling.pause": "Pause Subscription",
+    "subscriptionBilling.payment": "Payment Method",
+    "subscriptionBilling.plan": "Plan",
+    "subscriptionBilling.premium": "Premium Plan",
+    "subscriptionBilling.receipt": "Receipt",
+    "subscriptionBilling.recurring": "Recurring",
+    "subscriptionBilling.renew": "Renewal",
+    "subscriptionBilling.subscription": "Subscription",
+    "subscriptionBilling.tier": "Tier",
+    "subscriptionBilling.upgrade": "Upgrade",
+    "subscriptionBilling.yearly": "Yearly"
+  },
+  "ar": {
+    "subscriptionBilling.annual": "سنوي",
+    "subscriptionBilling.basic": "خطة أساسية",
+    "subscriptionBilling.billing": "الفوترة",
+    "subscriptionBilling.cancel": "إلغاء الاشتراك",
+    "subscriptionBilling.card": "بطاقة ائتمان",
+    "subscriptionBilling.cycle": "دورة الفوترة",
+    "subscriptionBilling.downgrade": "تخفيض",
+    "subscriptionBilling.enterprise": "خطة المؤسسات",
+    "subscriptionBilling.free": "خطة مجانية",
+    "subscriptionBilling.invoice": "الفاتورة",
+    "subscriptionBilling.monthly": "شهري",
+    "subscriptionBilling.pause": "إيقاف الاشتراك مؤقتاً",
+    "subscriptionBilling.payment": "طريقة الدفع",
+    "subscriptionBilling.plan": "الخطة",
+    "subscriptionBilling.premium": "خطة مميزة",
+    "subscriptionBilling.receipt": "الإيصال",
+    "subscriptionBilling.recurring": "متكرر",
+    "subscriptionBilling.renew": "التجديد",
+    "subscriptionBilling.subscription": "الاشتراك",
+    "subscriptionBilling.tier": "المستوى",
+    "subscriptionBilling.upgrade": "ترقية",
+    "subscriptionBilling.yearly": "سنوي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/subscriptionManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "subscriptionManagement.addOnManagement": "Add-On Management",
+    "subscriptionManagement.billingCycles": "Billing Cycles",
+    "subscriptionManagement.cancellationManagement": "Cancellation Management",
+    "subscriptionManagement.churnRate": "Churn Rate",
+    "subscriptionManagement.deferredRevenue": "Deferred Revenue",
+    "subscriptionManagement.description": "Recurring revenue and subscription lifecycle management",
+    "subscriptionManagement.downgrades": "Downgrades",
+    "subscriptionManagement.dunningManagement": "Dunning Management",
+    "subscriptionManagement.meteringIntegration": "Metering Integration",
+    "subscriptionManagement.pauseResume": "Pause/Resume",
+    "subscriptionManagement.paymentRetry": "Payment Retry",
+    "subscriptionManagement.proratedCharges": "Prorated Charges",
+    "subscriptionManagement.recurringPayments": "Recurring Payments",
+    "subscriptionManagement.renewalAutomation": "Renewal Automation",
+    "subscriptionManagement.retentionRate": "Retention Rate",
+    "subscriptionManagement.revenueRecognition": "Revenue Recognition",
+    "subscriptionManagement.subscriptionBilling": "Subscription Billing",
+    "subscriptionManagement.subscriptionMetrics": "Subscription Metrics",
+    "subscriptionManagement.subscriptionPlans": "Subscription Plans",
+    "subscriptionManagement.tieredPricing": "Tiered Pricing",
+    "subscriptionManagement.title": "Subscription Management",
+    "subscriptionManagement.upgrades": "Upgrades",
+    "subscriptionManagement.usageBasedBilling": "Usage-Based Billing",
+    "subscriptionManagement.winbackCampaigns": "Win-Back Campaigns"
+  },
+  "ar": {
+    "subscriptionManagement.addOnManagement": "إدارة الإضافات",
+    "subscriptionManagement.billingCycles": "دورات الفواتير",
+    "subscriptionManagement.cancellationManagement": "إدارة الإلغاء",
+    "subscriptionManagement.churnRate": "معدل الانسحاب",
+    "subscriptionManagement.deferredRevenue": "الإيرادات المؤجلة",
+    "subscriptionManagement.description": "إدارة الإيرادات المتكررة ودورة حياة الاشتراك",
+    "subscriptionManagement.downgrades": "التخفيضات",
+    "subscriptionManagement.dunningManagement": "إدارة المطالبة",
+    "subscriptionManagement.meteringIntegration": "تكامل القياس",
+    "subscriptionManagement.pauseResume": "إيقاف مؤقت / استئناف",
+    "subscriptionManagement.paymentRetry": "إعادة محاولة الدفع",
+    "subscriptionManagement.proratedCharges": "الرسوم المقسمة",
+    "subscriptionManagement.recurringPayments": "المدفوعات المتكررة",
+    "subscriptionManagement.renewalAutomation": "أتمتة التجديد",
+    "subscriptionManagement.retentionRate": "معدل الاحتفاظ",
+    "subscriptionManagement.revenueRecognition": "الاعتراف بالإيرادات",
+    "subscriptionManagement.subscriptionBilling": "فواتير الاشتراك",
+    "subscriptionManagement.subscriptionMetrics": "مقاييس الاشتراك",
+    "subscriptionManagement.subscriptionPlans": "خطط الاشتراك",
+    "subscriptionManagement.tieredPricing": "التسعير المتدرج",
+    "subscriptionManagement.title": "إدارة الاشتراكات",
+    "subscriptionManagement.upgrades": "الترقيات",
+    "subscriptionManagement.usageBasedBilling": "الفواتير على أساس الاستخدام",
+    "subscriptionManagement.winbackCampaigns": "حملات استعادة العملاء"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/subscriptionPlans.translations.json">
+<![CDATA[
+{
+  "en": {
+    "subscriptionPlans.active": "Active",
+    "subscriptionPlans.annual": "Annual",
+    "subscriptionPlans.basic": "Basic Plan",
+    "subscriptionPlans.billing": "Billing",
+    "subscriptionPlans.cancel": "Cancel Subscription",
+    "subscriptionPlans.choose": "Choose Plan",
+    "subscriptionPlans.compare": "Compare Plans",
+    "subscriptionPlans.cost": "Cost",
+    "subscriptionPlans.downgrade": "Downgrade",
+    "subscriptionPlans.enterprise": "Enterprise Plan",
+    "subscriptionPlans.expired": "Expired",
+    "subscriptionPlans.features": "Features",
+    "subscriptionPlans.free": "Free Plan",
+    "subscriptionPlans.freeTrial": "Free Trial",
+    "subscriptionPlans.lifetime": "Lifetime",
+    "subscriptionPlans.limits": "Limits",
+    "subscriptionPlans.monthly": "Monthly",
+    "subscriptionPlans.payment": "Payment",
+    "subscriptionPlans.plan": "Plan",
+    "subscriptionPlans.premium": "Premium Plan",
+    "subscriptionPlans.price": "Price",
+    "subscriptionPlans.renew": "Renew",
+    "subscriptionPlans.standard": "Standard Plan",
+    "subscriptionPlans.subscription": "Subscription",
+    "subscriptionPlans.trial": "Trial",
+    "subscriptionPlans.upgrade": "Upgrade",
+    "subscriptionPlans.yearly": "Yearly"
+  },
+  "ar": {
+    "subscriptionPlans.active": "نشط",
+    "subscriptionPlans.annual": "سنوي",
+    "subscriptionPlans.basic": "الخطة الأساسية",
+    "subscriptionPlans.billing": "الفوترة",
+    "subscriptionPlans.cancel": "إلغاء الاشتراك",
+    "subscriptionPlans.choose": "اختيار الخطة",
+    "subscriptionPlans.compare": "مقارنة الخطط",
+    "subscriptionPlans.cost": "التكلفة",
+    "subscriptionPlans.downgrade": "التخفيض",
+    "subscriptionPlans.enterprise": "خطة المؤسسة",
+    "subscriptionPlans.expired": "منتهي",
+    "subscriptionPlans.features": "الميزات",
+    "subscriptionPlans.free": "الخطة المجانية",
+    "subscriptionPlans.freeTrial": "تجربة مجانية",
+    "subscriptionPlans.lifetime": "مدى الحياة",
+    "subscriptionPlans.limits": "الحدود",
+    "subscriptionPlans.monthly": "شهري",
+    "subscriptionPlans.payment": "الدفع",
+    "subscriptionPlans.plan": "الخطة",
+    "subscriptionPlans.premium": "الخطة المميزة",
+    "subscriptionPlans.price": "السعر",
+    "subscriptionPlans.renew": "التجديد",
+    "subscriptionPlans.standard": "الخطة القياسية",
+    "subscriptionPlans.subscription": "الاشتراك",
+    "subscriptionPlans.trial": "تجريبي",
+    "subscriptionPlans.upgrade": "الترقية",
+    "subscriptionPlans.yearly": "سنوي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/success.translations.json">
+<![CDATA[
+{
+  "en": {
+    "success.created": "Created successfully",
+    "success.deleted": "Deleted successfully",
+    "success.loginSuccess": "Login successful",
+    "success.paymentProcessed": "Payment for invoice INV-1234 has been processed successfully",
+    "success.saved": "Saved successfully",
+    "success.signupSuccess": "Account created successfully",
+    "success.updated": "Updated successfully"
+  },
+  "ar": {
+    "success.created": "تم الإنشاء بنجاح",
+    "success.deleted": "تم الحذف بنجاح",
+    "success.loginSuccess": "تم تسجيل الدخول بنجاح",
+    "success.paymentProcessed": "تمت معالجة الدفع للفاتورة INV-1234 بنجاح",
+    "success.saved": "تم الحفظ بنجاح",
+    "success.signupSuccess": "تم إنشاء الحساب بنجاح",
+    "success.updated": "تم التحديث بنجاح"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/successionPlanning.translations.json">
+<![CDATA[
+{
+  "en": {
+    "successionPlanning.assessment": "Successor Assessment",
+    "successionPlanning.bench": "Bench Strength",
+    "successionPlanning.continuity": "Leadership Continuity",
+    "successionPlanning.critical": "Critical Roles",
+    "successionPlanning.development": "Successor Development",
+    "successionPlanning.gap": "Succession Gap",
+    "successionPlanning.high": "High Potential",
+    "successionPlanning.identification": "Successor Identification",
+    "successionPlanning.key": "Key Positions",
+    "successionPlanning.mobility": "Internal Mobility",
+    "successionPlanning.pipeline": "Succession Pipeline",
+    "successionPlanning.planning": "Succession Planning",
+    "successionPlanning.pool": "Talent Pool",
+    "successionPlanning.preparation": "Successor Preparation",
+    "successionPlanning.readiness": "Succession Readiness",
+    "successionPlanning.reporting": "Succession Reporting",
+    "successionPlanning.retention": "Talent Retention",
+    "successionPlanning.risk": "Succession Risk",
+    "successionPlanning.succession": "Succession Planning",
+    "successionPlanning.talent": "Talent Pipeline",
+    "successionPlanning.tracking": "Succession Tracking",
+    "successionPlanning.transition": "Leadership Transition"
+  },
+  "ar": {
+    "successionPlanning.assessment": "تقييم الخلف",
+    "successionPlanning.bench": "قوة الاحتياط",
+    "successionPlanning.continuity": "استمرارية القيادة",
+    "successionPlanning.critical": "الأدوار الحرجة",
+    "successionPlanning.development": "تطوير الخلف",
+    "successionPlanning.gap": "فجوة التعاقب",
+    "successionPlanning.high": "الإمكانات العالية",
+    "successionPlanning.identification": "تحديد الخلف",
+    "successionPlanning.key": "المناصب الرئيسية",
+    "successionPlanning.mobility": "التنقل الداخلي",
+    "successionPlanning.pipeline": "خط أنابيب التعاقب",
+    "successionPlanning.planning": "تخطيط التعاقب",
+    "successionPlanning.pool": "مجموعة المواهب",
+    "successionPlanning.preparation": "إعداد الخلف",
+    "successionPlanning.readiness": "الجاهزية للتعاقب",
+    "successionPlanning.reporting": "إعداد تقارير التعاقب",
+    "successionPlanning.retention": "الاحتفاظ بالمواهب",
+    "successionPlanning.risk": "مخاطر التعاقب",
+    "successionPlanning.succession": "تخطيط التعاقب",
+    "successionPlanning.talent": "خط أنابيب المواهب",
+    "successionPlanning.tracking": "تتبع التعاقب",
+    "successionPlanning.transition": "انتقال القيادة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/supplierManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "supplierManagement.active": "Active",
+    "supplierManagement.agreement": "Agreement",
+    "supplierManagement.approval": "Approval",
+    "supplierManagement.catalog": "Supplier Catalog",
+    "supplierManagement.certified": "Certified",
+    "supplierManagement.compliance": "Compliance",
+    "supplierManagement.contact": "Contact Information",
+    "supplierManagement.contract": "Supplier Contract",
+    "supplierManagement.contractor": "Contractor",
+    "supplierManagement.delivery": "Delivery Terms",
+    "supplierManagement.evaluation": "Supplier Evaluation",
+    "supplierManagement.inactive": "Inactive",
+    "supplierManagement.partner": "Partner",
+    "supplierManagement.payment": "Payment Terms",
+    "supplierManagement.performance": "Supplier Performance",
+    "supplierManagement.preferred": "Preferred Supplier",
+    "supplierManagement.pricing": "Pricing",
+    "supplierManagement.products": "Products",
+    "supplierManagement.provider": "Provider",
+    "supplierManagement.qualification": "Qualification",
+    "supplierManagement.quality": "Quality Requirements",
+    "supplierManagement.rating": "Supplier Rating",
+    "supplierManagement.register": "Supplier Register",
+    "supplierManagement.services": "Services",
+    "supplierManagement.supplier": "Supplier",
+    "supplierManagement.terms": "Terms & Conditions",
+    "supplierManagement.vendor": "Vendor"
+  },
+  "ar": {
+    "supplierManagement.active": "نشط",
+    "supplierManagement.agreement": "الاتفاقية",
+    "supplierManagement.approval": "الموافقة",
+    "supplierManagement.catalog": "كتالوج المورد",
+    "supplierManagement.certified": "معتمد",
+    "supplierManagement.compliance": "الامتثال",
+    "supplierManagement.contact": "معلومات الاتصال",
+    "supplierManagement.contract": "عقد المورد",
+    "supplierManagement.contractor": "المقاول",
+    "supplierManagement.delivery": "شروط التسليم",
+    "supplierManagement.evaluation": "تقييم المورد",
+    "supplierManagement.inactive": "غير نشط",
+    "supplierManagement.partner": "الشريك",
+    "supplierManagement.payment": "شروط الدفع",
+    "supplierManagement.performance": "أداء المورد",
+    "supplierManagement.preferred": "مورد مفضل",
+    "supplierManagement.pricing": "التسعير",
+    "supplierManagement.products": "المنتجات",
+    "supplierManagement.provider": "مزود الخدمة",
+    "supplierManagement.qualification": "التأهيل",
+    "supplierManagement.quality": "متطلبات الجودة",
+    "supplierManagement.rating": "تصنيف المورد",
+    "supplierManagement.register": "سجل الموردين",
+    "supplierManagement.services": "الخدمات",
+    "supplierManagement.supplier": "المورد",
+    "supplierManagement.terms": "الشروط والأحكام",
+    "supplierManagement.vendor": "البائع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/supplierRelationship.translations.json">
+<![CDATA[
+{
+  "en": {
+    "supplierRelationship.alignment": "Supplier Alignment",
+    "supplierRelationship.awards": "Supplier Awards",
+    "supplierRelationship.collaboration": "Supplier Collaboration",
+    "supplierRelationship.commitment": "Supplier Commitment",
+    "supplierRelationship.communication": "Supplier Communication",
+    "supplierRelationship.development": "Supplier Development",
+    "supplierRelationship.engagement": "Supplier Engagement",
+    "supplierRelationship.evaluation": "Supplier Evaluation",
+    "supplierRelationship.feedback": "Supplier Feedback",
+    "supplierRelationship.improvement": "Supplier Improvement",
+    "supplierRelationship.innovation": "Supplier Innovation",
+    "supplierRelationship.integration": "Supplier Integration",
+    "supplierRelationship.loyalty": "Supplier Loyalty",
+    "supplierRelationship.partnership": "Supplier Partnership",
+    "supplierRelationship.performance": "Supplier Performance",
+    "supplierRelationship.recognition": "Supplier Recognition",
+    "supplierRelationship.relationship": "Relationship Management",
+    "supplierRelationship.satisfaction": "Supplier Satisfaction",
+    "supplierRelationship.scorecard": "Supplier Scorecard",
+    "supplierRelationship.segmentation": "Supplier Segmentation",
+    "supplierRelationship.supplier": "Supplier Relationship",
+    "supplierRelationship.trust": "Supplier Trust"
+  },
+  "ar": {
+    "supplierRelationship.alignment": "مواءمة الموردين",
+    "supplierRelationship.awards": "جوائز الموردين",
+    "supplierRelationship.collaboration": "التعاون مع الموردين",
+    "supplierRelationship.commitment": "التزام الموردين",
+    "supplierRelationship.communication": "التواصل مع الموردين",
+    "supplierRelationship.development": "تطوير الموردين",
+    "supplierRelationship.engagement": "إشراك الموردين",
+    "supplierRelationship.evaluation": "تقييم الموردين",
+    "supplierRelationship.feedback": "ملاحظات الموردين",
+    "supplierRelationship.improvement": "تحسين الموردين",
+    "supplierRelationship.innovation": "ابتكار الموردين",
+    "supplierRelationship.integration": "تكامل الموردين",
+    "supplierRelationship.loyalty": "ولاء الموردين",
+    "supplierRelationship.partnership": "شراكة الموردين",
+    "supplierRelationship.performance": "أداء الموردين",
+    "supplierRelationship.recognition": "تقدير الموردين",
+    "supplierRelationship.relationship": "إدارة العلاقات",
+    "supplierRelationship.satisfaction": "رضا الموردين",
+    "supplierRelationship.scorecard": "بطاقة أداء الموردين",
+    "supplierRelationship.segmentation": "تصنيف الموردين",
+    "supplierRelationship.supplier": "علاقة الموردين",
+    "supplierRelationship.trust": "ثقة الموردين"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/supplyChain.translations.json">
+<![CDATA[
+{
+  "en": {
+    "supplyChain.analytics": "Supply Chain Analytics",
+    "supplyChain.collaboration": "Supply Chain Collaboration",
+    "supplyChain.demand": "Demand Planning",
+    "supplyChain.distribution": "Distribution",
+    "supplyChain.execution": "Supply Chain Execution",
+    "supplyChain.forecasting": "Demand Forecasting",
+    "supplyChain.fulfillment": "Order Fulfillment",
+    "supplyChain.inventory": "Inventory Management",
+    "supplyChain.logistics": "Logistics",
+    "supplyChain.optimization": "Supply Chain Optimization",
+    "supplyChain.planning": "Supply Chain Planning",
+    "supplyChain.procurement": "Procurement",
+    "supplyChain.production": "Production Planning",
+    "supplyChain.resilience": "Supply Chain Resilience",
+    "supplyChain.risk": "Supply Chain Risk",
+    "supplyChain.scheduling": "Production Scheduling",
+    "supplyChain.sourcing": "Sourcing",
+    "supplyChain.supplier": "Supplier Management",
+    "supplyChain.supply": "Supply Chain Management",
+    "supplyChain.transportation": "Transportation",
+    "supplyChain.visibility": "Supply Chain Visibility",
+    "supplyChain.warehousing": "Warehousing"
+  },
+  "ar": {
+    "supplyChain.analytics": "تحليلات سلسلة التوريد",
+    "supplyChain.collaboration": "التعاون في سلسلة التوريد",
+    "supplyChain.demand": "تخطيط الطلب",
+    "supplyChain.distribution": "التوزيع",
+    "supplyChain.execution": "تنفيذ سلسلة التوريد",
+    "supplyChain.forecasting": "التنبؤ بالطلب",
+    "supplyChain.fulfillment": "تنفيذ الطلبات",
+    "supplyChain.inventory": "إدارة المخزون",
+    "supplyChain.logistics": "اللوجستيات",
+    "supplyChain.optimization": "تحسين سلسلة التوريد",
+    "supplyChain.planning": "تخطيط سلسلة التوريد",
+    "supplyChain.procurement": "الشراء",
+    "supplyChain.production": "تخطيط الإنتاج",
+    "supplyChain.resilience": "مرونة سلسلة التوريد",
+    "supplyChain.risk": "مخاطر سلسلة التوريد",
+    "supplyChain.scheduling": "جدولة الإنتاج",
+    "supplyChain.sourcing": "المصادر",
+    "supplyChain.supplier": "إدارة الموردين",
+    "supplyChain.supply": "إدارة سلسلة التوريد",
+    "supplyChain.transportation": "النقل",
+    "supplyChain.visibility": "رؤية سلسلة التوريد",
+    "supplyChain.warehousing": "التخزين"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/supplyChainAnalysis.translations.json">
+<![CDATA[
+{
+  "en": {
+    "supplyChainAnalysis.agility": "Supply Agility",
+    "supplyChainAnalysis.analysis": "Supply Analysis",
+    "supplyChainAnalysis.collaboration": "Supply Collaboration",
+    "supplyChainAnalysis.coordination": "Supply Coordination",
+    "supplyChainAnalysis.effectiveness": "Supply Effectiveness",
+    "supplyChainAnalysis.efficiency": "Supply Efficiency",
+    "supplyChainAnalysis.flexibility": "Supply Flexibility",
+    "supplyChainAnalysis.improvement": "Supply Improvement",
+    "supplyChainAnalysis.integration": "Supply Integration",
+    "supplyChainAnalysis.kpi": "Supply KPIs",
+    "supplyChainAnalysis.management": "Supply Management",
+    "supplyChainAnalysis.mapping": "Supply Mapping",
+    "supplyChainAnalysis.metrics": "Supply Metrics",
+    "supplyChainAnalysis.network": "Supply Network",
+    "supplyChainAnalysis.optimization": "Supply Optimization",
+    "supplyChainAnalysis.performance": "Supply Performance",
+    "supplyChainAnalysis.resilience": "Supply Resilience",
+    "supplyChainAnalysis.risk": "Supply Risk",
+    "supplyChainAnalysis.structure": "Chain Structure",
+    "supplyChainAnalysis.supply": "Supply Chain Analysis",
+    "supplyChainAnalysis.transparency": "Supply Transparency",
+    "supplyChainAnalysis.visibility": "Supply Visibility"
+  },
+  "ar": {
+    "supplyChainAnalysis.agility": "رشاقة التوريد",
+    "supplyChainAnalysis.analysis": "تحليل التوريد",
+    "supplyChainAnalysis.collaboration": "التعاون في التوريد",
+    "supplyChainAnalysis.coordination": "التنسيق في التوريد",
+    "supplyChainAnalysis.effectiveness": "فعالية التوريد",
+    "supplyChainAnalysis.efficiency": "كفاءة التوريد",
+    "supplyChainAnalysis.flexibility": "مرونة التوريد",
+    "supplyChainAnalysis.improvement": "تحسين التوريد",
+    "supplyChainAnalysis.integration": "تكامل التوريد",
+    "supplyChainAnalysis.kpi": "مؤشرات التوريد الرئيسية",
+    "supplyChainAnalysis.management": "إدارة التوريد",
+    "supplyChainAnalysis.mapping": "رسم خريطة التوريد",
+    "supplyChainAnalysis.metrics": "مقاييس التوريد",
+    "supplyChainAnalysis.network": "شبكة التوريد",
+    "supplyChainAnalysis.optimization": "تحسين التوريد",
+    "supplyChainAnalysis.performance": "أداء التوريد",
+    "supplyChainAnalysis.resilience": "مرونة التوريد",
+    "supplyChainAnalysis.risk": "مخاطر التوريد",
+    "supplyChainAnalysis.structure": "هيكل السلسلة",
+    "supplyChainAnalysis.supply": "تحليل سلسلة التوريد",
+    "supplyChainAnalysis.transparency": "شفافية التوريد",
+    "supplyChainAnalysis.visibility": "رؤية التوريد"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/supplyChainManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "supplyChainManagement.analytics": "Supply Chain Analytics",
+    "supplyChainManagement.capacity": "Capacity Planning",
+    "supplyChainManagement.chain": "Supply Chain Management",
+    "supplyChainManagement.collaboration": "Supply Chain Collaboration",
+    "supplyChainManagement.demand": "Demand Planning",
+    "supplyChainManagement.distribution": "Distribution Management",
+    "supplyChainManagement.execution": "Supply Chain Execution",
+    "supplyChainManagement.forecasting": "Demand Forecasting",
+    "supplyChainManagement.inventory": "Inventory Planning",
+    "supplyChainManagement.logistics": "Logistics Management",
+    "supplyChainManagement.network": "Supply Network Design",
+    "supplyChainManagement.optimization": "Supply Chain Optimization",
+    "supplyChainManagement.planning": "Supply Chain Planning",
+    "supplyChainManagement.procurement": "Procurement Planning",
+    "supplyChainManagement.production": "Production Planning",
+    "supplyChainManagement.replenishment": "Inventory Replenishment",
+    "supplyChainManagement.risk": "Supply Chain Risk",
+    "supplyChainManagement.scheduling": "Production Scheduling",
+    "supplyChainManagement.scm": "SCM",
+    "supplyChainManagement.sourcing": "Strategic Sourcing",
+    "supplyChainManagement.supply": "Supply Chain Management",
+    "supplyChainManagement.visibility": "Supply Chain Visibility"
+  },
+  "ar": {
+    "supplyChainManagement.analytics": "تحليلات سلسلة الإمداد",
+    "supplyChainManagement.capacity": "تخطيط القدرات",
+    "supplyChainManagement.chain": "إدارة سلسلة الإمداد",
+    "supplyChainManagement.collaboration": "التعاون في سلسلة الإمداد",
+    "supplyChainManagement.demand": "تخطيط الطلب",
+    "supplyChainManagement.distribution": "إدارة التوزيع",
+    "supplyChainManagement.execution": "تنفيذ سلسلة الإمداد",
+    "supplyChainManagement.forecasting": "التنبؤ بالطلب",
+    "supplyChainManagement.inventory": "تخطيط المخزون",
+    "supplyChainManagement.logistics": "إدارة اللوجستيات",
+    "supplyChainManagement.network": "تصميم شبكة الإمداد",
+    "supplyChainManagement.optimization": "تحسين سلسلة الإمداد",
+    "supplyChainManagement.planning": "تخطيط سلسلة الإمداد",
+    "supplyChainManagement.procurement": "تخطيط المشتريات",
+    "supplyChainManagement.production": "تخطيط الإنتاج",
+    "supplyChainManagement.replenishment": "تجديد المخزون",
+    "supplyChainManagement.risk": "مخاطر سلسلة الإمداد",
+    "supplyChainManagement.scheduling": "جدولة الإنتاج",
+    "supplyChainManagement.scm": "إدارة سلسلة الإمداد",
+    "supplyChainManagement.sourcing": "التوريد الاستراتيجي",
+    "supplyChainManagement.supply": "إدارة سلسلة الإمداد",
+    "supplyChainManagement.visibility": "رؤية سلسلة الإمداد"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/supplyChainManagementAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "supplyChainManagementAdv.chain": "Supply Chain Management",
+    "supplyChainManagementAdv.circular": "Circular Economy",
+    "supplyChainManagementAdv.demand": "Demand Planning",
+    "supplyChainManagementAdv.distribution": "Distribution",
+    "supplyChainManagementAdv.forecast": "Forecasting",
+    "supplyChainManagementAdv.fulfillment": "Order Fulfillment",
+    "supplyChainManagementAdv.inventory": "Inventory",
+    "supplyChainManagementAdv.logistics": "Logistics",
+    "supplyChainManagementAdv.optimization": "Supply Chain Optimization",
+    "supplyChainManagementAdv.planning": "Supply Planning",
+    "supplyChainManagementAdv.procurement": "Procurement",
+    "supplyChainManagementAdv.resilience": "Supply Chain Resilience",
+    "supplyChainManagementAdv.risk": "Supply Chain Risk",
+    "supplyChainManagementAdv.sourcing": "Strategic Sourcing",
+    "supplyChainManagementAdv.supplier": "Supplier",
+    "supplyChainManagementAdv.supply": "Supply Chain",
+    "supplyChainManagementAdv.sustainability": "Sustainable Supply Chain",
+    "supplyChainManagementAdv.traceability": "Traceability",
+    "supplyChainManagementAdv.transportation": "Transportation",
+    "supplyChainManagementAdv.vendor": "Vendor",
+    "supplyChainManagementAdv.visibility": "Supply Chain Visibility",
+    "supplyChainManagementAdv.warehousing": "Warehousing"
+  },
+  "ar": {
+    "supplyChainManagementAdv.chain": "إدارة سلسلة التوريد",
+    "supplyChainManagementAdv.circular": "الاقتصاد الدائري",
+    "supplyChainManagementAdv.demand": "تخطيط الطلب",
+    "supplyChainManagementAdv.distribution": "التوزيع",
+    "supplyChainManagementAdv.forecast": "التنبؤ",
+    "supplyChainManagementAdv.fulfillment": "تنفيذ الطلبات",
+    "supplyChainManagementAdv.inventory": "المخزون",
+    "supplyChainManagementAdv.logistics": "اللوجستيات",
+    "supplyChainManagementAdv.optimization": "تحسين سلسلة التوريد",
+    "supplyChainManagementAdv.planning": "تخطيط التوريد",
+    "supplyChainManagementAdv.procurement": "المشتريات",
+    "supplyChainManagementAdv.resilience": "مرونة سلسلة التوريد",
+    "supplyChainManagementAdv.risk": "مخاطر سلسلة التوريد",
+    "supplyChainManagementAdv.sourcing": "المصادر الاستراتيجية",
+    "supplyChainManagementAdv.supplier": "المورد",
+    "supplyChainManagementAdv.supply": "سلسلة التوريد",
+    "supplyChainManagementAdv.sustainability": "سلسلة التوريد المستدامة",
+    "supplyChainManagementAdv.traceability": "التتبع",
+    "supplyChainManagementAdv.transportation": "النقل",
+    "supplyChainManagementAdv.vendor": "البائع",
+    "supplyChainManagementAdv.visibility": "رؤية سلسلة التوريد",
+    "supplyChainManagementAdv.warehousing": "التخزين"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/supplyChainManagementExt.translations.json">
+<![CDATA[
+{
+  "en": {
+    "supplyChainManagementExt.chain": "Supply Chain",
+    "supplyChainManagementExt.delivery": "Delivery",
+    "supplyChainManagementExt.demand": "Demand Planning",
+    "supplyChainManagementExt.distribution": "Distribution",
+    "supplyChainManagementExt.forecasting": "Demand Forecasting",
+    "supplyChainManagementExt.fulfillment": "Order Fulfillment",
+    "supplyChainManagementExt.inventory": "Inventory Management",
+    "supplyChainManagementExt.logistics": "Logistics",
+    "supplyChainManagementExt.optimization": "Supply Chain Optimization",
+    "supplyChainManagementExt.order": "Purchase Order",
+    "supplyChainManagementExt.procurement": "Procurement",
+    "supplyChainManagementExt.purchasing": "Purchasing",
+    "supplyChainManagementExt.shipping": "Shipping",
+    "supplyChainManagementExt.sourcing": "Strategic Sourcing",
+    "supplyChainManagementExt.stock": "Stock Control",
+    "supplyChainManagementExt.supplier": "Supplier Management",
+    "supplyChainManagementExt.supply": "Supply Chain Management",
+    "supplyChainManagementExt.tracking": "Shipment Tracking",
+    "supplyChainManagementExt.transportation": "Transportation",
+    "supplyChainManagementExt.vendor": "Vendor Management",
+    "supplyChainManagementExt.visibility": "Supply Chain Visibility",
+    "supplyChainManagementExt.warehousing": "Warehousing"
+  },
+  "ar": {
+    "supplyChainManagementExt.chain": "سلسلة التوريد",
+    "supplyChainManagementExt.delivery": "التسليم",
+    "supplyChainManagementExt.demand": "تخطيط الطلب",
+    "supplyChainManagementExt.distribution": "التوزيع",
+    "supplyChainManagementExt.forecasting": "التنبؤ بالطلب",
+    "supplyChainManagementExt.fulfillment": "تنفيذ الطلب",
+    "supplyChainManagementExt.inventory": "إدارة المخزون",
+    "supplyChainManagementExt.logistics": "اللوجستيات",
+    "supplyChainManagementExt.optimization": "تحسين سلسلة التوريد",
+    "supplyChainManagementExt.order": "أمر الشراء",
+    "supplyChainManagementExt.procurement": "المشتريات",
+    "supplyChainManagementExt.purchasing": "الشراء",
+    "supplyChainManagementExt.shipping": "الشحن",
+    "supplyChainManagementExt.sourcing": "التوريد الاستراتيجي",
+    "supplyChainManagementExt.stock": "التحكم في المخزون",
+    "supplyChainManagementExt.supplier": "إدارة الموردين",
+    "supplyChainManagementExt.supply": "إدارة سلسلة التوريد",
+    "supplyChainManagementExt.tracking": "تتبع الشحنة",
+    "supplyChainManagementExt.transportation": "النقل",
+    "supplyChainManagementExt.vendor": "إدارة البائعين",
+    "supplyChainManagementExt.visibility": "رؤية سلسلة التوريد",
+    "supplyChainManagementExt.warehousing": "التخزين"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/supplyChainTech.translations.json">
+<![CDATA[
+{
+  "en": {
+    "supplyChainTech.analytics": "Supply Chain Analytics",
+    "supplyChainTech.automation": "Supply Chain Automation",
+    "supplyChainTech.blockchain": "Blockchain Supply Chain",
+    "supplyChainTech.chain": "Supply Chain Management",
+    "supplyChainTech.collaboration": "Supply Chain Collaboration",
+    "supplyChainTech.demand": "Demand Planning",
+    "supplyChainTech.fleet": "Fleet Management",
+    "supplyChainTech.forecasting": "Demand Forecasting",
+    "supplyChainTech.inventory": "Inventory Optimization",
+    "supplyChainTech.iot": "IoT Tracking",
+    "supplyChainTech.logistics": "Digital Logistics",
+    "supplyChainTech.procurement": "Digital Procurement",
+    "supplyChainTech.resilience": "Supply Chain Resilience",
+    "supplyChainTech.route": "Route Optimization",
+    "supplyChainTech.sourcing": "Strategic Sourcing",
+    "supplyChainTech.supply": "Supply Chain Technology",
+    "supplyChainTech.traceability": "Product Traceability",
+    "supplyChainTech.tracking": "Shipment Tracking",
+    "supplyChainTech.transportation": "Transportation Management",
+    "supplyChainTech.vendor": "Vendor Management",
+    "supplyChainTech.visibility": "Supply Chain Visibility",
+    "supplyChainTech.warehouse": "Warehouse Management"
+  },
+  "ar": {
+    "supplyChainTech.analytics": "تحليلات سلسلة التوريد",
+    "supplyChainTech.automation": "أتمتة سلسلة التوريد",
+    "supplyChainTech.blockchain": "البلوكشين لسلسلة التوريد",
+    "supplyChainTech.chain": "إدارة سلسلة التوريد",
+    "supplyChainTech.collaboration": "تعاون سلسلة التوريد",
+    "supplyChainTech.demand": "تخطيط الطلب",
+    "supplyChainTech.fleet": "إدارة الأسطول",
+    "supplyChainTech.forecasting": "التنبؤ بالطلب",
+    "supplyChainTech.inventory": "تحسين المخزون",
+    "supplyChainTech.iot": "تتبع إنترنت الأشياء",
+    "supplyChainTech.logistics": "الخدمات اللوجستية الرقمية",
+    "supplyChainTech.procurement": "الشراء الرقمي",
+    "supplyChainTech.resilience": "مرونة سلسلة التوريد",
+    "supplyChainTech.route": "تحسين المسار",
+    "supplyChainTech.sourcing": "التوريد الاستراتيجي",
+    "supplyChainTech.supply": "تقنية سلسلة التوريد",
+    "supplyChainTech.traceability": "تتبع المنتج",
+    "supplyChainTech.tracking": "تتبع الشحنة",
+    "supplyChainTech.transportation": "إدارة النقل",
+    "supplyChainTech.vendor": "إدارة الموردين",
+    "supplyChainTech.visibility": "رؤية سلسلة التوريد",
+    "supplyChainTech.warehouse": "إدارة المستودعات"
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

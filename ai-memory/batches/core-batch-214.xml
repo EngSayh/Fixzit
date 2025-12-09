@@ -1,0 +1,2379 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="i18n/sources/ui.translations.json">
+<![CDATA[
+{
+  "en": {
+    "ui.accept": "Accept",
+    "ui.decreaseFontSize": "Decrease font size",
+    "ui.featuredPosition": "Featured Position",
+    "ui.increaseFontSize": "Increase font size",
+    "ui.markAsRead": "Mark as read",
+    "ui.openHelp": "Open Help",
+    "ui.quickActions": "Quick actions",
+    "ui.record": "Record",
+    "ui.reject": "Reject",
+    "ui.saveChanges": "Save Changes",
+    "ui.signInRequired": "Sign In Required",
+    "ui.signInToContinue": "Sign in to continue",
+    "ui.switchApplication": "Switch application",
+    "ui.toggleNotifications": "Toggle notifications",
+    "ui.toggleSidebar": "Toggle Sidebar",
+    "ui.unsavedChanges": "Unsaved Changes",
+    "ui.urgentPosition": "Urgent Position"
+  },
+  "ar": {
+    "ui.accept": "قبول",
+    "ui.decreaseFontSize": "تقليل حجم الخط",
+    "ui.featuredPosition": "وظيفة مميزة",
+    "ui.increaseFontSize": "زيادة حجم الخط",
+    "ui.markAsRead": "وضع علامة كمقروء",
+    "ui.openHelp": "فتح المساعدة",
+    "ui.quickActions": "إجراءات سريعة",
+    "ui.record": "تسجيل",
+    "ui.reject": "رفض",
+    "ui.saveChanges": "حفظ التغييرات",
+    "ui.signInRequired": "تسجيل الدخول مطلوب",
+    "ui.signInToContinue": "سجل الدخول للمتابعة",
+    "ui.switchApplication": "تبديل التطبيق",
+    "ui.toggleNotifications": "تبديل الإشعارات",
+    "ui.toggleSidebar": "تبديل الشريط الجانبي",
+    "ui.unsavedChanges": "تغييرات غير محفوظة",
+    "ui.urgentPosition": "وظيفة عاجلة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/uiComponents.translations.json">
+<![CDATA[
+{
+  "en": {
+    "uiComponents.accordion": "Accordion",
+    "uiComponents.autocomplete": "Autocomplete",
+    "uiComponents.breadcrumb": "Breadcrumb",
+    "uiComponents.button": "Button",
+    "uiComponents.checkbox": "Checkbox",
+    "uiComponents.colorpicker": "Color Picker",
+    "uiComponents.combobox": "Combobox",
+    "uiComponents.datepicker": "Date Picker",
+    "uiComponents.dialog": "Dialog",
+    "uiComponents.drawer": "Drawer",
+    "uiComponents.dropdown": "Dropdown",
+    "uiComponents.input": "Input",
+    "uiComponents.modal": "Modal",
+    "uiComponents.navbar": "Navigation Bar",
+    "uiComponents.pagination": "Pagination",
+    "uiComponents.popover": "Popover",
+    "uiComponents.popup": "Popup",
+    "uiComponents.radio": "Radio Button",
+    "uiComponents.select": "Select",
+    "uiComponents.sidebar": "Sidebar",
+    "uiComponents.slider": "Slider",
+    "uiComponents.switch": "Switch",
+    "uiComponents.tabs": "Tabs",
+    "uiComponents.textarea": "Textarea",
+    "uiComponents.textbox": "Textbox",
+    "uiComponents.timepicker": "Time Picker",
+    "uiComponents.toggle": "Toggle",
+    "uiComponents.tooltip": "Tooltip"
+  },
+  "ar": {
+    "uiComponents.accordion": "الأكورديون",
+    "uiComponents.autocomplete": "الإكمال التلقائي",
+    "uiComponents.breadcrumb": "مسار التنقل",
+    "uiComponents.button": "الزر",
+    "uiComponents.checkbox": "خانة الاختيار",
+    "uiComponents.colorpicker": "منتقي الألوان",
+    "uiComponents.combobox": "مربع الاختيار",
+    "uiComponents.datepicker": "منتقي التاريخ",
+    "uiComponents.dialog": "مربع الحوار",
+    "uiComponents.drawer": "الدرج",
+    "uiComponents.dropdown": "القائمة المنسدلة",
+    "uiComponents.input": "الإدخال",
+    "uiComponents.modal": "النافذة المنبثقة",
+    "uiComponents.navbar": "شريط التنقل",
+    "uiComponents.pagination": "الترقيم",
+    "uiComponents.popover": "النافذة المنبثقة",
+    "uiComponents.popup": "النافذة المنبثقة",
+    "uiComponents.radio": "زر الراديو",
+    "uiComponents.select": "التحديد",
+    "uiComponents.sidebar": "الشريط الجانبي",
+    "uiComponents.slider": "شريط التمرير",
+    "uiComponents.switch": "المفتاح",
+    "uiComponents.tabs": "علامات التبويب",
+    "uiComponents.textarea": "منطقة النص",
+    "uiComponents.textbox": "مربع النص",
+    "uiComponents.timepicker": "منتقي الوقت",
+    "uiComponents.toggle": "التبديل",
+    "uiComponents.tooltip": "تلميح الأداة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/uiUxDesign.translations.json">
+<![CDATA[
+{
+  "en": {
+    "uiUxDesign.accessibility": "Accessibility",
+    "uiUxDesign.component": "UI Component",
+    "uiUxDesign.design": "UI/UX Design",
+    "uiUxDesign.experience": "User Experience",
+    "uiUxDesign.feedback": "User Feedback",
+    "uiUxDesign.flow": "User Flow",
+    "uiUxDesign.guidelines": "Design Guidelines",
+    "uiUxDesign.interaction": "Interaction Design",
+    "uiUxDesign.interface": "User Interface",
+    "uiUxDesign.iteration": "Design Iteration",
+    "uiUxDesign.journey": "User Journey",
+    "uiUxDesign.layout": "Layout Design",
+    "uiUxDesign.mockup": "Mockup",
+    "uiUxDesign.persona": "User Persona",
+    "uiUxDesign.prototype": "Prototype",
+    "uiUxDesign.research": "User Research",
+    "uiUxDesign.responsive": "Responsive Design",
+    "uiUxDesign.system": "Design System",
+    "uiUxDesign.testing": "Usability Testing",
+    "uiUxDesign.usability": "Usability",
+    "uiUxDesign.visual": "Visual Design",
+    "uiUxDesign.wireframe": "Wireframe"
+  },
+  "ar": {
+    "uiUxDesign.accessibility": "إمكانية الوصول",
+    "uiUxDesign.component": "مكون واجهة المستخدم",
+    "uiUxDesign.design": "تصميم واجهة وتجربة المستخدم",
+    "uiUxDesign.experience": "تجربة المستخدم",
+    "uiUxDesign.feedback": "ملاحظات المستخدم",
+    "uiUxDesign.flow": "تدفق المستخدم",
+    "uiUxDesign.guidelines": "إرشادات التصميم",
+    "uiUxDesign.interaction": "تصميم التفاعل",
+    "uiUxDesign.interface": "واجهة المستخدم",
+    "uiUxDesign.iteration": "تكرار التصميم",
+    "uiUxDesign.journey": "رحلة المستخدم",
+    "uiUxDesign.layout": "تصميم التخطيط",
+    "uiUxDesign.mockup": "نموذج محاكاة",
+    "uiUxDesign.persona": "شخصية المستخدم",
+    "uiUxDesign.prototype": "نموذج أولي",
+    "uiUxDesign.research": "بحث المستخدم",
+    "uiUxDesign.responsive": "التصميم المستجيب",
+    "uiUxDesign.system": "نظام التصميم",
+    "uiUxDesign.testing": "اختبار قابلية الاستخدام",
+    "uiUxDesign.usability": "قابلية الاستخدام",
+    "uiUxDesign.visual": "التصميم المرئي",
+    "uiUxDesign.wireframe": "إطار سلكي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/underwritingOperations.translations.json">
+<![CDATA[
+{
+  "en": {
+    "underwritingOperations.acceptanceCriteria": "Acceptance Criteria",
+    "underwritingOperations.actuarialAnalysis": "Actuarial Analysis",
+    "underwritingOperations.automatedUnderwriting": "Automated Underwriting",
+    "underwritingOperations.concentrationRisk": "Concentration Risk",
+    "underwritingOperations.creditScoring": "Credit Scoring",
+    "underwritingOperations.dataEnrichment": "Data Enrichment",
+    "underwritingOperations.decisionSupport": "Decision Support",
+    "underwritingOperations.declinationRules": "Declination Rules",
+    "underwritingOperations.description": "Risk evaluation and policy underwriting",
+    "underwritingOperations.exposureAnalysis": "Exposure Analysis",
+    "underwritingOperations.financialUnderwriting": "Financial Underwriting",
+    "underwritingOperations.lossHistory": "Loss History",
+    "underwritingOperations.medicalUnderwriting": "Medical Underwriting",
+    "underwritingOperations.portfolioManagement": "Portfolio Management",
+    "underwritingOperations.pricingModels": "Pricing Models",
+    "underwritingOperations.propertyInspection": "Property Inspection",
+    "underwritingOperations.referralManagement": "Referral Management",
+    "underwritingOperations.riskClassification": "Risk Classification",
+    "underwritingOperations.riskEvaluation": "Risk Evaluation",
+    "underwritingOperations.riskSelection": "Risk Selection",
+    "underwritingOperations.rulesEngine": "Rules Engine",
+    "underwritingOperations.thirdPartyData": "Third Party Data",
+    "underwritingOperations.title": "Underwriting Operations",
+    "underwritingOperations.underwritingGuidelines": "Underwriting Guidelines"
+  },
+  "ar": {
+    "underwritingOperations.acceptanceCriteria": "معايير القبول",
+    "underwritingOperations.actuarialAnalysis": "التحليل الاكتواري",
+    "underwritingOperations.automatedUnderwriting": "الاكتتاب الآلي",
+    "underwritingOperations.concentrationRisk": "مخاطر التركيز",
+    "underwritingOperations.creditScoring": "تسجيل الائتمان",
+    "underwritingOperations.dataEnrichment": "إثراء البيانات",
+    "underwritingOperations.decisionSupport": "دعم القرار",
+    "underwritingOperations.declinationRules": "قواعد الرفض",
+    "underwritingOperations.description": "تقييم المخاطر واكتتاب البوليصة",
+    "underwritingOperations.exposureAnalysis": "تحليل التعرض",
+    "underwritingOperations.financialUnderwriting": "الاكتتاب المالي",
+    "underwritingOperations.lossHistory": "تاريخ الخسائر",
+    "underwritingOperations.medicalUnderwriting": "الاكتتاب الطبي",
+    "underwritingOperations.portfolioManagement": "إدارة المحفظة",
+    "underwritingOperations.pricingModels": "نماذج التسعير",
+    "underwritingOperations.propertyInspection": "فحص الممتلكات",
+    "underwritingOperations.referralManagement": "إدارة الإحالات",
+    "underwritingOperations.riskClassification": "تصنيف المخاطر",
+    "underwritingOperations.riskEvaluation": "تقييم المخاطر",
+    "underwritingOperations.riskSelection": "اختيار المخاطر",
+    "underwritingOperations.rulesEngine": "محرك القواعد",
+    "underwritingOperations.thirdPartyData": "بيانات الطرف الثالث",
+    "underwritingOperations.title": "عمليات الاكتتاب",
+    "underwritingOperations.underwritingGuidelines": "إرشادات الاكتتاب"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/units.translations.json">
+<![CDATA[
+{
+  "en": {
+    "units.centimeter": "cm",
+    "units.currency": "SAR",
+    "units.currencySymbol": "ر.س",
+    "units.day": "day",
+    "units.days": "days",
+    "units.gram": "g",
+    "units.hour": "hr",
+    "units.kilogram": "kg",
+    "units.kilometer": "km",
+    "units.liter": "L",
+    "units.meter": "m",
+    "units.milliliter": "mL",
+    "units.millimeter": "mm",
+    "units.minute": "min",
+    "units.month": "month",
+    "units.months": "months",
+    "units.percent": "%",
+    "units.perDay": "per day",
+    "units.perHour": "per hour",
+    "units.perMonth": "per month",
+    "units.perUnit": "per unit",
+    "units.perWeek": "per week",
+    "units.perYear": "per year",
+    "units.piece": "pc",
+    "units.second": "sec",
+    "units.squareMeter": "m²",
+    "units.unit": "unit",
+    "units.week": "week",
+    "units.weeks": "weeks",
+    "units.year": "year",
+    "units.years": "years"
+  },
+  "ar": {
+    "units.centimeter": "سم",
+    "units.currency": "ريال سعودي",
+    "units.currencySymbol": "ر.س",
+    "units.day": "يوم",
+    "units.days": "أيام",
+    "units.gram": "جم",
+    "units.hour": "ساعة",
+    "units.kilogram": "كجم",
+    "units.kilometer": "كم",
+    "units.liter": "لتر",
+    "units.meter": "م",
+    "units.milliliter": "مل",
+    "units.millimeter": "ملم",
+    "units.minute": "دقيقة",
+    "units.month": "شهر",
+    "units.months": "أشهر",
+    "units.percent": "٪",
+    "units.perDay": "لكل يوم",
+    "units.perHour": "لكل ساعة",
+    "units.perMonth": "لكل شهر",
+    "units.perUnit": "لكل وحدة",
+    "units.perWeek": "لكل أسبوع",
+    "units.perYear": "لكل سنة",
+    "units.piece": "قطعة",
+    "units.second": "ثانية",
+    "units.squareMeter": "م²",
+    "units.unit": "وحدة",
+    "units.week": "أسبوع",
+    "units.weeks": "أسابيع",
+    "units.year": "سنة",
+    "units.years": "سنوات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/unsaved.translations.json">
+<![CDATA[
+{
+  "en": {
+    "unsaved.cancel": "Cancel",
+    "unsaved.cancelled": "Changes were not saved.",
+    "unsaved.discardChanges": "Discard Changes",
+    "unsaved.message": "You have unsaved changes. Are you sure you want to leave without saving?",
+    "unsaved.save": "Save",
+    "unsaved.saveChanges": "Save Changes",
+    "unsaved.saved": "Your changes have been saved successfully.",
+    "unsaved.saveMessage": "Are you sure you want to save these changes?",
+    "unsaved.saveTitle": "Save Changes",
+    "unsaved.stayHere": "Stay Here",
+    "unsaved.warningMessage": "You have unsaved changes. Would you like to save them before leaving?",
+    "unsaved.warningTitle": "Unsaved Changes"
+  },
+  "ar": {
+    "unsaved.cancel": "إلغاء",
+    "unsaved.cancelled": "لم يتم حفظ التغييرات.",
+    "unsaved.discardChanges": "تجاهل التغييرات",
+    "unsaved.message": "لديك تغييرات غير محفوظة. هل أنت متأكد أنك تريد المغادرة دون الحفظ؟",
+    "unsaved.save": "حفظ",
+    "unsaved.saveChanges": "حفظ التغييرات",
+    "unsaved.saved": "تم حفظ تغييراتك بنجاح.",
+    "unsaved.saveMessage": "هل أنت متأكد أنك تريد حفظ هذه التغييرات؟",
+    "unsaved.saveTitle": "حفظ التغييرات",
+    "unsaved.stayHere": "البقاء هنا",
+    "unsaved.warningMessage": "لديك تغييرات غير محفوظة. هل تريد حفظها قبل المغادرة؟",
+    "unsaved.warningTitle": "تغييرات غير محفوظة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/upgrade.translations.json">
+<![CDATA[
+{
+  "en": {
+    "upgrade.action.contact": "Contact Sales",
+    "upgrade.action.later": "Maybe Later",
+    "upgrade.action.sending": "Sending...",
+    "upgrade.alternative.prefix": "Or reach us at",
+    "upgrade.description.default": "Get unlimited access to all features",
+    "upgrade.description.feature": "This feature is available on the Enterprise plan",
+    "upgrade.email.label": "Email address",
+    "upgrade.email.placeholder": "email@company.com",
+    "upgrade.error.invalidEmail": "Invalid email address",
+    "upgrade.error.submitFailed": "Failed to submit request",
+    "upgrade.feature.api": "Unlimited API access",
+    "upgrade.feature.enterprise": "Enterprise Features",
+    "upgrade.feature.premium": "All premium features",
+    "upgrade.feature.sla": "SLA guarantee",
+    "upgrade.feature.support": "Priority support",
+    "upgrade.includes.title": "Enterprise plan includes",
+    "upgrade.success.message": "Our sales team will contact you shortly",
+    "upgrade.success.title": "Thank you!",
+    "upgrade.title": "Upgrade to Enterprise"
+  },
+  "ar": {
+    "upgrade.action.contact": "اتصل بالمبيعات",
+    "upgrade.action.later": "ربما لاحقاً",
+    "upgrade.action.sending": "جارٍ الإرسال...",
+    "upgrade.alternative.prefix": "أو اتصل بنا على",
+    "upgrade.description.default": "احصل على وصول غير محدود إلى جميع الميزات",
+    "upgrade.description.feature": "هذه الميزة متاحة في خطة Enterprise",
+    "upgrade.email.label": "عنوان البريد الإلكتروني",
+    "upgrade.email.placeholder": "email@company.com",
+    "upgrade.error.invalidEmail": "عنوان بريد إلكتروني غير صحيح",
+    "upgrade.error.submitFailed": "فشل إرسال الطلب",
+    "upgrade.feature.api": "وصول API غير محدود",
+    "upgrade.feature.enterprise": "ميزات المؤسسة",
+    "upgrade.feature.premium": "جميع الميزات المميزة",
+    "upgrade.feature.sla": "ضمان اتفاقية مستوى الخدمة",
+    "upgrade.feature.support": "دعم ذو أولوية",
+    "upgrade.includes.title": "تتضمن خطة Enterprise",
+    "upgrade.success.message": "سيتواصل معك فريق المبيعات قريباً",
+    "upgrade.success.title": "شكراً لك!",
+    "upgrade.title": "الترقية إلى خطة Enterprise"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/urbanPlanning.translations.json">
+<![CDATA[
+{
+  "en": {
+    "urbanPlanning.affordable": "Affordable Housing",
+    "urbanPlanning.bicycle": "Bicycle Infrastructure",
+    "urbanPlanning.brownfield": "Brownfield Redevelopment",
+    "urbanPlanning.charrette": "Design Charrette",
+    "urbanPlanning.climate": "Climate Adaptation",
+    "urbanPlanning.community": "Community Planning",
+    "urbanPlanning.communityUrbanPlanning": "Community Engagement",
+    "urbanPlanning.comprehensive": "Comprehensive Plan",
+    "urbanPlanning.description": "Manage urban development and city planning",
+    "urbanPlanning.downtown": "Downtown Development",
+    "urbanPlanning.economic": "Economic Development",
+    "urbanPlanning.gentrification": "Gentrification",
+    "urbanPlanning.greenfield": "Greenfield Development",
+    "urbanPlanning.housing": "Housing Planning",
+    "urbanPlanning.infill": "Infill Development",
+    "urbanPlanning.infrastructure": "Infrastructure Planning",
+    "urbanPlanning.land": "Land Use Planning",
+    "urbanPlanning.master": "Master Planning",
+    "urbanPlanning.mixed": "Mixed-Use Development",
+    "urbanPlanning.mobility": "Mobility Planning",
+    "urbanPlanning.neighborhood": "Neighborhood Planning",
+    "urbanPlanning.open": "Open Space",
+    "urbanPlanning.park": "Park Planning",
+    "urbanPlanning.pedestrian": "Pedestrian Planning",
+    "urbanPlanning.public": "Public Space",
+    "urbanPlanning.publicUrbanPlanning": "Public Participation",
+    "urbanPlanning.recreation": "Recreation Planning",
+    "urbanPlanning.regeneration": "Urban Regeneration",
+    "urbanPlanning.resilient": "Resilient Cities",
+    "urbanPlanning.revitalization": "Urban Revitalization",
+    "urbanPlanning.scenario": "Scenario Planning",
+    "urbanPlanning.smart": "Smart Growth",
+    "urbanPlanning.stakeholder": "Stakeholder Engagement",
+    "urbanPlanning.strategic": "Strategic Planning",
+    "urbanPlanning.survey": "Community Survey",
+    "urbanPlanning.sustainable": "Sustainable Development",
+    "urbanPlanning.title": "Urban Planning",
+    "urbanPlanning.transit": "Transit-Oriented Development",
+    "urbanPlanning.transportation": "Transportation Planning",
+    "urbanPlanning.visioning": "Community Visioning",
+    "urbanPlanning.workshop": "Planning Workshop",
+    "urbanPlanning.zoning": "Zoning"
+  },
+  "ar": {
+    "urbanPlanning.affordable": "الإسكان الميسر",
+    "urbanPlanning.bicycle": "بنية ركوب الدراجات",
+    "urbanPlanning.brownfield": "إعادة تأهيل المناطق البنية",
+    "urbanPlanning.charrette": "جلسة تصميم تشاركية",
+    "urbanPlanning.climate": "التكيف مع المناخ",
+    "urbanPlanning.community": "تخطيط المجتمعات",
+    "urbanPlanning.communityUrbanPlanning": "إشراك المجتمع",
+    "urbanPlanning.comprehensive": "الخطة الشاملة",
+    "urbanPlanning.description": "إدارة التطوير العمراني وتخطيط المدن",
+    "urbanPlanning.downtown": "تطوير وسط المدينة",
+    "urbanPlanning.economic": "التنمية الاقتصادية",
+    "urbanPlanning.gentrification": "التحسين الحضري",
+    "urbanPlanning.greenfield": "تطوير الأراضي البكر",
+    "urbanPlanning.housing": "تخطيط الإسكان",
+    "urbanPlanning.infill": "تنمية المساحات الداخلية",
+    "urbanPlanning.infrastructure": "تخطيط البنية التحتية",
+    "urbanPlanning.land": "تخطيط استخدام الأراضي",
+    "urbanPlanning.master": "التخطيط الشامل",
+    "urbanPlanning.mixed": "تطوير متعدد الاستخدام",
+    "urbanPlanning.mobility": "تخطيط التنقل",
+    "urbanPlanning.neighborhood": "تخطيط الأحياء",
+    "urbanPlanning.open": "المساحات المفتوحة",
+    "urbanPlanning.park": "تخطيط الحدائق",
+    "urbanPlanning.pedestrian": "تخطيط المشاة",
+    "urbanPlanning.public": "الفضاءات العامة",
+    "urbanPlanning.publicUrbanPlanning": "المشاركة العامة",
+    "urbanPlanning.recreation": "التخطيط الترفيهي",
+    "urbanPlanning.regeneration": "إعادة إحياء المدن",
+    "urbanPlanning.resilient": "المدن المرنة",
+    "urbanPlanning.revitalization": "تنشيط المدن",
+    "urbanPlanning.scenario": "التخطيط بالسيناريوهات",
+    "urbanPlanning.smart": "النمو الذكي",
+    "urbanPlanning.stakeholder": "مشاركة أصحاب المصلحة",
+    "urbanPlanning.strategic": "التخطيط الاستراتيجي",
+    "urbanPlanning.survey": "استبيان المجتمع",
+    "urbanPlanning.sustainable": "التنمية المستدامة",
+    "urbanPlanning.title": "التخطيط الحضري",
+    "urbanPlanning.transit": "تطوير موجه للنقل",
+    "urbanPlanning.transportation": "تخطيط النقل",
+    "urbanPlanning.visioning": "صياغة الرؤية",
+    "urbanPlanning.workshop": "ورشة التخطيط",
+    "urbanPlanning.zoning": "التقسيمات التنظيمية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/userAdoption.translations.json">
+<![CDATA[
+{
+  "en": {
+    "userAdoption.acceptance": "User Acceptance",
+    "userAdoption.assistance": "User Assistance",
+    "userAdoption.awareness": "User Awareness",
+    "userAdoption.communication": "User Communication",
+    "userAdoption.documentation": "User Documentation",
+    "userAdoption.education": "User Education",
+    "userAdoption.engagement": "User Engagement",
+    "userAdoption.experience": "User Experience",
+    "userAdoption.feedback": "User Feedback",
+    "userAdoption.guidance": "User Guidance",
+    "userAdoption.guide": "User Guide",
+    "userAdoption.helpdesk": "User Help Desk",
+    "userAdoption.involvement": "User Involvement",
+    "userAdoption.manual": "User Manual",
+    "userAdoption.participation": "User Participation",
+    "userAdoption.proficiency": "User Proficiency",
+    "userAdoption.readiness": "User Readiness",
+    "userAdoption.satisfaction": "User Satisfaction",
+    "userAdoption.support": "User Support",
+    "userAdoption.training": "User Training",
+    "userAdoption.tutorial": "User Tutorial",
+    "userAdoption.user": "User Adoption"
+  },
+  "ar": {
+    "userAdoption.acceptance": "قبول المستخدم",
+    "userAdoption.assistance": "مساعدة المستخدم",
+    "userAdoption.awareness": "وعي المستخدم",
+    "userAdoption.communication": "التواصل مع المستخدم",
+    "userAdoption.documentation": "توثيق المستخدم",
+    "userAdoption.education": "تثقيف المستخدم",
+    "userAdoption.engagement": "إشراك المستخدم",
+    "userAdoption.experience": "تجربة المستخدم",
+    "userAdoption.feedback": "ملاحظات المستخدم",
+    "userAdoption.guidance": "إرشاد المستخدم",
+    "userAdoption.guide": "دليل المستخدم",
+    "userAdoption.helpdesk": "مكتب مساعدة المستخدم",
+    "userAdoption.involvement": "إشراك المستخدم",
+    "userAdoption.manual": "دليل المستخدم",
+    "userAdoption.participation": "مشاركة المستخدم",
+    "userAdoption.proficiency": "كفاءة المستخدم",
+    "userAdoption.readiness": "استعداد المستخدم",
+    "userAdoption.satisfaction": "رضا المستخدم",
+    "userAdoption.support": "دعم المستخدم",
+    "userAdoption.training": "تدريب المستخدم",
+    "userAdoption.tutorial": "البرنامج التعليمي",
+    "userAdoption.user": "تبني المستخدم"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/userBehaviorAnalytics.translations.json">
+<![CDATA[
+{
+  "en": {
+    "userBehaviorAnalytics.abandonment": "Cart Abandonment",
+    "userBehaviorAnalytics.analytics": "Behavioral Analytics",
+    "userBehaviorAnalytics.behavior": "User Behavior",
+    "userBehaviorAnalytics.churn": "User Churn",
+    "userBehaviorAnalytics.click": "Click Tracking",
+    "userBehaviorAnalytics.cohort": "User Cohort",
+    "userBehaviorAnalytics.drop": "Drop-off",
+    "userBehaviorAnalytics.engagement": "Engagement Metrics",
+    "userBehaviorAnalytics.flow": "User Flow",
+    "userBehaviorAnalytics.funnel": "Conversion Funnel",
+    "userBehaviorAnalytics.hover": "Hover Behavior",
+    "userBehaviorAnalytics.interaction": "User Interaction",
+    "userBehaviorAnalytics.journey": "User Journey",
+    "userBehaviorAnalytics.lifetime": "User Lifetime Value",
+    "userBehaviorAnalytics.path": "User Path",
+    "userBehaviorAnalytics.persona": "User Persona",
+    "userBehaviorAnalytics.profile": "User Profile",
+    "userBehaviorAnalytics.replay": "Session Replay",
+    "userBehaviorAnalytics.retention": "User Retention",
+    "userBehaviorAnalytics.scroll": "Scroll Depth",
+    "userBehaviorAnalytics.segment": "User Segment",
+    "userBehaviorAnalytics.session": "Session Recording"
+  },
+  "ar": {
+    "userBehaviorAnalytics.abandonment": "التخلي عن السلة",
+    "userBehaviorAnalytics.analytics": "تحليلات السلوك",
+    "userBehaviorAnalytics.behavior": "سلوك المستخدم",
+    "userBehaviorAnalytics.churn": "فقدان المستخدم",
+    "userBehaviorAnalytics.click": "تتبع النقرات",
+    "userBehaviorAnalytics.cohort": "مجموعة المستخدم",
+    "userBehaviorAnalytics.drop": "التسرب",
+    "userBehaviorAnalytics.engagement": "مقاييس المشاركة",
+    "userBehaviorAnalytics.flow": "تدفق المستخدم",
+    "userBehaviorAnalytics.funnel": "قمع التحويل",
+    "userBehaviorAnalytics.hover": "سلوك التحويم",
+    "userBehaviorAnalytics.interaction": "تفاعل المستخدم",
+    "userBehaviorAnalytics.journey": "رحلة المستخدم",
+    "userBehaviorAnalytics.lifetime": "القيمة الدائمة للمستخدم",
+    "userBehaviorAnalytics.path": "مسار المستخدم",
+    "userBehaviorAnalytics.persona": "شخصية المستخدم",
+    "userBehaviorAnalytics.profile": "ملف المستخدم",
+    "userBehaviorAnalytics.replay": "إعادة تشغيل الجلسة",
+    "userBehaviorAnalytics.retention": "الاحتفاظ بالمستخدم",
+    "userBehaviorAnalytics.scroll": "عمق التمرير",
+    "userBehaviorAnalytics.segment": "شريحة المستخدم",
+    "userBehaviorAnalytics.session": "تسجيل الجلسة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/userExperience.translations.json">
+<![CDATA[
+{
+  "en": {
+    "userExperience.accessibility": "Accessibility",
+    "userExperience.analysis": "UX Analysis",
+    "userExperience.architecture": "Information Architecture",
+    "userExperience.design": "UX Design",
+    "userExperience.feedback": "User Feedback",
+    "userExperience.flow": "User Flow",
+    "userExperience.interaction": "Interaction Design",
+    "userExperience.interface": "User Interface",
+    "userExperience.journey": "User Journey",
+    "userExperience.metrics": "UX Metrics",
+    "userExperience.mobile": "Mobile UX",
+    "userExperience.optimization": "UX Optimization",
+    "userExperience.persona": "User Persona",
+    "userExperience.prototype": "Prototyping",
+    "userExperience.research": "UX Research",
+    "userExperience.responsive": "Responsive Design",
+    "userExperience.strategy": "UX Strategy",
+    "userExperience.testing": "Usability Testing",
+    "userExperience.usability": "Usability",
+    "userExperience.ux": "User Experience",
+    "userExperience.visual": "Visual Design",
+    "userExperience.wireframe": "Wireframing"
+  },
+  "ar": {
+    "userExperience.accessibility": "إمكانية الوصول",
+    "userExperience.analysis": "تحليل تجربة المستخدم",
+    "userExperience.architecture": "بنية المعلومات",
+    "userExperience.design": "تصميم تجربة المستخدم",
+    "userExperience.feedback": "ملاحظات المستخدم",
+    "userExperience.flow": "تدفق المستخدم",
+    "userExperience.interaction": "تصميم التفاعل",
+    "userExperience.interface": "واجهة المستخدم",
+    "userExperience.journey": "رحلة المستخدم",
+    "userExperience.metrics": "مقاييس تجربة المستخدم",
+    "userExperience.mobile": "تجربة المستخدم المحمولة",
+    "userExperience.optimization": "تحسين تجربة المستخدم",
+    "userExperience.persona": "شخصية المستخدم",
+    "userExperience.prototype": "النموذج الأولي",
+    "userExperience.research": "بحث تجربة المستخدم",
+    "userExperience.responsive": "التصميم المتجاوب",
+    "userExperience.strategy": "استراتيجية تجربة المستخدم",
+    "userExperience.testing": "اختبار قابلية الاستخدام",
+    "userExperience.usability": "قابلية الاستخدام",
+    "userExperience.ux": "تجربة المستخدم",
+    "userExperience.visual": "التصميم البصري",
+    "userExperience.wireframe": "الإطار السلكي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/userInfo.translations.json">
+<![CDATA[
+{
+  "en": {
+    "userInfo.about": "About",
+    "userInfo.address": "Address",
+    "userInfo.apartment": "Apartment",
+    "userInfo.bio": "Bio",
+    "userInfo.building": "Building",
+    "userInfo.city": "City",
+    "userInfo.commercialRegister": "Commercial Register",
+    "userInfo.company": "Company",
+    "userInfo.coordinates": "Coordinates",
+    "userInfo.country": "Country",
+    "userInfo.dateOfBirth": "Date of Birth",
+    "userInfo.department": "Department",
+    "userInfo.displayName": "Display Name",
+    "userInfo.email": "Email Address",
+    "userInfo.fax": "Fax",
+    "userInfo.female": "Female",
+    "userInfo.firstName": "First Name",
+    "userInfo.floor": "Floor",
+    "userInfo.fullName": "Full Name",
+    "userInfo.gender": "Gender",
+    "userInfo.idNumber": "ID Number",
+    "userInfo.jobTitle": "Job Title",
+    "userInfo.landline": "Landline",
+    "userInfo.lastName": "Last Name",
+    "userInfo.latitude": "Latitude",
+    "userInfo.licenseNumber": "License Number",
+    "userInfo.location": "Location",
+    "userInfo.longitude": "Longitude",
+    "userInfo.male": "Male",
+    "userInfo.mobile": "Mobile Number",
+    "userInfo.nationality": "Nationality",
+    "userInfo.passportNumber": "Passport Number",
+    "userInfo.phone": "Phone Number",
+    "userInfo.position": "Position",
+    "userInfo.postalCode": "Postal Code",
+    "userInfo.region": "Region",
+    "userInfo.state": "State",
+    "userInfo.streetAddress": "Street Address",
+    "userInfo.taxNumber": "Tax Number",
+    "userInfo.username": "Username",
+    "userInfo.website": "Website",
+    "userInfo.zipCode": "ZIP Code"
+  },
+  "ar": {
+    "userInfo.about": "نبذة عن",
+    "userInfo.address": "العنوان",
+    "userInfo.apartment": "الشقة",
+    "userInfo.bio": "السيرة الذاتية",
+    "userInfo.building": "المبنى",
+    "userInfo.city": "المدينة",
+    "userInfo.commercialRegister": "السجل التجاري",
+    "userInfo.company": "الشركة",
+    "userInfo.coordinates": "الإحداثيات",
+    "userInfo.country": "البلد",
+    "userInfo.dateOfBirth": "تاريخ الميلاد",
+    "userInfo.department": "القسم",
+    "userInfo.displayName": "الاسم المعروض",
+    "userInfo.email": "عنوان البريد الإلكتروني",
+    "userInfo.fax": "الفاكس",
+    "userInfo.female": "أنثى",
+    "userInfo.firstName": "الاسم الأول",
+    "userInfo.floor": "الطابق",
+    "userInfo.fullName": "الاسم الكامل",
+    "userInfo.gender": "الجنس",
+    "userInfo.idNumber": "رقم الهوية",
+    "userInfo.jobTitle": "المسمى الوظيفي",
+    "userInfo.landline": "الهاتف الأرضي",
+    "userInfo.lastName": "اسم العائلة",
+    "userInfo.latitude": "خط العرض",
+    "userInfo.licenseNumber": "رقم الترخيص",
+    "userInfo.location": "الموقع",
+    "userInfo.longitude": "خط الطول",
+    "userInfo.male": "ذكر",
+    "userInfo.mobile": "رقم الجوال",
+    "userInfo.nationality": "الجنسية",
+    "userInfo.passportNumber": "رقم جواز السفر",
+    "userInfo.phone": "رقم الهاتف",
+    "userInfo.position": "المنصب",
+    "userInfo.postalCode": "الرمز البريدي",
+    "userInfo.region": "المنطقة",
+    "userInfo.state": "المحافظة",
+    "userInfo.streetAddress": "عنوان الشارع",
+    "userInfo.taxNumber": "الرقم الضريبي",
+    "userInfo.username": "اسم المستخدم",
+    "userInfo.website": "الموقع الإلكتروني",
+    "userInfo.zipCode": "الرمز البريدي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/userManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "userManagement.account": "User Account",
+    "userManagement.activate": "Activate",
+    "userManagement.active": "Active",
+    "userManagement.changePassword": "Change Password",
+    "userManagement.create": "Create User",
+    "userManagement.created": "Created",
+    "userManagement.deactivate": "Deactivate",
+    "userManagement.delete": "Delete User",
+    "userManagement.edit": "Edit User",
+    "userManagement.groups": "Groups",
+    "userManagement.inactive": "Inactive",
+    "userManagement.lastLogin": "Last Login",
+    "userManagement.locked": "Locked",
+    "userManagement.management": "User Management",
+    "userManagement.permissions": "Permissions",
+    "userManagement.profile": "User Profile",
+    "userManagement.resetPassword": "Reset Password",
+    "userManagement.roles": "Roles",
+    "userManagement.status": "Status",
+    "userManagement.suspend": "Suspend",
+    "userManagement.suspended": "Suspended",
+    "userManagement.unlock": "Unlock",
+    "userManagement.user": "User"
+  },
+  "ar": {
+    "userManagement.account": "حساب المستخدم",
+    "userManagement.activate": "تنشيط",
+    "userManagement.active": "نشط",
+    "userManagement.changePassword": "تغيير كلمة المرور",
+    "userManagement.create": "إنشاء مستخدم",
+    "userManagement.created": "تاريخ الإنشاء",
+    "userManagement.deactivate": "إلغاء التنشيط",
+    "userManagement.delete": "حذف مستخدم",
+    "userManagement.edit": "تحرير مستخدم",
+    "userManagement.groups": "المجموعات",
+    "userManagement.inactive": "غير نشط",
+    "userManagement.lastLogin": "آخر تسجيل دخول",
+    "userManagement.locked": "مقفل",
+    "userManagement.management": "إدارة المستخدمين",
+    "userManagement.permissions": "الصلاحيات",
+    "userManagement.profile": "ملف المستخدم",
+    "userManagement.resetPassword": "إعادة تعيين كلمة المرور",
+    "userManagement.roles": "الأدوار",
+    "userManagement.status": "الحالة",
+    "userManagement.suspend": "تعليق",
+    "userManagement.suspended": "معلق",
+    "userManagement.unlock": "فتح القفل",
+    "userManagement.user": "المستخدم"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/userPreferences.translations.json">
+<![CDATA[
+{
+  "en": {
+    "userPreferences.accessibility": "Accessibility Settings",
+    "userPreferences.account": "Account Settings",
+    "userPreferences.advanced": "Advanced Settings",
+    "userPreferences.appearance": "Appearance Settings",
+    "userPreferences.apply": "Apply Settings",
+    "userPreferences.autoSave": "Auto Save",
+    "userPreferences.backup": "Backup Settings",
+    "userPreferences.cancel": "Cancel Changes",
+    "userPreferences.confirm": "Confirm Changes",
+    "userPreferences.custom": "Custom Settings",
+    "userPreferences.default": "Default Settings",
+    "userPreferences.export": "Export Settings",
+    "userPreferences.general": "General Settings",
+    "userPreferences.import": "Import Settings",
+    "userPreferences.language": "Language Settings",
+    "userPreferences.notifications": "Notification Settings",
+    "userPreferences.preferences": "Preferences",
+    "userPreferences.privacy": "Privacy Settings",
+    "userPreferences.profile": "Profile Settings",
+    "userPreferences.regional": "Regional Settings",
+    "userPreferences.reset": "Reset Settings",
+    "userPreferences.restore": "Restore Defaults",
+    "userPreferences.save": "Save Settings",
+    "userPreferences.security": "Security Settings",
+    "userPreferences.settings": "Settings",
+    "userPreferences.sync": "Sync Settings"
+  },
+  "ar": {
+    "userPreferences.accessibility": "إعدادات إمكانية الوصول",
+    "userPreferences.account": "إعدادات الحساب",
+    "userPreferences.advanced": "الإعدادات المتقدمة",
+    "userPreferences.appearance": "إعدادات المظهر",
+    "userPreferences.apply": "تطبيق الإعدادات",
+    "userPreferences.autoSave": "الحفظ التلقائي",
+    "userPreferences.backup": "نسخ احتياطي للإعدادات",
+    "userPreferences.cancel": "إلغاء التغييرات",
+    "userPreferences.confirm": "تأكيد التغييرات",
+    "userPreferences.custom": "إعدادات مخصصة",
+    "userPreferences.default": "الإعدادات الافتراضية",
+    "userPreferences.export": "تصدير الإعدادات",
+    "userPreferences.general": "الإعدادات العامة",
+    "userPreferences.import": "استيراد الإعدادات",
+    "userPreferences.language": "إعدادات اللغة",
+    "userPreferences.notifications": "إعدادات الإشعارات",
+    "userPreferences.preferences": "التفضيلات",
+    "userPreferences.privacy": "إعدادات الخصوصية",
+    "userPreferences.profile": "إعدادات الملف الشخصي",
+    "userPreferences.regional": "الإعدادات الإقليمية",
+    "userPreferences.reset": "إعادة تعيين الإعدادات",
+    "userPreferences.restore": "استعادة الافتراضيات",
+    "userPreferences.save": "حفظ الإعدادات",
+    "userPreferences.security": "إعدادات الأمان",
+    "userPreferences.settings": "الإعدادات",
+    "userPreferences.sync": "مزامنة الإعدادات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/utilities.translations.json">
+<![CDATA[
+{
+  "en": {
+    "utilities.billCycle": "Bill Cycle",
+    "utilities.cableTv": "Cable TV",
+    "utilities.commonArea": "Common Area",
+    "utilities.commonAreaCharges": "Common Area Charges",
+    "utilities.consumption": "Consumption",
+    "utilities.deposit": "Deposit",
+    "utilities.disconnection": "Disconnection",
+    "utilities.dueDate": "Due Date",
+    "utilities.electricityBill": "Electricity Bill",
+    "utilities.gasBill": "Gas Bill",
+    "utilities.internetBill": "Internet Bill",
+    "utilities.maintenance": "Maintenance",
+    "utilities.maintenanceFee": "Maintenance Fee",
+    "utilities.overdue": "Overdue",
+    "utilities.reading": "Reading",
+    "utilities.reconnection": "Reconnection",
+    "utilities.reconnectionFee": "Reconnection Fee",
+    "utilities.refund": "Refund",
+    "utilities.serviceCharge": "Service Charge",
+    "utilities.sewage": "Sewage",
+    "utilities.sewerCharge": "Sewer Charge",
+    "utilities.telephoneBill": "Telephone Bill",
+    "utilities.usage": "Usage",
+    "utilities.utilities1": "Utilities",
+    "utilities.utility": "Utility",
+    "utilities.utilityCharges": "Utility Charges",
+    "utilities.waterBill": "Water Bill"
+  },
+  "ar": {
+    "utilities.billCycle": "دورة الفوترة",
+    "utilities.cableTv": "خدمة التلفزيون",
+    "utilities.commonArea": "المناطق المشتركة",
+    "utilities.commonAreaCharges": "رسوم المناطق المشتركة",
+    "utilities.consumption": "الاستهلاك",
+    "utilities.deposit": "التأمين",
+    "utilities.disconnection": "قطع الخدمة",
+    "utilities.dueDate": "تاريخ الاستحقاق",
+    "utilities.electricityBill": "فاتورة الكهرباء",
+    "utilities.gasBill": "فاتورة الغاز",
+    "utilities.internetBill": "فاتورة الإنترنت",
+    "utilities.maintenance": "الصيانة",
+    "utilities.maintenanceFee": "رسوم الصيانة",
+    "utilities.overdue": "متأخر",
+    "utilities.reading": "قراءة العداد",
+    "utilities.reconnection": "إعادة التوصيل",
+    "utilities.reconnectionFee": "رسوم إعادة التوصيل",
+    "utilities.refund": "الاسترداد",
+    "utilities.serviceCharge": "رسوم الخدمة",
+    "utilities.sewage": "مياه الصرف",
+    "utilities.sewerCharge": "رسوم الصرف",
+    "utilities.telephoneBill": "فاتورة الهاتف",
+    "utilities.usage": "الاستخدام",
+    "utilities.utilities1": "المرافق",
+    "utilities.utility": "الخدمة",
+    "utilities.utilityCharges": "رسوم المرافق",
+    "utilities.waterBill": "فاتورة المياه"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/utilitiesManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "utilitiesManagement.assetManagement": "Asset Management",
+    "utilitiesManagement.billingSystem": "Billing System",
+    "utilitiesManagement.complianceReporting": "Compliance Reporting",
+    "utilitiesManagement.connectionServices": "Connection Services",
+    "utilitiesManagement.crewDispatch": "Crew Dispatch",
+    "utilitiesManagement.customerService": "Customer Service",
+    "utilitiesManagement.demandForecasting": "Demand Forecasting",
+    "utilitiesManagement.description": "Utility services and infrastructure management",
+    "utilitiesManagement.distributionNetwork": "Distribution Network",
+    "utilitiesManagement.emergencyResponse": "Emergency Response",
+    "utilitiesManagement.energyTrading": "Energy Trading",
+    "utilitiesManagement.gridManagement": "Grid Management",
+    "utilitiesManagement.inspectionScheduling": "Inspection Scheduling",
+    "utilitiesManagement.loadBalancing": "Load Balancing",
+    "utilitiesManagement.meterOperations": "Meter Operations",
+    "utilitiesManagement.meterReading": "Meter Reading",
+    "utilitiesManagement.outageManagement": "Outage Management",
+    "utilitiesManagement.preventiveMaintenance": "Preventive Maintenance",
+    "utilitiesManagement.serviceRequests": "Service Requests",
+    "utilitiesManagement.serviceRestoration": "Service Restoration",
+    "utilitiesManagement.smartMeters": "Smart Meters",
+    "utilitiesManagement.substationManagement": "Substation Management",
+    "utilitiesManagement.title": "Utilities Management",
+    "utilitiesManagement.transmissionLines": "Transmission Lines",
+    "utilitiesManagement.workOrderManagement": "Work Order Management"
+  },
+  "ar": {
+    "utilitiesManagement.assetManagement": "إدارة الأصول",
+    "utilitiesManagement.billingSystem": "نظام الفوترة",
+    "utilitiesManagement.complianceReporting": "تقارير الامتثال",
+    "utilitiesManagement.connectionServices": "خدمات الربط",
+    "utilitiesManagement.crewDispatch": "توجيه الفرق الميدانية",
+    "utilitiesManagement.customerService": "خدمة العملاء",
+    "utilitiesManagement.demandForecasting": "توقع الطلب",
+    "utilitiesManagement.description": "إدارة خدمات البنية التحتية والطاقة",
+    "utilitiesManagement.distributionNetwork": "شبكة التوزيع",
+    "utilitiesManagement.emergencyResponse": "الاستجابة للطوارئ",
+    "utilitiesManagement.energyTrading": "تجارة الطاقة",
+    "utilitiesManagement.gridManagement": "إدارة الشبكة",
+    "utilitiesManagement.inspectionScheduling": "جدولة الفحوصات",
+    "utilitiesManagement.loadBalancing": "موازنة الأحمال",
+    "utilitiesManagement.meterOperations": "تشغيل العدادات",
+    "utilitiesManagement.meterReading": "قراءة العدادات",
+    "utilitiesManagement.outageManagement": "إدارة الانقطاعات",
+    "utilitiesManagement.preventiveMaintenance": "الصيانة الوقائية",
+    "utilitiesManagement.serviceRequests": "طلبات الخدمة",
+    "utilitiesManagement.serviceRestoration": "استعادة الخدمة",
+    "utilitiesManagement.smartMeters": "العدادات الذكية",
+    "utilitiesManagement.substationManagement": "إدارة المحطات الفرعية",
+    "utilitiesManagement.title": "إدارة المرافق",
+    "utilitiesManagement.transmissionLines": "خطوط النقل",
+    "utilitiesManagement.workOrderManagement": "إدارة أوامر العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/validation.translations.json">
+<![CDATA[
+{
+  "en": {
+    "validation.acceptTerms": "You must accept the terms and conditions",
+    "validation.cardExpired": "Card has expired",
+    "validation.dateRange": "Invalid date range",
+    "validation.decimal": "Please enter a decimal number",
+    "validation.email": "Please enter a valid email address",
+    "validation.exists": "This value does not exist",
+    "validation.fileSize": "File size must not exceed {size}",
+    "validation.fileType": "Invalid file type. Allowed types: {types}",
+    "validation.futureDate": "Date must be in the future",
+    "validation.imageDimensions": "Image dimensions must be {width}x{height}",
+    "validation.imageSize": "Image size must not exceed {size}",
+    "validation.imageType": "Invalid image type. Allowed types: {types}",
+    "validation.integer": "Please enter a whole number",
+    "validation.invalid": "Invalid value",
+    "validation.invalidCreditCard": "Invalid credit card number",
+    "validation.invalidCVV": "Invalid CVV",
+    "validation.invalidDate": "Invalid date",
+    "validation.invalidDateTime": "Invalid date and time",
+    "validation.invalidExpiryDate": "Invalid expiry date",
+    "validation.invalidTime": "Invalid time",
+    "validation.match": "Fields do not match",
+    "validation.max": "Maximum value is {max}",
+    "validation.maxDate": "Date must be before {date}",
+    "validation.maxLength": "Maximum length is {max} characters",
+    "validation.min": "Minimum value is {min}",
+    "validation.minDate": "Date must be after {date}",
+    "validation.minLength": "Minimum length is {min} characters",
+    "validation.negative": "Please enter a negative number",
+    "validation.number": "Please enter a valid number",
+    "validation.passwordLength": "Password must be at least {min} characters",
+    "validation.passwordMismatch": "Passwords do not match",
+    "validation.passwordRequirements": "Password must contain uppercase, lowercase, number, and special character",
+    "validation.passwordWeak": "Password is too weak",
+    "validation.pastDate": "Date must be in the past",
+    "validation.pattern": "Please match the required format",
+    "validation.phone": "Please enter a valid phone number",
+    "validation.positive": "Please enter a positive number",
+    "validation.required": "This field is required",
+    "validation.selectAtLeastOne": "Please select at least one option",
+    "validation.selectOption": "Please select an option",
+    "validation.unique": "This value already exists",
+    "validation.url": "Please enter a valid URL"
+  },
+  "ar": {
+    "validation.acceptTerms": "يجب عليك قبول الشروط والأحكام",
+    "validation.cardExpired": "انتهت صلاحية البطاقة",
+    "validation.dateRange": "نطاق تاريخ غير صالح",
+    "validation.decimal": "يرجى إدخال رقم عشري",
+    "validation.email": "يرجى إدخال عنوان بريد إلكتروني صالح",
+    "validation.exists": "هذه القيمة غير موجودة",
+    "validation.fileSize": "يجب ألا يتجاوز حجم الملف {size}",
+    "validation.fileType": "نوع ملف غير صالح. الأنواع المسموح بها: {types}",
+    "validation.futureDate": "يجب أن يكون التاريخ في المستقبل",
+    "validation.imageDimensions": "يجب أن تكون أبعاد الصورة {width}x{height}",
+    "validation.imageSize": "يجب ألا يتجاوز حجم الصورة {size}",
+    "validation.imageType": "نوع صورة غير صالح. الأنواع المسموح بها: {types}",
+    "validation.integer": "يرجى إدخال رقم صحيح",
+    "validation.invalid": "قيمة غير صالحة",
+    "validation.invalidCreditCard": "رقم بطاقة ائتمان غير صالح",
+    "validation.invalidCVV": "رمز CVV غير صالح",
+    "validation.invalidDate": "تاريخ غير صالح",
+    "validation.invalidDateTime": "تاريخ ووقت غير صالحين",
+    "validation.invalidExpiryDate": "تاريخ انتهاء الصلاحية غير صالح",
+    "validation.invalidTime": "وقت غير صالح",
+    "validation.match": "الحقول غير متطابقة",
+    "validation.max": "الحد الأقصى للقيمة هو {max}",
+    "validation.maxDate": "يجب أن يكون التاريخ قبل {date}",
+    "validation.maxLength": "الحد الأقصى للطول هو {max} أحرف",
+    "validation.min": "الحد الأدنى للقيمة هو {min}",
+    "validation.minDate": "يجب أن يكون التاريخ بعد {date}",
+    "validation.minLength": "الحد الأدنى للطول هو {min} أحرف",
+    "validation.negative": "يرجى إدخال رقم سالب",
+    "validation.number": "يرجى إدخال رقم صالح",
+    "validation.passwordLength": "يجب أن تتكون كلمة المرور من {min} أحرف على الأقل",
+    "validation.passwordMismatch": "كلمات المرور غير متطابقة",
+    "validation.passwordRequirements": "يجب أن تحتوي كلمة المرور على أحرف كبيرة وصغيرة وأرقام وحرف خاص",
+    "validation.passwordWeak": "كلمة المرور ضعيفة جداً",
+    "validation.pastDate": "يجب أن يكون التاريخ في الماضي",
+    "validation.pattern": "يرجى مطابقة التنسيق المطلوب",
+    "validation.phone": "يرجى إدخال رقم هاتف صالح",
+    "validation.positive": "يرجى إدخال رقم موجب",
+    "validation.required": "هذا الحقل مطلوب",
+    "validation.selectAtLeastOne": "يرجى اختيار خيار واحد على الأقل",
+    "validation.selectOption": "يرجى اختيار خيار",
+    "validation.unique": "هذه القيمة موجودة بالفعل",
+    "validation.url": "يرجى إدخال رابط صالح"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/valuation.translations.json">
+<![CDATA[
+{
+  "en": {
+    "valuation.appraisal": "Appraisal",
+    "valuation.appraiser": "Appraiser",
+    "valuation.appreciation": "Appreciation",
+    "valuation.assessedValue": "Assessed Value",
+    "valuation.assessment": "Assessment",
+    "valuation.capitalizationRate": "Capitalization Rate",
+    "valuation.comparableProperties": "Comparable Properties",
+    "valuation.comps": "Comps",
+    "valuation.depreciation": "Depreciation",
+    "valuation.fairValue": "Fair Value",
+    "valuation.grossRent": "Gross Rent",
+    "valuation.marketValue": "Market Value",
+    "valuation.netOperatingIncome": "Net Operating Income",
+    "valuation.netRent": "Net Rent",
+    "valuation.occupancyRate": "Occupancy Rate",
+    "valuation.pricePerSquareFoot": "Price per Square Foot",
+    "valuation.pricePerSquareMeter": "Price per Square Meter",
+    "valuation.rentalYield": "Rental Yield",
+    "valuation.returnOnInvestment": "Return on Investment",
+    "valuation.roi": "ROI",
+    "valuation.vacancy": "Vacancy",
+    "valuation.vacancyRate": "Vacancy Rate",
+    "valuation.valuation1": "Valuation",
+    "valuation.valuationReport": "Valuation Report",
+    "valuation.yield": "Yield"
+  },
+  "ar": {
+    "valuation.appraisal": "التقدير",
+    "valuation.appraiser": "المقيّم",
+    "valuation.appreciation": "ارتفاع القيمة",
+    "valuation.assessedValue": "القيمة المقدرة",
+    "valuation.assessment": "التقييم",
+    "valuation.capitalizationRate": "معدل الرسملة",
+    "valuation.comparableProperties": "العقارات المماثلة",
+    "valuation.comps": "مقارنات",
+    "valuation.depreciation": "انخفاض القيمة",
+    "valuation.fairValue": "القيمة العادلة",
+    "valuation.grossRent": "الإيجار الإجمالي",
+    "valuation.marketValue": "القيمة السوقية",
+    "valuation.netOperatingIncome": "صافي الدخل التشغيلي",
+    "valuation.netRent": "الإيجار الصافي",
+    "valuation.occupancyRate": "معدل الإشغال",
+    "valuation.pricePerSquareFoot": "السعر لكل قدم مربع",
+    "valuation.pricePerSquareMeter": "السعر لكل متر مربع",
+    "valuation.rentalYield": "العائد الإيجاري",
+    "valuation.returnOnInvestment": "العائد على الاستثمار",
+    "valuation.roi": "ROI",
+    "valuation.vacancy": "الشواغر",
+    "valuation.vacancyRate": "معدل الشواغر",
+    "valuation.valuation1": "التقييم",
+    "valuation.valuationReport": "تقرير التقييم",
+    "valuation.yield": "العائد"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/valueChainAnalysis.translations.json">
+<![CDATA[
+{
+  "en": {
+    "valueChainAnalysis.analysis": "Chain Analysis",
+    "valueChainAnalysis.assessment": "Value Assessment",
+    "valueChainAnalysis.chain": "Value Chain",
+    "valueChainAnalysis.coordination": "Chain Coordination",
+    "valueChainAnalysis.effectiveness": "Chain Effectiveness",
+    "valueChainAnalysis.efficiency": "Chain Efficiency",
+    "valueChainAnalysis.hrm": "Human Resource Management",
+    "valueChainAnalysis.improvement": "Chain Improvement",
+    "valueChainAnalysis.inbound": "Inbound Logistics",
+    "valueChainAnalysis.infrastructure": "Firm Infrastructure",
+    "valueChainAnalysis.integration": "Chain Integration",
+    "valueChainAnalysis.management": "Chain Management",
+    "valueChainAnalysis.mapping": "Value Mapping",
+    "valueChainAnalysis.marketing": "Marketing & Sales",
+    "valueChainAnalysis.operations": "Operations",
+    "valueChainAnalysis.optimization": "Chain Optimization",
+    "valueChainAnalysis.outbound": "Outbound Logistics",
+    "valueChainAnalysis.primary": "Primary Activities",
+    "valueChainAnalysis.procurement": "Procurement",
+    "valueChainAnalysis.service": "Service",
+    "valueChainAnalysis.support": "Support Activities",
+    "valueChainAnalysis.technology": "Technology Development",
+    "valueChainAnalysis.value": "Value Chain Analysis"
+  },
+  "ar": {
+    "valueChainAnalysis.analysis": "تحليل السلسلة",
+    "valueChainAnalysis.assessment": "تقييم القيمة",
+    "valueChainAnalysis.chain": "سلسلة القيمة",
+    "valueChainAnalysis.coordination": "التنسيق في السلسلة",
+    "valueChainAnalysis.effectiveness": "فعالية السلسلة",
+    "valueChainAnalysis.efficiency": "كفاءة السلسلة",
+    "valueChainAnalysis.hrm": "إدارة الموارد البشرية",
+    "valueChainAnalysis.improvement": "تحسين السلسلة",
+    "valueChainAnalysis.inbound": "اللوجستيات الواردة",
+    "valueChainAnalysis.infrastructure": "البنية التحتية للشركة",
+    "valueChainAnalysis.integration": "تكامل السلسلة",
+    "valueChainAnalysis.management": "إدارة السلسلة",
+    "valueChainAnalysis.mapping": "رسم خريطة القيمة",
+    "valueChainAnalysis.marketing": "التسويق والمبيعات",
+    "valueChainAnalysis.operations": "العمليات",
+    "valueChainAnalysis.optimization": "تحسين السلسلة",
+    "valueChainAnalysis.outbound": "اللوجستيات الصادرة",
+    "valueChainAnalysis.primary": "الأنشطة الأساسية",
+    "valueChainAnalysis.procurement": "الشراء",
+    "valueChainAnalysis.service": "الخدمة",
+    "valueChainAnalysis.support": "الأنشطة الداعمة",
+    "valueChainAnalysis.technology": "تطوير التكنولوجيا",
+    "valueChainAnalysis.value": "تحليل سلسلة القيمة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/valueEngineering.translations.json">
+<![CDATA[
+{
+  "en": {
+    "valueEngineering.alternatives": "Alternative Solutions",
+    "valueEngineering.analysis": "Value Analysis",
+    "valueEngineering.benefits": "VE Benefits",
+    "valueEngineering.cost": "Cost Analysis",
+    "valueEngineering.enhancement": "Value Enhancement",
+    "valueEngineering.evaluation": "Alternative Evaluation",
+    "valueEngineering.function": "Function Analysis",
+    "valueEngineering.implementation": "VE Implementation",
+    "valueEngineering.improvement": "Value Improvement",
+    "valueEngineering.innovation": "Value Innovation",
+    "valueEngineering.methodology": "VE Methodology",
+    "valueEngineering.optimization": "Value Optimization",
+    "valueEngineering.performance": "Performance Analysis",
+    "valueEngineering.process": "VE Process",
+    "valueEngineering.proposal": "VE Proposal",
+    "valueEngineering.reporting": "VE Reporting",
+    "valueEngineering.savings": "Cost Savings",
+    "valueEngineering.study": "Value Study",
+    "valueEngineering.team": "VE Team",
+    "valueEngineering.tracking": "VE Tracking",
+    "valueEngineering.value": "Value Engineering",
+    "valueEngineering.workshop": "VE Workshop"
+  },
+  "ar": {
+    "valueEngineering.alternatives": "الحلول البديلة",
+    "valueEngineering.analysis": "تحليل القيمة",
+    "valueEngineering.benefits": "فوائد هندسة القيمة",
+    "valueEngineering.cost": "تحليل التكلفة",
+    "valueEngineering.enhancement": "تعزيز القيمة",
+    "valueEngineering.evaluation": "تقييم البدائل",
+    "valueEngineering.function": "تحليل الوظائف",
+    "valueEngineering.implementation": "تنفيذ هندسة القيمة",
+    "valueEngineering.improvement": "تحسين القيمة",
+    "valueEngineering.innovation": "ابتكار القيمة",
+    "valueEngineering.methodology": "منهجية هندسة القيمة",
+    "valueEngineering.optimization": "تحسين القيمة",
+    "valueEngineering.performance": "تحليل الأداء",
+    "valueEngineering.process": "عملية هندسة القيمة",
+    "valueEngineering.proposal": "اقتراح هندسة القيمة",
+    "valueEngineering.reporting": "إعداد تقارير هندسة القيمة",
+    "valueEngineering.savings": "توفير التكاليف",
+    "valueEngineering.study": "دراسة القيمة",
+    "valueEngineering.team": "فريق هندسة القيمة",
+    "valueEngineering.tracking": "تتبع هندسة القيمة",
+    "valueEngineering.value": "هندسة القيمة",
+    "valueEngineering.workshop": "ورشة عمل هندسة القيمة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/vehicleFleetManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "vehicleFleetManagement.analytics": "Fleet Analytics",
+    "vehicleFleetManagement.behavior": "Driver Behavior",
+    "vehicleFleetManagement.cards": "Fuel Cards",
+    "vehicleFleetManagement.compliance": "Compliance Management",
+    "vehicleFleetManagement.consumption": "Fuel Consumption",
+    "vehicleFleetManagement.costs": "Fleet Costs",
+    "vehicleFleetManagement.driver": "Driver Management",
+    "vehicleFleetManagement.efficiency": "Fuel Efficiency",
+    "vehicleFleetManagement.fleet": "Fleet Management",
+    "vehicleFleetManagement.fuel": "Fuel Management",
+    "vehicleFleetManagement.gps": "GPS Tracking",
+    "vehicleFleetManagement.inspection": "Vehicle Inspection",
+    "vehicleFleetManagement.insurance": "Insurance Management",
+    "vehicleFleetManagement.licensing": "License Management",
+    "vehicleFleetManagement.maintenance": "Fleet Maintenance",
+    "vehicleFleetManagement.preventive": "Preventive Maintenance",
+    "vehicleFleetManagement.repairs": "Vehicle Repairs",
+    "vehicleFleetManagement.safety": "Driver Safety",
+    "vehicleFleetManagement.scheduling": "Maintenance Scheduling",
+    "vehicleFleetManagement.telematics": "Telematics",
+    "vehicleFleetManagement.tracking": "Vehicle Tracking",
+    "vehicleFleetManagement.vehicles": "Vehicle Management"
+  },
+  "ar": {
+    "vehicleFleetManagement.analytics": "تحليلات الأسطول",
+    "vehicleFleetManagement.behavior": "سلوك السائقين",
+    "vehicleFleetManagement.cards": "بطاقات الوقود",
+    "vehicleFleetManagement.compliance": "إدارة الامتثال",
+    "vehicleFleetManagement.consumption": "استهلاك الوقود",
+    "vehicleFleetManagement.costs": "تكاليف الأسطول",
+    "vehicleFleetManagement.driver": "إدارة السائقين",
+    "vehicleFleetManagement.efficiency": "كفاءة الوقود",
+    "vehicleFleetManagement.fleet": "إدارة الأسطول",
+    "vehicleFleetManagement.fuel": "إدارة الوقود",
+    "vehicleFleetManagement.gps": "تتبع نظام تحديد المواقع",
+    "vehicleFleetManagement.inspection": "فحص المركبات",
+    "vehicleFleetManagement.insurance": "إدارة التأمين",
+    "vehicleFleetManagement.licensing": "إدارة الرخص",
+    "vehicleFleetManagement.maintenance": "صيانة الأسطول",
+    "vehicleFleetManagement.preventive": "الصيانة الوقائية",
+    "vehicleFleetManagement.repairs": "إصلاح المركبات",
+    "vehicleFleetManagement.safety": "سلامة السائقين",
+    "vehicleFleetManagement.scheduling": "جدولة الصيانة",
+    "vehicleFleetManagement.telematics": "التليماتيكس",
+    "vehicleFleetManagement.tracking": "تتبع المركبات",
+    "vehicleFleetManagement.vehicles": "إدارة المركبات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/vendor.translations.json">
+<![CDATA[
+{
+  "en": {
+    "Vendor": "Vendor",
+    "vendor.category": "Category",
+    "vendor.code": "Vendor Code",
+    "vendor.responseTime": "Response Time",
+    "vendor.services": "Services",
+    "vendor.type": "Vendor Type"
+  },
+  "ar": {
+    "Vendor": "[AR] Vendor",
+    "vendor.category": "الفئة",
+    "vendor.code": "رمز البائع",
+    "vendor.responseTime": "وقت الاستجابة",
+    "vendor.services": "الخدمات",
+    "vendor.type": "نوع البائع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/vendorManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "vendorManagement.agreement": "Agreement",
+    "vendorManagement.contract": "Contract",
+    "vendorManagement.contractor": "Contractor",
+    "vendorManagement.dispute": "Dispute",
+    "vendorManagement.evaluation": "Evaluation",
+    "vendorManagement.masterServiceAgreement": "Master Service Agreement",
+    "vendorManagement.onboarding": "Onboarding",
+    "vendorManagement.partner": "Partner",
+    "vendorManagement.prequalification": "Pre-qualification",
+    "vendorManagement.providers": "Providers",
+    "vendorManagement.rating": "Rating",
+    "vendorManagement.renewal": "Renewal",
+    "vendorManagement.scorecard": "Scorecard",
+    "vendorManagement.serviceLevelAgreement": "Service Level Agreement",
+    "vendorManagement.subcontractor": "Subcontractor",
+    "vendorManagement.supplier": "Supplier",
+    "vendorManagement.supplierRelationship": "Supplier Relationship",
+    "vendorManagement.termination": "Termination",
+    "vendorManagement.terms": "Terms",
+    "vendorManagement.termsAndConditions": "Terms and Conditions",
+    "vendorManagement.thirdParty": "Third Party",
+    "vendorManagement.vendor": "Vendor",
+    "vendorManagement.vendorManagement1": "Vendor Management",
+    "vendorManagement.vendorPerformance": "Vendor Performance",
+    "vendorManagement.vendors": "Vendors",
+    "vendorManagement.vendorSelection": "Vendor Selection"
+  },
+  "ar": {
+    "vendorManagement.agreement": "اتفاقية",
+    "vendorManagement.contract": "عقد",
+    "vendorManagement.contractor": "مقاول",
+    "vendorManagement.dispute": "نزاع",
+    "vendorManagement.evaluation": "تقييم",
+    "vendorManagement.masterServiceAgreement": "اتفاقية خدمة رئيسية",
+    "vendorManagement.onboarding": "التأهيل",
+    "vendorManagement.partner": "شريك",
+    "vendorManagement.prequalification": "التأهيل المسبق",
+    "vendorManagement.providers": "مزودون",
+    "vendorManagement.rating": "تقييم",
+    "vendorManagement.renewal": "تجديد",
+    "vendorManagement.scorecard": "بطاقة النقاط",
+    "vendorManagement.serviceLevelAgreement": "اتفاقية مستوى الخدمة",
+    "vendorManagement.subcontractor": "مقاول فرعي",
+    "vendorManagement.supplier": "مورد",
+    "vendorManagement.supplierRelationship": "علاقة المورد",
+    "vendorManagement.termination": "إنهاء",
+    "vendorManagement.terms": "شروط",
+    "vendorManagement.termsAndConditions": "الشروط والأحكام",
+    "vendorManagement.thirdParty": "طرف ثالث",
+    "vendorManagement.vendor": "بائع",
+    "vendorManagement.vendorManagement1": "إدارة الموردين",
+    "vendorManagement.vendorPerformance": "أداء البائع",
+    "vendorManagement.vendors": "بائعون",
+    "vendorManagement.vendorSelection": "اختيار البائع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/vendorManagementAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "vendorManagementAdv.assessment": "Vendor Assessment",
+    "vendorManagementAdv.audit": "Vendor Audit",
+    "vendorManagementAdv.communication": "Vendor Communication",
+    "vendorManagementAdv.compliance": "Vendor Compliance",
+    "vendorManagementAdv.contract": "Vendor Contract",
+    "vendorManagementAdv.dispute": "Dispute Resolution",
+    "vendorManagementAdv.evaluation": "Vendor Evaluation",
+    "vendorManagementAdv.invoice": "Vendor Invoice",
+    "vendorManagementAdv.management": "Vendor Management",
+    "vendorManagementAdv.offboarding": "Vendor Offboarding",
+    "vendorManagementAdv.onboarding": "Vendor Onboarding",
+    "vendorManagementAdv.payment": "Vendor Payment",
+    "vendorManagementAdv.performance": "Vendor Performance",
+    "vendorManagementAdv.portal": "Vendor Portal",
+    "vendorManagementAdv.relationship": "Vendor Relationship",
+    "vendorManagementAdv.review": "Vendor Review",
+    "vendorManagementAdv.risk": "Vendor Risk",
+    "vendorManagementAdv.scorecard": "Vendor Scorecard",
+    "vendorManagementAdv.selection": "Vendor Selection",
+    "vendorManagementAdv.supplier": "Supplier",
+    "vendorManagementAdv.termination": "Contract Termination",
+    "vendorManagementAdv.vendor": "Vendor"
+  },
+  "ar": {
+    "vendorManagementAdv.assessment": "تقييم المورد",
+    "vendorManagementAdv.audit": "تدقيق المورد",
+    "vendorManagementAdv.communication": "التواصل مع المورد",
+    "vendorManagementAdv.compliance": "امتثال المورد",
+    "vendorManagementAdv.contract": "عقد المورد",
+    "vendorManagementAdv.dispute": "حل النزاعات",
+    "vendorManagementAdv.evaluation": "تقييم المورد",
+    "vendorManagementAdv.invoice": "فاتورة المورد",
+    "vendorManagementAdv.management": "إدارة الموردين",
+    "vendorManagementAdv.offboarding": "إنهاء تعامل المورد",
+    "vendorManagementAdv.onboarding": "إدراج المورد",
+    "vendorManagementAdv.payment": "دفع المورد",
+    "vendorManagementAdv.performance": "أداء المورد",
+    "vendorManagementAdv.portal": "بوابة المورد",
+    "vendorManagementAdv.relationship": "علاقة المورد",
+    "vendorManagementAdv.review": "مراجعة المورد",
+    "vendorManagementAdv.risk": "مخاطر المورد",
+    "vendorManagementAdv.scorecard": "بطاقة أداء المورد",
+    "vendorManagementAdv.selection": "اختيار المورد",
+    "vendorManagementAdv.supplier": "المزود",
+    "vendorManagementAdv.termination": "إنهاء العقد",
+    "vendorManagementAdv.vendor": "المورد"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/vendorManagementExt.translations.json">
+<![CDATA[
+{
+  "en": {
+    "vendorManagementExt.audit": "Vendor Audit",
+    "vendorManagementExt.catalog": "Vendor Catalog",
+    "vendorManagementExt.communication": "Vendor Communication",
+    "vendorManagementExt.compliance": "Vendor Compliance",
+    "vendorManagementExt.contract": "Vendor Contract",
+    "vendorManagementExt.database": "Vendor Database",
+    "vendorManagementExt.evaluation": "Vendor Evaluation",
+    "vendorManagementExt.invoice": "Vendor Invoice",
+    "vendorManagementExt.lifecycle": "Vendor Lifecycle",
+    "vendorManagementExt.onboarding": "Vendor Onboarding",
+    "vendorManagementExt.payment": "Vendor Payment",
+    "vendorManagementExt.performance": "Vendor Performance",
+    "vendorManagementExt.portal": "Vendor Portal",
+    "vendorManagementExt.qualification": "Vendor Qualification",
+    "vendorManagementExt.rating": "Vendor Rating",
+    "vendorManagementExt.relationship": "Vendor Relationship",
+    "vendorManagementExt.review": "Vendor Review",
+    "vendorManagementExt.risk": "Vendor Risk Assessment",
+    "vendorManagementExt.scorecard": "Vendor Scorecard",
+    "vendorManagementExt.selection": "Vendor Selection",
+    "vendorManagementExt.termination": "Vendor Termination",
+    "vendorManagementExt.vendor": "Vendor Management"
+  },
+  "ar": {
+    "vendorManagementExt.audit": "تدقيق الموردين",
+    "vendorManagementExt.catalog": "كتالوج الموردين",
+    "vendorManagementExt.communication": "التواصل مع الموردين",
+    "vendorManagementExt.compliance": "امتثال الموردين",
+    "vendorManagementExt.contract": "عقود الموردين",
+    "vendorManagementExt.database": "قاعدة بيانات الموردين",
+    "vendorManagementExt.evaluation": "تقييم الموردين",
+    "vendorManagementExt.invoice": "فواتير الموردين",
+    "vendorManagementExt.lifecycle": "دورة حياة الموردين",
+    "vendorManagementExt.onboarding": "إعداد الموردين",
+    "vendorManagementExt.payment": "دفع الموردين",
+    "vendorManagementExt.performance": "أداء الموردين",
+    "vendorManagementExt.portal": "بوابة الموردين",
+    "vendorManagementExt.qualification": "تأهيل الموردين",
+    "vendorManagementExt.rating": "تصنيف الموردين",
+    "vendorManagementExt.relationship": "علاقات الموردين",
+    "vendorManagementExt.review": "مراجعة الموردين",
+    "vendorManagementExt.risk": "تقييم مخاطر الموردين",
+    "vendorManagementExt.scorecard": "بطاقة أداء الموردين",
+    "vendorManagementExt.selection": "اختيار الموردين",
+    "vendorManagementExt.termination": "إنهاء الموردين",
+    "vendorManagementExt.vendor": "إدارة الموردين"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/vendorRelationship.translations.json">
+<![CDATA[
+{
+  "en": {
+    "vendorRelationship.analytics": "Vendor Analytics",
+    "vendorRelationship.assessment": "Vendor Assessment",
+    "vendorRelationship.audit": "Vendor Audits",
+    "vendorRelationship.certification": "Vendor Certification",
+    "vendorRelationship.collaboration": "Vendor Collaboration",
+    "vendorRelationship.communication": "Vendor Communication",
+    "vendorRelationship.compliance": "Compliance Monitoring",
+    "vendorRelationship.contracts": "Vendor Contracts",
+    "vendorRelationship.database": "Vendor Database",
+    "vendorRelationship.disputes": "Dispute Resolution",
+    "vendorRelationship.evaluation": "Vendor Evaluation",
+    "vendorRelationship.offboarding": "Vendor Offboarding",
+    "vendorRelationship.onboarding": "Vendor Onboarding",
+    "vendorRelationship.payments": "Vendor Payments",
+    "vendorRelationship.performance": "Performance Monitoring",
+    "vendorRelationship.portal": "Vendor Portal",
+    "vendorRelationship.qualification": "Vendor Qualification",
+    "vendorRelationship.relationship": "Vendor Relationships",
+    "vendorRelationship.risk": "Vendor Risk Management",
+    "vendorRelationship.scorecard": "Vendor Scorecard",
+    "vendorRelationship.vendor": "Vendor Relationship Management",
+    "vendorRelationship.vrm": "VRM"
+  },
+  "ar": {
+    "vendorRelationship.analytics": "تحليلات البائعين",
+    "vendorRelationship.assessment": "تقييم البائعين",
+    "vendorRelationship.audit": "تدقيق البائعين",
+    "vendorRelationship.certification": "شهادة البائعين",
+    "vendorRelationship.collaboration": "التعاون مع البائعين",
+    "vendorRelationship.communication": "التواصل مع البائعين",
+    "vendorRelationship.compliance": "مراقبة الامتثال",
+    "vendorRelationship.contracts": "عقود البائعين",
+    "vendorRelationship.database": "قاعدة بيانات البائعين",
+    "vendorRelationship.disputes": "حل النزاعات",
+    "vendorRelationship.evaluation": "تقييم البائعين",
+    "vendorRelationship.offboarding": "إنهاء علاقة البائعين",
+    "vendorRelationship.onboarding": "إعداد البائعين",
+    "vendorRelationship.payments": "مدفوعات البائعين",
+    "vendorRelationship.performance": "مراقبة الأداء",
+    "vendorRelationship.portal": "بوابة البائعين",
+    "vendorRelationship.qualification": "تأهيل البائعين",
+    "vendorRelationship.relationship": "علاقات البائعين",
+    "vendorRelationship.risk": "إدارة مخاطر البائعين",
+    "vendorRelationship.scorecard": "بطاقة أداء البائعين",
+    "vendorRelationship.vendor": "إدارة علاقات البائعين",
+    "vendorRelationship.vrm": "إدارة علاقات البائعين"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/vendors.translations.json">
+<![CDATA[
+{
+  "en": {
+    "vendors.addVendor": "Add Vendor",
+    "vendors.bankDetails": "Bank Details",
+    "vendors.contractEnd": "Contract End",
+    "vendors.contractNumber": "Contract Number",
+    "vendors.contractStart": "Contract Start",
+    "vendors.description": "Manage vendors and suppliers",
+    "vendors.confirmDelete": "Delete vendor \"{{name}}\"? This cannot be undone.",
+    "vendors.toast.deleting": "Deleting vendor...",
+    "vendors.toast.deleteSuccess": "Vendor deleted successfully",
+    "vendors.toast.deleteFailed": "Failed to delete vendor: {{message}}",
+    "vendors.errors.deleteUnknown": "Failed to delete vendor",
+    "vendors.export.empty": "No vendors to export",
+    "vendors.export.success": "Exported {{count}} vendors",
+    "vendors.errors.loadFailed": "Failed to load vendors: {{message}}",
+    "vendors.empty.description": "No vendors found",
+    "vendors.empty.cta": "Add First Vendor",
+    "vendors.licensedVendor": "Licensed Vendor",
+    "vendors.paymentTerms": "Payment Terms",
+    "vendors.preferredVendor": "Preferred Vendor",
+    "vendors.selectVendor": "Select Vendor",
+    "vendors.serviceCategory": "Service Category",
+    "vendors.taxNumber": "Tax Number",
+    "vendors.title": "Vendors",
+    "vendors.vendorAddress": "Address",
+    "vendors.vendorCity": "City",
+    "vendors.vendorCompany": "Company Name",
+    "vendors.vendorDetails": "Vendor Details",
+    "vendors.vendorEmail": "Email",
+    "vendors.vendorName": "Vendor Name",
+    "vendors.vendorPhone": "Phone",
+    "vendors.vendorRating": "Rating",
+    "vendors.vendorType": "Vendor Type"
+  },
+  "ar": {
+    "vendors.addVendor": "إضافة مورد",
+    "vendors.bankDetails": "تفاصيل البنك",
+    "vendors.contractEnd": "نهاية العقد",
+    "vendors.contractNumber": "رقم العقد",
+    "vendors.contractStart": "بداية العقد",
+    "vendors.description": "إدارة البائعين والموردين",
+    "vendors.confirmDelete": "حذف المورد \"{{name}}\"؟ لا يمكن التراجع عن ذلك.",
+    "vendors.toast.deleting": "جارٍ حذف المورد...",
+    "vendors.toast.deleteSuccess": "تم حذف المورد بنجاح",
+    "vendors.toast.deleteFailed": "فشل حذف المورد: {{message}}",
+    "vendors.errors.deleteUnknown": "فشل حذف المورد",
+    "vendors.export.empty": "لا توجد بيانات للموردين للتصدير",
+    "vendors.export.success": "تم تصدير {{count}} من الموردين",
+    "vendors.errors.loadFailed": "فشل تحميل الموردين: {{message}}",
+    "vendors.empty.description": "لا يوجد موردون",
+    "vendors.empty.cta": "أضف أول مورد",
+    "vendors.licensedVendor": "مورد مرخص",
+    "vendors.paymentTerms": "شروط الدفع",
+    "vendors.preferredVendor": "مورد مفضل",
+    "vendors.selectVendor": "اختر المورد",
+    "vendors.serviceCategory": "فئة الخدمة",
+    "vendors.taxNumber": "الرقم الضريبي",
+    "vendors.title": "الموردون",
+    "vendors.vendorAddress": "العنوان",
+    "vendors.vendorCity": "المدينة",
+    "vendors.vendorCompany": "اسم الشركة",
+    "vendors.vendorDetails": "تفاصيل المورد",
+    "vendors.vendorEmail": "البريد الإلكتروني",
+    "vendors.vendorName": "اسم المورد",
+    "vendors.vendorPhone": "الهاتف",
+    "vendors.vendorRating": "التقييم",
+    "vendors.vendorType": "نوع المورد"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/versionControl.translations.json">
+<![CDATA[
+{
+  "en": {
+    "versionControl.approval": "Review Approval",
+    "versionControl.blame": "Blame",
+    "versionControl.branch": "Branch",
+    "versionControl.changeset": "Changeset",
+    "versionControl.checkout": "Checkout",
+    "versionControl.cherry": "Cherry-pick",
+    "versionControl.codeReview": "Code Review",
+    "versionControl.commit": "Commit",
+    "versionControl.conflict": "Merge Conflict",
+    "versionControl.diff": "Diff",
+    "versionControl.fetch": "Fetch",
+    "versionControl.fork": "Fork",
+    "versionControl.git": "Git",
+    "versionControl.log": "Log",
+    "versionControl.merge": "Merge",
+    "versionControl.origin": "Origin",
+    "versionControl.pull": "Pull",
+    "versionControl.pullRequest": "Pull Request",
+    "versionControl.push": "Push",
+    "versionControl.rebase": "Rebase",
+    "versionControl.remote": "Remote",
+    "versionControl.repository": "Repository",
+    "versionControl.resolution": "Conflict Resolution",
+    "versionControl.stash": "Stash",
+    "versionControl.svn": "SVN",
+    "versionControl.tag": "Tag",
+    "versionControl.upstream": "Upstream",
+    "versionControl.versionControl1": "Version Control"
+  },
+  "ar": {
+    "versionControl.approval": "موافقة المراجعة",
+    "versionControl.blame": "اللوم",
+    "versionControl.branch": "الفرع",
+    "versionControl.changeset": "مجموعة التغييرات",
+    "versionControl.checkout": "الخروج",
+    "versionControl.cherry": "الانتقاء",
+    "versionControl.codeReview": "مراجعة الكود",
+    "versionControl.commit": "الالتزام",
+    "versionControl.conflict": "تعارض الدمج",
+    "versionControl.diff": "الفرق",
+    "versionControl.fetch": "الجلب",
+    "versionControl.fork": "الانشقاق",
+    "versionControl.git": "Git",
+    "versionControl.log": "السجل",
+    "versionControl.merge": "الدمج",
+    "versionControl.origin": "الأصل",
+    "versionControl.pull": "السحب",
+    "versionControl.pullRequest": "طلب السحب",
+    "versionControl.push": "الدفع",
+    "versionControl.rebase": "إعادة التأسيس",
+    "versionControl.remote": "البعيد",
+    "versionControl.repository": "المستودع",
+    "versionControl.resolution": "حل التعارض",
+    "versionControl.stash": "الإخفاء",
+    "versionControl.svn": "SVN",
+    "versionControl.tag": "الوسم",
+    "versionControl.upstream": "المنبع",
+    "versionControl.versionControl1": "التحكم في الإصدارات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/versionControlAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "versionControlAdv.bitbucket": "Bitbucket",
+    "versionControlAdv.branch": "Branch",
+    "versionControlAdv.cherry": "Cherry Pick",
+    "versionControlAdv.clone": "Clone",
+    "versionControlAdv.commit": "Commit",
+    "versionControlAdv.conflict": "Merge Conflict",
+    "versionControlAdv.diff": "Diff",
+    "versionControlAdv.fetch": "Fetch",
+    "versionControlAdv.fork": "Fork",
+    "versionControlAdv.git": "Git",
+    "versionControlAdv.github": "GitHub",
+    "versionControlAdv.gitlab": "GitLab",
+    "versionControlAdv.log": "History Log",
+    "versionControlAdv.merge": "Merge",
+    "versionControlAdv.pull": "Pull Request",
+    "versionControlAdv.push": "Push",
+    "versionControlAdv.rebase": "Rebase",
+    "versionControlAdv.release": "Release",
+    "versionControlAdv.repository": "Repository",
+    "versionControlAdv.stash": "Stash",
+    "versionControlAdv.tag": "Tag",
+    "versionControlAdv.version": "Version Control"
+  },
+  "ar": {
+    "versionControlAdv.bitbucket": "Bitbucket",
+    "versionControlAdv.branch": "الفرع",
+    "versionControlAdv.cherry": "الانتقاء",
+    "versionControlAdv.clone": "الاستنساخ",
+    "versionControlAdv.commit": "الالتزام",
+    "versionControlAdv.conflict": "تعارض الدمج",
+    "versionControlAdv.diff": "الفرق",
+    "versionControlAdv.fetch": "الجلب",
+    "versionControlAdv.fork": "التفريع",
+    "versionControlAdv.git": "Git",
+    "versionControlAdv.github": "GitHub",
+    "versionControlAdv.gitlab": "GitLab",
+    "versionControlAdv.log": "سجل التاريخ",
+    "versionControlAdv.merge": "الدمج",
+    "versionControlAdv.pull": "طلب السحب",
+    "versionControlAdv.push": "الدفع",
+    "versionControlAdv.rebase": "إعادة الأساس",
+    "versionControlAdv.release": "الإصدار",
+    "versionControlAdv.repository": "المستودع",
+    "versionControlAdv.stash": "الإخفاء",
+    "versionControlAdv.tag": "الوسم",
+    "versionControlAdv.version": "التحكم في الإصدار"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/veterinary.translations.json">
+<![CDATA[
+{
+  "en": {
+    "veterinary.aquatic": "Aquatic Animals",
+    "veterinary.boarding": "Boarding Services",
+    "veterinary.bovine": "Bovine Care",
+    "veterinary.checkup": "Health Checkup",
+    "veterinary.clinic": "Veterinary Clinic",
+    "veterinary.daycare": "Daycare Services",
+    "veterinary.dental": "Dental Care",
+    "veterinary.description": "Manage veterinary care and animal health",
+    "veterinary.diagnostic": "Diagnostic Services",
+    "veterinary.diet": "Diet Management",
+    "veterinary.emergency": "Emergency Care",
+    "veterinary.endoscopy": "Endoscopy",
+    "veterinary.epidemiology": "Epidemiology",
+    "veterinary.equine": "Equine Care",
+    "veterinary.exotic": "Exotic Animals",
+    "veterinary.grooming": "Grooming Services",
+    "veterinary.hospital": "Animal Hospital",
+    "veterinary.immunization": "Immunization",
+    "veterinary.laboratory": "Laboratory Testing",
+    "veterinary.large": "Large Animals",
+    "veterinary.medication": "Medication",
+    "veterinary.microbiology": "Microbiology",
+    "veterinary.nutrition": "Nutrition",
+    "veterinary.parasitology": "Parasitology",
+    "veterinary.pathology": "Veterinary Pathology",
+    "veterinary.physical": "Physical Therapy",
+    "veterinary.poultry": "Poultry Health",
+    "veterinary.practice": "Veterinary Practice",
+    "veterinary.prescription": "Prescription",
+    "veterinary.preventive": "Preventive Care",
+    "veterinary.radiology": "Radiology",
+    "veterinary.rehabilitation": "Rehabilitation",
+    "veterinary.small": "Small Animals",
+    "veterinary.surgery": "Surgical Services",
+    "veterinary.therapy": "Therapy",
+    "veterinary.title": "Veterinary Services",
+    "veterinary.treatment": "Treatment",
+    "veterinary.ultrasound": "Ultrasound",
+    "veterinary.vaccination": "Vaccination",
+    "veterinary.wellness": "Wellness Exams",
+    "veterinary.wildlife": "Wildlife Medicine"
+  },
+  "ar": {
+    "veterinary.aquatic": "الحيوانات المائية",
+    "veterinary.boarding": "الإيواء",
+    "veterinary.bovine": "رعاية الأبقار",
+    "veterinary.checkup": "فحص صحي",
+    "veterinary.clinic": "العيادة البيطرية",
+    "veterinary.daycare": "الرعاية النهارية",
+    "veterinary.dental": "رعاية الأسنان",
+    "veterinary.description": "إدارة الرعاية البيطرية وصحة الحيوانات",
+    "veterinary.diagnostic": "الخدمات التشخيصية",
+    "veterinary.diet": "إدارة النظام الغذائي",
+    "veterinary.emergency": "الرعاية الطارئة",
+    "veterinary.endoscopy": "التنظير",
+    "veterinary.epidemiology": "علم الوبائيات",
+    "veterinary.equine": "رعاية الخيول",
+    "veterinary.exotic": "الحيوانات الغريبة",
+    "veterinary.grooming": "خدمات العناية",
+    "veterinary.hospital": "مستشفى الحيوانات",
+    "veterinary.immunization": "التحصين",
+    "veterinary.laboratory": "التحاليل المخبرية",
+    "veterinary.large": "الحيوانات الكبيرة",
+    "veterinary.medication": "الأدوية",
+    "veterinary.microbiology": "علم الأحياء الدقيقة",
+    "veterinary.nutrition": "التغذية",
+    "veterinary.parasitology": "علم الطفيليات",
+    "veterinary.pathology": "علم الأمراض البيطري",
+    "veterinary.physical": "العلاج الطبيعي",
+    "veterinary.poultry": "صحة الدواجن",
+    "veterinary.practice": "المنشأة البيطرية",
+    "veterinary.prescription": "الوصفة الطبية",
+    "veterinary.preventive": "الرعاية الوقائية",
+    "veterinary.radiology": "الأشعة التشخيصية",
+    "veterinary.rehabilitation": "إعادة التأهيل",
+    "veterinary.small": "الحيوانات الصغيرة",
+    "veterinary.surgery": "الخدمات الجراحية",
+    "veterinary.therapy": "العلاج",
+    "veterinary.title": "الخدمات البيطرية",
+    "veterinary.treatment": "العلاج",
+    "veterinary.ultrasound": "الموجات فوق الصوتية",
+    "veterinary.vaccination": "التطعيم",
+    "veterinary.wellness": "فحوصات العافية",
+    "veterinary.wildlife": "طب الحياة البرية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/videoMarketing.translations.json">
+<![CDATA[
+{
+  "en": {
+    "videoMarketing.animation": "Animation",
+    "videoMarketing.caption": "Closed Captions",
+    "videoMarketing.demo": "Product Demo",
+    "videoMarketing.description": "Video Description",
+    "videoMarketing.editing": "Video Editing",
+    "videoMarketing.filming": "Filming",
+    "videoMarketing.hosting": "Video Hosting",
+    "videoMarketing.motion": "Motion Graphics",
+    "videoMarketing.production": "Video Production",
+    "videoMarketing.script": "Video Script",
+    "videoMarketing.seo": "Video SEO",
+    "videoMarketing.storyboard": "Storyboard",
+    "videoMarketing.streaming": "Live Streaming",
+    "videoMarketing.subtitle": "Subtitles",
+    "videoMarketing.tag": "Video Tags",
+    "videoMarketing.testimonial": "Video Testimonial",
+    "videoMarketing.thumbnail": "Thumbnail",
+    "videoMarketing.title": "Video Title",
+    "videoMarketing.transcript": "Transcript",
+    "videoMarketing.tutorial": "Tutorial Video",
+    "videoMarketing.video": "Video Marketing",
+    "videoMarketing.webinar": "Webinar"
+  },
+  "ar": {
+    "videoMarketing.animation": "الرسوم المتحركة",
+    "videoMarketing.caption": "التسميات التوضيحية المغلقة",
+    "videoMarketing.demo": "عرض توضيحي للمنتج",
+    "videoMarketing.description": "وصف الفيديو",
+    "videoMarketing.editing": "تحرير الفيديو",
+    "videoMarketing.filming": "التصوير",
+    "videoMarketing.hosting": "استضافة الفيديو",
+    "videoMarketing.motion": "الرسومات المتحركة",
+    "videoMarketing.production": "إنتاج الفيديو",
+    "videoMarketing.script": "نص الفيديو",
+    "videoMarketing.seo": "تحسين محركات البحث للفيديو",
+    "videoMarketing.storyboard": "لوحة القصة",
+    "videoMarketing.streaming": "البث المباشر",
+    "videoMarketing.subtitle": "الترجمة",
+    "videoMarketing.tag": "علامات الفيديو",
+    "videoMarketing.testimonial": "شهادة فيديو",
+    "videoMarketing.thumbnail": "الصورة المصغرة",
+    "videoMarketing.title": "عنوان الفيديو",
+    "videoMarketing.transcript": "النسخ",
+    "videoMarketing.tutorial": "فيديو تعليمي",
+    "videoMarketing.video": "التسويق بالفيديو",
+    "videoMarketing.webinar": "الندوة عبر الإنترنت"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/videoMarketingAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "videoMarketingAdv.analytics": "Video Analytics",
+    "videoMarketingAdv.animation": "Video Animation",
+    "videoMarketingAdv.content": "Video Content",
+    "videoMarketingAdv.conversion": "Video Conversion",
+    "videoMarketingAdv.editing": "Video Editing",
+    "videoMarketingAdv.engagement": "Video Engagement",
+    "videoMarketingAdv.graphics": "Motion Graphics",
+    "videoMarketingAdv.hosting": "Video Hosting",
+    "videoMarketingAdv.live": "Live Video",
+    "videoMarketingAdv.optimization": "Video Optimization",
+    "videoMarketingAdv.production": "Video Production",
+    "videoMarketingAdv.retention": "Viewer Retention",
+    "videoMarketingAdv.script": "Video Script",
+    "videoMarketingAdv.seo": "Video SEO",
+    "videoMarketingAdv.shooting": "Video Shooting",
+    "videoMarketingAdv.storyboard": "Storyboard",
+    "videoMarketingAdv.storytelling": "Visual Storytelling",
+    "videoMarketingAdv.streaming": "Video Streaming",
+    "videoMarketingAdv.thumbnail": "Video Thumbnail",
+    "videoMarketingAdv.video": "Video Marketing",
+    "videoMarketingAdv.view": "Video Views",
+    "videoMarketingAdv.watch": "Watch Time"
+  },
+  "ar": {
+    "videoMarketingAdv.analytics": "تحليلات الفيديو",
+    "videoMarketingAdv.animation": "رسوم متحركة للفيديو",
+    "videoMarketingAdv.content": "محتوى الفيديو",
+    "videoMarketingAdv.conversion": "تحويل الفيديو",
+    "videoMarketingAdv.editing": "تحرير الفيديو",
+    "videoMarketingAdv.engagement": "مشاركة الفيديو",
+    "videoMarketingAdv.graphics": "الرسوم المتحركة",
+    "videoMarketingAdv.hosting": "استضافة الفيديو",
+    "videoMarketingAdv.live": "فيديو مباشر",
+    "videoMarketingAdv.optimization": "تحسين الفيديو",
+    "videoMarketingAdv.production": "إنتاج الفيديو",
+    "videoMarketingAdv.retention": "الاحتفاظ بالمشاهدين",
+    "videoMarketingAdv.script": "نص الفيديو",
+    "videoMarketingAdv.seo": "تحسين محركات البحث للفيديو",
+    "videoMarketingAdv.shooting": "تصوير الفيديو",
+    "videoMarketingAdv.storyboard": "لوحة القصة",
+    "videoMarketingAdv.storytelling": "سرد القصص المرئية",
+    "videoMarketingAdv.streaming": "بث الفيديو",
+    "videoMarketingAdv.thumbnail": "صورة مصغرة للفيديو",
+    "videoMarketingAdv.video": "التسويق بالفيديو",
+    "videoMarketingAdv.view": "مشاهدات الفيديو",
+    "videoMarketingAdv.watch": "وقت المشاهدة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/virtualCollaboration.translations.json">
+<![CDATA[
+{
+  "en": {
+    "virtualCollaboration.best": "Virtual Best Practices",
+    "virtualCollaboration.brainstorming": "Virtual Brainstorming",
+    "virtualCollaboration.coauthoring": "Co-Authoring",
+    "virtualCollaboration.collaboration": "Collaboration Tools",
+    "virtualCollaboration.communication": "Virtual Communication",
+    "virtualCollaboration.conferencing": "Video Conferencing",
+    "virtualCollaboration.effectiveness": "Collaboration Effectiveness",
+    "virtualCollaboration.engagement": "Virtual Engagement",
+    "virtualCollaboration.etiquette": "Virtual Etiquette",
+    "virtualCollaboration.facilitation": "Virtual Facilitation",
+    "virtualCollaboration.interaction": "Virtual Interaction",
+    "virtualCollaboration.management": "Collaboration Management",
+    "virtualCollaboration.meetings": "Virtual Meetings",
+    "virtualCollaboration.platform": "Collaboration Platform",
+    "virtualCollaboration.sharing": "Content Sharing",
+    "virtualCollaboration.software": "Collaboration Software",
+    "virtualCollaboration.teamwork": "Virtual Teamwork",
+    "virtualCollaboration.technology": "Collaboration Technology",
+    "virtualCollaboration.tools": "Collaboration Tools",
+    "virtualCollaboration.virtual": "Virtual Collaboration",
+    "virtualCollaboration.whiteboard": "Digital Whiteboard",
+    "virtualCollaboration.workspace": "Virtual Workspace"
+  },
+  "ar": {
+    "virtualCollaboration.best": "أفضل الممارسات الافتراضية",
+    "virtualCollaboration.brainstorming": "العصف الذهني الافتراضي",
+    "virtualCollaboration.coauthoring": "التأليف المشترك",
+    "virtualCollaboration.collaboration": "أدوات التعاون",
+    "virtualCollaboration.communication": "التواصل الافتراضي",
+    "virtualCollaboration.conferencing": "مؤتمرات الفيديو",
+    "virtualCollaboration.effectiveness": "فعالية التعاون",
+    "virtualCollaboration.engagement": "الإشراك الافتراضي",
+    "virtualCollaboration.etiquette": "آداب التعامل الافتراضية",
+    "virtualCollaboration.facilitation": "التيسير الافتراضي",
+    "virtualCollaboration.interaction": "التفاعل الافتراضي",
+    "virtualCollaboration.management": "إدارة التعاون",
+    "virtualCollaboration.meetings": "الاجتماعات الافتراضية",
+    "virtualCollaboration.platform": "منصة التعاون",
+    "virtualCollaboration.sharing": "مشاركة المحتوى",
+    "virtualCollaboration.software": "برامج التعاون",
+    "virtualCollaboration.teamwork": "العمل الجماعي الافتراضي",
+    "virtualCollaboration.technology": "تكنولوجيا التعاون",
+    "virtualCollaboration.tools": "أدوات التعاون",
+    "virtualCollaboration.virtual": "التعاون الافتراضي",
+    "virtualCollaboration.whiteboard": "السبورة الرقمية",
+    "virtualCollaboration.workspace": "مساحة العمل الافتراضية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/virtualReality.translations.json">
+<![CDATA[
+{
+  "en": {
+    "virtualReality.avatar": "Avatar",
+    "virtualReality.content": "VR Content",
+    "virtualReality.controller": "VR Controller",
+    "virtualReality.development": "VR Development",
+    "virtualReality.environment": "Virtual Environment",
+    "virtualReality.experience": "VR Experience",
+    "virtualReality.gaming": "VR Gaming",
+    "virtualReality.haptic": "Haptic Feedback",
+    "virtualReality.headset": "VR Headset",
+    "virtualReality.hmd": "HMD",
+    "virtualReality.immersive": "Immersive",
+    "virtualReality.interaction": "VR Interaction",
+    "virtualReality.locomotion": "Locomotion",
+    "virtualReality.rendering": "VR Rendering",
+    "virtualReality.room": "Room Scale",
+    "virtualReality.simulation": "VR Simulation",
+    "virtualReality.teleportation": "Teleportation",
+    "virtualReality.tracking": "Motion Tracking",
+    "virtualReality.training": "VR Training",
+    "virtualReality.virtual": "Virtual",
+    "virtualReality.vr": "Virtual Reality",
+    "virtualReality.world": "Virtual World"
+  },
+  "ar": {
+    "virtualReality.avatar": "الصورة الرمزية",
+    "virtualReality.content": "محتوى الواقع الافتراضي",
+    "virtualReality.controller": "وحدة تحكم الواقع الافتراضي",
+    "virtualReality.development": "تطوير الواقع الافتراضي",
+    "virtualReality.environment": "البيئة الافتراضية",
+    "virtualReality.experience": "تجربة الواقع الافتراضي",
+    "virtualReality.gaming": "ألعاب الواقع الافتراضي",
+    "virtualReality.haptic": "التغذية الراجعة اللمسية",
+    "virtualReality.headset": "سماعة رأس الواقع الافتراضي",
+    "virtualReality.hmd": "جهاز العرض على الرأس",
+    "virtualReality.immersive": "غامر",
+    "virtualReality.interaction": "تفاعل الواقع الافتراضي",
+    "virtualReality.locomotion": "الحركة",
+    "virtualReality.rendering": "عرض الواقع الافتراضي",
+    "virtualReality.room": "مقياس الغرفة",
+    "virtualReality.simulation": "محاكاة الواقع الافتراضي",
+    "virtualReality.teleportation": "النقل الآني",
+    "virtualReality.tracking": "تتبع الحركة",
+    "virtualReality.training": "تدريب الواقع الافتراضي",
+    "virtualReality.virtual": "الافتراضي",
+    "virtualReality.vr": "الواقع الافتراضي",
+    "virtualReality.world": "العالم الافتراضي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/visitors.translations.json">
+<![CDATA[
+{
+  "en": {
+    "visitors.appointment": "Appointment",
+    "visitors.blacklist": "Blacklist",
+    "visitors.checkIn": "Check In",
+    "visitors.checkOut": "Check Out",
+    "visitors.escort": "Escort",
+    "visitors.escortRequired": "Escort Required",
+    "visitors.expectedVisitor": "Expected Visitor",
+    "visitors.frequentVisitor": "Frequent Visitor",
+    "visitors.host": "Host",
+    "visitors.identification": "Identification",
+    "visitors.idVerification": "ID Verification",
+    "visitors.preRegistration": "Pre-registration",
+    "visitors.reception": "Reception",
+    "visitors.receptionist": "Receptionist",
+    "visitors.screening": "Screening",
+    "visitors.securityScreening": "Security Screening",
+    "visitors.signIn": "Sign In",
+    "visitors.signOut": "Sign Out",
+    "visitors.unexpectedVisitor": "Unexpected Visitor",
+    "visitors.visitor": "Visitor",
+    "visitors.visitorBadge": "Visitor Badge",
+    "visitors.visitorHistory": "Visitor History",
+    "visitors.visitorLog": "Visitor Log",
+    "visitors.visitorManagement": "Visitor Management",
+    "visitors.visitorParking": "Visitor Parking",
+    "visitors.visitorPass": "Visitor Pass",
+    "visitors.visitors1": "Visitors",
+    "visitors.watchlist": "Watchlist"
+  },
+  "ar": {
+    "visitors.appointment": "موعد",
+    "visitors.blacklist": "القائمة السوداء",
+    "visitors.checkIn": "تسجيل الوصول",
+    "visitors.checkOut": "تسجيل المغادرة",
+    "visitors.escort": "مرافق",
+    "visitors.escortRequired": "مرافقة مطلوبة",
+    "visitors.expectedVisitor": "زائر متوقع",
+    "visitors.frequentVisitor": "زائر متكرر",
+    "visitors.host": "المضيف",
+    "visitors.identification": "التعريف",
+    "visitors.idVerification": "التحقق من الهوية",
+    "visitors.preRegistration": "التسجيل المسبق",
+    "visitors.reception": "الاستقبال",
+    "visitors.receptionist": "موظف الاستقبال",
+    "visitors.screening": "الفحص",
+    "visitors.securityScreening": "الفحص الأمني",
+    "visitors.signIn": "تسجيل الدخول",
+    "visitors.signOut": "تسجيل الخروج",
+    "visitors.unexpectedVisitor": "زائر غير متوقع",
+    "visitors.visitor": "زائر",
+    "visitors.visitorBadge": "شارة الزائر",
+    "visitors.visitorHistory": "سجل الزوار",
+    "visitors.visitorLog": "سجل الزوار",
+    "visitors.visitorManagement": "إدارة الزوار",
+    "visitors.visitorParking": "موقف الزوار",
+    "visitors.visitorPass": "تصريح الزائر",
+    "visitors.visitors1": "زوار",
+    "visitors.watchlist": "قائمة المراقبة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/votingSystem.translations.json">
+<![CDATA[
+{
+  "en": {
+    "votingSystem.best": "Best",
+    "votingSystem.bookmark": "Bookmark",
+    "votingSystem.controversial": "Controversial",
+    "votingSystem.count": "Vote Count",
+    "votingSystem.dislike": "Dislike",
+    "votingSystem.downvote": "Downvote",
+    "votingSystem.favorite": "Favorite",
+    "votingSystem.hot": "Hot",
+    "votingSystem.like": "Like",
+    "votingSystem.new": "New",
+    "votingSystem.popular": "Most Popular",
+    "votingSystem.ranking": "Ranking",
+    "votingSystem.rising": "Rising",
+    "votingSystem.score": "Score",
+    "votingSystem.top": "Top Rated",
+    "votingSystem.trending": "Trending",
+    "votingSystem.undo": "Undo Vote",
+    "votingSystem.upvote": "Upvote",
+    "votingSystem.vote": "Vote",
+    "votingSystem.voted": "Already Voted"
+  },
+  "ar": {
+    "votingSystem.best": "الأفضل",
+    "votingSystem.bookmark": "إشارة مرجعية",
+    "votingSystem.controversial": "مثير للجدل",
+    "votingSystem.count": "عدد الأصوات",
+    "votingSystem.dislike": "عدم إعجاب",
+    "votingSystem.downvote": "تصويت سلبي",
+    "votingSystem.favorite": "المفضلة",
+    "votingSystem.hot": "ساخن",
+    "votingSystem.like": "إعجاب",
+    "votingSystem.new": "جديد",
+    "votingSystem.popular": "الأكثر شعبية",
+    "votingSystem.ranking": "الترتيب",
+    "votingSystem.rising": "في صعود",
+    "votingSystem.score": "النتيجة",
+    "votingSystem.top": "الأعلى تقييماً",
+    "votingSystem.trending": "الرائج",
+    "votingSystem.undo": "التراجع عن التصويت",
+    "votingSystem.upvote": "تصويت إيجابي",
+    "votingSystem.vote": "التصويت",
+    "votingSystem.voted": "تم التصويت"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/vulnerabilityManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "vulnerabilityManagement.assessment": "Vulnerability Assessment",
+    "vulnerabilityManagement.blue": "Blue Team",
+    "vulnerabilityManagement.classification": "Vulnerability Classification",
+    "vulnerabilityManagement.compliance": "Compliance Scanning",
+    "vulnerabilityManagement.continuous": "Continuous Scanning",
+    "vulnerabilityManagement.database": "Vulnerability Database",
+    "vulnerabilityManagement.detection": "Vulnerability Detection",
+    "vulnerabilityManagement.disclosure": "Vulnerability Disclosure",
+    "vulnerabilityManagement.ethical": "Ethical Hacking",
+    "vulnerabilityManagement.identification": "Vulnerability Identification",
+    "vulnerabilityManagement.mitigation": "Risk Mitigation",
+    "vulnerabilityManagement.patching": "Patch Management",
+    "vulnerabilityManagement.penetration": "Penetration Testing",
+    "vulnerabilityManagement.prioritization": "Vulnerability Prioritization",
+    "vulnerabilityManagement.purple": "Purple Team",
+    "vulnerabilityManagement.red": "Red Team",
+    "vulnerabilityManagement.remediation": "Vulnerability Remediation",
+    "vulnerabilityManagement.reporting": "Vulnerability Reporting",
+    "vulnerabilityManagement.scanning": "Vulnerability Scanning",
+    "vulnerabilityManagement.scoring": "CVSS Scoring",
+    "vulnerabilityManagement.tracking": "Vulnerability Tracking",
+    "vulnerabilityManagement.vulnerability": "Vulnerability Management"
+  },
+  "ar": {
+    "vulnerabilityManagement.assessment": "تقييم الثغرات",
+    "vulnerabilityManagement.blue": "الفريق الأزرق",
+    "vulnerabilityManagement.classification": "تصنيف الثغرات",
+    "vulnerabilityManagement.compliance": "مسح الامتثال",
+    "vulnerabilityManagement.continuous": "المسح المستمر",
+    "vulnerabilityManagement.database": "قاعدة بيانات الثغرات",
+    "vulnerabilityManagement.detection": "اكتشاف الثغرات",
+    "vulnerabilityManagement.disclosure": "الإفصاح عن الثغرات",
+    "vulnerabilityManagement.ethical": "القرصنة الأخلاقية",
+    "vulnerabilityManagement.identification": "تحديد الثغرات",
+    "vulnerabilityManagement.mitigation": "تخفيف المخاطر",
+    "vulnerabilityManagement.patching": "إدارة التصحيحات",
+    "vulnerabilityManagement.penetration": "اختبار الاختراق",
+    "vulnerabilityManagement.prioritization": "تحديد أولوية الثغرات",
+    "vulnerabilityManagement.purple": "الفريق البنفسجي",
+    "vulnerabilityManagement.red": "الفريق الأحمر",
+    "vulnerabilityManagement.remediation": "معالجة الثغرات",
+    "vulnerabilityManagement.reporting": "الإبلاغ عن الثغرات",
+    "vulnerabilityManagement.scanning": "مسح الثغرات",
+    "vulnerabilityManagement.scoring": "تسجيل CVSS",
+    "vulnerabilityManagement.tracking": "تتبع الثغرات",
+    "vulnerabilityManagement.vulnerability": "إدارة الثغرات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/walls.translations.json">
+<![CDATA[
+{
+  "en": {
+    "walls.brick": "Brick",
+    "walls.brickwork": "Brickwork",
+    "walls.cladding": "Cladding",
+    "walls.concrete": "Concrete",
+    "walls.concreteWall": "Concrete Wall",
+    "walls.crack": "Crack",
+    "walls.cracks": "Cracks",
+    "walls.drywall": "Drywall",
+    "walls.exteriorWall": "Exterior Wall",
+    "walls.facade": "Facade",
+    "walls.hole": "Hole",
+    "walls.holes": "Holes",
+    "walls.interiorWall": "Interior Wall",
+    "walls.loadBearing": "Load Bearing",
+    "walls.masonry": "Masonry",
+    "walls.paneling": "Paneling",
+    "walls.partition": "Partition",
+    "walls.partitionWall": "Partition Wall",
+    "walls.patch": "Patch",
+    "walls.patching": "Patching",
+    "walls.plaster": "Plaster",
+    "walls.plastering": "Plastering",
+    "walls.stucco": "Stucco",
+    "walls.wainscoting": "Wainscoting",
+    "walls.wall": "Wall",
+    "walls.wallMaintenance": "Wall Maintenance",
+    "walls.wallpaper": "Wallpaper",
+    "walls.wallRepair": "Wall Repair",
+    "walls.walls1": "Walls"
+  },
+  "ar": {
+    "walls.brick": "طوب",
+    "walls.brickwork": "أعمال الطوب",
+    "walls.cladding": "كسوة",
+    "walls.concrete": "خرسانة",
+    "walls.concreteWall": "جدار خرساني",
+    "walls.crack": "شق",
+    "walls.cracks": "شقوق",
+    "walls.drywall": "جدار جاف",
+    "walls.exteriorWall": "جدار خارجي",
+    "walls.facade": "واجهة",
+    "walls.hole": "ثقب",
+    "walls.holes": "ثقوب",
+    "walls.interiorWall": "جدار داخلي",
+    "walls.loadBearing": "حامل للأحمال",
+    "walls.masonry": "البناء",
+    "walls.paneling": "تلبيس",
+    "walls.partition": "قسم",
+    "walls.partitionWall": "جدار فاصل",
+    "walls.patch": "رقعة",
+    "walls.patching": "الترقيع",
+    "walls.plaster": "جص",
+    "walls.plastering": "التجصيص",
+    "walls.stucco": "جبس",
+    "walls.wainscoting": "تلبيس الجدار",
+    "walls.wall": "جدار",
+    "walls.wallMaintenance": "صيانة الجدران",
+    "walls.wallpaper": "ورق الجدران",
+    "walls.wallRepair": "إصلاح الجدران",
+    "walls.walls1": "جدران"
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

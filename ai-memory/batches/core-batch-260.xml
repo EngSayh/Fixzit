@@ -1,0 +1,3181 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="server/middleware/requireVerifiedDocs.ts">
+<![CDATA[
+import { NextResponse } from 'next/server';
+import { Types } from 'mongoose';
+import { randomUUID } from 'crypto';
+import { connectMongo } from '@/lib/mongo';
+import { OnboardingCase } from '@/server/models/onboarding/OnboardingCase';
+import { resolveEscalationContact } from '@/server/services/escalation.service';
+import { setTenantContext } from '@/server/plugins/tenantIsolation';
+import { logger } from '@/lib/logger';
+import type { SessionUser } from './withAuthRbac';
+
+type RequiredRole = 'TENANT' | 'VENDOR';
+
+// i18n messages (server-side)
+const messages = {
+  en: {
+    verificationPending: 'Verification pending. Please complete onboarding.',
+    systemError: 'Unable to verify documents. Please try again.',
+  },
+  ar: {
+    verificationPending: 'التحقق قيد الانتظار. يرجى إكمال عملية الإعداد.',
+    systemError: 'تعذر التحقق من المستندات. يرجى المحاولة مرة أخرى.',
+  },
+};
+
+export async function ensureVerifiedDocs(
+  user: SessionUser,
+  requiredRole: RequiredRole,
+  _path?: string,
+) {
+  const locale = (user as SessionUser & { locale?: string }).locale || 'en';
+  const t = messages[locale as keyof typeof messages] || messages.en;
+  const correlationId = randomUUID();
+
+  try {
+    // Set tenant context before querying multi-tenant collections
+    if (user.orgId) {
+      setTenantContext({ orgId: user.orgId });
+    }
+
+    await connectMongo();
+    const caseRecord = await OnboardingCase.findOne({
+      subject_user_id: new Types.ObjectId(user.id),
+      role: requiredRole,
+      status: 'APPROVED',
+    }).populate('documents');
+
+    const docs = caseRecord?.documents as Array<{ status?: string; expiry_date?: Date }> | undefined;
+    const now = new Date();
+    const notVerified =
+      !caseRecord ||
+      !Array.isArray(docs) ||
+      docs.length === 0 ||
+      docs.some((doc) => {
+        const expired = doc.expiry_date && new Date(doc.expiry_date) < now;
+        return doc.status !== 'VERIFIED' || expired;
+      });
+
+    if (notVerified) {
+      const escalation = await resolveEscalationContact(user);
+      return {
+        error: NextResponse.json(
+          {
+            name: 'VerificationRequiredError',
+            code: 'DOCS_NOT_VERIFIED',
+            userMessage: t.verificationPending,
+            devMessage: `User ${user.id} has unverified documents for role ${requiredRole}`,
+            correlationId,
+            escalate_to: escalation,
+          },
+          { status: 403 },
+        ),
+      };
+    }
+
+    return {};
+  } catch (error) {
+    logger.error('[ensureVerifiedDocs] DB operation failed', {
+      userId: user.id,
+      requiredRole,
+      correlationId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return {
+      error: NextResponse.json(
+        {
+          name: 'SystemError',
+          code: 'DB_ERROR',
+          userMessage: t.systemError,
+          devMessage: error instanceof Error ? error.message : String(error),
+          correlationId,
+        },
+        { status: 500 },
+      ),
+    };
+  }
+}
+
+]]>
+</file>
+
+<file path="server/middleware/subscriptionCheck.ts">
+<![CDATA[
+/**
+ * Owner Portal Subscription Middleware
+ *
+ * Validates subscription status and feature access for owner portal endpoints
+ *
+ * Implements correct subscription checking:
+ * - Validates `activeUntil` date (NOT `createdAt` - addresses code review finding)
+ * - Returns 402 Payment Required for expired subscriptions
+ * - Checks feature-level access based on plan tier
+ * - Supports BASIC, PRO, and ENTERPRISE plans
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { Types } from "mongoose";
+import { OwnerModel } from "@/server/models/Owner";
+import { logger } from "@/lib/logger";
+import { getSessionUser } from "./withAuthRbac";
+
+export interface SubscriptionCheckOptions {
+  requireFeature?: string; // Specific feature required (e.g., 'roiAnalytics', 'utilitiesTracking')
+  requirePlan?: "BASIC" | "PRO" | "ENTERPRISE"; // Minimum plan required
+  propertyLimitCheck?: boolean; // Check if owner exceeds property limit
+}
+
+export interface SubscriptionStatus {
+  isActive: boolean;
+  plan: "BASIC" | "PRO" | "ENTERPRISE";
+  hasFeature: boolean;
+  withinPropertyLimit: boolean;
+  daysUntilExpiry: number | null;
+  features: {
+    maxProperties: number;
+    utilitiesTracking: boolean;
+    roiAnalytics: boolean;
+    customReports: boolean;
+    apiAccess: boolean;
+    dedicatedSupport: boolean;
+    multiUserAccess: boolean;
+    advancedDelegation: boolean;
+  };
+}
+
+/**
+ * Check owner's subscription status
+ *
+ * ⚡ FIX: Uses activeUntil field for expiry checks, not createdAt
+ * Addresses code review finding about incorrect subscription validation
+ */
+export async function checkSubscriptionStatus(
+  ownerId: Types.ObjectId,
+  orgId: Types.ObjectId,
+  options: SubscriptionCheckOptions = {},
+): Promise<SubscriptionStatus> {
+  const owner = await OwnerModel.findOne({ _id: ownerId, orgId });
+
+  if (!owner) {
+    throw new Error("Owner not found");
+  }
+
+  const now = new Date();
+
+  // ⚡ CORRECT: Check activeUntil date, NOT createdAt
+  const activeUntil = owner.subscription?.activeUntil;
+  const isActive = activeUntil ? now <= activeUntil : false;
+
+  const plan = owner.subscription?.plan || "BASIC";
+  const features = owner.subscription?.features || {
+    maxProperties: 1,
+    utilitiesTracking: false,
+    roiAnalytics: false,
+    customReports: false,
+    apiAccess: false,
+    dedicatedSupport: false,
+    multiUserAccess: false,
+    advancedDelegation: false,
+  };
+
+  // Calculate days until expiry
+  let daysUntilExpiry: number | null = null;
+  if (activeUntil) {
+    const diff = activeUntil.getTime() - now.getTime();
+    daysUntilExpiry = Math.ceil(diff / (1000 * 60 * 60 * 24));
+  }
+
+  // Check specific feature access
+  let hasFeature = true;
+  if (options.requireFeature) {
+    hasFeature = !!(features as Record<string, unknown>)[
+      options.requireFeature
+    ];
+  }
+
+  // Check minimum plan requirement
+  if (options.requirePlan) {
+    const planHierarchy: Record<string, number> = {
+      BASIC: 1,
+      PRO: 2,
+      ENTERPRISE: 3,
+    };
+    const currentPlanLevel = planHierarchy[plan] || 0;
+    const requiredPlanLevel = planHierarchy[options.requirePlan] || 0;
+    if (currentPlanLevel < requiredPlanLevel) {
+      hasFeature = false;
+    }
+  }
+
+  // Check property limit
+  let withinPropertyLimit = true;
+  if (options.propertyLimitCheck) {
+    const propertyCount = owner.portfolio?.totalProperties || 0;
+    const maxProperties = features.maxProperties;
+
+    // ENTERPRISE = unlimited (represented as -1 or very high number)
+    if (maxProperties > 0 && propertyCount >= maxProperties) {
+      withinPropertyLimit = false;
+    }
+  }
+
+  return {
+    isActive,
+    plan,
+    hasFeature,
+    withinPropertyLimit,
+    daysUntilExpiry,
+    features,
+  };
+}
+
+/**
+ * Next.js API Route Middleware for Subscription Checks
+ *
+ * Usage in API routes:
+ * ```typescript
+ * export async function GET(req: NextRequest) {
+ *   const subCheck = await requireSubscription(req, {
+ *     requireFeature: 'roiAnalytics',
+ *     requirePlan: 'PRO'
+ *   });
+ *
+ *   if (subCheck.error) {
+ *     return subCheck.error;
+ *   }
+ *
+ *   // Continue with API logic
+ * }
+ * ```
+ */
+export async function requireSubscription(
+  req: NextRequest,
+  options: SubscriptionCheckOptions = {},
+): Promise<{
+  status?: SubscriptionStatus;
+  error?: NextResponse;
+  ownerId?: Types.ObjectId;
+  orgId?: Types.ObjectId;
+}> {
+  try {
+    const session = await getSessionUser(req).catch(() => null);
+    if (!session) {
+      return {
+        error: NextResponse.json(
+          { error: "Authentication required" },
+          { status: 401 },
+        ),
+      };
+    }
+
+    const allowedRoles = new Set([
+      "OWNER",
+      "CORPORATE_OWNER",
+      "ADMIN",
+      "SUPER_ADMIN",
+    ]);
+    const isAllowed =
+      allowedRoles.has(session.role) ||
+      session.roles?.some((r) => allowedRoles.has(r.toUpperCase?.() || r));
+    if (!isAllowed) {
+      return {
+        error: NextResponse.json(
+          { error: "Forbidden" },
+          { status: 403 },
+        ),
+      };
+    }
+
+    if (!session.orgId) {
+      return {
+        error: NextResponse.json(
+          { error: "Organization context required" },
+          { status: 401 },
+        ),
+      };
+    }
+
+    const ownerObjectId = new Types.ObjectId(session.id);
+    const orgObjectId = new Types.ObjectId(session.orgId);
+
+    // Check subscription status
+    const status = await checkSubscriptionStatus(
+      ownerObjectId,
+      orgObjectId,
+      options,
+    );
+
+    // ⚡ Return 402 Payment Required if subscription expired
+    if (!status.isActive) {
+      return {
+        error: NextResponse.json(
+          {
+            error: "Subscription expired",
+            message:
+              "Your subscription has expired. Please renew to continue using this feature.",
+            code: "SUBSCRIPTION_EXPIRED",
+            daysExpired: status.daysUntilExpiry
+              ? Math.abs(status.daysUntilExpiry)
+              : null,
+          },
+          { status: 402 }, // 402 Payment Required
+        ),
+      };
+    }
+
+    // Check feature access
+    if (!status.hasFeature) {
+      const featureName = options.requireFeature || options.requirePlan;
+      return {
+        error: NextResponse.json(
+          {
+            error: "Feature not available",
+            message: `This feature requires ${featureName}. Please upgrade your subscription.`,
+            code: "FEATURE_NOT_AVAILABLE",
+            currentPlan: status.plan,
+            requiredPlan: options.requirePlan,
+          },
+          { status: 403 }, // 403 Forbidden
+        ),
+      };
+    }
+
+    // Check property limit
+    if (options.propertyLimitCheck && !status.withinPropertyLimit) {
+      return {
+        error: NextResponse.json(
+          {
+            error: "Property limit exceeded",
+            message: `You have reached the maximum number of properties for your ${status.plan} plan.`,
+            code: "PROPERTY_LIMIT_EXCEEDED",
+            currentPlan: status.plan,
+            maxProperties: status.features.maxProperties,
+          },
+          { status: 403 },
+        ),
+      };
+    }
+
+    // Warn if subscription expiring soon (within 7 days)
+    if (
+      status.daysUntilExpiry &&
+      status.daysUntilExpiry > 0 &&
+      status.daysUntilExpiry <= 7
+    ) {
+      logger.warn(
+        `Subscription expiring soon for owner ${ownerObjectId}: ${status.daysUntilExpiry} days remaining`,
+      );
+    }
+
+    return {
+      status,
+      ownerId: ownerObjectId,
+      orgId: orgObjectId,
+    };
+  } catch (error) {
+    logger.error("Subscription check error", { error });
+    return {
+      error: NextResponse.json(
+        { error: "Internal server error" },
+        { status: 500 },
+      ),
+    };
+  }
+}
+
+/**
+ * Feature flags based on subscription plan
+ */
+export const PLAN_FEATURES = {
+  BASIC: {
+    maxProperties: 1,
+    utilitiesTracking: false,
+    roiAnalytics: false,
+    customReports: false,
+    apiAccess: false,
+    dedicatedSupport: false,
+    multiUserAccess: false,
+    advancedDelegation: false,
+  },
+  PRO: {
+    maxProperties: 5,
+    utilitiesTracking: true,
+    roiAnalytics: true,
+    customReports: true,
+    apiAccess: false,
+    dedicatedSupport: false,
+    multiUserAccess: true,
+    advancedDelegation: true,
+  },
+  ENTERPRISE: {
+    maxProperties: -1, // Unlimited
+    utilitiesTracking: true,
+    roiAnalytics: true,
+    customReports: true,
+    apiAccess: true,
+    dedicatedSupport: true,
+    multiUserAccess: true,
+    advancedDelegation: true,
+  },
+} as const;
+
+]]>
+</file>
+
+<file path="server/middleware/withAuthRbac.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { can } from "../rbac/workOrdersPolicy";
+import type { Ability as WorkOrderAbility } from "../rbac/workOrdersPolicy";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { verifyToken } from "@/lib/auth";
+import { isTruthy } from "@/lib/utils/env";
+import { ALL_ROLES_WITH_LEGACY, type UserRoleType } from "@/types/user";
+import {
+  Role as CanonicalRole,
+  SubRole,
+  normalizeRole as normalizeFmRole,
+  inferSubRoleFromRole,
+} from "@/domain/fm/fm.behavior";
+
+// Support legacy roles during migration period
+const ALL_ROLES = ALL_ROLES_WITH_LEGACY;
+
+export class UnauthorizedError extends Error {
+  constructor(message: string = "Unauthenticated") {
+    super(message);
+    this.name = "UnauthorizedError";
+  }
+}
+
+export type SessionUser = {
+  id: string;
+  role: UserRoleType;
+  subRole?: string | null;
+  orgId: string;
+  tenantId: string;
+  units?: string[];
+  vendorId?: string;
+  assignedProperties?: string[];
+  email?: string;
+  name?: string;
+  subscriptionPlan?: string | null;
+  isSuperAdmin?: boolean;
+  permissions?: string[];
+  roles?: string[];
+  realOrgId?: string;
+  impersonatedOrgId?: string | null;
+};
+
+const WORK_ORDER_ROLES: CanonicalRole[] = [
+  CanonicalRole.SUPER_ADMIN,
+  CanonicalRole.ADMIN,
+  CanonicalRole.CORPORATE_OWNER,
+  CanonicalRole.PROPERTY_MANAGER,
+  CanonicalRole.TEAM_MEMBER,
+  CanonicalRole.TECHNICIAN,
+  CanonicalRole.VENDOR,
+  CanonicalRole.TENANT,
+  CanonicalRole.GUEST,
+];
+
+const canonicalToWorkOrderRole = (
+  role: CanonicalRole | null,
+  subRole?: SubRole,
+): CanonicalRole | null => {
+  if (!role) return null;
+  switch (role) {
+    case CanonicalRole.SUPER_ADMIN:
+      return CanonicalRole.SUPER_ADMIN;
+    case CanonicalRole.ADMIN:
+      return CanonicalRole.ADMIN;
+    case CanonicalRole.CORPORATE_OWNER:
+      return CanonicalRole.CORPORATE_OWNER;
+    case CanonicalRole.PROPERTY_MANAGER:
+      return CanonicalRole.PROPERTY_MANAGER;
+    case CanonicalRole.TECHNICIAN:
+      return CanonicalRole.TECHNICIAN;
+    case CanonicalRole.TENANT:
+      return CanonicalRole.TENANT;
+    case CanonicalRole.VENDOR:
+      return CanonicalRole.VENDOR;
+    case CanonicalRole.TEAM_MEMBER: {
+      if (subRole === SubRole.FINANCE_OFFICER) return CanonicalRole.TEAM_MEMBER;
+      if (subRole === SubRole.SUPPORT_AGENT) return CanonicalRole.TEAM_MEMBER;
+      if (subRole === SubRole.OPERATIONS_MANAGER) return CanonicalRole.TEAM_MEMBER;
+      return CanonicalRole.TEAM_MEMBER;
+    }
+    default:
+      return null;
+  }
+};
+
+const normalizeWorkOrderRole = (role?: UserRoleType): CanonicalRole | null => {
+  if (!role) return null;
+  const inferredSubRole = inferSubRoleFromRole(role);
+  const canonical = normalizeFmRole(role);
+  const mapped = canonicalToWorkOrderRole(canonical, inferredSubRole ?? undefined);
+  if (mapped && WORK_ORDER_ROLES.includes(mapped)) {
+    return mapped;
+  }
+
+  const upper = role.toUpperCase() as CanonicalRole;
+  return WORK_ORDER_ROLES.includes(upper) ? upper : null;
+};
+
+// Expose internals for testing
+export const __internals = {
+  normalizeWorkOrderRole,
+};
+
+const WORK_ORDER_ABILITIES: WorkOrderAbility[] = [
+  "VIEW",
+  "CREATE",
+  "EDIT",
+  "ASSIGN",
+  "STATUS",
+  "VERIFY",
+  "CLOSE",
+  "DELETE",
+  "EXPORT",
+  "COMMENT",
+];
+
+const assertValidAbility = (ability: WorkOrderAbility) => {
+  if (!WORK_ORDER_ABILITIES.includes(ability)) {
+    throw new Error(`Invalid ability: ${ability}`);
+  }
+};
+
+/**
+ * Load RBAC data (roles and permissions) from database for a user
+ * This runs in Node.js runtime (API routes) where Mongoose is available
+ */
+async function loadRBACData(
+  userId: string,
+  orgId: string,
+): Promise<{
+  isSuperAdmin: boolean;
+  permissions: string[];
+  roles: string[];
+}> {
+  if (isTruthy(process.env.ALLOW_OFFLINE_MONGODB)) {
+    return {
+      isSuperAdmin: false,
+      permissions: [],
+      roles: [],
+    };
+  }
+  try {
+    // Dynamic imports to avoid issues in Edge Runtime
+    const { User } = await import("@/server/models/User");
+    const RoleModel = (await import("@/server/models/Role")).default;
+    const PermissionModel = (await import("@/server/models/Permission")).default;
+    const { default: mongoose } = await import("mongoose");
+
+    // Query user with populated roles
+    const user = await User.findOne({
+      _id: new mongoose.Types.ObjectId(userId),
+      orgId: orgId,
+    })
+      .select("isSuperAdmin roles")
+      .populate({
+        path: "roles",
+        model: RoleModel,
+        select: "slug wildcard permissions",
+        populate: {
+          path: "permissions",
+          model: PermissionModel,
+          select: "key",
+        },
+      })
+      .lean();
+
+    if (!user) {
+      logger.warn("[RBAC] User not found for RBAC loading", { userId, orgId });
+      return {
+        isSuperAdmin: false,
+        permissions: [],
+        roles: [],
+      };
+    }
+
+    // Super admin check
+    const isSuperAdmin = user.isSuperAdmin || false;
+
+    // If super admin, grant all permissions
+    if (isSuperAdmin) {
+      return {
+        isSuperAdmin: true,
+        permissions: ["*"], // Wildcard permission
+        roles: ["super_admin"],
+      };
+    }
+
+    // Extract role slugs and permissions
+    const roles: string[] = [];
+    const permissionsSet = new Set<string>();
+
+    // Type for populated role object
+    type PopulatedRole = {
+      slug?: string;
+      wildcard?: boolean;
+      permissions?: Array<{ key?: string }>;
+    };
+
+    if (user.roles && Array.isArray(user.roles)) {
+      for (const role of user.roles) {
+        if (role && typeof role === "object") {
+          const populatedRole = role as unknown as PopulatedRole;
+
+          // Add role slug
+          if (populatedRole.slug) {
+            roles.push(populatedRole.slug);
+          }
+
+          // Check if role has wildcard
+          if (populatedRole.wildcard) {
+            permissionsSet.add("*");
+            continue; // Wildcard role grants all permissions
+          }
+
+          // Add permissions from role
+          if (
+            populatedRole.permissions &&
+            Array.isArray(populatedRole.permissions)
+          ) {
+            for (const perm of populatedRole.permissions) {
+              if (perm && typeof perm === "object" && perm.key) {
+                permissionsSet.add(perm.key);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return {
+      isSuperAdmin,
+      permissions: Array.from(permissionsSet),
+      roles,
+    };
+  } catch (error) {
+    logger.error("[RBAC] Failed to load RBAC data", { error, userId, orgId });
+    // Return empty RBAC data on error (safe fallback)
+    return {
+      isSuperAdmin: false,
+      permissions: [],
+      roles: [],
+    };
+  }
+}
+
+export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
+  let userId: string | undefined;
+  let orgId: string | undefined;
+  let role: UserRoleType | undefined;
+  let realOrgId: string | undefined;
+  let impersonatedOrgId: string | null = null;
+  let sessionIsSuperAdmin = false;
+  let email: string | undefined;
+  let name: string | undefined;
+  let subscriptionPlan: string | null | undefined;
+
+  // Try NextAuth session first (proper way)
+  try {
+    const session = await auth();
+
+    if (session?.user?.id) {
+      userId = session.user.id;
+      // ORGID-FIX: Use undefined (not empty string) for missing orgId
+      const sessionOrgId = session.user.orgId ? String(session.user.orgId).trim() : undefined;
+      realOrgId = sessionOrgId || undefined;
+      sessionIsSuperAdmin = Boolean(
+        (session.user as { isSuperAdmin?: boolean }).isSuperAdmin,
+      );
+      const sessionEmail =
+        typeof session.user.email === "string" ? session.user.email : undefined;
+      const sessionName =
+        typeof session.user.name === "string" ? session.user.name : undefined;
+      const sessionPlan = (session.user as { subscriptionPlan?: string | null })
+        .subscriptionPlan;
+      email = sessionEmail ?? email;
+      name = sessionName ?? name;
+      if (sessionPlan !== undefined) {
+        subscriptionPlan = sessionPlan;
+      }
+      const supportOrgOverride = sessionIsSuperAdmin
+        ? (req.cookies.get("support_org_id")?.value ?? undefined)
+        : undefined;
+      if (supportOrgOverride) {
+        orgId = supportOrgOverride;
+        impersonatedOrgId = supportOrgOverride;
+      } else {
+        // ORGID-FIX: Use undefined (not empty string) for missing orgId
+        // Empty string would bypass tenant isolation checks
+        orgId = sessionOrgId || undefined;  // ✅ undefined (not "")
+      }
+
+      // Validate role before casting
+      const roleValue = session.user.role;
+
+      if (!roleValue || !ALL_ROLES.includes(roleValue as UserRoleType)) {
+        logger.error("Invalid role in NextAuth session", {
+          role: roleValue,
+          userId: session.user.id,
+        });
+        throw new UnauthorizedError("Unauthenticated");
+      }
+
+      role = roleValue as UserRoleType;
+    }
+  } catch (e) {
+    logger.error("Failed to get NextAuth session", { error: e });
+  }
+
+  // SECURITY: x-user header is ONLY trusted because middleware.ts strips any
+  // externally-provided x-user headers before setting them from validated sessions.
+  // This header is set by Next.js middleware after session validation.
+  // Do NOT remove the header stripping in middleware.ts or this becomes a vulnerability!
+  const xUserHeader = req.headers.get("x-user");
+  if (xUserHeader) {
+    try {
+      const parsed = JSON.parse(xUserHeader);
+      const tenantValue = parsed.orgId || parsed.tenantId;
+      const roleValue = parsed.role;
+      if (tenantValue && !orgId) {
+        orgId = tenantValue;
+      }
+      if (parsed.id && !userId) {
+        userId = parsed.id;
+      }
+      if (roleValue && ALL_ROLES.includes(roleValue as UserRoleType) && !role) {
+        role = roleValue as UserRoleType;
+      } else if (roleValue && !ALL_ROLES.includes(roleValue as UserRoleType)) {
+        logger.warn("Invalid role in x-user header", { role: roleValue });
+      }
+      if (!realOrgId && (parsed.realOrgId || tenantValue)) {
+        realOrgId = parsed.realOrgId || tenantValue;
+      }
+      if (!impersonatedOrgId && parsed.impersonatedOrgId) {
+        impersonatedOrgId = parsed.impersonatedOrgId;
+      }
+      if (parsed.isSuperAdmin) {
+        sessionIsSuperAdmin = true;
+      }
+      if (!email && typeof parsed.email === "string") {
+        email = parsed.email;
+      }
+      if (!name && typeof parsed.name === "string") {
+        name = parsed.name;
+      }
+    } catch (e) {
+      logger.error("Failed to parse x-user header", { error: e });
+    }
+  }
+
+  // Legacy: Check for old fixzit_auth cookie or Authorization header
+  if (!userId) {
+    const cookieToken = req.cookies.get("fixzit_auth")?.value;
+    const headerToken = req.headers
+      .get("Authorization")
+      ?.replace("Bearer ", "");
+    const token = cookieToken || headerToken;
+
+    if (token) {
+      try {
+        const payload = await verifyToken(token);
+
+        if (payload?.id) {
+          const tenantValue = payload.orgId || payload.tenantId;
+
+          // Validate role before casting
+          const roleValue = payload.role;
+
+          if (
+            !roleValue ||
+            !ALL_ROLES.includes(String(roleValue) as UserRoleType)
+          ) {
+            logger.warn("Invalid role in legacy token", {
+              role: roleValue,
+              userId: payload.id,
+            });
+            throw new Error("Invalid role in token");
+          }
+
+          if (tenantValue) {
+            userId = payload.id;
+            orgId = tenantValue;
+            role = roleValue as UserRoleType;
+          }
+          if (!email && typeof payload.email === "string") {
+            email = payload.email;
+          }
+          if (!name && typeof payload.name === "string") {
+            name = payload.name;
+          }
+          const payloadWithPlan = payload as {
+            subscriptionPlan?: string | null;
+          };
+          if (
+            subscriptionPlan === undefined &&
+            typeof payloadWithPlan.subscriptionPlan === "string"
+          ) {
+            subscriptionPlan = payloadWithPlan.subscriptionPlan;
+          }
+        }
+      } catch (error) {
+        logger.error("Legacy token verification failed", { error });
+        // Continue to unauthenticated response
+      }
+    }
+  }
+
+  // If no auth found, throw error
+  if (!userId || !orgId || !role) {
+    throw new UnauthorizedError("Unauthenticated");
+  }
+
+  const rbacOrgId = realOrgId || orgId;
+  const effectiveRealOrgId = realOrgId ?? orgId;
+
+  // Load RBAC data from database
+  const rbacData = await loadRBACData(userId, rbacOrgId);
+  const isSuperAdmin = rbacData.isSuperAdmin || sessionIsSuperAdmin;
+  const permissions = isSuperAdmin ? ["*"] : rbacData.permissions;
+  const roles = isSuperAdmin
+    ? Array.from(new Set([...(rbacData.roles || []), "super_admin"]))
+    : rbacData.roles;
+
+  return {
+    id: userId,
+    role: role,
+    orgId: orgId,
+    tenantId: orgId,
+    email,
+    name,
+    subscriptionPlan: subscriptionPlan ?? null,
+    isSuperAdmin,
+    permissions,
+    roles,
+    realOrgId: effectiveRealOrgId,
+    impersonatedOrgId,
+  };
+}
+
+export function requireAbility(ability: WorkOrderAbility) {
+  assertValidAbility(ability);
+  return async (req: NextRequest) => {
+    try {
+      const user = await getSessionUser(req);
+      const normalizedRole = normalizeWorkOrderRole(user.role);
+      if (!normalizedRole || !can(normalizedRole, ability)) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+      return user;
+    } catch (error: unknown) {
+      if (error instanceof UnauthorizedError) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      if (errorMessage === "Invalid or expired token") {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      return NextResponse.json(
+        { error: "Authentication error" },
+        { status: 500 },
+      );
+    }
+  };
+}
+
+]]>
+</file>
+
+<file path="server/plugins/auditPlugin.ts">
+<![CDATA[
+import { Schema, Types } from "mongoose";
+import { getClientIP } from "@/server/security/headers";
+
+// Interface for field change
+interface FieldChange {
+  field: string;
+  oldValue: unknown;
+  newValue: unknown;
+}
+
+// Interface for change record
+interface ChangeRecord {
+  version: number;
+  changedBy: string;
+  changedAt: Date;
+  changes: FieldChange[];
+  changeReason?: string;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+// Interface for audit information
+export interface AuditInfo {
+  userId?: string;
+  userEmail?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  timestamp?: Date;
+  changeReason?: string;
+}
+
+// Global context for audit information
+let currentAuditContext: AuditInfo = {};
+
+// Function to set audit context
+export function setAuditContext(context: AuditInfo) {
+  currentAuditContext = { ...context };
+}
+
+// Function to get current audit context
+export function getAuditContext(): AuditInfo {
+  return currentAuditContext;
+}
+
+// Function to clear audit context
+export function clearAuditContext() {
+  currentAuditContext = {};
+}
+
+// Plugin options interface
+export interface AuditPluginOptions {
+  excludeFields?: string[];
+  enableChangeHistory?: boolean;
+  maxHistoryVersions?: number;
+}
+
+// Plugin function
+export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
+  const {
+    excludeFields = ["__v", "updatedAt", "createdAt"],
+    enableChangeHistory = true,
+    maxHistoryVersions = 50,
+  } = options;
+
+  // ⚡ FIXED: Add audit fields to schema with ObjectId type (not String)
+  schema.add({
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    updatedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    version: {
+      type: Number,
+      default: 1,
+    },
+  });
+
+  // Add change history if enabled
+  if (enableChangeHistory) {
+    schema.add({
+      changeHistory: [
+        {
+          version: Number,
+          changedBy: { type: Schema.Types.ObjectId, ref: "User" }, // ⚡ FIXED: ObjectId not String
+          changedAt: { type: Date, default: Date.now },
+          changes: [
+            {
+              field: String,
+              oldValue: Schema.Types.Mixed,
+              newValue: Schema.Types.Mixed,
+            },
+          ],
+          changeReason: String,
+          ipAddress: String,
+          userAgent: String,
+        },
+      ],
+    });
+
+    // Index for change history queries
+    schema.index({ "changeHistory.changedAt": -1 });
+    schema.index({ "changeHistory.changedBy": 1 });
+  }
+
+  // Pre-save middleware for audit fields and change tracking
+  schema.pre("save", function (next) {
+    const context = getAuditContext();
+    const now = new Date();
+
+    // Set createdBy for new documents
+    if (this.isNew) {
+      if (context.userId) {
+        this.createdBy = context.userId;
+      } else if (!this.createdBy) {
+        // If no context and no createdBy set, use system
+        this.createdBy = "SYSTEM";
+      }
+      this.version = 1;
+    } else {
+      // Set updatedBy for existing documents
+      if (context.userId) {
+        this.updatedBy = context.userId;
+      }
+
+      // Increment version
+      this.version = ((this.version as number) || 0) + 1;
+
+      // Track changes if enabled
+      if (enableChangeHistory && this.isModified()) {
+        this.changeHistory = this.changeHistory || [];
+
+        const changes: Array<{
+          field: string;
+          oldValue: unknown;
+          newValue: unknown;
+        }> = [];
+
+        // Get modified paths
+        const modifiedPaths = this.modifiedPaths();
+
+        for (const path of modifiedPaths) {
+          // Skip excluded fields and audit fields
+          if (
+            excludeFields.includes(path) ||
+            ["createdBy", "updatedBy", "version", "changeHistory"].includes(
+              path,
+            )
+          ) {
+            continue;
+          }
+
+          const internalState = this.$__ as {
+            originalDoc?: Record<string, unknown>;
+          };
+          const oldValue = this.isNew
+            ? undefined
+            : internalState?.originalDoc?.[path];
+          const newValue = this.get(path);
+
+          // Only track if value actually changed
+          if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
+            changes.push({
+              field: path,
+              oldValue,
+              newValue,
+            });
+          }
+        }
+
+        // Add change record if there are actual changes
+        if (changes.length > 0) {
+          const changeRecord = {
+            version: this.version,
+            changedBy: context.userId || this.updatedBy || "SYSTEM",
+            changedAt: now,
+            changes,
+            changeReason: context.changeReason || undefined,
+            ipAddress: context.ipAddress,
+            userAgent: context.userAgent,
+          };
+
+          if (!this.changeHistory) {
+            this.changeHistory = [];
+          }
+          (this.changeHistory as unknown[]).push(changeRecord);
+
+          // Limit history size
+          if ((this.changeHistory as unknown[]).length > maxHistoryVersions) {
+            this.changeHistory = (this.changeHistory as unknown[]).slice(
+              -maxHistoryVersions,
+            );
+          }
+        }
+      }
+    }
+
+    next();
+  });
+
+  // Pre-update middleware for audit fields
+  schema.pre(/^update/, function () {
+    const context = getAuditContext();
+
+    if (context.userId) {
+      this.set({ updatedBy: context.userId });
+    }
+
+    // Increment version
+    this.set({ $inc: { version: 1 } });
+  });
+
+  // Pre-findOneAndUpdate middleware
+  schema.pre("findOneAndUpdate", function () {
+    const context = getAuditContext();
+
+    if (context.userId) {
+      this.set({ updatedBy: context.userId });
+    }
+
+    // Increment version
+    this.set({ $inc: { version: 1 } });
+  });
+
+  // Instance method to get change history for a specific field
+  schema.methods.getFieldHistory = function (fieldName: string) {
+    if (!this.changeHistory) return [];
+
+    return this.changeHistory
+      .filter((change: ChangeRecord) =>
+        change.changes.some((c: FieldChange) => c.field === fieldName),
+      )
+      .map((change: ChangeRecord) => ({
+        version: change.version,
+        changedBy: change.changedBy,
+        changedAt: change.changedAt,
+        change: change.changes.find((c: FieldChange) => c.field === fieldName),
+        changeReason: change.changeReason,
+      }))
+      .sort((a: ChangeRecord, b: ChangeRecord) => b.version - a.version);
+  };
+
+  // Instance method to get changes made by a specific user
+  schema.methods.getChangesByUser = function (userId: string) {
+    if (!this.changeHistory) return [];
+
+    return this.changeHistory
+      .filter((change: ChangeRecord) => change.changedBy === userId)
+      .sort((a: ChangeRecord, b: ChangeRecord) => b.version - a.version);
+  };
+
+  // Instance method to get version at specific point in time
+  schema.methods.getVersionAtDate = function (date: Date) {
+    if (!this.changeHistory) return null;
+
+    const changes = this.changeHistory
+      .filter((change: ChangeRecord) => new Date(change.changedAt) <= date)
+      .sort((a: ChangeRecord, b: ChangeRecord) => b.version - a.version);
+
+    return changes.length > 0 ? changes[0] : null;
+  };
+
+  // Static method to find documents modified by user
+  schema.statics.findByModifier = function (userId: string) {
+    return this.find({
+      $or: [
+        { createdBy: userId },
+        { updatedBy: userId },
+        { "changeHistory.changedBy": userId },
+      ],
+    });
+  };
+
+  // Static method to find documents modified in date range
+  schema.statics.findByDateRange = function (startDate: Date, endDate: Date) {
+    return this.find({
+      $or: [
+        { createdAt: { $gte: startDate, $lte: endDate } },
+        { updatedAt: { $gte: startDate, $lte: endDate } },
+        { "changeHistory.changedAt": { $gte: startDate, $lte: endDate } },
+      ],
+    });
+  };
+
+  // Add indexes for audit queries
+  schema.index({ createdBy: 1 });
+  schema.index({ updatedBy: 1 });
+  schema.index({ version: 1 });
+  // ⚡ REMOVED: createdAt/updatedAt indexes - already created by timestamps: true option
+}
+
+// Utility function to execute operations with audit context
+export async function withAuditContext<T>(
+  auditInfo: AuditInfo,
+  operation: () => Promise<T>,
+): Promise<T> {
+  const originalContext = getAuditContext();
+
+  try {
+    setAuditContext({ ...originalContext, ...auditInfo });
+    return await operation();
+  } finally {
+    setAuditContext(originalContext);
+  }
+}
+
+// Utility function to create audit context from request
+export function createAuditContextFromRequest(
+  req: Record<string, unknown>,
+  userId?: string,
+): AuditInfo {
+  const reqUser = req.user as
+    | { id?: string; _id?: { toString: () => string }; email?: string }
+    | undefined;
+
+  const headers =
+    typeof req.headers === "object" && req.headers !== null
+      ? (req.headers as Record<string, unknown>)
+      : {};
+
+  // Use secure IP extraction from trusted sources (LAST IP from X-Forwarded-For)
+  // Check if this is a NextRequest with get() method
+  let clientIp = "unknown";
+  if (req && typeof req === "object" && "headers" in req) {
+    const headersObj = req.headers;
+    if (
+      headersObj &&
+      typeof headersObj === "object" &&
+      "get" in headersObj &&
+      typeof headersObj.get === "function"
+    ) {
+      // This is a NextRequest or similar - use secure extraction
+      clientIp = getClientIP(
+        req as unknown as Parameters<typeof getClientIP>[0],
+      );
+    } else {
+      // Fallback for generic request objects - extract safely
+      const headersMap = headersObj as Record<string, string | undefined>;
+
+      // 1) Cloudflare Connecting IP (most trusted)
+      const cfIp = headersMap["cf-connecting-ip"];
+      if (cfIp && cfIp.trim()) {
+        clientIp = cfIp.trim();
+      } else {
+        // 2) X-Forwarded-For: take LAST IP (appended by our trusted proxy)
+        const forwarded = headersMap["x-forwarded-for"];
+        if (forwarded && forwarded.trim()) {
+          const ips = forwarded
+            .split(",")
+            .map((ip) => ip.trim())
+            .filter((ip) => ip);
+          if (ips.length) clientIp = ips[ips.length - 1]; // LAST IP is from our proxy
+        } else if (process.env.TRUST_X_REAL_IP === "true") {
+          // 3) X-Real-IP only if explicitly trusted
+          const realIP = headersMap["x-real-ip"];
+          if (realIP && realIP.trim()) clientIp = realIP.trim();
+        }
+      }
+    }
+  }
+
+  return {
+    userId: userId || reqUser?.id || reqUser?._id?.toString(),
+    userEmail: reqUser?.email,
+    ipAddress: clientIp,
+    userAgent: headers["user-agent"]
+      ? String(headers["user-agent"])
+      : undefined,
+    timestamp: new Date(),
+  };
+}
+
+]]>
+</file>
+
+<file path="server/plugins/encryptionPlugin.ts">
+<![CDATA[
+/**
+ * DATA-004 FIX: Centralized Encryption Plugin
+ *
+ * Reusable Mongoose plugin for PII field encryption/decryption.
+ * Consolidates duplicate encryption logic from User.ts, hr.models.ts, etc.
+ *
+ * GDPR Article 32: Security of processing (encryption at rest)
+ * Saudi Labor Law Article 52: Salary confidentiality
+ *
+ * @module server/plugins/encryptionPlugin
+ */
+
+import { Schema, Query } from "mongoose";
+import {
+  encryptField,
+  decryptField,
+  isEncrypted,
+} from "@/lib/security/encryption";
+import { logger } from "@/lib/logger";
+
+/**
+ * Configuration options for the encryption plugin
+ */
+export interface EncryptionPluginOptions {
+  /**
+   * Fields to encrypt, mapped by dot-notation path to display name
+   * Example: { 'personal.nationalId': 'National ID', 'bankDetails.iban': 'IBAN' }
+   */
+  fields: Record<string, string>;
+
+  /**
+   * Whether to log encryption/decryption operations (default: false in production)
+   */
+  logOperations?: boolean;
+}
+
+/**
+ * Get a nested value from an object using dot notation
+ */
+function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
+  const parts = path.split(".");
+  let current: unknown = obj;
+
+  for (const part of parts) {
+    if (current === null || current === undefined) return undefined;
+    if (typeof current !== "object") return undefined;
+    current = (current as Record<string, unknown>)[part];
+  }
+
+  return current;
+}
+
+/**
+ * Get value from update object, handling both dotted keys and nested objects
+ * e.g., { "personal.nationalId": "123" } OR { personal: { nationalId: "123" } }
+ */
+function getUpdateValue(obj: Record<string, unknown>, path: string): unknown {
+  // First check for direct dotted key access (common in $set)
+  if (path in obj) {
+    return obj[path];
+  }
+  // Fall back to nested object traversal
+  return getNestedValue(obj, path);
+}
+
+/**
+ * Set value in update object, handling dotted keys for $set operations
+ */
+function setUpdateValue(
+  obj: Record<string, unknown>,
+  path: string,
+  value: unknown,
+  useDottedKey: boolean
+): void {
+  if (useDottedKey) {
+    // For $set operations, use dotted key directly
+    obj[path] = value;
+  } else {
+    setNestedValue(obj, path, value);
+  }
+}
+
+/**
+ * Convert value to string for encryption (handles numbers, etc.)
+ * Returns null for non-primitive values with a warning log.
+ */
+function toEncryptableString(value: unknown, fieldPath?: string): string | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "string") return value.length > 0 ? value : null;
+  if (typeof value === "number") return String(value);
+  
+  // Defensive check: log and skip non-primitive values (Buffer, Object, Array)
+  if (typeof value === "object") {
+    logger.warn("[EncryptionPlugin] Skipping non-primitive value for encryption", {
+      field: fieldPath,
+      valueType: Array.isArray(value) ? "array" : value?.constructor?.name || "object",
+    });
+  }
+  return null;
+}
+
+/**
+ * Set a nested value in an object using dot notation
+ */
+function setNestedValue(
+  obj: Record<string, unknown>,
+  path: string,
+  value: unknown
+): void {
+  const parts = path.split(".");
+  let current: Record<string, unknown> = obj;
+
+  for (let i = 0; i < parts.length - 1; i++) {
+    const part = parts[i];
+    if (!(part in current) || typeof current[part] !== "object") {
+      current[part] = {};
+    }
+    current = current[part] as Record<string, unknown>;
+  }
+
+  current[parts[parts.length - 1]] = value;
+}
+
+/**
+ * Mongoose plugin that adds automatic PII encryption/decryption
+ *
+ * @example
+ * ```typescript
+ * import { encryptionPlugin } from '@/server/plugins/encryptionPlugin';
+ *
+ * const UserSchema = new Schema({...});
+ *
+ * UserSchema.plugin(encryptionPlugin, {
+ *   fields: {
+ *     'personal.nationalId': 'National ID',
+ *     'personal.passport': 'Passport Number',
+ *     'bankDetails.iban': 'IBAN',
+ *   }
+ * });
+ * ```
+ */
+export function encryptionPlugin<T>(
+  schema: Schema<T>,
+  options: EncryptionPluginOptions
+): void {
+  const { fields, logOperations = process.env.NODE_ENV === "development" } =
+    options;
+
+  const fieldPaths = Object.keys(fields);
+
+  /**
+   * Pre-save hook: Encrypt PII fields before saving to database
+   */
+  schema.pre("save", function (next) {
+    const doc = this as unknown as Record<string, unknown>;
+
+    for (const path of fieldPaths) {
+      const rawValue = getNestedValue(doc, path);
+      const value = toEncryptableString(rawValue, path);
+
+      if (value !== null && !isEncrypted(value)) {
+        const encrypted = encryptField(value, path);
+        setNestedValue(doc, path, encrypted);
+
+        if (logOperations) {
+          logger.debug("[EncryptionPlugin] Field encrypted on save", {
+            field: path,
+            displayName: fields[path],
+          });
+        }
+      }
+    }
+
+    next();
+  });
+
+  /**
+   * Pre-findOneAndUpdate hook: Encrypt PII fields in update operations
+   */
+  schema.pre("findOneAndUpdate", function (next) {
+    const update = (this as Query<unknown, unknown>).getUpdate() as Record<
+      string,
+      unknown
+    > | null;
+    if (!update) return next();
+
+    const $set = (update.$set as Record<string, unknown>) ?? null;
+    const targetObj = $set ?? update;
+
+    for (const path of fieldPaths) {
+      // Check both dotted key and nested path
+      const rawValue = getUpdateValue(targetObj, path);
+      const value = toEncryptableString(rawValue, path);
+
+      if (value !== null && !isEncrypted(value)) {
+        const encrypted = encryptField(value, path);
+        // Use dotted key if $set exists (most common update pattern)
+        const useDottedKey = $set !== null && path in $set;
+
+        if ($set) {
+          setUpdateValue($set, path, encrypted, useDottedKey || path in $set || path.includes("."));
+        } else {
+          setUpdateValue(update, path, encrypted, path in update || path.includes("."));
+        }
+
+        if (logOperations) {
+          logger.debug("[EncryptionPlugin] Field encrypted on update", {
+            field: path,
+            displayName: fields[path],
+          });
+        }
+      }
+    }
+
+    (this as Query<unknown, unknown>).setUpdate(update);
+    next();
+  });
+
+  /**
+   * Pre-updateOne hook: Reuse findOneAndUpdate logic
+   */
+  schema.pre("updateOne", function (next) {
+    const update = (this as Query<unknown, unknown>).getUpdate() as Record<
+      string,
+      unknown
+    > | null;
+    if (!update) return next();
+
+    const $set = (update.$set as Record<string, unknown>) ?? null;
+    const targetObj = $set ?? update;
+
+    for (const path of fieldPaths) {
+      const rawValue = getUpdateValue(targetObj, path);
+      const value = toEncryptableString(rawValue, path);
+
+      if (value !== null && !isEncrypted(value)) {
+        const encrypted = encryptField(value, path);
+        const useDottedKey = path.includes(".");
+
+        if ($set) {
+          setUpdateValue($set, path, encrypted, useDottedKey || path in $set);
+        } else {
+          setUpdateValue(update, path, encrypted, useDottedKey || path in update);
+        }
+      }
+    }
+
+    (this as Query<unknown, unknown>).setUpdate(update);
+    next();
+  });
+
+  /**
+   * Pre-updateMany hook: Reuse update logic
+   */
+  schema.pre("updateMany", function (next) {
+    const update = (this as Query<unknown, unknown>).getUpdate() as Record<
+      string,
+      unknown
+    > | null;
+    if (!update) return next();
+
+    const $set = (update.$set as Record<string, unknown>) ?? null;
+    const targetObj = $set ?? update;
+
+    for (const path of fieldPaths) {
+      const rawValue = getUpdateValue(targetObj, path);
+      const value = toEncryptableString(rawValue, path);
+
+      if (value !== null && !isEncrypted(value)) {
+        const encrypted = encryptField(value, path);
+        const useDottedKey = path.includes(".");
+
+        if ($set) {
+          setUpdateValue($set, path, encrypted, useDottedKey || path in $set);
+        } else {
+          setUpdateValue(update, path, encrypted, useDottedKey || path in update);
+        }
+      }
+    }
+
+    (this as Query<unknown, unknown>).setUpdate(update);
+    next();
+  });
+
+  /**
+   * Pre-insertMany hook: Encrypt PII fields on bulk inserts
+   */
+  schema.pre("insertMany", function (next, docs: Record<string, unknown>[]) {
+    if (!Array.isArray(docs)) return next();
+
+    for (const doc of docs) {
+      for (const path of fieldPaths) {
+        const rawValue = getNestedValue(doc, path);
+        const value = toEncryptableString(rawValue, path);
+
+        if (value !== null && !isEncrypted(value)) {
+          const encrypted = encryptField(value, path);
+          setNestedValue(doc, path, encrypted);
+
+          if (logOperations) {
+            logger.debug("[EncryptionPlugin] Field encrypted on insertMany", {
+              field: path,
+              displayName: fields[path],
+            });
+          }
+        }
+      }
+    }
+
+    next();
+  });
+
+  /**
+   * Post-find hook: Decrypt PII fields after query
+   */
+  schema.post("find", function (docs: unknown[]) {
+    if (!Array.isArray(docs)) return;
+
+    for (const doc of docs) {
+      if (!doc || typeof doc !== "object") continue;
+      decryptDocument(doc as Record<string, unknown>, fieldPaths, fields, logOperations);
+    }
+  });
+
+  /**
+   * Post-findOne hook: Decrypt PII fields after query
+   */
+  schema.post("findOne", function (doc: unknown) {
+    if (!doc || typeof doc !== "object") return;
+    decryptDocument(doc as Record<string, unknown>, fieldPaths, fields, logOperations);
+  });
+
+  /**
+   * Post-findOneAndUpdate hook: Decrypt PII fields after update+return
+   */
+  schema.post("findOneAndUpdate", function (doc: unknown) {
+    if (!doc || typeof doc !== "object") return;
+    decryptDocument(doc as Record<string, unknown>, fieldPaths, fields, logOperations);
+  });
+}
+
+/**
+ * Helper to decrypt all encrypted fields in a document
+ */
+function decryptDocument(
+  doc: Record<string, unknown>,
+  fieldPaths: string[],
+  fields: Record<string, string>,
+  logOperations: boolean
+): void {
+  for (const path of fieldPaths) {
+    const rawValue = getNestedValue(doc, path);
+    const value = toEncryptableString(rawValue, path);
+
+    if (value !== null && isEncrypted(value)) {
+      try {
+        const decrypted = decryptField(value, path);
+        setNestedValue(doc, path, decrypted);
+
+        if (logOperations) {
+          logger.debug("[EncryptionPlugin] Field decrypted on read", {
+            field: path,
+            displayName: fields[path],
+          });
+        }
+      } catch (error) {
+        logger.error("[EncryptionPlugin] Decryption failed", {
+          field: path,
+          displayName: fields[path],
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Leave as encrypted if decryption fails
+      }
+    }
+  }
+}
+
+export default encryptionPlugin;
+
+]]>
+</file>
+
+<file path="server/plugins/fieldEncryption.ts">
+<![CDATA[
+import { randomBytes, createCipheriv, createDecipheriv } from "crypto";
+import type { Schema } from "mongoose";
+
+type EncryptionOptions = {
+  fields: string[];
+  secret?: string;
+  skipIfNoSecret?: boolean;
+};
+
+const ENC_PREFIX = "enc::";
+const ALGORITHM = "aes-256-gcm";
+const KEY_LENGTH = 32;
+const IV_LENGTH = 12;
+
+function resolveKey(secret?: string): Buffer | null {
+  const raw = secret || process.env.PII_ENCRYPTION_KEY;
+  if (!raw) return null;
+  const key = Buffer.from(raw, "base64");
+  if (key.length !== KEY_LENGTH) {
+    throw new Error(
+      "PII_ENCRYPTION_KEY must be a 32-byte base64 value for AES-256-GCM",
+    );
+  }
+  return key;
+}
+
+function encryptValue(value: unknown, key: Buffer): string {
+  const normalized = value === undefined || value === null ? "" : String(value);
+  const iv = randomBytes(IV_LENGTH);
+  const cipher = createCipheriv(ALGORITHM, key, iv);
+  const encrypted = Buffer.concat([
+    cipher.update(normalized, "utf8"),
+    cipher.final(),
+  ]);
+  const tag = cipher.getAuthTag();
+  return `${ENC_PREFIX}${iv.toString("base64")}:${tag.toString("base64")}:${encrypted.toString("base64")}`;
+}
+
+function decryptValue(value: unknown, key: Buffer): unknown {
+  if (typeof value !== "string" || !value.startsWith(ENC_PREFIX)) return value;
+  const payload = value.slice(ENC_PREFIX.length);
+  const [ivB64, tagB64, dataB64] = payload.split(":");
+  if (!ivB64 || !tagB64 || !dataB64) return value;
+  try {
+    const decipher = createDecipheriv(
+      ALGORITHM,
+      key,
+      Buffer.from(ivB64, "base64"),
+    );
+    decipher.setAuthTag(Buffer.from(tagB64, "base64"));
+    const decrypted = Buffer.concat([
+      decipher.update(Buffer.from(dataB64, "base64")),
+      decipher.final(),
+    ]);
+    return decrypted.toString("utf8");
+  } catch {
+    // If decryption fails, return the original value to avoid data loss
+    return value;
+  }
+}
+
+type TransformFn = (value: unknown) => unknown;
+
+function applyPath(target: any, segments: string[], transform: TransformFn) {
+  if (!target || segments.length === 0) return;
+  const [head, ...rest] = segments;
+  const next = target[head];
+
+  if (rest.length === 0) {
+    const nextValue = transform(next);
+    if (nextValue !== undefined) {
+      target[head] = nextValue;
+    }
+    return;
+  }
+
+  if (Array.isArray(next)) {
+    next.forEach((item) => {
+      if (item && typeof item === "object") {
+        applyPath(item, rest, transform);
+      }
+    });
+  } else if (next && typeof next === "object") {
+    applyPath(next, rest, transform);
+  }
+}
+
+function transformDocument(doc: any, fields: string[], transform: TransformFn) {
+  fields.forEach((path) => applyPath(doc, path.split("."), transform));
+}
+
+function encryptDocument(doc: any, fields: string[], key: Buffer) {
+  transformDocument(doc, fields, (current) => {
+    if (current === undefined || current === null) return undefined;
+    if (typeof current === "string" && current.startsWith(ENC_PREFIX)) return current;
+    return encryptValue(current, key);
+  });
+}
+
+function decryptDocument(doc: any, fields: string[], key: Buffer) {
+  transformDocument(doc, fields, (current) => {
+    if (current === undefined || current === null) return current;
+    return decryptValue(current, key);
+  });
+}
+
+function encryptUpdate(update: Record<string, any>, fields: string[], key: Buffer) {
+  const targets = update.$set ?? update;
+  encryptDocument(targets, fields, key);
+  if (update.$set) update.$set = targets;
+}
+
+export function fieldEncryptionPlugin(schema: Schema, options: EncryptionOptions) {
+  const key = resolveKey(options.secret);
+  if (!key) {
+    if (options.skipIfNoSecret) return;
+    throw new Error(
+      "PII encryption enabled but no PII_ENCRYPTION_KEY provided. Set PII_ENCRYPTION_KEY as base64.",
+    );
+  }
+
+  const fields = options.fields || [];
+
+  schema.pre("save", function (next) {
+    encryptDocument(this, fields, key);
+    next();
+  });
+
+  const updateHooks = ["findOneAndUpdate", "updateOne", "updateMany", "update"];
+  updateHooks.forEach((hook) => {
+    schema.pre(hook as any, function (this: any, next) {
+      const update =
+        typeof this.getUpdate === "function" ? this.getUpdate() : undefined;
+      if (update) encryptUpdate(update as Record<string, any>, fields, key);
+      next();
+    });
+  });
+
+  const decryptHooks = ["init", "findOne", "find"];
+  decryptHooks.forEach((hook) => {
+    schema.post(hook as any, function (result: any) {
+      if (Array.isArray(result)) {
+        result.forEach((doc) => decryptDocument(doc, fields, key));
+      } else if (result) {
+        decryptDocument(result, fields, key);
+      }
+    });
+  });
+}
+
+]]>
+</file>
+
+<file path="server/plugins/tenantIsolation.ts">
+<![CDATA[
+import { Schema, Query, Types } from "mongoose";
+import { AsyncLocalStorage } from "async_hooks";
+import { logger } from "@/lib/logger";
+
+// Context interface for tenant isolation
+// STRICT v4.1: Enhanced with Super Admin cross-tenant support
+export interface TenantContext {
+  orgId?: string | Types.ObjectId;
+  skipTenantFilter?: boolean;
+  // PHASE-2 FIX: Super Admin tracking for audit trail
+  isSuperAdmin?: boolean;
+  userId?: string;
+  assumedOrgId?: string; // Org assumed by Super Admin (for audit)
+}
+
+// =============================================================================
+// SEC-003 FIX: Request-scoped tenant context using ONLY AsyncLocalStorage
+// CRITICAL: Removed global `currentTenantContext` to prevent cross-request leakage
+// in serverless environments (Vercel Edge, AWS Lambda, etc.)
+// =============================================================================
+const tenantStorage = new AsyncLocalStorage<TenantContext>();
+
+/**
+ * Get the stored context from AsyncLocalStorage
+ * Returns empty object {} if no context is set (prevents undefined access errors)
+ */
+const getStoredContext = (): TenantContext => tenantStorage.getStore() ?? {};
+
+// Function to set tenant context
+// PHASE-2 FIX: Enhanced with Super Admin audit trail
+// SEC-003 FIX: Uses ONLY AsyncLocalStorage, no global state
+export function setTenantContext(context: TenantContext) {
+  // AUDIT: Log Super Admin cross-tenant access
+  if (context.isSuperAdmin && context.assumedOrgId && context.userId) {
+    logger.info('superadmin_tenant_context', {
+      action: 'set_tenant_context',
+      userId: context.userId,
+      assumedOrgId: context.assumedOrgId,
+      skipTenantFilter: context.skipTenantFilter ?? false,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  const merged = { ...getTenantContext(), ...context };
+  tenantStorage.enterWith(merged);
+}
+
+/**
+ * PHASE-2 FIX: Set tenant context for Super Admin with mandatory audit
+ * Super Admin can operate cross-tenant but MUST be logged
+ */
+export function setSuperAdminTenantContext(
+  orgId: string,
+  userId: string,
+  options?: { skipTenantFilter?: boolean }
+) {
+  logger.info('superadmin_access', {
+    action: 'assume_org',
+    userId,
+    assumedOrgId: orgId,
+    skipTenantFilter: options?.skipTenantFilter ?? false,
+    timestamp: new Date().toISOString(),
+  });
+  
+  setTenantContext({
+    orgId,
+    isSuperAdmin: true,
+    userId,
+    assumedOrgId: orgId,
+    skipTenantFilter: options?.skipTenantFilter ?? false,
+  });
+}
+
+// Function to get current tenant context
+// SEC-003 FIX: Uses ONLY AsyncLocalStorage, no global fallback
+export function getTenantContext(): TenantContext {
+  return getStoredContext();
+}
+
+// Function to clear tenant context
+// SEC-003 FIX: Uses ONLY AsyncLocalStorage
+export function clearTenantContext() {
+  tenantStorage.enterWith({});
+}
+
+interface TenantIsolationOptions {
+  excludeModels?: string[];
+  uniqueTenantFields?: string[];
+}
+
+// Plugin function
+export function tenantIsolationPlugin(
+  schema: Schema,
+  options: TenantIsolationOptions = {},
+) {
+  const excludeModels = options.excludeModels || ["Organization"];
+  const uniqueTenantFields = options.uniqueTenantFields ?? [];
+
+  const orgFieldName = schema.path("orgId")
+    ? "orgId"
+    : schema.path("org_id")
+      ? "org_id"
+      : "orgId";
+
+  if (!schema.path(orgFieldName)) {
+    schema.add({
+      [orgFieldName]: {
+        type: Schema.Types.ObjectId,
+        ref: "Organization",
+        required: true,
+      },
+    });
+  }
+
+  // Pre-save middleware to ensure orgId is set
+  schema.pre("save", function (next) {
+    if (this.isNew && !(this as Record<string, unknown>)[orgFieldName]) {
+      const context = getTenantContext();
+      if (context.orgId) {
+        (this as Record<string, unknown>)[orgFieldName] = context.orgId;
+      } else {
+        const modelName = (this.constructor as { modelName?: string })
+          .modelName;
+        if (modelName && !excludeModels.includes(modelName)) {
+          return next(new Error(`orgId is required for ${modelName}`));
+        }
+      }
+    }
+    next();
+  });
+
+  if (uniqueTenantFields.length > 0) {
+    schema.pre("save", async function (next) {
+      if (!this.isNew) {
+        return next();
+      }
+
+      const docOrgId = (this as Record<string, unknown>)[orgFieldName];
+      const context = getTenantContext();
+      const tenantId = docOrgId ?? context.orgId;
+
+      if (!tenantId) {
+        return next();
+      }
+
+      try {
+        const ModelCtor = this.constructor as unknown as {
+          exists(
+            filter: Record<string, unknown>,
+          ): Promise<{ _id: unknown } | null>;
+        };
+
+        for (const field of uniqueTenantFields) {
+          const value = (this as Record<string, unknown>)[field];
+          if (value === undefined || value === null || value === "") {
+            continue;
+          }
+
+          const existing = await ModelCtor.exists({
+            [orgFieldName]: tenantId,
+            [field]: value,
+          });
+
+          if (existing) {
+            return next(
+              Object.assign(
+                new Error(
+                  `E11000 duplicate key error: ${String(field)} already exists for this organization`,
+                ),
+                { code: 11000 },
+              ),
+            );
+          }
+        }
+
+        next();
+      } catch (error) {
+        next(error as Error);
+      }
+    });
+  }
+
+  // Pre-validate middleware to ensure orgId is set
+  schema.pre("validate", function (next) {
+    if (this.isNew && !(this as Record<string, unknown>)[orgFieldName]) {
+      const context = getTenantContext();
+      if (context.orgId) {
+        (this as Record<string, unknown>)[orgFieldName] = context.orgId;
+      }
+    }
+    next();
+  });
+
+  schema.pre(/^find/, function (this: Query<unknown, unknown>) {
+    const context = getTenantContext();
+
+    // PHASE-2 FIX: Skip filtering only when explicitly requested AND Super Admin
+    // Regular users cannot bypass tenant filter even with skipTenantFilter flag
+    if (context.skipTenantFilter && context.isSuperAdmin) {
+      logger.debug('tenant_filter_bypassed', {
+        userId: context.userId,
+        isSuperAdmin: true,
+        assumedOrgId: context.assumedOrgId,
+      });
+      return;
+    }
+
+    // Apply orgId filter if context is available
+    if (context.orgId) {
+      this.where({ [orgFieldName]: context.orgId });
+    }
+  });
+
+  schema.pre(/^count/, function (this: Query<unknown, unknown>) {
+    const context = getTenantContext();
+
+    // SECURITY FIX: Require Super Admin for skipTenantFilter bypass
+    // Non-super admin users CANNOT bypass tenant isolation
+    if (context.skipTenantFilter && context.isSuperAdmin) {
+      logger.debug('tenant_count_filter_bypassed', {
+        userId: context.userId,
+        isSuperAdmin: true,
+        assumedOrgId: context.assumedOrgId,
+      });
+      return;
+    }
+
+    if (context.orgId) {
+      this.where({ [orgFieldName]: context.orgId });
+    }
+  });
+
+  schema.pre("distinct", function (this: Query<unknown, unknown>) {
+    const context = getTenantContext();
+
+    // SECURITY FIX: Require Super Admin for skipTenantFilter bypass
+    if (context.skipTenantFilter && context.isSuperAdmin) {
+      logger.debug('tenant_distinct_filter_bypassed', {
+        userId: context.userId,
+        isSuperAdmin: true,
+        assumedOrgId: context.assumedOrgId,
+      });
+      return;
+    }
+
+    if (context.orgId) {
+      this.where({ [orgFieldName]: context.orgId });
+    }
+  });
+
+  schema.pre(/^update/, function (this: Query<unknown, unknown>) {
+    const context = getTenantContext();
+
+    // SECURITY FIX: Require Super Admin for skipTenantFilter bypass
+    if (context.skipTenantFilter && context.isSuperAdmin) {
+      logger.debug('tenant_update_filter_bypassed', {
+        userId: context.userId,
+        isSuperAdmin: true,
+        assumedOrgId: context.assumedOrgId,
+      });
+      return;
+    }
+
+    if (context.orgId) {
+      this.where({ [orgFieldName]: context.orgId });
+    }
+  });
+
+  schema.pre(/^delete/, function (this: Query<unknown, unknown>) {
+    const context = getTenantContext();
+
+    // SECURITY FIX: Require Super Admin for skipTenantFilter bypass
+    if (context.skipTenantFilter && context.isSuperAdmin) {
+      logger.debug('tenant_delete_filter_bypassed', {
+        userId: context.userId,
+        isSuperAdmin: true,
+        assumedOrgId: context.assumedOrgId,
+      });
+      return;
+    }
+
+    if (context.orgId) {
+      this.where({ [orgFieldName]: context.orgId });
+    }
+  });
+
+  // NOTE: Index is now added inline with the field definition above
+  // No need for schema.index({ orgId: 1 }) here
+
+  // Instance method to check if document belongs to current tenant
+  schema.methods.belongsToCurrentTenant = function () {
+    const context = getTenantContext();
+    return context.orgId
+      ? (this as Record<string, unknown>)[orgFieldName] === context.orgId
+      : true;
+  };
+}
+
+// Utility function to execute operations within tenant context
+// SEC-003 FIX: Uses ONLY AsyncLocalStorage.run() for proper request isolation
+export async function withTenantContext<T>(
+  orgId: string | Types.ObjectId,
+  operation: () => Promise<T>,
+): Promise<T> {
+  const originalContext = getTenantContext();
+  const nextContext = { ...originalContext, orgId };
+
+  return tenantStorage.run(nextContext, async () => {
+    return await operation();
+  });
+}
+
+// Utility function to execute operations without tenant filtering
+// SEC-003 FIX: Uses ONLY AsyncLocalStorage.run() for proper request isolation
+export async function withoutTenantFilter<T>(
+  operation: () => Promise<T>,
+): Promise<T> {
+  const originalContext = getTenantContext();
+  const nextContext = { ...originalContext, skipTenantFilter: true };
+
+  return tenantStorage.run(nextContext, async () => {
+    return await operation();
+  });
+}
+
+]]>
+</file>
+
+<file path="server/rbac/workOrdersPolicy.ts">
+<![CDATA[
+/**
+ * Work Orders RBAC Policy
+ * Re-exports Role from canonical source for backward compatibility.
+ * @see domain/fm/fm.behavior.ts for the canonical STRICT v4.1 Role enum
+ */
+import { Role } from "@/domain/fm/fm.behavior";
+
+// Re-export for backward compatibility with existing imports
+export { Role };
+
+/**
+ * @deprecated Use Role enum values directly instead of this type.
+ * Maintained for backward compatibility with existing code.
+ */
+export type RoleString = `${Role}`;
+
+export type Ability =
+  | "VIEW"
+  | "CREATE"
+  | "EDIT"
+  | "ASSIGN"
+  | "STATUS"
+  | "VERIFY"
+  | "CLOSE"
+  | "DELETE"
+  | "EXPORT"
+  | "COMMENT";
+
+const ROLE_ABILITIES: Partial<Record<Role, Ability[]>> = {
+  [Role.SUPER_ADMIN]: [
+    "VIEW",
+    "CREATE",
+    "EDIT",
+    "ASSIGN",
+    "STATUS",
+    "VERIFY",
+    "CLOSE",
+    "DELETE",
+    "EXPORT",
+    "COMMENT",
+  ],
+  [Role.ADMIN]: [
+    "VIEW",
+    "CREATE",
+    "EDIT",
+    "ASSIGN",
+    "STATUS",
+    "VERIFY",
+    "CLOSE",
+    "DELETE",
+    "EXPORT",
+    "COMMENT",
+  ],
+  [Role.CORPORATE_OWNER]: [
+    "VIEW",
+    "CREATE",
+    "EDIT",
+    "ASSIGN",
+    "STATUS",
+    "VERIFY",
+    "CLOSE",
+    "EXPORT",
+    "COMMENT",
+  ],
+  [Role.PROPERTY_MANAGER]: [
+    "VIEW",
+    "CREATE",
+    "EDIT",
+    "ASSIGN",
+    "STATUS",
+    "VERIFY",
+    "CLOSE",
+    "EXPORT",
+    "COMMENT",
+  ],
+  [Role.TEAM_MEMBER]: ["VIEW", "CREATE", "EDIT", "ASSIGN", "STATUS", "COMMENT"],
+  [Role.TECHNICIAN]: ["VIEW", "STATUS", "COMMENT"],
+  [Role.VENDOR]: ["VIEW", "STATUS", "COMMENT"],
+  [Role.TENANT]: ["VIEW", "CREATE", "COMMENT"],
+  [Role.GUEST]: ["VIEW"],
+};
+
+export function can(role: Role | string, ability: Ability): boolean {
+  // Normalize string roles to Role enum
+  const normalizedRole = typeof role === "string" ? (role as Role) : role;
+  return ROLE_ABILITIES[normalizedRole]?.includes(ability) ?? false;
+}
+
+// Re-export Role for middleware compatibility
+export type { Role as default };
+
+]]>
+</file>
+
+<file path="server/security/headers.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { extractClientIP } from "@/lib/ip";
+import { resolveAllowedOrigin } from "@/lib/security/cors-allowlist";
+
+/** Utils */
+const isProd = process.env.NODE_ENV === "production";
+/**
+ * Security headers middleware for API responses
+ * - Only for JSON/API — do not use this CSP on HTML pages
+ * - REMOVED: X-XSS-Protection (deprecated, ignored by modern browsers)
+ * - ADDED: Permissions-Policy, HSTS (prod only), Access-Control-Expose-Headers
+ */
+export function withSecurityHeaders(
+  response: NextResponse,
+  request?: NextRequest,
+): NextResponse {
+  // MIME sniffing defense
+  response.headers.set("X-Content-Type-Options", "nosniff");
+
+  // Clickjacking defense (also covered by CSP frame-ancestors)
+  response.headers.set("X-Frame-Options", "DENY");
+
+  // Modern referrer policy
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+
+  // API-safe CSP (no inline eval, no frames, no navigation)
+  // NOTE: keep this strict for JSON endpoints; do NOT reuse on HTML pages.
+  response.headers.set(
+    "Content-Security-Policy",
+    "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none';",
+  );
+
+  // Permissions-Policy: deny sensitive sensors by default
+  response.headers.set(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=(), payment=()",
+  );
+
+  // HSTS (only in prod AND on https)
+  const headerProto = request?.headers?.get("x-forwarded-proto");
+  const nextUrlProto = request?.nextUrl?.protocol
+    ? request.nextUrl.protocol.replace(":", "")
+    : undefined;
+  const proto = headerProto || nextUrlProto;
+  if (isProd && proto === "https") {
+    response.headers.set(
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains; preload",
+    );
+  }
+
+  // Hide platform fingerprint
+  response.headers.set("Server", "Fixzit-API");
+
+  // Prevent caching of sensitive data
+  response.headers.set(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, proxy-revalidate",
+  );
+  response.headers.set("Pragma", "no-cache");
+  response.headers.set("Expires", "0");
+
+  // Useful for clients to read server-provided headers
+  const expose = [
+    "x-request-id",
+    "x-rate-limit-remaining",
+    "x-rate-limit-reset",
+  ].join(", ");
+  response.headers.set("Access-Control-Expose-Headers", expose);
+
+  return response;
+}
+
+/**
+ * CORS for API endpoints (credentials-friendly; dynamic allowlist)
+ * - Adds Vary: Origin
+ * - Echoes preflight headers/method if provided
+ */
+type RequestWithHeaders = Pick<NextRequest, "headers"> | null | undefined;
+
+export function withCORS(
+  request: RequestWithHeaders,
+  response: NextResponse,
+): NextResponse {
+  const origin = request?.headers?.get("origin") ?? null;
+  const allowedOrigin = resolveAllowedOrigin(origin);
+
+  // For dynamic Origin we must set Vary
+  response.headers.append("Vary", "Origin");
+
+  // Credentials-safe CORS
+  if (allowedOrigin) {
+    response.headers.set("Access-Control-Allow-Origin", allowedOrigin);
+    response.headers.set("Access-Control-Allow-Credentials", "true");
+  } else {
+    response.headers.delete("Access-Control-Allow-Origin");
+    response.headers.set("Access-Control-Allow-Credentials", "false");
+  }
+
+  // Echo requested method/headers if present (preflight)
+  const reqMethod =
+    request?.headers?.get("access-control-request-method") ?? null;
+  const reqHeaders =
+    request?.headers?.get("access-control-request-headers") ?? null;
+  response.headers.set(
+    "Access-Control-Allow-Methods",
+    reqMethod || "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+  );
+  response.headers.set(
+    "Access-Control-Allow-Headers",
+    reqHeaders || "Content-Type, Authorization, X-Requested-With",
+  );
+  response.headers.set("Access-Control-Max-Age", "86400"); // 24h
+
+  return response;
+}
+
+/**
+ * OPTIONS preflight helper: returns 204 with CORS/security headers
+ */
+export function handlePreflight(request: NextRequest): NextResponse | null {
+  if (request.method !== "OPTIONS") return null;
+  const res = new NextResponse(null, { status: 204 });
+  withCORS(request, res);
+  // Optionally add security headers to preflight as well
+  withSecurityHeaders(res, request);
+  return res;
+}
+
+/**
+ * Request size limiting (best-effort)
+ * - If Content-Length header is present and exceeds max, return false
+ * - If missing (chunked), we cannot know here; rely on body parser limits
+ */
+export function checkRequestSize(
+  request: NextRequest,
+  maxSizeBytes = 10 * 1024 * 1024,
+): boolean {
+  const cl = request.headers.get("content-length");
+  if (!cl) return true;
+  const n = Number(cl);
+  if (!Number.isFinite(n)) return true; // non-numeric or invalid, allow; let parser handle it
+  return n <= maxSizeBytes;
+}
+
+/** Hardened client IP (delegates to shared logic) */
+export function getClientIP(request: NextRequest): string {
+  return extractClientIP(request);
+}
+
+/**
+ * Create a secure JSON response with proper headers
+ * - Applies CORS and security headers
+ * - Allows custom headers to be passed through
+ */
+export function createSecureResponse(
+  data: unknown,
+  status = 200,
+  request?: NextRequest,
+  customHeaders?: Record<string, string>,
+): NextResponse {
+  const res = NextResponse.json(data, { status });
+  const canMutateHeaders = Boolean((res as NextResponse).headers?.set);
+
+  // Apply custom headers if provided
+  if (customHeaders && canMutateHeaders) {
+    Object.entries(customHeaders).forEach(([key, value]) => {
+      res.headers.set(key, value);
+    });
+  }
+
+  if (request && canMutateHeaders) {
+    withCORS(request, res);
+  }
+
+  return canMutateHeaders ? withSecurityHeaders(res, request) : res;
+}
+
+]]>
+</file>
+
+<file path="server/security/health-token.ts">
+<![CDATA[
+/**
+ * Shared Health Token Verification
+ *
+ * Provides constant-time comparison for health check token validation
+ * to prevent timing attacks. Used by all health endpoints.
+ */
+import { NextRequest } from "next/server";
+import { timingSafeEqual } from "crypto";
+
+/**
+ * Check if the request is from an authorized internal tool.
+ * Uses X-Health-Token header to authenticate monitoring systems.
+ * Uses constant-time comparison to prevent timing attacks.
+ */
+export function isAuthorizedHealthRequest(request: NextRequest): boolean {
+  const token = process.env.HEALTH_CHECK_TOKEN;
+  if (!token) return false;
+
+  const provided =
+    request.headers.get("X-Health-Token") ||
+    request.headers.get("x-health-token");
+  if (!provided) return false;
+
+  try {
+    return timingSafeEqual(
+      Buffer.from(token, "utf8"),
+      Buffer.from(provided, "utf8"),
+    );
+  } catch {
+    // Buffers have different lengths - tokens don't match
+    return false;
+  }
+}
+
+]]>
+</file>
+
+<file path="server/security/idempotency.ts">
+<![CDATA[
+import { createHash } from "crypto";
+
+type CacheEntry<T> = {
+  promise: Promise<T>;
+  expiresAt: number;
+};
+
+const DEFAULT_TTL_MS = 60_000;
+const idempo = new Map<string, CacheEntry<unknown>>();
+
+export function withIdempotency<T>(
+  key: string,
+  exec: () => Promise<T>,
+  ttlMs: number = DEFAULT_TTL_MS,
+): Promise<T> {
+  const now = Date.now();
+  const found = idempo.get(key);
+  if (found && now < found.expiresAt) {
+    return found.promise as Promise<T>;
+  }
+  if (found) idempo.delete(key);
+
+  const ttl = Number.isFinite(ttlMs) ? Math.max(0, ttlMs) : DEFAULT_TTL_MS;
+
+  const entry: CacheEntry<T> = {
+    expiresAt: now + ttl,
+    promise: Promise.resolve()
+      .then(exec)
+      .then(
+        (result) => {
+          const delay = Math.max(0, entry.expiresAt - Date.now());
+          setTimeout(() => {
+            if (idempo.get(key) === entry) idempo.delete(key);
+          }, delay);
+          return result;
+        },
+        (error) => {
+          idempo.delete(key);
+          throw error;
+        },
+      ),
+  };
+
+  idempo.set(key, entry);
+  return entry.promise;
+}
+
+export function createIdempotencyKey(prefix: string, payload: unknown): string {
+  const digest = createHash("sha256")
+    .update(stableStringify(payload))
+    .digest("hex");
+  return `${prefix}:${digest}`;
+}
+
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (value instanceof Date) return JSON.stringify(value.toISOString());
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
+  const obj = value as Record<string, unknown>;
+  const keys = Object.keys(obj).sort();
+  return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify(obj[k])}`).join(",")}}`;
+}
+
+]]>
+</file>
+
+<file path="server/security/ip-utils.ts">
+<![CDATA[
+import { logger } from "@/lib/logger";
+/**
+ * IP utility functions for secure client IP extraction
+ */
+
+/**
+ * Check if an IP address is in a private/reserved range
+ *
+ * Private ranges:
+ * - 10.0.0.0/8 (Class A private)
+ * - 172.16.0.0/12 (Class B private)
+ * - 192.168.0.0/16 (Class C private)
+ * - 127.0.0.0/8 (Loopback)
+ * - 169.254.0.0/16 (Link-local)
+ * - ::1/128 (IPv6 loopback)
+ * - fe80::/10 (IPv6 link-local)
+ * - fc00::/7 (IPv6 ULA - Unique Local Address)
+ * - ff00::/8 (IPv6 multicast)
+ * - 2001:db8::/32 (IPv6 documentation)
+ * - ::ffff:0:0/96 (IPv4-mapped IPv6)
+ */
+export function isPrivateIP(ip: string): boolean {
+  if (!ip || ip === "unknown") return true;
+
+  // IPv6 ranges with proper CIDR-aware matching
+  if (ip.includes(":")) {
+    const normalized = ip.toLowerCase();
+
+    // ::1/128 - IPv6 loopback
+    if (normalized === "::1") return true;
+
+    // fe80::/10 - Link-local (fe80 to febf)
+    // Extract first 4 hex characters after any leading colons and check range 0xfe80-0xfebf
+    const stripped = normalized.replace(/^:+/, "");
+    const firstFourHex = stripped.slice(0, 4);
+
+    if (/^fe[89ab][0-9a-f]$/i.test(firstFourHex)) {
+      // Valid fe8x, fe9x, feax, or febx prefix (fe80::/10 range)
+      return true;
+    }
+
+    // fc00::/7 - Unique Local Address (fc00 to fdff)
+    if (normalized.startsWith("fc") || normalized.startsWith("fd")) {
+      return true;
+    }
+
+    // ff00::/8 - Multicast
+    if (normalized.startsWith("ff")) {
+      return true;
+    }
+
+    // 2001:db8::/32 - Documentation
+    if (
+      normalized.startsWith("2001:db8:") ||
+      normalized.startsWith("2001:0db8:")
+    ) {
+      return true;
+    }
+
+    // ::ffff:0:0/96 - IPv4-mapped IPv6 addresses
+    if (normalized.startsWith("::ffff:")) {
+      // Extract the IPv4 part and check it
+      const ipv4Match = normalized.match(/::ffff:(\d+\.\d+\.\d+\.\d+)/);
+      if (ipv4Match) {
+        return isPrivateIP(ipv4Match[1]); // Recursive check on IPv4 part
+      }
+      return true;
+    }
+
+    // All other IPv6 addresses are public (2000::/3 global unicast, etc.)
+    // Valid IPv6 format check: must have at least one colon and valid hex chars
+    if (/^[0-9a-f:]+$/i.test(normalized)) {
+      return false; // Public IPv6 address
+    }
+
+    // SECURITY: Fail-safe - treat malformed/unparsable IPs as private
+    return true;
+  }
+
+  // IPv4 private and reserved ranges
+  const parts = ip.split(".").map(Number);
+  if (parts.length !== 4 || parts.some((p) => isNaN(p) || p < 0 || p > 255)) {
+    return true; // Invalid IP is considered private
+  }
+
+  const [a, b] = parts;
+
+  // ✅ RFC 1918 Private ranges
+  // 10.0.0.0/8
+  if (a === 10) return true;
+
+  // 172.16.0.0/12
+  if (a === 172 && b >= 16 && b <= 31) return true;
+
+  // 192.168.0.0/16
+  if (a === 192 && b === 168) return true;
+
+  // ✅ RFC 6890 Special-Purpose Address Registries
+  // 0.0.0.0/8 - "This network"
+  if (a === 0) return true;
+
+  // 127.0.0.0/8 - Loopback
+  if (a === 127) return true;
+
+  // 169.254.0.0/16 - Link-local
+  if (a === 169 && b === 254) return true;
+
+  // ✅ RFC 6598 - CGNAT (Carrier-Grade NAT)
+  // 100.64.0.0/10
+  if (a === 100 && b >= 64 && b <= 127) return true;
+
+  // ✅ RFC 2544 - Benchmarking
+  // 198.18.0.0/15
+  if (a === 198 && (b === 18 || b === 19)) return true;
+
+  // ✅ RFC 1112 - Multicast
+  // 224.0.0.0/4 (224-239)
+  if (a >= 224 && a <= 239) return true;
+
+  // ✅ RFC 1112 - Reserved for future use
+  // 240.0.0.0/4 (240-255)
+  if (a >= 240) return true;
+
+  return false;
+}
+
+/**
+ * Validate and parse TRUSTED_PROXY_COUNT environment variable
+ *
+ * @returns {number} Number of trusted proxy hops (default: 1)
+ * @throws {Error} If TRUSTED_PROXY_COUNT is invalid
+ */
+export function validateTrustedProxyCount(): number {
+  const envValue = process.env.TRUSTED_PROXY_COUNT;
+
+  if (!envValue) {
+    // ✅ FIXED: Default to 0 (no proxy stripping) to require explicit configuration
+    // This prevents misidentifying Cloudflare/Vercel IPs as clients when env var is unset
+    // Production deployments MUST set TRUSTED_PROXY_COUNT explicitly:
+    // - Cloudflare → Vercel → Node: set to 2
+    // - Single edge proxy: set to 1
+    // - Direct connection: leave at 0
+    return 0;
+  }
+
+  const count = parseInt(envValue, 10);
+
+  if (isNaN(count) || count < 0) {
+    throw new Error(
+      `Invalid TRUSTED_PROXY_COUNT: "${envValue}". Must be a non-negative integer.`,
+    );
+  }
+
+  if (count > 10) {
+    logger.warn(
+      `⚠️  High TRUSTED_PROXY_COUNT (${count}). Verify your proxy chain configuration.`,
+    );
+  }
+
+  return count;
+}
+
+/**
+ * Validate proxy configuration at startup
+ * Call this during app initialization to fail-fast on misconfiguration
+ */
+export function validateProxyConfiguration(): void {
+  try {
+    const trustedProxyCount = validateTrustedProxyCount();
+
+    logger.info(`✅ Proxy configuration validated:`);
+    logger.info(`   - TRUSTED_PROXY_COUNT: ${trustedProxyCount}`);
+    logger.info(
+      `   - TRUST_X_REAL_IP: ${process.env.TRUST_X_REAL_IP || "false"}`,
+    );
+
+    if (trustedProxyCount === 0) {
+      logger.warn(
+        `⚠️  TRUSTED_PROXY_COUNT=0 means direct client connections (no proxy)`,
+      );
+    }
+
+    if (process.env.TRUST_X_REAL_IP === "true" && trustedProxyCount > 0) {
+      logger.warn(
+        `⚠️  Both TRUST_X_REAL_IP and TRUSTED_PROXY_COUNT set. X-Real-IP takes lower priority.`,
+      );
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error(`🔴 Proxy configuration error: ${errorMessage}`);
+    logger.error(
+      `   Set TRUSTED_PROXY_COUNT to the number of trusted proxy hops in your infrastructure.`,
+    );
+    logger.error(
+      `   Examples: 0 (direct), 1 (edge proxy), 2 (load balancer + edge proxy)`,
+    );
+    throw error; // Fail-fast on invalid configuration
+  }
+}
+
+]]>
+</file>
+
+<file path="server/security/rateLimit.ts">
+<![CDATA[
+import { LRUCache } from "lru-cache";
+import { getRedisClient } from "@/lib/redis";
+import { logger } from "@/lib/logger";
+import { redactRateLimitKey } from "./rateLimitKey";
+
+/**
+ * In-memory LRU cache for rate limiting (fallback when Redis unavailable)
+ * 
+ * LIMITATION: In-memory rate limiting is NOT distributed - each serverless
+ * instance has its own cache. For production multi-instance deployments,
+ * configure REDIS_URL to enable distributed rate limiting.
+ */
+const memoryCache = new LRUCache<string, { count: number; resetAt: number }>({
+  max: 5000,
+});
+
+// Track whether we've already warned about Redis unavailability
+// to avoid log spam on every request
+let warnedNoRedis = false;
+
+/**
+ * Distributed rate limiting result
+ */
+interface RateLimitResult {
+  allowed: boolean;
+  remaining: number;
+  resetAt?: number;
+}
+
+/**
+ * Rate limit using Redis (distributed) with LRU fallback (in-memory)
+ * 
+ * SECURITY: Uses Redis for distributed rate limiting across serverless instances.
+ * Falls back to in-memory LRU cache when Redis is unavailable.
+ * 
+ * @param key - Unique identifier for rate limiting (should include orgId for tenant awareness)
+ * @param limit - Maximum requests allowed in window
+ * @param windowMs - Time window in milliseconds
+ * @returns Rate limit result with allowed status and remaining count
+ * 
+ * @example
+ * // Tenant-aware rate limiting (recommended)
+ * const rl = await rateLimit(`ats:${orgId}:${clientIp}:${path}`, 60, 60_000);
+ * 
+ * // Legacy non-distributed (for backward compatibility)
+ * const rl = rateLimit(`${path}:${clientIp}`, 60, 60_000);
+ */
+export function rateLimit(key: string, limit = 60, windowMs = 60_000): RateLimitResult {
+  const now = Date.now();
+  const entry = memoryCache.get(key);
+  if (!entry || now > entry.resetAt) {
+    memoryCache.set(key, { count: 1, resetAt: now + windowMs });
+    return { allowed: true, remaining: limit - 1 };
+  }
+  if (entry.count >= limit) return { allowed: false, remaining: 0 };
+  entry.count += 1;
+  return { allowed: true, remaining: limit - entry.count };
+}
+
+/**
+ * Distributed rate limiting using Redis token bucket algorithm
+ * 
+ * SECURITY FIX: Redis-based rate limiting for horizontal scaling.
+ * Each key is unique per org+IP+path to prevent:
+ * - Cross-instance bypass (hitting different servers)
+ * - Noisy neighbor attacks (one tenant exhausting limits)
+ * 
+ * @param key - Unique identifier (should include orgId for tenant isolation)
+ * @param limit - Maximum requests allowed in window
+ * @param windowMs - Time window in milliseconds
+ * @returns Rate limit result
+ * 
+ * @example
+ * // Org-aware distributed rate limiting
+ * const { allowed } = await redisRateLimit(`ats:${orgId}:${clientIp}`, 60, 60_000);
+ * if (!allowed) return rateLimitError();
+ */
+export async function redisRateLimit(
+  key: string, 
+  limit = 60, 
+  windowMs = 60_000
+): Promise<RateLimitResult> {
+  const client = getRedisClient();
+  
+  // Fall back to in-memory if Redis unavailable
+  if (!client) {
+    // Only warn once to avoid log spam
+    if (!warnedNoRedis) {
+      logger.warn('[RateLimit] Redis unavailable, falling back to in-memory rate limiting (this message will not repeat)');
+      warnedNoRedis = true;
+    }
+    return rateLimit(key, limit, windowMs);
+  }
+
+  const now = Date.now();
+  const windowKey = `ratelimit:${key}`;
+  const windowSeconds = Math.ceil(windowMs / 1000);
+
+  try {
+    // Use Redis MULTI for atomic operations
+    const multi = client.multi();
+    
+    // Increment counter
+    multi.incr(windowKey);
+    // Set expiry on first request (SETNX pattern via EXPIRE)
+    multi.expire(windowKey, windowSeconds, 'NX');
+    // Get current TTL for reset time
+    multi.ttl(windowKey);
+    
+    const results = await multi.exec();
+    
+    if (!results || results.length < 3) {
+      // Redis transaction failed, fall back to memory
+      if (!warnedNoRedis) {
+        logger.warn('[RateLimit] Redis transaction returned unexpected results, falling back');
+        warnedNoRedis = true;
+      }
+      return rateLimit(key, limit, windowMs);
+    }
+
+    const [countResult, , ttlResult] = results;
+    const count = (countResult?.[1] as number) || 0;
+    
+    // SECURITY FIX: Redis TTL returns:
+    //   -2 = key doesn't exist (shouldn't happen after INCR, but handle gracefully)
+    //   -1 = key exists but has no expiry (can cause perma-ban!)
+    //   >0 = seconds until expiry
+    // We MUST coerce negative values to prevent indefinite blocks
+    const ttlValue = (ttlResult?.[1] as number) ?? -1;
+    let effectiveTtl = ttlValue > 0 ? ttlValue : windowSeconds;
+    
+    // If TTL is negative, the key has no expiry - forcibly set one to prevent perma-ban
+    if (ttlValue <= 0) {
+      try {
+        await client.expire(windowKey, windowSeconds);
+        effectiveTtl = windowSeconds;
+      } catch {
+        // If expire fails, log but continue - memory fallback will handle eventually
+        logger.warn('[RateLimit] Failed to set expiry on key with no TTL', {
+          key: redactRateLimitKey(key),
+          ttlValue,
+        });
+      }
+    }
+    
+    const resetAt = now + (effectiveTtl * 1000);
+
+    // CRITICAL FIX: Use >= to match in-memory behavior (both block at limit, not limit+1)
+    if (count >= limit) {
+      // SECURITY: Use redactRateLimitKey to mask org IDs, paths with entity IDs, and IPs
+      logger.warn('[RateLimit] Rate limit exceeded', { 
+        key: redactRateLimitKey(key),
+        count, 
+        limit 
+      });
+      return { allowed: false, remaining: 0, resetAt };
+    }
+
+    return { 
+      allowed: true, 
+      remaining: Math.max(0, limit - count), 
+      resetAt 
+    };
+  } catch (error) {
+    // Redis error - fall back to in-memory
+    if (!warnedNoRedis) {
+      logger.error('[RateLimit] Redis error, falling back to in-memory', { 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+      warnedNoRedis = true;
+    }
+    return rateLimit(key, limit, windowMs);
+  }
+}
+
+// Re-export key builders from rateLimitKey.ts
+// buildRateLimitKey: backward-compatible, auto-detects legacy vs new call pattern
+// buildOrgAwareRateLimitKey: explicit org-aware key builder (recommended for new code)
+// safeGetClientIp: helper for getting client IP with fallback
+// redactRateLimitKey: helper for safe logging of rate limit keys
+export { buildRateLimitKey, buildOrgAwareRateLimitKey, safeGetClientIp, redactRateLimitKey } from './rateLimitKey';
+
+/**
+ * Smart rate limiting that automatically uses Redis when available.
+ * 
+ * This is the RECOMMENDED rate limiting function for all new endpoints.
+ * It provides:
+ * - Distributed rate limiting via Redis (when REDIS_URL is configured)
+ * - Automatic fallback to in-memory LRU cache
+ * - Consistent behavior across both paths
+ * 
+ * @param key - Rate limit key (use buildRateLimitKey for org-aware keys)
+ * @param limit - Maximum requests allowed in window
+ * @param windowMs - Time window in milliseconds
+ * @returns Rate limit result
+ * 
+ * @example
+ * // Recommended usage with org-aware key
+ * const key = buildRateLimitKey(req, user.orgId, user.id);
+ * const { allowed, remaining } = await smartRateLimit(key, 60, 60_000);
+ * if (!allowed) {
+ *   return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+ * }
+ */
+export async function smartRateLimit(
+  key: string,
+  limit = 60,
+  windowMs = 60_000
+): Promise<RateLimitResult> {
+  // Always try Redis first for distributed rate limiting
+  return redisRateLimit(key, limit, windowMs);
+}
+
+// Export type for consumers
+export type { RateLimitResult };
+
+]]>
+</file>
+
+<file path="server/security/rateLimitKey.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { getClientIP } from "@/server/security/headers";
+import { logger } from "@/lib/logger";
+
+// Track legacy usage warnings (emit once per endpoint)
+const legacyUsageWarned = new Set<string>();
+
+/**
+ * Safely get client IP with fallback
+ */
+export function safeGetClientIp(req: NextRequest): string {
+  try {
+    return getClientIP(req);
+  } catch {
+    return "unknown";
+  }
+}
+
+/**
+ * Redacts sensitive data from rate limit keys for logging.
+ * 
+ * Masks:
+ * - IP addresses (last segment after final colon)
+ * - Org IDs (replaced with hash prefix)
+ * - Dynamic path segments (UUIDs, ObjectIds, numeric IDs)
+ * 
+ * @param key - Raw rate limit key
+ * @returns Redacted key safe for logging
+ * 
+ * @example
+ * redactRateLimitKey("org123:api/users/507f1f77bcf86cd799439011:192.168.1.1")
+ * // Returns: "org***:api/users/***:***"
+ */
+export function redactRateLimitKey(key: string): string {
+  // Split into segments: org:path:identifier
+  const parts = key.split(':');
+  if (parts.length < 3) {
+    // Malformed key - redact everything after first segment
+    return parts[0] + ':***';
+  }
+  
+  // Redact org ID (show first 3 chars if long enough, else show "org")
+  const org = parts[0];
+  const redactedOrg = org === 'anonymous' ? 'anonymous' : 
+    (org.length > 6 ? org.substring(0, 3) + '***' : 'org***');
+  
+  // Redact path - mask dynamic segments (UUIDs, ObjectIds, numeric IDs)
+  const pathParts = parts.slice(1, -1).join(':');
+  const redactedPath = pathParts
+    // Mask MongoDB ObjectIds (24 hex chars)
+    .replace(/[a-f0-9]{24}/gi, '***')
+    // Mask UUIDs
+    .replace(/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/gi, '***')
+    // Mask numeric IDs (sequences of 3+ digits)
+    .replace(/\b\d{3,}\b/g, '***');
+  
+  // Always mask the identifier (IP or user ID)
+  return `${redactedOrg}:${redactedPath}:***`;
+}
+
+/**
+ * @deprecated Use buildOrgAwareRateLimitKey instead for explicit tenant isolation.
+ * 
+ * Builds a consistent, org-aware rate limit key for tenant isolation.
+ * 
+ * KEY FORMAT: `{orgId}:{path}:{userId|ip}`
+ * 
+ * CALL PATTERNS:
+ * 
+ * - LEGACY (2 args): buildRateLimitKey(req, userId) 
+ *   → Uses userId as identifier, org="anonymous"
+ *   → DEPRECATED: Emits warning in dev, use buildOrgAwareRateLimitKey instead
+ * 
+ * - NEW (3+ args): buildRateLimitKey(req, orgId, userId)
+ *   → Uses orgId for tenant isolation
+ *   → userId for per-user limiting within org
+ * 
+ * SECURITY: Including orgId prevents noisy-neighbor attacks where one tenant
+ * could exhaust rate limits shared with other tenants. Each tenant has
+ * independent rate limit buckets.
+ * 
+ * @param req - NextRequest object for extracting path and IP
+ * @param orgIdOrUserId - For legacy calls: userId. For new calls: orgId
+ * @param userId - Optional user ID (only for new 3+ arg calls)
+ * @param overridePath - Optional path override (defaults to request pathname)
+ * @returns Formatted rate limit key: `{org}:{path}:{identifier}`
+ */
+export function buildRateLimitKey(
+  req: NextRequest,
+  orgIdOrUserId?: string | null,
+  userId?: string | null,
+  overridePath?: string,
+): string {
+  const path = overridePath ?? new URL(req.url).pathname;
+  const ip = safeGetClientIp(req);
+  
+  // BACKWARD COMPATIBILITY DETECTION:
+  // Use arguments.length for reliable legacy detection.
+  // This avoids issues where optional chaining (user?.id) passes undefined.
+  // 
+  // Legacy pattern: buildRateLimitKey(req, user.id) - 2 args
+  // New pattern: buildRateLimitKey(req, orgId, userId) - 3+ args
+  //
+  // Detection logic:
+  // - arguments.length <= 2 → legacy call, treat 2nd arg as userId
+  // - arguments.length >= 3 → new call with explicit org/user
+  const argCount = arguments.length;
+  const isLegacyCall = argCount <= 2;
+  
+  if (isLegacyCall) {
+    // Emit deprecation warning in development (once per endpoint)
+    if (process.env.NODE_ENV !== 'production' && !legacyUsageWarned.has(path)) {
+      legacyUsageWarned.add(path);
+      logger.warn('[RateLimit] DEPRECATED: Legacy buildRateLimitKey(req, userId) call detected. ' +
+        'Migrate to buildOrgAwareRateLimitKey(req, orgId, userId) for tenant isolation.', {
+        path: path.replace(/[a-f0-9]{24}/gi, '***').replace(/\d{3,}/g, '***'),
+      });
+    }
+    
+    // Legacy: buildRateLimitKey(req, userId)
+    // Preserve per-user limiting, no org isolation
+    const identifier = orgIdOrUserId || ip;
+    return `anonymous:${path}:${identifier}`;
+  }
+  
+  // FAIL-FAST: For new calls (3+ args), require orgId for authenticated endpoints
+  // If caller passed 3+ args but orgIdOrUserId is null/undefined, that's a bug.
+  // The caller should either:
+  // 1. Pass a valid orgId for tenant isolation
+  // 2. Explicitly use buildOrgAwareRateLimitKey(req, null, null) for anonymous paths
+  if (!orgIdOrUserId) {
+    const redactedPath = path
+      .replace(/[a-f0-9]{24}/gi, '***')
+      .replace(/\d{3,}/g, '***');
+    logger.error(
+      '[RateLimit] buildRateLimitKey called with 3+ args but missing orgId. ' +
+        'This is prohibited—use buildOrgAwareRateLimitKey(req, null, userId) for anonymous/public flows.',
+      {
+        path: redactedPath,
+        hasUserId: !!userId,
+        argCount,
+      },
+    );
+    throw new Error('buildRateLimitKey requires orgId when called with 3+ arguments');
+  }
+  
+  // New: buildRateLimitKey(req, orgId, userId, overridePath?)
+  // Full tenant isolation with per-user or per-IP limiting
+  const org = orgIdOrUserId || "anonymous";
+  const identifier = userId || ip;
+  return `${org}:${path}:${identifier}`;
+}
+
+/**
+ * Explicit org-aware rate limit key builder (RECOMMENDED for all new code).
+ * 
+ * This function has explicit parameters and doesn't rely on detection logic.
+ * Use this for all new code to ensure correct tenant isolation.
+ * 
+ * @param req - NextRequest object
+ * @param orgId - Organization ID (use null for anonymous/public endpoints)
+ * @param userId - User ID (use null to fall back to IP)
+ * @param overridePath - Optional path override
+ * @returns Formatted rate limit key: `{org}:{path}:{identifier}`
+ * 
+ * @example
+ * // Authenticated user with org context
+ * const key = buildOrgAwareRateLimitKey(req, user.orgId, user.id);
+ * 
+ * // Public endpoint (still includes IP for rate limiting)
+ * const key = buildOrgAwareRateLimitKey(req, null, null);
+ * 
+ * // Org context only (anonymous user in known org)
+ * const key = buildOrgAwareRateLimitKey(req, orgId, null);
+ */
+export function buildOrgAwareRateLimitKey(
+  req: NextRequest,
+  orgId: string | null,
+  userId: string | null,
+  overridePath?: string,
+): string {
+  const path = overridePath ?? new URL(req.url).pathname;
+  const org = orgId || "anonymous";
+  const identifier = userId || safeGetClientIp(req);
+  return `${org}:${path}:${identifier}`;
+}
+
+]]>
+</file>
+
+</batch_content>

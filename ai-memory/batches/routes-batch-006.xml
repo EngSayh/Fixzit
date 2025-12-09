@@ -1,0 +1,3255 @@
+
+You are the "Fixzit Memory Builder" for category: "routes".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "routes",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/api/auth/verify/send/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { User } from "@/server/models/User";
+import {
+  signVerificationToken,
+  verificationLink,
+} from "@/lib/auth/emailVerification";
+import { sendEmail } from "@/lib/email";
+
+type VerifyRequestBody = {
+  email?: string;
+  locale?: "en" | "ar";
+};
+
+/**
+ * Email verification trigger with signed token (stateless).
+ * Sends verification email via SendGrid if configured, otherwise returns link for dev.
+ */
+export async function POST(req: NextRequest) {
+  const body = (await req.json().catch(() => ({}))) as VerifyRequestBody;
+  if (!body.email) {
+    return NextResponse.json({ error: "email is required" }, { status: 400 });
+  }
+  // Support both NEXTAUTH_SECRET (preferred) and AUTH_SECRET (legacy/Auth.js name)
+  // MUST align with auth.config.ts to prevent environment drift
+  const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+  if (!secret) {
+    return NextResponse.json(
+      { error: "verification not configured" },
+      { status: 500 },
+    );
+  }
+
+  // SECURITY: Resolve default organization for public auth flow (must exist to enforce tenant isolation)
+  const resolvedOrgId =
+    process.env.PUBLIC_ORG_ID ||
+    process.env.TEST_ORG_ID ||
+    process.env.DEFAULT_ORG_ID;
+
+  if (!resolvedOrgId) {
+    logger.error("[verify/send] Missing org context - verification disabled", {
+      severity: "ops_critical",
+      action: "Set PUBLIC_ORG_ID/TEST_ORG_ID/DEFAULT_ORG_ID env var to enable verification emails",
+    });
+    return NextResponse.json(
+      { error: "Verification temporarily unavailable. Please try again later." },
+      { status: 503 },
+    );
+  }
+
+  await connectToDatabase();
+  // SECURITY FIX: Scope email lookup by orgId to prevent cross-tenant attacks (SEC-001)
+  const user = await User.findOne({ orgId: resolvedOrgId, email: body.email.toLowerCase() }).lean();
+  if (!user) {
+    // Don't reveal if email exists for security
+    return NextResponse.json({ ok: true, message: "Verification email sent if account exists" });
+  }
+  if ((user as { emailVerifiedAt?: Date }).emailVerifiedAt) {
+    return NextResponse.json({ ok: true, message: "already verified" });
+  }
+
+  const token = signVerificationToken(body.email.toLowerCase(), secret);
+  // SECURITY: Ensure VERCEL_URL has https:// scheme for production
+  const vercelUrl = process.env.VERCEL_URL;
+  const normalizedVercelUrl = vercelUrl 
+    ? (vercelUrl.startsWith("http") ? vercelUrl : `https://${vercelUrl}`)
+    : undefined;
+  const origin =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    normalizedVercelUrl ||
+    req.nextUrl.origin;
+  const link = verificationLink(origin, token);
+
+  // Determine user's preferred locale or use request locale
+  const locale = body.locale || "en";
+  const userName = (user as { name?: string }).name || body.email.split("@")[0];
+
+  // Localized email content
+  const emailContent = locale === "ar" ? {
+    subject: "تأكيد بريدك الإلكتروني - Fixzit",
+    body: `مرحباً ${userName}،\n\nشكراً لتسجيلك في Fixzit. يرجى تأكيد عنوان بريدك الإلكتروني بالضغط على الرابط أدناه:\n\n${link}\n\nهذا الرابط صالح لمدة 24 ساعة.\n\nإذا لم تقم بإنشاء هذا الحساب، يمكنك تجاهل هذه الرسالة.\n\nمع أطيب التحيات،\nفريق Fixzit`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; direction: rtl; text-align: right;">
+        <div style="background: linear-gradient(135deg, #0070f3, #00c4cc); padding: 30px; border-radius: 10px 10px 0 0;">
+          <h1 style="color: white; margin: 0; font-size: 24px;">مرحباً بك في Fixzit</h1>
+        </div>
+        <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+          <p style="color: #333; font-size: 16px; line-height: 1.6;">
+            مرحباً ${userName}،
+          </p>
+          <p style="color: #666; font-size: 14px; line-height: 1.6;">
+            شكراً لتسجيلك في Fixzit. يرجى تأكيد عنوان بريدك الإلكتروني للوصول الكامل إلى حسابك.
+          </p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${link}" style="background: #0070f3; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+              تأكيد البريد الإلكتروني
+            </a>
+          </div>
+          <p style="color: #999; font-size: 12px; line-height: 1.6;">
+            هذا الرابط صالح لمدة 24 ساعة. إذا لم تقم بإنشاء هذا الحساب، يمكنك تجاهل هذه الرسالة.
+          </p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+          <p style="color: #999; font-size: 11px; text-align: center;">
+            © ${new Date().getFullYear()} Fixzit. جميع الحقوق محفوظة.
+          </p>
+        </div>
+      </div>
+    `,
+  } : {
+    subject: "Verify your email - Fixzit",
+    body: `Hello ${userName},\n\nThank you for signing up for Fixzit. Please verify your email address by clicking the link below:\n\n${link}\n\nThis link expires in 24 hours.\n\nIf you didn't create this account, you can ignore this email.\n\nBest regards,\nThe Fixzit Team`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #0070f3, #00c4cc); padding: 30px; border-radius: 10px 10px 0 0;">
+          <h1 style="color: white; margin: 0; font-size: 24px;">Welcome to Fixzit</h1>
+        </div>
+        <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+          <p style="color: #333; font-size: 16px; line-height: 1.6;">
+            Hello ${userName},
+          </p>
+          <p style="color: #666; font-size: 14px; line-height: 1.6;">
+            Thank you for signing up for Fixzit. Please verify your email address to get full access to your account.
+          </p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${link}" style="background: #0070f3; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+              Verify Email Address
+            </a>
+          </div>
+          <p style="color: #999; font-size: 12px; line-height: 1.6;">
+            This link expires in 24 hours. If you didn't create this account, you can safely ignore this email.
+          </p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+          <p style="color: #999; font-size: 11px; text-align: center;">
+            © ${new Date().getFullYear()} Fixzit. All rights reserved.
+          </p>
+        </div>
+      </div>
+    `,
+  };
+
+  // Send actual email if SendGrid is configured
+  const emailResult = await sendEmail(body.email, emailContent.subject, emailContent.body, {
+    html: emailContent.html,
+  });
+
+  if (emailResult.success) {
+    logger.info("[auth/verify/send] Verification email sent", {
+      email: body.email,
+      messageId: emailResult.messageId,
+    });
+    return NextResponse.json({
+      ok: true,
+      message: "Verification email sent",
+    });
+  }
+
+  // Fallback: SendGrid not configured, return link for development
+  if (emailResult.error?.includes("not configured")) {
+    logger.warn("[auth/verify/send] SendGrid not configured, returning link", {
+      email: body.email,
+    });
+    return NextResponse.json({
+      ok: true,
+      message: "Verification email queued",
+      // Only include link in non-production for testing
+      ...(process.env.NODE_ENV !== "production" && { link }),
+    });
+  }
+
+  // Email send failed
+  logger.error("[auth/verify/send] Failed to send verification email", {
+    email: body.email,
+    error: emailResult.error,
+  });
+  return NextResponse.json(
+    { error: "Failed to send verification email. Please try again." },
+    { status: 500 }
+  );
+}
+
+]]>
+</file>
+
+<file path="app/api/benchmarks/compare/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import Benchmark from "@/server/models/Benchmark";
+import { computeQuote } from "@/lib/pricing";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { z } from "zod";
+import { auth } from "@/auth";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import {
+  zodValidationError,
+  rateLimitError,
+  unauthorizedError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
+
+interface BenchmarkDocument {
+  pricingModel?: string;
+  priceMonthly?: number;
+  [key: string]: unknown;
+}
+
+const compareSchema = z.object({
+  seatTotal: z.number().positive(),
+  billingCycle: z.enum(["monthly", "annual"]),
+  items: z.array(
+    z.object({
+      moduleCode: z.string().min(1),
+    }),
+  ),
+});
+
+/**
+ * @openapi
+ * /api/benchmarks/compare:
+ *   post:
+ *     summary: benchmarks/compare operations
+ *     tags: [benchmarks]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  // SECURITY: Require authentication to prevent enumeration attacks
+  const session = await auth();
+  if (!session?.user?.id) {
+    return unauthorizedError("Authentication required");
+  }
+  const orgId = session.user.orgId;
+  if (!orgId || typeof orgId !== "string" || orgId.trim() === "") {
+    return unauthorizedError("Organization context required");
+  }
+
+  // Rate limiting
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  try {
+    await connectToDatabase();
+    const body = compareSchema.parse(await req.json());
+
+    const ours = computeQuote({
+      items: body.items,
+      seatTotal: body.seatTotal,
+      billingCycle: body.billingCycle,
+    });
+    if (ours.contactSales) return createSecureResponse(ours, 200, req);
+
+    // SECURITY: Scope benchmarks to user's organization (tenant isolation)
+    // Admins can query all if needed via admin route
+    const query = { tenantId: orgId };
+
+    const rows = (await Benchmark.find(query).lean()) as unknown as BenchmarkDocument[];
+    const perUserRows = rows.filter(
+      (r) => r.pricingModel === "per_user_month" && r.priceMonthly,
+    );
+    const monthlyMedian =
+      perUserRows.sort((a, b) => (a.priceMonthly || 0) - (b.priceMonthly || 0))[
+        Math.floor(perUserRows.length / 2)
+      ]?.priceMonthly || 0;
+
+    const compMonthly = monthlyMedian * body.seatTotal; // FM core-like proxy
+    const diff = ours.monthly - compMonthly;
+    return NextResponse.json({
+      ours: {
+        monthly: ours.monthly,
+        annualTotal: ours.annualTotal,
+        items: ours.items,
+      },
+      market: { perUserMedianMonthly: monthlyMedian, teamMonthly: compMonthly },
+      position: diff === 0 ? "PAR" : diff < 0 ? "BELOW_MARKET" : "ABOVE_MARKET",
+    });
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      return zodValidationError(error, req);
+    }
+    logger.error(
+      "Benchmark comparison failed:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse(
+      { error: "Failed to compare benchmarks" },
+      500,
+      req,
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/billing/callback/paytabs/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import SubscriptionInvoice from "@/server/models/SubscriptionInvoice";
+import Subscription from "@/server/models/Subscription";
+import PaymentMethod from "@/server/models/PaymentMethod";
+import {
+  buildPaytabsIdempotencyKey,
+  enforcePaytabsPayloadSize,
+  extractPaytabsSignature,
+  normalizePaytabsCallbackPayload,
+  parsePaytabsJsonPayload,
+  PaytabsCallbackValidationError,
+  PAYTABS_CALLBACK_IDEMPOTENCY_TTL_MS,
+  PAYTABS_CALLBACK_RATE_LIMIT,
+} from "@/lib/payments/paytabs-callback.contract";
+import { verifyPayment, validateCallback } from "@/lib/paytabs";
+import { logger } from "@/lib/logger";
+import { withIdempotency } from "@/server/security/idempotency";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse, getClientIP } from "@/server/security/headers";
+import { Config } from "@/lib/config/constants";
+
+const PAYTABS_SERVER_KEY = Config.payment.paytabs.serverKey;
+const PAYTABS_CONFIGURED = Boolean(
+  PAYTABS_SERVER_KEY && Config.payment.paytabs.profileId,
+);
+/**
+ * @openapi
+ * /api/billing/callback/paytabs:
+ *   get:
+ *     summary: billing/callback/paytabs operations
+ *     tags: [billing]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(
+    `${new URL(req.url).pathname}:${clientIp}`,
+    PAYTABS_CALLBACK_RATE_LIMIT.requests,
+    PAYTABS_CALLBACK_RATE_LIMIT.windowMs,
+  );
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  // Read raw body for signature validation
+  const rawBody = await req.text();
+  try {
+    enforcePaytabsPayloadSize(rawBody);
+  } catch (_error) {
+    if (_error instanceof PaytabsCallbackValidationError) {
+      return createSecureResponse({ error: _error.message }, 413, req);
+    }
+    throw _error;
+  }
+
+  let payload: Record<string, unknown>;
+  try {
+    payload = parsePaytabsJsonPayload(rawBody);
+  } catch (_error) {
+    if (_error instanceof PaytabsCallbackValidationError) {
+      return createSecureResponse({ error: _error.message }, 400, req);
+    }
+    throw _error;
+  }
+
+  const signature = extractPaytabsSignature(req, payload);
+  if (!signature && PAYTABS_CONFIGURED) {
+    logger.error("[Billing Callback] Missing signature from PayTabs");
+    return createSecureResponse({ error: "Invalid signature" }, 401, req);
+  }
+
+  if (!signature) {
+    logger.warn("[Billing Callback] Signature missing; dev mode fallback", {
+      paytabsConfigured: PAYTABS_CONFIGURED,
+    });
+  }
+
+  // 1) Validate signature
+  if (!validateCallback(payload, signature || "")) {
+    logger.error("[Billing Callback] Invalid signature from PayTabs");
+    return createSecureResponse({ error: "Invalid signature" }, 401, req);
+  }
+
+  await connectToDatabase();
+
+  let normalized;
+  try {
+    normalized = normalizePaytabsCallbackPayload(payload);
+  } catch (_error) {
+    if (_error instanceof PaytabsCallbackValidationError) {
+      return createSecureResponse({ error: _error.message }, 400, req);
+    }
+    throw _error;
+  }
+
+  const tranRef = normalized.tranRef;
+  const cartId = normalized.cartId;
+  const token = normalized.token;
+
+  // 2) Verify payment with PayTabs server-to-server
+  let verification: unknown = null;
+  if (PAYTABS_CONFIGURED) {
+    try {
+      verification = await verifyPayment(tranRef);
+    } catch (_error) {
+      const message = _error instanceof Error ? _error.message : String(_error);
+      logger.error(
+        "[Billing Callback] Failed to verify payment with PayTabs:",
+        message,
+      );
+      return createSecureResponse(
+        { error: "Payment verification failed" },
+        500,
+        req,
+      );
+    }
+  } else {
+    logger.warn("[Billing Callback] Skipping PayTabs verification (dev mode)");
+  }
+
+  // Type-safe validation of verification result
+  function isValidPayTabsVerification(data: unknown): data is {
+    payment_result: { response_status: string; response_message?: string };
+    cart_amount?: string;
+    payment_info?: {
+      card_scheme?: string;
+      payment_description?: string;
+      expiryMonth?: string;
+      expYear?: string;
+    };
+  } {
+    if (!data || typeof data !== "object") return false;
+    const obj = data as Record<string, unknown>;
+    return (
+      typeof obj.payment_result === "object" &&
+      obj.payment_result !== null &&
+      typeof (obj.payment_result as Record<string, unknown>).response_status ===
+        "string"
+    );
+  }
+
+  let verificationData: {
+    payment_result: { response_status: string; response_message?: string };
+    cart_amount?: string;
+    payment_info?: {
+      card_scheme?: string;
+      payment_description?: string;
+      expiryMonth?: string;
+      expYear?: string;
+    };
+  } | null = null;
+
+  if (PAYTABS_CONFIGURED) {
+    if (!isValidPayTabsVerification(verification)) {
+      logger.error(
+        "[Billing Callback] Invalid verification response structure from PayTabs",
+      );
+      return createSecureResponse(
+        { error: "Invalid payment verification response" },
+        500,
+        req,
+      );
+    }
+    verificationData = verification;
+  } else {
+    verificationData = {
+      payment_result: {
+        response_status: normalized.respStatus,
+        response_message: normalized.respMessage,
+      },
+      cart_amount: normalized.amount?.toString(),
+    };
+  }
+
+  const verifiedOk = verificationData?.payment_result?.response_status === "A";
+
+  const subId = cartId?.replace("SUB-", "");
+
+  // Validate subId is a valid ObjectId before DB query
+  // This prevents Mongoose cast errors from malformed webhook payloads
+  const { Types } = await import("mongoose");
+  if (!subId || !Types.ObjectId.isValid(subId)) {
+    logger.error("[Billing Callback] Invalid subscription ID format", {
+      cartId: cartId?.slice?.(0, 12) || "invalid",
+    });
+    return createSecureResponse({ error: "INVALID_SUB_ID" }, 400, req);
+  }
+
+  const sub = await Subscription.findById(subId);
+  if (!sub) return createSecureResponse({ error: "SUB_NOT_FOUND" }, 400, req);
+
+  // Find invoice
+  // @ts-expect-error - Mongoose 8.x type resolution issue with conditional model export
+  const inv = await SubscriptionInvoice.findOne({
+    subscriptionId: sub._id,
+    status: "pending",
+  });
+  if (!inv) return createSecureResponse({ error: "INV_NOT_FOUND" }, 400, req);
+
+  await withIdempotency(
+    buildPaytabsIdempotencyKey(normalized, {
+      route: "billing",
+      subscriptionId: String(sub._id),
+      invoiceId: String(inv._id),
+    }),
+    async () => {
+      if (!verifiedOk) {
+        inv.status = "failed";
+        inv.errorMessage =
+          verificationData?.payment_result?.response_message ||
+          normalized.respMessage ||
+          "Payment declined";
+      } else {
+        inv.status = "paid";
+        inv.paytabsTranRef = tranRef;
+      }
+
+      await inv.save();
+
+      if (verifiedOk && token && sub.billing_cycle === "MONTHLY") {
+        type PaytabsPaymentInfo = {
+          card_scheme?: string;
+          payment_description?: string;
+          expiryMonth?: string;
+          expYear?: string;
+          customer_email?: string;
+        };
+        const paymentInfo = verificationData.payment_info as
+          | PaytabsPaymentInfo
+          | undefined;
+        if (!paymentInfo) {
+          logger.warn(
+            "[Billing Callback] No payment_info in verification response, skipping token storage",
+          );
+        } else {
+          const paymentMethodPayload: Record<string, unknown> = {
+            gateway: "PAYTABS",
+            pt_token: token,
+            pt_masked_card: paymentInfo.payment_description,
+            pt_customer_email: paymentInfo.customer_email,
+          };
+
+          if (sub.subscriber_type === "OWNER" && sub.owner_user_id) {
+            paymentMethodPayload.owner_user_id = sub.owner_user_id;
+          } else if (sub.tenant_id) {
+            // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+            paymentMethodPayload.orgId = sub.tenant_id;
+          }
+
+          const pm = await PaymentMethod.create(paymentMethodPayload);
+          sub.paytabs_token_id = pm._id;
+          await sub.save();
+        }
+      }
+    },
+    PAYTABS_CALLBACK_IDEMPOTENCY_TTL_MS,
+  );
+
+  return createSecureResponse({ ok: verifiedOk }, 200, req);
+}
+
+]]>
+</file>
+
+<file path="app/api/billing/charge-recurring/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import Subscription from "@/server/models/Subscription";
+import SubscriptionInvoice from "@/server/models/SubscriptionInvoice";
+import PaymentMethod from "@/server/models/PaymentMethod";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
+import { logger } from "@/lib/logger";
+import { Config } from "@/lib/config/constants";
+import { verifySecretHeader } from "@/lib/security/verify-secret-header";
+
+// POST with secret header from cron – for each sub due this day: charge recurring via token
+/**
+ * @openapi
+ * /api/billing/charge-recurring:
+ *   get:
+ *     summary: billing/charge-recurring operations
+ *     tags: [billing]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  if (!verifySecretHeader(req, "x-cron-secret", Config.security.cronSecret))
+    return createSecureResponse({ error: "UNAUTH" }, 401, req);
+  await connectToDatabase();
+  const today = new Date();
+  const dueSubs = await Subscription.find({
+    billing_cycle: "MONTHLY",
+    status: "ACTIVE",
+    next_billing_date: { $lte: today },
+    paytabs_token_id: { $ne: null },
+  });
+
+  // ✅ PERF FIX: Batch load all payment methods to avoid N+1 queries
+  const tokenIds = dueSubs.map((s) => s.paytabs_token_id).filter(Boolean);
+  const paymentMethods = await PaymentMethod.find({ _id: { $in: tokenIds } });
+  const pmMap = new Map(paymentMethods.map((pm) => [String(pm._id), pm]));
+
+  for (const s of dueSubs) {
+    const pm = pmMap.get(String(s.paytabs_token_id));
+    if (!pm) continue;
+
+    // Calculate billing period
+    const periodStart = today;
+    const periodEnd = new Date(today);
+    periodEnd.setMonth(periodEnd.getMonth() + 1);
+
+    // ✅ FIXED: Add orgId, periodStart, periodEnd to match schema
+    // @ts-expect-error - Mongoose 8.x type resolution issue with create overloads
+    const inv = await SubscriptionInvoice.create({
+      orgId: s.tenant_id, // Required by tenantIsolationPlugin
+      subscriptionId: s._id,
+      amount: s.amount,
+      currency: s.currency,
+      dueDate: today,
+      periodStart, // ✅ ADDED: Billing period start
+      periodEnd, // ✅ ADDED: Billing period end
+      status: "pending",
+    });
+
+    // recurring charge (server-to-server) with error handling
+    try {
+      const response = await fetch(
+        `${Config.payment.paytabs.baseUrl}/payment/request`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            authorization: Config.payment.paytabs.serverKey,
+          },
+          body: JSON.stringify({
+            profile_id: Config.payment.paytabs.profileId,
+            tran_type: "sale",
+            tran_class: "recurring",
+            cart_id: `INV-${inv._id}`,
+            cart_description: "Fixzit Monthly Subscription",
+            cart_amount: inv.amount,
+            cart_currency: inv.currency,
+            token: pm.pt_token, // ✅ FIXED: Use pt_token not token
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `PayTabs HTTP ${response.status}: ${await response.text().catch(() => "Unknown error")}`,
+        );
+      }
+
+      const resp = await response.json();
+
+      if (resp?.tran_ref) {
+        inv.status = "paid";
+        inv.paytabsTranRef = resp.tran_ref;
+        await inv.save();
+      } else {
+        inv.status = "failed";
+        inv.errorMessage = resp?.message || "UNKNOWN";
+        await inv.save();
+      }
+    } catch (error) {
+      logger.error(`Recurring charge failed for subscription ${s._id}`, {
+        error,
+      });
+      inv.status = "failed";
+      inv.errorMessage =
+        error instanceof Error ? error.message : "Payment gateway error";
+      await inv.save();
+    }
+    const nextBilling = new Date(today);
+    nextBilling.setMonth(nextBilling.getMonth() + 1);
+    s.next_billing_date = nextBilling;
+    await s.save();
+  }
+
+  return createSecureResponse({ ok: true, count: dueSubs.length });
+}
+
+]]>
+</file>
+
+<file path="app/api/billing/history/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import {
+  SubscriptionInvoice,
+  type ISubscriptionInvoice,
+} from "@/server/models/SubscriptionInvoice";
+import Subscription from "@/server/models/Subscription";
+import { logger } from "@/lib/logger";
+import { auth } from "@/auth";
+import { createSecureResponse } from "@/server/security/headers";
+import { Types, type Model } from "mongoose";
+
+/**
+ * GET /api/billing/history
+ * 
+ * Returns paginated billing history for the authenticated user's organization.
+ * Supports both corporate (org-based) and owner (user-based) subscriptions.
+ */
+export async function GET(req: NextRequest) {
+  try {
+    // Authenticate user
+    const session = await auth();
+    if (!session?.user?.id) {
+      return createSecureResponse({ error: "Authentication required" }, 401, req);
+    }
+
+    const userId = session.user.id;
+    const orgId = (session.user as { orgId?: string }).orgId;
+
+    if (!orgId) {
+      return createSecureResponse({ error: "Organization context required" }, 400, req);
+    }
+
+    await connectToDatabase();
+
+    // Parse pagination params
+    const url = new URL(req.url);
+    const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
+    const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get("limit") || "10", 10)));
+    const skip = (page - 1) * limit;
+
+    // Validate ObjectId format before creating instances
+    if (!Types.ObjectId.isValid(orgId)) {
+      return createSecureResponse({ error: "Invalid organization ID" }, 400, req);
+    }
+    if (!Types.ObjectId.isValid(userId)) {
+      return createSecureResponse({ error: "Invalid user ID" }, 400, req);
+    }
+
+    const orgObjectId = new Types.ObjectId(orgId);
+    const userObjectId = new Types.ObjectId(userId);
+
+    // Find all subscriptions belonging to this tenant or owner
+    const subscriptions = await Subscription.find({
+      $or: [
+        { tenant_id: orgObjectId },
+        { owner_user_id: userObjectId },
+      ],
+    }).select("_id").lean();
+
+    const subscriptionIds = subscriptions.map((s) => s._id);
+
+    if (subscriptionIds.length === 0) {
+      return NextResponse.json({
+        invoices: [],
+        pagination: {
+          page,
+          limit,
+          total: 0,
+          totalPages: 0,
+        },
+      });
+    }
+
+    // Count total invoices
+    const InvoiceModel = SubscriptionInvoice as Model<ISubscriptionInvoice>;
+
+    const total = await InvoiceModel.countDocuments({
+      orgId: orgObjectId,
+      subscriptionId: { $in: subscriptionIds },
+    });
+
+    // Fetch invoices with pagination, sorted by newest first
+    const invoices = await InvoiceModel.find({
+      orgId: orgObjectId,
+      subscriptionId: { $in: subscriptionIds },
+    })
+      .sort({ dueDate: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    // Format response
+    const formattedInvoices = invoices.map((inv) => ({
+      id: `INV-${String(inv._id).slice(-8).toUpperCase()}`,
+      _id: inv._id,
+      amount: inv.amount,
+      currency: inv.currency,
+      status: inv.status,
+      periodStart: inv.periodStart?.toISOString(),
+      periodEnd: inv.periodEnd?.toISOString(),
+      dueDate: inv.dueDate?.toISOString(),
+      paidAt: inv.paidAt?.toISOString() || null,
+      paytabsRef: inv.paytabsRef || null,
+    }));
+
+    return NextResponse.json({
+      invoices: formattedInvoices,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    logger.error("[billing/history] Error fetching invoices", error as Error);
+    return NextResponse.json(
+      { error: "Failed to fetch billing history" },
+      { status: 500 }
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/billing/quote/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { computeQuote } from "@/lib/pricing";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
+
+/**
+ * @openapi
+ * /api/billing/quote:
+ *   get:
+ *     summary: billing/quote operations
+ *     tags: [billing]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  const input = await req.json(); // {items:[{moduleCode, seatCount?}], billingCycle, seatTotal}
+  const q = await computeQuote(input);
+  return createSecureResponse(q);
+}
+
+]]>
+</file>
+
+<file path="app/api/billing/subscribe/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import Customer from "@/server/models/Customer";
+import { computeQuote } from "@/lib/pricing";
+import { createSubscriptionCheckout } from "@/lib/finance/checkout";
+import { getUserFromToken } from "@/lib/auth";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import {
+  rateLimitError,
+  zodValidationError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { z } from "zod";
+import { getClientIP } from "@/server/security/headers";
+import { canManageSubscriptions } from "@/lib/auth/role-guards";
+
+const subscriptionSchema = z.object({
+  customer: z.object({
+    type: z.enum(["ORG", "OWNER"]),
+    name: z.string().min(1),
+    billingEmail: z.string().email(),
+    country: z.string().optional(),
+  }),
+  planType: z.enum(["CORPORATE_FM", "OWNER_FM"]),
+  items: z.array(z.object({
+    moduleCode: z.string().optional(),
+    module: z.string().optional(),
+    unitPriceMonthly: z.number().nonnegative().optional(),
+    seatCount: z.number().int().nonnegative().optional(),
+    billingCategory: z.string().optional(),
+  }).refine(
+    (item) => item.moduleCode || item.module || item.billingCategory,
+    { message: "Each item must have at least one identifier: 'moduleCode', 'module', or 'billingCategory'" }
+  )),
+  seatTotal: z.number().positive(),
+  billingCycle: z.enum(["monthly", "annual"]),
+  paytabsRegion: z.string().optional(),
+  returnUrl: z.string().url(),
+  callbackUrl: z.string().url(),
+  priceBookId: z.string().optional(),
+});
+
+// Require: {customer:{type:'ORG'|'OWNER',...}, planType:'CORPORATE_FM'|'OWNER_FM', items:[], seatTotal, billingCycle, paytabsRegion, returnUrl, callbackUrl}
+/**
+ * @openapi
+ * /api/billing/subscribe:
+ *   post:
+ *     summary: billing/subscribe operations
+ *     tags: [billing]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  // Rate limiting - SECURITY: Use distributed rate limiting (Redis)
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 10, 300000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  try {
+    // Authentication & Authorization
+    const token = req.headers
+      .get("authorization")
+      ?.replace("Bearer ", "")
+      ?.trim();
+    if (!token) {
+      return createSecureResponse(
+        { error: "Authentication required" },
+        401,
+        req,
+      );
+    }
+
+    const user = await getUserFromToken(token);
+    if (!user) {
+      return createSecureResponse({ error: "Invalid token" }, 401, req);
+    }
+
+    // Role-based access control - only billing admins or org admins can subscribe
+    if (!canManageSubscriptions(user.role)) {
+      return createSecureResponse(
+        { error: "Insufficient permissions to manage subscriptions" },
+        403,
+        req,
+      );
+    }
+
+    // Rate limiting for subscription operations (per tenant) - SECURITY: Distributed
+    const key = `billing:subscribe:${user.orgId}`;
+    const tenantRl = await smartRateLimit(key, 3, 300_000); // 3 subscriptions per 5 minutes per tenant
+    if (!tenantRl.allowed) {
+      return createSecureResponse(
+        {
+          error:
+            "Subscription rate limit exceeded. Please wait before creating another subscription.",
+        },
+        429,
+        req,
+      );
+    }
+
+    await connectToDatabase();
+    const body = subscriptionSchema.parse(await req.json());
+
+    // 1) Upsert customer - ensure tenant isolation
+    const customer = await Customer.findOneAndUpdate(
+      {
+        type: body.customer.type,
+        billingEmail: body.customer.billingEmail,
+        orgId: user.orgId,
+      },
+      { ...body.customer, orgId: user.orgId },
+      { upsert: true, new: true },
+    );
+
+    // 2) Quote
+    const quote = await computeQuote({
+      items: body.items,
+      seatTotal: body.seatTotal,
+      billingCycle: body.billingCycle,
+    });
+    if (quote.contactSales) {
+      return createSecureResponse(
+        { error: "SEAT_LIMIT_EXCEEDED", contact: EMAIL_DOMAINS.sales },
+        400,
+        req,
+      );
+    }
+
+    const modules = (body.items || []).map(
+      (i: Record<string, unknown>) =>
+        (i.moduleCode as string) ||
+        (i.module as string) ||
+        (i.billingCategory as string) ||
+        "CORE",
+    );
+
+    const subscriberType = body.customer.type === "OWNER" ? "OWNER" : "CORPORATE";
+    const checkout = await createSubscriptionCheckout({
+      subscriberType,
+      tenantId: subscriberType === "CORPORATE" ? user.orgId : undefined,
+      ownerUserId: subscriberType === "OWNER" ? user.id : undefined,
+      modules,
+      seats: body.seatTotal,
+      billingCycle: body.billingCycle === "annual" ? "ANNUAL" : "MONTHLY",
+      currency: quote.currency === "SAR" ? "SAR" : "USD",
+      customer: {
+        name: customer.name,
+        email: body.customer.billingEmail,
+        phone: customer.phone,
+      },
+      priceBookId: body.priceBookId,
+      metadata: {
+        planType: body.planType,
+        items: body.items,
+        billingCycle: body.billingCycle,
+      },
+    });
+
+    if (checkout.requiresQuote) {
+      return NextResponse.json({
+        requiresQuote: true,
+        quote: checkout.quote,
+      });
+    }
+
+    return NextResponse.json({
+      requiresQuote: false,
+      subscriptionId: checkout.subscriptionId,
+      cartId: checkout.cartId,
+      redirectUrl: checkout.redirectUrl,
+      quote,
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return zodValidationError(error, req);
+    }
+    logger.error(
+      "Subscription creation failed:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse(
+      { error: "Failed to create subscription" },
+      500,
+      req,
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/billing/upgrade/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { z } from "zod";
+import { auth } from "@/auth";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import Subscription from "@/server/models/Subscription";
+import { computeQuote } from "@/lib/pricing";
+import { createSubscriptionCheckout } from "@/lib/finance/checkout";
+import { logger } from "@/lib/logger";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError, zodValidationError } from "@/server/utils/errorResponses";
+import { createSecureResponse, getClientIP } from "@/server/security/headers";
+import { canManageSubscriptions } from "@/lib/auth/role-guards";
+import { Types } from "mongoose";
+import PriceBook from "@/server/models/PriceBook";
+
+/**
+ * Plan upgrade request schema
+ */
+const upgradeSchema = z.object({
+  targetPlan: z.enum(["STANDARD", "PRO", "PREMIUM", "ENTERPRISE"]),
+  billingCycle: z.enum(["monthly", "annual"]).optional(),
+  additionalSeats: z.number().int().min(0).optional(),
+  additionalModules: z.array(z.string()).optional(),
+  priceBookId: z.string().optional(),
+});
+
+/**
+ * Plan configurations with module mappings
+ */
+const PLAN_CONFIGS: Record<string, { modules: string[]; baseSeats: number; allowedAddons: string[] }> = {
+  STANDARD: {
+    modules: ["CORE", "WORK_ORDERS", "PROPERTIES"],
+    baseSeats: 3,
+    allowedAddons: [], // No add-ons for STANDARD
+  },
+  PRO: {
+    modules: ["CORE", "WORK_ORDERS", "PROPERTIES", "FINANCE", "HR", "CRM", "MARKETPLACE"],
+    baseSeats: 10,
+    allowedAddons: ["COMPLIANCE", "API"], // Limited add-ons for PRO
+  },
+  PREMIUM: {
+    modules: ["CORE", "WORK_ORDERS", "PROPERTIES", "FINANCE", "HR", "CRM", "MARKETPLACE", "COMPLIANCE"],
+    baseSeats: 25,
+    allowedAddons: ["API", "SSO", "ADVANCED_ANALYTICS"], // More add-ons for PREMIUM
+  },
+  ENTERPRISE: {
+    modules: ["CORE", "WORK_ORDERS", "PROPERTIES", "FINANCE", "HR", "CRM", "MARKETPLACE", "COMPLIANCE", "API", "SSO"],
+    baseSeats: -1, // Unlimited
+    allowedAddons: ["WHITE_LABEL", "MULTI_REGION", "CUSTOM_INTEGRATIONS"], // Enterprise-only add-ons
+  },
+};
+
+/**
+ * POST /api/billing/upgrade
+ * 
+ * Upgrades the user's subscription to a higher plan.
+ * Calculates proration and creates a checkout session.
+ * 
+ * @openapi
+ * /api/billing/upgrade:
+ *   post:
+ *     summary: Upgrade subscription plan
+ *     tags: [billing]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - targetPlan
+ *             properties:
+ *               targetPlan:
+ *                 type: string
+ *                 enum: [STANDARD, PRO, PREMIUM, ENTERPRISE]
+ *               billingCycle:
+ *                 type: string
+ *                 enum: [monthly, annual]
+ *               additionalSeats:
+ *                 type: integer
+ *                 minimum: 0
+ *               additionalModules:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Upgrade checkout created
+ *       400:
+ *         description: Invalid upgrade request
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Insufficient permissions
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  // Rate limiting - SECURITY: Use distributed rate limiting (Redis)
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 10, 300_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  try {
+    // Authenticate
+    const session = await auth();
+    if (!session?.user?.id) {
+      return createSecureResponse({ error: "Authentication required" }, 401, req);
+    }
+
+    const user = session.user as { 
+      id: string; 
+      orgId?: string; 
+      role?: string;
+      email?: string;
+      name?: string;
+    };
+
+    if (!user.orgId) {
+      return createSecureResponse({ error: "Organization context required" }, 400, req);
+    }
+
+    // Check permissions
+    if (!canManageSubscriptions(user.role)) {
+      return createSecureResponse(
+        { error: "Insufficient permissions to manage subscriptions" },
+        403,
+        req
+      );
+    }
+
+    // Additional rate limiting per tenant - SECURITY: Distributed for multi-instance
+    const tenantRl = await smartRateLimit(`billing:upgrade:${user.orgId}`, 3, 300_000);
+    if (!tenantRl.allowed) {
+      return createSecureResponse(
+        { error: "Upgrade rate limit exceeded. Please wait before trying again." },
+        429,
+        req
+      );
+    }
+
+    // Parse and validate request body
+    const body = upgradeSchema.parse(await req.json());
+    const { targetPlan, billingCycle, additionalSeats = 0, additionalModules = [] } = body;
+
+    await connectToDatabase();
+
+    // Find current subscription
+    const orgObjectId = new Types.ObjectId(user.orgId);
+    const currentSub = await Subscription.findOne({
+      $or: [
+        { tenant_id: orgObjectId, status: { $in: ["ACTIVE", "TRIAL"] } },
+        { owner_user_id: new Types.ObjectId(user.id), status: { $in: ["ACTIVE", "TRIAL"] } },
+      ],
+    }).sort({ createdAt: -1 });
+
+    // Get current plan level
+    const PLAN_HIERARCHY = { BASIC: 0, STANDARD: 1, PRO: 2, PREMIUM: 3, ENTERPRISE: 4 };
+    const currentPlan =
+      (currentSub?.get?.("plan") as string | undefined) || "BASIC";
+    const currentLevel = PLAN_HIERARCHY[currentPlan as keyof typeof PLAN_HIERARCHY] ?? 0;
+    const targetLevel = PLAN_HIERARCHY[targetPlan as keyof typeof PLAN_HIERARCHY];
+
+    // Validate upgrade path
+    if (targetLevel <= currentLevel) {
+      return createSecureResponse(
+        { 
+          error: "Invalid upgrade path",
+          message: `Cannot upgrade from ${currentPlan} to ${targetPlan}. Target plan must be higher tier.`,
+          currentPlan,
+          targetPlan,
+        },
+        400,
+        req
+      );
+    }
+
+    // Get plan configuration
+    const planConfig = PLAN_CONFIGS[targetPlan];
+    if (!planConfig) {
+      return createSecureResponse({ error: "Invalid target plan" }, 400, req);
+    }
+
+    // Validate additionalModules against allowed add-ons for the target plan
+    const allAllowedModules = new Set([...planConfig.modules, ...planConfig.allowedAddons]);
+    const validAddons = additionalModules.filter((m) => allAllowedModules.has(m));
+    const invalidAddons = additionalModules.filter((m) => !allAllowedModules.has(m));
+    
+    if (invalidAddons.length > 0) {
+      return createSecureResponse(
+        {
+          error: "Invalid module selection",
+          message: `The following modules are not available for ${targetPlan} plan: ${invalidAddons.join(", ")}`,
+          invalidModules: invalidAddons,
+          allowedAddons: planConfig.allowedAddons,
+        },
+        400,
+        req
+      );
+    }
+
+    // Calculate seats - handle unlimited (ENTERPRISE) properly
+    // For unlimited plans, don't use a hard-coded fallback; use undefined for unlimited semantics
+    const isUnlimitedSeats = planConfig.baseSeats === -1;
+    const baseSeats = isUnlimitedSeats ? undefined : planConfig.baseSeats;
+    // Ensure seatTotal is never 0 for priced plans; unlimited still passes a sentinel seat count
+    const totalSeats = isUnlimitedSeats ? 1 : (baseSeats! + additionalSeats);
+
+    // Build modules list (only include valid add-ons)
+    const modules = [...new Set([...planConfig.modules, ...validAddons])];
+
+    // Build quote items
+    const items = modules.map((moduleCode) => ({
+      moduleCode,
+      seatCount: 1,
+    }));
+
+    // Calculate upgrade quote with proration
+    const effectiveBillingCycle = billingCycle || 
+      (currentSub?.billing_cycle === "ANNUAL" ? "annual" : "monthly");
+
+    const quote = await computeQuote({
+      items,
+      seatTotal: totalSeats,
+      billingCycle: effectiveBillingCycle,
+      isUnlimited: isUnlimitedSeats, // Signal unlimited plan for special pricing
+    });
+
+    // Calculate proration if upgrading mid-cycle
+    let prorationCredit = 0;
+    if (currentSub?.amount) {
+      const now = new Date();
+      const billingCycleCode = (currentSub.billing_cycle || "")
+        .toString()
+        .toUpperCase();
+      const cycleDays = billingCycleCode === "ANNUAL" ? 365 : 30;
+
+      // Prefer explicit current_period_start/end; then next_billing_date/activeUntil; fallback to updatedAt/createdAt
+      const periodEnd =
+        currentSub.current_period_end ||
+        currentSub.next_billing_date ||
+        (currentSub.get?.("activeUntil") as Date | undefined) ||
+        currentSub.updatedAt ||
+        currentSub.createdAt;
+      const cycleEnd = new Date(periodEnd);
+      const cycleStart =
+        currentSub.current_period_start ||
+        new Date(cycleEnd.getTime() - cycleDays * 24 * 60 * 60 * 1000);
+
+      const totalDays = Math.max(
+        1,
+        (cycleEnd.getTime() - cycleStart.getTime()) / (1000 * 60 * 60 * 24),
+      );
+      const remainingDays = Math.max(
+        0,
+        (cycleEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+      );
+
+      // Credit for unused time on current plan based on current billing cycle window
+      prorationCredit =
+        Math.round(currentSub.amount * (remainingDays / totalDays) * 100) / 100;
+    }
+
+    // Validate price book selection (must exist, be active, and match currency)
+    let priceBookId: string | undefined;
+    if (body.priceBookId) {
+      const priceBook = await PriceBook.findOne({
+        _id: body.priceBookId,
+        active: true,
+      })
+        .lean()
+        .exec();
+
+      if (!priceBook) {
+        return createSecureResponse(
+          { error: "Invalid price book selection" },
+          400,
+          req,
+        );
+      }
+
+      if (priceBook.currency !== quote.currency) {
+        return createSecureResponse(
+          {
+            error: "Price book currency mismatch",
+            message: `Price book currency ${priceBook.currency} does not match quote currency ${quote.currency}`,
+          },
+          400,
+          req,
+        );
+      }
+
+      priceBookId = priceBook._id.toString();
+    }
+
+    // Contact sales for enterprise custom pricing
+    if (targetPlan === "ENTERPRISE" || quote.contactSales) {
+      return createSecureResponse(
+        {
+          action: "CONTACT_SALES",
+          message: "Enterprise plans require custom pricing. Our sales team will contact you.",
+          currentPlan,
+          targetPlan,
+          estimatedQuote: quote,
+          contact: EMAIL_DOMAINS.sales,
+        },
+        200,
+        req
+      );
+    }
+
+    // Calculate final amount after proration
+    const finalAmount = Math.max(0, quote.total - prorationCredit);
+
+    // Create upgrade checkout
+    const subscriberType = currentSub?.subscriber_type || "CORPORATE";
+    const checkout = await createSubscriptionCheckout({
+      subscriberType,
+      tenantId: user.orgId,
+      ownerUserId: subscriberType === "OWNER" ? user.id : undefined,
+      modules,
+      seats: totalSeats ?? -1, // -1 signals unlimited seats
+      billingCycle: effectiveBillingCycle === "annual" ? "ANNUAL" : "MONTHLY",
+      currency: quote.currency === "SAR" ? "SAR" : "USD",
+      customer: {
+        name: user.name || "Organization Admin",
+        email: user.email || "",
+        phone: undefined,
+      },
+      priceBookId,
+      metadata: {
+        upgradeFrom: currentPlan,
+        upgradeTo: targetPlan,
+        prorationCredit,
+        originalSubscriptionId: currentSub?._id?.toString(),
+        billingCycle: effectiveBillingCycle,
+      },
+    });
+
+    if (checkout.requiresQuote) {
+      return createSecureResponse(
+        {
+          success: false,
+          requiresQuote: true,
+          quote: checkout.quote,
+        },
+        200,
+        req,
+      );
+    }
+
+    // Log upgrade attempt
+    logger.info("[billing/upgrade] Upgrade checkout created", {
+      userId: user.id,
+      orgId: user.orgId,
+      currentPlan,
+      targetPlan,
+      prorationCredit,
+      finalAmount,
+      checkoutId: checkout.cartId,
+    });
+
+    return createSecureResponse(
+      {
+        success: true,
+        checkout: {
+          subscriptionId: checkout.subscriptionId,
+          cartId: checkout.cartId,
+          redirectUrl: checkout.redirectUrl,
+        },
+        upgrade: {
+          from: currentPlan,
+          to: targetPlan,
+          modules,
+          seats: isUnlimitedSeats ? "Unlimited" : totalSeats,
+          billingCycle: effectiveBillingCycle,
+        },
+        pricing: {
+          subtotal: quote.subtotal,
+          discount: 0,
+          prorationCredit,
+          total: finalAmount,
+          currency: quote.currency,
+        },
+      },
+      200,
+      req
+    );
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return zodValidationError(error, req);
+    }
+
+    logger.error("[billing/upgrade] Upgrade failed", { 
+      error: error instanceof Error ? error.message : "Unknown error" 
+    });
+    
+    return createSecureResponse(
+      { error: "Failed to create upgrade checkout" },
+      500,
+      req
+    );
+  }
+}
+
+/**
+ * GET /api/billing/upgrade
+ * 
+ * Returns available upgrade options for the current subscription.
+ */
+export async function GET(req: NextRequest) {
+  // Rate limiting - SECURITY: Use distributed rate limiting (Redis)
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 30, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return createSecureResponse({ error: "Authentication required" }, 401, req);
+    }
+
+    const user = session.user as { id: string; orgId?: string };
+    if (!user.orgId) {
+      return createSecureResponse({ error: "Organization context required" }, 400, req);
+    }
+
+    await connectToDatabase();
+
+    // Find current subscription
+    const orgObjectId = new Types.ObjectId(user.orgId);
+    const currentSub = await Subscription.findOne({
+      $or: [
+        { tenant_id: orgObjectId, status: { $in: ["ACTIVE", "TRIAL"] } },
+        { owner_user_id: new Types.ObjectId(user.id), status: { $in: ["ACTIVE", "TRIAL"] } },
+      ],
+    }).sort({ createdAt: -1 }).lean();
+
+    const currentPlan =
+      (currentSub as { plan?: string } | null)?.plan || "BASIC";
+    const PLAN_HIERARCHY = { BASIC: 0, STANDARD: 1, PRO: 2, PREMIUM: 3, ENTERPRISE: 4 };
+    const currentLevel = PLAN_HIERARCHY[currentPlan as keyof typeof PLAN_HIERARCHY] ?? 0;
+
+    // Generate available upgrade options
+    const availableUpgrades = Object.entries(PLAN_CONFIGS)
+      .filter(([plan]) => {
+        const planLevel = PLAN_HIERARCHY[plan as keyof typeof PLAN_HIERARCHY];
+        return planLevel > currentLevel;
+      })
+      .map(([plan, config]) => ({
+        plan,
+        modules: config.modules,
+        baseSeats: config.baseSeats === -1 ? "Unlimited" : config.baseSeats,
+        features: getPlanFeatures(plan),
+      }));
+
+    return createSecureResponse(
+      {
+        currentSubscription: currentSub ? {
+          plan: currentPlan,
+          status: currentSub.status,
+          modules: currentSub.modules,
+          seats: currentSub.seats,
+          billingCycle: currentSub.billing_cycle,
+          activeUntil: (currentSub as { activeUntil?: Date }).activeUntil,
+        } : null,
+        availableUpgrades,
+      },
+      200,
+      req
+    );
+  } catch (error) {
+    logger.error("[billing/upgrade] Failed to get upgrade options", {
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+    return createSecureResponse(
+      { error: "Failed to get upgrade options" },
+      500,
+      req
+    );
+  }
+}
+
+/**
+ * Get human-readable features for a plan
+ */
+function getPlanFeatures(plan: string): string[] {
+  const features: Record<string, string[]> = {
+    STANDARD: [
+      "Up to 3 users",
+      "Work order management",
+      "Property management",
+      "Email support",
+    ],
+    PRO: [
+      "Up to 10 users",
+      "Everything in Standard",
+      "Finance & invoicing",
+      "HR management",
+      "CRM",
+      "Marketplace access",
+      "Priority support",
+    ],
+    PREMIUM: [
+      "Up to 25 users",
+      "Everything in Pro",
+      "Compliance management",
+      "Advanced reporting",
+      "API access",
+      "12-hour SLA",
+    ],
+    ENTERPRISE: [
+      "Unlimited users",
+      "Everything in Premium",
+      "SSO/SCIM",
+      "Dedicated support",
+      "Custom SLA",
+      "White labeling",
+      "Multi-region",
+    ],
+  };
+
+  return features[plan] || [];
+}
+
+]]>
+</file>
+
+<file path="app/api/careers/apply/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Job } from "@/server/models/Job";
+import {
+  submitApplicationFromForm,
+  ApplicationSubmissionError,
+} from "@/server/services/ats/application-intake";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
+
+import { Types } from "mongoose";
+
+interface JobWithScreening {
+  _id: string | Types.ObjectId;
+  orgId?: string | Types.ObjectId | null;
+  status?: string;
+  visibility?: string;
+  skills?: string[];
+  requirements?: string[];
+  screeningRules?: { minYears?: number };
+  [key: string]: unknown;
+}
+
+/**
+ * @openapi
+ * /api/careers/apply:
+ *   post:
+ *     summary: careers/apply operations
+ *     tags: [careers]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  try {
+    await connectToDatabase();
+
+    const formData = await req.formData();
+    const jobId = (formData.get("jobId") as string | null)?.trim();
+
+    if (!jobId) {
+      return NextResponse.json(
+        { success: false, error: "Missing jobId" },
+        { status: 400 },
+      );
+    }
+
+    const job = await Job.findById(jobId).lean();
+    if (!job) {
+      return NextResponse.json(
+        { success: false, error: "Job not found" },
+        { status: 404 },
+      );
+    }
+
+    const skillsRaw = String(formData.get("skills") || "");
+    const skills = skillsRaw
+      ? skillsRaw
+          .split(",")
+          .map((skill) => skill.trim())
+          .filter(Boolean)
+      : [];
+
+    const experienceRaw = String(formData.get("experience") || "").trim();
+    const experienceYears = experienceRaw
+      ? Number.parseInt(experienceRaw, 10)
+      : undefined;
+    const resumeFile = formData.get("resume") as File | null;
+    const resumePayload =
+      resumeFile && resumeFile.size > 0
+        ? {
+            buffer: Buffer.from(await resumeFile.arrayBuffer()),
+            filename: resumeFile.name,
+            mimeType: resumeFile.type,
+            size: resumeFile.size,
+          }
+        : undefined;
+
+    const resumeKey = (formData.get("resumeKey") as string | null) || undefined;
+    const resumeUrl = (formData.get("resumeUrl") as string | null) || undefined;
+    const resumeMimeType =
+      (formData.get("resumeMimeType") as string | null) || undefined;
+    const resumeSizeRaw =
+      (formData.get("resumeSize") as string | null) || undefined;
+    const resumeSize = resumeSizeRaw ? Number(resumeSizeRaw) : undefined;
+
+    const phoneE164 = String(formData.get("phoneE164") || "").trim();
+
+    const jobTyped = job as unknown as JobWithScreening;
+    const normalizedJob: JobWithScreening = {
+      ...jobTyped,
+      _id:
+        jobTyped?._id ?? (job as { _id?: string | Types.ObjectId })?._id ?? "",
+      screeningRules: jobTyped?.screeningRules ?? undefined,
+    };
+
+    try {
+      const result = await submitApplicationFromForm({
+        job: normalizedJob,
+        resumeFile: resumePayload,
+        resumeKey,
+        resumeUrl,
+        resumeMimeType,
+        resumeSize,
+        source: "careers",
+        fields: {
+          firstName: (formData.get("firstName") as string | null) || undefined,
+          lastName: (formData.get("lastName") as string | null) || undefined,
+          fullName: (formData.get("fullName") as string | null) || undefined,
+          email: (formData.get("email") as string | null) || undefined,
+          phone:
+            phoneE164 || (formData.get("phone") as string | null) || undefined,
+          location: (formData.get("location") as string | null) || undefined,
+          coverLetter:
+            (formData.get("coverLetter") as string | null) || undefined,
+          skills,
+          experience: Number.isFinite(experienceYears ?? NaN)
+            ? experienceYears
+            : undefined,
+          linkedin: (formData.get("linkedin") as string | null) || undefined,
+          consent: String(formData.get("consent") || "true") === "true",
+        },
+      });
+
+      return NextResponse.json(
+        {
+          success: true,
+          data: {
+            applicationId: result.applicationId,
+            status: result.stage,
+            score: result.score,
+          },
+        },
+        { status: 201 },
+      );
+    } catch (error) {
+      if (error instanceof ApplicationSubmissionError) {
+        return NextResponse.json(
+          { success: false, error: error.message },
+          { status: error.status },
+        );
+      }
+      throw error;
+    }
+  } catch (error) {
+    logger.error(
+      "🚨 Job application error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to submit application",
+        details: "Please try again later",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/careers/public/jobs/[slug]/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Job } from "@/server/models/Job";
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { slug: string } },
+) {
+  await connectToDatabase();
+
+  const { searchParams } = new URL(req.url);
+  const orgIdParam = searchParams.get("orgId");
+  const orgId =
+    orgIdParam ||
+    process.env.PUBLIC_JOBS_ORG_ID ||
+    process.env.NEXT_PUBLIC_ORG_ID ||
+    process.env.PLATFORM_ORG_ID;
+
+  const filter: Record<string, unknown> = {
+    slug: params.slug,
+    status: "published",
+    visibility: "public",
+  };
+  if (orgId) filter.orgId = orgId;
+
+  const job = await Job.findOne(filter)
+    .select(
+      "title department location jobType salaryRange description requirements benefits slug createdAt orgId screeningRules",
+    )
+    .lean();
+
+  if (!job) {
+    return NextResponse.json(
+      { success: false, error: "Job not found" },
+      { status: 404 },
+    );
+  }
+
+  return NextResponse.json({ success: true, job });
+}
+
+]]>
+</file>
+
+<file path="app/api/careers/public/jobs/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Job } from "@/server/models/Job";
+
+const DEFAULT_LIMIT = 12;
+
+export async function GET(req: NextRequest) {
+  await connectToDatabase();
+
+  const { searchParams } = new URL(req.url);
+  const orgIdParam = searchParams.get("orgId");
+  const orgId =
+    orgIdParam ||
+    process.env.PUBLIC_JOBS_ORG_ID ||
+    process.env.NEXT_PUBLIC_ORG_ID ||
+    process.env.PLATFORM_ORG_ID;
+  if (!orgId) {
+    return NextResponse.json(
+      { success: false, error: "Organization context is required" },
+      { status: 400 },
+    );
+  }
+
+  const q = (searchParams.get("q") || "").trim();
+  const department = (searchParams.get("department") || "").trim();
+  const location = (searchParams.get("location") || "").trim();
+  const jobType = (searchParams.get("jobType") || "").trim();
+
+  const page = Math.max(parseInt(searchParams.get("page") || "1", 10), 1);
+  const limit = Math.min(
+    parseInt(searchParams.get("limit") || String(DEFAULT_LIMIT), 10),
+    50,
+  );
+  const skip = (page - 1) * limit;
+
+  const filter: Record<string, unknown> = {
+    orgId,
+    status: "published",
+    visibility: "public",
+  };
+
+  if (q) {
+    filter.$text = { $search: q };
+  }
+  if (department) {
+    filter.department = department;
+  }
+  if (jobType) {
+    filter.jobType = jobType;
+  }
+  if (location) {
+    // SECURITY: Escape regex special characters to prevent ReDoS
+    const escapedLocation = location.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escapedLocation, "i");
+    filter.$or = [{ "location.city": regex }, { "location.country": regex }];
+  }
+
+  const [jobs, total] = await Promise.all([
+    Job.find(filter)
+      .select(
+        "title department location jobType salaryRange description requirements benefits slug createdAt",
+      )
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    Job.countDocuments(filter),
+  ]);
+
+  return NextResponse.json({
+    success: true,
+    jobs,
+    pagination: {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit) || 1,
+    },
+  });
+}
+
+]]>
+</file>
+
+<file path="app/api/checkout/complete/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { dbConnect } from "@/db/mongoose";
+import Subscription from "@/server/models/Subscription";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse, getClientIP } from "@/server/security/headers";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+
+/**
+ * @openapi
+ * /api/checkout/complete:
+ *   post:
+ *     summary: Complete checkout and finalize payment
+ *     tags: [checkout]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  /**
+   * Rate Limiting: 60 requests per minute per IP
+   * Protects against checkout spam and payment fraud attempts
+   */
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  const session = await getSessionUser(req).catch(() => null);
+  if (!session) {
+    return createSecureResponse({ error: "Unauthorized" }, 401, req);
+  }
+
+  await dbConnect();
+  let body: { subscriptionId?: string; cartId?: string; payload?: unknown };
+  try {
+    body = await req.json();
+  } catch (_error) {
+    return createSecureResponse({ error: "Invalid JSON" }, 400, req);
+  }
+
+  if (body.payload) {
+    return createSecureResponse(
+      { error: "Use /api/paytabs/callback for PayTabs payloads" },
+      400,
+      req,
+    );
+  }
+
+  /**
+   * Subscription Retrieval
+   * Try to find subscription by either:
+   * 1. Direct subscription ID (preferred)
+   * 2. PayTabs cart ID (fallback for payment callbacks)
+   */
+  const subscriptionId = body.subscriptionId;
+  const cartId = body.cartId;
+
+  const subscription = subscriptionId
+    ? await Subscription.findById(subscriptionId)
+    : await Subscription.findOne({ "paytabs.cart_id": cartId });
+
+  if (!subscription) {
+    return createSecureResponse({ error: "SUBSCRIPTION_NOT_FOUND" }, 404, req);
+  }
+
+  const isTenantMatch =
+    subscription.tenant_id &&
+    session.orgId &&
+    subscription.tenant_id.toString() === session.orgId;
+  const isOwnerMatch =
+    subscription.owner_user_id &&
+    subscription.owner_user_id.toString() === session.id;
+  const isSuperAdmin = Boolean(session.isSuperAdmin);
+
+  if (!isTenantMatch && !isOwnerMatch && !isSuperAdmin) {
+    return createSecureResponse({ error: "Forbidden" }, 403, req);
+  }
+
+  /**
+   * Return subscription status
+   * Frontend uses this to determine if checkout was successful
+   */
+  return createSecureResponse(
+    {
+      ok: subscription.status === "ACTIVE",
+      subscription,
+    },
+    200,
+    req,
+  );
+}
+
+]]>
+</file>
+
+<file path="app/api/checkout/quote/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { dbConnect } from "@/db/mongoose";
+import { quotePrice } from "@/lib/finance/pricing";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
+
+/**
+ * @openapi
+ * /api/checkout/quote:
+ *   get:
+ *     summary: checkout/quote operations
+ *     tags: [checkout]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  await dbConnect();
+
+  const body = await req.json();
+  const { seats, modules, billingCycle, currency } = body;
+
+  const seatCount = Number(seats);
+  if (!Number.isFinite(seatCount) || seatCount <= 0) {
+    return createSecureResponse({ error: "INVALID_SEAT_COUNT" }, 400, req);
+  }
+
+  if (!Array.isArray(modules) || modules.length === 0) {
+    return createSecureResponse({ error: "MODULES_REQUIRED" }, 400, req);
+  }
+
+  const quote = await quotePrice({
+    priceBookCurrency: currency ?? "USD",
+    seats: seatCount,
+    modules,
+    billingCycle: billingCycle === "ANNUAL" ? "ANNUAL" : "MONTHLY",
+  });
+
+  return createSecureResponse(quote, 200, req);
+}
+
+]]>
+</file>
+
+<file path="app/api/checkout/session/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { dbConnect } from "@/db/mongoose";
+import { createSubscriptionCheckout } from "@/lib/finance/checkout";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
+
+/**
+ * @openapi
+ * /api/checkout/session:
+ *   get:
+ *     summary: checkout/session operations
+ *     tags: [checkout]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  await dbConnect();
+  const body = await req.json();
+
+  if (!["CORPORATE", "OWNER"].includes(body.subscriberType)) {
+    return createSecureResponse({ error: "INVALID_SUBSCRIBER_TYPE" }, 400, req);
+  }
+
+  if (!Array.isArray(body.modules) || body.modules.length === 0) {
+    return createSecureResponse({ error: "MODULES_REQUIRED" }, 400, req);
+  }
+
+  if (!body.customer?.email) {
+    return createSecureResponse({ error: "CUSTOMER_EMAIL_REQUIRED" }, 400, req);
+  }
+
+  const seats = Number(body.seats);
+  if (!Number.isFinite(seats) || seats <= 0) {
+    return createSecureResponse({ error: "INVALID_SEAT_COUNT" }, 400, req);
+  }
+
+  const result = await createSubscriptionCheckout({
+    subscriberType: body.subscriberType,
+    tenantId: body.tenantId,
+    ownerUserId: body.ownerUserId,
+    modules: body.modules,
+    seats,
+    billingCycle: body.billingCycle === "ANNUAL" ? "ANNUAL" : "MONTHLY",
+    currency: body.currency ?? "USD",
+    customer: body.customer,
+    priceBookId: body.priceBookId,
+    metadata: body.metadata,
+  });
+
+  return createSecureResponse(result, 200, req);
+}
+
+]]>
+</file>
+
+<file path="app/api/cms/pages/[slug]/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { CmsPage } from "@/server/models/CmsPage";
+import { z } from "zod";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+
+import { notFoundError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+
+/**
+ * @openapi
+ * /api/cms/pages/[slug]:
+ *   get:
+ *     summary: cms/pages/[slug] operations
+ *     tags: [cms]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(
+  _req: NextRequest,
+  props: { params: Promise<{ slug: string }> },
+) {
+  await connectToDatabase();
+  const { slug } = await props.params;
+  const page = await CmsPage.findOne({ slug }).lean();
+  if (!page) return createSecureResponse({ error: "Not found" }, 404, _req);
+  return createSecureResponse(page, 200, _req);
+}
+
+const patchSchema = z.object({
+  title: z.string().min(2).optional(),
+  content: z.string().min(1).optional(),
+  status: z.enum(["DRAFT", "PUBLISHED"]).optional(),
+});
+
+export async function PATCH(
+  req: NextRequest,
+  props: { params: Promise<{ slug: string }> },
+) {
+  await connectToDatabase();
+  const { slug } = await props.params;
+  const user = await getSessionUser(req).catch(() => null);
+  if (!user || !["SUPER_ADMIN", "CORPORATE_ADMIN"].includes(user.role)) {
+    return createSecureResponse({ error: "Forbidden" }, 403, req);
+  }
+
+  const body = await req.json();
+  const validated = patchSchema.parse(body);
+  const page = await CmsPage.findOneAndUpdate(
+    { slug },
+    { $set: validated },
+    { new: true },
+  );
+  if (!page) return notFoundError("Resource");
+  return NextResponse.json(page);
+}
+
+]]>
+</file>
+
+<file path="app/api/compliance/audits/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { UnauthorizedError } from "@/server/middleware/withAuthRbac";
+import {
+  setTenantContext,
+  clearTenantContext,
+} from "@/server/plugins/tenantIsolation";
+import {
+  setAuditContext,
+  clearAuditContext,
+} from "@/server/plugins/auditPlugin";
+import { getClientIP } from "@/server/security/headers";
+import ComplianceAudit from "@/server/models/ComplianceAudit";
+import type {
+  AuditStatus,
+  AuditRiskLevel,
+} from "@/server/models/ComplianceAudit";
+import { UserRole, type UserRoleType } from "@/types/user";
+
+const AuditStatuses: AuditStatus[] = [
+  "PLANNED",
+  "IN_PROGRESS",
+  "FOLLOW_UP",
+  "COMPLETED",
+];
+const RiskLevels: AuditRiskLevel[] = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
+const ALLOWED_ROLES: ReadonlySet<UserRoleType> = new Set([
+  UserRole.SUPER_ADMIN,
+  UserRole.CORPORATE_ADMIN,
+  UserRole.ADMIN,
+  UserRole.MANAGER,
+  UserRole.FM_MANAGER,
+  UserRole.PROPERTY_MANAGER,
+  UserRole.AUDITOR,
+]);
+
+const AuditCreateSchema = z.object({
+  name: z.string().min(1),
+  owner: z.string().min(1),
+  scope: z.string().min(1),
+  startDate: z.coerce.date(),
+  endDate: z.coerce.date(),
+  status: z
+    .enum(AuditStatuses as [AuditStatus, ...AuditStatus[]])
+    .default("PLANNED"),
+  riskLevel: z
+    .enum(RiskLevels as [AuditRiskLevel, ...AuditRiskLevel[]])
+    .default("MEDIUM"),
+  findings: z.number().min(0).optional(),
+  openIssues: z.number().min(0).optional(),
+  checklist: z.array(z.string().min(1)).optional(),
+  tags: z.array(z.string().min(1)).optional(),
+  leadAuditor: z.string().min(1).optional(),
+  supportingTeams: z.array(z.string().min(1)).optional(),
+});
+
+function isUnauthenticatedError(error: unknown): boolean {
+  return (
+    error instanceof UnauthorizedError ||
+    (error instanceof Error &&
+      error.message.toLowerCase().includes("unauthenticated"))
+  );
+}
+
+async function resolveUser(req: NextRequest) {
+  try {
+    const user = await getSessionUser(req);
+    if (!user || !user.orgId || !ALLOWED_ROLES.has(user.role)) {
+      return null;
+    }
+    return user;
+  } catch (error) {
+    if (isUnauthenticatedError(error)) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+export async function GET(req: NextRequest) {
+  const user = await resolveUser(req);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  await connectToDatabase();
+  const url = new URL(req.url);
+  const statusFilter = url.searchParams.get("status")?.toUpperCase();
+  const riskFilter = url.searchParams.get("risk")?.toUpperCase();
+  const search = url.searchParams.get("search")?.trim();
+  const limitParam = Number(url.searchParams.get("limit") ?? "50");
+  const limit = Number.isFinite(limitParam)
+    ? Math.min(Math.max(Math.trunc(limitParam), 1), 100)
+    : 50;
+
+  setTenantContext({ orgId: user.orgId });
+  try {
+    const filter: Record<string, unknown> = {};
+
+    if (statusFilter && AuditStatuses.includes(statusFilter as AuditStatus)) {
+      filter.status = statusFilter;
+    }
+    if (riskFilter && RiskLevels.includes(riskFilter as AuditRiskLevel)) {
+      filter.riskLevel = riskFilter;
+    }
+    if (search) {
+      // SECURITY: Escape regex special characters to prevent ReDoS
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      filter.$or = [
+        { name: new RegExp(escapedSearch, "i") },
+        { owner: new RegExp(escapedSearch, "i") },
+        { scope: new RegExp(escapedSearch, "i") },
+        { tags: new RegExp(escapedSearch, "i") },
+      ];
+    }
+
+    const [audits, total, inProgress, upcoming, completed, highRisk] =
+      await Promise.all([
+        ComplianceAudit.find(filter)
+          .sort({ startDate: -1 })
+          .limit(limit)
+          .lean(),
+        ComplianceAudit.countDocuments(),
+        ComplianceAudit.countDocuments({ status: "IN_PROGRESS" }),
+        ComplianceAudit.countDocuments({ status: "PLANNED" }),
+        ComplianceAudit.countDocuments({ status: "COMPLETED" }),
+        ComplianceAudit.countDocuments({ riskLevel: "HIGH" }),
+      ]);
+
+    return NextResponse.json({
+      audits,
+      stats: {
+        total,
+        upcoming,
+        inProgress,
+        completed,
+        highRisk,
+      },
+      meta: {
+        appliedFilters: {
+          status: filter.status ?? "ALL",
+          risk: filter.riskLevel ?? "ALL",
+          search: search ?? null,
+        },
+      },
+    });
+  } catch (error) {
+    logger.error("[compliance/audits] Failed to fetch audits", error as Error);
+    return NextResponse.json(
+      { error: "Failed to load audits" },
+      { status: 500 },
+    );
+  } finally {
+    clearTenantContext();
+  }
+}
+
+export async function POST(req: NextRequest) {
+  const user = await resolveUser(req);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let payload: z.infer<typeof AuditCreateSchema>;
+  try {
+    payload = AuditCreateSchema.parse(await req.json());
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Invalid payload", details: error.flatten() },
+        { status: 422 },
+      );
+    }
+    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  }
+
+  if (payload.endDate < payload.startDate) {
+    return NextResponse.json(
+      { error: "End date must be after start date" },
+      { status: 422 },
+    );
+  }
+
+  await connectToDatabase();
+  setTenantContext({ orgId: user.orgId });
+  setAuditContext({
+    userId: user.id,
+    ipAddress: getClientIP(req),
+    userAgent: req.headers.get("user-agent") ?? undefined,
+    timestamp: new Date(),
+  });
+
+  try {
+    const audit = await ComplianceAudit.create({
+      ...payload,
+      checklist: payload.checklist ?? [],
+      tags: payload.tags ?? [],
+      supportingTeams: payload.supportingTeams ?? [],
+    });
+
+    return NextResponse.json({ audit }, { status: 201 });
+  } catch (error) {
+    logger.error("[compliance/audits] Failed to create audit", error as Error);
+    return NextResponse.json(
+      { error: "Failed to create audit plan" },
+      { status: 500 },
+    );
+  } finally {
+    clearTenantContext();
+    clearAuditContext();
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/compliance/policies/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import {
+  getSessionUser,
+  UnauthorizedError,
+} from "@/server/middleware/withAuthRbac";
+import {
+  setTenantContext,
+  clearTenantContext,
+} from "@/server/plugins/tenantIsolation";
+import {
+  setAuditContext,
+  clearAuditContext,
+} from "@/server/plugins/auditPlugin";
+import { getClientIP } from "@/server/security/headers";
+import CompliancePolicy from "@/server/models/CompliancePolicy";
+import type {
+  CompliancePolicyCategory,
+  CompliancePolicyStatus,
+} from "@/server/models/CompliancePolicy";
+import { UserRole, type UserRoleType } from "@/types/user";
+
+const Statuses: CompliancePolicyStatus[] = [
+  "DRAFT",
+  "UNDER_REVIEW",
+  "ACTIVE",
+  "RETIRED",
+];
+const Categories: CompliancePolicyCategory[] = [
+  "OPERATIONS",
+  "FINANCE",
+  "HR",
+  "SAFETY",
+  "COMPLIANCE",
+  "VENDOR",
+];
+const ALLOWED_ROLES: ReadonlySet<UserRoleType> = new Set([
+  UserRole.SUPER_ADMIN,
+  UserRole.CORPORATE_ADMIN,
+  UserRole.ADMIN,
+  UserRole.MANAGER,
+  UserRole.FM_MANAGER,
+  UserRole.PROPERTY_MANAGER,
+  UserRole.AUDITOR,
+]);
+
+const PolicySchema = z.object({
+  title: z.string().min(2),
+  owner: z.string().min(1),
+  summary: z.string().min(1).optional(),
+  body: z.string().min(1).optional(),
+  category: z
+    .enum(
+      Categories as [CompliancePolicyCategory, ...CompliancePolicyCategory[]],
+    )
+    .default("COMPLIANCE"),
+  status: z
+    .enum(Statuses as [CompliancePolicyStatus, ...CompliancePolicyStatus[]])
+    .default("DRAFT"),
+  version: z.string().min(1).default("1.0"),
+  reviewFrequencyDays: z.number().min(30).max(720).default(365),
+  effectiveFrom: z.coerce.date().optional(),
+  reviewDate: z.coerce.date().optional(),
+  tags: z.array(z.string().min(1)).optional(),
+  relatedDocuments: z
+    .array(
+      z.object({
+        name: z.string().min(1),
+        url: z.string().url(),
+        type: z.string().optional(),
+      }),
+    )
+    .optional(),
+});
+
+function isUnauthenticatedError(error: unknown): boolean {
+  return (
+    error instanceof UnauthorizedError ||
+    (error instanceof Error &&
+      error.message.toLowerCase().includes("unauthenticated"))
+  );
+}
+
+async function resolveUser(req: NextRequest) {
+  try {
+    const user = await getSessionUser(req);
+    if (!user || !user.orgId || !ALLOWED_ROLES.has(user.role)) {
+      return null;
+    }
+    return user;
+  } catch (error) {
+    if (isUnauthenticatedError(error)) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+export async function GET(req: NextRequest) {
+  const user = await resolveUser(req);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  await connectToDatabase();
+  const url = new URL(req.url);
+  const statusFilter = url.searchParams.get("status")?.toUpperCase();
+  const categoryFilter = url.searchParams.get("category")?.toUpperCase();
+  const search = url.searchParams.get("search")?.trim();
+  const limitParam = Number(url.searchParams.get("limit") ?? "50");
+  const limit = Number.isFinite(limitParam)
+    ? Math.min(Math.max(Math.trunc(limitParam), 1), 100)
+    : 50;
+
+  setTenantContext({ orgId: user.orgId });
+  try {
+    const filter: Record<string, unknown> = {};
+    if (
+      statusFilter &&
+      Statuses.includes(statusFilter as CompliancePolicyStatus)
+    ) {
+      filter.status = statusFilter;
+    }
+    if (
+      categoryFilter &&
+      Categories.includes(categoryFilter as CompliancePolicyCategory)
+    ) {
+      filter.category = categoryFilter;
+    }
+    if (search) {
+      // SECURITY: Escape regex special characters to prevent ReDoS
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      filter.$or = [
+        { title: new RegExp(escapedSearch, "i") },
+        { owner: new RegExp(escapedSearch, "i") },
+        { tags: new RegExp(escapedSearch, "i") },
+      ];
+    }
+
+    const now = new Date();
+    const [policies, activeCount, drafts, underReview, dueForReview] =
+      await Promise.all([
+        CompliancePolicy.find(filter)
+          .sort({ updatedAt: -1 })
+          .limit(limit)
+          .lean(),
+        CompliancePolicy.countDocuments({ status: "ACTIVE" }),
+        CompliancePolicy.countDocuments({ status: "DRAFT" }),
+        CompliancePolicy.countDocuments({ status: "UNDER_REVIEW" }),
+        CompliancePolicy.countDocuments({
+          status: { $in: ["ACTIVE", "UNDER_REVIEW"] },
+          reviewDate: { $lte: now },
+        }),
+      ]);
+
+    return NextResponse.json({
+      policies,
+      stats: {
+        active: activeCount,
+        drafts,
+        underReview,
+        dueForReview,
+      },
+      meta: {
+        appliedFilters: {
+          status: filter.status ?? "ALL",
+          category: filter.category ?? "ALL",
+          search: search ?? null,
+        },
+      },
+    });
+  } catch (error) {
+    logger.error("[compliance/policies] Failed to fetch policies", error as Error);
+    return NextResponse.json(
+      { error: "Failed to load policies" },
+      { status: 500 },
+    );
+  } finally {
+    clearTenantContext();
+  }
+}
+
+export async function POST(req: NextRequest) {
+  const user = await resolveUser(req);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let payload: z.infer<typeof PolicySchema>;
+  try {
+    payload = PolicySchema.parse(await req.json());
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Invalid payload", details: error.flatten() },
+        { status: 422 },
+      );
+    }
+    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  }
+
+  await connectToDatabase();
+  setTenantContext({ orgId: user.orgId });
+  setAuditContext({
+    userId: user.id,
+    ipAddress: getClientIP(req),
+    userAgent: req.headers.get("user-agent") ?? undefined,
+    timestamp: new Date(),
+  });
+
+  try {
+    const policy = await CompliancePolicy.create({
+      ...payload,
+      tags: payload.tags ?? [],
+      relatedDocuments: payload.relatedDocuments ?? [],
+    });
+    return NextResponse.json({ policy }, { status: 201 });
+  } catch (error) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error as { code?: number }).code === 11000
+    ) {
+      return NextResponse.json(
+        { error: "Policy with this title already exists" },
+        { status: 409 },
+      );
+    }
+    logger.error("[compliance/policies] Failed to create policy", error as Error);
+    return NextResponse.json(
+      { error: "Failed to create policy" },
+      { status: 500 },
+    );
+  } finally {
+    clearTenantContext();
+    clearAuditContext();
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/contracts/route.ts">
+<![CDATA[
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import ServiceContract from "@/server/models/ServiceContract";
+import { NextRequest } from "next/server";
+import { getUserFromToken } from "@/lib/auth";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { createSecureResponse } from "@/server/security/headers";
+import {
+  createErrorResponse,
+  zodValidationError,
+  rateLimitError,
+} from "@/server/utils/errorResponses";
+import { z } from "zod";
+import { getClientIP } from "@/server/security/headers";
+
+function isUnauthenticatedError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.message.toLowerCase().includes("unauthenticated")
+  );
+}
+
+async function resolveUser(req: NextRequest) {
+  try {
+    return await getSessionUser(req);
+  } catch (error) {
+    if (!isUnauthenticatedError(error)) {
+      throw error;
+    }
+  }
+
+  const token = req.headers
+    .get("authorization")
+    ?.replace("Bearer ", "")
+    ?.trim();
+  if (!token) {
+    return null;
+  }
+  return getUserFromToken(token);
+}
+
+const contractSchema = z.object({
+  scope: z.enum(["OWNER_GROUP", "PROPERTY"]),
+  scopeRef: z.string().min(1),
+  contractorType: z.enum(["FM_COMPANY", "REAL_ESTATE_AGENT"]),
+  contractorRef: z.string().min(1),
+  startDate: z.string().or(z.date()),
+  endDate: z.string().or(z.date()),
+  terms: z.string().min(1),
+  // SLA is stored as string in ServiceContract model (line 27)
+  sla: z.string().optional(),
+});
+
+/**
+ * @openapi
+ * /api/contracts:
+ *   get:
+ *     summary: contracts operations
+ *     tags: [contracts]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  try {
+    const user = await resolveUser(req);
+    if (!user) {
+      return createErrorResponse("Authentication required", 401, req);
+    }
+
+    // Ensure user has tenant context
+    if (!user.orgId) {
+      return createErrorResponse("User organization not found", 400, req);
+    }
+
+    // Role-based access control - only admins can create contracts
+    if (!["SUPER_ADMIN", "ADMIN", "MANAGER"].includes(user.role)) {
+      return createErrorResponse("Insufficient permissions", 403, req);
+    }
+
+    // Rate limiting for contract operations
+    const key = `contracts:${user.orgId}:${user.id}`;
+    const rl = await smartRateLimit(key, 10, 60_000); // 10 contracts per minute
+    if (!rl.allowed) {
+      return createErrorResponse(
+        "Contract creation rate limit exceeded",
+        429,
+        req,
+      );
+    }
+
+    await connectToDatabase();
+    const body = contractSchema.parse(await req.json());
+
+    // Tenant isolation - ensure contract belongs to user's org
+    const contractData = {
+      ...body,
+      orgId: user.orgId,
+      createdBy: user.id,
+      createdAt: new Date(),
+    };
+
+    const contract = await ServiceContract.create(contractData);
+    return createSecureResponse(contract, 201, req);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return zodValidationError(error, req);
+    }
+    logger.error(
+      "Contract creation failed:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createErrorResponse("Internal server error", 500, req);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/copilot/chat/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
+import { resolveCopilotSession } from "@/server/copilot/session";
+import {
+  evaluateMessagePolicy,
+  describeDataClass,
+  redactSensitiveText,
+  getPermittedTools,
+} from "@/server/copilot/policy";
+import { detectToolFromMessage, executeTool } from "@/server/copilot/tools";
+import { retrieveKnowledge } from "@/server/copilot/retrieval";
+import { generateCopilotResponse } from "@/server/copilot/llm";
+import { recordAudit } from "@/server/copilot/audit";
+import { classifyIntent, detectSentiment } from "@/server/copilot/classifier";
+import {
+  searchAvailableUnits,
+  formatApartmentResults,
+} from "@/server/copilot/apartmentSearch";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
+
+const messageSchema = z.object({
+  role: z.enum(["user", "assistant"]),
+  content: z.string(),
+});
+
+// Infer Message type from schema to avoid duplication
+type Message = z.infer<typeof messageSchema>;
+
+const toolSchema = z.object({
+  name: z.string(),
+  args: z.record(z.string(), z.unknown()).optional(),
+});
+
+const requestSchema = z.object({
+  message: z.string().optional(),
+  history: z.array(messageSchema).optional(),
+  locale: z.enum(["en", "ar"]).optional(),
+  tool: toolSchema.optional(),
+});
+
+const multipartRequestSchema = z.object({
+  tool: toolSchema,
+});
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+/**
+ * @openapi
+ * /api/copilot/chat:
+ *   post:
+ *     summary: copilot/chat operations
+ *     tags: [copilot]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  const session = await resolveCopilotSession(req);
+
+  const contentType = req.headers.get("content-type") || "";
+  let body: z.infer<typeof requestSchema>;
+
+  if (contentType.includes("multipart/form-data")) {
+    const formData = await req.formData();
+    const toolName = String(formData.get("tool") || "");
+    const argsRaw = formData.get("args");
+    const file = formData.get("file");
+    const workOrderId = formData.get("workOrderId");
+
+    if (!toolName) {
+      return createSecureResponse({ error: "Tool name is required" }, 400, req);
+    }
+
+    let args: Record<string, unknown> = {};
+    if (typeof argsRaw === "string" && argsRaw) {
+      try {
+        args = JSON.parse(argsRaw) as Record<string, unknown>;
+      } catch (error) {
+        logger.warn("[copilot] Invalid JSON in multipart args", { error });
+        return createSecureResponse(
+          { error: "Invalid args payload (must be JSON)" },
+          400,
+          req,
+        );
+      }
+    }
+
+    if (file instanceof File) {
+      // Validate file size (10MB limit)
+      const MAX_FILE_SIZE = 10 * 1024 * 1024;
+      if (file.size > MAX_FILE_SIZE) {
+        return createSecureResponse(
+          { error: "File size exceeds 10MB limit" },
+          400,
+          req,
+        );
+      }
+
+      const buffer = Buffer.from(await file.arrayBuffer());
+      args.buffer = buffer;
+      args.fileName = file.name;
+      args.mimeType = file.type || "application/octet-stream";
+    }
+
+    if (typeof workOrderId === "string" && workOrderId) {
+      args.workOrderId = workOrderId;
+    }
+
+    // Validate the constructed body against schema
+    body = multipartRequestSchema.parse({ tool: { name: toolName, args } });
+  } else {
+    let json: unknown;
+    try {
+      json = await req.json();
+    } catch (error) {
+      logger.warn("[copilot] Invalid JSON body", { error });
+      return createSecureResponse(
+        { error: "Invalid JSON payload" },
+        400,
+        req,
+      );
+    }
+    body = requestSchema.parse(json);
+  }
+
+  const locale = body.locale || session.locale;
+
+  try {
+    if (body.tool) {
+      if (!getPermittedTools(session.role).includes(body.tool.name)) {
+        await recordAudit({
+          session,
+          intent: body.tool.name,
+          tool: body.tool.name,
+          status: "DENIED",
+          message: "Tool not allowed",
+        });
+        const deniedMessage =
+          locale === "ar"
+            ? "ليست لديك الصلاحية لاستخدام هذا الإجراء. يرجى تسجيل الدخول للوصول إلى هذه الميزة."
+            : "You do not have permission to run this action. Please sign in to access this feature.";
+        return createSecureResponse(
+          {
+            reply: deniedMessage,
+            requiresAuth: session.role === "GUEST",
+          },
+          403,
+          req,
+        );
+      }
+
+      const result = await executeTool(body.tool.name, body.tool.args || {}, {
+        ...session,
+        locale,
+      });
+      await recordAudit({
+        session,
+        intent: result.intent,
+        tool: body.tool.name,
+        status: "SUCCESS",
+        message: result.message,
+        metadata: result.data ? { payload: result.data } : undefined,
+      });
+      return NextResponse.json({
+        reply: result.message,
+        data: result.data,
+        intent: result.intent,
+      });
+    }
+
+    const message = body.message?.trim();
+    if (!message) {
+      return createSecureResponse({ error: "Message is required" }, 400, req);
+    }
+
+    // Strict data-class enforcement BEFORE guest guidance or intent routing
+    const policy = evaluateMessagePolicy({ ...session, locale }, message);
+    if (!policy.allowed) {
+      const response =
+        locale === "ar"
+          ? `لا يمكنني مشاركة هذه المعلومات لأنها ${describeDataClass(policy.dataClass)} ولا يتيحها دورك.`
+          : `I cannot share that because it is ${describeDataClass(policy.dataClass)} data and your role is not permitted.`;
+      await recordAudit({
+        session,
+        intent: "policy_denied",
+        status: "DENIED",
+        message: response,
+        prompt: message,
+        metadata: { dataClass: policy.dataClass },
+      });
+      return createSecureResponse({ reply: response }, 403, req);
+    }
+
+    // Enhanced GUEST user guidance (after policy guard)
+    if (session.role === "GUEST") {
+      const guestMessage =
+        locale === "ar"
+          ? "مرحباً! يمكنني مساعدتك في معرفة المزيد عن Fixzit.\n\nيمكنني:\n• شرح كيفية عمل النظام\n• الإجابة على الأسئلة حول الميزات\n• مساعدتك في البدء\n\nلإنشاء طلبات صيانة أو الوصول إلى بيانات محددة، يرجى تسجيل الدخول أو التسجيل للحصول على حساب."
+          : "Hi! I can help you learn about Fixzit.\n\nI can:\n• Explain how the system works\n• Answer questions about features\n• Help you get started\n\nTo create maintenance tickets, access specific data, or perform actions, please sign in or register for an account.";
+
+      await recordAudit({
+        session,
+        intent: "guest_info",
+        status: "SUCCESS",
+        message: guestMessage,
+        prompt: message,
+      });
+
+      return NextResponse.json({
+        reply: guestMessage,
+        intent: "guest_info",
+        requiresAuth: true,
+      });
+    }
+
+    // Classify intent and detect sentiment for routing and escalation
+    const intent = classifyIntent(message, locale);
+    const sentiment = detectSentiment(message);
+
+    // Log analytics for sentiment tracking
+    if (sentiment === "negative") {
+      logger.warn("[copilot] Negative sentiment detected", {
+        userId: session.userId,
+        message: message.slice(0, 100),
+      });
+      // NOTE: Escalation workflow deferred to Phase 2 - requires support ticket integration
+      // When implemented, will create support ticket for negative sentiment conversations
+    }
+
+    // Handle apartment search intent via dedicated module
+    if (intent === "APARTMENT_SEARCH") {
+      const units = await searchAvailableUnits(message, {
+        userId: session.userId,
+        orgId: session.tenantId,
+        role: session.role as never,
+        locale,
+      });
+      const reply = formatApartmentResults(units, locale);
+      await recordAudit({
+        session,
+        intent: "apartment_search",
+        status: "SUCCESS",
+        message: reply,
+        prompt: message,
+        metadata: { unitCount: units.length },
+      });
+      return NextResponse.json({ reply, intent, data: { units } });
+    }
+
+    const toolFromMessage = detectToolFromMessage(message);
+    if (toolFromMessage) {
+      const result = await executeTool(
+        toolFromMessage.name,
+        toolFromMessage.args,
+        { ...session, locale },
+      );
+      await recordAudit({
+        session,
+        intent: result.intent,
+        tool: toolFromMessage.name,
+        status: "SUCCESS",
+        message: result.message,
+        prompt: message,
+        metadata: result.data ? { payload: result.data } : undefined,
+      });
+      return NextResponse.json({
+        reply: result.message,
+        data: result.data,
+        intent: result.intent,
+      });
+    }
+
+    const docs = await retrieveKnowledge({ ...session, locale }, message);
+    const reply = await generateCopilotResponse({
+      session: { ...session, locale },
+      prompt: message,
+      history: body.history as Message[],
+      docs,
+    });
+
+    await recordAudit({
+      session,
+      intent: "chat",
+      status: "SUCCESS",
+      message: reply,
+      prompt: message,
+      metadata: { docIds: docs.map((doc) => doc.id) },
+    });
+
+    return NextResponse.json({
+      reply: redactSensitiveText(reply),
+      sources: docs.map((doc) => ({
+        id: doc.id,
+        title: doc.title,
+        score: doc.score,
+        source: doc.source,
+      })),
+    });
+  } catch (error: unknown) {
+    logger.error(
+      "Copilot chat error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+    const stack = error instanceof Error ? error.stack : String(error);
+    await recordAudit({
+      session,
+      intent: body.tool?.name || "chat",
+      status: "ERROR",
+      message: errorMessage,
+      prompt: body.message,
+      metadata: { stack, error: String(error) },
+    });
+    return NextResponse.json(
+      {
+        reply:
+          locale === "ar"
+            ? "حدث خطأ أثناء معالجة الطلب."
+            : "Something went wrong while processing the request.",
+        error: errorMessage,
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

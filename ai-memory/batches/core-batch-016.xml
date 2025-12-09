@@ -1,0 +1,1991 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/aqar/filters/page.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  Search as SearchIcon,
+  MapPin,
+  Home,
+  DollarSign,
+  Bed,
+  Bath,
+  Calendar,
+  Filter,
+} from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
+
+type FilterState = {
+  propertyType: string;
+  city: string;
+  minPrice: string;
+  maxPrice: string;
+  bedrooms: string;
+  bathrooms: string;
+  minArea: string;
+  maxArea: string;
+  furnished: string;
+  availableFrom: string; // yyyy-mm-dd
+  keywords: string;
+};
+
+const STORAGE_KEY = "aqar:filters";
+
+const PROPERTY_TYPES = [
+  { value: "", labelKey: "aqar.filters.any", fallback: "Any" },
+  {
+    value: "apartment",
+    labelKey: "aqar.propertyType.apartment",
+    fallback: "Apartment",
+  },
+  { value: "villa", labelKey: "aqar.propertyType.villa", fallback: "Villa" },
+  {
+    value: "townhouse",
+    labelKey: "aqar.propertyType.townhouse",
+    fallback: "Townhouse",
+  },
+  {
+    value: "penthouse",
+    labelKey: "aqar.propertyType.penthouse",
+    fallback: "Penthouse",
+  },
+  { value: "studio", labelKey: "aqar.propertyType.studio", fallback: "Studio" },
+  { value: "office", labelKey: "aqar.propertyType.office", fallback: "Office" },
+  {
+    value: "warehouse",
+    labelKey: "aqar.propertyType.warehouse",
+    fallback: "Warehouse",
+  },
+  { value: "land", labelKey: "aqar.propertyType.land", fallback: "Land" },
+] as const;
+
+const CITIES = [
+  { value: "", labelKey: "aqar.filters.any", fallback: "Any" },
+  { value: "riyadh", labelKey: "aqar.city.riyadh", fallback: "Riyadh" },
+  { value: "jeddah", labelKey: "aqar.city.jeddah", fallback: "Jeddah" },
+  { value: "dammam", labelKey: "aqar.city.dammam", fallback: "Dammam" },
+  { value: "mecca", labelKey: "aqar.city.mecca", fallback: "Mecca" },
+  { value: "medina", labelKey: "aqar.city.medina", fallback: "Medina" },
+  { value: "khobar", labelKey: "aqar.city.khobar", fallback: "Khobar" },
+  { value: "taif", labelKey: "aqar.city.taif", fallback: "Taif" },
+] as const;
+
+const DEFAULT_FILTERS: FilterState = {
+  propertyType: "",
+  city: "",
+  minPrice: "",
+  maxPrice: "",
+  bedrooms: "",
+  bathrooms: "",
+  minArea: "",
+  maxArea: "",
+  furnished: "",
+  availableFrom: "",
+  keywords: "",
+};
+
+export default function FiltersPage() {
+  const { t, isRTL } = useTranslation();
+  const router = useRouter();
+  const params = useSearchParams();
+
+  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+
+  // For RTL, keep numerics/date visually LTR to avoid Arabic-Indic direction issues
+  const dirNum: React.HTMLAttributes<HTMLInputElement>["dir"] = isRTL
+    ? "ltr"
+    : undefined;
+
+  // today in local tz for min on date input and validation
+  const today = useMemo(() => new Date().toISOString().split("T")[0], []);
+
+  // ---------- init from URL or sessionStorage ----------
+  useEffect(() => {
+    if (!params) return;
+    const fromURL: Partial<FilterState> = {};
+    params.forEach((v, k) => {
+      if ((k as keyof FilterState) in DEFAULT_FILTERS) {
+        (fromURL as Record<string, string>)[k] = String(v);
+      }
+    });
+
+    if (Object.keys(fromURL).length > 0) {
+      setFilters((prev) => ({ ...prev, ...(fromURL as FilterState) }));
+      return;
+    }
+
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      if (raw)
+        setFilters((prev) => ({
+          ...prev,
+          ...(JSON.parse(raw) as FilterState),
+        }));
+    } catch {
+      /* ignore */
+    }
+  }, [params]);
+
+  // Persist to sessionStorage (non-blocking)
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(filters));
+    } catch {
+      /* ignore */
+    }
+  }, [filters]);
+
+  // ---------- helpers ----------
+  const handleFilterChange = useCallback(
+    (key: keyof FilterState, value: string) => {
+      setFilters((prev) => ({ ...prev, [key]: value }));
+    },
+    [],
+  );
+
+  const sanitizeInt = useCallback((val: string) => {
+    if (val === "" || val === undefined || val === null) return "";
+    const n = Math.max(0, Math.floor(Number(val)));
+    return Number.isFinite(n) ? String(n) : "";
+  }, []);
+
+  const clampFutureDate = useCallback(
+    (yyyyMMdd: string) => {
+      if (!yyyyMMdd) return "";
+      // if stored date is in the past, drop it
+      return yyyyMMdd < today ? "" : yyyyMMdd;
+    },
+    [today],
+  );
+
+  const buildParams = useCallback(
+    (state: FilterState) => {
+      // normalize ranges (swap if min > max)
+      let minPrice = sanitizeInt(state.minPrice);
+      let maxPrice = sanitizeInt(state.maxPrice);
+      if (minPrice && maxPrice && Number(minPrice) > Number(maxPrice)) {
+        [minPrice, maxPrice] = [maxPrice, minPrice];
+      }
+
+      let minArea = sanitizeInt(state.minArea);
+      let maxArea = sanitizeInt(state.maxArea);
+      if (minArea && maxArea && Number(minArea) > Number(maxArea)) {
+        [minArea, maxArea] = [maxArea, minArea];
+      }
+
+      const bedrooms = sanitizeInt(state.bedrooms);
+      const bathrooms = sanitizeInt(state.bathrooms);
+
+      const trimmedKeywords = state.keywords.trim();
+      const availableFrom = clampFutureDate(state.availableFrom);
+
+      const q = new URLSearchParams();
+      const set = (k: keyof FilterState, v: string) => {
+        if (v !== "") q.set(k, v);
+      };
+
+      set("propertyType", state.propertyType);
+      set("city", state.city);
+      set("minPrice", minPrice);
+      set("maxPrice", maxPrice);
+      set("bedrooms", bedrooms);
+      set("bathrooms", bathrooms);
+      set("minArea", minArea);
+      set("maxArea", maxArea);
+      set("furnished", state.furnished);
+      set("availableFrom", availableFrom);
+      if (trimmedKeywords) q.set("keywords", trimmedKeywords);
+
+      return q;
+    },
+    [sanitizeInt, clampFutureDate],
+  );
+
+  const pushSearch = useCallback(
+    (next: FilterState) => {
+      const q = buildParams(next);
+      router.push(`/aqar/filters?${q.toString()}`);
+    },
+    [router, buildParams],
+  );
+
+  const handleSearch = useCallback(() => {
+    pushSearch(filters);
+  }, [filters, pushSearch]);
+
+  const handleReset = useCallback(() => {
+    setFilters(DEFAULT_FILTERS);
+    router.push("/aqar/filters");
+  }, [router]);
+
+  // ---------- JSX ----------
+  return (
+    <div className="min-h-screen bg-muted" dir={isRTL ? "rtl" : "ltr"}>
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        <div className="mb-6">
+          <h1
+            className="text-3xl font-bold text-foreground mb-2"
+            data-testid="filters-title"
+          >
+            {t("aqar.filters.title", "Search & Filters")}
+          </h1>
+          <p className="text-muted-foreground">
+            {t(
+              "aqar.filters.subtitle",
+              "Find your perfect property with advanced search filters",
+            )}
+          </p>
+        </div>
+
+        <div className="bg-card rounded-2xl shadow-sm p-6 mb-6">
+          {/* Form semantics allow Enter to submit */}
+          <form
+            data-testid="filters-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSearch();
+            }}
+          >
+            {/* Keywords */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-foreground mb-2">
+                <span className="inline-flex items-center gap-2">
+                  <SearchIcon className="w-4 h-4" />
+                  {t("aqar.filters.keywords", "Keywords")}
+                </span>
+              </label>
+              <input
+                data-testid="keywords-input"
+                type="text"
+                value={filters.keywords}
+                onChange={(e) => handleFilterChange("keywords", e.target.value)}
+                placeholder={t(
+                  "aqar.filters.keywordsPlaceholder",
+                  "Search by location, neighborhood, or description...",
+                )}
+                className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                aria-label={t("aqar.filters.keywords", "Keywords")}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Property Type */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  <span className="inline-flex items-center gap-2">
+                    <Home className="w-4 h-4" />
+                    {t("aqar.filters.propertyType", "Property Type")}
+                  </span>
+                </label>
+                <select
+                  data-testid="property-type-select"
+                  value={filters.propertyType}
+                  onChange={(e) =>
+                    handleFilterChange("propertyType", e.target.value)
+                  }
+                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                >
+                  {PROPERTY_TYPES.map(({ value, labelKey, fallback }) => (
+                    <option key={value || "any"} value={value}>
+                      {t(labelKey, fallback)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* City */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  <span className="inline-flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    {t("aqar.filters.city", "City")}
+                  </span>
+                </label>
+                <select
+                  data-testid="city-select"
+                  value={filters.city}
+                  onChange={(e) => handleFilterChange("city", e.target.value)}
+                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                >
+                  {CITIES.map(({ value, labelKey, fallback }) => (
+                    <option key={value || "any"} value={value}>
+                      {t(labelKey, fallback)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Bedrooms */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  <span className="inline-flex items-center gap-2">
+                    <Bed className="w-4 h-4" />
+                    {t("aqar.filters.bedrooms", "Bedrooms")}
+                  </span>
+                </label>
+                <select
+                  data-testid="bedrooms-select"
+                  value={filters.bedrooms}
+                  onChange={(e) =>
+                    handleFilterChange("bedrooms", sanitizeInt(e.target.value))
+                  }
+                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                >
+                  <option value="">{t("aqar.filters.any", "Any")}</option>
+                  <option value="1">1+</option>
+                  <option value="2">2+</option>
+                  <option value="3">3+</option>
+                  <option value="4">4+</option>
+                  <option value="5">5+</option>
+                </select>
+              </div>
+
+              {/* Bathrooms */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  <span className="inline-flex items-center gap-2">
+                    <Bath className="w-4 h-4" />
+                    {t("aqar.filters.bathrooms", "Bathrooms")}
+                  </span>
+                </label>
+                <select
+                  data-testid="bathrooms-select"
+                  value={filters.bathrooms}
+                  onChange={(e) =>
+                    handleFilterChange("bathrooms", sanitizeInt(e.target.value))
+                  }
+                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                >
+                  <option value="">{t("aqar.filters.any", "Any")}</option>
+                  <option value="1">1+</option>
+                  <option value="2">2+</option>
+                  <option value="3">3+</option>
+                  <option value="4">4+</option>
+                </select>
+              </div>
+
+              {/* Min Price */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  <span className="inline-flex items-center gap-2">
+                    <DollarSign className="w-4 h-4" />
+                    {t("aqar.filters.minPrice", "Min Price (SAR)")}
+                  </span>
+                </label>
+                <input
+                  data-testid="min-price-input"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  step={100}
+                  dir={dirNum}
+                  value={filters.minPrice}
+                  onChange={(e) =>
+                    handleFilterChange("minPrice", sanitizeInt(e.target.value))
+                  }
+                  placeholder="0"
+                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+
+              {/* Max Price */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  <span className="inline-flex items-center gap-2">
+                    <DollarSign className="w-4 h-4" />
+                    {t("aqar.filters.maxPrice", "Max Price (SAR)")}
+                  </span>
+                </label>
+                <input
+                  data-testid="max-price-input"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  step={100}
+                  dir={dirNum}
+                  value={filters.maxPrice}
+                  onChange={(e) =>
+                    handleFilterChange("maxPrice", sanitizeInt(e.target.value))
+                  }
+                  placeholder="∞"
+                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+
+              {/* Min Area */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  {t("aqar.filters.minArea", "Min Area (m²)")}
+                </label>
+                <input
+                  data-testid="min-area-input"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  step={5}
+                  dir={dirNum}
+                  value={filters.minArea}
+                  onChange={(e) =>
+                    handleFilterChange("minArea", sanitizeInt(e.target.value))
+                  }
+                  placeholder="0"
+                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+
+              {/* Max Area */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  {t("aqar.filters.maxArea", "Max Area (m²)")}
+                </label>
+                <input
+                  data-testid="max-area-input"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  step={5}
+                  dir={dirNum}
+                  value={filters.maxArea}
+                  onChange={(e) =>
+                    handleFilterChange("maxArea", sanitizeInt(e.target.value))
+                  }
+                  placeholder="∞"
+                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+
+              {/* Furnished */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  {t("aqar.filters.furnished", "Furnished")}
+                </label>
+                <select
+                  data-testid="furnished-select"
+                  value={filters.furnished}
+                  onChange={(e) =>
+                    handleFilterChange("furnished", e.target.value)
+                  }
+                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                >
+                  <option value="">{t("aqar.filters.any", "Any")}</option>
+                  <option value="yes">
+                    {t("aqar.filters.furnished.yes", "Furnished")}
+                  </option>
+                  <option value="no">
+                    {t("aqar.filters.furnished.no", "Unfurnished")}
+                  </option>
+                  <option value="partial">
+                    {t("aqar.filters.furnished.partial", "Partially Furnished")}
+                  </option>
+                </select>
+              </div>
+
+              {/* Available From */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  <span className="inline-flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    {t("aqar.filters.availableFrom", "Available From")}
+                  </span>
+                </label>
+                <input
+                  data-testid="available-from-input"
+                  type="date"
+                  dir={dirNum}
+                  value={filters.availableFrom}
+                  min={today}
+                  onChange={(e) =>
+                    handleFilterChange("availableFrom", e.target.value)
+                  }
+                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 mt-8 justify-end">
+              <button
+                type="button"
+                onClick={handleReset}
+                className="px-6 py-2 border border-border text-foreground rounded-2xl hover:bg-muted transition-colors"
+                data-testid="reset-btn"
+              >
+                {t("aqar.filters.reset", "Reset Filters")}
+              </button>
+              <button
+                type="submit"
+                className="px-6 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 transition-colors inline-flex items-center gap-2"
+                data-testid="search-btn"
+              >
+                <Filter className="w-4 h-4" />
+                {t("aqar.filters.search", "Search Properties")}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* Quick Filter Presets */}
+        <div
+          className="bg-card rounded-2xl shadow-sm p-6"
+          data-testid="quick-filters"
+        >
+          <h2 className="text-lg font-semibold text-foreground mb-4">
+            {t("aqar.filters.quickFilters", "Quick Filters")}
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <button
+              data-testid="preset-family-apartment"
+              onClick={() => {
+                const next: FilterState = {
+                  ...filters,
+                  propertyType: "apartment",
+                  city: "riyadh",
+                  bedrooms: "2",
+                };
+                setFilters(next);
+                pushSearch(next);
+              }}
+              className="px-4 py-3 border border-border rounded-2xl hover:bg-muted transition-colors text-sm"
+            >
+              {t(
+                "aqar.filters.preset.familyApartment",
+                "2BR Apartment in Riyadh",
+              )}
+            </button>
+            <button
+              data-testid="preset-luxury-villa"
+              onClick={() => {
+                const next: FilterState = {
+                  ...filters,
+                  propertyType: "villa",
+                  bedrooms: "4",
+                  city: "jeddah",
+                };
+                setFilters(next);
+                pushSearch(next);
+              }}
+              className="px-4 py-3 border border-border rounded-2xl hover:bg-muted transition-colors text-sm"
+            >
+              {t("aqar.filters.preset.luxuryVilla", "Luxury Villa in Jeddah")}
+            </button>
+            <button
+              data-testid="preset-affordable-studio"
+              onClick={() => {
+                const next: FilterState = {
+                  ...filters,
+                  propertyType: "studio",
+                  maxPrice: "50000",
+                };
+                setFilters(next);
+                pushSearch(next);
+              }}
+              className="px-4 py-3 border border-border rounded-2xl hover:bg-muted transition-colors text-sm"
+            >
+              {t("aqar.filters.preset.affordableStudio", "Affordable Studio")}
+            </button>
+            <button
+              data-testid="preset-commercial-office"
+              onClick={() => {
+                const next: FilterState = {
+                  ...filters,
+                  propertyType: "office",
+                  city: "riyadh",
+                };
+                setFilters(next);
+                pushSearch(next);
+              }}
+              className="px-4 py-3 border border-border rounded-2xl hover:bg-muted transition-colors text-sm"
+            >
+              {t("aqar.filters.preset.commercialOffice", "Commercial Office")}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/aqar/layout.tsx">
+<![CDATA[
+"use client";
+import { useTranslation } from "@/contexts/TranslationContext";
+import ChatWidget from "@/components/aqar/ChatWidget";
+
+export default function AqarLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  // Always call hooks unconditionally
+  const { locale: ctxLocale, isRTL } = useTranslation();
+
+  const locale = ctxLocale || "en";
+  const dir = isRTL ? "rtl" : "ltr";
+
+  return (
+    <div dir={dir} lang={locale} className="w-full h-full">
+      {children}
+      <ChatWidget />
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/aqar/listings/[id]/page.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import { useTranslation } from "@/contexts/TranslationContext";
+import {
+  MapPin,
+  CheckCircle,
+  Bath,
+  Maximize,
+  Share2,
+  Clock,
+} from "lucide-react";
+import AiInsights from "@/components/aqar/AiInsights";
+import ProptechBadges from "@/components/aqar/ProptechBadges";
+import RecommendationRail from "@/components/aqar/RecommendationRail";
+import DynamicPricingCard from "@/components/aqar/DynamicPricingCard";
+import VRTour from "@/components/aqar/VRTour";
+
+interface ListingResponse {
+  listing: {
+    _id: string;
+    title?: string;
+    price?: { amount: number; currency: string };
+    areaSqm?: number;
+    city?: string;
+    neighborhood?: string;
+    amenities?: string[];
+    media?: { url: string }[];
+    analytics?: { views?: number };
+    rnplEligible?: boolean;
+    immersive?: { vrTour?: { url?: string } };
+    proptech?: Parameters<typeof ProptechBadges>[0]["proptech"];
+    iotFeatures?: { key?: string; label?: string }[];
+    pricingInsights?: Parameters<typeof AiInsights>[0]["pricing"];
+    ai?: { recommendationScore?: number };
+    intent?: string;
+    propertyType?: string;
+    location?: { cityId?: string; neighborhoodId?: string };
+  };
+}
+
+export default function ListingDetailPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  const { t } = useTranslation();
+  const [listing, setListing] = useState<ListingResponse["listing"] | null>(
+    null,
+  );
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [offlineInfo, setOfflineInfo] = useState<{
+    cacheKey: string;
+    checksum: string;
+  } | null>(null);
+  const [offlineLoading, setOfflineLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/aqar/listings/${params.id}`);
+        if (!res.ok) throw new Error("Failed to load listing");
+        const data: ListingResponse = await res.json();
+        if (!cancelled) {
+          setListing(data.listing);
+          setError(null);
+        }
+      } catch (_err) {
+        if (!cancelled) {
+          setError(t("aqar.listing.error", "تعذر تحميل التفاصيل"));
+          setListing(null);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [params.id, t]);
+
+  const heroImage = useMemo(
+    () => listing?.media?.[0]?.url || "/images/property-placeholder.jpg",
+    [listing],
+  );
+
+  const handleGenerateOffline = async () => {
+    if (!listing) return;
+    setOfflineLoading(true);
+    try {
+      const query = new URLSearchParams();
+      if (listing.city) query.set("city", listing.city);
+      if (listing.intent) query.set("intent", listing.intent);
+      const res = await fetch(`/api/aqar/offline?${query.toString()}`);
+      if (!res.ok) throw new Error("offline failed");
+      const data = await res.json();
+      setOfflineInfo({ cacheKey: data.cacheKey, checksum: data.checksum });
+    } catch (_err) {
+      setOfflineInfo(null);
+    } finally {
+      setOfflineLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-6xl mx-auto px-4 py-12 text-muted-foreground">
+        {t("aqar.listing.loading", "يتم تحميل تفاصيل العقار...")}
+      </div>
+    );
+  }
+
+  if (error || !listing) {
+    return (
+      <div className="max-w-6xl mx-auto px-4 py-12 text-destructive">
+        {error || t("aqar.listing.notFound", "لم يتم العثور على العقار")}
+      </div>
+    );
+  }
+
+  const amenitiesCount = listing.amenities?.length ?? 0;
+  const amenityLabel = t("aqar.listing.amenities", `${amenitiesCount} ميزة`);
+  const viewsCount = listing.analytics?.views ?? 0;
+  const viewsLabel = t("aqar.listing.views", `${viewsCount} مشاهدة`);
+
+  return (
+    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+      <div className="grid lg:grid-cols-2 gap-6">
+        <div className="relative h-80 rounded-3xl overflow-hidden bg-muted">
+          <Image
+            src={heroImage}
+            alt={listing.title || "Listing"}
+            fill
+            className="object-cover"
+          />
+          <button className="absolute top-4 end-4 bg-white/90 rounded-full px-4 py-1 text-sm text-foreground flex items-center gap-2">
+            <Share2 className="w-4 h-4" />
+            {t("common.share", "Share")}
+          </button>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
+              {listing.intent}
+            </p>
+            <h1 className="text-3xl font-semibold text-foreground">
+              {listing.title || t("aqar.listing.untitled", "عقار بدون عنوان")}
+            </h1>
+            <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
+              <MapPin className="w-4 h-4" />
+              {listing.neighborhood && `${listing.neighborhood} • `}
+              {listing.city}
+            </p>
+          </div>
+          <div className="text-4xl font-bold text-foreground">
+            {listing.price?.amount
+              ? `${listing.price.amount.toLocaleString()} ﷼`
+              : "--"}
+          </div>
+          <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <CheckCircle className="w-4 h-4" />
+              {amenityLabel}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <Bath className="w-4 h-4" />
+              {t("aqar.listing.baths", "دورات مياه متعددة")}
+            </span>
+            {listing.areaSqm && (
+              <span className="inline-flex items-center gap-1">
+                <Maximize className="w-4 h-4" />
+                {listing.areaSqm} m²
+              </span>
+            )}
+            {listing.analytics?.views && (
+              <span className="inline-flex items-center gap-1">
+                <Clock className="w-4 h-4" />
+                {viewsLabel}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={handleGenerateOffline}
+            disabled={offlineLoading}
+            className="w-full md:w-auto px-4 py-2 rounded-2xl bg-primary text-primary-foreground text-sm"
+          >
+            {offlineLoading
+              ? t(
+                  "aqar.listing.offline.loading",
+                  "جاري تجهيز الحزمة غير المتصلة...",
+                )
+              : t("aqar.listing.offline.cta", "حزمة Offline للعرض الميداني")}
+          </button>
+          {offlineInfo && (
+            <p className="text-xs text-muted-foreground">
+              {t("aqar.listing.offline.ready", "تم توليد الحزمة")} #
+              {offlineInfo.cacheKey} • {offlineInfo.checksum.slice(0, 6)}
+            </p>
+          )}
+
+          <DynamicPricingCard
+            cityId={listing.location?.cityId}
+            neighborhoodId={listing.location?.neighborhoodId}
+            propertyType={listing.propertyType}
+            intent={(listing.intent as "BUY" | "RENT" | "DAILY") || "BUY"}
+            currentPrice={listing.price?.amount}
+          />
+        </div>
+      </div>
+
+      <AiInsights
+        aiScore={listing.ai?.recommendationScore}
+        pricing={listing.pricingInsights}
+        rnplEligible={listing.rnplEligible}
+        proptech={listing.proptech}
+        city={listing.city}
+        neighborhood={listing.neighborhood}
+      />
+
+      {listing.immersive?.vrTour?.url && (
+        <VRTour
+          url={listing.immersive.vrTour.url}
+          title={t("aqar.listing.vr", "جولة افتراضية")}
+        />
+      )}
+
+      <ProptechBadges
+        proptech={listing.proptech}
+        iotFeatures={listing.iotFeatures}
+      />
+
+      <RecommendationRail
+        listingId={listing._id}
+        city={listing.city}
+        intent={listing.intent}
+        propertyType={listing.propertyType}
+      />
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/aqar/listings/new/page.tsx">
+<![CDATA[
+export { default } from "@/app/aqar/properties/page";
+export * from "@/app/aqar/properties/page";
+
+]]>
+</file>
+
+<file path="app/aqar/map/page.tsx">
+<![CDATA[
+"use client";
+import { logger } from "@/lib/logger";
+
+import { useMemo, useState } from "react";
+import GoogleMap from "@/components/GoogleMap";
+import { useTranslation } from "@/contexts/TranslationContext";
+
+const DEFAULT_CENTER = { lat: 24.7136, lng: 46.6753 };
+const DEFAULT_ZOOM = 11;
+const CLICK_BBOX_DELTA = 0.05;
+
+interface Cluster {
+  lat: number;
+  lng: number;
+  count: number;
+  avgPrice?: number;
+  auctions?: number;
+  rnpl?: number;
+}
+
+export default function MapPage() {
+  const { t } = useTranslation();
+  const center = useMemo(() => DEFAULT_CENTER, []);
+  const [markers, setMarkers] = useState<
+    { position: { lat: number; lng: number }; title?: string; info?: string }[]
+  >([]);
+
+  async function loadClusters(b: {
+    n: number;
+    s: number;
+    e: number;
+    w: number;
+    z: number;
+  }) {
+    try {
+      const url = `/api/aqar/map?n=${b.n}&s=${b.s}&e=${b.e}&w=${b.w}&z=${b.z}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const clusters = Array.isArray(data?.clusters) ? data.clusters : [];
+      setMarkers(
+        clusters.map((c: Cluster) => {
+          const priceText = t("aqar.map.avgPrice", "Avg SAR {{price}}").replace(
+            "{{price}}",
+            c.avgPrice?.toLocaleString
+              ? c.avgPrice.toLocaleString()
+              : typeof c.avgPrice === "number"
+                ? c.avgPrice.toString()
+                : "-",
+          );
+          const extra = `${c.auctions || 0} ${t("aqar.map.auctions", "auctions")} • ${c.rnpl || 0} ${t("aqar.map.rnpl", "RNPL-ready")}`;
+          return {
+            position: { lat: c.lat, lng: c.lng },
+            title: String(c.count),
+            info: `${priceText} • ${extra}`,
+          };
+        }),
+      );
+    } catch (error) {
+      logger.error("Aqar map cluster load error", { error });
+      setMarkers([]);
+    }
+  }
+
+  return (
+    <div className="h-screen flex flex-col">
+      <div className="bg-card border-b border-border px-6 py-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            {t("aqar.interactiveMap", "Interactive Property Map")}
+          </h1>
+          <p className="text-muted-foreground">
+            {t("aqar.interactiveMap.desc", "Explore properties on the map")}
+          </p>
+          <p className="text-xs text-muted-foreground mt-2">
+            {t(
+              "aqar.map.legend",
+              "Cluster tooltip shows avg price • auction-ready listings • RNPL-ready listings.",
+            )}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex-1">
+        <GoogleMap
+          center={center}
+          zoom={DEFAULT_ZOOM}
+          height="100%"
+          markers={markers}
+          onMapClick={(lat, lng) => {
+            const b = {
+              n: lat + CLICK_BBOX_DELTA,
+              s: lat - CLICK_BBOX_DELTA,
+              e: lng + CLICK_BBOX_DELTA,
+              w: lng - CLICK_BBOX_DELTA,
+              z: DEFAULT_ZOOM,
+            };
+            void loadClusters(b);
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/aqar/page.tsx">
+<![CDATA[
+"use client";
+
+import Link from "next/link";
+import {
+  Map as MapIcon,
+  Building2,
+  Home,
+  Search,
+  Filter,
+  Heart,
+  TrendingUp,
+  Star,
+  Gavel,
+  ShieldCheck,
+  BadgeDollarSign,
+  PlaySquare,
+  Sparkles,
+  Bot,
+  Cloud,
+} from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import VRTour from "@/components/aqar/VRTour";
+
+type FeatureConfig = {
+  titleKey: string;
+  descriptionKey: string;
+  icon: typeof MapIcon;
+  link: string;
+  fallbackTitle: string;
+  fallbackDescription: string;
+};
+
+const AQAR_FEATURES: FeatureConfig[] = [
+  {
+    titleKey: "aqar.interactiveMap",
+    descriptionKey: "aqar.interactiveMap.desc",
+    icon: MapIcon,
+    link: "/aqar/map",
+    fallbackTitle: "Interactive Property Map",
+    fallbackDescription:
+      "Explore properties on an interactive map with real-time data",
+  },
+  {
+    titleKey: "aqar.searchProperties",
+    descriptionKey: "aqar.propertySearch.desc",
+    icon: Search,
+    link: "/aqar/filters",
+    fallbackTitle: "Property Search",
+    fallbackDescription:
+      "Advanced search with filters for location, price, and features",
+  },
+  {
+    titleKey: "aqar.propertyListings",
+    descriptionKey: "aqar.propertyListings.desc",
+    icon: Building2,
+    link: "/aqar/properties",
+    fallbackTitle: "Property Listings",
+    fallbackDescription:
+      "Browse detailed property listings with photos and specifications",
+  },
+  {
+    titleKey: "aqar.myListings",
+    descriptionKey: "aqar.myListings.desc",
+    icon: Home,
+    link: "/aqar/properties",
+    fallbackTitle: "My Listings",
+    fallbackDescription: "Manage your property listings and inquiries",
+  },
+  {
+    titleKey: "aqar.advancedFilters",
+    descriptionKey: "aqar.advancedFilters.desc",
+    icon: Filter,
+    link: "/aqar/filters",
+    fallbackTitle: "Advanced Filters",
+    fallbackDescription:
+      "Filter properties by location, price range, property type, and more",
+  },
+  {
+    titleKey: "aqar.favorites",
+    descriptionKey: "aqar.favorites.desc",
+    icon: Heart,
+    link: "/aqar/properties",
+    fallbackTitle: "Favorites",
+    fallbackDescription: "Save and organize your favorite properties",
+  },
+  {
+    titleKey: "aqar.marketTrends",
+    descriptionKey: "aqar.marketTrends.desc",
+    icon: TrendingUp,
+    link: "/aqar/auctions",
+    fallbackTitle: "Market Trends",
+    fallbackDescription: "View market analysis and property value trends",
+  },
+  {
+    titleKey: "aqar.auctions",
+    descriptionKey: "aqar.auctions.desc",
+    icon: Gavel,
+    link: "/aqar/filters?intent=AUCTION",
+    fallbackTitle: "Auctions & Deposits",
+    fallbackDescription:
+      "Bid-ready listings with reserve prices, deposits, and REGA compliance",
+  },
+  {
+    titleKey: "aqar.rnpl",
+    descriptionKey: "aqar.rnpl.desc",
+    icon: BadgeDollarSign,
+    link: "/aqar/filters?rnplEligible=true",
+    fallbackTitle: "RNPL Financing",
+    fallbackDescription:
+      "Calculate Rent-Now-Pay-Later plans powered by Rize / Ejari partners",
+  },
+  {
+    titleKey: "aqar.vrTours",
+    descriptionKey: "aqar.vrTours.desc",
+    icon: PlaySquare,
+    link: "/aqar/properties",
+    fallbackTitle: "VR / 3D Tours",
+    fallbackDescription: "Walk through properties with immersive VR embeds",
+  },
+  {
+    titleKey: "aqar.premiumListings",
+    descriptionKey: "aqar.premiumListings.desc",
+    icon: Star,
+    link: "/aqar/properties?tag=premium",
+    fallbackTitle: "Premium Listings",
+    fallbackDescription: "Access exclusive premium property listings",
+  },
+];
+
+export default function AqarPage() {
+  const { t } = useTranslation();
+  return (
+    <div className="min-h-screen flex flex-col">
+      {/* Hero Section */}
+      <section className="bg-gradient-to-br from-[hsl(var(--warning))] to-[hsl(var(--warning))] text-white py-20 px-4 text-center">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-4xl md:text-6xl font-bold mb-6">
+            {t("aqar.title", "Aqar Souq")}
+          </h1>
+          <p className="text-xl mb-8 text-white/90 max-w-3xl mx-auto">
+            {t(
+              "aqar.subtitle",
+              "Discover and invest in real estate properties across the region",
+            )}
+          </p>
+          <div className="flex flex-wrap gap-4 justify-center">
+            <Link
+              href="/aqar/map"
+              className="px-6 py-3 bg-card hover:bg-muted/80 text-warning font-semibold rounded-2xl transition-colors"
+            >
+              {t("aqar.exploreMap", "Explore Map")}
+            </Link>
+            <Link
+              href="/aqar/filters"
+              className="px-6 py-3 bg-white/20 hover:bg-white/30 text-white font-semibold rounded-2xl transition-colors"
+            >
+              {t("aqar.searchProperties", "Search Properties")}
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Grid */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-3xl font-bold text-center mb-12 text-foreground">
+            {t("aqar.realEstateFeatures", "Real Estate Features")}
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {AQAR_FEATURES.map((feature) => {
+              const Icon = feature.icon;
+              return (
+                <Link
+                  key={feature.titleKey}
+                  href={feature.link}
+                  className="bg-card p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow border border-border group"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-warning/10 rounded-2xl group-hover:bg-warning/20 transition-colors">
+                      <Icon className="h-6 w-6 text-warning" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold mb-2 text-foreground group-hover:text-warning">
+                        {t(feature.titleKey, feature.fallbackTitle)}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {t(feature.descriptionKey, feature.fallbackDescription)}
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Innovation Rail */}
+      <section className="py-10 px-4 sm:px-6 lg:px-8 bg-muted/30 border-y border-border">
+        <div className="max-w-6xl mx-auto grid gap-4 md:grid-cols-3">
+          <div className="p-5 bg-card rounded-2xl border border-border space-y-2">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Sparkles className="w-4 h-4 text-primary" />
+              {t("aqar.superpowers.ai.title", "محرك التوصيات الذكي")}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {t(
+                "aqar.superpowers.ai.desc",
+                "يتعلم من مشاهدات Fixzit Souq ويقترح عقارات جاهزة للتمويل.",
+              )}
+            </p>
+          </div>
+          <div className="p-5 bg-card rounded-2xl border border-border space-y-2">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Bot className="w-4 h-4 text-success" />
+              {t("aqar.superpowers.assistant.title", "مساعد AR/VR + RNPL")}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {t(
+                "aqar.superpowers.assistant.desc",
+                "جولات افتراضية، دعم مباشر، وتوقيع زاتكا في نفس الجلسة.",
+              )}
+            </p>
+          </div>
+          <div className="p-5 bg-card rounded-2xl border border-border space-y-2">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Cloud className="w-4 h-4 text-warning" />
+              {t("aqar.superpowers.offline.title", "حزم Offline للميدان")}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {t(
+                "aqar.superpowers.offline.desc",
+                "حمّل القوائم، الخرائط، وبيانات IoT للاستخدام دون إنترنت للمشاريع البعيدة.",
+              )}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Compliance & Finance */}
+      <section className="py-12 px-4 sm:px-6 lg:px-8 bg-muted/50 border-t border-border">
+        <div className="max-w-6xl mx-auto space-y-8">
+          <div className="text-center">
+            <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
+              Compliance & Finance
+            </p>
+            <h3 className="text-3xl font-bold text-foreground mt-2">
+              {t("aqar.compliance.title", "Enterprise-grade trust")}
+            </h3>
+            <p className="text-muted-foreground mt-3 max-w-3xl mx-auto">
+              {t(
+                "aqar.compliance.desc",
+                "Mandatory Nafath, FAL, foreign ownership checks and RNPL financing baked into every listing.",
+              )}
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-card rounded-2xl border border-border p-5 space-y-2">
+              <ShieldCheck className="w-8 h-8 text-primary" />
+              <h4 className="font-semibold text-foreground">
+                {t("aqar.compliance.nafath", "Nafath & FAL")}
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                {t(
+                  "aqar.compliance.nafath.desc",
+                  "Agents must pass Nafath identity checks plus FAL/ad permit validation before publishing.",
+                )}
+              </p>
+            </div>
+            <div className="bg-card rounded-2xl border border-border p-5 space-y-2">
+              <Gavel className="w-8 h-8 text-warning" />
+              <h4 className="font-semibold text-foreground">
+                {t("aqar.compliance.foreign", "Foreign ownership")}
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                {t(
+                  "aqar.compliance.foreign.desc",
+                  "Foreign-owner flag, REGA zone controls, and audit history for every listing.",
+                )}
+              </p>
+            </div>
+            <div className="bg-card rounded-2xl border border-border p-5 space-y-2">
+              <BadgeDollarSign className="w-8 h-8 text-success" />
+              <h4 className="font-semibold text-foreground">
+                {t("aqar.compliance.rnpl", "RNPL journeys")}
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                {t(
+                  "aqar.compliance.rnpl.desc",
+                  "Instant Rent-Now-Pay-Later eligibility, installment calculators, and lead routing to fintech partners.",
+                )}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap justify-center gap-4">
+            <Link
+              href="/aqar/filters?intent=AUCTION"
+              className="px-5 py-2 rounded-full border border-border text-sm hover:bg-card"
+            >
+              {t("aqar.compliance.auctionCta", "Browse auctions")}
+            </Link>
+            <Link
+              href="/aqar/filters?rnplEligible=true"
+              className="px-5 py-2 rounded-full bg-primary text-white text-sm hover:bg-primary/90"
+            >
+              {t("aqar.compliance.rnplCta", "Check RNPL eligibility")}
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* VR Tour Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-background">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
+              {t("aqar.vr.tag", "Immersive")}
+            </p>
+            <h3 className="text-3xl font-bold text-foreground mt-2">
+              {t("aqar.vr.title", "VR + 3D walkthroughs")}
+            </h3>
+            <p className="text-muted-foreground mt-4 leading-relaxed">
+              {t(
+                "aqar.vr.desc",
+                "Invite buyers to explore every floor, balcony, and amenity using Matterport / 3D tours directly inside the Fixzit shell.",
+              )}
+            </p>
+            <ul className="mt-6 space-y-3 text-sm text-muted-foreground">
+              <li>
+                •{" "}
+                {t(
+                  "aqar.vr.point1",
+                  "Supports Matterport, Kuula, and custom WebXR sources",
+                )}
+              </li>
+              <li>
+                •{" "}
+                {t(
+                  "aqar.vr.point2",
+                  "Auto-fallback to photo carousel if device does not support VR",
+                )}
+              </li>
+              <li>
+                •{" "}
+                {t(
+                  "aqar.vr.point3",
+                  "Audited for accessibility and performance",
+                )}
+              </li>
+            </ul>
+          </div>
+          <VRTour
+            url="https://my.matterport.com/show/?m=Hgd2w8iu8xv"
+            title={t("aqar.vr.demo", "Sedra Show Home")}
+          />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/aqar/post/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { CheckCircle2, DownloadCloud, Cpu } from "lucide-react";
+
+const STEPS = [
+  {
+    key: "compliance",
+    titleKey: "aqar.post.steps.compliance.title",
+    titleFallback: "Compliance checks",
+    descKey: "aqar.post.steps.compliance.desc",
+    descFallback: "Nafath + FAL + foreign ownership checks",
+  },
+  {
+    key: "immersive",
+    titleKey: "aqar.post.steps.immersive.title",
+    titleFallback: "Immersive assets",
+    descKey: "aqar.post.steps.immersive.desc",
+    descFallback: "Upload VR/AR assets and IoT manifest",
+  },
+  {
+    key: "pricing",
+    titleKey: "aqar.post.steps.pricing.title",
+    titleFallback: "Pricing insights",
+    descKey: "aqar.post.steps.pricing.desc",
+    descFallback: "Run dynamic pricing insights & RNPL eligibility",
+  },
+  {
+    key: "publish",
+    titleKey: "aqar.post.steps.publish.title",
+    titleFallback: "Publish & cache",
+    descKey: "aqar.post.steps.publish.desc",
+    descFallback: "Publish to Fixzit app switcher + offline caches",
+  },
+];
+
+export default function PostListingPage() {
+  const { t } = useTranslation();
+  const [activeStep, setActiveStep] = useState(0);
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-10 space-y-6">
+      <div className="space-y-2">
+        <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-primary/10 text-primary text-xs">
+          <Cpu className="w-4 h-4" />
+          {t("aqar.post.badge", "Post Wizard + AI Guardrails")}
+        </div>
+        <h1 className="text-3xl font-bold text-foreground">
+          {t("aqar.post.title", "أنشر عقارك مع خطوات Fixzit الذكية")}
+        </h1>
+        <p className="text-muted-foreground">
+          {t(
+            "aqar.post.subtitle",
+            "نتحقق من الترخيص، نولّد جولة VR، ونربط Work Orders تلقائيًا عند تغيير الحالة إلى RENTED أو SOLD.",
+          )}
+        </p>
+      </div>
+
+      <ol className="space-y-3">
+        {STEPS.map((step, index) => (
+          <li
+            key={step.key}
+            className={`p-4 border rounded-2xl flex items-center justify-between ${
+              index === activeStep
+                ? "border-primary bg-primary/5"
+                : "border-border"
+            }`}
+          >
+            <div>
+              <p className="font-semibold text-foreground">
+                {t(step.titleKey, step.titleFallback)}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {t(step.descKey, step.descFallback)}
+              </p>
+            </div>
+            {index < activeStep ? (
+              <CheckCircle2 className="w-5 h-5 text-success" />
+            ) : (
+              <button
+                onClick={() => setActiveStep(index)}
+                className="px-3 py-1 rounded-full bg-card text-sm border border-border"
+              >
+                {t("aqar.post.steps.cta", "ابدأ")}
+              </button>
+            )}
+          </li>
+        ))}
+      </ol>
+
+      <div className="border border-border rounded-2xl p-4 bg-muted/30 flex items-start gap-3">
+        <DownloadCloud className="w-5 h-5 text-primary mt-1" />
+        <div>
+          <p className="font-semibold text-foreground">
+            {t("aqar.post.offline.title", "حزمة Offline جاهزة بعد النشر")}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {t(
+              "aqar.post.offline.desc",
+              "نولّد تلقائيًا ملفات JSON + خرائط تستخدمها فرق المبيعات الميدانية دون اتصال.",
+            )}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/aqar/properties/page.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { Search, MapPin, Bed, Bath, Square } from "lucide-react";
+import Image from "next/image";
+import { useTranslation } from "@/contexts/TranslationContext";
+import RecommendationRail from "@/components/aqar/RecommendationRail";
+
+type ApiProperty = {
+  id: string;
+  code: string;
+  name: string;
+  type?: string;
+  subtype?: string;
+  address?: { city?: string; district?: string };
+  details?: { totalArea?: number; bedrooms?: number; bathrooms?: number };
+  market?: { listingPrice?: number };
+  photos?: string[];
+  rnplEligible?: boolean;
+  auction?: { isAuction?: boolean; endAt?: string };
+};
+
+export default function AqarPropertiesPage() {
+  const { t } = useTranslation();
+  const [items, setItems] = useState<ApiProperty[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch("/api/aqar/properties?page=1&pageSize=24");
+        if (!res.ok) throw new Error("Failed to fetch");
+        const data = await res.json();
+        if (!cancelled) setItems(Array.isArray(data.items) ? data.items : []);
+      } catch {
+        if (!cancelled) {
+          setError(t("aqar.properties.error", "Could not load properties"));
+          setItems([]);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [t]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((p) => {
+      const city = p.address?.city || "";
+      const district = p.address?.district || "";
+      const name = p.name || "";
+      return (
+        name.toLowerCase().includes(q) ||
+        city.toLowerCase().includes(q) ||
+        district.toLowerCase().includes(q)
+      );
+    });
+  }, [items, query]);
+
+  const aiCity = filtered[0]?.address?.city;
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="mb-6 flex flex-col md:flex-row gap-4 md:items-center">
+        <h1 className="text-2xl font-bold text-foreground">
+          {t("aqar.propertyListings", "Property Listings")}
+        </h1>
+        <div className="flex-1 relative">
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t(
+              "aqar.properties.searchPlaceholder",
+              "Search by city, district, or title",
+            )}
+            className="w-full ps-10 pe-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-warning focus:border-transparent"
+          />
+        </div>
+        <div className="text-sm text-muted-foreground">
+          {t("aqar.properties.count", "{{count}} properties").replace(
+            "{{count}}",
+            filtered.length.toString(),
+          )}
+        </div>
+      </div>
+
+      {aiCity && (
+        <div className="mt-6">
+          <RecommendationRail city={aiCity} />
+        </div>
+      )}
+
+      {loading && (
+        <div className="text-muted-foreground">
+          {t("aqar.properties.loading", "Loading properties...")}
+        </div>
+      )}
+      {!loading && error && <div className="text-destructive">{error}</div>}
+
+      {!loading && !error && (
+        <div
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          role="grid"
+        >
+          {filtered.map((p) => {
+            const photo = (p.photos && p.photos[0]) || "/images/fallback.jpg";
+            const city = p.address?.city || "";
+            const district = p.address?.district || "";
+            const beds = p.details?.bedrooms || 0;
+            const baths = p.details?.bathrooms || 0;
+            const area = p.details?.totalArea || 0;
+            const price = p.market?.listingPrice || 0;
+            const badge =
+              p.subtype ||
+              p.type ||
+              t("aqar.properties.badge.fallback", "Property");
+            return (
+              <article
+                key={p.id}
+                className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden"
+              >
+                <div className="relative w-full h-48">
+                  <Image
+                    src={photo}
+                    alt={p.name}
+                    fill
+                    className="object-cover"
+                  />
+                  <span className="absolute top-2 start-2 bg-card/90 text-foreground text-xs px-2 py-1 rounded">
+                    {badge}
+                  </span>
+                </div>
+                <div className="p-4">
+                  <h3 className="font-semibold text-foreground mb-2 line-clamp-2">
+                    {p.name}
+                  </h3>
+                  <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
+                    <MapPin className="w-4 h-4" />
+                    <span>
+                      {district}
+                      {district && city ? " — " : ""}
+                      {city}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4 mb-3 text-sm text-muted-foreground">
+                    {!!beds && (
+                      <div className="flex items-center gap-1">
+                        <Bed className="w-4 h-4" />
+                        {beds}
+                      </div>
+                    )}
+                    {!!baths && (
+                      <div className="flex items-center gap-1">
+                        <Bath className="w-4 h-4" />
+                        {baths}
+                      </div>
+                    )}
+                    {!!area && (
+                      <div className="flex items-center gap-1">
+                        <Square className="w-4 h-4" />
+                        {area} m²
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-2xl font-bold text-foreground">
+                    {price ? `${price.toLocaleString()} SAR` : ""}
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {p.rnplEligible && (
+                      <span className="inline-flex items-center text-xs font-medium bg-success/10 text-success px-2 py-1 rounded-full">
+                        {t("aqar.properties.badge.rnpl", "RNPL Ready")}
+                      </span>
+                    )}
+                    {p.auction?.isAuction && (
+                      <span className="inline-flex items-center text-xs font-medium bg-warning/10 text-warning px-2 py-1 rounded-full">
+                        {t("aqar.properties.badge.auction", "Auction")}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+
+      {!loading && !error && filtered.length === 0 && (
+        <div className="text-center py-12">
+          <div className="text-muted-foreground mb-4">
+            <Search className="w-12 h-12 mx-auto" />
+          </div>
+          <h3 className="text-lg font-medium text-foreground mb-2">
+            {t("aqar.properties.empty.title", "No properties found")}
+          </h3>
+          <p className="text-muted-foreground">
+            {t(
+              "aqar.properties.empty.description",
+              "Try adjusting your search criteria or browse all categories",
+            )}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/aqar/valuation/new/page.tsx">
+<![CDATA[
+export { default } from "@/app/aqar/page";
+export * from "@/app/aqar/page";
+
+]]>
+</file>
+
+<file path="app/careers/[slug]/not-found.tsx">
+<![CDATA[
+import Link from "next/link";
+import { getServerI18n } from "@/lib/i18n/server";
+
+export default async function JobNotFound() {
+  const { t } = await getServerI18n();
+  return (
+    <div className="min-h-screen bg-card flex items-center justify-center px-4">
+      <div className="max-w-md text-center">
+        <div className="mb-6">
+          <svg
+            className="mx-auto h-16 w-16 text-muted-foreground"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+            />
+          </svg>
+        </div>
+        <h1 className="text-3xl font-bold text-foreground mb-2">
+          {t("careers.notFound.title", "Job Not Found")}
+        </h1>
+        <p className="text-muted-foreground mb-6">
+          {t(
+            "careers.notFound.description",
+            "This job posting may have been closed, removed, or the link may be invalid.",
+          )}
+        </p>
+
+        <div className="space-y-3">
+          <Link
+            href="/careers"
+            className="inline-block w-full px-6 py-3 bg-primary text-primary-foreground rounded-2xl 
+                     hover:bg-primary/90 transition-colors font-semibold
+                     focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+          >
+            {t("careers.notFound.viewAll", "View All Open Positions")}
+          </Link>
+
+          <Link
+            href="/"
+            className="inline-block w-full px-6 py-3 border border-border text-foreground 
+                     rounded-2xl hover:bg-muted transition-colors font-semibold
+                     focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+          >
+            {t("careers.notFound.goHome", "Go to Homepage")}
+          </Link>
+        </div>
+
+        <p className="text-sm text-muted-foreground mt-6">
+          {t(
+            "careers.notFound.footerPrompt",
+            "Looking for something specific?",
+          )}{" "}
+          <Link
+            href="/support"
+            className="text-primary hover:text-primary underline"
+          >
+            {t("careers.notFound.contact", "Contact our HR team")}
+          </Link>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/careers/[slug]/page.tsx">
+<![CDATA[
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Job, JobDoc } from "@/server/models/Job";
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { JobApplicationForm } from "@/components/careers/JobApplicationForm";
+import { sanitizeHtml } from "@/lib/sanitize-html";
+import { getServerI18n } from "@/lib/i18n/server";
+import { logger } from "@/lib/logger";
+import { isMongoUnavailableError } from "@/lib/mongo-build-guards";
+import { getStaticJob } from "@/data/static-content";
+
+type CareerPageDoc = Pick<
+  JobDoc,
+  | "slug"
+  | "title"
+  | "department"
+  | "status"
+  | "requirements"
+  | "benefits"
+  | "description"
+> & {
+  descriptionHtml?: string | null;
+  id?: string;
+  _id?: string;
+};
+
+type LeanCareerPageDoc = Omit<CareerPageDoc, "_id"> & {
+  _id?: string | { toString(): string };
+};
+
+async function fetchCareerJob(
+  slug: string,
+  orgId: string,
+): Promise<CareerPageDoc | null> {
+  try {
+    await connectToDatabase();
+    const doc = await Job.findOne({ orgId, slug, status: "published" })
+      .select(
+        "slug title department status requirements benefits description id _id",
+      )
+      .lean<LeanCareerPageDoc>()
+      .exec();
+    if (doc) {
+      const normalized: CareerPageDoc = {
+        slug: doc.slug,
+        title: doc.title,
+        department: doc.department ?? null,
+        status: doc.status,
+        requirements: doc.requirements ?? [],
+        benefits: doc.benefits ?? [],
+        description: doc.description ?? null,
+        _id:
+          typeof doc._id === "object" &&
+          doc._id !== null &&
+          "toString" in doc._id
+            ? doc._id.toString()
+            : doc._id,
+        id: doc.id,
+      };
+      return normalized;
+    }
+  } catch (error) {
+    if (!isMongoUnavailableError(error)) {
+      throw error;
+    }
+    logger.warn("[Careers] Falling back to static job posting", { slug });
+  }
+
+  const fallback = getStaticJob(slug);
+  if (!fallback) {
+    return null;
+  }
+
+  return {
+    slug: fallback.slug,
+    title: fallback.title,
+    department: fallback.department,
+    status: fallback.status as JobDoc["status"],
+    requirements: fallback.requirements,
+    benefits: fallback.benefits,
+    description: sanitizeHtml(fallback.descriptionHtml),
+    descriptionHtml: fallback.descriptionHtml,
+    id: fallback.id,
+  };
+}
+
+export default async function JobDetailPage({
+  params,
+}: {
+  params: { slug: string };
+}) {
+  const { t } = await getServerI18n();
+  const orgId =
+    process.env.ORG_ID || process.env.NEXT_PUBLIC_ORG_ID || "fixzit-platform";
+  const job = await fetchCareerJob(params.slug, orgId);
+
+  // Use Next.js notFound() for proper 404 handling
+  if (!job) {
+    notFound();
+  }
+
+  const jobId = job.id ?? job._id ?? job.slug;
+  const descriptionHtml = (job.descriptionHtml ??
+    job.description ??
+    "") as string;
+
+  return (
+    <div className="min-h-screen bg-card flex flex-col">
+      <div className="max-w-4xl mx-auto px-4 py-12 flex-1">
+        <Link
+          href="/careers"
+          className="text-primary hover:text-primary transition-colors inline-flex items-center gap-1"
+        >
+          <span aria-hidden="true">&larr;</span>
+          <span>{t("careers.detail.back", "Back to Careers")}</span>
+        </Link>
+        <h1 className="text-3xl font-bold mt-3">{job.title}</h1>
+        <div className="text-muted-foreground mt-1">{job.department}</div>
+        <div className="mt-6 space-y-4">
+          <div>
+            <h3 className="font-semibold">
+              {t("careers.detail.description", "Description")}
+            </h3>
+            <div
+              className="prose dark:prose-invert"
+              dangerouslySetInnerHTML={{
+                __html: sanitizeHtml(descriptionHtml),
+              }}
+            />
+          </div>
+          {Array.isArray(job.requirements) && job.requirements.length > 0 && (
+            <div>
+              <h3 className="font-semibold">
+                {t("careers.detail.requirements", "Requirements")}
+              </h3>
+              <ul className="list-disc ms-6 text-foreground">
+                {job.requirements.map((r: string) => (
+                  <li key={r}>{r}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {Array.isArray(job.benefits) && job.benefits.length > 0 && (
+            <div>
+              <h3 className="font-semibold">
+                {t("careers.detail.benefits", "Benefits")}
+              </h3>
+              <ul className="list-disc ms-6 text-foreground">
+                {job.benefits.map((b: string) => (
+                  <li key={b}>{b}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        {/* Client-side form with proper UX and accessibility */}
+        <JobApplicationForm jobId={jobId} />
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+</batch_content>

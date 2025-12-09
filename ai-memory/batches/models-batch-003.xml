@@ -1,0 +1,3259 @@
+
+You are the "Fixzit Memory Builder" for category: "models".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "models",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="server/models/MaintenanceLog.ts">
+<![CDATA[
+import mongoose, { Schema, Document, Model } from "mongoose";
+
+/**
+ * MaintenanceLog Model
+ * Tracks all maintenance activities per unit for reporting and cost analysis
+ *
+ * @version 1.0.0
+ * @date 2024-12-04
+ */
+
+export interface IMaintenanceLog extends Document {
+  unit_id: mongoose.Types.ObjectId;
+  property_id: mongoose.Types.ObjectId;
+  org_id: mongoose.Types.ObjectId;
+  work_order_id?: mongoose.Types.ObjectId;
+
+  // Maintenance details
+  date: Date;
+  type: "PREVENTIVE" | "CORRECTIVE" | "EMERGENCY" | "INSPECTION" | "OTHER";
+  category:
+    | "PLUMBING"
+    | "ELECTRICAL"
+    | "HVAC"
+    | "STRUCTURAL"
+    | "APPLIANCE"
+    | "PAINTING"
+    | "CLEANING"
+    | "PEST_CONTROL"
+    | "LANDSCAPING"
+    | "OTHER";
+  description: string;
+  notes?: string;
+
+  // Vendor/technician info
+  vendor_id?: mongoose.Types.ObjectId;
+  vendorName?: string;
+  technicianName?: string;
+  technicianPhone?: string;
+
+  // Cost tracking
+  laborCost: number;
+  materialCost: number;
+  totalCost: number;
+  currency: string;
+  invoiceNumber?: string;
+  invoiceUrl?: string;
+
+  // Status
+  status: "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+  completedAt?: Date;
+  scheduledDate?: Date;
+
+  // Attachments
+  attachments?: {
+    url: string;
+    type: "BEFORE" | "DURING" | "AFTER" | "INVOICE" | "OTHER";
+    description?: string;
+    uploadedAt: Date;
+  }[];
+
+  // Audit
+  createdBy: mongoose.Types.ObjectId;
+  updatedBy?: mongoose.Types.ObjectId;
+
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const MaintenanceLogSchema = new Schema<IMaintenanceLog>(
+  {
+    unit_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Unit",
+      required: true,
+      // index via compound { org_id: 1, unit_id: 1, date: -1 }
+    },
+    property_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Property",
+      required: true,
+      // index via compound { org_id: 1, property_id: 1, date: -1 }
+    },
+    org_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      // index via all compound indexes
+    },
+    work_order_id: {
+      type: Schema.Types.ObjectId,
+      ref: "WorkOrder",
+      index: true, // standalone needed for work order lookups
+    },
+
+    // Maintenance details
+    date: { type: Date, required: true, index: true }, // standalone needed for date-only queries
+    type: {
+      type: String,
+      enum: ["PREVENTIVE", "CORRECTIVE", "EMERGENCY", "INSPECTION", "OTHER"],
+      required: true,
+      index: true, // standalone needed for type filtering
+    },
+    category: {
+      type: String,
+      enum: [
+        "PLUMBING",
+        "ELECTRICAL",
+        "HVAC",
+        "STRUCTURAL",
+        "APPLIANCE",
+        "PAINTING",
+        "CLEANING",
+        "PEST_CONTROL",
+        "LANDSCAPING",
+        "OTHER",
+      ],
+      required: true,
+      // index via compound { org_id: 1, category: 1, date: -1 }
+    },
+    description: { type: String, required: true },
+    notes: String,
+
+    // Vendor/technician info
+    vendor_id: { type: Schema.Types.ObjectId, ref: "Vendor" },
+    vendorName: String,
+    technicianName: String,
+    technicianPhone: String,
+
+    // Cost tracking
+    laborCost: { type: Number, default: 0, min: 0 },
+    materialCost: { type: Number, default: 0, min: 0 },
+    totalCost: { type: Number, default: 0, min: 0 },
+    currency: { type: String, default: "SAR" },
+    invoiceNumber: String,
+    invoiceUrl: String,
+
+    // Status
+    status: {
+      type: String,
+      enum: ["SCHEDULED", "IN_PROGRESS", "COMPLETED", "CANCELLED"],
+      default: "SCHEDULED",
+      // index via compound { org_id: 1, status: 1, date: -1 }
+    },
+    completedAt: Date,
+    scheduledDate: Date,
+
+    // Attachments
+    attachments: [
+      {
+        url: { type: String, required: true },
+        type: {
+          type: String,
+          enum: ["BEFORE", "DURING", "AFTER", "INVOICE", "OTHER"],
+          default: "OTHER",
+        },
+        description: String,
+        uploadedAt: { type: Date, default: Date.now },
+      },
+    ],
+
+    // Audit
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+// Compound indexes for common queries
+MaintenanceLogSchema.index({ org_id: 1, unit_id: 1, date: -1 });
+MaintenanceLogSchema.index({ org_id: 1, property_id: 1, date: -1 });
+MaintenanceLogSchema.index({ org_id: 1, status: 1, date: -1 });
+MaintenanceLogSchema.index({ org_id: 1, category: 1, date: -1 });
+
+// Pre-save hook to calculate total cost
+MaintenanceLogSchema.pre("save", function (next) {
+  this.totalCost = (this.laborCost || 0) + (this.materialCost || 0);
+  next();
+});
+
+// Virtual for formatted cost
+MaintenanceLogSchema.virtual("formattedCost").get(function () {
+  return `${this.totalCost?.toLocaleString() || "0"} ${this.currency || "SAR"}`;
+});
+
+// Ensure virtuals are included in JSON
+MaintenanceLogSchema.set("toJSON", { virtuals: true });
+MaintenanceLogSchema.set("toObject", { virtuals: true });
+
+// Static method to get maintenance summary per unit
+MaintenanceLogSchema.statics.getUnitSummary = async function (
+  orgId: string,
+  unitId: string,
+  startDate?: Date,
+  endDate?: Date,
+) {
+  const match: Record<string, unknown> = {
+    org_id: new mongoose.Types.ObjectId(orgId),
+    unit_id: new mongoose.Types.ObjectId(unitId),
+    status: "COMPLETED",
+  };
+
+  if (startDate || endDate) {
+    match.date = {};
+    if (startDate) (match.date as Record<string, Date>).$gte = startDate;
+    if (endDate) (match.date as Record<string, Date>).$lte = endDate;
+  }
+
+  return this.aggregate([
+    { $match: match },
+    {
+      $group: {
+        _id: "$category",
+        totalCost: { $sum: "$totalCost" },
+        count: { $sum: 1 },
+        avgCost: { $avg: "$totalCost" },
+      },
+    },
+    { $sort: { totalCost: -1 } },
+  ]);
+};
+
+// Model type with statics
+interface MaintenanceLogModel extends Model<IMaintenanceLog> {
+  getUnitSummary(
+    orgId: string,
+    unitId: string,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<
+    { _id: string; totalCost: number; count: number; avgCost: number }[]
+  >;
+}
+
+export const MaintenanceLog =
+  (mongoose.models.MaintenanceLog as MaintenanceLogModel) ||
+  mongoose.model<IMaintenanceLog, MaintenanceLogModel>(
+    "MaintenanceLog",
+    MaintenanceLogSchema,
+  );
+
+]]>
+</file>
+
+<file path="server/models/MarketplaceProduct.ts">
+<![CDATA[
+// Bridge to canonical Product model to avoid conflicting schemas
+// TYPESCRIPT FIX: Export properly typed model instead of 'unknown'
+import ProductModel from "@/server/models/marketplace/Product";
+import type { Model } from "mongoose";
+import type { MarketplaceProduct as MarketplaceProductType } from "@/server/models/marketplace/Product";
+
+export const MarketplaceProduct = ProductModel as Model<MarketplaceProductType>;
+
+]]>
+</file>
+
+<file path="server/models/Module.ts">
+<![CDATA[
+import { Schema, model, models, Model, Document } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+import { auditPlugin } from "../plugins/auditPlugin";
+
+export type ModuleKey =
+  | "FM_CORE"
+  | "PM"
+  | "MARKETPLACE_PRO"
+  | "ANALYTICS_PRO"
+  | "COMPLIANCE"
+  | "HR_LITE"
+  | "CRM_LITE";
+
+const MODULE_KEYS: ModuleKey[] = [
+  "FM_CORE",
+  "PM",
+  "MARKETPLACE_PRO",
+  "ANALYTICS_PRO",
+  "COMPLIANCE",
+  "HR_LITE",
+  "CRM_LITE",
+];
+
+const ModuleSchema = new Schema(
+  {
+    key: {
+      type: String,
+      unique: true,
+      required: true,
+      enum: {
+        values: MODULE_KEYS,
+        message: "{VALUE} is not a valid module key",
+      },
+    },
+    name: { type: String, required: true },
+    description: String,
+    enabledByDefault: { type: Boolean, default: false },
+  },
+  { timestamps: true },
+);
+
+// Apply auditPlugin for change tracking (Module is global, so NO tenantIsolationPlugin)
+ModuleSchema.plugin(auditPlugin);
+
+// TypeScript-safe model export
+interface IModule extends Document {
+  key: ModuleKey;
+  name: string;
+  description?: string;
+  enabledByDefault: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: Schema.Types.ObjectId;
+  updatedBy?: Schema.Types.ObjectId;
+}
+
+const Module = getModel<IModule>("Module", ModuleSchema);
+export default Module;
+export { MODULE_KEYS };
+
+]]>
+</file>
+
+<file path="server/models/NotificationLog.ts">
+<![CDATA[
+import { Schema, model, models, Document, Types } from 'mongoose';
+import { logger } from '@/lib/logger';
+
+const NotificationRecipientSchema = new Schema(
+  {
+    userId: { type: Schema.Types.ObjectId, required: true },
+    preferredChannels: { type: [String], default: [] },
+  },
+  { _id: false }
+);
+
+const ChannelResultSchema = new Schema(
+  {
+    channel: { type: String, enum: ['push', 'email', 'sms', 'whatsapp'], required: true },
+    status: { type: String, enum: ['pending', 'sent', 'partial', 'failed'], required: true },
+    attempts: { type: Number, default: 0 },
+    succeeded: { type: Number, default: 0 },
+    failedCount: { type: Number, default: 0 },
+    skipped: { type: Number, default: 0 },
+    lastAttemptAt: Date,
+    errorMessages: { type: [String], default: [] },
+  },
+  { _id: false }
+);
+
+const NotificationIssueSchema = new Schema(
+  {
+    userId: { type: Schema.Types.ObjectId, required: true },
+    channel: { type: String, enum: ['push', 'email', 'sms', 'whatsapp'], required: true },
+    type: { type: String, enum: ['failed', 'skipped'], required: true },
+    reason: { type: String, required: true },
+    attempt: Number,
+    attemptedAt: Date,
+    metadata: Schema.Types.Mixed,
+  },
+  { _id: false }
+);
+
+const MetricsSchema = new Schema(
+  {
+    attempted: { type: Number, default: 0 },
+    succeeded: { type: Number, default: 0 },
+    failed: { type: Number, default: 0 },
+    skipped: { type: Number, default: 0 },
+  },
+  { _id: false }
+);
+
+// Parse TTL with validation to prevent silent index creation failures
+const parseValidTtl = (envVar: string | undefined, defaultValue: number, name: string): number => {
+  if (!envVar || envVar.trim() === '') return defaultValue;
+  const parsed = parseInt(envVar, 10);
+  if (!Number.isFinite(parsed) || !Number.isInteger(parsed) || parsed <= 0) {
+    if (process.env.NODE_ENV !== 'production') {
+      logger.error(`[NotificationLog] Invalid ${name}`, { envVar, defaultValue });
+    }
+    return defaultValue;
+  }
+  return parsed;
+};
+
+const notificationTtlDays = parseValidTtl(process.env.NOTIFICATION_LOG_TTL_DAYS, 90, 'NOTIFICATION_LOG_TTL_DAYS');
+const dlqTtlDays = parseValidTtl(process.env.NOTIFICATION_DLQ_TTL_DAYS, 30, 'NOTIFICATION_DLQ_TTL_DAYS');
+
+const NotificationLogSchema = new Schema(
+  {
+    orgId: { type: Schema.Types.ObjectId, required: true }, // index via compound { orgId: 1, notificationId: 1 }
+    notificationId: { type: String, required: true },
+    event: { type: String, required: true },
+    recipients: { type: [NotificationRecipientSchema], default: [] },
+    payload: { type: Schema.Types.Mixed },
+    priority: { type: String, enum: ['high', 'normal', 'low'], default: 'normal' },
+    sentAt: Date,
+    deliveredAt: Date,
+    status: {
+      type: String,
+      enum: ['pending', 'sent', 'delivered', 'failed', 'partial_failure'],
+      default: 'pending',
+    },
+    failureReason: String,
+    channelResults: { type: [ChannelResultSchema], default: [] },
+    metrics: {
+      type: MetricsSchema,
+      default: () => ({ attempted: 0, succeeded: 0, failed: 0, skipped: 0 }),
+    },
+    issues: { type: [NotificationIssueSchema], default: [] },
+  },
+  { timestamps: true }
+);
+
+NotificationLogSchema.index(
+  { orgId: 1, notificationId: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
+
+if (notificationTtlDays > 0) {
+  NotificationLogSchema.index(
+    { createdAt: 1 },
+    { expireAfterSeconds: notificationTtlDays * 24 * 60 * 60 }
+  );
+}
+
+export interface NotificationLogDocument extends Document {
+  orgId: Types.ObjectId;
+  notificationId: string;
+  event: string;
+  recipients: Array<{ userId: Types.ObjectId; preferredChannels: string[] }>;
+  payload?: Record<string, unknown>;
+  priority: 'high' | 'normal' | 'low';
+  sentAt?: Date;
+  deliveredAt?: Date;
+  status: 'pending' | 'sent' | 'delivered' | 'failed' | 'partial_failure';
+  failureReason?: string;
+  channelResults: Array<{
+    channel: string;
+    status: 'pending' | 'sent' | 'partial' | 'failed';
+    attempts: number;
+    succeeded: number;
+    failedCount: number;
+    skipped: number;
+    lastAttemptAt?: Date;
+    errorMessages?: string[];
+  }>;
+  metrics?: {
+    attempted: number;
+    succeeded: number;
+    failed: number;
+    skipped: number;
+  };
+  issues: Array<{
+    userId: Types.ObjectId;
+    channel: string;
+    type: 'failed' | 'skipped';
+    reason: string;
+    attempt?: number;
+    attemptedAt?: Date;
+    metadata?: Record<string, unknown>;
+  }>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export const NotificationLogModel =
+  models.NotificationLog || model<NotificationLogDocument>('NotificationLog', NotificationLogSchema);
+
+const NotificationDeadLetterSchema = new Schema(
+  {
+    orgId: { type: Schema.Types.ObjectId, required: true, index: true },
+    notificationId: { type: String, required: true, index: true },
+    event: { type: String, required: true },
+    channel: { type: String, enum: ['push', 'email', 'sms', 'whatsapp'], required: true },
+    attempts: { type: Number, default: 0 },
+    lastAttemptAt: Date,
+    error: { type: String, required: true },
+    payload: { type: Schema.Types.Mixed },
+    priority: { type: String, enum: ['high', 'normal', 'low'], default: 'normal' },
+    status: { type: String, enum: ['pending', 'replayed', 'discarded'], default: 'pending' },
+    recipient: {
+      userId: Schema.Types.ObjectId,
+      email: String,
+      phone: String,
+      preferredChannels: { type: [String], default: [] },
+    },
+  },
+  { timestamps: true }
+);
+
+NotificationDeadLetterSchema.index({ orgId: 1, notificationId: 1 });
+
+if (dlqTtlDays > 0) {
+  NotificationDeadLetterSchema.index(
+    { createdAt: 1 },
+    { expireAfterSeconds: dlqTtlDays * 24 * 60 * 60 }
+  );
+}
+
+export interface NotificationDeadLetterDocument extends Document {
+  orgId: Types.ObjectId;
+  notificationId: string;
+  event: string;
+  channel: string;
+  attempts: number;
+  lastAttemptAt?: Date;
+  error: string;
+  payload?: Record<string, unknown>;
+  priority: 'high' | 'normal' | 'low';
+  status: 'pending' | 'replayed' | 'discarded';
+  recipient?: {
+    userId?: Types.ObjectId;
+    email?: string;
+    phone?: string;
+    preferredChannels?: string[];
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export const NotificationDeadLetterModel =
+  models.NotificationDeadLetter ||
+  model<NotificationDeadLetterDocument>('NotificationDeadLetter', NotificationDeadLetterSchema);
+
+]]>
+</file>
+
+<file path="server/models/Organization.ts">
+<![CDATA[
+import { Schema, model, models, HydratedDocument } from "mongoose";
+import { MModel } from "@/types/mongoose-compat";
+import { customAlphabet } from "nanoid";
+import { auditPlugin } from "../plugins/auditPlugin";
+
+// ---------- Enums ----------
+const OrganizationType = [
+  "CORPORATE",
+  "GOVERNMENT",
+  "INDIVIDUAL",
+  "NONPROFIT",
+  "STARTUP",
+] as const;
+type TOrganizationType = (typeof OrganizationType)[number];
+
+const SubscriptionStatus = [
+  "ACTIVE",
+  "SUSPENDED",
+  "CANCELLED",
+  "TRIAL",
+  "EXPIRED",
+] as const;
+type TSubscriptionStatus = (typeof SubscriptionStatus)[number];
+
+const ComplianceStatus = [
+  "COMPLIANT",
+  "NON_COMPLIANT",
+  "PENDING_REVIEW",
+  "UNDER_AUDIT",
+] as const;
+type TComplianceStatus = (typeof ComplianceStatus)[number];
+
+const BillingCycle = ["MONTHLY", "QUARTERLY", "YEARLY"] as const;
+type TBillingCycle = (typeof BillingCycle)[number];
+
+const SupportLevel = ["BASIC", "PRIORITY", "DEDICATED"] as const;
+type TSupportLevel = (typeof SupportLevel)[number];
+
+const Priority = ["LOW", "MEDIUM", "HIGH", "URGENT"] as const;
+type TPriority = (typeof Priority)[number];
+
+const Workdays = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"] as const;
+type TWorkday = (typeof Workdays)[number];
+
+const SsoProvider = ["AZURE_AD", "GOOGLE", "OKTA"] as const;
+type TSsoProvider = (typeof SsoProvider)[number];
+
+const EmailProvider = ["SMTP", "SENDGRID", "AWS_SES"] as const;
+type TEmailProvider = (typeof EmailProvider)[number];
+
+const SmsProvider = ["TWILIO", "AWS_SNS", "LOCAL"] as const;
+type TSmsProvider = (typeof SmsProvider)[number];
+
+const PaymentGateway = ["PAYTABS", "STRIPE", "PAYPAL"] as const;
+type TPaymentGateway = (typeof PaymentGateway)[number];
+
+// ---------- Types ----------
+type Features = {
+  maxUsers: number;
+  maxProperties: number;
+  maxWorkOrders: number;
+  advancedReporting: boolean;
+  apiAccess: boolean;
+  customBranding: boolean;
+  ssoIntegration: boolean;
+  mobileApp: boolean;
+  supportLevel: TSupportLevel;
+};
+
+type Usage = {
+  currentUsers: number;
+  currentProperties: number;
+  currentWorkOrders: number;
+  apiCalls: number;
+  storageUsed: number; // MB
+};
+
+export type ModulesConfig = {
+  ats?: {
+    enabled: boolean;
+    jobPostLimit: number;
+    seats: number;
+    seatWarningThreshold?: number;
+    activatedAt?: Date;
+    billingPlan?: string;
+  };
+};
+
+type OrganizationDoc = HydratedDocument<IOrganization>;
+type OrganizationModel = MModel<IOrganization> & {
+  incrementUsage(
+    orgId: string,
+    patch: Partial<Usage>,
+  ): Promise<OrganizationDoc | null>;
+  setSubscriptionStatus(
+    orgId: string,
+    status: TSubscriptionStatus,
+  ): Promise<OrganizationDoc | null>;
+};
+
+export interface IOrganization {
+  orgId: string;
+  name: string;
+  code: string;
+  type: TOrganizationType;
+  description?: string;
+  website?: string;
+  logo?: string;
+
+  contact?: {
+    primary: {
+      name: string;
+      title?: string;
+      email: string;
+      phone?: string;
+      mobile?: string;
+    };
+    billing?: {
+      name?: string;
+      email?: string;
+      phone?: string;
+      address?: {
+        street?: string;
+        city?: string;
+        region?: string;
+        postalCode?: string;
+        country?: string;
+      };
+    };
+    technical?: {
+      name?: string;
+      email?: string;
+      phone?: string;
+    };
+  };
+
+  address: {
+    headquarters: {
+      street: string;
+      city: string;
+      region?: string;
+      postalCode?: string;
+      country: string;
+    };
+    branches?: Array<{
+      name?: string;
+      street?: string;
+      city?: string;
+      region?: string;
+      postalCode?: string;
+      country?: string;
+      isActive?: boolean;
+    }>;
+  };
+
+  legal?: {
+    registrationNumber?: string;
+    taxId?: string;
+    licenseNumber?: string;
+    documents?: Array<{
+      type?: string;
+      number?: string;
+      issuedBy?: string;
+      issuedDate?: Date;
+      expiryDate?: Date;
+      url?: string;
+      verified?: boolean;
+    }>;
+  };
+
+  subscription: {
+    plan: "BASIC" | "STANDARD" | "PREMIUM" | "ENTERPRISE";
+    status: TSubscriptionStatus;
+    startDate?: Date;
+    endDate?: Date;
+    trialEndsAt?: Date;
+    billingCycle: TBillingCycle;
+    price?: { amount?: number; currency?: string };
+    features: Features;
+    usage: Usage;
+    limits: {
+      exceeded: boolean;
+      warnings: string[];
+    };
+  };
+
+  settings: {
+    locale: string;
+    timezone: string;
+    currency: string;
+    dateFormat: string;
+    numberFormat: string;
+    businessHours: {
+      workdays: TWorkday[];
+      startTime: string; // HH:mm
+      endTime: string; // HH:mm
+      breakTime: { enabled: boolean; start: string; end: string };
+    };
+    workOrders: {
+      autoAssignment: boolean;
+      requireApproval: boolean;
+      defaultPriority: TPriority;
+      slaDefaults: {
+        low: { hours: number };
+        medium: { hours: number };
+        high: { hours: number };
+        urgent: { hours: number };
+      };
+      notifications: { email: boolean; sms: boolean; push: boolean };
+    };
+    financial: {
+      invoiceNumberFormat: string;
+      paymentTerms: number;
+      lateFeePercentage: number;
+      taxRate: number;
+      approvalLimits: { workOrder: number; purchase: number; invoice: number };
+    };
+    security: {
+      passwordPolicy: {
+        minLength: number;
+        requireUppercase: boolean;
+        requireNumbers: boolean;
+        requireSpecialChars: boolean;
+        expiryDays: number;
+      };
+      sessionTimeout: number;
+      maxLoginAttempts: number;
+      twoFactorRequired: boolean;
+      ipWhitelist?: string[];
+      auditLogRetention: number;
+    };
+    integrations: {
+      emailProvider: {
+        provider: TEmailProvider;
+        settings?: Record<string, unknown>;
+      };
+      smsProvider: {
+        provider: TSmsProvider;
+        settings?: Record<string, unknown>;
+      };
+      paymentGateway: {
+        provider: TPaymentGateway;
+        settings?: Record<string, unknown>;
+      };
+      sso: {
+        enabled: boolean;
+        provider?: TSsoProvider;
+        settings?: Record<string, unknown>;
+      };
+    };
+  };
+
+  members?: Array<{
+    userId: string;
+    role?: string;
+    email?: string;
+  }>;
+
+  compliance: {
+    status: TComplianceStatus;
+    certifications?: Array<{
+      name?: string;
+      number?: string;
+      issuedBy?: string;
+      issuedDate?: Date;
+      expiryDate?: Date;
+      url?: string;
+      verified?: boolean;
+    }>;
+    policies?: Array<{
+      name?: string;
+      version?: string;
+      approvedBy?: string;
+      approvedDate?: Date;
+      url?: string;
+    }>;
+    auditTrail: {
+      enabled: boolean;
+      retentionPeriod: number;
+      externalAuditor?: string;
+      lastAuditDate?: Date;
+      nextAuditDate?: Date;
+    };
+    dataPrivacy: {
+      gdprCompliant: boolean;
+      dataRetentionPeriod: number;
+      anonymizationEnabled: boolean;
+      rightToForget: boolean;
+    };
+  };
+
+  status: {
+    isActive: boolean;
+    isSuspended: boolean;
+    suspensionReason?: string;
+    maintenanceMode: boolean;
+    lastHealthCheck?: Date;
+    healthStatus: "HEALTHY" | "WARNING" | "CRITICAL";
+    healthDetails?: Record<string, unknown>;
+  };
+
+  modules?: ModulesConfig;
+
+  customFields?: Record<string, unknown>;
+  tags?: string[];
+  notes?: string;
+
+  // NOTE: createdBy, updatedBy, and version are added by auditPlugin
+}
+
+// ---------- Schema ----------
+const OrganizationSchema = new Schema<IOrganization>(
+  {
+    orgId: { type: String, required: true, unique: true },
+
+    name: { type: String, required: true, trim: true },
+    code: {
+      type: String,
+      required: true,
+      unique: true,
+      uppercase: true,
+      trim: true,
+    },
+    type: { type: String, enum: OrganizationType, required: true },
+    description: { type: String, trim: true },
+    website: { type: String, trim: true },
+    logo: { type: String, trim: true },
+
+    contact: {
+      primary: {
+        name: { type: String, required: true, trim: true },
+        title: { type: String, trim: true },
+        email: { type: String, required: true, lowercase: true, trim: true },
+        phone: { type: String, trim: true },
+        mobile: { type: String, trim: true },
+      },
+      billing: {
+        name: { type: String, trim: true },
+        email: { type: String, lowercase: true, trim: true },
+        phone: { type: String, trim: true },
+        address: {
+          street: { type: String, trim: true },
+          city: { type: String, trim: true },
+          region: { type: String, trim: true },
+          postalCode: { type: String, trim: true },
+          country: { type: String, default: "SA", trim: true },
+        },
+      },
+      technical: {
+        name: { type: String, trim: true },
+        email: { type: String, lowercase: true, trim: true },
+        phone: { type: String, trim: true },
+      },
+    },
+
+    address: {
+      headquarters: {
+        street: { type: String, required: true, trim: true },
+        city: { type: String, required: true, trim: true },
+        region: { type: String, trim: true },
+        postalCode: { type: String, trim: true },
+        country: { type: String, default: "SA", required: true, trim: true },
+      },
+      branches: [
+        {
+          name: { type: String, trim: true },
+          street: { type: String, trim: true },
+          city: { type: String, trim: true },
+          region: { type: String, trim: true },
+          postalCode: { type: String, trim: true },
+          country: { type: String, trim: true },
+          isActive: { type: Boolean, default: true },
+        },
+      ],
+    },
+
+    legal: {
+      registrationNumber: { type: String, trim: true },
+      taxId: { type: String, trim: true },
+      licenseNumber: { type: String, trim: true },
+      documents: [
+        {
+          type: { type: String, trim: true },
+          number: { type: String, trim: true },
+          issuedBy: { type: String, trim: true },
+          issuedDate: Date,
+          expiryDate: Date,
+          url: { type: String, trim: true },
+          verified: { type: Boolean, default: false },
+        },
+      ],
+    },
+
+    subscription: {
+      plan: {
+        type: String,
+        required: true,
+        default: "BASIC",
+        enum: ["BASIC", "STANDARD", "PREMIUM", "ENTERPRISE"],
+      },
+      status: { type: String, enum: SubscriptionStatus, default: "TRIAL" },
+      startDate: { type: Date, default: Date.now },
+      endDate: Date,
+      trialEndsAt: Date,
+      billingCycle: { type: String, enum: BillingCycle, default: "MONTHLY" },
+      price: {
+        amount: { type: Number, min: 0 },
+        currency: { type: String, default: "SAR", trim: true },
+      },
+      features: {
+        maxUsers: { type: Number, default: 10, min: 0 },
+        maxProperties: { type: Number, default: 5, min: 0 },
+        maxWorkOrders: { type: Number, default: 100, min: 0 },
+        advancedReporting: { type: Boolean, default: false },
+        apiAccess: { type: Boolean, default: false },
+        customBranding: { type: Boolean, default: false },
+        ssoIntegration: { type: Boolean, default: false },
+        mobileApp: { type: Boolean, default: true },
+        supportLevel: { type: String, enum: SupportLevel, default: "BASIC" },
+      },
+      usage: {
+        currentUsers: { type: Number, default: 0, min: 0 },
+        currentProperties: { type: Number, default: 0, min: 0 },
+        currentWorkOrders: { type: Number, default: 0, min: 0 },
+        apiCalls: { type: Number, default: 0, min: 0 },
+        storageUsed: { type: Number, default: 0, min: 0 },
+      },
+      limits: {
+        exceeded: { type: Boolean, default: false },
+        warnings: [String],
+      },
+    },
+
+    settings: {
+      locale: { type: String, default: "ar", trim: true },
+      timezone: { type: String, default: "Asia/Riyadh", trim: true },
+      currency: { type: String, default: "SAR", trim: true },
+      dateFormat: { type: String, default: "DD/MM/YYYY", trim: true },
+      numberFormat: { type: String, default: "1,234.56", trim: true },
+      businessHours: {
+        workdays: [{ type: String, enum: Workdays }],
+        startTime: { type: String, default: "09:00", trim: true },
+        endTime: { type: String, default: "17:00", trim: true },
+        breakTime: {
+          enabled: { type: Boolean, default: true },
+          start: { type: String, default: "12:00", trim: true },
+          end: { type: String, default: "13:00", trim: true },
+        },
+      },
+      workOrders: {
+        autoAssignment: { type: Boolean, default: false },
+        requireApproval: { type: Boolean, default: true },
+        defaultPriority: { type: String, enum: Priority, default: "MEDIUM" },
+        slaDefaults: {
+          low: { hours: { type: Number, default: 72, min: 0 } },
+          medium: { hours: { type: Number, default: 48, min: 0 } },
+          high: { hours: { type: Number, default: 24, min: 0 } },
+          urgent: { hours: { type: Number, default: 4, min: 0 } },
+        },
+        notifications: {
+          email: { type: Boolean, default: true },
+          sms: { type: Boolean, default: false },
+          push: { type: Boolean, default: true },
+        },
+      },
+      financial: {
+        invoiceNumberFormat: {
+          type: String,
+          default: "INV-{YYYY}-{MM}-{####}",
+          trim: true,
+        },
+        paymentTerms: { type: Number, default: 30, min: 0 },
+        lateFeePercentage: { type: Number, default: 2.5, min: 0 },
+        taxRate: { type: Number, default: 15, min: 0, max: 100 },
+        approvalLimits: {
+          workOrder: { type: Number, default: 1000, min: 0 },
+          purchase: { type: Number, default: 5000, min: 0 },
+          invoice: { type: Number, default: 10000, min: 0 },
+        },
+      },
+      security: {
+        passwordPolicy: {
+          minLength: { type: Number, default: 8, min: 1 },
+          requireUppercase: { type: Boolean, default: true },
+          requireNumbers: { type: Boolean, default: true },
+          requireSpecialChars: { type: Boolean, default: false },
+          expiryDays: { type: Number, default: 90, min: 0 },
+        },
+        sessionTimeout: { type: Number, default: 480, min: 1 }, // minutes
+        maxLoginAttempts: { type: Number, default: 5, min: 1 },
+        twoFactorRequired: { type: Boolean, default: false },
+        ipWhitelist: [String],
+        auditLogRetention: { type: Number, default: 365, min: 0 }, // days
+      },
+      integrations: {
+        emailProvider: {
+          provider: { type: String, enum: EmailProvider, default: "SMTP" },
+          settings: Schema.Types.Mixed,
+        },
+        smsProvider: {
+          provider: { type: String, enum: SmsProvider, default: "LOCAL" },
+          settings: Schema.Types.Mixed,
+        },
+        paymentGateway: {
+          provider: { type: String, enum: PaymentGateway, default: "PAYTABS" },
+          settings: Schema.Types.Mixed,
+        },
+        sso: {
+          enabled: { type: Boolean, default: false },
+          provider: { type: String, enum: SsoProvider },
+          settings: Schema.Types.Mixed,
+        },
+      },
+    },
+
+    modules: {
+      ats: {
+        enabled: { type: Boolean, default: false },
+        jobPostLimit: { type: Number, default: 10, min: 0 },
+        seats: { type: Number, default: 25, min: 0 },
+        seatWarningThreshold: { type: Number, default: 0.9, min: 0, max: 1 },
+        activatedAt: { type: Date },
+        billingPlan: { type: String, default: "ATS_STARTER" },
+      },
+    },
+
+    compliance: {
+      status: {
+        type: String,
+        enum: ComplianceStatus,
+        default: "PENDING_REVIEW",
+      },
+      certifications: [
+        {
+          name: { type: String, trim: true },
+          number: { type: String, trim: true },
+          issuedBy: { type: String, trim: true },
+          issuedDate: Date,
+          expiryDate: Date,
+          url: { type: String, trim: true },
+          verified: { type: Boolean, default: false },
+        },
+      ],
+      policies: [
+        {
+          name: { type: String, trim: true },
+          version: { type: String, trim: true },
+          approvedBy: { type: String, trim: true },
+          approvedDate: Date,
+          url: { type: String, trim: true },
+        },
+      ],
+      auditTrail: {
+        enabled: { type: Boolean, default: true },
+        retentionPeriod: { type: Number, default: 2555, min: 0 },
+        externalAuditor: { type: String, trim: true },
+        lastAuditDate: Date,
+        nextAuditDate: Date,
+      },
+      dataPrivacy: {
+        gdprCompliant: { type: Boolean, default: false },
+        dataRetentionPeriod: { type: Number, default: 2555, min: 0 },
+        anonymizationEnabled: { type: Boolean, default: false },
+        rightToForget: { type: Boolean, default: false },
+      },
+    },
+
+    status: {
+      isActive: { type: Boolean, default: true },
+      isSuspended: { type: Boolean, default: false },
+      suspensionReason: { type: String, trim: true },
+      maintenanceMode: { type: Boolean, default: false },
+      lastHealthCheck: Date,
+      healthStatus: {
+        type: String,
+        enum: ["HEALTHY", "WARNING", "CRITICAL"],
+        default: "HEALTHY",
+      },
+      healthDetails: Schema.Types.Mixed,
+    },
+
+    customFields: Schema.Types.Mixed,
+    tags: [String],
+    notes: { type: String, trim: true },
+
+    // NOTE: createdBy, updatedBy, and version are added by auditPlugin
+  },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  },
+);
+
+// ---------- Apply Plugins ----------
+// Apply audit plugin for automatic createdBy/updatedBy/version tracking
+OrganizationSchema.plugin(auditPlugin);
+
+// ---------- Indexes ----------
+// ⚡ REMOVED: orgId index - already created by unique: true constraint on field (line 260)
+// ⚡ REMOVED: code index - already created by unique: true constraint on field (line 263)
+OrganizationSchema.index({ "subscription.status": 1 });
+OrganizationSchema.index({ "subscription.endDate": 1 });
+OrganizationSchema.index({ "status.isActive": 1 });
+// ⚡ REMOVED: createdAt index - already created by timestamps: true option
+
+// ---------- Hooks ----------
+const nanoid = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 12);
+
+OrganizationSchema.pre("save", function (next) {
+  // Generate orgId if missing
+  if (this.isNew && !this.orgId) {
+    this.orgId = `org_${nanoid()}`;
+  }
+
+  // Normalize key strings
+  if (this.isModified("code") && this.code)
+    this.code = String(this.code).toUpperCase().trim();
+  if (this.website) this.website = this.website.trim().toLowerCase();
+  if (this.contact?.primary?.email)
+    this.contact.primary.email = this.contact.primary.email
+      .trim()
+      .toLowerCase();
+  if (this.contact?.billing?.email)
+    this.contact.billing.email = this.contact.billing.email
+      .trim()
+      .toLowerCase();
+  if (this.contact?.technical?.email)
+    this.contact.technical.email = this.contact.technical.email
+      .trim()
+      .toLowerCase();
+
+  next();
+});
+
+// ---------- Virtuals ----------
+OrganizationSchema.virtual("subscriptionDaysRemaining").get(function (
+  this: OrganizationDoc,
+) {
+  const end = this.subscription?.endDate
+    ? new Date(this.subscription.endDate).getTime()
+    : null;
+  if (!end) return null;
+  const today = Date.now();
+  const diff = Math.ceil((end - today) / (24 * 60 * 60 * 1000));
+  return diff >= 0 ? diff : 0;
+});
+
+// ---------- Instance methods ----------
+
+OrganizationSchema.methods.hasFeature = function (
+  this: OrganizationDoc,
+  feature: keyof Features,
+): boolean {
+  return Boolean(this.subscription?.features?.[feature]);
+};
+
+OrganizationSchema.methods.checkUsageLimits = function (
+  this: OrganizationDoc,
+): string[] {
+  const usage = this.subscription.usage;
+  const features = this.subscription.features;
+  const warnings: string[] = [];
+
+  if (usage.currentUsers >= features.maxUsers) {
+    warnings.push(
+      `User limit reached (${usage.currentUsers}/${features.maxUsers})`,
+    );
+  }
+  if (usage.currentProperties >= features.maxProperties) {
+    warnings.push(
+      `Property limit reached (${usage.currentProperties}/${features.maxProperties})`,
+    );
+  }
+  if (usage.currentWorkOrders >= features.maxWorkOrders) {
+    warnings.push(
+      `Work order limit reached (${usage.currentWorkOrders}/${features.maxWorkOrders})`,
+    );
+  }
+
+  this.subscription.limits.warnings = warnings;
+  this.subscription.limits.exceeded = warnings.length > 0;
+  return warnings;
+};
+
+// ---------- Statics (atomic helpers) ----------
+OrganizationSchema.statics.incrementUsage = async function (
+  orgId: string,
+  patch: Partial<Usage>,
+): Promise<OrganizationDoc | null> {
+  // Only increment provided counters; clamp at >= 0
+  const inc: Record<string, number> = {};
+  for (const [k, v] of Object.entries(patch)) {
+    if (typeof v === "number" && Number.isFinite(v) && v !== 0) {
+      inc[`subscription.usage.${k}`] = v;
+    }
+  }
+  if (Object.keys(inc).length === 0) return this.findOne({ orgId });
+
+  const doc = await this.findOneAndUpdate(
+    { orgId },
+    { $inc: inc },
+    { new: true },
+  );
+  return doc;
+};
+
+OrganizationSchema.statics.setSubscriptionStatus = async function (
+  orgId: string,
+  status: TSubscriptionStatus,
+): Promise<OrganizationDoc | null> {
+  return this.findOneAndUpdate(
+    { orgId },
+    { $set: { "subscription.status": status } },
+    { new: true },
+  );
+};
+
+// ---------- Export ----------
+export const Organization =
+  typeof models !== "undefined" && models.Organization
+    ? (models.Organization as OrganizationModel)
+    : (model<IOrganization, OrganizationModel>(
+        "Organization",
+        OrganizationSchema,
+      ) as OrganizationModel);
+export type { OrganizationDoc, Features, Usage };
+
+]]>
+</file>
+
+<file path="server/models/Owner.ts">
+<![CDATA[
+import { Schema, InferSchemaType } from "mongoose";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { auditPlugin } from "../plugins/auditPlugin";
+import { encryptionPlugin } from "../plugins/encryptionPlugin";
+import { getModel } from "@/types/mongoose-compat";
+
+const OwnerType = ["INDIVIDUAL", "COMPANY", "TRUST", "GOVERNMENT"] as const;
+const OwnerStatus = ["ACTIVE", "INACTIVE", "SUSPENDED"] as const;
+
+const OwnerSchema = new Schema(
+  {
+    // Multi-tenancy - will be added by plugin
+    // orgId: { type: String, required: true, index: true },
+
+    // Basic Information
+    code: { type: String, required: true }, // ⚡ Removed unique: true - enforced via compound index below
+    userId: { type: Schema.Types.ObjectId, ref: "User", required: true }, // Link to auth user (using ObjectId for consistency)
+    type: { type: String, enum: OwnerType, required: true },
+
+    // Personal/Company Information
+    name: {
+      first: String,
+      middle: String,
+      last: String,
+      full: { type: String, required: true },
+    },
+    companyName: String, // If type is COMPANY
+    nationalId: { type: String }, // ⚡ Iqama/ID number - uniqueness enforced via compound index below for tenant-scoped uniqueness
+    commercialRegistration: String, // For companies
+    taxNumber: String,
+
+    // Contact Information
+    contact: {
+      email: { type: String, required: true },
+      phone: { type: String, required: true },
+      mobile: String,
+      whatsapp: String,
+      preferredMethod: {
+        type: String,
+        enum: ["EMAIL", "PHONE", "WHATSAPP"],
+        default: "EMAIL",
+      },
+    },
+
+    // Address
+    address: {
+      street: String,
+      city: String,
+      region: String,
+      postalCode: String,
+      country: { type: String, default: "SA" },
+      nationalAddress: String, // SPL National Address
+    },
+
+    // Financial Information
+    financial: {
+      bankAccounts: [
+        {
+          bankName: String,
+          accountNumber: String,
+          iban: String,
+          swiftCode: String,
+          isPrimary: Boolean,
+        },
+      ],
+      paymentTerms: { type: String, default: "NET_30" }, // NET_15, NET_30, NET_60
+      creditLimit: Number,
+      currency: { type: String, default: "SAR" },
+    },
+
+    // Properties Owned
+    properties: [
+      {
+        propertyId: { type: Schema.Types.ObjectId, ref: "Property" },
+        ownershipType: {
+          type: String,
+          enum: ["FULL", "PARTIAL", "MANAGEMENT"],
+        },
+        ownershipPercentage: { type: Number, min: 0, max: 100 },
+        startDate: Date,
+        endDate: Date, // Null if current owner
+        documents: [
+          {
+            type: String, // DEED, TITLE, POA, etc.
+            url: String,
+            uploadedAt: Date,
+          },
+        ],
+      },
+    ],
+
+    // Portfolio Summary (simplified - only store directly derivable count)
+    // ⚡ Other metrics (totalUnits, totalArea, occupancyRate, revenue, expenses) should be calculated
+    // dynamically via aggregation or virtuals to avoid data inconsistency
+    portfolio: {
+      totalProperties: { type: Number, default: 0 },
+    },
+
+    // Preferences
+    preferences: {
+      language: { type: String, enum: ["en", "ar"], default: "ar" },
+      autoApproveMaintenanceUnder: Number, // Auto-approve maintenance under this amount
+      receiveReports: { type: Boolean, default: true },
+      reportFrequency: {
+        type: String,
+        enum: ["DAILY", "WEEKLY", "MONTHLY"],
+        default: "MONTHLY",
+      },
+      notifications: {
+        email: { type: Boolean, default: true },
+        sms: { type: Boolean, default: true },
+        whatsapp: { type: Boolean, default: false },
+      },
+    },
+
+    // Owner Portal - Subscription
+    subscription: {
+      plan: {
+        type: String,
+        enum: ["BASIC", "PRO", "ENTERPRISE"],
+        default: "BASIC",
+      },
+      startDate: Date,
+      endDate: Date, // Null for active indefinite
+      activeUntil: { type: Date, index: true }, // ⚡ Use this for expiry checks, NOT createdAt
+      autoRenew: { type: Boolean, default: false },
+      billingCycle: {
+        type: String,
+        enum: ["MONTHLY", "QUARTERLY", "ANNUALLY"],
+      },
+
+      // Feature Access
+      features: {
+        maxProperties: { type: Number, default: 1 }, // BASIC: 1, PRO: 5, ENTERPRISE: unlimited
+        utilitiesTracking: { type: Boolean, default: false },
+        roiAnalytics: { type: Boolean, default: false },
+        customReports: { type: Boolean, default: false },
+        apiAccess: { type: Boolean, default: false },
+        dedicatedSupport: { type: Boolean, default: false },
+        multiUserAccess: { type: Boolean, default: false },
+        advancedDelegation: { type: Boolean, default: false },
+      },
+
+      // Payment
+      lastPaymentDate: Date,
+      lastPaymentAmount: Number,
+      nextBillingDate: Date,
+      paymentMethod: String,
+      invoiceId: { type: Schema.Types.ObjectId, ref: "SubscriptionInvoice" },
+    },
+
+    // Owner Portal - Nickname
+    nickname: String, // Friendly identifier for the owner (e.g., "Mr. Ahmad's Portfolio")
+
+    // Documents
+    documents: [
+      {
+        type: String, // ID_COPY, CR_COPY, VAT_CERTIFICATE, etc.
+        name: String,
+        url: String,
+        uploadedAt: Date,
+        expiresAt: Date,
+        status: {
+          type: String,
+          enum: ["PENDING", "VERIFIED", "EXPIRED", "REJECTED"],
+        },
+      },
+    ],
+
+    // Status
+    status: { type: String, enum: OwnerStatus, default: "ACTIVE" },
+    statusReason: String,
+
+    // Metadata
+    notes: String,
+    tags: [String],
+    rating: { type: Number, min: 0, max: 5 }, // Internal rating
+    lastContactDate: Date,
+
+    // Timestamps managed by plugin
+  },
+  {
+    timestamps: true,
+  },
+);
+
+// Plugins (apply BEFORE indexes so orgId field exists)
+OwnerSchema.plugin(tenantIsolationPlugin);
+OwnerSchema.plugin(auditPlugin);
+// PII encryption for sensitive financial data
+OwnerSchema.plugin(encryptionPlugin, {
+  fields: {
+    "nationalId": "National ID",
+    "financial.bankAccounts.accountNumber": "Bank Account Number",
+    "financial.bankAccounts.iban": "IBAN",
+  },
+});
+
+// Indexes (after plugins to ensure orgId exists)
+OwnerSchema.index(
+  { orgId: 1, code: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+); // ⚡ Tenant-scoped uniqueness for code
+OwnerSchema.index({ orgId: 1, userId: 1 });
+OwnerSchema.index({ orgId: 1, status: 1 });
+OwnerSchema.index({ orgId: 1, "contact.email": 1 });
+OwnerSchema.index(
+  { orgId: 1, nationalId: 1 },
+  {
+    unique: true,
+    sparse: true,
+    partialFilterExpression: { orgId: { $exists: true } },
+  },
+); // ⚡ Tenant-scoped uniqueness for nationalId
+OwnerSchema.index({ orgId: 1, "properties.propertyId": 1 });
+
+// Pre-save hook to update portfolio summary (simplified)
+OwnerSchema.pre("save", async function (next) {
+  if (this.isModified("properties")) {
+    // Get active properties (those without endDate)
+    const activeProperties = this.properties.filter((p) => !p.endDate);
+
+    // Ensure portfolio exists
+    if (!this.portfolio) {
+      this.portfolio = { totalProperties: 0 };
+    }
+
+    // ⚡ Only update directly derivable count - avoid storing stale aggregated data
+    // Other metrics (totalUnits, totalArea, occupancyRate, revenue, expenses) should be
+    // calculated dynamically via aggregation pipelines or service methods to ensure accuracy
+    this.portfolio.totalProperties = activeProperties.length;
+  }
+  next();
+});
+
+// Virtual for full name
+OwnerSchema.virtual("displayName").get(function () {
+  return this.companyName || this.name?.full || "Unknown Owner";
+});
+
+// Export type and model
+export type Owner = InferSchemaType<typeof OwnerSchema>;
+
+export const OwnerModel = getModel<Owner>("Owner", OwnerSchema);
+
+]]>
+</file>
+
+<file path="server/models/OwnerGroup.ts">
+<![CDATA[
+import { Schema, Types, InferSchemaType } from "mongoose";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { auditPlugin } from "../plugins/auditPlugin";
+import { getModel } from "@/types/mongoose-compat";
+
+const OwnerGroupSchema = new Schema(
+  {
+    name: { type: String, required: true },
+    primary_contact_user_id: { type: Schema.Types.ObjectId, ref: "User" },
+    member_user_ids: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    fm_provider_org_id: { type: Schema.Types.ObjectId, ref: "Organization" },
+    agent_org_id: { type: Schema.Types.ObjectId, ref: "Organization" },
+    property_ids: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Property",
+      },
+    ],
+    // orgId is automatically added by tenantIsolationPlugin
+  },
+  { timestamps: true },
+);
+
+// ⚡ CRITICAL FIX: Apply tenant isolation and audit plugins
+OwnerGroupSchema.plugin(tenantIsolationPlugin);
+OwnerGroupSchema.plugin(auditPlugin);
+
+// ⚡ FIX: Tenant-scoped indexes (orgId added by plugin)
+OwnerGroupSchema.index(
+  { orgId: 1, name: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
+OwnerGroupSchema.index({ orgId: 1, primary_contact_user_id: 1 });
+
+export type OwnerGroup = InferSchemaType<typeof OwnerGroupSchema>;
+
+export const OwnerGroupModel = getModel<OwnerGroup>(
+  "OwnerGroup",
+  OwnerGroupSchema,
+);
+
+]]>
+</file>
+
+<file path="server/models/OwnerStatement.ts">
+<![CDATA[
+import { Schema, InferSchemaType, Types } from "mongoose";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { auditPlugin } from "../plugins/auditPlugin";
+import { getModel } from "@/types/mongoose-compat";
+
+const OwnerStatementSchema = new Schema(
+  {
+    // tenantId will be added by tenantIsolationPlugin
+    ownerId: { type: Schema.Types.ObjectId, ref: "Owner", required: true },
+    propertyId: { type: Schema.Types.ObjectId, ref: "Property" },
+    period: { type: String, required: true },
+    year: { type: Number, required: true },
+    currency: { type: String, default: "SAR" },
+    totals: {
+      income: { type: Number, default: 0 },
+      expenses: { type: Number, default: 0 },
+      net: { type: Number, default: 0 },
+    },
+    lineItems: [
+      {
+        date: { type: Date, required: true },
+        description: { type: String, required: true },
+        type: { type: String, enum: ["INCOME", "EXPENSE"], required: true },
+        amount: { type: Number, required: true },
+        reference: { type: String },
+      },
+    ],
+  },
+  { timestamps: true },
+);
+
+// Apply plugins BEFORE indexes
+OwnerStatementSchema.plugin(tenantIsolationPlugin);
+OwnerStatementSchema.plugin(auditPlugin);
+
+// Tenant-scoped indexes (orgId from plugin)
+OwnerStatementSchema.index({ orgId: 1, ownerId: 1, period: 1, year: 1 });
+
+export type OwnerStatementDoc = InferSchemaType<typeof OwnerStatementSchema>;
+
+export const OwnerStatement = getModel<OwnerStatementDoc>(
+  "OwnerStatement",
+  OwnerStatementSchema,
+);
+
+]]>
+</file>
+
+<file path="server/models/PaymentMethod.ts">
+<![CDATA[
+import { Schema, model, models, Model, Document } from "mongoose";
+import { getModel } from "@/types/mongoose-compat";
+import { auditPlugin } from "../plugins/auditPlugin";
+
+const PaymentMethodSchema = new Schema(
+  {
+    // NOTE: This schema uses a flexible ownership model (XOR validation)
+    // Either orgId (organization payment method) OR owner_user_id (user payment method)
+    // This is intentional and does NOT use tenantIsolationPlugin
+    // AUDIT-2025-11-29: Changed from org_id to orgId
+    orgId: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      // Note: required conditionally in validation - see validate hook below
+    },
+    owner_user_id: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      // Note: required conditionally in validation - see validate hook below
+    },
+    gateway: { type: String, default: "PAYTABS" },
+    pt_token: { type: String },
+    pt_masked_card: String,
+    pt_customer_email: String,
+  },
+  { timestamps: true },
+);
+
+// XOR validation: Either orgId OR owner_user_id must be provided, but not both
+// AUDIT-2025-11-29: Changed from org_id to orgId
+PaymentMethodSchema.pre("validate", function (next) {
+  const hasOrg = !!this.orgId;
+  const hasOwner = !!this.owner_user_id;
+
+  if (!hasOrg && !hasOwner) {
+    return next(new Error("Either orgId or owner_user_id must be provided"));
+  }
+
+  if (hasOrg && hasOwner) {
+    return next(new Error("Cannot set both orgId and owner_user_id"));
+  }
+
+  next();
+});
+
+// Apply audit plugin for tracking who created/updated payment methods
+PaymentMethodSchema.plugin(auditPlugin);
+
+// Indexes for efficient queries
+PaymentMethodSchema.index({ orgId: 1 }); // AUDIT-2025-11-29: Changed from org_id
+PaymentMethodSchema.index({ owner_user_id: 1 });
+PaymentMethodSchema.index({ pt_token: 1 }, { sparse: true }); // For quick token lookup
+
+// TypeScript-safe model export
+interface IPaymentMethod extends Document {
+  orgId?: Schema.Types.ObjectId; // AUDIT-2025-11-29: Changed from org_id
+  owner_user_id?: Schema.Types.ObjectId;
+  gateway: string;
+  pt_token?: string;
+  pt_masked_card?: string;
+  pt_customer_email?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: Schema.Types.ObjectId;
+  updatedBy?: Schema.Types.ObjectId;
+}
+
+const PaymentMethod = getModel<IPaymentMethod>(
+  "PaymentMethod",
+  PaymentMethodSchema,
+);
+export default PaymentMethod;
+
+]]>
+</file>
+
+<file path="server/models/Permission.ts">
+<![CDATA[
+import { Schema, InferSchemaType, model, models } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+
+/**
+ * Permission Model
+ *
+ * Represents an atomic permission in the system.
+ * Format: "module:action" (e.g., "finance:invoice.read")
+ *
+ * Examples:
+ * - workorders:create
+ * - finance:invoice.read
+ * - hr:employee.update
+ * - admin:settings.write
+ */
+const PermissionSchema = new Schema(
+  {
+    key: {
+      type: String,
+      unique: true, // unique implies index, no separate index needed
+      required: true,
+      trim: true,
+      // Format: module:action (e.g., "workorders:create")
+      match: /^[a-z][a-z0-9_]*:[a-z][a-z0-9_.]*$/i,
+    },
+    description: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    module: {
+      type: String,
+      // index via compound { module: 1, action: 1 }
+      required: true,
+      trim: true,
+      lowercase: true,
+      // Examples: workorders, finance, hr, admin
+    },
+    action: {
+      type: String,
+      required: true,
+      trim: true,
+      lowercase: true,
+      // Examples: create, read, update, delete, invoice.read, employee.update
+    },
+  },
+  {
+    timestamps: true,
+    collection: "permissions",
+  },
+);
+
+// Indexes for efficient querying
+PermissionSchema.index({ module: 1, action: 1 });
+PermissionSchema.index({ key: 1 }, { unique: true });
+
+// Pre-save hook to extract module and action from key
+PermissionSchema.pre("save", function (next) {
+  if (this.isModified("key")) {
+    const [module, action] = this.key.split(":");
+    if (module && action) {
+      this.module = module;
+      this.action = action;
+    }
+  }
+  next();
+});
+
+// Instance methods
+PermissionSchema.methods.toSafeObject = function () {
+  return {
+    id: this._id.toString(),
+    key: this.key,
+    description: this.description,
+    module: this.module,
+    action: this.action,
+    createdAt: this.createdAt,
+    updatedAt: this.updatedAt,
+  };
+};
+
+export type Permission = InferSchemaType<typeof PermissionSchema>;
+
+const PermissionModel = getModel<Permission>("Permission", PermissionSchema);
+export default PermissionModel;
+
+]]>
+</file>
+
+<file path="server/models/PlatformSettings.ts">
+<![CDATA[
+import { Schema, InferSchemaType } from "mongoose";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { auditPlugin } from "../plugins/auditPlugin";
+import { getModel } from "@/types/mongoose-compat";
+import { BRAND_COLORS } from "@/lib/config/brand-colors";
+
+/**
+ * PlatformSettings Model
+ * Manages global platform settings including logo, branding, etc.
+ * Super Admin only access for modifications
+ */
+const PlatformSettingsSchema = new Schema(
+  {
+    // tenantId will be added by tenantIsolationPlugin
+    logoUrl: {
+      type: String,
+      required: false,
+      comment: "URL to the platform logo (stored in cloud storage or local)",
+    },
+    logoStorageKey: {
+      type: String,
+      required: false,
+      comment: "Storage key/path for the logo file",
+    },
+    logoFileName: {
+      type: String,
+      required: false,
+      comment: "Original filename of the uploaded logo",
+    },
+    logoMimeType: {
+      type: String,
+      required: false,
+      comment: "MIME type of the logo (e.g., image/png, image/jpeg)",
+    },
+    logoFileSize: {
+      type: Number,
+      required: false,
+      comment: "File size in bytes",
+    },
+    faviconUrl: {
+      type: String,
+      required: false,
+      comment: "URL to the favicon",
+    },
+    brandName: {
+      type: String,
+      default: "Fixzit Enterprise",
+      comment: "Platform brand name",
+    },
+    brandColor: {
+      type: String,
+      default: BRAND_COLORS.primary,
+      comment: "Primary brand color (hex format) - Business.sa blue",
+    },
+    // updatedBy, updatedAt, createdBy, createdAt will be added by auditPlugin
+  },
+  {
+    timestamps: true,
+    comment: "Platform-wide settings including branding and logo",
+  },
+);
+
+// Apply plugins BEFORE indexes
+PlatformSettingsSchema.plugin(tenantIsolationPlugin);
+PlatformSettingsSchema.plugin(auditPlugin);
+
+// Ensure only one settings document per tenant (singleton pattern)
+PlatformSettingsSchema.index(
+  { orgId: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
+
+export type PlatformSettingsDoc = InferSchemaType<
+  typeof PlatformSettingsSchema
+>;
+
+export const PlatformSettings = getModel<PlatformSettingsDoc>(
+  "PlatformSettings",
+  PlatformSettingsSchema,
+);
+
+]]>
+</file>
+
+<file path="server/models/PriceBook.ts">
+<![CDATA[
+import { Schema, model, models, Model, Document } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+import { auditPlugin } from "../plugins/auditPlugin";
+
+const PricePerModuleSchema = new Schema(
+  {
+    module_key: { type: String, required: true },
+    monthly_usd: { type: Number, required: true },
+    monthly_sar: { type: Number, required: true },
+  },
+  { _id: false },
+);
+
+const SeatTierSchema = new Schema(
+  {
+    min_seats: { type: Number, required: true },
+    max_seats: { type: Number, required: true },
+    discount_pct: {
+      type: Number,
+      default: 0,
+      min: [0, "Discount percentage must be between 0 and 100"],
+      max: [100, "Discount percentage must be between 0 and 100"],
+    },
+    prices: { type: [PricePerModuleSchema], default: [] },
+  },
+  { _id: false },
+);
+
+const PriceBookSchema = new Schema(
+  {
+    name: { type: String, required: true },
+    currency: { type: String, enum: ["USD", "SAR"], default: "USD" },
+    effective_from: { type: Date, default: () => new Date() },
+    active: { type: Boolean, default: true },
+    tiers: { type: [SeatTierSchema], default: [] },
+  },
+  { timestamps: true },
+);
+
+// NOTE: PriceBook is global platform configuration (no tenantIsolationPlugin)
+// Apply audit plugin to track who changes pricing (critical for financial governance)
+PriceBookSchema.plugin(auditPlugin);
+
+// Validate min_seats <= max_seats for all tiers
+PriceBookSchema.pre("save", function (next) {
+  if (this.tiers && Array.isArray(this.tiers)) {
+    for (const tier of this.tiers) {
+      if (tier.min_seats > tier.max_seats) {
+        return next(
+          new Error(
+            `min_seats (${tier.min_seats}) must be <= max_seats (${tier.max_seats}) in all tiers`,
+          ),
+        );
+      }
+    }
+  }
+  next();
+});
+
+// TypeScript-safe model export
+interface IPricePerModule {
+  module_key: string;
+  monthly_usd: number;
+  monthly_sar: number;
+}
+
+interface ISeatTier {
+  min_seats: number;
+  max_seats: number;
+  discount_pct: number;
+  prices: IPricePerModule[];
+}
+
+interface IPriceBook extends Document {
+  name: string;
+  currency: "USD" | "SAR";
+  effective_from: Date;
+  active: boolean;
+  tiers: ISeatTier[];
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: Schema.Types.ObjectId;
+  updatedBy?: Schema.Types.ObjectId;
+}
+
+const PriceBook = getModel<IPriceBook>("PriceBook", PriceBookSchema);
+export default PriceBook;
+
+]]>
+</file>
+
+<file path="server/models/PriceTier.ts">
+<![CDATA[
+import { Schema, model, models, Document } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+import { auditPlugin } from "../plugins/auditPlugin";
+
+export interface IPriceTier extends Document {
+  moduleId: Schema.Types.ObjectId;
+  seatsMin: number;
+  seatsMax: number;
+  pricePerSeatMonthly?: number;
+  flatMonthly?: number;
+  currency: string;
+  region?: string;
+  orgId?: Schema.Types.ObjectId;
+  isGlobal?: boolean;
+  // updatedBy removed - handled by auditPlugin
+  createdBy?: Schema.Types.ObjectId;
+  updatedBy?: Schema.Types.ObjectId;
+  version?: number;
+  changeHistory?: unknown[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const priceTierSchema = new Schema<IPriceTier>(
+  {
+    moduleId: {
+      type: Schema.Types.ObjectId,
+      ref: "Module",
+      required: true,
+    },
+    seatsMin: {
+      type: Number,
+      required: true,
+      min: 1,
+      validate: {
+        validator: function (this: IPriceTier, value: number) {
+          return !this.seatsMax || value <= this.seatsMax;
+        },
+        message: "seatsMin must be less than or equal to seatsMax",
+      },
+    },
+    seatsMax: {
+      type: Number,
+      required: true,
+      min: 1,
+      validate: {
+        validator: function (this: IPriceTier, value: number) {
+          return !this.seatsMin || value >= this.seatsMin;
+        },
+        message: "seatsMax must be greater than or equal to seatsMin",
+      },
+    },
+    pricePerSeatMonthly: {
+      type: Number,
+      min: 0,
+    },
+    flatMonthly: {
+      type: Number,
+      min: 0,
+    },
+    currency: {
+      type: String,
+      required: true,
+      default: "USD",
+      uppercase: true,
+      match: [
+        /^[A-Z]{3}$/,
+        "Currency must be a valid ISO 4217 code (e.g., USD, EUR, SAR)",
+      ],
+    },
+    region: {
+      type: String,
+      trim: true,
+    },
+    orgId: {
+      type: Schema.Types.ObjectId,
+      required: false,
+      // index via compound { orgId: 1, moduleId: 1, seatsMin: 1, seatsMax: 1, currency: 1 }
+    },
+    isGlobal: {
+      type: Boolean,
+      default: false,
+      // index via compound { isGlobal: 1, moduleId: 1, seatsMin: 1, seatsMax: 1, currency: 1 }
+    },
+  },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  },
+);
+
+// NOTE: PriceTier is global platform configuration (no tenantIsolationPlugin)
+// Apply audit plugin to track who changes pricing
+priceTierSchema.plugin(auditPlugin);
+
+// Unique per org for tenant-scoped tiers
+priceTierSchema.index(
+  { orgId: 1, moduleId: 1, seatsMin: 1, seatsMax: 1, currency: 1 },
+  { unique: true, sparse: true },
+);
+
+// Unique for global tiers (isGlobal=true)
+priceTierSchema.index(
+  { isGlobal: 1, moduleId: 1, seatsMin: 1, seatsMax: 1, currency: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { isGlobal: true },
+  },
+);
+
+export const PriceTier = getModel<IPriceTier>("PriceTier", priceTierSchema);
+export default PriceTier;
+
+]]>
+</file>
+
+<file path="server/models/Project.ts">
+<![CDATA[
+import { Schema, Model, models, InferSchemaType } from "mongoose";
+import { getModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { auditPlugin } from "../plugins/auditPlugin";
+
+const _ProjectStatus = [
+  "PLANNING",
+  "APPROVED",
+  "IN_PROGRESS",
+  "ON_HOLD",
+  "COMPLETED",
+  "CANCELLED",
+  "CLOSED",
+] as const;
+const ProjectType = [
+  "NEW_CONSTRUCTION",
+  "RENOVATION",
+  "MAINTENANCE",
+  "FIT_OUT",
+  "DEMOLITION",
+] as const;
+
+const ProjectSchema = new Schema(
+  {
+    // tenantId will be added by tenantIsolationPlugin (as orgId)
+
+    // Basic Information
+    // FIXED: Remove unique: true - will be enforced via compound index with orgId
+    code: { type: String, required: true },
+    name: { type: String, required: true },
+    description: { type: String },
+    type: { type: String, enum: ProjectType, required: true },
+
+    // Location
+    propertyId: String, // Reference to Property model
+    location: {
+      address: String,
+      city: String,
+      coordinates: {
+        lat: Number,
+        lng: Number,
+      },
+    },
+
+    // Timeline
+    timeline: {
+      startDate: Date,
+      endDate: Date,
+      duration: Number, // days
+      milestones: [
+        {
+          name: String,
+          description: String,
+          dueDate: Date,
+          completionDate: Date,
+          status: {
+            type: String,
+            enum: ["PENDING", "IN_PROGRESS", "COMPLETED", "DELAYED"],
+          },
+          progress: { type: Number, min: 0, max: 100 },
+          dependencies: [String], // milestone IDs
+          deliverables: [String],
+        },
+      ],
+    },
+
+    // Budget & Financial
+    budget: {
+      total: Number,
+      allocated: Number,
+      spent: Number,
+      remaining: Number,
+      currency: { type: String, default: "SAR" },
+      breakdown: [
+        {
+          category: String, // Labor, Materials, Equipment, etc.
+          budgeted: Number,
+          spent: Number,
+          remaining: Number,
+        },
+      ],
+    },
+
+    // Work Breakdown Structure (WBS)
+    wbs: [
+      {
+        level: Number, // hierarchy level
+        code: String, // WBS code (1.1, 1.2, etc.)
+        name: String,
+        description: String,
+        type: {
+          type: String,
+          enum: ["WORK_PACKAGE", "DELIVERABLE", "MILESTONE"],
+        },
+        status: String,
+        progress: { type: Number, min: 0, max: 100 },
+        startDate: Date,
+        endDate: Date,
+        duration: Number,
+        cost: Number,
+        resources: [
+          {
+            type: String, // INTERNAL, CONTRACTOR, CONSULTANT
+            name: String,
+            role: String,
+            cost: Number,
+            allocation: Number, // percentage
+          },
+        ],
+      },
+    ],
+
+    // Resources
+    team: [
+      {
+        userId: String,
+        role: String,
+        responsibilities: [String],
+        startDate: Date,
+        endDate: Date,
+        allocation: Number, // percentage
+      },
+    ],
+    contractors: [
+      {
+        vendorId: String,
+        company: String,
+        scope: String,
+        contractValue: Number,
+        startDate: Date,
+        endDate: Date,
+        performance: {
+          rating: Number,
+          issues: Number,
+          delays: Number,
+        },
+      },
+    ],
+
+    // Quality & Safety
+    quality: {
+      standards: [String],
+      inspections: [
+        {
+          type: String,
+          scheduled: Date,
+          completed: Date,
+          inspector: String,
+          result: String, // PASS, FAIL, CONDITIONAL
+          findings: [String],
+          actions: [String],
+        },
+      ],
+      defects: [
+        {
+          description: String,
+          severity: String, // MINOR, MAJOR, CRITICAL
+          reported: Date,
+          resolved: Date,
+          cost: Number,
+        },
+      ],
+    },
+    safety: {
+      incidents: [
+        {
+          type: String, // ACCIDENT, NEAR_MISS, HAZARD
+          description: String,
+          severity: String,
+          reported: Date,
+          investigation: String,
+          correctiveActions: [String],
+        },
+      ],
+      permits: [
+        {
+          type: String, // WORK_PERMIT, HOT_WORK, etc.
+          number: String,
+          issued: Date,
+          expires: Date,
+          status: String,
+        },
+      ],
+    },
+
+    // Procurement
+    rfqs: [
+      {
+        rfqId: String,
+        package: String,
+        description: String,
+        budget: Number,
+        bids: [
+          {
+            vendorId: String,
+            company: String,
+            amount: Number,
+            currency: String,
+            validity: Date,
+            status: {
+              type: String,
+              enum: ["SUBMITTED", "UNDER_REVIEW", "ACCEPTED", "REJECTED"],
+            },
+            technicalScore: Number,
+            commercialScore: Number,
+          },
+        ],
+        awardedTo: String, // vendorId
+        awardedAmount: Number,
+        status: {
+          type: String,
+          enum: ["OPEN", "CLOSED", "AWARDED", "CANCELLED"],
+        },
+      },
+    ],
+
+    // Progress Tracking
+    progress: {
+      overall: { type: Number, min: 0, max: 100 },
+      schedule: { type: Number, min: 0, max: 100 },
+      quality: { type: Number, min: 0, max: 100 },
+      cost: { type: Number, min: 0, max: 100 },
+      lastUpdated: Date,
+      criticalPath: [String], // milestone IDs
+      delays: [
+        {
+          description: String,
+          impact: Number, // days
+          cause: String,
+          mitigation: String,
+        },
+      ],
+    },
+
+    // Documents
+    documents: [
+      {
+        type: String, // CONTRACT, DRAWING, PERMIT, REPORT, etc.
+        name: String,
+        version: String,
+        uploaded: Date,
+        uploadedBy: String,
+        url: String,
+        status: String, // DRAFT, APPROVED, REVISED
+      },
+    ],
+
+    // Change Management
+    changes: [
+      {
+        changeId: String,
+        description: String,
+        type: String, // SCOPE, SCHEDULE, COST, QUALITY
+        impact: {
+          schedule: Number, // days
+          cost: Number,
+          quality: String,
+        },
+        status: {
+          type: String,
+          enum: ["PENDING", "APPROVED", "REJECTED", "IMPLEMENTED"],
+        },
+        requestedBy: String,
+        reviewedBy: String,
+        approvedBy: String,
+        approvedAt: Date,
+      },
+    ],
+
+    // Compliance
+    compliance: {
+      permits: [
+        {
+          type: String,
+          number: String,
+          issued: Date,
+          expires: Date,
+          status: String, // PENDING, APPROVED, EXPIRED
+        },
+      ],
+      regulations: [
+        {
+          name: String,
+          compliance: String, // COMPLIANT, NON_COMPLIANT, UNDER_REVIEW
+          lastAudit: Date,
+          nextAudit: Date,
+        },
+      ],
+    },
+
+    // Metadata
+    tags: [String],
+    customFields: Schema.Types.Mixed,
+    // createdBy, updatedBy, createdAt, updatedAt will be added by auditPlugin
+  },
+  {
+    timestamps: true,
+  },
+);
+
+// Apply plugins BEFORE indexes
+ProjectSchema.plugin(tenantIsolationPlugin);
+ProjectSchema.plugin(auditPlugin);
+
+// Indexes for performance (orgId from plugin)
+ProjectSchema.index({ orgId: 1, status: 1 });
+ProjectSchema.index({ orgId: 1, type: 1 });
+ProjectSchema.index({ orgId: 1, "timeline.startDate": 1 });
+ProjectSchema.index({ orgId: 1, "progress.overall": -1 });
+// Compound tenant-scoped unique index for code
+ProjectSchema.index(
+  { orgId: 1, code: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
+
+export type ProjectDoc = InferSchemaType<typeof ProjectSchema>;
+
+export const Project: Model<ProjectDoc> = getModel<ProjectDoc>(
+  "Project",
+  ProjectSchema,
+);
+
+]]>
+</file>
+
+<file path="server/models/ProjectBid.ts">
+<![CDATA[
+import { Schema, InferSchemaType } from "mongoose";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { auditPlugin } from "../plugins/auditPlugin";
+import { getModel } from "@/types/mongoose-compat";
+
+const BidStatus = [
+  "DRAFT",
+  "SUBMITTED",
+  "UNDER_REVIEW",
+  "SHORTLISTED",
+  "ACCEPTED",
+  "REJECTED",
+  "WITHDRAWN",
+  "EXPIRED",
+] as const;
+
+const ProjectBidSchema = new Schema(
+  {
+    // Multi-tenancy - will be added by plugin
+    // orgId: { type: String, required: true, index: true },
+
+    // References
+    rfqId: {
+      type: Schema.Types.ObjectId,
+      ref: "RFQ",
+      required: true,
+      index: true,
+    },
+    rfqCode: { type: String },
+    projectId: { type: Schema.Types.ObjectId, ref: "Project" },
+    contractorId: {
+      type: Schema.Types.ObjectId,
+      ref: "Contractor",
+    },
+    vendorId: { type: Schema.Types.ObjectId, ref: "Vendor" }, // Alternative if using Vendor model
+    vendorName: String,
+
+    // Bidder Information
+    bidder: {
+      name: String,
+      companyName: String,
+      contactPerson: String,
+      email: String,
+      phone: String,
+      licenseNumber: String,
+    },
+
+    // Bid Details
+    bidAmount: { type: Number, required: true },
+    currency: { type: String, default: "SAR" },
+    validityText: String, // e.g. "30 days"
+    deliveryTimeDays: Number, // lead time/delivery ETA in days
+    paymentTermsNote: String, // freeform payment terms
+
+    // Pricing Breakdown
+    breakdown: [
+      {
+        category: String, // Labor, Materials, Equipment, etc.
+        description: String,
+        quantity: Number,
+        unitPrice: Number,
+        totalPrice: Number,
+      },
+    ],
+
+    // Timeline
+    timeline: {
+      proposedStartDate: Date,
+      proposedEndDate: Date,
+      duration: Number, // days
+      milestones: [
+        {
+          name: String,
+          description: String,
+          duration: Number, // days
+          deliverables: [String],
+        },
+      ],
+    },
+
+    // Technical Proposal
+    technical: {
+      approach: String,
+      methodology: String,
+      resources: [
+        {
+          type: { type: String, enum: ["LABOR", "EQUIPMENT", "MATERIAL"] },
+          description: String,
+          quantity: Number,
+          availability: String,
+        },
+      ],
+      qualityAssurance: String,
+      riskMitigation: String,
+    },
+
+    // Team
+    team: [
+      {
+        name: String,
+        role: String,
+        qualifications: [String],
+        experience: String,
+        availability: String,
+      },
+    ],
+
+    // Experience & Credentials
+    credentials: {
+      similarProjects: [
+        {
+          name: String,
+          client: String,
+          value: Number,
+          completionDate: Date,
+          description: String,
+          referenceContact: String,
+        },
+      ],
+      certifications: [
+        {
+          name: String,
+          issuer: String,
+          number: String,
+          expiryDate: Date,
+          documentUrl: String,
+        },
+      ],
+      licenses: [
+        {
+          type: String,
+          number: String,
+          expiryDate: Date,
+          documentUrl: String,
+        },
+      ],
+      insurance: {
+        provider: String,
+        policyNumber: String,
+        coverage: Number,
+        expiryDate: Date,
+        documentUrl: String,
+      },
+    },
+
+    // Documents
+    documents: [
+      {
+        type: String, // PROPOSAL, DRAWINGS, BOQ, SCHEDULE, etc.
+        name: String,
+        url: String,
+        size: Number,
+        uploadedAt: Date,
+      },
+    ],
+
+    // Payment Terms
+    paymentTerms: {
+      advancePayment: { type: Number, default: 0 }, // percentage
+      milestonePayments: [
+        {
+          milestone: String,
+          percentage: Number,
+          amount: Number,
+        },
+      ],
+      retentionPercentage: { type: Number, default: 5 },
+      retentionPeriod: { type: Number, default: 365 }, // days
+      paymentSchedule: String,
+    },
+
+    // Terms & Conditions
+    terms: {
+      warrantyPeriod: Number, // days
+      maintenancePeriod: Number, // days
+      penaltyClause: String,
+      variations: String,
+      termination: String,
+      disputeResolution: String,
+    },
+
+    // Evaluation
+    evaluation: {
+      score: Number,
+      technicalScore: Number,
+      financialScore: Number,
+      experienceScore: Number,
+      evaluatedBy: [{ type: Schema.Types.ObjectId, ref: "User" }],
+      evaluatedAt: Date,
+      comments: [
+        {
+          evaluator: String,
+          comment: String,
+          score: Number,
+          date: Date,
+        },
+      ],
+      strengths: [String],
+      weaknesses: [String],
+      recommendation: {
+        type: String,
+        enum: ["ACCEPT", "REJECT", "REQUEST_CLARIFICATION"],
+      },
+    },
+
+    // Clarifications
+    clarifications: [
+      {
+        question: String,
+        askedBy: String,
+        askedAt: Date,
+        answer: String,
+        answeredAt: Date,
+      },
+    ],
+
+    // Negotiations
+    negotiations: [
+      {
+        date: Date,
+        initiatedBy: String,
+        topic: String,
+        originalValue: Number,
+        proposedValue: Number,
+        agreedValue: Number,
+        status: { type: String, enum: ["PENDING", "ACCEPTED", "REJECTED"] },
+        notes: String,
+      },
+    ],
+
+    // Status
+    status: { type: String, enum: BidStatus, default: "DRAFT" },
+    submittedAt: { type: Date, default: Date.now },
+    expiresAt: Date,
+    technicalProposal: String,
+    commercialProposal: String,
+    alternates: [
+      {
+        description: String,
+        priceAdjustment: Number,
+      },
+    ],
+    exceptions: [String],
+
+    // Award Details (if accepted)
+    award: {
+      awardedAt: Date,
+      awardedBy: String,
+      contractNumber: String,
+      contractSignedDate: Date,
+      contractUrl: String,
+      finalAmount: Number,
+      notes: String,
+    },
+
+    // Rejection Details (if rejected)
+    rejection: {
+      rejectedAt: Date,
+      rejectedBy: String,
+      reason: String,
+      feedback: String,
+    },
+
+    // Withdrawal Details (if withdrawn)
+    withdrawal: {
+      withdrawnAt: Date,
+      reason: String,
+    },
+
+    // Metadata
+    notes: String,
+    tags: [String],
+    isConfidential: { type: Boolean, default: false },
+
+    // Timestamps managed by plugin
+  },
+  {
+    timestamps: true,
+  },
+);
+
+// Indexes
+ProjectBidSchema.index({ projectId: 1, contractorId: 1 });
+ProjectBidSchema.index({ projectId: 1, status: 1 });
+ProjectBidSchema.index({ contractorId: 1, status: 1 });
+ProjectBidSchema.index({ bidAmount: 1 });
+ProjectBidSchema.index({ submittedAt: 1 });
+ProjectBidSchema.index(
+  { orgId: 1, rfqId: 1, vendorId: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
+ProjectBidSchema.index({ orgId: 1, rfqId: 1, status: 1, submittedAt: -1 });
+
+// Plugins
+ProjectBidSchema.plugin(tenantIsolationPlugin);
+ProjectBidSchema.plugin(auditPlugin);
+
+// Virtual for ranking
+ProjectBidSchema.virtual("ranking").get(function () {
+  if (!this.evaluation?.score) return null;
+  return this.evaluation.score;
+});
+
+// Virtual for is expired
+ProjectBidSchema.virtual("isExpired").get(function () {
+  if (!this.expiresAt) return false;
+  return new Date() > this.expiresAt;
+});
+
+// Method to calculate total score
+ProjectBidSchema.methods.calculateScore = function (weights: {
+  technical: number;
+  financial: number;
+  experience: number;
+}) {
+  const technical = this.evaluation.technicalScore || 0;
+  const financial = this.evaluation.financialScore || 0;
+  const experience = this.evaluation.experienceScore || 0;
+
+  // Validate weights sum to 100
+  const sum = weights.technical + weights.financial + weights.experience;
+  if (
+    !Number.isFinite(weights.technical) ||
+    !Number.isFinite(weights.financial) ||
+    !Number.isFinite(weights.experience)
+  ) {
+    throw new TypeError("All weights must be finite numbers");
+  }
+  if (Math.abs(sum - 100) > 0.01) {
+    throw new Error("Weights must sum to 100");
+  }
+
+  return (
+    (technical * weights.technical +
+      financial * weights.financial +
+      experience * weights.experience) /
+    100
+  );
+};
+
+// Export type and model
+export type ProjectBid = InferSchemaType<typeof ProjectBidSchema>;
+
+export const ProjectBidModel = getModel<ProjectBid>(
+  "ProjectBid",
+  ProjectBidSchema,
+);
+
+]]>
+</file>
+
+<file path="server/models/Property.ts">
+<![CDATA[
+import { Schema, Model, InferSchemaType } from "mongoose";
+import { getModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { auditPlugin } from "../plugins/auditPlugin";
+
+const PropertyType = [
+  "RESIDENTIAL",
+  "COMMERCIAL",
+  "INDUSTRIAL",
+  "MIXED_USE",
+  "LAND",
+] as const;
+const PropertyStatus = [
+  "ACTIVE",
+  "UNDER_MAINTENANCE",
+  "VACANT",
+  "OCCUPIED",
+  "SOLD",
+  "RENTED",
+] as const;
+
+const PropertySchema = new Schema(
+  {
+    // Multi-tenancy - will be added by plugin
+    // orgId: { type: String, required: true, index: true },
+
+    // Basic Information
+    // ⚡ FIXED: Remove unique: true - will be enforced via compound index with orgId
+    code: { type: String, required: true },
+    name: { type: String, required: true },
+    description: { type: String },
+
+    // Classification
+    type: { type: String, enum: PropertyType, required: true },
+    subtype: { type: String }, // Apartment, Villa, Office, Retail, etc.
+
+    // Location
+    address: {
+      street: String,
+      city: String,
+      region: String,
+      postalCode: String,
+      country: { type: String, default: "SA" },
+      coordinates: {
+        lat: { type: Number, required: true },
+        lng: { type: Number, required: true },
+      },
+      nationalAddress: String, // SPL National Address
+      district: String,
+    },
+
+    // Property Details
+    details: {
+      totalArea: Number, // sqm
+      builtArea: Number, // sqm
+      bedrooms: Number,
+      bathrooms: Number,
+      floors: Number,
+      parkingSpaces: Number,
+      yearBuilt: Number,
+      completionDate: Date,
+      occupancyRate: { type: Number, min: 0, max: 100 },
+    },
+
+    // Financial Information
+    financial: {
+      purchasePrice: Number,
+      currentValue: Number,
+      monthlyRent: Number,
+      annualYield: Number,
+      mortgage: {
+        amount: Number,
+        monthlyPayment: Number,
+        interestRate: Number,
+        remaining: Number,
+      },
+    },
+
+    // Ownership
+    ownership: {
+      type: { type: String, enum: ["OWNED", "LEASED", "MANAGED"] },
+      owner: {
+        name: String,
+        contact: String,
+        id: String, // National ID or Company Registration
+      },
+      lease: {
+        startDate: Date,
+        endDate: Date,
+        monthlyRent: Number,
+        landlord: String,
+      },
+    },
+
+    // Owner Portal Integration
+    ownerPortal: {
+      ownerId: { type: Schema.Types.ObjectId, ref: "Owner" },
+      ownerNickname: String, // Friendly name given by owner
+
+      // Real Estate Agent Assignment
+      agentId: { type: Schema.Types.ObjectId, ref: "User" },
+      agentContractId: { type: Schema.Types.ObjectId, ref: "AgentContract" },
+      agentAssignedDate: Date,
+
+      // Advertisement
+      currentAdvertisementId: {
+        type: Schema.Types.ObjectId,
+        ref: "Advertisement",
+      },
+      advertisementNumber: String, // Government-issued number
+      advertisementExpiry: Date,
+
+      // Subscription & Access
+      subscriptionTier: { type: String, enum: ["BASIC", "PRO", "ENTERPRISE"] },
+      enabledFeatures: [String], // UTILITIES_TRACKING, ROI_ANALYTICS, etc.
+
+      // Portal Preferences
+      preferences: {
+        autoApproveMaintenanceUnder: Number,
+        requireOwnerApprovalForContracts: { type: Boolean, default: true },
+        weeklyReportEnabled: { type: Boolean, default: true },
+        monthlyStatementEnabled: { type: Boolean, default: true },
+      },
+    },
+
+    // Units/Spaces
+    units: [
+      {
+        unitNumber: String,
+        type: String, // Apartment, Office, Retail, etc.
+        area: Number,
+        bedrooms: Number,
+        bathrooms: Number,
+        status: { type: String, enum: PropertyStatus },
+        tenant: {
+          name: String,
+          contact: String,
+          leaseStart: Date,
+          leaseEnd: Date,
+          monthlyRent: Number,
+        },
+        amenities: [String],
+      },
+    ],
+
+    // Assets
+    assets: [
+      {
+        assetId: String, // Reference to Asset model
+        location: String, // Building/Floor/Room
+        installedDate: Date,
+        status: String,
+      },
+    ],
+
+    // Maintenance
+    maintenance: {
+      lastInspection: Date,
+      nextInspection: Date,
+      issues: [
+        {
+          type: String,
+          severity: String,
+          reported: Date,
+          resolved: Boolean,
+          workOrderId: String,
+        },
+      ],
+    },
+
+    // Compliance
+    compliance: {
+      buildingPermit: String,
+      occupancyCertificate: String,
+      fireSafety: {
+        certificate: String,
+        expiry: Date,
+        lastInspection: Date,
+      },
+      insurance: {
+        provider: String,
+        policyNumber: String,
+        expiry: Date,
+        coverage: Number,
+      },
+    },
+
+    // Features & Amenities
+    features: {
+      amenities: [String], // Pool, Gym, Parking, Security, etc.
+      utilities: {
+        electricity: String,
+        water: String,
+        gas: String,
+        internet: String,
+      },
+      accessibility: {
+        elevator: Boolean,
+        ramp: Boolean,
+        parking: Boolean,
+      },
+    },
+
+    // Market Information
+    market: {
+      listingPrice: Number,
+      marketValue: Number,
+      priceHistory: [
+        {
+          date: Date,
+          price: Number,
+          event: String, // Listed, Sold, Appraised
+        },
+      ],
+      comparableProperties: [String], // Property codes
+    },
+
+    // Documents
+    documents: [
+      {
+        type: String, // Title Deed, Lease, Permit, etc.
+        number: String,
+        issued: Date,
+        expires: Date,
+        url: String,
+        status: String, // VALID, EXPIRED, PENDING
+      },
+    ],
+
+    // Metadata
+    tags: [String],
+    customFields: Schema.Types.Mixed,
+    // createdBy, updatedBy, createdAt, updatedAt will be added by auditPlugin
+  },
+  {
+    timestamps: true,
+    // Indexes are managed centrally in lib/db/collections.ts to prevent
+    // IndexOptionsConflict; disable automatic schema index creation.
+    autoIndex: false,
+  },
+);
+
+// Apply plugins BEFORE indexes for proper tenant isolation and audit tracking
+PropertySchema.plugin(tenantIsolationPlugin, { uniqueTenantFields: ["code"] });
+PropertySchema.plugin(auditPlugin);
+
+// All Property indexes live in lib/db/collections.ts (createIndexes()) to keep
+// a single source of truth. Avoid adding schema-level indexes here.
+
+export type PropertyDoc = InferSchemaType<typeof PropertySchema>;
+
+export const Property: Model<PropertyDoc> = getModel<PropertyDoc>(
+  "Property",
+  PropertySchema,
+);
+
+]]>
+</file>
+
+<file path="server/models/RFQ.ts">
+<![CDATA[
+import { Schema, InferSchemaType, Types } from "mongoose";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { auditPlugin } from "../plugins/auditPlugin";
+import { getModel } from "@/types/mongoose-compat";
+
+const RFQStatus = [
+  "DRAFT",
+  "PUBLISHED",
+  "BIDDING",
+  "CLOSED",
+  "AWARDED",
+  "CANCELLED",
+] as const;
+
+const RFQSchema = new Schema(
+  {
+    // Basic Information
+    code: { type: String, required: true },
+    title: { type: String, required: true },
+    description: { type: String, required: true },
+
+    // Classification
+    category: { type: String, required: true }, // Construction, Maintenance, etc.
+    subcategory: String,
+    type: {
+      type: String,
+      enum: ["GOODS", "SERVICES", "WORKS"],
+      default: "WORKS",
+    },
+
+    // Location & Scope
+    location: {
+      city: String,
+      region: String,
+      address: String,
+      coordinates: {
+        lat: Number,
+        lng: Number,
+      },
+      radius: Number, // km - for city-bounded offers
+      nationalAddress: String, // SPL National Address
+    },
+
+    // Project Context
+    projectId: String, // Reference to Project model
+    workPackage: String, // WBS reference
+    specifications: [
+      {
+        item: String,
+        description: String,
+        quantity: Number,
+        unit: String,
+        specifications: Schema.Types.Mixed,
+      },
+    ],
+
+    // Timeline
+    timeline: {
+      publishDate: Date,
+      bidDeadline: Date,
+      awardDate: Date,
+      startDate: Date,
+      completionDate: Date,
+    },
+
+    // Budget
+    budget: {
+      estimated: Number,
+      currency: { type: String, default: "SAR" },
+      range: {
+        min: Number,
+        max: Number,
+      },
+      breakdown: [
+        {
+          category: String,
+          amount: Number,
+          description: String,
+        },
+      ],
+    },
+
+    // Requirements
+    requirements: {
+      qualifications: [String], // Required certifications
+      experience: String, // Years of experience required
+      insurance: {
+        required: Boolean,
+        minimum: Number,
+      },
+      licenses: [String], // Required licenses
+      references: Number, // Number of references required
+      preBidMeeting: {
+        required: Boolean,
+        date: Date,
+        location: String,
+      },
+    },
+
+    // Bidding Rules
+    bidding: {
+      anonymous: { type: Boolean, default: true }, // Keep bidders anonymous until award
+      maxBids: Number, // Maximum number of bids to collect
+      targetBids: Number, // Target number of bids (e.g., 3)
+      bidLeveling: { type: Boolean, default: true }, // Standardize bids for comparison
+      alternates: Boolean, // Allow alternative proposals
+      validity: Number, // Bid validity period in days
+    },
+
+    // Bids - CRITICAL FIX: References instead of embedded documents
+    bids: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "ProjectBid",
+      },
+    ],
+
+    // Award
+    award: {
+      awardedTo: String, // vendorId
+      awardedAmount: Number,
+      awardedDate: Date,
+      contractId: String,
+      escrowFunded: Boolean,
+      milestones: [
+        {
+          description: String,
+          amount: Number,
+          dueDate: Date,
+          completed: Boolean,
+          completedDate: Date,
+        },
+      ],
+    },
+
+    // Communication
+    clarifications: [
+      {
+        question: String,
+        askedBy: String, // vendorId
+        askedAt: Date,
+        answer: String,
+        answeredBy: String,
+        answeredAt: Date,
+      },
+    ],
+
+    // Attachments
+    attachments: [
+      {
+        type: String, // SPECIFICATIONS, DRAWINGS, CONTRACT, etc.
+        name: String,
+        url: String,
+        uploaded: Date,
+        uploadedBy: String,
+      },
+    ],
+
+    // Compliance
+    compliance: {
+      cityBounded: Boolean, // Enforce city radius
+      insuranceRequired: Boolean,
+      licenseRequired: Boolean,
+      backgroundCheck: Boolean,
+    },
+
+    // Status
+    status: { type: String, enum: RFQStatus, default: "DRAFT" },
+
+    // Metadata
+    tags: [String],
+    customFields: Schema.Types.Mixed,
+  },
+  {
+    timestamps: true,
+  },
+);
+
+// Apply plugins BEFORE indexes
+RFQSchema.plugin(tenantIsolationPlugin);
+RFQSchema.plugin(auditPlugin);
+
+// Tenant-scoped indexes (orgId from plugin)
+RFQSchema.index(
+  { orgId: 1, code: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+); // FIXED: tenant-scoped code
+RFQSchema.index({ orgId: 1, status: 1 });
+RFQSchema.index({ orgId: 1, category: 1 });
+RFQSchema.index({ orgId: 1, "timeline.bidDeadline": 1 });
+RFQSchema.index({ orgId: 1, "location.city": 1 });
+
+export type RFQDoc = InferSchemaType<typeof RFQSchema>;
+
+export const RFQ = getModel<RFQDoc>("RFQ", RFQSchema);
+
+]]>
+</file>
+
+</batch_content>

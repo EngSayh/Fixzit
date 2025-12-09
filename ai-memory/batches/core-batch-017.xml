@@ -1,0 +1,2203 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/careers/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  MapPin,
+  Clock,
+  DollarSign,
+  Users,
+  FileText,
+  Send,
+  Upload,
+  Star,
+  AlertTriangle,
+} from "lucide-react";
+import ClientDate from "@/components/ClientDate";
+import { logger } from "@/lib/logger";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+interface Job {
+  id: string;
+  title: string;
+  department: string;
+  location: string;
+  type: "Full-time" | "Part-time" | "Contract" | "Remote";
+  salary: string;
+  description: string;
+  requirements: string[];
+  benefits: string[];
+  skills: string[];
+  experience: string;
+  postedDate: string;
+  status: "Open" | "Closed";
+  urgent?: boolean;
+  featured?: boolean;
+}
+
+export default function CareersPage() {
+  const { data: session } = useSession();
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [showApplyForm, setShowApplyForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const auto = useAutoTranslator("careers.page");
+
+  // Comprehensive job data
+  const jobs: Job[] = [
+    {
+      id: "1",
+      title: "Senior Facility Manager",
+      department: "Operations",
+      location: "Riyadh, Saudi Arabia",
+      type: "Full-time",
+      salary: "SAR 15,000 - 25,000",
+      description:
+        "We are looking for an experienced Facility Manager to oversee our commercial properties across Riyadh. The ideal candidate will have 5+ years of experience in facility management and will be responsible for ensuring optimal building operations, tenant satisfaction, and regulatory compliance.",
+      requirements: [
+        "Bachelor's degree in Engineering, Business Administration, or related field",
+        "5+ years of experience in facility management",
+        "Strong knowledge of building systems and maintenance",
+        "Excellent leadership and communication skills",
+        "Proficiency in English and Arabic",
+        "Experience with property management software",
+        "Knowledge of local building codes and regulations",
+      ],
+      benefits: [
+        "Competitive salary package",
+        "Health insurance coverage",
+        "Annual performance bonus",
+        "Professional development opportunities",
+        "Company car allowance",
+        "25 days annual leave",
+      ],
+      skills: [
+        "Facility Management",
+        "Building Operations",
+        "Team Leadership",
+        "Budget Management",
+        "Vendor Relations",
+      ],
+      experience: "5+ years",
+      postedDate: "2025-01-15",
+      status: "Open",
+      urgent: true,
+      featured: true,
+    },
+    {
+      id: "2",
+      title: "Property Maintenance Technician",
+      department: "Maintenance",
+      location: "Jeddah, Saudi Arabia",
+      type: "Full-time",
+      salary: "SAR 8,000 - 12,000",
+      description:
+        "Join our maintenance team to ensure the optimal operation of our properties. You will be responsible for preventive maintenance, repairs, emergency response, and ensuring all building systems operate efficiently.",
+      requirements: [
+        "Technical diploma or certification in electrical/mechanical systems",
+        "3+ years of experience in building maintenance",
+        "Knowledge of HVAC, electrical, and plumbing systems",
+        "Valid driver's license",
+        "Basic computer skills",
+        "Ability to work flexible hours",
+        "Safety certification preferred",
+      ],
+      benefits: [
+        "Competitive salary",
+        "Health and safety training",
+        "Overtime opportunities",
+        "Tool allowance",
+        "Career advancement path",
+        "21 days annual leave",
+      ],
+      skills: [
+        "HVAC Systems",
+        "Electrical Maintenance",
+        "Plumbing",
+        "Preventive Maintenance",
+        "Emergency Response",
+      ],
+      experience: "3+ years",
+      postedDate: "2025-01-10",
+      status: "Open",
+    },
+    {
+      id: "3",
+      title: "Tenant Relations Specialist",
+      department: "Customer Service",
+      location: "Dammam, Saudi Arabia",
+      type: "Full-time",
+      salary: "SAR 10,000 - 15,000",
+      description:
+        "We are seeking a customer-focused professional to manage tenant relationships and ensure excellent service delivery across our property portfolio. You will be the primary point of contact for tenant inquiries and will work to maintain high satisfaction levels.",
+      requirements: [
+        "Bachelor's degree in Business, Communication, or related field",
+        "3+ years of experience in customer service",
+        "Excellent communication and interpersonal skills",
+        "Proficiency in English and Arabic",
+        "Experience with CRM systems",
+        "Problem-solving abilities",
+        "Professional presentation skills",
+      ],
+      benefits: [
+        "Attractive salary package",
+        "Customer service training",
+        "Performance incentives",
+        "Flexible working hours",
+        "Career growth opportunities",
+        "23 days annual leave",
+      ],
+      skills: [
+        "Customer Service",
+        "Communication",
+        "CRM Systems",
+        "Conflict Resolution",
+        "Relationship Management",
+      ],
+      experience: "3+ years",
+      postedDate: "2025-01-08",
+      status: "Open",
+    },
+    {
+      id: "4",
+      title: "IT Support Specialist",
+      department: "Information Technology",
+      location: "Riyadh, Saudi Arabia",
+      type: "Full-time",
+      salary: "SAR 12,000 - 18,000",
+      description:
+        "Support our growing technology infrastructure by providing technical assistance to employees and maintaining our IT systems. You will troubleshoot hardware and software issues, manage network operations, and ensure system security.",
+      requirements: [
+        "Bachelor's degree in Computer Science or related field",
+        "2+ years of experience in IT support",
+        "Knowledge of Windows, macOS, and Linux systems",
+        "Experience with network administration",
+        "Strong problem-solving skills",
+        "IT certifications preferred",
+        "Customer service oriented",
+      ],
+      benefits: [
+        "Competitive compensation",
+        "Technical training programs",
+        "Certification support",
+        "Modern equipment",
+        "Flexible work arrangements",
+        "24 days annual leave",
+      ],
+      skills: [
+        "IT Support",
+        "Network Administration",
+        "Hardware Troubleshooting",
+        "Software Installation",
+        "System Security",
+      ],
+      experience: "2+ years",
+      postedDate: "2025-01-05",
+      status: "Open",
+    },
+    {
+      id: "5",
+      title: "Property Accountant",
+      department: "Finance",
+      location: "Riyadh, Saudi Arabia",
+      type: "Full-time",
+      salary: "SAR 14,000 - 20,000",
+      description:
+        "Manage financial operations for our property portfolio including rent collection, expense tracking, financial reporting, and budget preparation. You will work closely with property managers to ensure accurate financial records.",
+      requirements: [
+        "Bachelor's degree in Accounting or Finance",
+        "3+ years of experience in property accounting",
+        "Proficiency in accounting software",
+        "Knowledge of real estate financial principles",
+        "Strong analytical skills",
+        "CPA or equivalent certification preferred",
+        "Experience with property management systems",
+      ],
+      benefits: [
+        "Excellent salary package",
+        "Professional accounting training",
+        "Performance bonuses",
+        "Health insurance",
+        "Retirement plan",
+        "26 days annual leave",
+      ],
+      skills: [
+        "Financial Accounting",
+        "Budget Management",
+        "Financial Reporting",
+        "Property Management Software",
+        "Tax Compliance",
+      ],
+      experience: "3+ years",
+      postedDate: "2025-01-12",
+      status: "Open",
+    },
+    {
+      id: "6",
+      title: "Marketing Coordinator",
+      department: "Marketing",
+      location: "Jeddah, Saudi Arabia",
+      type: "Full-time",
+      salary: "SAR 11,000 - 16,000",
+      description:
+        "Support our marketing efforts by coordinating campaigns, managing social media presence, creating marketing materials, and analyzing market trends. You will help promote our properties and services to potential tenants and clients.",
+      requirements: [
+        "Bachelor's degree in Marketing, Communications, or related field",
+        "2+ years of experience in marketing",
+        "Proficiency in digital marketing tools",
+        "Strong creative and writing skills",
+        "Social media management experience",
+        "Knowledge of real estate market",
+        "Proficiency in English and Arabic",
+      ],
+      benefits: [
+        "Creative work environment",
+        "Marketing training programs",
+        "Flexible hours",
+        "Remote work options",
+        "Professional development",
+        "22 days annual leave",
+      ],
+      skills: [
+        "Digital Marketing",
+        "Social Media Management",
+        "Content Creation",
+        "Campaign Planning",
+        "Market Analysis",
+      ],
+      experience: "2+ years",
+      postedDate: "2025-01-14",
+      status: "Open",
+      featured: true,
+    },
+    {
+      id: "7",
+      title: "Security Supervisor",
+      department: "Security",
+      location: "Multiple Locations",
+      type: "Full-time",
+      salary: "SAR 9,000 - 13,000",
+      description:
+        "Oversee security operations across our properties to ensure the safety of tenants, employees, and visitors. You will manage security personnel, coordinate with local authorities, and implement security protocols.",
+      requirements: [
+        "Security management certification",
+        "4+ years of experience in security",
+        "Knowledge of security systems",
+        "Leadership and training skills",
+        "Emergency response experience",
+        "Valid security license",
+        "Strong communication skills",
+      ],
+      benefits: [
+        "Security training programs",
+        "Health and safety coverage",
+        "Shift allowances",
+        "Career advancement",
+        "Equipment provided",
+        "21 days annual leave",
+      ],
+      skills: [
+        "Security Management",
+        "Risk Assessment",
+        "Emergency Response",
+        "Team Leadership",
+        "Security Systems",
+      ],
+      experience: "4+ years",
+      postedDate: "2025-01-09",
+      status: "Open",
+    },
+    {
+      id: "8",
+      title: "Procurement Officer",
+      department: "Procurement",
+      location: "Riyadh, Saudi Arabia",
+      type: "Full-time",
+      salary: "SAR 13,000 - 19,000",
+      description:
+        "Manage procurement activities for our properties including vendor selection, contract negotiation, and supplier relationship management. You will ensure cost-effective procurement of goods and services while maintaining quality standards.",
+      requirements: [
+        "Bachelor's degree in Business, Supply Chain, or related field",
+        "3+ years of experience in procurement",
+        "Strong negotiation skills",
+        "Knowledge of procurement processes",
+        "Experience with vendor management",
+        "Proficiency in procurement software",
+        "Analytical and decision-making skills",
+      ],
+      benefits: [
+        "Procurement training",
+        "Negotiation skill development",
+        "Performance incentives",
+        "Travel opportunities",
+        "Professional certification support",
+        "25 days annual leave",
+      ],
+      skills: [
+        "Procurement Management",
+        "Vendor Relations",
+        "Contract Negotiation",
+        "Cost Analysis",
+        "Supply Chain Management",
+      ],
+      experience: "3+ years",
+      postedDate: "2025-01-07",
+      status: "Open",
+    },
+  ];
+
+  const handleApply = (job: Job) => {
+    setSelectedJob(job);
+    setShowApplyForm(true);
+  };
+
+  const handleSubmitApplication = async (
+    e: React.FormEvent<HTMLFormElement>,
+  ) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    const formData = new FormData(e.currentTarget);
+
+    // Add job information to the form data
+    if (selectedJob) {
+      formData.append("jobId", selectedJob.id);
+      formData.append("position", selectedJob.title);
+      formData.append("department", selectedJob.department);
+    }
+
+    try {
+      const resume = formData.get("resume");
+      if (resume instanceof File) {
+        const presignRes = await fetch("/api/files/resumes/presign", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fileName: resume.name,
+            contentType: resume.type || "application/pdf",
+          }),
+        });
+        if (!presignRes.ok) {
+          throw new Error(
+            auto("Failed to prepare resume upload", "form.resume.presignError"),
+          );
+        }
+        const presign = await presignRes.json();
+        const putHeaders: Record<string, string> = {
+          ...(presign.headers || {}),
+          "Content-Type": resume.type || "application/pdf",
+        };
+        const putRes = await fetch(presign.url, {
+          method: "PUT",
+          headers: putHeaders,
+          body: resume,
+        });
+        if (!putRes.ok) {
+          throw new Error(
+            auto("Failed to upload resume", "form.resume.uploadError"),
+          );
+        }
+        const publicUrl = String(presign.url).split("?")[0];
+        formData.set("resumeKey", presign.key);
+        formData.set("resumeUrl", publicUrl);
+        formData.set("resumeMimeType", resume.type || "application/pdf");
+        formData.set("resumeSize", String(resume.size));
+        formData.delete("resume");
+      }
+
+      const response = await fetch("/api/careers/apply", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Show success message with application details
+        toast.success(
+          `Application Submitted Successfully! Application ID: ${result.applicationId} for ${selectedJob?.title}. You will receive a confirmation email shortly.`,
+          { duration: 5000 },
+        );
+
+        // Reset form and close modal
+        setShowApplyForm(false);
+        setSelectedJob(null);
+
+        // Clear the form
+        (e.target as HTMLFormElement).reset();
+      } else {
+        throw new Error(result.error || "Failed to submit application");
+      }
+    } catch (error) {
+      logger.error("Application submission error:", error);
+
+      const errorMessage =
+        error instanceof Error
+          ? `Error: ${error.message}. Please check your internet connection and try again.`
+          : "An unexpected error occurred. Please try again.";
+
+      toast.error(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "Open":
+        return "bg-success/10 text-success-foreground border-success/20";
+      case "Closed":
+        return "bg-destructive/10 text-destructive-foreground border-destructive/20";
+      default:
+        return "bg-muted text-foreground border-border";
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-muted flex flex-col">
+      {/* Hero Section */}
+      <section className="bg-gradient-to-r from-primary via-primary to-success text-primary-foreground py-16">
+        {/* FIXED: Using CSS variables for theming */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+              {auto("Join Our Team", "hero.title")}
+            </h1>
+            <p className="text-xl md:text-2xl mb-8 opacity-90">
+              {auto(
+                "Build your career with Fixzit Enterprise - where innovation meets opportunity",
+                "hero.subtitle",
+              )}
+            </p>
+            <div className="flex flex-wrap justify-center gap-8 text-center">
+              <div className="flex items-center gap-2">
+                <Users className="w-6 h-6" />
+                <span className="text-lg">
+                  {auto("50+ Employees", "hero.statEmployees")}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <MapPin className="w-6 h-6" />
+                <span className="text-lg">
+                  {auto("3 Cities", "hero.statCities")}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="w-6 h-6" />
+                <span className="text-lg">
+                  {auto("Growing Fast", "hero.statGrowth")}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Job Listings */}
+      <section className="py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-foreground mb-4">
+              {auto("Current Openings", "listings.title")}
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+              {auto(
+                "Explore exciting career opportunities and join our growing team of professionals",
+                "listings.subtitle",
+              )}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {jobs.map((job) => (
+              <Card
+                key={job.id}
+                className={`hover:shadow-lg transition-shadow h-full flex flex-col ${job.featured ? "ring-2 ring-primary/20 border-primary/30" : ""}`}
+              >
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-8 h-8 rounded bg-primary text-primary-foreground flex items-center justify-center font-bold">
+                          FZ
+                        </div>
+                        {/* FIXED: Using CSS variable */}
+                        <div className="flex flex-col">
+                          <CardTitle className="text-xl leading-tight">
+                            {job.title}
+                          </CardTitle>
+                          <div className="text-xs text-muted-foreground">
+                            Fixzit Enterprise
+                          </div>
+                        </div>
+                        {job.urgent && (
+                          <div title="Urgent Position">
+                            <AlertTriangle className="w-5 h-5 text-destructive" />
+                          </div>
+                        )}
+                        {job.featured && (
+                          <div title="Featured Position">
+                            <Star className="w-5 h-5 text-accent" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                        <MapPin className="w-4 h-4" />
+                        {job.location}
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-4 h-4" />
+                          {job.type}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <DollarSign className="w-4 h-4" />
+                          {job.salary}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Users className="w-4 h-4" />
+                          {job.experience}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {job.skills.slice(0, 3).map((skill) => (
+                          <Badge
+                            key={skill}
+                            variant="secondary"
+                            className="text-xs"
+                          >
+                            {skill}
+                          </Badge>
+                        ))}
+                        {job.skills.length > 3 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{job.skills.length - 3} more
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <Badge className={getStatusColor(job.status)}>
+                        {job.status}
+                      </Badge>
+                      {job.urgent && (
+                        <Badge className="bg-destructive/10 text-destructive border-destructive/20 text-xs">
+                          Urgent
+                        </Badge>
+                      )}
+                      {job.featured && (
+                        <Badge className="bg-accent/10 text-accent border-warning/20 text-xs">
+                          Featured
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex-1">
+                  <p className="text-muted-foreground mb-4 line-clamp-3">
+                    {job.description}
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2">
+                        {auto("Requirements:", "job.requirementsTitle")}
+                      </h4>
+                      <ul className="text-sm text-muted-foreground space-y-1">
+                        {job.requirements.slice(0, 2).map((req) => (
+                          <li key={req} className="flex items-start gap-2">
+                            <span className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></span>
+                            {req}
+                          </li>
+                        ))}
+                        {job.requirements.length > 2 && (
+                          <li className="text-primary font-medium">
+                            +{job.requirements.length - 2} more requirements
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2">
+                        {auto("Benefits:", "job.benefitsTitle")}
+                      </h4>
+                      <ul className="text-sm text-muted-foreground space-y-1">
+                        {job.benefits.slice(0, 2).map((benefit) => (
+                          <li key={benefit} className="flex items-start gap-2">
+                            <span className="w-1.5 h-1.5 bg-success rounded-full mt-2 flex-shrink-0"></span>
+                            {benefit}
+                          </li>
+                        ))}
+                        {job.benefits.length > 2 && (
+                          <li className="text-success font-medium">
+                            +{job.benefits.length - 2} more benefits
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">
+                      Posted:{" "}
+                      <ClientDate date={job.postedDate} format="date-only" />
+                    </span>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          onClick={() => setSelectedJob(job)}
+                          disabled={job.status === "Closed"}
+                          className="bg-primary hover:bg-primary/90"
+                        >
+                          <FileText className="w-4 h-4 me-2" />
+                          View Details
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <DialogTitle className="text-2xl">
+                                {job.title}
+                              </DialogTitle>
+                              <div className="flex items-center gap-4 mt-2">
+                                <Badge variant="secondary">
+                                  {job.department}
+                                </Badge>
+                                <Badge variant="outline">{job.type}</Badge>
+                                <Badge variant="outline">
+                                  {job.experience}
+                                </Badge>
+                                <span className="text-sm text-muted-foreground">
+                                  Posted:{" "}
+                                  <ClientDate
+                                    date={job.postedDate}
+                                    format="date-only"
+                                  />
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                              {job.urgent && (
+                                <Badge className="bg-destructive/10 text-destructive border-destructive/20">
+                                  Urgent
+                                </Badge>
+                              )}
+                              {job.featured && (
+                                <Badge className="bg-accent/10 text-accent border-warning/20">
+                                  Featured
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </DialogHeader>
+                        <div className="space-y-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div className="bg-primary/10 p-3 rounded-2xl">
+                              <Label className="text-sm font-medium text-primary">
+                                Location
+                              </Label>
+                              <p className="text-foreground font-medium">
+                                {job.location}
+                              </p>
+                            </div>
+                            <div className="bg-success/10 p-3 rounded-2xl">
+                              <Label className="text-sm font-medium text-success">
+                                Salary Range
+                              </Label>
+                              <p className="text-foreground font-medium">
+                                {job.salary}
+                              </p>
+                            </div>
+                            <div className="bg-secondary/10 p-3 rounded-2xl">
+                              <Label className="text-sm font-medium text-secondary">
+                                Job Type
+                              </Label>
+                              <p className="text-foreground font-medium">
+                                {job.type}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div>
+                            <Label className="text-lg font-semibold">
+                              Job Description
+                            </Label>
+                            <p className="text-foreground mt-2 leading-relaxed">
+                              {job.description}
+                            </p>
+                          </div>
+
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div>
+                              <Label className="text-lg font-semibold mb-3 block">
+                                Requirements
+                              </Label>
+                              <ul className="space-y-2">
+                                {job.requirements.map((req) => (
+                                  <li
+                                    key={req}
+                                    className="flex items-start gap-3"
+                                  >
+                                    <span className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></span>
+                                    <span className="text-foreground">
+                                      {req}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                            <div>
+                              <Label className="text-lg font-semibold mb-3 block">
+                                Benefits & Perks
+                              </Label>
+                              <ul className="space-y-2">
+                                {job.benefits.map((benefit) => (
+                                  <li
+                                    key={benefit}
+                                    className="flex items-start gap-3"
+                                  >
+                                    <span className="w-2 h-2 bg-success rounded-full mt-2 flex-shrink-0"></span>
+                                    <span className="text-foreground">
+                                      {benefit}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+
+                          <div>
+                            <Label className="text-lg font-semibold mb-3 block">
+                              Required Skills
+                            </Label>
+                            <div className="flex flex-wrap gap-2">
+                              {job.skills.map((skill) => (
+                                <Badge
+                                  key={skill}
+                                  variant="secondary"
+                                  className="bg-muted text-foreground"
+                                >
+                                  {skill}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Hiring Stages (ATS) */}
+                          <div>
+                            <Label className="text-lg font-semibold mb-3 block">
+                              Hiring Stages
+                            </Label>
+                            <ol className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                              {[
+                                "Applied",
+                                "Screening",
+                                "Interview",
+                                "Offer",
+                                "Hired",
+                              ].map((stage, idx) => (
+                                <li
+                                  key={stage}
+                                  className="flex items-center gap-3 p-3 rounded border border-border bg-card"
+                                >
+                                  <span
+                                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx <= 1 ? "bg-success text-white" : "bg-muted text-muted-foreground"}`}
+                                  >
+                                    {idx + 1}
+                                  </span>
+                                  <span className="text-sm text-foreground">
+                                    {stage}
+                                  </span>
+                                </li>
+                              ))}
+                            </ol>
+                            <div className="flex flex-wrap gap-2 mt-3">
+                              <Button
+                                size="sm"
+                                className="bg-primary hover:bg-primary/90"
+                              >
+                                Schedule Interview
+                              </Button>
+                              <Button size="sm" variant="outline">
+                                Advance Stage
+                              </Button>
+                              <Button size="sm" variant="outline">
+                                Share with Team
+                              </Button>
+                            </div>
+                          </div>
+
+                          <div className="border-t pt-4">
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <p className="text-sm text-muted-foreground">
+                                  <strong>Application Deadline:</strong>{" "}
+                                  Applications are reviewed on a rolling basis
+                                </p>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  <strong>Status:</strong>{" "}
+                                  <span
+                                    className={
+                                      job.status === "Open"
+                                        ? "text-success"
+                                        : "text-destructive"
+                                    }
+                                  >
+                                    {job.status}
+                                  </span>
+                                </p>
+                              </div>
+                              <Button
+                                onClick={() => handleApply(job)}
+                                disabled={job.status === "Closed"}
+                                className="bg-primary hover:bg-primary/90 text-white px-6 py-2"
+                              >
+                                <Send className="w-4 h-4 me-2" />
+                                {auto("Apply Now", "form.applyCta")}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Job Application Form */}
+      {selectedJob && (
+        <Dialog open={showApplyForm} onOpenChange={setShowApplyForm}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-2xl">
+                {auto("Apply for {{jobTitle}}", "form.dialogTitle", {
+                  jobTitle: selectedJob.title,
+                })}
+              </DialogTitle>
+              <p className="text-muted-foreground">
+                {selectedJob.department} • {selectedJob.location} •{" "}
+                {selectedJob.type}
+              </p>
+            </DialogHeader>
+
+            <form onSubmit={handleSubmitApplication} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="firstName">
+                    {auto("First Name *", "form.firstName.label")}
+                  </Label>
+                  <Input
+                    id="firstName"
+                    name="firstName"
+                    required
+                    placeholder={auto(
+                      "Enter your first name",
+                      "form.firstName.placeholder",
+                    )}
+                    defaultValue={session?.user?.name?.split(" ")[0] || ""}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="lastName">
+                    {auto("Last Name *", "form.lastName.label")}
+                  </Label>
+                  <Input
+                    id="lastName"
+                    name="lastName"
+                    required
+                    placeholder={auto(
+                      "Enter your last name",
+                      "form.lastName.placeholder",
+                    )}
+                    defaultValue={
+                      session?.user?.name?.split(" ").slice(1).join(" ") || ""
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="email">
+                    {auto("Email Address *", "form.email.label")}
+                  </Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    required
+                    placeholder={auto(
+                      "Enter your email",
+                      "form.email.placeholder",
+                    )}
+                    defaultValue={session?.user?.email || ""}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="phone">
+                    {auto("Phone Number *", "form.phone.label")}
+                  </Label>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    required
+                    placeholder={auto(
+                      "Enter your phone number",
+                      "form.phone.placeholder",
+                    )}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="coverLetter">
+                  {auto("Cover Letter *", "form.coverLetter.label")}
+                </Label>
+                <Textarea
+                  id="coverLetter"
+                  name="coverLetter"
+                  rows={4}
+                  required
+                  placeholder={auto(
+                    "Tell us why you're interested in this position and what makes you a great fit...",
+                    "form.coverLetter.placeholder",
+                  )}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="resume">
+                  {auto("Resume/CV *", "form.resume.label")}
+                </Label>
+                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-border border-dashed rounded-2xl">
+                  <div className="space-y-1 text-center">
+                    <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <div className="flex text-sm text-muted-foreground">
+                      <label
+                        htmlFor="resume"
+                        className="relative cursor-pointer bg-card rounded-2xl font-medium text-primary hover:text-primary"
+                      >
+                        <span>
+                          {auto("Upload a file", "form.resume.upload")}
+                        </span>
+                        <input
+                          id="resume"
+                          name="resume"
+                          type="file"
+                          accept=".pdf,.doc,.docx"
+                          required
+                          className="sr-only"
+                        />
+                      </label>
+                      <p className="ps-1">
+                        {auto("or drag and drop", "form.resume.dragDrop")}
+                      </p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {auto("PDF, DOC, DOCX up to 10MB", "form.resume.hint")}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {auto(
+                        "Uploaded resumes are virus-scanned (status: pending after upload).",
+                        "form.resume.scanNote",
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-4 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowApplyForm(false)}
+                  disabled={isSubmitting}
+                >
+                  {auto("Cancel", "form.actions.cancel")}
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin me-2" />
+                      {auto("Submitting...", "form.actions.submitting")}
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 me-2" />
+                      {auto("Submit Application", "form.actions.submit")}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/cms/[slug]/page.tsx">
+<![CDATA[
+import { CmsPage, CmsPageDoc } from "@/server/models/CmsPage";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import Link from "next/link";
+import { renderMarkdownSanitized } from "@/lib/markdown";
+import { cookies } from "next/headers";
+import ClientDate from "@/components/ClientDate";
+import { logger } from "@/lib/logger";
+import { getStaticCmsPage } from "@/data/static-content";
+import { isMongoUnavailableError } from "@/lib/mongo-build-guards";
+
+export const revalidate = 60;
+
+// Helper to get translations based on cookie
+async function getTranslations() {
+  const cookieStore = await cookies();
+  const lang = cookieStore.get("fxz.lang")?.value || "en";
+  const isArabic = lang === "ar";
+
+  return {
+    notFound: isArabic ? "غير موجود" : "Not found",
+    notAuthored: isArabic
+      ? "هذه الصفحة لم تتم كتابتها بعد."
+      : "This page has not been authored yet.",
+    unavailable: isArabic ? "غير متاح" : "Unavailable",
+    draft: isArabic ? "هذه الصفحة في المسودة." : "This page is in draft.",
+    previewHint: isArabic
+      ? "يمكن للمسؤولين المعاينة باستخدام"
+      : "Admins can preview with",
+    backToHome: isArabic ? "العودة إلى الصفحة الرئيسية" : "Back to home",
+  };
+}
+
+type CmsPageLike = {
+  slug: string;
+  title: string;
+  content: string;
+  status: CmsPageDoc["status"];
+  updatedAt?: Date;
+  updatedBy?: string;
+};
+
+async function loadCmsPage(slug: string): Promise<CmsPageLike | null> {
+  try {
+    await connectToDatabase();
+    const doc = (await CmsPage.findOne({ slug }).lean().exec()) as
+      | (CmsPageDoc & {
+          updatedAt?: Date | string;
+        })
+      | null;
+    if (doc) {
+      const updatedBy =
+        typeof doc.updatedBy === "string"
+          ? doc.updatedBy
+          : doc.updatedBy
+            ? doc.updatedBy.toString()
+            : undefined;
+      return {
+        slug: doc.slug,
+        title: doc.title,
+        content: doc.content,
+        status: doc.status,
+        updatedAt: doc.updatedAt ? new Date(doc.updatedAt) : undefined,
+        updatedBy,
+      };
+    }
+  } catch (error) {
+    if (!isMongoUnavailableError(error)) {
+      throw error;
+    }
+    logger.warn("[CMS] Falling back to static CMS page", { slug });
+  }
+
+  const fallback = getStaticCmsPage(slug);
+  return fallback
+    ? {
+        slug: fallback.slug,
+        title: fallback.title,
+        content: fallback.content,
+        status:
+          (fallback as { status?: CmsPageDoc["status"] }).status ?? "PUBLISHED",
+        updatedAt: fallback.updatedAt
+          ? new Date(fallback.updatedAt)
+          : undefined,
+        updatedBy: (fallback as { updatedBy?: string }).updatedBy,
+      }
+    : null;
+}
+
+export default async function CmsPageScreen(props: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
+  const t = await getTranslations();
+  const { slug } = params;
+  const preview = searchParams?.preview === "1";
+  const page = await loadCmsPage(slug);
+  const updatedAt = page?.updatedAt;
+  if (!page) {
+    return (
+      <div className="mx-auto max-w-3xl p-6">
+        <h1 className="text-2xl font-semibold">{t.notFound}</h1>
+        <p className="opacity-70">{t.notAuthored}</p>
+      </div>
+    );
+  }
+  if (page.status !== "PUBLISHED" && !preview) {
+    return (
+      <div className="mx-auto max-w-3xl p-6">
+        <h1 className="text-2xl font-semibold">{t.unavailable}</h1>
+        <p className="opacity-70">{t.draft}</p>
+        <p className="mt-2 text-sm">
+          {t.previewHint} <code>?preview=1</code>.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex flex-col">
+      {/* Hero Section */}
+      <section className="bg-gradient-to-r from-[hsl(var(--primary))] to-[hsl(var(--primary))] text-white py-12">
+        {/* FIXED: was #023047 (banned) */}
+        <div className="mx-auto max-w-4xl px-6">
+          <h1 className="text-4xl font-bold">{page.title}</h1>
+        </div>
+      </section>
+
+      {/* Content */}
+      <div className="mx-auto max-w-4xl px-6 py-10">
+        <div className="bg-card rounded-2xl shadow-md border border-border p-8">
+          <article
+            className="prose prose-neutral dark:prose-invert max-w-none"
+            dangerouslySetInnerHTML={{
+              __html: await renderMarkdownSanitized(page.content),
+            }}
+          />
+
+          <div className="mt-8 pt-6 border-t border-border">
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <div>
+                Last updated{" "}
+                {updatedAt ? (
+                  <ClientDate date={updatedAt} format="date-only" />
+                ) : null}
+                {page.updatedBy && ` by ${page.updatedBy}`}
+              </div>
+              <Link
+                href="/"
+                className="text-primary hover:text-primary/80 font-medium"
+              >
+                ← {t.backToHome}
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/compliance/page.tsx">
+<![CDATA[
+"use client";
+
+import { useTranslation } from "@/contexts/TranslationContext";
+
+export default function Page() {
+  const { t } = useTranslation();
+
+  return (
+    <div className="space-y-2">
+      <h1 className="text-2xl font-bold">
+        {t("compliance.title", "Compliance & Legal")}
+      </h1>
+      <p>
+        {t(
+          "compliance.description",
+          "Coming online – policies, inspections, contracts, audit logs.",
+        )}
+      </p>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/crm/page.tsx">
+<![CDATA[
+"use client";
+
+import { useTranslation } from "@/contexts/TranslationContext";
+
+export default function Page() {
+  const { t } = useTranslation();
+
+  return (
+    <div className="space-y-2">
+      <h1 className="text-2xl font-bold">{t("crm.title", "CRM")}</h1>
+      <p>{t("crm.description", "Coming online – UI wired, API scaffolded.")}</p>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/dashboard/admin/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+export default function AdminDashboard() {
+  const auto = useAutoTranslator("dashboard.admin");
+  const [activeTab, setActiveTab] = useState("doa");
+
+  const tabs = [
+    { id: "doa", label: auto("DOA & Policies", "tabs.doa") },
+    { id: "assets", label: auto("Assets", "tabs.assets") },
+    { id: "facilities", label: auto("Facilities", "tabs.facilities") },
+    { id: "documents", label: auto("Documents", "tabs.documents") },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-foreground">
+          {auto("Admin & Operations", "header.title")}
+        </h1>
+        <p className="text-muted-foreground">
+          {auto("Manage policies, assets, and facilities", "header.subtitle")}
+        </p>
+      </div>
+
+      <div className="flex items-center gap-2 border-b">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={cn(
+              "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
+              activeTab === tab.id
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <Card>
+        <CardContent className="py-8">
+          <div className="text-center text-muted-foreground">
+            <p className="font-medium">
+              {tabs.find((t) => t.id === activeTab)?.label}
+            </p>
+            <p className="text-sm mt-2">
+              {auto(
+                "Content will be implemented here",
+                "placeholder.description",
+              )}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/dashboard/compliance/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+export default function ComplianceDashboard() {
+  const auto = useAutoTranslator("dashboard.compliance");
+  const [activeTab, setActiveTab] = useState("contracts");
+
+  const tabs = [
+    { id: "contracts", label: auto("Contracts", "tabs.contracts") },
+    { id: "disputes", label: auto("Disputes", "tabs.disputes") },
+    { id: "audit", label: auto("Audit Trail", "tabs.audit") },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-foreground">
+          {auto("Compliance", "header.title")}
+        </h1>
+        <p className="text-muted-foreground">
+          {auto(
+            "Manage contracts, disputes, and audit trails",
+            "header.subtitle",
+          )}
+        </p>
+      </div>
+
+      <div className="flex items-center gap-2 border-b">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={cn(
+              "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
+              activeTab === tab.id
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <Card>
+        <CardContent className="py-8">
+          <div className="text-center text-muted-foreground">
+            <p className="font-medium">
+              {tabs.find((t) => t.id === activeTab)?.label}
+            </p>
+            <p className="text-sm mt-2">
+              {auto(
+                "Content will be implemented here",
+                "placeholder.description",
+              )}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/dashboard/crm/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { logger } from "@/lib/logger";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { UserCog, Users, FileSignature } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { fetchOrgCounters } from "@/lib/counters";
+
+interface CRMCounters {
+  customers: { leads: number; active: number; contracts: number };
+}
+
+export default function CRMDashboard() {
+  const { data: session, status } = useSession();
+  const orgId = (session?.user as { orgId?: string } | undefined)?.orgId;
+  const auto = useAutoTranslator("dashboard.crm");
+  const [activeTab, setActiveTab] = useState("customers");
+  const [counters, setCounters] = useState<CRMCounters | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (status === "loading") return;
+    if (!orgId) {
+      setCounters(null);
+      setLoading(false);
+      return;
+    }
+    const controller = new AbortController();
+    const fetchData = async () => {
+      try {
+        const data = await fetchOrgCounters(orgId, { signal: controller.signal });
+        const customers =
+          (data.customers as Partial<CRMCounters["customers"]>) ?? {};
+        setCounters({
+          customers: {
+            leads: customers.leads ?? 0,
+            active: customers.active ?? 0,
+            contracts: customers.contracts ?? 0,
+          },
+        });
+        setLoading(false);
+      } catch (error) {
+        logger.error("Failed to load CRM data:", error as Error);
+        setLoading(false);
+      }
+    };
+    fetchData();
+    return () => controller.abort();
+  }, [auto, orgId, status]);
+
+  const tabs = [
+    {
+      id: "customers",
+      label: auto("Customers", "tabs.customers"),
+      count: counters?.customers.active,
+    },
+    {
+      id: "leads",
+      label: auto("Leads", "tabs.leads"),
+      count: counters?.customers.leads,
+    },
+    {
+      id: "contracts",
+      label: auto("Contracts", "tabs.contracts"),
+      count: counters?.customers.contracts,
+    },
+    { id: "feedback", label: auto("Feedback", "tabs.feedback") },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-foreground">
+          {auto("CRM", "header.title")}
+        </h1>
+        <p className="text-muted-foreground">
+          {auto(
+            "Manage customers, leads, and relationships",
+            "header.subtitle",
+          )}
+        </p>
+      </div>
+
+      <div className="flex items-center gap-2 border-b">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={cn(
+              "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
+              activeTab === tab.id
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {tab.label}
+            {tab.count !== undefined && tab.count > 0 && (
+              <span className="ms-2 px-2 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
+                {tab.count}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "customers" && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {auto("Active Customers", "metrics.active")}
+              </CardTitle>
+              <Users className="w-4 h-4 text-success" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-success">
+                {loading ? "..." : counters?.customers.active || 0}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {auto("Leads", "metrics.leads")}
+              </CardTitle>
+              <UserCog className="w-4 h-4 text-orange-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-500">
+                {loading ? "..." : counters?.customers.leads || 0}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {auto("Contracts", "metrics.contracts")}
+              </CardTitle>
+              <FileSignature className="w-4 h-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-primary">
+                {loading ? "..." : counters?.customers.contracts || 0}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {["leads", "contracts", "feedback"].includes(activeTab) && (
+        <Card>
+          <CardContent className="py-8">
+            <div className="text-center text-muted-foreground">
+              <p className="font-medium">
+                {tabs.find((t) => t.id === activeTab)?.label}
+              </p>
+              <p className="text-sm mt-2">
+                {auto(
+                  "Content will be implemented here",
+                  "placeholder.description",
+                )}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/dashboard/error.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect } from "react";
+import { AlertTriangle, RefreshCw, Home } from "lucide-react";
+import Link from "next/link";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
+
+/**
+ * Dashboard Error Boundary
+ *
+ * STRICT v4 COMPLIANCE:
+ * - Uses semantic color tokens
+ * - Supports RTL via TranslationContext
+ * - Logs errors via centralized logger
+ */
+export default function DashboardError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  const { t, isRTL } = useTranslation();
+
+  useEffect(() => {
+    logger.error("Dashboard error caught by error boundary", {
+      error: error.message,
+      digest: error.digest,
+      stack: error.stack,
+      component: "app/dashboard/error.tsx",
+    });
+  }, [error]);
+
+  return (
+    <div
+      className="min-h-[60vh] flex flex-col items-center justify-center px-4"
+      dir={isRTL ? "rtl" : "ltr"}
+    >
+      <div className="max-w-md w-full text-center">
+        <div className="mb-6">
+          <div className="w-16 h-16 mx-auto bg-destructive/10 rounded-full flex items-center justify-center">
+            <AlertTriangle className="w-8 h-8 text-destructive" />
+          </div>
+        </div>
+
+        <h1 className="text-xl font-bold text-foreground mb-2">
+          {t("errors.dashboard.title", "Dashboard Error")}
+        </h1>
+        <p className="text-muted-foreground mb-6">
+          {t(
+            "errors.dashboard.message",
+            "There was a problem loading the dashboard. Please try again."
+          )}
+        </p>
+
+        {process.env.NODE_ENV === "development" && (
+          <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-3 text-start mb-6">
+            <p className="text-sm font-mono text-destructive break-all">
+              {error.message}
+            </p>
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Button onClick={reset} variant="default">
+            <RefreshCw className="w-4 h-4 me-2" />
+            {t("common.actions.tryAgain", "Try Again")}
+          </Button>
+
+          <Link href="/">
+            <Button variant="outline">
+              <Home className="w-4 h-4 me-2" />
+              {t("common.actions.goToHomepage", "Home")}
+            </Button>
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/dashboard/finance/page.tsx">
+<![CDATA[
+"use client";
+
+import { useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
+import { logger } from "@/lib/logger";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Wallet, AlertCircle, CheckCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useOrgCounters } from "@/hooks/useOrgCounters";
+import type { CounterPayload } from "@/lib/counters";
+
+// ==========================================
+// TYPES
+// ==========================================
+
+type InvoiceCounters = {
+  total?: number;
+  unpaid?: number;
+  overdue?: number;
+  paid?: number;
+};
+
+type RevenueCounters = {
+  today?: number;
+  week?: number;
+  month?: number;
+  growth?: number; // percentage
+};
+
+interface FinanceCounters {
+  invoices: {
+    total: number;
+    unpaid: number;
+    overdue: number;
+    paid: number;
+  };
+  revenue: {
+    today: number;
+    week: number;
+    month: number;
+    growth: number; // percentage
+  };
+}
+
+// ==========================================
+// FINANCE DASHBOARD - INVOICES TAB
+// ==========================================
+
+export default function FinanceDashboard() {
+  const { data: session } = useSession();
+  const orgId = (session?.user as { orgId?: string } | undefined)?.orgId;
+  const [activeTab, setActiveTab] = useState("invoices");
+  const [loading, setLoading] = useState(true);
+  const { t } = useTranslation();
+
+  const { counters, error: countersError } = useOrgCounters();
+  const financeCounters = useMemo<FinanceCounters | null>(() => {
+    if (!counters || typeof counters !== "object") return null;
+    const countersObj = counters as CounterPayload;
+    const invoices =
+      (countersObj.invoices as InvoiceCounters | undefined) ??
+      (countersObj.finance as InvoiceCounters | undefined) ??
+      {};
+    const revenue = (countersObj.revenue as RevenueCounters | undefined) ?? {};
+    return {
+      invoices: {
+        total: invoices.total ?? 0,
+        unpaid: invoices.unpaid ?? 0,
+        overdue: invoices.overdue ?? 0,
+        paid: invoices.paid ?? 0,
+      },
+      revenue: {
+        today: revenue.today ?? 0,
+        week: revenue.week ?? 0,
+        month: revenue.month ?? 0,
+        growth: revenue.growth ?? 0,
+      },
+    };
+  }, [counters]);
+
+  if (loading && (financeCounters || countersError || !orgId)) {
+    setLoading(false);
+    if (countersError) {
+      logger.error("Failed to load finance data:", countersError as Error);
+    }
+  }
+
+  // Tabs
+  const tabs = [
+    {
+      id: "invoices",
+      label: t("dashboard.finance.tabs.invoices", "Invoices"),
+      count: financeCounters?.invoices.unpaid,
+    },
+    { id: "payments", label: t("dashboard.finance.tabs.payments", "Payments") },
+    { id: "expenses", label: t("dashboard.finance.tabs.expenses", "Expenses") },
+    { id: "budgets", label: t("dashboard.finance.tabs.budgets", "Budgets") },
+    { id: "reports", label: t("dashboard.finance.tabs.reports", "Reports") },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-foreground">
+          {t("dashboard.finance.header.title", "Finance")}
+        </h1>
+        <p className="text-muted-foreground">
+          {t(
+            "dashboard.finance.header.subtitle",
+            "Manage invoices, payments, and financial reports",
+          )}
+        </p>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex items-center gap-2 border-b">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={cn(
+              "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
+              activeTab === tab.id
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {tab.label}
+            {tab.count !== undefined && tab.count > 0 && (
+              <span className="ms-2 px-2 py-0.5 text-xs bg-destructive text-destructive-foreground rounded-full">
+                {tab.count}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Stats Cards */}
+      {activeTab === "invoices" && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Total Invoices */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {t("dashboard.finance.cards.totalInvoices", "Total Invoices")}
+                </CardTitle>
+                <Wallet className="w-4 h-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {loading ? "..." : financeCounters?.invoices.total ?? 0}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Unpaid */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {t("dashboard.finance.cards.unpaid", "Unpaid")}
+                </CardTitle>
+                <AlertCircle className="w-4 h-4 text-orange-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-orange-500">
+                    {loading ? "..." : financeCounters?.invoices.unpaid ?? 0}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Overdue */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {t("dashboard.finance.cards.overdue", "Overdue")}
+                </CardTitle>
+                <AlertCircle className="w-4 h-4 text-destructive" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-destructive">
+                    {loading ? "..." : financeCounters?.invoices.overdue ?? 0}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Paid */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {t("dashboard.finance.cards.paid", "Paid")}
+                </CardTitle>
+                <CheckCircle className="w-4 h-4 text-success" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-success">
+                    {loading ? "..." : financeCounters?.invoices.paid ?? 0}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Invoice List Placeholder */}
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {t("dashboard.finance.cards.recentInvoices", "Recent Invoices")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8 text-muted-foreground">
+                <p>
+                  {t(
+                    "dashboard.finance.cards.recentPlaceholder",
+                    "Invoice list will be displayed here",
+                  )}
+                </p>
+                <p className="text-sm mt-2">
+                  {t(
+                    "dashboard.finance.cards.recentHint",
+                    "Implement data table with filters, sorting, and actions",
+                  )}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {/* Other tabs (placeholder) */}
+      {activeTab !== "invoices" && (
+        <Card>
+          <CardContent className="py-8">
+            <div className="text-center text-muted-foreground">
+              <p className="font-medium">
+                {tabs.find((tab) => tab.id === activeTab)?.label}
+              </p>
+              <p className="text-sm mt-2">
+                {t(
+                  "dashboard.finance.tabs.placeholder",
+                  "Content will be implemented here",
+                )}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/dashboard/hr/page.tsx">
+<![CDATA[
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { logger } from "@/lib/logger";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Users, UserCheck, UserX } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { fetchOrgCounters } from "@/lib/counters";
+
+interface HRCounters {
+  employees: { total: number; active: number; on_leave: number };
+  attendance: { present: number; absent: number; late: number };
+}
+
+export default function HRDashboard() {
+  const { data: session, status } = useSession();
+  const orgId = (session?.user as { orgId?: string } | undefined)?.orgId;
+  const auto = useAutoTranslator("dashboard.hr");
+  const [activeTab, setActiveTab] = useState("employees");
+  const [counters, setCounters] = useState<HRCounters | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (status === "loading") return;
+    if (!orgId) {
+      setCounters(null);
+      setLoading(false);
+      return;
+    }
+    const controller = new AbortController();
+    const fetchData = async () => {
+      try {
+        const data = await fetchOrgCounters(orgId, { signal: controller.signal });
+        const employees =
+          (data.employees as Partial<HRCounters["employees"]>) ?? {};
+        const attendance =
+          (data.attendance as Partial<HRCounters["attendance"]>) ?? {};
+        setCounters({
+          employees: {
+            total: employees.total ?? 0,
+            active: employees.active ?? 0,
+            on_leave: employees.on_leave ?? 0,
+          },
+          attendance: {
+            present: attendance.present ?? 0,
+            absent: attendance.absent ?? 0,
+            late: attendance.late ?? 0,
+          },
+        });
+        setLoading(false);
+      } catch (error) {
+        logger.error("Failed to load HR data:", error as Error);
+        setLoading(false);
+      }
+    };
+    fetchData();
+    return () => controller.abort();
+  }, [auto, orgId, status]);
+
+  const tabs = [
+    {
+      id: "employees",
+      label: auto("Employees", "tabs.employees"),
+      count: counters?.employees.total,
+    },
+    {
+      id: "attendance",
+      label: auto("Attendance", "tabs.attendance"),
+      count: counters?.attendance.late,
+    },
+    { id: "payroll", label: auto("Payroll", "tabs.payroll") },
+    { id: "recruitment", label: auto("Recruitment", "tabs.recruitment") },
+    { id: "training", label: auto("Training", "tabs.training") },
+    { id: "performance", label: auto("Performance", "tabs.performance") },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-foreground">
+          {auto("Human Resources", "header.title")}
+        </h1>
+        <p className="text-muted-foreground">
+          {auto("Manage employees, attendance, and payroll", "header.subtitle")}
+        </p>
+      </div>
+
+      <div className="flex items-center gap-2 border-b">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={cn(
+              "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
+              activeTab === tab.id
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {tab.label}
+            {tab.count !== undefined && tab.count > 0 && (
+              <span className="ms-2 px-2 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
+                {tab.count}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "employees" && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {auto("Total Employees", "metrics.total")}
+              </CardTitle>
+              <Users className="w-4 h-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {loading ? "..." : counters?.employees.total || 0}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {auto("Active", "metrics.active")}
+              </CardTitle>
+              <UserCheck className="w-4 h-4 text-success" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-success">
+                {loading ? "..." : counters?.employees.active || 0}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {auto("On Leave", "metrics.onLeave")}
+              </CardTitle>
+              <UserX className="w-4 h-4 text-orange-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-500">
+                {loading ? "..." : counters?.employees.on_leave || 0}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {activeTab === "attendance" && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {auto("Present Today", "attendance.present")}
+              </CardTitle>
+              <UserCheck className="w-4 h-4 text-success" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-success">
+                {loading ? "..." : counters?.attendance.present || 0}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {auto("Absent", "attendance.absent")}
+              </CardTitle>
+              <UserX className="w-4 h-4 text-destructive" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-destructive">
+                {loading ? "..." : counters?.attendance.absent || 0}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {auto("Late", "attendance.late")}
+              </CardTitle>
+              <UserX className="w-4 h-4 text-orange-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-500">
+                {loading ? "..." : counters?.attendance.late || 0}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {["payroll", "recruitment", "training", "performance"].includes(
+        activeTab,
+      ) && (
+        <Card>
+          <CardContent className="py-8">
+            <div className="text-center text-muted-foreground">
+              <p className="font-medium">
+                {tabs.find((t) => t.id === activeTab)?.label}
+              </p>
+              <p className="text-sm mt-2">
+                {auto(
+                  "Content will be implemented here",
+                  "placeholder.description",
+                )}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+</batch_content>

@@ -1,0 +1,3194 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/HR_MODULE_BIBLE.md">
+<![CDATA[
+# Fixzit HR Module - Comprehensive Technical & Business Documentation
+
+## Enterprise-Grade Workforce Management for Saudi Facility Management Sector
+
+**Document Version:** 1.0  
+**Date:** October 31, 2025  
+**Author:** Fixzit Development Team  
+**Status:** Production-Ready Foundation
+
+---
+
+## Table of Contents
+
+1. [Executive Summary](#executive-summary)
+2. [Module Scope & Objectives](#module-scope--objectives)
+3. [Subscription Tiers & Pricing](#subscription-tiers--pricing)
+4. [System Architecture](#system-architecture)
+5. [Data Models](#data-models)
+6. [API Endpoints](#api-endpoints)
+7. [KSA Compliance](#ksa-compliance)
+8. [System Behavior](#system-behavior)
+9. [Integration Points](#integration-points)
+10. [Security & Multi-Tenancy](#security--multi-tenancy)
+11. [Deployment Guide](#deployment-guide)
+12. [Appendices](#appendices)
+
+---
+
+## Executive Summary
+
+The Fixzit HR Module is an enterprise-grade, Saudi Arabia-compliant workforce management solution specifically designed for the facility management and construction sectors. It is not a generic HRIS; it is a compliance-first, operations-driven system that manages the complete employee lifecycle from onboarding through termination, with deep integration into payroll processing, WPS/Mudad file generation, and GOSI compliance.
+
+### Key Differentiators
+
+- **KSA-First Design**: Built around HRSD labor law, GOSI/SANED contributions, WPS/Mudad requirements
+- **Facility Management Focus**: Technician dispatch integration, shift rostering, skills tracking
+- **Subscription-Based**: Tiered feature access (Small/Mid/Enterprise) with per-employee pricing
+- **Multi-Tenant SaaS**: Complete organizational isolation, single codebase
+- **Audit-Ready**: Immutable payslips, document expiry tracking, state machine workflows
+
+### Business Value
+
+For **Corporate Clients** (e.g., large FM companies managing 500+ field technicians):
+
+- Automated payroll processing with GOSI/SANED calculations
+- One-click WPS file generation for bank uploads (Mudad compliance)
+- Document expiry alerts (Iqama, Passport) to prevent visa violations
+- Shift rostering with skill-based technician dispatch
+- ESB (End of Service Benefits) calculator for terminations
+
+For **Fixzit Platform**:
+
+- Recurring revenue stream (SAR 10-40 per employee/month)
+- Upsell opportunity (Basic → Payroll → Full Suite)
+- Reduced support burden (automated compliance calculations)
+- Market differentiation (only FM-specific HR solution in Saudi market)
+
+---
+
+## Module Scope & Objectives
+
+### Included Features
+
+#### 1. Employee Directory (All Tiers)
+
+- Complete employee master data with KSA-specific fields
+- Document tracking: Iqama, Passport, Visas, Contracts (with expiry dates)
+- Employment details: Job title, department, manager, site assignment
+- Compensation structure: Basic, housing, transport, other allowances
+- Bank details: Masked IBAN storage for WPS compliance
+- Skills & certifications: For FM technician dispatch
+- Asset tracking: Laptops, phones, uniforms assigned to employees
+- Status lifecycle: ONBOARDING → ACTIVE → ON_LEAVE → SUSPENDED → TERMINATED
+
+#### 2. Attendance & Timesheets (Small+)
+
+- Clock-in/out logs with GPS geo-fencing
+- Multi-source capture: Mobile app, kiosk, manual entry
+- Shift templates & rostering
+- Weekly timesheet approval workflow
+- Overtime tracking (for payroll integration)
+- Exception management: Missing punch, late arrival, early departure
+
+#### 3. Leave Management (Small+)
+
+- Configurable leave types: Annual, Sick, Hajj, Maternity, Paternity, Unpaid
+- Accrual rules: 21 days (standard) → 30 days (after 5 years)
+- Balance tracking: Opening + Accrued - Taken = Balance
+- Multi-level approval: Manager → HR (DoA support)
+- Calendar integration: Block-out dates, public holidays
+- Leave liability reporting
+
+#### 4. Payroll Processing (Mid+)
+
+- **DRAFT**: Admin creates run for period (e.g., "October 2025")
+- **CALCULATE**: System fetches active employees, approved timesheets
+  - Calculates overtime (150% of hourly basic per HRSD)
+  - Applies GOSI contributions:
+    - Saudi nationals: 9% + 9% (annuities), 0.75% + 0.75% (SANED), 2% (OH employer)
+    - New entrants (2024+): 9.5% + 9.5% (gradual increase to 11% by 2028)
+    - Non-Saudis: 2% (OH employer only)
+  - Generates earnings/deductions breakdown
+  - Creates immutable payslip records
+- **APPROVE**: DoA approval workflow (configurable levels)
+- **LOCK**: Immutable state, payslips frozen
+- **EXPORT**: WPS CSV file generation for Mudad upload
+
+#### 5. WPS/Mudad Compliance (Mid+)
+
+- Bank-format CSV generation (Employee ID, Name, IBAN, Basic, Allowances, Deductions, Net)
+- IBAN validation (SA + 22 digits format)
+- Bank code extraction from IBAN
+- Checksum generation (SHA-256 for file integrity)
+- Pre-upload validation:
+  - Positive net salaries
+  - Valid IBAN formats
+  - Salary month format (YYYY-MM)
+- Downloadable file with metadata headers (checksum, record count, total net)
+
+#### 6. Recruitment/ATS (Enterprise)
+
+- Job posting management
+- Candidate pipeline (Kanban: Applied → Screening → Interview → Offer → Hired)
+- Interview scheduling
+- Offer letter generation
+- Hire → Employee conversion (seamless onboarding)
+
+#### 7. Performance Management (Enterprise)
+
+- Goal setting & KPI tracking
+- Review cycles (annual, semi-annual, quarterly)
+- Multi-rater feedback (360° reviews)
+- Rating scales & competency frameworks
+- Performance Improvement Plans (PIPs)
+
+#### 8. Training & Certifications (Enterprise)
+
+- Course catalog (internal/external)
+- Enrollment tracking
+- Completion certificates
+- Expiry tracking for required certifications (e.g., safety, technical)
+- Integration with compliance alerts
+
+---
+
+## Subscription Tiers & Pricing
+
+### Pricing Model
+
+**Per-Employee/Month Pricing** (SAR, excluding 15% VAT):
+
+| Tier           | Monthly Rate | Minimum       | Target Market                | Key Features                             |
+| -------------- | ------------ | ------------- | ---------------------------- | ---------------------------------------- |
+| **Small**      | SAR 10       | 5 employees   | Startups, small FM companies | Directory, Attendance, Leave             |
+| **Mid**        | SAR 25       | 20 employees  | Growing FM companies         | + Payroll, WPS Export, Timesheets        |
+| **Enterprise** | SAR 40       | 100 employees | Large corporates, multi-site | + ATS, Performance, Training, API access |
+
+**Annual Commitment Discounts:**
+
+- 10% discount for annual pre-payment
+- 15% discount for 3-year commitment
+
+**Example Pricing:**
+
+- 50 employees (Mid tier): SAR 25 × 50 = **SAR 1,250/month** (SAR 15,000/year)
+- 500 employees (Enterprise): SAR 40 × 500 = **SAR 20,000/month** (SAR 240,000/year with volume discount)
+
+### Competitive Positioning
+
+**Benchmarked Against:**
+
+- **Zoho People (KSA)**: ~SAR 5-20/user/month (generic HRIS, no WPS/FM features)
+- **Jisr/Bayzat (Local)**: Quote-based, ~SAR 15-30/user/month (strong WPS, weak FM integration)
+- **BambooHR (Global)**: ~SAR 40-50/user/month (USD pricing, no KSA localization)
+
+**Fixzit Advantage:**
+
+- **Only solution** with FM-specific features (technician dispatch, shift rostering, site assignment)
+- **Competitive pricing** at mid-tier (SAR 25 vs. SAR 30-40 for local players)
+- **Bundled platform** (HR + Work Orders + Finance + Marketplace in one subscription)
+
+---
+
+## System Architecture
+
+### Technology Stack
+
+- **Backend**: Next.js 14+ (App Router), TypeScript
+- **Database**: MongoDB (with Mongoose ODM)
+- **Authentication**: NextAuth.js (JWT + session)
+- **Deployment**: Vercel / Docker containers
+- **Storage**: AWS S3 (for documents/files)
+
+### Multi-Tenancy Architecture
+
+```
+┌─────────────────────────────────────────┐
+│         Request Layer                    │
+│  (NextAuth Session + Org ID)            │
+└──────────────┬──────────────────────────┘
+               │
+┌──────────────▼──────────────────────────┐
+│      API Route Handlers                  │
+│  - Session validation                    │
+│  - Org-scoping filter (orgId)           │
+│  - Subscription feature gating           │
+└──────────────┬──────────────────────────┘
+               │
+┌──────────────▼──────────────────────────┐
+│      Service Layer                       │
+│  - ksaPayrollService.ts (GOSI, OT, ESB) │
+│  - wpsService.ts (Mudad file gen)       │
+└──────────────┬──────────────────────────┘
+               │
+┌──────────────▼──────────────────────────┐
+│      MongoDB (Mongoose Models)           │
+│  - All queries filtered by orgId        │
+│  - Compound indexes: (orgId, key)       │
+└──────────────────────────────────────────┘
+```
+
+### Database Isolation
+
+Every MongoDB document includes `orgId` field:
+
+- Prevents cross-tenant data leakage
+- Queries automatically scoped: `{ orgId: session.user.orgId, ... }`
+- Compound indexes for performance: `{ orgId: 1, employeeCode: 1 }` (unique)
+
+---
+
+## Data Models
+
+### 1. Employee
+
+**Collection**: `hr_employees`
+
+```typescript
+interface IEmployee {
+  orgId: ObjectId; // Multi-tenant isolation
+  employeeCode: string; // Unique within org (e.g., "EMP-001")
+  firstName: string;
+  lastName: string;
+  firstNameAr: string; // Arabic name
+  lastNameAr: string;
+  email: string;
+  phone: string;
+  nationality: string;
+  status: "ONBOARDING" | "ACTIVE" | "ON_LEAVE" | "SUSPENDED" | "TERMINATED";
+
+  employment: {
+    jobTitle: string;
+    department: string;
+    managerId: ObjectId;
+    site: string; // For FM: property assignment
+    joinDate: Date;
+    contractType: "PERMANENT" | "FIXED_TERM" | "CONTRACT";
+    contractEndDate: Date;
+    qiwaContractId: string; // Qiwa digital contract reference
+  };
+
+  compensation: {
+    baseSalary: number; // Monthly SAR
+    housingAllowance: number;
+    transportAllowance: number;
+    otherAllowances: [{ name: string; amount: number }];
+    currency: string; // "SAR"
+    gosiApplicable: boolean; // True for Saudi nationals
+    sanedApplicable: boolean;
+  };
+
+  bank: {
+    bankName: string;
+    iban: string; // SA + 22 digits
+    accountNumber: string;
+  };
+
+  documents: [
+    {
+      type: "IQAMA" | "PASSPORT" | "CONTRACT" | "VISA";
+      number: string;
+      issueDate: Date;
+      expiryDate: Date; // Indexed for compliance alerts
+      fileUrl: string; // S3 URL
+    },
+  ];
+
+  assets: [
+    {
+      assetTag: string;
+      name: string; // "Laptop", "Phone"
+      assignedAt: Date;
+      returnedAt: Date;
+    },
+  ];
+
+  skills: string[]; // For FM dispatch: ["HVAC", "Plumbing", "Electrical"]
+  certifications: [{ name: string; issueDate: Date; expiryDate: Date }];
+
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+**Indexes:**
+
+- `{ orgId: 1, employeeCode: 1 }` - Unique within org
+- `{ orgId: 1, email: 1 }`
+- `{ orgId: 1, status: 1 }`
+- `{ 'documents.expiryDate': 1 }` - For compliance alerts
+
+### 2. PayrollRun & Payslip
+
+**Collection**: `hr_payroll_runs`, `hr_payslips`
+
+```typescript
+interface IPayrollRun {
+  orgId: ObjectId;
+  periodStart: Date; // e.g., 2025-10-01
+  periodEnd: Date; // e.g., 2025-10-31
+  cutOffDate: Date; // Last date to include attendance (e.g., 2025-10-25)
+  status: "DRAFT" | "CALCULATED" | "APPROVED" | "LOCKED";
+  totalGross: number;
+  totalNet: number;
+  totalGOSI: number; // Employee + Employer
+  totalSANED: number;
+  employeeCount: number;
+  wpsBatchId: string; // Mudad batch ID after export
+  wpsFileUrl: string; // S3 URL of CSV
+  approvedBy: ObjectId;
+  approvedAt: Date;
+  lockedBy: ObjectId; // Immutable after lock
+  lockedAt: Date;
+}
+
+interface IPayslip {
+  orgId: ObjectId;
+  payrollRunId: ObjectId;
+  employeeId: ObjectId;
+  employeeCode: string; // Denormalized for WPS
+  employeeName: string;
+  iban: string; // Denormalized for WPS
+  periodStart: Date;
+  periodEnd: Date;
+
+  earnings: [{ code: string; name: string; amount: number }];
+  // Example: [
+  //   { code: 'BASIC', name: 'Basic Salary', amount: 10000 },
+  //   { code: 'HOUSING', name: 'Housing Allowance', amount: 2500 },
+  //   { code: 'OVERTIME', name: 'Overtime (150%)', amount: 937.5 }
+  // ]
+
+  deductions: [{ code: string; name: string; amount: number }];
+  // Example: [
+  //   { code: 'GOSI_ANNUITIES', name: 'GOSI (Annuities)', amount: 1125 },
+  //   { code: 'SANED', name: 'SANED (Unemployment)', amount: 93.75 }
+  // ]
+
+  grossPay: number; // Sum of earnings
+  netPay: number; // Gross - deductions
+  gosiEmployee: number; // Deducted from employee
+  gosiEmployer: number; // Paid by employer (for reporting)
+  sanedEmployee: number;
+  sanedEmployer: number;
+  currency: string; // "SAR"
+  notes: string;
+}
+```
+
+**Indexes:**
+
+- `{ orgId: 1, periodStart: 1, periodEnd: 1 }` - For period queries
+- `{ orgId: 1, status: 1 }`
+- `{ orgId: 1, employeeId: 1, periodStart: 1 }` - For payslip queries
+
+### 3. Leave Models
+
+**Collections**: `hr_leave_types`, `hr_leave_entitlements`, `hr_leave_requests`
+
+```typescript
+interface ILeaveType {
+  orgId: ObjectId;
+  code: string; // "ANNUAL", "SICK", "HAJJ"
+  name: string;
+  nameAr: string;
+  annualDays: number; // 21 (standard), 30 (after 5 years)
+  carryoverDays: number; // Max to roll over
+  requiresApproval: boolean;
+  requiresDocuments: boolean; // Sick leave → medical cert
+  isPaid: boolean;
+}
+
+interface ILeaveEntitlement {
+  orgId: ObjectId;
+  employeeId: ObjectId;
+  leaveTypeCode: string; // "ANNUAL"
+  periodStart: Date; // 2025-01-01
+  periodEnd: Date; // 2025-12-31
+  openingBalance: number; // Carried over from 2024
+  accrued: number; // Earned in 2025
+  taken: number; // Used in 2025
+  balance: number; // opening + accrued - taken
+}
+
+interface ILeaveRequest {
+  orgId: ObjectId;
+  employeeId: ObjectId;
+  leaveTypeCode: string;
+  startDate: Date;
+  endDate: Date;
+  totalDays: number;
+  reason: string;
+  attachments: [{ name: string; url: string }];
+  status: "DRAFT" | "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+  submittedAt: Date;
+  approvalChain: [
+    {
+      approverId: ObjectId;
+      level: number; // 1 = Manager, 2 = HR
+      decidedAt: Date;
+      decision: "APPROVED" | "REJECTED";
+      comments: string;
+    },
+  ];
+}
+```
+
+### 4. Attendance Models
+
+**Collections**: `hr_attendance_logs`, `hr_timesheets`, `hr_shifts`, `hr_roster`
+
+```typescript
+interface IAttendanceLog {
+  orgId: ObjectId;
+  employeeId: ObjectId;
+  timestamp: Date;
+  type: "IN" | "OUT";
+  source: "MOBILE_APP" | "KIOSK" | "MANUAL" | "GPS";
+  location: { lat: number; lng: number; address: string };
+  deviceId: string;
+  notes: string;
+  createdBy: ObjectId; // For manual entries
+}
+
+interface ITimesheet {
+  orgId: ObjectId;
+  employeeId: ObjectId;
+  weekStart: Date;
+  weekEnd: Date;
+  regularHours: number;
+  overtimeHours: number; // Feeds into payroll
+  nightDiffHours: number;
+  holidayHours: number;
+  status: "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED";
+  approvedBy: ObjectId;
+  approvedAt: Date;
+}
+
+interface IShift {
+  orgId: ObjectId;
+  name: string; // "Morning Shift"
+  startTime: string; // "08:00"
+  endTime: string; // "17:00"
+  breakMinutes: number; // 60
+  daysOfWeek: number[]; // [0,1,2,3,4] = Sunday-Thursday
+  site: string; // For FM
+  color: string; // For calendar display
+}
+
+interface IRoster {
+  orgId: ObjectId;
+  employeeId: ObjectId;
+  shiftId: ObjectId;
+  date: Date; // 2025-10-31
+  site: string;
+}
+```
+
+---
+
+## API Endpoints
+
+### Base URL: `/api/hr`
+
+### Authentication
+
+All endpoints require NextAuth session:
+
+```typescript
+const session = await getServerSession(authOptions);
+if (!session?.user?.orgId) {
+  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+}
+```
+
+### Employee Management
+
+#### `GET /api/hr/employees`
+
+**Description**: List all employees for the organization
+
+**Query Parameters:**
+
+- `page` (number, default: 1): Page number
+- `limit` (number, default: 50): Records per page
+- `status` (string): Filter by status (ACTIVE, ON_LEAVE, etc.)
+- `department` (string): Filter by department
+- `search` (string): Search firstName, lastName, email, employeeCode
+
+**Response:**
+
+```json
+{
+  "employees": [
+    {
+      "_id": "67234abc...",
+      "employeeCode": "EMP-001",
+      "firstName": "Ahmed",
+      "lastName": "Al-Saud",
+      "email": "ahmed@company.sa",
+      "status": "ACTIVE",
+      "employment": {
+        "jobTitle": "HVAC Technician",
+        "department": "Maintenance",
+        "joinDate": "2024-01-15T00:00:00.000Z"
+      },
+      "compensation": {
+        "baseSalary": 8000,
+        "housingAllowance": 2000,
+        "currency": "SAR"
+      }
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 50,
+    "total": 127,
+    "pages": 3
+  }
+}
+```
+
+#### `POST /api/hr/employees`
+
+**Description**: Create a new employee
+
+**Request Body:**
+
+```json
+{
+  "employeeCode": "EMP-128",
+  "firstName": "Mohammed",
+  "lastName": "Al-Qahtani",
+  "email": "mohammed@company.sa",
+  "phone": "+966501234567",
+  "nationality": "Saudi",
+  "employment": {
+    "jobTitle": "Plumber",
+    "department": "Maintenance",
+    "site": "PROP-042",
+    "joinDate": "2025-11-01",
+    "contractType": "PERMANENT"
+  },
+  "compensation": {
+    "baseSalary": 7000,
+    "housingAllowance": 1800,
+    "transportAllowance": 500,
+    "gosiApplicable": true,
+    "sanedApplicable": true
+  },
+  "bank": {
+    "bankName": "Al Rajhi Bank",
+    "iban": "SA4420000000123456789012"
+  }
+}
+```
+
+**Response:** `201 Created`
+
+```json
+{
+  "_id": "67234def...",
+  "employeeCode": "EMP-128",
+  "firstName": "Mohammed",
+  "status": "ONBOARDING",
+  "createdAt": "2025-10-31T12:00:00.000Z"
+}
+```
+
+### Payroll Processing
+
+#### `GET /api/hr/payroll/runs`
+
+**Description**: List all payroll runs
+
+**Query Parameters:**
+
+- `status` (string): Filter by status (DRAFT, CALCULATED, APPROVED, LOCKED)
+
+**Response:**
+
+```json
+{
+  "runs": [
+    {
+      "_id": "67235abc...",
+      "periodStart": "2025-10-01T00:00:00.000Z",
+      "periodEnd": "2025-10-31T00:00:00.000Z",
+      "status": "CALCULATED",
+      "totalGross": 1250000,
+      "totalNet": 1125000,
+      "totalGOSI": 112500,
+      "employeeCount": 127,
+      "createdAt": "2025-10-28T10:00:00.000Z"
+    }
+  ]
+}
+```
+
+#### `POST /api/hr/payroll/runs`
+
+**Description**: Create a new DRAFT payroll run
+
+**Request Body:**
+
+```json
+{
+  "periodStart": "2025-11-01",
+  "periodEnd": "2025-11-30",
+  "cutOffDate": "2025-11-25"
+}
+```
+
+**Response:** `201 Created`
+
+```json
+{
+  "_id": "67236abc...",
+  "periodStart": "2025-11-01T00:00:00.000Z",
+  "periodEnd": "2025-11-30T00:00:00.000Z",
+  "status": "DRAFT",
+  "totalGross": 0,
+  "totalNet": 0,
+  "employeeCount": 0
+}
+```
+
+#### `POST /api/hr/payroll/runs/[id]/calculate`
+
+**Description**: Calculate payroll for all active employees
+
+**Request Body:** None (idempotent operation)
+
+**Process:**
+
+1. Fetches all ACTIVE employees
+2. For each employee:
+   - Fetches approved timesheets for the period
+   - Calculates overtime hours
+   - Determines GOSI applicability (Saudi national + new entrant check)
+   - Calls `calculateNetPay()` service
+   - Creates immutable `Payslip` record
+3. Updates `PayrollRun` totals and status → CALCULATED
+
+**Response:**
+
+```json
+{
+  "run": {
+    "_id": "67236abc...",
+    "status": "CALCULATED",
+    "totalGross": 1275000,
+    "totalNet": 1147500,
+    "totalGOSI": 114750,
+    "totalSANED": 9562.5,
+    "employeeCount": 127
+  },
+  "summary": {
+    "employeesProcessed": 127,
+    "totalGross": 1275000,
+    "totalNet": 1147500,
+    "totalGOSI": 114750,
+    "totalSANED": 9562.5
+  }
+}
+```
+
+#### `GET /api/hr/payroll/runs/[id]/export/wps`
+
+**Description**: Generate WPS/Mudad compliant CSV file
+
+**Response Headers:**
+
+- `Content-Type: text/csv; charset=utf-8`
+- `Content-Disposition: attachment; filename="WPS_ORG123_202511.csv"`
+- `X-File-Checksum: a3f2b9c...` (SHA-256)
+- `X-Record-Count: 127`
+- `X-Total-Net-Salary: 1147500.00`
+
+**CSV Content:**
+
+```csv
+Employee ID,Employee Name,Bank Code,IBAN,Basic Salary,Housing Allowance,Other Allowances,Total Deductions,Net Salary,Salary Month,Work Days
+EMP-001,Ahmed Al-Saud,80,SA4480000000123456789012,8000.00,2000.00,500.00,902.50,9597.50,2025-11,30
+EMP-002,Mohammed Al-Qahtani,20,SA4420000000987654321098,7000.00,1800.00,500.00,788.63,8511.37,2025-11,30
+...
+```
+
+**Validation Errors:**
+
+```json
+{
+  "error": "WPS file validation failed",
+  "errors": [
+    "Row 5: Invalid IBAN format: SA4480 (expected 24 characters)",
+    "Row 12: Net salary is zero or negative"
+  ],
+  "warnings": ["Row 8: Salary month format should be YYYY-MM"]
+}
+```
+
+---
+
+## KSA Compliance
+
+### GOSI (General Organization for Social Insurance)
+
+**Applicable to:** Saudi nationals (and some GCC nationals)
+
+**Contribution Rates (2025):**
+
+| Component                    | Employee Rate | Employer Rate | Base            |
+| ---------------------------- | ------------- | ------------- | --------------- |
+| **Annuities (Pension)**      | 9.0%          | 9.0%          | Basic + Housing |
+| **Annuities (New Entrants)** | 9.5%          | 9.5%          | Basic + Housing |
+| **SANED (Unemployment)**     | 0.75%         | 0.75%         | Basic + Housing |
+| **Occupational Hazards**     | 0%            | 2.0%          | Basic + Housing |
+
+**New Entrant Rates:**
+
+- Employees who joined **after January 1, 2024** are subject to gradual increases
+- 2025: 9.5% each side
+- 2026: 10.0% each side
+- 2027: 10.5% each side
+- 2028: 11.0% each side (final rate)
+
+**Non-Saudi Nationals:**
+
+- Only Occupational Hazards apply: 2% (employer pays)
+- No Annuities or SANED
+
+**Implementation:**
+
+```typescript
+// In ksaPayrollService.ts
+export function calculateGOSI(
+  baseSalary: number,
+  housingAllowance: number,
+  isSaudiNational: boolean,
+  isNewEntrant: boolean = false // Joined 2024+
+): GOSICalculation {
+  const gosiBase = baseSalary + housingAllowance;
+
+  if (!isSaudiNational) {
+    // Non-Saudi: Only OH (employer pays)
+    return {
+      employeeDeduction: 0,
+      employerContribution: gosiBase * 0.02,
+      breakdown: { occupationalHazards: gosiBase * 0.02, ... }
+    };
+  }
+
+  // Saudi National
+  const annuitiesRate = isNewEntrant
+    ? { employee: 0.095, employer: 0.095 }
+    : { employee: 0.09, employer: 0.09 };
+
+  const annuitiesEmployee = gosiBase * annuitiesRate.employee;
+  const annuitiesEmployer = gosiBase * annuitiesRate.employer;
+  const sanedEmployee = gosiBase * 0.0075;
+  const sanedEmployer = gosiBase * 0.0075;
+  const occHazards = gosiBase * 0.02;
+
+  return {
+    employeeDeduction: annuitiesEmployee + sanedEmployee,
+    employerContribution: annuitiesEmployer + sanedEmployer + occHazards,
+    breakdown: { annuitiesEmployee, annuitiesEmployer, sanedEmployee, sanedEmployer, occupationalHazards: occHazards }
+  };
+}
+```
+
+### Overtime Calculation
+
+**HRSD Regulation:** Overtime pay = Hourly wage + 50% of basic salary (= 150% of hourly)
+
+**Hourly Rate Formula:**
+
+```
+Hourly Rate = Monthly Basic Salary / 30 days / 8 hours
+```
+
+**Example:**
+
+- Monthly Basic: SAR 10,000
+- Hourly Rate: 10,000 / 30 / 8 = SAR 41.67
+- Overtime Rate: 41.67 × 1.5 = **SAR 62.50 per hour**
+- 10 hours OT: 62.50 × 10 = **SAR 625**
+
+**Implementation:**
+
+```typescript
+// In ksaPayrollService.ts
+export const OVERTIME_MULTIPLIER = 1.5;
+
+export function calculateOvertimePay(
+  monthlyBasic: number,
+  overtimeHours: number,
+): number {
+  const hourlyRate = monthlyBasic / 30 / 8;
+  return (
+    Math.round(hourlyRate * OVERTIME_MULTIPLIER * overtimeHours * 100) / 100
+  );
+}
+```
+
+### End of Service Benefits (ESB)
+
+**Formula:**
+
+- **First 5 years**: 0.5 months of salary per year
+- **After 5 years**: 1 month of salary per year
+
+**Adjustments for Resignation:**
+
+- **< 2 years**: No ESB
+- **2-5 years**: 1/3 of calculated ESB
+- **5-10 years**: 2/3 of calculated ESB
+- **10+ years**: Full ESB
+
+**Termination (by employer):** Full ESB regardless of tenure
+
+**Example:**
+
+- Employee with 7 years service, last monthly salary SAR 12,000
+- Calculation:
+  - First 5 years: 5 × 0.5 = 2.5 months
+  - Next 2 years: 2 × 1.0 = 2.0 months
+  - **Total: 4.5 months = SAR 54,000**
+- If resignation (7 years): 2/3 × 54,000 = **SAR 36,000**
+
+**Implementation:**
+
+```typescript
+// In ksaPayrollService.ts
+export function calculateESB(
+  lastMonthlySalary: number,
+  serviceYears: number,
+  serviceMonths: number = 0,
+  serviceDays: number = 0,
+  reason: 'RESIGNATION' | 'TERMINATION' | 'END_OF_CONTRACT' = 'TERMINATION'
+): ESBCalculation {
+  const totalYears = serviceYears + serviceMonths / 12 + serviceDays / 365;
+  const first5Years = Math.min(5, totalYears);
+  const after5Years = Math.max(0, totalYears - 5);
+  const baseMonths = (first5Years * 0.5) + (after5Years * 1.0);
+
+  let adjustmentFactor = 1.0; // Termination = full
+
+  if (reason === 'RESIGNATION') {
+    if (totalYears < 2) adjustmentFactor = 0;
+    else if (totalYears < 5) adjustmentFactor = 1/3;
+    else if (totalYears < 10) adjustmentFactor = 2/3;
+    else adjustmentFactor = 1.0;
+  }
+
+  const finalMonths = baseMonths * adjustmentFactor;
+  const amount = lastMonthlySalary * finalMonths;
+
+  return { totalMonths: finalMonths, amount, breakdown: { ... } };
+}
+```
+
+### WPS (Wage Protection System) / Mudad
+
+**Requirement:** All Saudi employers must upload payroll data to Mudad platform within **30 days** of payment date
+
+**File Format:** CSV with specific columns (bank-dependent)
+
+**Standard Format:**
+
+```
+Employee ID, Employee Name, Bank Code, IBAN, Basic Salary, Housing Allowance, Other Allowances, Total Deductions, Net Salary, Salary Month, Work Days
+```
+
+**IBAN Validation:**
+
+- Format: `SA` + 2 check digits + 2 bank code + 18 account number = **24 characters**
+- Example: `SA4480000000123456789012`
+
+**Bank Codes (Major Banks):**
+
+- Al Rajhi: `80`
+- NCB/SNB: `10`
+- Riyad Bank: `20`
+- Samba: `40`
+- SABB: `55`
+
+**Implementation:**
+
+```typescript
+// In wpsService.ts
+export function generateWPSFile(
+  payslips: IPayslip[],
+  organizationId: string,
+  periodMonth: string, // "2025-11"
+): WPSFile {
+  const records = payslips.map((slip) => ({
+    employeeId: slip.employeeCode,
+    employeeName: slip.employeeName,
+    bankCode: extractBankCode(slip.iban), // From IBAN
+    iban: slip.iban,
+    basicSalary: slip.earnings.find((e) => e.code === "BASIC")?.amount || 0,
+    housingAllowance:
+      slip.earnings.find((e) => e.code === "HOUSING")?.amount || 0,
+    otherAllowances: slip.earnings
+      .filter((e) => !["BASIC", "HOUSING"].includes(e.code))
+      .reduce((sum, e) => sum + e.amount, 0),
+    totalDeductions: slip.deductions.reduce((sum, d) => sum + d.amount, 0),
+    netSalary: slip.netPay,
+    salaryMonth: periodMonth,
+    workDays: 30, // Or calculate from attendance
+  }));
+
+  const csvContent = generateCsvFromRecords(records);
+  const checksum = generateChecksum(csvContent);
+
+  return {
+    filename: `WPS_${organizationId}_${periodMonth.replace("-", "")}.csv`,
+    content: csvContent,
+    checksum,
+    recordCount: records.length,
+    totalNetSalary: records.reduce((sum, r) => sum + r.netSalary, 0),
+    generatedAt: new Date(),
+  };
+}
+```
+
+### Document Expiry Compliance
+
+**Critical Documents:**
+
+- **Iqama (Residence Permit):** Expiry triggers visa violation fines (SAR 10,000+)
+- **Passport:** Required for Iqama renewal
+- **Work Visa:** Required for legal employment
+- **Contracts:** Qiwa digital contracts (attestation required)
+
+**Alert System:**
+
+- **90 days before expiry**: Yellow warning
+- **30 days before expiry**: Orange alert + email to HR
+- **7 days before expiry**: Red alert + email to Admin
+- **Expired**: Block employee from scheduling/payroll
+
+**Implementation:**
+
+```typescript
+// In Employee model
+documents: [
+  {
+    type: "IQAMA" | "PASSPORT" | "CONTRACT" | "VISA",
+    number: string,
+    issueDate: Date,
+    expiryDate: Date, // INDEXED for fast queries
+    fileUrl: string,
+  },
+];
+
+// Cron job (daily at 2 AM)
+async function checkDocumentExpiry() {
+  const now = new Date();
+  const warn90 = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+  const warn30 = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const warn7 = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  // Find employees with expiring documents
+  const expiring = await Employee.find({
+    "documents.expiryDate": { $lte: warn90, $gte: now },
+  });
+
+  for (const employee of expiring) {
+    for (const doc of employee.documents) {
+      const daysUntilExpiry = Math.ceil(
+        (doc.expiryDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000),
+      );
+
+      if (daysUntilExpiry <= 7) {
+        // Create urgent ticket in Support module
+        await createComplianceTicket(employee, doc, "URGENT");
+      } else if (daysUntilExpiry <= 30) {
+        await createComplianceTicket(employee, doc, "HIGH");
+      } else if (daysUntilExpiry <= 90) {
+        await createComplianceTicket(employee, doc, "NORMAL");
+      }
+    }
+  }
+}
+```
+
+---
+
+## System Behavior
+
+### Payroll Workflow (State Machine)
+
+```
+DRAFT ──(Calculate)──> CALCULATED ──(Approve)──> APPROVED ──(Lock)──> LOCKED
+  │                                                                       │
+  └──────────────────────(Delete)───────────────────────────────────────┘
+                        (Only in DRAFT)
+```
+
+**State Transitions:**
+
+1. **DRAFT → CALCULATED**
+   - Trigger: Admin clicks "Calculate Payroll"
+   - Action: POST `/api/hr/payroll/runs/[id]/calculate`
+   - Process:
+     - Fetch all ACTIVE employees
+     - For each: fetch timesheets, calculate pay, create payslip
+     - Update run totals
+     - Move to CALCULATED
+   - Validation: None (idempotent)
+
+2. **CALCULATED → APPROVED**
+   - Trigger: Admin/HR Manager clicks "Approve"
+   - Action: POST `/api/hr/payroll/runs/[id]/approve` (future endpoint)
+   - Process:
+     - Check DoA (Delegation of Authority) levels
+     - Record approver ID and timestamp
+     - Move to APPROVED
+   - Validation: User must have approval permission
+
+3. **APPROVED → LOCKED**
+   - Trigger: Admin clicks "Lock & Finalize"
+   - Action: POST `/api/hr/payroll/runs/[id]/lock` (future endpoint)
+   - Process:
+     - Mark all payslips as immutable
+     - Generate audit log
+     - Trigger GL posting (Finance integration)
+     - Move to LOCKED
+   - **IMMUTABLE**: No changes allowed after this point
+
+4. **LOCKED → WPS Export**
+   - Trigger: Admin clicks "Export WPS"
+   - Action: GET `/api/hr/payroll/runs/[id]/export/wps`
+   - Process:
+     - Fetch all payslips
+     - Generate CSV
+     - Validate format
+     - Return downloadable file
+   - Note: Can export multiple times (for re-uploads)
+
+### Employee Lifecycle
+
+```
+                        ┌──────────────┐
+                        │  ONBOARDING  │ (New hire, documents pending)
+                        └──────┬───────┘
+                               │ (All docs uploaded + approval)
+                               ▼
+                        ┌──────────────┐
+                  ┌────▶│    ACTIVE    │◀────┐
+                  │     └──────┬───────┘     │
+                  │            │             │
+    (Leave ends)  │            │ (Leave      │ (Suspension lifted)
+                  │            │  approved)  │
+                  │            ▼             │
+                  │     ┌──────────────┐     │
+                  └─────│   ON_LEAVE   │     │
+                        └──────────────┘     │
+                                             │
+                        ┌──────────────┐     │
+                        │  SUSPENDED   │─────┘
+                        └──────┬───────┘
+                               │ (Termination)
+                               ▼
+                        ┌──────────────┐
+                        │  TERMINATED  │ (Final, ESB calculated)
+                        └──────────────┘
+```
+
+**Status Effects:**
+
+- **ONBOARDING**:
+  - Excluded from payroll
+  - Cannot clock in/out
+  - Can upload documents
+  - Transition: Manual (HR clicks "Activate")
+
+- **ACTIVE**:
+  - Included in payroll
+  - Can clock in/out
+  - Can submit leave requests
+  - Can be scheduled for shifts
+
+- **ON_LEAVE**:
+  - Excluded from payroll (unless paid leave)
+  - Cannot clock in/out
+  - Cannot be scheduled
+  - Automatic transition when leave ends
+
+- **SUSPENDED**:
+  - Excluded from payroll
+  - Cannot access system
+  - Used for disciplinary cases
+  - Transition: Manual (Admin)
+
+- **TERMINATED**:
+  - **Final state** (no transitions out)
+  - Triggers ESB calculation
+  - All assets marked for return
+  - Last payslip includes ESB + final dues
+  - Document retention per labor law (5 years)
+
+### Leave Approval Workflow
+
+```
+Employee submits ──> Manager reviews ──> HR reviews ──> Approved
+  (PENDING)           (Level 1)          (Level 2)      (APPROVED)
+                         │                   │
+                         │                   │
+                         ▼                   ▼
+                     REJECTED            REJECTED
+```
+
+**Approval Chain Configuration (per org):**
+
+```typescript
+interface ApprovalChain {
+  levels: [
+    {
+      level: number;
+      approverRole: "MANAGER" | "HR" | "ADMIN";
+      autoApproveIfBelow: number; // Days (e.g., 1-day leave auto-approved by manager)
+    },
+  ];
+}
+
+// Example: Small org (simple)
+{
+  levels: [
+    { level: 1, approverRole: "MANAGER", autoApproveIfBelow: 2 },
+    { level: 2, approverRole: "HR", autoApproveIfBelow: 0 },
+  ];
+}
+
+// Example: Enterprise (complex DoA)
+{
+  levels: [
+    { level: 1, approverRole: "MANAGER", autoApproveIfBelow: 3 },
+    { level: 2, approverRole: "DEPARTMENT_HEAD", autoApproveIfBelow: 7 },
+    { level: 3, approverRole: "HR", autoApproveIfBelow: 0 },
+    { level: 4, approverRole: "CFO", autoApproveIfBelow: 0 }, // For >14 days
+  ];
+}
+```
+
+---
+
+## Integration Points
+
+### 1. Work Orders Module
+
+**Use Case**: Technician dispatch based on skills and availability
+
+**Integration:**
+
+- HR provides: `Employee.skills[]`, `Employee.status`, `Roster` (scheduled shifts)
+- Work Orders queries: Available technicians with required skills for a site
+- Example: "Find HVAC technicians available on 2025-11-05 at Site PROP-042"
+
+**API:**
+
+```typescript
+GET /api/hr/employees/available
+Query: ?skills=HVAC,Plumbing&date=2025-11-05&site=PROP-042
+Response: [{ employeeId, name, skills, currentLocation }]
+```
+
+### 2. Finance Module
+
+**Use Case**: Payroll GL posting
+
+**Integration:**
+
+- After payroll LOCK, HR posts journal entries to Finance
+- Debit: Salaries Expense
+- Credit: GOSI Payable (Employer), Bank/Cash
+
+**Example Journal Entry:**
+
+```
+Debit:  Salaries Expense                 SAR 1,275,000
+Credit: GOSI Payable (Employee)                        SAR 90,562
+Credit: GOSI Payable (Employer)                        SAR 114,750
+Credit: Bank - Payroll Account                       SAR 1,069,688
+```
+
+**API:**
+
+```typescript
+POST /api/finance/journal-entries
+Body: {
+  source: 'PAYROLL',
+  sourceId: 'payrollRunId',
+  entries: [
+    { account: '5100', debit: 1275000, description: 'October Payroll' },
+    { account: '2100', credit: 90562, description: 'GOSI Employee Payable' },
+    { account: '2101', credit: 114750, description: 'GOSI Employer Payable' },
+    { account: '1010', credit: 1069688, description: 'Bank - Payroll Disbursement' }
+  ]
+}
+```
+
+### 4. Automation Hooks (Phase 3)
+
+**Leave & Attendance Notifications**
+
+- Every leave status transition (`APPROVED`, `REJECTED`, `CANCELLED`) queues a job on the shared notifications worker (`souq:notifications`) via `HrNotificationService`.
+- Attendance entries flagged as `ABSENT` or `LATE` automatically emit alerts so FM/HR supervisors see exceptions without polling the grid.
+- Consumers (push/email/SMS) enrich the payload (employee, approver, dates, shift info) using the same translation keys referenced in `contexts/TranslationContext.tsx`.
+
+**Payroll → Finance Posting**
+
+- When a payroll run moves to `LOCKED`, `PayrollFinanceIntegration` builds a balanced journal entry and posts it through `postingService`.
+- Default Chart of Accounts mapping (configurable per org):
+  - Debit `5200` Salaries Expense (base + allowances + employer GOSI)
+  - Credit `2100` GOSI Employee Payable, `2101` GOSI Employer Payable
+  - Credit `2105` Other Deductions (loans, advances, etc.)
+  - Credit `1010` Payroll Bank for net pay
+- Once the journal is posted, the run is stamped with `financePosted`, `financeJournalId`, and `financeReference` to prevent duplicates and aid audits.
+
+### 3. Compliance Module
+
+**Use Case**: Document expiry alerts
+
+**Integration:**
+
+- HR creates "Compliance Ticket" when document expires in < 30 days
+- Ticket assigned to HR group
+- SLA: 7 days to resolve (renew document)
+
+**Example Ticket:**
+
+```
+Title: "Iqama Expiry Alert - Ahmed Al-Saud (EMP-001)"
+Description: "Iqama #2345678901 expires on 2025-11-15 (14 days)"
+Priority: HIGH
+Assigned To: HR Group
+Due Date: 2025-11-08 (7 days SLA)
+```
+
+### 5. Marketplace Module
+
+**Use Case**: Third-party payroll services (e.g., payroll outsourcing)
+
+**Integration:**
+
+- Marketplace lists "Payroll Service Providers"
+- Corporate can subscribe to provider
+- HR exports payroll data to provider via API
+- Provider returns WPS file + payslips
+
+**Future Enhancement:** Direct API integration with Jisr, Bayzat, etc.
+
+---
+
+## Security & Multi-Tenancy
+
+### Authentication & Authorization
+
+**Session Validation:**
+
+```typescript
+const session = await getServerSession(authOptions);
+if (!session?.user?.orgId) {
+  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+}
+```
+
+**Role-Based Access Control (RBAC):**
+
+| Role            | Permissions                              |
+| --------------- | ---------------------------------------- |
+| **SUPER_ADMIN** | Full system access (all orgs)            |
+| **ADMIN**       | Full org access (own org only)           |
+| **HR_MANAGER**  | Employee CRUD, Payroll, Leave approval   |
+| **MANAGER**     | View team, Approve leave (Level 1)       |
+| **EMPLOYEE**    | Self-service: View payslip, Submit leave |
+
+**Subscription-Based Feature Gating:**
+
+```typescript
+// Example: Payroll endpoint (Mid+ tier only)
+if (!session.user.subscription.includes("PAYROLL")) {
+  return NextResponse.json(
+    {
+      error: "Payroll feature not available in your subscription tier",
+      upgradeUrl: "/settings/subscription",
+    },
+    { status: 402 },
+  ); // Payment Required
+}
+```
+
+### Data Isolation
+
+**Org-Scoping (All Queries):**
+
+```typescript
+// Always filter by orgId
+const employees = await Employee.find({
+  orgId: session.user.orgId,
+  status: "ACTIVE",
+});
+const runs = await PayrollRun.find({
+  orgId: session.user.orgId,
+  status: "DRAFT",
+});
+```
+
+**Compound Indexes:**
+
+```typescript
+// Enforce uniqueness within org (not globally)
+{ orgId: 1, employeeCode: 1 } // unique
+{ orgId: 1, email: 1 }
+{ orgId: 1, periodStart: 1, periodEnd: 1 } // for payroll runs
+```
+
+### Sensitive Data Protection
+
+**IBAN Masking:**
+
+```typescript
+// Store full IBAN in DB
+bank: { iban: 'SA4480000000123456789012' }
+
+// Return masked to API (except WPS export)
+bank: { iban: 'SA44****5012', bankName: 'Al Rajhi' }
+```
+
+**Document Access Control:**
+
+```typescript
+// Documents (Iqama, Passport) stored in S3 with signed URLs
+// Only accessible by:
+// - Employee (self)
+// - HR_MANAGER
+// - ADMIN
+```
+
+### Audit Trail
+
+**Immutable Records:**
+
+- Payslips: Cannot be edited after creation
+- PayrollRun (LOCKED): No changes allowed
+- LeaveRequest: Status changes logged in `approvalChain`
+
+**Change Log (Future):**
+
+```typescript
+interface AuditLog {
+  orgId: ObjectId;
+  userId: ObjectId;
+  action: "CREATE" | "UPDATE" | "DELETE";
+  resource: "Employee" | "PayrollRun" | "LeaveRequest";
+  resourceId: ObjectId;
+  changes: { field: string; oldValue: any; newValue: any }[];
+  timestamp: Date;
+  ipAddress: string;
+}
+```
+
+---
+
+## Deployment Guide
+
+### Environment Variables
+
+```bash
+# Database
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/fixzit?retryWrites=true&w=majority
+
+# Authentication
+NEXTAUTH_URL=https://fixzit.sa
+NEXTAUTH_SECRET=<random-256-bit-key>
+
+# AWS S3 (for document storage)
+AWS_ACCESS_KEY_ID=<key>
+AWS_SECRET_ACCESS_KEY=<secret>
+AWS_S3_BUCKET=fixzit-hr-documents
+AWS_REGION=me-south-1 # Bahrain region (closest to Saudi)
+
+# Email (for notifications)
+SMTP_HOST=smtp.sendgrid.net
+SMTP_PORT=587
+SMTP_USER=apikey
+SMTP_PASS=<sendgrid-api-key>
+SMTP_FROM=noreply@fixzit.sa
+
+# Feature Flags
+ENABLE_HR_MODULE=true
+ENABLE_WPS_EXPORT=true
+```
+
+### Database Indexes (Production)
+
+Run these commands in MongoDB shell after deployment:
+
+```javascript
+// Employee indexes
+db.hr_employees.createIndex({ orgId: 1, employeeCode: 1 }, { unique: true });
+db.hr_employees.createIndex({ orgId: 1, email: 1 });
+db.hr_employees.createIndex({ orgId: 1, status: 1 });
+db.hr_employees.createIndex({ "documents.expiryDate": 1 });
+
+// Payroll indexes
+db.hr_payroll_runs.createIndex({ orgId: 1, periodStart: 1, periodEnd: 1 });
+db.hr_payroll_runs.createIndex({ orgId: 1, status: 1 });
+db.hr_payslips.createIndex({ orgId: 1, payrollRunId: 1 });
+db.hr_payslips.createIndex({ orgId: 1, employeeId: 1, periodStart: 1 });
+
+// Leave indexes
+db.hr_leave_requests.createIndex({ orgId: 1, employeeId: 1, status: 1 });
+db.hr_leave_requests.createIndex({ orgId: 1, startDate: 1, endDate: 1 });
+db.hr_leave_entitlements.createIndex(
+  { orgId: 1, employeeId: 1, leaveTypeCode: 1, periodStart: 1 },
+  { unique: true },
+);
+
+// Attendance indexes
+db.hr_attendance_logs.createIndex({ orgId: 1, employeeId: 1, timestamp: 1 });
+db.hr_timesheets.createIndex(
+  { orgId: 1, employeeId: 1, weekStart: 1 },
+  { unique: true },
+);
+db.hr_roster.createIndex(
+  { orgId: 1, date: 1, employeeId: 1 },
+  { unique: true },
+);
+```
+
+### Cron Jobs
+
+**Document Expiry Check (Daily at 2 AM Asia/Riyadh):**
+
+```bash
+0 2 * * * /app/scripts/check-document-expiry.sh
+```
+
+**Leave Accrual (Monthly on 1st at 1 AM):**
+
+```bash
+0 1 1 * * /app/scripts/accrue-leave.sh
+```
+
+**WPS Reminder (Monthly on 25th at 9 AM):**
+
+```bash
+0 9 25 * * /app/scripts/wps-reminder.sh
+```
+
+### Performance Optimization
+
+**Database Sharding (for 10,000+ employees):**
+
+```javascript
+// Shard key: orgId (distribute by organization)
+sh.shardCollection("fixzit.hr_employees", { orgId: 1 });
+sh.shardCollection("fixzit.hr_payslips", { orgId: 1, periodStart: 1 });
+```
+
+**Redis Caching (for frequent queries):**
+
+```typescript
+// Cache employee list for 5 minutes
+const cacheKey = `hr:employees:${orgId}:${status}`;
+const cached = await redis.get(cacheKey);
+if (cached) return JSON.parse(cached);
+
+const employees = await Employee.find({ orgId, status }).lean();
+await redis.setex(cacheKey, 300, JSON.stringify(employees));
+return employees;
+```
+
+---
+
+## Appendices
+
+### A. Saudi Labor Law Quick Reference
+
+- **Overtime**: 150% of hourly basic (Article 107)
+- **Annual Leave**: 21 days (min), 30 days after 5 years (Article 109)
+- **Sick Leave**: 30 days full, 60 days @ 75%, 30 days unpaid (Article 117)
+- **Hajj Leave**: Employee can take unpaid leave once during employment (Article 112)
+- **Maternity Leave**: 10 weeks (6 weeks post-birth) (Article 151)
+- **ESB**: 0.5 month/year (first 5 years), 1 month/year (after) (Article 84)
+
+### B. GOSI Contact Information
+
+- **Website**: https://www.gosi.gov.sa/en
+- **Toll-Free**: 8001243344
+- **Contribution Calculator**: https://www.gosi.gov.sa/GOSIOnline/Calculators
+
+### C. WPS/Mudad Resources
+
+- **Mudad Platform**: https://mudad.hrsd.gov.sa
+- **WPS Guide**: https://hrsd.gov.sa/en/wps
+- **File Specifications**: Contact your bank for exact format
+
+### D. Fixzit Support
+
+- **Technical Support**: support@fixzit.sa
+- **Sales Inquiries**: sales@fixzit.sa
+- **Documentation**: https://docs.fixzit.sa/hr-module
+- **API Reference**: https://api.fixzit.sa/docs
+
+---
+
+## Document Control
+
+| Version | Date       | Author          | Changes         |
+| ------- | ---------- | --------------- | --------------- |
+| 1.0     | 2025-10-31 | Fixzit Dev Team | Initial release |
+
+**Confidentiality Notice:** This document contains proprietary information of Fixzit and is intended solely for the use of authorized personnel. Unauthorized distribution or reproduction is prohibited.
+
+---
+
+**End of Document**
+
+]]>
+</file>
+
+<file path="docs/I18N_MISSING_KEYS_SUMMARY.md">
+<![CDATA[
+# i18n Missing Translation Keys Summary
+
+**Generated:** 2025-11-08  
+**Source:** reports/i18n-missing.json (Fixzit Agent run)
+
+## Overview
+
+- **Total Missing Keys:** 1,330
+- **Existing en.json Keys:** 366
+- **Existing ar.json Keys:** 366
+- **Keys Used in Code:** 1,466
+- **Coverage:** 25% (366/1,466)
+
+## Issue Analysis
+
+The codebase uses 1,330 translation keys that are **not defined** in either `i18n/locales/en.json` or `i18n/locales/ar.json`. These keys will render as their literal key names (e.g., "admin.users.cancel" instead of "Cancel") in the UI.
+
+## Key Breakdown by Module
+
+Based on the first 50 keys from the report, the missing keys span these namespaces:
+
+### 1. **Admin Module** (`admin.*`)
+
+- User management: `admin.users.*` (cancel, create, searchPlaceholder, filterRole, filterStatus, deleteSelected, name, edit, delete, total, etc.)
+- Role management: `admin.roles.*` (comingSoon, superAdminDesc, adminDesc, managerDesc, userDesc)
+- Audit logs: `admin.audit.*` (filterUser, filterAction, clear, loadFailed, time, entity, previous, page, next)
+- Feature flags: `admin.features.*` (desc, open)
+
+### 2. **Finance Module** (`finance.*`)
+
+Likely includes: budget management, invoices, payments, reports
+
+### 3. **HR Module** (`hr.*`)
+
+Likely includes: employees, attendance, leave, payroll
+
+### 4. **Work Orders** (`workOrders.*`)
+
+Likely includes: create, status, assign, close, filter
+
+### 5. **Properties** (`properties.*`)
+
+Likely includes: listings, details, search, filter
+
+### 6. **Common UI** (buttons, forms, tables)
+
+- Pagination: previous, page, next, of, total
+- Actions: cancel, create, edit, delete, save, clear
+- Filters: filterRole, filterStatus, filterUser, filterAction
+- Search: searchPlaceholder
+
+## Priority Levels
+
+### 🔴 CRITICAL (P0) - Immediate Action
+
+Keys used in authentication, navigation, and core workflows:
+
+- Login/logout flows
+- Primary navigation labels
+- Error messages and validation
+- Form submission buttons
+
+### 🟡 HIGH (P1) - Short Term
+
+Keys used in frequently accessed modules:
+
+- Admin user management
+- Work order creation and status
+- Property listings and details
+- Financial dashboards
+
+### 🟢 MEDIUM (P2) - Medium Term
+
+Keys used in secondary features:
+
+- Audit logs and reports
+- Feature flag descriptions
+- Advanced filters
+- Bulk actions
+
+### ⚪ LOW (P3) - Long Term
+
+Keys used in edge cases or admin-only features:
+
+- Role descriptions
+- "Coming Soon" placeholders
+- Debug/developer tools
+
+## Recommended Actions
+
+### Option 1: Auto-Generate Placeholders (Quick Fix)
+
+```bash
+# Generate skeleton keys from the missing list
+node scripts/generate-i18n-placeholders.js
+```
+
+- Pros: Fast, prevents UI breakage
+- Cons: English-only, requires manual translation
+
+### Option 2: Manual Curation (Quality Fix)
+
+1. Review `reports/i18n-missing.json` full list
+2. Prioritize by module and frequency
+3. Add translations in batches:
+   - Week 1: Admin + Auth (P0)
+   - Week 2: Work Orders + Properties (P1)
+   - Week 3: Finance + HR (P1)
+   - Week 4: Reports + Settings (P2)
+
+### Option 3: Hybrid Approach (Recommended)
+
+1. Auto-generate English placeholders for all 1,330 keys
+2. Machine-translate to Arabic using i18n library
+3. Manual review and refinement by native speakers
+4. Deploy in stages with feature flags
+
+## Technical Notes
+
+### Key Naming Convention
+
+Current pattern: `module.feature.action` (e.g., `admin.users.create`)
+
+**Recommendation:** Maintain consistency:
+
+- ✅ `admin.users.create` (Good)
+- ❌ `adminUserCreate` (Bad - hard to namespace)
+- ❌ `admin_users_create` (Bad - inconsistent delimiter)
+
+### Translation File Structure
+
+```json
+{
+  "admin": {
+    "users": {
+      "create": "Create User",
+      "edit": "Edit User",
+      "delete": "Delete User"
+    }
+  }
+}
+```
+
+### Usage in Code
+
+```tsx
+import { useTranslations } from "next-intl";
+
+export default function UsersPage() {
+  const t = useTranslations("admin.users");
+
+  return (
+    <button>{t("create")}</button> // ✅ Resolves to "admin.users.create"
+  );
+}
+```
+
+## Next Steps
+
+1. **Immediate (This Sprint):**
+   - Review missing keys from critical modules (admin, auth, navigation)
+   - Add P0 translations to en.json and ar.json
+   - Test with `pnpm run fixzit:agent` to verify coverage increase
+
+2. **Short Term (Next Sprint):**
+   - Create script to auto-generate placeholder translations
+   - Add P1 translations (work orders, properties, finance)
+   - Update test snapshots if needed
+
+3. **Long Term (Backlog):**
+   - Implement translation coverage CI/CD check
+   - Add ESLint rule to enforce t() usage for user-facing strings
+   - Consider lazy-loading translations by module
+
+## References
+
+- Full list: `reports/i18n-missing.json`
+- Existing translations: `i18n/locales/en.json`, `i18n/locales/ar.json`
+- i18n config: `i18n/index.ts`
+- Translation hook: `useTranslations()` from next-intl
+
+---
+
+**Action Owner:** TBD  
+**Target Completion:** TBD  
+**Related Issues:** #[TBD]
+
+]]>
+</file>
+
+<file path="docs/I18N_QUICK_START.md">
+<![CDATA[
+# 🚀 i18n Consolidation - Quick Start Guide
+
+**Generated:** November 16, 2025  
+**Status:** ✅ Ready to Proceed  
+**Full Report:** [I18N_IMPACT_REPORT.md](./I18N_IMPACT_REPORT.md)
+
+---
+
+## 📋 What You Asked For
+
+✅ **i18n Impact Report** - Generated with detailed before/after analysis  
+✅ **Batch into Logical Groups** - 5 separate PRs proposed  
+✅ **Verify RTL Layout** - Already implemented and working  
+✅ **Run Full Smoke Tests** - Ready to execute
+
+---
+
+## 🎯 Executive Summary
+
+### Current State
+
+- **Translation Coverage:** 100% (EN/AR)
+- **RTL Support:** ✅ Fully implemented
+- **Issues Found:** 46 files with hardcoded text, 162 duplicate keys
+
+### Proposed Solution
+
+- **5 Batches:** Methodical refactoring approach
+- **Total Effort:** 20-25 hours (3-4 working days)
+- **Risk Level:** Medium (large refactor, but methodical)
+- **Business Impact:** High (improved UX for Arabic users)
+
+---
+
+## 🔢 The 5 Batches
+
+### **Batch 1: Foundation Cleanup** ⭐ START HERE
+
+**PR:** `feat/i18n-batch-1-foundation`  
+**Files:** 2 files (locales/en.ts, locales/ar.ts)  
+**Effort:** 4 hours  
+**Risk:** 🟢 Low
+
+**What it does:**
+
+- Consolidate 162 duplicate keys → 42 common keys
+- Add `common.status.*`, `common.actions.*`, `common.validation.*`, `common.pagination.*`
+- No functional changes, purely additive
+
+**Ready to start?**
+
+```bash
+git checkout -b feat/i18n-batch-1-foundation
+# Follow instructions in I18N_IMPACT_REPORT.md "Task 1.1"
+```
+
+---
+
+### **Batch 2: High Priority UI** ⚠️ CRITICAL PATH
+
+**PR:** `feat/i18n-batch-2-ui-components`  
+**Files:** 12 user-facing components  
+**Effort:** 3-4 hours  
+**Risk:** 🟡 Medium
+
+**What it does:**
+
+- Fix hardcoded text in checkout, marketplace, search
+- Add `useTranslations()` hooks
+- Test language switching
+
+**Files:**
+
+```
+components/marketplace/RFQBoard.tsx        ⭐ PRIORITY 1
+components/marketplace/CheckoutForm.tsx    ⭐ PRIORITY 1
+components/souq/SearchFilters.tsx          ⭐ PRIORITY 2
+components/AIChat.tsx                      ⭐ PRIORITY 2
+app/page.tsx                               ⭐ PRIORITY 3
+... (7 more files)
+```
+
+---
+
+### **Batch 3: Seller Module** 👤 SELLER FEATURES
+
+**PR:** `feat/i18n-batch-3-seller-module`  
+**Files:** 11 seller-facing components  
+**Effort:** 4-5 hours  
+**Risk:** 🟢 Low
+
+**What it does:**
+
+- Internationalize seller dashboard
+- Reviews, KYC, analytics, advertising
+- Smaller user base, less critical
+
+---
+
+### **Batch 4: Service Layer** 🔧 BACKEND
+
+**PR:** `feat/i18n-batch-4-services`  
+**Files:** 14 service files  
+**Effort:** 2-3 hours  
+**Risk:** 🟢 Low
+
+**What it does:**
+
+- Backend notifications
+- Service worker messages
+- Minimal UI impact
+
+---
+
+### **Batch 5: Consolidation Migration** 🤖 AUTOMATED
+
+**PR:** `feat/i18n-batch-5-migration`  
+**Files:** 180+ files (automated refactor)  
+**Effort:** 2 hours  
+**Risk:** 🟡 Medium
+
+**What it does:**
+
+- Replace module-specific keys with common.\* keys
+- Run migration script with --apply
+- Comprehensive testing required
+
+---
+
+## ✅ RTL Layout Verification
+
+### **Current Status:** ✅ **WORKING**
+
+RTL (Right-to-Left) support for Arabic is already fully implemented:
+
+```typescript
+// lib/i18n.ts
+export function getDirection(locale: Locale): "ltr" | "rtl" {
+  return locale === "ar" ? "rtl" : "ltr";
+}
+```
+
+### **Verified Features:**
+
+- ✅ Layout mirroring (sidebar, navigation)
+- ✅ Text alignment (right-aligned for Arabic)
+- ✅ Icon positioning (flipped for RTL)
+- ✅ Form fields (reversed order)
+- ✅ Data tables (scrollbar on left)
+
+### **Test RTL Yourself:**
+
+```bash
+# Start dev server
+pnpm dev
+
+# Visit these URLs:
+# English: http://localhost:3000/
+# Arabic:  http://localhost:3000/ar
+
+# Or toggle language in UI (top-right corner)
+```
+
+---
+
+## 🧪 Smoke Test Plan
+
+### **Pre-Consolidation Tests** (Run Before Starting)
+
+```bash
+# 1. Lint check
+pnpm lint
+
+# 2. Type check
+pnpm typecheck
+
+# 3. Unit tests
+pnpm test
+
+# 4. Translation audit
+node tests/i18n-scan.mjs
+
+# 5. E2E smoke tests (if dev server working)
+pnpm test:e2e:smoke
+```
+
+### **Post-Batch Tests** (Run After Each PR)
+
+```bash
+# 1. Full test suite
+pnpm test && pnpm test:e2e
+
+# 2. Verify both languages
+NEXT_PUBLIC_LOCALE=en pnpm dev  # Test in English
+NEXT_PUBLIC_LOCALE=ar pnpm dev  # Test in Arabic
+
+# 3. Visual regression (if available)
+pnpm test:visual:en
+pnpm test:visual:ar
+
+# 4. Manual smoke test checklist
+# - [ ] Login works (EN/AR)
+# - [ ] Marketplace browse (EN/AR)
+# - [ ] Checkout flow (EN/AR)
+# - [ ] Dashboard loads (EN/AR)
+# - [ ] Language switcher works
+# - [ ] RTL layout correct
+```
+
+---
+
+## 🚨 Known Blockers
+
+### **E2E Tests Currently Failing**
+
+**Status:** 🔴 Blocked  
+**Issue:** Dev server not accepting connections on port 3000  
+**Impact:** Cannot run automated E2E tests  
+**Workaround:** Manual testing + unit tests
+
+**To Debug:**
+
+```bash
+# 1. Kill all node processes
+pkill -9 node
+
+# 2. Clear Next.js cache
+rm -rf .next
+
+# 3. Check MongoDB
+mongosh --eval "db.adminCommand('ping')"
+
+# 4. Verify env variables
+cat .env.local | grep -E "(MONGODB_URI|NEXTAUTH_SECRET)"
+
+# 5. Start fresh
+pnpm dev
+```
+
+---
+
+## 📊 Progress Tracking
+
+Use this checklist to track progress:
+
+- [x] **Generate i18n impact report** ✅ COMPLETE
+- [x] **Verify RTL layout** ✅ COMPLETE (already working)
+- [ ] **Batch 1: Foundation Cleanup** ⏳ Not Started
+- [ ] **Batch 2: High Priority UI** ⏳ Not Started
+- [ ] **Batch 3: Seller Module** ⏳ Not Started
+- [ ] **Batch 4: Service Layer** ⏳ Not Started
+- [ ] **Batch 5: Consolidation Migration** ⏳ Not Started
+- [ ] **Run full smoke tests** ⏳ Blocked (E2E issues)
+
+---
+
+## 🎬 Next Steps
+
+### **Option A: Start Batch 1 (Recommended)**
+
+```bash
+git checkout -b feat/i18n-batch-1-foundation
+# Open I18N_IMPACT_REPORT.md
+# Follow Task 1.1 instructions
+# Create PR when done
+```
+
+### **Option B: Fix E2E Tests First**
+
+```bash
+# Debug dev server issues
+# Get authentication working
+# Then proceed with Batch 1
+```
+
+### **Option C: Review & Approve Scope**
+
+```bash
+# Review I18N_IMPACT_REPORT.md thoroughly
+# Discuss with team
+# Approve approach
+# Then proceed with Batch 1
+```
+
+---
+
+## 📞 Questions?
+
+**Ask me to:**
+
+- "Start Batch 1" - I'll create the foundation cleanup PR
+- "Fix E2E tests" - I'll debug the dev server issues
+- "Show me Batch 2 details" - I'll explain the UI component changes
+- "Create migration script" - I'll write the automated refactor tool
+- "Run smoke tests" - I'll execute the test suite (once server is working)
+
+---
+
+## 📈 Success Criteria
+
+After completing all 5 batches, you'll have:
+
+✅ **100% internationalized codebase** - Zero hardcoded strings  
+✅ **~162 fewer duplicate keys** - 15-20% file size reduction  
+✅ **Improved maintainability** - Single source of truth  
+✅ **Perfect Arabic (RTL) support** - Already working, preserved  
+✅ **Comprehensive test coverage** - Automated i18n validation
+
+**Business Value:** Better UX for Arabic-speaking users, easier to add new languages, cleaner codebase.
+
+---
+
+_Ready to proceed? Let me know which option you'd like to start with!_ 🚀
+
+]]>
+</file>
+
+<file path="docs/IMPLEMENTATION_GUIDE.md">
+<![CDATA[
+# Fixzit - Complete 15 Tasks Implementation Guide
+
+## 📋 OVERVIEW
+
+This document contains complete, production-ready code for all 15 tasks.
+Each task is organized with:
+
+- File paths and contents
+- Terminal commands to execute
+- Commit messages
+- PR descriptions
+
+---
+
+## 🚀 TASK 1: AUTO-RESTART MECHANISM & SERVER KEEP-ALIVE
+
+### Files Created:
+
+✅ `ecosystem.config.js` - PM2 configuration
+✅ `scripts/dev-server-keepalive.sh` - Keep-alive script (already exists)
+✅ `scripts/setup-dev.sh` - Development setup script
+
+### Status: COMPLETE ✅
+
+Files are created and ready to commit.
+
+### Commands to Execute:
+
+```bash
+chmod +x scripts/setup-dev.sh scripts/dev-server-keepalive.sh
+pnpm typecheck && pnpm lint
+git add ecosystem.config.js scripts/setup-dev.sh
+git commit -m "feat: add auto-restart mechanism with PM2 and keep-alive scripts
+
+- Add PM2 ecosystem configuration for dev server
+- Add development setup script
+- Use existing keep-alive monitoring script
+- Ensure localhost:3000 stays alive with auto-restart
+- Add server management commands (start, stop, restart, status)"
+git push -u origin HEAD
+gh pr create --fill --draft --title "feat: Auto-Restart Mechanism" --body "## 🚀 Auto-Restart Mechanism
+
+**Auto-executed - Task 1/15** ✅
+
+### Features Implemented
+- PM2 process manager configuration
+- Automatic restart on crash
+- Health monitoring on port 3000
+- Development setup script
+- Server management commands
+
+### Files Added
+- \`ecosystem.config.js\` - PM2 configuration
+- \`scripts/setup-dev.sh\` - Setup script
+
+### Commands
+\`\`\`bash
+# Setup
+./scripts/setup-dev.sh
+
+# Start with auto-restart
+pm2 start ecosystem.config.js
+
+# Check status
+pm2 status
+
+# View logs
+pm2 logs fixzit-dev
+\`\`\`"
+```
+
+---
+
+## 🚀 TASK 2-15: REMAINING IMPLEMENTATION
+
+### Due to Token Limits:
+
+I've created the infrastructure. To complete all 15 tasks, I'll generate them in batches.
+
+### Immediate Next Steps:
+
+1. **Execute Task 1 commands above** ✅
+2. **Request Task 2-5** (Stripe, Referral, Testing, Docs)
+3. **Request Task 6-10** (Production, Features, UI, Performance, Security)
+4. **Request Task 11-15** (Monitoring, E2E, API Docs, Deployment, Integration)
+
+---
+
+## 📊 TASK STATUS TRACKER
+
+| Task                   | Status    | Branch           | PR      |
+| ---------------------- | --------- | ---------------- | ------- |
+| 1. Auto-Restart        | ✅ Ready  | agent/1762444902 | Pending |
+| 2. Stripe Subscription | 🔄 Next   | -                | -       |
+| 3. Referral & Bids     | ⏳ Queued | -                | -       |
+| 4. Testing             | ⏳ Queued | -                | -       |
+| 5. Documentation       | ⏳ Queued | -                | -       |
+| 6. Production Ready    | ⏳ Queued | -                | -       |
+| 7. Advanced Features   | ⏳ Queued | -                | -       |
+| 8. UI/UX               | ⏳ Queued | -                | -       |
+| 9. Performance         | ⏳ Queued | -                | -       |
+| 10. Security           | ⏳ Queued | -                | -       |
+| 11. Monitoring         | ⏳ Queued | -                | -       |
+| 12. E2E Testing        | ⏳ Queued | -                | -       |
+| 13. API Docs           | ⏳ Queued | -                | -       |
+| 14. Deployment         | ⏳ Queued | -                | -       |
+| 15. Integration Test   | ⏳ Queued | -                | -       |
+
+---
+
+## 🎯 HOW TO PROCEED
+
+**Step 1:** Execute Task 1 commands (above) to create first PR
+
+**Step 2:** Ask me: "Generate Task 2-5 code"
+
+**Step 3:** Ask me: "Generate Task 6-10 code"
+
+**Step 4:** Ask me: "Generate Task 11-15 code"
+
+I'll generate complete, production-ready code for each batch!
+
+---
+
+## 📝 CURRENT BRANCH
+
+`agent/1762444902`
+
+## ✅ READY TO EXECUTE
+
+Task 1 is ready. Execute the commands above, then request the next batch.
+
+]]>
+</file>
+
+<file path="docs/INDEX.md">
+<![CDATA[
+# Fixzit Documentation Index
+
+_Last updated: November 18, 2025_
+
+## Active Hubs
+
+- [`docs/README.md`](README.md) – platform overview, quick start, and setup.
+- [`docs/current/README.md`](current/README.md) – curated list of living
+  architecture, security, testing, and operations docs.
+
+## Architecture & Code
+
+- [`architecture/ARCHITECTURE.md`](architecture/ARCHITECTURE.md) – full
+  description of the Next.js + MongoDB stack.
+- [`architecture/PROVIDER_OPTIMIZATION_IMPLEMENTATION.md`](architecture/PROVIDER_OPTIMIZATION_IMPLEMENTATION.md) –
+  route-based provider split.
+- [`architecture/BACKBONE_INDEX.md`](architecture/BACKBONE_INDEX.md) – module map.
+- [`FIXZIT_ONBOARDING_VERIFICATION_BLUEPRINT_V7.md`](FIXZIT_ONBOARDING_VERIFICATION_BLUEPRINT_V7.md) –
+  Mongoose/Mongo onboarding, verification, tutorials, help, and admin blueprint.
+- [`owner-portal-architecture.md`](owner-portal-architecture.md) – owner portal
+  component breakdown.
+- [`MODEL_CONSOLIDATION_STRATEGY.md`](MODEL_CONSOLIDATION_STRATEGY.md) and
+  [`SRC_DIRECTORY_CONSOLIDATION_PLAN.md`](SRC_DIRECTORY_CONSOLIDATION_PLAN.md) –
+  codebase structure cleanups.
+
+## Security & Operations
+
+- [`SECURITY.md`](SECURITY.md) – security program overview and guardrails.
+- [`security/NEXTAUTH_V5_PRODUCTION_READINESS.md`](security/NEXTAUTH_V5_PRODUCTION_READINESS.md) –
+  production readiness checklist.
+- [`security/SECURITY_AUDIT_2025_10_20.md`](security/SECURITY_AUDIT_2025_10_20.md)
+  and [`security/SECURITY_AUDIT_ADDITIONAL_FINDINGS.md`](security/SECURITY_AUDIT_ADDITIONAL_FINDINGS.md) – latest audits.
+- [`operations/GITHUB_SECRETS_SETUP_PRODUCTION.md`](operations/GITHUB_SECRETS_SETUP_PRODUCTION.md)
+  and [`operations/SENDGRID_PRODUCTION_GUIDE.md`](operations/SENDGRID_PRODUCTION_GUIDE.md) – secret management and email ops.
+- [`NOTIFICATION_CREDENTIALS_GUIDE.md`](NOTIFICATION_CREDENTIALS_GUIDE.md) –
+  end-to-end notification configuration.
+- [`MANUAL_SECURITY_TESTING_GUIDE.md`](MANUAL_SECURITY_TESTING_GUIDE.md) – playbook
+  for hands-on penetration tests.
+
+## Testing & Quality
+
+- [`TESTING_STRATEGY.md`](TESTING_STRATEGY.md) – unit + integration strategy.
+- [`MANUAL_UI_TESTING_CHECKLIST.md`](MANUAL_UI_TESTING_CHECKLIST.md) – UI QA.
+- [`NOTIFICATION_SMOKE_TEST_QUICKSTART.md`](NOTIFICATION_SMOKE_TEST_QUICKSTART.md)
+  and [`NOTIFICATION_SMOKE_TEST_SETUP.md`](NOTIFICATION_SMOKE_TEST_SETUP.md) –
+  full workflow for notification tests.
+- [`SMOKE_TEST_ORG_GUARDS.md`](SMOKE_TEST_ORG_GUARDS.md) – Org Guard test cases.
+- [`testing/COMMUNICATION_LOGS_QA_PLAN.md`](testing/COMMUNICATION_LOGS_QA_PLAN.md) –
+  call log verification checklist.
+
+## Internationalization & UX
+
+- [`I18N_QUICK_START.md`](I18N_QUICK_START.md) and
+  [`i18n-guidelines.md`](i18n-guidelines.md) – locale setup guide.
+- [`I18N_MISSING_KEYS_SUMMARY.md`](I18N_MISSING_KEYS_SUMMARY.md) – outstanding
+  key audit.
+- [`translations/README.md`](translations/README.md) – latest audit artifacts.
+- [`UI_COMPONENTS_SPECIFICATION.md`](UI_COMPONENTS_SPECIFICATION.md) – shared UI
+  inventory with RTL notes.
+
+## Performance & Optimization
+
+- [`performance/BUNDLE_ANALYSIS_FINDINGS.md`](performance/BUNDLE_ANALYSIS_FINDINGS.md) –
+  analyzer output.
+- [`performance/PROVIDER_OPTIMIZATION_RESULTS.md`](performance/PROVIDER_OPTIMIZATION_RESULTS.md) –
+  final Nov 7 session results.
+- [`performance/OPTIMIZATION_ACTION_PLAN.md`](performance/OPTIMIZATION_ACTION_PLAN.md) –
+  prioritized backlog.
+- [`performance/PERFORMANCE_ANALYSIS_NEXT_STEPS.md`](performance/PERFORMANCE_ANALYSIS_NEXT_STEPS.md) –
+  target Lighthouse improvements.
+- [`performance/PERFORMANCE_FIX_GUIDE.md`](performance/PERFORMANCE_FIX_GUIDE.md) –
+  recommended tactics.
+
+## Workflow & Status
+
+- [`WORKSPACE_STATUS.md`](WORKSPACE_STATUS.md) – current blockers/runways.
+- [`SYSTEM_ORGANIZATION.md`](SYSTEM_ORGANIZATION.md) – workspace cleanup log.
+- [`TASK_COMPLETION_SUMMARY.md`](TASK_COMPLETION_SUMMARY.md) – delivered scope.
+- [`WORKFLOW_FAILURE_FIX_PLAN.md`](WORKFLOW_FAILURE_FIX_PLAN.md) – mitigation
+  plan for recent workflow failures.
+
+## Archived Collections
+
+- [`archived/README.md`](archived/README.md) describes the 60+ progress, report,
+  and PR files moved out of the active surface for historical reference.
+
+## Tools & Commands
+
+- Build: `pnpm dev`, `pnpm build`, `pnpm start`, `pnpm analyze`.
+- Testing: `pnpm test`, `pnpm lint`, `pnpm typecheck`.
+- Performance: `lighthouse http://localhost:3000 --output=json --output-path=./lighthouse-report.json`.
+- Bundle analyzer: `python3 -m http.server 8080 --directory .next/analyze`.
+
+]]>
+</file>
+
+<file path="docs/ISSUES_REGISTER.md">
+<![CDATA[
+# Issues Register - Fixzit Project
+
+**Last Updated**: January 13, 2025  
+**Status**: All Critical Issues Resolved
+
+---
+
+## Table of Contents
+
+1. [Active Issues](#active-issues)
+2. [Resolved Issues](#resolved-issues)
+3. [Monitoring Items](#monitoring-items)
+4. [Technical Debt](#technical-debt)
+
+---
+
+## Active Issues
+
+_No active critical issues_
+
+---
+
+## Resolved Issues
+
+### TENANT-001: Missing `required: true` on org_id in FM Schemas
+
+**Category**: Security / Multi-Tenancy  
+**Severity**: 🔴 BLOCKER  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-13  
+**Date Resolved**: 2025-01-13  
+**PR**: [#373](https://github.com/EngSayh/Fixzit/pull/373)
+
+**Description**:
+10 FM Mongoose schemas had `org_id` field without `required: true`, allowing documents to be created without tenant isolation.
+
+**Affected Schemas**:
+- UserSchema, PropertySchema, WorkOrderSchema, AttachmentSchema
+- QuotationSchema, ApprovalSchema, FinancialTxnSchema, PMPlanSchema
+- InspectionSchema, DocumentSchema
+
+**Impact**:
+- Cross-tenant data leakage risk
+- Orphaned records bypassing tenant filters
+- Compliance violation for STRICT v4.1 multi-tenancy
+
+**Fix Applied**:
+Added `required: true` to all `org_id` fields in `domain/fm/fm.behavior.ts`
+
+---
+
+### RBAC-DRIFT-005: SUPPORT_TICKETS Plan Gate Mismatch
+
+**Category**: RBAC / Authorization  
+**Severity**: 🟠 MAJOR  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-13  
+**Date Resolved**: 2025-01-13  
+**PR**: [#373](https://github.com/EngSayh/Fixzit/pull/373)
+
+**Description**:
+`SUPPORT_TICKETS` plan gate had different values between RBAC sources:
+- `fm.behavior.ts`: `SUPPORT_TICKETS: false` for STARTER
+- `fm.types.ts`: `SUPPORT_TICKETS: true` for STARTER
+
+**Impact**:
+- Users on STARTER plan see support features in UI
+- Server-side code using `fm.behavior.ts` would deny access → 403
+- Inconsistent user experience
+
+**Fix Applied**:
+Aligned `fm.behavior.ts` PLAN_GATES to match canonical `fm.types.ts`
+
+---
+
+### ABAC-001: Client `can()` Missing Property Manager Scope Validation
+
+**Category**: Security / ABAC  
+**Severity**: 🟠 MAJOR  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-13  
+**Date Resolved**: 2025-01-13  
+**PR**: [#373](https://github.com/EngSayh/Fixzit/pull/373)
+
+**Description**:
+Client-side `can()` function didn't validate `assignedProperties[]` for PROPERTY_MANAGER role.
+
+**Impact**:
+- UI may show "allowed" actions for properties user doesn't manage
+- Client-server RBAC parity broken
+
+**Fix Applied**:
+Added `assignedProperties` validation in `can()` function in `domain/fm/fm.types.ts`
+
+---
+
+### ABAC-002: Client `can()` Missing Tenant Unit Scope Validation
+
+**Category**: Security / ABAC  
+**Severity**: 🟠 MAJOR  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-13  
+**Date Resolved**: 2025-01-13  
+**PR**: [#373](https://github.com/EngSayh/Fixzit/pull/373)
+
+**Description**:
+Client-side `can()` function didn't validate `units[]` for TENANT role.
+
+**Impact**:
+- UI may show actions for units tenant doesn't have access to
+- Client-server ABAC parity broken
+
+**Fix Applied**:
+Added `units` validation in `can()` function in `domain/fm/fm.types.ts`
+
+---
+
+### RBAC-DRIFT-006: computeAllowedModules Override Instead of Union
+
+**Category**: RBAC / Authorization  
+**Severity**: 🟠 MAJOR  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-13  
+**Date Resolved**: 2025-01-13  
+**PR**: [#373](https://github.com/EngSayh/Fixzit/pull/373)
+
+**Description**:
+`fm.types.ts` `computeAllowedModules()` used early `return` statements for sub-roles, overriding base TEAM_MEMBER modules instead of unioning them.
+
+**Impact**:
+- FINANCE_OFFICER loses base TEAM_MEMBER modules (DASHBOARD, WO, CRM, etc.)
+- Client-side module visibility different from server-side
+- Sub-role users denied actions they should have
+
+**Files Fixed**:
+- `domain/fm/fm.types.ts`: Changed to union pattern `[...new Set([...allowed, ...subRoleModules])]`
+
+---
+
+### RBAC-DRIFT-007: Tenant Requester Fallback Missing
+
+**Category**: RBAC / Authorization  
+**Severity**: 🟠 MAJOR  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-13  
+**Date Resolved**: 2025-01-13  
+**PR**: [#373](https://github.com/EngSayh/Fixzit/pull/373)
+
+**Description**:
+Client `can()` in `fm.types.ts` used `ctx.requesterUserId === ctx.userId` without fallback to `userId` when `requesterUserId` is undefined.
+
+**Impact**:
+- Tenant actions fail when `requesterUserId` not explicitly set
+- Server-side `fm.behavior.ts` uses fallback: `const requesterId = ctx.requesterUserId ?? ctx.userId`
+- Parity broken for tenant workflows
+
+**Fix Applied**:
+Added `const requesterId = ctx.requesterUserId ?? ctx.userId` in `fm.types.ts` `can()` function.
+
+---
+
+### RBAC-DRIFT-008: hasModuleAccess Incomplete Sub-Role Handling
+
+**Category**: RBAC / Authorization  
+**Severity**: 🟠 MAJOR  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-13  
+**Date Resolved**: 2025-01-13  
+**PR**: [#373](https://github.com/EngSayh/Fixzit/pull/373)
+
+**Description**:
+`hasModuleAccess()` in `app/api/fm/permissions.ts` only handled Finance/HR sub-roles explicitly, missing SUPPORT_AGENT and OPERATIONS_MANAGER.
+
+**Impact**:
+- SUPPORT_AGENT accessing SUPPORT module gets 403
+- OPERATIONS_MANAGER accessing WORK_ORDERS/PROPERTIES gets 403
+- Only Finance/HR sub-roles worked correctly
+
+**Fix Applied**:
+Refactored to use `computeAllowedModules(role, subRole)` for complete sub-role handling.
+
+---
+
+### RBAC-DRIFT-009: fm-lite ROLE_MODULES Drift
+
+**Category**: RBAC / Authorization  
+**Severity**: 🟨 MINOR  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-13  
+**Date Resolved**: 2025-01-13  
+**PR**: [#373](https://github.com/EngSayh/Fixzit/pull/373)
+
+**Description**:
+`fm-lite.ts` `ROLE_MODULES` had outdated entries:
+- PROPERTY_MANAGER missing SUPPORT module
+- VENDOR missing WORK_ORDERS and REPORTS modules
+
+**Impact**:
+- Client façade `computeAllowedModules` returns different modules than server
+- UI visibility drift for Property Managers and Vendors
+
+**Fix Applied**:
+Added missing modules to `ROLE_MODULES` in `fm-lite.ts` to match `ROLE_MODULE_ACCESS` in behavior/types.
+
+---
+
+### RBAC-DRIFT-010: PLAN_GATES Server/Client Mismatch
+
+**Category**: RBAC / Authorization  
+**Severity**: 🟠 MAJOR  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-30  
+**Date Resolved**: 2025-01-30  
+**Commit**: `3e3d43b32`
+
+**Description**:
+`PLAN_GATES` in `fm.types.ts` (client) had 4 values that differed from `fm.behavior.ts` (server), causing client to grant/deny features inconsistently with server authorization.
+
+**Drift Details**:
+| Plan | Submodule | Server | Client (was) |
+|------|-----------|--------|--------------|
+| STANDARD | ADMIN_FACILITIES | `false` | `true` |
+| STANDARD | MARKETPLACE_REQUESTS | `false` | `true` |
+| STANDARD | SUPPORT_CHAT | `false` | `true` |
+| PRO | ADMIN_DOA | `true` | `false` |
+
+**Impact**:
+- Client UI showed features that server would deny (STANDARD plan)
+- Client UI hid features that server would allow (PRO plan)
+- User confusion and failed API requests
+
+**Fix Applied**:
+Aligned `fm.types.ts` PLAN_GATES with `fm.behavior.ts` (server is canonical source of truth).
+
+**Preventive Measure**:
+Added `scripts/lint-rbac-parity.ts` and `pnpm lint:rbac` command to catch future RBAC drift between server/client/lite.
+
+---
+
+### ISSUE-001: Missing SessionProvider
+
+**Category**: Runtime Error  
+**Severity**: 🔴 CRITICAL  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-09  
+**Date Resolved**: 2025-01-09
+
+**Description**:
+
+```
+Error: [next-auth]: useSession must be wrapped in a <SessionProvider />
+```
+
+**Root Cause**:
+
+- `ClientLayout` component uses `useSession()` hook on all routes
+- `PublicProviders` didn't include `SessionProvider`
+- Public routes crashed immediately on load
+
+**Impact**:
+
+- Application completely broken for unauthenticated users
+- Login page inaccessible
+- All public pages (/, /about, /terms, etc.) crashed
+
+**Fix Applied**:
+
+```typescript
+// File: /providers/PublicProviders.tsx
+import { SessionProvider } from 'next-auth/react';
+
+export default function PublicProviders({ children }: Props) {
+  return (
+    <ErrorBoundary>
+      <SessionProvider>  {/* ADDED */}
+        <I18nProvider>
+          {children}
+```
+
+**Verification**:
+
+- ✅ Server running on port 3000
+- ✅ HTTP 200 OK response
+- ✅ No console errors
+- ✅ Public routes accessible
+
+**Prevention**:
+
+- Document provider requirements for global components
+- Add provider validation tests
+- Review global component dependencies
+
+---
+
+### ISSUE-002: Missing FormStateProvider
+
+**Category**: Runtime Error  
+**Severity**: 🔴 CRITICAL  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-09  
+**Date Resolved**: 2025-01-09
+
+**Description**:
+
+```
+Error: useFormState must be used within a FormStateProvider
+```
+
+**Root Cause**:
+
+- `TopBar` component uses `useFormState()` hook
+- TopBar renders on ALL routes (public + protected)
+- `FormStateProvider` only in `AuthenticatedProviders`
+- Public routes couldn't access the provider
+
+**Impact**:
+
+- TopBar crashed on public routes
+- Navigation broken
+- Form state tracking unavailable
+
+**Fix Applied**:
+
+```typescript
+// File: /providers/PublicProviders.tsx
+import { FormStateProvider } from "@/contexts/FormStateContext";
+
+<CurrencyProvider>(<FormStateProvider>{
+  /* ADDED */
+});
+{
+  children;
+}
+```
+
+**Verification**:
+
+- ✅ TopBar renders correctly on all routes
+- ✅ Form state tracking working
+- ✅ No console errors
+
+**Prevention**:
+
+- Map all global component hooks to required providers
+- Ensure PublicProviders includes ALL providers for global UI
+
+---
+
+### ISSUE-003: Missing CurrencyProvider
+
+**Category**: Runtime Warning  
+**Severity**: 🟡 HIGH  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-09  
+**Date Resolved**: 2025-01-09
+
+**Description**:
+
+```
+Warning: useCurrency called outside CurrencyProvider. Using fallback values.
+```
+
+**Root Cause**:
+
+- `CurrencySelector` in TopBar needs `useCurrency()` hook
+- TopBar renders globally
+- `CurrencyProvider` missing from `PublicProviders`
+
+**Impact**:
+
+- Currency selector displayed fallback values
+- User preference not respected
+- Console warnings on every page load
+
+**Fix Applied**:
+
+```typescript
+// File: /providers/PublicProviders.tsx
+import { CurrencyProvider } from "@/contexts/CurrencyContext";
+
+<ResponsiveProvider>(<CurrencyProvider>{
+  /* ADDED */
+}<FormStateProvider>);
+```
+
+**Verification**:
+
+- ✅ Currency selector working
+- ✅ SAR/USD toggle functional
+- ✅ No console warnings
+
+---
+
+### ISSUE-004: Missing ResponsiveProvider
+
+**Category**: Silent Bug  
+**Severity**: 🟡 HIGH  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-09  
+**Date Resolved**: 2025-01-09
+
+**Description**:
+Silent failure - TopBar uses `useResponsive()` but provider missing
+
+**Root Cause**:
+
+- `TopBar` component uses `useResponsive()` hook
+- Provider missing from `PublicProviders`
+- No error thrown, just fallback values used
+
+**Impact**:
+
+- Responsive layout not working correctly
+- Mobile/desktop detection broken
+- UI not adapting to screen size
+
+**Fix Applied**:
+
+```typescript
+// File: /providers/PublicProviders.tsx
+import { ResponsiveProvider } from "@/contexts/ResponsiveContext";
+
+<ThemeProvider>(<ResponsiveProvider>{
+  /* ADDED */
+}<CurrencyProvider>);
+```
+
+**Verification**:
+
+- ✅ Responsive layout working
+- ✅ Mobile/desktop detection accurate
+- ✅ UI adapts correctly
+
+---
+
+### ISSUE-005: Workspace Disorganization
+
+**Category**: Project Management  
+**Severity**: 🟡 MEDIUM  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-09  
+**Date Resolved**: 2025-01-09
+
+**Description**:
+520+ markdown files scattered in root directory causing navigation issues
+
+**Root Cause**:
+
+- Historical documentation accumulated in root
+- No directory structure for reports/docs
+- Files not categorized by type
+
+**Impact**:
+
+- Difficult to find documentation
+- Root directory cluttered
+- Git diffs polluted with doc changes
+
+**Fix Applied**:
+Created organized structure:
+
+```
+/docs/
+├── summaries/        # 5 summary documents
+├── reports/          # 150+ status reports
+├── prs/              # PR documentation
+└── issues/           # Issue tracking
+
+docs/archived/DAILY_PROGRESS_REPORTS/  # Daily reports
+```
+
+Moved files:
+
+- 150+ status reports → `/docs/archived/reports/`
+- 5 summary docs → `/docs/summaries/`
+- 200+ PR docs → `/docs/archived/prs/`
+- 165+ issue docs → `/docs/archived/issues/`
+
+**Verification**:
+
+- ✅ Root directory clean (0 loose docs)
+- ✅ All docs categorized
+- ✅ Easy navigation
+
+**Storage Impact**:
+
+- Freed: 1.2 GB (cleared .next cache + duplicates)
+- Before: 11.0 GB / 32 GB (37%)
+- After: 9.8 GB / 32 GB (33%)
+
+---
+
+### ISSUE-006: Next.js Cache Bloat
+
+**Category**: Performance  
+**Severity**: 🟡 MEDIUM  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-09  
+**Date Resolved**: 2025-01-09
+
+**Description**:
+`.next` directory consuming 1.1 GB with stale build artifacts
+
+**Root Cause**:
+
+- Development builds accumulating
+- No automatic cache cleanup
+- Turbopack cache not cleared
+
+**Impact**:
+
+- Slow build times
+- Storage waste
+- Potential stale module issues
+
+**Fix Applied**:
+
+```bash
+rm -rf /workspaces/Fixzit/.next
+# Freed: 1.1 GB
+```
+
+**Verification**:
+
+- ✅ Clean rebuild successful
+- ✅ Build time improved
+- ✅ Storage freed
+
+**Prevention**:
+
+- Add `pnpm clean` script to package.json
+- Document cache clearing procedures
+- Consider automated cleanup in CI/CD
+
+---
+
+### ISSUE-SEC-003: DEFAULT_PLAN Security (Least Privilege Violation)
+
+**Category**: Security - RBAC  
+**Severity**: 🔴 CRITICAL  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-13  
+**Date Resolved**: 2025-01-13  
+**PR**: #369
+
+**Description**:
+FM permission checks used `Plan.STANDARD` as the default fallback when user's subscription plan couldn't be determined, violating the principle of least privilege.
+
+**Root Cause**:
+- `app/api/fm/permissions.ts` had `const DEFAULT_PLAN = Plan.STANDARD`
+- `app/api/fm/work-orders/[id]/transition/route.ts` used `FMPlan.STANDARD` as fallback
+- This granted users access to features they may not have paid for
+
+**Impact**:
+- Users with no valid subscription plan could access STANDARD tier features
+- Preventive Maintenance, Leases, Inspections available without proper subscription
+- Potential revenue leakage from unpaid feature access
+
+**Fix Applied**:
+```typescript
+// File: app/api/fm/permissions.ts (line 50)
+// SEC-003 FIX: Use STARTER as default (least privilege principle)
+const DEFAULT_PLAN = Plan.STARTER;
+
+// File: app/api/fm/work-orders/[id]/transition/route.ts (lines 425-429)
+// SEC-003 FIX: Use STARTER as default
+function resolvePlan(plan?: string | null): FMPlan {
+  if (!plan) return FMPlan.STARTER;
+  const normalized = plan.toUpperCase();
+  return PLAN_ALIASES[normalized] ?? FMPlan.STARTER;
+}
+```
+
+**Verification**:
+- ✅ TypeScript clean
+- ✅ ESLint clean
+- ✅ useFMPermissions tests pass
+- ✅ PR #369 merged
+
+**Prevention**:
+- Documented pattern: DEFAULT_PLAN should always be STARTER
+- Added code comment explaining least privilege requirement
+- Consider adding security test to verify default plan is STARTER
+
+---
+
+### ISSUE-SEC-001: Sub-Role Ignored in FM Permission Checks
+
+**Category**: Security - RBAC  
+**Severity**: 🟠 HIGH  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-13  
+**Date Resolved**: 2025-01-13  
+**PR**: #369
+
+**Description**:
+`app/api/fm/permissions.ts` computed `fmSubRole` but didn't pass it to `hasModuleAccess()`, allowing TEAM_MEMBER roles to access Finance/HR modules without required sub-roles.
+
+**Root Cause**:
+- STRICT v4.1 requires FINANCE_OFFICER sub-role for Finance module access
+- STRICT v4.1 requires HR_OFFICER sub-role for HR module access
+- `hasModuleAccess()` function signature didn't accept `subRole` parameter
+
+**Impact**:
+- TEAM_MEMBER users could potentially access Finance without FINANCE_OFFICER sub-role
+- TEAM_MEMBER users could potentially access HR without HR_OFFICER sub-role
+- Violates STRICT v4.1 RBAC specification
+
+**Fix Applied**:
+```typescript
+// File: app/api/fm/permissions.ts (lines 85-97)
+const hasModuleAccess = (role: Role, module?: ModuleKey, subRole?: SubRole): boolean => {
+  if (!module) return true;
+  
+  // SEC-001 FIX: TEAM_MEMBER requires sub-role for Finance/HR modules
+  if (role === Role.TEAM_MEMBER) {
+    if (module === ModuleKey.FINANCE && subRole !== SubRole.FINANCE_OFFICER) {
+      return false;
+    }
+    if (module === ModuleKey.HR && subRole !== SubRole.HR_OFFICER) {
+      return false;
+    }
+  }
+  
+  return Boolean(ROLE_MODULE_ACCESS[role]?.[module]);
+};
+
+// Call site updated (line 162)
+if (!hasModuleAccess(fmRole, options.module, fmSubRole)) {
+```
+
+**Verification**:
+- ✅ TypeScript clean
+- ✅ ESLint clean
+- ✅ PR #369 merged
+
+**Prevention**:
+- Sub-role enforcement documented in code comments
+- Consider adding explicit test cases for TEAM_MEMBER + Finance/HR without sub-role
+
+---
+
+### ISSUE-SEC-002: Org Membership Not Verified (Previously Reported)
+
+**Category**: Security - RBAC  
+**Severity**: 🟠 HIGH  
+**Status**: ✅ ALREADY FIXED  
+**Date Reported**: 2025-01-13  
+**Note**: Issue was already fixed in previous PR #363
+
+**Description**:
+Originally flagged as needing org membership validation in `app/api/fm/permissions.ts`.
+
+**Root Cause Analysis**:
+Upon deep review, found that:
+1. `lib/fm-auth-middleware.ts` already properly validates org membership (lines 157-170)
+2. `app/api/fm/permissions.ts` now also has `resolveOrgContext()` function that verifies membership
+3. The fix was applied in PR #363 (Security Audit Remediation)
+
+**Verification**:
+- ✅ `lib/fm-auth-middleware.ts` checks `org.members` array
+- ✅ `app/api/fm/permissions.ts` has `resolveOrgContext()` with membership check
+- ✅ Returns 403 Forbidden if user is not an org member
+
+---
+
+## Monitoring Items
+
+### MONITOR-001: ESLint Warnings
+
+**Category**: Code Quality  
+**Severity**: 🟢 LOW  
+**Status**: 📊 MONITORING
+
+**Current State**:
+
+- 13 warnings (within 50 limit)
+- All warnings are `@typescript-eslint/no-explicit-any`
+
+**Files Affected**:
+
+1. `server/models/owner/Delegation.ts` - 5 warnings
+2. `app/api/owner/statements/route.ts` - 4 warnings
+3. `app/api/owner/units/[unitId]/history/route.ts` - 3 warnings
+4. `server/services/owner/financeIntegration.ts` - 1 warning
+
+**Action Plan**:
+
+- Phase 1: Document all `any` types with reasons
+- Phase 2: Gradually replace with proper types
+- Phase 3: Reduce warning limit to 25
+
+**Timeline**: Q1 2025
+
+---
+
+### MONITOR-002: E2E Test Infrastructure
+
+**Category**: Testing  
+**Severity**: 🟢 LOW  
+**Status**: 📊 MONITORING
+
+**Current State**:
+
+- Model tests: 87/87 passing ✅
+- E2E tests: Require separate environment
+
+**Required**:
+
+- Test database with seeded data
+- Authentication state files
+- Separate test server (`NODE_ENV=test`)
+
+**Action Plan**:
+
+- Create test data seeding script
+- Document E2E test setup
+- Add to CI/CD pipeline
+
+**Timeline**: Q1 2025
+
+---
+
+## Technical Debt
+
+### DEBT-001: TypeScript `any` Types
+
+**Category**: Type Safety  
+**Priority**: 🟡 MEDIUM  
+**Estimated Effort**: 8 hours
+
+**Description**:
+13 instances of `any` type usage in models and API routes
+
+**Impact**:
+
+- Reduced type safety
+- Potential runtime errors
+- IDE autocomplete limitations
+
+**Remediation Plan**:
+
+1. Audit each `any` usage
+2. Create proper interfaces/types
+3. Replace `any` with specific types
+4. Update tests to cover new types
+
+**Timeline**: Q1 2025
+
+---
+
+### DEBT-002: Provider Documentation
+
+**Category**: Documentation  
+**Priority**: 🟢 LOW  
+**Estimated Effort**: 2 hours
+
+**Description**:
+Provider architecture not documented in main README
+
+**Impact**:
+
+- New developers may repeat provider mistakes
+- Architecture decisions not recorded
+- Testing guidance missing
+
+**Remediation Plan**:
+
+1. Add Provider Architecture section to README
+2. Document global component requirements
+3. Add provider validation tests
+4. Create troubleshooting guide
+
+**Timeline**: Q1 2025
+
+---
+
+### DEBT-003: E2E Test Coverage
+
+**Category**: Testing  
+**Priority**: 🟡 MEDIUM  
+**Estimated Effort**: 16 hours
+
+**Description**:
+464 E2E tests exist but require separate test environment
+
+**Impact**:
+
+- Manual testing required for UI changes
+- Regression risk
+- No automated UI testing in CI/CD
+
+**Remediation Plan**:
+
+1. Create test database setup script
+2. Seed test data for all user roles
+3. Generate authentication state files
+4. Integrate with CI/CD pipeline
+5. Document test running procedures
+
+**Timeline**: Q1 2025
+
+---
+
+## Summary Statistics
+
+### Issues by Severity
+
+- 🔴 Critical: 0 active, 2 resolved
+- 🟡 High: 0 active, 3 resolved
+- 🟢 Low: 0 active, 0 resolved
+
+### Issues by Category
+
+- Runtime Errors: 0 active, 4 resolved
+- Performance: 0 active, 1 resolved
+- Project Management: 0 active, 1 resolved
+
+### Resolution Timeline
+
+- All critical issues resolved: 2025-01-09
+- Average resolution time: <4 hours
+- Total issues resolved: 6
+
+### Code Quality Metrics
+
+- TypeScript Errors: 0
+- ESLint Warnings: 13 (within 50 limit)
+- Test Pass Rate: 100% (model tests)
+- Server Uptime: 100%
+
+---
+
+## Issue Reporting Process
+
+### For New Issues
+
+1. Create entry in this register
+2. Assign severity (🔴 Critical / 🟡 High / 🟢 Low)
+3. Document root cause and impact
+4. Create action plan
+5. Track resolution progress
+
+### Severity Definitions
+
+- 🔴 **CRITICAL**: Breaks core functionality, immediate fix required
+- 🟡 **HIGH**: Impacts user experience, fix within 24 hours
+- 🟢 **LOW**: Minor issue, can be scheduled
+
+### Resolution Checklist
+
+- [ ] Root cause identified
+- [ ] Fix implemented
+- [ ] Verification tests passed
+- [ ] Documentation updated
+- [ ] Prevention measures in place
+- [ ] Register updated with resolution
+
+---
+
+**Document Owner**: Engineering Team  
+**Review Frequency**: Weekly  
+**Next Review**: 2025-01-16
+
+]]>
+</file>
+
+</batch_content>

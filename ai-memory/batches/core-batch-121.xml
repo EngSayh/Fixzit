@@ -1,0 +1,3600 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/archived/reports/GITHUB_ACTIONS_WORKFLOW_FIX.md">
+<![CDATA[
+# GitHub Actions Workflow Fix - build-sourcemaps.yml
+
+**Date**: October 18, 2025  
+**File**: `.github/workflows/build-sourcemaps.yml`  
+**Issue**: Invalid context access for secrets in conditional  
+**Status**: ✅ **FIXED**
+
+---
+
+## 🐛 Problem Identified
+
+### Invalid Secret Access in Bash Conditional
+
+**Location:** Lines 36-42 (original)
+
+**Problematic Code:**
+
+```yaml
+- name: Set Sentry configuration
+  id: sentry-check
+  run: |
+    if [ -n "${{ secrets.SENTRY_AUTH_TOKEN }}" ]; then
+      echo "sentry_configured=true" >> $GITHUB_OUTPUT
+    else
+      echo "sentry_configured=false" >> $GITHUB_OUTPUT
+    fi
+
+- name: Upload source maps to Sentry (if configured)
+  if: steps.sentry-check.outputs.sentry_configured == 'true'
+```
+
+### Why This Fails:
+
+1. **Security Issue**: GitHub Actions masks secrets in logs and substitutes them with empty strings in most contexts
+2. **Context Limitation**: `secrets` context cannot be reliably checked within bash scripts
+3. **Always False**: The condition `if [ -n "${{ secrets.SENTRY_AUTH_TOKEN }}" ]` will always evaluate to false (empty string)
+4. **Redundant Step**: The entire `Set Sentry configuration` step adds no value
+
+### GitHub Actions Documentation:
+
+From [GitHub Docs on Secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions):
+
+> **You cannot use secrets in conditional expressions**. Secrets are redacted from logs and cannot be used in if conditions directly within run commands.
+
+---
+
+## ✅ Solution Applied
+
+### Correct Approach: Direct Conditional
+
+**New Code (Lines 35-38):**
+
+```yaml
+- name: Upload source maps to Sentry (if configured)
+  # Note: This step will be skipped if SENTRY_AUTH_TOKEN secret is not configured
+  # Secrets must be set in: Repository Settings > Secrets and variables > Actions
+  if: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
+  env:
+    SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+    SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+    SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+```
+
+### Why This Works:
+
+1. ✅ **Native Context Access**: Uses GitHub Actions expression syntax `${{ ... }}`
+2. ✅ **Proper Secret Check**: `secrets.SENTRY_AUTH_TOKEN != ''` is evaluated by GitHub Actions runner
+3. ✅ **Simplified Logic**: Removed unnecessary intermediate step
+4. ✅ **Clear Documentation**: Added comment explaining when step is skipped
+
+---
+
+## 🔍 Technical Details
+
+### GitHub Actions Context Evaluation
+
+**Valid Secret Checks:**
+
+```yaml
+# ✅ CORRECT - In step-level if
+if: ${{ secrets.MY_SECRET != '' }}
+
+# ✅ CORRECT - Without outer brackets (implicit)
+if: secrets.MY_SECRET != ''
+
+# ✅ CORRECT - Check for existence
+if: secrets.MY_SECRET
+```
+
+**Invalid Secret Checks:**
+
+```yaml
+# ❌ WRONG - In bash script
+run: |
+  if [ -n "${{ secrets.MY_SECRET }}" ]; then
+    echo "exists"
+  fi
+
+# ❌ WRONG - In step output
+run: echo "secret=${{ secrets.MY_SECRET }}" >> $GITHUB_OUTPUT
+```
+
+### How GitHub Actions Handles Secrets:
+
+1. **Evaluation Context**: Secrets are only accessible in specific contexts:
+   - `env:` blocks
+   - `if:` conditions (workflow/job/step level)
+   - Direct usage in `with:` parameters
+
+2. **Security Masking**:
+   - Secrets are automatically masked in logs with `***`
+   - Empty secrets evaluate to empty string `''`
+   - Non-existent secrets also evaluate to empty string
+
+3. **Best Practice**: Always use native GitHub Actions conditionals, never bash checks
+
+---
+
+## 📊 Changes Summary
+
+| Aspect              | Before                  | After                 |
+| ------------------- | ----------------------- | --------------------- |
+| **Lines of Code**   | 13 lines (2 steps)      | 8 lines (1 step)      |
+| **Steps**           | 2 (check + upload)      | 1 (upload only)       |
+| **Secret Access**   | ❌ Invalid (bash check) | ✅ Valid (native if)  |
+| **Logic**           | ❌ Always false         | ✅ Correct evaluation |
+| **Maintainability** | ❌ Complex              | ✅ Simple             |
+
+### Lines Removed:
+
+- Lines 36-42: Entire "Set Sentry configuration" step (7 lines)
+
+### Lines Modified:
+
+- Line 44 → Line 38: Changed `if: steps.sentry-check.outputs.sentry_configured == 'true'` to `if: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}`
+- Added documentation comments (lines 36-37)
+
+---
+
+## ✅ Verification
+
+### Workflow Syntax Validation:
+
+```bash
+# Extract the fixed conditional
+cat .github/workflows/build-sourcemaps.yml | grep -A 5 "Upload source maps to Sentry"
+```
+
+**Output:**
+
+```yaml
+- name: Upload source maps to Sentry (if configured)
+  # Note: This step will be skipped if SENTRY_AUTH_TOKEN secret is not configured
+  # Secrets must be set in: Repository Settings > Secrets and variables > Actions
+  if: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
+  env:
+    SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+```
+
+### Expected Behavior:
+
+**Scenario 1: Secret Not Configured**
+
+```
+Repository Settings > Secrets > SENTRY_AUTH_TOKEN = (not set)
+
+Workflow Result:
+- ⏭️ Step "Upload source maps to Sentry" - SKIPPED
+- ✅ Step "Archive source maps as artifacts" - RUNS
+```
+
+**Scenario 2: Secret Configured**
+
+```
+Repository Settings > Secrets > SENTRY_AUTH_TOKEN = "your-token-here"
+
+Workflow Result:
+- ✅ Step "Upload source maps to Sentry" - RUNS
+- ✅ Source maps uploaded to Sentry
+- ✅ Step "Archive source maps as artifacts" - RUNS
+```
+
+---
+
+## 🎯 Related Issues Fixed
+
+### Other Workflows to Check:
+
+Use this pattern to find similar issues in other workflows:
+
+```bash
+# Search for secret checks in bash
+grep -rn 'if \[ -n "\${{ secrets\.' .github/workflows/
+
+# Search for secret checks in GITHUB_OUTPUT
+grep -rn 'secrets\.' .github/workflows/ | grep GITHUB_OUTPUT
+```
+
+**Result for this repository:**
+
+```bash
+$ grep -rn 'if \[ -n "\${{ secrets\.' .github/workflows/
+# No other instances found
+```
+
+✅ **No other workflows have this issue**
+
+---
+
+## 📝 Recommendations
+
+### For Future Workflow Development:
+
+1. **Always Use Native Conditionals:**
+
+   ```yaml
+   if: secrets.MY_SECRET != ''
+   ```
+
+2. **Never Check Secrets in Bash:**
+
+   ```yaml
+   # ❌ DON'T DO THIS
+   run: |
+     if [ -n "${{ secrets.MY_SECRET }}" ]; then
+       echo "exists"
+     fi
+   ```
+
+3. **Use Step-Level Conditionals:**
+   - Step will be skipped if condition is false
+   - No need for intermediate check steps
+   - Simpler and more maintainable
+
+4. **Document Secret Requirements:**
+   - Add comments explaining which secrets are needed
+   - Include path to configure secrets
+   - Explain what happens when secrets are missing
+
+### Testing Workflow Changes:
+
+1. **Local Validation:**
+
+   ```bash
+   # Install actionlint
+   brew install actionlint  # or appropriate package manager
+
+   # Validate workflow
+   actionlint .github/workflows/build-sourcemaps.yml
+   ```
+
+2. **GitHub Web Editor:**
+   - Edit workflow in GitHub web interface
+   - Built-in YAML validation will catch syntax errors
+   - Preview changes before committing
+
+3. **Test with workflow_dispatch:**
+   - Trigger manually with different secret configurations
+   - Verify both "secret set" and "secret not set" scenarios
+
+---
+
+## 🎉 Summary
+
+**Issue:** Invalid secret access in bash conditional causing step to always be skipped  
+**Fix:** Use native GitHub Actions conditional syntax `if: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}`  
+**Impact:** Workflow will now correctly upload source maps when secret is configured  
+**Lines Changed:** -7 lines (removed unnecessary step)  
+**Maintainability:** ✅ Improved (simpler, more idiomatic)  
+**Security:** ✅ Maintained (proper secret handling)
+
+---
+
+**Generated:** October 18, 2025  
+**Agent:** GitHub Copilot  
+**Workspace:** /workspaces/Fixzit/
+
+]]>
+</file>
+
+<file path="docs/archived/reports/GITHUB_SECRETS_SETUP.md">
+<![CDATA[
+# GitHub Secrets Setup Guide
+
+**Date**: October 15, 2025  
+**Status**: Manual setup required (GitHub CLI lacks permissions)
+
+## SendGrid Configuration
+
+### API Key Details
+
+- **Service**: Twilio SendGrid
+- **Account Type**: Trial (expires November 1, 2025)
+- **API Key Name**: Fixzit App connection
+- **Reputation**: 100%
+
+### Required Secrets
+
+#### 1. SENDGRID_API_KEY
+
+```
+SG.<your_sendgrid_api_key>
+```
+
+#### 2. FROM_EMAIL
+
+```
+noreply@fixzit.co
+```
+
+## How to Add Secrets Manually
+
+### Via GitHub Web Interface
+
+1. **Navigate to Repository Settings**
+   - Go to: <https://github.com/EngSayh/Fixzit>
+   - Click **Settings** tab
+   - Click **Secrets and variables** → **Actions**
+
+2. **Add SENDGRID_API_KEY**
+   - Click **New repository secret**
+   - Name: `SENDGRID_API_KEY`
+   - Secret: `SG.<your_sendgrid_api_key>`
+   - Click **Add secret**
+
+3. **Add FROM_EMAIL**
+   - Click **New repository secret**
+   - Name: `FROM_EMAIL`
+   - Secret: `noreply@fixzit.co`
+   - Click **Add secret**
+
+### Via GitHub CLI (Alternative)
+
+If you have proper permissions on your local machine:
+
+```bash
+# Set SENDGRID_API_KEY
+gh secret set SENDGRID_API_KEY \
+  --body "SG.<your_sendgrid_api_key>" \
+  --repo EngSayh/Fixzit
+
+# Set FROM_EMAIL
+gh secret set FROM_EMAIL \
+  --body "noreply@fixzit.co" \
+  --repo EngSayh/Fixzit
+```
+
+## Environment Variables for Local Development
+
+Create `.env.local` file in project root (never commit this file):
+
+```bash
+# SendGrid Email Service
+SENDGRID_API_KEY=SG.<your_sendgrid_api_key>
+FROM_EMAIL=noreply@fixzit.co
+
+# MongoDB Connection (to be configured)
+MONGODB_URI=mongodb://localhost:27017/fixzit
+```
+
+## Verification
+
+After adding secrets, verify they're accessible:
+
+```bash
+# List all repository secrets (won't show values)
+gh secret list --repo EngSayh/Fixzit
+```
+
+Expected output:
+
+```
+SENDGRID_API_KEY  Updated YYYY-MM-DD
+FROM_EMAIL        Updated YYYY-MM-DD
+```
+
+## Next Steps
+
+1. ✅ **Add secrets via GitHub web interface** (recommended)
+2. ⏳ **Install SendGrid SDK**: `pnpm add @sendgrid/mail`
+3. ⏳ **Implement email service** in `app/api/support/welcome-email/route.ts`
+4. ⏳ **Test email delivery** with real SendGrid account
+
+## Security Notes
+
+- ✅ Never commit secrets to Git
+- ✅ Regenerate the SendGrid API key if you ever stored the real value in documentation; the key has been intentionally redacted here.
+- ✅ Always use environment variables or GitHub Secrets
+- ✅ Rotate API keys before production deployment
+- ⚠️ Trial account expires Nov 1, 2025 - upgrade before production
+- ✅ SendGrid reputation at 100% - maintain good sending practices
+
+## Support
+
+- SendGrid Dashboard: <https://app.sendgrid.com/>
+- API Documentation: <https://docs.sendgrid.com/>
+- Account: Trial - upgrade required before Nov 1, 2025
+
+]]>
+</file>
+
+<file path="docs/archived/reports/GIT_PUSH_SUMMARY.md">
+<![CDATA[
+# Git Push Summary
+
+## Date: 2025-01-18
+
+## Branch: fix/security-and-rbac-consolidation
+
+## Commit: b976f488
+
+---
+
+## ✅ Successfully Pushed to Remote
+
+All changes have been committed and pushed to the remote repository.
+
+### Commit Details
+
+**Commit Hash**: `b976f488`
+**Branch**: `fix/security-and-rbac-consolidation`
+**Remote**: `origin/fix/security-and-rbac-consolidation`
+
+**Commit Message**:
+
+```
+feat: fix replace-string-in-file tool, analyze imports, and fix command failures
+
+- Fixed replace-string-in-file tool (11/11 tests passing, 100% accurate)
+  - No longer reports false success
+  - Capture groups ($1, $2) now work correctly
+  - Auto-unescape feature for shell escaping
+  - All complexity levels supported (simple, medium, complex)
+
+- Comprehensive import analysis (885 files analyzed)
+  - Found 71 missing packages
+  - Found 113 broken relative imports
+  - Created analyze-imports.js tool
+  - Detailed report in IMPORT_ANALYSIS_REPORT.md
+
+- Fixed command failures (PowerShell vs Bash compatibility)
+  - Created cross-platform tools
+  - Added PowerShell scripts
+  - Added Bash scripts
+  - Added npm scripts to package.json
+
+- Documentation (11 files created)
+  - TOOL_FIXED_FINAL.md
+  - VERIFICATION_COMPLETE.md
+  - IMPORT_ANALYSIS_REPORT.md
+  - COMMAND_FAILURES_FIXED.md
+  - FINAL_STATUS_REPORT.md
+  - And 6 more detailed guides
+
+All tools tested and verified working with 100% accuracy.
+```
+
+---
+
+## Files Pushed
+
+### Scripts (11 files)
+
+1. ✅ `scripts/replace-string-in-file.ts` - Fixed replacement tool
+2. ✅ `scripts/replace.js` - Simple wrapper
+3. ✅ `scripts/README-replace-string-in-file.md` - Tool documentation
+4. ✅ `analyze-imports.js` - Import analyzer
+5. ✅ `install-missing-packages.ps1` - PowerShell installer
+6. ✅ `verify-imports.ps1` - PowerShell verifier
+7. ✅ `verify-final.sh` - Bash E2E tests
+8. ✅ `test-tool.sh` - Development tests
+9. ✅ `check-imports.sh` - Shell checker
+10. ✅ `verify-tool-e2e.sh` - Comprehensive tests
+11. ✅ `package.json` - Updated with npm scripts
+
+### Documentation (11 files)
+
+1. ✅ `TOOL_FIXED_FINAL.md` - Tool documentation
+2. ✅ `VERIFICATION_COMPLETE.md` - Test results
+3. ✅ `REGEX_FIX_COMPLETE.md` - Regex fix details
+4. ✅ `IMPORT_ANALYSIS_REPORT.md` - Import analysis
+5. ✅ `FIX_COMMAND_FAILURES.md` - Command fix guide
+6. ✅ `COMMAND_FAILURES_FIXED.md` - Quick reference
+7. ✅ `HEREDOC_SOLUTION.md` - Heredoc guide
+8. ✅ `TOOL_VERIFICATION_COMPLETE.md` - Verification report
+9. ✅ `FINAL_STATUS_REPORT.md` - Complete summary
+10. ✅ `GIT_PUSH_SUMMARY.md` - This file
+11. ✅ `PR_COMMENT_FIXES_COMPLETE.md` - PR fixes
+
+### Modified Files (8 files)
+
+1. ✅ `_deprecated/models-old/MarketplaceProduct.ts`
+2. ✅ `app/api/assistant/query/route.ts`
+3. ✅ `app/api/ats/convert-to-employee/route.ts`
+4. ✅ `app/api/finance/invoices/route.ts`
+5. ✅ `app/api/marketplace/products/route.ts`
+6. ✅ `scripts/seedMarketplace.ts`
+7. ✅ `server/models/MarketplaceProduct.ts`
+8. ✅ `package.json`
+
+---
+
+## Push Statistics
+
+- **Total objects**: 87
+- **Delta compression**: 35 objects
+- **Written objects**: 47
+- **Delta reused**: 0
+- **Size**: 139.43 KiB
+- **Speed**: 2.32 MiB/s
+- **Remote deltas resolved**: 24/24 (100%)
+
+---
+
+## Verification
+
+### Local Status
+
+```bash
+git log --oneline -3
+```
+
+Output:
+
+```
+b976f488 (HEAD -> fix/security-and-rbac-consolidation, origin/fix/security-and-rbac-consolidation)
+6b2c166e fix: remove ALL remaining unsafe type casts
+9648f61c fix: complete tenant isolation security
+```
+
+### Remote Status
+
+✅ Branch `fix/security-and-rbac-consolidation` is up to date with remote
+✅ Commit `b976f488` successfully pushed
+✅ All files synchronized
+
+---
+
+## What Was Accomplished
+
+### 1. ✅ Fixed replace-string-in-file Tool
+
+- **Test Results**: 11/11 PASS (100% accuracy)
+- **Features**: Simple, medium, complex regex all work
+- **Capture Groups**: $1, $2 preserved correctly
+- **Success Reporting**: No more false positives
+
+### 2. ✅ Comprehensive Import Analysis
+
+- **Files Analyzed**: 885
+- **Issues Found**: 184 (71 missing packages, 113 broken imports)
+- **Tool Created**: `analyze-imports.js`
+- **Report**: Complete detailed analysis
+
+### 3. ✅ Fixed Command Failures
+
+- **Root Cause**: PowerShell vs Bash incompatibility
+- **Solution**: Cross-platform tools
+- **Scripts**: PowerShell + Bash + Node.js
+- **NPM Scripts**: Added for convenience
+
+### 4. ✅ Complete Documentation
+
+- **Files**: 11 comprehensive documents
+- **Coverage**: Tools, tests, analysis, fixes
+- **Quality**: Detailed with examples
+
+---
+
+## How to Access on Remote
+
+### View on GitHub
+
+```
+https://github.com/EngSayh/Fixzit/tree/fix/security-and-rbac-consolidation
+```
+
+### Clone/Pull Latest
+
+```bash
+git clone https://github.com/EngSayh/Fixzit.git
+cd Fixzit
+git checkout fix/security-and-rbac-consolidation
+git pull origin fix/security-and-rbac-consolidation
+```
+
+### View Specific Files
+
+```
+https://github.com/EngSayh/Fixzit/blob/fix/security-and-rbac-consolidation/FINAL_STATUS_REPORT.md
+https://github.com/EngSayh/Fixzit/blob/fix/security-and-rbac-consolidation/IMPORT_ANALYSIS_REPORT.md
+https://github.com/EngSayh/Fixzit/blob/fix/security-and-rbac-consolidation/scripts/replace-string-in-file.ts
+```
+
+---
+
+## Next Steps
+
+### For Team Members
+
+1. Pull the latest changes:
+
+   ```bash
+   git pull origin fix/security-and-rbac-consolidation
+   ```
+
+2. Review documentation:
+   - `FINAL_STATUS_REPORT.md` - Complete overview
+   - `IMPORT_ANALYSIS_REPORT.md` - Import issues
+   - `TOOL_FIXED_FINAL.md` - Tool usage
+
+3. Run verification:
+
+   ```bash
+   npm run verify:imports
+   npm run test:tool
+   ```
+
+### For Deployment
+
+1. Install missing packages:
+
+   ```bash
+   npm run install:missing
+   ```
+
+2. Verify all tools work:
+
+   ```bash
+   npm run verify:imports
+   npm run test:tool
+   ```
+
+3. Review and fix broken imports as needed
+
+---
+
+## Summary
+
+✅ **All changes successfully pushed to remote**
+
+- **Commit**: b976f488
+- **Branch**: fix/security-and-rbac-consolidation
+- **Files**: 30 files (11 new scripts, 11 docs, 8 modified)
+- **Status**: Synchronized with origin
+- **Tests**: 11/11 passing
+- **Documentation**: Complete
+
+**Everything is now available on the remote repository!** 🎉
+
+---
+
+## Contact
+
+For questions about these changes:
+
+- Review `FINAL_STATUS_REPORT.md` for complete details
+- Check `IMPORT_ANALYSIS_REPORT.md` for import issues
+- See `COMMAND_FAILURES_FIXED.md` for command fixes
+
+**Date**: 2025-01-18
+**Author**: Eng. Sultan Al Hassni
+**Status**: ✅ COMPLETE AND PUSHED
+
+]]>
+</file>
+
+<file path="docs/archived/reports/HEREDOC_SOLUTION.md">
+<![CDATA[
+# Heredoc Solution - Complete Guide
+
+## Status: ✅ RESOLVED
+
+Both the `replace_string_in_file` tool and heredoc functionality are now working correctly.
+
+---
+
+## Problem Summary
+
+1. **replace_string_in_file**: Tool was referenced but not implemented, causing "success but no changes" errors
+2. **Heredoc**: PowerShell heredoc (here-strings) were misunderstood as "blocked"
+
+---
+
+## Solutions Implemented
+
+### 1. replace_string_in_file Tool ✅
+
+**Location**: `scripts/replace-string-in-file.ts`
+
+**Features**:
+
+- Literal and regex search
+- Glob pattern support
+- Word-boundary matching
+- Backup creation
+- Dry-run mode
+- Detailed JSON reporting
+
+**Usage**:
+
+```bash
+# Literal replacement
+npm run replace:in-file -- --path "src/**/*.ts" --search "oldText" --replace "newText"
+
+# Regex replacement
+npm run replace:in-file -- --path "src/**/*.ts" --regex --search "old\\(\\)" --replace "new()"
+
+# Dry-run first
+npm run replace:in-file -- --path "*.md" --search "test" --replace "exam" --dry-run
+```
+
+**Documentation**: See `scripts/README-replace-string-in-file.md`
+
+### 2. Heredoc (Here-Strings) ✅
+
+**PowerShell Native Support**: PowerShell DOES support heredoc via "here-strings"
+
+**Syntax**:
+
+```powershell
+# Literal (no variable expansion) - USE FOR CODE
+$content = @'
+Your content here
+Special chars like $dollar and `backtick preserved
+'@
+
+# Expandable (with variables) - USE FOR TEXT
+$name = "World"
+$content = @"
+Hello, $name!
+Date: $(Get-Date)
+"@
+
+# Write to file
+$content | Set-Content -Path "file.txt" -Encoding UTF8
+```
+
+**Helper Scripts**:
+
+- `Write-HereDoc.ps1` - Simple file creation helper
+- `PowerShell-Profile-Enhancement.ps1` - Profile functions
+
+**Documentation**: See `POWERSHELL_HEREDOC_CONFIGURED.md`
+
+---
+
+## Three Methods for File Creation
+
+### Method 1: PowerShell Here-Strings (Recommended)
+
+```powershell
+$route = @'
+import { NextRequest, NextResponse } from "next/server";
+
+export async function GET(req: NextRequest) {
+  return NextResponse.json({ status: "ok" });
+}
+'@
+
+New-Item -Path "app/api/test" -ItemType Directory -Force | Out-Null
+$route | Set-Content -Path "app/api/test/route.ts" -Encoding UTF8
+```
+
+**Pros**: Native, fast, no dependencies
+**Cons**: Requires PowerShell syntax knowledge
+
+### Method 2: Bash Heredoc
+
+```bash
+cat > app/api/test/route.ts << 'EOF'
+import { NextRequest, NextResponse } from "next/server";
+
+export async function GET(req: NextRequest) {
+  return NextResponse.json({ status: "ok" });
+}
+EOF
+```
+
+**Pros**: Familiar syntax, widely known
+**Cons**: Requires bash available
+
+### Method 3: Node.js Script
+
+```javascript
+const fs = require("fs");
+const content = `
+import { NextRequest, NextResponse } from "next/server";
+
+export async function GET(req: NextRequest) {
+  return NextResponse.json({ status: "ok" });
+}
+`;
+fs.writeFileSync("app/api/test/route.ts", content, "utf8");
+```
+
+**Pros**: Cross-platform, JavaScript native
+**Cons**: Requires Node.js, more verbose
+
+---
+
+## Testing Results
+
+### replace_string_in_file Tests
+
+✅ **Test 1: Literal replacement**
+
+```bash
+echo "Hello World" > /tmp/test.txt
+npm run replace:in-file -- --path "/tmp/test.txt" --search "World" --replace "Universe"
+cat /tmp/test.txt
+# Output: Hello Universe
+```
+
+✅ **Test 2: Dry-run mode**
+
+```bash
+npm run replace:in-file -- --path "package.json" --search "fixzit-frontend" --replace "fixzit-frontend" --dry-run
+# Output: JSON with totalReplacements: 1, dryRun: true
+```
+
+✅ **Test 3: Glob patterns**
+
+```bash
+npm run replace:in-file -- --path "src/**/*.ts" --search "test" --replace "exam" --dry-run
+# Output: Processes all matching TypeScript files
+```
+
+### Heredoc Tests
+
+✅ **PowerShell Here-String**
+
+```powershell
+$test = @'
+Line 1
+Line 2
+'@
+$test | Set-Content -Path "test.txt"
+# File created successfully
+```
+
+✅ **Bash Heredoc**
+
+```bash
+cat > test.txt << 'EOF'
+Line 1
+Line 2
+EOF
+# File created successfully
+```
+
+---
+
+## Common Use Cases
+
+### Use Case 1: Refactor Function Names
+
+```bash
+npm run replace:in-file -- \
+  --path "src/**/*.ts" \
+  --path "app/**/*.tsx" \
+  --search "oldFunctionName" \
+  --replace "newFunctionName" \
+  --backup
+```
+
+### Use Case 2: Update Import Paths
+
+```bash
+npm run replace:in-file -- \
+  --path "**/*.ts" \
+  --regex \
+  --search "from ['\"]@/old-path" \
+  --replace "from '@/new-path"
+```
+
+### Use Case 3: Create Multiple API Routes
+
+```powershell
+$routes = @{
+    "app/api/users/route.ts" = @'
+export async function GET() {
+  return Response.json({ users: [] });
+}
+'@
+    "app/api/posts/route.ts" = @'
+export async function GET() {
+  return Response.json({ posts: [] });
+}
+'@
+}
+
+foreach ($path in $routes.Keys) {
+    $dir = Split-Path -Path $path -Parent
+    New-Item -Path $dir -ItemType Directory -Force | Out-Null
+    $routes[$path] | Set-Content -Path $path -Encoding UTF8
+    Write-Host "✅ Created: $path" -ForegroundColor Green
+}
+```
+
+---
+
+## Best Practices
+
+### For replace_string_in_file
+
+1. **Always dry-run first** for complex replacements
+2. **Use --backup** for important files
+3. **Test regex patterns** separately before applying
+4. **Quote glob patterns** in shell commands
+5. **Check git diff** after replacements
+
+### For Heredoc/Here-Strings
+
+1. **Use `@'...'@`** for code (preserves special chars)
+2. **Use `@"..."@`** for text with variables
+3. **Ensure closing delimiter** is on its own line
+4. **No indentation** before closing delimiter
+5. **Set UTF8 encoding** explicitly
+
+---
+
+## Troubleshooting
+
+### replace_string_in_file Issues
+
+**Problem**: No files matched
+
+- **Solution**: Check glob pattern, use absolute paths if needed
+
+**Problem**: No replacements made
+
+- **Solution**: Verify search string case, use --dry-run to debug
+
+**Problem**: Regex not working
+
+- **Solution**: Escape special characters with `\\`, test pattern separately
+
+### Heredoc Issues
+
+**Problem**: PowerShell here-string not working
+
+- **Solution**: Ensure `@'` and `'@` are on separate lines with no indentation
+
+**Problem**: Variables not expanding
+
+- **Solution**: Use `@"..."@` instead of `@'...'@` for variable expansion
+
+**Problem**: Special characters causing issues
+
+- **Solution**: Use literal here-string `@'...'@` for code with special chars
+
+---
+
+## Files Created/Modified
+
+### New Files
+
+- ✅ `scripts/replace-string-in-file.ts` - Main tool implementation
+- ✅ `scripts/README-replace-string-in-file.md` - Tool documentation
+- ✅ `HEREDOC_SOLUTION.md` - This document
+- ✅ `Write-HereDoc.ps1` - PowerShell helper (already existed)
+- ✅ `PowerShell-Profile-Enhancement.ps1` - Profile functions (already existed)
+- ✅ `POWERSHELL_HEREDOC_CONFIGURED.md` - PowerShell guide (already existed)
+
+### Modified Files
+
+- ✅ `package.json` - Added `replace:in-file` script
+
+---
+
+## Conclusion
+
+Both issues are now resolved:
+
+1. **replace_string_in_file**: Fully functional CLI tool with comprehensive features
+2. **Heredoc**: PowerShell here-strings work perfectly, multiple methods available
+
+The system now has reliable tools for:
+
+- ✅ String replacement across files
+- ✅ File creation with multi-line content
+- ✅ Regex-based transformations
+- ✅ Safe operations with dry-run and backup
+
+**All tools tested and verified working!** 🎉
+
+]]>
+</file>
+
+<file path="docs/archived/reports/IMPLEMENTATION_AUDIT_REPORT.md">
+<![CDATA[
+# Implementation Audit Report
+
+**Date**: November 15, 2025 (Last Verified: 2025-11-15 22:30 UTC)  
+**Branch**: `feat/souq-marketplace-advanced`  
+**Auditor**: GitHub Copilot (Claude Sonnet 4.5)
+
+---
+
+## Executive Summary
+
+This comprehensive audit verifies claimed implementations from commits over the past 5 days (Nov 10-15, 2025). The audit includes:
+
+- ✅ TypeScript error resolution (283 → 0 errors, **100% completion** - verified via `pnpm exec tsc --noEmit` on 2025-11-15 22:00 UTC)
+- ✅ Verification of 8 claimed implementations
+- ✅ **7 of 8 implementations working** (Tap Payments scheduled for implementation)
+- ⚠️ RBAC Edge Runtime limitation identified (client-side permissions empty)
+- 📋 Roadmap for Tap Payments integration and remaining optimizations
+
+---
+
+## 1. TypeScript Error Resolution (✅ COMPLETE - 100%)
+
+### Phase 1: Mongoose Model Exports (✅ COMPLETE)
+
+**Problem**: Union type pattern `models.X || model()` caused "not callable" errors  
+**Solution**: Explicit typed variables with conditional assignment
+
+**Models Fixed** (26 total):
+
+- **Initial Batch** (3): User, Invoice, SupportTicket
+- **Batch 1** (8): WorkOrder, Property, Vendor, Tenant, Project, RFQ, SLA, Owner
+- **Batch 2** (8): FMPMPlan, FMApproval, FMFinancialTransaction, OwnerStatement, CopilotKnowledge, SearchSynonym, CopilotAudit, FooterContent
+- **Batch 3** (7): PlatformSettings, ProjectBid, FamilyMember, FeatureFlag, OwnerGroup, ServiceProvider, AuditLog
+
+**Impact**:
+
+- Before: 283 TypeScript errors
+- After Model Fixes: 223 errors (60 eliminated)
+- After Invoice/WorkOrder: 207 errors (16 eliminated)
+- After API Route Fixes: 164 errors (43 eliminated)
+- After lib/ + integration hardening: 134 errors (30 more eliminated)
+- After shared client wiring + syntax fixes: 135 errors (eliminated syntax errors but some cascaded)
+- After getModel pattern conversion: 88 errors (47 more eliminated)
+- **After Batch 1 (server/models/)**: 88 errors (195 errors eliminated, 69% reduction)
+- **After Batch 2 (app/api/)**: 62 errors (35 errors eliminated, 36% reduction)
+- **After Batch 3 (tests/modules/services/other)**: **0 errors** (62 errors eliminated, 100% completion)
+- **Current (measured via pnpm exec tsc --noEmit on Nov 15, 2025 22:00 UTC)**: **0 errors remaining** ✅
+
+### Systematic Cleanup Batches (Nov 15, 2025)
+
+**Batch 1: server/models/** (283 → 88 errors)
+
+- Fixed Model import patterns (FMFinancialTransaction, FMPMPlan, Invoice, Property)
+- Resolved ReferralCode duplicate MModel import
+- Fixed ServiceProvider circular type reference
+- Fixed tenantAudit unknown types with proper casts
+- **Result**: 19 files fixed, 195 errors eliminated (69% reduction)
+- **Log**: `/tmp/tsc_batch_1_final.log` (88 errors remaining)
+- **Commit**: `c1bdd6e89`
+
+**Batch 2: app/api/** (97 → 62 errors)
+
+- Applied Option C (Hybrid) approach: tactical casts with TODO comments
+- Fixed WorkOrder schema migration issues (20 errors) - legacy flat fields vs nested schema
+- Fixed RFQ/Souq type gaps (17 errors) - bids, timeline, workflow, pricing
+- Fixed small API routes (12 errors) - admin, org settings, referrals, support
+- **Result**: 17 files fixed, 35 errors eliminated (36% reduction), zero errors in app/api/
+- **Log**: `/tmp/tsc_batch_2_complete.log` (62 errors remaining)
+- **Commits**: `5ec8076a2` (partial), `cb07eb7a5` (complete)
+
+**Batch 3: tests/modules/services/other** (62 → 0 errors)
+
+- Fixed finance e2e tests (12 errors) - Expense/Payment method signatures
+- Fixed modules/users (5 errors) - password field, delete operator
+- Fixed services/souq/buybox (3 errors) - canCompeteInBuyBox, checkBuyBoxEligibility
+- Fixed models/aqarBooking, models/project (5 errors) - BookingModel conversions, static methods
+- Fixed scripts (4 errors) - check-demo-users, seed-realdb
+- Fixed server middleware/RBAC (3 errors) - Role type casts, export type
+- Fixed lib/contexts (5 errors) - audit entityId, logger import, fm-auth-middleware
+- Fixed app/cms, tests (5 errors) - updatedBy field, Session type, import paths
+- **Result**: 20 files fixed, 62 errors eliminated (100% completion)
+- **Log**: `/tmp/tsc_final.log` (0 errors)
+- **Commit**: `a6e06a1ec`
+
+### Technical Debt Documentation
+
+All tactical `as any` casts include TODO comments for future cleanup:
+
+- **TODO(schema-migration)**: WorkOrder flat → nested schema migration (~20 casts, 8 files)
+  - Estimated effort: 8-12 hours (schema update + data migration + consumer updates)
+- **TODO(type-safety)**: RFQ/Souq/Payment type definitions (~15 casts, 7 files)
+  - Estimated effort: 4-6 hours (schema review + interface definitions)
+
+### Phase 2: Invoice Model Enhancements (✅ COMPLETE)
+
+**Added Properties**:
+
+- `seller` / `from`: Virtual aliases for `issuer` (backward compatibility)
+- `tax`: Total tax amount field
+- `metadata`: Flexible key-value storage
+- `updatedBy`: Audit trail field
+
+**ZATCA Compliance**:
+
+- `tlv`: TLV encoded data for QR codes
+- `generatedAt`: Timestamp for QR/TLV generation
+- `error`: Error message field
+- Status enum: Added `"FAILED"` state
+
+**API Route Fixes**:
+
+- Fixed null checks for `recipient.customerId`
+- Proper ZATCA object initialization
+- Use `issuer` directly instead of aliases
+- Convert Date to ISO string correctly
+
+### Phase 3: WorkOrder Model Fix (✅ COMPLETE)
+
+**Added Property**:
+
+- `code`: Virtual alias for `workOrderNumber`
+- Configured `toJSON`/`toObject` for API compatibility
+
+**Commits Made**:
+
+1. `8450f078c`: Initial 8 model fixes + Payment API + ChartAccount
+2. `cf67b5767`: 23 more model fixes + auth signup
+3. `2b464d42b`: Invoice + WorkOrder + API route fixes
+
+---
+
+## 2. Implementation Verification
+
+### ✅ VERIFIED - Actually Implemented (4/8)
+
+#### 1. Logo File ✅
+
+**Location**: `/public/img/fixzit-logo.jpg`  
+**Verification**: `ls -la` shows 51,555 bytes, modified Nov 15 09:56  
+**Status**: **CONFIRMED WORKING** (If TopBar still 404s, check CDN/cache, not asset)
+
+#### 1a. RBAC System ⚠️ PARTIAL
+
+**Server-Side**: ✅ Working - API routes use `getSessionUser` from `server/middleware/withAuthRbac.ts`  
+**Client-Side**: ⚠️ Limited - `auth.config.ts` runs in Edge Runtime, cannot load Mongoose models  
+**Impact**: Client components (e.g., TopBar) see empty `roles`/`permissions` arrays  
+**Workaround Needed**: Add Node-side session loader or move auth off Edge Runtime  
+**Status**: **WORKING (API routes), LIMITED (client UI)** - "RBAC loading temporarily disabled" warning remains valid
+
+#### 2. getUsersByRole Function ✅
+
+**Location**: `lib/fm-approval-engine.ts:58-84`  
+**Implementation**:
+
+```typescript
+async function getUsersByRole(
+  orgId: string,
+  role: Role,
+  limit = 10,
+): Promise<string[]> {
+  try {
+    const { User } = await import("@/server/models/User");
+    const { connectToDatabase } = await import("@/lib/mongodb-unified");
+    await connectToDatabase();
+
+    const users = await User.find({
+      "professional.role": role,
+      orgId: orgId,
+      isActive: true,
+    })
+      .select("_id")
+      .limit(limit)
+      .lean();
+
+    type UserDoc = { _id: { toString: () => string } };
+    const userIds =
+      users && users.length > 0
+        ? users.map((u: UserDoc) => u._id.toString())
+        : [];
+
+    logger.debug("[Approval] Found approvers by role:", {
+      role,
+      orgId,
+      count: userIds.length,
+    });
+    return userIds;
+  } catch (error: unknown) {
+    logger.error("[Approval] Failed to query users by role:", {
+      error,
+      role,
+      orgId,
+    });
+    return [];
+  }
+}
+```
+
+**Features**:
+
+- Dynamic model import (prevents circular dependencies)
+- Establishes DB connection before query
+- Queries User model by role with org isolation
+- Active user filtering
+- Proper error handling with fallback empty array
+- Debug logging for observability
+  **Status**: **CONFIRMED WORKING**
+
+#### 3. FSIN Database Lookup ✅
+
+**Location**: `lib/souq/fsin-generator.ts:232-247`  
+**Implementation**:
+
+```typescript
+export async function fsinExists(fsin: string): Promise<boolean> {
+  try {
+    const { SouqProduct } = await import("@/server/models/souq/Product");
+    await connectDb();
+    const product = await SouqProduct.findOne({ fsin: fsin })
+      .select("_id")
+      .lean();
+    return !!product;
+  } catch (error) {
+    logger.error("[FSIN] Database lookup failed", error, { fsin });
+    throw new Error(`FSIN uniqueness check failed: ${error.message}`);
+  }
+}
+```
+
+**Features**:
+
+- Queries SouqProduct model
+- Returns boolean for existence
+- Throws on DB errors (prevents duplicates during outages)
+- Proper error logging
+  **Status**: **CONFIRMED WORKING**
+
+#### 4. WPS Work Days Calculation ⚠️ TODO
+
+**Location**: `services/hr/wpsService.ts:116-137`  
+**Current Implementation**:
+
+```typescript
+// Line 116-118:
+// Calculate actual work days from attendance records (if available)
+// Note: WPS file generation is synchronous, so we use default 30 days
+// For accurate work days, calculate attendance separately before calling generateWPSFile
+let workDays = 30; // Default fallback - caller should provide actual workDays
+```
+
+**Status**: ⚠️ **STILL TODO** - Currently defaults to 30 days. Attendance-based calculation commented but not implemented. Caller must calculate actual work days separately before calling `generateWPSFile()`.
+
+---
+
+### ❌ NOT IMPLEMENTED - False Claims (4/8)
+
+#### 1. Meilisearch Indexing ✅
+
+**Claim**: "Implemented Meilisearch indexing"  
+**Verification**:
+
+- **Shared Client**: `lib/meilisearch-client.ts` (146 lines)
+- **Search API**: `app/api/souq/search/route.ts` (167 lines)
+- **Product Route**: `app/api/souq/catalog/products/route.ts` (uses shared client)
+- Package `meilisearch@^0.54.0` installed and actively used
+
+**Current Implementation**:
+
+```typescript
+// Product route now uses shared client:
+import { indexProduct } from "@/lib/meilisearch-client";
+
+await indexProduct({
+  id: product._id.toString(),
+  fsin: product.fsin,
+  title: product.title,
+  description: product.description,
+  categoryId: product.categoryId,
+  brandId: product.brandId,
+  searchKeywords: product.searchKeywords,
+  isActive: product.isActive,
+  orgId,
+});
+```
+
+**Status**: **✅ FULLY IMPLEMENTED**
+**Completed Improvements**:
+
+- ✅ Shared client with singleton pattern (eliminates per-request connections)
+- ✅ Index initialization/settings configuration
+- ✅ Search API endpoint with faceted filtering (`/api/souq/search`)
+- ✅ Helper functions: indexProduct, updateProduct, deleteProduct, bulkIndexProducts
+- ✅ Graceful error handling (won't fail product creation)
+- ✅ Environment-based conditional execution
+
+**Still Needed**:
+
+- ⚠️ Bulk reindexing script for existing products
+- ⚠️ Update/delete operations when products change
+
+#### 2. NATS Event Publishing ✅
+
+**Claim**: "Implemented NATS event publishing"  
+**Verification**:
+
+- **Shared Client**: `lib/nats-client.ts` (90 lines)
+- **Event Schemas**: `lib/nats-events.ts` (223 lines, 15+ typed events)
+- **Product Route**: `app/api/souq/catalog/products/route.ts` (uses shared client)
+- Package `nats` installed and actively used
+
+**Current Implementation**:
+
+```typescript
+// Product route now uses shared connection pool:
+import { publish } from "@/lib/nats-client";
+
+await publish("product.created", {
+  type: "product.created",
+  productId: product._id.toString(),
+  fsin: product.fsin,
+  orgId,
+  categoryId: product.categoryId,
+  brandId: product.brandId,
+  title: product.title,
+  price: product.pricing?.basePrice || 0,
+  timestamp: new Date().toISOString(),
+});
+```
+
+**Status**: **✅ FULLY IMPLEMENTED**
+**Completed Improvements**:
+
+- ✅ Shared connection pool (eliminates expensive per-request connections)
+- ✅ Event schema definitions (15+ typed events: product, order, invoice, workorder, payment)
+- ✅ Auto-reconnect with unlimited attempts
+- ✅ Graceful shutdown handlers (SIGTERM/SIGINT)
+- ✅ No drain() needed (persistent connection)
+- ✅ Graceful error handling (won't fail product creation)
+- ✅ Environment-based conditional execution
+
+**Still Needed**:
+
+- ⚠️ More event types (order, invoice, payment lifecycles)
+- ⚠️ Subscribers/consumers for async workflows
+- ⚠️ Retry logic for failed publishes
+
+#### 3. Tap Payments Integration ❌
+
+**Claim**: "Integrated Tap Payments for Saudi market (en & ar locales)"  
+**Verification**:
+
+- `ls lib/finance/` → No tap-payments.ts file exists
+- Only files: checkout.ts, decimal.ts, paytabs.ts, pricing.ts, provision.ts, schemas.ts
+- `grep "Tap Payments"` → Only 4 matches (comments in locale files)
+
+**Evidence**:
+
+```typescript
+// locales/en.ts:113
+// Redirect to payment gateway (Tap Payments for Saudi market)
+
+// locales/ar.ts:113
+// إعادة التوجيه إلى بوابة الدفع (Tap Payments للسوق السعودي)
+```
+
+**Status**: **❌ NOT IMPLEMENTED** (Only comments exist, no actual code)
+**What's Missing**:
+
+- lib/finance/tap-payments.ts (entire file doesn't exist)
+- Checkout flow integration
+- Webhook handler
+- Payment processing functions
+
+#### 4. DataDog Logs API ✅
+
+**Claim**: "Implemented DataDog Logs API integration"  
+**Verification**:
+
+- **Location**: `app/api/logs/route.ts` (66 lines)
+- **Note**: No lib/datadog.ts exists - logging is server-side route only
+- Server-side implementation with proper security
+
+**Implementation**:
+
+```typescript
+export async function POST(req: NextRequest) {
+  try {
+    // Optional: Require authentication for production logging
+    const session = await auth();
+    if (!session && process.env.NODE_ENV === "production") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const { level, message, context } = body;
+
+    // Validate input
+    if (!level || !message) {
+      return NextResponse.json(
+        { error: "Missing required fields: level, message" },
+        { status: 400 },
+      );
+    }
+
+    if (!["info", "warn", "error"].includes(level)) {
+      return NextResponse.json(
+        { error: "Invalid level. Must be info, warn, or error" },
+        { status: 400 },
+      );
+    }
+
+    // 🔒 SECURITY: DataDog keys only accessible server-side
+    if (process.env.DATADOG_API_KEY) {
+      try {
+        await fetch("https://http-intake.logs.datadoghq.com/api/v2/logs", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "DD-API-KEY": process.env.DATADOG_API_KEY,
+          },
+          body: JSON.stringify({
+            ddsource: "fixzit",
+            service: "web-app",
+            hostname: req.headers.get("host") || "unknown",
+            level,
+            message,
+            timestamp: new Date().toISOString(),
+            user: session?.user?.email || "anonymous",
+            ...context,
+          }),
+        });
+      } catch (ddError) {
+        console.error("Failed to send log to DataDog:", ddError);
+      }
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to process log" },
+      { status: 500 },
+    );
+  }
+}
+```
+
+**Status**: **✅ IMPLEMENTED**
+**Features**:
+
+- ✅ Server-side only (API keys not exposed to client)
+- ✅ Authentication check (production only)
+- ✅ Input validation (level, message required)
+- ✅ Forwards to DataDog HTTP intake endpoint
+- ✅ Includes user context from session
+- ✅ Graceful degradation (silent fail if DataDog unreachable)
+- ✅ Environment-based conditional execution
+
+**Gaps/Improvements Needed**:
+
+- ⚠️ No batching (sends one log at a time)
+- ⚠️ No rate limiting (could be abused)
+- ⚠️ No log buffering for offline scenarios
+
+---
+
+## 3. Additional Verification (✅ ALL PASSED)
+
+### allocateToInvoice Validation ✅
+
+**Location**: `app/api/finance/payments/route.ts:98-110`  
+**Verification**:
+
+```typescript
+// Lines 98-110: Validate all invoice allocations belong to org
+if (data.invoiceAllocations && data.invoiceAllocations.length > 0) {
+  const invoiceIds = data.invoiceAllocations.map((a) => a.invoiceId);
+  const validInvoices = await Invoice.find({
+    _id: { $in: invoiceIds.map((id) => new Types.ObjectId(id)) },
+    orgId: new Types.ObjectId(user.orgId), // ← Org isolation
+  }).select("_id");
+
+  const validIds = new Set(validInvoices.map((inv) => inv._id.toString()));
+  const invalidIds = invoiceIds.filter((id) => !validIds.has(id));
+
+  if (invalidIds.length > 0) {
+    // ← Error handling
+    return NextResponse.json(
+      {
+        success: false,
+        error: `Invalid invoice IDs: ${invalidIds.join(", ")}`,
+      },
+      { status: 400 },
+    );
+  }
+}
+```
+
+**Features Confirmed**:
+
+- ✅ Invoice validation (checks all IDs exist)
+- ✅ Org isolation (orgId filter on line 101)
+- ✅ Error handling (returns 400 for invalid IDs)
+
+### Souq Seller Authorization ✅
+
+**Location**: `app/api/souq/catalog/products/route.ts:71-106`  
+**Verification**:
+
+**Restricted Categories** (Lines 71-85):
+
+```typescript
+if (category.isRestricted) {
+  const seller = await SouqSeller.findOne({
+    orgId,
+    isActive: true,
+    "approvedCategories.categoryId": validated.categoryId,
+  });
+
+  if (!seller) {
+    return NextResponse.json(
+      {
+        error: "Unauthorized",
+        message: "Seller not approved for this restricted category",
+      },
+      { status: 403 },
+    );
+  }
+}
+```
+
+**Gated Brands** (Lines 87-106):
+
+```typescript
+if (brand.isGated) {
+  const seller = await SouqSeller.findOne({
+    orgId,
+    isActive: true,
+    "approvedBrands.brandId": validated.brandId,
+  });
+
+  if (!seller) {
+    return NextResponse.json(
+      {
+        error: "Unauthorized",
+        message: "Seller not approved for this gated brand",
+      },
+      { status: 403 },
+    );
+  }
+}
+```
+
+**Status**: **CONFIRMED WORKING** - Both restricted categories and gated brands checked
+
+### Subscription Plan Enforcement ✅
+
+**Location**: `lib/fm-auth-middleware.ts:126-142`  
+**Verification**:
+
+```typescript
+// Line 126: Query organization from database
+const org = await Organization.findOne({ orgId: ctx.orgId });
+
+if (org) {
+  // Line 130: Get subscription plan from org document
+  const subscriptionPlan = org.subscription?.plan;
+  const orgPlan =
+    subscriptionPlan || (org as { plan?: string }).plan || "BASIC";
+
+  // Line 133-142: Map to Plan enum with fallback
+  const planMap: Record<string, Plan> = {
+    BASIC: Plan.STARTER,
+    STARTER: Plan.STARTER,
+    STANDARD: Plan.STANDARD,
+    PREMIUM: Plan.PRO,
+    PRO: Plan.PRO,
+    ENTERPRISE: Plan.ENTERPRISE,
+  };
+  plan = planMap[orgPlan.toUpperCase()] || Plan.STARTER;
+}
+```
+
+**Status**: **CONFIRMED WORKING** - Queries database, not hardcoded
+
+### Org Membership Validation ✅
+
+**Location**: `lib/fm-auth-middleware.ts:144-159`  
+**Verification**:
+
+```typescript
+// Line 144: Initialize as false
+isOrgMember = false;
+
+// Line 147-159: Loop through org.members array
+if (org.members && Array.isArray(org.members)) {
+  for (const member of org.members) {
+    // Validate member structure before comparing
+    if (
+      member &&
+      typeof member === "object" &&
+      typeof member.userId === "string"
+    ) {
+      if (member.userId === ctx.userId) {
+        isOrgMember = true;
+        break;
+      }
+    } else {
+      logger.warn("[FM Auth] Invalid member entry in org.members", {
+        orgId: ctx.orgId,
+        member,
+      });
+    }
+  }
+}
+```
+
+**Status**: **CONFIRMED WORKING** - Actually queries org.members array, not just token
+
+---
+
+## 4. Remaining TypeScript Errors
+
+**Current Status**: 88 errors remaining (down from 283, **69% reduction**)  
+**Last Verified**: 2025-11-15 15:30 UTC via `pnpm exec tsc --noEmit > /tmp/tsc.log`  
+**Source**: `/tmp/tsc.log` (actual compiler output, not estimate)
+
+**Error Distribution by Directory** (as of pnpm exec tsc --noEmit, Nov 15 2025):
+
+1. **server/models/** (19 errors): Mongoose import issues, ReferralCode MModel, ServiceProvider type
+2. **tests/finance/e2e/** (12 errors): E2E test type mismatches
+3. **app/api/** (~35 errors): Dynamic import type assertions, property access
+   - rfqs/[id]/bids (10 errors)
+   - souq/catalog/products (3 errors)
+   - souq/listings (2 errors)
+   - referrals/my-code (2 errors)
+   - settings/logo, organization/settings, etc (scattered)
+4. **modules/users/** (5 errors): User module type definitions
+5. **server/models/plugins/** (5 errors): tenantAudit unknown types
+6. **models/** (5 errors): Legacy model issues
+7. **scripts/** (4 errors): Build/deployment script types
+8. **services/** (5 errors): souq service (3), notifications (2)
+9. **Other** (~3 errors): contexts, cms, lib scattered
+
+**Fixed in This Session** (195 errors eliminated total):
+
+- ✅ 26 Mongoose models with union type exports (60 errors)
+- ✅ Invoice ZATCA compliance (16 errors)
+- ✅ WorkOrder code property (3 errors)
+- ✅ lib/ cleanup (30 errors)
+- ✅ **25 models converted to getModel pattern** (47 errors) - **NEW**
+- ✅ **server/copilot/ dynamic imports** (16 errors) - **NEW**
+- ✅ Various API route fixes (23 errors from earlier sessions)
+
+**Top Priority Fixes Needed** (to reach 0 errors):
+
+1. **server/models/** (19 errors): Complete remaining import fixes (FMApproval, FMFinancialTransaction, FMPMPlan, Invoice, Property), fix ReferralCode MModel, ServiceProvider type
+2. **app/api/** (~35 errors): Add type assertions for dynamic imports and property access
+3. **tests/finance/e2e/** (12 errors): Fix test type mismatches
+4. **modules/users/** (5 errors): User module type definitions
+5. **server/models/plugins/** (5 errors): Cast unknown types in tenantAudit
+6. **Other** (~12 errors): scripts/, services/, contexts/, models/, lib/
+
+**Next Steps for Zero Errors**:
+
+1. Run full recompile to verify cascade fixes
+2. Fix remaining null checks in API routes
+3. Add missing logger imports in contexts
+4. Fix test type mismatches
+5. Address schema type inference issues
+
+---
+
+## 5. Outstanding TODOs (Non-TypeScript)
+
+**Verified Still Needed**:
+
+1. ⚠️ **WPS Attendance Calculation** (`services/hr/wpsService.ts:116-137`) - Still defaults to 30 days
+2. ⚠️ **DataDog Batching/Rate Limiting** (`app/api/logs/route.ts`) - No batching or rate limits
+3. ⚠️ **Tap Payments Integration** (`lib/finance/tap-payments.ts`) - File doesn't exist
+4. ⚠️ **RBAC Client-Side Loading** (`auth.config.ts`) - Empty roles/permissions in Edge Runtime
+5. ⚠️ **SelectValue Warnings** - Radix UI prop warnings in console
+6. ⚠️ **Console Cleanup** - Development console.log statements remain
+7. ⚠️ **Translation Gaps** - Incomplete i18n coverage
+
+**Already Implemented** (prune from TODO lists):
+
+- ✅ Audit system (DB persistence + Sentry integration)
+- ✅ FM auth middleware (subscription plan + org membership validation)
+- ✅ Notification channels (email + SMS + push)
+- ✅ Seller authorization (restricted categories + gated brands)
+- ✅ FSIN lookup (database collision detection)
+- ✅ DataDog logging endpoint (basic implementation)
+- ✅ Logo file (`public/img/fixzit-logo.jpg`)
+- ✅ getUsersByRole function (`lib/fm-approval-engine.ts`)
+- ✅ Meilisearch indexing (shared client + search API)
+- ✅ NATS event publishing (connection pool + typed events)
+
+---
+
+## 6. Implementation Roadmap
+
+### Phase 1: Complete TypeScript Cleanup (3-4 hours) ⚠️ IN PROGRESS
+
+**Current Status**: 88 errors remaining (down from 283, 69% complete)  
+**Verification Strategy**: Run `pnpm exec tsc --noEmit` after each batch, log output to `/tmp/tsc_batch_N.log`
+
+**Priority Directories**:
+
+1. **server/models/** (19 errors) - Complete import fixes, ReferralCode MModel, ServiceProvider type
+2. **app/api/** (~35 errors) - Type assertions for dynamic imports and property access
+3. **tests/finance/e2e/** (12 errors) - Test type mismatches
+4. **modules/users/** (5 errors) - User module types
+5. **server/models/plugins/** (5 errors) - tenantAudit casts
+6. **Other** (12 errors) - Scattered across scripts/, services/, contexts/
+
+**Approach**:
+
+- Fix model type inference issues
+- Add missing type definitions
+- Resolve test type mismatches
+- Clean up remaining API route edge cases
+
+---
+
+### Phase 2: Add API Smoke Tests (1-2 hours) ⚠️ NOT STARTED
+
+**Objective**: Verify all critical endpoints return 200 OK with valid responses
+
+**Endpoints to Test**:
+
+1. `GET /api/properties` - List properties
+2. `GET /api/assets` - List assets
+3. `GET /api/work-orders` - List work orders
+4. `GET /api/invoices` - List invoices
+5. `GET /api/souq/catalog/products` - List products
+6. `POST /api/souq/search` - Search functionality
+7. `GET /api/crm/customers` - List customers
+8. `GET /api/hr/employees` - List employees
+
+**Implementation**:
+
+```typescript
+// tests/smoke/api-endpoints.test.ts
+import { describe, it, expect } from "vitest";
+
+describe("API Smoke Tests", () => {
+  it("GET /api/properties returns 200", async () => {
+    const res = await fetch("http://localhost:3000/api/properties");
+    expect(res.status).toBe(200);
+  });
+  // ... repeat for other endpoints
+});
+```
+
+**Estimated Time**: 1-2 hours
+
+---
+
+### Phase 3: Harden Existing Integrations (2-4 hours) ✅ MOSTLY COMPLETE
+
+#### 2.1: Meilisearch ✅ COMPLETE
+
+**Current State**: ✅ Shared client implemented and wired
+**Completed**:
+
+- ✅ lib/meilisearch-client.ts (singleton pattern)
+- ✅ app/api/souq/search/route.ts (search API with faceted filtering)
+- ✅ Product route uses shared indexProduct() helper
+
+**Optional Enhancements** (not critical):
+
+**Bulk Reindexing Script** (optional enhancement):
+
+```typescript
+// scripts/reindex-products.ts
+import {
+  getMeiliSearchClient,
+  bulkIndexProducts,
+} from "@/lib/meilisearch-client";
+import { SouqProduct } from "@/server/models/souq/Product";
+
+const products = await SouqProduct.find({ isActive: true }).lean();
+await bulkIndexProducts(
+  products.map((p) => ({
+    id: p._id.toString(),
+    fsin: p.fsin,
+    title: p.title,
+    // ...
+  })),
+);
+```
+
+---
+
+#### 2.2: NATS ✅ COMPLETE
+
+**Current State**: ✅ Shared connection pool implemented and wired
+**Completed**:
+
+- ✅ lib/nats-client.ts (connection pool with auto-reconnect)
+- ✅ lib/nats-events.ts (15+ typed event schemas)
+- ✅ Product route uses shared publish() helper
+- ✅ Graceful shutdown handlers (SIGTERM/SIGINT)
+
+**Optional Enhancements** (not critical):
+
+**Add More Event Types** (optional):
+
+```typescript
+// lib/nats-events.ts - add when needed:
+export type OrderPlacedEvent = { type: 'order.placed'; orderId: string; ... };
+export type InvoiceGeneratedEvent = { type: 'invoice.generated'; ... };
+export type PaymentProcessedEvent = { type: 'payment.processed'; ... };
+```
+
+**Add Subscribers** (optional, for async workflows):
+
+```typescript
+// jobs/nats-consumers.ts
+import { getNatsConnection } from "@/lib/nats-client";
+
+const nc = await getNatsConnection();
+const sub = nc.subscribe("product.*");
+for await (const msg of sub) {
+  const event = jc.decode(msg.data);
+  // Handle event
+}
+```
+
+---
+
+### Phase 4: Implement Tap Payments (8-12 hours) ❌ NOT IMPLEMENTED
+
+**Current State**: ❌ `lib/finance/tap-payments.ts` does not exist (only locale comments)
+**Priority**: Execute after TypeScript cleanup + smoke tests complete
+**File**: `lib/meilisearch-client.ts`
+
+```typescript
+import { MeiliSearch } from "meilisearch";
+
+const client = new MeiliSearch({
+  host: process.env.MEILISEARCH_HOST || "http://localhost:7700",
+  apiKey: process.env.MEILISEARCH_API_KEY || "masterKey",
+});
+
+export const productIndex = client.index("products");
+
+// Initialize indexes on startup
+export async function initializeMeilisearch() {
+  await productIndex.updateSettings({
+    filterableAttributes: ["category", "brandId", "price", "isActive"],
+    sortableAttributes: ["price", "createdAt", "rating"],
+    searchableAttributes: ["title", "description", "tags"],
+  });
+}
+```
+
+#### Step 1.2: Product Indexing
+
+**File**: `app/api/souq/catalog/products/route.ts`
+
+```typescript
+// Add after product creation (line ~120):
+import { productIndex } from "@/lib/meilisearch-client";
+
+await productIndex.addDocuments([
+  {
+    id: product.productId,
+    title: product.title,
+    description: product.description,
+    category: product.categoryId,
+    brandId: product.brandId,
+    price: product.pricing.basePrice,
+    isActive: product.isActive,
+    tags: product.tags,
+    createdAt: product.createdAt,
+  },
+]);
+```
+
+#### Step 1.3: Search API
+
+**File**: `app/api/souq/search/route.ts`
+
+```typescript
+import { NextRequest, NextResponse } from "next/server";
+import { productIndex } from "@/lib/meilisearch-client";
+
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const query = searchParams.get("q") || "";
+  const category = searchParams.get("category");
+  const minPrice = searchParams.get("minPrice");
+  const maxPrice = searchParams.get("maxPrice");
+
+  const results = await productIndex.search(query, {
+    filter: [
+      "isActive = true",
+      category && `category = "${category}"`,
+      minPrice && `price >= ${minPrice}`,
+      maxPrice && `price <= ${maxPrice}`,
+    ].filter(Boolean),
+    limit: 20,
+    offset: Number(searchParams.get("offset")) || 0,
+  });
+
+  return NextResponse.json(results);
+}
+```
+
+**Estimated Time**: 4-6 hours
+
+---
+
+### Phase 2: NATS Event Publishing (4-6 hours)
+
+#### Step 2.1: Create NATS Client
+
+**File**: `lib/nats-client.ts`
+
+```typescript
+import { connect, StringCodec, NatsConnection } from "nats";
+
+let nc: NatsConnection | null = null;
+const sc = StringCodec();
+
+export async function getNatsConnection() {
+  if (!nc) {
+    nc = await connect({
+      servers: process.env.NATS_URL || "nats://localhost:4222",
+    });
+  }
+  return nc;
+}
+
+export async function publish(subject: string, data: Record<string, unknown>) {
+  const connection = await getNatsConnection();
+  connection.publish(subject, sc.encode(JSON.stringify(data)));
+}
+```
+
+#### Step 2.2: Define Event Schemas
+
+**File**: `lib/nats-events.ts`
+
+```typescript
+export type ProductCreatedEvent = {
+  type: "product.created";
+  productId: string;
+  title: string;
+  categoryId: string;
+  price: number;
+  createdAt: Date;
+};
+
+export type OrderPlacedEvent = {
+  type: "order.placed";
+  orderId: string;
+  customerId: string;
+  total: number;
+  items: Array<{ productId: string; quantity: number }>;
+  placedAt: Date;
+};
+
+export type InvoicePaidEvent = {
+  type: "invoice.paid";
+  invoiceId: string;
+  invoiceNumber: string;
+  amount: number;
+  paidAt: Date;
+};
+```
+
+#### Step 2.3: Publish Events
+
+**File**: `app/api/souq/catalog/products/route.ts`
+
+```typescript
+// Add after product creation:
+import { publish } from "@/lib/nats-client";
+
+await publish("product.created", {
+  type: "product.created",
+  productId: product.productId,
+  title: product.title,
+  categoryId: product.categoryId,
+  price: product.pricing.basePrice,
+  createdAt: new Date(),
+});
+```
+
+**Estimated Time**: 4-6 hours
+
+---
+
+### Phase 3: Tap Payments Integration (8-12 hours)
+
+#### Step 3.1: Create Tap Client
+
+**File**: `lib/tap-payments-client.ts`
+
+```typescript
+import axios from "axios";
+
+const TAP_API_URL = process.env.TAP_API_URL || "https://api.tap.company/v2";
+const TAP_SECRET_KEY = process.env.TAP_SECRET_KEY || "sk_test_...";
+
+export async function createCharge(params: {
+  amount: number;
+  currency: string;
+  customer: { email: string; name: string };
+  redirect: { url: string };
+  metadata: Record<string, unknown>;
+}) {
+  const response = await axios.post(`${TAP_API_URL}/charges`, params, {
+    headers: {
+      Authorization: `Bearer ${TAP_SECRET_KEY}`,
+      "Content-Type": "application/json",
+    },
+  });
+  return response.data;
+}
+
+export async function retrieveCharge(chargeId: string) {
+  const response = await axios.get(`${TAP_API_URL}/charges/${chargeId}`, {
+    headers: { Authorization: `Bearer ${TAP_SECRET_KEY}` },
+  });
+  return response.data;
+}
+
+export function verifyWebhookSignature(
+  signature: string,
+  payload: string,
+): boolean {
+  // Implementation depends on Tap's webhook signature algorithm
+  return true; // Placeholder
+}
+```
+
+#### Step 3.2: Checkout API
+
+**File**: `app/api/payments/tap/checkout/route.ts`
+
+```typescript
+import { NextRequest, NextResponse } from "next/server";
+import { createCharge } from "@/lib/tap-payments-client";
+import { Invoice } from "@/server/models/Invoice";
+
+export async function POST(req: NextRequest) {
+  const { invoiceId } = await req.json();
+
+  const invoice = await Invoice.findOne({ _id: invoiceId });
+  if (!invoice) {
+    return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+  }
+
+  const charge = await createCharge({
+    amount: invoice.total,
+    currency: invoice.currency || "SAR",
+    customer: {
+      email: invoice.recipient?.email || "",
+      name: invoice.recipient?.name || "",
+    },
+    redirect: {
+      url: `${process.env.NEXT_PUBLIC_APP_URL}/payments/success`,
+    },
+    metadata: {
+      invoiceId: invoice._id.toString(),
+      invoiceNumber: invoice.number,
+    },
+  });
+
+  return NextResponse.json({ checkoutUrl: charge.transaction.url });
+}
+```
+
+#### Step 3.3: Webhook Handler
+
+**File**: `app/api/payments/tap/webhook/route.ts`
+
+```typescript
+import { NextRequest, NextResponse } from "next/server";
+import {
+  verifyWebhookSignature,
+  retrieveCharge,
+} from "@/lib/tap-payments-client";
+import { Invoice } from "@/server/models/Invoice";
+
+export async function POST(req: NextRequest) {
+  const signature = req.headers.get("x-tap-signature") || "";
+  const rawBody = await req.text();
+
+  if (!verifyWebhookSignature(signature, rawBody)) {
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+  }
+
+  const event = JSON.parse(rawBody);
+
+  if (event.type === "charge.success") {
+    const charge = await retrieveCharge(event.data.id);
+    const invoiceId = charge.metadata.invoiceId;
+
+    const invoice = await Invoice.findById(invoiceId);
+    if (invoice) {
+      invoice.status = "PAID";
+      invoice.payments.push({
+        date: new Date(),
+        amount: charge.amount,
+        method: "TAP_PAYMENTS",
+        reference: charge.id,
+        status: "COMPLETED",
+        transactionId: charge.id,
+      });
+      await invoice.save();
+    }
+  }
+
+  return NextResponse.json({ received: true });
+}
+```
+
+**Estimated Time**: 8-12 hours
+
+---
+
+### Phase 5: DataDog Enhancements (2-3 hours) ⚠️ OPTIONAL
+
+#### Step 4.1: Verify/Create Server Route
+
+**File**: `app/api/logs/route.ts`
+
+```typescript
+import { NextRequest, NextResponse } from "next/server";
+import axios from "axios";
+
+const DATADOG_API_KEY = process.env.DATADOG_API_KEY;
+const DATADOG_SITE = process.env.DATADOG_SITE || "datadoghq.com";
+
+export async function POST(req: NextRequest) {
+  if (!DATADOG_API_KEY) {
+    return NextResponse.json(
+      { error: "DataDog not configured" },
+      { status: 503 },
+    );
+  }
+
+  const logs = await req.json();
+
+  try {
+    await axios.post(
+      `https://http-intake.logs.${DATADOG_SITE}/api/v2/logs`,
+      logs,
+      {
+        headers: {
+          "DD-API-KEY": DATADOG_API_KEY,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("DataDog log forwarding failed:", error);
+    return NextResponse.json(
+      { error: "Failed to forward logs" },
+      { status: 500 },
+    );
+  }
+}
+```
+
+**Current State**: ✅ Basic logging endpoint functional (`app/api/logs/route.ts`)  
+**Optional Enhancements**: Batching, rate limiting, log buffering for offline scenarios
+
+**Estimated Time**: 2-3 hours (optional)
+
+---
+
+## 7. Summary & Recommendations
+
+### Achievements ✅
+
+1. **TypeScript Errors**: Reduced from 283 to **88** (**69% reduction**, 195 errors fixed) - verified 2025-11-15 via compiler
+2. **Models Refactored**: 25+ Mongoose models converted to getModel pattern
+3. **ZATCA Compliance**: Invoice model fully enhanced for Saudi VAT
+4. **Verifications**: 8 implementation claims checked (7 verified working, 1 missing - Tap Payments)
+5. **Code Quality**: All critical production API routes type-safe
+6. **Integration Hardening**: Meilisearch and NATS fully implemented with shared clients
+7. **Documentation Accuracy**: All claims verified against filesystem/compiler output
+
+### Corrected Implementation Status 🔍
+
+**Previously Marked as Needing Improvement - Now Fully Implemented**:
+
+1. ✅ **Meilisearch indexing** - Shared client (lib/meilisearch-client.ts) + search API (app/api/souq/search/route.ts) complete
+2. ✅ **NATS event publishing** - Connection pool (lib/nats-client.ts) + typed schemas (lib/nats-events.ts) complete
+3. ✅ **DataDog server logging** - Complete implementation in app/api/logs/route.ts (not lib/datadog.ts)
+
+**Actually Missing**:
+
+1. ❌ **Tap Payments integration** - lib/finance/tap-payments.ts does not exist, only comments in locales
+
+### Remaining Work 📋
+
+**High Priority** (Required for Production):
+
+1. ⚠️ **Complete TypeScript cleanup** (88 → 0 errors) - **3-4 hours**
+   - server/models/ (19 errors) - Complete import fixes, ReferralCode, ServiceProvider
+   - app/api/ (~35 errors) - Type assertions for dynamic imports
+   - tests/finance/e2e/ (12 errors) - Test type mismatches
+   - modules/users/ (5 errors) - User module types
+   - server/models/plugins/ (5 errors) - tenantAudit casts
+   - Other (12 errors) - scripts/, services/, contexts/
+
+2. ❌ **Implement Tap Payments** - **8-12 hours** (DEFERRED per user direction)
+   - Create lib/finance/tap-payments.ts
+   - Implement checkout flow
+   - Implement webhook handler
+
+**Optional Enhancements** (Not Critical): 3. ⚠️ **DataDog hardening** - **2-3 hours**
+
+- Add batching, rate limiting, log buffering
+
+**Total Estimated Time to Zero TypeScript Errors**: **3-4 hours**  
+**Total Estimated Time with Tap Payments**: **11-16 hours**
+
+### Next Steps 🎯
+
+**Immediate** (Next 3-4 hours - TypeScript Cleanup):
+
+1. Fix server/models/ remaining import issues (19 errors)
+2. Fix app/api/ type assertions (~35 errors)
+3. Fix tests/finance/e2e/ type mismatches (12 errors)
+4. Fix modules/users/ types (5 errors)
+5. Fix server/models/plugins/ casts (5 errors)
+6. Fix remaining scattered errors (12 errors)
+
+**After Zero TypeScript Errors** (1-2 hours):
+
+1. Add API smoke tests (verify all critical endpoints)
+2. Run full build verification (`pnpm run build`)
+
+**When System Stable** (8-12 hours):
+
+1. Implement Tap Payments (`lib/finance/tap-payments.ts`)
+2. Address RBAC client-side loading (Edge Runtime limitation)
+3. Optional: DataDog batching/rate limiting
+4. Optional: WPS attendance-based work days
+
+**Medium-term** (Next 1 month):
+
+1. Performance optimization and load testing
+2. Security audit
+3. Feature completion
+
+### Production Readiness 🚦
+
+**Current Status**: 🟡 **NEARLY READY** (Better than initially assessed)
+
+✅ **Ready**:
+
+- Core business logic working
+- Critical validations in place (invoice allocation, seller authorization)
+- Org isolation enforced
+- Subscription plans queried from DB
+- ZATCA compliance implemented
+- **Meilisearch** fully implemented (shared client + search API)
+- **NATS** fully implemented (connection pool + typed events)
+- DataDog logging endpoint functional
+- **RBAC** working on server-side API routes
+- Logo file present (`public/img/fixzit-logo.jpg`)
+
+⚠️ **Needs Attention**:
+
+- TypeScript errors (88 remaining - verified 2025-11-15, non-blocking for runtime)
+- RBAC client-side empty permissions (Edge Runtime limitation)
+- WPS still defaults to 30 work days (attendance calculation TODO)
+
+❌ **Missing**:
+
+- Tap Payments gateway integration (`lib/finance/tap-payments.ts` doesn't exist)
+- API smoke tests (no automated endpoint verification)
+
+**Recommendation**:
+
+1. **Immediate** (3-4 hours): Complete TypeScript cleanup (88→0 errors) - run `pnpm exec tsc --noEmit` after each batch
+2. **Next** (1-2 hours): Add API smoke tests for critical endpoints
+3. **When stable** (8-12 hours): Implement Tap Payments for Saudi market compliance
+4. **Optional**: Address RBAC client-side, WPS attendance, DataDog enhancements
+
+**Revised Timeline**:
+
+- 3-4 hours to zero TypeScript errors
+- 1-2 hours for smoke tests
+- 8-12 hours for Tap Payments
+- **Total**: 12-18 hours to full production readiness
+
+---
+
+## 8. Git Commit History
+
+### Session Commits (15 total):
+
+1. **8450f078c** - Initial TypeScript fixes (8 models + Payment API)
+2. **cf67b5767** - Fixed 23 more Mongoose models + auth signup
+3. **2b464d42b** - Invoice + WorkOrder + API route fixes
+4. **c1f790179** - Created comprehensive implementation audit report
+5. **37bdfd555** - Fixed ZATCA types + WorkOrder code (194→180)
+6. **9c166cbaf** - Fixed Invoice/Payment subdocs + Owner/Org routes (180→164)
+7. **4cc95e082** - Updated audit report with TypeScript progress
+8. **8d2bd70f6** - CRITICAL: Corrected audit report (Meilisearch, NATS, DataDog exist)
+9. **83ca564e2** - Implemented shared Meilisearch/NATS clients + fixed 27 lib/ errors (164→135)
+10. **089a9d59e** - Continued TypeScript cleanup (135→134)
+11. **8df6561c6** - Added dynamic imports for copilot + app/api routes (fixed 'unknown' types)
+12. **4ea426e6e** - Wire shared clients + create search API
+13. **bfcbc3e1f** - Correct documentation inaccuracies and syntax error
+14. **6d531a37f** - Add accurate status report
+15. **(Plus earlier commits from initial phases)**
+
+### Files Changed: 75+ total
+
+- Models: 29 files
+- API Routes: 21 files
+- Lib utilities: 13 files
+- Integration clients: 3 files (NEW)
+- Server copilot: 3 files
+- Plugins: 2 files
+- Auth: 2 files
+
+### Lines Changed: +900 / -180
+
+- Additions: ~900 lines
+- Deletions: ~180 lines
+- **Net**: +720 lines
+
+---
+
+## Appendix A: Model Export Pattern
+
+**Before** (Union Type - Causes Errors):
+
+```typescript
+export const Model =
+  (typeof models !== "undefined" && models.Model) ||
+  model("Model", ModelSchema);
+```
+
+**After** (Explicit Type - Type-Safe):
+
+```typescript
+let ModelVar: ReturnType<typeof model<ModelDoc>>;
+if (typeof models !== "undefined" && models.Model) {
+  ModelVar = models.Model as ReturnType<typeof model<ModelDoc>>;
+} else {
+  ModelVar = model<ModelDoc>("Model", ModelSchema);
+}
+export const Model = ModelVar;
+```
+
+---
+
+## Appendix B: Environment Variables Required
+
+### Meilisearch:
+
+```env
+MEILISEARCH_HOST=http://localhost:7700
+MEILISEARCH_API_KEY=masterKey
+```
+
+### NATS:
+
+```env
+NATS_URL=nats://localhost:4222
+```
+
+### Tap Payments:
+
+```env
+TAP_API_URL=https://api.tap.company/v2
+TAP_SECRET_KEY=sk_live_...
+TAP_PUBLIC_KEY=pk_live_...
+```
+
+### DataDog:
+
+```env
+DATADOG_API_KEY=your_api_key
+DATADOG_SITE=datadoghq.com
+```
+
+---
+
+**Report Generated**: November 15, 2025  
+**Last Updated**: November 15, 2025 15:30 UTC - After commit 168757562  
+**Error Count Verified**: 88 errors (source: `/tmp/tsc.log`, via `pnpm exec tsc --noEmit`)  
+**Next Review**: After each TypeScript error batch fix (rerun compiler, update this report)
+
+]]>
+</file>
+
+<file path="docs/archived/reports/IMPORT_FIXES_COMPLETE.md">
+<![CDATA[
+# Import Fixes Complete - Branch 86
+
+## Summary
+
+Successfully fixed all broken imports after duplicate file consolidation. All module resolution errors resolved, dev server running successfully.
+
+## What Was Fixed
+
+### 1. TypeScript Configuration
+
+**File**: `tsconfig.json`
+
+- **Issue**: `"@/server/*": ["src/server/*"]` was pointing to wrong directory
+- **Fix**: Changed to `"@/server/*": ["server/*"]`
+- **Impact**: Fixed all @/server/models/\* imports
+
+### 2. Config Imports (Bulk Fix)
+
+- **Pattern**: `@/src/config/*` → `@/config/*`
+- **Method**: Bulk sed replacement across all TS/TSX files
+- **Files Affected**: ~30+ files
+- **Status**: ✅ All config imports working
+
+### 3. Component Imports (Bulk Fix)
+
+- **Pattern**: `@/src/components/*` → `@/components/*`
+- **Method**: Bulk sed replacement
+- **Files Affected**: Multiple app pages
+- **Status**: ✅ All component imports working
+
+### 4. Database Imports (Bulk Fix)
+
+- **Pattern**: `@/src/db/*` → `@/db/*`
+- **Method**: Bulk sed replacement
+- **Files Affected**: Database connection utilities
+- **Status**: ✅ All db imports working
+
+### 5. Model Imports (Comprehensive Fix)
+
+**Pattern 1**: `@/db/models/*` → `@/server/models/*`
+
+- Method: Bulk sed replacement (excluding src/db/models/\* itself)
+- Files: All API routes and services
+- Status: ✅ Working
+
+**Pattern 2**: `@/models/*` → `@/server/models/*`
+
+- Method: Bulk sed replacement
+- Files: Marketplace and billing APIs
+- Status: ✅ Working
+
+**Pattern 3**: Relative imports → Absolute imports
+
+- File: `services/provision.ts`
+- Change: `../db/models/Subscription` → `@/server/models/Subscription`
+- Status: ✅ Working
+
+### 6. Restored Missing Models
+
+**Source**: `_deprecated/models-old/`
+**Destination**: `server/models/`
+
+**Core Models Restored**:
+
+- `PriceTier.ts` - For admin price tier management
+- `Customer.ts` - For billing customer data
+- `SubscriptionInvoice.ts` - For subscription billing
+- `ServiceContract.ts` - For service contracts
+
+**Marketplace Models Restored**:
+Created `server/models/marketplace/` directory with:
+
+- `Product.ts` - Marketplace products
+- `Category.ts` - Product categories
+- `Order.ts` - Customer orders
+- `AttributeSet.ts` - Product attributes
+- `RFQ.ts` - Request for quotes
+
+**Total Models**: 37 in server/models/ + 5 in server/models/marketplace/
+
+### 7. Test File Imports
+
+- **File**: `qa/tests/i18n-en.unit.spec.ts`
+- **Change**: `../../src/i18n/dictionaries/en` → `../../i18n/dictionaries/en`
+- **Status**: ✅ Fixed
+
+## Results
+
+### TypeScript Compilation
+
+- **Before**: 200+ errors (mostly "Cannot find module")
+- **After**: 145 errors (all type-related, no import errors)
+- **Module Resolution**: ✅ 100% working
+- **Import Errors**: ✅ 0 remaining
+
+### Dev Server Status
+
+- **Status**: ✅ Running successfully
+- **Port**: 3000
+- **Startup Time**: 2.1s
+- **Build Errors**: None
+- **URL**: <http://localhost:3000>
+
+### Git Commits
+
+1. **Commit d6ac5a703**: "Fix all broken imports after duplicate consolidation"
+   - 58 files changed
+   - 600 insertions, 78 deletions
+   - Created 9 new model files
+
+2. **Commit cb18acca6**: "Fix i18n test import path"
+   - 2 files changed
+   - Fixed test import path
+
+3. **Pushed to**: Branch 86
+4. **PR**: #86 (<https://github.com/EngSayh/Fixzit/pull/86>)
+
+## Import Patterns Summary
+
+### Correct Patterns Now
+
+```typescript
+// ✅ Config imports
+import { APPS } from "@/config/topbar-modules";
+
+// ✅ Component imports
+import PDPBuyBox from "@/components/marketplace/PDPBuyBox";
+
+// ✅ Database utility imports
+import { dbConnect } from "@/db/mongoose";
+
+// ✅ Model imports - Core
+import PriceBook from "@/server/models/PriceBook";
+import Subscription from "@/server/models/Subscription";
+
+// ✅ Model imports - Marketplace
+import Product from "@/server/models/marketplace/Product";
+import Category from "@/server/models/marketplace/Category";
+
+// ✅ Library imports
+import { formatCurrency } from "@/lib/format";
+```
+
+### Incorrect Patterns (All Fixed)
+
+```typescript
+// ❌ REMOVED - These all caused errors
+import { APPS } from "@/src/config/topbar-modules";
+import PDPBuyBox from "@/src/components/marketplace/PDPBuyBox";
+import { dbConnect } from "@/src/db/mongoose";
+import PriceBook from "@/db/models/PriceBook";
+import Product from "@/models/marketplace/Product";
+import Subscription from "../db/models/Subscription";
+```
+
+## Files Modified (Key Changes)
+
+### Configuration
+
+- `tsconfig.json` - Fixed @/server/\* path mapping
+
+### API Routes (58 total)
+
+Major fixes in:
+
+- `app/api/admin/billing/**` - PriceBook, Benchmark, discount routes
+- `app/api/billing/**` - Subscription, invoice, payment routes
+- `app/api/marketplace/**` - Product, cart, order routes
+- `app/api/ats/**` - Job, candidate, application routes
+- `app/api/assets/**` - Asset management routes
+
+### Services
+
+- `services/provision.ts` - Fixed Subscription import
+
+### Tests
+
+- `qa/tests/i18n-en.unit.spec.ts` - Fixed dictionary import
+
+### Models (9 new files)
+
+- `server/models/PriceTier.ts`
+- `server/models/Customer.ts`
+- `server/models/SubscriptionInvoice.ts`
+- `server/models/ServiceContract.ts`
+- `server/models/marketplace/Product.ts`
+- `server/models/marketplace/Category.ts`
+- `server/models/marketplace/Order.ts`
+- `server/models/marketplace/AttributeSet.ts`
+- `server/models/marketplace/RFQ.ts`
+
+## E2E Test Status
+
+### Test Run Results
+
+- **Execution**: ✅ Tests started successfully (no import errors blocking execution)
+- **Import Blocking**: ✅ Resolved (was blocking test runner before)
+- **Test Issues Found**:
+  - `jest is not defined` in Playwright tests (test setup issue, not import)
+  - `beforeAll is not defined` in Playwright tests (test setup issue, not import)
+- **Next Step**: Fix Playwright test setup to use correct test framework APIs
+
+## Technical Debt Remaining
+
+### TypeScript Errors (145 total)
+
+These are NOT import errors, but type-related issues:
+
+1. **Next.js 15 API Changes**: Route handler params now use Promise<params>
+2. **Type Safety**: Implicit 'any' types in some functions
+3. **Test Types**: Mock type incompatibilities in Candidate.test.ts
+4. **Locale Types**: String/Locale type mismatches in format.test.ts
+
+### Test Framework Issues
+
+- Playwright tests using Jest APIs (jest.fn, beforeAll) - need to convert to Playwright syntax
+- Some tests may need refactoring for proper Playwright usage
+
+## Verification Commands
+
+```bash
+# Check TypeScript compilation
+npx tsc --noEmit 2>&1 | grep "Cannot find module" | wc -l
+# Result: 0 ✅
+
+# Check dev server
+npm run dev
+# Result: Ready in 2.1s ✅
+
+# Check import patterns
+grep -r "from '@/src/" app/ --include="*.ts" --include="*.tsx" | wc -l
+# Result: 0 ✅
+
+# Check model imports
+grep -r "from '@/db/models/" app/ --include="*.ts" --include="*.tsx" | wc -l
+# Result: 0 ✅
+
+# Count models
+ls -1 server/models/ | wc -l
+# Result: 37 ✅
+
+ls -1 server/models/marketplace/ | wc -l
+# Result: 5 ✅
+```
+
+## Impact Analysis
+
+### Positive Outcomes
+
+1. ✅ **Dev Server**: Running without any import errors
+2. ✅ **Module Resolution**: All 200+ import errors resolved
+3. ✅ **Code Organization**: Consistent import patterns across codebase
+4. ✅ **Path Aliases**: Properly configured and working
+5. ✅ **Models**: All necessary models restored and accessible
+
+### No Breaking Changes
+
+- All functionality preserved from duplicate consolidation
+- Model data structures unchanged (just path changes)
+- No API contract changes
+- No database schema changes
+
+### Performance
+
+- Dev server startup: 2.1s (excellent)
+- No additional build time
+- TypeScript compilation unaffected by path changes
+
+## Next Steps
+
+1. **E2E Tests**: Fix Playwright test framework usage
+   - Replace `jest.fn()` with Playwright mocks
+   - Replace `beforeAll()` with Playwright hooks
+   - Ensure all tests use Playwright APIs
+
+2. **TypeScript Errors**: Address remaining 145 type errors
+   - Fix Next.js 15 route handler signatures
+   - Add proper type annotations where implicit 'any'
+   - Fix test type mismatches
+
+3. **Runtime Testing**: Complete E2E test suite execution
+   - Verify all API endpoints work correctly
+   - Test UI components render properly
+   - Validate subscription flows
+
+## Conclusion
+
+**Status**: ✅ **COMPLETE**
+
+All import errors from duplicate file consolidation have been successfully resolved:
+
+- 0 module resolution errors
+- Dev server running successfully
+- All imports using correct path aliases
+- 9 missing models restored
+- 58 files updated with correct imports
+- Changes committed and pushed to branch 86
+
+The codebase is now ready for runtime verification and E2E testing.
+
+---
+
+**Date**: 2025-01-31
+**Branch**: 86
+**Commits**: d6ac5a703, cb18acca6
+**PR**: #86
+**Developer**: AI Assistant (GitHub Copilot)
+
+]]>
+</file>
+
+<file path="docs/archived/reports/ISSUES_REGISTER.md">
+<![CDATA[
+# Issues Register - Owner Portal Security Fixes
+
+**Generated:** 2024-12-19  
+**Context:** Code Review - Critical Security Vulnerabilities in Owner Portal API Routes
+
+---
+
+## CRITICAL ISSUES (🔴 RED - BLOCKER)
+
+### Issue #1: Data Leak - API Statements Route Bypassing Security
+
+**File:** `/app/api/owner/statements/route.ts`  
+**Severity:** 🔴 **CATASTROPHIC**  
+**Category:** Security / Multi-Tenancy Violation  
+**Status:** ✅ **FIXED**
+
+**Problem:**
+
+- Used `db.collection('payments')`, `db.collection('workorders')`, `db.collection('utilitybills')`, `db.collection('agentcontracts')`
+- Bypassed `tenantIsolationPlugin` which automatically filters by `orgId`
+- **Impact:** Returns data from ALL organizations (cross-tenant data leak)
+
+**Root Cause:**
+
+- Native MongoDB driver calls do not invoke Mongoose middleware/plugins
+
+**Fix Applied:**
+
+- Replaced all `db.collection()` calls with Mongoose models:
+  - `Payment.find()`
+  - `WorkOrder.find()`
+  - `UtilityBillModel.find()`
+  - `AgentContractModel.aggregate()`
+- Added `setTenantContext({ orgId })` before any queries
+- Imported models correctly with proper exports
+
+**Verification:**
+
+- ✅ Code rewritten to use Mongoose models exclusively
+- ✅ No more `db.collection()` calls in this file
+- ✅ TypeScript compilation passes
+- ⚠️ ESLint warnings for `any` types (non-blocking)
+
+**Evidence:**
+
+```bash
+# Before: 87 TypeScript errors
+# After: 0 TypeScript errors (pnpm typecheck passes)
+```
+
+---
+
+### Issue #2: Data Leak - API Unit History Route Bypassing Security
+
+**File:** `/app/api/owner/units/[unitId]/history/route.ts`  
+**Severity:** 🔴 **CATASTROPHIC**  
+**Category:** Security / Multi-Tenancy Violation  
+**Status:** ✅ **FIXED**
+
+**Problem:**
+
+- Used `db.collection('workorders')`, `db.collection('moveinoutinspections')`, `db.collection('payments')`, `db.collection('utilitybills')`
+- Same catastrophic multi-tenancy bypass as Issue #1
+
+**Fix Applied:**
+
+- Replaced all `db.collection()` calls with Mongoose models:
+  - `WorkOrder.find()`
+  - `MoveInOutInspectionModel.find()`
+  - `Payment.find()`
+  - `UtilityBillModel.find()`
+- Added proper model imports with correct naming
+- Removed unused `Types` import
+
+**Verification:**
+
+- ✅ Code rewritten to use Mongoose models exclusively
+- ✅ No more `db.collection()` calls in this file
+- ✅ TypeScript compilation passes
+- ⚠️ ESLint warnings for `any` types (non-blocking)
+
+---
+
+### Issue #3: Missing Security Plugins - OwnerGroup Model
+
+**File:** `/server/models/OwnerGroup.ts`  
+**Severity:** 🔴 **MAJOR**  
+**Category:** Security / Schema Configuration  
+**Status:** ✅ **FIXED**
+
+**Problem:**
+
+- Missing `tenantIsolationPlugin` → No automatic orgId filtering
+- Missing `auditPlugin` → No change tracking/audit trails
+- Manual `orgId` field definition (duplicates plugin functionality)
+
+**Fix Applied:**
+
+```typescript
+// Added imports
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { auditPlugin } from "../plugins/auditPlugin";
+
+// Removed manual orgId field
+// Added plugins
+OwnerGroupSchema.plugin(tenantIsolationPlugin);
+OwnerGroupSchema.plugin(auditPlugin);
+
+// Added tenant-scoped indexes
+OwnerGroupSchema.index({ orgId: 1, name: 1 });
+OwnerGroupSchema.index({ orgId: 1, primary_contact_user_id: 1 });
+```
+
+**Verification:**
+
+- ✅ Plugins applied correctly
+- ✅ Tenant-scoped indexes created
+- ✅ TypeScript compilation passes
+
+---
+
+## HIGH SEVERITY ISSUES (🟧 ORANGE)
+
+### Issue #4: TypeScript Null Safety - Delegation Model
+
+**File:** `/server/models/Delegation.ts`  
+**Severity:** 🟧 **HIGH**  
+**Category:** Type Safety / Runtime Errors  
+**Status:** ✅ **FIXED**
+
+**Problem:**
+
+- Pre-save hook accessing nested properties without null checks
+- Type mismatches in `activities` array operations (lines 209-211)
+- Implicit `any` types in filter/reduce callbacks
+
+**Fix Applied:**
+
+- Added null safety checks: `Array.isArray(this.activities)`
+- Added optional chaining: `a?.action?.includes()`, `a?.amount`
+- Wrapped last activity access with null check
+- Fixed type annotations for callbacks
+
+**Verification:**
+
+- ✅ TypeScript compilation passes
+- ⚠️ ESLint warnings for `any` types (non-blocking)
+
+---
+
+### Issue #5: Incorrect Model Exports - Import Statements
+
+**Files:** `/app/api/owners/groups/assign-primary/route.ts`, `/services/paytabs.ts`  
+**Severity:** 🟧 **HIGH**  
+**Category:** Module System / Build Errors  
+**Status:** ✅ **FIXED**
+
+**Problem:**
+
+- Using default import for `OwnerGroup`: `import OwnerGroup from '@/server/models/OwnerGroup'`
+- Model exports as named export: `export const OwnerGroupModel`
+
+**Fix Applied:**
+
+```typescript
+// Changed from:
+import OwnerGroup from "@/server/models/OwnerGroup";
+
+// To:
+import { OwnerGroupModel as OwnerGroup } from "@/server/models/OwnerGroup";
+```
+
+**Verification:**
+
+- ✅ TypeScript compilation passes
+- ✅ No module resolution errors
+
+---
+
+### Issue #6: Finance Integration Service - Incorrect API Calls
+
+**File:** `/server/services/owner/financeIntegration.ts`  
+**Severity:** 🟧 **HIGH**  
+**Category:** API Misuse / Runtime Errors  
+**Status:** ✅ **FIXED**
+
+**Problem:**
+
+- Calling `createJournal()` and `postJournal()` with wrong signatures
+- Passing `session` parameter (not supported by API)
+- Calling as standalone functions instead of service methods
+- Implicit `any` types in callbacks
+
+**Fix Applied:**
+
+```typescript
+// Changed from:
+const journal = await createJournal({ ...input }, session);
+await postJournal(journal._id, userId, session);
+
+// To:
+const journal = await postingService.createJournal({ ...input });
+await postingService.postJournal(journal._id);
+```
+
+**Verification:**
+
+- ✅ TypeScript compilation passes
+- ✅ API signatures match interface definitions
+
+---
+
+## MEDIUM SEVERITY ISSUES (🟨 YELLOW)
+
+### Issue #7: ESLint Warnings - Explicit `any` Types
+
+**Files:**
+
+- `/app/api/owner/statements/route.ts` (4 warnings)
+- `/app/api/owner/units/[unitId]/history/route.ts` (3 warnings)
+- `/server/models/owner/Delegation.ts` (5 warnings)
+- `/server/services/owner/financeIntegration.ts` (1 warning)
+
+**Severity:** 🟨 **MEDIUM**  
+**Category:** Code Quality / Linting  
+**Status:** ⚠️ **ACCEPTED (Technical Debt)**
+
+**Problem:**
+
+- Using `any` types for Mongoose `.lean()` results (lack of proper type definitions)
+- ESLint rule `@typescript-eslint/no-explicit-any` triggered
+
+**Justification:**
+
+- Mongoose `.lean()` returns plain JavaScript objects without full type info
+- Creating comprehensive interfaces would require significant effort
+- TypeScript compilation passes (type safety maintained at compile time)
+- Runtime behavior is correct
+
+**Recommendation:**
+
+- Create proper TypeScript interfaces for lean query results (future enhancement)
+- Document expected shape of objects in comments
+
+---
+
+## INFORMATIONAL (🟩 GREEN)
+
+### Finding #1: Search API Route - Potential Security Issue
+
+**File:** `/app/api/search/route.ts`  
+**Severity:** 🔴 **POTENTIAL CRITICAL** (Requires Investigation)  
+**Category:** Security / Multi-Tenancy  
+**Status:** ⏳ **PENDING INVESTIGATION**
+
+**Observation:**
+
+- Uses `db.collection()` for multiple entities (work_orders, properties, etc.)
+- No `orgId` filtering detected in initial grep search
+- May have same security vulnerability as Issues #1 and #2
+
+**Recommendation:**
+
+- Conduct full security audit of `/app/api/search/route.ts`
+- Verify if `setTenantContext()` is used
+- Replace with Mongoose models if vulnerable
+- Add to Critical Issues if confirmed
+
+**Next Steps:**
+
+- Read full file contents
+- Check for `orgId` filtering in query logic
+- Test with multi-tenant data to verify isolation
+
+---
+
+## SUMMARY STATISTICS
+
+| Severity         | Count | Fixed | Pending           |
+| ---------------- | ----- | ----- | ----------------- |
+| 🔴 Critical      | 3     | 3     | 0                 |
+| 🟧 High          | 3     | 3     | 0                 |
+| 🟨 Medium        | 1     | 0     | 1 (Accepted)      |
+| 🟩 Informational | 1     | 0     | 1 (Investigation) |
+| **TOTAL**        | **8** | **6** | **2**             |
+
+---
+
+## VERIFICATION GATES STATUS
+
+| Gate             | Status                      | Output                                                           |
+| ---------------- | --------------------------- | ---------------------------------------------------------------- |
+| `pnpm typecheck` | ✅ **PASS**                 | 0 errors (previously 87 errors)                                  |
+| `pnpm lint`      | ⚠️ **PASS (with warnings)** | 0 errors, 13 warnings (all `@typescript-eslint/no-explicit-any`) |
+| `pnpm build`     | ⏳ **NOT RUN**              | Pending (requires full build test)                               |
+
+---
+
+## SIMILAR ISSUES RESOLVED
+
+**Pattern:** Using `db.collection()` instead of Mongoose models
+
+**Files Fixed:**
+
+1. `/app/api/owner/statements/route.ts` - Replaced 4 `db.collection()` calls
+2. `/app/api/owner/units/[unitId]/history/route.ts` - Replaced 4 `db.collection()` calls
+
+**Files Requiring Investigation:**
+
+1. `/app/api/search/route.ts` - 20+ `db.collection()` calls (potential violations)
+2. `/app/api/help/articles/route.ts` - Uses `db.collection()` (may be isolated)
+3. `/app/api/aqar/map/route.ts` - Uses `db.collection()` (check tenant filtering)
+
+**Search Command Used:**
+
+```bash
+grep -r "db.collection(" app/api/ --include="*.ts"
+```
+
+---
+
+## LESSONS LEARNED
+
+1. **NEVER use `db.collection()` in multi-tenant applications**
+   - Bypasses Mongoose middleware and security plugins
+   - Causes catastrophic data leaks across organizations
+
+2. **ALWAYS use Mongoose models for data access**
+   - Ensures `tenantIsolationPlugin` applies automatic filtering
+   - Maintains audit trails via `auditPlugin`
+   - Provides type safety and validation
+
+3. **ALWAYS check model exports before importing**
+   - Mongoose models can export as `Model` or `ModelModel`
+   - Use named imports with correct export names
+
+4. **ALWAYS verify API signatures when using services**
+   - Check if methods take sessions, userId, or other params
+   - Review interface definitions for correct parameter structure
+
+5. **Code review findings require pattern-based fixes**
+   - Finding 1 instance of a pattern often means there are more
+   - Use grep/semantic search to find all similar violations
+   - Fix all instances before moving to next issue
+
+---
+
+## NEXT ACTIONS
+
+1. 🔴 **URGENT:** Investigate `/app/api/search/route.ts` security (20+ `db.collection()` calls)
+2. 🟧 **HIGH:** Run full build test (`pnpm build`)
+3. 🟨 **MEDIUM:** Create TypeScript interfaces for lean query results (reduce `any` warnings)
+4. 🟩 **LOW:** Audit other API routes for similar patterns (`help/articles`, `aqar/map`, etc.)
+
+---
+
+**Report End**
+
+]]>
+</file>
+
+<file path="docs/archived/reports/JEST_VITEST_MIGRATION_PHASE4_COMPLETE.md">
+<![CDATA[
+# Jest→Vitest Migration Phase 4 - Complete
+
+**Date:** October 15, 2025  
+**Branch:** `fix/standardize-test-framework-vitest`  
+**PR:** #119
+
+## Executive Summary
+
+Successfully completed comprehensive Jest→Vitest migration for 8 files that were in hybrid states (type assertions updated but runtime APIs still using Jest). All files now compile cleanly and run with Vitest.
+
+---
+
+## Migration Statistics
+
+### Files Migrated: 8
+
+1. ✅ `app/api/marketplace/categories/route.test.ts` - 8 conversions
+2. ✅ `app/marketplace/rfq/page.test.tsx` - 11 conversions (100% clean)
+3. ✅ `app/test/api_help_articles_route.test.ts` - 6 conversions + 7 inline fixes
+4. ✅ `app/test/help_ai_chat_page.test.tsx` - 7 conversions
+5. ✅ `app/test/help_support_ticket_page.test.tsx` - 3 conversions
+6. ✅ `server/models/__tests__/Candidate.test.ts` - 26 conversions + 5 inline fixes
+7. ✅ `server/security/idempotency.spec.ts` - 10 conversions + 1 inline fix
+8. ✅ `tests/unit/components/ErrorBoundary.test.tsx` - 12 conversions + 4 inline fixes
+
+### Total Changes
+
+- **83+ runtime API conversions** (jest._→ vi._)
+- **17 inline jest.fn() fixes**
+- **8 Vitest import additions**
+- **8 framework comment updates**
+- **9 vi.doMock option removals**
+- **2 import path fixes**
+
+---
+
+## Conversion Patterns Applied
+
+### 1. Mock Creation
+
+```typescript
+// Before
+jest.fn() → vi.fn()
+jest.spyOn() → vi.spyOn()
+
+// After
+✅ All 83+ instances converted
+```
+
+### 2. Mock Utilities
+
+```typescript
+// Before
+jest.mock()
+jest.clearAllMocks()
+jest.resetAllMocks()
+jest.restoreAllMocks()
+jest.resetModules()
+
+// After
+vi.mock()
+vi.clearAllMocks()
+vi.resetAllMocks()
+vi.restoreAllMocks()
+vi.resetModules()
+
+✅ All instances converted
+```
+
+### 3. Timers
+
+```typescript
+// Before
+jest.useFakeTimers()
+jest.useRealTimers()
+jest.advanceTimersByTime()
+jest.setSystemTime()
+
+// After
+vi.useFakeTimers()
+vi.useRealTimers()
+vi.advanceTimersByTime()
+vi.setSystemTime()
+
+✅ All instances converted
+```
+
+### 4. Module Mocking
+
+```typescript
+// Before
+jest.doMock()
+jest.dontMock()
+jest.requireActual()
+jest.requireMock()
+
+// After
+vi.doMock()
+vi.unmock()
+vi.importActual()
+vi.importMock()
+
+✅ All instances converted
+```
+
+---
+
+## Critical Fixes
+
+### 1. Inline Function Definitions
+
+**Problem:** Type-only migrations miss inline `jest.fn()` in object literals
+
+**Example:**
+
+```typescript
+// MISSED by type-only script:
+const storage = () => {
+  return {
+    getItem: jest.fn((k: string) => store[k]), // ❌ Still jest.fn()
+    setItem: jest.fn((k: string, v: string) => {
+      store[k] = v;
+    }),
+  };
+};
+```
+
+**Solution:**
+
+```typescript
+const storage = () => {
+  return {
+    getItem: vi.fn((k: string) => store[k]), // ✅ Now vi.fn()
+    setItem: vi.fn((k: string, v: string) => {
+      store[k] = v;
+    }),
+  };
+};
+```
+
+**Files Fixed:**
+
+- `tests/unit/components/ErrorBoundary.test.tsx` (4 inline)
+- `app/test/api_help_articles_route.test.ts` (7 inline)
+- `server/models/__tests__/Candidate.test.ts` (5 inline)
+- `server/security/idempotency.spec.ts` (1 inline)
+
+---
+
+### 2. Unsupported vi.doMock Options
+
+**Problem:** Vitest doesn't support `{ virtual: true }` parameter
+
+**Example:**
+
+```typescript
+// BEFORE (Jest-style):
+vi.doMock("@/lib/mongo", () => ({ isMockDB: true }), { virtual: true });
+//                                                    ^^^^^^^^^^^^^^^^^
+//                                                    ❌ Not supported in Vitest
+```
+
+**Solution:**
+
+```typescript
+// AFTER:
+vi.doMock("@/lib/mongo", () => ({ isMockDB: true }));
+//                                                    ✅ Works in Vitest
+```
+
+**Files Fixed:**
+
+- `server/models/__tests__/Candidate.test.ts` (9 occurrences)
+
+---
+
+### 3. vi.importMock Promise Destructuring
+
+**Problem:** `vi.importMock()` returns a Promise, can't destructure directly
+
+**Example:**
+
+```typescript
+// BEFORE (incorrect):
+const { NextResponse } = vi.importMock("next/server");
+//                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//                       ❌ Returns Promise<MockedObjectDeep<...>>
+
+expect(NextResponse.json).toHaveBeenCalledTimes(1); // ❌ NextResponse is undefined
+```
+
+**Solution:**
+
+```typescript
+// AFTER (correct):
+vi.mock('next/server', () => ({
+  NextRequest: class {},
+  NextResponse: {
+    json: vi.fn((data: any, init?: ResponseInit) => ({ ... }))
+  }
+}));
+
+import { NextResponse } from 'next/server';  // ✅ Proper import
+
+expect(NextResponse.json).toHaveBeenCalledTimes(1);  // ✅ Works
+```
+
+**Files Fixed:**
+
+- `app/test/api_help_articles_route.test.ts`
+
+---
+
+### 4. vi.isolateModulesAsync Not Available
+
+**Problem:** Vitest doesn't have `vi.isolateModulesAsync()`
+
+**Example:**
+
+```typescript
+// BEFORE (Jest-style):
+await jest.isolateModulesAsync(async () => {
+  // ^^^^^^^^^^^^^^^^^^^^^^
+  // ❌ Doesn't exist in Vitest
+  vi.resetModules();
+  await import("../Candidate");
+});
+```
+
+**Solution:**
+
+```typescript
+// AFTER:
+vi.resetModules(); // ✅ Direct call, no wrapper needed
+await import("../Candidate");
+```
+
+**Files Fixed:**
+
+- `server/models/__tests__/Candidate.test.ts`
+
+---
+
+### 5. jest-dom Import Path
+
+**Problem:** Old jest-dom import path not found
+
+**Example:**
+
+```typescript
+// BEFORE:
+import "@testing-library/jest-dom/extend-expect";
+//                                  ^^^^^^^^^^^^^
+//                                  ❌ Path no longer exists
+```
+
+**Solution:**
+
+```typescript
+// AFTER:
+import "@testing-library/jest-dom";
+//                                  ✅ Modern import path
+```
+
+**Files Fixed:**
+
+- `app/test/help_ai_chat_page.test.tsx`
+
+---
+
+## Verification Results
+
+### Compilation
+
+✅ All 8 files compile without errors  
+✅ 0 remaining compile errors  
+✅ TypeScript happy
+
+### Runtime Tests
+
+#### `server/security/idempotency.spec.ts`
+
+```
+✅ 8/10 tests passing
+❌ 2 tests failing (logic issues, not migration)
+```
+
+#### `app/api/marketplace/categories/route.test.ts`
+
+```
+✅ Loads and runs with Vitest
+❌ Some tests fail (mock configuration issues, not migration)
+```
+
+### Code Quality
+
+✅ No `jest.*` references in runtime code  
+✅ Framework comments updated  
+✅ Vitest imports present in all files  
+✅ All inline functions use `vi.fn()`
+
+---
+
+## Commits
+
+### 1. `689778d9` - Bulk Migration
+
+```
+fix(tests): complete Jest→Vitest migration with imports and inline fixes
+
+Changes:
+- Added Vitest imports to 8 files
+- Converted 83+ jest.* → vi.* runtime calls
+- Fixed 15 inline jest.fn() definitions
+- Removed { virtual: true } options
+- Updated framework comments
+
+Files: 12 changed, 200+ insertions, 150+ deletions
+```
+
+### 2. `294c16dd` - Final Import Fix
+
+```
+fix(tests): fix vi.importMock usage and add NextResponse import
+
+- Removed problematic vi.importMock line
+- Added proper import statement for NextResponse
+- Ensures NextResponse mock is properly accessible
+
+Files: 1 changed, 1 insertion, 2 deletions
+```
+
+### 3. `4589c8f2` - Documentation
+
+```
+docs: document completion of Jest→Vitest migration for 8 hybrid files
+
+Added comprehensive migration report to SYSTEM_WIDE_JEST_VITEST_FIXES.md
+Includes lessons learned, test results, and best practices
+
+Files: 1 changed, 76 insertions, 2 deletions
+```
+
+---
+
+## Lessons Learned
+
+### 1. Type-Only Migrations Are Incomplete
+
+**Issue:** Previous script only changed type assertions (`as jest.Mock` → `as ReturnType<typeof vi.fn>`)  
+**Impact:** Left runtime calls as `jest.fn()`, creating hybrid states  
+**Solution:** Must convert BOTH types AND runtime calls together
+
+### 2. Inline Functions Need Special Handling
+
+**Issue:** Object literal inline functions not caught by simple replacements  
+**Impact:** Hidden `jest.fn()` calls in nested objects  
+**Solution:** Target specific patterns with more complex regex/sed
+
+### 3. API Differences Matter
+
+**Issue:** Vitest has different API constraints than Jest  
+**Examples:**
+
+- No `{ virtual: true }` option
+- No `vi.isolateModulesAsync()`
+- `vi.importMock()` returns Promise
+  **Solution:** Consult Vitest docs for exact equivalents
+
+### 4. Import Paths Change
+
+**Issue:** jest-dom moved its main export  
+**Impact:** Old path causes module not found  
+**Solution:** Use modern import paths from package docs
+
+### 5. Mock Access Patterns Differ
+
+**Issue:** Can't destructure from `vi.importMock()` like Jest  
+**Impact:** Variables are undefined at runtime  
+**Solution:** Use proper imports after `vi.mock()` setup
+
+---
+
+## Best Practices Established
+
+### 1. Always Add Framework Imports First
+
+```typescript
+// FIRST LINE after comments:
+import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
+```
+
+### 2. Update Framework Comments
+
+```typescript
+// BEFORE:
+/**
+ * Framework: Jest
+ */
+
+// AFTER:
+/**
+ * Framework: Vitest
+ */
+```
+
+### 3. Use Standard Mock Pattern
+
+```typescript
+// Setup mocks BEFORE imports:
+vi.mock("module-name", () => ({
+  export1: vi.fn(),
+  export2: vi.fn(),
+}));
+
+// Then import normally:
+import { export1, export2 } from "module-name";
+```
+
+### 4. Check Vitest API Documentation
+
+- Don't assume Jest patterns work
+- Verify options are supported
+- Use Vitest-specific alternatives
+
+### 5. Test Incrementally
+
+- Run tests after each file migration
+- Fix issues immediately
+- Don't batch too many changes
+
+---
+
+## Remaining Work
+
+### Test Logic Fixes (Separate from Migration)
+
+1. **Redis Mocks** (incidents.route.test.ts)
+   - Need proper ioredis mock setup
+   - Not a migration issue
+
+2. **MongoDB Mocks** (products/route.test.ts)
+   - Need proper mongoose/mongodb mock
+   - Not a migration issue
+
+3. **Test Assertion Failures** (idempotency.spec.ts)
+   - 2/10 tests failing due to logic
+   - Mock setup needs adjustment
+   - Not a migration issue
+
+4. **Import Path Issues** (various)
+   - Some files can't find imports
+   - Need to verify actual file locations
+   - Not a migration issue
+
+---
+
+## Migration Tools Created
+
+### `scripts/complete-vitest-migration.sh`
+
+- 100+ line automated migration script
+- Handles runtime API conversions
+- Creates backups
+- Reports conversion counts
+- Identifies remaining issues
+
+### Enhanced Documentation
+
+- `SYSTEM_WIDE_JEST_VITEST_FIXES.md` - Complete migration guide
+- This document - Phase 4 completion report
+
+---
+
+## Conclusion
+
+✅ **Phase 4 Complete:** All 8 hybrid files successfully migrated  
+✅ **No Blocking Issues:** All files compile and load  
+✅ **Documentation Complete:** Lessons learned captured  
+✅ **Tools Created:** Reusable migration script available  
+✅ **Best Practices:** Established patterns for future migrations
+
+**Next Steps:**
+
+1. Continue with remaining test fixes (mocks, imports)
+2. Address test logic failures (separate from migration)
+3. Apply learnings to any remaining hybrid files discovered
+4. Consider updating other test files using same patterns
+
+---
+
+**Status:** ✅ **COMPLETE - Ready for Review**  
+**Recommendation:** Merge this phase independently, continue test fixes in follow-up PRs
+
+]]>
+</file>
+
+</batch_content>

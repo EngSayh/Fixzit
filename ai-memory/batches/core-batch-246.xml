@@ -1,0 +1,3093 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="scripts/fix-markdown-comprehensive.py">
+<![CDATA[
+#!/usr/bin/env python3
+"""
+Comprehensive Markdown Linting Fixer for Fixzit
+Fixes MD022, MD031, MD040, MD009 violations in progress reports
+"""
+
+import re
+import sys
+from pathlib import Path
+from typing import List, Tuple
+
+
+def fix_markdown_violations(content: str) -> Tuple[str, int]:
+    """
+    Fix common markdown linting violations.
+    
+    Returns:
+        Tuple of (fixed_content, violations_fixed)
+    """
+    lines = content.split('\n')
+    fixed_lines = []
+    violations_fixed = 0
+    i = 0
+    
+    while i < len(lines):
+        line = lines[i]
+        
+        # Remove trailing whitespace (MD009)
+        if line.rstrip() != line:
+            line = line.rstrip()
+            violations_fixed += 1
+        
+        # Check if this is a heading
+        is_heading = re.match(r'^#+\s', line)
+        
+        # Check if this is a code fence
+        is_code_fence_start = line.strip().startswith('```')
+        
+        # MD022: Headings should be surrounded by blank lines
+        if is_heading:
+            # Check if previous line exists and is not blank
+            if fixed_lines and fixed_lines[-1].strip() != '':
+                fixed_lines.append('')
+                violations_fixed += 1
+            
+            fixed_lines.append(line)
+            
+            # Check if next line exists and is not blank
+            if i + 1 < len(lines) and lines[i + 1].strip() != '':
+                # Don't add blank line if next line is also a heading or code fence
+                next_is_heading = re.match(r'^#+\s', lines[i + 1])
+                next_is_fence = lines[i + 1].strip().startswith('```')
+                if not (next_is_heading or next_is_fence):
+                    fixed_lines.append('')
+                    violations_fixed += 1
+        
+        # MD031 & MD040: Code fences should be surrounded by blank lines and have language
+        elif is_code_fence_start:
+            # Check if previous line is not blank
+            if fixed_lines and fixed_lines[-1].strip() != '':
+                fixed_lines.append('')
+                violations_fixed += 1
+            
+            # MD040: Add language specifier if missing
+            if line.strip() == '```':
+                # Look ahead to determine likely language
+                language = 'bash'  # Default
+                if i + 1 < len(lines):
+                    next_content = lines[i + 1].lower()
+                    if 'commit' in next_content or 'author:' in next_content:
+                        language = 'plaintext'
+                    elif any(kw in next_content for kw in ['extension host', 'tsserver', 'next-server', 'memory']):
+                        language = 'plaintext'
+                    elif 'npm' in next_content or 'pnpm' in next_content or 'yarn' in next_content:
+                        language = 'bash'
+                    elif 'const' in next_content or 'function' in next_content or '=>' in next_content:
+                        language = 'typescript'
+                    elif 'import' in next_content or 'export' in next_content:
+                        language = 'typescript'
+                
+                line = f'```{language}'
+                violations_fixed += 1
+            
+            fixed_lines.append(line)
+            
+            # Find the closing fence
+            j = i + 1
+            while j < len(lines) and not lines[j].strip().startswith('```'):
+                fixed_lines.append(lines[j])
+                j += 1
+            
+            if j < len(lines):
+                fixed_lines.append(lines[j])  # Add closing fence
+                
+                # Check if next line after closing fence is not blank
+                if j + 1 < len(lines) and lines[j + 1].strip() != '':
+                    # Don't add blank if next is heading or code fence
+                    next_is_heading = re.match(r'^#+\s', lines[j + 1])
+                    next_is_fence = lines[j + 1].strip().startswith('```')
+                    if not (next_is_heading or next_is_fence):
+                        fixed_lines.append('')
+                        violations_fixed += 1
+                
+                i = j
+        
+        else:
+            fixed_lines.append(line)
+        
+        i += 1
+    
+    return '\n'.join(fixed_lines), violations_fixed
+
+
+def fix_list_numbering(content: str) -> Tuple[str, int]:
+    """Fix MD029: Ordered list item numbering should be sequential."""
+    lines = content.split('\n')
+    fixed_lines = []
+    violations_fixed = 0
+    in_ordered_list = False
+    current_number = 1
+    
+    for line in lines:
+        # Check if line is ordered list item
+        match = re.match(r'^(\s*)(\d+)\.\s+(.*)$', line)
+        
+        if match:
+            indent, num, rest = match.groups()
+            expected = current_number
+            
+            if int(num) != expected:
+                line = f'{indent}{expected}. {rest}'
+                violations_fixed += 1
+            
+            current_number += 1
+            in_ordered_list = True
+        else:
+            # Reset counter if we exit the list
+            if in_ordered_list and line.strip() and not line.startswith(' '):
+                current_number = 1
+                in_ordered_list = False
+        
+        fixed_lines.append(line)
+    
+    return '\n'.join(fixed_lines), violations_fixed
+
+
+def process_file(file_path: Path) -> bool:
+    """Process a single markdown file."""
+    try:
+        # Read with UTF-8 encoding
+        content = file_path.read_text(encoding='utf-8')
+        
+        # Apply fixes
+        content, violations1 = fix_markdown_violations(content)
+        content, violations2 = fix_list_numbering(content)
+        
+        total_violations = violations1 + violations2
+        
+        if total_violations > 0:
+            # Write back
+            file_path.write_text(content, encoding='utf-8')
+            print(f'✅ Fixed {total_violations} violations in {file_path.name}')
+            return True
+        else:
+            print(f'✨ No violations found in {file_path.name}')
+            return False
+    
+    except Exception as e:
+        print(f'❌ Error processing {file_path.name}: {e}')
+        return False
+
+
+def main():
+    """Main entry point."""
+    # Get files to process from command line or use defaults
+    if len(sys.argv) > 1:
+        files = [Path(arg) for arg in sys.argv[1:]]
+    else:
+        # Default: Fix the 5 files mentioned by CodeRabbit
+        reports_dir = Path(__file__).parent.parent / 'docs' / 'archived' / 'DAILY_PROGRESS_REPORTS'
+        files = [
+            reports_dir / '2025-11-11-comprehensive-fixes-pr273-272.md',
+            reports_dir / '2025-11-11_COMPREHENSIVE_5_DAY_COMPLETION.md',
+            reports_dir / '2025-11-11_Phase_1_Memory_Budget_Fixes.md',
+            reports_dir / '2025-11-11_Phase_2_Lint_Fixes_Complete.md',
+            reports_dir / '2025-11-11_FINAL_STATUS_PR273.md',
+        ]
+    
+    # Filter to existing files
+    files = [f for f in files if f.exists()]
+    
+    if not files:
+        print('❌ No files found to process')
+        return 1
+    
+    print(f'🔧 Processing {len(files)} markdown file(s)...\n')
+    
+    fixed_count = 0
+    for file_path in files:
+        if process_file(file_path):
+            fixed_count += 1
+    
+    print(f'\n✅ Fixed {fixed_count}/{len(files)} file(s)')
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())
+
+]]>
+</file>
+
+<file path="scripts/fix-mongoose-models.js">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * Fix Mongoose model declarations to use getModel() pattern
+ * Converts: const X = models.X || model<IX>('X', XSchema)
+ * To: const X = getModel<IX>('X', XSchema) as MModel<IX>
+ */
+
+const fs = require("fs");
+const path = require("path");
+const glob = require("glob");
+
+// Find all TypeScript files in models/ and server/ directories
+const files = glob.sync("{models,server,modules,lib}/**/*.ts", {
+  cwd: __dirname + "/..",
+  absolute: true,
+  ignore: ["**/node_modules/**", "**/.next/**", "**/.archive*/**"],
+});
+
+let totalFixed = 0;
+
+files.forEach((file) => {
+  let content = fs.readFileSync(file, "utf8");
+  let modified = false;
+  const originalContent = content;
+
+  // Check if file already imports from mongoose-compat
+  const hasCompatImport = content.includes(
+    "from '@/src/types/mongoose-compat'",
+  );
+
+  // Pattern 1: (models.X || model<IX>('X', XSchema)) as any
+  // Pattern 2: (mongoose.models.X || mongoose.model<IX>('X', XSchema))
+  // Pattern 3: models.X || model<IX>('X', XSchema)
+  // Pattern 4: mongoose.models.X || mongoose.model<IX>('X', XSchema)
+
+  // Pattern 1: (models.X || model<IType>('Name', Schema))
+  let regex1 =
+    /\(models\.([A-Za-z0-9_]+)\s*\|\|\s*model<([A-Za-z0-9_<>, ]+)>\('([A-Za-z0-9_]+)',\s*([A-Za-z0-9_]+)\)\)/g;
+  content = content.replace(
+    regex1,
+    (match, modelVar, typeName, modelName, schemaName) => {
+      modified = true;
+      return `getModel<${typeName}>('${modelName}', ${schemaName})`;
+    },
+  );
+
+  // Pattern 2: (mongoose.models.X || mongoose.model<IType>('Name', Schema))
+  let regex2 =
+    /\(mongoose\.models\.([A-Za-z0-9_]+)\s*\|\|\s*mongoose\.model<([A-Za-z0-9_<>, ]+)>\('([A-Za-z0-9_]+)',\s*([A-Za-z0-9_]+)\)\)/g;
+  content = content.replace(
+    regex2,
+    (match, modelVar, typeName, modelName, schemaName) => {
+      modified = true;
+      return `getModel<${typeName}>('${modelName}', ${schemaName})`;
+    },
+  );
+
+  // Pattern 3: models.X || model<IType>('Name', Schema) [without parens at statement start]
+  let regex3 =
+    /(^|\s)models\.([A-Za-z0-9_]+)\s*\|\|\s*model<([A-Za-z0-9_<>, ]+)>\('([A-Za-z0-9_]+)',\s*([A-Za-z0-9_]+)\)/gm;
+  content = content.replace(
+    regex3,
+    (match, prefix, modelVar, typeName, modelName, schemaName) => {
+      modified = true;
+      return `${prefix}getModel<${typeName}>('${modelName}', ${schemaName})`;
+    },
+  );
+
+  // Pattern 4: mongoose.models.X || mongoose.model<IType>('Name', Schema) [without parens]
+  let regex4 =
+    /(^|\s)mongoose\.models\.([A-Za-z0-9_]+)\s*\|\|\s*mongoose\.model<([A-Za-z0-9_<>, ]+)>\('([A-Za-z0-9_]+)',\s*([A-Za-z0-9_]+)\)/gm;
+  content = content.replace(
+    regex4,
+    (match, prefix, modelVar, typeName, modelName, schemaName) => {
+      modified = true;
+      return `${prefix}getModel<${typeName}>('${modelName}', ${schemaName})`;
+    },
+  );
+
+  // Pattern 5: (models.X || model('Name', Schema)) [no generics]
+  let regex5 =
+    /\(models\.([A-Za-z0-9_]+)\s*\|\|\s*model\('([A-Za-z0-9_]+)',\s*([A-Za-z0-9_]+)\)\)/g;
+  content = content.replace(
+    regex5,
+    (match, modelVar, modelName, schemaName) => {
+      modified = true;
+      return `getModel<any>('${modelName}', ${schemaName})`;
+    },
+  );
+
+  // Pattern 6: (mongoose.models.X || mongoose.model('Name', Schema)) [no generics]
+  let regex6 =
+    /\(mongoose\.models\.([A-Za-z0-9_]+)\s*\|\|\s*mongoose\.model\('([A-Za-z0-9_]+)',\s*([A-Za-z0-9_]+)\)\)/g;
+  content = content.replace(
+    regex6,
+    (match, modelVar, modelName, schemaName) => {
+      modified = true;
+      return `getModel<any>('${modelName}', ${schemaName})`;
+    },
+  );
+
+  // Pattern 7: models.X || model('Name', Schema) [no generics, no parens]
+  let regex7 =
+    /(^|\s)models\.([A-Za-z0-9_]+)\s*\|\|\s*model\('([A-Za-z0-9_]+)',\s*([A-Za-z0-9_]+)\)/gm;
+  content = content.replace(
+    regex7,
+    (match, prefix, modelVar, modelName, schemaName) => {
+      modified = true;
+      return `${prefix}getModel<any>('${modelName}', ${schemaName})`;
+    },
+  );
+
+  // Pattern 8: mongoose.models.X || mongoose.model('Name', Schema) [no generics, no parens]
+  let regex8 =
+    /(^|\s)mongoose\.models\.([A-Za-z0-9_]+)\s*\|\|\s*mongoose\.model\('([A-Za-z0-9_]+)',\s*([A-Za-z0-9_]+)\)/gm;
+  content = content.replace(
+    regex8,
+    (match, prefix, modelVar, modelName, schemaName) => {
+      modified = true;
+      return `${prefix}getModel<any>('${modelName}', ${schemaName})`;
+    },
+  );
+
+  // Add import if needed and file was modified
+  if (modified && !hasCompatImport) {
+    // Find mongoose import line
+    const mongooseImportMatch = content.match(
+      /import\s+.*from\s+['"]mongoose['"]/,
+    );
+    if (mongooseImportMatch) {
+      const importLine = mongooseImportMatch[0];
+      const importIndex = content.indexOf(importLine);
+      const afterImport = importIndex + importLine.length;
+      content =
+        content.slice(0, afterImport) +
+        "\nimport { getModel, MModel } from '@/src/types/mongoose-compat';" +
+        content.slice(afterImport);
+    }
+  }
+
+  if (content !== originalContent) {
+    fs.writeFileSync(file, content, "utf8");
+    console.log(`✓ Fixed ${path.relative(process.cwd(), file)}`);
+    totalFixed++;
+  }
+});
+
+console.log(`\nTotal files fixed: ${totalFixed}`);
+
+]]>
+</file>
+
+<file path="scripts/fix-mongoose-ts-errors.js">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * Fix Mongoose TS2349 errors by adding explicit type annotations
+ * Processes all affected files and adds proper type parameters
+ */
+
+const fs = require("fs");
+const path = require("path");
+
+// Read the error list
+const errors = `app/api/admin/billing/annual-discount/route.ts:40
+app/api/admin/discounts/route.ts:64
+app/api/admin/discounts/route.ts:102
+app/api/admin/footer/route.ts:46
+app/api/admin/footer/route.ts:122
+app/api/admin/footer/route.ts:139
+app/api/admin/logo/upload/route.ts:81
+app/api/admin/logo/upload/route.ts:146
+app/api/admin/price-tiers/route.ts:73
+app/api/admin/price-tiers/route.ts:115
+app/api/admin/price-tiers/route.ts:118`.split("\n");
+
+// Mongoose methods that need type fixing
+const mongooseMethods = [
+  "findOne",
+  "findOneAndUpdate",
+  "findByIdAndUpdate",
+  "findById",
+  "find",
+  "create",
+  "updateOne",
+  "updateMany",
+  "deleteOne",
+  "deleteMany",
+];
+
+// Process each error
+errors.forEach((errorLine) => {
+  const [filePath, lineNum] = errorLine.split(":");
+  if (!filePath || !lineNum) return;
+
+  const fullPath = path.join(process.cwd(), filePath);
+
+  try {
+    const content = fs.readFileSync(fullPath, "utf8");
+    const lines = content.split("\n");
+    const lineIndex = parseInt(lineNum) - 1;
+
+    if (lineIndex < 0 || lineIndex >= lines.length) return;
+
+    let line = lines[lineIndex];
+    let modified = false;
+
+    // Add type assertion for Mongoose methods
+    mongooseMethods.forEach((method) => {
+      const pattern = new RegExp(`(\\w+\\.${method}[<>\\w]*\\()`);
+      if (pattern.test(line) && !line.includes(" as ")) {
+        // Find the end of the statement (semicolon or closing paren)
+        let endLine = lineIndex;
+        let parenCount =
+          (line.match(/\(/g) || []).length - (line.match(/\)/g) || []).length;
+
+        while (parenCount > 0 && endLine < lines.length - 1) {
+          endLine++;
+          parenCount += (lines[endLine].match(/\(/g) || []).length;
+          parenCount -= (lines[endLine].match(/\)/g) || []).length;
+        }
+
+        // Add 'as any' before the semicolon or assignment
+        if (lines[endLine].includes(");")) {
+          lines[endLine] = lines[endLine].replace(/\);/, ") as any;");
+          modified = true;
+        }
+      }
+    });
+
+    if (modified) {
+      fs.writeFileSync(fullPath, lines.join("\n"), "utf8");
+      console.log(`✅ Fixed: ${filePath}:${lineNum}`);
+    }
+  } catch (error) {
+    console.error(`❌ Error processing ${filePath}:`, error.message);
+  }
+});
+
+console.log("\\n✅ Type fixes applied");
+
+]]>
+</file>
+
+<file path="scripts/fix-null-property-codes.js">
+<![CDATA[
+require("dotenv/config");
+require("tsx/cjs");
+
+const { connectToDatabase, disconnectFromDatabase } = require("../lib/mongodb-unified.ts");
+const { COLLECTIONS, createIndexes } = require("../lib/db/collections.ts");
+
+/**
+ * Fix null propertyCode values before creating unique index
+ */
+
+async function fixNullPropertyCodes() {
+  try {
+    console.log("🔗 Connecting to MongoDB (unified connector)...");
+    const mongoose = await connectToDatabase();
+    const db = mongoose.connection.db;
+
+    // Find properties with null propertyCode
+    const nullProperties = await db
+      .collection(COLLECTIONS.PROPERTIES)
+      .find({
+        $or: [
+          { propertyCode: null },
+          { propertyCode: { $exists: false } },
+          { propertyCode: "" },
+        ],
+      })
+      .toArray();
+
+    console.log(
+      `🔍 Found ${nullProperties.length} properties with null/missing propertyCode`,
+    );
+
+    if (nullProperties.length > 0) {
+      // Generate property codes for null values
+      for (let i = 0; i < nullProperties.length; i++) {
+        const property = nullProperties[i];
+
+        const orgId = property.orgId || property.organization;
+        // Get organization code or use property ID
+        const orgCode = orgId
+          ? orgId.toString().slice(-4).toUpperCase()
+          : "DFLT";
+
+        // Generate sequential code
+        const count = await db.collection(COLLECTIONS.PROPERTIES).countDocuments({
+          $or: [{ orgId }, { organization: orgId }],
+          propertyCode: { $ne: null },
+        });
+
+        const newCode = `PROP-${orgCode}-${(count + i + 1).toString().padStart(5, "0")}`;
+
+        // Update the property
+        await db
+          .collection(COLLECTIONS.PROPERTIES)
+          .updateOne(
+            { _id: property._id },
+            { $set: { propertyCode: newCode } },
+          );
+
+        console.log(
+          `✅ Updated property ${property._id} with code: ${newCode}`,
+        );
+      }
+    }
+
+    console.log("\n🏢 Ensuring canonical indexes via createIndexes()...");
+    await createIndexes();
+    console.log("✅ Canonical indexes created successfully!");
+  } catch (error) {
+    console.error("❌ Error fixing property codes:", error);
+    process.exit(1);
+  } finally {
+    try {
+      await disconnectFromDatabase();
+    } catch (err) {
+      console.warn("⚠️ Failed to disconnect cleanly", err);
+    }
+    console.log("🔚 Disconnected from MongoDB");
+    process.exit(0);
+  }
+}
+
+fixNullPropertyCodes();
+
+]]>
+</file>
+
+<file path="scripts/fix-priority-2-automated.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * COMPREHENSIVE PRIORITY 2 FIXES
+ * Systematically fix all Priority 2 issues with automated patterns
+ *
+ * Strategy:
+ * 1. Fix unhandled promise rejections (187 issues) - Add .catch() handlers
+ * 2. Fix hydration mismatches (58 issues) - Add suppressHydrationWarning
+ * 3. Fix i18n/RTL issues (70 issues) - Add missing translations
+ *
+ * This script provides:
+ * - Automated fixes for common patterns
+ * - Manual review recommendations for complex cases
+ * - Verification tests after fixes
+ * - Rollback capability
+ */
+
+import { promises as fs } from "fs";
+
+interface FixResult {
+  file: string;
+  fixType: string;
+  linesChanged: number[];
+  success: boolean;
+  error?: string;
+}
+
+interface PriorityIssue {
+  severity: string;
+  file: string;
+  line: number;
+  type: string;
+}
+
+interface IssueReport {
+  issues: PriorityIssue[];
+}
+
+const fixes: FixResult[] = [];
+
+//================================================================================
+// PHASE 1: FIX UNHANDLED PROMISES
+//================================================================================
+
+async function fixUnhandledPromises() {
+  console.log("\n🔧 PHASE 1: Fixing Unhandled Promises\n");
+
+  const report = JSON.parse(
+    await fs.readFile("_artifacts/scans/unhandled-promises.json", "utf-8"),
+  ) as IssueReport;
+
+  const critical = report.issues.filter((i) => i.severity === "critical");
+  const major = report.issues.filter((i) => i.severity === "major");
+
+  console.log(`🔴 ${critical.length} critical issues`);
+  console.log(`🟧 ${major.length} major issues\n`);
+
+  // Group by file for batch processing
+  const fileGroups = new Map<string, PriorityIssue[]>();
+
+  [...critical, ...major].forEach((issue) => {
+    if (!fileGroups.has(issue.file)) {
+      fileGroups.set(issue.file, []);
+    }
+    fileGroups.get(issue.file)!.push(issue);
+  });
+
+  console.log(`📂 ${fileGroups.size} files need fixes\n`);
+
+  for (const [filePath, issues] of fileGroups) {
+    try {
+      let content = await fs.readFile(filePath, "utf-8");
+      let modified = false;
+      const changedLines: number[] = [];
+
+      for (const issue of issues) {
+        if (issue.type === "fetch") {
+          // Wrap fetch in try-catch if not already
+          const lines = content.split("\n");
+          const targetLine = lines[issue.line - 1];
+
+          if (
+            targetLine &&
+            targetLine.includes("await fetch") &&
+            !targetLine.trim().startsWith("//")
+          ) {
+            // Find the start of the async function
+            let blockStart = issue.line - 1;
+            for (
+              let i = issue.line - 2;
+              i >= Math.max(0, issue.line - 20);
+              i--
+            ) {
+              if (lines[i].includes("async ") || lines[i].includes("try {")) {
+                blockStart = i;
+                break;
+              }
+            }
+
+            // Check if already in try block
+            const hasExistingTry = lines
+              .slice(blockStart, issue.line)
+              .some((l) => l.includes("try {"));
+
+            if (!hasExistingTry) {
+              // Add error handler comment
+              lines[issue.line - 1] =
+                lines[issue.line - 1] + " // TODO: Add try-catch block";
+              content = lines.join("\n");
+              modified = true;
+              changedLines.push(issue.line);
+            }
+          }
+        } else if (issue.type === "then-no-catch") {
+          // Add .catch() handler
+          const lines = content.split("\n");
+          const targetLine = lines[issue.line - 1];
+
+          if (
+            targetLine &&
+            targetLine.includes(".then(") &&
+            !targetLine.includes(".catch(")
+          ) {
+            // Find the end of the .then() chain
+            let endLine = issue.line - 1;
+            for (
+              let i = issue.line;
+              i < Math.min(lines.length, issue.line + 10);
+              i++
+            ) {
+              if (lines[i].includes(");") || lines[i].includes(")")) {
+                endLine = i;
+                break;
+              }
+            }
+
+            // Add .catch() after the chain
+            const indent = lines[issue.line - 1].match(/^\s*/)?.[0] || "";
+            lines[endLine] =
+              lines[endLine].replace(/\);?\s*$/, "") +
+              `
+      .catch((error) => {
+${indent}  console.error('Error:', error);
+${indent}});`;
+
+            content = lines.join("\n");
+            modified = true;
+            changedLines.push(issue.line, endLine);
+          }
+        }
+      }
+
+      if (modified) {
+        await fs.writeFile(filePath, content, "utf-8");
+        fixes.push({
+          file: filePath,
+          fixType: "unhandled-promises",
+          linesChanged: changedLines,
+          success: true,
+        });
+        console.log(`✅ Fixed: ${filePath} (${changedLines.length} changes)`);
+      }
+    } catch (error) {
+      console.error(`❌ Error fixing ${filePath}:`, error);
+      fixes.push({
+        file: filePath,
+        fixType: "unhandled-promises",
+        linesChanged: [],
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+
+  console.log(
+    `\n✅ Phase 1 complete: ${fixes.filter((f) => f.success).length}/${fileGroups.size} files fixed\n`,
+  );
+}
+
+//================================================================================
+// PHASE 2: FIX HYDRATION MISMATCHES
+//================================================================================
+
+async function fixHydrationMismatches() {
+  console.log("\n🔧 PHASE 2: Fixing Hydration Mismatches\n");
+
+  const report = JSON.parse(
+    await fs.readFile("_artifacts/scans/hydration-mismatches.json", "utf-8"),
+  ) as IssueReport;
+
+  const critical = report.issues.filter((i) => i.severity === "critical");
+
+  console.log(`🔴 ${critical.length} critical hydration issues\n`);
+
+  // Group by file
+  const fileGroups = new Map<string, PriorityIssue[]>();
+  critical.forEach((issue) => {
+    if (!fileGroups.has(issue.file)) {
+      fileGroups.set(issue.file, []);
+    }
+    fileGroups.get(issue.file)!.push(issue);
+  });
+
+  for (const [filePath, issues] of fileGroups) {
+    try {
+      let content = await fs.readFile(filePath, "utf-8");
+      let modified = false;
+      const changedLines: number[] = [];
+
+      for (const issue of issues) {
+        if (issue.type === "storage") {
+          // Wrap localStorage/sessionStorage in client check
+          const lines = content.split("\n");
+          const targetLine = lines[issue.line - 1];
+
+          if (
+            targetLine &&
+            (targetLine.includes("localStorage") ||
+              targetLine.includes("sessionStorage"))
+          ) {
+            const indent = targetLine.match(/^\s*/)?.[0] || "";
+            lines[issue.line - 1] =
+              `${indent}if (typeof window !== 'undefined') { ${targetLine.trim()} }`;
+            content = lines.join("\n");
+            modified = true;
+            changedLines.push(issue.line);
+          }
+        } else if (issue.type === "browser-api") {
+          // Add typeof window check
+          const lines = content.split("\n");
+          const targetLine = lines[issue.line - 1];
+
+          if (
+            targetLine &&
+            (targetLine.includes("window.") || targetLine.includes("document."))
+          ) {
+            // Add comment to convert to client component
+            lines[issue.line - 1] =
+              `// TODO: Add "use client" directive or wrap in typeof window check\n${targetLine}`;
+            content = lines.join("\n");
+            modified = true;
+            changedLines.push(issue.line);
+          }
+        } else if (issue.type === "date-format") {
+          // Add suppressHydrationWarning
+          const lines = content.split("\n");
+
+          // Find the JSX element containing the date
+          let elementStart = issue.line - 1;
+          for (let i = issue.line - 2; i >= Math.max(0, issue.line - 5); i--) {
+            if (lines[i].includes("<")) {
+              elementStart = i;
+              break;
+            }
+          }
+
+          const targetLine = lines[elementStart];
+          if (
+            targetLine &&
+            targetLine.includes("<") &&
+            !targetLine.includes("suppressHydrationWarning")
+          ) {
+            // Add suppressHydrationWarning to the element
+            lines[elementStart] = targetLine.replace(
+              /<(\w+)/,
+              "<$1 suppressHydrationWarning",
+            );
+            content = lines.join("\n");
+            modified = true;
+            changedLines.push(elementStart + 1);
+          }
+        }
+      }
+
+      if (modified) {
+        await fs.writeFile(filePath, content, "utf-8");
+        fixes.push({
+          file: filePath,
+          fixType: "hydration",
+          linesChanged: changedLines,
+          success: true,
+        });
+        console.log(`✅ Fixed: ${filePath} (${changedLines.length} changes)`);
+      }
+    } catch (error) {
+      console.error(`❌ Error fixing ${filePath}:`, error);
+      fixes.push({
+        file: filePath,
+        fixType: "hydration",
+        linesChanged: [],
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+
+  console.log(
+    `\n✅ Phase 2 complete: ${fixes.filter((f) => f.fixType === "hydration" && f.success).length}/${fileGroups.size} files fixed\n`,
+  );
+}
+
+//================================================================================
+// PHASE 3: FIX I18N/RTL ISSUES
+//================================================================================
+
+async function fixI18nIssues() {
+  console.log("\n🔧 PHASE 3: Running Translation Audit\n");
+
+  // Run the audit script
+  const { exec } = await import("child_process");
+  const { promisify } = await import("util");
+  const execAsync = promisify(exec);
+
+  try {
+    const { stdout, stderr } = await execAsync(
+      "node scripts/audit-translations.mjs",
+    );
+    console.log(stdout);
+    if (stderr) console.error(stderr);
+  } catch (error) {
+    console.error("❌ Translation audit failed:", error);
+  }
+
+  console.log("\n✅ Phase 3 complete: Translation audit run\n");
+}
+
+//================================================================================
+// MAIN EXECUTION
+//================================================================================
+
+async function main() {
+  console.log(
+    "╔════════════════════════════════════════════════════════════════╗",
+  );
+  console.log(
+    "║          PRIORITY 2: COMPREHENSIVE AUTOMATED FIXES            ║",
+  );
+  console.log(
+    "╚════════════════════════════════════════════════════════════════╝\n",
+  );
+
+  try {
+    // Phase 1: Unhandled promises
+    await fixUnhandledPromises();
+
+    // Phase 2: Hydration mismatches
+    await fixHydrationMismatches();
+
+    // Phase 3: I18n/RTL
+    await fixI18nIssues();
+
+    // Save summary report
+    const summary = {
+      timestamp: new Date().toISOString(),
+      totalFixes: fixes.length,
+      successful: fixes.filter((f) => f.success).length,
+      failed: fixes.filter((f) => !f.success).length,
+      byType: {
+        "unhandled-promises": fixes.filter(
+          (f) => f.fixType === "unhandled-promises",
+        ).length,
+        hydration: fixes.filter((f) => f.fixType === "hydration").length,
+        i18n: fixes.filter((f) => f.fixType === "i18n").length,
+      },
+      fixes: fixes,
+    };
+
+    await fs.mkdir("_artifacts/fixes", { recursive: true });
+    await fs.writeFile(
+      "_artifacts/fixes/priority-2-fixes.json",
+      JSON.stringify(summary, null, 2),
+    );
+
+    console.log(
+      "\n╔════════════════════════════════════════════════════════════════╗",
+    );
+    console.log(
+      "║                        FINAL SUMMARY                           ║",
+    );
+    console.log(
+      "╚════════════════════════════════════════════════════════════════╝\n",
+    );
+    console.log(`✅ Total fixes applied: ${summary.successful}`);
+    console.log(`❌ Failed fixes: ${summary.failed}`);
+    console.log(`\n📊 By type:`);
+    console.log(
+      `   - Unhandled Promises: ${summary.byType["unhandled-promises"]}`,
+    );
+    console.log(`   - Hydration Mismatches: ${summary.byType["hydration"]}`);
+    console.log(`   - I18n/RTL: ${summary.byType["i18n"]}`);
+    console.log(`\n📁 Report saved: _artifacts/fixes/priority-2-fixes.json\n`);
+
+    console.log("🎯 NEXT STEPS:\n");
+    console.log("1. Review TODO comments added to files");
+    console.log("2. Run: pnpm typecheck && pnpm lint");
+    console.log("3. Run: pnpm test:e2e");
+    console.log(
+      '4. Commit changes: git add -A && git commit -m "fix: Priority 2 automated fixes"\n',
+    );
+  } catch (error) {
+    console.error("\n❌ Fatal error:", error);
+    process.exit(1);
+  }
+}
+
+main();
+
+]]>
+</file>
+
+<file path="scripts/fix-superadmin-login.ts">
+<![CDATA[
+/**
+ * Fix Super Admin Login Issue
+ * 
+ * Diagnoses and fixes login issues for superadmin account
+ * Common issues:
+ * 1. Missing or invalid phone number (needed for OTP)
+ * 2. Incorrect password hash
+ * 3. Inactive status
+ * 4. Missing orgId
+ */
+
+import { connectToDatabase } from '../lib/mongodb-unified';
+import { User } from '../server/models/User';
+import bcrypt from 'bcryptjs';
+
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+const SUPERADMIN_EMAIL = `superadmin@${EMAIL_DOMAIN}`;
+const EXPECTED_PASSWORD = process.env.SUPERADMIN_PASSWORD;
+const FALLBACK_PHONE = process.env.NEXTAUTH_SUPERADMIN_FALLBACK_PHONE || '+966552233456'; // Updated to user's number
+
+if (!EXPECTED_PASSWORD) {
+  console.error('❌ SUPERADMIN_PASSWORD environment variable is required');
+  process.exit(1);
+}
+
+// TypeScript: After the exit check above, this is guaranteed to be a string
+const PASSWORD: string = EXPECTED_PASSWORD;
+
+async function fixSuperAdminLogin() {
+  console.log('🔍 Diagnosing Super Admin login issue...\n');
+
+  try {
+    // Connect to database
+    await connectToDatabase();
+    console.log('✅ Connected to database\n');
+
+    // Find super admin user
+    const user = await User.findOne({ email: SUPERADMIN_EMAIL });
+
+    if (!user) {
+      console.error(`❌ User not found: ${SUPERADMIN_EMAIL}`);
+      console.error('   Run: pnpm exec tsx scripts/seed-test-users.js');
+      process.exit(1);
+    }
+
+    // Use .get() for dynamic properties that may not be in TypeScript schema
+    const userDoc = user.toObject() as Record<string, unknown>;
+    const role = userDoc.role as string | undefined;
+    const orgId = userDoc.orgId as string | undefined;
+    const contact = userDoc.contact as Record<string, unknown> | undefined;
+    const personal = userDoc.personal as Record<string, unknown> | undefined;
+
+    console.log('✅ Found user:', SUPERADMIN_EMAIL);
+    console.log('   ID:', user._id);
+    console.log('   Role:', role);
+    console.log('   Status:', user.status);
+    console.log('   OrgId:', orgId || 'MISSING');
+    
+    // Check phone number
+    const phone = (contact?.phone || personal?.phone || userDoc.phone) as string | undefined;
+    console.log('   Phone:', phone || 'MISSING');
+
+    let needsUpdate = false;
+    const updates: Record<string, unknown> = {};
+
+    // 1. Verify password
+    console.log('\n🔐 Checking password...');
+    const isPasswordValid = await bcrypt.compare(PASSWORD, user.password as string);
+    
+    if (!isPasswordValid) {
+      console.log('   ⚠️  Password mismatch - updating to value from SUPERADMIN_PASSWORD env');
+      const hashedPassword = await bcrypt.hash(PASSWORD, 10);
+      updates.password = hashedPassword;
+      needsUpdate = true;
+    } else {
+      console.log('   ✅ Password is correct');
+    }
+
+    // 2. Check status
+    if (user.status !== 'ACTIVE') {
+      console.log(`   ⚠️  Status is "${user.status}" - updating to ACTIVE`);
+      updates.status = 'ACTIVE';
+      updates.isActive = true;
+      needsUpdate = true;
+    } else {
+      console.log('   ✅ Status is ACTIVE');
+    }
+
+    // 3. Check phone number (required for OTP)
+    if (!phone) {
+      console.log(`   ⚠️  Missing phone number - adding fallback: ${FALLBACK_PHONE}`);
+      updates['contact.phone'] = FALLBACK_PHONE;
+      updates['personal.phone'] = FALLBACK_PHONE;
+      updates.phone = FALLBACK_PHONE;
+      needsUpdate = true;
+    } else {
+      console.log('   ✅ Phone number exists');
+    }
+
+    // 4. Check orgId
+    if (!orgId) {
+      console.log('   ⚠️  Missing orgId - this may cause issues');
+      console.log('   Note: Run seed-test-users.js to create proper org structure');
+    }
+
+    // 5. Ensure role is SUPER_ADMIN
+    if (role !== 'SUPER_ADMIN') {
+      console.log(`   ⚠️  Role is "${role}" - updating to SUPER_ADMIN`);
+      updates.role = 'SUPER_ADMIN';
+      updates.isSuperAdmin = true;
+      updates['professional.role'] = 'SUPER_ADMIN';
+      needsUpdate = true;
+    } else {
+      console.log('   ✅ Role is SUPER_ADMIN');
+    }
+
+    // Apply updates if needed
+    if (needsUpdate) {
+      console.log('\n🔧 Applying fixes...');
+      await User.updateOne({ _id: user._id }, { $set: updates });
+      console.log('✅ User updated successfully\n');
+    } else {
+      console.log('\n✅ No updates needed\n');
+    }
+
+    // Test password one more time
+    const updatedUser = await User.findOne({ email: SUPERADMIN_EMAIL });
+    if (updatedUser) {
+      const updatedDoc = updatedUser.toObject() as Record<string, unknown>;
+      const updatedContact = updatedDoc.contact as Record<string, unknown> | undefined;
+      const updatedPersonal = updatedDoc.personal as Record<string, unknown> | undefined;
+      const updatedPhone = (updatedContact?.phone || updatedPersonal?.phone || updatedDoc.phone) as string | undefined;
+      const updatedRole = updatedDoc.role as string | undefined;
+      const updatedOrgId = updatedDoc.orgId as string | undefined;
+      
+      const finalPasswordCheck = await bcrypt.compare(PASSWORD, updatedUser.password as string);
+      
+      console.log('📋 Final Status:');
+      console.log('   Email:', SUPERADMIN_EMAIL);
+      console.log('   Password:', '[configured via env]');
+      console.log('   Password Valid:', finalPasswordCheck ? '✅ YES' : '❌ NO');
+      console.log('   Phone:', updatedPhone || 'MISSING');
+      console.log('   Status:', updatedUser.status);
+      console.log('   Role:', updatedRole);
+      console.log('   OrgId:', updatedOrgId || 'MISSING');
+
+      if (finalPasswordCheck && updatedUser.status === 'ACTIVE' && updatedPhone) {
+        console.log('\n✅ ✅ ✅ LOGIN SHOULD NOW WORK! ✅ ✅ ✅\n');
+        console.log('Try logging in at: https://fixzit.co/login');
+        console.log(`Email: ${SUPERADMIN_EMAIL}`);
+        console.log('Password: [use the value from SUPERADMIN_PASSWORD env]');
+      } else {
+        console.log('\n⚠️  Some issues remain - check above for details\n');
+      }
+    }
+
+  } catch (error) {
+    console.error('❌ Error:', error);
+    process.exit(1);
+  } finally {
+    // Close MongoDB connection to prevent hanging
+    process.exit(0);
+  }
+}
+
+fixSuperAdminLogin();
+
+]]>
+</file>
+
+<file path="scripts/fix-superadmin-password.js">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * Safely reset the superadmin password with tenant scoping.
+ * - Requires ALLOW_SUPERADMIN_FIX=1
+ * - Requires org env: DEFAULT_ORG_ID | PUBLIC_ORG_ID | TEST_ORG_ID
+ * - Supports DRY_RUN=1 (default) to preview changes
+ *
+ * Usage:
+ *   ALLOW_SUPERADMIN_FIX=1 DEFAULT_ORG_ID=... FIX_SUPERADMIN_EMAIL=... FIX_SUPERADMIN_PASSWORD=... node scripts/fix-superadmin-password.js
+ */
+const mongoose = require("mongoose");
+const { db } = require("../lib/mongo");
+const { User } = require("../server/models/User");
+const { hashPassword } = require("../lib/auth");
+
+const allowFix = process.env.ALLOW_SUPERADMIN_FIX === "1";
+if (!allowFix) {
+  console.error("❌ ALLOW_SUPERADMIN_FIX=1 is required to run this script");
+  process.exit(1);
+}
+
+const isProdLike =
+  process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike && process.env.ALLOW_SEED !== "1") {
+  console.error(
+    "❌ Blocked in production/CI. Set ALLOW_SEED=1 only for controlled maintenance.",
+  );
+  process.exit(1);
+}
+
+const ORG_ID =
+  process.env.DEFAULT_ORG_ID ||
+  process.env.PUBLIC_ORG_ID ||
+  process.env.TEST_ORG_ID;
+
+if (!ORG_ID || !mongoose.Types.ObjectId.isValid(ORG_ID)) {
+  console.error("❌ DEFAULT_ORG_ID/PUBLIC_ORG_ID/TEST_ORG_ID (valid ObjectId) is required for tenancy scoping");
+  process.exit(1);
+}
+
+const EMAIL = process.env.FIX_SUPERADMIN_EMAIL || process.env.TEST_USER_EMAIL;
+const PASSWORD = process.env.FIX_SUPERADMIN_PASSWORD || process.env.TEST_USER_PASSWORD;
+
+if (!EMAIL || !PASSWORD) {
+  console.error("❌ FIX_SUPERADMIN_EMAIL and FIX_SUPERADMIN_PASSWORD (or TEST_USER_EMAIL/TEST_USER_PASSWORD) are required (no defaults)");
+  process.exit(1);
+}
+if (
+  PASSWORD.length < 12 ||
+  !/[A-Z]/.test(PASSWORD) ||
+  !/[a-z]/.test(PASSWORD) ||
+  !/[0-9]/.test(PASSWORD) ||
+  !/[^A-Za-z0-9]/.test(PASSWORD)
+) {
+  console.error(
+    "❌ FIX_SUPERADMIN_PASSWORD must be at least 12 chars and include upper, lower, number, and symbol",
+  );
+  process.exit(1);
+}
+
+const DRY_RUN = process.env.DRY_RUN !== "0";
+
+async function main() {
+  await db;
+  const orgObjectId = new mongoose.Types.ObjectId(ORG_ID);
+  const filter = { email: EMAIL, orgId: orgObjectId };
+  const user = await User.findOne(filter);
+
+  if (!user) {
+    console.error(`❌ User not found for email=${EMAIL} orgId=${ORG_ID}`);
+    process.exit(1);
+  }
+
+  const hashed = await hashPassword(PASSWORD);
+  const update = {
+    password: hashed,
+    orgId: orgObjectId,
+    org_id: orgObjectId,
+    tenantId: orgObjectId,
+    tenant_id: orgObjectId,
+    isSuperAdmin: true,
+    status: "ACTIVE",
+    updatedAt: new Date(),
+  };
+
+  console.log(
+    JSON.stringify(
+      {
+        event: "fix-superadmin-password",
+        dryRun: DRY_RUN,
+        email: EMAIL,
+        orgId: ORG_ID,
+        userId: user._id?.toString?.(),
+        fields: Object.keys(update),
+      },
+      null,
+      2,
+    ),
+  );
+
+  if (DRY_RUN) {
+    console.log("🔍 DRY_RUN=1 (default). Set DRY_RUN=0 to apply changes.");
+    process.exit(0);
+  }
+
+  await User.updateOne({ _id: user._id }, { $set: update });
+  console.log("✅ Superadmin password updated (tenancy-scoped)");
+  process.exit(0);
+}
+
+main().catch((err) => {
+  console.error("❌ Error:", err);
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/fix-translation-duplicates.js">
+<![CDATA[
+#!/usr/bin/env node
+
+const fs = require("fs");
+const path = require("path");
+
+// Read both dictionary files
+const enPath = path.join(__dirname, "../i18n/dictionaries/en.ts");
+const arPath = path.join(__dirname, "../i18n/dictionaries/ar.ts");
+
+function fixDuplicates(filePath) {
+  let content = fs.readFileSync(filePath, "utf8");
+  const lines = content.split("\n");
+  const seen = new Map();
+  const fixes = [];
+
+  let currentSection = "";
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const match = line.match(/^(\s*)(\w+):\s*['{]/);
+
+    if (match) {
+      const indent = match[1].length;
+      const key = match[2];
+
+      // Update current section for top-level keys (2 spaces indent)
+      if (indent === 2) {
+        currentSection = key;
+        seen.clear(); // Reset seen keys for new section
+      }
+
+      // Check for duplicates within current scope
+      if (seen.has(key)) {
+        // Generate unique name based on context
+        let newKey = key;
+        let suffix = 1;
+
+        // Try adding section context
+        if (currentSection && !key.includes(currentSection)) {
+          newKey = `${key}${currentSection.charAt(0).toUpperCase() + currentSection.slice(1)}`;
+        } else {
+          newKey = `${key}${suffix}`;
+          while (seen.has(newKey)) {
+            suffix++;
+            newKey = `${key}${suffix}`;
+          }
+        }
+
+        fixes.push({
+          line: i + 1,
+          oldKey: key,
+          newKey,
+          lineContent: line,
+        });
+
+        // Apply fix
+        lines[i] = line.replace(new RegExp(`^(\\s*)${key}:`), `$1${newKey}:`);
+        seen.set(newKey, i + 1);
+      } else {
+        seen.set(key, i + 1);
+      }
+    }
+  }
+
+  // Write fixed content
+  if (fixes.length > 0) {
+    fs.writeFileSync(filePath, lines.join("\n"), "utf8");
+    console.log(
+      `Fixed ${fixes.length} duplicates in ${path.basename(filePath)}:`,
+    );
+    fixes.forEach((f) => {
+      console.log(`  Line ${f.line}: ${f.oldKey} → ${f.newKey}`);
+    });
+  } else {
+    console.log(`No duplicates found in ${path.basename(filePath)}`);
+  }
+}
+
+console.log("Fixing duplicate keys in translation dictionaries...\n");
+fixDuplicates(enPath);
+console.log("");
+fixDuplicates(arPath);
+console.log("\nDone!");
+
+]]>
+</file>
+
+<file path="scripts/fix-ts2349.js">
+<![CDATA[
+#!/usr/bin/env node
+const fs = require("fs");
+const { execSync } = require("child_process");
+
+console.log("🔧 Fixing ALL Mongoose TypeScript TS2349 errors...\n");
+
+// Get all TS2349 errors
+const tscOutput = execSync("npx tsc --noEmit --skipLibCheck 2>&1 || true", {
+  encoding: "utf8",
+});
+const ts2349Lines = tscOutput
+  .split("\n")
+  .filter((line) => line.includes("error TS2349"));
+
+console.log(`📊 Found ${ts2349Lines.length} TS2349 errors\n`);
+
+// Extract unique files
+const files = new Set();
+ts2349Lines.forEach((line) => {
+  const match = line.match(/^([^(]+)\(/);
+  if (match) files.add(match[1]);
+});
+
+console.log(`📝 Processing ${files.size} unique files\n`);
+
+let fixed = 0;
+
+files.forEach((filePath) => {
+  try {
+    let content = fs.readFileSync(filePath, "utf8");
+    let modified = false;
+
+    // Pattern 1: await Model.method(...) -> (await Model.method(...)) as any
+    const patterns = [
+      // findOneAndUpdate
+      {
+        from: /(await\s+\w+\.findOneAndUpdate\([^;]+\));/g,
+        to: "($1) as any;",
+        name: "findOneAndUpdate",
+      },
+      // findByIdAndUpdate
+      {
+        from: /(await\s+\w+\.findByIdAndUpdate\([^;]+\));/g,
+        to: "($1) as any;",
+        name: "findByIdAndUpdate",
+      },
+      // findOne
+      {
+        from: /(await\s+\w+\.findOne\([^;]+\));/g,
+        to: "($1) as any;",
+        name: "findOne",
+      },
+      // findById
+      {
+        from: /(await\s+\w+\.findById\([^;]+\));/g,
+        to: "($1) as any;",
+        name: "findById",
+      },
+      // find().lean()
+      {
+        from: /(await\s+\w+\.find\([^;]+\)\.lean\(\));/g,
+        to: "($1) as any;",
+        name: "find.lean",
+      },
+      // find()
+      {
+        from: /(await\s+\w+\.find\([^;]+\));/g,
+        to: "($1) as any;",
+        name: "find",
+      },
+      // create
+      {
+        from: /(await\s+\w+\.create\([^;]+\));/g,
+        to: "($1) as any;",
+        name: "create",
+      },
+      // updateOne
+      {
+        from: /(await\s+\w+\.updateOne\([^;]+\));/g,
+        to: "($1) as any;",
+        name: "updateOne",
+      },
+    ];
+
+    patterns.forEach(({ from, to, name }) => {
+      if (from.test(content)) {
+        content = content.replace(from, to);
+        modified = true;
+        console.log(`  ✓ Fixed ${name} in ${filePath}`);
+      }
+    });
+
+    if (modified) {
+      fs.writeFileSync(filePath, content, "utf8");
+      fixed++;
+    }
+  } catch (error) {
+    console.error(`  ✗ Error processing ${filePath}:`, error.message);
+  }
+});
+
+console.log(`\n✅ Processed ${fixed} files\n`);
+console.log("🔍 Checking remaining errors...\n");
+
+// Check remaining
+const checkOutput = execSync(
+  'npx tsc --noEmit --skipLibCheck 2>&1 | grep -c "error TS2349" || echo "0"',
+  { encoding: "utf8" },
+);
+const remaining = parseInt(checkOutput.trim());
+
+console.log(`📊 Remaining TS2349 errors: ${remaining}`);
+
+if (remaining === 0) {
+  console.log("🎉 ALL TS2349 ERRORS FIXED!\n");
+} else {
+  console.log(`⚠️  ${remaining} errors need manual fixing\n`);
+}
+
+]]>
+</file>
+
+<file path="scripts/fix-tsx-entities.js">
+<![CDATA[
+#!/usr/bin/env node
+
+const fs = require("fs");
+const path = require("path");
+
+function getAllTsxFiles(dir, files = []) {
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+
+    if (entry.isDirectory() && !entry.name.includes("node_modules")) {
+      getAllTsxFiles(fullPath, files);
+    } else if (entry.name.endsWith(".tsx")) {
+      files.push(fullPath);
+    }
+  }
+
+  return files;
+}
+
+function fixTsxFile(filePath) {
+  try {
+    const content = fs.readFileSync(filePath, "utf8");
+    let modified = content;
+
+    // Only fix HTML entities in TSX files that shouldn't be there
+    // Keep proper JSX entities like ' in JSX content, but fix them in JavaScript strings
+
+    // Fix entities in string literals and template literals
+    modified = modified.replace(/(['"`])([^'"`]*?)'([^'"`]*?)\1/g, "$1$2'$3$1");
+    modified = modified.replace(
+      /(['"`])([^'"`]*?)&quot;([^'"`]*?)\1/g,
+      '$1$2"$3$1',
+    );
+    modified = modified.replace(/(['"`])([^'"`]*?)<([^'"`]*?)\1/g, "$1$2<$3$1");
+    modified = modified.replace(/(['"`])([^'"`]*?)>([^'"`]*?)\1/g, "$1$2>$3$1");
+    modified = modified.replace(
+      /(['"`])([^'"`]*?)&amp;([^'"`]*?)\1/g,
+      "$1$2&$3$1",
+    );
+
+    if (content !== modified) {
+      fs.writeFileSync(filePath, modified);
+      console.log(`✅ Fixed ${filePath}`);
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    console.error(`❌ Error processing ${filePath}:`, error.message);
+    return false;
+  }
+}
+
+function main() {
+  console.log("🔧 Fixing HTML entities in TSX files...\n");
+
+  const files = getAllTsxFiles("./app");
+  console.log(`📁 Found ${files.length} TSX files to check\n`);
+
+  let modifiedCount = 0;
+
+  for (const file of files) {
+    if (fixTsxFile(file)) {
+      modifiedCount++;
+    }
+  }
+
+  console.log(`\n✨ Fixed ${modifiedCount} TSX files`);
+}
+
+if (require.main === module) {
+  main();
+}
+
+]]>
+</file>
+
+<file path="scripts/fix-workorder-index.js">
+<![CDATA[
+#!/usr/bin/env node
+
+/**
+ * MIGRATION SCRIPT: Fix WorkOrder Index Conflict
+ *
+ * ISSUE: workOrderNumber_1 unique index contains duplicate null values
+ * SOLUTION: Drop problematic index and create partial unique index
+ *
+ * Run with: node scripts/fix-workorder-index.js
+ */
+
+require("dotenv/config");
+require("tsx/cjs");
+
+const { connectToDatabase, disconnectFromDatabase } = require("../lib/mongodb-unified.ts");
+const { COLLECTIONS, createIndexes } = require("../lib/db/collections.ts");
+
+async function fixWorkOrderIndex() {
+  console.log("🔧 Starting WorkOrder Index Migration...");
+
+  try {
+    // Connect to MongoDB using the shared unified connector
+    const mongoose = await connectToDatabase();
+    const db = mongoose.connection.db;
+    const collection = db.collection(COLLECTIONS.WORK_ORDERS);
+
+    // Step 1: List existing indexes
+    console.log("📋 Checking existing indexes...");
+    const indexes = await collection.indexes();
+    console.log(
+      "Current indexes:",
+      indexes.map((idx) => idx.name),
+    );
+
+    // Step 2: Drop legacy/problematic indexes so canonical org-scoped index can be recreated
+    const legacyIndexes = [
+      "workOrderNumber_1",
+      "workorders_orgId_workOrderNumber_unique",
+      "workOrderNumber_partial_unique",
+    ];
+    try {
+      for (const name of legacyIndexes) {
+        try {
+          await collection.dropIndex(name);
+          console.log(`✅ Dropped legacy index: ${name}`);
+        } catch (error) {
+          if (error.code === 27 || /index not found/i.test(error.message)) {
+            console.log(`ℹ️ Index not found (already dropped): ${name}`);
+          } else {
+            console.log(`⚠️ Error dropping index ${name}:`, error.message);
+          }
+        }
+      }
+    } catch (error) {
+      console.log("⚠️ Error while dropping legacy indexes:", error.message);
+    }
+
+    // Step 3: Recreate canonical org-scoped unique index (matches createIndexes definition)
+    console.log("🔨 Creating org-scoped unique index for workOrderNumber...");
+    await collection.createIndex(
+      { orgId: 1, workOrderNumber: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "workorders_orgId_workOrderNumber_unique",
+        partialFilterExpression: { orgId: { $exists: true }, workOrderNumber: { $type: "string" } },
+      },
+    );
+    console.log("✅ Created index: workorders_orgId_workOrderNumber_unique");
+
+    // Step 4: Run global index creation to ensure all canonical indexes are present
+    console.log("🧭 Ensuring all canonical indexes via createIndexes()");
+    await createIndexes();
+    console.log("✅ Canonical indexes ensured");
+
+    // Step 5: Verify the new index
+    const newIndexes = await collection.indexes();
+    const partialIndex = newIndexes.find(
+      (idx) => idx.name === "workorders_orgId_workOrderNumber_unique",
+    );
+    if (partialIndex) {
+      console.log("✅ Verification: New index created successfully");
+      console.log("Index details:", JSON.stringify(partialIndex, null, 2));
+    } else {
+      console.log("❌ Verification failed: New index not found");
+    }
+
+    console.log("🎉 WorkOrder Index Migration completed successfully and aligned with STRICT v4.1");
+  } catch (error) {
+    console.error("❌ Migration failed:", error);
+    process.exit(1);
+  } finally {
+    // Close connection
+    try {
+      await disconnectFromDatabase();
+    } catch (err) {
+      console.warn("⚠️ Failed to disconnect cleanly", err);
+    }
+    console.log("🔌 Database connection closed");
+  }
+}
+
+// Run migration if called directly
+if (require.main === module) {
+  fixWorkOrderIndex()
+    .then(() => {
+      console.log("✨ Migration script completed");
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error("💥 Migration script failed:", error);
+      process.exit(1);
+    });
+}
+
+module.exports = fixWorkOrderIndex;
+
+]]>
+</file>
+
+<file path="scripts/fix_all_imports.py">
+<![CDATA[
+#!/usr/bin/env python3
+"""
+Fixzit Import Helper
+
+This wrapper replaces the missing legacy script name and delegates to the
+current import verification tool under scripts/testing/verify-imports.py.
+
+Usage:
+  python scripts/fix_all_imports.py
+
+Note:
+  This script is intentionally non-destructive; it runs the existing analyzer
+  (analyze-imports.js via verify-imports.py) and reports issues. Fixes should be
+  applied manually or via existing codemods if available.
+"""
+
+import subprocess
+import sys
+import os
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parent.parent
+VERIFY_SCRIPT = ROOT / "scripts" / "testing" / "verify-imports.py"
+
+
+def main() -> int:
+    if not VERIFY_SCRIPT.exists():
+        print("❌ verify-imports.py not found; please ensure scripts/testing/verify-imports.py exists.")
+        return 1
+
+    try:
+        result = subprocess.run(
+            [sys.executable, str(VERIFY_SCRIPT)],
+            cwd=ROOT,
+            check=False,
+        )
+        return result.returncode
+    except FileNotFoundError:
+        print("❌ Python interpreter not found.")
+        return 1
+    except Exception as exc:  # pylint: disable=broad-except
+        print(f"❌ Error running verify-imports.py: {exc}")
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+
+]]>
+</file>
+
+<file path="scripts/fix_all_pages_navigation.py">
+<![CDATA[
+#!/usr/bin/env python3
+"""
+Fix navigation and UI elements across all pages
+"""
+
+import os
+import re
+
+
+def should_have_navigation(filepath):
+    """Check if a page should have navigation (exclude login/signup pages)"""
+    exclude_patterns = [
+        "Login",
+        "SignUp",
+        "Register",
+        "Reset_Password",
+        "PasswordlessLogin",
+        "AuthCallback",
+    ]
+    filename = os.path.basename(filepath)
+    return not any(pattern in filename for pattern in exclude_patterns)
+
+
+def fix_page_navigation(filepath):
+    """Fix navigation and required elements in a page"""
+    with open(filepath, "r") as f:
+        content = f.read()
+
+    filename = os.path.basename(filepath)
+    original_content = content
+    modified = False
+
+    # Skip if already has proper navigation
+    if "render_sidebar" in content:
+        print(f"  ✓ {filename} - already has navigation")
+        return False
+
+    # Replace boot_nav_auto with render_sidebar
+    if "boot_nav_auto" in content:
+        # Fix import
+        content = re.sub(
+            r"from ui\.nav import boot_nav_auto",
+            "from navigation import render_sidebar",
+            content,
+        )
+        # Fix function call
+        content = re.sub(
+            r"# Universal bootstrap.*\nboot_nav_auto\(\)",
+            "# Render Firebase-style navigation sidebar\nrender_sidebar()",
+            content,
+        )
+        content = re.sub(r"boot_nav_auto\(\)", "render_sidebar()", content)
+        modified = True
+    elif should_have_navigation(filepath):
+        # Add navigation if missing
+        # Find where to add the import
+        import_pattern = r"(import streamlit as st\n)"
+        if re.search(import_pattern, content):
+            content = re.sub(
+                import_pattern,
+                r"\1from navigation import render_sidebar\n",
+                content,
+                count=1,
+            )
+
+        # Add render_sidebar after authentication check or after page config
+        if "st.set_page_config" in content:
+            # Find the right place to add navigation
+            auth_check_pattern = r'(if not st\.session_state\.get\("authenticated".*?\n.*?st\.stop\(\)\n)'
+            if re.search(auth_check_pattern, content, re.DOTALL):
+                # Add after authentication check
+                content = re.sub(
+                    auth_check_pattern,
+                    r"\1\n# Render Firebase-style navigation sidebar\nrender_sidebar()\n",
+                    content,
+                    count=1,
+                    flags=re.DOTALL,
+                )
+                modified = True
+            else:
+                # Add after page config
+                config_pattern = r"(st\.set_page_config\([^)]+\)\n)"
+                if re.search(config_pattern, content, re.DOTALL):
+                    content = re.sub(
+                        config_pattern,
+                        r"\1\n# Render Firebase-style navigation sidebar\nrender_sidebar()\n",
+                        content,
+                        count=1,
+                        flags=re.DOTALL,
+                    )
+                    modified = True
+
+    # Add session initialization if missing
+    if "initialize_session_state" not in content and should_have_navigation(filepath):
+        # Add import
+        if "from utils.session_init import initialize_session_state" not in content:
+            import_pattern = r"(import streamlit as st\n)"
+            if re.search(import_pattern, content):
+                content = re.sub(
+                    import_pattern,
+                    r"\1from utils.session_init import initialize_session_state\n",
+                    content,
+                    count=1,
+                )
+
+        # Add initialization call after imports but before authentication
+        if "st.set_page_config" in content:
+            config_pattern = r"(st\.set_page_config\([^)]+\)\n)"
+            content = re.sub(
+                config_pattern,
+                r"\1\n# Initialize session state\ninitialize_session_state()\n",
+                content,
+                count=1,
+                flags=re.DOTALL,
+            )
+            modified = True
+
+    # Save if modified
+    if modified and content != original_content:
+        with open(filepath, "w") as f:
+            f.write(content)
+        print(f"  ✅ {filename} - fixed navigation")
+        return True
+    elif should_have_navigation(filepath):
+        print(f"  ⚠️  {filename} - needs manual fix")
+        return False
+    else:
+        print(f"  ⬜ {filename} - skipped (login/auth page)")
+        return False
+
+
+def main():
+    print("🔧 FIXING NAVIGATION ACROSS ALL PAGES")
+    print("=" * 50)
+
+    fixed_count = 0
+    total_count = 0
+
+    for root, dirs, files in os.walk("pages"):
+        for file in files:
+            if file.endswith(".py"):
+                total_count += 1
+                filepath = os.path.join(root, file)
+                if fix_page_navigation(filepath):
+                    fixed_count += 1
+
+    print()
+    print("=" * 50)
+    print(f"📊 Results: Fixed {fixed_count}/{total_count} pages")
+    print("✅ Navigation fix complete!")
+
+
+if __name__ == "__main__":
+    main()
+
+]]>
+</file>
+
+<file path="scripts/fix_language_ui.py">
+<![CDATA[
+#!/usr/bin/env python3
+"""
+Fix Language UI Across All Pages
+================================
+
+Replaces ugly button-based language switching with professional selectbox
+and applies consistent RTL styling across all pages.
+"""
+
+import re
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+PAGES = ROOT / "pages"
+
+
+def read_file(path):
+    """Read file content"""
+    try:
+        return path.read_text(encoding="utf-8")
+    except Exception as e:
+        print(f"Error reading {path}: {e}")
+        return None
+
+
+def write_file(path, content):
+    """Write file content"""
+    try:
+        path.write_text(content, encoding="utf-8")
+        print(f"✓ Updated {path.name}")
+        return True
+    except Exception as e:
+        print(f"✗ Error writing {path}: {e}")
+        return False
+
+
+def fix_dashboard_language_ui():
+    """Fix the Dashboard page language UI"""
+    dashboard_file = PAGES / "01_Dashboard_WorkOS.py"
+
+    if not dashboard_file.exists():
+        print("✗ Dashboard file not found")
+        return False
+
+    content = read_file(dashboard_file)
+    if not content:
+        return False
+
+    # Replace the ugly language selection with professional version
+
+    # Try a more targeted approach - replace just the button section first
+    button_pattern = r'# Language Selection\nlang_col1, lang_col2, lang_col3 = st\.columns\(\[1, 1, 8\]\)\nwith lang_col1:\s+if st\.button\("🇺🇸 EN", key="lang_en", help="Switch to English"\):\s+st\.session_state\.language = "en"\s+st\.rerun\(\)\nwith lang_col2:\s+if st\.button\("🇸🇦 العربية", key="lang_ar", help="Switch to Arabic"\):\s+st\.session_state\.language = "ar"\s+st\.rerun\(\)'
+
+    button_replacement = """# Professional Language Selection  
+from components.language_selector import render_language_selector, apply_rtl_styling
+
+# Render professional language selector in top-right position
+language = render_language_selector(position="top-right", show_label=False)"""
+
+    # Replace button section
+    new_content = re.sub(
+        button_pattern, button_replacement, content, flags=re.MULTILINE | re.DOTALL
+    )
+
+    # Replace CSS section
+    css_pattern = r'# Get language setting\nlanguage = st\.session_state\.get\("language", "en"\)\nlang = language.*?\n.*?# Apply RTL CSS if Arabic\nif is_rtl:\s+st\.markdown\("""\s+<style>.*?""", unsafe_allow_html=True\)'
+
+    css_replacement = """# Apply comprehensive RTL styling
+is_rtl = apply_rtl_styling(language)
+lang = language  # For compatibility with existing code"""
+
+    new_content = re.sub(
+        css_pattern, css_replacement, new_content, flags=re.MULTILINE | re.DOTALL
+    )
+
+    if new_content != content:
+        return write_file(dashboard_file, new_content)
+    else:
+        print(f"✓ {dashboard_file.name} - no changes needed")
+        return True
+
+
+def add_language_ui_to_pages():
+    """Add professional language UI to pages that don't have it"""
+
+    # Pages that need language selector added
+    pages_to_update = [
+        "06_Contracts_WorkOS.py",
+        "08_Payments_WorkOS.py",
+    ]
+
+    for page_name in pages_to_update:
+        page_file = PAGES / page_name
+
+        if not page_file.exists():
+            print(f"✗ {page_name} not found")
+            continue
+
+        content = read_file(page_file)
+        if not content:
+            continue
+
+        # Check if already has language selector
+        if "render_language_selector" in content:
+            print(f"✓ {page_name} - already has professional language selector")
+            continue
+
+        # Find where to add language selector (after sidebar render)
+        pattern = r'(# Render navigation sidebar\nrender_sidebar\(\)\n\n# Get language for RTL support\nlang = st\.session_state\.get\("language", "en"\)\nis_rtl = lang == "ar"\n)'
+
+        replacement = """# Render navigation sidebar
+render_sidebar()
+
+# Professional Language Selection
+from components.language_selector import render_language_selector, apply_rtl_styling
+
+# Render professional language selector
+lang = render_language_selector(position="top-right", show_label=False)
+
+# Apply comprehensive RTL styling
+is_rtl = apply_rtl_styling(lang)
+
+"""
+
+        new_content = re.sub(pattern, replacement, content, flags=re.MULTILINE)
+
+        if new_content != content:
+            write_file(page_file, new_content)
+        else:
+            # Try alternative pattern
+            alt_pattern = r"(render_sidebar\(\)\n)"
+            alt_replacement = """render_sidebar()
+
+# Professional Language Selection
+from components.language_selector import render_language_selector, apply_rtl_styling
+
+# Render professional language selector
+lang = render_language_selector(position="top-right", show_label=False)
+
+# Apply comprehensive RTL styling  
+is_rtl = apply_rtl_styling(lang)
+
+"""
+            new_content = re.sub(
+                alt_pattern, alt_replacement, content, flags=re.MULTILINE
+            )
+
+            if new_content != content:
+                write_file(page_file, new_content)
+            else:
+                print(f"✓ {page_name} - pattern not found, may already be correct")
+
+
+def main():
+    """Main function to fix all language UI issues"""
+    print("🔧 FIXING LANGUAGE UI ACROSS ALL PAGES")
+    print("=" * 50)
+
+    # Fix Dashboard page language UI
+    print("\n1. Fixing Dashboard language selection...")
+    fix_dashboard_language_ui()
+
+    # Add language UI to other pages
+    print("\n2. Adding language selectors to other pages...")
+    add_language_ui_to_pages()
+
+    print("\n✅ Language UI standardization complete!")
+    print(
+        "\nAll pages now use professional language selector matching login page standard."
+    )
+
+
+if __name__ == "__main__":
+    main()
+
+]]>
+</file>
+
+<file path="scripts/fix_remaining_pages.py">
+<![CDATA[
+#!/usr/bin/env python3
+"""
+Fix remaining pages with navigation issues
+"""
+
+import os
+
+# Template for pages that use main() function structure
+TEMPLATE_WITH_MAIN = """# Add at the beginning of the file after imports
+import streamlit as st
+from navigation import render_sidebar
+from utils.session_init import initialize_session_state
+
+# Page config
+st.set_page_config(
+    page_title="PAGE_TITLE",
+    page_icon="ICON",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Initialize session state
+initialize_session_state()
+
+# Check authentication
+if not st.session_state.get("authenticated", False):
+    st.error("Please login to access this page")
+    st.switch_page("pages/00_Login.py")
+    st.stop()
+
+# Render Firebase-style navigation sidebar
+render_sidebar()
+
+# Call the main function
+main()
+"""
+
+pages_to_fix = {
+    "pages/999_CodeQuality.py": {
+        "title": "Code Quality - Fixzit",
+        "icon": "🔍",
+        "has_main": True,
+    },
+    "pages/998_FeatureFlags.py": {
+        "title": "Feature Flags - Fixzit",
+        "icon": "🚩",
+        "has_main": True,
+    },
+    "pages/997_RemoteConfig.py": {
+        "title": "Remote Config - Fixzit",
+        "icon": "📡",
+        "has_main": True,
+    },
+    "pages/996_ModuleManager.py": {
+        "title": "Module Manager - Fixzit",
+        "icon": "📦",
+        "has_main": True,
+    },
+    "pages/7_Financials.py": {
+        "title": "Financials - Fixzit",
+        "icon": "💼",
+        "has_main": False,
+    },
+    "pages/3_Tickets.py": {
+        "title": "Tickets - Fixzit",
+        "icon": "🎫",
+        "has_main": False,
+    },
+    "pages/4_Contracts.py": {
+        "title": "Contracts - Fixzit",
+        "icon": "📃",
+        "has_main": False,
+    },
+}
+
+
+def fix_page(filepath, config):
+    """Fix a single page with proper navigation"""
+
+    # Skip redirect pages
+    if os.path.exists(filepath):
+        with open(filepath, "r") as f:
+            content = f.read()
+            if "st.switch_page" in content and len(content) < 300:
+                print(f"  ⬜ {os.path.basename(filepath)} - redirect page, skipped")
+                return False
+
+    if config["has_main"]:
+        # Page has main() function
+        with open(filepath, "r") as f:
+            content = f.read()
+
+        # Add imports if missing
+        if "from navigation import render_sidebar" not in content:
+            # Find the import section
+            lines = content.split("\n")
+            import_end = 0
+            for i, line in enumerate(lines):
+                if line.startswith("import ") or line.startswith("from "):
+                    import_end = i + 1
+                elif import_end > 0 and line and not line.startswith("#"):
+                    break
+
+            # Insert navigation import
+            lines.insert(import_end, "from navigation import render_sidebar")
+            lines.insert(
+                import_end + 1,
+                "from utils.session_init import initialize_session_state",
+            )
+
+            # Add page config and navigation before main() call
+            main_index = -1
+            for i, line in enumerate(lines):
+                if line.strip() == "def main():":
+                    # Find where main() is called
+                    for j in range(i, len(lines)):
+                        if "main()" in lines[j] and "def main" not in lines[j]:
+                            main_index = j
+                            break
+                    break
+
+            if main_index > 0:
+                # Insert navigation setup before main() call
+                setup_code = f"""
+# Page config
+st.set_page_config(
+    page_title="{config['title']}",
+    page_icon="{config['icon']}",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Initialize session state
+initialize_session_state()
+
+# Check authentication
+if not st.session_state.get("authenticated", False):
+    st.error("Please login to access this page")
+    st.switch_page("pages/00_Login.py")
+    st.stop()
+
+# Render Firebase-style navigation sidebar
+render_sidebar()
+"""
+                lines.insert(main_index, setup_code)
+
+            # Write back
+            with open(filepath, "w") as f:
+                f.write("\n".join(lines))
+
+            print(f"  ✅ {os.path.basename(filepath)} - fixed with main() structure")
+            return True
+    else:
+        # Regular page without main()
+        with open(filepath, "r") as f:
+            content = f.read()
+
+        # Add standard navigation if missing
+        if "render_sidebar" not in content:
+            lines = content.split("\n")
+
+            # Add imports
+            if "from navigation import render_sidebar" not in content:
+                import_end = 0
+                for i, line in enumerate(lines):
+                    if line.startswith("import ") or line.startswith("from "):
+                        import_end = i + 1
+
+                lines.insert(import_end, "from navigation import render_sidebar")
+                lines.insert(
+                    import_end + 1,
+                    "from utils.session_init import initialize_session_state",
+                )
+
+            # Add page setup after imports
+            setup_code = f"""
+# Page config
+st.set_page_config(
+    page_title="{config['title']}",
+    page_icon="{config['icon']}",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Initialize session state
+initialize_session_state()
+
+# Check authentication
+if not st.session_state.get("authenticated", False):
+    st.error("Please login to access this page")
+    st.switch_page("pages/00_Login.py")
+    st.stop()
+
+# Render Firebase-style navigation sidebar
+render_sidebar()
+"""
+            # Find where to insert (after imports)
+            for i, line in enumerate(lines):
+                if (
+                    line
+                    and not line.startswith("import")
+                    and not line.startswith("from")
+                    and not line.startswith("#")
+                    and not line.strip().startswith('"""')
+                ):
+                    lines.insert(i, setup_code)
+                    break
+
+            with open(filepath, "w") as f:
+                f.write("\n".join(lines))
+
+            print(f"  ✅ {os.path.basename(filepath)} - fixed standard page")
+            return True
+
+    return False
+
+
+def main():
+    print("🔧 FIXING REMAINING PAGES")
+    print("=" * 50)
+
+    fixed = 0
+    for filepath, config in pages_to_fix.items():
+        if fix_page(filepath, config):
+            fixed += 1
+
+    print()
+    print(f"📊 Fixed {fixed}/{len(pages_to_fix)} pages")
+
+
+if __name__ == "__main__":
+    main()
+
+]]>
+</file>
+
+<file path="scripts/fixzit-comprehensive-audit.js">
+<![CDATA[
+#!/usr/bin/env node
+// ==============================================================
+// FIXZIT SOUQ COMPREHENSIVE AUDIT REPORT V2
+// Post-Fix Analysis - Checks status after applying security fixes
+// ==============================================================
+
+const fs = require("fs");
+const path = require("path");
+
+// Color codes for terminal output
+const colors = {
+  reset: "\x1b[0m",
+  bright: "\x1b[1m",
+  red: "\x1b[31m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  blue: "\x1b[34m",
+  cyan: "\x1b[36m",
+};
+
+// Initialize audit results
+const auditResults = {
+  timestamp: new Date().toISOString(),
+  totalIssues: 0,
+  fixedIssues: 0,
+  remainingIssues: 0,
+  categories: {
+    errors: [],
+    security: [],
+    performance: [],
+    warnings: [],
+    syntaxErrors: [],
+    improvements: [],
+  },
+  statistics: {
+    totalFiles: 0,
+    filesWithIssues: 0,
+    filesFixed: 0,
+    securityScore: 0,
+    performanceScore: 0,
+  },
+};
+
+let issuesFound = 0;
+let issuesFixed = 0;
+
+// ==============================================================
+// FILE SCANNING FUNCTIONS
+// ==============================================================
+
+function scanFile(filePath, relativePath) {
+  const content = fs.readFileSync(filePath, "utf8");
+  const lines = content.split("\n");
+  let fileIssues = [];
+
+  // Check for authentication middleware
+  if (relativePath.includes("routes/") && !relativePath.includes("auth.js")) {
+    // Check if authentication is properly imported
+    const hasAuthImport =
+      /require(['"].*\/middleware\/(auth|enhancedAuth)['"])/.test(content);
+    const hasAuthMiddleware = /router\.use((authMiddleware|authenticate))/.test(
+      content,
+    );
+
+    if (!hasAuthImport) {
+      fileIssues.push({
+        type: "security",
+        severity: "high",
+        line: 1,
+        issue: "Missing authentication middleware import",
+        fixed: false,
+      });
+    } else {
+      issuesFixed++;
+      fileIssues.push({
+        type: "security",
+        severity: "high",
+        issue: "Authentication middleware properly imported",
+        fixed: true,
+      });
+    }
+
+    if (!hasAuthMiddleware) {
+      fileIssues.push({
+        type: "security",
+        severity: "high",
+        issue: "Authentication not applied to routes",
+        fixed: false,
+      });
+    } else {
+      issuesFixed++;
+      fileIssues.push({
+        type: "security",
+        severity: "high",
+        issue: "Authentication properly applied to routes",
+        fixed: true,
+      });
+    }
+
+    // Check for authMiddleware vs authenticate consistency
+    if (/authMiddleware/.test(content) && /authenticate/.test(content)) {
+      fileIssues.push({
+        type: "error",
+        severity: "critical",
+        issue:
+          "Inconsistent authentication naming (authMiddleware vs authenticate)",
+        fixed: false,
+      });
+    }
+  }
+
+  // Check for empty catch blocks
+  const emptyCatchRegex = /} catch ((\w+)) {\s*}/g;
+  let match;
+  while ((match = emptyCatchRegex.exec(content)) !== null) {
+    const lineNum = content.substring(0, match.index).split("\n").length;
+    fileIssues.push({
+      type: "error",
+      severity: "medium",
+      line: lineNum,
+      issue: "Empty catch block - errors are silenced",
+      fixed: false,
+    });
+  }
+
+  // Check for proper error handling in catch blocks
+  const properCatchRegex = /} catch ((\w+)) {\s*logger\.(error|warn)/g;
+  while ((match = properCatchRegex.exec(content)) !== null) {
+    issuesFixed++;
+    fileIssues.push({
+      type: "error",
+      severity: "medium",
+      issue: "Catch block properly handles errors",
+      fixed: true,
+    });
+  }
+
+  // Check for async operations without try-catch
+  lines.forEach((line, index) => {
+    if (
+      /await\s+/.test(line) &&
+      !/try\s*{/.test(lines.slice(Math.max(0, index - 5), index).join("\n"))
+    ) {
+      if (
+        !/asyncHandler/.test(
+          lines.slice(Math.max(0, index - 10), index).join("\n"),
+        )
+      ) {
+        fileIssues.push({
+          type: "error",
+          severity: "high",
+          line: index + 1,
+          code: line.trim(),
+          issue: "Async operation without proper error handling",
+          fixed: false,
+        });
+      }
+    }
+  });
+
+  // Check for console.log statements
+  const consoleLogRegex = /console\.(log|error|warn)(/g;
+  while ((match = consoleLogRegex.exec(content)) !== null) {
+    const lineNum = content.substring(0, match.index).split("\n").length;
+    fileIssues.push({
+      type: "warning",
+      severity: "low",
+      line: lineNum,
+      issue: "Using console instead of logger",
+      fixed: false,
+    });
+  }
+
+  // Check for logger usage (fixed issues)
+  const loggerRegex = /logger\.(info|error|warn|debug)(/g;
+  let loggerCount = 0;
+  while ((match = loggerRegex.exec(content)) !== null) {
+    loggerCount++;
+  }
+  if (loggerCount > 0) {
+    issuesFixed += loggerCount;
+    fileIssues.push({
+      type: "improvement",
+      issue: `Using proper logger (${loggerCount} instances)`,
+      fixed: true,
+    });
+  }
+
+  // Check for rate limiting
+  if (relativePath.includes("routes/")) {
+    if (/rateLimiters\.(auth|read|write|sensitive)/.test(content)) {
+      issuesFixed++;
+      fileIssues.push({
+        type: "security",
+        severity: "high",
+        issue: "Rate limiting properly implemented",
+        fixed: true,
+      });
+    } else if (!relativePath.includes("auth.js")) {
+      fileIssues.push({
+        type: "security",
+        severity: "medium",
+        issue: "Missing rate limiting",
+        fixed: false,
+      });
+    }
+  }
+
+  // Check for syntax errors
+  try {
+    new Function(content);
+  } catch (e) {
+    if (e.message.includes("Unexpected token")) {
+      fileIssues.push({
+        type: "syntaxError",
+        severity: "critical",
+        issue: `Syntax error: ${e.message}`,
+        fixed: false,
+      });
+    }
+  }
+
+  // Check for asyncHandler usage
+  if (/asyncHandler(async/.test(content)) {
+    const asyncHandlerCount = (content.match(/asyncHandler(async/g) || [])
+      .length;
+    issuesFixed += asyncHandlerCount;
+    fileIssues.push({
+      type: "improvement",
+      issue: `Using asyncHandler (${asyncHandlerCount} instances)`,
+      fixed: true,
+    });
+  }
+
+  // Check for proper validation
+  if (relativePath.includes("routes/") && /validationResult/.test(content)) {
+    issuesFixed++;
+    fileIssues.push({
+      type: "security",
+      severity: "medium",
+      issue: "Input validation implemented",
+      fixed: true,
+    });
+  }
+
+  return fileIssues;
+}
+
+function scanDirectory(dirPath, baseDir = "") {
+  const items = fs.readdirSync(dirPath);
+
+  items.forEach((item) => {
+    const fullPath = path.join(dirPath, item);
+    const relativePath = path.join(baseDir, item);
+    const stat = fs.statSync(fullPath);
+
+    if (stat.isDirectory()) {
+      // Skip node_modules and other non-relevant directories
+      if (
+        !["node_modules", ".git", "backup_", "dist", "build"].some((skip) =>
+          item.includes(skip),
+        )
+      ) {
+        scanDirectory(fullPath, relativePath);
+      }
+    } else if (item.endsWith(".js")) {
+      auditResults.statistics.totalFiles++;
+      const issues = scanFile(fullPath, relativePath);
+
+      if (issues.length > 0) {
+        const unfixedIssues = issues.filter((i) => !i.fixed);
+        const fixedIssues = issues.filter((i) => i.fixed);
+
+        if (unfixedIssues.length > 0) {
+          auditResults.statistics.filesWithIssues++;
+          unfixedIssues.forEach((issue) => {
+            issue.file = relativePath;
+            const category = issue.type + "s";
+            if (auditResults.categories[category]) {
+              auditResults.categories[category].push(issue);
+            }
+            issuesFound++;
+          });
+        }
+
+        if (fixedIssues.length > 0) {
+          auditResults.statistics.filesFixed++;
+        }
+      }
+    }
+  });
+}
+
+// ==============================================================
+// MODEL CHECKS
+// ==============================================================
+
+function checkModels() {
+  const modelsDir = path.join(process.cwd(), "models");
+  if (!fs.existsSync(modelsDir)) return;
+
+  const modelFiles = fs.readdirSync(modelsDir).filter((f) => f.endsWith(".js"));
+
+  modelFiles.forEach((file) => {
+    const content = fs.readFileSync(path.join(modelsDir, file), "utf8");
+
+    // Check for indexes
+    if (/\.index(/.test(content)) {
+      issuesFixed++;
+      auditResults.categories.improvements.push({
+        file: `models/${file}`,
+        issue: "Database indexes properly defined",
+        fixed: true,
+      });
+    } else {
+      auditResults.categories.performance.push({
+        file: `models/${file}`,
+        issue: "Missing database indexes",
+        fixed: false,
+      });
+      issuesFound++;
+    }
+
+    // Check for timestamps
+    if (/timestamps:\s*true/.test(content)) {
+      issuesFixed++;
+      auditResults.categories.improvements.push({
+        file: `models/${file}`,
+        issue: "Timestamps properly configured",
+        fixed: true,
+      });
+    }
+
+    // Check for required fields
+    if (file === "User.js") {
+      if (/role:.*property_owner/.test(content)) {
+        issuesFixed++;
+        auditResults.categories.improvements.push({
+          file: `models/${file}`,
+          issue: "property_owner role properly added",
+          fixed: true,
+        });
+      }
+
+      if (/deputy:/.test(content)) {
+        issuesFixed++;
+        auditResults.categories.improvements.push({
+          file: `models/${file}`,
+          issue: "Deputy system implemented",
+          fixed: true,
+        });
+      }
+    }
+
+    if (file === "Property.js" && /ownerId:/.test(content)) {
+      issuesFixed++;
+      auditResults.categories.improvements.push({
+        file: `models/${file}`,
+        issue: "Property ownerId field added",
+        fixed: true,
+      });
+    }
+
+    if (file === "WorkOrder.js" && /sla:/.test(content)) {
+      issuesFixed++;
+      auditResults.categories.improvements.push({
+        file: `models/${file}`,
+        issue: "SLA tracking implemented",
+        fixed: true,
+      });
+    }
+  });
+}
+
+// ==============================================================
+// DEPENDENCY CHECKS
+// ==============================================================
+
+function checkDependencies() {
+  const packagePath = path.join(process.cwd(), "package.json");
+  if (!fs.existsSync(packagePath)) return;
+
+  const packageJson = JSON.parse(fs.readFileSync(packagePath, "utf8"));
+  const dependencies = packageJson.dependencies || {};
+
+  const requiredDeps = [
+    "express-rate-limit",
+    "winston",
+    "express-validator",
+    "helmet",
+    "bcryptjs",
+    "jsonwebtoken",
+  ];
+
+  requiredDeps.forEach((dep) => {
+    if (dependencies[dep]) {
+      issuesFixed++;
+      auditResults.categories.improvements.push({
+        issue: `Security dependency '${dep}' installed`,
+        fixed: true,
+      });
+    } else {
+      auditResults.categories.security.push({
+        issue: `Missing security dependency: ${dep}`,
+        fixed: false,
+      });
+      issuesFound++;
+    }
+  });
+}
+
+// ==============================================================
+// GENERATE REPORT
+// ==============================================================
+
+function generateReport() {
+  // Calculate scores
+  const totalPossibleIssues = issuesFound + issuesFixed;
+  auditResults.statistics.securityScore =
+    totalPossibleIssues > 0
+      ? Math.round((issuesFixed / totalPossibleIssues) * 100)
+      : 100;
+
+  auditResults.totalIssues = issuesFound;
+  auditResults.fixedIssues = issuesFixed;
+  auditResults.remainingIssues = issuesFound;
+
+  // Console output
+  console.log(
+    "\n" +
+      colors.bright +
+      colors.cyan +
+      "════════════════════════════════════════════════════════════════",
+  );
+  console.log(
+    "                 FIXZIT SOUQ AUDIT REPORT V2                    ",
+  );
+  console.log(
+    "                    POST-FIX ANALYSIS                           ",
+  );
+  console.log(
+    "════════════════════════════════════════════════════════════════" +
+      colors.reset,
+  );
+
+  console.log("\n" + colors.bright + "📊 SUMMARY" + colors.reset);
+  console.log("├─ Timestamp: " + auditResults.timestamp);
+  console.log("├─ Files Scanned: " + auditResults.statistics.totalFiles);
+  console.log(
+    "├─ Files with Issues: " +
+      colors.red +
+      auditResults.statistics.filesWithIssues +
+      colors.reset,
+  );
+  console.log(
+    "├─ Files Fixed: " +
+      colors.green +
+      auditResults.statistics.filesFixed +
+      colors.reset,
+  );
+  console.log(
+    "├─ Security Score: " +
+      getScoreColor(auditResults.statistics.securityScore) +
+      auditResults.statistics.securityScore +
+      "%" +
+      colors.reset,
+  );
+  console.log(
+    "└─ Total Issues: " +
+      colors.yellow +
+      issuesFound +
+      colors.reset +
+      " remaining (from 620 original)",
+  );
+
+  console.log("\n" + colors.bright + "✅ FIXES APPLIED" + colors.reset);
+  console.log("├─ Issues Fixed: " + colors.green + issuesFixed + colors.reset);
+  console.log(
+    "├─ Success Rate: " +
+      colors.green +
+      Math.round((issuesFixed / 620) * 100) +
+      "%" +
+      colors.reset,
+  );
+  console.log(
+    "└─ Improvement: " +
+      colors.green +
+      (620 - issuesFound) +
+      " issues resolved" +
+      colors.reset,
+  );
+
+  // Show remaining issues by category
+  console.log("\n" + colors.bright + "🔴 REMAINING ISSUES" + colors.reset);
+
+  Object.keys(auditResults.categories).forEach((category) => {
+    const issues = auditResults.categories[category].filter((i) => !i.fixed);
+    if (issues.length > 0) {
+      console.log(
+        "\n" +
+          colors.yellow +
+          category.toUpperCase() +
+          " (" +
+          issues.length +
+          ")" +
+          colors.reset,
+      );
+
+      // Group by file
+      const byFile = {};
+      issues.forEach((issue) => {
+        const file = issue.file || "general";
+        if (!byFile[file]) byFile[file] = [];
+        byFile[file].push(issue);
+      });
+
+      Object.keys(byFile)
+        .slice(0, 5)
+        .forEach((file) => {
+          console.log("  📁 " + file);
+          byFile[file].slice(0, 3).forEach((issue) => {
+            console.log("     └─ " + issue.issue);
+          });
+        });
+    }
+  });
+
+  // Show improvements
+  const improvements = auditResults.categories.improvements.filter(
+    (i) => i.fixed,
+  );
+  if (improvements.length > 0) {
+    console.log(
+      "\n" +
+        colors.bright +
+        colors.green +
+        "✨ IMPROVEMENTS IMPLEMENTED" +
+        colors.reset,
+    );
+    improvements.slice(0, 10).forEach((imp) => {
+      console.log("  ✓ " + imp.issue);
+    });
+    if (improvements.length > 10) {
+      console.log("  ... and " + (improvements.length - 10) + " more");
+    }
+  }
+
+  // Recommendations
+  console.log("\n" + colors.bright + "💡 RECOMMENDATIONS" + colors.reset);
+  if (auditResults.categories.syntaxErrors.length > 0) {
+    console.log(
+      "  🔴 " +
+        colors.red +
+        "CRITICAL: Fix syntax errors immediately" +
+        colors.reset,
+    );
+  }
+  if (auditResults.categories.security.filter((i) => !i.fixed).length > 0) {
+    console.log("  🟡 HIGH: Complete security middleware implementation");
+  }
+  if (auditResults.categories.errors.filter((i) => !i.fixed).length > 0) {
+    console.log(
+      "  🟡 MEDIUM: Add error handling to remaining async operations",
+    );
+  }
+  console.log("  🟢 LOW: Replace remaining console.log with logger");
+
+  // Save JSON report
+  const reportPath = path.join(process.cwd(), "audit-report-v2.json");
+  fs.writeFileSync(reportPath, JSON.stringify(auditResults, null, 2));
+  console.log(
+    "\n" +
+      colors.green +
+      "📄 Full report saved to: " +
+      reportPath +
+      colors.reset,
+  );
+
+  console.log(
+    "\n" +
+      colors.bright +
+      colors.cyan +
+      "════════════════════════════════════════════════════════════════" +
+      colors.reset,
+  );
+  console.log(
+    colors.bright + "OVERALL STATUS: " + getOverallStatus() + colors.reset,
+  );
+  console.log(
+    colors.cyan +
+      "════════════════════════════════════════════════════════════════" +
+      colors.reset +
+      "\n",
+  );
+}
+
+function getScoreColor(score) {
+  if (score >= 80) return colors.green;
+  if (score >= 60) return colors.yellow;
+  return colors.red;
+}
+
+function getOverallStatus() {
+  const score = auditResults.statistics.securityScore;
+  if (score >= 90)
+    return colors.green + "🎉 EXCELLENT - System is secure and performant";
+  if (score >= 75)
+    return colors.green + "✅ GOOD - Most critical issues resolved";
+  if (score >= 60)
+    return colors.yellow + "⚠️  FAIR - Significant progress, more work needed";
+  if (score >= 40) return colors.yellow + "⚠️  NEEDS WORK - Many issues remain";
+  return colors.red + "🔴 CRITICAL - Immediate attention required";
+}
+
+// ==============================================================
+// MAIN EXECUTION
+// ==============================================================
+
+async function main() {
+  console.log(colors.cyan + "Starting Fixzit Souq Audit v2..." + colors.reset);
+
+  // Check main directories
+  const dirsToScan = ["routes", "models", "middleware", "services", "utils"];
+
+  dirsToScan.forEach((dir) => {
+    if (fs.existsSync(dir)) {
+      console.log("Scanning " + dir + "...");
+      scanDirectory(dir, "");
+    }
+  });
+
+  // Additional checks
+  checkModels();
+  checkDependencies();
+
+  // Generate and display report
+  generateReport();
+}
+
+// Run audit
+main().catch(console.error);
+
+]]>
+</file>
+
+<file path="scripts/fixzit-pack.ts">
+<![CDATA[
+import fg from "fast-glob";
+import fs from "fs";
+import path from "path";
+// @ts-ignore - No type declarations available
+import yaml from "js-yaml";
+import pc from "picocolors";
+
+type Cfg = {
+  version: number;
+  defaultMaxChars: number;
+  collapseLargeFilesOver: number;
+  stripComments: boolean;
+  tasks: Record<
+    string,
+    {
+      description: string;
+      files: string[];
+      includeReadme?: string[];
+      acceptance?: string[];
+    }
+  >;
+};
+
+const args = process.argv.slice(2);
+const taskName = args[1] && args[0] === "--task" ? args[1] : null;
+const cfg = yaml.load(fs.readFileSync("fixzit.pack.yaml", "utf8")) as Cfg;
+const outRoot = path.join(".fixzit", "packs");
+fs.mkdirSync(outRoot, { recursive: true });
+
+function stripComments(code: string, ext: string) {
+  if (!cfg.stripComments) return code;
+  if (/\.(ts|tsx|js|jsx)$/.test(ext)) {
+    return code
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/(^|\s+)\/\/.*$/gm, "");
+  }
+  if (/\.css$/.test(ext)) {
+    return code.replace(/\/\*[\s\S]*?\*\//g, "");
+  }
+  return code;
+}
+
+function collapse(code: string, limit: number) {
+  if (code.length <= limit) return code;
+  const head = code.slice(0, limit / 2);
+  const tail = code.slice(-limit / 2);
+  return `${head}\n\n/* --- SNIPPED FOR CONTEXT BUDGET --- */\n\n${tail}`;
+}
+
+function approxTokenCount(chars: number) {
+  return Math.round(chars / 4);
+}
+
+async function build(task: string) {
+  const t = cfg.tasks[task];
+  if (!t) throw new Error(`Task not found: ${task}`);
+  const outDir = path.join(outRoot, task);
+  fs.rmSync(outDir, { recursive: true, force: true });
+  fs.mkdirSync(outDir, { recursive: true });
+  const patterns = t.files;
+  const files = await fg(patterns, { dot: true });
+  let totalChars = 0;
+
+  const manifest: string[] = [];
+  for (const f of files) {
+    const raw = fs.readFileSync(f, "utf8");
+    const ext = path.extname(f);
+    const clean = collapse(stripComments(raw, ext), cfg.collapseLargeFilesOver);
+    totalChars += clean.length;
+    const target = path.join(outDir, "files", f);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, clean, "utf8");
+    manifest.push(f);
+  }
+
+  const ACCEPT =
+    (t.acceptance ?? []).map((s) => `- ${s}`).join("\n") || "- (none)";
+  const readmes =
+    (t.includeReadme ?? []).map((p) => `- ${p}`).join("\n") || "- (none)";
+  const summary = `# Review Pack: ${task}
+Description: ${t.description}
+
+## Files (${manifest.length})
+${manifest.map((m) => `- ${m}`).join("\n")}
+
+## Acceptance
+${ACCEPT}
+
+## Included Readme
+${readmes}
+
+Approx Tokens: ~${approxTokenCount(totalChars)}
+`;
+  fs.writeFileSync(path.join(outDir, "MANIFEST.md"), summary, "utf8");
+  console.log(
+    pc.green(
+      `Built pack "${task}": ~${approxTokenCount(totalChars)} tokens, ${manifest.length} files.`,
+    ),
+  );
+}
+
+(async () => {
+  if (taskName) await build(taskName);
+  else {
+    for (const name of Object.keys(cfg.tasks)) await build(name);
+  }
+})();
+
+]]>
+</file>
+
+</batch_content>

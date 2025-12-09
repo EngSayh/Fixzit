@@ -1,0 +1,2985 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="tests/integration/security/encryption-lifecycle.test.ts">
+<![CDATA[
+/**
+ * TEST-001: PII Encryption Lifecycle Integration Tests
+ *
+ * Validates encryption works correctly across all Mongoose operations:
+ * - save() triggers encryption
+ * - findOneAndUpdate() triggers encryption
+ * - find/findOne triggers decryption
+ * - Double encryption is prevented
+ *
+ * COMPLIANCE:
+ * - GDPR Article 32: Security of processing (encryption at rest)
+ * - Saudi Labor Law Article 52: Salary confidentiality
+ *
+ * @module tests/integration/security/encryption-lifecycle.test.ts
+ */
+
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+
+// Mock encryption key for tests
+const TEST_ENCRYPTION_KEY = Buffer.from(
+  "0123456789abcdef0123456789abcdef" // 32 bytes for AES-256
+).toString("base64");
+
+// Set up environment before imports
+beforeEach(() => {
+  process.env.ENCRYPTION_KEY = TEST_ENCRYPTION_KEY;
+  process.env.NODE_ENV = "test";
+});
+
+afterEach(() => {
+  vi.clearAllMocks();
+});
+
+/**
+ * Test encryption utilities directly
+ */
+describe("Encryption Utilities", () => {
+  describe("encryptField / decryptField", () => {
+    it("should encrypt plaintext to ciphertext", async () => {
+      // Dynamic import to ensure env is set
+      const { encryptField, isEncrypted } = await import(
+        "@/lib/security/encryption"
+      );
+
+      const plaintext = "1234567890"; // Simulated national ID
+      const encrypted = encryptField(plaintext, "nationalId");
+
+      expect(encrypted).not.toBeNull();
+      expect(encrypted).not.toBe(plaintext);
+      expect(isEncrypted(encrypted)).toBe(true);
+    });
+
+    it("should decrypt ciphertext back to original plaintext", async () => {
+      const { encryptField, decryptField } = await import(
+        "@/lib/security/encryption"
+      );
+
+      const plaintext = "SA1234567890123456789012"; // Simulated IBAN
+      const encrypted = encryptField(plaintext, "iban");
+      const decrypted = decryptField(encrypted, "iban");
+
+      expect(decrypted).toBe(plaintext);
+    });
+
+    it("should handle null/undefined values gracefully", async () => {
+      const { encryptField, decryptField } = await import(
+        "@/lib/security/encryption"
+      );
+
+      expect(encryptField(null, "field")).toBeNull();
+      expect(encryptField(undefined, "field")).toBeNull();
+      expect(encryptField("", "field")).toBeNull();
+
+      expect(decryptField(null, "field")).toBeNull();
+      expect(decryptField(undefined, "field")).toBeNull();
+      expect(decryptField("", "field")).toBeNull();
+    });
+
+    it("should prevent double encryption", async () => {
+      const { encryptField, isEncrypted } = await import(
+        "@/lib/security/encryption"
+      );
+
+      const plaintext = "SensitiveData123";
+      const encrypted1 = encryptField(plaintext, "field");
+
+      // Try to encrypt already encrypted value
+      // The utility should detect it's already encrypted
+      expect(isEncrypted(encrypted1)).toBe(true);
+
+      // If we try to encrypt again, it should either:
+      // 1. Return the same encrypted value
+      // 2. Double-encrypt (which we need to prevent at plugin level)
+      // The plugin prevents this, but utility should detect via isEncrypted
+    });
+
+    it("should generate unique ciphertext for same plaintext (random IV)", async () => {
+      const { encryptField } = await import("@/lib/security/encryption");
+
+      const plaintext = "TestValue123";
+      const encrypted1 = encryptField(plaintext, "field");
+      const encrypted2 = encryptField(plaintext, "field");
+
+      // Each encryption should produce different ciphertext due to random IV/salt
+      expect(encrypted1).not.toBe(encrypted2);
+    });
+  });
+
+  describe("isEncrypted", () => {
+    it("should correctly identify encrypted values", async () => {
+      const { encryptField, isEncrypted } = await import(
+        "@/lib/security/encryption"
+      );
+
+      const encrypted = encryptField("plaintext", "field");
+      expect(isEncrypted(encrypted)).toBe(true);
+    });
+
+    it("should correctly identify plaintext values", async () => {
+      const { isEncrypted } = await import("@/lib/security/encryption");
+
+      expect(isEncrypted("plaintext")).toBe(false);
+      expect(isEncrypted("1234567890")).toBe(false);
+      expect(isEncrypted("SA1234567890")).toBe(false);
+    });
+
+    it("should handle mock encryption format", async () => {
+      const { isEncrypted } = await import("@/lib/security/encryption");
+
+      expect(isEncrypted("MOCK_ENCRYPTED:value")).toBe(true);
+    });
+  });
+});
+
+/**
+ * Test encryption plugin behavior
+ */
+describe("Encryption Plugin", () => {
+  describe("encryptionPlugin", () => {
+    it("should export encryptionPlugin function", async () => {
+      const { encryptionPlugin } = await import(
+        "@/server/plugins/encryptionPlugin"
+      );
+
+      expect(typeof encryptionPlugin).toBe("function");
+    });
+
+    it("should accept valid options with fields mapping", async () => {
+      const { encryptionPlugin } = await import(
+        "@/server/plugins/encryptionPlugin"
+      );
+      const mongoose = await import("mongoose");
+
+      // Create a test schema
+      const TestSchema = new mongoose.Schema({
+        name: String,
+        sensitiveField: String,
+        nested: {
+          secret: String,
+        },
+      });
+
+      // Should not throw when applying plugin
+      expect(() => {
+        encryptionPlugin(TestSchema, {
+          fields: {
+            sensitiveField: "Sensitive Field",
+            "nested.secret": "Nested Secret",
+          },
+        });
+      }).not.toThrow();
+    });
+  });
+
+  describe("Plugin Hook Flow Simulation", () => {
+    it("should handle dotted $set paths in update operations", async () => {
+      const { encryptField, isEncrypted } = await import(
+        "@/lib/security/encryption"
+      );
+
+      // Simulate the actual update payload pattern that was broken
+      const updatePayload = {
+        $set: {
+          "personal.nationalId": "1234567890",
+          "bankDetails.iban": "SA1234567890123456789012",
+        },
+      };
+
+      // Simulate plugin logic: check direct dotted key first
+      const $set = updatePayload.$set;
+      for (const path of ["personal.nationalId", "bankDetails.iban"]) {
+        // This is the key fix: check direct key access
+        const value = $set[path];
+        if (value && typeof value === "string" && !isEncrypted(value)) {
+          $set[path] = encryptField(value, path);
+        }
+      }
+
+      // Verify encryption occurred on dotted keys
+      expect(isEncrypted(updatePayload.$set["personal.nationalId"])).toBe(true);
+      expect(isEncrypted(updatePayload.$set["bankDetails.iban"])).toBe(true);
+    });
+
+    it("should handle numeric values by converting to string", async () => {
+      const { encryptField, isEncrypted, decryptField } = await import(
+        "@/lib/security/encryption"
+      );
+
+      // Simulate numeric salary field
+      const salary = 50000;
+      const salaryString = String(salary);
+      
+      const encrypted = encryptField(salaryString, "compensation.baseSalary");
+      expect(isEncrypted(encrypted)).toBe(true);
+      
+      const decrypted = decryptField(encrypted, "compensation.baseSalary");
+      expect(decrypted).toBe("50000");
+    });
+
+    it("should handle insertMany bulk operations", async () => {
+      const { encryptField, isEncrypted } = await import(
+        "@/lib/security/encryption"
+      );
+
+      // Simulate bulk insert payload
+      const docs = [
+        { personal: { nationalId: "1111111111" }, name: "User 1" },
+        { personal: { nationalId: "2222222222" }, name: "User 2" },
+        { personal: { nationalId: "3333333333" }, name: "User 3" },
+      ];
+
+      // Simulate plugin insertMany hook
+      const fieldPaths = ["personal.nationalId"];
+      for (const doc of docs) {
+        for (const path of fieldPaths) {
+          const parts = path.split(".");
+          let current: Record<string, unknown> = doc;
+          for (let i = 0; i < parts.length - 1; i++) {
+            current = current[parts[i]] as Record<string, unknown>;
+          }
+          const value = current[parts[parts.length - 1]];
+          if (value && typeof value === "string" && !isEncrypted(value)) {
+            current[parts[parts.length - 1]] = encryptField(value, path);
+          }
+        }
+      }
+
+      // Verify all docs encrypted
+      expect(isEncrypted(docs[0].personal.nationalId)).toBe(true);
+      expect(isEncrypted(docs[1].personal.nationalId)).toBe(true);
+      expect(isEncrypted(docs[2].personal.nationalId)).toBe(true);
+    });
+
+    it("should prevent double encryption", async () => {
+      const { encryptField, isEncrypted } = await import(
+        "@/lib/security/encryption"
+      );
+
+      const plaintext = "SensitiveData123";
+      const encrypted1 = encryptField(plaintext, "field");
+      
+      // Simulate plugin checking before encryption
+      if (!isEncrypted(encrypted1)) {
+        // Should not reach here
+        expect(true).toBe(false);
+      }
+
+      // Already encrypted value should be skipped
+      expect(isEncrypted(encrypted1)).toBe(true);
+    });
+  });
+});
+
+/**
+ * Test encryption at schema level (mocked)
+ */
+describe("Schema Encryption Integration", () => {
+  describe("User Model Encryption Fields", () => {
+    it("should have encryption hooks registered", async () => {
+      // Import to ensure schema is loaded
+      // The actual encryption happens at runtime via mongoose hooks
+      const { isEncrypted, encryptField, decryptField } = await import(
+        "@/lib/security/encryption"
+      );
+
+      // Simulate the save() lifecycle
+      const userData = {
+        personal: {
+          nationalId: "1234567890",
+          passport: "AB1234567",
+        },
+        employment: {
+          salary: "50000",
+        },
+      };
+
+      // Simulate pre-save encryption
+      const encryptedData = {
+        personal: {
+          nationalId: encryptField(userData.personal.nationalId, "personal.nationalId"),
+          passport: encryptField(userData.personal.passport, "personal.passport"),
+        },
+        employment: {
+          salary: encryptField(userData.employment.salary, "employment.salary"),
+        },
+      };
+
+      // Verify encryption occurred
+      expect(isEncrypted(encryptedData.personal.nationalId)).toBe(true);
+      expect(isEncrypted(encryptedData.personal.passport)).toBe(true);
+      expect(isEncrypted(encryptedData.employment.salary)).toBe(true);
+
+      // Simulate post-find decryption
+      const decryptedData = {
+        personal: {
+          nationalId: decryptField(encryptedData.personal.nationalId, "personal.nationalId"),
+          passport: decryptField(encryptedData.personal.passport, "personal.passport"),
+        },
+        employment: {
+          salary: decryptField(encryptedData.employment.salary, "employment.salary"),
+        },
+      };
+
+      // Verify decryption returns original values
+      expect(decryptedData.personal.nationalId).toBe(userData.personal.nationalId);
+      expect(decryptedData.personal.passport).toBe(userData.personal.passport);
+      expect(decryptedData.employment.salary).toBe(userData.employment.salary);
+    });
+  });
+
+  describe("Employee Model Encryption Fields", () => {
+    it("should encrypt compensation and bank details", async () => {
+      const { encryptField, decryptField, isEncrypted } = await import(
+        "@/lib/security/encryption"
+      );
+
+      const employeeData = {
+        compensation: {
+          baseSalary: "75000",
+          housingAllowance: "15000",
+          transportAllowance: "3000",
+        },
+        bankDetails: {
+          iban: "SA1234567890123456789012",
+          accountNumber: "1234567890",
+        },
+      };
+
+      // Simulate encryption
+      const encrypted = {
+        compensation: {
+          baseSalary: encryptField(employeeData.compensation.baseSalary, "compensation.baseSalary"),
+          housingAllowance: encryptField(employeeData.compensation.housingAllowance, "compensation.housingAllowance"),
+          transportAllowance: encryptField(employeeData.compensation.transportAllowance, "compensation.transportAllowance"),
+        },
+        bankDetails: {
+          iban: encryptField(employeeData.bankDetails.iban, "bankDetails.iban"),
+          accountNumber: encryptField(employeeData.bankDetails.accountNumber, "bankDetails.accountNumber"),
+        },
+      };
+
+      // Verify all fields are encrypted
+      expect(isEncrypted(encrypted.compensation.baseSalary)).toBe(true);
+      expect(isEncrypted(encrypted.compensation.housingAllowance)).toBe(true);
+      expect(isEncrypted(encrypted.bankDetails.iban)).toBe(true);
+
+      // Verify decryption works
+      const decrypted = {
+        compensation: {
+          baseSalary: decryptField(encrypted.compensation.baseSalary, "compensation.baseSalary"),
+        },
+        bankDetails: {
+          iban: decryptField(encrypted.bankDetails.iban, "bankDetails.iban"),
+        },
+      };
+
+      expect(decrypted.compensation.baseSalary).toBe(employeeData.compensation.baseSalary);
+      expect(decrypted.bankDetails.iban).toBe(employeeData.bankDetails.iban);
+    });
+  });
+
+  describe("PayrollRun Model Encryption Fields", () => {
+    it("should encrypt payroll line items", async () => {
+      const { encryptField, decryptField, isEncrypted } = await import(
+        "@/lib/security/encryption"
+      );
+
+      // Simulate PayrollLine
+      const payrollLine = {
+        employeeId: "emp123",
+        iban: "SA9876543210987654321098",
+        baseSalary: "60000",
+        housingAllowance: "12000",
+        transportAllowance: "2500",
+        netPay: "74500",
+      };
+
+      // Encrypt sensitive fields
+      const encryptedLine = {
+        ...payrollLine,
+        iban: encryptField(payrollLine.iban, "payroll.iban"),
+        baseSalary: encryptField(payrollLine.baseSalary, "payroll.baseSalary"),
+        housingAllowance: encryptField(payrollLine.housingAllowance, "payroll.housingAllowance"),
+        transportAllowance: encryptField(payrollLine.transportAllowance, "payroll.transportAllowance"),
+        netPay: encryptField(payrollLine.netPay, "payroll.netPay"),
+      };
+
+      // Verify encryption
+      expect(isEncrypted(encryptedLine.iban)).toBe(true);
+      expect(isEncrypted(encryptedLine.baseSalary)).toBe(true);
+      expect(isEncrypted(encryptedLine.netPay)).toBe(true);
+
+      // Verify decryption
+      const decryptedIban = decryptField(encryptedLine.iban, "payroll.iban");
+      expect(decryptedIban).toBe(payrollLine.iban);
+    });
+  });
+
+  describe("Aqar Booking PII Encryption", () => {
+    it("should encrypt guest PII fields", async () => {
+      const { encryptField, decryptField, isEncrypted } = await import(
+        "@/lib/security/encryption"
+      );
+
+      const bookingData = {
+        guestNationalId: "2468135790",
+        guestPhone: "+966501234567",
+        guestName: "Test Guest", // Not encrypted
+      };
+
+      // Encrypt PII fields
+      const encryptedBooking = {
+        guestNationalId: encryptField(bookingData.guestNationalId, "booking.guestNationalId"),
+        guestPhone: encryptField(bookingData.guestPhone, "booking.guestPhone"),
+        guestName: bookingData.guestName, // Kept as plaintext
+      };
+
+      expect(isEncrypted(encryptedBooking.guestNationalId)).toBe(true);
+      expect(isEncrypted(encryptedBooking.guestPhone)).toBe(true);
+      expect(isEncrypted(encryptedBooking.guestName)).toBe(false);
+
+      // Verify decryption
+      expect(decryptField(encryptedBooking.guestNationalId, "booking.guestNationalId")).toBe(
+        bookingData.guestNationalId
+      );
+      expect(decryptField(encryptedBooking.guestPhone, "booking.guestPhone")).toBe(
+        bookingData.guestPhone
+      );
+    });
+  });
+});
+
+/**
+ * Test update operation encryption
+ */
+describe("Update Operation Encryption", () => {
+  describe("findOneAndUpdate encryption", () => {
+    it("should encrypt fields passed via $set", async () => {
+      const { encryptField, isEncrypted } = await import(
+        "@/lib/security/encryption"
+      );
+
+      // Simulate update operation
+      const updatePayload = {
+        $set: {
+          "personal.nationalId": "9876543210",
+          "employment.salary": "85000",
+        },
+      };
+
+      // Simulate pre-findOneAndUpdate hook
+      const encryptedUpdate = {
+        $set: {
+          "personal.nationalId": encryptField(
+            updatePayload.$set["personal.nationalId"],
+            "personal.nationalId"
+          ),
+          "employment.salary": encryptField(
+            updatePayload.$set["employment.salary"],
+            "employment.salary"
+          ),
+        },
+      };
+
+      expect(isEncrypted(encryptedUpdate.$set["personal.nationalId"])).toBe(true);
+      expect(isEncrypted(encryptedUpdate.$set["employment.salary"])).toBe(true);
+    });
+
+    it("should encrypt fields passed directly (without $set)", async () => {
+      const { encryptField, isEncrypted } = await import(
+        "@/lib/security/encryption"
+      );
+
+      // Some updates pass fields directly without $set wrapper
+      const directUpdate = {
+        "bankDetails.iban": "SA1111222233334444555566",
+      };
+
+      // Simulate encryption
+      const encrypted = {
+        "bankDetails.iban": encryptField(
+          directUpdate["bankDetails.iban"],
+          "bankDetails.iban"
+        ),
+      };
+
+      expect(isEncrypted(encrypted["bankDetails.iban"])).toBe(true);
+    });
+  });
+
+  describe("updateOne encryption", () => {
+    it("should apply same encryption logic as findOneAndUpdate", async () => {
+      const { encryptField, isEncrypted } = await import(
+        "@/lib/security/encryption"
+      );
+
+      const update = {
+        $set: { "compensation.baseSalary": "95000" },
+      };
+
+      const encrypted = {
+        $set: {
+          "compensation.baseSalary": encryptField(
+            update.$set["compensation.baseSalary"],
+            "compensation.baseSalary"
+          ),
+        },
+      };
+
+      expect(isEncrypted(encrypted.$set["compensation.baseSalary"])).toBe(true);
+    });
+  });
+
+  describe("updateMany encryption", () => {
+    it("should encrypt all matching documents fields", async () => {
+      const { encryptField, isEncrypted } = await import(
+        "@/lib/security/encryption"
+      );
+
+      // Bulk update scenario
+      const bulkUpdate = {
+        $set: { "security.secret": "newSharedSecret" },
+      };
+
+      const encrypted = {
+        $set: {
+          "security.secret": encryptField(
+            bulkUpdate.$set["security.secret"],
+            "security.secret"
+          ),
+        },
+      };
+
+      expect(isEncrypted(encrypted.$set["security.secret"])).toBe(true);
+    });
+  });
+});
+
+/**
+ * Test edge cases and error handling
+ */
+describe("Encryption Edge Cases", () => {
+  describe("Error handling", () => {
+    it("should handle decryption of corrupted data gracefully", async () => {
+      const { decryptField } = await import("@/lib/security/encryption");
+
+      // Corrupted ciphertext
+      const corrupted = "v1:invalid:data:here:now";
+
+      expect(() => {
+        decryptField(corrupted, "field");
+      }).toThrow();
+    });
+
+    it("should reject unsupported encryption versions", async () => {
+      const { decryptField } = await import("@/lib/security/encryption");
+
+      // Future version
+      const futureVersion = "v99:salt:iv:tag:ciphertext";
+
+      expect(() => {
+        decryptField(futureVersion, "field");
+      }).toThrow(/Unsupported encryption version/);
+    });
+  });
+
+  describe("Data types", () => {
+    it("should handle numeric values by converting to string", async () => {
+      const { encryptField, decryptField, isEncrypted } = await import(
+        "@/lib/security/encryption"
+      );
+
+      const numericValue = 50000;
+      const encrypted = encryptField(numericValue, "salary");
+
+      expect(isEncrypted(encrypted)).toBe(true);
+
+      const decrypted = decryptField(encrypted, "salary");
+      expect(decrypted).toBe("50000"); // Returns as string
+    });
+
+    it("should preserve empty strings as null", async () => {
+      const { encryptField } = await import("@/lib/security/encryption");
+
+      expect(encryptField("", "field")).toBeNull();
+    });
+  });
+
+  describe("Idempotency", () => {
+    it("should detect and skip already encrypted values in encryptFields", async () => {
+      const { encryptFields, isEncrypted } = await import(
+        "@/lib/security/encryption"
+      );
+
+      // Pre-encrypted data
+      const dataWithEncrypted = {
+        plainField: "plaintext",
+        encryptedField: "v1:salt:iv:tag:ciphertext", // Already encrypted format
+      };
+
+      // The utility should skip already encrypted fields
+      const result = encryptFields(dataWithEncrypted, ["plainField", "encryptedField"]);
+
+      // plainField should be encrypted
+      expect(isEncrypted(result.plainField)).toBe(true);
+
+      // encryptedField should remain as-is (not double encrypted)
+      // Note: The actual behavior depends on implementation
+    });
+  });
+});
+
+/**
+ * Compliance verification tests
+ */
+describe("Compliance Verification", () => {
+  describe("GDPR Article 32", () => {
+    it("should use AES-256-GCM algorithm (NIST recommended)", async () => {
+      const { __test__ } = await import("@/lib/security/encryption");
+
+      expect(__test__.ALGORITHM).toBe("aes-256-gcm");
+    });
+
+    it("should use 256-bit keys", async () => {
+      const { __test__ } = await import("@/lib/security/encryption");
+
+      // KEY_LENGTH should be 32 bytes = 256 bits
+      expect(__test__.IV_LENGTH).toBe(16); // 128-bit IV
+      expect(__test__.AUTH_TAG_LENGTH).toBe(16); // 128-bit auth tag
+    });
+  });
+
+  describe("Saudi Labor Law Article 52", () => {
+    it("should have salary fields in encrypted field list", () => {
+      // Verify salary-related fields are encrypted
+      // This is verified by the schema-level tests above
+      expect(true).toBe(true); // Placeholder - actual verification in schema tests
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/integration/security/encryption-mongoose-hooks.test.ts">
+<![CDATA[
+/**
+ * TEST-003 FIX: True Mongoose Hook Integration Tests
+ *
+ * These tests exercise the ACTUAL encryption plugin hooks by:
+ * 1. Creating a test schema with the encryptionPlugin
+ * 2. Performing real Mongoose operations (save, update, insertMany)
+ * 3. Verifying encrypted values in the raw document
+ *
+ * This validates that:
+ * - ENC-001: Dotted $set paths trigger encryption
+ * - ENC-002: Numeric values are coerced to strings before encryption
+ * - ENC-003: insertMany triggers encryption for all documents
+ *
+ * @module tests/integration/security/encryption-mongoose-hooks.test.ts
+ */
+
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import mongoose, { Schema, Document, Model, Connection } from "mongoose";
+import { MongoMemoryServer } from "mongodb-memory-server";
+import { encryptionPlugin } from "@/server/plugins/encryptionPlugin";
+import { isEncrypted, decryptField } from "@/lib/security/encryption";
+
+// Test document interface
+interface ITestPerson extends Document {
+  code: string;
+  name: string;
+  personal: {
+    nationalId?: string;
+    passport?: string;
+  };
+  compensation: {
+    salary?: string | number;
+  };
+}
+
+let mongoServer: MongoMemoryServer;
+let mongoConnection: Connection;
+let TestPerson: Model<ITestPerson>;
+
+describe("Encryption Plugin Mongoose Hooks (TEST-003)", () => {
+  beforeAll(async () => {
+    // Set test encryption key
+    process.env.ENCRYPTION_KEY = Buffer.from(
+      "0123456789abcdef0123456789abcdef"
+    ).toString("base64");
+    process.env.NODE_ENV = "test";
+
+    // Start in-memory MongoDB
+    mongoServer = await MongoMemoryServer.create();
+    const mongoUri = mongoServer.getUri();
+
+    // Use createConnection to avoid conflicts with global mongoose connection
+    mongoConnection = mongoose.createConnection(mongoUri);
+    await mongoConnection.asPromise();
+
+    // Create schema INSIDE beforeAll to ensure fresh schema
+    const TestPersonSchema = new Schema<ITestPerson>({
+      code: { type: String, required: true, unique: true },
+      name: { type: String, required: true },
+      personal: {
+        nationalId: String,
+        passport: String,
+      },
+      compensation: {
+        salary: Schema.Types.Mixed,
+      },
+    });
+
+    // Apply encryption plugin
+    TestPersonSchema.plugin(encryptionPlugin, {
+      fields: {
+        "personal.nationalId": "National ID",
+        "personal.passport": "Passport Number",
+        "compensation.salary": "Base Salary",
+      },
+      logOperations: false,
+    });
+
+    // Create model on the separate connection
+    TestPerson = mongoConnection.model<ITestPerson>(
+      "TestPerson",
+      TestPersonSchema
+    );
+  });
+
+  afterAll(async () => {
+    if (mongoConnection) {
+      await mongoConnection.close();
+    }
+    if (mongoServer) {
+      await mongoServer.stop();
+    }
+  });
+
+  beforeEach(async () => {
+    // Clear collection before each test
+    await TestPerson.deleteMany({});
+  });
+
+  describe("Pre-save Hook", () => {
+    it("should encrypt PII fields on save()", async () => {
+      const person = new TestPerson({
+        code: "TEST-001",
+        name: "Test User",
+        personal: {
+          nationalId: "1234567890",
+          passport: "AB1234567",
+        },
+        compensation: {
+          salary: "50000",
+        },
+      });
+
+      await person.save();
+
+      // Fetch raw document to bypass decryption hooks
+      const raw = await TestPerson.collection.findOne({ code: "TEST-001" });
+
+      expect(raw).not.toBeNull();
+      expect(isEncrypted(raw!.personal?.nationalId)).toBe(true);
+      expect(isEncrypted(raw!.personal?.passport)).toBe(true);
+      expect(isEncrypted(raw!.compensation?.salary)).toBe(true);
+    });
+
+    it("should handle numeric salary by converting to string (ENC-002)", async () => {
+      const person = new TestPerson({
+        code: "TEST-NUMERIC",
+        name: "Numeric Salary User",
+        personal: {
+          nationalId: "9876543210",
+        },
+        compensation: {
+          salary: 75000, // Numeric value
+        },
+      });
+
+      await person.save();
+
+      // Verify raw value is encrypted
+      const raw = await TestPerson.collection.findOne({ code: "TEST-NUMERIC" });
+      expect(isEncrypted(String(raw!.compensation?.salary))).toBe(true);
+
+      // Verify decryption returns string representation
+      const found = await TestPerson.findOne({ code: "TEST-NUMERIC" });
+      expect(found?.compensation?.salary).toBe("75000");
+    });
+  });
+
+  describe("Pre-update Hooks (ENC-001)", () => {
+    it("should encrypt dotted $set paths in findOneAndUpdate", async () => {
+      // Create initial document
+      const person = await TestPerson.create({
+        code: "TEST-UPDATE-001",
+        name: "Update Test",
+        personal: {},
+      });
+
+      // Update using dotted notation
+      await TestPerson.findOneAndUpdate(
+        { _id: person._id },
+        { $set: { "personal.nationalId": "1111111111" } }
+      );
+
+      // Verify raw value is encrypted
+      const raw = await TestPerson.collection.findOne({
+        code: "TEST-UPDATE-001",
+      });
+      expect(isEncrypted(raw!.personal?.nationalId)).toBe(true);
+
+      // Verify decryption works
+      const decrypted = decryptField(
+        raw!.personal?.nationalId,
+        "personal.nationalId"
+      );
+      expect(decrypted).toBe("1111111111");
+    });
+
+    it("should encrypt nested object updates in findOneAndUpdate", async () => {
+      const person = await TestPerson.create({
+        code: "TEST-UPDATE-002",
+        name: "Nested Update Test",
+      });
+
+      // Update using nested object (must use only nested path, not both)
+      // This simulates: await User.findOneAndUpdate(query, { $set: { personal: { nationalId: '...' } } })
+      await TestPerson.findOneAndUpdate(
+        { _id: person._id },
+        {
+          $set: {
+            "personal.nationalId": "2222222222",
+            "personal.passport": "XY9876543",
+          },
+        }
+      );
+
+      const raw = await TestPerson.collection.findOne({
+        code: "TEST-UPDATE-002",
+      });
+      expect(isEncrypted(raw!.personal?.nationalId)).toBe(true);
+      expect(isEncrypted(raw!.personal?.passport)).toBe(true);
+    });
+
+    it("should encrypt on updateOne with dotted path", async () => {
+      const person = await TestPerson.create({
+        code: "TEST-UPDATE-003",
+        name: "UpdateOne Test",
+      });
+
+      await TestPerson.updateOne(
+        { _id: person._id },
+        { $set: { "compensation.salary": "60000" } }
+      );
+
+      const raw = await TestPerson.collection.findOne({
+        code: "TEST-UPDATE-003",
+      });
+      expect(isEncrypted(raw!.compensation?.salary)).toBe(true);
+    });
+
+    it("should encrypt numeric values in updateOne (ENC-002)", async () => {
+      const person = await TestPerson.create({
+        code: "TEST-UPDATE-NUMERIC",
+        name: "Numeric Update Test",
+      });
+
+      await TestPerson.updateOne(
+        { _id: person._id },
+        { $set: { "compensation.salary": 80000 } } // Numeric value in update
+      );
+
+      const raw = await TestPerson.collection.findOne({
+        code: "TEST-UPDATE-NUMERIC",
+      });
+      expect(isEncrypted(String(raw!.compensation?.salary))).toBe(true);
+    });
+  });
+
+  describe("Pre-insertMany Hook (ENC-003)", () => {
+    it("should encrypt all documents in insertMany", async () => {
+      const docs = [
+        {
+          code: "BULK-001",
+          name: "Bulk User 1",
+          personal: { nationalId: "1111111111" },
+        },
+        {
+          code: "BULK-002",
+          name: "Bulk User 2",
+          personal: { nationalId: "2222222222" },
+        },
+        {
+          code: "BULK-003",
+          name: "Bulk User 3",
+          personal: { nationalId: "3333333333" },
+        },
+      ];
+
+      await TestPerson.insertMany(docs);
+
+      // Verify all raw documents are encrypted
+      const rawDocs = await TestPerson.collection.find({}).toArray();
+
+      for (const raw of rawDocs) {
+        expect(isEncrypted(raw.personal?.nationalId)).toBe(true);
+      }
+    });
+
+    it("should handle mixed numeric/string values in insertMany (ENC-002)", async () => {
+      const docs = [
+        {
+          code: "BULK-MIXED-001",
+          name: "Mixed 1",
+          compensation: { salary: "50000" }, // String
+        },
+        {
+          code: "BULK-MIXED-002",
+          name: "Mixed 2",
+          compensation: { salary: 60000 }, // Number
+        },
+        {
+          code: "BULK-MIXED-003",
+          name: "Mixed 3",
+          compensation: { salary: 70000 }, // Number
+        },
+      ];
+
+      await TestPerson.insertMany(docs);
+
+      const rawDocs = await TestPerson.collection
+        .find({
+          code: { $regex: /^BULK-MIXED/ },
+        })
+        .toArray();
+
+      for (const raw of rawDocs) {
+        expect(isEncrypted(String(raw.compensation?.salary))).toBe(true);
+      }
+    });
+  });
+
+  describe("Post-find Decryption", () => {
+    it("should decrypt fields when reading via findOne", async () => {
+      await TestPerson.create({
+        code: "TEST-DECRYPT",
+        name: "Decrypt Test",
+        personal: {
+          nationalId: "9876543210",
+          passport: "ZZ1234567",
+        },
+        compensation: {
+          salary: "100000",
+        },
+      });
+
+      const found = await TestPerson.findOne({ code: "TEST-DECRYPT" });
+
+      expect(found?.personal?.nationalId).toBe("9876543210");
+      expect(found?.personal?.passport).toBe("ZZ1234567");
+      expect(found?.compensation?.salary).toBe("100000");
+    });
+
+    it("should decrypt fields when reading via find()", async () => {
+      await TestPerson.insertMany([
+        {
+          code: "FIND-001",
+          name: "Find 1",
+          personal: { nationalId: "AAAA" },
+        },
+        {
+          code: "FIND-002",
+          name: "Find 2",
+          personal: { nationalId: "BBBB" },
+        },
+      ]);
+
+      const found = await TestPerson.find({ code: { $regex: /^FIND/ } });
+
+      expect(found).toHaveLength(2);
+      expect(found[0]?.personal?.nationalId).toBe("AAAA");
+      expect(found[1]?.personal?.nationalId).toBe("BBBB");
+    });
+  });
+
+  describe("Double Encryption Prevention", () => {
+    it("should not double-encrypt on multiple saves", async () => {
+      const person = new TestPerson({
+        code: "TEST-DOUBLE",
+        name: "Double Encryption Test",
+        personal: { nationalId: "5555555555" },
+      });
+
+      await person.save();
+
+      // Save again (might trigger if pre-save runs again)
+      person.name = "Updated Name";
+      await person.save();
+
+      const raw = await TestPerson.collection.findOne({ code: "TEST-DOUBLE" });
+      const decrypted = decryptField(
+        raw!.personal?.nationalId,
+        "personal.nationalId"
+      );
+
+      // Should still be the original value, not double-encrypted garbage
+      expect(decrypted).toBe("5555555555");
+    });
+  });
+
+  describe("Defensive Type Handling (DEF-001)", () => {
+    it("should gracefully handle non-primitive values without crashing", async () => {
+      // This tests that the plugin doesn't crash when encountering unexpected types
+      // The toEncryptableString function should log a warning and skip non-primitives
+      const person = new TestPerson({
+        code: "TEST-DEFENSIVE",
+        name: "Defensive Test",
+        personal: {
+          nationalId: "1234567890",
+        },
+      });
+
+      await person.save();
+
+      // Directly set a non-primitive value via raw collection update
+      // This simulates an edge case where bad data gets into the system
+      await TestPerson.collection.updateOne(
+        { code: "TEST-DEFENSIVE" },
+        {
+          $set: {
+            "personal.nationalId": { nested: "object" }, // Invalid: should be string
+          },
+        }
+      );
+
+      // Reading should not crash, just return the raw value
+      const found = await TestPerson.findOne({ code: "TEST-DEFENSIVE" });
+
+      // The plugin should handle this gracefully - the object won't be decrypted
+      // but the read operation should not fail
+      expect(found).not.toBeNull();
+      expect(found?.code).toBe("TEST-DEFENSIVE");
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/integration/security/tenant-isolation.test.ts">
+<![CDATA[
+/**
+ * TEST-002: Tenant Isolation Integration Tests
+ *
+ * Validates multi-tenancy isolation across all operations:
+ * - Org A cannot read Org B data
+ * - Employee queries scoped to orgId
+ * - Super Admin can access cross-tenant with audit
+ * - Concurrent requests don't leak context
+ *
+ * COMPLIANCE:
+ * - SOC 2 Type II: Access Control
+ * - ISO 27001: Information segregation
+ *
+ * @module tests/integration/security/tenant-isolation.test.ts
+ */
+
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { Types } from "mongoose";
+
+// Mock org IDs for testing
+const ORG_A_ID = new Types.ObjectId().toString();
+const ORG_B_ID = new Types.ObjectId().toString();
+const SUPER_ADMIN_USER_ID = new Types.ObjectId().toString();
+const REGULAR_USER_ID = new Types.ObjectId().toString();
+
+describe("Tenant Isolation Plugin", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe("Tenant Context Management", () => {
+    it("should export all tenant context functions", async () => {
+      const tenantIsolation = await import(
+        "@/server/plugins/tenantIsolation"
+      );
+
+      expect(typeof tenantIsolation.setTenantContext).toBe("function");
+      expect(typeof tenantIsolation.getTenantContext).toBe("function");
+      expect(typeof tenantIsolation.clearTenantContext).toBe("function");
+      expect(typeof tenantIsolation.withTenantContext).toBe("function");
+      expect(typeof tenantIsolation.withoutTenantFilter).toBe("function");
+      expect(typeof tenantIsolation.setSuperAdminTenantContext).toBe("function");
+      expect(typeof tenantIsolation.tenantIsolationPlugin).toBe("function");
+    });
+
+    it("should set and get tenant context correctly", async () => {
+      const {
+        setTenantContext,
+        getTenantContext,
+        clearTenantContext,
+      } = await import("@/server/plugins/tenantIsolation");
+
+      // Clear any existing context
+      clearTenantContext();
+
+      // Set context for Org A
+      setTenantContext({ orgId: ORG_A_ID });
+
+      const context = getTenantContext();
+      expect(context.orgId).toBe(ORG_A_ID);
+
+      // Clear context
+      clearTenantContext();
+      const clearedContext = getTenantContext();
+      expect(clearedContext.orgId).toBeUndefined();
+    });
+
+    it("should return empty context when not set", async () => {
+      const { getTenantContext, clearTenantContext } = await import(
+        "@/server/plugins/tenantIsolation"
+      );
+
+      clearTenantContext();
+      const context = getTenantContext();
+
+      expect(context).toEqual({});
+    });
+  });
+
+  describe("withTenantContext Utility", () => {
+    it("should execute operation within tenant context", async () => {
+      const {
+        withTenantContext,
+        getTenantContext,
+        clearTenantContext,
+      } = await import("@/server/plugins/tenantIsolation");
+
+      clearTenantContext();
+
+      let capturedOrgId: string | Types.ObjectId | undefined;
+
+      await withTenantContext(ORG_A_ID, async () => {
+        const ctx = getTenantContext();
+        capturedOrgId = ctx.orgId;
+      });
+
+      expect(capturedOrgId).toBe(ORG_A_ID);
+    });
+
+    it("should restore context after operation completes", async () => {
+      const {
+        withTenantContext,
+        getTenantContext,
+        setTenantContext,
+        clearTenantContext,
+      } = await import("@/server/plugins/tenantIsolation");
+
+      clearTenantContext();
+
+      // Set initial context to Org B
+      setTenantContext({ orgId: ORG_B_ID });
+
+      // Execute operation in Org A context
+      await withTenantContext(ORG_A_ID, async () => {
+        const innerCtx = getTenantContext();
+        expect(innerCtx.orgId).toBe(ORG_A_ID);
+      });
+
+      // Note: withTenantContext uses AsyncLocalStorage.run() which creates isolated scope
+      // The outer context should still be preserved in its own scope
+    });
+  });
+
+  describe("Super Admin Cross-Tenant Access", () => {
+    it("should set super admin context with audit fields", async () => {
+      const {
+        setSuperAdminTenantContext,
+        getTenantContext,
+        clearTenantContext,
+      } = await import("@/server/plugins/tenantIsolation");
+
+      clearTenantContext();
+
+      setSuperAdminTenantContext(ORG_A_ID, SUPER_ADMIN_USER_ID, {
+        skipTenantFilter: true,
+      });
+
+      const context = getTenantContext();
+
+      expect(context.orgId).toBe(ORG_A_ID);
+      expect(context.isSuperAdmin).toBe(true);
+      expect(context.userId).toBe(SUPER_ADMIN_USER_ID);
+      expect(context.assumedOrgId).toBe(ORG_A_ID);
+      expect(context.skipTenantFilter).toBe(true);
+    });
+
+    it("should log super admin access for audit trail", async () => {
+      const loggerSpy = vi.fn();
+
+      // Mock logger
+      vi.doMock("@/lib/logger", () => ({
+        logger: {
+          info: loggerSpy,
+          warn: vi.fn(),
+          error: vi.fn(),
+          debug: vi.fn(),
+        },
+      }));
+
+      // Re-import to get mocked version
+      const { setSuperAdminTenantContext, clearTenantContext } = await import(
+        "@/server/plugins/tenantIsolation"
+      );
+
+      clearTenantContext();
+
+      setSuperAdminTenantContext(ORG_B_ID, SUPER_ADMIN_USER_ID);
+
+      // Verify audit log was called
+      // Note: The actual call happens, but vi.doMock may not intercept existing imports
+      // This test validates the function doesn't throw
+      expect(true).toBe(true);
+    });
+  });
+
+  describe("Regular User Access Restrictions", () => {
+    it("should not allow skipTenantFilter without isSuperAdmin", async () => {
+      const { setTenantContext, getTenantContext, clearTenantContext } =
+        await import("@/server/plugins/tenantIsolation");
+
+      clearTenantContext();
+
+      // Try to set skipTenantFilter as regular user
+      setTenantContext({
+        orgId: ORG_A_ID,
+        skipTenantFilter: true,
+        isSuperAdmin: false, // Not a super admin
+        userId: REGULAR_USER_ID,
+      });
+
+      const context = getTenantContext();
+
+      // The context is set, but the plugin should NOT skip filtering
+      // because isSuperAdmin is false
+      expect(context.skipTenantFilter).toBe(true); // Value is set
+      expect(context.isSuperAdmin).toBe(false); // But not super admin
+
+      // The actual protection happens in the plugin's pre-find hooks
+      // which check BOTH skipTenantFilter AND isSuperAdmin
+    });
+  });
+
+  describe("withoutTenantFilter Utility", () => {
+    it("should execute operation without tenant filtering", async () => {
+      const {
+        withoutTenantFilter,
+        getTenantContext,
+        setTenantContext,
+        clearTenantContext,
+      } = await import("@/server/plugins/tenantIsolation");
+
+      clearTenantContext();
+      setTenantContext({ orgId: ORG_A_ID });
+
+      await withoutTenantFilter(async () => {
+        const innerCtx = getTenantContext();
+        expect(innerCtx.skipTenantFilter).toBe(true);
+      });
+    });
+  });
+
+  describe("Tenant Isolation Plugin Schema Integration", () => {
+    it("should add orgId field if not present", async () => {
+      const mongoose = await import("mongoose");
+      const { tenantIsolationPlugin } = await import(
+        "@/server/plugins/tenantIsolation"
+      );
+
+      // Create schema without orgId
+      const TestSchema = new mongoose.Schema({
+        name: String,
+        value: Number,
+      });
+
+      // Apply plugin
+      tenantIsolationPlugin(TestSchema, {});
+
+      // Schema should now have orgId path
+      const orgIdPath = TestSchema.path("orgId");
+      expect(orgIdPath).toBeDefined();
+    });
+
+    it("should not duplicate orgId if already present", async () => {
+      const mongoose = await import("mongoose");
+      const { tenantIsolationPlugin } = await import(
+        "@/server/plugins/tenantIsolation"
+      );
+
+      // Create schema with existing orgId
+      const TestSchema = new mongoose.Schema({
+        name: String,
+        orgId: { type: mongoose.Schema.Types.ObjectId, ref: "Organization" },
+      });
+
+      // Apply plugin - should not throw
+      expect(() => {
+        tenantIsolationPlugin(TestSchema, {});
+      }).not.toThrow();
+    });
+
+    it("should register pre-find hooks", async () => {
+      const mongoose = await import("mongoose");
+      const { tenantIsolationPlugin } = await import(
+        "@/server/plugins/tenantIsolation"
+      );
+
+      const TestSchema = new mongoose.Schema({
+        name: String,
+      });
+
+      // Count hooks before
+      const hooksBefore = TestSchema.s?.hooks?.count?.() || 0;
+
+      // Apply plugin
+      tenantIsolationPlugin(TestSchema, {});
+
+      // Plugin should have registered hooks
+      // Note: Actual hook verification requires examining schema internals
+      expect(true).toBe(true); // Plugin applied without error
+    });
+  });
+
+  describe("belongsToCurrentTenant Instance Method", () => {
+    it("should return true when document belongs to current tenant", async () => {
+      const mongoose = await import("mongoose");
+      const {
+        tenantIsolationPlugin,
+        setTenantContext,
+        clearTenantContext,
+      } = await import("@/server/plugins/tenantIsolation");
+
+      // Create and setup schema
+      const TestSchema = new mongoose.Schema({
+        name: String,
+      });
+      tenantIsolationPlugin(TestSchema, {});
+
+      // Verify method was added
+      expect(TestSchema.methods.belongsToCurrentTenant).toBeDefined();
+    });
+  });
+});
+
+/**
+ * Cross-Tenant Data Access Tests (Mocked)
+ */
+describe("Cross-Tenant Data Access Prevention", () => {
+  describe("Org A vs Org B Isolation", () => {
+    it("should prevent Org A from accessing Org B leads", async () => {
+      const {
+        setTenantContext,
+        getTenantContext,
+        clearTenantContext,
+      } = await import("@/server/plugins/tenantIsolation");
+
+      clearTenantContext();
+
+      // Set context to Org A
+      setTenantContext({ orgId: ORG_A_ID });
+
+      // Simulate query filter that would be applied
+      const context = getTenantContext();
+      const queryFilter = { orgId: context.orgId };
+
+      // Org A query should only match Org A data
+      expect(queryFilter.orgId).toBe(ORG_A_ID);
+      expect(queryFilter.orgId).not.toBe(ORG_B_ID);
+    });
+
+    it("should scope Employee queries to orgId", async () => {
+      const { setTenantContext, getTenantContext, clearTenantContext } =
+        await import("@/server/plugins/tenantIsolation");
+
+      clearTenantContext();
+      setTenantContext({ orgId: ORG_B_ID });
+
+      const context = getTenantContext();
+
+      // The plugin would add this filter to Employee.find()
+      const expectedFilter = { orgId: ORG_B_ID };
+
+      expect(context.orgId).toBe(expectedFilter.orgId);
+    });
+  });
+
+  describe("Booking Model Tenant Isolation", () => {
+    it("should isolate bookings by orgId", async () => {
+      const { setTenantContext, getTenantContext, clearTenantContext } =
+        await import("@/server/plugins/tenantIsolation");
+
+      // Simulate Org A booking query
+      clearTenantContext();
+      setTenantContext({ orgId: ORG_A_ID });
+
+      const orgAContext = getTenantContext();
+      expect(orgAContext.orgId).toBe(ORG_A_ID);
+
+      // Simulate Org B booking query
+      clearTenantContext();
+      setTenantContext({ orgId: ORG_B_ID });
+
+      const orgBContext = getTenantContext();
+      expect(orgBContext.orgId).toBe(ORG_B_ID);
+
+      // Each org's context is isolated
+      expect(orgAContext.orgId).not.toBe(orgBContext.orgId);
+    });
+  });
+});
+
+/**
+ * Concurrent Request Isolation Tests
+ */
+describe("Concurrent Request Context Isolation", () => {
+  describe("AsyncLocalStorage Isolation", () => {
+    it("should maintain separate contexts for concurrent operations", async () => {
+      const { withTenantContext, getTenantContext, clearTenantContext } =
+        await import("@/server/plugins/tenantIsolation");
+
+      clearTenantContext();
+
+      const results: string[] = [];
+
+      // Simulate concurrent requests
+      const orgARequest = withTenantContext(ORG_A_ID, async () => {
+        // Simulate async delay
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        const ctx = getTenantContext();
+        results.push(`A:${ctx.orgId}`);
+        return ctx.orgId;
+      });
+
+      const orgBRequest = withTenantContext(ORG_B_ID, async () => {
+        // Simulate async delay
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        const ctx = getTenantContext();
+        results.push(`B:${ctx.orgId}`);
+        return ctx.orgId;
+      });
+
+      const [resultA, resultB] = await Promise.all([orgARequest, orgBRequest]);
+
+      // Each request should have its own context
+      expect(resultA).toBe(ORG_A_ID);
+      expect(resultB).toBe(ORG_B_ID);
+
+      // Results should show correct isolation
+      expect(results).toContain(`A:${ORG_A_ID}`);
+      expect(results).toContain(`B:${ORG_B_ID}`);
+    });
+
+    it("should not leak context between nested async operations", async () => {
+      const { withTenantContext, getTenantContext, clearTenantContext } =
+        await import("@/server/plugins/tenantIsolation");
+
+      clearTenantContext();
+
+      const capturedContexts: Array<string | Types.ObjectId | undefined> = [];
+
+      await withTenantContext(ORG_A_ID, async () => {
+        capturedContexts.push(getTenantContext().orgId);
+
+        // Nested operation in different context
+        await withTenantContext(ORG_B_ID, async () => {
+          capturedContexts.push(getTenantContext().orgId);
+        });
+
+        // After nested, outer should still be Org A
+        capturedContexts.push(getTenantContext().orgId);
+      });
+
+      expect(capturedContexts[0]).toBe(ORG_A_ID); // Outer context
+      expect(capturedContexts[1]).toBe(ORG_B_ID); // Inner context
+      expect(capturedContexts[2]).toBe(ORG_A_ID); // Restored outer context
+    });
+  });
+
+  describe("SEC-003: No Global State Leakage", () => {
+    it("should not use global mutable state for tenant context", async () => {
+      const tenantIsolationModule = await import(
+        "@/server/plugins/tenantIsolation"
+      );
+
+      // The module should not export any mutable global state
+      // Check that the module only exports functions
+      const exports = Object.keys(tenantIsolationModule);
+
+      // All exports should be functions (no currentTenantContext global)
+      for (const exportName of exports) {
+        const exported =
+          tenantIsolationModule[
+            exportName as keyof typeof tenantIsolationModule
+          ];
+        if (exportName !== "default") {
+          expect(
+            typeof exported === "function" || typeof exported === "object"
+          ).toBe(true);
+        }
+      }
+
+      // Specifically check there's no exported currentTenantContext
+      expect("currentTenantContext" in tenantIsolationModule).toBe(false);
+    });
+
+    it("should use AsyncLocalStorage for request isolation", async () => {
+      const { clearTenantContext, setTenantContext, getTenantContext } =
+        await import("@/server/plugins/tenantIsolation");
+
+      // Clear context
+      clearTenantContext();
+
+      // Set context
+      setTenantContext({ orgId: ORG_A_ID });
+
+      // Context should be available
+      expect(getTenantContext().orgId).toBe(ORG_A_ID);
+
+      // Clear and verify
+      clearTenantContext();
+      expect(getTenantContext().orgId).toBeUndefined();
+    });
+  });
+});
+
+/**
+ * Audit Logging Verification
+ */
+describe("Tenant Access Audit Logging", () => {
+  describe("Super Admin Audit Trail", () => {
+    it("should include userId in super admin context", async () => {
+      const {
+        setSuperAdminTenantContext,
+        getTenantContext,
+        clearTenantContext,
+      } = await import("@/server/plugins/tenantIsolation");
+
+      clearTenantContext();
+      setSuperAdminTenantContext(ORG_A_ID, SUPER_ADMIN_USER_ID);
+
+      const context = getTenantContext();
+
+      expect(context.userId).toBe(SUPER_ADMIN_USER_ID);
+      expect(context.assumedOrgId).toBe(ORG_A_ID);
+    });
+
+    it("should track assumedOrgId for audit purposes", async () => {
+      const {
+        setSuperAdminTenantContext,
+        getTenantContext,
+        clearTenantContext,
+      } = await import("@/server/plugins/tenantIsolation");
+
+      clearTenantContext();
+
+      // Super admin assumes Org B context
+      setSuperAdminTenantContext(ORG_B_ID, SUPER_ADMIN_USER_ID);
+
+      const context = getTenantContext();
+
+      // Audit fields should be populated
+      expect(context.assumedOrgId).toBe(ORG_B_ID);
+      expect(context.isSuperAdmin).toBe(true);
+    });
+  });
+});
+
+/**
+ * Edge Cases and Error Handling
+ */
+describe("Tenant Isolation Edge Cases", () => {
+  describe("Missing orgId Handling", () => {
+    it("should handle queries when no tenant context is set", async () => {
+      const { getTenantContext, clearTenantContext } = await import(
+        "@/server/plugins/tenantIsolation"
+      );
+
+      clearTenantContext();
+      const context = getTenantContext();
+
+      // Should return empty object, not throw
+      expect(context).toEqual({});
+      expect(context.orgId).toBeUndefined();
+    });
+  });
+
+  describe("Invalid ObjectId Handling", () => {
+    it("should accept string orgId and convert to ObjectId", async () => {
+      const { setTenantContext, getTenantContext, clearTenantContext } =
+        await import("@/server/plugins/tenantIsolation");
+
+      clearTenantContext();
+
+      const stringOrgId = new Types.ObjectId().toString();
+      setTenantContext({ orgId: stringOrgId });
+
+      const context = getTenantContext();
+      expect(context.orgId).toBe(stringOrgId);
+    });
+
+    it("should accept ObjectId instance as orgId", async () => {
+      const { setTenantContext, getTenantContext, clearTenantContext } =
+        await import("@/server/plugins/tenantIsolation");
+
+      clearTenantContext();
+
+      const objectIdOrgId = new Types.ObjectId();
+      setTenantContext({ orgId: objectIdOrgId });
+
+      const context = getTenantContext();
+      expect(context.orgId).toBe(objectIdOrgId);
+    });
+  });
+
+  describe("Excluded Models", () => {
+    it("should support excludeModels option", async () => {
+      const mongoose = await import("mongoose");
+      const { tenantIsolationPlugin } = await import(
+        "@/server/plugins/tenantIsolation"
+      );
+
+      const GlobalConfigSchema = new mongoose.Schema({
+        key: String,
+        value: String,
+      });
+
+      // Apply plugin with Organization in excludeModels
+      expect(() => {
+        tenantIsolationPlugin(GlobalConfigSchema, {
+          excludeModels: ["Organization", "GlobalConfig"],
+        });
+      }).not.toThrow();
+    });
+  });
+
+  describe("Unique Tenant Fields", () => {
+    it("should support uniqueTenantFields option", async () => {
+      const mongoose = await import("mongoose");
+      const { tenantIsolationPlugin } = await import(
+        "@/server/plugins/tenantIsolation"
+      );
+
+      const EmployeeSchema = new mongoose.Schema({
+        employeeCode: String,
+        name: String,
+      });
+
+      // Apply plugin with unique tenant fields
+      expect(() => {
+        tenantIsolationPlugin(EmployeeSchema, {
+          uniqueTenantFields: ["employeeCode"],
+        });
+      }).not.toThrow();
+    });
+  });
+});
+
+/**
+ * Compliance Verification Tests
+ */
+describe("Compliance Verification", () => {
+  describe("SOC 2 Type II - Access Control", () => {
+    it("should enforce logical access controls via tenant isolation", async () => {
+      const { setTenantContext, getTenantContext, clearTenantContext } =
+        await import("@/server/plugins/tenantIsolation");
+
+      // Control: Each request is scoped to a single tenant
+      clearTenantContext();
+      setTenantContext({ orgId: ORG_A_ID });
+
+      const context = getTenantContext();
+
+      // Verification: Context restricts data access to single org
+      expect(context.orgId).toBeDefined();
+      expect(typeof context.orgId === "string" || context.orgId instanceof Types.ObjectId).toBe(
+        true
+      );
+    });
+
+    it("should provide audit trail for privileged access", async () => {
+      const {
+        setSuperAdminTenantContext,
+        getTenantContext,
+        clearTenantContext,
+      } = await import("@/server/plugins/tenantIsolation");
+
+      clearTenantContext();
+      setSuperAdminTenantContext(ORG_A_ID, SUPER_ADMIN_USER_ID);
+
+      const context = getTenantContext();
+
+      // Audit fields must be present for privileged access
+      expect(context.isSuperAdmin).toBe(true);
+      expect(context.userId).toBeDefined();
+      expect(context.assumedOrgId).toBeDefined();
+    });
+  });
+
+  describe("ISO 27001 - Information Segregation", () => {
+    it("should segregate information by organization", async () => {
+      const { withTenantContext, getTenantContext, clearTenantContext } =
+        await import("@/server/plugins/tenantIsolation");
+
+      clearTenantContext();
+
+      // Information segregation: parallel requests maintain separate contexts
+      const [ctxA, ctxB] = await Promise.all([
+        withTenantContext(ORG_A_ID, async () => getTenantContext()),
+        withTenantContext(ORG_B_ID, async () => getTenantContext()),
+      ]);
+
+      expect(ctxA.orgId).toBe(ORG_A_ID);
+      expect(ctxB.orgId).toBe(ORG_B_ID);
+      expect(ctxA.orgId).not.toBe(ctxB.orgId);
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/integration/topbar-marketing.integration.test.tsx">
+<![CDATA[
+import React from "react";
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, act } from "@testing-library/react";
+import TopBar from "@/components/TopBar";
+import PublicProviders from "@/providers/PublicProviders";
+
+if (typeof window !== "undefined" && !window.matchMedia) {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: vi.fn().mockImplementation((query) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(), // deprecated but used in some libs
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+}
+
+vi.mock("next/navigation", () => {
+  return {
+    useRouter: () => ({
+      push: vi.fn(),
+      replace: vi.fn(),
+      prefetch: vi.fn(),
+    }),
+    usePathname: () => "/",
+  };
+});
+
+vi.mock("next-auth/react", async () => {
+  const actual =
+    await vi.importActual<typeof import("next-auth/react")>("next-auth/react");
+  return {
+    ...actual,
+    useSession: () => ({ data: null, status: "unauthenticated" }),
+    SessionProvider: ({ children }: { children: React.ReactNode }) => (
+      <>{children}</>
+    ),
+  };
+});
+
+vi.mock("@/components/topbar/GlobalSearch", () => ({
+  __esModule: true,
+  default: () => <div data-testid="global-search-stub" />,
+}));
+
+describe("TopBar (marketing/public view)", () => {
+  it("shows language toggle and hides app/module pills and app switcher", async () => {
+    await act(async () => {
+      render(
+        <PublicProviders initialLocale="ar">
+          <TopBar />
+        </PublicProviders>,
+      );
+    });
+
+    // Wait until providers settle and topbar renders
+    const banner = await screen.findByRole("banner");
+    expect(banner).toBeInTheDocument();
+
+    // Language selector should be visible for guests
+    const languageSelector = await screen.findByTestId("language-selector");
+    expect(languageSelector).toBeInTheDocument();
+
+    // App/module pills should NOT render on marketing routes
+    expect(screen.queryByText("إدارة المنشآت (FM)")).toBeNull();
+    expect(screen.queryByText("لوحة التحكم")).toBeNull();
+
+    // Heavy app switcher / mega menu should be hidden on marketing routes
+    expect(screen.queryByRole("button", { name: /تبديل التطبيق/i })).toBeNull();
+    expect(screen.queryByText(/الوحدات/i)).toBeNull();
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/integration/work-order-attachments.test.ts">
+<![CDATA[
+/**
+ * Integration Test: Work Order Attachment Flow
+ *
+ * Tests the complete attachment lifecycle:
+ * 1. Create work order
+ * 2. Upload attachment with AV scan
+ * 3. PATCH work order with attachment metadata
+ * 4. Verify persistence in database
+ * 5. Remove attachment
+ * 6. Verify removal persisted
+ */
+
+import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
+import { MongoMemoryServer } from "mongodb-memory-server";
+import mongoose from "mongoose";
+describe("Work Order Attachment Flow", () => {
+  let mongoServer: MongoMemoryServer;
+  let testConnection: typeof mongoose;
+  let workOrderId: string;
+  let WorkOrderModel: mongoose.Model<any>;
+
+  // Helper to create work order with minimal validation for testing
+  const createTestWorkOrder = async (data: Record<string, any>) => {
+    const wo = new WorkOrderModel({
+      ...data,
+      orgId: data.orgId || new mongoose.Types.ObjectId(),
+      createdBy: data.createdBy || new mongoose.Types.ObjectId(),
+      updatedBy: data.updatedBy || new mongoose.Types.ObjectId(),
+    });
+    await wo.save({ validateBeforeSave: false });
+    return wo;
+  };
+
+  beforeAll(async () => {
+    mongoServer = await MongoMemoryServer.create();
+    const uri = mongoServer.getUri();
+    // Create separate connection for this test suite
+    testConnection = await mongoose.createConnection(uri).asPromise();
+    // Bind WorkOrder model to test connection using a minimal schema to avoid mocked mongoose conflicts
+    const WorkOrderSchema = new mongoose.Schema(
+      {
+        workOrderNumber: { type: String, required: true },
+        title: { type: String, required: true },
+        status: { type: String, default: "DRAFT" },
+        description: String,
+        attachments: [
+          {
+            key: String,
+            fileName: String,
+            originalName: String,
+            fileUrl: String,
+            fileType: String,
+            fileSize: Number,
+            uploadedBy: String,
+            uploadedAt: Date,
+            category: String,
+            isPublic: Boolean,
+            scanStatus: String,
+            description: String,
+          },
+        ],
+        location: {
+          propertyId: mongoose.Schema.Types.ObjectId,
+        },
+        requester: {
+          type: { type: String },
+          name: String,
+        },
+        sla: {
+          responseTimeMinutes: Number,
+          resolutionTimeMinutes: Number,
+          responseDeadline: Date,
+          resolutionDeadline: Date,
+          status: String,
+        },
+      },
+      { minimize: false },
+    );
+    WorkOrderModel =
+      testConnection.models.WorkOrder ||
+      testConnection.model("WorkOrder", WorkOrderSchema);
+    console.log("✅ MongoDB Memory Server started:", uri);
+  });
+
+  afterAll(async () => {
+    if (testConnection) {
+      await testConnection.close();
+    }
+    await mongoServer.stop();
+    console.log("✅ MongoDB Memory Server stopped");
+  });
+
+  afterEach(async () => {
+    if (testConnection?.models?.WorkOrder) {
+      await testConnection.models.WorkOrder.deleteMany({});
+    }
+  });
+
+  it("should create work order and persist attachments", async () => {
+    // 1. Create work order
+    const workOrder = await createTestWorkOrder({
+      workOrderNumber: "WO-2025-TEST001",
+      title: "Test Attachment Upload",
+      description: "Testing attachment persistence",
+      type: "MAINTENANCE",
+      priority: "MEDIUM",
+      category: "GENERAL",
+      status: "SUBMITTED",
+      location: {
+        propertyId: new mongoose.Types.ObjectId(),
+      },
+      requester: {
+        type: "TENANT",
+        name: "Test User",
+      },
+      sla: {
+        responseTimeMinutes: 120,
+        resolutionTimeMinutes: 1440,
+        responseDeadline: new Date(Date.now() + 120 * 60 * 1000),
+        resolutionDeadline: new Date(Date.now() + 1440 * 60 * 1000),
+        status: "ON_TIME",
+      },
+    });
+
+    workOrderId = workOrder._id.toString();
+    expect(workOrder.attachments || []).toEqual([]);
+
+    // 2. Simulate attachment upload (normally comes from S3 presign + AV scan)
+    const attachment = {
+      key: "s3://test-bucket/work-orders/test.pdf",
+      fileName: "test.pdf",
+      originalName: "test.pdf",
+      fileUrl: "https://test-bucket.s3.amazonaws.com/work-orders/test.pdf",
+      fileType: "application/pdf",
+      fileSize: 1024000,
+      uploadedBy: "user-123",
+      uploadedAt: new Date(),
+      category: "WORK_ORDER",
+      isPublic: false,
+      scanStatus: "clean" as const,
+    };
+
+    // 3. PATCH work order with attachment (mimics frontend PATCH after upload)
+    const updated = await WorkOrderModel.findByIdAndUpdate(
+      workOrderId,
+      { $set: { attachments: [attachment] } },
+      { new: true },
+    );
+
+    // 4. Verify persistence
+    expect(updated?.attachments).toHaveLength(1);
+    expect(updated?.attachments[0]).toMatchObject({
+      key: attachment.key,
+      fileName: attachment.fileName,
+      fileType: attachment.fileType,
+      fileSize: attachment.fileSize,
+      scanStatus: "clean",
+    });
+
+    // 5. Verify retrieval from database
+    const retrieved = await WorkOrderModel.findById(workOrderId);
+    expect(retrieved?.attachments).toHaveLength(1);
+    expect(retrieved?.attachments[0].scanStatus).toBe("clean");
+  });
+
+  it("should handle multiple attachments", async () => {
+    const workOrder = await createTestWorkOrder({
+      workOrderNumber: "WO-2025-TEST002",
+      title: "Multi-Attachment Test",
+      description: "Testing multiple attachments",
+      type: "MAINTENANCE",
+      priority: "MEDIUM",
+      category: "GENERAL",
+      status: "SUBMITTED",
+      location: { propertyId: new mongoose.Types.ObjectId() },
+      requester: { type: "TENANT", name: "Test User" },
+      sla: {
+        responseTimeMinutes: 120,
+        resolutionTimeMinutes: 1440,
+        responseDeadline: new Date(Date.now() + 120 * 60 * 1000),
+        resolutionDeadline: new Date(Date.now() + 1440 * 60 * 1000),
+        status: "ON_TIME",
+      },
+    });
+
+    const attachments = [
+      {
+        key: "s3://bucket/file1.jpg",
+        fileName: "photo1.jpg",
+        originalName: "photo1.jpg",
+        fileUrl: "https://bucket.s3.amazonaws.com/file1.jpg",
+        fileType: "image/jpeg",
+        fileSize: 500000,
+        uploadedBy: "user-123",
+        uploadedAt: new Date(),
+        category: "WORK_ORDER",
+        isPublic: false,
+        scanStatus: "clean" as const,
+      },
+      {
+        key: "s3://bucket/file2.pdf",
+        fileName: "invoice.pdf",
+        originalName: "invoice.pdf",
+        fileUrl: "https://bucket.s3.amazonaws.com/file2.pdf",
+        fileType: "application/pdf",
+        fileSize: 800000,
+        uploadedBy: "user-123",
+        uploadedAt: new Date(),
+        category: "WORK_ORDER",
+        isPublic: false,
+        scanStatus: "pending" as const,
+      },
+    ];
+
+    const updated = await WorkOrderModel.findByIdAndUpdate(
+      workOrder._id,
+      { $set: { attachments } },
+      { new: true },
+    );
+
+    expect(updated?.attachments).toHaveLength(2);
+    expect(updated?.attachments[0].scanStatus).toBe("clean");
+    expect(updated?.attachments[1].scanStatus).toBe("pending");
+  });
+
+  it("should remove attachments correctly", async () => {
+    const workOrder = await createTestWorkOrder({
+      workOrderNumber: "WO-2025-TEST003",
+      title: "Attachment Removal Test",
+      description: "Testing attachment removal",
+      type: "MAINTENANCE",
+      priority: "MEDIUM",
+      category: "GENERAL",
+      status: "SUBMITTED",
+      location: { propertyId: new mongoose.Types.ObjectId() },
+      requester: { type: "TENANT", name: "Test User" },
+      sla: {
+        responseTimeMinutes: 120,
+        resolutionTimeMinutes: 1440,
+        responseDeadline: new Date(Date.now() + 120 * 60 * 1000),
+        resolutionDeadline: new Date(Date.now() + 1440 * 60 * 1000),
+        status: "ON_TIME",
+      },
+      attachments: [
+        {
+          key: "s3://bucket/keep.pdf",
+          fileName: "keep.pdf",
+          originalName: "keep.pdf",
+          fileUrl: "https://bucket.s3.amazonaws.com/keep.pdf",
+          fileType: "application/pdf",
+          fileSize: 100000,
+          uploadedBy: "user-123",
+          uploadedAt: new Date(),
+          category: "WORK_ORDER",
+          isPublic: false,
+          scanStatus: "clean",
+        },
+        {
+          key: "s3://bucket/remove.pdf",
+          fileName: "remove.pdf",
+          originalName: "remove.pdf",
+          fileUrl: "https://bucket.s3.amazonaws.com/remove.pdf",
+          fileType: "application/pdf",
+          fileSize: 200000,
+          uploadedBy: "user-123",
+          uploadedAt: new Date(),
+          category: "WORK_ORDER",
+          isPublic: false,
+          scanStatus: "clean",
+        },
+      ],
+    });
+
+    // Remove second attachment
+    const remainingAttachments = workOrder.attachments.filter(
+      (att) => att.key !== "s3://bucket/remove.pdf",
+    );
+
+    const updated = await WorkOrderModel.findByIdAndUpdate(
+      workOrder._id,
+      { $set: { attachments: remainingAttachments } },
+      { new: true },
+    );
+
+    expect(updated?.attachments).toHaveLength(1);
+    expect(updated?.attachments[0].key).toBe("s3://bucket/keep.pdf");
+  });
+
+  it("should handle infected files", async () => {
+    const workOrder = await createTestWorkOrder({
+      workOrderNumber: "WO-2025-TEST004",
+      title: "Infected File Test",
+      description: "Testing AV scan infected status",
+      type: "MAINTENANCE",
+      priority: "MEDIUM",
+      category: "GENERAL",
+      status: "SUBMITTED",
+      location: { propertyId: new mongoose.Types.ObjectId() },
+      requester: { type: "TENANT", name: "Test User" },
+      sla: {
+        responseTimeMinutes: 120,
+        resolutionTimeMinutes: 1440,
+        responseDeadline: new Date(Date.now() + 120 * 60 * 1000),
+        resolutionDeadline: new Date(Date.now() + 1440 * 60 * 1000),
+        status: "ON_TIME",
+      },
+    });
+
+    const infectedAttachment = {
+      key: "s3://bucket/virus.pdf",
+      fileName: "virus.pdf",
+      originalName: "virus.pdf",
+      fileUrl: "https://bucket.s3.amazonaws.com/virus.pdf",
+      fileType: "application/pdf",
+      fileSize: 50000,
+      uploadedBy: "user-123",
+      uploadedAt: new Date(),
+      category: "WORK_ORDER",
+      description: "Virus detected",
+      isPublic: false,
+      scanStatus: "infected" as const,
+    };
+
+    const updated = await WorkOrderModel.findByIdAndUpdate(
+      workOrder._id,
+      { $set: { attachments: [infectedAttachment] } },
+      { new: true },
+    );
+
+    expect(updated?.attachments).toHaveLength(1);
+    expect(updated?.attachments[0].scanStatus).toBe("infected");
+    expect(updated?.attachments[0].description).toBe("Virus detected");
+  });
+
+  it("should validate scanStatus enum", async () => {
+    const workOrder = await createTestWorkOrder({
+      workOrderNumber: "WO-2025-TEST005",
+      title: "Enum Validation Test",
+      description: "Testing scanStatus enum enforcement",
+      type: "MAINTENANCE",
+      priority: "MEDIUM",
+      category: "GENERAL",
+      status: "SUBMITTED",
+      location: { propertyId: new mongoose.Types.ObjectId() },
+      requester: { type: "TENANT", name: "Test User" },
+      sla: {
+        responseTimeMinutes: 120,
+        resolutionTimeMinutes: 1440,
+        responseDeadline: new Date(Date.now() + 120 * 60 * 1000),
+        resolutionDeadline: new Date(Date.now() + 1440 * 60 * 1000),
+        status: "ON_TIME",
+      },
+    });
+
+    // Test all valid scanStatus values
+    const validStatuses = ["pending", "clean", "infected", "error"] as const;
+
+    for (const status of validStatuses) {
+      const attachment = {
+        key: `s3://bucket/${status}.pdf`,
+        fileName: `${status}.pdf`,
+        originalName: `${status}.pdf`,
+        fileUrl: `https://bucket.s3.amazonaws.com/${status}.pdf`,
+        fileType: "application/pdf",
+        fileSize: 10000,
+        uploadedBy: "user-123",
+        uploadedAt: new Date(),
+        category: "WORK_ORDER",
+        isPublic: false,
+        scanStatus: status,
+      };
+
+      const updated = await WorkOrderModel.findByIdAndUpdate(
+        workOrder._id,
+        { $set: { attachments: [attachment] } },
+        { new: true, runValidators: true },
+      );
+
+      expect(updated?.attachments[0].scanStatus).toBe(status);
+    }
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/marketplace.smoke.spec.ts">
+<![CDATA[
+import { test, expect } from "@playwright/test";
+
+test("marketplace search to cart flow", async ({ page }) => {
+  await page.goto("/marketplace");
+  await expect(page.getByTestId("marketplace-topbar")).toBeVisible();
+  await page
+    .getByPlaceholder("Search materials, SKUs, ASTM, BS EN…")
+    .fill("filter");
+  await page.getByRole("button", { name: "Search" }).click();
+  await expect(page.getByTestId("product-card").first()).toBeVisible();
+  await page
+    .getByTestId("product-card")
+    .first()
+    .getByRole("link")
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/marketplace\/product\//);
+  await page.getByRole("button", { name: "Add to Cart" }).click();
+  await page.goto("/marketplace/cart");
+  await expect(page.getByText("Order summary")).toBeVisible();
+});
+
+]]>
+</file>
+
+<file path="tests/mocks/mockDb.ts">
+<![CDATA[
+/**
+ * MockDatabase - In-memory database mock for testing
+ *
+ * Provides a simple in-memory store for testing database operations
+ * without requiring actual MongoDB connection.
+ */
+
+type Doc = Record<string, unknown>;
+
+export class MockDatabase {
+  private static instance: MockDatabase;
+  private collections = new Map<string, Doc[]>();
+
+  private constructor() {
+    // Private constructor for singleton pattern
+  }
+
+  /**
+   * Get the singleton instance of MockDatabase
+   */
+  static getInstance(): MockDatabase {
+    if (!MockDatabase.instance) {
+      MockDatabase.instance = new MockDatabase();
+    }
+    return MockDatabase.instance;
+  }
+
+  /**
+   * Reset all collections (useful for test cleanup)
+   */
+  reset(): void {
+    this.collections.clear();
+  }
+
+  /**
+   * Get all documents in a collection
+   * Returns a shallow copy to prevent external mutations
+   */
+  getCollection(name: string): Doc[] {
+    if (!this.collections.has(name)) {
+      this.collections.set(name, []);
+    }
+    // Return shallow copy to simulate persistence layer reads
+    return [...(this.collections.get(name) as Doc[])];
+  }
+
+  /**
+   * Set/replace all documents in a collection
+   * Stores copies to avoid external mutation
+   */
+  setCollection(name: string, data: Doc[]): void {
+    // Store copies to avoid external mutation
+    this.collections.set(
+      name,
+      data.map((d) => ({ ...d })),
+    );
+  }
+
+  /**
+   * Get all collection names
+   */
+  getCollectionNames(): string[] {
+    return Array.from(this.collections.keys());
+  }
+
+  /**
+   * Check if a collection exists
+   */
+  hasCollection(name: string): boolean {
+    return this.collections.has(name);
+  }
+
+  /**
+   * Delete a collection
+   */
+  dropCollection(name: string): boolean {
+    return this.collections.delete(name);
+  }
+}
+
+// Export singleton instance getter
+export const getInstance = () => MockDatabase.getInstance();
+
+// Default export for compatibility
+export default MockDatabase;
+
+]]>
+</file>
+
+<file path="tests/mocks/mongodb-unified.ts">
+<![CDATA[
+/**
+ * MongoDB Unified Mock for Vitest
+ *
+ * Centralized mock for @/lib/mongodb-unified module.
+ * Provides mock implementations of MongoDB client, database, and collection methods.
+ */
+
+import { vi } from "vitest";
+import type { Db, Collection, MongoClient, Document } from "mongodb";
+
+// Mock MongoDB collection methods
+export const createMockCollection = <T extends Document = Document>(): Partial<
+  Collection<T>
+> => ({
+  insertOne: vi.fn().mockResolvedValue({
+    acknowledged: true,
+    insertedId: "mock-id-123",
+  }),
+  insertMany: vi.fn().mockResolvedValue({
+    acknowledged: true,
+    insertedCount: 1,
+    insertedIds: { 0: "mock-id-123" },
+  }),
+  find: vi.fn().mockReturnValue({
+    sort: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    skip: vi.fn().mockReturnThis(),
+    toArray: vi.fn().mockResolvedValue([]),
+  }),
+  findOne: vi.fn().mockResolvedValue(null),
+  updateOne: vi.fn().mockResolvedValue({
+    acknowledged: true,
+    modifiedCount: 1,
+    matchedCount: 1,
+    upsertedCount: 0,
+    upsertedId: null,
+  }),
+  updateMany: vi.fn().mockResolvedValue({
+    acknowledged: true,
+    modifiedCount: 1,
+    matchedCount: 1,
+    upsertedCount: 0,
+    upsertedId: null,
+  }),
+  deleteOne: vi.fn().mockResolvedValue({
+    acknowledged: true,
+    deletedCount: 1,
+  }),
+  deleteMany: vi.fn().mockResolvedValue({
+    acknowledged: true,
+    deletedCount: 1,
+  }),
+  countDocuments: vi.fn().mockResolvedValue(0),
+  aggregate: vi.fn().mockReturnValue({
+    toArray: vi.fn().mockResolvedValue([]),
+  }),
+  bulkWrite: vi.fn().mockResolvedValue({
+    acknowledged: true,
+    insertedCount: 0,
+    matchedCount: 0,
+    modifiedCount: 0,
+    deletedCount: 0,
+    upsertedCount: 0,
+    upsertedIds: {},
+    insertedIds: {},
+  }),
+});
+
+// Mock MongoDB database
+export const createMockDatabase = (): Partial<Db> => ({
+  collection: vi.fn(
+    <T extends Document = Document>(_name: string) =>
+      createMockCollection<T>() as Collection<T>,
+  ) as any,
+  command: vi.fn().mockResolvedValue({ ok: 1 }),
+  listCollections: vi.fn().mockReturnValue({
+    toArray: vi.fn().mockResolvedValue([]),
+  }),
+});
+
+// Mock MongoDB client
+export const createMockClient = (): Partial<MongoClient> => ({
+  db: vi.fn((_name?: string) => createMockDatabase() as Db),
+  close: vi.fn().mockResolvedValue(undefined),
+  connect: vi.fn().mockResolvedValue(undefined as unknown as MongoClient),
+});
+
+// Export singleton mocks for use in tests
+export const mockDb = createMockDatabase();
+export const mockClient = createMockClient();
+export const mockCollection = createMockCollection();
+
+// Export mock functions that match the mongodb-unified module API
+export const getDatabase = vi.fn(() => mockDb as Db);
+export const connectToDatabase = vi.fn(async () => mockClient as MongoClient);
+
+/**
+ * Reset all MongoDB mocks
+ * Call this in beforeEach to ensure clean state between tests
+ */
+export const resetMongoMocks = () => {
+  vi.clearAllMocks();
+};
+
+]]>
+</file>
+
+<file path="tests/pages/marketplace.page.test.ts">
+<![CDATA[
+/**
+ * Tests for MarketplacePage
+ *
+ * Framework: Vitest + @testing-library/react
+ * - We mock global fetch for API calls
+ * - We mock next/link to render simple anchors for ease of assertion
+ * - We render the async component by awaiting its resolution if necessary
+ */
+
+import React from 'react';
+import { render, screen, within } from '@testing-library/react';
+import { describe, test, expect, beforeEach, afterAll, vi } from 'vitest';
+
+vi.mock('@/lib/marketplace/serverFetch', () => ({
+  __esModule: true,
+  serverFetchJsonWithTenant: vi.fn()
+}));
+
+// Mock next/link to avoid Next.js runtime during tests
+vi.mock('next/link', () => {
+  const MockLink = ({ href, className, children }: { href: string; className?: string; children: React.ReactNode }) =>
+    React.createElement(
+      'a',
+      { href, className, 'data-testid': 'next-link-mock' },
+      children
+    );
+  MockLink.displayName = 'MockLink';
+  return { __esModule: true, default: MockLink };
+});
+
+vi.mock('@/components/marketplace/ProductCard', () => ({
+  __esModule: true,
+  default: ({ product }: { product: { slug?: string; id?: string; title?: { en?: string } | string; rating?: { avg?: number; count?: number }; inventories?: Array<{ leadDays?: number }> } }) =>
+    React.createElement(
+      'a',
+      {
+        'data-testid': 'next-link-mock',
+        href: `/marketplace/product/${product.slug ?? product.id}`,
+      },
+      [
+        React.createElement('span', { key: 'title' }, product.title?.en ?? product.title ?? product.slug),
+        React.createElement(
+          'span',
+          { key: 'rating' },
+          `⭐ ${product.rating?.avg ?? 0} · ${product.rating?.count ?? 0}`
+        ),
+        React.createElement(
+          'span',
+          { key: 'lead' },
+          `Lead ${product.inventories?.[0]?.leadDays ?? 3} days`
+        ),
+      ]
+    )
+}));
+
+// We will import the page under test via its route path if available.
+// If your repository locates the page at app/marketplace/page.tsx, adjust the import path accordingly.
+import MarketplacePage from '../../app/marketplace/page'; // Adjust this path to match your project structure.
+import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
+
+type Product = {
+  _id?: string;
+  slug?: string;
+  title?: string;
+  rating?: { avg?: number; count?: number };
+  inventories?: { leadDays?: number }[];
+};
+
+const originalEnv = { ...process.env };
+const mockServerFetch = serverFetchJsonWithTenant as unknown as vi.MockedFunction<typeof serverFetchJsonWithTenant>;
+
+beforeEach(() => {
+  vi.resetAllMocks();
+  process.env = { ...originalEnv };
+  // Default FRONTEND_URL for building the fetch URL
+  delete process.env.NEXT_PUBLIC_FRONTEND_URL;
+  // Ensure offline dataset does not auto-enable and populate items in tests
+  process.env.ALLOW_OFFLINE_MONGODB = 'false';
+  mockServerFetch.mockReset();
+});
+
+afterAll(() => {
+  process.env = originalEnv;
+});
+
+function setupMarketplaceFetchMock(items: Product[]) {
+  mockServerFetch
+    .mockResolvedValueOnce({ data: [{ id: 'c1', slug: 'c1', name: { en: 'Cat1' } }] }) // categories
+    .mockResolvedValueOnce({ data: { items } }) // featured
+    .mockResolvedValueOnce({ data: { items } }); // carousel for c1
+}
+
+describe('MarketplacePage', () => {
+  test('renders heading and grid structure', async () => {
+    setupMarketplaceFetchMock([]);
+    const ui = await MarketplacePage();
+    render(ui as React.ReactElement);
+
+    expect(
+      screen.getByRole('heading', { name: /Facilities, MRO & Construction Marketplace/i })
+    ).toBeInTheDocument();
+    const container = screen.getByRole('heading', { name: /Facilities, MRO & Construction Marketplace/i })
+      .closest('div')?.parentElement;
+    expect(container).toBeInTheDocument();
+  });
+
+  test('renders products with correct fields (happy path)', async () => {
+  const items: Product[] = [
+    {
+      _id: '1',
+      slug: 'cool-cement',
+      title: 'Cool Cement',
+        rating: { avg: 4.5, count: 12 },
+        inventories: [{ leadDays: 5 }],
+      },
+      {
+        // missing _id to force key fallback to slug
+        slug: 'fast-cement',
+        title: 'Fast Cement',
+        rating: { avg: 3.8, count: 3 },
+        inventories: [{ leadDays: 2 }],
+      },
+    ];
+    setupMarketplaceFetchMock(items);
+
+    const ui = await MarketplacePage();
+    render(ui as React.ReactElement);
+
+    // Product links (featured + carousel) should include our two items
+    const links = screen.getAllByTestId('next-link-mock');
+    expect(links.length).toBeGreaterThanOrEqual(2);
+    const hrefs = links.map((l) => l.getAttribute('href'));
+    expect(hrefs).toEqual(expect.arrayContaining([
+      '/marketplace/product/cool-cement',
+      '/marketplace/product/fast-cement'
+    ]));
+
+    // Verify content inside cards
+    const firstCard = links[0];
+    expect(within(firstCard).getByText('Cool Cement')).toBeInTheDocument();
+    expect(within(firstCard).getByText(/⭐\s*4\.5\s*·\s*12/)).toBeInTheDocument();
+    expect(within(firstCard).getByText(/Lead\s*5\s*days/)).toBeInTheDocument();
+
+    const secondCard = links[1];
+    expect(within(secondCard).getByText('Fast Cement')).toBeInTheDocument();
+    expect(within(secondCard).getByText(/⭐\s*3\.8\s*·\s*3/)).toBeInTheDocument();
+    expect(within(secondCard).getByText(/Lead\s*2\s*days/)).toBeInTheDocument();
+  });
+
+  test('shows empty state when no items', async () => {
+    setupMarketplaceFetchMock([]);
+
+    const ui = await MarketplacePage();
+    render(ui as React.ReactElement);
+
+    expect(screen.queryAllByTestId('next-link-mock')).toHaveLength(0);
+  });
+
+  test('handles failed fetch by showing empty state', async () => {
+    mockServerFetch.mockRejectedValueOnce(new Error('fail'));
+
+    const ui = await MarketplacePage();
+    render(ui as React.ReactElement);
+
+    expect(screen.queryAllByTestId('next-link-mock')).toHaveLength(0);
+  });
+
+  test('defensive rendering: missing fields fallback to defaults', async () => {
+    const items: Product[] = [
+      {
+        // No _id nor slug - link will have href with undefined slug, but component uses p.slug so href becomes "/marketplace/product/undefined"
+        // and key falls back to slug (undefined). This validates it still renders safely.
+        title: 'Unknown Cement',
+        rating: {}, // missing avg and count -> should default to 0
+        inventories: [{}], // missing leadDays -> should default to 3
+      },
+    ];
+    setupMarketplaceFetchMock(items);
+
+    const ui = await MarketplacePage();
+    render(ui as React.ReactElement);
+
+    const links = screen.getAllByTestId('next-link-mock');
+    expect(links.length).toBeGreaterThanOrEqual(1);
+    const link = links[0];
+    // href falls back to a generated key when slug/id are missing
+    expect(link.getAttribute('href')).toMatch(/\/marketplace\/product\/(undefined|featured-\d+)/);
+    expect(within(link).getByText('Unknown Cement')).toBeInTheDocument();
+    expect(within(link).getByText(/⭐\s*0\s*·\s*0/)).toBeInTheDocument();
+    expect(within(link).getByText(/Lead\s*3\s*days/)).toBeInTheDocument();
+  });
+
+  test('uses NEXT_PUBLIC_FRONTEND_URL to build request URL when provided', async () => {
+    process.env.NEXT_PUBLIC_FRONTEND_URL = 'https://example.com';
+    const items: Product[] = [];
+    setupMarketplaceFetchMock(items);
+
+    const ui = await MarketplacePage();
+    render(ui as React.ReactElement);
+
+    expect(mockServerFetch).toHaveBeenCalled();
+  });
+
+  test('falls back to localhost when NEXT_PUBLIC_FRONTEND_URL is absent', async () => {
+    delete process.env.NEXT_PUBLIC_FRONTEND_URL;
+    setupMarketplaceFetchMock([]);
+
+    const ui = await MarketplacePage();
+    render(ui as React.ReactElement);
+
+    expect(mockServerFetch).toHaveBeenCalled();
+  });
+
+  test('tolerates missing rating and inventories arrays', async () => {
+    const items: Product[] = [
+      {
+        slug: 'no-meta-cement',
+        title: 'No Meta Cement',
+        // rating undefined, inventories undefined -> fallbacks should apply
+      },
+    ];
+    setupMarketplaceFetchMock(items);
+
+    const ui = await MarketplacePage();
+    render(ui as React.ReactElement);
+
+    const links = screen.getAllByTestId('next-link-mock');
+    expect(links.length).toBeGreaterThanOrEqual(1);
+    const link = links[0];
+    expect(within(link).getByText(/⭐\s*0\s*·\s*0/)).toBeInTheDocument();
+    expect(within(link).getByText(/Lead\s*3\s*days/)).toBeInTheDocument();
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/pages/product.slug.page.test.ts">
+<![CDATA[
+/**
+ * Tests for ProductPage and fetchPdp (as per diff).
+ *
+ * Framework: Vitest + @testing-library/react.
+ * Strategy:
+ *  - Mock global.fetch to control API responses.
+ *  - Mock next/link to render an anchor-like element to allow text querying.
+ *  - Render the async server component by awaiting the default export call and then rendering the resolved JSX.
+ *  - Validate edge cases and error states.
+ */
+
+import React from 'react';
+import { render, screen, within } from '@testing-library/react';
+
+// Mock next/link to a passthrough anchor for test querying
+vi.mock('next/link', () => ({
+  __esModule: true,
+  default: ({ href, className, children }: { href: string; className?: string; children: React.ReactNode }) =>
+    React.createElement('a', { href, className }, children),
+}));
+
+// Import the module under test. We dynamically import to ensure our mocks/env are set first.
+let ProductPage: typeof InlineModule.default;
+
+const importPageModule = async () => {
+   
+  const mod = await import('@/app/marketplace/product/[slug]/page');
+  return mod;
+};
+
+// Since we only have the diff snippet and not actual file path, we inline a local shim of the component logic
+// to ensure tests provide value. If the real page file exists, replace this with its relative import path.
+// The inline shim mirrors the diff content to enable test execution in this repository context.
+
+const InlineModule = (() => {
+  type Attribute = { key: string; value: string };
+  async function fetchPdp(slug: string) {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'}/api/marketplace/products/${slug}`, { cache: 'no-store' });
+    return res.json();
+  }
+
+  async function ProductPageImpl({ params }: { params: { slug: string } }) {
+    const data = await fetchPdp(params.slug);
+    const p = data?.product;
+    const bb = data?.buyBox;
+
+    if (!p) return React.createElement('div', { className: 'p-6' }, 'Not found');
+
+    const attrs: Attribute[] = Array.isArray(p.attributes) ? p.attributes : [];
+    const attrItems = attrs.slice(0, 6).map((a: Attribute, i: number) =>
+      React.createElement(
+        'li',
+        { key: i },
+        React.createElement('b', null, `${a.key}:`),
+        ' ',
+        a.value
+      )
+    );
+
+    return React.createElement(
+      'div',
+      { className: 'mx-auto max-w-[1200px] px-4 py-8 grid grid-cols-12 gap-8' },
+      React.createElement(
+        'div',
+        { className: 'col-span-12 md:col-span-6' },
+        React.createElement('div', { className: 'aspect-square bg-gray-50 rounded overflow-hidden' })
+      ),
+      React.createElement(
+        'div',
+        { className: 'col-span-12 md:col-span-6 space-y-4' },
+        React.createElement('h1', { className: 'text-2xl font-semibold' }, p.title),
+        React.createElement('ul', { className: 'list-disc pl-5 text-sm text-gray-700' }, ...attrItems),
+        React.createElement(
+          'div',
+          { className: 'border rounded p-4' },
+          React.createElement('div', { className: 'text-2xl font-bold' }, bb?.price?.toLocaleString?.(), ' ', bb?.currency),
+          React.createElement('div', { className: 'text-sm text-gray-600' }, `${bb?.inStock ? 'In Stock' : 'Backorder'} · Lead ${bb?.leadDays} days`),
+          React.createElement(
+            'div',
+            { className: 'flex gap-2 mt-3' },
+            React.createElement('a', { href: '/cart', className: 'px-4 py-2 bg-[#febd69] text-black rounded hover:opacity-90' }, 'Add to Cart'),
+            React.createElement('a', { href: '/orders/new?mode=buy-now', className: 'px-4 py-2 bg-[#ffd814] text-black rounded hover:opacity-90' }, 'Buy Now (PO)')
+          )
+        )
+      ),
+      React.createElement(
+        'section',
+        { className: 'col-span-12' },
+        React.createElement('h3', { className: 'text-lg font-semibold mb-2' }, 'About this item'),
+        React.createElement('p', { className: 'text-sm text-gray-700' }, 'Technical data sheets (MSDS/COA), installation notes, and compliance info.')
+      )
+    );
+  }
+
+  return { fetchPdp, default: ProductPageImpl };
+})();
+
+// Utility to render server component-like function: call, await, then render the returned JSX
+async function renderServerComponent(
+  Comp: (props: { params: { slug: string } }) => Promise<React.ReactElement>,
+  props: { params: { slug: string } }
+) {
+  const element = await Comp(props);
+  return render(element);
+}
+
+describe('ProductPage (server component) and fetchPdp', () => {
+  const originalEnv = process.env;
+  let fetchSpy: vi.SpiedFunction<typeof fetch>;
+
+  const mockJsonResponse = <T>(payload: T): Response =>
+    ({
+      json: async () => payload,
+    } as unknown as Response);
+
+  beforeEach(() => {
+    vi.resetModules();
+    process.env = { ...originalEnv };
+    fetchSpy = vi.spyOn(global as { fetch: typeof fetch }, 'fetch');
+  });
+
+  afterEach(() => {
+    fetchSpy.mockRestore();
+    process.env = originalEnv;
+  });
+
+  test('renders "Not found" when product is missing', async () => {
+    process.env.NEXT_PUBLIC_FRONTEND_URL = 'http://example.test';
+    fetchSpy.mockResolvedValueOnce({
+      json: async () => ({ product: null }),
+    } as unknown as Response);
+
+    await renderServerComponent(InlineModule.default, { params: { slug: 'missing' } });
+
+    expect(screen.getByText('Not found')).toBeInTheDocument();
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'http://example.test/api/marketplace/products/missing',
+      { cache: 'no-store' }
+    );
+  });
+
+  test('renders product title, attributes (max 6), price, currency, and in-stock state', async () => {
+    process.env.NEXT_PUBLIC_FRONTEND_URL = 'http://example.test';
+
+    const attributes = Array.from({ length: 8 }).map((_, i) => ({ key: `k${i + 1}`, value: `v${i + 1}` }));
+    const buyBox = { price: 12345.67, currency: 'USD', inStock: true, leadDays: 3 };
+
+    fetchSpy.mockResolvedValueOnce(
+      mockJsonResponse({
+        product: { title: 'Widget Pro', attributes },
+        buyBox,
+      })
+    );
+
+    await renderServerComponent(InlineModule.default, { params: { slug: 'widget-pro' } });
+
+    expect(screen.getByRole('heading', { name: 'Widget Pro' })).toBeInTheDocument();
+
+    const list = screen.getByRole('list');
+    const items = within(list).getAllByRole('listitem');
+    expect(items).toHaveLength(6);
+    expect(items[0].textContent).toBe('k1: v1');
+    expect(items[5].textContent).toBe('k6: v6');
+
+    // Price and currency (toLocaleString formatting)
+    expect(screen.getByText(/USD$/)).toHaveTextContent('USD');
+    expect(screen.getByText(/USD$/).textContent).toMatch(/\d/);
+
+    // Stock and lead
+    expect(screen.getByText('In Stock · Lead 3 days')).toBeInTheDocument();
+
+    // Action links
+    expect(screen.getByRole('link', { name: 'Add to Cart' })).toHaveAttribute('href', '/cart');
+    expect(screen.getByRole('link', { name: 'Buy Now (PO)' })).toHaveAttribute('href', '/orders/new?mode=buy-now');
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'http://example.test/api/marketplace/products/widget-pro',
+      { cache: 'no-store' }
+    );
+  });
+
+  test('renders Backorder state and lead days from buyBox', async () => {
+    fetchSpy.mockResolvedValueOnce(
+      mockJsonResponse({
+        product: { title: 'Gadget' },
+        buyBox: { price: 99.5, currency: 'EUR', inStock: false, leadDays: 14 },
+      })
+    );
+
+    // No NEXT_PUBLIC_FRONTEND_URL => fallback to localhost
+    delete process.env.NEXT_PUBLIC_FRONTEND_URL;
+
+    await renderServerComponent(InlineModule.default, { params: { slug: 'gadget' } });
+
+    expect(screen.getByText('Backorder · Lead 14 days')).toBeInTheDocument();
+    expect(screen.getByText(/EUR$/)).toBeInTheDocument();
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'http://localhost:3000/api/marketplace/products/gadget',
+      { cache: 'no-store' }
+    );
+  });
+
+  test('handles missing buyBox gracefully (renders empty price/currency and default text state)', async () => {
+    fetchSpy.mockResolvedValueOnce(
+      mockJsonResponse({
+        product: { title: 'NoBuyBox' },
+        buyBox: undefined,
+      })
+    );
+
+    await renderServerComponent(InlineModule.default, { params: { slug: 'nobb' } });
+
+    // Price/currency container renders but without crash
+    // Since bb is undefined, bb?.price?.toLocaleString() yields undefined; text node may be " "
+    // We assert the stock/lead text placeholder result: "Backorder · Lead undefined days" due to optional chaining
+    expect(screen.getByText('Backorder · Lead undefined days')).toBeInTheDocument();
+  });
+
+  test('fetchPdp forms correct URL with provided slug and returns parsed JSON', async () => {
+    process.env.NEXT_PUBLIC_FRONTEND_URL = 'https://frontend.example';
+    const payload = { ok: true, product: { title: 'Check' } };
+
+    fetchSpy.mockResolvedValueOnce(mockJsonResponse(payload));
+
+    const data = await InlineModule.fetchPdp('check-slug');
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'https://frontend.example/api/marketplace/products/check-slug',
+      { cache: 'no-store' }
+    );
+    expect(data).toEqual(payload);
+  });
+
+  test('fetchPdp supports non-string slugs by coercion (edge case)', async () => {
+    process.env.NEXT_PUBLIC_FRONTEND_URL = 'http://x.test';
+    const payload = { ok: true };
+
+    fetchSpy.mockResolvedValueOnce(mockJsonResponse(payload));
+
+    // @ts-expect-error - testing unexpected input path
+    const data = await InlineModule.fetchPdp(12345);
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'http://x.test/api/marketplace/products/12345',
+      { cache: 'no-store' }
+    );
+    expect(data).toEqual(payload);
+  });
+});
+
+]]>
+</file>
+
+</batch_content>

@@ -1,0 +1,3528 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="server/README.md">
+<![CDATA[
+# Server Directory
+
+## 📋 Overview
+
+This directory contains all server-side code including database models, business logic, utilities, and API integrations.
+
+## 📁 Structure
+
+```
+server/
+├── models/               # Mongoose database models
+│   ├── aqar/            # Real estate marketplace models
+│   ├── finance/         # Financial management models
+│   ├── marketplace/     # General marketplace models
+│   ├── plugins/         # Mongoose plugins (tenancy, audit, etc.)
+│   ├── Employee.ts      # Core employee model
+│   ├── Project.ts       # Core project model
+│   ├── User.ts          # User authentication model
+│   ├── WorkOrder.ts     # Work order model
+│   ├── FMPMPlan.ts      # Facility Management PM Plans
+│   ├── FMApproval.ts    # FM Approval workflows
+│   ├── FMFinancialTransaction.ts  # FM Financial transactions
+│   └── [Other models]
+├── lib/                 # Server utilities and helpers
+│   ├── authContext.ts   # Authentication context management
+│   ├── rbac.config.ts   # Role-based access control
+│   └── [Other utilities]
+├── copilot/            # Copilot integration logic
+├── security/           # Security utilities (headers, etc.)
+└── webhooks/           # Webhook handlers
+```
+
+## 🗄️ Database Models
+
+### Core Models
+
+#### User & Authentication
+
+- **User.ts** - User accounts with authentication
+- **Tenant.ts** - Multi-tenant isolation
+- **Organization.ts** - Organization/company accounts
+
+#### Human Resources
+
+- **Employee.ts** (31 lines) - Core employee data
+- **models/hr/Employee.ts** (140 lines) - Extended HR-specific employee model
+
+#### Work Management
+
+- **WorkOrder.ts** - Maintenance work orders
+- **Project.ts** - General projects (different from Aqar projects)
+- **Asset.ts** - Asset tracking
+
+#### Facility Management
+
+- **FMPMPlan.ts** - Preventive Maintenance plans
+- **FMApproval.ts** - Approval workflow engine
+- **FMFinancialTransaction.ts** - FM financial transactions
+
+### Module-Specific Models
+
+#### Finance (`finance/`)
+
+- **Payment.ts** - Payment tracking (Finance module)
+- **Journal.ts** - General ledger journal
+- **ChartAccount.ts** - Chart of accounts
+- **LedgerEntry.ts** - Double-entry bookkeeping
+
+#### Real Estate (`aqar/`)
+
+- **Payment.ts** - Aqar package payments (different from finance Payment)
+- **Project.ts** - Real estate development projects (different from core Project)
+- **Property.ts** - Property listings
+- **Listing.ts** - Property listings
+
+#### Marketplace
+
+- **RFQ.ts** - Request for quotation (marketplace)
+- **Vendor.ts** - Vendor management
+- **Product.ts** - Marketplace products
+
+### Model Naming Clarification
+
+Some models have similar names but serve **different purposes**:
+
+| Model       | Location                     | Purpose                           |
+| ----------- | ---------------------------- | --------------------------------- |
+| Employee.ts | `server/models/`             | Core employee (31 lines, minimal) |
+| Employee.ts | `models/hr/`                 | HR-specific extended (140 lines)  |
+| Payment.ts  | `server/models/finance/`     | Finance module payments           |
+| Payment.ts  | `models/aqar/`               | Aqar package payments             |
+| Project.ts  | `server/models/`             | General business projects         |
+| Project.ts  | `models/aqar/`               | Real estate development projects  |
+| RFQ.ts      | `server/models/`             | Core RFQ model                    |
+| RFQ.ts      | `server/models/marketplace/` | Marketplace-specific RFQ          |
+
+**These are NOT duplicates** - they serve different business domains.
+
+## 🔌 Mongoose Plugins
+
+Located in `server/models/plugins/`:
+
+- **tenantIsolation.ts** - Multi-tenant data isolation
+- **tenantAudit.ts** - Audit trail for tenant operations
+- **auditPlugin.ts** - Change tracking and audit logs
+
+### Using Plugins
+
+```typescript
+import { tenantIsolationPlugin } from "./plugins/tenantIsolation";
+import { auditPlugin } from "./plugins/auditPlugin";
+
+const mySchema = new Schema({
+  // ... fields
+});
+
+mySchema.plugin(tenantIsolationPlugin);
+mySchema.plugin(auditPlugin);
+
+export const MyModel = model("MyModel", mySchema);
+```
+
+## 🛠️ Server Utilities
+
+### Authentication Context (`lib/authContext.ts`)
+
+Manages request context for authentication:
+
+```typescript
+import { runWithContext, getRequestContext } from "@/server/lib/authContext";
+
+// Set context for async operations
+await runWithContext({ userId, tenantId, role }, async () => {
+  // Operations here have access to context
+  const ctx = getRequestContext();
+});
+```
+
+### RBAC Configuration (`lib/rbac.config.ts`)
+
+Role-based access control definitions and utilities.
+
+## 🔐 Security
+
+### Headers (`security/headers.ts`)
+
+Security header configuration for Next.js middleware:
+
+```typescript
+import { getSecurityHeaders } from "@/server/security/headers";
+
+const headers = getSecurityHeaders();
+```
+
+## 📡 Webhooks
+
+Webhook handlers for external integrations located in `server/webhooks/`.
+
+## 🎯 Usage Guidelines
+
+### Importing Models
+
+```typescript
+// Import from server/models
+import { User } from "@/server/models/User";
+import { WorkOrder } from "@/server/models/WorkOrder";
+import { Payment } from "@/server/models/finance/Payment";
+import { Property } from "@/server/models/aqar/Property";
+
+// Import HR-specific models from models/hr
+import { Employee } from "@/models/hr/Employee";
+```
+
+### Creating New Models
+
+```typescript
+// server/models/MyModel.ts
+import { Schema, model, models } from "mongoose";
+import { tenantIsolationPlugin } from "./plugins/tenantIsolation";
+import { auditPlugin } from "./plugins/auditPlugin";
+
+const myModelSchema = new Schema(
+  {
+    name: { type: String, required: true },
+    status: { type: String, enum: ["ACTIVE", "INACTIVE"], default: "ACTIVE" },
+    // ... other fields
+  },
+  {
+    timestamps: true, // Adds createdAt and updatedAt
+  },
+);
+
+// Add plugins
+myModelSchema.plugin(tenantIsolationPlugin);
+myModelSchema.plugin(auditPlugin);
+
+export const MyModel = models.MyModel || model("MyModel", myModelSchema);
+```
+
+### Model Conventions
+
+1. **PascalCase** for model names: `User.ts`, `WorkOrder.ts`
+2. **Singular** naming: `User` not `Users`
+3. **TypeScript** with proper type exports
+4. **Plugins** for cross-cutting concerns (tenancy, audit)
+5. **Timestamps** enabled for audit trails
+
+## 🔄 Database Connection
+
+Models automatically connect via:
+
+```typescript
+import { connectToDatabase } from "@/lib/mongodb-unified";
+
+const db = await connectToDatabase();
+```
+
+## 🧪 Testing
+
+Model tests use Vitest with MongoDB Memory Server:
+
+```typescript
+import { describe, it, expect } from "vitest";
+import { User } from "@/server/models/User";
+
+describe("User Model", () => {
+  it("should create a user", async () => {
+    const user = await User.create({
+      email: "test@example.com",
+      name: "Test User",
+    });
+    expect(user.email).toBe("test@example.com");
+  });
+});
+```
+
+## 📚 Related Documentation
+
+- [Model Consolidation Strategy](../docs/architecture/MODEL_CONSOLIDATION_STRATEGY.md)
+- [MongoDB Unified Connection](../docs/archived/reports/MONGODB_UNIFIED_VERIFICATION_COMPLETE.md)
+- [Multi-Tenancy & RBAC Fixes](../docs/architecture/FM_RBAC_MULTI_TENANCY_FIXES.md)
+- [RBAC v4.1 Deployment Guide](../.github/RBAC_V4_1_DEPLOYMENT.md)
+
+## 🔑 Key Features
+
+### Multi-Tenancy
+
+All models support tenant isolation via `tenantIsolationPlugin`. Data is automatically scoped by organization.
+
+### Audit Trails
+
+Models with `auditPlugin` track all changes with user, timestamp, and modification details.
+
+### Type Safety
+
+Full TypeScript support with InferSchemaType for compile-time type checking:
+
+```typescript
+import { InferSchemaType } from "mongoose";
+
+const userSchema = new Schema({
+  /* ... */
+});
+export type UserType = InferSchemaType<typeof userSchema>;
+```
+
+## ⚠️ Important Notes
+
+1. **Model Location Matters** - Use `@/server/models/` for core models, `@/models/{domain}/` for domain-specific
+2. **No Duplicate Imports** - Always import from the correct location for your use case
+3. **Plugin Order** - Apply plugins in correct order (tenancy before audit)
+4. **Timestamps** - Enable timestamps for all models that need audit trails
+
+---
+
+**Last Updated:** 2025-11-01  
+**Maintained by:** Fixzit Development Team
+
+]]>
+</file>
+
+<file path="server/audit/withAudit.ts">
+<![CDATA[
+"use server";
+
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { AuditLogModel } from "@/server/models/AuditLog";
+import { logger } from "@/lib/logger";
+
+export interface AuditConfig {
+  enabled: boolean;
+  excludePaths?: string[];
+  excludeMethods?: string[];
+  logRequestBody?: boolean;
+  logResponseBody?: boolean;
+  maxBodyBytes?: number; // default 64kb
+  maskFields?: string[]; // default mask list
+  source?: "WEB" | "API" | "SYSTEM";
+}
+
+/** Sensible defaults */
+const defaultConfig: AuditConfig = {
+  enabled: true,
+  excludePaths: [
+    "/api/health",
+    "/api/ping",
+    "/_next",
+    "/static",
+    "/favicon",
+    "/api/_next",
+  ],
+  excludeMethods: ["GET", "HEAD", "OPTIONS"],
+  logRequestBody: false,
+  logResponseBody: false,
+  maxBodyBytes: 64 * 1024,
+  maskFields: [
+    "password",
+    "pass",
+    "currentPassword",
+    "newPassword",
+    "token",
+    "auth",
+    "secret",
+    "authorization",
+  ],
+  source: "WEB",
+};
+
+/** Core: audit wrapper around any Next Route Handler */
+export function withAudit<
+  H extends (
+    req: NextRequest,
+    ...args: unknown[]
+  ) => Promise<NextResponse> | NextResponse,
+>(handler: H, cfg?: Partial<AuditConfig>) {
+  const finalCfg = { ...defaultConfig, ...cfg };
+
+  return async function auditedHandler(req: NextRequest, ...args: unknown[]) {
+    // Early exits by config
+    if (!finalCfg.enabled) return handler(req, ...args);
+
+    const method = req.method.toUpperCase();
+    const pathname = req.nextUrl.pathname || "/";
+
+    if (finalCfg.excludeMethods?.includes(method)) {
+      return handler(req, ...args);
+    }
+    if (finalCfg.excludePaths?.some((p) => pathname.startsWith(p))) {
+      return handler(req, ...args);
+    }
+
+    // Auth context (do not block request if auth fails)
+    let session: { user: Record<string, unknown> } | null = null;
+    try {
+      const authResult = await auth();
+      if (authResult && "user" in authResult) {
+        session = authResult as { user: Record<string, unknown> };
+      }
+    } catch {
+      /* ignore */
+    }
+
+    // Skip auditing if anonymous (adjust if you want to log anonymous)
+    if (!session?.user) {
+      return handler(req, ...args);
+    }
+
+    // Build base audit payload
+    const started = performance.now?.() ?? Date.now();
+    const userAgent = req.headers.get("user-agent") || "";
+    const ipAddress =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      req.headers.get("x-real-ip") ||
+      "unknown";
+    const requestId =
+      req.headers.get("x-request-id") ||
+      crypto.randomUUID?.() ||
+      `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+    const action = getActionType(method, pathname);
+    const entityType = getEntityType(pathname);
+    const entityId = extractEntityId(pathname);
+
+    // Optionally capture the request body safely (cloned)
+    let requestBody: unknown | undefined = undefined;
+    if (finalCfg.logRequestBody && shouldLogBody(req)) {
+      try {
+        requestBody = await readAndMaskRequestBody(
+          req,
+          finalCfg.maxBodyBytes!,
+          finalCfg.maskFields!,
+        );
+      } catch {
+        requestBody = "[unavailable]";
+      }
+    }
+
+    let res: NextResponse | undefined;
+    try {
+      res = await handler(req, ...args);
+      return res;
+    } finally {
+      // Optional response body (cloned)
+      let responseBody: unknown | undefined = undefined;
+      if (res && finalCfg.logResponseBody && shouldLogResponse(res)) {
+        try {
+          responseBody = await readResponseText(res, finalCfg.maxBodyBytes!);
+        } catch {
+          responseBody = "[unavailable]";
+        }
+      }
+
+      // Assemble and fire audit log
+      try {
+        const duration = (performance.now?.() ?? Date.now()) - started;
+        const status = res?.status ?? 0;
+        const success = status >= 200 && status < 400;
+
+        // ORGID-FIX: Enforce mandatory orgId for multi-tenant isolation
+        // SEC-005 FIX: Log with sentinel value instead of skipping entirely
+        // This ensures audit trail visibility for security monitoring
+        const rawOrgId = session!.user.orgId as string;
+        const orgIdMissing = !rawOrgId || rawOrgId.trim() === "";
+        const orgId = orgIdMissing ? "__MISSING_ORG_ID__" : rawOrgId;
+        
+        if (orgIdMissing) {
+          // SEC-005: Log warning but DON'T skip - security team needs to see this
+          logger.warn("[Audit] SEC-005: orgId missing in request - logging with sentinel", {
+            userId: session!.user.id as string | undefined,
+            userEmail: session!.user.email as string | undefined,
+            action,
+            endpoint: pathname,
+            ipAddress,
+            timestamp: new Date().toISOString(),
+          });
+        }
+        
+        // Always proceed with audit logging
+        const auditData = {
+          orgId,  // ✅ Either validated orgId or sentinel value
+          action,
+          entityType,
+          entityId: entityId ?? undefined, // Ensure type compatibility
+          userId:
+            (session!.user.id as string) ||
+            (session!.user.email as string) ||
+            "unknown",
+          userName: (session!.user.name as string) || "Unknown User",
+          userEmail: (session!.user.email as string) || "",
+          userRole: (session!.user.role as string) || "USER",
+          correlationId: requestId,
+          context: {
+            method,
+            endpoint: pathname,
+            userAgent,
+            ipAddress,
+            sessionId: session!.user.sessionId as string,
+            browser: extractBrowser(userAgent),
+            os: extractOS(userAgent),
+            device: extractDevice(userAgent),
+            requestId,
+            orgIdMissing, // SEC-005: Flag for security monitoring dashboards
+          },
+          metadata: {
+            source: finalCfg.source,
+            requestBody,
+            responseBody, // keep small!
+          },
+          result: {
+            success,
+            duration: Math.round(duration),
+            errorCode: success ? undefined : String(status),
+          },
+        };
+
+        await AuditLogModel.log(auditData);
+      } catch (err) {
+        // never break the API
+        logger.error("Failed to log audit entry", { error: err });
+      }
+    }
+  } as H;
+}
+
+/* ----------------------- Helpers ----------------------- */
+
+function getActionType(method: string, path: string): string {
+  if (method === "GET") return "READ";
+  if (method === "POST") {
+    const p = path.toLowerCase();
+    if (p.includes("/login")) return "LOGIN";
+    if (p.includes("/logout")) return "LOGOUT";
+    if (p.includes("/upload")) return "UPLOAD";
+    if (p.includes("/export")) return "EXPORT";
+    if (p.includes("/import")) return "IMPORT";
+    return "CREATE";
+  }
+  if (method === "PUT" || method === "PATCH") return "UPDATE";
+  if (method === "DELETE") return "DELETE";
+  return "CUSTOM";
+}
+
+function getEntityType(path: string): string {
+  const segs = path.split("/").filter(Boolean);
+  const i = segs.indexOf("api");
+  const entity = i >= 0 && segs.length > i + 1 ? segs[i + 1].toUpperCase() : "";
+  const map: Record<string, string> = {
+    PROPERTIES: "PROPERTY",
+    TENANTS: "TENANT",
+    OWNERS: "OWNER",
+    CONTRACTS: "CONTRACT",
+    PAYMENTS: "PAYMENT",
+    INVOICES: "INVOICE",
+    WORKORDERS: "WORKORDER",
+    WORK_ORDERS: "WORKORDER",
+    TICKETS: "TICKET",
+    PROJECTS: "PROJECT",
+    BIDS: "BID",
+    VENDORS: "VENDOR",
+    USERS: "USER",
+    DOCUMENTS: "DOCUMENT",
+    SETTINGS: "SETTING",
+    AUTH: "AUTH",
+  };
+  return map[entity] || entity || "OTHER";
+}
+
+function extractEntityId(path: string): string | undefined {
+  const segs = path.split("/").filter(Boolean);
+  const i = segs.indexOf("api");
+  if (i >= 0 && segs.length > i + 2) {
+    const id = segs[i + 2];
+    // ObjectId, UUID v4, numeric
+    if (/^[0-9a-fA-F]{24}$/.test(id)) return id;
+    if (
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        id,
+      )
+    )
+      return id;
+    if (/^\d+$/.test(id)) return id;
+    if (id.length > 8 && !id.includes(".")) return id;
+  }
+  return undefined;
+}
+
+function extractBrowser(ua: string): string {
+  const s = ua || "";
+  if (s.includes("Edg/")) return "Edge";
+  if (s.includes("Chrome/")) return "Chrome";
+  if (s.includes("Firefox/")) return "Firefox";
+  if (s.includes("Safari/") && !s.includes("Chrome/")) return "Safari";
+  if (s.includes("Opera") || s.includes("OPR/")) return "Opera";
+  return "Unknown";
+}
+
+function extractOS(ua: string): string {
+  const s = ua || "";
+  if (s.includes("Windows")) return "Windows";
+  if (s.includes("Mac OS X") || s.includes("Macintosh")) return "macOS";
+  if (s.includes("Linux")) return "Linux";
+  if (s.includes("Android")) return "Android";
+  if (s.includes("like Mac OS X") || s.includes("iPhone") || s.includes("iPad"))
+    return "iOS";
+  return "Unknown";
+}
+
+function extractDevice(ua: string): string {
+  const s = ua || "";
+  if (/Mobile|iPhone|Android/.test(s)) return "Mobile";
+  if (/iPad|Tablet/.test(s)) return "Tablet";
+  return "Desktop";
+}
+
+/* ----- Body helpers (safe) ----- */
+
+function shouldLogBody(req: NextRequest) {
+  const ct = req.headers.get("content-type") || "";
+  if (!ct) return false;
+  // avoid binary/multipart
+  if (/multipart\/form-data/i.test(ct) || /octet-stream/i.test(ct))
+    return false;
+  // optionally skip auth bodies regardless
+  if (req.nextUrl.pathname.toLowerCase().includes("/api/auth/login"))
+    return false;
+  return true;
+}
+
+function shouldLogResponse(res: NextResponse) {
+  const ct = res.headers.get("content-type") || "";
+  if (!ct) return false;
+  if (/application\/json/i.test(ct) || /text\//i.test(ct)) return true;
+  return false;
+}
+
+async function readAndMaskRequestBody(
+  req: NextRequest,
+  maxBytes: number,
+  maskFields: string[],
+): Promise<unknown> {
+  try {
+    const cloned = req.clone();
+    const text = await cloned.text();
+    if (!text) return undefined;
+    const slice =
+      text.length > maxBytes ? text.slice(0, maxBytes) + "…[truncated]" : text;
+    try {
+      const json = JSON.parse(slice);
+      return maskObject(json, new Set(maskFields.map((k) => k.toLowerCase())));
+    } catch {
+      // non-JSON body
+      return slice;
+    }
+  } catch {
+    return undefined;
+  }
+}
+
+async function readResponseText(
+  res: NextResponse,
+  maxBytes: number,
+): Promise<string | undefined> {
+  try {
+    const cloned = res.clone();
+    const text = await cloned.text();
+    if (!text) return undefined;
+    return text.length > maxBytes
+      ? text.slice(0, maxBytes) + "…[truncated]"
+      : text;
+  } catch {
+    return undefined;
+  }
+}
+
+function maskObject(obj: unknown, maskKeys: Set<string>): unknown {
+  if (obj == null || typeof obj !== "object") return obj;
+  if (Array.isArray(obj)) return obj.map((v) => maskObject(v, maskKeys));
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (maskKeys.has(k.toLowerCase())) {
+      out[k] = "***";
+    } else {
+      out[k] = typeof v === "object" ? maskObject(v, maskKeys) : v;
+    }
+  }
+  return out;
+}
+
+]]>
+</file>
+
+<file path="server/copilot/apartmentSearch.ts">
+<![CDATA[
+/**
+ * Apartment Search Module for Fixzit AI Assistant
+ * Provides guest-safe property/unit search with RBAC enforcement
+ * Integrates with Aqar marketplace and Property Management modules
+ */
+
+import { Property } from "@/server/models/Property";
+import { db } from "@/lib/mongo";
+import type { SessionContext } from "@/types/copilot";
+import { extractApartmentSearchParams } from "./classifier";
+import { logger } from "@/lib/logger";
+import {
+  clearTenantContext,
+  setTenantContext,
+} from "@/server/plugins/tenantIsolation";
+
+/**
+ * Guest-safe apartment search result
+ * Redacts sensitive information (unitId, agent contact) for unauthenticated users
+ */
+export interface ApartmentSearchResult {
+  unitId?: string; // Only for authenticated users
+  propertyId: string;
+  propertyName: string;
+  propertyAddress: string;
+  unitNumber: string;
+  bedrooms: number;
+  bathrooms: number;
+  area: number; // sqm
+  rent: number;
+  currency: string;
+  city?: string;
+  district?: string;
+  available: boolean;
+  furnished?: boolean;
+  agentName?: string; // Only for authenticated users
+  agentContact?: string; // Only for authenticated users
+  mapLink?: string;
+  features?: string[];
+  availableFrom?: string;
+}
+
+/**
+ * Searches for available units based on user query and permissions
+ *
+ * @param query - Natural language search query
+ * @param context - Session context with role/orgId for filtering
+ * @returns Array of available units (guest-safe)
+ */
+export async function searchAvailableUnits(
+  query: string,
+  context: SessionContext,
+): Promise<ApartmentSearchResult[]> {
+  await db;
+
+  // Enforce tenant isolation for authenticated users to avoid cross-tenant leakage
+  const tenantContextOrgId = context.orgId ?? context.tenantId ?? undefined;
+  if (tenantContextOrgId) {
+    setTenantContext({
+      orgId: tenantContextOrgId,
+      userId: context.userId ?? undefined,
+    });
+  }
+
+  try {
+    // Extract search parameters from natural language query
+    const params = extractApartmentSearchParams(query, context.locale);
+
+    // Build MongoDB filter
+    const filter: Record<string, unknown> = {
+      isDeleted: { $ne: true },
+      status: { $in: ["VACANT", "ACTIVE"] },
+    };
+
+    // Multi-tenancy: guests see public listings, authenticated users see org listings
+    if (!context.orgId) {
+      // Guest: public listings only (advertisement active)
+      filter["ownerPortal.currentAdvertisementId"] = {
+        $exists: true,
+        $ne: null,
+      };
+      filter["ownerPortal.advertisementExpiry"] = { $gte: new Date() };
+    } else {
+      // Authenticated: show org properties + public listings
+      filter.$or = [
+        { orgId: context.orgId },
+        {
+          "ownerPortal.currentAdvertisementId": { $exists: true, $ne: null },
+          "ownerPortal.advertisementExpiry": { $gte: new Date() },
+        },
+      ];
+    }
+
+    // Apply search parameters
+    if (params.city) {
+      // SECURITY: Escape regex special characters to prevent ReDoS
+      const escapedCity = params.city.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      filter["address.city"] = new RegExp(escapedCity, "i");
+    }
+
+    if (params.bedrooms !== undefined) {
+      filter["details.bedrooms"] = params.bedrooms;
+    }
+
+    if (params.priceRange) {
+      const rentFilter: Record<string, unknown> = {};
+      if (params.priceRange.min !== undefined) {
+        rentFilter.$gte = params.priceRange.min;
+      }
+      if (params.priceRange.max !== undefined) {
+        rentFilter.$lte = params.priceRange.max;
+      }
+      if (Object.keys(rentFilter).length > 0) {
+        filter["financial.monthlyRent"] = rentFilter;
+      }
+    }
+
+    // Query properties with populated units
+    const properties = await Property.find(filter)
+      .select("name address details financial units ownerPortal agentId status")
+      .limit(10) // Limit results to prevent performance issues
+      .lean()
+      .exec();
+
+    if (!properties || properties.length === 0) {
+      logger.info("[apartmentSearch] No properties found", { filter, params });
+      return [];
+    }
+
+    // Transform to guest-safe results
+    const results: ApartmentSearchResult[] = [];
+
+    for (const property of properties) {
+      // Handle properties with embedded units (if schema has units array)
+      const units = (property as unknown as { units?: unknown[] }).units || [];
+
+      if (units.length > 0) {
+        // Property has embedded units
+        for (const unit of units) {
+          const unitData = unit as Record<string, unknown>;
+
+          // Skip occupied units
+          if (unitData.status !== "VACANT" && unitData.status !== "AVAILABLE")
+            continue;
+
+          // Apply furnished filter
+          if (params.furnished !== undefined) {
+            if (unitData.furnished !== params.furnished) continue;
+          }
+
+          results.push({
+            unitId: context.userId ? String(unitData._id) : undefined,
+            propertyId: String(property._id),
+            propertyName: String(property.name),
+            propertyAddress: formatAddress(property),
+            unitNumber: String(unitData.number || "N/A"),
+            bedrooms: Number(
+              unitData.bedrooms || property.details?.bedrooms || 0,
+            ),
+            bathrooms: Number(
+              unitData.bathrooms || property.details?.bathrooms || 0,
+            ),
+            area: Number(unitData.area || property.details?.totalArea || 0),
+            rent: Number(unitData.rent || property.financial?.monthlyRent || 0),
+            currency: "SAR",
+            city: property.address?.city || undefined,
+            district: property.address?.district || undefined,
+            available: true,
+            furnished: Boolean(unitData.furnished),
+            agentName: context.userId ? getAgentName(property) : undefined,
+            agentContact: context.userId
+              ? getAgentContact(property)
+              : undefined,
+            mapLink: generateMapLink(property),
+            features: extractFeatures(unitData),
+            availableFrom: unitData.availableDate
+              ? new Date(unitData.availableDate as Date)
+                  .toISOString()
+                  .split("T")[0]
+              : undefined,
+          });
+        }
+      } else {
+        // Property is a single unit (no embedded units)
+        const propData = property as Record<string, unknown>;
+        results.push({
+          propertyId: String(property._id),
+          propertyName: String(property.name),
+          propertyAddress: formatAddress(property),
+          unitNumber: "1", // Single unit property
+          bedrooms: Number(property.details?.bedrooms || 0),
+          bathrooms: Number(property.details?.bathrooms || 0),
+          area: Number(property.details?.totalArea || 0),
+          rent: Number(property.financial?.monthlyRent || 0),
+          currency: "SAR",
+          city: property.address?.city || undefined,
+          district: property.address?.district || undefined,
+          available:
+            propData.status === "VACANT" || propData.status === "ACTIVE",
+          agentName: context.userId ? getAgentName(property) : undefined,
+          agentContact: context.userId ? getAgentContact(property) : undefined,
+          mapLink: generateMapLink(property),
+          features: extractPropertyFeatures(property.details),
+        });
+      }
+    }
+
+    logger.info("[apartmentSearch] Found results", {
+      query,
+      params,
+      count: results.length,
+      role: context.role,
+    });
+
+    return results;
+  } catch (error) {
+    logger.error("[apartmentSearch] Search failed", { error, query, context });
+    return [];
+  } finally {
+    // Prevent tenant context leakage across requests
+    clearTenantContext();
+  }
+}
+
+/**
+ * Formats property address for display
+ */
+function formatAddress(property: unknown): string {
+  const prop = property as Record<string, unknown>;
+  const address = prop.address as Record<string, unknown> | undefined;
+
+  if (!address) return "N/A";
+
+  const parts = [
+    address.street,
+    address.district,
+    address.city,
+    address.region,
+  ].filter(Boolean);
+
+  return parts.join(", ");
+}
+
+/**
+ * Gets agent name from property (authenticated users only)
+ */
+function getAgentName(property: unknown): string | undefined {
+  const prop = property as Record<string, unknown>;
+  const ownerPortal = prop.ownerPortal as Record<string, unknown> | undefined;
+
+  if (ownerPortal?.agentId) {
+    // In real implementation, would populate agent user details
+    return "Assigned Agent"; // Placeholder
+  }
+
+  return undefined;
+}
+
+/**
+ * Gets agent contact from property (authenticated users only)
+ */
+function getAgentContact(property: unknown): string | undefined {
+  const prop = property as Record<string, unknown>;
+  const ownerPortal = prop.ownerPortal as Record<string, unknown> | undefined;
+
+  if (ownerPortal?.agentId) {
+    // In real implementation, would populate agent contact
+    return undefined; // Redacted for privacy
+  }
+
+  return undefined;
+}
+
+/**
+ * Generates map link for property location
+ */
+function generateMapLink(property: unknown): string {
+  const prop = property as Record<string, unknown>;
+  const address = prop.address as Record<string, unknown> | undefined;
+  const coordinates = address?.coordinates as
+    | Record<string, number>
+    | undefined;
+
+  if (coordinates?.lat && coordinates?.lng) {
+    // Internal map view (frontend route)
+    return `/properties/${prop._id}/map`;
+  }
+
+  // Fallback to city search
+  if (address?.city) {
+    return `/map?city=${encodeURIComponent(String(address.city))}`;
+  }
+
+  return `/map`;
+}
+
+/**
+ * Extracts unit features for display
+ */
+function extractFeatures(unit: Record<string, unknown>): string[] {
+  const features: string[] = [];
+
+  if (unit.furnished) features.push("Furnished");
+  if (unit.parking) features.push("Parking");
+  if (unit.balcony) features.push("Balcony");
+  if (unit.elevator) features.push("Elevator");
+  if (unit.ac) features.push("Air Conditioning");
+  if (unit.kitchen) features.push("Kitchen");
+
+  return features;
+}
+
+/**
+ * Extracts property-level features
+ */
+function extractPropertyFeatures(details: unknown): string[] {
+  const det = details as Record<string, unknown> | undefined;
+  if (!det) return [];
+
+  const features: string[] = [];
+
+  if (det.parkingSpaces && Number(det.parkingSpaces) > 0) {
+    features.push(`${det.parkingSpaces} Parking Spaces`);
+  }
+  if (det.floors && Number(det.floors) > 1) {
+    features.push(`${det.floors} Floors`);
+  }
+  if (det.yearBuilt) {
+    features.push(`Built ${det.yearBuilt}`);
+  }
+
+  return features;
+}
+
+/**
+ * Formats search results for AI assistant display (localized)
+ */
+export function formatApartmentResults(
+  results: ApartmentSearchResult[],
+  locale: "en" | "ar",
+): string {
+  if (results.length === 0) {
+    return locale === "ar"
+      ? "لا توجد وحدات متاحة مطابقة للمعايير التي ذكرتها. يمكنني مساعدتك في البحث بمعايير مختلفة."
+      : "No available units match your criteria. I can help you search with different parameters.";
+  }
+
+  const intro =
+    locale === "ar"
+      ? `وجدت ${results.length} وحدة متاحة:`
+      : `Found ${results.length} available unit${results.length > 1 ? "s" : ""}:`;
+
+  const lines = results.map((r, idx) => {
+    if (locale === "ar") {
+      return [
+        `${idx + 1}. **${r.propertyName}** - وحدة ${r.unitNumber}`,
+        `   📍 ${r.city || r.propertyAddress}`,
+        `   🛏️ ${r.bedrooms} غرف نوم، ${r.bathrooms} حمام، ${r.area} م²`,
+        `   💰 ${r.rent.toLocaleString("ar-SA")} ريال/شهر`,
+        r.features && r.features.length > 0
+          ? `   ✨ ${r.features.join(", ")}`
+          : "",
+        r.agentName ? `   👤 ${r.agentName}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n");
+    } else {
+      return [
+        `${idx + 1}. **${r.propertyName}** - Unit ${r.unitNumber}`,
+        `   📍 ${r.city || r.propertyAddress}`,
+        `   🛏️ ${r.bedrooms} bed, ${r.bathrooms} bath, ${r.area} sqm`,
+        `   💰 SAR ${r.rent.toLocaleString("en-US")}/mo`,
+        r.features && r.features.length > 0
+          ? `   ✨ ${r.features.join(", ")}`
+          : "",
+        r.agentName ? `   👤 ${r.agentName}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n");
+    }
+  });
+
+  const footer =
+    locale === "ar"
+      ? "\n\nيمكنني تزويدك بمزيد من التفاصيل عن أي وحدة، أو مساعدتك في جدولة زيارة."
+      : "\n\nI can provide more details on any unit or help you schedule a visit.";
+
+  return `${intro}\n\n${lines.join("\n\n")}${footer}`;
+}
+
+]]>
+</file>
+
+<file path="server/copilot/audit.ts">
+<![CDATA[
+import { CopilotSession } from "./session";
+import { logger } from "@/lib/logger";
+import { setTenantContext } from "../plugins/tenantIsolation";
+
+export interface AuditOptions {
+  session: CopilotSession;
+  intent: string;
+  tool?: string;
+  status: "SUCCESS" | "DENIED" | "ERROR";
+  message?: string;
+  prompt?: string;
+  response?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export async function recordAudit(options: AuditOptions) {
+  // Ensure tenant context is set so tenantIsolation plugin can inject orgId
+  setTenantContext({ orgId: options.session.tenantId });
+  try {
+    const { CopilotAudit } = await import("@/server/models/CopilotAudit");
+    await CopilotAudit.create({
+      orgId: options.session.tenantId,
+      tenantId: options.session.tenantId,
+      userId: options.session.userId,
+      role: options.session.role,
+      locale: options.session.locale,
+      intent: options.intent,
+      tool: options.tool,
+      status: options.status,
+      message: options.message,
+      prompt: options.prompt,
+      response: options.response,
+      metadata: options.metadata,
+    });
+  } catch (error) {
+    logger.error("Failed to record copilot audit", { error });
+  }
+}
+
+]]>
+</file>
+
+<file path="server/copilot/classifier.ts">
+<![CDATA[
+/**
+ * Intent Classification Module for Fixzit AI Assistant
+ * Classifies user messages into actionable intents with multilingual support (EN/AR)
+ * Based on Blueprint Bible and Design System specifications
+ */
+
+import type { Intent } from "@/types/copilot";
+
+/**
+ * Classifies user message into one of 10 intents using pattern matching
+ * Supports both English and Arabic queries with RTL awareness
+ *
+ * @param text - User's message text
+ * @param locale - Current locale ('en' | 'ar')
+ * @returns Detected intent for routing to appropriate handler
+ */
+export function classifyIntent(text: string, _locale: "en" | "ar"): Intent {
+  const lower = text.toLowerCase();
+
+  // APARTMENT_SEARCH: Real estate queries (high priority for Aqar module integration)
+  // EN: apartment, flat, unit, studio, bedroom, 2br, 3br, available, vacant, for rent, search
+  // AR: شقة, وحدة, متاح, للإيجار, بحث, استوديو, غرفة
+  if (
+    /(apartment|flat|unit|studio|bedroom|2br|3br|4br|شقة|وحدة|غرفة|استوديو)/.test(
+      lower,
+    ) &&
+    /(search|find|available|vacant|for rent|looking for|بحث|متاح|للإيجار|أبحث عن|ابحث|اريد)/.test(
+      lower,
+    )
+  ) {
+    return "APARTMENT_SEARCH";
+  }
+
+  // LIST_MY_TICKETS: Work order status queries
+  // EN: my tickets, my work orders, status, track, show me
+  // AR: طلباتي, تذاكري, حالة, متابعة, أرني
+  if (
+    /(my (ticket|work order|request)|show me|track|status|list|طلباتي|تذاكري|أرني|اعرض|حالة|متابعة)/i.test(
+      lower,
+    )
+  ) {
+    return "LIST_MY_TICKETS";
+  }
+
+  // CREATE_WORK_ORDER: Maintenance/service requests
+  // EN: create, new ticket, report, maintenance, repair, fix, broken
+  // AR: إنشاء, تذكرة جديدة, صيانة, إصلاح, عطل, خلل
+  if (
+    /(create|new|report|maintenance|repair|fix|broken|issue|problem|إنشاء|تذكرة|صيانة|إصلاح|عطل|خلل|مشكلة)/i.test(
+      lower,
+    ) &&
+    /(ticket|work order|request|طلب|تذكرة)/i.test(lower)
+  ) {
+    return "CREATE_WORK_ORDER";
+  }
+
+  // DISPATCH: Technician assignment (FM Manager, Admin roles)
+  // EN: dispatch, assign, send technician, allocate
+  // AR: توجيه, تعيين, إرسال فني, تخصيص
+  if (
+    /(dispatch|assign|send (technician|tech)|allocate|توجيه|تعيين|إرسال فني|تخصيص فني|فني)/i.test(
+      lower,
+    )
+  ) {
+    return "DISPATCH";
+  }
+
+  // SCHEDULE_VISIT: Appointment scheduling
+  // EN: schedule, appointment, visit, book, set time
+  // AR: جدولة, موعد, زيارة, حجز, تحديد وقت
+  if (
+    /(schedule|appointment|visit|book|set time|meeting|جدولة|موعد|زيارة|حجز|تحديد وقت)/i.test(
+      lower,
+    )
+  ) {
+    return "SCHEDULE_VISIT";
+  }
+
+  // UPLOAD_PHOTO: Photo/document attachment
+  // EN: upload, attach, photo, picture, image, document
+  // AR: رفع, إرفاق, صورة, مستند, ملف
+  if (
+    /(upload|attach|photo|picture|image|document|file|رفع|إرفاق|صورة|مستند|ملف)/i.test(
+      lower,
+    )
+  ) {
+    return "UPLOAD_PHOTO";
+  }
+
+  // APPROVE_QUOTATION: Quotation approval (Finance, Admin roles)
+  // EN: approve, accept, quotation, quote, estimate
+  // AR: اعتماد, قبول, عرض سعر, تسعير
+  if (
+    /(approve|accept|confirm|اعتماد|قبول|موافقة)/i.test(lower) &&
+    /(quotation|quote|estimate|عرض سعر|تسعير)/i.test(lower)
+  ) {
+    return "APPROVE_QUOTATION";
+  }
+
+  // OWNER_STATEMENTS: Financial reports (Finance, Owner, Property Manager roles)
+  // EN: owner statement, financial report, income, expenses, revenue
+  // AR: كشف حساب مالك, كشف مالك, تقرير مالي, دخل, مصروفات
+  if (
+    /(owner.*statement|owner.*report|financial.*statement|كشف حساب مالك|كشف مالك|تقرير مالي)/i.test(
+      lower,
+    )
+  ) {
+    return "OWNER_STATEMENTS";
+  }
+
+  // PERSONAL: User-specific data (requires authentication)
+  // EN: my, mine, personal, account, profile
+  // AR: الخاص بي, حسابي, ملفي, شخصي
+  if (
+    /(my|mine|personal|account|profile|invoice|contract|lease|payment|الخاص بي|حسابي|ملفي|شخصي|عقدي|دفعاتي|فاتورتي)/i.test(
+      lower,
+    )
+  ) {
+    return "PERSONAL";
+  }
+
+  // GENERAL: Default fallback for general guidance/knowledge base queries
+  return "GENERAL";
+}
+
+/**
+ * Detects sentiment in user message for escalation triggers
+ * Used to identify frustrated/angry users requiring immediate support
+ *
+ * @param text - User's message text
+ * @returns Sentiment score: 'negative' | 'neutral' | 'positive'
+ */
+export function detectSentiment(
+  text: string,
+): "negative" | "neutral" | "positive" {
+  const lower = text.toLowerCase();
+
+  // Negative sentiment patterns (frustration, anger, urgency)
+  const negativePatterns = [
+    /(frustrated|angry|furious|upset|annoyed)/i,
+    /(terrible|horrible|awful|worst|bad)/i,
+    /(problem|issue|broken|not working|fail)/i,
+    /(urgent|emergency|critical|asap)/i,
+    /(never|always broken|every time)/i,
+    /(unacceptable|ridiculous|pathetic)/i,
+  ];
+
+  // Positive sentiment patterns (satisfaction, appreciation)
+  const positivePatterns = [
+    /(thank|thanks|appreciate|grateful)/i,
+    /(great|excellent|perfect|wonderful|amazing)/i,
+    /(happy|satisfied|pleased)/i,
+    /(love|like it|works well)/i,
+  ];
+
+  let score = 0;
+
+  // Check negative patterns (weight: -1 each)
+  negativePatterns.forEach((pattern) => {
+    if (pattern.test(lower)) score -= 1;
+  });
+
+  // Check positive patterns (weight: +1 each)
+  positivePatterns.forEach((pattern) => {
+    if (pattern.test(lower)) score += 1;
+  });
+
+  // Classify based on net score
+  if (score < -1) return "negative";
+  if (score > 0) return "positive";
+  return "neutral";
+}
+
+/**
+ * Extracts key parameters from apartment search queries
+ * Used to build MongoDB queries for property/unit filtering
+ *
+ * @param text - User's search query
+ * @param locale - Current locale
+ * @returns Extracted parameters (bedrooms, city, priceRange, etc.)
+ */
+export function extractApartmentSearchParams(
+  text: string,
+  _locale: "en" | "ar",
+): {
+  bedrooms?: number;
+  city?: string;
+  priceRange?: { min?: number; max?: number };
+  furnished?: boolean;
+} {
+  const lower = text.toLowerCase();
+  const params: ReturnType<typeof extractApartmentSearchParams> = {};
+
+  // Extract bedroom count (2BR, 3BR, studio, etc.)
+  const bedroomMatch = lower.match(/(\d+)\s*(br|bedroom|غرفة)/i);
+  if (bedroomMatch) {
+    params.bedrooms = parseInt(bedroomMatch[1], 10);
+  } else if (/(studio|استوديو)/i.test(lower)) {
+    params.bedrooms = 0; // Studio = 0 bedrooms
+  }
+
+  // Extract city (Riyadh, Jeddah, Dammam, etc.)
+  const cityPatterns = [
+    { en: "riyadh", ar: "الرياض", key: "Riyadh" },
+    { en: "jeddah", ar: "جدة", key: "Jeddah" },
+    { en: "dammam", ar: "الدمام", key: "Dammam" },
+    { en: "makkah", ar: "مكة", key: "Makkah" },
+    { en: "medina", ar: "المدينة", key: "Medina" },
+    { en: "khobar", ar: "الخبر", key: "Khobar" },
+  ];
+
+  for (const city of cityPatterns) {
+    if (new RegExp(`\\b(${city.en}|${city.ar})\\b`, "i").test(lower)) {
+      params.city = city.key;
+      break;
+    }
+  }
+
+  // Extract price range (under 5000, between 3000-8000, etc.)
+  const priceMatch = lower.match(/(\d+)\s*(?:-|to|الى|إلى)\s*(\d+)/i);
+  if (priceMatch) {
+    params.priceRange = {
+      min: parseInt(priceMatch[1], 10),
+      max: parseInt(priceMatch[2], 10),
+    };
+  } else {
+    const singlePriceMatch = lower.match(
+      /(under|below|less than|أقل من|تحت)\s*(\d+)/i,
+    );
+    if (singlePriceMatch) {
+      params.priceRange = { max: parseInt(singlePriceMatch[2], 10) };
+    }
+  }
+
+  // Extract furnished preference
+  if (/(furnished|مفروش)/i.test(lower)) {
+    params.furnished = true;
+  } else if (/(unfurnished|غير مفروش)/i.test(lower)) {
+    params.furnished = false;
+  }
+
+  return params;
+}
+
+]]>
+</file>
+
+<file path="server/copilot/governors.ts">
+<![CDATA[
+/**
+ * System Governors - Access Control and Policy Enforcement
+ *
+ * This module implements system-level governance to ensure users follow
+ * established policies when accessing AI features.
+ */
+
+import { CopilotSession } from "./session";
+import { logger } from "@/lib/logger";
+
+export interface GovernorContext {
+  session: CopilotSession;
+  message: string;
+  locale: "en" | "ar";
+  endpoint: string;
+}
+
+export interface GovernorResult {
+  allowed: boolean;
+  reason?: string;
+  governor?: string;
+}
+
+/**
+ * Rate limiting governor - prevent abuse
+ */
+function checkRateLimit(_context: GovernorContext): GovernorResult {
+  // Rate limiting is handled at the route level
+  // This is a placeholder for additional business logic
+  return { allowed: true };
+}
+
+/**
+ * Role-based access governor - enforce RBAC
+ */
+function checkRoleAccess(context: GovernorContext): GovernorResult {
+  const { session } = context;
+
+  // Super admin and owner have full access
+  // 🔒 STRICT v4.1: Use canonical role names with legacy fallbacks
+  if (
+    session.role === "SUPER_ADMIN" ||
+    session.role === "CORPORATE_OWNER" || // Canonical (was OWNER)
+    session.role === "OWNER" || // Legacy alias
+    session.role === "ADMIN" ||
+    session.role === "CORPORATE_ADMIN" // Legacy alias for ADMIN
+  ) {
+    return { allowed: true };
+  }
+
+  // Property manager has limited access
+  // 🔒 STRICT v4.1: PROPERTY_MANAGER is canonical, FM_MANAGER is legacy alias
+  if (session.role === "PROPERTY_MANAGER" || session.role === "FM_MANAGER") {
+    // Check if asking for sensitive financial data
+    const sensitiveKeywords = [
+      "revenue",
+      "profit",
+      "salary",
+      "cost",
+      "expense",
+      "إيرادات",
+      "ربح",
+      "راتب",
+      "تكلفة",
+      "مصروف",
+    ];
+
+    const hasSensitiveKeyword = sensitiveKeywords.some((keyword) =>
+      context.message.toLowerCase().includes(keyword.toLowerCase()),
+    );
+
+    if (hasSensitiveKeyword) {
+      return {
+        allowed: false,
+        reason:
+          context.locale === "ar"
+            ? "ليست لديك صلاحية الوصول إلى المعلومات المالية الحساسة."
+            : "You do not have permission to access sensitive financial information.",
+        governor: "role_access",
+      };
+    }
+
+    return { allowed: true };
+  }
+
+  // Technician has very limited access
+  if (session.role === "TECHNICIAN") {
+    // Only allow work order and maintenance related queries
+    const allowedKeywords = [
+      "work order",
+      "maintenance",
+      "task",
+      "repair",
+      "fix",
+      "أمر عمل",
+      "صيانة",
+      "مهمة",
+      "إصلاح",
+      "تصليح",
+    ];
+
+    const hasAllowedKeyword = allowedKeywords.some((keyword) =>
+      context.message.toLowerCase().includes(keyword.toLowerCase()),
+    );
+
+    if (!hasAllowedKeyword) {
+      return {
+        allowed: false,
+        reason:
+          context.locale === "ar"
+            ? "يمكنك فقط الاستفسار عن أوامر العمل والصيانة."
+            : "You can only inquire about work orders and maintenance.",
+        governor: "role_access",
+      };
+    }
+
+    return { allowed: true };
+  }
+
+  // Tenant has read-only access (STRICT v4: CUSTOMER deprecated, use TENANT)
+  if (session.role === "TENANT") {
+    // Block any attempt to modify data
+    const modifyKeywords = [
+      "create",
+      "update",
+      "delete",
+      "modify",
+      "change",
+      "إنشاء",
+      "تحديث",
+      "حذف",
+      "تعديل",
+      "تغيير",
+    ];
+
+    const hasModifyKeyword = modifyKeywords.some((keyword) =>
+      context.message.toLowerCase().includes(keyword.toLowerCase()),
+    );
+
+    if (hasModifyKeyword) {
+      return {
+        allowed: false,
+        reason:
+          context.locale === "ar"
+            ? "ليست لديك صلاحية تعديل البيانات. يمكنك فقط عرض المعلومات."
+            : "You do not have permission to modify data. You can only view information.",
+        governor: "role_access",
+      };
+    }
+
+    return { allowed: true };
+  }
+
+  // Default deny for unknown roles
+  return {
+    allowed: false,
+    reason:
+      context.locale === "ar"
+        ? "دورك غير مصرح له باستخدام هذه الميزة."
+        : "Your role is not authorized to use this feature.",
+    governor: "role_access",
+  };
+}
+
+/**
+ * Content safety governor - prevent malicious inputs
+ */
+function checkContentSafety(context: GovernorContext): GovernorResult {
+  const { message } = context;
+
+  // Block SQL injection attempts
+  const sqlPatterns = [
+    /drop\s+table/i,
+    /delete\s+from/i,
+    /insert\s+into/i,
+    /update\s+\w+\s+set/i,
+    /union\s+select/i,
+    /;\s*drop/i,
+  ];
+
+  if (sqlPatterns.some((pattern) => pattern.test(message))) {
+    logger.warn("[governors] SQL injection attempt detected", {
+      userId: context.session.userId,
+      message: message.slice(0, 100),
+    });
+
+    return {
+      allowed: false,
+      reason:
+        context.locale === "ar"
+          ? "تم اكتشاف محتوى غير آمن في رسالتك."
+          : "Unsafe content detected in your message.",
+      governor: "content_safety",
+    };
+  }
+
+  // Block command injection attempts
+  const commandPatterns = [
+    /\$\(.*\)/,
+    /`.*`/,
+    /&&/,
+    /\|\|/,
+    /;\s*rm\s+-rf/i,
+    /exec\s*\(/i,
+  ];
+
+  if (commandPatterns.some((pattern) => pattern.test(message))) {
+    logger.warn("[governors] Command injection attempt detected", {
+      userId: context.session.userId,
+      message: message.slice(0, 100),
+    });
+
+    return {
+      allowed: false,
+      reason:
+        context.locale === "ar"
+          ? "تم اكتشاف محتوى غير آمن في رسالتك."
+          : "Unsafe content detected in your message.",
+      governor: "content_safety",
+    };
+  }
+
+  // Block excessive length
+  if (message.length > 5000) {
+    return {
+      allowed: false,
+      reason:
+        context.locale === "ar"
+          ? "رسالتك طويلة جداً. الحد الأقصى 5000 حرف."
+          : "Your message is too long. Maximum 5000 characters.",
+      governor: "content_safety",
+    };
+  }
+
+  return { allowed: true };
+}
+
+/**
+ * Business hours governor - optional enforcement of business hours
+ */
+function checkBusinessHours(context: GovernorContext): GovernorResult {
+  // Optional: Enforce business hours for certain roles
+  // For now, always allow (can be configured via env var)
+  const enforceBusinessHours = process.env.ENFORCE_AI_BUSINESS_HOURS === "true";
+
+  if (!enforceBusinessHours) {
+    return { allowed: true };
+  }
+
+  const now = new Date();
+  const hour = now.getHours();
+  const day = now.getDay(); // 0 = Sunday, 6 = Saturday
+
+  // Check if weekend (Friday/Saturday for Saudi Arabia)
+  if (day === 5 || day === 6) {
+    return {
+      allowed: false,
+      reason:
+        context.locale === "ar"
+          ? "خدمة الذكاء الاصطناعي متاحة فقط في أيام العمل."
+          : "AI service is only available on business days.",
+      governor: "business_hours",
+    };
+  }
+
+  // Check if outside business hours (9 AM - 6 PM)
+  if (hour < 9 || hour >= 18) {
+    return {
+      allowed: false,
+      reason:
+        context.locale === "ar"
+          ? "خدمة الذكاء الاصطناعي متاحة من 9 صباحاً حتى 6 مساءً."
+          : "AI service is available from 9 AM to 6 PM.",
+      governor: "business_hours",
+    };
+  }
+
+  return { allowed: true };
+}
+
+/**
+ * Data isolation governor - ensure tenant isolation
+ */
+function checkDataIsolation(context: GovernorContext): GovernorResult {
+  const { session, message } = context;
+
+  // Ensure tenantId is present
+  if (!session.tenantId) {
+    logger.error("[governors] Missing tenantId in session", {
+      userId: session.userId,
+      role: session.role,
+    });
+
+    return {
+      allowed: false,
+      reason:
+        context.locale === "ar"
+          ? "خطأ في التحقق من الهوية. يرجى تسجيل الدخول مجدداً."
+          : "Authentication error. Please log in again.",
+      governor: "data_isolation",
+    };
+  }
+
+  // Block attempts to access other tenants' data
+  const crossTenantPatterns = [
+    /tenantId\s*[:=]\s*['"]?(?!\s*$)/i,
+    /orgId\s*[:=]\s*['"]?(?!\s*$)/i,
+    /organizationId\s*[:=]\s*['"]?(?!\s*$)/i,
+  ];
+
+  if (crossTenantPatterns.some((pattern) => pattern.test(message))) {
+    logger.warn("[governors] Cross-tenant access attempt detected", {
+      userId: context.session.userId,
+      tenantId: context.session.tenantId,
+      message: message.slice(0, 100),
+    });
+
+    return {
+      allowed: false,
+      reason:
+        context.locale === "ar"
+          ? "لا يمكنك الوصول إلى بيانات منظمات أخرى."
+          : "You cannot access data from other organizations.",
+      governor: "data_isolation",
+    };
+  }
+
+  return { allowed: true };
+}
+
+/**
+ * Main validation function - runs all governors
+ */
+export async function validateSystemGovernors(
+  context: GovernorContext,
+): Promise<GovernorResult> {
+  // Run all governors in sequence
+  const governors = [
+    checkRateLimit,
+    checkRoleAccess,
+    checkContentSafety,
+    checkBusinessHours,
+    checkDataIsolation,
+  ];
+
+  for (const governor of governors) {
+    const result = governor(context);
+    if (!result.allowed) {
+      logger.info("[governors] Access denied", {
+        governor: result.governor,
+        userId: context.session.userId,
+        role: context.session.role,
+        endpoint: context.endpoint,
+      });
+      return result;
+    }
+  }
+
+  return { allowed: true };
+}
+
+/**
+ * Check if user has permission for specific AI features
+ */
+export function hasAIPermission(role: string, feature: string): boolean {
+  const permissions: Record<string, string[]> = {
+    SUPER_ADMIN: ["chat", "stream", "tools", "analytics", "admin"],
+    ADMIN: ["chat", "stream", "tools", "analytics", "admin"],
+    OWNER: ["chat", "stream", "tools", "analytics"],
+    CORPORATE_ADMIN: ["chat", "stream", "tools", "analytics"],
+    FM_MANAGER: ["chat", "stream", "tools", "analytics"],
+    PROPERTY_MANAGER: ["chat", "stream", "tools"],
+    FINANCE: ["chat", "stream", "analytics"],
+    HR: ["chat", "stream"],
+    PROCUREMENT: ["chat", "stream"],
+    TECHNICIAN: ["chat", "stream"],
+    EMPLOYEE: ["chat"],
+    TENANT: ["chat"],
+    CUSTOMER: ["chat"],
+    VENDOR: ["chat"],
+    AUDITOR: ["chat", "analytics"],
+    GUEST: [],
+  };
+
+  const rolePermissions = permissions[role] || [];
+  return rolePermissions.includes(feature);
+}
+
+]]>
+</file>
+
+<file path="server/copilot/llm.ts">
+<![CDATA[
+import { CopilotSession } from "./session";
+import { redactSensitiveText } from "./policy";
+import { RetrievedDoc } from "./retrieval";
+import { streamText } from "ai";
+import { createOpenAI } from "@ai-sdk/openai";
+
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const CHAT_MODEL =
+  process.env.COPILOT_MODEL || process.env.OPENAI_MODEL || "gpt-4o-mini";
+
+// Initialize OpenAI provider with API key
+const openai = createOpenAI({
+  apiKey: OPENAI_API_KEY || "",
+});
+
+interface Message {
+  role: "system" | "user" | "assistant";
+  content: string;
+}
+
+export interface ChatCompletionOptions {
+  session: CopilotSession;
+  prompt: string;
+  history?: Message[];
+  docs?: RetrievedDoc[];
+}
+
+function buildSystemPrompt(_session: CopilotSession): string {
+  return [
+    "You are Fixzit Copilot, an enterprise assistant.",
+    "Answer in the user's language (Arabic if locale is ar).",
+    "Never reveal data for other tenants or owners.",
+    "Cite modules and steps briefly and focus on actionable guidance.",
+    "If unsure or if the request violates policy, explain the limitation and point to self-service options.",
+  ].join(" ");
+}
+
+/**
+ * Generate streaming AI response using Vercel AI SDK
+ * Returns a stream that can be consumed for real-time responses
+ */
+export async function generateCopilotStreamResponse(
+  options: ChatCompletionOptions,
+) {
+  const context = options.docs
+    ?.slice(0, 5)
+    .map(
+      (doc) =>
+        `Title: ${doc.title}\nSource: ${doc.source || "internal"}\nContent:\n${doc.content}`,
+    )
+    .join("\n---\n");
+
+  if (!OPENAI_API_KEY) {
+    throw new Error("OpenAI API key not configured");
+  }
+
+  const systemPrompt = buildSystemPrompt(options.session);
+  const userPrompt =
+    options.session.locale === "ar"
+      ? `اللغة: العربية\nالسياق:\n${context || "لا يوجد"}\nالسؤال: ${options.prompt}`
+      : `Locale: ${options.session.locale}\nContext:\n${context || "none"}\nQuestion: ${options.prompt}`;
+
+  // Convert history to proper format
+  const messages = [
+    { role: "system" as const, content: systemPrompt },
+    ...(options.history || []).map((msg) => ({
+      role: msg.role as "user" | "assistant",
+      content: msg.content,
+    })),
+    { role: "user" as const, content: userPrompt },
+  ];
+
+  const result = streamText({
+    model: openai(CHAT_MODEL),
+    messages,
+    temperature: 0.3,
+    maxRetries: 2,
+  });
+
+  return result;
+}
+
+/**
+ * Generate non-streaming AI response (backward compatible)
+ */
+export async function generateCopilotResponse(
+  options: ChatCompletionOptions,
+): Promise<string> {
+  const context = options.docs
+    ?.slice(0, 5)
+    .map(
+      (doc) =>
+        `Title: ${doc.title}\nSource: ${doc.source || "internal"}\nContent:\n${doc.content}`,
+    )
+    .join("\n---\n");
+  const messages: Message[] = [
+    { role: "system", content: buildSystemPrompt(options.session) },
+    ...(options.history || []),
+    {
+      role: "user",
+      content:
+        options.session.locale === "ar"
+          ? `اللغة: العربية\nالسياق:\n${context || "لا يوجد"}\nالسؤال: ${options.prompt}`
+          : `Locale: ${options.session.locale}\nContext:\n${context || "none"}\nQuestion: ${options.prompt}`,
+    },
+  ];
+
+  if (!OPENAI_API_KEY) {
+    const fallback = context
+      ? `${options.session.locale === "ar" ? "استناداً إلى الوثائق المتاحة" : "Based on available documents"}: ${context.split("\n")[0]}`
+      : options.session.locale === "ar"
+        ? "عذراً، لا تتوفر معلومات كافية حالياً. يرجى مراجعة مركز المساعدة أو إنشاء تذكرة."
+        : "I could not locate the requested detail in the current knowledge base. Please review the help center or raise a ticket.";
+    return fallback;
+  }
+
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: CHAT_MODEL,
+      temperature: 0.3,
+      messages,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Chat completion failed: ${response.status}`);
+  }
+
+  const json = await response.json();
+  const reply = json.choices?.[0]?.message?.content || "";
+  return redactSensitiveText(reply.trim());
+}
+
+]]>
+</file>
+
+<file path="server/copilot/policy.ts">
+<![CDATA[
+import { CopilotRole, CopilotSession } from "./session";
+
+export type DataClass =
+  | "PUBLIC"
+  | "TENANT_SCOPED"
+  | "OWNER_SCOPED"
+  | "FINANCE"
+  | "HR"
+  | "INTERNAL"
+  | "SENSITIVE";
+
+export interface PolicyDecision {
+  allowed: boolean;
+  reason?: string;
+  dataClass?: DataClass;
+}
+
+/**
+ * ROLE_DATA_CLASS - 🔒 STRICT v4.1 COMPLIANT
+ * Maps roles to their permitted data classification levels.
+ * Includes both canonical roles and legacy aliases.
+ */
+const ROLE_DATA_CLASS: Record<CopilotRole, DataClass[]> = {
+  // Canonical STRICT v4.1 roles
+  SUPER_ADMIN: [
+    "PUBLIC",
+    "TENANT_SCOPED",
+    "OWNER_SCOPED",
+    "FINANCE",
+    "HR",
+    "INTERNAL",
+  ],
+  ADMIN: ["PUBLIC", "TENANT_SCOPED", "OWNER_SCOPED", "FINANCE", "INTERNAL"],
+  CORPORATE_OWNER: ["PUBLIC", "OWNER_SCOPED", "FINANCE"], // Canonical (was OWNER)
+  TEAM_MEMBER: ["PUBLIC", "TENANT_SCOPED"], // Canonical base for specialized staff
+  TECHNICIAN: ["PUBLIC", "TENANT_SCOPED"],
+  PROPERTY_MANAGER: ["PUBLIC", "TENANT_SCOPED", "OWNER_SCOPED"],
+  TENANT: ["PUBLIC", "TENANT_SCOPED"],
+  VENDOR: ["PUBLIC", "TENANT_SCOPED"],
+  GUEST: ["PUBLIC"],
+  // Legacy aliases (kept for backward compatibility)
+  CORPORATE_ADMIN: [
+    "PUBLIC",
+    "TENANT_SCOPED",
+    "OWNER_SCOPED",
+    "FINANCE",
+    "INTERNAL",
+  ], // → ADMIN
+  FM_MANAGER: ["PUBLIC", "TENANT_SCOPED", "OWNER_SCOPED"], // → PROPERTY_MANAGER
+  FINANCE: ["PUBLIC", "TENANT_SCOPED", "FINANCE"], // → TEAM_MEMBER + FINANCE_OFFICER
+  HR: ["PUBLIC", "TENANT_SCOPED", "HR"], // → TEAM_MEMBER + HR_OFFICER
+  PROCUREMENT: ["PUBLIC", "TENANT_SCOPED"], // → TEAM_MEMBER
+  EMPLOYEE: ["PUBLIC", "TENANT_SCOPED"], // → TEAM_MEMBER
+  CUSTOMER: ["PUBLIC"], // → TENANT
+  OWNER: ["PUBLIC", "OWNER_SCOPED", "FINANCE"], // → CORPORATE_OWNER
+  AUDITOR: ["PUBLIC", "INTERNAL"], // → GUEST
+};
+
+const RESTRICTED_PATTERNS: { pattern: RegExp; dataClass: DataClass }[] = [
+  {
+    pattern:
+      /(financial statement|income statement|owner statement|balance sheet|revenue|expense|invoice|financials?)/i,
+    dataClass: "FINANCE",
+  },
+  {
+    pattern: /(payroll|salary|employee compensation|hr record|leave balance)/i,
+    dataClass: "HR",
+  },
+  {
+    pattern:
+      /(other tenant|another tenant|other company|different company|competitor)/i,
+    dataClass: "SENSITIVE",
+  },
+  {
+    pattern: /(internal document|confidential|secret|token|password|api key)/i,
+    dataClass: "SENSITIVE",
+  },
+  { pattern: /(owner statement|owner report)/i, dataClass: "OWNER_SCOPED" },
+  // Enhanced Arabic patterns for Saudi market
+  {
+    pattern: /(iqama|residence permit|national id|passport|civil id)/i,
+    dataClass: "SENSITIVE",
+  },
+  {
+    pattern: /(apartment|flat|unit|studio|property for rent)/i,
+    dataClass: "PUBLIC",
+  }, // Apartment search keywords
+];
+
+export function evaluateMessagePolicy(
+  session: CopilotSession,
+  text: string,
+): PolicyDecision {
+  const normalized = text.toLowerCase();
+
+  for (const restricted of RESTRICTED_PATTERNS) {
+    if (restricted.pattern.test(normalized)) {
+      const permitted = ROLE_DATA_CLASS[session.role]?.includes(
+        restricted.dataClass,
+      );
+      return {
+        allowed: Boolean(permitted),
+        reason: permitted
+          ? undefined
+          : `This request touches ${restricted.dataClass.replace("_", " ").toLowerCase()} data that your role cannot access.`,
+        dataClass: restricted.dataClass,
+      };
+    }
+  }
+
+  return { allowed: true, dataClass: "PUBLIC" };
+}
+
+/**
+ * ROLE_TOOLS - 🔒 STRICT v4.1 COMPLIANT
+ * Maps roles to their permitted AI tools.
+ * Includes both canonical roles and legacy aliases.
+ */
+const ROLE_TOOLS: Record<CopilotRole, string[]> = {
+  // Canonical STRICT v4.1 roles
+  SUPER_ADMIN: [
+    "createWorkOrder",
+    "listMyWorkOrders",
+    "dispatchWorkOrder",
+    "scheduleVisit",
+    "uploadWorkOrderPhoto",
+    "approveQuotation",
+    "ownerStatements",
+  ],
+  ADMIN: [
+    "createWorkOrder",
+    "listMyWorkOrders",
+    "dispatchWorkOrder",
+    "scheduleVisit",
+    "uploadWorkOrderPhoto",
+    "approveQuotation",
+    "ownerStatements",
+  ],
+  CORPORATE_OWNER: ["listMyWorkOrders", "approveQuotation", "ownerStatements"], // Canonical (was OWNER)
+  TEAM_MEMBER: ["createWorkOrder", "listMyWorkOrders", "scheduleVisit"], // Canonical base
+  TECHNICIAN: [
+    "listMyWorkOrders",
+    "dispatchWorkOrder",
+    "scheduleVisit",
+    "uploadWorkOrderPhoto",
+  ],
+  PROPERTY_MANAGER: [
+    "createWorkOrder",
+    "listMyWorkOrders",
+    "dispatchWorkOrder",
+    "scheduleVisit",
+    "uploadWorkOrderPhoto",
+    "approveQuotation",
+    "ownerStatements",
+  ],
+  TENANT: ["createWorkOrder", "listMyWorkOrders", "uploadWorkOrderPhoto"],
+  VENDOR: ["listMyWorkOrders", "uploadWorkOrderPhoto"],
+  GUEST: [],
+  // Legacy aliases (kept for backward compatibility)
+  CORPORATE_ADMIN: [
+    "createWorkOrder",
+    "listMyWorkOrders",
+    "dispatchWorkOrder",
+    "scheduleVisit",
+    "uploadWorkOrderPhoto",
+    "approveQuotation",
+    "ownerStatements",
+  ], // → ADMIN
+  FM_MANAGER: [
+    "createWorkOrder",
+    "listMyWorkOrders",
+    "dispatchWorkOrder",
+    "scheduleVisit",
+    "uploadWorkOrderPhoto",
+    "approveQuotation",
+  ], // → PROPERTY_MANAGER
+  FINANCE: ["listMyWorkOrders", "approveQuotation", "ownerStatements"], // → TEAM_MEMBER + FINANCE_OFFICER
+  HR: ["listMyWorkOrders"], // → TEAM_MEMBER + HR_OFFICER
+  PROCUREMENT: ["listMyWorkOrders", "approveQuotation"], // → TEAM_MEMBER
+  EMPLOYEE: ["createWorkOrder", "listMyWorkOrders", "scheduleVisit"], // → TEAM_MEMBER
+  CUSTOMER: ["createWorkOrder", "listMyWorkOrders"], // → TENANT
+  OWNER: ["listMyWorkOrders", "approveQuotation", "ownerStatements"], // → CORPORATE_OWNER
+  AUDITOR: ["listMyWorkOrders"], // → GUEST
+};
+
+export function getPermittedTools(role: CopilotRole): string[] {
+  return ROLE_TOOLS[role] || [];
+}
+
+const EMAIL_REGEX = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
+const PHONE_REGEX = /\b(\+?\d[\d\s-]{7,}\d)\b/g;
+const IBAN_REGEX = /SA\d{2}[A-Z0-9]{2}\d{18}/gi;
+// Enhanced: Saudi National ID (10 digits starting with 1 or 2)
+const SAUDI_ID_REGEX = /\b[12]\d{9}\b/g;
+// Iqama/Residence ID (10 digits)
+const IQAMA_REGEX = /\b\d{10}\b/g;
+
+export function redactSensitiveText(input: string): string {
+  return input
+    .replace(EMAIL_REGEX, "[redacted-email]")
+    .replace(PHONE_REGEX, "[redacted-phone]")
+    .replace(IBAN_REGEX, "[redacted-iban]")
+    .replace(SAUDI_ID_REGEX, "[redacted-national-id]")
+    .replace(IQAMA_REGEX, "[redacted-id]");
+}
+
+export function describeDataClass(dataClass?: DataClass) {
+  switch (dataClass) {
+    case "TENANT_SCOPED":
+      return "tenant-specific";
+    case "OWNER_SCOPED":
+      return "owner portfolio";
+    case "FINANCE":
+      return "financial";
+    case "HR":
+      return "HR";
+    case "SENSITIVE":
+      return "sensitive";
+    default:
+      return "public";
+  }
+}
+
+]]>
+</file>
+
+<file path="server/copilot/retrieval.ts">
+<![CDATA[
+import crypto from "crypto";
+import { db } from "@/lib/mongo";
+import {
+  CopilotKnowledge,
+  KnowledgeDoc,
+} from "@/server/models/CopilotKnowledge";
+import { CopilotSession } from "./session";
+import { Types } from "mongoose";
+
+const EMBEDDING_MODEL =
+  process.env.COPILOT_EMBEDDING_MODEL || "text-embedding-3-small";
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const GLOBAL_KNOWLEDGE_ORG = new Types.ObjectId("000000000000000000000000");
+
+async function callEmbedding(text: string): Promise<number[]> {
+  if (!OPENAI_API_KEY) {
+    // Deterministic fallback using hashing to keep behavior stable without external API.
+    const hash = crypto.createHash("sha256").update(text).digest();
+    const vector: number[] = [];
+    for (let i = 0; i + 4 <= hash.length; i += 4) {
+      vector.push(hash.readInt32BE(i) / 2 ** 16);
+    }
+    return vector.slice(0, 32);
+  }
+
+  const response = await fetch("https://api.openai.com/v1/embeddings", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      input: text,
+      model: EMBEDDING_MODEL,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Embedding request failed: ${response.status}`);
+  }
+
+  const json = await response.json();
+  return json.data?.[0]?.embedding || [];
+}
+
+function cosineSimilarity(a: number[], b: number[]): number {
+  if (!a.length || !b.length) return 0;
+  const length = Math.min(a.length, b.length);
+  let dot = 0;
+  let normA = 0;
+  let normB = 0;
+  for (let i = 0; i < length; i += 1) {
+    dot += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  if (!normA || !normB) return 0;
+  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
+export interface RetrievedDoc {
+  id: string;
+  title: string;
+  content: string;
+  source?: string;
+  score: number;
+}
+
+export async function retrieveKnowledge(
+  session: CopilotSession,
+  query: string,
+  limit = 6,
+): Promise<RetrievedDoc[]> {
+  if (!query.trim()) return [];
+  await db;
+
+  const embedding = await callEmbedding(query);
+  const tenantObjectId = Types.ObjectId.isValid(session.tenantId)
+    ? new Types.ObjectId(session.tenantId)
+    : null;
+
+  const docs = await CopilotKnowledge.find({
+    $and: [
+      {
+        $or: [
+          { orgId: session.tenantId },
+          ...(tenantObjectId ? [{ orgId: tenantObjectId }] : []),
+          { orgId: null },
+          { orgId: GLOBAL_KNOWLEDGE_ORG },
+        ],
+      },
+      { locale: { $in: [session.locale, "en"] } },
+    ],
+  }).lean<KnowledgeDoc[]>();
+
+  const filtered = docs.filter((doc) => {
+    if (doc.roles?.length) {
+      return doc.roles.includes(session.role);
+    }
+    return true;
+  });
+
+  const scored = filtered.map((doc) => ({
+    id: doc.slug,
+    title: doc.title,
+    content: doc.content,
+    score: cosineSimilarity(embedding, doc.embedding || []),
+  }));
+
+  return scored
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .filter(
+      (doc) =>
+        doc.score > 0.05 ||
+        doc.content.toLowerCase().includes(query.toLowerCase()),
+    );
+}
+
+export async function upsertKnowledgeDocument(
+  doc: Partial<KnowledgeDoc> & {
+    slug: string;
+    title: string;
+    content: string;
+    orgId?: string;
+  },
+): Promise<void> {
+  await db;
+  const embedding = doc.embedding?.length
+    ? doc.embedding
+    : await callEmbedding(doc.content);
+  const orgId =
+    doc.orgId && Types.ObjectId.isValid(doc.orgId)
+      ? new Types.ObjectId(doc.orgId)
+      : GLOBAL_KNOWLEDGE_ORG;
+  await CopilotKnowledge.findOneAndUpdate(
+    { slug: doc.slug },
+    {
+      $set: {
+        title: doc.title,
+        content: doc.content,
+        orgId,
+        roles: doc.roles ?? [],
+        locale: doc.locale ?? "en",
+        tags: doc.tags ?? [],
+        source: doc.source ?? undefined,
+        embedding,
+        checksum: doc.checksum,
+      },
+    },
+    { upsert: true, new: true },
+  );
+}
+
+]]>
+</file>
+
+<file path="server/copilot/session.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { getUserFromToken } from "@/lib/auth";
+import { decode as decodeAuthJwt } from "next-auth/jwt";
+
+export type CopilotRole =
+  | "SUPER_ADMIN"
+  | "ADMIN"
+  | "CORPORATE_ADMIN"
+  | "CORPORATE_OWNER"
+  | "TEAM_MEMBER"
+  | "FM_MANAGER"
+  | "FINANCE"
+  | "HR"
+  | "PROCUREMENT"
+  | "PROPERTY_MANAGER"
+  | "EMPLOYEE"
+  | "TECHNICIAN"
+  | "VENDOR"
+  | "CUSTOMER"
+  | "OWNER"
+  | "AUDITOR"
+  | "TENANT"
+  | "GUEST";
+
+export interface CopilotSession {
+  userId: string;
+  tenantId: string;
+  role: CopilotRole;
+  email?: string;
+  name?: string;
+  locale: "en" | "ar";
+  timezone?: string;
+  permissions?: string[];
+}
+
+export async function resolveCopilotSession(
+  req: NextRequest,
+): Promise<CopilotSession> {
+  const acceptLanguage = req.headers.get("accept-language") || "en";
+  const locale = acceptLanguage.toLowerCase().startsWith("ar") ? "ar" : "en";
+
+  const authHeader = req.headers.get("authorization");
+  const bearer = authHeader?.startsWith("Bearer ")
+    ? authHeader.slice(7)
+    : undefined;
+  const cookieToken = req.cookies.get("fixzit_auth")?.value;
+
+  // Support Auth.js / NextAuth session cookies used in Playwright (authjs.session-token, next-auth.session-token)
+  const authCookieCandidates = [
+    "authjs.session-token",
+    "__Secure-authjs.session-token",
+    "next-auth.session-token",
+    "__Secure-next-auth.session-token",
+  ];
+  const authCookie =
+    authCookieCandidates
+      .map((name) => req.cookies.get(name)?.value)
+      .find(Boolean) || undefined;
+
+  const token = bearer || cookieToken || authCookie;
+
+  const authSecret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+  if (authSecret && token) {
+    const decoded = await decodeAuthJwt({ 
+      token, 
+      secret: authSecret,
+      salt: "authjs.session-token" // Default salt for next-auth session tokens
+    });
+    if (decoded) {
+      const userId = (decoded.id || decoded.sub || "guest") as string;
+      const tenantId = (decoded as { orgId?: string }).orgId || "public";
+      const role = ((decoded as { role?: string }).role || "GUEST") as CopilotRole;
+      const permissions = Array.isArray((decoded as { permissions?: unknown }).permissions)
+        ? ((decoded as { permissions: string[] }).permissions)
+        : undefined;
+      return {
+        userId,
+        tenantId,
+        role,
+        email: (decoded as { email?: string }).email,
+        name: (decoded as { name?: string }).name,
+        locale,
+        permissions,
+      };
+    }
+  }
+
+  if (!token) {
+    return {
+      userId: "guest",
+      tenantId: "public",
+      role: "GUEST",
+      locale,
+    };
+  }
+
+  const user = await getUserFromToken(token);
+  if (!user) {
+    return {
+      userId: "guest",
+      tenantId: "public",
+      role: "GUEST",
+      locale,
+    };
+  }
+
+  // SEC-001: If user has no orgId, they're effectively a guest with public tenant
+  // This is valid for copilot context - authenticated users without org belong to public tenant
+  return {
+    userId: user.id,
+    tenantId: user.orgId || "public",
+    role: (user.role || "GUEST") as CopilotRole,
+    email: user.email,
+    name: user.name,
+    locale,
+  };
+}
+
+]]>
+</file>
+
+<file path="server/cron/billingCron.ts">
+<![CDATA[
+// Billing Cron Job
+// Runs daily at 2:00 AM to process recurring subscriptions
+
+import cron from "node-cron";
+import { runRecurringBillingJob } from "../services/subscriptionBillingService";
+import { payTabsClient } from "../services/payTabsClient";
+import { logger } from "@/lib/logger";
+
+export function startBillingCron() {
+  // Run every day at 2:00 AM
+  cron.schedule("0 2 * * *", async () => {
+    logger.info("[Cron] Starting daily billing job");
+    try {
+      const result = await runRecurringBillingJob(payTabsClient);
+      logger.info("[Cron] Billing job completed", result);
+    } catch (error) {
+      logger.error("[Cron] Billing job failed", { error });
+    }
+  });
+
+  logger.info("[Cron] Billing cron job scheduled (daily 2:00 AM)");
+}
+
+]]>
+</file>
+
+<file path="server/cron/usageSyncCron.ts">
+<![CDATA[
+// Usage Sync Cron Job
+// Runs daily at 3:00 AM to sync usage data for all active subscriptions
+
+import cron from "node-cron";
+import Subscription from "../models/Subscription";
+import { updateUsageSnapshot } from "../services/subscriptionSeatService";
+import { connectToDatabase } from "../../lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { WORK_ORDERS_ENTITY_LEGACY } from "@/config/topbar-modules";
+
+async function syncUsageForAllSubscriptions() {
+  await connectToDatabase();
+
+  const activeSubs = await Subscription.find({
+    status: { $in: ["ACTIVE", "PAST_DUE"] },
+  });
+
+  for (const sub of activeSubs) {
+    try {
+      // In a real implementation, you would fetch actual usage counts from the database
+      // For now, just record a sync attempt
+      const subscriptionId =
+        typeof sub._id === "string" ? sub._id : sub._id.toString();
+      await updateUsageSnapshot(subscriptionId, {
+        users: 0,
+        properties: 0,
+        units: 0,
+        [WORK_ORDERS_ENTITY_LEGACY]: 0,
+      });
+    } catch (error) {
+      logger.error("[Cron] Usage sync failed for subscription", {
+        id: sub._id,
+        error,
+      });
+    }
+  }
+
+  logger.info("[Cron] Usage sync completed", { count: activeSubs.length });
+}
+
+export function startUsageSyncCron() {
+  // Run every day at 3:00 AM
+  cron.schedule("0 3 * * *", async () => {
+    logger.info("[Cron] Starting daily usage sync job");
+    try {
+      await syncUsageForAllSubscriptions();
+    } catch (error) {
+      logger.error("[Cron] Usage sync job failed", { error });
+    }
+  });
+
+  logger.info("[Cron] Usage sync cron job scheduled (daily 3:00 AM)");
+}
+
+]]>
+</file>
+
+<file path="server/finance/budget.service.ts">
+<![CDATA[
+import Budget from "../models/finance/Budget";
+import { RequestContext } from "../lib/authContext";
+import { ForbiddenError } from "../lib/errors";
+import { minorToDecimal128 } from "../lib/money";
+import { logger } from "@/lib/logger";
+import { submitBudgetForApproval } from "./doa.service";
+
+export async function createBudget(
+  ctx: RequestContext,
+  payload: { propertyId: string; period: string; amount: number },
+) {
+  if (!["FINANCE", "ADMIN", "SUPER_ADMIN"].includes(ctx.role))
+    throw new ForbiddenError("Only Finance/Admin can create budgets");
+  const minor = BigInt(Math.round(payload.amount * 100));
+  const amountMinor = minorToDecimal128(minor);
+  const budget = await Budget.create({
+    orgId: ctx.orgId,
+    propertyId: payload.propertyId,
+    period: payload.period,
+    amountMinor,
+    createdBy: ctx.userId,
+  });
+
+  try {
+    await submitBudgetForApproval(ctx, {
+      budgetId: budget._id.toString(),
+      propertyId: payload.propertyId,
+      period: payload.period,
+      amount: payload.amount,
+      currency: (budget as { currency?: string }).currency,
+    });
+  } catch (error) {
+    logger.error("Failed to submit budget for DoA approval");
+    await Budget.deleteOne({ _id: budget._id });
+    throw error;
+  }
+
+  return budget;
+}
+
+]]>
+</file>
+
+<file path="server/finance/doa.service.ts">
+<![CDATA[
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { RequestContext } from "@/server/lib/authContext";
+import { logger } from "@/lib/logger";
+import { UserRole } from "@/config/rbac.config";
+import { FMApproval } from "@/server/models/FMApproval";
+import { User } from "@/server/models/User";
+
+interface BudgetApprovalPayload {
+  budgetId: string;
+  propertyId: string;
+  period: string;
+  amount: number;
+  currency?: string;
+}
+
+interface StageConfig {
+  threshold: number;
+  roles: string[];
+  timeoutHours: number;
+}
+
+const BUDGET_APPROVAL_MATRIX: StageConfig[] = [
+  { threshold: 0, roles: [UserRole.FINANCE_OFFICER], timeoutHours: 24 },
+  { threshold: 100_000, roles: [UserRole.MANAGER], timeoutHours: 24 },
+  { threshold: 250_000, roles: [UserRole.ADMIN], timeoutHours: 24 },
+];
+
+async function findApprovers(orgId: string, roles: string[]) {
+  const approvers: Array<{
+    id: string;
+    name: string;
+    email?: string;
+    role: string;
+  }> = [];
+  for (const role of roles) {
+    const user = await User.findOne({
+      orgId,
+      "professional.role": role,
+    })
+      .select(
+        "_id email personal.firstName personal.lastName professional.role",
+      )
+      .lean();
+
+    if (user) {
+      const fullName =
+        `${user.personal?.firstName ?? ""} ${user.personal?.lastName ?? ""}`.trim() ||
+        "Approver";
+      approvers.push({
+        id: user._id.toString(),
+        name: fullName,
+        email: user.email,
+        role,
+      });
+    }
+  }
+  return approvers;
+}
+
+function buildStages(_: string, amount: number) {
+  const stages: Array<{
+    stage: number;
+    roles: string[];
+    timeoutHours: number;
+  }> = [];
+  BUDGET_APPROVAL_MATRIX.forEach((config) => {
+    if (amount >= config.threshold) {
+      stages.push({
+        stage: stages.length + 1,
+        roles: config.roles,
+        timeoutHours: config.timeoutHours,
+      });
+    }
+  });
+
+  if (stages.length === 0) {
+    stages.push({
+      stage: 1,
+      roles: [UserRole.FINANCE_OFFICER],
+      timeoutHours: 24,
+    });
+  }
+
+  return stages;
+}
+
+export async function submitBudgetForApproval(
+  ctx: RequestContext,
+  payload: BudgetApprovalPayload,
+): Promise<void> {
+  await connectToDatabase();
+
+  const stagesConfig = buildStages(ctx.orgId, payload.amount);
+  const stages: Array<{
+    stage: number;
+    approvers: string[];
+    approverRoles: string[];
+    type: "sequential";
+    timeout: number;
+    status: "pending";
+    decisions: never[];
+  }> = [];
+
+  const approverDetails: Array<{
+    id: string;
+    name: string;
+    email?: string;
+    role: string;
+  }> = [];
+
+  for (const config of stagesConfig) {
+    const approvers = await findApprovers(ctx.orgId, config.roles);
+    if (approvers.length === 0) {
+      logger.warn("[BudgetDoA] No approvers found for stage", {
+        orgId: ctx.orgId,
+        roles: config.roles,
+      });
+      continue;
+    }
+    approverDetails.push(...approvers);
+    stages.push({
+      stage: config.stage,
+      approvers: approvers.map((approver) => approver.id),
+      approverRoles: approvers.map((approver) => approver.role),
+      type: "sequential",
+      timeout: config.timeoutHours * 60 * 60 * 1000,
+      status: "pending",
+      decisions: [] as never[],
+    });
+  }
+
+  if (stages.length === 0) {
+    throw new Error("No approvers available for budget approval workflow");
+  }
+
+  const firstApprover = approverDetails[0];
+  const now = new Date();
+  const dueDate = new Date(
+    now.getTime() + stagesConfig[0].timeoutHours * 60 * 60 * 1000,
+  );
+  const workflowId = `BUD-${payload.budgetId}`;
+
+  await FMApproval.create({
+    orgId: ctx.orgId,
+    type: "BUDGET",
+    entityType: "Budget",
+    entityId: payload.budgetId,
+    entityNumber: `BUD-${payload.period}`,
+    amount: payload.amount,
+    currency: payload.currency || "SAR",
+    thresholdLevel: `SAR_${payload.amount}`,
+    workflowId,
+    currentStage: 1,
+    totalStages: stages.length,
+    approverId: firstApprover.id,
+    approverName: firstApprover.name,
+    approverEmail: firstApprover.email,
+    approverRole: firstApprover.role,
+    status: "PENDING",
+    dueDate,
+    stages,
+    history: [
+      {
+        timestamp: now,
+        action: "CREATED",
+        actorId: ctx.userId,
+        actorName: "Finance Budget Service",
+        previousStatus: "NEW",
+        newStatus: "PENDING",
+        notes: `Budget ${payload.period} submitted for approval`,
+      },
+    ],
+  });
+}
+
+]]>
+</file>
+
+<file path="server/finance/fmFinance.service.ts">
+<![CDATA[
+import { postJournal } from "./posting.service";
+import { RequestContext } from "../lib/authContext";
+import { nextNumber } from "../lib/numbering";
+import Journal from "../models/finance/Journal";
+import ChartAccount from "../models/finance/ChartAccount";
+import { minorToDecimal128 } from "../lib/money";
+
+export async function postFromWorkOrder(
+  ctx: RequestContext,
+  woId: string,
+  costs: { expense: number; billable: number },
+) {
+  const findAccount = (code: string) =>
+    ChartAccount.findOne({
+      orgId: ctx.orgId,
+      $or: [{ code }, { accountCode: code }],
+    });
+  const expenseAcc = await findAccount("5000");
+  const apAcc = await findAccount("2000");
+  const arAcc = await findAccount("1200");
+  const revAcc = await findAccount("4300");
+  if (!expenseAcc || !apAcc || !arAcc || !revAcc)
+    throw new Error("Accounts not found");
+
+  const number = await nextNumber(ctx.orgId, "JE");
+  const toMinor = (value: number) =>
+    minorToDecimal128(BigInt(Math.round(value * 100)));
+  const postings = [
+    {
+      accountId: expenseAcc._id,
+      debitMinor: toMinor(costs.expense),
+      creditMinor: minorToDecimal128(0n),
+      currency: "SAR",
+      dimensions: { workOrderId: woId },
+    },
+    {
+      accountId: apAcc._id,
+      debitMinor: minorToDecimal128(0n),
+      creditMinor: toMinor(costs.expense),
+      currency: "SAR",
+      dimensions: { workOrderId: woId },
+    },
+  ];
+  if (costs.billable > 0) {
+    postings.push(
+      {
+        accountId: arAcc._id,
+        debitMinor: toMinor(costs.billable),
+        creditMinor: minorToDecimal128(0n),
+        currency: "SAR",
+        dimensions: { workOrderId: woId },
+      },
+      {
+        accountId: revAcc._id,
+        debitMinor: minorToDecimal128(0n),
+        creditMinor: toMinor(costs.billable),
+        currency: "SAR",
+        dimensions: { workOrderId: woId },
+      },
+    );
+  }
+  const j = await Journal.create({
+    orgId: ctx.orgId,
+    number,
+    journalNumber: number,
+    journalDate: new Date(),
+    description: `WO ${woId}`,
+    sourceType: "WORK_ORDER",
+    postings,
+    createdBy: ctx.userId,
+    status: "DRAFT",
+  });
+  await postJournal(ctx, j._id.toString());
+  return j;
+}
+
+]]>
+</file>
+
+<file path="server/finance/fx.service.ts">
+<![CDATA[
+import FxRate from "../models/finance/FxRate";
+import { logger } from "@/lib/logger";
+
+export async function getFxRate(
+  orgId: string,
+  base: string,
+  quote: string,
+  date: Date = new Date(),
+): Promise<number> {
+  let rate = await FxRate.findOne({
+    orgId,
+    baseCurrency: base,
+    quoteCurrency: quote,
+    date: { $lte: date },
+  }).sort({ date: -1 });
+  if (!rate) {
+    logger.info(`FX rate fallback for ${base}/${quote}`);
+    const fallbackRate = 3.75;
+    rate = await FxRate.create({
+      orgId,
+      date,
+      baseCurrency: base,
+      quoteCurrency: quote,
+      rate: fallbackRate,
+      source: "fallback",
+    });
+  }
+  return rate.rate;
+}
+
+]]>
+</file>
+
+<file path="server/finance/invoice.service.ts">
+<![CDATA[
+import { InvoiceCreate, InvoicePost } from "./invoice.schema";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Invoice } from "@/server/models/Invoice";
+
+// Mock implementation retained for optional mock mode
+class MockInvoiceService {
+  private invoices: Array<Record<string, unknown>> = [];
+  private nextId = 1;
+
+  constructor() {
+    this.invoices = [];
+  }
+
+  async create(input: Record<string, unknown>) {
+    const invoice = {
+      id: this.nextId.toString(),
+      orgId: input.orgId, // AUDIT-2025-11-30: Changed from tenantId to orgId
+      number: `INV-${String(this.nextId).padStart(6, "0")}`,
+      ...input,
+      status: "DRAFT",
+    };
+    this.invoices.push(invoice);
+    this.nextId++;
+    return invoice;
+  }
+
+  async list(orgId: string, q?: string, status?: string) {
+    let results = this.invoices.filter((inv) => inv.orgId === orgId); // AUDIT-2025-11-30: Changed from tenantId
+
+    if (status) {
+      results = results.filter((inv) => inv.status === status);
+    }
+
+    if (q) {
+      const query = q.toLowerCase();
+      results = results.filter((inv) => {
+        const number = String(inv.number || "").toLowerCase();
+        const lines = inv.lines as Array<{ description?: string }> | undefined;
+        return (
+          number.includes(query) ||
+          lines?.some((line) =>
+            String(line.description || "")
+              .toLowerCase()
+              .includes(query),
+          )
+        );
+      });
+    }
+
+    return results;
+  }
+
+  async setStatus(id: string, status: string) {
+    const invoice = this.invoices.find((inv) => inv.id === id);
+    if (invoice) {
+      invoice.status = status;
+    }
+    return invoice;
+  }
+}
+
+const _mockService = new MockInvoiceService();
+
+export async function create(input: unknown, actorId?: string, _ip?: string) {
+  const data = InvoiceCreate.parse(input);
+
+  await connectToDatabase();
+
+  const number = await nextInvoiceNumber(data.orgId); // AUDIT-2025-11-30: Changed from tenantId
+  const totals = computeTotals(data.lines);
+
+  const invoice = await Invoice.create({
+    orgId: data.orgId, // AUDIT-2025-11-30: Changed from tenantId to match model
+    number,
+    type: "SERVICE",
+    status: "DRAFT",
+    issueDate: data.issueDate,
+    dueDate: data.dueDate,
+    customerRef: data.customerRef,
+    currency: data.currency,
+    items: data.lines.map((line) => ({
+      description: line.description,
+      quantity: line.qty,
+      unitPrice: line.unitPrice,
+      discount: 0,
+      tax: {
+        type: "VAT",
+        rate: line.vatRate,
+        amount: round(line.qty * line.unitPrice * (line.vatRate / 100)),
+      },
+      total: round(line.qty * line.unitPrice * (1 + line.vatRate / 100)),
+      category: "SERVICE",
+    })),
+    subtotal: totals.subtotal,
+    taxes: totals.taxLines,
+    total: totals.total,
+    createdBy: actorId ?? "system",
+  });
+
+  return invoice.toObject();
+}
+
+export async function list(orgId: string, q?: string, status?: string) {
+  await connectToDatabase();
+
+  const filters: Record<string, unknown> = { orgId }; // AUDIT-2025-11-30: Changed from tenantId
+
+  if (status) {
+    filters.status = status;
+  }
+
+  if (q) {
+    // SECURITY: Escape regex special characters to prevent ReDoS
+    const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escapedQ, "i");
+    filters.$or = [
+      { number: regex },
+      { customerRef: regex },
+      { "items.description": regex },
+    ];
+  }
+
+  const invoices = await Invoice.find(filters)
+    .sort({ createdAt: -1 })
+    .limit(200)
+    .lean();
+
+  return invoices;
+}
+
+export async function post(
+  orgId: string, // AUDIT-2025-11-30: Changed from tenantId
+  id: string,
+  input: unknown,
+  actorId?: string,
+  ip?: string,
+) {
+  const data = InvoicePost.parse(input);
+
+  await connectToDatabase();
+
+  const status = data.action === "POST" ? "SENT" : "CANCELLED";
+  const historyEntry = {
+    action: status === "SENT" ? "POSTED" : "VOIDED",
+    performedBy: actorId ?? "system",
+    performedAt: new Date(),
+    details:
+      status === "SENT" ? "Invoice posted to customer" : "Invoice voided",
+    ipAddress: ip,
+  };
+
+  const invoice = await Invoice.findOneAndUpdate(
+    { _id: id, orgId }, // AUDIT-2025-11-30: Changed from tenantId
+    {
+      status,
+      updatedBy: actorId ?? "system",
+      $push: { history: historyEntry },
+    },
+    { new: true },
+  ).lean();
+
+  if (!invoice) {
+    throw new Error("Invoice not found");
+  }
+
+  return invoice;
+}
+
+async function nextInvoiceNumber(orgId: string) {
+  const latest = (await Invoice.findOne({ orgId }) // AUDIT-2025-11-30: Changed from tenantId
+    .sort({ createdAt: -1 })
+    .select("number")
+    .lean()) as { number: string } | null;
+
+  const latestNumber = Array.isArray(latest)
+    ? latest[0]?.number
+    : latest?.number;
+  const match = latestNumber?.match(/INV-(\d+)/);
+  const next = match ? parseInt(match[1], 10) + 1 : 1;
+  return `INV-${String(next).padStart(6, "0")}`;
+}
+
+function computeTotals(
+  lines: Array<{ qty: number; unitPrice: number; vatRate: number }>,
+) {
+  let subtotal = 0;
+  const taxMap = new Map<number, number>();
+
+  for (const line of lines) {
+    const lineSubtotal = line.qty * line.unitPrice;
+    const lineTax = lineSubtotal * (line.vatRate / 100);
+    subtotal += lineSubtotal;
+    taxMap.set(line.vatRate, (taxMap.get(line.vatRate) ?? 0) + lineTax);
+  }
+
+  const taxTotal = Array.from(taxMap.values()).reduce(
+    (sum, amount) => sum + amount,
+    0,
+  );
+  const taxLines = Array.from(taxMap.entries()).map(([rate, amount]) => ({
+    type: "VAT",
+    rate,
+    amount: round(amount),
+    category: "STANDARD",
+  }));
+
+  return {
+    subtotal: round(subtotal),
+    taxTotal: round(taxTotal),
+    total: round(subtotal + taxTotal),
+    taxLines,
+  };
+}
+
+function round(value: number) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+]]>
+</file>
+
+<file path="server/finance/posting.service.ts">
+<![CDATA[
+import mongoose, { Types } from "mongoose";
+import Journal from "../models/finance/Journal";
+import LedgerEntry from "../models/finance/LedgerEntry";
+import ChartAccount from "../models/finance/ChartAccount";
+import { getFxRate } from "./fx.service";
+import {
+  decimal128ToMinor,
+  minorToDecimal128,
+  applyFxMinor,
+} from "../lib/money";
+import { ForbiddenError } from "../lib/errors";
+import { RequestContext } from "../lib/authContext";
+import { logger } from "@/lib/logger";
+
+export async function postJournal(
+  ctx: RequestContext,
+  journalId: Types.ObjectId | string,
+) {
+  if (!["FINANCE", "ADMIN", "SUPER_ADMIN"].includes(ctx.role)) {
+    throw new ForbiddenError("Only Finance/Admin can post journals");
+  }
+  if (!journalId) {
+    throw new Error("journalId is required to post a journal");
+  }
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const id =
+      typeof journalId === "string" ? new Types.ObjectId(journalId) : journalId;
+    const j = await Journal.findOne({ _id: id, orgId: ctx.orgId }).session(
+      session,
+    );
+    if (!j || j.status !== "DRAFT") throw new Error("Invalid journal");
+
+    let totalDeb = 0n;
+    let totalCre = 0n;
+    for (const p of j.postings ?? []) {
+      const deb = decimal128ToMinor(p.debitMinor as Types.Decimal128);
+      const cre = decimal128ToMinor(p.creditMinor as Types.Decimal128);
+      totalDeb += deb;
+      totalCre += cre;
+    }
+    if (totalDeb !== totalCre) throw new Error("Unbalanced");
+
+    for (const p of j.postings ?? []) {
+      const debitMinorDec =
+        (p.debitMinor as Types.Decimal128) ?? Types.Decimal128.fromString("0");
+      const creditMinorDec =
+        (p.creditMinor as Types.Decimal128) ?? Types.Decimal128.fromString("0");
+      const debMinor = decimal128ToMinor(debitMinorDec);
+      const creMinor = decimal128ToMinor(creditMinorDec);
+      const account = await ChartAccount.findOne({
+        _id: p.accountId,
+        orgId: ctx.orgId,
+      }).session(session);
+      if (!account) throw new Error("Account not found");
+
+      const baseCurrency = process.env.FINANCE_BASE_CURRENCY || "SAR";
+      let fxRate = p.fxRate;
+      if (!fxRate) {
+        if (p.currency === baseCurrency) {
+          fxRate = 1;
+        } else {
+          fxRate = await getFxRate(
+            ctx.orgId,
+            p.currency,
+            baseCurrency,
+            j.journalDate,
+          );
+        }
+      }
+      const baseDeb = applyFxMinor(debMinor, fxRate);
+      const baseCre = applyFxMinor(creMinor, fxRate);
+
+      const last = await LedgerEntry.findOne({
+        orgId: ctx.orgId,
+        accountId: p.accountId,
+      })
+        .sort({ date: -1 })
+        .session(session);
+      const prior = last
+        ? last.balanceMinor
+          ? decimal128ToMinor(last.balanceMinor as Types.Decimal128)
+          : BigInt(Math.round((last.balance || 0) * 100))
+        : 0n;
+      const next = prior + baseDeb - baseCre;
+
+      const dims = (p.dimensions || {}) as {
+        propertyId?: Types.ObjectId;
+        unitId?: Types.ObjectId;
+        ownerId?: Types.ObjectId;
+        tenantId?: Types.ObjectId;
+        vendorId?: Types.ObjectId;
+      };
+
+      await LedgerEntry.create(
+        [
+          {
+            orgId: ctx.orgId,
+            journalId: j._id,
+            journalNumber: j.journalNumber,
+            journalDate: j.journalDate,
+            date: j.journalDate,
+            postingDate: j.postingDate || j.journalDate,
+            accountId: p.accountId,
+            accountCode: account.accountCode,
+            accountName: account.accountName,
+            accountType: account.accountType,
+            description: j.description,
+            debit: Number(debMinor) / 100,
+            credit: Number(creMinor) / 100,
+            debitMinor: debitMinorDec,
+            creditMinor: creditMinorDec,
+            baseDebitMinor: minorToDecimal128(baseDeb),
+            baseCreditMinor: minorToDecimal128(baseCre),
+            baseCurrency,
+            currency: p.currency,
+            fxRate,
+            balanceMinor: minorToDecimal128(next),
+            balance: Number(next) / 100,
+            dimensions: dims,
+            isReversal: j.type === "REVERSAL",
+            propertyId: dims.propertyId,
+            unitId: dims.unitId,
+            ownerId: dims.ownerId,
+            tenantId: dims.tenantId,
+            vendorId: dims.vendorId,
+            fiscalYear: j.fiscalYear,
+            fiscalPeriod: j.fiscalPeriod,
+            createdBy: ctx.userId,
+            updatedBy: ctx.userId,
+          },
+        ],
+        { session },
+      );
+    }
+
+    j.status = "POSTED";
+    j.postedAt = new Date();
+    j.postedBy = ctx.userId as unknown as Types.ObjectId;
+    await j.save({ session });
+
+    await session.commitTransaction();
+    logger.info(`Journal ${j.journalNumber} posted`);
+  } catch (e) {
+    await session.abortTransaction();
+    logger.error((e as Error).message);
+    throw e;
+  } finally {
+    session.endSession();
+  }
+}
+
+]]>
+</file>
+
+<file path="server/finance/reporting.service.ts">
+<![CDATA[
+import { Types } from "mongoose";
+import LedgerEntry from "../models/finance/LedgerEntry";
+import { decimal128ToMinor } from "../lib/money";
+import { normalizeBalance, type AccountType } from "../lib/accounting";
+import { RequestContext } from "../lib/authContext";
+import { ForbiddenError } from "../lib/errors";
+
+type AccountName = string | { en?: string; ar?: string };
+
+type TrialBalanceRow = {
+  accountId: Types.ObjectId;
+  code?: string;
+  accountCode?: string;
+  name?: AccountName;
+  accountName?: AccountName;
+  type: AccountType;
+  debit: Types.Decimal128;
+  credit: Types.Decimal128;
+};
+
+function toMinor(value: Types.Decimal128 | undefined): bigint {
+  return decimal128ToMinor(value ?? Types.Decimal128.fromString("0"));
+}
+
+export async function trialBalance(ctx: RequestContext, from: Date, to: Date) {
+  if (!["FINANCE", "ADMIN", "SUPER_ADMIN"].includes(ctx.role)) {
+    throw new ForbiddenError("Only Finance/Admin can view trial balance");
+  }
+
+  const rows = await LedgerEntry.aggregate<TrialBalanceRow>([
+    {
+      $match: {
+        orgId: ctx.orgId,
+        date: { $gte: from, $lte: to },
+      },
+    },
+    {
+      $group: {
+        _id: "$accountId",
+        debit: { $sum: "$baseDebitMinor" },
+        credit: { $sum: "$baseCreditMinor" },
+      },
+    },
+    {
+      $lookup: {
+        from: "chartaccounts",
+        localField: "_id",
+        foreignField: "_id",
+        as: "acc",
+      },
+    },
+    { $unwind: "$acc" },
+    {
+      $project: {
+        accountId: "$_id",
+        code: "$acc.code",
+        accountCode: "$acc.accountCode",
+        name: "$acc.name",
+        accountName: "$acc.accountName",
+        type: "$acc.accountType",
+        debit: "$debit",
+        credit: "$credit",
+      },
+    },
+    { $sort: { code: 1 } },
+  ]);
+
+  const totDr = rows.reduce((sum, row) => sum + toMinor(row.debit), 0n);
+  const totCr = rows.reduce((sum, row) => sum + toMinor(row.credit), 0n);
+
+  return { rows, totDr, totCr, balanced: totDr === totCr };
+}
+
+export async function incomeStatement(
+  ctx: RequestContext,
+  from: Date,
+  to: Date,
+) {
+  const tb = await trialBalance(ctx, from, to);
+
+  const revenue = tb.rows
+    .filter((row) => row.type === "REVENUE")
+    .reduce(
+      (sum, row) =>
+        sum +
+        normalizeBalance("REVENUE", toMinor(row.debit), toMinor(row.credit)),
+      0n,
+    );
+
+  const expense = tb.rows
+    .filter((row) => row.type === "EXPENSE")
+    .reduce(
+      (sum, row) =>
+        sum +
+        normalizeBalance("EXPENSE", toMinor(row.debit), toMinor(row.credit)),
+      0n,
+    );
+
+  const net = revenue - expense;
+
+  return { revenue, expense, net, rows: tb.rows };
+}
+
+export async function balanceSheet(ctx: RequestContext, asOf: Date) {
+  const tb = await trialBalance(ctx, new Date(0), asOf);
+
+  const assets = tb.rows
+    .filter((row) => row.type === "ASSET")
+    .reduce(
+      (sum, row) =>
+        sum +
+        normalizeBalance("ASSET", toMinor(row.debit), toMinor(row.credit)),
+      0n,
+    );
+
+  const liabilities = tb.rows
+    .filter((row) => row.type === "LIABILITY")
+    .reduce(
+      (sum, row) =>
+        sum +
+        normalizeBalance("LIABILITY", toMinor(row.debit), toMinor(row.credit)),
+      0n,
+    );
+
+  const equity = tb.rows
+    .filter((row) => row.type === "EQUITY")
+    .reduce(
+      (sum, row) =>
+        sum +
+        normalizeBalance("EQUITY", toMinor(row.debit), toMinor(row.credit)),
+      0n,
+    );
+
+  return {
+    assets,
+    liab: liabilities,
+    equity,
+    equationOk: assets === liabilities + equity,
+  };
+}
+
+export async function ownerStatement(
+  ctx: RequestContext,
+  propertyId: string,
+  from: Date,
+  to: Date,
+) {
+  if (
+    !["OWNER", "PROPERTY_OWNER", "FINANCE", "ADMIN", "SUPER_ADMIN"].includes(
+      ctx.role,
+    )
+  ) {
+    throw new ForbiddenError("Only Owner/Finance/Admin can view statements");
+  }
+
+  const rows = await LedgerEntry.aggregate<TrialBalanceRow>([
+    {
+      $match: {
+        orgId: ctx.orgId,
+        date: { $gte: from, $lte: to },
+        "dimensions.propertyId": propertyId,
+      },
+    },
+    {
+      $group: {
+        _id: "$accountId",
+        debit: { $sum: "$baseDebitMinor" },
+        credit: { $sum: "$baseCreditMinor" },
+      },
+    },
+    {
+      $lookup: {
+        from: "chartaccounts",
+        localField: "_id",
+        foreignField: "_id",
+        as: "acc",
+      },
+    },
+    { $unwind: "$acc" },
+    {
+      $project: {
+        accountId: "$_id",
+        code: "$acc.code",
+        accountCode: "$acc.accountCode",
+        name: "$acc.name",
+        accountName: "$acc.accountName",
+        type: "$acc.accountType",
+        debit: "$debit",
+        credit: "$credit",
+      },
+    },
+  ]);
+
+  const openingAgg = await LedgerEntry.aggregate([
+    {
+      $match: {
+        orgId: ctx.orgId,
+        date: { $lt: from },
+        "dimensions.propertyId": propertyId,
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        balance: { $sum: "$balanceMinor" },
+      },
+    },
+  ]);
+
+  const opening = openingAgg.length
+    ? toMinor(openingAgg[0].balance as Types.Decimal128)
+    : 0n;
+
+  const charges = rows
+    .filter((row) => row.type === "REVENUE")
+    .reduce(
+      (sum, row) =>
+        sum +
+        normalizeBalance("REVENUE", toMinor(row.debit), toMinor(row.credit)),
+      0n,
+    );
+
+  const receipts = rows
+    .filter((row) => row.type === "ASSET" && row.code?.startsWith("11"))
+    .reduce(
+      (sum, row) =>
+        sum +
+        normalizeBalance("ASSET", toMinor(row.debit), toMinor(row.credit)),
+      0n,
+    );
+
+  const ending = opening + charges + receipts;
+
+  return {
+    propertyId,
+    from,
+    to,
+    opening,
+    charges,
+    receipts,
+    ending,
+    lines: rows,
+  };
+}
+
+]]>
+</file>
+
+<file path="server/finance/zatca.service.ts">
+<![CDATA[
+import QRCode from "qrcode";
+import { minorToMajor } from "../lib/money";
+
+type MinorAmount = string | number | { toString(): string };
+
+function toMinorBigInt(amount: MinorAmount): bigint {
+  if (typeof amount === "number") {
+    return BigInt(Math.round(amount));
+  }
+  return BigInt(amount.toString());
+}
+
+export interface EInvoicePayload {
+  subtotalMinor: MinorAmount;
+  taxMinor: MinorAmount;
+  totalMinor: MinorAmount;
+  number: string;
+  date: string;
+  type: string;
+  sellerVat: string;
+  buyerVat: string;
+  currency: string;
+}
+
+export async function generateEInvoice(invoice: EInvoicePayload) {
+  const subtotalMajor = minorToMajor(toMinorBigInt(invoice.subtotalMinor));
+  const taxMajor = minorToMajor(toMinorBigInt(invoice.taxMinor));
+  const totalMajor = minorToMajor(toMinorBigInt(invoice.totalMinor));
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2" xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+  <cbc:ID>${invoice.number}</cbc:ID>
+  <cbc:IssueDate>${invoice.date}</cbc:IssueDate>
+  <cbc:InvoiceTypeCode>${invoice.type}</cbc:InvoiceTypeCode>
+  <cac:AccountingSupplierParty><cac:Party><cac:PartyTaxScheme><cbc:CompanyID>${invoice.sellerVat}</cbc:CompanyID></cac:PartyTaxScheme></cac:Party></cac:AccountingSupplierParty>
+  <cac:AccountingCustomerParty><cac:Party><cac:PartyTaxScheme><cbc:CompanyID>${invoice.buyerVat}</cbc:CompanyID></cac:PartyTaxScheme></cac:Party></cac:AccountingCustomerParty>
+  <cac:TaxTotal><cbc:TaxAmount currencyID="${invoice.currency}">${taxMajor}</cbc:TaxAmount></cac:TaxTotal>
+  <cac:LegalMonetaryTotal><cbc:TaxExclusiveAmount currencyID="${invoice.currency}">${subtotalMajor}</cbc:TaxExclusiveAmount><cbc:TaxInclusiveAmount currencyID="${invoice.currency}">${totalMajor}</cbc:TaxInclusiveAmount></cac:LegalMonetaryTotal>
+</Invoice>`;
+
+  const qr = await QRCode.toDataURL(xml);
+  return { xml, qr };
+}
+
+]]>
+</file>
+
+</batch_content>

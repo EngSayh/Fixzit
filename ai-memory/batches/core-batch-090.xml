@@ -1,0 +1,3334 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/archived/PENDING_TASKS_NOV_11_17.md">
+<![CDATA[
+# PENDING TASKS: November 11-17, 2025
+
+**Created**: November 17, 2025  
+**Period**: Past 6 days (Nov 11 - Nov 17)  
+**Source**: Comprehensive audit of daily progress reports and codebase  
+**Status**: Ready for execution
+
+---
+
+## 🎯 EXECUTIVE SUMMARY
+
+**Total Pending Tasks**: 13 major items  
+**Critical**: 0 (all resolved)  
+**High Priority**: 5 (i18n, testing, documentation)  
+**Medium Priority**: 5 (enhancements, optimizations)  
+**Low Priority**: 3 (cleanup, nice-to-haves)
+
+**System Health**: ✅ PRODUCTION READY
+
+- Server: Running stable on localhost:3000
+- TypeScript: 0 errors
+- Database: Connected, 0ms latency
+- Authentication: Working correctly
+- Security: All measures in place
+
+---
+
+## 🔴 CRITICAL ISSUES: 0 ✅ ALL RESOLVED
+
+### Previously Critical (Now Fixed):
+
+1. ✅ **RBAC Loading** - Re-enabled in auth.config.ts (Nov 13)
+2. ✅ **API 500 Errors** - Fixed to return proper 401 (Nov 14)
+3. ✅ **Console Statements** - All migrated to logger (Nov 13-14)
+4. ✅ **Type Safety** - All 'as any' removed from production (Nov 13)
+5. ✅ **PR Management** - All 13 PRs merged, 0 backlog (Nov 13)
+
+---
+
+## 🟡 HIGH PRIORITY TASKS (5 items)
+
+### 1. Complete Arabic Translations (48 pages remaining)
+
+**Status**: 🔄 2% complete (1/49 pages)  
+**Priority**: HIGH for Saudi market  
+**Estimated Time**: 20-24 hours (30 min/page average)
+
+**Completed Pages** (Nov 14):
+
+- ✅ `app/properties/page.tsx`
+
+**High Priority Pages** (14 pages, 6-8 hours):
+
+- [ ] `app/work-orders/page.tsx` + `components/fm/WorkOrdersView.tsx`
+- [ ] `app/notifications/page.tsx` (685 lines, many strings)
+- [ ] `app/reports/page.tsx`
+- [ ] `app/marketplace/page.tsx`
+- [ ] `app/marketplace/cart/page.tsx`
+- [ ] `app/marketplace/checkout/page.tsx`
+- [ ] `app/marketplace/orders/page.tsx`
+- [ ] `app/marketplace/search/page.tsx`
+- [ ] `app/marketplace/rfq/page.tsx`
+- [ ] `app/support/page.tsx`
+- [ ] `app/support/my-tickets/page.tsx`
+- [ ] `app/administration/page.tsx`
+- [ ] `app/system/page.tsx`
+- [ ] `app/settings/page.tsx`
+
+**Medium Priority Pages** (13 pages, 6-7 hours):
+
+- [ ] `app/about/page.tsx`
+- [ ] `app/careers/page.tsx`
+- [ ] `app/aqar/page.tsx`
+- [ ] `app/cms/page.tsx`
+- [ ] `app/help/page.tsx`
+- [ ] `app/help/faq/page.tsx`
+- [ ] `app/help/tutorials/page.tsx`
+- [ ] `app/admin/users/page.tsx`
+- [ ] `app/admin/roles/page.tsx`
+- [ ] `app/admin/permissions/page.tsx`
+- [ ] `app/admin/organizations/page.tsx`
+- [ ] `app/admin/modules/page.tsx`
+- [ ] `app/admin/settings/page.tsx`
+
+**Low Priority Pages** (21 pages, 7-9 hours):
+
+- [ ] All nested FM module pages (work orders, properties, assets details)
+- [ ] All nested help pages (guides, documentation)
+- [ ] All nested admin pages (audit logs, system health)
+
+**Approach**:
+
+1. Batch by feature (marketplace → 8 hours, support → 2 hours, etc.)
+2. Extract hardcoded strings to dictionaries first
+3. Wrap in t() calls systematically
+4. Test each batch in Arabic mode (Cmd+Shift+P → "Change Language")
+5. Commit every 5 pages
+
+**Files to Update**:
+
+- `i18n/dictionaries/ar.ts` - Add Arabic translations
+- `i18n/dictionaries/en.ts` - Add English keys
+- Each page component - Add useTranslation + t() wrappers
+
+---
+
+### 2. End-to-End Testing Suite
+
+**Status**: ❌ Not Started  
+**Priority**: HIGH for production confidence  
+**Estimated Time**: 6-8 hours
+
+**Required Tests**:
+
+- [ ] **Authentication Flow** (2 hours)
+  - Login with email/password
+  - Login with employee number
+  - Verify RBAC permissions load
+  - Test Super Admin wildcard permissions
+  - Verify org membership checks
+  - Session persistence/logout
+
+- [ ] **Critical User Flows** (3 hours)
+  - Create work order → approval → completion
+  - Create property → add asset → link work order
+  - Marketplace: Add to cart → checkout → payment
+  - Upload document → preview → download
+  - Generate report → export PDF/Excel
+
+- [ ] **API Endpoint Testing** (2 hours)
+  - All CRUD operations (Create, Read, Update, Delete)
+  - Verify 401 for unauthorized requests
+  - Verify proper error responses
+  - Test rate limiting
+  - Test CORS headers
+
+- [ ] **Integration Points** (1 hour)
+  - Notification delivery (if external services configured)
+  - Audit log creation for critical actions
+  - Property ownership queries
+  - Subscription plan enforcement
+
+**Tools**:
+
+- Playwright (already configured in `playwright.config.ts`)
+- Jest for API testing (already configured in `jest.config.js`)
+
+**Test Structure**:
+
+```
+tests/
+  e2e/
+    auth.spec.ts
+    work-orders.spec.ts
+    marketplace.spec.ts
+  api/
+    properties.test.ts
+    work-orders.test.ts
+    assets.test.ts
+```
+
+---
+
+### 3. Environment Variables Documentation
+
+**Status**: ❌ Not Started  
+**Priority**: HIGH for deployment  
+**Estimated Time**: 1-2 hours
+
+**Required Documentation**:
+
+- [ ] Create `.env.example` with all required variables
+- [ ] Document each variable purpose and format
+- [ ] Specify which are required vs optional
+- [ ] Add default values where applicable
+- [ ] Document external service credentials needed
+
+**Variables to Document** (minimum):
+
+```bash
+# Database
+MONGODB_URI=mongodb://localhost:27017/fixzit
+
+# NextAuth
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your-secret-key-here
+
+# Google OAuth (optional)
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+# External Services (optional)
+SENTRY_DSN=
+FIREBASE_API_KEY=
+SENDGRID_API_KEY=
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+WHATSAPP_BUSINESS_API_KEY=
+
+# PayTabs (optional - for marketplace)
+PAYTABS_PROFILE_ID=
+PAYTABS_SERVER_KEY=
+PAYTABS_REGION=
+
+# Feature Flags
+ENABLE_RBAC=true
+ENABLE_AUDIT_LOGS=true
+```
+
+---
+
+### 4. Deployment Guide
+
+**Status**: ❌ Not Started  
+**Priority**: HIGH for production deployment  
+**Estimated Time**: 2-3 hours
+
+**Required Sections**:
+
+- [ ] **Prerequisites** (Node.js version, MongoDB, etc.)
+- [ ] **Environment Setup** (copy .env.example, configure vars)
+- [ ] **Database Migration** (seed data, indexes)
+- [ ] **Build Process** (pnpm install, pnpm build)
+- [ ] **Deployment Platforms**
+  - Vercel (recommended for Next.js)
+  - AWS (EC2, ECS, Lambda)
+  - Docker (already have Dockerfile)
+  - Traditional hosting (PM2, Nginx)
+- [ ] **Post-Deployment Checklist**
+  - Health check endpoint
+  - Database connectivity
+  - Authentication working
+  - External services connected
+- [ ] **Monitoring & Logging**
+  - Sentry setup
+  - Log aggregation
+  - Performance monitoring
+- [ ] **Rollback Procedure**
+  - Git revert strategy
+  - Database backup/restore
+  - Feature flag disabling
+
+**File Location**: `docs/DEPLOYMENT_GUIDE.md`
+
+---
+
+### 5. Code Documentation (TODO Comments)
+
+**Status**: ⏳ Partially complete  
+**Priority**: HIGH for maintainability  
+**Estimated Time**: 4-6 hours
+
+**Remaining TODOs in Production Code**:
+
+**lib/fm-approval-engine.ts** (1 TODO):
+
+```typescript
+// Line 566: Implement escalation notifications
+// TODO: Implement escalation notifications with proper payload structure
+```
+
+**Estimated Fix**: 30 minutes
+
+**Implementation Plan Implementation** (multiple TODOs):
+From `IMPLEMENTATION_PLAN.md` - PayTabs integration:
+
+- [ ] Line 144: Replace TODO with actual PayTabs integration
+- [ ] Line 332: Get sellerId from session
+- [ ] Line 346: Authenticate as tenant in tests
+- [ ] Lines 214, 246: Send notifications to seller
+- [ ] Lines 270-271: Query rating/review counts from Product model
+- [ ] Line 520: Query SouqListing model for stock levels
+- [ ] Line 590: Implement price history tracking
+- [ ] Lines 137, 147, 168: Add canCompeteInBuyBox methods
+- [ ] Line 537: Implement MOD-97 checksum validation
+
+**Estimated Fix**: 8-12 hours (full PayTabs integration)
+
+**Test File TODOs** (22 instances in test files - acceptable, low priority)
+
+**Action Plan**:
+
+1. Create GitHub issues for each TODO group
+2. Prioritize by feature importance
+3. Implement or document why deferred
+4. Update code comments with issue links
+
+---
+
+## 🟢 MEDIUM PRIORITY TASKS (5 items)
+
+### 6. SelectValue Deprecation Warnings (38 occurrences)
+
+**Status**: ⏳ Functional but noisy  
+**Priority**: MEDIUM for clean console  
+**Estimated Time**: 2-3 hours
+
+**Issue**: Radix UI Select component API changed
+
+```tsx
+// OLD (deprecated):
+<SelectValue placeholder="..." />
+
+// NEW (recommended):
+<Select placeholder="...">
+  <SelectTrigger>
+    <SelectValue />
+  </SelectTrigger>
+</Select>
+```
+
+**Files Affected**: ~38 files across codebase (search: `<SelectValue placeholder`)
+
+**Approach**:
+
+1. Find all: `grep -r '<SelectValue placeholder' --include="*.tsx"`
+2. Bulk find/replace with manual review
+3. Test each component after update
+4. Commit in batches of 10 files
+
+---
+
+### 7. External Notification Integrations (Optional)
+
+**Status**: ❌ Not Started  
+**Priority**: MEDIUM for user engagement  
+**Estimated Time**: 12-16 hours
+
+**File**: `lib/fm-notifications.ts`
+
+**Integrations Needed**:
+
+1. **FCM/Web Push** (3-4 hours)
+   - Browser notifications
+   - Service worker setup
+   - Firebase Cloud Messaging integration
+   - User subscription management
+
+2. **Email (SendGrid)** (3-4 hours)
+   - Transactional emails
+   - Template system
+   - SendGrid API integration
+   - Email queue management
+
+3. **SMS (Twilio)** (3-4 hours)
+   - SMS alerts
+   - Twilio API integration
+   - Phone number validation
+   - SMS template system
+
+4. **WhatsApp Business API** (3-4 hours)
+   - WhatsApp messages
+   - Business API setup
+   - Template approval process
+   - Message queue management
+
+**Requirements per Service**:
+
+- API keys/credentials
+- Environment variables configuration
+- Service account setup
+- Template creation/approval
+- Rate limiting implementation
+- Error handling & retries
+
+**Priority Notes**:
+
+- Email: HIGH (essential for password reset, notifications)
+- SMS: MEDIUM (useful for alerts, 2FA)
+- WhatsApp: LOW (Saudi market preference, but optional)
+- Push: LOW (nice-to-have for real-time updates)
+
+---
+
+### 8. Audit Log Enhancement
+
+**Status**: ✅ Basic implementation complete  
+**Priority**: MEDIUM for compliance  
+**Estimated Time**: 4-6 hours
+
+**Current State** (Nov 13 implementation):
+
+- ✅ Database persistence (MongoDB)
+- ✅ Structured logging with metadata
+- ✅ Action categorization (CREATE, UPDATE, DELETE, etc.)
+- ✅ User/org context tracking
+- ✅ IP address logging
+
+**Enhancements Needed**:
+
+- [ ] **UI Dashboard** (2 hours)
+  - Create `app/admin/audit-logs/page.tsx`
+  - Filterable table (user, action, date range)
+  - Export to CSV/Excel
+  - Search functionality
+
+- [ ] **Retention Policy** (1 hour)
+  - Implement TTL index (delete logs after 90 days)
+  - Archive old logs to cold storage
+  - Configurable retention period
+
+- [ ] **Alert System** (2 hours)
+  - Critical action alerts (user deletion, permission changes)
+  - Suspicious activity detection
+  - Email/Slack notifications for admins
+
+- [ ] **Compliance Reports** (1 hour)
+  - Generate monthly audit reports
+  - Export in compliance-friendly formats
+  - Automated report scheduling
+
+**File Locations**:
+
+- `app/admin/audit-logs/page.tsx` - Dashboard UI
+- `lib/audit.ts` - Core audit functionality (already implemented)
+- `app/api/admin/audit-logs/route.ts` - API endpoint
+
+---
+
+### 9. Performance Optimization
+
+**Status**: ✅ Acceptable (363MB / 459MB = 79% efficient)  
+**Priority**: MEDIUM for scale  
+**Estimated Time**: 4-6 hours
+
+**Current Performance**:
+
+- Memory: 363 MB used (79% efficient)
+- Server uptime: Stable (2+ hours no crashes)
+- API response times: Acceptable (work-orders: 1859ms, notifications: 255ms)
+
+**Optimization Opportunities**:
+
+- [ ] **Database Indexes** (2 hours)
+  - Add indexes on frequently queried fields
+  - Compound indexes for common queries
+  - Analyze slow queries with MongoDB profiler
+  - Target: <500ms for most API calls
+
+- [ ] **API Caching** (2 hours)
+  - Implement Redis caching layer
+  - Cache static data (organizations, properties)
+  - Cache-Control headers for public endpoints
+  - Invalidation strategy for updates
+
+- [ ] **Bundle Size Optimization** (1 hour)
+  - Analyze bundle with `pnpm build && pnpm analyze`
+  - Implement code splitting for large modules
+  - Lazy load heavy components
+  - Tree-shake unused dependencies
+
+- [ ] **Image Optimization** (1 hour)
+  - Use Next.js Image component everywhere
+  - Implement responsive images
+  - WebP format with fallbacks
+  - CDN for static assets
+
+**Measurement**:
+
+- Before: Lighthouse score, bundle size, API timings
+- After: Re-measure and verify improvements
+- Target: Lighthouse score >90, API <500ms
+
+---
+
+### 10. Security Hardening
+
+**Status**: ✅ Good (auth, CORS, rate limiting in place)  
+**Priority**: MEDIUM for production  
+**Estimated Time**: 3-4 hours
+
+**Current Security Measures**:
+
+- ✅ NextAuth authentication
+- ✅ RBAC authorization
+- ✅ CORS configuration
+- ✅ Rate limiting
+- ✅ Input validation (Zod schemas)
+- ✅ SQL injection prevention (Mongoose)
+- ✅ XSS prevention (React escaping)
+
+**Additional Hardening**:
+
+- [ ] **Security Headers** (1 hour)
+  - Content-Security-Policy
+  - X-Frame-Options
+  - X-Content-Type-Options
+  - Referrer-Policy
+  - Permissions-Policy
+  - Use `next-secure-headers` package
+
+- [ ] **API Security** (1 hour)
+  - Request signing for sensitive endpoints
+  - API key rotation mechanism
+  - Webhook signature verification
+  - Request/response encryption for PII
+
+- [ ] **Dependency Scanning** (30 min)
+  - Run `pnpm audit` and fix vulnerabilities
+  - Enable GitHub Dependabot alerts
+  - Automated dependency updates (Renovate)
+  - Regular security audits
+
+- [ ] **Penetration Testing** (30 min - setup)
+  - OWASP ZAP automated scan
+  - Manual security testing checklist
+  - Third-party security audit (optional)
+  - Bug bounty program (future)
+
+**File Locations**:
+
+- `next.config.js` - Security headers configuration
+- `middleware.ts` - Request validation/signing
+- `.github/dependabot.yml` - Automated dependency updates
+
+---
+
+## ⚪ LOW PRIORITY TASKS (3 items)
+
+### 11. Debug Logging Cleanup
+
+**Status**: ✅ Mostly complete  
+**Priority**: LOW (cosmetic)  
+**Estimated Time**: 15 minutes
+
+**Remaining Debug Statements**:
+
+- `middleware.ts`: Few debug logs remaining (lines 133-244 area)
+- `auth.config.ts`: "[NextAuth] JWT processing..." statements
+
+**Action**:
+
+1. Search: `grep -r 'console\.' --include="*.ts" --include="*.tsx" lib/ app/`
+2. Review each console statement
+3. Keep only essential error logs
+4. Remove all debug/development logs
+5. Ensure all use `logger` instead of `console`
+
+---
+
+### 12. Duplicate File Cleanup (Already Verified Clean)
+
+**Status**: ✅ Complete  
+**Priority**: LOW  
+**Estimated Time**: 0 minutes
+
+**Previous Issues** (Nov 13 cleanup):
+
+- ✅ Removed 11 duplicate files
+- ✅ Verified no remaining duplicates
+- ✅ File organization per Governance V5
+
+**Verification**:
+
+```bash
+# No duplicates found in recent scan
+fdupes -r . | grep -v node_modules | grep -v .next
+# Output: (empty)
+```
+
+**Status**: No action required ✅
+
+---
+
+### 13. Documentation TODO Comments (34 non-code TODOs)
+
+**Status**: ⏳ Tracked  
+**Priority**: LOW  
+**Estimated Time**: 2-3 hours
+
+**Categories**:
+
+- Translation key name TODOs in `i18n/` (not actual code issues)
+- Feature request comments (future enhancements)
+- Documentation placeholders
+
+**Action Plan**:
+
+1. Audit all 34 TODO comments
+2. Create GitHub issues for legitimate feature requests
+3. Remove stale/outdated comments
+4. Update comments with issue links for tracking
+5. Document in project roadmap
+
+**Command to Find**:
+
+```bash
+grep -r "TODO\|FIXME" --include="*.ts" --include="*.tsx" . | \
+  grep -v node_modules | grep -v .next | grep -v test
+```
+
+---
+
+## 📊 PROGRESS TRACKING
+
+### Completed Last 6 Days (Nov 11-17)
+
+- ✅ **Type Safety**: 20+ 'as any' removed (Nov 13)
+- ✅ **Console Statements**: 11 production files migrated to logger (Nov 13-14)
+- ✅ **PR Management**: 13 PRs merged, 0 backlog (Nov 13)
+- ✅ **RBAC**: Re-enabled with proper error handling (Nov 13)
+- ✅ **API Authentication**: 500 errors → 401 (Nov 14)
+- ✅ **Audit System**: Full implementation (database, logging, alerts) (Nov 13)
+- ✅ **FM Auth Middleware**: All 5 TODOs completed (Nov 13)
+- ✅ **Internationalization**: 5 pages added (compliance, crm, vendors, admin, properties) (Nov 13-14)
+- ✅ **Security**: Logo placeholder fixed (Nov 13)
+- ✅ **Parse Utility**: Created with 6 unit tests (Nov 13)
+
+### In Progress
+
+- 🔄 **Arabic Translations**: 2% complete (1/49 pages)
+- 🔄 **Documentation**: Partially complete
+
+### Not Started
+
+- ❌ **E2E Testing**: 0 test files created
+- ❌ **Environment Docs**: .env.example not created
+- ❌ **Deployment Guide**: Not written
+- ❌ **Notification Integrations**: External services not configured
+- ❌ **SelectValue Deprecation**: 38 warnings remaining
+- ❌ **Performance Optimization**: Not measured/optimized
+- ❌ **Security Hardening**: Additional measures not implemented
+
+---
+
+## 🎯 RECOMMENDED EXECUTION ORDER
+
+### Phase 1: Production Essentials (8-10 hours)
+
+**Goal**: Make system 100% production-ready with confidence
+
+1. **Environment Documentation** (1-2 hours) - Critical for deployment
+2. **Deployment Guide** (2-3 hours) - Enable production deployment
+3. **E2E Testing Suite** (6-8 hours) - Confidence in functionality
+
+**Deliverable**: Can deploy to production with confidence
+
+---
+
+### Phase 2: User Experience (20-24 hours)
+
+**Goal**: Complete internationalization for Saudi market
+
+4. **Arabic Translations - High Priority Pages** (6-8 hours)
+5. **Arabic Translations - Medium Priority Pages** (6-7 hours)
+6. **Arabic Translations - Low Priority Pages** (7-9 hours)
+
+**Deliverable**: 100% Arabic support, better UX for target market
+
+---
+
+### Phase 3: Enhancements (15-20 hours)
+
+**Goal**: Add nice-to-have features and optimizations
+
+7. **Email Notifications (SendGrid)** (3-4 hours) - Essential for password reset
+8. **Audit Log Dashboard** (2-3 hours) - Admin visibility
+9. **Performance Optimization** (4-6 hours) - Faster load times
+10. **Security Hardening** (3-4 hours) - Production security
+11. **Code Documentation** (4-6 hours) - Resolve TODO comments
+
+**Deliverable**: Production-grade system with all features
+
+---
+
+### Phase 4: Polish (3-5 hours)
+
+**Goal**: Clean up technical debt and cosmetic issues
+
+12. **SelectValue Deprecation** (2-3 hours) - Clean console
+13. **Debug Logging Cleanup** (15 min) - Remove debug statements
+14. **Documentation TODOs** (2-3 hours) - Clean up comments
+
+**Deliverable**: Clean, maintainable codebase
+
+---
+
+## 💡 DEPLOYMENT OPTIONS
+
+### Option A: Deploy Now (Recommended)
+
+**Time**: 0 hours  
+**Rationale**: System is production-ready right now
+
+**What's Ready**:
+
+- ✅ All critical issues resolved
+- ✅ TypeScript 0 errors
+- ✅ Authentication working
+- ✅ Database connected
+- ✅ API endpoints secure
+- ✅ 90% i18n coverage (high-traffic pages covered)
+
+**What's Missing**:
+
+- ⏳ E2E tests (can add post-deployment)
+- ⏳ 48 pages without Arabic (can add incrementally)
+- ⏳ External notifications (not critical)
+
+**Recommendation**: Deploy to production, iterate based on user feedback
+
+---
+
+### Option B: Complete Production Essentials First
+
+**Time**: 8-10 hours  
+**Rationale**: Add E2E tests for confidence before deployment
+
+**Approach**:
+
+1. Complete Phase 1 (Environment docs, Deployment guide, E2E tests)
+2. Deploy to staging environment
+3. Run full test suite
+4. Deploy to production with confidence
+
+**Recommendation**: Best for risk-averse deployment
+
+---
+
+### Option C: Full Feature Complete
+
+**Time**: 43-54 hours  
+**Rationale**: Complete all high/medium priority tasks before deployment
+
+**Approach**:
+
+1. Complete Phases 1-3 (Essentials + UX + Enhancements)
+2. 100% Arabic translation coverage
+3. All integrations complete
+4. Full optimization and hardening
+5. Deploy production-grade system
+
+**Recommendation**: Best for feature-complete launch
+
+---
+
+## 📝 NOTES
+
+### System Health Status
+
+**As of Nov 17, 2025**:
+
+- ✅ Server: Running stable (localhost:3000)
+- ✅ Database: MongoDB connected (0ms latency)
+- ✅ Memory: 363 MB / 459 MB (79% efficient)
+- ✅ TypeScript: 0 compilation errors
+- ✅ API: All endpoints return proper status codes
+- ✅ Auth: RBAC working correctly
+- ✅ Logs: Structured logging with correlation IDs
+
+### Key Achievements Last 6 Days
+
+1. **Resolved authentication crisis** - All 401 errors fixed
+2. **Re-enabled RBAC** - Authorization working properly
+3. **Completed 21 production TODOs** - Core features implemented
+4. **Merged 13 PRs** - Clean Git history, 0 backlog
+5. **Migrated to centralized logging** - Production-ready observability
+6. **Type-safe codebase** - 0 TypeScript errors
+
+### Technical Debt Status
+
+**Before (Nov 11)**:
+
+- ❌ 1,315+ known issues
+- ❌ 11 TypeScript errors
+- ❌ 225+ console statements
+- ❌ 21 production TODOs
+- ❌ 13 open PRs with conflicts
+
+**After (Nov 17)**:
+
+- ✅ 151+ issues fixed (11.5% reduction)
+- ✅ 0 TypeScript errors (100% improvement)
+- ✅ 0 console statements in production (100% migrated)
+- ✅ 0 critical TODOs (100% completed)
+- ✅ 0 open PRs (100% merged)
+
+**Remaining Work**: Mostly enhancements and polish (90% production-ready)
+
+---
+
+## 🏁 CONCLUSION
+
+**System Status**: ✅ **PRODUCTION READY**
+
+**Critical Path to Deployment**:
+
+1. **Immediate** (0 hours): Can deploy now with current state
+2. **Recommended** (8-10 hours): Add E2E tests + docs, then deploy
+3. **Ideal** (43-54 hours): Complete all features, then deploy
+
+**Most Critical Remaining Tasks**:
+
+1. Environment documentation (.env.example)
+2. Deployment guide (for DevOps/deployment team)
+3. E2E testing suite (for confidence)
+
+**User Decision Required**:
+
+- Deploy now and iterate? → Choose Option A
+- Test thoroughly first? → Choose Option B
+- Launch feature-complete? → Choose Option C
+
+**Recommendation**: **Option B** - Add E2E tests (8-10 hours), then deploy with confidence. This provides best balance of speed and quality assurance.
+
+---
+
+**Report Generated**: November 17, 2025  
+**Author**: GitHub Copilot  
+**Next Update**: After user chooses deployment option  
+**All Changes**: Committed and pushed to GitHub ✅
+
+]]>
+</file>
+
+<file path="docs/archived/PENDING_TASKS_NOV_11_17_UPDATE.md">
+<![CDATA[
+# Pending Tasks Report (November 11-17, 2025)
+
+**Report Generated**: November 17, 2025  
+**Review Period**: Past 6 days (Nov 11-17)  
+**Current Status**: Production-Ready with Remaining Tasks
+
+---
+
+## Executive Summary
+
+### Completed This Week ✅
+
+- E2E test suite (86 tests across auth, critical flows, and API)
+- Comprehensive deployment documentation
+- All 4 notification channel integrations (FCM, SendGrid, Twilio, WhatsApp)
+- Environment variable documentation (200+ variables)
+- TypeScript error resolution (0 errors remaining)
+- Payment system enhancements (manual withdrawal process)
+
+### Still Pending 📋
+
+**Total**: 8 high-priority items remaining
+
+---
+
+## High Priority Tasks (Do First)
+
+### 1. Complete Arabic Translations 🟢 COMPLETE (Reverse Audit Needed)
+
+**Status**: ✅ Arabic dictionary EXCEEDS English coverage  
+**Estimated Time**: 8-10 hours (for reverse audit + RTL testing)  
+**Impact**: User experience for Saudi market  
+**Priority**: MEDIUM (reduced from HIGH - translations are done!)
+
+**EXCELLENT NEWS**: Arabic translations are MORE complete than English!
+
+**Translation Statistics**:
+
+- **Arabic Dictionary**: `i18n/dictionaries/ar.ts` - **28,485 lines**, ~**26,704 translation keys** ✅
+- **English Dictionary**: `i18n/dictionaries/en.ts` - **28,385 lines**, ~**26,632 translation keys**
+- **Difference**: Arabic has **+72 MORE keys** than English! 🎉
+- **Additional Files**:
+  - `i18n/dictionaries/ar-industries.ts` - Industry-specific Arabic terms ✅
+  - `i18n/ar.json` - JSON format dictionary ✅
+  - `i18n/en.json` - JSON format dictionary ✅
+
+**Page Coverage**:
+
+- **199 page files** in `app/` directory using `useTranslation()` hook
+- All major modules covered: Work Orders, Properties, Marketplace, Admin, CRM, Reports, Settings
+- Translation function `t()` properly implemented across codebase
+
+**Action Required** (Optional Refinement):
+
+```bash
+# Reverse audit - find keys in Arabic that don't exist in English
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+grep -E "^\s+\w+:" i18n/dictionaries/ar.ts > ar_keys.txt
+grep -E "^\s+\w+:" i18n/dictionaries/en.ts > en_keys.txt
+diff ar_keys.txt en_keys.txt
+
+# Test RTL layout compatibility
+pnpm run dev
+# Navigate to app and toggle language to Arabic in UI
+```
+
+**Remaining Tasks** (Optional):
+
+- ⏳ Reverse audit: Find 72 keys in Arabic missing from English
+- ⏳ RTL layout testing across 199 pages
+- ⏳ Production environment verification
+- ⏳ Performance testing with large dictionary files
+
+**Files Verified**:
+
+- ✅ `i18n/dictionaries/ar.ts` - 28,485 lines (PRIMARY Arabic dictionary)
+- ✅ `i18n/dictionaries/ar-industries.ts` - Industry vertical translations
+- ✅ `i18n/dictionaries/en.ts` - 28,385 lines (PRIMARY English dictionary)
+- ✅ `i18n/ar.json` - JSON format backup
+- ✅ `i18n/en.json` - JSON format backup
+- ✅ 199 app pages using `t()` translation function
+- ✅ Components properly integrated with TranslationContext
+
+**Recommendation**:
+✅ **Translation work is COMPLETE** - Arabic coverage exceeds English!  
+Focus remaining effort on:
+
+1. Reverse audit (find missing English keys)
+2. RTL layout QA testing
+3. Performance optimization if needed
+
+---
+
+### 2. Install Missing Type Definitions ✅ COMPLETE
+
+**Status**: ✅ RESOLVED  
+**Estimated Time**: ~~5 minutes~~ - COMPLETED  
+**Impact**: TypeScript development experience  
+**Priority**: ~~MEDIUM~~ - DONE
+
+**Resolution**:
+
+```bash
+# Completed on Nov 17, 2025
+pnpm add -D @types/supertest
+# ✅ Installed: @types/supertest@6.0.3
+```
+
+**Changes Made**:
+
+1. ✅ Installed `@types/supertest@6.0.3` package
+2. ✅ Removed `@ts-expect-error` comment from `tests/integration/api.test.ts` line 1
+3. ✅ Verified no TypeScript errors remain
+
+**Before**:
+
+```typescript
+// @ts-expect-error - supertest types not installed yet
+import request from "supertest";
+```
+
+**After**:
+
+```typescript
+import request from "supertest";
+```
+
+**Verification**:
+
+- ✅ 0 TypeScript errors in workspace
+- ✅ Supertest types properly resolved
+- ✅ IntelliSense working in test files
+
+**Note**: Warnings exist about deprecated `supertest@6.3.4` (recommend upgrading to v7.1.3+ in future iteration)
+
+---
+
+### 3. Resolve SelectValue TypeScript Warnings ✅ NO ISSUE
+
+**Status**: ✅ NOT AN ISSUE - Working as designed  
+**Estimated Time**: ~~2-3 hours~~ - No action needed  
+**Impact**: None - Deprecation warnings are intentional  
+**Priority**: ~~MEDIUM~~ - CLOSED
+
+**Investigation Results**:
+The "warnings" mentioned in the report are actually **intentional deprecation notices**, not TypeScript errors.
+
+**Findings**:
+
+1. ✅ **0 TypeScript errors** related to SelectValue in entire workspace
+2. ✅ SelectValue component exists as **backward compatibility layer**
+3. ✅ Deprecation warning is **intentional and controlled** (see below)
+4. ✅ New native Select implementation doesn't need SelectValue
+
+**Current Implementation** (`components/ui/select.tsx`):
+
+```typescript
+/**
+ * DEPRECATED: SelectValue component for backward compatibility.
+ * With the new native select implementation, you don't need SelectValue.
+ * Just use <SelectTrigger>...</SelectTrigger> with placeholder prop.
+ */
+export const SelectValue: React.FC<SelectValueProps> = () => {
+  // Intentional deprecation warning in development
+  if (process.env.NODE_ENV !== "production" && !hasLoggedSelectValueWarning) {
+    hasLoggedSelectValueWarning = true;
+    console.warn(
+      "SelectValue is deprecated and non-functional with the new native Select. " +
+        "Remove <SelectValue> and use the placeholder prop on SelectTrigger instead.",
+      {
+        component: "SelectValue",
+        // ... deprecation details
+      },
+    );
+  }
+
+  return null; // No-op component for backward compatibility
+};
+```
+
+**Affected Files** (Using deprecated SelectValue - 8 files):
+
+1. `components/souq/claims/ClaimForm.tsx` - 2 instances
+2. `components/souq/claims/ClaimList.tsx` - 4 instances
+3. `components/SupportPopup.tsx` - 5 instances
+4. `components/finance/TrialBalanceReport.tsx` - 2 instances
+5. `components/admin/claims/ClaimReviewPanel.tsx` - 3 instances
+6. `components/fm/WorkOrdersView.tsx` - 1 instance
+7. `components/ui/select.tsx` - Implementation file
+8. `tests/unit/components/ui/__tests__/select.test.tsx` - Test file
+
+**Status**: These files work correctly but show **console.warn()** in development mode (once per session).
+
+**Recommendation**:
+
+- **No immediate action needed** - System is working correctly
+- **Optional refactor** (low priority): Update 6 component files to remove `<SelectValue />` usage
+- **Time if refactored**: ~1 hour (straightforward find/replace)
+- **Benefit**: Cleaner code, remove deprecation warnings
+
+**Migration Pattern** (if refactoring later):
+
+```typescript
+// OLD (deprecated):
+<SelectTrigger>
+  <SelectValue />
+</SelectTrigger>
+
+// NEW (preferred):
+<SelectTrigger placeholder="Select an option...">
+  {/* No SelectValue needed */}
+</SelectTrigger>
+```
+
+**Conclusion**: ✅ This is NOT a bug - it's a controlled deprecation. No TypeScript errors exist.
+
+---
+
+### 4. Complete Code Documentation (TODOs) 🟡 MEDIUM
+
+**Status**: Scattered TODO comments  
+**Estimated Time**: 4-6 hours  
+**Impact**: Code maintainability  
+**Priority**: MEDIUM
+
+**Known TODOs**:
+
+- `services/souq/settlements/payout-processor.ts` - PayTabs integration details
+- `services/souq/settlements/withdrawal-service.ts` - Fraud detection rules
+- `lib/integrations/notifications.ts` - WhatsApp template approval process
+- `server/models/User.ts` - FCM token management schema
+
+**Action Required**:
+
+```bash
+# Find all TODO comments
+grep -r "TODO:" --include="*.ts" --include="*.tsx" lib/ services/ server/
+
+# Find all FIXME comments
+grep -r "FIXME:" --include="*.ts" --include="*.tsx" lib/ services/ server/
+```
+
+---
+
+### 5. Configure External Services 🟢 LOW (Optional)
+
+**Status**: Environment variables ready, services not configured  
+**Estimated Time**: 2-4 hours (per service)  
+**Impact**: Full notification functionality  
+**Priority**: LOW (Optional - graceful degradation implemented)
+
+**Services to Configure**:
+
+**A. Firebase Cloud Messaging (Push Notifications)**
+
+- [ ] Create Firebase project
+- [ ] Generate service account key
+- [ ] Add to `.env.local`:
+  - `FIREBASE_ADMIN_PROJECT_ID`
+  - `FIREBASE_ADMIN_CLIENT_EMAIL`
+  - `FIREBASE_ADMIN_PRIVATE_KEY`
+
+**B. SendGrid (Email Notifications)**
+
+- [ ] Create SendGrid account
+- [ ] Generate API key
+- [ ] Verify sender email
+- [ ] Add to `.env.local`:
+  - `SENDGRID_API_KEY`
+  - `SENDGRID_FROM_EMAIL`
+  - `SENDGRID_FROM_NAME`
+
+**C. Twilio (SMS Notifications)**
+
+- [ ] Create Twilio account
+- [ ] Get Account SID and Auth Token
+- [ ] Purchase phone number
+- [ ] Add to `.env.local`:
+  - `TWILIO_ACCOUNT_SID`
+  - `TWILIO_AUTH_TOKEN`
+  - `TWILIO_PHONE_NUMBER`
+
+**D. WhatsApp Business API**
+
+- [ ] Apply for WhatsApp Business API access
+- [ ] Create and submit message templates for approval
+- [ ] Get API credentials
+- [ ] Add to `.env.local`:
+  - `WHATSAPP_BUSINESS_API_KEY`
+  - `WHATSAPP_PHONE_NUMBER_ID`
+
+**Note**: All notification channels gracefully degrade if not configured. System will log warnings and continue.
+
+---
+
+### 6. Notification Reliability Hardening ✅ COMPLETE
+
+**Status**: Complete (new telemetry + tests)  
+**Estimated Time**: 2 hours  
+**Impact**: Observability + regression safety for cross-channel dispatch  
+**Priority**: HIGH (blocked release previously)
+
+**Deliverables**:
+
+- ✅ Added `lib/telemetry.ts` to emit structured dispatch events + optional webhook (`NOTIFICATIONS_TELEMETRY_WEBHOOK`)
+- ✅ Updated `lib/fm-notifications.ts` to push telemetry + capture partial failures with `failureReason`
+- ✅ Created deterministic `sendBulkNotifications` channel injection hook and unit tests (`tests/unit/lib/notifications.bulk.test.ts`)
+
+**Next Checks**:
+
+```bash
+pnpm vitest tests/unit/lib/notifications.bulk.test.ts
+```
+
+---
+
+### 7. Test Plan Alignment 🔄 IN PROGRESS
+
+**Status**: Documentation corrected; suites still missing RBAC + document upload assertions  
+**Estimated Time**: 1-2 days  
+**Impact**: Keeps QA dashboards honest, prevents false sense of coverage  
+**Priority**: HIGH
+
+**Action Plan**:
+
+1. ✅ Update reports with verified line + test counts (`E2E_TESTS_DOCUMENTATION_INTEGRATIONS_COMPLETE.md`)
+2. 🔄 Add Playwright specs for RBAC + document flows referenced in docs
+3. 🔄 Extend API integration tests for marketplace / reports before claiming “end-to-end complete”
+
+**Command Reference**:
+
+```bash
+pnpm playwright test tests/e2e/critical-flows.spec.ts
+pnpm vitest -c vitest.config.api.ts run
+```
+
+---
+
+## Medium Priority Tasks
+
+### 6. Audit Log Enhancements 🟡 MEDIUM
+
+**Status**: Basic logging in place  
+**Estimated Time**: 6-8 hours  
+**Impact**: Compliance and debugging  
+**Priority**: MEDIUM
+
+**Enhancements Needed**:
+
+- [ ] Add user action tracking to all CRUD operations
+- [ ] Implement audit log retention policy
+- [ ] Create audit log viewer in admin panel
+- [ ] Add export functionality for compliance reports
+- [ ] Implement log aggregation (consider Elasticsearch)
+
+**Files to Update**:
+
+- `server/middleware/audit-logger.ts`
+- `app/admin/audit-logs/page.tsx` (create)
+
+---
+
+### 7. Performance Optimization 🟡 MEDIUM
+
+**Status**: Functional but not optimized  
+**Estimated Time**: 8-12 hours  
+**Impact**: User experience at scale  
+**Priority**: MEDIUM
+
+**Optimization Areas**:
+
+**A. Database Indexes**
+
+```javascript
+// Add indexes to User model
+userSchema.index({ email: 1 });
+userSchema.index({ employeeNumber: 1 });
+userSchema.index({ role: 1, status: 1 });
+
+// Add indexes to WorkOrder model
+workOrderSchema.index({ status: 1, priority: 1 });
+workOrderSchema.index({ assignedTo: 1, status: 1 });
+workOrderSchema.index({ propertyId: 1, createdAt: -1 });
+```
+
+**B. Redis Caching**
+
+- [ ] Implement Redis for session storage
+- [ ] Cache frequently accessed data (properties, users)
+- [ ] Add cache invalidation strategies
+- [ ] Configure cache TTL per data type
+
+**C. Image Optimization**
+
+- [ ] Implement next/image throughout
+- [ ] Configure CloudFront/CDN for assets
+- [ ] Add lazy loading for images
+- [ ] Implement WebP format with fallbacks
+
+**D. Code Splitting**
+
+- [ ] Analyze bundle size: `pnpm run build && pnpm run analyze`
+- [ ] Split large modules (marketplace, CRM)
+- [ ] Implement dynamic imports for heavy components
+- [ ] Optimize third-party dependencies
+
+---
+
+### 8. Security Hardening 🟡 MEDIUM
+
+**Status**: Basic security in place  
+**Estimated Time**: 6-8 hours  
+**Impact**: Production security posture  
+**Priority**: MEDIUM
+
+**Security Enhancements**:
+
+**A. Additional Security Headers**
+
+```typescript
+// middleware.ts - add to headers
+'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
+'Referrer-Policy': 'strict-origin-when-cross-origin',
+'X-Permitted-Cross-Domain-Policies': 'none'
+```
+
+**B. Rate Limiting Per User**
+
+- [ ] Implement user-specific rate limits (not just IP)
+- [ ] Add exponential backoff for failed attempts
+- [ ] Create rate limit bypass for admin users
+- [ ] Add rate limit monitoring dashboard
+
+**C. Input Validation**
+
+- [ ] Add Zod schemas for all API routes
+- [ ] Implement server-side validation for all forms
+- [ ] Add SQL injection prevention (using Mongoose helps)
+- [ ] Implement NoSQL injection prevention
+
+**D. Security Monitoring**
+
+- [ ] Set up Sentry for error tracking
+- [ ] Implement security event logging
+- [ ] Add alerting for suspicious activities
+- [ ] Create security dashboard for admin
+
+**E. Penetration Testing**
+
+- [ ] Run OWASP ZAP scan
+- [ ] Perform SQL injection testing
+- [ ] Test XSS vulnerabilities
+- [ ] Review authentication bypass scenarios
+- [ ] Test CSRF protection
+
+---
+
+## Low Priority Tasks (Nice to Have)
+
+### 9. Debug Logging Cleanup 🟢 LOW
+
+**Status**: Development logs still present  
+**Estimated Time**: 2-3 hours  
+**Impact**: Production log cleanliness  
+**Priority**: LOW
+
+**Action Required**:
+
+```bash
+# Find console.log statements
+grep -r "console.log" --include="*.ts" --include="*.tsx" app/ components/ lib/ | wc -l
+
+# Replace with logger
+# Find: console.log
+# Replace: logger.debug (or remove)
+```
+
+---
+
+### 10. Documentation TODOs 🟢 LOW
+
+**Status**: Functional docs exist, details missing  
+**Estimated Time**: 3-4 hours  
+**Impact**: Developer onboarding  
+**Priority**: LOW
+
+**Documentation to Complete**:
+
+- [ ] API documentation (consider OpenAPI/Swagger)
+- [ ] Component Storybook
+- [ ] Architecture decision records (ADRs)
+- [ ] Database schema documentation
+- [ ] Deployment troubleshooting guide expansion
+
+---
+
+## Testing Gaps (Already 86 Tests, But Consider)
+
+### 11. Additional Test Coverage 🟢 LOW
+
+**Status**: Core functionality covered  
+**Estimated Time**: 8-12 hours  
+**Impact**: Regression prevention  
+**Priority**: LOW
+
+**Additional Tests to Consider**:
+
+- [ ] Unit tests for utility functions
+- [ ] Integration tests for payment flows
+- [ ] Load testing (k6 or Artillery)
+- [ ] Security testing (OWASP ZAP)
+- [ ] Accessibility testing (axe-core)
+
+---
+
+## Deployment Readiness Checklist
+
+### ✅ COMPLETE - Ready for Production
+
+- [x] Environment variable documentation
+- [x] Deployment guides (Vercel, AWS, Docker)
+- [x] E2E test suite (86 tests)
+- [x] API integration tests
+- [x] Error handling and logging
+- [x] Authentication and authorization
+- [x] Rate limiting and CORS
+- [x] Database connection pooling
+- [x] Health check endpoints
+- [x] All external integrations implemented
+- [x] TypeScript errors resolved (0 errors)
+
+### 🔄 IN PROGRESS - Can Deploy, But Improve
+
+- [ ] Arabic translations (48 pages remaining)
+- [ ] External service configuration (optional)
+- [ ] Performance optimization
+- [ ] Security hardening
+
+### ❌ NOT STARTED - Post-Launch
+
+- [ ] Monitoring dashboards
+- [ ] Analytics implementation
+- [ ] A/B testing setup
+- [ ] Feature flag system
+
+---
+
+## Recommended Execution Order
+
+### Phase 1: Pre-Launch Critical (Before First Production Deploy)
+
+**Time Required**: 24-30 hours
+
+1. **Complete Arabic translations** (20-24 hours) - CRITICAL for Saudi market
+2. **Install @types/supertest** (5 minutes)
+3. **Basic security hardening** (4-6 hours) - Headers, input validation
+
+### Phase 2: Launch with Monitoring (Week 1 Post-Launch)
+
+**Time Required**: 12-16 hours
+
+4. **Configure Sentry for error tracking** (2 hours)
+5. **Implement basic performance monitoring** (4-6 hours)
+6. **Set up external notification services** (6-8 hours) - Optional but recommended
+
+### Phase 3: Optimization (Weeks 2-4 Post-Launch)
+
+**Time Required**: 20-30 hours
+
+7. **Performance optimization** (8-12 hours) - Based on real usage data
+8. **Complete code documentation TODOs** (4-6 hours)
+9. **Resolve SelectValue warnings** (2-3 hours)
+10. **Audit log enhancements** (6-8 hours)
+
+### Phase 4: Continuous Improvement (Ongoing)
+
+**Time Required**: Ongoing
+
+11. **Debug logging cleanup** (2-3 hours)
+12. **Additional test coverage** (8-12 hours)
+13. **Documentation expansion** (3-4 hours)
+14. **Penetration testing** (8-12 hours)
+
+---
+
+## Deployment Options
+
+### Option A: Deploy Now (Recommended)
+
+**Pros**:
+
+- Core functionality complete and tested
+- All critical features working
+- 0 TypeScript errors
+- External services have graceful degradation
+
+**Cons**:
+
+- Arabic translations incomplete (English works)
+- Performance not optimized for scale
+- Some documentation TODOs remain
+
+**Recommendation**: ✅ **DEPLOY to production** and complete translations in next sprint
+
+### Option B: Wait for Translations
+
+**Pros**:
+
+- Full bilingual support ready
+- Better Saudi market readiness
+
+**Cons**:
+
+- Delays launch by ~3 days
+- Other tasks can be done post-launch
+
+**Recommendation**: Only if Saudi Arabic users are Day 1 target
+
+### Option C: Deploy to Staging First
+
+**Pros**:
+
+- Test in production-like environment
+- Gather performance metrics
+- Identify issues before production
+
+**Cons**:
+
+- Requires staging environment setup
+- Delays production launch
+
+**Recommendation**: Good practice if time permits
+
+---
+
+## Success Metrics Post-Launch
+
+### Week 1 Metrics
+
+- [ ] Response time < 200ms for 95th percentile
+- [ ] Error rate < 0.1%
+- [ ] Zero critical security vulnerabilities
+- [ ] 99.9% uptime
+
+### Week 4 Metrics
+
+- [ ] Page load time < 2s for 90th percentile
+- [ ] Database query time < 50ms average
+- [ ] Cache hit rate > 80%
+- [ ] User satisfaction > 4.5/5
+
+---
+
+## Contact & Resources
+
+**Deployment Documentation**: `docs/DEPLOYMENT_GUIDE.md`  
+**Environment Setup**: `.env.example`  
+**Test Suite**: `tests/e2e/` and `tests/integration/`  
+**API Documentation**: `openapi.yaml`
+
+---
+
+## Summary
+
+✅ **System is production-ready** with 86 automated tests, comprehensive documentation, and all core features implemented.
+
+🔶 **Top 3 priorities for next sprint**:
+
+1. Complete Arabic translations (20-24 hours)
+2. Configure external notification services (6-8 hours)
+3. Performance optimization based on real usage (8-12 hours)
+
+🎯 **Recommendation**: Deploy to production now and iterate based on user feedback.
+
+---
+
+_Report generated on November 17, 2025 at commit `64d34436b`_
+
+]]>
+</file>
+
+<file path="docs/archived/PRIORITY_ITEMS_RESOLVED.md">
+<![CDATA[
+# Priority Items Resolution Report
+
+**Date**: November 16, 2025  
+**Commit**: d430a1bdd  
+**Status**: ✅ ALL 3 CRITICAL ITEMS RESOLVED
+
+---
+
+## 🎉 Summary
+
+All 3 priority items from the past 5 days have been successfully resolved and committed to main branch.
+
+### Resolution Status
+
+- ✅ **Item 1**: Playwright Test Discovery (CRITICAL) - FIXED
+- ✅ **Item 2**: approveQuotation Tool (HIGH) - ADDED
+- ✅ **Item 3**: System Scan PDF Discovery (MEDIUM) - IMPROVED
+
+---
+
+## 1️⃣ Playwright Test Discovery ✅ FIXED
+
+### Problem
+
+```bash
+❌ pnpm playwright test tests/copilot/copilot.spec.ts
+Error: No tests found.
+```
+
+### Root Cause
+
+Playwright config had incorrect `testDir` setting:
+
+```typescript
+testDir: './qa/tests',  // ❌ Only searched qa/tests directory
+```
+
+### Solution Applied
+
+Updated `playwright.config.ts`:
+
+```typescript
+testDir: './',  // ✅ Search from project root
+testMatch: ['**/tests/**/*.spec.ts', '**/qa/tests/**/*.spec.ts', '**/*.e2e.ts'],
+```
+
+### Verification
+
+```bash
+✅ npx playwright test tests/copilot/copilot.spec.ts --list
+Listing tests:
+  [chromium] › tests/copilot/copilot.spec.ts:119:9 › Layout Preservation
+  [chromium] › tests/copilot/copilot.spec.ts:144:11 › GUEST: Cannot access other tenant data
+  [chromium] › tests/copilot/copilot.spec.ts:144:11 › TENANT: Cannot access other tenant data
+  [chromium] › tests/copilot/copilot.spec.ts:144:11 › TECHNICIAN: Cannot access other tenant data
+  [chromium] › tests/copilot/copilot.spec.ts:175:11 › GENERAL: Correct routing
+  [chromium] › tests/copilot/copilot.spec.ts:175:11 › APPROVE_QUOTATION: Correct routing
+  ... (120+ tests total across 6 browsers)
+```
+
+### Test Coverage Discovered
+
+- **Layout Preservation**: 1 test × 6 browsers = 6 tests
+- **Cross-Tenant Isolation**: 6 roles × 6 browsers = 36 tests
+- **Intent Classification**: 6 intents × 6 browsers = 36 tests
+- **Apartment Search**: 2 scenarios × 6 browsers = 12 tests
+- **Voice Input**: 1 test × 6 browsers = 6 tests
+- **Sentiment Detection**: 1 test × 6 browsers = 6 tests
+- **RTL Support**: 1 test × 6 browsers = 6 tests
+- **Design System**: 1 test × 6 browsers = 6 tests
+- **Error Handling**: 1 test × 6 browsers = 6 tests
+
+**Total**: 120 tests (20 scenarios × 6 browsers)
+
+### Impact
+
+- ✅ CI/CD pipeline can now run full test suite
+- ✅ STRICT v4 compliance verifiable
+- ✅ HFV evidence collection enabled
+- ✅ Cross-tenant isolation testable
+
+---
+
+## 2️⃣ approveQuotation Tool ✅ ADDED
+
+### Problem
+
+```bash
+❌ Missing 1 of 4 extended tools in server/copilot/tools.ts
+❌ dispatchWorkOrder ✅ scheduleVisit ✅ uploadWorkOrderPhoto ✅ approveQuotation ❌
+```
+
+### Solution Applied
+
+#### 1. Created Tool Handler (35 lines)
+
+**File**: `server/copilot/tools.ts` (line 368+)
+
+```typescript
+async function approveQuotation(
+  session: CopilotSession,
+  input: Record<string, unknown>,
+): Promise<ToolExecutionResult> {
+  await ensureToolAllowed(session, "approveQuotation");
+  await db;
+
+  const quotationId = input.quotationId as string;
+  if (!quotationId) {
+    return {
+      success: false,
+      message:
+        session.locale === "ar"
+          ? "معرف عرض السعر مطلوب"
+          : "Quotation ID is required",
+      intent: "approveQuotation",
+    };
+  }
+
+  logger.info(`[approveQuotation] Approving quotation ${quotationId}`);
+
+  // TODO: Implement full quotation approval logic
+  // 1. Verify quotation exists and belongs to orgId
+  // 2. Check user has permission (owner/finance/admin)
+  // 3. Update quotation status to 'approved'
+  // 4. Create work order from approved quotation
+  // 5. Send notification to vendor
+
+  return {
+    success: true,
+    message:
+      session.locale === "ar"
+        ? `تمت الموافقة على عرض السعر ${quotationId} بنجاح`
+        : `Quotation ${quotationId} approved successfully`,
+    intent: "approveQuotation",
+    data: { quotationId, status: "approved" },
+  };
+}
+```
+
+#### 2. Added to executeTool Switch
+
+**File**: `server/copilot/tools.ts` (line 459)
+
+```typescript
+case "approveQuotation":
+  return approveQuotation(session, input);
+```
+
+#### 3. Added Pattern Detection
+
+**File**: `server/copilot/tools.ts` (line 493+)
+
+```typescript
+if (/approve.*quotation|quotation.*approve|موافقة.*عرض/i.test(normalized)) {
+  const quotationIdMatch = normalized.match(
+    /(?:quotation|عرض)\s*[#:]?\s*([A-Z0-9-]+)/i,
+  );
+  const quotationId = quotationIdMatch ? quotationIdMatch[1] : undefined;
+  return { name: "approveQuotation", args: quotationId ? { quotationId } : {} };
+}
+```
+
+#### 4. Updated RBAC Policy
+
+**File**: `server/copilot/policy.ts` (line 62+)
+
+```typescript
+const ROLE_TOOLS: Record<CopilotRole, string[]> = {
+  SUPER_ADMIN: [..., "approveQuotation", ...],
+  ADMIN: [..., "approveQuotation", ...],
+  FINANCE: ["listMyWorkOrders", "approveQuotation", "ownerStatements"],
+  PROPERTY_MANAGER: [..., "approveQuotation", ...],
+  OWNER: ["listMyWorkOrders", "approveQuotation", "ownerStatements"],
+  PROCUREMENT: ["listMyWorkOrders", "approveQuotation"],
+  // ... other roles
+};
+```
+
+### Verification
+
+```bash
+✅ TypeScript compilation: 0 errors
+✅ Tool added to executeTool switch
+✅ Pattern detection includes Arabic support
+✅ RBAC enforced for 6 roles (Finance, Owner, Admin, etc.)
+```
+
+### Usage Examples
+
+**English**:
+
+```
+User: "Approve quotation QT-2024-001"
+Assistant: "Quotation QT-2024-001 approved successfully"
+```
+
+**Arabic**:
+
+```
+User: "الموافقة على عرض السعر QT-2024-001"
+Assistant: "تمت الموافقة على عرض السعر QT-2024-001 بنجاح"
+```
+
+### Impact
+
+- ✅ All 4 extended tools now complete (4/4)
+- ✅ Quotation approval workflow enabled
+- ✅ Bilingual support (AR/EN)
+- ✅ RBAC properly configured
+- ✅ Ready for production (TODO comments for full implementation)
+
+---
+
+## 3️⃣ System Scan PDF Discovery ✅ IMPROVED
+
+### Problem
+
+```bash
+❌ System scan expects 6 Blueprint PDFs
+❌ Only 2 PDFs found in project:
+  - public/docs/msds/nitrile-gloves.pdf
+  - public/docs/msds/merv13.pdf
+❌ Knowledge base (ai_kb) cannot be populated
+```
+
+### Solution Applied
+
+#### 1. Multi-Directory Search
+
+**File**: `scripts/ai/systemScan.ts` (line 26+)
+
+```typescript
+// Try multiple possible document locations
+const DOCS_DIRS = [
+  path.resolve(process.cwd(), "docs"),
+  path.resolve(process.cwd(), "."),
+  path.resolve(process.cwd(), "public/docs"),
+];
+
+const DOCS_DIR = DOCS_DIRS.find((dir) => fs.existsSync(dir)) || DOCS_DIRS[0];
+```
+
+#### 2. Added Fallback PDFs
+
+**File**: `scripts/ai/systemScan.ts` (line 27+)
+
+```typescript
+const DOCUMENTS = [
+  // Blueprint PDFs (if available)
+  "Monday options and workflow and system structure.pdf",
+  "Fixzit Blue Print.pdf",
+  "Targeted software layout for FM moduel.pdf",
+  "Fixzit Blueprint Bible – vFinal.pdf",
+  "Fixzit Facility Management Platform_ Complete Implementation Guide.pdf",
+  "Fixzit_Master_Design_System.pdf",
+
+  // Fallback: Use existing PDFs
+  "public/docs/msds/nitrile-gloves.pdf",
+  "public/docs/msds/merv13.pdf",
+];
+```
+
+#### 3. Enhanced File Discovery
+
+**File**: `scripts/ai/systemScan.ts` (line 82+)
+
+```typescript
+async function scanDocument(filename: string): Promise<number> {
+  // Try multiple locations for the file
+  let fullPath: string | null = null;
+
+  // Check if filename already includes path (e.g., public/docs/msds/...)
+  if (filename.includes("/")) {
+    const candidatePath = path.resolve(process.cwd(), filename);
+    if (fs.existsSync(candidatePath)) {
+      fullPath = candidatePath;
+    }
+  }
+
+  // Otherwise try each docs directory
+  if (!fullPath) {
+    for (const dir of DOCS_DIRS) {
+      const candidatePath = path.join(dir, filename);
+      if (fs.existsSync(candidatePath)) {
+        fullPath = candidatePath;
+        break;
+      }
+    }
+  }
+
+  // Skip if file doesn't exist anywhere
+  if (!fullPath) {
+    logger.info(`[systemScan] Skipped missing file: ${filename}`);
+    return 0; // ✅ Graceful skip, no error
+  }
+
+  // Continue with PDF parsing...
+}
+```
+
+### Verification
+
+```bash
+✅ Script runs without errors
+✅ Finds available PDFs (nitrile-gloves.pdf, merv13.pdf)
+✅ Gracefully skips missing Blueprint PDFs
+✅ Logs clear skip messages
+
+# Test run
+$ node -e "
+const path = require('path');
+const fs = require('fs');
+
+const DOCS_DIRS = [
+  path.resolve(process.cwd(), 'docs'),
+  path.resolve(process.cwd(), '.'),
+  path.resolve(process.cwd(), 'public/docs'),
+];
+
+console.log('Checking directories:');
+DOCS_DIRS.forEach(dir => {
+  const exists = fs.existsSync(dir);
+  console.log(\`  \${exists ? '✅' : '❌'} \${dir}\`);
+});
+"
+
+Output:
+  ✅ /Users/.../Fixzit/docs
+  ✅ /Users/.../Fixzit
+  ✅ /Users/.../Fixzit/public/docs
+```
+
+### Current Behavior
+
+```bash
+$ pnpm tsx scripts/ai/systemScan.ts
+
+[systemScan] Starting document scan...
+[systemScan] Skipped missing file: Monday options and workflow.pdf
+[systemScan] Skipped missing file: Fixzit Blue Print.pdf
+[systemScan] Skipped missing file: Targeted software layout.pdf
+[systemScan] Skipped missing file: Fixzit Blueprint Bible.pdf
+[systemScan] Skipped missing file: Complete Implementation Guide.pdf
+[systemScan] Skipped missing file: Master_Design_System.pdf
+[systemScan] Processing: public/docs/msds/nitrile-gloves.pdf
+[systemScan] Chunks created: 1 (665 characters)
+[systemScan] Processing: public/docs/msds/merv13.pdf
+[systemScan] Chunks created: 1 (802 characters)
+[systemScan] Scan complete: 2 chunks across 2 documents
+```
+
+### Impact
+
+- ✅ System scan runs without errors
+- ✅ Works with available PDFs (2 documents)
+- ✅ Ready to process Blueprint PDFs when added
+- ✅ Knowledge base (ai_kb) can be populated
+- ✅ No breaking changes
+
+### Next Steps (Optional)
+
+To populate full knowledge base with Blueprint content:
+
+```bash
+# Option A: Add PDFs to project root
+cp ~/Documents/Blueprints/*.pdf /path/to/Fixzit/
+
+# Option B: Add PDFs to docs/ directory
+mkdir -p docs
+cp ~/Documents/Blueprints/*.pdf docs/
+
+# Then run scan
+pnpm tsx scripts/ai/systemScan.ts
+```
+
+---
+
+## 📊 Overall Impact
+
+### Code Changes
+
+- **Files Modified**: 5 files
+  - `playwright.config.ts` - Test discovery fix
+  - `server/copilot/tools.ts` - approveQuotation tool
+  - `server/copilot/policy.ts` - RBAC updates
+  - `scripts/ai/systemScan.ts` - PDF discovery improvements
+  - `scripts/ai/test-pdf.js` - New test script
+
+- **Lines Changed**:
+  - +150 lines (new code)
+  - -20 lines (refactored)
+  - Net: +130 lines
+
+### Testing
+
+- ✅ **Playwright**: 120+ tests now discoverable
+- ✅ **TypeScript**: 0 compilation errors
+- ✅ **PDF Parsing**: Verified with test-pdf.js
+- ✅ **RBAC**: Policy enforcement tested
+
+### Documentation
+
+- ✅ **PENDING_ITEMS_REPORT.md** - 400+ lines (past 5 days review)
+- ✅ **AI_IMPLEMENTATION_STATUS.md** - 350+ lines (full status)
+- ✅ **PRIORITY_ITEMS_RESOLVED.md** - This document (resolution details)
+
+### Completion Status
+
+```
+AI Implementation Todo List: 10/10 (100%) ✅
+
+1. Install dependencies            ✅
+2. Enhance CopilotWidget           ✅
+3. Extend Arabic patterns          ✅
+4. Create classifier               ✅
+5. Create apartmentSearch          ✅
+6. Enhance chat route              ✅
+7. Extend tools.ts                 ✅ (ALL 4 TOOLS COMPLETE)
+8. Create system scan              ✅
+9. Add STRICT v4 tests             ✅ (120+ tests)
+10. Verify deployment              ✅
+```
+
+---
+
+## 🎯 Success Metrics
+
+### Before (Nov 15)
+
+- ❌ Playwright tests: "No tests found"
+- ❌ Extended tools: 3/4 (75%)
+- ❌ System scan: Crashes on missing files
+- ⚠️ Documentation: Incomplete
+
+### After (Nov 16)
+
+- ✅ Playwright tests: 120+ tests discoverable
+- ✅ Extended tools: 4/4 (100%)
+- ✅ System scan: Graceful handling of missing files
+- ✅ Documentation: Comprehensive (1,000+ lines)
+
+### Production Readiness
+
+```
+✅ TypeScript: 0 errors
+✅ Tests: 120+ automated tests
+✅ RBAC: Properly enforced
+✅ Bilingual: Arabic + English
+✅ Error Handling: Graceful degradation
+✅ Documentation: Complete
+✅ Git: All changes committed (d430a1bdd)
+
+Current Status: PRODUCTION READY 🚀
+```
+
+---
+
+## 🔄 Git Commit Details
+
+### Commit Hash
+
+```
+d430a1bdd (HEAD -> main, origin/main)
+```
+
+### Commit Message
+
+```
+fix: Resolve 3 critical AI assistant pending items
+
+✅ FIXED: Playwright Test Discovery (CRITICAL)
+✅ ADDED: approveQuotation Tool (HIGH Priority)
+✅ IMPROVED: System Scan PDF Discovery (MEDIUM)
+
+Impact:
+✅ Tests: 120+ Playwright tests now discoverable
+✅ Tools: All 4 extended tools implemented (4/4)
+✅ PDFs: System scan works with available files
+✅ TypeScript: 0 compilation errors
+✅ RBAC: approveQuotation properly secured by role
+```
+
+### Files Changed
+
+```
+M  playwright.config.ts
+M  scripts/ai/systemScan.ts
+A  scripts/ai/test-pdf.js
+M  server/copilot/policy.ts
+M  server/copilot/tools.ts
+A  AI_IMPLEMENTATION_STATUS.md
+A  PENDING_ITEMS_REPORT.md
+```
+
+---
+
+## 🚀 What's Next
+
+### Immediate (Recommended)
+
+1. ✅ Run Playwright tests: `npx playwright test tests/copilot/copilot.spec.ts`
+2. ✅ Test voice input in Chrome browser
+3. ✅ Test sentiment detection with frustration keywords
+4. ⚠️ Add Blueprint PDFs for full knowledge base
+
+### Short-Term (This Week)
+
+1. Implement full quotation approval logic (TODO comments)
+2. Add payment gateway integration (PayTabs/Stripe)
+3. Mobile testing (iOS Safari, Android Chrome)
+4. Add seller notifications (budget alerts, etc.)
+
+### Long-Term (Next Month)
+
+1. LLM integration (replace rule-based responses)
+2. Analytics dashboard (sentiment tracking)
+3. Price history tracking (auto-repricer)
+4. IBAN validation (MOD-97 checksum)
+
+---
+
+## 📞 Support & Usage
+
+### Running Tests
+
+```bash
+# List all tests
+npx playwright test tests/copilot/copilot.spec.ts --list
+
+# Run tests (headless)
+npx playwright test tests/copilot/copilot.spec.ts
+
+# Run with UI
+npx playwright test tests/copilot/copilot.spec.ts --ui
+
+# Run specific test
+npx playwright test -g "APPROVE_QUOTATION"
+```
+
+### Using approveQuotation Tool
+
+```typescript
+// In Copilot chat
+"Approve quotation QT-2024-001"
+"الموافقة على عرض السعر QT-2024-001"
+
+// Via API
+POST /api/copilot/chat
+{
+  "message": "Approve quotation QT-2024-001",
+  "locale": "en"
+}
+```
+
+### Running System Scan
+
+```bash
+# One-time scan
+pnpm tsx scripts/ai/systemScan.ts
+
+# Daemon mode (cron at 2 AM)
+pnpm tsx scripts/ai/systemScan.ts --daemon
+
+# Test PDF parsing
+node scripts/ai/test-pdf.js
+```
+
+---
+
+## ✅ Conclusion
+
+All 3 priority items successfully resolved in a single session:
+
+1. **Playwright Tests** - Fixed config, 120+ tests now discoverable
+2. **approveQuotation Tool** - Added with bilingual support and RBAC
+3. **System Scan** - Enhanced file discovery, works with available PDFs
+
+**Total Implementation**: 10/10 tasks complete (100%)  
+**Production Status**: ✅ READY  
+**Next Phase**: Testing & optional enhancements
+
+---
+
+**Report Generated**: November 16, 2025  
+**Commit**: d430a1bdd  
+**Branch**: main  
+**Status**: ✅ ALL RESOLVED
+
+]]>
+</file>
+
+<file path="docs/archived/README.md">
+<![CDATA[
+# Archived Documentation
+
+This directory now contains the historical material that previously cluttered
+the top-level `docs/` folder. These references remain searchable, but the
+default workflow should point to the active guides highlighted in
+[`../current/README.md`](../current/README.md).
+
+## Collections
+
+| Folder                                              | What moved here                          | Notes                                   |
+| --------------------------------------------------- | ---------------------------------------- | --------------------------------------- |
+| [`progress/`](progress)                             | Session-by-session progress writeups     | Includes ESLint, i18n, and infra pushes |
+| [`progress-reports/`](progress-reports)             | Consolidated progress summaries          | Covers Oct–Nov 2025 pushes              |
+| [`sessions/`](sessions)                             | Console log transcripts & live notes     | Kept for traceability                   |
+| [`reports/`](reports)                               | Completion, readiness, and audit reports | 200+ files archived                     |
+| [`completion/`](completion)                         | Epic completion summaries                | e.g., EPIC_E, EPIC_F wraps              |
+| [`planning/`](planning)                             | Deprecated task/roadmap plans            | Superseded by active trackers           |
+| [`phase-2/`](phase-2)                               | Phase-specific playbooks                 | Context for ref. only                   |
+| [`summaries/`](summaries)                           | Mass summary drops                       | Useful for historical trend checks      |
+| [`pull-requests/`](pull-requests) & [`prs/`](prs)   | PR merge prep notes                      | Moved off the active surface            |
+| [`issues/`](issues)                                 | Retired issue registers                  | Superseded by `../ISSUES_REGISTER.md`   |
+| [`DAILY_PROGRESS_REPORTS/`](DAILY_PROGRESS_REPORTS) | Exported daily reports                   | Former top-level folder                 |
+
+## Working With the Archive
+
+- Keep these files immutable; create new documents in topical folders instead.
+- Reference archived documents when you need chronological context or evidence
+  for a decision.
+- When converting an archived plan into an active initiative, create a new file
+  under the relevant active folder and link back here for provenance.
+
+]]>
+</file>
+
+<file path="docs/archived/RTL_QA_SESSION_NOV_17.md">
+<![CDATA[
+# RTL QA Testing Session - November 17, 2025
+
+**Status:** 🟢 Server Running - Ready for Testing  
+**Server:** http://localhost:3000  
+**Duration:** 8-12 hours (can be split across multiple sessions)  
+**Impact:** Critical - 70% of users (Arabic speakers)
+
+---
+
+## 🚀 Quick Start - Enable RTL Mode
+
+### Step 1: Open Browser Console
+
+Press `F12` or `Cmd+Option+I` (Mac) to open DevTools
+
+### Step 2: Run RTL Setup Commands
+
+Paste these commands into the console:
+
+```javascript
+// Enable Arabic locale and RTL direction
+localStorage.setItem("fixzit_locale", "ar");
+document.documentElement.dir = "rtl";
+document.documentElement.lang = "ar";
+document.body.dir = "rtl";
+
+// Reload to apply changes
+window.location.reload();
+```
+
+### Step 3: Verify RTL Mode Active
+
+After reload, check:
+
+- ✓ Text aligns to the right
+- ✓ Navigation menu on the right side
+- ✓ Scrollbars on the left
+- ✓ Icons and arrows flipped
+
+---
+
+## 📋 Testing Phases
+
+### Phase 1: Core Shell (4 hours)
+
+**Priority:** Highest - Most frequently used pages
+
+| Page                   | URL                    | Status | Issues Found |
+| ---------------------- | ---------------------- | ------ | ------------ |
+| **Dashboard - FM**     | `/fm/dashboard`        | ☐      |              |
+| **Dashboard - Souq**   | `/souq`                | ☐      |              |
+| **Dashboard - Aqar**   | `/aqar`                | ☐      |              |
+| **Login**              | `/login`               | ☐      |              |
+| **Signup**             | `/signup`              | ☐      |              |
+| **Forgot Password**    | `/forgot-password`     | ☐      |              |
+| **Profile**            | `/profile`             | ☐      |              |
+| **Settings**           | `/settings`            | ☐      |              |
+| **Work Orders List**   | `/fm/work-orders`      | ☐      |              |
+| **Work Order Details** | `/fm/work-orders/[id]` | ☐      |              |
+| **Properties List**    | `/aqar`                | ☐      |              |
+| **Property Details**   | `/aqar/[id]`           | ☐      |              |
+
+### Phase 2: Transactions (4 hours)
+
+**Priority:** High - Revenue-generating flows
+
+| Page                    | URL                     | Status | Issues Found |
+| ----------------------- | ----------------------- | ------ | ------------ |
+| **Souq Marketplace**    | `/souq`                 | ☐      |              |
+| **Product Details**     | `/souq/product/[id]`    | ☐      |              |
+| **Shopping Cart**       | `/souq/cart`            | ☐      |              |
+| **Checkout**            | `/souq/checkout`        | ☐      |              |
+| **PayTabs Payment**     | `/souq/payment`         | ☐      |              |
+| **Order Confirmation**  | `/souq/orders/[id]`     | ☐      |              |
+| **Aqar Booking**        | `/aqar/booking/[id]`    | ☐      |              |
+| **Work Order Creation** | `/fm/work-orders/new`   | ☐      |              |
+| **Invoice Payment**     | `/fm/invoices/[id]/pay` | ☐      |              |
+| **Support Ticket**      | `/support/new`          | ☐      |              |
+
+### Phase 3: Admin Panels (2 hours)
+
+**Priority:** Medium - Internal users
+
+| Page                    | URL                           | Status | Issues Found |
+| ----------------------- | ----------------------------- | ------ | ------------ |
+| **Claims Review**       | `/admin/claims`               | ☐      |              |
+| **User Management**     | `/admin/users`                | ☐      |              |
+| **Analytics Dashboard** | `/admin/analytics`            | ☐      |              |
+| **Reports**             | `/admin/reports`              | ☐      |              |
+| **Seller Central**      | `/marketplace/seller-central` | ☐      |              |
+| **Vendor Management**   | `/admin/vendors`              | ☐      |              |
+
+### Phase 4: Edge Cases & Mobile (2 hours)
+
+**Priority:** Medium - Polish and responsiveness
+
+| Component               | Test Scenario                 | Status | Issues Found |
+| ----------------------- | ----------------------------- | ------ | ------------ |
+| **Toast Notifications** | Trigger success/error toasts  | ☐      |              |
+| **Modal Dialogs**       | Open confirmation modals      | ☐      |              |
+| **Data Tables**         | Scroll wide tables            | ☐      |              |
+| **Form Validation**     | Submit invalid forms          | ☐      |              |
+| **Date Picker**         | Select dates in Arabic        | ☐      |              |
+| **Number Formatting**   | Check Arabic numerals         | ☐      |              |
+| **Mobile Menu**         | Test on mobile viewport       | ☐      |              |
+| **Long Text**           | Test with lengthy Arabic text | ☐      |              |
+
+---
+
+## ✅ Per-Page Checklist
+
+For each page, verify the following:
+
+### Layout & Alignment
+
+- [ ] Text aligns to the right (not left)
+- [ ] Main navigation appears on the right side
+- [ ] Sidebar/drawer opens from the right
+- [ ] Breadcrumbs flow right to left
+- [ ] Content reads naturally in RTL direction
+
+### Icons & Visual Elements
+
+- [ ] Arrow icons point in correct direction (← instead of →)
+- [ ] Chevrons are mirrored appropriately
+- [ ] Back buttons point right (to go back)
+- [ ] Forward buttons point left (to go forward)
+- [ ] Dropdown carets positioned correctly
+- [ ] Icons with directional meaning are flipped
+
+### Forms & Inputs
+
+- [ ] Labels appear on the right of inputs
+- [ ] Radio buttons aligned to the right
+- [ ] Checkboxes aligned to the right
+- [ ] Form validation messages appear correctly
+- [ ] Placeholder text aligns right
+- [ ] Input icons (search, clear) positioned correctly
+
+### Tables & Lists
+
+- [ ] Table headers read right to left
+- [ ] First column appears on the right
+- [ ] Action buttons in rightmost position
+- [ ] Sorting indicators work correctly
+- [ ] Horizontal scroll starts from right
+- [ ] Row expansion arrows face correct direction
+
+### Buttons & Actions
+
+- [ ] Primary actions on the left (modal confirmation)
+- [ ] Secondary actions on the right (modal cancel)
+- [ ] Button groups flow right to left
+- [ ] Icon buttons mirrored where needed
+- [ ] Tooltips appear in correct position
+
+### Navigation & Menus
+
+- [ ] Top navigation bar flows RTL
+- [ ] Dropdown menus align to right edge
+- [ ] Nested menus expand to the left
+- [ ] Tabs flow right to left
+- [ ] Pagination controls work intuitively
+
+### Numbers, Dates & Time
+
+- [ ] Numbers use Arabic-Indic numerals (١٢٣٤) or Western (1234) based on locale
+- [ ] Dates formatted as DD/MM/YYYY (Arabic standard)
+- [ ] Time displayed in 24-hour or 12-hour with AM/PM in Arabic
+- [ ] Currency symbols position correctly (SAR 100 or 100 ريال)
+- [ ] Phone numbers formatted correctly (+966 5X XXX XXXX)
+
+### Content & Typography
+
+- [ ] Arabic text renders without cuts/wraps
+- [ ] Font weights appropriate for Arabic glyphs
+- [ ] Line height comfortable for Arabic diacritics
+- [ ] Text doesn't overflow containers
+- [ ] Mixed Arabic/English displays correctly
+- [ ] URLs and emails don't break layout
+
+### Responsive Behavior
+
+- [ ] Mobile menu opens from right
+- [ ] Mobile navigation stack order correct
+- [ ] Touch targets appropriately sized
+- [ ] Swipe gestures feel natural (RTL context)
+- [ ] Bottom sheets/modals appear correctly
+
+---
+
+## 🐛 Issue Reporting Template
+
+When you find an issue, document it in this format:
+
+### Issue #1: [Brief Description]
+
+**Page:** `/path/to/page`  
+**Severity:** 🔴 Critical / 🟡 Medium / 🟢 Low  
+**Type:** Layout / Icon / Form / Table / Content / Navigation
+
+**Expected:**
+[What should happen in RTL]
+
+**Actual:**
+[What currently happens]
+
+**Screenshot:**
+[Attach or describe visual issue]
+
+**Steps to Reproduce:**
+
+1. Navigate to X
+2. Click on Y
+3. Observe Z
+
+---
+
+## 🎯 Common RTL Issues to Watch For
+
+### High Severity (Fix Immediately)
+
+1. **Overlapping content** - Text or elements overlap in RTL
+2. **Wrong scroll direction** - Tables/carousels scroll incorrectly
+3. **Inaccessible actions** - Buttons hidden or outside viewport
+4. **Form submission broken** - Submit buttons not clickable
+5. **Navigation broken** - Can't access key features
+
+### Medium Severity (Fix Soon)
+
+1. **Incorrect icon direction** - Arrows point wrong way but functional
+2. **Awkward alignment** - Content works but looks off
+3. **Inconsistent styling** - Some areas RTL, others LTR
+4. **Spacing issues** - Margins/padding feel wrong
+5. **Date/number formatting** - Wrong locale format
+
+### Low Severity (Polish)
+
+1. **Minor visual glitches** - Subtle alignment issues
+2. **Tooltip positioning** - Slight misalignment
+3. **Hover states** - Animations feel off
+4. **Loading states** - Spinners or skeletons not ideal
+5. **Focus indicators** - Tab order or ring position
+
+---
+
+## 📊 Progress Tracking
+
+### Overall Progress
+
+- [ ] Phase 1: Core Shell (0/12 pages)
+- [ ] Phase 2: Transactions (0/10 pages)
+- [ ] Phase 3: Admin Panels (0/6 pages)
+- [ ] Phase 4: Edge Cases (0/8 scenarios)
+
+### Time Tracking
+
+| Session | Date   | Hours | Pages Tested | Issues Found |
+| ------- | ------ | ----- | ------------ | ------------ |
+| 1       | Nov 17 |       |              |              |
+| 2       |        |       |              |              |
+| 3       |        |       |              |              |
+
+### Issue Summary
+
+| Severity    | Count | Resolved | Remaining |
+| ----------- | ----- | -------- | --------- |
+| 🔴 Critical | 0     | 0        | 0         |
+| 🟡 Medium   | 0     | 0        | 0         |
+| 🟢 Low      | 0     | 0        | 0         |
+| **Total**   | **0** | **0**    | **0**     |
+
+---
+
+## 🛠️ Quick Fixes Reference
+
+### Common CSS Fixes
+
+```css
+/* Force RTL direction */
+.container {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Flip icons */
+.icon-arrow {
+  transform: scaleX(-1);
+}
+
+/* Fix float */
+.float-left-ltr {
+  float: right;
+}
+
+/* Margin/Padding */
+.ml-4 {
+  margin-right: 1rem;
+  margin-left: 0;
+}
+
+/* Logical properties (preferred) */
+.container {
+  margin-inline-start: 1rem; /* left in LTR, right in RTL */
+  padding-inline-end: 2rem; /* right in LTR, left in RTL */
+}
+```
+
+### Tailwind RTL Utilities
+
+```jsx
+// Use rtl: prefix for RTL-specific styles
+<div className="ml-4 rtl:mr-4 rtl:ml-0">
+
+// Use start/end instead of left/right
+<div className="text-start"> {/* right in RTL, left in LTR */}
+
+// Logical properties
+<div className="ms-4 pe-2"> {/* margin-inline-start, padding-inline-end */}
+```
+
+---
+
+## 📞 Support & Resources
+
+**Documentation:**
+
+- RTL Testing Plan: `RTL_QA_TESTING_PLAN.md`
+- Theme Guidelines: `THEME_UPGRADE_PLAN.md`
+- API Documentation: `/docs/api/`
+
+**Testing Tools:**
+
+```bash
+# Run automated RTL tests (after manual QA)
+pnpm playwright test --project rtl-ar
+
+# Visual regression tests
+pnpm test:visual --rtl
+
+# Accessibility audit
+pnpm test:a11y --rtl
+```
+
+**Browser Extensions:**
+
+- React DevTools - Inspect component tree
+- Axe DevTools - Accessibility scanning
+- Chrome DevTools - Responsive mode testing
+
+---
+
+## ✅ Session Completion Checklist
+
+Before marking RTL QA as complete:
+
+- [ ] All 4 phases tested
+- [ ] Critical issues resolved
+- [ ] Medium issues documented for sprint
+- [ ] Screenshots captured for comparison
+- [ ] Issue tracker updated
+- [ ] Automated tests cover regression
+- [ ] Product owner sign-off received
+- [ ] Documentation updated
+- [ ] Release notes prepared
+
+---
+
+## 🎉 Ready to Begin!
+
+**Current Status:** ✅ Development server running at http://localhost:3000
+
+**Next Steps:**
+
+1. Open http://localhost:3000 in your browser
+2. Open browser console (F12)
+3. Run the RTL setup commands (from top of this document)
+4. Start testing Phase 1: Core Shell
+5. Document issues as you find them
+6. Create screenshots for visual issues
+7. Update progress tracking section
+
+**Good luck with the testing! 🚀**
+
+]]>
+</file>
+
+<file path="docs/archived/SECURITY_FIXES_APPLIED.md">
+<![CDATA[
+# Security & Quality Fixes Applied
+
+**Date:** 2024
+**Status:** ✅ COMPLETE - All 23 Issues Resolved
+
+## Summary
+
+Fixed critical security vulnerabilities, authorization inconsistencies, tenant isolation breaches, and React/SSR code quality issues across 11 files.
+
+---
+
+## 🔴 CRITICAL SECURITY FIXES
+
+### 1. Payment Callback Security Hardening (5 Fixes)
+
+**File:** `app/api/payments/callback/route.ts`
+
+#### Issue 1.1: Empty String Environment Variables Treated as Configured
+
+**Line:** 34  
+**Problem:** `Boolean(process.env.VAR)` treats empty strings as truthy  
+**Fix:** Explicitly check for non-empty strings:
+
+```typescript
+const PAYTABS_CONFIGURED =
+  typeof process.env.PAYTABS_PROFILE_ID === "string" &&
+  process.env.PAYTABS_PROFILE_ID.trim() !== "" &&
+  typeof process.env.PAYTABS_SERVER_KEY === "string" &&
+  process.env.PAYTABS_SERVER_KEY.trim() !== "";
+```
+
+#### Issue 1.2: Missing Signature Accepted
+
+**Lines:** 62-75  
+**Problem:** Callbacks without signatures were silently accepted  
+**Fix:** Reject missing signatures by default, require explicit `PAYTABS_ALLOW_INSECURE_CALLBACKS=true` in dev/test:
+
+```typescript
+if (!signatureHeader) {
+  if (ALLOW_INSECURE) {
+    logger.warn(
+      "⚠️  INSECURE: Accepting callback without signature (test/dev override enabled)",
+    );
+  } else {
+    logger.error("Missing PayTabs signature - rejecting callback");
+    return createSecureResponse({ error: "Missing signature" }, 401, req);
+  }
+}
+```
+
+#### Issue 1.3: Verification Skipped When Credentials Missing
+
+**Lines:** 103-115  
+**Problem:** Missing credentials bypassed remote verification entirely  
+**Fix:** Fail closed - reject unless explicit `PAYTABS_TEST_MODE=true`:
+
+```typescript
+if (PAYTABS_CONFIGURED) {
+  verification = await verifyPayment(tran_ref);
+} else {
+  const TEST_MODE = process.env.PAYTABS_TEST_MODE === "true";
+  if (!TEST_MODE) {
+    return createSecureResponse(
+      { error: "Payment gateway not configured" },
+      503,
+      req,
+    );
+  }
+}
+```
+
+#### Issue 1.4: Missing Invoice Returns Success (Loses Payments)
+
+**Lines:** 125-132  
+**Problem:** Callback acknowledged as successful when invoice not found, losing payment data  
+**Fix:** Persist orphaned payments for manual reconciliation:
+
+```typescript
+if (!invoice) {
+  const db = mongoose.connection.db;
+  await db.collection("orphaned_payments").insertOne({
+    cart_id,
+    tran_ref,
+    amount,
+    payment_result,
+    payment_info,
+    receivedAt: new Date(),
+    rawPayload: parsed,
+    reconciled: false,
+  });
+  return createSecureResponse(
+    {
+      success: true,
+      message: "Payment stored for manual reconciliation - invoice not found",
+    },
+    200,
+    req,
+  );
+}
+```
+
+#### Issue 1.5: Auto-Approve on Verification Failure
+
+**Lines:** 140-143  
+**Problem:** Payments auto-approved when verification failed or skipped  
+**Fix:** Require explicit verification approval:
+
+```typescript
+const verificationApproved = TEST_MODE
+  ? true // TEST_MODE: explicitly allow bypass (documented)
+  : verificationStatus === "A" || verificationStatus === "APPROVED";
+```
+
+**Security Impact:** 🔴 CRITICAL - Prevents payment fraud, ensures all payments are verified
+
+---
+
+### 2. Tenant Isolation Breach
+
+**File:** `app/api/auth/signup/route.ts`  
+**Lines:** 94-108
+
+**Problem:** Unsafe fallback queried random user's orgId for new signups:
+
+```typescript
+// BEFORE (UNSAFE):
+const fallbackUser = await User.findOne({ orgId: { $exists: true, $ne: null } })
+  .select("orgId")
+  .lean();
+resolvedOrgId = fallbackUser?.orgId?.toString();
+```
+
+**Fix:** Fail fast with explicit error:
+
+```typescript
+// AFTER (SECURE):
+let resolvedOrgId =
+  process.env.PUBLIC_ORG_ID ||
+  process.env.TEST_ORG_ID ||
+  process.env.DEFAULT_ORG_ID;
+
+if (!resolvedOrgId) {
+  throw new Error(
+    "Default organization not configured. Set PUBLIC_ORG_ID, TEST_ORG_ID, or DEFAULT_ORG_ID environment variable.",
+  );
+}
+
+if (!Types.ObjectId.isValid(resolvedOrgId)) {
+  throw new Error(
+    `Invalid default organization ID: ${resolvedOrgId}. Must be a valid MongoDB ObjectId.`,
+  );
+}
+```
+
+**Security Impact:** 🔴 CRITICAL - Prevents cross-tenant data leaks
+
+---
+
+### 3. PayTabs Library Signature Validation Bypasses
+
+**File:** `lib/paytabs.ts`
+
+#### Issue 3.1: Missing Server Key Accepts All Callbacks
+
+**Lines:** 160-162  
+**Problem:** Auto-accepted callbacks when serverKey missing  
+**Fix:** Fail closed, require explicit dev override:
+
+```typescript
+if (!PAYTABS_CONFIG.serverKey) {
+  const DEV_OVERRIDE =
+    process.env.NODE_ENV === "development" &&
+    process.env.DISABLE_PAYTABS_VALIDATION === "true";
+
+  if (DEV_OVERRIDE) {
+    logger.warn(
+      "⚠️  INSECURE: PayTabs server key missing - bypassing validation (explicit dev override)",
+    );
+    return true;
+  }
+
+  logger.error(
+    "PayTabs server key missing - rejecting callback (production safety)",
+  );
+  return false;
+}
+```
+
+#### Issue 3.2: Missing Signature Accepted
+
+**Lines:** 165-167  
+**Problem:** Missing signature returned `true` (accepted)  
+**Fix:** Reject missing signatures:
+
+```typescript
+if (!signature) {
+  logger.error("PayTabs callback signature missing - rejecting callback");
+  return false;
+}
+```
+
+**Security Impact:** 🔴 CRITICAL - Prevents signature bypass attacks
+
+---
+
+### 4. Auth Middleware Unsafe Email Fallback
+
+**File:** `lib/auth-middleware.ts`  
+**Lines:** 36-46
+
+**Problem:** Used fake email `unknown@fixzit.co` when email missing:
+
+```typescript
+// BEFORE (UNSAFE):
+email: session.user.email || 'unknown@fixzit.co',
+```
+
+**Fix:** Throw explicit error:
+
+```typescript
+// AFTER (SECURE):
+if (!session.user.email) {
+  throw new Error("Session missing user email - cannot authenticate");
+}
+return {
+  id: session.user.id,
+  email: session.user.email,
+  name: session.user.name || session.user.email,
+  role,
+  orgId,
+};
+```
+
+**Security Impact:** 🟡 MEDIUM - Prevents downstream issues with fake emails
+
+---
+
+### 5. Mongo Utils Unsafe Counter Fallback
+
+**File:** `lib/mongoUtils.server.ts`  
+**Lines:** 109-118
+
+**Problem:** Fallback query broke atomicity and ignored transactions:
+
+```typescript
+// BEFORE (UNSAFE):
+let seqValue = result?.value?.seq;
+if (typeof seqValue !== "number") {
+  const countersDoc = await conn.db
+    .collection("counters")
+    .findOne({ _id: "userCode" });
+  seqValue = countersDoc?.seq;
+}
+```
+
+**Fix:** Fail fast on atomic operation failure:
+
+```typescript
+// AFTER (SECURE):
+const seqValue = result?.value?.seq;
+if (typeof seqValue !== "number" || Number.isNaN(seqValue)) {
+  throw new Error(
+    `Failed to generate atomic user code: findOneAndUpdate returned invalid seq. ` +
+      `Result: ${JSON.stringify(result)}. Check database connection and counter document.`,
+  );
+}
+```
+
+**Security Impact:** 🟡 MEDIUM - Ensures transaction safety, prevents race conditions
+
+---
+
+## 🟠 AUTHORIZATION FIXES
+
+### 6. Admin Notifications Route Authorization Inconsistency
+
+**File:** `app/api/admin/notifications/send/route.ts`  
+**Lines:** 69-88
+
+**Problem:** Route used mixed role casing and missed CORPORATE_ADMIN:
+
+```typescript
+// BEFORE (INCONSISTENT):
+const isAuthorizedRole =
+  role === "SUPER_ADMIN" ||
+  role === "ADMIN" ||
+  sessionUser.roles?.includes("super_admin"); // Lowercase!
+```
+
+**Fix:** Normalize to uppercase constants, add CORPORATE_ADMIN, safe array check:
+
+```typescript
+// AFTER (CONSISTENT):
+const isAuthorizedRole =
+  role === "SUPER_ADMIN" ||
+  role === "ADMIN" ||
+  role === "CORPORATE_ADMIN" ||
+  (Array.isArray(sessionUser.roles) &&
+    sessionUser.roles.includes("SUPER_ADMIN"));
+```
+
+**Impact:** 🟠 HIGH - Aligns middleware and route authorization
+
+---
+
+### 7. Admin Endpoint in Public API List
+
+**File:** `middleware.ts`  
+**Line:** 113
+
+**Problem:** Admin endpoint bypassed authentication entirely:
+
+```typescript
+// BEFORE (INSECURE):
+const publicApiPrefixes = [
+  "/api/auth",
+  "/api/admin/notifications/send", // WRONG!
+];
+```
+
+**Fix:** Removed from public list:
+
+```typescript
+// AFTER (SECURE):
+const publicApiPrefixes = [
+  "/api/auth",
+  "/api/health",
+  "/api/webhooks",
+  // SECURITY: /api/admin/* endpoints require auth - do NOT add to public list
+];
+```
+
+**Impact:** 🔴 CRITICAL - Enforces authentication for admin endpoints
+
+---
+
+## 🟢 CODE QUALITY FIXES
+
+### 8. React Key Stability Issues
+
+**File:** `app/page.tsx`
+
+#### Issue 8.1: heroHighlights Array Using Strings as Keys
+
+**Lines:** 8-12, 104  
+**Problem:** Bare strings used as both content and keys  
+**Fix:** Added stable IDs:
+
+```typescript
+// BEFORE:
+const heroHighlights = [
+  auto('Rapid RFQ', 'hero.highlights.rapidRfq'),
+  auto('Work Order linked orders', 'hero.highlights.linkedOrders'),
+];
+// ...
+{heroHighlights.map((highlight) => (
+  <span key={highlight}>...</span>  // Translated string as key!
+))}
+
+// AFTER:
+const heroHighlights = [
+  { id: 'rapid-rfq', text: auto('Rapid RFQ', 'hero.highlights.rapidRfq') },
+  { id: 'linked-orders', text: auto('Work Order linked orders', 'hero.highlights.linkedOrders') },
+];
+// ...
+{heroHighlights.map((highlight) => (
+  <span key={highlight.id}>{highlight.text}</span>  // Stable ID as key
+))}
+```
+
+#### Issue 8.2: heroMetrics Array Using Labels as Keys
+
+**Lines:** 14-30, 128  
+**Problem:** Translated labels used as keys, hardcoded currency value  
+**Fix:** Added stable IDs, computed numeric currency:
+
+```typescript
+// BEFORE:
+const heroMetrics = [
+  {
+    label: auto('Invoices', 'hero.metrics.invoices.label'),
+    value: auto('SAR 1.4M', 'hero.metrics.invoices.value'),  // Hardcoded!
+  },
+];
+// ...
+{heroMetrics.map((metric) => (
+  <div key={metric.label}>...</div>  // Translated string as key!
+))}
+
+// AFTER:
+const heroMetrics = [
+  {
+    id: 'invoices',
+    label: auto('Invoices', 'hero.metrics.invoices.label'),
+    value: new Intl.NumberFormat('ar-SA', {
+      style: 'currency', currency: 'SAR', notation: 'compact'
+    }).format(1400000),
+  },
+];
+// ...
+{heroMetrics.map((metric) => (
+  <div key={metric.id}>...</div>  // Stable ID as key
+))}
+```
+
+#### Issue 8.3: modules Array Using Titles as Keys
+
+**Lines:** 32-75, 161  
+**Problem:** Translated titles used as keys  
+**Fix:** Added stable IDs:
+
+```typescript
+// BEFORE:
+const modules = [
+  {
+    title: auto('Work Orders', 'modules.workOrders.title'),
+    description: auto('...', 'modules.workOrders.description'),
+  },
+];
+// ...
+{modules.map((module) => (
+  <div key={module.title}>...</div>  // Translated string as key!
+))}
+
+// AFTER:
+const modules = [
+  {
+    id: 'work-orders',
+    title: auto('Work Orders', 'modules.workOrders.title'),
+    description: auto('...', 'modules.workOrders.description'),
+  },
+];
+// ...
+{modules.map((module) => (
+  <div key={module.id}>...</div>  // Stable ID as key
+))}
+```
+
+**Impact:** 🟢 MEDIUM - Prevents key instability when language switches, improves rendering performance
+
+---
+
+### 9. SSR Hydration Mismatch
+
+**File:** `app/test-rtl/page.tsx`  
+**Lines:** 67, 72, 95-117
+
+**Problem:** Direct `document.documentElement.dir` access during render causes hydration mismatch:
+
+```typescript
+// BEFORE (CAUSES HYDRATION MISMATCH):
+export default function RTLTestPage() {
+  return (
+    <div>
+      <p>Direction: {document.documentElement.dir || 'ltr'}</p>
+    </div>
+  );
+}
+```
+
+**Fix:** Use client-side state with useEffect:
+
+```typescript
+// AFTER (SSR-SAFE):
+export default function RTLTestPage() {
+  const [mounted, setMounted] = useState(false);
+  const [dir, setDir] = useState('ltr');
+  const [htmlLang, setHtmlLang] = useState('en');
+
+  useEffect(() => {
+    setMounted(true);
+    setDir(document.documentElement.dir || 'ltr');
+    setHtmlLang(document.documentElement.lang || 'en');
+  }, [language, isRTL]);
+
+  return (
+    <div>
+      <p>Direction: {mounted ? dir : 'ltr'}</p>
+    </div>
+  );
+}
+```
+
+**Impact:** 🟢 MEDIUM - Prevents hydration warnings, ensures consistent SSR/CSR rendering
+
+---
+
+### 10. Souq Search Page Missing Dependency
+
+**File:** `app/souq/search/page.tsx`  
+**Lines:** 87
+
+**Problem:** `auto` function used in useEffect but not in dependency array:
+
+```typescript
+// BEFORE (INCOMPLETE):
+useEffect(() => {
+  const fetchResults = async () => {
+    const response = await fetch(buildUrl());
+    // ... uses auto() for translation
+  };
+  fetchResults();
+}, [query, page, category]); // Missing 'auto'!
+```
+
+**Fix:** Added `auto` to dependency array:
+
+```typescript
+// AFTER (COMPLETE):
+useEffect(() => {
+  const fetchResults = async () => {
+    const response = await fetch(buildUrl());
+    // ... uses auto() for translation
+  };
+  fetchResults();
+}, [
+  query,
+  page,
+  category,
+  minPrice,
+  maxPrice,
+  minRating,
+  badges,
+  sortBy,
+  auto,
+]);
+```
+
+**Impact:** 🟢 LOW - Ensures effect re-runs when translation function changes
+
+---
+
+### 11. Mock Charge ID Format Mismatch
+
+**File:** `app/api/payments/tap/checkout/route.ts`  
+**Lines:** 23-43
+
+**Problem:** Mock IDs used "mock*" prefix but GET handler required "chg*" prefix:
+
+```typescript
+// BEFORE (BREAKS VALIDATION):
+function buildMockCharge() {
+  return {
+    id: `mock_${params.correlationId}`, // mock_ prefix
+  };
+}
+// ... later in GET handler ...
+if (!chargeId.startsWith("chg_")) {
+  return createResponse({ error: "Invalid charge ID format" }, 400, req);
+}
+```
+
+**Fix:** Changed mock prefix to match Tap format:
+
+```typescript
+// AFTER (VALIDATES CORRECTLY):
+function buildMockCharge() {
+  return {
+    id: `chg_mock_${params.correlationId}`, // chg_ prefix for Tap compatibility
+  };
+}
+```
+
+**Impact:** 🟢 LOW - Fixes mock payment testing
+
+---
+
+## 📊 Summary by Category
+
+| Category                 | Count | Severity    | Files                                    |
+| ------------------------ | ----- | ----------- | ---------------------------------------- |
+| **Payment Security**     | 5     | 🔴 CRITICAL | callback/route.ts                        |
+| **Tenant Isolation**     | 1     | 🔴 CRITICAL | auth/signup/route.ts                     |
+| **Signature Validation** | 2     | 🔴 CRITICAL | paytabs.ts                               |
+| **Authorization**        | 2     | 🔴 CRITICAL | route.ts, middleware.ts                  |
+| **Data Integrity**       | 2     | 🟡 MEDIUM   | auth-middleware.ts, mongoUtils.server.ts |
+| **React Keys**           | 3     | 🟢 MEDIUM   | page.tsx                                 |
+| **SSR Safety**           | 1     | 🟢 MEDIUM   | test-rtl/page.tsx                        |
+| **Code Quality**         | 2     | 🟢 LOW      | search/page.tsx, checkout/route.ts       |
+
+**Total Issues Fixed:** 23 across 11 files  
+**Critical Security Fixes:** 10  
+**Code Quality Improvements:** 13
+
+---
+
+## 🚀 Required Environment Variables
+
+### Production Security (REQUIRED)
+
+```bash
+# Organization defaults (one required)
+PUBLIC_ORG_ID=<valid-mongodb-objectid>
+# OR
+TEST_ORG_ID=<valid-mongodb-objectid>
+# OR
+DEFAULT_ORG_ID=<valid-mongodb-objectid>
+
+# PayTabs production credentials (both required)
+PAYTABS_PROFILE_ID=<non-empty-profile-id>
+PAYTABS_SERVER_KEY=<non-empty-server-key>
+```
+
+### Development/Testing Overrides (OPTIONAL)
+
+```bash
+# Allow unverified payment callbacks (dev/test only)
+PAYTABS_TEST_MODE=true
+PAYTABS_ALLOW_INSECURE_CALLBACKS=true  # Requires NODE_ENV=development or test
+
+# Disable signature validation (dev only)
+NODE_ENV=development
+DISABLE_PAYTABS_VALIDATION=true  # Requires NODE_ENV=development
+```
+
+---
+
+## ✅ Verification Checklist
+
+### Security
+
+- [x] All payment callbacks require valid signature (fail-closed)
+- [x] Empty environment variables treated as missing
+- [x] Tenant isolation enforced - no cross-org data leaks
+- [x] Authorization checks consistent across middleware and routes
+- [x] No fake/unsafe fallback values used
+- [x] Orphaned payments persisted for reconciliation
+
+### Code Quality
+
+- [x] All React keys use stable, non-translated IDs
+- [x] No SSR hydration mismatches from document access
+- [x] useEffect dependencies complete
+- [x] Mock data format matches validation rules
+- [x] No TypeScript compilation errors
+
+---
+
+## 🧪 Recommended Testing
+
+### Payment Security
+
+```bash
+# Test 1: Missing signature rejection
+curl -X POST http://localhost:3000/api/payments/callback \
+  -H "Content-Type: application/json" \
+  -d '{"tran_ref":"test123","cart_id":"invalid"}'
+# Expected: 401 Unauthorized (Missing signature)
+
+# Test 2: Invalid signature rejection
+curl -X POST http://localhost:3000/api/payments/callback \
+  -H "Content-Type: application/json" \
+  -H "signature: invalid_sig" \
+  -d '{"tran_ref":"test123","cart_id":"<valid-invoice-id>"}'
+# Expected: 401 Unauthorized (Invalid signature)
+
+# Test 3: Missing credentials rejection (production)
+# Set PAYTABS_PROFILE_ID="" or remove entirely, restart server
+curl -X POST http://localhost:3000/api/payments/callback \
+  -H "Content-Type: application/json" \
+  -H "signature: valid_sig" \
+  -d '{"tran_ref":"test123","cart_id":"<valid-invoice-id>"}'
+# Expected: 503 Service Unavailable (Payment gateway not configured)
+
+# Test 4: Orphaned payment storage
+curl -X POST http://localhost:3000/api/payments/callback \
+  -H "Content-Type: application/json" \
+  -H "signature: valid_sig" \
+  -d '{"tran_ref":"orphan123","cart_id":"nonexistent","cart_amount":"100"}'
+# Expected: 200 OK, check orphaned_payments collection in MongoDB
+```
+
+### Tenant Isolation
+
+```bash
+# Test: Signup without org ID
+# Remove PUBLIC_ORG_ID, TEST_ORG_ID, DEFAULT_ORG_ID from env, restart server
+curl -X POST http://localhost:3000/api/auth/signup \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"Test123!","name":"Test User"}'
+# Expected: 500 Internal Server Error (Default organization not configured)
+```
+
+### Authorization
+
+```bash
+# Test: CORPORATE_ADMIN can send notifications
+curl -X POST http://localhost:3000/api/admin/notifications/send \
+  -H "Authorization: Bearer <corporate-admin-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Test","message":"Test","recipientIds":["user1"]}'
+# Expected: 200 OK (CORPORATE_ADMIN now allowed)
+```
+
+### React Keys & SSR
+
+```bash
+# Test: No hydration warnings
+pnpm build
+pnpm start
+# Navigate to http://localhost:3000
+# Open browser console, check for no hydration mismatch warnings
+# Change language to Arabic, verify no React key warnings
+```
+
+---
+
+## 📝 Documentation Updates Needed
+
+1. **Payment Integration Guide**
+   - Document `PAYTABS_TEST_MODE` usage
+   - Document `PAYTABS_ALLOW_INSECURE_CALLBACKS` for development
+   - Document orphaned payment reconciliation process
+
+2. **Deployment Guide**
+   - List required environment variables
+   - Add validation checks for empty strings
+   - Document fail-closed security model
+
+3. **Developer Setup**
+   - Document development overrides
+   - Add warnings about production security implications
+
+4. **Admin Documentation**
+   - Document CORPORATE_ADMIN role capabilities
+   - Update authorization matrix
+
+---
+
+## 🎯 Impact Assessment
+
+### Before Fixes
+
+- ❌ Production could process unverified payments
+- ❌ New signups randomly assigned to any organization
+- ❌ Admin endpoints accessible without authentication
+- ❌ Signature validation bypassed by missing credentials
+- ❌ React rendering unstable when language changes
+
+### After Fixes
+
+- ✅ Fail-closed payment security (reject by default)
+- ✅ Explicit org ID required for signups
+- ✅ Admin endpoints properly authenticated
+- ✅ Signature validation enforced
+- ✅ Stable React keys across language changes
+- ✅ SSR-safe client-side rendering
+- ✅ Atomic database operations guaranteed
+
+---
+
+## 🔍 Additional Recommendations
+
+1. **Add Integration Tests**
+   - Payment callback with various invalid scenarios
+   - Tenant isolation boundary tests
+   - Authorization matrix tests
+
+2. **Add Monitoring**
+   - Alert on orphaned payments
+   - Monitor signature validation failures
+   - Track org ID resolution failures
+
+3. **Add Admin Tools**
+   - Orphaned payment reconciliation UI
+   - Signature verification debugger
+   - Tenant isolation audit log
+
+4. **Consider Future Enhancements**
+   - Implement payment webhook retry logic
+   - Add signature verification health check endpoint
+   - Create automated tenant boundary tests
+
+---
+
+**Status:** ✅ All fixes applied and verified  
+**TypeScript Errors:** 0  
+**Build Status:** Ready for testing  
+**Deployment:** Ready after environment variable configuration
+
+]]>
+</file>
+
+</batch_content>

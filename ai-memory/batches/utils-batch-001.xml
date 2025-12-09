@@ -1,0 +1,3119 @@
+
+You are the "Fixzit Memory Builder" for category: "utils".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "utils",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="lib/utils/env.ts">
+<![CDATA[
+/**
+ * Truthy env helper used to normalize boolean flags across runtimes.
+ * Treats "true" and "1" (string) as truthy; everything else is false.
+ */
+export const isTruthy = (value?: string): boolean =>
+  value === "true" || value === "1";
+
+]]>
+</file>
+
+<file path="lib/utils/format.ts">
+<![CDATA[
+import { logger } from "@/lib/logger";
+import type { Locale } from "@/i18n/config";
+export { formatCurrency } from "@/lib/payments/currencyUtils";
+
+// Cache Intl formatters to avoid repeated allocations
+const numberFormatters = new Map<string, Intl.NumberFormat>();
+const dateFormatters = new Map<string, Intl.DateTimeFormat>();
+
+function getNumberFormatter(locale: Locale): Intl.NumberFormat {
+  const localeCode = locale === "ar" ? "ar-SA" : "en-GB";
+  if (!numberFormatters.has(localeCode)) {
+    numberFormatters.set(localeCode, new Intl.NumberFormat(localeCode));
+  }
+  return numberFormatters.get(localeCode)!;
+}
+
+function getDateFormatter(
+  locale: Locale,
+  options?: Intl.DateTimeFormatOptions,
+): Intl.DateTimeFormat {
+  const localeCode = locale === "ar" ? "ar-SA" : "en-GB";
+  const optionsKey = options ? JSON.stringify(options) : "default";
+  const cacheKey = `${localeCode}:${optionsKey}`;
+
+  if (!dateFormatters.has(cacheKey)) {
+    dateFormatters.set(
+      cacheKey,
+      new Intl.DateTimeFormat(localeCode, options ?? { dateStyle: "medium" }),
+    );
+  }
+  return dateFormatters.get(cacheKey)!;
+}
+
+export const fmtNumber = (value: number, locale: Locale) =>
+  getNumberFormatter(locale).format(value);
+
+export const fmtDate = (
+  input: Date | number | string | null | undefined,
+  locale: Locale,
+  options?: Intl.DateTimeFormatOptions,
+): string => {
+  try {
+    if (input == null) {
+      return "Invalid Date";
+    }
+
+    const date =
+      typeof input === "string" || typeof input === "number"
+        ? new Date(input)
+        : input;
+
+    if (isNaN(date.getTime())) {
+      return "Invalid Date";
+    }
+
+    return getDateFormatter(locale, options).format(date);
+  } catch (error) {
+    logger.error("Date formatting error:", error as Error, {
+      label: "input:",
+      input,
+    });
+    return "Invalid Date";
+  }
+};
+
+export const sanitizePhoneNumber = (
+  phone: string | null | undefined,
+): string => {
+  if (!phone) return "";
+  const hasPlus = phone.trim().startsWith("+");
+  const digitsOnly = phone.replace(/\D/g, "");
+  return hasPlus ? `+${digitsOnly}` : digitsOnly;
+};
+
+export const formatNumber = (
+  num: number,
+  options?: {
+    locale?: string;
+    minimumFractionDigits?: number;
+    maximumFractionDigits?: number;
+    round?: boolean;
+  },
+): string => {
+  const {
+    locale = "en-SA",
+    minimumFractionDigits = 0,
+    maximumFractionDigits = 0,
+    round = true,
+  } = options || {};
+
+  const value = round ? Math.round(num) : num;
+
+  return new Intl.NumberFormat(locale, {
+    minimumFractionDigits,
+    maximumFractionDigits,
+  }).format(value);
+};
+
+]]>
+</file>
+
+<file path="lib/utils/objectid.ts">
+<![CDATA[
+import { ObjectId } from "mongodb";
+import { Types } from "mongoose";
+
+/**
+ * Custom validation error for ObjectId validation failures
+ */
+export class ValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ValidationError";
+  }
+}
+
+/**
+ * Validate if a string is a valid MongoDB ObjectId
+ * @param id - The string to validate
+ * @returns true if valid ObjectId, false otherwise
+ */
+export function isValidObjectId(id: string | undefined | null): boolean {
+  if (!id) return false;
+  return Types.ObjectId.isValid(id);
+}
+
+/**
+ * Parse a string to ObjectId, throwing ValidationError if invalid
+ * Use this for API endpoints that require strict ObjectId validation
+ * @param id - The string to parse
+ * @param fieldName - Optional field name for error message context
+ * @throws ValidationError if the id is not a valid ObjectId
+ * @returns ObjectId
+ */
+export function parseObjectId(id: string | undefined | null, fieldName = "id"): ObjectId {
+  if (!id) {
+    throw new ValidationError(`${fieldName} is required`);
+  }
+  if (!isValidObjectId(id)) {
+    throw new ValidationError(`Invalid ${fieldName}: must be a valid ObjectId format`);
+  }
+  return new ObjectId(id);
+}
+
+/**
+ * Safely convert a string to ObjectId
+ * @param id - The string to convert
+ * @returns ObjectId if valid, null otherwise
+ */
+export function toObjectId(id: string | undefined | null): ObjectId | null {
+  if (!id || !isValidObjectId(id)) return null;
+  try {
+    return new ObjectId(id);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Convert string to ObjectId filter for MongoDB queries
+ * @param id - The ID string
+ * @returns Filter object with _id as ObjectId or string as fallback (for slug-based queries)
+ */
+export function toObjectIdFilter(
+  id: string,
+): { _id: ObjectId } | { slug: string } {
+  if (isValidObjectId(id)) {
+    return { _id: new ObjectId(id) };
+  }
+  return { slug: id };
+}
+
+]]>
+</file>
+
+<file path="lib/utils/org-scope.ts">
+<![CDATA[
+import { Types } from "mongoose";
+
+/**
+ * Type for org-scoped filter with ObjectId variants.
+ * Handles both string and ObjectId representations of orgId,
+ * as well as both field naming conventions (orgId and org_id).
+ */
+type OrgScopedFilter = {
+  _id: string | Types.ObjectId;
+  $or: Array<{ orgId: string | Types.ObjectId } | { org_id: string | Types.ObjectId }>;
+};
+
+type OrgOnlyFilter = {
+  $or: Array<{ orgId: string | Types.ObjectId } | { org_id: string | Types.ObjectId }>;
+};
+
+/**
+ * Build an org-scoped filter for MongoDB/Mongoose queries.
+ *
+ * This handles both string and ObjectId representations of orgId,
+ * as well as both field naming conventions (orgId and org_id).
+ * Includes ObjectId variants to handle mixed storage scenarios.
+ *
+ * SECURITY: Always use this helper for tenant-scoped queries to prevent
+ * cross-tenant data access.
+ *
+ * @param id - The document _id to filter on
+ * @param orgId - The organization ID for tenant scoping (REQUIRED)
+ * @returns A MongoDB filter object with _id and org scope (including ObjectId variants)
+ *
+ * @example
+ * ```typescript
+ * const filter = buildOrgScopedFilter(paymentId, orgId);
+ * const payment = await AqarPayment.findOne(filter);
+ * ```
+ */
+export function buildOrgScopedFilter(
+  id: string | Types.ObjectId,
+  orgId: string,
+): OrgScopedFilter {
+  // Build org filter with both string and ObjectId variants
+  const orgAsObjectId = Types.ObjectId.isValid(orgId)
+    ? new Types.ObjectId(orgId)
+    : undefined;
+
+  const orgConditions: Array<{ orgId: string | Types.ObjectId } | { org_id: string | Types.ObjectId }> = [
+    { orgId },
+    { org_id: orgId },
+  ];
+
+  // Add ObjectId variants if orgId is a valid ObjectId string
+  if (orgAsObjectId) {
+    orgConditions.push({ orgId: orgAsObjectId }, { org_id: orgAsObjectId });
+  }
+
+  return {
+    _id: id,
+    $or: orgConditions,
+  };
+}
+
+/**
+ * Build an org-scoped filter without _id constraint.
+ *
+ * Use this for queries that need org scoping but filter on other fields.
+ * Includes ObjectId variants to handle mixed storage scenarios.
+ *
+ * @param orgId - The organization ID for tenant scoping (REQUIRED)
+ * @returns A MongoDB filter object with org scope only (including ObjectId variants)
+ *
+ * @example
+ * ```typescript
+ * const orgFilter = buildOrgOnlyFilter(orgId);
+ * const payments = await AqarPayment.find({ ...orgFilter, status: 'COMPLETED' });
+ * ```
+ */
+export function buildOrgOnlyFilter(orgId: string): OrgOnlyFilter {
+  // Build org filter with both string and ObjectId variants
+  const orgAsObjectId = Types.ObjectId.isValid(orgId)
+    ? new Types.ObjectId(orgId)
+    : undefined;
+
+  const orgConditions: Array<{ orgId: string | Types.ObjectId } | { org_id: string | Types.ObjectId }> = [
+    { orgId },
+    { org_id: orgId },
+  ];
+
+  // Add ObjectId variants if orgId is a valid ObjectId string
+  if (orgAsObjectId) {
+    orgConditions.push({ orgId: orgAsObjectId }, { org_id: orgAsObjectId });
+  }
+
+  return {
+    $or: orgConditions,
+  };
+}
+
+/**
+ * Validate that orgId is present and non-empty.
+ *
+ * SECURITY: Use this at function entry points to enforce tenant isolation.
+ * Prefer fail-closed behavior - throw or return false rather than proceeding
+ * without org scoping.
+ *
+ * @param orgId - The organization ID to validate
+ * @param context - Optional context string for error logging
+ * @returns true if orgId is valid, false otherwise
+ */
+export function isValidOrgId(
+  orgId: string | undefined | null,
+  _context?: string,
+): orgId is string {
+  return typeof orgId === "string" && orgId.length > 0;
+}
+
+]]>
+</file>
+
+<file path="lib/utils/parse.ts">
+<![CDATA[
+/**
+ * Utility functions for safe parsing with explicit radix and fallback handling
+ */
+
+export function parseIntSafe(
+  value: string | null | undefined,
+  fallback: number,
+): number {
+  if (value === null || value === undefined || value === "") {
+    return fallback;
+  }
+  const parsed = parseInt(String(value), 10);
+  return isNaN(parsed) ? fallback : parsed;
+}
+
+export function parseIntFromQuery(
+  value: string | null,
+  fallback: number,
+): number {
+  return parseIntSafe(value, fallback);
+}
+
+export function parseFloatSafe(
+  value: string | null | undefined,
+  fallback: number,
+): number {
+  if (value === null || value === undefined || value === "") {
+    return fallback;
+  }
+  const parsed = parseFloat(String(value));
+  return isNaN(parsed) ? fallback : parsed;
+}
+
+]]>
+</file>
+
+<file path="lib/utils/rtl.ts">
+<![CDATA[
+/**
+ * RTL (Right-to-Left) Utility Functions
+ * Provides helpers for RTL-aware styling and layout
+ */
+
+/**
+ * Returns RTL-aware directional class names
+ * @param isRTL - Whether the current locale is RTL
+ * @returns Object with directional class utilities
+ */
+export function getRTLClasses(isRTL: boolean) {
+  return {
+    // Text alignment
+    textStart: isRTL ? "text-right" : "text-left",
+    textEnd: isRTL ? "text-left" : "text-right",
+
+    // Margins
+    ms: (size: string) => (isRTL ? `mr-${size}` : `ml-${size}`), // margin-start
+    me: (size: string) => (isRTL ? `ml-${size}` : `mr-${size}`), // margin-end
+
+    // Padding
+    ps: (size: string) => (isRTL ? `pr-${size}` : `pl-${size}`), // padding-start
+    pe: (size: string) => (isRTL ? `pl-${size}` : `pr-${size}`), // padding-end
+
+    // Positioning
+    start: (value: string) => (isRTL ? `right-${value}` : `left-${value}`),
+    end: (value: string) => (isRTL ? `left-${value}` : `right-${value}`),
+
+    // Flex direction
+    flexRow: isRTL ? "flex-row-reverse" : "flex-row",
+
+    // Float
+    floatStart: isRTL ? "float-right" : "float-left",
+    floatEnd: isRTL ? "float-left" : "float-right",
+
+    // Border radius
+    roundedStart: isRTL ? "rounded-r" : "rounded-l",
+    roundedEnd: isRTL ? "rounded-l" : "rounded-r",
+
+    // Direction attribute
+    dir: isRTL ? "rtl" : "ltr",
+  };
+}
+
+/**
+ * Conditionally applies RTL classes
+ * @param isRTL - Whether the current locale is RTL
+ * @param rtlClass - Class to apply when RTL
+ * @param ltrClass - Class to apply when LTR (optional, defaults to empty)
+ */
+export function rtlClass(
+  isRTL: boolean,
+  rtlClass: string,
+  ltrClass: string = "",
+) {
+  return isRTL ? rtlClass : ltrClass;
+}
+
+/**
+ * Converts hardcoded directional classes to RTL-aware ones
+ * @param className - Original class string
+ * @param isRTL - Whether the current locale is RTL
+ */
+export function makeRTL(className: string, isRTL: boolean): string {
+  if (!isRTL) return className;
+
+  return (
+    className
+      // Margins
+      .replace(/\bml-(\d+|auto|px)\b/g, "mr-$1")
+      .replace(/\bmr-(\d+|auto|px)\b/g, "ml-$1")
+      // Padding
+      .replace(/\bpl-(\d+|auto|px)\b/g, "pr-$1")
+      .replace(/\bpr-(\d+|auto|px)\b/g, "pl-$1")
+      // Text alignment
+      .replace(/\btext-left\b/g, "text-right")
+      .replace(/\btext-right\b/g, "text-left")
+      // Float
+      .replace(/\bfloat-left\b/g, "float-right")
+      .replace(/\bfloat-right\b/g, "float-left")
+      // Positioning
+      .replace(/\bleft-(\d+|auto)\b/g, "right-$1")
+      .replace(/\bright-(\d+|auto)\b/g, "left-$1")
+      // Border radius
+      .replace(/\brounded-l\b/g, "rounded-r")
+      .replace(/\brounded-r\b/g, "rounded-l")
+      .replace(/\brounded-tl\b/g, "rounded-tr")
+      .replace(/\brounded-tr\b/g, "rounded-tl")
+      .replace(/\brounded-bl\b/g, "rounded-br")
+      .replace(/\brounded-br\b/g, "rounded-bl")
+  );
+}
+
+/**
+ * Hook-friendly helper to get RTL-aware class string
+ * Usage: const cls = useRTLClass('ml-4 text-left', isRTL);
+ */
+export function useRTLClass(className: string, isRTL: boolean): string {
+  return makeRTL(className, isRTL);
+}
+
+/**
+ * Generates icon flip transformation for RTL
+ * Icons with directional meaning (arrows, chevrons) should flip in RTL
+ */
+export function flipIconRTL(isRTL: boolean): string {
+  return isRTL ? "scale-x-[-1]" : "";
+}
+
+/**
+ * Returns appropriate flex direction for RTL
+ */
+export function flexDirectionRTL(
+  isRTL: boolean,
+  reverse: boolean = false,
+): string {
+  if (reverse) {
+    return isRTL ? "flex-row" : "flex-row-reverse";
+  }
+  return isRTL ? "flex-row-reverse" : "flex-row";
+}
+
+]]>
+</file>
+
+<file path="lib/utils/timestamp.ts">
+<![CDATA[
+/**
+ * Timestamp handling utilities for marketplace and system operations
+ */
+
+/**
+ * Validate and sanitize timestamp values
+ */
+export function validateTimestamp(value: unknown): Date | null {
+  // Handle null/undefined
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  // Handle Date objects
+  if (value instanceof Date) {
+    return isValidDate(value) ? value : null;
+  }
+
+  // Handle numbers (Unix timestamps)
+  if (typeof value === "number") {
+    // Handle createdAt=0 edge case
+    if (value === 0) {
+      return null;
+    }
+
+    // Handle both seconds and milliseconds timestamps
+    const timestamp = value < 1e10 ? value * 1000 : value;
+    const date = new Date(timestamp);
+    return isValidDate(date) ? date : null;
+  }
+
+  // Handle strings
+  if (typeof value === "string") {
+    // Handle empty strings
+    if (value.trim() === "") {
+      return null;
+    }
+
+    const date = new Date(value);
+    return isValidDate(date) ? date : null;
+  }
+
+  return null;
+}
+
+/**
+ * Check if a Date object is valid
+ */
+export function isValidDate(date: Date): boolean {
+  return date instanceof Date && !isNaN(date.getTime());
+}
+
+/**
+ * Create a safe timestamp object with validation
+ */
+export function createSafeTimestamp(value?: unknown): Date {
+  const validated = validateTimestamp(value);
+  return validated || new Date();
+}
+
+/**
+ * Sanitize timestamp fields in an object
+ */
+export function sanitizeTimestamps<T extends Record<string, unknown>>(
+  obj: T,
+  fields: (keyof T)[] = ["createdAt", "updatedAt"],
+): T {
+  const sanitized = { ...obj };
+
+  for (const field of fields) {
+    if (field in sanitized) {
+      const validated = validateTimestamp(sanitized[field]);
+      sanitized[field] = (validated || new Date()) as T[keyof T];
+    }
+  }
+
+  return sanitized;
+}
+
+/**
+ * Validate array of objects and sanitize their timestamps
+ */
+export function validateCollection<T extends Record<string, unknown>>(
+  collection: T[],
+  timestampFields: (keyof T)[] = ["createdAt", "updatedAt"],
+): T[] {
+  if (!Array.isArray(collection)) {
+    throw new Error("Collection must be an array");
+  }
+
+  return collection.map((item) => sanitizeTimestamps(item, timestampFields));
+}
+
+/**
+ * Add default timestamps to an object
+ */
+export function addTimestamps<T extends Record<string, unknown>>(
+  obj: T,
+  overwrite: boolean = false,
+): T & { createdAt: Date; updatedAt: Date } {
+  const now = new Date();
+
+  return {
+    ...obj,
+    createdAt:
+      !obj.createdAt || overwrite ? now : createSafeTimestamp(obj.createdAt),
+    updatedAt: now,
+  };
+}
+
+/**
+ * Update only the updatedAt timestamp
+ */
+export function updateTimestamp<T extends Record<string, unknown>>(
+  obj: T,
+): T & { updatedAt: Date } {
+  return {
+    ...obj,
+    updatedAt: new Date(),
+  };
+}
+
+/**
+ * Format timestamp for different locales
+ * CRITICAL: locale is required - no default to force i18n-aware usage
+ */
+export function formatTimestamp(
+  timestamp: Date | string | number,
+  locale: string,
+  options?: Intl.DateTimeFormatOptions,
+): string {
+  const date = createSafeTimestamp(timestamp);
+
+  const defaultOptions: Intl.DateTimeFormatOptions = {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    ...options,
+  };
+
+  return date.toLocaleString(locale, defaultOptions);
+}
+
+/**
+ * Get relative time string (e.g., "2 hours ago")
+ * CRITICAL: locale is required - no default to force i18n-aware usage
+ */
+export function getRelativeTime(
+  timestamp: Date | string | number,
+  locale: string,
+): string {
+  const date = createSafeTimestamp(timestamp);
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+
+  const intervals = [
+    { unit: "year", ms: 365 * 24 * 60 * 60 * 1000 },
+    { unit: "month", ms: 30 * 24 * 60 * 60 * 1000 },
+    { unit: "week", ms: 7 * 24 * 60 * 60 * 1000 },
+    { unit: "day", ms: 24 * 60 * 60 * 1000 },
+    { unit: "hour", ms: 60 * 60 * 1000 },
+    { unit: "minute", ms: 60 * 1000 },
+  ];
+
+  for (const interval of intervals) {
+    const value = Math.floor(diff / interval.ms);
+    if (Math.abs(value) >= 1) {
+      return rtf.format(-value, interval.unit as Intl.RelativeTimeFormatUnit);
+    }
+  }
+
+  return rtf.format(0, "second");
+}
+
+]]>
+</file>
+
+<file path="lib/utils/typeGuards.ts">
+<![CDATA[
+/**
+ * Type guard utilities for runtime type checking
+ * Use these to safely handle unknown types, especially in catch blocks
+ */
+
+/**
+ * Type guard to check if an unknown value is an Error instance
+ * @param error - The value to check
+ * @returns true if the value is an Error instance
+ */
+export function isError(error: unknown): error is Error {
+  return error instanceof Error;
+}
+
+/**
+ * Safely extract an error message from an unknown error value
+ * Handles Error instances, strings, and provides a default message
+ * @param error - The error value (unknown type from catch block)
+ * @returns A string error message
+ */
+export function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === "string") {
+    return error;
+  }
+  return "An unexpected error occurred";
+}
+
+]]>
+</file>
+
+<file path="lib/utils/url.ts">
+<![CDATA[
+/**
+ * Normalize a base URL by removing any trailing slashes.
+ */
+export function normalizeBaseUrl(baseUrl: string): string {
+  return baseUrl.replace(/\/+$/, "");
+}
+
+/**
+ * Join a base URL with a path, avoiding duplicate slashes.
+ */
+export function joinUrl(baseUrl: string, path: string): string {
+  const normalizedBase = normalizeBaseUrl(baseUrl);
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${normalizedBase}${normalizedPath}`;
+}
+
+]]>
+</file>
+
+<file path="qa/tests/utils/test-users.ts">
+<![CDATA[
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+
+export function getBaseUrlWithProdGuard(testName: string) {
+  const baseUrl = process.env.BASE_URL || "http://localhost:3000";
+  if (
+    /fixzit\.co|vercel\.app|production/i.test(baseUrl) &&
+    process.env.ALLOW_E2E_PROD !== "1"
+  ) {
+    throw new Error(
+      `Refusing to run ${testName} against ${baseUrl} without ALLOW_E2E_PROD=1`,
+    );
+  }
+  return baseUrl;
+}
+
+export function getAdminTestUser(testName: string) {
+  const password =
+    process.env.FIXZIT_TEST_ADMIN_PASSWORD ||
+    process.env.TEST_USER_PASSWORD ||
+    process.env.SEED_PASSWORD;
+
+  if (!password) {
+    throw new Error(
+      `${testName}: FIXZIT_TEST_ADMIN_PASSWORD/TEST_USER_PASSWORD/SEED_PASSWORD is required (no hardcoded fallback).`,
+    );
+  }
+
+  return {
+    email: process.env.FIXZIT_TEST_ADMIN_EMAIL || `superadmin@${EMAIL_DOMAIN}`,
+    password,
+  };
+}
+
+export const TEST_EMAIL_DOMAIN = EMAIL_DOMAIN;
+
+]]>
+</file>
+
+<file path="scripts/lib/__init__.py">
+<![CDATA[
+# Shared library modules for Fixzit scripts
+
+]]>
+</file>
+
+<file path="scripts/lib/notify.py">
+<![CDATA[
+"""
+Notification utilities for email and Slack delivery of reports
+"""
+
+import json
+import mimetypes
+import os
+import pathlib
+import smtplib
+import ssl
+import urllib.request
+from email.message import EmailMessage
+from typing import Dict, List, Optional
+
+# Configuration
+ROOT = pathlib.Path(__file__).resolve().parents[2]
+LOCALDATA = ROOT / ".localdata"
+ARTIFACTS = ROOT / "artifacts"
+
+
+class NotifyConfig:
+    """Per-tenant notification configuration"""
+
+    def __init__(self, tenant: str):
+        self.tenant = tenant
+        self.cfg = self._load()
+
+    def _load(self) -> Dict:
+        """Load notification config with fallback hierarchy"""
+        paths = [
+            LOCALDATA / self.tenant / "notify.json",
+            LOCALDATA / "_default" / "notify.json",
+        ]
+
+        for path in paths:
+            if path.exists():
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        return json.load(f)
+                except Exception as e:
+                    print(f"Warning: Could not load {path}: {e}")
+
+        # Default configuration
+        return {
+            "emails": [],
+            "cc": [],
+            "bcc": [],
+            "subject_prefix": "[Fixzit]",
+            "attach_zip": True,
+            "attach_html": True,
+        }
+
+    @property
+    def emails(self) -> List[str]:
+        """Primary recipient email addresses"""
+        return self.cfg.get("emails", [])
+
+    @property
+    def cc(self) -> List[str]:
+        """CC recipient email addresses"""
+        return self.cfg.get("cc", [])
+
+    @property
+    def bcc(self) -> List[str]:
+        """BCC recipient email addresses"""
+        return self.cfg.get("bcc", [])
+
+    @property
+    def subject_prefix(self) -> str:
+        """Email subject prefix"""
+        return self.cfg.get("subject_prefix", "[Fixzit]")
+
+    @property
+    def slack_webhook(self) -> Optional[str]:
+        """Slack webhook URL (tenant-specific or global fallback)"""
+        return self.cfg.get("slack_webhook") or os.getenv("SLACK_WEBHOOK_URL")
+
+    @property
+    def slack_channel_override(self) -> Optional[str]:
+        """Override Slack channel for this tenant"""
+        return self.cfg.get("slack_channel_override")
+
+    @property
+    def attach_html(self) -> bool:
+        """Whether to attach HTML report to emails"""
+        return bool(self.cfg.get("attach_html", True))
+
+    @property
+    def attach_zip(self) -> bool:
+        """Whether to attach ZIP bundle to emails"""
+        return bool(self.cfg.get("attach_zip", True))
+
+
+def latest_report_paths(tenant: str) -> Dict[str, Optional[pathlib.Path]]:
+    """Find the latest HTML and ZIP reports for a tenant"""
+    html = None
+    zipf = None
+
+    if ARTIFACTS.exists():
+        # Find latest HTML report for this tenant
+        html_candidates = sorted(
+            ARTIFACTS.glob(f"weekly-report-{tenant}.html"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+        if html_candidates:
+            html = html_candidates[0]
+
+        # Find latest ZIP bundle (contains all tenants)
+        zip_candidates = sorted(
+            ARTIFACTS.glob("weekly-reports-*.zip"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+        if zip_candidates:
+            zipf = zip_candidates[0]
+
+    return {"html": html, "zip": zipf}
+
+
+def _smtp_client():
+    """Create authenticated SMTP client"""
+    host = os.getenv("SMTP_HOST")
+    port = int(os.getenv("SMTP_PORT", "587"))
+    user = os.getenv("SMTP_USER")
+    password = os.getenv("SMTP_PASS")
+
+    if not all([host, user, password]):
+        raise RuntimeError(
+            "SMTP configuration incomplete. Need SMTP_HOST, SMTP_USER, SMTP_PASS"
+        )
+
+    # Type checking for None values
+    smtp_host = host or "localhost"
+    smtp_user = user or ""
+    smtp_password = password or ""
+
+    client = smtplib.SMTP(smtp_host, port, timeout=30)
+    client.ehlo()
+    client.starttls()
+    client.login(smtp_user, smtp_password)
+
+    return client
+
+
+def send_email(
+    subject: str,
+    body_text: str,
+    to: List[str],
+    cc: Optional[List[str]] = None,
+    bcc: Optional[List[str]] = None,
+    attachments: Optional[List[pathlib.Path]] = None,
+) -> None:
+    """Send email with optional attachments"""
+    if not to:
+        raise ValueError("No recipients specified")
+
+    msg = EmailMessage()
+    msg["From"] = os.getenv("SMTP_FROM", os.getenv("SMTP_USER"))
+    msg["To"] = ", ".join(to)
+
+    if cc:
+        msg["Cc"] = ", ".join(cc)
+
+    all_recipients = to + (cc or []) + (bcc or [])
+    msg["Subject"] = subject
+    msg.set_content(body_text)
+
+    # Add attachments
+    for attachment_path in attachments or []:
+        if not attachment_path or not attachment_path.exists():
+            continue
+
+        ctype, encoding = mimetypes.guess_type(str(attachment_path))
+        if ctype is None or encoding is not None:
+            ctype = "application/octet-stream"
+
+        maintype, subtype = ctype.split("/", 1)
+
+        with open(attachment_path, "rb") as fp:
+            msg.add_attachment(
+                fp.read(),
+                maintype=maintype,
+                subtype=subtype,
+                filename=attachment_path.name,
+            )
+
+    # Send email
+    with _smtp_client() as smtp:
+        smtp.send_message(msg, to_addrs=all_recipients)
+
+
+def post_slack(webhook_url: str, payload: Dict) -> None:
+    """Post message to Slack webhook"""
+    if not webhook_url:
+        raise ValueError("No Slack webhook URL provided")
+
+    data = json.dumps(payload).encode("utf-8")
+
+    request = urllib.request.Request(
+        webhook_url, data=data, headers={"Content-Type": "application/json"}
+    )
+
+    context = ssl.create_default_context()
+
+    with urllib.request.urlopen(request, context=context, timeout=20) as response:
+        response.read()  # Consume response
+
+]]>
+</file>
+
+<file path="scripts/utils/collections.js">
+<![CDATA[
+// Shared COLLECTIONS loader for Node scripts (non-prod utilities/migrations)
+// Use tsx/cjs so we can require the TypeScript source of lib/db/collections.ts
+require("tsx/cjs");
+const path = require("path");
+
+function loadCollections() {
+  // Resolve to the TypeScript source to keep a single source of truth
+  const mod = require(path.resolve(__dirname, "../../lib/db/collections.ts"));
+  return mod.COLLECTIONS || mod.default?.COLLECTIONS || mod;
+}
+
+const base = loadCollections();
+
+// Provide a few script-only fallbacks for collections not yet defined in COLLECTIONS
+const COLLECTIONS = {
+  ...base,
+  PAYMENTS: base.PAYMENTS || "payments",
+  ORGANIZATIONS: base.ORGANIZATIONS || "organizations",
+  ADMIN_NOTIFICATIONS: base.ADMIN_NOTIFICATIONS || "admin_notifications",
+  COMMUNICATION_LOGS: base.COMMUNICATION_LOGS || "communication_logs",
+  EMAIL_LOGS: base.EMAIL_LOGS || "email_logs",
+  PAYMENTS: base.PAYMENTS || "payments",
+  ATS_JOBS: base.ATS_JOBS || base.JOBS || "jobs",
+  ATS_APPLICATIONS: base.ATS_APPLICATIONS || "applications",
+  ATS_INTERVIEWS: base.ATS_INTERVIEWS || "interviews",
+  ATS_CANDIDATES: base.ATS_CANDIDATES || "candidates",
+  ATS_SETTINGS: base.ATS_SETTINGS || "ats_settings",
+  HELP_ARTICLES: base.HELP_ARTICLES || "helparticles",
+  HELP_COMMENTS: base.HELP_COMMENTS || "helpcomments",
+  KB_EMBEDDINGS: base.KB_EMBEDDINGS || "kb_embeddings",
+  CMS_PAGES: base.CMS_PAGES || "cmspages",
+  INVOICE_COUNTERS: base.INVOICE_COUNTERS || "invoice_counters",
+  SOUQ_SETTLEMENTS: base.SOUQ_SETTLEMENTS || "souq_settlements",
+  CLAIMS: base.CLAIMS || "claims",
+  ERROR_EVENTS: base.ERROR_EVENTS || "error_events",
+  WORKORDER_TIMELINE: base.WORKORDER_TIMELINE || "workorder_timeline",
+  WORKORDER_ATTACHMENTS: base.WORKORDER_ATTACHMENTS || "workorder_attachments",
+  UTILITY_BILLS: base.UTILITY_BILLS || "utilitybills",
+  OWNERS: base.OWNERS || "owners",
+  CREDENTIALS: base.CREDENTIALS || "credentials",
+  ACCOUNTS: base.ACCOUNTS || "accounts",
+};
+
+module.exports = { COLLECTIONS };
+
+]]>
+</file>
+
+<file path="scripts/utils/load-env.ts">
+<![CDATA[
+import fs from "node:fs";
+import path from "node:path";
+import { config } from "dotenv";
+
+let loaded = false;
+
+export function loadEnv(): void {
+  if (loaded) return;
+  loaded = true;
+
+  const cwd = process.cwd();
+  const nodeEnv = process.env.NODE_ENV?.trim();
+  const candidates = [
+    ".env.local",
+    nodeEnv ? `.env.${nodeEnv}.local` : null,
+    nodeEnv ? `.env.${nodeEnv}` : null,
+    ".env",
+  ].filter(Boolean) as string[];
+
+  for (const file of candidates) {
+    const fullPath = path.join(cwd, file);
+    if (fs.existsSync(fullPath)) {
+      config({ path: fullPath, override: false });
+    }
+  }
+}
+
+]]>
+</file>
+
+<file path="server/lib/accounting.ts">
+<![CDATA[
+export type AccountType =
+  | "ASSET"
+  | "LIABILITY"
+  | "EQUITY"
+  | "INCOME"
+  | "REVENUE"
+  | "EXPENSE";
+
+export function normalizeBalance(
+  type: AccountType,
+  debit: bigint,
+  credit: bigint,
+): bigint {
+  if (type === "ASSET" || type === "EXPENSE") return debit - credit;
+  return credit - debit;
+}
+
+]]>
+</file>
+
+<file path="server/lib/authContext.ts">
+<![CDATA[
+/**
+ * Request context utilities for Finance Pack
+ * Provides thread-safe user/tenant context for service layer using AsyncLocalStorage
+ */
+
+import { logger } from "@/lib/logger";
+import { AsyncLocalStorage } from "async_hooks";
+
+export interface RequestContext {
+  userId: string;
+  orgId: string;
+  role: string;
+  timestamp: Date;
+}
+
+/**
+ * Custom error class for missing request context
+ * Thrown when requireContext() is called outside of a runWithContext() block
+ */
+export class ContextMissingError extends Error {
+  constructor(
+    message: string = "Request context not set. Wrap your code in runWithContext().",
+  ) {
+    super(message);
+    this.name = "ContextMissingError";
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
+// Thread-safe context storage using Node.js AsyncLocalStorage
+const requestStorage = new AsyncLocalStorage<RequestContext>();
+
+/**
+ * Set request context for current execution (DEPRECATED - use runWithContext)
+ * Kept for backward compatibility but prefer runWithContext
+ * @deprecated Use runWithContext instead for proper async context isolation
+ */
+
+export function setRequestContext(_context: RequestContext): void {
+  // This is a no-op now - context must be set via runWithContext
+  logger.warn("setRequestContext is deprecated. Use runWithContext instead.");
+}
+
+/**
+ * Get current request context from AsyncLocalStorage
+ * @returns RequestContext if set, null otherwise
+ */
+export function getRequestContext(): RequestContext | null {
+  return requestStorage.getStore() ?? null;
+}
+
+/**
+ * Require context to be set, throw if missing
+ * Use this in service methods that require authentication
+ * @throws {ContextMissingError} When called outside of runWithContext()
+ */
+export function requireContext(): RequestContext {
+  const context = requestStorage.getStore();
+  if (!context) {
+    throw new ContextMissingError();
+  }
+  return context;
+}
+
+/**
+ * Clear request context (NO-OP with AsyncLocalStorage)
+ * Context is automatically cleaned up when async context ends
+ * @deprecated No longer needed with AsyncLocalStorage
+ */
+export function clearRequestContext(): void {
+  // No-op - AsyncLocalStorage handles cleanup automatically
+}
+
+/**
+ * Execute function within a specific context (NEW RECOMMENDED API)
+ * Automatically isolates context per async execution chain
+ *
+ * @example
+ * await runWithContext({ userId: '123', orgId: '456', timestamp: new Date() }, async () => {
+ *   // All code here and in called functions has access to context
+ *   const ctx = requireContext(); // Works safely
+ *   await someServiceMethod(); // Also has access to context
+ * });
+ */
+export async function runWithContext<T>(
+  context: RequestContext,
+  fn: () => Promise<T>,
+): Promise<T> {
+  return await requestStorage.run(context, fn);
+}
+
+/**
+ * Legacy alias for backward compatibility
+ * @deprecated Use runWithContext instead
+ */
+export async function withContext<T>(
+  context: RequestContext,
+  fn: () => Promise<T>,
+): Promise<T> {
+  return runWithContext(context, fn);
+}
+
+const authContextService = {
+  setRequestContext,
+  getRequestContext,
+  requireContext,
+  clearRequestContext,
+  withContext,
+  runWithContext,
+};
+export default authContextService;
+
+]]>
+</file>
+
+<file path="server/lib/currency.ts">
+<![CDATA[
+/**
+ * Currency utilities for Finance Pack
+ * Handles conversion between major/minor units and foreign exchange
+ */
+
+export interface CurrencyConfig {
+  code: string; // ISO 4217 (SAR, USD, EUR, etc.)
+  name: string;
+  symbol: string;
+  decimalPlaces: number; // 2 for most currencies
+  minorUnit: string; // "halalas" for SAR, "cents" for USD
+}
+
+export const CURRENCIES: Record<string, CurrencyConfig> = {
+  SAR: {
+    code: "SAR",
+    name: "Saudi Riyal",
+    symbol: "ر.س",
+    decimalPlaces: 2,
+    minorUnit: "halalas",
+  },
+  USD: {
+    code: "USD",
+    name: "US Dollar",
+    symbol: "$",
+    decimalPlaces: 2,
+    minorUnit: "cents",
+  },
+  EUR: {
+    code: "EUR",
+    name: "Euro",
+    symbol: "€",
+    decimalPlaces: 2,
+    minorUnit: "cents",
+  },
+  GBP: {
+    code: "GBP",
+    name: "British Pound",
+    symbol: "£",
+    decimalPlaces: 2,
+    minorUnit: "pence",
+  },
+  AED: {
+    code: "AED",
+    name: "UAE Dirham",
+    symbol: "د.إ",
+    decimalPlaces: 2,
+    minorUnit: "fils",
+  },
+};
+
+/**
+ * Convert from major units (e.g., 100.50 SAR) to minor units (e.g., 10050 halalas)
+ * Uses integer arithmetic to avoid floating-point errors
+ */
+export function toMinor(amount: number, currency: string = "SAR"): number {
+  const config = CURRENCIES[currency] || CURRENCIES.SAR;
+  const multiplier = Math.pow(10, config.decimalPlaces);
+  return Math.round(amount * multiplier);
+}
+
+/**
+ * Convert from minor units (e.g., 10050 halalas) to major units (e.g., 100.50 SAR)
+ */
+export function fromMinor(amount: number, currency: string = "SAR"): number {
+  const config = CURRENCIES[currency] || CURRENCIES.SAR;
+  const divisor = Math.pow(10, config.decimalPlaces);
+  return amount / divisor;
+}
+
+/**
+ * Apply foreign exchange rate to convert between currencies
+ * All amounts in minor units
+ *
+ * @param amount - Amount in source currency minor units
+ * @param fxRate - Exchange rate (how much 1 unit of source = target)
+ * @param sourceCurrency - Source currency code
+ * @param targetCurrency - Target currency code
+ * @returns Amount in target currency minor units
+ *
+ * @example
+ * // Convert 100 SAR to USD at rate 0.2667
+ * applyFx(10000, 0.2667, 'SAR', 'USD') // Returns 2667 (26.67 USD)
+ */
+export function applyFx(
+  amount: number,
+  fxRate: number,
+  sourceCurrency: string = "SAR",
+  targetCurrency: string = "SAR",
+): number {
+  if (sourceCurrency === targetCurrency) return amount;
+
+  // Convert to major units, apply FX, convert back to minor units
+  const majorAmount = fromMinor(amount, sourceCurrency);
+  const convertedMajor = majorAmount * fxRate;
+  return toMinor(convertedMajor, targetCurrency);
+}
+
+/**
+ * Format amount for display
+ *
+ * @param amount - Amount in minor units
+ * @param currency - Currency code
+ * @param locale - Locale for formatting (default 'ar-SA' for Saudi Arabia)
+ * @returns Formatted string with currency symbol
+ */
+export function formatCurrency(
+  amount: number,
+  currency: string = "SAR",
+  locale: string = "ar-SA",
+): string {
+  const config = CURRENCIES[currency] || CURRENCIES.SAR;
+  const majorAmount = fromMinor(amount, currency);
+
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: config.code,
+    minimumFractionDigits: config.decimalPlaces,
+    maximumFractionDigits: config.decimalPlaces,
+  }).format(majorAmount);
+}
+
+/**
+ * Parse currency string to minor units
+ * Handles various formats: "100.50", "100,50", "ر.س 100.50"
+ */
+export function parseCurrency(value: string, currency: string = "SAR"): number {
+  // Remove currency symbols, whitespace, and convert commas to dots
+  const cleaned = value.replace(/[^\d.,-]/g, "").replace(",", ".");
+
+  const parsed = parseFloat(cleaned);
+  if (isNaN(parsed)) return 0;
+
+  return toMinor(parsed, currency);
+}
+
+]]>
+</file>
+
+<file path="server/lib/db.ts">
+<![CDATA[
+import mongoose from 'mongoose';
+import type { Db } from 'mongodb';
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import { logger } from '@/lib/logger';
+
+export async function getDb(): Promise<Db> {
+  await connectToDatabase();
+  if (!mongoose.connection.db) {
+    throw new Error('Database connection not established');
+  }
+  return mongoose.connection.db;
+}
+
+export function ensureMongoConnection(): void {
+  if (mongoose.connection.readyState === 0) {
+    void connectToDatabase().catch((error) => {
+      // Use logger for server-side errors (structured logging with proper levels)
+      if (process.env.NODE_ENV !== 'production') {
+        logger.error('[Mongo] Failed to establish connection', { error });
+      }
+      // In production, this error will be caught by the logger middleware
+    });
+  }
+}
+
+]]>
+</file>
+
+<file path="server/lib/errors.ts">
+<![CDATA[
+export class ForbiddenError extends Error {
+  constructor(message = "Forbidden") {
+    super(message);
+    this.name = "ForbiddenError";
+  }
+}
+
+]]>
+</file>
+
+<file path="server/lib/money.ts">
+<![CDATA[
+import { Types } from "mongoose";
+
+export type MoneyMinor = { minor: bigint; currency: string };
+
+export function minorToDecimal128(minor: bigint): Types.Decimal128 {
+  return Types.Decimal128.fromString(minor.toString());
+}
+
+export function decimal128ToMinor(dec: Types.Decimal128): bigint {
+  return BigInt(dec.toString());
+}
+
+export function applyFxMinor(minor: bigint, rate: number): bigint {
+  return BigInt(Math.round(Number(minor) * rate));
+}
+
+export function minorToMajor(minor: bigint): string {
+  const asStr = minor.toString();
+  if (asStr.length <= 2) return `0.${asStr.padStart(2, "0")}`;
+  return asStr.slice(0, -2) + "." + asStr.slice(-2);
+}
+
+]]>
+</file>
+
+<file path="server/lib/numbering.ts">
+<![CDATA[
+import mongoose from "mongoose";
+import { getDb } from "./db";
+
+const CounterSchema = new mongoose.Schema({
+  orgId: { type: String, required: true },
+  prefix: { type: String, required: true },
+  seq: { type: Number, default: 0 },
+});
+CounterSchema.index({ orgId: 1, prefix: 1 }, { unique: true });
+
+const Counter =
+  mongoose.models.Counter || mongoose.model("Counter", CounterSchema);
+
+export async function nextNumber(
+  orgId: string,
+  prefix: string,
+): Promise<string> {
+  await getDb();
+  const doc = await Counter.findOneAndUpdate(
+    { orgId, prefix },
+    { $inc: { seq: 1 } },
+    { upsert: true, new: true },
+  );
+  return `${prefix}-${String(doc.seq).padStart(6, "0")}`;
+}
+
+]]>
+</file>
+
+<file path="server/lib/plugins.ts">
+<![CDATA[
+export { tenantIsolationPlugin as tenantIsolation } from "../plugins/tenantIsolation";
+export { auditPlugin as auditTrail } from "../plugins/auditPlugin";
+
+]]>
+</file>
+
+<file path="server/utils/errorResponses.ts">
+<![CDATA[
+import { ZodError } from "zod";
+import { createSecureResponse } from "@/server/security/headers";
+import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { UnauthorizedError } from "@/server/middleware/withAuthRbac";
+
+export interface ErrorResponse {
+  error: string;
+  details?: unknown;
+  code?: string;
+}
+
+/**
+ * Standardized error response patterns with consistent HTTP status codes and secure headers
+ */
+export class ApiError extends Error {
+  constructor(
+    public message: string,
+    public statusCode: number,
+    public code?: string,
+    public details?: unknown,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+/**
+ * Create a standardized error response with security headers
+ */
+export function createErrorResponse(
+  error: string,
+  statusCode: number,
+  details?: unknown,
+  code?: string,
+): NextResponse {
+  const response: ErrorResponse = { error };
+  if (details) response.details = details;
+  if (code) response.code = code;
+
+  return createSecureResponse(response, statusCode);
+}
+
+/**
+ * Handle common authentication errors
+ */
+export function unauthorizedError(
+  message = "Authentication required",
+): NextResponse {
+  return createErrorResponse(message, 401, undefined, "UNAUTHORIZED");
+}
+
+/**
+ * Handle common authorization/permission errors
+ */
+export function forbiddenError(
+  message = "Insufficient permissions",
+): NextResponse {
+  return createErrorResponse(message, 403, undefined, "FORBIDDEN");
+}
+
+/**
+ * Handle resource not found errors
+ */
+export function notFoundError(resource = "Resource"): NextResponse {
+  return createErrorResponse(
+    `${resource} not found`,
+    404,
+    undefined,
+    "NOT_FOUND",
+  );
+}
+
+/**
+ * Handle validation errors with details
+ */
+export function validationError(
+  message = "Invalid input",
+  details?: unknown,
+): NextResponse {
+  return createErrorResponse(message, 400, details, "VALIDATION_ERROR");
+}
+
+/**
+ * Handle Zod validation errors specifically
+ */
+export function zodValidationError(
+  error: ZodError,
+  req?: import("next/server").NextRequest,
+): NextResponse {
+  return createSecureResponse(
+    {
+      error: "Invalid input",
+      details: error.issues,
+      code: "VALIDATION_ERROR",
+    },
+    400,
+    req,
+  );
+}
+
+/**
+ * Handle rate limiting errors
+ */
+export function rateLimitError(message = "Too many requests"): NextResponse {
+  return createErrorResponse(message, 429, undefined, "RATE_LIMIT_EXCEEDED");
+}
+
+/**
+ * Handle internal server errors with secure messaging
+ */
+export function internalServerError(
+  message = "Internal server error",
+  logDetails?: unknown,
+): NextResponse {
+  // Log full error details server-side
+  if (logDetails) {
+    logger.error("Internal server error", {
+      message,
+      details: logDetails,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  // Return generic message to client for security
+  return createErrorResponse(message, 500, undefined, "INTERNAL_ERROR");
+}
+
+/**
+ * Handle Zod validation errors with structured details
+ */
+export function handleZodError(error: ZodError): NextResponse {
+  const issues = error.issues.map((issue) => ({
+    field: issue.path.join("."),
+    message: issue.message,
+    code: issue.code,
+  }));
+
+  return validationError("Validation failed", issues);
+}
+
+/**
+ * Generic error handler that categorizes different error types
+ */
+export function handleApiError(error: unknown): NextResponse {
+  if (error instanceof ApiError) {
+    return createErrorResponse(
+      error.message,
+      error.statusCode,
+      error.details,
+      error.code,
+    );
+  }
+
+  if (error instanceof UnauthorizedError) {
+    return unauthorizedError();
+  }
+
+  if (error instanceof ZodError) {
+    return handleZodError(error);
+  }
+
+  if (error instanceof Error) {
+    // Log the full error but return generic message
+    // SECURITY: Never expose stack traces or internal details to clients in production
+    const isProd = process.env.NODE_ENV === "production";
+    logger.error("Unhandled API error", {
+      name: error.name,
+      message: isProd ? "[REDACTED]" : error.message,
+      stack: isProd ? "[REDACTED]" : error.stack,
+      timestamp: new Date().toISOString(),
+      // Keep error code/type for debugging even in production
+      errorCode: error.name,
+    });
+
+    return internalServerError();
+  }
+
+  logger.error("Unknown error type", { error });
+  return internalServerError("An unexpected error occurred");
+}
+
+/**
+ * Common database operation errors
+ */
+export function duplicateKeyError(resource = "Resource"): NextResponse {
+  return createErrorResponse(
+    `${resource} already exists`,
+    409,
+    undefined,
+    "DUPLICATE_KEY",
+  );
+}
+
+/**
+ * Handle tenant isolation errors
+ */
+export function tenantIsolationError(): NextResponse {
+  return forbiddenError("Access denied: cross-tenant operation not allowed");
+}
+
+]]>
+</file>
+
+<file path="services/souq/utils/org-helpers.ts">
+<![CDATA[
+import {
+  ObjectId,
+  type Collection,
+  type Document,
+  type Filter,
+  type WithId,
+} from "mongodb";
+
+export type OrgCandidates = (string | ObjectId)[];
+
+/**
+ * Normalize orgId to support both string and legacy ObjectId representations.
+ */
+export function buildOrgCandidates(orgId: string): OrgCandidates {
+  return ObjectId.isValid(orgId) ? [orgId, new ObjectId(orgId)] : [orgId];
+}
+
+/**
+ * Find documents using orgId $in, with a fallback to primary orgId when mocks/drivers
+ * do not support $in on string/ObjectId mixes.
+ */
+export async function findWithOrgFallback<TSchema extends Document = Document>(
+  collection: Collection<TSchema>,
+  filter: Filter<TSchema>,
+  orgCandidates: OrgCandidates,
+): Promise<WithId<TSchema>[]> {
+  const baseFilter: Filter<TSchema> = { ...filter, orgId: { $in: orgCandidates } };
+  let results: WithId<TSchema>[] = [];
+  try {
+    results = await collection.find(baseFilter).toArray();
+  } catch (_err) {
+    results = [];
+  }
+
+  if (results.length === 0 && orgCandidates.length > 0) {
+    const fallbackFilter: Filter<TSchema> = { ...filter, orgId: orgCandidates[0] };
+    results = await collection.find(fallbackFilter).toArray();
+  }
+
+  return results;
+}
+
+/**
+ * Build a dual-type org filter (string + ObjectId) for direct use in queries.
+ */
+export function buildOrgFilter(orgId: string): { $in: OrgCandidates } {
+  return { $in: buildOrgCandidates(orgId) };
+}
+
+]]>
+</file>
+
+<file path="tests/e2e/utils/auth.test.ts">
+<![CDATA[
+/**
+ * Unit tests for E2E auth utilities
+ * Tests authentication helper functions used in E2E test suite
+ */
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { Page } from '@playwright/test';
+
+// Mock the auth utilities module
+const mockPage = {
+  goto: vi.fn().mockResolvedValue(undefined),
+  fill: vi.fn().mockResolvedValue(undefined),
+  click: vi.fn().mockResolvedValue(undefined),
+  waitForURL: vi.fn().mockResolvedValue(undefined),
+  locator: vi.fn().mockReturnValue({
+    first: vi.fn().mockReturnValue({
+      waitFor: vi.fn().mockResolvedValue(undefined),
+      innerText: vi.fn().mockResolvedValue('Error message'),
+    }),
+    or: vi.fn().mockReturnThis(),
+  }),
+  getByText: vi.fn().mockReturnValue({}),
+  waitForTimeout: vi.fn().mockResolvedValue(undefined),
+  request: {
+    get: vi.fn().mockResolvedValue({
+      ok: true,
+      text: vi.fn().mockResolvedValue(''),
+    }),
+  },
+  context: vi.fn().mockReturnValue({
+    cookies: vi.fn().mockResolvedValue([]),
+  }),
+} as unknown as Page;
+
+describe('E2E Auth Utilities', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('fillLoginForm', () => {
+    it('should fill identifier and password fields', async () => {
+      // Note: Actual implementation would import and test fillLoginForm
+      // This is a placeholder structure showing expected test coverage
+      expect(mockPage.fill).toBeDefined();
+    });
+
+    it('should use correct CSS selectors', async () => {
+      expect(mockPage.locator).toBeDefined();
+    });
+  });
+
+  describe('getErrorLocator', () => {
+    it('should return locator for error messages', () => {
+      expect(mockPage.locator).toBeDefined();
+      expect(mockPage.getByText).toBeDefined();
+    });
+
+    it('should handle multiple error selectors', () => {
+      const locator = mockPage.locator('selector');
+      expect(locator).toBeDefined();
+    });
+  });
+
+  describe('attemptLogin', () => {
+    it('should handle successful login', async () => {
+      mockPage.waitForURL = vi.fn().mockResolvedValue(undefined);
+      
+      // Simulate successful login flow
+      await mockPage.goto('/login');
+      await mockPage.fill('[name="identifier"]', 'test@example.com');
+      await mockPage.fill('[name="password"]', 'password123');
+      await mockPage.click('[type="submit"]');
+      
+      expect(mockPage.goto).toHaveBeenCalledWith('/login');
+      expect(mockPage.fill).toHaveBeenCalledTimes(2);
+      expect(mockPage.click).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle login errors', async () => {
+      const errorLocator = mockPage.locator('[data-testid="error"]');
+      expect(errorLocator).toBeDefined();
+    });
+
+    it('should handle timeout', async () => {
+      mockPage.waitForTimeout = vi.fn().mockResolvedValue(undefined);
+      expect(mockPage.waitForTimeout).toBeDefined();
+    });
+
+    it('should not have unhandled promise rejections from race condition', async () => {
+      // Test that all branches of Promise.race have catch handlers
+      const promises = [
+        Promise.reject(new Error('URL wait failed')).catch(() => null),
+        Promise.reject(new Error('Error locator failed')).catch(() => null),
+        Promise.resolve({ success: false, errorText: 'Timeout' }),
+      ];
+      
+      const result = await Promise.race(promises);
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('warmUpAuthSession', () => {
+    it('should call session endpoint', async () => {
+      await mockPage.request.get('/api/auth/session');
+      expect(mockPage.request.get).toHaveBeenCalledWith('/api/auth/session');
+    });
+
+    it('should handle session endpoint failures gracefully', async () => {
+      mockPage.request.get = vi.fn().mockRejectedValue(new Error('Network error'));
+      
+      // Should not throw
+      try {
+        await mockPage.request.get('/api/auth/session');
+      } catch {
+        // Expected to be caught internally
+      }
+      
+      expect(mockPage.request.get).toHaveBeenCalled();
+    });
+  });
+
+  describe('fetchCsrfToken', () => {
+    it('should return csrf-disabled in bypass mode', () => {
+      const token = 'csrf-disabled';
+      expect(token).toBe('csrf-disabled');
+    });
+
+    it('should extract token from cookie', async () => {
+      const cookies = [
+        { name: 'next-auth.csrf-token', value: encodeURIComponent('token123|hash456') },
+      ];
+      mockPage.context = vi.fn().mockReturnValue({
+        cookies: vi.fn().mockResolvedValue(cookies),
+      });
+      
+      await mockPage.context().cookies();
+      expect(mockPage.context).toHaveBeenCalled();
+    });
+
+    it('should handle missing csrf endpoint gracefully', async () => {
+      mockPage.request.get = vi.fn().mockRejectedValue(new Error('404'));
+      
+      try {
+        await mockPage.request.get('/api/auth/csrf');
+      } catch {
+        // Expected to be caught
+      }
+      
+      expect(mockPage.request.get).toHaveBeenCalled();
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/e2e/utils/auth.ts">
+<![CDATA[
+import type { Page } from '@playwright/test';
+import { encode as encodeJwt } from 'next-auth/jwt';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import { buildSessionClaims, resolveOrgId } from './session-claims';
+
+export type TestUser = {
+  email: string;
+  password: string;
+  employeeNumber?: string;
+};
+
+const allowCsrfBypass =
+  process.env.NEXTAUTH_SKIP_CSRF_CHECK === 'true' || process.env.NODE_ENV === 'test';
+
+export const loginSelectors = {
+  identifier: '[data-testid="login-email"], input[name="loginIdentifier"], input[name="identifier"], input[type="email"]',
+  password: '[data-testid="login-password"], input[name="password"]',
+  submit: '[data-testid="login-submit"], button[type="submit"], [data-testid="auth-submit"]',
+  // Exclude Next.js announcer which is role="alert" but empty
+  errorSelectors: ['[role="alert"]:not(#__next-route-announcer__)', '[data-testid="auth-error"]'],
+};
+
+export function getTestUserFromEnv(): TestUser | null {
+  const email = process.env.TEST_USER_EMAIL || process.env.TEST_SUPERADMIN_IDENTIFIER;
+  const password = process.env.TEST_USER_PASSWORD || process.env.TEST_SUPERADMIN_PASSWORD;
+  const employeeNumber = process.env.TEST_EMPLOYEE_NUMBER || process.env.TEST_SUPERADMIN_EMPLOYEE || 'EMP001';
+
+  if (!email || !password) {
+    return null;
+  }
+
+  return { email, password, employeeNumber };
+}
+
+export function getNonAdminUserFromEnv(): TestUser | null {
+  const email =
+    process.env.TEST_NONADMIN_IDENTIFIER ||
+    process.env.TEST_MANAGER_IDENTIFIER ||
+    process.env.TEST_TENANT_IDENTIFIER ||
+    process.env.TEST_USER_NONADMIN_EMAIL;
+
+  const password =
+    process.env.TEST_NONADMIN_PASSWORD ||
+    process.env.TEST_MANAGER_PASSWORD ||
+    process.env.TEST_TENANT_PASSWORD ||
+    process.env.TEST_USER_NONADMIN_PASSWORD;
+
+  const employeeNumber =
+    process.env.TEST_NONADMIN_EMPLOYEE ||
+    process.env.TEST_MANAGER_EMPLOYEE ||
+    process.env.TEST_TENANT_EMPLOYEE;
+
+  if (!email || !password) {
+    return null;
+  }
+
+  return { email, password, employeeNumber };
+}
+
+export async function fillLoginForm(page: Page, identifier: string, password: string) {
+  await page.waitForSelector(loginSelectors.identifier, { timeout: 20000 });
+  await page.waitForSelector(loginSelectors.password, { timeout: 20000 });
+  await page.waitForSelector(loginSelectors.submit, { timeout: 20000 });
+  
+  // Wait for form to be fully interactive
+  await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
+  
+  await page.fill(loginSelectors.identifier, identifier);
+  await page.fill(loginSelectors.password, password);
+  
+  // Wait for form validation to complete (button becomes enabled)
+  await page.locator(loginSelectors.submit).waitFor({ state: 'attached', timeout: 5000 });
+  // Give React/validation a tick to process
+  await page.waitForLoadState('domcontentloaded');
+  
+  await page.click(loginSelectors.submit);
+}
+
+export function getErrorLocator(page: Page) {
+  const locator = page.locator(loginSelectors.errorSelectors.join(', '));
+  return locator.or(page.getByText(/invalid|incorrect|try again/i));
+}
+
+async function warmUpAuthSession(page: Page) {
+  // NextAuth v5 exposes /api/auth/session (not /csrf). Hit it once to prime cookies.
+  try {
+    const sessionResponse = await page.request.get('/api/auth/session');
+    if (sessionResponse.ok) {
+      await sessionResponse.text().catch(() => '');
+    }
+  } catch {
+    // ignore priming failures (dev server might be cold)
+  }
+}
+
+async function fetchCsrfToken(page: Page): Promise<string | undefined> {
+  // In test/CI we explicitly skip the CSRF check
+  if (allowCsrfBypass) {
+    await warmUpAuthSession(page);
+    return 'csrf-disabled';
+  }
+
+  await warmUpAuthSession(page);
+
+  // Try to derive token from cookie if server sets it
+  try {
+    const cookies = await page.context().cookies();
+    const csrfCookie = cookies.find(c => c.name.includes('next-auth.csrf-token'));
+    if (csrfCookie?.value) {
+      const raw = decodeURIComponent(csrfCookie.value);
+      const [token] = raw.split('|');
+      if (token) return token;
+    }
+  } catch {
+    // ignore cookie extraction failures
+  }
+
+  // As a last resort, attempt legacy endpoint but harden against invalid JSON
+  try {
+    const response = await page.request.get('/api/auth/csrf');
+    const bodyText = (await response.text().catch(() => ''))?.trim();
+    if (bodyText) {
+      const match = bodyText.match(/"csrfToken"\s*:\s*"([^"]+)"/i);
+      if (match?.[1]) return match[1];
+      try {
+        const parsed = JSON.parse(bodyText);
+        return parsed?.csrfToken || parsed?.csrf?.token;
+      } catch {
+        // ignore JSON parse errors (common when endpoint is missing)
+      }
+    }
+  } catch {
+    // ignore missing endpoint errors
+  }
+
+  return undefined;
+}
+
+export async function attemptLogin(page: Page, identifier: string, password: string, successPattern = /\/dashboard/) {
+  const resultDetails: { success: boolean; errorText?: string } = { success: false };
+  let formFilled = false;
+
+  // Prime CSRF cookie/session before hitting the login form
+  await warmUpAuthSession(page);
+
+  // Fast-path: test-only session minting to avoid UI flakiness when credentials callbacks withhold cookies
+  try {
+    const orgId =
+      process.env.TEST_ORG_ID ||
+      process.env.PUBLIC_ORG_ID ||
+      process.env.DEFAULT_ORG_ID;
+    const resp = await page.request.post('/api/auth/test/session', {
+      headers: { 'Content-Type': 'application/json' },
+      data: { email: identifier, ...(orgId ? { orgId } : {}) },
+      timeout: 15000,
+    });
+    if (resp.ok()) {
+      const json = await resp.json().catch(() => ({}));
+      const sessionToken = (json as { sessionToken?: string }).sessionToken;
+      if (sessionToken) {
+        const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+        const origin = new URL(baseUrl);
+        const secure = origin.protocol === 'https:';
+        await page.context().addCookies([
+          {
+            name: secure ? '__Secure-authjs.session-token' : 'authjs.session-token',
+            value: sessionToken,
+            domain: origin.hostname,
+            path: '/',
+            httpOnly: true,
+            sameSite: 'Lax',
+            secure,
+          },
+          {
+            name: secure ? '__Secure-next-auth.session-token' : 'next-auth.session-token',
+            value: sessionToken,
+            domain: origin.hostname,
+            path: '/',
+            httpOnly: true,
+            sameSite: 'Lax',
+            secure,
+          },
+        ]);
+        await page.goto('/dashboard', { waitUntil: 'domcontentloaded', timeout: 10000 }).catch(() => {});
+        const dashUrl = page.url();
+        if (dashUrl.includes('/dashboard') && !dashUrl.includes('/login')) {
+          resultDetails.success = true;
+          resultDetails.errorText = undefined;
+          return resultDetails;
+        }
+      }
+    }
+  } catch {
+    // Ignore fast-path errors and fall back to UI flow
+  }
+
+  try {
+    await fillLoginForm(page, identifier, password);
+    formFilled = true;
+  } catch (formErr) {
+    // If the login UI is missing/disabled, fall back to programmatic/offline flows
+    resultDetails.errorText = formErr instanceof Error ? formErr.message : String(formErr);
+  }
+
+  const errorLocator = getErrorLocator(page);
+
+  try {
+    // Wait for either success redirect, error message, or timeout
+    // Each branch has catch handler to prevent unhandled rejections from losing promises
+    if (formFilled) {
+      const raceResult = await Promise.race([
+        page.waitForURL(successPattern, { timeout: 20000 })
+          .then(() => ({ success: true }))
+          .catch(() => null), // Losing branch - swallow rejection
+        errorLocator.first().waitFor({ state: 'visible', timeout: 20000 })
+          .then(async () => ({
+            success: false,
+            errorText: await errorLocator.first().innerText().catch(() => 'Login error displayed'),
+          }))
+          .catch(() => null), // Losing branch - swallow rejection
+        page.waitForTimeout(20000).then(() => ({ success: false, errorText: 'Login timeout - no redirect or error' })),
+      ]).then(result => result || { success: false, errorText: 'All branches timed out' });
+
+      resultDetails.success = raceResult.success;
+      resultDetails.errorText = raceResult.errorText;
+    }
+
+    // If still on login page after timeout, check if we're actually logged in
+    if (!resultDetails.success) {
+      const currentUrl = page.url();
+      if (currentUrl.includes('/dashboard') || currentUrl.includes('/home')) {
+        resultDetails.success = true;
+        resultDetails.errorText = undefined;
+      } else {
+        // Try to manually navigate to dashboard to see if session exists
+        await page.goto('/dashboard', { waitUntil: 'domcontentloaded', timeout: 10000 }).catch(() => {});
+        const finalUrl = page.url();
+        if (finalUrl.includes('/dashboard') && !finalUrl.includes('/login')) {
+          resultDetails.success = true;
+          resultDetails.errorText = undefined;
+        }
+      }
+    }
+
+    // If UI flow failed, mint a session directly via the test endpoint
+    if (!resultDetails.success) {
+      try {
+        const orgId =
+          process.env.TEST_ORG_ID ||
+          process.env.PUBLIC_ORG_ID ||
+          process.env.DEFAULT_ORG_ID;
+        const sessionResp = await page.request.post('/api/auth/test/session', {
+          headers: { 'Content-Type': 'application/json' },
+          data: { email: identifier, ...(orgId ? { orgId } : {}) },
+          timeout: 15000,
+        });
+        const json = await sessionResp.json().catch(() => ({}));
+        const sessionToken = (json as { sessionToken?: string }).sessionToken;
+        if (sessionResp.ok()) {
+          if (sessionToken) {
+            const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+            const origin = new URL(baseUrl);
+            const secure = origin.protocol === 'https:';
+            await page.context().addCookies([
+              {
+                name: secure ? '__Secure-authjs.session-token' : 'authjs.session-token',
+                value: sessionToken,
+                domain: origin.hostname,
+                path: '/',
+                httpOnly: true,
+                sameSite: 'Lax',
+                secure,
+              },
+              {
+                name: secure ? '__Secure-next-auth.session-token' : 'next-auth.session-token',
+                value: sessionToken,
+                domain: origin.hostname,
+                path: '/',
+                httpOnly: true,
+                sameSite: 'Lax',
+                secure,
+              },
+            ]);
+          }
+          await page.goto('/dashboard', { waitUntil: 'domcontentloaded', timeout: 10000 }).catch(() => {});
+          const finalUrl = page.url();
+          if (finalUrl.includes('/dashboard') && !finalUrl.includes('/login')) {
+            resultDetails.success = true;
+            resultDetails.errorText = undefined;
+          } else {
+            const cookies = await page.context().cookies().catch(() => []);
+            console.warn('[auth.ts] test/session applied but still on login', {
+              url: finalUrl,
+              cookies: cookies.map(c => c.name),
+            });
+            resultDetails.errorText = `fallback login did not reach dashboard (url=${finalUrl})`;
+          }
+        } else {
+          resultDetails.errorText = `fallback login failed: ${sessionResp.status()}`;
+        }
+      } catch (fallbackErr) {
+        resultDetails.errorText = fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr);
+      }
+    }
+
+    // Last-resort offline session injection (mock JWT or storageState)
+    // AUDIT-2025-11-30: Made opt-in via ALLOW_OFFLINE_LOGIN to prevent masking real auth failures
+    // In RBAC-critical E2E suites, this should be OFF to catch real regressions
+  const allowOfflineFallback = process.env.ALLOW_OFFLINE_LOGIN === 'true';
+  if (!resultDetails.success && allowOfflineFallback) {
+    console.warn('[auth.ts] Using offline fallback session - real auth may be broken!');
+    try {
+      const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+      const secret =
+        process.env.NEXTAUTH_SECRET ||
+        process.env.AUTH_SECRET;
+      if (!secret) {
+        throw new Error(
+          'NEXTAUTH_SECRET or AUTH_SECRET is required for offline login fallback (no default).'
+        );
+      }
+      const role = process.env.OFFLINE_LOGIN_ROLE || 'ADMIN';
+      const claims = buildSessionClaims({
+        role,
+        email: identifier || `${role.toLowerCase()}@offline.test`,
+        orgId: resolveOrgId(),
+        userId: crypto.randomUUID(),
+      });
+      const sessionToken = await encodeJwt({
+        secret,
+        maxAge: 30 * 24 * 60 * 60,
+        token: claims,
+      });
+
+        const origin = new URL(baseUrl);
+        await page.context().addCookies([
+          {
+            name: baseUrl.startsWith('https') ? '__Secure-authjs.session-token' : 'authjs.session-token',
+            value: sessionToken,
+            domain: origin.hostname,
+            path: '/',
+            httpOnly: true,
+            sameSite: 'Lax',
+            secure: origin.protocol === 'https:',
+          },
+          {
+            name: baseUrl.startsWith('https') ? '__Secure-next-auth.session-token' : 'next-auth.session-token',
+            value: sessionToken,
+            domain: origin.hostname,
+            path: '/',
+            httpOnly: true,
+            sameSite: 'Lax',
+            secure: origin.protocol === 'https:',
+          },
+        ]);
+
+        // Also set localStorage role for client-side guards
+        await page.addInitScript(({ r }) => localStorage.setItem('fixzit-role', r.toLowerCase()), { r: role });
+
+        await page.goto('/dashboard', { waitUntil: 'domcontentloaded', timeout: 10000 }).catch(() => {});
+        const finalUrl = page.url();
+        if (finalUrl.includes('/dashboard') && !finalUrl.includes('/login')) {
+          resultDetails.success = true;
+          resultDetails.errorText = undefined;
+        } else {
+          // As a fallback, load storage state if available
+          const statePath = process.env.AUTH_STORAGE_STATE || 'tests/state/superadmin.json';
+          if (fs.existsSync(statePath)) {
+            const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+            if (Array.isArray(state.cookies)) {
+              await page.context().addCookies(
+                state.cookies.map((c: any) => ({
+                  ...c,
+                  domain: origin.hostname,
+                })),
+              );
+            }
+            if (Array.isArray(state.origins)) {
+              for (const originState of state.origins) {
+                if (originState.origin === baseUrl && Array.isArray(originState.localStorage)) {
+                  await page.addInitScript((entries) => {
+                    entries.forEach(({ name, value }) => localStorage.setItem(name, value));
+                  }, originState.localStorage);
+                }
+              }
+            }
+            await page.goto('/dashboard', { waitUntil: 'domcontentloaded', timeout: 10000 }).catch(() => {});
+            const finalUrl2 = page.url();
+            if (finalUrl2.includes('/dashboard') && !finalUrl2.includes('/login')) {
+              resultDetails.success = true;
+              resultDetails.errorText = undefined;
+            }
+          }
+        }
+      } catch (fallbackErr) {
+        resultDetails.errorText = resultDetails.errorText || (fallbackErr as Error)?.message;
+      }
+    }
+
+    return resultDetails;
+  } catch (err) {
+    resultDetails.success = false;
+    resultDetails.errorText = err instanceof Error ? err.message : 'unexpected login error';
+    return resultDetails;
+  }
+}
+
+/**
+ * Logs out the current user and verifies session cleanup
+ * @param page - Playwright page object
+ * @param verifyRedirect - Whether to verify redirect to login (default: true)
+ * @returns Promise that resolves when logout is complete
+ */
+export async function logoutUser(page: Page, verifyRedirect = true): Promise<void> {
+  // Click user menu to open dropdown
+  const userMenu = page.locator('[data-testid="user-menu"]').first();
+  await userMenu.waitFor({ state: 'visible', timeout: 5000 });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await userMenu.scrollIntoViewIfNeeded();
+  await userMenu.click({ timeout: 15000 }).catch(async () => {
+    await userMenu.click({ timeout: 15000, force: true }).catch(async () => {
+      await page.evaluate(() => {
+        const el = document.querySelector('[data-testid="user-menu"]') as HTMLElement | null;
+        el?.click();
+      });
+    });
+  });
+
+  // Wait for dropdown menu to become visible (animation complete)
+  await page.locator('[data-testid="logout-button"]').waitFor({ state: 'visible', timeout: 5000 });
+
+  // Click logout button
+  const logoutButton = page.locator('[data-testid="logout-button"]').first();
+  await logoutButton.waitFor({ state: 'visible', timeout: 5000 });
+  await logoutButton.click();
+
+  // Wait for logout page to load
+  await page.waitForURL(/\/logout/, { timeout: 5000 });
+
+  // Wait for logout spinner (confirms logout process started)
+  await page.locator('[data-testid="logout-spinner"]').waitFor({ 
+    state: 'visible', 
+    timeout: 3000 
+  }).catch(() => {
+    // Spinner might be too fast to catch, that's OK
+  });
+
+  if (verifyRedirect) {
+    // Wait for redirect to login page (happens after cleanup completes)
+    await page.waitForURL(/\/login/, { timeout: 15000 });
+
+    // Wait for session cookies to be cleared (poll with timeout)
+    await expect(async () => {
+      const cookies = await page.context().cookies();
+      const sessionCookie = cookies.find(c => 
+        c.name.includes('session-token') || 
+        c.name.includes('next-auth') ||
+        c.name.includes('authjs')
+      );
+      expect(sessionCookie).toBeUndefined();
+    }).toPass({ timeout: 5000 });
+
+    // Verify session cookies are cleared
+    const cookies = await page.context().cookies();
+    const sessionCookie = cookies.find(c => 
+      c.name.includes('session-token') || 
+      c.name.includes('next-auth') ||
+      c.name.includes('authjs')
+    );
+    
+    if (sessionCookie) {
+      throw new Error(`Session cookie still present after logout: ${sessionCookie.name}`);
+    }
+
+    // Verify we can't access protected routes
+    await page.goto('/dashboard');
+    await page.waitForURL(/\/login/, { timeout: 5000 });
+  }
+}
+
+]]>
+</file>
+
+<file path="tests/e2e/utils/credentials.ts">
+<![CDATA[
+/**
+ * @file Secure Test Credentials Utility
+ * @description Provides secure credential retrieval for E2E tests.
+ *              NEVER uses fallback defaults - requires explicit env configuration.
+ *
+ * Required Environment Variables (see env.example):
+ *   TEST_FINANCE_OFFICER_EMAIL, TEST_FINANCE_OFFICER_PASSWORD
+ *   TEST_HR_OFFICER_EMAIL, TEST_HR_OFFICER_PASSWORD
+ *   TEST_SUPPORT_AGENT_EMAIL, TEST_SUPPORT_AGENT_PASSWORD
+ *   TEST_OPERATIONS_MANAGER_EMAIL, TEST_OPERATIONS_MANAGER_PASSWORD
+ *   TEST_TEAM_MEMBER_EMAIL, TEST_TEAM_MEMBER_PASSWORD
+ *   TEST_ADMIN_EMAIL, TEST_ADMIN_PASSWORD
+ *   TEST_ORG_ID - Required for tenant-scoped validation (multi-tenancy checks)
+ *
+ * @security This module intentionally has NO fallback credentials.
+ *           Tests will fail fast if env vars are missing.
+ */
+
+export interface TestCredentials {
+  email: string;
+  password: string;
+  /** Optional employee number for employee-number login tests */
+  employeeNumber?: string;
+  /** Optional user ID for row-level RBAC assertions (validates assigned_to_user_id, etc.) */
+  userId?: string;
+}
+
+export type SubRoleKey =
+  | 'FINANCE_OFFICER'
+  | 'HR_OFFICER'
+  | 'SUPPORT_AGENT'
+  | 'OPERATIONS_MANAGER'
+  | 'TEAM_MEMBER'
+  | 'ADMIN';
+
+/**
+ * Get optional test org identifier used for tenant-scoping assertions.
+ * Returns undefined if not configured, allowing tests to skip org_id checks gracefully.
+ */
+export function getTestOrgIdOptional(): string | undefined {
+  return process.env.TEST_ORG_ID;
+}
+
+/**
+ * Get required test credentials for a specific sub-role.
+ * Throws immediately if environment variables are not configured.
+ *
+ * @param subRole - The sub-role key (e.g., 'FINANCE_OFFICER', 'HR_OFFICER')
+ * @returns TestCredentials with email and password
+ * @throws Error if required env vars are not set
+ *
+ * @example
+ * const creds = getRequiredTestCredentials('FINANCE_OFFICER');
+ * // Uses TEST_FINANCE_OFFICER_EMAIL and TEST_FINANCE_OFFICER_PASSWORD
+ */
+export function getRequiredTestCredentials(subRole: SubRoleKey): TestCredentials {
+  const emailKey = `TEST_${subRole}_EMAIL`;
+  const passwordKey = `TEST_${subRole}_PASSWORD`;
+  const employeeKey = `TEST_${subRole}_EMPLOYEE`;
+  const userIdKey = `TEST_${subRole}_USER_ID`;
+
+  const email = process.env[emailKey];
+  const password = process.env[passwordKey];
+  const employeeNumber = process.env[employeeKey]; // Optional - only needed for employee-number login test
+  const userId = process.env[userIdKey]; // Optional - enables user-level row assertions
+
+  const missing: string[] = [];
+  if (!email) missing.push(emailKey);
+  if (!password) missing.push(passwordKey);
+  // AUDIT-2025-11-30: Employee number is optional, not required for suite gating
+  // The employee-number login test uses test.skip() to gate itself
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing required test credentials for ${subRole}:\n` +
+        `  ${missing.join(', ')}\n` +
+        `\n` +
+        `E2E tests require explicit credentials in environment variables.\n` +
+        `See env.example for the full list of TEST_* variables.\n` +
+        `\n` +
+        `To configure:\n` +
+        `  1. Copy env.example to .env.local (if not done)\n` +
+        `  2. Set ${emailKey}=<test-user-email>\n` +
+        `  3. Set ${passwordKey}=<test-user-password>\n` +
+        `  4. (Optional) Set ${employeeKey}=<employee-number> for employee login tests\n` +
+        `\n` +
+        `SECURITY: Never commit credentials. Use .env.local for local testing,\n` +
+        `or CI secrets for automated pipelines.`
+    );
+  }
+
+  return { 
+    email, 
+    password,
+    ...(employeeNumber ? { employeeNumber } : {}),
+    ...(userId ? { userId } : {}),
+  };
+}
+
+/**
+ * Check if credentials are available for a specific sub-role.
+ * Does not throw - returns boolean for conditional logic.
+ *
+ * NOTE: Only checks email/password availability. Employee number is optional
+ * and should only gate the specific employee-number login test, not entire suites.
+ * Use hasTestCredentialsWithEmployee() if you need to check employee number.
+ *
+ * @param subRole - The sub-role key
+ * @returns true if email and password are configured
+ */
+export function hasTestCredentials(subRole: SubRoleKey): boolean {
+  const emailKey = `TEST_${subRole}_EMAIL`;
+  const passwordKey = `TEST_${subRole}_PASSWORD`;
+
+  return Boolean(process.env[emailKey] && process.env[passwordKey]);
+}
+
+/**
+ * Check if full credentials (including employee number) are available for ADMIN.
+ * Use this to gate employee-number-specific tests.
+ *
+ * @param subRole - The sub-role key
+ * @returns true if all credentials including employee number are configured
+ */
+export function hasTestCredentialsWithEmployee(subRole: SubRoleKey): boolean {
+  const hasBasic = hasTestCredentials(subRole);
+  if (subRole === 'ADMIN') {
+    const employeeKey = `TEST_${subRole}_EMPLOYEE`;
+    return hasBasic && Boolean(process.env[employeeKey]);
+  }
+  return hasBasic;
+}
+
+/**
+ * Get all configured sub-roles from environment.
+ * Useful for dynamic test generation based on available credentials.
+ *
+ * @returns Array of SubRoleKey that have both email and password configured
+ */
+export function getConfiguredSubRoles(): SubRoleKey[] {
+  const allSubRoles: SubRoleKey[] = [
+    'FINANCE_OFFICER',
+    'HR_OFFICER',
+    'SUPPORT_AGENT',
+    'OPERATIONS_MANAGER',
+    'TEAM_MEMBER',
+    'ADMIN',
+  ];
+
+  return allSubRoles.filter(hasTestCredentials);
+}
+
+/**
+ * Validate that all required test credentials are configured.
+ * Throws a comprehensive error listing all missing credentials.
+ *
+ * @param requiredSubRoles - Array of sub-roles that must have credentials
+ * @throws Error if any required credentials are missing
+ */
+export function validateRequiredCredentials(requiredSubRoles: SubRoleKey[]): void {
+  const missingCredentials: string[] = [];
+
+  for (const subRole of requiredSubRoles) {
+    const emailKey = `TEST_${subRole}_EMAIL`;
+    const passwordKey = `TEST_${subRole}_PASSWORD`;
+
+    if (!process.env[emailKey]) missingCredentials.push(emailKey);
+    if (!process.env[passwordKey]) missingCredentials.push(passwordKey);
+  }
+
+  if (missingCredentials.length > 0) {
+    throw new Error(
+      `E2E Test Setup Error: Missing ${missingCredentials.length} required credentials:\n\n` +
+        missingCredentials.map((key) => `  • ${key}`).join('\n') +
+        `\n\n` +
+        `Configure these in .env.local or CI secrets.\n` +
+        `See env.example for documentation.`
+    );
+  }
+}
+
+/**
+ * Get the test organization ID for tenant-scoped validation.
+ * Required for multi-tenancy checks in E2E tests.
+ *
+ * @returns The TEST_ORG_ID environment variable value
+ * @throws Error if TEST_ORG_ID is not configured
+ *
+ * @example
+ * const orgId = getTestOrgId();
+ * // Use in expectAllowedWithBodyCheck for tenant validation
+ * body.forEach(item => expect(item.org_id).toBe(orgId));
+ */
+export function getTestOrgId(): string {
+  const orgId = process.env.TEST_ORG_ID;
+
+  if (!orgId) {
+    throw new Error(
+      `Missing required TEST_ORG_ID environment variable.\n\n` +
+        `TEST_ORG_ID is required for multi-tenancy validation in E2E tests.\n` +
+        `It should be set to the organization ID of your test tenant.\n\n` +
+        `To configure:\n` +
+        `  1. Set TEST_ORG_ID=<your-test-org-id> in .env.local\n` +
+        `  2. Or add TEST_ORG_ID to CI secrets\n\n` +
+        `SECURITY: This validates that API responses don't leak\n` +
+        `data from other tenants (cross-tenant data isolation).`
+    );
+  }
+
+  return orgId;
+}
+
+]]>
+</file>
+
+<file path="tests/e2e/utils/session-claims.ts">
+<![CDATA[
+import crypto from 'node:crypto';
+
+type BuildSessionClaimsInput = {
+  role: string;
+  email?: string;
+  orgId?: string;
+  userId?: string;
+  status?: string;
+  unitId?: string;
+  assignedToUserId?: string;
+  permissions?: string[];
+  isSuperAdmin?: boolean;
+};
+
+const defaultOrgId =
+  process.env.TEST_ORG_ID ||
+  process.env.DEFAULT_ORG_ID ||
+  process.env.PUBLIC_ORG_ID ||
+  'ffffffffffffffffffffffff';
+
+export function buildSessionClaims({
+  role,
+  email,
+  orgId = defaultOrgId,
+  userId = crypto.randomUUID(),
+  status = 'ACTIVE',
+  unitId,
+  assignedToUserId,
+  permissions = [],
+  isSuperAdmin,
+}: BuildSessionClaimsInput) {
+  const normalizedRole = role;
+  const id = userId;
+  const finalEmail = email || `${normalizedRole.toLowerCase()}@test.local`;
+  const assigned = assignedToUserId || id;
+
+  return {
+    id,
+    sub: id,
+    email: finalEmail,
+    role: normalizedRole,
+    roles: [normalizedRole],
+    orgId,
+    org_id: orgId,
+    tenantId: orgId,
+    tenant_id: orgId,
+    status,
+    unit_id: unitId,
+    assigned_to_user_id: assigned,
+    isSuperAdmin: isSuperAdmin ?? normalizedRole === 'SUPER_ADMIN',
+    permissions,
+  };
+}
+
+export function resolveOrgId() {
+  return defaultOrgId;
+}
+
+]]>
+</file>
+
+<file path="tests/e2e/utils/tenant-validation.ts">
+<![CDATA[
+/**
+ * Shared Tenant Validation Utilities for E2E Tests
+ * 
+ * AUDIT-2025-12-01: Extracted from subrole-api-access.spec.ts to ensure
+ * consistent validation depth across all E2E suites.
+ * 
+ * This module provides recursive org_id validation that handles:
+ * - Direct objects: { org_id: "..." }
+ * - Arrays: [{ org_id: "..." }, ...]
+ * - Wrapped payloads: { data: [...] }, { items: [...] }, { results: [...] }
+ * - Nested structures: { summary: { org_id: "..." }, rows: [...] }
+ * - Both snake_case (org_id) and camelCase (orgId) variants
+ */
+
+import { expect } from '@playwright/test';
+
+/**
+ * Options for walkAndVerifyOrgId
+ */
+export interface WalkOrgIdOptions {
+  /** The expected org_id value (from TEST_ORG_ID) */
+  expectedOrgId: string;
+  /** Endpoint path for error messages */
+  endpoint: string;
+  /** Role or context for error messages (optional) */
+  context?: string;
+  /**
+   * Whether to require org_id presence on leaf objects.
+   * 
+   * Raw default: false (for backward compatibility with walkAndVerifyOrgId direct calls).
+   * 
+   * IMPORTANT: Use verifyTenantScoping() for tenant-scoped data APIs - it sets
+   * requirePresence: true (fail-closed pattern). Only use walkAndVerifyOrgId
+   * directly with requirePresence: false for documented edge cases.
+   */
+  requirePresence?: boolean;
+}
+
+/**
+ * Keys that are pure metadata and never contain tenant-scoped business data.
+ * Skipped during recursive traversal to avoid false positives.
+ */
+const METADATA_ONLY_KEYS = new Set(['meta', 'pagination', '_metadata', '__v', 'count', 'total', 'page', 'limit']);
+
+/**
+ * Recursively walks a response body and verifies all org_id/orgId fields match expected tenant.
+ * 
+ * This is the gold-standard pattern for tenant validation in E2E tests:
+ * - Handles any API response shape (direct, array, wrapped, nested)
+ * - Supports both org_id and orgId variants
+ * - Provides detailed error messages with JSON path for debugging
+ * 
+ * @example
+ * ```ts
+ * const body = await response.json();
+ * walkAndVerifyOrgId(body, {
+ *   expectedOrgId: TEST_ORG_ID,
+ *   endpoint: '/api/work-orders',
+ *   context: 'health check'
+ * });
+ * ```
+ */
+export function walkAndVerifyOrgId(
+  value: unknown,
+  options: WalkOrgIdOptions,
+  path = 'body'
+): void {
+  if (!value || typeof value !== 'object') return;
+
+  // Handle arrays - verify each item
+  if (Array.isArray(value)) {
+    value.forEach((item, idx) => walkAndVerifyOrgId(item, options, `${path}[${idx}]`));
+    return;
+  }
+
+  const v = value as Record<string, unknown>;
+  const { expectedOrgId, endpoint, context, requirePresence = false } = options;
+
+  // Check both org_id and orgId - Mongoose uses camelCase, some APIs use snake_case
+  const foundOrgId = v.org_id ?? v.orgId;
+
+  // Optionally enforce org_id presence (fail-closed pattern)
+  if (requirePresence && foundOrgId === undefined) {
+    // Before failing, check if this is a wrapper object (no org_id expected at wrapper level)
+    const isWrapperOnly = ['data', 'items', 'results', 'meta', 'pagination'].some(
+      key => key in v && !('org_id' in v) && !('orgId' in v)
+    );
+
+    if (!isWrapperOnly) {
+      expect(
+        false,
+        `TENANT ID MISSING: ${endpoint} at ${path} has no org_id or orgId field.\n` +
+        `Context: ${context || 'unknown'}\n` +
+        `Expected: org_id or orgId field with value ${expectedOrgId}\n\n` +
+        `SECURITY RISK: APIs that omit tenant identifiers can leak cross-tenant data.\n` +
+        `ACTION:\n` +
+        `  • If this endpoint SHOULD return tenant-scoped data: Fix backend to include org_id\n` +
+        `  • If this endpoint is tenant-agnostic by design: Set requirePresence: false`
+      ).toBe(true);
+    }
+  }
+
+  // Verify org_id value when present
+  if (foundOrgId !== undefined) {
+    expect(
+      String(foundOrgId),
+      `TENANT MISMATCH at ${path}: Expected org_id/orgId=${expectedOrgId}, got ${foundOrgId}\n` +
+      `Endpoint: ${endpoint}\n` +
+      `Context: ${context || 'unknown'}\n\n` +
+      `SECURITY RISK: Cross-tenant data leak detected!`
+    ).toBe(expectedOrgId);
+  }
+
+  // Recurse into ALL nested objects to catch tenant leaks
+  // regardless of the key name (summary, payload, user, rows, etc.)
+  for (const [key, val] of Object.entries(v)) {
+    // Skip non-objects and metadata-only keys
+    if (!val || typeof val !== 'object') continue;
+    if (METADATA_ONLY_KEYS.has(key)) continue;
+
+    // Recurse into this nested object/array
+    walkAndVerifyOrgId(val, options, `${path}.${key}`);
+  }
+}
+
+/**
+ * Strict tenant scoping verification for data-bearing API responses.
+ * 
+ * AUDIT-2025-11-30: Default to requirePresence: true (fail-closed pattern).
+ * This ensures future callers don't accidentally mask missing org_id fields.
+ * 
+ * Use this for:
+ * - API responses that SHOULD contain tenant-scoped data (products, work orders, etc.)
+ * - Any endpoint where missing org_id indicates a potential cross-tenant leak
+ * 
+ * @example
+ * ```ts
+ * if (response.status() === 200 && TEST_ORG_ID) {
+ *   const body = await response.json();
+ *   verifyTenantScoping(body, TEST_ORG_ID, '/api/work-orders', 'work order list');
+ * }
+ * ```
+ */
+export function verifyTenantScoping(
+  body: unknown,
+  expectedOrgId: string,
+  endpoint: string,
+  context?: string
+): void {
+  walkAndVerifyOrgId(body, {
+    expectedOrgId,
+    endpoint,
+    context,
+    requirePresence: true, // AUDIT-2025-11-30: Fail-closed by default
+  });
+}
+
+/**
+ * Lenient tenant scoping verification for health checks and edge cases.
+ * 
+ * AUDIT-2025-11-30: Explicit lenient helper for cases where org_id presence
+ * cannot be guaranteed (empty responses, health endpoints, etc.).
+ * 
+ * Use this ONLY when:
+ * - The endpoint may legitimately return empty/null responses
+ * - You're testing authentication/connectivity, not data scoping
+ * - You've documented why leniency is acceptable
+ * 
+ * WARNING: Using this helper means missing org_id will NOT fail the test.
+ * Prefer verifyTenantScoping() for data-bearing responses.
+ * 
+ * @example
+ * ```ts
+ * // Health check - may return empty body or non-tenant-scoped status
+ * if (response.status() === 200 && TEST_ORG_ID) {
+ *   const body = await response.json();
+ *   verifyTenantScopingLenient(body, TEST_ORG_ID, '/api/health', 'health check');
+ * }
+ * ```
+ */
+export function verifyTenantScopingLenient(
+  body: unknown,
+  expectedOrgId: string,
+  endpoint: string,
+  context?: string
+): void {
+  walkAndVerifyOrgId(body, {
+    expectedOrgId,
+    endpoint,
+    context,
+    requirePresence: false, // Explicit leniency - document why you need this
+  });
+}
+
+]]>
+</file>
+
+<file path="tests/helpers/console.ts">
+<![CDATA[
+import { Page } from "@playwright/test";
+
+export async function assertNoConsoleErrors(
+  page: Page,
+  scenario: () => Promise<void>,
+) {
+  const errors: string[] = [];
+  page.on("console", (msg) => {
+    if (msg.type() !== "error") return;
+
+    const text = msg.text();
+    // Ignore dev-only noise (common Next.js 404s)
+    const ignored = ["_devMiddlewareManifest.json", "favicon.ico"];
+    if (ignored.some((token) => text.includes(token))) return;
+
+    errors.push(text);
+  });
+
+  await scenario();
+
+  if (errors.length > 0) {
+    throw new Error(`Console errors:\n${errors.join("\n")}`);
+  }
+}
+
+]]>
+</file>
+
+<file path="tests/helpers/mongooseMocks.test.ts">
+<![CDATA[
+/**
+ * Unit tests for Mongoose mock helpers
+ * Tests mock builder utilities used across the test suite
+ */
+
+import { describe, it, expect, vi } from 'vitest';
+import { makeFindSortLimitSelectLean, makeFindOneSelectLean } from './mongooseMocks';
+
+describe('Mongoose Mock Helpers', () => {
+  describe('makeFindSortLimitSelectLean', () => {
+    it('should create a complete find chain mock', () => {
+      const mockResult = [{ id: '1', name: 'Test' }];
+      const { chain, mocks } = makeFindSortLimitSelectLean(mockResult);
+
+      expect(chain.sort).toBeDefined();
+      expect(mocks.sort).toBeDefined();
+      expect(mocks.limit).toBeDefined();
+      expect(mocks.select).toBeDefined();
+      expect(mocks.lean).toBeDefined();
+    });
+
+    it('should chain sort -> limit -> select -> lean', async () => {
+      const mockResult = [{ id: '1', name: 'Test' }];
+      const { chain } = makeFindSortLimitSelectLean(mockResult);
+
+      const limitChain = chain.sort({ createdAt: -1 });
+      const selectChain = limitChain.limit(10);
+      const leanChain = selectChain.select('name email');
+      const result = await leanChain.lean();
+
+      expect(result).toEqual(mockResult);
+    });
+
+    it('should return mocks that can be verified', async () => {
+      const mockResult = [{ id: '1' }];
+      const { chain, mocks } = makeFindSortLimitSelectLean(mockResult);
+
+      await chain.sort({}).limit(5).select('id').lean();
+
+      expect(mocks.sort).toHaveBeenCalledWith({});
+      expect(mocks.limit).toHaveBeenCalledWith(5);
+      expect(mocks.select).toHaveBeenCalledWith('id');
+      expect(mocks.lean).toHaveBeenCalled();
+    });
+
+    it('should resolve with provided result', async () => {
+      const mockResult = [
+        { id: '1', name: 'Item 1' },
+        { id: '2', name: 'Item 2' },
+      ];
+      const { chain } = makeFindSortLimitSelectLean(mockResult);
+
+      const result = await chain.sort({}).limit(10).select('*').lean();
+
+      expect(result).toBe(mockResult);
+      expect(result).toHaveLength(2);
+    });
+
+    it('should handle empty array results', async () => {
+      const mockResult: unknown[] = [];
+      const { chain } = makeFindSortLimitSelectLean(mockResult);
+
+      const result = await chain.sort({}).limit(10).select('*').lean();
+
+      expect(result).toEqual([]);
+      expect(Array.isArray(result)).toBe(true);
+    });
+  });
+
+  describe('makeFindOneSelectLean', () => {
+    it('should create a findOne chain mock', () => {
+      const mockResult = { id: '1', name: 'Test' };
+      const { chain, mocks } = makeFindOneSelectLean(mockResult);
+
+      expect(chain.select).toBeDefined();
+      expect(mocks.select).toBeDefined();
+      expect(mocks.lean).toBeDefined();
+    });
+
+    it('should chain select -> lean', async () => {
+      const mockResult = { id: '1', name: 'Test' };
+      const { chain } = makeFindOneSelectLean(mockResult);
+
+      const leanChain = chain.select('name email');
+      const result = await leanChain.lean();
+
+      expect(result).toEqual(mockResult);
+    });
+
+    it('should return mocks that can be verified', async () => {
+      const mockResult = { id: '1' };
+      const { chain, mocks } = makeFindOneSelectLean(mockResult);
+
+      await chain.select('id name').lean();
+
+      expect(mocks.select).toHaveBeenCalledWith('id name');
+      expect(mocks.lean).toHaveBeenCalled();
+    });
+
+    it('should resolve with provided result', async () => {
+      const mockResult = { id: '1', email: 'test@example.com' };
+      const { chain } = makeFindOneSelectLean(mockResult);
+
+      const result = await chain.select('*').lean();
+
+      expect(result).toBe(mockResult);
+      expect(result.id).toBe('1');
+    });
+
+    it('should handle null results', async () => {
+      const mockResult = null;
+      const { chain } = makeFindOneSelectLean(mockResult);
+
+      const result = await chain.select('*').lean();
+
+      expect(result).toBeNull();
+    });
+
+    it('should handle undefined results', async () => {
+      const mockResult = undefined;
+      const { chain } = makeFindOneSelectLean(mockResult);
+
+      const result = await chain.select('*').lean();
+
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe('Integration scenarios', () => {
+    it('should mock typical Mongoose find query', async () => {
+      const mockUsers = [
+        { _id: '1', email: 'user1@test.com', role: 'admin' },
+        { _id: '2', email: 'user2@test.com', role: 'user' },
+      ];
+
+      const { chain, mocks } = makeFindSortLimitSelectLean(mockUsers);
+
+      // Simulate typical query: Model.find().sort().limit().select().lean()
+      const result = await chain
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .select('email role')
+        .lean();
+
+      expect(result).toEqual(mockUsers);
+      expect(mocks.sort).toHaveBeenCalledWith({ createdAt: -1 });
+      expect(mocks.limit).toHaveBeenCalledWith(10);
+      expect(mocks.select).toHaveBeenCalledWith('email role');
+    });
+
+    it('should mock typical Mongoose findOne query', async () => {
+      const mockUser = { _id: '1', email: 'admin@test.com', role: 'admin' };
+
+      const { chain, mocks } = makeFindOneSelectLean(mockUser);
+
+      // Simulate typical query: Model.findOne().select().lean()
+      const result = await chain.select('email role').lean();
+
+      expect(result).toEqual(mockUser);
+      expect(mocks.select).toHaveBeenCalledWith('email role');
+    });
+
+    it('should allow multiple mock instances independently', async () => {
+      const mock1 = makeFindSortLimitSelectLean([{ id: '1' }]);
+      const mock2 = makeFindSortLimitSelectLean([{ id: '2' }]);
+
+      const result1 = await mock1.chain.sort({}).limit(1).select('id').lean();
+      const result2 = await mock2.chain.sort({}).limit(1).select('id').lean();
+
+      expect(result1).toEqual([{ id: '1' }]);
+      expect(result2).toEqual([{ id: '2' }]);
+      expect(mock1.mocks.lean).toHaveBeenCalledTimes(1);
+      expect(mock2.mocks.lean).toHaveBeenCalledTimes(1);
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/helpers/mongooseMocks.ts">
+<![CDATA[
+import { vi } from "vitest";
+
+/**
+ * Utilities to build common Mongoose query chains for tests without repetitive inline mocks.
+ */
+export function makeFindSortLimitSelectLean<T>(result: T) {
+  const lean = vi.fn().mockResolvedValue(result);
+  const select = vi.fn().mockReturnValue({ lean });
+  const limit = vi.fn().mockReturnValue({ select });
+  const sort = vi.fn().mockReturnValue({ limit });
+  return {
+    chain: { sort },
+    mocks: { sort, limit, select, lean },
+  };
+}
+
+export function makeFindOneSelectLean<T>(result: T) {
+  const lean = vi.fn().mockResolvedValue(result);
+  const select = vi.fn().mockReturnValue({ lean });
+  return {
+    chain: { select },
+    mocks: { select, lean },
+  };
+}
+
+]]>
+</file>
+
+<file path="tests/helpers/request.ts">
+<![CDATA[
+export function makeGetRequest(url: string, headers: Record<string, string> = {}): Request {
+  return new Request(url, { method: 'GET', headers });
+}
+
+export function makePostRequest(url: string, body: Record<string, unknown>, headers: Record<string, string> = {}): Request {
+  return new Request(url, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...headers,
+    },
+    body: JSON.stringify(body),
+  });
+}
+
+]]>
+</file>
+
+</batch_content>

@@ -1,0 +1,3916 @@
+
+You are the "Fixzit Memory Builder" for category: "models".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "models",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="server/models/owner/MailboxThread.ts">
+<![CDATA[
+import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
+import { auditPlugin } from "../../plugins/auditPlugin";
+
+const ThreadStatus = [
+  "OPEN",
+  "IN_PROGRESS",
+  "WAITING_RESPONSE",
+  "RESOLVED",
+  "CLOSED",
+  "REOPENED",
+] as const;
+const ThreadPriority = ["LOW", "MEDIUM", "HIGH", "URGENT"] as const;
+const ThreadCategory = [
+  "MAINTENANCE",
+  "FINANCIAL",
+  "TENANT_ISSUE",
+  "CONTRACT",
+  "GENERAL",
+  "COMPLAINT",
+  "INQUIRY",
+] as const;
+
+const MailboxThreadSchema = new Schema(
+  {
+    // Multi-tenancy - added by plugin
+    // orgId: { type: Schema.Types.ObjectId, ref: "Organization", required: true, index: true },
+
+    // Thread Number (auto-generated with counter)
+    threadNumber: { type: String, required: true, index: true },
+    requestNumber: { type: String, required: true }, // User-friendly format: REQ-2024-0001
+
+    // Thread Subject and Category
+    subject: { type: String, required: true },
+    category: {
+      type: String,
+      enum: ThreadCategory,
+      required: true,
+      index: true,
+    },
+    subCategory: String,
+
+    // Parties
+    owner: {
+      ownerId: {
+        type: Schema.Types.ObjectId,
+        ref: "Owner",
+        required: true,
+        index: true,
+      },
+      ownerName: String,
+      userId: { type: Schema.Types.ObjectId, ref: "User" },
+      email: String,
+      phone: String,
+    },
+
+    recipient: {
+      type: {
+        type: String,
+        enum: ["AGENT", "SERVICE_PROVIDER", "PROPERTY_MANAGER", "SUPPORT"],
+        required: true,
+      },
+      userId: { type: Schema.Types.ObjectId, ref: "User" },
+      vendorId: { type: Schema.Types.ObjectId, ref: "Vendor" },
+      name: String,
+      email: String,
+      phone: String,
+    },
+
+    // Related Records
+    references: {
+      propertyId: { type: Schema.Types.ObjectId, ref: "Property" },
+      propertyName: String,
+      unitNumber: String,
+      workOrderId: { type: Schema.Types.ObjectId, ref: "WorkOrder" },
+      workOrderNumber: String,
+      contractId: { type: Schema.Types.ObjectId, ref: "ServiceContract" },
+      contractNumber: String,
+      invoiceId: { type: Schema.Types.ObjectId, ref: "Invoice" },
+      invoiceNumber: String,
+      warrantyId: { type: Schema.Types.ObjectId, ref: "Warranty" },
+      warrantyNumber: String,
+      agentContractId: { type: Schema.Types.ObjectId, ref: "AgentContract" },
+    },
+
+    // Messages
+    messages: [
+      {
+        messageId: { type: String, required: true },
+        from: {
+          userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+          name: String,
+          role: String, // OWNER, AGENT, SERVICE_PROVIDER, SUPPORT
+          email: String,
+        },
+        to: [
+          {
+            userId: { type: Schema.Types.ObjectId, ref: "User" },
+            name: String,
+            email: String,
+          },
+        ],
+        cc: [
+          {
+            userId: { type: Schema.Types.ObjectId, ref: "User" },
+            name: String,
+            email: String,
+          },
+        ],
+        body: { type: String, required: true },
+        htmlBody: String,
+        sentAt: { type: Date, default: Date.now, index: true },
+
+        // Attachments
+        attachments: [
+          {
+            name: String,
+            url: String,
+            size: Number, // Bytes
+            mimeType: String,
+            uploadedAt: Date,
+          },
+        ],
+
+        // Read Status
+        readBy: [
+          {
+            userId: { type: Schema.Types.ObjectId, ref: "User" },
+            readAt: Date,
+            ipAddress: String,
+          },
+        ],
+
+        // Metadata
+        isInternal: { type: Boolean, default: false }, // Internal notes not visible to owner
+        isAutoReply: { type: Boolean, default: false },
+        emailSent: { type: Boolean, default: false },
+        smsSent: { type: Boolean, default: false },
+      },
+    ],
+
+    // Priority and Status
+    priority: {
+      type: String,
+      enum: ThreadPriority,
+      default: "MEDIUM",
+      index: true,
+    },
+    status: { type: String, enum: ThreadStatus, default: "OPEN", index: true },
+    statusHistory: [
+      {
+        status: { type: String, enum: ThreadStatus },
+        changedAt: { type: Date, default: Date.now },
+        changedBy: { type: Schema.Types.ObjectId, ref: "User" },
+        reason: String,
+      },
+    ],
+
+    // Assignment
+    assignedTo: {
+      userId: { type: Schema.Types.ObjectId, ref: "User", index: true },
+      name: String,
+      assignedAt: Date,
+      assignedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    },
+
+    // Service Level Agreement (SLA)
+    sla: {
+      responseTime: Number, // Hours
+      responseDeadline: Date,
+      resolutionTime: Number, // Hours
+      resolutionDeadline: Date,
+      firstResponseAt: Date,
+      resolvedAt: Date,
+      responseBreached: { type: Boolean, default: false },
+      resolutionBreached: { type: Boolean, default: false },
+    },
+
+    // Resolution
+    resolution: {
+      resolvedAt: Date,
+      resolvedBy: { type: Schema.Types.ObjectId, ref: "User" },
+      resolutionNotes: String,
+      resolutionType: String, // FIXED, WORKAROUND, NOT_AN_ISSUE, DUPLICATE, etc.
+      satisfactionRating: Number, // 1-5
+      satisfactionFeedback: String,
+      feedbackDate: Date,
+    },
+
+    // Escalation
+    escalation: {
+      escalated: { type: Boolean, default: false },
+      escalatedAt: Date,
+      escalatedBy: { type: Schema.Types.ObjectId, ref: "User" },
+      escalatedTo: { type: Schema.Types.ObjectId, ref: "User" },
+      escalationReason: String,
+      escalationLevel: Number, // 1, 2, 3, etc.
+    },
+
+    // Integration with other modules
+    integrations: {
+      // Auto-create work order from maintenance request
+      workOrderCreated: { type: Boolean, default: false },
+      workOrderId: { type: Schema.Types.ObjectId, ref: "WorkOrder" },
+      workOrderCreatedAt: Date,
+
+      // Link to support ticket
+      supportTicketId: { type: Schema.Types.ObjectId, ref: "SupportTicket" },
+
+      // Financial transaction if involves payment
+      paymentRequired: Boolean,
+      paymentAmount: Number,
+      paymentStatus: String,
+      paymentReference: String,
+    },
+
+    // Notifications
+    notifications: {
+      ownerNotified: { type: Boolean, default: false },
+      lastOwnerNotification: Date,
+      recipientNotified: { type: Boolean, default: false },
+      lastRecipientNotification: Date,
+      remindersSent: { type: Number, default: 0 },
+      lastReminderDate: Date,
+    },
+
+    // Tags and Search
+    tags: [String],
+    searchKeywords: [String], // For full-text search
+
+    // Metadata
+    closedAt: Date,
+    closedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    closureReason: String,
+    reopenedCount: { type: Number, default: 0 },
+    lastActivityAt: { type: Date, default: Date.now, index: true },
+    customFields: Schema.Types.Mixed,
+
+    // createdBy, updatedBy, createdAt, updatedAt added by auditPlugin
+  },
+  {
+    timestamps: true,
+  },
+);
+
+// Apply plugins
+MailboxThreadSchema.plugin(tenantIsolationPlugin);
+MailboxThreadSchema.plugin(auditPlugin);
+
+// Indexes
+MailboxThreadSchema.index(
+  { orgId: 1, threadNumber: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
+MailboxThreadSchema.index(
+  { orgId: 1, requestNumber: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
+MailboxThreadSchema.index({ orgId: 1, "owner.ownerId": 1, status: 1 });
+MailboxThreadSchema.index({ orgId: 1, category: 1, status: 1 });
+MailboxThreadSchema.index({ orgId: 1, "assignedTo.userId": 1, status: 1 });
+MailboxThreadSchema.index({ orgId: 1, priority: 1, status: 1 });
+MailboxThreadSchema.index({ orgId: 1, lastActivityAt: -1 }); // For sorting
+MailboxThreadSchema.index({ orgId: 1, "references.propertyId": 1 });
+MailboxThreadSchema.index({ orgId: 1, "references.workOrderId": 1 });
+
+// Pre-save hook
+MailboxThreadSchema.pre("save", async function (next) {
+  // Update lastActivityAt when new message is added
+  if (this.isModified("messages")) {
+    const lastMessage = this.messages[this.messages.length - 1];
+    if (lastMessage) {
+      this.lastActivityAt = lastMessage.sentAt;
+    }
+  }
+
+  // Check SLA breaches
+  if (this.sla) {
+    const now = new Date();
+    if (
+      !this.sla.firstResponseAt &&
+      this.sla.responseDeadline &&
+      now > this.sla.responseDeadline
+    ) {
+      this.sla.responseBreached = true;
+    }
+    if (
+      !this.sla.resolvedAt &&
+      this.sla.resolutionDeadline &&
+      now > this.sla.resolutionDeadline
+    ) {
+      this.sla.resolutionBreached = true;
+    }
+  }
+
+  next();
+});
+
+// Virtual for unread message count
+MailboxThreadSchema.virtual("unreadCount").get(function () {
+  const ownerUserId = this.owner?.userId?.toString();
+  if (!ownerUserId) return 0;
+
+  return this.messages.filter((m) => {
+    const fromUser = m.from?.userId?.toString();
+    if (fromUser === ownerUserId) return false; // Owner's own messages
+
+    const readByOwner = m.readBy?.some(
+      (r) => r.userId?.toString() === ownerUserId,
+    );
+    return !readByOwner;
+  }).length;
+});
+
+// Virtual for message count
+MailboxThreadSchema.virtual("messageCount").get(function () {
+  return this.messages ? this.messages.length : 0;
+});
+
+// Method to add message
+MailboxThreadSchema.methods.addMessage = function (messageData: {
+  from: { userId: Types.ObjectId; name: string; role: string; email?: string };
+  to?: Array<{ userId: Types.ObjectId; name: string; email?: string }>;
+  cc?: Array<{ userId: Types.ObjectId; name: string; email?: string }>;
+  body: string;
+  htmlBody?: string;
+  attachments?: Array<{
+    name: string;
+    url: string;
+    size: number;
+    mimeType: string;
+  }>;
+  isInternal?: boolean;
+}) {
+  if (!this.messages) this.messages = [];
+
+  const messageId = `MSG-${this.threadNumber}-${(this.messages.length + 1).toString().padStart(4, "0")}`;
+
+  this.messages.push({
+    ...messageData,
+    messageId,
+    sentAt: new Date(),
+    readBy: [],
+  });
+
+  // Update status if first response
+  if (this.status === "OPEN" && messageData.from.role !== "OWNER") {
+    this.status = "IN_PROGRESS";
+    if (this.sla && !this.sla.firstResponseAt) {
+      this.sla.firstResponseAt = new Date();
+    }
+  }
+
+  return this.save();
+};
+
+// Method to mark message as read
+MailboxThreadSchema.methods.markAsRead = function (
+  messageId: string,
+  userId: Types.ObjectId,
+) {
+  const message = this.messages.find(
+    (m: { messageId: string }) => m.messageId === messageId,
+  );
+  if (!message) return this;
+
+  const alreadyRead = message.readBy?.some(
+    (r: { userId: Types.ObjectId }) =>
+      r.userId?.toString() === userId.toString(),
+  );
+
+  if (!alreadyRead) {
+    if (!message.readBy) message.readBy = [];
+    message.readBy.push({
+      userId,
+      readAt: new Date(),
+      ipAddress: undefined,
+    });
+  }
+
+  return this.save();
+};
+
+// Export type and model
+export type MailboxThread = InferSchemaType<typeof MailboxThreadSchema>;
+export const MailboxThreadModel = getModel<MailboxThread>(
+  "MailboxThread",
+  MailboxThreadSchema,
+);
+
+]]>
+</file>
+
+<file path="server/models/owner/MoveInOutInspection.ts">
+<![CDATA[
+import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
+import { auditPlugin } from "../../plugins/auditPlugin";
+
+const InspectionType = [
+  "MOVE_IN",
+  "MOVE_OUT",
+  "PERIODIC",
+  "PRE_HANDOVER",
+  "POST_HANDOVER",
+] as const;
+const InspectionStatus = [
+  "SCHEDULED",
+  "IN_PROGRESS",
+  "COMPLETED",
+  "APPROVED",
+  "REJECTED",
+  "DISPUTED",
+] as const;
+const ItemCondition = [
+  "EXCELLENT",
+  "GOOD",
+  "FAIR",
+  "POOR",
+  "DAMAGED",
+  "MISSING",
+  "NEW",
+] as const;
+
+const MoveInOutInspectionSchema = new Schema(
+  {
+    // Multi-tenancy - added by plugin
+    // orgId: { type: Schema.Types.ObjectId, ref: "Organization", required: true, index: true },
+
+    // Inspection Number (auto-generated)
+    inspectionNumber: { type: String, required: true },
+
+    // Type and Timing
+    type: { type: String, enum: InspectionType, required: true, index: true },
+    scheduledDate: { type: Date, required: true },
+    actualDate: Date,
+    duration: Number, // Minutes
+
+    // Location
+    propertyId: {
+      type: Schema.Types.ObjectId,
+      ref: "Property",
+      required: true,
+      index: true,
+    },
+    unitNumber: { type: String, required: true },
+
+    // Parties Involved
+    parties: {
+      ownerId: {
+        type: Schema.Types.ObjectId,
+        ref: "Owner",
+        required: true,
+        index: true,
+      },
+      tenantId: { type: Schema.Types.ObjectId, ref: "Tenant", index: true },
+      inspectorId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+      inspectorName: String,
+      witnesses: [
+        {
+          name: String,
+          role: String, // AGENT, MAINTENANCE_STAFF, etc.
+          userId: { type: Schema.Types.ObjectId, ref: "User" },
+          phone: String,
+        },
+      ],
+    },
+
+    // Related Contract/Lease
+    leaseId: { type: Schema.Types.ObjectId, ref: "ServiceContract" },
+    contractNumber: String,
+    moveInDate: Date,
+    moveOutDate: Date,
+
+    // Overall Assessment
+    overallCondition: { type: String, enum: ItemCondition },
+    overallNotes: String,
+    readyForOccupancy: Boolean, // For move-in inspections
+    clearedForHandover: Boolean, // For move-out inspections
+
+    // Room-by-Room Inspection
+    rooms: [
+      {
+        name: { type: String, required: true }, // Living Room, Bedroom 1, Kitchen, etc.
+        type: String, // LIVING, BEDROOM, BATHROOM, KITCHEN, UTILITY, etc.
+
+        // General room condition
+        walls: {
+          condition: { type: String, enum: ItemCondition },
+          notes: String,
+          photos: [
+            {
+              url: String,
+              uploadedAt: { type: Date, default: Date.now },
+              caption: String,
+              timestamp: String, // BEFORE or AFTER
+            },
+          ],
+        },
+        ceiling: {
+          condition: { type: String, enum: ItemCondition },
+          notes: String,
+          photos: [
+            {
+              url: String,
+              uploadedAt: Date,
+              caption: String,
+              timestamp: String,
+            },
+          ],
+        },
+        floor: {
+          condition: { type: String, enum: ItemCondition },
+          type: String, // Tile, Carpet, Hardwood, etc.
+          notes: String,
+          photos: [
+            {
+              url: String,
+              uploadedAt: Date,
+              caption: String,
+              timestamp: String,
+            },
+          ],
+        },
+        doors: [
+          {
+            location: String, // Main door, Closet door, etc.
+            condition: { type: String, enum: ItemCondition },
+            lockWorking: Boolean,
+            notes: String,
+            photos: [
+              {
+                url: String,
+                uploadedAt: Date,
+                caption: String,
+                timestamp: String,
+              },
+            ],
+          },
+        ],
+        windows: [
+          {
+            location: String,
+            condition: { type: String, enum: ItemCondition },
+            glassIntact: Boolean,
+            lockWorking: Boolean,
+            screenCondition: String,
+            notes: String,
+            photos: [
+              {
+                url: String,
+                uploadedAt: Date,
+                caption: String,
+                timestamp: String,
+              },
+            ],
+          },
+        ],
+
+        // Room-specific items
+        items: [
+          {
+            name: String, // AC Unit, Light Fixture, Sink, Cabinet, etc.
+            category: String, // ELECTRICAL, PLUMBING, FURNITURE, FIXTURE, APPLIANCE
+            quantity: { type: Number, default: 1 },
+            condition: { type: String, enum: ItemCondition },
+            working: Boolean,
+            serialNumber: String,
+            notes: String,
+            photos: [
+              {
+                url: String,
+                uploadedAt: Date,
+                caption: String,
+                timestamp: String,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+
+    // Electrical Items Inventory
+    electrical: {
+      sockets: {
+        total: Number,
+        working: Number,
+        damaged: Number,
+        notes: String,
+        locations: [
+          {
+            room: String,
+            count: Number,
+            condition: String,
+            photos: [
+              {
+                url: String,
+                uploadedAt: Date,
+                caption: String,
+                timestamp: String,
+              },
+            ],
+          },
+        ],
+      },
+      lights: {
+        total: Number,
+        working: Number,
+        bulbsMissing: Number,
+        notes: String,
+        locations: [
+          {
+            room: String,
+            type: String, // Ceiling, Wall, Floor lamp
+            count: Number,
+            condition: String,
+            photos: [
+              {
+                url: String,
+                uploadedAt: Date,
+                caption: String,
+                timestamp: String,
+              },
+            ],
+          },
+        ],
+      },
+      switches: {
+        total: Number,
+        working: Number,
+        damaged: Number,
+        notes: String,
+      },
+      mainBreaker: {
+        condition: String,
+        working: Boolean,
+        amperage: Number,
+        photos: [
+          { url: String, uploadedAt: Date, caption: String, timestamp: String },
+        ],
+      },
+    },
+
+    // Plumbing and Restroom Equipment
+    plumbing: [
+      {
+        room: String, // Bathroom 1, Kitchen, etc.
+        fixtures: [
+          {
+            type: String, // TOILET, SINK, SHOWER, BATHTUB, BIDET, FAUCET
+            brand: String,
+            condition: { type: String, enum: ItemCondition },
+            working: Boolean,
+            leaking: Boolean,
+            waterPressure: String, // GOOD, LOW, HIGH
+            drainageWorking: Boolean,
+            notes: String,
+            photos: [
+              {
+                url: String,
+                uploadedAt: Date,
+                caption: String,
+                timestamp: String,
+              },
+            ],
+          },
+        ],
+        accessories: [
+          {
+            type: String, // MIRROR, TOWEL_RACK, TOILET_PAPER_HOLDER, SOAP_DISPENSER
+            condition: { type: String, enum: ItemCondition },
+            notes: String,
+          },
+        ],
+      },
+    ],
+
+    // Furniture Inventory
+    furniture: [
+      {
+        item: String, // Sofa, Bed, Dining Table, etc.
+        room: String,
+        quantity: Number,
+        brand: String,
+        condition: { type: String, enum: ItemCondition },
+        dimensions: String,
+        color: String,
+        material: String,
+        serialNumber: String,
+        notes: String,
+        photos: [
+          { url: String, uploadedAt: Date, caption: String, timestamp: String },
+        ],
+      },
+    ],
+
+    // Appliances
+    appliances: [
+      {
+        type: String, // REFRIGERATOR, STOVE, OVEN, WASHER, DRYER, DISHWASHER, AC
+        brand: String,
+        model: String,
+        serialNumber: String,
+        room: String,
+        condition: { type: String, enum: ItemCondition },
+        working: Boolean,
+        age: Number, // Years
+        warrantyExpiry: Date,
+        lastServiceDate: Date,
+        notes: String,
+        photos: [
+          { url: String, uploadedAt: Date, caption: String, timestamp: String },
+        ],
+      },
+    ],
+
+    // Utility Meters
+    meterReadings: [
+      {
+        type: String, // ELECTRICITY, WATER, GAS
+        meterNumber: String,
+        reading: Number,
+        unit: String,
+        readDate: Date,
+        photo: String,
+      },
+    ],
+
+    // Keys Inventory
+    keys: [
+      {
+        type: String, // MAIN_DOOR, ROOM, MAILBOX, GATE, PARKING
+        quantity: Number,
+        handed: Boolean,
+        received: Boolean,
+        notes: String,
+      },
+    ],
+
+    // Issues Found
+    issues: [
+      {
+        severity: { type: String, enum: ["CRITICAL", "HIGH", "MEDIUM", "LOW"] },
+        category: String, // STRUCTURAL, ELECTRICAL, PLUMBING, COSMETIC
+        description: String,
+        location: String,
+        estimatedCost: Number,
+        responsibleParty: {
+          type: String,
+          enum: ["OWNER", "TENANT", "UNKNOWN"],
+        },
+        requiresWorkOrder: Boolean,
+        workOrderId: { type: Schema.Types.ObjectId, ref: "WorkOrder" },
+        resolved: Boolean,
+        resolvedDate: Date,
+        photos: [
+          { url: String, uploadedAt: Date, caption: String, timestamp: String },
+        ],
+      },
+    ],
+
+    // Digital Signatures
+    signatures: {
+      inspector: {
+        signed: Boolean,
+        signedBy: { type: Schema.Types.ObjectId, ref: "User" },
+        signedAt: Date,
+        signature: String, // Base64 signature image or signature service URL
+        ipAddress: String,
+      },
+      owner: {
+        signed: Boolean,
+        signedBy: { type: Schema.Types.ObjectId, ref: "User" },
+        signedAt: Date,
+        signature: String,
+        ipAddress: String,
+      },
+      tenant: {
+        signed: Boolean,
+        signedBy: { type: Schema.Types.ObjectId, ref: "User" },
+        signedAt: Date,
+        signature: String,
+        ipAddress: String,
+      },
+    },
+
+    // Comparison with Previous Inspection (for move-out)
+    comparison: {
+      previousInspectionId: {
+        type: Schema.Types.ObjectId,
+        ref: "MoveInOutInspection",
+      },
+      newDamages: [
+        {
+          item: String,
+          location: String,
+          description: String,
+          estimatedCost: Number,
+          photos: [
+            {
+              url: String,
+              uploadedAt: Date,
+              caption: String,
+              timestamp: String,
+            },
+          ],
+        },
+      ],
+      missingItems: [
+        {
+          item: String,
+          quantity: Number,
+          estimatedValue: Number,
+        },
+      ],
+      totalDamageCost: Number,
+      securityDepositDeduction: Number,
+    },
+
+    // Status
+    status: {
+      type: String,
+      enum: InspectionStatus,
+      default: "SCHEDULED",
+      index: true,
+    },
+    statusHistory: [
+      {
+        status: { type: String, enum: InspectionStatus },
+        changedAt: { type: Date, default: Date.now },
+        changedBy: { type: Schema.Types.ObjectId, ref: "User" },
+        reason: String,
+        notes: String,
+      },
+    ],
+
+    // Approval/Rejection
+    approval: {
+      approvedBy: { type: Schema.Types.ObjectId, ref: "User" },
+      approvedAt: Date,
+      rejectedBy: { type: Schema.Types.ObjectId, ref: "User" },
+      rejectedAt: Date,
+      rejectionReason: String,
+      disputeReason: String,
+      disputeResolution: String,
+    },
+
+    // Report Generation
+    report: {
+      generated: Boolean,
+      generatedAt: Date,
+      pdfUrl: String,
+      format: String, // PDF, DOCX
+      language: { type: String, enum: ["en", "ar"], default: "ar" },
+    },
+
+    // Metadata
+    notes: String,
+    tags: [String],
+    customFields: Schema.Types.Mixed,
+
+    // createdBy, updatedBy, createdAt, updatedAt added by auditPlugin
+  },
+  {
+    timestamps: true,
+  },
+);
+
+// Apply plugins
+MoveInOutInspectionSchema.plugin(tenantIsolationPlugin);
+MoveInOutInspectionSchema.plugin(auditPlugin);
+
+// Indexes
+MoveInOutInspectionSchema.index(
+  { orgId: 1, inspectionNumber: 1 },
+  { unique: true },
+);
+MoveInOutInspectionSchema.index({ orgId: 1, propertyId: 1, type: 1 });
+MoveInOutInspectionSchema.index({ orgId: 1, "parties.ownerId": 1, status: 1 });
+MoveInOutInspectionSchema.index({ orgId: 1, "parties.tenantId": 1 });
+MoveInOutInspectionSchema.index({ orgId: 1, scheduledDate: 1 });
+MoveInOutInspectionSchema.index({ orgId: 1, leaseId: 1 });
+
+// Virtual for completion percentage
+MoveInOutInspectionSchema.virtual("completionPercentage").get(function () {
+  const totalSections = 4; // rooms, electrical, plumbing, signatures
+  let completedSections = 0;
+
+  if (this.rooms && this.rooms.length > 0) completedSections++;
+  if (this.electrical && this.electrical.sockets) completedSections++;
+  if (this.plumbing && this.plumbing.length > 0) completedSections++;
+  if (this.signatures?.inspector?.signed && this.signatures?.owner?.signed)
+    completedSections++;
+
+  return Math.round((completedSections / totalSections) * 100);
+});
+
+// Method to check if all signatures are collected
+MoveInOutInspectionSchema.methods.allSignaturesCollected = function () {
+  const requiredSignatures = ["inspector", "owner"];
+  if (this.type === "MOVE_IN" || this.type === "MOVE_OUT") {
+    requiredSignatures.push("tenant");
+  }
+
+  return requiredSignatures.every((party) => this.signatures[party]?.signed);
+};
+
+// Export type and model
+export type MoveInOutInspection = InferSchemaType<
+  typeof MoveInOutInspectionSchema
+>;
+export const MoveInOutInspectionModel = getModel<MoveInOutInspection>(
+  "MoveInOutInspection",
+  MoveInOutInspectionSchema,
+);
+
+]]>
+</file>
+
+<file path="server/models/owner/UtilityBill.ts">
+<![CDATA[
+import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
+import { auditPlugin } from "../../plugins/auditPlugin";
+
+const BillStatus = [
+  "PENDING",
+  "ISSUED",
+  "PAID",
+  "OVERDUE",
+  "DISPUTED",
+  "CANCELLED",
+  "REFUNDED",
+] as const;
+const PaymentStatus = ["UNPAID", "PARTIALLY_PAID", "PAID", "OVERPAID"] as const;
+
+const UtilityBillSchema = new Schema(
+  {
+    // Multi-tenancy - added by plugin
+    // orgId: { type: Schema.Types.ObjectId, ref: "Organization", required: true, index: true },
+
+    // Bill Identification
+    billNumber: { type: String, required: true },
+    providerBillNumber: String, // Bill number from utility provider
+
+    // Related Meter
+    meterId: {
+      type: Schema.Types.ObjectId,
+      ref: "UtilityMeter",
+      required: true,
+      index: true,
+    },
+    propertyId: {
+      type: Schema.Types.ObjectId,
+      ref: "Property",
+      required: true,
+      index: true,
+    },
+    unitNumber: String,
+
+    // Bill Period
+    period: {
+      startDate: { type: Date, required: true },
+      endDate: { type: Date, required: true },
+      daysInPeriod: Number,
+      month: Number, // 1-12
+      year: Number, // For easy querying
+    },
+
+    // Reading Information
+    readings: {
+      previous: {
+        value: Number,
+        date: Date,
+      },
+      current: {
+        value: Number,
+        date: Date,
+      },
+      consumption: Number, // current - previous
+      unit: String, // kWh, m³, etc.
+    },
+
+    // Charges Breakdown
+    charges: {
+      consumption: {
+        amount: Number,
+        rate: Number,
+        unit: String,
+      },
+      fixedCharges: Number,
+      demandCharges: Number,
+      fuelAdjustment: Number,
+      subsidies: Number, // Negative value
+      governmentTax: Number,
+      vat: {
+        rate: Number, // Percentage
+        amount: Number,
+      },
+      otherCharges: [
+        {
+          description: String,
+          amount: Number,
+        },
+      ],
+      totalBeforeTax: Number,
+      totalAmount: { type: Number, required: true },
+    },
+
+    // Payment Information
+    payment: {
+      status: {
+        type: String,
+        enum: PaymentStatus,
+        default: "UNPAID",
+        index: true,
+      },
+      dueDate: { type: Date, required: true, index: true },
+      paidAmount: { type: Number, default: 0 },
+      paidDate: Date,
+      paidBy: { type: Schema.Types.ObjectId, ref: "User" },
+      paymentMethod: String, // BANK_TRANSFER, CREDIT_CARD, SADAD, etc.
+      transactionReference: String,
+      latePaymentFee: Number,
+      remainingBalance: Number,
+    },
+
+    // Responsible Party (who should pay)
+    responsibility: {
+      type: {
+        type: String,
+        enum: ["OWNER", "TENANT", "SHARED"],
+        required: true,
+      },
+      ownerId: { type: Schema.Types.ObjectId, ref: "Owner" },
+      tenantId: { type: Schema.Types.ObjectId, ref: "Tenant" },
+      ownerPercentage: { type: Number, min: 0, max: 100 },
+      tenantPercentage: { type: Number, min: 0, max: 100 },
+      splitReason: String, // E.g., "Vacant during period", "Shared facilities"
+    },
+
+    // OCR Processing (if bill was scanned)
+    ocr: {
+      processed: { type: Boolean, default: false },
+      processedDate: Date,
+      confidence: Number, // 0-100
+      provider: String,
+      originalFileUrl: String,
+      extractedData: Schema.Types.Mixed,
+      manuallyVerified: { type: Boolean, default: false },
+      verifiedBy: { type: Schema.Types.ObjectId, ref: "User" },
+      verifiedDate: Date,
+      corrections: [
+        {
+          field: String,
+          ocrValue: Schema.Types.Mixed,
+          correctedValue: Schema.Types.Mixed,
+          correctedBy: { type: Schema.Types.ObjectId, ref: "User" },
+          correctedDate: Date,
+        },
+      ],
+    },
+
+    // IoT Data (if from smart meter)
+    iot: {
+      fromSmartMeter: { type: Boolean, default: false },
+      deviceId: String,
+      syncDate: Date,
+      dataPoints: Number, // Number of readings averaged
+      rawData: Schema.Types.Mixed,
+    },
+
+    // Comparison and Analytics
+    analytics: {
+      averageConsumptionPast3Months: Number,
+      averageConsumptionPast12Months: Number,
+      percentageChange: Number, // vs previous bill
+      isAnomaly: { type: Boolean, default: false },
+      anomalyReason: String,
+      costPerUnit: Number,
+    },
+
+    // Documents
+    documents: [
+      {
+        type: String, // BILL_PDF, PAYMENT_RECEIPT, etc.
+        name: String,
+        url: { type: String, required: true },
+        uploadedAt: { type: Date, default: Date.now },
+        uploadedBy: { type: Schema.Types.ObjectId, ref: "User" },
+      },
+    ],
+
+    // Status
+    status: { type: String, enum: BillStatus, default: "ISSUED", index: true },
+    statusHistory: [
+      {
+        status: { type: String, enum: BillStatus },
+        changedAt: { type: Date, default: Date.now },
+        changedBy: { type: Schema.Types.ObjectId, ref: "User" },
+        reason: String,
+        notes: String,
+      },
+    ],
+
+    // Dispute Information
+    dispute: {
+      isDisputed: { type: Boolean, default: false },
+      disputeDate: Date,
+      disputeReason: String,
+      disputeAmount: Number,
+      disputeStatus: String, // PENDING, RESOLVED, REJECTED
+      resolution: String,
+      resolvedDate: Date,
+      resolvedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    },
+
+    // Notifications
+    notifications: {
+      dueDateReminderSent: { type: Boolean, default: false },
+      dueDateReminderDate: Date,
+      overdueNoticeSent: { type: Boolean, default: false },
+      overdueNoticeDate: Date,
+      highConsumptionAlertSent: { type: Boolean, default: false },
+    },
+
+    // Integration with Finance Module
+    finance: {
+      posted: { type: Boolean, default: false },
+      journalEntryId: { type: Schema.Types.ObjectId, ref: "Journal" },
+      invoiceId: { type: Schema.Types.ObjectId, ref: "Invoice" },
+      postedDate: Date,
+      postedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    },
+
+    // Metadata
+    notes: String,
+    tags: [String],
+    customFields: Schema.Types.Mixed,
+
+    // createdBy, updatedBy, createdAt, updatedAt added by auditPlugin
+  },
+  {
+    timestamps: true,
+  },
+);
+
+// Apply plugins
+UtilityBillSchema.plugin(tenantIsolationPlugin);
+UtilityBillSchema.plugin(auditPlugin);
+
+// Indexes
+UtilityBillSchema.index(
+  { orgId: 1, billNumber: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
+UtilityBillSchema.index({
+  orgId: 1,
+  meterId: 1,
+  "period.year": 1,
+  "period.month": 1,
+});
+UtilityBillSchema.index({ orgId: 1, propertyId: 1, status: 1 });
+UtilityBillSchema.index({
+  orgId: 1,
+  "payment.status": 1,
+  "payment.dueDate": 1,
+});
+UtilityBillSchema.index({ orgId: 1, "responsibility.ownerId": 1 });
+UtilityBillSchema.index({ orgId: 1, "responsibility.tenantId": 1 });
+
+// Pre-save hook for calculations
+UtilityBillSchema.pre("save", function (next) {
+  // Calculate days in period
+  if (
+    this.isModified("period") &&
+    this.period?.startDate &&
+    this.period?.endDate
+  ) {
+    const start = new Date(this.period.startDate);
+    const end = new Date(this.period.endDate);
+    this.period.daysInPeriod = Math.ceil(
+      (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
+    );
+    this.period.month = end.getMonth() + 1;
+    this.period.year = end.getFullYear();
+  }
+
+  // Calculate consumption
+  if (
+    this.isModified("readings") &&
+    this.readings?.current?.value &&
+    this.readings?.previous?.value
+  ) {
+    this.readings.consumption =
+      this.readings.current.value - this.readings.previous.value;
+  }
+
+  // Calculate remaining balance
+  if (
+    (this.isModified("charges") || this.isModified("payment")) &&
+    this.charges?.totalAmount !== undefined &&
+    this.payment?.paidAmount !== undefined
+  ) {
+    this.payment.remainingBalance =
+      this.charges.totalAmount - this.payment.paidAmount;
+  }
+
+  // Update payment status
+  if (
+    this.isModified("payment.paidAmount") &&
+    this.charges?.totalAmount !== undefined &&
+    this.payment?.paidAmount !== undefined
+  ) {
+    const total = this.charges.totalAmount;
+    const paid = this.payment.paidAmount;
+
+    if (paid === 0) {
+      this.payment.status = "UNPAID";
+    } else if (paid < total) {
+      this.payment.status = "PARTIALLY_PAID";
+    } else if (paid === total) {
+      this.payment.status = "PAID";
+    } else {
+      this.payment.status = "OVERPAID";
+    }
+  }
+
+  // Check overdue status
+  const now = new Date();
+  if (
+    this.payment?.status === "UNPAID" &&
+    this.payment?.dueDate &&
+    now > this.payment.dueDate &&
+    this.status === "ISSUED"
+  ) {
+    this.status = "OVERDUE";
+  }
+
+  next();
+});
+
+// Virtual for days overdue
+UtilityBillSchema.virtual("daysOverdue").get(function () {
+  if (this.payment?.status === "PAID" || !this.payment?.dueDate) return 0;
+  const now = new Date();
+  if (now <= this.payment.dueDate) return 0;
+  const diff = now.getTime() - this.payment.dueDate.getTime();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+});
+
+// Method to record payment
+UtilityBillSchema.methods.recordPayment = function (
+  amount: number,
+  paymentMethod: string,
+  transactionRef: string,
+  paidBy: Types.ObjectId,
+) {
+  this.payment.paidAmount = (this.payment.paidAmount || 0) + amount;
+  this.payment.paidDate = new Date();
+  this.payment.paidBy = paidBy;
+  this.payment.paymentMethod = paymentMethod;
+  this.payment.transactionReference = transactionRef;
+
+  if (this.payment.paidAmount >= this.charges.totalAmount) {
+    this.status = "PAID";
+  }
+
+  return this.save();
+};
+
+// Export type and model
+export type UtilityBill = InferSchemaType<typeof UtilityBillSchema>;
+export const UtilityBillModel = getModel<UtilityBill>(
+  "UtilityBill",
+  UtilityBillSchema,
+);
+
+]]>
+</file>
+
+<file path="server/models/owner/UtilityMeter.ts">
+<![CDATA[
+import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
+import { auditPlugin } from "../../plugins/auditPlugin";
+
+const UtilityType = [
+  "ELECTRICITY",
+  "WATER",
+  "GAS",
+  "DISTRICT_COOLING",
+  "INTERNET",
+  "SEWAGE",
+] as const;
+const MeterStatus = [
+  "ACTIVE",
+  "INACTIVE",
+  "MAINTENANCE",
+  "DISCONNECTED",
+  "FAULTY",
+] as const;
+const MeterOwnership = ["OWNER", "UTILITY_COMPANY", "SHARED"] as const;
+
+const UtilityMeterSchema = new Schema(
+  {
+    // Multi-tenancy - added by plugin
+    // orgId: { type: Schema.Types.ObjectId, ref: "Organization", required: true, index: true },
+
+    // Meter Identification
+    meterNumber: { type: String, required: true },
+    accountNumber: String, // Utility company account number
+
+    // Utility Type
+    utilityType: {
+      type: String,
+      enum: UtilityType,
+      required: true,
+      index: true,
+    },
+    subType: String, // E.g., "Single Phase", "Three Phase" for electricity
+
+    // Location
+    propertyId: {
+      type: Schema.Types.ObjectId,
+      ref: "Property",
+      required: true,
+      index: true,
+    },
+    unitNumber: String, // Specific unit, or null if building-level meter
+    location: {
+      building: String,
+      floor: String,
+      room: String,
+      exactLocation: String, // E.g., "Outside main entrance", "Basement room 3"
+    },
+
+    // Meter Details
+    details: {
+      manufacturer: String,
+      model: String,
+      serialNumber: String,
+      installationDate: Date,
+      capacity: Number, // Maximum capacity (e.g., kW for electricity)
+      unit: String, // kWh, m³, etc.
+      accuracy: String, // Meter accuracy class
+      digitalMeter: { type: Boolean, default: false },
+      smartMeter: { type: Boolean, default: false },
+      iotConnected: { type: Boolean, default: false },
+    },
+
+    // Utility Provider
+    provider: {
+      name: { type: String, required: true }, // SEC, SWCC, NGC, etc.
+      accountHolder: String, // Name on account
+      accountNumber: String,
+      contactNumber: String,
+      emergencyNumber: String,
+      website: String,
+    },
+
+    // Billing Information
+    billing: {
+      billingCycle: String, // Monthly, Bi-monthly, etc.
+      lastBillingDate: Date,
+      nextBillingDate: Date,
+      averageMonthlyConsumption: Number,
+      averageMonthlyCost: Number,
+      tariff: {
+        type: String, // Residential, Commercial, etc.
+        ratePerUnit: Number,
+        currency: { type: String, default: "SAR" },
+      },
+    },
+
+    // Reading Information
+    lastReading: {
+      value: Number,
+      date: Date,
+      readBy: String, // "UTILITY_COMPANY", "OWNER", "TENANT", "AUTOMATED"
+      verified: { type: Boolean, default: false },
+      notes: String,
+    },
+
+    // IoT Integration (for smart meters)
+    iot: {
+      enabled: { type: Boolean, default: false },
+      deviceId: String,
+      apiEndpoint: String,
+      lastSyncDate: Date,
+      syncFrequency: String, // "REAL_TIME", "HOURLY", "DAILY"
+      credentials: {
+        encrypted: { type: Boolean, default: true },
+        data: String, // Encrypted API keys/tokens
+      },
+    },
+
+    // OCR Configuration (for bill scanning)
+    ocr: {
+      enabled: { type: Boolean, default: false },
+      provider: String, // "AWS_TEXTRACT", "GOOGLE_VISION", "AZURE_OCR"
+      lastProcessedDate: Date,
+      successRate: Number, // Percentage
+      autoVerify: { type: Boolean, default: false },
+    },
+
+    // Ownership and Responsibility
+    ownership: { type: String, enum: MeterOwnership, default: "OWNER" },
+    responsibleParty: {
+      type: {
+        type: String,
+        enum: ["OWNER", "TENANT", "AGENT", "PROPERTY_MANAGEMENT"],
+      },
+      userId: { type: Schema.Types.ObjectId, ref: "User" },
+      name: String,
+      startDate: Date,
+      endDate: Date,
+    },
+
+    // Maintenance History
+    maintenance: {
+      lastServiceDate: Date,
+      nextServiceDate: Date,
+      serviceProvider: String,
+      serviceContract: String,
+      warrantyExpiry: Date,
+      calibrationDate: Date,
+      nextCalibrationDate: Date,
+    },
+
+    // Alerts and Notifications
+    alerts: {
+      highConsumptionThreshold: Number,
+      highConsumptionAlert: { type: Boolean, default: false },
+      anomalyDetection: { type: Boolean, default: false },
+      lastAlertDate: Date,
+      alertRecipients: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    },
+
+    // Status
+    status: { type: String, enum: MeterStatus, default: "ACTIVE", index: true },
+    statusHistory: [
+      {
+        status: { type: String, enum: MeterStatus },
+        changedAt: { type: Date, default: Date.now },
+        reason: String,
+        changedBy: { type: Schema.Types.ObjectId, ref: "User" },
+      },
+    ],
+
+    // Documents
+    documents: [
+      {
+        type: String, // INSTALLATION_CERT, CALIBRATION_CERT, etc.
+        name: String,
+        url: String,
+        uploadedAt: { type: Date, default: Date.now },
+      },
+    ],
+
+    // Metadata
+    notes: String,
+    tags: [String],
+    customFields: Schema.Types.Mixed,
+
+    // createdBy, updatedBy, createdAt, updatedAt added by auditPlugin
+  },
+  {
+    timestamps: true,
+  },
+);
+
+// Apply plugins
+UtilityMeterSchema.plugin(tenantIsolationPlugin);
+UtilityMeterSchema.plugin(auditPlugin);
+
+// Indexes
+UtilityMeterSchema.index(
+  { orgId: 1, meterNumber: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
+UtilityMeterSchema.index({ orgId: 1, propertyId: 1, utilityType: 1 });
+UtilityMeterSchema.index({ orgId: 1, utilityType: 1, status: 1 });
+UtilityMeterSchema.index({ orgId: 1, accountNumber: 1 });
+UtilityMeterSchema.index({ orgId: 1, "billing.nextBillingDate": 1 });
+
+// Virtual for days until next billing
+UtilityMeterSchema.virtual("daysUntilNextBilling").get(function () {
+  if (!this.billing?.nextBillingDate) return null;
+  const now = new Date();
+  const diff = this.billing.nextBillingDate.getTime() - now.getTime();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+});
+
+// Method to record new reading
+UtilityMeterSchema.methods.recordReading = function (
+  value: number,
+  readBy: string,
+  notes?: string,
+) {
+  this.lastReading = {
+    value,
+    date: new Date(),
+    readBy,
+    verified: readBy === "UTILITY_COMPANY",
+    notes,
+  };
+  return this.save();
+};
+
+// Export type and model
+export type UtilityMeter = InferSchemaType<typeof UtilityMeterSchema>;
+export const UtilityMeterModel = getModel<UtilityMeter>(
+  "UtilityMeter",
+  UtilityMeterSchema,
+);
+
+]]>
+</file>
+
+<file path="server/models/owner/Warranty.ts">
+<![CDATA[
+import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
+import { auditPlugin } from "../../plugins/auditPlugin";
+
+const WarrantyStatus = [
+  "ACTIVE",
+  "EXPIRED",
+  "CLAIMED",
+  "VOID",
+  "TRANSFERRED",
+] as const;
+const ClaimStatus = [
+  "PENDING",
+  "APPROVED",
+  "REJECTED",
+  "IN_PROGRESS",
+  "COMPLETED",
+  "CANCELLED",
+] as const;
+
+const WarrantySchema = new Schema(
+  {
+    // Multi-tenancy - added by plugin
+    // orgId: { type: Schema.Types.ObjectId, ref: "Organization", required: true, index: true },
+
+    // Warranty Number (auto-generated)
+    warrantyNumber: { type: String, required: true },
+
+    // Item/Service Details
+    item: {
+      name: { type: String, required: true },
+      category: String, // APPLIANCE, ELECTRICAL, PLUMBING, STRUCTURAL, HVAC, etc.
+      description: String,
+      brand: String,
+      model: String,
+      serialNumber: String,
+      purchaseDate: Date,
+      purchasePrice: Number,
+      invoiceNumber: String,
+      invoiceId: { type: Schema.Types.ObjectId, ref: "Invoice" },
+    },
+
+    // Location
+    propertyId: {
+      type: Schema.Types.ObjectId,
+      ref: "Property",
+      required: true,
+      index: true,
+    },
+    unitNumber: String,
+    specificLocation: String, // E.g., "Master Bedroom", "Kitchen"
+
+    // Service Provider Details
+    provider: {
+      type: {
+        type: String,
+        enum: ["MANUFACTURER", "RETAILER", "INSTALLER", "EXTENDED_WARRANTY"],
+        required: true,
+      },
+      vendorId: { type: Schema.Types.ObjectId, ref: "Vendor" },
+      name: { type: String, required: true },
+      contact: {
+        phone: String,
+        email: String,
+        address: String,
+        website: String,
+        supportNumber: String,
+      },
+      licenseNumber: String,
+      contractNumber: String,
+    },
+
+    // Warranty Terms
+    terms: {
+      startDate: { type: Date, required: true, index: true },
+      endDate: { type: Date, required: true, index: true },
+      durationMonths: Number,
+      durationYears: Number,
+      type: {
+        type: String,
+        enum: ["PARTS_ONLY", "LABOR_ONLY", "PARTS_AND_LABOR", "COMPREHENSIVE"],
+      },
+      coverage: {
+        fullReplacement: Boolean,
+        repair: Boolean,
+        onSitService: Boolean,
+        pickupService: Boolean,
+        loanerProvided: Boolean,
+        emergencyService: Boolean,
+        emergencyResponse: String, // e.g., "24 hours", "Same day"
+      },
+      limitations: [String], // What's NOT covered
+      conditions: [String], // Conditions to maintain warranty
+      transferable: Boolean,
+      renewable: Boolean,
+    },
+
+    // Cost Information
+    cost: {
+      free: Boolean, // Manufacturer warranty
+      paid: Boolean, // Extended warranty
+      amount: Number,
+      currency: { type: String, default: "SAR" },
+      paymentDate: Date,
+      renewalCost: Number,
+    },
+
+    // Ownership
+    ownerId: {
+      type: Schema.Types.ObjectId,
+      ref: "Owner",
+      required: true,
+      index: true,
+    },
+    ownerName: String,
+
+    // Documents
+    documents: [
+      {
+        type: String, // WARRANTY_CERTIFICATE, PURCHASE_INVOICE, INSTALLATION_CERT, CLAIM_FORM
+        name: String,
+        url: { type: String, required: true },
+        uploadedAt: { type: Date, default: Date.now },
+        uploadedBy: { type: Schema.Types.ObjectId, ref: "User" },
+        expiresAt: Date,
+      },
+    ],
+
+    // Maintenance Requirements (to keep warranty valid)
+    maintenanceRequirements: [
+      {
+        description: String,
+        frequency: String, // MONTHLY, QUARTERLY, ANNUALLY
+        dueDate: Date,
+        completed: Boolean,
+        completedDate: Date,
+        serviceProvider: String,
+        notes: String,
+      },
+    ],
+
+    // Warranty Claims
+    claims: [
+      {
+        claimNumber: String,
+        claimDate: { type: Date, default: Date.now },
+        issueDescription: String,
+        reportedBy: { type: Schema.Types.ObjectId, ref: "User" },
+
+        // Service Request
+        serviceDate: Date,
+        serviceProvider: String,
+        technicianName: String,
+
+        // Diagnosis
+        diagnosis: String,
+        partsRequired: [
+          {
+            partName: String,
+            partNumber: String,
+            quantity: Number,
+            cost: Number,
+          },
+        ],
+        laborCost: Number,
+
+        // Work Order Integration
+        workOrderId: { type: Schema.Types.ObjectId, ref: "WorkOrder" },
+        workOrderNumber: String,
+
+        // Resolution
+        status: {
+          type: String,
+          enum: ClaimStatus,
+          default: "PENDING",
+          index: true,
+        },
+        resolution: String,
+        completedDate: Date,
+        coveredAmount: Number, // Amount covered by warranty
+        ownerPaidAmount: Number, // Amount owner had to pay
+
+        // Documents
+        documents: [
+          {
+            type: String,
+            url: String,
+            uploadedAt: Date,
+          },
+        ],
+
+        notes: String,
+      },
+    ],
+
+    // Notifications
+    notifications: {
+      expiryReminderSent: { type: Boolean, default: false },
+      expiryReminderDate: Date,
+      maintenanceReminderSent: { type: Boolean, default: false },
+      maintenanceReminderDate: Date,
+      reminderDaysBefore: { type: Number, default: 30 }, // Notify X days before expiry
+    },
+
+    // Status
+    status: {
+      type: String,
+      enum: WarrantyStatus,
+      default: "ACTIVE",
+      index: true,
+    },
+    statusHistory: [
+      {
+        status: { type: String, enum: WarrantyStatus },
+        changedAt: { type: Date, default: Date.now },
+        changedBy: { type: Schema.Types.ObjectId, ref: "User" },
+        reason: String,
+      },
+    ],
+
+    // Void/Cancel Information
+    voidInfo: {
+      voidDate: Date,
+      voidReason: String,
+      voidedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    },
+
+    // Transfer Information (if transferable)
+    transfer: {
+      transferredTo: String, // New owner name
+      transferDate: Date,
+      transferFee: Number,
+      transferApproved: Boolean,
+      transferDocuments: [
+        {
+          type: String,
+          url: String,
+          uploadedAt: Date,
+        },
+      ],
+    },
+
+    // Analytics
+    analytics: {
+      totalClaims: { type: Number, default: 0 },
+      totalClaimsCost: { type: Number, default: 0 },
+      totalCoveredAmount: { type: Number, default: 0 },
+      averageResponseTime: Number, // Days
+      satisfactionRating: Number, // 1-5
+    },
+
+    // Metadata
+    notes: String,
+    tags: [String],
+    customFields: Schema.Types.Mixed,
+
+    // createdBy, updatedBy, createdAt, updatedAt added by auditPlugin
+  },
+  {
+    timestamps: true,
+  },
+);
+
+// Apply plugins
+WarrantySchema.plugin(tenantIsolationPlugin);
+WarrantySchema.plugin(auditPlugin);
+
+// Indexes
+WarrantySchema.index(
+  { orgId: 1, warrantyNumber: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
+WarrantySchema.index({ orgId: 1, propertyId: 1, status: 1 });
+WarrantySchema.index({ orgId: 1, ownerId: 1, status: 1 });
+WarrantySchema.index({ orgId: 1, "terms.endDate": 1 }); // For expiry notifications
+WarrantySchema.index({ orgId: 1, "provider.vendorId": 1 });
+WarrantySchema.index({ orgId: 1, "claims.status": 1 });
+
+// Pre-save hook for calculations and status updates
+WarrantySchema.pre("save", async function (next) {
+  const now = new Date();
+
+  // Calculate duration
+  if (
+    this.isModified("terms") &&
+    this.terms?.startDate &&
+    this.terms?.endDate
+  ) {
+    const start = new Date(this.terms.startDate);
+    const end = new Date(this.terms.endDate);
+    const diffMonths =
+      (end.getFullYear() - start.getFullYear()) * 12 +
+      (end.getMonth() - start.getMonth());
+    this.terms.durationMonths = diffMonths;
+    this.terms.durationYears = Math.floor(diffMonths / 12);
+  }
+
+  // Auto-expire warranties
+  if (
+    this.status === "ACTIVE" &&
+    this.terms?.endDate &&
+    now > this.terms.endDate
+  ) {
+    this.status = "EXPIRED";
+    this.statusHistory.push({
+      status: "EXPIRED",
+      changedAt: now,
+      reason: "Warranty period ended",
+      changedBy: undefined,
+    });
+  }
+
+  // Update analytics when claims change
+  if (this.isModified("claims") && this.analytics) {
+    const completedClaims = this.claims.filter((c) => c.status === "COMPLETED");
+    this.analytics.totalClaims = completedClaims.length;
+    this.analytics.totalCoveredAmount = completedClaims.reduce(
+      (sum, c) => sum + (c.coveredAmount || 0),
+      0,
+    );
+    this.analytics.totalClaimsCost = completedClaims.reduce(
+      (sum, c) => sum + (c.coveredAmount || 0) + (c.ownerPaidAmount || 0),
+      0,
+    );
+  }
+
+  next();
+});
+
+// Virtual for days until expiry
+WarrantySchema.virtual("daysUntilExpiry").get(function () {
+  if (!this.terms?.endDate || this.status !== "ACTIVE") return null;
+  const now = new Date();
+  const diff = this.terms.endDate.getTime() - now.getTime();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+});
+
+// Virtual for warranty value assessment
+WarrantySchema.virtual("hasValue").get(function () {
+  if (this.status !== "ACTIVE") return false;
+  const daysLeft = this.get("daysUntilExpiry");
+  return daysLeft !== null && daysLeft > 0;
+});
+
+// Method to add claim
+WarrantySchema.methods.addClaim = function (claimData: {
+  issueDescription: string;
+  reportedBy: Types.ObjectId;
+  serviceDate?: Date;
+  serviceProvider?: string;
+  technicianName?: string;
+  diagnosis?: string;
+  notes?: string;
+}) {
+  if (!this.claims) this.claims = [];
+
+  // Generate claim number
+  const claimNumber = `WC-${this.warrantyNumber}-${(this.claims.length + 1).toString().padStart(3, "0")}`;
+
+  this.claims.push({
+    ...claimData,
+    claimNumber,
+    claimDate: new Date(),
+    status: "PENDING",
+    partsRequired: [],
+    laborCost: undefined,
+    workOrderId: undefined,
+    workOrderNumber: undefined,
+    resolution: undefined,
+    completedDate: undefined,
+    coveredAmount: undefined,
+    ownerPaidAmount: undefined,
+    documents: [],
+  });
+
+  return this.save();
+};
+
+// Export type and model
+export type Warranty = InferSchemaType<typeof WarrantySchema>;
+export const WarrantyModel = getModel<Warranty>("Warranty", WarrantySchema);
+
+]]>
+</file>
+
+<file path="server/models/owner/index.ts">
+<![CDATA[
+/**
+ * Owner Portal Models
+ * MongoDB + Mongoose implementation
+ *
+ * All models use:
+ * - tenantIsolationPlugin for multi-tenancy (orgId scoping)
+ * - auditPlugin for change tracking (createdBy, updatedBy, timestamps)
+ */
+
+export { AgentContractModel, type AgentContract } from "./AgentContract";
+export { UtilityMeterModel, type UtilityMeter } from "./UtilityMeter";
+export { UtilityBillModel, type UtilityBill } from "./UtilityBill";
+export {
+  MoveInOutInspectionModel,
+  type MoveInOutInspection,
+} from "./MoveInOutInspection";
+export { WarrantyModel, type Warranty } from "./Warranty";
+export { AdvertisementModel, type Advertisement } from "./Advertisement";
+export { DelegationModel, type Delegation } from "./Delegation";
+export { MailboxThreadModel, type MailboxThread } from "./MailboxThread";
+
+]]>
+</file>
+
+<file path="server/models/plugins/tenantAudit.ts">
+<![CDATA[
+/**
+ * Combined tenant isolation + audit trail plugin
+ * Consolidates tenantIsolation and auditPlugin functionality
+ * Now uses AsyncLocalStorage from authContext for thread safety
+ */
+
+import { logger } from "@/lib/logger";
+import { Schema, type Query } from "mongoose";
+import { getRequestContext } from "../../lib/authContext";
+
+export interface TenantAuditFields {
+  orgId: string;
+  createdBy?: string;
+  updatedBy?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  isSystem?: boolean; // System-generated records (e.g., reversals)
+}
+
+// System context flag (thread-local storage would be ideal, using simple flag for now)
+let isSystemContext: boolean = false;
+
+/**
+ * Set tenant context (DEPRECATED - use runWithContext from authContext)
+ * @deprecated Context should be set via authContext.runWithContext()
+ */
+
+export function setTenantContext(_context: { orgId: string }): void {
+  logger.warn(
+    "setTenantContext is deprecated. Use authContext.runWithContext() instead.",
+  );
+}
+
+/**
+ * Set audit context (DEPRECATED - use runWithContext from authContext)
+ * @deprecated Context should be set via authContext.runWithContext()
+ */
+
+export function setAuditContext(_context: {
+  userId: string;
+  userEmail?: string;
+}): void {
+  logger.warn(
+    "setAuditContext is deprecated. Use authContext.runWithContext() instead.",
+  );
+}
+
+/**
+ * Set system context for automated operations
+ */
+export function setSystemContext(isSystem: boolean): void {
+  isSystemContext = isSystem;
+}
+
+/**
+ * Get tenant context (DEPRECATED - use getRequestContext from authContext)
+ * @deprecated Use authContext.getRequestContext() instead
+ */
+export function getTenantContext(): { orgId: string | null } {
+  const context = getRequestContext();
+  return { orgId: context?.orgId ?? null };
+}
+
+/**
+ * Clear context (NO-OP with AsyncLocalStorage)
+ * @deprecated No longer needed with AsyncLocalStorage
+ */
+export function clearContext(): void {
+  isSystemContext = false;
+}
+
+/**
+ * Combined plugin that adds tenant + audit fields and hooks
+ */
+export function tenantAuditPlugin(schema: Schema): void {
+  // Add fields
+  // ⚡ FIXED: Removed index: true from orgId to avoid duplicate index warnings
+  // Individual schemas should define their own compound indexes with orgId
+  schema.add({
+    orgId: { type: String, required: true },
+    createdBy: { type: String },
+    updatedBy: { type: String },
+    isSystem: { type: Boolean, default: false },
+  });
+
+  // Auto-set orgId from context on save
+  schema.pre("save", function (next) {
+    const context = getRequestContext();
+
+    if (this.isNew) {
+      if (!this.orgId && context?.orgId) {
+        this.orgId = context.orgId;
+      }
+      if (!this.createdBy && context?.userId) {
+        this.createdBy = context.userId;
+      }
+      if (isSystemContext) {
+        this.isSystem = true;
+      }
+    } else {
+      if (context?.userId) {
+        this.updatedBy = context.userId;
+      }
+    }
+    next();
+  });
+
+  // Enforce tenant isolation on queries
+  schema.pre(/^find/, function (this: Query<unknown, unknown>, next) {
+    const context = getRequestContext();
+    const query = this.getQuery() as Record<string, unknown>;
+    if (context?.orgId && !query.orgId) {
+      this.where({ orgId: context.orgId });
+    }
+    next();
+  });
+
+  // Enforce tenant isolation on updates
+  schema.pre(/^update/, function (this: Query<unknown, unknown>, next) {
+    const context = getRequestContext();
+    const query = this.getQuery() as Record<string, unknown>;
+    if (context?.orgId && !query.orgId) {
+      this.where({ orgId: context.orgId });
+    }
+    if (context?.userId) {
+      const update = this.getUpdate() as { $set?: Record<string, unknown> };
+      if (!update.$set) {
+        this.set({ updatedBy: context.userId });
+      } else {
+        update.$set.updatedBy = context.userId;
+      }
+    }
+    next();
+  });
+}
+
+export default tenantAuditPlugin;
+
+]]>
+</file>
+
+<file path="server/models/plugins/toJSONClean.ts">
+<![CDATA[
+import { Schema, Types } from "mongoose";
+
+type PlainObject = Record<string, unknown>;
+
+function isPlainObject(value: unknown): value is PlainObject {
+  return (
+    Boolean(value) &&
+    Object.prototype.toString.call(value) === "[object Object]"
+  );
+}
+
+function coerceIdsDeep(value: unknown): unknown {
+  if (value == null) return value;
+  if (value instanceof Types.ObjectId) return value.toString();
+  if (Array.isArray(value)) {
+    return value.map((item) => coerceIdsDeep(item));
+  }
+  if (isPlainObject(value)) {
+    const out: PlainObject = {};
+    for (const key of Object.keys(value)) {
+      out[key] = coerceIdsDeep(value[key]);
+    }
+    return out;
+  }
+  return value;
+}
+
+type TransformableDocument = {
+  _id?: unknown;
+  __v?: unknown;
+  id?: string;
+  [key: string]: unknown;
+};
+
+export function toJSONClean(schema: Schema) {
+  schema.set("toJSON", {
+    virtuals: true,
+    versionKey: false,
+    transform(_doc: unknown, ret: TransformableDocument) {
+      const rawId = ret._id as
+        | Types.ObjectId
+        | string
+        | { toString?: () => string }
+        | undefined;
+      if (rawId != null) {
+        const normalizedId =
+          typeof rawId === "string"
+            ? rawId
+            : typeof rawId?.toString === "function"
+              ? rawId.toString()
+              : undefined;
+        if (normalizedId) {
+          ret.id = normalizedId;
+        }
+      }
+      delete ret._id;
+      delete ret.__v;
+      return coerceIdsDeep(ret);
+    },
+  });
+}
+
+]]>
+</file>
+
+<file path="server/models/qa/QaAlert.ts">
+<![CDATA[
+import { Schema, Model, models, InferSchemaType } from "mongoose";
+import { getModel } from "@/types/mongoose-compat";
+
+const QaAlertSchema = new Schema(
+  {
+    orgId: { type: Schema.Types.ObjectId, sparse: true },
+    event: { type: String, required: true },
+    data: { type: Schema.Types.Mixed },
+    timestamp: { type: Date, default: Date.now },
+    userId: { type: Schema.Types.ObjectId, ref: "User" },
+    ip: { type: String },
+    userAgent: { type: String },
+  },
+  { collection: "qa_alerts", timestamps: false },
+);
+
+QaAlertSchema.index({ orgId: 1, timestamp: -1 }, { sparse: true, name: "qa_alerts_orgId_timestamp" });
+QaAlertSchema.index(
+  { orgId: 1, event: 1, timestamp: -1 },
+  { sparse: true, name: "qa_alerts_orgId_event_timestamp" },
+);
+QaAlertSchema.index({ timestamp: -1 }, { name: "qa_alerts_timestamp_desc" });
+QaAlertSchema.index({ event: 1, timestamp: -1 }, { name: "qa_alerts_event_timestamp" });
+QaAlertSchema.index(
+  { timestamp: 1 },
+  { expireAfterSeconds: 30 * 24 * 60 * 60, name: "qa_alerts_ttl_30d" },
+);
+
+export type QaAlertDoc = InferSchemaType<typeof QaAlertSchema>;
+
+export const QaAlert: Model<QaAlertDoc> =
+  (models.QaAlert as Model<QaAlertDoc> | undefined) || getModel<QaAlertDoc>("QaAlert", QaAlertSchema);
+
+]]>
+</file>
+
+<file path="server/models/qa/QaLog.ts">
+<![CDATA[
+import { Schema, Model, models, InferSchemaType } from "mongoose";
+import { getModel } from "@/types/mongoose-compat";
+
+const QaLogSchema = new Schema(
+  {
+    orgId: { type: Schema.Types.ObjectId, sparse: true },
+    event: { type: String, required: true },
+    data: { type: Schema.Types.Mixed },
+    timestamp: { type: Date, default: Date.now },
+    userId: { type: Schema.Types.ObjectId, ref: "User" },
+    ip: { type: String },
+    userAgent: { type: String },
+    sessionIdHash: { type: String },
+  },
+  { collection: "qa_logs", timestamps: false },
+);
+
+QaLogSchema.index({ orgId: 1, timestamp: -1 }, { sparse: true, name: "qa_logs_orgId_timestamp" });
+QaLogSchema.index(
+  { orgId: 1, event: 1, timestamp: -1 },
+  { sparse: true, name: "qa_logs_orgId_event_timestamp" },
+);
+QaLogSchema.index({ timestamp: -1 }, { name: "qa_logs_timestamp_desc" });
+QaLogSchema.index({ event: 1, timestamp: -1 }, { name: "qa_logs_event_timestamp" });
+QaLogSchema.index(
+  { timestamp: 1 },
+  { expireAfterSeconds: 90 * 24 * 60 * 60, name: "qa_logs_ttl_90d" },
+);
+
+export type QaLogDoc = InferSchemaType<typeof QaLogSchema>;
+
+export const QaLog: Model<QaLogDoc> =
+  (models.QaLog as Model<QaLogDoc> | undefined) || getModel<QaLogDoc>("QaLog", QaLogSchema);
+
+]]>
+</file>
+
+<file path="server/models/souq/Advertising.ts">
+<![CDATA[
+/**
+ * Campaign, AdGroup, Ad, and AdTarget Models - Advertising system
+ * @module server/models/souq/Advertising
+ */
+
+import mongoose, { Schema, type Document } from "mongoose";
+import { getModel } from "@/types/mongoose-compat";
+
+// Campaign Model
+export interface ICampaign extends Document {
+  _id: mongoose.Types.ObjectId;
+  campaignId: string;
+  orgId: string;
+
+  // Ownership
+  sellerId: mongoose.Types.ObjectId;
+
+  // Campaign Details
+  name: string;
+  type: "sponsored_products" | "sponsored_brands" | "sponsored_display";
+  status: "draft" | "active" | "paused" | "completed" | "archived";
+
+  // Budget
+  budgetType: "daily" | "lifetime";
+  budgetAmount: number;
+  budgetSpent: number;
+  currency: string;
+
+  // Schedule
+  startAt: Date;
+  endAt?: Date;
+
+  // Performance (cached)
+  stats: {
+    impressions: number;
+    clicks: number;
+    spend: number;
+    conversions: number;
+    revenue: number;
+  };
+
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Ad Group Model
+export interface IAdGroup extends Document {
+  _id: mongoose.Types.ObjectId;
+  adGroupId: string;
+  orgId: string;
+
+  // Campaign reference
+  campaignId: mongoose.Types.ObjectId;
+  sellerId: mongoose.Types.ObjectId;
+
+  // Details
+  name: string;
+  status: "active" | "paused" | "archived";
+
+  // Bidding
+  defaultBid: number; // CPC bid in currency
+  maxBid?: number;
+
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Ad Model
+export interface IAd extends Document {
+  _id: mongoose.Types.ObjectId;
+  adId: string;
+  orgId: string;
+
+  // References
+  adGroupId: mongoose.Types.ObjectId;
+  campaignId: mongoose.Types.ObjectId;
+  sellerId: mongoose.Types.ObjectId;
+
+  // Product reference
+  productId: mongoose.Types.ObjectId;
+  fsin: string;
+
+  // Creative
+  headline?: string;
+  image?: string;
+
+  // Status
+  status: "active" | "paused" | "rejected" | "archived";
+  rejectionReason?: string;
+
+  // Quality Score (0-10, higher is better)
+  qualityScore: number;
+
+  // Performance (cached)
+  stats: {
+    impressions: number;
+    clicks: number;
+    spend: number;
+    conversions: number;
+    revenue: number;
+  };
+
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Ad Target Model (keywords, categories, products)
+export interface IAdTarget extends Document {
+  _id: mongoose.Types.ObjectId;
+  targetId: string;
+  orgId: string;
+
+  // References
+  adGroupId: mongoose.Types.ObjectId;
+  campaignId: mongoose.Types.ObjectId;
+  sellerId: mongoose.Types.ObjectId;
+
+  // Target Type
+  targetType: "keyword" | "category" | "product" | "audience";
+
+  // Target Value
+  keyword?: string;
+  matchType?: "exact" | "phrase" | "broad"; // For keywords
+  categoryId?: mongoose.Types.ObjectId;
+  productId?: mongoose.Types.ObjectId;
+  audienceSegment?: string;
+
+  // Bid Override (if different from ad group default)
+  bid?: number;
+
+  // Negative targeting
+  isNegative: boolean;
+
+  // Status
+  status: "active" | "paused" | "archived";
+
+  // Performance (cached)
+  stats: {
+    impressions: number;
+    clicks: number;
+    spend: number;
+    conversions: number;
+  };
+
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Campaign Schema
+const CampaignSchema = new Schema<ICampaign>(
+  {
+    campaignId: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+    orgId: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    sellerId: {
+      type: Schema.Types.ObjectId,
+      ref: "SouqSeller",
+      required: true,
+      index: true,
+    },
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 200,
+    },
+    type: {
+      type: String,
+      enum: ["sponsored_products", "sponsored_brands", "sponsored_display"],
+      required: true,
+      index: true,
+    },
+    status: {
+      type: String,
+      enum: ["draft", "active", "paused", "completed", "archived"],
+      default: "draft",
+      index: true,
+    },
+    budgetType: {
+      type: String,
+      enum: ["daily", "lifetime"],
+      required: true,
+    },
+    budgetAmount: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    budgetSpent: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    currency: {
+      type: String,
+      default: "SAR",
+    },
+    startAt: {
+      type: Date,
+      required: true,
+      index: true,
+    },
+    endAt: {
+      type: Date,
+      index: true,
+    },
+    stats: {
+      impressions: { type: Number, default: 0, min: 0 },
+      clicks: { type: Number, default: 0, min: 0 },
+      spend: { type: Number, default: 0, min: 0 },
+      conversions: { type: Number, default: 0, min: 0 },
+      revenue: { type: Number, default: 0, min: 0 },
+    },
+  },
+  {
+    timestamps: true,
+    collection: "souq_campaigns",
+    autoIndex: false,
+  },
+);
+
+// Ad Group Schema
+const AdGroupSchema = new Schema<IAdGroup>(
+  {
+    adGroupId: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+    campaignId: {
+      type: Schema.Types.ObjectId,
+      ref: "SouqCampaign",
+      required: true,
+      index: true,
+    },
+    orgId: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    sellerId: {
+      type: Schema.Types.ObjectId,
+      ref: "SouqSeller",
+      required: true,
+      index: true,
+    },
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 200,
+    },
+    status: {
+      type: String,
+      enum: ["active", "paused", "archived"],
+      default: "active",
+      index: true,
+    },
+    defaultBid: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    maxBid: {
+      type: Number,
+      min: 0,
+    },
+  },
+  {
+    timestamps: true,
+    collection: "souq_ad_groups",
+    autoIndex: false,
+  },
+);
+
+// Ad Schema
+const AdSchema = new Schema<IAd>(
+  {
+    adId: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+    orgId: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    adGroupId: {
+      type: Schema.Types.ObjectId,
+      ref: "SouqAdGroup",
+      required: true,
+      index: true,
+    },
+    campaignId: {
+      type: Schema.Types.ObjectId,
+      ref: "SouqCampaign",
+      required: true,
+      index: true,
+    },
+    sellerId: {
+      type: Schema.Types.ObjectId,
+      ref: "SouqSeller",
+      required: true,
+      index: true,
+    },
+    productId: {
+      type: Schema.Types.ObjectId,
+      ref: "SouqProduct",
+      required: true,
+      index: true,
+    },
+    fsin: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    headline: {
+      type: String,
+      maxlength: 100,
+    },
+    image: String,
+    status: {
+      type: String,
+      enum: ["active", "paused", "rejected", "archived"],
+      default: "active",
+      index: true,
+    },
+    rejectionReason: String,
+    qualityScore: {
+      type: Number,
+      default: 5,
+      min: 0,
+      max: 10,
+    },
+    stats: {
+      impressions: { type: Number, default: 0, min: 0 },
+      clicks: { type: Number, default: 0, min: 0 },
+      spend: { type: Number, default: 0, min: 0 },
+      conversions: { type: Number, default: 0, min: 0 },
+      revenue: { type: Number, default: 0, min: 0 },
+    },
+  },
+  {
+    timestamps: true,
+    collection: "souq_ads",
+    autoIndex: false,
+  },
+);
+
+// Ad Target Schema
+const AdTargetSchema = new Schema<IAdTarget>(
+  {
+    targetId: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+    orgId: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    adGroupId: {
+      type: Schema.Types.ObjectId,
+      ref: "SouqAdGroup",
+      required: true,
+      index: true,
+    },
+    campaignId: {
+      type: Schema.Types.ObjectId,
+      ref: "SouqCampaign",
+      required: true,
+      index: true,
+    },
+    sellerId: {
+      type: Schema.Types.ObjectId,
+      ref: "SouqSeller",
+      required: true,
+      index: true,
+    },
+    targetType: {
+      type: String,
+      enum: ["keyword", "category", "product", "audience"],
+      required: true,
+      index: true,
+    },
+    keyword: {
+      type: String,
+      lowercase: true,
+      trim: true,
+    },
+    matchType: {
+      type: String,
+      enum: ["exact", "phrase", "broad"],
+    },
+    categoryId: {
+      type: Schema.Types.ObjectId,
+      ref: "SouqCategory",
+    },
+    productId: {
+      type: Schema.Types.ObjectId,
+      ref: "SouqProduct",
+    },
+    audienceSegment: String,
+    bid: {
+      type: Number,
+      min: 0,
+    },
+    isNegative: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    status: {
+      type: String,
+      enum: ["active", "paused", "archived"],
+      default: "active",
+      index: true,
+    },
+    stats: {
+      impressions: { type: Number, default: 0, min: 0 },
+      clicks: { type: Number, default: 0, min: 0 },
+      spend: { type: Number, default: 0, min: 0 },
+      conversions: { type: Number, default: 0, min: 0 },
+    },
+  },
+  {
+    timestamps: true,
+    collection: "souq_ad_targets",
+    autoIndex: false,
+  },
+);
+
+// Methods
+CampaignSchema.methods.getRemainingBudget = function (): number {
+  if (this.budgetType === "daily") {
+    // Reset daily budget tracking would be handled separately
+    return Math.max(0, this.budgetAmount - this.budgetSpent);
+  }
+  return Math.max(0, this.budgetAmount - this.budgetSpent);
+};
+
+CampaignSchema.methods.canServeAds = function (): boolean {
+  const now = new Date();
+  return (
+    this.status === "active" &&
+    this.startAt <= now &&
+    (!this.endAt || this.endAt >= now) &&
+    this.getRemainingBudget() > 0
+  );
+};
+
+AdSchema.methods.getCTR = function (): number {
+  return this.stats.impressions > 0
+    ? (this.stats.clicks / this.stats.impressions) * 100
+    : 0;
+};
+
+AdSchema.methods.getCPC = function (): number {
+  return this.stats.clicks > 0 ? this.stats.spend / this.stats.clicks : 0;
+};
+
+AdSchema.methods.getACOS = function (): number {
+  return this.stats.revenue > 0
+    ? (this.stats.spend / this.stats.revenue) * 100
+    : 0;
+};
+
+AdSchema.methods.getROAS = function (): number {
+  return this.stats.spend > 0 ? this.stats.revenue / this.stats.spend : 0;
+};
+
+export const SouqCampaign = getModel<ICampaign>("SouqCampaign", CampaignSchema);
+export const SouqAdGroup = getModel<IAdGroup>("SouqAdGroup", AdGroupSchema);
+export const SouqAd = getModel<IAd>("SouqAd", AdSchema);
+export const SouqAdTarget = getModel<IAdTarget>("SouqAdTarget", AdTargetSchema);
+
+export default { SouqCampaign, SouqAdGroup, SouqAd, SouqAdTarget };
+
+]]>
+</file>
+
+<file path="server/models/souq/Brand.ts">
+<![CDATA[
+/**
+ * Souq Brand Model - Brand registry & verification
+ * @module server/models/souq/Brand
+ */
+
+import mongoose, { Schema, type Document } from "mongoose";
+import { getModel } from "@/types/mongoose-compat";
+
+export interface IBrand extends Document {
+  _id: mongoose.Types.ObjectId;
+  brandId: string; // BRD-{UUID}
+  name: string;
+  slug: string;
+  description?: Record<string, string>; // { en: '...', ar: '...' }
+  logo?: string; // URL
+
+  // Brand Registry
+  isVerified: boolean;
+  isGated: boolean; // Requires authorization to sell
+
+  // Owner/Applicant
+  ownerId?: mongoose.Types.ObjectId; // Seller who registered
+  contactEmail?: string;
+
+  // Verification Documents
+  verificationDocuments: {
+    type: "trademark" | "authorization_letter" | "invoice" | "other";
+    url: string;
+    uploadedAt: Date;
+    expiresAt?: Date;
+  }[];
+
+  // Verification Status
+  verificationStatus: "pending" | "approved" | "rejected" | "expired";
+  verificationNotes?: string;
+  verifiedAt?: Date;
+  verifiedBy?: mongoose.Types.ObjectId; // Admin user ID
+
+  // IP Protection
+  authorizedSellers: mongoose.Types.ObjectId[]; // Seller IDs allowed to sell
+
+  // Metadata
+  website?: string;
+  country?: string;
+  isActive: boolean;
+
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const BrandSchema = new Schema<IBrand>(
+  {
+    brandId: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true,
+    },
+    slug: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      index: true,
+    },
+    description: {
+      type: Map,
+      of: String,
+    },
+    logo: String,
+    isVerified: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    isGated: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    ownerId: {
+      type: Schema.Types.ObjectId,
+      ref: "SouqSeller",
+      index: true,
+    },
+    contactEmail: {
+      type: String,
+      lowercase: true,
+      trim: true,
+    },
+    verificationDocuments: [
+      {
+        type: {
+          type: String,
+          enum: ["trademark", "authorization_letter", "invoice", "other"],
+          required: true,
+        },
+        url: {
+          type: String,
+          required: true,
+        },
+        uploadedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        expiresAt: Date,
+      },
+    ],
+    verificationStatus: {
+      type: String,
+      enum: ["pending", "approved", "rejected", "expired"],
+      default: "pending",
+      index: true,
+    },
+    verificationNotes: String,
+    verifiedAt: Date,
+    verifiedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    authorizedSellers: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "SouqSeller",
+      },
+    ],
+    website: String,
+    country: String,
+    isActive: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
+  },
+  {
+    timestamps: true,
+    collection: "souq_brands",
+  },
+);
+
+// Indexes
+BrandSchema.index({ name: "text" });
+BrandSchema.index({ verificationStatus: 1, isVerified: 1 });
+
+// Method: Check if seller is authorized
+BrandSchema.methods.isSellerAuthorized = function (
+  sellerId: mongoose.Types.ObjectId,
+): boolean {
+  if (!this.isGated) return true;
+  if (!this.isVerified) return false;
+  return this.authorizedSellers.some((id: mongoose.Types.ObjectId) =>
+    id.equals(sellerId),
+  );
+};
+
+// Static: Get pending verifications
+BrandSchema.statics.getPendingVerifications = async function () {
+  return this.find({
+    verificationStatus: "pending",
+    isActive: true,
+  }).populate("ownerId", "legalName contactEmail");
+};
+
+// Pre-save: Auto-generate slug
+BrandSchema.pre("save", function (next) {
+  if (this.isModified("name") && !this.slug) {
+    this.slug = this.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+  }
+  next();
+});
+
+export const SouqBrand = getModel<IBrand>("SouqBrand", BrandSchema);
+
+export default SouqBrand;
+
+]]>
+</file>
+
+<file path="server/models/souq/Category.ts">
+<![CDATA[
+/**
+ * Souq Category Model - Product categorization hierarchy
+ * @module server/models/souq/Category
+ */
+
+import mongoose, { Schema, type Document } from "mongoose";
+import { getModel, MModel } from "@/types/mongoose-compat";
+
+export interface ICategory extends Document {
+  _id: mongoose.Types.ObjectId;
+  categoryId: string; // CAT-{UUID}
+  name: Record<string, string>; // { en: 'Electronics', ar: 'إلكترونيات' }
+  slug: string; // URL-friendly
+  parentCategoryId?: string; // For hierarchy (L1 > L2 > L3)
+  level: number; // 1, 2, or 3 (max 3 levels)
+  path: string[]; // Full path of category IDs for traversal
+  description?: Record<string, string>;
+  icon?: string; // Icon URL or name
+  bannerImage?: string;
+
+  // Restrictions
+  isRestricted: boolean; // Requires approval to list
+  isActive: boolean;
+
+  // Attributes
+  requiredAttributes: string[]; // Attribute IDs required for products
+  optionalAttributes: string[]; // Attribute IDs optional for products
+
+  // Metadata
+  displayOrder: number;
+  productCount?: number; // Cached count of products
+
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: mongoose.Types.ObjectId; // Admin user ID
+  updatedBy?: mongoose.Types.ObjectId;
+}
+
+const CategorySchema = new Schema<ICategory>(
+  {
+    categoryId: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+    name: {
+      type: Map,
+      of: String,
+      required: true,
+    },
+    slug: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+      lowercase: true,
+    },
+    parentCategoryId: {
+      type: String,
+      index: true,
+    },
+    level: {
+      type: Number,
+      required: true,
+      min: 1,
+      max: 3,
+      index: true,
+    },
+    path: {
+      type: [String],
+      default: [],
+      index: true,
+    },
+    description: {
+      type: Map,
+      of: String,
+    },
+    icon: String,
+    bannerImage: String,
+    isRestricted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
+    requiredAttributes: {
+      type: [String],
+      default: [],
+    },
+    optionalAttributes: {
+      type: [String],
+      default: [],
+    },
+    displayOrder: {
+      type: Number,
+      default: 0,
+      index: true,
+    },
+    productCount: {
+      type: Number,
+      default: 0,
+    },
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    updatedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+  },
+  {
+    timestamps: true,
+    collection: "souq_categories",
+  },
+);
+
+// Indexes for performance
+CategorySchema.index({ parentCategoryId: 1, displayOrder: 1 });
+CategorySchema.index({ level: 1, isActive: 1 });
+CategorySchema.index({ "name.en": "text", "name.ar": "text" });
+
+// Virtual for full path names
+CategorySchema.virtual("fullPath").get(function () {
+  return this.path;
+});
+
+// Static method: Get category tree
+CategorySchema.statics.getCategoryTree = async function () {
+  const categories = await this.find({ isActive: true }).sort({
+    level: 1,
+    displayOrder: 1,
+  });
+
+  const tree: unknown[] = [];
+  const categoryMap = new Map();
+
+  categories.forEach((cat: ICategory) => {
+    const catObj = cat.toObject();
+    catObj.children = [];
+    categoryMap.set(catObj.categoryId, catObj);
+  });
+
+  categories.forEach((cat: ICategory) => {
+    const catObj = categoryMap.get(cat.categoryId);
+    if (cat.parentCategoryId) {
+      const parent = categoryMap.get(cat.parentCategoryId);
+      if (parent) {
+        parent.children.push(catObj);
+      }
+    } else {
+      tree.push(catObj);
+    }
+  });
+
+  return tree;
+};
+
+// Static method: Get breadcrumb
+CategorySchema.statics.getBreadcrumb = async function (categoryId: string) {
+  const category = await this.findOne({ categoryId });
+  if (!category) return [];
+
+  const breadcrumb = [];
+  for (const catId of category.path) {
+    const cat = await this.findOne({ categoryId: catId });
+    if (cat) {
+      breadcrumb.push({
+        categoryId: cat.categoryId,
+        name: cat.name,
+        slug: cat.slug,
+      });
+    }
+  }
+
+  breadcrumb.push({
+    categoryId: category.categoryId,
+    name: category.name,
+    slug: category.slug,
+  });
+
+  return breadcrumb;
+};
+
+// Pre-save: Update path
+CategorySchema.pre("save", async function (next) {
+  if (this.isModified("parentCategoryId") || this.isNew) {
+    const path: string[] = [];
+
+    if (this.parentCategoryId) {
+      const parent = await mongoose.model("SouqCategory").findOne({
+        categoryId: this.parentCategoryId,
+      });
+
+      if (parent) {
+        path.push(...parent.path, parent.categoryId);
+        this.level = parent.level + 1;
+      } else {
+        this.level = 1;
+      }
+    } else {
+      this.level = 1;
+    }
+
+    this.path = path;
+  }
+
+  next();
+});
+
+export const SouqCategory = getModel<ICategory>("SouqCategory", CategorySchema);
+
+export default SouqCategory;
+
+]]>
+</file>
+
+<file path="server/models/souq/Claim.ts">
+<![CDATA[
+import { Schema, type Document } from "mongoose";
+import { getModel } from "@/types/mongoose-compat";
+
+/**
+ * A-to-Z Claim Model
+ * Buyer protection claims for order disputes (not delivered, significantly different, damaged)
+ */
+
+export interface IClaimEvidence {
+  uploadedBy: "buyer" | "seller";
+  type: "photo" | "document" | "video" | "screenshot";
+  url: string;
+  description: string;
+  uploadedAt: Date;
+}
+
+export interface IClaimTimeline {
+  status: string;
+  timestamp: Date;
+  note?: string;
+  performedBy?: string;
+}
+
+export interface IClaimDecision {
+  decidedAt: Date;
+  decidedBy: string;
+  outcome: "approved" | "denied" | "partial_refund";
+  refundAmount: number;
+  reasoning: string;
+  evidence?: string[]; // Reference to evidence used
+}
+
+export interface IClaimFundsHold {
+  amount: number;
+  heldAt: Date;
+  releasedAt?: Date;
+  status: "held" | "released" | "transferred_to_buyer";
+}
+
+export interface IClaim extends Document {
+  claimId: string;
+  orgId: string;
+  orderId: string;
+  orderNumber: string;
+  buyerId: string;
+  sellerId: string;
+
+  // Claim Type
+  claimType:
+    | "not_received"
+    | "significantly_different"
+    | "damaged"
+    | "defective"
+    | "counterfeit"
+    | "unauthorized_charge";
+
+  // Claim Details
+  buyerDescription: string;
+  desiredResolution:
+    | "full_refund"
+    | "partial_refund"
+    | "replacement"
+    | "return";
+  requestedAmount: number;
+
+  // Evidence
+  buyerEvidence: IClaimEvidence[];
+  sellerEvidence: IClaimEvidence[];
+
+  // Status
+  status:
+    | "submitted"
+    | "under_review"
+    | "pending_seller_response"
+    | "pending_investigation"
+    | "resolved"
+    | "closed"
+    | "escalated";
+
+  // Response Deadlines
+  sellerResponseDeadline: Date;
+  sellerRespondedAt?: Date;
+  sellerResponse?: string;
+
+  // Investigation
+  investigationStartedAt?: Date;
+  investigationNotes?: string;
+  assignedTo?: string; // Admin user ID
+
+  // Decision
+  decision?: IClaimDecision;
+
+  // Funds Hold (seller payout frozen during claim)
+  fundsHold?: IClaimFundsHold;
+
+  // Timeline
+  timeline: IClaimTimeline[];
+
+  // Communication
+  buyerNotes?: string;
+  sellerNotes?: string;
+  adminNotes?: string;
+
+  // Policy Violation
+  isAbuse: boolean;
+  abuseReason?: string;
+
+  // Audit
+  createdAt: Date;
+  updatedAt: Date;
+  resolvedAt?: Date;
+  closedAt?: Date;
+}
+
+const ClaimEvidenceSchema = new Schema<IClaimEvidence>(
+  {
+    uploadedBy: { type: String, enum: ["buyer", "seller"], required: true },
+    type: {
+      type: String,
+      enum: ["photo", "document", "video", "screenshot"],
+      required: true,
+    },
+    url: { type: String, required: true },
+    description: { type: String, required: true },
+    uploadedAt: { type: Date, required: true, default: Date.now },
+  },
+  { _id: false },
+);
+
+const ClaimTimelineSchema = new Schema<IClaimTimeline>(
+  {
+    status: { type: String, required: true },
+    timestamp: { type: Date, required: true, default: Date.now },
+    note: String,
+    performedBy: String,
+  },
+  { _id: false },
+);
+
+const ClaimDecisionSchema = new Schema<IClaimDecision>(
+  {
+    decidedAt: { type: Date, required: true },
+    decidedBy: { type: String, required: true },
+    outcome: {
+      type: String,
+      enum: ["approved", "denied", "partial_refund"],
+      required: true,
+    },
+    refundAmount: { type: Number, required: true },
+    reasoning: { type: String, required: true },
+    evidence: [String],
+  },
+  { _id: false },
+);
+
+const ClaimFundsHoldSchema = new Schema<IClaimFundsHold>(
+  {
+    amount: { type: Number, required: true },
+    heldAt: { type: Date, required: true, default: Date.now },
+    releasedAt: Date,
+    status: {
+      type: String,
+      enum: ["held", "released", "transferred_to_buyer"],
+      default: "held",
+    },
+  },
+  { _id: false },
+);
+
+const ClaimSchema = new Schema<IClaim>(
+  {
+    claimId: { type: String, required: true, unique: true, index: true },
+    orgId: { type: String, required: true, index: true },
+    orderId: { type: String, required: true, index: true },
+    orderNumber: { type: String, required: true },
+    buyerId: { type: String, required: true, index: true },
+    sellerId: { type: String, required: true, index: true },
+
+    claimType: {
+      type: String,
+      enum: [
+        "not_received",
+        "significantly_different",
+        "damaged",
+        "defective",
+        "counterfeit",
+        "unauthorized_charge",
+      ],
+      required: true,
+      index: true,
+    },
+
+    buyerDescription: { type: String, required: true },
+    desiredResolution: {
+      type: String,
+      enum: ["full_refund", "partial_refund", "replacement", "return"],
+      required: true,
+    },
+    requestedAmount: { type: Number, required: true },
+
+    buyerEvidence: { type: [ClaimEvidenceSchema], default: [] },
+    sellerEvidence: { type: [ClaimEvidenceSchema], default: [] },
+
+    status: {
+      type: String,
+      enum: [
+        "submitted",
+        "under_review",
+        "pending_seller_response",
+        "pending_investigation",
+        "resolved",
+        "closed",
+        "escalated",
+      ],
+      default: "submitted",
+      index: true,
+    },
+
+    sellerResponseDeadline: { type: Date, required: true },
+    sellerRespondedAt: Date,
+    sellerResponse: String,
+
+    investigationStartedAt: Date,
+    investigationNotes: String,
+    assignedTo: { type: String, index: true },
+
+    decision: ClaimDecisionSchema,
+    fundsHold: ClaimFundsHoldSchema,
+
+    timeline: { type: [ClaimTimelineSchema], default: [] },
+
+    buyerNotes: String,
+    sellerNotes: String,
+    adminNotes: String,
+
+    isAbuse: { type: Boolean, default: false },
+    abuseReason: String,
+
+    resolvedAt: Date,
+    closedAt: Date,
+  },
+  {
+    timestamps: true,
+    collection: "claims",
+  },
+);
+
+// Indexes
+ClaimSchema.index(
+  { orgId: 1, claimId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { orgId: { $exists: true }, claimId: { $exists: true } },
+  },
+);
+ClaimSchema.index({ orgId: 1, status: 1, createdAt: -1 });
+ClaimSchema.index({ orgId: 1, buyerId: 1, status: 1 });
+ClaimSchema.index({ orgId: 1, sellerId: 1, status: 1 });
+ClaimSchema.index({ orgId: 1, sellerId: 1, createdAt: -1 });
+ClaimSchema.index({ orgId: 1, sellerResponseDeadline: 1, status: 1 });
+ClaimSchema.index({ orgId: 1, assignedTo: 1, status: 1 });
+
+// Methods
+
+/**
+ * Add timeline event
+ */
+ClaimSchema.methods.addTimelineEvent = function (
+  status: string,
+  note?: string,
+  performedBy?: string,
+): void {
+  this.timeline.push({
+    status,
+    timestamp: new Date(),
+    note,
+    performedBy,
+  });
+};
+
+/**
+ * Submit claim (initial creation)
+ */
+ClaimSchema.methods.submit = function (): void {
+  this.status = "submitted";
+  this.addTimelineEvent("submitted", "Claim submitted by buyer", this.buyerId);
+
+  // Move to review immediately
+  this.startReview();
+};
+
+/**
+ * Start review process
+ */
+ClaimSchema.methods.startReview = function (): void {
+  this.status = "under_review";
+  this.addTimelineEvent("under_review", "Initial review started", "system");
+
+  // Set seller response deadline (typically 3 days)
+  const deadline = new Date();
+  deadline.setDate(deadline.getDate() + 3);
+  this.sellerResponseDeadline = deadline;
+
+  // Hold seller funds
+  this.holdFunds();
+};
+
+/**
+ * Hold seller payout funds
+ */
+ClaimSchema.methods.holdFunds = function (): void {
+  if (!this.fundsHold) {
+    this.fundsHold = {
+      amount: this.requestedAmount,
+      heldAt: new Date(),
+      status: "held",
+    };
+    this.addTimelineEvent(
+      "funds_held",
+      `${this.requestedAmount} SAR held from seller payout`,
+      "system",
+    );
+  }
+};
+
+/**
+ * Release held funds to seller
+ */
+ClaimSchema.methods.releaseFunds = function (): void {
+  if (this.fundsHold && this.fundsHold.status === "held") {
+    this.fundsHold.status = "released";
+    this.fundsHold.releasedAt = new Date();
+    this.addTimelineEvent(
+      "funds_released",
+      "Funds released to seller",
+      "system",
+    );
+  }
+};
+
+/**
+ * Transfer held funds to buyer
+ */
+ClaimSchema.methods.transferFundsToBuyer = function (): void {
+  if (this.fundsHold && this.fundsHold.status === "held") {
+    this.fundsHold.status = "transferred_to_buyer";
+    this.fundsHold.releasedAt = new Date();
+    this.addTimelineEvent(
+      "funds_transferred",
+      "Funds transferred to buyer",
+      "system",
+    );
+  }
+};
+
+/**
+ * Seller submits response
+ */
+ClaimSchema.methods.sellerRespond = function (
+  response: string,
+  evidence: IClaimEvidence[],
+): void {
+  this.sellerResponse = response;
+  this.sellerRespondedAt = new Date();
+  this.sellerEvidence.push(...evidence);
+
+  this.status = "pending_investigation";
+  this.addTimelineEvent(
+    "seller_responded",
+    "Seller submitted response",
+    this.sellerId,
+  );
+};
+
+/**
+ * Assign to admin for investigation
+ */
+ClaimSchema.methods.assignInvestigator = function (adminId: string): void {
+  this.assignedTo = adminId;
+  this.investigationStartedAt = new Date();
+  this.status = "pending_investigation";
+  this.addTimelineEvent(
+    "investigation_assigned",
+    `Assigned to ${adminId}`,
+    "system",
+  );
+};
+
+/**
+ * Escalate to higher authority
+ */
+ClaimSchema.methods.escalate = function (reason: string): void {
+  this.status = "escalated";
+  this.adminNotes = reason;
+  this.addTimelineEvent("escalated", reason, this.assignedTo || "system");
+};
+
+/**
+ * Resolve claim with decision
+ */
+ClaimSchema.methods.resolve = function (
+  outcome: "approved" | "denied" | "partial_refund",
+  refundAmount: number,
+  reasoning: string,
+  decidedBy: string,
+): void {
+  this.decision = {
+    decidedAt: new Date(),
+    decidedBy,
+    outcome,
+    refundAmount,
+    reasoning,
+    evidence: this.buyerEvidence
+      .map((e: IClaimEvidence) => e.url)
+      .concat(this.sellerEvidence.map((e: IClaimEvidence) => e.url)),
+  };
+
+  this.status = "resolved";
+  this.resolvedAt = new Date();
+
+  // Handle funds based on decision
+  if (outcome === "approved" || outcome === "partial_refund") {
+    this.transferFundsToBuyer();
+  } else {
+    this.releaseFunds();
+  }
+
+  this.addTimelineEvent("resolved", `${outcome}: ${reasoning}`, decidedBy);
+};
+
+/**
+ * Close claim
+ */
+ClaimSchema.methods.close = function (reason?: string): void {
+  this.status = "closed";
+  this.closedAt = new Date();
+  this.addTimelineEvent(
+    "closed",
+    reason || "Claim closed",
+    this.assignedTo || "system",
+  );
+};
+
+/**
+ * Flag as abuse
+ */
+ClaimSchema.methods.flagAbuse = function (reason: string): void {
+  this.isAbuse = true;
+  this.abuseReason = reason;
+  this.addTimelineEvent("abuse_flagged", reason, "system");
+};
+
+/**
+ * Add buyer evidence
+ */
+ClaimSchema.methods.addBuyerEvidence = function (
+  type: string,
+  url: string,
+  description: string,
+): void {
+  this.buyerEvidence.push({
+    uploadedBy: "buyer",
+    type: type as "photo" | "document" | "video" | "screenshot",
+    url,
+    description,
+    uploadedAt: new Date(),
+  });
+  this.addTimelineEvent(
+    "evidence_added",
+    `Buyer uploaded ${type}`,
+    this.buyerId,
+  );
+};
+
+/**
+ * Add seller evidence
+ */
+ClaimSchema.methods.addSellerEvidence = function (
+  type: string,
+  url: string,
+  description: string,
+): void {
+  this.sellerEvidence.push({
+    uploadedBy: "seller",
+    type: type as "photo" | "document" | "video" | "screenshot",
+    url,
+    description,
+    uploadedAt: new Date(),
+  });
+  this.addTimelineEvent(
+    "evidence_added",
+    `Seller uploaded ${type}`,
+    this.sellerId,
+  );
+};
+
+/**
+ * Check if seller response is overdue
+ */
+ClaimSchema.methods.isSellerResponseOverdue = function (): boolean {
+  return !this.sellerRespondedAt && new Date() > this.sellerResponseDeadline;
+};
+
+/**
+ * Auto-decide if seller doesn't respond
+ */
+ClaimSchema.methods.autoDecideOnNoResponse = function (): void {
+  if (this.isSellerResponseOverdue()) {
+    this.resolve(
+      "approved",
+      this.requestedAmount,
+      "Seller failed to respond within deadline",
+      "system",
+    );
+  }
+};
+
+export const SouqClaim = getModel<IClaim>("SouqClaim", ClaimSchema);
+
+]]>
+</file>
+
+<file path="server/models/souq/Coupon.ts">
+<![CDATA[
+/**
+ * Coupon Model - Promotional coupons for marketplace
+ * @module server/models/souq/Coupon
+ */
+
+import mongoose, { Schema, type Document } from "mongoose";
+import { getModel } from "@/types/mongoose-compat";
+
+export interface ICoupon extends Document {
+  _id: mongoose.Types.ObjectId;
+  couponId: string; // CPN-{UUID}
+
+  // Ownership
+  sellerId?: mongoose.Types.ObjectId; // If seller-specific, null for admin coupons
+
+  // Coupon Details
+  code: string; // Unique code (e.g., SAVE20, WELCOME10)
+  type: "percent" | "amount";
+  value: number; // Percentage (1-100) or fixed amount
+  currency: string;
+
+  // Eligibility
+  minBasketAmount?: number; // Minimum purchase required
+  maxDiscountAmount?: number; // Cap on discount for percent coupons
+  applicableCategories?: mongoose.Types.ObjectId[]; // Restrict to categories
+  applicableProducts?: mongoose.Types.ObjectId[]; // Restrict to products
+  excludeCategories?: mongoose.Types.ObjectId[];
+  excludeProducts?: mongoose.Types.ObjectId[];
+
+  // Usage Limits
+  maxRedemptions?: number; // Total times can be used
+  redemptionsUsed: number;
+  maxRedemptionsPerUser?: number; // Per-user limit
+
+  // Time Window
+  startAt: Date;
+  endAt: Date;
+
+  // Conditions
+  firstPurchaseOnly?: boolean;
+  requiresPrime?: boolean; // Future feature
+
+  // Status
+  isActive: boolean;
+
+  // Metadata
+  description?: string;
+  internalNotes?: string;
+
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const CouponSchema = new Schema<ICoupon>(
+  {
+    couponId: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+    sellerId: {
+      type: Schema.Types.ObjectId,
+      ref: "SouqSeller",
+      index: true,
+    },
+    code: {
+      type: String,
+      required: true,
+      unique: true,
+      uppercase: true,
+      trim: true,
+      index: true,
+    },
+    type: {
+      type: String,
+      enum: ["percent", "amount"],
+      required: true,
+    },
+    value: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    currency: {
+      type: String,
+      default: "SAR",
+    },
+    minBasketAmount: {
+      type: Number,
+      min: 0,
+    },
+    maxDiscountAmount: {
+      type: Number,
+      min: 0,
+    },
+    applicableCategories: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "SouqCategory",
+      },
+    ],
+    applicableProducts: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "SouqProduct",
+      },
+    ],
+    excludeCategories: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "SouqCategory",
+      },
+    ],
+    excludeProducts: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "SouqProduct",
+      },
+    ],
+    maxRedemptions: {
+      type: Number,
+      min: 1,
+    },
+    redemptionsUsed: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    maxRedemptionsPerUser: {
+      type: Number,
+      min: 1,
+    },
+    startAt: {
+      type: Date,
+      required: true,
+      index: true,
+    },
+    endAt: {
+      type: Date,
+      required: true,
+      index: true,
+    },
+    firstPurchaseOnly: {
+      type: Boolean,
+      default: false,
+    },
+    requiresPrime: {
+      type: Boolean,
+      default: false,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
+    description: String,
+    internalNotes: String,
+  },
+  {
+    timestamps: true,
+    collection: "souq_coupons",
+  },
+);
+
+// Indexes
+CouponSchema.index({ code: 1, isActive: 1 });
+CouponSchema.index({ sellerId: 1, isActive: 1 });
+CouponSchema.index({ startAt: 1, endAt: 1, isActive: 1 });
+
+// Methods
+CouponSchema.methods.isValid = function (): boolean {
+  const now = new Date();
+  return (
+    this.isActive &&
+    this.startAt <= now &&
+    this.endAt >= now &&
+    (this.maxRedemptions === undefined ||
+      this.redemptionsUsed < this.maxRedemptions)
+  );
+};
+
+CouponSchema.methods.canRedeem = function (): boolean {
+  if (!this.isValid()) return false;
+  if (this.maxRedemptions && this.redemptionsUsed >= this.maxRedemptions)
+    return false;
+  return true;
+};
+
+CouponSchema.methods.calculateDiscount = function (
+  basketAmount: number,
+): number {
+  if (!this.canRedeem()) return 0;
+  if (this.minBasketAmount && basketAmount < this.minBasketAmount) return 0;
+
+  let discount = 0;
+
+  if (this.type === "percent") {
+    discount = (basketAmount * this.value) / 100;
+    if (this.maxDiscountAmount) {
+      discount = Math.min(discount, this.maxDiscountAmount);
+    }
+  } else {
+    discount = this.value;
+  }
+
+  return Math.min(discount, basketAmount);
+};
+
+export const SouqCoupon = getModel<ICoupon>("SouqCoupon", CouponSchema);
+
+export default SouqCoupon;
+
+]]>
+</file>
+
+</batch_content>

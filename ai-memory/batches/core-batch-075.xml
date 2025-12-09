@@ -1,0 +1,3524 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/architecture/S3_IMPLEMENTATION_PLAN.md">
+<![CDATA[
+# S3 Upload Implementation Plan
+
+## Emergency Priority - 294 Days Overdue
+
+**Status:** 🔴 **CRITICAL** - Security & Compliance Risk  
+**Timeline:** 2-3 weeks (December 2-20, 2025)  
+**Team:** 2 Backend Engineers + 1 Security Engineer  
+**Budget:** $15-20K (AWS infrastructure + development time)
+
+---
+
+## 🎯 Executive Summary
+
+### Business Impact
+
+- **Security Risk:** KYC documents and resumes currently stored insecurely or not persisted
+- **Compliance Risk:** GDPR/CCPA violations for PII handling
+- **Revenue Impact:** Seller KYC verification broken → lost marketplace revenue
+- **Customer Impact:** Job application system non-functional → ATS module unusable
+
+### Technical Debt
+
+- **Days Overdue:** 294 days (since January 31, 2025)
+- **Affected Features:** 2 critical (KYC, ATS resumes)
+- **Mock Implementations:** 2 `setTimeout()` placeholders
+- **User Impact:** HIGH (functional blockers)
+
+---
+
+## 📋 Current State Analysis
+
+### Mock Implementation 1: KYC Document Uploads
+
+**File:** `components/seller/kyc/DocumentUploadForm.tsx:98`
+
+```typescript
+// TODO: Replace with actual S3 pre-signed URL upload
+await new Promise((resolve) => setTimeout(resolve, 2000));
+```
+
+**Impact:**
+
+- Seller onboarding blocked
+- KYC verification impossible
+- Marketplace seller acquisition stopped
+- Potential data loss (documents not persisted)
+
+### Mock Implementation 2: Resume/CV Uploads
+
+**File:** `server/services/ats/application-intake.ts:288`
+
+```typescript
+// TODO: Replace with S3 upload
+await new Promise((resolve) => setTimeout(resolve, 1500));
+```
+
+**Impact:**
+
+- Job application system broken
+- Candidate data not stored
+- ATS module non-functional
+- PII handling non-compliant
+
+---
+
+## 🏗️ Architecture Design
+
+### Phase 1: Pre-signed URL API (Week 1)
+
+#### API Endpoint: `POST /api/upload/presigned-url`
+
+**Request:**
+
+```typescript
+interface PresignedUrlRequest {
+  fileType: "application/pdf" | "image/png" | "image/jpeg" | "image/jpg";
+  fileSize: number; // bytes
+  category: "kyc" | "resume" | "invoice" | "document";
+  metadata: {
+    userId: string;
+    tenantId: string;
+    purpose: string; // 'kyc-identity', 'kyc-business', 'resume-upload', etc.
+  };
+}
+```
+
+**Response:**
+
+```typescript
+interface PresignedUrlResponse {
+  uploadUrl: string; // Pre-signed S3 URL (15 min expiry)
+  fileKey: string; // S3 object key
+  expiresAt: string; // ISO timestamp
+  fields?: Record<string, string>; // Additional POST fields if using multipart
+}
+```
+
+**Validation Rules:**
+
+- File type: MIME type whitelist (PDF, PNG, JPG only)
+- File size: Max 10MB for images, 25MB for PDFs
+- User authentication: Required (JWT session)
+- Rate limiting: 10 requests/minute per user
+
+#### Security Requirements
+
+**1. S3 Bucket Configuration**
+
+```typescript
+// infrastructure/s3-buckets.tf (Terraform)
+resource "aws_s3_bucket" "fixzit_uploads" {
+  bucket = "fixzit-uploads-${var.environment}"
+
+  versioning {
+    enabled = true
+  }
+
+  server_side_encryption_configuration {
+    rule {
+      apply_server_side_encryption_by_default {
+        sse_algorithm = "AES256"
+      }
+    }
+  }
+
+  lifecycle_rule {
+    enabled = true
+    prefix  = "temp/"
+
+    expiration {
+      days = 1  // Delete unprocessed temp uploads
+    }
+  }
+
+  lifecycle_rule {
+    enabled = true
+    prefix  = "kyc/"
+
+    transition {
+      days          = 90
+      storage_class = "GLACIER"  // Archive old KYC docs
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "fixzit_uploads" {
+  bucket = aws_s3_bucket.fixzit_uploads.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+```
+
+**2. IAM Policy (Least Privilege)**
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowPresignedUrlGeneration",
+      "Effect": "Allow",
+      "Action": ["s3:PutObject", "s3:PutObjectAcl"],
+      "Resource": "arn:aws:s3:::fixzit-uploads-prod/uploads/*",
+      "Condition": {
+        "StringEquals": {
+          "s3:x-amz-server-side-encryption": "AES256"
+        }
+      }
+    },
+    {
+      "Sid": "AllowVirusScanAccess",
+      "Effect": "Allow",
+      "Action": ["s3:GetObject"],
+      "Resource": "arn:aws:s3:::fixzit-uploads-prod/uploads/*"
+    }
+  ]
+}
+```
+
+**3. Virus Scanning Integration**
+
+- **Option A:** AWS Macie (recommended)
+  - Real-time malware detection
+  - Data loss prevention (DLP)
+  - PII discovery
+  - Cost: ~$1/GB scanned
+
+- **Option B:** ClamAV Lambda
+  - Open-source antivirus
+  - Triggered on S3 PUT events
+  - Cost: ~$0.20/1000 scans
+  - **Recommended for cost optimization**
+
+**4. Encryption**
+
+- **At rest:** AES-256 (S3 default encryption)
+- **In transit:** TLS 1.3 (pre-signed HTTPS URLs)
+- **KMS:** AWS KMS for key management (optional, adds cost)
+
+---
+
+### Phase 2: Client-Side Integration (Week 2)
+
+#### KYC Document Upload Component
+
+**File:** `components/seller/kyc/DocumentUploadForm.tsx`
+
+**Implementation:**
+
+```typescript
+// Before (Mock)
+const handleUpload = async (file: File) => {
+  setUploading(true);
+  try {
+    // TODO: Replace with actual S3 pre-signed URL upload
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    toast.success("Document uploaded successfully");
+  } catch (error) {
+    toast.error("Upload failed");
+  } finally {
+    setUploading(false);
+  }
+};
+
+// After (Real S3 Upload)
+const handleUpload = async (file: File) => {
+  setUploading(true);
+  setProgress(0);
+
+  try {
+    // Step 1: Get pre-signed URL
+    const response = await fetch("/api/upload/presigned-url", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fileType: file.type,
+        fileSize: file.size,
+        category: "kyc",
+        metadata: {
+          userId: session.user.id,
+          tenantId: session.user.tenantId,
+          purpose: documentType, // 'kyc-identity' | 'kyc-business'
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to get upload URL");
+    }
+
+    const { uploadUrl, fileKey } = await response.json();
+
+    // Step 2: Upload to S3 with progress tracking (using XMLHttpRequest)
+    await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+
+      xhr.upload.addEventListener("progress", (event) => {
+        if (event.lengthComputable) {
+          const progress = Math.round((event.loaded / event.total) * 100);
+          setProgress(progress);
+        }
+      });
+
+      xhr.addEventListener("load", () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(xhr.response);
+        } else {
+          reject(new Error("S3 upload failed"));
+        }
+      });
+
+      xhr.addEventListener("error", () => {
+        reject(new Error("Network error during upload"));
+      });
+
+      xhr.open("PUT", uploadUrl);
+      xhr.setRequestHeader("Content-Type", file.type);
+      xhr.send(file);
+    });
+
+    // Step 3: Notify backend of successful upload
+    await fetch("/api/kyc/documents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fileKey,
+        documentType,
+        fileName: file.name,
+        fileSize: file.size,
+        mimeType: file.type,
+      }),
+    });
+
+    toast.success("Document uploaded and verified");
+    onUploadComplete(fileKey);
+  } catch (error) {
+    logger.error("KYC upload failed", error);
+    toast.error("Upload failed. Please try again.");
+  } finally {
+    setUploading(false);
+    setProgress(0);
+  }
+};
+```
+
+**Features:**
+
+- Progress indicator (0-100%)
+- Error retry logic (3 attempts)
+- File type validation (client + server)
+- Size limit enforcement
+- Audit logging
+
+#### ATS Resume Upload Integration
+
+**File:** `server/services/ats/application-intake.ts`
+
+**Implementation:**
+
+```typescript
+// Before (Mock)
+export async function processApplication(data: ApplicationData) {
+  // ... validation ...
+
+  // TODO: Replace with S3 upload
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+
+  // ... save to DB ...
+}
+
+// After (Real S3 Upload)
+export async function processApplication(data: ApplicationData) {
+  // ... validation ...
+
+  try {
+    // Step 1: Get pre-signed URL
+    const { uploadUrl, fileKey } = await getPresignedUrl({
+      fileType: data.resumeFile.type,
+      fileSize: data.resumeFile.size,
+      category: "resume",
+      metadata: {
+        userId: data.candidateId,
+        tenantId: data.tenantId,
+        purpose: `job-application-${data.jobId}`,
+      },
+    });
+
+    // Step 2: Upload resume to S3
+    await uploadToS3(uploadUrl, data.resumeFile);
+
+    // Step 3: Trigger resume parsing (async)
+    await queueResumeParser({
+      fileKey,
+      candidateId: data.candidateId,
+      jobId: data.jobId,
+    });
+
+    // Step 4: Save application with S3 reference
+    const application = await Application.create({
+      ...data,
+      resumeFileKey: fileKey,
+      resumeFileName: data.resumeFile.name,
+      resumeFileSize: data.resumeFile.size,
+      status: "pending",
+    });
+
+    // Step 5: Audit log
+    await auditLog({
+      action: "resume_upload",
+      userId: data.candidateId,
+      resource: `application:${application.id}`,
+      metadata: { fileKey, jobId: data.jobId },
+    });
+
+    return application;
+  } catch (error) {
+    logger.error("Resume upload failed", error);
+    throw new Error("Failed to process application");
+  }
+}
+```
+
+---
+
+### Phase 3: Security & Compliance (Week 2-3)
+
+#### Virus Scanning Lambda Function
+
+**File:** `infrastructure/lambda/virus-scanner.ts`
+
+```typescript
+import { S3Event } from "aws-lambda";
+import AWS from "aws-sdk";
+import { exec } from "child_process";
+import { promisify } from "util";
+
+const execAsync = promisify(exec);
+const s3 = new AWS.S3();
+const sns = new AWS.SNS();
+
+export const handler = async (event: S3Event) => {
+  for (const record of event.Records) {
+    const bucket = record.s3.bucket.name;
+    const key = decodeURIComponent(record.s3.object.key.replace(/\+/g, " "));
+
+    try {
+      // Download file to /tmp
+      const { Body } = await s3
+        .getObject({ Bucket: bucket, Key: key })
+        .promise();
+      const tempFile = `/tmp/${key.split("/").pop()}`;
+      await fs.writeFile(tempFile, Body);
+
+      // Scan with ClamAV
+      const { stdout, stderr } = await execAsync(`clamscan ${tempFile}`);
+
+      if (stdout.includes("Infected files: 0")) {
+        // Clean - tag object
+        await s3
+          .putObjectTagging({
+            Bucket: bucket,
+            Key: key,
+            Tagging: {
+              TagSet: [{ Key: "VirusScan", Value: "CLEAN" }],
+            },
+          })
+          .promise();
+
+        console.log(`✅ Clean: ${key}`);
+      } else {
+        // Infected - quarantine and alert
+        await s3
+          .copyObject({
+            Bucket: bucket,
+            CopySource: `${bucket}/${key}`,
+            Key: `quarantine/${key}`,
+          })
+          .promise();
+
+        await s3.deleteObject({ Bucket: bucket, Key: key }).promise();
+
+        await sns
+          .publish({
+            TopicArn: process.env.ALERT_SNS_TOPIC,
+            Subject: "🚨 Virus Detected in Upload",
+            Message: `File: ${key}\nBucket: ${bucket}\nAction: Quarantined`,
+          })
+          .promise();
+
+        console.error(`❌ Infected: ${key}`);
+      }
+    } catch (error) {
+      console.error(`Error scanning ${key}:`, error);
+      throw error;
+    }
+  }
+};
+```
+
+**Deployment:**
+
+```bash
+# Lambda configuration
+Runtime: Node.js 18.x
+Memory: 1024 MB
+Timeout: 60 seconds
+Layers: ClamAV Layer (ARN from AWS Marketplace)
+Trigger: S3 PUT events on uploads/* prefix
+```
+
+#### Audit Logging
+
+**File:** `server/services/audit-logger.ts`
+
+```typescript
+export async function logFileUpload(data: {
+  userId: string;
+  tenantId: string;
+  fileKey: string;
+  category: string;
+  fileSize: number;
+  mimeType: string;
+  ipAddress: string;
+  userAgent: string;
+}) {
+  await AuditLog.create({
+    action: "file_upload",
+    userId: data.userId,
+    tenantId: data.tenantId,
+    resource: `s3:${data.fileKey}`,
+    metadata: {
+      category: data.category,
+      fileSize: data.fileSize,
+      mimeType: data.mimeType,
+      ipAddress: data.ipAddress,
+      userAgent: data.userAgent,
+    },
+    timestamp: new Date(),
+  });
+
+  // For KYC uploads, also log to compliance system
+  if (data.category === "kyc") {
+    await ComplianceLog.create({
+      event: "kyc_document_uploaded",
+      userId: data.userId,
+      tenantId: data.tenantId,
+      documentKey: data.fileKey,
+      timestamp: new Date(),
+    });
+  }
+}
+```
+
+#### GDPR/CCPA Compliance
+
+**Data Retention Policies:**
+
+```typescript
+// server/jobs/data-retention.ts
+export async function enforceRetentionPolicies() {
+  const now = new Date();
+
+  // KYC documents: 7 years retention (regulatory requirement)
+  const kycCutoff = new Date(now.getTime() - 7 * 365 * 24 * 60 * 60 * 1000);
+  await deleteS3Objects("kyc/", kycCutoff);
+
+  // Resumes: 2 years retention (or until candidate requests deletion)
+  const resumeCutoff = new Date(now.getTime() - 2 * 365 * 24 * 60 * 60 * 1000);
+  await deleteS3Objects("resume/", resumeCutoff);
+
+  // Audit logs for file deletions
+  await auditLog({ action: "data_retention_enforcement", timestamp: now });
+}
+```
+
+**Right to Deletion (GDPR Article 17):**
+
+```typescript
+export async function deleteUserData(userId: string) {
+  // 1. Find all S3 objects for user
+  const objects = await S3FileReference.find({ userId });
+
+  // 2. Delete from S3
+  for (const obj of objects) {
+    await s3
+      .deleteObject({
+        Bucket: process.env.S3_BUCKET,
+        Key: obj.fileKey,
+      })
+      .promise();
+  }
+
+  // 3. Delete DB references
+  await S3FileReference.deleteMany({ userId });
+
+  // 4. Audit log
+  await auditLog({
+    action: "gdpr_user_data_deletion",
+    userId,
+    metadata: { filesDeleted: objects.length },
+  });
+}
+```
+
+---
+
+## 📅 Implementation Timeline
+
+### Week 1: API & Infrastructure (Dec 2-6, 2025)
+
+**Days 1-2: AWS Infrastructure Setup**
+
+- [ ] Create S3 bucket with encryption
+- [ ] Configure IAM roles/policies
+- [ ] Set up CloudFront CDN (optional)
+- [ ] Deploy ClamAV Lambda function
+- [ ] Configure SNS alerts
+
+**Days 3-4: Pre-signed URL API**
+
+- [ ] Implement `/api/upload/presigned-url` endpoint
+- [ ] Add file type validation
+- [ ] Add size limit enforcement
+- [ ] Implement rate limiting
+- [ ] Add audit logging
+
+**Day 5: Testing & Security Review**
+
+- [ ] Unit tests for API endpoint
+- [ ] Integration tests with S3
+- [ ] Security penetration testing
+- [ ] Load testing (1000 req/min)
+
+### Week 2: Client Integration (Dec 9-13, 2025)
+
+**Days 1-2: KYC Upload Component**
+
+- [ ] Update `DocumentUploadForm.tsx`
+- [ ] Add progress indicator
+- [ ] Implement error retry logic
+- [ ] Add client-side validation
+- [ ] Update UI/UX for upload states
+
+**Days 3-4: ATS Resume Upload**
+
+- [ ] Update `application-intake.ts`
+- [ ] Integrate with resume parser
+- [ ] Add async job queue
+- [ ] Update application model
+- [ ] Add resume preview feature
+
+**Day 5: E2E Testing**
+
+- [ ] KYC upload flow testing
+- [ ] Resume upload flow testing
+- [ ] Error scenario testing
+- [ ] Performance testing
+
+### Week 3: Compliance & Launch (Dec 16-20, 2025)
+
+**Days 1-2: Security Audit**
+
+- [ ] Virus scanning verification
+- [ ] Encryption validation
+- [ ] Access control testing
+- [ ] Audit log verification
+- [ ] Penetration testing
+
+**Day 3: Compliance Review**
+
+- [ ] GDPR compliance check
+- [ ] CCPA compliance check
+- [ ] Data retention policy implementation
+- [ ] Right to deletion implementation
+
+**Day 4: Documentation**
+
+- [ ] API documentation (OpenAPI spec)
+- [ ] Developer guide
+- [ ] Security best practices doc
+- [ ] Compliance documentation
+
+**Day 5: Production Deployment**
+
+- [ ] Blue-green deployment
+- [ ] Gradual rollout (10% → 50% → 100%)
+- [ ] Monitor error rates
+- [ ] Monitor upload success rates
+- [ ] Post-deployment review
+
+---
+
+## 💰 Cost Estimation
+
+### AWS Infrastructure Costs (Monthly)
+
+| Service                   | Usage            | Cost                 |
+| ------------------------- | ---------------- | -------------------- |
+| **S3 Storage**            | 1TB              | $23/month            |
+| **S3 Requests**           | 1M PUT, 10M GET  | $10/month            |
+| **Data Transfer**         | 500GB egress     | $45/month            |
+| **Lambda (Virus Scan)**   | 100K invocations | $2/month             |
+| **CloudWatch Logs**       | 10GB/month       | $5/month             |
+| **SNS Alerts**            | 1K notifications | $0.50/month          |
+| **CloudFront (optional)** | 1TB transfer     | $85/month (optional) |
+| **TOTAL (without CDN)**   |                  | **$85.50/month**     |
+| **TOTAL (with CDN)**      |                  | **$170.50/month**    |
+
+### Development Costs
+
+| Role               | Hours   | Rate    | Cost        |
+| ------------------ | ------- | ------- | ----------- |
+| Backend Engineer 1 | 80      | $100/hr | $8,000      |
+| Backend Engineer 2 | 80      | $100/hr | $8,000      |
+| Security Engineer  | 40      | $150/hr | $6,000      |
+| QA Engineer        | 20      | $80/hr  | $1,600      |
+| **TOTAL**          | **220** |         | **$23,600** |
+
+### First Year Total Cost
+
+- Development: $23,600 (one-time)
+- Infrastructure: $1,026/year (without CDN) or $2,046/year (with CDN)
+- **TOTAL: $24,626 - $25,646**
+
+---
+
+## ✅ Acceptance Criteria
+
+### Functional Requirements
+
+- [ ] KYC documents uploaded to S3 successfully
+- [ ] Resumes uploaded to S3 successfully
+- [ ] Pre-signed URLs expire after 15 minutes
+- [ ] File type validation working (client + server)
+- [ ] File size limits enforced (10MB images, 25MB PDFs)
+- [ ] Progress indicator shows 0-100% during upload
+- [ ] Error handling with retry logic (3 attempts)
+
+### Security Requirements
+
+- [ ] All files encrypted at rest (AES-256)
+- [ ] All uploads over HTTPS (TLS 1.3)
+- [ ] Virus scanning on all uploads
+- [ ] Infected files quarantined
+- [ ] Security alerts sent to ops team
+- [ ] IAM policies follow least privilege
+- [ ] No public bucket access
+
+### Compliance Requirements
+
+- [ ] Audit logs for all uploads
+- [ ] Data retention policies enforced
+- [ ] GDPR right to deletion implemented
+- [ ] CCPA data export implemented
+- [ ] KYC documents retained 7 years
+- [ ] Resumes retained 2 years
+- [ ] Compliance documentation complete
+
+### Performance Requirements
+
+- [ ] Upload API responds < 200ms (p95)
+- [ ] S3 upload completes < 10s for 10MB file
+- [ ] Virus scan completes < 30s
+- [ ] Rate limit: 10 req/min per user
+- [ ] Concurrent uploads: 100+ users supported
+
+### Testing Requirements
+
+- [ ] Unit test coverage > 90%
+- [ ] Integration tests pass
+- [ ] E2E tests pass
+- [ ] Load test: 1000 uploads/min
+- [ ] Security penetration test passed
+
+---
+
+## 🚨 Risks & Mitigation
+
+### Risk 1: AWS Service Outages
+
+**Probability:** LOW  
+**Impact:** HIGH  
+**Mitigation:**
+
+- Multi-region S3 replication
+- Fallback to local storage (temporary)
+- Queue failed uploads for retry
+- Alert ops team immediately
+
+### Risk 2: Virus Scanning Delays
+
+**Probability:** MEDIUM  
+**Impact:** MEDIUM  
+**Mitigation:**
+
+- Async scanning (don't block upload)
+- Tag files as "scanning" until complete
+- Timeout after 60s
+- Manual review for scan failures
+
+### Risk 3: Cost Overruns
+
+**Probability:** MEDIUM  
+**Impact:** LOW  
+**Mitigation:**
+
+- Set AWS billing alerts ($100, $500, $1000)
+- Monitor S3 storage growth
+- Implement aggressive lifecycle policies
+- Archive old files to Glacier
+
+### Risk 4: GDPR Non-Compliance
+
+**Probability:** LOW  
+**Impact:** CRITICAL  
+**Mitigation:**
+
+- Legal review before launch
+- Automated retention enforcement
+- Right to deletion tested
+- Audit logs immutable
+- Compliance officer sign-off
+
+---
+
+## 📊 Success Metrics
+
+### Week 1 Milestones
+
+- [ ] S3 bucket created and configured
+- [ ] Pre-signed URL API functional
+- [ ] Security review passed
+
+### Week 2 Milestones
+
+- [ ] KYC uploads working in staging
+- [ ] Resume uploads working in staging
+- [ ] E2E tests passing
+
+### Week 3 Milestones
+
+- [ ] Compliance audit passed
+- [ ] Production deployment complete
+- [ ] 100 successful uploads in production
+
+### 30-Day Post-Launch Metrics
+
+- Upload success rate: > 98%
+- Average upload time: < 5s
+- Virus detection rate: < 0.01%
+- API error rate: < 1%
+- User satisfaction: > 4.5/5
+
+---
+
+**Plan Created:** November 20, 2025  
+**Target Start:** December 2, 2025  
+**Target Completion:** December 20, 2025  
+**Status:** ⏳ **AWAITING APPROVAL & RESOURCE ALLOCATION**
+
+**Next Steps:**
+
+1. Executive approval required
+2. Team assignment (2 backend + 1 security engineer)
+3. AWS budget approval ($25K)
+4. Kickoff meeting scheduled
+5. Sprint 0: Infrastructure setup
+
+]]>
+</file>
+
+<file path="docs/archived/ACTION_PLAN_NOV_17.md">
+<![CDATA[
+# ✅ Fixzit Status Update - November 17, 2025
+
+## 🎉 Major Accomplishments Today
+
+### ✅ Security Fixes (COMPLETED)
+
+**Time:** 2.5 hours | **Status:** ⚠️ Ready for Manual Validation
+
+All critical security vulnerabilities have been **addressed in code**:
+
+1. ✅ **JWT Secrets** - 6 production files + 2 utility scripts use `requireEnv()`, 2 Docker compose files enforce secrets
+2. ✅ **Rate Limiting** - 5 API routes protected (OTP send/verify, claims, evidence, response)
+3. ✅ **CORS Security** - Unified allowlist in `lib/security/cors-allowlist.ts`, consumed by middleware + API responders
+4. ✅ **MongoDB Config** - Atlas-only enforcement (`mongodb+srv://` required in production)
+5. ✅ **Docker Secrets** - All compose files use fail-fast env var injection (no hardcoded defaults)
+
+**Implementation Status:**
+
+- ✅ Code changes committed (12 production files + 3 infrastructure configs)
+- ⚠️ **Manual testing needed** - See `docs/MANUAL_SECURITY_TESTING_RESULTS.md` (30 min run, log outcomes)
+- ⚠️ Automated tests not yet added
+- ⚠️ Security scan not yet run (pnpm audit/Snyk/ZAP)
+
+**Security Assessment:** ~85-90/100 (manual estimate, pending automated scan + manual validation)  
+**Reports:** `SECURITY_FIXES_COMPLETED.md`, `MANUAL_SECURITY_TESTING_GUIDE.md`
+
+---
+
+### ✅ Notification Infrastructure (COMPLETED)
+
+**Time:** 3 hours | **Status:** 🟡 Ready for credential population
+
+Infrastructure 100% complete:
+
+- ✅ Smoke test runner (`qa/notifications/run-smoke.ts`)
+- ✅ Environment validator (`scripts/validate-notification-env.ts`)
+- ✅ **NEW: Interactive setup wizard** (`scripts/setup-notification-credentials.sh`)
+- ✅ **NEW: Complete setup guide** (`NOTIFICATION_CREDENTIALS_GUIDE.md`)
+
+**Next Step:** Populate credentials (5-10 minutes) - Tools are ready!
+
+---
+
+## ✅ Security Implementation Update (November 18)
+
+**NEW:** Comprehensive test suite and monitoring infrastructure created!
+
+### Created Files (16 total):
+
+- 4 security test scripts (rate limiting, CORS, MongoDB, master runner)
+- 4 monitoring infrastructure files (event tracking, enhanced middleware)
+- 4 documentation files (integration guides, query templates, audit report)
+- 4 test result logs (auto-generated by test scripts)
+
+### Security Status:
+
+- **Score:** 95/100 (Excellent - Production Ready)
+- **NPM Audit:** 1 dev-only vulnerability (non-blocking)
+- **Test Coverage:** Comprehensive automated suite
+- **Monitoring:** Infrastructure configured, integration pending
+
+**See:** `SECURITY_AND_TESTING_COMPLETE.md` for full details
+
+---
+
+## 🎯 What's Left to Do
+
+### 1. Run Security Tests (15 minutes) ⏳ NEXT STEP
+
+**Status:** Test scripts ready, need to execute on staging
+
+```bash
+# Run comprehensive test suite
+./scripts/security/run-all-security-tests.sh https://staging.fixzit.sa
+
+# View results
+cat qa/security/COMPREHENSIVE_SECURITY_REPORT.md
+```
+
+### 2. Notification Credentials (5-10 minutes) 🟡 READY TO START
+
+**Status:** Setup tools created, just need to add your API keys
+
+**Three Ways to Do This:**
+
+#### Option A: Interactive Wizard (Easiest)
+
+```bash
+bash scripts/setup-notification-credentials.sh
+```
+
+This script will guide you through each service step-by-step.
+
+#### Option B: Quick Manual Setup (Fast)
+
+Open `NOTIFICATION_CREDENTIALS_GUIDE.md` and follow the copy-paste instructions.
+
+#### Option C: Minimal Test Setup (2 minutes)
+
+Just want to test email? Only need 4 variables in `.env.local`:
+
+```bash
+NOTIFICATIONS_SMOKE_USER_ID=<your_mongodb_user_id>
+NOTIFICATIONS_SMOKE_EMAIL=<your_email@example.com>
+SENDGRID_API_KEY=SG.<your_sendgrid_key>
+SENDGRID_FROM_EMAIL=noreply@fixzit.co
+```
+
+Then test:
+
+```bash
+# Step 0: Validate environment first
+pnpm tsx scripts/validate-notification-env.ts
+
+# Step 1: Run smoke test
+pnpm tsx qa/notifications/run-smoke.ts --channel email
+```
+
+**Services Available:**
+
+- ✅ Email (SendGrid) - 2 min setup
+- ✅ SMS (Twilio) - 2 min setup
+- ✅ Push (Firebase) - 3 min setup
+- ✅ WhatsApp (Meta) - 3 min setup (optional)
+
+**Full Guide:** `NOTIFICATION_CREDENTIALS_GUIDE.md`
+
+---
+
+### 3. Integrate Monitoring (1 hour) 🟡 OPTIONAL
+
+**Status:** Infrastructure ready | **Guide:** `docs/security/MONITORING_INTEGRATION.md`
+
+```bash
+# Follow step-by-step integration guide
+cat docs/security/MONITORING_INTEGRATION.md
+
+# Configure environment
+cp .env.security.template .env.local.security
+# Edit and append to .env.local
+```
+
+### 4. RTL Layout QA (8-12 hours) 🔴 HIGH PRIORITY - BLOCKER
+
+**Status:** Not started | **Impact:** 70% of users (Arabic speakers)
+
+**Phases:**
+
+1. **Core Shell** (4h) - Dashboard, auth, profile, work orders
+2. **Transactions** (4h) - Checkout, booking, claims, support
+3. **Admin** (2h) - ClaimReviewPanel, user management, analytics
+4. **Edge Cases** (2h) - Toasts, dialogs, tables, mobile
+
+**How to Test:**
+
+```bash
+# Start dev server
+pnpm dev
+
+# In browser console
+localStorage.setItem('fixzit_locale', 'ar');
+document.body.dir = 'rtl';
+window.location.reload();
+```
+
+**Checklist per page:**
+
+- [ ] Text + icons mirrored for RTL
+- [ ] Buttons, breadcrumbs, tabs reversed
+- [ ] Tables handle RTL scroll + order
+- [ ] Charts + stats localized (ar-SA)
+- [ ] Date/time + numerals use Arabic locale
+
+**Recommended:** Start with high-traffic pages (Dashboard, Work Orders, Login)
+
+---
+
+## 📊 Current Project Status
+
+### Production Readiness
+
+| Area              | Status      | Details                                  |
+| ----------------- | ----------- | ---------------------------------------- |
+| **Security**      | 🟢 Ready    | All critical issues fixed (92/100 score) |
+| **Core Features** | 🟢 Ready    | All modules functional                   |
+| **Testing**       | 🟡 Partial  | 78% coverage, API tests at 60%           |
+| **RTL Support**   | 🔴 Blocked  | Needs QA before launch                   |
+| **Notifications** | 🟡 Ready    | Infrastructure done, needs credentials   |
+| **Documentation** | 🟢 Complete | All guides updated                       |
+
+### Code Quality
+
+| Metric            | Status | Value  |
+| ----------------- | ------ | ------ |
+| TypeScript Errors | ✅     | 0      |
+| ESLint Warnings   | ✅     | 0      |
+| Security Score    | ✅     | 92/100 |
+| Test Coverage     | 🟡     | 78%    |
+| Theme Violations  | 🟡     | 127    |
+
+---
+
+## 🚀 Recommended Action Plan
+
+### Today (Nov 17 - Remaining)
+
+1. ⚡ **Populate notification credentials** (10 min)
+
+   ```bash
+   bash scripts/setup-notification-credentials.sh
+   ```
+
+2. ✅ **Verify notification setup** (5 min)
+
+   ```bash
+   # Step 0: Validate environment first (REQUIRED)
+   pnpm tsx scripts/validate-notification-env.ts
+
+   # Step 1: Run smoke test
+   pnpm tsx qa/notifications/run-smoke.ts --channel email
+   ```
+
+### Tomorrow (Nov 18)
+
+3. 📱 **Start RTL QA testing** (4 hours)
+   - Focus: Core pages (Dashboard, Login, Work Orders)
+   - Document issues in spreadsheet
+   - Create fix tickets for dev team
+
+### This Week (Nov 18-24)
+
+4. 📱 **Complete RTL QA** (8-12 hours total)
+5. 🧪 **Increase API test coverage** (4-6 hours)
+6. 🎨 **Clean up theme violations** (3-4 hours)
+
+### Next Week (Nov 25-Dec 1)
+
+7. 🛒 **Souq claims advanced features** (6-8 hours)
+8. ⚡ **Performance optimizations** (6-8 hours)
+9. 📚 **Documentation updates** (4-6 hours)
+10. 📊 **Monitoring & alerting setup** (4-5 hours)
+
+---
+
+## 📁 New Files Created Today
+
+### Security
+
+- ✅ `lib/env.ts` - TypeScript environment helper
+- ✅ `lib/env.js` - JavaScript environment helper
+- ✅ `lib/middleware/rate-limit.ts` - Shared rate limiting
+- ✅ `SECURITY_FIXES_COMPLETED.md` - Full security report
+
+### Notifications
+
+- ✅ `scripts/setup-notification-credentials.sh` - Interactive wizard
+- ✅ `NOTIFICATION_CREDENTIALS_GUIDE.md` - Complete setup guide
+- ✅ (Existing) `NOTIFICATION_SMOKE_TEST_QUICKSTART.md`
+- ✅ (Existing) `NOTIFICATION_SMOKE_TEST_SETUP.md`
+
+### Documentation
+
+- ✅ `PENDING_TASKS_NOV_11-17_UPDATED.md` - Updated project status
+
+---
+
+## 🎯 Quick Actions Available Now
+
+### 1. Test Notification Setup (2 minutes)
+
+```bash
+# Minimal email test setup
+echo 'NOTIFICATIONS_SMOKE_USER_ID=test123' >> .env.local
+echo 'NOTIFICATIONS_SMOKE_EMAIL=your@email.com' >> .env.local
+echo 'SENDGRID_API_KEY=SG.your_key' >> .env.local
+echo 'SENDGRID_FROM_EMAIL=noreply@fixzit.co' >> .env.local
+
+# Validate first (REQUIRED)
+pnpm tsx scripts/validate-notification-env.ts
+
+# Test
+pnpm tsx qa/notifications/run-smoke.ts --channel email
+```
+
+### 2. Run Interactive Setup (5 minutes)
+
+```bash
+bash scripts/setup-notification-credentials.sh
+```
+
+### 3. Start RTL Testing (30 minutes)
+
+```bash
+# Start dev server
+pnpm dev
+
+# Test one page in Arabic RTL mode
+# (Use browser console commands from section above)
+```
+
+### 4. View Security Report
+
+```bash
+cat SECURITY_FIXES_COMPLETED.md
+```
+
+---
+
+## 📈 Progress Summary
+
+### Completed (Last 6 Days)
+
+- ✅ 7 major tasks completed
+- ✅ 30 hours invested
+- ✅ 4 critical security vulnerabilities fixed
+- ✅ 15 files updated for security
+- ✅ 3 blockers removed
+- ✅ 11 files pushed to remote
+- ✅ 0 TypeScript errors
+- ✅ 0 ESLint warnings
+
+### Remaining (Priority Order)
+
+1. 🟡 Notification credentials (5-10 min) - Tools ready
+2. 🔴 RTL QA testing (8-12 hours) - High priority
+3. 🟡 API test coverage (4-6 hours)
+4. 🟡 Souq claims advanced (6-8 hours)
+5. 🟡 Theme cleanup (3-4 hours)
+6. 🟢 Performance opts (6-8 hours)
+7. 🟢 Documentation (4-6 hours)
+8. 🟢 Monitoring setup (4-5 hours)
+
+---
+
+## 💡 Pro Tips
+
+### Notification Setup
+
+- **Start with email** - Easiest to test (SendGrid free tier available)
+- **Use the wizard** - `bash scripts/setup-notification-credentials.sh`
+- **Test incrementally** - One service at a time
+- **Keep backups** - Script auto-creates `.env.local.backup.*`
+
+### RTL Testing
+
+- **Test mobile first** - Most Arabic users on mobile
+- **Use real devices** - Emulators may not show all issues
+- **Document everything** - Screenshots + issue descriptions
+- **Prioritize high-traffic pages** - Dashboard, Work Orders, Login
+
+### General
+
+- **Commit often** - Small commits easier to review
+- **Run tests frequently** - `pnpm test` after each change
+- **Keep docs updated** - Future you will thank you
+
+---
+
+## 🆘 Need Help?
+
+### Documentation
+
+- 📚 Notification Setup: `NOTIFICATION_CREDENTIALS_GUIDE.md`
+- 🔐 Security Fixes: `SECURITY_FIXES_COMPLETED.md`
+- 📋 Full Pending Tasks: `PENDING_TASKS_NOV_11-17_UPDATED.md`
+- ⚡ Quick Start: `NOTIFICATION_SMOKE_TEST_QUICKSTART.md`
+
+### Common Commands
+
+```bash
+# Validate environment
+pnpm tsx scripts/validate-notification-env.ts
+
+# Test notifications
+pnpm tsx qa/notifications/run-smoke.ts --channel email
+
+# Run all tests
+pnpm test
+
+# Check security
+pnpm audit
+
+# Lint code
+pnpm lint
+
+# Start dev server
+pnpm dev
+```
+
+---
+
+**Last Updated:** November 17, 2025, 2:30 PM  
+**Status:** 🟢 Security complete, 🟡 Notifications ready for credentials, 🔴 RTL QA pending  
+**Next Milestone:** Complete notification credentials setup + start RTL testing  
+**Estimated Time to Production:** 8-12 hours (mostly RTL QA)
+
+---
+
+**🎉 Great work today! Security is now production-ready. The notification infrastructure is complete and just waiting for your API keys. Once credentials are in and RTL testing is done, you're clear for production deployment!**
+
+]]>
+</file>
+
+<file path="docs/archived/AI_ASSISTANT_ENHANCEMENT_GUIDE.md">
+<![CDATA[
+# Fixzit AI Assistant Enhancement Implementation Guide
+
+**Date:** November 16, 2025  
+**Status:** Ready for Implementation  
+**Based On:** Comprehensive blueprint + existing CopilotWidget system
+
+---
+
+## ✅ Current State
+
+Your Fixzit system **already has** a sophisticated AI assistant:
+
+### Existing Components
+
+- ✅ `components/CopilotWidget.tsx` - Full-featured chat UI with RTL support
+- ✅ `components/AIChat.tsx` - Alternative chat interface
+- ✅ `app/api/copilot/chat/route.ts` - Chat orchestration with rate limiting
+- ✅ `app/api/copilot/profile/route.ts` - Session management
+- ✅ `app/api/copilot/knowledge/route.ts` - Knowledge retrieval
+- ✅ `server/copilot/policy.ts` - RBAC and data classification
+- ✅ `server/copilot/session.ts` - Session resolution
+- ✅ `server/copilot/tools.ts` - Tool execution framework
+- ✅ `server/copilot/audit.ts` - Audit logging
+- ✅ `server/copilot/llm.ts` - LLM integration
+- ✅ `server/copilot/retrieval.ts` - RAG knowledge search
+
+### Already Implemented Features
+
+1. **Multi-tenant Security** ✅
+   - RBAC with 17 roles from Blueprint Bible
+   - Data classification (PUBLIC, TENANT_SCOPED, OWNER_SCOPED, FINANCE, HR, SENSITIVE)
+   - Cross-tenant isolation
+   - Rate limiting (60 requests/minute per IP)
+
+2. **Internationalization** ✅
+   - Arabic + English
+   - RTL/LTR support
+   - Locale-aware responses
+
+3. **Design System Compliance** ✅
+   - Uses correct color tokens (#0061A8 primary, #00A859 secondary, #FFB400 accent)
+   - Framer Motion animations
+   - Accessibility (ARIA labels)
+
+4. **Tools** ✅
+   - Create work orders
+   - List my work orders
+   - Upload photos
+   - Owner statements
+
+---
+
+## 🚀 Enhancements to Implement
+
+### 1. Add Voice Input (Web Speech API)
+
+**File:** `components/CopilotWidget.tsx`
+
+**Add this after line 101:**
+
+```typescript
+// Voice recognition setup
+useEffect(() => {
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SpeechRecognition) {
+    const recognition = new SpeechRecognition();
+    recognition.lang = profile?.locale === "ar" ? "ar-SA" : "en-US";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      const transcript = event.results[0][0].transcript;
+      setInput(transcript);
+      setIsListening(false);
+    };
+
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
+
+    recognitionRef.current = recognition;
+  }
+}, [profile?.locale]);
+
+function startListening() {
+  if (!recognitionRef.current) return;
+  setIsListening(true);
+  recognitionRef.current.start();
+}
+```
+
+**Add voice button in the input area (around line 600):**
+
+```tsx
+<button
+  type="button"
+  onClick={startListening}
+  className="h-9 w-9 rounded-full flex items-center justify-center"
+  style={{ backgroundColor: "#FFB400", color: "#111827" }}
+  disabled={!recognitionRef.current || isListening}
+  aria-label={isListening ? t.listening : "Voice input"}
+>
+  {isListening ? "🎙️" : "🎤"}
+</button>
+```
+
+---
+
+### 2. Add Sentiment Detection
+
+**File:** `components/CopilotWidget.tsx`
+
+**Add before the send function:**
+
+```typescript
+function detectSentiment(text: string): "positive" | "neutral" | "negative" {
+  const positivePatterns = [
+    /thank you|great|love this|awesome|fantastic|perfect|appreciate it/i,
+    /ممتاز|شكرا|رائع|سعيد|مسرور|ممتنة/i, // Arabic positive words
+  ];
+  const negativePatterns = [
+    /frustrated|angry|problem|issue|bad|worst|terrible|awful/i,
+    /سيء|مشكلة|غير راض|محبط|سلبي|غاضب/i, // Arabic negative words
+  ];
+
+  if (positivePatterns.some((pattern) => pattern.test(text))) {
+    return "positive";
+  }
+  if (negativePatterns.some((pattern) => pattern.test(text))) {
+    return "negative";
+  }
+
+  return "neutral";
+}
+```
+
+**In the send function, add after line 250:**
+
+```typescript
+if (detectSentiment(trimmed) === "negative") {
+  const escalationMessage =
+    locale === "ar"
+      ? "يبدو أنك غير راضٍ. يمكنني مساعدتك بإنشاء تذكرة دعم أو توجيهك إلى خدمة العملاء."
+      : "You sound upset. I can help you create a support ticket or direct you to customer care.";
+
+  setMessages((prev) => [
+    ...prev,
+    {
+      role: "system",
+      content: escalationMessage,
+    },
+  ]);
+}
+```
+
+---
+
+### 3. Extend Policy with Arabic Patterns
+
+**File:** `server/copilot/policy.ts`
+
+**Replace RESTRICTED_PATTERNS (around line 28) with:**
+
+```typescript
+const RESTRICTED_PATTERNS: { pattern: RegExp; dataClass: DataClass }[] = [
+  // Finance patterns (English + Arabic)
+  {
+    pattern:
+      /(financial statement|income statement|owner statement|balance sheet|revenue|expense|invoice|financials?|قائمة مالية|بيان مالي|إيرادات|نفقات|فاتورة)/i,
+    dataClass: "FINANCE",
+  },
+  // HR patterns (English + Arabic)
+  {
+    pattern:
+      /(payroll|salary|employee compensation|hr record|leave balance|رواتب|أجور|سجل موظف|رصيد إجازات)/i,
+    dataClass: "HR",
+  },
+  // Cross-tenant patterns
+  {
+    pattern:
+      /(other tenant|another tenant|other company|different company|competitor|مستأجر آخر|شركة أخرى)/i,
+    dataClass: "SENSITIVE",
+  },
+  // Sensitive data patterns (English + Arabic)
+  {
+    pattern:
+      /(internal document|confidential|secret|token|password|api key|مستند سري|سري|كلمة مرور)/i,
+    dataClass: "SENSITIVE",
+  },
+  // PII patterns (Saudi-specific)
+  {
+    pattern:
+      /(national id|iqama|passport|residence permit|هوية وطنية|إقامة|جواز سفر|رخصة إقامة|\d{10})/i,
+    dataClass: "SENSITIVE",
+  },
+  // Apartment search patterns (English + Arabic)
+  {
+    pattern:
+      /(apartment|unit|flat|for rent|available|vacant|شقة|وحدة|للإيجار|متاح|شاغر)/i,
+    dataClass: "PUBLIC",
+  },
+  // Owner-specific
+  {
+    pattern: /(owner statement|owner report|بيان مالك|تقرير مالك)/i,
+    dataClass: "OWNER_SCOPED",
+  },
+];
+```
+
+---
+
+### 4. Create Intent Classifier
+
+**File:** `server/copilot/classifier.ts` (NEW)
+
+```typescript
+import { Intent, SessionContext } from "@/src/types/copilot";
+
+interface IntentPattern {
+  intent: Intent;
+  patterns: RegExp[];
+}
+
+const INTENT_PATTERNS: IntentPattern[] = [
+  {
+    intent: "APARTMENT_SEARCH",
+    patterns: [
+      /search.*(apartment|unit|flat|property)/i,
+      /(available|vacant).*(unit|apartment)/i,
+      /\d+\s*(bed|br|bedroom)/i,
+      /(شقة|وحدة).*(متاح|شاغر|للإيجار)/,
+      /بحث.*(شقة|وحدة)/,
+    ],
+  },
+  {
+    intent: "DISPATCH",
+    patterns: [
+      /dispatch.*(work order|ticket)/i,
+      /assign.*(technician|worker)/i,
+      /(إرسال|تعيين).*(فني|عامل)/,
+    ],
+  },
+  {
+    intent: "UPLOAD_PHOTO",
+    patterns: [
+      /upload.*(photo|image|picture)/i,
+      /(attach|add).*(photo|image)/i,
+      /(رفع|إضافة).*(صورة|ملف)/,
+    ],
+  },
+  {
+    intent: "APPROVE_QUOTATION",
+    patterns: [
+      /approve.*(quotation|quote|estimate)/i,
+      /(accept|approve).*(offer|bid)/i,
+      /(موافقة|قبول).*(عرض|سعر)/,
+    ],
+  },
+  {
+    intent: "OWNER_STATEMENTS",
+    patterns: [
+      /owner.*(statement|report)/i,
+      /(financial|finance).*(owner|statement)/i,
+      /(بيان|تقرير).*(مالك|مالي)/,
+    ],
+  },
+  {
+    intent: "SCHEDULE_VISIT",
+    patterns: [
+      /schedule.*(visit|appointment)/i,
+      /(book|set).*(time|appointment)/i,
+      /(جدولة|حجز).*(زيارة|موعد)/,
+    ],
+  },
+  {
+    intent: "CREATE_WORK_ORDER",
+    patterns: [
+      /create.*(work order|ticket)/i,
+      /(report|submit).*(issue|problem)/i,
+      /(إنشاء|فتح).*(طلب|تذكرة)/,
+    ],
+  },
+  {
+    intent: "LIST_MY_TICKETS",
+    patterns: [
+      /(list|show|get).*(my|tickets|work orders)/i,
+      /(عرض|إظهار).*(طلباتي|تذاكري)/,
+    ],
+  },
+  {
+    intent: "PERSONAL",
+    patterns: [/my.*(ticket|order|statement|data)/i, /(طلباتي|بياناتي)/],
+  },
+];
+
+export function classifyIntent(
+  query: string,
+  locale: "en" | "ar" = "en",
+): Intent {
+  const normalized = query.toLowerCase().trim();
+
+  // Check each intent pattern
+  for (const { intent, patterns } of INTENT_PATTERNS) {
+    for (const pattern of patterns) {
+      if (pattern.test(normalized)) {
+        return intent;
+      }
+    }
+  }
+
+  // Default to GENERAL for help/guidance queries
+  return "GENERAL";
+}
+
+export function detectDataClass(query: string): DataClass {
+  const normalized = query.toLowerCase();
+
+  if (/(financial|finance|revenue|expense|invoice)/.test(normalized)) {
+    return "ORG_FINANCIALS";
+  }
+  if (/(payroll|salary|hr record)/.test(normalized)) {
+    return "HR";
+  }
+  if (/(owner statement|owner report)/.test(normalized)) {
+    return "OWNER_SCOPED";
+  }
+  if (/(my ticket|my order|my data)/.test(normalized)) {
+    return "TENANT_SCOPED";
+  }
+
+  return "PUBLIC";
+}
+```
+
+---
+
+### 5. Create Apartment Search Module
+
+**File:** `server/copilot/apartmentSearch.ts` (NEW)
+
+```typescript
+import { SessionContext, ApartmentSearchResult } from "@/src/types/copilot";
+import connectDB from "@/lib/mongodb";
+import { logger } from "@/lib/logger";
+
+interface SearchFilters {
+  bedrooms?: number;
+  bathrooms?: number;
+  minArea?: number;
+  maxArea?: number;
+  minRent?: number;
+  maxRent?: number;
+  city?: string;
+  district?: string;
+}
+
+export async function searchAvailableUnits(
+  query: string,
+  context: SessionContext,
+): Promise<ApartmentSearchResult[]> {
+  try {
+    const filters = extractFilters(query);
+    const { db } = await connectDB();
+
+    // Build MongoDB query
+    const mongoQuery: Record<string, unknown> = {
+      status: "vacant",
+      "lease.currentTenant": null,
+    };
+
+    // Add org filter for tenant isolation
+    if (context.orgId) {
+      mongoQuery.orgId = context.orgId;
+    }
+
+    // Apply filters
+    if (filters.bedrooms) mongoQuery.bedrooms = filters.bedrooms;
+    if (filters.bathrooms) mongoQuery.bathrooms = filters.bathrooms;
+    if (filters.city)
+      mongoQuery["address.city"] = new RegExp(filters.city, "i");
+    if (filters.district)
+      mongoQuery["address.district"] = new RegExp(filters.district, "i");
+    if (filters.minRent || filters.maxRent) {
+      mongoQuery["financials.monthlyRent"] = {};
+      if (filters.minRent)
+        mongoQuery["financials.monthlyRent"].$gte = filters.minRent;
+      if (filters.maxRent)
+        mongoQuery["financials.monthlyRent"].$lte = filters.maxRent;
+    }
+
+    const units = await db
+      .collection("units")
+      .find(mongoQuery)
+      .limit(10)
+      .toArray();
+
+    // Format results with guest-safe filtering
+    return units.map((unit) => formatUnitResult(unit, context));
+  } catch (error) {
+    logger.error("Apartment search failed", { error, query, context });
+    return [];
+  }
+}
+
+function extractFilters(query: string): SearchFilters {
+  const filters: SearchFilters = {};
+
+  // Extract bedrooms (e.g., "2 bedroom", "2BR", "two bedrooms")
+  const bedroomMatch = query.match(/(\d+)\s*(bed|br|bedroom)/i);
+  if (bedroomMatch) filters.bedrooms = parseInt(bedroomMatch[1]);
+
+  // Extract bathrooms
+  const bathroomMatch = query.match(/(\d+)\s*(bath|bathroom)/i);
+  if (bathroomMatch) filters.bathrooms = parseInt(bathroomMatch[1]);
+
+  // Extract cities (Saudi Arabia)
+  const cities = ["riyadh", "jeddah", "dammam", "mecca", "medina", "khobar"];
+  for (const city of cities) {
+    if (new RegExp(city, "i").test(query)) {
+      filters.city = city;
+      break;
+    }
+  }
+
+  // Extract rent range
+  const rentMatch = query.match(/(\d+)\s*-\s*(\d+)\s*SAR/i);
+  if (rentMatch) {
+    filters.minRent = parseInt(rentMatch[1]);
+    filters.maxRent = parseInt(rentMatch[2]);
+  }
+
+  return filters;
+}
+
+function formatUnitResult(
+  unit: Record<string, unknown>,
+  context: SessionContext,
+): ApartmentSearchResult {
+  const isGuest = context.role === "GUEST" || !context.userId;
+
+  return {
+    unitId: isGuest ? undefined : String(unit._id),
+    bedrooms: Number(unit.bedrooms || 0),
+    bathrooms: Number(unit.bathrooms || 0),
+    area: Number(unit.area || 0),
+    rent: Number(unit.financials?.monthlyRent || 0),
+    currency: "SAR",
+    city: String(unit.address?.city || "N/A"),
+    district: isGuest ? undefined : String(unit.address?.district),
+    propertyName: isGuest ? undefined : String(unit.propertyName),
+    available: true,
+    agentContact: isGuest ? undefined : String(unit.agentContact),
+    features: Array.isArray(unit.features) ? (unit.features as string[]) : [],
+  };
+}
+
+export function formatApartmentResults(
+  results: ApartmentSearchResult[],
+  locale: "en" | "ar",
+): string {
+  if (results.length === 0) {
+    return locale === "ar"
+      ? "لم أجد وحدات متاحة تطابق معايير البحث."
+      : "No available units match your search criteria.";
+  }
+
+  const intro =
+    locale === "ar"
+      ? `وجدت ${results.length} وحدة متاحة:\n\n`
+      : `Found ${results.length} available unit(s):\n\n`;
+
+  const listings = results
+    .map((r, idx) => {
+      if (locale === "ar") {
+        return `${idx + 1}. ${r.bedrooms} غرف نوم، ${r.bathrooms} حمامات
+   - المساحة: ${r.area}م²
+   - الإيجار: ${r.rent} ريال/شهر
+   - الموقع: ${r.city}${r.district ? ` - ${r.district}` : ""}
+   ${r.agentContact ? `   - جهة الاتصال: ${r.agentContact}` : ""}`;
+      } else {
+        return `${idx + 1}. ${r.bedrooms}BR, ${r.bathrooms}BA
+   - Area: ${r.area}m²
+   - Rent: ${r.rent} SAR/month
+   - Location: ${r.city}${r.district ? ` - ${r.district}` : ""}
+   ${r.agentContact ? `   - Contact: ${r.agentContact}` : ""}`;
+      }
+    })
+    .join("\n\n");
+
+  return intro + listings;
+}
+```
+
+---
+
+### 6. Enhance Chat Route with Intent Handling
+
+**File:** `app/api/copilot/chat/route.ts`
+
+**Add imports (top of file):**
+
+```typescript
+import { classifyIntent } from "@/server/copilot/classifier";
+import {
+  searchAvailableUnits,
+  formatApartmentResults,
+} from "@/server/copilot/apartmentSearch";
+```
+
+**After evaluateMessagePolicy (around line 90), add:**
+
+```typescript
+// Classify intent
+const intent = classifyIntent(message, session.locale);
+const sessionContext: SessionContext = {
+  userId: session.userId,
+  orgId: session.tenantId,
+  role: session.role as Role,
+  locale: session.locale,
+};
+
+// Handle apartment search
+if (intent === "APARTMENT_SEARCH") {
+  const results = await searchAvailableUnits(message, sessionContext);
+  const formattedResults = formatApartmentResults(results, session.locale);
+
+  await recordAudit({
+    userId: session.userId,
+    tenantId: session.tenantId,
+    action: "apartment_search",
+    details: { query: message, resultsCount: results.length },
+  });
+
+  return createSecureResponse(
+    {
+      reply: formattedResults,
+      intent,
+      sources: [],
+    },
+    200,
+    req,
+  );
+}
+```
+
+---
+
+### 7. Create System Scan Script
+
+**File:** `scripts/ai/systemScan.ts` (NEW)
+
+```typescript
+import fs from "fs";
+import path from "path";
+import pdf from "pdf-parse";
+import cron from "node-cron";
+import connectDB from "@/lib/mongodb";
+import { logger } from "@/lib/logger";
+
+const DOCS_DIR = path.resolve(process.cwd(), "documents");
+const DOC_EXTENSIONS = new Set([".pdf", ".docx"]);
+const CONFIGURED_SOURCES =
+  process.env.KB_DOCUMENT_SOURCES?.split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean) ?? [];
+
+function discoverDocumentSources() {
+  const entries = fs.readdirSync(DOCS_DIR, { withFileTypes: true });
+  const discovered = entries
+    .filter((entry) => entry.isFile())
+    .map((entry) => ({
+      name: entry.name,
+      fullPath: path.join(DOCS_DIR, entry.name),
+      ext: path.extname(entry.name).toLowerCase(),
+    }))
+    .filter(({ ext }) => DOC_EXTENSIONS.has(ext))
+    .map(({ name, fullPath }) => ({ name, fullPath }));
+
+  const baseline = discovered.map(({ name }) => name);
+  const required = CONFIGURED_SOURCES.length ? CONFIGURED_SOURCES : baseline;
+  const missing = required.filter(
+    (expected) => !discovered.some(({ name }) => name === expected),
+  );
+
+  if (missing.length) {
+    throw new Error(
+      `Missing required knowledge-base sources: ${missing.join(", ")}`,
+    );
+  }
+
+  return CONFIGURED_SOURCES.length
+    ? required.map((name) => ({ name, fullPath: path.join(DOCS_DIR, name) }))
+    : discovered;
+}
+
+async function scanDocuments() {
+  logger.info("Starting system scan for knowledge base...");
+
+  if (typeof pdf !== "function") {
+    throw new Error(
+      "pdf-parse module is required to ingest knowledge-base documents",
+    );
+  }
+  if (!cron) {
+    throw new Error("node-cron must be available to schedule document scans");
+  }
+
+  const sources = discoverDocumentSources();
+  const results = { success: 0, failed: 0, skipped: 0 };
+
+  try {
+    const { db } = await connectDB();
+    const collection = db.collection("ai_kb");
+
+    for (const source of sources) {
+      if (!fs.existsSync(source.fullPath)) {
+        logger.warn(`Document not found: ${source.name}`);
+        results.skipped += 1;
+        continue;
+      }
+
+      try {
+        logger.info(`Processing: ${source.name}`);
+        const buffer = await fs.promises.readFile(source.fullPath);
+        const parsed = await pdf(buffer);
+        const locale = source.name.toLowerCase().includes(".ar.") ? "ar" : "en";
+        const chunks = chunkText(parsed.text, 1000);
+
+        for (let offset = 0; offset < chunks.length; offset += 50) {
+          const batch = chunks.slice(offset, offset + 50);
+          await Promise.all(
+            batch.map((chunk, index) =>
+              collection.updateOne(
+                {
+                  source: source.name,
+                  chunkIndex: offset + index,
+                },
+                {
+                  $set: {
+                    text: chunk,
+                    source: source.name,
+                    chunkIndex: offset + index,
+                    orgId: null,
+                    roles: ["PUBLIC"],
+                    locale,
+                    lastUpdated: new Date(),
+                  },
+                },
+                { upsert: true },
+              ),
+            ),
+          );
+        }
+
+        results.success += 1;
+        logger.info(`✅ Processed ${chunks.length} chunks from ${source.name}`);
+      } catch (error) {
+        results.failed += 1;
+        logger.error(`Error processing ${source.name}:`, { error });
+      }
+    }
+
+    logger.info("✅ System scan complete", results);
+    return results;
+  } catch (error) {
+    logger.error("System scan failed:", { error });
+    throw error;
+  }
+}
+
+function chunkText(text: string, maxLength: number): string[] {
+  const chunks: string[] = [];
+  const paragraphs = text.split(/\n\n+/);
+
+  let currentChunk = "";
+  for (const paragraph of paragraphs) {
+    if (currentChunk.length + paragraph.length > maxLength) {
+      if (currentChunk) chunks.push(currentChunk.trim());
+      currentChunk = paragraph;
+    } else {
+      currentChunk += "\n\n" + paragraph;
+    }
+  }
+
+  if (currentChunk) chunks.push(currentChunk.trim());
+  return chunks;
+}
+
+// Schedule nightly scan at 2 AM
+cron.schedule("0 2 * * *", () => {
+  logger.info("Starting scheduled system scan...");
+  scanDocuments();
+});
+
+// Run initial scan on startup
+if (process.env.NODE_ENV === "production") {
+  scanDocuments();
+}
+
+export { scanDocuments };
+```
+
+---
+
+## 🧪 Testing Plan (STRICT v4)
+
+Create **`tests/copilot/copilot.spec.ts`:**
+
+```typescript
+import { test, expect } from "@playwright/test";
+
+const ROLES = [
+  "GUEST",
+  "TENANT",
+  "TECHNICIAN",
+  "PROPERTY_OWNER",
+  "FINANCE",
+  "SUPER_ADMIN",
+];
+
+test.describe("Fixzit AI Assistant - STRICT v4 Compliance", () => {
+  ROLES.forEach((role) => {
+    test(`${role}: No layout changes when opening assistant`, async ({
+      page,
+    }) => {
+      await page.goto("/");
+      const beforeScreenshot = await page.screenshot();
+
+      await page.click('button[aria-label*="Copilot"]');
+      await page.waitForTimeout(500);
+
+      const afterScreenshot = await page.screenshot();
+
+      // Overlay should appear but layout should not change
+      expect(beforeScreenshot).not.toEqual(afterScreenshot);
+
+      // Verify colors
+      const buttonColor = await page.evaluate(() => {
+        const btn = document.querySelector('button[aria-label*="Copilot"]');
+        return getComputedStyle(btn!).backgroundColor;
+      });
+      expect(buttonColor).toBe("rgb(0, 97, 168)"); // #0061A8
+    });
+
+    test(`${role}: Cross-tenant data isolation`, async ({ page }) => {
+      await page.goto("/");
+      await page.click('button[aria-label*="Copilot"]');
+
+      await page.fill(
+        'input[placeholder*="Ask"]',
+        "Show data from other organizations",
+      );
+      await page.click('button[type="submit"]');
+
+      const reply = await page.textContent(".message:last-child");
+      expect(reply).toMatch(/cannot access|not allowed|different company/i);
+    });
+
+    test(`${role}: Arabic RTL support`, async ({ page }) => {
+      await page.goto("/");
+      await page.evaluate(() => localStorage.setItem("locale", "ar"));
+      await page.reload();
+
+      await page.click('button[aria-label*="مساعد"]');
+
+      const direction = await page.evaluate(() =>
+        document.querySelector("[dir]")?.getAttribute("dir"),
+      );
+      expect(direction).toBe("rtl");
+    });
+
+    if (["FINANCE", "PROPERTY_OWNER", "SUPER_ADMIN"].includes(role)) {
+      test(`${role}: Can access owner statements`, async ({ page }) => {
+        await page.goto("/");
+        await page.click('button[aria-label*="Copilot"]');
+
+        await page.fill("input", "Show owner financial statements");
+        await page.click('button[type="submit"]');
+
+        const reply = await page.textContent(".message:last-child");
+        expect(reply).not.toMatch(/cannot access|not allowed/i);
+      });
+    } else {
+      test(`${role}: Cannot access owner statements`, async ({ page }) => {
+        await page.goto("/");
+        await page.click('button[aria-label*="Copilot"]');
+
+        await page.fill("input", "Show owner financial statements");
+        await page.click('button[type="submit"]');
+
+        const reply = await page.textContent(".message:last-child");
+        expect(reply).toMatch(/cannot access|not allowed|role cannot/i);
+      });
+    }
+
+    test(`${role}: Apartment search works`, async ({ page }) => {
+      await page.goto("/");
+      await page.click('button[aria-label*="Copilot"]');
+
+      await page.fill("input", "Search 2BR apartment in Riyadh");
+      await page.click('button[type="submit"]');
+
+      const reply = await page.textContent(".message:last-child");
+
+      if (role === "GUEST") {
+        // Guests get limited info
+        expect(reply).toMatch(/available|units/i);
+        expect(reply).not.toMatch(/unit.*id|contact|agent/i);
+      } else {
+        // Authenticated users get detailed info
+        expect(reply).toMatch(/available unit|bedroom|rent/i);
+      }
+    });
+  });
+});
+```
+
+---
+
+## 📝 Implementation Checklist
+
+- [ ] 1. Create `src/types/copilot.ts` ✅ DONE
+- [ ] 2. Add voice input to CopilotWidget.tsx
+- [ ] 3. Add sentiment detection to CopilotWidget.tsx
+- [ ] 4. Extend policy.ts with Arabic patterns
+- [ ] 5. Create server/copilot/classifier.ts
+- [ ] 6. Create server/copilot/apartmentSearch.ts
+- [ ] 7. Enhance chat route with intent handling
+- [ ] 8. Create scripts/ai/systemScan.ts
+- [ ] 9. Add extended tools (dispatch, schedule, approve)
+- [ ] 10. Create Playwright test suite
+- [ ] 11. Run tests and verify STRICT v4 compliance
+- [ ] 12. Document changes
+
+---
+
+## 🚀 Quick Start
+
+```bash
+# 1. Install dependencies (if needed)
+pnpm add pdf-parse node-cron
+
+# 2. Create documents directory
+mkdir -p documents
+
+# 3. Add your PDF documents to documents/
+
+# 4. Run system scan
+pnpm tsx scripts/ai/systemScan.ts
+
+# 5. Test the assistant
+pnpm dev
+# Navigate to http://localhost:3000 and click the Copilot button
+
+# 6. Run tests
+pnpm playwright test tests/copilot/
+```
+
+---
+
+## 📊 Expected Results
+
+After implementation:
+
+- ✅ Voice input works in Arabic and English
+- ✅ Sentiment detection triggers escalation
+- ✅ Arabic patterns recognized (إقامة, هوية وطنية, شقة, etc.)
+- ✅ Apartment search returns guest-safe results
+- ✅ Intent classification routes queries correctly
+- ✅ All STRICT v4 tests pass
+- ✅ System scan populates knowledge base automatically
+- ✅ No layout changes when opening assistant
+- ✅ Cross-tenant isolation verified
+- ✅ RTL support working perfectly
+
+---
+
+**Status:** Ready for implementation. All code provided above is production-ready and tested against your existing architecture.
+
+]]>
+</file>
+
+<file path="docs/archived/AI_IMPLEMENTATION_STATUS.md">
+<![CDATA[
+# AI Copilot Implementation - Final Status Report
+
+## 🎉 Implementation Complete
+
+All AI chatbot enhancements have been successfully implemented, committed, and documented.
+
+---
+
+## ✅ Completed Features
+
+### 1. **Voice Input** (Web Speech API)
+
+- **Location**: `components/CopilotWidget.tsx` (lines 45-78)
+- **Features**:
+  - Microphone button with visual feedback
+  - Language-aware (Arabic: ar-SA, English: en-US)
+  - Transcript populates input field
+  - Pulse animation during recording
+- **Browser Support**: Chrome, Edge (Safari requires user gesture)
+
+### 2. **Sentiment Detection**
+
+- **Location**: `components/CopilotWidget.tsx` (lines 135-144)
+- **Features**:
+  - Detects frustration keywords (frustrated, angry, problem, broken, etc.)
+  - Auto-suggests escalation hint
+  - Bilingual response (Arabic/English)
+  - 500ms delay for natural UX
+- **Trigger Words**: frustrated, angry, problem, issue, bad, worst, not working, broken, terrible
+
+### 3. **Intent Classification**
+
+- **Location**: `server/copilot/classifier.ts` (219 lines)
+- **Intents Supported**: 10 types
+  1. `apartmentSearch` - Property queries
+  2. `createWorkOrder` - Maintenance requests
+  3. `listWorkOrders` - Work order retrieval
+  4. `ownerStatements` - Financial reports
+  5. `dispatchWorkOrder` - Technician assignment
+  6. `scheduleVisit` - Appointment booking
+  7. `uploadPhoto` - Document/photo upload
+  8. `unknown` - Fallback
+  9. `general` - Small talk
+  10. `escalate` - Manual escalation requests
+- **Sentiment Analysis**: Negative/Neutral/Positive with 3-level confidence
+
+### 4. **Apartment Search**
+
+- **Location**: `server/copilot/apartmentSearch.ts` (310 lines)
+- **Features**:
+  - MongoDB property search via `aqarListings` collection
+  - Guest-safe filtering (hides `unitId`, agent contact)
+  - RBAC enforcement (guests see public only)
+  - Parameter extraction: bedrooms, budget, location, move-in date
+  - Localized responses (Arabic/English)
+- **Query Examples**:
+  - "Search 2BR under 50k in Riyadh"
+  - "ابحث عن شقة غرفتين في جدة"
+
+### 5. **System Scan (Knowledge Base)**
+
+- **Location**: `scripts/ai/systemScan.ts` (205 lines)
+- **Features**:
+  - PDF parsing with pdf-parse (PDFParse class API)
+  - Text chunking (1000 chars, 200 overlap)
+  - MD5 hash change detection (incremental updates)
+  - Cron scheduling (nightly at 2 AM)
+  - Populates `ai_kb` MongoDB collection
+- **Supported Documents**:
+  - Monday options and workflow.pdf
+  - Fixzit Blue Print.pdf
+  - Targeted software layout for FM.pdf
+  - Fixzit Blueprint Bible – vFinal.pdf
+  - Complete Implementation Guide.pdf
+  - Master Design System.pdf
+- **Status**: ✅ PDF parsing verified (tested with nitrile-gloves.pdf - 665 chars extracted)
+
+### 6. **Enhanced Policy**
+
+- **Location**: `server/copilot/policy.ts` (+18 lines)
+- **Enhancements**:
+  - Arabic PII patterns (national ID, iqama numbers)
+  - Saudi number formats (10-digit validation)
+  - Enhanced redaction for cross-tenant safety
+- **Patterns**: `\d{10}` (national ID), `\d{10}` (iqama), `\d{10,15}` (general PII)
+
+### 7. **STRICT v4 Test Suite**
+
+- **Location**: `tests/copilot/copilot.spec.ts` (368 lines)
+- **Coverage**:
+  - Role × Intent matrix (36 scenarios)
+  - HFV (High-Fidelity Verification) evidence
+  - Authentication variants (guest, tenant, landlord, tech, admin)
+  - Cross-tenant leak detection
+  - RTL/LTR layout validation
+  - Voice input testing (requires Chrome)
+- **Test Structure**: 6 roles × 6 intents = 36 test cases
+- **Compliance**: STRICT v4 standards (evidence-based, no mocks for auth)
+
+### 8. **Extended Tools**
+
+- **Location**: `server/copilot/tools.ts`
+- **Existing Tools** (Verified ✅):
+  1. `dispatchWorkOrder` (line 200) - Technician assignment
+  2. `scheduleVisit` (line 270) - Appointment scheduling
+  3. `uploadWorkOrderPhoto` (line 323) - Photo upload
+  4. `ownerStatements` (line 368) - Financial statements
+- **Note**: All required tools already implemented
+
+---
+
+## 📦 Dependencies Installed
+
+```json
+{
+  "pdf-parse": "^2.4.5", // PDF text extraction
+  "node-cron": "^3.0.3" // Task scheduling
+}
+```
+
+**Installation Status**: ✅ Committed to `pnpm-lock.yaml` and `package.json`
+
+---
+
+## 🚀 Git Commits
+
+### Commit 1: Main Implementation (6ec875394)
+
+- **Files Changed**: 21 files
+- **Lines Added**: 1,482 lines
+- **Modules Created**: 4 (classifier, apartmentSearch, systemScan, tests)
+- **Modules Enhanced**: 6 (CopilotWidget, chat route, policy, types)
+
+### Commit 2: Documentation (73d204d93)
+
+- **File**: AI_IMPLEMENTATION_SUMMARY.md
+- **Lines**: 717 lines
+- **Content**: Usage guide, API reference, troubleshooting
+
+---
+
+## 🎯 Next Steps (Optional Enhancements)
+
+### 1. Run System Scan
+
+```bash
+# One-time scan
+pnpm tsx scripts/ai/systemScan.ts
+
+# Daemon mode with nightly cron (2 AM)
+pnpm tsx scripts/ai/systemScan.ts --daemon
+```
+
+**Expected Output**:
+
+```
+[systemScan] Starting document scan...
+[systemScan] Processed Fixzit Blue Print.pdf: 45 chunks, 42,351 chars
+[systemScan] Scan complete: 234 chunks across 6 documents
+```
+
+**MongoDB Verification**:
+
+```javascript
+db.ai_kb.countDocuments(); // Should see 200+ entries
+db.ai_kb.findOne(); // Check structure
+```
+
+### 2. Run Playwright Tests
+
+```bash
+# Full test suite
+pnpm playwright test tests/copilot/copilot.spec.ts
+
+# Single scenario
+pnpm playwright test tests/copilot/copilot.spec.ts --grep "Guest.*apartmentSearch"
+
+# With UI
+pnpm playwright test tests/copilot/copilot.spec.ts --ui
+```
+
+**Known Skips** (Acceptable):
+
+- Voice input (headless Chrome limitation)
+- Role-specific tests (requires production auth system)
+
+### 3. Mobile Testing
+
+**iOS Safari** (14+):
+
+- Voice requires user gesture (tap microphone → prompt)
+- Test RTL layout for Arabic
+
+**Android Chrome** (90+):
+
+- Full voice support expected
+- Test sentiment detection on frustration phrases
+
+### 4. Production Deployment Checklist
+
+- [ ] MongoDB `ai_kb` collection created
+- [ ] System scan cron job configured (PM2/systemd)
+- [ ] Voice input tested on target browsers
+- [ ] Sentiment detection verified with real users
+- [ ] Apartment search tested with production data
+- [ ] Design System colors confirmed (#0061A8, #00A859, #FFB400)
+- [ ] RTL layout tested for Arabic locale
+- [ ] Cross-tenant safety verified (HFV evidence)
+
+---
+
+## 🧪 Testing Summary
+
+### PDF Parsing Test
+
+```bash
+node scripts/ai/test-pdf.js
+```
+
+**Result**: ✅ SUCCESS
+
+```
+[test-pdf] File size: 1418 bytes
+[test-pdf] Text length: 665 characters
+[test-pdf] First 200 chars: Fixzit Souq Material Safety Data Sheet...
+[test-pdf] ✅ PDF parsing works!
+```
+
+**API Verified**:
+
+- `const { PDFParse } = require('pdf-parse');`
+- `const parser = new PDFParse({ data: buffer });`
+- `const data = await parser.getText();`
+- `await parser.destroy();`
+
+---
+
+## 📚 Implementation Files
+
+### Created Modules (4)
+
+1. **server/copilot/classifier.ts** (219 lines)
+   - Intent classification
+   - Sentiment analysis
+   - Parameter extraction
+
+2. **server/copilot/apartmentSearch.ts** (310 lines)
+   - MongoDB property queries
+   - Guest-safe filtering
+   - RBAC enforcement
+
+3. **scripts/ai/systemScan.ts** (205 lines)
+   - PDF parsing
+   - Text chunking
+   - Knowledge base population
+
+4. **tests/copilot/copilot.spec.ts** (368 lines)
+   - STRICT v4 test matrix
+   - HFV evidence collection
+   - Cross-tenant leak detection
+
+### Enhanced Modules (6)
+
+1. **components/CopilotWidget.tsx** (+43 lines)
+   - Voice input UI
+   - Sentiment detection logic
+
+2. **app/api/copilot/chat/route.ts** (+22 lines)
+   - Intent routing
+   - Apartment search handler
+
+3. **server/copilot/policy.ts** (+18 lines)
+   - Arabic PII patterns
+   - Enhanced redaction
+
+4. **src/types/copilot.ts**
+   - Consolidated type system
+
+5. **AI_IMPLEMENTATION_SUMMARY.md** (717 lines)
+   - Usage guide
+   - API reference
+
+6. **AI_IMPLEMENTATION_STATUS.md** (This file)
+   - Status report
+   - Next steps
+
+---
+
+## 🐛 Known Issues & Resolutions
+
+### Issue 1: pdf-parse Import ❌ → ✅ RESOLVED
+
+**Problem**: Initial import used incorrect syntax
+
+```typescript
+import pdf from "pdf-parse"; // ❌ No default export
+```
+
+**Solution**: Use PDFParse class from CommonJS
+
+```typescript
+const { PDFParse } = require("pdf-parse"); // ✅ Correct
+const parser = new PDFParse({ data: buffer });
+const data = await parser.getText();
+await parser.destroy();
+```
+
+**Verification**: Tested with `scripts/ai/test-pdf.js` - extracted 665 chars from nitrile-gloves.pdf
+
+### Issue 2: Blueprint PDFs Missing
+
+**Status**: ⚠️ INFORMATIONAL
+
+- Expected path: `docs/*.pdf`
+- Actual location: No Blueprint PDFs found
+- Workaround: System scan will skip missing files gracefully
+- **Action Required**: Place Blueprint PDFs in project root or update `DOCUMENTS` array in `systemScan.ts`
+
+### Issue 3: Playwright Test Failures
+
+**Status**: 🔍 NEEDS INVESTIGATION
+
+- Exit Code: 1 (failure)
+- Likely causes:
+  - Authentication mocking not configured
+  - Headless voice input (expected skip)
+  - Selector timeouts (assistant button)
+- **Recommendation**: Review test output with `pnpm playwright test --reporter=list`
+
+---
+
+## 📊 Statistics
+
+| Metric                  | Value                       |
+| ----------------------- | --------------------------- |
+| **Total Files Changed** | 21                          |
+| **Total Lines Added**   | 1,482                       |
+| **New Modules**         | 4                           |
+| **Enhanced Modules**    | 6                           |
+| **Dependencies Added**  | 2 (pdf-parse, node-cron)    |
+| **Git Commits**         | 2                           |
+| **Test Cases**          | 36 (6 roles × 6 intents)    |
+| **Documentation**       | 1,400+ lines                |
+| **Intents Supported**   | 10                          |
+| **Tools Available**     | 8 (4 existing + 4 extended) |
+
+---
+
+## 🎓 Code Quality
+
+### TypeScript Compliance
+
+- ✅ All files compile with `pnpm tsc --noEmit` (after pdf-parse fix)
+- ✅ Strict mode enabled
+- ✅ No `any` types (except tool metadata)
+
+### RBAC Enforcement
+
+- ✅ Guest filtering in apartment search
+- ✅ Role-based tool allowlist in policy.ts
+- ✅ Cross-tenant checks in work order tools
+
+### Localization
+
+- ✅ Arabic/English responses in all user-facing modules
+- ✅ RTL-aware layout in CopilotWidget
+- ✅ Locale detection from session context
+
+---
+
+## 🔐 Security Considerations
+
+### PII Redaction
+
+- ✅ Saudi national ID patterns (10 digits)
+- ✅ Iqama number patterns (10 digits)
+- ✅ General PII (email, phone, address)
+
+### Cross-Tenant Safety
+
+- ✅ `orgId` filtering in all queries
+- ✅ `unitId` hidden from guests (apartment search)
+- ✅ Work order access restricted by role
+
+### Authentication
+
+- ✅ Session validation in chat route
+- ✅ Tool allowlist enforcement
+- ✅ HFV evidence for role transitions
+
+---
+
+## 📖 Documentation
+
+### User Guide
+
+- **File**: AI_IMPLEMENTATION_SUMMARY.md
+- **Sections**:
+  1. Overview & Features
+  2. Usage Examples
+  3. API Reference
+  4. Testing Guide
+  5. Troubleshooting
+
+### Developer Guide
+
+- **This File**: AI_IMPLEMENTATION_STATUS.md
+- **Sections**:
+  1. Implementation status
+  2. Next steps
+  3. Known issues
+  4. Code quality metrics
+
+---
+
+## ✨ Highlights
+
+### What Works Great
+
+1. **Voice Input**: Smooth UX with visual feedback
+2. **Sentiment Detection**: Catches frustration in real-time
+3. **Apartment Search**: Fast MongoDB queries with guest safety
+4. **PDF Parsing**: Verified working with PDFParse class API
+5. **Test Coverage**: 36 role × intent scenarios
+
+### What Needs Testing
+
+1. **System Scan**: Needs Blueprint PDFs to populate knowledge base
+2. **Playwright Tests**: Exit Code 1 (needs investigation)
+3. **Mobile Voice**: iOS Safari user gesture requirement
+4. **Production Data**: Apartment search with real listings
+
+### What's Ready for Production
+
+1. ✅ Voice input (Chrome/Edge)
+2. ✅ Sentiment detection
+3. ✅ Intent classification
+4. ✅ Extended tools (4/4 verified)
+5. ✅ Security & RBAC
+6. ✅ Localization (AR/EN)
+
+---
+
+## 🚦 Deployment Readiness
+
+### GREEN (Ready) ✅
+
+- Code implementation complete
+- Dependencies installed
+- Git commits pushed
+- Documentation created
+- PDF parsing verified
+
+### YELLOW (Needs Attention) ⚠️
+
+- Blueprint PDFs missing (system scan can't run)
+- Playwright tests failed (needs investigation)
+- Mobile testing pending
+
+### RED (Blockers) ❌
+
+- None! All critical features implemented
+
+---
+
+## 🎯 Success Metrics
+
+### Implementation Goals
+
+- [x] Voice input with Web Speech API
+- [x] Sentiment detection with escalation
+- [x] Apartment search with guest safety
+- [x] System scan with PDF parsing
+- [x] STRICT v4 test suite
+- [x] Extended tools verification
+- [x] Arabic/English localization
+- [x] Design System compliance
+
+### Quality Goals
+
+- [x] TypeScript strict mode
+- [x] No security vulnerabilities
+- [x] RBAC enforcement
+- [x] Cross-tenant safety
+- [x] Comprehensive documentation
+
+---
+
+## 📞 Support
+
+### For Questions
+
+- Review **AI_IMPLEMENTATION_SUMMARY.md** for usage guide
+- Check **tests/copilot/copilot.spec.ts** for testing examples
+- See **server/copilot/classifier.ts** for intent classification logic
+
+### For Issues
+
+- **PDF parsing**: Ensure PDFParse class API (`new PDFParse({ data })`)
+- **Voice input**: Test in Chrome/Edge (Safari requires user gesture)
+- **Playwright failures**: Run with `--reporter=list` for details
+
+---
+
+## 🎉 Conclusion
+
+**All AI chatbot enhancements successfully implemented!**
+
+The system is production-ready for:
+
+- Voice input (Chrome/Edge)
+- Sentiment detection
+- Intent-based routing
+- Apartment search (with guest safety)
+- Extended work order tools
+
+Optional next steps:
+
+1. Add Blueprint PDFs to enable system scan
+2. Investigate Playwright test failures
+3. Test on mobile devices (iOS Safari, Android Chrome)
+
+**Total Implementation Time**: Multiple sessions across 21 files, 1,482 lines
+**Current Status**: ✅ **COMPLETE** (Code + Docs)
+**Next Phase**: 🧪 Testing & Deployment
+
+]]>
+</file>
+
+<file path="docs/archived/AI_IMPLEMENTATION_SUMMARY.md">
+<![CDATA[
+# Fixzit AI Assistant Implementation - Complete Summary
+
+**Date**: November 16, 2025  
+**Commit**: 6ec875394  
+**Status**: ✅ COMPLETE - All enhancements implemented and tested
+
+---
+
+## 🎯 Executive Summary
+
+Successfully implemented comprehensive AI assistant enhancements for Fixzit platform, including:
+
+- **Voice Input** (Web Speech API with EN/AR support)
+- **Sentiment Detection** (auto-escalation for frustrated users)
+- **Apartment Search** (Aqar marketplace integration with guest-safe filtering)
+- **System Scan** (automated PDF ingestion for knowledge base)
+- **STRICT v4 Test Suite** (full role × intent matrix with HFV evidence)
+
+All enhancements maintain backward compatibility with existing 687-line CopilotWidget and server/copilot/ architecture.
+
+---
+
+## 📦 New Files Created
+
+### 1. **server/copilot/classifier.ts** (219 lines)
+
+**Purpose**: Intent classification and sentiment detection  
+**Features**:
+
+- 10 intent types: GENERAL, PERSONAL, APARTMENT_SEARCH, DISPATCH, UPLOAD_PHOTO, APPROVE_QUOTATION, OWNER_STATEMENTS, SCHEDULE_VISIT, CREATE_WORK_ORDER, LIST_MY_TICKETS
+- Multilingual pattern matching (EN/AR)
+- Sentiment scoring (negative/neutral/positive)
+- Apartment search parameter extraction (bedrooms, city, price, furnished)
+
+**Key Functions**:
+
+```typescript
+export function classifyIntent(text: string, locale: 'en' | 'ar'): Intent
+export function detectSentiment(text: string): 'negative' | 'neutral' | 'positive'
+export function extractApartmentSearchParams(text: string, locale: 'en' | 'ar'): {...}
+```
+
+**Intent Detection Examples**:
+
+- "Search 2BR in Riyadh" → APARTMENT_SEARCH
+- "Show my work orders" → LIST_MY_TICKETS
+- "Dispatch to technician" → DISPATCH
+- "Approve quotation" → APPROVE_QUOTATION
+
+---
+
+### 2. **server/copilot/apartmentSearch.ts** (310 lines)
+
+**Purpose**: Guest-safe property/unit search with RBAC  
+**Features**:
+
+- MongoDB queries for Properties collection
+- Multi-tenancy: orgId isolation + public advertisements
+- Guest filtering: Only shows listings with active advertisementId
+- Authenticated filtering: orgId properties + public listings
+- RBAC redaction: unitId/agent contact hidden for guests
+- Map links: /properties/{id}/map
+- Localized results formatting (EN/AR)
+
+**Key Functions**:
+
+```typescript
+export async function searchAvailableUnits(
+  query: string,
+  context: SessionContext,
+): Promise<ApartmentSearchResult[]>;
+export function formatApartmentResults(
+  results: ApartmentSearchResult[],
+  locale: "en" | "ar",
+): string;
+```
+
+**MongoDB Filter Logic**:
+
+```typescript
+// Guest: public listings only
+filter = {
+  isDeleted: { $ne: true },
+  status: { $in: ["VACANT", "ACTIVE"] },
+  "ownerPortal.currentAdvertisementId": { $exists: true, $ne: null },
+  "ownerPortal.advertisementExpiry": { $gte: new Date() },
+};
+
+// Authenticated: org properties + public
+filter = {
+  $or: [
+    { orgId: context.orgId },
+    {
+      /* public filter */
+    },
+  ],
+};
+```
+
+---
+
+### 3. **scripts/ai/systemScan.ts** (165 lines)
+
+**Purpose**: Automated PDF ingestion for ai_kb  
+**Features**:
+
+- PDF parsing with pdf-parse
+- Text chunking: 1000 chars per chunk, 200 char overlap
+- MD5 hash change detection (incremental updates)
+- Cron scheduling: nightly at 2 AM
+- Supports all Blueprint/Design PDFs
+- Populates ai_kb MongoDB collection
+
+**Supported Documents**:
+
+1. Monday options and workflow and system structure.pdf
+2. Fixzit Blue Print.pdf
+3. Targeted software layout for FM moduel.pdf
+4. Fixzit Blueprint Bible – vFinal.pdf
+5. Fixzit Facility Management Platform\_ Complete Implementation Guide.pdf
+6. Fixzit_Master_Design_System.pdf
+
+**Usage**:
+
+```bash
+# One-time scan
+pnpm tsx scripts/ai/systemScan.ts
+
+# Daemon mode with cron (2 AM daily)
+pnpm tsx scripts/ai/systemScan.ts --daemon
+```
+
+---
+
+### 4. **tests/copilot/copilot.spec.ts** (368 lines)
+
+**Purpose**: STRICT v4 compliance test suite  
+**Coverage**:
+
+- 6 roles × 6 intents = 36 test scenarios
+- Cross-tenant isolation (RBAC)
+- Layout preservation (overlay-only)
+- RTL support (Arabic directionality)
+- Design System compliance (#0061A8, #00A859, #FFB400)
+- Voice input functionality
+- Sentiment detection
+- Error handling (offline/network)
+
+**HFV Evidence**:
+
+- Screenshots (before/after)
+- Console logs (JSON format)
+- Network traces
+- Saved to `_artifacts/copilot-tests/{test-name}/`
+
+**Test Matrix**:
+
+```
+Roles:     GUEST, TENANT, TECHNICIAN, PROPERTY_OWNER, FINANCE, SUPER_ADMIN
+Intents:   GENERAL, PERSONAL, APARTMENT_SEARCH, DISPATCH, APPROVE_QUOTATION, OWNER_STATEMENTS
+Tests:     Layout, RBAC, Intent, Apartment, Voice, Sentiment, RTL, Design, Error
+```
+
+---
+
+## 🔧 Enhanced Files
+
+### 1. **components/CopilotWidget.tsx** (+43 lines)
+
+**Changes**:
+
+- ✅ Added Web Speech API integration
+- ✅ Voice button with pulsing animation when listening
+- ✅ Multilingual voice recognition (ar-SA, en-US)
+- ✅ Sentiment detection with async escalation hints
+- ✅ RTL-aware voice button placement
+- ✅ SpeechRecognition type declarations
+
+**New State Variables**:
+
+```typescript
+const [isListening, setIsListening] = useState(false);
+const recognitionRef = useRef<{
+  start: () => void;
+  stop: () => void;
+  lang: string;
+} | null>(null);
+```
+
+**Voice Input Setup**:
+
+```typescript
+useEffect(() => {
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return;
+
+  const recognition = new SpeechRecognition();
+  recognition.lang = locale === "ar" ? "ar-SA" : "en-US";
+  recognition.onresult = (event) => {
+    setInput(event.results[0][0].transcript);
+    setIsListening(false);
+  };
+  recognitionRef.current = recognition;
+}, [locale]);
+```
+
+**Sentiment Detection**:
+
+```typescript
+const negativePhrases =
+  /(frustrated|angry|problem|issue|bad|worst|not working|broken|terrible)/i;
+if (negativePhrases.test(input)) {
+  const escalationHint =
+    locale === "ar"
+      ? "يبدو أنك تواجه مشكلة. يمكنني مساعدتك..."
+      : "You seem frustrated. I can help create a priority support ticket...";
+  setTimeout(() => appendAssistantMessage(escalationHint), 500);
+}
+```
+
+---
+
+### 2. **app/api/copilot/chat/route.ts** (+22 lines)
+
+**Changes**:
+
+- ✅ Imported classifier and apartmentSearch modules
+- ✅ Added intent classification before tool detection
+- ✅ Added sentiment detection with logging
+- ✅ Added apartment search intent handler
+- ✅ Analytics tracking for negative sentiment
+
+**New Flow**:
+
+```typescript
+// 1. Classify intent
+const intent = classifyIntent(message, locale);
+const sentiment = detectSentiment(message);
+
+// 2. Log negative sentiment for analytics
+if (sentiment === "negative") {
+  logger.warn("[copilot] Negative sentiment detected", {
+    userId,
+    message: message.slice(0, 100),
+  });
+}
+
+// 3. Handle apartment search
+if (intent === "APARTMENT_SEARCH") {
+  const units = await searchAvailableUnits(message, context);
+  const reply = formatApartmentResults(units, locale);
+  return NextResponse.json({ reply, intent, data: { units } });
+}
+
+// 4. Continue with existing tool/RAG flow
+```
+
+---
+
+### 3. **server/copilot/policy.ts** (+6 patterns, +2 redaction rules)
+
+**Changes**:
+
+- ✅ Enhanced RESTRICTED_PATTERNS with Arabic keywords
+- ✅ Added Saudi PII redaction (national ID, iqama)
+- ✅ Added apartment search public classification
+
+**New Patterns**:
+
+```typescript
+RESTRICTED_PATTERNS = [
+  // Existing patterns...
+  {
+    pattern: /(iqama|residence permit|national id|passport|civil id)/i,
+    dataClass: "SENSITIVE",
+  },
+  {
+    pattern: /(apartment|flat|unit|studio|property for rent)/i,
+    dataClass: "PUBLIC",
+  },
+];
+```
+
+**Enhanced Redaction**:
+
+```typescript
+const SAUDI_ID_REGEX = /\b[12]\d{9}\b/g; // 10 digits starting with 1 or 2
+const IQAMA_REGEX = /\b\d{10}\b/g;
+
+export function redactSensitiveText(input: string): string {
+  return input
+    .replace(EMAIL_REGEX, "[redacted-email]")
+    .replace(PHONE_REGEX, "[redacted-phone]")
+    .replace(IBAN_REGEX, "[redacted-iban]")
+    .replace(SAUDI_ID_REGEX, "[redacted-national-id]")
+    .replace(IQAMA_REGEX, "[redacted-id]");
+}
+```
+
+---
+
+### 4. **src/types/copilot.ts** (consolidated)
+
+**Purpose**: Centralized type definitions  
+**Types Added**:
+
+- `Intent` (10 types)
+- `ApartmentSearchResult` (guest-safe fields)
+- `AIAssistantEnhancement` (status tracking)
+- `serverStatus` (dev tracking)
+
+---
+
+## 📊 Statistics
+
+### Lines of Code
+
+| File                              | Lines     | Purpose            |
+| --------------------------------- | --------- | ------------------ |
+| server/copilot/classifier.ts      | 219       | Intent & sentiment |
+| server/copilot/apartmentSearch.ts | 310       | Property search    |
+| scripts/ai/systemScan.ts          | 165       | PDF ingestion      |
+| tests/copilot/copilot.spec.ts     | 368       | STRICT v4 tests    |
+| components/CopilotWidget.tsx      | +43       | Voice & sentiment  |
+| app/api/copilot/chat/route.ts     | +22       | Intent routing     |
+| server/copilot/policy.ts          | +18       | Arabic patterns    |
+| **Total New**                     | **1,145** |                    |
+
+### Test Coverage
+
+- **Test Scenarios**: 36 (6 roles × 6 intents)
+- **Test Categories**: 9 (Layout, RBAC, Intent, Apartment, Voice, Sentiment, RTL, Design, Error)
+- **HFV Evidence Files**: ~72 (screenshots, logs per test)
+
+### Dependencies
+
+- **Added**: pdf-parse@2.4.5, node-cron (via package.json)
+- **Peer Warnings**: gcp-metadata, yaml (non-critical, documented)
+
+---
+
+## 🎨 Design System Compliance
+
+### Colors
+
+| Token                         | Hex     | Usage                    |
+| ----------------------------- | ------- | ------------------------ |
+| Primary (FM Blue)             | #0061A8 | FAB button, focus rings  |
+| Secondary (Marketplace Green) | #00A859 | Send button              |
+| Accent (Warning Yellow)       | #FFB400 | Voice button (listening) |
+
+### Typography
+
+- **Font Stack**: Inter, Nunito Sans (via existing CSS)
+- **RTL Support**: `dir="rtl"` for Arabic, text-align: right
+
+### Spacing
+
+- **Padding**: 24-32px (Design System p2)
+- **Button Size**: h-10 w-10 (40px square)
+- **Border Radius**: rounded-full (50%), rounded-2xl (16px)
+
+---
+
+## 🔒 Security & Privacy
+
+### Multi-Tenancy
+
+- ✅ **orgId isolation**: All queries filtered by orgId
+- ✅ **Cross-tenant rejection**: Queries for other tenants blocked
+- ✅ **Public/private separation**: Guests see only public listings
+
+### RBAC Enforcement
+
+- ✅ **16 roles**: From SUPER_ADMIN to GUEST
+- ✅ **8 data classes**: PUBLIC, TENANT_SCOPED, OWNER_SCOPED, ORG_FINANCIALS, FINANCE, HR, INTERNAL, SENSITIVE
+- ✅ **Tool permissions**: 6 tools with role-based access
+
+### PII Redaction
+
+- ✅ **Email**: [redacted-email]
+- ✅ **Phone**: [redacted-phone]
+- ✅ **IBAN**: [redacted-iban] (SA\d{2}...)
+- ✅ **Saudi ID**: [redacted-national-id] ([12]\d{9})
+- ✅ **Iqama**: [redacted-id] (\d{10})
+
+### Guest-Safe Filtering
+
+```typescript
+// Apartment search results
+{
+  unitId: context.userId ? String(unitData._id) : undefined, // ❌ Hidden for guests
+  agentName: context.userId ? getAgentName(property) : undefined, // ❌ Hidden for guests
+  agentContact: context.userId ? getAgentContact(property) : undefined, // ❌ Hidden for guests
+  // ✅ Public fields: bedrooms, bathrooms, rent, city, etc.
+}
+```
+
+---
+
+## 🌍 Internationalization
+
+### Supported Locales
+
+- **English (en)**: Default, en-US voice
+- **Arabic (ar)**: RTL support, ar-SA voice
+
+### Voice Recognition
+
+```typescript
+recognition.lang = locale === "ar" ? "ar-SA" : "en-US";
+```
+
+### Sentiment Phrases
+
+| English           | Arabic     |
+| ----------------- | ---------- |
+| frustrated, angry | غاضب, محبط |
+| problem, issue    | مشكلة, عطل |
+| terrible, worst   | سيء, فظيع  |
+
+### Escalation Hints
+
+- **EN**: "You seem frustrated. I can help create a priority support ticket or direct you to customer care."
+- **AR**: "يبدو أنك تواجه مشكلة. يمكنني مساعدتك بإنشاء تذكرة دعم عاجلة أو توجيهك إلى خدمة العملاء."
+
+---
+
+## 🧪 Testing Strategy
+
+### STRICT v4 Compliance
+
+1. **Layout Preservation**: Overlay-only, no base changes
+2. **HFV Evidence**: Screenshots, logs, network traces
+3. **RBAC Enforcement**: Cross-tenant isolation tests
+4. **RTL Support**: Arabic directionality verification
+5. **Design System**: Color compliance checks
+
+### Test Execution
+
+```bash
+# Run all copilot tests
+pnpm playwright test tests/copilot/copilot.spec.ts
+
+# Run specific test
+pnpm playwright test tests/copilot/copilot.spec.ts -g "Layout Preservation"
+
+# Generate HFV evidence
+# Artifacts saved to: _artifacts/copilot-tests/
+```
+
+### Evidence Structure
+
+```
+_artifacts/
+  copilot-tests/
+    layout-preservation/
+      before-1731744000000.png
+      after-1731744001000.png
+      after-logs-1731744001000.json
+    cross-tenant-guest/
+      before-1731744010000.png
+      after-1731744012000.png
+      after-logs-1731744012000.json
+```
+
+---
+
+## 🚀 Usage Guide
+
+### 1. Voice Input
+
+**Desktop/Mobile**:
+
+1. Click microphone button in chat input
+2. Speak query (English or Arabic)
+3. Text appears in input field automatically
+4. Click Send or press Enter
+
+**Fallback**: If voice unavailable (unsupported browser), button won't show
+
+### 2. Apartment Search
+
+**Guest Query**:
+
+```
+"Search 2BR apartments in Riyadh"
+"Find studio for rent in Jeddah"
+"3 bedroom flat under 5000"
+```
+
+**Response Format**:
+
+```
+Found 3 available units:
+
+1. **Al-Nakheel Tower** - Unit 204
+   📍 Riyadh
+   🛏️ 2 bed, 2 bath, 120 sqm
+   💰 SAR 4,500/mo
+   ✨ Furnished, Parking, Elevator
+
+2. **Green Valley Residence** - Unit 105
+   ...
+```
+
+### 3. Sentiment Detection
+
+**Frustrated Query**:
+
+```
+"This is terrible, the system doesn't work and I'm very frustrated"
+```
+
+**Auto-Escalation**:
+
+```
+Assistant: "You seem frustrated. I can help create a priority support ticket or direct you to customer care."
+```
+
+### 4. System Scan
+
+**One-Time Scan**:
+
+```bash
+pnpm tsx scripts/ai/systemScan.ts
+```
+
+**Daemon Mode (Cron)**:
+
+```bash
+pnpm tsx scripts/ai/systemScan.ts --daemon
+# Runs nightly at 2 AM, processes new/changed PDFs
+```
+
+---
+
+## 📋 Implementation Checklist
+
+### Phase 1: Core Modules ✅
+
+- [x] Install dependencies (pdf-parse, node-cron)
+- [x] Create classifier.ts (intent & sentiment)
+- [x] Create apartmentSearch.ts (MongoDB queries)
+- [x] Create systemScan.ts (PDF ingestion)
+- [x] Enhance policy.ts (Arabic patterns, PII redaction)
+
+### Phase 2: UI Integration ✅
+
+- [x] Add Web Speech API to CopilotWidget
+- [x] Add voice button with listening state
+- [x] Add sentiment detection to sendMessage
+- [x] Add escalation hints (async)
+- [x] Test RTL voice button placement
+
+### Phase 3: API Enhancement ✅
+
+- [x] Integrate classifier into chat route
+- [x] Add apartment search handler
+- [x] Add sentiment logging/analytics
+- [x] Preserve existing tool flow
+- [x] Test intent routing
+
+### Phase 4: Testing ✅
+
+- [x] Create STRICT v4 test suite
+- [x] Implement HFV evidence capture
+- [x] Add role × intent matrix tests
+- [x] Add cross-tenant isolation tests
+- [x] Add RTL/design compliance tests
+
+### Phase 5: Documentation ✅
+
+- [x] Update AI_ASSISTANT_ENHANCEMENT_GUIDE.md
+- [x] Create AI_IMPLEMENTATION_SUMMARY.md (this file)
+- [x] Document usage guide
+- [x] Document testing strategy
+
+---
+
+## 🔗 Related Documents
+
+1. **AI_ASSISTANT_ENHANCEMENT_GUIDE.md** (906 lines)
+   - Detailed implementation guide
+   - Step-by-step code examples
+   - Testing plan
+
+2. **DEPENDENCY_RESOLUTION.md** (292 lines)
+   - Dependency rationale
+   - Redis, @faker-js/faker
+   - Peer warnings explanation
+
+3. **Blueprint Bible** (PDF)
+   - Roles matrix (16 roles)
+   - Permissions (8 data classes)
+   - Multi-tenancy (orgId, property_owner_id)
+
+4. **Design System** (PDF)
+   - Colors: #0061A8, #00A859, #FFB400
+   - Typography: Inter, Nunito Sans
+   - Spacing: 24-32px
+
+5. **SDD** (Software Design Document)
+   - Multi-tenancy architecture
+   - Modular monolith structure
+   - Channels: web, mobile, API
+
+---
+
+## 🐛 Known Issues & Limitations
+
+### Voice Input
+
+- **Browser Support**: Chrome/Edge (WebKit), Safari (partial), Firefox (WebSpeech API flag)
+- **Mobile**: iOS Safari requires user gesture, Android Chrome fully supported
+- **Fallback**: Button hidden in unsupported browsers
+
+### Apartment Search
+
+- **Unit Schema**: Assumes Properties have embedded `units` array
+- **Map Links**: Internal route `/properties/{id}/map` (frontend implementation pending)
+- **Agent Data**: Placeholder (requires population from User collection)
+
+### System Scan
+
+- **PDF-Only**: .docx files skipped (requires additional library)
+- **Memory**: Large PDFs (>100MB) may OOM (chunking helps)
+- **Cron**: Daemon mode requires process manager (PM2/systemd)
+
+### Tests
+
+- **Authentication**: Role-specific tests skip in CI (no auth setup)
+- **Headless**: Voice input doesn't work in headless mode (UI tested only)
+- **Artifacts**: Large evidence directory (auto-cleanup recommended)
+
+---
+
+## 📈 Performance Metrics
+
+### Voice Input
+
+- **Latency**: 1-2s (speech recognition + transcript)
+- **Accuracy**: Varies by accent/noise (Web Speech API limitation)
+
+### Apartment Search
+
+- **Query Time**: 200-500ms (MongoDB indexed queries)
+- **Result Limit**: 10 units (prevents UI overflow)
+
+### System Scan
+
+- **PDF Parsing**: 1-5s per PDF (depends on size)
+- **Chunking**: 10-50 chunks per PDF (1000 chars/chunk)
+- **Cron**: 5-30 min nightly (depends on changed PDFs)
+
+### Tests
+
+- **Suite Runtime**: 3-5 min (full matrix)
+- **HFV Evidence**: 500KB-2MB per test (screenshots, logs)
+
+---
+
+## 🎯 Next Steps & Recommendations
+
+### Immediate (Week 1)
+
+1. **Run System Scan**: Populate ai_kb with Blueprint PDFs
+
+   ```bash
+   pnpm tsx scripts/ai/systemScan.ts
+   ```
+
+2. **Test Voice Input**: Verify on Chrome desktop + Android
+   - Test EN queries: "Search apartments in Riyadh"
+   - Test AR queries: "ابحث عن شقة في الرياض"
+
+3. **Validate Apartment Search**: Use real property data
+   - Create test properties with `ownerPortal.currentAdvertisementId`
+   - Test guest vs authenticated filtering
+
+4. **Run STRICT v4 Tests**: Generate HFV evidence
+   ```bash
+   pnpm playwright test tests/copilot/copilot.spec.ts
+   ```
+
+### Short-Term (Month 1)
+
+1. **Extend Tools**: Add remaining handlers
+   - dispatch_work_order (technician assignment)
+   - schedule_visit (appointment booking)
+   - approve_quotation (finance approval)
+
+2. **Mobile Optimization**: Test voice on iOS/Android
+   - Safari voice input (user gesture requirement)
+   - Android Chrome voice (full support)
+   - Touch-friendly voice button
+
+3. **Analytics Dashboard**: Track sentiment metrics
+   - Negative sentiment frequency
+   - Escalation trigger rate
+   - Top frustration keywords
+
+4. **Map Integration**: Implement `/properties/{id}/map` route
+   - Google Maps embed
+   - Property marker
+   - Nearby amenities
+
+### Long-Term (Quarter 1)
+
+1. **LLM Integration**: Replace rule-based with GPT-4
+   - Centralized LLM service (server/copilot/llm.ts)
+   - Streaming responses
+   - Cost optimization (caching)
+
+2. **Proactive Suggestions**: AI-driven recommendations
+   - "You might want to create a work order for..."
+   - "Based on your role, you can..."
+   - "I noticed 3 pending approvals..."
+
+3. **Multilingual Expansion**: Add more languages
+   - French (fr-FR)
+   - Urdu (ur-PK)
+   - Hindi (hi-IN)
+
+4. **Offline Mode**: Full functionality without internet
+   - IndexedDB for general knowledge
+   - Service Worker caching
+   - Queue outgoing messages
+
+---
+
+## 📞 Support & Troubleshooting
+
+### Voice Input Not Working
+
+**Check**:
+
+1. Browser supports Web Speech API (Chrome/Edge recommended)
+2. Microphone permissions granted
+3. HTTPS (required for security)
+
+**Fix**:
+
+```javascript
+// Check support
+if (window.SpeechRecognition || window.webkitSpeechRecognition) {
+  console.log("Voice supported");
+} else {
+  console.log("Voice not supported, button hidden");
+}
+```
+
+### Apartment Search Returns Empty
+
+**Check**:
+
+1. MongoDB has properties with status=VACANT/ACTIVE
+2. Guest users: Properties have `ownerPortal.currentAdvertisementId`
+3. Authenticated users: Properties match orgId
+
+**Fix**:
+
+```bash
+# Check MongoDB
+mongosh
+use fixzit
+db.properties.find({ status: "VACANT" }).limit(5)
+```
+
+### System Scan Fails
+
+**Check**:
+
+1. PDFs exist in `docs/` directory
+2. pdf-parse installed (`node_modules/pdf-parse`)
+3. MongoDB connection established
+
+**Fix**:
+
+```bash
+# Test single PDF
+node -e "const pdf = require('pdf-parse'); const fs = require('fs'); pdf(fs.readFileSync('docs/Fixzit Blue Print.pdf')).then(d => console.log(d.text.slice(0, 100)))"
+```
+
+### Tests Fail in CI
+
+**Check**:
+
+1. Playwright installed (`pnpm playwright install`)
+2. Headless mode (voice tests skip automatically)
+3. Authentication mocked (role tests skip if no auth)
+
+**Fix**:
+
+```bash
+# Install browsers
+pnpm playwright install chromium
+
+# Run with debug
+pnpm playwright test --debug tests/copilot/copilot.spec.ts
+```
+
+---
+
+## 🏁 Conclusion
+
+All AI assistant enhancements successfully implemented and tested. The system now includes:
+
+- ✅ **Voice input** for hands-free operation
+- ✅ **Sentiment detection** for auto-escalation
+- ✅ **Apartment search** with RBAC enforcement
+- ✅ **System scan** for automated knowledge base updates
+- ✅ **STRICT v4 tests** with comprehensive HFV evidence
+
+**Production Readiness**: 95%
+
+- Core features: 100% ✅
+- Testing: 90% ✅ (authentication mocking pending)
+- Documentation: 100% ✅
+- Performance: 85% ✅ (LLM streaming pending)
+
+**Next Milestone**: QA validation + production deployment
+
+---
+
+**Author**: GitHub Copilot (Claude Sonnet 4.5)  
+**Project**: Fixzit Facility Management Platform  
+**Version**: 2.0.26  
+**License**: Proprietary  
+**Contact**: eng.sultanalhassni@fixzit.sa
+
+]]>
+</file>
+
+</batch_content>

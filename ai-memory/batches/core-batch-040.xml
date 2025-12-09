@@ -1,0 +1,2802 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/test-rtl/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState, useEffect } from "react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useResponsive } from "@/contexts/ResponsiveContext";
+import { ResponsiveContainer } from "@/components/ui/ResponsiveContainer";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+export default function RTLTestPage() {
+  const { t, language, setLanguage, isRTL } = useTranslation();
+  const { screenSize, isMobile, isTablet } = useResponsive();
+  const auto = useAutoTranslator("testRtl");
+
+  // Avoid SSR hydration mismatch - read document only on client
+  const [mounted, setMounted] = useState(false);
+  const [dir, setDir] = useState("ltr");
+  const [htmlLang, setHtmlLang] = useState("en");
+
+  useEffect(() => {
+    setMounted(true);
+    setDir(document.documentElement.dir || "ltr");
+    setHtmlLang(document.documentElement.lang || "en");
+  }, [language, isRTL]); // Re-read when language changes
+
+  const testTranslations = [
+    "nav.dashboard",
+    "nav.work-orders",
+    "nav.properties",
+    "nav.tenants",
+    "nav.vendors",
+    "nav.support",
+    "common.brand",
+    "common.search",
+    "common.save",
+    "common.cancel",
+    "landing.title",
+    "landing.subtitle",
+  ];
+
+  const currentLanguageLabel = auto(
+    "Current Language: {{lang}}",
+    "currentLanguage",
+  ).replace("{{lang}}", language.toUpperCase());
+  const rtlStatus = isRTL
+    ? auto("✅ RTL Active", "rtl.active")
+    : auto("❌ RTL Inactive", "rtl.inactive");
+
+  return (
+    <ResponsiveContainer className="py-8">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold mb-6 text-center">
+          {auto("RTL & Language Test Page", "title")}
+        </h1>
+
+        <div className="bg-card rounded-2xl shadow-lg p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-4">{currentLanguageLabel}</h2>
+          <div className="flex gap-4 mb-4">
+            <button
+              onClick={() => setLanguage("ar")}
+              className={`px-4 py-2 rounded ${language === "ar" ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+            >
+              {auto("Arabic (العربية)", "language.ar")}
+            </button>
+            <button
+              onClick={() => setLanguage("en")}
+              className={`px-4 py-2 rounded ${language === "en" ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+            >
+              {auto("English", "language.en")}
+            </button>
+          </div>
+
+          <div className="mb-4">
+            <strong>{auto("RTL Status:", "rtl.label")} </strong>
+            {rtlStatus}
+          </div>
+
+          <div className="mb-4">
+            <strong>{auto("Direction:", "direction.label")} </strong>
+            {mounted ? dir : "ltr"}
+          </div>
+
+          <div className="mb-4">
+            <strong>{auto("Language:", "htmlLanguage.label")} </strong>
+            {mounted ? htmlLang : "en"}
+          </div>
+        </div>
+
+        <div className="bg-card rounded-2xl shadow-lg p-6">
+          <h3 className="text-lg font-semibold mb-4">
+            {auto("Translation Test:", "translationTest.title")}
+          </h3>
+          <div className="space-y-2">
+            {testTranslations.map((key) => (
+              <div key={key} className="flex justify-between border-b pb-2">
+                <span className="font-mono text-sm text-muted-foreground">
+                  {key}:
+                </span>
+                <span className="text-start">{t(key, `FALLBACK: ${key}`)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-card rounded-2xl shadow-lg p-6 mt-6">
+          <h3 className="text-lg font-semibold mb-4">
+            {auto("Layout Test:", "layout.title")}
+          </h3>
+          <div className="border-2 border-dashed p-4 rounded text-start">
+            <p>
+              {auto(
+                "This text should align {{direction}} in {{lang}}",
+                "layout.alignText",
+              )
+                .replace(
+                  "{{direction}}",
+                  isRTL
+                    ? auto("right", "layout.right")
+                    : auto("left", "layout.left"),
+                )
+                .replace("{{lang}}", language.toUpperCase())}
+            </p>
+            <p className="mt-2">
+              {auto(
+                "Current direction: {{dir}}",
+                "layout.currentDirection",
+              ).replace("{{dir}}", mounted ? dir : "ltr")}
+            </p>
+            <p className="mt-2">
+              {auto("Screen size: {{size}} ({{device}})", "layout.screenSize")
+                .replace("{{size}}", screenSize)
+                .replace(
+                  "{{device}}",
+                  isMobile
+                    ? auto("Mobile", "layout.device.mobile")
+                    : isTablet
+                      ? auto("Tablet", "layout.device.tablet")
+                      : auto("Desktop", "layout.device.desktop"),
+                )}
+            </p>
+          </div>
+        </div>
+      </div>
+    </ResponsiveContainer>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/test-translations/page.tsx">
+<![CDATA[
+"use client";
+
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+export default function TranslationTestPage() {
+  const { t, language } = useTranslation();
+  const auto = useAutoTranslator("testTranslations");
+
+  const testKeys = [
+    "app.fm",
+    "app.souq",
+    "app.aqar",
+    "app.switchApplication",
+    "nav.dashboard",
+    "common.brand",
+  ];
+
+  return (
+    <div className="p-8 max-w-4xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6">
+        {auto("Translation Test Page", "title")}
+      </h1>
+
+      <div className="mb-4 p-4 bg-primary/10 rounded">
+        <strong>{auto("Current Language:", "currentLanguage")}</strong>{" "}
+        {language}
+      </div>
+
+      <div className="space-y-4">
+        <h2 className="text-2xl font-semibold mb-4">
+          {auto("Translation Keys Test:", "section.keys")}
+        </h2>
+
+        {testKeys.map((key) => (
+          <div key={key} className="p-4 border rounded">
+            <div className="font-mono text-sm text-gray-600 mb-2">
+              {auto("Key:", "section.keyLabel")}{" "}
+              <code className="bg-gray-200 px-2 py-1 rounded">{key}</code>
+            </div>
+            <div className="text-lg font-semibold">
+              {auto("Translation:", "section.translationLabel")}{" "}
+              <span className="text-primary">
+                {t(key, auto("❌ MISSING", "section.missing"))}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-8 p-4 bg-warning/10 rounded">
+        <h3 className="font-bold mb-2">
+          {auto("Instructions:", "instructions.title")}
+        </h3>
+        <ol className="list-decimal list-inside space-y-1">
+          <li>
+            {auto(
+              'If you see "❌ MISSING", the translation key does not exist.',
+              "instructions.step1",
+            )}
+          </li>
+          <li>
+            {auto(
+              "If you see the localized text, the translation is working.",
+              "instructions.step2",
+            )}
+          </li>
+          <li>
+            {auto(
+              "Try switching language using the TopBar language selector.",
+              "instructions.step3",
+            )}
+          </li>
+        </ol>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/vendor/apply/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import { Building2, Mail, Phone, FileText, Check, ArrowLeft } from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import Link from "next/link";
+
+type VendorForm = {
+  company: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  services: string;
+  notes: string;
+};
+
+export default function VendorApplyPage() {
+  const { t } = useTranslation();
+  const [form, setForm] = useState<VendorForm>({
+    company: "",
+    contactName: "",
+    email: "",
+    phone: "",
+    services: "",
+    notes: "",
+  });
+  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [error, setError] = useState<string | null>(null);
+
+  const update = (key: keyof VendorForm, value: string) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus("submitting");
+    setError(null);
+    try {
+      const res = await fetch("/api/vendor/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Application failed");
+      }
+      setStatus("success");
+    } catch (err) {
+      setStatus("error");
+      setError(err instanceof Error ? err.message : "Application failed");
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <ArrowLeft className="h-4 w-4" />
+          <Link href="/" className="hover:underline">
+            {t("vendor.apply.backHome", "Back to Home")}
+          </Link>
+        </div>
+        <div className="space-y-2">
+          <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
+            {t("vendor.apply.tagline", "Marketplace Onboarding")}
+          </p>
+          <h1 className="text-3xl font-semibold">
+            {t("vendor.apply.title", "Apply to become a Fixzit Souq vendor")}
+          </h1>
+          <p className="text-muted-foreground">
+            {t(
+              "vendor.apply.subtitle",
+              "Submit your business details so we can review and invite you to the marketplace.",
+            )}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <form className="space-y-4" onSubmit={onSubmit}>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <Building2 className="h-4 w-4" />
+                  {t("vendor.apply.company", "Company name")}
+                </label>
+                <Input
+                  required
+                  value={form.company}
+                  onChange={(e) => update("company", e.target.value)}
+                  placeholder="Al-Namaa Facilities"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  {t("vendor.apply.email", "Work email")}
+                </label>
+                <Input
+                  type="email"
+                  required
+                  value={form.email}
+                  onChange={(e) => update("email", e.target.value)}
+                  placeholder="ops@company.com"
+                />
+              </div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  {t("vendor.apply.contact", "Primary contact")}
+                </label>
+                <Input
+                  required
+                  value={form.contactName}
+                  onChange={(e) => update("contactName", e.target.value)}
+                  placeholder="Fatimah Al-Saadi"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <Phone className="h-4 w-4" />
+                  {t("vendor.apply.phone", "Phone")}
+                </label>
+                <Input
+                  value={form.phone}
+                  onChange={(e) => update("phone", e.target.value)}
+                  placeholder="+966 5x xxx xxxx"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                {t("vendor.apply.services", "Services offered")}
+              </label>
+              <Textarea
+                value={form.services}
+                onChange={(e) => update("services", e.target.value)}
+                placeholder={t(
+                  "vendor.apply.servicesPlaceholder",
+                  "E.g., HVAC, electrical, cleaning, elevators",
+                )}
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                {t("vendor.apply.notes", "Notes (optional)")}
+              </label>
+              <Textarea
+                value={form.notes}
+                onChange={(e) => update("notes", e.target.value)}
+                placeholder={t(
+                  "vendor.apply.notesPlaceholder",
+                  "Share anything else we should know",
+                )}
+                rows={3}
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <Button type="submit" disabled={status === "submitting"}>
+                {status === "submitting"
+                  ? t("vendor.apply.submitting", "Submitting...")
+                  : t("vendor.apply.submit", "Submit application")}
+              </Button>
+              {status === "success" && (
+                <span className="text-sm text-success flex items-center gap-1">
+                  <Check className="h-4 w-4" />
+                  {t("vendor.apply.success", "Received! We will review and contact you.")}
+                </span>
+              )}
+              {status === "error" && (
+                <span className="text-sm text-destructive">
+                  {error ||
+                    t(
+                      "vendor.apply.error",
+                      "Could not submit application. Please try again.",
+                    )}
+                </span>
+              )}
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/vendor/dashboard/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState, useEffect } from "react";
+import { Package, TrendingUp, Clock, Star } from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
+
+export default function VendorDashboard() {
+  const { t } = useTranslation();
+  const [stats, setStats] = useState({
+    totalProducts: 0,
+    totalOrders: 0,
+    revenue: 0,
+    rating: 0,
+  });
+
+  const [products, setProducts] = useState<
+    Array<{
+      id: number;
+      title: string;
+      stock: number;
+      price: number;
+      sold: number;
+    }>
+  >([]);
+  const [orders, setOrders] = useState<
+    Array<{
+      id: string;
+      customer: string;
+      total: number;
+      status: string;
+    }>
+  >([]);
+
+  useEffect(() => {
+    // Fetch vendor stats
+    fetchVendorData();
+  }, []);
+
+  const fetchVendorData = async () => {
+    // Mock data - replace with API calls
+    setStats({
+      totalProducts: 24,
+      totalOrders: 156,
+      revenue: 45780.5,
+      rating: 4.7,
+    });
+
+    setProducts([
+      { id: 1, title: "AC Filter 24x24", stock: 150, price: 89.99, sold: 45 },
+      { id: 2, title: "PVC Pipe 2 inch", stock: 500, price: 45.5, sold: 120 },
+    ]);
+
+    setOrders([
+      {
+        id: "ORD-001",
+        customer: "Acme Corp",
+        total: 1250.0,
+        status: "Processing",
+      },
+      {
+        id: "ORD-002",
+        customer: "Tech Solutions",
+        total: 3400.0,
+        status: "Shipped",
+      },
+    ]);
+  };
+
+  return (
+    <div className="min-h-screen bg-muted flex flex-col">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold text-foreground mb-8">
+          Vendor Dashboard
+        </h1>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-card rounded-2xl shadow p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Products</p>
+                <p className="text-2xl font-bold">{stats.totalProducts}</p>
+              </div>
+              <Package className="h-8 w-8 text-primary" />
+            </div>
+          </div>
+
+          <div className="bg-card rounded-2xl shadow p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Orders</p>
+                <p className="text-2xl font-bold">{stats.totalOrders}</p>
+              </div>
+              <Clock className="h-8 w-8 text-success" />
+            </div>
+          </div>
+
+          <div className="bg-card rounded-2xl shadow p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Revenue</p>
+                <p className="text-2xl font-bold">
+                  SAR {stats.revenue.toFixed(2)}
+                </p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-warning" />
+            </div>
+          </div>
+
+          <div className="bg-card rounded-2xl shadow p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Rating</p>
+                <p className="text-2xl font-bold">{stats.rating}/5.0</p>
+              </div>
+              <Star className="h-8 w-8 text-accent fill-current" />
+            </div>
+          </div>
+        </div>
+
+        {/* Products Table */}
+        <div className="bg-card rounded-2xl shadow mb-8">
+          <div className="px-6 py-4 border-b">
+            <h2 className="text-lg font-semibold">My Products</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-muted">
+                <tr>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                    Product
+                  </th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                    Stock
+                  </th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                    Price
+                  </th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                    Sold
+                  </th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {products.map((product) => (
+                  <tr key={product.id}>
+                    <td className="px-6 py-4">{product.title}</td>
+                    <td className="px-6 py-4">{product.stock}</td>
+                    <td className="px-6 py-4">SAR {product.price}</td>
+                    <td className="px-6 py-4">{product.sold}</td>
+                    <td className="px-6 py-4">
+                      <button className="text-primary hover:underline">
+                        {t("common.edit", "Edit")}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Recent Orders */}
+        <div className="bg-card rounded-2xl shadow">
+          <div className="px-6 py-4 border-b">
+            <h2 className="text-lg font-semibold">Recent Orders</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-muted">
+                <tr>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                    Order ID
+                  </th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                    Customer
+                  </th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                    Total
+                  </th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                    Status
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {orders.map((order) => (
+                  <tr key={order.id}>
+                    <td className="px-6 py-4">{order.id}</td>
+                    <td className="px-6 py-4">{order.customer}</td>
+                    <td className="px-6 py-4">SAR {order.total.toFixed(2)}</td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          order.status === "Shipped"
+                            ? "bg-success/10 text-success-foreground"
+                            : "bg-warning/10 text-warning-foreground"
+                        }`}
+                      >
+                        {order.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/vendors/page.tsx">
+<![CDATA[
+"use client";
+
+import { useTranslation } from "@/contexts/TranslationContext";
+
+export default function Page() {
+  const { t } = useTranslation();
+
+  return (
+    <div className="space-y-2">
+      <h1 className="text-2xl font-bold">{t("vendors.title", "Vendors")}</h1>
+      <p>
+        {t("vendors.description", "Coming online – UI wired, API scaffolded.")}
+      </p>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/work-orders/[id]/parts/page.tsx">
+<![CDATA[
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { Search, Plus, ShoppingCart } from "lucide-react";
+import { useParams } from "next/navigation";
+import { toast } from "sonner";
+
+import { logger } from "@/lib/logger";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { useTranslation } from "@/contexts/TranslationContext";
+
+interface PartItem {
+  id: string;
+  name: string;
+  title: string;
+  price: number;
+  stock: number;
+  category: string;
+}
+
+interface SelectedPartItem {
+  id: string;
+  name: string;
+  title: string;
+  price: number;
+  quantity: number;
+}
+
+type MarketplaceProductPayload = {
+  _id?: string;
+  id?: string;
+  sku?: string;
+  slug?: string;
+  title?: Record<string, unknown> | string | null;
+  name?: string;
+  summary?: string;
+  buy?: { price?: number };
+  stock?: { onHand?: number };
+  category?: { name?: string } | string | null;
+  categoryName?: string;
+};
+
+type MarketplaceProductsResponse = {
+  ok?: boolean;
+  data?: { items?: MarketplaceProductPayload[] };
+  error?: string;
+  message?: string;
+};
+
+const isNonEmptyString = (value: unknown): value is string =>
+  typeof value === "string" && value.trim().length > 0;
+
+const pickLocalizedString = (
+  value: unknown,
+  preferredKey?: string,
+): string | undefined => {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+  const record = value as Record<string, unknown>;
+  if (preferredKey) {
+    const candidate = record[preferredKey];
+    if (isNonEmptyString(candidate)) {
+      return candidate;
+    }
+  }
+  for (const candidate of Object.values(record)) {
+    if (isNonEmptyString(candidate)) {
+      return candidate;
+    }
+  }
+  return undefined;
+};
+
+const resolveProductId = (
+  product: MarketplaceProductPayload,
+): string | undefined => {
+  const candidates = [product._id, product.id, product.sku, product.slug];
+  return candidates.find(isNonEmptyString);
+};
+
+const resolveProductTitle = (
+  product: MarketplaceProductPayload,
+  preferredLanguage?: string,
+): string | undefined => {
+  const localized = pickLocalizedString(product.title, preferredLanguage);
+  if (localized) {
+    return localized;
+  }
+  if (isNonEmptyString(product.name)) {
+    return product.name;
+  }
+  if (isNonEmptyString(product.summary)) {
+    return product.summary;
+  }
+  if (isNonEmptyString(product.slug)) {
+    return product.slug;
+  }
+  if (isNonEmptyString(product.sku)) {
+    return product.sku;
+  }
+  return undefined;
+};
+
+const resolveCategoryLabel = (
+  product: MarketplaceProductPayload,
+): string | undefined => {
+  if (isNonEmptyString(product.categoryName)) {
+    return product.categoryName;
+  }
+  if (isNonEmptyString(product.category as string)) {
+    return product.category as string;
+  }
+  if (product.category && typeof product.category === "object") {
+    const candidate = (product.category as Record<string, unknown>).name;
+    if (isNonEmptyString(candidate)) {
+      return candidate;
+    }
+  }
+  return undefined;
+};
+
+const resolveStock = (product: MarketplaceProductPayload): number =>
+  typeof product.stock?.onHand === "number" ? product.stock.onHand : 0;
+
+const resolvePrice = (product: MarketplaceProductPayload): number =>
+  typeof product.buy?.price === "number" ? product.buy.price : 0;
+
+export default function WorkOrderPartsPage() {
+  const params = useParams<{ id?: string | string[] }>();
+  const rawWorkOrderId = params?.id;
+  const workOrderId = Array.isArray(rawWorkOrderId)
+    ? rawWorkOrderId[0]
+    : rawWorkOrderId;
+  const auto = useAutoTranslator("workOrders.parts");
+  const { language: activeLanguage } = useTranslation();
+
+  const [search, setSearch] = useState("");
+  const [parts, setParts] = useState<PartItem[]>([]);
+  const [selectedParts, setSelectedParts] = useState<SelectedPartItem[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const emptyStateTitle = auto(
+    "No marketplace parts published yet",
+    "list.emptyStateTitle",
+  );
+  const emptyStateSubtitle = auto(
+    "Adjust your search or onboard vendors to see products here.",
+    "list.emptyStateSubtitle",
+  );
+  const fallbackProductName = auto(
+    "Unnamed marketplace item",
+    "list.fallbackProductName",
+  );
+  const fallbackCategoryLabel = auto("Uncategorized", "list.fallbackCategory");
+  const fetchErrorMessage = auto(
+    "Unable to load marketplace parts. Please try again.",
+    "errors.fetchFailed",
+  );
+  const noSelectionMessage = auto(
+    "Add at least one part before creating a purchase order.",
+    "toast.noSelection",
+  );
+
+  const searchParts = useCallback(
+    async (signal?: AbortSignal) => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams({ limit: "10" });
+        const trimmed = search.trim();
+        if (trimmed) {
+          params.set("q", trimmed);
+        }
+        const response = await fetch(
+          `/api/marketplace/products?${params.toString()}`,
+          {
+            signal,
+            credentials: "include",
+          },
+        );
+        let payload: MarketplaceProductsResponse | null = null;
+        try {
+          payload = await response.json();
+        } catch {
+          payload = null;
+        }
+        if (!response.ok) {
+          const message =
+            (payload && (payload.error || payload.message)) ||
+            `Request failed (${response.status})`;
+          throw new Error(message);
+        }
+        const rawItems = Array.isArray(payload?.data?.items)
+          ? payload.data.items
+          : [];
+        const normalized = rawItems
+          .map((item) => {
+            const id = resolveProductId(item);
+            if (!id) {
+              return null;
+            }
+            const title =
+              resolveProductTitle(item, activeLanguage) ?? fallbackProductName;
+            const category =
+              resolveCategoryLabel(item) ?? fallbackCategoryLabel;
+            return {
+              id,
+              name: title,
+              title,
+              price: resolvePrice(item),
+              stock: resolveStock(item),
+              category,
+            } as PartItem;
+          })
+          .filter((item): item is PartItem => Boolean(item));
+        if (!signal?.aborted) {
+          setParts(normalized);
+        }
+      } catch (error) {
+        if (signal?.aborted) {
+          return;
+        }
+        logger.error("Failed to search parts:", error);
+        toast.error(fetchErrorMessage);
+        setParts([]);
+      } finally {
+        if (!signal?.aborted) {
+          setLoading(false);
+        }
+      }
+    },
+    [
+      activeLanguage,
+      fallbackCategoryLabel,
+      fallbackProductName,
+      fetchErrorMessage,
+      search,
+    ],
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const delay = search.trim().length > 0 ? 300 : 0;
+    const timeout = window.setTimeout(() => {
+      searchParts(controller.signal);
+    }, delay);
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeout);
+    };
+  }, [search, searchParts]);
+
+  const addPart = (part: PartItem) => {
+    setSelectedParts((prev) => {
+      const existing = prev.find((p) => p.id === part.id);
+      if (existing) {
+        return prev.map((p) =>
+          p.id === part.id ? { ...p, quantity: p.quantity + 1 } : p,
+        );
+      }
+      return [
+        ...prev,
+        {
+          id: part.id,
+          name: part.name,
+          title: part.title,
+          price: part.price,
+          quantity: 1,
+        },
+      ];
+    });
+  };
+
+  const removePart = (partId: string) => {
+    setSelectedParts((prev) => prev.filter((p) => p.id !== partId));
+  };
+
+  const updateQuantity = (partId: string, quantity: number) => {
+    setSelectedParts((prev) => {
+      if (quantity <= 0) {
+        return prev.filter((p) => p.id !== partId);
+      }
+      return prev.map((p) => (p.id === partId ? { ...p, quantity } : p));
+    });
+  };
+
+  const createPurchaseOrder = async () => {
+    if (selectedParts.length === 0) {
+      toast.error(noSelectionMessage);
+      return;
+    }
+    // Create PO from selected parts
+    const po = {
+      workOrderId,
+      items: selectedParts.map((p) => ({
+        productId: p.id,
+        title: p.title,
+        quantity: p.quantity,
+        unitPrice: p.price,
+        total: p.price * p.quantity,
+      })),
+      total: selectedParts.reduce((sum, p) => sum + p.price * p.quantity, 0),
+    };
+
+    logger.info("Creating PO:", { po });
+    // In production, send to API
+    toast.success(
+      auto("Purchase Order created successfully!", "toast.success"),
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-muted">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <h1 className="text-2xl font-bold text-foreground mb-6">
+          {auto("Add Parts to Work Order #{{id}}", "header.title").replace(
+            "{{id}}",
+            String(workOrderId ?? ""),
+          )}
+        </h1>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Parts Search */}
+          <div className="lg:col-span-2">
+            <div className="bg-card rounded-2xl shadow p-6">
+              <div className="flex gap-2 mb-6">
+                <div className="flex-1 relative">
+                  <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder={auto(
+                      "Search parts from marketplace...",
+                      "search.placeholder",
+                    )}
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full ps-10 pe-4 py-2 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
+              </div>
+
+              {loading ? (
+                <div className="text-center py-8">
+                  {auto("Loading...", "state.loading")}
+                </div>
+              ) : parts.length === 0 ? (
+                <div className="border border-dashed border-border rounded-2xl text-center py-12 text-muted-foreground">
+                  <p className="font-medium text-foreground">
+                    {emptyStateTitle}
+                  </p>
+                  <p className="text-sm">{emptyStateSubtitle}</p>
+                </div>
+              ) : (
+                <div className="grid gap-4">
+                  {parts.map((part) => (
+                    <div
+                      key={part.id}
+                      className="border rounded-2xl p-4 flex items-center justify-between"
+                    >
+                      <div>
+                        <h3 className="font-semibold">{part.title}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {auto(
+                            "{{category}} • Stock: {{stock}}",
+                            "list.categoryStock",
+                          )
+                            .replace("{{category}}", part.category)
+                            .replace("{{stock}}", String(part.stock))}
+                        </p>
+                        <p className="text-lg font-bold text-success">
+                          {auto("SAR {{price}}", "list.price").replace(
+                            "{{price}}",
+                            part.price.toString(),
+                          )}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => addPart(part)}
+                        className="px-4 py-2 bg-primary text-white rounded-2xl hover:bg-primary/90 flex items-center gap-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        {auto("Add", "actions.add")}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Selected Parts */}
+          <div className="lg:col-span-1">
+            <div className="bg-card rounded-2xl shadow p-6 sticky top-4">
+              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <ShoppingCart className="h-5 w-5" />
+                {auto("Selected Parts", "selected.title")}
+              </h2>
+
+              {selectedParts.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">
+                  {auto("No parts selected", "selected.empty")}
+                </p>
+              ) : (
+                <>
+                  <div className="space-y-3 mb-4">
+                    {selectedParts.map((part) => (
+                      <div key={part.id} className="border rounded-2xl p-3">
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="font-medium text-sm">{part.title}</h4>
+                          <button
+                            onClick={() => removePart(part.id)}
+                            className="text-destructive/80 hover:text-destructive/90"
+                          >
+                            ×
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() =>
+                                updateQuantity(part.id, part.quantity - 1)
+                              }
+                              className="w-6 h-6 border rounded hover:bg-muted"
+                            >
+                              -
+                            </button>
+                            <span className="w-8 text-center">
+                              {part.quantity}
+                            </span>
+                            <button
+                              onClick={() =>
+                                updateQuantity(part.id, part.quantity + 1)
+                              }
+                              className="w-6 h-6 border rounded hover:bg-muted"
+                            >
+                              +
+                            </button>
+                          </div>
+                          <span className="font-semibold">
+                            {auto(
+                              "SAR {{total}}",
+                              "selected.lineTotal",
+                            ).replace(
+                              "{{total}}",
+                              (part.price * part.quantity).toFixed(2),
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="border-t pt-4">
+                    <div className="flex justify-between mb-4">
+                      <span className="font-semibold">
+                        {auto("Total", "selected.total")}
+                      </span>
+                      <span className="font-bold text-xl text-success">
+                        {auto("SAR {{total}}", "selected.grandTotal").replace(
+                          "{{total}}",
+                          selectedParts
+                            .reduce((sum, p) => sum + p.price * p.quantity, 0)
+                            .toFixed(2),
+                        )}
+                      </span>
+                    </div>
+                    <button
+                      onClick={createPurchaseOrder}
+                      className="w-full py-3 bg-success text-white rounded-2xl hover:bg-success/90"
+                    >
+                      {auto("Create Purchase Order", "actions.createPO")}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/work-orders/approvals/page.tsx">
+<![CDATA[
+export { default } from "@/app/fm/work-orders/approvals/page";
+export * from "@/app/fm/work-orders/approvals/page";
+
+]]>
+</file>
+
+<file path="app/work-orders/board/page.tsx">
+<![CDATA[
+export { default } from "@/app/fm/work-orders/board/page";
+export * from "@/app/fm/work-orders/board/page";
+
+]]>
+</file>
+
+<file path="app/work-orders/history/page.tsx">
+<![CDATA[
+export { default } from "@/app/fm/work-orders/history/page";
+export * from "@/app/fm/work-orders/history/page";
+
+]]>
+</file>
+
+<file path="app/work-orders/new/page.tsx">
+<![CDATA[
+export { default } from "@/app/fm/work-orders/new/page";
+export * from "@/app/fm/work-orders/new/page";
+
+]]>
+</file>
+
+<file path="app/work-orders/page.tsx">
+<![CDATA[
+"use client";
+
+import React from "react";
+import { OrgContextPrompt } from "@/components/fm/OrgContextPrompt";
+import { WorkOrdersView } from "@/components/fm/WorkOrdersView";
+import { useSupportOrg } from "@/contexts/SupportOrgContext";
+import { useTranslation } from "@/contexts/TranslationContext";
+
+export default function WorkOrdersPage() {
+  const { t } = useTranslation();
+  const { effectiveOrgId, canImpersonate, supportOrg } = useSupportOrg();
+
+  if (!effectiveOrgId) {
+    return (
+      <div className="p-6">
+        <OrgContextPrompt canImpersonate={canImpersonate} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 p-6">
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t("fm.org.supportContext", "Support context: {{name}}", {
+            name: supportOrg.name,
+          })}
+        </div>
+      )}
+      <WorkOrdersView orgId={effectiveOrgId} />
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/work-orders/pm/page.tsx">
+<![CDATA[
+export { default } from "@/app/fm/work-orders/pm/page";
+export * from "@/app/fm/work-orders/pm/page";
+
+]]>
+</file>
+
+<file path="app/work-orders/sla-watchlist/page.tsx">
+<![CDATA[
+"use client";
+
+import React from "react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import useSWR from "swr";
+import SLATimer from "@/components/SLATimer";
+import Link from "next/link";
+import { logger } from "@/lib/logger";
+import { getWorkOrderStatusLabel } from "@/lib/work-orders/status";
+
+const fetcher = (url: string) =>
+  fetch(url)
+    .then((r) => r.json())
+    .catch((error) => {
+      logger.error("SLA watchlist fetch error", error);
+      throw error;
+    });
+
+interface SLAWorkOrder {
+  woNumber: string;
+  title: string;
+  status: string;
+  priority: string;
+  deadline: string;
+  urgency: "safe" | "warning" | "critical" | "breached";
+  hoursRemaining: number;
+}
+
+export default function SLAWatchlistPage() {
+  const { t } = useTranslation();
+
+  // Fetch SLA status from API (refreshes every 1 minute)
+  const { data: response } = useSWR("/api/work-orders/sla-check", fetcher, {
+    refreshInterval: 60000, // Refresh every 1 minute for live updates
+  });
+
+  const data = response?.data;
+  const workOrders: SLAWorkOrder[] = data?.workOrders || [];
+
+  // Filter by urgency for display
+  const breached = workOrders.filter((wo) => wo.urgency === "breached");
+  const critical = workOrders.filter((wo) => wo.urgency === "critical");
+  const warning = workOrders.filter((wo) => wo.urgency === "warning");
+  const safe = workOrders.filter((wo) => wo.urgency === "safe");
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            {t("workOrders.sla.watchlist", "SLA Watchlist")}
+          </h1>
+          <p className="text-muted-foreground">
+            {t(
+              "workOrders.sla.subtitle",
+              "Monitor work orders approaching or breaching SLA deadlines",
+            )}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            className="btn-secondary"
+            onClick={() => window.location.reload()}
+          >
+            🔄 {t("common.refresh", "Refresh")}
+          </button>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="card bg-destructive/10 border-destructive/20">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-destructive">
+                {t("workOrders.sla.breached", "Breached")}
+              </p>
+              <p className="text-3xl font-bold text-destructive">
+                {data?.breached || 0}
+              </p>
+            </div>
+            <div className="text-4xl">⚠️</div>
+          </div>
+        </div>
+
+        <div className="card bg-destructive/10 border-destructive/20">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-destructive">
+                {t("workOrders.sla.critical", "Critical (<2h)")}
+              </p>
+              <p className="text-3xl font-bold text-destructive">
+                {data?.critical || 0}
+              </p>
+            </div>
+            <div className="text-4xl">⏰</div>
+          </div>
+        </div>
+
+        <div className="card bg-warning/10 border-warning/20">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-warning">
+                {t("workOrders.sla.warning", "Warning (<4h)")}
+              </p>
+              <p className="text-3xl font-bold text-warning-foreground">
+                {data?.warning || 0}
+              </p>
+            </div>
+            <div className="text-4xl">⚡</div>
+          </div>
+        </div>
+
+        <div className="card bg-success/10 border-success/20">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-success">
+                {t("workOrders.sla.safe", "Safe (>4h)")}
+              </p>
+              <p className="text-3xl font-bold text-success-foreground">
+                {data?.safe || 0}
+              </p>
+            </div>
+            <div className="text-4xl">✓</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Breached WOs (Highest Priority) */}
+      {breached.length > 0 && (
+        <div className="card border-destructive/30 bg-destructive/10">
+          <h2 className="text-lg font-semibold text-destructive-foreground mb-4 flex items-center gap-2">
+            <span>⚠️</span>
+            {t("workOrders.sla.breachedList", "SLA BREACHED")} (
+            {breached.length})
+          </h2>
+          <div className="space-y-2">
+            {breached.map((wo) => (
+              <Link
+                key={wo.woNumber}
+                href={`/work-orders/${wo.woNumber}`}
+                className="flex items-center justify-between p-3 bg-card rounded-2xl border-2 border-destructive/30 hover:border-destructive/40 hover:shadow-md transition-all"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="font-mono font-bold text-destructive">
+                    {wo.woNumber}
+                  </div>
+                  <div className="text-foreground">{wo.title}</div>
+                  <span className="px-2 py-1 text-xs font-semibold rounded bg-muted border">
+                    {getWorkOrderStatusLabel(t, wo.status)}
+                  </span>
+                </div>
+                <SLATimer
+                  dueDate={wo.deadline}
+                  status={wo.status}
+                  priority={wo.priority}
+                  size="md"
+                />
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Critical WOs */}
+      {critical.length > 0 && (
+        <div className="card border-destructive/20">
+          <h2 className="text-lg font-semibold text-destructive mb-4 flex items-center gap-2">
+            <span>🔥</span>
+            {t(
+              "workOrders.sla.criticalList",
+              "CRITICAL - Due Within 2 Hours",
+            )}{" "}
+            ({critical.length})
+          </h2>
+          <div className="space-y-2">
+            {critical.map((wo) => (
+              <Link
+                key={wo.woNumber}
+                href={`/work-orders/${wo.woNumber}`}
+                className="flex items-center justify-between p-3 bg-card rounded-2xl border border-destructive/20 hover:border-destructive/30 hover:shadow transition-all"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="font-mono font-semibold text-destructive">
+                    {wo.woNumber}
+                  </div>
+                  <div className="text-foreground">{wo.title}</div>
+                  <span className="px-2 py-1 text-xs font-semibold rounded bg-muted border">
+                    {getWorkOrderStatusLabel(t, wo.status)}
+                  </span>
+                </div>
+                <SLATimer
+                  dueDate={wo.deadline}
+                  status={wo.status}
+                  priority={wo.priority}
+                />
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Warning WOs */}
+      {warning.length > 0 && (
+        <div className="card border-warning/20">
+          <h2 className="text-lg font-semibold text-warning-foreground mb-4 flex items-center gap-2">
+            <span>⚡</span>
+            {t("workOrders.sla.warningList", "WARNING - Due Within 4 Hours")} (
+            {warning.length})
+          </h2>
+          <div className="space-y-2">
+            {warning.map((wo) => (
+              <Link
+                key={wo.woNumber}
+                href={`/work-orders/${wo.woNumber}`}
+                className="flex items-center justify-between p-3 bg-card rounded-2xl border border-warning/20 hover:border-warning/40 hover:shadow transition-all"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="font-mono font-semibold text-warning">
+                    {wo.woNumber}
+                  </div>
+                  <div className="text-foreground">{wo.title}</div>
+                  <span className="px-2 py-1 text-xs font-semibold rounded bg-muted border">
+                    {getWorkOrderStatusLabel(t, wo.status)}
+                  </span>
+                </div>
+                <SLATimer
+                  dueDate={wo.deadline}
+                  status={wo.status}
+                  priority={wo.priority}
+                />
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Safe WOs (Collapsed by default) */}
+      {safe.length > 0 && (
+        <details className="card border-success/20">
+          <summary className="text-lg font-semibold text-success-foreground cursor-pointer flex items-center gap-2">
+            <span>✓</span>
+            {t("workOrders.sla.safeList", "SAFE - More than 4 Hours")} (
+            {safe.length})
+          </summary>
+          <div className="space-y-2 mt-4">
+            {safe.slice(0, 10).map((wo) => (
+              <Link
+                key={wo.woNumber}
+                href={`/work-orders/${wo.woNumber}`}
+                className="flex items-center justify-between p-3 bg-card rounded-2xl border border-success/20 hover:border-success/20 hover:shadow transition-all"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="font-mono font-semibold text-success">
+                    {wo.woNumber}
+                  </div>
+                  <div className="text-foreground">{wo.title}</div>
+                  <span className="px-2 py-1 text-xs font-semibold rounded bg-muted border">
+                    {getWorkOrderStatusLabel(t, wo.status)}
+                  </span>
+                </div>
+                <SLATimer
+                  dueDate={wo.deadline}
+                  status={wo.status}
+                  priority={wo.priority}
+                />
+              </Link>
+            ))}
+            {safe.length > 10 && (
+              <div className="text-center text-sm text-muted-foreground pt-2">
+                {t("workOrders.sla.safeMore", "... and {{count}} more").replace(
+                  "{{count}}",
+                  String(safe.length - 10),
+                )}
+              </div>
+            )}
+          </div>
+        </details>
+      )}
+
+      {/* Empty State */}
+      {workOrders.length === 0 && (
+        <div className="card text-center py-12">
+          <div className="text-6xl mb-4">✓</div>
+          <h3 className="text-xl font-semibold text-foreground mb-2">
+            {t("workOrders.sla.noActive", "No Active Work Orders")}
+          </h3>
+          <p className="text-muted-foreground">
+            {t(
+              "workOrders.sla.allClear",
+              "All work orders are either completed or have no SLA deadlines set.",
+            )}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/work-orders/template.tsx">
+<![CDATA[
+import { ReactNode } from "react";
+import { OrgContextGate } from "@/components/fm/OrgContextGate";
+
+interface WorkOrdersTemplateProps {
+  children: ReactNode;
+}
+
+/**
+ * Template that blocks work-orders routes until an organization context is active.
+ * Prevents legacy work-orders entry points from bypassing the FM guard.
+ */
+export default function WorkOrdersTemplate({
+  children,
+}: WorkOrdersTemplateProps) {
+  return <OrgContextGate>{children}</OrgContextGate>;
+}
+
+]]>
+</file>
+
+<file path="auth.config.ts">
+<![CDATA[
+// Import from symbols path to align with NextAuth v5 typings (prevents mismatched symbol versions)
+import type { NextAuthConfig } from 'next-auth';
+import { skipCSRFCheck as skipCSRFCheckSymbol } from '@auth/core';
+import Google from 'next-auth/providers/google';
+import Apple from 'next-auth/providers/apple';
+import Credentials from 'next-auth/providers/credentials';
+import { z } from 'zod';
+import { getEnv } from '@/lib/env';
+import { logger } from '@/lib/logger';
+import { DEMO_EMAILS, DEMO_EMPLOYEE_IDS } from '@/lib/config/demo-users';
+// CRITICAL FIX: Removed static import of redisOtpSessionStore to avoid bundling ioredis into Edge Runtime
+// See: https://nextjs.org/docs/messages/edge-dynamic-code-evaluation
+// The OTP session store is now dynamically imported inside authorize() where it's actually used
+import type { UserRoleType } from '@/types/user';
+import type { SubscriptionPlan } from '@/config/navigation';
+// CRITICAL FIX: Use auth-specific types to prevent mongoose from bundling into client
+// See: https://github.com/vercel/next.js/issues/57792
+import type { AuthUserDoc } from '@/types/auth.types';
+// NOTE: Mongoose imports MUST be dynamic inside authorize() to avoid Edge Runtime issues
+// import { User } from '@/server/models/User'; // ❌ Breaks Edge Runtime
+// import { verifyPassword } from '@/lib/auth'; // ❌ Imports User model
+
+// Extended user type for auth callbacks
+type ExtendedUser = {
+  id: string;
+  email?: string | null;
+  role?: string;
+  subRole?: string | null; // STRICT v4.1: Sub-role for Team Member specialization
+  orgId?: string | null;
+  sessionId?: string | null;
+  rememberMe?: boolean;
+  isSuperAdmin?: boolean;
+  permissions?: string[];
+  roles?: string[];
+};
+type SessionPlan = SubscriptionPlan | 'STARTER' | 'PROFESSIONAL';
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCK_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+
+/**
+ * Redact identifier for logging (GDPR data minimization)
+ * Shows first 3 chars + *** to allow debugging without exposing full PII
+ */
+function redactIdentifier(identifier: string): string {
+  if (!identifier || identifier.length <= 3) return '***';
+  return identifier.slice(0, 3) + '***';
+}
+
+// Validate required environment variables at startup
+// Use getEnv() with alias support for Vercel naming conventions:
+// - GOOGLE_CLIENT_ID aliases: OAUTH_CLIENT_GOOGLE_ID
+// - GOOGLE_CLIENT_SECRET aliases: OAUTH_CLIENT_GOOGLE_SECRET, OAUTH_CLIENT_GOOGLE
+const GOOGLE_CLIENT_ID = getEnv('GOOGLE_CLIENT_ID');
+const GOOGLE_CLIENT_SECRET = getEnv('GOOGLE_CLIENT_SECRET');
+const APPLE_CLIENT_ID = process.env.APPLE_CLIENT_ID;
+const APPLE_CLIENT_SECRET = process.env.APPLE_CLIENT_SECRET;
+// Support both NEXTAUTH_SECRET (preferred) and AUTH_SECRET (legacy/Auth.js name)
+
+// Derive NEXTAUTH_URL when missing (helps preview builds)
+const vercelHost =
+  process.env.VERCEL_BRANCH_URL ||
+  process.env.VERCEL_URL ||
+  process.env.VERCEL_PROJECT_PRODUCTION_URL;
+
+const derivedNextAuthUrl =
+  (vercelHost ? `https://${vercelHost}` : undefined) ||
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  process.env.BASE_URL;
+
+// Resolve the canonical Auth.js URL (supports NEXTAUTH_URL or AUTH_URL)
+const resolvedNextAuthUrl =
+  process.env.NEXTAUTH_URL ||
+  process.env.AUTH_URL ||
+  derivedNextAuthUrl;
+
+// Auth.js v5 requires a trusted host (NEXTAUTH_URL/AUTH_URL) when trustHost is false.
+// Set a safe default from the derived URL so /api/auth/* endpoints don't 500 when the env var is omitted.
+const missingAuthUrlEnv = !process.env.NEXTAUTH_URL && !process.env.AUTH_URL;
+if (missingAuthUrlEnv && resolvedNextAuthUrl) {
+  if (process.env.NODE_ENV === 'production') {
+    logger.warn(`⚠️  NEXTAUTH_URL/AUTH_URL not provided. Using derived value: ${resolvedNextAuthUrl}`);
+  }
+  process.env.NEXTAUTH_URL = resolvedNextAuthUrl;
+  process.env.AUTH_URL = resolvedNextAuthUrl;
+}
+
+// Validate non-secret variables always (fail-fast at startup), but allow CI builds
+const missingNonSecrets: string[] = [];
+const isCI =
+  process.env.CI === 'true' ||
+  process.env.CI === '1' ||
+  process.env.SKIP_ENV_VALIDATION === 'true';
+const vercelEnv = process.env.VERCEL_ENV;
+const isBuildPhase =
+  process.env.NEXT_PHASE === 'phase-production-build' ||
+  process.env.npm_lifecycle_event === 'build';
+const isVercelPreview = vercelEnv === 'preview' || (process.env.VERCEL === '1' && process.env.VERCEL_ENV === 'preview');
+const allowMissingNextAuthUrl =
+  isCI ||
+  isBuildPhase ||
+  isVercelPreview ||
+  process.env.ALLOW_MISSING_NEXTAUTH_URL === 'true';
+const suppressEnvWarnings =
+  process.env.SUPPRESS_ENV_WARNINGS === 'true' ||
+  process.env.SKIP_ENV_VALIDATION === 'true' ||
+  process.env.NODE_ENV !== 'production' ||
+  process.env.NEXT_PHASE === 'phase-production-build';
+const shouldEnforceNextAuthUrl =
+  process.env.NODE_ENV === 'production' &&
+  vercelEnv !== 'preview' &&
+  !allowMissingNextAuthUrl;
+
+// Only validate NEXTAUTH_URL in production runtime (not during builds)
+if (shouldEnforceNextAuthUrl) {
+  if (!resolvedNextAuthUrl) {
+    missingNonSecrets.push('NEXTAUTH_URL or AUTH_URL');
+  }
+} else if (!resolvedNextAuthUrl && !isCI && !isBuildPhase) {
+  logger.warn('⚠️  NEXTAUTH_URL/AUTH_URL not set; continuing with derived/default value for non-production build.');
+}
+
+if (missingNonSecrets.length > 0) {
+  throw new Error(
+    `Missing required runtime configuration: ${missingNonSecrets.join(', ')}. These are required for production runtime.`
+  );
+}
+
+// Validate secrets only when not in CI and not explicitly skipped
+const skipSecretValidation =
+  isCI ||
+  process.env.SKIP_ENV_VALIDATION === 'true' ||
+  process.env.NEXT_PHASE === 'phase-production-build';
+
+if (!skipSecretValidation) {
+  const missingSecrets: string[] = [];
+  
+  // NEXTAUTH_SECRET (or AUTH_SECRET) is always required (for session signing)
+  if (!(process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET)) missingSecrets.push('NEXTAUTH_SECRET or AUTH_SECRET');
+  
+  // Google OAuth credentials are optional (can use credentials provider only)
+  if (!GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_SECRET) {
+    // Both missing - credentials-only auth mode
+    if (process.env.NODE_ENV === 'production') {
+      logger.warn('⚠️  [PRODUCTION] Google OAuth not configured. Only credentials authentication available.');
+      logger.warn('   Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to enable OAuth login.');
+    } else {
+      logger.info('ℹ️  Google OAuth not configured (optional). Using credentials-only authentication.');
+      logger.info('   To enable Google OAuth: Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env.local');
+    }
+  } else if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    // One is set, other is missing - configuration error
+    if (!GOOGLE_CLIENT_ID) missingSecrets.push('GOOGLE_CLIENT_ID');
+    if (!GOOGLE_CLIENT_SECRET) missingSecrets.push('GOOGLE_CLIENT_SECRET');
+    logger.error('❌ Google OAuth partial configuration detected!');
+    logger.error('   Both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set together.');
+  } else {
+    // Both are set - OAuth enabled
+    logger.info('✅ Google OAuth configured successfully.');
+  }
+
+  // Apple OAuth credentials are optional; warn if partial
+  if ((APPLE_CLIENT_ID && !APPLE_CLIENT_SECRET) || (!APPLE_CLIENT_ID && APPLE_CLIENT_SECRET)) {
+    missingSecrets.push(!APPLE_CLIENT_ID ? 'APPLE_CLIENT_ID' : 'APPLE_CLIENT_SECRET');
+    logger.warn('⚠️  Apple OAuth partial configuration detected. Buttons will be disabled.');
+  }
+
+  if (missingSecrets.length > 0) {
+    const errorMsg = `Missing required authentication secrets: ${missingSecrets.join(', ')}.`;
+    logger.error(`❌ ${errorMsg}`);
+    logger.error('   Solutions:');
+    logger.error('   1. Add missing secrets to .env.local (development) or .env.test (tests)');
+    logger.error('   2. Set SKIP_ENV_VALIDATION=true to bypass (not recommended for production)');
+    logger.error('   3. For CI builds: Set CI=true environment variable');
+    throw new Error(
+      `${errorMsg} See console logs above for resolution steps.`
+    );
+  }
+} else if (isCI) {
+  logger.info('ℹ️  CI environment detected: Secret validation skipped for build.');
+  logger.info('   Secrets will be validated at runtime from GitHub Secrets.');
+} else {
+  const msg1 = '⚠️  SKIP_ENV_VALIDATION=true: Secret validation bypassed.';
+  const msg2 = '   Ensure secrets are properly configured before production deployment.';
+  if (suppressEnvWarnings) {
+    logger.info(msg1);
+    logger.info(msg2);
+  } else {
+    logger.warn(msg1);
+    logger.warn(msg2);
+  }
+}
+
+// Helper functions for OAuth provisioning (reserved for future use)
+// These will be used when auto-provisioning OAuth users from Google/Apple profiles
+
+/* eslint-disable @typescript-eslint/no-unused-vars -- Reserved for OAuth auto-provisioning */
+function _sanitizeName(name?: string | null): string {
+  if (!name) return 'Unknown User';
+  return name.trim().substring(0, 100);
+}
+
+function _sanitizeImage(image?: string | null): string | undefined {
+  if (!image) return undefined;
+  try {
+    const url = new URL(image);
+    // Only allow HTTPS (secure) or data URIs (inline images)
+    if (url.protocol === 'https:') {
+      return image;
+    } else if (url.protocol === 'data:' && url.pathname.startsWith('image/')) {
+      return image;
+    }
+  } catch {
+    // Invalid URL
+  }
+  return undefined;
+}
+/* eslint-enable @typescript-eslint/no-unused-vars */
+
+// Validation schema for credentials login (unified identifier field)
+// NOTE: signIn() from next-auth/react sends checkbox values as 'on' when checked, undefined when unchecked
+const REQUIRE_SMS_OTP = process.env.NEXTAUTH_REQUIRE_SMS_OTP !== 'false';
+
+const EMPLOYEE_ID_REGEX = /^EMP[-A-Z0-9]+$/;
+
+// Secure by default: trustHost requires explicit environment variable opt-in
+// For development, set AUTH_TRUST_HOST=true or NEXTAUTH_TRUST_HOST=true in .env.local
+// CRITICAL FIX: Vercel is a proxied environment and MUST trust host to avoid 500 errors on /api/auth/*
+// When VERCEL === '1', we are running on Vercel's infrastructure with proper TLS termination
+const isVercelDeployment = process.env.VERCEL === '1';
+const trustHost =
+  isVercelDeployment || // Auto-trust on Vercel (proxied TLS)
+  process.env.AUTH_TRUST_HOST === 'true' ||
+  process.env.NEXTAUTH_TRUST_HOST === 'true' ||
+  process.env.NODE_ENV === 'test' ||
+  process.env.PLAYWRIGHT_TESTS === 'true';
+
+// Allow explicit opt-in to skip CSRF checks in non-production test runs
+const shouldSkipCSRFCheck =
+  process.env.NEXTAUTH_SKIP_CSRF_CHECK === 'true' ||
+  process.env.NODE_ENV === 'test' ||
+  process.env.PLAYWRIGHT_TESTS === 'true';
+
+const LoginSchema = z
+  .object({
+    identifier: z.string().trim().min(1, 'Email, phone, or employee number is required'),
+    password: z.string().min(0, 'Password is required').optional(),
+    // ✅ FIX: Make OTP fully optional (validation happens after user lookup)
+    otpToken: z.string().trim().optional(),
+    // ✅ FIXED: Handle HTML checkbox behavior ('on' when checked, undefined when unchecked)
+    rememberMe: z.union([z.boolean(), z.string(), z.undefined()]).transform(val => {
+      if (typeof val === 'boolean') return val;
+      if (val === 'on' || val === 'true' || val === '1') return true;
+      return false;
+    }).optional().default(false),
+    companyCode: z.string().trim().optional(),
+  })
+  // ✅ FIX: Remove OTP validation from schema - will be checked after user lookup
+  // This allows super admin bypass to work properly
+  .transform((data, ctx) => {
+    const idRaw = data.identifier.trim();
+    const emailOk = z.string().email().safeParse(idRaw).success;
+    const phoneOk = /^\+?[0-9\-()\s]{6,20}$/.test(idRaw);
+    const empUpper = idRaw.toUpperCase();
+    const empOk = EMPLOYEE_ID_REGEX.test(empUpper);
+
+    let loginIdentifier = '';
+    let loginType: 'personal' | 'corporate';
+
+    if (emailOk) {
+      loginIdentifier = idRaw.toLowerCase();
+      loginType = 'personal';
+    } else if (phoneOk) {
+      loginIdentifier = idRaw;
+      loginType = 'personal';
+    } else if (empOk) {
+      loginIdentifier = empUpper;
+      loginType = 'corporate';
+    } else {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['identifier'],
+        message: 'Enter a valid email, phone number, or employee number (e.g., EMP-001)',
+      });
+      return z.NEVER;
+    }
+
+    const normalizedCompanyCode = data.companyCode?.trim()
+      ? data.companyCode.trim().toUpperCase()
+      : null;
+
+    if (loginType === 'corporate' && !normalizedCompanyCode) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['companyCode'],
+        message: 'Company number is required for corporate login',
+      });
+      return z.NEVER;
+    }
+
+    const passwordProvided = typeof data.password === 'string' && data.password.length > 0;
+    if (!passwordProvided && !data.otpToken) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['password'],
+        message: 'Password or OTP token is required',
+      });
+      return z.NEVER;
+    }
+
+    return {
+      loginIdentifier,
+      loginType,
+      password: passwordProvided ? data.password : null,
+      otpToken: data.otpToken || null,
+      rememberMe: data.rememberMe,
+      companyCode: normalizedCompanyCode,
+    };
+  });
+
+export const authConfig = {
+  providers: [
+    // Only add Google provider if both credentials are present
+    ...(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET
+      ? [
+          Google({
+            clientId: GOOGLE_CLIENT_ID,
+            clientSecret: GOOGLE_CLIENT_SECRET,
+            authorization: {
+              params: {
+                prompt: 'consent',
+                access_type: 'offline',
+                response_type: 'code',
+              },
+            },
+          }),
+        ]
+      : []),
+    ...(APPLE_CLIENT_ID && APPLE_CLIENT_SECRET
+      ? [
+          Apple({
+            clientId: APPLE_CLIENT_ID,
+            clientSecret: APPLE_CLIENT_SECRET,
+          }),
+        ]
+      : []),
+    Credentials({
+      name: 'Credentials',
+      credentials: {
+        identifier: { label: 'Email or Employee Number', type: 'text' },
+        password: { label: 'Password', type: 'password' },
+        rememberMe: { label: 'Remember Me', type: 'checkbox' },
+        companyCode: { label: 'Company Code', type: 'text' },
+      },
+       
+      async authorize(credentials, _request) {
+        try {
+          // 1. Validate credentials schema
+          const parsed = LoginSchema.safeParse(credentials);
+          if (!parsed.success) {
+            // ✅ FIXED: Pass Error as 2nd arg, metadata as 3rd for proper Sentry/Datadog integration
+            const validationError = new Error('Credentials validation failed');
+            logger.error('[NextAuth] Credentials validation failed', validationError, { 
+              issues: parsed.error.flatten() 
+            });
+            return null;
+          }
+
+          const { loginIdentifier, loginType, password, rememberMe, otpToken, companyCode } = parsed.data;
+          const otpIdentifier =
+            loginType === 'corporate' && companyCode
+              ? `${loginIdentifier}::${companyCode}`
+              : loginIdentifier;
+
+          // 2. Dynamic imports (Edge Runtime compatible)
+          const { connectToDatabase } = await import('@/lib/mongodb-unified');
+          const { User } = await import('@/server/models/User');
+          const bcrypt = await import('bcryptjs');
+
+          // 3. Connect to database
+          await connectToDatabase();
+          const allowOfflineAuth = process.env.ALLOW_OFFLINE_MONGODB === 'true';
+
+          // 4. Find user based on login type
+          // CRITICAL FIX: Use AuthUserDoc instead of UserDoc to avoid mongoose bundling
+          type LeanUser = AuthUserDoc & {
+            _id: string;
+            subscriptionPlan?: string;
+            orgId?: string | { toString(): string };
+            roles?: Array<string | { toString(): string }>;
+            role?: string;
+          };
+          let user: LeanUser | null;
+          const offlinePassword =
+            process.env.OFFLINE_AUTH_PASSWORD ||
+            process.env.TEST_USER_PASSWORD ||
+            process.env.SEED_PASSWORD;
+          if (allowOfflineAuth) {
+            if (!offlinePassword) {
+              logger.error('[NextAuth] OFFLINE_AUTH_PASSWORD/TEST_USER_PASSWORD/SEED_PASSWORD required for offline auth');
+              return null;
+            }
+            user = {
+              _id: 'offline-user',
+              email: loginIdentifier,
+              password: await bcrypt.hash(password || offlinePassword, 10),
+              role: 'SUPER_ADMIN',
+              status: 'ACTIVE',
+              isSuperAdmin: true,
+              orgId: 'offline-org',
+              permissions: ['*'],
+            } as unknown as LeanUser;
+          } else if (loginType === 'personal') {
+            // SECURITY FIX: Handle cross-tenant email collision
+            // Emails are unique per-org (indexed orgId + email), so we must check for duplicates
+            const matchingUsers = await User.find({ email: loginIdentifier })
+              .select('_id email orgId status isSuperAdmin')
+              .limit(2) // Only need to know if there's more than 1
+              .lean<Pick<LeanUser, '_id' | 'email' | 'orgId' | 'status' | 'isSuperAdmin'>[]>();
+            
+            if (matchingUsers.length === 0) {
+              user = null;
+            } else if (matchingUsers.length === 1) {
+              // Single match - safe to proceed
+              user = await User.findOne({ email: loginIdentifier }).lean<LeanUser>();
+            } else {
+              // CRITICAL: Multiple users with same email across orgs - FAIL CLOSED
+              // This prevents cross-tenant authentication confusion
+              // Security: Don't log orgIds to prevent tenant structure enumeration (PR #422 feedback)
+              logger.error('[NextAuth] Cross-tenant email collision detected - login rejected for security', {
+                loginIdentifier: redactIdentifier(loginIdentifier),
+                matchCount: matchingUsers.length,
+              });
+              // User must use corporate login (with company code) to disambiguate
+              throw new Error('AMBIGUOUS_ACCOUNT');
+            }
+          } else {
+            if (!companyCode) {
+              logger.warn('[NextAuth] Corporate login missing company code', { loginIdentifier: redactIdentifier(loginIdentifier) });
+              return null;
+            }
+            // Corporate login uses employee number (stored in username field) + company code
+            // This is already tenant-scoped via companyCode
+            user = await User.findOne({ username: loginIdentifier, code: companyCode }).lean<LeanUser>();
+          }
+
+          if (!user) {
+            // ✅ FIXED: Pass Error as 2nd arg, metadata as 3rd
+            const notFoundError = new Error('User not found');
+            logger.error('[NextAuth] User not found', notFoundError, { loginIdentifier: redactIdentifier(loginIdentifier), loginType });
+            return null;
+          }
+
+          // 4.5 Account lockout check
+          const locked = (user as { security?: { locked?: boolean; lockReason?: string; lockTime?: Date; loginAttempts?: number } }).security;
+          if (locked?.locked) {
+            const lockTime = locked.lockTime ? new Date(locked.lockTime).getTime() : 0;
+            const stillLocked = lockTime && Date.now() - lockTime < LOCK_WINDOW_MS;
+            if (stillLocked) {
+              logger.warn('[NextAuth] Locked account login attempt', { loginIdentifier: redactIdentifier(loginIdentifier) });
+              throw new Error('ACCOUNT_LOCKED');
+            }
+          }
+
+          // 5. Verify password unless otpToken provided (passwordless OTP flow)
+          if (password) {
+            const isValid = await bcrypt.compare(password, user.password);
+            if (!isValid) {
+              if (!allowOfflineAuth) {
+                const attempts = (user.security?.loginAttempts || 0) + 1;
+                if (attempts >= MAX_LOGIN_ATTEMPTS) {
+                  await User.updateOne(
+                    { _id: user._id },
+                    {
+                      $set: {
+                        'security.locked': true,
+                        'security.lockReason': 'Too many failed logins',
+                        'security.lockTime': new Date(),
+                      },
+                    },
+                  );
+                } else {
+                  await User.updateOne(
+                    { _id: user._id },
+                    {
+                      $inc: { 'security.loginAttempts': 1 },
+                    },
+                  );
+                }
+              }
+              const passwordError = new Error('Invalid password');
+              logger.error('[NextAuth] Invalid password', passwordError, { loginIdentifier: redactIdentifier(loginIdentifier), loginType });
+              throw new Error('INVALID_CREDENTIALS');
+            }
+            // Reset attempts on success
+            if (!allowOfflineAuth) {
+              await User.updateOne(
+                { _id: user._id },
+                {
+                  $set: {
+                    'security.loginAttempts': 0,
+                    'security.locked': false,
+                    'security.lockReason': null,
+                    'security.lockTime': null,
+                  },
+                },
+              );
+            }
+          }
+
+          // Reset attempts on success
+
+          // 6. Check if user is active
+          const isUserActive = user.status === 'ACTIVE';
+          if (!isUserActive) {
+            // ✅ FIXED: Pass Error as 2nd arg, metadata as 3rd
+            const inactiveError = new Error('Inactive user attempted login');
+            logger.error('[NextAuth] Inactive user attempted login', inactiveError, { 
+              loginIdentifier: redactIdentifier(loginIdentifier), 
+              loginType,
+              status: user.status,
+            });
+            return null;
+          }
+
+          // 6.5 Enforce email verification if required
+          const emailVerifiedAt = (user as { emailVerifiedAt?: Date }).emailVerifiedAt;
+          const requireEmailVerification =
+            process.env.NEXTAUTH_REQUIRE_EMAIL_VERIFICATION !== 'false';
+          if (requireEmailVerification && !emailVerifiedAt) {
+            logger.warn('[NextAuth] Email not verified', { loginIdentifier: redactIdentifier(loginIdentifier) });
+            throw new Error('EMAIL_NOT_VERIFIED');
+          }
+
+          // 7. Update last login timestamp
+          // Use updateOne to bypass Mongoose validation (some demo users may not have all required fields)
+          await User.updateOne(
+            { _id: user._id },
+            { $set: { 'security.lastLogin': new Date() } }
+          );
+
+          // 7.5. ✅ FIX: Validate orgId for non-superadmin users (tenant isolation)
+          const isSuperAdmin = Boolean((user as { isSuperAdmin?: boolean }).isSuperAdmin);
+          if (!user.orgId && !isSuperAdmin) {
+            logger.error('[NextAuth] Credentials login rejected: Missing orgId for non-superadmin user', { 
+              loginIdentifier: redactIdentifier(loginIdentifier),
+              userId: user._id.toString()
+            });
+            return null;
+          }
+
+          // 8. Enforce OTP session usage unless explicitly disabled, or OTP token provided for passwordless flow
+          const isDevelopment = process.env.NODE_ENV !== 'production';
+          const explicitBypass = process.env.NEXTAUTH_SUPERADMIN_BYPASS_OTP === 'true';
+          // PRODUCTION OTP BYPASS: Allow bypassing OTP for authorized users in production
+          // SECURITY: This should only be enabled with additional security controls (IP allowlisting, etc.)
+          const productionBypassEnabled = process.env.NEXTAUTH_BYPASS_OTP_ALL === 'true';
+          
+          // SECURITY FIX (Gemini review): Check identifier against test user configs instead of 
+          // relying on __isTestUser/__isDemoUser properties which aren't on DB user objects.
+          // These known test/demo identifiers use the centralized config from lib/config/demo-users.ts
+          const demoEmployeeIds = DEMO_EMPLOYEE_IDS;
+          const testUserConfigs = [
+            process.env.TEST_SUPERADMIN_IDENTIFIER,
+            process.env.TEST_ADMIN_IDENTIFIER,
+            process.env.TEST_MANAGER_IDENTIFIER,
+            process.env.TEST_TECHNICIAN_IDENTIFIER,
+            process.env.TEST_TENANT_IDENTIFIER,
+            process.env.TEST_VENDOR_IDENTIFIER,
+          ].filter(Boolean).map(id => id?.toLowerCase());
+          
+          const normalizedLoginId = loginIdentifier.toLowerCase();
+          const isTestOrDemoUser = DEMO_EMAILS.has(normalizedLoginId) ||
+            demoEmployeeIds.has(loginIdentifier.toUpperCase()) ||
+            testUserConfigs.includes(normalizedLoginId);
+          const testUserBypass = process.env.ALLOW_TEST_USER_OTP_BYPASS === 'true' && isTestOrDemoUser;
+          
+          // OTP bypass works in:
+          // 1. Superadmin with explicit bypass (dev OR production with BYPASS_OTP_ALL)
+          // 2. Test/demo user bypass when enabled
+          const superAdminBypass = isSuperAdmin && explicitBypass && (isDevelopment || productionBypassEnabled);
+          const bypassOTP = superAdminBypass || testUserBypass;
+          const otpProvided = Boolean(otpToken);
+
+          if (REQUIRE_SMS_OTP && !bypassOTP) {
+            if (!otpProvided) {
+              logger.warn('[NextAuth] Missing OTP token for credentials login', { loginIdentifier: redactIdentifier(loginIdentifier) });
+              return null;
+            }
+
+            // STRICT v4.1: Use async Redis store for multi-instance OTP session validation
+            // CRITICAL FIX: Dynamic import to avoid bundling ioredis into Edge Runtime
+            const { redisOtpSessionStore } = await import('@/lib/otp-store');
+            const session = await redisOtpSessionStore.get(otpToken!);
+            if (!session) {
+              logger.warn('[NextAuth] OTP session not found or already used', { loginIdentifier: redactIdentifier(loginIdentifier) });
+              return null;
+            }
+
+            const now = Date.now();
+            if (now > session.expiresAt) {
+              await redisOtpSessionStore.delete(otpToken!);
+              logger.warn('[NextAuth] OTP session expired', { loginIdentifier: redactIdentifier(loginIdentifier) });
+              return null;
+            }
+
+            if (
+              session.userId !== user._id.toString() ||
+              session.identifier !== otpIdentifier
+            ) {
+              await redisOtpSessionStore.delete(otpToken!);
+              logger.error('[NextAuth] OTP session mismatch', new Error('OTP session mismatch'), {
+                loginIdentifier: redactIdentifier(loginIdentifier),
+                sessionIdentifier: redactIdentifier(session.identifier),
+              });
+              return null;
+            }
+
+            await redisOtpSessionStore.delete(otpToken!);
+          } else if (bypassOTP) {
+            logger.info('[NextAuth] OTP bypassed for super admin (dev mode only)', { loginIdentifier: redactIdentifier(loginIdentifier) });
+          }
+
+          // 9. Return user object for NextAuth session
+          const derivedRole =
+            user.professional?.role ||
+            user.role ||
+            (Array.isArray(user.roles)
+              ? (typeof user.roles[0] === 'string'
+                  ? user.roles[0]
+                  : user.roles[0]?.toString())
+              : undefined);
+          const sessionRole: UserRoleType | 'GUEST' =
+            (derivedRole as UserRoleType | undefined) ?? 'GUEST';
+
+          const sessionPlan: SessionPlan =
+            (user.subscriptionPlan as SubscriptionPlan | undefined) ?? 'STARTER';
+
+          // 🔒 STRICT v4.1: Extract subRole for Team Member specialization
+          const sessionSubRole = (user as { professional?: { subRole?: string } }).professional?.subRole || null;
+
+          const authUser = {
+            id: user._id.toString(),
+            email: user.email,
+            name: `${user.personal?.firstName || ''} ${user.personal?.lastName || ''}`.trim() || user.email,
+            role: sessionRole,
+            subRole: sessionSubRole, // STRICT v4.1: Propagate subRole for HR_OFFICER, FINANCE_OFFICER, etc.
+            subscriptionPlan: sessionPlan,
+            orgId: typeof user.orgId === 'string' ? user.orgId : (user.orgId?.toString() || null),
+            sessionId: null, // NextAuth will generate session ID
+            rememberMe, // Pass rememberMe to session callbacks
+            isSuperAdmin: Boolean((user as { isSuperAdmin?: boolean }).isSuperAdmin),
+          };
+          return authUser;
+        } catch (error) {
+          // ✅ FIXED: Pass actual Error as 2nd arg for proper stack traces in Sentry/Datadog
+          logger.error('[NextAuth] Authorize error', error as Error, { 
+            credentials: credentials ? 'present' : 'missing' 
+          });
+          return null;
+        }
+      },
+    }),
+  ],
+  pages: {
+    signIn: '/login',
+    error: '/login',
+  },
+  callbacks: {
+    async signIn({ user: _user, account: _account }) {
+      // Handle Credentials provider (email/employee login)
+      if (_account?.provider === 'credentials') {
+        // User is already validated in authorize() function
+        return true;
+      }
+
+      // Handle OAuth providers (Google, etc.)
+      // Validate email exists
+      if (!_user?.email) {
+        if (process.env.LOG_LEVEL === 'debug') {
+          logger.debug('OAuth sign-in rejected: No email provided');
+        }
+        return false;
+      }
+      
+      // ✅ FIX: OAuth user lookup and validation (SECURITY)
+      // Import User model dynamically to avoid edge runtime issues
+      const { User } = await import('@/server/models/User');
+      
+      try {
+        // SECURITY FIX: Handle cross-tenant email collision for OAuth
+        // Check if multiple users share this email across orgs
+        const matchingUsers = await User.find({ email: _user.email })
+          .select('_id email orgId status isSuperAdmin professional.role role permissions roles')
+          .limit(2) // Only need to know if there's more than 1
+          .lean()
+          .exec();
+        
+        // Block sign-in if user doesn't exist
+        if (matchingUsers.length === 0) {
+          logger.warn('[NextAuth] OAuth sign-in rejected: User not found in database', { 
+            email: _user.email.substring(0, 3) + '***' // Privacy: partial email
+          });
+          return false;
+        }
+        
+        // CRITICAL: Multiple users with same email across orgs - FAIL CLOSED
+        if (matchingUsers.length > 1) {
+          logger.error('[NextAuth] OAuth cross-tenant email collision - sign-in rejected for security', {
+            email: _user.email.substring(0, 3) + '***',
+            matchCount: matchingUsers.length,
+            // Don't log orgIds for privacy, just log that collision occurred
+          });
+          // OAuth cannot disambiguate - user must use credentials with company code
+          return false;
+        }
+        
+        // Single match - safe to proceed
+        // Use unknown first to avoid type overlap issues with Mongoose lean() result
+        const dbUser = matchingUsers[0] as unknown as {
+            orgId?: { toString(): string } | string | null;
+            professional?: { role?: string | null };
+            role?: string | null;
+            isSuperAdmin?: boolean;
+            permissions?: string[];
+            roles?: string[];
+            status?: string;
+          };
+        
+        // Block sign-in if user is not ACTIVE
+        if (dbUser.status !== 'ACTIVE') {
+          logger.warn('[NextAuth] OAuth sign-in rejected: User status not ACTIVE', { 
+            email: _user.email.substring(0, 3) + '***',
+            status: dbUser.status
+          });
+          return false;
+        }
+        
+        // Block sign-in if non-superadmin user lacks orgId (tenant isolation)
+        if (!dbUser.orgId && !dbUser.isSuperAdmin) {
+          logger.error('[NextAuth] OAuth sign-in rejected: Missing orgId for non-superadmin user', { 
+            email: _user.email.substring(0, 3) + '***'
+          });
+          return false;
+        }
+        
+        // ✅ Attach role and orgId for jwt() callback to propagate to session
+        const userWithMeta = _user as typeof _user & { 
+          role?: string; 
+          orgId?: string | null; 
+          isSuperAdmin?: boolean; 
+          permissions?: string[];
+          roles?: string[];
+        };
+        const dbUserMeta = dbUser ?? {};
+        userWithMeta.role = (dbUserMeta.professional?.role ||
+          dbUserMeta.role ||
+          'GUEST') as UserRoleType;
+        userWithMeta.orgId = dbUserMeta.orgId
+          ? dbUserMeta.orgId.toString()
+          : null;
+        userWithMeta.isSuperAdmin = Boolean(dbUserMeta.isSuperAdmin);
+        userWithMeta.permissions = dbUserMeta.permissions || [];
+        userWithMeta.roles = dbUserMeta.roles || [];
+        
+        logger.info('[NextAuth] OAuth sign-in allowed', { 
+          email: _user.email.substring(0, 3) + '***',
+          role: userWithMeta.role,
+          hasOrgId: !!userWithMeta.orgId
+        });
+        
+        return true;
+      } catch (error) {
+        logger.error('[NextAuth] OAuth sign-in error during user lookup', { error });
+        return false; // Fail closed on errors
+      }
+    },
+    async redirect({ url, baseUrl }) {
+      // Handle callbackUrl properly
+      if (url.startsWith('/')) return `${baseUrl}${url}`;
+      else if (new URL(url).origin === baseUrl) return url;
+      return baseUrl; // Fallback to homepage (not /fm/dashboard to avoid redirect loops)
+    },
+    async session({ session, token }) {
+      // Add custom user data to session
+      if (token?.sub) {
+        session.user.id = token.sub;
+      }
+      if (token?.role) {
+        (session.user as ExtendedUser).role = token.role as UserRoleType;
+      }
+      // 🔒 STRICT v4.1: Propagate subRole to session
+      if (token?.subRole !== undefined) {
+        (session.user as ExtendedUser).subRole = token.subRole as string | null;
+      }
+      if (token?.orgId) {
+        (session.user as ExtendedUser).orgId = token.orgId as string | null;
+      }
+      // Add RBAC fields to session
+      if (token?.isSuperAdmin !== undefined) {
+        (session.user as ExtendedUser).isSuperAdmin = token.isSuperAdmin as boolean;
+      }
+      if (token?.permissions) {
+        (session.user as ExtendedUser).permissions = token.permissions as string[];
+      }
+      if (token?.roles) {
+        (session.user as ExtendedUser).roles = token.roles as string[];
+      }
+      return session;
+    },
+    async jwt({ token, user, account }) {
+      // Add user info to token on first sign-in
+      if (user) {
+        token.id = user.id;
+        const normalizedRole = (user as ExtendedUser).role?.toUpperCase() as UserRoleType | undefined;
+        token.role = normalizedRole ?? (token.role as UserRoleType | 'GUEST') ?? 'GUEST';
+        // 🔒 STRICT v4.1: Store subRole in token
+        token.subRole = (user as ExtendedUser).subRole || null;
+        token.orgId = (user as ExtendedUser).orgId || null;
+
+        // Handle rememberMe for credentials provider
+        if (account?.provider === 'credentials' && (user as ExtendedUser).rememberMe) {
+          // Extend token lifetime for "remember me"
+          // This is handled by session.maxAge, but we can flag it here
+          token.rememberMe = true;
+        }
+      }
+
+      // ⚠️ RBAC data cannot be loaded here - JWT callback runs in Edge Runtime
+      // Edge Runtime does not support Mongoose connections
+      // RBAC data is loaded in API routes (Node.js runtime) using getSessionUser()
+      // Set default empty values for RBAC fields in token
+      if (token?.id && token.isSuperAdmin === undefined) {
+        // Initialize RBAC fields to empty (will be populated by API routes)
+        token.isSuperAdmin = false;
+        token.roles = [];
+        token.permissions = [];
+      }
+      
+      return token;
+    },
+  },
+  session: {
+    strategy: 'jwt',
+    maxAge: 15 * 60, // 15 minutes access token
+    updateAge: 5 * 60,
+    generateSessionToken: () => {
+      // Short-lived session token; actual refresh handled via /api/auth/refresh cookies
+      if (typeof globalThis.crypto !== 'undefined' && typeof globalThis.crypto.randomUUID === 'function') {
+        return globalThis.crypto.randomUUID();
+      }
+      return Math.random().toString(36).slice(2) + Date.now().toString(36);
+    },
+  },
+  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
+  trustHost,
+  // NextAuth v5: skipCSRFCheck requires the symbol, not a boolean
+  // Only include it in test environments to allow programmatic login
+  ...(shouldSkipCSRFCheck ? { skipCSRFCheck: skipCSRFCheckSymbol } : {}),
+} satisfies NextAuthConfig;
+
+]]>
+</file>
+
+<file path="auth.ts">
+<![CDATA[
+import NextAuth from "next-auth";
+import { authConfig } from "./auth.config";
+
+// ⚡ CRITICAL: Do NOT add database operations here
+// This file is imported by middleware.ts (Edge Runtime)
+// OAuth user provisioning must happen via API routes, not in auth events
+
+// Export authOptions for compatibility with files expecting this name
+export const authOptions = authConfig;
+
+export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
+
+]]>
+</file>
+
+<file path="aws/README.md">
+<![CDATA[
+# AWS CLI v2
+
+This bundle contains a built executable of the AWS CLI v2.
+
+## Installation
+
+To install the AWS CLI v2, run the `install` script:
+
+```
+$ sudo ./install
+You can now run: /usr/local/bin/aws --version
+```
+
+This will install the AWS CLI v2 at `/usr/local/bin/aws`. Assuming
+`/usr/local/bin` is on your `PATH`, you can now run:
+
+```
+aws --version
+```
+
+### Installing without sudo
+
+If you don't have `sudo` permissions or want to install the AWS
+CLI v2 only for the current user, run the `install` script with the `-b`
+and `-i` options:
+
+```
+./install -i ~/.local/aws-cli -b ~/.local/bin
+```
+
+This will install the AWS CLI v2 in `~/.local/aws-cli` and create
+symlinks for `aws` and `aws_completer` in `~/.local/bin`. For more
+information about these options, run the `install` script with `-h`:
+
+```
+./install -h
+```
+
+### Updating
+
+If you run the `install` script and there is a previously installed version
+of the AWS CLI v2, the script will error out. To update to the version included
+in this bundle, run the `install` script with `--update`:
+
+```
+sudo ./install --update
+```
+
+### Removing the installation
+
+To remove the AWS CLI v2, delete the its installation and symlinks:
+
+```
+sudo rm -rf /usr/local/aws-cli
+sudo rm /usr/local/bin/aws
+sudo rm /usr/local/bin/aws_completer
+```
+
+Note if you installed the AWS CLI v2 using the `-b` or `-i` options, you will
+need to remove the installation and the symlinks in the directories you
+specified.
+
+]]>
+</file>
+
+<file path="client/woClient.ts">
+<![CDATA[
+export const asUserHeader = () => ({
+  "x-user": localStorage.getItem("x-user") || "",
+});
+
+export async function api<T = unknown>(
+  url: string,
+  init?: RequestInit,
+): Promise<T> {
+  const res = await fetch(url, {
+    ...(init || {}),
+    headers: {
+      ...(init?.headers || {}),
+      ...asUserHeader(),
+      "content-type": "application/json",
+    },
+  });
+  const text = await res.text();
+  const body = text ? JSON.parse(text) : null;
+  if (!res.ok) throw new Error(body?.error || `HTTP ${res.status}`);
+  return body;
+}
+
+]]>
+</file>
+
+<file path="components/AIChat.tsx">
+<![CDATA[
+"use client";
+
+import { useState, useRef, useEffect } from "react";
+import { Send, Bot, User, X, Loader2 } from "lucide-react";
+import { useAIChatStore } from "@/stores/useAIChatStore";
+import ClientDate from "@/components/ClientDate";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+export default function AIChat({ onClose }: { onClose: () => void }) {
+  const {
+    messages,
+    isLoading,
+    sendMessage: sendMessageToStore,
+  } = useAIChatStore();
+  const auto = useAutoTranslator("aiChat");
+
+  const [input, setInput] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Welcome message is already initialized in the store, no need to add it here
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const handleSendMessage = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const messageContent = input.trim();
+    setInput("");
+
+    // Send message through store (which handles API call)
+    await sendMessageToStore(messageContent);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      aria-label={auto("AI assistant overlay", "overlayLabel")}
+    >
+      <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col relative">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-border">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
+              <Bot className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-foreground">
+                {auto("Fixzit AI Assistant", "title")}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {auto("Ask me anything about Fixzit!", "subtitle")}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground p-2 rounded-lg hover:bg-accent transition-colors"
+            aria-label={auto("Close chat", "closeButton")}
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {messages.map(
+            (message: {
+              id: string;
+              role: string;
+              content: string;
+              timestamp: number;
+            }) => (
+              <div
+                key={message.id}
+                className={`flex items-start gap-3 ${message.role === "user" ? "flex-row-reverse" : ""}`}
+              >
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    message.role === "user" ? "bg-success" : "bg-primary"
+                  }`}
+                >
+                  {message.role === "user" ? (
+                    <User className="w-4 h-4 text-success-foreground" />
+                  ) : (
+                    <Bot className="w-4 h-4 text-primary-foreground" />
+                  )}
+                </div>
+                <div
+                  className={`max-w-[80%] p-3 rounded-lg ${
+                    message.role === "user"
+                      ? "bg-success text-success-foreground"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  <p className="text-sm whitespace-pre-wrap">
+                    {message.content}
+                  </p>
+                  <p className="text-xs mt-1 opacity-70">
+                    <ClientDate date={message.timestamp} format="time-only" />
+                  </p>
+                </div>
+              </div>
+            ),
+          )}
+
+          {isLoading && (
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                <Bot className="w-4 h-4 text-primary-foreground" />
+              </div>
+              <div className="bg-muted p-3 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
+                    {auto("Thinking...", "thinking")}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Input */}
+        <div className="p-6 border-t border-border">
+          <div className="flex gap-3">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder={auto(
+                "Ask me anything about Fixzit...",
+                "inputPlaceholder",
+              )}
+              className="flex-1 px-4 py-3 border border-input rounded-lg text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              disabled={isLoading}
+            />
+            <button
+              onClick={handleSendMessage}
+              disabled={!input.trim() || isLoading}
+              className="px-4 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              aria-label={auto("Send message", "sendButton")}
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            {auto(
+              "Press Enter to send • Shift+Enter for new line",
+              "inputHint",
+            )}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/AutoFixInitializer.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect } from "react";
+import { autoFixManager } from "@/lib/AutoFixManager";
+
+/**
+ * AutoFixInitializer Component
+ *
+ * Initializes the auto-fix system when the application starts.
+ * This component:
+ * - Starts automated health monitoring with 5-minute intervals
+ * - Runs an initial health check on mount
+ * - Properly cleans up monitoring on unmount
+ *
+ * The auto-fix system proactively monitors:
+ * - Database connectivity
+ * - API health endpoints
+ * - Critical service availability
+ * - And automatically attempts fixes for common issues
+ *
+ * @component
+ * @example
+ * // Used in ClientLayout.tsx
+ * <AutoFixInitializer />
+ */
+export default function AutoFixInitializer() {
+  useEffect(() => {
+    // Start auto-monitoring with 5-minute intervals
+    autoFixManager.startAutoMonitoring(5);
+
+    // Run initial health check
+    autoFixManager.runHealthCheck().catch(() => {
+      // Health check failed - auto-fix manager will handle internally
+    });
+
+    // Cleanup on unmount
+    return () => {
+      autoFixManager.stopAutoMonitoring();
+    };
+  }, []);
+
+  // This component doesn't render anything
+  return null;
+}
+
+]]>
+</file>
+
+</batch_content>

@@ -1,0 +1,3248 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="scripts/sort_navigation.py">
+<![CDATA[
+#!/usr/bin/env python3
+"""
+Sort Navigation Alphabetically
+===============================
+Sorts sidebar navigation at both module and sub-level
+"""
+
+
+def sort_navigation():
+    """Sort navigation items alphabetically"""
+
+    # Navigation structure to sort
+    NAVIGATION = [
+        {
+            "group": "Administration",
+            "icon": "⚙️",
+            "items": [
+                {
+                    "id": "admin_panel",
+                    "label": "Admin Panel",
+                    "icon": "🛠️",
+                    "path": "112_AdminPanel.py",
+                },
+                {
+                    "id": "admin_tools",
+                    "label": "Admin Tools",
+                    "icon": "🔨",
+                    "path": "120_AdminTools.py",
+                },
+                {
+                    "id": "login_branding",
+                    "label": "Login Branding",
+                    "icon": "🎨",
+                    "path": "095_LoginBranding.py",
+                },
+                {
+                    "id": "logo_manager",
+                    "label": "Logo Manager",
+                    "icon": "🖼️",
+                    "path": "960_LogoManager.py",
+                },
+                {
+                    "id": "settings",
+                    "label": "Settings",
+                    "icon": "🔧",
+                    "path": "10_Settings_WorkOS.py",
+                },
+                {
+                    "id": "workspace_settings",
+                    "label": "Workspace Settings",
+                    "icon": "🏢",
+                    "path": "100_WorkspaceSettings.py",
+                },
+            ],
+        },
+        {
+            "group": "Authentication",
+            "icon": "🔑",
+            "items": [
+                {
+                    "id": "auth_callback",
+                    "label": "Auth Callback",
+                    "icon": "🔄",
+                    "path": "011_AuthCallback.py",
+                },
+                {"id": "login", "label": "Login", "icon": "🔐", "path": "00_Login.py"},
+                {
+                    "id": "passwordless",
+                    "label": "Passwordless Login",
+                    "icon": "🔓",
+                    "path": "PasswordlessLogin.py",
+                },
+                {
+                    "id": "register",
+                    "label": "Register",
+                    "icon": "✍️",
+                    "path": "Register.py",
+                },
+                {
+                    "id": "reset_password",
+                    "label": "Reset Password",
+                    "icon": "🔒",
+                    "path": "Reset_Password.py",
+                },
+                {
+                    "id": "signup",
+                    "label": "Sign Up",
+                    "icon": "📝",
+                    "path": "001_SignUp.py",
+                },
+            ],
+        },
+        {
+            "group": "Email & Notifications",
+            "icon": "📧",
+            "items": [
+                {
+                    "id": "email_config",
+                    "label": "Email Configuration",
+                    "icon": "✉️",
+                    "path": "200_EmailConfiguration.py",
+                },
+                {
+                    "id": "email_templates",
+                    "label": "Email Templates",
+                    "icon": "📝",
+                    "path": "910_EmailTemplates.py",
+                },
+                {
+                    "id": "notifications_admin",
+                    "label": "Notifications Admin",
+                    "icon": "🔔",
+                    "path": "991_NotificationsAdmin.py",
+                },
+                {
+                    "id": "update_feed",
+                    "label": "Update Feed",
+                    "icon": "📰",
+                    "path": "150_UpdateFeed.py",
+                },
+            ],
+        },
+        {
+            "group": "Finance",
+            "icon": "💰",
+            "items": [
+                {
+                    "id": "analytics",
+                    "label": "Analytics",
+                    "icon": "📈",
+                    "path": "11_Analytics_WorkOS.py",
+                },
+                {
+                    "id": "financials",
+                    "label": "Financials",
+                    "icon": "💹",
+                    "path": "Financials.py",
+                },
+                {
+                    "id": "payments",
+                    "label": "Payments",
+                    "icon": "💳",
+                    "path": "08_Payments_WorkOS.py",
+                },
+            ],
+        },
+        {
+            "group": "Marketplace",
+            "icon": "🛍️",
+            "items": [
+                {
+                    "id": "fixzit_souq",
+                    "label": "FixzitSouq",
+                    "icon": "🏪",
+                    "path": "110_FixzitSouq.py",
+                },
+                {
+                    "id": "marketplace",
+                    "label": "Marketplace",
+                    "icon": "🛒",
+                    "path": "04_Marketplace_WorkOS.py",
+                },
+                {
+                    "id": "vendor_portal",
+                    "label": "Vendor Portal",
+                    "icon": "🏭",
+                    "path": "111_VendorPortal.py",
+                },
+            ],
+        },
+        {
+            "group": "Onboarding & Help",
+            "icon": "🎯",
+            "items": [
+                {
+                    "id": "app_marketplace",
+                    "label": "App Marketplace",
+                    "icon": "🏪",
+                    "path": "101_AppMarketplace.py",
+                },
+                {
+                    "id": "onboarding",
+                    "label": "Onboarding",
+                    "icon": "🚀",
+                    "path": "50_Onboarding_WorkOS.py",
+                },
+                {
+                    "id": "reports",
+                    "label": "Reports",
+                    "icon": "📊",
+                    "path": "Reports.py",
+                },
+            ],
+        },
+        {
+            "group": "Properties",
+            "icon": "🏢",
+            "items": [
+                {
+                    "id": "contracts",
+                    "label": "Contracts",
+                    "icon": "📄",
+                    "path": "06_Contracts_WorkOS.py",
+                },
+                {
+                    "id": "owner_profile",
+                    "label": "Owner Profile",
+                    "icon": "👤",
+                    "path": "921_OwnerProfile.py",
+                },
+                {
+                    "id": "owner_statements",
+                    "label": "Owner Statements",
+                    "icon": "📑",
+                    "path": "920_OwnerStatements.py",
+                },
+                {
+                    "id": "owners_directory",
+                    "label": "Owners Directory",
+                    "icon": "📁",
+                    "path": "930_OwnersDirectory.py",
+                },
+                {
+                    "id": "properties",
+                    "label": "Properties",
+                    "icon": "🏘️",
+                    "path": "05_Properties_WorkOS.py",
+                },
+            ],
+        },
+        {
+            "group": "Sharing & Moderation",
+            "icon": "🔐",
+            "items": [
+                {
+                    "id": "moderation_queue",
+                    "label": "Moderation Queue",
+                    "icon": "📥",
+                    "path": "927_ShareModerationQueue.py",
+                },
+                {
+                    "id": "moderation_settings",
+                    "label": "Moderation Settings",
+                    "icon": "⚖️",
+                    "path": "924_ModerationSettings.py",
+                },
+                {
+                    "id": "secure_verify",
+                    "label": "Secure Share Verify",
+                    "icon": "✅",
+                    "path": "929_SecureShareVerify.py",
+                },
+                {
+                    "id": "audit_logs",
+                    "label": "Share Audit Logs",
+                    "icon": "📋",
+                    "path": "928_ShareAuditLogs.py",
+                },
+                {
+                    "id": "share_management",
+                    "label": "Share Management",
+                    "icon": "🔗",
+                    "path": "925_ShareManagement.py",
+                },
+                {
+                    "id": "share_policy",
+                    "label": "Share Policy Settings",
+                    "icon": "📜",
+                    "path": "926_SharePolicySettings.py",
+                },
+            ],
+        },
+        {
+            "group": "Support",
+            "icon": "🛟",
+            "items": [
+                {
+                    "id": "csc_support",
+                    "label": "CSC Support",
+                    "icon": "🛠️",
+                    "path": "113_CSCSupport.py",
+                },
+                {
+                    "id": "feedback_analytics",
+                    "label": "Feedback Analytics",
+                    "icon": "💭",
+                    "path": "151_FeedbackAnalytics.py",
+                },
+                {
+                    "id": "support_analytics",
+                    "label": "Support Analytics",
+                    "icon": "📊",
+                    "path": "202_SupportAnalytics.py",
+                },
+                {
+                    "id": "support_tickets",
+                    "label": "Support Tickets",
+                    "icon": "🎫",
+                    "path": "201_SupportTickets.py",
+                },
+            ],
+        },
+        {
+            "group": "System & Monitoring",
+            "icon": "🖥️",
+            "items": [
+                {
+                    "id": "code_quality",
+                    "label": "Code Quality",
+                    "icon": "✨",
+                    "path": "990_CodeQuality.py",
+                },
+                {
+                    "id": "feature_flags",
+                    "label": "Feature Flags",
+                    "icon": "🚩",
+                    "path": "985_FeatureFlags.py",
+                },
+                {
+                    "id": "health_dashboard",
+                    "label": "Health Dashboard",
+                    "icon": "🩺",
+                    "path": "955_HealthDashboard.py",
+                },
+                {
+                    "id": "module_manager",
+                    "label": "Module Manager",
+                    "icon": "📦",
+                    "path": "970_ModuleManager.py",
+                },
+                {
+                    "id": "remote_config",
+                    "label": "Remote Config",
+                    "icon": "🔧",
+                    "path": "980_RemoteConfig.py",
+                },
+                {
+                    "id": "system_verify",
+                    "label": "System Verification",
+                    "icon": "🔍",
+                    "path": "950_SystemVerification.py",
+                },
+                {
+                    "id": "uptime_monitoring",
+                    "label": "Uptime Monitoring",
+                    "icon": "📡",
+                    "path": "956_UptimeMonitoring.py",
+                },
+            ],
+        },
+        {
+            "group": "Users & Access",
+            "icon": "👥",
+            "items": [
+                {
+                    "id": "board_viewer",
+                    "label": "Board Viewer",
+                    "icon": "👁️",
+                    "path": "923_BoardViewer.py",
+                },
+                {
+                    "id": "my_profile",
+                    "label": "My Profile",
+                    "icon": "🆔",
+                    "path": "210_MyProfile.py",
+                },
+                {
+                    "id": "team_directory",
+                    "label": "Team Directory",
+                    "icon": "👨‍👩‍👧‍👦",
+                    "path": "922_TeamDirectory.py",
+                },
+                {
+                    "id": "users",
+                    "label": "Users",
+                    "icon": "👤",
+                    "path": "09_Users_WorkOS.py",
+                },
+            ],
+        },
+        {
+            "group": "Work Management",
+            "icon": "🏠",
+            "items": [
+                {
+                    "id": "automations",
+                    "label": "Automations",
+                    "icon": "⚡",
+                    "path": "03_Automations_WorkOS.py",
+                },
+                {
+                    "id": "boards",
+                    "label": "Boards",
+                    "icon": "📋",
+                    "path": "02_Boards_WorkOS.py",
+                },
+                {
+                    "id": "dashboard",
+                    "label": "Dashboard",
+                    "icon": "📊",
+                    "path": "01_Dashboard_WorkOS.py",
+                },
+                {
+                    "id": "tickets",
+                    "label": "Tickets",
+                    "icon": "🎫",
+                    "path": "03_Tickets_WorkOS.py",
+                },
+            ],
+        },
+    ]
+
+    print("🔤 SORTING NAVIGATION ALPHABETICALLY")
+    print("=" * 50)
+
+    # Sort groups alphabetically
+    sorted_nav = sorted(NAVIGATION, key=lambda x: x["group"])
+
+    # Sort items within each group alphabetically
+    for group in sorted_nav:
+        group["items"] = sorted(group["items"], key=lambda x: x["label"])
+
+    print("\n✅ Navigation Structure (Alphabetically Sorted):\n")
+
+    for group in sorted_nav:
+        print(f"📁 {group['group']}")
+        for item in group["items"]:
+            print(f"   • {item['label']}")
+
+    return sorted_nav
+
+
+def update_nav_config(sorted_nav):
+    """Update the nav_config.py file with sorted navigation"""
+
+    config_content = """# ===================================================================
+# Fixzit Navigation Configuration with Alphabetically Sorted Modules
+# Official Brand Colors: White #FFFFFF, Navy #023047, Orange #F6851F
+# ===================================================================
+
+APP_NAME = "Fixzit"
+
+# Official Fixzit Brand Colors
+BRAND = {
+    "white": "#FFFFFF",
+    "navy": "#023047", 
+    "orange": "#F6851F",
+    "navy_light": "#3B4A58",
+    "orange_light": "#FDEAD8",
+    "orange_dark": "#DD6D09",
+    "border": "rgba(2,48,71,0.10)",
+}
+
+# Navigation Structure - Alphabetically Sorted at Both Levels
+NAVIGATION = ["""
+
+    # Add each group
+    for i, group in enumerate(sorted_nav):
+        if i > 0:
+            config_content += ","
+
+        config_content += f"""
+    {{
+        "group": "{group['group']}",
+        "icon": "{group['icon']}",
+        "items": ["""
+
+        # Add items
+        for j, item in enumerate(group["items"]):
+            if j > 0:
+                config_content += ","
+            config_content += f"""
+            {{"id": "{item['id']}", "label": "{item['label']}", "icon": "{item['icon']}", "path": "{item['path']}"}}"""
+
+        config_content += """
+        ]
+    }"""
+
+    config_content += "\n]"
+
+    # Write to file
+    with open("nav_config.py", "w", encoding="utf-8") as f:
+        f.write(config_content)
+
+    print("\n✅ Updated nav_config.py with alphabetically sorted navigation")
+
+
+def main():
+    """Main function"""
+    sorted_nav = sort_navigation()
+    update_nav_config(sorted_nav)
+    print("\n🎉 NAVIGATION SORTING COMPLETE!")
+
+
+if __name__ == "__main__":
+    main()
+
+]]>
+</file>
+
+<file path="scripts/split-translations.ts">
+<![CDATA[
+/**
+ * Split monolithic translation file into modular sources by domain
+ * Usage: npx tsx scripts/split-translations.ts [--check]
+ *
+ * Flags:
+ *   --check  Validate without writing files (CI mode)
+ */
+
+import * as fs from "fs";
+import * as path from "path";
+import { newTranslations } from "../i18n/new-translations";
+import type { TranslationBundle } from "../i18n/dictionaries/types";
+
+const SOURCES_DIR = path.join(__dirname, "../i18n/sources");
+const BACKUP_SUFFIX = ".bak";
+const CHECK_MODE = process.argv.includes("--check");
+
+// Ensure sources directory exists
+if (!fs.existsSync(SOURCES_DIR)) {
+  fs.mkdirSync(SOURCES_DIR, { recursive: true });
+}
+
+interface ParityIssue {
+  domain: string;
+  enCount: number;
+  arCount: number;
+  missingInEn: string[];
+  missingInAr: string[];
+}
+
+interface ValidationError {
+  domain: string;
+  key: string;
+  issue: string;
+}
+
+/**
+ * Sanitize domain name to ensure filesystem safety
+ */
+function sanitizeDomain(domain: string): string {
+  const DEFAULT_DOMAIN = "common";
+
+  // Handle empty, whitespace-only, or dot-only segments
+  if (!domain || domain.trim() === "" || domain === ".") {
+    console.warn(
+      `⚠️  Empty domain segment detected, using "${DEFAULT_DOMAIN}"`,
+    );
+    return DEFAULT_DOMAIN;
+  }
+
+  // Check for illegal characters (allow only alphanumeric, hyphen, underscore)
+  const SAFE_DOMAIN_PATTERN = /^[a-z0-9_-]+$/i;
+  if (!SAFE_DOMAIN_PATTERN.test(domain)) {
+    console.warn(
+      `⚠️  Unsafe domain name: "${domain}" (contains illegal chars), using "${DEFAULT_DOMAIN}"`,
+    );
+    return DEFAULT_DOMAIN;
+  }
+
+  // Check for path traversal attempts
+  if (domain.includes("..") || domain.includes("/") || domain.includes("\\")) {
+    console.warn(
+      `⚠️  Path traversal attempt: "${domain}", using "${DEFAULT_DOMAIN}"`,
+    );
+    return DEFAULT_DOMAIN;
+  }
+
+  // Check for Windows-reserved names
+  const WINDOWS_RESERVED = [
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
+    "COM1",
+    "COM2",
+    "COM3",
+    "COM4",
+    "COM5",
+    "COM6",
+    "COM7",
+    "COM8",
+    "COM9",
+    "LPT1",
+    "LPT2",
+    "LPT3",
+    "LPT4",
+    "LPT5",
+    "LPT6",
+    "LPT7",
+    "LPT8",
+    "LPT9",
+  ];
+  if (WINDOWS_RESERVED.includes(domain.toUpperCase())) {
+    console.warn(
+      `⚠️  Windows-reserved name: "${domain}", using "${DEFAULT_DOMAIN}"`,
+    );
+    return DEFAULT_DOMAIN;
+  }
+
+  return domain;
+}
+
+/**
+ * Group translation keys by their top-level domain with validation
+ */
+function groupByDomain(
+  translations: Record<string, string>,
+): Map<string, Record<string, string>> {
+  const domainMap = new Map<string, Record<string, string>>();
+  const DEFAULT_DOMAIN = "common";
+
+  for (const [key, value] of Object.entries(translations)) {
+    // Extract domain (first segment before dot)
+    const firstDot = key.indexOf(".");
+    let rawDomain: string;
+
+    if (firstDot <= 0) {
+      // No dot or starts with dot
+      console.warn(
+        `⚠️  Malformed key: "${key}" (no domain prefix), using "${DEFAULT_DOMAIN}"`,
+      );
+      rawDomain = DEFAULT_DOMAIN;
+    } else {
+      rawDomain = key.substring(0, firstDot);
+    }
+
+    const domain = sanitizeDomain(rawDomain);
+
+    if (!domainMap.has(domain)) {
+      domainMap.set(domain, {});
+    }
+
+    domainMap.get(domain)![key] = value;
+  }
+
+  return domainMap;
+}
+
+/**
+ * Validate all values are strings (recursively check for nested objects)
+ */
+function validateValues(
+  translations: Record<string, string>,
+  locale: string,
+): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  for (const [key, value] of Object.entries(translations)) {
+    if (typeof value !== "string") {
+      errors.push({
+        domain: key.split(".")[0] || "unknown",
+        key,
+        issue: `Non-string value in ${locale} (type: ${typeof value})`,
+      });
+    } else if (value.trim() === "") {
+      errors.push({
+        domain: key.split(".")[0] || "unknown",
+        key,
+        issue: `Empty string in ${locale}`,
+      });
+    }
+  }
+
+  return errors;
+}
+
+/**
+ * Check parity between locales for a domain
+ */
+function checkDomainParity(
+  domain: string,
+  enTranslations: Record<string, string>,
+  arTranslations: Record<string, string>,
+): ParityIssue | null {
+  const enKeys = new Set(Object.keys(enTranslations));
+  const arKeys = new Set(Object.keys(arTranslations));
+
+  const missingInAr = [...enKeys].filter((k) => !arKeys.has(k));
+  const missingInEn = [...arKeys].filter((k) => !enKeys.has(k));
+
+  if (missingInAr.length > 0 || missingInEn.length > 0) {
+    return {
+      domain,
+      enCount: enKeys.size,
+      arCount: arKeys.size,
+      missingInEn,
+      missingInAr,
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Merge with existing file if it exists, preserving manual edits
+ */
+function mergeWithExisting(
+  domain: string,
+  newEn: Record<string, string>,
+  newAr: Record<string, string>,
+): { bundle: TranslationBundle; hasExisting: boolean; mergedKeys: number } {
+  const filePath = path.join(SOURCES_DIR, `${domain}.translations.json`);
+  let hasExisting = false;
+  let mergedKeys = 0;
+
+  if (fs.existsSync(filePath)) {
+    try {
+      const existing: TranslationBundle = JSON.parse(
+        fs.readFileSync(filePath, "utf-8"),
+      );
+      hasExisting = true;
+
+      // Count preserved keys (keys in existing but not in new)
+      for (const key of Object.keys(existing.en)) {
+        if (!(key in newEn)) mergedKeys++;
+      }
+      for (const key of Object.keys(existing.ar)) {
+        if (!(key in newAr)) mergedKeys++;
+      }
+
+      // Fresh data wins, but preserve keys that aren't in new data
+      return {
+        bundle: {
+          en: { ...existing.en, ...newEn },
+          ar: { ...existing.ar, ...newAr },
+        },
+        hasExisting,
+        mergedKeys,
+      };
+    } catch (err) {
+      console.warn(
+        `⚠️  Could not parse existing ${domain}.translations.json:`,
+        err,
+      );
+    }
+  }
+
+  return { bundle: { en: newEn, ar: newAr }, hasExisting, mergedKeys };
+}
+
+/**
+ * Write domain file atomically (temp file + rename)
+ */
+function writeFileSafe(filePath: string, content: string): void {
+  const tempPath = `${filePath}.tmp`;
+
+  try {
+    fs.writeFileSync(tempPath, content, "utf-8");
+    fs.renameSync(tempPath, filePath);
+  } catch (err) {
+    // Clean up temp file if it exists
+    if (fs.existsSync(tempPath)) {
+      fs.unlinkSync(tempPath);
+    }
+    throw err;
+  }
+}
+
+/**
+ * Write domain translations to modular source files
+ */
+function writeDomainFiles() {
+  const { en, ar } = newTranslations;
+
+  // Validate all values are strings
+  console.log("🔍 Validating translation values...\n");
+  const enErrors = validateValues(en, "en");
+  const arErrors = validateValues(ar, "ar");
+  const allErrors = [...enErrors, ...arErrors];
+
+  if (allErrors.length > 0) {
+    console.error(`❌ VALIDATION ERRORS (${allErrors.length} total):\n`);
+    for (const error of allErrors.slice(0, 10)) {
+      console.error(`  ${error.domain}/${error.key}: ${error.issue}`);
+    }
+    if (allErrors.length > 10) {
+      console.error(`  ... and ${allErrors.length - 10} more errors`);
+    }
+    console.error("\n💡 Fix upstream dictionary issues before splitting\n");
+    process.exit(1);
+  }
+
+  console.log(
+    `✅ All values validated (${Object.keys(en).length} en, ${Object.keys(ar).length} ar)\n`,
+  );
+
+  const enDomains = groupByDomain(en);
+  const arDomains = groupByDomain(ar);
+
+  // Get all unique domain names and sort alphabetically for deterministic output
+  const allDomains = Array.from(
+    new Set([...enDomains.keys(), ...arDomains.keys()]),
+  ).sort();
+
+  console.log(`📦 Processing ${allDomains.length} domains...\n`);
+
+  if (CHECK_MODE) {
+    console.log("🔎 CHECK MODE: Validating without writing files\n");
+  }
+
+  const parityIssues: ParityIssue[] = [];
+  let totalEnKeys = 0;
+  let totalArKeys = 0;
+  let filesCreated = 0;
+  let filesUpdated = 0;
+  let totalMergedKeys = 0;
+
+  for (const domain of allDomains) {
+    const enTranslations = enDomains.get(domain) || {};
+    const arTranslations = arDomains.get(domain) || {};
+
+    // Check parity
+    const parityIssue = checkDomainParity(
+      domain,
+      enTranslations,
+      arTranslations,
+    );
+    if (parityIssue) {
+      parityIssues.push(parityIssue);
+    }
+
+    // Merge with existing
+    const { bundle, hasExisting, mergedKeys } = mergeWithExisting(
+      domain,
+      enTranslations,
+      arTranslations,
+    );
+    totalMergedKeys += mergedKeys;
+
+    // Sort keys for deterministic output
+    const sortedBundle: TranslationBundle = {
+      en: Object.fromEntries(
+        Object.entries(bundle.en).sort(([a], [b]) => a.localeCompare(b)),
+      ),
+      ar: Object.fromEntries(
+        Object.entries(bundle.ar).sort(([a], [b]) => a.localeCompare(b)),
+      ),
+    };
+
+    const fileName = `${domain}.translations.json`;
+    const filePath = path.join(SOURCES_DIR, fileName);
+
+    if (!CHECK_MODE) {
+      // Backup existing file before overwriting
+      if (hasExisting && mergedKeys > 0) {
+        const backupPath = filePath + BACKUP_SUFFIX;
+        fs.copyFileSync(filePath, backupPath);
+      }
+
+      // Write atomically
+      try {
+        writeFileSafe(filePath, JSON.stringify(sortedBundle, null, 2));
+        if (hasExisting) {
+          filesUpdated++;
+        } else {
+          filesCreated++;
+        }
+      } catch (err) {
+        console.error(`❌ Failed to write ${fileName}:`, err);
+        process.exit(1);
+      }
+    }
+
+    const enCount = Object.keys(sortedBundle.en).length;
+    const arCount = Object.keys(sortedBundle.ar).length;
+    totalEnKeys += enCount;
+    totalArKeys += arCount;
+
+    const statusIcon = parityIssue ? "⚠️ " : "✓ ";
+    const mergeInfo = mergedKeys > 0 ? ` (merged ${mergedKeys} keys)` : "";
+    console.log(
+      `  ${statusIcon}${fileName.padEnd(45)} (${String(enCount).padStart(5)} en, ${String(arCount).padStart(5)} ar)${mergeInfo}`,
+    );
+  }
+
+  console.log(
+    `\n✅ Successfully ${CHECK_MODE ? "validated" : "split"} translations into modular sources!`,
+  );
+  console.log(`📂 Location: ${SOURCES_DIR}`);
+  console.log(`📊 Total: ${totalEnKeys} en keys, ${totalArKeys} ar keys`);
+
+  if (!CHECK_MODE) {
+    console.log(`📝 Files: ${filesCreated} created, ${filesUpdated} updated`);
+    if (totalMergedKeys > 0) {
+      console.log(
+        `🔀 Merged: ${totalMergedKeys} preserved keys from existing files`,
+      );
+    }
+  }
+
+  // Report parity issues
+  if (parityIssues.length > 0) {
+    console.log(
+      `\n⚠️  TRANSLATION PARITY ISSUES (${parityIssues.length} domains):\n`,
+    );
+    console.log(
+      `    Domain                                    EN      AR      Missing`,
+    );
+    console.log(`    ${"=".repeat(70)}`);
+
+    for (const issue of parityIssues.slice(0, 15)) {
+      const missing =
+        issue.missingInEn.length > 0
+          ? `${issue.missingInEn.length} in EN`
+          : `${issue.missingInAr.length} in AR`;
+      console.log(
+        `    ${issue.domain.padEnd(40)} ${String(issue.enCount).padStart(6)} ${String(issue.arCount).padStart(6)}  ${missing}`,
+      );
+    }
+
+    if (parityIssues.length > 15) {
+      console.log(
+        `    ... and ${parityIssues.length - 15} more domains with mismatches`,
+      );
+    }
+
+    console.log(
+      `\n    💡 Run: npx tsx scripts/check-translation-parity.ts for detailed key-level report\n`,
+    );
+
+    if (!CHECK_MODE) {
+      console.log(
+        "⚠️  WARNING: Parity issues detected. Review before deploying.\n",
+      );
+      process.exit(1);
+    }
+  } else {
+    console.log(`\n✅ All domains have matching key counts across locales\n`);
+  }
+}
+
+// Run the split
+writeDomainFiles();
+
+]]>
+</file>
+
+<file path="scripts/stop-dev.js">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * Stop Development Server Utility
+ *
+ * Gracefully stops the background development server started by fixzit-agent:
+ * 1. Reads PID from .agent-cache/dev.pid
+ * 2. Sends SIGTERM (graceful shutdown)
+ * 3. Waits 5 seconds
+ * 4. Sends SIGKILL (force kill) if still running
+ *
+ * Usage:
+ *   node scripts/stop-dev.js
+ *   pnpm run fixzit:agent:stop
+ */
+
+const fs = require("fs");
+const path = require("path");
+
+const PID_FILE = path.join(process.cwd(), ".agent-cache", "dev.pid");
+
+async function stopDevServer() {
+  console.log("🛑 Attempting to stop development server...");
+
+  if (!fs.existsSync(PID_FILE)) {
+    console.log(
+      "ℹ️  No PID file found. Development server may not be running.",
+    );
+    return;
+  }
+
+  try {
+    const pid = parseInt(fs.readFileSync(PID_FILE, "utf-8").trim(), 10);
+
+    if (isNaN(pid)) {
+      console.error("❌ Invalid PID in file. Removing stale PID file.");
+      fs.unlinkSync(PID_FILE);
+      return;
+    }
+
+    console.log(`📍 Found PID: ${pid}`);
+
+    // Check if process exists
+    try {
+      process.kill(pid, 0); // Signal 0 checks if process exists without killing
+      console.log("✅ Process is running. Sending SIGTERM...");
+    } catch (error) {
+      console.log(
+        "ℹ️  Process not found. Removing stale PID file.",
+        error?.message || "",
+      );
+      fs.unlinkSync(PID_FILE);
+      return;
+    }
+
+    // Send SIGTERM (graceful shutdown)
+    try {
+      process.kill(pid, "SIGTERM");
+      console.log("⏳ Waiting 5 seconds for graceful shutdown...");
+
+      await sleep(5000);
+
+      // Check if process is still running
+      try {
+        process.kill(pid, 0);
+        console.log("⚠️  Process still running. Sending SIGKILL...");
+        process.kill(pid, "SIGKILL");
+        await sleep(1000);
+      } catch (_error) {
+        console.log("✅ Process terminated gracefully.");
+      }
+    } catch (error) {
+      if (error.code === "ESRCH") {
+        console.log("✅ Process already terminated.");
+      } else {
+        throw error;
+      }
+    }
+
+    // Clean up PID file
+    fs.unlinkSync(PID_FILE);
+    console.log("🧹 Cleaned up PID file.");
+    console.log("✅ Development server stopped successfully.");
+  } catch (error) {
+    console.error("❌ Failed to stop development server:", error.message);
+    process.exit(1);
+  }
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+stopDevServer();
+
+]]>
+</file>
+
+<file path="scripts/test-all.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+
+/**
+ * Comprehensive test script that verifies all key functionality
+ */
+
+import { execSync } from "child_process";
+import { verifyCore } from "./verify-core";
+
+async function testAll() {
+  console.log("🚀 Running comprehensive tests...\n");
+
+  const results: { name: string; success: boolean; error?: unknown }[] = [];
+
+  // Test 1: Core functionality
+  console.log("1️⃣ Testing core functionality...");
+  try {
+    const success = await verifyCore();
+    results.push({ name: "Core Functionality", success });
+    console.log(success ? "✅ Core tests passed\n" : "❌ Core tests failed\n");
+  } catch (error) {
+    results.push({ name: "Core Functionality", success: false, error });
+    console.log("❌ Core tests failed with error:", error, "\n");
+  }
+
+  // Test 2: Build verification
+  console.log("2️⃣ Testing build process...");
+  try {
+    execSync("npm run build", { stdio: "pipe" });
+    results.push({ name: "Build Process", success: true });
+    console.log("✅ Build test passed\n");
+  } catch (error) {
+    results.push({ name: "Build Process", success: false, error });
+    console.log("❌ Build test failed:", error, "\n");
+  }
+
+  // Test 3: TypeScript validation
+  console.log("3️⃣ Testing TypeScript validation...");
+  try {
+    execSync("npm run typecheck", { stdio: "pipe" });
+    results.push({ name: "TypeScript Validation", success: true });
+    console.log("✅ TypeScript test passed\n");
+  } catch (error) {
+    results.push({ name: "TypeScript Validation", success: false, error });
+    console.log("❌ TypeScript test failed:", error, "\n");
+  }
+
+  // Test 4: Model loading verification
+  console.log("4️⃣ Testing model loading...");
+  try {
+    // Test all the models we fixed
+    const models = [
+      "HelpArticle",
+      "CmsPage",
+      "SupportTicket",
+      "Asset",
+      "Property",
+      "User",
+      "Vendor",
+      "Application",
+      "AtsSettings",
+      "Candidate",
+      "Employee",
+      "Job",
+    ];
+
+    for (const modelName of models) {
+      const model = await import(`../src/server/models/${modelName}`);
+      if (!model[modelName]) {
+        throw new Error(`Model ${modelName} not exported correctly`);
+      }
+    }
+
+    results.push({ name: "Model Loading", success: true });
+    console.log("✅ Model loading test passed\n");
+  } catch (error) {
+    results.push({ name: "Model Loading", success: false, error });
+    console.log("❌ Model loading test failed:", error, "\n");
+  }
+
+  // Summary
+  console.log("📊 Test Summary:");
+  console.log("================");
+
+  const totalTests = results.length;
+  const passedTests = results.filter((r) => r.success).length;
+  const failedTests = totalTests - passedTests;
+
+  results.forEach((result) => {
+    const status = result.success ? "✅" : "❌";
+    console.log(`${status} ${result.name}`);
+    if (!result.success && result.error) {
+      console.log(`   Error: ${result.error.message || result.error}`);
+    }
+  });
+
+  console.log(`\n📈 Results: ${passedTests}/${totalTests} tests passed`);
+
+  if (failedTests === 0) {
+    console.log("🎉 All tests passed! Ready to push PR updates.");
+    return true;
+  } else {
+    console.log(`⚠️  ${failedTests} tests failed. Please review and fix.`);
+    return false;
+  }
+}
+
+if (require.main === module) {
+  testAll()
+    .then((success) => {
+      process.exit(success ? 0 : 1);
+    })
+    .catch((error) => {
+      console.error("❌ Fatal error during test execution:", error);
+      process.exit(1);
+    });
+}
+
+export { testAll };
+
+]]>
+</file>
+
+<file path="scripts/test-api-endpoints.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * API Endpoint Testing Script
+ *
+ * Tests critical API endpoints:
+ * - Authentication (login, logout, OTP)
+ * - Payments (callback with retry queue)
+ * - WhatsApp notifications
+ * - Finance reports (balance sheet)
+ * - Work orders CRUD
+ *
+ * Usage:
+ *   tsx scripts/test-api-endpoints.ts
+ *   tsx scripts/test-api-endpoints.ts --endpoint=auth
+ *   tsx scripts/test-api-endpoints.ts --verbose
+ */
+
+import { randomBytes } from "crypto";
+
+const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
+const TEST_ORG_ID = process.env.TEST_ORG_ID || "test-org-" + Date.now();
+const VERBOSE = process.argv.includes("--verbose");
+const ENDPOINT_FILTER = process.argv
+  .find((arg) => arg.startsWith("--endpoint="))
+  ?.split("=")[1];
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+const TEST_ADMIN_IDENTIFIER =
+  process.env.TEST_ADMIN_IDENTIFIER || `admin@test.${EMAIL_DOMAIN}`;
+
+interface TestResult {
+  endpoint: string;
+  method: string;
+  status: "PASS" | "FAIL" | "SKIP";
+  statusCode?: number;
+  duration: number;
+  error?: string;
+  response?: unknown;
+}
+
+const results: TestResult[] = [];
+let authToken: string | null = null;
+let testUserId: string | null = null;
+let sessionCookie: string | null = null;
+const allCookies: string[] = []; // Store all cookies for cookie jar
+const EMP_REGEX = /^EMP[-A-Z0-9]+$/i;
+
+// Login helper to get auth token and session cookie
+async function authenticateTestUser() {
+  try {
+    // Use the test admin user
+    const loginData = {
+      identifier: TEST_ADMIN_IDENTIFIER,
+      password: "Test@1234",
+    };
+    const companyCode =
+      EMP_REGEX.test(loginData.identifier.trim()) &&
+      process.env.TEST_COMPANY_CODE
+        ? process.env.TEST_COMPANY_CODE
+        : undefined;
+    const loginPayload = companyCode
+      ? { ...loginData, companyCode }
+      : loginData;
+
+    log("Step 1: Sending OTP...", "INFO");
+
+    // Step 1: Send OTP
+    const otpResponse = await fetch(`${BASE_URL}/api/auth/otp/send`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(loginPayload),
+    });
+
+    const otpText = await otpResponse.text();
+    let otpResult;
+    try {
+      otpResult = JSON.parse(otpText);
+    } catch {
+      log(`Failed to parse OTP response: ${otpText}`, "ERROR");
+      return false;
+    }
+
+    if (!otpResult.success) {
+      log(`Failed to send OTP: ${otpResult.error}`, "WARN");
+      return false;
+    }
+
+    // Extract OTP from response (devCode is exposed in dev mode)
+    const otp = otpResult.data?.devCode;
+
+    if (!otp) {
+      log(
+        "OTP not available in dev mode. Skipping auth-required tests.",
+        "WARN",
+      );
+      return false;
+    }
+
+    log(`Got OTP: ${otp}`, "INFO");
+    log("Step 2: Verifying OTP...", "INFO");
+
+    // Step 2: Verify OTP to get otpToken
+    const verifyResponse = await fetch(`${BASE_URL}/api/auth/otp/verify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(
+        companyCode
+          ? { identifier: loginData.identifier, otp, companyCode }
+          : { identifier: loginData.identifier, otp },
+      ),
+    });
+
+    const verifyText = await verifyResponse.text();
+    let verifyResult;
+    try {
+      verifyResult = JSON.parse(verifyText);
+    } catch {
+      log(`Failed to parse verify response: ${verifyText}`, "ERROR");
+      return false;
+    }
+
+    if (!verifyResult.success) {
+      log(`Failed to verify OTP: ${verifyResult.error}`, "WARN");
+      return false;
+    }
+
+    const otpToken = verifyResult.data?.otpToken;
+    if (!otpToken) {
+      log("OTP token not received from verification", "ERROR");
+      return false;
+    }
+
+    log("Step 3: Creating NextAuth session...", "INFO");
+
+    // Step 3a: Get CSRF token (and receive CSRF cookie)
+    const csrfResponse = await fetch(`${BASE_URL}/api/auth/csrf`, {
+      method: "GET",
+    });
+
+    const csrfData = await csrfResponse.json();
+    const csrfToken = csrfData.csrfToken;
+
+    // Store CSRF cookie
+    const csrfSetCookies =
+      csrfResponse.headers.getSetCookie?.() ||
+      [csrfResponse.headers.get("set-cookie")].filter(Boolean);
+    if (csrfSetCookies.length > 0) {
+      allCookies.push(...csrfSetCookies);
+    }
+
+    if (!csrfToken) {
+      log("Failed to get CSRF token", "ERROR");
+      return false;
+    }
+
+    if (VERBOSE) {
+      log(`Got CSRF token: ${csrfToken.substring(0, 20)}...`, "INFO");
+      if (csrfSetCookies.length > 0) {
+        log(`Got ${csrfSetCookies.length} CSRF cookie(s)`, "INFO");
+      }
+    }
+
+    // Step 3b: Call NextAuth credentials provider to create session
+    // Include the CSRF cookie in the request
+    const signInResponse = await fetch(
+      `${BASE_URL}/api/auth/callback/credentials`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Cookie: allCookies.join("; "),
+        },
+        body: (() => {
+          const params = new URLSearchParams({
+            identifier: loginData.identifier,
+            password: loginData.password,
+            otpToken: otpToken,
+            csrfToken: csrfToken,
+            redirect: "false",
+            callbackUrl: `${BASE_URL}/`,
+          });
+          if (companyCode) {
+            params.append("companyCode", companyCode);
+          }
+          return params.toString();
+        })(),
+        redirect: "manual", // Don't follow redirects
+      },
+    );
+
+    // Debug: log response status and headers
+    if (VERBOSE) {
+      log(`NextAuth response status: ${signInResponse.status}`, "INFO");
+      log(`NextAuth response headers:`, "INFO");
+      signInResponse.headers.forEach((value, key) => {
+        log(`  ${key}: ${value}`, "INFO");
+      });
+    }
+
+    // Extract session cookie from Set-Cookie header
+    const signInSetCookies =
+      signInResponse.headers.getSetCookie?.() ||
+      [signInResponse.headers.get("set-cookie")].filter(Boolean);
+    if (signInSetCookies.length === 0) {
+      log("No session cookie received from NextAuth", "ERROR");
+      const responseText = await signInResponse.text();
+      log(`Response status: ${signInResponse.status}`, "ERROR");
+      log(`Response body: ${responseText}`, "ERROR");
+      return false;
+    }
+
+    // Store all cookies (session + CSRF)
+    allCookies.push(...signInSetCookies);
+    sessionCookie = allCookies.map((c) => c.split(";")[0]).join("; "); // Extract just the cookie values
+
+    // Check if we got the session token
+    if (signInSetCookies.some((c) => c.includes("authjs.session-token"))) {
+      log("Successfully authenticated test user", "SUCCESS");
+      return true;
+    }
+
+    log("Got cookies but no session token found", "WARN");
+    return false;
+  } catch (error) {
+    log(
+      `Authentication error: ${error instanceof Error ? error.message : String(error)}`,
+      "ERROR",
+    );
+    return false;
+  }
+}
+
+// Utility functions
+function log(
+  message: string,
+  level: "INFO" | "SUCCESS" | "ERROR" | "WARN" = "INFO",
+) {
+  const colors = {
+    INFO: "\x1b[36m", // Cyan
+    SUCCESS: "\x1b[32m", // Green
+    ERROR: "\x1b[31m", // Red
+    WARN: "\x1b[33m", // Yellow
+  };
+  const reset = "\x1b[0m";
+  console.log(`${colors[level]}[${level}]${reset} ${message}`);
+}
+
+async function testEndpoint(
+  name: string,
+  method: string,
+  path: string,
+  options: {
+    body?: unknown;
+    headers?: Record<string, string>;
+    expectedStatus?: number;
+    requiresAuth?: boolean;
+    skipOnFilter?: boolean;
+  } = {},
+): Promise<TestResult> {
+  if (
+    options.skipOnFilter &&
+    ENDPOINT_FILTER &&
+    !name.toLowerCase().includes(ENDPOINT_FILTER.toLowerCase())
+  ) {
+    return {
+      endpoint: name,
+      method,
+      status: "SKIP",
+      duration: 0,
+    };
+  }
+
+  const start = Date.now();
+  const url = `${BASE_URL}${path}`;
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "x-org-id": TEST_ORG_ID,
+    ...options.headers,
+  };
+
+  if (options.requiresAuth && sessionCookie) {
+    headers["Cookie"] = sessionCookie;
+  } else if (options.requiresAuth && authToken) {
+    headers["Authorization"] = `Bearer ${authToken}`;
+  }
+
+  try {
+    if (VERBOSE) log(`Testing: ${method} ${path}`, "INFO");
+
+    const response = await fetch(url, {
+      method,
+      headers,
+      body: options.body ? JSON.stringify(options.body) : undefined,
+    });
+
+    const duration = Date.now() - start;
+    const statusCode = response.status;
+
+    let responseData;
+    try {
+      const text = await response.text();
+      try {
+        responseData = JSON.parse(text);
+      } catch {
+        responseData = text;
+      }
+    } catch {
+      responseData = null;
+    }
+
+    const expectedStatus = options.expectedStatus || 200;
+    const isSuccess =
+      statusCode === expectedStatus ||
+      (statusCode >= 200 && statusCode < 300 && !options.expectedStatus);
+
+    if (VERBOSE && responseData) {
+      console.log(
+        "Response:",
+        typeof responseData === "string"
+          ? responseData
+          : JSON.stringify(responseData, null, 2),
+      );
+    }
+
+    const result: TestResult = {
+      endpoint: name,
+      method,
+      status: isSuccess ? "PASS" : "FAIL",
+      statusCode,
+      duration,
+      response: responseData,
+    };
+
+    if (!isSuccess) {
+      result.error = `Expected ${expectedStatus}, got ${statusCode}`;
+    }
+
+    return result;
+  } catch (error) {
+    const duration = Date.now() - start;
+    return {
+      endpoint: name,
+      method,
+      status: "FAIL",
+      duration,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+// Test suites
+async function testAuthEndpoints() {
+  log("\n🔐 Testing Authentication Endpoints...", "INFO");
+
+  // Test signup
+  const timestamp = Date.now();
+  const signupResult = await testEndpoint(
+    "Auth - Signup",
+    "POST",
+    "/api/auth/signup",
+    {
+      body: {
+        email: `test-${timestamp}@${EMAIL_DOMAIN}`,
+        password: "Test123!@#",
+        confirmPassword: "Test123!@#",
+        firstName: "Test",
+        lastName: "User",
+        phone: "+966500000001",
+        userType: "personal",
+        termsAccepted: true,
+        orgId: TEST_ORG_ID,
+        role: "TENANT",
+      },
+      expectedStatus: 201,
+      skipOnFilter: true,
+    },
+  );
+  results.push(signupResult);
+
+  if (signupResult.status === "PASS" && signupResult.response?.userId) {
+    testUserId = signupResult.response.userId;
+    authToken = signupResult.response.token;
+  }
+
+  // Test OTP send (login endpoint)
+  const otpSendResult = await testEndpoint(
+    "Auth - OTP Send",
+    "POST",
+    "/api/auth/otp/send",
+    {
+      body: {
+        identifier: TEST_ADMIN_IDENTIFIER,
+        password: "Test@1234",
+      },
+      skipOnFilter: true,
+    },
+  );
+  results.push(otpSendResult);
+
+  // Test me endpoint (requires auth)
+  const meResult = await testEndpoint(
+    "Auth - Get Current User",
+    "GET",
+    "/api/auth/me",
+    {
+      requiresAuth: true,
+      skipOnFilter: true,
+    },
+  );
+  results.push(meResult);
+}
+
+async function testPaymentEndpoints() {
+  log("\n💳 Testing Payment Endpoints...", "INFO");
+
+  // Test payment callback (simulated)
+  const callbackResult = await testEndpoint(
+    "Payments - Callback Handler",
+    "POST",
+    "/api/payments/callback",
+    {
+      body: {
+        tranRef: "TST_" + randomBytes(16).toString("hex"),
+        cartId: "test-cart-" + Date.now(),
+        respStatus: "A",
+        respCode: "000",
+        respMessage: "Approved",
+        amount: "100.00",
+        currency: "SAR",
+      },
+      headers: {
+        "x-paytabs-signature": "test-signature", // Would need real signature in prod
+      },
+      skipOnFilter: true,
+    },
+  );
+  results.push(callbackResult);
+
+  // Test Tap payment checkout creation
+  const tapCheckoutResult = await testEndpoint(
+    "Payments - Tap Checkout",
+    "POST",
+    "/api/payments/tap/checkout",
+    {
+      body: {
+        amount: 100.0,
+        currency: "SAR",
+        description: "Test Payment",
+        metadata: {
+          orderId: "test-order-" + Date.now(),
+        },
+      },
+      requiresAuth: true,
+      skipOnFilter: true,
+    },
+  );
+  results.push(tapCheckoutResult);
+}
+
+async function testWhatsAppEndpoints() {
+  log("\n📱 Testing WhatsApp Integration...", "INFO");
+
+  const whatsappResult = await testEndpoint(
+    "Admin - Send WhatsApp Notification",
+    "POST",
+    "/api/admin/notifications/send",
+    {
+      body: {
+        recipients: {
+          type: "users",
+          ids: testUserId ? [testUserId] : [],
+        },
+        channels: ["whatsapp"],
+        subject: "Test Notification",
+        message: "This is a test WhatsApp message from API testing",
+        priority: "normal",
+      },
+      requiresAuth: true,
+      skipOnFilter: true,
+    },
+  );
+  results.push(whatsappResult);
+}
+
+async function testFinanceEndpoints() {
+  log("\n📊 Testing Finance Endpoints...", "INFO");
+
+  // Balance sheet - GET request with query params
+  const asOf = new Date().toISOString();
+  const balanceSheetResult = await testEndpoint(
+    "Finance - Balance Sheet Report",
+    "GET",
+    `/api/finance/reports/balance-sheet?asOf=${encodeURIComponent(asOf)}`,
+    {
+      requiresAuth: true,
+      skipOnFilter: true,
+    },
+  );
+  results.push(balanceSheetResult);
+
+  // Income statement - GET request with query params
+  const startDate = new Date(
+    Date.now() - 30 * 24 * 60 * 60 * 1000,
+  ).toISOString();
+  const endDate = new Date().toISOString();
+  const incomeStatementResult = await testEndpoint(
+    "Finance - Income Statement",
+    "GET",
+    `/api/finance/reports/income-statement?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`,
+    {
+      requiresAuth: true,
+      skipOnFilter: true,
+    },
+  );
+  results.push(incomeStatementResult);
+}
+
+async function testWorkOrderEndpoints() {
+  log("\n🔧 Testing Work Order Endpoints...", "INFO");
+
+  let workOrderId: string | null = null;
+
+  // Create work order
+  const createResult = await testEndpoint(
+    "Work Orders - Create",
+    "POST",
+    "/api/work-orders",
+    {
+      body: {
+        title: "Test Work Order - Leaking Faucet",
+        description: "Kitchen faucet is leaking and needs repair",
+        type: "MAINTENANCE",
+        priority: "MEDIUM",
+        category: "PLUMBING",
+        propertyId: testUserId || "691a122168aef400bf90dbbe", // API extracts this into location.propertyId
+        unitNumber: "101",
+        requester: {
+          type: "STAFF",
+          name: "Test Admin",
+          phone: "+966500000001",
+        },
+      },
+      requiresAuth: true,
+      expectedStatus: 201,
+      skipOnFilter: true,
+    },
+  );
+  results.push(createResult);
+
+  if (createResult.status === "PASS" && createResult.response?.workOrderId) {
+    workOrderId = createResult.response.workOrderId;
+  }
+
+  // List work orders
+  const listResult = await testEndpoint(
+    "Work Orders - List",
+    "GET",
+    "/api/work-orders",
+    {
+      requiresAuth: true,
+      skipOnFilter: true,
+    },
+  );
+  results.push(listResult);
+
+  // Get specific work order
+  if (workOrderId) {
+    const getResult = await testEndpoint(
+      "Work Orders - Get by ID",
+      "GET",
+      `/api/work-orders/${workOrderId}`,
+      {
+        requiresAuth: true,
+        skipOnFilter: true,
+      },
+    );
+    results.push(getResult);
+
+    // Update work order status
+    const statusResult = await testEndpoint(
+      "Work Orders - Update Status",
+      "PATCH",
+      `/api/work-orders/${workOrderId}/status`,
+      {
+        body: {
+          status: "IN_PROGRESS",
+        },
+        requiresAuth: true,
+        skipOnFilter: true,
+      },
+    );
+    results.push(statusResult);
+
+    // Add comment
+    const commentResult = await testEndpoint(
+      "Work Orders - Add Comment",
+      "POST",
+      `/api/work-orders/${workOrderId}/comments`,
+      {
+        body: {
+          comment: "Test comment from API testing",
+        },
+        requiresAuth: true,
+        skipOnFilter: true,
+      },
+    );
+    results.push(commentResult);
+  }
+}
+
+// Main execution
+async function main() {
+  console.log("🚀 Fixzit API Endpoint Testing\n");
+  console.log(`Base URL: ${BASE_URL}`);
+  console.log(`Test Org ID: ${TEST_ORG_ID}`);
+  if (ENDPOINT_FILTER) {
+    console.log(`Filter: ${ENDPOINT_FILTER}`);
+  }
+  console.log("");
+
+  // Authenticate test user first
+  log("\n🔑 Authenticating test user...", "INFO");
+  const authSuccess = await authenticateTestUser();
+
+  if (!authSuccess) {
+    log(
+      "⚠️  Authentication failed. Tests requiring auth will be skipped.",
+      "WARN",
+    );
+  }
+
+  const startTime = Date.now();
+
+  try {
+    await testAuthEndpoints();
+    await testPaymentEndpoints();
+    await testWhatsAppEndpoints();
+    await testFinanceEndpoints();
+    await testWorkOrderEndpoints();
+  } catch (error) {
+    log(
+      `Fatal error: ${error instanceof Error ? error.message : String(error)}`,
+      "ERROR",
+    );
+  }
+
+  const duration = Date.now() - startTime;
+
+  // Print summary
+  console.log("\n" + "=".repeat(80));
+  console.log("📋 Test Results Summary");
+  console.log("=".repeat(80) + "\n");
+
+  const passed = results.filter((r) => r.status === "PASS").length;
+  const failed = results.filter((r) => r.status === "FAIL").length;
+  const skipped = results.filter((r) => r.status === "SKIP").length;
+
+  results.forEach((result) => {
+    if (result.status === "SKIP") return;
+
+    const icon = result.status === "PASS" ? "✅" : "❌";
+    const statusColor = result.status === "PASS" ? "\x1b[32m" : "\x1b[31m";
+    const reset = "\x1b[0m";
+
+    console.log(`${icon} ${result.endpoint} (${result.method})`);
+    console.log(
+      `   Status: ${statusColor}${result.status}${reset} | Code: ${result.statusCode || "N/A"} | Duration: ${result.duration}ms`,
+    );
+
+    if (result.error) {
+      console.log(`   Error: ${result.error}`);
+    }
+    console.log("");
+  });
+
+  console.log("=".repeat(80));
+  console.log(
+    `Total: ${results.length} | Passed: ${passed} | Failed: ${failed} | Skipped: ${skipped}`,
+  );
+  console.log(`Duration: ${duration}ms (${(duration / 1000).toFixed(2)}s)`);
+  console.log("=".repeat(80) + "\n");
+
+  if (failed > 0) {
+    log(`❌ ${failed} test(s) failed`, "ERROR");
+    process.exit(1);
+  } else {
+    log(`✅ All tests passed!`, "SUCCESS");
+    process.exit(0);
+  }
+}
+
+main().catch((error) => {
+  log(
+    `Unhandled error: ${error instanceof Error ? error.message : String(error)}`,
+    "ERROR",
+  );
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/test-auth-config.js">
+<![CDATA[
+#!/usr/bin/env node
+require("dotenv").config({ path: ".env.local" });
+
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+
+console.log("\n=== PHASE 1.2: AUTHENTICATION CONFIG VERIFICATION ===\n");
+
+const results = {
+  jwtSecret: false,
+  jwtLength: false,
+  mongodbUri: false,
+  authModule: false,
+};
+
+console.log("[1/4] Checking JWT_SECRET...");
+const jwtSecret = process.env.JWT_SECRET;
+if (!jwtSecret) {
+  console.log("❌ JWT_SECRET not found");
+} else {
+  results.jwtSecret = true;
+  console.log("✅ JWT_SECRET configured (********)");
+  if (jwtSecret.length >= 32) {
+    results.jwtLength = true;
+    console.log(`✅ JWT_SECRET length: ${jwtSecret.length} bytes (secure)`);
+  }
+}
+
+console.log("\n[2/4] Checking MONGODB_URI...");
+const mongoUri = process.env.MONGODB_URI;
+if (mongoUri && mongoUri.includes("mongodb+srv")) {
+  results.mongodbUri = true;
+  console.log("✅ MONGODB_URI configured (Atlas)");
+}
+
+console.log("\n[3/4] Testing auth module...");
+try {
+  const { generateToken, verifyToken } = require("../lib/auth");
+  results.authModule = true;
+  console.log("✅ Auth module loaded");
+
+  console.log("\n[4/4] Testing JWT operations...");
+  const token = generateToken({
+    id: "123",
+    email: `test@${EMAIL_DOMAIN}`,
+    role: "super_admin",
+    orgId: "456",
+  });
+  console.log("✅ Token generation successful");
+  const decoded = verifyToken(token);
+  if (decoded) console.log("✅ Token verification successful");
+} catch (e) {
+  console.log("❌ Auth module failed:", e.message);
+}
+
+const allPassed = Object.values(results).every((v) => v === true);
+console.log("\n" + "=".repeat(60));
+if (allPassed) {
+  console.log("✅✅✅ PHASE 1.2 COMPLETE: AUTHENTICATION VERIFIED ✅✅✅\n");
+  process.exit(0);
+} else {
+  console.log("❌ PHASE 1.2 INCOMPLETE\n");
+  process.exit(1);
+}
+
+]]>
+</file>
+
+<file path="scripts/test-auth-direct.js">
+<![CDATA[
+/**
+ * Direct authentication test - bypasses UI to test auth logic
+ */
+const bcrypt = require('bcryptjs');
+const dotenv = require('dotenv');
+
+// Load test environment
+dotenv.config({ path: '.env.test' });
+
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
+async function testAuth() {
+  console.log('🔍 Testing authentication directly...\n');
+
+  try {
+    // 1. Connect to database
+    const mongoose = require('mongoose');
+    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/fixzit_test';
+    console.log(`📦 Connecting to: ${MONGODB_URI}`);
+    
+    await mongoose.connect(MONGODB_URI);
+    console.log('✅ Connected to MongoDB\n');
+
+    // 2. Load User model (CommonJS can't use TS directly, use dynamic import workaround)
+    // For now, just query directly with mongoose
+    // Use safe create-or-reuse pattern to avoid OverwriteModelError
+    const mongoose = require('mongoose');
+    const UserSchema = mongoose.models.User || mongoose.model('User', new mongoose.Schema({}, { strict: false }));
+
+    // 3. Find test user
+    const testEmail = process.env.TEST_USER_EMAIL || `test-admin@${EMAIL_DOMAIN}`;
+    const testPassword = process.env.TEST_USER_PASSWORD || 'Test@1234';
+    
+    console.log(`👤 Looking for user: ${testEmail}`);
+    const user = await UserSchema.findOne({ email: testEmail }).lean();
+    
+    if (!user) {
+      console.error(`❌ User not found: ${testEmail}`);
+      process.exit(1);
+    }
+    
+    console.log(`✅ Found user: ${user.email}`);
+    console.log(`   - ID: ${user._id}`);
+    console.log(`   - Role: ${user.role}`);
+    console.log(`   - Status: ${user.status}`);
+    console.log(`   - Password hash: ${user.password.substring(0, 20)}...`);
+
+    // 4. Verify password
+    console.log(`\n🔐 Testing password: ${testPassword}`);
+    const isValid = await bcrypt.compare(testPassword, user.password);
+    
+    if (!isValid) {
+      console.error('❌ Password verification FAILED!');
+      console.error('   This means the password in .env.test does not match the hash in database');
+      process.exit(1);
+    }
+    
+    console.log('✅ Password verification PASSED!');
+
+    // 5. Check user status
+    if (user.status !== 'ACTIVE') {
+      console.error(`❌ User is not ACTIVE (status: ${user.status})`);
+      process.exit(1);
+    }
+    
+    console.log('✅ User status is ACTIVE');
+
+    // 6. Summary
+    console.log('\n' + '='.repeat(50));
+    console.log('🎉 ALL AUTH CHECKS PASSED!');
+    console.log('='.repeat(50));
+    console.log('\nAuthentication logic is working correctly.');
+    console.log('The issue must be in the NextAuth integration or client-side code.');
+    
+    await mongoose.disconnect();
+    console.log('\n✅ Disconnected from MongoDB');
+    
+  } catch (error) {
+    console.error('\n❌ Error during authentication test:');
+    console.error(error);
+    process.exit(1);
+  }
+}
+
+testAuth();
+
+]]>
+</file>
+
+<file path="scripts/test-auth-fix.js">
+<![CDATA[
+// Test script to verify auth fixes
+const jwt = require("jsonwebtoken");
+const { requireEnv } = require("../lib/env");
+
+let jwtSecret;
+try {
+  jwtSecret = requireEnv("JWT_SECRET");
+} catch (_error) {
+  console.error("❌ JWT_SECRET is required to run this script.");
+  console.error(
+    "   Set JWT_SECRET in your environment before running auth tests.",
+  );
+  process.exit(1);
+}
+
+// Test JWT generation
+try {
+  const testToken = jwt.sign({ userId: "test123", role: "admin" }, jwtSecret, {
+    expiresIn: "1h",
+  });
+  console.log("✅ JWT generation works");
+
+  // Test JWT verification
+  const decoded = jwt.verify(testToken, jwtSecret);
+  console.log("✅ JWT verification works");
+  console.log("   Decoded:", decoded);
+} catch (error) {
+  console.error("❌ JWT test failed:", error.message);
+}
+
+console.log("\n✅ Auth fixes applied successfully!");
+console.log("\nNext steps:");
+console.log("1. Set JWT_SECRET in your .env file");
+console.log("2. Restart your server: npm run dev");
+console.log("3. Test login endpoint: POST /api/auth/login");
+
+]]>
+</file>
+
+<file path="scripts/test-auth.ts">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * Test authentication manually
+ */
+import { db } from "../lib/mongo";
+import { User } from "../server/models/User";
+import bcrypt from "bcryptjs";
+
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+// 🔐 Use configurable password (env var with local dev fallback)
+const TEST_PASSWORD = process.env.DEMO_DEFAULT_PASSWORD || "password123";
+
+if (!process.env.DEMO_DEFAULT_PASSWORD) {
+  console.warn("⚠️  DEMO_DEFAULT_PASSWORD not set - using local dev default. Set this env var in production.");
+}
+
+async function testAuth() {
+  try {
+    await db;
+
+    const email = `admin@${EMAIL_DOMAIN}`;
+    const password = TEST_PASSWORD;
+
+    console.log(`🔍 Testing authentication for ${email}...\n`);
+
+    // Find user
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      console.error("❌ User not found");
+      process.exit(1);
+    }
+
+    console.log("✅ User found");
+    console.log(`   ID: ${user._id}`);
+    console.log(`   Email: ${user.email}`);
+    console.log(`   Role: ${user.professional?.role}`);
+    console.log(`   Status: ${user.status}`);
+    console.log(`   Has password: ${!!user.password}`);
+    console.log(
+      `   Password starts with $2b$: ${user.password?.startsWith("$2b$")}`,
+    );
+
+    // Test password
+    console.log(`\n🔐 Testing password verification...`);
+    const isValid = await bcrypt.compare(password, user.password);
+
+    if (isValid) {
+      console.log("✅ Password matches!");
+    } else {
+      console.log("❌ Password does NOT match");
+
+      // Try hashing the password and comparing
+      console.log("\n🧪 Testing hash generation...");
+      const newHash = await bcrypt.hash(password, 10);
+      console.log(`   New hash: ${newHash.substring(0, 20)}...`);
+      console.log(`   Stored hash: ${user.password.substring(0, 20)}...`);
+
+      const testAgain = await bcrypt.compare(password, newHash);
+      console.log(`   New hash validates: ${testAgain}`);
+    }
+
+    process.exit(isValid ? 0 : 1);
+  } catch (error) {
+    console.error("❌ Error:", error);
+    process.exit(1);
+  }
+}
+
+testAuth();
+
+]]>
+</file>
+
+<file path="scripts/test-bcrypt.js">
+<![CDATA[
+const bcrypt = require('bcryptjs');
+
+const password = 'Test@1234';
+const hash = '$2b$10$DEA4.sfOaLxbbQN9YulKUeEEf8c7IinIBy9bEtJSKpXyls.lDY8li';
+
+bcrypt.compare(password, hash).then(result => {
+  console.log('Password matches hash:', result);
+  if (!result) {
+    console.error('ISSUE: Password does NOT match the hash!');
+    process.exit(1);
+  }
+}).catch(err => {
+  console.error('Error comparing:', err);
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/test-data.js">
+<![CDATA[
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
+
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+// 🔐 Use configurable password (env var with local dev fallback)
+const DEMO_SUPERADMIN_PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD || "admin123";
+
+if (!process.env.DEMO_SUPERADMIN_PASSWORD) {
+  console.warn("⚠️  DEMO_SUPERADMIN_PASSWORD not set - using local dev default. Set this env var in production.");
+}
+
+// Connect to MongoDB
+mongoose.connect("mongodb://localhost:27017/fixzitsouq", {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+
+// Import models
+const User = require("./models/User");
+const Property = require("./models/Property");
+const WorkOrder = require("./models/WorkOrder");
+
+async function createTestData() {
+  try {
+    // Create admin user
+    const hashedPassword = await bcrypt.hash(DEMO_SUPERADMIN_PASSWORD, 10);
+    const adminEmail = `admin@${EMAIL_DOMAIN}`;
+    const admin = await User.findOneAndUpdate(
+      { email: adminEmail },
+      {
+        email: adminEmail,
+        password: hashedPassword,
+        name: "Admin User",
+        role: "super_admin",
+        status: "active",
+        orgId: undefined, // set below once _id exists
+      },
+      { upsert: true, new: true },
+    );
+    if (!admin.orgId) {
+      admin.orgId = admin._id;
+      await admin.save();
+    }
+    console.log("✅ Admin user created:", admin.email);
+
+    // Create test property
+    const property = await Property.findOneAndUpdate(
+      { name: "Test Building A" },
+      {
+        name: "Test Building A",
+        address: "123 Main St, Riyadh",
+        type: "commercial",
+        size: 5000,
+        units: 20,
+        orgId: admin._id,
+        status: "active",
+      },
+      { upsert: true, new: true },
+    );
+    console.log("✅ Test property created:", property.name);
+
+    // Create test work order
+    const workOrder = await WorkOrder.findOneAndUpdate(
+      { workOrderNumber: "WO-001" },
+      {
+        workOrderNumber: "WO-001",
+        title: "Fix AC Unit",
+        description: "AC not cooling properly",
+        property: property._id,
+        orgId: admin._id,
+        status: "open",
+        priority: "high",
+        category: "maintenance",
+      },
+      { upsert: true, new: true },
+    );
+    console.log("✅ Test work order created:", workOrder.workOrderNumber);
+
+    // Count totals
+    const userCount = await User.countDocuments();
+    const propertyCount = await Property.countDocuments();
+    const workOrderCount = await WorkOrder.countDocuments();
+
+    console.log("\n📊 Database Status:");
+    console.log(`- Users: ${userCount}`);
+    console.log(`- Properties: ${propertyCount}`);
+    console.log(`- Work Orders: ${workOrderCount}`);
+
+    process.exit(0);
+  } catch (error) {
+    console.error("Error creating test data:", error);
+    process.exit(1);
+  }
+}
+
+createTestData();
+
+]]>
+</file>
+
+<file path="scripts/test-mongo-connection.ts">
+<![CDATA[
+/**
+ * MongoDB Connection Test Suite
+ *
+ * This script validates the MongoDB connection and database operations
+ * Usage: tsx scripts/test-mongo-connection.ts
+ */
+
+import { connectToDatabase, getDatabase } from "@/lib/mongodb-unified";
+
+async function testConnection() {
+  console.log("🚀 MongoDB Connection Test Suite");
+  console.log("================================\n");
+
+  try {
+    console.log("🔍 Testing MongoDB connection...");
+    console.log("📊 Using unified MongoDB connection");
+
+    // Test 1: Establish MongoDB connection
+    await connectToDatabase();
+    console.log("✅ Database connection established");
+
+    // Test 2: Get database handle
+    const database = await getDatabase();
+    console.log("✅ Database handle retrieved");
+
+    // Test 3: Collection operations
+    const testCollection = database.collection("test");
+
+    // Insert test
+    const insertResult = await testCollection.insertOne({
+      name: "Test Document",
+      timestamp: new Date(),
+      data: { value: 42 },
+    });
+    console.log(`✅ Insert operation successful: ${insertResult.insertedId}`);
+
+    // Find test
+    const findResult = await testCollection
+      .find({ name: "Test Document" })
+      .toArray();
+    console.log(
+      `✅ Find operation successful, found: ${findResult.length} documents`,
+    );
+
+    // FindOne test
+    const findOneResult = await testCollection.findOne({
+      name: "Test Document",
+    });
+    console.log(
+      `✅ FindOne operation successful: ${findOneResult ? "Found document" : "No document"}`,
+    );
+
+    // Update test
+    const updateResult = await testCollection.updateOne(
+      { name: "Test Document" },
+      { $set: { updated: new Date() } },
+    );
+    console.log(
+      `✅ Update operation successful: ${updateResult.modifiedCount} modified`,
+    );
+
+    // Delete test
+    const deleteResult = await testCollection.deleteOne({
+      name: "Test Document",
+    });
+    console.log(
+      `✅ Delete operation successful: ${deleteResult.deletedCount} deleted`,
+    );
+
+    console.log("🎉 All database operations completed successfully!\n");
+
+    // Test results summary
+    const results = {
+      success: true,
+      connectionType: "unified",
+      operations: {
+        insert: true,
+        find: true,
+        findOne: true,
+        update: true,
+        delete: true,
+      },
+    };
+
+    console.log("📋 Test Results:");
+    console.log("================");
+    console.log(JSON.stringify(results, null, 2));
+
+    return results;
+  } catch (error) {
+    console.error("❌ Connection test failed:", error);
+
+    const results = {
+      success: false,
+      connectionType: "unified",
+      error: error instanceof Error ? error.message : String(error),
+      operations: {
+        insert: false,
+        find: false,
+        findOne: false,
+        update: false,
+        delete: false,
+      },
+    };
+
+    console.log("\n📋 Test Results:");
+    console.log("================");
+    console.log(JSON.stringify(results, null, 2));
+
+    return results;
+  }
+}
+
+// Run the test if this script is executed directly
+if (require.main === module) {
+  testConnection()
+    .then((results) => {
+      process.exit(results.success ? 0 : 1);
+    })
+    .catch((error) => {
+      console.error("❌ Fatal error during MongoDB connection test:", error);
+      process.exit(1);
+    });
+}
+
+export { testConnection };
+
+]]>
+</file>
+
+<file path="scripts/test-mongodb-atlas.js">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * Phase 1.1: MongoDB Atlas Connection Test
+ */
+require("dotenv").config({ path: ".env.local" });
+const { MongoClient } = require("mongodb");
+
+const uri = process.env.MONGODB_URI;
+
+console.log("\n=== PHASE 1.1: MONGODB ATLAS CONNECTION TEST ===\n");
+
+if (!uri || !uri.includes("mongodb+srv")) {
+  console.error("❌ FATAL: Invalid MONGODB_URI in .env.local");
+  process.exit(1);
+}
+
+console.log("✓ Atlas URI detected and validated\n");
+
+async function testConnection() {
+  let client;
+  try {
+    console.log("⏳ Connecting to MongoDB Atlas...");
+    client = await MongoClient.connect(uri, {
+      serverSelectionTimeoutMS: 10000,
+    });
+    console.log("✅ Connected to MongoDB Atlas successfully!\n");
+
+    console.log("⏳ Pinging database...");
+    const adminDb = client.db().admin();
+    const pingResult = await adminDb.ping();
+
+    if (pingResult.ok === 1) {
+      console.log("✅ Ping successful! Database is responsive.\n");
+    }
+
+    console.log("⏳ Listing available databases...");
+    const dbList = await adminDb.listDatabases();
+    console.log(`✅ Number of available databases: ${dbList.databases.length}`);
+    // Database names not logged for security
+
+    console.log('\n⏳ Checking "fixzit" database...');
+    const fixzitDb = client.db("fixzit");
+    const collections = await fixzitDb.listCollections().toArray();
+
+    if (collections.length === 0) {
+      console.log('⚠️  "fixzit" database exists but has no collections yet');
+    } else {
+      console.log(
+        `✅ "fixzit" database contains ${collections.length} collection(s).`,
+      );
+    }
+
+    console.log(
+      "\n✅✅✅ PHASE 1.1 COMPLETE: MONGODB ATLAS CONNECTION VERIFIED ✅✅✅\n",
+    );
+  } catch (error) {
+    console.error("\n❌ CONNECTION FAILED:", error.message);
+    process.exit(1);
+  } finally {
+    if (client) {
+      await client.close();
+      console.log("✓ Connection closed.\n");
+    }
+  }
+}
+
+testConnection();
+
+]]>
+</file>
+
+<file path="scripts/test-server.js">
+<![CDATA[
+require("dotenv").config();
+
+console.log("🧪 Testing Fixzit Souq Server Components...\n");
+
+// Test 1: Environment
+console.log("1️⃣ Environment Check:");
+console.log("   ✅ NODE_ENV:", process.env.NODE_ENV || "not set");
+console.log(
+  "   ✅ JWT_SECRET:",
+  process.env.JWT_SECRET ? "configured" : "❌ missing",
+);
+console.log(
+  "   ✅ MONGODB_URI:",
+  process.env.MONGODB_URI ? "configured" : "❌ missing",
+);
+
+// Test 2: Dependencies
+console.log("\n2️⃣ Dependencies Check:");
+try {
+  require("express");
+  console.log("   ✅ express installed");
+  require("jsonwebtoken");
+  console.log("   ✅ jsonwebtoken installed");
+  require("bcryptjs");
+  console.log("   ✅ bcryptjs installed");
+  require("express-validator");
+  console.log("   ✅ express-validator installed");
+} catch (error) {
+  console.log(
+    "   ❌ Missing dependency:",
+    error instanceof Error ? error.message : String(error),
+  );
+}
+
+// Test 3: Middleware
+console.log("\n3️⃣ Middleware Check:");
+try {
+  require("./utils/asyncHandler");
+  console.log("   ✅ asyncHandler loaded");
+  require("./middleware/auth");
+  console.log("   ✅ auth middleware loaded");
+  require("./middleware/validation");
+  console.log("   ✅ validation middleware loaded");
+} catch (error) {
+  console.log(
+    "   ❌ Middleware error:",
+    error instanceof Error ? error.message : String(error),
+  );
+}
+
+// Test 4: Models
+console.log("\n4️⃣ Models Check:");
+try {
+  require("./models/User");
+  console.log("   ✅ User model loaded");
+  require("./models/Tenant");
+  console.log("   ✅ Tenant model loaded");
+} catch (error) {
+  console.log(
+    "   ❌ Model error:",
+    error instanceof Error ? error.message : String(error),
+  );
+}
+
+// Test 5: Routes
+console.log("\n5️⃣ Routes Check:");
+try {
+  require("./routes/auth");
+  console.log("   ✅ Auth routes loaded");
+} catch (error) {
+  console.log(
+    "   ❌ Routes error:",
+    error instanceof Error ? error.message : String(error),
+  );
+}
+
+console.log("\n✅ All tests completed!");
+console.log("🚀 Ready to start server with: npm run dev\n");
+process.exit(0);
+
+]]>
+</file>
+
+<file path="scripts/testing/e2e-all-users-all-pages.js">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * COMPREHENSIVE E2E TEST SUITE - ALL USERS, ALL PAGES
+ * Tests authentication, page access, and permissions for all 14 user roles
+ *
+ * REQUIRED ENVIRONMENT VARIABLE:
+ *   E2E_TEST_PASSWORD - Password for all test accounts (must be set for security)
+ *
+ * Usage:
+ *   E2E_TEST_PASSWORD=yourpassword node scripts/testing/e2e-all-users-all-pages.js
+ *
+ * Or set in environment:
+ *   export E2E_TEST_PASSWORD=yourpassword
+ *   node scripts/testing/e2e-all-users-all-pages.js
+ */
+
+const http = require("http");
+const https = require("https");
+const fs = require("fs");
+const path = require("path");
+const { mintSessionCookie } = require("./session-cookie");
+
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+
+// Validate required environment variables
+const E2E_PASSWORD =
+  process.env.E2E_TEST_PASSWORD ||
+  process.env.TEST_USER_PASSWORD ||
+  process.env.SEED_PASSWORD;
+if (!E2E_PASSWORD) {
+  console.error("❌ ERROR: E2E_TEST_PASSWORD/TEST_USER_PASSWORD/SEED_PASSWORD is not set");
+  console.error("This test suite requires a password for authentication.");
+  process.exit(1);
+}
+
+const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
+const OUTPUT_DIR = path.join(__dirname, "../../e2e-test-results");
+const ARTIFACT_DIR = path.join(process.cwd(), "_artifacts/all-users");
+const EXPECTED_ACCESS =
+  process.env.EXPECTED_ACCESS_FILE && fs.existsSync(process.env.EXPECTED_ACCESS_FILE)
+    ? JSON.parse(fs.readFileSync(process.env.EXPECTED_ACCESS_FILE, "utf8"))
+    : null;
+if (
+  /fixzit\.co|vercel\.app|production/i.test(BASE_URL) &&
+  process.env.ALLOW_E2E_PROD !== "1"
+) {
+  console.error(`❌ Refusing to run comprehensive E2E against ${BASE_URL} without ALLOW_E2E_PROD=1`);
+  process.exit(1);
+}
+
+// Ensure output directory exists
+if (!fs.existsSync(OUTPUT_DIR)) {
+  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+}
+if (!fs.existsSync(ARTIFACT_DIR)) {
+  fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
+}
+
+// Test users aligned to STRICT v4.1 canonical role codes
+const TEST_USERS = [
+  { email: `superadmin@${EMAIL_DOMAIN}`, role: "SUPER_ADMIN", name: "Super Admin" },
+  { email: `corp.admin@${EMAIL_DOMAIN}`, role: "CORPORATE_ADMIN", name: "Corporate Admin" },
+  { email: `management@${EMAIL_DOMAIN}`, role: "MANAGEMENT", name: "Management" },
+  { email: `finance@${EMAIL_DOMAIN}`, role: "FINANCE", name: "Finance" },
+  { email: `hr@${EMAIL_DOMAIN}`, role: "HR", name: "HR" },
+  { email: `employee@${EMAIL_DOMAIN}`, role: "CORPORATE_EMPLOYEE", name: "Corporate Employee" },
+  { email: `owner@${EMAIL_DOMAIN}`, role: "PROPERTY_OWNER", name: "Property Owner" },
+  { email: `technician@${EMAIL_DOMAIN}`, role: "TECHNICIAN", name: "Technician" },
+  { email: `tenant@${EMAIL_DOMAIN}`, role: "TENANT", name: "Tenant/End-User" },
+  { email: `finance.officer@${EMAIL_DOMAIN}`, role: "FINANCE_OFFICER", name: "Finance Officer" },
+  { email: `hr.officer@${EMAIL_DOMAIN}`, role: "HR_OFFICER", name: "HR Officer" },
+  { email: `support@${EMAIL_DOMAIN}`, role: "SUPPORT", name: "Support" },
+  { email: `ops@${EMAIL_DOMAIN}`, role: "OPS", name: "Operations" },
+  { email: `auditor@${EMAIL_DOMAIN}`, role: "AUDITOR_COMPLIANCE", name: "Auditor/Compliance" },
+];
+
+// All pages to test (from grep search results)
+const PAGES_TO_TEST = [
+  // Public pages
+  { path: "/", name: "Landing Page", public: true },
+  { path: "/login", name: "Login Page", public: true },
+  { path: "/signup", name: "Signup Page", public: true },
+  { path: "/forgot-password", name: "Forgot Password", public: true },
+
+  // Dashboard & Core
+  { path: "/dashboard", name: "Dashboard", protected: true },
+  { path: "/profile", name: "Profile", protected: true },
+  { path: "/settings", name: "Settings", protected: true },
+  { path: "/notifications", name: "Notifications", protected: true },
+  { path: "/logout", name: "Logout", protected: true },
+
+  // Work Orders
+  { path: "/work-orders", name: "Work Orders List", protected: true },
+  { path: "/work-orders/new", name: "New Work Order", protected: true },
+  { path: "/work-orders/board", name: "Work Orders Board", protected: true },
+  {
+    path: "/work-orders/approvals",
+    name: "Work Order Approvals",
+    protected: true,
+  },
+  { path: "/work-orders/history", name: "Service History", protected: true },
+  { path: "/work-orders/pm", name: "Preventive Maintenance", protected: true },
+
+  // Finance
+  { path: "/finance", name: "Finance Dashboard", protected: true },
+  { path: "/finance/invoices/new", name: "New Invoice", protected: true },
+  { path: "/finance/payments/new", name: "New Payment", protected: true },
+  { path: "/finance/expenses/new", name: "New Expense", protected: true },
+  { path: "/finance/budgets/new", name: "New Budget", protected: true },
+
+  // FM (Facility Management)
+  { path: "/fm", name: "FM Dashboard", protected: true },
+  { path: "/fm/dashboard", name: "FM Dashboard Alt", protected: true },
+  { path: "/fm/work-orders", name: "FM Work Orders", protected: true },
+  { path: "/fm/properties", name: "FM Properties", protected: true },
+  { path: "/fm/assets", name: "FM Assets", protected: true },
+  { path: "/fm/tenants", name: "FM Tenants", protected: true },
+  { path: "/fm/vendors", name: "FM Vendors", protected: true },
+  { path: "/fm/invoices", name: "FM Invoices", protected: true },
+  { path: "/fm/projects", name: "FM Projects", protected: true },
+  { path: "/fm/maintenance", name: "FM Maintenance", protected: true },
+  { path: "/fm/rfqs", name: "FM RFQs", protected: true },
+  { path: "/fm/orders", name: "FM Orders", protected: true },
+  { path: "/fm/marketplace", name: "FM Marketplace", protected: true },
+  { path: "/fm/finance", name: "FM Finance", protected: true },
+  { path: "/fm/hr", name: "FM HR", protected: true },
+  { path: "/fm/support", name: "FM Support", protected: true },
+  { path: "/fm/support/tickets", name: "FM Support Tickets", protected: true },
+  { path: "/fm/system", name: "FM System", protected: true },
+  { path: "/fm/reports", name: "FM Reports", protected: true },
+  { path: "/fm/compliance", name: "FM Compliance", protected: true },
+  { path: "/fm/crm", name: "FM CRM", protected: true },
+
+  // Properties
+  { path: "/properties", name: "Properties", protected: true },
+  { path: "/properties/units", name: "Property Units", protected: true },
+  { path: "/properties/leases", name: "Property Leases", protected: true },
+  {
+    path: "/properties/inspections",
+    name: "Property Inspections",
+    protected: true,
+  },
+  {
+    path: "/properties/documents",
+    name: "Property Documents",
+    protected: true,
+  },
+
+  // Marketplace
+  { path: "/marketplace/search", name: "Marketplace Search", protected: true },
+  { path: "/marketplace/cart", name: "Shopping Cart", protected: true },
+  { path: "/marketplace/checkout", name: "Checkout", protected: true },
+  { path: "/marketplace/orders", name: "Marketplace Orders", protected: true },
+  { path: "/marketplace/rfq", name: "Marketplace RFQ", protected: true },
+  { path: "/marketplace/vendor", name: "Vendor Portal", protected: true },
+  { path: "/marketplace/admin", name: "Marketplace Admin", protected: true },
+
+  // Aqar (Real Estate)
+  { path: "/aqar", name: "Aqar Dashboard", protected: true },
+  { path: "/aqar/properties", name: "Aqar Properties", protected: true },
+  { path: "/aqar/map", name: "Aqar Map", protected: true },
+
+  // Souq
+  { path: "/souq", name: "Souq Dashboard", protected: true },
+  { path: "/souq/catalog", name: "Souq Catalog", protected: true },
+  { path: "/souq/vendors", name: "Souq Vendors", protected: true },
+
+  // HR & Careers
+  { path: "/hr", name: "HR Dashboard", protected: true },
+  { path: "/hr/ats/jobs/new", name: "Post New Job", protected: true },
+  { path: "/careers", name: "Careers Page", public: true },
+
+  // Help & Support
+  { path: "/help", name: "Help Center", protected: true },
+  { path: "/help/ai-chat", name: "AI Chat Support", protected: true },
+  {
+    path: "/help/support-ticket",
+    name: "Create Support Ticket",
+    protected: true,
+  },
+  {
+    path: "/help/tutorial/getting-started",
+    name: "Getting Started Tutorial",
+    protected: true,
+  },
+  { path: "/support", name: "Support Dashboard", protected: true },
+  { path: "/support/my-tickets", name: "My Support Tickets", protected: true },
+
+  // Admin
+  { path: "/admin", name: "Admin Panel", protected: true },
+  { path: "/admin/cms", name: "Admin CMS", protected: true },
+
+  // Other
+  { path: "/vendors", name: "Vendors", protected: true },
+  { path: "/vendor/dashboard", name: "Vendor Dashboard", protected: true },
+  { path: "/crm", name: "CRM", protected: true },
+  { path: "/compliance", name: "Compliance", protected: true },
+  { path: "/reports", name: "Reports", protected: true },
+  { path: "/system", name: "System", protected: true },
+];
+
+let totalTests = 0;
+let passedTests = 0;
+let failedTests = 0;
+const results = [];
+
+function httpRequest(url, options = {}) {
+  return new Promise((resolve, reject) => {
+    const lib = url.startsWith("https") ? https : http;
+    let req;
+
+    const timeout = setTimeout(() => {
+      // Abort the request to prevent socket leaks
+      if (req) {
+        req.destroy(); // Terminates the connection immediately
+      }
+      reject(new Error("Request timeout"));
+    }, 10000); // 10 second timeout
+
+    req = lib.request(url, options, (res) => {
+      clearTimeout(timeout);
+      let data = "";
+      res.on("data", (chunk) => (data += chunk));
+      res.on("end", () => {
+        resolve({
+          statusCode: res.statusCode,
+          data,
+          headers: res.headers,
+          redirected: res.statusCode >= 300 && res.statusCode < 400,
+        });
+      });
+    });
+
+    req.on("error", (err) => {
+      clearTimeout(timeout);
+      reject(err);
+    });
+
+    if (options.body) req.write(options.body);
+    req.end();
+  });
+}
+
+async function login(user) {
+  try {
+    const { token: sessionToken, cookies } = await mintSessionCookie({
+      email: user.email,
+      role: user.role,
+      orgId: process.env.TEST_ORG_ID || "test-org",
+    });
+
+    return {
+      success: true,
+      token: sessionToken,
+      cookies,
+      user: { ...user, id: user.email },
+    };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+async function testPage(page, auth, user) {
+  totalTests++;
+  const testResult = {
+    user: user.name,
+    role: user.role,
+    page: page.name,
+    path: page.path,
+    timestamp: new Date().toISOString(),
+  };
+
+  try {
+    const headers = {};
+    if (auth && auth.cookies && page.protected) {
+      headers["Cookie"] = auth.cookies.join("; ");
+    }
+
+    const res = await httpRequest(`${BASE_URL}${page.path}`, {
+      method: "GET",
+      headers,
+    });
+
+    let statusLabel = "FAIL";
+    let note = `HTTP ${res.statusCode}`;
+    let increment = "failed";
+
+    if (page.protected && !auth) {
+      if (res.statusCode === 401 || res.redirected) {
+        statusLabel = "PASS";
+        note = "Correctly blocked (unauthenticated)";
+        increment = "passed";
+      } else {
+        note = `Expected redirect/401, got ${res.statusCode}`;
+      }
+    } else if (res.statusCode >= 200 && res.statusCode < 300) {
+      statusLabel = "PASS";
+      note = `HTTP ${res.statusCode} - Page loaded`;
+      testResult.hasHtml = res.data.includes("<html");
+      testResult.hasError =
+        res.data.includes("Error") || res.data.includes("error");
+      increment = "passed";
+    } else if (res.statusCode === 403) {
+      statusLabel = "BLOCKED";
+      note = "HTTP 403 - Access denied (insufficient permissions)";
+      increment = "failed";
+    } else if (res.redirected) {
+      statusLabel = "REDIRECT";
+      note = `HTTP ${res.statusCode} - Redirected`;
+      increment = "passed";
+    }
+
+    // Optional expectation enforcement via EXPECTED_ACCESS JSON file
+    if (EXPECTED_ACCESS) {
+      const expected = EXPECTED_ACCESS[user.role]?.[page.path];
+      if (expected) {
+        testResult.expected = expected;
+        const isAllow = statusLabel === "PASS";
+        const isBlock = statusLabel === "BLOCKED" || res.statusCode === 401;
+        const isRedirect = statusLabel === "REDIRECT";
+        const matches =
+          (expected === "ALLOW" && isAllow) ||
+          (expected === "BLOCK" && isBlock) ||
+          (expected === "REDIRECT" && isRedirect);
+        if (!matches) {
+          statusLabel = "FAIL_EXPECTATION";
+          note = `Expected ${expected}, saw ${statusLabel} (${res.statusCode})`;
+          increment = "failed";
+          testResult.mismatch = true;
+        }
+      }
+    }
+
+    testResult.status = statusLabel;
+    testResult.result = note;
+    if (increment === "passed") passedTests++;
+    else failedTests++;
+  } catch (err) {
+    testResult.status = "ERROR";
+    testResult.result = err.message;
+    testResult.error = err.stack;
+    failedTests++;
+  }
+
+  results.push(testResult);
+
+  // Progress indicator
+  const statusIcon =
+    testResult.status === "PASS"
+      ? "✅"
+      : testResult.status === "BLOCKED"
+        ? "🚫"
+        : testResult.status === "REDIRECT"
+          ? "↪️"
+          : testResult.status === "ERROR"
+            ? "💥"
+            : "❌";
+  console.log(`  ${statusIcon} ${page.name.padEnd(40)} ${testResult.result}`);
+
+  return testResult;
+}
+
+async function testUser(user) {
+  console.log(`\n${"=".repeat(80)}`);
+  console.log(`👤 Testing User: ${user.name} (${user.role})`);
+  console.log(`📧 Email: ${user.email}`);
+  console.log("=".repeat(80));
+
+  // Test login
+  console.log("\n🔐 Authentication Test");
+  const loginResult = await login(user);
+
+  if (!loginResult.success) {
+    console.log(`❌ Login failed: ${loginResult.error}`);
+    console.log("⏭️  Skipping page tests for this user\n");
+
+    results.push({
+      user: user.name,
+      role: user.role,
+      page: "LOGIN",
+      path: "/api/auth/login",
+      status: "FAIL",
+      result: `Login failed: ${loginResult.error}`,
+      timestamp: new Date().toISOString(),
+    });
+
+    totalTests++;
+    failedTests++;
+    return;
+  }
+
+  console.log(`✅ Login successful - Session token minted`);
+  console.log(`   User ID: ${loginResult.user.id || "test-user"}`);
+  console.log(`   Role: ${loginResult.user.role}`);
+
+  results.push({
+    user: user.name,
+    role: user.role,
+    page: "LOGIN",
+    path: "/api/auth/login",
+    status: "PASS",
+    result: "Login successful",
+    timestamp: new Date().toISOString(),
+  });
+
+  totalTests++;
+  passedTests++;
+
+  // Test public pages (without token)
+  console.log("\n📄 Public Pages (Unauthenticated)");
+  const publicPages = PAGES_TO_TEST.filter((p) => p.public);
+  for (const page of publicPages) {
+    await testPage(page, null, user);
+  }
+
+  // Test protected pages (with token)
+  console.log("\n🔒 Protected Pages (Authenticated)");
+  const protectedPages = PAGES_TO_TEST.filter((p) => p.protected);
+  for (const page of protectedPages) {
+    await testPage(page, loginResult, user);
+  }
+}
+
+async function runAllTests() {
+  console.log("\n");
+  console.log(
+    "╔═════════════════════════════════════════════════════════════════════════════╗",
+  );
+  console.log(
+    "║                  COMPREHENSIVE E2E TEST SUITE                                ║",
+  );
+  console.log(
+    "║            Testing All Users × All Pages × All Permissions                  ║",
+  );
+  console.log(
+    "╚═════════════════════════════════════════════════════════════════════════════╝",
+  );
+  console.log(`\n📅 Date: ${new Date().toLocaleString()}`);
+  console.log(`🌐 Base URL: ${BASE_URL}`);
+  console.log(`👥 Users to test: ${TEST_USERS.length}`);
+  console.log(`📄 Pages to test per user: ${PAGES_TO_TEST.length}`);
+  console.log(
+    `🧪 Total tests: ~${TEST_USERS.length * (PAGES_TO_TEST.length + 1)} (including login tests)`,
+  );
+
+  const startTime = Date.now();
+
+  // Test each user
+  for (const user of TEST_USERS) {
+    await testUser(user);
+  }
+
+  const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+
+  // Generate summary report
+  console.log("\n\n");
+  console.log(
+    "╔═════════════════════════════════════════════════════════════════════════════╗",
+  );
+  console.log(
+    "║                           TEST SUMMARY                                       ║",
+  );
+  console.log(
+    "╚═════════════════════════════════════════════════════════════════════════════╝",
+  );
+  console.log(`\n📊 Results:`);
+  console.log(`   ✅ Passed:  ${passedTests.toString().padStart(5)} tests`);
+  console.log(`   ❌ Failed:  ${failedTests.toString().padStart(5)} tests`);
+  console.log(`   📈 Total:   ${totalTests.toString().padStart(5)} tests`);
+  console.log(
+    `   🎯 Success: ${((passedTests / totalTests) * 100).toFixed(2)}%`,
+  );
+  console.log(`   ⏱️  Duration: ${duration}s`);
+
+  // Analyze results by user
+  console.log("\n\n📋 Results by User:");
+  console.log("─".repeat(80));
+
+  const userStats = {};
+  TEST_USERS.forEach((user) => {
+    const userResults = results.filter((r) => r.role === user.role);
+    const passed = userResults.filter(
+      (r) =>
+        r.status === "PASS" ||
+        r.status === "BLOCKED" ||
+        r.status === "REDIRECT",
+    ).length;
+    const failed = userResults.filter(
+      (r) => r.status === "FAIL" || r.status === "ERROR",
+    ).length;
+
+    userStats[user.role] = { passed, failed, total: userResults.length };
+
+    const statusIcon = failed === 0 ? "✅" : "⚠️";
+    console.log(
+      `${statusIcon} ${user.name.padEnd(25)} ${passed}/${userResults.length} passed`,
+    );
+  });
+
+  // Find problematic pages
+  console.log("\n\n🔍 Most Problematic Pages:");
+  console.log("─".repeat(80));
+
+  const pageStats = {};
+  PAGES_TO_TEST.forEach((page) => {
+    const pageResults = results.filter((r) => r.path === page.path);
+    const failed = pageResults.filter(
+      (r) => r.status === "FAIL" || r.status === "ERROR",
+    ).length;
+    pageStats[page.path] = {
+      name: page.name,
+      failed,
+      total: pageResults.length,
+    };
+  });
+
+  const problemPages = Object.entries(pageStats)
+    .filter(([_, stats]) => stats.failed > 0)
+    .sort((a, b) => b[1].failed - a[1].failed)
+    .slice(0, 10);
+
+  if (problemPages.length === 0) {
+    console.log("🎉 No problematic pages found! All pages working correctly.");
+  } else {
+    problemPages.forEach(([, stats]) => {
+      console.log(
+        `❌ ${stats.name.padEnd(40)} ${stats.failed}/${stats.total} failures`,
+      );
+    });
+  }
+
+  // Save detailed results to JSON
+  const jsonOutput = {
+    summary: {
+      date: new Date().toISOString(),
+      baseUrl: BASE_URL,
+      totalTests,
+      passedTests,
+      failedTests,
+      successRate: ((passedTests / totalTests) * 100).toFixed(2),
+      durationSeconds: duration,
+    },
+    userStats,
+    pageStats,
+    detailedResults: results,
+  };
+
+  const jsonFile = path.join(OUTPUT_DIR, `e2e-test-results-${Date.now()}.json`);
+  fs.writeFileSync(jsonFile, JSON.stringify(jsonOutput, null, 2));
+  console.log(`\n💾 Detailed results saved to: ${jsonFile}`);
+
+  // Generate Markdown report
+  const mdReport = generateMarkdownReport(jsonOutput);
+  const mdFile = path.join(
+    OUTPUT_DIR,
+    `E2E_TEST_REPORT_${new Date().toISOString().split("T")[0]}.md`,
+  );
+  fs.writeFileSync(mdFile, mdReport);
+  console.log(`📄 Markdown report saved to: ${mdFile}`);
+
+  // HFV-style artifact drop for quick access
+  fs.writeFileSync(
+    path.join(ARTIFACT_DIR, "latest-results.json"),
+    JSON.stringify(jsonOutput, null, 2),
+  );
+  fs.writeFileSync(
+    path.join(ARTIFACT_DIR, "latest-results.ndjson"),
+    results.map((r) => JSON.stringify(r)).join("\n"),
+  );
+
+  console.log("\n" + "═".repeat(80) + "\n");
+
+  // Exit with appropriate code
+  process.exit(failedTests > 0 ? 1 : 0);
+}
+
+function generateMarkdownReport(data) {
+  let md = `# E2E Test Report - ${new Date(data.summary.date).toLocaleString()}\n\n`;
+
+  md += `## Executive Summary\n\n`;
+  md += `- **Total Tests**: ${data.summary.totalTests}\n`;
+  md += `- **✅ Passed**: ${data.summary.passedTests}\n`;
+  md += `- **❌ Failed**: ${data.summary.failedTests}\n`;
+  md += `- **Success Rate**: ${data.summary.successRate}%\n`;
+  md += `- **Duration**: ${data.summary.durationSeconds}s\n`;
+  md += `- **Base URL**: ${data.summary.baseUrl}\n\n`;
+
+  md += `## Results by User\n\n`;
+  md += `| User Role | Passed | Failed | Total | Success Rate |\n`;
+  md += `|-----------|--------|--------|-------|-------------|\n`;
+
+  Object.entries(data.userStats).forEach(([role, stats]) => {
+    const successRate = ((stats.passed / stats.total) * 100).toFixed(1);
+    const icon = stats.failed === 0 ? "✅" : "⚠️";
+    md += `| ${icon} ${role} | ${stats.passed} | ${stats.failed} | ${stats.total} | ${successRate}% |\n`;
+  });
+
+  md += `\n## Problematic Pages\n\n`;
+
+  const problemPages = Object.entries(data.pageStats)
+    .filter(([_, stats]) => stats.failed > 0)
+    .sort((a, b) => b[1].failed - a[1].failed);
+
+  if (problemPages.length === 0) {
+    md += `🎉 **No problematic pages found!** All pages are working correctly across all user roles.\n\n`;
+  } else {
+    md += `| Page | Failures | Total Tests |\n`;
+    md += `|------|----------|-------------|\n`;
+    problemPages.forEach(([, stats]) => {
+      md += `| ${stats.name} | ${stats.failed} | ${stats.total} |\n`;
+    });
+    md += `\n`;
+  }
+
+  md += `## Detailed Results\n\n`;
+
+  TEST_USERS.forEach((user) => {
+    md += `### ${user.name} (${user.role})\n\n`;
+    const userResults = data.detailedResults.filter(
+      (r) => r.role === user.role,
+    );
+    const failures = userResults.filter(
+      (r) => r.status === "FAIL" || r.status === "ERROR",
+    );
+
+    if (failures.length === 0) {
+      md += `✅ **All tests passed for this user!**\n\n`;
+    } else {
+      md += `⚠️ **${failures.length} failures found:**\n\n`;
+      failures.forEach((f) => {
+        md += `- ❌ **${f.page}** (${f.path}): ${f.result}\n`;
+      });
+      md += `\n`;
+    }
+  });
+
+  md += `---\n\n`;
+  md += `*Report generated on ${new Date().toLocaleString()}*\n`;
+
+  return md;
+}
+
+// Run tests
+runAllTests().catch((err) => {
+  console.error("\n💥 FATAL ERROR:", err);
+  console.error(err.stack);
+  process.exit(1);
+});
+
+]]>
+</file>
+
+</batch_content>

@@ -1,0 +1,2847 @@
+
+You are the "Fixzit Memory Builder" for category: "routes".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "routes",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/api/auth/forgot-password/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { User } from "@/server/models/User";
+import { signPasswordResetToken, passwordResetLink } from "@/lib/auth/passwordReset";
+import { sendEmail } from "@/lib/email";
+import { logger } from "@/lib/logger";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { getClientIP } from "@/server/security/headers";
+
+export const runtime = "nodejs";
+
+type ForgotPasswordBody = {
+  email?: string;
+  locale?: "en" | "ar";
+};
+
+/**
+ * Password reset request endpoint.
+ * 
+ * SECURITY:
+ * - Rate limited to prevent enumeration attacks
+ * - Always returns success to prevent email enumeration
+ * - Token expires in 1 hour
+ * - Uses HMAC-SHA256 signed tokens (stateless)
+ */
+export async function POST(req: NextRequest) {
+  try {
+    // Rate limit: 5 requests per 15 minutes per IP
+    // SECURITY: Use distributed rate limiting (Redis) to prevent cross-instance bypass
+    const clientIp = getClientIP(req);
+    const rl = await smartRateLimit(`forgot-password:${clientIp}`, 5, 15 * 60 * 1000);
+    if (!rl.allowed) {
+      // Return success even when rate limited to prevent enumeration
+      return NextResponse.json({ 
+        ok: true, 
+        message: "If an account exists with this email, a reset link has been sent." 
+      });
+    }
+
+    const body = (await req.json().catch(() => ({}))) as ForgotPasswordBody;
+    const email = body.email?.trim().toLowerCase();
+
+    if (!email) {
+      return NextResponse.json({ error: "Email is required" }, { status: 400 });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
+    }
+
+    // Support both NEXTAUTH_SECRET (preferred) and AUTH_SECRET (legacy/Auth.js name)
+    // MUST align with auth.config.ts to prevent environment drift
+    const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+    if (!secret) {
+      logger.error("[forgot-password] NEXTAUTH_SECRET/AUTH_SECRET not configured", {
+        hint: "Set NEXTAUTH_SECRET or AUTH_SECRET env var in Vercel/production",
+      });
+      return NextResponse.json(
+        { error: "Password reset not configured" },
+        { status: 500 }
+      );
+    }
+
+    // SECURITY: Resolve default organization for public auth flow (must exist to enforce tenant isolation)
+    const resolvedOrgId =
+      process.env.PUBLIC_ORG_ID ||
+      process.env.TEST_ORG_ID ||
+      process.env.DEFAULT_ORG_ID;
+
+    // Always return success to prevent email enumeration
+    const successResponse = { 
+      ok: true, 
+      message: "If an account exists with this email, a reset link has been sent." 
+    };
+    
+    // STRICT v4.1 FIX: If no org context, disable flow to avoid cross-tenant reset attempts
+    if (!resolvedOrgId) {
+      logger.error("[forgot-password] Missing org context - password reset disabled", {
+        severity: "ops_critical",
+        action: "Set PUBLIC_ORG_ID/TEST_ORG_ID/DEFAULT_ORG_ID env var to enable password resets",
+      });
+      // Return 503 Service Unavailable to surface the issue to ops/monitoring
+      // Message stays generic to prevent user enumeration
+      return NextResponse.json(
+        { ok: false, message: "Password reset temporarily unavailable. Please try again later." },
+        { status: 503 }
+      );
+    }
+
+    await connectToDatabase();
+    // SECURITY FIX: Scope email lookup by orgId to prevent cross-tenant attacks (SEC-001)
+    const user = await User.findOne({ orgId: resolvedOrgId, email }).lean();
+
+    if (!user) {
+      // PII redacted per SEC-029
+      logger.info("[forgot-password] Reset requested for non-existent email");
+      return NextResponse.json(successResponse);
+    }
+
+    // Check if account is locked
+    const security = (user as { security?: { locked?: boolean } }).security;
+    if (security?.locked) {
+      // PII redacted per SEC-029
+      logger.warn("[forgot-password] Reset requested for locked account");
+      // Still return success to prevent enumeration
+      return NextResponse.json(successResponse);
+    }
+
+    // Generate password reset token
+    const token = signPasswordResetToken(email, secret);
+    // SECURITY: Ensure VERCEL_URL has https:// scheme for production
+    const vercelUrl = process.env.VERCEL_URL;
+    const normalizedVercelUrl = vercelUrl 
+      ? (vercelUrl.startsWith("http") ? vercelUrl : `https://${vercelUrl}`)
+      : undefined;
+    const origin =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      normalizedVercelUrl ||
+      req.nextUrl.origin;
+    const resetLink = passwordResetLink(origin, token);
+
+    // Determine locale
+    const locale = body.locale || "en";
+    const userName = (user as { personal?: { firstName?: string } }).personal?.firstName || 
+                     (user as { name?: string }).name || 
+                     email.split("@")[0];
+
+    // Localized email content
+    const emailContent = locale === "ar" ? {
+      subject: "إعادة تعيين كلمة المرور - Fixzit",
+      body: `مرحباً ${userName}،\n\nلقد تلقينا طلباً لإعادة تعيين كلمة مرور حسابك في Fixzit.\n\nاضغط على الرابط أدناه لإعادة تعيين كلمة المرور:\n\n${resetLink}\n\nهذا الرابط صالح لمدة ساعة واحدة.\n\nإذا لم تطلب إعادة تعيين كلمة المرور، يمكنك تجاهل هذه الرسالة بأمان.\n\nمع أطيب التحيات،\nفريق Fixzit`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; direction: rtl; text-align: right;">
+          <div style="background: linear-gradient(135deg, #dc2626, #f97316); padding: 30px; border-radius: 10px 10px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">إعادة تعيين كلمة المرور</h1>
+          </div>
+          <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+            <p style="color: #333; font-size: 16px; line-height: 1.6;">مرحباً ${userName}،</p>
+            <p style="color: #666; font-size: 14px; line-height: 1.6;">
+              لقد تلقينا طلباً لإعادة تعيين كلمة مرور حسابك في Fixzit.
+            </p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${resetLink}" style="background: #dc2626; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+                إعادة تعيين كلمة المرور
+              </a>
+            </div>
+            <p style="color: #999; font-size: 12px; line-height: 1.6;">
+              هذا الرابط صالح لمدة ساعة واحدة. إذا لم تطلب إعادة تعيين كلمة المرور، يمكنك تجاهل هذه الرسالة بأمان.
+            </p>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+            <p style="color: #999; font-size: 11px; text-align: center;">© ${new Date().getFullYear()} Fixzit</p>
+          </div>
+        </div>
+      `,
+    } : {
+      subject: "Password Reset Request - Fixzit",
+      body: `Hello ${userName},\n\nWe received a request to reset your Fixzit account password.\n\nClick the link below to reset your password:\n\n${resetLink}\n\nThis link expires in 1 hour.\n\nIf you didn't request a password reset, you can safely ignore this email.\n\nBest regards,\nThe Fixzit Team`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #dc2626, #f97316); padding: 30px; border-radius: 10px 10px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">Password Reset Request</h1>
+          </div>
+          <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+            <p style="color: #333; font-size: 16px; line-height: 1.6;">Hello ${userName},</p>
+            <p style="color: #666; font-size: 14px; line-height: 1.6;">
+              We received a request to reset your Fixzit account password.
+            </p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${resetLink}" style="background: #dc2626; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+                Reset Password
+              </a>
+            </div>
+            <p style="color: #999; font-size: 12px; line-height: 1.6;">
+              This link expires in 1 hour. If you didn't request a password reset, you can safely ignore this email.
+            </p>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+            <p style="color: #999; font-size: 11px; text-align: center;">© ${new Date().getFullYear()} Fixzit</p>
+          </div>
+        </div>
+      `,
+    };
+
+    // Send password reset email
+    const emailResult = await sendEmail(email, emailContent.subject, emailContent.body, {
+      html: emailContent.html,
+    });
+
+    if (emailResult.success) {
+      // PII redacted per SEC-029 - only log messageId
+      logger.info("[forgot-password] Reset email sent", {
+        messageId: emailResult.messageId,
+      });
+    } else if (emailResult.error?.includes("not configured")) {
+      // PII redacted per SEC-029
+      logger.warn("[forgot-password] SendGrid not configured");
+      // In development, include the link for testing
+      if (process.env.NODE_ENV !== "production") {
+        return NextResponse.json({
+          ...successResponse,
+          link: resetLink, // Only in development
+        });
+      }
+    } else {
+      // PII redacted per SEC-029
+      logger.error("[forgot-password] Failed to send reset email", {
+        error: emailResult.error,
+      });
+    }
+
+    return NextResponse.json(successResponse);
+  } catch (error) {
+    logger.error("[forgot-password] Unexpected error", error as Error);
+    return NextResponse.json(
+      { error: "Failed to process password reset request" },
+      { status: 500 }
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/auth/me/route.ts">
+<![CDATA[
+import { logger } from "@/lib/logger";
+import { NextResponse } from "next/server";
+import { auth } from "@/auth";
+
+/**
+ * GET /api/auth/me
+ * Returns the current authenticated user's session data
+ * Used by ClientLayout and other components for auth state management
+ */
+export async function GET() {
+  try {
+    const session = await auth();
+
+    if (!session || !session.user) {
+      // Return a benign guest payload to avoid 401 noise on public/unauth pages
+      return NextResponse.json(
+        { authenticated: false, user: null },
+        { status: 200 },
+      );
+    }
+
+    // Return user data from session
+    return NextResponse.json({
+      authenticated: true,
+      user: {
+        id: session.user.id,
+        email: session.user.email,
+        name: session.user.name,
+        role: session.user.role,
+        orgId: session.user.orgId,
+        permissions: session.user.permissions,
+        isSuperAdmin: session.user.isSuperAdmin,
+      },
+    });
+  } catch (error) {
+    logger.error("[/api/auth/me] Error:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/auth/otp/send/route.ts">
+<![CDATA[
+import { randomBytes, randomUUID } from "crypto";
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { sendOTP, isValidSaudiPhone, isSMSDevModeEnabled } from "@/lib/sms";
+import { logCommunication } from "@/lib/communication-logger";
+import {
+  redisOtpStore,
+  redisRateLimitStore,
+  OTP_EXPIRY_MS,
+  MAX_ATTEMPTS,
+  RATE_LIMIT_WINDOW_MS,
+  MAX_SENDS_PER_WINDOW,
+} from "@/lib/otp-store";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import {
+  EMPLOYEE_ID_REGEX,
+  normalizeCompanyCode,
+  buildOtpKey,
+  redactIdentifier,
+} from "@/lib/otp-utils";
+import { isTruthy } from "@/lib/utils/env";
+import {
+  DEMO_EMAILS,
+  DEMO_EMPLOYEE_IDS,
+  SPECIAL_DEMO_EMAILS,
+} from "@/lib/config/demo-users";
+import type { ObjectId } from "mongodb";
+
+interface UserDocument {
+  _id?: { toString: () => string };
+  orgId?: { toString: () => string } | string; // Organization ID for tenant isolation
+  email: string;
+  username?: string;
+  employeeId?: string;
+  password?: string;
+  isActive?: boolean;
+  status?: string;
+  __isDemoUser?: boolean;
+  contact?: { phone?: string };
+  personal?: { phone?: string };
+  phone?: string;
+  role?: string;
+  professional?: { role?: string };
+  roles?: string[];
+  [key: string]: unknown;
+}
+
+// Demo users are now imported from centralized config: @/lib/config/demo-users
+
+const TEST_USERS_FALLBACK_PHONE =
+  process.env.NEXTAUTH_TEST_USERS_FALLBACK_PHONE ||
+  process.env.TEST_USERS_FALLBACK_PHONE ||
+  "";
+
+const DEFAULT_TEST_FORCE_PHONE =
+  process.env.NEXTAUTH_TEST_FORCE_PHONE ||
+  process.env.TEST_FORCE_PHONE ||
+  "";
+const FORCE_OTP_PHONE =
+  process.env.NEXTAUTH_FORCE_OTP_PHONE || process.env.FORCE_OTP_PHONE || "";
+
+// Note: DEMO_AUTH_ENABLED is defined below with demo password configuration
+const OFFLINE_MODE = isTruthy(process.env.ALLOW_OFFLINE_MONGODB);
+
+const TEST_USER_CONFIG = [
+  {
+    identifier: process.env.TEST_SUPERADMIN_IDENTIFIER,
+    password: process.env.TEST_SUPERADMIN_PASSWORD,
+    phone: process.env.TEST_SUPERADMIN_PHONE,
+    role: "SUPER_ADMIN",
+  },
+  {
+    identifier: process.env.TEST_ADMIN_IDENTIFIER,
+    password: process.env.TEST_ADMIN_PASSWORD,
+    phone: process.env.TEST_ADMIN_PHONE,
+    role: "ADMIN",
+  },
+  {
+    identifier: process.env.TEST_MANAGER_IDENTIFIER,
+    password: process.env.TEST_MANAGER_PASSWORD,
+    phone: process.env.TEST_MANAGER_PHONE,
+    role: "MANAGER",
+  },
+  {
+    identifier: process.env.TEST_TECHNICIAN_IDENTIFIER,
+    password: process.env.TEST_TECHNICIAN_PASSWORD,
+    phone: process.env.TEST_TECHNICIAN_PHONE,
+    role: "TECHNICIAN",
+  },
+  {
+    identifier: process.env.TEST_TENANT_IDENTIFIER,
+    password: process.env.TEST_TENANT_PASSWORD,
+    phone: process.env.TEST_TENANT_PHONE,
+    role: "TENANT",
+  },
+  {
+    identifier: process.env.TEST_VENDOR_IDENTIFIER,
+    password: process.env.TEST_VENDOR_PASSWORD,
+    phone: process.env.TEST_VENDOR_PHONE,
+    role: "VENDOR",
+  },
+] as const;
+
+// SECURITY: Demo passwords are ONLY for local development/testing
+// In production (NODE_ENV=production), demo auth is completely disabled
+const DEMO_AUTH_ENABLED =
+  process.env.NODE_ENV !== "production" &&
+  (process.env.ALLOW_DEMO_LOGIN === "true" || process.env.NODE_ENV === "development");
+
+// SECURITY: Demo passwords are not hardcoded - must be set via environment variable
+// If not set, demo auth is effectively disabled even in development
+const CUSTOM_DEMO_PASSWORDS = (
+  process.env.NEXTAUTH_DEMO_PASSWORDS ||
+  process.env.DEMO_LOGIN_PASSWORDS ||
+  ""
+)
+  .split(",")
+  .map((pwd) => pwd.trim())
+  .filter(Boolean);
+
+// Only use demo passwords if explicitly configured via environment
+const DEMO_PASSWORD_WHITELIST = DEMO_AUTH_ENABLED ? CUSTOM_DEMO_PASSWORDS : [];
+
+const isDemoIdentifier = (identifier: string | undefined | null): boolean => {
+  if (!identifier) return false;
+  if (identifier.includes("@")) {
+    return DEMO_EMAILS.has(identifier.toLowerCase());
+  }
+  return DEMO_EMPLOYEE_IDS.has(identifier.toUpperCase());
+};
+
+const matchesDemoPassword = (password: string): boolean => {
+  if (!DEMO_AUTH_ENABLED) return false;
+  return DEMO_PASSWORD_WHITELIST.some((allowed) => password === allowed);
+};
+
+const buildDemoUser = (
+  identifier: string,
+  loginType: "personal" | "corporate",
+  companyCode?: string | null,
+) => {
+  const normalizedEmail =
+    loginType === "personal"
+      ? identifier.toLowerCase()
+      : `${identifier.toLowerCase()}@demo.fixzit`;
+
+  return {
+    _id: `demo-${randomUUID()}`,
+    email: normalizedEmail,
+    username:
+      loginType === "personal" ? normalizedEmail.split("@")[0] : identifier,
+    employeeId: loginType === "corporate" ? identifier : undefined,
+    role: "SUPER_ADMIN",
+    status: "ACTIVE",
+    isActive: true,
+    ...(TEST_USERS_FALLBACK_PHONE
+      ? {
+          contact: { phone: TEST_USERS_FALLBACK_PHONE },
+          personal: { phone: TEST_USERS_FALLBACK_PHONE },
+        }
+      : {}),
+    professional: { role: "SUPER_ADMIN" },
+    code: companyCode ?? "DEMO-ORG",
+    __isDemoUser: true,
+  };
+};
+
+const buildTestUser = (
+  identifier: string,
+  loginType: "personal" | "corporate",
+  role: string,
+  phone?: string,
+  companyCode?: string | null,
+) => {
+  const normalizedEmail =
+    loginType === "personal"
+      ? identifier.toLowerCase()
+      : `${identifier.toLowerCase()}@test.fixzit`;
+
+  return {
+    _id: randomBytes(12).toString("hex"),
+    email: normalizedEmail,
+    username:
+      loginType === "corporate" ? identifier : normalizedEmail.split("@")[0],
+    employeeId: loginType === "corporate" ? identifier : undefined,
+    role,
+    status: "ACTIVE",
+    isActive: true,
+    contact: { phone: phone ?? TEST_USERS_FALLBACK_PHONE },
+    personal: { phone: phone ?? TEST_USERS_FALLBACK_PHONE },
+    professional: { role },
+    code: companyCode ?? "TEST-ORG",
+    __isDemoUser: true,
+    __isTestUser: true,
+  };
+};
+
+const resolveTestUser = (
+  identifier: string,
+  password: string | undefined,
+  loginType: "personal" | "corporate",
+  companyCode?: string | null,
+) => {
+  if (!password) {
+    return null;
+  }
+  const normalized =
+    loginType === "personal"
+      ? identifier.toLowerCase()
+      : identifier.toUpperCase();
+  const normalizedCompanyCode = normalizeCompanyCode(
+    companyCode || process.env.TEST_COMPANY_CODE,
+  );
+  for (const config of TEST_USER_CONFIG) {
+    if (!config.identifier || !config.password) continue;
+    const configIdentifier =
+      loginType === "personal"
+        ? config.identifier.toLowerCase()
+        : config.identifier.toUpperCase();
+    const configCompanyCode = normalizeCompanyCode(
+      (config as { companyCode?: string }).companyCode ||
+        process.env.TEST_COMPANY_CODE,
+    );
+    const companyCodeMatches =
+      loginType === "corporate"
+        ? !configCompanyCode ||
+          !normalizedCompanyCode ||
+          configCompanyCode === normalizedCompanyCode
+        : true;
+    if (
+      normalized === configIdentifier &&
+      password === config.password &&
+      companyCodeMatches
+    ) {
+      return buildTestUser(
+        normalized,
+        loginType,
+        config.role,
+        config.phone,
+        normalizedCompanyCode ?? configCompanyCode,
+      );
+    }
+  }
+  return null;
+};
+
+// Validation schema
+const SendOTPSchema = z.object({
+  identifier: z.string().trim().min(1, "Email, phone, or employee number is required"),
+  password: z.string().trim().optional(),
+  companyCode: z.string().trim().optional(),
+});
+
+// Generate random OTP
+function generateOTP(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// Resolve orgId from organization code to enforce tenant scoping for corporate logins
+async function resolveOrgIdFromCompanyCode(
+  companyCode: string,
+): Promise<string | null> {
+  const { Organization } = await import("@/server/models/Organization");
+  const org = await Organization.findOne({ code: companyCode })
+    .select({ _id: 1, orgId: 1 })
+    .lean<{
+      _id?: ObjectId;
+      orgId?: string;
+    }>()
+    .catch(() => null);
+
+  if (!org) return null;
+  const orgId = org.orgId || org._id?.toString();
+  return orgId ?? null;
+}
+
+// Check rate limit (ASYNC for multi-instance Redis support)
+async function checkRateLimit(identifier: string): Promise<{
+  allowed: boolean;
+  remaining: number;
+}> {
+  // Use atomic Redis increment for distributed rate limiting
+  return redisRateLimitStore.increment(identifier, MAX_SENDS_PER_WINDOW, RATE_LIMIT_WINDOW_MS);
+}
+
+/**
+ * POST /api/auth/otp/send
+ *
+ * Send OTP via SMS for login verification
+ *
+ * Request Body:
+ * - identifier: Email, phone, or employee number
+ * - password: User password (for authentication; optional for phone-only OTP when allowed)
+ *
+ * Response:
+ * - 200: OTP sent successfully (includes phone last 4 digits for UI)
+ * - 400: Invalid credentials or validation error
+ * - 429: Rate limit exceeded
+ * - 500: Server error
+ */
+export async function POST(request: NextRequest) {
+  const ipRateLimited = enforceRateLimit(request, {
+    keyPrefix: "auth:otp-send",
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (ipRateLimited) return ipRateLimited;
+  const clientIp =
+    (request as unknown as { ip?: string }).ip ||
+    request.headers.get("x-real-ip") ||
+    request.headers.get("x-forwarded-for") ||
+    "otp-ip";
+  // SECURITY: Use distributed rate limiting (Redis) to prevent cross-instance bypass
+  const rl = await smartRateLimit(`auth:otp-send:${clientIp}`, 5, 300_000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { success: false, error: "Too many attempts. Please try again later." },
+      { status: 429 },
+    );
+  }
+
+  try {
+    // 1. Parse and validate request body
+    const body = await request.json();
+    const parsed = SendOTPSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Validation failed",
+          details: parsed.error.flatten(),
+        },
+        { status: 400 },
+      );
+    }
+
+    const { identifier: identifierRaw, password } = parsed.data;
+    const smsDevMode = isSMSDevModeEnabled();
+
+    // PRODUCTION OTP BYPASS: Allow bypassing OTP for superadmin and test users
+    // SECURITY: This should only be enabled with additional security controls (IP allowlisting, etc.)
+    const bypassOtpAll = process.env.NEXTAUTH_BYPASS_OTP_ALL === 'true';
+    const allowTestUserBypass = process.env.ALLOW_TEST_USER_OTP_BYPASS === 'true';
+    
+    // Check if this is a known test/demo user that should bypass OTP
+    const normalizedIdForCheck = identifierRaw.toLowerCase();
+    // SECURITY: Externalize superadmin email to environment variable
+    // Uses centralized config from lib/config/demo-users.ts as fallback
+    const superadminEmail = (process.env.NEXTAUTH_SUPERADMIN_EMAIL || SPECIAL_DEMO_EMAILS.superadmin).toLowerCase();
+    const isSuperadminEmail = normalizedIdForCheck === superadminEmail || 
+                              normalizedIdForCheck === process.env.TEST_SUPERADMIN_IDENTIFIER?.toLowerCase();
+    const isDemoOrTestUser = DEMO_EMAILS.has(normalizedIdForCheck) || 
+                             DEMO_EMPLOYEE_IDS.has(identifierRaw.toUpperCase()) ||
+                             TEST_USER_CONFIG.some(c => c.identifier?.toLowerCase() === normalizedIdForCheck);
+    
+    // Enable OTP bypass for authorized users
+    let shouldBypassOtp = (bypassOtpAll && isSuperadminEmail) || 
+                            (allowTestUserBypass && isDemoOrTestUser);
+    
+    // SECURITY: Validate user exists and is ACTIVE before enabling bypass (CodeRabbit critical fix)
+    // This prevents bypass tokens for non-existent or disabled accounts
+    interface BypassUserData {
+      _id: { toString(): string };
+      status: string;
+      orgId?: string;
+    }
+    let bypassUser: BypassUserData | null = null;
+    if (shouldBypassOtp) {
+      await connectToDatabase();
+      const { User } = await import("@/server/models/User");
+      bypassUser = await User.findOne({ email: normalizedIdForCheck })
+        .select("_id status orgId")
+        .lean() as BypassUserData | null;
+      
+      if (!bypassUser || bypassUser.status !== "ACTIVE") {
+        logger.warn("[OTP] Bypass rejected - user not found or inactive", {
+          identifier: redactIdentifier(identifierRaw),
+          userExists: Boolean(bypassUser),
+          userStatus: bypassUser?.status,
+          clientIp,
+        });
+        shouldBypassOtp = false;
+      }
+    }
+    
+    // SECURITY: Apply rate limit even for bypass-eligible users to prevent enumeration (CodeRabbit review fix)
+    if (shouldBypassOtp) {
+      const bypassRateLimitKey = `auth:otp-bypass:${normalizedIdForCheck}`;
+      const bypassRl = await smartRateLimit(bypassRateLimitKey, 5, 300_000);
+      if (!bypassRl.allowed) {
+        logger.warn("[OTP] Bypass rate limit exceeded", {
+          identifier: redactIdentifier(identifierRaw),
+          clientIp,
+        });
+        return NextResponse.json(
+          { success: false, error: "Too many attempts. Please try again later." },
+          { status: 429 },
+        );
+      }
+    }
+    
+    if (shouldBypassOtp) {
+      logger.warn("[OTP] OTP bypass enabled for authorized user", {
+        identifier: redactIdentifier(identifierRaw),
+        isSuperadmin: isSuperadminEmail,
+        isDemoOrTest: isDemoOrTestUser,
+        clientIp,
+      });
+      
+      // Return success response without sending actual SMS
+      // The OTP verify endpoint will also need to handle bypass
+      const bypassCode = process.env.NEXTAUTH_BYPASS_OTP_CODE;
+      
+      // SECURITY: Require explicit bypass code configuration (no weak defaults)
+      if (!bypassCode) {
+        logger.error("[OTP] Bypass enabled but NEXTAUTH_BYPASS_OTP_CODE not configured", {
+          identifier: redactIdentifier(identifierRaw),
+          clientIp,
+        });
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: "OTP bypass not configured. Set NEXTAUTH_BYPASS_OTP_CODE environment variable (minimum 12 characters for production)." 
+          },
+          { status: 500 },
+        );
+      }
+      
+      // SECURITY: Enforce minimum bypass code length in production (12+ chars)
+      const isProduction = process.env.NODE_ENV === 'production';
+      if (isProduction && bypassCode.length < 12) {
+        logger.error("[OTP] SECURITY: Bypass code too short for production", {
+          identifier: redactIdentifier(identifierRaw),
+          codeLength: bypassCode.length,
+          clientIp,
+        });
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: `NEXTAUTH_BYPASS_OTP_CODE is too short (${bypassCode.length} chars). Production requires minimum 12 characters for security.` 
+          },
+          { status: 500 },
+        );
+      }
+      
+      // SECURITY: Resolve actual user ID and org from database (CodeRabbit critical fix)
+      // bypassUser was already validated above, use its data for proper tenant isolation
+      const resolvedBypassUserId = bypassUser!._id.toString();
+      const resolvedBypassOrgId = bypassUser!.orgId?.toString() || 
+        process.env.PUBLIC_ORG_ID || 
+        process.env.DEFAULT_ORG_ID;
+      
+      if (!resolvedBypassOrgId) {
+        logger.error("[OTP] No org context for bypass", { 
+          identifier: redactIdentifier(identifierRaw),
+          clientIp,
+        });
+        return NextResponse.json(
+          { success: false, error: "Org context required" },
+          { status: 500 },
+        );
+      }
+      
+      // Store bypass OTP in Redis so verify endpoint can validate it
+      const bypassOtpKey = `otp:bypass:${normalizedIdForCheck}`;
+      await redisOtpStore.set(bypassOtpKey, {
+        otp: bypassCode,
+        expiresAt: Date.now() + OTP_EXPIRY_MS,
+        attempts: 0,
+        userId: resolvedBypassUserId,
+        phone: 'BYPASS',
+        orgId: resolvedBypassOrgId,
+        companyCode: parsed.data.companyCode || 'BYPASS',
+        __bypassed: true,
+      });
+      
+      // SECURITY AUDIT: Log bypass usage for security monitoring
+      logger.warn("[OTP] SECURITY AUDIT: OTP bypass activated", {
+        identifier: redactIdentifier(identifierRaw),
+        isSuperadmin: isSuperadminEmail,
+        isDemoOrTest: isDemoOrTestUser,
+        clientIp,
+        timestamp: new Date().toISOString(),
+        action: 'OTP_BYPASS_SEND',
+      });
+      
+      return NextResponse.json({
+        success: true,
+        message: "OTP sent successfully",
+        data: {
+          phone: "****BYPASS",
+          expiresIn: OTP_EXPIRY_MS / 1000,
+          attemptsRemaining: MAX_ATTEMPTS,
+          // SECURITY: Only expose bypass code in dev mode AND non-production
+          ...(smsDevMode && !isProduction ? { devCode: bypassCode, __bypassed: true } : {}),
+        },
+      });
+    }
+
+    // 3. Determine login type (email or employee number)
+    const emailOk = z.string().email().safeParse(identifierRaw).success;
+    const empUpper = identifierRaw.toUpperCase();
+    const empOk = EMPLOYEE_ID_REGEX.test(empUpper);
+
+    let loginIdentifier = "";
+    let loginType: "personal" | "corporate";
+    const normalizedCompanyCode = normalizeCompanyCode(parsed.data.companyCode);
+
+    if (emailOk) {
+      loginIdentifier = identifierRaw.toLowerCase();
+      loginType = "personal";
+    } else if (empOk) {
+      loginIdentifier = empUpper;
+      loginType = "corporate";
+    } else {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Enter a valid email address or employee number (e.g., EMP001)",
+        },
+        { status: 400 },
+      );
+    }
+
+    // Resolve org scope early to build tenant-scoped OTP key
+    let orgScopeId: string | null = null;
+    const resolvedDefaultOrgId =
+      process.env.PUBLIC_ORG_ID ||
+      process.env.TEST_ORG_ID ||
+      process.env.DEFAULT_ORG_ID;
+
+    if (loginType === "corporate") {
+      if (!normalizedCompanyCode) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Company number is required for corporate login",
+          },
+          { status: 400 },
+        );
+      }
+      await connectToDatabase();
+      const resolvedCompanyOrgId = await resolveOrgIdFromCompanyCode(
+        normalizedCompanyCode,
+      );
+
+      if (!resolvedCompanyOrgId) {
+        logger.warn("[OTP] Invalid company code", {
+          identifier: redactIdentifier(loginIdentifier),
+          code: normalizedCompanyCode,
+        });
+        return NextResponse.json(
+          { success: false, error: "Invalid credentials" },
+          { status: 401 },
+        );
+      }
+
+      orgScopeId = resolvedCompanyOrgId;
+    } else {
+      if (!resolvedDefaultOrgId) {
+        logger.error("[OTP] Missing org context for personal login", {
+          identifier: redactIdentifier(loginIdentifier),
+        });
+        return NextResponse.json(
+          { success: false, error: "Login temporarily unavailable" },
+          { status: 503 },
+        );
+      }
+      orgScopeId = resolvedDefaultOrgId;
+    }
+
+    const otpKey = buildOtpKey(loginIdentifier, normalizedCompanyCode, orgScopeId);
+
+    // 4. Check rate limit using normalized identifier + org (ASYNC for multi-instance)
+    const rateLimitResult = await checkRateLimit(otpKey);
+    if (!rateLimitResult.allowed) {
+      logger.warn("[OTP] Rate limit exceeded", { identifier: redactIdentifier(otpKey) });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Too many OTP requests. Please try again later.",
+        },
+        { status: 429 },
+      );
+    }
+
+    // 5. Resolve user (test users → skip DB, otherwise perform lookup)
+    let user: UserDocument | null = null;
+    const testUser = smsDevMode
+      ? resolveTestUser(
+          loginIdentifier,
+          password,
+          loginType,
+          normalizedCompanyCode,
+        )
+      : null;
+
+    if (testUser) {
+      user = testUser;
+    } else {
+      await connectToDatabase();
+      const { User } = await import("@/server/models/User");
+      const bcrypt = await import("bcryptjs");
+
+      if (loginType === "personal") {
+        // SECURITY FIX: Scope email lookup by orgId to prevent cross-tenant attacks (SEC-001)
+        user = await User.findOne({ orgId: orgScopeId, email: loginIdentifier });
+      } else {
+        // Scope user lookup by both orgId AND company code for defense in depth
+        user = await User.findOne({
+          orgId: orgScopeId,
+          username: loginIdentifier,
+          code: normalizedCompanyCode,
+        });
+      }
+
+      if (!user && DEMO_AUTH_ENABLED && isDemoIdentifier(loginIdentifier)) {
+        user = buildDemoUser(
+          loginIdentifier,
+          loginType,
+          normalizedCompanyCode ?? "DEMO-ORG",
+        );
+        logger.warn("[OTP] Falling back to demo user profile", {
+          identifier: redactIdentifier(loginIdentifier),
+        });
+      }
+
+      if (!user) {
+        logger.warn("[OTP] User not found", {
+          identifier: redactIdentifier(loginIdentifier),
+          loginType,
+        });
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Invalid credentials",
+          },
+          { status: 401 },
+        );
+      }
+
+      // 6. Verify password via bcrypt (demo users may bypass), unless phone-only OTP is allowed and we're in phone flow
+      let isValid = false;
+      const hashedPassword =
+        typeof user.password === "string" ? user.password : "";
+
+      if (password) {
+        if (hashedPassword) {
+          try {
+            const compareResult = await bcrypt.compare(password, hashedPassword);
+            isValid = !!compareResult;
+          } catch (compareError) {
+            logger.error(
+              "[OTP] Password comparison failed",
+              compareError as Error,
+            );
+          }
+        }
+
+        const isDemoUserCandidate =
+          isDemoIdentifier(loginIdentifier) ||
+          isDemoIdentifier(user.email) ||
+          isDemoIdentifier(user.username) ||
+          isDemoIdentifier(user.employeeId) ||
+          Boolean(user.__isDemoUser);
+
+        if (!isValid && isDemoUserCandidate && matchesDemoPassword(password)) {
+          isValid = true;
+          logger.warn("[OTP] Accepted demo credentials", {
+            identifier: redactIdentifier(loginIdentifier),
+          });
+        }
+
+        if (!isValid) {
+          logger.warn("[OTP] Invalid password", { identifier: redactIdentifier(loginIdentifier) });
+          return NextResponse.json(
+            {
+              success: false,
+              error: "Invalid credentials",
+            },
+            { status: 401 },
+          );
+        }
+      }
+    }
+
+    const isDemoUser = Boolean(user.__isDemoUser);
+    const userOrgId =
+      (user as { orgId?: { toString?: () => string } }).orgId?.toString?.() ||
+      orgScopeId;
+
+    // 7. Check if user is active
+    const isUserActive =
+      user.isActive !== undefined ? user.isActive : user.status === "ACTIVE";
+    if (!isUserActive) {
+      logger.warn("[OTP] Inactive user attempted login", {
+        identifier: redactIdentifier(loginIdentifier),
+        status: user.status,
+      });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Account is not active",
+        },
+        { status: 403 },
+      );
+    }
+
+    // 8. Get user's phone number
+    let userPhone = user.contact?.phone || user.personal?.phone || user.phone;
+    const originalUserPhone = userPhone;
+
+    const isSuperAdmin =
+      user.role === "SUPER_ADMIN" ||
+      user.professional?.role === "SUPER_ADMIN" ||
+      user.roles?.includes?.("SUPER_ADMIN");
+
+    if (!userPhone && isSuperAdmin) {
+      const fallbackPhone =
+        process.env.NEXTAUTH_SUPERADMIN_FALLBACK_PHONE ||
+        process.env.SUPER_ADMIN_FALLBACK_PHONE ||
+        "";
+
+      if (fallbackPhone) {
+        userPhone = fallbackPhone;
+        logger.warn("[OTP] Using fallback phone for super admin", {
+          userId: user._id?.toString?.() || loginIdentifier,
+        });
+      }
+    }
+
+    const isDemoUserForPhone = isDemoUser;
+
+    if (!userPhone && TEST_USERS_FALLBACK_PHONE && isDemoUserForPhone) {
+      userPhone = TEST_USERS_FALLBACK_PHONE;
+      logger.warn("[OTP] Using fallback phone for demo/test user", {
+        userId: user._id?.toString?.() || redactIdentifier(loginIdentifier),
+        identifier: redactIdentifier(loginIdentifier),
+      });
+    }
+
+    const forcedPhone =
+      FORCE_OTP_PHONE ||
+      (smsDevMode && process.env.NODE_ENV !== "production"
+        ? DEFAULT_TEST_FORCE_PHONE
+        : "");
+
+    if (forcedPhone) {
+      userPhone = forcedPhone;
+      logger.warn("[OTP] Forcing OTP recipient phone", {
+        userId: user._id?.toString?.() || loginIdentifier,
+        originalPhoneLast4: originalUserPhone?.slice(-4),
+        forcedPhoneLast4: forcedPhone.slice(-4),
+      });
+    }
+
+    if (!userPhone) {
+      logger.error("[OTP] User has no phone number", {
+        userId: user._id?.toString?.() || loginIdentifier,
+      });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "No phone number registered. Please contact support.",
+        },
+        { status: 400 },
+      );
+    }
+
+    // 9. Validate phone number (Saudi format)
+    if (!isValidSaudiPhone(userPhone)) {
+      logger.error("[OTP] Invalid phone number format", {
+        userId: user._id?.toString?.() || loginIdentifier,
+        phone: userPhone ? `****${userPhone.slice(-4)}` : 'UNKNOWN',
+      });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid phone number format. Please update your profile.",
+        },
+        { status: 400 },
+      );
+    }
+
+    // 10. Generate OTP
+    const otp = generateOTP();
+    const expiresAt = Date.now() + OTP_EXPIRY_MS;
+
+    // 11. Store OTP in Redis for multi-instance support
+    // SECURITY: Include orgId in payload for tenant validation during verify (SEC-BLOCKER-001)
+    await redisOtpStore.set(otpKey, {
+      otp,
+      expiresAt,
+      attempts: 0,
+      userId: user._id?.toString?.() || loginIdentifier,
+      phone: userPhone,
+      orgId: orgScopeId,
+      companyCode: normalizedCompanyCode,
+    });
+
+    // 12. Send OTP via SMS
+    const smsResult = await sendOTP(userPhone, otp);
+
+    if (!OFFLINE_MODE) {
+      const logResult = await logCommunication({
+        orgId: userOrgId || undefined, // SECURITY: Include orgId for tenant isolation (SEC-003)
+        userId: user._id?.toString?.() || loginIdentifier,
+        channel: "otp",
+        type: "otp",
+        recipient: userPhone,
+        subject: "Login verification OTP",
+        message: `SMS OTP login requested for ${loginIdentifier}`,
+        status: smsResult.success ? "sent" : "failed",
+        errorMessage: smsResult.success ? undefined : smsResult.error,
+        metadata: {
+          phone: userPhone,
+          otpExpiresAt: new Date(expiresAt),
+          otpAttempts: MAX_ATTEMPTS,
+          rateLimitRemaining: rateLimitResult.remaining,
+          identifier: otpKey,
+        },
+      });
+
+      if (!logResult.success) {
+        logger.warn("[OTP] Failed to log communication", {
+          error: logResult.error,
+        });
+      }
+    }
+
+    if (!smsResult.success) {
+      await redisOtpStore.delete(otpKey);
+      logger.error("[OTP] Failed to send SMS", {
+        userId: user._id?.toString?.() || loginIdentifier,
+        error: smsResult.error,
+      });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Failed to send OTP. Please try again.",
+        },
+        { status: 500 },
+      );
+    }
+
+    logger.info("[OTP] OTP sent successfully", {
+      userId: user._id?.toString?.() || redactIdentifier(loginIdentifier),
+      identifier: redactIdentifier(otpKey),
+      phone: userPhone.slice(-4),
+    });
+
+    // 13. Return success response (mask phone number)
+    const maskedPhone = userPhone.replace(/(\d{3})\d+(\d{4})/, "$1****$2");
+
+    const responseData: {
+      phone: string;
+      expiresIn: number;
+      attemptsRemaining: number;
+      devCode?: string;
+    } = {
+      phone: maskedPhone,
+      expiresIn: OTP_EXPIRY_MS / 1000, // seconds
+      attemptsRemaining: MAX_ATTEMPTS,
+    };
+
+    // SECURITY FIX: Only expose OTP code in dev mode when NOT in production
+    // and when SMS_DEV_MODE is explicitly enabled
+    // This prevents accidental OTP exposure in staging/preview environments
+    if (smsDevMode && process.env.NODE_ENV === "development") {
+      responseData.devCode = otp;
+      logger.warn("[OTP] Dev code included in response - development only", {
+        identifier: redactIdentifier(otpKey),
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "OTP sent successfully",
+      data: responseData,
+    });
+  } catch (error) {
+    // Enhanced error logging for production debugging - pass Error object for stack trace capture
+    logger.error("[OTP] Send OTP error", error as Error);
+    
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorName = error instanceof Error ? error.name : "UnknownError";
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    // Log detailed error context for production debugging
+    logger.error("[OTP] Detailed error context", {
+      errorName,
+      errorMessage,
+      stack: errorStack?.split('\n').slice(0, 5).join('\n'), // First 5 lines of stack
+    });
+    
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Internal server error",
+        // Only include error hint in non-production environments (security fix from PR #436 feedback)
+        ...(process.env.NODE_ENV !== "production" && { 
+          errorHint: errorName === "MongooseError" || errorMessage.includes("MongoDB") 
+            ? "database_connection" 
+            : errorName === "MONGO_DISABLED_FOR_BUILD"
+            ? "build_mode"
+            : "unknown",
+          debug: { name: errorName, message: errorMessage }
+        }),
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/auth/otp/verify/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { randomBytes, randomUUID } from "crypto";
+import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { User } from "@/server/models/User";
+import {
+  redisOtpStore,
+  redisOtpSessionStore,
+  MAX_ATTEMPTS,
+  OTP_SESSION_EXPIRY_MS,
+} from "@/lib/otp-store";
+import {
+  EMPLOYEE_ID_REGEX,
+  normalizeCompanyCode,
+  buildOtpKey,
+  redactIdentifier,
+} from "@/lib/otp-utils";
+import { ACCESS_COOKIE, ACCESS_TTL_SECONDS, REFRESH_COOKIE, REFRESH_TTL_SECONDS } from "@/app/api/auth/refresh/route";
+import jwt from "jsonwebtoken";
+import { persistRefreshJti } from "@/lib/refresh-token-store";
+
+// Validation schema - OTP can be 6 digits OR bypass code (12+ chars for production)
+// The bypass code is validated later against NEXTAUTH_BYPASS_OTP_CODE env var
+const VerifyOTPSchema = z.object({
+  identifier: z.string().trim().min(1, "Email or employee number is required"),
+  otp: z.string().min(6, "OTP must be at least 6 characters"),
+  companyCode: z.string().trim().optional(),
+});
+
+/**
+ * POST /api/auth/otp/verify
+ *
+ * Verify OTP code entered by user
+ *
+ * Request Body:
+ * - identifier: Email or employee number
+ * - otp: 6-digit OTP code
+ *
+ * Response:
+ * - 200: OTP verified successfully (includes temporary auth token)
+ * - 400: Invalid OTP or expired
+ * - 429: Too many attempts
+ * - 500: Server error
+ */
+export async function POST(request: NextRequest) {
+  const limited = enforceRateLimit(request, {
+    keyPrefix: "auth:otp-verify",
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (limited) return limited;
+
+  // Extract client IP for audit logging
+  const clientIp =
+    (request as unknown as { ip?: string }).ip ||
+    request.headers.get("x-real-ip") ||
+    request.headers.get("x-forwarded-for") ||
+    "otp-ip";
+
+  try {
+    // 1. Parse and validate request body
+    const body = await request.json();
+    const parsed = VerifyOTPSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Validation failed",
+          details: parsed.error.flatten(),
+        },
+        { status: 400 },
+      );
+    }
+
+    const { identifier: identifierRaw, otp } = parsed.data;
+
+    // 2. Normalize identifier (same logic as send endpoint)
+    const emailOk = z.string().email().safeParse(identifierRaw).success;
+    const empUpper = identifierRaw.toUpperCase();
+    const empOk = EMPLOYEE_ID_REGEX.test(empUpper);
+
+    let loginIdentifier = "";
+    const normalizedCompanyCode = normalizeCompanyCode(parsed.data.companyCode);
+
+    if (emailOk) {
+      loginIdentifier = identifierRaw.toLowerCase();
+    } else if (empOk) {
+      loginIdentifier = empUpper;
+    } else {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid identifier format",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (empOk && !normalizedCompanyCode) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Company number is required for corporate login",
+        },
+        { status: 400 },
+      );
+    }
+
+    // SECURITY: Resolve orgId to build tenant-scoped OTP key (SEC-BLOCKER-001)
+    // Must match the key structure used in OTP send route
+    let orgScopeId: string | null = null;
+    const resolvedDefaultOrgId =
+      process.env.PUBLIC_ORG_ID ||
+      process.env.TEST_ORG_ID ||
+      process.env.DEFAULT_ORG_ID;
+
+    if (empOk && normalizedCompanyCode) {
+      // Corporate login - resolve org from company code
+      await connectToDatabase();
+      const { Organization } = await import("@/server/models/Organization");
+      const org = await Organization.findOne({ code: normalizedCompanyCode })
+        .select({ _id: 1, orgId: 1 })
+        .lean<{ _id?: { toString: () => string }; orgId?: string }>()
+        .catch(() => null);
+
+      if (!org) {
+        logger.warn("[OTP Verify] Invalid company code", {
+          identifier: redactIdentifier(loginIdentifier),
+          code: normalizedCompanyCode,
+        });
+        return NextResponse.json(
+          { success: false, error: "Invalid credentials" },
+          { status: 401 },
+        );
+      }
+      orgScopeId = org.orgId || org._id?.toString() || null;
+    } else {
+      // Personal login - use default org
+      if (!resolvedDefaultOrgId) {
+        logger.error("[OTP Verify] Missing org context for personal login", {
+          identifier: redactIdentifier(loginIdentifier),
+        });
+        return NextResponse.json(
+          { success: false, error: "Login temporarily unavailable" },
+          { status: 503 },
+        );
+      }
+      orgScopeId = resolvedDefaultOrgId;
+    }
+
+    const otpKey = buildOtpKey(
+      loginIdentifier,
+      empOk ? normalizedCompanyCode : null,
+      orgScopeId,
+    );
+
+    // PRODUCTION OTP BYPASS: Check for bypass OTP first
+    // SECURITY: Require explicit bypass code configuration (no weak defaults)
+    const bypassCode = process.env.NEXTAUTH_BYPASS_OTP_CODE;
+    const bypassEnabled = Boolean(bypassCode && bypassCode.length >= 12);
+    
+    // Check if this is a superadmin email that can use direct bypass (without prior OTP send)
+    const superadminEmail = (process.env.NEXTAUTH_SUPERADMIN_EMAIL || '').toLowerCase();
+    const isSuperadminEmail = loginIdentifier.toLowerCase() === superadminEmail;
+    
+    // Check if this is a bypass verification
+    const bypassOtpKey = `otp:bypass:${loginIdentifier.toLowerCase()}`;
+    const bypassData = await redisOtpStore.get(bypassOtpKey);
+    
+    // Allow bypass if:
+    // 1. Regular bypass: bypassData exists with __bypassed flag AND otp matches bypassCode
+    // 2. Direct superadmin bypass: superadmin email AND otp matches bypassCode (no prior send required)
+    //    This handles serverless stateless environment where Redis isn't configured
+    const isRegularBypass = bypassEnabled && bypassData && (bypassData as { __bypassed?: boolean }).__bypassed && otp === bypassCode;
+    const isDirectSuperadminBypass = bypassEnabled && isSuperadminEmail && otp === bypassCode;
+    
+    if (isRegularBypass || isDirectSuperadminBypass) {
+      // SECURITY: Validate user exists and is ACTIVE before issuing bypass session (CodeRabbit critical fix)
+      await connectToDatabase();
+      const bypassUser = await User.findOne({ email: loginIdentifier.toLowerCase() })
+        .select("_id status orgId")
+        .lean() as { _id: { toString(): string }; status: string; orgId?: string } | null;
+      
+      if (!bypassUser || bypassUser.status !== "ACTIVE") {
+        logger.warn("[OTP] Bypass rejected - user inactive or not found", {
+          identifier: redactIdentifier(loginIdentifier),
+          userExists: Boolean(bypassUser),
+          userStatus: bypassUser?.status,
+          clientIp,
+        });
+        await redisOtpStore.delete(bypassOtpKey);
+        return NextResponse.json(
+          { success: false, error: "Invalid credentials" },
+          { status: 401 },
+        );
+      }
+      
+      // SECURITY: Validate org context matches to prevent cross-tenant bypass reuse (CodeRabbit review fix)
+      // Only check if bypassData exists (not for direct superadmin bypass)
+      if (bypassData && bypassData.orgId && orgScopeId && bypassData.orgId !== orgScopeId) {
+        logger.warn("[OTP] Bypass org mismatch - potential cross-tenant attack", {
+          identifier: redactIdentifier(loginIdentifier),
+          storedOrgId: bypassData.orgId,
+          requestedOrgId: orgScopeId,
+          clientIp,
+        });
+        await redisOtpStore.delete(bypassOtpKey);
+        return NextResponse.json(
+          { success: false, error: "Invalid credentials" },
+          { status: 401 },
+        );
+      }
+      
+      // SECURITY AUDIT: Log bypass verification for security monitoring
+      logger.warn("[OTP] SECURITY AUDIT: Bypass OTP verified", {
+        identifier: redactIdentifier(loginIdentifier),
+        orgId: orgScopeId,
+        userId: bypassUser._id.toString(),
+        clientIp,
+        timestamp: new Date().toISOString(),
+        action: 'OTP_BYPASS_VERIFY',
+      });
+      
+      // Clean up bypass OTP
+      await redisOtpStore.delete(bypassOtpKey);
+      
+      // Generate temporary OTP login session token
+      // SECURITY: Use validated user data from database, not from bypassData (CodeRabbit critical fix)
+      const sessionToken = randomBytes(32).toString("hex");
+      await redisOtpSessionStore.set(sessionToken, {
+        userId: bypassUser._id.toString(),
+        identifier: loginIdentifier,
+        orgId: bypassUser.orgId?.toString() || orgScopeId,
+        companyCode: bypassData?.companyCode || normalizedCompanyCode,
+        expiresAt: Date.now() + OTP_SESSION_EXPIRY_MS,
+        __bypassed: true,
+      });
+      
+      return NextResponse.json({
+        success: true,
+        message: "OTP verified successfully",
+        data: {
+          otpSession: sessionToken,
+          expiresIn: OTP_SESSION_EXPIRY_MS / 1000,
+        },
+      });
+    }
+
+    // 3. Retrieve OTP data from store (ASYNC for multi-instance Redis support)
+    const otpData = await redisOtpStore.get(otpKey);
+
+    if (!otpData) {
+      logger.warn("[OTP] No OTP found for identifier", {
+        identifier: redactIdentifier(otpKey),
+      });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "OTP not found or expired. Please request a new code.",
+        },
+        { status: 400 },
+      );
+    }
+
+    // SECURITY: Validate orgId matches (SEC-BLOCKER-001) and clean up OTP on mismatch
+    if (otpData.orgId && orgScopeId && otpData.orgId !== orgScopeId) {
+      logger.warn("[OTP] OrgId mismatch - potential cross-tenant attack", {
+        identifier: redactIdentifier(otpKey),
+        storedOrgId: otpData.orgId,
+        requestedOrgId: orgScopeId,
+      });
+      await redisOtpStore.delete(otpKey);
+      return NextResponse.json(
+        { success: false, error: "Invalid credentials" },
+        { status: 401 },
+      );
+    }
+
+    // 4. Check if OTP expired
+    if (Date.now() > otpData.expiresAt) {
+      await redisOtpStore.delete(otpKey);
+      logger.warn("[OTP] OTP expired", { identifier: redactIdentifier(otpKey) });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "OTP expired. Please request a new code.",
+        },
+        { status: 400 },
+      );
+    }
+
+    // 5. Check attempts limit
+    if (otpData.attempts >= MAX_ATTEMPTS) {
+      await redisOtpStore.delete(otpKey);
+      logger.warn("[OTP] Too many attempts", { identifier: redactIdentifier(otpKey) });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Too many incorrect attempts. Please request a new code.",
+        },
+        { status: 429 },
+      );
+    }
+
+    // 6. Verify OTP
+    if (otp !== otpData.otp) {
+      otpData.attempts += 1;
+      // STRICT v4.1: Persist attempt increment to Redis for multi-instance consistency
+      await redisOtpStore.update(otpKey, otpData);
+      const remainingAttempts = MAX_ATTEMPTS - otpData.attempts;
+
+      logger.warn("[OTP] Incorrect OTP", {
+        identifier: redactIdentifier(otpKey),
+        attempts: otpData.attempts,
+        remaining: remainingAttempts,
+      });
+
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Incorrect OTP. ${remainingAttempts} attempt(s) remaining.`,
+          attemptsRemaining: remainingAttempts,
+        },
+        { status: 400 },
+      );
+    }
+
+    // 7. OTP verified successfully
+    logger.info("[OTP] OTP verified successfully", {
+      userId: otpData.userId,
+      identifier: redactIdentifier(otpKey),
+      orgId: otpData.orgId || orgScopeId,
+    });
+
+    // 8. Clean up OTP from store
+    await redisOtpStore.delete(otpKey);
+
+    // 9. Generate temporary OTP login session token (server-side store, not user-modifiable)
+    // SECURITY: Include orgId and companyCode for tenant isolation (SEC-BLOCKER-001)
+    const sessionToken = randomBytes(32).toString("hex");
+    await redisOtpSessionStore.set(sessionToken, {
+      userId: otpData.userId,
+      identifier: otpKey,
+      orgId: otpData.orgId || orgScopeId,
+      companyCode: otpData.companyCode || normalizedCompanyCode,
+      expiresAt: Date.now() + OTP_SESSION_EXPIRY_MS,
+    });
+
+    // Support both NEXTAUTH_SECRET (preferred) and AUTH_SECRET (legacy/Auth.js name)
+    // MUST align with auth.config.ts to prevent environment drift
+    const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+    if (!secret) {
+      return NextResponse.json(
+        { success: false, error: "Server config error" },
+        { status: 500 },
+      );
+    }
+
+    // STRICT v4.1 FIX: Revalidate user from DB before issuing tokens
+    // Prevents issuing tokens to disabled/deleted users or users who changed orgs
+    await connectToDatabase();
+    const user = await User.findById(otpData.userId)
+      .select("status professional.role orgId")
+      .lean() as { status: string; professional?: { role?: string }; orgId?: string } | null;
+
+    if (!user || user.status !== "ACTIVE") {
+      logger.warn("[OTP] User inactive or not found during token issuance", {
+        userId: otpData.userId,
+        status: user?.status,
+      });
+      return NextResponse.json(
+        { success: false, error: "Account not active" },
+        { status: 401 },
+      );
+    }
+
+    const userOrgId =
+      (user as { orgId?: { toString?: () => string } }).orgId?.toString?.() || null;
+    if (orgScopeId && userOrgId && userOrgId !== orgScopeId) {
+      logger.warn("[OTP] Org mismatch between OTP session and user record", {
+        userId: otpData.userId,
+        expectedOrg: orgScopeId,
+        userOrgId,
+      });
+      return NextResponse.json(
+        { success: false, error: "Invalid credentials" },
+        { status: 401 },
+      );
+    }
+
+    // STRICT v4.1 FIX: Include role and orgId in access token for downstream RBAC/tenancy
+    const accessToken = jwt.sign(
+      {
+        sub: otpData.userId,
+        role: user.professional?.role,
+        orgId: user.orgId,
+      },
+      secret,
+      { expiresIn: ACCESS_TTL_SECONDS },
+    );
+    // Add jti and type for consistency with refresh/post-login routes
+    const newJti = randomUUID();
+    const refreshToken = jwt.sign(
+      {
+        sub: otpData.userId,
+        type: "refresh",
+        jti: newJti,
+      },
+      secret,
+      { expiresIn: REFRESH_TTL_SECONDS },
+    );
+    await persistRefreshJti(otpData.userId, newJti, REFRESH_TTL_SECONDS);
+
+    const res = NextResponse.json(
+      {
+        success: true,
+        message: "OTP verified successfully",
+        data: {
+          otpToken: sessionToken,
+          userId: otpData.userId,
+          expiresIn: OTP_SESSION_EXPIRY_MS / 1000,
+          accessToken,
+        },
+      },
+    );
+    const secure =
+      request.nextUrl.protocol === "https:" ||
+      process.env.NODE_ENV === "production";
+    res.cookies.set("fxz.otp", sessionToken, {
+      httpOnly: true,
+      sameSite: "strict",
+      secure,
+      path: "/",
+      maxAge: Math.floor(OTP_SESSION_EXPIRY_MS / 1000),
+    });
+    res.cookies.set(ACCESS_COOKIE, accessToken, {
+      httpOnly: true,
+      sameSite: "strict",
+      secure,
+      path: "/",
+      maxAge: ACCESS_TTL_SECONDS,
+    });
+    res.cookies.set(REFRESH_COOKIE, refreshToken, {
+      httpOnly: true,
+      sameSite: "strict",
+      secure,
+      path: "/",
+      maxAge: REFRESH_TTL_SECONDS,
+    });
+    return res;
+  } catch (error) {
+    logger.error("[OTP] Verify OTP error", error as Error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Internal server error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/auth/post-login/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import jwt from "jsonwebtoken";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { User } from "@/server/models/User";
+import { UserStatus } from "@/types/user";
+import {
+  ACCESS_COOKIE,
+  ACCESS_TTL_SECONDS,
+  REFRESH_COOKIE,
+  REFRESH_TTL_SECONDS,
+} from "@/app/api/auth/refresh/route";
+import { persistRefreshJti } from "@/lib/refresh-token-store";
+
+export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session) {
+    logger.warn("[auth/post-login] No session found", { hasSession: false });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  // Support both NEXTAUTH_SECRET (preferred) and AUTH_SECRET (legacy/Auth.js name)
+  // MUST align with auth.config.ts to prevent environment drift
+  const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+  if (!secret) {
+    logger.error("[auth/post-login] NEXTAUTH_SECRET/AUTH_SECRET not configured", {
+      severity: "ops_critical",
+      hint: "Set NEXTAUTH_SECRET or AUTH_SECRET env var in Vercel/production",
+    });
+    return NextResponse.json({ error: "Not configured" }, { status: 500 });
+  }
+
+  const sub = session.user?.id;
+  if (!sub || typeof sub !== "string") {
+    logger.warn("[auth/post-login] Invalid session: missing user id", {
+      hasSession: !!session,
+      hasUserId: !!sub,
+      userIdType: typeof sub,
+    });
+    return NextResponse.json(
+      { error: "Invalid session: missing user id" },
+      { status: 401 },
+    );
+  }
+
+  // SECURITY: Revalidate user status/role/org from DB to prevent issuing tokens for disabled users or stale roles
+  await connectToDatabase();
+  const user = await User.findById(sub)
+    .select("status professional.role orgId")
+    .lean() as { status?: string; professional?: { role?: string }; orgId?: string } | null;
+
+  if (!user || user.status !== UserStatus.ACTIVE) {
+    logger.warn("[auth/post-login] User inactive or not found during token issuance", {
+      userId: sub,
+      status: user?.status,
+    });
+    return NextResponse.json(
+      { error: "Account not active" },
+      { status: 401 },
+    );
+  }
+
+  const accessPayload: Record<string, unknown> = { sub };
+  if (user.professional?.role) accessPayload.role = user.professional.role;
+  if (user.orgId) accessPayload.orgId = user.orgId;
+
+  const accessToken = jwt.sign(accessPayload, secret, {
+    expiresIn: ACCESS_TTL_SECONDS,
+  });
+
+  // Add jti for consistency with refresh route's replay protection
+  const refreshToken = jwt.sign(
+    { sub, type: "refresh", jti: crypto.randomUUID() },
+    secret,
+    { expiresIn: REFRESH_TTL_SECONDS },
+  );
+  await persistRefreshJti(sub, (jwt.decode(refreshToken) as jwt.JwtPayload)?.jti as string, REFRESH_TTL_SECONDS);
+
+  const res = NextResponse.json({ ok: true });
+  const secure =
+    req.nextUrl.protocol === "https:" ||
+    process.env.NODE_ENV === "production";
+
+  res.cookies.set(ACCESS_COOKIE, accessToken, {
+    httpOnly: true,
+    sameSite: "strict",
+    secure,
+    path: "/",
+    maxAge: ACCESS_TTL_SECONDS,
+  });
+  res.cookies.set(REFRESH_COOKIE, refreshToken, {
+    httpOnly: true,
+    sameSite: "strict",
+    secure,
+    path: "/",
+    maxAge: REFRESH_TTL_SECONDS,
+  });
+
+  logger.info("[auth/post-login] Tokens issued successfully", {
+    userId: sub,
+    hasOrgId: !!user?.orgId,
+    hasRole: !!user?.professional?.role,
+  });
+  return res;
+}
+
+]]>
+</file>
+
+<file path="app/api/auth/refresh/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import jwt from "jsonwebtoken";
+import { validateRefreshJti, persistRefreshJti, revokeRefreshJti } from "@/lib/refresh-token-store";
+
+export const REFRESH_COOKIE = "fxz.refresh";
+export const ACCESS_COOKIE = "fxz.access";
+export const ACCESS_TTL_SECONDS = 15 * 60; // 15 minutes
+export const REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
+
+/**
+ * Refresh endpoint: revalidates session and issues a fresh short-lived JWT
+ * signed with NEXTAUTH_SECRET for clients that need a renewed token.
+ * Also sets an httpOnly access cookie for client-side fetchers that rely on it.
+ * 
+ * UPGRADED: Uses NextAuth v5 `auth()` API instead of deprecated `getServerSession()`.
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const refreshToken = req.cookies.get(REFRESH_COOKIE)?.value;
+    if (!refreshToken) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    // Support both NEXTAUTH_SECRET (preferred) and AUTH_SECRET (legacy/Auth.js name)
+    // MUST align with auth.config.ts to prevent environment drift
+    const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+    if (!secret) {
+      return NextResponse.json({ error: "Not configured" }, { status: 500 });
+    }
+    let payload: jwt.JwtPayload;
+    try {
+      payload = jwt.verify(refreshToken, secret) as jwt.JwtPayload;
+    } catch (_e) {
+      logger.warn("[auth/refresh] Invalid refresh token", { error: "JWT verification failed" });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // STRICT v4.1 FIX: Require explicit refresh token type to prevent access-token replay
+    if (payload.type !== "refresh") {
+      logger.warn("[auth/refresh] Invalid token type", { type: payload.type });
+      return NextResponse.json({ error: "Invalid token type" }, { status: 401 });
+    }
+
+    // SECURITY: Require JTI for replay protection (STRICT v4.1)
+    const jti = payload.jti;
+    if (!jti) {
+      logger.warn("[auth/refresh] Token missing JTI", { sub: payload.sub });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // SECURITY: Validate JTI against refresh token store for replay protection
+    const isValidJti = await validateRefreshJti(payload.sub as string, jti);
+    if (!isValidJti) {
+      // In production, reject unknown JTIs (potential replay attack)
+      if (process.env.NODE_ENV === "production") {
+        logger.warn("[auth/refresh] Unknown JTI - potential replay attack", {
+          sub: payload.sub,
+          jti,
+        });
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      // In non-production, allow legacy tokens and register them (migration path)
+      logger.info("[auth/refresh] Registering legacy JTI for first use", {
+        sub: payload.sub,
+        jti,
+      });
+      await persistRefreshJti(payload.sub as string, jti, REFRESH_TTL_SECONDS);
+    }
+
+    // Verify session is still valid using NextAuth v5 auth()
+    const session = await auth();
+    if (!session || session.user?.id !== payload.sub) {
+      logger.warn("[auth/refresh] Session mismatch or expired", {
+        hasSession: !!session,
+        sessionUserId: session?.user?.id,
+        tokenSub: payload.sub,
+      });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const accessToken = jwt.sign(
+      {
+        sub: session.user?.id,
+        role: session.user?.role,
+        orgId: (session.user as { orgId?: string })?.orgId,
+      },
+      secret,
+      { expiresIn: ACCESS_TTL_SECONDS },
+    );
+
+    // Token rotation: issue new refresh token to prevent replay attacks
+    const newJti = crypto.randomUUID();
+    const newRefresh = jwt.sign(
+      {
+        sub: session.user?.id,
+        type: "refresh",
+        jti: newJti,
+      },
+      secret,
+      { expiresIn: REFRESH_TTL_SECONDS },
+    );
+    
+    // SECURITY: Persist new JTI and explicitly revoke old one (rotation)
+    await persistRefreshJti(session.user?.id as string, newJti, REFRESH_TTL_SECONDS);
+    await revokeRefreshJti(session.user?.id as string, jti);
+
+    const res = NextResponse.json(
+      { ok: true, accessToken },
+      { status: 200 },
+    );
+    try {
+      const secure =
+        req.nextUrl.protocol === "https:" ||
+        process.env.NODE_ENV === "production";
+      res.cookies.set(ACCESS_COOKIE, accessToken, {
+        httpOnly: true,
+        sameSite: "strict",
+        secure,
+        path: "/",
+        maxAge: ACCESS_TTL_SECONDS,
+      });
+      res.cookies.set(REFRESH_COOKIE, newRefresh, {
+        httpOnly: true,
+        sameSite: "strict",
+        secure,
+        path: "/",
+        maxAge: REFRESH_TTL_SECONDS,
+      });
+    } catch (_cookieError) {
+      logger.warn("[auth/refresh] Failed to set cookie");
+    }
+    
+    logger.info("[auth/refresh] Token refreshed successfully", {
+      userId: session.user?.id,
+    });
+    return res;
+  } catch (error) {
+    logger.error("[auth/refresh] Error", error as Error);
+    return NextResponse.json({ error: "Refresh failed" }, { status: 500 });
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/auth/reset-password/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { User } from "@/server/models/User";
+import { verifyPasswordResetToken } from "@/lib/auth/passwordReset";
+import { logger } from "@/lib/logger";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { getClientIP } from "@/server/security/headers";
+import bcrypt from "bcryptjs";
+import { z } from "zod";
+
+export const runtime = "nodejs";
+
+const resetSchema = z.object({
+  token: z.string().min(1, "Reset token is required"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Za-z]/, "Password must contain at least one letter")
+    .regex(/[0-9]/, "Password must contain at least one number")
+    .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
+
+/**
+ * Password reset confirmation endpoint.
+ * 
+ * SECURITY:
+ * - Validates HMAC-signed token
+ * - Rate limited to prevent brute force
+ * - Requires strong password
+ * - Unlocks account on successful reset
+ * - Clears login attempts
+ */
+export async function POST(req: NextRequest) {
+  try {
+    // Rate limit: 10 attempts per 15 minutes per IP
+    // SECURITY: Use distributed rate limiting (Redis) to prevent cross-instance bypass
+    const clientIp = getClientIP(req);
+    const rl = await smartRateLimit(`reset-password:${clientIp}`, 10, 15 * 60 * 1000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "Too many attempts. Please try again later." },
+        { status: 429 }
+      );
+    }
+
+    const body = await req.json().catch(() => ({}));
+    
+    // Validate input
+    const parseResult = resetSchema.safeParse(body);
+    if (!parseResult.success) {
+      const errors = parseResult.error.issues.map((issue) => ({
+        path: issue.path.join("."),
+        message: issue.message,
+      }));
+      return NextResponse.json({ error: "Validation failed", errors }, { status: 400 });
+    }
+
+    const { token, password } = parseResult.data;
+
+    // Support both NEXTAUTH_SECRET (preferred) and AUTH_SECRET (legacy/Auth.js name)
+    // MUST align with auth.config.ts to prevent environment drift
+    const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+    if (!secret) {
+      logger.error("[reset-password] NEXTAUTH_SECRET/AUTH_SECRET not configured", {
+        hint: "Set NEXTAUTH_SECRET or AUTH_SECRET env var in Vercel/production",
+      });
+      return NextResponse.json(
+        { error: "Password reset not configured" },
+        { status: 500 }
+      );
+    }
+
+    // Verify the token
+    const tokenResult = verifyPasswordResetToken(token, secret);
+    if (!tokenResult.ok) {
+      logger.warn("[reset-password] Invalid or expired token", {
+        reason: tokenResult.reason,
+      });
+      
+      const errorMessages: Record<string, string> = {
+        expired: "This password reset link has expired. Please request a new one.",
+        signature: "Invalid password reset link. Please request a new one.",
+        invalid: "Invalid password reset link. Please request a new one.",
+      };
+      
+      return NextResponse.json(
+        { error: errorMessages[tokenResult.reason] || "Invalid reset link" },
+        { status: 400 }
+      );
+    }
+
+    const email = tokenResult.email;
+
+    // SECURITY: Resolve default organization for public auth flow (must exist to enforce tenant isolation)
+    const resolvedOrgId =
+      process.env.PUBLIC_ORG_ID ||
+      process.env.TEST_ORG_ID ||
+      process.env.DEFAULT_ORG_ID;
+    
+    // If no org context, reject the reset request to avoid cross-tenant access
+    if (!resolvedOrgId) {
+      logger.error("[reset-password] Missing org context - cannot process reset");
+      return NextResponse.json(
+        { error: "Password reset unavailable. Please contact support." },
+        { status: 503 }
+      );
+    }
+
+    await connectToDatabase();
+    // SECURITY FIX: Scope email lookup by orgId to prevent cross-tenant attacks (SEC-001)
+    const user = await User.findOne({ orgId: resolvedOrgId, email });
+
+    if (!user) {
+      // Don't reveal if user exists
+      logger.warn("[reset-password] User not found for email", { email });
+      return NextResponse.json(
+        { error: "Unable to reset password. Please try again or contact support." },
+        { status: 400 }
+      );
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Update user's password and reset security flags
+    await User.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          password: hashedPassword,
+          "security.locked": false,
+          "security.lockReason": null,
+          "security.loginAttempts": 0,
+          "security.lastPasswordChange": new Date(),
+        },
+      }
+    );
+
+    logger.info("[reset-password] Password reset successful", {
+      userId: String(user._id),
+    });
+
+    return NextResponse.json({
+      ok: true,
+      message: "Password has been reset successfully. You can now log in with your new password.",
+    });
+  } catch (error) {
+    logger.error("[reset-password] Unexpected error", error as Error);
+    return NextResponse.json(
+      { error: "Failed to reset password. Please try again." },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * GET endpoint to validate token without resetting.
+ * Used by the UI to check if token is valid before showing the form.
+ */
+export async function GET(req: NextRequest) {
+  try {
+    const token = req.nextUrl.searchParams.get("token");
+    
+    if (!token) {
+      return NextResponse.json(
+        { valid: false, error: "Token is required" },
+        { status: 400 }
+      );
+    }
+
+    // Support both NEXTAUTH_SECRET (preferred) and AUTH_SECRET (legacy/Auth.js name)
+    // MUST align with auth.config.ts to prevent environment drift
+    const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+    if (!secret) {
+      return NextResponse.json(
+        { valid: false, error: "Not configured" },
+        { status: 500 }
+      );
+    }
+
+    const tokenResult = verifyPasswordResetToken(token, secret);
+    
+    if (!tokenResult.ok) {
+      return NextResponse.json({
+        valid: false,
+        error: tokenResult.reason === "expired" 
+          ? "This link has expired" 
+          : "Invalid reset link",
+      });
+    }
+
+    return NextResponse.json({
+      valid: true,
+      email: tokenResult.email.replace(/(.{2})(.*)(@.*)/, "$1***$3"), // Mask email
+    });
+  } catch (error) {
+    logger.error("[reset-password/validate] Error", error as Error);
+    return NextResponse.json(
+      { valid: false, error: "Validation failed" },
+      { status: 500 }
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/auth/signup/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { User } from "@/server/models/User";
+import { getNextAtomicUserCode } from "@/lib/mongoUtils.server";
+import { z } from "zod";
+import bcrypt from "bcryptjs";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import {
+  zodValidationError,
+  rateLimitError,
+  duplicateKeyError,
+  handleApiError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
+import { Types } from "mongoose";
+import {
+  signVerificationToken,
+  verificationLink as buildVerificationLink,
+} from "@/lib/auth/emailVerification";
+import { sendEmail } from "@/lib/email";
+import { logger } from "@/lib/logger";
+import { UserRole, UserStatus } from "@/types/user";
+
+const signupSchema = z
+  .object({
+    firstName: z.string().min(1, "First name is required"),
+    lastName: z.string().min(1, "Last name is required"),
+    fullName: z.string().optional(), // ✅ FIX: Mark fullName as optional
+    email: z.string().email("Invalid email address"),
+    phone: z.string().min(1, "Phone number is required"),
+    companyName: z.string().optional(),
+    userType: z.enum(["personal", "corporate", "vendor"]),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string(),
+    termsAccepted: z
+      .boolean()
+      .refine(
+        (val) => val === true,
+        "You must accept the terms and conditions",
+      ),
+    newsletter: z.boolean().optional(),
+    preferredLanguage: z.string().default("en"),
+    preferredCurrency: z.string().default("SAR"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+/**
+ * @openapi
+ * /api/auth/signup:
+ *   post:
+ *     summary: User registration
+ *     description: Creates new user account for personal, corporate, or vendor types
+ *     tags:
+ *       - Authentication
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - firstName
+ *               - lastName
+ *               - email
+ *               - password
+ *               - userType
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 minLength: 8
+ *               userType:
+ *                 type: string
+ *                 enum: [personal, corporate, vendor]
+ *     responses:
+ *       201:
+ *         description: User created successfully
+ *       400:
+ *         description: Validation error or duplicate user
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const clientIp = getClientIP(req);
+    // SECURITY: Use distributed rate limiting (Redis) to prevent cross-instance bypass
+    const rl = await smartRateLimit(`auth-signup:${clientIp}`, 5, 900000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    await connectToDatabase();
+
+    // Parse and validate JSON body
+    let requestBody;
+    try {
+      requestBody = await req.json();
+    } catch (_jsonError) {
+      return zodValidationError({
+        issues: [{ path: ["body"], message: "Invalid JSON in request body" }],
+      } as z.ZodError);
+    }
+
+    const body = signupSchema.parse(requestBody);
+
+    // Resolve default organization - must be explicitly configured
+    // SECURITY: Never fallback to arbitrary user's orgId (breaks tenant isolation)
+    // STRICT v4.1 FIX: In production, ONLY PUBLIC_ORG_ID is allowed to prevent
+    // real users from accidentally landing in TEST/DEFAULT orgs (cross-tenant contamination)
+    const resolvedOrgId =
+      process.env.PUBLIC_ORG_ID ||
+      (process.env.NODE_ENV !== "production" && (process.env.TEST_ORG_ID || process.env.DEFAULT_ORG_ID));
+
+    if (!resolvedOrgId) {
+      const errorMsg = process.env.NODE_ENV === "production"
+        ? "PUBLIC_ORG_ID is required for signup in production. TEST_ORG_ID and DEFAULT_ORG_ID are blocked in prod to prevent tenant contamination."
+        : "Default organization not configured. Set PUBLIC_ORG_ID, TEST_ORG_ID, or DEFAULT_ORG_ID environment variable with a valid ObjectId.";
+      throw new Error(errorMsg);
+    }
+
+    if (!Types.ObjectId.isValid(resolvedOrgId)) {
+      throw new Error(
+        `Invalid default organization ID: ${resolvedOrgId}. Must be a valid MongoDB ObjectId.`,
+      );
+    }
+
+    // 🛑 SECURITY FIX: Public signup MUST NOT be able to set admin roles.
+    // The 'userType' from the client is only a hint for data categorization.
+    // The 'role' assigned is ALWAYS the lowest-privilege personal user.
+    // Admin/Vendor accounts must be created via an internal, authenticated admin endpoint.
+    // Use canonical enum to align with STRICT v4.1 role matrix
+    const role = UserRole.TENANT;
+
+    // Only store companyName if the user self-identifies as corporate/vendor
+    const companyName =
+      body.userType === "corporate" || body.userType === "vendor"
+        ? body.companyName
+        : undefined;
+
+    const normalizedEmail = body.email.toLowerCase();
+    const hashedPassword = await bcrypt.hash(body.password, 12);
+
+    // ✅ SECURITY FIX: Pre-check for existing user SCOPED by orgId
+    // This prevents cross-tenant information disclosure (SEC-001 pattern)
+    const existingUser = await User.findOne({
+      orgId: resolvedOrgId,
+      email: normalizedEmail,
+    });
+    if (existingUser) {
+      return duplicateKeyError("An account with this email already exists.");
+    }
+
+    // Generate unique user code atomically (race-condition safe)
+    const code = await getNextAtomicUserCode();
+    const fullName = body.fullName || `${body.firstName} ${body.lastName}`;
+
+    // Get or create organization for new user
+    // For public signups, use default PUBLIC org or create personal org
+    const defaultOrgId = resolvedOrgId; // Default public org
+
+    // ✅ FIX: Add try/catch around the 'create' to handle race conditions
+    let newUser;
+    const newUserId = new Types.ObjectId();
+    try {
+      // Use nested User model schema from @/server/models/User
+      newUser = await User.create({
+        _id: newUserId,
+        orgId: defaultOrgId, // Required by tenant isolation plugin
+        code,
+        username: code, // Use unique code as username (no more conflicts)
+        email: normalizedEmail,
+        password: hashedPassword,
+        phone: body.phone,
+        personal: {
+          firstName: body.firstName,
+          lastName: body.lastName,
+          fullName: fullName,
+        },
+        professional: {
+          role,
+        },
+        security: {
+          lastLogin: new Date(),
+          accessLevel: "READ",
+          permissions: [],
+        },
+        preferences: {
+          language: body.preferredLanguage || "ar",
+          timezone: "Asia/Riyadh",
+          notifications: {
+            email: true,
+            sms: false,
+            app: true,
+          },
+        },
+        // STRICT v4.1: Create users as PENDING in production (requires email verification)
+        // Non-production environments get ACTIVE status for testing flexibility
+        status: process.env.NODE_ENV === "production" && process.env.NEXTAUTH_REQUIRE_EMAIL_VERIFICATION !== "false"
+          ? UserStatus.PENDING
+          : UserStatus.ACTIVE,
+        customFields: {
+          companyName,
+          termsAccepted: body.termsAccepted,
+          newsletter: body.newsletter || false,
+          preferredCurrency: body.preferredCurrency || "SAR",
+          authProvider: "credentials",
+        },
+        createdBy: newUserId,
+      });
+    } catch (dbError: unknown) {
+      // 🔒 TYPE SAFETY: Handle MongoDB duplicate key error with type guard
+      if (
+        dbError &&
+        typeof dbError === "object" &&
+        "code" in dbError &&
+        (dbError as { code: number }).code === 11000
+      ) {
+        return duplicateKeyError("An account with this email already exists.");
+      }
+      // Re-throw other unexpected database errors
+      throw dbError;
+    }
+
+    return createSecureResponse(
+      {
+        ok: true,
+        message: "User created successfully",
+        user: {
+          id: newUser._id,
+          email: newUser.email,
+          role: newUser.professional?.role || "VIEWER",
+        },
+        verification: await (async () => {
+          // Support both NEXTAUTH_SECRET (preferred) and AUTH_SECRET (legacy/Auth.js name)
+          // MUST align with auth.config.ts to prevent environment drift
+          const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+          // STRICT v4.1 FIX: In production, verification infrastructure MUST be available
+          // to prevent ACTIVE accounts without verified emails (account integrity risk)
+          if (!secret) {
+            if (process.env.NODE_ENV === "production") {
+              // Production: fail the entire signup to prevent unverified accounts
+              // The user was already created above, so we need to roll back
+              logger.error("[auth/signup] CRITICAL: NEXTAUTH_SECRET/AUTH_SECRET missing in production - cannot verify email", {
+                email: normalizedEmail,
+                userId: newUser._id,
+                hint: "Set NEXTAUTH_SECRET or AUTH_SECRET env var in Vercel/production",
+              });
+              // Delete the just-created user to prevent orphaned unverified accounts
+              await User.deleteOne({ _id: newUser._id });
+              throw new Error("Email verification not configured. Signup aborted for production safety.");
+            }
+            return { sent: false, reason: "not_configured" };
+          }
+          
+          const token = signVerificationToken(normalizedEmail, secret);
+          // SECURITY: Ensure VERCEL_URL has https:// scheme for production
+          const vercelUrl = process.env.VERCEL_URL;
+          const normalizedVercelUrl = vercelUrl 
+            ? (vercelUrl.startsWith("http") ? vercelUrl : `https://${vercelUrl}`)
+            : undefined;
+          const origin =
+            process.env.NEXT_PUBLIC_APP_URL ||
+            normalizedVercelUrl ||
+            new URL(req.url).origin;
+          const verificationLink = buildVerificationLink(origin, token);
+          
+          // Determine locale from request or body
+          const locale = body.preferredLanguage === "ar" ? "ar" : "en";
+          const userName = fullName;
+          
+          // Localized email content
+          const emailContent = locale === "ar" ? {
+            subject: "مرحباً بك في Fixzit - تأكيد البريد الإلكتروني",
+            body: `مرحباً ${userName}،\n\nشكراً لتسجيلك في Fixzit. يرجى تأكيد عنوان بريدك الإلكتروني بالضغط على الرابط أدناه:\n\n${verificationLink}\n\nهذا الرابط صالح لمدة 24 ساعة.\n\nمع أطيب التحيات،\nفريق Fixzit`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; direction: rtl; text-align: right;">
+                <div style="background: linear-gradient(135deg, #0070f3, #00c4cc); padding: 30px; border-radius: 10px 10px 0 0;">
+                  <h1 style="color: white; margin: 0; font-size: 24px;">مرحباً بك في Fixzit</h1>
+                </div>
+                <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+                  <p style="color: #333; font-size: 16px; line-height: 1.6;">مرحباً ${userName}،</p>
+                  <p style="color: #666; font-size: 14px; line-height: 1.6;">
+                    شكراً لتسجيلك في Fixzit. يرجى تأكيد عنوان بريدك الإلكتروني للوصول الكامل إلى حسابك.
+                  </p>
+                  <div style="text-align: center; margin: 30px 0;">
+                    <a href="${verificationLink}" style="background: #0070f3; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+                      تأكيد البريد الإلكتروني
+                    </a>
+                  </div>
+                  <p style="color: #999; font-size: 12px; line-height: 1.6;">
+                    هذا الرابط صالح لمدة 24 ساعة.
+                  </p>
+                  <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+                  <p style="color: #999; font-size: 11px; text-align: center;">© ${new Date().getFullYear()} Fixzit</p>
+                </div>
+              </div>
+            `,
+          } : {
+            subject: "Welcome to Fixzit - Verify your email",
+            body: `Hello ${userName},\n\nThank you for signing up for Fixzit. Please verify your email address by clicking the link below:\n\n${verificationLink}\n\nThis link expires in 24 hours.\n\nBest regards,\nThe Fixzit Team`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background: linear-gradient(135deg, #0070f3, #00c4cc); padding: 30px; border-radius: 10px 10px 0 0;">
+                  <h1 style="color: white; margin: 0; font-size: 24px;">Welcome to Fixzit</h1>
+                </div>
+                <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+                  <p style="color: #333; font-size: 16px; line-height: 1.6;">Hello ${userName},</p>
+                  <p style="color: #666; font-size: 14px; line-height: 1.6;">
+                    Thank you for signing up for Fixzit. Please verify your email address to get full access to your account.
+                  </p>
+                  <div style="text-align: center; margin: 30px 0;">
+                    <a href="${verificationLink}" style="background: #0070f3; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+                      Verify Email Address
+                    </a>
+                  </div>
+                  <p style="color: #999; font-size: 12px; line-height: 1.6;">
+                    This link expires in 24 hours.
+                  </p>
+                  <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+                  <p style="color: #999; font-size: 11px; text-align: center;">© ${new Date().getFullYear()} Fixzit</p>
+                </div>
+              </div>
+            `,
+          };
+          
+          // Send verification email
+          const emailResult = await sendEmail(normalizedEmail, emailContent.subject, emailContent.body, {
+            html: emailContent.html,
+          });
+          
+          if (emailResult.success) {
+            logger.info("[auth/signup] Verification email sent", {
+              email: normalizedEmail,
+              messageId: emailResult.messageId,
+            });
+            return { sent: true };
+          }
+          
+          // STRICT v4.1 FIX: In production, email verification MUST succeed
+          // Roll back user creation if email fails to prevent unverifiable ACTIVE accounts
+          const isProd = process.env.NODE_ENV === "production";
+          
+          // Fallback for development (SendGrid not configured)
+          if (emailResult.error?.includes("not configured")) {
+            if (isProd) {
+              // Production: roll back user - cannot have unverifiable accounts
+              logger.error("[auth/signup] CRITICAL: SendGrid not configured in production - rolling back user", {
+                email: normalizedEmail,
+                userId: newUser._id,
+              });
+              await User.deleteOne({ _id: newUser._id });
+              throw new Error("Email service not configured. Signup aborted for production safety.");
+            }
+            logger.warn("[auth/signup] SendGrid not configured, verification email not sent", {
+              email: normalizedEmail,
+            });
+            return { 
+              sent: false, 
+              reason: "email_not_configured",
+              // Only include link in non-production for testing
+              link: verificationLink,
+            };
+          }
+          
+          // Email send failed
+          if (isProd) {
+            // Production: roll back user - cannot have unverifiable accounts
+            logger.error("[auth/signup] CRITICAL: Email send failed in production - rolling back user", {
+              email: normalizedEmail,
+              userId: newUser._id,
+              error: emailResult.error,
+            });
+            await User.deleteOne({ _id: newUser._id });
+            throw new Error("Verification email failed to send. Signup aborted for production safety.");
+          }
+          
+          // Non-production: log warning but allow user to remain
+          logger.error("[auth/signup] Failed to send verification email", {
+            email: normalizedEmail,
+            error: emailResult.error,
+          });
+          return { sent: false, reason: "send_failed" };
+        })(),
+      },
+      201,
+      req,
+    );
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      return zodValidationError(error);
+    }
+    return handleApiError(error);
+  }
+}
+
+export async function GET(req: NextRequest) {
+  return createSecureResponse(
+    { ok: true, message: "Signup endpoint is active" },
+    200,
+    req,
+  );
+}
+
+]]>
+</file>
+
+<file path="app/api/auth/test/credentials-debug/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+
+export const runtime = "nodejs";
+
+export async function POST(req: NextRequest) {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+
+  const body = await req
+    .json()
+    .catch(() => ({} as { identifier?: string; email?: string; password?: string; csrfToken?: string }));
+
+  const identifier = body.identifier || body.email;
+  const password = body.password;
+  const csrfToken = body.csrfToken || "csrf-disabled";
+
+  if (!identifier || !password) {
+    return NextResponse.json(
+      { error: "identifier and password required" },
+      { status: 400 },
+    );
+  }
+
+  const form = new URLSearchParams({
+    identifier,
+    password,
+    csrfToken,
+    rememberMe: "on",
+    redirect: "false",
+    callbackUrl: "/dashboard",
+    json: "true",
+  });
+
+  const callbackUrl = new URL("/api/auth/callback/credentials", req.nextUrl.origin);
+
+  const resp = await fetch(callbackUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: form.toString(),
+    redirect: "manual",
+  });
+
+  // Next.js fetch polyfill supports getSetCookie() for multi-cookie responses
+  const setCookies =
+    (resp.headers as unknown as { getSetCookie?: () => string[] }).getSetCookie?.() ?? undefined;
+
+  return NextResponse.json({
+    status: resp.status,
+    ok: resp.ok,
+    setCookie: resp.headers.get("set-cookie"),
+    setCookies,
+    headers: Array.from(resp.headers.entries()),
+  });
+}
+
+]]>
+</file>
+
+<file path="app/api/auth/test/session/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { User } from "@/server/models/User";
+import { encode } from "next-auth/jwt";
+import { Types } from "mongoose";
+
+export const runtime = "nodejs";
+
+/**
+ * Test-only session minting endpoint.
+ * Generates a real NextAuth JWT session token and sets cookies directly.
+ */
+export async function POST(req: NextRequest) {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+
+  const jwtSecret =
+    process.env.NEXTAUTH_SECRET ||
+    process.env.AUTH_SECRET ||
+    "test-secret-session";
+  // Use string secret directly for NextAuth JWT encode
+  const secret = jwtSecret;
+
+  const body = await req
+    .json()
+    .catch(() => ({}) as { email?: string; orgId?: string });
+  const email = typeof body.email === "string" ? body.email.toLowerCase() : "";
+  if (!email) {
+    return NextResponse.json({ error: "email required" }, { status: 400 });
+  }
+
+  const resolvedOrgId =
+    body.orgId ||
+    process.env.PUBLIC_ORG_ID ||
+    process.env.DEFAULT_ORG_ID ||
+    process.env.TEST_ORG_ID;
+
+  if (!resolvedOrgId) {
+    return NextResponse.json(
+      { error: "orgId required for test session" },
+      { status: 400 },
+    );
+  }
+
+  await connectToDatabase().catch(() => {});
+  const user = await User.findOne({ email, orgId: resolvedOrgId }).lean<{
+    _id: Types.ObjectId;
+    email: string;
+    professional?: { role?: string };
+    orgId?: Types.ObjectId | string;
+    isSuperAdmin?: boolean;
+    permissions?: string[];
+    roles?: string[];
+  }>().catch(() => null);
+
+  const fallbackOrg =
+    resolvedOrgId ||
+    (user?.orgId ? user.orgId.toString() : undefined) ||
+    "000000000000000000000001";
+
+  const orgId = Types.ObjectId.isValid(fallbackOrg)
+    ? new Types.ObjectId(fallbackOrg)
+    : new Types.ObjectId("000000000000000000000001");
+
+  const role = user?.professional?.role || "SUPER_ADMIN";
+  const isSuperAdmin = user?.isSuperAdmin ?? true;
+  const permissions = user?.permissions ?? ["*"];
+  const roles = user?.roles ?? (isSuperAdmin ? ["SUPER_ADMIN", role] : [role]);
+  const userId = user?._id?.toString() || new Types.ObjectId().toString();
+
+  const sessionToken = await encode({
+    token: {
+      id: userId,
+      sub: userId,
+      email,
+      role,
+      orgId: orgId.toString(),
+      isSuperAdmin,
+      permissions,
+      roles,
+    },
+    secret,
+    salt: "authjs.session-token",
+    maxAge: 15 * 60,
+  });
+
+  const host = req.nextUrl.hostname;
+  const isHttps = req.nextUrl.protocol === "https:";
+  const cookieName = isHttps
+    ? "__Secure-authjs.session-token"
+    : "authjs.session-token";
+  const legacyName = isHttps
+    ? "__Secure-next-auth.session-token"
+    : "next-auth.session-token";
+
+  const resp = NextResponse.json({
+    ok: true,
+    appliedOrgId: orgId.toString(),
+    foundUser: Boolean(user),
+  });
+
+  const cookieOpts = {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax" as const,
+    secure: isHttps,
+    domain: host === "localhost" ? undefined : host,
+  };
+
+  resp.cookies.set(cookieName, sessionToken, cookieOpts);
+  resp.cookies.set(legacyName, sessionToken, cookieOpts);
+
+  return resp;
+}
+
+]]>
+</file>
+
+<file path="app/api/auth/verify/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { User } from "@/server/models/User";
+import { verifyVerificationToken } from "@/lib/auth/emailVerification";
+import { UserStatus } from "@/types/user";
+
+/**
+ * Stateless email verification endpoint.
+ * Validates a signed token and returns 200 if valid/active, and marks user verified.
+ */
+export async function GET(req: NextRequest) {
+  const token = req.nextUrl.searchParams.get("token");
+  if (!token) {
+    return NextResponse.json({ error: "token is required" }, { status: 400 });
+  }
+  // STRICT v4.1 FIX: Support both NEXTAUTH_SECRET (preferred) and AUTH_SECRET (legacy/Auth.js name)
+  // MUST align with auth.config.ts and signup/route.ts to prevent environment drift
+  const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+  if (!secret) {
+    return NextResponse.json(
+      { error: "verification not configured (NEXTAUTH_SECRET or AUTH_SECRET required)" },
+      { status: 500 },
+    );
+  }
+
+  const result = verifyVerificationToken(token, secret);
+  if (!result.ok) {
+    const status = result.reason === "expired" ? 410 : 400;
+    return NextResponse.json(
+      { error: "invalid token", reason: result.reason },
+      { status },
+    );
+  }
+
+  // SECURITY: Resolve default organization for public auth flow
+  // STRICT v4.1 FIX: In production, ONLY PUBLIC_ORG_ID is allowed to prevent
+  // cross-tenant verification (mirrors signup/route.ts scoping rules)
+  const resolvedOrgId =
+    process.env.PUBLIC_ORG_ID ||
+    (process.env.NODE_ENV !== "production" && (process.env.TEST_ORG_ID || process.env.DEFAULT_ORG_ID));
+
+  await connectToDatabase();
+  // SECURITY FIX: Scope findOneAndUpdate by orgId to prevent cross-tenant attacks (SEC-001)
+  // STRICT v4.1: Also activate user (set status to ACTIVE) when email is verified
+  const updateFields = { 
+    emailVerifiedAt: new Date(),
+    status: UserStatus.ACTIVE, // Activate user upon successful email verification
+  };
+  const updated = resolvedOrgId
+    ? await User.findOneAndUpdate(
+        { orgId: resolvedOrgId, email: result.email.toLowerCase() },
+        { $set: updateFields },
+        { new: true },
+      )
+        .select("email emailVerifiedAt status")
+        .lean()
+    : await User.findOneAndUpdate(
+        { email: result.email.toLowerCase() },
+        { $set: updateFields },
+        { new: true },
+      )
+        .select("email emailVerifiedAt status")
+        .lean();
+
+  if (!updated) {
+    return NextResponse.json({ error: "not found" }, { status: 404 });
+  }
+
+  return NextResponse.json({ ok: true, email: updated.email });
+}
+
+]]>
+</file>
+
+</batch_content>

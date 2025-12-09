@@ -1,0 +1,1407 @@
+
+You are the "Fixzit Memory Builder" for category: "components".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "components",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="tests/unit/components/fm/__tests__/WorkOrdersView.test.tsx">
+<![CDATA[
+import { vi } from 'vitest';
+import React, { type ComponentProps } from 'react';
+import { render, screen, waitFor, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { SWRConfig, mutate as globalMutate } from 'swr';
+
+// Import the component from its actual location
+import WorkOrdersViewDefault, { WorkOrdersView } from '@/components/fm/WorkOrdersView';
+
+vi.mock('date-fns', async () => {
+  const actual = await vi.importActual<typeof import('date-fns')>('date-fns');
+  return {
+    ...actual,
+    formatDistanceToNowStrict: vi.fn((date: Date) => {
+      // Provide a deterministic label for tests based on timestamp relation to "now"
+      const now = Date.now();
+      const diffMs = date.getTime() - now;
+      if (Number.isNaN(date.getTime())) return 'Invalid';
+      if (diffMs < 0) return '1 hour ago';
+      return 'in 1 hour';
+    }),
+  };
+});
+
+vi.mock('@/components/ClientDate', () => {
+  const MockClientDate = ({ date }: { date: unknown }) => (
+    <span data-testid="client-date">{String(date)}</span>
+  );
+  return { __esModule: true, default: MockClientDate };
+});
+
+// Helper to wrap components with SWR cache that doesn't dedupe/revalidate during tests
+const TestWrapper = ({ children }: { children: React.ReactNode }) => (
+  <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
+    {children}
+  </SWRConfig>
+);
+
+const renderWorkOrdersView = (
+  props?: Partial<ComponentProps<typeof WorkOrdersView>>
+) => {
+  let rendered: ReturnType<typeof render> | undefined;
+  act(() => {
+    rendered = render(<WorkOrdersViewDefault orgId="org-test" {...props} />, { wrapper: TestWrapper });
+  });
+  return rendered!;
+};
+
+// JSDOM has localStorage; ensure clean state
+beforeEach(() => {
+  // FIX: Use real timers by default since SWR + debouncing + useEffect causes hangs with fake timers
+  // Individual tests can opt into fake timers if needed for specific debounce testing
+  const mockFetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ items: [], page: 1, limit: 10, total: 0 }),
+  });
+  vi.stubGlobal('fetch', mockFetch as unknown as typeof fetch);
+  window.localStorage.clear();
+  vi.stubGlobal('alert', vi.fn());
+  // Clear SWR cache before each test
+  globalMutate(() => true, undefined, { revalidate: false });
+});
+
+afterEach(() => {
+  vi.useRealTimers(); // Cleanup in case any test used fake timers
+  vi.clearAllMocks();
+});
+
+const makeApiResponse = (items: Array<Record<string, unknown>>, page = 1, limit = 10, total?: number) => ({
+  items, page, limit, total: total ?? items.length,
+});
+
+describe('WorkOrdersView', () => {
+  test('renders default heading and description', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => makeApiResponse([]),
+    });
+
+    renderWorkOrdersView();
+    
+    expect(screen.getByRole('heading', { name: /Work Orders/i })).toBeInTheDocument();
+    expect(screen.getByText(/Manage and track work orders/i)).toBeInTheDocument();
+    
+    await waitFor(() => {
+      expect(screen.queryByText(/Loading/i)).not.toBeInTheDocument();
+    });
+  });
+
+  test('renders custom heading and description via props', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => makeApiResponse([]),
+    });
+
+    renderWorkOrdersView({ heading: 'My WOs', description: 'Desc here' });
+    
+    expect(screen.getByRole('heading', { name: /My WOs/ })).toBeInTheDocument();
+    expect(screen.getByText(/Desc here/)).toBeInTheDocument();
+    
+    await waitFor(() => {
+      expect(screen.queryByText(/Loading/i)).not.toBeInTheDocument();
+    });
+  });
+
+  test('shows loading card when isLoading and no data', () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => {}));
+    renderWorkOrdersView();
+    expect(screen.getByText(/Loading work orders/i)).toBeInTheDocument();
+  });
+
+  test('shows error card when error is present', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('Network broken'));
+
+    renderWorkOrdersView();
+    
+    await waitFor(() => {
+      expect(screen.getByText(/Network broken/)).toBeInTheDocument();
+    });
+  });
+
+  test('shows empty state when no work orders and no error', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => makeApiResponse([]),
+    });
+
+    renderWorkOrdersView();
+    
+    await waitFor(() => {
+      expect(screen.getByText(/No work orders match the current filters/i)).toBeInTheDocument();
+    });
+  });
+
+  test('renders list items with badges and computed meta including overdue styling', async () => {
+    const now = Date.now();
+    vi.spyOn(Date, 'now').mockReturnValue(now);
+
+    const past = new Date(now - 60 * 60 * 1000).toISOString(); // 1h ago
+    const future = new Date(now + 60 * 60 * 1000).toISOString(); // in 1h
+
+    const items = [
+      { _id: '1', workOrderNumber: 'WO-1', title: 'Fix sink', status: 'SUBMITTED', priority: 'HIGH', sla: { resolutionDeadline: past, resolutionTimeMinutes: 120 }, description: 'desc', location: { propertyId: 'P1' }, assignment: { assignedTo: { userId: 'U1' } }, category: 'PLUMBING', createdAt: new Date(now - 5000).toISOString() },
+      { _id: '2', workOrderNumber: 'WO-2', title: 'Check HVAC', status: 'COMPLETED', priority: 'LOW', sla: { resolutionDeadline: future }, assignment: { assignedTo: { vendorId: 'VND-9' } } },
+    ];
+
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => makeApiResponse(items),
+    });
+
+    renderWorkOrdersView();
+
+    // Wait for data to load
+    await waitFor(() => {
+      expect(screen.getByText('Fix sink')).toBeInTheDocument();
+    });
+
+    // Titles
+    expect(screen.getByText('Fix sink')).toBeInTheDocument();
+    expect(screen.getByText('Check HVAC')).toBeInTheDocument();
+
+    // Codes
+    expect(screen.getByText(/Code: WO-1/)).toBeInTheDocument();
+    expect(screen.getByText(/Code: WO-2/)).toBeInTheDocument();
+
+    // Priority badges content
+    expect(screen.getAllByText(/Priority: /)[0]).toHaveTextContent('Priority: High');
+    expect(screen.getAllByText(/Priority: /)[1]).toHaveTextContent('Priority: Low');
+
+    // Status labels (use getAllByText since status appears in dropdown and badge)
+    const submittedElements = screen.getAllByText('Submitted');
+    expect(submittedElements.length).toBeGreaterThan(0);
+    expect(submittedElements[submittedElements.length - 1]).toBeInTheDocument();
+    // FIX: Use getAllByText for 'Completed' since it appears in both dropdown and badge
+    const completedElements = screen.getAllByText('Completed');
+    expect(completedElements.length).toBeGreaterThan(0);
+
+    // SLA window formatting
+    expect(screen.getByText(/SLA window: 2h/)).toBeInTheDocument();
+    expect(screen.getByText(/SLA window: N\/A/)).toBeInTheDocument();
+
+    // Due meta and overdue style
+    const duePast = screen.getByText(/Due 1 hour ago/);
+    expect(duePast).toBeInTheDocument();
+    expect(duePast).toHaveClass('text-destructive');
+
+    const dueFuture = screen.getByText(/Due in 1 hour/);
+    expect(dueFuture).toBeInTheDocument();
+
+    // Optional fields fallbacks
+    expect(screen.getByText(/Not linked/)).toBeInTheDocument(); // propertyId empty
+    expect(screen.queryByText(/Unassigned/)).not.toBeInTheDocument(); // second shows vendor assignment
+    expect(screen.getByText(/General/)).toBeInTheDocument(); // category fallback
+    expect(screen.getByText(/Unknown/)).toBeInTheDocument(); // createdAt fallback
+  });
+
+  test('pagination controls reflect page and total pages; enabling/disabling works', async () => {
+    // total=25, limit=10 => totalPages=3
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => makeApiResponse([{ _id: '1', code: 'C', title: 'T', status: 'SUBMITTED', priority: 'MEDIUM' }], 1, 10, 25),
+    });
+
+    renderWorkOrdersView();
+    
+    await waitFor(() => {
+      expect(screen.getByText(/Page 1 of 3/)).toBeInTheDocument();
+    });
+
+    const prev = screen.getByRole('button', { name: /Previous/ });
+    const next = screen.getByRole('button', { name: /Next/ });
+
+    expect(prev).toBeDisabled();
+    expect(next).not.toBeDisabled();
+
+    // Mock the fetch for page 2
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => makeApiResponse([{ _id: '2', code: 'C2', title: 'T2', status: 'SUBMITTED', priority: 'MEDIUM' }], 2, 10, 25),
+    });
+
+    await userEvent.click(next);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Page 2 of 3/)).toBeInTheDocument();
+    });
+  });
+
+  test('refresh button calls mutate', async () => {
+    let fetchCallCount = 0;
+    (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+      fetchCallCount++;
+      return {
+        ok: true,
+        json: async () => makeApiResponse([]),
+      };
+    });
+
+    renderWorkOrdersView();
+    
+    await waitFor(() => {
+      expect(fetchCallCount).toBe(1); // Initial fetch
+    });
+
+    const refresh = screen.getByRole('button', { name: /Refresh/ });
+    await userEvent.click(refresh);
+    
+    await waitFor(() => {
+      expect(fetchCallCount).toBe(2); // Refetch after clicking refresh
+    });
+  });
+
+  test('status and priority filters update query (via SWR key) when changed', async () => {
+    // Track fetch URLs to verify query parameters
+    const fetchedUrls: string[] = [];
+    (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(async (url: string) => {
+      fetchedUrls.push(url);
+      return {
+        ok: true,
+        json: async () => makeApiResponse([]),
+      };
+    });
+
+    renderWorkOrdersView();
+
+    // Wait for initial fetch
+    await waitFor(() => {
+      expect(fetchedUrls.length).toBeGreaterThan(0);
+    });
+
+    // FIX: These are native HTML select elements, not combobox role. Query by name attribute or label.
+    const statusSelect = screen.getAllByRole('combobox')[0]; // First select is status
+    await userEvent.selectOptions(statusSelect, 'SUBMITTED');
+
+    // Verify fetch was called with status parameter
+    await waitFor(() => {
+      const lastUrl = fetchedUrls[fetchedUrls.length - 1];
+      expect(lastUrl).toMatch(/status=SUBMITTED/);
+    });
+
+    const prioritySelect = screen.getAllByRole('combobox')[1]; // Second select is priority
+    await userEvent.selectOptions(prioritySelect, 'HIGH');
+
+    // Verify fetch was called with both parameters
+    await waitFor(() => {
+      const lastUrl = fetchedUrls[fetchedUrls.length - 1];
+      expect(lastUrl).toMatch(/status=SUBMITTED/);
+      expect(lastUrl).toMatch(/priority=HIGH/);
+    });
+  });
+
+});
+
+]]>
+</file>
+
+<file path="tests/unit/components/marketplace/CatalogView.test.tsx">
+<![CDATA[
+/**
+ * Tests for CatalogView component
+ *
+ * Framework/Libraries:
+ * - React Testing Library (@testing-library/react)
+ * - @testing-library/user-event
+ * - jest-dom matchers (if configured)
+ *
+ * These tests mock:
+ * - swr hook to control loading/data/error states
+ * - LoginPrompt component to assert modal visibility
+ * - global fetch for Add to Cart flows
+ *
+ * Scenarios:
+ * - Renders title/subtitle, FM context banner
+ * - Loading state vs empty state messaging
+ * - Empty state with error vs without error
+ * - Rendering products list with formatting, vendor verification, badges, images
+ * - Add to cart: unauthenticated prompts login, authenticated success shows feedback and triggers mutate
+ * - Add to cart: API failure shows error feedback
+ * - Request quote always prompts login
+ * - Filter inputs update and reset filters clears inputs
+ * - Query key recomputation on filter change (verifies useSWR called with updated key)
+ */
+
+import React from 'react'
+import { render, screen, waitFor } from '@testing-library/react'
+import '@testing-library/jest-dom';
+import userEvent from '@testing-library/user-event'
+
+// Use conditional jest/vi globals without importing to fit either runner
+const jestLike = (global as { vi?: typeof vi; jest?: typeof jest }).vi ?? (global as { jest?: typeof jest }).jest
+
+// Keep a reference we can update per-test to control SWR responses
+type SWRProductsState = {
+  data?: unknown
+  error?: unknown
+  isLoading?: boolean
+   
+  mutate?: ReturnType<NonNullable<typeof jestLike>['fn']> | ((...args: unknown[]) => unknown)
+}
+type SWRCategoriesState = {
+  data?: unknown
+  error?: unknown
+  isLoading?: boolean
+}
+
+// Use a getter function to ensure we always get the current state
+let _productsState: SWRProductsState = {}
+let _categoriesState: SWRCategoriesState = {}
+
+const getProductsState = () => _productsState
+const getCategoriesState = () => _categoriesState
+
+// Capture useSWR calls to assert query key recomputation
+const useSWRCalls: Array<{ key: unknown; fetcher: unknown; opts: unknown }> = []
+
+function mockLoginPromptModule() {
+  return {
+    __esModule: true,
+    default: ({ isOpen, title = 'Sign in to continue' }: { isOpen: boolean; title?: string }) => (
+      <div aria-label="login-prompt" data-open={isOpen ? 'true' : 'false'}>
+        {isOpen ? title : null}
+      </div>
+    ),
+  }
+}
+
+// Mock swr default export - returns different state based on the key
+function mockSWRModule() {
+  return {
+    __esModule: true,
+    default: (key: unknown, fetcher: unknown, opts: unknown) => {
+      useSWRCalls.push({ key, fetcher, opts })
+      
+      // If the key is for categories, return categories state
+      if (typeof key === 'string' && key.includes('/api/marketplace/categories')) {
+        const state = getCategoriesState()
+        const result = {
+          data: state.data,
+          error: state.error,
+          isLoading: state.isLoading !== undefined ? state.isLoading : false,
+          mutate: jestLike.fn(),
+        }
+        return result
+      }
+      
+      // Otherwise return products state
+      const state = getProductsState()
+      const result = {
+        data: state.data,
+        error: state.error,
+        isLoading: state.isLoading !== undefined ? state.isLoading : false,
+        mutate: state.mutate ?? jestLike.fn(),
+      }
+      return result
+    },
+  }
+}
+
+if ((global as { vi?: typeof import('vitest') }).vi) {
+  // vitest exposes `vi`
+  vi.mock('@/components/LoginPrompt', mockLoginPromptModule)
+  vi.mock('swr', mockSWRModule)
+} else if ((global as { jest?: typeof import('@jest/globals') }).jest) {
+  // jest fallback if these tests are run there
+  jest.mock('@/components/LoginPrompt', mockLoginPromptModule)
+  jest.mock('swr', mockSWRModule)
+}
+
+// After SWR mock is set up above, import component under test
+import CatalogView from '@/components/marketplace/CatalogView'
+
+// Utility: set SWR states for a given test
+function setSWRProducts(state: Partial<SWRProductsState>) {
+  if ('data' in state) _productsState.data = state.data
+  if ('error' in state) _productsState.error = state.error
+  if ('isLoading' in state) _productsState.isLoading = state.isLoading
+  if ('mutate' in state) _productsState.mutate = state.mutate as SWRProductsState['mutate']
+}
+function setSWRCategories(state: Partial<SWRCategoriesState>) {
+  if ('data' in state) _categoriesState.data = state.data
+  if ('error' in state) _categoriesState.error = state.error
+  if ('isLoading' in state) _categoriesState.isLoading = state.isLoading
+}
+
+type Product = {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  currency: string;
+  unit: string;
+  stock: number;
+  rating: number;
+  reviewCount: number;
+  images: unknown[];
+  vendor: { id: string; name: string; verified: boolean };
+  category: { id: string; name: string; slug: string };
+} & Record<string, unknown>;
+
+function makeProduct(overrides: Partial<Product> = {}): Product {
+  return {
+    id: 'p1',
+    title: 'Premium Cement',
+    description: 'High quality cement for construction',
+    price: 99.5,
+    currency: 'SAR',
+    unit: 'bag',
+    stock: 42,
+    rating: 4.234,
+    reviewCount: 10,
+    images: [],
+    vendor: {
+      id: 'v1',
+      name: 'BuildCo',
+      verified: true
+    },
+    category: { id: 'c1', name: 'Materials', slug: 'materials' },
+    ...overrides,
+  }
+}
+
+function makeCatalog(products: Product[]) {
+  return {
+    products,
+    pagination: {
+      page: 1,
+      limit: 24,
+      total: products.length,
+      pages: 1,
+      tenantId: 'demo-tenant',
+    },
+  }
+}
+
+type Category = { id: string; name: string; slug: string } & Record<string, unknown>;
+
+function makeCategories(cats: Category[]) {
+  return {
+    categories: cats,
+    tenantId: 'demo-tenant',
+  }
+}
+
+beforeEach(() => {
+  // Reset SWR mocks - set all properties explicitly
+  setSWRProducts({ data: makeCatalog([]), isLoading: false, error: undefined, mutate: jestLike.fn() })
+  setSWRCategories({ data: makeCategories([{ id: 'c1', name: 'Materials', slug: 'materials' }]), isLoading: false, error: undefined })
+  useSWRCalls.length = 0
+
+  // Reset cookies/localStorage
+  document.cookie = ''
+  localStorage.clear()
+
+  // Reset fetch mock
+vi.stubGlobal('fetch', undefined as unknown as typeof fetch);
+})
+
+describe('CatalogView - basic rendering', () => {
+  it('renders title and subtitle, and hides FM banner by default', () => {
+    render(<CatalogView />)
+    expect(screen.getByRole('heading', { name: /Fixzit Marketplace/i })).toBeInTheDocument()
+    expect(screen.getByText(/Browse verified materials and service vendors/i)).toBeInTheDocument()
+    expect(screen.queryByText(/Inventory synced with tenant procurement guardrails/i)).not.toBeInTheDocument()
+  })
+
+  it('renders FM context banner when context="fm"', () => {
+    render(<CatalogView context="fm" />)
+    expect(screen.getByText(/Inventory synced with tenant procurement guardrails/i)).toBeInTheDocument()
+  })
+})
+
+describe('CatalogView - loading and empty states', () => {
+  it('shows loading state (no empty-state text while loading)', () => {
+    setSWRProducts({ isLoading: true, data: undefined })
+    render(<CatalogView />)
+    expect(screen.queryByText(/No products match your filters/i)).not.toBeInTheDocument()
+  })
+
+  it('shows empty state message when no products and no error', () => {
+    setSWRProducts({ data: makeCatalog([]), error: undefined, isLoading: false })
+    setSWRCategories({ data: makeCategories([{ id: 'c1', name: 'Materials', slug: 'materials' }]), error: undefined, isLoading: false })
+    render(<CatalogView />)
+    expect(screen.getByText(/No products match your filters/i)).toBeInTheDocument()
+    expect(screen.getByText(/Adjust your filters or check back later/i)).toBeInTheDocument()
+  })
+
+  it('shows error-flavored empty state when error occurs', () => {
+    setSWRProducts({ data: makeCatalog([]), error: new Error('boom') })
+    render(<CatalogView />)
+    expect(screen.getByText(/No products match your filters/i)).toBeInTheDocument()
+    expect(screen.getByText(/We could not reach the marketplace catalog right now/i)).toBeInTheDocument()
+  })
+})
+
+describe('CatalogView - product rendering and formatting', () => {
+  it('renders a product card with price, unit, stock, category, rating, verified vendor, and description fallback', () => {
+    const product = makeProduct({ images: [] }) // empty array to show "Image not provided"
+    setSWRProducts({ data: makeCatalog([product]) })
+    render(<CatalogView />)
+
+    // Title
+    expect(screen.getByText(product.title)).toBeInTheDocument()
+
+    // Vendor name and verified text
+    expect(screen.getByText(product.vendor.name)).toBeInTheDocument()
+    expect(screen.getByText(/Verified vendor/i)).toBeInTheDocument()
+
+    // Price formatting: currency + 2 decimals and unit
+    const priceEl = screen.getByText(/SAR/i)
+    expect(priceEl).toHaveTextContent(/99\.50/) // toFixed(2)
+    expect(screen.getByText(/\/\s*bag/i)).toBeInTheDocument()
+
+    // Stock badge
+    expect(screen.getByText(/Stock:\s*42/i)).toBeInTheDocument()
+
+    // Category badge
+    expect(screen.getByText(product.category.name, { selector: 'div' })).toBeInTheDocument()
+
+    // Rating and reviews
+    expect(screen.getByText(/4\.2\s*·\s*10 reviews/i)).toBeInTheDocument()
+
+    // Description
+    expect(screen.getByText(product.description)).toBeInTheDocument()
+
+    // Image fallback text
+    expect(screen.getByText(/Image not provided/i)).toBeInTheDocument()
+  })
+
+  it('renders an image when provided with correct alt', () => {
+    const product = makeProduct({ images: ['https://example.com/img.png'] })
+    setSWRProducts({ data: makeCatalog([product]) })
+    render(<CatalogView />)
+    const img = screen.getByAltText(product.title) as HTMLImageElement
+    expect(img).toBeInTheDocument()
+    expect(img.tagName.toLowerCase()).toBe('img')
+  })
+
+  it('renders fallback vendor text when vendor is missing or unverified', () => {
+    const product = makeProduct({ vendor: null })
+    setSWRProducts({ data: makeCatalog([product]) })
+    render(<CatalogView />)
+    expect(screen.getByText(/Vendor pending onboarding/i)).toBeInTheDocument()
+    expect(screen.queryByText(/Verified vendor/i)).not.toBeInTheDocument()
+  })
+})
+
+describe('CatalogView - interactions', () => {
+  it('opens LoginPrompt when clicking "Request quote"', async () => {
+    const product = makeProduct()
+    setSWRProducts({ data: makeCatalog([product]) })
+    render(<CatalogView />)
+    await userEvent.click(screen.getByRole('button', { name: /Request quote/i }))
+    expect(screen.getByLabelText('login-prompt')).toHaveAttribute('data-open', 'true')
+  })
+
+  it('unauthenticated "Add to cart" opens LoginPrompt and does not call fetch', async () => {
+    const product = makeProduct()
+    setSWRProducts({ data: makeCatalog([product]) })
+    render(<CatalogView />)
+
+    const fetchSpy = jestLike.fn()
+    vi.stubGlobal('fetch', fetchSpy as unknown as typeof fetch);
+
+    await userEvent.click(screen.getByRole('button', { name: /Add to cart/i }))
+    expect(screen.getByLabelText('login-prompt')).toHaveAttribute('data-open', 'true')
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
+  it('authenticated "Add to cart" calls API, shows success feedback, and calls mutate', async () => {
+    const mutate = jestLike.fn()
+    const product = makeProduct({ id: 'prod-123', title: 'Steel Rod' })
+    setSWRProducts({ data: makeCatalog([product]), mutate })
+
+    // Simulate authentication via cookie or localStorage
+    document.cookie = 'fixzit_auth=1'
+
+    const fetchSpy = jestLike.fn().mockResolvedValue({ ok: true, json: async () => ({}) })
+    vi.stubGlobal('fetch', fetchSpy as unknown as typeof fetch);
+
+    render(<CatalogView />)
+
+    await userEvent.click(screen.getByRole('button', { name: /Add to cart/i }))
+    await waitFor(() => {
+      expect(fetchSpy).toHaveBeenCalledWith('/api/marketplace/cart', expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ productId: 'prod-123', quantity: 1 }),
+      }))
+    })
+    expect(mutate).toHaveBeenCalled()
+    expect(screen.getByText(/Steel Rod added to cart\./i)).toBeInTheDocument()
+  })
+
+  it('authenticated "Add to cart" shows failure feedback when API not ok', async () => {
+    const mutate = jestLike.fn()
+    const product = makeProduct({ id: 'prod-err', title: 'Failed Item' })
+    setSWRProducts({ data: makeCatalog([product]), mutate })
+
+    document.cookie = 'fixzit_auth=1'
+
+    const fetchSpy = jestLike.fn().mockResolvedValue({ ok: false, json: async () => ({}) })
+    vi.stubGlobal('fetch', fetchSpy as unknown as typeof fetch);
+
+    render(<CatalogView />)
+    await userEvent.click(screen.getByRole('button', { name: /Add to cart/i }))
+    await waitFor(() => {
+      expect(screen.getByText(/We could not add this item to your cart/i)).toBeInTheDocument()
+    })
+  })
+
+  it('filters: typing in inputs updates values and reset filters clears them', async () => {
+    setSWRProducts({ data: makeCatalog([]) }) // empty state to show Reset filters button
+    render(<CatalogView />)
+
+    const search = screen.getByPlaceholderText(/Search products, vendors, or SKUs/i) as HTMLInputElement
+    const minPrice = screen.getByPlaceholderText(/Min SAR/i) as HTMLInputElement
+    const maxPrice = screen.getByPlaceholderText(/Max SAR/i) as HTMLInputElement
+
+    await userEvent.type(search, 'cement')
+    await userEvent.type(minPrice, '10')
+    await userEvent.type(maxPrice, '100')
+
+    expect(search).toHaveValue('cement')
+    expect(minPrice).toHaveValue(10)
+    expect(maxPrice).toHaveValue(100)
+
+    await userEvent.click(screen.getByRole('button', { name: /Reset filters/i }))
+    // After click, state should reset to '' (number inputs become empty string)
+    expect(search).toHaveValue('')
+    expect(minPrice.value).toBe('')
+    expect(maxPrice.value).toBe('')
+  })
+
+  it('recomputes SWR key when filters change (query string contains filters)', async () => {
+    // Start with empty dataset to allow interaction; capture calls
+    setSWRProducts({ data: makeCatalog([]) })
+    render(<CatalogView tenantId="demo-tenant" />)
+
+    const search = screen.getByPlaceholderText(/Search products, vendors, or SKUs/i) as HTMLInputElement
+    const minPrice = screen.getByPlaceholderText(/Min SAR/i) as HTMLInputElement
+    const maxPrice = screen.getByPlaceholderText(/Max SAR/i) as HTMLInputElement
+
+    await userEvent.type(search, 'rod')
+    await userEvent.type(minPrice, '5')
+    await userEvent.type(maxPrice, '50')
+
+    // Debounce-less immediate re-render - SWR mock will have multiple calls
+    const productCalls = useSWRCalls
+      .map(c => c.key)
+      .filter(k => typeof k === 'string' && k.startsWith('/api/marketplace/products?'))
+
+    // Ensure at least one call contains each param
+    expect(productCalls.some(k => k.includes('tenantId=demo-tenant'))).toBe(true)
+    expect(productCalls.some(k => k.includes('q=rod'))).toBe(true)
+    expect(productCalls.some(k => k.includes('minPrice=5'))).toBe(true)
+    expect(productCalls.some(k => k.includes('maxPrice=50'))).toBe(true)
+    // Default limit
+    expect(productCalls.some(k => k.includes('limit=24'))).toBe(true)
+  })
+})
+
+// Time-based feedback message auto-dismiss is covered implicitly by rendering assertion immediately after actions.
+// If desired, we could advance timers with fake timers here, but it is optional for unit verification purpose.
+
+]]>
+</file>
+
+<file path="tests/unit/components/support/SupportOrgSwitcher.test.tsx">
+<![CDATA[
+import React from "react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import SupportOrgSwitcher from "@/components/support/SupportOrgSwitcher";
+
+const mockUseSupportOrg = vi.fn();
+const toastSuccess = vi.fn();
+const toastError = vi.fn();
+
+vi.mock("@/contexts/SupportOrgContext", () => ({
+  useSupportOrg: () => mockUseSupportOrg(),
+}));
+
+vi.mock("@/contexts/TranslationContext", () => ({
+  useTranslation: () => ({
+    t: (_key: string, fallback?: string) => fallback ?? _key,
+  }),
+}));
+
+vi.mock("sonner", () => ({
+  toast: {
+    success: (...args: unknown[]) => toastSuccess(...args),
+    error: (...args: unknown[]) => toastError(...args),
+  },
+}));
+
+describe("SupportOrgSwitcher", () => {
+  beforeEach(() => {
+    mockUseSupportOrg.mockReturnValue({
+      canImpersonate: true,
+      loading: false,
+      supportOrg: null,
+      selectOrgById: vi.fn().mockResolvedValue(true),
+      clearSupportOrg: vi.fn().mockResolvedValue(undefined),
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    toastSuccess.mockReset();
+    toastError.mockReset();
+  });
+
+  it("returns null when the user cannot impersonate", () => {
+    mockUseSupportOrg.mockReturnValue({
+      canImpersonate: false,
+      loading: false,
+      supportOrg: null,
+      selectOrgById: vi.fn(),
+      clearSupportOrg: vi.fn(),
+    });
+
+    const { container } = render(<SupportOrgSwitcher />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("searches organizations and selects one", async () => {
+    const selectOrgById = vi.fn().mockResolvedValue(true);
+    mockUseSupportOrg.mockReturnValue({
+      canImpersonate: true,
+      loading: false,
+      supportOrg: null,
+      selectOrgById,
+      clearSupportOrg: vi.fn().mockResolvedValue(undefined),
+    });
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        results: [
+          {
+            orgId: "org_123",
+            name: "Test Org",
+            registrationNumber: "REG123",
+          },
+        ],
+      }),
+    } as Response);
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<SupportOrgSwitcher />);
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /Select customer/i }));
+    const input = await screen.findByLabelText(/corporate id or code/i);
+    await user.type(input, "7001234567");
+    await user.click(screen.getByRole("button", { name: /Search/i }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/support/organizations/search?identifier=7001234567",
+      expect.objectContaining({ credentials: "include" }),
+    );
+
+    const useOrgButton = await screen.findByRole("button", {
+      name: /Use org/i,
+    });
+    await user.click(useOrgButton);
+
+    await waitFor(() => expect(selectOrgById).toHaveBeenCalledWith("org_123"));
+    expect(toastSuccess).toHaveBeenCalled();
+  });
+
+  it("clears the current support organization", async () => {
+    const clearSupportOrg = vi.fn().mockResolvedValue(undefined);
+    mockUseSupportOrg.mockReturnValue({
+      canImpersonate: true,
+      loading: false,
+      supportOrg: { orgId: "org_abc", name: "Acme Org" },
+      selectOrgById: vi.fn(),
+      clearSupportOrg,
+    });
+
+    render(<SupportOrgSwitcher />);
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /Org: Acme Org/i }));
+    const clearButton = await screen.findByRole("button", {
+      name: /Clear selection/i,
+    });
+    await user.click(clearButton);
+
+    expect(clearSupportOrg).toHaveBeenCalledTimes(1);
+    expect(toastSuccess).toHaveBeenCalled();
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/components/ui/__tests__/label.test.tsx">
+<![CDATA[
+import React, { useRef } from "react";
+import { render, screen } from "@testing-library/react";
+import { Label } from "@/components/ui/label";
+
+describe("Label", () => {
+  it("renders with text", () => {
+    render(<Label>Username</Label>);
+    expect(screen.getByText("Username")).toBeInTheDocument();
+  });
+
+  it("forwards ref correctly", () => {
+    const TestComponent = () => {
+      const ref = useRef<HTMLLabelElement>(null);
+      return (
+        <Label ref={ref} data-testid="label">
+          Test
+        </Label>
+      );
+    };
+    render(<TestComponent />);
+    expect(screen.getByTestId("label")).toBeInstanceOf(HTMLLabelElement);
+  });
+
+  it("applies custom className", () => {
+    render(<Label className="custom-class">Test</Label>);
+    expect(screen.getByText("Test")).toHaveClass("custom-class");
+  });
+
+  it("associates with input via htmlFor", () => {
+    render(
+      <>
+        <Label htmlFor="test-input">Test Label</Label>
+        <input id="test-input" />
+      </>,
+    );
+    const label = screen.getByText("Test Label");
+    expect(label).toHaveAttribute("for", "test-input");
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/components/ui/__tests__/select.test.tsx">
+<![CDATA[
+import React from "react";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { vi } from "vitest";
+import { Select, SelectItem, SelectGroup } from "@/components/ui/select";
+
+describe("Select", () => {
+  it("renders with placeholder", () => {
+    render(
+      <Select placeholder="Choose option" data-testid="select">
+        <SelectItem value="1">Option 1</SelectItem>
+      </Select>,
+    );
+    expect(screen.getByText("Choose option")).toBeInTheDocument();
+  });
+
+  it("shows placeholder by default when uncontrolled", () => {
+    render(
+      <Select placeholder="Select..." data-testid="select">
+        <SelectItem value="1">Option 1</SelectItem>
+      </Select>,
+    );
+    const select = screen.getByTestId("select") as HTMLSelectElement;
+    expect(select.value).toBe("");
+  });
+
+  it("calls onValueChange when selection changes", () => {
+    const handleChange = vi.fn();
+    render(
+      <Select
+        onValueChange={handleChange}
+        placeholder="Choose"
+        data-testid="select"
+      >
+        <SelectItem value="1">Option 1</SelectItem>
+        <SelectItem value="2">Option 2</SelectItem>
+      </Select>,
+    );
+    const select = screen.getByTestId("select") as HTMLSelectElement;
+    fireEvent.change(select, { target: { value: "2" } });
+    expect(handleChange).toHaveBeenCalledWith("2");
+  });
+
+  it("calls both onChange and onValueChange", () => {
+    const handleChange = vi.fn();
+    const handleValueChange = vi.fn();
+    render(
+      <Select
+        onChange={handleChange}
+        onValueChange={handleValueChange}
+        data-testid="select"
+      >
+        <SelectItem value="1">Option 1</SelectItem>
+        <SelectItem value="2">Option 2</SelectItem>
+      </Select>,
+    );
+    const select = screen.getByTestId("select") as HTMLSelectElement;
+    fireEvent.change(select, { target: { value: "2" } });
+    expect(handleChange).toHaveBeenCalled();
+    expect(handleValueChange).toHaveBeenCalledWith("2");
+  });
+
+  it("renders SelectItem children correctly", () => {
+    render(
+      <Select data-testid="select">
+        <SelectItem value="1">First Option</SelectItem>
+        <SelectItem value="2">Second Option</SelectItem>
+      </Select>,
+    );
+    expect(screen.getByText("First Option")).toBeInTheDocument();
+    expect(screen.getByText("Second Option")).toBeInTheDocument();
+  });
+
+  it("renders SelectGroup with label", () => {
+    render(
+      <Select data-testid="select">
+        <SelectGroup label="Group 1">
+          <SelectItem value="1">Option 1</SelectItem>
+          <SelectItem value="2">Option 2</SelectItem>
+        </SelectGroup>
+      </Select>,
+    );
+    const optgroup = screen.getByRole("group");
+    expect(optgroup).toHaveAttribute("label", "Group 1");
+  });
+
+  it("respects controlled value", () => {
+    const { rerender } = render(
+      <Select value="1" data-testid="select">
+        <SelectItem value="1">Option 1</SelectItem>
+        <SelectItem value="2">Option 2</SelectItem>
+      </Select>,
+    );
+    const select = screen.getByTestId("select") as HTMLSelectElement;
+    expect(select.value).toBe("1");
+
+    rerender(
+      <Select value="2" data-testid="select">
+        <SelectItem value="1">Option 1</SelectItem>
+        <SelectItem value="2">Option 2</SelectItem>
+      </Select>,
+    );
+    expect(select.value).toBe("2");
+  });
+
+  it("respects defaultValue for uncontrolled component", () => {
+    render(
+      <Select defaultValue="2" data-testid="select">
+        <SelectItem value="1">Option 1</SelectItem>
+        <SelectItem value="2">Option 2</SelectItem>
+      </Select>,
+    );
+    const select = screen.getByTestId("select") as HTMLSelectElement;
+    expect(select.value).toBe("2");
+  });
+
+  it("renders chevron icon", () => {
+    const { container } = render(
+      <Select>
+        <SelectItem value="1">Option 1</SelectItem>
+      </Select>,
+    );
+    const chevron = container.querySelector("svg");
+    expect(chevron).toBeInTheDocument();
+    expect(chevron).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("applies custom wrapperClassName", () => {
+    const { container } = render(
+      <Select wrapperClassName="custom-wrapper">
+        <SelectItem value="1">Option 1</SelectItem>
+      </Select>,
+    );
+    const wrapper = container.firstChild as HTMLElement;
+    expect(wrapper).toHaveClass("custom-wrapper");
+  });
+
+  it("disables SelectItem when disabled prop is true", () => {
+    render(
+      <Select data-testid="select">
+        <SelectItem value="1" disabled>
+          Disabled Option
+        </SelectItem>
+        <SelectItem value="2">Enabled Option</SelectItem>
+      </Select>,
+    );
+    const disabledOption = screen.getByText(
+      "Disabled Option",
+    ) as HTMLOptionElement;
+    expect(disabledOption.disabled).toBe(true);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/components/ui/__tests__/tabs.test.tsx">
+<![CDATA[
+import React from "react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { vi } from "vitest";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+
+describe("Tabs", () => {
+  it("renders all tabs and shows default content", () => {
+    render(
+      <Tabs defaultValue="tab1">
+        <TabsList>
+          <TabsTrigger value="tab1">Tab 1</TabsTrigger>
+          <TabsTrigger value="tab2">Tab 2</TabsTrigger>
+        </TabsList>
+        <TabsContent value="tab1">Content 1</TabsContent>
+        <TabsContent value="tab2">Content 2</TabsContent>
+      </Tabs>,
+    );
+    expect(screen.getByText("Content 1")).toBeVisible();
+    expect(screen.getByText("Content 2")).not.toBeVisible();
+  });
+
+  it("switches content on tab click", async () => {
+    render(
+      <Tabs defaultValue="tab1">
+        <TabsList>
+          <TabsTrigger value="tab1">Tab 1</TabsTrigger>
+          <TabsTrigger value="tab2">Tab 2</TabsTrigger>
+        </TabsList>
+        <TabsContent value="tab1">Content 1</TabsContent>
+        <TabsContent value="tab2">Content 2</TabsContent>
+      </Tabs>,
+    );
+
+    fireEvent.click(screen.getByText("Tab 2"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Content 2")).toBeVisible();
+      expect(screen.getByText("Content 1")).not.toBeVisible();
+    });
+  });
+
+  it("handles controlled mode", () => {
+    const { rerender } = render(
+      <Tabs value="tab1">
+        <TabsList>
+          <TabsTrigger value="tab1">Tab 1</TabsTrigger>
+          <TabsTrigger value="tab2">Tab 2</TabsTrigger>
+        </TabsList>
+        <TabsContent value="tab1">Content 1</TabsContent>
+        <TabsContent value="tab2">Content 2</TabsContent>
+      </Tabs>,
+    );
+
+    expect(screen.getByText("Content 1")).toBeVisible();
+
+    rerender(
+      <Tabs value="tab2">
+        <TabsList>
+          <TabsTrigger value="tab1">Tab 1</TabsTrigger>
+          <TabsTrigger value="tab2">Tab 2</TabsTrigger>
+        </TabsList>
+        <TabsContent value="tab1">Content 1</TabsContent>
+        <TabsContent value="tab2">Content 2</TabsContent>
+      </Tabs>,
+    );
+
+    expect(screen.getByText("Content 2")).toBeVisible();
+  });
+
+  it("calls onValueChange when tab changes", async () => {
+    const handleChange = vi.fn();
+    render(
+      <Tabs defaultValue="tab1" onValueChange={handleChange}>
+        <TabsList>
+          <TabsTrigger value="tab1">Tab 1</TabsTrigger>
+          <TabsTrigger value="tab2">Tab 2</TabsTrigger>
+        </TabsList>
+        <TabsContent value="tab1">Content 1</TabsContent>
+        <TabsContent value="tab2">Content 2</TabsContent>
+      </Tabs>,
+    );
+
+    fireEvent.click(screen.getByText("Tab 2"));
+
+    await waitFor(() => {
+      expect(handleChange).toHaveBeenCalledWith("tab2");
+    });
+  });
+
+  it("handles keyboard navigation (ArrowRight)", async () => {
+    render(
+      <Tabs defaultValue="tab1">
+        <TabsList>
+          <TabsTrigger value="tab1">Tab 1</TabsTrigger>
+          <TabsTrigger value="tab2">Tab 2</TabsTrigger>
+        </TabsList>
+        <TabsContent value="tab1">Content 1</TabsContent>
+        <TabsContent value="tab2">Content 2</TabsContent>
+      </Tabs>,
+    );
+
+    const tab1 = screen.getByText("Tab 1");
+    tab1.focus();
+    fireEvent.keyDown(tab1, { key: "ArrowRight" });
+
+    await waitFor(() => {
+      expect(screen.getByText("Tab 2")).toHaveFocus();
+      expect(screen.getByText("Content 2")).toBeVisible();
+    });
+  });
+
+  it("handles keyboard navigation (ArrowLeft)", async () => {
+    render(
+      <Tabs defaultValue="tab2">
+        <TabsList>
+          <TabsTrigger value="tab1">Tab 1</TabsTrigger>
+          <TabsTrigger value="tab2">Tab 2</TabsTrigger>
+        </TabsList>
+        <TabsContent value="tab1">Content 1</TabsContent>
+        <TabsContent value="tab2">Content 2</TabsContent>
+      </Tabs>,
+    );
+
+    const tab2 = screen.getByText("Tab 2");
+    tab2.focus();
+    fireEvent.keyDown(tab2, { key: "ArrowLeft" });
+
+    await waitFor(() => {
+      expect(screen.getByText("Tab 1")).toHaveFocus();
+      expect(screen.getByText("Content 1")).toBeVisible();
+    });
+  });
+
+  it("handles Home key navigation", async () => {
+    render(
+      <Tabs defaultValue="tab3">
+        <TabsList>
+          <TabsTrigger value="tab1">Tab 1</TabsTrigger>
+          <TabsTrigger value="tab2">Tab 2</TabsTrigger>
+          <TabsTrigger value="tab3">Tab 3</TabsTrigger>
+        </TabsList>
+        <TabsContent value="tab1">Content 1</TabsContent>
+        <TabsContent value="tab2">Content 2</TabsContent>
+        <TabsContent value="tab3">Content 3</TabsContent>
+      </Tabs>,
+    );
+
+    const tab3 = screen.getByText("Tab 3");
+    tab3.focus();
+    fireEvent.keyDown(tab3, { key: "Home" });
+
+    await waitFor(() => {
+      expect(screen.getByText("Tab 1")).toHaveFocus();
+      expect(screen.getByText("Content 1")).toBeVisible();
+    });
+  });
+
+  it("handles End key navigation", async () => {
+    render(
+      <Tabs defaultValue="tab1">
+        <TabsList>
+          <TabsTrigger value="tab1">Tab 1</TabsTrigger>
+          <TabsTrigger value="tab2">Tab 2</TabsTrigger>
+          <TabsTrigger value="tab3">Tab 3</TabsTrigger>
+        </TabsList>
+        <TabsContent value="tab1">Content 1</TabsContent>
+        <TabsContent value="tab2">Content 2</TabsContent>
+        <TabsContent value="tab3">Content 3</TabsContent>
+      </Tabs>,
+    );
+
+    const tab1 = screen.getByText("Tab 1");
+    tab1.focus();
+    fireEvent.keyDown(tab1, { key: "End" });
+
+    await waitFor(() => {
+      expect(screen.getByText("Tab 3")).toHaveFocus();
+      expect(screen.getByText("Content 3")).toBeVisible();
+    });
+  });
+
+  it("applies active styling to current tab", () => {
+    render(
+      <Tabs defaultValue="tab1">
+        <TabsList>
+          <TabsTrigger value="tab1" data-testid="tab1">
+            Tab 1
+          </TabsTrigger>
+          <TabsTrigger value="tab2" data-testid="tab2">
+            Tab 2
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="tab1">Content 1</TabsContent>
+        <TabsContent value="tab2">Content 2</TabsContent>
+      </Tabs>,
+    );
+
+    const tab1 = screen.getByTestId("tab1");
+    expect(tab1).toHaveAttribute("aria-selected", "true");
+    expect(tab1).toHaveAttribute("tabIndex", "0");
+
+    const tab2 = screen.getByTestId("tab2");
+    expect(tab2).toHaveAttribute("aria-selected", "false");
+    expect(tab2).toHaveAttribute("tabIndex", "-1");
+  });
+
+  it("preserves inactive tab content with hidden attribute", () => {
+    render(
+      <Tabs defaultValue="tab1">
+        <TabsList>
+          <TabsTrigger value="tab1">Tab 1</TabsTrigger>
+          <TabsTrigger value="tab2">Tab 2</TabsTrigger>
+        </TabsList>
+        <TabsContent value="tab1">Content 1</TabsContent>
+        <TabsContent value="tab2" data-testid="tab2-content">
+          Content 2
+        </TabsContent>
+      </Tabs>,
+    );
+
+    const inactiveContent = screen.getByTestId("tab2-content");
+    expect(inactiveContent).toHaveAttribute("hidden");
+  });
+
+  it("wraps around when navigating past the last tab", async () => {
+    render(
+      <Tabs defaultValue="tab2">
+        <TabsList>
+          <TabsTrigger value="tab1">Tab 1</TabsTrigger>
+          <TabsTrigger value="tab2">Tab 2</TabsTrigger>
+        </TabsList>
+        <TabsContent value="tab1">Content 1</TabsContent>
+        <TabsContent value="tab2">Content 2</TabsContent>
+      </Tabs>,
+    );
+
+    const tab2 = screen.getByText("Tab 2");
+    tab2.focus();
+    fireEvent.keyDown(tab2, { key: "ArrowRight" });
+
+    await waitFor(() => {
+      expect(screen.getByText("Tab 1")).toHaveFocus();
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/components/ui/__tests__/textarea.test.tsx">
+<![CDATA[
+import React, { useRef } from "react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { vi, describe, it, expect } from "vitest";
+import { Textarea } from "@/components/ui/textarea";
+
+describe("Textarea", () => {
+  it("renders with placeholder", () => {
+    render(<Textarea placeholder="Enter text" />);
+    expect(screen.getByPlaceholderText("Enter text")).toBeInTheDocument();
+  });
+
+  it("handles onChange event", () => {
+    const handleChange = vi.fn();
+    render(<Textarea onChange={handleChange} />);
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "test" },
+    });
+    expect(handleChange).toHaveBeenCalled();
+  });
+
+  it("auto-resizes when autoResize prop is true", () => {
+    render(<Textarea autoResize data-testid="textarea" />);
+    const textarea = screen.getByTestId("textarea") as HTMLTextAreaElement;
+    expect(textarea).toHaveClass("resize-none");
+    expect(textarea).toHaveClass("overflow-y-hidden");
+  });
+
+  it("does not have resize classes when autoResize is false", () => {
+    render(<Textarea data-testid="textarea" />);
+    const textarea = screen.getByTestId("textarea") as HTMLTextAreaElement;
+    expect(textarea).not.toHaveClass("resize-none");
+  });
+
+  it("forwards ref correctly", () => {
+    const TestComponent = () => {
+      const ref = useRef<HTMLTextAreaElement>(null);
+      return <Textarea ref={ref} data-testid="textarea" />;
+    };
+    render(<TestComponent />);
+    expect(screen.getByTestId("textarea")).toBeInstanceOf(HTMLTextAreaElement);
+  });
+
+  it("handles resize errors gracefully", async () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleWarnSpy = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => {});
+
+    render(<Textarea autoResize value="test text" />);
+
+    // Simulate typing to trigger resize
+    const textarea = screen.getByRole("textbox");
+    fireEvent.change(textarea, { target: { value: "new value" } });
+
+    await waitFor(() => {
+      // Should not have crashed
+      expect(screen.getByRole("textbox")).toBeInTheDocument();
+    });
+
+    consoleSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
+  });
+
+  it("applies custom className", () => {
+    render(<Textarea className="custom-class" data-testid="textarea" />);
+    expect(screen.getByTestId("textarea")).toHaveClass("custom-class");
+  });
+
+  it("respects disabled attribute", () => {
+    render(<Textarea disabled data-testid="textarea" />);
+    expect(screen.getByTestId("textarea")).toBeDisabled();
+  });
+});
+
+]]>
+</file>
+
+</batch_content>

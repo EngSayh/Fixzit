@@ -1,0 +1,2299 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="i18n/sources/aviationOperations.translations.json">
+<![CDATA[
+{
+  "en": {
+    "aviationOperations.aircraftMaintenance": "Aircraft Maintenance",
+    "aviationOperations.airworthinessCompliance": "Airworthiness Compliance",
+    "aviationOperations.baggageHandling": "Baggage Handling",
+    "aviationOperations.cargoOperations": "Cargo Operations",
+    "aviationOperations.checkInKiosk": "Check-In Kiosk",
+    "aviationOperations.crewManagement": "Crew Management",
+    "aviationOperations.crewRosterManagement": "Crew Roster Management",
+    "aviationOperations.crewScheduling": "Crew Scheduling",
+    "aviationOperations.description": "Airline and airport operations management",
+    "aviationOperations.flightDispatch": "Flight Dispatch",
+    "aviationOperations.flightOperations": "Flight Operations",
+    "aviationOperations.flightPlanning": "Flight Planning",
+    "aviationOperations.flightScheduling": "Flight Scheduling",
+    "aviationOperations.fuelManagement": "Fuel Management",
+    "aviationOperations.gateManagement": "Gate Management",
+    "aviationOperations.groundOperations": "Ground Operations",
+    "aviationOperations.maintenanceRepairOverhaul": "Maintenance, Repair & Overhaul (MRO)",
+    "aviationOperations.maintenanceTracking": "Maintenance Tracking",
+    "aviationOperations.partsInventory": "Parts Inventory",
+    "aviationOperations.passengerServices": "Passenger Services",
+    "aviationOperations.reservationSystem": "Reservation System",
+    "aviationOperations.safetyManagement": "Safety Management System",
+    "aviationOperations.title": "Aviation Operations",
+    "aviationOperations.turnaroundManagement": "Turnaround Management",
+    "aviationOperations.weightBalance": "Weight & Balance"
+  },
+  "ar": {
+    "aviationOperations.aircraftMaintenance": "صيانة الطائرات",
+    "aviationOperations.airworthinessCompliance": "الامتثال لصلاحية الطيران",
+    "aviationOperations.baggageHandling": "معالجة الأمتعة",
+    "aviationOperations.cargoOperations": "عمليات الشحن",
+    "aviationOperations.checkInKiosk": "كشك تسجيل الوصول",
+    "aviationOperations.crewManagement": "إدارة الطاقم",
+    "aviationOperations.crewRosterManagement": "إدارة جدول الطاقم",
+    "aviationOperations.crewScheduling": "جدولة الطاقم",
+    "aviationOperations.description": "إدارة عمليات شركات الطيران والمطارات",
+    "aviationOperations.flightDispatch": "إرسال الرحلات",
+    "aviationOperations.flightOperations": "عمليات الطيران",
+    "aviationOperations.flightPlanning": "تخطيط الرحلات",
+    "aviationOperations.flightScheduling": "جدولة الرحلات",
+    "aviationOperations.fuelManagement": "إدارة الوقود",
+    "aviationOperations.gateManagement": "إدارة البوابات",
+    "aviationOperations.groundOperations": "العمليات الأرضية",
+    "aviationOperations.maintenanceRepairOverhaul": "الصيانة والإصلاح والمراجعة (MRO)",
+    "aviationOperations.maintenanceTracking": "تتبع الصيانة",
+    "aviationOperations.partsInventory": "مخزون قطع الغيار",
+    "aviationOperations.passengerServices": "خدمات الركاب",
+    "aviationOperations.reservationSystem": "نظام الحجز",
+    "aviationOperations.safetyManagement": "نظام إدارة السلامة",
+    "aviationOperations.title": "عمليات الطيران",
+    "aviationOperations.turnaroundManagement": "إدارة وقت دوران الطائرة",
+    "aviationOperations.weightBalance": "الوزن والتوازن"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/backupAutomationAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "backupAutomationAdv.autoBackup": "Auto Backup",
+    "backupAutomationAdv.backup": "Backup",
+    "backupAutomationAdv.cloud": "Cloud Backup",
+    "backupAutomationAdv.compress": "Compress",
+    "backupAutomationAdv.create": "Create Backup",
+    "backupAutomationAdv.days": "Days",
+    "backupAutomationAdv.differential": "Differential Backup",
+    "backupAutomationAdv.encrypt": "Encrypt",
+    "backupAutomationAdv.frequency": "Backup Frequency",
+    "backupAutomationAdv.full": "Full Backup",
+    "backupAutomationAdv.incremental": "Incremental Backup",
+    "backupAutomationAdv.keep": "Keep",
+    "backupAutomationAdv.local": "Local Backup",
+    "backupAutomationAdv.location": "Backup Location",
+    "backupAutomationAdv.remote": "Remote Backup",
+    "backupAutomationAdv.restore": "Restore",
+    "backupAutomationAdv.retention": "Retention Policy",
+    "backupAutomationAdv.schedule": "Backup Schedule",
+    "backupAutomationAdv.snapshot": "Snapshot",
+    "backupAutomationAdv.status": "Backup Status",
+    "backupAutomationAdv.verify": "Verify Backup",
+    "backupAutomationAdv.versions": "Versions"
+  },
+  "ar": {
+    "backupAutomationAdv.autoBackup": "النسخ الاحتياطي التلقائي",
+    "backupAutomationAdv.backup": "النسخ الاحتياطي",
+    "backupAutomationAdv.cloud": "نسخ احتياطي سحابي",
+    "backupAutomationAdv.compress": "ضغط",
+    "backupAutomationAdv.create": "إنشاء نسخة احتياطية",
+    "backupAutomationAdv.days": "أيام",
+    "backupAutomationAdv.differential": "نسخ احتياطي تفاضلي",
+    "backupAutomationAdv.encrypt": "تشفير",
+    "backupAutomationAdv.frequency": "تكرار النسخ الاحتياطي",
+    "backupAutomationAdv.full": "نسخ احتياطي كامل",
+    "backupAutomationAdv.incremental": "نسخ احتياطي تزايدي",
+    "backupAutomationAdv.keep": "الاحتفاظ",
+    "backupAutomationAdv.local": "نسخ احتياطي محلي",
+    "backupAutomationAdv.location": "موقع النسخ الاحتياطي",
+    "backupAutomationAdv.remote": "نسخ احتياطي بعيد",
+    "backupAutomationAdv.restore": "استعادة",
+    "backupAutomationAdv.retention": "سياسة الاحتفاظ",
+    "backupAutomationAdv.schedule": "جدولة النسخ الاحتياطي",
+    "backupAutomationAdv.snapshot": "لقطة",
+    "backupAutomationAdv.status": "حالة النسخ الاحتياطي",
+    "backupAutomationAdv.verify": "التحقق من النسخة",
+    "backupAutomationAdv.versions": "الإصدارات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/backupRecovery.translations.json">
+<![CDATA[
+{
+  "en": {
+    "backupRecovery.automated": "Automated Backup",
+    "backupRecovery.backup": "Backup",
+    "backupRecovery.cloud": "Cloud Backup",
+    "backupRecovery.differential": "Differential Backup",
+    "backupRecovery.failed": "Failed",
+    "backupRecovery.frequency": "Frequency",
+    "backupRecovery.full": "Full Backup",
+    "backupRecovery.incremental": "Incremental Backup",
+    "backupRecovery.inProgress": "In Progress",
+    "backupRecovery.local": "Local Backup",
+    "backupRecovery.manual": "Manual Backup",
+    "backupRecovery.offsite": "Offsite Backup",
+    "backupRecovery.recovery": "Recovery",
+    "backupRecovery.restore": "Restore",
+    "backupRecovery.retention": "Retention Policy",
+    "backupRecovery.rpo": "Recovery Point Objective",
+    "backupRecovery.rto": "Recovery Time Objective",
+    "backupRecovery.schedule": "Backup Schedule",
+    "backupRecovery.size": "Backup Size",
+    "backupRecovery.snapshot": "Snapshot",
+    "backupRecovery.status": "Backup Status",
+    "backupRecovery.successful": "Successful",
+    "backupRecovery.test": "Test Restore",
+    "backupRecovery.verify": "Verify Backup"
+  },
+  "ar": {
+    "backupRecovery.automated": "نسخ احتياطي تلقائي",
+    "backupRecovery.backup": "النسخ الاحتياطي",
+    "backupRecovery.cloud": "نسخ احتياطي سحابي",
+    "backupRecovery.differential": "نسخ احتياطي تفاضلي",
+    "backupRecovery.failed": "فشل",
+    "backupRecovery.frequency": "التكرار",
+    "backupRecovery.full": "نسخ احتياطي كامل",
+    "backupRecovery.incremental": "نسخ احتياطي تزايدي",
+    "backupRecovery.inProgress": "قيد التنفيذ",
+    "backupRecovery.local": "نسخ احتياطي محلي",
+    "backupRecovery.manual": "نسخ احتياطي يدوي",
+    "backupRecovery.offsite": "نسخ احتياطي خارجي",
+    "backupRecovery.recovery": "التعافي",
+    "backupRecovery.restore": "الاستعادة",
+    "backupRecovery.retention": "سياسة الاحتفاظ",
+    "backupRecovery.rpo": "هدف نقطة الاستعادة",
+    "backupRecovery.rto": "هدف وقت الاستعادة",
+    "backupRecovery.schedule": "جدول النسخ الاحتياطي",
+    "backupRecovery.size": "حجم النسخة الاحتياطية",
+    "backupRecovery.snapshot": "اللقطة",
+    "backupRecovery.status": "حالة النسخ الاحتياطي",
+    "backupRecovery.successful": "ناجح",
+    "backupRecovery.test": "اختبار الاستعادة",
+    "backupRecovery.verify": "التحقق من النسخة الاحتياطية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/banking.translations.json">
+<![CDATA[
+{
+  "en": {
+    "banking.account": "Account",
+    "banking.accountBalance": "Account Balance",
+    "banking.accountHolder": "Account Holder",
+    "banking.accountNumber": "Account Number",
+    "banking.balance": "Balance",
+    "banking.bank": "Bank",
+    "banking.bankAccount": "Bank Account",
+    "banking.bankGuarantee": "Bank Guarantee",
+    "banking.banking1": "Banking",
+    "banking.bankStatement": "Bank Statement",
+    "banking.check": "Check",
+    "banking.checkingAccount": "Checking Account",
+    "banking.cheque": "Cheque",
+    "banking.creditCard": "Credit Card",
+    "banking.debitCard": "Debit Card",
+    "banking.deposit": "Deposit",
+    "banking.iban": "IBAN",
+    "banking.interestRate": "Interest Rate",
+    "banking.letterOfCredit": "Letter of Credit",
+    "banking.loan": "Loan",
+    "banking.mortgage": "Mortgage",
+    "banking.savingsAccount": "Savings Account",
+    "banking.statement": "Statement",
+    "banking.swift": "SWIFT",
+    "banking.transaction": "Transaction",
+    "banking.transfer": "Transfer",
+    "banking.wireTransfer": "Wire Transfer",
+    "banking.withdrawal": "Withdrawal"
+  },
+  "ar": {
+    "banking.account": "حساب",
+    "banking.accountBalance": "رصيد الحساب",
+    "banking.accountHolder": "صاحب الحساب",
+    "banking.accountNumber": "رقم الحساب",
+    "banking.balance": "رصيد",
+    "banking.bank": "بنك",
+    "banking.bankAccount": "حساب بنكي",
+    "banking.bankGuarantee": "ضمان بنكي",
+    "banking.banking1": "الخدمات المصرفية",
+    "banking.bankStatement": "كشف حساب بنكي",
+    "banking.check": "شيك",
+    "banking.checkingAccount": "حساب جاري",
+    "banking.cheque": "شيك",
+    "banking.creditCard": "بطاقة ائتمان",
+    "banking.debitCard": "بطاقة خصم",
+    "banking.deposit": "إيداع",
+    "banking.iban": "آيبان",
+    "banking.interestRate": "معدل الفائدة",
+    "banking.letterOfCredit": "خطاب اعتماد",
+    "banking.loan": "قرض",
+    "banking.mortgage": "رهن عقاري",
+    "banking.savingsAccount": "حساب توفير",
+    "banking.statement": "كشف",
+    "banking.swift": "سويفت",
+    "banking.transaction": "معاملة",
+    "banking.transfer": "تحويل",
+    "banking.wireTransfer": "تحويل مصرفي",
+    "banking.withdrawal": "سحب"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/behavioralChange.translations.json">
+<![CDATA[
+{
+  "en": {
+    "behavioralChange.adoption": "Behavior Adoption",
+    "behavioralChange.analysis": "Behavior Analysis",
+    "behavioralChange.assessment": "Behavior Assessment",
+    "behavioralChange.behavior": "Behavior Modification",
+    "behavioralChange.behavioral": "Behavioral Change",
+    "behavioralChange.change": "Behavior Change",
+    "behavioralChange.coaching": "Behavior Coaching",
+    "behavioralChange.conditioning": "Behavior Conditioning",
+    "behavioralChange.culture": "Behavioral Culture",
+    "behavioralChange.development": "Behavior Development",
+    "behavioralChange.expectations": "Behavior Expectations",
+    "behavioralChange.feedback": "Behavior Feedback",
+    "behavioralChange.indicators": "Behavioral Indicators",
+    "behavioralChange.measurement": "Behavior Measurement",
+    "behavioralChange.modeling": "Behavior Modeling",
+    "behavioralChange.modification": "Behavior Modification",
+    "behavioralChange.norms": "Behavior Norms",
+    "behavioralChange.observation": "Behavior Observation",
+    "behavioralChange.patterns": "Behavior Patterns",
+    "behavioralChange.reinforcement": "Behavior Reinforcement",
+    "behavioralChange.standards": "Behavior Standards",
+    "behavioralChange.training": "Behavior Training"
+  },
+  "ar": {
+    "behavioralChange.adoption": "تبني السلوك",
+    "behavioralChange.analysis": "تحليل السلوك",
+    "behavioralChange.assessment": "تقييم السلوك",
+    "behavioralChange.behavior": "تعديل السلوك",
+    "behavioralChange.behavioral": "التغيير السلوكي",
+    "behavioralChange.change": "تغيير السلوك",
+    "behavioralChange.coaching": "تدريب السلوك",
+    "behavioralChange.conditioning": "تكييف السلوك",
+    "behavioralChange.culture": "الثقافة السلوكية",
+    "behavioralChange.development": "تطوير السلوك",
+    "behavioralChange.expectations": "توقعات السلوك",
+    "behavioralChange.feedback": "ملاحظات السلوك",
+    "behavioralChange.indicators": "المؤشرات السلوكية",
+    "behavioralChange.measurement": "قياس السلوك",
+    "behavioralChange.modeling": "نمذجة السلوك",
+    "behavioralChange.modification": "تعديل السلوك",
+    "behavioralChange.norms": "أعراف السلوك",
+    "behavioralChange.observation": "ملاحظة السلوك",
+    "behavioralChange.patterns": "أنماط السلوك",
+    "behavioralChange.reinforcement": "تعزيز السلوك",
+    "behavioralChange.standards": "معايير السلوك",
+    "behavioralChange.training": "تدريب السلوك"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/benchmarking.translations.json">
+<![CDATA[
+{
+  "en": {
+    "benchmarking.analysis": "Benchmark Analysis",
+    "benchmarking.benchmarking1": "Benchmarking",
+    "benchmarking.collection": "Data Collection",
+    "benchmarking.comparison": "Performance Comparison",
+    "benchmarking.competitive": "Competitive Benchmarking",
+    "benchmarking.continuous": "Continuous Benchmarking",
+    "benchmarking.data": "Benchmark Data",
+    "benchmarking.functional": "Functional Benchmarking",
+    "benchmarking.gap": "Gap Analysis",
+    "benchmarking.generic": "Generic Benchmarking",
+    "benchmarking.identification": "Benchmark Identification",
+    "benchmarking.implementation": "Implementation Planning",
+    "benchmarking.improvement": "Performance Improvement",
+    "benchmarking.internal": "Internal Benchmarking",
+    "benchmarking.metrics": "Benchmark Metrics",
+    "benchmarking.partner": "Benchmarking Partner",
+    "benchmarking.performance": "Performance Benchmarking",
+    "benchmarking.practice": "Best Practice Benchmarking",
+    "benchmarking.process": "Benchmarking Process",
+    "benchmarking.reporting": "Benchmark Reporting",
+    "benchmarking.strategic": "Strategic Benchmarking",
+    "benchmarking.target": "Target Setting"
+  },
+  "ar": {
+    "benchmarking.analysis": "تحليل المعيار",
+    "benchmarking.benchmarking1": "المقارنة المرجعية",
+    "benchmarking.collection": "جمع البيانات",
+    "benchmarking.comparison": "مقارنة الأداء",
+    "benchmarking.competitive": "المقارنة المرجعية التنافسية",
+    "benchmarking.continuous": "المقارنة المرجعية المستمرة",
+    "benchmarking.data": "بيانات المعيار",
+    "benchmarking.functional": "المقارنة المرجعية الوظيفية",
+    "benchmarking.gap": "تحليل الفجوة",
+    "benchmarking.generic": "المقارنة المرجعية العامة",
+    "benchmarking.identification": "تحديد المعيار",
+    "benchmarking.implementation": "تخطيط التنفيذ",
+    "benchmarking.improvement": "تحسين الأداء",
+    "benchmarking.internal": "المقارنة المرجعية الداخلية",
+    "benchmarking.metrics": "مقاييس المعيار",
+    "benchmarking.partner": "شريك المقارنة المرجعية",
+    "benchmarking.performance": "المقارنة المرجعية للأداء",
+    "benchmarking.practice": "المقارنة المرجعية لأفضل الممارسات",
+    "benchmarking.process": "عملية المقارنة المرجعية",
+    "benchmarking.reporting": "إعداد تقارير المعيار",
+    "benchmarking.strategic": "المقارنة المرجعية الاستراتيجية",
+    "benchmarking.target": "تحديد الأهداف"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/benefitsRealization.translations.json">
+<![CDATA[
+{
+  "en": {
+    "benefitsRealization.actual": "Actual Benefits",
+    "benefitsRealization.analysis": "Benefits Analysis",
+    "benefitsRealization.baseline": "Benefits Baseline",
+    "benefitsRealization.benefits": "Benefits Realization",
+    "benefitsRealization.definition": "Benefits Definition",
+    "benefitsRealization.forecast": "Benefits Forecast",
+    "benefitsRealization.framework": "Benefits Framework",
+    "benefitsRealization.governance": "Benefits Governance",
+    "benefitsRealization.identification": "Benefits Identification",
+    "benefitsRealization.management": "Benefits Management",
+    "benefitsRealization.mapping": "Benefits Mapping",
+    "benefitsRealization.measurement": "Benefits Measurement",
+    "benefitsRealization.metrics": "Benefits Metrics",
+    "benefitsRealization.monitoring": "Benefits Monitoring",
+    "benefitsRealization.optimization": "Benefits Optimization",
+    "benefitsRealization.planning": "Benefits Planning",
+    "benefitsRealization.realization": "Benefits Realization",
+    "benefitsRealization.reporting": "Benefits Reporting",
+    "benefitsRealization.review": "Benefits Review",
+    "benefitsRealization.target": "Benefits Target",
+    "benefitsRealization.tracking": "Benefits Tracking",
+    "benefitsRealization.validation": "Benefits Validation"
+  },
+  "ar": {
+    "benefitsRealization.actual": "الفوائد الفعلية",
+    "benefitsRealization.analysis": "تحليل الفوائد",
+    "benefitsRealization.baseline": "خط الأساس للفوائد",
+    "benefitsRealization.benefits": "تحقيق الفوائد",
+    "benefitsRealization.definition": "تعريف الفوائد",
+    "benefitsRealization.forecast": "التنبؤ بالفوائد",
+    "benefitsRealization.framework": "إطار الفوائد",
+    "benefitsRealization.governance": "حوكمة الفوائد",
+    "benefitsRealization.identification": "تحديد الفوائد",
+    "benefitsRealization.management": "إدارة الفوائد",
+    "benefitsRealization.mapping": "رسم خريطة الفوائد",
+    "benefitsRealization.measurement": "قياس الفوائد",
+    "benefitsRealization.metrics": "مقاييس الفوائد",
+    "benefitsRealization.monitoring": "مراقبة الفوائد",
+    "benefitsRealization.optimization": "تحسين الفوائد",
+    "benefitsRealization.planning": "تخطيط الفوائد",
+    "benefitsRealization.realization": "تحقيق الفوائد",
+    "benefitsRealization.reporting": "إعداد تقارير الفوائد",
+    "benefitsRealization.review": "مراجعة الفوائد",
+    "benefitsRealization.target": "هدف الفوائد",
+    "benefitsRealization.tracking": "تتبع الفوائد",
+    "benefitsRealization.validation": "التحقق من الفوائد"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/bestPractices.translations.json">
+<![CDATA[
+{
+  "en": {
+    "bestPractices.adoption": "Practice Adoption",
+    "bestPractices.assessment": "Practice Assessment",
+    "bestPractices.best": "Best Practice",
+    "bestPractices.case": "Case Study",
+    "bestPractices.catalog": "Practice Catalog",
+    "bestPractices.documentation": "Practice Documentation",
+    "bestPractices.evolution": "Practice Evolution",
+    "bestPractices.examples": "Practice Examples",
+    "bestPractices.guidelines": "Practice Guidelines",
+    "bestPractices.identification": "Practice Identification",
+    "bestPractices.implementation": "Practice Implementation",
+    "bestPractices.improvement": "Practice Improvement",
+    "bestPractices.library": "Practice Library",
+    "bestPractices.management": "Practice Management",
+    "bestPractices.practice": "Practice Management",
+    "bestPractices.procedures": "Practice Procedures",
+    "bestPractices.repository": "Practice Repository",
+    "bestPractices.sharing": "Practice Sharing",
+    "bestPractices.standards": "Practice Standards",
+    "bestPractices.success": "Success Story",
+    "bestPractices.templates": "Practice Templates",
+    "bestPractices.validation": "Practice Validation"
+  },
+  "ar": {
+    "bestPractices.adoption": "تبني الممارسات",
+    "bestPractices.assessment": "تقييم الممارسات",
+    "bestPractices.best": "أفضل الممارسات",
+    "bestPractices.case": "دراسة الحالة",
+    "bestPractices.catalog": "كتالوج الممارسات",
+    "bestPractices.documentation": "توثيق الممارسات",
+    "bestPractices.evolution": "تطور الممارسات",
+    "bestPractices.examples": "أمثلة الممارسات",
+    "bestPractices.guidelines": "إرشادات الممارسات",
+    "bestPractices.identification": "تحديد الممارسات",
+    "bestPractices.implementation": "تنفيذ الممارسات",
+    "bestPractices.improvement": "تحسين الممارسات",
+    "bestPractices.library": "مكتبة الممارسات",
+    "bestPractices.management": "إدارة الممارسات",
+    "bestPractices.practice": "إدارة الممارسات",
+    "bestPractices.procedures": "إجراءات الممارسات",
+    "bestPractices.repository": "مستودع الممارسات",
+    "bestPractices.sharing": "مشاركة الممارسات",
+    "bestPractices.standards": "معايير الممارسات",
+    "bestPractices.success": "قصة النجاح",
+    "bestPractices.templates": "قوالب الممارسات",
+    "bestPractices.validation": "التحقق من الممارسات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/bigDataManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "bigDataManagement.analytics": "Big Data Analytics",
+    "bigDataManagement.architecture": "Big Data Architecture",
+    "bigDataManagement.batch": "Batch Processing",
+    "bigDataManagement.bigData": "Big Data",
+    "bigDataManagement.distributed": "Distributed Processing",
+    "bigDataManagement.governance": "Big Data Governance",
+    "bigDataManagement.infrastructure": "Big Data Infrastructure",
+    "bigDataManagement.ingestion": "Data Ingestion",
+    "bigDataManagement.integration": "Big Data Integration",
+    "bigDataManagement.lake": "Data Lake",
+    "bigDataManagement.lakehouse": "Data Lakehouse",
+    "bigDataManagement.management": "Big Data Management",
+    "bigDataManagement.parallel": "Parallel Processing",
+    "bigDataManagement.pipeline": "Big Data Pipeline",
+    "bigDataManagement.platform": "Big Data Platform",
+    "bigDataManagement.processing": "Big Data Processing",
+    "bigDataManagement.realtime": "Real-time Processing",
+    "bigDataManagement.security": "Big Data Security",
+    "bigDataManagement.storage": "Big Data Storage",
+    "bigDataManagement.streaming": "Data Streaming",
+    "bigDataManagement.visualization": "Big Data Visualization",
+    "bigDataManagement.warehouse": "Data Warehouse"
+  },
+  "ar": {
+    "bigDataManagement.analytics": "تحليلات البيانات الضخمة",
+    "bigDataManagement.architecture": "بنية البيانات الضخمة",
+    "bigDataManagement.batch": "المعالجة الدفعية",
+    "bigDataManagement.bigData": "البيانات الضخمة",
+    "bigDataManagement.distributed": "المعالجة الموزعة",
+    "bigDataManagement.governance": "حوكمة البيانات الضخمة",
+    "bigDataManagement.infrastructure": "البنية التحتية للبيانات الضخمة",
+    "bigDataManagement.ingestion": "استيعاب البيانات",
+    "bigDataManagement.integration": "تكامل البيانات الضخمة",
+    "bigDataManagement.lake": "بحيرة البيانات",
+    "bigDataManagement.lakehouse": "منزل بحيرة البيانات",
+    "bigDataManagement.management": "إدارة البيانات الضخمة",
+    "bigDataManagement.parallel": "المعالجة المتوازية",
+    "bigDataManagement.pipeline": "خط أنابيب البيانات الضخمة",
+    "bigDataManagement.platform": "منصة البيانات الضخمة",
+    "bigDataManagement.processing": "معالجة البيانات الضخمة",
+    "bigDataManagement.realtime": "المعالجة في الوقت الفعلي",
+    "bigDataManagement.security": "أمن البيانات الضخمة",
+    "bigDataManagement.storage": "تخزين البيانات الضخمة",
+    "bigDataManagement.streaming": "تدفق البيانات",
+    "bigDataManagement.visualization": "تصور البيانات الضخمة",
+    "bigDataManagement.warehouse": "مستودع البيانات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/bigDataPlatforms.translations.json">
+<![CDATA[
+{
+  "en": {
+    "bigDataPlatforms.batch": "Batch Processing",
+    "bigDataPlatforms.bigdata": "Big Data Engineering",
+    "bigDataPlatforms.consistency": "Data Consistency",
+    "bigDataPlatforms.elt": "ELT Pipelines",
+    "bigDataPlatforms.etl": "ETL Pipelines",
+    "bigDataPlatforms.flink": "Apache Flink",
+    "bigDataPlatforms.hadoop": "Hadoop Ecosystem",
+    "bigDataPlatforms.hdfs": "Hadoop Distributed File System",
+    "bigDataPlatforms.kafka": "Apache Kafka",
+    "bigDataPlatforms.lake": "Data Lake",
+    "bigDataPlatforms.lakehouse": "Data Lakehouse",
+    "bigDataPlatforms.mapreduce": "MapReduce Processing",
+    "bigDataPlatforms.messaging": "Message Streaming",
+    "bigDataPlatforms.partitioning": "Data Partitioning",
+    "bigDataPlatforms.platforms": "Big Data Platforms",
+    "bigDataPlatforms.realtime": "Real-Time Processing",
+    "bigDataPlatforms.replication": "Data Replication",
+    "bigDataPlatforms.sharding": "Data Sharding",
+    "bigDataPlatforms.spark": "Apache Spark",
+    "bigDataPlatforms.storm": "Apache Storm",
+    "bigDataPlatforms.streaming": "Spark Streaming",
+    "bigDataPlatforms.warehousing": "Data Warehousing"
+  },
+  "ar": {
+    "bigDataPlatforms.batch": "المعالجة الدفعية",
+    "bigDataPlatforms.bigdata": "هندسة البيانات الضخمة",
+    "bigDataPlatforms.consistency": "اتساق البيانات",
+    "bigDataPlatforms.elt": "خطوط أنابيب ELT",
+    "bigDataPlatforms.etl": "خطوط أنابيب ETL",
+    "bigDataPlatforms.flink": "Apache Flink",
+    "bigDataPlatforms.hadoop": "نظام Hadoop البيئي",
+    "bigDataPlatforms.hdfs": "نظام ملفات Hadoop الموزع",
+    "bigDataPlatforms.kafka": "Apache Kafka",
+    "bigDataPlatforms.lake": "بحيرة البيانات",
+    "bigDataPlatforms.lakehouse": "بيت بحيرة البيانات",
+    "bigDataPlatforms.mapreduce": "معالجة MapReduce",
+    "bigDataPlatforms.messaging": "بث الرسائل",
+    "bigDataPlatforms.partitioning": "تقسيم البيانات",
+    "bigDataPlatforms.platforms": "منصات البيانات الضخمة",
+    "bigDataPlatforms.realtime": "المعالجة في الوقت الفعلي",
+    "bigDataPlatforms.replication": "تكرار البيانات",
+    "bigDataPlatforms.sharding": "تجزئة البيانات",
+    "bigDataPlatforms.spark": "Apache Spark",
+    "bigDataPlatforms.storm": "Apache Storm",
+    "bigDataPlatforms.streaming": "بث Spark",
+    "bigDataPlatforms.warehousing": "مستودعات البيانات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/bigDataProcessing.translations.json">
+<![CDATA[
+{
+  "en": {
+    "bigDataProcessing.batch": "Batch Processing",
+    "bigDataProcessing.bigdata": "Big Data",
+    "bigDataProcessing.cassandra": "Cassandra",
+    "bigDataProcessing.cluster": "Data Cluster",
+    "bigDataProcessing.distributed": "Distributed Computing",
+    "bigDataProcessing.flink": "Apache Flink",
+    "bigDataProcessing.hadoop": "Hadoop",
+    "bigDataProcessing.hbase": "HBase",
+    "bigDataProcessing.hdfs": "HDFS",
+    "bigDataProcessing.hive": "Hive",
+    "bigDataProcessing.kafka": "Apache Kafka",
+    "bigDataProcessing.mapreduce": "MapReduce",
+    "bigDataProcessing.mongodb": "MongoDB",
+    "bigDataProcessing.node": "Cluster Node",
+    "bigDataProcessing.nosql": "NoSQL",
+    "bigDataProcessing.parallel": "Parallel Processing",
+    "bigDataProcessing.pig": "Pig",
+    "bigDataProcessing.processing": "Big Data Processing",
+    "bigDataProcessing.realtime": "Real-time Processing",
+    "bigDataProcessing.spark": "Apache Spark",
+    "bigDataProcessing.storm": "Apache Storm",
+    "bigDataProcessing.stream": "Stream Processing"
+  },
+  "ar": {
+    "bigDataProcessing.batch": "المعالجة الدفعية",
+    "bigDataProcessing.bigdata": "البيانات الضخمة",
+    "bigDataProcessing.cassandra": "Cassandra",
+    "bigDataProcessing.cluster": "مجموعة البيانات",
+    "bigDataProcessing.distributed": "الحوسبة الموزعة",
+    "bigDataProcessing.flink": "Apache Flink",
+    "bigDataProcessing.hadoop": "Hadoop",
+    "bigDataProcessing.hbase": "HBase",
+    "bigDataProcessing.hdfs": "HDFS",
+    "bigDataProcessing.hive": "Hive",
+    "bigDataProcessing.kafka": "Apache Kafka",
+    "bigDataProcessing.mapreduce": "MapReduce",
+    "bigDataProcessing.mongodb": "MongoDB",
+    "bigDataProcessing.node": "عقدة المجموعة",
+    "bigDataProcessing.nosql": "NoSQL",
+    "bigDataProcessing.parallel": "المعالجة المتوازية",
+    "bigDataProcessing.pig": "Pig",
+    "bigDataProcessing.processing": "معالجة البيانات الضخمة",
+    "bigDataProcessing.realtime": "المعالجة في الوقت الفعلي",
+    "bigDataProcessing.spark": "Apache Spark",
+    "bigDataProcessing.storm": "Apache Storm",
+    "bigDataProcessing.stream": "معالجة التدفق"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/billingPayment.translations.json">
+<![CDATA[
+{
+  "en": {
+    "billingPayment.amount": "Amount",
+    "billingPayment.bankTransfer": "Bank Transfer",
+    "billingPayment.billing": "Billing",
+    "billingPayment.billingAddress": "Billing Address",
+    "billingPayment.cardNumber": "Card Number",
+    "billingPayment.cash": "Cash",
+    "billingPayment.chargeback": "Chargeback",
+    "billingPayment.cheque": "Cheque",
+    "billingPayment.coupon": "Coupon",
+    "billingPayment.creditCard": "Credit Card",
+    "billingPayment.cvv": "CVV",
+    "billingPayment.debitCard": "Debit Card",
+    "billingPayment.discount": "Discount",
+    "billingPayment.expiryDate": "Expiry Date",
+    "billingPayment.failed": "Failed",
+    "billingPayment.invoice": "Invoice",
+    "billingPayment.method": "Payment Method",
+    "billingPayment.payment": "Payment",
+    "billingPayment.paypal": "PayPal",
+    "billingPayment.pending": "Pending",
+    "billingPayment.processed": "Processed",
+    "billingPayment.promoCode": "Promo Code",
+    "billingPayment.receipt": "Receipt",
+    "billingPayment.refund": "Refund",
+    "billingPayment.subtotal": "Subtotal",
+    "billingPayment.success": "Success",
+    "billingPayment.tax": "Tax",
+    "billingPayment.total": "Total",
+    "billingPayment.transaction": "Transaction",
+    "billingPayment.wireTransfer": "Wire Transfer"
+  },
+  "ar": {
+    "billingPayment.amount": "المبلغ",
+    "billingPayment.bankTransfer": "تحويل بنكي",
+    "billingPayment.billing": "الفوترة",
+    "billingPayment.billingAddress": "عنوان الفوترة",
+    "billingPayment.cardNumber": "رقم البطاقة",
+    "billingPayment.cash": "نقداً",
+    "billingPayment.chargeback": "رد المبلغ",
+    "billingPayment.cheque": "شيك",
+    "billingPayment.coupon": "القسيمة",
+    "billingPayment.creditCard": "بطاقة ائتمان",
+    "billingPayment.cvv": "CVV",
+    "billingPayment.debitCard": "بطاقة خصم",
+    "billingPayment.discount": "الخصم",
+    "billingPayment.expiryDate": "تاريخ الانتهاء",
+    "billingPayment.failed": "فشل",
+    "billingPayment.invoice": "الفاتورة",
+    "billingPayment.method": "طريقة الدفع",
+    "billingPayment.payment": "الدفع",
+    "billingPayment.paypal": "باي بال",
+    "billingPayment.pending": "معلق",
+    "billingPayment.processed": "تمت المعالجة",
+    "billingPayment.promoCode": "رمز ترويجي",
+    "billingPayment.receipt": "الإيصال",
+    "billingPayment.refund": "الاسترداد",
+    "billingPayment.subtotal": "المجموع الفرعي",
+    "billingPayment.success": "نجاح",
+    "billingPayment.tax": "الضريبة",
+    "billingPayment.total": "الإجمالي",
+    "billingPayment.transaction": "المعاملة",
+    "billingPayment.wireTransfer": "تحويل سلكي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/biotechnology.translations.json">
+<![CDATA[
+{
+  "en": {
+    "biotechnology.antibody": "Antibody Production",
+    "biotechnology.assay": "Bioassay",
+    "biotechnology.biobank": "Biobanking",
+    "biotechnology.bioreactor": "Bioreactor Operations",
+    "biotechnology.biosensor": "Biosensors",
+    "biotechnology.chromatography": "Chromatography",
+    "biotechnology.cloning": "Gene Cloning",
+    "biotechnology.crispr": "CRISPR Technology",
+    "biotechnology.culture": "Cell Culture",
+    "biotechnology.description": "Manage biotech research and operations",
+    "biotechnology.diagnostic": "Diagnostics",
+    "biotechnology.editing": "Gene Editing",
+    "biotechnology.experiment": "Experimentation",
+    "biotechnology.expression": "Gene Expression",
+    "biotechnology.fermentation": "Fermentation",
+    "biotechnology.flowCytometry": "Flow Cytometry",
+    "biotechnology.gmp": "GMP Compliance",
+    "biotechnology.imaging": "Biological Imaging",
+    "biotechnology.immunology": "Immunology",
+    "biotechnology.laboratory": "Laboratory Operations",
+    "biotechnology.mass": "Mass Spectrometry",
+    "biotechnology.metabolism": "Metabolism Studies",
+    "biotechnology.microarray": "Microarray",
+    "biotechnology.microscopy": "Microscopy",
+    "biotechnology.pcr": "PCR Analysis",
+    "biotechnology.pharmacology": "Pharmacology",
+    "biotechnology.protocol": "Research Protocols",
+    "biotechnology.purification": "Protein Purification",
+    "biotechnology.quality": "Quality Control",
+    "biotechnology.regulatory": "Regulatory Affairs",
+    "biotechnology.research": "Research & Development",
+    "biotechnology.sample": "Sample Management",
+    "biotechnology.screening": "Drug Screening",
+    "biotechnology.sequencing": "DNA Sequencing",
+    "biotechnology.specimen": "Specimen Handling",
+    "biotechnology.spectroscopy": "Spectroscopy",
+    "biotechnology.storage": "Sample Storage",
+    "biotechnology.testing": "Preclinical Testing",
+    "biotechnology.therapeutic": "Therapeutics",
+    "biotechnology.title": "Biotechnology",
+    "biotechnology.toxicology": "Toxicology",
+    "biotechnology.tracking": "Sample Tracking",
+    "biotechnology.transfection": "Transfection",
+    "biotechnology.transformation": "Transformation",
+    "biotechnology.vaccine": "Vaccine Development",
+    "biotechnology.validation": "Method Validation"
+  },
+  "ar": {
+    "biotechnology.antibody": "إنتاج الأجسام المضادة",
+    "biotechnology.assay": "الفحص الحيوي",
+    "biotechnology.biobank": "البنك الحيوي",
+    "biotechnology.bioreactor": "عمليات المفاعل الحيوي",
+    "biotechnology.biosensor": "أجهزة الاستشعار الحيوية",
+    "biotechnology.chromatography": "الكروماتوغرافيا",
+    "biotechnology.cloning": "استنساخ الجينات",
+    "biotechnology.crispr": "تقنية كريسبر",
+    "biotechnology.culture": "زراعة الخلايا",
+    "biotechnology.description": "إدارة البحث والعمليات الحيوية",
+    "biotechnology.diagnostic": "التشخيص",
+    "biotechnology.editing": "تحرير الجينات",
+    "biotechnology.experiment": "التجارب",
+    "biotechnology.expression": "التعبير الجيني",
+    "biotechnology.fermentation": "التخمير",
+    "biotechnology.flowCytometry": "قياس التدفق الخلوي",
+    "biotechnology.gmp": "الامتثال لممارسات التصنيع الجيدة",
+    "biotechnology.imaging": "التصوير الحيوي",
+    "biotechnology.immunology": "علم المناعة",
+    "biotechnology.laboratory": "عمليات المختبر",
+    "biotechnology.mass": "قياس الطيف الكتلي",
+    "biotechnology.metabolism": "دراسات الأيض",
+    "biotechnology.microarray": "المصفوفة الدقيقة",
+    "biotechnology.microscopy": "المجهر",
+    "biotechnology.pcr": "تحليل PCR",
+    "biotechnology.pharmacology": "علم الأدوية",
+    "biotechnology.protocol": "بروتوكولات البحث",
+    "biotechnology.purification": "تنقية البروتين",
+    "biotechnology.quality": "مراقبة الجودة",
+    "biotechnology.regulatory": "الشؤون التنظيمية",
+    "biotechnology.research": "البحث والتطوير",
+    "biotechnology.sample": "إدارة العينات",
+    "biotechnology.screening": "فحص الأدوية",
+    "biotechnology.sequencing": "تسلسل الحمض النووي",
+    "biotechnology.specimen": "معالجة العينات",
+    "biotechnology.spectroscopy": "التحليل الطيفي",
+    "biotechnology.storage": "تخزين العينات",
+    "biotechnology.testing": "الاختبار قبل السريري",
+    "biotechnology.therapeutic": "العلاجات",
+    "biotechnology.title": "التكنولوجيا الحيوية",
+    "biotechnology.toxicology": "علم السموم",
+    "biotechnology.tracking": "تتبع العينات",
+    "biotechnology.transfection": "النقل الجيني",
+    "biotechnology.transformation": "التحويل",
+    "biotechnology.vaccine": "تطوير اللقاحات",
+    "biotechnology.validation": "التحقق من الطرق"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/biotechnologyAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "biotechnologyAdv.antibody": "Antibody",
+    "biotechnologyAdv.bioinformatics": "Bioinformatics",
+    "biotechnologyAdv.biopharmaceutical": "Biopharmaceutical",
+    "biotechnologyAdv.bioreactor": "Bioreactor",
+    "biotechnologyAdv.biosensor": "Biosensor",
+    "biotechnologyAdv.biotech": "Biotech",
+    "biotechnologyAdv.biotechnology": "Biotechnology",
+    "biotechnologyAdv.cell": "Cell Culture",
+    "biotechnologyAdv.crispr": "CRISPR",
+    "biotechnologyAdv.dna": "DNA",
+    "biotechnologyAdv.fermentation": "Fermentation",
+    "biotechnologyAdv.gene": "Gene Editing",
+    "biotechnologyAdv.genetic": "Genetic Engineering",
+    "biotechnologyAdv.genome": "Genome",
+    "biotechnologyAdv.metabolic": "Metabolic Engineering",
+    "biotechnologyAdv.protein": "Protein Engineering",
+    "biotechnologyAdv.research": "Biotech Research",
+    "biotechnologyAdv.rna": "RNA",
+    "biotechnologyAdv.sequencing": "DNA Sequencing",
+    "biotechnologyAdv.synthetic": "Synthetic Biology",
+    "biotechnologyAdv.tissue": "Tissue Engineering",
+    "biotechnologyAdv.vaccine": "Vaccine Development"
+  },
+  "ar": {
+    "biotechnologyAdv.antibody": "الأجسام المضادة",
+    "biotechnologyAdv.bioinformatics": "المعلوماتية الحيوية",
+    "biotechnologyAdv.biopharmaceutical": "المستحضرات الصيدلانية الحيوية",
+    "biotechnologyAdv.bioreactor": "المفاعل الحيوي",
+    "biotechnologyAdv.biosensor": "المستشعر الحيوي",
+    "biotechnologyAdv.biotech": "التقنية الحيوية",
+    "biotechnologyAdv.biotechnology": "التكنولوجيا الحيوية",
+    "biotechnologyAdv.cell": "زراعة الخلايا",
+    "biotechnologyAdv.crispr": "كريسبر",
+    "biotechnologyAdv.dna": "الحمض النووي",
+    "biotechnologyAdv.fermentation": "التخمير",
+    "biotechnologyAdv.gene": "تحرير الجينات",
+    "biotechnologyAdv.genetic": "الهندسة الوراثية",
+    "biotechnologyAdv.genome": "الجينوم",
+    "biotechnologyAdv.metabolic": "الهندسة الأيضية",
+    "biotechnologyAdv.protein": "هندسة البروتين",
+    "biotechnologyAdv.research": "البحث في التكنولوجيا الحيوية",
+    "biotechnologyAdv.rna": "الحمض النووي الريبوزي",
+    "biotechnologyAdv.sequencing": "تسلسل الحمض النووي",
+    "biotechnologyAdv.synthetic": "البيولوجيا التركيبية",
+    "biotechnologyAdv.tissue": "هندسة الأنسجة",
+    "biotechnologyAdv.vaccine": "تطوير اللقاحات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/biotechnologyOperations.translations.json">
+<![CDATA[
+{
+  "en": {
+    "biotechnologyOperations.analyticalTesting": "Analytical Testing",
+    "biotechnologyOperations.bioinformatics": "Bioinformatics",
+    "biotechnologyOperations.bioprocessManagement": "Bioprocess Management",
+    "biotechnologyOperations.calibrationTracking": "Calibration Tracking",
+    "biotechnologyOperations.cellCulture": "Cell Culture Management",
+    "biotechnologyOperations.collaborationTools": "Collaboration Tools",
+    "biotechnologyOperations.dataIntegrity": "Data Integrity",
+    "biotechnologyOperations.description": "Biotech research and production management",
+    "biotechnologyOperations.electronicLabNotebook": "Electronic Lab Notebook (ELN)",
+    "biotechnologyOperations.equipmentManagement": "Equipment Management",
+    "biotechnologyOperations.experimentTracking": "Experiment Tracking",
+    "biotechnologyOperations.fermentation": "Fermentation Control",
+    "biotechnologyOperations.geneExpression": "Gene Expression",
+    "biotechnologyOperations.genomics": "Genomics",
+    "biotechnologyOperations.intellectualProperty": "Intellectual Property Management",
+    "biotechnologyOperations.inventoryManagement": "Inventory Management",
+    "biotechnologyOperations.laboratoryInformationManagement": "Laboratory Information Management (LIMS)",
+    "biotechnologyOperations.proteomics": "Proteomics",
+    "biotechnologyOperations.protocolManagement": "Protocol Management",
+    "biotechnologyOperations.purificationProcesses": "Purification Processes",
+    "biotechnologyOperations.sampleManagement": "Sample Management",
+    "biotechnologyOperations.scientificDataManagement": "Scientific Data Management",
+    "biotechnologyOperations.sequenceAnalysis": "Sequence Analysis",
+    "biotechnologyOperations.title": "Biotechnology Operations"
+  },
+  "ar": {
+    "biotechnologyOperations.analyticalTesting": "الاختبارات التحليلية",
+    "biotechnologyOperations.bioinformatics": "المعلوماتية الحيوية",
+    "biotechnologyOperations.bioprocessManagement": "إدارة العمليات الحيوية",
+    "biotechnologyOperations.calibrationTracking": "تتبع المعايرة",
+    "biotechnologyOperations.cellCulture": "إدارة زراعة الخلايا",
+    "biotechnologyOperations.collaborationTools": "أدوات التعاون",
+    "biotechnologyOperations.dataIntegrity": "سلامة البيانات",
+    "biotechnologyOperations.description": "إدارة البحث والإنتاج في التكنولوجيا الحيوية",
+    "biotechnologyOperations.electronicLabNotebook": "دفتر المختبر الإلكتروني (ELN)",
+    "biotechnologyOperations.equipmentManagement": "إدارة المعدات",
+    "biotechnologyOperations.experimentTracking": "تتبع التجارب",
+    "biotechnologyOperations.fermentation": "التحكم في التخمير",
+    "biotechnologyOperations.geneExpression": "التعبير الجيني",
+    "biotechnologyOperations.genomics": "علم الجينوم",
+    "biotechnologyOperations.intellectualProperty": "إدارة الملكية الفكرية",
+    "biotechnologyOperations.inventoryManagement": "إدارة المخزون",
+    "biotechnologyOperations.laboratoryInformationManagement": "إدارة معلومات المختبر (LIMS)",
+    "biotechnologyOperations.proteomics": "علم البروتيوم",
+    "biotechnologyOperations.protocolManagement": "إدارة البروتوكولات",
+    "biotechnologyOperations.purificationProcesses": "عمليات التنقية",
+    "biotechnologyOperations.sampleManagement": "إدارة العينات",
+    "biotechnologyOperations.scientificDataManagement": "إدارة البيانات العلمية",
+    "biotechnologyOperations.sequenceAnalysis": "تحليل التسلسل",
+    "biotechnologyOperations.title": "عمليات التكنولوجيا الحيوية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/blockchainTech.translations.json">
+<![CDATA[
+{
+  "en": {
+    "blockchainTech.application": "Blockchain Application",
+    "blockchainTech.block": "Block",
+    "blockchainTech.blockchain": "Blockchain Technology",
+    "blockchainTech.chain": "Chain",
+    "blockchainTech.consensus": "Consensus Mechanism",
+    "blockchainTech.cryptocurrency": "Cryptocurrency",
+    "blockchainTech.decentralization": "Decentralization",
+    "blockchainTech.distributed": "Distributed Ledger",
+    "blockchainTech.encryption": "Cryptographic Encryption",
+    "blockchainTech.hash": "Hash Function",
+    "blockchainTech.immutability": "Data Immutability",
+    "blockchainTech.implementation": "Implementation",
+    "blockchainTech.ledger": "Digital Ledger",
+    "blockchainTech.mining": "Mining",
+    "blockchainTech.node": "Network Node",
+    "blockchainTech.security": "Blockchain Security",
+    "blockchainTech.smart": "Smart Contract",
+    "blockchainTech.token": "Digital Token",
+    "blockchainTech.transaction": "Transaction",
+    "blockchainTech.transparency": "Transparency",
+    "blockchainTech.validation": "Transaction Validation",
+    "blockchainTech.wallet": "Digital Wallet"
+  },
+  "ar": {
+    "blockchainTech.application": "تطبيق البلوكشين",
+    "blockchainTech.block": "الكتلة",
+    "blockchainTech.blockchain": "تقنية البلوكشين",
+    "blockchainTech.chain": "السلسلة",
+    "blockchainTech.consensus": "آلية الإجماع",
+    "blockchainTech.cryptocurrency": "العملة المشفرة",
+    "blockchainTech.decentralization": "اللامركزية",
+    "blockchainTech.distributed": "دفتر الأستاذ الموزع",
+    "blockchainTech.encryption": "التشفير التشفيري",
+    "blockchainTech.hash": "دالة التجزئة",
+    "blockchainTech.immutability": "ثبات البيانات",
+    "blockchainTech.implementation": "التنفيذ",
+    "blockchainTech.ledger": "دفتر الأستاذ الرقمي",
+    "blockchainTech.mining": "التعدين",
+    "blockchainTech.node": "عقدة الشبكة",
+    "blockchainTech.security": "أمن البلوكشين",
+    "blockchainTech.smart": "العقد الذكي",
+    "blockchainTech.token": "الرمز الرقمي",
+    "blockchainTech.transaction": "المعاملة",
+    "blockchainTech.transparency": "الشفافية",
+    "blockchainTech.validation": "التحقق من المعاملة",
+    "blockchainTech.wallet": "المحفظة الرقمية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/blockchainTechnology.translations.json">
+<![CDATA[
+{
+  "en": {
+    "blockchainTechnology.address": "Address",
+    "blockchainTechnology.bitcoin": "Bitcoin",
+    "blockchainTechnology.block": "Block",
+    "blockchainTechnology.blockchain": "Blockchain",
+    "blockchainTechnology.chain": "Chain",
+    "blockchainTechnology.consensus": "Consensus",
+    "blockchainTechnology.contract": "Contract",
+    "blockchainTechnology.cryptocurrency": "Cryptocurrency",
+    "blockchainTechnology.dapp": "DApp",
+    "blockchainTechnology.distributed": "Distributed Ledger",
+    "blockchainTechnology.ethereum": "Ethereum",
+    "blockchainTechnology.hash": "Hash",
+    "blockchainTechnology.ledger": "Ledger",
+    "blockchainTechnology.miner": "Miner",
+    "blockchainTechnology.mining": "Mining",
+    "blockchainTechnology.node": "Node",
+    "blockchainTechnology.private": "Private Key",
+    "blockchainTechnology.public": "Public Key",
+    "blockchainTechnology.smart": "Smart Contract",
+    "blockchainTechnology.token": "Token",
+    "blockchainTechnology.transaction": "Transaction",
+    "blockchainTechnology.wallet": "Wallet"
+  },
+  "ar": {
+    "blockchainTechnology.address": "العنوان",
+    "blockchainTechnology.bitcoin": "بيتكوين",
+    "blockchainTechnology.block": "الكتلة",
+    "blockchainTechnology.blockchain": "سلسلة الكتل",
+    "blockchainTechnology.chain": "السلسلة",
+    "blockchainTechnology.consensus": "الإجماع",
+    "blockchainTechnology.contract": "العقد",
+    "blockchainTechnology.cryptocurrency": "العملة المشفرة",
+    "blockchainTechnology.dapp": "التطبيق اللامركزي",
+    "blockchainTechnology.distributed": "دفتر الأستاذ الموزع",
+    "blockchainTechnology.ethereum": "إيثريوم",
+    "blockchainTechnology.hash": "التجزئة",
+    "blockchainTechnology.ledger": "دفتر الأستاذ",
+    "blockchainTechnology.miner": "المُعدِّن",
+    "blockchainTechnology.mining": "التعدين",
+    "blockchainTechnology.node": "العقدة",
+    "blockchainTechnology.private": "المفتاح الخاص",
+    "blockchainTechnology.public": "المفتاح العام",
+    "blockchainTechnology.smart": "العقد الذكي",
+    "blockchainTechnology.token": "الرمز المميز",
+    "blockchainTechnology.transaction": "المعاملة",
+    "blockchainTechnology.wallet": "المحفظة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/borderStyles.translations.json">
+<![CDATA[
+{
+  "en": {
+    "borderStyles.border": "Border",
+    "borderStyles.borderColor": "Border Color",
+    "borderStyles.borderRadius": "Border Radius",
+    "borderStyles.borderStyle": "Border Style",
+    "borderStyles.borderWidth": "Border Width",
+    "borderStyles.bottom": "Bottom Border",
+    "borderStyles.circle": "Circle",
+    "borderStyles.dashed": "Dashed",
+    "borderStyles.dotted": "Dotted",
+    "borderStyles.double": "Double",
+    "borderStyles.groove": "Groove",
+    "borderStyles.inset": "Inset",
+    "borderStyles.left": "Left Border",
+    "borderStyles.medium": "Medium",
+    "borderStyles.none": "None",
+    "borderStyles.outset": "Outset",
+    "borderStyles.pill": "Pill",
+    "borderStyles.ridge": "Ridge",
+    "borderStyles.right": "Right Border",
+    "borderStyles.rounded": "Rounded",
+    "borderStyles.sharp": "Sharp",
+    "borderStyles.solid": "Solid",
+    "borderStyles.thick": "Thick",
+    "borderStyles.thin": "Thin",
+    "borderStyles.top": "Top Border"
+  },
+  "ar": {
+    "borderStyles.border": "الحدود",
+    "borderStyles.borderColor": "لون الحدود",
+    "borderStyles.borderRadius": "نصف قطر الحدود",
+    "borderStyles.borderStyle": "نمط الحدود",
+    "borderStyles.borderWidth": "عرض الحدود",
+    "borderStyles.bottom": "الحدود السفلية",
+    "borderStyles.circle": "دائري",
+    "borderStyles.dashed": "متقطع",
+    "borderStyles.dotted": "منقط",
+    "borderStyles.double": "مزدوج",
+    "borderStyles.groove": "محفور",
+    "borderStyles.inset": "غائر",
+    "borderStyles.left": "الحدود اليسرى",
+    "borderStyles.medium": "متوسط",
+    "borderStyles.none": "بدون",
+    "borderStyles.outset": "بارز",
+    "borderStyles.pill": "حبة",
+    "borderStyles.ridge": "بارز",
+    "borderStyles.right": "الحدود اليمنى",
+    "borderStyles.rounded": "مستدير",
+    "borderStyles.sharp": "حاد",
+    "borderStyles.solid": "صلب",
+    "borderStyles.thick": "سميك",
+    "borderStyles.thin": "رفيع",
+    "borderStyles.top": "الحدود العلوية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/brandManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "brandManagement.asset": "Brand Assets",
+    "brandManagement.awareness": "Brand Awareness",
+    "brandManagement.brand": "Brand Management",
+    "brandManagement.color": "Brand Colors",
+    "brandManagement.consistency": "Brand Consistency",
+    "brandManagement.equity": "Brand Equity",
+    "brandManagement.guidelines": "Brand Guidelines",
+    "brandManagement.identity": "Brand Identity",
+    "brandManagement.logo": "Logo",
+    "brandManagement.loyalty": "Brand Loyalty",
+    "brandManagement.messaging": "Brand Messaging",
+    "brandManagement.monitoring": "Brand Monitoring",
+    "brandManagement.perception": "Brand Perception",
+    "brandManagement.positioning": "Brand Positioning",
+    "brandManagement.promise": "Brand Promise",
+    "brandManagement.protection": "Brand Protection",
+    "brandManagement.recognition": "Brand Recognition",
+    "brandManagement.story": "Brand Story",
+    "brandManagement.tone": "Tone of Voice",
+    "brandManagement.typography": "Typography",
+    "brandManagement.value": "Brand Value",
+    "brandManagement.voice": "Brand Voice"
+  },
+  "ar": {
+    "brandManagement.asset": "أصول العلامة",
+    "brandManagement.awareness": "الوعي بالعلامة",
+    "brandManagement.brand": "إدارة العلامة التجارية",
+    "brandManagement.color": "ألوان العلامة",
+    "brandManagement.consistency": "اتساق العلامة",
+    "brandManagement.equity": "قيمة العلامة",
+    "brandManagement.guidelines": "دليل العلامة",
+    "brandManagement.identity": "هوية العلامة",
+    "brandManagement.logo": "الشعار",
+    "brandManagement.loyalty": "ولاء العلامة",
+    "brandManagement.messaging": "رسائل العلامة",
+    "brandManagement.monitoring": "مراقبة العلامة",
+    "brandManagement.perception": "انطباع العلامة",
+    "brandManagement.positioning": "تموضع العلامة",
+    "brandManagement.promise": "وعد العلامة",
+    "brandManagement.protection": "حماية العلامة",
+    "brandManagement.recognition": "التعرف على العلامة",
+    "brandManagement.story": "قصة العلامة",
+    "brandManagement.tone": "نبرة العلامة",
+    "brandManagement.typography": "الخطوط",
+    "brandManagement.value": "قيمة العلامة التجارية",
+    "brandManagement.voice": "صوت العلامة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/brandManagementAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "brandManagementAdv.asset": "Brand Asset",
+    "brandManagementAdv.awareness": "Brand Awareness",
+    "brandManagementAdv.brand": "Brand Management",
+    "brandManagementAdv.color": "Brand Colors",
+    "brandManagementAdv.consistency": "Brand Consistency",
+    "brandManagementAdv.equity": "Brand Equity",
+    "brandManagementAdv.guidelines": "Brand Guidelines",
+    "brandManagementAdv.identity": "Brand Identity",
+    "brandManagementAdv.imagery": "Brand Imagery",
+    "brandManagementAdv.logo": "Logo",
+    "brandManagementAdv.loyalty": "Brand Loyalty",
+    "brandManagementAdv.messaging": "Brand Messaging",
+    "brandManagementAdv.monitoring": "Brand Monitoring",
+    "brandManagementAdv.perception": "Brand Perception",
+    "brandManagementAdv.positioning": "Brand Positioning",
+    "brandManagementAdv.protection": "Brand Protection",
+    "brandManagementAdv.reputation": "Brand Reputation",
+    "brandManagementAdv.strategy": "Brand Strategy",
+    "brandManagementAdv.tone": "Brand Tone",
+    "brandManagementAdv.typography": "Brand Typography",
+    "brandManagementAdv.value": "Brand Value",
+    "brandManagementAdv.voice": "Brand Voice"
+  },
+  "ar": {
+    "brandManagementAdv.asset": "أصول العلامة التجارية",
+    "brandManagementAdv.awareness": "الوعي بالعلامة التجارية",
+    "brandManagementAdv.brand": "إدارة العلامة التجارية",
+    "brandManagementAdv.color": "ألوان العلامة التجارية",
+    "brandManagementAdv.consistency": "اتساق العلامة التجارية",
+    "brandManagementAdv.equity": "قيمة العلامة التجارية",
+    "brandManagementAdv.guidelines": "إرشادات العلامة التجارية",
+    "brandManagementAdv.identity": "هوية العلامة التجارية",
+    "brandManagementAdv.imagery": "صور العلامة التجارية",
+    "brandManagementAdv.logo": "الشعار",
+    "brandManagementAdv.loyalty": "الولاء للعلامة التجارية",
+    "brandManagementAdv.messaging": "رسائل العلامة التجارية",
+    "brandManagementAdv.monitoring": "مراقبة العلامة التجارية",
+    "brandManagementAdv.perception": "تصور العلامة التجارية",
+    "brandManagementAdv.positioning": "وضع العلامة التجارية",
+    "brandManagementAdv.protection": "حماية العلامة التجارية",
+    "brandManagementAdv.reputation": "سمعة العلامة التجارية",
+    "brandManagementAdv.strategy": "استراتيجية العلامة التجارية",
+    "brandManagementAdv.tone": "نبرة العلامة التجارية",
+    "brandManagementAdv.typography": "طباعة العلامة التجارية",
+    "brandManagementAdv.value": "قيمة العلامة التجارية",
+    "brandManagementAdv.voice": "صوت العلامة التجارية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/brandManagementExt.translations.json">
+<![CDATA[
+{
+  "en": {
+    "brandManagementExt.advocacy": "Brand Advocacy",
+    "brandManagementExt.architecture": "Brand Architecture",
+    "brandManagementExt.awareness": "Brand Awareness",
+    "brandManagementExt.brand": "Brand Management",
+    "brandManagementExt.communication": "Brand Communication",
+    "brandManagementExt.equity": "Brand Equity",
+    "brandManagementExt.experience": "Brand Experience",
+    "brandManagementExt.guidelines": "Brand Guidelines",
+    "brandManagementExt.identity": "Brand Identity",
+    "brandManagementExt.loyalty": "Brand Loyalty",
+    "brandManagementExt.management": "Brand Strategy",
+    "brandManagementExt.messaging": "Brand Messaging",
+    "brandManagementExt.monitoring": "Brand Monitoring",
+    "brandManagementExt.perception": "Brand Perception",
+    "brandManagementExt.portfolio": "Brand Portfolio",
+    "brandManagementExt.positioning": "Brand Positioning",
+    "brandManagementExt.protection": "Brand Protection",
+    "brandManagementExt.recognition": "Brand Recognition",
+    "brandManagementExt.reputation": "Brand Reputation",
+    "brandManagementExt.standards": "Brand Standards",
+    "brandManagementExt.strategy": "Brand Strategy",
+    "brandManagementExt.value": "Brand Value"
+  },
+  "ar": {
+    "brandManagementExt.advocacy": "مناصرة العلامة التجارية",
+    "brandManagementExt.architecture": "هندسة العلامة التجارية",
+    "brandManagementExt.awareness": "الوعي بالعلامة التجارية",
+    "brandManagementExt.brand": "إدارة العلامة التجارية",
+    "brandManagementExt.communication": "التواصل بشأن العلامة التجارية",
+    "brandManagementExt.equity": "رأس مال العلامة التجارية",
+    "brandManagementExt.experience": "تجربة العلامة التجارية",
+    "brandManagementExt.guidelines": "إرشادات العلامة التجارية",
+    "brandManagementExt.identity": "هوية العلامة التجارية",
+    "brandManagementExt.loyalty": "ولاء العلامة التجارية",
+    "brandManagementExt.management": "استراتيجية العلامة التجارية",
+    "brandManagementExt.messaging": "رسائل العلامة التجارية",
+    "brandManagementExt.monitoring": "مراقبة العلامة التجارية",
+    "brandManagementExt.perception": "إدراك العلامة التجارية",
+    "brandManagementExt.portfolio": "محفظة العلامات التجارية",
+    "brandManagementExt.positioning": "تحديد موضع العلامة التجارية",
+    "brandManagementExt.protection": "حماية العلامة التجارية",
+    "brandManagementExt.recognition": "التعرف على العلامة التجارية",
+    "brandManagementExt.reputation": "سمعة العلامة التجارية",
+    "brandManagementExt.standards": "معايير العلامة التجارية",
+    "brandManagementExt.strategy": "استراتيجية العلامة التجارية",
+    "brandManagementExt.value": "قيمة العلامة التجارية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/brandingCustomization.translations.json">
+<![CDATA[
+{
+  "en": {
+    "brandingCustomization.accent": "Accent Color",
+    "brandingCustomization.bodyFont": "Body Font",
+    "brandingCustomization.branding": "Branding",
+    "brandingCustomization.colors": "Brand Colors",
+    "brandingCustomization.custom": "Custom Theme",
+    "brandingCustomization.customization": "Customization",
+    "brandingCustomization.dark": "Dark Theme",
+    "brandingCustomization.dashboard": "Dashboard",
+    "brandingCustomization.emailTemplate": "Email Template",
+    "brandingCustomization.favicon": "Favicon",
+    "brandingCustomization.fonts": "Fonts",
+    "brandingCustomization.headerFont": "Header Font",
+    "brandingCustomization.light": "Light Theme",
+    "brandingCustomization.loginPage": "Login Page",
+    "brandingCustomization.logo": "Company Logo",
+    "brandingCustomization.preview": "Preview",
+    "brandingCustomization.primary": "Primary Color",
+    "brandingCustomization.reset": "Reset to Default",
+    "brandingCustomization.secondary": "Secondary Color",
+    "brandingCustomization.theme": "Theme"
+  },
+  "ar": {
+    "brandingCustomization.accent": "اللون المميز",
+    "brandingCustomization.bodyFont": "خط المحتوى",
+    "brandingCustomization.branding": "العلامة التجارية",
+    "brandingCustomization.colors": "ألوان العلامة التجارية",
+    "brandingCustomization.custom": "سمة مخصصة",
+    "brandingCustomization.customization": "التخصيص",
+    "brandingCustomization.dark": "السمة الداكنة",
+    "brandingCustomization.dashboard": "لوحة المعلومات",
+    "brandingCustomization.emailTemplate": "قالب البريد الإلكتروني",
+    "brandingCustomization.favicon": "الأيقونة المفضلة",
+    "brandingCustomization.fonts": "الخطوط",
+    "brandingCustomization.headerFont": "خط العناوين",
+    "brandingCustomization.light": "السمة الفاتحة",
+    "brandingCustomization.loginPage": "صفحة تسجيل الدخول",
+    "brandingCustomization.logo": "شعار الشركة",
+    "brandingCustomization.preview": "معاينة",
+    "brandingCustomization.primary": "اللون الأساسي",
+    "brandingCustomization.reset": "إعادة تعيين للافتراضي",
+    "brandingCustomization.secondary": "اللون الثانوي",
+    "brandingCustomization.theme": "السمة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/budget.translations.json">
+<![CDATA[
+{
+  "en": {
+    "budget.actualSpending": "Actual Spending",
+    "budget.allocated": "Allocated",
+    "budget.allocation": "Allocation",
+    "budget.annualBudget": "Annual Budget",
+    "budget.available": "Available",
+    "budget.breakEven": "Break Even",
+    "budget.budget1": "Budget",
+    "budget.budgetAllocation": "Budget Allocation",
+    "budget.budgetPlanning": "Budget Planning",
+    "budget.budgets": "Budgets",
+    "budget.budgetUtilization": "Budget Utilization",
+    "budget.costCenter": "Cost Center",
+    "budget.costCenters": "Cost Centers",
+    "budget.expense": "Expense",
+    "budget.expenses": "Expenses",
+    "budget.forecast": "Forecast",
+    "budget.loss": "Loss",
+    "budget.monthlyBudget": "Monthly Budget",
+    "budget.overBudget": "Over Budget",
+    "budget.profit": "Profit",
+    "budget.profitMargin": "Profit Margin",
+    "budget.projected": "Projected",
+    "budget.projectedSpending": "Projected Spending",
+    "budget.quarterlyBudget": "Quarterly Budget",
+    "budget.remaining": "Remaining",
+    "budget.returnOnInvestment": "Return on Investment",
+    "budget.revenue": "Revenue",
+    "budget.revenues": "Revenues",
+    "budget.roi": "ROI",
+    "budget.spent": "Spent",
+    "budget.underBudget": "Under Budget",
+    "budget.withinBudget": "Within Budget"
+  },
+  "ar": {
+    "budget.actualSpending": "الإنفاق الفعلي",
+    "budget.allocated": "مخصص",
+    "budget.allocation": "التخصيص",
+    "budget.annualBudget": "الميزانية السنوية",
+    "budget.available": "متاح",
+    "budget.breakEven": "التعادل",
+    "budget.budget1": "الميزانية",
+    "budget.budgetAllocation": "تخصيص الميزانية",
+    "budget.budgetPlanning": "تخطيط الميزانية",
+    "budget.budgets": "الميزانيات",
+    "budget.budgetUtilization": "استخدام الميزانية",
+    "budget.costCenter": "مركز التكلفة",
+    "budget.costCenters": "مراكز التكلفة",
+    "budget.expense": "مصروف",
+    "budget.expenses": "مصروفات",
+    "budget.forecast": "توقعات",
+    "budget.loss": "خسارة",
+    "budget.monthlyBudget": "الميزانية الشهرية",
+    "budget.overBudget": "تجاوز الميزانية",
+    "budget.profit": "ربح",
+    "budget.profitMargin": "هامش الربح",
+    "budget.projected": "متوقع",
+    "budget.projectedSpending": "الإنفاق المتوقع",
+    "budget.quarterlyBudget": "الميزانية الربع سنوية",
+    "budget.remaining": "المتبقي",
+    "budget.returnOnInvestment": "عائد الاستثمار",
+    "budget.revenue": "إيرادات",
+    "budget.revenues": "الإيرادات",
+    "budget.roi": "عائد الاستثمار",
+    "budget.spent": "تم إنفاقه",
+    "budget.underBudget": "أقل من الميزانية",
+    "budget.withinBudget": "ضمن الميزانية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/budgetManagementAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "budgetManagementAdv.adjustment": "Budget Adjustment",
+    "budgetManagementAdv.allocation": "Budget Allocation",
+    "budgetManagementAdv.analysis": "Budget Analysis",
+    "budgetManagementAdv.approval": "Budget Approval",
+    "budgetManagementAdv.budget": "Budget Management",
+    "budgetManagementAdv.capital": "Capital Budget",
+    "budgetManagementAdv.control": "Budget Control",
+    "budgetManagementAdv.cycle": "Budget Cycle",
+    "budgetManagementAdv.execution": "Budget Execution",
+    "budgetManagementAdv.fiscal": "Fiscal Year",
+    "budgetManagementAdv.forecasting": "Budget Forecasting",
+    "budgetManagementAdv.monitoring": "Budget Monitoring",
+    "budgetManagementAdv.operating": "Operating Budget",
+    "budgetManagementAdv.performance": "Budget Performance",
+    "budgetManagementAdv.period": "Budget Period",
+    "budgetManagementAdv.planning": "Budget Planning",
+    "budgetManagementAdv.preparation": "Budget Preparation",
+    "budgetManagementAdv.reallocation": "Budget Reallocation",
+    "budgetManagementAdv.reporting": "Budget Reporting",
+    "budgetManagementAdv.reserve": "Budget Reserve",
+    "budgetManagementAdv.revision": "Budget Revision",
+    "budgetManagementAdv.variance": "Budget Variance"
+  },
+  "ar": {
+    "budgetManagementAdv.adjustment": "تعديل الميزانية",
+    "budgetManagementAdv.allocation": "تخصيص الميزانية",
+    "budgetManagementAdv.analysis": "تحليل الميزانية",
+    "budgetManagementAdv.approval": "الموافقة على الميزانية",
+    "budgetManagementAdv.budget": "إدارة الميزانية",
+    "budgetManagementAdv.capital": "الميزانية الرأسمالية",
+    "budgetManagementAdv.control": "التحكم في الميزانية",
+    "budgetManagementAdv.cycle": "دورة الميزانية",
+    "budgetManagementAdv.execution": "تنفيذ الميزانية",
+    "budgetManagementAdv.fiscal": "السنة المالية",
+    "budgetManagementAdv.forecasting": "التنبؤ بالميزانية",
+    "budgetManagementAdv.monitoring": "مراقبة الميزانية",
+    "budgetManagementAdv.operating": "الميزانية التشغيلية",
+    "budgetManagementAdv.performance": "أداء الميزانية",
+    "budgetManagementAdv.period": "فترة الميزانية",
+    "budgetManagementAdv.planning": "تخطيط الميزانية",
+    "budgetManagementAdv.preparation": "إعداد الميزانية",
+    "budgetManagementAdv.reallocation": "إعادة تخصيص الميزانية",
+    "budgetManagementAdv.reporting": "الإبلاغ عن الميزانية",
+    "budgetManagementAdv.reserve": "احتياطي الميزانية",
+    "budgetManagementAdv.revision": "مراجعة الميزانية",
+    "budgetManagementAdv.variance": "تباين الميزانية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/budgetingForecasting.translations.json">
+<![CDATA[
+{
+  "en": {
+    "budgetingForecasting.adjustment": "Budget Adjustment",
+    "budgetingForecasting.allocation": "Budget Allocation",
+    "budgetingForecasting.analysis": "Budget Analysis",
+    "budgetingForecasting.approval": "Budget Approval",
+    "budgetingForecasting.budgeting": "Budgeting",
+    "budgetingForecasting.capital": "Capital Budget",
+    "budgetingForecasting.control": "Budget Control",
+    "budgetingForecasting.cycle": "Budget Cycle",
+    "budgetingForecasting.development": "Budget Development",
+    "budgetingForecasting.execution": "Budget Execution",
+    "budgetingForecasting.fiscal": "Fiscal Year",
+    "budgetingForecasting.forecast": "Forecasting",
+    "budgetingForecasting.model": "Financial Model",
+    "budgetingForecasting.monitoring": "Budget Monitoring",
+    "budgetingForecasting.operating": "Operating Budget",
+    "budgetingForecasting.period": "Budget Period",
+    "budgetingForecasting.planning": "Budget Planning",
+    "budgetingForecasting.preparation": "Budget Preparation",
+    "budgetingForecasting.projection": "Financial Projection",
+    "budgetingForecasting.reporting": "Budget Reporting",
+    "budgetingForecasting.revision": "Budget Revision",
+    "budgetingForecasting.variance": "Budget Variance"
+  },
+  "ar": {
+    "budgetingForecasting.adjustment": "تعديل الميزانية",
+    "budgetingForecasting.allocation": "تخصيص الميزانية",
+    "budgetingForecasting.analysis": "تحليل الميزانية",
+    "budgetingForecasting.approval": "الموافقة على الميزانية",
+    "budgetingForecasting.budgeting": "الميزانية",
+    "budgetingForecasting.capital": "ميزانية رأس المال",
+    "budgetingForecasting.control": "التحكم في الميزانية",
+    "budgetingForecasting.cycle": "دورة الميزانية",
+    "budgetingForecasting.development": "تطوير الميزانية",
+    "budgetingForecasting.execution": "تنفيذ الميزانية",
+    "budgetingForecasting.fiscal": "السنة المالية",
+    "budgetingForecasting.forecast": "التنبؤ",
+    "budgetingForecasting.model": "النموذج المالي",
+    "budgetingForecasting.monitoring": "مراقبة الميزانية",
+    "budgetingForecasting.operating": "ميزانية التشغيل",
+    "budgetingForecasting.period": "فترة الميزانية",
+    "budgetingForecasting.planning": "تخطيط الميزانية",
+    "budgetingForecasting.preparation": "إعداد الميزانية",
+    "budgetingForecasting.projection": "التوقعات المالية",
+    "budgetingForecasting.reporting": "إعداد تقارير الميزانية",
+    "budgetingForecasting.revision": "مراجعة الميزانية",
+    "budgetingForecasting.variance": "تباين الميزانية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/bulkActions.translations.json">
+<![CDATA[
+{
+  "en": {
+    "bulkActions.action": "Action",
+    "bulkActions.apply": "Apply",
+    "bulkActions.approve": "Approve",
+    "bulkActions.archive": "Archive",
+    "bulkActions.assign": "Assign",
+    "bulkActions.bulk": "Bulk Actions",
+    "bulkActions.confirm": "Confirm Action",
+    "bulkActions.copy": "Copy",
+    "bulkActions.delete": "Delete",
+    "bulkActions.deselectAll": "Deselect All",
+    "bulkActions.export": "Export",
+    "bulkActions.items": "Items",
+    "bulkActions.move": "Move",
+    "bulkActions.reject": "Reject",
+    "bulkActions.restore": "Restore",
+    "bulkActions.select": "Select",
+    "bulkActions.selectAll": "Select All",
+    "bulkActions.selected": "Selected",
+    "bulkActions.tag": "Add Tags",
+    "bulkActions.unassign": "Unassign",
+    "bulkActions.untag": "Remove Tags"
+  },
+  "ar": {
+    "bulkActions.action": "الإجراء",
+    "bulkActions.apply": "تطبيق",
+    "bulkActions.approve": "الموافقة",
+    "bulkActions.archive": "أرشفة",
+    "bulkActions.assign": "تعيين",
+    "bulkActions.bulk": "الإجراءات الجماعية",
+    "bulkActions.confirm": "تأكيد الإجراء",
+    "bulkActions.copy": "نسخ",
+    "bulkActions.delete": "حذف",
+    "bulkActions.deselectAll": "إلغاء تحديد الكل",
+    "bulkActions.export": "تصدير",
+    "bulkActions.items": "العناصر",
+    "bulkActions.move": "نقل",
+    "bulkActions.reject": "الرفض",
+    "bulkActions.restore": "استعادة",
+    "bulkActions.select": "تحديد",
+    "bulkActions.selectAll": "تحديد الكل",
+    "bulkActions.selected": "محدد",
+    "bulkActions.tag": "إضافة وسوم",
+    "bulkActions.unassign": "إلغاء التعيين",
+    "bulkActions.untag": "إزالة وسوم"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/bulkOperations.translations.json">
+<![CDATA[
+{
+  "en": {
+    "bulkOperations.actions": "Bulk Actions",
+    "bulkOperations.apply": "Apply to Selected",
+    "bulkOperations.approve": "Approve Selected",
+    "bulkOperations.archive": "Archive Selected",
+    "bulkOperations.assign": "Assign Selected",
+    "bulkOperations.bulk": "Bulk Operations",
+    "bulkOperations.confirm": "Confirm Action",
+    "bulkOperations.copy": "Copy Selected",
+    "bulkOperations.delete": "Delete Selected",
+    "bulkOperations.deselect": "Deselect",
+    "bulkOperations.deselectAll": "Deselect All",
+    "bulkOperations.export": "Export Selected",
+    "bulkOperations.irreversible": "This action cannot be undone",
+    "bulkOperations.items": "Items",
+    "bulkOperations.move": "Move Selected",
+    "bulkOperations.reject": "Reject Selected",
+    "bulkOperations.restore": "Restore Selected",
+    "bulkOperations.select": "Select",
+    "bulkOperations.selectAll": "Select All",
+    "bulkOperations.selected": "Selected",
+    "bulkOperations.selectNone": "Select None",
+    "bulkOperations.selectPage": "Select Page",
+    "bulkOperations.selectVisible": "Select Visible",
+    "bulkOperations.tag": "Tag Selected",
+    "bulkOperations.update": "Update Selected",
+    "bulkOperations.warning": "Warning"
+  },
+  "ar": {
+    "bulkOperations.actions": "الإجراءات الجماعية",
+    "bulkOperations.apply": "تطبيق على المحدد",
+    "bulkOperations.approve": "الموافقة على المحدد",
+    "bulkOperations.archive": "أرشفة المحدد",
+    "bulkOperations.assign": "تعيين المحدد",
+    "bulkOperations.bulk": "العمليات الجماعية",
+    "bulkOperations.confirm": "تأكيد الإجراء",
+    "bulkOperations.copy": "نسخ المحدد",
+    "bulkOperations.delete": "حذف المحدد",
+    "bulkOperations.deselect": "إلغاء التحديد",
+    "bulkOperations.deselectAll": "إلغاء تحديد الكل",
+    "bulkOperations.export": "تصدير المحدد",
+    "bulkOperations.irreversible": "لا يمكن التراجع عن هذا الإجراء",
+    "bulkOperations.items": "العناصر",
+    "bulkOperations.move": "نقل المحدد",
+    "bulkOperations.reject": "رفض المحدد",
+    "bulkOperations.restore": "استعادة المحدد",
+    "bulkOperations.select": "تحديد",
+    "bulkOperations.selectAll": "تحديد الكل",
+    "bulkOperations.selected": "محدد",
+    "bulkOperations.selectNone": "عدم التحديد",
+    "bulkOperations.selectPage": "تحديد الصفحة",
+    "bulkOperations.selectVisible": "تحديد المرئي",
+    "bulkOperations.tag": "وسم المحدد",
+    "bulkOperations.update": "تحديث المحدد",
+    "bulkOperations.warning": "تحذير"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/burnoutPrevention.translations.json">
+<![CDATA[
+{
+  "en": {
+    "burnoutPrevention.assessment": "تقييم الإرهاق",
+    "burnoutPrevention.balance": "توازن العمل",
+    "burnoutPrevention.boundaries": "حدود العمل",
+    "burnoutPrevention.breaks": "فترات الراحة المنتظمة",
+    "burnoutPrevention.burnout": "الوقاية من الإرهاق",
+    "burnoutPrevention.causes": "أسباب الإرهاق",
+    "burnoutPrevention.culture": "ثقافة الدعم",
+    "burnoutPrevention.engagement": "المشاركة في العمل",
+    "burnoutPrevention.intervention": "التدخل في الإرهاق",
+    "burnoutPrevention.leadership": "دعم القيادة",
+    "burnoutPrevention.meaning": "معنى العمل",
+    "burnoutPrevention.prevention": "استراتيجيات الوقاية",
+    "burnoutPrevention.recognition": "التعرف على الإرهاق",
+    "burnoutPrevention.recovery": "التعافي من الإرهاق",
+    "burnoutPrevention.resources": "موارد الإرهاق",
+    "burnoutPrevention.rest": "الراحة والتعافي",
+    "burnoutPrevention.risk": "خطر الإرهاق",
+    "burnoutPrevention.signs": "علامات الإرهاق",
+    "burnoutPrevention.support": "دعم الإرهاق",
+    "burnoutPrevention.symptoms": "أعراض الإرهاق",
+    "burnoutPrevention.vacation": "وقت الإجازة",
+    "burnoutPrevention.workload": "إدارة عبء العمل"
+  },
+  "ar": {
+    "burnoutPrevention.assessment": "تقييم الإرهاق",
+    "burnoutPrevention.balance": "توازن العمل",
+    "burnoutPrevention.boundaries": "حدود العمل",
+    "burnoutPrevention.breaks": "فترات الراحة المنتظمة",
+    "burnoutPrevention.burnout": "الوقاية من الإرهاق",
+    "burnoutPrevention.causes": "أسباب الإرهاق",
+    "burnoutPrevention.culture": "ثقافة الدعم",
+    "burnoutPrevention.engagement": "المشاركة في العمل",
+    "burnoutPrevention.intervention": "التدخل في الإرهاق",
+    "burnoutPrevention.leadership": "دعم القيادة",
+    "burnoutPrevention.meaning": "معنى العمل",
+    "burnoutPrevention.prevention": "استراتيجيات الوقاية",
+    "burnoutPrevention.recognition": "التعرف على الإرهاق",
+    "burnoutPrevention.recovery": "التعافي من الإرهاق",
+    "burnoutPrevention.resources": "موارد الإرهاق",
+    "burnoutPrevention.rest": "الراحة والتعافي",
+    "burnoutPrevention.risk": "خطر الإرهاق",
+    "burnoutPrevention.signs": "علامات الإرهاق",
+    "burnoutPrevention.support": "دعم الإرهاق",
+    "burnoutPrevention.symptoms": "أعراض الإرهاق",
+    "burnoutPrevention.vacation": "وقت الإجازة",
+    "burnoutPrevention.workload": "إدارة عبء العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/business.translations.json">
+<![CDATA[
+{
+  "en": {
+    "business.affiliate": "Affiliate",
+    "business.boardOfDirectors": "Board of Directors",
+    "business.branch": "Branch",
+    "business.business1": "Business",
+    "business.businessDevelopment": "Business Development",
+    "business.businessPlan": "Business Plan",
+    "business.businessUnit": "Business Unit",
+    "business.company": "Company",
+    "business.corporation": "Corporation",
+    "business.enterprise": "Enterprise",
+    "business.entity": "Entity",
+    "business.establishment": "Establishment",
+    "business.expansion": "Expansion",
+    "business.firm": "Firm",
+    "business.growth": "Growth",
+    "business.headquarters": "Headquarters",
+    "business.investor": "Investor",
+    "business.office": "Office",
+    "business.organization": "Organization",
+    "business.partnership": "Partnership",
+    "business.profitability": "Profitability",
+    "business.regionalOffice": "Regional Office",
+    "business.revenue": "Revenue",
+    "business.shareholder": "Shareholder",
+    "business.stakeholder": "Stakeholder",
+    "business.strategic": "Strategic",
+    "business.strategy": "Strategy",
+    "business.subsidiary": "Subsidiary"
+  },
+  "ar": {
+    "business.affiliate": "شركة تابعة",
+    "business.boardOfDirectors": "مجلس الإدارة",
+    "business.branch": "فرع",
+    "business.business1": "الأعمال",
+    "business.businessDevelopment": "تطوير الأعمال",
+    "business.businessPlan": "خطة عمل",
+    "business.businessUnit": "وحدة الأعمال",
+    "business.company": "شركة",
+    "business.corporation": "شركة",
+    "business.enterprise": "مؤسسة",
+    "business.entity": "كيان",
+    "business.establishment": "مؤسسة",
+    "business.expansion": "توسع",
+    "business.firm": "شركة",
+    "business.growth": "نمو",
+    "business.headquarters": "المقر الرئيسي",
+    "business.investor": "مستثمر",
+    "business.office": "مكتب",
+    "business.organization": "منظمة",
+    "business.partnership": "شراكة",
+    "business.profitability": "الربحية",
+    "business.regionalOffice": "مكتب إقليمي",
+    "business.revenue": "إيرادات",
+    "business.shareholder": "مساهم",
+    "business.stakeholder": "صاحب مصلحة",
+    "business.strategic": "استراتيجي",
+    "business.strategy": "استراتيجية",
+    "business.subsidiary": "شركة تابعة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/businessAnalysis.translations.json">
+<![CDATA[
+{
+  "en": {
+    "businessAnalysis.analysis": "Business Analysis",
+    "businessAnalysis.case": "Business Case",
+    "businessAnalysis.data": "Data Analysis",
+    "businessAnalysis.documentation": "Requirements Documentation",
+    "businessAnalysis.elicitation": "Requirements Elicitation",
+    "businessAnalysis.evaluation": "Business Evaluation",
+    "businessAnalysis.feasibility": "Feasibility Study",
+    "businessAnalysis.gap": "Gap Analysis",
+    "businessAnalysis.impact": "Impact Analysis",
+    "businessAnalysis.management": "Requirements Management",
+    "businessAnalysis.modeling": "Business Modeling",
+    "businessAnalysis.optimization": "Business Optimization",
+    "businessAnalysis.prioritization": "Requirements Prioritization",
+    "businessAnalysis.process": "Process Analysis",
+    "businessAnalysis.requirements": "Requirements Analysis",
+    "businessAnalysis.solution": "Solution Assessment",
+    "businessAnalysis.stakeholder": "Stakeholder Analysis",
+    "businessAnalysis.traceability": "Requirements Traceability",
+    "businessAnalysis.validation": "Requirements Validation",
+    "businessAnalysis.value": "Value Proposition",
+    "businessAnalysis.workflow": "Workflow Analysis"
+  },
+  "ar": {
+    "businessAnalysis.analysis": "تحليل الأعمال",
+    "businessAnalysis.case": "حالة الأعمال",
+    "businessAnalysis.data": "تحليل البيانات",
+    "businessAnalysis.documentation": "توثيق المتطلبات",
+    "businessAnalysis.elicitation": "استخراج المتطلبات",
+    "businessAnalysis.evaluation": "تقييم الأعمال",
+    "businessAnalysis.feasibility": "دراسة الجدوى",
+    "businessAnalysis.gap": "تحليل الفجوات",
+    "businessAnalysis.impact": "تحليل التأثير",
+    "businessAnalysis.management": "إدارة المتطلبات",
+    "businessAnalysis.modeling": "نمذجة الأعمال",
+    "businessAnalysis.optimization": "تحسين الأعمال",
+    "businessAnalysis.prioritization": "تحديد أولويات المتطلبات",
+    "businessAnalysis.process": "تحليل العمليات",
+    "businessAnalysis.requirements": "تحليل المتطلبات",
+    "businessAnalysis.solution": "تقييم الحلول",
+    "businessAnalysis.stakeholder": "تحليل أصحاب المصلحة",
+    "businessAnalysis.traceability": "تتبع المتطلبات",
+    "businessAnalysis.validation": "التحقق من المتطلبات",
+    "businessAnalysis.value": "عرض القيمة",
+    "businessAnalysis.workflow": "تحليل سير العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/businessContinuity.translations.json">
+<![CDATA[
+{
+  "en": {
+    "businessContinuity.awareness": "BC Awareness",
+    "businessContinuity.bcm": "Business Continuity Management",
+    "businessContinuity.bcp": "BCP",
+    "businessContinuity.continuity": "Business Continuity",
+    "businessContinuity.coordinator": "BC Coordinator",
+    "businessContinuity.critical": "Critical Function",
+    "businessContinuity.culture": "Resilience Culture",
+    "businessContinuity.essential": "Essential Service",
+    "businessContinuity.exercise": "BC Exercise",
+    "businessContinuity.impact": "Business Impact Analysis",
+    "businessContinuity.improvement": "Continuous Improvement",
+    "businessContinuity.maintenance": "Plan Maintenance",
+    "businessContinuity.objective": "Recovery Objective",
+    "businessContinuity.plan": "Continuity Plan",
+    "businessContinuity.priority": "Recovery Priority",
+    "businessContinuity.procedure": "Recovery Procedure",
+    "businessContinuity.review": "Plan Review",
+    "businessContinuity.strategy": "BC Strategy",
+    "businessContinuity.team": "BC Team",
+    "businessContinuity.testing": "BC Testing",
+    "businessContinuity.training": "BC Training",
+    "businessContinuity.update": "Plan Update"
+  },
+  "ar": {
+    "businessContinuity.awareness": "الوعي باستمرارية الأعمال",
+    "businessContinuity.bcm": "إدارة استمرارية الأعمال",
+    "businessContinuity.bcp": "BCP",
+    "businessContinuity.continuity": "استمرارية الأعمال",
+    "businessContinuity.coordinator": "منسق استمرارية الأعمال",
+    "businessContinuity.critical": "الوظيفة الحرجة",
+    "businessContinuity.culture": "ثقافة المرونة",
+    "businessContinuity.essential": "الخدمة الأساسية",
+    "businessContinuity.exercise": "تمرين استمرارية الأعمال",
+    "businessContinuity.impact": "تحليل أثر الأعمال",
+    "businessContinuity.improvement": "التحسين المستمر",
+    "businessContinuity.maintenance": "صيانة الخطة",
+    "businessContinuity.objective": "هدف الاستعادة",
+    "businessContinuity.plan": "خطة الاستمرارية",
+    "businessContinuity.priority": "أولوية الاستعادة",
+    "businessContinuity.procedure": "إجراء الاستعادة",
+    "businessContinuity.review": "مراجعة الخطة",
+    "businessContinuity.strategy": "استراتيجية استمرارية الأعمال",
+    "businessContinuity.team": "فريق استمرارية الأعمال",
+    "businessContinuity.testing": "اختبار استمرارية الأعمال",
+    "businessContinuity.training": "التدريب على استمرارية الأعمال",
+    "businessContinuity.update": "تحديث الخطة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/businessContinuityAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "businessContinuityAdv.assessment": "Business Impact Assessment",
+    "businessContinuityAdv.backup": "Backup Systems",
+    "businessContinuityAdv.communication": "Crisis Communication",
+    "businessContinuityAdv.continuity": "Business Continuity",
+    "businessContinuityAdv.crisis": "Crisis Management",
+    "businessContinuityAdv.documentation": "Continuity Documentation",
+    "businessContinuityAdv.drill": "Emergency Drill",
+    "businessContinuityAdv.emergency": "Emergency Response",
+    "businessContinuityAdv.failover": "Failover Systems",
+    "businessContinuityAdv.incident": "Incident Management",
+    "businessContinuityAdv.maintenance": "Plan Maintenance",
+    "businessContinuityAdv.planning": "Continuity Planning",
+    "businessContinuityAdv.recovery": "Recovery Procedures",
+    "businessContinuityAdv.redundancy": "System Redundancy",
+    "businessContinuityAdv.restoration": "Service Restoration",
+    "businessContinuityAdv.review": "Plan Review",
+    "businessContinuityAdv.simulation": "Crisis Simulation",
+    "businessContinuityAdv.strategy": "Continuity Strategy",
+    "businessContinuityAdv.team": "Response Team",
+    "businessContinuityAdv.testing": "Continuity Testing",
+    "businessContinuityAdv.training": "Continuity Training",
+    "businessContinuityAdv.update": "Plan Update"
+  },
+  "ar": {
+    "businessContinuityAdv.assessment": "تقييم تأثير الأعمال",
+    "businessContinuityAdv.backup": "أنظمة النسخ الاحتياطي",
+    "businessContinuityAdv.communication": "اتصالات الأزمات",
+    "businessContinuityAdv.continuity": "استمرارية الأعمال",
+    "businessContinuityAdv.crisis": "إدارة الأزمات",
+    "businessContinuityAdv.documentation": "توثيق الاستمرارية",
+    "businessContinuityAdv.drill": "تدريب الطوارئ",
+    "businessContinuityAdv.emergency": "الاستجابة للطوارئ",
+    "businessContinuityAdv.failover": "أنظمة التبديل الاحتياطي",
+    "businessContinuityAdv.incident": "إدارة الحوادث",
+    "businessContinuityAdv.maintenance": "صيانة الخطة",
+    "businessContinuityAdv.planning": "تخطيط الاستمرارية",
+    "businessContinuityAdv.recovery": "إجراءات الاستعادة",
+    "businessContinuityAdv.redundancy": "التكرار",
+    "businessContinuityAdv.restoration": "استعادة الخدمة",
+    "businessContinuityAdv.review": "مراجعة الخطة",
+    "businessContinuityAdv.simulation": "محاكاة الأزمات",
+    "businessContinuityAdv.strategy": "استراتيجية الاستمرارية",
+    "businessContinuityAdv.team": "فريق الاستجابة",
+    "businessContinuityAdv.testing": "اختبار الاستمرارية",
+    "businessContinuityAdv.training": "تدريب الاستمرارية",
+    "businessContinuityAdv.update": "تحديث الخطة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/businessContinuityExt.translations.json">
+<![CDATA[
+{
+  "en": {
+    "businessContinuityExt.activation": "Plan Activation",
+    "businessContinuityExt.analysis": "Business Impact Analysis",
+    "businessContinuityExt.awareness": "BCP Awareness",
+    "businessContinuityExt.communication": "Crisis Communication",
+    "businessContinuityExt.continuity": "Business Continuity",
+    "businessContinuityExt.coordination": "Response Coordination",
+    "businessContinuityExt.drill": "Emergency Drill",
+    "businessContinuityExt.exercise": "Continuity Exercise",
+    "businessContinuityExt.framework": "BCP Framework",
+    "businessContinuityExt.maintenance": "Plan Maintenance",
+    "businessContinuityExt.management": "BCP Management",
+    "businessContinuityExt.objectives": "Recovery Objectives",
+    "businessContinuityExt.plan": "Continuity Plan",
+    "businessContinuityExt.planning": "Continuity Planning",
+    "businessContinuityExt.procedure": "Recovery Procedure",
+    "businessContinuityExt.recovery": "Recovery Strategy",
+    "businessContinuityExt.resources": "Continuity Resources",
+    "businessContinuityExt.response": "Crisis Response",
+    "businessContinuityExt.strategy": "Continuity Strategy",
+    "businessContinuityExt.team": "Continuity Team",
+    "businessContinuityExt.testing": "BCP Testing",
+    "businessContinuityExt.training": "Continuity Training"
+  },
+  "ar": {
+    "businessContinuityExt.activation": "تفعيل الخطة",
+    "businessContinuityExt.analysis": "تحليل تأثير الأعمال",
+    "businessContinuityExt.awareness": "الوعي بخطة الاستمرارية",
+    "businessContinuityExt.communication": "الاتصال بالأزمات",
+    "businessContinuityExt.continuity": "استمرارية الأعمال",
+    "businessContinuityExt.coordination": "تنسيق الاستجابة",
+    "businessContinuityExt.drill": "تدريب الطوارئ",
+    "businessContinuityExt.exercise": "تمرين الاستمرارية",
+    "businessContinuityExt.framework": "إطار خطة الاستمرارية",
+    "businessContinuityExt.maintenance": "صيانة الخطة",
+    "businessContinuityExt.management": "إدارة خطة الاستمرارية",
+    "businessContinuityExt.objectives": "أهداف التعافي",
+    "businessContinuityExt.plan": "خطة الاستمرارية",
+    "businessContinuityExt.planning": "تخطيط الاستمرارية",
+    "businessContinuityExt.procedure": "إجراء التعافي",
+    "businessContinuityExt.recovery": "استراتيجية التعافي",
+    "businessContinuityExt.resources": "موارد الاستمرارية",
+    "businessContinuityExt.response": "الاستجابة للأزمات",
+    "businessContinuityExt.strategy": "استراتيجية الاستمرارية",
+    "businessContinuityExt.team": "فريق الاستمرارية",
+    "businessContinuityExt.testing": "اختبار خطة الاستمرارية",
+    "businessContinuityExt.training": "تدريب الاستمرارية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/businessContinuityMgmt.translations.json">
+<![CDATA[
+{
+  "en": {
+    "businessContinuityMgmt.activation": "Plan Activation",
+    "businessContinuityMgmt.analysis": "Business Impact Analysis",
+    "businessContinuityMgmt.assessment": "Continuity Assessment",
+    "businessContinuityMgmt.awareness": "Continuity Awareness",
+    "businessContinuityMgmt.communication": "Crisis Communication",
+    "businessContinuityMgmt.continuity": "Business Continuity Management",
+    "businessContinuityMgmt.coordination": "Crisis Coordination",
+    "businessContinuityMgmt.crisis": "Crisis Management",
+    "businessContinuityMgmt.drill": "Continuity Drill",
+    "businessContinuityMgmt.exercise": "Continuity Exercise",
+    "businessContinuityMgmt.governance": "Continuity Governance",
+    "businessContinuityMgmt.incident": "Incident Management",
+    "businessContinuityMgmt.plan": "Continuity Plan",
+    "businessContinuityMgmt.planning": "Continuity Planning",
+    "businessContinuityMgmt.procedure": "Continuity Procedure",
+    "businessContinuityMgmt.recovery": "Business Recovery",
+    "businessContinuityMgmt.restoration": "Business Restoration",
+    "businessContinuityMgmt.resumption": "Business Resumption",
+    "businessContinuityMgmt.strategy": "Continuity Strategy",
+    "businessContinuityMgmt.team": "Crisis Team",
+    "businessContinuityMgmt.testing": "Continuity Testing",
+    "businessContinuityMgmt.training": "Continuity Training"
+  },
+  "ar": {
+    "businessContinuityMgmt.activation": "تفعيل الخطة",
+    "businessContinuityMgmt.analysis": "تحليل تأثير الأعمال",
+    "businessContinuityMgmt.assessment": "تقييم الاستمرارية",
+    "businessContinuityMgmt.awareness": "الوعي بالاستمرارية",
+    "businessContinuityMgmt.communication": "الاتصال بالأزمات",
+    "businessContinuityMgmt.continuity": "إدارة استمرارية الأعمال",
+    "businessContinuityMgmt.coordination": "تنسيق الأزمات",
+    "businessContinuityMgmt.crisis": "إدارة الأزمات",
+    "businessContinuityMgmt.drill": "تدريب الاستمرارية",
+    "businessContinuityMgmt.exercise": "تمرين الاستمرارية",
+    "businessContinuityMgmt.governance": "حوكمة الاستمرارية",
+    "businessContinuityMgmt.incident": "إدارة الحوادث",
+    "businessContinuityMgmt.plan": "خطة الاستمرارية",
+    "businessContinuityMgmt.planning": "تخطيط الاستمرارية",
+    "businessContinuityMgmt.procedure": "إجراء الاستمرارية",
+    "businessContinuityMgmt.recovery": "استرداد الأعمال",
+    "businessContinuityMgmt.restoration": "استعادة الأعمال",
+    "businessContinuityMgmt.resumption": "استئناف الأعمال",
+    "businessContinuityMgmt.strategy": "استراتيجية الاستمرارية",
+    "businessContinuityMgmt.team": "فريق الأزمات",
+    "businessContinuityMgmt.testing": "اختبار الاستمرارية",
+    "businessContinuityMgmt.training": "التدريب على الاستمرارية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/businessContinuityPlanning.translations.json">
+<![CDATA[
+{
+  "en": {
+    "businessContinuityPlanning.activation": "Plan Activation",
+    "businessContinuityPlanning.analysis": "Business Impact Analysis",
+    "businessContinuityPlanning.bcm": "BCM",
+    "businessContinuityPlanning.bcp": "BCP",
+    "businessContinuityPlanning.bia": "BIA",
+    "businessContinuityPlanning.business": "Business Continuity",
+    "businessContinuityPlanning.communication": "Crisis Communication",
+    "businessContinuityPlanning.continuity": "Business Continuity",
+    "businessContinuityPlanning.crisis": "Crisis Management",
+    "businessContinuityPlanning.disaster": "Disaster Recovery",
+    "businessContinuityPlanning.drills": "Emergency Drills",
+    "businessContinuityPlanning.drp": "DRP",
+    "businessContinuityPlanning.exercises": "Tabletop Exercises",
+    "businessContinuityPlanning.maintenance": "Plan Maintenance",
+    "businessContinuityPlanning.mtd": "Maximum Tolerable Downtime",
+    "businessContinuityPlanning.planning": "Continuity Planning",
+    "businessContinuityPlanning.procedures": "Recovery Procedures",
+    "businessContinuityPlanning.recovery": "Recovery Planning",
+    "businessContinuityPlanning.rpo": "Recovery Point Objective",
+    "businessContinuityPlanning.rto": "Recovery Time Objective",
+    "businessContinuityPlanning.strategy": "Continuity Strategy",
+    "businessContinuityPlanning.testing": "Continuity Testing"
+  },
+  "ar": {
+    "businessContinuityPlanning.activation": "تفعيل الخطة",
+    "businessContinuityPlanning.analysis": "تحليل تأثير الأعمال",
+    "businessContinuityPlanning.bcm": "إدارة استمرارية الأعمال",
+    "businessContinuityPlanning.bcp": "خطة استمرارية الأعمال",
+    "businessContinuityPlanning.bia": "تحليل تأثير الأعمال",
+    "businessContinuityPlanning.business": "استمرارية الأعمال",
+    "businessContinuityPlanning.communication": "الاتصال في الأزمات",
+    "businessContinuityPlanning.continuity": "استمرارية الأعمال",
+    "businessContinuityPlanning.crisis": "إدارة الأزمات",
+    "businessContinuityPlanning.disaster": "استعادة الكوارث",
+    "businessContinuityPlanning.drills": "تدريبات الطوارئ",
+    "businessContinuityPlanning.drp": "خطة استعادة الكوارث",
+    "businessContinuityPlanning.exercises": "تمارين الطاولة",
+    "businessContinuityPlanning.maintenance": "صيانة الخطة",
+    "businessContinuityPlanning.mtd": "أقصى وقت توقف محتمل",
+    "businessContinuityPlanning.planning": "تخطيط الاستمرارية",
+    "businessContinuityPlanning.procedures": "إجراءات الاستعادة",
+    "businessContinuityPlanning.recovery": "تخطيط الاستعادة",
+    "businessContinuityPlanning.rpo": "نقطة الاستعادة المستهدفة",
+    "businessContinuityPlanning.rto": "الهدف الزمني للاستعادة",
+    "businessContinuityPlanning.strategy": "استراتيجية الاستمرارية",
+    "businessContinuityPlanning.testing": "اختبار الاستمرارية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/businessDevelopment.translations.json">
+<![CDATA[
+{
+  "en": {
+    "businessDevelopment.analysis": "Opportunity Analysis",
+    "businessDevelopment.business": "Business Development",
+    "businessDevelopment.closure": "Deal Closure",
+    "businessDevelopment.deals": "Deal Management",
+    "businessDevelopment.development": "BD Strategy",
+    "businessDevelopment.evaluation": "Opportunity Evaluation",
+    "businessDevelopment.expansion": "Business Expansion",
+    "businessDevelopment.growth": "Business Growth",
+    "businessDevelopment.identification": "Opportunity Identification",
+    "businessDevelopment.innovation": "BD Innovation",
+    "businessDevelopment.metrics": "BD Metrics",
+    "businessDevelopment.negotiations": "BD Negotiations",
+    "businessDevelopment.networking": "Business Networking",
+    "businessDevelopment.opportunities": "Business Opportunities",
+    "businessDevelopment.partnerships": "BD Partnerships",
+    "businessDevelopment.performance": "BD Performance",
+    "businessDevelopment.pipeline": "BD Pipeline",
+    "businessDevelopment.planning": "BD Planning",
+    "businessDevelopment.proposals": "Business Proposals",
+    "businessDevelopment.prospecting": "Business Prospecting",
+    "businessDevelopment.relationships": "BD Relationships",
+    "businessDevelopment.strategy": "BD Strategy"
+  },
+  "ar": {
+    "businessDevelopment.analysis": "تحليل الفرص",
+    "businessDevelopment.business": "تطوير الأعمال",
+    "businessDevelopment.closure": "إغلاق الصفقة",
+    "businessDevelopment.deals": "إدارة الصفقات",
+    "businessDevelopment.development": "استراتيجية تطوير الأعمال",
+    "businessDevelopment.evaluation": "تقييم الفرص",
+    "businessDevelopment.expansion": "توسع الأعمال",
+    "businessDevelopment.growth": "نمو الأعمال",
+    "businessDevelopment.identification": "تحديد الفرص",
+    "businessDevelopment.innovation": "ابتكار تطوير الأعمال",
+    "businessDevelopment.metrics": "مقاييس تطوير الأعمال",
+    "businessDevelopment.negotiations": "مفاوضات تطوير الأعمال",
+    "businessDevelopment.networking": "التشبيك التجاري",
+    "businessDevelopment.opportunities": "فرص الأعمال",
+    "businessDevelopment.partnerships": "شراكات تطوير الأعمال",
+    "businessDevelopment.performance": "أداء تطوير الأعمال",
+    "businessDevelopment.pipeline": "خط أنابيب تطوير الأعمال",
+    "businessDevelopment.planning": "تخطيط تطوير الأعمال",
+    "businessDevelopment.proposals": "مقترحات الأعمال",
+    "businessDevelopment.prospecting": "التنقيب عن الأعمال",
+    "businessDevelopment.relationships": "علاقات تطوير الأعمال",
+    "businessDevelopment.strategy": "استراتيجية تطوير الأعمال"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/businessIntelligence.translations.json">
+<![CDATA[
+{
+  "en": {
+    "businessIntelligence.adhoc": "Ad Hoc Query",
+    "businessIntelligence.aggregate": "Aggregate Function",
+    "businessIntelligence.businessIntelligence1": "Business Intelligence",
+    "businessIntelligence.calculation": "Calculated Field",
+    "businessIntelligence.condition": "Condition",
+    "businessIntelligence.criteria": "Search Criteria",
+    "businessIntelligence.cube": "Data Cube",
+    "businessIntelligence.custom": "Custom Measure",
+    "businessIntelligence.datamart": "Data Mart",
+    "businessIntelligence.dataWarehouse": "Data Warehouse",
+    "businessIntelligence.dice": "Dice",
+    "businessIntelligence.dimension": "Dimension",
+    "businessIntelligence.drill": "Drill Down",
+    "businessIntelligence.expression": "Expression",
+    "businessIntelligence.fact": "Fact",
+    "businessIntelligence.filter": "Filter",
+    "businessIntelligence.formula": "Formula",
+    "businessIntelligence.function": "Function",
+    "businessIntelligence.hierarchy": "Hierarchy",
+    "businessIntelligence.olap": "OLAP",
+    "businessIntelligence.operator": "Operator",
+    "businessIntelligence.parameterized": "Parameterized Query",
+    "businessIntelligence.pivot": "Pivot",
+    "businessIntelligence.predefined": "Predefined Query",
+    "businessIntelligence.query": "Query",
+    "businessIntelligence.rollup": "Roll Up",
+    "businessIntelligence.slice": "Slice",
+    "businessIntelligence.window": "Window Function"
+  },
+  "ar": {
+    "businessIntelligence.adhoc": "استعلام خاص",
+    "businessIntelligence.aggregate": "دالة التجميع",
+    "businessIntelligence.businessIntelligence1": "ذكاء الأعمال",
+    "businessIntelligence.calculation": "الحقل المحسوب",
+    "businessIntelligence.condition": "الشرط",
+    "businessIntelligence.criteria": "معايير البحث",
+    "businessIntelligence.cube": "مكعب البيانات",
+    "businessIntelligence.custom": "مقياس مخصص",
+    "businessIntelligence.datamart": "سوق البيانات",
+    "businessIntelligence.dataWarehouse": "مستودع البيانات",
+    "businessIntelligence.dice": "التقطيع",
+    "businessIntelligence.dimension": "البعد",
+    "businessIntelligence.drill": "التعمق",
+    "businessIntelligence.expression": "التعبير",
+    "businessIntelligence.fact": "الحقيقة",
+    "businessIntelligence.filter": "التصفية",
+    "businessIntelligence.formula": "المعادلة",
+    "businessIntelligence.function": "الدالة",
+    "businessIntelligence.hierarchy": "التسلسل الهرمي",
+    "businessIntelligence.olap": "معالجة تحليلية عبر الإنترنت",
+    "businessIntelligence.operator": "المشغل",
+    "businessIntelligence.parameterized": "استعلام بمعايير",
+    "businessIntelligence.pivot": "المحور",
+    "businessIntelligence.predefined": "استعلام محدد مسبقاً",
+    "businessIntelligence.query": "الاستعلام",
+    "businessIntelligence.rollup": "التلخيص",
+    "businessIntelligence.slice": "الشريحة",
+    "businessIntelligence.window": "دالة النافذة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/businessIntelligenceAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "businessIntelligenceAdv.aggregation": "Aggregation",
+    "businessIntelligenceAdv.analysis": "Analysis",
+    "businessIntelligenceAdv.bi": "Business Intelligence",
+    "businessIntelligenceAdv.calculation": "Calculation",
+    "businessIntelligenceAdv.dashboard": "Dashboard",
+    "businessIntelligenceAdv.data": "Data",
+    "businessIntelligenceAdv.dice": "Dice",
+    "businessIntelligenceAdv.dimension": "Dimension",
+    "businessIntelligenceAdv.drill": "Drill Down",
+    "businessIntelligenceAdv.filter": "Filter",
+    "businessIntelligenceAdv.forecast": "Forecast",
+    "businessIntelligenceAdv.insight": "Insight",
+    "businessIntelligenceAdv.intelligence": "Intelligence",
+    "businessIntelligenceAdv.measure": "Measure",
+    "businessIntelligenceAdv.mining": "Data Mining",
+    "businessIntelligenceAdv.model": "Data Model",
+    "businessIntelligenceAdv.pivot": "Pivot",
+    "businessIntelligenceAdv.prediction": "Prediction",
+    "businessIntelligenceAdv.query": "Query",
+    "businessIntelligenceAdv.report": "Report",
+    "businessIntelligenceAdv.slice": "Slice",
+    "businessIntelligenceAdv.warehouse": "Data Warehouse"
+  },
+  "ar": {
+    "businessIntelligenceAdv.aggregation": "التجميع",
+    "businessIntelligenceAdv.analysis": "التحليل",
+    "businessIntelligenceAdv.bi": "ذكاء الأعمال",
+    "businessIntelligenceAdv.calculation": "الحساب",
+    "businessIntelligenceAdv.dashboard": "لوحة المعلومات",
+    "businessIntelligenceAdv.data": "البيانات",
+    "businessIntelligenceAdv.dice": "التقسيم",
+    "businessIntelligenceAdv.dimension": "البعد",
+    "businessIntelligenceAdv.drill": "التفصيل",
+    "businessIntelligenceAdv.filter": "التصفية",
+    "businessIntelligenceAdv.forecast": "التوقع",
+    "businessIntelligenceAdv.insight": "الرؤية",
+    "businessIntelligenceAdv.intelligence": "الذكاء",
+    "businessIntelligenceAdv.measure": "القياس",
+    "businessIntelligenceAdv.mining": "التنقيب عن البيانات",
+    "businessIntelligenceAdv.model": "نموذج البيانات",
+    "businessIntelligenceAdv.pivot": "المحور",
+    "businessIntelligenceAdv.prediction": "التنبؤ",
+    "businessIntelligenceAdv.query": "الاستعلام",
+    "businessIntelligenceAdv.report": "التقرير",
+    "businessIntelligenceAdv.slice": "التجزئة",
+    "businessIntelligenceAdv.warehouse": "مستودع البيانات"
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

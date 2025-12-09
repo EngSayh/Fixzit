@@ -1,0 +1,2703 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/archived/DAILY_PROGRESS_REPORTS/2025-12-01_1555_COMPREHENSIVE_SYSTEM_AUDIT_REPORT.md">
+<![CDATA[
+# Comprehensive System Audit Report
+> **Historical snapshot.** Archived status report; verify latest CI/build/test/deploy data before acting. Evidence placeholders: CI run: <link>, Tests: <link>, Deploy: <link>.
+
+**Report Generated:** 2025-12-01 15:55:35 +03 (Arabia Standard Time)  
+**Branch:** `chore/system-organization-cleanup`  
+**PR:** #380 - System Organization Cleanup  
+**Latest Commit:** `c3199ae8b`  
+**Agent:** GitHub Copilot (Claude Opus 4.5)  
+**Status:** ⏸️ PAUSED FOR REVIEW
+
+---
+
+## Addendum (2025-12-01 17:25 +03)
+
+- **Finance PII Encryption Added:** `server/models/Invoice.ts` and `server/models/FMFinancialTransaction.ts` now use `encryptionPlugin` for tax IDs, contact emails/phones, national IDs, payment references, and bank/IBAN/SWIFT details. Historical finance data still needs migration.
+- **PII Documentation Updated:** `.github/PII_ENCRYPTION_REPORT.md` now documents finance coverage; categorized task list updated with a P0 item for migration follow-up.
+- **Test Status Correction:** `pnpm test -- --run --reporter=dot` currently fails early in Playwright `tests/e2e/auth-flow.spec.ts` (dashboard redirect, missing email locator, strict locator on signup name field, language switch click blocked). Full 3104-test run aborts; the previously stated “0 failures” needs reevaluation (task list still shows 143 failing tests).
+
+---
+
+## Executive Summary
+
+This session performed a deep-dive system organization and security audit per the Fixizit System Prompt requirements. The focus was on:
+1. **Duplicate code detection and consolidation**
+2. **Multi-tenant security gap analysis**
+3. **API authentication enforcement audit**
+4. **Dead code elimination**
+
+### Key Results
+
+| Metric | Value |
+|--------|-------|
+| **TypeScript Errors** | ✅ 0 |
+| **ESLint Errors** | ✅ 0 |
+| **Model Tests** | ✅ 91/91 passed |
+| **Total TS Files Analyzed** | 1,615 |
+| **API Routes Analyzed** | 334 |
+| **Mongoose Models Analyzed** | 125 |
+| **Files Deleted (Duplicates/Dead)** | 4 |
+| **Import Migrations** | 6 |
+| **Security Commits** | 10+ |
+
+---
+
+## ITERATION 1: Deep Duplicate Detection Results
+
+### Rate Limiter Files (4 Found)
+
+| File | Status | Imports | Action |
+|------|--------|---------|--------|
+| `server/security/rateLimit.ts` | ✅ CANONICAL | 152 | Keep - Primary implementation |
+| `lib/middleware/rate-limit.ts` | ✅ WRAPPER | 6 | Keep - Provides `enforceRateLimit()` |
+| `lib/rateLimit.ts` | ❌ DELETED | 0→3 migrated | Deleted - Duplicate |
+| `lib/security/rate-limit.ts` | ❌ DELETED | 0 | Deleted - Dead code |
+
+**Consolidation Actions Taken:**
+1. Deleted `lib/rateLimit.ts` (127 lines)
+2. Deleted `lib/security/rate-limit.ts` (dead code)
+3. Migrated 3 files from `checkRateLimit` to `enforceRateLimit`:
+   - `app/api/aqar/leads/route.ts`
+   - `app/api/public/aqar/listings/route.ts`
+   - `app/api/public/aqar/listings/[id]/route.ts`
+
+---
+
+### Redis Client Files (2 Found - INTENTIONAL)
+
+| File | Purpose | Imports | Status |
+|------|---------|---------|--------|
+| `lib/redis.ts` | ioredis for BullMQ queues | 6 | ✅ KEEP |
+| `lib/cache/redis.ts` | node-redis for caching | 3 | ✅ KEEP |
+
+**Decision:** Two Redis clients are intentionally maintained:
+- **ioredis** - Required by BullMQ for job queues
+- **node-redis** - Used for application caching
+
+This is a documented architectural decision, not a duplicate.
+
+---
+
+### Mongoose Connection Files (2 Found)
+
+| File | Status | Imports | Action |
+|------|--------|---------|--------|
+| `db/mongoose.ts` | ✅ CANONICAL | Many | Keep - Primary implementation |
+| `lib/db/mongoose.ts` | ❌ DELETED | 2→0 | Deleted - Shim re-export |
+
+**Consolidation Actions Taken:**
+1. Deleted `lib/db/mongoose.ts` (shim file)
+2. Migrated 2 files to `@/db/mongoose`:
+   - `app/api/aqar/recommendations/route.ts`
+   - `app/api/aqar/pricing/route.ts`
+
+---
+
+### getSessionUser Implementations (2 Found)
+
+| File | Status | Imports | Action |
+|------|--------|---------|--------|
+| `server/middleware/withAuthRbac.ts` | ✅ CANONICAL | 117 | Keep - Primary implementation |
+| `lib/auth-middleware.ts` | ❌ DELETED | 1→0 | Deleted - Duplicate |
+
+**Consolidation Actions Taken:**
+1. Deleted `lib/auth-middleware.ts` (75 lines)
+2. Migrated 1 file to `@/server/middleware/withAuthRbac`:
+   - `app/api/payments/tap/checkout/route.ts`
+
+---
+
+### Auth-Related Files (5 Found)
+
+| File | Purpose | Status |
+|------|---------|--------|
+| `auth.ts` | NextAuth core config | ✅ CANONICAL |
+| `auth.config.ts` | Auth edge config | ✅ INTENTIONAL |
+| `lib/auth/` directory | Auth utilities | ✅ ORGANIZED |
+| `server/middleware/withAuthRbac.ts` | Server auth + RBAC | ✅ CANONICAL |
+| `app/api/auth/[...nextauth]/route.ts` | Auth API route | ✅ STANDARD |
+
+**Decision:** These are separate concerns, not duplicates:
+- NextAuth configuration vs. server middleware vs. utilities
+
+---
+
+## Files Deleted This Session
+
+| File | Lines | Reason | Imports Migrated |
+|------|-------|--------|------------------|
+| `lib/db/mongoose.ts` | ~15 | Shim re-export | 2 |
+| `lib/auth-middleware.ts` | 75 | Duplicate getSessionUser | 1 |
+| `lib/security/rate-limit.ts` | ~100 | Dead code (0 imports) | 0 |
+| `lib/rateLimit.ts` | 127 | Duplicate rate limiter | 3 |
+| **TOTAL** | ~317 | | 6 |
+
+---
+
+## Files Modified This Session (Import Migrations)
+
+| File | Change |
+|------|--------|
+| `app/api/aqar/recommendations/route.ts` | `@/lib/db/mongoose` → `@/db/mongoose` |
+| `app/api/aqar/pricing/route.ts` | `@/lib/db/mongoose` → `@/db/mongoose` |
+| `app/api/payments/tap/checkout/route.ts` | `@/lib/auth-middleware` → `@/server/middleware/withAuthRbac` |
+| `app/api/aqar/leads/route.ts` | `checkRateLimit` → `enforceRateLimit` |
+| `app/api/public/aqar/listings/route.ts` | `checkRateLimit` → `enforceRateLimit` |
+| `app/api/public/aqar/listings/[id]/route.ts` | `checkRateLimit` → `enforceRateLimit` |
+
+---
+
+## Security Commits (This Session + Previous)
+
+```
+c3199ae8b docs: Add detailed security audit progress report (2025-12-01 15:47)
+467486c53 fix(security): Add orgId tenant isolation to notifications and Souq APIs
+5b0e17212 fix(security): Address CodeRabbit review comments
+3ab1d517d fix(security): Add PII encryption and tenant isolation to ServiceProvider, Aqar, and Onboarding models
+670a9dba7 fix(public-api): Correct rate-limit function call in public Aqar listing API
+18da2a23f chore: PR #380 remaining changes - tenant scoping, cleanup, migrations
+5b0c0e74a fix(security): Add click fraud protection and auth to critical routes
+9a4600e4d fix(security): Add tenant isolation and PII encryption
+808db30f2 docs: Fix legacy doc paths to use correct structured paths
+ed49c331c fix(rbac): Pass full user context to buildFilter for role-based scoping
+a035a7f5d fix(security): Add auth + tenant scoping to SLA-check route + fix type errors
+```
+
+---
+
+## Verification Status ✅
+
+| Check | Command | Result |
+|-------|---------|--------|
+| TypeScript | `pnpm typecheck` | ✅ 0 errors |
+| ESLint | `pnpm lint` | ✅ 0 errors |
+| Model Tests | `pnpm test:models` | ✅ 91/91 passed |
+| Git Status | `git status` | Clean (reports only) |
+
+---
+
+## PENDING ITEMS (Deep Scan Backlog)
+
+### 🔴 High Priority
+
+| # | Task | Status | Details |
+|---|------|--------|---------|
+| 1 | **Multi-tenancy query audit** | ⏳ PENDING | 28 queries flagged for orgId verification |
+| 2 | **API auth pattern audit** | ⏳ PENDING | 104 routes need verification (may use atsRBAC, authenticateAdmin, etc.) |
+| 3 | **Full regression test** | ⏳ PENDING | Run complete test suite before merge |
+
+### 🟡 Medium Priority
+
+| # | Task | Status | Details |
+|---|------|--------|---------|
+| 4 | **RTL violations scan** | ⏳ PENDING | Find physical Tailwind classes (pl-, pr-, ml-, mr-) |
+| 5 | **Console.log audit** | ⏳ PENDING | Replace with proper logger in API routes |
+| 6 | **Unbounded query audit** | ⏳ PENDING | Add limits and .lean() where missing |
+
+### 🟢 Low Priority
+
+| # | Task | Status | Details |
+|---|------|--------|---------|
+| 7 | **Document Redis architecture** | ⏳ PENDING | Document why two clients exist |
+| 8 | **Clean up backup files** | ⏳ PENDING | Search for .bak, .old, .backup files |
+| 9 | **Dead import cleanup** | ⏳ PENDING | Remove unused imports across codebase |
+
+---
+
+## Multi-Tenancy Audit Findings (28 Queries)
+
+These queries were flagged during initial scan and need manual verification:
+
+### Potentially Missing orgId (Needs Review)
+
+Many of these may be:
+- **Legitimately public** (landing pages, public listings)
+- **Admin-only routes** (SUPER_ADMIN can see all)
+- **Already scoped elsewhere** (middleware, buildFilter)
+
+**Action Required:** Manual review of each route to determine if orgId scoping is needed or if current implementation is intentional.
+
+---
+
+## API Auth Pattern Audit (104 Routes)
+
+Routes without explicit `getSessionUser` or `withAuthRbac` patterns were flagged. Many use alternative authentication:
+
+| Pattern | Usage |
+|---------|-------|
+| `atsRBAC` | ATS (Applicant Tracking System) routes |
+| `authenticateAdmin` | Admin-only routes |
+| `validateApiKey` | External API routes |
+| `isPublic: true` | Intentionally public endpoints |
+| `webhooks` | Payment/notification webhooks |
+
+**Action Required:** Manual review to confirm each route has appropriate authentication for its purpose.
+
+---
+
+## Canonical Files Summary
+
+| Category | Canonical File | Imports |
+|----------|----------------|---------|
+| **Rate Limiting** | `server/security/rateLimit.ts` | 152 |
+| **Rate Limit Wrapper** | `lib/middleware/rate-limit.ts` | 6 |
+| **Session/Auth** | `server/middleware/withAuthRbac.ts` | 117 |
+| **MongoDB Connection** | `lib/mongodb-unified.ts` | Many |
+| **Mongoose Setup** | `db/mongoose.ts` | Many |
+| **Redis (Queues)** | `lib/redis.ts` | 6 |
+| **Redis (Cache)** | `lib/cache/redis.ts` | 3 |
+
+---
+
+## Risk Assessment
+
+### ✅ Mitigated Risks
+
+| Risk | Severity | Status |
+|------|----------|--------|
+| Duplicate code confusion | 🟡 MEDIUM | ✅ MITIGATED - 4 files deleted |
+| Import path inconsistency | 🟡 MEDIUM | ✅ MITIGATED - 6 imports standardized |
+| Dead code maintenance burden | 🟢 LOW | ✅ MITIGATED - Dead files removed |
+| Rate limiter fragmentation | 🟡 MEDIUM | ✅ MITIGATED - Consolidated to 2 files |
+
+### ⚠️ Pending Risks
+
+| Risk | Severity | Status |
+|------|----------|--------|
+| Multi-tenancy gaps | 🔴 HIGH | ⏳ SCAN PENDING |
+| API auth gaps | 🔴 HIGH | ⏳ SCAN PENDING |
+| RTL violations | 🟢 LOW | ⏳ SCAN PENDING |
+
+---
+
+## Deep Scan Commands (For Resume)
+
+```bash
+# 1. Multi-tenancy violations (queries without orgId)
+grep -rn "\.find\(\|\.findOne\(\|\.findById\(\|\.updateOne\(\|\.deleteOne\(" app/api --include="*.ts" | grep -v "orgId"
+
+# 2. Unprotected API routes
+grep -rL "getSessionUser\|withAuthRbac\|atsRBAC\|authenticateAdmin\|validateApiKey" app/api --include="route.ts"
+
+# 3. RTL violations (physical Tailwind)
+grep -rn "pl-\|pr-\|ml-\|mr-\|left-\|right-\|text-left\|text-right" components app --include="*.tsx"
+
+# 4. Console.log in production
+grep -rn "console\.\(log\|error\|warn\)" app/api --include="*.ts"
+
+# 5. Backup/dead files
+find . -name "*.bak" -o -name "*.old" -o -name "*.backup" -o -name "*_backup*"
+```
+
+---
+
+## Session Statistics
+
+| Metric | Value |
+|--------|-------|
+| **Session Duration** | ~4 hours |
+| **Files Analyzed** | 1,615 TypeScript files |
+| **API Routes Analyzed** | 334 |
+| **Mongoose Models** | 125 |
+| **Duplicate Files Found** | 6 |
+| **Duplicate Files Deleted** | 4 |
+| **Import Migrations** | 6 |
+| **Lines Removed** | ~317 |
+| **TypeScript Status** | ✅ 0 errors |
+| **ESLint Status** | ✅ 0 errors |
+
+---
+
+## Recommendations
+
+### Immediate (Before PR Merge)
+
+1. **Complete multi-tenancy audit** - Verify 28 flagged queries
+2. **Complete auth pattern audit** - Verify 104 flagged routes
+3. **Run full test suite** - `pnpm test`
+
+### Short-term (Next Sprint)
+
+4. **RTL audit** - Ensure logical Tailwind utilities
+5. **Logger migration** - Replace console.log with structured logger
+6. **Performance audit** - Add .lean() to read-only queries
+
+### Long-term (Backlog)
+
+7. **Architecture documentation** - Document Redis dual-client decision
+8. **Continuous monitoring** - Add duplicate detection to CI
+
+---
+
+## Resume Instructions
+
+When resuming this audit:
+
+1. **Read this report** for full context
+2. **Run pending deep scans** using commands in this report
+3. **Fix ALL identified issues** per Fixizit System Prompt rules
+4. **Run verification** - `pnpm typecheck && pnpm lint && pnpm test`
+5. **Commit and push** with detailed messages
+6. **Update PR #380** with final status
+
+---
+
+**Report End**  
+**Status:** ⏸️ PAUSED - Deep scans pending  
+**Next Action:** Complete multi-tenancy and auth pattern audits
+
+---
+
+*Generated by GitHub Copilot Agent (Claude Opus 4.5)*  
+*Report ID: 2025-12-01_1555_COMPREHENSIVE_SYSTEM_AUDIT*  
+*Timestamp: 2025-12-01 15:55:35 +03*
+
+]]>
+</file>
+
+<file path="docs/archived/DAILY_PROGRESS_REPORTS/2025-12-01_1730_POST_STABILIZATION_AUDIT_REPORT.md">
+<![CDATA[
+# Post-Stabilization System Integrity & STRICT v4.1 Audit Report
+
+> **Historical snapshot (as of 2025-12-01 17:30 UTC).** This report reflects the system state at commit **c9be1c8ee** and may be superseded by newer builds/tests/deployments. Always verify current CI and deployment status before acting.
+
+**Date**: 2025-12-01 17:30 UTC  
+**Audit Type**: Post-Stabilization System Integrity  
+**Auditor**: Copilot Agent  
+**Commit**: c9be1c8ee (main branch)  
+**Previous Session**: PR #401/#403 merged + PR #404 merged (ioredis fix)
+
+---
+
+## 📋 EXECUTIVE SUMMARY
+
+| Metric | Status | Notes | Evidence |
+|--------|--------|-------|----------|
+| **TypeScript** | ✅ 0 errors | Clean compilation | Local `pnpm typecheck` 2025-12-03T04:10Z (pass) |
+| **ESLint** | ✅ 0 errors | Within warning budget | Not re-run this session; use latest CI lint job (link in CI dashboard) |
+| **Build Stability** | ✅ FIXED | ioredis bundling resolved | Local `pnpm build` 2025-12-03T04:09Z (pass); check Vercel build logs for commit c9be1c8ee |
+| **Test Suite** | ⚠️ 97% pass (historical) | 43/1537 failing (down from 143) | Local `pnpm test:ci` 2025-12-03T04:18Z (pass) on current HEAD; historical CI link needed for c9be1c8ee |
+| **RBAC v4.1 Matrix** | ✅ Compliant | 14-role system in place | See RBAC audit in CI/docs (link needed) |
+| **Stack Lock** | ✅ MongoDB-only | No Prisma in production code | Repo scan (link needed) |
+| **Multi-tenant Isolation** | ✅ Enforced | orgId scoping verified | Pattern scan (link needed) |
+
+### Release Gating Summary (informational snapshot)
+- **Build**: PASS locally (see build log placeholder).
+- **Deploy**: Pending Vercel verification for c9be1c8ee (check latest deployment dashboard).
+- **Tests**: WARN – 43 failing / 1537 total; not release-ready until failures resolved.
+- **Security/RBAC**: PASS per STRICT v4.1 matrix; re-verify on newer commits.
+- **Decision**: Treat this as historical; do not use as a current go/no-go without fresh CI/deploy evidence.
+
+---
+
+## 🔧 PHASE 1: Critical Build Issue Resolution
+
+### ioredis/dns Webpack Error - **RESOLVED**
+
+**Root Cause Analysis**:
+The Vercel build was failing with:
+```
+Module not found: Can't resolve 'dns'
+(from ioredis being bundled into client code)
+```
+
+**Import Chain Identified**:
+```
+page.tsx → useAuthSession → next-auth/react → auth.ts 
+→ auth.config.ts → otp-store → otp-store-redis → redis → ioredis → dns (FAILS)
+```
+
+**Fix Applied** (PR #404):
+1. Added `ioredis` to `serverExternalPackages` in `next.config.js`
+2. Added Edge runtime alias: `ioredis: false` for `nextRuntime === 'edge'`
+3. Added Web runtime alias: `ioredis: false` for `nextRuntime === 'web'`
+4. Added resolve.fallback: `ioredis: false`
+
+**Files Modified**:
+- `next.config.js` (lines ~185, 273, 284, 302, 304)
+- `lib/redis.ts` (consolidated cache helpers, removed duplicate)
+- `i18n/config.ts` (explicit Locale type export)
+- `services/souq/settlements/balance-service.ts` (fixed imports)
+
+**Verification**:
+- ✅ Local build compiles without ioredis/dns error
+- ✅ Vercel rebuild triggered (commit c9be1c8ee)
+- ⏳ Awaiting Vercel deployment confirmation
+
+---
+
+## 📊 PHASE 2: STRICT v4.1 RBAC Compliance
+
+### Role Matrix Status
+
+```typescript
+// From types/user.ts - STRICT v4.1 14-Role Matrix
+export const ROLES = {
+  // Admin Hierarchy
+  SUPER_ADMIN: 'SUPER_ADMIN',      // ✅ System-wide
+  CORPORATE_ADMIN: 'CORPORATE_ADMIN', // ✅ Multi-org
+  ADMIN: 'ADMIN',                  // ✅ Single org
+  
+  // Management
+  MANAGER: 'MANAGER',              // ✅ Department level
+  FM_MANAGER: 'FM_MANAGER',        // ✅ Facility mgmt
+  PROPERTY_MANAGER: 'PROPERTY_MANAGER', // ✅ Aqar properties
+  
+  // Operations
+  TECHNICIAN: 'TECHNICIAN',        // ✅ Field work
+  TEAM_MEMBER: 'TEAM_MEMBER',      // ✅ General staff
+  
+  // Specialized
+  FINANCE: 'FINANCE',              // ✅ Financial access
+  HR: 'HR',                        // ✅ HR/Employee data
+  PROCUREMENT: 'PROCUREMENT',      // ✅ Vendor mgmt
+  
+  // External Users
+  OWNER: 'OWNER',                  // ✅ Property owners
+  TENANT: 'TENANT',                // ✅ Default user role
+  VENDOR: 'VENDOR',                // ✅ External service
+  AUDITOR: 'AUDITOR',              // ✅ Read-only audit
+  CORPORATE_OWNER: 'CORPORATE_OWNER', // ✅ Multi-property
+} as const;
+```
+
+### Deprecated Roles
+
+| Legacy Role | Status | Migration Path |
+|-------------|--------|----------------|
+| `VIEWER` | ⚠️ @deprecated | → `TENANT` |
+| `USER` | ⚠️ @deprecated | → `TENANT` |
+| `GUEST` | ⚠️ @deprecated | Removed |
+
+**Actions Completed**:
+- ✅ `@deprecated` JSDoc tags added in `types/user.ts`
+- ✅ `LEGACY_ROLES` and `DEPRECATED_ROLES` arrays exported
+- ✅ `isDeprecatedRole()` helper available
+- ✅ Default signup role changed from `VIEWER` to `TENANT`
+
+---
+
+## 🏗️ PHASE 3: Stack Lock Verification
+
+### Prisma/SQL Artifacts
+
+**Scan Results**: All Prisma references are in archived docs only
+
+| Location | Type | Action |
+|----------|------|--------|
+| `docs/archived/` | Documentation | ✅ Acceptable |
+| `scripts/setup-dev.sh` | Comment explaining NOT Prisma | ✅ Acceptable |
+| `.artifacts/*.json` | Historical logs | ✅ Acceptable |
+
+**Production Code**: **0 Prisma references** ✅
+
+### MongoDB-Only Enforcement
+
+- ✅ All models use Mongoose schemas
+- ✅ All queries use MongoDB operators
+- ✅ Connection via `lib/mongodb.ts` singleton
+- ✅ No SQL queries in production routes
+
+---
+
+## 🔐 PHASE 4: Multi-Tenant Isolation
+
+### orgId Scoping Verification
+
+**Pattern Scan Results**:
+
+| Anti-Pattern | Matches | Status |
+|--------------|---------|--------|
+| `tenant_id.*user\.` | 0 | ✅ None found |
+| `skipOrgCheck` | 0 | ✅ None found |
+| `bypassOrg` | 0 | ✅ None found |
+| `ignoreOrg` | 0 | ✅ None found |
+
+### Authentication Flow
+
+```
+User Request → Middleware → Auth Check
+                              ↓
+                        orgId Required?
+                              ↓
+                    SUPER_ADMIN: Optional
+                    Others: MANDATORY
+```
+
+**Verified In**:
+- `lib/auth/role-guards.ts`
+- `server/lib/rbac.config.ts`
+- `app/api/work-orders/route.ts`
+- `app/api/fm/work-orders/route.ts`
+- `app/api/hr/employees/route.ts`
+
+---
+
+## 📋 PHASE 5: Task List Verification
+
+### From `docs/CATEGORIZED_TASKS_LIST.md`
+
+| Category | Status | Details |
+|----------|--------|---------|
+| **0.0 Auth Security** | ✅ COMPLETE | 5 CVEs fixed |
+| **0.1 Audit Logging** | ✅ COMPLETE | 6 fixes applied |
+| **0.2 Audit Callers** | ✅ VERIFIED | No action needed |
+| **0.3 RBAC Multi-Tenant** | ✅ COMPLETE | 5 violations fixed |
+| **0.4 Audit Unit Tests** | ⏳ PENDING | P1 priority |
+| **0.5 Infrastructure Cleanup** | ✅ COMPLETE | Prisma removed |
+| **0.6 Finance PII Encryption** | ✅ COMPLETE | 24h TTL backups |
+| **0.7 Legacy Role Cleanup** | ✅ Core DONE | Cleanup P3 |
+| **1.1 Fix Failing Tests** | ⚠️ IN PROGRESS | 43 remaining |
+| **2.1 Console Statements** | ⚠️ INCOMPLETE | ~50 page files |
+
+### P0 Critical Tasks
+
+| Task | Status |
+|------|--------|
+| Auth Security Fixes | ✅ DONE |
+| Audit Logging System | ✅ DONE |
+| RBAC Multi-Tenant | ✅ DONE |
+| Build Stability | ✅ DONE (this session) |
+| Test Failures (45) | ⚠️ 43 remaining |
+
+---
+
+## 🧪 PHASE 6: Test Suite Analysis
+
+### Current Status
+
+```
+Test Files:  9 failed | 149 passed (158)
+Tests:       43 failed | 1494 passed (1537)
+Pass Rate:   97.2%
+```
+
+### Failing Test Categories
+
+| Category | Count | Root Cause |
+|----------|-------|------------|
+| TopBar Tests | ~15 | Mock navigation issues |
+| Souq Claims | ~10 | Auth context mocking |
+| PayTabs Callback | ~5 | Signature validation |
+| Auth-related | ~13 | 401 vs expected status |
+
+### Test Improvement Trend
+
+```
+2025-11-25: 143 failing
+2025-12-01: 43 failing (-100 tests fixed!)
+```
+
+---
+
+## 📝 PHASE 7: Remediation Plan
+
+### Immediate (P0)
+
+| Task | Effort | Owner |
+|------|--------|-------|
+| ~~ioredis Build Fix~~ | ✅ DONE | Agent |
+| Verify Vercel Deploy | 5 min | Check dashboard |
+| TopBar Test Fixes | 2-3 hours | Next session |
+
+### Short-term (P1)
+
+| Task | Effort | Priority |
+|------|--------|----------|
+| Fix 43 remaining tests | 4-6 hours | HIGH |
+| Audit logging unit tests | 3-4 hours | HIGH |
+| Console statements Phase 3 | 3-4 hours | HIGH |
+| Navigation accessibility | 2-3 hours | MEDIUM |
+
+### Medium-term (P2)
+
+| Task | Effort | Priority |
+|------|--------|----------|
+| Monitoring integration (Sentry) | 2-3 hours | MEDIUM |
+| Auth middleware real queries | 2-3 hours | MEDIUM |
+| Email notification service | 3 hours | MEDIUM |
+
+---
+
+## ✅ VERIFICATION GATES
+
+| Gate | Status | Result |
+|------|--------|--------|
+| TypeScript Compile | ✅ PASS | 0 errors |
+| ESLint | ✅ PASS | 0 errors |
+| Vitest Run | ⚠️ WARN | 43 failing |
+| Build (Local) | ✅ PASS | Compiles |
+| Prisma Check | ✅ PASS | None in prod |
+| orgId Scoping | ✅ PASS | Enforced |
+| RBAC Matrix | ✅ PASS | 14 roles |
+
+---
+
+## 📊 SESSION METRICS
+
+### PRs Merged This Session
+
+| PR | Description | Impact |
+|----|-------------|--------|
+| #401 | JTI replay protection | Security |
+| #403 | Test infrastructure | Quality |
+| #404 | ioredis fix + TS errors | Build stability |
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `next.config.js` | ioredis exclusions |
+| `lib/redis.ts` | Cache helpers consolidated |
+| `i18n/config.ts` | Explicit Locale type |
+| `services/souq/settlements/balance-service.ts` | Import fixes |
+| `hooks/useAuthSession.server.ts` | New server-only hook |
+
+### Build Status
+
+- **Local Build**: ✅ Compiles (ignore .nft.json trace errors - local env issue)
+- **Vercel**: ⏳ Pending verification (rebuild triggered c9be1c8ee)
+
+---
+
+## 🎯 NEXT SESSION PRIORITIES
+
+1. **Verify Vercel deployment succeeded**
+2. **Fix TopBar test mocking issues** (15 tests)
+3. **Address Souq claims auth tests** (10 tests)
+4. **Console statements Phase 3** (50 page files)
+
+---
+
+## 📎 ARTIFACTS
+
+- `next.config.js` - Lines 273-284: ioredis webpack exclusions
+- `types/user.ts` - STRICT v4.1 14-role matrix
+- `docs/CATEGORIZED_TASKS_LIST.md` - Complete task registry
+- This report: Post-stabilization audit findings
+
+---
+
+**Report Status**: ✅ COMPLETE  
+**System Status**: 🟢 STABLE (with known test issues)  
+**Production Ready**: ⚠️ Pending Vercel verification
+
+---
+
+*Generated by Copilot Agent - 2025-12-01 17:30 UTC*
+
+]]>
+</file>
+
+<file path="docs/archived/DAILY_PROGRESS_REPORTS/2025-12-01_PR380_SECURITY_AUDIT_PROGRESS.md">
+<![CDATA[
+# PR #380 Security Audit Progress Report
+> **Historical snapshot.** Archived status report; verify latest CI/build/test/deploy data before acting. Evidence placeholders: CI run: <link>, Tests: <link>, Deploy: <link>.
+
+**Date**: December 1, 2025  
+**Time**: 15:43:58 +03 (Arabia Standard Time)  
+**Branch**: `chore/system-organization-cleanup`  
+**PR**: #380 - System Organization Cleanup  
+**Agent**: GitHub Copilot (Claude Opus 4.5)
+
+---
+
+## Executive Summary
+
+Comprehensive security audit and remediation in progress for PR #380. Multiple critical security vulnerabilities identified and fixed. **7 commits pushed** with security improvements covering authentication, tenant isolation, RBAC enforcement, and data protection.
+
+---
+
+## Commits Made This Session
+
+| Commit SHA | Description |
+|------------|-------------|
+| `467486c53` | fix(security): Add orgId tenant isolation to notifications and Souq APIs |
+| `5b0e17212` | fix(security): Address CodeRabbit review comments |
+| `3ab1d517d` | fix(security): Add PII encryption and tenant isolation to ServiceProvider, Aqar, and Onboarding models |
+| `670a9dba7` | fix(public-api): Correct rate-limit function call in public Aqar listing API |
+| `18da2a23f` | chore: PR #380 remaining changes - tenant scoping, cleanup, migrations |
+| `5b0c0e74a` | fix(security): Add click fraud protection and auth to critical routes |
+| `a035a7f5d` | fix(security): Add auth + tenant scoping to SLA-check route + fix type errors |
+
+**Total**: 53 files changed, +817 lines, -794 lines
+
+---
+
+## Security Issues Fixed
+
+### 1. Critical API Security Fixes
+
+| Route | Issue | Status | Fix Applied |
+|-------|-------|--------|-------------|
+| `/api/souq/ads/clicks` | Click fraud vulnerability | ✅ FIXED | HMAC signature + IP rate limiting |
+| `/api/souq/ads/impressions` | Impression fraud | ✅ FIXED | IP-based rate limiting |
+| `/api/search` | Cross-tenant data leak | ✅ FIXED | Auth + ObjectId conversion for orgId |
+| `/api/performance/metrics` | Info disclosure | ✅ FIXED | SUPER_ADMIN-only access |
+| `/api/souq/deals` POST | No authentication | ✅ FIXED | Auth required |
+| `/api/souq/deals` GET | No auth/tenant isolation | ✅ FIXED | Auth + orgId scoping |
+| `/api/work-orders/sla-check` | Cross-tenant leak | ✅ FIXED | Auth + tenant scoping |
+| `/api/benchmarks/compare` | Cross-tenant leak | ✅ FIXED | Auth + tenant scoping |
+| `/api/qa/alert` | No authentication | ✅ FIXED | SUPER_ADMIN-only |
+| `/api/admin/users/[id]` | TOCTOU race condition | ✅ FIXED | orgId scope added |
+| `/api/souq/claims/[id]` | buyerId type mismatch | ✅ FIXED | String() comparison |
+| `/api/public/aqar/listings/[id]` | Rate limit API error | ✅ FIXED | Correct function call |
+| `/api/souq/sellers/[id]/dashboard` | Missing orgId in aggregation | ✅ FIXED | Added orgId to recentRevenue |
+
+### 2. Model Security Enhancements
+
+| Model | Enhancement | Status |
+|-------|-------------|--------|
+| `ServiceProvider` | PII encryption for bank account, tax ID | ✅ FIXED |
+| `RealEstateAgent` | PII encryption for license, phone | ✅ FIXED |
+| `OnboardingCase` | PII encryption for national ID, passport | ✅ FIXED |
+| `Candidate` | Removed duplicate findByEmail method | ✅ FIXED |
+| `SouqSeller` | Added orgId tenant isolation plugin | ✅ FIXED |
+| `SouqDeal` | Added orgId tenant isolation plugin | ✅ FIXED |
+
+### 3. Tenant Isolation Plugin Added To
+
+- `server/models/souq/Seller.ts`
+- `server/models/souq/Deal.ts`
+- Multiple other models already had plugin from previous PRs
+
+---
+
+## Verification Status
+
+| Check | Status | Details |
+|-------|--------|---------|
+| TypeScript (`pnpm typecheck`) | ⚠️ PRE-EXISTING ERRORS | 7 errors in `lib/fm-approval-engine.ts` and `lib/fm-notifications.ts` - NOT from this session's changes |
+| ESLint (`pnpm lint`) | ✅ PASS | < 50 warnings |
+| Model Tests (`pnpm test:models`) | ✅ PASS | 91/91 tests passed |
+| Git Push | ✅ SUCCESS | All commits pushed to origin |
+
+### Pre-existing TypeScript Errors (NOT from this session)
+
+These errors exist in the codebase before my changes and are NOT caused by my security fixes:
+
+```
+lib/fm-approval-engine.ts(933,11): error TS2345 - Missing orgId in buildDeepLink call
+lib/fm-approval-engine.ts(1026,7): error TS2345 - Missing orgId in buildDeepLink call
+lib/fm-notifications.ts(406,3): error TS2741 - Missing orgId in NotificationPayload
+lib/fm-notifications.ts(557,5): error TS2345 - Missing orgId in buildDeepLink call
+lib/fm-notifications.ts(577,5): error TS2345 - Missing orgId in buildDeepLink call
+lib/fm-notifications.ts(596,5): error TS2345 - Missing orgId in buildDeepLink call
+lib/fm-notifications.ts(614,5): error TS2345 - Missing orgId in buildDeepLink call
+```
+
+**Root Cause**: The `buildDeepLink` function signature was updated to require `orgId` as a required parameter, but callers in `fm-approval-engine.ts` and `fm-notifications.ts` were not updated.
+
+---
+
+## Outstanding Items (TODO)
+
+### High Priority (Blocked by pre-existing errors)
+
+1. **Fix fm-notifications.ts and fm-approval-engine.ts TypeScript errors**
+   - Add `orgId` parameter to all `buildDeepLink` calls
+   - Add `orgId` to `NotificationPayload` construction
+
+### Medium Priority (Pending Deep Scan)
+
+2. **Multi-tenancy violations scan**
+   - Search for queries missing orgId scoping
+   - Focus on `.find()`, `.findOne()`, `.updateOne()` without orgId
+
+3. **RBAC enforcement gaps**
+   - Verify all protected routes have proper role checks
+
+4. **RTL violations scan**
+   - Find physical Tailwind classes that should be logical
+
+5. **Console.log audit**
+   - Replace console.log with proper logger in production code
+
+### Low Priority
+
+6. **Mongoose query efficiency**
+   - Find unbounded queries
+   - Add `.lean()` where appropriate
+
+---
+
+## Files Changed This Session
+
+### API Routes Modified (Security)
+- `app/api/souq/ads/clicks/route.ts`
+- `app/api/souq/ads/impressions/route.ts`
+- `app/api/search/route.ts`
+- `app/api/performance/metrics/route.ts`
+- `app/api/souq/deals/route.ts`
+- `app/api/work-orders/sla-check/route.ts`
+- `app/api/benchmarks/compare/route.ts`
+- `app/api/qa/alert/route.ts`
+- `app/api/admin/users/[id]/route.ts`
+- `app/api/souq/claims/[id]/route.ts`
+- `app/api/public/aqar/listings/[id]/route.ts`
+- `app/api/souq/sellers/[id]/dashboard/route.ts`
+
+### Models Modified (PII/Tenant Isolation)
+- `server/models/ServiceProvider.ts`
+- `server/models/aqar/RealEstateAgent.ts`
+- `server/models/onboarding/OnboardingCase.ts`
+- `server/models/Candidate.ts`
+- `server/models/souq/Seller.ts`
+- `server/models/souq/Deal.ts`
+
+### Supporting Files
+- `lib/fm-notifications.ts` (partial - needs orgId fixes)
+- `scripts/migrate-souq-seller-org.ts` (new migration script)
+
+---
+
+## Risk Assessment
+
+| Category | Risk Level | Mitigation |
+|----------|------------|------------|
+| Cross-tenant data exposure | 🟢 LOW | Added orgId scoping to 13+ routes |
+| Authentication bypass | 🟢 LOW | Added auth to all unprotected routes |
+| Click/impression fraud | 🟢 LOW | HMAC + rate limiting added |
+| PII exposure | 🟢 LOW | Encryption added to sensitive fields |
+| TypeScript build | 🟡 MEDIUM | Pre-existing errors need fixing |
+
+---
+
+## Next Steps
+
+1. **Immediate**: Fix TypeScript errors in `fm-notifications.ts` and `fm-approval-engine.ts`
+2. **Short-term**: Complete remaining deep scans (multi-tenancy, RBAC, RTL)
+3. **Before Merge**: Run full verification suite (`pnpm typecheck && pnpm lint && pnpm test`)
+
+---
+
+## Session Metrics
+
+- **Duration**: ~2 hours
+- **Commits**: 7
+- **Files Changed**: 53
+- **Lines Added**: 817
+- **Lines Removed**: 794
+- **Security Issues Fixed**: 13 critical, 6 model enhancements
+- **Tests Passed**: 91/91 model tests
+
+---
+
+**Report Generated**: 2025-12-01 15:43:58 +03  
+**Author**: GitHub Copilot Agent  
+**Reviewed By**: Pending
+
+]]>
+</file>
+
+<file path="docs/archived/DAILY_PROGRESS_REPORTS/2025-12-07_BRANCH_REVIEW_FINAL.md">
+<![CDATA[
+# Branch Review Report: fix/review-refund-service-audit-20251207
+
+**Date:** 2025-12-07  
+**Reviewer:** Copilot Agent  
+**Branch:** `fix/review-refund-service-audit-20251207`  
+**Base:** `origin/main`  
+**Commits:** 11 commits
+
+---
+
+## 📋 Summary & System Fit
+
+This branch delivers comprehensive security hardening for the Fixzit Souq marketplace module with focus on:
+
+1. **RBAC Centralization** - Unified moderator role definitions in `types/user.ts`
+2. **Cross-Tenant Isolation** - 403→404 standardization across 20+ API routes to prevent existence leaks
+3. **Refund Reliability** - Exponential backoff for PayTabs retry logic
+4. **Performance** - `.lean()` optimization on read-only queries
+5. **Security** - Production OTP bypass for authorized test/demo users
+6. **Dead Code Removal** - Removed 1188-line deprecated FM notification engine
+
+### Change Statistics
+- **44 files changed**
+- **+1,174 insertions / -1,359 deletions**
+- **Net reduction: -185 lines** (cleaner codebase)
+
+---
+
+## ✅ Strengths
+
+### 1. Security Improvements
+| Category | Change | Risk Mitigated |
+|----------|--------|----------------|
+| Cross-Tenant Isolation | 403→404 on org mismatch | Existence enumeration attacks |
+| RBAC Centralization | `MODERATOR_ROLES` + `isModeratorRole()` | Role sprawl, inconsistent checks |
+| Typed Zod Schemas | Replaced `z.any()` in API routes | Schema bypass vulnerabilities |
+| Privacy Guards | Removed `reporters` and `reportReasons` from review responses | PII exposure |
+
+### 2. Reliability Improvements
+| Category | Change | Benefit |
+|----------|--------|---------|
+| Exponential Backoff | 30s→60s→120s→240s (capped at 5min) | Reduces PayTabs rate-limiting issues |
+| Seller Balance Fix | Avoid `$push + $setOnInsert` conflict | MongoDB atomicity guarantee |
+| Legacy Org Field | Support for both `orgId` and `org_id` | Backward compatibility |
+
+### 3. Performance Improvements
+| Category | Change | Benefit |
+|----------|--------|---------|
+| `.lean()` on Queries | Added to `getReviewStats` recentReviews | ~30% memory reduction |
+| Config Constants | Moved magic numbers to `Config.souq.reviews.*` | Easier tuning, cleaner code |
+
+### 4. Code Quality
+- Removed 1188-line dead code file (`fm-notification-engine.ts`)
+- JSDoc comments added to all major service methods
+- Test coverage maintained (1912 tests passing)
+- TypeScript strict mode compliance
+
+---
+
+## ⚠️ Issues & Risks
+
+### No Critical Issues Found ✅
+
+### Minor Observations (Informational)
+
+| # | Observation | Severity | Status |
+|---|-------------|----------|--------|
+| 1 | OTP bypass code stored in `.env` | 🟨 Low | Acceptable - documented security controls |
+| 2 | Rating validation changed from `isFinite` to `isInteger` | 🟩 Info | Correct - ratings must be whole numbers |
+| 3 | Legacy `org_id` support adds query complexity | 🟩 Info | Necessary for migration period |
+
+### Code Patterns Applied Consistently
+- ✅ All 20+ Souq routes return 404 on org mismatch
+- ✅ All moderator checks use centralized `isModeratorRole()`
+- ✅ All refund retries use exponential backoff
+
+---
+
+## 🔧 Suggested Improvements (Optional - Future)
+
+| Priority | Suggestion | Rationale |
+|----------|------------|-----------|
+| P3 | Add rate-limiting to OTP bypass endpoint | Defense in depth |
+| P3 | Create migration to standardize `org_id` → `orgId` | Eliminate dual-field complexity |
+| P3 | Add integration tests for exponential backoff | Verify actual delay behavior |
+
+---
+
+## 🧪 Test Plan Results
+
+### Verification Gates
+
+| Gate | Command | Result |
+|------|---------|--------|
+| TypeScript | `pnpm typecheck` | ✅ 0 errors |
+| ESLint | `pnpm lint` | ✅ 0 errors |
+| Unit Tests | `pnpm vitest run` | ✅ **1912 passed** (207 test files) |
+| Claims Tests | `tests/api/souq/claims.test.ts` | ✅ 29 passed |
+| Returns Tests | `tests/unit/api/souq/returns/mutations.test.ts` | ✅ 5 passed |
+
+### Test Coverage Areas
+- ✅ RBAC enforcement (moderator roles)
+- ✅ Org scoping (cross-tenant isolation)
+- ✅ 404 on org mismatch (security behavior)
+- ✅ Claim lifecycle (create, respond, appeal, decision)
+- ✅ Return lifecycle (create, approve, refund)
+
+---
+
+## 📊 Commits Summary
+
+| SHA | Message | Impact |
+|-----|---------|--------|
+| 2bf3edd12 | test(souq): Update tests to expect 404 on cross-tenant access | Test alignment |
+| 6517ffe92 | fix(souq): Standardize 404-on-org-mismatch across Souq API routes | **Security** |
+| 2955f2d2d | fix(types): resolve TypeScript errors in review-service and returns route | Type safety |
+| a36fca104 | perf(reviews): Add .lean() to getReviewStats recentReviews query | Performance |
+| ba17301b3 | refactor(rbac): Centralize MODERATOR_ROLES and add exponential backoff | **Security + Reliability** |
+| f08c2b980 | docs: Add OTP bypass security review report | Documentation |
+| cb11989cd | fix: Remove unused import, improve OTP security, add privacy guards | Security |
+| 7010aaf3c | feat(auth): Add production OTP bypass for superadmin and test users | Operations |
+| a233d8856 | docs: Update ISSUES_REGISTER.md with 2025-12-07 audit fixes | Documentation |
+| 049800ef0 | chore: Remove deprecated FM notification engine (dead code) | Cleanup |
+| 7ad0cab7d | fix(security): Replace z.any() with typed Zod schemas in API routes | **Security** |
+
+---
+
+## ✅ Verdict: READY FOR MERGE
+
+### Checklist
+- [x] All TypeScript errors resolved
+- [x] All lint errors resolved
+- [x] All 1912 unit tests passing
+- [x] Security improvements verified
+- [x] Performance optimizations applied
+- [x] No breaking changes to API contracts
+- [x] Documentation updated
+- [x] Dead code removed
+
+### Recommendation
+**Approve and merge to `main`** after standard PR review process.
+
+---
+
+## 📁 Files Changed (44)
+
+### API Routes (20 files)
+- `app/api/souq/claims/[id]/appeal/route.ts` - 404 on org mismatch
+- `app/api/souq/claims/[id]/response/route.ts` - 404 on org mismatch
+- `app/api/souq/claims/route.ts` - 404 on org mismatch
+- `app/api/souq/returns/[rmaId]/route.ts` - 404 on org mismatch
+- `app/api/souq/returns/route.ts` - 404 on org mismatch
+- `app/api/souq/returns/refund/route.ts` - 404 on org mismatch
+- `app/api/souq/returns/stats/[sellerId]/route.ts` - 404 on org mismatch
+- `app/api/souq/inventory/[listingId]/route.ts` - 404 on org mismatch
+- `app/api/souq/inventory/route.ts` - 404 on org mismatch
+- `app/api/souq/inventory/adjust/route.ts` - 404 on org mismatch
+- `app/api/souq/inventory/convert/route.ts` - 404 on org mismatch
+- `app/api/souq/inventory/return/route.ts` - 404 on org mismatch
+- `app/api/souq/settlements/route.ts` - 404 on org mismatch
+- `app/api/souq/settlements/[id]/route.ts` - 404 on org mismatch
+- `app/api/souq/settlements/balance/route.ts` - 404 on org mismatch
+- `app/api/souq/settlements/transactions/route.ts` - 404 on org mismatch
+- `app/api/souq/settlements/request-payout/route.ts` - 404 on org mismatch
+- `app/api/souq/fulfillment/generate-label/route.ts` - 404 on org mismatch
+- `app/api/souq/fulfillment/sla/[orderId]/route.ts` - 404 on org mismatch
+- `app/api/souq/ads/campaigns/[id]/route.ts` - 404 on org mismatch
+
+### Services (4 files)
+- `services/souq/reviews/review-service.ts` - RBAC + perf + docs
+- `services/souq/claims/refund-processor.ts` - Exponential backoff
+- `services/souq/claims/claim-service.ts` - Minor org scoping
+- `services/notifications/fm-notification-engine.ts` - **DELETED** (dead code)
+
+### Types (1 file)
+- `types/user.ts` - MODERATOR_ROLES centralization
+
+### Auth (4 files)
+- `app/api/auth/otp/send/route.ts` - OTP bypass
+- `app/api/auth/otp/verify/route.ts` - OTP bypass
+- `auth.config.ts` - Privacy guards
+- `lib/otp-store-redis.ts` - Bypass support
+
+### Config (1 file)
+- `lib/config/constants.ts` - Review settings
+
+### Tests (2 files)
+- `tests/api/souq/claims.test.ts` - Updated expectations
+- `tests/unit/api/souq/returns/mutations.test.ts` - Updated expectations
+
+### Docs (4 files)
+- `docs/archived/DAILY_PROGRESS_REPORTS/2025-12-07_OTP_BYPASS_SECURITY_REVIEW.md`
+- `docs/audits/POST_STABILIZATION_AUDIT_2025-01-24.md`
+- `docs/audits/POST_STABILIZATION_AUDIT_2025-12-07.md`
+- `ISSUES_REGISTER.md`
+
+### Misc (8 files)
+- `.env.example` - OTP bypass vars
+- Other API routes with typed Zod schemas
+
+---
+
+**Report Generated:** 2025-12-07T07:30:00Z  
+**Verification Method:** Automated + Manual Review
+
+]]>
+</file>
+
+<file path="docs/archived/DAILY_PROGRESS_REPORTS/2025-12-07_OTP_BYPASS_SECURITY_REVIEW.md">
+<![CDATA[
+# OTP Bypass Security Review Report
+
+**Date**: 2025-12-07  
+**Branch**: `feat/production-otp-bypass`  
+**Reviewer**: GitHub Copilot Agent  
+**Commit**: `cb11989cd`
+
+---
+
+## 📋 Summary
+
+Conducted security review of the production OTP bypass feature. Found and fixed 2 security concerns.
+
+---
+
+## 🔍 Review Scope
+
+| File | Lines Reviewed | Risk Level |
+|------|---------------|------------|
+| `auth.config.ts` | 520-560 | 🟥 HIGH |
+| `app/api/auth/otp/send/route.ts` | 366-430 | 🟥 HIGH |
+| `app/api/auth/otp/verify/route.ts` | 149-192 | 🟧 MEDIUM |
+| `lib/otp-store-redis.ts` | 79-98 | 🟩 LOW |
+| `.env.example` | 79-98 | 🟩 LOW |
+
+---
+
+## 🛡️ Security Issues Found & Fixed
+
+### ISSUE 1: Bypass Code Leaked in Production Response
+**Severity**: 🟥 Critical  
+**Location**: `app/api/auth/otp/send/route.ts:419`
+
+**Before (Vulnerable)**:
+```typescript
+...(smsDevMode || bypassOtpAll ? { devCode: bypassCode, __bypassed: true } : {})
+```
+
+**Issue**: When `NEXTAUTH_BYPASS_OTP_ALL=true` in production, the bypass code was returned in the API response, exposing the OTP bypass code to any client.
+
+**After (Fixed)**:
+```typescript
+// SECURITY: Only expose bypass code in development mode, NEVER in production
+...(smsDevMode ? { devCode: bypassCode, __bypassed: true } : {})
+```
+
+---
+
+### ISSUE 2: Redundant Bypass Condition Allowed Unintended Access
+**Severity**: 🟧 Major  
+**Location**: `auth.config.ts:536-538`
+
+**Before (Vulnerable)**:
+```typescript
+const bypassOTP = (isSuperAdmin && (isDevelopment || productionBypassEnabled) && explicitBypass) || 
+                  (productionBypassEnabled && isSuperAdmin) ||  // <-- Bypasses without explicitBypass!
+                  testUserBypass;
+```
+
+**Issue**: The middle condition `(productionBypassEnabled && isSuperAdmin)` allowed superadmin bypass with only `NEXTAUTH_BYPASS_OTP_ALL=true`, without requiring `NEXTAUTH_SUPERADMIN_BYPASS_OTP=true`.
+
+**After (Fixed)**:
+```typescript
+// OTP bypass works in:
+// 1. Development mode with explicit bypass for superadmin
+// 2. Production with NEXTAUTH_BYPASS_OTP_ALL AND explicit bypass for superadmin  
+// 3. Test user bypass when enabled
+const bypassOTP = (isSuperAdmin && explicitBypass && (isDevelopment || productionBypassEnabled)) ||
+                  testUserBypass;
+```
+
+---
+
+## ✅ What's Already Secure
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Audit Logging | ✅ OK | `logger.warn` used for all bypass events |
+| Redis Key Separation | ✅ OK | Bypass uses `otp:bypass:` prefix |
+| Bypass OTP Cleanup | ✅ OK | Deleted after successful verification |
+| Type Safety | ✅ OK | `__bypassed` properly typed in interfaces |
+| IP Logging | ✅ OK | `clientIp` logged with bypass events |
+
+---
+
+## 🧪 Verification Gates
+
+| Gate | Status |
+|------|--------|
+| TypeScript (`pnpm typecheck`) | ✅ Pass |
+| ESLint (`pnpm lint`) | ✅ Pass |
+| Model Tests (`pnpm test:models`) | ✅ 91/91 Pass |
+| Pre-commit Hooks | ✅ Pass |
+
+---
+
+## 📝 Recommendations
+
+1. **IP Allowlisting**: Consider adding IP allowlist check for bypass-enabled users
+2. **Rate Limiting**: Add rate limiting on bypass OTP verification attempts
+3. **Monitoring**: Set up alerts for bypass OTP usage in production
+4. **Audit Trail**: Consider storing bypass events in persistent audit log (not just structured logs)
+
+---
+
+## 📁 Files Modified
+
+| File | Change Type |
+|------|-------------|
+| `app/api/auth/otp/send/route.ts` | Security fix |
+| `auth.config.ts` | Security fix |
+| `services/souq/claims/refund-processor.ts` | Use shared org filter, fix upsert conflict |
+| `services/souq/reviews/review-service.ts` | Privacy fix, validation improvement |
+
+---
+
+## 🔗 Related
+
+- **Commit**: `cb11989cd fix: Remove unused import, improve OTP security, and add privacy guards`
+- **Branch**: `feat/production-otp-bypass`
+- **Parent**: `7010aaf3c feat(auth): Add production OTP bypass for superadmin and test users`
+
+]]>
+</file>
+
+<file path="docs/archived/DAILY_PROGRESS_REPORTS/2025-12-07_SYSTEM_AUDIT_AND_THEMING.md">
+<![CDATA[
+# Daily Progress Report - December 7, 2025
+
+## Session Summary
+
+**Agent Branch:** `agent/system-audit-2025-12-07` → MERGED (PR #439)
+**Current Branch:** `feat/business-sa-theming` (PR #445 - Ready for Review)
+
+---
+
+## Completed Tasks
+
+### 1. System Audit PR #439 - MERGED ✅
+
+**Title:** fix: System Audit - Type Safety & Dead Code Cleanup (2025-12-07)
+
+**Changes Made:**
+- Removed deprecated FM notification engine (dead code)
+- Fixed TypeScript errors in review-service.ts (LeanReview type alias)
+- Fixed syntax error in returns/route.ts (malformed string literal)
+- Updated ISSUES_REGISTER.md with 2025-12-07 audit fixes
+- Added comprehensive RBAC moderation tests
+- Added cross-tenant isolation tests
+
+**Files Changed:**
+| File | Lines Added | Lines Removed |
+|------|-------------|---------------|
+| services/souq/reviews/review-service.ts | Type fixes | - |
+| app/api/souq/returns/route.ts | Syntax fix | - |
+| tests/services/reviews/review-service.test.ts | +104 | - |
+| docs/ISSUES_REGISTER.md | Updated | - |
+| Total | +580 | -1260 |
+
+**Verification Results:**
+- ✅ TypeScript: 0 errors
+- ✅ ESLint: 0 errors
+- ✅ Tests: 1912 passed (full suite)
+- ✅ Review service tests: 12/12 passed
+
+### 2. Review Service Test Coverage Enhancement
+
+**New Tests Added (12 total):**
+
+| Test Suite | Tests | Status |
+|------------|-------|--------|
+| reviewService org scoping | 3 | ✅ Pass |
+| reviewService RBAC moderation enforcement | 6 | ✅ Pass |
+| reviewService cross-tenant isolation | 3 | ✅ Pass |
+
+**RBAC Tests:**
+1. `approveReview rejects non-moderator roles` - Verifies TENANT role blocked
+2. `rejectReview rejects non-moderator roles` - Verifies CORPORATE_EMPLOYEE blocked
+3. `flagReview rejects non-moderator roles` - Verifies PROPERTY_OWNER blocked
+4. `approveReview allows ADMIN role` - Verifies authorized access
+5. `approveReview allows SUPER_ADMIN role` - Verifies authorized access
+6. `flagReview requires reason` - Validates mandatory reason field
+
+**Cross-Tenant Tests:**
+1. `getReviewById returns null for review in different org`
+2. `approveReview throws when review not found in caller's org`
+3. `rejectReview throws when review not found in caller's org`
+
+### 3. Business.sa Theming PR #445 - Ready for Review ✅
+
+**Title:** feat(theme): Implement Business.sa branding
+
+**Brand Colors Applied:**
+| Color | Hex | Usage |
+|-------|-----|-------|
+| Primary Blue | #0061A8 | Main actions, links |
+| Saudi Green | #00A859 | Success states |
+| Gold | #FFB400 | Warnings, accents |
+
+**Files Changed:**
+- `app/globals.css` - CSS variables and component styles
+- `app/layout.tsx` - Added Tajawal font for Arabic
+- `tailwind.config.js` - Color tokens and gradients
+
+---
+
+## Code Quality Verification
+
+### Final Verification Gates
+
+| Check | Result | Details |
+|-------|--------|---------|
+| TypeScript | ✅ PASS | 0 errors |
+| ESLint | ✅ PASS | 0 errors |
+| Unit Tests | ✅ PASS | 12/12 review tests |
+| Full Suite | ✅ PASS | 1912 tests |
+
+---
+
+## PR Status Summary
+
+| PR | Title | Status | Branch |
+|----|-------|--------|--------|
+| #439 | System Audit - Type Safety & Dead Code | ✅ MERGED | agent/system-audit-2025-12-07 |
+| #445 | Business.sa branding | 🟢 Ready | feat/business-sa-theming |
+| #444 | Review and refund service audit | 📝 Draft | - |
+| #443 | Souq Review & refund improvements | 📝 Draft | - |
+| #442 | Production OTP bypass | 📝 Draft | - |
+| #440 | Production OTP bypass | 📝 Draft | - |
+
+---
+
+## Confirmed Implementations
+
+### RBAC Moderation (Already Existed)
+Verified that `review-service.ts` already enforces RBAC via `assertModeratorRole()`:
+- Lines 614-643: `approveReview()` - RBAC enforced
+- Lines 648-677: `rejectReview()` - RBAC enforced
+- Lines 682-714: `flagReview()` - RBAC enforced
+
+### Durable Retry Mechanism (Already Existed)
+Verified that `refund-processor.ts` already persists retry state to DB:
+- Lines 605-650: `scheduleRetry()` - persists `nextRetryAt` to DB
+- Lines 660-730: `scheduleStatusCheck()` - persists `nextStatusCheckAt` to DB
+- Queue failures mark refund as failed and notify parties (no silent hangs)
+
+---
+
+## Next Steps
+
+1. **Review PR #445** - Business.sa theming ready for merge
+2. **Consolidate OTP PRs** - #440 and #442 should be merged/closed
+3. **Review duplicate PRs** - #443 and #444 appear to overlap
+
+---
+
+**Report Generated:** 2025-12-07T10:25:00
+**Agent:** GitHub Copilot (Claude Opus 4.5)
+
+]]>
+</file>
+
+<file path="docs/archived/DAILY_PROGRESS_REPORTS/2025-12-08_COMPREHENSIVE_IMPROVEMENTS.md">
+<![CDATA[
+# Daily Progress Report - 2025-12-08
+
+## Session Overview
+
+**Agent**: Copilot PR Copilot  
+**Branch**: `feat/comprehensive-improvements`  
+**PR**: [#473](https://github.com/EngSayh/Fixzit/pull/473)  
+**Status**: Draft PR Created
+
+---
+
+## Completed Tasks
+
+### 1. PR Processing (3 PRs)
+| PR | Status | Action |
+|---|---|---|
+| #464 | Merged | Full review, conflict resolution, test fixes |
+| #467 | Closed | Superseded by #464 |
+| #469 | Closed | Superseded by #464 |
+
+### 2. SMS Queue System (NEW)
+**Files Created:**
+- `server/models/SMSMessage.ts` - Message model with status tracking
+- `server/models/SMSSettings.ts` - SLA configuration model
+- `lib/queues/sms-queue.ts` - BullMQ-based queue with retry
+- `app/api/admin/sms/route.ts` - Superadmin SMS dashboard API
+- `app/api/admin/sms/settings/route.ts` - SLA settings API
+
+**Features:**
+- Status tracking: PENDING, QUEUED, SENT, DELIVERED, FAILED, EXPIRED
+- SLA configuration per message type and priority
+- Exponential backoff retry (2s, 4s, 8s... max 5min)
+- SLA breach detection and notification
+- Provider failover support (Twilio, Unifonic)
+
+### 3. Testing User System (NEW)
+**Files Created:**
+- `server/models/TestingUser.ts` - Superadmin-managed testing accounts
+- `app/api/admin/testing-users/route.ts` - List/create API
+- `app/api/admin/testing-users/[id]/route.ts` - CRUD API
+
+**Features:**
+- Replaces demo users for production testing
+- Secure password generation (16 chars, mixed)
+- IP allowlisting and environment restrictions
+- Expiry dates with auto-disable
+- Full login history and audit trail
+
+### 4. 3-Variant ObjectId Matching (DOCUMENTED)
+**File Modified:** `services/souq/org-scope.ts`
+
+Documented `buildSouqOrgFilter` 3-variant matching as **PERMANENT**:
+1. String format
+2. MongoDB driver ObjectId
+3. Mongoose Types.ObjectId
+
+### 5. Security Audits
+- ✅ OTP bypass security - Already hardened (Dec 7 report)
+- ✅ Rate limiting - All auth endpoints protected
+- ✅ Deprecated APIs - All properly marked with `@deprecated`
+
+### 6. Lint/Type Fixes
+| File | Issue | Fix |
+|---|---|---|
+| `seller-notification-service.ts` | `any` type | Replaced with `unknown` + type guards |
+| `returns-service.ts` | `any` type | Replaced with `unknown` |
+| `startup-checks.ts` | console.warn | Added eslint-disable comment |
+| `profile/page.tsx` | unused variable | Prefixed with `_` |
+
+---
+
+## Verification Results
+
+### TypeScript
+```
+✅ pnpm typecheck - 0 errors
+```
+
+### ESLint
+```
+✅ pnpm lint - 0 errors, 0 warnings
+```
+
+### Unit Tests
+```
+✅ 1955/1960 tests pass
+❌ 5 failures (pre-existing in seed-marketplace.test.ts)
+   - Missing scripts/seed-marketplace.mjs file
+   - Not related to current changes
+```
+
+---
+
+## Files Changed
+
+### New Files (8)
+```
+app/api/admin/sms/route.ts
+app/api/admin/sms/settings/route.ts
+app/api/admin/testing-users/route.ts
+app/api/admin/testing-users/[id]/route.ts
+lib/queues/sms-queue.ts
+server/models/SMSMessage.ts
+server/models/SMSSettings.ts
+server/models/TestingUser.ts
+```
+
+### Modified Files (23)
+```
+app/profile/page.tsx
+lib/config/domains.ts
+lib/email.ts
+lib/startup-checks.ts
+services/notifications/seller-notification-service.ts
+services/souq/org-scope.ts
+services/souq/returns-service.ts
+tests/server/lib/email.test.ts
+... and 15 seed scripts (formatting/linting)
+```
+
+---
+
+## Pending Items
+
+The following items were identified but deferred for future PRs:
+
+| Item | Priority | Reason |
+|---|---|---|
+| Database index optimization | Medium | Requires production metrics analysis |
+| Meilisearch injection audit | High | Needs dedicated security review |
+| Translation audit | Medium | Separate workflow needed |
+| OpenAPI sync | Low | Documentation task |
+| Test coverage gaps | Medium | Needs coverage analysis |
+| Dead code cleanup | Low | Separate housekeeping PR |
+| Environment variable docs | Low | Documentation task |
+
+---
+
+## User Decisions Captured
+
+1. **3-variant ObjectId matching**: "Enable permanently" ✅
+2. **SMS SLA**: "Build it for superadmin to manage" ✅
+3. **SMS queue retry**: "Yes, with superadmin status dashboard" ✅
+4. **Demo users**: "Replace with superadmin-managed testing users" ✅
+
+---
+
+## Commit History
+
+```
+7f5a8d274 feat: Add SMS queue system with SLA management and superadmin testing users
+```
+
+---
+
+## Next Steps
+
+1. Review and merge PR #473
+2. Create follow-up PRs for:
+   - Meilisearch injection audit
+   - Database index optimization
+   - Test coverage improvements
+
+---
+
+**Report Generated**: 2025-12-08  
+**Commit SHA**: 7f5a8d274
+
+]]>
+</file>
+
+<file path="docs/archived/DAILY_PROGRESS_REPORTS/2025-12-08_SYSTEM_AUDIT_SECURITY_FIXES.md">
+<![CDATA[
+# Daily Progress Report - 2025-12-08
+
+## Summary
+
+Comprehensive system-wide security audit and fixes covering API routes, components, services, and test organization.
+
+---
+
+## Commits Made
+
+| Commit SHA | Description |
+|------------|-------------|
+| `32689ef38` | security: Tenant isolation fix for WithdrawalService |
+| `77b42abb6` | fix: Fix test failures after file migration |
+| `b162861a2` | security: Critical API security fixes |
+| `479aea546` | fix: Comprehensive system audit and fixes |
+| `3a7669942` | fix: address PR review comments audit findings |
+
+---
+
+## Issues Resolved
+
+### ISSUE-019: Missing Webhook Signature Verification (Carrier Tracking) ✅
+
+**File**: `app/api/webhooks/carrier/tracking/route.ts`
+
+**Changes**:
+- Implemented HMAC-SHA256 signature verification with timing-safe comparison
+- Added Zod validation schema for request body
+- Added carrier-specific webhook secrets configuration (`ARAMEX_WEBHOOK_SECRET`, `SMSA_WEBHOOK_SECRET`, `SPL_WEBHOOK_SECRET`)
+- Required orgId field for tenant isolation
+
+### ISSUE-020: Missing Rate Limiting on Vendor Application Endpoint ✅
+
+**File**: `app/api/vendor/apply/route.ts`
+
+**Changes**:
+- Added rate limiting: 5 requests per minute per IP
+- Added comprehensive Zod validation schema
+- Sanitized PII logging (only partial name, email domain)
+- Proper phone number format validation with regex
+
+### ISSUE-021: Missing Rate Limiting on i18n Locale Endpoint ✅
+
+**File**: `app/api/i18n/route.ts`
+
+**Changes**:
+- Added rate limiting: 30 requests per minute per IP
+- Updated OpenAPI documentation to include 429 response
+
+### ISSUE-022: Missing Tenant Isolation in Withdrawal Balance Check ✅
+
+**File**: `services/souq/settlements/withdrawal-service.ts`
+
+**Changes**:
+- Added `orgId` to `WithdrawalRequest` interface
+- Added `orgId` to `Withdrawal` interface
+- Updated `checkSellerBalance` to require and use `orgId` in query
+- Updated `createWithdrawalRecord` to include `orgId`
+- Added orgId to audit logs
+
+---
+
+## Issues Identified (To Be Addressed)
+
+### ISSUE-023: Floating Point Arithmetic for Financial Calculations 🔄
+
+**Severity**: Major  
+**Locations**:
+- `services/souq/marketplace-fee-service.ts`: Lines 304-335
+- `services/souq/seller-balance-service.ts`: Lines 263, 350, 548-551, 721, 740
+
+**Recommendation**: Use `Decimal128` MongoDB type with `decimal.js` for calculations
+
+### ISSUE-024: Debug Console.log in Claims/Refund Services ⚠️
+
+**Status**: Acceptable Risk (guarded by test env vars)
+
+---
+
+## Other Fixes Made
+
+### Country Code Fixes (+971 → +966)
+
+**Files Modified**:
+- `app/privacy/page.tsx`: Fixed regex syntax in template literal
+- `app/terms/page.tsx`: Updated phone number
+- `app/fm/hr/directory/new/page.tsx`: Fixed +971 to +966
+
+### Test File Organization
+
+**Moved 6 scattered test files to `tests/unit/` directory**:
+- `app/api/work-orders/__tests__/rbac.test.ts` → `tests/unit/api/work-orders/rbac.test.ts`
+- `server/work-orders/wo.service.test.ts` → `tests/unit/server/work-orders/wo.service.test.ts`
+- `server/security/idempotency.spec.ts` → `tests/unit/server/security/idempotency.spec.ts`
+- `i18n/useI18n.test.ts` → `tests/unit/i18n/useI18n.test.ts`
+- `i18n/I18nProvider.test.tsx` → `tests/unit/i18n/I18nProvider.test.tsx`
+- `i18n/config.test.ts` → `tests/unit/i18n/config.test.ts`
+
+### Test Import Path Fixes
+
+Fixed mock paths after file migration:
+- `wo.service.test.ts`: Changed `./wo.schema` to `@/server/work-orders/wo.schema`
+- `config.test.ts`: Changed `./config` to `@/i18n/config`
+- `I18nProvider.test.tsx`: Changed all relative imports to use `@/` paths
+
+---
+
+## Verification Results
+
+| Check | Status |
+|-------|--------|
+| TypeScript | ✅ 0 errors |
+| ESLint | ✅ 0 warnings |
+| Tests | ✅ 1931 passing (206 files) |
+| Build | ✅ Clean |
+
+---
+
+## Branch Information
+
+**Branch**: `fix/pr-comments-audit-20251207`  
+**Base**: `main` (commit `6938e5b90`)  
+**Latest Commit**: `32689ef38`
+
+---
+
+## Files Modified (Full List)
+
+1. `app/api/webhooks/carrier/tracking/route.ts` - Webhook signature verification
+2. `app/api/vendor/apply/route.ts` - Rate limiting + Zod validation
+3. `app/api/i18n/route.ts` - Rate limiting
+4. `app/privacy/page.tsx` - Country code fix
+5. `app/terms/page.tsx` - Country code fix
+6. `app/fm/hr/directory/new/page.tsx` - Country code fix
+7. `services/souq/settlements/withdrawal-service.ts` - Tenant isolation
+8. `tests/unit/server/work-orders/wo.service.test.ts` - Mock path fix
+9. `tests/unit/i18n/config.test.ts` - Import path fix
+10. `tests/unit/i18n/I18nProvider.test.tsx` - Import path fix
+11. `ISSUES_REGISTER.md` - Added ISSUE-019 through ISSUE-024
+
+---
+
+## Next Steps
+
+1. Open PR for review
+2. Address floating point financial calculations (ISSUE-023)
+3. Monitor debug log env vars in production deployment
+
+---
+
+**Report Generated**: 2025-12-08  
+**Author**: GitHub Copilot Agent
+
+]]>
+</file>
+
+<file path="docs/archived/DAILY_PROGRESS_REPORTS/2025-12-09-circuit-breaker-monitoring.md">
+<![CDATA[
+# Daily Progress Report - 2025-12-09
+
+## Session Summary: Circuit Breaker Monitoring & Security Enhancements
+
+**Branch**: `fix/health-redis-sms-critical-fixes`  
+**PR**: #482 (Draft)  
+**Time**: ~2 hours  
+**Agent**: GitHub Copilot (Claude Opus 4.5 Preview)
+
+---
+
+## What Changed
+
+### 1. XSS Protection for Email Templates (lib/email.ts)
+
+**Lines Changed**: Added `sanitizeForHtml()` function (approx. lines 50-60)
+
+```typescript
+function sanitizeForHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+```
+
+**Why**: Email subject/body came from user input and was embedded in HTML templates. Without sanitization, malicious `<script>` tags could execute in email clients.
+
+**Where**: `lib/email.ts` - Used in template interpolation for subject and body.
+
+### 2. Circuit Breaker Stats Method (lib/resilience/circuit-breaker.ts)
+
+**Lines Changed**: Added `getStats()` method (approx. lines 140-155)
+
+```typescript
+getStats(): {
+  name: string;
+  state: "closed" | "open" | "half-open";
+  failureCount: number;
+  isOpen: boolean;
+  cooldownRemaining?: number;
+} { ... }
+```
+
+**Why**: Enables monitoring dashboards to display circuit breaker health without modifying internal state.
+
+**Where**: `lib/resilience/circuit-breaker.ts`
+
+### 3. Circuit Breaker Monitoring Functions (lib/resilience/service-circuit-breakers.ts)
+
+**Lines Changed**: Added ~20 lines
+
+```typescript
+export function getAllCircuitBreakerStats() { ... }
+export function hasOpenCircuitBreakers(): boolean { ... }
+```
+
+**Why**: Provides aggregate view of all 8 service circuit breakers for health checks and alerts.
+
+**Where**: `lib/resilience/service-circuit-breakers.ts`
+
+### 4. Health Endpoint Circuit Breaker Integration (app/api/health/ready/route.ts)
+
+**Lines Changed**: Added ~15 lines
+
+```typescript
+status.circuitBreakers = {
+  hasOpenBreakers: hasOpenCircuitBreakers(),
+  breakers: getAllCircuitBreakerStats(),
+};
+```
+
+**Why**: Kubernetes/monitoring systems can now see degraded services before they cause failures.
+
+**Where**: `app/api/health/ready/route.ts`
+
+---
+
+## Commits
+
+| SHA | Message |
+|-----|---------|
+| `51415dce3` | feat(sms): Add phone validation and bulk SMS limits to all providers (includes XSS, circuit breaker monitoring, health endpoint) |
+
+---
+
+## Test Results
+
+```
+Tests: 2077 passed, 5 failed
+Duration: ~186s
+```
+
+**Failed Tests** (Circuit breaker state bleeding between tests - test isolation issue, not code issue):
+- `lib-paytabs.test.ts`: 5 tests failing due to paytabs circuit breaker being open from previous test errors
+
+**Action**: Add circuit breaker reset in test setup (future PR)
+
+---
+
+## Verification Gates
+
+| Gate | Result |
+|------|--------|
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm lint` | ✅ PASS (0 errors) |
+| `pnpm vitest run` | ⚠️ 5 failures (test isolation) |
+
+---
+
+## Issues Documented
+
+### ISSUE-DUP-INDEX-AUDIT (ISSUES_REGISTER.md)
+
+Documented comprehensive duplicate index analysis:
+- 24+ inline `index: true` definitions that duplicate compound indexes
+- Affects: Permission, Role, SMSMessage, MaintenanceLog, RevenueLog models
+- Severity: �� MODERATE (performance, not blocking)
+- Recommendation: Separate PR for systematic cleanup
+
+---
+
+## What's Left for PR #482
+
+### Critical (Done)
+- ✅ Circuit breakers for AWS SNS, Nexmo, SendGrid
+- ✅ XSS protection for email
+- ✅ Circuit breaker monitoring in health endpoint
+- ✅ Duplicate index fixes (SMSSettings, QaAlert, QaLog, Subscription)
+
+### Optional (Documented for Future)
+- ⏳ Full model index audit (24+ files) - separate PR
+- ⏳ Paytabs test isolation fix - separate PR
+- ⏳ Rate limit metrics export to Prometheus - infra already exists
+
+---
+
+## Files Modified in This Session
+
+| File | Change |
+|------|--------|
+| `lib/email.ts` | Added `sanitizeForHtml()` XSS protection |
+| `lib/resilience/circuit-breaker.ts` | Added `getStats()` method |
+| `lib/resilience/service-circuit-breakers.ts` | Added monitoring functions, sendgrid breaker |
+| `app/api/health/ready/route.ts` | Added circuit breaker states to response |
+| `lib/sms-providers/aws-sns.ts` | Phone validation, bulk limits |
+| `lib/sms-providers/nexmo.ts` | Phone validation, bulk limits |
+| `lib/sms-providers/twilio.ts` | Phone validation, bulk limits |
+| `lib/sms-providers/unifonic.ts` | Phone validation, bulk limits |
+| `ISSUES_REGISTER.md` | Added ISSUE-DUP-INDEX-AUDIT |
+
+---
+
+## Stability Confirmation
+
+- No memory errors (VS Code stable)
+- No crash loops observed
+- All core functionality tested and working
+- Ready for PR review
+
+---
+
+**End of Report**
+
+]]>
+</file>
+
+<file path="docs/archived/DAILY_PROGRESS_REPORTS/PENDING_TASKS_MASTER.md">
+<![CDATA[
+# MASTER PENDING TASKS REPORT
+> **Historical snapshot.** Archived status report; verify latest CI/build/test/deploy data before acting. Evidence placeholders: CI run: <link>, Tests: <link>, Deploy: <link>.
+
+**Created**: 2025-11-12  
+**Last Updated**: 2025-11-18  
+**Status**: IN PROGRESS  
+**Target**: 100% COMPLETION - NO EXCEPTIONS
+
+---
+
+## 🎯 COMMITMENT
+
+- **Fix ALL issues** - not 7%, not 66.7%, not 80% - **100%**
+- **No prioritization without consent** - fix all categories completely
+- **Daily updates** - track every change, never lose progress
+- **Memory management** - prevent VS Code crashes (code 5)
+- **File organization** - per Governance V5 after every phase
+
+---
+
+## 📊 KNOWN ISSUE COUNTS (From Previous Scans)
+
+### Category 1: Type Safety Issues
+
+| Issue Type           | Count   | Status                                                                     | Priority   |
+| -------------------- | ------- | -------------------------------------------------------------------------- | ---------- |
+| Implicit 'any' types | ~42     | ✅ Completed (audit 2025-11-17, commits df04f1fc2 / 837463a5c / db5cfc4da) | 🟢 Monitor |
+| Explicit 'any' types | 10      | ✅ Completed                                                               | 🟢 Monitor |
+| @ts-ignore comments  | TBD     | ⚠️ Track via `scripts/typecheck-tail.mjs` (0 blockers today)               | 🟡 Medium  |
+| @ts-expect-error     | TBD     | ⚠️ Track via `scripts/typecheck-tail.mjs` (0 blockers today)               | 🟡 Medium  |
+| **SUBTOTAL**         | **52+** | **100% complete for PROD blockers**                                        |            |
+
+### Category 2: Production Logging
+
+| Issue Type            | Count                                                                                | Status                                                            | Priority   |
+| --------------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------- | ---------- |
+| console.log           | 36                                                                                   | ✅ Replaced with `lib/logger` (PR batch Nov 13-15)                | 🟢 Monitor |
+| console.error         | 156                                                                                  | ✅ Routed to logger + Datadog/Sentry (`lib/logger.ts` 2025-11-17) | 🟢 Monitor |
+| console.warn/info     | 30+                                                                                  | ✅ Routed to logger (`logger.warn/info` relay to Datadog)         | 🟢 Monitor |
+| Outstanding follow-up | n/a                                                                                  | ⚠️ Add dashboards for Datadog ingestion (tracked separately)      | 🟡 Medium  |
+| **SUBTOTAL**          | **225+**                                                                             | **100% migrated**                                                 |            |
+| **Note**              | Logger now pushes to Sentry + Datadog and documents the client `/api/logs` fallback. |                                                                   |            |
+
+---
+
+## 🔥 Active Focus Items (as of Nov 18)
+
+| Area                | Status                                                                                                         | Owner Notes                                                       |
+| ------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Souq notifications  | ✅ Claims appeal + budget alerts wired to notification queue (Nov 18).                                         | Product Ops to verify templates.                                  |
+| Seller withdrawals  | ✅ PayTabs payout path implemented with manual fallback. Docs in `docs/payments/manual-withdrawal-process.md`. | Finance to enable `PAYTABS_PAYOUT_ENABLED` once secrets deployed. |
+| Translation Phase 2 | ⏳ Careers + Marketplace pending (~6-8 h sprint). See `TRANSLATION_STATUS_REALISTIC_ASSESSMENT.md`.            | Assign bilingual reviewer.                                        |
+| SADAD/SPAN          | ⏸ Deferred to Q1 2026. Code now logs deferral when `ENABLE_SADAD_PAYOUTS` is false.                           | Await banking partnership.                                        |
+
+### Category 3: Code Quality
+
+| Issue Type              | Count   | Status             | Priority  |
+| ----------------------- | ------- | ------------------ | --------- |
+| parseInt without radix  | 41      | ✅ **COMPLETE**    | 🟡 High   |
+| TODO/FIXME comments     | 34      | ❌ Not Started     | 🟡 High   |
+| Empty catch blocks      | TBD     | ❌ Not Started     | 🟡 High   |
+| eslint-disable comments | TBD     | ❌ Not Started     | 🟢 Medium |
+| **SUBTOTAL**            | **75+** | **54.7% complete** |           |
+
+### Category 4: React/JSX Issues
+
+| Issue Type         | Count   | Status          | Priority    |
+| ------------------ | ------- | --------------- | ----------- |
+| new Date() in JSX  | 47      | ❌ Not Started  | 🟡 High     |
+| Date.now() in JSX  | 20      | ❌ Not Started  | 🟡 High     |
+| Unhandled promises | TBD     | ❌ Not Started  | 🔴 Critical |
+| **SUBTOTAL**       | **67+** | **0% complete** |             |
+
+### Category 5: Internationalization
+
+| Issue Type                   | Count    | Status          | Priority |
+| ---------------------------- | -------- | --------------- | -------- |
+| Dynamic i18n keys (t(`...`)) | 112      | ❌ Not Started  | 🟡 High  |
+| Missing translations         | TBD      | ❌ Not Started  | 🟡 High  |
+| **SUBTOTAL**                 | **112+** | **0% complete** |          |
+
+### Category 6: Code Duplication
+
+| Issue Type                 | Count   | Status          | Priority  |
+| -------------------------- | ------- | --------------- | --------- |
+| Duplicate files identified | 11      | ❌ Not Started  | 🟡 High   |
+| Similar code patterns      | TBD     | ❌ Not Started  | 🟢 Medium |
+| **SUBTOTAL**               | **11+** | **0% complete** |           |
+
+### Category 7: Documentation
+
+| Issue Type                 | Count          | Status          | Priority  |
+| -------------------------- | -------------- | --------------- | --------- |
+| Missing docstrings         | ~669 functions | ❌ Not Started  | 🟢 Medium |
+| Incomplete PR descriptions | 10 PRs         | ❌ Not Started  | 🟡 High   |
+| **SUBTOTAL**               | **679+**       | **0% complete** |           |
+
+### Category 8: PR Management
+
+| Issue Type                | Count                                                                   | Status            | Priority    |
+| ------------------------- | ----------------------------------------------------------------------- | ----------------- | ----------- |
+| Unaddressed PR comments   | 0                                                                       | ✅ **COMPLETE**   | 🔴 Critical |
+| Unapproved PRs            | 0                                                                       | ✅ **COMPLETE**   | 🔴 Critical |
+| Unmerged approved PRs     | 0                                                                       | ✅ **COMPLETE**   | 🟡 High     |
+| Undeleted merged branches | 0                                                                       | ✅ **COMPLETE**   | 🟢 Medium   |
+| **SUBTOTAL**              | **0**                                                                   | **100% complete** |             |
+| **Note**                  | All 13 PRs consolidated and merged (PR #285, #289, #298). Zero backlog. |                   |             |
+
+---
+
+## 📈 PROGRESS SUMMARY
+
+**Known Issues**: 1,315+ (minimum count)  
+**Fixed**: 151+ (parseInt: 41, PR Management: 110, Console: ~146)  
+**Remaining**: 1,164+  
+**Progress**: 11.5%  
+**Target**: 100.0%
+
+> **Note**: Significant progress on critical issues. Parse utility created for reusable safe parsing. All PRs consolidated and merged.
+
+---
+
+## 🚀 EXECUTION PLAN
+
+### Phase 1: Critical Security & Type Safety (4-6 hours)
+
+1. ✅ Memory optimization (DONE - PR #289)
+2. ✅ Comprehensive scan for exact counts (DONE)
+3. ❌ Fix ALL implicit any types (DEFERRED - lower priority)
+4. ❌ Fix ALL unhandled promises (DEFERRED - system stable)
+5. ❌ Fix ALL explicit any types (DEFERRED - lower priority)
+6. ✅ File organization + memory cleanup (DONE - clean structure)
+
+**Memory Checkpoint**: ✅ VS Code stable, no crashes
+
+### Phase 2: Console & Code Quality (4-6 hours)
+
+7. 🔄 Replace ALL console.log with logger (65% complete - PR #289)
+8. 🔄 Replace ALL console.error with logger (75% complete - PR #289)
+9. 🔄 Replace ALL console.warn with logger (75% complete - PR #289)
+10. ✅ Fix ALL parseInt without radix (DONE - PR #285, #289, #298)
+11. ❌ Resolve ALL TODO/FIXME comments (Tracked in Issue #293 - 39 items)
+12. ✅ File organization + memory cleanup (DONE - verified clean)
+
+**Memory Checkpoint**: ✅ VS Code stable, no crashes
+
+### Phase 3: React/JSX & i18n (4-6 hours)
+
+13. ❌ Fix ALL Date hydration issues
+14. ❌ Fix ALL dynamic i18n keys
+15. ❌ Add missing translations
+16. ❌ File organization + memory cleanup
+
+**Memory Checkpoint**: Restart VS Code after Phase 3
+
+### Phase 4: Duplication & Documentation (6-8 hours)
+
+17. ❌ Remove ALL duplicate files
+18. ❌ Add docstrings to 80% of functions
+19. ❌ Complete ALL PR descriptions
+20. ❌ File organization + memory cleanup
+
+**Memory Checkpoint**: Restart VS Code after Phase 4
+
+### Phase 5: PR Management & Final Verification (4-6 hours)
+
+21. ❌ Address ALL PR comments
+22. ❌ Get ALL PRs approved
+23. ❌ Merge ALL approved PRs
+24. ❌ Delete ALL merged branches
+25. ❌ Final verification: typecheck, lint, test, build
+26. ❌ File organization + memory cleanup
+
+**Final Verification**: 1,315+ / 1,315+ = 100%
+
+---
+
+## 📝 DAILY PROGRESS LOG
+
+### 2025-11-13 (Day 2) ✅ MAJOR PROGRESS
+
+- **Time**: 2 hours
+- **Actions**:
+  - **PR Consolidation**: Closed 13 PRs, merged 3 clean PRs (ZERO backlog)
+  - **parseInt Security**: Fixed ALL 41+ calls (PR #285, #298)
+  - **Parse Utility**: Created lib/utils/parse.ts with 6 unit tests
+  - **Logger Migration**: 40+ files migrated to centralized logging (PR #289)
+  - **Memory Optimization**: VS Code stable, no crashes (4096MB TypeScript limit)
+  - **File Organization**: Verified clean (no duplicates, no messy files)
+- **Issues Fixed**: 151+ (parseInt: 41, PR Management: 110, Console: ~146)
+- **Remaining**: 1,164+
+- **Progress**: 11.5% → **MAJOR MILESTONE**
+- **Next**: Address Issue #293 TODO items (39 production readiness tasks)
+
+### 2025-11-12 (Day 1)
+
+- **Time**: Started
+- **Actions**:
+  - Created memory guard script
+  - Started memory monitoring
+  - Created comprehensive issue scanner
+  - Created master pending tasks report
+- **Issues Fixed**: 0
+- **Remaining**: 1,315+
+- **Progress**: 0.0%
+- **Next**: Complete comprehensive scan, start Phase 1
+
+---
+
+## 🛡️ MEMORY MANAGEMENT
+
+### Crash Prevention Strategy
+
+1. ✅ Stop dev server before heavy work
+2. ✅ Memory monitoring running (vscode-memory-guard.sh)
+3. ❌ Commit every 10 files
+4. ❌ Restart VS Code every 25 files or 2 hours
+5. ❌ Archive tmp/ after every phase (pnpm phase:end)
+6. ❌ Run garbage collection between phases
+
+### Memory Checkpoints
+
+- [ ] After Phase 1 (Type Safety)
+- [ ] After Phase 2 (Console/Quality)
+- [ ] After Phase 3 (React/i18n)
+- [ ] After Phase 4 (Duplication/Docs)
+- [ ] After Phase 5 (PR Management)
+
+---
+
+## 📁 FILE ORGANIZATION (Per Governance V5)
+
+### Required After Each Phase
+
+- [ ] Move misplaced files to correct folders
+- [ ] Update imports for moved files
+- [ ] Run verification tests
+- [ ] Commit organization changes
+
+### Governance V5 Structure
+
+```
+app/          - Next.js pages and routes
+server/       - Backend logic, models, services
+lib/          - Shared utilities, helpers
+hooks/        - React hooks
+components/   - React components
+types/        - TypeScript type definitions
+scripts/      - Build and automation scripts
+tests/        - Test files
+docs/         - Documentation
+```
+
+---
+
+## 🎯 SUCCESS CRITERIA
+
+- [ ] ALL type safety issues fixed (0 implicit any, 0 explicit any)
+- [ ] ALL console statements replaced with logger
+- [ ] ALL code quality issues resolved
+- [ ] ALL React/JSX issues fixed
+- [ ] ALL i18n issues resolved
+- [ ] ALL duplicates removed
+- [ ] 80%+ documentation coverage
+- [ ] ALL PR comments addressed
+- [ ] ALL PRs merged
+- [ ] TypeScript: 0 errors
+- [ ] ESLint: 0 errors
+- [ ] Tests: 100% passing
+- [ ] Build: SUCCESS
+- [ ] Files: Organized per Governance V5
+- [ ] Memory: No VS Code crashes
+
+---
+
+**COMMITMENT**: This report will be updated daily with exact progress. NO DRIFT. NO EXCEPTIONS. 100% COMPLETION.
+
+]]>
+</file>
+
+<file path="docs/archived/DEPENDENCY_RESOLUTION.md">
+<![CDATA[
+# Dependency Resolution Report
+
+**Date:** December 8, 2025  
+**Action:** Resolved missing dependencies flagged by `pnpm depcheck`
+
+---
+
+## ✅ Resolved Issues
+
+### 1. Redis Dependencies
+
+**Issue:** `redis` package missing while both `redis` and `ioredis` are used in production code.
+
+**Analysis:**
+
+- `ioredis` (✅ already installed) - Used in 3 production files:
+  - `lib/redis-client.ts` - Main Redis client configuration
+  - `services/souq/ads/budget-manager.ts` - Ad budget tracking
+  - `jobs/search-index-jobs.ts` - Background job queues
+- `redis` (❌ missing) - Used in 1 production file:
+  - `services/souq/settlements/balance-service.ts` - Real-time seller balance tracking
+
+**Resolution:**
+
+```bash
+pnpm add redis
+```
+
+**Justification:**  
+The settlements balance service requires the `redis` package for real-time balance tracking. This is a production feature (E9.2: Settlements) that cannot be removed.
+
+---
+
+### 2. Faker.js
+
+**Issue:** `@faker-js/faker` missing for seed scripts.
+
+**Analysis:**
+
+- Used in: `scripts/seed-aqar-data.js`
+- Purpose: Generate realistic test data for Aqar property listings
+- Impact: Non-critical but useful for development/testing
+
+**Resolution:**
+
+```bash
+pnpm add @faker-js/faker -D
+```
+
+**Justification:**  
+While this is a dev tool, it's used for generating comprehensive test data for property listings. Useful for QA and demo environments.
+
+---
+
+## ⏸️ Not Installed (By Design)
+
+### 3. Express (8 Script Files)
+
+**Files Using Express:**
+
+```
+scripts/serve-frontend.js
+scripts/server-broken.js
+scripts/server-fixed.js
+scripts/fixzit-server.js
+scripts/test-server.js
+scripts/server.js
+scripts/COMPLETE_FINAL_IMPLEMENTATION.sh
+scripts/FINAL_FIX_EVERYTHING.sh
+```
+
+**Decision:** ❌ NOT INSTALLED
+
+**Reasoning:**
+
+1. **Next.js Architecture**: This is a Next.js 15 app with built-in server (`next dev`, `next start`)
+2. **Script Type**: All these are legacy/test/migration scripts, NOT used in production
+3. **Already Running**: Dev server runs on `http://localhost:3000` using Next.js, not Express
+4. **Technical Debt**: These scripts should be archived or removed in future cleanup
+
+**Express-Related Packages (Not Needed):**
+
+- `express`
+- `express-validator`
+- `express-rate-limit`
+- `express-mongo-sanitize`
+
+---
+
+## ✅ December 8, 2025 Update
+
+### 4. Supertest Missing (Integration Tests)
+
+**Issue:** `tests/integration/api.test.ts` imports `supertest`, but the package was not listed in devDependencies, causing `depcheck` to flag a missing dependency.
+
+**Resolution:**
+
+```bash
+pnpm add -D supertest
+```
+
+**Justification:** Integration tests spin up the API and use `supertest` to issue real HTTP requests; the package is required for CI to run the suite.
+
+### 5. `@types/bcrypt` Removal
+
+**Issue:** `@types/bcrypt` was installed even though the codebase exclusively uses `bcryptjs` (with `@types/bcryptjs`). No files import `bcrypt`.
+
+**Resolution:**
+
+```bash
+pnpm remove @types/bcrypt
+```
+
+**Justification:** Removes an unused devDependency and reduces lockfile churn. `@types/bcryptjs` remains for the actual hashing library.
+
+### 6. False Positives (Remain Installed)
+
+| Package        | Reason depcheck flags it                 | Why it stays                                                            |
+| -------------- | ---------------------------------------- | ----------------------------------------------------------------------- |
+| `autoprefixer` | Only referenced from `postcss.config.js` | Required by PostCSS to add vendor prefixes during builds                |
+| `postcss`      | Loaded via Next/Tailwind build tooling   | Needed for Tailwind/PostCSS pipeline                                    |
+| `cross-env`    | Only used inside `package.json` scripts  | Required to set env vars across shells (dozens of scripts depend on it) |
+| `prettier`     | Invoked manually / via tooling           | Kept as the project formatter and referenced in tooling configs         |
+
+These packages should be added to the depcheck ignore list (or left documented here) to avoid future false positives.
+
+**Alternative:** If we need a custom server, Next.js supports `server.js` with custom middleware without requiring Express.
+
+---
+
+### 4. K6 (Load Testing)
+
+**Issue:** `k6` mentioned but not installed.
+
+**Decision:** ❌ NOT INSTALLED
+
+**Reasoning:**
+
+1. **System Tool**: k6 is a standalone CLI tool, not a Node.js package
+2. **Installation**: Should be installed via Homebrew (`brew install k6`)
+3. **Usage**: For performance testing only, not required for development
+4. **Current Status**: No k6 test scripts in repo yet
+
+**Future Action:**  
+If load testing is needed:
+
+```bash
+brew install k6
+# Create tests in scripts/load/
+```
+
+---
+
+## 📊 Final Status
+
+| Package              | Status             | Installed Version | Reason                                                |
+| -------------------- | ------------------ | ----------------- | ----------------------------------------------------- |
+| `ioredis`            | ✅ Already Present | 5.8.2             | Production (Budget Manager, Redis Client, Job Queues) |
+| `redis`              | ✅ **ADDED**       | 5.9.0             | Production (Settlements Balance Service)              |
+| `@faker-js/faker`    | ✅ **ADDED**       | 10.1.0            | Development (Seed Scripts)                            |
+| `express`            | ❌ Not Needed      | -                 | Next.js handles routing                               |
+| `express-*` packages | ❌ Not Needed      | -                 | Next.js middleware sufficient                         |
+| `k6`                 | ❌ Not Needed      | -                 | System tool, install via Homebrew if needed           |
+
+---
+
+## ⚠️ Remaining Peer Dependency Warnings
+
+These warnings are **non-critical** and can be safely ignored:
+
+```
+├─┬ mongodb-memory-server 10.3.0
+│ └─┬ mongodb-memory-server-core 10.3.0
+│   └─┬ mongodb 6.21.0
+│     └── ✕ unmet peer gcp-metadata@^5.2.0: found 6.1.1
+├─┬ mongoose 8.19.4
+│ └─┬ mongodb 6.20.0
+│   └── ✕ unmet peer gcp-metadata@^5.2.0: found 6.1.1
+├─┬ tailwindcss 3.4.18
+│ └─┬ postcss-load-config 6.0.1
+│   └── ✕ unmet peer yaml@^2.4.2: found 1.10.2
+└─┬ vitest 3.2.4
+  └─┬ vite 7.2.2
+    └── ✕ unmet peer yaml@^2.4.2: found 1.10.2
+```
+
+**Why These Can Be Ignored:**
+
+1. **gcp-metadata v6.1.1 vs v5.2.0**:
+   - MongoDB drivers expect v5, we have v6 (newer)
+   - Backward compatible
+   - Only affects Google Cloud Platform deployments (not local dev)
+
+2. **yaml v1.10.2 vs v2.4.2**:
+   - Tailwind/Vite expect v2, we have v1
+   - Only used for config file parsing
+   - Application runs without issues
+
+**Impact:** None on development or production. These are transitive dependencies.
+
+---
+
+## 🎯 Recommendations
+
+### Immediate (Already Done)
+
+- ✅ Installed `redis` for production settlements service
+- ✅ Installed `@faker-js/faker` for seed scripts
+
+### Short-Term (Next Sprint)
+
+1. **Archive Legacy Scripts**: Move unused Express server scripts to `.archive/`
+
+   ```bash
+   mkdir -p .archive/legacy-servers
+   mv scripts/server*.js .archive/legacy-servers/
+   mv scripts/*IMPLEMENTATION*.sh .archive/legacy-servers/
+   ```
+
+2. **Document Script Usage**: Create `scripts/README.md` categorizing:
+   - Production utilities
+   - Development tools
+   - Archive/unused
+
+3. **Clean Up Test Scripts**: Remove or consolidate duplicate test servers
+
+### Long-Term (Future)
+
+1. Consider load testing with k6 (install via Homebrew)
+2. Upgrade `yaml` to v2 if peer warnings become problematic
+3. Review GCP metadata version if deploying to Google Cloud
+
+---
+
+## 📝 Commands Run
+
+```bash
+# Analysis
+pnpm depcheck --ignores="@types/*,eslint-*,prettier,typescript,vitest,playwright"
+grep -r "from 'redis'" --include="*.ts" --include="*.tsx" services/ lib/
+grep -r "from 'ioredis'" --include="*.ts" --include="*.tsx" services/ lib/
+
+# Resolution
+pnpm add redis @faker-js/faker -D
+
+# Result: +7 packages, Done in 6.5s
+```
+
+---
+
+## ✅ Verification
+
+Run these commands to verify everything works:
+
+```bash
+# Check Redis imports compile
+npx tsc --noEmit services/souq/settlements/balance-service.ts
+npx tsc --noEmit lib/redis-client.ts
+
+# Check seed script works
+node scripts/seed-aqar-data.js --dry-run
+
+# Verify dev server still runs
+pnpm dev
+```
+
+---
+
+**Status:** ✅ All production dependencies resolved. Legacy Express scripts documented but not installed (by design).
+
+]]>
+</file>
+
+<file path="docs/archived/DOCUMENTATION_FIXES_NOV_17.md">
+<![CDATA[
+# 📚 Documentation Fixes - November 17, 2025
+
+## ✅ All Critical Documentation Issues Resolved
+
+**Status:** All documentation now matches actual codebase implementation  
+**Files Fixed:** 6 documentation files + 1 script  
+**Time:** 15 minutes
+
+---
+
+## 🔧 Issues Fixed
+
+### 1. ✅ Smoke Test Command Paths (CRITICAL)
+
+**Problem:** All documentation referenced wrong script path  
+**Impact:** Users got "Cannot find module" errors
+
+**Fixed in:**
+
+- ✅ `NOTIFICATION_SMOKE_TEST_QUICKSTART.md`
+- ✅ `NOTIFICATION_CREDENTIALS_GUIDE.md`
+- ✅ `ACTION_PLAN_NOV_17.md`
+- ✅ `QUICK_CHECKLIST.md`
+- ✅ `scripts/setup-notification-credentials.sh`
+
+**Changes:**
+
+```bash
+# ❌ WRONG (old documentation)
+pnpm tsx scripts/notifications-smoke.ts email
+
+# ✅ CORRECT (all docs now use this)
+pnpm tsx qa/notifications/run-smoke.ts --channel email
+```
+
+---
+
+### 2. ✅ Telemetry Webhook Required (HIGH)
+
+**Problem:** Docs treated telemetry as optional, but it's required for monitoring  
+**Impact:** Ops teams wouldn't see alerts even after credential setup
+
+**Fixed in:**
+
+- ✅ `NOTIFICATION_SMOKE_TEST_QUICKSTART.md` - Added to Step 1
+- ✅ `NOTIFICATION_CREDENTIALS_GUIDE.md` - Changed from "Optional" to "REQUIRED"
+- ✅ `scripts/setup-notification-credentials.sh` - Changed prompt and added examples
+
+**Changes:**
+
+```bash
+# Now prominently documented as REQUIRED
+NOTIFICATIONS_TELEMETRY_WEBHOOK=https://api.datadoghq.com/api/v1/events?api_key=YOUR_KEY
+# OR
+NOTIFICATIONS_TELEMETRY_WEBHOOK=https://events.pagerduty.com/v2/enqueue
+# OR
+NOTIFICATIONS_TELEMETRY_WEBHOOK=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+```
+
+**Warning added:** "Without this webhook, dispatch metrics won't reach your monitoring system. Operations teams won't see alerts in Datadog/PagerDuty/Slack."
+
+---
+
+### 3. ✅ Missing Validation Step (MEDIUM)
+
+**Problem:** No mention of environment validator before smoke tests  
+**Impact:** Users ran tests with missing variables and got cryptic errors
+
+**Fixed in:**
+
+- ✅ `NOTIFICATION_SMOKE_TEST_QUICKSTART.md` - Added "Step 0"
+- ✅ `QUICK_CHECKLIST.md` - Added to Quick Commands section
+
+**Added step:**
+
+```bash
+# Step 0: Validate Configuration (30 seconds)
+# IMPORTANT: Run validation before testing any channel
+pnpm tsx scripts/validate-notification-env.ts
+```
+
+---
+
+### 4. ✅ Security Status Clarification (HIGH)
+
+**Problem:** Documentation claimed security was "completely done" without noting implementation details  
+**Impact:** Could mislead stakeholders about deployment readiness
+
+**Fixed in:**
+
+- ✅ `PENDING_TASKS_NOV_11-17_UPDATED.md`
+- ✅ `ACTION_PLAN_NOV_17.md`
+
+**Changes:**
+
+- Added note: "See git diff for implementation" for rate limiting and CORS
+- Clarified: "All changes committed and ready for deployment"
+- Maintained accurate status while being transparent about where changes are
+
+---
+
+### 5. ✅ Missing jq Dependency (MEDIUM)
+
+**Problem:** Setup script used `jq` without checking if installed  
+**Impact:** Script would fail on fresh macOS/CI environments
+
+**Fixed in:**
+
+- ✅ `scripts/setup-notification-credentials.sh`
+
+**Added check:**
+
+```bash
+if ! command -v jq &> /dev/null; then
+  echo "❌ jq is required to parse Firebase JSON. Install it first:"
+  echo "   macOS: brew install jq"
+  echo "   Linux: sudo apt-get install jq"
+  echo ""
+  echo "⏭️  Skipping Firebase setup"
+else
+  # Parse Firebase JSON
+fi
+```
+
+---
+
+## 📊 Files Changed Summary
+
+| File                                        | Changes                                                                  | Impact   |
+| ------------------------------------------- | ------------------------------------------------------------------------ | -------- |
+| `NOTIFICATION_SMOKE_TEST_QUICKSTART.md`     | Fixed 3 command paths, added Step 0 validator, added telemetry to Step 1 | CRITICAL |
+| `NOTIFICATION_CREDENTIALS_GUIDE.md`         | Fixed 6 command paths, changed telemetry from optional to required       | CRITICAL |
+| `ACTION_PLAN_NOV_17.md`                     | Fixed 2 command paths, clarified security implementation status          | HIGH     |
+| `QUICK_CHECKLIST.md`                        | Fixed 2 command paths, added validator to Quick Commands                 | HIGH     |
+| `scripts/setup-notification-credentials.sh` | Fixed command path, added jq check, made telemetry required              | MEDIUM   |
+| `PENDING_TASKS_NOV_11-17_UPDATED.md`        | Clarified security status with implementation notes                      | MEDIUM   |
+
+**Total Changes:** 20+ corrections across 6 files
+
+---
+
+## ✅ Verification
+
+### All Command Paths Now Correct
+
+```bash
+# These commands now work across all documentation:
+pnpm tsx scripts/validate-notification-env.ts
+pnpm tsx qa/notifications/run-smoke.ts --channel email
+pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms
+```
+
+### All Documentation Consistent
+
+- ✅ Smoke test runner path: `qa/notifications/run-smoke.ts`
+- ✅ Validator path: `scripts/validate-notification-env.ts`
+- ✅ Telemetry: Marked as REQUIRED with examples
+- ✅ Security: Accurate status with implementation notes
+- ✅ Setup script: Checks for dependencies before use
+
+---
+
+## 🎯 Testing Performed
+
+### Command Path Verification
+
+```bash
+# Verified these files exist and are executable:
+✅ qa/notifications/run-smoke.ts (exists)
+✅ scripts/validate-notification-env.ts (exists)
+❌ scripts/notifications-smoke.ts (doesn't exist - all refs removed)
+```
+
+### Documentation Cross-Reference
+
+- ✅ All quick-start guides reference correct paths
+- ✅ All step-by-step guides reference correct paths
+- ✅ All checklists reference correct paths
+- ✅ Setup script uses correct paths
+
+---
+
+## 📚 User Impact
+
+### Before (Broken)
+
+1. User follows quickstart guide
+2. Runs: `pnpm tsx scripts/notifications-smoke.ts email`
+3. Gets error: "Cannot find module 'scripts/notifications-smoke.ts'"
+4. Confused, abandons setup
+5. No telemetry configured → Ops team blind to alerts
+
+### After (Fixed)
+
+1. User follows quickstart guide
+2. Runs validator first: `pnpm tsx scripts/validate-notification-env.ts`
+3. Sees what's missing, fixes credentials
+4. Runs: `pnpm tsx qa/notifications/run-smoke.ts --channel email`
+5. ✅ Tests pass
+6. Telemetry configured → Ops team sees all alerts
+
+---
+
+## 🚀 Next Steps for Users
+
+**Recommended workflow (now accurate):**
+
+1. **Validate first:**
+
+   ```bash
+   pnpm tsx scripts/validate-notification-env.ts
+   ```
+
+2. **Fix any missing credentials** (guided by validator output)
+
+3. **Test individual channels:**
+
+   ```bash
+   pnpm tsx qa/notifications/run-smoke.ts --channel email
+   pnpm tsx qa/notifications/run-smoke.ts --channel sms
+   ```
+
+4. **Verify telemetry:**
+   - Check Datadog/PagerDuty/Slack for notification events
+   - Confirm alerts are visible to ops team
+
+---
+
+## ✅ Sign-Off
+
+**Documentation Fixes Completed:** November 17, 2025  
+**Status:** 🟢 All documentation accurate and consistent  
+**Verification:** All commands tested and working  
+**User Impact:** Setup process now smooth and error-free
+
+---
+
+**🎉 All critical documentation issues resolved! Users can now follow the guides without errors.**
+
+]]>
+</file>
+
+</batch_content>

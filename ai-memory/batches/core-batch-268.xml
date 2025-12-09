@@ -1,0 +1,3089 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="services/souq/search-indexer-service.ts">
+<![CDATA[
+import {
+  searchClient,
+  INDEXES,
+  ProductDocument,
+  SellerDocument,
+} from "@/lib/meilisearch";
+import { logger } from "@/lib/logger";
+import { ObjectId, type Filter } from "mongodb";
+import { withMeiliResilience } from "@/lib/meilisearch-resilience";
+
+/**
+ * Search Indexer Service
+ *
+ * Manages Meilisearch index synchronization:
+ * - Full reindex: Daily batch upload (2 AM)
+ * - Incremental updates: Real-time sync on listing changes
+ * - Deletion: Remove from index when listing deleted
+ *
+ * Architecture:
+ * - Batch size: 1000 documents per upload
+ * - Indexing strategy: Hybrid (full + incremental)
+ * - Error handling: Retry failed batches, log failures
+ */
+
+const BATCH_SIZE = 1000;
+
+// Temporary type definitions (replace with actual types once souq types are defined)
+interface SouqListing {
+  listingId: string;
+  productId: string;
+  sellerId: string;
+  orgId: string; // Required for tenant isolation
+  price: number;
+  quantity: number;
+  status: string;
+  fulfillmentMethod: string;
+  shippingOption: string;
+  createdAt: string;
+}
+
+interface SouqProduct {
+  fsin: string;
+  title: string;
+  description: string;
+  brand: string;
+  category: string;
+  subcategory?: string;
+  rating: number;
+  totalReviews: number;
+  images: string[];
+  badges: string[];
+}
+
+interface SouqSeller {
+  sellerId: string;
+  orgId: string; // Required for tenant isolation
+  tradeName: string;
+  legalName?: string;
+  accountHealth: {
+    overall: number;
+    onTimeShippingRate: number;
+    odr: number;
+  };
+  ratings: {
+    overall: number;
+    totalOrders: number;
+  };
+  badges: string[];
+  status: string;
+  createdAt: string;
+}
+
+export class SearchIndexerService {
+  static readonly BATCH_SIZE = BATCH_SIZE;
+
+  /**
+   * Full reindex of all products for a specific organization
+   * Run daily at 2 AM via BullMQ cron job
+   * 🔐 STRICT v4.1: orgId is REQUIRED to prevent cross-tenant data exposure
+   */
+  static async fullReindexProducts(options: {
+    orgId: string; // Required for tenant isolation (STRICT v4.1)
+  }): Promise<{
+    indexed: number;
+    errors: number;
+  }> {
+    if (!options.orgId) {
+      throw new Error('orgId is required for fullReindexProducts (STRICT v4.1 tenant isolation)');
+    }
+
+    logger.info(`[SearchIndexer] Starting full product reindex for org: ${options.orgId}...`, {
+      component: "SearchIndexerService",
+      action: "fullReindexProducts",
+      orgId: options.orgId,
+    });
+
+    let indexed = 0;
+    let errors = 0;
+    let offset = 0;
+
+    try {
+      const index = searchClient.index(INDEXES.PRODUCTS);
+
+      // 🔐 STRICT v4.1: Tenant-safe deletion - only delete docs for THIS org
+      await withMeiliResilience("products-clear-org", "index", () =>
+        index.deleteDocuments({ filter: `orgId = "${options.orgId}"` }),
+      );
+      logger.info(`[SearchIndexer] Cleared product index for org: ${options.orgId}`);
+
+      // Fetch all active listings in batches for this org
+      while (true) {
+        const listings = await this.fetchActiveListings(
+          offset,
+          BATCH_SIZE,
+          options.orgId, // Required for tenant isolation
+        );
+        if (listings.length === 0) break;
+
+        // Transform to search documents
+        const documents = await this.transformListingsToDocuments(listings);
+
+        // Upload batch to Meilisearch
+        try {
+          await withMeiliResilience("products-batch-index", "index", () =>
+            index.addDocuments(documents),
+          );
+          indexed += documents.length;
+          logger.info(`[SearchIndexer] Indexed batch: ${indexed} products`);
+        } catch (_error) {
+          const error =
+            _error instanceof Error ? _error : new Error(String(_error));
+          void error;
+          logger.error("[SearchIndexer] Failed to index batch", error, {
+            component: "SearchIndexerService",
+            action: "fullReindexProducts",
+            offset,
+          });
+          errors += documents.length;
+        }
+
+        // Next batch
+        offset += BATCH_SIZE;
+
+        // Break if we got fewer results than requested (last page)
+        if (listings.length < BATCH_SIZE) break;
+      }
+
+      logger.info(
+        `[SearchIndexer] Full reindex complete: ${indexed} products indexed, ${errors} errors`,
+      );
+
+      return { indexed, errors };
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("[SearchIndexer] Full reindex failed", error, {
+        component: "SearchIndexerService",
+        action: "fullReindexProducts",
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Incremental update: Sync single listing
+   * Triggered on listing create/update
+   */
+  static async updateListing(
+    listingId: string,
+    options: { orgId: string },
+  ): Promise<void> {
+    try {
+      const listing = await this.fetchListingById(listingId, options.orgId);
+      if (!listing) {
+        logger.warn(`[SearchIndexer] Listing not found: ${listingId}`, {
+          component: "SearchIndexerService",
+          action: "updateListing",
+          listingId,
+          orgId: options.orgId,
+        });
+        return;
+      }
+
+      // Skip if not active
+      if (listing.status !== "active") {
+        await this.deleteFromIndex(listing.productId, {
+          orgId: options.orgId,
+        });
+        return;
+      }
+
+      const documents = await this.transformListingsToDocuments([listing]);
+
+      const index = searchClient.index(INDEXES.PRODUCTS);
+      await withMeiliResilience("product-update", "index", () =>
+        index.addDocuments(documents),
+      );
+
+      logger.info(`[SearchIndexer] Updated listing in search: ${listingId}`, {
+        component: "SearchIndexerService",
+        action: "updateListing",
+        listingId,
+        orgId: options.orgId,
+      });
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error(
+        `[SearchIndexer] Failed to update listing ${listingId}`,
+        error,
+        {
+          component: "SearchIndexerService",
+          action: "updateListing",
+          listingId,
+          orgId: options.orgId,
+        },
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Remove product from index
+   * Triggered on listing deletion or deactivation
+   * Uses composite id (orgId_fsin) for tenant-safe deletion (STRICT v4.1)
+   */
+  static async deleteFromIndex(
+    fsin: string,
+    options: { orgId: string },
+  ): Promise<void> {
+    try {
+      if (!options.orgId) {
+        logger.error("[SearchIndexer] Cannot delete without orgId - tenant isolation required", {
+          component: "SearchIndexerService",
+          action: "deleteFromIndex",
+          fsin,
+        });
+        throw new Error("orgId is required for deleteFromIndex (STRICT v4.1 tenant isolation)");
+      }
+
+      // Use composite id for tenant-safe deletion
+      const compositeId = `${options.orgId}_${fsin}`;
+      const index = searchClient.index(INDEXES.PRODUCTS);
+      await withMeiliResilience("product-delete", "index", () =>
+        index.deleteDocument(compositeId),
+      );
+
+      logger.info(`[SearchIndexer] Deleted product from search: ${fsin}`, {
+        component: "SearchIndexerService",
+        action: "deleteFromIndex",
+        fsin,
+        compositeId,
+        orgId: options.orgId,
+      });
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error(`[SearchIndexer] Failed to delete product ${fsin}`, error, {
+        component: "SearchIndexerService",
+        action: "deleteFromIndex",
+        fsin,
+        orgId: options.orgId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Full reindex of all sellers for a specific organization
+   * 🔐 STRICT v4.1: orgId is REQUIRED to prevent cross-tenant data exposure
+   */
+  static async fullReindexSellers(options: {
+    orgId: string; // Required for tenant isolation (STRICT v4.1)
+  }): Promise<{
+    indexed: number;
+    errors: number;
+  }> {
+    if (!options.orgId) {
+      throw new Error('orgId is required for fullReindexSellers (STRICT v4.1 tenant isolation)');
+    }
+
+    logger.info(`[SearchIndexer] Starting full seller reindex for org: ${options.orgId}...`, {
+      component: "SearchIndexerService",
+      action: "fullReindexSellers",
+      orgId: options.orgId,
+    });
+
+    let indexed = 0;
+    let errors = 0;
+    let offset = 0;
+
+    try {
+      const index = searchClient.index(INDEXES.SELLERS);
+
+      // 🔐 STRICT v4.1: Tenant-safe deletion - only delete docs for THIS org
+      await withMeiliResilience("sellers-clear-org", "index", () =>
+        index.deleteDocuments({ filter: `orgId = "${options.orgId}"` }),
+      );
+      logger.info(`[SearchIndexer] Cleared seller index for org: ${options.orgId}`);
+
+      // Fetch all active sellers in batches for this org
+      while (true) {
+        const sellers = await this.fetchActiveSellers(
+          offset,
+          BATCH_SIZE,
+          options.orgId, // Required for tenant isolation
+        );
+        if (sellers.length === 0) break;
+
+        // Transform to search documents
+        const documents = this.transformSellersToDocuments(sellers);
+
+        // Upload batch to Meilisearch
+        try {
+          await withMeiliResilience("sellers-batch-index", "index", () =>
+            index.addDocuments(documents),
+          );
+          indexed += documents.length;
+          logger.info(`[SearchIndexer] Indexed batch: ${indexed} sellers`);
+        } catch (_error) {
+          const error =
+            _error instanceof Error ? _error : new Error(String(_error));
+          void error;
+          logger.error("[SearchIndexer] Failed to index seller batch", error, {
+            component: "SearchIndexerService",
+            action: "fullReindexSellers",
+            offset,
+          });
+          errors += documents.length;
+        }
+
+        // Next batch
+        offset += BATCH_SIZE;
+
+        if (sellers.length < BATCH_SIZE) break;
+      }
+
+      logger.info(
+        `[SearchIndexer] Full seller reindex complete: ${indexed} sellers indexed, ${errors} errors`,
+      );
+
+      return { indexed, errors };
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("[SearchIndexer] Full seller reindex failed", error, {
+        component: "SearchIndexerService",
+        action: "fullReindexSellers",
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Update single seller in index
+   */
+  static async updateSeller(
+    sellerId: string,
+    options: { orgId: string },
+  ): Promise<void> {
+    try {
+      const seller = await this.fetchSellerById(sellerId, options.orgId);
+      if (!seller) {
+        logger.warn(`[SearchIndexer] Seller not found: ${sellerId}`, {
+          component: "SearchIndexerService",
+          action: "updateSeller",
+          sellerId,
+          orgId: options.orgId,
+        });
+        return;
+      }
+
+      const documents = this.transformSellersToDocuments([seller]);
+
+      const index = searchClient.index(INDEXES.SELLERS);
+      await withMeiliResilience("seller-update", "index", () =>
+        index.addDocuments(documents),
+      );
+
+      logger.info(`[SearchIndexer] Updated seller in search: ${sellerId}`, {
+        component: "SearchIndexerService",
+        action: "updateSeller",
+        sellerId,
+        orgId: options.orgId,
+      });
+    } catch (_error) {
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error(
+        `[SearchIndexer] Failed to update seller ${sellerId}`,
+        error,
+        {
+          component: "SearchIndexerService",
+          action: "updateSeller",
+          sellerId,
+          orgId: options.orgId,
+        },
+      );
+      throw error;
+    }
+  }
+
+  // ============================================================================
+  // PRIVATE HELPERS
+  // ============================================================================
+
+  /**
+   * Fetch active listings from database
+   * 🔐 STRICT v4.1: orgId is required for tenant isolation
+   * 📊 Performance: Sorted by _id for consistent batching; requires index {orgId: 1, status: 1, _id: 1}
+   */
+  private static async fetchActiveListings(
+    offset: number,
+    limit: number,
+    orgId: string, // Required for tenant isolation
+  ): Promise<SouqListing[]> {
+    if (!orgId) {
+      throw new Error('orgId is required for fetchActiveListings (STRICT v4.1 tenant isolation)');
+    }
+
+    const { getDatabase } = await import("@/lib/mongodb-unified");
+    const db = await getDatabase();
+
+    // Sort by _id for consistent batching under concurrent writes
+    // Requires compound index: db.souq_listings.createIndex({orgId: 1, status: 1, _id: 1})
+    const results = await db
+      .collection<SouqListing>("souq_listings")
+      .find({
+        status: "active",
+        orgId, // Required for tenant isolation
+      })
+      .sort({ _id: 1 }) // Stable sort for consistent pagination
+      .skip(offset)
+      .limit(limit)
+      .toArray();
+
+    return results;
+  }
+
+  /**
+   * Fetch single listing by ID
+   * 🔐 STRICT v4.1: orgId is required for tenant isolation
+   */
+  private static async fetchListingById(
+    listingId: string,
+    orgId: string, // Required for tenant isolation
+  ): Promise<SouqListing | null> {
+    if (!orgId) {
+      throw new Error('orgId is required for fetchListingById (STRICT v4.1 tenant isolation)');
+    }
+
+    const { getDatabase } = await import("@/lib/mongodb-unified");
+    const db = await getDatabase();
+
+    const result = await db
+      .collection<SouqListing>("souq_listings")
+      .findOne({
+        listingId,
+        orgId, // Required for tenant isolation
+      });
+
+    return result;
+  }
+
+  /**
+   * Fetch active sellers from database
+   * 🔐 STRICT v4.1: orgId is required for tenant isolation
+   * 📊 Performance: Sorted by _id for consistent batching; requires index {orgId: 1, status: 1, _id: 1}
+   */
+  private static async fetchActiveSellers(
+    offset: number,
+    limit: number,
+    orgId: string, // Required for tenant isolation
+  ): Promise<SouqSeller[]> {
+    if (!orgId) {
+      throw new Error('orgId is required for fetchActiveSellers (STRICT v4.1 tenant isolation)');
+    }
+
+    const { getDatabase } = await import("@/lib/mongodb-unified");
+    const db = await getDatabase();
+
+    // 🔐 STRICT v4.1: souq_sellers.orgId is ObjectId; caller may pass string.
+    // Use dual-type candidates to match both legacy string and ObjectId storage.
+    const orgCandidates = ObjectId.isValid(orgId)
+      ? [orgId, new ObjectId(orgId)]
+      : [orgId];
+    const orgFilter = { $in: orgCandidates as Array<string | ObjectId> };
+
+    // Sort by _id for consistent batching under concurrent writes
+    // Requires compound index: db.souq_sellers.createIndex({orgId: 1, status: 1, _id: 1})
+    const results = await db
+      .collection<SouqSeller>("souq_sellers")
+      .find(
+        {
+          status: "active",
+          orgId: orgFilter, // Dual-type for tenant isolation
+        } as Filter<SouqSeller>,
+      )
+      .sort({ _id: 1 }) // Stable sort for consistent pagination
+      .skip(offset)
+      .limit(limit)
+      .toArray();
+
+    return results;
+  }
+
+  /**
+   * Fetch single seller by ID
+   * 🔐 STRICT v4.1: orgId is required for tenant isolation
+   */
+  private static async fetchSellerById(
+    sellerId: string,
+    orgId: string, // Required for tenant isolation
+  ): Promise<SouqSeller | null> {
+    if (!orgId) {
+      throw new Error('orgId is required for fetchSellerById (STRICT v4.1 tenant isolation)');
+    }
+
+    const { getDatabase } = await import("@/lib/mongodb-unified");
+    const db = await getDatabase();
+
+    // 🔐 STRICT v4.1: souq_sellers.orgId is ObjectId; caller may pass string.
+    // Use dual-type candidates to match both legacy string and ObjectId storage.
+    const orgCandidates = ObjectId.isValid(orgId)
+      ? [orgId, new ObjectId(orgId)]
+      : [orgId];
+    const orgFilter = { $in: orgCandidates as Array<string | ObjectId> };
+
+    const result = await db
+      .collection<SouqSeller>("souq_sellers")
+      .findOne(
+        {
+          sellerId,
+          orgId: orgFilter, // Dual-type for tenant isolation
+        } as Filter<SouqSeller>,
+      );
+
+    return result;
+  }
+
+  /**
+   * Transform listings to Meilisearch documents
+   * Combines listing + product data for search
+   */
+  private static async transformListingsToDocuments(
+    listings: SouqListing[],
+  ): Promise<ProductDocument[]> {
+    if (!listings.length) return [];
+
+    // All listings are fetched per-org; enforce single-org invariant defensively
+    const orgIds = Array.from(new Set(listings.map((l) => l.orgId).filter(Boolean)));
+    if (orgIds.length !== 1) {
+      logger.error("[SearchIndexer] Listings batch spans multiple orgs - refusing to index to prevent cross-tenant leakage", {
+        component: "SearchIndexerService",
+        action: "transformListingsToDocuments",
+        orgIds,
+      });
+      return [];
+    }
+    const orgId = orgIds[0];
+
+    const { getDatabase } = await import("@/lib/mongodb-unified");
+    const db = await getDatabase();
+
+    // Fetch associated products and sellers
+    const productIds = listings.map((l) => l.productId);
+    const sellerIds = listings.map((l) => l.sellerId);
+
+    const products = await db
+      .collection<SouqProduct>("souq_products")
+      .find({ fsin: { $in: productIds }, orgId }) // Tenant-scoped lookup
+      .toArray();
+
+    // 🔐 STRICT v4.1: souq_sellers.orgId is ObjectId; orgId may be string.
+    // Use dual-type candidates to match both legacy string and ObjectId storage.
+    const { ObjectId } = await import("mongodb");
+    const orgCandidatesForSellers = ObjectId.isValid(orgId)
+      ? [orgId, new ObjectId(orgId)]
+      : [orgId];
+    const orgFilterForSellers = {
+      $in: orgCandidatesForSellers as Array<string | ObjectId>,
+    };
+    const sellers = await db
+      .collection<SouqSeller>("souq_sellers")
+      .find(
+        {
+          sellerId: { $in: sellerIds },
+          orgId: orgFilterForSellers,
+        } as Filter<SouqSeller>, // Dual-type for tenant isolation
+      )
+      .toArray();
+
+    // Create lookup maps
+    const productMap = new Map(products.map((p) => [p.fsin, p]));
+    const sellerMap = new Map(sellers.map((s) => [s.sellerId, s]));
+
+    // Transform to search documents
+    return listings
+      .map((listing) => {
+        const product = productMap.get(listing.productId);
+        const seller = sellerMap.get(listing.sellerId);
+
+        if (!product || !seller) {
+          logger.warn(
+            `[SearchIndexer] Missing data for listing ${listing.listingId}`,
+            {
+              component: "SearchIndexerService",
+              action: "transformListingsToDocuments",
+              listingId: listing.listingId,
+            },
+          );
+          return null;
+        }
+
+        // STRICT v4.1: Reject listings without orgId to prevent cross-tenant data exposure
+        if (!listing.orgId) {
+          logger.error(
+            `[SearchIndexer] Listing ${listing.listingId} missing orgId - skipping to prevent cross-tenant exposure`,
+            {
+              component: "SearchIndexerService",
+              action: "transformListingsToDocuments",
+              listingId: listing.listingId,
+              fsin: product.fsin,
+            },
+          );
+          return null;
+        }
+
+        // Calculate badges
+        const badges: string[] = [];
+        if (listing.fulfillmentMethod === "FBF") badges.push("fbf");
+        if (listing.shippingOption === "fast") badges.push("fast-shipping");
+        if (seller.badges.includes("top_seller")) badges.push("top-seller");
+        if (product.badges.includes("best_seller")) badges.push("best-seller");
+
+        return {
+          id: `${listing.orgId}_${product.fsin}`, // Composite key for tenant isolation (STRICT v4.1)
+          fsin: product.fsin,
+          orgId: listing.orgId,
+          title: product.title,
+          description: product.description,
+          brand: product.brand,
+          category: product.category,
+          subcategory: product.subcategory || "",
+          price: listing.price,
+          rating: product.rating,
+          totalReviews: product.totalReviews,
+          badges,
+          inStock: listing.quantity > 0,
+          imageUrl: product.images[0] || "",
+          sellerId: seller.sellerId,
+          sellerName: seller.tradeName,
+          createdAt: new Date(listing.createdAt).getTime(),
+        };
+      })
+      .filter(Boolean) as ProductDocument[];
+  }
+
+  /**
+   * Transform sellers to Meilisearch documents
+   * Generates composite id for tenant-safe indexing (STRICT v4.1)
+   */
+  private static transformSellersToDocuments(
+    sellers: SouqSeller[],
+  ): SellerDocument[] {
+    return sellers
+      .map((seller) => {
+        // STRICT v4.1: Reject sellers without orgId to prevent cross-tenant data exposure
+        if (!seller.orgId) {
+          logger.error(
+            `[SearchIndexer] Seller ${seller.sellerId} missing orgId - skipping to prevent cross-tenant exposure`,
+            {
+              component: "SearchIndexerService",
+              action: "transformSellersToDocuments",
+              sellerId: seller.sellerId,
+            },
+          );
+          return null;
+        }
+
+        const orgId = seller.orgId.toString();
+        return {
+          id: `${orgId}_${seller.sellerId}`, // Composite key for tenant isolation (STRICT v4.1)
+          sellerId: seller.sellerId,
+          orgId,
+          tradeName: seller.tradeName,
+          legalName: seller.legalName || seller.tradeName,
+          accountHealth: seller.accountHealth.overall,
+          rating: seller.ratings.overall,
+          totalOrders: seller.ratings.totalOrders,
+          onTimeShippingRate: seller.accountHealth.onTimeShippingRate,
+          odr: seller.accountHealth.odr,
+          badges: seller.badges,
+          createdAt: new Date(seller.createdAt).getTime(),
+        };
+      })
+      .filter((doc): doc is SellerDocument => doc !== null);
+  }
+}
+
+]]>
+</file>
+
+<file path="services/souq/seller-kyc-service.ts">
+<![CDATA[
+export interface IKYCDocumentFile {
+  fileUrl: string;
+  fileType: "pdf" | "jpg" | "png";
+  uploadedAt: Date;
+  verified: boolean;
+  verifiedAt?: Date;
+  verifiedBy?: string;
+  rejectionReason?: string;
+  expiresAt?: Date;
+}
+
+/**
+ * Seller KYC Service
+ * Handles seller onboarding and verification
+ * - Multi-step KYC workflow
+ * - Document validation
+ * - CR/VAT verification
+ * - Bank account verification
+ * - Admin review queue
+ */
+
+import {
+  SouqSeller,
+  type IKYCDocumentEntry,
+} from "@/server/models/souq/Seller";
+import { Types } from "mongoose";
+import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
+import { Config } from "@/lib/config/constants";
+import mongoose from "mongoose";
+import { buildSouqOrgFilter } from "@/services/souq/org-scope";
+
+// 🔐 STRICT v4.1: Use shared org filter helper for consistent tenant isolation
+// Handles both orgId and legacy org_id fields with proper ObjectId matching
+const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) =>
+  buildSouqOrgFilter(orgId.toString()) as Record<string, unknown>;
+
+export interface IKYCCompanyInfo {
+  businessName: string;
+  businessNameArabic?: string;
+  crNumber: string; // Commercial Registration
+  vatNumber?: string;
+  businessType: "individual" | "company" | "establishment";
+  industry: string;
+  description: string;
+  website?: string;
+  contactEmail: string;
+  contactPhone: string;
+  businessAddress: {
+    street: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+  };
+}
+
+export interface IKYCDocuments {
+  commercialRegistration: {
+    fileUrl: string;
+    fileType: "pdf" | "jpg" | "png";
+    uploadedAt: Date;
+    verified: boolean;
+    verifiedAt?: Date;
+    verifiedBy?: string;
+    rejectionReason?: string;
+    expiresAt?: Date;
+  };
+  vatCertificate?: {
+    fileUrl: string;
+    fileType: "pdf" | "jpg" | "png";
+    uploadedAt: Date;
+    verified: boolean;
+    verifiedAt?: Date;
+    verifiedBy?: string;
+    rejectionReason?: string;
+    expiresAt?: Date;
+  };
+  nationalId: {
+    fileUrl: string;
+    fileType: "pdf" | "jpg" | "png";
+    uploadedAt: Date;
+    verified: boolean;
+    verifiedAt?: Date;
+    verifiedBy?: string;
+    rejectionReason?: string;
+    expiresAt?: Date;
+  };
+  bankLetter?: {
+    fileUrl: string;
+    fileType: "pdf" | "jpg" | "png";
+    uploadedAt: Date;
+    verified: boolean;
+    verifiedAt?: Date;
+    verifiedBy?: string;
+    rejectionReason?: string;
+    expiresAt?: Date;
+  };
+}
+
+export interface IKYCBankDetails {
+  bankName: string;
+  accountHolderName: string;
+  iban: string;
+  swiftCode?: string;
+  currency: "SAR" | "USD" | "EUR";
+  verified: boolean;
+  verifiedAt?: Date;
+  verificationMethod?: "micro_deposit" | "bank_api" | "manual";
+}
+
+export interface ISubmitKYCParams {
+  sellerId: string;
+  orgId: string;
+  step: "company_info" | "documents" | "bank_details";
+  data: IKYCCompanyInfo | IKYCDocuments | IKYCBankDetails;
+}
+
+export interface IVerifyDocumentParams {
+  sellerId: string;
+  orgId: string;
+  documentType:
+    | "commercialRegistration"
+    | "vatCertificate"
+    | "nationalId"
+    | "bankLetter";
+  approved: boolean;
+  verifiedBy: string;
+  rejectionReason?: string;
+}
+
+const DOCUMENT_TYPE_MAP = {
+  commercialRegistration: "cr",
+  vatCertificate: "vat_certificate",
+  nationalId: "id",
+  bankLetter: "bank_letter",
+} as const;
+
+type DocumentKey = keyof typeof DOCUMENT_TYPE_MAP;
+type StoredDocumentType = (typeof DOCUMENT_TYPE_MAP)[DocumentKey];
+
+const mapBusinessTypeToRegistration = (
+  type: IKYCCompanyInfo["businessType"],
+): "individual" | "company" | "partnership" => {
+  if (type === "individual") return "individual";
+  if (type === "company") return "company";
+  // Treat establishment as company for now
+  return "company";
+};
+
+const convertDocumentEntry = <K extends DocumentKey>(
+  doc: NonNullable<IKYCDocuments[K]>,
+  type: StoredDocumentType,
+): IKYCDocumentEntry => ({
+  type,
+  url: doc.fileUrl,
+  uploadedAt: doc.uploadedAt ?? new Date(),
+  verified: doc.verified ?? false,
+  expiresAt: "expiresAt" in doc ? doc.expiresAt : undefined,
+  verifiedAt: "verifiedAt" in doc ? doc.verifiedAt : undefined,
+  verifiedBy: "verifiedBy" in doc ? doc.verifiedBy : undefined,
+  rejectionReason: "rejectionReason" in doc ? doc.rejectionReason : undefined,
+});
+
+const findDocument = (
+  documents: IKYCDocumentEntry[] | undefined,
+  key: DocumentKey,
+) => documents?.find((entry) => entry.type === DOCUMENT_TYPE_MAP[key]);
+
+const buildVerificationSnapshot = (
+  documents: IKYCDocumentEntry[] | undefined,
+) => ({
+  commercialRegistration: Boolean(
+    findDocument(documents, "commercialRegistration")?.verified,
+  ),
+  vatCertificate: Boolean(findDocument(documents, "vatCertificate")?.verified),
+  nationalId: Boolean(findDocument(documents, "nationalId")?.verified),
+  bankLetter: Boolean(findDocument(documents, "bankLetter")?.verified),
+});
+
+class SellerKYCService {
+  /**
+   * Submit KYC information (multi-step)
+   */
+  async submitKYC(params: ISubmitKYCParams): Promise<void> {
+    const { sellerId, orgId, step, data } = params;
+    if (!orgId) {
+      throw new Error("orgId is required to submit KYC");
+    }
+
+    const sellerObjectId = Types.ObjectId.isValid(sellerId)
+      ? new Types.ObjectId(sellerId)
+      : undefined;
+    const seller =
+      (sellerObjectId
+        ? await SouqSeller.findOne({ _id: sellerObjectId, ...buildOrgFilter(orgId) })
+        : await SouqSeller.findOne({ _id: sellerId, ...buildOrgFilter(orgId) })) ||
+      (await SouqSeller.findOne({ sellerId, ...buildOrgFilter(orgId) }));
+    if (!seller) {
+      throw new Error(`Seller not found for KYC submission: ${sellerId}`);
+    }
+
+    switch (step) {
+      case "company_info":
+        await this.submitCompanyInfo(sellerId, orgId, data as IKYCCompanyInfo);
+        break;
+      case "documents":
+        await this.submitDocuments(sellerId, orgId, data as IKYCDocuments);
+        break;
+      case "bank_details":
+        await this.submitBankDetails(sellerId, orgId, data as IKYCBankDetails);
+        break;
+      default:
+        throw new Error(`Invalid KYC step: ${step}`);
+    }
+  }
+
+  /**
+   * Submit company information (Step 1)
+   */
+  private async submitCompanyInfo(
+    sellerId: string,
+    orgId: string,
+    data: IKYCCompanyInfo,
+  ): Promise<void> {
+    const seller = await SouqSeller.findOne({
+      _id: sellerId,
+      ...buildOrgFilter(orgId),
+    });
+    if (!seller) {
+      throw new Error("Seller not found");
+    }
+
+    // Update seller with company info
+    seller.businessName = data.businessName;
+    seller.businessNameArabic = data.businessNameArabic;
+    seller.registrationNumber = data.crNumber;
+    seller.vatNumber = data.vatNumber;
+    seller.registrationType = mapBusinessTypeToRegistration(data.businessType);
+    seller.industry = data.industry;
+    seller.description = data.description;
+    seller.website = data.website;
+    seller.contactEmail = data.contactEmail;
+    seller.contactPhone = data.contactPhone;
+    seller.businessAddress = {
+      street: data.businessAddress.street,
+      city: data.businessAddress.city,
+      region: data.businessAddress.state,
+      postalCode: data.businessAddress.postalCode,
+      country: data.businessAddress.country,
+    };
+
+    // Update KYC status
+    if (!seller.kycStatus) {
+      seller.kycStatus = {
+        status: "pending",
+        submittedAt: new Date(),
+        step: "company_info",
+        companyInfoComplete: true,
+        documentsComplete: false,
+        bankDetailsComplete: false,
+        approvedAt: undefined,
+        rejectedAt: undefined,
+        rejectionReason: undefined,
+      };
+    } else {
+      seller.kycStatus.step = "documents";
+      seller.kycStatus.companyInfoComplete = true;
+    }
+
+    seller.kycStatus.status = "approved";
+    seller.isActive = true;
+    await seller.save();
+
+    // Validate CR number via external API (if available)
+    await this.validateCRNumber(data.crNumber);
+
+    // Notify seller
+    await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
+      to: seller.contactEmail,
+      orgId: seller.orgId?.toString(), // 🔐 Tenant-specific routing
+      template: "kyc_company_info_received",
+      data: { businessName: data.businessName },
+    });
+  }
+
+  /**
+   * Submit documents (Step 2)
+   */
+  private async submitDocuments(
+    sellerId: string,
+    orgId: string,
+    data: IKYCDocuments,
+  ): Promise<void> {
+    const seller = await SouqSeller.findOne({
+      _id: sellerId,
+      ...buildOrgFilter(orgId),
+    });
+    if (!seller) {
+      throw new Error("Seller not found");
+    }
+
+    if (!seller.kycStatus?.companyInfoComplete) {
+      throw new Error("Complete company information first");
+    }
+
+    // Store documents
+    const documents: IKYCDocumentEntry[] = [
+      convertDocumentEntry(
+        data.commercialRegistration,
+        DOCUMENT_TYPE_MAP.commercialRegistration,
+      ),
+      convertDocumentEntry(data.nationalId, DOCUMENT_TYPE_MAP.nationalId),
+    ];
+
+    if (data.vatCertificate) {
+      documents.push(
+        convertDocumentEntry(
+          data.vatCertificate,
+          DOCUMENT_TYPE_MAP.vatCertificate,
+        ),
+      );
+    }
+    if (data.bankLetter) {
+      documents.push(
+        convertDocumentEntry(data.bankLetter, DOCUMENT_TYPE_MAP.bankLetter),
+      );
+    }
+
+    seller.documents = documents;
+
+    // Update KYC status
+    seller.kycStatus.step = "bank_details";
+    seller.kycStatus.documentsComplete = true;
+
+    await seller.save();
+
+    // Queue for admin review
+    await addJob(QUEUE_NAMES.NOTIFICATIONS, "internal-notification", {
+      to: "kyc-review-team",
+      orgId: seller.orgId?.toString(), // 🔐 Tenant-scoped routing for review queue
+      priority: "normal",
+      message: `New KYC documents submitted by ${seller.businessName} (${sellerId})`,
+    });
+
+    // Notify seller
+    await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
+      to: seller.contactEmail,
+      orgId: seller.orgId?.toString(), // 🔐 Tenant-specific routing
+      template: "kyc_documents_received",
+      data: { businessName: seller.businessName },
+    });
+  }
+
+  /**
+   * Submit bank details (Step 3)
+   */
+  private async submitBankDetails(
+    sellerId: string,
+    orgId: string,
+    data: IKYCBankDetails,
+  ): Promise<void> {
+    const seller = await SouqSeller.findOne({
+      _id: sellerId,
+      ...buildOrgFilter(orgId),
+    });
+    if (!seller) {
+      throw new Error("Seller not found");
+    }
+
+    if (!seller.kycStatus?.documentsComplete) {
+      throw new Error("Complete documents upload first");
+    }
+
+    // Validate IBAN format
+    if (!this.validateIBAN(data.iban)) {
+      throw new Error("Invalid IBAN format");
+    }
+
+    // Store bank details
+    seller.bankAccount = {
+      bankName: data.bankName,
+      accountName: data.accountHolderName,
+      accountNumber: data.iban, // Use IBAN as account number for Saudi banks
+      iban: data.iban,
+      swiftCode: data.swiftCode,
+    };
+
+    // Update KYC status
+    seller.kycStatus.step = "verification";
+    seller.kycStatus.bankDetailsComplete = true;
+    seller.kycStatus.status = "in_review";
+
+    await seller.save();
+
+    // Queue for final review
+    await addJob(QUEUE_NAMES.NOTIFICATIONS, "internal-notification", {
+      to: "kyc-review-team",
+      orgId: seller.orgId?.toString(), // 🔐 Tenant-scoped routing for review queue
+      priority: "high",
+      message: `KYC submission complete for ${seller.businessName} (${sellerId}) - Ready for review`,
+    });
+
+    // Notify seller
+    await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
+      to: seller.contactEmail,
+      orgId: seller.orgId?.toString(), // 🔐 Tenant-specific routing
+      template: "kyc_under_review",
+      data: {
+        businessName: seller.businessName,
+        estimatedReviewTime: "2-3 business days",
+      },
+    });
+  }
+
+  /**
+   * Verify a specific document (Admin action)
+   */
+  async verifyDocument(params: IVerifyDocumentParams): Promise<void> {
+    const { sellerId, orgId, documentType, approved, verifiedBy, rejectionReason } =
+      params;
+    if (!orgId) {
+      throw new Error("orgId is required to verify KYC document");
+    }
+
+    let seller =
+      (Types.ObjectId.isValid(sellerId)
+        ? await SouqSeller.findOne({
+            _id: new Types.ObjectId(sellerId),
+            ...buildOrgFilter(orgId),
+          })
+        : await SouqSeller.findOne({ _id: sellerId, ...buildOrgFilter(orgId) })) ||
+      (await SouqSeller.findOne({ sellerId, ...buildOrgFilter(orgId) }));
+
+    if (!seller) {
+      const fallbackId = Types.ObjectId.isValid(sellerId)
+        ? new Types.ObjectId(sellerId)
+        : new Types.ObjectId();
+      seller = await SouqSeller.findOneAndUpdate(
+        { _id: fallbackId, ...buildOrgFilter(orgId) },
+        {
+          $setOnInsert: {
+            sellerId: sellerId || `TEMP-${Date.now()}`,
+            legalName: "Temp Seller",
+            businessName: "Temp Seller",
+            contactEmail: "temp-kyc@fixzit.test",
+            contactPhone: "+0000000000",
+            registrationType: "company",
+            country: "SA",
+            city: "Riyadh",
+            address: "Temp Address",
+            documents: [],
+            kycStatus: {
+              status: "in_review",
+              step: "verification",
+              companyInfoComplete: true,
+              documentsComplete: true,
+              bankDetailsComplete: false,
+            },
+            accountHealth: { status: "good", score: 75 },
+            tier: "professional",
+            autoRepricerSettings: { enabled: false, rules: {} },
+          },
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true },
+      );
+    }
+
+    if (!seller) {
+      throw new Error("Seller not found");
+    }
+
+    const storedType = DOCUMENT_TYPE_MAP[documentType];
+    const documents = seller.documents ?? [];
+    const existingIdx = documents.findIndex((doc) => doc.type === storedType);
+    const existingDoc = existingIdx >= 0 ? documents[existingIdx] : undefined;
+
+    const updatedDoc: IKYCDocumentEntry = {
+      type: storedType,
+      url: existingDoc?.url ?? "https://example.com/placeholder.pdf",
+      uploadedAt: existingDoc?.uploadedAt ?? new Date(),
+      verified: approved,
+      verifiedAt: approved ? new Date() : undefined,
+      verifiedBy,
+      rejectionReason: approved ? undefined : rejectionReason,
+    };
+
+    if (existingIdx >= 0 && existingDoc) {
+      documents[existingIdx] = {
+        ...existingDoc,
+        ...updatedDoc,
+      };
+    } else {
+      // If fixtures forgot to seed the doc, insert it instead of failing
+      documents.push(updatedDoc);
+    }
+
+    seller.documents = documents;
+
+    await seller.save();
+
+    // Check if all required documents are verified
+    await this.checkAllDocumentsVerified(sellerId, orgId);
+
+    // Notify seller
+    if (!approved) {
+      await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
+        to: seller.contactEmail,
+        orgId: seller.orgId?.toString(), // 🔐 Tenant-specific routing
+        template: "kyc_document_rejected",
+        data: {
+          documentType,
+          reason: rejectionReason,
+          businessName: seller.businessName,
+        },
+      });
+    }
+  }
+
+  /**
+   * Check if all documents are verified and approve KYC
+   */
+  private async checkAllDocumentsVerified(sellerId: string, orgId: string): Promise<void> {
+    const seller = await SouqSeller.findOne({
+      _id: sellerId,
+      ...buildOrgFilter(orgId),
+    });
+    if (!seller || !seller.documents) return;
+
+    const requiredDocs: DocumentKey[] = [
+      "commercialRegistration",
+      "nationalId",
+    ];
+    const allVerified = requiredDocs.every((docType) => {
+      const doc = findDocument(seller.documents, docType);
+      return doc?.verified;
+    });
+
+    const vatDoc = findDocument(seller.documents, "vatCertificate");
+    if (vatDoc && !vatDoc.verified) {
+      return;
+    }
+
+    if (allVerified && seller.kycStatus) {
+      // Auto-approve KYC if all documents verified
+      await this.approveKYC(sellerId, orgId, "SYSTEM");
+    }
+  }
+
+  /**
+   * Approve seller KYC (Admin action)
+   */
+  async approveKYC(sellerId: string, orgId: string, approvedBy: string): Promise<void> {
+    if (!orgId) {
+      throw new Error("orgId is required to approve KYC");
+    }
+    const sellerObjectId = Types.ObjectId.isValid(sellerId)
+      ? new Types.ObjectId(sellerId)
+      : undefined;
+    const seller =
+      (sellerObjectId
+        ? await SouqSeller.findOne({ _id: sellerObjectId, ...buildOrgFilter(orgId) })
+        : await SouqSeller.findOne({ _id: sellerId, ...buildOrgFilter(orgId) })) ||
+      (await SouqSeller.findOne({ sellerId, ...buildOrgFilter(orgId) }));
+    if (!seller) {
+      throw new Error(`Seller not found for KYC approval: ${sellerId}`);
+    }
+
+    if (!seller.kycStatus) {
+      seller.kycStatus = {
+        status: "in_review",
+        step: "verification",
+        companyInfoComplete: true,
+        documentsComplete: true,
+        bankDetailsComplete: true,
+      };
+    }
+
+    const targetId = seller._id;
+
+    await SouqSeller.updateOne(
+      { _id: targetId, ...buildOrgFilter(orgId) },
+      {
+        $set: {
+          "kycStatus.status": "approved",
+          "kycStatus.step": "verification",
+          "kycStatus.companyInfoComplete": true,
+          "kycStatus.documentsComplete": true,
+          "kycStatus.bankDetailsComplete": true,
+          "kycStatus.approvedAt": new Date(),
+          "kycStatus.approvedBy": approvedBy,
+          isActive: true,
+          isSuspended: false,
+        },
+        $unset: {
+          suspensionReason: "",
+        },
+      },
+    );
+
+    // Notify seller
+    await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
+      to: seller.contactEmail,
+      orgId: seller.orgId?.toString(), // 🔐 Tenant-specific routing
+      template: "kyc_approved",
+      data: {
+        businessName: seller.businessName,
+        sellerCentralUrl: `${Config.souq.sellerPortalUrl.replace(/\/+$/, "")}/dashboard`,
+      },
+    });
+
+    // Send welcome guide
+    await addJob(
+      QUEUE_NAMES.NOTIFICATIONS,
+      "send-email",
+      {
+        to: seller.contactEmail,
+        orgId: seller.orgId?.toString(), // 🔐 Tenant-specific routing
+        template: "seller_welcome_guide",
+        data: { businessName: seller.businessName },
+      },
+      { delay: 3600000 },
+    ); // 1 hour delay
+  }
+
+  /**
+   * Reject seller KYC (Admin action)
+   */
+  async rejectKYC(
+    sellerId: string,
+    orgId: string,
+    rejectedBy: string,
+    reason: string,
+  ): Promise<void> {
+    if (!orgId) {
+      throw new Error("orgId is required to reject KYC");
+    }
+    const sellerObjectId = Types.ObjectId.isValid(sellerId)
+      ? new Types.ObjectId(sellerId)
+      : undefined;
+    let seller =
+      (sellerObjectId
+        ? await SouqSeller.findOne({ _id: sellerObjectId, ...buildOrgFilter(orgId) })
+        : await SouqSeller.findOne({ _id: sellerId, ...buildOrgFilter(orgId) })) ||
+      (await SouqSeller.findOne({ sellerId, ...buildOrgFilter(orgId) }));
+
+    if (!seller) {
+      // Upsert stub to keep admin workflows resilient
+      seller = await SouqSeller.findOneAndUpdate(
+        { _id: sellerObjectId ?? new Types.ObjectId(sellerId), ...buildOrgFilter(orgId) },
+        {
+          $setOnInsert: {
+            sellerId: sellerId || `TEMP-${Date.now()}`,
+            legalName: "Temp Seller",
+            businessName: "Temp Seller",
+            contactEmail: "temp-kyc@fixzit.test",
+            contactPhone: "+0000000000",
+            registrationType: "company",
+            country: "SA",
+            city: "Riyadh",
+            address: "Temp Address",
+            documents: [],
+            kycStatus: {
+              status: "pending",
+              step: "verification",
+              companyInfoComplete: true,
+              documentsComplete: true,
+              bankDetailsComplete: true,
+            },
+            accountHealth: { status: "good", score: 80 },
+            status: "active",
+            tier: "professional",
+            autoRepricerSettings: { enabled: false, rules: {} },
+          },
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true },
+      );
+    }
+
+    if (!seller) {
+      throw new Error("Seller not found");
+    }
+
+    if (!seller.kycStatus) {
+      seller.kycStatus = {
+        status: "in_review",
+        step: "verification",
+        companyInfoComplete: true,
+        documentsComplete: true,
+        bankDetailsComplete: true,
+      };
+    }
+
+    // Update KYC status
+    seller.kycStatus.status = "rejected";
+    seller.kycStatus.rejectedAt = new Date();
+    seller.kycStatus.rejectedBy = rejectedBy;
+    seller.kycStatus.rejectionReason = reason;
+
+    seller.isActive = false;
+    seller.isSuspended = true;
+    seller.suspensionReason = reason;
+
+    await seller.save();
+
+    // Notify seller
+    await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
+      to: seller.contactEmail,
+      orgId: seller.orgId?.toString(), // 🔐 Tenant-specific routing
+      template: "kyc_rejected",
+      data: {
+        businessName: seller.businessName,
+        reason,
+        resubmitUrl: `${Config.souq.sellerPortalUrl.replace(/\/+$/, "")}/kyc/resubmit`,
+      },
+    });
+  }
+
+  /**
+   * Get KYC status for a seller
+   */
+  async getKYCStatus(sellerId: string, orgId: string): Promise<{
+    status: string;
+    step: string;
+    companyInfoComplete: boolean;
+    documentsComplete: boolean;
+    bankDetailsComplete: boolean;
+    documentsVerification?: Record<string, boolean>;
+    canResubmit: boolean;
+  }> {
+    if (!orgId) {
+      throw new Error("orgId is required to fetch KYC status");
+    }
+
+    const seller = await SouqSeller.findOne({
+      _id: sellerId,
+      ...buildOrgFilter(orgId),
+    });
+    if (!seller || !seller.orgId || seller.orgId.toString() !== orgId.toString()) {
+      throw new Error("Seller not found");
+    }
+
+    if (!seller.kycStatus) {
+      return {
+        status: "not_started",
+        step: "company_info",
+        companyInfoComplete: false,
+        documentsComplete: false,
+        bankDetailsComplete: false,
+        canResubmit: false,
+      };
+    }
+
+    const documentsVerification =
+      seller.documents && seller.documents.length > 0
+        ? buildVerificationSnapshot(seller.documents)
+        : undefined;
+
+    return {
+      status: seller.kycStatus.status,
+      step: seller.kycStatus.step,
+      companyInfoComplete: seller.kycStatus.companyInfoComplete,
+      documentsComplete: seller.kycStatus.documentsComplete,
+      bankDetailsComplete: seller.kycStatus.bankDetailsComplete,
+      documentsVerification,
+      canResubmit: seller.kycStatus.status === "rejected",
+    };
+  }
+
+  /**
+   * Get pending KYC submissions (Admin view)
+   */
+  async getPendingKYCSubmissions(orgId: string): Promise<
+    Array<{
+      sellerId: string;
+      businessName: string;
+      submittedAt: Date;
+      step: string;
+      waitingDays: number;
+    }>
+  > {
+    if (!orgId) {
+      throw new Error("orgId is required to fetch pending KYC submissions");
+    }
+
+    const statusFilter = { "kycStatus.status": { $in: ["under_review", "in_review"] } };
+    const orgFilter = buildOrgFilter(orgId);
+
+    let sellers = await SouqSeller.find({
+      ...statusFilter,
+      ...orgFilter,
+    }).sort({ "kycStatus.submittedAt": 1 });
+
+    // Fallback: if nothing returned (e.g., orgId type mismatch in mocks/tests), retry with a looser org match
+    if (sellers.length === 0) {
+      const altOrg =
+        typeof orgId === "string" && Types.ObjectId.isValid(orgId)
+          ? new Types.ObjectId(orgId)
+          : orgId;
+      sellers = await SouqSeller.find({
+        ...statusFilter,
+        orgId: { $in: [orgId, altOrg].filter(Boolean) },
+      }).sort({ "kycStatus.submittedAt": 1 });
+    }
+
+    return sellers.map((seller) => {
+      const waitingDays = seller.kycStatus?.submittedAt
+        ? Math.floor(
+            (Date.now() - seller.kycStatus.submittedAt.getTime()) /
+              (1000 * 60 * 60 * 24),
+          )
+        : 0;
+
+      return {
+        sellerId: seller._id.toString(),
+        businessName: seller.businessName || "Unknown",
+        submittedAt: seller.kycStatus?.submittedAt || new Date(),
+        step: seller.kycStatus?.step || "unknown",
+        waitingDays,
+      };
+    });
+  }
+
+  /**
+   * Validate CR number (Saudi Arabia)
+   * In production, integrate with Ministry of Commerce API
+   */
+  private async validateCRNumber(crNumber: string): Promise<boolean> {
+    // Basic format validation: 10 digits
+    if (!/^\d{10}$/.test(crNumber)) {
+      throw new Error("Invalid CR number format. Must be 10 digits.");
+    }
+
+    // In production, call external API:
+    // const response = await fetch('https://api.mc.gov.sa/validate-cr', {
+    //   method: 'POST',
+    //   body: JSON.stringify({ crNumber })
+    // });
+
+    return true;
+  }
+
+  /**
+   * Validate IBAN format
+   */
+  private validateIBAN(iban: string): boolean {
+    // Remove spaces
+    const cleanIBAN = iban.replace(/\s/g, "");
+
+    // Saudi IBAN format: SA + 2 digits + 18 alphanumeric
+    if (!/^SA\d{2}[A-Z0-9]{18}$/.test(cleanIBAN)) {
+      return false;
+    }
+
+    // MOD-97 checksum validation
+    // 1. Move first 4 chars to end: SA22 1234... → 1234...SA22
+    const rearranged = cleanIBAN.slice(4) + cleanIBAN.slice(0, 4);
+
+    // 2. Replace letters with numbers (A=10, B=11, ..., Z=35)
+    const numericString = rearranged
+      .split("")
+      .map((char) => {
+        const code = char.charCodeAt(0);
+        // A-Z: convert to 10-35
+        if (code >= 65 && code <= 90) {
+          return (code - 55).toString();
+        }
+        // 0-9: keep as is
+        return char;
+      })
+      .join("");
+
+    // 3. Calculate MOD 97 (handle large numbers by processing in chunks)
+    let remainder = 0;
+    for (let i = 0; i < numericString.length; i++) {
+      remainder = (remainder * 10 + parseInt(numericString[i], 10)) % 97;
+    }
+
+    // Valid IBAN has remainder of 1
+    return remainder === 1;
+  }
+
+  /**
+   * Background job: Auto-escalate pending KYC reviews
+   * Alert if KYC pending for 3+ days
+   */
+  async autoEscalatePendingKYC(): Promise<number> {
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+
+    const pendingSellers = await SouqSeller.find({
+      "kycStatus.status": "in_review",
+      "kycStatus.submittedAt": { $lt: threeDaysAgo },
+    });
+
+    let escalated = 0;
+    for (const seller of pendingSellers) {
+      await addJob(
+        QUEUE_NAMES.NOTIFICATIONS,
+        "internal-notification",
+        {
+          to: "kyc-manager",
+          orgId: seller.orgId?.toString(), // 🔐 Tenant-scoped escalation routing
+          priority: "high",
+          message: `KYC pending for 3+ days: ${seller.businessName} (${seller._id})`,
+        },
+        { priority: 2 },
+      );
+      escalated++;
+    }
+
+    return escalated;
+  }
+}
+
+export const sellerKYCService = new SellerKYCService();
+
+]]>
+</file>
+
+<file path="services/souq/settlements/balance-service.ts">
+<![CDATA[
+/**
+ * Seller Balance Service
+ *
+ * Real-time balance tracking using Redis for fast queries.
+ * Manages transaction history, reserve management, and withdrawal requests.
+ *
+ * Features:
+ * - Real-time balance tracking (available, reserved, pending)
+ * - Transaction history with pagination
+ * - Reserve management (hold/release)
+ * - Withdrawal request handling
+ * - Admin adjustments
+ */
+
+import { ClientSession, Db, ObjectId } from "mongodb";
+import { connectDb } from "@/lib/mongodb-unified";
+import { getCache, setCache, CacheTTL, invalidateCacheKey } from "@/lib/redis";
+import { logger } from "@/lib/logger";
+import { buildOrgCandidates, findWithOrgFallback } from "@/services/souq/utils/org-helpers";
+import { PAYOUT_CONFIG } from "@/services/souq/settlements/settlement-config";
+
+// Use centralized config to prevent drift between withdrawal and payout validation
+const WITHDRAWAL_HOLD_DAYS = PAYOUT_CONFIG.holdPeriodDays;
+const MINIMUM_WITHDRAWAL_AMOUNT = PAYOUT_CONFIG.minimumAmount;
+
+/**
+ * Balance types
+ */
+interface SellerBalance {
+  sellerId: string;
+  available: number; // Funds ready for withdrawal
+  reserved: number; // Funds held for returns (7-14 days)
+  pending: number; // Orders not yet delivered
+  totalEarnings: number; // Lifetime earnings
+  lastUpdated: Date;
+}
+
+/**
+ * Transaction record
+ */
+interface Transaction {
+  _id?: ObjectId;
+  transactionId: string;
+  sellerId: string;
+  orgId: string; // 🔐 STRICT v4.1: Required for tenant isolation
+  orderId?: string;
+  type:
+    | "sale"
+    | "refund"
+    | "commission"
+    | "gateway_fee"
+    | "vat"
+    | "reserve_hold"
+    | "reserve_release"
+    | "withdrawal"
+    | "adjustment"
+    | "chargeback";
+  amount: number; // Positive for credit, negative for debit
+  balanceBefore: number;
+  balanceAfter: number;
+  description: string;
+  metadata?: Record<string, unknown>;
+  createdAt: Date;
+  createdBy?: string; // Admin ID for adjustments
+}
+
+/**
+ * Withdrawal request
+ */
+interface WithdrawalRequest {
+  _id?: ObjectId;
+  requestId: string;
+  sellerId: string;
+  orgId: string; // 🔐 STRICT v4.1: Required for tenant isolation
+  amount: number;
+  status: "pending" | "approved" | "rejected" | "completed" | "cancelled";
+  requestedAt: Date;
+  processedAt?: Date;
+  completedAt?: Date;
+  rejectionReason?: string;
+  bankAccount: {
+    iban: string;
+    accountHolderName: string;
+    bankName?: string;
+    accountNumber?: string;
+    swiftCode?: string;
+  };
+  payoutId?: string; // Reference to payout request
+  notes?: string;
+  statementId: string;
+}
+
+/**
+ * Balance adjustment
+ */
+interface BalanceAdjustment {
+  sellerId: string;
+  orgId: string; // 🔐 STRICT v4.1: Required for tenant isolation
+  amount: number; // Positive to add, negative to deduct
+  reason: string;
+  type: "manual" | "system";
+  adminId?: string;
+  reference?: string; // Order ID or other reference
+}
+
+/**
+ * Seller Balance Service
+ */
+type TransactionFilters = {
+  type?: Transaction["type"];
+  startDate?: Date;
+  endDate?: Date;
+  limit?: number;
+  offset?: number;
+};
+
+export class SellerBalanceService {
+  private static balanceIndexesReady: Promise<void> | null = null;
+  private static withdrawalIndexesReady: Promise<void> | null = null;
+  private static buildOrgCandidates(orgId: string): Array<string | ObjectId> {
+    return ObjectId.isValid(orgId) ? [orgId, new ObjectId(orgId)] : [orgId];
+  }
+
+  /**
+   * Get seller balance (real-time from Redis or balance document)
+   * 🔧 FIX: Now uses souq_seller_balances collection as primary source
+   * for faster reads and consistency with atomic recordTransaction.
+   * @param sellerId - The seller ID
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   */
+  static async getBalance(
+    sellerId: string,
+    orgId: string,
+    options?: { bypassCache?: boolean },
+  ): Promise<SellerBalance> {
+    // 🔐 STRICT v4.1: orgId is ALWAYS required for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required to fetch seller balance (STRICT v4.1 tenant isolation)');
+    }
+    const key = `seller:${sellerId}:${orgId}:balance`;
+    const cached = options?.bypassCache ? null : await getCache<SellerBalance>(key);
+    if (cached) return cached;
+
+    // 🔧 FIX: Try to get from balance document first (fast path). If collection is missing (mocked DB),
+    // fall back to legacy calculation to keep compatibility with existing tests.
+    const connection = await connectDb();
+    const db = connection.connection.db!;
+    const sellerFilter = ObjectId.isValid(sellerId)
+      ? new ObjectId(sellerId)
+      : sellerId;
+    const orgCandidates = this.buildOrgCandidates(orgId);
+
+    let balanceDoc: Record<string, unknown> | null = null;
+    try {
+      const balancesCollection = db.collection("souq_seller_balances");
+      balanceDoc = await balancesCollection.findOne({
+        sellerId: sellerFilter,
+        orgId: { $in: orgCandidates },
+      });
+    } catch (_err) {
+      // Mocked DBs in tests may not expose this collection; fall back to legacy calculation
+      balanceDoc = null;
+    }
+
+    let balance: SellerBalance;
+
+    if (balanceDoc) {
+      // Use balance document (updated atomically by recordTransaction)
+      balance = {
+        sellerId,
+        available: (balanceDoc as { available?: number }).available ?? 0,
+        reserved: (balanceDoc as { reserved?: number }).reserved ?? 0,
+        pending: (balanceDoc as { pending?: number }).pending ?? 0,
+        totalEarnings: (balanceDoc as { totalEarnings?: number }).totalEarnings ?? 0,
+        lastUpdated: (balanceDoc as { updatedAt?: Date }).updatedAt ?? new Date(),
+      };
+      
+      // Calculate pending from orders (not tracked in balance doc)
+      const pendingFromOrders = await this.calculatePendingFromOrders(sellerId, orgId);
+      balance.pending = pendingFromOrders;
+    } else {
+      // Fallback: Calculate from transactions if no balance document exists
+      // This handles legacy sellers or first-time balance requests
+      balance = await this.calculateBalance(sellerId, orgId);
+    }
+
+    // Cache for 5 minutes (unless bypassing cache)
+    if (!options?.bypassCache) {
+      await setCache(key, balance, CacheTTL.FIVE_MINUTES);
+    }
+
+    return balance;
+  }
+
+  /**
+   * Calculate pending balance from orders (orders not yet delivered)
+   * @param sellerId - The seller ID
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   */
+  private static async calculatePendingFromOrders(
+    sellerId: string,
+    orgId: string,
+  ): Promise<number> {
+    // 🔐 STRICT v4.1: orgId is ALWAYS required for tenant isolation
+    if (!orgId) {
+      throw new Error("orgId is required to calculate pending orders (STRICT v4.1 tenant isolation)");
+    }
+    const connection = await connectDb();
+    const db = connection.connection.db!;
+    const ordersCollection = db.collection("souq_orders");
+    
+    const sellerFilter = ObjectId.isValid(sellerId)
+      ? new ObjectId(sellerId)
+      : sellerId;
+    const orgCandidates = buildOrgCandidates(orgId);
+
+    // Use aggregation for efficiency when available; fallback to find()+manual sum for mocked DBs.
+    if (typeof (ordersCollection as { aggregate?: unknown }).aggregate === "function") {
+      const result = await ordersCollection
+        .aggregate([
+          {
+            $match: {
+              "items.sellerId": sellerFilter,
+              status: { $in: ["pending", "processing", "shipped"] },
+              orgId: { $in: orgCandidates },
+            },
+          },
+          { $unwind: "$items" },
+          {
+            $match: {
+              "items.sellerId": sellerFilter,
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              total: {
+                $sum: {
+                  $add: [
+                    { $ifNull: ["$items.subtotal", 0] },
+                    {
+                      $ifNull: [
+                        {
+                          $multiply: [
+                            { $ifNull: ["$items.pricePerUnit", 0] },
+                            { $ifNull: ["$items.quantity", 1] },
+                          ],
+                        },
+                        0,
+                      ],
+                    },
+                    { $ifNull: ["$pricing.shippingFee", { $ifNull: ["$shippingFee", 0] }] },
+                    { $ifNull: ["$pricing.tax", 0] },
+                    { $ifNull: ["$pricing.discount", 0] },
+                  ],
+                },
+              },
+            },
+          },
+        ])
+        .toArray();
+
+      return result.length > 0 ? parseFloat((result[0].total ?? 0).toFixed(2)) : 0;
+    }
+
+    // Fallback path for mocks with only find()
+    const pendingOrders = await findWithOrgFallback(
+      ordersCollection,
+      {
+        "items.sellerId": sellerFilter,
+        status: { $in: ["pending", "processing", "shipped"] },
+      },
+      orgCandidates,
+    );
+
+    type PendingOrderItem = {
+      sellerId?: unknown;
+      subtotal?: number;
+      pricePerUnit?: number;
+      quantity?: number;
+    };
+
+    type PendingOrder = {
+      items?: unknown;
+      pricing?: {
+        shippingFee?: number;
+        tax?: number;
+        discount?: number;
+        total?: number;
+      };
+      shippingFee?: number;
+    };
+
+    const computePendingAmount = (
+      order: PendingOrder,
+      sellerIdStr: string,
+    ): number => {
+      const items = Array.isArray(order.items)
+        ? (order.items as PendingOrderItem[])
+        : [];
+      const sellerItems = items.filter((item: PendingOrderItem) => {
+        const id = item?.sellerId;
+        if (!id) return false;
+        if (typeof id === "string") return id === sellerIdStr;
+        if (
+          typeof id === "object" &&
+          id !== null &&
+          "toString" in id &&
+          typeof id.toString === "function"
+        ) {
+          return id.toString() === sellerIdStr;
+        }
+        return String(id) === sellerIdStr;
+      });
+      if (sellerItems.length === 0) return 0;
+
+      const subtotal = sellerItems.reduce(
+        (sum: number, item: PendingOrderItem) => {
+          if (typeof item.subtotal === "number") return sum + item.subtotal;
+          const price =
+            typeof item.pricePerUnit === "number" ? item.pricePerUnit : 0;
+          const qty = typeof item.quantity === "number" ? item.quantity : 1;
+          return sum + price * qty;
+        },
+        0,
+      );
+
+      const pricing = order.pricing ?? {};
+      const shippingFee =
+        typeof pricing.shippingFee === "number"
+          ? pricing.shippingFee
+          : (order.shippingFee ?? 0);
+      const tax = typeof pricing.tax === "number" ? pricing.tax : 0;
+      const discount =
+        typeof pricing.discount === "number" ? pricing.discount : 0;
+
+      if (typeof pricing.total === "number") {
+        return pricing.total;
+      }
+      return Math.max(0, subtotal + shippingFee + tax - discount);
+    };
+
+    // sellerId is already a string from function parameter
+    const sellerIdStr = sellerId;
+    let pendingTotal = 0;
+    for (const order of pendingOrders) {
+      pendingTotal += computePendingAmount(order as PendingOrder, sellerIdStr);
+    }
+
+    return parseFloat(pendingTotal.toFixed(2));
+  }
+
+  /**
+   * Calculate balance from database (fallback for legacy sellers)
+   * @param sellerId - The seller ID
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   */
+  private static async calculateBalance(
+    sellerId: string,
+    orgId: string,
+  ): Promise<SellerBalance> {
+    // 🔐 STRICT v4.1: orgId is ALWAYS required for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required to calculate balance (STRICT v4.1 tenant isolation)');
+    }
+    // 🔧 FIX: Single connectDb call instead of duplicate
+    const connection = await connectDb();
+    const db = connection.connection.db!;
+    const transactionsCollection = db.collection("souq_transactions");
+
+    // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
+    const sellerFilter = ObjectId.isValid(sellerId)
+      ? new ObjectId(sellerId)
+      : sellerId;
+    const orgCandidates = ObjectId.isValid(orgId)
+      ? [orgId, new ObjectId(orgId)]
+      : [orgId];
+    const orgFilter = orgCandidates[0];
+
+    let balanceAggregation: Array<{ _id: string; total: number }> = [];
+    if (typeof (transactionsCollection as { aggregate?: unknown }).aggregate === "function") {
+      // 🔧 Preferred path: aggregation leverages { orgId, sellerId, createdAt } index
+      balanceAggregation = await (transactionsCollection as {
+        aggregate: (
+          pipeline: Record<string, unknown>[],
+        ) => { toArray: () => Promise<Array<{ _id: string; total: number }>> };
+      })
+        .aggregate([
+          { $match: { sellerId: sellerFilter, orgId: { $in: orgCandidates } } },
+          {
+            $group: {
+              _id: "$type",
+              total: { $sum: "$amount" },
+              count: { $sum: 1 },
+            },
+          },
+        ])
+        .toArray();
+    } else {
+      // 🧪 Test fallback: mocks may not implement aggregate; use find().toArray() if available
+      let txns: Array<{ type?: string; amount?: number }> = [];
+      try {
+        const cursor = transactionsCollection.find({
+          sellerId: sellerFilter,
+          orgId: { $in: orgCandidates },
+        });
+        const rawTxns = typeof cursor.sort === "function"
+          ? await cursor.sort({ createdAt: -1 }).toArray()
+          : (await (cursor as { toArray?: () => Promise<unknown[]> }).toArray?.()) ?? [];
+        txns = Array.isArray(rawTxns)
+          ? (rawTxns as Array<{ type?: string; amount?: number }>)
+          : [];
+      } catch (_err) {
+        /* ignore */
+      }
+
+      // 🧪 Mock/driver fallback: retry with primary org when $in is unsupported
+      if (txns.length === 0 && orgCandidates.length > 0) {
+        const cursor = transactionsCollection.find({
+          sellerId: sellerFilter,
+          orgId: orgCandidates[0],
+        });
+        const rawTxns = typeof cursor.sort === "function"
+          ? await cursor.sort({ createdAt: -1 }).toArray()
+          : (await (cursor as { toArray?: () => Promise<unknown[]> }).toArray?.()) ?? [];
+        txns = Array.isArray(rawTxns)
+          ? (rawTxns as Array<{ type?: string; amount?: number }>)
+          : [];
+      }
+
+      const totals = new Map<string, number>();
+      for (const txn of txns) {
+        if (!txn?.type) continue;
+        const amount = typeof txn.amount === "number" ? txn.amount : 0;
+        totals.set(txn.type, (totals.get(txn.type) ?? 0) + amount);
+      }
+      balanceAggregation = Array.from(totals.entries()).map(([type, total]) => ({
+        _id: type,
+        total,
+      }));
+    }
+
+    // Initialize balance components
+    let available = 0;
+    let reserved = 0;
+    let totalEarnings = 0;
+
+    // Process aggregated results by transaction type (fallback to find() totals when aggregate mocked)
+    let items = balanceAggregation.filter(
+      (item) => typeof item?._id === "string" && typeof item?.total === "number",
+    );
+
+    // If aggregation returned nothing usable (e.g., mocked shape), rebuild totals via find() or heuristics
+    if (items.length === 0) {
+      if (typeof (transactionsCollection as { find?: unknown }).find === "function") {
+        let txns: Array<{ type?: string; amount?: number }> = [];
+        try {
+        const cursor = transactionsCollection.find({
+          sellerId: sellerFilter,
+          orgId: orgFilter,
+        });
+          const rawTxns = typeof cursor.sort === "function"
+            ? await cursor.sort({ createdAt: -1 }).toArray()
+            : (await (cursor as { toArray?: () => Promise<unknown[]> }).toArray?.()) ?? [];
+          txns = rawTxns as Array<{ type?: string; amount?: number }>;
+        } catch (_err) {
+          /* no-op */
+        }
+
+        // 🧪 Mock/driver fallback: retry with primary org when $in is unsupported
+      if (txns.length === 0) {
+        const cursor = transactionsCollection.find({
+          sellerId: sellerFilter,
+          orgId: orgFilter,
+        });
+          const rawTxns = typeof cursor.sort === "function"
+            ? await cursor.sort({ createdAt: -1 }).toArray()
+            : (await (cursor as { toArray?: () => Promise<unknown[]> }).toArray?.()) ?? [];
+          txns = rawTxns as Array<{ type?: string; amount?: number }>;
+        }
+        const totals = new Map<string, number>();
+        for (const txn of txns) {
+          if (!txn?.type) continue;
+          const amount = typeof txn.amount === "number" ? txn.amount : 0;
+          totals.set(txn.type, (totals.get(txn.type) ?? 0) + amount);
+        }
+        items = Array.from(totals.entries()).map(([type, total]) => ({
+          _id: type,
+          total,
+        }));
+      } else if (balanceAggregation.length > 0) {
+        // Heuristic fallback for mocked aggregations that return custom fields (e.g., totalAvailable)
+        type MockAggregationEntry = { totalAvailable?: number; totalEarnings?: number };
+        const availableFromMock = balanceAggregation.reduce(
+          (sum, entry: unknown) => sum + (typeof (entry as MockAggregationEntry).totalAvailable === "number" ? (entry as MockAggregationEntry).totalAvailable! : 0),
+          0,
+        );
+        const earningsFromMock = balanceAggregation.reduce(
+          (sum, entry: unknown) => sum + (typeof (entry as MockAggregationEntry).totalEarnings === "number" ? (entry as MockAggregationEntry).totalEarnings! : 0),
+          0,
+        );
+        if (availableFromMock !== 0) {
+          items.push({ _id: "sale", total: availableFromMock });
+        }
+        totalEarnings += earningsFromMock;
+      }
+    }
+
+    for (const item of items) {
+      const txnType = item._id as string;
+      const total = item.total as number;
+
+      switch (txnType) {
+        case "sale":
+          totalEarnings += total;
+          available += total;
+          break;
+        case "refund":
+        case "chargeback":
+          totalEarnings += total; // negative
+          available += total;
+          break;
+        case "commission":
+        case "gateway_fee":
+        case "vat":
+        case "withdrawal":
+          available += total; // These are negative amounts
+          break;
+        case "reserve_hold":
+          available += total; // Negative amount
+          reserved -= total; // Convert to positive
+          break;
+        case "reserve_release":
+          // Release adds to available and reduces reserved
+          available += Math.abs(total);
+          reserved = Math.max(0, reserved - Math.abs(total));
+          break;
+        case "adjustment":
+          available += total;
+          break;
+      }
+    }
+
+    const pendingAmount = await this.calculatePendingFromOrders(sellerId, orgId);
+
+    return {
+      sellerId,
+      available: parseFloat(available.toFixed(2)),
+      reserved: parseFloat(reserved.toFixed(2)),
+      pending: parseFloat(pendingAmount.toFixed(2)),
+      totalEarnings: parseFloat(totalEarnings.toFixed(2)),
+      lastUpdated: new Date(),
+    };
+  }
+
+  /**
+   * Record transaction and update balance ATOMICALLY
+   * 🔐 FIX: Uses MongoDB session with optimistic locking to prevent race conditions
+   * and double-spend/overdraw scenarios under concurrent withdrawals/adjustments.
+   * @param transaction - Transaction data including orgId for tenant isolation
+   */
+  static async recordTransaction(
+    transaction: Omit<
+      Transaction,
+      "_id" | "transactionId" | "balanceBefore" | "balanceAfter" | "createdAt"
+    > & { orgId: string },
+    options?: { session?: ClientSession; invalidateCache?: boolean },
+  ): Promise<Transaction> {
+    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    if (!transaction.orgId) {
+      throw new Error('orgId is required to record transaction (STRICT v4.1 tenant isolation)');
+    }
+    const connection = await connectDb();
+    const db = connection.connection.db!;
+    const client = connection.connection.getClient();
+    const transactionsCollection = db.collection("souq_transactions");
+    const balancesCollection = db.collection("souq_seller_balances");
+
+    await this.ensureBalanceIndexes(db);
+
+    const sellerFilter = ObjectId.isValid(transaction.sellerId)
+      ? new ObjectId(transaction.sellerId)
+      : transaction.sellerId;
+    const orgFilter = ObjectId.isValid(transaction.orgId)
+      ? new ObjectId(transaction.orgId)
+      : transaction.orgId;
+
+    // Generate transaction ID
+    const transactionId = `TXN-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+
+    // 🔐 ATOMIC OPERATION: Use MongoDB session for transactional consistency
+    const callerSession = options?.session;
+    const session = callerSession ?? client.startSession();
+    let txn: Transaction;
+
+    const runTransaction = async (): Promise<void> => {
+      // Step 1: Find or create balance document with atomic upsert
+      const balanceDoc = await balancesCollection.findOne(
+        { sellerId: sellerFilter, orgId: orgFilter },
+        { session },
+      );
+
+      let balanceBefore = 0;
+      let reservedBefore = 0;
+
+      if (balanceDoc) {
+        balanceBefore = (balanceDoc as { available?: number }).available ?? 0;
+        reservedBefore = (balanceDoc as { reserved?: number }).reserved ?? 0;
+      } else {
+        // Create new balance document if doesn't exist
+        await balancesCollection.insertOne(
+          {
+            sellerId: sellerFilter,
+            orgId: orgFilter,
+            available: 0,
+            reserved: 0,
+            pending: 0,
+            totalEarnings: 0,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          { session },
+        );
+      }
+
+      // Step 1b: Validate transaction shape and sign per type
+      const amount = transaction.amount;
+      const type = transaction.type;
+      if (amount === 0) {
+        throw new Error("Transaction amount cannot be zero");
+      }
+      if (type === "sale" && amount <= 0) {
+        throw new Error("Sale amount must be positive");
+      }
+      if (
+        ["withdrawal", "commission", "gateway_fee", "vat", "refund", "chargeback", "reserve_hold"].includes(type) &&
+        amount >= 0
+      ) {
+        // TODO (remove after canary, target: 2025-03-31): temporary warning to surface mis-signed callers
+        logger.warn("[SellerBalance] Rejected transaction due to non-negative debit amount", {
+          type,
+          amount,
+          sellerId: sellerFilter?.toString?.() ?? String(sellerFilter),
+          orgId: orgFilter?.toString?.() ?? String(orgFilter),
+          correlationId: transaction.metadata?.requestId ?? transaction.metadata?.payoutId,
+          validation: "amount_must_be_negative",
+          env: process.env.NODE_ENV,
+        });
+        throw new Error(`${type} amount must be negative`);
+      }
+      if (type === "reserve_release" && amount <= 0) {
+        // TODO (remove after canary, target: 2025-03-31): temporary warning to surface mis-signed callers
+        logger.warn("[SellerBalance] Rejected transaction due to non-positive reserve_release", {
+          type,
+          amount,
+          sellerId: sellerFilter?.toString?.() ?? String(sellerFilter),
+          orgId: orgFilter?.toString?.() ?? String(orgFilter),
+          correlationId: transaction.metadata?.requestId ?? transaction.metadata?.payoutId,
+          validation: "reserve_release_positive",
+          env: process.env.NODE_ENV,
+        });
+        throw new Error("reserve_release amount must be positive");
+      }
+      if (type === "reserve_release" && reservedBefore < amount) {
+        // TODO (remove after canary, target: 2025-03-31): temporary warning to surface mis-signed callers
+        logger.warn("[SellerBalance] Rejected reserve_release exceeding reserved balance", {
+          type,
+          amount,
+          reservedBefore,
+          sellerId: sellerFilter?.toString?.() ?? String(sellerFilter),
+          orgId: orgFilter?.toString?.() ?? String(orgFilter),
+          correlationId: transaction.metadata?.requestId ?? transaction.metadata?.payoutId,
+          validation: "reserve_release_exceeds_reserved",
+          env: process.env.NODE_ENV,
+        });
+        throw new Error(
+          `Cannot release more than reserved. Reserved: ${reservedBefore} SAR, requested release: ${amount} SAR`,
+        );
+      }
+
+      // Step 2: Calculate new balance and guard against overdraft
+      const balanceAfter = balanceBefore + transaction.amount;
+      if (balanceAfter < 0) {
+        throw new Error(
+          `Insufficient available balance. Current: ${balanceBefore} SAR, Required debit: ${Math.abs(transaction.amount)} SAR`,
+        );
+      }
+
+      // Step 3: Atomic balance update with version check
+      // 🔐 This prevents race conditions: if another transaction modified the balance
+      // between our read and write, the update will fail (optimistic locking)
+      const filter: Record<string, unknown> = {
+        sellerId: sellerFilter,
+        orgId: orgFilter,
+        available: balanceBefore, // Optimistic lock: only update if balance unchanged
+      };
+      if (type === "reserve_hold" || type === "reserve_release") {
+        filter.reserved = reservedBefore;
+      }
+
+      const earningsDelta =
+        type === "sale"
+          ? transaction.amount
+          : ["refund", "chargeback"].includes(type)
+            ? transaction.amount // negative
+            : 0;
+
+      const inc: Record<string, number> = {};
+      if (earningsDelta) inc.totalEarnings = earningsDelta;
+      if (type === "reserve_hold") {
+        inc.reserved = Math.abs(transaction.amount); // increase reserved
+      }
+      if (type === "reserve_release") {
+        inc.reserved = -transaction.amount; // reduce reserved by released amount
+      }
+
+      const updateResult = await balancesCollection.updateOne(
+        filter,
+        {
+          $set: {
+            available: parseFloat(balanceAfter.toFixed(2)),
+            updatedAt: new Date(),
+          },
+          ...(Object.keys(inc).length > 0 ? { $inc: inc } : {}),
+        },
+        { session },
+      );
+
+      if (updateResult.modifiedCount === 0) {
+        // Race condition detected - balance was modified concurrently
+        throw new Error(
+          "Balance was modified concurrently. Please retry the transaction.",
+        );
+      }
+
+      // Step 4: Insert transaction record
+      txn = {
+        ...transaction,
+        transactionId,
+        balanceBefore: parseFloat(balanceBefore.toFixed(2)),
+        balanceAfter: parseFloat(balanceAfter.toFixed(2)),
+        createdAt: new Date(),
+      };
+
+      await transactionsCollection.insertOne(
+        {
+          ...txn,
+          sellerId: sellerFilter,
+          orgId: orgFilter,
+        },
+        { session },
+      );
+    };
+
+    try {
+      if (callerSession) {
+        await runTransaction();
+      } else {
+        await session.withTransaction(runTransaction);
+      }
+    } finally {
+      if (!callerSession) {
+        await session.endSession();
+      }
+    }
+
+    // Invalidate Redis cache after successful transaction.
+    // If caller provided a session, defer cache invalidation to caller post-commit.
+    if (!callerSession && options?.invalidateCache !== false) {
+      await this.invalidateBalanceCache(transaction.sellerId, transaction.orgId);
+    }
+
+    return txn!;
+  }
+
+  /**
+   * Request withdrawal
+   * @param sellerId - The seller ID
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   * @param amount - Withdrawal amount
+   * @param bankAccount - Bank account details
+   * @param statementId - Statement reference
+   */
+  static async requestWithdrawal(
+    sellerId: string,
+    orgId: string,
+    amount: number,
+    bankAccount: WithdrawalRequest["bankAccount"],
+    statementId: string,
+  ): Promise<WithdrawalRequest> {
+    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required to request withdrawal (STRICT v4.1 tenant isolation)');
+    }
+    // AUDIT-2025-12-06: souq_settlements uses STRING orgId; allow legacy ObjectId with dual filter
+    const orgIdStr = String(orgId);
+    const orgCandidates = ObjectId.isValid(orgIdStr) ? [orgIdStr, new ObjectId(orgIdStr)] : [orgIdStr];
+    const sellerObjectId = ObjectId.isValid(sellerId) ? new ObjectId(sellerId) : sellerId;
+    const connection = await connectDb();
+    const db = connection.connection.db!;
+    const client = connection.connection.getClient();
+    const withdrawalsCollection = db.collection("souq_withdrawal_requests");
+    const settlementsCollection = db.collection("souq_settlements");
+    const payoutsCollection = db.collection("souq_payouts");
+    await this.ensureWithdrawalIndexes(db);
+
+    const session = client.startSession();
+    let request: WithdrawalRequest | null = null;
+
+    try {
+      await session.withTransaction(async () => {
+        // Get current balance (fresh read to avoid stale cached balance for debits)
+        const balance = await this.getBalance(sellerId, orgId, { bypassCache: true });
+        const requestedAmount = amount;
+
+        // Validate statement and derive authoritative amount to prevent tampering
+        // AUDIT-2025-12-06: souq_settlements uses STRING orgId
+        const settlementDoc = await settlementsCollection.findOne(
+          {
+            statementId,
+            sellerId: sellerObjectId,
+            orgId: { $in: orgCandidates }, // STRING for souq_settlements; allow legacy ObjectId
+          },
+          { session },
+        );
+        if (!settlementDoc) {
+          throw new Error("Settlement statement not found for this seller/org");
+        }
+        if ((settlementDoc as { status?: string }).status !== "approved") {
+          throw new Error(
+            `Settlement must be approved before withdrawal. Current status: ${(settlementDoc as { status?: string }).status || "unknown"}`,
+          );
+        }
+        const netPayout = (settlementDoc as { summary?: { netPayout?: number } })?.summary
+          ?.netPayout;
+        if (typeof netPayout !== "number" || netPayout <= 0) {
+          throw new Error("Settlement statement has no payable netPayout amount");
+        }
+
+        // 🔧 FIX: Use authoritative netPayout as the withdrawal amount BEFORE validation
+        // This prevents bypassing balance check when netPayout > user-supplied amount
+        const withdrawalAmount = netPayout;
+        const minimumWithdrawal = MINIMUM_WITHDRAWAL_AMOUNT; // Centralized from PAYOUT_CONFIG
+
+        // Validate withdrawal amount against available balance (using authoritative amount)
+        if (withdrawalAmount <= 0) {
+          throw new Error("Withdrawal amount must be positive");
+        }
+
+        if (withdrawalAmount > balance.available) {
+          throw new Error(
+            `Insufficient balance for payout. Available: ${balance.available} SAR, Required: ${withdrawalAmount} SAR`,
+          );
+        }
+
+        if (withdrawalAmount < minimumWithdrawal) {
+          throw new Error(
+            `Minimum withdrawal amount is ${minimumWithdrawal} SAR. Payout amount: ${withdrawalAmount} SAR`,
+          );
+        }
+
+        // Enforce post-delivery hold period (aligns with settlement-calculator and payout-processor)
+        const periodEndRaw = (settlementDoc as { period?: { end?: Date | string } })
+          ?.period?.end;
+        if (periodEndRaw) {
+          const periodEnd = new Date(periodEndRaw);
+          const holdUntil = new Date(periodEnd);
+          holdUntil.setDate(holdUntil.getDate() + WITHDRAWAL_HOLD_DAYS);
+          if (Number.isFinite(holdUntil.getTime()) && Date.now() < holdUntil.getTime()) {
+            throw new Error(
+              `Settlement still in hold period until ${holdUntil.toISOString()}. Try after the hold window.`,
+            );
+          }
+        }
+
+        // Check for pending withdrawal
+        // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
+        const pendingWithdrawal = await withdrawalsCollection.findOne(
+          {
+            sellerId: sellerObjectId,
+            orgId: { $in: orgCandidates },
+            status: "pending",
+          },
+          { session },
+        );
+
+        if (pendingWithdrawal) {
+          throw new Error("You already have a pending withdrawal request");
+        }
+
+        if (!statementId) {
+          throw new Error("statementId is required to request withdrawal");
+        }
+
+        // If a payout is already in-flight for this statement, do not create another withdrawal
+        const existingPayout = await payoutsCollection.findOne(
+          {
+            statementId,
+            orgId: { $in: orgCandidates },
+            status: { $in: ["pending", "processing"] },
+          },
+          { session },
+        );
+        if (existingPayout) {
+          throw new Error("Payout already in progress for this statement");
+        }
+
+        // Generate request ID
+        const requestId = `WDR-${Date.now()}-${sellerId.slice(-6).toUpperCase()}`;
+        const orgIdStr = String(orgId);
+
+        // Create withdrawal request
+        // 🔐 STRICT v4.1: Include orgId for tenant isolation
+        request = {
+          requestId,
+          sellerId,
+          orgId: orgIdStr,
+          amount: withdrawalAmount,
+          status: "pending",
+          requestedAt: new Date(),
+          bankAccount,
+          statementId,
+        };
+
+        // Save to database
+        // 🔐 STRICT v4.1: Write orgId as string to match schema/migration standards
+        // The orgCandidates dual filter handles both string and ObjectId for reads
+        await withdrawalsCollection.insertOne(
+          {
+            ...request,
+            sellerId: sellerObjectId,
+            orgId: orgIdStr,
+          },
+          { session },
+        );
+
+        // Record transaction (hold funds)
+        await this.recordTransaction(
+          {
+            sellerId,
+            orgId,
+            type: "withdrawal",
+            amount: -withdrawalAmount,
+            description: `Withdrawal request: ${requestId}`,
+            metadata: { requestId, requestedAmount },
+          },
+          { session, invalidateCache: false },
+        );
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    // Invalidate cache after commit to reflect updated balance
+    await this.invalidateBalanceCache(sellerId, orgId);
+
+    return request!;
+  }
+
+  /**
+   * Approve withdrawal request (admin)
+   * @param requestId - Withdrawal request ID
+   * @param adminId - Admin user ID
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   */
+  static async approveWithdrawal(
+    requestId: string,
+    adminId: string,
+    orgId: string,
+  ): Promise<WithdrawalRequest> {
+    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required to approve withdrawal (STRICT v4.1 tenant isolation)');
+    }
+    const orgIdStr = String(orgId);
+    const orgCandidates = ObjectId.isValid(orgIdStr)
+      ? [orgIdStr, new ObjectId(orgIdStr)]
+      : [orgIdStr];
+    const connection = await connectDb();
+    const db = connection.connection.db!;
+    const withdrawalsCollection = db.collection("souq_withdrawal_requests");
+    await this.ensureWithdrawalIndexes(db);
+
+    // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
+    const request = (await withdrawalsCollection.findOne({
+      requestId,
+      orgId: { $in: orgCandidates },
+    })) as WithdrawalRequest | null;
+    if (!request) {
+      throw new Error("Withdrawal request not found");
+    }
+
+    if (request.status !== "pending") {
+      throw new Error(`Withdrawal is already ${request.status}`);
+    }
+
+    // Initiate payout (call PayoutProcessorService)
+    const bankAccount = this.normalizeBankAccount(request.bankAccount);
+    const { PayoutProcessorService } = await import(
+      "@/services/souq/settlements/payout-processor"
+    );
+    const orgIdValue = (request as { orgId?: unknown }).orgId;
+    const sellerIdValue = (request as { sellerId?: unknown }).sellerId;
+    const payoutOrgId =
+      typeof orgIdValue === "string"
+        ? orgIdValue
+        : orgIdValue
+          ? String(orgIdValue)
+          : orgId;
+    const payoutSellerId =
+      typeof sellerIdValue === "string"
+        ? sellerIdValue
+        : sellerIdValue
+          ? String(sellerIdValue)
+          : "";
+    if (!payoutSellerId) {
+      throw new Error("Withdrawal request is missing sellerId");
+    }
+    const payout = await PayoutProcessorService.requestPayout(
+      payoutSellerId,
+      request.statementId,
+      payoutOrgId,
+      bankAccount,
+    );
+
+    const payoutStatus =
+      payout.status === "pending" ? "processing" : payout.status;
+
+    // Update status with payout reference
+    // 🔐 STRICT v4.1: Include orgId in update filter for tenant isolation
+    await withdrawalsCollection.updateOne(
+      { requestId, orgId: { $in: orgCandidates } },
+      {
+        $set: {
+          status: payoutStatus,
+          processedAt: new Date(),
+          payoutId: payout.payoutId,
+          notes: `Approved by admin ${adminId}`,
+        },
+      },
+    );
+
+    return {
+      ...request,
+      status: payoutStatus as WithdrawalRequest["status"],
+      payoutId: payout.payoutId,
+      processedAt: new Date(),
+    };
+  }
+
+  /**
+   * Reject withdrawal request (admin)
+   * @param requestId - Withdrawal request ID
+   * @param adminId - Admin user ID
+   * @param reason - Rejection reason
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   */
+  static async rejectWithdrawal(
+    requestId: string,
+    adminId: string,
+    reason: string,
+    orgId: string,
+  ): Promise<WithdrawalRequest> {
+    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required to reject withdrawal (STRICT v4.1 tenant isolation)');
+    }
+    const orgIdStr = String(orgId);
+    const orgCandidates = ObjectId.isValid(orgIdStr)
+      ? [orgIdStr, new ObjectId(orgIdStr)]
+      : [orgIdStr];
+    const connection = await connectDb();
+    const db = connection.connection.db!;
+    const withdrawalsCollection = db.collection("souq_withdrawal_requests");
+
+    // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
+    const request = (await withdrawalsCollection.findOne({
+      requestId,
+      orgId: { $in: orgCandidates },
+    })) as WithdrawalRequest | null;
+    if (!request) {
+      throw new Error("Withdrawal request not found");
+    }
+
+    if (request.status !== "pending") {
+      throw new Error(`Withdrawal is already ${request.status}`);
+    }
+
+    // Update status
+    // 🔐 STRICT v4.1: Include orgId in update filter for tenant isolation
+    await withdrawalsCollection.updateOne(
+      { requestId, orgId: { $in: orgCandidates } },
+      {
+        $set: {
+          status: "rejected",
+          processedAt: new Date(),
+          rejectionReason: reason,
+          notes: `Rejected by admin ${adminId}`,
+        },
+      },
+    );
+
+    // Refund the withdrawal amount (reverse transaction)
+    await this.recordTransaction({
+      sellerId: request.sellerId,
+      orgId,
+      type: "adjustment",
+      amount: request.amount, // Positive to add back
+      description: `Withdrawal rejected: ${reason}`,
+      metadata: { requestId },
+      createdBy: adminId,
+    });
+
+    return {
+      ...request,
+      status: "rejected",
+      processedAt: new Date(),
+      rejectionReason: reason,
+    };
+  }
+
+  /**
+   * Apply balance adjustment (admin)
+   * @param adjustment - Adjustment details including orgId for tenant isolation
+   */
+  static async applyAdjustment(
+    adjustment: BalanceAdjustment,
+  ): Promise<Transaction> {
+    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    if (!adjustment.orgId) {
+      throw new Error('orgId is required for balance adjustment (STRICT v4.1 tenant isolation)');
+    }
+    if (!adjustment.adminId && adjustment.type === "manual") {
+      throw new Error("Admin ID required for manual adjustments");
+    }
+
+    return await this.recordTransaction({
+      sellerId: adjustment.sellerId,
+      orgId: adjustment.orgId,
+      type: "adjustment",
+      amount: adjustment.amount,
+      description: adjustment.reason,
+      metadata: {
+        type: adjustment.type,
+        reference: adjustment.reference,
+      },
+      createdBy: adjustment.adminId,
+    });
+  }
+
+  /**
+   * Get transaction history
+   */
+  static async getTransactionHistory(
+    sellerId: string,
+    orgIdOrFilters?: string | TransactionFilters,
+    maybeFilters?: TransactionFilters,
+  ): Promise<{ transactions: Transaction[]; total: number }> {
+    const orgId = typeof orgIdOrFilters === "string" ? orgIdOrFilters : undefined;
+    const filters =
+      typeof orgIdOrFilters === "string" ? maybeFilters : orgIdOrFilters;
+
+    if (!orgId) {
+      throw new Error("orgId is required to fetch transaction history");
+    }
+
+    const orgCandidates = ObjectId.isValid(orgId)
+      ? [orgId, new ObjectId(orgId)]
+      : [orgId];
+    const sellerFilter = ObjectId.isValid(sellerId)
+      ? new ObjectId(sellerId)
+      : sellerId;
+
+    const connection = await connectDb();
+    const db = connection.connection.db!;
+    const transactionsCollection = db.collection("souq_transactions");
+
+    const query: Record<string, unknown> = { sellerId: sellerFilter, orgId: { $in: orgCandidates } };
+
+    if (filters?.type) {
+      query.type = filters.type;
+    }
+
+    if (filters?.startDate || filters?.endDate) {
+      query.createdAt = {};
+      if (filters.startDate) {
+        (query.createdAt as Record<string, unknown>).$gte = filters.startDate;
+      }
+      if (filters.endDate) {
+        (query.createdAt as Record<string, unknown>).$lte = filters.endDate;
+      }
+    }
+
+    const total = await transactionsCollection.countDocuments(query);
+    const limit = Math.min(Math.max(filters?.limit ?? 50, 1), 200);
+    const offset = Math.max(filters?.offset ?? 0, 0);
+    const transactions = (await transactionsCollection
+      .find(query)
+      .sort({ createdAt: -1 })
+      .skip(offset)
+      .limit(limit)
+      .toArray()) as Transaction[];
+
+    return { transactions, total };
+  }
+
+  /**
+   * Get withdrawal requests
+   * @param sellerId - The seller ID
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   * @param options - Optional status filter and pagination
+   */
+  static async getWithdrawalRequests(
+    sellerId: string,
+    orgId: string,
+    options?: { status?: WithdrawalRequest["status"]; limit?: number; offset?: number },
+  ): Promise<WithdrawalRequest[]> {
+    if (!orgId) {
+      throw new Error('orgId is required to fetch withdrawal requests (STRICT v4.1 tenant isolation)');
+    }
+    const orgCandidates = ObjectId.isValid(orgId)
+      ? [orgId, new ObjectId(orgId)]
+      : [orgId];
+    const sellerFilter = ObjectId.isValid(sellerId)
+      ? new ObjectId(sellerId)
+      : sellerId;
+    const connection = await connectDb();
+    const db = connection.connection.db!;
+    const withdrawalsCollection = db.collection("souq_withdrawal_requests");
+    await this.ensureWithdrawalIndexes(db);
+
+    // 🔐 STRICT v4.1: Include orgId in query for tenant isolation
+    const query: Record<string, unknown> = { sellerId: sellerFilter, orgId: { $in: orgCandidates } };
+    if (options?.status) {
+      query.status = options.status;
+    }
+
+    const limit = Math.min(Math.max(options?.limit ?? 50, 1), 200);
+    const offset = Math.max(options?.offset ?? 0, 0);
+
+    const requests = (await withdrawalsCollection
+      .find(query)
+      .sort({ requestedAt: -1 })
+      .skip(offset)
+      .limit(limit)
+      .toArray()) as WithdrawalRequest[];
+
+    return requests;
+  }
+
+  /**
+   * Hold funds in reserve
+   * @param sellerId - The seller ID
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   * @param orderId - Order reference
+   * @param amount - Amount to hold
+   */
+  static async holdReserve(
+    sellerId: string,
+    orgId: string,
+    orderId: string,
+    amount: number,
+  ): Promise<Transaction> {
+    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required to hold reserve (STRICT v4.1 tenant isolation)');
+    }
+    if (amount <= 0) {
+      throw new Error("Reserve hold amount must be positive");
+    }
+    return await this.recordTransaction({
+      sellerId,
+      orgId,
+      orderId,
+      type: "reserve_hold",
+      amount: -amount, // Deduct from available
+      description: `Reserve held for order ${orderId}`,
+      metadata: { orderId },
+    });
+  }
+
+  /**
+   * Release reserve funds
+   * @param sellerId - The seller ID
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   * @param orderId - Order reference
+   * @param amount - Amount to release
+   */
+  static async releaseReserve(
+    sellerId: string,
+    orgId: string,
+    orderId: string,
+    amount: number,
+  ): Promise<Transaction> {
+    // 🔐 STRICT v4.1: Require orgId for tenant isolation
+    if (!orgId) {
+      throw new Error('orgId is required to release reserve (STRICT v4.1 tenant isolation)');
+    }
+    if (amount <= 0) {
+      throw new Error("Reserve release amount must be positive");
+    }
+    return await this.recordTransaction({
+      sellerId,
+      orgId,
+      orderId,
+      type: "reserve_release",
+      amount: amount, // Add to available
+      description: `Reserve released for order ${orderId}`,
+      metadata: { orderId },
+    });
+  }
+
+  private static normalizeBankAccount(
+    bankAccount: WithdrawalRequest["bankAccount"],
+  ): {
+    bankName: string;
+    accountNumber: string;
+    iban: string;
+    accountHolderName: string;
+    swiftCode?: string;
+  } {
+    if (!bankAccount.accountNumber) {
+      throw new Error("Account number is required for payout processing");
+    }
+
+    return {
+      bankName: bankAccount.bankName || "UNKNOWN",
+      accountNumber: bankAccount.accountNumber,
+      iban: bankAccount.iban,
+      accountHolderName: bankAccount.accountHolderName,
+      swiftCode: bankAccount.swiftCode,
+    };
+  }
+
+  /**
+   * Invalidate Redis cache for seller balance
+   * @param sellerId - The seller ID
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   */
+  private static async invalidateBalanceCache(sellerId: string, orgId: string): Promise<void> {
+    if (!orgId) {
+      throw new Error("orgId is required to invalidate balance cache (STRICT v4.1 tenant isolation)");
+    }
+    // 🔐 STRICT v4.1: Cache key must include orgId for tenant isolation
+    const key = `seller:${sellerId}:${orgId}:balance`;
+    await invalidateCacheKey(key);
+  }
+
+  static async ensureWithdrawalIndexes(db: Db): Promise<void> {
+    if (!this.withdrawalIndexesReady) {
+      this.withdrawalIndexesReady = (async () => {
+        try {
+          await db.collection("souq_withdrawal_requests").createIndexes([
+            { key: { requestId: 1 }, unique: true, name: "requestId_unique", background: true },
+            { key: { payoutId: 1, orgId: 1 }, name: "payout_org", background: true },
+            {
+              key: { orgId: 1, sellerId: 1, status: 1, requestedAt: -1 },
+              name: "org_seller_status_requestedAt",
+              background: true,
+            },
+          ]);
+        } catch (error) {
+          logger.error('[BalanceService] Failed to ensure withdrawal indexes', { error });
+          // 🔐 STRICT v4.1: Reset cached promise to allow retry on next call
+          this.withdrawalIndexesReady = null;
+          throw error; // Fail fast - don't run without critical unique/org indexes
+        }
+      })();
+    }
+    await this.withdrawalIndexesReady;
+  }
+
+  private static async ensureBalanceIndexes(db: Db): Promise<void> {
+    if (!this.balanceIndexesReady) {
+      this.balanceIndexesReady = (async () => {
+        try {
+          await db.collection("souq_seller_balances").createIndex(
+            { orgId: 1, sellerId: 1 },
+            { unique: true, name: "org_seller_unique", background: true },
+          );
+        } catch (error) {
+          logger.error('[BalanceService] Failed to ensure balance indexes', { error });
+          // 🔐 STRICT v4.1: Reset cached promise to allow retry on next call
+          this.balanceIndexesReady = null;
+          throw error; // Fail fast - don't run without critical unique/org indexes
+        }
+      })();
+    }
+    await this.balanceIndexesReady;
+  }
+
+  /**
+   * Get balance summary for multiple sellers (admin)
+   * @param sellerIds - Array of seller IDs
+   * @param orgId - Required for STRICT v4.1 tenant isolation
+   */
+  static async getBulkBalances(
+    sellerIds: string[],
+    orgId: string,
+  ): Promise<Map<string, SellerBalance>> {
+    if (!orgId) {
+      throw new Error('orgId is required for bulk balance fetch (STRICT v4.1 tenant isolation)');
+    }
+    const balances = new Map<string, SellerBalance>();
+
+    await Promise.all(
+      sellerIds.map(async (sellerId) => {
+        const balance = await this.getBalance(sellerId, orgId);
+        balances.set(sellerId, balance);
+      }),
+    );
+
+    return balances;
+  }
+}
+
+export type {
+  SellerBalance,
+  Transaction,
+  WithdrawalRequest,
+  BalanceAdjustment,
+};
+
+]]>
+</file>
+
+</batch_content>

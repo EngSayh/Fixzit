@@ -1,0 +1,2307 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="i18n/sources/dataVisualization.translations.json">
+<![CDATA[
+{
+  "en": {
+    "dataVisualization.areaChart": "Area Chart",
+    "dataVisualization.barChart": "Bar Chart",
+    "dataVisualization.boxPlot": "Box Plot",
+    "dataVisualization.bubbleChart": "Bubble Chart",
+    "dataVisualization.chart": "Chart",
+    "dataVisualization.diagram": "Diagram",
+    "dataVisualization.funnelChart": "Funnel Chart",
+    "dataVisualization.ganttChart": "Gantt Chart",
+    "dataVisualization.gaugeChart": "Gauge Chart",
+    "dataVisualization.geospatial": "Geospatial Visualization",
+    "dataVisualization.graph": "Graph",
+    "dataVisualization.heatmap": "Heat Map",
+    "dataVisualization.histogram": "Histogram",
+    "dataVisualization.infographic": "Infographic",
+    "dataVisualization.legend": "Legend",
+    "dataVisualization.lineChart": "Line Chart",
+    "dataVisualization.map": "Map",
+    "dataVisualization.panel": "Panel",
+    "dataVisualization.pieChart": "Pie Chart",
+    "dataVisualization.plot": "Plot",
+    "dataVisualization.radarChart": "Radar Chart",
+    "dataVisualization.scatterPlot": "Scatter Plot",
+    "dataVisualization.scorecard": "Scorecard",
+    "dataVisualization.tile": "Tile",
+    "dataVisualization.timeline": "Timeline",
+    "dataVisualization.treemap": "Tree Map",
+    "dataVisualization.visualization": "Data Visualization",
+    "dataVisualization.waterfallChart": "Waterfall Chart",
+    "dataVisualization.widget": "Widget"
+  },
+  "ar": {
+    "dataVisualization.areaChart": "مخطط المساحة",
+    "dataVisualization.barChart": "المخطط الشريطي",
+    "dataVisualization.boxPlot": "مخطط الصندوق",
+    "dataVisualization.bubbleChart": "مخطط الفقاعات",
+    "dataVisualization.chart": "المخطط",
+    "dataVisualization.diagram": "المخطط التوضيحي",
+    "dataVisualization.funnelChart": "مخطط القمع",
+    "dataVisualization.ganttChart": "مخطط جانت",
+    "dataVisualization.gaugeChart": "مخطط المقياس",
+    "dataVisualization.geospatial": "التصور الجغرافي",
+    "dataVisualization.graph": "الرسم البياني",
+    "dataVisualization.heatmap": "خريطة الحرارة",
+    "dataVisualization.histogram": "المدرج التكراري",
+    "dataVisualization.infographic": "الرسم المعلوماتي",
+    "dataVisualization.legend": "وسيلة الإيضاح",
+    "dataVisualization.lineChart": "المخطط الخطي",
+    "dataVisualization.map": "الخريطة",
+    "dataVisualization.panel": "اللوحة",
+    "dataVisualization.pieChart": "المخطط الدائري",
+    "dataVisualization.plot": "المخطط",
+    "dataVisualization.radarChart": "المخطط الراداري",
+    "dataVisualization.scatterPlot": "مخطط التشتت",
+    "dataVisualization.scorecard": "بطاقة النتائج",
+    "dataVisualization.tile": "البلاط",
+    "dataVisualization.timeline": "الجدول الزمني",
+    "dataVisualization.treemap": "خريطة الشجرة",
+    "dataVisualization.visualization": "تصور البيانات",
+    "dataVisualization.waterfallChart": "مخطط الشلال",
+    "dataVisualization.widget": "الأداة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/dataVisualizationAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "dataVisualizationAdv.area": "Area Chart",
+    "dataVisualizationAdv.bar": "Bar Chart",
+    "dataVisualizationAdv.bubble": "Bubble Chart",
+    "dataVisualizationAdv.candlestick": "Candlestick",
+    "dataVisualizationAdv.chart": "Chart",
+    "dataVisualizationAdv.donut": "Donut Chart",
+    "dataVisualizationAdv.funnel": "Funnel",
+    "dataVisualizationAdv.gantt": "Gantt Chart",
+    "dataVisualizationAdv.gauge": "Gauge",
+    "dataVisualizationAdv.graph": "Graph",
+    "dataVisualizationAdv.heatmap": "Heatmap",
+    "dataVisualizationAdv.line": "Line Chart",
+    "dataVisualizationAdv.pie": "Pie Chart",
+    "dataVisualizationAdv.plot": "Plot",
+    "dataVisualizationAdv.radar": "Radar Chart",
+    "dataVisualizationAdv.sankey": "Sankey Diagram",
+    "dataVisualizationAdv.scatter": "Scatter Plot",
+    "dataVisualizationAdv.sparkline": "Sparkline",
+    "dataVisualizationAdv.tree": "Tree Map",
+    "dataVisualizationAdv.visualization": "Visualization",
+    "dataVisualizationAdv.waterfall": "Waterfall"
+  },
+  "ar": {
+    "dataVisualizationAdv.area": "مخطط مساحي",
+    "dataVisualizationAdv.bar": "مخطط شريطي",
+    "dataVisualizationAdv.bubble": "مخطط فقاعي",
+    "dataVisualizationAdv.candlestick": "شموع يابانية",
+    "dataVisualizationAdv.chart": "المخطط",
+    "dataVisualizationAdv.donut": "مخطط حلقي",
+    "dataVisualizationAdv.funnel": "قمع",
+    "dataVisualizationAdv.gantt": "مخطط جانت",
+    "dataVisualizationAdv.gauge": "مقياس",
+    "dataVisualizationAdv.graph": "الرسم البياني",
+    "dataVisualizationAdv.heatmap": "خريطة حرارية",
+    "dataVisualizationAdv.line": "مخطط خطي",
+    "dataVisualizationAdv.pie": "مخطط دائري",
+    "dataVisualizationAdv.plot": "الرسم",
+    "dataVisualizationAdv.radar": "مخطط راداري",
+    "dataVisualizationAdv.sankey": "مخطط سانكي",
+    "dataVisualizationAdv.scatter": "مخطط مبعثر",
+    "dataVisualizationAdv.sparkline": "خط صغير",
+    "dataVisualizationAdv.tree": "خريطة شجرية",
+    "dataVisualizationAdv.visualization": "التمثيل البصري",
+    "dataVisualizationAdv.waterfall": "شلال"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/dataWarehouse.translations.json">
+<![CDATA[
+{
+  "en": {
+    "dataWarehouse.aggregation": "Data Aggregation",
+    "dataWarehouse.archiving": "Data Archiving",
+    "dataWarehouse.backup": "Backup & Recovery",
+    "dataWarehouse.cubes": "OLAP Cubes",
+    "dataWarehouse.dimension": "Dimension Tables",
+    "dataWarehouse.dimensional": "Dimensional Modeling",
+    "dataWarehouse.dwh": "DWH",
+    "dataWarehouse.edw": "Enterprise Data Warehouse",
+    "dataWarehouse.etl": "ETL Processes",
+    "dataWarehouse.fact": "Fact Tables",
+    "dataWarehouse.indexing": "Index Management",
+    "dataWarehouse.loading": "Data Loading",
+    "dataWarehouse.marts": "Data Marts",
+    "dataWarehouse.ods": "Operational Data Store",
+    "dataWarehouse.optimization": "Query Optimization",
+    "dataWarehouse.partitioning": "Table Partitioning",
+    "dataWarehouse.performance": "Performance Tuning",
+    "dataWarehouse.snowflake": "Snowflake Schema",
+    "dataWarehouse.staging": "Staging Area",
+    "dataWarehouse.star": "Star Schema",
+    "dataWarehouse.warehouse": "Data Warehouse"
+  },
+  "ar": {
+    "dataWarehouse.aggregation": "تجميع البيانات",
+    "dataWarehouse.archiving": "أرشفة البيانات",
+    "dataWarehouse.backup": "النسخ الاحتياطي والاستعادة",
+    "dataWarehouse.cubes": "مكعبات OLAP",
+    "dataWarehouse.dimension": "جداول الأبعاد",
+    "dataWarehouse.dimensional": "النمذجة الأبعادية",
+    "dataWarehouse.dwh": "مستودع البيانات",
+    "dataWarehouse.edw": "مستودع البيانات المؤسسي",
+    "dataWarehouse.etl": "عمليات الاستخراج والتحويل والتحميل",
+    "dataWarehouse.fact": "جداول الحقائق",
+    "dataWarehouse.indexing": "إدارة الفهارس",
+    "dataWarehouse.loading": "تحميل البيانات",
+    "dataWarehouse.marts": "أسواق البيانات",
+    "dataWarehouse.ods": "مخزن البيانات التشغيلي",
+    "dataWarehouse.optimization": "تحسين الاستعلام",
+    "dataWarehouse.partitioning": "تقسيم الجداول",
+    "dataWarehouse.performance": "ضبط الأداء",
+    "dataWarehouse.snowflake": "مخطط الثلج",
+    "dataWarehouse.staging": "منطقة التجهيز",
+    "dataWarehouse.star": "مخطط النجمة",
+    "dataWarehouse.warehouse": "مستودع البيانات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/dataWarehouseAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "dataWarehouseAdv.aggregation": "Aggregation",
+    "dataWarehouseAdv.cube": "Data Cube",
+    "dataWarehouseAdv.dice": "Dice",
+    "dataWarehouseAdv.dimension": "Dimension Table",
+    "dataWarehouseAdv.dimensional": "Dimensional Modeling",
+    "dataWarehouseAdv.drilldown": "Drill-down",
+    "dataWarehouseAdv.dwh": "DWH",
+    "dataWarehouseAdv.etl": "ETL",
+    "dataWarehouseAdv.extraction": "Data Extraction",
+    "dataWarehouseAdv.fact": "Fact Table",
+    "dataWarehouseAdv.loading": "Data Loading",
+    "dataWarehouseAdv.mart": "Data Mart",
+    "dataWarehouseAdv.olap": "OLAP",
+    "dataWarehouseAdv.oltp": "OLTP",
+    "dataWarehouseAdv.refresh": "Data Refresh",
+    "dataWarehouseAdv.rollup": "Roll-up",
+    "dataWarehouseAdv.slice": "Slice",
+    "dataWarehouseAdv.snowflake": "Snowflake Schema",
+    "dataWarehouseAdv.staging": "Staging Area",
+    "dataWarehouseAdv.star": "Star Schema",
+    "dataWarehouseAdv.transformation": "Data Transformation",
+    "dataWarehouseAdv.warehouse": "Data Warehouse"
+  },
+  "ar": {
+    "dataWarehouseAdv.aggregation": "التجميع",
+    "dataWarehouseAdv.cube": "مكعب البيانات",
+    "dataWarehouseAdv.dice": "التجزئة",
+    "dataWarehouseAdv.dimension": "جدول الأبعاد",
+    "dataWarehouseAdv.dimensional": "النمذجة الأبعادية",
+    "dataWarehouseAdv.drilldown": "التنقيب",
+    "dataWarehouseAdv.dwh": "DWH",
+    "dataWarehouseAdv.etl": "استخراج وتحويل وتحميل",
+    "dataWarehouseAdv.extraction": "استخراج البيانات",
+    "dataWarehouseAdv.fact": "جدول الحقائق",
+    "dataWarehouseAdv.loading": "تحميل البيانات",
+    "dataWarehouseAdv.mart": "سوق البيانات",
+    "dataWarehouseAdv.olap": "OLAP",
+    "dataWarehouseAdv.oltp": "OLTP",
+    "dataWarehouseAdv.refresh": "تحديث البيانات",
+    "dataWarehouseAdv.rollup": "التدحرج",
+    "dataWarehouseAdv.slice": "التقطيع",
+    "dataWarehouseAdv.snowflake": "مخطط الندفة الثلجية",
+    "dataWarehouseAdv.staging": "منطقة التجهيز",
+    "dataWarehouseAdv.star": "مخطط النجمة",
+    "dataWarehouseAdv.transformation": "تحويل البيانات",
+    "dataWarehouseAdv.warehouse": "مستودع البيانات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/databaseAdministration.translations.json">
+<![CDATA[
+{
+  "en": {
+    "databaseAdministration.administration": "Database Administration",
+    "databaseAdministration.backup": "Database Backup",
+    "databaseAdministration.clustering": "Database Clustering",
+    "databaseAdministration.database": "Database",
+    "databaseAdministration.dba": "DBA",
+    "databaseAdministration.index": "Index",
+    "databaseAdministration.instance": "Database Instance",
+    "databaseAdministration.migration": "Database Migration",
+    "databaseAdministration.optimization": "Query Optimization",
+    "databaseAdministration.partitioning": "Partitioning",
+    "databaseAdministration.performance": "Database Performance",
+    "databaseAdministration.query": "Query",
+    "databaseAdministration.replication": "Replication",
+    "databaseAdministration.restore": "Database Restore",
+    "databaseAdministration.schema": "Schema",
+    "databaseAdministration.server": "Database Server",
+    "databaseAdministration.sharding": "Sharding",
+    "databaseAdministration.stored": "Stored Procedure",
+    "databaseAdministration.table": "Table",
+    "databaseAdministration.trigger": "Trigger",
+    "databaseAdministration.tuning": "Performance Tuning",
+    "databaseAdministration.view": "View"
+  },
+  "ar": {
+    "databaseAdministration.administration": "إدارة قواعد البيانات",
+    "databaseAdministration.backup": "النسخ الاحتياطي لقاعدة البيانات",
+    "databaseAdministration.clustering": "تجميع قواعد البيانات",
+    "databaseAdministration.database": "قاعدة البيانات",
+    "databaseAdministration.dba": "مدير قاعدة البيانات",
+    "databaseAdministration.index": "الفهرس",
+    "databaseAdministration.instance": "مثيل قاعدة البيانات",
+    "databaseAdministration.migration": "ترحيل قاعدة البيانات",
+    "databaseAdministration.optimization": "تحسين الاستعلام",
+    "databaseAdministration.partitioning": "التقسيم",
+    "databaseAdministration.performance": "أداء قاعدة البيانات",
+    "databaseAdministration.query": "الاستعلام",
+    "databaseAdministration.replication": "النسخ المتماثل",
+    "databaseAdministration.restore": "استعادة قاعدة البيانات",
+    "databaseAdministration.schema": "المخطط",
+    "databaseAdministration.server": "خادم قاعدة البيانات",
+    "databaseAdministration.sharding": "التقسيم الأفقي",
+    "databaseAdministration.stored": "الإجراء المخزن",
+    "databaseAdministration.table": "الجدول",
+    "databaseAdministration.trigger": "المشغل",
+    "databaseAdministration.tuning": "ضبط الأداء",
+    "databaseAdministration.view": "العرض"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/databaseManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "databaseManagement.backup": "Backup",
+    "databaseManagement.commit": "Commit",
+    "databaseManagement.connection": "Connection",
+    "databaseManagement.database": "Database",
+    "databaseManagement.host": "Host",
+    "databaseManagement.index": "Index",
+    "databaseManagement.maintenance": "Maintenance",
+    "databaseManagement.management": "Database Management",
+    "databaseManagement.migration": "Migration",
+    "databaseManagement.optimize": "Optimize",
+    "databaseManagement.password": "Password",
+    "databaseManagement.performance": "Performance",
+    "databaseManagement.port": "Port",
+    "databaseManagement.query": "Query",
+    "databaseManagement.replication": "Replication",
+    "databaseManagement.restore": "Restore",
+    "databaseManagement.rollback": "Rollback",
+    "databaseManagement.schema": "Schema",
+    "databaseManagement.server": "Database Server",
+    "databaseManagement.table": "Table",
+    "databaseManagement.transaction": "Transaction",
+    "databaseManagement.username": "Username",
+    "databaseManagement.view": "View"
+  },
+  "ar": {
+    "databaseManagement.backup": "النسخ الاحتياطي",
+    "databaseManagement.commit": "تنفيذ",
+    "databaseManagement.connection": "الاتصال",
+    "databaseManagement.database": "قاعدة البيانات",
+    "databaseManagement.host": "المضيف",
+    "databaseManagement.index": "الفهرس",
+    "databaseManagement.maintenance": "الصيانة",
+    "databaseManagement.management": "إدارة قاعدة البيانات",
+    "databaseManagement.migration": "الترحيل",
+    "databaseManagement.optimize": "التحسين",
+    "databaseManagement.password": "كلمة المرور",
+    "databaseManagement.performance": "الأداء",
+    "databaseManagement.port": "المنفذ",
+    "databaseManagement.query": "الاستعلام",
+    "databaseManagement.replication": "النسخ المتماثل",
+    "databaseManagement.restore": "الاستعادة",
+    "databaseManagement.rollback": "التراجع",
+    "databaseManagement.schema": "المخطط",
+    "databaseManagement.server": "خادم قاعدة البيانات",
+    "databaseManagement.table": "الجدول",
+    "databaseManagement.transaction": "المعاملة",
+    "databaseManagement.username": "اسم المستخدم",
+    "databaseManagement.view": "العرض"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/databaseManagementAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "databaseManagementAdv.backup": "Backup",
+    "databaseManagementAdv.cassandra": "Cassandra",
+    "databaseManagementAdv.database": "Database",
+    "databaseManagementAdv.document": "Document",
+    "databaseManagementAdv.elasticsearch": "Elasticsearch",
+    "databaseManagementAdv.graph": "Graph",
+    "databaseManagementAdv.index": "Index",
+    "databaseManagementAdv.keyValue": "Key-Value",
+    "databaseManagementAdv.migration": "Migration",
+    "databaseManagementAdv.mongodb": "MongoDB",
+    "databaseManagementAdv.mysql": "MySQL",
+    "databaseManagementAdv.nosql": "NoSQL",
+    "databaseManagementAdv.postgresql": "PostgreSQL",
+    "databaseManagementAdv.query": "Query",
+    "databaseManagementAdv.redis": "Redis",
+    "databaseManagementAdv.relational": "Relational",
+    "databaseManagementAdv.replication": "Replication",
+    "databaseManagementAdv.restore": "Restore",
+    "databaseManagementAdv.schema": "Schema",
+    "databaseManagementAdv.sharding": "Sharding",
+    "databaseManagementAdv.sql": "SQL",
+    "databaseManagementAdv.timeseries": "Time Series"
+  },
+  "ar": {
+    "databaseManagementAdv.backup": "النسخ الاحتياطي",
+    "databaseManagementAdv.cassandra": "Cassandra",
+    "databaseManagementAdv.database": "قاعدة البيانات",
+    "databaseManagementAdv.document": "مستندية",
+    "databaseManagementAdv.elasticsearch": "Elasticsearch",
+    "databaseManagementAdv.graph": "رسم بياني",
+    "databaseManagementAdv.index": "الفهرس",
+    "databaseManagementAdv.keyValue": "مفتاح-قيمة",
+    "databaseManagementAdv.migration": "الترحيل",
+    "databaseManagementAdv.mongodb": "MongoDB",
+    "databaseManagementAdv.mysql": "MySQL",
+    "databaseManagementAdv.nosql": "NoSQL",
+    "databaseManagementAdv.postgresql": "PostgreSQL",
+    "databaseManagementAdv.query": "الاستعلام",
+    "databaseManagementAdv.redis": "Redis",
+    "databaseManagementAdv.relational": "علائقية",
+    "databaseManagementAdv.replication": "النسخ المتماثل",
+    "databaseManagementAdv.restore": "الاستعادة",
+    "databaseManagementAdv.schema": "المخطط",
+    "databaseManagementAdv.sharding": "التجزئة",
+    "databaseManagementAdv.sql": "SQL",
+    "databaseManagementAdv.timeseries": "سلسلة زمنية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/databaseManagementExt.translations.json">
+<![CDATA[
+{
+  "en": {
+    "databaseManagementExt.backup": "Database Backup",
+    "databaseManagementExt.database": "Database",
+    "databaseManagementExt.dbms": "DBMS",
+    "databaseManagementExt.index": "Database Index",
+    "databaseManagementExt.maintenance": "Database Maintenance",
+    "databaseManagementExt.management": "Database Management",
+    "databaseManagementExt.migration": "Database Migration",
+    "databaseManagementExt.nosql": "NoSQL",
+    "databaseManagementExt.optimization": "Database Optimization",
+    "databaseManagementExt.performance": "Database Performance",
+    "databaseManagementExt.permission": "Database Permission",
+    "databaseManagementExt.query": "Database Query",
+    "databaseManagementExt.recovery": "Database Recovery",
+    "databaseManagementExt.replication": "Database Replication",
+    "databaseManagementExt.restore": "Database Restore",
+    "databaseManagementExt.schema": "Database Schema",
+    "databaseManagementExt.security": "Database Security",
+    "databaseManagementExt.sql": "SQL",
+    "databaseManagementExt.table": "Database Table",
+    "databaseManagementExt.transaction": "Transaction",
+    "databaseManagementExt.tuning": "Database Tuning",
+    "databaseManagementExt.user": "Database User"
+  },
+  "ar": {
+    "databaseManagementExt.backup": "النسخ الاحتياطي لقاعدة البيانات",
+    "databaseManagementExt.database": "قاعدة البيانات",
+    "databaseManagementExt.dbms": "نظام إدارة قواعد البيانات",
+    "databaseManagementExt.index": "فهرس قاعدة البيانات",
+    "databaseManagementExt.maintenance": "صيانة قاعدة البيانات",
+    "databaseManagementExt.management": "إدارة قاعدة البيانات",
+    "databaseManagementExt.migration": "ترحيل قاعدة البيانات",
+    "databaseManagementExt.nosql": "قواعد بيانات NoSQL",
+    "databaseManagementExt.optimization": "تحسين قاعدة البيانات",
+    "databaseManagementExt.performance": "أداء قاعدة البيانات",
+    "databaseManagementExt.permission": "صلاحية قاعدة البيانات",
+    "databaseManagementExt.query": "استعلام قاعدة البيانات",
+    "databaseManagementExt.recovery": "استرداد قاعدة البيانات",
+    "databaseManagementExt.replication": "نسخ متماثل لقاعدة البيانات",
+    "databaseManagementExt.restore": "استعادة قاعدة البيانات",
+    "databaseManagementExt.schema": "مخطط قاعدة البيانات",
+    "databaseManagementExt.security": "أمن قاعدة البيانات",
+    "databaseManagementExt.sql": "لغة الاستعلام الهيكلية",
+    "databaseManagementExt.table": "جدول قاعدة البيانات",
+    "databaseManagementExt.transaction": "العملية",
+    "databaseManagementExt.tuning": "ضبط قاعدة البيانات",
+    "databaseManagementExt.user": "مستخدم قاعدة البيانات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/dateTimeFormats.translations.json">
+<![CDATA[
+{
+  "en": {
+    "dateTimeFormats.am": "AM",
+    "dateTimeFormats.custom": "Custom",
+    "dateTimeFormats.date": "Date Format",
+    "dateTimeFormats.datetime": "Date & Time Format",
+    "dateTimeFormats.day": "Day",
+    "dateTimeFormats.format": "Format",
+    "dateTimeFormats.full": "Full",
+    "dateTimeFormats.hour": "Hour",
+    "dateTimeFormats.long": "Long",
+    "dateTimeFormats.medium": "Medium",
+    "dateTimeFormats.minute": "Minute",
+    "dateTimeFormats.month": "Month",
+    "dateTimeFormats.order": "Order",
+    "dateTimeFormats.pm": "PM",
+    "dateTimeFormats.preview": "Preview",
+    "dateTimeFormats.second": "Second",
+    "dateTimeFormats.separator": "Separator",
+    "dateTimeFormats.short": "Short",
+    "dateTimeFormats.time": "Time Format",
+    "dateTimeFormats.year": "Year"
+  },
+  "ar": {
+    "dateTimeFormats.am": "ص",
+    "dateTimeFormats.custom": "مخصص",
+    "dateTimeFormats.date": "تنسيق التاريخ",
+    "dateTimeFormats.datetime": "تنسيق التاريخ والوقت",
+    "dateTimeFormats.day": "اليوم",
+    "dateTimeFormats.format": "التنسيق",
+    "dateTimeFormats.full": "كامل",
+    "dateTimeFormats.hour": "الساعة",
+    "dateTimeFormats.long": "طويل",
+    "dateTimeFormats.medium": "متوسط",
+    "dateTimeFormats.minute": "الدقيقة",
+    "dateTimeFormats.month": "الشهر",
+    "dateTimeFormats.order": "الترتيب",
+    "dateTimeFormats.pm": "م",
+    "dateTimeFormats.preview": "معاينة",
+    "dateTimeFormats.second": "الثانية",
+    "dateTimeFormats.separator": "الفاصل",
+    "dateTimeFormats.short": "قصير",
+    "dateTimeFormats.time": "تنسيق الوقت",
+    "dateTimeFormats.year": "السنة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/dates.translations.json">
+<![CDATA[
+{
+  "en": {
+    "dates.custom": "Custom",
+    "dates.daysAgo": "days ago",
+    "dates.from": "From",
+    "dates.hoursAgo": "hours ago",
+    "dates.justNow": "Just now",
+    "dates.lastMonth": "Last month",
+    "dates.lastWeek": "Last week",
+    "dates.lastYear": "Last year",
+    "dates.minutesAgo": "minutes ago",
+    "dates.nextMonth": "Next month",
+    "dates.nextWeek": "Next week",
+    "dates.selectDate": "Select date",
+    "dates.selectDateRange": "Select date range",
+    "dates.thisMonth": "This month",
+    "dates.thisWeek": "This week",
+    "dates.thisYear": "This year",
+    "dates.today": "Today",
+    "dates.tomorrow": "Tomorrow",
+    "dates.until": "Until",
+    "dates.yesterday": "Yesterday"
+  },
+  "ar": {
+    "dates.custom": "مخصص",
+    "dates.daysAgo": "أيام مضت",
+    "dates.from": "من",
+    "dates.hoursAgo": "ساعات مضت",
+    "dates.justNow": "الآن",
+    "dates.lastMonth": "الشهر الماضي",
+    "dates.lastWeek": "الأسبوع الماضي",
+    "dates.lastYear": "العام الماضي",
+    "dates.minutesAgo": "دقائق مضت",
+    "dates.nextMonth": "الشهر القادم",
+    "dates.nextWeek": "الأسبوع القادم",
+    "dates.selectDate": "اختر التاريخ",
+    "dates.selectDateRange": "اختر نطاق التاريخ",
+    "dates.thisMonth": "هذا الشهر",
+    "dates.thisWeek": "هذا الأسبوع",
+    "dates.thisYear": "هذا العام",
+    "dates.today": "اليوم",
+    "dates.tomorrow": "غداً",
+    "dates.until": "حتى",
+    "dates.yesterday": "أمس"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/decisionMaking.translations.json">
+<![CDATA[
+{
+  "en": {
+    "decisionMaking.alternatives": "Alternatives Analysis",
+    "decisionMaking.analysis": "Decision Analysis",
+    "decisionMaking.authority": "Decision Authority",
+    "decisionMaking.bias": "Decision Bias",
+    "decisionMaking.consensus": "Consensus Decision",
+    "decisionMaking.criteria": "Decision Criteria",
+    "decisionMaking.decision": "Decision Making",
+    "decisionMaking.delegation": "Decision Delegation",
+    "decisionMaking.documentation": "Decision Documentation",
+    "decisionMaking.escalation": "Decision Escalation",
+    "decisionMaking.evaluation": "Decision Evaluation",
+    "decisionMaking.framework": "Decision Framework",
+    "decisionMaking.governance": "Decision Governance",
+    "decisionMaking.implementation": "Decision Implementation",
+    "decisionMaking.log": "Decision Log",
+    "decisionMaking.options": "Decision Options",
+    "decisionMaking.process": "Decision Process",
+    "decisionMaking.quality": "Decision Quality",
+    "decisionMaking.review": "Decision Review",
+    "decisionMaking.tracking": "Decision Tracking",
+    "decisionMaking.trade": "Trade-off Analysis",
+    "decisionMaking.voting": "Voting"
+  },
+  "ar": {
+    "decisionMaking.alternatives": "تحليل البدائل",
+    "decisionMaking.analysis": "تحليل القرار",
+    "decisionMaking.authority": "سلطة القرار",
+    "decisionMaking.bias": "تحيز القرار",
+    "decisionMaking.consensus": "قرار الإجماع",
+    "decisionMaking.criteria": "معايير القرار",
+    "decisionMaking.decision": "اتخاذ القرار",
+    "decisionMaking.delegation": "تفويض القرار",
+    "decisionMaking.documentation": "توثيق القرار",
+    "decisionMaking.escalation": "تصعيد القرار",
+    "decisionMaking.evaluation": "تقييم القرار",
+    "decisionMaking.framework": "إطار اتخاذ القرار",
+    "decisionMaking.governance": "حوكمة القرار",
+    "decisionMaking.implementation": "تنفيذ القرار",
+    "decisionMaking.log": "سجل القرارات",
+    "decisionMaking.options": "خيارات القرار",
+    "decisionMaking.process": "عملية اتخاذ القرار",
+    "decisionMaking.quality": "جودة القرار",
+    "decisionMaking.review": "مراجعة القرار",
+    "decisionMaking.tracking": "تتبع القرار",
+    "decisionMaking.trade": "تحليل المقايضات",
+    "decisionMaking.voting": "التصويت"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/deepLearningFrameworks.translations.json">
+<![CDATA[
+{
+  "en": {
+    "deepLearningFrameworks.conversion": "Model Conversion",
+    "deepLearningFrameworks.cuda": "CUDA Integration",
+    "deepLearningFrameworks.deep": "Deep Learning Frameworks",
+    "deepLearningFrameworks.deployment": "Model Deployment",
+    "deepLearningFrameworks.distributed": "Distributed Training",
+    "deepLearningFrameworks.edge": "Edge Deployment",
+    "deepLearningFrameworks.export": "Model Export",
+    "deepLearningFrameworks.frameworks": "Deep Learning Frameworks",
+    "deepLearningFrameworks.gpu": "GPU Acceleration",
+    "deepLearningFrameworks.inference": "Model Inference",
+    "deepLearningFrameworks.keras": "Keras",
+    "deepLearningFrameworks.mobile": "Mobile Deployment",
+    "deepLearningFrameworks.models": "Model Development",
+    "deepLearningFrameworks.onnx": "ONNX Format",
+    "deepLearningFrameworks.optimization": "Model Optimization",
+    "deepLearningFrameworks.pruning": "Model Pruning",
+    "deepLearningFrameworks.pytorch": "PyTorch",
+    "deepLearningFrameworks.quantization": "Model Quantization",
+    "deepLearningFrameworks.serving": "Model Serving",
+    "deepLearningFrameworks.tensorflow": "TensorFlow",
+    "deepLearningFrameworks.tpu": "TPU Acceleration",
+    "deepLearningFrameworks.training": "Model Training",
+    "deepLearningFrameworks.web": "Web Deployment"
+  },
+  "ar": {
+    "deepLearningFrameworks.conversion": "تحويل النموذج",
+    "deepLearningFrameworks.cuda": "تكامل CUDA",
+    "deepLearningFrameworks.deep": "أطر التعلم العميق",
+    "deepLearningFrameworks.deployment": "نشر النموذج",
+    "deepLearningFrameworks.distributed": "التدريب الموزع",
+    "deepLearningFrameworks.edge": "النشر على الحافة",
+    "deepLearningFrameworks.export": "تصدير النموذج",
+    "deepLearningFrameworks.frameworks": "أطر التعلم العميق",
+    "deepLearningFrameworks.gpu": "تسريع GPU",
+    "deepLearningFrameworks.inference": "استنتاج النموذج",
+    "deepLearningFrameworks.keras": "كيراس",
+    "deepLearningFrameworks.mobile": "النشر على الهاتف المحمول",
+    "deepLearningFrameworks.models": "تطوير النموذج",
+    "deepLearningFrameworks.onnx": "صيغة ONNX",
+    "deepLearningFrameworks.optimization": "تحسين النموذج",
+    "deepLearningFrameworks.pruning": "تقليم النموذج",
+    "deepLearningFrameworks.pytorch": "بايتورش",
+    "deepLearningFrameworks.quantization": "تكميم النموذج",
+    "deepLearningFrameworks.serving": "خدمة النموذج",
+    "deepLearningFrameworks.tensorflow": "تنسورفلو",
+    "deepLearningFrameworks.tpu": "تسريع TPU",
+    "deepLearningFrameworks.training": "تدريب النموذج",
+    "deepLearningFrameworks.web": "النشر على الويب"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/defense.translations.json">
+<![CDATA[
+{
+  "en": {
+    "defense.aircraft": "Military Aircraft",
+    "defense.ammunition": "Ammunition Management",
+    "defense.armament": "Armament",
+    "defense.armor": "Armor Protection",
+    "defense.artillery": "Artillery Systems",
+    "defense.combat": "Combat Operations",
+    "defense.command": "Command & Control",
+    "defense.communications": "Military Communications",
+    "defense.countermeasures": "Countermeasures",
+    "defense.cyber": "Cyber Defense",
+    "defense.defense1": "Defense Systems",
+    "defense.deployment": "Force Deployment",
+    "defense.description": "Defense operations and security systems",
+    "defense.disaster": "Disaster Response",
+    "defense.electronic": "Electronic Warfare",
+    "defense.exercises": "Military Exercises",
+    "defense.humanitarian": "Humanitarian Operations",
+    "defense.intelligence": "Intelligence Operations",
+    "defense.logistics": "Military Logistics",
+    "defense.medical": "Military Medical",
+    "defense.military": "Military Operations",
+    "defense.missiles": "Missile Systems",
+    "defense.naval": "Naval Operations",
+    "defense.operations": "Field Operations",
+    "defense.peacekeeping": "Peacekeeping",
+    "defense.radar": "Radar Systems",
+    "defense.readiness": "Combat Readiness",
+    "defense.reconnaissance": "Reconnaissance",
+    "defense.rescue": "Search & Rescue",
+    "defense.security": "Security Operations",
+    "defense.simulation": "Combat Simulation",
+    "defense.sonar": "Sonar Systems",
+    "defense.strategic": "Strategic Planning",
+    "defense.submarine": "Submarine Operations",
+    "defense.supply": "Supply Chain",
+    "defense.surveillance": "Surveillance Systems",
+    "defense.tactical": "Tactical Operations",
+    "defense.title": "Defense & Security",
+    "defense.training": "Military Training",
+    "defense.vehicles": "Military Vehicles",
+    "defense.weapons": "Weapons Systems"
+  },
+  "ar": {
+    "defense.aircraft": "الطائرات العسكرية",
+    "defense.ammunition": "إدارة الذخيرة",
+    "defense.armament": "التسليح",
+    "defense.armor": "الحماية المدرعة",
+    "defense.artillery": "أنظمة المدفعية",
+    "defense.combat": "العمليات القتالية",
+    "defense.command": "القيادة والسيطرة",
+    "defense.communications": "الاتصالات العسكرية",
+    "defense.countermeasures": "التدابير المضادة",
+    "defense.cyber": "الدفاع السيبراني",
+    "defense.defense1": "الأنظمة الدفاعية",
+    "defense.deployment": "نشر القوات",
+    "defense.description": "العمليات الدفاعية وأنظمة الأمن",
+    "defense.disaster": "الاستجابة للكوارث",
+    "defense.electronic": "الحرب الإلكترونية",
+    "defense.exercises": "التمارين العسكرية",
+    "defense.humanitarian": "العمليات الإنسانية",
+    "defense.intelligence": "عمليات الاستخبارات",
+    "defense.logistics": "اللوجستيات العسكرية",
+    "defense.medical": "الطب العسكري",
+    "defense.military": "العمليات العسكرية",
+    "defense.missiles": "أنظمة الصواريخ",
+    "defense.naval": "العمليات البحرية",
+    "defense.operations": "العمليات الميدانية",
+    "defense.peacekeeping": "حفظ السلام",
+    "defense.radar": "أنظمة الرادار",
+    "defense.readiness": "الجاهزية القتالية",
+    "defense.reconnaissance": "الاستطلاع",
+    "defense.rescue": "البحث والإنقاذ",
+    "defense.security": "العمليات الأمنية",
+    "defense.simulation": "محاكاة القتال",
+    "defense.sonar": "أنظمة السونار",
+    "defense.strategic": "التخطيط الاستراتيجي",
+    "defense.submarine": "عمليات الغواصات",
+    "defense.supply": "سلسلة الإمداد",
+    "defense.surveillance": "أنظمة المراقبة",
+    "defense.tactical": "العمليات التكتيكية",
+    "defense.title": "الدفاع والأمن",
+    "defense.training": "التدريب العسكري",
+    "defense.vehicles": "المركبات العسكرية",
+    "defense.weapons": "أنظمة الأسلحة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/demandManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "demandManagement.aggregation": "Demand Aggregation",
+    "demandManagement.analysis": "Demand Analysis",
+    "demandManagement.approval": "Demand Approval",
+    "demandManagement.backlog": "Demand Backlog",
+    "demandManagement.capture": "Demand Capture",
+    "demandManagement.classification": "Demand Classification",
+    "demandManagement.demand": "Demand Management",
+    "demandManagement.evaluation": "Demand Evaluation",
+    "demandManagement.forecasting": "Demand Forecasting",
+    "demandManagement.fulfillment": "Demand Fulfillment",
+    "demandManagement.lifecycle": "Demand Lifecycle",
+    "demandManagement.metrics": "Demand Metrics",
+    "demandManagement.optimization": "Demand Optimization",
+    "demandManagement.pipeline": "Demand Pipeline",
+    "demandManagement.planning": "Demand Planning",
+    "demandManagement.prioritization": "Demand Prioritization",
+    "demandManagement.rationalization": "Demand Rationalization",
+    "demandManagement.reporting": "Demand Reporting",
+    "demandManagement.request": "Demand Request",
+    "demandManagement.routing": "Demand Routing",
+    "demandManagement.tracking": "Demand Tracking",
+    "demandManagement.validation": "Demand Validation"
+  },
+  "ar": {
+    "demandManagement.aggregation": "تجميع الطلب",
+    "demandManagement.analysis": "تحليل الطلب",
+    "demandManagement.approval": "الموافقة على الطلب",
+    "demandManagement.backlog": "تراكم الطلب",
+    "demandManagement.capture": "التقاط الطلب",
+    "demandManagement.classification": "تصنيف الطلب",
+    "demandManagement.demand": "إدارة الطلب",
+    "demandManagement.evaluation": "تقييم الطلب",
+    "demandManagement.forecasting": "التنبؤ بالطلب",
+    "demandManagement.fulfillment": "تنفيذ الطلب",
+    "demandManagement.lifecycle": "دورة حياة الطلب",
+    "demandManagement.metrics": "مقاييس الطلب",
+    "demandManagement.optimization": "تحسين الطلب",
+    "demandManagement.pipeline": "خط أنابيب الطلب",
+    "demandManagement.planning": "تخطيط الطلب",
+    "demandManagement.prioritization": "تحديد أولويات الطلب",
+    "demandManagement.rationalization": "ترشيد الطلب",
+    "demandManagement.reporting": "تقارير الطلب",
+    "demandManagement.request": "طلب الخدمة",
+    "demandManagement.routing": "توجيه الطلب",
+    "demandManagement.tracking": "تتبع الطلب",
+    "demandManagement.validation": "التحقق من الطلب"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/departmentManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "departmentManagement.active": "Active",
+    "departmentManagement.budget": "Budget",
+    "departmentManagement.code": "Department Code",
+    "departmentManagement.costCenter": "Cost Center",
+    "departmentManagement.create": "Create Department",
+    "departmentManagement.delete": "Delete Department",
+    "departmentManagement.department": "Department",
+    "departmentManagement.description": "Description",
+    "departmentManagement.edit": "Edit Department",
+    "departmentManagement.employees": "Number of Employees",
+    "departmentManagement.head": "Department Head",
+    "departmentManagement.inactive": "Inactive",
+    "departmentManagement.location": "Location",
+    "departmentManagement.management": "Department Management",
+    "departmentManagement.manager": "Manager",
+    "departmentManagement.members": "Members",
+    "departmentManagement.name": "Department Name",
+    "departmentManagement.parent": "Parent Department",
+    "departmentManagement.subdepartment": "Sub-department"
+  },
+  "ar": {
+    "departmentManagement.active": "نشط",
+    "departmentManagement.budget": "الميزانية",
+    "departmentManagement.code": "رمز القسم",
+    "departmentManagement.costCenter": "مركز التكلفة",
+    "departmentManagement.create": "إنشاء قسم",
+    "departmentManagement.delete": "حذف قسم",
+    "departmentManagement.department": "القسم",
+    "departmentManagement.description": "الوصف",
+    "departmentManagement.edit": "تحرير قسم",
+    "departmentManagement.employees": "عدد الموظفين",
+    "departmentManagement.head": "رئيس القسم",
+    "departmentManagement.inactive": "غير نشط",
+    "departmentManagement.location": "الموقع",
+    "departmentManagement.management": "إدارة الأقسام",
+    "departmentManagement.manager": "المدير",
+    "departmentManagement.members": "الأعضاء",
+    "departmentManagement.name": "اسم القسم",
+    "departmentManagement.parent": "القسم الرئيسي",
+    "departmentManagement.subdepartment": "قسم فرعي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/departments.translations.json">
+<![CDATA[
+{
+  "en": {
+    "departments.accounting": "Accounting",
+    "departments.administration": "Administration",
+    "departments.compliance": "Compliance",
+    "departments.customerService": "Customer Service",
+    "departments.department": "Department",
+    "departments.departments1": "Departments",
+    "departments.development": "Development",
+    "departments.division": "Division",
+    "departments.engineering": "Engineering",
+    "departments.finance": "Finance",
+    "departments.hr": "HR",
+    "departments.humanResources": "Human Resources",
+    "departments.it": "IT",
+    "departments.legal": "Legal",
+    "departments.logistics": "Logistics",
+    "departments.manufacturing": "Manufacturing",
+    "departments.marketing": "Marketing",
+    "departments.operations": "Operations",
+    "departments.procurement": "Procurement",
+    "departments.production": "Production",
+    "departments.qualityAssurance": "Quality Assurance",
+    "departments.research": "Research",
+    "departments.researchAndDevelopment": "Research and Development",
+    "departments.sales": "Sales",
+    "departments.section": "Section",
+    "departments.support": "Support",
+    "departments.team": "Team"
+  },
+  "ar": {
+    "departments.accounting": "المحاسبة",
+    "departments.administration": "الإدارة",
+    "departments.compliance": "الامتثال",
+    "departments.customerService": "خدمة العملاء",
+    "departments.department": "قسم",
+    "departments.departments1": "أقسام",
+    "departments.development": "التطوير",
+    "departments.division": "شعبة",
+    "departments.engineering": "الهندسة",
+    "departments.finance": "المالية",
+    "departments.hr": "الموارد البشرية",
+    "departments.humanResources": "الموارد البشرية",
+    "departments.it": "تكنولوجيا المعلومات",
+    "departments.legal": "القانونية",
+    "departments.logistics": "اللوجستيات",
+    "departments.manufacturing": "التصنيع",
+    "departments.marketing": "التسويق",
+    "departments.operations": "العمليات",
+    "departments.procurement": "المشتريات",
+    "departments.production": "الإنتاج",
+    "departments.qualityAssurance": "ضمان الجودة",
+    "departments.research": "البحث",
+    "departments.researchAndDevelopment": "البحث والتطوير",
+    "departments.sales": "المبيعات",
+    "departments.section": "قسم",
+    "departments.support": "الدعم",
+    "departments.team": "فريق"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/dependencyManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "dependencyManagement.analysis": "Dependency Analysis",
+    "dependencyManagement.blocking": "Blocking Dependencies",
+    "dependencyManagement.coordination": "Dependency Coordination",
+    "dependencyManagement.critical": "Critical Dependencies",
+    "dependencyManagement.dependency": "Dependency Management",
+    "dependencyManagement.escalation": "Dependency Escalation",
+    "dependencyManagement.external": "External Dependencies",
+    "dependencyManagement.identification": "Dependency Identification",
+    "dependencyManagement.impact": "Dependency Impact",
+    "dependencyManagement.internal": "Internal Dependencies",
+    "dependencyManagement.management": "Dependencies Management",
+    "dependencyManagement.mapping": "Dependency Mapping",
+    "dependencyManagement.matrix": "Dependency Matrix",
+    "dependencyManagement.mitigation": "Dependency Mitigation",
+    "dependencyManagement.monitoring": "Dependency Monitoring",
+    "dependencyManagement.network": "Dependency Network",
+    "dependencyManagement.path": "Critical Path",
+    "dependencyManagement.reporting": "Dependency Reporting",
+    "dependencyManagement.resolution": "Dependency Resolution",
+    "dependencyManagement.risk": "Dependency Risk",
+    "dependencyManagement.tracking": "Dependency Tracking",
+    "dependencyManagement.visualization": "Dependency Visualization"
+  },
+  "ar": {
+    "dependencyManagement.analysis": "تحليل التبعيات",
+    "dependencyManagement.blocking": "التبعيات المعوقة",
+    "dependencyManagement.coordination": "تنسيق التبعيات",
+    "dependencyManagement.critical": "التبعيات الحرجة",
+    "dependencyManagement.dependency": "إدارة التبعيات",
+    "dependencyManagement.escalation": "تصعيد التبعيات",
+    "dependencyManagement.external": "التبعيات الخارجية",
+    "dependencyManagement.identification": "تحديد التبعيات",
+    "dependencyManagement.impact": "تأثير التبعيات",
+    "dependencyManagement.internal": "التبعيات الداخلية",
+    "dependencyManagement.management": "إدارة التبعيات",
+    "dependencyManagement.mapping": "رسم خريطة التبعيات",
+    "dependencyManagement.matrix": "مصفوفة التبعيات",
+    "dependencyManagement.mitigation": "تخفيف التبعيات",
+    "dependencyManagement.monitoring": "مراقبة التبعيات",
+    "dependencyManagement.network": "شبكة التبعيات",
+    "dependencyManagement.path": "المسار الحرج",
+    "dependencyManagement.reporting": "إعداد تقارير التبعيات",
+    "dependencyManagement.resolution": "حل التبعيات",
+    "dependencyManagement.risk": "مخاطر التبعيات",
+    "dependencyManagement.tracking": "تتبع التبعيات",
+    "dependencyManagement.visualization": "تصور التبعيات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/designThinking.translations.json">
+<![CDATA[
+{
+  "en": {
+    "designThinking.brainstorming": "Design Brainstorming",
+    "designThinking.define": "Define",
+    "designThinking.design": "Design Thinking",
+    "designThinking.empathize": "Empathize",
+    "designThinking.empathy": "Empathy",
+    "designThinking.feedback": "User Feedback",
+    "designThinking.human": "Human-Centered Design",
+    "designThinking.ideate": "Ideate",
+    "designThinking.insights": "User Insights",
+    "designThinking.iteration": "Design Iteration",
+    "designThinking.journey": "Journey Mapping",
+    "designThinking.methodology": "Design Methodology",
+    "designThinking.mindset": "Design Mindset",
+    "designThinking.persona": "Persona Development",
+    "designThinking.process": "Design Process",
+    "designThinking.prototype": "Prototype",
+    "designThinking.rapid": "Rapid Prototyping",
+    "designThinking.research": "Design Research",
+    "designThinking.sketching": "Sketching",
+    "designThinking.test": "Test",
+    "designThinking.validation": "Design Validation",
+    "designThinking.wireframing": "Wireframing"
+  },
+  "ar": {
+    "designThinking.brainstorming": "العصف الذهني التصميمي",
+    "designThinking.define": "التعريف",
+    "designThinking.design": "التفكير التصميمي",
+    "designThinking.empathize": "التعاطف",
+    "designThinking.empathy": "التعاطف",
+    "designThinking.feedback": "ملاحظات المستخدم",
+    "designThinking.human": "التصميم المتمحور حول الإنسان",
+    "designThinking.ideate": "توليد الأفكار",
+    "designThinking.insights": "رؤى المستخدم",
+    "designThinking.iteration": "التكرار التصميمي",
+    "designThinking.journey": "رسم خريطة الرحلة",
+    "designThinking.methodology": "منهجية التصميم",
+    "designThinking.mindset": "عقلية التصميم",
+    "designThinking.persona": "تطوير الشخصية",
+    "designThinking.process": "عملية التصميم",
+    "designThinking.prototype": "النموذج الأولي",
+    "designThinking.rapid": "النماذج الأولية السريعة",
+    "designThinking.research": "بحث التصميم",
+    "designThinking.sketching": "الرسم التخطيطي",
+    "designThinking.test": "الاختبار",
+    "designThinking.validation": "التحقق من التصميم",
+    "designThinking.wireframing": "الإطارات السلكية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/devLogin.translations.json">
+<![CDATA[
+{
+  "en": {
+    "devLogin.alert.failure": "Login failed: ",
+    "devLogin.alert.unknownError": "Unknown error",
+    "devLogin.buttons.autoLogin": "Auto Login",
+    "devLogin.buttons.backToLogin": "Back to Login",
+    "devLogin.buttons.copyIdentifier": "Copy identifier",
+    "devLogin.buttons.loggingIn": "Logging in...",
+    "devLogin.empty.copyMiddle": "to",
+    "devLogin.empty.copyPrefix": "Copy",
+    "devLogin.empty.copySuffix": "and fill in your test credentials.",
+    "devLogin.empty.noCreds": "No demo credentials found.",
+    "devLogin.fields.emailLabel": "Email",
+    "devLogin.fields.employeeLabel": "Employee #",
+    "devLogin.fields.passwordHidden": "[hidden]",
+    "devLogin.fields.passwordLabel": "Password",
+    "devLogin.instructions.accessDesc": "This page is only visible in non-production environments.",
+    "devLogin.instructions.accessTitle": "Access:",
+    "devLogin.instructions.autoLoginDesc": "Happens server-side; browser never sees passwords.",
+    "devLogin.instructions.autoLoginTitle": "Auto Login:",
+    "devLogin.instructions.copyDesc": "Copies identifier (email / employee #) only.",
+    "devLogin.instructions.copyTitle": "Copy:",
+    "devLogin.instructions.securityDesc": "Passwords never reach the client bundle. Login endpoint validates credentials server-side.",
+    "devLogin.instructions.securityTitle": "Security:",
+    "devLogin.instructions.title": "Usage Instructions",
+    "devLogin.sections.corporate": "Corporate Accounts",
+    "devLogin.sections.personal": "Personal Email Accounts",
+    "devLogin.subtitle": "Quick access demo credentials (server-safe)",
+    "devLogin.title": "Developer Login Helpers",
+    "devLogin.warning.description": "Credentials are never sent to the browser. Auto-login happens on the server.",
+    "devLogin.warning.title": "Development Only:"
+  },
+  "ar": {
+    "devLogin.alert.failure": "فشل تسجيل الدخول: ",
+    "devLogin.alert.unknownError": "خطأ غير معروف",
+    "devLogin.buttons.autoLogin": "تسجيل دخول تلقائي",
+    "devLogin.buttons.backToLogin": "العودة لتسجيل الدخول",
+    "devLogin.buttons.copyIdentifier": "نسخ المعرف",
+    "devLogin.buttons.loggingIn": "جارٍ تسجيل الدخول...",
+    "devLogin.empty.copyMiddle": "إلى",
+    "devLogin.empty.copyPrefix": "انسخ",
+    "devLogin.empty.copySuffix": "وأضف بيانات الاعتماد التجريبية الخاصة بك.",
+    "devLogin.empty.noCreds": "لم يتم العثور على بيانات اعتماد تجريبية.",
+    "devLogin.fields.emailLabel": "البريد الإلكتروني",
+    "devLogin.fields.employeeLabel": "رقم الموظف",
+    "devLogin.fields.passwordHidden": "[مخفي]",
+    "devLogin.fields.passwordLabel": "كلمة المرور",
+    "devLogin.instructions.accessDesc": "هذه الصفحة تظهر فقط في بيئات غير الإنتاج.",
+    "devLogin.instructions.accessTitle": "الوصول:",
+    "devLogin.instructions.autoLoginDesc": "يحدث في الخادم؛ المتصفح لا يرى كلمات المرور.",
+    "devLogin.instructions.autoLoginTitle": "تسجيل دخول تلقائي:",
+    "devLogin.instructions.copyDesc": "يتم نسخ المعرّف فقط (البريد الإلكتروني / رقم الموظف).",
+    "devLogin.instructions.copyTitle": "النسخ:",
+    "devLogin.instructions.securityDesc": "لا تصل كلمات المرور إلى واجهة العميل. التحقق يتم في الخادم.",
+    "devLogin.instructions.securityTitle": "الأمان:",
+    "devLogin.instructions.title": "إرشادات الاستخدام",
+    "devLogin.sections.corporate": "الحسابات المؤسسية",
+    "devLogin.sections.personal": "حسابات البريد الإلكتروني الشخصية",
+    "devLogin.subtitle": "وصول سريع لبيانات الاعتماد التجريبية (آمن من جهة الخادم)",
+    "devLogin.title": "مساعد تسجيل دخول المطورين",
+    "devLogin.warning.description": "لا يتم إرسال بيانات الاعتماد إلى المتصفح. تسجيل الدخول يتم في الخادم.",
+    "devLogin.warning.title": "للاستخدام التطويري فقط:"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/devOps.translations.json">
+<![CDATA[
+{
+  "en": {
+    "devOps.automation": "Automation",
+    "devOps.branch": "Branch",
+    "devOps.build": "Build",
+    "devOps.cicd": "CI/CD",
+    "devOps.clone": "Clone",
+    "devOps.commit": "Commit",
+    "devOps.compile": "Compile",
+    "devOps.configuration": "Configuration Management",
+    "devOps.containerization": "Containerization",
+    "devOps.deploy": "Deploy",
+    "devOps.devops": "DevOps",
+    "devOps.fork": "Fork",
+    "devOps.gitflow": "Git Flow",
+    "devOps.merge": "Merge",
+    "devOps.microservices": "Microservices",
+    "devOps.orchestration": "Orchestration",
+    "devOps.pipeline": "Pipeline",
+    "devOps.provisioning": "Provisioning",
+    "devOps.pull": "Pull",
+    "devOps.push": "Push",
+    "devOps.release": "Release",
+    "devOps.repository": "Repository",
+    "devOps.rollback": "Rollback",
+    "devOps.rollout": "Rollout",
+    "devOps.tag": "Tag",
+    "devOps.test": "Test",
+    "devOps.version": "Version",
+    "devOps.virtualization": "Virtualization"
+  },
+  "ar": {
+    "devOps.automation": "الأتمتة",
+    "devOps.branch": "الفرع",
+    "devOps.build": "البناء",
+    "devOps.cicd": "التكامل والتسليم المستمر",
+    "devOps.clone": "الاستنساخ",
+    "devOps.commit": "الالتزام",
+    "devOps.compile": "الترجمة",
+    "devOps.configuration": "إدارة التكوين",
+    "devOps.containerization": "الحاويات",
+    "devOps.deploy": "النشر",
+    "devOps.devops": "DevOps",
+    "devOps.fork": "الانشقاق",
+    "devOps.gitflow": "سير عمل Git",
+    "devOps.merge": "الدمج",
+    "devOps.microservices": "الخدمات الدقيقة",
+    "devOps.orchestration": "التنسيق",
+    "devOps.pipeline": "خط الأنابيب",
+    "devOps.provisioning": "التوفير",
+    "devOps.pull": "السحب",
+    "devOps.push": "الدفع",
+    "devOps.release": "الإصدار",
+    "devOps.repository": "المستودع",
+    "devOps.rollback": "التراجع",
+    "devOps.rollout": "الطرح",
+    "devOps.tag": "الوسم",
+    "devOps.test": "الاختبار",
+    "devOps.version": "الإصدار",
+    "devOps.virtualization": "المحاكاة الافتراضية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/devOpsEngineering.translations.json">
+<![CDATA[
+{
+  "en": {
+    "devOpsEngineering.agile": "Agile DevOps",
+    "devOpsEngineering.automation": "DevOps Automation",
+    "devOpsEngineering.build": "Build Automation",
+    "devOpsEngineering.cd": "Continuous Delivery",
+    "devOpsEngineering.ci": "Continuous Integration",
+    "devOpsEngineering.collaboration": "DevOps Collaboration",
+    "devOpsEngineering.configuration": "Configuration Management",
+    "devOpsEngineering.culture": "DevOps Culture",
+    "devOpsEngineering.deployment": "Continuous Deployment",
+    "devOpsEngineering.devops": "DevOps",
+    "devOpsEngineering.feedback": "Feedback Loop",
+    "devOpsEngineering.improvement": "Continuous Improvement",
+    "devOpsEngineering.infrastructure": "Infrastructure as Code",
+    "devOpsEngineering.logging": "DevOps Logging",
+    "devOpsEngineering.metrics": "DevOps Metrics",
+    "devOpsEngineering.monitoring": "DevOps Monitoring",
+    "devOpsEngineering.observability": "Observability",
+    "devOpsEngineering.pipeline": "DevOps Pipeline",
+    "devOpsEngineering.release": "Release Automation",
+    "devOpsEngineering.security": "DevSecOps",
+    "devOpsEngineering.test": "Test Automation",
+    "devOpsEngineering.toolchain": "DevOps Toolchain"
+  },
+  "ar": {
+    "devOpsEngineering.agile": "ديف أوبس الرشيقة",
+    "devOpsEngineering.automation": "أتمتة ديف أوبس",
+    "devOpsEngineering.build": "أتمتة البناء",
+    "devOpsEngineering.cd": "التسليم المستمر",
+    "devOpsEngineering.ci": "التكامل المستمر",
+    "devOpsEngineering.collaboration": "تعاون ديف أوبس",
+    "devOpsEngineering.configuration": "إدارة التكوين",
+    "devOpsEngineering.culture": "ثقافة ديف أوبس",
+    "devOpsEngineering.deployment": "النشر المستمر",
+    "devOpsEngineering.devops": "ديف أوبس",
+    "devOpsEngineering.feedback": "حلقة التغذية الراجعة",
+    "devOpsEngineering.improvement": "التحسين المستمر",
+    "devOpsEngineering.infrastructure": "البنية التحتية كرمز",
+    "devOpsEngineering.logging": "تسجيل ديف أوبس",
+    "devOpsEngineering.metrics": "مقاييس ديف أوبس",
+    "devOpsEngineering.monitoring": "مراقبة ديف أوبس",
+    "devOpsEngineering.observability": "قابلية المراقبة",
+    "devOpsEngineering.pipeline": "خط أنابيب ديف أوبس",
+    "devOpsEngineering.release": "أتمتة الإصدار",
+    "devOpsEngineering.security": "ديف سيك أوبس",
+    "devOpsEngineering.test": "أتمتة الاختبار",
+    "devOpsEngineering.toolchain": "سلسلة أدوات ديف أوبس"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/devOpsExt.translations.json">
+<![CDATA[
+{
+  "en": {
+    "devOpsExt.automation": "DevOps Automation",
+    "devOpsExt.branching": "Branching Strategy",
+    "devOpsExt.build": "Build Automation",
+    "devOpsExt.collaboration": "Team Collaboration",
+    "devOpsExt.configuration": "Configuration Management",
+    "devOpsExt.containerization": "Containerization",
+    "devOpsExt.continuous": "Continuous Integration",
+    "devOpsExt.delivery": "Continuous Delivery",
+    "devOpsExt.deployment": "Continuous Deployment",
+    "devOpsExt.development": "Development Operations",
+    "devOpsExt.devops": "DevOps",
+    "devOpsExt.infrastructure": "Infrastructure as Code",
+    "devOpsExt.integration": "CI/CD",
+    "devOpsExt.logging": "Centralized Logging",
+    "devOpsExt.merging": "Code Merging",
+    "devOpsExt.monitoring": "DevOps Monitoring",
+    "devOpsExt.orchestration": "Container Orchestration",
+    "devOpsExt.pipeline": "DevOps Pipeline",
+    "devOpsExt.release": "Release Management",
+    "devOpsExt.repository": "Code Repository",
+    "devOpsExt.testing": "Automated Testing",
+    "devOpsExt.version": "Version Control"
+  },
+  "ar": {
+    "devOpsExt.automation": "أتمتة ديف أوبس",
+    "devOpsExt.branching": "استراتيجية التفريع",
+    "devOpsExt.build": "أتمتة البناء",
+    "devOpsExt.collaboration": "تعاون الفريق",
+    "devOpsExt.configuration": "إدارة التكوين",
+    "devOpsExt.containerization": "الحاويات",
+    "devOpsExt.continuous": "التكامل المستمر",
+    "devOpsExt.delivery": "التسليم المستمر",
+    "devOpsExt.deployment": "النشر المستمر",
+    "devOpsExt.development": "عمليات التطوير",
+    "devOpsExt.devops": "ديف أوبس",
+    "devOpsExt.infrastructure": "البنية التحتية كرمز",
+    "devOpsExt.integration": "التكامل والنشر المستمر",
+    "devOpsExt.logging": "التسجيل المركزي",
+    "devOpsExt.merging": "دمج الكود",
+    "devOpsExt.monitoring": "مراقبة ديف أوبس",
+    "devOpsExt.orchestration": "تنسيق الحاويات",
+    "devOpsExt.pipeline": "خط أنابيب ديف أوبس",
+    "devOpsExt.release": "إدارة الإصدارات",
+    "devOpsExt.repository": "مستودع الكود",
+    "devOpsExt.testing": "الاختبار الآلي",
+    "devOpsExt.version": "التحكم في الإصدار"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/devOpsToolsAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "devOpsToolsAdv.artifact": "Artifact",
+    "devOpsToolsAdv.branch": "Branch",
+    "devOpsToolsAdv.build": "Build",
+    "devOpsToolsAdv.cd": "Continuous Deployment",
+    "devOpsToolsAdv.ci": "Continuous Integration",
+    "devOpsToolsAdv.code": "Code Review",
+    "devOpsToolsAdv.commit": "Commit",
+    "devOpsToolsAdv.deploy": "Deploy",
+    "devOpsToolsAdv.development": "Development",
+    "devOpsToolsAdv.devops": "DevOps",
+    "devOpsToolsAdv.environment": "Environment",
+    "devOpsToolsAdv.gitlab": "GitLab",
+    "devOpsToolsAdv.jenkins": "Jenkins",
+    "devOpsToolsAdv.merge": "Merge",
+    "devOpsToolsAdv.pipeline": "Pipeline",
+    "devOpsToolsAdv.production": "Production",
+    "devOpsToolsAdv.pull": "Pull Request",
+    "devOpsToolsAdv.release": "Release",
+    "devOpsToolsAdv.repository": "Repository",
+    "devOpsToolsAdv.stage": "Stage",
+    "devOpsToolsAdv.staging": "Staging",
+    "devOpsToolsAdv.test": "Test"
+  },
+  "ar": {
+    "devOpsToolsAdv.artifact": "الأثر",
+    "devOpsToolsAdv.branch": "الفرع",
+    "devOpsToolsAdv.build": "البناء",
+    "devOpsToolsAdv.cd": "النشر المستمر",
+    "devOpsToolsAdv.ci": "التكامل المستمر",
+    "devOpsToolsAdv.code": "مراجعة الكود",
+    "devOpsToolsAdv.commit": "الالتزام",
+    "devOpsToolsAdv.deploy": "النشر",
+    "devOpsToolsAdv.development": "التطوير",
+    "devOpsToolsAdv.devops": "ديف أوبس",
+    "devOpsToolsAdv.environment": "البيئة",
+    "devOpsToolsAdv.gitlab": "جت لاب",
+    "devOpsToolsAdv.jenkins": "جينكينز",
+    "devOpsToolsAdv.merge": "الدمج",
+    "devOpsToolsAdv.pipeline": "خط الأنابيب",
+    "devOpsToolsAdv.production": "الإنتاج",
+    "devOpsToolsAdv.pull": "طلب السحب",
+    "devOpsToolsAdv.release": "الإصدار",
+    "devOpsToolsAdv.repository": "المستودع",
+    "devOpsToolsAdv.stage": "المرحلة",
+    "devOpsToolsAdv.staging": "التجهيز",
+    "devOpsToolsAdv.test": "الاختبار"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/devopsToolchain.translations.json">
+<![CDATA[
+{
+  "en": {
+    "devopsToolchain.ansible": "Ansible",
+    "devopsToolchain.artifact": "Artifact Management",
+    "devopsToolchain.branching": "Branching Strategy",
+    "devopsToolchain.build": "Build Automation",
+    "devopsToolchain.cicd": "CI/CD Pipeline",
+    "devopsToolchain.compilation": "Code Compilation",
+    "devopsToolchain.configuration": "Configuration Management",
+    "devopsToolchain.continuous": "Continuous Integration",
+    "devopsToolchain.delivery": "Continuous Delivery",
+    "devopsToolchain.deployment": "Continuous Deployment",
+    "devopsToolchain.devops": "DevOps Toolchain",
+    "devopsToolchain.environment": "Environment Management",
+    "devopsToolchain.git": "Git Management",
+    "devopsToolchain.infrastructure": "Infrastructure as Code",
+    "devopsToolchain.integration": "Integration Automation",
+    "devopsToolchain.merging": "Merge Management",
+    "devopsToolchain.registry": "Container Registry",
+    "devopsToolchain.release": "Release Management",
+    "devopsToolchain.source": "Source Control",
+    "devopsToolchain.terraform": "Terraform",
+    "devopsToolchain.testing": "Automated Testing",
+    "devopsToolchain.unit": "Unit Testing"
+  },
+  "ar": {
+    "devopsToolchain.ansible": "Ansible",
+    "devopsToolchain.artifact": "إدارة القطع الأثرية",
+    "devopsToolchain.branching": "استراتيجية التفرع",
+    "devopsToolchain.build": "أتمتة البناء",
+    "devopsToolchain.cicd": "خط أنابيب CI/CD",
+    "devopsToolchain.compilation": "تجميع الكود",
+    "devopsToolchain.configuration": "إدارة التكوين",
+    "devopsToolchain.continuous": "التكامل المستمر",
+    "devopsToolchain.delivery": "التسليم المستمر",
+    "devopsToolchain.deployment": "النشر المستمر",
+    "devopsToolchain.devops": "سلسلة أدوات DevOps",
+    "devopsToolchain.environment": "إدارة البيئة",
+    "devopsToolchain.git": "إدارة Git",
+    "devopsToolchain.infrastructure": "البنية التحتية كبرمجة",
+    "devopsToolchain.integration": "أتمتة التكامل",
+    "devopsToolchain.merging": "إدارة الدمج",
+    "devopsToolchain.registry": "سجل الحاويات",
+    "devopsToolchain.release": "إدارة الإصدارات",
+    "devopsToolchain.source": "التحكم في المصدر",
+    "devopsToolchain.terraform": "Terraform",
+    "devopsToolchain.testing": "الاختبار التلقائي",
+    "devopsToolchain.unit": "اختبار الوحدة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/digitalAdvertising.translations.json">
+<![CDATA[
+{
+  "en": {
+    "digitalAdvertising.ad": "Advertisement",
+    "digitalAdvertising.advertising": "Digital Advertising",
+    "digitalAdvertising.banner": "Banner Ads",
+    "digitalAdvertising.campaign": "Ad Campaign",
+    "digitalAdvertising.conversion": "Conversion Rate",
+    "digitalAdvertising.cpa": "Cost Per Acquisition",
+    "digitalAdvertising.cpc": "Cost Per Click",
+    "digitalAdvertising.cpm": "Cost Per Mille",
+    "digitalAdvertising.ctr": "Click-Through Rate",
+    "digitalAdvertising.display": "Display Ads",
+    "digitalAdvertising.frequency": "Frequency",
+    "digitalAdvertising.impression": "Impressions",
+    "digitalAdvertising.native": "Native Advertising",
+    "digitalAdvertising.ppc": "Pay-Per-Click",
+    "digitalAdvertising.programmatic": "Programmatic Advertising",
+    "digitalAdvertising.reach": "Reach",
+    "digitalAdvertising.remarketing": "Remarketing",
+    "digitalAdvertising.retargeting": "Retargeting",
+    "digitalAdvertising.roas": "Return on Ad Spend",
+    "digitalAdvertising.rtb": "Real-Time Bidding",
+    "digitalAdvertising.sponsored": "Sponsored Content",
+    "digitalAdvertising.video": "Video Ads"
+  },
+  "ar": {
+    "digitalAdvertising.ad": "الإعلان",
+    "digitalAdvertising.advertising": "الإعلان الرقمي",
+    "digitalAdvertising.banner": "إعلانات البانر",
+    "digitalAdvertising.campaign": "الحملة الإعلانية",
+    "digitalAdvertising.conversion": "معدل التحويل",
+    "digitalAdvertising.cpa": "التكلفة لكل اكتساب",
+    "digitalAdvertising.cpc": "التكلفة لكل نقرة",
+    "digitalAdvertising.cpm": "التكلفة لكل ألف ظهور",
+    "digitalAdvertising.ctr": "معدل النقر",
+    "digitalAdvertising.display": "إعلانات العرض",
+    "digitalAdvertising.frequency": "التكرار",
+    "digitalAdvertising.impression": "مرات الظهور",
+    "digitalAdvertising.native": "الإعلانات الأصلية",
+    "digitalAdvertising.ppc": "الدفع لكل نقرة",
+    "digitalAdvertising.programmatic": "الإعلان البرمجي",
+    "digitalAdvertising.reach": "الوصول",
+    "digitalAdvertising.remarketing": "إعادة التسويق",
+    "digitalAdvertising.retargeting": "إعادة الاستهداف",
+    "digitalAdvertising.roas": "عائد الإنفاق الإعلاني",
+    "digitalAdvertising.rtb": "المزايدة في الوقت الفعلي",
+    "digitalAdvertising.sponsored": "المحتوى المدعوم",
+    "digitalAdvertising.video": "إعلانات الفيديو"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/digitalAssetManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "digitalAssetManagement.assets": "الأصول الرقمية",
+    "digitalAssetManagement.audio": "إدارة الصوت",
+    "digitalAssetManagement.dam": "إدارة الأصول الرقمية",
+    "digitalAssetManagement.distribution": "توزيع الأصول",
+    "digitalAssetManagement.documents": "أصول الوثائق",
+    "digitalAssetManagement.images": "إدارة الصور",
+    "digitalAssetManagement.integration": "تكامل الأصول",
+    "digitalAssetManagement.library": "مكتبة الأصول",
+    "digitalAssetManagement.licensing": "ترخيص الأصول",
+    "digitalAssetManagement.media": "إدارة الوسائط",
+    "digitalAssetManagement.metadata": "البيانات الوصفية للأصول",
+    "digitalAssetManagement.organization": "تنظيم الأصول",
+    "digitalAssetManagement.repository": "مستودع الأصول",
+    "digitalAssetManagement.retrieval": "استرجاع الأصول",
+    "digitalAssetManagement.rights": "إدارة الحقوق",
+    "digitalAssetManagement.search": "البحث عن الأصول",
+    "digitalAssetManagement.sharing": "مشاركة الأصول",
+    "digitalAssetManagement.storage": "تخزين الأصول",
+    "digitalAssetManagement.tagging": "وسم الأصول",
+    "digitalAssetManagement.versioning": "إصدارات الأصول",
+    "digitalAssetManagement.videos": "إدارة الفيديو",
+    "digitalAssetManagement.workflow": "سير عمل الأصول"
+  },
+  "ar": {
+    "digitalAssetManagement.assets": "الأصول الرقمية",
+    "digitalAssetManagement.audio": "إدارة الصوت",
+    "digitalAssetManagement.dam": "إدارة الأصول الرقمية",
+    "digitalAssetManagement.distribution": "توزيع الأصول",
+    "digitalAssetManagement.documents": "أصول الوثائق",
+    "digitalAssetManagement.images": "إدارة الصور",
+    "digitalAssetManagement.integration": "تكامل الأصول",
+    "digitalAssetManagement.library": "مكتبة الأصول",
+    "digitalAssetManagement.licensing": "ترخيص الأصول",
+    "digitalAssetManagement.media": "إدارة الوسائط",
+    "digitalAssetManagement.metadata": "البيانات الوصفية للأصول",
+    "digitalAssetManagement.organization": "تنظيم الأصول",
+    "digitalAssetManagement.repository": "مستودع الأصول",
+    "digitalAssetManagement.retrieval": "استرجاع الأصول",
+    "digitalAssetManagement.rights": "إدارة الحقوق",
+    "digitalAssetManagement.search": "البحث عن الأصول",
+    "digitalAssetManagement.sharing": "مشاركة الأصول",
+    "digitalAssetManagement.storage": "تخزين الأصول",
+    "digitalAssetManagement.tagging": "وسم الأصول",
+    "digitalAssetManagement.versioning": "إصدارات الأصول",
+    "digitalAssetManagement.videos": "إدارة الفيديو",
+    "digitalAssetManagement.workflow": "سير عمل الأصول"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/digitalCollaborationPlatform.translations.json">
+<![CDATA[
+{
+  "en": {
+    "digitalCollaborationPlatform.calendar": "Shared Calendar",
+    "digitalCollaborationPlatform.channels": "Communication Channels",
+    "digitalCollaborationPlatform.chat": "Team Chat",
+    "digitalCollaborationPlatform.coauthoring": "Co-Authoring",
+    "digitalCollaborationPlatform.collaboration": "Collaboration Platform",
+    "digitalCollaborationPlatform.comments": "Comments & Mentions",
+    "digitalCollaborationPlatform.files": "File Sharing",
+    "digitalCollaborationPlatform.integrations": "Tool Integrations",
+    "digitalCollaborationPlatform.meetings": "Virtual Meetings",
+    "digitalCollaborationPlatform.messaging": "Instant Messaging",
+    "digitalCollaborationPlatform.mobile": "Mobile Collaboration",
+    "digitalCollaborationPlatform.notifications": "Notifications",
+    "digitalCollaborationPlatform.presence": "Presence Indicators",
+    "digitalCollaborationPlatform.projects": "Project Spaces",
+    "digitalCollaborationPlatform.screen": "Screen Sharing",
+    "digitalCollaborationPlatform.status": "Status Updates",
+    "digitalCollaborationPlatform.tasks": "Task Management",
+    "digitalCollaborationPlatform.teams": "Team Collaboration",
+    "digitalCollaborationPlatform.video": "Video Conferencing",
+    "digitalCollaborationPlatform.whiteboard": "Digital Whiteboard",
+    "digitalCollaborationPlatform.wiki": "Team Wiki",
+    "digitalCollaborationPlatform.workspace": "Digital Workspace"
+  },
+  "ar": {
+    "digitalCollaborationPlatform.calendar": "التقويم المشترك",
+    "digitalCollaborationPlatform.channels": "قنوات الاتصال",
+    "digitalCollaborationPlatform.chat": "دردشة الفريق",
+    "digitalCollaborationPlatform.coauthoring": "التأليف المشترك",
+    "digitalCollaborationPlatform.collaboration": "منصة التعاون",
+    "digitalCollaborationPlatform.comments": "التعليقات والإشارات",
+    "digitalCollaborationPlatform.files": "مشاركة الملفات",
+    "digitalCollaborationPlatform.integrations": "تكاملات الأدوات",
+    "digitalCollaborationPlatform.meetings": "الاجتماعات الافتراضية",
+    "digitalCollaborationPlatform.messaging": "الرسائل الفورية",
+    "digitalCollaborationPlatform.mobile": "التعاون عبر الهاتف المحمول",
+    "digitalCollaborationPlatform.notifications": "الإخطارات",
+    "digitalCollaborationPlatform.presence": "مؤشرات الحضور",
+    "digitalCollaborationPlatform.projects": "مساحات المشروع",
+    "digitalCollaborationPlatform.screen": "مشاركة الشاشة",
+    "digitalCollaborationPlatform.status": "تحديثات الحالة",
+    "digitalCollaborationPlatform.tasks": "إدارة المهام",
+    "digitalCollaborationPlatform.teams": "تعاون الفريق",
+    "digitalCollaborationPlatform.video": "مؤتمرات الفيديو",
+    "digitalCollaborationPlatform.whiteboard": "السبورة الرقمية",
+    "digitalCollaborationPlatform.wiki": "ويكي الفريق",
+    "digitalCollaborationPlatform.workspace": "مساحة العمل الرقمية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/digitalIdentity.translations.json">
+<![CDATA[
+{
+  "en": {
+    "digitalIdentity.authentication": "Authentication Services",
+    "digitalIdentity.authorization": "Authorization Management",
+    "digitalIdentity.biometric": "Biometric Authentication",
+    "digitalIdentity.certificates": "Digital Certificates",
+    "digitalIdentity.consent": "Consent Management",
+    "digitalIdentity.credentials": "Credential Management",
+    "digitalIdentity.digital": "Digital Identity",
+    "digitalIdentity.facial": "Facial Recognition",
+    "digitalIdentity.federation": "Identity Federation",
+    "digitalIdentity.fingerprint": "Fingerprint Recognition",
+    "digitalIdentity.identity": "Identity Management",
+    "digitalIdentity.kyc": "KYC Verification",
+    "digitalIdentity.multifactor": "Multi-Factor Authentication",
+    "digitalIdentity.oauth": "OAuth Integration",
+    "digitalIdentity.passwordless": "Passwordless Authentication",
+    "digitalIdentity.privacy": "Privacy Protection",
+    "digitalIdentity.saml": "SAML Integration",
+    "digitalIdentity.selfSovereign": "Self-Sovereign Identity",
+    "digitalIdentity.sso": "Single Sign-On",
+    "digitalIdentity.tokens": "Security Tokens",
+    "digitalIdentity.verification": "Identity Verification",
+    "digitalIdentity.voice": "Voice Recognition"
+  },
+  "ar": {
+    "digitalIdentity.authentication": "خدمات المصادقة",
+    "digitalIdentity.authorization": "إدارة التفويض",
+    "digitalIdentity.biometric": "المصادقة البيومترية",
+    "digitalIdentity.certificates": "الشهادات الرقمية",
+    "digitalIdentity.consent": "إدارة الموافقة",
+    "digitalIdentity.credentials": "إدارة بيانات الاعتماد",
+    "digitalIdentity.digital": "الهوية الرقمية",
+    "digitalIdentity.facial": "التعرف على الوجه",
+    "digitalIdentity.federation": "اتحاد الهوية",
+    "digitalIdentity.fingerprint": "التعرف على البصمات",
+    "digitalIdentity.identity": "إدارة الهوية",
+    "digitalIdentity.kyc": "التحقق من معرفة العميل",
+    "digitalIdentity.multifactor": "المصادقة متعددة العوامل",
+    "digitalIdentity.oauth": "تكامل OAuth",
+    "digitalIdentity.passwordless": "المصادقة بدون كلمة مرور",
+    "digitalIdentity.privacy": "حماية الخصوصية",
+    "digitalIdentity.saml": "تكامل SAML",
+    "digitalIdentity.selfSovereign": "الهوية ذاتية السيادة",
+    "digitalIdentity.sso": "تسجيل الدخول الموحد",
+    "digitalIdentity.tokens": "رموز الأمان",
+    "digitalIdentity.verification": "التحقق من الهوية",
+    "digitalIdentity.voice": "التعرف على الصوت"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/digitalMarketingPlatform.translations.json">
+<![CDATA[
+{
+  "en": {
+    "digitalMarketingPlatform.abTesting": "A/B Testing",
+    "digitalMarketingPlatform.affiliateManagement": "Affiliate Management",
+    "digitalMarketingPlatform.analyticsReporting": "Analytics & Reporting",
+    "digitalMarketingPlatform.apiConnections": "API Connections",
+    "digitalMarketingPlatform.campaignAttribution": "Campaign Attribution",
+    "digitalMarketingPlatform.campaignManagement": "Campaign Management",
+    "digitalMarketingPlatform.contentMarketing": "Content Marketing",
+    "digitalMarketingPlatform.conversionOptimization": "Conversion Optimization",
+    "digitalMarketingPlatform.crmSync": "CRM Synchronization",
+    "digitalMarketingPlatform.customerJourney": "Customer Journey Analytics",
+    "digitalMarketingPlatform.customerSegmentation": "Customer Segmentation",
+    "digitalMarketingPlatform.dashboardCustomization": "Dashboard Customization",
+    "digitalMarketingPlatform.dataIntegration": "Data Integration",
+    "digitalMarketingPlatform.description": "Integrated marketing automation and analytics",
+    "digitalMarketingPlatform.displayAdvertising": "Display Advertising",
+    "digitalMarketingPlatform.dynamicContent": "Dynamic Content",
+    "digitalMarketingPlatform.emailMarketing": "Email Marketing",
+    "digitalMarketingPlatform.formBuilder": "Form Builder",
+    "digitalMarketingPlatform.influencerMarketing": "Influencer Marketing",
+    "digitalMarketingPlatform.landingPageBuilder": "Landing Page Builder",
+    "digitalMarketingPlatform.leadNurturing": "Lead Nurturing",
+    "digitalMarketingPlatform.leadScoring": "Lead Scoring",
+    "digitalMarketingPlatform.marketingAutomation": "Marketing Automation",
+    "digitalMarketingPlatform.multichannel": "Multi-Channel Campaigns",
+    "digitalMarketingPlatform.personalization": "Personalization Engine",
+    "digitalMarketingPlatform.roiTracking": "ROI Tracking",
+    "digitalMarketingPlatform.searchAdvertising": "Search Advertising",
+    "digitalMarketingPlatform.smsMarketing": "SMS Marketing",
+    "digitalMarketingPlatform.socialListening": "Social Listening",
+    "digitalMarketingPlatform.socialMediaMarketing": "Social Media Marketing",
+    "digitalMarketingPlatform.title": "Digital Marketing Platform"
+  },
+  "ar": {
+    "digitalMarketingPlatform.abTesting": "اختبار A/B",
+    "digitalMarketingPlatform.affiliateManagement": "إدارة الشركاء التابعين",
+    "digitalMarketingPlatform.analyticsReporting": "التحليلات والتقارير",
+    "digitalMarketingPlatform.apiConnections": "اتصالات API",
+    "digitalMarketingPlatform.campaignAttribution": "إسناد الحملة",
+    "digitalMarketingPlatform.campaignManagement": "إدارة الحملات",
+    "digitalMarketingPlatform.contentMarketing": "تسويق المحتوى",
+    "digitalMarketingPlatform.conversionOptimization": "تحسين التحويل",
+    "digitalMarketingPlatform.crmSync": "مزامنة إدارة علاقات العملاء",
+    "digitalMarketingPlatform.customerJourney": "تحليلات رحلة العميل",
+    "digitalMarketingPlatform.customerSegmentation": "تقسيم العملاء",
+    "digitalMarketingPlatform.dashboardCustomization": "تخصيص لوحة المعلومات",
+    "digitalMarketingPlatform.dataIntegration": "تكامل البيانات",
+    "digitalMarketingPlatform.description": "أتمتة التسويق المتكاملة والتحليلات",
+    "digitalMarketingPlatform.displayAdvertising": "الإعلان على الشبكة الإعلانية",
+    "digitalMarketingPlatform.dynamicContent": "المحتوى الديناميكي",
+    "digitalMarketingPlatform.emailMarketing": "التسويق عبر البريد الإلكتروني",
+    "digitalMarketingPlatform.formBuilder": "منشئ النماذج",
+    "digitalMarketingPlatform.influencerMarketing": "التسويق عبر المؤثرين",
+    "digitalMarketingPlatform.landingPageBuilder": "منشئ الصفحات المقصودة",
+    "digitalMarketingPlatform.leadNurturing": "رعاية العملاء المحتملين",
+    "digitalMarketingPlatform.leadScoring": "تسجيل العملاء المحتملين",
+    "digitalMarketingPlatform.marketingAutomation": "أتمتة التسويق",
+    "digitalMarketingPlatform.multichannel": "الحملات متعددة القنوات",
+    "digitalMarketingPlatform.personalization": "محرك التخصيص",
+    "digitalMarketingPlatform.roiTracking": "تتبع عائد الاستثمار",
+    "digitalMarketingPlatform.searchAdvertising": "الإعلان على محركات البحث",
+    "digitalMarketingPlatform.smsMarketing": "التسويق عبر الرسائل النصية",
+    "digitalMarketingPlatform.socialListening": "الاستماع الاجتماعي",
+    "digitalMarketingPlatform.socialMediaMarketing": "التسويق عبر وسائل التواصل الاجتماعي",
+    "digitalMarketingPlatform.title": "منصة التسويق الرقمي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/digitalProductAnalytics.translations.json">
+<![CDATA[
+{
+  "en": {
+    "digitalProductAnalytics.actions": "User Actions",
+    "digitalProductAnalytics.activation": "User Activation",
+    "digitalProductAnalytics.adoption": "Product Adoption",
+    "digitalProductAnalytics.cohort": "Cohort Analysis",
+    "digitalProductAnalytics.conversion": "Conversion Rates",
+    "digitalProductAnalytics.drop": "Drop-off Analysis",
+    "digitalProductAnalytics.engagement": "User Engagement",
+    "digitalProductAnalytics.events": "Event Tracking",
+    "digitalProductAnalytics.experiments": "A/B Testing",
+    "digitalProductAnalytics.features": "Feature Usage",
+    "digitalProductAnalytics.flows": "User Flows",
+    "digitalProductAnalytics.funnel": "Funnel Analysis",
+    "digitalProductAnalytics.insights": "Product Insights",
+    "digitalProductAnalytics.kpi": "Product KPIs",
+    "digitalProductAnalytics.metrics": "Product Metrics",
+    "digitalProductAnalytics.paths": "User Paths",
+    "digitalProductAnalytics.product": "Product Analytics",
+    "digitalProductAnalytics.retention": "User Retention",
+    "digitalProductAnalytics.sessions": "Session Analysis",
+    "digitalProductAnalytics.usage": "Usage Analytics",
+    "digitalProductAnalytics.variants": "Variant Analysis"
+  },
+  "ar": {
+    "digitalProductAnalytics.actions": "إجراءات المستخدم",
+    "digitalProductAnalytics.activation": "تفعيل المستخدم",
+    "digitalProductAnalytics.adoption": "اعتماد المنتج",
+    "digitalProductAnalytics.cohort": "تحليل الفوج",
+    "digitalProductAnalytics.conversion": "معدلات التحويل",
+    "digitalProductAnalytics.drop": "تحليل الانسحاب",
+    "digitalProductAnalytics.engagement": "مشاركة المستخدم",
+    "digitalProductAnalytics.events": "تتبع الأحداث",
+    "digitalProductAnalytics.experiments": "اختبار A/B",
+    "digitalProductAnalytics.features": "استخدام الميزات",
+    "digitalProductAnalytics.flows": "تدفقات المستخدم",
+    "digitalProductAnalytics.funnel": "تحليل القمع",
+    "digitalProductAnalytics.insights": "رؤى المنتج",
+    "digitalProductAnalytics.kpi": "مؤشرات الأداء الرئيسية للمنتج",
+    "digitalProductAnalytics.metrics": "مقاييس المنتج",
+    "digitalProductAnalytics.paths": "مسارات المستخدم",
+    "digitalProductAnalytics.product": "تحليلات المنتجات",
+    "digitalProductAnalytics.retention": "الاحتفاظ بالمستخدم",
+    "digitalProductAnalytics.sessions": "تحليل الجلسات",
+    "digitalProductAnalytics.usage": "تحليلات الاستخدام",
+    "digitalProductAnalytics.variants": "تحليل المتغيرات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/digitalTransformation.translations.json">
+<![CDATA[
+{
+  "en": {
+    "digitalTransformation.adoption": "Technology Adoption",
+    "digitalTransformation.analytics": "Digital Analytics",
+    "digitalTransformation.automation": "Digital Automation",
+    "digitalTransformation.capability": "Digital Capability",
+    "digitalTransformation.change": "Digital Change",
+    "digitalTransformation.channel": "Digital Channel",
+    "digitalTransformation.culture": "Digital Culture",
+    "digitalTransformation.ecosystem": "Digital Ecosystem",
+    "digitalTransformation.enablement": "Digital Enablement",
+    "digitalTransformation.engagement": "Digital Engagement",
+    "digitalTransformation.experience": "Digital Experience",
+    "digitalTransformation.initiative": "Digital Initiative",
+    "digitalTransformation.innovation": "Digital Innovation",
+    "digitalTransformation.maturity": "Digital Maturity",
+    "digitalTransformation.modernization": "IT Modernization",
+    "digitalTransformation.optimization": "Process Optimization",
+    "digitalTransformation.platform": "Digital Platform",
+    "digitalTransformation.roadmap": "Transformation Roadmap",
+    "digitalTransformation.service": "Digital Service",
+    "digitalTransformation.solution": "Digital Solution",
+    "digitalTransformation.strategy": "Digital Strategy",
+    "digitalTransformation.transformation": "Digital Transformation"
+  },
+  "ar": {
+    "digitalTransformation.adoption": "اعتماد التكنولوجيا",
+    "digitalTransformation.analytics": "التحليلات الرقمية",
+    "digitalTransformation.automation": "الأتمتة الرقمية",
+    "digitalTransformation.capability": "القدرة الرقمية",
+    "digitalTransformation.change": "التغيير الرقمي",
+    "digitalTransformation.channel": "القناة الرقمية",
+    "digitalTransformation.culture": "الثقافة الرقمية",
+    "digitalTransformation.ecosystem": "النظام البيئي الرقمي",
+    "digitalTransformation.enablement": "التمكين الرقمي",
+    "digitalTransformation.engagement": "المشاركة الرقمية",
+    "digitalTransformation.experience": "التجربة الرقمية",
+    "digitalTransformation.initiative": "المبادرة الرقمية",
+    "digitalTransformation.innovation": "الابتكار الرقمي",
+    "digitalTransformation.maturity": "النضج الرقمي",
+    "digitalTransformation.modernization": "تحديث تكنولوجيا المعلومات",
+    "digitalTransformation.optimization": "تحسين العمليات",
+    "digitalTransformation.platform": "المنصة الرقمية",
+    "digitalTransformation.roadmap": "خارطة طريق التحول",
+    "digitalTransformation.service": "الخدمة الرقمية",
+    "digitalTransformation.solution": "الحل الرقمي",
+    "digitalTransformation.strategy": "الاستراتيجية الرقمية",
+    "digitalTransformation.transformation": "التحول الرقمي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/digitalTwin.translations.json">
+<![CDATA[
+{
+  "en": {
+    "digitalTwin.ai": "AI Integration",
+    "digitalTwin.analytics": "Twin Analytics",
+    "digitalTwin.dashboard": "Twin Dashboard",
+    "digitalTwin.data": "Twin Data",
+    "digitalTwin.digital": "Digital Replica",
+    "digitalTwin.integration": "System Integration",
+    "digitalTwin.iot": "IoT Integration",
+    "digitalTwin.lifecycle": "Asset Lifecycle",
+    "digitalTwin.maintenance": "Predictive Maintenance",
+    "digitalTwin.model": "Digital Model",
+    "digitalTwin.monitoring": "Real-time Monitoring",
+    "digitalTwin.optimization": "Performance Optimization",
+    "digitalTwin.physical": "Physical Asset",
+    "digitalTwin.platform": "Digital Twin Platform",
+    "digitalTwin.prediction": "Predictive Analytics",
+    "digitalTwin.scenario": "Scenario Testing",
+    "digitalTwin.simulation": "Digital Simulation",
+    "digitalTwin.synchronization": "Real-time Synchronization",
+    "digitalTwin.testing": "Virtual Testing",
+    "digitalTwin.twin": "Digital Twin",
+    "digitalTwin.virtual": "Virtual Representation",
+    "digitalTwin.visualization": "3D Visualization"
+  },
+  "ar": {
+    "digitalTwin.ai": "تكامل الذكاء الاصطناعي",
+    "digitalTwin.analytics": "تحليلات التوأم",
+    "digitalTwin.dashboard": "لوحة معلومات التوأم",
+    "digitalTwin.data": "بيانات التوأم",
+    "digitalTwin.digital": "النسخة الرقمية",
+    "digitalTwin.integration": "تكامل النظام",
+    "digitalTwin.iot": "تكامل إنترنت الأشياء",
+    "digitalTwin.lifecycle": "دورة حياة الأصل",
+    "digitalTwin.maintenance": "الصيانة التنبؤية",
+    "digitalTwin.model": "النموذج الرقمي",
+    "digitalTwin.monitoring": "المراقبة في الوقت الفعلي",
+    "digitalTwin.optimization": "تحسين الأداء",
+    "digitalTwin.physical": "الأصل المادي",
+    "digitalTwin.platform": "منصة التوأم الرقمي",
+    "digitalTwin.prediction": "التحليلات التنبؤية",
+    "digitalTwin.scenario": "اختبار السيناريو",
+    "digitalTwin.simulation": "المحاكاة الرقمية",
+    "digitalTwin.synchronization": "المزامنة في الوقت الفعلي",
+    "digitalTwin.testing": "الاختبار الافتراضي",
+    "digitalTwin.twin": "التوأم الرقمي",
+    "digitalTwin.virtual": "التمثيل الافتراضي",
+    "digitalTwin.visualization": "التصور ثلاثي الأبعاد"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/digitalTwinTechnology.translations.json">
+<![CDATA[
+{
+  "en": {
+    "digitalTwinTechnology.ai": "AI-Powered Twin",
+    "digitalTwinTechnology.analytics": "Twin Analytics",
+    "digitalTwinTechnology.asset": "Asset Twin",
+    "digitalTwinTechnology.digital": "Digital Twin",
+    "digitalTwinTechnology.industrial": "Industrial Digital Twin",
+    "digitalTwinTechnology.integration": "System Integration",
+    "digitalTwinTechnology.iot": "IoT Integration",
+    "digitalTwinTechnology.lifecycle": "Lifecycle Management",
+    "digitalTwinTechnology.model": "Digital Model",
+    "digitalTwinTechnology.monitoring": "Live Monitoring",
+    "digitalTwinTechnology.optimization": "Performance Optimization",
+    "digitalTwinTechnology.platform": "Digital Twin Platform",
+    "digitalTwinTechnology.prediction": "Predictive Maintenance",
+    "digitalTwinTechnology.process": "Process Twin",
+    "digitalTwinTechnology.product": "Product Twin",
+    "digitalTwinTechnology.sensor": "Sensor Data",
+    "digitalTwinTechnology.simulation": "Real-time Simulation",
+    "digitalTwinTechnology.synchronization": "Data Synchronization",
+    "digitalTwinTechnology.system": "System Twin",
+    "digitalTwinTechnology.twin": "Digital Twin Technology",
+    "digitalTwinTechnology.virtual": "Virtual Replica",
+    "digitalTwinTechnology.visualization": "3D Visualization"
+  },
+  "ar": {
+    "digitalTwinTechnology.ai": "التوأم المدعوم بالذكاء الاصطناعي",
+    "digitalTwinTechnology.analytics": "تحليلات التوأم",
+    "digitalTwinTechnology.asset": "توأم الأصل",
+    "digitalTwinTechnology.digital": "التوأم الرقمي",
+    "digitalTwinTechnology.industrial": "التوأم الرقمي الصناعي",
+    "digitalTwinTechnology.integration": "تكامل النظام",
+    "digitalTwinTechnology.iot": "تكامل إنترنت الأشياء",
+    "digitalTwinTechnology.lifecycle": "إدارة دورة الحياة",
+    "digitalTwinTechnology.model": "النموذج الرقمي",
+    "digitalTwinTechnology.monitoring": "المراقبة المباشرة",
+    "digitalTwinTechnology.optimization": "تحسين الأداء",
+    "digitalTwinTechnology.platform": "منصة التوأم الرقمي",
+    "digitalTwinTechnology.prediction": "الصيانة التنبؤية",
+    "digitalTwinTechnology.process": "توأم العملية",
+    "digitalTwinTechnology.product": "توأم المنتج",
+    "digitalTwinTechnology.sensor": "بيانات المستشعرات",
+    "digitalTwinTechnology.simulation": "المحاكاة في الوقت الفعلي",
+    "digitalTwinTechnology.synchronization": "مزامنة البيانات",
+    "digitalTwinTechnology.system": "توأم النظام",
+    "digitalTwinTechnology.twin": "تقنية التوأم الرقمي",
+    "digitalTwinTechnology.virtual": "النسخة الافتراضية",
+    "digitalTwinTechnology.visualization": "التصور ثلاثي الأبعاد"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/digitalWorkplace.translations.json">
+<![CDATA[
+{
+  "en": {
+    "digitalWorkplace.adoption": "Technology Adoption",
+    "digitalWorkplace.analytics": "Workplace Analytics",
+    "digitalWorkplace.collaboration": "Digital Collaboration",
+    "digitalWorkplace.communication": "Digital Communication",
+    "digitalWorkplace.digital": "Digital Workplace",
+    "digitalWorkplace.enablement": "Digital Enablement",
+    "digitalWorkplace.engagement": "Employee Engagement",
+    "digitalWorkplace.experience": "Employee Experience",
+    "digitalWorkplace.flexibility": "Workplace Flexibility",
+    "digitalWorkplace.infrastructure": "Digital Infrastructure",
+    "digitalWorkplace.management": "Workplace Management",
+    "digitalWorkplace.mobility": "Workplace Mobility",
+    "digitalWorkplace.optimization": "Workplace Optimization",
+    "digitalWorkplace.platform": "Workplace Platform",
+    "digitalWorkplace.productivity": "Digital Productivity",
+    "digitalWorkplace.security": "Workplace Security",
+    "digitalWorkplace.support": "Digital Support",
+    "digitalWorkplace.technology": "Workplace Technology",
+    "digitalWorkplace.tools": "Digital Tools",
+    "digitalWorkplace.training": "Digital Training",
+    "digitalWorkplace.transformation": "Workplace Transformation",
+    "digitalWorkplace.workplace": "Workplace Strategy"
+  },
+  "ar": {
+    "digitalWorkplace.adoption": "تبني التكنولوجيا",
+    "digitalWorkplace.analytics": "تحليلات مكان العمل",
+    "digitalWorkplace.collaboration": "التعاون الرقمي",
+    "digitalWorkplace.communication": "التواصل الرقمي",
+    "digitalWorkplace.digital": "مكان العمل الرقمي",
+    "digitalWorkplace.enablement": "التمكين الرقمي",
+    "digitalWorkplace.engagement": "إشراك الموظف",
+    "digitalWorkplace.experience": "تجربة الموظف",
+    "digitalWorkplace.flexibility": "مرونة مكان العمل",
+    "digitalWorkplace.infrastructure": "البنية التحتية الرقمية",
+    "digitalWorkplace.management": "إدارة مكان العمل",
+    "digitalWorkplace.mobility": "تنقل مكان العمل",
+    "digitalWorkplace.optimization": "تحسين مكان العمل",
+    "digitalWorkplace.platform": "منصة مكان العمل",
+    "digitalWorkplace.productivity": "الإنتاجية الرقمية",
+    "digitalWorkplace.security": "أمن مكان العمل",
+    "digitalWorkplace.support": "الدعم الرقمي",
+    "digitalWorkplace.technology": "تكنولوجيا مكان العمل",
+    "digitalWorkplace.tools": "الأدوات الرقمية",
+    "digitalWorkplace.training": "التدريب الرقمي",
+    "digitalWorkplace.transformation": "تحول مكان العمل",
+    "digitalWorkplace.workplace": "استراتيجية مكان العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/disasterRecovery.translations.json">
+<![CDATA[
+{
+  "en": {
+    "disasterRecovery.activation": "Plan Activation",
+    "disasterRecovery.backup": "Backup",
+    "disasterRecovery.cold": "Cold Site",
+    "disasterRecovery.declaration": "Disaster Declaration",
+    "disasterRecovery.disaster": "Disaster Recovery",
+    "disasterRecovery.documentation": "DR Documentation",
+    "disasterRecovery.dr": "DR",
+    "disasterRecovery.drill": "DR Drill",
+    "disasterRecovery.exercise": "DR Exercise",
+    "disasterRecovery.failback": "Failback",
+    "disasterRecovery.failover": "Failover",
+    "disasterRecovery.hot": "Hot Site",
+    "disasterRecovery.plan": "DR Plan",
+    "disasterRecovery.recovery": "Recovery Process",
+    "disasterRecovery.restore": "Restore",
+    "disasterRecovery.rpo": "Recovery Point Objective",
+    "disasterRecovery.rto": "Recovery Time Objective",
+    "disasterRecovery.simulation": "Simulation",
+    "disasterRecovery.site": "Recovery Site",
+    "disasterRecovery.strategy": "DR Strategy",
+    "disasterRecovery.test": "DR Test",
+    "disasterRecovery.warm": "Warm Site"
+  },
+  "ar": {
+    "disasterRecovery.activation": "تفعيل الخطة",
+    "disasterRecovery.backup": "النسخ الاحتياطي",
+    "disasterRecovery.cold": "الموقع البارد",
+    "disasterRecovery.declaration": "إعلان الكارثة",
+    "disasterRecovery.disaster": "التعافي من الكوارث",
+    "disasterRecovery.documentation": "توثيق التعافي",
+    "disasterRecovery.dr": "DR",
+    "disasterRecovery.drill": "تدريب التعافي",
+    "disasterRecovery.exercise": "تمرين التعافي",
+    "disasterRecovery.failback": "العودة",
+    "disasterRecovery.failover": "التبديل الاحتياطي",
+    "disasterRecovery.hot": "الموقع الساخن",
+    "disasterRecovery.plan": "خطة التعافي من الكوارث",
+    "disasterRecovery.recovery": "عملية الاستعادة",
+    "disasterRecovery.restore": "الاستعادة",
+    "disasterRecovery.rpo": "هدف نقطة الاستعادة",
+    "disasterRecovery.rto": "هدف وقت الاستعادة",
+    "disasterRecovery.simulation": "المحاكاة",
+    "disasterRecovery.site": "موقع الاستعادة",
+    "disasterRecovery.strategy": "استراتيجية التعافي",
+    "disasterRecovery.test": "اختبار التعافي",
+    "disasterRecovery.warm": "الموقع الدافئ"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/disasterRecoveryAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "disasterRecoveryAdv.activation": "DR Activation",
+    "disasterRecoveryAdv.backup": "DR Backup",
+    "disasterRecoveryAdv.cold": "Cold Site",
+    "disasterRecoveryAdv.communication": "DR Communication",
+    "disasterRecoveryAdv.declaration": "Disaster Declaration",
+    "disasterRecoveryAdv.disaster": "Disaster Recovery",
+    "disasterRecoveryAdv.documentation": "DR Documentation",
+    "disasterRecoveryAdv.drill": "DR Drill",
+    "disasterRecoveryAdv.exercise": "DR Exercise",
+    "disasterRecoveryAdv.failback": "Failback",
+    "disasterRecoveryAdv.failover": "Failover",
+    "disasterRecoveryAdv.hot": "Hot Site",
+    "disasterRecoveryAdv.objectives": "Recovery Objectives",
+    "disasterRecoveryAdv.planning": "DR Planning",
+    "disasterRecoveryAdv.replication": "DR Replication",
+    "disasterRecoveryAdv.rpo": "Recovery Point Objective",
+    "disasterRecoveryAdv.rto": "Recovery Time Objective",
+    "disasterRecoveryAdv.site": "Recovery Site",
+    "disasterRecoveryAdv.strategy": "DR Strategy",
+    "disasterRecoveryAdv.team": "DR Team",
+    "disasterRecoveryAdv.testing": "DR Testing",
+    "disasterRecoveryAdv.warm": "Warm Site"
+  },
+  "ar": {
+    "disasterRecoveryAdv.activation": "تفعيل التعافي من الكوارث",
+    "disasterRecoveryAdv.backup": "النسخ الاحتياطي للتعافي من الكوارث",
+    "disasterRecoveryAdv.cold": "موقع بارد",
+    "disasterRecoveryAdv.communication": "التواصل أثناء التعافي من الكوارث",
+    "disasterRecoveryAdv.declaration": "إعلان الكارثة",
+    "disasterRecoveryAdv.disaster": "التعافي من الكوارث",
+    "disasterRecoveryAdv.documentation": "توثيق التعافي من الكوارث",
+    "disasterRecoveryAdv.drill": "تمرين التعافي من الكوارث",
+    "disasterRecoveryAdv.exercise": "تدريب التعافي من الكوارث",
+    "disasterRecoveryAdv.failback": "العودة من الاحتياطي",
+    "disasterRecoveryAdv.failover": "التبديل الاحتياطي",
+    "disasterRecoveryAdv.hot": "موقع ساخن",
+    "disasterRecoveryAdv.objectives": "أهداف التعافي",
+    "disasterRecoveryAdv.planning": "تخطيط التعافي من الكوارث",
+    "disasterRecoveryAdv.replication": "النسخ المتماثل للتعافي من الكوارث",
+    "disasterRecoveryAdv.rpo": "هدف نقطة التعافي",
+    "disasterRecoveryAdv.rto": "هدف وقت التعافي",
+    "disasterRecoveryAdv.site": "موقع التعافي",
+    "disasterRecoveryAdv.strategy": "استراتيجية التعافي من الكوارث",
+    "disasterRecoveryAdv.team": "فريق التعافي من الكوارث",
+    "disasterRecoveryAdv.testing": "اختبار التعافي من الكوارث",
+    "disasterRecoveryAdv.warm": "موقع دافئ"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/disasterRecoveryExt.translations.json">
+<![CDATA[
+{
+  "en": {
+    "disasterRecoveryExt.archive": "DR Archive",
+    "disasterRecoveryExt.backup": "DR Backup",
+    "disasterRecoveryExt.cold": "Cold Site",
+    "disasterRecoveryExt.coordinator": "DR Coordinator",
+    "disasterRecoveryExt.disaster": "Disaster Recovery",
+    "disasterRecoveryExt.documentation": "DR Documentation",
+    "disasterRecoveryExt.failover": "System Failover",
+    "disasterRecoveryExt.hot": "Hot Site",
+    "disasterRecoveryExt.image": "System Image",
+    "disasterRecoveryExt.objective": "Recovery Objective",
+    "disasterRecoveryExt.procedure": "DR Procedure",
+    "disasterRecoveryExt.recovery": "DR Planning",
+    "disasterRecoveryExt.replication": "Data Replication",
+    "disasterRecoveryExt.restoration": "Data Restoration",
+    "disasterRecoveryExt.rpo": "Recovery Point Objective",
+    "disasterRecoveryExt.rto": "Recovery Time Objective",
+    "disasterRecoveryExt.runbook": "DR Runbook",
+    "disasterRecoveryExt.simulation": "DR Simulation",
+    "disasterRecoveryExt.site": "Recovery Site",
+    "disasterRecoveryExt.snapshot": "System Snapshot",
+    "disasterRecoveryExt.synchronization": "Data Synchronization",
+    "disasterRecoveryExt.testing": "DR Testing",
+    "disasterRecoveryExt.warm": "Warm Site"
+  },
+  "ar": {
+    "disasterRecoveryExt.archive": "أرشيف التعافي من الكوارث",
+    "disasterRecoveryExt.backup": "النسخ الاحتياطي للتعافي",
+    "disasterRecoveryExt.cold": "موقع بارد",
+    "disasterRecoveryExt.coordinator": "منسق التعافي من الكوارث",
+    "disasterRecoveryExt.disaster": "التعافي من الكوارث",
+    "disasterRecoveryExt.documentation": "توثيق التعافي من الكوارث",
+    "disasterRecoveryExt.failover": "التبديل التلقائي للنظام",
+    "disasterRecoveryExt.hot": "موقع ساخن",
+    "disasterRecoveryExt.image": "صورة النظام",
+    "disasterRecoveryExt.objective": "هدف التعافي",
+    "disasterRecoveryExt.procedure": "إجراء التعافي من الكوارث",
+    "disasterRecoveryExt.recovery": "تخطيط التعافي من الكوارث",
+    "disasterRecoveryExt.replication": "تكرار البيانات",
+    "disasterRecoveryExt.restoration": "استعادة البيانات",
+    "disasterRecoveryExt.rpo": "هدف نقطة التعافي",
+    "disasterRecoveryExt.rto": "هدف وقت التعافي",
+    "disasterRecoveryExt.runbook": "دليل التعافي من الكوارث",
+    "disasterRecoveryExt.simulation": "محاكاة التعافي من الكوارث",
+    "disasterRecoveryExt.site": "موقع التعافي",
+    "disasterRecoveryExt.snapshot": "لقطة النظام",
+    "disasterRecoveryExt.synchronization": "مزامنة البيانات",
+    "disasterRecoveryExt.testing": "اختبار التعافي من الكوارث",
+    "disasterRecoveryExt.warm": "موقع دافئ"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/disruptiveInnovation.translations.json">
+<![CDATA[
+{
+  "en": {
+    "disruptiveInnovation.adaptation": "Disruption Adaptation",
+    "disruptiveInnovation.agility": "Disruption Agility",
+    "disruptiveInnovation.assessment": "Disruption Assessment",
+    "disruptiveInnovation.capability": "Disruption Capability",
+    "disruptiveInnovation.culture": "Disruption Culture",
+    "disruptiveInnovation.disruption": "Market Disruption",
+    "disruptiveInnovation.disruptive": "Disruptive Innovation",
+    "disruptiveInnovation.identification": "Disruption Identification",
+    "disruptiveInnovation.innovation": "Disruption Strategy",
+    "disruptiveInnovation.innovationResponse": "Innovation Response",
+    "disruptiveInnovation.leadership": "Disruption Leadership",
+    "disruptiveInnovation.management": "Disruption Management",
+    "disruptiveInnovation.mindset": "Disruption Mindset",
+    "disruptiveInnovation.model": "Disruptive Model",
+    "disruptiveInnovation.opportunity": "Disruptive Opportunity",
+    "disruptiveInnovation.readiness": "Disruption Readiness",
+    "disruptiveInnovation.resilience": "Disruption Resilience",
+    "disruptiveInnovation.response": "Disruption Response",
+    "disruptiveInnovation.strategy": "Disruption Strategy",
+    "disruptiveInnovation.technology": "Disruptive Technology",
+    "disruptiveInnovation.threat": "Disruptive Threat",
+    "disruptiveInnovation.transformation": "Disruptive Transformation"
+  },
+  "ar": {
+    "disruptiveInnovation.adaptation": "التكيف مع التخريب",
+    "disruptiveInnovation.agility": "رشاقة التخريب",
+    "disruptiveInnovation.assessment": "تقييم التخريب",
+    "disruptiveInnovation.capability": "قدرة التخريب",
+    "disruptiveInnovation.culture": "ثقافة التخريب",
+    "disruptiveInnovation.disruption": "تعطيل السوق",
+    "disruptiveInnovation.disruptive": "الابتكار التخريبي",
+    "disruptiveInnovation.identification": "تحديد التخريب",
+    "disruptiveInnovation.innovation": "استراتيجية التخريب",
+    "disruptiveInnovation.innovationResponse": "استجابة الابتكار",
+    "disruptiveInnovation.leadership": "قيادة التخريب",
+    "disruptiveInnovation.management": "إدارة التخريب",
+    "disruptiveInnovation.mindset": "عقلية التخريب",
+    "disruptiveInnovation.model": "النموذج التخريبي",
+    "disruptiveInnovation.opportunity": "فرصة التخريب",
+    "disruptiveInnovation.readiness": "جاهزية التخريب",
+    "disruptiveInnovation.resilience": "مرونة التخريب",
+    "disruptiveInnovation.response": "الاستجابة للتخريب",
+    "disruptiveInnovation.strategy": "استراتيجية التخريب",
+    "disruptiveInnovation.technology": "التكنولوجيا التخريبية",
+    "disruptiveInnovation.threat": "تهديد التخريب",
+    "disruptiveInnovation.transformation": "التحول التخريبي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/diversityInclusion.translations.json">
+<![CDATA[
+{
+  "en": {
+    "diversityInclusion.accessibility": "Accessibility",
+    "diversityInclusion.accommodation": "Accommodation",
+    "diversityInclusion.affinity": "Affinity Group",
+    "diversityInclusion.awareness": "Diversity Awareness",
+    "diversityInclusion.belonging": "Belonging",
+    "diversityInclusion.bias": "Unconscious Bias",
+    "diversityInclusion.champion": "DEI Champion",
+    "diversityInclusion.committee": "DEI Committee",
+    "diversityInclusion.culture": "Inclusive Culture",
+    "diversityInclusion.dei": "DEI",
+    "diversityInclusion.discrimination": "Anti-Discrimination",
+    "diversityInclusion.diversity": "Diversity",
+    "diversityInclusion.equal": "Equal Opportunity",
+    "diversityInclusion.equity": "Equity",
+    "diversityInclusion.goal": "DEI Goals",
+    "diversityInclusion.inclusion": "Inclusion",
+    "diversityInclusion.initiative": "DEI Initiative",
+    "diversityInclusion.metric": "DEI Metrics",
+    "diversityInclusion.policy": "DEI Policy",
+    "diversityInclusion.program": "DEI Program",
+    "diversityInclusion.representation": "Representation",
+    "diversityInclusion.training": "Diversity Training"
+  },
+  "ar": {
+    "diversityInclusion.accessibility": "إمكانية الوصول",
+    "diversityInclusion.accommodation": "التسهيلات",
+    "diversityInclusion.affinity": "مجموعة الانتماء",
+    "diversityInclusion.awareness": "الوعي بالتنوع",
+    "diversityInclusion.belonging": "الانتماء",
+    "diversityInclusion.bias": "التحيز اللاواعي",
+    "diversityInclusion.champion": "مناصر التنوع",
+    "diversityInclusion.committee": "لجنة التنوع",
+    "diversityInclusion.culture": "الثقافة الشاملة",
+    "diversityInclusion.dei": "التنوع والمساواة والشمولية",
+    "diversityInclusion.discrimination": "مكافحة التمييز",
+    "diversityInclusion.diversity": "التنوع",
+    "diversityInclusion.equal": "تكافؤ الفرص",
+    "diversityInclusion.equity": "المساواة",
+    "diversityInclusion.goal": "أهداف التنوع",
+    "diversityInclusion.inclusion": "الشمولية",
+    "diversityInclusion.initiative": "مبادرة التنوع",
+    "diversityInclusion.metric": "مقاييس التنوع",
+    "diversityInclusion.policy": "سياسة التنوع",
+    "diversityInclusion.program": "برنامج التنوع",
+    "diversityInclusion.representation": "التمثيل",
+    "diversityInclusion.training": "التدريب على التنوع"
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

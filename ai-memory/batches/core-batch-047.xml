@@ -1,0 +1,2886 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="components/careers/JobApplicationForm.tsx">
+<![CDATA[
+"use client";
+
+import React from "react";
+import { useState, FormEvent, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { parsePhoneNumberFromString } from "libphonenumber-js";
+
+interface JobApplicationFormProps {
+  jobId: string;
+}
+
+type FieldErrors = Partial<
+  Record<
+    | "fullName"
+    | "email"
+    | "phone"
+    | "linkedin"
+    | "experience"
+    | "resume"
+    | "general",
+    string
+  >
+>;
+
+/**
+ * Drop-in: robust validation + i18n + stable testids + proper success navigation
+ */
+
+/**
+ * Drop-in: robust validation + i18n + stable testids + proper success navigation
+ */
+export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
+  const router = useRouter();
+  const { t } = useTranslation();
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [selectedResume, setSelectedResume] = useState<File | null>(null);
+  const [resumeKey, setResumeKey] = useState<string | null>(null);
+  const [resumeStatus, setResumeStatus] = useState<
+    "pending" | "clean" | "infected" | "error" | null
+  >(null);
+  // Honeypot (bots only)
+  const honeypotRef = useRef<HTMLInputElement>(null);
+
+  const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
+
+  // Poll AV status after upload so UI can surface clean/infected badge
+  useEffect(() => {
+    if (!resumeKey || resumeStatus !== "pending") return undefined;
+    const interval = window.setInterval(async () => {
+      try {
+        const res = await fetch(
+          `/api/upload/scan-status?key=${encodeURIComponent(resumeKey)}`,
+        );
+        if (!res.ok) return;
+        const json = await res.json().catch(() => ({}));
+        if (
+          typeof json.status === "string" &&
+          ["pending", "clean", "infected", "error"].includes(json.status)
+        ) {
+          setResumeStatus(json.status as typeof resumeStatus);
+        }
+      } catch {
+        /* ignore */
+      }
+    }, 7000);
+    return () => window.clearInterval(interval);
+  }, [resumeKey, resumeStatus]);
+
+  const focusFirstError = (
+    form: HTMLFormElement,
+    fieldOrder: string[],
+    fieldErrors: FieldErrors,
+  ) => {
+    for (const f of fieldOrder) {
+      if (fieldErrors[f as keyof FieldErrors]) {
+        const el = form.querySelector(`[name="${f}"]`) as HTMLElement | null;
+        if (el?.focus) el.focus();
+        break;
+      }
+    }
+  };
+
+  const validate = (fd: FormData): FieldErrors => {
+    const next: FieldErrors = {};
+
+    const fullName = String(fd.get("fullName") || "").trim();
+    const email = String(fd.get("email") || "")
+      .trim()
+      .toLowerCase();
+    const phone = String(fd.get("phone") || "").trim();
+    const linkedin = String(fd.get("linkedin") || "").trim();
+    const experience = String(fd.get("experience") || "").trim();
+    const resume = (fd.get("resume") as File | null) ?? selectedResume ?? null;
+
+    if (!fullName)
+      next.fullName = t("careers.fullNameRequired", "Full name is required");
+
+    if (!email) {
+      next.email = t("careers.emailRequired", "Email is required");
+    } else if (!emailRx.test(email)) {
+      next.email = t(
+        "careers.emailInvalid",
+        "Please enter a valid email address",
+      );
+    }
+
+    if (phone) {
+      // Parse phone without assuming country - libphonenumber-js will detect from format
+      // If phone starts with +, it includes country code; otherwise try common defaults
+      const pn = parsePhoneNumberFromString(phone);
+      if (!pn || !pn.isValid()) {
+        next.phone = t(
+          "careers.phoneInvalid",
+          "Please enter a valid phone number with country code (e.g., +9665XXXXXXXX)",
+        );
+      } else {
+        // Normalize for backend (append an extra field)
+        fd.set("phoneE164", pn.number);
+      }
+    }
+
+    if (linkedin) {
+      try {
+        const u = new URL(linkedin);
+        if (
+          !/^(?:www\.)?linkedin\.com$/i.test(
+            u.hostname.replace(/^.*?linkedin\./i, "linkedin."),
+          )
+        ) {
+          next.linkedin = t(
+            "careers.linkedinInvalid",
+            "Please provide a valid LinkedIn profile URL",
+          );
+        }
+      } catch {
+        next.linkedin = t(
+          "careers.linkedinInvalid",
+          "Please provide a valid LinkedIn profile URL",
+        );
+      }
+    }
+
+    if (experience) {
+      const n = Number(experience);
+      if (!Number.isFinite(n) || n < 0 || n > 50) {
+        next.experience = t(
+          "careers.experienceInvalid",
+          "Years of experience must be between 0 and 50",
+        );
+      }
+    }
+
+    if (!(resume instanceof File) || !resume || resume.size === 0) {
+      next.resume = t(
+        "careers.resumeRequired",
+        "Please upload your CV/Resume (PDF)",
+      );
+    } else {
+      const mimeOk =
+        resume.type === "application/pdf" ||
+        resume.type === "application/x-pdf";
+      const extOk = resume.name.toLowerCase().endsWith(".pdf");
+      if (!mimeOk && !extOk) {
+        next.resume = t("careers.resumeType", "Resume must be a PDF file");
+      } else if (resume.size > 5 * 1024 * 1024) {
+        next.resume = t(
+          "careers.resumeSize",
+          "Resume file size must be less than 5MB",
+        );
+      }
+    }
+
+    return next;
+  };
+
+  const handleResumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setSelectedResume(file);
+  };
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    setErrors({});
+
+    try {
+      // Honeypot: bots fill it -> block
+      if (honeypotRef.current?.value) {
+        setErrors({
+          general: t(
+            "careers.spamDetected",
+            "Submission blocked (suspected bot).",
+          ),
+        });
+        return;
+      }
+
+      const formEl = e.currentTarget;
+      const formData = new FormData(formEl);
+      if (selectedResume) {
+        formData.set("resume", selectedResume);
+      }
+
+      // Basic normalization
+      formData.set("jobId", jobId);
+      const skills = String(formData.get("skills") || "").trim();
+      if (skills) formData.set("skills", skills.replace(/\s*,\s*/g, ", ")); // clean commas
+
+      const fieldErrs = validate(formData);
+      if (process.env.NODE_ENV === "test") {
+        // Validation logged for debugging
+      }
+      if (Object.keys(fieldErrs).length) {
+        setErrors(fieldErrs);
+        focusFirstError(
+          formEl,
+          ["fullName", "email", "phone", "linkedin", "experience", "resume"],
+          fieldErrs,
+        );
+        return;
+      }
+
+      const resume = formData.get("resume");
+      if (resume instanceof File) {
+        let uploadedViaPresign = false;
+        try {
+          const presignRes = await fetch("/api/files/resumes/presign", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              fileName: resume.name,
+              contentType: resume.type || "application/pdf",
+              size: resume.size,
+            }),
+          });
+
+          if (presignRes.ok) {
+            const presign = await presignRes.json();
+            const putHeaders: Record<string, string> = {
+              ...(presign.headers || {}),
+              "Content-Type": resume.type || "application/pdf",
+            };
+            const putRes = await fetch(presign.url, {
+              method: "PUT",
+              headers: putHeaders,
+              body: resume,
+            });
+            if (!putRes.ok) {
+              throw new Error(
+                t("careers.uploadFailed", "Failed to upload resume"),
+              );
+            }
+            const publicUrl = String(presign.url).split("?")[0];
+            formData.set("resumeKey", presign.key);
+            formData.set("resumeUrl", publicUrl);
+            formData.set("resumeMimeType", resume.type || "application/pdf");
+            formData.set("resumeSize", String(resume.size));
+            formData.delete("resume"); // do not post the raw file
+            setResumeKey(presign.key);
+            setResumeStatus("pending");
+            uploadedViaPresign = true;
+
+            try {
+              const statusRes = await fetch(
+                `/api/upload/scan-status?key=${encodeURIComponent(presign.key)}`,
+              );
+              if (statusRes.ok) {
+                const statusJson = await statusRes.json().catch(() => ({}));
+                if (typeof statusJson.status === "string") {
+                  const normalized = statusJson.status as typeof resumeStatus;
+                  setResumeStatus(
+                    ["pending", "clean", "infected", "error"].includes(
+                      normalized || "",
+                    )
+                      ? normalized
+                      : "pending",
+                  );
+                }
+              }
+            } catch {
+              /* best-effort only */
+            }
+          } else if (![401, 403].includes(presignRes.status)) {
+            const msg =
+              (await presignRes.text().catch(() => "")) ||
+              t("careers.presignFailed", "Failed to prepare resume upload");
+            throw new Error(msg);
+          }
+        } catch (uploadErr) {
+          const msg =
+            uploadErr instanceof Error
+              ? uploadErr.message
+              : t("careers.uploadFailed", "Failed to upload resume");
+          setErrors((prev) => ({ ...prev, general: msg }));
+          toast.error(msg);
+          return;
+        }
+
+        // If presign failed due to auth (401/403), fall back to posting the file directly with the form.
+        if (!uploadedViaPresign) {
+          setResumeStatus(null);
+          setResumeKey(null);
+        }
+      }
+
+      const res = await fetch(`/api/careers/apply`, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+      let payload: { error?: string; [key: string]: unknown } = {};
+      try {
+        payload = await res.json();
+      } catch {
+        /* ignore */
+      }
+
+      if (!res.ok) {
+        const message =
+          payload?.error ||
+          (res.status === 429
+            ? t("careers.tooMany", "Too many attempts. Please try again later.")
+            : t("careers.applyFailed", "Failed to submit application"));
+        throw new Error(message);
+      }
+
+      toast.success(
+        t(
+          "careers.applySuccess",
+          "Application submitted! We'll get back to you soon.",
+        ),
+        { duration: 5000 },
+      );
+
+      // Reset + route to jobs with a flag
+      formEl.reset();
+      setErrors({});
+      setSelectedResume(null);
+      setTimeout(() => router.push("/careers?applied=true"), 600);
+    } catch (err) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : t("careers.applyFailed", "Failed to submit application");
+      setErrors((prev) => ({ ...prev, general: msg }));
+      toast.error(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const fieldCls = (hasErr?: boolean) =>
+    `border p-2 rounded focus:ring-2 focus:ring-primary focus:border-transparent ${
+      hasErr ? "border-destructive focus:ring-red-500" : "border-border"
+    }`;
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      noValidate
+      encType="multipart/form-data"
+      className="mt-8 bg-muted p-6 rounded-2xl"
+      data-testid="job-apply-form"
+    >
+      <h3 className="text-xl font-semibold mb-4">
+        {t("careers.applyNow", "Apply Now")}
+      </h3>
+
+      {/* Honeypot */}
+      <input
+        ref={honeypotRef}
+        type="text"
+        name="website"
+        className="hidden"
+        tabIndex={-1}
+        autoComplete="off"
+      />
+
+      <div className="grid md:grid-cols-2 gap-4">
+        {/* Full Name */}
+        <div className="flex flex-col">
+          <label
+            htmlFor="fullName"
+            className="mb-1 text-sm font-semibold text-foreground"
+          >
+            {t("careers.fullName", "Full Name")}{" "}
+            <span className="text-destructive">*</span>
+          </label>
+          <input
+            id="fullName"
+            name="fullName"
+            type="text"
+            placeholder={t("careers.fullNamePh", "John Doe")}
+            required
+            className={fieldCls(!!errors.fullName)}
+            aria-invalid={!!errors.fullName}
+            aria-describedby={errors.fullName ? "err-fullName" : undefined}
+            disabled={isSubmitting}
+            data-testid="fullName"
+          />
+          {errors.fullName && (
+            <p id="err-fullName" className="mt-1 text-xs text-destructive">
+              {errors.fullName}
+            </p>
+          )}
+        </div>
+
+        {/* Email */}
+        <div className="flex flex-col">
+          <label
+            htmlFor="email"
+            className="mb-1 text-sm font-semibold text-foreground"
+          >
+            {t("careers.email", "Email Address")}{" "}
+            <span className="text-destructive">*</span>
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            placeholder={t("careers.emailPh", "john@example.com")}
+            required
+            className={fieldCls(!!errors.email)}
+            aria-invalid={!!errors.email}
+            aria-describedby={errors.email ? "err-email" : undefined}
+            disabled={isSubmitting}
+            data-testid="email"
+          />
+          {errors.email && (
+            <p id="err-email" className="mt-1 text-xs text-destructive">
+              {errors.email}
+            </p>
+          )}
+        </div>
+
+        {/* Phone */}
+        <div className="flex flex-col">
+          <label
+            htmlFor="phone"
+            className="mb-1 text-sm font-semibold text-foreground"
+          >
+            {t("careers.phone", "Phone Number")}
+          </label>
+          <input
+            id="phone"
+            name="phone"
+            type="tel"
+            inputMode="tel"
+            placeholder={t("careers.phonePh", "+966 50 123 4567")}
+            className={fieldCls(!!errors.phone)}
+            aria-invalid={!!errors.phone}
+            aria-describedby={errors.phone ? "err-phone" : undefined}
+            disabled={isSubmitting}
+            data-testid="phone"
+          />
+          {errors.phone && (
+            <p id="err-phone" className="mt-1 text-xs text-destructive">
+              {errors.phone}
+            </p>
+          )}
+        </div>
+
+        {/* Location */}
+        <div className="flex flex-col">
+          <label
+            htmlFor="location"
+            className="mb-1 text-sm font-semibold text-foreground"
+          >
+            {t("careers.location", "Location")}
+          </label>
+          <input
+            id="location"
+            name="location"
+            type="text"
+            placeholder={t("careers.locationPh", "Riyadh, Saudi Arabia")}
+            className={fieldCls()}
+            disabled={isSubmitting}
+            data-testid="location"
+          />
+        </div>
+
+        {/* Years of Experience */}
+        <div className="flex flex-col">
+          <label
+            htmlFor="experience"
+            className="mb-1 text-sm font-semibold text-foreground"
+          >
+            {t("careers.experience", "Years of Experience")}
+          </label>
+          <input
+            id="experience"
+            name="experience"
+            type="number"
+            min={0}
+            max={50}
+            placeholder="5"
+            className={fieldCls(!!errors.experience)}
+            aria-invalid={!!errors.experience}
+            aria-describedby={errors.experience ? "err-experience" : undefined}
+            disabled={isSubmitting}
+            data-testid="experience"
+          />
+          {errors.experience && (
+            <p id="err-experience" className="mt-1 text-xs text-destructive">
+              {errors.experience}
+            </p>
+          )}
+        </div>
+
+        {/* LinkedIn */}
+        <div className="flex flex-col">
+          <label
+            htmlFor="linkedin"
+            className="mb-1 text-sm font-semibold text-foreground"
+          >
+            {t("careers.linkedin", "LinkedIn Profile")}
+          </label>
+          <input
+            id="linkedin"
+            name="linkedin"
+            type="url"
+            placeholder="https://linkedin.com/in/yourprofile"
+            className={fieldCls(!!errors.linkedin)}
+            aria-invalid={!!errors.linkedin}
+            aria-describedby={errors.linkedin ? "err-linkedin" : undefined}
+            disabled={isSubmitting}
+            data-testid="linkedin"
+          />
+          {errors.linkedin && (
+            <p id="err-linkedin" className="mt-1 text-xs text-destructive">
+              {errors.linkedin}
+            </p>
+          )}
+        </div>
+
+        {/* Skills */}
+        <div className="flex flex-col md:col-span-2">
+          <label
+            htmlFor="skills"
+            className="mb-1 text-sm font-semibold text-foreground"
+          >
+            {t("careers.skills", "Key Skills")}
+          </label>
+          <input
+            id="skills"
+            name="skills"
+            type="text"
+            placeholder={t(
+              "careers.skillsPh",
+              "React, TypeScript, Node.js, MongoDB",
+            )}
+            className={fieldCls()}
+            disabled={isSubmitting}
+            data-testid="skills"
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            {t("careers.skillsHint", "Separate skills with commas")}
+          </p>
+        </div>
+      </div>
+
+      {/* Cover Letter */}
+      <div className="flex flex-col mt-4">
+        <label
+          htmlFor="coverLetter"
+          className="mb-1 text-sm font-semibold text-foreground"
+        >
+          {t("careers.coverLetter", "Cover Letter")}
+        </label>
+        <textarea
+          id="coverLetter"
+          name="coverLetter"
+          placeholder={t(
+            "careers.coverLetterPh",
+            "Tell us why you're a great fit...",
+          )}
+          className={`border p-2 rounded w-full focus:ring-2 focus:ring-primary focus:border-transparent border-border`}
+          rows={5}
+          disabled={isSubmitting}
+          data-testid="coverLetter"
+        />
+      </div>
+
+      {/* Resume Upload */}
+      <div className="mt-4">
+        <label
+          htmlFor="resume"
+          className="block text-sm font-semibold text-foreground mb-1"
+        >
+          {t("careers.resume", "CV / Résumé (PDF)")}{" "}
+          <span className="text-destructive">*</span>
+        </label>
+        <input
+          id="resume"
+          name="resume"
+          type="file"
+          accept="application/pdf"
+          required
+          className="mt-1 block w-full text-sm text-muted-foreground
+                     file:me-4 file:py-2 file:px-4
+                     file:rounded file:border-0
+                     file:text-sm file:font-semibold
+                     file:bg-primary/5 file:text-primary
+                     hover:file:bg-primary/10
+                     disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={isSubmitting}
+          data-testid="resume"
+          onChange={handleResumeChange}
+        />
+        <p className="text-xs text-muted-foreground mt-1">
+          {t("careers.resumeHint", "PDF only · Max 5MB")}
+        </p>
+        <p className="text-xs text-muted-foreground flex items-center gap-1">
+          {t("careers.resumeUploadNote", "Uploaded resumes are virus-scanned.")}
+          {resumeStatus && (
+            <span className="font-semibold capitalize">
+              {t("careers.resumeScanStatus", "Scan status")}: {resumeStatus}
+            </span>
+          )}
+        </p>
+        {errors.resume && (
+          <p className="mt-1 text-xs text-destructive">{errors.resume}</p>
+        )}
+      </div>
+
+      {/* General error */}
+      {errors.general && (
+        <div
+          className="mt-4 p-3 bg-destructive/5 border border-destructive/20 rounded text-destructive text-sm"
+          role="alert"
+          aria-live="assertive"
+          data-testid="general-error"
+        >
+          {errors.general}
+        </div>
+      )}
+
+      {/* Submit */}
+      <button
+        type="submit"
+        disabled={isSubmitting}
+        className="mt-6 px-6 py-3 bg-primary text-white rounded-2xl hover:bg-primary/90
+                   transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed
+                   focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+        data-testid="submit-application"
+      >
+        {isSubmitting ? (
+          <span className="flex items-center justify-center">
+            <svg
+              className="animate-spin -ms-1 me-3 h-5 w-5 text-white"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+            {t("careers.submitting", "Submitting application...")}
+          </span>
+        ) : (
+          t("careers.submit", "Submit Application")
+        )}
+      </button>
+
+      <p className="text-xs text-muted-foreground mt-3">
+        {t(
+          "careers.terms",
+          "By submitting this application, you agree to our privacy policy and terms of service.",
+        )}
+      </p>
+    </form>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/common/SaveConfirmation.tsx">
+<![CDATA[
+/**
+ * 🟧 FIXED: Moved from hooks/useUnsavedChanges.ts to resolve
+ * Single Responsibility Principle (SRP) violation.
+ */
+
+"use client";
+
+import React from "react";
+
+/**
+ * Helper component for save confirmation
+ */
+export function SaveConfirmation({
+  isOpen,
+  onConfirm,
+  onCancel,
+  title = "Save Changes",
+  message = "Are you sure you want to save these changes?",
+  confirmText = "Save",
+  cancelText = "Cancel",
+}: {
+  isOpen: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+  title?: string;
+  message?: string;
+  confirmText?: string;
+  cancelText?: string;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">
+          {title}
+        </h3>
+        <p className="text-gray-600 dark:text-gray-400 mb-6">{message}</p>
+        <div className="flex gap-3">
+          {/* 🟩 FIXED: Use theme-agnostic class names */}
+          <button
+            onClick={onConfirm}
+            className="flex-1 bg-success text-success-foreground px-4 py-2 rounded-md hover:bg-success/90 transition-colors"
+          >
+            {confirmText}
+          </button>
+          <button
+            onClick={onCancel}
+            className="flex-1 bg-muted text-muted-foreground px-4 py-2 rounded-md hover:bg-muted/80 transition-colors"
+          >
+            {cancelText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/common/UnsavedChangesWarning.tsx">
+<![CDATA[
+/**
+ * 🟧 FIXED: Moved from hooks/useUnsavedChanges.ts to resolve
+ * Single Responsibility Principle (SRP) violation.
+ */
+
+"use client";
+
+import React from "react";
+
+/**
+ * Helper component for unsaved changes warning
+ */
+export function UnsavedChangesWarning({
+  isOpen,
+  onSave,
+  onDiscard,
+  onStay,
+  title = "Unsaved Changes",
+  message = "You have unsaved changes. Would you like to save them before leaving?",
+  saveText = "Save Changes",
+  discardText = "Discard Changes",
+  stayText = "Stay Here",
+}: {
+  isOpen: boolean;
+  onSave: () => void;
+  onDiscard: () => void;
+  onStay: () => void;
+  title?: string;
+  message?: string;
+  saveText?: string;
+  discardText?: string;
+  stayText?: string;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">
+          {title}
+        </h3>
+        <p className="text-gray-600 dark:text-gray-400 mb-6">{message}</p>
+        <div className="flex flex-col sm:flex-row gap-3">
+          {/* 🟩 FIXED: Use theme-agnostic class names */}
+          <button
+            onClick={onSave}
+            className="flex-1 bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
+          >
+            {saveText}
+          </button>
+          <button
+            onClick={onDiscard}
+            className="flex-1 bg-destructive text-destructive-foreground px-4 py-2 rounded-md hover:bg-destructive/90 transition-colors"
+          >
+            {discardText}
+          </button>
+          <button
+            onClick={onStay}
+            className="flex-1 bg-background text-secondary-foreground border border-border px-4 py-2 rounded-md hover:bg-muted transition-colors"
+          >
+            {stayText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/errors/GlobalNotFound.tsx">
+<![CDATA[
+"use client";
+
+import Link from "next/link";
+import { Home, ArrowLeft, Search } from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { BrandLogo } from "@/components/brand";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
+
+export function GlobalNotFound() {
+  const { t } = useTranslation();
+
+  const commonPages = [
+    {
+      name: t("common.pages.dashboard", "Dashboard"),
+      href: "/dashboard",
+      icon: "🏠",
+    },
+    {
+      name: t("common.pages.properties", "Properties"),
+      href: "/properties",
+      icon: "🏢",
+    },
+    {
+      name: t("common.pages.workOrders", "Work Orders"),
+      href: "/work-orders",
+      icon: "🧰",
+    },
+    {
+      name: t("common.pages.marketplace", "Marketplace"),
+      href: "/marketplace",
+      icon: "🛍️",
+    },
+    {
+      name: t("common.pages.finance", "Finance"),
+      href: "/finance",
+      icon: "💳",
+    },
+    { name: t("common.pages.hr", "HR"), href: "/hr", icon: "👥" },
+    { name: t("common.pages.login", "Login"), href: "/login", icon: "🔐" },
+  ];
+
+  return (
+    <div className="min-h-screen bg-muted flex flex-col items-center justify-center px-4">
+      <div className="max-w-md w-full text-center">
+        {/* Brand Logo */}
+        <div className="mb-6">
+          <BrandLogo 
+            size="lg" 
+            alt="Fixzit" 
+            fetchOrgLogo={false}
+            data-testid="not-found-logo"
+          />
+        </div>
+        
+        <div className="mb-8">
+          <h1 className="text-6xl font-bold text-primary mb-4">
+            {t("errors.404.code", "404")}
+          </h1>
+          <h2 className="text-2xl font-semibold text-foreground mb-2">
+            {t("errors.404.title", "Page Not Found")}
+          </h2>
+          <p className="text-muted-foreground">
+            {t(
+              "errors.404.message",
+              "The page you're looking for doesn't exist or has been moved.",
+            )}
+          </p>
+        </div>
+
+        <div className="space-y-4 mb-8">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 transition-colors"
+          >
+            <Home size={20} />
+            {t("common.actions.goToHomepage", "Go to Homepage")}
+          </Link>
+
+          <button
+            onClick={() => window.history.back()}
+            className="block w-full px-6 py-3 border border-border text-foreground rounded-2xl hover:bg-muted transition-colors"
+          >
+            <ArrowLeft size={20} className="inline me-2" />
+            {t("common.actions.goBack", "Go Back")}
+          </button>
+        </div>
+
+        <div className="bg-card rounded-2xl shadow-md p-6">
+          <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+            <Search size={20} className="text-primary" />
+            {t("common.popularPages", "Popular Pages")}
+          </h3>
+
+          <div className="grid grid-cols-2 gap-3">
+            {commonPages.map((page) => (
+              <Link
+                key={page.href}
+                href={page.href}
+                className="flex items-center gap-2 p-3 bg-muted rounded-2xl hover:bg-primary/10 transition-colors text-start"
+              >
+                <span className="text-lg">{page.icon}</span>
+                <span className="text-sm font-medium text-foreground">
+                  {page.name}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-6 text-sm text-muted-foreground">
+          <p>
+            {t(
+              "errors.404.helpText",
+              "If you believe this is an error, please contact",
+            )}{" "}
+            <a
+              href={`mailto:${EMAIL_DOMAINS.support}`}
+              className="text-primary hover:text-primary transition-colors"
+            >
+              {EMAIL_DOMAINS.support}
+            </a>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/finance/AccountActivityViewer.tsx">
+<![CDATA[
+"use client";
+
+import React, { useState, useEffect, useMemo } from "react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { logger } from "@/lib/logger";
+import ClientDate from "@/components/ClientDate";
+
+// ============================================================================
+// INTERFACES
+// ============================================================================
+
+interface IAccountTransaction {
+  id: string;
+  date: string;
+  journalNumber: string;
+  description: string;
+  sourceType: string;
+  sourceNumber?: string;
+  debit: number;
+  credit: number;
+  balance: number;
+}
+
+interface IAccountActivityData {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  accountType: string;
+  openingBalance: number;
+  closingBalance: number;
+  transactions: IAccountTransaction[];
+  // Optional total when server-side pagination is used
+  totalTransactions?: number;
+  totalDebits: number;
+  totalCredits: number;
+  periodStart: string;
+  periodEnd: string;
+}
+
+interface IAccountActivityViewerProps {
+  accountId: string;
+  initialStartDate?: string;
+  initialEndDate?: string;
+  onTransactionClick?: (transaction: IAccountTransaction) => void;
+}
+
+export default function AccountActivityViewer({
+  accountId,
+  initialStartDate,
+  initialEndDate,
+  onTransactionClick,
+}: IAccountActivityViewerProps) {
+  const { t } = useTranslation();
+
+  // Filter state
+  const [startDate, setStartDate] = useState<string>(
+    initialStartDate ||
+      new Date(new Date().getFullYear(), 0, 1).toISOString().split("T")[0],
+  );
+  const [endDate, setEndDate] = useState<string>(
+    initialEndDate || new Date().toISOString().split("T")[0],
+  );
+  const [sourceTypeFilter, setSourceTypeFilter] = useState<string>("ALL");
+
+  // Data state
+  const [data, setData] = useState<IAccountActivityData | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize] = useState<number>(50);
+  const [serverSide, setServerSide] = useState<boolean>(false);
+
+  // ============================================================================
+  // DATA LOADING
+  // ============================================================================
+
+  useEffect(() => {
+    if (accountId) {
+      loadAccountActivity();
+    }
+  }, [accountId, startDate, endDate, sourceTypeFilter, currentPage]);
+
+  const loadAccountActivity = async () => {
+    if (!accountId) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const params = new URLSearchParams({
+        startDate,
+        endDate,
+      });
+
+      if (sourceTypeFilter !== "ALL") {
+        params.append("sourceType", sourceTypeFilter);
+      }
+
+      // Add pagination params for server-side pagination
+      params.append("page", String(currentPage));
+      params.append("limit", String(pageSize));
+
+      const url = `/api/finance/ledger/account-activity/${accountId}?${params.toString()}`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        // try to get a specific message from the response
+        let errMsg = "Failed to load account activity";
+        try {
+          const err = await response.json();
+          errMsg = err.message || err.error || errMsg;
+        } catch (_err) {
+          // ignore
+        }
+        throw new Error(errMsg);
+      }
+
+      const result = await response.json();
+
+      // If API returned total count, we are using server-side pagination
+      if (
+        typeof result.totalTransactions === "number" ||
+        typeof result.total === "number"
+      ) {
+        setServerSide(true);
+      } else {
+        setServerSide(false);
+      }
+
+      setData(result);
+    } catch (err) {
+      import("../../lib/logger")
+        .then(({ logError }) => {
+          logError("Error loading account activity", err as Error, {
+            component: "AccountActivityViewer",
+            action: "loadTransactions",
+            accountId,
+          });
+        })
+        .catch((logErr) =>
+          logger.error("Failed to load logger:", { error: logErr }),
+        );
+      setError(
+        err instanceof Error
+          ? err.message
+          : t("common.error.loadData", "Failed to load data"),
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ============================================================================
+  // PAGINATION - MEMOIZED FOR PERFORMANCE
+  // ============================================================================
+
+  // Memoize paginated transactions to prevent re-slicing on every render
+  const paginatedTransactions = useMemo((): IAccountTransaction[] => {
+    if (!data) return [];
+
+    // If server-side pagination is active, the API returns only page transactions
+    if (serverSide && (data.transactions?.length ?? 0) > 0) {
+      return data.transactions;
+    }
+
+    // Client-side pagination fallback: slice the full transactions array
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return data.transactions.slice(startIndex, endIndex);
+  }, [data, serverSide, currentPage, pageSize]);
+
+  // Memoize total pages calculation
+  const totalPages = useMemo(() => {
+    if (!data) return 0;
+    const total = data.totalTransactions ?? data.transactions.length;
+    return Math.ceil(total / pageSize);
+  }, [data, pageSize]);
+
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  // ============================================================================
+  // DATE PRESETS
+  // ============================================================================
+
+  const setDatePreset = (preset: string) => {
+    const today = new Date();
+    let start: Date;
+    let end: Date = today;
+
+    switch (preset) {
+      case "today":
+        start = today;
+        break;
+      case "this-week":
+        start = new Date(today);
+        start.setDate(today.getDate() - today.getDay());
+        break;
+      case "this-month":
+        start = new Date(today.getFullYear(), today.getMonth(), 1);
+        break;
+      case "this-quarter": {
+        const quarter = Math.floor(today.getMonth() / 3);
+        start = new Date(today.getFullYear(), quarter * 3, 1);
+        break;
+      }
+      case "this-year":
+        start = new Date(today.getFullYear(), 0, 1);
+        break;
+      case "last-month":
+        start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        end = new Date(today.getFullYear(), today.getMonth(), 0);
+        break;
+      case "last-year":
+        start = new Date(today.getFullYear() - 1, 0, 1);
+        end = new Date(today.getFullYear() - 1, 11, 31);
+        break;
+      default:
+        start = new Date(today.getFullYear(), 0, 1);
+    }
+
+    setStartDate(start.toISOString().split("T")[0]);
+    setEndDate(end.toISOString().split("T")[0]);
+  };
+
+  // ============================================================================
+  // EXPORT
+  // ============================================================================
+
+  const exportToCSV = () => {
+    if (!data) return;
+
+    const headers = [
+      "Date",
+      "Journal #",
+      "Source",
+      "Description",
+      "Debit",
+      "Credit",
+      "Balance",
+    ];
+    const rows = data.transactions.map((txn) => [
+      new Date(txn.date).toLocaleDateString(),
+      txn.journalNumber,
+      txn.sourceType,
+      txn.description,
+      txn.debit.toFixed(2),
+      txn.credit.toFixed(2),
+      txn.balance.toFixed(2),
+    ]);
+
+    // Add opening balance row
+    rows.unshift([
+      startDate,
+      "",
+      "",
+      "Opening Balance",
+      "",
+      "",
+      data.openingBalance.toFixed(2),
+    ]);
+
+    const csvContent = [
+      [`Account: ${data.accountCode} - ${data.accountName}`],
+      [`Period: ${data.periodStart} to ${data.periodEnd}`],
+      [],
+      headers.join(","),
+      ...rows.map((row) => row.join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `account-activity-${data.accountCode}-${startDate}-${endDate}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
+  // ============================================================================
+  // RENDER
+  // ============================================================================
+
+  return (
+    <div className="space-y-6">
+      {/* Header & Filters */}
+      <div className="bg-card shadow-md rounded-2xl p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold">{t("Account Activity")}</h2>
+            {data && (
+              <p className="text-sm text-muted-foreground mt-1">
+                {data.accountCode} - {data.accountName} ({t(data.accountType)})
+              </p>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={exportToCSV}
+              className="px-4 py-2 text-sm bg-success text-white rounded hover:bg-success"
+              disabled={!data || loading}
+            >
+              📊 {t("Export CSV")}
+            </button>
+            <button
+              onClick={() => loadAccountActivity()}
+              className="px-4 py-2 text-sm bg-primary text-white rounded hover:bg-primary"
+              disabled={loading}
+            >
+              {loading ? t("Loading...") : "🔄 " + t("Refresh")}
+            </button>
+          </div>
+        </div>
+
+        {/* Date Range Filters */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t pt-4">
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">
+              {t("Start Date")}
+            </label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full px-3 py-2 border border-border rounded-2xl"
+              disabled={loading}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">
+              {t("End Date")}
+            </label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full px-3 py-2 border border-border rounded-2xl"
+              disabled={loading}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">
+              {t("Source Type")}
+            </label>
+            <select
+              value={sourceTypeFilter}
+              onChange={(e) => setSourceTypeFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-border rounded-2xl"
+              disabled={loading}
+            >
+              <option value="ALL">{t("All Types")}</option>
+              <option value="MANUAL">{t("Manual")}</option>
+              <option value="INVOICE">{t("Invoice")}</option>
+              <option value="PAYMENT">{t("Payment")}</option>
+              <option value="EXPENSE">{t("Expense")}</option>
+              <option value="RENT">{t("Rent")}</option>
+              <option value="WORK_ORDER">{t("Work Order")}</option>
+              <option value="ADJUSTMENT">{t("Adjustment")}</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Date Presets */}
+        <div className="flex flex-wrap gap-2 border-t pt-4">
+          <button
+            onClick={() => setDatePreset("today")}
+            className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
+          >
+            {t("Today")}
+          </button>
+          <button
+            onClick={() => setDatePreset("this-week")}
+            className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
+          >
+            {t("This Week")}
+          </button>
+          <button
+            onClick={() => setDatePreset("this-month")}
+            className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
+          >
+            {t("This Month")}
+          </button>
+          <button
+            onClick={() => setDatePreset("this-quarter")}
+            className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
+          >
+            {t("This Quarter")}
+          </button>
+          <button
+            onClick={() => setDatePreset("this-year")}
+            className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
+          >
+            {t("This Year")}
+          </button>
+          <button
+            onClick={() => setDatePreset("last-month")}
+            className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
+          >
+            {t("Last Month")}
+          </button>
+          <button
+            onClick={() => setDatePreset("last-year")}
+            className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
+          >
+            {t("Last Year")}
+          </button>
+        </div>
+      </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="bg-destructive/5 border border-destructive/20 rounded-2xl p-4">
+          <p className="text-sm text-destructive">{error}</p>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="bg-card shadow-md rounded-2xl p-12 text-center">
+          <p className="text-muted-foreground">
+            {t("Loading account activity...")}
+          </p>
+        </div>
+      )}
+
+      {/* Activity Table */}
+      {!loading && data && (
+        <div className="bg-card shadow-md rounded-2xl overflow-hidden">
+          {/* Summary Stats */}
+          <div className="bg-muted p-4 border-b">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground">
+                  {t("Opening Balance")}
+                </p>
+                <p className="text-lg font-bold">
+                  {data.openingBalance.toFixed(2)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">
+                  {t("Total Debits")}
+                </p>
+                <p className="text-lg font-bold text-success">
+                  +{data.totalDebits.toFixed(2)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">
+                  {t("Total Credits")}
+                </p>
+                <p className="text-lg font-bold text-destructive">
+                  -{data.totalCredits.toFixed(2)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">
+                  {t("Closing Balance")}
+                </p>
+                <p className="text-lg font-bold">
+                  {data.closingBalance.toFixed(2)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Transactions Table */}
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-muted">
+                <tr>
+                  <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {t("Date")}
+                  </th>
+                  <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {t("Journal #")}
+                  </th>
+                  <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {t("Source")}
+                  </th>
+                  <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {t("Description")}
+                  </th>
+                  <th className="px-4 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {t("Debit")}
+                  </th>
+                  <th className="px-4 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {t("Credit")}
+                  </th>
+                  <th className="px-4 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {t("Balance")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-card divide-y divide-border">
+                {/* Opening Balance Row */}
+                <tr className="bg-primary/5">
+                  <td className="px-4 py-2 text-sm" colSpan={4}>
+                    <strong>{t("Opening Balance")}</strong>
+                  </td>
+                  <td className="px-4 py-2 text-sm text-end"></td>
+                  <td className="px-4 py-2 text-sm text-end"></td>
+                  <td className="px-4 py-2 text-sm text-end font-semibold">
+                    {data.openingBalance.toFixed(2)}
+                  </td>
+                </tr>
+
+                {/* Transaction Rows */}
+                {paginatedTransactions.map((txn) => (
+                  <tr
+                    key={txn.id}
+                    className="hover:bg-muted cursor-pointer"
+                    onClick={() =>
+                      onTransactionClick && onTransactionClick(txn)
+                    }
+                  >
+                    <td className="px-4 py-2 text-sm">
+                      <ClientDate date={txn.date} format="date-only" />
+                    </td>
+                    <td className="px-4 py-2 text-sm font-medium text-primary">
+                      {txn.journalNumber}
+                    </td>
+                    <td className="px-4 py-2 text-sm">
+                      <span className="px-2 py-1 text-xs bg-muted rounded">
+                        {t(txn.sourceType)}
+                      </span>
+                      {txn.sourceNumber && (
+                        <span className="ms-1 text-xs text-muted-foreground">
+                          ({txn.sourceNumber})
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2 text-sm text-foreground">
+                      {txn.description}
+                    </td>
+                    <td className="px-4 py-2 text-sm text-end text-success font-medium">
+                      {txn.debit > 0 ? txn.debit.toFixed(2) : "-"}
+                    </td>
+                    <td className="px-4 py-2 text-sm text-end text-destructive font-medium">
+                      {txn.credit > 0 ? txn.credit.toFixed(2) : "-"}
+                    </td>
+                    <td className="px-4 py-2 text-sm text-end font-semibold">
+                      {txn.balance.toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+
+                {/* No Transactions */}
+                {data.transactions.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="px-4 py-8 text-center text-muted-foreground"
+                    >
+                      {t("No transactions found for this period")}
+                    </td>
+                  </tr>
+                )}
+
+                {/* Closing Balance Row */}
+                <tr className="bg-primary/5 border-t-2 border-border">
+                  <td className="px-4 py-2 text-sm font-bold" colSpan={4}>
+                    {t("Closing Balance")}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-end font-bold text-success">
+                    {data.totalDebits.toFixed(2)}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-end font-bold text-destructive">
+                    {data.totalCredits.toFixed(2)}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-end font-bold">
+                    {data.closingBalance.toFixed(2)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="bg-muted px-4 py-3 border-t flex items-center justify-between">
+              <div className="text-sm text-foreground">
+                {t("Showing")} {(currentPage - 1) * pageSize + 1} -{" "}
+                {Math.min(currentPage * pageSize, data.transactions.length)}{" "}
+                {t("of")} {data.transactions.length} {t("transactions")}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => goToPage(1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 text-sm border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {t("First")}
+                </button>
+                <button
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 text-sm border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {t("Previous")}
+                </button>
+                <span className="px-3 py-1 text-sm">
+                  {t("Page")} {currentPage} {t("of")} {totalPages}
+                </span>
+                <button
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 text-sm border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {t("Next")}
+                </button>
+                <button
+                  onClick={() => goToPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 text-sm border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {t("Last")}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!loading && !data && !error && (
+        <div className="bg-card shadow-md rounded-2xl p-12 text-center">
+          <p className="text-muted-foreground">
+            {t("Select an account to view activity")}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/finance/BalanceSheetWidget.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { logger } from "@/lib/logger";
+
+interface BalanceSheetResponse {
+  asOf: string;
+  assets: number;
+  liabilities: number;
+  equity: number;
+  equationOk: boolean;
+}
+
+export default function BalanceSheetWidget({
+  initialDate = new Date().toISOString().slice(0, 10),
+}: {
+  initialDate?: string;
+}) {
+  const { t } = useTranslation();
+  const [asOf, setAsOf] = useState(initialDate);
+  const [data, setData] = useState<BalanceSheetResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/finance/reports/balance-sheet?asOf=${asOf}`,
+      );
+      if (res.status === 403) {
+        setError(
+          t(
+            "finance.balance.forbidden",
+            "You do not have access to balance sheets.",
+          ),
+        );
+        setData(null);
+        return;
+      }
+      if (!res.ok) {
+        throw new Error(
+          t("finance.balance.error", "Failed to load balance sheet"),
+        );
+      }
+      const body = await res.json();
+      setData(body);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      logger.warn("Balance sheet fetch failed", {
+        error: error.message,
+        stack: error.stack,
+      });
+      setError(
+        error.message ||
+          t("finance.balance.error", "Failed to load balance sheet"),
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [asOf, t]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between text-base">
+          <span>{t("finance.balance.title", "Balance Sheet")}</span>
+          <div className="flex items-center gap-2">
+            <Input
+              type="date"
+              className="h-8"
+              value={asOf}
+              onChange={(e) => setAsOf(e.target.value)}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={load}
+              disabled={loading}
+            >
+              {t("common.refresh", "Refresh")}
+            </Button>
+          </div>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2 text-sm">
+        {loading && <p>{t("common.loading", "Loading...")}</p>}
+        {error && <p className="text-destructive">{error}</p>}
+        {data && !loading && !error && (
+          <div className="space-y-1">
+            <p>
+              {t("finance.balance.asOf", "As of")}:{" "}
+              {new Date(data.asOf).toLocaleDateString()}
+            </p>
+            <p className="font-semibold">
+              {t("finance.balance.assets", "Assets")}: {data.assets.toFixed(2)}
+            </p>
+            <p>
+              {t("finance.balance.liabilities", "Liabilities")}:{" "}
+              {data.liabilities.toFixed(2)}
+            </p>
+            <p>
+              {t("finance.balance.equity", "Equity")}: {data.equity.toFixed(2)}
+            </p>
+            <p
+              className={data.equationOk ? "text-success" : "text-destructive"}
+            >
+              {data.equationOk
+                ? t("finance.balance.ok", "Assets = Liabilities + Equity")
+                : t("finance.balance.notOk", "Equation mismatch detected")}
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/finance/IncomeStatementWidget.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { logger } from "@/lib/logger";
+
+interface IncomeStatementResponse {
+  from: string;
+  to: string;
+  revenue: number;
+  expense: number;
+  net: number;
+  rows: Array<{
+    accountCode: string;
+    accountName: string;
+    debit: number;
+    credit: number;
+  }>;
+}
+
+export default function IncomeStatementWidget({
+  initialYear = new Date().getFullYear(),
+}: {
+  initialYear?: number;
+}) {
+  const { t } = useTranslation();
+  const [year, setYear] = useState(initialYear);
+  const [data, setData] = useState<IncomeStatementResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/finance/reports/income-statement?year=${year}`,
+      );
+      if (res.status === 403) {
+        setError(
+          t(
+            "finance.income.forbidden",
+            "You do not have access to income statements.",
+          ),
+        );
+        setData(null);
+        return;
+      }
+      if (!res.ok) {
+        throw new Error(
+          t("finance.income.error", "Failed to load income statement"),
+        );
+      }
+      const body = await res.json();
+      setData(body);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      logger.warn("Income statement fetch failed", {
+        error: error.message,
+        stack: error.stack,
+      });
+      setError(
+        error.message ||
+          t("finance.income.error", "Failed to load income statement"),
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [year, t]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between text-base">
+          <span>{t("finance.income.title", "Income Statement")}</span>
+          <div className="flex items-center gap-2">
+            <Input
+              type="number"
+              className="h-8 w-24"
+              value={year}
+              onChange={(e) =>
+                setYear(
+                  parseInt(e.target.value || `${new Date().getFullYear()}`, 10),
+                )
+              }
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={load}
+              disabled={loading}
+            >
+              {t("common.refresh", "Refresh")}
+            </Button>
+          </div>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2 text-sm">
+        {loading && <p>{t("common.loading", "Loading...")}</p>}
+        {error && <p className="text-destructive">{error}</p>}
+        {data && !loading && !error && (
+          <div className="space-y-1">
+            <p>
+              {t("finance.income.period", "Period")}:{" "}
+              {new Date(data.from).toLocaleDateString()} →{" "}
+              {new Date(data.to).toLocaleDateString()}
+            </p>
+            <p className="font-semibold text-success">
+              {t("finance.income.revenue", "Revenue")}:{" "}
+              {data.revenue.toFixed(2)}
+            </p>
+            <p className="font-semibold text-destructive">
+              {t("finance.income.expense", "Expenses")}:{" "}
+              {data.expense.toFixed(2)}
+            </p>
+            <p>
+              {t("finance.income.net", "Net Income")}:{" "}
+              <strong>{data.net.toFixed(2)}</strong>
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/finance/JournalEntryForm.tsx">
+<![CDATA[
+"use client";
+
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useDebounce } from "@/hooks/useDebounce";
+import { logger } from "@/lib/logger";
+
+// ============================================================================
+// INTERFACES
+// ============================================================================
+
+interface IJournalLine {
+  id: string;
+  lineNumber: number;
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  description: string;
+  debit: number;
+  credit: number;
+  propertyId?: string;
+  unitId?: string;
+}
+
+interface IChartAccount {
+  id: string;
+  code: string;
+  name: string;
+  nameAr?: string;
+  type: string;
+  balance?: number;
+}
+
+interface IJournalEntryFormProps {
+  onSubmit?: (data: IJournalEntryData) => Promise<void>;
+  onCancel?: () => void;
+  initialData?: Partial<IJournalEntryData>;
+  mode?: "create" | "edit";
+}
+
+interface IJournalEntryData {
+  journalDate: string;
+  description: string;
+  sourceType: string;
+  sourceNumber?: string;
+  lines: IJournalLine[];
+}
+
+export default function JournalEntryForm({
+  onSubmit,
+  onCancel,
+  initialData,
+  mode = "create",
+}: IJournalEntryFormProps) {
+  const { t } = useTranslation();
+
+  // Form state
+  const [journalDate, setJournalDate] = useState<string>(
+    initialData?.journalDate || new Date().toISOString().split("T")[0],
+  );
+  const [description, setDescription] = useState<string>(
+    initialData?.description || "",
+  );
+  const [sourceType, setSourceType] = useState<string>(
+    initialData?.sourceType || "MANUAL",
+  );
+  const [sourceNumber, setSourceNumber] = useState<string>(
+    initialData?.sourceNumber || "",
+  );
+
+  // Lines state
+  const [lines, setLines] = useState<IJournalLine[]>(
+    initialData?.lines || [
+      {
+        id: "1",
+        lineNumber: 1,
+        accountId: "",
+        accountCode: "",
+        accountName: "",
+        description: "",
+        debit: 0,
+        credit: 0,
+      },
+      {
+        id: "2",
+        lineNumber: 2,
+        accountId: "",
+        accountCode: "",
+        accountName: "",
+        description: "",
+        debit: 0,
+        credit: 0,
+      },
+    ],
+  );
+
+  // Data lookups
+  const [chartAccounts, setChartAccounts] = useState<IChartAccount[]>([]);
+  const [filteredAccounts, setFilteredAccounts] = useState<
+    Record<string, IChartAccount[]>
+  >({});
+  const [searchTerms, setSearchTerms] = useState<Record<string, string>>({});
+
+  // UI state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loadingAccounts, setLoadingAccounts] = useState(false);
+
+  // Calculate totals with useMemo for performance optimization
+  // Only recalculate when lines array changes
+  const { totalDebit, totalCredit, isBalanced, balanceDifference } =
+    useMemo(() => {
+      const debit = lines.reduce(
+        (sum, line) => sum + (Number(line.debit) || 0),
+        0,
+      );
+      const credit = lines.reduce(
+        (sum, line) => sum + (Number(line.credit) || 0),
+        0,
+      );
+      const difference = debit - credit;
+      const balanced = Math.abs(difference) < 0.01 && debit > 0;
+
+      return {
+        totalDebit: debit,
+        totalCredit: credit,
+        isBalanced: balanced,
+        balanceDifference: difference,
+      };
+    }, [lines]);
+
+  // ============================================================================
+  // LIFECYCLE & DATA LOADING
+  // ============================================================================
+
+  const loadChartOfAccounts = useCallback(async () => {
+    try {
+      setLoadingAccounts(true);
+      const response = await fetch("/api/finance/accounts?active=true");
+      if (response.ok) {
+        const data = await response.json();
+        setChartAccounts(data.accounts || []);
+
+        // Initialize filtered accounts for each line
+        const initial: Record<string, IChartAccount[]> = {};
+        lines.forEach((line) => {
+          initial[line.id] = data.accounts || [];
+        });
+        setFilteredAccounts(initial);
+      }
+    } catch (error) {
+      import("../../lib/logger")
+        .then(({ logError }) => {
+          logError("Error loading accounts", error as Error, {
+            component: "JournalEntryForm",
+            action: "loadAccounts",
+            linesCount: lines.length,
+          });
+        })
+        .catch((err) => {
+          logger.error("Failed to load logger:", { error: err });
+        });
+      setErrors({ ...errors, accounts: "Failed to load chart of accounts" });
+    } finally {
+      setLoadingAccounts(false);
+    }
+  }, [errors, lines]);
+
+  useEffect(() => {
+    loadChartOfAccounts();
+  }, [loadChartOfAccounts]);
+
+  // ============================================================================
+  // LINE MANAGEMENT
+  // ============================================================================
+
+  const addLine = () => {
+    const newLine: IJournalLine = {
+      id: Date.now().toString(),
+      lineNumber: lines.length + 1,
+      accountId: "",
+      accountCode: "",
+      accountName: "",
+      description: "",
+      debit: 0,
+      credit: 0,
+    };
+    setLines([...lines, newLine]);
+    setFilteredAccounts({ ...filteredAccounts, [newLine.id]: chartAccounts });
+  };
+
+  const removeLine = (id: string) => {
+    if (lines.length > 2) {
+      const updatedLines = lines.filter((line) => line.id !== id);
+      // Renumber lines
+      updatedLines.forEach((line, index) => {
+        line.lineNumber = index + 1;
+      });
+      setLines(updatedLines);
+
+      // Clean up filtered accounts
+      const newFiltered = { ...filteredAccounts };
+      delete newFiltered[id];
+      setFilteredAccounts(newFiltered);
+    }
+  };
+
+  const updateLine = (
+    id: string,
+    field: keyof IJournalLine,
+    value: string | number,
+  ) => {
+    setLines(
+      lines.map((line) => {
+        if (line.id !== id) return line;
+
+        const updated = { ...line, [field]: value };
+
+        // If account changed, update code and name
+        if (field === "accountId") {
+          const account = chartAccounts.find((acc) => acc.id === value);
+          if (account) {
+            updated.accountCode = account.code;
+            updated.accountName = account.name;
+          }
+        }
+
+        // Ensure debit/credit are mutually exclusive
+        if (field === "debit" && (Number(value) || 0) > 0) {
+          updated.credit = 0;
+        }
+        if (field === "credit" && (Number(value) || 0) > 0) {
+          updated.debit = 0;
+        }
+
+        return updated;
+      }),
+    );
+  };
+
+  // ============================================================================
+  // ACCOUNT SEARCH WITH DEBOUNCE
+  // ============================================================================
+
+  const handleAccountSearch = (lineId: string, searchTerm: string) => {
+    setSearchTerms({ ...searchTerms, [lineId]: searchTerm });
+  };
+
+  // Debounce account filtering (300ms) to improve performance during typing
+  const debouncedSearchTerms = useDebounce(searchTerms, 300);
+
+  useEffect(() => {
+    // Batch all state updates together
+    const newFilteredAccounts: Record<string, IChartAccount[]> = {};
+
+    Object.entries(debouncedSearchTerms).forEach(([lineId, searchTerm]) => {
+      if (!searchTerm.trim()) {
+        newFilteredAccounts[lineId] = chartAccounts;
+        return;
+      }
+
+      const term = searchTerm.toLowerCase();
+      newFilteredAccounts[lineId] = chartAccounts.filter(
+        (acc) =>
+          acc.code.toLowerCase().includes(term) ||
+          acc.name.toLowerCase().includes(term) ||
+          (acc.nameAr && acc.nameAr.includes(term)),
+      );
+    });
+
+    setFilteredAccounts((prev) => ({ ...prev, ...newFilteredAccounts }));
+  }, [debouncedSearchTerms, chartAccounts]);
+
+  // ============================================================================
+  // QUICK BALANCE HELPERS
+  // ============================================================================
+
+  const balanceEntry = () => {
+    if (lines.length < 2) return;
+
+    // Simple heuristic: if first line has debit, balance with credit on second line
+    const firstLine = lines[0];
+    const hasDebit = (Number(firstLine.debit) || 0) > 0;
+
+    if (hasDebit) {
+      const amount = Number(firstLine.debit) || 0;
+      updateLine(lines[1].id, "credit", amount);
+      updateLine(lines[1].id, "debit", 0);
+    } else {
+      const amount = Number(firstLine.credit) || 0;
+      updateLine(lines[1].id, "debit", amount);
+      updateLine(lines[1].id, "credit", 0);
+    }
+  };
+
+  const clearAllAmounts = () => {
+    setLines(lines.map((line) => ({ ...line, debit: 0, credit: 0 })));
+  };
+
+  // ============================================================================
+  // FORM VALIDATION
+  // ============================================================================
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!journalDate) newErrors.journalDate = "Journal date is required";
+    if (!description.trim()) newErrors.description = "Description is required";
+
+    // Validate lines
+    if (lines.length < 2) {
+      newErrors.lines = "At least 2 journal lines are required";
+    }
+
+    lines.forEach((line, index) => {
+      if (!line.accountId) {
+        newErrors[`line_${index}_account`] = "Account is required";
+      }
+      const lineTotal = (Number(line.debit) || 0) + (Number(line.credit) || 0);
+      if (lineTotal === 0) {
+        newErrors[`line_${index}_amount`] =
+          "Either debit or credit must be greater than 0";
+      }
+      if ((Number(line.debit) || 0) > 0 && (Number(line.credit) || 0) > 0) {
+        newErrors[`line_${index}_both`] =
+          "Line cannot have both debit and credit";
+      }
+    });
+
+    // Balance validation
+    if (!isBalanced) {
+      newErrors.balance = `Journal entry is out of balance by ${Math.abs(balanceDifference).toFixed(2)}`;
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // ============================================================================
+  // FORM SUBMISSION
+  // ============================================================================
+
+  const handleSubmit = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const payload: IJournalEntryData = {
+        journalDate,
+        description,
+        sourceType,
+        sourceNumber: sourceNumber || undefined,
+        lines: lines.map((line) => ({
+          id: line.id,
+          lineNumber: line.lineNumber,
+          accountId: line.accountId,
+          accountCode: line.accountCode,
+          accountName: line.accountName,
+          description: line.description,
+          debit: Number(line.debit) || 0,
+          credit: Number(line.credit) || 0,
+          propertyId: line.propertyId,
+          unitId: line.unitId,
+        })),
+      };
+
+      if (onSubmit) {
+        await onSubmit(payload);
+      } else {
+        // Default API call
+        const response = await fetch("/api/finance/journals", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          setErrors({
+            submit: errorData.error || "Failed to create journal entry",
+          });
+        }
+      }
+    } catch (error) {
+      import("../../lib/logger")
+        .then(({ logError }) => {
+          logError("Error submitting journal entry", error as Error, {
+            component: "JournalEntryForm",
+            action: "handleSubmit",
+            linesCount: lines.length,
+          });
+        })
+        .catch((err) => {
+          logger.error("Failed to load logger:", { error: err });
+        });
+      setErrors({ submit: "An unexpected error occurred" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ============================================================================
+  // RENDER
+  // ============================================================================
+
+  return (
+    <div className="space-y-6">
+      {/* Header Information */}
+      <div className="bg-card shadow-md rounded-2xl p-6 space-y-4">
+        <h3 className="text-lg font-semibold border-b pb-2">
+          {t("finance.journal.entryDetails", "Journal Entry Details")}
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">
+              {t("finance.journal.journalDate", "Journal Date")}{" "}
+              <span className="text-destructive">*</span>
+            </label>
+            <input
+              type="date"
+              value={journalDate}
+              onChange={(e) => setJournalDate(e.target.value)}
+              className={`w-full px-3 py-2 border rounded-2xl ${errors.journalDate ? "border-destructive" : "border-border"}`}
+              required
+            />
+            {errors.journalDate && (
+              <p className="text-xs text-destructive mt-1">
+                {errors.journalDate}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">
+              {t("finance.journal.sourceType", "Source Type")}
+            </label>
+            <select
+              value={sourceType}
+              onChange={(e) => setSourceType(e.target.value)}
+              className="w-full px-3 py-2 border border-border rounded-2xl"
+            >
+              <option value="MANUAL">
+                {t("finance.journal.sourceType.manual", "Manual Entry")}
+              </option>
+              <option value="ADJUSTMENT">
+                {t("finance.journal.sourceType.adjustment", "Adjustment")}
+              </option>
+              <option value="WORK_ORDER">
+                {t("finance.journal.sourceType.workOrder", "Work Order")}
+              </option>
+              <option value="INVOICE">
+                {t("finance.journal.sourceType.invoice", "Invoice")}
+              </option>
+              <option value="PAYMENT">
+                {t("finance.journal.sourceType.payment", "Payment")}
+              </option>
+              <option value="RENT">
+                {t("finance.journal.sourceType.rent", "Rent")}
+              </option>
+              <option value="EXPENSE">
+                {t("finance.journal.sourceType.expense", "Expense")}
+              </option>
+            </select>
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-foreground mb-1">
+              {t("common.description", "Description")}{" "}
+              <span className="text-destructive">*</span>
+            </label>
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className={`w-full px-3 py-2 border rounded-2xl ${errors.description ? "border-destructive" : "border-border"}`}
+              placeholder={t(
+                "finance.journal.descriptionPlaceholder",
+                "Brief description of the journal entry",
+              )}
+              required
+            />
+            {errors.description && (
+              <p className="text-xs text-destructive mt-1">
+                {errors.description}
+              </p>
+            )}
+          </div>
+
+          {sourceType !== "MANUAL" && (
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">
+                {t(
+                  "finance.journal.sourceReference",
+                  "Source Reference Number",
+                )}
+              </label>
+              <input
+                type="text"
+                value={sourceNumber}
+                onChange={(e) => setSourceNumber(e.target.value)}
+                className="w-full px-3 py-2 border border-border rounded-2xl"
+                placeholder={t("common.optional", "Optional")}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Journal Lines */}
+      <div className="bg-card shadow-md rounded-2xl p-6 space-y-4">
+        <div className="flex items-center justify-between border-b pb-2">
+          <h3 className="text-lg font-semibold">
+            {t("finance.journal.journalLines", "Journal Lines")}
+          </h3>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={balanceEntry}
+              className="px-3 py-1 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20"
+              disabled={lines.length < 2}
+            >
+              {t("finance.journal.quickBalance", "Quick Balance")}
+            </button>
+            <button
+              type="button"
+              onClick={clearAllAmounts}
+              className="px-3 py-1 text-sm bg-muted text-foreground rounded hover:bg-muted"
+            >
+              {t("finance.journal.clearAmounts", "Clear Amounts")}
+            </button>
+            <button
+              type="button"
+              onClick={addLine}
+              className="px-3 py-1 text-sm bg-success text-white rounded hover:bg-success"
+            >
+              + {t("finance.journal.addLine", "Add Line")}
+            </button>
+          </div>
+        </div>
+
+        {errors.lines && (
+          <div className="bg-destructive/5 border border-destructive/20 rounded p-2">
+            <p className="text-sm text-destructive">{errors.lines}</p>
+          </div>
+        )}
+
+        {/* Lines Table */}
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-muted">
+              <tr>
+                <th className="px-2 py-2 text-start text-xs font-medium text-muted-foreground uppercase w-12">
+                  #
+                </th>
+                <th className="px-2 py-2 text-start text-xs font-medium text-muted-foreground uppercase">
+                  {t("finance.account", "Account")}
+                </th>
+                <th className="px-2 py-2 text-start text-xs font-medium text-muted-foreground uppercase">
+                  {t("common.description", "Description")}
+                </th>
+                <th className="px-2 py-2 text-end text-xs font-medium text-muted-foreground uppercase w-28">
+                  {t("finance.debit", "Debit")}
+                </th>
+                <th className="px-2 py-2 text-end text-xs font-medium text-muted-foreground uppercase w-28">
+                  {t("finance.credit", "Credit")}
+                </th>
+                <th className="px-2 py-2 w-12"></th>
+              </tr>
+            </thead>
+            <tbody className="bg-card divide-y divide-border">
+              {lines.map((line, index) => (
+                <tr key={line.id}>
+                  <td className="px-2 py-2 text-sm text-foreground">
+                    {line.lineNumber}
+                  </td>
+                  <td className="px-2 py-2">
+                    {/* Searchable account selector: use filteredAccounts per line (falls back to full chartAccounts) */}
+                    <div className="space-y-1">
+                      <input
+                        type="text"
+                        value={searchTerms[line.id] || ""}
+                        onChange={(e) =>
+                          handleAccountSearch(line.id, e.target.value)
+                        }
+                        placeholder={
+                          loadingAccounts
+                            ? String(t("common.loading", "Loading..."))
+                            : String(
+                                t(
+                                  "finance.journal.searchAccount",
+                                  "Search account by code or name",
+                                ),
+                              )
+                        }
+                        className="w-full px-2 py-1 text-sm border border-border rounded"
+                        disabled={loadingAccounts}
+                        aria-label={String(
+                          t(
+                            "finance.journal.searchAccountLabel",
+                            "Search account",
+                          ),
+                        )}
+                      />
+
+                      <select
+                        value={line.accountId}
+                        onChange={(e) =>
+                          updateLine(line.id, "accountId", e.target.value)
+                        }
+                        className={`w-full px-2 py-1 text-sm border rounded ${errors[`line_${index}_account`] ? "border-destructive" : "border-border"}`}
+                        disabled={loadingAccounts}
+                      >
+                        <option value="">
+                          {loadingAccounts
+                            ? t("common.loading", "Loading...")
+                            : t(
+                                "finance.journal.selectAccount",
+                                "Select Account",
+                              )}
+                        </option>
+                        {(filteredAccounts[line.id] ?? chartAccounts).map(
+                          (acc) => (
+                            <option key={acc.id} value={acc.id}>
+                              {acc.code} - {acc.name}
+                            </option>
+                          ),
+                        )}
+                      </select>
+
+                      {errors[`line_${index}_account`] && (
+                        <p className="text-xs text-destructive mt-1">
+                          {errors[`line_${index}_account`]}
+                        </p>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-2 py-2">
+                    <input
+                      type="text"
+                      value={line.description}
+                      onChange={(e) =>
+                        updateLine(line.id, "description", e.target.value)
+                      }
+                      className="w-full px-2 py-1 text-sm border border-border rounded"
+                      placeholder={t(
+                        "finance.journal.lineDescription",
+                        "Line description",
+                      )}
+                    />
+                  </td>
+                  <td className="px-2 py-2">
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={line.debit || ""}
+                      onChange={(e) =>
+                        updateLine(
+                          line.id,
+                          "debit",
+                          Number(e.target.value) || 0,
+                        )
+                      }
+                      className={`w-full px-2 py-1 text-sm text-end border rounded ${errors[`line_${index}_amount`] || errors[`line_${index}_both`] ? "border-destructive" : "border-border"}`}
+                      disabled={(Number(line.credit) || 0) > 0}
+                    />
+                  </td>
+                  <td className="px-2 py-2">
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={line.credit || ""}
+                      onChange={(e) =>
+                        updateLine(
+                          line.id,
+                          "credit",
+                          Number(e.target.value) || 0,
+                        )
+                      }
+                      className={`w-full px-2 py-1 text-sm text-end border rounded ${errors[`line_${index}_amount`] || errors[`line_${index}_both`] ? "border-destructive" : "border-border"}`}
+                      disabled={(Number(line.debit) || 0) > 0}
+                    />
+                  </td>
+                  <td className="px-2 py-2">
+                    {lines.length > 2 && (
+                      <button
+                        type="button"
+                        onClick={() => removeLine(line.id)}
+                        className="text-destructive hover:text-destructive"
+                        title={t("finance.journal.removeLine", "Remove line")}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot className="bg-muted border-t-2 border-border">
+              <tr>
+                <td
+                  colSpan={3}
+                  className="px-2 py-2 text-sm font-semibold text-end"
+                >
+                  {t("common.totals", "Totals")}:
+                </td>
+                <td className="px-2 py-2 text-sm font-bold text-end">
+                  {totalDebit.toFixed(2)}
+                </td>
+                <td className="px-2 py-2 text-sm font-bold text-end">
+                  {totalCredit.toFixed(2)}
+                </td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        {/* Balance Status */}
+        <div
+          className={`p-4 rounded-2xl ${isBalanced ? "bg-success/10 border border-success/20" : "bg-destructive/10 border border-destructive/20"}`}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p
+                className={`font-semibold ${isBalanced ? "text-success" : "text-destructive"}`}
+              >
+                {isBalanced ? (
+                  <span>
+                    ✓ {t("finance.journal.entryBalanced", "Entry is Balanced")}
+                  </span>
+                ) : (
+                  <span>
+                    ✗{" "}
+                    {t(
+                      "finance.journal.entryUnbalanced",
+                      "Entry is Out of Balance",
+                    )}
+                  </span>
+                )}
+              </p>
+              {!isBalanced && totalDebit > 0 && (
+                <p className="text-sm text-destructive mt-1">
+                  {balanceDifference > 0
+                    ? t(
+                        "finance.journal.debitsExceed",
+                        "Debits exceed credits by",
+                      ) + ` ${balanceDifference.toFixed(2)}`
+                    : t(
+                        "finance.journal.creditsExceed",
+                        "Credits exceed debits by",
+                      ) + ` ${Math.abs(balanceDifference).toFixed(2)}`}
+                </p>
+              )}
+            </div>
+            <div className="text-end">
+              <p className="text-sm text-muted-foreground">
+                {t("finance.journal.totalLines", "Total Lines")}: {lines.length}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {t("finance.journal.difference", "Difference")}:{" "}
+                {Math.abs(balanceDifference).toFixed(2)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {errors.balance && (
+          <div className="bg-destructive/5 border border-destructive/20 rounded p-2">
+            <p className="text-sm text-destructive">{errors.balance}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Submit Actions */}
+      <div className="flex justify-end gap-3 bg-card shadow-md rounded-2xl p-6">
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-6 py-2 border border-border rounded-2xl text-foreground hover:bg-muted"
+            disabled={isSubmitting}
+          >
+            {t("common.cancel", "Cancel")}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={handleSubmit}
+          className="px-6 py-2 bg-primary text-white rounded-2xl hover:bg-primary disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={isSubmitting || !isBalanced || loadingAccounts}
+        >
+          {isSubmitting
+            ? t("common.saving", "Saving...")
+            : mode === "create"
+              ? t("finance.journal.createEntry", "Create Journal Entry")
+              : t("common.saveChanges", "Save Changes")}
+        </button>
+      </div>
+
+      {errors.submit && (
+        <div className="bg-destructive/5 border border-destructive/20 rounded-2xl p-4">
+          <p className="text-sm text-destructive">{errors.submit}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/finance/OwnerStatementWidget.tsx">
+<![CDATA[
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { logger } from "@/lib/logger";
+
+interface OwnerStatementResponse {
+  propertyId: string;
+  from: string;
+  to: string;
+  opening: number;
+  charges: number;
+  receipts: number;
+  ending: number;
+  lines: Array<{
+    accountCode: string;
+    accountName: string;
+    debit: number;
+    credit: number;
+  }>;
+}
+
+export default function OwnerStatementWidget() {
+  const { t } = useTranslation();
+  const [propertyId, setPropertyId] = useState("");
+  const [from, setFrom] = useState(
+    new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+      .toISOString()
+      .slice(0, 10),
+  );
+  const [to, setTo] = useState(new Date().toISOString().slice(0, 10));
+  const [data, setData] = useState<OwnerStatementResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const canLoad = propertyId.trim().length > 0;
+
+  const load = useCallback(async () => {
+    if (!canLoad) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const query = new URLSearchParams({ propertyId, from, to }).toString();
+      const res = await fetch(`/api/finance/reports/owner-statement?${query}`);
+      if (!res.ok) {
+        throw new Error(
+          t("finance.owner.error", "Failed to load owner statement"),
+        );
+      }
+      const body = await res.json();
+      setData(body);
+    } catch (err) {
+      logger.error("Owner statement fetch failed", err as Error);
+      setError(
+        err instanceof Error
+          ? err.message
+          : t("finance.owner.error", "Failed to load owner statement"),
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [propertyId, from, to, canLoad, t]);
+
+  useEffect(() => {
+    if (canLoad) {
+      load();
+    }
+  }, [load, canLoad]);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex flex-col gap-2 text-base">
+          <span>{t("finance.owner.title", "Owner Statement")}</span>
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <Input
+              placeholder={t("finance.owner.propertyId", "Property ID")}
+              value={propertyId}
+              onChange={(e) => setPropertyId(e.target.value)}
+            />
+            <div className="flex gap-2">
+              <Input
+                type="date"
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+              />
+              <Input
+                type="date"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+              />
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={!canLoad || loading}
+            onClick={load}
+          >
+            {t("common.refresh", "Refresh")}
+          </Button>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2 text-sm">
+        {!canLoad && (
+          <p>
+            {t(
+              "finance.owner.prompt",
+              "Enter a property ID to load the statement",
+            )}
+          </p>
+        )}
+        {loading && <p>{t("common.loading", "Loading...")}</p>}
+        {error && <p className="text-destructive">{error}</p>}
+        {data && !loading && !error && (
+          <div className="space-y-1">
+            <p>
+              {t("finance.owner.period", "Period")}:{" "}
+              {new Date(data.from).toLocaleDateString()} →{" "}
+              {new Date(data.to).toLocaleDateString()}
+            </p>
+            <p>
+              {t("finance.owner.opening", "Opening Balance")}:{" "}
+              {data.opening.toFixed(2)}
+            </p>
+            <p>
+              {t("finance.owner.charges", "Charges")}: {data.charges.toFixed(2)}
+            </p>
+            <p>
+              {t("finance.owner.receipts", "Receipts")}:{" "}
+              {data.receipts.toFixed(2)}
+            </p>
+            <p className="font-semibold">
+              {t("finance.owner.ending", "Ending Balance")}:{" "}
+              {data.ending.toFixed(2)}
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+]]>
+</file>
+
+</batch_content>

@@ -1,0 +1,2285 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="i18n/sources/legalExtended.translations.json">
+<![CDATA[
+{
+  "en": {
+    "legalExtended.appeal": "Appeal Process",
+    "legalExtended.arbitration": "Arbitration",
+    "legalExtended.asylum": "Asylum",
+    "legalExtended.brief": "Legal Brief",
+    "legalExtended.case": "Case Management",
+    "legalExtended.citizenship": "Citizenship",
+    "legalExtended.compliance": "Compliance",
+    "legalExtended.contract": "Contract Management",
+    "legalExtended.copyright": "Copyright Protection",
+    "legalExtended.corporate": "Corporate Law",
+    "legalExtended.deposition": "Deposition",
+    "legalExtended.description": "Manage legal operations and compliance",
+    "legalExtended.discovery": "Discovery",
+    "legalExtended.dispute": "Dispute Resolution",
+    "legalExtended.employment": "Employment Law",
+    "legalExtended.estate": "Estate Planning",
+    "legalExtended.evidence": "Evidence Management",
+    "legalExtended.exhibit": "Exhibits",
+    "legalExtended.expert": "Expert Witnesses",
+    "legalExtended.guardian": "Guardianship",
+    "legalExtended.hearing": "Court Hearing",
+    "legalExtended.immigration": "Immigration Law",
+    "legalExtended.intellectual": "Intellectual Property",
+    "legalExtended.judgment": "Judgment",
+    "legalExtended.labor": "Labor Relations",
+    "legalExtended.litigation": "Litigation",
+    "legalExtended.mediation": "Mediation Services",
+    "legalExtended.memo": "Legal Memorandum",
+    "legalExtended.merger": "Mergers & Acquisitions",
+    "legalExtended.motion": "Motion Filing",
+    "legalExtended.negotiation": "Negotiation",
+    "legalExtended.paralegal": "Paralegal Services",
+    "legalExtended.patent": "Patent Services",
+    "legalExtended.pleading": "Pleadings",
+    "legalExtended.power": "Power of Attorney",
+    "legalExtended.probate": "Probate",
+    "legalExtended.research": "Legal Research",
+    "legalExtended.sentence": "Sentencing",
+    "legalExtended.settlement": "Settlement Agreement",
+    "legalExtended.testimony": "Testimony",
+    "legalExtended.title": "Legal Services",
+    "legalExtended.trademark": "Trademark Registration",
+    "legalExtended.trial": "Trial",
+    "legalExtended.trust": "Trust Services",
+    "legalExtended.verdict": "Verdict",
+    "legalExtended.visa": "Visa Services",
+    "legalExtended.will": "Wills",
+    "legalExtended.witness": "Witness Management"
+  },
+  "ar": {
+    "legalExtended.appeal": "عملية الاستئناف",
+    "legalExtended.arbitration": "التحكيم",
+    "legalExtended.asylum": "اللجوء",
+    "legalExtended.brief": "الموجز القانوني",
+    "legalExtended.case": "إدارة القضايا",
+    "legalExtended.citizenship": "الجنسية",
+    "legalExtended.compliance": "الامتثال",
+    "legalExtended.contract": "إدارة العقود",
+    "legalExtended.copyright": "حماية حقوق النشر",
+    "legalExtended.corporate": "القانون التجاري",
+    "legalExtended.deposition": "الإفادة",
+    "legalExtended.description": "إدارة العمليات القانونية والامتثال",
+    "legalExtended.discovery": "الاكتشاف",
+    "legalExtended.dispute": "حل النزاعات",
+    "legalExtended.employment": "قانون العمل",
+    "legalExtended.estate": "التخطيط العقاري",
+    "legalExtended.evidence": "إدارة الأدلة",
+    "legalExtended.exhibit": "المستندات",
+    "legalExtended.expert": "الشهود الخبراء",
+    "legalExtended.guardian": "الوصاية",
+    "legalExtended.hearing": "جلسة المحكمة",
+    "legalExtended.immigration": "قانون الهجرة",
+    "legalExtended.intellectual": "الملكية الفكرية",
+    "legalExtended.judgment": "الحكم",
+    "legalExtended.labor": "علاقات العمل",
+    "legalExtended.litigation": "التقاضي",
+    "legalExtended.mediation": "خدمات الوساطة",
+    "legalExtended.memo": "المذكرة القانونية",
+    "legalExtended.merger": "الاندماج والاستحواذ",
+    "legalExtended.motion": "تقديم الالتماس",
+    "legalExtended.negotiation": "التفاوض",
+    "legalExtended.paralegal": "خدمات المساعد القانوني",
+    "legalExtended.patent": "خدمات البراءات",
+    "legalExtended.pleading": "المرافعات",
+    "legalExtended.power": "التوكيل",
+    "legalExtended.probate": "التركات",
+    "legalExtended.research": "البحث القانوني",
+    "legalExtended.sentence": "إصدار الحكم",
+    "legalExtended.settlement": "اتفاقية التسوية",
+    "legalExtended.testimony": "الشهادة",
+    "legalExtended.title": "الخدمات القانونية",
+    "legalExtended.trademark": "تسجيل العلامات التجارية",
+    "legalExtended.trial": "المحاكمة",
+    "legalExtended.trust": "خدمات الائتمان",
+    "legalExtended.verdict": "الحكم",
+    "legalExtended.visa": "خدمات التأشيرات",
+    "legalExtended.will": "الوصايا",
+    "legalExtended.witness": "إدارة الشهود"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/legalManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "legalManagement.advisory": "Legal Advisory",
+    "legalManagement.agreement": "Legal Agreement",
+    "legalManagement.case": "Legal Case",
+    "legalManagement.compliance": "Legal Compliance",
+    "legalManagement.contract": "Legal Contract",
+    "legalManagement.copyright": "Copyright",
+    "legalManagement.counsel": "Legal Counsel",
+    "legalManagement.dispute": "Legal Dispute",
+    "legalManagement.documentation": "Legal Documentation",
+    "legalManagement.due": "Legal Due Diligence",
+    "legalManagement.entity": "Legal Entity",
+    "legalManagement.filing": "Legal Filing",
+    "legalManagement.ip": "Intellectual Property",
+    "legalManagement.legal": "Legal Management",
+    "legalManagement.litigation": "Litigation",
+    "legalManagement.opinion": "Legal Opinion",
+    "legalManagement.patent": "Patent",
+    "legalManagement.research": "Legal Research",
+    "legalManagement.review": "Legal Review",
+    "legalManagement.risk": "Legal Risk",
+    "legalManagement.settlement": "Legal Settlement",
+    "legalManagement.trademark": "Trademark"
+  },
+  "ar": {
+    "legalManagement.advisory": "الخدمات الاستشارية القانونية",
+    "legalManagement.agreement": "الاتفاقية القانونية",
+    "legalManagement.case": "القضية القانونية",
+    "legalManagement.compliance": "الامتثال القانوني",
+    "legalManagement.contract": "العقد القانوني",
+    "legalManagement.copyright": "حقوق النشر",
+    "legalManagement.counsel": "الاستشارة القانونية",
+    "legalManagement.dispute": "النزاع القانوني",
+    "legalManagement.documentation": "التوثيق القانوني",
+    "legalManagement.due": "العناية القانونية الواجبة",
+    "legalManagement.entity": "الكيان القانوني",
+    "legalManagement.filing": "تقديم الملفات القانونية",
+    "legalManagement.ip": "الملكية الفكرية",
+    "legalManagement.legal": "الإدارة القانونية",
+    "legalManagement.litigation": "التقاضي",
+    "legalManagement.opinion": "الرأي القانوني",
+    "legalManagement.patent": "براءة الاختراع",
+    "legalManagement.research": "البحث القانوني",
+    "legalManagement.review": "المراجعة القانونية",
+    "legalManagement.risk": "المخاطر القانونية",
+    "legalManagement.settlement": "التسوية القانونية",
+    "legalManagement.trademark": "العلامة التجارية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/legalManagementAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "legalManagementAdv.advice": "Legal Advice",
+    "legalManagementAdv.agreement": "Legal Agreement",
+    "legalManagementAdv.arbitration": "Arbitration",
+    "legalManagementAdv.compliance": "Legal Compliance",
+    "legalManagementAdv.contract": "Contract Management",
+    "legalManagementAdv.copyright": "Copyright",
+    "legalManagementAdv.counsel": "Legal Counsel",
+    "legalManagementAdv.dispute": "Dispute Resolution",
+    "legalManagementAdv.drafting": "Legal Drafting",
+    "legalManagementAdv.entity": "Legal Entity",
+    "legalManagementAdv.governance": "Corporate Governance",
+    "legalManagementAdv.intellectual": "Intellectual Property",
+    "legalManagementAdv.legal": "Legal Management",
+    "legalManagementAdv.litigation": "Litigation Management",
+    "legalManagementAdv.mediation": "Mediation",
+    "legalManagementAdv.negotiation": "Contract Negotiation",
+    "legalManagementAdv.opinion": "Legal Opinion",
+    "legalManagementAdv.patent": "Patent",
+    "legalManagementAdv.regulatory": "Regulatory Compliance",
+    "legalManagementAdv.review": "Legal Review",
+    "legalManagementAdv.settlement": "Settlement",
+    "legalManagementAdv.trademark": "Trademark"
+  },
+  "ar": {
+    "legalManagementAdv.advice": "المشورة القانونية",
+    "legalManagementAdv.agreement": "الاتفاقية القانونية",
+    "legalManagementAdv.arbitration": "التحكيم",
+    "legalManagementAdv.compliance": "الامتثال القانوني",
+    "legalManagementAdv.contract": "إدارة العقود",
+    "legalManagementAdv.copyright": "حقوق النشر",
+    "legalManagementAdv.counsel": "المستشار القانوني",
+    "legalManagementAdv.dispute": "حل النزاعات",
+    "legalManagementAdv.drafting": "الصياغة القانونية",
+    "legalManagementAdv.entity": "الكيان القانوني",
+    "legalManagementAdv.governance": "حوكمة الشركات",
+    "legalManagementAdv.intellectual": "الملكية الفكرية",
+    "legalManagementAdv.legal": "الإدارة القانونية",
+    "legalManagementAdv.litigation": "إدارة التقاضي",
+    "legalManagementAdv.mediation": "الوساطة",
+    "legalManagementAdv.negotiation": "التفاوض على العقد",
+    "legalManagementAdv.opinion": "الرأي القانوني",
+    "legalManagementAdv.patent": "براءة الاختراع",
+    "legalManagementAdv.regulatory": "الامتثال التنظيمي",
+    "legalManagementAdv.review": "المراجعة القانونية",
+    "legalManagementAdv.settlement": "التسوية",
+    "legalManagementAdv.trademark": "العلامة التجارية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/legalPracticeManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "legalPracticeManagement.billableHours": "Billable Hours",
+    "legalPracticeManagement.calendaringDeadlines": "Calendaring & Deadlines",
+    "legalPracticeManagement.caseManagement": "Case Management",
+    "legalPracticeManagement.clientBilling": "Client Billing",
+    "legalPracticeManagement.clientIntake": "Client Intake",
+    "legalPracticeManagement.clientPortal": "Client Portal",
+    "legalPracticeManagement.complianceTracking": "Compliance Tracking",
+    "legalPracticeManagement.conflictChecking": "Conflict Checking",
+    "legalPracticeManagement.contractManagement": "Contract Management",
+    "legalPracticeManagement.courtFilingIntegration": "Court Filing Integration",
+    "legalPracticeManagement.description": "Law firm and legal operations management",
+    "legalPracticeManagement.docketManagement": "Docket Management",
+    "legalPracticeManagement.documentAutomation": "Document Automation",
+    "legalPracticeManagement.documentManagement": "Document Management",
+    "legalPracticeManagement.eDiscovery": "E-Discovery",
+    "legalPracticeManagement.ethicsCompliance": "Ethics & Compliance",
+    "legalPracticeManagement.expenseTracking": "Expense Tracking",
+    "legalPracticeManagement.knowledgeManagement": "Knowledge Management",
+    "legalPracticeManagement.legalResearch": "Legal Research",
+    "legalPracticeManagement.litigationSupport": "Litigation Support",
+    "legalPracticeManagement.matterManagement": "Matter Management",
+    "legalPracticeManagement.timeTracking": "Time Tracking",
+    "legalPracticeManagement.title": "Legal Practice Management",
+    "legalPracticeManagement.trustAccounting": "Trust Accounting"
+  },
+  "ar": {
+    "legalPracticeManagement.billableHours": "الساعات القابلة للفوترة",
+    "legalPracticeManagement.calendaringDeadlines": "جدولة المواعيد النهائية",
+    "legalPracticeManagement.caseManagement": "إدارة القضايا",
+    "legalPracticeManagement.clientBilling": "فواتير العملاء",
+    "legalPracticeManagement.clientIntake": "استقبال العملاء",
+    "legalPracticeManagement.clientPortal": "بوابة العملاء",
+    "legalPracticeManagement.complianceTracking": "تتبع الامتثال",
+    "legalPracticeManagement.conflictChecking": "فحص تضارب المصالح",
+    "legalPracticeManagement.contractManagement": "إدارة العقود",
+    "legalPracticeManagement.courtFilingIntegration": "تكامل تقديم المحكمة",
+    "legalPracticeManagement.description": "إدارة مكاتب المحاماة والعمليات القانونية",
+    "legalPracticeManagement.docketManagement": "إدارة الجداول",
+    "legalPracticeManagement.documentAutomation": "أتمتة المستندات",
+    "legalPracticeManagement.documentManagement": "إدارة المستندات",
+    "legalPracticeManagement.eDiscovery": "الاكتشاف الإلكتروني",
+    "legalPracticeManagement.ethicsCompliance": "الأخلاقيات والامتثال",
+    "legalPracticeManagement.expenseTracking": "تتبع النفقات",
+    "legalPracticeManagement.knowledgeManagement": "إدارة المعرفة",
+    "legalPracticeManagement.legalResearch": "البحث القانوني",
+    "legalPracticeManagement.litigationSupport": "دعم التقاضي",
+    "legalPracticeManagement.matterManagement": "إدارة المسائل",
+    "legalPracticeManagement.timeTracking": "تتبع الوقت",
+    "legalPracticeManagement.title": "إدارة الممارسة القانونية",
+    "legalPracticeManagement.trustAccounting": "المحاسبة الائتمانية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/legalServices.translations.json">
+<![CDATA[
+{
+  "en": {
+    "legalServices.antitrust": "Antitrust Law",
+    "legalServices.appeals": "Appeals",
+    "legalServices.arbitration": "Arbitration",
+    "legalServices.banking": "Banking & Finance",
+    "legalServices.billing": "Legal Billing",
+    "legalServices.briefs": "Legal Briefs",
+    "legalServices.case": "Case Management",
+    "legalServices.compliance": "Compliance",
+    "legalServices.contracts": "Contract Law",
+    "legalServices.corporate": "Corporate Law",
+    "legalServices.criminal": "Criminal Law",
+    "legalServices.discovery": "Discovery",
+    "legalServices.docket": "Docket Management",
+    "legalServices.employment": "Employment Law",
+    "legalServices.environmental": "Environmental Law",
+    "legalServices.family": "Family Law",
+    "legalServices.immigration": "Immigration Law",
+    "legalServices.intellectual": "Intellectual Property",
+    "legalServices.international": "International Law",
+    "legalServices.legal": "Legal Research",
+    "legalServices.litigation": "Litigation",
+    "legalServices.mediation": "Mediation",
+    "legalServices.mergers": "Mergers & Acquisitions",
+    "legalServices.opinions": "Legal Opinions",
+    "legalServices.realEstate": "Real Estate Law",
+    "legalServices.regulatory": "Regulatory Compliance",
+    "legalServices.securities": "Securities Law",
+    "legalServices.tax": "Tax Law",
+    "legalServices.time": "Time Tracking",
+    "legalServices.trial": "Trial Preparation"
+  },
+  "ar": {
+    "legalServices.antitrust": "قانون مكافحة الاحتكار",
+    "legalServices.appeals": "الاستئناف",
+    "legalServices.arbitration": "التحكيم",
+    "legalServices.banking": "القانون المصرفي والمالي",
+    "legalServices.billing": "الفواتير القانونية",
+    "legalServices.briefs": "المذكرات القانونية",
+    "legalServices.case": "إدارة القضايا",
+    "legalServices.compliance": "الامتثال",
+    "legalServices.contracts": "قانون العقود",
+    "legalServices.corporate": "قانون الشركات",
+    "legalServices.criminal": "القانون الجنائي",
+    "legalServices.discovery": "الاكتشاف",
+    "legalServices.docket": "إدارة الجدول",
+    "legalServices.employment": "قانون العمل",
+    "legalServices.environmental": "القانون البيئي",
+    "legalServices.family": "قانون الأسرة",
+    "legalServices.immigration": "قانون الهجرة",
+    "legalServices.intellectual": "الملكية الفكرية",
+    "legalServices.international": "القانون الدولي",
+    "legalServices.legal": "البحث القانوني",
+    "legalServices.litigation": "التقاضي",
+    "legalServices.mediation": "الوساطة",
+    "legalServices.mergers": "عمليات الاندماج والاستحواذ",
+    "legalServices.opinions": "الآراء القانونية",
+    "legalServices.realEstate": "قانون العقارات",
+    "legalServices.regulatory": "الامتثال التنظيمي",
+    "legalServices.securities": "قانون الأوراق المالية",
+    "legalServices.tax": "القانون الضريبي",
+    "legalServices.time": "تتبع الوقت",
+    "legalServices.trial": "الإعداد للمحاكمة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/legalTechnology.translations.json">
+<![CDATA[
+{
+  "en": {
+    "legalTechnology.billing": "Legal Billing",
+    "legalTechnology.cases": "Case Management",
+    "legalTechnology.compliance": "Contract Compliance",
+    "legalTechnology.contract": "Contract Management",
+    "legalTechnology.copyrights": "Copyright Management",
+    "legalTechnology.discovery": "E-Discovery",
+    "legalTechnology.drafting": "Contract Drafting",
+    "legalTechnology.execution": "Contract Execution",
+    "legalTechnology.intellectual": "Intellectual Property",
+    "legalTechnology.knowledge": "Knowledge Management",
+    "legalTechnology.legal": "Legal Technology",
+    "legalTechnology.legalResearch": "Legal Research",
+    "legalTechnology.lifecycle": "Contract Lifecycle",
+    "legalTechnology.litigation": "Litigation Management",
+    "legalTechnology.matter": "Matter Management",
+    "legalTechnology.negotiation": "Contract Negotiation",
+    "legalTechnology.patents": "Patent Management",
+    "legalTechnology.repository": "Document Repository",
+    "legalTechnology.technology": "LegalTech",
+    "legalTechnology.time": "Time Tracking",
+    "legalTechnology.trademarks": "Trademark Management"
+  },
+  "ar": {
+    "legalTechnology.billing": "الفواتير القانونية",
+    "legalTechnology.cases": "إدارة القضايا",
+    "legalTechnology.compliance": "امتثال العقود",
+    "legalTechnology.contract": "إدارة العقود",
+    "legalTechnology.copyrights": "إدارة حقوق النشر",
+    "legalTechnology.discovery": "الاكتشاف الإلكتروني",
+    "legalTechnology.drafting": "صياغة العقود",
+    "legalTechnology.execution": "تنفيذ العقود",
+    "legalTechnology.intellectual": "الملكية الفكرية",
+    "legalTechnology.knowledge": "إدارة المعرفة",
+    "legalTechnology.legal": "التكنولوجيا القانونية",
+    "legalTechnology.legalResearch": "البحث القانوني",
+    "legalTechnology.lifecycle": "دورة حياة العقود",
+    "legalTechnology.litigation": "إدارة التقاضي",
+    "legalTechnology.matter": "إدارة الموضوعات",
+    "legalTechnology.negotiation": "التفاوض على العقود",
+    "legalTechnology.patents": "إدارة براءات الاختراع",
+    "legalTechnology.repository": "مستودع المستندات",
+    "legalTechnology.technology": "التقنية القانونية",
+    "legalTechnology.time": "تتبع الوقت",
+    "legalTechnology.trademarks": "إدارة العلامات التجارية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/lessonLearned.translations.json">
+<![CDATA[
+{
+  "en": {
+    "lessonLearned.access": "Lesson Access",
+    "lessonLearned.analysis": "Lesson Analysis",
+    "lessonLearned.application": "Lesson Application",
+    "lessonLearned.capture": "Lesson Capture",
+    "lessonLearned.category": "Lesson Category",
+    "lessonLearned.classification": "Lesson Classification",
+    "lessonLearned.database": "Lesson Database",
+    "lessonLearned.dissemination": "Lesson Dissemination",
+    "lessonLearned.documentation": "Lesson Documentation",
+    "lessonLearned.implementation": "Lesson Implementation",
+    "lessonLearned.knowledge": "Knowledge Transfer",
+    "lessonLearned.lesson": "Lesson Learned",
+    "lessonLearned.management": "Lesson Management",
+    "lessonLearned.report": "Lesson Report",
+    "lessonLearned.repository": "Lesson Repository",
+    "lessonLearned.retrieval": "Lesson Retrieval",
+    "lessonLearned.review": "Lesson Review",
+    "lessonLearned.search": "Lesson Search",
+    "lessonLearned.session": "Lesson Session",
+    "lessonLearned.sharing": "Knowledge Sharing",
+    "lessonLearned.summary": "Lesson Summary",
+    "lessonLearned.workshop": "Lesson Workshop"
+  },
+  "ar": {
+    "lessonLearned.access": "الوصول إلى الدروس",
+    "lessonLearned.analysis": "تحليل الدروس",
+    "lessonLearned.application": "تطبيق الدروس",
+    "lessonLearned.capture": "التقاط الدروس",
+    "lessonLearned.category": "فئة الدروس",
+    "lessonLearned.classification": "تصنيف الدروس",
+    "lessonLearned.database": "قاعدة بيانات الدروس",
+    "lessonLearned.dissemination": "نشر الدروس",
+    "lessonLearned.documentation": "توثيق الدروس",
+    "lessonLearned.implementation": "تنفيذ الدروس",
+    "lessonLearned.knowledge": "نقل المعرفة",
+    "lessonLearned.lesson": "الدرس المستفاد",
+    "lessonLearned.management": "إدارة الدروس المستفادة",
+    "lessonLearned.report": "تقرير الدروس المستفادة",
+    "lessonLearned.repository": "مستودع الدروس",
+    "lessonLearned.retrieval": "استرجاع الدروس",
+    "lessonLearned.review": "مراجعة الدروس",
+    "lessonLearned.search": "البحث عن الدروس",
+    "lessonLearned.session": "جلسة الدروس المستفادة",
+    "lessonLearned.sharing": "مشاركة المعرفة",
+    "lessonLearned.summary": "ملخص الدروس",
+    "lessonLearned.workshop": "ورشة عمل الدروس المستفادة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/lmsAdvanced.translations.json">
+<![CDATA[
+{
+  "en": {
+    "lmsAdvanced.analytics": "Learning Analytics",
+    "lmsAdvanced.announcements": "Course Announcements",
+    "lmsAdvanced.assignments": "Assignment Management",
+    "lmsAdvanced.catalog": "Course Catalog",
+    "lmsAdvanced.certificates": "Course Certificates",
+    "lmsAdvanced.collaboration": "Student Collaboration",
+    "lmsAdvanced.comments": "Instructor Comments",
+    "lmsAdvanced.completion": "Course Completion",
+    "lmsAdvanced.content": "Course Content",
+    "lmsAdvanced.corequisites": "Course Corequisites",
+    "lmsAdvanced.courses": "Course Management",
+    "lmsAdvanced.description": "LMS and Course Management",
+    "lmsAdvanced.discussions": "Discussion Forums",
+    "lmsAdvanced.engagement": "Student Engagement",
+    "lmsAdvanced.enrollment": "Course Enrollment",
+    "lmsAdvanced.exams": "Exam Management",
+    "lmsAdvanced.feedback": "Student Feedback",
+    "lmsAdvanced.gradebook": "Digital Gradebook",
+    "lmsAdvanced.grading": "Grading System",
+    "lmsAdvanced.groups": "Group Work",
+    "lmsAdvanced.homework": "Homework Assignments",
+    "lmsAdvanced.interactive": "Interactive Content",
+    "lmsAdvanced.lessons": "Lesson Content",
+    "lmsAdvanced.library": "Digital Library",
+    "lmsAdvanced.lms": "Learning Management System",
+    "lmsAdvanced.modules": "Course Modules",
+    "lmsAdvanced.multimedia": "Multimedia Content",
+    "lmsAdvanced.peer": "Peer Review",
+    "lmsAdvanced.platform": "Learning Platform",
+    "lmsAdvanced.prerequisites": "Course Prerequisites",
+    "lmsAdvanced.progress": "Progress Tracking",
+    "lmsAdvanced.projects": "Project Assignments",
+    "lmsAdvanced.quizzes": "Quiz Management",
+    "lmsAdvanced.registration": "Course Registration",
+    "lmsAdvanced.resources": "Learning Resources",
+    "lmsAdvanced.rubrics": "Grading Rubrics",
+    "lmsAdvanced.scheduling": "Course Scheduling",
+    "lmsAdvanced.sections": "Course Sections",
+    "lmsAdvanced.simulations": "Educational Simulations",
+    "lmsAdvanced.tests": "Test Management",
+    "lmsAdvanced.title": "Learning Management"
+  },
+  "ar": {
+    "lmsAdvanced.analytics": "تحليلات التعلم",
+    "lmsAdvanced.announcements": "إعلانات الدورة",
+    "lmsAdvanced.assignments": "إدارة المهام",
+    "lmsAdvanced.catalog": "كتالوج الدورات",
+    "lmsAdvanced.certificates": "شهادات الدورة",
+    "lmsAdvanced.collaboration": "تعاون الطلاب",
+    "lmsAdvanced.comments": "تعليقات المدرس",
+    "lmsAdvanced.completion": "إكمال الدورة",
+    "lmsAdvanced.content": "محتوى الدورة",
+    "lmsAdvanced.corequisites": "المتطلبات المتزامنة",
+    "lmsAdvanced.courses": "إدارة الدورات",
+    "lmsAdvanced.description": "نظام إدارة التعلم وإدارة الدورات",
+    "lmsAdvanced.discussions": "منتديات النقاش",
+    "lmsAdvanced.engagement": "مشاركة الطلاب",
+    "lmsAdvanced.enrollment": "التسجيل في الدورة",
+    "lmsAdvanced.exams": "إدارة الامتحانات",
+    "lmsAdvanced.feedback": "ملاحظات الطلاب",
+    "lmsAdvanced.gradebook": "دفتر الدرجات الرقمي",
+    "lmsAdvanced.grading": "نظام التقييم",
+    "lmsAdvanced.groups": "العمل الجماعي",
+    "lmsAdvanced.homework": "الواجبات المنزلية",
+    "lmsAdvanced.interactive": "المحتوى التفاعلي",
+    "lmsAdvanced.lessons": "محتوى الدروس",
+    "lmsAdvanced.library": "المكتبة الرقمية",
+    "lmsAdvanced.lms": "نظام إدارة التعلم",
+    "lmsAdvanced.modules": "وحدات الدورة",
+    "lmsAdvanced.multimedia": "المحتوى متعدد الوسائط",
+    "lmsAdvanced.peer": "المراجعة النظيرة",
+    "lmsAdvanced.platform": "منصة التعلم",
+    "lmsAdvanced.prerequisites": "المتطلبات السابقة",
+    "lmsAdvanced.progress": "تتبع التقدم",
+    "lmsAdvanced.projects": "المشاريع",
+    "lmsAdvanced.quizzes": "إدارة الاختبارات القصيرة",
+    "lmsAdvanced.registration": "تسجيل الدورة",
+    "lmsAdvanced.resources": "موارد التعلم",
+    "lmsAdvanced.rubrics": "معايير التقييم",
+    "lmsAdvanced.scheduling": "جدولة الدورات",
+    "lmsAdvanced.sections": "أقسام الدورة",
+    "lmsAdvanced.simulations": "المحاكاة التعليمية",
+    "lmsAdvanced.tests": "إدارة الاختبارات",
+    "lmsAdvanced.title": "إدارة التعلم"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/locationManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "locationManagement.active": "Active",
+    "locationManagement.add": "Add Location",
+    "locationManagement.address": "Address",
+    "locationManagement.branch": "Branch Office",
+    "locationManagement.city": "City",
+    "locationManagement.coordinates": "Coordinates",
+    "locationManagement.country": "Country",
+    "locationManagement.delete": "Delete Location",
+    "locationManagement.edit": "Edit Location",
+    "locationManagement.headquarters": "Headquarters",
+    "locationManagement.inactive": "Inactive",
+    "locationManagement.latitude": "Latitude",
+    "locationManagement.location": "Location",
+    "locationManagement.longitude": "Longitude",
+    "locationManagement.management": "Location Management",
+    "locationManagement.name": "Location Name",
+    "locationManagement.remote": "Remote",
+    "locationManagement.state": "State",
+    "locationManagement.store": "Store",
+    "locationManagement.timezone": "Timezone",
+    "locationManagement.type": "Location Type",
+    "locationManagement.warehouse": "Warehouse",
+    "locationManagement.zipCode": "Zip Code"
+  },
+  "ar": {
+    "locationManagement.active": "نشط",
+    "locationManagement.add": "إضافة موقع",
+    "locationManagement.address": "العنوان",
+    "locationManagement.branch": "فرع",
+    "locationManagement.city": "المدينة",
+    "locationManagement.coordinates": "الإحداثيات",
+    "locationManagement.country": "الدولة",
+    "locationManagement.delete": "حذف موقع",
+    "locationManagement.edit": "تحرير موقع",
+    "locationManagement.headquarters": "المقر الرئيسي",
+    "locationManagement.inactive": "غير نشط",
+    "locationManagement.latitude": "خط العرض",
+    "locationManagement.location": "الموقع",
+    "locationManagement.longitude": "خط الطول",
+    "locationManagement.management": "إدارة المواقع",
+    "locationManagement.name": "اسم الموقع",
+    "locationManagement.remote": "عن بعد",
+    "locationManagement.state": "الولاية",
+    "locationManagement.store": "متجر",
+    "locationManagement.timezone": "المنطقة الزمنية",
+    "locationManagement.type": "نوع الموقع",
+    "locationManagement.warehouse": "مستودع",
+    "locationManagement.zipCode": "الرمز البريدي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/locations.translations.json">
+<![CDATA[
+{
+  "en": {
+    "locations.address": "Address",
+    "locations.area": "Area",
+    "locations.areas": "Areas",
+    "locations.billingAddress": "Billing Address",
+    "locations.building": "Building",
+    "locations.buildings": "Buildings",
+    "locations.city": "City",
+    "locations.coordinates": "Coordinates",
+    "locations.country": "Country",
+    "locations.deliveryAddress": "Delivery Address",
+    "locations.directions": "Directions",
+    "locations.floor": "Floor",
+    "locations.floors": "Floors",
+    "locations.gpsLocation": "GPS Location",
+    "locations.latitude": "Latitude",
+    "locations.location": "Location",
+    "locations.locations1": "Locations",
+    "locations.longitude": "Longitude",
+    "locations.mapView": "Map View",
+    "locations.nearbyLocations": "Nearby Locations",
+    "locations.postalCode": "Postal Code",
+    "locations.primaryLocation": "Primary Location",
+    "locations.province": "Province",
+    "locations.region": "Region",
+    "locations.regions": "Regions",
+    "locations.room": "Room",
+    "locations.rooms": "Rooms",
+    "locations.secondaryLocation": "Secondary Location",
+    "locations.site": "Site",
+    "locations.sites": "Sites",
+    "locations.space": "Space",
+    "locations.spaces": "Spaces",
+    "locations.state": "State",
+    "locations.streetAddress": "Street Address",
+    "locations.unit": "Unit",
+    "locations.units": "Units",
+    "locations.zipCode": "ZIP Code",
+    "locations.zone": "Zone",
+    "locations.zones": "Zones"
+  },
+  "ar": {
+    "locations.address": "العنوان",
+    "locations.area": "منطقة",
+    "locations.areas": "مناطق",
+    "locations.billingAddress": "عنوان الفوترة",
+    "locations.building": "مبنى",
+    "locations.buildings": "مباني",
+    "locations.city": "المدينة",
+    "locations.coordinates": "الإحداثيات",
+    "locations.country": "البلد",
+    "locations.deliveryAddress": "عنوان التسليم",
+    "locations.directions": "الاتجاهات",
+    "locations.floor": "طابق",
+    "locations.floors": "طوابق",
+    "locations.gpsLocation": "موقع GPS",
+    "locations.latitude": "خط العرض",
+    "locations.location": "الموقع",
+    "locations.locations1": "المواقع",
+    "locations.longitude": "خط الطول",
+    "locations.mapView": "عرض الخريطة",
+    "locations.nearbyLocations": "المواقع القريبة",
+    "locations.postalCode": "الرمز البريدي",
+    "locations.primaryLocation": "الموقع الرئيسي",
+    "locations.province": "المحافظة",
+    "locations.region": "منطقة",
+    "locations.regions": "مناطق",
+    "locations.room": "غرفة",
+    "locations.rooms": "غرف",
+    "locations.secondaryLocation": "الموقع الثانوي",
+    "locations.site": "موقع",
+    "locations.sites": "مواقع",
+    "locations.space": "مساحة",
+    "locations.spaces": "مساحات",
+    "locations.state": "الولاية",
+    "locations.streetAddress": "عنوان الشارع",
+    "locations.unit": "وحدة",
+    "locations.units": "وحدات",
+    "locations.zipCode": "الرمز البريدي",
+    "locations.zone": "منطقة",
+    "locations.zones": "مناطق"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/logManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "logManagement.aggregation": "Log Aggregation",
+    "logManagement.alert": "Log Alert",
+    "logManagement.analysis": "Log Analysis",
+    "logManagement.centralized": "Centralized Logging",
+    "logManagement.collection": "Log Collection",
+    "logManagement.correlation": "Log Correlation",
+    "logManagement.event": "Log Event",
+    "logManagement.filtering": "Log Filtering",
+    "logManagement.format": "Log Format",
+    "logManagement.forwarder": "Log Forwarder",
+    "logManagement.level": "Log Level",
+    "logManagement.log": "Log",
+    "logManagement.logging": "Logging",
+    "logManagement.management": "Log Management",
+    "logManagement.parsing": "Log Parsing",
+    "logManagement.pattern": "Log Pattern",
+    "logManagement.retention": "Log Retention",
+    "logManagement.rotation": "Log Rotation",
+    "logManagement.searching": "Log Search",
+    "logManagement.severity": "Log Severity",
+    "logManagement.shipper": "Log Shipper",
+    "logManagement.storage": "Log Storage"
+  },
+  "ar": {
+    "logManagement.aggregation": "تجميع السجلات",
+    "logManagement.alert": "تنبيه السجل",
+    "logManagement.analysis": "تحليل السجلات",
+    "logManagement.centralized": "التسجيل المركزي",
+    "logManagement.collection": "جمع السجلات",
+    "logManagement.correlation": "ارتباط السجلات",
+    "logManagement.event": "حدث السجل",
+    "logManagement.filtering": "تصفية السجلات",
+    "logManagement.format": "تنسيق السجل",
+    "logManagement.forwarder": "معيد توجيه السجل",
+    "logManagement.level": "مستوى السجل",
+    "logManagement.log": "السجل",
+    "logManagement.logging": "التسجيل",
+    "logManagement.management": "إدارة السجلات",
+    "logManagement.parsing": "تحليل السجلات",
+    "logManagement.pattern": "نمط السجل",
+    "logManagement.retention": "الاحتفاظ بالسجلات",
+    "logManagement.rotation": "تدوير السجلات",
+    "logManagement.searching": "البحث في السجلات",
+    "logManagement.severity": "خطورة السجل",
+    "logManagement.shipper": "شاحن السجل",
+    "logManagement.storage": "تخزين السجلات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/login.translations.json">
+<![CDATA[
+{
+  "en": {
+    "login.appleLogin": "Login with Apple",
+    "login.backToHome": "Back to Home",
+    "login.capsLockOn": "Caps Lock is ON",
+    "login.continueWith": "Continue with",
+    "login.corporateAccount": "Corporate Account",
+    "login.corporateAccountEmployee": "Corporate Account (Employee Number):",
+    "login.corporateAccountTab": "Corporate Account",
+    "login.corporateDescription": "For employees: Use your employee number and password",
+    "login.corporateHelp": "Use your employee number and password. No separate corporate ID needed.",
+    "login.corporateLogin": "Corporate Login",
+    "login.corporateNumber": "Corporate Number",
+    "login.createAccount": "Create new account",
+    "login.demoCredentials": "Demo Login Credentials",
+    "login.devHelpers": "Dev Helpers",
+    "login.emailPlaceholder": "Enter your email address",
+    "login.employeeHash": "Employee #:",
+    "login.employeeNumber": "Employee Number",
+    "login.employeeNumberPlaceholder": "Enter your employee number",
+    "login.enterEmail": "Enter your personal email",
+    "login.enterEmployeeNumber": "Enter your employee number",
+    "login.enterPassword": "Enter your password",
+    "login.error": "Login failed. Please check your credentials.",
+    "login.errors.emailInvalid": "Invalid email format",
+    "login.errors.emailRequired": "Email is required",
+    "login.errors.employeeInvalid": "Invalid employee ID",
+    "login.errors.employeeRequired": "Employee ID is required",
+    "login.errors.identifierInvalid": "Invalid identifier",
+    "login.errors.identifierRequired": "Identifier is required",
+    "login.errors.invalidCredentials": "Invalid credentials",
+    "login.errors.loginFailed": "Login failed",
+    "login.errors.networkError": "Network error",
+    "login.errors.noPhone": "No phone number registered. Please contact support.",
+    "login.errors.otpFailed": "Failed to send verification code. Please try again.",
+    "login.errors.passwordRequired": "Password is required",
+    "login.errors.passwordTooShort": "Password is too short",
+    "login.errors.rateLimited": "Too many attempts. Please try again later.",
+    "login.forgotPassword": "Forgot Password?",
+    "login.googleLogin": "Login with Google",
+    "login.hidePassword": "Hide password",
+    "login.identifierLabel": "Email or Employee Number",
+    "login.identifier": "Email or Employee ID",
+    "login.identifierHint": "Enter your email or employee ID",
+    "login.identifierPlaceholder": "Email or Employee ID",
+    "login.invalidCredentials": "Invalid email or password",
+    "login.loggingIn": "Logging in...",
+    "login.loginButton": "Sign In",
+    "login.loginMethod": "Login Method",
+    "login.marketplaceDesc": "Connect with verified vendors",
+    "login.microsoftLogin": "Login with Microsoft",
+    "login.noAccount": "Don't have an account?",
+    "login.orContinueWith": "Or continue with",
+    "login.orUseAccount": "Or use account",
+    "login.passwordPlaceholder": "Enter your password",
+    "login.personalDescription": "For personal accounts: Use your email and password",
+    "login.personalEmail": "Personal Email",
+    "login.personalEmailAccounts": "Personal Email Accounts:",
+    "login.personalEmailTab": "Personal Email",
+    "login.personalLogin": "Personal Login",
+    "login.propertyDesc": "Manage real estate portfolios",
+    "login.quickLogin": "Quick Login",
+    "login.quickLoginHint": "Click any role below to auto-fill credentials",
+    "login.rememberMe": "Remember me",
+    "login.requestDemo": "Request Demo",
+    "login.showPassword": "Show password",
+    "login.signIn": "Sign In",
+    "login.signInAccount": "Sign in to your Fixzit account",
+    "login.signInError": "Sign in error",
+    "login.signingIn": "Signing in...",
+    "login.signUp": "Sign up",
+    "login.signUpLink": "Sign up",
+    "login.ssoApple": "Apple SSO",
+    "login.ssoGoogle": "Google SSO",
+    "login.ssoLogin": "SSO Login",
+    "login.ssoLoginTab": "SSO Login",
+    "login.submit": "Login",
+    "login.subtitle": "Welcome back! Please login to continue",
+    "login.success.message": "Successfully logged in",
+    "login.success.title": "Welcome back",
+    "login.title": "Login to Fixzit",
+    "login.useCorporateAccount": "Use Corporate Account",
+    "login.usePersonalEmail": "Use Personal Email",
+    "login.welcome": "Welcome back",
+    "login.welcomeBack": "Welcome Back",
+    "login.workOrdersDesc": "Streamline maintenance requests"
+  },
+  "ar": {
+    "login.appleLogin": "تسجيل الدخول باستخدام Apple",
+    "login.backToHome": "العودة للرئيسية",
+    "login.capsLockOn": "مفتاح Caps Lock مفعّل",
+    "login.continueWith": "المتابعة مع",
+    "login.corporateAccount": "حساب الشركة",
+    "login.corporateAccountEmployee": "حساب الشركة (رقم الموظف):",
+    "login.corporateAccountTab": "حساب الشركة",
+    "login.corporateDescription": "للموظفين: استخدم رقم الموظف وكلمة المرور",
+    "login.corporateHelp": "استخدم رقم الموظف وكلمة المرور. لا حاجة لرقم شركة منفصل.",
+    "login.corporateLogin": "تسجيل دخول مؤسسي",
+    "login.corporateNumber": "رقم الشركة",
+    "login.createAccount": "إنشاء حساب جديد",
+    "login.demoCredentials": "بيانات تجريبية للدخول",
+    "login.devHelpers": "أدوات المطور",
+    "login.emailPlaceholder": "أدخل عنوان بريدك الإلكتروني",
+    "login.employeeHash": "الموظف #:",
+    "login.employeeNumber": "رقم الموظف",
+    "login.employeeNumberPlaceholder": "أدخل رقم الموظف",
+    "login.enterEmail": "أدخل بريدك الإلكتروني",
+    "login.enterEmployeeNumber": "أدخل رقم الموظف الخاص بك",
+    "login.enterPassword": "أدخل كلمة المرور",
+    "login.error": "فشل تسجيل الدخول. يرجى التحقق من بيانات الاعتماد الخاصة بك.",
+    "login.errors.emailInvalid": "البريد الإلكتروني غير صحيح",
+    "login.errors.emailRequired": "البريد الإلكتروني مطلوب",
+    "login.errors.employeeInvalid": "رقم الموظف غير صحيح",
+    "login.errors.employeeRequired": "رقم الموظف مطلوب",
+    "login.errors.identifierInvalid": "المعرف غير صحيح",
+    "login.errors.identifierRequired": "المعرف مطلوب",
+    "login.errors.invalidCredentials": "بيانات الدخول غير صحيحة",
+    "login.errors.loginFailed": "فشل تسجيل الدخول",
+    "login.errors.networkError": "خطأ في الشبكة",
+    "login.errors.noPhone": "لم يتم تسجيل رقم الهاتف.يرجى الاتصال بالدعم.",
+    "login.errors.otpFailed": "فشل في إرسال رمز التحقق.يرجى المحاولة مرة أخرى.",
+    "login.errors.passwordRequired": "كلمة المرور مطلوبة",
+    "login.errors.passwordTooShort": "كلمة المرور قصيرة جداً",
+    "login.errors.rateLimited": "محاولات كثيرة جدًا.يرجى المحاولة مرة أخرى في وقت لاحق.",
+    "login.forgotPassword": "نسيت كلمة المرور؟",
+    "login.googleLogin": "تسجيل الدخول باستخدام Google",
+    "login.hidePassword": "إخفاء كلمة المرور",
+    "login.identifierLabel": "البريد الإلكتروني أو رقم الموظف",
+    "login.identifier": "البريد الإلكتروني أو رقم الموظف",
+    "login.identifierHint": "أدخل بريدك الإلكتروني أو رقم الموظف",
+    "login.identifierPlaceholder": "البريد الإلكتروني أو رقم الموظف",
+    "login.invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+    "login.loggingIn": "جاري تسجيل الدخول...",
+    "login.loginButton": "تسجيل الدخول",
+    "login.loginMethod": "طريقة تسجيل الدخول",
+    "login.marketplaceDesc": "اتصل بالموردين المعتمدين",
+    "login.microsoftLogin": "تسجيل الدخول باستخدام Microsoft",
+    "login.noAccount": "ليس لديك حساب؟",
+    "login.orContinueWith": "أو تابع مع",
+    "login.orUseAccount": "أو استخدم الحساب",
+    "login.passwordPlaceholder": "أدخل كلمة المرور",
+    "login.personalDescription": "للحسابات الشخصية: استخدم البريد الإلكتروني وكلمة المرور",
+    "login.personalEmail": "البريد الإلكتروني الشخصي",
+    "login.personalEmailAccounts": "حسابات البريد الإلكتروني الشخصية:",
+    "login.personalEmailTab": "البريد الإلكتروني الشخصي",
+    "login.personalLogin": "تسجيل دخول شخصي",
+    "login.propertyDesc": "إدارة محافظ العقارات",
+    "login.quickLogin": "تسجيل دخول سريع",
+    "login.quickLoginHint": "انقر على أي دور أدناه لملء البيانات تلقائياً",
+    "login.rememberMe": "تذكرني",
+    "login.requestDemo": "طلب عرض توضيحي",
+    "login.showPassword": "إظهار كلمة المرور",
+    "login.signIn": "تسجيل الدخول",
+    "login.signInAccount": "سجل الدخول إلى حساب فيكزيت الخاص بك",
+    "login.signInError": "خطأ في تسجيل الدخول",
+    "login.signingIn": "جاري تسجيل الدخول...",
+    "login.signUp": "تسجيل حساب جديد",
+    "login.signUpLink": "إنشاء حساب",
+    "login.ssoApple": "تسجيل الدخول عبر أبل",
+    "login.ssoGoogle": "تسجيل الدخول عبر جوجل",
+    "login.ssoLogin": "تسجيل الدخول الموحد",
+    "login.ssoLoginTab": "تسجيل الدخول الموحد",
+    "login.submit": "تسجيل الدخول",
+    "login.subtitle": "مرحباً بعودتك! الرجاء تسجيل الدخول للمتابعة",
+    "login.success.message": "تم تسجيل الدخول بنجاح",
+    "login.success.title": "مرحباً بك",
+    "login.title": "تسجيل الدخول إلى فيكزيت",
+    "login.useCorporateAccount": "استخدام حساب الشركة",
+    "login.usePersonalEmail": "استخدام البريد الإلكتروني الشخصي",
+    "login.welcome": "مرحباً بعودتك",
+    "login.welcomeBack": "مرحباً بعودتك",
+    "login.workOrdersDesc": "تبسيط طلبات الصيانة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/loginPrompt.translations.json">
+<![CDATA[
+{
+  "en": {
+    "loginPrompt.benefit1": "Access all platform features",
+    "loginPrompt.benefit2": "Track your requests and work orders",
+    "loginPrompt.benefit3": "Manage properties and assets",
+    "loginPrompt.benefit4": "Connect with vendors",
+    "loginPrompt.benefit5": "Get personalized support",
+    "loginPrompt.benefitsTitle": "Why sign in?",
+    "loginPrompt.contactSupport": "Contact Support",
+    "loginPrompt.description": "You need to be logged in to access this feature",
+    "loginPrompt.needHelp": "Need help?",
+    "loginPrompt.signInButton": "Sign In",
+    "loginPrompt.signUpButton": "Create Account",
+    "loginPrompt.title": "Please Sign In",
+    "loginPrompt.welcomeBack": "Welcome Back",
+    "loginPrompt.welcomeMessage": "Sign in to continue your journey"
+  },
+  "ar": {
+    "loginPrompt.benefit1": "الوصول إلى جميع ميزات المنصة",
+    "loginPrompt.benefit2": "تتبع طلباتك وأوامر العمل",
+    "loginPrompt.benefit3": "إدارة العقارات والأصول",
+    "loginPrompt.benefit4": "التواصل مع البائعين",
+    "loginPrompt.benefit5": "الحصول على دعم مخصص",
+    "loginPrompt.benefitsTitle": "لماذا تسجل الدخول؟",
+    "loginPrompt.contactSupport": "اتصل بالدعم",
+    "loginPrompt.description": "تحتاج إلى تسجيل الدخول للوصول إلى هذه الميزة",
+    "loginPrompt.needHelp": "تحتاج مساعدة؟",
+    "loginPrompt.signInButton": "تسجيل الدخول",
+    "loginPrompt.signUpButton": "إنشاء حساب",
+    "loginPrompt.title": "يرجى تسجيل الدخول",
+    "loginPrompt.welcomeBack": "مرحباً بعودتك",
+    "loginPrompt.welcomeMessage": "سجل الدخول للاستمرار في رحلتك"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/logistics.translations.json">
+<![CDATA[
+{
+  "en": {
+    "logistics.carrier": "Carrier Management",
+    "logistics.coldChain": "Cold Chain",
+    "logistics.crossDock": "Cross-Docking",
+    "logistics.customs": "Customs Clearance",
+    "logistics.delivery": "Delivery Management",
+    "logistics.demurrage": "Demurrage Charges",
+    "logistics.description": "Manage logistics operations and supply chain",
+    "logistics.detention": "Detention Fees",
+    "logistics.distribution": "Distribution Centers",
+    "logistics.documentation": "Shipping Documents",
+    "logistics.freight": "Freight Management",
+    "logistics.fulfillment": "Order Fulfillment",
+    "logistics.hazmat": "Hazmat Handling",
+    "logistics.inspection": "Quality Inspection",
+    "logistics.insurance": "Cargo Insurance",
+    "logistics.inventory": "Inventory Control",
+    "logistics.labeling": "Labeling & Barcoding",
+    "logistics.lastMile": "Last Mile Delivery",
+    "logistics.leadTime": "Lead Time",
+    "logistics.loading": "Loading Operations",
+    "logistics.packaging": "Packaging Services",
+    "logistics.packing": "Order Packing",
+    "logistics.picking": "Order Picking",
+    "logistics.procurement": "Procurement",
+    "logistics.purchase": "Purchase Orders",
+    "logistics.receiving": "Receiving Operations",
+    "logistics.receivingLogistics": "Goods Receiving",
+    "logistics.reorderPoint": "Reorder Point",
+    "logistics.returns": "Returns Management",
+    "logistics.reverseLogistics": "Reverse Logistics",
+    "logistics.routing": "Route Optimization",
+    "logistics.scanning": "Barcode Scanning",
+    "logistics.shipping": "Shipping & Delivery",
+    "logistics.sourcing": "Strategic Sourcing",
+    "logistics.stockLevel": "Stock Levels",
+    "logistics.storage": "Storage Management",
+    "logistics.supplier": "Supplier Management",
+    "logistics.supplyChain": "Supply Chain",
+    "logistics.thirdParty": "3PL Services",
+    "logistics.title": "Logistics & Supply Chain",
+    "logistics.tracking": "Shipment Tracking",
+    "logistics.transportation": "Transportation Management",
+    "logistics.unloading": "Unloading Operations",
+    "logistics.vendor": "Vendor Relations",
+    "logistics.warehouse": "Warehouse Management"
+  },
+  "ar": {
+    "logistics.carrier": "إدارة الناقلين",
+    "logistics.coldChain": "السلسلة الباردة",
+    "logistics.crossDock": "الشحن العابر",
+    "logistics.customs": "التخليص الجمركي",
+    "logistics.delivery": "إدارة التسليم",
+    "logistics.demurrage": "رسوم التأخير",
+    "logistics.description": "إدارة عمليات اللوجستيات وسلسلة التوريد",
+    "logistics.detention": "رسوم الاحتجاز",
+    "logistics.distribution": "مراكز التوزيع",
+    "logistics.documentation": "مستندات الشحن",
+    "logistics.freight": "إدارة الشحن",
+    "logistics.fulfillment": "تنفيذ الطلبات",
+    "logistics.hazmat": "مناولة المواد الخطرة",
+    "logistics.inspection": "فحص الجودة",
+    "logistics.insurance": "تأمين البضائع",
+    "logistics.inventory": "مراقبة المخزون",
+    "logistics.labeling": "الملصقات والباركود",
+    "logistics.lastMile": "التسليم للميل الأخير",
+    "logistics.leadTime": "وقت التسليم",
+    "logistics.loading": "عمليات التحميل",
+    "logistics.packaging": "خدمات التعبئة",
+    "logistics.packing": "تعبئة الطلبات",
+    "logistics.picking": "انتقاء الطلبات",
+    "logistics.procurement": "المشتريات",
+    "logistics.purchase": "أوامر الشراء",
+    "logistics.receiving": "عمليات الاستلام",
+    "logistics.receivingLogistics": "استلام البضائع",
+    "logistics.reorderPoint": "نقطة إعادة الطلب",
+    "logistics.returns": "إدارة المرتجعات",
+    "logistics.reverseLogistics": "اللوجستيات العكسية",
+    "logistics.routing": "تحسين المسارات",
+    "logistics.scanning": "مسح الباركود",
+    "logistics.shipping": "الشحن والتسليم",
+    "logistics.sourcing": "التوريد الاستراتيجي",
+    "logistics.stockLevel": "مستويات المخزون",
+    "logistics.storage": "إدارة التخزين",
+    "logistics.supplier": "إدارة الموردين",
+    "logistics.supplyChain": "سلسلة التوريد",
+    "logistics.thirdParty": "خدمات الطرف الثالث",
+    "logistics.title": "اللوجستيات وسلسلة التوريد",
+    "logistics.tracking": "تتبع الشحنات",
+    "logistics.transportation": "إدارة النقل",
+    "logistics.unloading": "عمليات التفريغ",
+    "logistics.vendor": "علاقات الموردين",
+    "logistics.warehouse": "إدارة المستودعات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/logisticsManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "logisticsManagement.carriers": "Carrier Management",
+    "logisticsManagement.crossdock": "Cross-Docking",
+    "logisticsManagement.delivery": "Delivery Management",
+    "logisticsManagement.distribution": "Distribution Management",
+    "logisticsManagement.freight": "Freight Management",
+    "logisticsManagement.inventory": "Inventory Control",
+    "logisticsManagement.lastmile": "Last Mile Delivery",
+    "logisticsManagement.loading": "Loading Operations",
+    "logisticsManagement.logistics": "Logistics Management",
+    "logisticsManagement.management": "Logistics Management",
+    "logisticsManagement.packing": "Order Packing",
+    "logisticsManagement.picking": "Order Picking",
+    "logisticsManagement.putaway": "Putaway Management",
+    "logisticsManagement.receiving": "Receiving Operations",
+    "logisticsManagement.reverse": "Reverse Logistics",
+    "logisticsManagement.routes": "Route Optimization",
+    "logisticsManagement.shipping": "Shipping Management",
+    "logisticsManagement.thirdparty": "Third-Party Logistics",
+    "logisticsManagement.tracking": "Shipment Tracking",
+    "logisticsManagement.transportation": "Transportation Management",
+    "logisticsManagement.unloading": "Unloading Operations",
+    "logisticsManagement.warehousing": "Warehousing Operations"
+  },
+  "ar": {
+    "logisticsManagement.carriers": "إدارة شركات النقل",
+    "logisticsManagement.crossdock": "الشحن العابر",
+    "logisticsManagement.delivery": "إدارة التسليم",
+    "logisticsManagement.distribution": "إدارة التوزيع",
+    "logisticsManagement.freight": "إدارة الشحن",
+    "logisticsManagement.inventory": "مراقبة المخزون",
+    "logisticsManagement.lastmile": "التسليم في الميل الأخير",
+    "logisticsManagement.loading": "عمليات التحميل",
+    "logisticsManagement.logistics": "إدارة اللوجستيات",
+    "logisticsManagement.management": "إدارة اللوجستيات",
+    "logisticsManagement.packing": "تعبئة الطلبات",
+    "logisticsManagement.picking": "انتقاء الطلبات",
+    "logisticsManagement.putaway": "إدارة التخزين",
+    "logisticsManagement.receiving": "عمليات الاستلام",
+    "logisticsManagement.reverse": "اللوجستيات العكسية",
+    "logisticsManagement.routes": "تحسين المسارات",
+    "logisticsManagement.shipping": "إدارة الشحن",
+    "logisticsManagement.thirdparty": "اللوجستيات من طرف ثالث",
+    "logisticsManagement.tracking": "تتبع الشحنات",
+    "logisticsManagement.transportation": "إدارة النقل",
+    "logisticsManagement.unloading": "عمليات التفريغ",
+    "logisticsManagement.warehousing": "عمليات التخزين"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/logisticsOperations.translations.json">
+<![CDATA[
+{
+  "en": {
+    "logisticsOperations.carrierManagement": "Carrier Management",
+    "logisticsOperations.carrierPerformance": "Carrier Performance",
+    "logisticsOperations.consolidation": "Consolidation",
+    "logisticsOperations.costAllocation": "Cost Allocation",
+    "logisticsOperations.crossDocking": "Cross-Docking",
+    "logisticsOperations.customsClearance": "Customs Clearance",
+    "logisticsOperations.deliveryPerformance": "Delivery Performance",
+    "logisticsOperations.description": "Transportation and distribution management",
+    "logisticsOperations.dispatchManagement": "Dispatch Management",
+    "logisticsOperations.documentationCompliance": "Documentation Compliance",
+    "logisticsOperations.driverManagement": "Driver Management",
+    "logisticsOperations.fleetManagement": "Fleet Management",
+    "logisticsOperations.freightAudit": "Freight Audit",
+    "logisticsOperations.freightBooking": "Freight Booking",
+    "logisticsOperations.fuelManagement": "Fuel Management",
+    "logisticsOperations.hazmatCompliance": "Hazmat Compliance",
+    "logisticsOperations.loadOptimization": "Load Optimization",
+    "logisticsOperations.proofOfDelivery": "Proof of Delivery",
+    "logisticsOperations.routePlanning": "Route Planning",
+    "logisticsOperations.shipmentTracking": "Shipment Tracking",
+    "logisticsOperations.title": "Logistics Operations",
+    "logisticsOperations.trackTrace": "Track & Trace",
+    "logisticsOperations.transportationManagement": "Transportation Management",
+    "logisticsOperations.vehicleTracking": "Vehicle Tracking"
+  },
+  "ar": {
+    "logisticsOperations.carrierManagement": "إدارة شركات النقل",
+    "logisticsOperations.carrierPerformance": "أداء شركة النقل",
+    "logisticsOperations.consolidation": "التوحيد",
+    "logisticsOperations.costAllocation": "تخصيص التكاليف",
+    "logisticsOperations.crossDocking": "الشحن العابر",
+    "logisticsOperations.customsClearance": "التخليص الجمركي",
+    "logisticsOperations.deliveryPerformance": "أداء التسليم",
+    "logisticsOperations.description": "إدارة النقل والتوزيع",
+    "logisticsOperations.dispatchManagement": "إدارة الإرسال",
+    "logisticsOperations.documentationCompliance": "الامتثال للوثائق",
+    "logisticsOperations.driverManagement": "إدارة السائقين",
+    "logisticsOperations.fleetManagement": "إدارة الأسطول",
+    "logisticsOperations.freightAudit": "تدقيق الشحن",
+    "logisticsOperations.freightBooking": "حجز الشحن",
+    "logisticsOperations.fuelManagement": "إدارة الوقود",
+    "logisticsOperations.hazmatCompliance": "الامتثال للمواد الخطرة",
+    "logisticsOperations.loadOptimization": "تحسين الحمولة",
+    "logisticsOperations.proofOfDelivery": "إثبات التسليم",
+    "logisticsOperations.routePlanning": "تخطيط المسارات",
+    "logisticsOperations.shipmentTracking": "تتبع الشحنات",
+    "logisticsOperations.title": "عمليات اللوجستيات",
+    "logisticsOperations.trackTrace": "التتبع والتعقب",
+    "logisticsOperations.transportationManagement": "إدارة النقل",
+    "logisticsOperations.vehicleTracking": "تتبع المركبات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/logout.translations.json">
+<![CDATA[
+{
+  "en": {
+    "logout.error": "Error",
+    "logout.errorMessage": "Error Message",
+    "logout.pleaseWait": "Please wait",
+    "logout.redirecting": "Redirecting",
+    "logout.redirectingAfterError": "Redirecting After Error",
+    "logout.signingOut": "Signing out...",
+    "logout.success": "Success"
+  },
+  "ar": {
+    "logout.error": "خطأ",
+    "logout.errorMessage": "خطأ Message",
+    "logout.pleaseWait": "يرجى الانتظار",
+    "logout.redirecting": "[AR] Redirecting",
+    "logout.redirectingAfterError": "Redirecting After خطأ",
+    "logout.signingOut": "جاري تسجيل الخروج...",
+    "logout.success": "نجح"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/machineLearningAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "machineLearningAdv.accuracy": "Accuracy",
+    "machineLearningAdv.ai": "Artificial Intelligence",
+    "machineLearningAdv.algorithm": "Algorithm",
+    "machineLearningAdv.classification": "Classification",
+    "machineLearningAdv.clustering": "Clustering",
+    "machineLearningAdv.dataset": "Dataset",
+    "machineLearningAdv.deep": "Deep Learning",
+    "machineLearningAdv.feature": "Feature",
+    "machineLearningAdv.ml": "Machine Learning",
+    "machineLearningAdv.model": "Model",
+    "machineLearningAdv.neural": "Neural Network",
+    "machineLearningAdv.precision": "Precision",
+    "machineLearningAdv.prediction": "Prediction",
+    "machineLearningAdv.recall": "Recall",
+    "machineLearningAdv.regression": "Regression",
+    "machineLearningAdv.reinforcement": "Reinforcement Learning",
+    "machineLearningAdv.score": "Score",
+    "machineLearningAdv.supervised": "Supervised Learning",
+    "machineLearningAdv.testing": "Testing",
+    "machineLearningAdv.training": "Training",
+    "machineLearningAdv.unsupervised": "Unsupervised Learning",
+    "machineLearningAdv.validation": "Validation"
+  },
+  "ar": {
+    "machineLearningAdv.accuracy": "الدقة",
+    "machineLearningAdv.ai": "الذكاء الاصطناعي",
+    "machineLearningAdv.algorithm": "الخوارزمية",
+    "machineLearningAdv.classification": "التصنيف",
+    "machineLearningAdv.clustering": "التجميع",
+    "machineLearningAdv.dataset": "مجموعة البيانات",
+    "machineLearningAdv.deep": "التعلم العميق",
+    "machineLearningAdv.feature": "الميزة",
+    "machineLearningAdv.ml": "التعلم الآلي",
+    "machineLearningAdv.model": "النموذج",
+    "machineLearningAdv.neural": "الشبكة العصبية",
+    "machineLearningAdv.precision": "الدقة",
+    "machineLearningAdv.prediction": "التنبؤ",
+    "machineLearningAdv.recall": "الاستدعاء",
+    "machineLearningAdv.regression": "الانحدار",
+    "machineLearningAdv.reinforcement": "التعلم المعزز",
+    "machineLearningAdv.score": "النتيجة",
+    "machineLearningAdv.supervised": "التعلم الموجه",
+    "machineLearningAdv.testing": "الاختبار",
+    "machineLearningAdv.training": "التدريب",
+    "machineLearningAdv.unsupervised": "التعلم غير الموجه",
+    "machineLearningAdv.validation": "التحقق"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/mailServices.translations.json">
+<![CDATA[
+{
+  "en": {
+    "mailServices.certified": "Certified Mail",
+    "mailServices.courier": "Courier",
+    "mailServices.delivery": "Mail Delivery",
+    "mailServices.distribution": "Mail Distribution",
+    "mailServices.forwarding": "Mail Forwarding",
+    "mailServices.incoming": "Incoming Mail",
+    "mailServices.mail": "Mail Services",
+    "mailServices.mailroom": "Mailroom",
+    "mailServices.metering": "Postage Metering",
+    "mailServices.notification": "Delivery Notification",
+    "mailServices.outgoing": "Outgoing Mail",
+    "mailServices.package": "Package",
+    "mailServices.pickup": "Mail Pickup",
+    "mailServices.postage": "Postage",
+    "mailServices.receiving": "Receiving",
+    "mailServices.registered": "Registered Mail",
+    "mailServices.return": "Return Mail",
+    "mailServices.shipping": "Shipping",
+    "mailServices.signature": "Signature Required",
+    "mailServices.sorting": "Mail Sorting",
+    "mailServices.storage": "Mail Storage",
+    "mailServices.tracking": "Package Tracking"
+  },
+  "ar": {
+    "mailServices.certified": "البريد الموثق",
+    "mailServices.courier": "خدمة البريد السريع",
+    "mailServices.delivery": "تسليم البريد",
+    "mailServices.distribution": "توزيع البريد",
+    "mailServices.forwarding": "إعادة توجيه البريد",
+    "mailServices.incoming": "البريد الوارد",
+    "mailServices.mail": "خدمات البريد",
+    "mailServices.mailroom": "غرفة البريد",
+    "mailServices.metering": "قياس الطوابع",
+    "mailServices.notification": "إشعار التسليم",
+    "mailServices.outgoing": "البريد الصادر",
+    "mailServices.package": "الطرود",
+    "mailServices.pickup": "استلام البريد",
+    "mailServices.postage": "الطوابع",
+    "mailServices.receiving": "استلام الطرود",
+    "mailServices.registered": "البريد المسجل",
+    "mailServices.return": "البريد المرتجع",
+    "mailServices.shipping": "الشحن",
+    "mailServices.signature": "التوقيع مطلوب",
+    "mailServices.sorting": "فرز البريد",
+    "mailServices.storage": "تخزين البريد",
+    "mailServices.tracking": "تتبع الطرود"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/maintenance.translations.json">
+<![CDATA[
+{
+  "en": {
+    "maintenance.asset": "Asset",
+    "maintenance.assigned": "Assigned to",
+    "maintenance.description": "Manage equipment maintenance schedules and tasks",
+    "maintenance.due": "Due",
+    "maintenance.tasks": "Maintenance Tasks"
+  },
+  "ar": {
+    "maintenance.asset": "الأصل",
+    "maintenance.assigned": "مُسند إلى",
+    "maintenance.description": "إدارة جداول الصيانة والمهام للمعدات",
+    "maintenance.due": "تاريخ الاستحقاق",
+    "maintenance.tasks": "مهام الصيانة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/maintenanceManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "maintenanceManagement.assetRegister": "Asset Register",
+    "maintenanceManagement.conditionMonitoring": "Condition Monitoring",
+    "maintenanceManagement.description": "Equipment maintenance and reliability",
+    "maintenanceManagement.downtimeAnalysis": "Downtime Analysis",
+    "maintenanceManagement.equipmentHistory": "Equipment History",
+    "maintenanceManagement.failureTracking": "Failure Tracking",
+    "maintenanceManagement.inventoryControl": "Inventory Control",
+    "maintenanceManagement.lockoutTagout": "Lockout/Tagout",
+    "maintenanceManagement.maintenanceScheduling": "Maintenance Scheduling",
+    "maintenanceManagement.mtbf": "Mean Time Between Failures",
+    "maintenanceManagement.mttr": "Mean Time To Repair",
+    "maintenanceManagement.oilAnalysis": "Oil Analysis",
+    "maintenanceManagement.predictiveMaintenance": "Predictive Maintenance",
+    "maintenanceManagement.preventiveMaintenance": "Preventive Maintenance",
+    "maintenanceManagement.rcm": "Reliability Centered Maintenance",
+    "maintenanceManagement.reliabilityEngineering": "Reliability Engineering",
+    "maintenanceManagement.safetyProcedures": "Safety Procedures",
+    "maintenanceManagement.shutdownManagement": "Shutdown Management",
+    "maintenanceManagement.sparePartsManagement": "Spare Parts Management",
+    "maintenanceManagement.thermography": "Thermography",
+    "maintenanceManagement.title": "Maintenance Management",
+    "maintenanceManagement.tpm": "Total Productive Maintenance",
+    "maintenanceManagement.vibrationAnalysis": "Vibration Analysis",
+    "maintenanceManagement.workOrderManagement": "Work Order Management"
+  },
+  "ar": {
+    "maintenanceManagement.assetRegister": "سجل الأصول",
+    "maintenanceManagement.conditionMonitoring": "مراقبة الحالة",
+    "maintenanceManagement.description": "صيانة المعدات والموثوقية",
+    "maintenanceManagement.downtimeAnalysis": "تحليل التوقف",
+    "maintenanceManagement.equipmentHistory": "تاريخ المعدات",
+    "maintenanceManagement.failureTracking": "تتبع الأعطال",
+    "maintenanceManagement.inventoryControl": "مراقبة المخزون",
+    "maintenanceManagement.lockoutTagout": "قفل / وضع العلامة",
+    "maintenanceManagement.maintenanceScheduling": "جدولة الصيانة",
+    "maintenanceManagement.mtbf": "متوسط الوقت بين الأعطال",
+    "maintenanceManagement.mttr": "متوسط وقت الإصلاح",
+    "maintenanceManagement.oilAnalysis": "تحليل الزيت",
+    "maintenanceManagement.predictiveMaintenance": "الصيانة التنبؤية",
+    "maintenanceManagement.preventiveMaintenance": "الصيانة الوقائية",
+    "maintenanceManagement.rcm": "الصيانة المرتكزة على الموثوقية",
+    "maintenanceManagement.reliabilityEngineering": "هندسة الموثوقية",
+    "maintenanceManagement.safetyProcedures": "إجراءات السلامة",
+    "maintenanceManagement.shutdownManagement": "إدارة التوقف",
+    "maintenanceManagement.sparePartsManagement": "إدارة قطع الغيار",
+    "maintenanceManagement.thermography": "التصوير الحراري",
+    "maintenanceManagement.title": "إدارة الصيانة",
+    "maintenanceManagement.tpm": "الصيانة الإنتاجية الشاملة",
+    "maintenanceManagement.vibrationAnalysis": "تحليل الاهتزاز",
+    "maintenanceManagement.workOrderManagement": "إدارة أوامر العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/maintenanceManagementAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "maintenanceManagementAdv.availability": "Availability",
+    "maintenanceManagementAdv.breakdown": "Breakdown Maintenance",
+    "maintenanceManagementAdv.cbm": "Condition-Based Maintenance",
+    "maintenanceManagementAdv.cm": "CM",
+    "maintenanceManagementAdv.corrective": "Corrective Maintenance",
+    "maintenanceManagementAdv.downtime": "Maintenance Downtime",
+    "maintenanceManagementAdv.inventory": "Parts Inventory",
+    "maintenanceManagementAdv.maintainability": "Maintainability",
+    "maintenanceManagementAdv.maintenance": "Maintenance",
+    "maintenanceManagementAdv.mtbf": "MTBF",
+    "maintenanceManagementAdv.mttr": "MTTR",
+    "maintenanceManagementAdv.planned": "Planned Maintenance",
+    "maintenanceManagementAdv.pm": "PM",
+    "maintenanceManagementAdv.predictive": "Predictive Maintenance",
+    "maintenanceManagementAdv.preventive": "Preventive Maintenance",
+    "maintenanceManagementAdv.rcm": "Reliability-Centered Maintenance",
+    "maintenanceManagementAdv.reliability": "Reliability",
+    "maintenanceManagementAdv.schedule": "Maintenance Schedule",
+    "maintenanceManagementAdv.spare": "Spare Parts",
+    "maintenanceManagementAdv.tpm": "Total Productive Maintenance",
+    "maintenanceManagementAdv.unplanned": "Unplanned Maintenance",
+    "maintenanceManagementAdv.work": "Work Order"
+  },
+  "ar": {
+    "maintenanceManagementAdv.availability": "التوافر",
+    "maintenanceManagementAdv.breakdown": "صيانة الأعطال",
+    "maintenanceManagementAdv.cbm": "الصيانة بناءً على الحالة",
+    "maintenanceManagementAdv.cm": "الصيانة التصحيحية",
+    "maintenanceManagementAdv.corrective": "الصيانة التصحيحية",
+    "maintenanceManagementAdv.downtime": "وقت توقف الصيانة",
+    "maintenanceManagementAdv.inventory": "مخزون القطع",
+    "maintenanceManagementAdv.maintainability": "قابلية الصيانة",
+    "maintenanceManagementAdv.maintenance": "الصيانة",
+    "maintenanceManagementAdv.mtbf": "متوسط الوقت بين الأعطال",
+    "maintenanceManagementAdv.mttr": "متوسط وقت الإصلاح",
+    "maintenanceManagementAdv.planned": "الصيانة المخططة",
+    "maintenanceManagementAdv.pm": "الصيانة الوقائية",
+    "maintenanceManagementAdv.predictive": "الصيانة التنبؤية",
+    "maintenanceManagementAdv.preventive": "الصيانة الوقائية",
+    "maintenanceManagementAdv.rcm": "الصيانة المرتكزة على الموثوقية",
+    "maintenanceManagementAdv.reliability": "الموثوقية",
+    "maintenanceManagementAdv.schedule": "جدول الصيانة",
+    "maintenanceManagementAdv.spare": "قطع الغيار",
+    "maintenanceManagementAdv.tpm": "الصيانة الإنتاجية الشاملة",
+    "maintenanceManagementAdv.unplanned": "الصيانة غير المخططة",
+    "maintenanceManagementAdv.work": "أمر العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/maintenanceOps.translations.json">
+<![CDATA[
+{
+  "en": {
+    "maintenanceOps.breakdown": "Breakdown Maintenance",
+    "maintenanceOps.checklist": "Maintenance Checklist",
+    "maintenanceOps.corrective": "Corrective Maintenance",
+    "maintenanceOps.emergency": "Emergency Maintenance",
+    "maintenanceOps.execution": "Maintenance Execution",
+    "maintenanceOps.history": "Maintenance History",
+    "maintenanceOps.inspection": "Maintenance Inspection",
+    "maintenanceOps.inventory": "Spare Parts Inventory",
+    "maintenanceOps.maintenance": "Maintenance Operations",
+    "maintenanceOps.metrics": "Maintenance Metrics",
+    "maintenanceOps.parts": "Parts Management",
+    "maintenanceOps.planning": "Maintenance Planning",
+    "maintenanceOps.predictive": "Predictive Maintenance",
+    "maintenanceOps.preventive": "Preventive Maintenance",
+    "maintenanceOps.procedure": "Maintenance Procedure",
+    "maintenanceOps.request": "Maintenance Request",
+    "maintenanceOps.resources": "Maintenance Resources",
+    "maintenanceOps.routine": "Routine Maintenance",
+    "maintenanceOps.scheduling": "Maintenance Scheduling",
+    "maintenanceOps.tools": "Tools Management",
+    "maintenanceOps.tracking": "Maintenance Tracking",
+    "maintenanceOps.work": "Work Order"
+  },
+  "ar": {
+    "maintenanceOps.breakdown": "صيانة الأعطال",
+    "maintenanceOps.checklist": "قائمة الفحص",
+    "maintenanceOps.corrective": "الصيانة التصحيحية",
+    "maintenanceOps.emergency": "الصيانة الطارئة",
+    "maintenanceOps.execution": "تنفيذ الصيانة",
+    "maintenanceOps.history": "سجل الصيانة",
+    "maintenanceOps.inspection": "الفحص",
+    "maintenanceOps.inventory": "مخزون قطع الغيار",
+    "maintenanceOps.maintenance": "عمليات الصيانة",
+    "maintenanceOps.metrics": "مقاييس الصيانة",
+    "maintenanceOps.parts": "إدارة قطع الغيار",
+    "maintenanceOps.planning": "تخطيط الصيانة",
+    "maintenanceOps.predictive": "الصيانة التنبؤية",
+    "maintenanceOps.preventive": "الصيانة الوقائية",
+    "maintenanceOps.procedure": "إجراء الصيانة",
+    "maintenanceOps.request": "طلب الصيانة",
+    "maintenanceOps.resources": "موارد الصيانة",
+    "maintenanceOps.routine": "الصيانة الروتينية",
+    "maintenanceOps.scheduling": "جدولة الصيانة",
+    "maintenanceOps.tools": "إدارة الأدوات",
+    "maintenanceOps.tracking": "تتبع الصيانة",
+    "maintenanceOps.work": "أمر العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/maintenanceRepair.translations.json">
+<![CDATA[
+{
+  "en": {
+    "maintenanceRepair.breakdown": "Breakdown Maintenance",
+    "maintenanceRepair.calibration": "Calibration",
+    "maintenanceRepair.checklist": "Maintenance Checklist",
+    "maintenanceRepair.cleaning": "Cleaning",
+    "maintenanceRepair.component": "Component",
+    "maintenanceRepair.corrective": "Corrective Maintenance",
+    "maintenanceRepair.history": "Maintenance History",
+    "maintenanceRepair.inspection": "Inspection",
+    "maintenanceRepair.log": "Maintenance Log",
+    "maintenanceRepair.lubrication": "Lubrication",
+    "maintenanceRepair.maintenance": "Maintenance & Repair",
+    "maintenanceRepair.plan": "Maintenance Plan",
+    "maintenanceRepair.predictive": "Predictive Maintenance",
+    "maintenanceRepair.preventive": "Preventive Maintenance",
+    "maintenanceRepair.procedure": "Maintenance Procedure",
+    "maintenanceRepair.repair": "Repair",
+    "maintenanceRepair.replacement": "Replacement",
+    "maintenanceRepair.schedule": "Maintenance Schedule",
+    "maintenanceRepair.service": "Service",
+    "maintenanceRepair.spare": "Spare Parts",
+    "maintenanceRepair.task": "Maintenance Task",
+    "maintenanceRepair.work": "Work Order"
+  },
+  "ar": {
+    "maintenanceRepair.breakdown": "صيانة الأعطال",
+    "maintenanceRepair.calibration": "المعايرة",
+    "maintenanceRepair.checklist": "قائمة الصيانة",
+    "maintenanceRepair.cleaning": "التنظيف",
+    "maintenanceRepair.component": "المكونات",
+    "maintenanceRepair.corrective": "الصيانة التصحيحية",
+    "maintenanceRepair.history": "سجل الصيانة",
+    "maintenanceRepair.inspection": "الفحص",
+    "maintenanceRepair.log": "سجل الأعطال",
+    "maintenanceRepair.lubrication": "التشحيم",
+    "maintenanceRepair.maintenance": "الصيانة والإصلاح",
+    "maintenanceRepair.plan": "خطة الصيانة",
+    "maintenanceRepair.predictive": "الصيانة التنبؤية",
+    "maintenanceRepair.preventive": "الصيانة الوقائية",
+    "maintenanceRepair.procedure": "إجراءات الصيانة",
+    "maintenanceRepair.repair": "الإصلاح",
+    "maintenanceRepair.replacement": "الاستبدال",
+    "maintenanceRepair.schedule": "جدول الصيانة",
+    "maintenanceRepair.service": "الخدمة",
+    "maintenanceRepair.spare": "قطع الغيار",
+    "maintenanceRepair.task": "مهمة صيانة",
+    "maintenanceRepair.work": "أمر عمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/maintenanceScheduling.translations.json">
+<![CDATA[
+{
+  "en": {
+    "maintenanceScheduling.annually": "Annually",
+    "maintenanceScheduling.checklist": "Maintenance Checklist",
+    "maintenanceScheduling.corrective": "Corrective Maintenance",
+    "maintenanceScheduling.cost": "Cost",
+    "maintenanceScheduling.daily": "Daily",
+    "maintenanceScheduling.downtime": "Downtime",
+    "maintenanceScheduling.duration": "Duration",
+    "maintenanceScheduling.emergency": "Emergency Maintenance",
+    "maintenanceScheduling.frequency": "Frequency",
+    "maintenanceScheduling.interval": "Interval",
+    "maintenanceScheduling.lastCompleted": "Last Completed",
+    "maintenanceScheduling.maintenance": "Maintenance",
+    "maintenanceScheduling.monthly": "Monthly",
+    "maintenanceScheduling.nextDue": "Next Due",
+    "maintenanceScheduling.overdue": "Overdue",
+    "maintenanceScheduling.planned": "Planned Maintenance",
+    "maintenanceScheduling.predictive": "Predictive Maintenance",
+    "maintenanceScheduling.preventive": "Preventive Maintenance",
+    "maintenanceScheduling.procedure": "Procedure",
+    "maintenanceScheduling.quarterly": "Quarterly",
+    "maintenanceScheduling.routine": "Routine Maintenance",
+    "maintenanceScheduling.schedule": "Maintenance Schedule",
+    "maintenanceScheduling.technician": "Technician",
+    "maintenanceScheduling.unplanned": "Unplanned Maintenance",
+    "maintenanceScheduling.weekly": "Weekly"
+  },
+  "ar": {
+    "maintenanceScheduling.annually": "سنوي",
+    "maintenanceScheduling.checklist": "قائمة فحص الصيانة",
+    "maintenanceScheduling.corrective": "الصيانة التصحيحية",
+    "maintenanceScheduling.cost": "التكلفة",
+    "maintenanceScheduling.daily": "يومي",
+    "maintenanceScheduling.downtime": "وقت التوقف",
+    "maintenanceScheduling.duration": "المدة",
+    "maintenanceScheduling.emergency": "الصيانة الطارئة",
+    "maintenanceScheduling.frequency": "التكرار",
+    "maintenanceScheduling.interval": "الفترة",
+    "maintenanceScheduling.lastCompleted": "آخر اكتمال",
+    "maintenanceScheduling.maintenance": "الصيانة",
+    "maintenanceScheduling.monthly": "شهري",
+    "maintenanceScheduling.nextDue": "الموعد التالي",
+    "maintenanceScheduling.overdue": "متأخر",
+    "maintenanceScheduling.planned": "الصيانة المخططة",
+    "maintenanceScheduling.predictive": "الصيانة التنبؤية",
+    "maintenanceScheduling.preventive": "الصيانة الوقائية",
+    "maintenanceScheduling.procedure": "الإجراء",
+    "maintenanceScheduling.quarterly": "ربع سنوي",
+    "maintenanceScheduling.routine": "الصيانة الروتينية",
+    "maintenanceScheduling.schedule": "جدول الصيانة",
+    "maintenanceScheduling.technician": "الفني",
+    "maintenanceScheduling.unplanned": "الصيانة غير المخططة",
+    "maintenanceScheduling.weekly": "أسبوعي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/manufacturingExecution.translations.json">
+<![CDATA[
+{
+  "en": {
+    "manufacturingExecution.capacity": "Capacity Planning",
+    "manufacturingExecution.compliance": "Manufacturing Compliance",
+    "manufacturingExecution.downtime": "Downtime Tracking",
+    "manufacturingExecution.efficiency": "Operational Efficiency",
+    "manufacturingExecution.equipment": "Equipment Management",
+    "manufacturingExecution.execution": "Manufacturing Execution System",
+    "manufacturingExecution.genealogy": "Product Genealogy",
+    "manufacturingExecution.inspection": "Quality Inspection",
+    "manufacturingExecution.maintenance": "Maintenance Management",
+    "manufacturingExecution.manufacturing": "Manufacturing Execution",
+    "manufacturingExecution.materials": "Materials Management",
+    "manufacturingExecution.planning": "Production Planning",
+    "manufacturingExecution.production": "Production Management",
+    "manufacturingExecution.productivity": "Productivity Tracking",
+    "manufacturingExecution.quality": "Quality Control",
+    "manufacturingExecution.reporting": "Production Reporting",
+    "manufacturingExecution.rework": "Rework Management",
+    "manufacturingExecution.scheduling": "Production Scheduling",
+    "manufacturingExecution.scrap": "Scrap Management",
+    "manufacturingExecution.testing": "Quality Testing",
+    "manufacturingExecution.traceability": "Product Traceability",
+    "manufacturingExecution.work": "Work Order Management"
+  },
+  "ar": {
+    "manufacturingExecution.capacity": "تخطيط القدرة",
+    "manufacturingExecution.compliance": "امتثال التصنيع",
+    "manufacturingExecution.downtime": "تتبع التوقف",
+    "manufacturingExecution.efficiency": "الكفاءة التشغيلية",
+    "manufacturingExecution.equipment": "إدارة المعدات",
+    "manufacturingExecution.execution": "نظام تنفيذ التصنيع",
+    "manufacturingExecution.genealogy": "نسب المنتج",
+    "manufacturingExecution.inspection": "فحص الجودة",
+    "manufacturingExecution.maintenance": "إدارة الصيانة",
+    "manufacturingExecution.manufacturing": "تنفيذ التصنيع",
+    "manufacturingExecution.materials": "إدارة المواد",
+    "manufacturingExecution.planning": "تخطيط الإنتاج",
+    "manufacturingExecution.production": "إدارة الإنتاج",
+    "manufacturingExecution.productivity": "تتبع الإنتاجية",
+    "manufacturingExecution.quality": "مراقبة الجودة",
+    "manufacturingExecution.reporting": "تقارير الإنتاج",
+    "manufacturingExecution.rework": "إدارة إعادة العمل",
+    "manufacturingExecution.scheduling": "جدولة الإنتاج",
+    "manufacturingExecution.scrap": "إدارة الخردة",
+    "manufacturingExecution.testing": "اختبار الجودة",
+    "manufacturingExecution.traceability": "تتبع المنتج",
+    "manufacturingExecution.work": "إدارة أوامر العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/manufacturingOperations.translations.json">
+<![CDATA[
+{
+  "en": {
+    "manufacturingOperations.assembly": "Assembly",
+    "manufacturingOperations.assurance": "Quality Assurance",
+    "manufacturingOperations.automation": "Manufacturing Automation",
+    "manufacturingOperations.capacity": "Capacity Planning",
+    "manufacturingOperations.compliance": "Regulatory Compliance",
+    "manufacturingOperations.downtime": "Equipment Downtime",
+    "manufacturingOperations.efficiency": "Manufacturing Efficiency",
+    "manufacturingOperations.inspection": "Quality Inspection",
+    "manufacturingOperations.lean": "Lean Manufacturing",
+    "manufacturingOperations.line": "Production Line",
+    "manufacturingOperations.maintenance": "Preventive Maintenance",
+    "manufacturingOperations.manufacturing": "Manufacturing Operations",
+    "manufacturingOperations.packaging": "Packaging",
+    "manufacturingOperations.planning": "Production Planning",
+    "manufacturingOperations.process": "Manufacturing Process",
+    "manufacturingOperations.production": "Production",
+    "manufacturingOperations.quality": "Quality Control",
+    "manufacturingOperations.safety": "Manufacturing Safety",
+    "manufacturingOperations.scheduling": "Production Scheduling",
+    "manufacturingOperations.testing": "Product Testing",
+    "manufacturingOperations.traceability": "Product Traceability",
+    "manufacturingOperations.yield": "Production Yield"
+  },
+  "ar": {
+    "manufacturingOperations.assembly": "التجميع",
+    "manufacturingOperations.assurance": "ضمان الجودة",
+    "manufacturingOperations.automation": "أتمتة التصنيع",
+    "manufacturingOperations.capacity": "تخطيط السعة",
+    "manufacturingOperations.compliance": "الامتثال التنظيمي",
+    "manufacturingOperations.downtime": "وقت توقف المعدات",
+    "manufacturingOperations.efficiency": "كفاءة التصنيع",
+    "manufacturingOperations.inspection": "فحص الجودة",
+    "manufacturingOperations.lean": "التصنيع الخفيف",
+    "manufacturingOperations.line": "خط الإنتاج",
+    "manufacturingOperations.maintenance": "الصيانة الوقائية",
+    "manufacturingOperations.manufacturing": "عمليات التصنيع",
+    "manufacturingOperations.packaging": "التعبئة والتغليف",
+    "manufacturingOperations.planning": "تخطيط الإنتاج",
+    "manufacturingOperations.process": "عملية التصنيع",
+    "manufacturingOperations.production": "الإنتاج",
+    "manufacturingOperations.quality": "مراقبة الجودة",
+    "manufacturingOperations.safety": "السلامة في التصنيع",
+    "manufacturingOperations.scheduling": "جدولة الإنتاج",
+    "manufacturingOperations.testing": "اختبار المنتج",
+    "manufacturingOperations.traceability": "تتبع المنتج",
+    "manufacturingOperations.yield": "عائد الإنتاج"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/manufacturingTech.translations.json">
+<![CDATA[
+{
+  "en": {
+    "manufacturingTech.analytics": "Manufacturing Analytics",
+    "manufacturingTech.asset": "Asset Performance",
+    "manufacturingTech.automation": "Manufacturing Automation",
+    "manufacturingTech.control": "Process Control",
+    "manufacturingTech.digital": "Digital Twin Manufacturing",
+    "manufacturingTech.efficiency": "OEE Optimization",
+    "manufacturingTech.industry": "Industry 4.0",
+    "manufacturingTech.inspection": "Automated Inspection",
+    "manufacturingTech.iot": "Industrial IoT",
+    "manufacturingTech.lean": "Lean Manufacturing",
+    "manufacturingTech.maintenance": "Predictive Maintenance",
+    "manufacturingTech.manufacturing": "Manufacturing Technology",
+    "manufacturingTech.mes": "Manufacturing Execution System",
+    "manufacturingTech.monitoring": "Production Monitoring",
+    "manufacturingTech.optimization": "Manufacturing Optimization",
+    "manufacturingTech.planning": "Production Planning",
+    "manufacturingTech.plm": "Product Lifecycle Management",
+    "manufacturingTech.quality": "Quality Management",
+    "manufacturingTech.robotics": "Industrial Robotics",
+    "manufacturingTech.scheduling": "Production Scheduling",
+    "manufacturingTech.sensor": "Industrial Sensor",
+    "manufacturingTech.smart": "Smart Manufacturing"
+  },
+  "ar": {
+    "manufacturingTech.analytics": "تحليلات التصنيع",
+    "manufacturingTech.asset": "أداء الأصول",
+    "manufacturingTech.automation": "أتمتة التصنيع",
+    "manufacturingTech.control": "التحكم في العملية",
+    "manufacturingTech.digital": "التوأم الرقمي للتصنيع",
+    "manufacturingTech.efficiency": "تحسين الكفاءة الإجمالية للمعدات",
+    "manufacturingTech.industry": "الصناعة 4.0",
+    "manufacturingTech.inspection": "الفحص الآلي",
+    "manufacturingTech.iot": "إنترنت الأشياء الصناعي",
+    "manufacturingTech.lean": "التصنيع الرشيق",
+    "manufacturingTech.maintenance": "الصيانة التنبؤية",
+    "manufacturingTech.manufacturing": "تقنية التصنيع",
+    "manufacturingTech.mes": "نظام تنفيذ التصنيع",
+    "manufacturingTech.monitoring": "مراقبة الإنتاج",
+    "manufacturingTech.optimization": "تحسين التصنيع",
+    "manufacturingTech.planning": "تخطيط الإنتاج",
+    "manufacturingTech.plm": "إدارة دورة حياة المنتج",
+    "manufacturingTech.quality": "إدارة الجودة",
+    "manufacturingTech.robotics": "الروبوتات الصناعية",
+    "manufacturingTech.scheduling": "جدولة الإنتاج",
+    "manufacturingTech.sensor": "المستشعر الصناعي",
+    "manufacturingTech.smart": "التصنيع الذكي"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/maritime.translations.json">
+<![CDATA[
+{
+  "en": {
+    "maritime.anchoring": "Anchoring",
+    "maritime.ballast": "Ballast Management",
+    "maritime.berth": "Berth Management",
+    "maritime.bridge": "Bridge Operations",
+    "maritime.bulk": "Bulk Shipping",
+    "maritime.bunker": "Bunkering",
+    "maritime.cargo": "Cargo Operations",
+    "maritime.chart": "Nautical Charts",
+    "maritime.classification": "Ship Classification",
+    "maritime.container": "Container Shipping",
+    "maritime.crane": "Crane Operations",
+    "maritime.crew": "Crew Management",
+    "maritime.description": "Marine operations and shipping",
+    "maritime.drydock": "Drydock Operations",
+    "maritime.engine": "Engine Room",
+    "maritime.fuel": "Fuel Management",
+    "maritime.harbor": "Harbor Operations",
+    "maritime.ism": "ISM Code",
+    "maritime.lashing": "Cargo Lashing",
+    "maritime.loading": "Loading Operations",
+    "maritime.maintenance": "Ship Maintenance",
+    "maritime.manning": "Ship Manning",
+    "maritime.marpol": "MARPOL Compliance",
+    "maritime.mooring": "Mooring Operations",
+    "maritime.navigation": "Marine Navigation",
+    "maritime.pilot": "Pilotage",
+    "maritime.pollution": "Pollution Prevention",
+    "maritime.port": "Port Management",
+    "maritime.propulsion": "Marine Propulsion",
+    "maritime.registry": "Ship Registry",
+    "maritime.repair": "Ship Repair",
+    "maritime.safety": "Marine Safety",
+    "maritime.ship": "Ship Operations",
+    "maritime.solas": "SOLAS Compliance",
+    "maritime.stevedoring": "Stevedoring",
+    "maritime.stowage": "Cargo Stowage",
+    "maritime.survey": "Marine Survey",
+    "maritime.tanker": "Tanker Operations",
+    "maritime.terminal": "Terminal Operations",
+    "maritime.title": "Maritime & Shipping",
+    "maritime.tugboat": "Tugboat Services",
+    "maritime.unloading": "Unloading Operations",
+    "maritime.vessel": "Vessel Management",
+    "maritime.watchkeeping": "Watchkeeping"
+  },
+  "ar": {
+    "maritime.anchoring": "الإرساء",
+    "maritime.ballast": "إدارة الصابورة",
+    "maritime.berth": "إدارة أرصفة الرسو",
+    "maritime.bridge": "عمليات الجسر",
+    "maritime.bulk": "الشحن بالجملة",
+    "maritime.bunker": "التزود بالوقود",
+    "maritime.cargo": "عمليات الشحن",
+    "maritime.chart": "الخرائط البحرية",
+    "maritime.classification": "تصنيف السفن",
+    "maritime.container": "الشحن بالحاويات",
+    "maritime.crane": "عمليات الرافعات",
+    "maritime.crew": "إدارة الطاقم",
+    "maritime.description": "العمليات البحرية والشحن",
+    "maritime.drydock": "عمليات الحوض الجاف",
+    "maritime.engine": "غرفة المحرك",
+    "maritime.fuel": "إدارة الوقود",
+    "maritime.harbor": "عمليات المرفأ",
+    "maritime.ism": "كود ISM",
+    "maritime.lashing": "تثبيت الحمولة",
+    "maritime.loading": "عمليات التحميل",
+    "maritime.maintenance": "صيانة السفن",
+    "maritime.manning": "تعيين طاقم السفينة",
+    "maritime.marpol": "الامتثال لـ MARPOL",
+    "maritime.mooring": "عمليات الإرساء",
+    "maritime.navigation": "الملاحة البحرية",
+    "maritime.pilot": "الإرشاد البحري",
+    "maritime.pollution": "منع التلوث",
+    "maritime.port": "إدارة الموانئ",
+    "maritime.propulsion": "الدفع البحري",
+    "maritime.registry": "سجل السفن",
+    "maritime.repair": "إصلاح السفن",
+    "maritime.safety": "السلامة البحرية",
+    "maritime.ship": "عمليات السفن",
+    "maritime.solas": "الامتثال لـ SOLAS",
+    "maritime.stevedoring": "الشحن والتفريغ",
+    "maritime.stowage": "تخزين الحمولة",
+    "maritime.survey": "المسح البحري",
+    "maritime.tanker": "عمليات الناقلات",
+    "maritime.terminal": "عمليات المحطة",
+    "maritime.title": "البحرية والشحن",
+    "maritime.tugboat": "خدمات القاطرات",
+    "maritime.unloading": "عمليات التفريغ",
+    "maritime.vessel": "إدارة السفن",
+    "maritime.watchkeeping": "الحراسة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/maritimeOperations.translations.json">
+<![CDATA[
+{
+  "en": {
+    "maritimeOperations.berthManagement": "Berth Management",
+    "maritimeOperations.billOfLading": "Bill of Lading",
+    "maritimeOperations.cargoManagement": "Cargo Management",
+    "maritimeOperations.cargoPlanning": "Cargo Planning",
+    "maritimeOperations.certificationCompliance": "Certification & Compliance",
+    "maritimeOperations.containerTracking": "Container Tracking",
+    "maritimeOperations.crewManagement": "Crew Management",
+    "maritimeOperations.crewWelfare": "Crew Welfare",
+    "maritimeOperations.description": "Shipping and port operations management",
+    "maritimeOperations.environmentalCompliance": "Environmental Compliance",
+    "maritimeOperations.flagStateRequirements": "Flag State Requirements",
+    "maritimeOperations.fleetManagement": "Fleet Management",
+    "maritimeOperations.loadingUnloading": "Loading & Unloading",
+    "maritimeOperations.pilotageServices": "Pilotage Services",
+    "maritimeOperations.portCalls": "Port Calls",
+    "maritimeOperations.portOperations": "Port Operations",
+    "maritimeOperations.portStateControl": "Port State Control",
+    "maritimeOperations.positionReporting": "Position Reporting",
+    "maritimeOperations.routeOptimization": "Route Optimization",
+    "maritimeOperations.title": "Maritime Operations",
+    "maritimeOperations.vesselOperations": "Vessel Operations",
+    "maritimeOperations.vesselTracking": "Vessel Tracking",
+    "maritimeOperations.voyagePlanning": "Voyage Planning",
+    "maritimeOperations.weatherRouting": "Weather Routing"
+  },
+  "ar": {
+    "maritimeOperations.berthManagement": "إدارة أرصفة الميناء",
+    "maritimeOperations.billOfLading": "بوليصة الشحن",
+    "maritimeOperations.cargoManagement": "إدارة البضائع",
+    "maritimeOperations.cargoPlanning": "تخطيط البضائع",
+    "maritimeOperations.certificationCompliance": "الشهادات والامتثال",
+    "maritimeOperations.containerTracking": "تتبع الحاويات",
+    "maritimeOperations.crewManagement": "إدارة الطاقم",
+    "maritimeOperations.crewWelfare": "رعاية الطاقم",
+    "maritimeOperations.description": "إدارة عمليات الشحن والموانئ",
+    "maritimeOperations.environmentalCompliance": "الامتثال البيئي",
+    "maritimeOperations.flagStateRequirements": "متطلبات دولة العلم",
+    "maritimeOperations.fleetManagement": "إدارة الأسطول",
+    "maritimeOperations.loadingUnloading": "التحميل والتفريغ",
+    "maritimeOperations.pilotageServices": "خدمات الإرشاد",
+    "maritimeOperations.portCalls": "زيارات الميناء",
+    "maritimeOperations.portOperations": "عمليات الميناء",
+    "maritimeOperations.portStateControl": "مراقبة دولة الميناء",
+    "maritimeOperations.positionReporting": "الإبلاغ عن الموقع",
+    "maritimeOperations.routeOptimization": "تحسين المسار",
+    "maritimeOperations.title": "العمليات البحرية",
+    "maritimeOperations.vesselOperations": "عمليات السفن",
+    "maritimeOperations.vesselTracking": "تتبع السفن",
+    "maritimeOperations.voyagePlanning": "تخطيط الرحلات",
+    "maritimeOperations.weatherRouting": "توجيه الطقس"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/marketExpansion.translations.json">
+<![CDATA[
+{
+  "en": {
+    "marketExpansion.adaptation": "Market Adaptation",
+    "marketExpansion.analysis": "Market Analysis",
+    "marketExpansion.assessment": "Market Assessment",
+    "marketExpansion.development": "Market Development",
+    "marketExpansion.diversification": "Market Diversification",
+    "marketExpansion.entry": "Market Entry",
+    "marketExpansion.evaluation": "Expansion Evaluation",
+    "marketExpansion.expansion": "Expansion Strategy",
+    "marketExpansion.geographic": "Geographic Expansion",
+    "marketExpansion.global": "Global Expansion",
+    "marketExpansion.international": "International Expansion",
+    "marketExpansion.investment": "Expansion Investment",
+    "marketExpansion.localization": "Market Localization",
+    "marketExpansion.market": "Market Expansion",
+    "marketExpansion.monitoring": "Expansion Monitoring",
+    "marketExpansion.opportunities": "Market Opportunities",
+    "marketExpansion.penetration": "Market Penetration",
+    "marketExpansion.performance": "Expansion Performance",
+    "marketExpansion.planning": "Expansion Planning",
+    "marketExpansion.research": "Market Research",
+    "marketExpansion.risk": "Expansion Risk",
+    "marketExpansion.strategy": "Expansion Strategy"
+  },
+  "ar": {
+    "marketExpansion.adaptation": "التكيف مع السوق",
+    "marketExpansion.analysis": "تحليل السوق",
+    "marketExpansion.assessment": "تقييم السوق",
+    "marketExpansion.development": "تطوير السوق",
+    "marketExpansion.diversification": "تنويع السوق",
+    "marketExpansion.entry": "دخول السوق",
+    "marketExpansion.evaluation": "تقييم التوسع",
+    "marketExpansion.expansion": "استراتيجية التوسع",
+    "marketExpansion.geographic": "التوسع الجغرافي",
+    "marketExpansion.global": "التوسع العالمي",
+    "marketExpansion.international": "التوسع الدولي",
+    "marketExpansion.investment": "استثمار التوسع",
+    "marketExpansion.localization": "توطين السوق",
+    "marketExpansion.market": "التوسع في السوق",
+    "marketExpansion.monitoring": "مراقبة التوسع",
+    "marketExpansion.opportunities": "فرص السوق",
+    "marketExpansion.penetration": "اختراق السوق",
+    "marketExpansion.performance": "أداء التوسع",
+    "marketExpansion.planning": "تخطيط التوسع",
+    "marketExpansion.research": "أبحاث السوق",
+    "marketExpansion.risk": "مخاطر التوسع",
+    "marketExpansion.strategy": "استراتيجية التوسع"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/marketIntelligence.translations.json">
+<![CDATA[
+{
+  "en": {
+    "marketIntelligence.analysis": "Market Analysis",
+    "marketIntelligence.analytics": "Market Analytics",
+    "marketIntelligence.competitive": "Competitive Intelligence",
+    "marketIntelligence.dashboard": "Market Dashboard",
+    "marketIntelligence.data": "Market Data",
+    "marketIntelligence.drivers": "Market Drivers",
+    "marketIntelligence.dynamics": "Market Dynamics",
+    "marketIntelligence.entry": "Market Entry",
+    "marketIntelligence.forecasting": "Market Forecasting",
+    "marketIntelligence.insights": "Market Insights",
+    "marketIntelligence.intelligence": "MI Management",
+    "marketIntelligence.landscape": "Market Landscape",
+    "marketIntelligence.market": "Market Intelligence",
+    "marketIntelligence.monitoring": "Market Monitoring",
+    "marketIntelligence.opportunities": "Market Opportunities",
+    "marketIntelligence.positioning": "Market Positioning",
+    "marketIntelligence.reporting": "Market Reporting",
+    "marketIntelligence.research": "Market Research",
+    "marketIntelligence.segmentation": "Market Segmentation",
+    "marketIntelligence.sizing": "Market Sizing",
+    "marketIntelligence.threats": "Market Threats",
+    "marketIntelligence.trends": "Market Trends"
+  },
+  "ar": {
+    "marketIntelligence.analysis": "تحليل السوق",
+    "marketIntelligence.analytics": "تحليلات السوق",
+    "marketIntelligence.competitive": "الذكاء التنافسي",
+    "marketIntelligence.dashboard": "لوحة معلومات السوق",
+    "marketIntelligence.data": "بيانات السوق",
+    "marketIntelligence.drivers": "محركات السوق",
+    "marketIntelligence.dynamics": "ديناميكيات السوق",
+    "marketIntelligence.entry": "دخول السوق",
+    "marketIntelligence.forecasting": "التنبؤ بالسوق",
+    "marketIntelligence.insights": "رؤى السوق",
+    "marketIntelligence.intelligence": "إدارة ذكاء السوق",
+    "marketIntelligence.landscape": "مشهد السوق",
+    "marketIntelligence.market": "ذكاء السوق",
+    "marketIntelligence.monitoring": "مراقبة السوق",
+    "marketIntelligence.opportunities": "فرص السوق",
+    "marketIntelligence.positioning": "تحديد موضع السوق",
+    "marketIntelligence.reporting": "تقارير السوق",
+    "marketIntelligence.research": "أبحاث السوق",
+    "marketIntelligence.segmentation": "تقسيم السوق",
+    "marketIntelligence.sizing": "حجم السوق",
+    "marketIntelligence.threats": "تهديدات السوق",
+    "marketIntelligence.trends": "اتجاهات السوق"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/marketingAnalytics.translations.json">
+<![CDATA[
+{
+  "en": {
+    "marketingAnalytics.attribution": "Marketing Attribution",
+    "marketingAnalytics.campaigns": "Campaign Analytics",
+    "marketingAnalytics.channel": "Channel Analytics",
+    "marketingAnalytics.content": "Content Analytics",
+    "marketingAnalytics.conversion": "Conversion Tracking",
+    "marketingAnalytics.email": "Email Analytics",
+    "marketingAnalytics.funnel": "Marketing Funnel",
+    "marketingAnalytics.leads": "Lead Analytics",
+    "marketingAnalytics.marketing": "Marketing Analytics",
+    "marketingAnalytics.mobile": "Mobile Analytics",
+    "marketingAnalytics.multichannel": "Multi-Channel Attribution",
+    "marketingAnalytics.nurturing": "Lead Nurturing",
+    "marketingAnalytics.performance": "Campaign Performance",
+    "marketingAnalytics.personalization": "Personalization",
+    "marketingAnalytics.roi": "Marketing ROI",
+    "marketingAnalytics.scoring": "Lead Scoring",
+    "marketingAnalytics.segmentation": "Audience Segmentation",
+    "marketingAnalytics.social": "Social Media Analytics",
+    "marketingAnalytics.targeting": "Audience Targeting",
+    "marketingAnalytics.touchpoint": "Touchpoint Analysis",
+    "marketingAnalytics.web": "Web Analytics"
+  },
+  "ar": {
+    "marketingAnalytics.attribution": "إسناد التسويق",
+    "marketingAnalytics.campaigns": "تحليلات الحملات",
+    "marketingAnalytics.channel": "تحليلات القنوات",
+    "marketingAnalytics.content": "تحليلات المحتوى",
+    "marketingAnalytics.conversion": "تتبع التحويل",
+    "marketingAnalytics.email": "تحليلات البريد الإلكتروني",
+    "marketingAnalytics.funnel": "قمع التسويق",
+    "marketingAnalytics.leads": "تحليلات العملاء المحتملين",
+    "marketingAnalytics.marketing": "تحليلات التسويق",
+    "marketingAnalytics.mobile": "تحليلات الهاتف المحمول",
+    "marketingAnalytics.multichannel": "الإسناد متعدد القنوات",
+    "marketingAnalytics.nurturing": "رعاية العملاء المحتملين",
+    "marketingAnalytics.performance": "أداء الحملة",
+    "marketingAnalytics.personalization": "التخصيص",
+    "marketingAnalytics.roi": "عائد الاستثمار التسويقي",
+    "marketingAnalytics.scoring": "تسجيل العملاء المحتملين",
+    "marketingAnalytics.segmentation": "تقسيم الجمهور",
+    "marketingAnalytics.social": "تحليلات وسائل التواصل الاجتماعي",
+    "marketingAnalytics.targeting": "استهداف الجمهور",
+    "marketingAnalytics.touchpoint": "تحليل نقاط الاتصال",
+    "marketingAnalytics.web": "تحليلات الويب"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/marketingAutomation.translations.json">
+<![CDATA[
+{
+  "en": {
+    "marketingAutomation.abtest": "A/B Testing",
+    "marketingAutomation.analytics": "Marketing Analytics",
+    "marketingAutomation.attribution": "Attribution",
+    "marketingAutomation.automation": "Automation",
+    "marketingAutomation.bounce": "Bounce Rate",
+    "marketingAutomation.campaign": "Campaign",
+    "marketingAutomation.conversion": "Conversion",
+    "marketingAutomation.ctr": "Click-Through Rate",
+    "marketingAutomation.drip": "Drip Campaign",
+    "marketingAutomation.email": "Email Marketing",
+    "marketingAutomation.funnel": "Marketing Funnel",
+    "marketingAutomation.landing": "Landing Page",
+    "marketingAutomation.lead": "Lead Generation",
+    "marketingAutomation.marketing": "Marketing",
+    "marketingAutomation.newsletter": "Newsletter",
+    "marketingAutomation.nurture": "Lead Nurturing",
+    "marketingAutomation.open": "Open Rate",
+    "marketingAutomation.personalization": "Personalization",
+    "marketingAutomation.roi": "ROI",
+    "marketingAutomation.scoring": "Lead Scoring",
+    "marketingAutomation.segment": "Segmentation",
+    "marketingAutomation.unsubscribe": "Unsubscribe"
+  },
+  "ar": {
+    "marketingAutomation.abtest": "اختبار A/B",
+    "marketingAutomation.analytics": "تحليلات التسويق",
+    "marketingAutomation.attribution": "الإسناد",
+    "marketingAutomation.automation": "الأتمتة",
+    "marketingAutomation.bounce": "معدل الارتداد",
+    "marketingAutomation.campaign": "الحملة",
+    "marketingAutomation.conversion": "التحويل",
+    "marketingAutomation.ctr": "معدل النقر",
+    "marketingAutomation.drip": "حملة التنقيط",
+    "marketingAutomation.email": "التسويق عبر البريد",
+    "marketingAutomation.funnel": "قمع التسويق",
+    "marketingAutomation.landing": "صفحة الهبوط",
+    "marketingAutomation.lead": "توليد العملاء المحتملين",
+    "marketingAutomation.marketing": "التسويق",
+    "marketingAutomation.newsletter": "النشرة الإخبارية",
+    "marketingAutomation.nurture": "رعاية العملاء المحتملين",
+    "marketingAutomation.open": "معدل الفتح",
+    "marketingAutomation.personalization": "التخصيص",
+    "marketingAutomation.roi": "العائد على الاستثمار",
+    "marketingAutomation.scoring": "تسجيل العملاء المحتملين",
+    "marketingAutomation.segment": "التقسيم",
+    "marketingAutomation.unsubscribe": "إلغاء الاشتراك"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/marketingAutomationAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "marketingAutomationAdv.action": "Action",
+    "marketingAutomationAdv.automation": "Marketing Automation",
+    "marketingAutomationAdv.behavior": "Behavioral Trigger",
+    "marketingAutomationAdv.branch": "Branch",
+    "marketingAutomationAdv.condition": "Condition",
+    "marketingAutomationAdv.delay": "Delay",
+    "marketingAutomationAdv.drip": "Drip Campaign",
+    "marketingAutomationAdv.engagement": "Engagement",
+    "marketingAutomationAdv.journey": "Customer Journey",
+    "marketingAutomationAdv.lifecycle": "Lifecycle Stage",
+    "marketingAutomationAdv.nurture": "Lead Nurturing",
+    "marketingAutomationAdv.personalization": "Dynamic Personalization",
+    "marketingAutomationAdv.platform": "Automation Platform",
+    "marketingAutomationAdv.reporting": "Automation Reporting",
+    "marketingAutomationAdv.score": "Lead Scoring",
+    "marketingAutomationAdv.segment": "Dynamic Segmentation",
+    "marketingAutomationAdv.sequence": "Sequence",
+    "marketingAutomationAdv.split": "Split Path",
+    "marketingAutomationAdv.touchpoint": "Touchpoint",
+    "marketingAutomationAdv.trigger": "Trigger",
+    "marketingAutomationAdv.wait": "Wait Step",
+    "marketingAutomationAdv.workflow": "Marketing Workflow"
+  },
+  "ar": {
+    "marketingAutomationAdv.action": "الإجراء",
+    "marketingAutomationAdv.automation": "أتمتة التسويق",
+    "marketingAutomationAdv.behavior": "المشغل السلوكي",
+    "marketingAutomationAdv.branch": "الفرع",
+    "marketingAutomationAdv.condition": "الشرط",
+    "marketingAutomationAdv.delay": "التأخير",
+    "marketingAutomationAdv.drip": "حملة التنقيط",
+    "marketingAutomationAdv.engagement": "المشاركة",
+    "marketingAutomationAdv.journey": "رحلة العميل",
+    "marketingAutomationAdv.lifecycle": "مرحلة دورة الحياة",
+    "marketingAutomationAdv.nurture": "رعاية العميل المحتمل",
+    "marketingAutomationAdv.personalization": "التخصيص الديناميكي",
+    "marketingAutomationAdv.platform": "منصة الأتمتة",
+    "marketingAutomationAdv.reporting": "إعداد تقارير الأتمتة",
+    "marketingAutomationAdv.score": "تسجيل العميل المحتمل",
+    "marketingAutomationAdv.segment": "التقسيم الديناميكي",
+    "marketingAutomationAdv.sequence": "التسلسل",
+    "marketingAutomationAdv.split": "المسار المقسم",
+    "marketingAutomationAdv.touchpoint": "نقطة الاتصال",
+    "marketingAutomationAdv.trigger": "المشغل",
+    "marketingAutomationAdv.wait": "خطوة الانتظار",
+    "marketingAutomationAdv.workflow": "سير عمل التسويق"
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

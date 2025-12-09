@@ -1,0 +1,2920 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/analysis/system-wide-issues-analysis.md">
+<![CDATA[
+# System-Wide Issues Analysis (Past 5 Days Fixes Extended)
+
+**Analysis Date:** November 5, 2025  
+**Scope:** Entire codebase  
+**Based on:** Issues fixed in PRs #231, #233, #224, #218, #214, #209, #208
+
+---
+
+## 📊 Executive Summary
+
+Based on fixes from the past 5 days, we identified **7 categories** of similar issues across the entire system:
+
+| Category                        | Count         | Severity  | Files Affected |
+| ------------------------------- | ------------- | --------- | -------------- |
+| **1. Theme Compliance**         | 47 instances  | 🟡 Medium | 10 files       |
+| **2. Console Statements**       | 39 instances  | 🟡 Medium | 20 files       |
+| **3. Security (Navigation)**    | 50+ instances | 🔴 High   | 30+ files      |
+| **4. Duplicate Code**           | TBD           | 🟡 Medium | TBD            |
+| **5. Missing A11y Labels**      | TBD           | 🟡 Medium | TBD            |
+| **6. Performance Issues**       | TBD           | 🟢 Low    | TBD            |
+| **7. Missing Error Boundaries** | TBD           | 🟡 Medium | TBD            |
+
+---
+
+## 🎯 Category 1: Theme Compliance (Hardcoded Colors)
+
+### Issue Description
+
+Files contain hardcoded hex colors instead of using theme tokens from `tailwind.config.js`.
+
+### Examples Fixed (PR #233)
+
+- ✅ `#FF8C00` → `bg-warning-dark`
+- ✅ `#FFB400` → `text-warning`
+- ✅ `#0061A8` → `bg-primary`
+
+### Files with Remaining Issues
+
+#### High Priority (13 instances)
+
+**File:** `components/CopilotWidget.tsx`
+
+- Line 437: `focus:ring-[#0061A8]` → should be `focus:ring-primary`
+- Line 438: `focus:ring-[#0061A8]` → should be `focus:ring-primary`
+- Line 439: `focus:ring-[#0061A8]` → should be `focus:ring-primary`
+- Line 450: `focus:ring-[#0061A8]` → should be `focus:ring-primary`
+- Line 451: `focus:ring-[#0061A8]` → should be `focus:ring-primary`
+- Line 457: `focus:ring-[#0061A8]` → should be `focus:ring-primary`
+- Line 458: `focus:ring-[#0061A8]` → should be `focus:ring-primary`
+- Line 464: `focus:ring-[#0061A8]` → should be `focus:ring-primary`
+- Line 475: `focus:ring-[#0061A8]` → should be `focus:ring-primary`
+- Line 476: `focus:ring-[#0061A8]` → should be `focus:ring-primary`
+- Line 483: `focus:ring-[#0061A8]` → should be `focus:ring-primary`
+- Line 598: `hover:bg-[#004f88]` → should be `hover:bg-primary-dark`
+- Line 620: `focus:ring-[#0061A8]` → should be `focus:ring-primary`
+- Line 626: `hover:bg-[#008d48]` → should be `hover:bg-success-dark`
+- Line 654: `hover:bg-[#004f88]` → should be `hover:bg-primary-dark`
+
+#### Medium Priority (7 instances)
+
+**File:** `qa/AutoFixAgent.tsx`
+
+- Line 238: `'#FFB400'` → `'hsl(var(--warning))'`
+- Line 238: `'#00A859'` → `'hsl(var(--success))'`
+- Line 249: `background: '#0061A8'` → `'hsl(var(--primary))'`
+- Line 249: `color: 'white'` → OK (for contrast)
+- Line 250: `rgba(0,0,0,.2)` → `'hsl(var(--shadow))'`
+- Line 261: `color:'#FFB400'` → `'hsl(var(--warning))'`
+- Line 272: `background: '#0061A8'` → `'hsl(var(--primary))'`
+
+#### Medium Priority (2 instances)
+
+**File:** `components/marketplace/CatalogView.tsx`
+
+- Line 257: `hover:bg-[#00508d]` → `hover:bg-primary-dark`
+- Line 322: `hover:bg-[#00508d]` → `hover:bg-primary-dark`
+
+#### Low Priority (1 instance)
+
+**File:** `components/marketplace/ProductCard.tsx`
+
+- Line 85: `fill="#FFB400"` → `fill="currentColor" className="text-warning"`
+
+#### Low Priority (1 instance)
+
+**File:** `providers/Providers.tsx`
+
+- Line 41: `border-[#0061A8]` → `border-primary`
+
+#### Exceptions (19 instances - KEEP AS IS)
+
+**Files:** `components/FlagIcon.tsx`, `components/FlagIcon.accessibility.test.tsx`, `components/auth/GoogleSignInButton.tsx`
+
+- **Reason:** SVG flags and Google branding require exact hex colors per design specs
+- **Action:** No changes needed
+
+### Total to Fix: 24 hardcoded colors
+
+---
+
+## 🎯 Category 2: Console Statements (Production Code)
+
+### Issue Description
+
+Production code contains `console.log`, `console.error`, `console.warn` statements that should use proper logging service or be removed.
+
+### Recommendation
+
+- Remove `console.log` from production
+- Replace `console.error` with error reporting service
+- Replace `console.warn` with proper warning system
+
+### Files with Console Statements
+
+#### High Priority (Error Handling) - 15 instances
+
+1. `components/ErrorBoundary.tsx` (3): Lines 40, 80, 119
+2. `components/finance/AccountActivityViewer.tsx` (1): Line 130
+3. `components/finance/JournalEntryForm.tsx` (2): Lines 138, 353
+4. `components/finance/TrialBalanceReport.tsx` (1): Line 94
+5. `components/auth/GoogleSignInButton.tsx` (2): Lines 38, 46
+6. `components/auth/LoginForm.tsx` (1): Line 141
+7. `components/TopBar.tsx` (3): Lines 120, 182, 278
+8. `components/topbar/GlobalSearch.tsx` (1): Line 82
+9. `components/SystemVerifier.tsx` (1): Line 47
+
+#### Medium Priority (Feature Code) - 24 instances
+
+10. `components/i18n/CompactLanguageSelector.tsx` (1): Line 48
+11. `components/forms/ExampleForm.tsx` (2): Lines 34, 36
+12. `components/SupportPopup.tsx` (1): Line 212
+13. `components/ErrorBoundary.OLD.tsx` (2): Lines 235, 244
+14. `components/SupportPopup.OLD.tsx` (1): Line 146
+15. `components/ui/textarea.tsx` (2): Lines 40, 46
+16. `components/ui/select.tsx` (1): Line 205
+17. `components/aqar/PropertyCard.tsx` (1): Line 99
+18. `components/aqar/ViewingScheduler.tsx` (1): Line 124
+19. `components/fm/WorkOrdersView.tsx` (1): Line 385
+20. `components/marketplace/CatalogView.tsx` (1): Line 168
+21. `components/marketplace/PDPBuyBox.tsx` (1): Line 49
+22. `components/marketplace/ProductCard.tsx` (1): Line 55
+23. `components/GoogleMap.tsx` (1): Line 192
+24. `components/ClientLayout.tsx` (1): Line 153
+25. `components/CopilotWidget.tsx` (2): Lines 301, 387
+26. `components/admin/UpgradeModal.tsx` (1): Line 88
+
+### Total to Fix/Replace: 39 console statements
+
+---
+
+## 🎯 Category 3: Security - Improper Navigation (PR #224 Pattern)
+
+### Issue Description
+
+Similar to fixes in PR #224, many files use `onClick` with `router.push` or `window.open` instead of proper Link components, which:
+
+- Bypasses Next.js prefetching
+- Lacks proper security attributes
+- Poor accessibility (no keyboard navigation)
+
+### Examples Fixed (PR #224)
+
+- ✅ `<div onClick={() => router.push(...)}>` → `<Link href="...">`
+- ✅ `window.open('/help')` → `<Link href="/help" target="_blank">`
+
+### Files with Remaining Issues (50+ instances)
+
+#### High Priority (15+ instances)
+
+1. **app/notifications/page.tsx** (3 instances)
+   - Lines 297, 301, 340: `window.open` usage
+2. **app/(dashboard)/referrals/page.tsx** (1 instance)
+   - Line 255: `window.open` for WhatsApp share
+
+3. **components/SystemVerifier.tsx** (1 instance)
+   - Line 368: `window.open('/help')`
+
+4. **app/fm/** (15+ instances)
+   - Multiple files with `onClick={() => router.push(...)}`
+   - Lines: 338, 314, 321, 191, 256, 264, 301, 308, 79, 128, 166, 55, 99
+
+5. **app/finance/** (6+ instances)
+   - Multiple pages with navigation patterns
+
+### Detailed File List (Sample)
+
+```
+app/finance/budgets/new/page.tsx: 2 instances
+app/finance/invoices/new/page.tsx: 2 instances
+app/finance/expenses/new/page.tsx: 2 instances
+app/finance/payments/new/page.tsx: 1 instance
+app/aqar/filters/page.tsx: 2 instances
+app/marketplace/vendor/products/upload/page.tsx: 1 instance
+app/hr/layout.tsx: 1 instance
+app/hr/ats/jobs/new/page.tsx: 1 instance
+app/dev/login-helpers/DevLoginClient.tsx: 1 instance
+app/souq/catalog/page.tsx: 2 instances
+app/fm/orders/page.tsx: 7 instances
+app/signup/page.tsx: 1 instance
+app/admin/page.tsx: 1 instance
+components/careers/JobApplicationForm.tsx: 1 instance
+components/TopBar.tsx: 4 instances
+components/topbar/QuickActions.tsx: 2 instances
+components/topbar/GlobalSearch.tsx: 1 instance
+```
+
+### Total to Fix: 50+ improper navigation patterns
+
+---
+
+## 🎯 Categories 4-7: To Be Analyzed
+
+### Category 4: Duplicate Code Patterns
+
+**Status:** Pending deep code analysis  
+**Next:** Search for repeated form patterns, API calls, validation logic
+
+### Category 5: Missing Accessibility Labels
+
+**Status:** 50+ already have labels (good coverage)  
+**Next:** Scan for buttons/inputs without labels
+
+### Category 6: Memory & Performance Issues
+
+**Status:** Exit Code 5 fixed (PR merged)  
+**Next:** Scan for useEffect cleanup, unbounded loops, large bundles
+
+### Category 7: Missing Error Boundaries
+
+**Status:** ErrorBoundary exists globally  
+**Next:** Identify pages needing local error boundaries
+
+---
+
+## 📋 Recommended Fix Order
+
+### Phase 1: Security (High Priority) 🔴
+
+1. Fix Category 3 (Improper Navigation) - 50+ instances
+   - **PR Target:** #238
+
+### Phase 2: Code Quality (Medium Priority) 🟡
+
+2. Fix Category 1 (Theme Compliance) - 24 instances
+3. Fix Category 2 (Console Statements) - 39 instances
+   - **PR Target:** #239
+
+### Phase 3: Enhancement (Low Priority) 🟢
+
+4. Analyze Category 4 (Duplicate Code)
+5. Analyze Category 5 (Accessibility)
+6. Analyze Category 6 (Performance)
+7. Analyze Category 7 (Error Boundaries)
+   - **PR Target:** #240
+
+---
+
+## 📈 Metrics
+
+- **Files Scanned:** 500+
+- **Issues Identified:** 113+ (Categories 1-3 only)
+- **Categories:** 7 total
+- **Estimated Fix Time:** 8-12 hours
+- **PRs Required:** 3-4
+
+---
+
+**Next Steps:**
+
+1. Start with Category 1 (Theme Compliance) - Quick wins
+2. Create PR #238 for each category
+3. Get review before moving to next category
+
+]]>
+</file>
+
+<file path="docs/architecture/ARCHITECTURAL_REVIEW_FM_GUARD_REFACTOR.md">
+<![CDATA[
+# FM Guard Pattern: Current Status & Next Steps
+
+**Scope:** Facility Management (FM) pages guarded by organization context  
+**Status:** Hooks waivers eliminated across all FM pages; guard wrapper standardized  
+**Last Updated:** Nov 22, 2025 (post full rollout)
+
+## What We Fixed This Round
+
+- Removed all remaining `react-hooks/rules-of-hooks` waivers by wrapping org-dependent pages with `FmGuardedPage`.
+- Refactored pages to render content only after org context is available; latest batch included:
+  - `app/fm/dashboard/page.tsx`
+  - `app/fm/vendors/page.tsx`
+  - `app/fm/vendors/[id]/page.tsx`
+  - `app/fm/projects/page.tsx`
+  - `app/fm/rfqs/page.tsx`
+  - `app/fm/tenants/page.tsx`
+  - `app/fm/finance/invoices/new/page.tsx`
+  - `app/fm/support/escalations/new/page.tsx`
+- Verified no FM pages still contain hook rule disables (`rg "eslint-disable react-hooks/rules-of-hooks" app/fm` → 0 matches).
+
+## Current Metrics
+
+- `FmGuardedPage` usages in FM: 45 files (all org-gated FM pages covered).
+- `useFmOrgGuard` direct usages: 100+ (legit in shared hooks/components).
+- Hook waivers in FM pages: **0**.
+
+## Risks / Follow-ups
+
+- Ensure new FM pages follow the wrapper pattern to avoid reintroducing hook rule waivers.
+- Basic smoke run passed previously; re-run targeted smoke after any major FM UI changes.
+- Consider adding a small unit test suite for `FmGuardedPage` to lock behavior.
+
+## Action Items
+
+1) Keep `FmGuardedPage` as the default for org-gated FM pages (no inline guard checks with hooks).  
+2) Add a pre-commit check to flag `eslint-disable react-hooks/rules-of-hooks` inside `app/fm/**`.  
+3) Optional: add unit tests for the wrapper (guard renders fallback when no org, renders children when org exists, passes through banner/context).  
+
+]]>
+</file>
+
+<file path="docs/architecture/ARCHITECTURE.md">
+<![CDATA[
+# Fixzit Architecture Decision Records (ADRs)
+
+This document captures key architectural decisions for the Fixzit platform, establishing ground truth for future development and preventing repeated debates.
+
+## Table of Contents
+
+1. [Currency Handling](#1-currency-handling)
+2. [Collection Structure](#2-collection-structure)
+3. [Denormalization Patterns](#3-denormalization-patterns)
+4. [Transaction Integrity](#4-transaction-integrity)
+5. [Design System](#5-design-system)
+6. [Internationalization (i18n)](#6-internationalization-i18n)
+
+---
+
+## 1. Currency Handling
+
+### Decision
+
+Use **SAR (Saudi Riyals) with 2 decimal precision** for all monetary values. Do NOT use Halalas as the base unit.
+
+### Rationale
+
+- **Human-readable**: Developers and stakeholders think in SAR, not Halalas (1 SAR = 100 Halalas)
+- **Standard precision**: 2 decimal places matches banking and accounting practices
+- **Rounding**: Use `Math.round(value * 100) / 100` for consistent rounding to 2 decimals
+- **Simplicity**: Avoids mental conversion overhead (e.g., "is 150000 Halalas = 1,500 SAR?")
+
+### Implementation
+
+```typescript
+// ✅ CORRECT: Store as SAR with 2 decimals
+const basicSalary = 5000.0; // SAR
+const allowance = 1500.5; // SAR
+const total = Math.round((basicSalary + allowance) * 100) / 100; // 6500.50 SAR
+
+// ❌ WRONG: Store as Halalas
+const basicSalary = 500000; // Halalas (confusing)
+```
+
+### Exceptions
+
+None. All financial amounts in the system (salaries, allowances, deductions, invoices) use SAR with 2 decimals.
+
+---
+
+## 2. Collection Structure
+
+### Decision
+
+Store **Payslips as a separate collection**, not embedded within PayrollRun or Employee documents.
+
+### Rationale
+
+- **Query flexibility**: Need to query payslips independently (e.g., "Find all payslips for employee X in 2024")
+- **Document size limits**: Embedding thousands of payslips in PayrollRun would exceed MongoDB's 16MB document limit
+- **Independent lifecycle**: Payslips may be corrected, reprinted, or audited separately from payroll runs
+- **Performance**: Indexing on employeeId, period, status enables fast queries without scanning entire PayrollRun documents
+
+### Implementation
+
+```typescript
+// ✅ CORRECT: Separate collections with references
+interface IPayrollRun {
+  _id: ObjectId;
+  period: string; // "2024-01"
+  status: PayrollRunStatus;
+  // Payslips stored separately, referenced by payrollRunId
+}
+
+interface IPayslip {
+  _id: ObjectId;
+  payrollRunId: ObjectId; // References IPayrollRun
+  employeeId: ObjectId; // References IEmployee
+  period: string;
+  // ... payslip details
+}
+
+// Query: Get all payslips for a run
+const payslips = await Payslip.find({ payrollRunId: runId });
+
+// ❌ WRONG: Embedded payslips
+interface IPayrollRun {
+  payslips: IPayslip[]; // Will hit 16MB limit, slow queries
+}
+```
+
+### Trade-offs
+
+- **Pros**: Scalability, query performance, maintainability
+- **Cons**: Requires JOIN-like queries (MongoDB aggregation) for combined data
+
+---
+
+## 3. Denormalization Patterns
+
+### Decision
+
+**Duplicate frequently-accessed data** (employeeCode, employeeName, iban) in Payslip documents for performance, despite creating update complexity.
+
+### Rationale
+
+- **WPS export optimization**: Generating WPS files requires employee name, code, and IBAN. Without denormalization, each export would require 1000+ Employee document lookups.
+- **Read-heavy workload**: Payslips are read far more often than updated (report generation, reprints, audits)
+- **Immutability**: Once approved, payslips should not change even if employee data updates (e.g., name correction should not retroactively change past payslips)
+- **Performance**: 1 Payslip query vs 1 Payslip query + 1000 Employee lookups = 90% faster WPS generation
+
+### Implementation
+
+```typescript
+// ✅ CORRECT: Denormalized employee data in payslip
+interface IPayslip {
+  employeeId: ObjectId;
+  employeeCode: string; // Denormalized from Employee
+  employeeName: string; // Denormalized from Employee
+  employeeIBAN: string; // Denormalized from Employee
+  // ... rest of payslip
+}
+
+// WPS export: No need to query Employee collection
+const payslips = await Payslip.find({ payrollRunId });
+const wpsRecords = payslips.map((p) => ({
+  employeeCode: p.employeeCode, // Available directly
+  employeeName: p.employeeName,
+  iban: p.employeeIBAN,
+  netPay: p.netPay,
+}));
+
+// ❌ WRONG: Normalized (requires 1000+ lookups)
+interface IPayslip {
+  employeeId: ObjectId; // Only reference
+  // Must query Employee for name, code, IBAN
+}
+```
+
+### Trade-offs
+
+- **Pros**: 90% faster WPS exports, immutable historical records
+- **Cons**: Employee updates require cascading updates to all their payslips (handled by application logic)
+
+### Update Strategy
+
+When employee data changes:
+
+1. Update Employee document
+2. **Do NOT update past approved payslips** (historical accuracy)
+3. Only update DRAFT payslips if correction needed
+
+---
+
+## 4. Transaction Integrity
+
+### Decision
+
+Implement a **state machine for PayrollRun** with strict transition rules and immutability guarantees.
+
+### Rationale
+
+- **Audit compliance**: Payroll is subject to labor law audits. Once approved, records must be immutable.
+- **Financial accuracy**: Prevent accidental changes to calculated payroll after approval
+- **Approval chain**: Enforce business process (calculate → review → approve → lock → export)
+- **Rollback safety**: If errors found after approval, create corrective runs instead of editing
+
+### State Machine
+
+```
+DRAFT → CALCULATED → APPROVED → LOCKED
+  ↓         ↓           ↓
+DELETE   RECALC      (immutable after LOCKED)
+```
+
+### Implementation
+
+```typescript
+enum PayrollRunStatus {
+  DRAFT = "DRAFT", // Can be edited/deleted
+  CALCULATED = "CALCULATED", // Can be recalculated or approved
+  APPROVED = "APPROVED", // Can be locked or recalculated (with approval reset)
+  LOCKED = "LOCKED", // Immutable, can export WPS
+  EXPORTED = "EXPORTED", // WPS file generated
+}
+
+// ✅ CORRECT: State transitions enforced
+async function approvePayrollRun(runId: string) {
+  const run = await PayrollRun.findById(runId);
+  if (run.status !== PayrollRunStatus.CALCULATED) {
+    throw new Error("Can only approve CALCULATED payroll runs");
+  }
+  run.status = PayrollRunStatus.APPROVED;
+  run.approvedBy = currentUser;
+  run.approvedAt = new Date();
+  await run.save();
+}
+
+// ❌ WRONG: No state validation
+async function approvePayrollRun(runId: string) {
+  await PayrollRun.updateOne({ _id: runId }, { status: "APPROVED" });
+  // What if it was already LOCKED? What if calculations failed?
+}
+```
+
+### Immutability Rules
+
+- **LOCKED status**: Cannot edit payslips, cannot recalculate, cannot delete
+- **EXPORTED status**: Additional protection, marks that WPS file has been submitted to bank
+- **Correction process**: If error found post-LOCKED, create a new corrective payroll run
+
+---
+
+## 5. Design System
+
+### Decision
+
+Enforce a **16px border radius (rounded-2xl in Tailwind)** and **semantic color tokens** across all UI components.
+
+### Rationale
+
+- **Visual consistency**: Users perceive cohesive design when components share border radius
+- **Theme support**: Semantic tokens enable light/dark mode without component changes
+- **Maintainability**: Changing theme colors updates entire app (no hardcoded colors scattered in 100+ files)
+- **Accessibility**: Semantic tokens ensure proper contrast ratios in both themes
+
+### Implementation
+
+```tsx
+// ✅ CORRECT: Semantic tokens + rounded-2xl
+<Card className="bg-card border-border rounded-2xl">
+  <CardContent className="text-foreground">
+    <p className="text-muted-foreground">Description</p>
+  </CardContent>
+</Card>
+
+// ❌ WRONG: Hardcoded colors + inconsistent radius
+<div className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-lg">
+  <p className="text-gray-700 dark:text-gray-200">Description</p>
+</div>
+```
+
+### Semantic Token Reference
+
+| Token                   | Light Mode | Dark Mode | Usage                 |
+| ----------------------- | ---------- | --------- | --------------------- |
+| `bg-background`         | white      | #0a0a0a   | Page background       |
+| `bg-card`               | white      | #1a1a1a   | Card/panel background |
+| `bg-muted`              | #f4f4f5    | #27272a   | Disabled/secondary bg |
+| `bg-popover`            | white      | #09090b   | Dialog/popover bg     |
+| `border-border`         | #e4e4e7    | #27272a   | All borders           |
+| `text-foreground`       | #09090b    | #fafafa   | Primary text          |
+| `text-muted-foreground` | #71717a    | #a1a1aa   | Secondary text        |
+
+### Border Radius Standards
+
+- **rounded-2xl (16px)**: All cards, dialogs, modals, panels
+- **rounded-full**: Avatar images, toggle switches, badges
+- **rounded-lg (8px)**: ONLY for small badges/pills
+
+### Exceptions
+
+- Toggle switches: Use `rounded-full` for circular shape
+- Avatar images: Use `rounded-full` for profile pictures
+- Small badges: May use `rounded-lg` if `rounded-2xl` looks too large
+
+---
+
+## 6. Internationalization (i18n)
+
+### Decision
+
+**No hardcoded text in UI components**. All user-facing strings must use translation keys with fallback values.
+
+### Rationale
+
+- **KSA market requirement**: Arabic (RTL) is the primary language, English is secondary
+- **Legal compliance**: Labor Ministry requires Arabic in HR/payroll systems
+- **User experience**: Users must be able to switch languages without losing context
+- **Maintainability**: Centralizing translations prevents inconsistent wording
+
+### Implementation
+
+```tsx
+// ✅ CORRECT: Translation key with fallback
+import { useTranslation } from "@/contexts/TranslationContext";
+
+export function EmployeeCard() {
+  const { t, isRTL } = useTranslation();
+  return (
+    <div>
+      <h2>{t("employees.title", "Employees")}</h2>
+      <p>{t("employees.description", "Manage your workforce")}</p>
+    </div>
+  );
+}
+
+// ❌ WRONG: Hardcoded English text
+export function EmployeeCard() {
+  return (
+    <div>
+      <h2>Employees</h2>
+      <p>Manage your workforce</p>
+    </div>
+  );
+}
+```
+
+### RTL-Aware Icons
+
+Icons must flip direction in RTL languages:
+
+```tsx
+// ✅ CORRECT: RTL-aware arrow icons
+const { isRTL } = useTranslation();
+const BackIcon = isRTL ? ArrowRight : ArrowLeft;
+const NextIcon = isRTL ? ArrowLeft : ArrowRight;
+
+<Button>
+  <BackIcon className="h-4 w-4" />
+  {t('common.back', 'Back')}
+</Button>
+
+// ❌ WRONG: Hardcoded ArrowLeft (points wrong direction in Arabic)
+<Button>
+  <ArrowLeft className="h-4 w-4" />
+  Back
+</Button>
+```
+
+### Translation Key Naming Convention
+
+- **Namespace.action**: `employees.add`, `payroll.calculate`, `common.save`
+- **Namespace.field**: `employees.name`, `employees.code`, `employees.department`
+- **Namespace.message**: `employees.empty`, `employees.loading`, `employees.error`
+
+### Fallback Strategy
+
+Always provide English fallback in `t()` calls:
+
+```tsx
+t("employees.notFound", "No employees found"); // ✅ Has fallback
+t("employees.notFound"); // ❌ Missing fallback - shows key if translation missing
+```
+
+### Translation File Structure
+
+```typescript
+// contexts/TranslationContext.tsx
+const translations = {
+  ar: {
+    common: { save: "حفظ", cancel: "إلغاء", back: "رجوع" },
+    employees: { title: "الموظفون", add: "إضافة موظف" },
+  },
+  en: {
+    common: { save: "Save", cancel: "Cancel", back: "Back" },
+    employees: { title: "Employees", add: "Add Employee" },
+  },
+};
+```
+
+---
+
+## Revision History
+
+| Version | Date       | Author         | Changes                                                          |
+| ------- | ---------- | -------------- | ---------------------------------------------------------------- |
+| 1.0     | 2024-01-XX | GitHub Copilot | Initial architecture documentation following code review session |
+
+---
+
+## Sign-off
+
+This document represents the agreed-upon architectural decisions for the Fixzit platform. All future development should follow these patterns unless explicitly revised through architectural review.
+
+**Status**: ✅ **Approved** (awaiting user sign-off)
+
+---
+
+## Related Documents
+
+- [HR Module Implementation Guide](./HR_MODULE.md) (if exists)
+- [API Documentation](../openapi.yaml)
+- [Design System](../components.json)
+- [Translation Keys Reference](../contexts/TranslationContext.tsx)
+
+]]>
+</file>
+
+<file path="docs/architecture/BACKBONE_INDEX.md">
+<![CDATA[
+# Fixzit Backbone Index
+
+**Single Source of Truth for Canonical File Locations**
+
+Last Updated: 2025-10-05
+Agent Governor Version: 1.0
+Status: INITIALIZED
+
+---
+
+## Purpose
+
+This index tracks the **canonical** location for every major component, service, utility, and integration in the Fixzit system. Before creating any new file, agents MUST search this index first.
+
+## Consolidation Status Legend
+
+- ✅ **CANONICAL** - Single authoritative implementation
+- ⚠️ **NEEDS MERGE** - Duplicates exist, consolidation required
+- 🔄 **IN PROGRESS** - Currently being consolidated
+- ❌ **DEPRECATED** - Do not use, will be removed
+
+---
+
+## Core Application Structure
+
+### App Router (Next.js 13+)
+
+```
+app/                          # Next.js App Router
+├── (auth)/                   # Auth layout group
+│   ├── login/
+│   ├── register/
+│   └── forgot-password/
+├── (dashboard)/              # Dashboard layout group
+│   ├── dashboard/
+│   ├── properties/
+│   ├── units/
+│   ├── work-orders/
+│   ├── finance/
+│   ├── reports/
+│   ├── marketplace/
+│   ├── settings/
+│   ├── hr/
+│   ├── crm/
+│   ├── support/
+│   ├── compliance/
+│   └── system-management/
+├── api/                      # API Routes
+└── layout.tsx                # Root layout
+```
+
+### Components Architecture
+
+```
+components/
+├── ui/                       # Base UI components (shadcn/ui)
+│   ├── button.tsx            ✅ CANONICAL
+│   ├── input.tsx             ✅ CANONICAL
+│   ├── dialog.tsx            ✅ CANONICAL
+│   └── ...
+├── layout/                   # Layout components
+│   ├── Header.tsx            ✅ CANONICAL - Single global header
+│   ├── Sidebar.tsx           ✅ CANONICAL - Monday-style sidebar
+│   ├── Footer.tsx            ✅ CANONICAL - Version, copyright, help
+│   └── MainLayout.tsx        ✅ CANONICAL - Global layout wrapper
+├── auth/                     # Authentication components
+├── properties/               # Property management components
+├── work-orders/              # Work order components
+├── finance/                  # Finance components
+└── marketplace/              # Marketplace components
+```
+
+---
+
+## Libraries & Utilities
+
+### Database
+
+```
+lib/
+├── db.ts                     ✅ CANONICAL - MongoDB connection singleton
+├── mongodb-unified.ts        ✅ CANONICAL - Unified MongoDB/Mongoose client
+└── repositories/             # Data access layer
+    ├── base.repository.ts    ✅ CANONICAL - Base repository pattern
+    ├── property.repository.ts
+    ├── workorder.repository.ts
+    └── ...
+```
+
+> **Note:** Fixzit uses MongoDB Atlas with Mongoose exclusively.
+> Prisma/PostgreSQL references in legacy docs are deprecated.
+
+### Authentication & Authorization
+
+```
+lib/auth/
+├── session.ts                ✅ CANONICAL - Session management
+├── jwt.ts                    ✅ CANONICAL - JWT utilities
+├── rbac.ts                   ✅ CANONICAL - RBAC implementation
+├── roles.ts                  ✅ CANONICAL - Role definitions (snake_case)
+└── permissions.ts            ✅ CANONICAL - Permission matrix
+```
+
+### Payments & Integrations
+
+```
+lib/integrations/
+├── payments/
+│   ├── paytabs/
+│   │   ├── core.ts           ✅ CANONICAL - Gateway primitives
+│   │   │                     # createPaymentPage, verifyPayment, validateCallback
+│   │   ├── subscription.ts   ✅ CANONICAL - Business flows
+│   │   │                     # normalizePayload, finalizeSubscription
+│   │   └── index.ts          ✅ CANONICAL - Public API exports
+│   ├── stripe/               # Future payment provider
+│   └── index.ts              # Payment provider registry
+├── zatca/
+│   ├── core.ts               ✅ CANONICAL - ZATCA e-invoicing
+│   ├── validation.ts
+│   └── index.ts
+└── maps/
+    ├── google.ts             ✅ CANONICAL - Google Maps integration
+    └── index.ts
+```
+
+### Utilities
+
+```
+lib/utils/
+├── cn.ts                     ✅ CANONICAL - Class name utility (shadcn)
+├── format.ts                 ✅ CANONICAL - Date/number formatting
+├── validation.ts             ✅ CANONICAL - Input validation helpers
+├── currency.ts               ✅ CANONICAL - Currency formatting (SAR, ILS)
+├── rtl.ts                    ✅ CANONICAL - RTL/LTR utilities
+└── api.ts                    ✅ CANONICAL - API client utilities
+```
+
+---
+
+## API Routes
+
+### Structure
+
+```
+app/api/
+├── auth/                     # Authentication endpoints
+│   ├── login/route.ts        ✅ CANONICAL
+│   ├── logout/route.ts       ✅ CANONICAL
+│   ├── register/route.ts     ✅ CANONICAL
+│   └── refresh/route.ts      ✅ CANONICAL
+├── properties/               # Property management
+│   ├── route.ts              ✅ CANONICAL - List/Create
+│   └── [id]/route.ts         ✅ CANONICAL - Read/Update/Delete
+├── work-orders/              # Work order management
+│   ├── route.ts              ✅ CANONICAL
+│   └── [id]/route.ts         ✅ CANONICAL
+├── finance/                  # Finance module
+│   ├── subscriptions/
+│   │   ├── route.ts          ✅ CANONICAL
+│   │   └── [id]/route.ts     ✅ CANONICAL
+│   └── invoices/
+├── payments/                 # Payment processing
+│   ├── paytabs/
+│   │   ├── create/route.ts   ✅ CANONICAL
+│   │   ├── verify/route.ts   ✅ CANONICAL
+│   │   └── callback/route.ts ✅ CANONICAL
+│   └── webhooks/
+└── marketplace/              # Marketplace endpoints
+```
+
+---
+
+## Configuration Files
+
+### Core Config
+
+```
+├── next.config.js            ✅ CANONICAL - Next.js configuration
+├── tailwind.config.js        ✅ CANONICAL - Tailwind + brand tokens
+├── tsconfig.json             ✅ CANONICAL - TypeScript configuration
+├── eslint.config.js          ✅ CANONICAL - ESLint rules
+├── postcss.config.js         ✅ CANONICAL - PostCSS configuration
+└── components.json           ✅ CANONICAL - shadcn/ui config
+```
+
+### Environment
+
+```
+├── .env.example              ✅ CANONICAL - Environment template
+├── env.example               ✅ CANONICAL - Backup template
+└── .env.local                🚫 NEVER COMMIT - Local secrets
+```
+
+### Testing
+
+```
+├── jest.config.js            ✅ CANONICAL - Jest configuration
+├── playwright.config.ts      ✅ CANONICAL - E2E test config
+└── vitest.config.ts          ✅ CANONICAL - Vitest config (if used)
+```
+
+---
+
+## Governance & Documentation
+
+### Agent Governor System
+
+```
+├── agent-governor.yaml       ✅ CANONICAL - Agent configuration
+├── AGENT_GOVERNOR.md         ✅ CANONICAL - Full playbook
+├── AGENT_OPERATOR_HEADER.md  ✅ CANONICAL - Quick reference
+├── GOVERNANCE.md             ✅ CANONICAL - Project governance
+├── .github/
+│   ├── copilot.yaml          ✅ CANONICAL - GitHub Copilot auto-approve
+│   ├── pull_request_template.md ✅ CANONICAL - PR template
+│   └── workflows/
+│       └── agent-governor.yml ✅ CANONICAL - CI verification
+```
+
+### Scripts & Tools
+
+```
+├── tools/
+│   └── agent-runner.sh       ✅ CANONICAL - Command wrapper
+├── scripts/
+│   ├── inventory.sh          ✅ CANONICAL - Duplicate detection
+│   └── cleanup_space.sh      ✅ CANONICAL - Disk cleanup (≥60% free)
+├── .runner/
+│   ├── auto-approve.sh       ✅ CANONICAL - Non-interactive runner
+│   └── tasks.yaml            ✅ CANONICAL - Task definitions
+└── logs/
+    └── auto-approve.log      # Auto-generated
+```
+
+### Documentation
+
+```
+docs/
+├── inventory/                # Generated by agent:inventory
+│   ├── inventory.txt         # File listing
+│   ├── exports.txt           # Export map
+│   ├── hotspots.txt          # Payment hotspots
+│   └── duplicate-names.txt   # Duplicate detection
+├── AGENT_LIVE_PROGRESS.md    ✅ CANONICAL - Real-time progress
+├── requirements/             # Feature requirements
+└── architecture/             # System architecture docs
+```
+
+---
+
+## Module-Specific Canonical Files
+
+### Properties Module
+
+```
+lib/properties/
+├── property.service.ts       ✅ CANONICAL - Business logic
+├── property.types.ts         ✅ CANONICAL - TypeScript types
+├── property.validation.ts    ✅ CANONICAL - Validation schemas
+└── property.utils.ts         ✅ CANONICAL - Utility functions
+```
+
+### Work Orders Module
+
+```
+lib/work-orders/
+├── workorder.service.ts      ✅ CANONICAL - Business logic
+├── workorder.types.ts        ✅ CANONICAL - TypeScript types
+├── workorder.workflow.ts     ✅ CANONICAL - Workflow state machine
+└── workorder.validation.ts   ✅ CANONICAL - Validation schemas
+```
+
+### Finance Module
+
+```
+lib/finance/
+├── subscription.service.ts   ✅ CANONICAL - Subscription management
+├── invoice.service.ts        ✅ CANONICAL - Invoice generation
+├── payment.service.ts        ✅ CANONICAL - Payment processing
+└── finance.types.ts          ✅ CANONICAL - TypeScript types
+```
+
+---
+
+## Known Duplicates (To Be Consolidated)
+
+### High Priority
+
+```
+⚠️  Multiple paytabs implementations
+    - CANONICAL: lib/integrations/payments/paytabs/core.ts
+    - TO MERGE: [Run agent:inventory to detect]
+
+⚠️  Multiple MongoDB connection patterns
+    - CANONICAL: lib/db.ts
+    - TO MERGE: [Run agent:inventory to detect]
+
+⚠️  Duplicate header/layout components
+    - CANONICAL: components/layout/Header.tsx
+    - CANONICAL: components/layout/Sidebar.tsx
+    - TO MERGE: [Run agent:inventory to detect]
+```
+
+---
+
+## Search Before Create Protocol
+
+Before creating ANY new file, the agent MUST:
+
+1. **Search this index** for the canonical location
+2. **Run inventory scan**: `npm run agent:inventory`
+3. **Check for duplicates**: Review `docs/inventory/duplicate-names.txt`
+4. **Search exports**: Grep `docs/inventory/exports.txt`
+5. **Search hotspots**: Check `docs/inventory/hotspots.txt` for related code
+6. **If exists**: MERGE into canonical file, don't create new
+7. **If new**: Add to this index and commit
+
+---
+
+## Update Protocol
+
+This index must be updated:
+
+- ✅ After creating any new canonical file
+- ✅ After consolidating duplicates
+- ✅ After major refactoring
+- ✅ When directory structure changes
+- ✅ Before opening PR (verify accuracy)
+
+**Last Consolidation Sweep:** Not yet run
+**Next Scheduled Sweep:** Task #4 (Run duplicate scan)
+
+---
+
+## Performance Targets (Per Canonical File)
+
+All canonical implementations must meet:
+
+- **API endpoints:** ≤200ms (list), ≤100ms (item), ≤300ms (create/update)
+- **Page loads:** ≤1.5s
+- **Build time:** No file should add >2s to build
+- **Bundle size:** Monitor with `npm run bundle:check`
+
+---
+
+## Verification
+
+To verify this index is accurate:
+
+```bash
+# Run full inventory
+npm run agent:inventory
+
+# Check for duplicates
+cat docs/inventory/duplicate-names.txt
+
+# Verify canonical files exist
+cat docs/inventory/inventory.txt | grep "lib/integrations/payments/paytabs/core.ts"
+```
+
+---
+
+**This index is the agent's map. Keep it current. Search before create. Merge before delete.**
+
+]]>
+</file>
+
+<file path="docs/architecture/DATABASE_INDEX_ARCHITECTURE.md">
+<![CDATA[
+# Database Index Architecture
+
+**Created**: 2025-12-07  
+**Version**: 1.0  
+**Scope**: MongoDB index management strategy for multi-tenant Fixzit
+
+---
+
+## Overview
+
+Fixzit uses a **dual-source index architecture** to manage MongoDB indexes. This document explains the architecture, when to use each approach, and how to prevent IndexOptionsConflict errors.
+
+---
+
+## Architecture Summary
+
+### Two Approaches
+
+| Approach | File | Use Case | Models Using This |
+|----------|------|----------|-------------------|
+| **Manual Native Driver** | `lib/db/collections.ts` | High-volume collections requiring explicit control | WorkOrder, Product, Property, Invoice, Order, SupportTicket |
+| **Mongoose Schema** | `model.createIndexes()` | Smaller collections where schema-driven indexes suffice | User, Vendor, Tenant, Organization, WorkOrderComment, WorkOrderAttachment, WorkOrderTimeline, QaLog, QaAlert |
+
+### Key Principle
+
+> **Each collection should use ONE approach, never both.**
+
+Using both approaches for the same collection causes `IndexOptionsConflict` errors during deployment.
+
+---
+
+## Detailed Approach Descriptions
+
+### Approach 1: Manual Native Driver (`lib/db/collections.ts`)
+
+**Location**: `lib/db/collections.ts` → `createIndexes()` function
+
+**Characteristics**:
+- Uses MongoDB native driver: `db.collection().createIndex()`
+- **Explicit index names** (e.g., `workorders_orgId_status`)
+- Full control over index options (background, TTL, partial filters)
+- Indexes are created during deployment via `ensureCoreIndexes()`
+
+**When to Use**:
+- High-volume collections (>100K documents expected)
+- Collections requiring complex index configurations
+- Collections with many indexes (>5)
+- When explicit naming is critical for operations/debugging
+
+**Example**:
+```typescript
+// In lib/db/collections.ts
+await db.collection(COLLECTIONS.WORK_ORDERS).createIndex(
+  { orgId: 1, status: 1 },
+  { background: true, name: "workorders_orgId_status" }
+);
+```
+
+**Schema Requirements**:
+- Set `autoIndex: false` in schema options
+- Do NOT define indexes in the schema (or they become documentation-only)
+
+### Approach 2: Mongoose Schema (`model.createIndexes()`)
+
+**Location**: Individual model files (e.g., `server/models/User.ts`)
+
+**Characteristics**:
+- Uses Mongoose: `Schema.index()` + `model.createIndexes()`
+- Index names defined in schema index options
+- Called during deployment via `ensureCoreIndexes()` → `modelIndexTargets`
+
+**When to Use**:
+- Smaller collections (<100K documents)
+- Collections with few indexes (≤5)
+- When indexes are tightly coupled to schema design
+- When schema serves as documentation
+
+**Example**:
+```typescript
+// In server/models/User.ts
+UserSchema.index(
+  { orgId: 1, email: 1 },
+  { unique: true, partialFilterExpression: UNIQUE_TENANT_FILTER, name: "users_orgId_email_unique" }
+);
+
+// Schema options
+{
+  timestamps: true,
+  autoIndex: false, // Manual control via ensureCoreIndexes()
+}
+```
+
+---
+
+## Index Naming Convention
+
+All indexes MUST have explicit names following this pattern:
+
+```
+{collection}_{field1}_{field2}[_{modifier}]
+```
+
+**Examples**:
+- `workorders_orgId_status`
+- `workorders_orgId_workOrderNumber_unique`
+- `users_orgId_email_unique`
+- `products_orgId_sku_unique`
+- `qalogs_createdAt_ttl_30d`
+
+**Naming Rules**:
+1. Collection name in lowercase, singular or matching COLLECTIONS constant
+2. Fields in camelCase, separated by underscore
+3. `_unique` suffix for unique indexes
+4. `_ttl_Xd` suffix for TTL indexes (X = days)
+
+---
+
+## Multi-Tenancy Requirements (STRICT v4.1)
+
+### All Indexes MUST be Org-Scoped
+
+Every index that touches business data MUST include `orgId` as the first key:
+
+```typescript
+// ✅ CORRECT - Org-scoped
+{ orgId: 1, email: 1 }
+{ orgId: 1, status: 1, priority: 1 }
+
+// ❌ WRONG - Global index (tenant data leak risk)
+{ email: 1 }
+{ status: 1, priority: 1 }
+```
+
+### Unique Indexes MUST Use Partial Filter Expression
+
+For tenant-scoped unique constraints:
+
+```typescript
+const UNIQUE_TENANT_FILTER = { orgId: { $exists: true } };
+
+UserSchema.index(
+  { orgId: 1, email: 1 },
+  { 
+    unique: true, 
+    partialFilterExpression: UNIQUE_TENANT_FILTER,
+    name: "users_orgId_email_unique"
+  }
+);
+```
+
+This ensures:
+1. Uniqueness is enforced within each tenant
+2. Legacy documents without `orgId` don't block new inserts
+3. Cross-tenant uniqueness is NOT enforced (each tenant can have same email)
+
+---
+
+## Preventing IndexOptionsConflict
+
+### Root Cause
+
+IndexOptionsConflict occurs when:
+1. Same index key spec exists with different options (name, background, TTL)
+2. Both schema AND manual indexes define the same index
+3. Mongoose auto-creates indexes while manual creation also runs
+
+### Prevention Checklist
+
+1. **Set `autoIndex: false`** in schema options for all models with manual indexes
+2. **Never define indexes in both locations** for the same collection
+3. **Always use explicit index names** to enable comparison
+4. **Run `scripts/ensure-indexes.ts --verify`** before deployment to detect conflicts
+
+### Migration Path: Dual-Defined to Single-Source
+
+If a model has indexes defined in BOTH locations:
+
+1. Decide which approach to use (see "When to Use" above)
+2. Remove indexes from the other location
+3. Set `autoIndex: false` if using manual approach
+4. Run `db.collection.dropIndexes()` in staging to clear old indexes
+5. Re-run `ensureCoreIndexes()` to create clean indexes
+6. Verify with `--verify` flag
+
+---
+
+## File Reference
+
+| File | Purpose |
+|------|---------|
+| `lib/db/collections.ts` | Manual index definitions (createIndexes function) |
+| `lib/db/index.ts` | Orchestrator that calls both approaches |
+| `server/models/*.ts` | Schema-based index definitions |
+| `scripts/ensure-indexes.ts` | CLI tool for index management |
+
+---
+
+## Adding New Indexes
+
+### For Collections Using Manual Approach
+
+1. Add index to `lib/db/collections.ts`:
+   ```typescript
+   await db.collection(COLLECTIONS.YOUR_COLLECTION).createIndex(
+     { orgId: 1, newField: 1 },
+     { background: true, name: "yourcollection_orgId_newField" }
+   );
+   ```
+
+2. Test locally: `npx tsx scripts/ensure-indexes.ts`
+
+3. Verify: `npx tsx scripts/ensure-indexes.ts --verify`
+
+### For Collections Using Schema Approach
+
+1. Add index to model schema:
+   ```typescript
+   YourSchema.index(
+     { orgId: 1, newField: 1 },
+     { name: "yourcollection_orgId_newField" }
+   );
+   ```
+
+2. Ensure model is in `modelIndexTargets` array in `lib/db/index.ts`
+
+3. Test locally: `npx tsx scripts/ensure-indexes.ts`
+
+---
+
+## Deployment
+
+Indexes are created during deployment via:
+
+```bash
+npx tsx scripts/ensure-indexes.ts
+```
+
+This calls `ensureCoreIndexes()` which:
+1. Calls `createIndexes()` from `lib/db/collections.ts`
+2. Calls `model.createIndexes()` for each model in `modelIndexTargets`
+
+**Pre-deployment Verification**:
+```bash
+npx tsx scripts/ensure-indexes.ts --verify
+```
+
+---
+
+## Troubleshooting
+
+### Error: IndexOptionsConflict
+
+**Symptom**: Deployment fails with IndexOptionsConflict error
+
+**Diagnosis**:
+```bash
+# List all indexes on collection
+mongosh --eval "db.workorders.getIndexes()"
+```
+
+**Fix**:
+1. Identify conflicting index (same key spec, different options)
+2. Drop the incorrect index
+3. Ensure only ONE source defines the index
+4. Re-run deployment
+
+### Error: Index Not Found
+
+**Symptom**: Query slow, explain shows COLLSCAN
+
+**Diagnosis**:
+```bash
+npx tsx scripts/ensure-indexes.ts --verify
+```
+
+**Fix**:
+1. Add missing index to appropriate location
+2. Re-run `ensureCoreIndexes()`
+
+---
+
+**Document Owner**: Engineering Team  
+**Last Updated**: 2025-12-07
+
+]]>
+</file>
+
+<file path="docs/architecture/FM_HOOK_REFACTOR_PLAN.md">
+<![CDATA[
+# FM Hook Refactor Plan (Optional, 8–12h)
+**Goal:** Remove conditional hook ordering from FM pages by restructuring so hooks are unconditional. Current behavior works; this is an architectural improvement only.
+
+## Phases
+1) **Inventory & Pattern Selection** (✅ done)
+   - Confirm target pages (14) using `FmGuardedPage` with conditional hooks:  
+     `app/fm/dashboard`, `app/fm/finance/invoices`, `app/fm/finance/invoices/new`, `app/fm/finance/reports`, `app/fm/projects`, `app/fm/properties/[id]`, `app/fm/reports/new`, `app/fm/rfqs`, `app/fm/support/tickets`, `app/fm/support/escalations/new`, `app/fm/tenants`, `app/fm/vendors`, `app/fm/vendors/[id]`, `app/fm/support/dashboard` (if present).
+   - Adopt pattern: split into wrapper (guard/render gating) + inner component where hooks are unconditional; move early returns to wrapper.
+
+2) **Scaffold Shared Utilities** (est. 1–1.5h)
+   - Create a lightweight `FmPageShell` helper (or reuse `FmGuardedPage`) to pass `orgId`, `supportBanner`, and render the inner component without conditional hooks.
+   - Add a checklist for hook placement (state, SWR, effects all inside inner component).
+
+3) **Refactor High-Traffic Pages First** (est. 3–4h)
+   - Refactor 4 priority pages: `dashboard`, `projects`, `rfqs`, `tenants`.
+   - Validate with `pnpm typecheck` + `pnpm lint:prod`.
+
+4) **Refactor Remaining Pages** (est. 3–4h)
+   - Finish the remaining 10 pages listed above.
+   - Run targeted page-level sanity checks (SWR/render smoke where possible).
+
+5) **Stabilize & Document** (est. 1–2h)
+   - Update docs with the final pattern and note removal of conditional hooks.
+   - Final `pnpm lint:prod` + `pnpm typecheck`.
+   - Mark legacy “complete” reports as historical; keep `SYSTEM_WIDE_AUDIT_COMPLETE.md` and `CODERABBIT_CURRENT_STATUS.md` as canonical.
+
+## Notes
+- Risk level: low-to-medium (render structure changes only); no API changes.
+- Deployment impact: optional; current production is stable. Refactor improves hook-order correctness and future maintainability.
+
+]]>
+</file>
+
+<file path="docs/architecture/FM_RBAC_MULTI_TENANCY_FIXES.md">
+<![CDATA[
+# FM Module RBAC & Multi-Tenancy Fixes
+
+**Date**: 2024-11-26  
+**Status**: ✅ COMPLETED (Critical Blockers Fixed)  
+**Test Results**: 24/24 RBAC Tests PASSING
+
+---
+
+## Executive Summary
+
+Fixed critical multi-tenancy violations and RBAC gaps in the FM module work orders system that were causing cross-tenant data leakage and unauthorized access. All changes align with STRICT v4 14-role matrix specifications.
+
+### Impact
+- **Security**: Eliminated cross-role work order access (TENANT/TECHNICIAN/VENDOR isolation enforced)
+- **Compliance**: Multi-tenancy violations fixed (orgId normalized, field drift resolved)
+- **Validation**: 24 RBAC unit tests passing, confirming role-based filtering works correctly
+
+---
+
+## Problems Fixed
+
+### 1. Work Order Multi-Tenancy Field Drift ✅
+
+**Problem**: GET used `orgId`, POST stored `tenantId`, field name inconsistency (`unit_id` vs `unitId`)  
+**Impact**: Tenant isolation violations, cross-org data leakage potential  
+**Risk Level**: P0 - Critical Blocker
+
+**Fixes Applied**:
+- **Files Modified**: 
+  - `app/api/fm/work-orders/route.ts`
+  - `app/api/fm/work-orders/utils.ts`
+  - `types/fm/work-order.ts`
+
+**Changes**:
+1. **Normalized orgId storage** (lines 181-195 in route.ts):
+   ```typescript
+   const workOrder: WorkOrderDocument = {
+     orgId: abilityCheck.orgId, // Fixed: use orgId (not tenantId)
+     tenantId, // Keep for backward compatibility during migration
+     // ...
+   };
+   ```
+
+2. **Fixed field name consistency** (line 61 in route.ts):
+   ```typescript
+   query.unitId = { $in: userUnits }; // Fixed: unitId (not unit_id)
+   ```
+
+3. **Added new RBAC fields** (lines 188-190 in route.ts):
+   ```typescript
+   assignedTo: body.assigneeId || body.assignedTo, // Fixed: use assignedTo
+   technicianId: body.technicianId, // Support explicit technician assignment
+   vendorId: body.vendorId, // Support vendor assignment for RBAC-003
+   ```
+
+4. **Updated timeline recording** (line 213 in route.ts):
+   ```typescript
+   tenantId: abilityCheck.orgId, // Fixed: use orgId (not tenantId)
+   ```
+
+5. **Extended type definitions** (WorkOrderDocument in utils.ts):
+   ```typescript
+   orgId?: string; // Added for STRICT v4 multi-tenancy
+   vendorId?: string; // Added for vendor RBAC filtering
+   assignedTo?: string; // Normalized field name
+   ```
+
+**Validation**: Type checking passes, no compilation errors
+
+---
+
+### 2. Work Order Detail Route Missing RBAC ✅
+
+**Problem**: GET/PATCH/DELETE in `[id]/route.ts` had NO role-based scoping  
+**Impact**: Any authenticated user with WO ID could read/modify/delete across roles  
+**Risk Level**: P0 - Critical Security Gap (CVSS 7.5)
+
+**Fixes Applied**:
+- **File Modified**: `app/api/fm/work-orders/[id]/route.ts`
+
+**Changes**:
+
+1. **GET detail with role filters** (lines 39-56):
+   ```typescript
+   const baseFilter: Record<string, unknown> = {
+     _id: new ObjectId(id),
+     orgId: actor.orgId, // Fixed: use orgId (not tenantId)
+   };
+   
+   // Scope by role to enforce assignment/ownership
+   if (actor.role === "TENANT" && actor.units?.length) {
+     baseFilter.unitId = { $in: actor.units };
+   }
+   if (actor.role === "TECHNICIAN" && actor.userId) {
+     baseFilter.assignedTo = actor.userId; // Only see assigned work orders
+   }
+   if (actor.role === "VENDOR" && actor.vendorId) {
+     baseFilter.vendorId = actor.vendorId; // Only see vendor work orders
+   }
+   // ADMIN, MANAGER, FM_MANAGER, PROPERTY_MANAGER see all org work orders
+   ```
+
+2. **PATCH with role authorization** (lines 96-110):
+   ```typescript
+   // RBAC-006: Build role-based filter for updates
+   const baseFilter: Record<string, unknown> = {
+     _id: new ObjectId(id),
+     orgId: actor.orgId,
+   };
+   
+   if (actor.role === "TENANT" && actor.units?.length) {
+     baseFilter.unitId = { $in: actor.units };
+   }
+   if (actor.role === "TECHNICIAN" && actor.userId) {
+     baseFilter.assignedTo = actor.userId;
+   }
+   if (actor.role === "VENDOR" && actor.vendorId) {
+     baseFilter.vendorId = actor.vendorId;
+   }
+   ```
+
+3. **DELETE with role authorization** (lines 209-223):
+   ```typescript
+   // RBAC-007: Build role-based filter for deletion
+   const baseFilter: Record<string, unknown> = {
+     _id: new ObjectId(id),
+     orgId: actor.orgId,
+   };
+   
+   if (actor.role === "TENANT" && actor.units?.length) {
+     baseFilter.unitId = { $in: actor.units };
+   }
+   if (actor.role === "TECHNICIAN" && actor.userId) {
+     baseFilter.assignedTo = actor.userId;
+   }
+   if (actor.role === "VENDOR" && actor.vendorId) {
+     baseFilter.vendorId = actor.vendorId;
+   }
+   ```
+
+4. **Fixed timeline recording** (lines 154, 233):
+   ```typescript
+   tenantId: actor.orgId, // Fixed: use orgId instead of tenantId
+   ```
+
+**Validation**: All role-based queries use consistent filters, no bypass paths
+
+---
+
+### 3. RBAC Tests Validation ✅
+
+**Test File**: `app/api/work-orders/__tests__/rbac.test.ts`  
+**Test Count**: 24 test cases  
+**Result**: ✅ **ALL 24 TESTS PASSING** (3.20s execution time)
+
+**Test Coverage**:
+- ✅ TECHNICIAN Role (3 tests): assignedTo filtering, defensive scoping, cross-technician isolation
+- ✅ VENDOR Role (3 tests): vendorId filtering, defensive scoping, cross-vendor isolation
+- ✅ TENANT Role (3 tests): unitId array filtering, defensive scoping, cross-unit isolation
+- ✅ ADMIN/MANAGER Roles (5 tests): org-wide access for ADMIN/MANAGER/FM_MANAGER/PROPERTY_MANAGER, cross-org isolation
+- ✅ SUPER_ADMIN Role (2 tests): bypass all scoping, cross-org visibility
+- ✅ Multi-Tenant Isolation (2 tests): orgId enforcement, cross-org data leakage prevention
+- ✅ Edge Cases (3 tests): missing orgId handling, unknown role fallback, dual role precedence
+- ✅ STRICT v4 Compliance (1 test): 14-role matrix validation
+- ✅ Integration Scenarios (2 tests): multi-unit tenant scoping, role change handling
+
+**Test Output**:
+```
+ RUN  v3.2.4 /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+
+ ✓ |client| app/api/work-orders/__tests__/rbac.test.ts > Work Orders RBAC - Role-Based Filtering > TECHNICIAN Role > should filter work orders by assignedTo (technician ID) 13ms
+ ✓ |client| app/api/work-orders/__tests__/rbac.test.ts > Work Orders RBAC - Role-Based Filtering > TECHNICIAN Role > should only show org scoping if userId missing (defensive) 3ms
+ [... 22 more passing tests ...]
+
+ Test Files  1 passed (1)
+      Tests  24 passed (24)
+   Duration  3.20s (transform 336ms, setup 994ms, collect 19ms, tests 938ms)
+```
+
+---
+
+### 4. Finance RBAC Alignment to STRICT v4 ✅
+
+**Problem**: Finance module accessible by ADMIN/CORPORATE_OWNER, not aligned to FINANCE role  
+**Impact**: Non-finance staff can access financial data  
+**Risk Level**: P0 - Compliance Violation
+
+**Fixes Applied**:
+- **Files Modified**:
+  - `domain/fm/fm.behavior.ts` (ROLE_MODULE_ACCESS matrix)
+  - `app/api/fm/permissions.ts` (hasModuleAccess function)
+
+**Changes**:
+
+1. **Restricted Finance access in ROLE_MODULE_ACCESS** (lines 298, 332):
+   ```typescript
+   // Admin: Full access EXCEPT Finance/HR
+   [Role.ADMIN]: {
+     // ...
+     FINANCE: false, // Fixed: Finance restricted to FINANCE role
+     HR: false, // Fixed: HR restricted to HR role
+     // ...
+   },
+   
+   // Corporate Owner: Full access EXCEPT Finance/HR
+   [Role.CORPORATE_OWNER]: {
+     // ...
+     FINANCE: false, // Fixed: Finance restricted to FINANCE role
+     HR: false, // Fixed: HR restricted to HR role
+     // ...
+   },
+   ```
+
+2. **Added STRICT v4 role handling in permissions** (lines 108-118 in permissions.ts):
+   ```typescript
+   const hasModuleAccess = (role: Role, module?: ModuleKey, originalRole?: string): boolean => {
+     if (!module) return true;
+     
+     // RBAC-008: Special handling for STRICT v4 FINANCE and HR roles
+     // These map to TEAM_MEMBER in FM domain but should get their respective modules
+     if (originalRole) {
+       const upperRole = originalRole.toUpperCase();
+       if (upperRole === 'FINANCE' && module === ModuleKey.FINANCE) return true;
+       if (upperRole === 'HR' && module === ModuleKey.HR) return true;
+     }
+     
+     return Boolean(ROLE_MODULE_ACCESS[role]?.[module]);
+   };
+   ```
+
+3. **Passed original role to hasModuleAccess** (line 156 in permissions.ts):
+   ```typescript
+   if (!hasModuleAccess(fmRole, options.module, sessionUser.role)) {
+     return FMErrors.forbidden("Module access denied", errorContext);
+   }
+   ```
+
+**Impact**: Finance endpoints (expenses, reports) now properly gated to FINANCE role only
+
+**Affected Endpoints**:
+- `app/api/fm/finance/expenses/route.ts` (GET, POST)
+- `app/api/fm/reports/route.ts` (GET financial reports)
+- `app/api/fm/reports/process/route.ts`
+- `app/api/fm/reports/schedules/route.ts`
+
+**Validation**: Type checking passes, Finance module access now restricted
+
+---
+
+## Technical Debt Documented
+
+### Property Listing TENANT/OWNER Scoping
+
+**Status**: ⚠️ TODO (Documented, not yet implemented)  
+**File**: `app/api/fm/properties/route.ts` (lines 91-98)
+
+**Problem**: TENANTs can enumerate all org properties, OWNERs see everything  
+**Impact**: Privacy violation for multi-property orgs, unit-based tenancy broken  
+**Risk Level**: P1 - Medium (privacy issue, not security bypass)
+
+**TODO Comment Added**:
+```typescript
+// TODO RBAC-009: Add TENANT/OWNER property filtering per STRICT v4
+// - TENANTs should only see properties for their assigned units (need unit→property lookup)
+// - OWNERs should only see properties they own (need ownership field/table)
+// Currently: All org members can enumerate full org property portfolio
+// Risk: Privacy violation for multi-property orgs, unit-based tenancy broken
+// Fix: Add property_id filter based on actor.units or actor.ownedProperties
+```
+
+**Implementation Options**:
+1. Denormalize `property_id` into user session units array
+2. Add sub-query to look up property IDs from unit IDs
+3. Create dedicated tenant properties view/endpoint
+4. Add ownership tracking table for OWNER role scoping
+
+---
+
+## Files Modified
+
+### Core API Routes
+1. **`app/api/fm/work-orders/route.ts`** (264 lines)
+   - Fixed POST multi-tenancy drift (orgId normalization)
+   - Fixed GET unitId field consistency
+   - Added vendorId, assignedTo, technicianId fields
+   - Updated timeline recording to use orgId
+
+2. **`app/api/fm/work-orders/[id]/route.ts`** (254 lines)
+   - Added role-based filters to GET (lines 39-56)
+   - Added role-based filters to PATCH (lines 96-110)
+   - Added role-based filters to DELETE (lines 209-223)
+   - Fixed timeline recording to use orgId
+
+3. **`app/api/fm/properties/route.ts`** (391 lines)
+   - Added TODO comment for TENANT/OWNER scoping (lines 91-98)
+
+### Type Definitions
+4. **`app/api/fm/work-orders/utils.ts`** (185 lines)
+   - Extended WorkOrderDocument type with orgId, vendorId, assignedTo
+   - Updated mapWorkOrderDocument to include new fields
+
+5. **`types/fm/work-order.ts`** (428 lines)
+   - Added assignedTo, vendorId fields to WorkOrder interface
+   - Documented deprecation of assigneeId
+
+### RBAC & Permissions
+6. **`domain/fm/fm.behavior.ts`** (1478 lines)
+   - Restricted FINANCE/HR access from ADMIN role (line 298)
+   - Restricted FINANCE/HR access from CORPORATE_OWNER role (line 332)
+
+7. **`app/api/fm/permissions.ts`** (184 lines)
+   - Added STRICT v4 FINANCE/HR role handling in hasModuleAccess
+   - Passed originalRole to hasModuleAccess for special-case handling
+
+---
+
+## Remaining Work
+
+### High Priority (P1)
+- [ ] Implement property listing TENANT/OWNER filtering (RBAC-009)
+- [ ] Migrate legacy FM schemas to use tenantIsolationPlugin and auditPlugin
+- [ ] Run full test suite (pnpm vitest run) to identify ~140 remaining test failures
+- [ ] Console statement cleanup in ~50 app/ directory files
+
+### Medium Priority (P2)
+- [ ] Create audit log unit tests (lib/__tests__/audit.test.ts)
+- [ ] Add integration tests for finance RBAC restrictions
+- [ ] Document migration path from tenantId to orgId for existing WO data
+
+### Low Priority (P3)
+- [ ] Refactor FM domain Role enum to align with STRICT v4 canonical roles
+- [ ] Remove deprecated tenantId field after orgId migration complete
+- [ ] Add property_id denormalization to user session for TENANT scoping
+
+---
+
+## Testing Recommendations
+
+### Unit Tests ✅ COMPLETED
+- 24 RBAC tests passing
+- Coverage: TECHNICIAN, VENDOR, TENANT, ADMIN, MANAGER, FM_MANAGER, PROPERTY_MANAGER, SUPER_ADMIN
+- Edge cases: missing orgId, unknown roles, multi-unit tenants, role changes
+
+### Integration Tests (TODO)
+```typescript
+// Test Finance endpoint RBAC restriction
+describe('Finance RBAC', () => {
+  it('should deny ADMIN access to /api/fm/finance/expenses', async () => {
+    const response = await fetch('/api/fm/finance/expenses', {
+      headers: { 'x-user-role': 'ADMIN' }
+    });
+    expect(response.status).toBe(403);
+  });
+  
+  it('should allow FINANCE role access to /api/fm/finance/expenses', async () => {
+    const response = await fetch('/api/fm/finance/expenses', {
+      headers: { 'x-user-role': 'FINANCE' }
+    });
+    expect(response.status).toBe(200);
+  });
+});
+```
+
+### Manual Testing Checklist
+- [ ] TENANT can only see work orders for their units
+- [ ] TECHNICIAN can only see assigned work orders
+- [ ] VENDOR can only see vendor-linked work orders
+- [ ] ADMIN cannot access Finance module
+- [ ] FINANCE role can access Finance endpoints
+- [ ] Cross-org data isolation verified (no work orders from other orgs visible)
+- [ ] orgId properly stored in new work orders
+- [ ] Timeline entries use orgId (not tenantId)
+
+---
+
+## Migration Guide
+
+### For Existing Work Orders
+```typescript
+// Migration script to normalize orgId/tenantId
+// Run after deployment to fix existing WO data
+
+db.workorders.updateMany(
+  { orgId: { $exists: false } },
+  [{
+    $set: {
+      orgId: "$tenantId" // Copy tenantId to orgId
+    }
+  }]
+);
+
+// Verify migration
+db.workorders.countDocuments({ orgId: { $exists: false } }); // Should be 0
+```
+
+### For Field Name Consistency
+```typescript
+// Migration script to normalize unit_id to unitId
+db.workorders.updateMany(
+  { unit_id: { $exists: true } },
+  [{
+    $set: {
+      unitId: "$unit_id"
+    },
+    $unset: ["unit_id"]
+  }]
+);
+```
+
+---
+
+## References
+
+- **STRICT v4 Specification**: 14-role matrix (SUPER_ADMIN, CORPORATE_ADMIN, ADMIN, MANAGER, FM_MANAGER, PROPERTY_MANAGER, TECHNICIAN, FINANCE, HR, PROCUREMENT, OWNER, TENANT, VENDOR, AUDITOR)
+- **FM Module Audit**: 4-phase comprehensive audit identifying 5 critical blockers
+- **RBAC Test Suite**: `app/api/work-orders/__tests__/rbac.test.ts`
+- **User Role Definitions**: `types/user.ts` (canonical STRICT v4 roles)
+- **FM Domain Behavior**: `domain/fm/fm.behavior.ts` (ROLE_MODULE_ACCESS matrix)
+
+---
+
+## Sign-Off
+
+**Changes Reviewed**: ✅  
+**Tests Passing**: ✅ 24/24  
+**Compilation Errors**: ✅ None  
+**Security Impact**: ✅ Critical RBAC gaps closed  
+**Compliance Status**: ✅ STRICT v4 aligned  
+
+**Ready for Deployment**: ✅ YES (with remaining work tracked)
+
+]]>
+</file>
+
+<file path="docs/architecture/MODULAR_ARCHITECTURE.md">
+<![CDATA[
+# Fixzit Platform - Modular Architecture
+
+## Overview
+
+The Fixzit platform is structured into **7 primary modules**, each containing related services and features. This architecture consolidates the 70+ existing pages into logical, maintainable groups.
+
+---
+
+## Module 1: Property & Tenancy Management
+
+### Purpose
+
+Manage properties, units, owners, and rental operations with Ejar integration.
+
+### Main Services
+
+- Properties Dashboard (Ejar-style metrics)
+- Rental Management
+- Real Estate Listings
+
+### Sub-Services & Pages
+
+#### Existing Pages
+
+- `/app/(dashboard)/properties/page.tsx` - Properties list
+- `/app/(dashboard)/properties/[id]/page.tsx` - Property details
+- `/app/(dashboard)/bulk-units/page.tsx` - Bulk Unit Management
+- `/app/(dashboard)/rental-listings/page.tsx` - Rental Listings
+- `/app/(dashboard)/real-estate-projects/page.tsx` - Real Estate Projects
+
+#### Features
+
+- Property metrics (Total Flats/Units, Empty Flats)
+- Building Type Configuration
+- Utility Transfer
+- Property Handover
+- FAAL Verification
+- Tenant Screening
+- Property Advertisements
+
+#### Database Models
+
+- `Property` (existing)
+- `Unit` (existing)
+- `BuildingType` (needs creation)
+
+---
+
+## Module 2: Customer & User Lifecycle
+
+### Purpose
+
+Manage all user types: owners, tenants, employees, families, and customer relationships.
+
+### Main Services
+
+- Owner Management
+- Tenant Management
+- Employee Management
+- Family Management
+
+### Sub-Services & Pages
+
+#### Existing Pages
+
+- `/app/(dashboard)/profile/page.tsx` - Profile Management
+- Employee Management pages (need consolidation)
+- Client Management pages (need consolidation)
+
+#### Needs Implementation
+
+- **Owner Management** (Add/List) - Not found in codebase
+- **Tenant Management** (Add/List/Multiple) - Not found in codebase
+- **Family Management** - Not implemented
+- **Referral Program** - Not implemented
+- **HR Activities** (Vacation Requests) - Not implemented
+- **Job Application Process** - Not implemented
+
+#### Database Models
+
+- `Owner` (needs creation)
+- `Tenant` (needs creation)
+- `Employee` (needs creation)
+- `FamilyMember` (needs creation)
+- `FamilyInvitation` (needs creation)
+- `ReferralCode` (needs creation)
+- `ReferralReward` (needs creation)
+
+---
+
+## Module 3: Legal & Contract Management
+
+### Purpose
+
+Handle all contracts (rental and sales), legal documents, and agreements.
+
+### Main Services
+
+- Contract Management Dashboard
+- Sales Contracts
+- Legal Documents
+
+### Sub-Services & Pages
+
+#### Existing Pages
+
+- Contract management pages (need to locate/consolidate)
+
+#### Needs Implementation
+
+- **Contract Dashboard** (Active/Closed/Expired metrics)
+- **Sales Contracts** (Listing/Add/Management)
+- **Contract Documentation**
+- **Contract Termination**
+- **Tenant Change**
+- **Lessor Change**
+- **Security Deposit**
+- **Electronic Attorneys**
+- **Brokerage Agreements**
+- **Brokerage Establishments**
+
+#### Database Models
+
+- `Contract` (existing?)
+- `SalesContract` (needs creation)
+- `ContractTermination` (needs creation)
+- `SecurityDeposit` (needs creation)
+
+---
+
+## Module 4: Financial & Accounting
+
+### Purpose
+
+Comprehensive financial management including payments, invoices, settlements, and accounting.
+
+### Main Services
+
+- Financial Dashboard (AqaryPro-style)
+- Payment Management
+- Invoice Management
+
+### Sub-Services & Pages
+
+#### Existing Pages
+
+- Payment pages (need to locate)
+- Invoice pages (need to locate)
+
+#### Needs Implementation
+
+- **Financial Dashboard** (Owners, Tenants, Buildings, Units counts)
+- **Payments** (All/Overdue)
+- **Payment Tracking**
+- **Tenant Payment**
+- **Payment Methods** (Secure Card Storage)
+- **Payment Links**
+- **Refund Management**
+- **Bank Accounts** (Configuration)
+- **Owner Settlement** (List/Add)
+- **Invoice Management** (VAT/Receipt Vouchers with QR)
+- **Financial Analytics**
+- **Ejar Wallet**
+- **Operation Type Config**
+- **Offer Type Config**
+
+#### Database Models
+
+- `Payment` (existing?)
+- `Invoice` (needs creation)
+- `ReceiptVoucher` (needs creation)
+- `OwnerSettlement` (needs creation)
+- `PaymentMethod` (needs creation)
+- `BankAccount` (needs creation)
+- `OperationType` (needs creation)
+- `OfferType` (needs creation)
+
+---
+
+## Module 5: Service & Maintenance Operations
+
+### Purpose
+
+Handle maintenance tickets, inspections, service scheduling, and warranty tracking.
+
+### Main Services
+
+- Ticket Management
+- Inspection Management
+- Maintenance Scheduling
+
+### Sub-Services & Pages
+
+#### Existing Pages
+
+- `/app/(dashboard)/tickets/page.tsx` - Ticket Management (if exists)
+- `/app/(dashboard)/inspections/page.tsx` - Inspections (if exists)
+
+#### Needs Implementation
+
+- **Tickets** (All/Assignment)
+- **Requests**
+- **Fixzit Services** (Company-Provided)
+- **Service Management** (Provider-Provided)
+- **Service Ratings**
+- **Warranty Tracker**
+- **Rental Incident**
+- **Spare Parts Approval** (Tenant approval cycle)
+- **Scheduler** (Availability-based booking)
+- **Service Fees** (5% configurable)
+
+#### Database Models
+
+- `Ticket` (existing?)
+- `MaintenanceRequest` (needs creation)
+- `ServiceRating` (needs creation)
+- `WarrantyItem` (needs creation)
+- `SparePartsApproval` (needs creation)
+- `ProviderAvailability` (needs creation)
+
+---
+
+## Module 6: Marketplace & Project Bidding
+
+### Purpose
+
+Manage vendors, service providers, products, projects, and bidding processes.
+
+### Main Services
+
+- Project Management
+- Vendor Management
+- E-commerce Store
+
+### Sub-Services & Pages
+
+#### Existing Pages
+
+- `/app/(dashboard)/marketplace/*` (if exists)
+- Product/Service pages (need consolidation)
+
+#### Needs Implementation
+
+- **Project Management** (Create/Dashboard)
+- **Bidding Interface** (Submit/Overview)
+- **Contractor Registration** (with approval workflow)
+- **Contractor Management**
+- **Service Provider Management** (with verification)
+- **Service Provider Dashboard**
+- **Create Service/Product** (consolidated page with tabs)
+- **Product Management**
+- **Online Store**
+- **Public Store**
+- **Order Tracking**
+
+#### Database Models
+
+- `Project` (needs creation)
+- `ProjectCategory` (needs creation)
+- `ProjectBid` (needs creation)
+- `Contractor` (needs creation)
+- `ServiceProvider` (needs creation)
+- `Product` (needs creation)
+- `Service` (needs creation)
+- `Order` (needs creation)
+
+---
+
+## Module 7: System & Administration
+
+### Purpose
+
+System configuration, access control, audit logging, backups, and admin tools.
+
+### Main Services
+
+- Admin Dashboard
+- Access Control
+- System Configuration
+- Audit & Logging
+
+### Sub-Services & Pages
+
+#### Existing Pages
+
+- `/app/admin/*` - Admin pages (need consolidation)
+- `/app/(dashboard)/settings/page.tsx` - Settings
+
+#### Needs Implementation
+
+- **Admin Dashboard** (Super/Sub-Admin)
+- **Admin Settings** (Feature On/Off Toggles with iOS-style switches)
+- **Role Registration**
+- **Authorization & Permissions Matrix**
+- **Office User Management**
+- **System Settings**
+- **Audit Log** (Activity/Database changes)
+- **Backup Option** (Daily auto + ad-hoc)
+- **File Management** (Upload/Excel Templates)
+- **Notification Center** (Push/SMS Setup)
+- **Help & Support** (AI/Bug Reporting)
+- **Market Intelligence Tracker** (CEO/Super Admin only)
+
+#### Database Models
+
+- `AuditLog` (needs creation)
+- `FeatureFlag` (needs creation)
+- `Permission` (needs creation)
+- `Role` (needs creation)
+- `SystemBackup` (needs creation)
+- `Notification` (needs creation)
+- `SupportTicket` (needs creation)
+
+---
+
+## Page Consolidation Strategy
+
+### Consolidations Needed
+
+1. **Service/Product Creation** → **Marketplace Management**
+   - Merge: `CreateService` + `CreateProduct`
+   - Solution: Single page with tabs (Services | Products)
+   - Location: `/app/(dashboard)/marketplace/manage/page.tsx`
+
+2. **Client Management** → **Customer Lifecycle**
+   - Merge: `ClientManagement` + `ClientsManagement`
+   - Solution: Single unified page
+   - Location: `/app/(dashboard)/customers/page.tsx`
+
+3. **Financial Pages** → **Financial Dashboard**
+   - Consolidate: Multiple payment, invoice, settlement pages
+   - Solution: Tabbed interface (Payments | Invoices | Settlements | Reports)
+   - Location: `/app/(dashboard)/finance/page.tsx`
+
+4. **Admin Pages** → **System Administration**
+   - Consolidate: Admin settings, user management, permissions
+   - Solution: Nested navigation with sections
+   - Location: `/app/admin/page.tsx`
+
+5. **Contractor/Service Provider** → **Vendor Management**
+   - Merge: Contractor and Service Provider registration/management
+   - Solution: Unified vendor registration with type selection
+   - Location: `/app/(dashboard)/vendors/page.tsx`
+
+---
+
+## Implementation Priority
+
+### Phase 1: Critical Infrastructure (Week 1-2)
+
+1. Create missing database schemas (Module 2, 4, 5, 6)
+2. Implement Two-Level Admin System (Module 7)
+3. Create Audit Logging System (Module 7)
+4. Add iOS-style Toggle Component (Module 7)
+
+### Phase 2: Core Features (Week 3-4)
+
+1. Family Management System (Module 2)
+2. Referral Program (Module 2)
+3. Payment Methods & Auto-Pay (Module 4)
+4. Receipt Vouchers with QR (Module 4)
+
+### Phase 3: Advanced Features (Week 5-6)
+
+1. Project Bidding System (Module 6)
+2. Vendor Registration & Verification (Module 6)
+3. Maintenance Scheduling (Module 5)
+4. Spare Parts Approval (Module 5)
+
+### Phase 4: Enhancement (Week 7-8)
+
+1. HR Module (Module 2)
+2. Market Intelligence (Module 7)
+3. Help & Support with AI (Module 7)
+4. Advanced Reporting (Module 4)
+
+---
+
+## File Structure Reorganization
+
+### Proposed Structure
+
+```
+/app
+  /(dashboard)
+    /property-management
+      /properties
+      /units
+      /owners
+      /tenants
+    /contracts
+      /rental
+      /sales
+    /finance
+      /payments
+      /invoices
+      /settlements
+    /maintenance
+      /tickets
+      /inspections
+      /scheduling
+    /marketplace
+      /projects
+      /vendors
+      /store
+    /customers
+      /owners
+      /tenants
+      /family
+      /referrals
+  /admin
+    /dashboard
+    /users
+    /permissions
+    /settings
+    /audit-logs
+```
+
+---
+
+## Navigation Menu Structure
+
+### Updated Sidebar Categories
+
+1. 🏢 **Property & Tenancy**
+2. 👥 **Customers & Users**
+3. 📄 **Contracts & Legal**
+4. 💰 **Finance & Accounting**
+5. 🔧 **Maintenance & Service**
+6. 🏗️ **Marketplace & Projects**
+7. ⚙️ **System & Admin**
+
+---
+
+## Next Steps
+
+1. **Audit existing pages** - Map all 70+ pages to modules
+2. **Identify gaps** - List pages that need creation
+3. **Create database schemas** - Build missing Mongoose models
+4. **Consolidate pages** - Merge related pages into tabbed interfaces
+5. **Update navigation** - Reorganize sidebar into 7 modules
+6. **Implement priorities** - Follow phased implementation plan
+
+---
+
+**Last Updated**: 2025-10-25  
+**Status**: Architecture defined, awaiting implementation
+
+]]>
+</file>
+
+<file path="docs/architecture/PROVIDER_OPTIMIZATION_IMPLEMENTATION.md">
+<![CDATA[
+# Provider Optimization Implementation Summary
+
+**Date**: November 7, 2024  
+**Optimization**: Split provider tree for route-based bundle optimization  
+**Expected Impact**: -30-40 KB shared bundle, +2-3 Lighthouse points
+
+---
+
+## ✅ Implementation Complete
+
+### Files Created
+
+#### 1. `providers/PublicProviders.tsx` (NEW)
+
+**Purpose**: Lightweight provider tree for public pages
+
+**Providers Included:**
+
+- ErrorBoundary - Error protection
+- I18nProvider - Internationalization
+- ThemeProvider - Theme state
+
+**Bundle Impact**: ~15 KB (vs 50 KB for full provider tree)
+
+**Used For:**
+
+- Homepage (`/`)
+- About page (`/about`)
+- Privacy page (`/privacy`)
+- Terms page (`/terms`)
+- Public marketplaces (`/aqar`, `/souq`)
+- Auth pages (`/login`, `/signup`)
+
+---
+
+#### 2. `providers/AuthenticatedProviders.tsx` (NEW)
+
+**Purpose**: Complete provider tree for authenticated pages
+
+**Providers Included:**
+
+- All PublicProviders (ErrorBoundary, I18nProvider, ThemeProvider)
+- SessionProvider - NextAuth session management (~20 KB)
+- TranslationProvider - User-specific translations (~5 KB)
+- ResponsiveProvider - Responsive UI state (~2 KB)
+- CurrencyProvider - Currency preferences (~3 KB)
+- TopBarProvider - Navigation state (~2 KB)
+- FormStateProvider - Form state management (~3 KB)
+
+**Bundle Impact**: ~50 KB (full provider tree)
+
+**Used For:**
+
+- Dashboard (`/fm/dashboard`)
+- Admin pages (`/admin`, `/system`)
+- Protected routes (`/fm/*`, `/profile`, etc.)
+
+---
+
+#### 3. `providers/ConditionalProviders.tsx` (NEW)
+
+**Purpose**: Smart router-aware provider selector
+
+**Logic:**
+
+```typescript
+// Public routes → PublicProviders (15 KB)
+const publicRoutes = ["/", "/about", "/privacy", "/terms", "/help", "/careers"];
+const publicPrefixes = ["/aqar", "/souq", "/marketplace", "/test"];
+
+// Auth pages → PublicProviders (no session needed yet)
+const authPages = ["/login", "/signup", "/forgot-password"];
+
+// Protected routes → AuthenticatedProviders (50 KB)
+// Everything else → Full provider tree
+```
+
+**Performance Benefits:**
+
+- Homepage: -35 KB bundle
+- Auth pages: -35 KB bundle
+- Protected pages: No change (already optimal)
+
+---
+
+### Files Modified
+
+#### 4. `app/layout.tsx` (MODIFIED)
+
+**Changes:**
+
+```diff
+- import Providers from "@/providers/Providers";
++ import ConditionalProviders from "@/providers/ConditionalProviders";
+
+  <body>
+-   <Providers>
++   <ConditionalProviders>
+      <ClientLayout>
+        {children}
+      </ClientLayout>
+-   </Providers>
++   </ConditionalProviders>
+  </body>
+```
+
+**Impact**: Root layout now uses conditional providers instead of always loading full provider tree
+
+---
+
+## 📊 Expected Results
+
+### Bundle Size Impact
+
+**Before Optimization:**
+
+```
++ First Load JS shared by all    102 KB
+  ├ chunks/3103.js                100 KB
+  └ other shared chunks            2.19 KB
+
+├ ○ /                             24.8 kB    221 KB  ← Public page
+├ ○ /login                        30.9 kB    227 KB  ← Auth page
+├ ○ /dashboard                    24.7 kB    221 KB  ← Protected page
+```
+
+**After Optimization (Expected):**
+
+```
++ First Load JS shared by all     ~70 KB     ← -32 KB (-31%)
+  ├ Public routes                  ~70 KB    ← Only PublicProviders
+  ├ Protected routes               ~102 KB   ← Full AuthenticatedProviders
+
+├ ○ /                             24.8 kB    ~190 KB  ← -31 KB (-14%)
+├ ○ /login                        30.9 kB    ~195 KB  ← -32 KB (-14%)
+├ ○ /dashboard                    24.7 kB    221 KB   ← No change
+```
+
+### Performance Impact (Projected)
+
+**Public Pages (/, /about, /privacy, /terms):**
+
+- Bundle size: -31-35 KB (-14-16%)
+- LCP: -0.3-0.4s improvement
+- TBT: -30-40ms improvement
+- Initial load: 30-40% faster
+
+**Auth Pages (/login, /signup):**
+
+- Bundle size: -31-35 KB (-14-16%)
+- LCP: -0.2-0.3s improvement
+- TTI: -0.4-0.5s improvement
+- Critical user flow optimization ✅
+
+**Protected Pages (/fm/\*, /admin):**
+
+- Bundle size: No change (already has full providers)
+- Performance: No regression
+- Functionality: Fully preserved
+
+### Lighthouse Score (Projected)
+
+**Current:** 82/100  
+**After Provider Optimization:** 85-87/100 (+3-5 points)
+
+**Breakdown:**
+
+- LCP improvement: +2-3 points (0.3-0.4s faster on public pages)
+- TBT improvement: +1-2 points (30-40ms reduction)
+- Total: +3-5 points
+
+---
+
+## 🔍 Technical Details
+
+### Why This Works
+
+1. **Code Splitting**: Next.js automatically code-splits dynamic imports
+2. **Route-Based Loading**: ConditionalProviders uses `usePathname()` to detect route type
+3. **Tree Shaking**: Unused providers are excluded from public page bundles
+4. **Shared Base**: PublicProviders is shared across both provider trees (no duplication)
+
+### Provider Weight Breakdown
+
+```
+ErrorBoundary:        ~1 KB
+I18nProvider:         ~10 KB
+ThemeProvider:        ~2 KB
+----------------------------------------
+PublicProviders Total: ~15 KB ✅
+
+SessionProvider:      ~20 KB  ← Heavy
+TranslationProvider:  ~5 KB
+ResponsiveProvider:   ~2 KB
+CurrencyProvider:     ~3 KB
+TopBarProvider:       ~2 KB
+FormStateProvider:    ~3 KB
+----------------------------------------
+Additional Auth:      ~35 KB
+Total Authenticated:  ~50 KB
+```
+
+### Routes Classification
+
+**Public Routes (PublicProviders = 15 KB):**
+
+- `/` - Homepage
+- `/about` - About page
+- `/privacy` - Privacy policy
+- `/terms` - Terms of service
+- `/help` - Help center
+- `/careers` - Careers page
+- `/aqar/*` - Property marketplace (browse)
+- `/souq/*` - Product marketplace (browse)
+- `/marketplace/*` - General marketplace
+- `/test/*` - Test pages
+
+**Auth Routes (PublicProviders = 15 KB):**
+
+- `/login` - Login page
+- `/signup` - Signup page
+- `/forgot-password` - Password reset
+- `/reset-password` - Password reset confirm
+
+**Protected Routes (AuthenticatedProviders = 50 KB):**
+
+- `/fm/*` - Facilities management (dashboard, properties, work orders, etc.)
+- `/admin/*` - Admin pages
+- `/system/*` - System settings
+- `/profile` - User profile
+- `/settings` - User settings
+- `/notifications` - Notifications
+
+---
+
+## ✅ Quality Assurance
+
+### Testing Required
+
+**Public Pages:**
+
+- [ ] Homepage loads and theme switches work
+- [ ] Language switching works
+- [ ] Navigation to auth pages works
+- [ ] Navigation to protected pages redirects to login
+
+**Auth Pages:**
+
+- [ ] Login form works
+- [ ] Signup form works
+- [ ] Language/currency selectors work
+- [ ] OAuth buttons work
+- [ ] Successful login redirects correctly
+
+**Protected Pages:**
+
+- [ ] Dashboard loads with session
+- [ ] All context providers accessible
+- [ ] Form state persists
+- [ ] Currency/language preferences work
+- [ ] Navigation works correctly
+
+### Build Validation
+
+```bash
+# 1. Production build
+pnpm build
+
+# 2. Check bundle sizes
+grep -A 5 "First Load JS" .next/build-manifest.json
+
+# 3. Start production server
+pnpm start &
+
+# 4. Test public page
+curl http://localhost:3000/
+
+# 5. Test protected page (should redirect)
+curl -I http://localhost:3000/fm/dashboard
+
+# 6. Run Lighthouse
+lighthouse http://localhost:3000 \
+  --output=json \
+  --output-path=./lighthouse-post-provider-opt.json
+
+# 7. Compare scores
+jq '.categories.performance.score * 100' lighthouse-post-provider-opt.json
+```
+
+---
+
+## 🚀 Next Steps
+
+### Immediate
+
+1. ✅ Complete build and measure actual bundle sizes
+2. ⏳ Test all route types (public, auth, protected)
+3. ⏳ Run Lighthouse audit
+4. ⏳ Document actual vs expected results
+
+### Follow-up Optimizations
+
+1. **ClientLayout Dynamic Imports** (-15-20 KB)
+   - Lazy-load TopBar, Sidebar, Footer
+   - Expected: +1-2 points
+
+2. **Mongoose Index Cleanup** (Quick win)
+   - Fix duplicate index warnings
+   - Clean build output
+
+3. **Final Lighthouse Audit**
+   - Target: 87-90/100
+   - Validate all optimizations
+
+---
+
+## 📝 Notes
+
+### Architecture Benefits
+
+- ✅ **Maintainable**: Clear separation between public and authenticated providers
+- ✅ **Scalable**: Easy to add new providers to appropriate tier
+- ✅ **Type-Safe**: Full TypeScript support maintained
+- ✅ **Testable**: Each provider tree can be tested independently
+
+### Performance Benefits
+
+- ✅ **Public Pages**: 30-40% faster initial load
+- ✅ **Auth Flow**: Critical user journey optimized
+- ✅ **Protected Pages**: No regression
+- ✅ **Bundle Size**: 31% reduction on public pages
+
+### Developer Experience
+
+- ✅ **Automatic**: No manual provider selection needed
+- ✅ **Transparent**: Existing code works without changes
+- ✅ **Documented**: Clear comments explain routing logic
+
+---
+
+**Status**: ✅ Implementation complete, awaiting build validation  
+**Expected Impact**: +3-5 Lighthouse points (82 → 85-87)  
+**Risk Level**: Low (providers are compositional, no breaking changes)
+
+]]>
+</file>
+
+<file path="docs/architecture/REDIS_ARCHITECTURE.md">
+<![CDATA[
+# Redis Architecture
+
+> **Last Updated**: 2025-01-17  
+> **Maintainers**: Engineering Team
+
+## Overview
+
+Fixzit uses **ioredis** as the unified Redis client library, but provides two distinct access patterns based on runtime and use-case requirements:
+
+| Module | Purpose | Runtime | Features |
+|--------|---------|---------|----------|
+| `lib/redis.ts` | Caching + Singleton | Edge-safe | Dynamic require, fallback support |
+| `lib/redis-client.ts` | Caching + Rate Limiting | Server-only | Direct import, in-memory fallbacks |
+| `lib/queues/setup.ts` | BullMQ Job Queues | Server-only | Uses `lib/redis.ts` connection |
+
+## Why Two Redis Modules?
+
+### 1. Edge Runtime Compatibility (`lib/redis.ts`)
+
+Next.js Edge Runtime does **not** support:
+- The `dns` module (required by ioredis)
+- Node.js `require()` 
+
+To avoid bundling ioredis into Edge/client builds (which would crash), `lib/redis.ts` uses:
+
+```typescript
+// Dynamic require at runtime, not import at bundle time
+function getRedisCtor(): RedisCtor | null {
+  if (typeof require === "undefined") return null;
+  try {
+    const mod = require("ioredis");
+    return mod.default || mod;
+  } catch {
+    return null; // Graceful fallback
+  }
+}
+```
+
+**Use `lib/redis.ts` when:**
+- Code might run in Edge runtime (API routes, middleware)
+- You need graceful Redis unavailability handling
+- You need connection observability metrics
+
+### 2. Server-Only with Fallbacks (`lib/redis-client.ts`)
+
+For server-only code that needs guaranteed caching (even without Redis), this module provides:
+
+- Direct ioredis import (smaller bundle for server-only code)
+- **In-memory fallback** when Redis is not configured
+- Built-in rate limiting support
+
+```typescript
+// Falls back to in-memory if Redis unavailable
+export const cache = {
+  async get<T>(key: string): Promise<T | null> {
+    const client = getRedisClient();
+    if (client) {
+      // Try Redis
+      const value = await client.get(key);
+      return value ? JSON.parse(value) : null;
+    }
+    // Fallback to in-memory
+    const memoryValue = memoryGet(key);
+    return memoryValue ? JSON.parse(memoryValue) : null;
+  },
+  // ...
+};
+```
+
+**Use `lib/redis-client.ts` when:**
+- Code is server-only (never Edge runtime)
+- You need in-memory fallback for development
+- You need rate limiting utilities
+
+## BullMQ Queues (`lib/queues/setup.ts`)
+
+BullMQ requires a persistent Redis connection for job durability. It imports from `lib/redis.ts`:
+
+```typescript
+import { getRedisClient } from '@/lib/redis';
+
+function requireRedisConnection(context: string): Redis {
+  const connection = getRedisClient();
+  if (!connection) {
+    throw new Error(`Redis not configured for ${context}`);
+  }
+  return connection;
+}
+```
+
+### Queue Names
+
+```typescript
+export const QUEUE_NAMES = {
+  BUY_BOX_RECOMPUTE: 'souq:buybox-recompute',
+  AUTO_REPRICER: 'souq:auto-repricer',
+  SETTLEMENT: 'souq:settlement',
+  REFUNDS: 'souq:refunds',
+  INVENTORY_HEALTH: 'souq:inventory-health',
+  ADS_AUCTION: 'souq:ads-auction',
+  POLICY_SWEEP: 'souq:policy-sweep',
+  SEARCH_INDEX: 'souq:search-index',
+  ACCOUNT_HEALTH: 'souq:account-health',
+  NOTIFICATIONS: 'souq:notifications',
+};
+```
+
+## Environment Variables
+
+```bash
+# Primary Redis URL (required for production)
+REDIS_URL=rediss://user:pass@host:6379
+
+# Alternative names (for compatibility)
+REDIS_KEY=rediss://...       # Vercel/GitHub Actions convention
+BULLMQ_REDIS_URL=rediss://... # Dedicated queue instance
+OTP_STORE_REDIS_URL=rediss://... # Dedicated OTP instance
+
+# Component-based config (fallback)
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=secret
+REDIS_DB=0
+```
+
+## Connection Observability
+
+`lib/redis.ts` provides metrics for monitoring:
+
+```typescript
+const metrics = getRedisMetrics();
+// {
+//   connectionAttempts: 5,
+//   successfulConnections: 4,
+//   connectionErrors: 1,
+//   reconnectAttempts: 2,
+//   lastConnectedAt: Date,
+//   lastErrorAt: Date,
+//   lastError: 'ECONNREFUSED',
+//   currentStatus: 'ready'
+// }
+```
+
+## Decision Tree
+
+```
+Is code Edge-compatible or might run in middleware?
+├── YES → Use lib/redis.ts (dynamic require)
+└── NO → Is graceful degradation needed?
+    ├── YES → Use lib/redis-client.ts (in-memory fallback)
+    └── NO → Is this for BullMQ queues?
+        ├── YES → Use lib/queues/setup.ts (requires Redis)
+        └── NO → Use lib/redis.ts (singleton, metrics)
+```
+
+## Cache Key Patterns
+
+### Standard Naming
+
+```typescript
+// Pattern: {domain}:{entity}:{id}:{field}
+'seller:abc123:balance'
+'analytics:org456:30'  // 30-day analytics
+'otp:phone:+1234567890'
+```
+
+### Security: Key Redaction
+
+All logging redacts cache keys to prevent ID enumeration:
+
+```typescript
+redactCacheKey("seller:12345:balance")
+// → "seller:1234****:balance"
+```
+
+## Cache TTLs
+
+```typescript
+export const CacheTTL = {
+  FIVE_MINUTES: 300,
+  FIFTEEN_MINUTES: 900,
+  ONE_HOUR: 3600,
+  ONE_DAY: 86400,
+  ONE_WEEK: 604800,
+} as const;
+```
+
+## Health Checks
+
+```typescript
+// lib/redis.ts
+const healthy = await isRedisHealthy();
+// Returns true if PING returns PONG
+
+// For queue health
+const stats = await getQueueStats('souq:notifications');
+// { waiting: 5, active: 2, completed: 100, failed: 1, delayed: 0, paused: 0 }
+```
+
+## Common Issues
+
+### 1. "Redis not configured" in development
+
+This is expected. Set `REDIS_URL` or use the in-memory fallbacks.
+
+### 2. Connection exhaustion
+
+**Problem**: Creating new Redis() per request exhausts connections.
+
+**Solution**: Always use singleton `getRedisClient()`, never `new Redis()`.
+
+### 3. Edge runtime crash
+
+**Problem**: `Cannot find module 'dns'`
+
+**Solution**: Code using Redis must not be in Edge runtime. Use `lib/redis.ts` which handles this gracefully.
+
+### 4. BullMQ jobs not processing
+
+**Check**:
+1. Is `REDIS_URL` set?
+2. Is the worker started? (Call `createWorker()`)
+3. Check queue stats: `getQueueStats(QUEUE_NAMES.NOTIFICATIONS)`
+
+## Migration Guide
+
+### From multiple Redis instances to singleton:
+
+```diff
+- import Redis from 'ioredis';
+- const redis = new Redis(process.env.REDIS_URL);
++ import { getRedisClient, getCached } from '@/lib/redis';
++ const redis = getRedisClient(); // May be null!
+
+// Better: Use cache helpers
+- const value = await redis.get(key);
++ const value = await getCached(key, CacheTTL.FIVE_MINUTES, fetchData);
+```
+
+## Related Documentation
+
+- [BullMQ Documentation](https://docs.bullmq.io/)
+- [ioredis GitHub](https://github.com/redis/ioredis)
+- [Next.js Edge Runtime](https://nextjs.org/docs/api-reference/edge-runtime)
+
+]]>
+</file>
+
+</batch_content>

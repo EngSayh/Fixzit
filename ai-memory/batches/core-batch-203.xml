@@ -1,0 +1,2227 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="i18n/sources/networkManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "networkManagement.access": "Network Access Control",
+    "networkManagement.architecture": "Network Architecture",
+    "networkManagement.bandwidth": "Bandwidth Management",
+    "networkManagement.configuration": "Network Configuration",
+    "networkManagement.documentation": "Network Documentation",
+    "networkManagement.firewall": "Firewall",
+    "networkManagement.infrastructure": "Network Infrastructure",
+    "networkManagement.lan": "Local Area Network",
+    "networkManagement.monitoring": "Network Monitoring",
+    "networkManagement.network": "Network Management",
+    "networkManagement.optimization": "Network Optimization",
+    "networkManagement.performance": "Network Performance",
+    "networkManagement.routing": "Routing",
+    "networkManagement.security": "Network Security",
+    "networkManagement.switching": "Switching",
+    "networkManagement.topology": "Network Topology",
+    "networkManagement.traffic": "Traffic Management",
+    "networkManagement.troubleshooting": "Network Troubleshooting",
+    "networkManagement.vpn": "VPN",
+    "networkManagement.wan": "Wide Area Network",
+    "networkManagement.wifi": "Wi-Fi",
+    "networkManagement.wireless": "Wireless Network"
+  },
+  "ar": {
+    "networkManagement.access": "التحكم في الوصول إلى الشبكة",
+    "networkManagement.architecture": "بنية الشبكة",
+    "networkManagement.bandwidth": "إدارة عرض النطاق",
+    "networkManagement.configuration": "تكوين الشبكة",
+    "networkManagement.documentation": "توثيق الشبكة",
+    "networkManagement.firewall": "جدار الحماية",
+    "networkManagement.infrastructure": "البنية التحتية للشبكة",
+    "networkManagement.lan": "شبكة المنطقة المحلية",
+    "networkManagement.monitoring": "مراقبة الشبكة",
+    "networkManagement.network": "إدارة الشبكة",
+    "networkManagement.optimization": "تحسين الشبكة",
+    "networkManagement.performance": "أداء الشبكة",
+    "networkManagement.routing": "التوجيه",
+    "networkManagement.security": "أمن الشبكة",
+    "networkManagement.switching": "التبديل",
+    "networkManagement.topology": "طوبولوجيا الشبكة",
+    "networkManagement.traffic": "إدارة حركة المرور",
+    "networkManagement.troubleshooting": "استكشاف أخطاء الشبكة",
+    "networkManagement.vpn": "الشبكة الافتراضية الخاصة",
+    "networkManagement.wan": "شبكة المنطقة الواسعة",
+    "networkManagement.wifi": "واي فاي",
+    "networkManagement.wireless": "الشبكة اللاسلكية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/networkMonitoring.translations.json">
+<![CDATA[
+{
+  "en": {
+    "networkMonitoring.analysis": "Traffic Analysis",
+    "networkMonitoring.bandwidth": "Bandwidth",
+    "networkMonitoring.connectivity": "Connectivity",
+    "networkMonitoring.device": "Network Device",
+    "networkMonitoring.dns": "DNS Monitoring",
+    "networkMonitoring.endpoint": "Endpoint",
+    "networkMonitoring.firewall": "Firewall",
+    "networkMonitoring.flow": "NetFlow",
+    "networkMonitoring.gateway": "Gateway",
+    "networkMonitoring.jitter": "Jitter",
+    "networkMonitoring.latency": "Network Latency",
+    "networkMonitoring.monitoring": "Network Monitoring",
+    "networkMonitoring.network": "Network",
+    "networkMonitoring.packet": "Packet Loss",
+    "networkMonitoring.ping": "Ping",
+    "networkMonitoring.router": "Router",
+    "networkMonitoring.snmp": "SNMP",
+    "networkMonitoring.switch": "Switch",
+    "networkMonitoring.throughput": "Network Throughput",
+    "networkMonitoring.topology": "Network Topology",
+    "networkMonitoring.traceroute": "Traceroute",
+    "networkMonitoring.traffic": "Network Traffic"
+  },
+  "ar": {
+    "networkMonitoring.analysis": "تحليل الحركة",
+    "networkMonitoring.bandwidth": "عرض النطاق الترددي",
+    "networkMonitoring.connectivity": "الاتصال",
+    "networkMonitoring.device": "جهاز الشبكة",
+    "networkMonitoring.dns": "مراقبة DNS",
+    "networkMonitoring.endpoint": "نقطة النهاية",
+    "networkMonitoring.firewall": "جدار الحماية",
+    "networkMonitoring.flow": "NetFlow",
+    "networkMonitoring.gateway": "البوابة",
+    "networkMonitoring.jitter": "التذبذب",
+    "networkMonitoring.latency": "تأخير الشبكة",
+    "networkMonitoring.monitoring": "مراقبة الشبكة",
+    "networkMonitoring.network": "الشبكة",
+    "networkMonitoring.packet": "فقدان الحزم",
+    "networkMonitoring.ping": "Ping",
+    "networkMonitoring.router": "الموجه",
+    "networkMonitoring.snmp": "SNMP",
+    "networkMonitoring.switch": "المفتاح",
+    "networkMonitoring.throughput": "إنتاجية الشبكة",
+    "networkMonitoring.topology": "طوبولوجيا الشبكة",
+    "networkMonitoring.traceroute": "Traceroute",
+    "networkMonitoring.traffic": "حركة الشبكة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/networkSecurity.translations.json">
+<![CDATA[
+{
+  "en": {
+    "networkSecurity.access": "Network Access Control",
+    "networkSecurity.authentication": "Network Authentication",
+    "networkSecurity.dmz": "DMZ",
+    "networkSecurity.encryption": "Network Encryption",
+    "networkSecurity.endpoint": "Endpoint Security",
+    "networkSecurity.filtering": "Traffic Filtering",
+    "networkSecurity.firewall": "Firewall",
+    "networkSecurity.gateway": "Security Gateway",
+    "networkSecurity.intrusion": "Intrusion Detection",
+    "networkSecurity.isolation": "Network Isolation",
+    "networkSecurity.microsegmentation": "Microsegmentation",
+    "networkSecurity.monitoring": "Network Monitoring",
+    "networkSecurity.network": "Network Security",
+    "networkSecurity.packet": "Packet Inspection",
+    "networkSecurity.perimeter": "Perimeter Security",
+    "networkSecurity.prevention": "Intrusion Prevention",
+    "networkSecurity.proxy": "Proxy Server",
+    "networkSecurity.segmentation": "Network Segmentation",
+    "networkSecurity.traffic": "Traffic Analysis",
+    "networkSecurity.vpn": "Virtual Private Network",
+    "networkSecurity.wireless": "Wireless Security",
+    "networkSecurity.zeroTrust": "Zero Trust Network"
+  },
+  "ar": {
+    "networkSecurity.access": "التحكم في الوصول إلى الشبكة",
+    "networkSecurity.authentication": "مصادقة الشبكة",
+    "networkSecurity.dmz": "المنطقة منزوعة السلاح",
+    "networkSecurity.encryption": "تشفير الشبكة",
+    "networkSecurity.endpoint": "أمن نقطة النهاية",
+    "networkSecurity.filtering": "تصفية حركة المرور",
+    "networkSecurity.firewall": "جدار الحماية",
+    "networkSecurity.gateway": "بوابة الأمان",
+    "networkSecurity.intrusion": "كشف الاختراق",
+    "networkSecurity.isolation": "عزل الشبكة",
+    "networkSecurity.microsegmentation": "التقسيم الدقيق",
+    "networkSecurity.monitoring": "مراقبة الشبكة",
+    "networkSecurity.network": "أمن الشبكة",
+    "networkSecurity.packet": "فحص الحزم",
+    "networkSecurity.perimeter": "أمن المحيط",
+    "networkSecurity.prevention": "منع الاختراق",
+    "networkSecurity.proxy": "خادم بروكسي",
+    "networkSecurity.segmentation": "تقسيم الشبكة",
+    "networkSecurity.traffic": "تحليل حركة المرور",
+    "networkSecurity.vpn": "الشبكة الخاصة الافتراضية",
+    "networkSecurity.wireless": "أمن الشبكة اللاسلكية",
+    "networkSecurity.zeroTrust": "شبكة عدم الثقة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/neuralNetworks.translations.json">
+<![CDATA[
+{
+  "en": {
+    "neuralNetworks.activation": "Activation Functions",
+    "neuralNetworks.architecture": "Network Architecture",
+    "neuralNetworks.attention": "Attention Mechanism",
+    "neuralNetworks.autoencoder": "Autoencoder Networks",
+    "neuralNetworks.backpropagation": "Backpropagation",
+    "neuralNetworks.batches": "Batch Processing",
+    "neuralNetworks.convolutional": "Convolutional Networks",
+    "neuralNetworks.decoder": "Decoder Networks",
+    "neuralNetworks.encoder": "Encoder Networks",
+    "neuralNetworks.epochs": "Training Epochs",
+    "neuralNetworks.gan": "Generative Adversarial Networks",
+    "neuralNetworks.gradients": "Gradient Descent",
+    "neuralNetworks.gru": "Gated Recurrent Units",
+    "neuralNetworks.layers": "Network Layers",
+    "neuralNetworks.learning": "Learning Rate",
+    "neuralNetworks.lstm": "Long Short-Term Memory",
+    "neuralNetworks.networks": "Neural Networks",
+    "neuralNetworks.neural": "Neural Networks",
+    "neuralNetworks.optimization": "Network Optimization",
+    "neuralNetworks.recurrent": "Recurrent Networks",
+    "neuralNetworks.regularization": "Network Regularization",
+    "neuralNetworks.transformer": "Transformer Architecture"
+  },
+  "ar": {
+    "neuralNetworks.activation": "وظائف التنشيط",
+    "neuralNetworks.architecture": "بنية الشبكة",
+    "neuralNetworks.attention": "آلية الانتباه",
+    "neuralNetworks.autoencoder": "شبكات الترميز التلقائي",
+    "neuralNetworks.backpropagation": "الانتشار العكسي",
+    "neuralNetworks.batches": "معالجة الدفعات",
+    "neuralNetworks.convolutional": "الشبكات الالتفافية",
+    "neuralNetworks.decoder": "شبكات فك التشفير",
+    "neuralNetworks.encoder": "شبكات التشفير",
+    "neuralNetworks.epochs": "حقب التدريب",
+    "neuralNetworks.gan": "الشبكات التوليدية التنافسية",
+    "neuralNetworks.gradients": "الانحدار التدريجي",
+    "neuralNetworks.gru": "الوحدات المتكررة البوابية",
+    "neuralNetworks.layers": "طبقات الشبكة",
+    "neuralNetworks.learning": "معدل التعلم",
+    "neuralNetworks.lstm": "الذاكرة قصيرة المدى الطويلة",
+    "neuralNetworks.networks": "الشبكات العصبية",
+    "neuralNetworks.neural": "الشبكات العصبية",
+    "neuralNetworks.optimization": "تحسين الشبكة",
+    "neuralNetworks.recurrent": "الشبكات المتكررة",
+    "neuralNetworks.regularization": "تنظيم الشبكة",
+    "neuralNetworks.transformer": "بنية المحول"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/nonprofitManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "nonprofitManagement.beneficiaryManagement": "Beneficiary Management",
+    "nonprofitManagement.communicationsManagement": "Communications Management",
+    "nonprofitManagement.description": "Nonprofit and charitable organization operations",
+    "nonprofitManagement.donationProcessing": "Donation Processing",
+    "nonprofitManagement.donorManagement": "Donor Management",
+    "nonprofitManagement.emailMarketing": "Email Marketing",
+    "nonprofitManagement.eventManagement": "Event Management",
+    "nonprofitManagement.fundraisingCampaigns": "Fundraising Campaigns",
+    "nonprofitManagement.grantApplication": "Grant Application",
+    "nonprofitManagement.grantManagement": "Grant Management",
+    "nonprofitManagement.grantReporting": "Grant Reporting",
+    "nonprofitManagement.grantTracking": "Grant Tracking",
+    "nonprofitManagement.hoursTracking": "Hours Tracking",
+    "nonprofitManagement.impactMeasurement": "Impact Measurement",
+    "nonprofitManagement.membershipManagement": "Membership Management",
+    "nonprofitManagement.membershipRenewal": "Membership Renewal",
+    "nonprofitManagement.outcomeTracking": "Outcome Tracking",
+    "nonprofitManagement.pledgeTracking": "Pledge Tracking",
+    "nonprofitManagement.programManagement": "Program Management",
+    "nonprofitManagement.recurringGiving": "Recurring Giving",
+    "nonprofitManagement.reportingCompliance": "Reporting & Compliance",
+    "nonprofitManagement.socialMediaIntegration": "Social Media Integration",
+    "nonprofitManagement.title": "Nonprofit Management",
+    "nonprofitManagement.volunteerManagement": "Volunteer Management",
+    "nonprofitManagement.volunteerScheduling": "Volunteer Scheduling"
+  },
+  "ar": {
+    "nonprofitManagement.beneficiaryManagement": "إدارة المستفيدين",
+    "nonprofitManagement.communicationsManagement": "إدارة الاتصالات",
+    "nonprofitManagement.description": "عمليات المنظمات غير الربحية والخيرية",
+    "nonprofitManagement.donationProcessing": "معالجة التبرعات",
+    "nonprofitManagement.donorManagement": "إدارة المتبرعين",
+    "nonprofitManagement.emailMarketing": "التسويق عبر البريد الإلكتروني",
+    "nonprofitManagement.eventManagement": "إدارة الفعاليات",
+    "nonprofitManagement.fundraisingCampaigns": "حملات جمع التبرعات",
+    "nonprofitManagement.grantApplication": "طلب المنحة",
+    "nonprofitManagement.grantManagement": "إدارة المنح",
+    "nonprofitManagement.grantReporting": "تقارير المنح",
+    "nonprofitManagement.grantTracking": "تتبع المنح",
+    "nonprofitManagement.hoursTracking": "تتبع الساعات",
+    "nonprofitManagement.impactMeasurement": "قياس الأثر",
+    "nonprofitManagement.membershipManagement": "إدارة العضوية",
+    "nonprofitManagement.membershipRenewal": "تجديد العضوية",
+    "nonprofitManagement.outcomeTracking": "تتبع النتائج",
+    "nonprofitManagement.pledgeTracking": "تتبع التعهدات",
+    "nonprofitManagement.programManagement": "إدارة البرامج",
+    "nonprofitManagement.recurringGiving": "التبرع المتكرر",
+    "nonprofitManagement.reportingCompliance": "التقارير والامتثال",
+    "nonprofitManagement.socialMediaIntegration": "تكامل وسائل التواصل الاجتماعي",
+    "nonprofitManagement.title": "إدارة المنظمات غير الربحية",
+    "nonprofitManagement.volunteerManagement": "إدارة المتطوعين",
+    "nonprofitManagement.volunteerScheduling": "جدولة المتطوعين"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/notificationAutomationAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "notificationAutomationAdv.automate": "Automate Notification",
+    "notificationAutomationAdv.content": "Content",
+    "notificationAutomationAdv.delayed": "Delayed",
+    "notificationAutomationAdv.desktop": "Desktop Notification",
+    "notificationAutomationAdv.high": "High",
+    "notificationAutomationAdv.immediate": "Immediate",
+    "notificationAutomationAdv.inApp": "In-App Notification",
+    "notificationAutomationAdv.low": "Low",
+    "notificationAutomationAdv.message": "Message",
+    "notificationAutomationAdv.normal": "Normal",
+    "notificationAutomationAdv.notification": "Notification",
+    "notificationAutomationAdv.priority": "Priority",
+    "notificationAutomationAdv.push": "Push Notification",
+    "notificationAutomationAdv.read": "Read",
+    "notificationAutomationAdv.recipient": "Recipient",
+    "notificationAutomationAdv.recurring": "Recurring",
+    "notificationAutomationAdv.schedule": "Schedule Notification",
+    "notificationAutomationAdv.send": "Send Notification",
+    "notificationAutomationAdv.sms": "SMS Notification",
+    "notificationAutomationAdv.title": "Title",
+    "notificationAutomationAdv.trigger": "Notification Trigger",
+    "notificationAutomationAdv.unread": "Unread",
+    "notificationAutomationAdv.urgent": "Urgent"
+  },
+  "ar": {
+    "notificationAutomationAdv.automate": "أتمتة الإشعارات",
+    "notificationAutomationAdv.content": "المحتوى",
+    "notificationAutomationAdv.delayed": "مؤجل",
+    "notificationAutomationAdv.desktop": "إشعار سطح المكتب",
+    "notificationAutomationAdv.high": "مرتفع",
+    "notificationAutomationAdv.immediate": "فوري",
+    "notificationAutomationAdv.inApp": "إشعار داخل التطبيق",
+    "notificationAutomationAdv.low": "منخفض",
+    "notificationAutomationAdv.message": "الرسالة",
+    "notificationAutomationAdv.normal": "عادي",
+    "notificationAutomationAdv.notification": "الإشعار",
+    "notificationAutomationAdv.priority": "الأولوية",
+    "notificationAutomationAdv.push": "إشعار فوري",
+    "notificationAutomationAdv.read": "مقروء",
+    "notificationAutomationAdv.recipient": "المستلم",
+    "notificationAutomationAdv.recurring": "متكرر",
+    "notificationAutomationAdv.schedule": "جدولة الإشعار",
+    "notificationAutomationAdv.send": "إرسال إشعار",
+    "notificationAutomationAdv.sms": "إشعار نصي",
+    "notificationAutomationAdv.title": "العنوان",
+    "notificationAutomationAdv.trigger": "محفز الإشعار",
+    "notificationAutomationAdv.unread": "غير مقروء",
+    "notificationAutomationAdv.urgent": "عاجل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/notificationSettings.translations.json">
+<![CDATA[
+{
+  "en": {
+    "notificationSettings.badge": "Badge",
+    "notificationSettings.banner": "Banner",
+    "notificationSettings.batched": "Batched",
+    "notificationSettings.channels": "Notification Channels",
+    "notificationSettings.desktop": "Desktop Notifications",
+    "notificationSettings.digest": "Digest",
+    "notificationSettings.disable": "Disable Notifications",
+    "notificationSettings.doNotDisturb": "Do Not Disturb",
+    "notificationSettings.email": "Email Notifications",
+    "notificationSettings.enable": "Enable Notifications",
+    "notificationSettings.frequency": "Frequency",
+    "notificationSettings.high": "High Priority",
+    "notificationSettings.inApp": "In-App Notifications",
+    "notificationSettings.low": "Low Priority",
+    "notificationSettings.mobile": "Mobile Notifications",
+    "notificationSettings.mute": "Mute",
+    "notificationSettings.normal": "Normal Priority",
+    "notificationSettings.notifications": "Notifications",
+    "notificationSettings.preferences": "Notification Preferences",
+    "notificationSettings.priority": "Priority",
+    "notificationSettings.push": "Push Notifications",
+    "notificationSettings.quiet": "Quiet Hours",
+    "notificationSettings.realtime": "Real-time",
+    "notificationSettings.schedule": "Schedule",
+    "notificationSettings.sms": "SMS Notifications",
+    "notificationSettings.snooze": "Snooze",
+    "notificationSettings.sound": "Sound",
+    "notificationSettings.summary": "Summary",
+    "notificationSettings.vibration": "Vibration"
+  },
+  "ar": {
+    "notificationSettings.badge": "الشارة",
+    "notificationSettings.banner": "الشعار",
+    "notificationSettings.batched": "دفعات",
+    "notificationSettings.channels": "قنوات الإشعارات",
+    "notificationSettings.desktop": "إشعارات سطح المكتب",
+    "notificationSettings.digest": "الملخص",
+    "notificationSettings.disable": "تعطيل الإشعارات",
+    "notificationSettings.doNotDisturb": "عدم الإزعاج",
+    "notificationSettings.email": "إشعارات البريد الإلكتروني",
+    "notificationSettings.enable": "تمكين الإشعارات",
+    "notificationSettings.frequency": "التكرار",
+    "notificationSettings.high": "أولوية عالية",
+    "notificationSettings.inApp": "الإشعارات داخل التطبيق",
+    "notificationSettings.low": "أولوية منخفضة",
+    "notificationSettings.mobile": "إشعارات الجوال",
+    "notificationSettings.mute": "كتم",
+    "notificationSettings.normal": "أولوية عادية",
+    "notificationSettings.notifications": "الإشعارات",
+    "notificationSettings.preferences": "تفضيلات الإشعارات",
+    "notificationSettings.priority": "الأولوية",
+    "notificationSettings.push": "الإشعارات الفورية",
+    "notificationSettings.quiet": "الساعات الهادئة",
+    "notificationSettings.realtime": "فوري",
+    "notificationSettings.schedule": "الجدول",
+    "notificationSettings.sms": "إشعارات الرسائل النصية",
+    "notificationSettings.snooze": "غفوة",
+    "notificationSettings.sound": "الصوت",
+    "notificationSettings.summary": "الملخص",
+    "notificationSettings.vibration": "الاهتزاز"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/notificationTemplates.translations.json">
+<![CDATA[
+{
+  "en": {
+    "notificationTemplates.active": "Active",
+    "notificationTemplates.condition": "Condition",
+    "notificationTemplates.create": "Create Template",
+    "notificationTemplates.delete": "Delete Template",
+    "notificationTemplates.edit": "Edit Template",
+    "notificationTemplates.email": "Email",
+    "notificationTemplates.event": "Event",
+    "notificationTemplates.inactive": "Inactive",
+    "notificationTemplates.inApp": "In-App",
+    "notificationTemplates.message": "Message",
+    "notificationTemplates.name": "Template Name",
+    "notificationTemplates.notification": "Notification",
+    "notificationTemplates.preview": "Preview",
+    "notificationTemplates.push": "Push Notification",
+    "notificationTemplates.schedule": "Schedule",
+    "notificationTemplates.sms": "SMS",
+    "notificationTemplates.template": "Template",
+    "notificationTemplates.test": "Test Send",
+    "notificationTemplates.title": "Title",
+    "notificationTemplates.trigger": "Trigger",
+    "notificationTemplates.type": "Type",
+    "notificationTemplates.variables": "Variables"
+  },
+  "ar": {
+    "notificationTemplates.active": "نشط",
+    "notificationTemplates.condition": "الشرط",
+    "notificationTemplates.create": "إنشاء قالب",
+    "notificationTemplates.delete": "حذف قالب",
+    "notificationTemplates.edit": "تحرير قالب",
+    "notificationTemplates.email": "بريد إلكتروني",
+    "notificationTemplates.event": "الحدث",
+    "notificationTemplates.inactive": "غير نشط",
+    "notificationTemplates.inApp": "داخل التطبيق",
+    "notificationTemplates.message": "الرسالة",
+    "notificationTemplates.name": "اسم القالب",
+    "notificationTemplates.notification": "الإشعار",
+    "notificationTemplates.preview": "معاينة",
+    "notificationTemplates.push": "إشعار فوري",
+    "notificationTemplates.schedule": "جدولة",
+    "notificationTemplates.sms": "رسالة نصية",
+    "notificationTemplates.template": "القالب",
+    "notificationTemplates.test": "إرسال اختبار",
+    "notificationTemplates.title": "العنوان",
+    "notificationTemplates.trigger": "المحفز",
+    "notificationTemplates.type": "النوع",
+    "notificationTemplates.variables": "المتغيرات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/notifications.translations.json">
+<![CDATA[
+{
+  "en": {
+    "notifications.accessibility.selectNotification": "Select notification",
+    "notifications.actions.archive": "Archive",
+    "notifications.actions.clearAll": "Clear all",
+    "notifications.actions.delete": "Delete",
+    "notifications.actions.export": "Export",
+    "notifications.actions.markAllRead": "Mark All Read",
+    "notifications.actions.markRead": "Mark as read",
+    "notifications.actions.markUnread": "Mark as unread",
+    "notifications.actions.mute": "Mute",
+    "notifications.actions.openSettings": "Settings",
+    "notifications.actions.selectAll": "Select all",
+    "notifications.bulk.archive": "Archive",
+    "notifications.bulk.count": "{{count}} notifications",
+    "notifications.bulk.countSingle": "1 notification",
+    "notifications.bulk.delete": "Delete",
+    "notifications.bulk.export": "Export",
+    "notifications.bulk.markImportant": "Mark Important",
+    "notifications.bulk.markRead": "Mark as Read",
+    "notifications.bulk.selectAll": "Select All",
+    "notifications.bulk.selected": "{{selected}} of {{total}} selected",
+    "notifications.categories.alert": "Alert",
+    "notifications.categories.finance": "Finance",
+    "notifications.categories.maintenance": "Maintenance",
+    "notifications.categories.payment": "Payment",
+    "notifications.categories.system": "System",
+    "notifications.categories.tenant": "Tenant",
+    "notifications.categories.vendor": "Vendor",
+    "notifications.categories.workOrder": "Work Order",
+    "notifications.category.alert": "Alert",
+    "notifications.category.finance": "Finance",
+    "notifications.category.maintenance": "Maintenance",
+    "notifications.category.payment": "Payment",
+    "notifications.category.system": "System",
+    "notifications.category.tenant": "Tenant",
+    "notifications.category.vendor": "Vendor",
+    "notifications.category.workorder": "Work Order",
+    "notifications.clearAll": "Clear all",
+    "notifications.emailNotifications": "Email Notifications",
+    "notifications.filters.all": "All Notifications",
+    "notifications.filters.finance": "Finance",
+    "notifications.filters.high": "High Priority",
+    "notifications.filters.highPriority": "High Priority",
+    "notifications.filters.maintenance": "Maintenance",
+    "notifications.filters.search": "Search notifications...",
+    "notifications.filters.system": "System",
+    "notifications.filters.unread": "Unread Only",
+    "notifications.filters.unreadOnly": "Unread Only",
+    "notifications.filters.vendor": "Vendor",
+    "notifications.item.markAsRead": "Mark as read",
+    "notifications.item.moreActions": "More actions",
+    "notifications.markAllAsRead": "Mark all as read",
+    "notifications.markAllRead": "Mark all as read",
+    "notifications.messages.allCleared": "All notifications cleared",
+    "notifications.messages.allMarkedAsRead": "All notifications marked as read",
+    "notifications.messages.noNotificationsFound": "No notifications found",
+    "notifications.messages.selectCategoryToMute": "Please select a category before muting",
+    "notifications.newNotification": "New notification",
+    "notifications.noNotifications": "No notifications",
+    "notifications.notificationSettings": "Notification Settings",
+    "notifications.notificationTypes.alert": "Alert",
+    "notifications.notificationTypes.maintenance": "Maintenance",
+    "notifications.notificationTypes.payment": "Payment",
+    "notifications.notificationTypes.system": "System",
+    "notifications.notificationTypes.tenant": "Tenant",
+    "notifications.notificationTypes.workOrder": "Work Order",
+    "notifications.onApprovalRequested.body": "Quote #{{quotationId}} requires approval - Amount: {{amount}}",
+    "notifications.onApprovalRequested.title": "Approval Required",
+    "notifications.onApproved.body": "Quote #{{quotationId}} has been approved",
+    "notifications.onApproved.title": "Quote Approved",
+    "notifications.onAssign.body": "Assigned to {{technicianName}} - Work Order #{{workOrderId}}",
+    "notifications.onAssign.title": "Work Order Assigned",
+    "notifications.onClosed.body": "Work Order #{{workOrderId}} has been completed and closed",
+    "notifications.onClosed.title": "Work Order Closed",
+    "notifications.onTicketCreated.body": "Work order #{{workOrderId}} for {{tenantName}} - Priority: {{priority}}",
+    "notifications.onTicketCreated.title": "New Work Order Created",
+    "notifications.page.subtitle": "Stay updated with all system notifications and alerts",
+    "notifications.page.title": "Notifications",
+    "notifications.priority.high": "HIGH",
+    "notifications.priority.low": "LOW",
+    "notifications.priority.medium": "MEDIUM",
+    "notifications.pushNotifications": "Push Notifications",
+    "notifications.quickActions.clearAll": "Clear All",
+    "notifications.quickActions.email": "Email Settings",
+    "notifications.quickActions.mute": "Mute Categories",
+    "notifications.quickActions.push": "Push Notifications",
+    "notifications.quickActions.report": "Notification Report",
+    "notifications.quickActions.settings": "Settings",
+    "notifications.quickActions.title": "Quick Actions",
+    "notifications.report.filenamePrefix": "notification-report-",
+    "notifications.search.placeholder": "Search notifications...",
+    "notifications.seller.budgetDepleted.body": "Your ad campaign \"{{campaignName}}\" has been paused due to insufficient funds. Add budget to resume advertising.",
+    "notifications.seller.budgetDepleted.sms": "Fixzit Alert: Ad campaign paused - budget depleted. Add funds to resume.",
+    "notifications.seller.budgetDepleted.subject": "Alert: Ad Budget Depleted",
+    "notifications.seller.budgetLow.body": "Your ad campaign \"{{campaignName}}\" has only {{budgetRemaining}} SAR remaining. Consider adding funds to avoid campaign interruption.",
+    "notifications.seller.budgetLow.sms": "Fixzit Alert: Ad budget low - {{budgetRemaining}} SAR remaining. Add funds to continue.",
+    "notifications.seller.budgetLow.subject": "Warning: Ad Budget Running Low",
+    "notifications.seller.email.brand": "Fixzit Marketplace",
+    "notifications.seller.email.footer": "This is an automated notification from Fixzit Marketplace.",
+    "notifications.seller.email.support": "For support, contact seller-support@fixzit.sa",
+    "notifications.seller.refundProcessed.body": "A refund of {{amount}} SAR has been processed for order {{orderId}}. Refund ID: {{refundId}}. The amount will be credited to your account within 5-7 business days.",
+    "notifications.seller.refundProcessed.sms": "Fixzit: Refund of {{amount}} SAR processed for order {{orderId}}.",
+    "notifications.seller.refundProcessed.subject": "Refund Processed Successfully",
+    "notifications.seller.withdrawalComplete.body": "Your withdrawal of {{amount}} SAR has been processed successfully to account {{iban}}. The funds should arrive within 1-3 business days.",
+    "notifications.seller.withdrawalComplete.sms": "Fixzit: Withdrawal of {{amount}} SAR completed successfully.",
+    "notifications.seller.withdrawalComplete.subject": "Withdrawal Completed Successfully",
+    "notifications.settings": "Settings",
+    "notifications.smsNotifications": "SMS Notifications",
+    "notifications.state.emptySubtitle": "You're all caught up!",
+    "notifications.state.emptyTitle": "No notifications found",
+    "notifications.state.loading": "Loading notifications...",
+    "notifications.stats.highPriority": "High Priority",
+    "notifications.stats.today": "Today",
+    "notifications.stats.total": "Total Notifications",
+    "notifications.stats.unread": "Unread",
+    "notifications.status.read": "Read",
+    "notifications.status.unread": "Unread",
+    "notifications.tabs.all": "All",
+    "notifications.tabs.unread": "Unread",
+    "notifications.tabs.urgent": "Urgent",
+    "notifications.title": "Notifications",
+    "notifications.toast.archived": "Archived {{count}} notifications",
+    "notifications.toast.clearedAll": "All notifications cleared",
+    "notifications.toast.deleted": "Deleted {{count}} notifications",
+    "notifications.toast.markedCount": "Marked {{count}} notifications as read",
+    "notifications.toast.markedImportant": "Marked {{count}} notifications as important",
+    "notifications.toast.markingCount": "Marking {{count}} notifications as read...",
+    "notifications.toast.markReadFailed": "Failed to mark notification as read",
+    "notifications.toast.mutedCategory": "Muted notifications for category: {{category}}",
+    "notifications.toast.muteSelectCategory": "Please select a specific category first to mute it",
+    "notifications.toast.noOrgId": "No organization ID found",
+    "notifications.viewAll": "View all"
+  },
+  "ar": {
+    "notifications.accessibility.selectNotification": "تحديد الإشعار",
+    "notifications.actions.archive": "أرشفة",
+    "notifications.actions.clearAll": "مسح الكل",
+    "notifications.actions.delete": "حذف",
+    "notifications.actions.export": "تصدير",
+    "notifications.actions.markAllRead": "تحديد الكل كمقروء",
+    "notifications.actions.markRead": "وضع علامة كمقروء",
+    "notifications.actions.markUnread": "وضع علامة كغير مقروء",
+    "notifications.actions.mute": "كتم",
+    "notifications.actions.openSettings": "الإعدادات",
+    "notifications.actions.selectAll": "تحديد الكل",
+    "notifications.bulk.archive": "أرشفة",
+    "notifications.bulk.count": "{{count}} إشعارات",
+    "notifications.bulk.countSingle": "إشعار واحد",
+    "notifications.bulk.delete": "حذف",
+    "notifications.bulk.export": "تصدير",
+    "notifications.bulk.markImportant": "تحديد كمهم",
+    "notifications.bulk.markRead": "تحديد كمقروء",
+    "notifications.bulk.selectAll": "تحديد الكل",
+    "notifications.bulk.selected": "{{selected}} من {{total}} محددة",
+    "notifications.categories.alert": "تنبيه",
+    "notifications.categories.finance": "المالية",
+    "notifications.categories.maintenance": "الصيانة",
+    "notifications.categories.payment": "دفع",
+    "notifications.categories.system": "النظام",
+    "notifications.categories.tenant": "مستأجر",
+    "notifications.categories.vendor": "الموردون",
+    "notifications.categories.workOrder": "أمر عمل",
+    "notifications.category.alert": "تنبيه",
+    "notifications.category.finance": "المالية",
+    "notifications.category.maintenance": "الصيانة",
+    "notifications.category.payment": "دفع",
+    "notifications.category.system": "النظام",
+    "notifications.category.tenant": "مستأجر",
+    "notifications.category.vendor": "الموردون",
+    "notifications.category.workorder": "أمر عمل",
+    "notifications.clearAll": "مسح الكل",
+    "notifications.emailNotifications": "إشعارات البريد الإلكتروني",
+    "notifications.filters.all": "جميع الإشعارات",
+    "notifications.filters.finance": "المالية",
+    "notifications.filters.high": "الأولوية العالية",
+    "notifications.filters.highPriority": "عالية الأولوية",
+    "notifications.filters.maintenance": "الصيانة",
+    "notifications.filters.search": "البحث في الإشعارات...",
+    "notifications.filters.system": "النظام",
+    "notifications.filters.unread": "غير المقروءة فقط",
+    "notifications.filters.unreadOnly": "غير مقروء فقط",
+    "notifications.filters.vendor": "الموردون",
+    "notifications.item.markAsRead": "تحديد كمقروء",
+    "notifications.item.moreActions": "إجراءات إضافية",
+    "notifications.markAllAsRead": "وضع علامة على الكل كمقروء",
+    "notifications.markAllRead": "وضع علامة على الكل كمقروء",
+    "notifications.messages.allCleared": "تم مسح جميع الإشعارات",
+    "notifications.messages.allMarkedAsRead": "تم وضع علامة على جميع الإشعارات كمقروءة",
+    "notifications.messages.noNotificationsFound": "لم يتم العثور على إشعارات",
+    "notifications.messages.selectCategoryToMute": "يرجى تحديد فئة معينة أولاً لكتمها",
+    "notifications.newNotification": "إشعار جديد",
+    "notifications.noNotifications": "لا توجد إشعارات",
+    "notifications.notificationSettings": "إعدادات الإشعارات",
+    "notifications.notificationTypes.alert": "تنبيه",
+    "notifications.notificationTypes.maintenance": "صيانة",
+    "notifications.notificationTypes.payment": "دفع",
+    "notifications.notificationTypes.system": "نظام",
+    "notifications.notificationTypes.tenant": "مستأجر",
+    "notifications.notificationTypes.workOrder": "أمر عمل",
+    "notifications.onApprovalRequested.body": "عرض السعر #{{quotationId}} يتطلب الموافقة - المبلغ: {{amount}}",
+    "notifications.onApprovalRequested.title": "مطلوب موافقة",
+    "notifications.onApproved.body": "تمت الموافقة على عرض السعر #{{quotationId}}",
+    "notifications.onApproved.title": "تمت الموافقة على العرض",
+    "notifications.onAssign.body": "تم التعيين إلى {{technicianName}} - أمر عمل #{{workOrderId}}",
+    "notifications.onAssign.title": "تم تعيين أمر العمل",
+    "notifications.onClosed.body": "تم إكمال وإغلاق أمر العمل #{{workOrderId}}",
+    "notifications.onClosed.title": "تم إغلاق أمر العمل",
+    "notifications.onTicketCreated.body": "أمر عمل #{{workOrderId}} لـ {{tenantName}} - الأولوية: {{priority}}",
+    "notifications.onTicketCreated.title": "تم إنشاء أمر عمل جديد",
+    "notifications.page.subtitle": "كن على اطلاع بجميع إشعارات النظام والتنبيهات",
+    "notifications.page.title": "الإشعارات",
+    "notifications.priority.high": "عالية",
+    "notifications.priority.low": "منخفضة",
+    "notifications.priority.medium": "متوسطة",
+    "notifications.pushNotifications": "الإشعارات المنبثقة",
+    "notifications.quickActions.clearAll": "مسح الكل",
+    "notifications.quickActions.email": "إعدادات البريد الإلكتروني",
+    "notifications.quickActions.mute": "كتم الفئات",
+    "notifications.quickActions.push": "إشعارات الدفع",
+    "notifications.quickActions.report": "تقرير الإشعارات",
+    "notifications.quickActions.settings": "الإعدادات",
+    "notifications.quickActions.title": "إجراءات سريعة",
+    "notifications.report.filenamePrefix": "تقرير-الإشعارات-",
+    "notifications.search.placeholder": "ابحث في الإشعارات...",
+    "notifications.seller.budgetDepleted.body": "تم إيقاف حملتك الإعلانية \"{{campaignName}}\" مؤقتاً بسبب نفاد الرصيد. أضف رصيداً لاستئناف الإعلان.",
+    "notifications.seller.budgetDepleted.sms": "تنبيه فيكسزت: تم إيقاف الحملة الإعلانية - نفاد الرصيد. أضف رصيداً للاستمرار.",
+    "notifications.seller.budgetDepleted.subject": "تنبيه: نفاد رصيد الإعلانات",
+    "notifications.seller.budgetLow.body": "حملتك الإعلانية \"{{campaignName}}\" لديها فقط {{budgetRemaining}} ريال متبقي. يرجى إضافة رصيد لتجنب توقف الحملة.",
+    "notifications.seller.budgetLow.sms": "تنبيه فيكسزت: رصيد الإعلانات منخفض - {{budgetRemaining}} ريال متبقٍ. أضف رصيداً للاستمرار.",
+    "notifications.seller.budgetLow.subject": "تحذير: رصيد الإعلانات منخفض",
+    "notifications.seller.email.brand": "منصة فكسيت",
+    "notifications.seller.email.footer": "هذا إشعار آلي من منصة فكسيت.",
+    "notifications.seller.email.support": "للدعم، تواصل مع seller-support@fixzit.sa",
+    "notifications.seller.refundProcessed.body": "تم معالجة استرداد بقيمة {{amount}} ريال للطلب {{orderId}}. رقم الاسترداد: {{refundId}}. سيتم إضافة المبلغ إلى حسابك خلال 5-7 أيام عمل.",
+    "notifications.seller.refundProcessed.sms": "فيكسزت: تم استرداد {{amount}} ريال للطلب {{orderId}}.",
+    "notifications.seller.refundProcessed.subject": "تم معالجة الاسترداد بنجاح",
+    "notifications.seller.withdrawalComplete.body": "تم معالجة سحبك بقيمة {{amount}} ريال إلى الحساب {{iban}} بنجاح. ستصل الأموال خلال 1-3 أيام عمل.",
+    "notifications.seller.withdrawalComplete.sms": "فيكسزت: تم سحب {{amount}} ريال بنجاح.",
+    "notifications.seller.withdrawalComplete.subject": "تم السحب بنجاح",
+    "notifications.settings": "الإعدادات",
+    "notifications.smsNotifications": "إشعارات الرسائل النصية",
+    "notifications.state.emptySubtitle": "لقد أنهيت قراءة كل شيء!",
+    "notifications.state.emptyTitle": "لا توجد إشعارات",
+    "notifications.state.loading": "جارٍ تحميل الإشعارات...",
+    "notifications.stats.highPriority": "أولوية عالية",
+    "notifications.stats.today": "اليوم",
+    "notifications.stats.total": "إجمالي الإشعارات",
+    "notifications.stats.unread": "غير مقروءة",
+    "notifications.status.read": "مقروء",
+    "notifications.status.unread": "غير مقروء",
+    "notifications.tabs.all": "الكل",
+    "notifications.tabs.unread": "غير مقروءة",
+    "notifications.tabs.urgent": "عاجلة",
+    "notifications.title": "الإشعارات",
+    "notifications.toast.archived": "تمت أرشفة {{count}} من الإشعارات",
+    "notifications.toast.clearedAll": "تم مسح جميع الإشعارات",
+    "notifications.toast.deleted": "تم حذف {{count}} من الإشعارات",
+    "notifications.toast.markedCount": "تم تحديد {{count}} من الإشعارات كمقروءة",
+    "notifications.toast.markedImportant": "تم تحديد {{count}} من الإشعارات كمهمة",
+    "notifications.toast.markingCount": "جارٍ تحديد {{count}} من الإشعارات كمقروءة...",
+    "notifications.toast.markReadFailed": "فشل تحديد الإشعار كمقروء",
+    "notifications.toast.mutedCategory": "تم كتم إشعارات الفئة: {{category}}",
+    "notifications.toast.muteSelectCategory": "يرجى اختيار فئة محددة أولاً لكتمها",
+    "notifications.toast.noOrgId": "لم يتم العثور على معرّف المؤسسة",
+    "notifications.viewAll": "عرض الكل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/nuclear.translations.json">
+<![CDATA[
+{
+  "en": {
+    "nuclear.compliance": "Regulatory Compliance",
+    "nuclear.containment": "Containment Systems",
+    "nuclear.contamination": "Contamination Control",
+    "nuclear.control": "Control Rods",
+    "nuclear.cooling": "Cooling Systems",
+    "nuclear.decommissioning": "Plant Decommissioning",
+    "nuclear.decontamination": "Decontamination",
+    "nuclear.description": "Nuclear power and safety",
+    "nuclear.disposal": "Waste Disposal",
+    "nuclear.dosimetry": "Radiation Dosimetry",
+    "nuclear.emergency": "Emergency Response",
+    "nuclear.enrichment": "Fuel Enrichment",
+    "nuclear.evacuation": "Evacuation Procedures",
+    "nuclear.fission": "Nuclear Fission",
+    "nuclear.fuel": "Nuclear Fuel",
+    "nuclear.fusion": "Nuclear Fusion",
+    "nuclear.generator": "Power Generation",
+    "nuclear.grid": "Grid Connection",
+    "nuclear.iaea": "IAEA Compliance",
+    "nuclear.inspection": "Safety Inspection",
+    "nuclear.isotopes": "Radioactive Isotopes",
+    "nuclear.licensing": "Plant Licensing",
+    "nuclear.medicine": "Nuclear Medicine",
+    "nuclear.moderator": "Neutron Moderator",
+    "nuclear.monitoring": "Radiation Monitoring",
+    "nuclear.nonproliferation": "Nonproliferation",
+    "nuclear.power": "Nuclear Power",
+    "nuclear.protection": "Radiation Protection",
+    "nuclear.radiation": "Radiation Management",
+    "nuclear.reactor": "Nuclear Reactor",
+    "nuclear.regulation": "Nuclear Regulation",
+    "nuclear.reprocessing": "Fuel Reprocessing",
+    "nuclear.research": "Nuclear Research",
+    "nuclear.safeguards": "Nuclear Safeguards",
+    "nuclear.safety": "Nuclear Safety",
+    "nuclear.security": "Nuclear Security",
+    "nuclear.shielding": "Radiation Shielding",
+    "nuclear.steam": "Steam Generation",
+    "nuclear.storage": "Waste Storage",
+    "nuclear.title": "Nuclear Energy",
+    "nuclear.turbine": "Turbine Systems",
+    "nuclear.waste": "Nuclear Waste"
+  },
+  "ar": {
+    "nuclear.compliance": "الامتثال التنظيمي",
+    "nuclear.containment": "أنظمة الاحتواء",
+    "nuclear.contamination": "التحكم في التلوث",
+    "nuclear.control": "قضبان التحكم",
+    "nuclear.cooling": "أنظمة التبريد",
+    "nuclear.decommissioning": "إيقاف تشغيل المحطة",
+    "nuclear.decontamination": "إزالة التلوث",
+    "nuclear.description": "الطاقة النووية والسلامة",
+    "nuclear.disposal": "التخلص من النفايات",
+    "nuclear.dosimetry": "قياس الجرعات الإشعاعية",
+    "nuclear.emergency": "الاستجابة للطوارئ",
+    "nuclear.enrichment": "تخصيب الوقود",
+    "nuclear.evacuation": "إجراءات الإخلاء",
+    "nuclear.fission": "الانشطار النووي",
+    "nuclear.fuel": "الوقود النووي",
+    "nuclear.fusion": "الاندماج النووي",
+    "nuclear.generator": "توليد الطاقة",
+    "nuclear.grid": "اتصال الشبكة",
+    "nuclear.iaea": "الامتثال للوكالة الدولية",
+    "nuclear.inspection": "فحص السلامة",
+    "nuclear.isotopes": "النظائر المشعة",
+    "nuclear.licensing": "ترخيص المحطات",
+    "nuclear.medicine": "الطب النووي",
+    "nuclear.moderator": "مهدئ النيوترونات",
+    "nuclear.monitoring": "مراقبة الإشعاع",
+    "nuclear.nonproliferation": "منع الانتشار",
+    "nuclear.power": "الطاقة النووية",
+    "nuclear.protection": "الحماية من الإشعاع",
+    "nuclear.radiation": "إدارة الإشعاع",
+    "nuclear.reactor": "المفاعل النووي",
+    "nuclear.regulation": "التنظيم النووي",
+    "nuclear.reprocessing": "إعادة معالجة الوقود",
+    "nuclear.research": "البحث النووي",
+    "nuclear.safeguards": "الضمانات النووية",
+    "nuclear.safety": "السلامة النووية",
+    "nuclear.security": "الأمن النووي",
+    "nuclear.shielding": "التدريع من الإشعاع",
+    "nuclear.steam": "توليد البخار",
+    "nuclear.storage": "تخزين النفايات",
+    "nuclear.title": "الطاقة النووية",
+    "nuclear.turbine": "أنظمة التوربينات",
+    "nuclear.waste": "النفايات النووية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/numberFormats.translations.json">
+<![CDATA[
+{
+  "en": {
+    "numberFormats.compact": "Compact",
+    "numberFormats.currency": "Currency",
+    "numberFormats.decimal": "Decimal",
+    "numberFormats.decimal_sep": "Decimal Separator",
+    "numberFormats.down": "Round Down",
+    "numberFormats.engineering": "Engineering",
+    "numberFormats.format": "Number Format",
+    "numberFormats.integer": "Integer",
+    "numberFormats.nearest": "Round to Nearest",
+    "numberFormats.notation": "Notation",
+    "numberFormats.number": "Number",
+    "numberFormats.percentage": "Percentage",
+    "numberFormats.precision": "Precision",
+    "numberFormats.rounding": "Rounding",
+    "numberFormats.scientific": "Scientific",
+    "numberFormats.separator": "Separator",
+    "numberFormats.standard": "Standard",
+    "numberFormats.thousand": "Thousand Separator",
+    "numberFormats.up": "Round Up"
+  },
+  "ar": {
+    "numberFormats.compact": "مضغوط",
+    "numberFormats.currency": "عملة",
+    "numberFormats.decimal": "عشري",
+    "numberFormats.decimal_sep": "فاصل عشري",
+    "numberFormats.down": "تقريب لأسفل",
+    "numberFormats.engineering": "هندسي",
+    "numberFormats.format": "تنسيق الأرقام",
+    "numberFormats.integer": "صحيح",
+    "numberFormats.nearest": "تقريب لأقرب",
+    "numberFormats.notation": "الترميز",
+    "numberFormats.number": "الرقم",
+    "numberFormats.percentage": "نسبة مئوية",
+    "numberFormats.precision": "الدقة",
+    "numberFormats.rounding": "التقريب",
+    "numberFormats.scientific": "علمي",
+    "numberFormats.separator": "الفاصل",
+    "numberFormats.standard": "قياسي",
+    "numberFormats.thousand": "فاصل الآلاف",
+    "numberFormats.up": "تقريب لأعلى"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/observabilityPlatform.translations.json">
+<![CDATA[
+{
+  "en": {
+    "observabilityPlatform.alerting": "Alerting & Notifications",
+    "observabilityPlatform.analysis": "Root Cause Analysis",
+    "observabilityPlatform.anomaly": "Anomaly Detection",
+    "observabilityPlatform.apm": "Application Performance Monitoring",
+    "observabilityPlatform.availability": "Availability Monitoring",
+    "observabilityPlatform.correlation": "Event Correlation",
+    "observabilityPlatform.dashboards": "Monitoring Dashboards",
+    "observabilityPlatform.debugging": "Debugging Tools",
+    "observabilityPlatform.diagnostics": "Diagnostics",
+    "observabilityPlatform.insights": "Performance Insights",
+    "observabilityPlatform.logs": "Log Aggregation",
+    "observabilityPlatform.metrics": "Metrics Collection",
+    "observabilityPlatform.monitoring": "Monitoring",
+    "observabilityPlatform.observability": "Observability Platform",
+    "observabilityPlatform.profiling": "Performance Profiling",
+    "observabilityPlatform.reporting": "Observability Reporting",
+    "observabilityPlatform.rum": "Real User Monitoring",
+    "observabilityPlatform.synthetic": "Synthetic Monitoring",
+    "observabilityPlatform.thresholds": "Alert Thresholds",
+    "observabilityPlatform.traces": "Distributed Tracing",
+    "observabilityPlatform.uptime": "Uptime Monitoring",
+    "observabilityPlatform.visualization": "Data Visualization"
+  },
+  "ar": {
+    "observabilityPlatform.alerting": "التنبيه والإخطارات",
+    "observabilityPlatform.analysis": "تحليل السبب الجذري",
+    "observabilityPlatform.anomaly": "كشف الشذوذ",
+    "observabilityPlatform.apm": "مراقبة أداء التطبيقات",
+    "observabilityPlatform.availability": "مراقبة التوافر",
+    "observabilityPlatform.correlation": "ارتباط الأحداث",
+    "observabilityPlatform.dashboards": "لوحات معلومات المراقبة",
+    "observabilityPlatform.debugging": "أدوات التصحيح",
+    "observabilityPlatform.diagnostics": "التشخيص",
+    "observabilityPlatform.insights": "رؤى الأداء",
+    "observabilityPlatform.logs": "تجميع السجلات",
+    "observabilityPlatform.metrics": "جمع المقاييس",
+    "observabilityPlatform.monitoring": "المراقبة",
+    "observabilityPlatform.observability": "منصة المراقبة",
+    "observabilityPlatform.profiling": "توصيف الأداء",
+    "observabilityPlatform.reporting": "تقارير المراقبة",
+    "observabilityPlatform.rum": "مراقبة المستخدم الحقيقي",
+    "observabilityPlatform.synthetic": "المراقبة التركيبية",
+    "observabilityPlatform.thresholds": "عتبات التنبيه",
+    "observabilityPlatform.traces": "التتبع الموزع",
+    "observabilityPlatform.uptime": "مراقبة وقت التشغيل",
+    "observabilityPlatform.visualization": "تصور البيانات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/of.translations.json">
+<![CDATA[
+{
+  "en": {
+    "of": "of"
+  },
+  "ar": {
+    "of": "من"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/onboardingPrograms.translations.json">
+<![CDATA[
+{
+  "en": {
+    "onboardingPrograms.access": "System Access",
+    "onboardingPrograms.buddy": "Onboarding Buddy",
+    "onboardingPrograms.checklist": "Onboarding Checklist",
+    "onboardingPrograms.culture": "Company Culture",
+    "onboardingPrograms.documentation": "Documentation",
+    "onboardingPrograms.feedback": "Onboarding Feedback",
+    "onboardingPrograms.firstDay": "First Day",
+    "onboardingPrograms.firstWeek": "First Week",
+    "onboardingPrograms.introduction": "Introduction",
+    "onboardingPrograms.meeting": "Welcome Meeting",
+    "onboardingPrograms.mission": "Mission",
+    "onboardingPrograms.onboarding": "Onboarding",
+    "onboardingPrograms.orientation": "Orientation",
+    "onboardingPrograms.policy": "Company Policy",
+    "onboardingPrograms.probation": "Probation Period",
+    "onboardingPrograms.setup": "Equipment Setup",
+    "onboardingPrograms.team": "Team Introduction",
+    "onboardingPrograms.tour": "Office Tour",
+    "onboardingPrograms.training": "Initial Training",
+    "onboardingPrograms.values": "Company Values",
+    "onboardingPrograms.vision": "Vision",
+    "onboardingPrograms.welcome": "Welcome"
+  },
+  "ar": {
+    "onboardingPrograms.access": "الوصول للنظام",
+    "onboardingPrograms.buddy": "زميل التوظيف",
+    "onboardingPrograms.checklist": "قائمة التوظيف",
+    "onboardingPrograms.culture": "ثقافة الشركة",
+    "onboardingPrograms.documentation": "الوثائق",
+    "onboardingPrograms.feedback": "ملاحظات التوظيف",
+    "onboardingPrograms.firstDay": "اليوم الأول",
+    "onboardingPrograms.firstWeek": "الأسبوع الأول",
+    "onboardingPrograms.introduction": "التعريف",
+    "onboardingPrograms.meeting": "اجتماع الترحيب",
+    "onboardingPrograms.mission": "المهمة",
+    "onboardingPrograms.onboarding": "التوظيف",
+    "onboardingPrograms.orientation": "التوجيه",
+    "onboardingPrograms.policy": "سياسة الشركة",
+    "onboardingPrograms.probation": "فترة التجربة",
+    "onboardingPrograms.setup": "إعداد المعدات",
+    "onboardingPrograms.team": "التعريف بالفريق",
+    "onboardingPrograms.tour": "جولة المكتب",
+    "onboardingPrograms.training": "التدريب الأولي",
+    "onboardingPrograms.values": "قيم الشركة",
+    "onboardingPrograms.vision": "الرؤية",
+    "onboardingPrograms.welcome": "الترحيب"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/onboardingWalkthrough.translations.json">
+<![CDATA[
+{
+  "en": {
+    "onboardingWalkthrough.back": "Back",
+    "onboardingWalkthrough.checklist": "Checklist",
+    "onboardingWalkthrough.complete": "Complete",
+    "onboardingWalkthrough.demo": "Demo",
+    "onboardingWalkthrough.example": "Example",
+    "onboardingWalkthrough.finish": "Finish",
+    "onboardingWalkthrough.guide": "Getting Started",
+    "onboardingWalkthrough.help": "Need Help?",
+    "onboardingWalkthrough.hint": "Hint",
+    "onboardingWalkthrough.intro": "Introduction",
+    "onboardingWalkthrough.next": "Next",
+    "onboardingWalkthrough.onboarding": "Onboarding",
+    "onboardingWalkthrough.preview": "Preview",
+    "onboardingWalkthrough.progress": "Progress",
+    "onboardingWalkthrough.setup": "Setup",
+    "onboardingWalkthrough.skip": "Skip",
+    "onboardingWalkthrough.step": "Step",
+    "onboardingWalkthrough.tip": "Pro Tip",
+    "onboardingWalkthrough.tooltip": "Tooltip",
+    "onboardingWalkthrough.tour": "Product Tour",
+    "onboardingWalkthrough.walkthrough": "Walkthrough",
+    "onboardingWalkthrough.welcome": "Welcome"
+  },
+  "ar": {
+    "onboardingWalkthrough.back": "السابق",
+    "onboardingWalkthrough.checklist": "قائمة التحقق",
+    "onboardingWalkthrough.complete": "مكتمل",
+    "onboardingWalkthrough.demo": "عرض توضيحي",
+    "onboardingWalkthrough.example": "مثال",
+    "onboardingWalkthrough.finish": "إنهاء",
+    "onboardingWalkthrough.guide": "البداية",
+    "onboardingWalkthrough.help": "تحتاج مساعدة؟",
+    "onboardingWalkthrough.hint": "إشارة",
+    "onboardingWalkthrough.intro": "مقدمة",
+    "onboardingWalkthrough.next": "التالي",
+    "onboardingWalkthrough.onboarding": "التأهيل",
+    "onboardingWalkthrough.preview": "معاينة",
+    "onboardingWalkthrough.progress": "التقدم",
+    "onboardingWalkthrough.setup": "الإعداد",
+    "onboardingWalkthrough.skip": "تخطي",
+    "onboardingWalkthrough.step": "الخطوة",
+    "onboardingWalkthrough.tip": "نصيحة احترافية",
+    "onboardingWalkthrough.tooltip": "تلميح",
+    "onboardingWalkthrough.tour": "جولة المنتج",
+    "onboardingWalkthrough.walkthrough": "الشرح التفصيلي",
+    "onboardingWalkthrough.welcome": "مرحباً"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/onlineEducation.translations.json">
+<![CDATA[
+{
+  "en": {
+    "onlineEducation.accessibility": "Accessibility Features",
+    "onlineEducation.asynchronous": "Asynchronous Learning",
+    "onlineEducation.attendance": "Virtual Attendance",
+    "onlineEducation.bandwidth": "Bandwidth Management",
+    "onlineEducation.blended": "Blended Learning",
+    "onlineEducation.breakout": "Breakout Rooms",
+    "onlineEducation.captions": "Closed Captions",
+    "onlineEducation.chat": "Text Chat",
+    "onlineEducation.description": "Distance Learning and E-Learning",
+    "onlineEducation.distance": "Distance Education",
+    "onlineEducation.elearning": "E-Learning",
+    "onlineEducation.email": "Email Communication",
+    "onlineEducation.engagement": "Student Engagement",
+    "onlineEducation.hybrid": "Hybrid Learning",
+    "onlineEducation.instructor": "Instructor-Led Learning",
+    "onlineEducation.interaction": "Student Interaction",
+    "onlineEducation.meetings": "Virtual Meetings",
+    "onlineEducation.messaging": "Direct Messaging",
+    "onlineEducation.mobile": "Mobile Learning",
+    "onlineEducation.notifications": "Course Notifications",
+    "onlineEducation.office": "Virtual Office Hours",
+    "onlineEducation.offline": "Offline Access",
+    "onlineEducation.online": "Online Learning",
+    "onlineEducation.participation": "Online Participation",
+    "onlineEducation.recordings": "Lecture Recordings",
+    "onlineEducation.reminders": "Assignment Reminders",
+    "onlineEducation.remote": "Remote Learning",
+    "onlineEducation.screen": "Screen Sharing",
+    "onlineEducation.selfpaced": "Self-Paced Learning",
+    "onlineEducation.streaming": "Live Streaming",
+    "onlineEducation.support": "Student Support",
+    "onlineEducation.synchronous": "Synchronous Learning",
+    "onlineEducation.technical": "Technical Support",
+    "onlineEducation.title": "Online Education",
+    "onlineEducation.transcripts": "Lecture Transcripts",
+    "onlineEducation.tutoring": "Online Tutoring",
+    "onlineEducation.video": "Video Lectures",
+    "onlineEducation.virtual": "Virtual Classroom",
+    "onlineEducation.webinars": "Educational Webinars",
+    "onlineEducation.whiteboard": "Digital Whiteboard"
+  },
+  "ar": {
+    "onlineEducation.accessibility": "ميزات إمكانية الوصول",
+    "onlineEducation.asynchronous": "التعلم غير المتزامن",
+    "onlineEducation.attendance": "الحضور الافتراضي",
+    "onlineEducation.bandwidth": "إدارة عرض النطاق",
+    "onlineEducation.blended": "التعلم المدمج",
+    "onlineEducation.breakout": "غرف فرعية",
+    "onlineEducation.captions": "التسميات التوضيحية",
+    "onlineEducation.chat": "الدردشة النصية",
+    "onlineEducation.description": "التعليم عن بعد والتعلم الإلكتروني",
+    "onlineEducation.distance": "التعليم عن بعد",
+    "onlineEducation.elearning": "التعلم الإلكتروني",
+    "onlineEducation.email": "التواصل بالبريد الإلكتروني",
+    "onlineEducation.engagement": "مشاركة الطلاب",
+    "onlineEducation.hybrid": "التعلم الهجين",
+    "onlineEducation.instructor": "التعلم بقيادة المدرس",
+    "onlineEducation.interaction": "تفاعل الطلاب",
+    "onlineEducation.meetings": "الاجتماعات الافتراضية",
+    "onlineEducation.messaging": "المراسلة المباشرة",
+    "onlineEducation.mobile": "التعلم عبر الجوال",
+    "onlineEducation.notifications": "إشعارات الدورة",
+    "onlineEducation.office": "ساعات العمل الافتراضية",
+    "onlineEducation.offline": "الوصول دون اتصال",
+    "onlineEducation.online": "التعلم عبر الإنترنت",
+    "onlineEducation.participation": "المشاركة عبر الإنترنت",
+    "onlineEducation.recordings": "تسجيلات المحاضرات",
+    "onlineEducation.reminders": "تذكيرات المهام",
+    "onlineEducation.remote": "التعلم عن بعد",
+    "onlineEducation.screen": "مشاركة الشاشة",
+    "onlineEducation.selfpaced": "التعلم الذاتي",
+    "onlineEducation.streaming": "البث المباشر",
+    "onlineEducation.support": "دعم الطلاب",
+    "onlineEducation.synchronous": "التعلم المتزامن",
+    "onlineEducation.technical": "الدعم الفني",
+    "onlineEducation.title": "التعليم عبر الإنترنت",
+    "onlineEducation.transcripts": "نصوص المحاضرات",
+    "onlineEducation.tutoring": "التدريس عبر الإنترنت",
+    "onlineEducation.video": "محاضرات الفيديو",
+    "onlineEducation.virtual": "الفصل الدراسي الافتراضي",
+    "onlineEducation.webinars": "الندوات التعليمية",
+    "onlineEducation.whiteboard": "السبورة الرقمية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/openInnovation.translations.json">
+<![CDATA[
+{
+  "en": {
+    "openInnovation.acquisition": "Technology Acquisition",
+    "openInnovation.challenges": "Innovation Challenges",
+    "openInnovation.cocreation": "Co-Creation",
+    "openInnovation.codevelopment": "Co-Development",
+    "openInnovation.collaboration": "Innovation Collaboration",
+    "openInnovation.community": "Innovation Community",
+    "openInnovation.competitions": "Innovation Competitions",
+    "openInnovation.coupled": "Coupled Innovation",
+    "openInnovation.crowdsourcing": "Innovation Crowdsourcing",
+    "openInnovation.ecosystem": "Innovation Ecosystem",
+    "openInnovation.external": "External Innovation",
+    "openInnovation.inbound": "Inbound Innovation",
+    "openInnovation.innovation": "Open Strategy",
+    "openInnovation.internal": "Internal Innovation",
+    "openInnovation.licensing": "Technology Licensing",
+    "openInnovation.management": "Open Innovation Management",
+    "openInnovation.network": "Innovation Network",
+    "openInnovation.open": "Open Innovation",
+    "openInnovation.outbound": "Outbound Innovation",
+    "openInnovation.partnerships": "Innovation Partnerships",
+    "openInnovation.platform": "Innovation Platform",
+    "openInnovation.scouting": "Technology Scouting"
+  },
+  "ar": {
+    "openInnovation.acquisition": "الاستحواذ على التكنولوجيا",
+    "openInnovation.challenges": "تحديات الابتكار",
+    "openInnovation.cocreation": "الإبداع المشترك",
+    "openInnovation.codevelopment": "التطوير المشترك",
+    "openInnovation.collaboration": "التعاون في الابتكار",
+    "openInnovation.community": "مجتمع الابتكار",
+    "openInnovation.competitions": "مسابقات الابتكار",
+    "openInnovation.coupled": "الابتكار المقترن",
+    "openInnovation.crowdsourcing": "التعهيد الجماعي للابتكار",
+    "openInnovation.ecosystem": "نظام الابتكار البيئي",
+    "openInnovation.external": "الابتكار الخارجي",
+    "openInnovation.inbound": "الابتكار الوارد",
+    "openInnovation.innovation": "استراتيجية مفتوحة",
+    "openInnovation.internal": "الابتكار الداخلي",
+    "openInnovation.licensing": "ترخيص التكنولوجيا",
+    "openInnovation.management": "إدارة الابتكار المفتوح",
+    "openInnovation.network": "شبكة الابتكار",
+    "openInnovation.open": "الابتكار المفتوح",
+    "openInnovation.outbound": "الابتكار الصادر",
+    "openInnovation.partnerships": "شراكات الابتكار",
+    "openInnovation.platform": "منصة الابتكار",
+    "openInnovation.scouting": "الكشف عن التكنولوجيا"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/operationalExcellence.translations.json">
+<![CDATA[
+{
+  "en": {
+    "operationalExcellence.assessment": "Excellence Assessment",
+    "operationalExcellence.benchmarking": "Excellence Benchmarking",
+    "operationalExcellence.capability": "Excellence Capability",
+    "operationalExcellence.culture": "Excellence Culture",
+    "operationalExcellence.dashboard": "Excellence Dashboard",
+    "operationalExcellence.deployment": "OE Deployment",
+    "operationalExcellence.excellence": "Operational Excellence",
+    "operationalExcellence.framework": "OE Framework",
+    "operationalExcellence.implementation": "OE Implementation",
+    "operationalExcellence.improvement": "Excellence Improvement",
+    "operationalExcellence.leadership": "Excellence Leadership",
+    "operationalExcellence.maturity": "Excellence Maturity",
+    "operationalExcellence.methodology": "OE Methodology",
+    "operationalExcellence.metrics": "Excellence Metrics",
+    "operationalExcellence.performance": "Excellence Performance",
+    "operationalExcellence.practices": "Best Practices",
+    "operationalExcellence.principles": "OE Principles",
+    "operationalExcellence.standards": "Excellence Standards",
+    "operationalExcellence.strategy": "OE Strategy",
+    "operationalExcellence.sustainability": "Excellence Sustainability",
+    "operationalExcellence.tools": "OE Tools",
+    "operationalExcellence.transformation": "Excellence Transformation"
+  },
+  "ar": {
+    "operationalExcellence.assessment": "تقييم التميز",
+    "operationalExcellence.benchmarking": "المقارنة المرجعية للتميز",
+    "operationalExcellence.capability": "قدرة التميز",
+    "operationalExcellence.culture": "ثقافة التميز",
+    "operationalExcellence.dashboard": "لوحة معلومات التميز",
+    "operationalExcellence.deployment": "نشر التميز التشغيلي",
+    "operationalExcellence.excellence": "التميز التشغيلي",
+    "operationalExcellence.framework": "إطار التميز التشغيلي",
+    "operationalExcellence.implementation": "تطبيق التميز التشغيلي",
+    "operationalExcellence.improvement": "تحسين التميز",
+    "operationalExcellence.leadership": "قيادة التميز",
+    "operationalExcellence.maturity": "نضج التميز",
+    "operationalExcellence.methodology": "منهجية التميز التشغيلي",
+    "operationalExcellence.metrics": "مقاييس التميز",
+    "operationalExcellence.performance": "أداء التميز",
+    "operationalExcellence.practices": "أفضل الممارسات",
+    "operationalExcellence.principles": "مبادئ التميز التشغيلي",
+    "operationalExcellence.standards": "معايير التميز",
+    "operationalExcellence.strategy": "استراتيجية التميز التشغيلي",
+    "operationalExcellence.sustainability": "استدامة التميز",
+    "operationalExcellence.tools": "أدوات التميز التشغيلي",
+    "operationalExcellence.transformation": "تحول التميز"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/operations.translations.json">
+<![CDATA[
+{
+  "en": {
+    "operations.availability": "Availability",
+    "operations.backlog": "Backlog",
+    "operations.capacity": "Capacity",
+    "operations.changeManagement": "Change Management",
+    "operations.escalation": "Escalation",
+    "operations.functioning": "Functioning",
+    "operations.incident": "Incident",
+    "operations.issue": "Issue",
+    "operations.operate": "Operate",
+    "operations.operation": "Operation",
+    "operations.operational": "Operational",
+    "operations.operations1": "Operations",
+    "operations.prioritization": "Prioritization",
+    "operations.problem": "Problem",
+    "operations.queue": "Queue",
+    "operations.releaseManagement": "Release Management",
+    "operations.reliability": "Reliability",
+    "operations.resolution": "Resolution",
+    "operations.running": "Running",
+    "operations.service": "Service",
+    "operations.serviceDelivery": "Service Delivery",
+    "operations.serviceLevel": "Service Level",
+    "operations.sla": "SLA",
+    "operations.throughput": "Throughput",
+    "operations.triage": "Triage",
+    "operations.uptime": "Uptime",
+    "operations.utilization": "Utilization",
+    "operations.workaround": "Workaround"
+  },
+  "ar": {
+    "operations.availability": "التوفر",
+    "operations.backlog": "تراكم الأعمال",
+    "operations.capacity": "السعة",
+    "operations.changeManagement": "إدارة التغيير",
+    "operations.escalation": "تصعيد",
+    "operations.functioning": "يعمل",
+    "operations.incident": "حادثة",
+    "operations.issue": "مشكلة",
+    "operations.operate": "تشغيل",
+    "operations.operation": "عملية",
+    "operations.operational": "تشغيلي",
+    "operations.operations1": "العمليات",
+    "operations.prioritization": "تحديد الأولويات",
+    "operations.problem": "مشكلة",
+    "operations.queue": "قائمة انتظار",
+    "operations.releaseManagement": "إدارة الإصدار",
+    "operations.reliability": "الموثوقية",
+    "operations.resolution": "حل",
+    "operations.running": "قيد التشغيل",
+    "operations.service": "خدمة",
+    "operations.serviceDelivery": "تقديم الخدمة",
+    "operations.serviceLevel": "مستوى الخدمة",
+    "operations.sla": "اتفاقية مستوى الخدمة",
+    "operations.throughput": "الإنتاجية",
+    "operations.triage": "الفرز",
+    "operations.uptime": "وقت التشغيل",
+    "operations.utilization": "الاستخدام",
+    "operations.workaround": "حل بديل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/operationsManagementAdv.translations.json">
+<![CDATA[
+{
+  "en": {
+    "operationsManagementAdv.bottleneck": "Bottleneck",
+    "operationsManagementAdv.capacity": "Capacity",
+    "operationsManagementAdv.cycle": "Cycle Time",
+    "operationsManagementAdv.effectiveness": "Operational Effectiveness",
+    "operationsManagementAdv.efficiency": "Operational Efficiency",
+    "operationsManagementAdv.excellence": "Operational Excellence",
+    "operationsManagementAdv.improvement": "Process Improvement",
+    "operationsManagementAdv.jit": "Just-In-Time",
+    "operationsManagementAdv.kaizen": "Kaizen",
+    "operationsManagementAdv.kanban": "Kanban",
+    "operationsManagementAdv.lean": "Lean",
+    "operationsManagementAdv.management": "Operations Management",
+    "operationsManagementAdv.operations": "Operations",
+    "operationsManagementAdv.optimization": "Process Optimization",
+    "operationsManagementAdv.procedure": "Procedure",
+    "operationsManagementAdv.process": "Process",
+    "operationsManagementAdv.six": "Six Sigma",
+    "operationsManagementAdv.takt": "Takt Time",
+    "operationsManagementAdv.throughput": "Throughput",
+    "operationsManagementAdv.tps": "Toyota Production System",
+    "operationsManagementAdv.utilization": "Utilization",
+    "operationsManagementAdv.workflow": "Workflow"
+  },
+  "ar": {
+    "operationsManagementAdv.bottleneck": "عنق الزجاجة",
+    "operationsManagementAdv.capacity": "السعة",
+    "operationsManagementAdv.cycle": "وقت الدورة",
+    "operationsManagementAdv.effectiveness": "الفعالية التشغيلية",
+    "operationsManagementAdv.efficiency": "الكفاءة التشغيلية",
+    "operationsManagementAdv.excellence": "التميز التشغيلي",
+    "operationsManagementAdv.improvement": "تحسين العمليات",
+    "operationsManagementAdv.jit": "في الوقت المناسب",
+    "operationsManagementAdv.kaizen": "كايزن",
+    "operationsManagementAdv.kanban": "كانبان",
+    "operationsManagementAdv.lean": "الإنتاج الرشيق",
+    "operationsManagementAdv.management": "إدارة العمليات",
+    "operationsManagementAdv.operations": "العمليات",
+    "operationsManagementAdv.optimization": "تحسين العمليات",
+    "operationsManagementAdv.procedure": "الإجراء",
+    "operationsManagementAdv.process": "العملية",
+    "operationsManagementAdv.six": "ستة سيجما",
+    "operationsManagementAdv.takt": "وقت التاكت",
+    "operationsManagementAdv.throughput": "الإنتاجية",
+    "operationsManagementAdv.tps": "نظام إنتاج تويوتا",
+    "operationsManagementAdv.utilization": "الاستخدام",
+    "operationsManagementAdv.workflow": "سير العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/order.translations.json">
+<![CDATA[
+{
+  "en": {
+    "order.amount": "Amount",
+    "order.date": "Order Date",
+    "order.delivery": "Delivery",
+    "order.items": "Items",
+    "order.po": "PO",
+    "order.total": "Total",
+    "order.vendor": "Vendor"
+  },
+  "ar": {
+    "order.amount": "المبلغ",
+    "order.date": "تاريخ الطلب",
+    "order.delivery": "تاريخ التسليم",
+    "order.items": "العناصر",
+    "order.po": "أمر شراء",
+    "order.total": "المجموع",
+    "order.vendor": "المورد"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/orderManagement.translations.json">
+<![CDATA[
+{
+  "en": {
+    "orderManagement.backorderManagement": "Backorder Management",
+    "orderManagement.carrierIntegration": "Carrier Integration",
+    "orderManagement.crossDocking": "Cross-Docking",
+    "orderManagement.deliveryManagement": "Delivery Management",
+    "orderManagement.description": "End-to-end order processing and fulfillment",
+    "orderManagement.dropShipping": "Drop Shipping",
+    "orderManagement.exchangeManagement": "Exchange Management",
+    "orderManagement.fulfillmentOrchestration": "Fulfillment Orchestration",
+    "orderManagement.inventoryAllocation": "Inventory Allocation",
+    "orderManagement.invoiceGeneration": "Invoice Generation",
+    "orderManagement.orderAnalytics": "Order Analytics",
+    "orderManagement.orderCapture": "Order Capture",
+    "orderManagement.orderProcessing": "Order Processing",
+    "orderManagement.orderSplitting": "Order Splitting",
+    "orderManagement.orderStatus": "Order Status",
+    "orderManagement.orderValidation": "Order Validation",
+    "orderManagement.packingSlips": "Packing Slips",
+    "orderManagement.paymentReconciliation": "Payment Reconciliation",
+    "orderManagement.refundProcessing": "Refund Processing",
+    "orderManagement.returnProcessing": "Return Processing",
+    "orderManagement.routeOptimization": "Route Optimization",
+    "orderManagement.shipmentTracking": "Shipment Tracking",
+    "orderManagement.shippingLabels": "Shipping Labels",
+    "orderManagement.title": "Order Management"
+  },
+  "ar": {
+    "orderManagement.backorderManagement": "إدارة الطلبات المتأخرة",
+    "orderManagement.carrierIntegration": "تكامل شركة النقل",
+    "orderManagement.crossDocking": "الشحن العابر",
+    "orderManagement.deliveryManagement": "إدارة التسليم",
+    "orderManagement.description": "معالجة الطلبات والتنفيذ من البداية إلى النهاية",
+    "orderManagement.dropShipping": "الشحن المباشر",
+    "orderManagement.exchangeManagement": "إدارة التبادل",
+    "orderManagement.fulfillmentOrchestration": "تنسيق التنفيذ",
+    "orderManagement.inventoryAllocation": "تخصيص المخزون",
+    "orderManagement.invoiceGeneration": "إنشاء الفاتورة",
+    "orderManagement.orderAnalytics": "تحليلات الطلبات",
+    "orderManagement.orderCapture": "التقاط الطلب",
+    "orderManagement.orderProcessing": "معالجة الطلبات",
+    "orderManagement.orderSplitting": "تقسيم الطلب",
+    "orderManagement.orderStatus": "حالة الطلب",
+    "orderManagement.orderValidation": "التحقق من صحة الطلب",
+    "orderManagement.packingSlips": "قسائم التعبئة",
+    "orderManagement.paymentReconciliation": "تسوية الدفع",
+    "orderManagement.refundProcessing": "معالجة المبالغ المستردة",
+    "orderManagement.returnProcessing": "معالجة المرتجعات",
+    "orderManagement.routeOptimization": "تحسين المسار",
+    "orderManagement.shipmentTracking": "تتبع الشحنة",
+    "orderManagement.shippingLabels": "ملصقات الشحن",
+    "orderManagement.title": "إدارة الطلبات"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/orders.translations.json">
+<![CDATA[
+{
+  "en": {
+    "orders.amount": "Amount",
+    "orders.delivery": "Delivery",
+    "orders.description": "Description",
+    "orders.items": "Items",
+    "orders.location": "Location",
+    "orders.orderDate": "Order Date",
+    "orders.pageDescription": "Manage purchase orders and service orders",
+    "orders.priority": "Priority",
+    "orders.purchaseOrder": "PO",
+    "orders.purchaseOrders": "Purchase Orders",
+    "orders.service": "Service",
+    "orders.serviceOrder": "SO",
+    "orders.serviceOrders": "Service Orders",
+    "orders.tabs.purchase": "Purchase Orders",
+    "orders.tabs.service": "Service Orders",
+    "orders.total": "Total",
+    "orders.vendor": "Vendor",
+    "orders.confirmDelete": "Delete order \"{{number}}\"? This cannot be undone.",
+    "orders.toast.deleting": "Deleting order...",
+    "orders.toast.deleteSuccess": "Order deleted successfully",
+    "orders.toast.deleteFailed": "Failed to delete order: {{message}}",
+    "orders.errors.deleteUnknown": "Failed to delete order",
+    "orders.export.empty": "No {{type}} orders to export",
+    "orders.export.success": "Exported {{count}} orders",
+    "orders.errors.loadFailed": "Failed to load orders: {{message}}"
+  },
+  "ar": {
+    "orders.amount": "المبلغ",
+    "orders.delivery": "تاريخ التسليم",
+    "orders.description": "الوصف",
+    "orders.items": "العناصر",
+    "orders.location": "الموقع",
+    "orders.orderDate": "تاريخ الطلب",
+    "orders.pageDescription": "إدارة أوامر الشراء وطلبات الخدمة",
+    "orders.priority": "الأولوية",
+    "orders.purchaseOrder": "أمر شراء",
+    "orders.purchaseOrders": "أوامر الشراء",
+    "orders.service": "الخدمة",
+    "orders.serviceOrder": "طلب خدمة",
+    "orders.serviceOrders": "طلبات الخدمة",
+    "orders.tabs.purchase": "أوامر الشراء",
+    "orders.tabs.service": "أوامر الخدمة",
+    "orders.total": "المجموع",
+    "orders.vendor": "المورد",
+    "orders.confirmDelete": "حذف الطلب \"{{number}}\"؟ لا يمكن التراجع عن ذلك.",
+    "orders.toast.deleting": "جارٍ حذف الطلب...",
+    "orders.toast.deleteSuccess": "تم حذف الطلب بنجاح",
+    "orders.toast.deleteFailed": "فشل حذف الطلب: {{message}}",
+    "orders.errors.deleteUnknown": "فشل حذف الطلب",
+    "orders.export.empty": "لا توجد طلبات {{type}} للتصدير",
+    "orders.export.success": "تم تصدير {{count}} من الطلبات",
+    "orders.errors.loadFailed": "فشل تحميل الطلبات: {{message}}"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/organizationStructure.translations.json">
+<![CDATA[
+{
+  "en": {
+    "organizationStructure.active": "Active",
+    "organizationStructure.assign": "Assign",
+    "organizationStructure.branch": "Branch",
+    "organizationStructure.child": "Child",
+    "organizationStructure.create": "Create",
+    "organizationStructure.delete": "Delete",
+    "organizationStructure.department": "Department",
+    "organizationStructure.division": "Division",
+    "organizationStructure.edit": "Edit",
+    "organizationStructure.head": "Head",
+    "organizationStructure.hierarchy": "Hierarchy",
+    "organizationStructure.inactive": "Inactive",
+    "organizationStructure.level": "Level",
+    "organizationStructure.manager": "Manager",
+    "organizationStructure.members": "Members",
+    "organizationStructure.move": "Move",
+    "organizationStructure.office": "Office",
+    "organizationStructure.organization": "Organization",
+    "organizationStructure.parent": "Parent",
+    "organizationStructure.structure": "Organization Structure",
+    "organizationStructure.team": "Team",
+    "organizationStructure.unit": "Business Unit"
+  },
+  "ar": {
+    "organizationStructure.active": "نشط",
+    "organizationStructure.assign": "تعيين",
+    "organizationStructure.branch": "الفرع",
+    "organizationStructure.child": "الفرعي",
+    "organizationStructure.create": "إنشاء",
+    "organizationStructure.delete": "حذف",
+    "organizationStructure.department": "القسم",
+    "organizationStructure.division": "الإدارة",
+    "organizationStructure.edit": "تحرير",
+    "organizationStructure.head": "الرئيس",
+    "organizationStructure.hierarchy": "التسلسل الهرمي",
+    "organizationStructure.inactive": "غير نشط",
+    "organizationStructure.level": "المستوى",
+    "organizationStructure.manager": "المدير",
+    "organizationStructure.members": "الأعضاء",
+    "organizationStructure.move": "نقل",
+    "organizationStructure.office": "المكتب",
+    "organizationStructure.organization": "المؤسسة",
+    "organizationStructure.parent": "الرئيسي",
+    "organizationStructure.structure": "الهيكل التنظيمي",
+    "organizationStructure.team": "الفريق",
+    "organizationStructure.unit": "وحدة الأعمال"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/organizationalChange.translations.json">
+<![CDATA[
+{
+  "en": {
+    "organizationalChange.attitudes": "Attitudes Change",
+    "organizationalChange.behavior": "Behavioral Change",
+    "organizationalChange.beliefs": "Beliefs Change",
+    "organizationalChange.change": "Change Management",
+    "organizationalChange.culture": "Cultural Change",
+    "organizationalChange.implementation": "Change Implementation",
+    "organizationalChange.leadership": "Leadership Change",
+    "organizationalChange.mindset": "Mindset Change",
+    "organizationalChange.mission": "Mission Change",
+    "organizationalChange.objectives": "Objectives Change",
+    "organizationalChange.organizational": "Organizational Change",
+    "organizationalChange.practices": "Practices Change",
+    "organizationalChange.processes": "Process Change",
+    "organizationalChange.realignment": "Organizational Realignment",
+    "organizationalChange.redesign": "Organizational Redesign",
+    "organizationalChange.restructuring": "Organizational Restructuring",
+    "organizationalChange.strategy": "Strategic Change",
+    "organizationalChange.structure": "Structural Change",
+    "organizationalChange.systems": "Systems Change",
+    "organizationalChange.transformation": "Organizational Transformation",
+    "organizationalChange.values": "Values Change",
+    "organizationalChange.vision": "Vision Change"
+  },
+  "ar": {
+    "organizationalChange.attitudes": "تغيير المواقف",
+    "organizationalChange.behavior": "التغيير السلوكي",
+    "organizationalChange.beliefs": "تغيير المعتقدات",
+    "organizationalChange.change": "إدارة التغيير",
+    "organizationalChange.culture": "التغيير الثقافي",
+    "organizationalChange.implementation": "تنفيذ التغيير",
+    "organizationalChange.leadership": "تغيير القيادة",
+    "organizationalChange.mindset": "تغيير العقلية",
+    "organizationalChange.mission": "تغيير الرسالة",
+    "organizationalChange.objectives": "تغيير الأهداف",
+    "organizationalChange.organizational": "التغيير التنظيمي",
+    "organizationalChange.practices": "تغيير الممارسات",
+    "organizationalChange.processes": "تغيير العمليات",
+    "organizationalChange.realignment": "إعادة المواءمة التنظيمية",
+    "organizationalChange.redesign": "إعادة تصميم التنظيم",
+    "organizationalChange.restructuring": "إعادة الهيكلة التنظيمية",
+    "organizationalChange.strategy": "التغيير الاستراتيجي",
+    "organizationalChange.structure": "التغيير الهيكلي",
+    "organizationalChange.systems": "تغيير الأنظمة",
+    "organizationalChange.transformation": "التحول التنظيمي",
+    "organizationalChange.values": "تغيير القيم",
+    "organizationalChange.vision": "تغيير الرؤية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/organizationalDevelopment.translations.json">
+<![CDATA[
+{
+  "en": {
+    "organizationalDevelopment.agility": "Organizational Agility",
+    "organizationalDevelopment.alignment": "Strategic Alignment",
+    "organizationalDevelopment.change": "Change Management",
+    "organizationalDevelopment.collaboration": "Collaboration",
+    "organizationalDevelopment.communication": "Internal Communication",
+    "organizationalDevelopment.culture": "Organizational Culture",
+    "organizationalDevelopment.design": "Organizational Design",
+    "organizationalDevelopment.effectiveness": "Organizational Effectiveness",
+    "organizationalDevelopment.engagement": "Employee Engagement",
+    "organizationalDevelopment.goals": "Organizational Goals",
+    "organizationalDevelopment.improvement": "Improvement",
+    "organizationalDevelopment.innovation": "Innovation",
+    "organizationalDevelopment.leadership": "Leadership",
+    "organizationalDevelopment.management": "Management",
+    "organizationalDevelopment.mission": "Mission",
+    "organizationalDevelopment.organizational": "Organizational Development",
+    "organizationalDevelopment.planning": "Strategic Planning",
+    "organizationalDevelopment.restructuring": "Restructuring",
+    "organizationalDevelopment.teamwork": "Teamwork",
+    "organizationalDevelopment.transformation": "Transformation",
+    "organizationalDevelopment.values": "Core Values",
+    "organizationalDevelopment.vision": "Vision"
+  },
+  "ar": {
+    "organizationalDevelopment.agility": "المرونة التنظيمية",
+    "organizationalDevelopment.alignment": "المواءمة الاستراتيجية",
+    "organizationalDevelopment.change": "إدارة التغيير",
+    "organizationalDevelopment.collaboration": "التعاون",
+    "organizationalDevelopment.communication": "الاتصال الداخلي",
+    "organizationalDevelopment.culture": "الثقافة التنظيمية",
+    "organizationalDevelopment.design": "التصميم التنظيمي",
+    "organizationalDevelopment.effectiveness": "الفعالية التنظيمية",
+    "organizationalDevelopment.engagement": "مشاركة الموظفين",
+    "organizationalDevelopment.goals": "الأهداف التنظيمية",
+    "organizationalDevelopment.improvement": "التحسين",
+    "organizationalDevelopment.innovation": "الابتكار",
+    "organizationalDevelopment.leadership": "القيادة",
+    "organizationalDevelopment.management": "الإدارة",
+    "organizationalDevelopment.mission": "الرسالة",
+    "organizationalDevelopment.organizational": "التطوير التنظيمي",
+    "organizationalDevelopment.planning": "التخطيط الاستراتيجي",
+    "organizationalDevelopment.restructuring": "إعادة الهيكلة",
+    "organizationalDevelopment.teamwork": "العمل الجماعي",
+    "organizationalDevelopment.transformation": "التحول",
+    "organizationalDevelopment.values": "القيم الأساسية",
+    "organizationalDevelopment.vision": "الرؤية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/organizationalHealth.translations.json">
+<![CDATA[
+{
+  "en": {
+    "organizationalHealth.assessment": "تقييم الصحة",
+    "organizationalHealth.climate": "مناخ العمل",
+    "organizationalHealth.culture": "الثقافة التنظيمية",
+    "organizationalHealth.effectiveness": "الفعالية التنظيمية",
+    "organizationalHealth.engagement": "مشاركة الموظفين",
+    "organizationalHealth.environment": "بيئة العمل",
+    "organizationalHealth.health": "صحة المنظمة",
+    "organizationalHealth.improvement": "تحسين الصحة",
+    "organizationalHealth.indicators": "مؤشرات الصحة",
+    "organizationalHealth.initiatives": "مبادرات الصحة",
+    "organizationalHealth.measurement": "قياس الصحة",
+    "organizationalHealth.metrics": "مقاييس الصحة",
+    "organizationalHealth.morale": "معنويات الموظفين",
+    "organizationalHealth.organizational": "الصحة التنظيمية",
+    "organizationalHealth.performance": "الأداء التنظيمي",
+    "organizationalHealth.productivity": "الإنتاجية التنظيمية",
+    "organizationalHealth.programs": "برامج الصحة",
+    "organizationalHealth.retention": "الاحتفاظ بالموظفين",
+    "organizationalHealth.satisfaction": "رضا الموظفين",
+    "organizationalHealth.sustainability": "الاستدامة التنظيمية",
+    "organizationalHealth.turnover": "تقليل معدل الدوران",
+    "organizationalHealth.wellbeing": "الرفاهية التنظيمية"
+  },
+  "ar": {
+    "organizationalHealth.assessment": "تقييم الصحة",
+    "organizationalHealth.climate": "مناخ العمل",
+    "organizationalHealth.culture": "الثقافة التنظيمية",
+    "organizationalHealth.effectiveness": "الفعالية التنظيمية",
+    "organizationalHealth.engagement": "مشاركة الموظفين",
+    "organizationalHealth.environment": "بيئة العمل",
+    "organizationalHealth.health": "صحة المنظمة",
+    "organizationalHealth.improvement": "تحسين الصحة",
+    "organizationalHealth.indicators": "مؤشرات الصحة",
+    "organizationalHealth.initiatives": "مبادرات الصحة",
+    "organizationalHealth.measurement": "قياس الصحة",
+    "organizationalHealth.metrics": "مقاييس الصحة",
+    "organizationalHealth.morale": "معنويات الموظفين",
+    "organizationalHealth.organizational": "الصحة التنظيمية",
+    "organizationalHealth.performance": "الأداء التنظيمي",
+    "organizationalHealth.productivity": "الإنتاجية التنظيمية",
+    "organizationalHealth.programs": "برامج الصحة",
+    "organizationalHealth.retention": "الاحتفاظ بالموظفين",
+    "organizationalHealth.satisfaction": "رضا الموظفين",
+    "organizationalHealth.sustainability": "الاستدامة التنظيمية",
+    "organizationalHealth.turnover": "تقليل معدل الدوران",
+    "organizationalHealth.wellbeing": "الرفاهية التنظيمية"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/organizationalTransformation.translations.json">
+<![CDATA[
+{
+  "en": {
+    "organizationalTransformation.adoption": "User Adoption",
+    "organizationalTransformation.analytics": "Change Analytics",
+    "organizationalTransformation.assessment": "Readiness Assessment",
+    "organizationalTransformation.champions": "Change Champions",
+    "organizationalTransformation.change": "Change Management",
+    "organizationalTransformation.communication": "Change Communication",
+    "organizationalTransformation.effectiveness": "Change Effectiveness",
+    "organizationalTransformation.engagement": "Stakeholder Engagement",
+    "organizationalTransformation.execution": "Change Execution",
+    "organizationalTransformation.impact": "Impact Analysis",
+    "organizationalTransformation.measurement": "Change Measurement",
+    "organizationalTransformation.monitoring": "Change Monitoring",
+    "organizationalTransformation.network": "Change Network",
+    "organizationalTransformation.organizational": "Organizational Change",
+    "organizationalTransformation.planning": "Change Planning",
+    "organizationalTransformation.readiness": "Change Readiness",
+    "organizationalTransformation.resistance": "Resistance Management",
+    "organizationalTransformation.stakeholder": "Stakeholder Management",
+    "organizationalTransformation.strategy": "Change Strategy",
+    "organizationalTransformation.sustainability": "Change Sustainability",
+    "organizationalTransformation.training": "Change Training",
+    "organizationalTransformation.transformation": "Transformation Management"
+  },
+  "ar": {
+    "organizationalTransformation.adoption": "اعتماد المستخدم",
+    "organizationalTransformation.analytics": "تحليلات التغيير",
+    "organizationalTransformation.assessment": "تقييم الاستعداد",
+    "organizationalTransformation.champions": "أبطال التغيير",
+    "organizationalTransformation.change": "إدارة التغيير",
+    "organizationalTransformation.communication": "التواصل بشأن التغيير",
+    "organizationalTransformation.effectiveness": "فعالية التغيير",
+    "organizationalTransformation.engagement": "إشراك أصحاب المصلحة",
+    "organizationalTransformation.execution": "تنفيذ التغيير",
+    "organizationalTransformation.impact": "تحليل الأثر",
+    "organizationalTransformation.measurement": "قياس التغيير",
+    "organizationalTransformation.monitoring": "مراقبة التغيير",
+    "organizationalTransformation.network": "شبكة التغيير",
+    "organizationalTransformation.organizational": "التغيير التنظيمي",
+    "organizationalTransformation.planning": "تخطيط التغيير",
+    "organizationalTransformation.readiness": "الاستعداد للتغيير",
+    "organizationalTransformation.resistance": "إدارة المقاومة",
+    "organizationalTransformation.stakeholder": "إدارة أصحاب المصلحة",
+    "organizationalTransformation.strategy": "استراتيجية التغيير",
+    "organizationalTransformation.sustainability": "استدامة التغيير",
+    "organizationalTransformation.training": "تدريب التغيير",
+    "organizationalTransformation.transformation": "إدارة التحول"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/otp.translations.json">
+<![CDATA[
+{
+  "en": {
+    "otp.backToLogin": "Back to Login",
+    "otp.devModeDescription": "Shown only in local development to speed up testing.",
+    "otp.devModeTitle": "Developer mode active",
+    "otp.didntReceive": "Didn",
+    "otp.errors.invalid": "Please enter a valid 6-digit code",
+    "otp.errors.networkError": "Network error. Please try again.",
+    "otp.errors.resendFailed": "Failed to resend OTP",
+    "otp.errors.sessionExpired": "Your verification session expired. Please sign in again.",
+    "otp.errors.verifyFailed": "Failed to verify OTP",
+    "otp.expired": "Code expired. Please request a new one.",
+    "otp.expiresIn": "Expires in",
+    "otp.label": "Verification Code",
+    "otp.resend": "Resend Code",
+    "otp.resendIn": "Resend in",
+    "otp.resending": "Sending...",
+    "otp.subtitle": "We sent a 6-digit code to",
+    "otp.title": "Enter Verification Code",
+    "otp.useDevCode": "Auto-fill code",
+    "otp.verify": "Verify & Continue",
+    "otp.verifying": "Verifying..."
+  },
+  "ar": {
+    "otp.backToLogin": "العودة إلى تسجيل الدخول",
+    "otp.devModeDescription": "يظهر فقط في التنمية المحلية لتسريع الاختبار.",
+    "otp.devModeTitle": "وضع المطور نشط",
+    "otp.didntReceive": "لم أفعل ذلك",
+    "otp.errors.invalid": "الرجاء إدخال رمز صالح مكون من 6 أرقام",
+    "otp.errors.networkError": "خطأ في الشبكة.يرجى المحاولة مرة أخرى.",
+    "otp.errors.resendFailed": "فشل في إعادة إرسال كلمة المرور لمرة واحدة (OTP).",
+    "otp.errors.sessionExpired": "انتهت صلاحية جلسة التحقق الخاصة بك.الرجاء تسجيل الدخول مرة أخرى.",
+    "otp.errors.verifyFailed": "فشل في التحقق من OTP",
+    "otp.expired": "انتهت صلاحية الرمز.يرجى طلب واحدة جديدة.",
+    "otp.expiresIn": "تنتهي في",
+    "otp.label": "رمز التحقق",
+    "otp.resend": "إعادة إرسال الرمز",
+    "otp.resendIn": "إعادة الإرسال في",
+    "otp.resending": "إرسال...",
+    "otp.subtitle": "لقد أرسلنا رمزًا مكونًا من 6 أرقام إلى",
+    "otp.title": "أدخل رمز التحقق",
+    "otp.useDevCode": "رمز الملء التلقائي",
+    "otp.verify": "التحقق والمتابعة",
+    "otp.verifying": "جارٍ التحقق..."
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/pageLabels.translations.json">
+<![CDATA[
+{
+  "en": {
+    "pageLabels.administration.subtitle": "Governance, policies, and asset oversight",
+    "pageLabels.administration.title": "Administration",
+    "pageLabels.assets.subtitle": "Asset registry with lifecycle and maintenance data",
+    "pageLabels.assets.title": "Assets",
+    "pageLabels.compliance.subtitle": "Contracts, disputes, audits, and risk tracking",
+    "pageLabels.compliance.title": "Compliance",
+    "pageLabels.crm.subtitle": "Customer relationships, leads, and contracts",
+    "pageLabels.crm.title": "CRM",
+    "pageLabels.finance.subtitle": "Expenses, budgets, ledgers, and financial reporting",
+    "pageLabels.finance.title": "Finance",
+    "pageLabels.hr.subtitle": "People operations, payroll, and attendance",
+    "pageLabels.hr.title": "Human Resources",
+    "pageLabels.invoices.subtitle": "Billing pipeline, approvals, and collections",
+    "pageLabels.invoices.title": "Invoices",
+    "pageLabels.marketplace.subtitle": "Souq vendor catalogues and procurement requests",
+    "pageLabels.marketplace.title": "Marketplace",
+    "pageLabels.projects.subtitle": "Capital planning and execution tracking",
+    "pageLabels.projects.title": "Projects",
+    "pageLabels.properties.subtitle": "Full building, unit, and tenant records",
+    "pageLabels.properties.title": "Properties",
+    "pageLabels.reports.subtitle": "Operational and financial analytics dashboards",
+    "pageLabels.reports.title": "Reports",
+    "pageLabels.rfqs.subtitle": "Request for quotations and bidding workflows",
+    "pageLabels.rfqs.title": "RFQs",
+    "pageLabels.settings.subtitle": "Account preferences and personalization",
+    "pageLabels.settings.title": "Settings",
+    "pageLabels.support.subtitle": "Ticketing, SLAs, and omni-channel care",
+    "pageLabels.support.title": "Support",
+    "pageLabels.system.subtitle": "User access, integrations, and billing controls",
+    "pageLabels.system.title": "System",
+    "pageLabels.tenants.subtitle": "Lease management, communications, and collections",
+    "pageLabels.tenants.title": "Tenants",
+    "pageLabels.vendors.subtitle": "Preferred suppliers, compliance, and performance",
+    "pageLabels.vendors.title": "Vendors",
+    "pageLabels.workOrders.subtitle": "Dispatch, preventive programs, and SLA tracking",
+    "pageLabels.workOrders.title": "Work Orders"
+  },
+  "ar": {
+    "pageLabels.administration.subtitle": "الحوكمة والسياسات والإشراف على الأصول",
+    "pageLabels.administration.title": "الإدارة",
+    "pageLabels.assets.subtitle": "سجل الأصول ودورة الحياة والصيانة",
+    "pageLabels.assets.title": "الأصول",
+    "pageLabels.compliance.subtitle": "العقود والنزاعات والتدقيق وإدارة المخاطر",
+    "pageLabels.compliance.title": "الامتثال",
+    "pageLabels.crm.subtitle": "إدارة العملاء المحتملين والعقود",
+    "pageLabels.crm.title": "إدارة علاقات العملاء",
+    "pageLabels.finance.subtitle": "المصاريف والميزانيات والدفاتر والتقارير المالية",
+    "pageLabels.finance.title": "المالية",
+    "pageLabels.hr.subtitle": "عمليات الأفراد والرواتب والحضور",
+    "pageLabels.hr.title": "الموارد البشرية",
+    "pageLabels.invoices.subtitle": "خط أنابيب الفوترة والموافقات والتحصيل",
+    "pageLabels.invoices.title": "الفواتير",
+    "pageLabels.marketplace.subtitle": "كتالوجات بائعي Souq وطلبات الشراء",
+    "pageLabels.marketplace.title": "السوق",
+    "pageLabels.projects.subtitle": "التخطيط الرأسمالي وتتبع التنفيذ",
+    "pageLabels.projects.title": "المشاريع",
+    "pageLabels.properties.subtitle": "سجلات المباني والوحدات والمستأجرين",
+    "pageLabels.properties.title": "العقارات",
+    "pageLabels.reports.subtitle": "لوحات تحكم التحليلات التشغيلية والمالية",
+    "pageLabels.reports.title": "التقارير",
+    "pageLabels.rfqs.subtitle": "عمليات طلب التسعير والمناقصات",
+    "pageLabels.rfqs.title": "طلبات العروض",
+    "pageLabels.settings.subtitle": "تفضيلات الحساب والتخصيص",
+    "pageLabels.settings.title": "الإعدادات",
+    "pageLabels.support.subtitle": "التذاكر واتفاقيات الخدمة والرعاية متعددة القنوات",
+    "pageLabels.support.title": "الدعم",
+    "pageLabels.system.subtitle": "وصول المستخدمين والتكاملات والتحكم في الفوترة",
+    "pageLabels.system.title": "النظام",
+    "pageLabels.tenants.subtitle": "إدارة العقود والتواصل والتحصيل",
+    "pageLabels.tenants.title": "المستأجرون",
+    "pageLabels.vendors.subtitle": "الموردون المفضلون والامتثال والأداء",
+    "pageLabels.vendors.title": "الموردون",
+    "pageLabels.workOrders.subtitle": "التوزيع، برامج الصيانة الوقائية، وتتبع مستويات الخدمة",
+    "pageLabels.workOrders.title": "أوامر العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/pagination.translations.json">
+<![CDATA[
+{
+  "en": {
+    "pagination.of": "of",
+    "pagination.results": "results",
+    "pagination.showing": "Showing",
+    "pagination.to": "to"
+  },
+  "ar": {
+    "pagination.of": "من",
+    "pagination.results": "نتيجة",
+    "pagination.showing": "عرض",
+    "pagination.to": "إلى"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/paginationControls.translations.json">
+<![CDATA[
+{
+  "en": {
+    "paginationControls.collapse": "Collapse",
+    "paginationControls.currentPage": "Current Page",
+    "paginationControls.expand": "Expand",
+    "paginationControls.first": "First Page",
+    "paginationControls.goto": "Go to Page",
+    "paginationControls.infinite": "Infinite Scroll",
+    "paginationControls.itemsPerPage": "Items Per Page",
+    "paginationControls.jump": "Jump to",
+    "paginationControls.last": "Last Page",
+    "paginationControls.lazy": "Lazy Load",
+    "paginationControls.loadMore": "Load More",
+    "paginationControls.next": "Next Page",
+    "paginationControls.of": "of",
+    "paginationControls.page": "Page",
+    "paginationControls.pageSize": "Page Size",
+    "paginationControls.pagination": "Pagination",
+    "paginationControls.perPage": "Per Page",
+    "paginationControls.previous": "Previous Page",
+    "paginationControls.results": "Results",
+    "paginationControls.showing": "Showing",
+    "paginationControls.showLess": "Show Less",
+    "paginationControls.showMore": "Show More",
+    "paginationControls.total": "Total",
+    "paginationControls.totalItems": "Total Items",
+    "paginationControls.totalPages": "Total Pages",
+    "paginationControls.viewAll": "View All"
+  },
+  "ar": {
+    "paginationControls.collapse": "طي",
+    "paginationControls.currentPage": "الصفحة الحالية",
+    "paginationControls.expand": "توسيع",
+    "paginationControls.first": "الصفحة الأولى",
+    "paginationControls.goto": "انتقل إلى الصفحة",
+    "paginationControls.infinite": "التمرير اللانهائي",
+    "paginationControls.itemsPerPage": "عناصر لكل صفحة",
+    "paginationControls.jump": "القفز إلى",
+    "paginationControls.last": "الصفحة الأخيرة",
+    "paginationControls.lazy": "التحميل الكسول",
+    "paginationControls.loadMore": "تحميل المزيد",
+    "paginationControls.next": "الصفحة التالية",
+    "paginationControls.of": "من",
+    "paginationControls.page": "الصفحة",
+    "paginationControls.pageSize": "حجم الصفحة",
+    "paginationControls.pagination": "الترقيم",
+    "paginationControls.perPage": "لكل صفحة",
+    "paginationControls.previous": "الصفحة السابقة",
+    "paginationControls.results": "النتائج",
+    "paginationControls.showing": "عرض",
+    "paginationControls.showLess": "عرض أقل",
+    "paginationControls.showMore": "عرض المزيد",
+    "paginationControls.total": "الإجمالي",
+    "paginationControls.totalItems": "إجمالي العناصر",
+    "paginationControls.totalPages": "إجمالي الصفحات",
+    "paginationControls.viewAll": "عرض الكل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/painting.translations.json">
+<![CDATA[
+{
+  "en": {
+    "painting.brush": "Brush",
+    "painting.ceiling": "Ceiling",
+    "painting.ceilings": "Ceilings",
+    "painting.coat": "Coat",
+    "painting.coats": "Coats",
+    "painting.color": "Color",
+    "painting.colors": "Colors",
+    "painting.exterior": "Exterior",
+    "painting.exteriorPainting": "Exterior Painting",
+    "painting.finish": "Finish",
+    "painting.glossy": "Glossy",
+    "painting.interior": "Interior",
+    "painting.interiorPainting": "Interior Painting",
+    "painting.matte": "Matte",
+    "painting.paint": "Paint",
+    "painting.painter": "Painter",
+    "painting.painting1": "Painting",
+    "painting.paintJob": "Paint Job",
+    "painting.paintRoller": "Paint Roller",
+    "painting.paintWork": "Paint Work",
+    "painting.primer": "Primer",
+    "painting.repainting": "Repainting",
+    "painting.roller": "Roller",
+    "painting.semiGloss": "Semi-gloss",
+    "painting.shade": "Shade",
+    "painting.spray": "Spray",
+    "painting.sprayPainting": "Spray Painting",
+    "painting.texture": "Texture",
+    "painting.topcoat": "Topcoat",
+    "painting.undercoat": "Undercoat",
+    "painting.wall": "Wall",
+    "painting.walls": "Walls"
+  },
+  "ar": {
+    "painting.brush": "فرشاة",
+    "painting.ceiling": "سقف",
+    "painting.ceilings": "أسقف",
+    "painting.coat": "طبقة",
+    "painting.coats": "طبقات",
+    "painting.color": "لون",
+    "painting.colors": "ألوان",
+    "painting.exterior": "خارجي",
+    "painting.exteriorPainting": "طلاء خارجي",
+    "painting.finish": "تشطيب",
+    "painting.glossy": "لامع",
+    "painting.interior": "داخلي",
+    "painting.interiorPainting": "طلاء داخلي",
+    "painting.matte": "مطفي",
+    "painting.paint": "طلاء",
+    "painting.painter": "رسام",
+    "painting.painting1": "الطلاء",
+    "painting.paintJob": "عملية طلاء",
+    "painting.paintRoller": "أسطوانة طلاء",
+    "painting.paintWork": "أعمال الطلاء",
+    "painting.primer": "طبقة أساس",
+    "painting.repainting": "إعادة الطلاء",
+    "painting.roller": "أسطوانة",
+    "painting.semiGloss": "نصف لامع",
+    "painting.shade": "ظل",
+    "painting.spray": "رش",
+    "painting.sprayPainting": "الطلاء بالرش",
+    "painting.texture": "نسيج",
+    "painting.topcoat": "الطبقة العلوية",
+    "painting.undercoat": "طبقة تحتية",
+    "painting.wall": "جدار",
+    "painting.walls": "جدران"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/parking.translations.json">
+<![CDATA[
+{
+  "en": {
+    "parking.assigned": "Assigned",
+    "parking.assignedParking": "Assigned Parking",
+    "parking.available": "Available",
+    "parking.car": "Car",
+    "parking.chargingStation": "Charging Station",
+    "parking.disabledParking": "Disabled Parking",
+    "parking.evCharging": "EV Charging",
+    "parking.licensePlate": "License Plate",
+    "parking.motorcycle": "Motorcycle",
+    "parking.occupied": "Occupied",
+    "parking.parking1": "Parking",
+    "parking.parkingArea": "Parking Area",
+    "parking.parkingAvailability": "Parking Availability",
+    "parking.parkingGarage": "Parking Garage",
+    "parking.parkingLot": "Parking Lot",
+    "parking.parkingPass": "Parking Pass",
+    "parking.parkingPermit": "Parking Permit",
+    "parking.parkingSlot": "Parking Slot",
+    "parking.parkingSpace": "Parking Space",
+    "parking.parkingSpaces": "Parking Spaces",
+    "parking.parkingSpot": "Parking Spot",
+    "parking.reserved": "Reserved",
+    "parking.reservedParking": "Reserved Parking",
+    "parking.truck": "Truck",
+    "parking.van": "Van",
+    "parking.vehicleNumber": "Vehicle Number",
+    "parking.vehicleType": "Vehicle Type",
+    "parking.vipParking": "VIP Parking",
+    "parking.visitor": "Visitor",
+    "parking.visitorParking": "Visitor Parking"
+  },
+  "ar": {
+    "parking.assigned": "مخصص",
+    "parking.assignedParking": "موقف مخصص",
+    "parking.available": "متاح",
+    "parking.car": "سيارة",
+    "parking.chargingStation": "محطة شحن",
+    "parking.disabledParking": "موقف ذوي الإعاقة",
+    "parking.evCharging": "شحن السيارات الكهربائية",
+    "parking.licensePlate": "لوحة ترخيص",
+    "parking.motorcycle": "دراجة نارية",
+    "parking.occupied": "مشغول",
+    "parking.parking1": "مواقف السيارات",
+    "parking.parkingArea": "منطقة انتظار",
+    "parking.parkingAvailability": "توفر المواقف",
+    "parking.parkingGarage": "مرآب",
+    "parking.parkingLot": "ساحة انتظار",
+    "parking.parkingPass": "تصريح وقوف",
+    "parking.parkingPermit": "تصريح انتظار",
+    "parking.parkingSlot": "موقف",
+    "parking.parkingSpace": "موقف سيارة",
+    "parking.parkingSpaces": "مواقف السيارات",
+    "parking.parkingSpot": "مكان انتظار",
+    "parking.reserved": "محجوز",
+    "parking.reservedParking": "موقف محجوز",
+    "parking.truck": "شاحنة",
+    "parking.van": "فان",
+    "parking.vehicleNumber": "رقم المركبة",
+    "parking.vehicleType": "نوع المركبة",
+    "parking.vipParking": "موقف VIP",
+    "parking.visitor": "زائر",
+    "parking.visitorParking": "موقف زوار"
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

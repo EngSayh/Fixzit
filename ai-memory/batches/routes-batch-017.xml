@@ -1,0 +1,3312 @@
+
+You are the "Fixzit Memory Builder" for category: "routes".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "routes",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/api/souq/claims/[id]/decision/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { ClaimService } from "@/services/souq/claims/claim-service";
+import { resolveRequestSession } from "@/lib/auth/request-session";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
+import { ObjectId } from "mongodb";
+import { logger } from "@/lib/logger";
+import { buildOrgScopeFilter } from "@/services/souq/org-scope";
+
+interface CounterEvidenceEntry {
+  type?: string;
+  [key: string]: unknown;
+}
+
+/**
+ * POST /api/souq/claims/[id]/decision
+ * Make decision on claim (admin only)
+ */
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const session = await resolveRequestSession(request);
+    const userOrgId = session?.user?.orgId;
+    if (!session?.user?.id || !userOrgId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const db = await getDatabase();
+    // 🔐 STRICT v4.1: Include orgId in admin record lookup for tenant isolation
+    const adminRecord = ObjectId.isValid(session.user.id)
+      ? await db
+          .collection(COLLECTIONS.USERS)
+          .findOne({ _id: new ObjectId(session.user.id), orgId: userOrgId })
+      : await db.collection(COLLECTIONS.USERS).findOne({ id: session.user.id, orgId: userOrgId });
+
+    const role = (adminRecord?.role || session.user.role || "").toUpperCase();
+    // 🔒 SECURITY FIX: Use standard role names from UserRole enum
+    const allowedRoles = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN", "CLAIMS_ADMIN"];
+    if (!allowedRoles.includes(role)) {
+      // 🔐 STRICT v4.1: Return 404 (not 403) to prevent info leakage about admin endpoints
+      return NextResponse.json({ error: "Claim not found" }, { status: 404 });
+    }
+
+    const body = await request.json();
+    const decisionRaw = body.decision
+      ? String(body.decision).toLowerCase()
+      : "";
+    const reasoning = body.reasoning ? String(body.reasoning).trim() : "";
+    const refundAmountInput = body.refundAmount;
+
+    if (!decisionRaw || !reasoning) {
+      return NextResponse.json(
+        { error: "Missing required fields: decision, reasoning" },
+        { status: 400 },
+      );
+    }
+
+    const allowOrgless = process.env.NODE_ENV === "test";
+    const claim = await ClaimService.getClaim(params.id, userOrgId, allowOrgless);
+    if (!claim) {
+      return NextResponse.json({ error: "Claim not found" }, { status: 404 });
+    }
+    // Enforce org scoping via order/org lookup
+    const claimOrgFilter = ObjectId.isValid(claim.orderId)
+      ? { orgId: new ObjectId(userOrgId), _id: new ObjectId(claim.orderId) }
+      : { orgId: new ObjectId(userOrgId), orderId: claim.orderId };
+    const orderForScope = await db
+      .collection(COLLECTIONS.ORDERS)
+      .findOne(claimOrgFilter);
+    if (!orderForScope) {
+      // 🔐 STRICT v4.1: Return 404 (not 403) to prevent info leakage
+      return NextResponse.json({ error: "Claim not found" }, { status: 404 });
+    }
+
+    const baseOrgFilter = buildOrgScopeFilter(userOrgId.toString());
+    const orgFilter = allowOrgless
+      ? { $or: [baseOrgFilter, { orgId: { $exists: false } }] }
+      : baseOrgFilter;
+    const filter = ObjectId.isValid(params.id)
+      ? { _id: new ObjectId(params.id), ...orgFilter }
+      : { claimId: params.id, ...orgFilter };
+
+    let status: string;
+    let refundAmountNumber: number;
+
+    if (decisionRaw === "approve") {
+      const fallbackAmount =
+        typeof claim.refundAmount === "number"
+          ? claim.refundAmount
+          : Number(claim.requestedAmount ?? claim.orderAmount ?? 0);
+      refundAmountNumber =
+        typeof refundAmountInput === "number"
+          ? refundAmountInput
+          : Number(refundAmountInput ?? fallbackAmount);
+      status = "approved";
+
+      // 🔒 SAFETY: Cap refund to the order total to prevent over-refunds
+      const maxAllowedRefund = Number(
+        (orderForScope as { pricing?: { total?: number } })?.pricing?.total ??
+          fallbackAmount ??
+          0,
+      );
+      if (refundAmountNumber > maxAllowedRefund) {
+        return NextResponse.json(
+          {
+            error: `Refund amount (${refundAmountNumber}) exceeds order total (${maxAllowedRefund})`,
+          },
+          { status: 400 },
+        );
+      }
+      if (refundAmountNumber < 0) {
+        return NextResponse.json(
+          { error: "Refund amount must be non-negative" },
+          { status: 400 },
+        );
+      }
+      refundAmountNumber = Math.min(refundAmountNumber, maxAllowedRefund);
+    } else if (decisionRaw === "reject") {
+      status = "rejected";
+      refundAmountNumber = 0;
+    } else {
+      return NextResponse.json(
+        { error: "Unsupported decision" },
+        { status: 400 },
+      );
+    }
+
+    const counterEvidence = claim.sellerResponse?.counterEvidence;
+    let sellerProtected = false;
+    if (Array.isArray(counterEvidence)) {
+      const entries = counterEvidence as unknown as CounterEvidenceEntry[];
+      const evidenceTypes = entries.map((entry) =>
+        (entry?.type || "").toString().toLowerCase(),
+      );
+      sellerProtected =
+        evidenceTypes.includes("tracking") &&
+        evidenceTypes.includes("signature");
+    }
+
+    const decisionRecord = {
+      outcome: decisionRaw,
+      reasoning,
+      refundAmount: refundAmountNumber,
+      decidedAt: new Date(),
+      decidedBy: session.user.id,
+    };
+
+    await db.collection(COLLECTIONS.CLAIMS).updateOne(filter, {
+      $set: {
+        status,
+        refundAmount: refundAmountNumber,
+        decision: decisionRecord,
+        sellerProtected,
+        updatedAt: new Date(),
+      },
+    });
+
+    return NextResponse.json({
+      status,
+      refundAmount: refundAmountNumber,
+      sellerProtected,
+    });
+  } catch (error) {
+    logger.error("[Claims API] Make decision failed", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to make decision",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/claims/[id]/evidence/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { ClaimService } from "@/services/souq/claims/claim-service";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { resolveRequestSession } from "@/lib/auth/request-session";
+import { logger } from "@/lib/logger";
+
+/**
+ * POST /api/souq/claims/[id]/evidence
+ * Upload evidence to claim
+ */
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  const limited = enforceRateLimit(request, {
+    keyPrefix: "souq-claims:evidence",
+    requests: 30,
+    windowMs: 120_000,
+  });
+  if (limited) return limited;
+
+  try {
+    const session = await resolveRequestSession(request);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const orgId = (session.user as { orgId?: string }).orgId?.toString?.();
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    const contentType = request.headers.get("content-type") || "";
+    let file: File | Blob | null = null;
+    let description = "";
+    if (contentType.includes("multipart/form-data")) {
+      const form = await request.formData();
+      const maybeFile = form.get("file");
+      if (maybeFile instanceof Blob) {
+        file = maybeFile;
+      }
+      const descValue = form.get("description");
+      if (typeof descValue === "string") {
+        description = descValue;
+      }
+    } else {
+      const body = await request.json();
+      if (body?.file) {
+        file = body.file;
+      }
+      if (typeof body?.description === "string") {
+        description = body.description;
+      }
+    }
+
+    if (!file) {
+      return NextResponse.json(
+        { error: "Evidence file is required" },
+        { status: 400 },
+      );
+    }
+
+    const allowOrgless = process.env.NODE_ENV === "test";
+    const claim = await ClaimService.getClaim(params.id, orgId, allowOrgless);
+    if (!claim) {
+      return NextResponse.json({ error: "Claim not found" }, { status: 404 });
+    }
+
+    // Determine who is uploading
+    const buyerMatches =
+      claim.buyerId && String(claim.buyerId) === session.user.id;
+    const sellerMatches =
+      claim.sellerId && String(claim.sellerId) === session.user.id;
+
+    let uploadedBy: "buyer" | "seller" | "admin";
+    if (buyerMatches) {
+      uploadedBy = "buyer";
+    } else if (sellerMatches) {
+      uploadedBy = "seller";
+    } else {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    if (Array.isArray(claim.evidence) && claim.evidence.length >= 10) {
+      return NextResponse.json(
+        { error: "maximum evidence limit reached (10 files)" },
+        { status: 400 },
+      );
+    }
+
+    const maxSizeBytes = 10 * 1024 * 1024;
+    if (typeof file.size === "number" && file.size > maxSizeBytes) {
+      return NextResponse.json(
+        { error: "Evidence file exceeds maximum size of 10MB" },
+        { status: 400 },
+      );
+    }
+
+    const allowedTypes = new Map<string, "image" | "document">([
+      ["image/jpeg", "image"],
+      ["image/png", "image"],
+      ["image/webp", "image"],
+      ["application/pdf", "document"],
+    ]);
+    const resolvedType = allowedTypes.get((file as File).type);
+    if (!resolvedType) {
+      return NextResponse.json(
+        { error: "Unsupported evidence file type" },
+        { status: 400 },
+      );
+    }
+
+    const generatedUrl = `https://storage.local/claims/${params.id}/${Date.now()}`;
+
+    await ClaimService.addEvidence({
+      claimId: params.id,
+      orgId,
+      uploadedBy,
+      type: resolvedType,
+      url: generatedUrl,
+      description,
+      allowOrgless,
+    });
+
+    const updated = await ClaimService.getClaim(params.id, orgId, allowOrgless);
+
+    return NextResponse.json({
+      evidence: updated?.evidence ?? [],
+    });
+  } catch (error) {
+    logger.error("[Claims API] Upload evidence failed", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to upload evidence",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/claims/[id]/response/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { ClaimService, type Evidence } from "@/services/souq/claims/claim-service";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { resolveRequestSession } from "@/lib/auth/request-session";
+import { logger } from "@/lib/logger";
+
+/**
+ * POST /api/souq/claims/[id]/response
+ * Seller responds to claim
+ */
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  const limited = enforceRateLimit(request, {
+    keyPrefix: "souq-claims:response",
+    requests: 30,
+    windowMs: 120_000,
+  });
+  if (limited) return limited;
+
+  try {
+    const session = await resolveRequestSession(request);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const orgId = (session.user as { orgId?: string }).orgId?.toString?.();
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    const body = await request.json();
+    const { action, message, counterEvidence } = body;
+
+    if (!action || !message) {
+      return NextResponse.json(
+        { error: "Missing required fields: action, message" },
+        { status: 400 },
+      );
+    }
+
+    const claim = await ClaimService.getClaim(params.id, orgId, true);
+    if (!claim) {
+      return NextResponse.json({ error: "Claim not found" }, { status: 404 });
+    }
+
+    const sellerMatches =
+      claim.sellerId && String(claim.sellerId) === session.user.id;
+    if (!sellerMatches) {
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Claim not found" }, { status: 404 });
+    }
+
+    const allowedStatuses = ["pending_seller_response", "pending_review"];
+    if (!allowedStatuses.includes(claim.status as string)) {
+      return NextResponse.json(
+        { error: "Claim is not awaiting seller response" },
+        { status: 400 },
+      );
+    }
+
+    const createdAt =
+      (claim.createdAt && new Date(claim.createdAt)) ||
+      (claim.filedAt && new Date(claim.filedAt)) ||
+      new Date();
+    const maxWindow = 5 * 24 * 60 * 60 * 1000;
+    if (Date.now() - createdAt.getTime() > maxWindow) {
+      return NextResponse.json(
+        { error: "Response deadline exceeded" },
+        { status: 400 },
+      );
+    }
+
+    if (action !== "accept" && action !== "dispute") {
+      return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+    }
+
+    interface EvidenceInput {
+      type: string;
+      url: string;
+      description?: string;
+      [key: string]: unknown;
+    }
+    const allowedTypes = new Set<Evidence["type"]>([
+      "video",
+      "image",
+      "photo",
+      "document",
+      "tracking_info",
+      "message_screenshot",
+    ]);
+    const evidence = Array.isArray(counterEvidence)
+      ? (counterEvidence as EvidenceInput[]).map((item, idx): Evidence => {
+          const normalizedType = allowedTypes.has(item.type as Evidence["type"])
+            ? (item.type as Evidence["type"])
+            : "document";
+          return {
+            evidenceId: `SR-${params.id}-${idx + 1}`,
+            uploadedBy: "seller",
+            type: normalizedType,
+            url: item.url,
+            description: item.description,
+            uploadedAt: new Date(),
+          };
+        })
+      : [];
+
+    const proposedSolution =
+      action === "accept" ? ("refund_full" as const) : ("dispute" as const);
+
+    await ClaimService.addSellerResponse({
+      claimId: params.id,
+      orgId,
+      sellerId: session.user.id,
+      responseText: message,
+      action: action as "accept" | "dispute",
+      proposedSolution,
+      evidence,
+    });
+
+    const updated = await ClaimService.getClaim(params.id, orgId, true);
+
+    return NextResponse.json({
+      status: updated?.status ?? "under_investigation",
+      sellerResponse: updated?.sellerResponse,
+    });
+  } catch (error) {
+    logger.error("[Claims API] Seller response failed", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to submit response",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/claims/[id]/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { ClaimService } from "@/services/souq/claims/claim-service";
+import { resolveRequestSession } from "@/lib/auth/request-session";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
+import { ObjectId } from "mongodb";
+import { logger } from "@/lib/logger";
+import { buildOrgScopeFilter } from "@/services/souq/org-scope";
+
+/**
+ * GET /api/souq/claims/[id]
+ * Get claim details
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const session = await resolveRequestSession(request);
+    const userOrgId = session?.user?.orgId;
+    if (!session?.user?.id || !userOrgId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const allowOrgless = process.env.NODE_ENV === "test";
+    const claim = await ClaimService.getClaim(params.id, userOrgId, allowOrgless);
+    if (!claim) {
+      return NextResponse.json({ error: "Claim not found" }, { status: 404 });
+    }
+
+    // Check ownership
+    const buyerMatches =
+      claim.buyerId && String(claim.buyerId) === session.user.id;
+    const sellerMatches =
+      claim.sellerId && String(claim.sellerId) === session.user.id;
+    if (!buyerMatches && !sellerMatches) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const db = await getDatabase();
+    const orgFilter = buildOrgScopeFilter(userOrgId.toString());
+    const orderIdValue = String(claim.orderId);
+    let order = null;
+    if (ObjectId.isValid(orderIdValue)) {
+      order = await db
+        .collection(COLLECTIONS.ORDERS)
+        .findOne({ _id: new ObjectId(orderIdValue), ...orgFilter })
+        .catch(() => null);
+    }
+    if (!order) {
+      order = await db
+        .collection(COLLECTIONS.ORDERS)
+        .findOne({ orderId: orderIdValue, ...orgFilter })
+        .catch(() => null);
+    }
+    if (!order) {
+      return NextResponse.json({ error: "Claim not found" }, { status: 404 });
+    }
+
+    const buyerDoc = ObjectId.isValid(String(claim.buyerId))
+      ? await db
+          .collection(COLLECTIONS.USERS)
+          .findOne({ _id: new ObjectId(String(claim.buyerId)), ...orgFilter })
+          .catch(() => null)
+      : null;
+    const sellerDoc = ObjectId.isValid(String(claim.sellerId))
+      ? await db
+          .collection(COLLECTIONS.USERS)
+          .findOne({ _id: new ObjectId(String(claim.sellerId)), ...orgFilter })
+          .catch(() => null)
+      : null;
+
+    return NextResponse.json({
+      ...claim,
+      _id: claim._id?.toString?.() ?? claim._id,
+      order,
+      buyer: buyerDoc,
+      seller: sellerDoc,
+    });
+  } catch (error) {
+    logger.error("[Claims API] Get claim failed", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to get claim",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * PUT /api/souq/claims/[id]
+ * Update claim status
+ */
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const session = await resolveRequestSession(request);
+    const userOrgId = session?.user?.orgId;
+    if (!session?.user?.id || !userOrgId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const orgFilter = buildOrgScopeFilter(userOrgId.toString());
+
+    const body = await request.json();
+    const { status } = body;
+
+    const allowOrgless = process.env.NODE_ENV === "test";
+    const claim = await ClaimService.getClaim(params.id, userOrgId, allowOrgless);
+    if (!claim) {
+      return NextResponse.json({ error: "Claim not found" }, { status: 404 });
+    }
+    // Ensure claim/order belongs to the same org
+    const db = await getDatabase();
+    const orderIdValue = String(claim.orderId);
+    const orderFilter = ObjectId.isValid(orderIdValue)
+      ? { _id: new ObjectId(orderIdValue), ...orgFilter }
+      : { orderId: orderIdValue, ...orgFilter };
+    const order = await db.collection(COLLECTIONS.ORDERS).findOne(orderFilter);
+    if (!order) {
+      return NextResponse.json({ error: "Claim not found" }, { status: 404 });
+    }
+
+    // Only buyer can withdraw
+    if (status === "withdrawn" && String(claim.buyerId) !== session.user.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    await ClaimService.updateStatus(params.id, userOrgId, status);
+
+    return NextResponse.json({
+      success: true,
+      message: "Claim status updated",
+    });
+  } catch (error) {
+    logger.error("[Claims API] Update claim failed", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to update claim",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/claims/admin/bulk/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { connectDb } from "@/lib/mongo";
+import { logger } from "@/lib/logger";
+import { SouqClaim } from "@/server/models/souq/Claim";
+import { SouqOrder, type IOrder } from "@/server/models/souq/Order";
+import { User } from "@/server/models/User";
+import { Types } from "mongoose";
+import { RefundProcessor } from "@/services/souq/claims/refund-processor";
+import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
+import { isValidObjectId } from "@/lib/utils/objectid";
+import { Role } from "@/lib/rbac/client-roles";
+import { buildOrgScopeFilter } from "@/services/souq/org-scope";
+
+const ELIGIBLE_STATUSES = [
+  "submitted",
+  "under_review",
+  "pending_seller_response",
+  "pending_investigation",
+  "escalated",
+] as const;
+
+/**
+ * POST /api/souq/claims/admin/bulk
+ *
+ * Bulk approve or reject multiple claims at once
+ *
+ * Body: {
+ *   action: 'approve' | 'reject',
+ *   claimIds: string[],
+ *   reason: string
+ * }
+ *
+ * @security Requires admin role
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check if user has admin role
+    const userRole = session.user.role;
+    const isSuperAdmin = session.user.isSuperAdmin;
+
+    // 🔐 RBAC: Use canonical Role enum per STRICT v4.1
+    const adminRoles = [Role.SUPER_ADMIN, Role.ADMIN, Role.CORPORATE_OWNER];
+    const isAuthorizedAdmin = isSuperAdmin || adminRoles.includes(userRole as Role);
+    
+    if (!isAuthorizedAdmin) {
+      return NextResponse.json(
+        { error: "Forbidden: Admin access required" },
+        { status: 403 },
+      );
+    }
+
+    const body = await request.json();
+    const { action, claimIds, reason } = body;
+
+    // Validate input
+    if (!action || !["approve", "reject"].includes(action)) {
+      return NextResponse.json(
+        { error: 'Invalid action. Must be "approve" or "reject"' },
+        { status: 400 },
+      );
+    }
+
+    if (!Array.isArray(claimIds) || claimIds.length === 0) {
+      return NextResponse.json(
+        { error: "claimIds must be a non-empty array" },
+        { status: 400 },
+      );
+    }
+
+    if (claimIds.length > 50) {
+      return NextResponse.json(
+        { error: "Maximum 50 claims can be processed at once" },
+        { status: 400 },
+      );
+    }
+
+    const invalidIds = claimIds.filter((id: unknown) => !isValidObjectId(id as string));
+    if (invalidIds.length > 0) {
+      return NextResponse.json(
+        { error: `Invalid claimIds: ${invalidIds.join(",")}` },
+        { status: 400 },
+      );
+    }
+
+    if (!reason || typeof reason !== "string" || reason.trim().length < 20) {
+      return NextResponse.json(
+        { error: "Reason must be at least 20 characters" },
+        { status: 400 },
+      );
+    }
+
+    await connectDb();
+
+    const normalizedIds = claimIds.map((id: string) => String(id));
+    const objectIds = normalizedIds
+      .filter((id: string) => Types.ObjectId.isValid(id))
+      .map((id: string) => new Types.ObjectId(id));
+
+    // 🔒 SECURITY FIX: CORPORATE_OWNER can only process claims involving their org's users
+    const isPlatformAdmin = isSuperAdmin || userRole === Role.SUPER_ADMIN || userRole === Role.ADMIN;
+    let orgUserFilter: Record<string, unknown> | null = null;
+    const orgId = (session.user as { orgId?: string }).orgId;
+    
+    if (!isPlatformAdmin && userRole === Role.CORPORATE_OWNER) {
+      if (!orgId) {
+        return NextResponse.json(
+          { error: "Organization context required for CORPORATE_OWNER" },
+          { status: 403 },
+        );
+      }
+      
+      const orgUserIds = await User.find({ orgId }, { _id: 1 }).lean();
+      const userIdStrings = orgUserIds.map((u: { _id: Types.ObjectId }) => String(u._id));
+      
+      orgUserFilter = {
+        $or: [
+          { buyerId: { $in: userIdStrings } },
+          { sellerId: { $in: userIdStrings } },
+        ],
+      };
+    }
+
+    // Fetch all claims to validate they exist and can be bulk processed
+    // 🔐 Use centralized org scope helper for consistent string/ObjectId handling
+    const baseOrgScope = isPlatformAdmin ? {} : (orgId ? buildOrgScopeFilter(orgId) : {});
+    const claimQuery = {
+      ...baseOrgScope,
+      $and: [
+        { status: { $in: ELIGIBLE_STATUSES } },
+        { $or: [{ _id: { $in: objectIds } }, { claimId: { $in: normalizedIds } }] },
+        ...(orgUserFilter ? [orgUserFilter] : []),
+      ],
+    };
+    const claims = await SouqClaim.find(claimQuery);
+
+    if (claims.length === 0) {
+      return NextResponse.json(
+        { error: "No valid claims found for bulk action" },
+        { status: 404 },
+      );
+    }
+
+    // ✅ FIX: Fetch orders using BOTH orderId string AND _id ObjectId (claims store orderId as string)
+    // Claims store orderId as a string field, not necessarily matching _id
+    const orderIdStrings = claims.map((c) => c.orderId).filter(Boolean) as string[];
+    const validObjectIds = orderIdStrings
+      .filter((id) => Types.ObjectId.isValid(id))
+      .map((id) => new Types.ObjectId(id));
+    
+    const orders = await SouqOrder.find({
+      ...baseOrgScope,
+      $or: [
+        { orderId: { $in: orderIdStrings } }, // Primary: match by orderId string field
+        ...(validObjectIds.length > 0 ? [{ _id: { $in: validObjectIds } }] : []), // Fallback: match by _id
+      ],
+    }).lean();
+    
+    // 🔐 FIX: Map by BOTH orderId and _id to handle both lookup patterns
+    const orderMap = new Map<string, IOrder>();
+    for (const o of orders) {
+      // Index by orderId field (primary key for claim.orderId lookup)
+      if (o.orderId) {
+        orderMap.set(String(o.orderId), o as unknown as IOrder);
+      }
+      // Also index by _id string for fallback
+      orderMap.set(String(o._id), o as unknown as IOrder);
+    }
+
+    const results = {
+      success: 0,
+      failed: 0,
+      partialSuccess: 0, // Claim saved but notification/refund failed
+      errors: [] as { claimId: string; error: string; stage: string }[],
+      warnings: [] as { claimId: string; warning: string }[],
+    };
+
+    // Process each claim
+    for (const claim of claims) {
+      const claimIdStr = String(claim._id);
+      let claimSaved = false;
+      let refundProcessed = false;
+
+      try {
+        const newStatus = action === "approve" ? "resolved" : "closed";
+
+        // Fetch order early for validation and payment details (required for refund)
+        let order: IOrder | null = null;
+        if (action === "approve") {
+          order = orderMap.get(String(claim.orderId)) || null;
+          if (!order) {
+            results.failed++;
+            results.errors.push({
+              claimId: claimIdStr,
+              error: "Order not found - cannot process refund",
+              stage: "order_lookup",
+            });
+            continue;
+          }
+        }
+
+        // 🔒 SAFETY: Cap refund to order total to prevent over-refund
+        const rawRefundAmount = action === "approve" ? claim.requestedAmount : 0;
+        const maxAllowedRefund =
+          action === "approve" && order?.pricing?.total != null
+            ? order.pricing.total
+            : rawRefundAmount;
+        if (action === "approve" && rawRefundAmount > maxAllowedRefund) {
+          results.failed++;
+          results.errors.push({
+            claimId: claimIdStr,
+            error: `Requested refund (${rawRefundAmount}) exceeds order total (${maxAllowedRefund})`,
+            stage: "validation",
+          });
+          continue;
+        }
+        const refundAmount = Math.min(rawRefundAmount, maxAllowedRefund);
+
+        // Validate refund amount
+        if (action === "approve" && refundAmount <= 0) {
+          results.failed++;
+          results.errors.push({
+            claimId: claimIdStr,
+            error: "Requested refund amount must be greater than 0",
+            stage: "validation",
+          });
+          continue;
+        }
+
+        if (action === "approve" && refundAmount > 0 && order) {
+          if (!order.payment?.transactionId) {
+            results.failed++;
+            results.errors.push({
+              claimId: claimIdStr,
+              error:
+                "Order payment transaction ID missing - cannot process refund",
+              stage: "payment_validation",
+            });
+            continue;
+          }
+
+          if (!order.payment?.method) {
+            results.failed++;
+            results.errors.push({
+              claimId: claimIdStr,
+              error: "Order payment method missing - cannot process refund",
+              stage: "payment_validation",
+            });
+            continue;
+          }
+        }
+
+        // Update claim status and decision
+        claim.status = newStatus;
+        claim.decision = {
+          decidedBy: session.user.id,
+          decidedAt: new Date(),
+          outcome: action === "approve" ? "approved" : "denied",
+          reasoning: reason.trim(),
+          refundAmount,
+          evidence: [],
+        };
+
+        // Add timeline event
+        if (!claim.timeline) {
+          claim.timeline = [];
+        }
+        claim.timeline.push({
+          status: `admin_decision_${newStatus}`,
+          performedBy: session.user.id,
+          timestamp: new Date(),
+          note: `Bulk action: ${reason.trim()}`,
+        });
+
+        // Save claim first
+        await claim.save();
+        claimSaved = true;
+
+        // Send notification to buyer and seller
+        try {
+          const claimOrgId =
+            (claim as { orgId?: string | Types.ObjectId }).orgId?.toString() ||
+            orgId ||
+            (order as { orgId?: string | Types.ObjectId } | null | undefined)?.orgId?.toString();
+          await addJob(QUEUE_NAMES.NOTIFICATIONS, "souq-claim-decision", {
+            claimId: claimIdStr,
+            buyerId: String(claim.buyerId),
+            sellerId: String(claim.sellerId),
+            orgId: claimOrgId, // 🔐 Tenant-scoped notification routing
+            decision: action === "approve" ? "approved" : "denied",
+            reasoning: reason.trim(),
+            refundAmount,
+          });
+        } catch (notifError) {
+          logger.error(
+            "Failed to queue claim decision notification",
+            notifError as Error,
+            {
+              claimId: claimIdStr,
+            },
+          );
+          results.warnings.push({
+            claimId: claimIdStr,
+            warning:
+              "Notification queuing failed - manual notification may be required",
+          });
+        }
+
+        // Process refund if approved
+        if (action === "approve" && refundAmount > 0 && order) {
+          const orderOrgId = order.orgId?.toString();
+          if (!orderOrgId) {
+            results.failed++;
+            results.errors.push({
+              claimId: claimIdStr,
+              error: "Order missing orgId - cannot scope refund",
+              stage: "validation",
+            });
+            continue;
+          }
+          try {
+            // 🔐 Get orgId from order for tenant-scoped notifications
+            await RefundProcessor.processRefund({
+              claimId: claimIdStr,
+              orderId: String(claim.orderId),
+              buyerId: String(claim.buyerId),
+              sellerId: String(claim.sellerId),
+              orgId: orderOrgId, // 🔐 Tenant context for notifications
+              amount: refundAmount,
+              reason: reason.trim(),
+              originalPaymentMethod: order.payment.method,
+              originalTransactionId: order.payment.transactionId,
+            });
+            refundProcessed = true;
+          } catch (refundError) {
+            logger.error(
+              "Refund processing failed for approved claim",
+              refundError as Error,
+              {
+                claimId: claimIdStr,
+                refundAmount,
+                orderId: String(claim.orderId),
+                transactionId: order.payment.transactionId,
+              },
+            );
+            results.warnings.push({
+              claimId: claimIdStr,
+              warning: `Refund processing failed: ${refundError instanceof Error ? refundError.message : "Unknown error"} - manual refund required`,
+            });
+          }
+        }
+
+        // Determine final status
+        if (claimSaved) {
+          if (
+            action === "reject" ||
+            (action === "approve" && refundAmount === 0)
+          ) {
+            // No refund needed for rejection or zero amount
+            results.success++;
+          } else if (action === "approve" && refundProcessed) {
+            // Full success: claim saved + refund processed
+            results.success++;
+          } else {
+            // Partial success: claim saved but refund failed
+            results.partialSuccess++;
+            results.warnings.push({
+              claimId: claimIdStr,
+              warning: "Claim decision saved but refund processing incomplete",
+            });
+          }
+        }
+      } catch (error) {
+        results.failed++;
+        results.errors.push({
+          claimId: claimIdStr,
+          error: error instanceof Error ? error.message : "Unknown error",
+          stage: claimSaved ? "post_save" : "claim_update",
+        });
+        logger.error("Bulk action failed for claim", error as Error, {
+          claimId: claimIdStr,
+          action,
+          stage: claimSaved ? "post_save" : "claim_update",
+        });
+      }
+    }
+
+    // Calculate overall success
+    const hasFailures = results.failed > 0;
+    const hasWarnings =
+      results.warnings.length > 0 || results.partialSuccess > 0;
+
+    return NextResponse.json({
+      success: !hasFailures,
+      message: hasFailures
+        ? `Bulk action completed with ${results.failed} failures`
+        : hasWarnings
+          ? `Processed ${results.success} claims with ${results.partialSuccess} partial successes`
+          : `Successfully processed ${results.success} claims`,
+      results: {
+        total: claimIds.length,
+        processed: claims.length,
+        success: results.success,
+        partialSuccess: results.partialSuccess,
+        failed: results.failed,
+        notFound: claimIds.length - claims.length,
+        errors: results.errors,
+        warnings: results.warnings,
+      },
+    });
+  } catch (error) {
+    logger.error("Bulk claims action error", error as Error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/claims/admin/review/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { connectDb } from "@/lib/mongo";
+import { logger } from "@/lib/logger";
+import { SouqClaim } from "@/server/models/souq/Claim";
+import { User } from "@/server/models/User";
+
+type ClaimLean = {
+  buyerEvidence?: unknown[];
+  sellerEvidence?: unknown[];
+  buyerMetadata?: { totalClaims?: number };
+  requestedAmount?: unknown;
+  claimAmount?: unknown;
+  orderAmount?: unknown;
+  createdAt?: Date | string;
+  orderDate?: Date | string;
+  buyerDescription?: string;
+  description?: string;
+  sellerRespondedAt?: unknown;
+  sellerResponse?: unknown;
+  priority?: string;
+  status?: string;
+  claimId?: string;
+  orderNumber?: string;
+  orderId?: string;
+  buyerId?: { _id?: unknown; name?: string; email?: string } | string;
+  sellerId?: { _id?: unknown; name?: string; email?: string } | string;
+  buyerName?: string;
+  sellerName?: string;
+  claimNumber?: string;
+  type?: string;
+  claimType?: string;
+  _id?: { toString?: () => string };
+  updatedAt?: Date | string;
+} & Record<string, unknown>;
+
+const STATUS_MAP: Record<string, string[]> = {
+  // UI-friendly filters mapped to persisted statuses
+  "pending-decision": [
+    "pending_investigation",
+    "pending_seller_response",
+    "under_review",
+  ],
+  "under-investigation": ["pending_investigation", "under_review"],
+  "under-appeal": ["escalated"],
+};
+
+const normalizeAmount = (amount: unknown): number => {
+  if (typeof amount === "number" && Number.isFinite(amount)) return amount;
+  const parsed = Number(amount);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const extractEvidenceCounts = (claim: ClaimLean) => {
+  const buyerEvidenceCount = Array.isArray(claim.buyerEvidence)
+    ? claim.buyerEvidence.length
+    : 0;
+  const sellerEvidenceCount = Array.isArray(claim.sellerEvidence)
+    ? claim.sellerEvidence.length
+    : 0;
+  const totalEvidence = buyerEvidenceCount + sellerEvidenceCount;
+  return { buyerEvidenceCount, sellerEvidenceCount, totalEvidence };
+};
+
+/**
+ * Fraud Detection Scoring Engine
+ *
+ * Analyzes claim patterns and calculates fraud risk score (0-100)
+ */
+function calculateFraudScore(claim: ClaimLean): {
+  score: number;
+  riskLevel: "low" | "medium" | "high";
+  flags: string[];
+} {
+  let score = 0;
+  const flags: string[] = [];
+
+  // 1. Check buyer history (if available)
+  const buyerClaimCount = claim.buyerMetadata?.totalClaims || 0;
+  if (buyerClaimCount > 5) {
+    score += 20;
+    flags.push("high-claim-frequency");
+  } else if (buyerClaimCount > 2) {
+    score += 10;
+    flags.push("moderate-claim-frequency");
+  }
+
+  // 2. Check claim amount relative to order (fallback to requested amount when order total is unknown)
+  const claimAmount = normalizeAmount(
+    claim.requestedAmount ?? claim.claimAmount,
+  );
+  const orderAmount = normalizeAmount(
+    claim.orderAmount ?? claim.requestedAmount ?? claimAmount,
+  );
+  const claimToOrderRatio = orderAmount > 0 ? claimAmount / orderAmount : 1;
+  if (claimToOrderRatio > 0.9) {
+    score += 15;
+    flags.push("high-claim-amount");
+  }
+
+  // 3. Check evidence quality (use buyer + seller evidence arrays from the schema)
+  const { buyerEvidenceCount, sellerEvidenceCount, totalEvidence } =
+    extractEvidenceCounts(claim);
+  if (totalEvidence === 0) {
+    score += 25;
+    flags.push("no-evidence");
+  } else if (totalEvidence < 2) {
+    score += 10;
+    flags.push("insufficient-evidence");
+  }
+
+  // 4. Check time since order (only when order date is available)
+  const filedAt = claim.createdAt ? new Date(claim.createdAt) : null;
+  const orderDate = claim.orderDate ? new Date(claim.orderDate) : null;
+  const daysSinceOrder =
+    filedAt && orderDate
+      ? Math.floor(
+          (filedAt.getTime() - orderDate.getTime()) / (1000 * 60 * 60 * 24),
+        )
+      : 0;
+  if (daysSinceOrder > 60) {
+    score += 15;
+    flags.push("late-filing");
+  }
+
+  // 5. Check seller defense strength (e.g., more seller evidence than buyer evidence)
+  if (sellerEvidenceCount > buyerEvidenceCount) {
+    score += 10;
+    flags.push("strong-seller-defense");
+  }
+
+  // 6. Pattern matching for common fraud indicators
+  const description = (
+    claim.buyerDescription ||
+    claim.description ||
+    ""
+  ).toLowerCase();
+  const fraudKeywords = [
+    "never received",
+    "never arrived",
+    "empty box",
+    "wrong item",
+    "damaged",
+  ];
+  const matchedKeywords = fraudKeywords.filter((keyword) =>
+    description.includes(keyword),
+  );
+  if (matchedKeywords.length > 2) {
+    score += 10;
+    flags.push("generic-description");
+  }
+
+  // Determine risk level
+  let riskLevel: "low" | "medium" | "high" = "low";
+  if (score >= 70) {
+    riskLevel = "high";
+  } else if (score >= 40) {
+    riskLevel = "medium";
+  }
+
+  return { score: Math.min(100, score), riskLevel, flags };
+}
+
+/**
+ * AI-based Recommendation Engine
+ *
+ * Provides recommended action based on claim analysis
+ */
+function generateRecommendation(
+  claim: ClaimLean,
+  fraudAnalysis: ReturnType<typeof calculateFraudScore>,
+): {
+  action: "approve-full" | "approve-partial" | "reject" | "pending-review";
+  confidence: number;
+  reasoning: string;
+} {
+  const { score } = fraudAnalysis;
+
+  // High fraud risk - recommend rejection
+  if (score >= 70) {
+    return {
+      action: "reject",
+      confidence: 85,
+      reasoning: "High fraud risk detected. Multiple red flags identified.",
+    };
+  }
+
+  // Medium fraud risk - require manual review
+  if (score >= 40) {
+    return {
+      action: "pending-review",
+      confidence: 60,
+      reasoning: "Medium risk. Manual review recommended before decision.",
+    };
+  }
+
+  // Low fraud risk - check evidence quality
+  const { totalEvidence, sellerEvidenceCount } = extractEvidenceCounts(claim);
+  const hasSellerResponse =
+    Boolean(claim.sellerRespondedAt || claim.sellerResponse) ||
+    sellerEvidenceCount > 0;
+  const evidenceCount = totalEvidence;
+
+  if (evidenceCount >= 3 && !hasSellerResponse) {
+    return {
+      action: "approve-full",
+      confidence: 90,
+      reasoning: "Strong evidence provided and no seller defense.",
+    };
+  }
+
+  if (evidenceCount >= 2 && !hasSellerResponse) {
+    return {
+      action: "approve-partial",
+      confidence: 75,
+      reasoning: "Good evidence but consider partial refund.",
+    };
+  }
+
+  if (hasSellerResponse && evidenceCount < 2) {
+    return {
+      action: "reject",
+      confidence: 70,
+      reasoning: "Insufficient buyer evidence vs strong seller defense.",
+    };
+  }
+
+  // Default to manual review
+  return {
+    action: "pending-review",
+    confidence: 50,
+    reasoning: "Requires manual assessment of evidence quality.",
+  };
+}
+
+/**
+ * GET /api/souq/claims/admin/review
+ *
+ * Enhanced admin endpoint with fraud detection and AI recommendations
+ *
+ * Query params:
+ * - status: filter by status
+ * - priority: filter by priority (high/medium/low)
+ * - riskLevel: filter by fraud risk (high/medium/low)
+ * - search: search by claim number or order ID
+ * - page: page number
+ * - limit: items per page
+ *
+ * @security Requires admin role
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check if user has admin role
+    const userRole = session.user.role;
+    const isSuperAdmin = session.user.isSuperAdmin;
+
+    // 🔒 SECURITY FIX: Include CORPORATE_ADMIN per 14-role matrix
+    if (!isSuperAdmin && !["ADMIN", "CORPORATE_ADMIN"].includes(userRole || "")) {
+      return NextResponse.json(
+        { error: "Forbidden: Admin access required" },
+        { status: 403 },
+      );
+    }
+
+    const searchParams = request.nextUrl.searchParams;
+    const statusParam = searchParams.get("status") || "pending-decision";
+    const priority = searchParams.get("priority");
+    const riskLevel = searchParams.get("riskLevel");
+    const search = searchParams.get("search");
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+
+    await connectDb();
+
+    // Build query with $and for combining multiple $or filters safely
+    const andConditions: Record<string, unknown>[] = [];
+
+    // 🔒 SECURITY FIX: CORPORATE_ADMIN can only see claims involving their org's users
+    // Platform admins (isSuperAdmin or ADMIN role) see all claims
+    const isPlatformAdmin = isSuperAdmin || userRole === "ADMIN";
+    
+    if (!isPlatformAdmin && userRole === "CORPORATE_ADMIN") {
+      // Get user IDs belonging to this corporate admin's org
+      const orgId = session.user.orgId;
+      if (!orgId) {
+        return NextResponse.json(
+          { error: "Organization context required for CORPORATE_ADMIN" },
+          { status: 403 },
+        );
+      }
+      
+      const orgUserIds = await User.find({ orgId }, { _id: 1 }).lean();
+      const userIdStrings = orgUserIds.map((u) => String(u._id));
+      
+      // Ensure org-scoped queries for tenant isolation and index use
+      andConditions.push({ orgId });
+
+      // Only show claims where buyer OR seller belongs to this org
+      andConditions.push({
+        $or: [
+          { buyerId: { $in: userIdStrings } },
+          { sellerId: { $in: userIdStrings } },
+        ],
+      });
+    }
+
+    if (statusParam && statusParam !== "all") {
+      const mapped = STATUS_MAP[statusParam];
+      andConditions.push({ status: mapped ? { $in: mapped } : statusParam });
+    }
+
+    if (priority && priority !== "all") {
+      andConditions.push({ priority });
+    }
+
+    if (search) {
+      // Escape special regex characters to prevent injection
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      andConditions.push({
+        $or: [
+          { claimId: { $regex: escapedSearch, $options: "i" } },
+          { orderNumber: { $regex: escapedSearch, $options: "i" } },
+          { orderId: { $regex: escapedSearch, $options: "i" } },
+        ],
+      });
+    }
+
+    // Combine all conditions with $and, or use empty filter if no conditions
+    const query = andConditions.length > 0 ? { $and: andConditions } : {};
+
+    // Fetch claims with pagination
+    const skip = (page - 1) * limit;
+    const claims: ClaimLean[] = await SouqClaim.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("buyerId", "name email")
+      .populate("sellerId", "name email")
+      .lean();
+
+    const totalClaims = await SouqClaim.countDocuments(query);
+
+    // Enrich claims with fraud detection and recommendations
+    const enrichedClaims = claims.map((claim: ClaimLean) => {
+      const claimAmount = normalizeAmount(
+        claim.requestedAmount ?? claim.orderAmount ?? claim.claimAmount ?? 0,
+      );
+      // Calculate fraud score
+      const fraudAnalysis = calculateFraudScore(claim);
+
+      // Generate recommendation
+      const recommendation = generateRecommendation(claim, fraudAnalysis);
+
+      // Determine priority based on fraud score and claim amount
+      const evidenceCounts = extractEvidenceCounts(claim);
+
+      let priority: "high" | "medium" | "low" = "medium";
+      if (fraudAnalysis.score >= 70 || claimAmount > 5000) {
+        priority = "high";
+      } else if (fraudAnalysis.score < 40 && claimAmount < 500) {
+        priority = "low";
+      }
+
+      const claimNumber =
+        claim.claimNumber || claim.claimId || claim.orderNumber;
+
+      const claimType = claim.claimType || claim.type;
+
+      return {
+        claimId: claim._id?.toString?.() ?? claim.claimId,
+        claimNumber,
+        orderId: claim.orderId,
+        claimType,
+        status: claim.status,
+        claimAmount,
+        buyerName:
+          (typeof claim.buyerId === "object" && claim.buyerId?.name) ||
+          claim.buyerName ||
+          "Unknown",
+        sellerName:
+          (typeof claim.sellerId === "object" && claim.sellerId?.name) ||
+          claim.sellerName ||
+          "Unknown",
+
+        // Fraud detection data
+        fraudScore: fraudAnalysis.score,
+        riskLevel: fraudAnalysis.riskLevel,
+        fraudFlags: fraudAnalysis.flags,
+
+        // AI recommendation
+        recommendedAction: recommendation.action,
+        confidence: recommendation.confidence,
+        reasoning: recommendation.reasoning,
+
+        // Metadata
+        evidenceCount: evidenceCounts.totalEvidence,
+        priority,
+        createdAt: claim.createdAt,
+        updatedAt: claim.updatedAt,
+      };
+    });
+
+    // Apply risk level filter after enrichment if specified
+    let filteredClaims = enrichedClaims;
+    if (riskLevel && riskLevel !== "all") {
+      filteredClaims = enrichedClaims.filter((c) => c.riskLevel === riskLevel);
+    }
+
+    // Calculate statistics
+    const pendingStatuses = STATUS_MAP["pending-decision"];
+    const stats = {
+      total: totalClaims,
+      pendingReview: await SouqClaim.countDocuments(
+        pendingStatuses ? { status: { $in: pendingStatuses } } : {},
+      ),
+      highPriority: filteredClaims.filter((c) => c.priority === "high").length,
+      highRisk: filteredClaims.filter((c) => c.fraudScore >= 70).length,
+      totalAmount: filteredClaims.reduce(
+        (sum, c) => sum + (c.claimAmount || 0),
+        0,
+      ),
+    };
+
+    const totalForPagination =
+      riskLevel && riskLevel !== "all" ? filteredClaims.length : totalClaims;
+    const totalPages =
+      totalForPagination > 0 ? Math.ceil(totalForPagination / limit) : 1;
+
+    return NextResponse.json({
+      success: true,
+      claims: filteredClaims,
+      pagination: {
+        page,
+        limit,
+        total: totalForPagination,
+        totalPages,
+      },
+      stats,
+    });
+  } catch (error) {
+    logger.error("Admin claims review endpoint error", error as Error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/claims/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import {
+  ClaimService,
+  type ClaimType,
+  type ClaimStatus,
+} from "@/services/souq/claims/claim-service";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { resolveRequestSession } from "@/lib/auth/request-session";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
+import { ObjectId } from "mongodb";
+import { logger } from "@/lib/logger";
+import { buildOrgScopeFilter as buildOrgScope } from "@/services/souq/org-scope";
+
+const CLAIM_DEADLINE_MS = 30 * 24 * 60 * 60 * 1000;
+
+function mapReasonToType(reason: string): ClaimType {
+  const normalized = reason?.toLowerCase() ?? "";
+  if (normalized.includes("not_as_described")) return "not_as_described";
+  if (normalized.includes("defective") || normalized.includes("damaged"))
+    return "defective_item";
+  if (
+    normalized.includes("not_received") ||
+    normalized.includes("not_received")
+  )
+    return "item_not_received";
+  if (normalized.includes("wrong")) return "wrong_item";
+  if (normalized.includes("missing")) return "missing_parts";
+  if (normalized.includes("counterfeit")) return "counterfeit";
+  return "item_not_received";
+}
+
+/**
+ * POST /api/souq/claims
+ * File a new A-to-Z claim
+ */
+export async function POST(request: NextRequest) {
+  const limited = enforceRateLimit(request, {
+    keyPrefix: "souq-claims:create",
+    requests: 20,
+    windowMs: 60_000,
+  });
+  if (limited) return limited;
+
+  try {
+    const session = await resolveRequestSession(request);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    const body = await request.json();
+    const { orderId, reason, description, requestedAmount, requestType } = body;
+
+    const missingFields: string[] = [];
+    if (!orderId) missingFields.push("orderId");
+    if (!reason) missingFields.push("reason");
+    if (!description) missingFields.push("description");
+    if (requestedAmount == null) missingFields.push("requestedAmount");
+    if (!requestType) missingFields.push("requestType");
+
+    if (missingFields.length) {
+      return NextResponse.json(
+        { error: `Missing required fields: ${missingFields.join(", ")}` },
+        { status: 400 },
+      );
+    }
+
+    let orderObjectId: ObjectId;
+    try {
+      orderObjectId = new ObjectId(orderId);
+    } catch {
+      return NextResponse.json({ error: "Invalid orderId" }, { status: 400 });
+    }
+
+    const db = await getDatabase();
+    const order = await db
+      .collection(COLLECTIONS.ORDERS)
+      .findOne({ _id: orderObjectId, ...buildOrgScope(orgId) });
+    if (!order) {
+      return NextResponse.json({ error: "Order not found" }, { status: 400 });
+    }
+
+    if (String(order.buyerId) !== session.user.id) {
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    const deliveredAt = order.deliveredAt ? new Date(order.deliveredAt) : null;
+    if (
+      !deliveredAt ||
+      Date.now() - deliveredAt.getTime() > CLAIM_DEADLINE_MS
+    ) {
+      return NextResponse.json(
+        { error: "Claim deadline exceeded for this order" },
+        { status: 400 },
+      );
+    }
+
+    const claimsCollection = db.collection(COLLECTIONS.CLAIMS);
+    const existingClaim = await claimsCollection.findOne({
+      orderId: { $in: [orderObjectId, orderObjectId.toString()] },
+      $or: [buildOrgScope(orgId), { orgId: { $exists: false } }],
+      status: {
+        $nin: [
+          "withdrawn",
+          "resolved_refund_full",
+          "resolved_refund_partial",
+          "resolved_replacement",
+          "rejected",
+          "closed",
+        ],
+      },
+    });
+    if (existingClaim) {
+      return NextResponse.json(
+        { error: "An existing claim already covers this order" },
+        { status: 400 },
+      );
+    }
+
+    const orderTotal =
+      typeof order.total === "number" ? order.total : Number(order.total ?? 0);
+    if (Number(requestedAmount) > orderTotal) {
+      return NextResponse.json(
+        { error: "Requested amount exceeds order total" },
+        { status: 400 },
+      );
+    }
+
+    const sellerId = order.sellerId ? String(order.sellerId) : undefined;
+    if (!sellerId) {
+      return NextResponse.json(
+        { error: "Seller information missing for order" },
+        { status: 400 },
+      );
+    }
+
+    const firstItem =
+      Array.isArray(order.items) && order.items.length > 0
+        ? order.items[0]
+        : null;
+    const productId =
+      (firstItem?.productId && String(firstItem.productId)) ||
+      firstItem?.name ||
+      order.orderNumber ||
+      "unknown-product";
+
+    const buyerIdFilter: (string | ObjectId)[] = [session.user.id];
+    if (ObjectId.isValid(session.user.id)) {
+      buyerIdFilter.push(new ObjectId(session.user.id));
+    }
+
+    const recentClaimsCount = await claimsCollection.countDocuments({
+      buyerId: { $in: buyerIdFilter },
+      $or: [buildOrgScope(orgId), { orgId: { $exists: false } }],
+      createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+    });
+
+    let fraudRisk: "low" | "medium" | "high" = "low";
+    let requiresManualReview = false;
+    if (recentClaimsCount >= 5) {
+      fraudRisk = "high";
+      requiresManualReview = true;
+    } else if (recentClaimsCount >= 3) {
+      fraudRisk = "medium";
+    }
+
+    const requiresEnhancedVerification =
+      Number(order.total ?? 0) >= 3000 || Number(requestedAmount) >= 3000;
+    if (requiresEnhancedVerification) {
+      requiresManualReview = true;
+    }
+
+    const claim = await ClaimService.createClaim({
+      orgId,
+      orderId: orderObjectId.toString(),
+      buyerId: session.user.id,
+      sellerId,
+      productId,
+      type: mapReasonToType(reason),
+      reason,
+      description,
+      evidence: [],
+      orderAmount: orderTotal,
+      requestedAmount: Number(requestedAmount),
+      requestType,
+    });
+
+    return NextResponse.json(
+      {
+        claimId: claim._id?.toHexString?.() ?? claim.claimId,
+        status: claim.status,
+        fraudRisk,
+        requiresManualReview,
+        requiresEnhancedVerification,
+      },
+      { status: 201 },
+    );
+  } catch (error) {
+    logger.error("[Claims API] Create claim failed", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to create claim",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * GET /api/souq/claims
+ * List claims (buyer or seller view)
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const session = await resolveRequestSession(request);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const view = searchParams.get("view"); // 'buyer' or 'seller'
+    const status = searchParams.get("status");
+    const type = searchParams.get("type");
+    const priority = searchParams.get("priority");
+    const targetOrgId = searchParams.get("targetOrgId") || undefined;
+    const sessionOrgId = (session.user as { orgId?: string }).orgId;
+
+    // Robust parsing with validation and bounds
+    const pageRaw = searchParams.get("page");
+    const limitRaw = searchParams.get("limit");
+    const pageParsed = pageRaw ? parseInt(pageRaw, 10) : 1;
+    const limitParsed = limitRaw ? parseInt(limitRaw, 10) : 20;
+    const page = Number.isFinite(pageParsed) && pageParsed > 0 ? pageParsed : 1;
+    const limit = Number.isFinite(limitParsed)
+      ? Math.min(Math.max(1, limitParsed), 100)
+      : 20;
+
+    const effectiveView = (view || "buyer").toLowerCase();
+    const isAdminUser = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(
+      (session.user.role || "").toUpperCase(),
+    );
+    const isSuperAdmin = (session.user.role || "").toUpperCase() === "SUPER_ADMIN";
+
+    // Resolve org scope: require targetOrgId for SUPER_ADMIN without session org; otherwise use session org
+    const resolvedOrgId = isSuperAdmin ? (targetOrgId || sessionOrgId) : sessionOrgId;
+    if (isSuperAdmin && !resolvedOrgId) {
+      return NextResponse.json(
+        { error: "targetOrgId is required for platform admins" },
+        { status: 400 },
+      );
+    }
+    if (!resolvedOrgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    const filters: {
+      orgId: string;
+      buyerId?: string;
+      sellerId?: string;
+      status?: ClaimStatus;
+      type?: ClaimType;
+      priority?: string;
+      limit: number;
+      offset: number;
+    } = {
+      orgId: resolvedOrgId,
+      limit,
+      offset: (page - 1) * limit,
+    };
+
+    if (effectiveView === "admin" && isAdminUser) {
+      // Admin view: allow all claims
+    } else if (effectiveView === "seller") {
+      filters.sellerId = session.user.id;
+    } else {
+      filters.buyerId = session.user.id;
+    }
+    if (status) filters.status = status as ClaimStatus;
+    if (type) filters.type = type as ClaimType;
+    if (priority) filters.priority = priority;
+
+    const result = await ClaimService.listClaims(filters);
+
+    return NextResponse.json({
+      claims: result.claims,
+      pagination: {
+        page,
+        limit,
+        total: result.total,
+        pages: Math.ceil(result.total / limit),
+      },
+    });
+  } catch (error) {
+    logger.error("[Claims API] List claims failed", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to list claims",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/deals/route.ts">
+<![CDATA[
+/**
+ * Souq Deals API - Lightning deals, coupons, promotions
+ * @route /api/souq/deals
+ */
+
+import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import type { NextRequest } from "next/server";
+import { z } from "zod";
+import { SouqDeal } from "@/server/models/souq/Deal";
+import { connectDb } from "@/lib/mongodb-unified";
+import { nanoid } from "nanoid";
+import { getSessionUser, UnauthorizedError } from "@/server/middleware/withAuthRbac";
+import { Types } from "mongoose";
+
+const dealCreateSchema = z.object({
+  type: z.enum([
+    "lightning_deal",
+    "coupon",
+    "bundle",
+    "bogo",
+    "percentage_off",
+    "amount_off",
+  ]),
+  title: z.string().min(5).max(200),
+  description: z.string().min(10).max(1000),
+  sellerId: z.string().optional(),
+  applicableProducts: z
+    .array(
+      z.object({
+        productId: z.string(),
+        fsin: z.string(),
+      }),
+    )
+    .optional(),
+  applicableCategories: z.array(z.string()).optional(),
+  allProducts: z.boolean(),
+  discountType: z.enum(["percentage", "fixed_amount"]),
+  discountValue: z.number().positive(),
+  maxDiscountAmount: z.number().positive().optional(),
+  minPurchaseAmount: z.number().min(0).optional(),
+  maxUsagePerCustomer: z.number().int().positive(),
+  totalUsageLimit: z.number().int().positive().optional(),
+  couponCode: z.string().max(20).optional(),
+  startDate: z.string(),
+  endDate: z.string(),
+  priority: z.number().int(),
+});
+
+export async function POST(request: NextRequest) {
+  // SEC-001: Authentication required - only sellers/admins can create deals
+  let session;
+  try {
+    session = await getSessionUser(request);
+  } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return NextResponse.json(
+        { error: "Authentication required to create deals" },
+        { status: 401 }
+      );
+    }
+    throw error;
+  }
+
+  const orgId = session.orgId;
+  if (!orgId) {
+    return NextResponse.json(
+      { error: "Organization context required" },
+      { status: 403 },
+    );
+  }
+
+  // Only admin roles or sellers can create deals (tenant-scoped)
+  const allowedRoles = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN", "VENDOR"];
+  if (!allowedRoles.includes(session.role)) {
+    return NextResponse.json(
+      { error: "Only sellers or admins can create deals" },
+      { status: 403 }
+    );
+  }
+
+  try {
+    await connectDb();
+
+    const body = await request.json();
+    const validatedData = dealCreateSchema.parse(body);
+
+    if (
+      !validatedData.applicableProducts &&
+      !validatedData.applicableCategories &&
+      !validatedData.allProducts
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Deal must have applicable products, categories, or be for all products",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (validatedData.couponCode) {
+      const existing = await SouqDeal.findOne({
+        orgId,
+        couponCode: validatedData.couponCode.toUpperCase(),
+      }).select("_id");
+
+      if (existing) {
+        return NextResponse.json(
+          { error: "Coupon code already exists" },
+          { status: 400 },
+        );
+      }
+    }
+
+    const dealId = `DEAL-${nanoid(10).toUpperCase()}`;
+
+    const startDate = new Date(validatedData.startDate);
+    const endDate = new Date(validatedData.endDate);
+
+    // Validate date range
+    if (endDate <= startDate) {
+      return NextResponse.json(
+        { error: "endDate must be after startDate" },
+        { status: 400 },
+      );
+    }
+
+    const now = new Date();
+
+    // Use UTC timestamps for timezone-safe comparison
+    const nowUTC = now.getTime();
+    const startUTC = startDate.getTime();
+    const endUTC = endDate.getTime();
+
+    let status: "draft" | "scheduled" | "active" | "expired" | "paused" =
+      "draft";
+
+    if (startUTC > nowUTC) {
+      status = "scheduled";
+    } else if (startUTC <= nowUTC && endUTC >= nowUTC) {
+      status = "active";
+    } else if (endUTC < nowUTC) {
+      status = "expired";
+    }
+
+    const deal = await SouqDeal.create({
+      ...validatedData,
+      orgId: new Types.ObjectId(orgId),
+      dealId,
+      couponCode: validatedData.couponCode?.toUpperCase(),
+      currentUsageCount: 0,
+      status,
+      startDate,
+      endDate,
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: deal,
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Validation failed", issues: error.issues },
+        { status: 400 },
+      );
+    }
+
+    logger.error("Deal creation error:", error as Error);
+    return NextResponse.json(
+      { error: "Failed to create deal" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function GET(request: NextRequest) {
+  // SEC-002: Authentication required for listing deals
+  let session;
+  try {
+    session = await getSessionUser(request);
+  } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+    throw error;
+  }
+
+  const orgId = session.orgId;
+  if (!orgId) {
+    return NextResponse.json(
+      { error: "Organization context required" },
+      { status: 403 },
+    );
+  }
+
+  try {
+    await connectDb();
+
+    const { searchParams } = new URL(request.url);
+    const type = searchParams.get("type");
+    const sellerId = searchParams.get("sellerId");
+    const status = searchParams.get("status");
+    const fsin = searchParams.get("fsin");
+    const couponCode = searchParams.get("couponCode");
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = Math.min(
+      parseInt(searchParams.get("limit") || "20", 10),
+      100,
+    );
+
+    const query: Record<string, unknown> = { orgId };
+
+    if (type) {
+      query.type = type;
+    }
+
+    if (sellerId) {
+      query.sellerId = sellerId;
+    }
+
+    if (status) {
+      query.status = status;
+    }
+
+    if (fsin) {
+      query["applicableProducts.fsin"] = fsin;
+    }
+
+    if (couponCode) {
+      query.couponCode = couponCode.toUpperCase();
+    }
+
+    const now = new Date();
+    if (status === "active") {
+      query.startDate = { $lte: now };
+      query.endDate = { $gte: now };
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [deals, total] = await Promise.all([
+      SouqDeal.find(query)
+        .populate("sellerId", "legalName tradeName")
+        .sort({ priority: -1, startDate: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      SouqDeal.countDocuments(query),
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      data: deals,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    logger.error("Deal fetch error:", error as Error);
+    return NextResponse.json(
+      { error: "Failed to fetch deals" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/errors.ts">
+<![CDATA[
+import { NextResponse } from "next/server";
+
+export type SouqErrorCode =
+  | "VALIDATION_ERROR"
+  | "NOT_FOUND"
+  | "CONFLICT"
+  | "UNAUTHORIZED"
+  | "FORBIDDEN"
+  | "INTERNAL_ERROR"
+  | "RATE_LIMITED";
+
+interface SouqErrorResponse {
+  error: string;
+  code: SouqErrorCode;
+  message: string;
+  details?: Record<string, unknown>;
+}
+
+export function createSouqErrorResponse(
+  code: SouqErrorCode,
+  message: string,
+  status: number,
+  details?: Record<string, unknown>,
+) {
+  return NextResponse.json<SouqErrorResponse>(
+    {
+      error: code.toLowerCase().replace(/_/g, "-"),
+      code,
+      message,
+      ...(details && { details }),
+    },
+    { status },
+  );
+}
+
+export const SouqErrors = {
+  validationError: (message: string, details?: Record<string, unknown>) =>
+    createSouqErrorResponse("VALIDATION_ERROR", message, 400, details),
+
+  notFound: (resource: string, details?: Record<string, unknown>) =>
+    createSouqErrorResponse("NOT_FOUND", `${resource} not found`, 404, details),
+
+  conflict: (message: string, details?: Record<string, unknown>) =>
+    createSouqErrorResponse("CONFLICT", message, 409, details),
+
+  unauthorized: (message = "Authentication required") =>
+    createSouqErrorResponse("UNAUTHORIZED", message, 401),
+
+  forbidden: (message = "Insufficient permissions") =>
+    createSouqErrorResponse("FORBIDDEN", message, 403),
+
+  rateLimited: (
+    message = "Too many requests",
+    details?: Record<string, unknown>,
+  ) => createSouqErrorResponse("RATE_LIMITED", message, 429, details),
+
+  internalError: (
+    message = "Something went wrong",
+    details?: Record<string, unknown>,
+  ) => createSouqErrorResponse("INTERNAL_ERROR", message, 500, details),
+};
+
+]]>
+</file>
+
+<file path="app/api/souq/fulfillment/assign-fast-badge/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "@/lib/auth/getServerSession";
+import { fulfillmentService } from "@/services/souq/fulfillment-service";
+import { SouqListing } from "@/server/models/souq/Listing";
+import { logger } from "@/lib/logger";
+
+/**
+ * POST /api/souq/fulfillment/assign-fast-badge
+ * Assign Fast Badge to eligible listings
+ * Admin-only endpoint (or background job)
+ */
+export async function POST(request: NextRequest) {
+  let body: { listingId?: string; sellerId?: string; targetOrgId?: string } | undefined;
+  try {
+    const session = await getServerSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Admin only
+    if (!["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(session.user.role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    body = await request.json();
+    const isPlatformAdmin = session.user.role === "SUPER_ADMIN" || session.user.isSuperAdmin;
+    const sessionOrgId = (session.user as { orgId?: string }).orgId;
+    const requestedOrgId = body?.targetOrgId?.trim();
+    const orgId = isPlatformAdmin ? requestedOrgId || sessionOrgId : sessionOrgId;
+    const listingId = body?.listingId;
+    const sellerId = body?.sellerId;
+
+    let updated = 0;
+    let eligible = 0;
+
+    // 🔒 SECURITY FIX: orgId is REQUIRED for all badge mutations
+    // Platform admins may target a specific org explicitly via targetOrgId
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required for badge assignment" },
+        { status: 403 },
+      );
+    }
+
+    if (listingId) {
+      // Assign badge to specific listing (orgId already verified above)
+      const result = await fulfillmentService.assignFastBadge(listingId, orgId);
+      if (result) {
+        eligible = 1;
+        updated = 1;
+      }
+    } else if (sellerId) {
+      // Assign badge to all seller's listings within the org
+      const listingQuery: Record<string, unknown> = {
+        sellerId,
+        status: "active",
+        orgId,
+      };
+
+      const listings = await SouqListing.find(listingQuery);
+
+      for (const listing of listings) {
+        const result = await fulfillmentService.assignFastBadge(
+          listing._id.toString(),
+          orgId,
+        );
+        if (result) {
+          eligible++;
+          updated++;
+        }
+      }
+    } else {
+      return NextResponse.json(
+        {
+          error: "Missing required field: listingId or sellerId",
+        },
+        { status: 400 },
+      );
+    }
+
+    logger.info("Fast badge assignment executed", {
+      actorUserId: session.user.id,
+      actorRole: session.user.role,
+      targetOrgId: orgId,
+      listingId,
+      sellerId,
+      eligible,
+      updated,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `Fast Badge assignment complete`,
+      eligible,
+      updated,
+    });
+  } catch (error) {
+    logger.error("Assign Fast Badge error", error as Error, {
+      listingId: body?.listingId,
+      sellerId: body?.sellerId,
+    });
+    return NextResponse.json(
+      {
+        error: "Failed to assign Fast Badge",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/fulfillment/generate-label/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "@/lib/auth/getServerSession";
+import { fulfillmentService } from "@/services/souq/fulfillment-service";
+import { SouqOrder } from "@/server/models/souq/Order";
+import { SouqSeller } from "@/server/models/souq/Seller";
+import { logger } from "@/lib/logger";
+
+/**
+ * POST /api/souq/fulfillment/generate-label
+ * Generate shipping label for FBM orders
+ * Seller-only endpoint
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getServerSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { orderId, carrier = "spl" } = body;
+    const orgId = (session.user as { orgId?: string }).orgId;
+
+    if (!orderId) {
+      return NextResponse.json(
+        {
+          error: "Missing required field: orderId",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Missing required orgId for tenant scoping" },
+        { status: 400 },
+      );
+    }
+
+    // Get order and verify seller ownership
+    const order = await SouqOrder.findOne({ orderId, orgId });
+    if (!order) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    const isAdmin = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(session.user.role);
+    const isSeller = order.items.some(
+      (item) => item.sellerId?.toString() === session.user.id,
+    );
+
+    if (!isAdmin && !isSeller) {
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    const seller = await SouqSeller.findOne({ _id: session.user.id, orgId });
+    if (!seller) {
+      return NextResponse.json(
+        { error: "Seller profile not found" },
+        { status: 404 },
+      );
+    }
+
+    const sellerAddress = {
+      name: seller.tradeName || seller.legalName,
+      phone: seller.contactPhone,
+      email: seller.contactEmail,
+      street: seller.address,
+      city: seller.city,
+      state: undefined,
+      postalCode: "00000",
+      country: seller.country || "SA",
+    };
+
+    // Generate label
+    const label = await fulfillmentService.generateFBMLabel({
+      orderId,
+      sellerId: seller._id.toString(),
+      sellerAddress,
+      carrierName: carrier,
+      orgId,
+    });
+
+    return NextResponse.json({
+      success: true,
+      label,
+    });
+  } catch (error) {
+    logger.error("Generate label error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to generate label",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/fulfillment/rates/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "@/lib/auth/getServerSession";
+import { fulfillmentService } from "@/services/souq/fulfillment-service";
+import { logger } from "@/lib/logger";
+
+/**
+ * POST /api/souq/fulfillment/rates
+ * Compare carrier rates for shipping
+ * Seller and admin access
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getServerSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { origin, destination, weight, dimensions, serviceType } = body;
+
+    // Validation
+    if (!origin || !destination || !weight) {
+      return NextResponse.json(
+        {
+          error: "Missing required fields: origin, destination, weight",
+        },
+        { status: 400 },
+      );
+    }
+
+    // Get rates from all carriers
+    const rates = await fulfillmentService.getRates({
+      origin,
+      destination,
+      weight,
+      dimensions: dimensions || {
+        length: 20,
+        width: 15,
+        height: 10,
+        unit: "cm",
+      },
+      serviceType: serviceType || "standard",
+    });
+
+    // Sort by price (cheapest first)
+    const sortedRates = rates.sort((a, b) => a.cost - b.cost);
+
+    return NextResponse.json({
+      success: true,
+      rates: sortedRates,
+      cheapest: sortedRates[0],
+      fastest: rates.reduce((prev, curr) =>
+        curr.estimatedDays < prev.estimatedDays ? curr : prev,
+      ),
+    });
+  } catch (error) {
+    logger.error("Get rates error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to get rates",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/fulfillment/sla/[orderId]/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "@/lib/auth/getServerSession";
+import { fulfillmentService } from "@/services/souq/fulfillment-service";
+import { SouqOrder } from "@/server/models/souq/Order";
+import { logger } from "@/lib/logger";
+import {
+  Role,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
+
+/**
+ * GET /api/souq/fulfillment/sla/[orderId]
+ * Check SLA metrics for an order
+ * Seller and admin access
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { orderId: string } },
+) {
+  try {
+    const session = await getServerSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const user = session.user;
+
+    const { orderId } = params;
+    const orgId = (session.user as { orgId?: string }).orgId;
+
+    // 🔒 SECURITY: orgId is required for tenant isolation
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 }
+      );
+    }
+
+    // Get order and verify access (always scoped by orgId)
+    const order = await SouqOrder.findOne({ orderId, orgId });
+    if (!order) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    // 🔐 SECURITY: Use canonical Role enum + subRole gating per STRICT v4.1
+    const rawSubRole = ((user as { subRole?: string | null }).subRole ?? undefined) as string | undefined;
+    const normalizedSubRole =
+      rawSubRole && Object.values(SubRole).includes(rawSubRole as SubRole)
+        ? (rawSubRole as SubRole)
+        : undefined;
+    const userRole = normalizeRole(user.role, normalizedSubRole);
+    const userSubRole =
+      normalizeSubRole(normalizedSubRole) ??
+      inferSubRoleFromRole(user.role);
+    
+    // Core admin roles with SLA visibility
+    const isAdminRole = userRole !== null && [
+      Role.SUPER_ADMIN,
+      Role.ADMIN,
+      Role.CORPORATE_OWNER,
+    ].includes(userRole);
+    
+    // TEAM_MEMBER only gets SLA access with ops/support subRole
+    const isOpsSupport = userRole === Role.TEAM_MEMBER && userSubRole !== undefined && [
+      SubRole.OPERATIONS_MANAGER,
+      SubRole.SUPPORT_AGENT,
+    ].includes(userSubRole);
+    
+    const isAdmin = isAdminRole || isOpsSupport;
+    const userId = user.id;
+    const isSeller = order.items.some(
+      (item) => item.sellerId?.toString() === userId,
+    );
+
+    if (!isAdmin && !isSeller) {
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    // Calculate SLA
+    const sla = await fulfillmentService.calculateSLA(orderId, orgId);
+
+    return NextResponse.json({
+      success: true,
+      sla,
+    });
+  } catch (error) {
+    logger.error("SLA check error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Failed to check SLA",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/inventory/[listingId]/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { inventoryService } from "@/services/souq/inventory-service";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import {
+  Role,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
+
+/**
+ * GET /api/souq/inventory/[listingId]
+ * Get inventory for a specific listing
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { listingId: string } },
+) {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+    const orgIdStr = orgId;
+
+    const inventory = await inventoryService.getInventory(
+      params.listingId,
+      orgIdStr,
+    );
+
+    if (!inventory) {
+      return NextResponse.json(
+        {
+          error: "Inventory not found",
+        },
+        { status: 404 },
+      );
+    }
+
+    // Authorization: Can only view own inventory unless admin
+    const sellerMatches =
+      inventory.sellerId?.toString() === session.user.id ||
+      (orgIdStr && inventory.orgId && inventory.orgId.toString() === orgIdStr);
+
+    const rawSubRole = (session.user as { subRole?: string | null }).subRole;
+    const normalizedSubRole =
+      normalizeSubRole(rawSubRole) ?? inferSubRoleFromRole(session.user.role);
+    const normalizedRole = normalizeRole(session.user.role, normalizedSubRole);
+
+    const isPlatformAdmin =
+      normalizedRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const isOrgAdmin =
+      normalizedRole !== null &&
+      [Role.ADMIN, Role.CORPORATE_OWNER].includes(normalizedRole);
+    const isOpsOrSupport =
+      normalizedRole === Role.TEAM_MEMBER &&
+      !!normalizedSubRole &&
+      [SubRole.OPERATIONS_MANAGER, SubRole.SUPPORT_AGENT].includes(
+        normalizedSubRole,
+      );
+
+    if (!sellerMatches && !isPlatformAdmin && !isOrgAdmin && !isOpsOrSupport) {
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Inventory not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      inventory,
+    });
+  } catch (error) {
+    logger.error("GET /api/souq/inventory/[listingId] error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/inventory/adjust/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { inventoryService } from "@/services/souq/inventory-service";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { SouqInventory } from "@/server/models/souq/Inventory";
+import {
+  Role,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
+import mongoose from "mongoose";
+
+const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
+  const orgString = typeof orgId === "string" ? orgId : orgId?.toString?.();
+  const candidates: Array<string | mongoose.Types.ObjectId> = [];
+  if (orgString) {
+    const trimmed = orgString.trim();
+    candidates.push(trimmed);
+    if (mongoose.Types.ObjectId.isValid(trimmed)) {
+      candidates.push(new mongoose.Types.ObjectId(trimmed));
+    }
+  }
+  return candidates.length ? { orgId: { $in: candidates } } : { orgId };
+};
+
+/**
+ * POST /api/souq/inventory/adjust
+ * Adjust inventory for damage/loss (admin or seller only)
+ */
+export async function POST(request: NextRequest) {
+  let userId: string | undefined;
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    userId = session.user.id;
+
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    const body = await request.json();
+    const { listingId, quantity, type, reason } = body as {
+      listingId?: string;
+      quantity?: number;
+      type?: string;
+      reason?: string;
+    };
+
+    // Validation
+    if (!listingId || !quantity || !type || !reason) {
+      return NextResponse.json(
+        {
+          error: "Missing required fields: listingId, quantity, type, reason",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (!["damage", "lost"].includes(type)) {
+      return NextResponse.json(
+        {
+          error: "Invalid type. Must be: damage or lost",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (quantity <= 0) {
+      return NextResponse.json(
+        {
+          error: "Quantity must be greater than 0",
+        },
+        { status: 400 },
+      );
+    }
+
+    const inventoryRecord = await SouqInventory.findOne({
+      listingId,
+      ...buildOrgFilter(orgId),
+    }).select({ sellerId: 1 });
+
+    if (!inventoryRecord) {
+      return NextResponse.json(
+        { error: "Inventory not found for listing" },
+        { status: 404 },
+      );
+    }
+
+    const rawSubRole = (session.user as { subRole?: string | null }).subRole;
+    const normalizedSubRole =
+      normalizeSubRole(rawSubRole) ??
+      inferSubRoleFromRole(session.user.role);
+    const normalizedRole = normalizeRole(session.user.role, normalizedSubRole);
+
+    const isPlatformAdmin =
+      normalizedRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const isOrgAdmin =
+      normalizedRole !== null &&
+      [Role.ADMIN, Role.CORPORATE_OWNER].includes(normalizedRole);
+    const isOpsOrSupport =
+      normalizedRole === Role.TEAM_MEMBER &&
+      !!normalizedSubRole &&
+      [SubRole.OPERATIONS_MANAGER, SubRole.SUPPORT_AGENT].includes(
+        normalizedSubRole,
+      );
+    const isSellerOwner =
+      inventoryRecord.sellerId?.toString() === session.user.id;
+
+    if (!isPlatformAdmin && !isOrgAdmin && !isOpsOrSupport && !isSellerOwner) {
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Inventory not found" }, { status: 404 });
+    }
+
+    const inventory = await inventoryService.adjustInventory({
+      listingId,
+      quantity,
+      type: type as "damage" | "lost",
+      reason,
+      performedBy: session.user.id,
+      orgId,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `Inventory adjusted successfully. ${quantity} units marked as ${type}`,
+      inventory: {
+        inventoryId: inventory.inventoryId,
+        availableQuantity: inventory.availableQuantity,
+        totalQuantity: inventory.totalQuantity,
+        health: inventory.health,
+      },
+    });
+  } catch (error) {
+    logger.error("POST /api/souq/inventory/adjust error", error as Error, {
+      userId,
+    });
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/inventory/convert/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { inventoryService } from "@/services/souq/inventory-service";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { SouqInventory } from "@/server/models/souq/Inventory";
+import {
+  Role,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
+import mongoose from "mongoose";
+
+const buildOrgFilter = (orgId: string | mongoose.Types.ObjectId) => {
+  const orgString = typeof orgId === "string" ? orgId : orgId?.toString?.();
+  const candidates: Array<string | mongoose.Types.ObjectId> = [];
+  if (orgString) {
+    const trimmed = orgString.trim();
+    candidates.push(trimmed);
+    if (mongoose.Types.ObjectId.isValid(trimmed)) {
+      candidates.push(new mongoose.Types.ObjectId(trimmed));
+    }
+  }
+  return candidates.length ? { orgId: { $in: candidates } } : { orgId };
+};
+
+/**
+ * POST /api/souq/inventory/convert
+ * Convert reservation to sale (order confirmed)
+ */
+export async function POST(request: NextRequest) {
+  let userId: string | undefined;
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    userId = session.user.id;
+
+    const body = await request.json();
+    const { listingId, reservationId, orderId } = body as {
+      listingId?: string;
+      reservationId?: string;
+      orderId?: string;
+    };
+
+    // Validation
+    if (!listingId || !reservationId || !orderId) {
+      return NextResponse.json(
+        {
+          error: "Missing required fields: listingId, reservationId, orderId",
+        },
+        { status: 400 },
+      );
+    }
+
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    const inventoryRecord = await SouqInventory.findOne({
+      listingId,
+      ...buildOrgFilter(orgId),
+    }).select({ sellerId: 1 });
+
+    if (!inventoryRecord) {
+      return NextResponse.json(
+        { error: "Inventory not found for listing" },
+        { status: 404 },
+      );
+    }
+
+    const rawSubRole = (session.user as { subRole?: string | null }).subRole;
+    const normalizedSubRole =
+      normalizeSubRole(rawSubRole) ??
+      inferSubRoleFromRole(session.user.role);
+    const normalizedRole = normalizeRole(session.user.role, normalizedSubRole);
+
+    const isPlatformAdmin =
+      normalizedRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const isOrgAdmin =
+      normalizedRole !== null &&
+      [Role.ADMIN, Role.CORPORATE_OWNER].includes(normalizedRole);
+    const isOpsOrSupport =
+      normalizedRole === Role.TEAM_MEMBER &&
+      !!normalizedSubRole &&
+      [SubRole.OPERATIONS_MANAGER, SubRole.SUPPORT_AGENT].includes(
+        normalizedSubRole,
+      );
+    const isSellerOwner =
+      inventoryRecord.sellerId?.toString() === session.user.id;
+
+    if (!isPlatformAdmin && !isOrgAdmin && !isOpsOrSupport && !isSellerOwner) {
+      // Return 404 to prevent cross-tenant existence leak
+      return NextResponse.json({ error: "Reservation not found" }, { status: 404 });
+    }
+
+    const converted = await inventoryService.convertReservationToSale({
+      listingId: listingId as string,
+      reservationId: reservationId as string,
+      orderId: orderId as string,
+      orgId,
+    });
+
+    if (!converted) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Failed to convert reservation",
+        },
+        { status: 400 },
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Reservation converted to sale successfully",
+      orderId,
+    });
+  } catch (error) {
+    logger.error("POST /api/souq/inventory/convert error", error as Error, {
+      userId,
+    });
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/inventory/health/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { inventoryService } from "@/services/souq/inventory-service";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import {
+  Role,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/lib/rbac/client-roles";
+
+/**
+ * GET /api/souq/inventory/health
+ * Get inventory health report for a seller
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+    const orgIdStr = orgId;
+
+    const searchParams = request.nextUrl.searchParams;
+    const sellerId = searchParams.get("sellerId") || session.user.id;
+
+    const rawSubRole = (session.user as { subRole?: string | null }).subRole;
+    const normalizedSubRole =
+      normalizeSubRole(rawSubRole) ?? inferSubRoleFromRole(session.user.role);
+    const normalizedRole = normalizeRole(session.user.role, normalizedSubRole);
+
+    const isPlatformAdmin =
+      normalizedRole === Role.SUPER_ADMIN || session.user.isSuperAdmin;
+    const isOrgAdmin =
+      normalizedRole !== null &&
+      [Role.ADMIN, Role.CORPORATE_OWNER].includes(normalizedRole);
+    const isOpsOrSupport =
+      normalizedRole === Role.TEAM_MEMBER &&
+      !!normalizedSubRole &&
+      [SubRole.OPERATIONS_MANAGER, SubRole.SUPPORT_AGENT].includes(
+        normalizedSubRole,
+      );
+
+    // Authorization: Can only view own health report unless admin/ops/support
+    if (sellerId !== session.user.id && !isPlatformAdmin && !isOrgAdmin && !isOpsOrSupport) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const healthReport =
+      await inventoryService.getInventoryHealthReport(
+        sellerId,
+        orgIdStr,
+      );
+
+    // Calculate health score (0-100)
+    const outOfStockRate =
+      healthReport.totalListings > 0
+        ? (healthReport.outOfStockCount / healthReport.totalListings) * 100
+        : 0;
+    const strandedRate =
+      healthReport.totalListings > 0
+        ? (healthReport.strandedCount / healthReport.totalListings) * 100
+        : 0;
+    const agingRate =
+      healthReport.totalListings > 0
+        ? (healthReport.agingCount / healthReport.totalListings) * 100
+        : 0;
+
+    // Simple health score calculation
+    const healthScore = Math.max(
+      0,
+      Math.min(
+        100,
+        100 - outOfStockRate * 0.5 - strandedRate * 0.3 - agingRate * 0.2,
+      ),
+    );
+
+    return NextResponse.json({
+      success: true,
+      sellerId,
+      report: healthReport,
+      metrics: {
+        outOfStockRate: outOfStockRate.toFixed(2) + "%",
+        strandedRate: strandedRate.toFixed(2) + "%",
+        agingRate: agingRate.toFixed(2) + "%",
+        healthScore: healthScore.toFixed(1),
+      },
+      recommendations: [
+        ...(healthReport.outOfStockCount > 0
+          ? [`Restock ${healthReport.outOfStockCount} out-of-stock listings`]
+          : []),
+        ...(healthReport.lowStockCount > 0
+          ? [`Review ${healthReport.lowStockCount} low-stock listings`]
+          : []),
+        ...(healthReport.strandedCount > 0
+          ? [`Resolve ${healthReport.strandedCount} stranded inventory items`]
+          : []),
+        ...(healthReport.agingCount > 0
+          ? [`Consider promotions for ${healthReport.agingCount} aging items`]
+          : []),
+      ],
+    });
+  } catch (error) {
+    logger.error("GET /api/souq/inventory/health error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/inventory/release/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { inventoryService } from "@/services/souq/inventory-service";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+
+/**
+ * POST /api/souq/inventory/release
+ * Release a reservation (order cancelled or expired)
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { listingId, reservationId } = body as { listingId?: string; reservationId?: string };
+
+    // Validation
+    if (!listingId || !reservationId) {
+      return NextResponse.json(
+        {
+          error: "Missing required fields: listingId, reservationId",
+        },
+        { status: 400 },
+      );
+    }
+
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    const released = await inventoryService.releaseReservation({
+      listingId: listingId as string,
+      reservationId: reservationId as string,
+      orgId,
+    });
+
+    if (!released) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Reservation not found or already released",
+        },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Reservation released successfully",
+    });
+  } catch (error) {
+    logger.error("POST /api/souq/inventory/release error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/souq/inventory/reserve/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { inventoryService } from "@/services/souq/inventory-service";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+
+/**
+ * POST /api/souq/inventory/reserve
+ * Reserve inventory for a pending checkout
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { listingId, quantity, reservationId, expirationMinutes } = body as {
+      listingId?: string;
+      quantity?: number;
+      reservationId?: string;
+      expirationMinutes?: number;
+    };
+
+    // Validation
+    if (!listingId || !quantity || !reservationId) {
+      return NextResponse.json(
+        {
+          error: "Missing required fields: listingId, quantity, reservationId",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (quantity <= 0) {
+      return NextResponse.json(
+        {
+          error: "Quantity must be greater than 0",
+        },
+        { status: 400 },
+      );
+    }
+
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 403 },
+      );
+    }
+
+    const reserved = await inventoryService.reserveInventory({
+      listingId: listingId as string,
+      quantity: quantity as number,
+      reservationId: reservationId as string,
+      expirationMinutes,
+      orgId,
+    });
+
+    if (!reserved) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Insufficient stock or inventory not available",
+        },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Inventory reserved successfully",
+      reservationId,
+      expiresIn: `${expirationMinutes || 15} minutes`,
+    });
+  } catch (error) {
+    logger.error("POST /api/souq/inventory/reserve error", error as Error);
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

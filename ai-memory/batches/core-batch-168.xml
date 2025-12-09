@@ -1,0 +1,3314 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="domain/fm/fm.types.ts">
+<![CDATA[
+/**
+ * domain/fm/fm.types.ts
+ *
+ * CLIENT-SAFE FM Domain Types, Enums, and Pure Functions
+ *
+ * This file contains ONLY exports that are safe for client-side bundling:
+ * - Enums (Role, Plan, SubRole, ModuleKey, SubmoduleKey, WOStatus)
+ * - Types (Action, ResourceCtx)
+ * - Constants (SLA, PLAN_GATES, ROLE_ALIAS_MAP, etc.)
+ * - Pure functions (normalizeRole, computeAllowedModules, canAccessModule, can)
+ *
+ * ⚠️  This file MUST NOT import mongoose or any server-only dependencies.
+ *
+ * For client components, import from this file:
+ *   import { Role, can, Plan } from "@/domain/fm/fm.types";
+ *
+ * For server code that needs mongoose models, import from:
+ *   import { FMProperty, FMWorkOrder } from "@/domain/fm/fm.behavior";
+ *
+ * STRICT v4.1 COMPLIANT - Governance V5/V6 Aligned
+ */
+
+/* =========================
+ * 1) Enums & Constants
+ * ========================= */
+
+export enum Role {
+  // STRICT v4.1 Canonical Roles
+  SUPER_ADMIN = "SUPER_ADMIN",
+  ADMIN = "ADMIN",
+  CORPORATE_OWNER = "CORPORATE_OWNER",
+  TEAM_MEMBER = "TEAM_MEMBER",
+  TECHNICIAN = "TECHNICIAN",
+  PROPERTY_MANAGER = "PROPERTY_MANAGER",
+  TENANT = "TENANT",
+  VENDOR = "VENDOR",
+  GUEST = "GUEST",
+
+  // Legacy aliases (deprecated, use canonical names above)
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
+  CORPORATE_ADMIN = "ADMIN",
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
+  MANAGEMENT = "TEAM_MEMBER",
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
+  FINANCE = "TEAM_MEMBER",
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
+  HR = "TEAM_MEMBER",
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
+  EMPLOYEE = "TEAM_MEMBER",
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
+  PROPERTY_OWNER = "CORPORATE_OWNER",
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
+  OWNER_DEPUTY = "PROPERTY_MANAGER",
+}
+
+export enum Plan {
+  STARTER = "STARTER",
+  STANDARD = "STANDARD",
+  PRO = "PRO",
+  ENTERPRISE = "ENTERPRISE",
+}
+
+export enum SubRole {
+  FINANCE_OFFICER = "FINANCE_OFFICER",
+  HR_OFFICER = "HR_OFFICER",
+  SUPPORT_AGENT = "SUPPORT_AGENT",
+  OPERATIONS_MANAGER = "OPERATIONS_MANAGER",
+}
+
+export enum ModuleKey {
+  DASHBOARD = "DASHBOARD",
+  WORK_ORDERS = "WORK_ORDERS",
+  PROPERTIES = "PROPERTIES",
+  FINANCE = "FINANCE",
+  HR = "HR",
+  ADMINISTRATION = "ADMINISTRATION",
+  CRM = "CRM",
+  MARKETPLACE = "MARKETPLACE",
+  SUPPORT = "SUPPORT",
+  COMPLIANCE = "COMPLIANCE",
+  REPORTS = "REPORTS",
+  SYSTEM_MANAGEMENT = "SYSTEM_MANAGEMENT",
+}
+
+export enum SubmoduleKey {
+  // Work Orders
+  WO_CREATE = "WO_CREATE",
+  WO_TRACK_ASSIGN = "WO_TRACK_ASSIGN",
+  WO_PM = "WO_PM",
+  WO_SERVICE_HISTORY = "WO_SERVICE_HISTORY",
+  // Properties
+  PROP_LIST = "PROP_LIST",
+  PROP_UNITS_TENANTS = "PROP_UNITS_TENANTS",
+  PROP_LEASES = "PROP_LEASES",
+  PROP_INSPECTIONS = "PROP_INSPECTIONS",
+  PROP_DOCUMENTS = "PROP_DOCUMENTS",
+  // Finance
+  FINANCE_INVOICES = "FINANCE_INVOICES",
+  FINANCE_EXPENSES = "FINANCE_EXPENSES",
+  FINANCE_BUDGETS = "FINANCE_BUDGETS",
+  // HR
+  HR_EMPLOYEE_DIRECTORY = "HR_EMPLOYEE_DIRECTORY",
+  HR_ATTENDANCE = "HR_ATTENDANCE",
+  HR_PAYROLL = "HR_PAYROLL",
+  HR_RECRUITMENT = "HR_RECRUITMENT",
+  HR_TRAINING = "HR_TRAINING",
+  HR_PERFORMANCE = "HR_PERFORMANCE",
+  // Administration
+  ADMIN_DOA = "ADMIN_DOA",
+  ADMIN_POLICIES = "ADMIN_POLICIES",
+  ADMIN_ASSETS = "ADMIN_ASSETS",
+  ADMIN_FACILITIES = "ADMIN_FACILITIES",
+  // CRM
+  CRM_CUSTOMERS = "CRM_CUSTOMERS",
+  CRM_LEADS = "CRM_LEADS",
+  CRM_CONTRACTS = "CRM_CONTRACTS",
+  CRM_FEEDBACK = "CRM_FEEDBACK",
+  // Marketplace
+  MARKETPLACE_VENDORS = "MARKETPLACE_VENDORS",
+  MARKETPLACE_CATALOG = "MARKETPLACE_CATALOG",
+  MARKETPLACE_REQUESTS = "MARKETPLACE_REQUESTS",
+  MARKETPLACE_BIDS = "MARKETPLACE_BIDS",
+  // Support
+  SUPPORT_TICKETS = "SUPPORT_TICKETS",
+  SUPPORT_KB = "SUPPORT_KB",
+  SUPPORT_CHAT = "SUPPORT_CHAT",
+  SUPPORT_SLA = "SUPPORT_SLA",
+  // Compliance
+  COMPLIANCE_CONTRACTS = "COMPLIANCE_CONTRACTS",
+  COMPLIANCE_DISPUTES = "COMPLIANCE_DISPUTES",
+  COMPLIANCE_INSPECTIONS = "COMPLIANCE_INSPECTIONS",
+  // Reports
+  REPORTS_FINANCE = "REPORTS_FINANCE",
+  REPORTS_OPERATIONS = "REPORTS_OPERATIONS",
+  REPORTS_COMPLIANCE = "REPORTS_COMPLIANCE",
+  // System Management
+  SYSTEM_USERS = "SYSTEM_USERS",
+  SYSTEM_ROLES = "SYSTEM_ROLES",
+  SYSTEM_BILLING = "SYSTEM_BILLING",
+  SYSTEM_INTEGRATIONS = "SYSTEM_INTEGRATIONS",
+  SYSTEM_SETTINGS = "SYSTEM_SETTINGS",
+}
+
+export enum WOStatus {
+  NEW = "NEW",
+  ASSESSMENT = "ASSESSMENT",
+  ESTIMATE_PENDING = "ESTIMATE_PENDING",
+  QUOTATION_REVIEW = "QUOTATION_REVIEW",
+  PENDING_APPROVAL = "PENDING_APPROVAL",
+  APPROVED = "APPROVED",
+  IN_PROGRESS = "IN_PROGRESS",
+  WORK_COMPLETE = "WORK_COMPLETE",
+  QUALITY_CHECK = "QUALITY_CHECK",
+  FINANCIAL_POSTING = "FINANCIAL_POSTING",
+  CLOSED = "CLOSED",
+}
+
+export type Action =
+  | "view"
+  | "create"
+  | "update"
+  | "delete"
+  | "comment"
+  | "upload_media"
+  | "assign"
+  | "schedule"
+  | "dispatch"
+  | "submit_estimate"
+  | "attach_quote"
+  | "request_approval"
+  | "approve"
+  | "reject"
+  | "request_changes"
+  | "start_work"
+  | "pause_work"
+  | "complete_work"
+  | "close"
+  | "reopen"
+  | "export"
+  | "share"
+  | "link_finance"
+  | "link_hr"
+  | "link_marketplace"
+  | "post_finance";
+
+/* =========================
+ * 2) SLA Configuration
+ * ========================= */
+
+export const SLA = {
+  P1: { responseMins: 30, resolutionHours: 6 },
+  P2: { responseMins: 120, resolutionHours: 24 },
+  P3: { responseMins: 480, resolutionHours: 72 },
+} as const;
+
+/* =========================
+ * 3) Plan Gates
+ * STRICT v4.1: All domains gated by plan tier with progressive unlocking.
+ * ========================= */
+
+export const PLAN_GATES: Record<Plan, Partial<Record<SubmoduleKey, boolean>>> = {
+  [Plan.STARTER]: {
+    // Work Orders - Basic
+    WO_CREATE: true,
+    WO_TRACK_ASSIGN: true,
+    WO_PM: false,
+    WO_SERVICE_HISTORY: true,
+    // Properties - Basic
+    PROP_LIST: true,
+    PROP_UNITS_TENANTS: true,
+    PROP_LEASES: false,
+    PROP_INSPECTIONS: false,
+    PROP_DOCUMENTS: true,
+    // Finance - Disabled
+    FINANCE_INVOICES: false,
+    FINANCE_EXPENSES: false,
+    FINANCE_BUDGETS: false,
+    // HR - Disabled
+    HR_EMPLOYEE_DIRECTORY: false,
+    HR_ATTENDANCE: false,
+    HR_PAYROLL: false,
+    HR_RECRUITMENT: false,
+    HR_TRAINING: false,
+    HR_PERFORMANCE: false,
+    // Admin - Disabled
+    ADMIN_DOA: false,
+    ADMIN_POLICIES: false,
+    ADMIN_ASSETS: false,
+    ADMIN_FACILITIES: false,
+    // CRM - Disabled
+    CRM_CUSTOMERS: false,
+    CRM_LEADS: false,
+    CRM_CONTRACTS: false,
+    CRM_FEEDBACK: false,
+    // Marketplace - Disabled
+    MARKETPLACE_VENDORS: false,
+    MARKETPLACE_CATALOG: false,
+    MARKETPLACE_REQUESTS: false,
+    MARKETPLACE_BIDS: false,
+    // Support - Basic
+    SUPPORT_TICKETS: true,
+    SUPPORT_KB: true,
+    SUPPORT_CHAT: false,
+    SUPPORT_SLA: false,
+    // Compliance - Disabled
+    COMPLIANCE_CONTRACTS: false,
+    COMPLIANCE_DISPUTES: false,
+    COMPLIANCE_INSPECTIONS: false,
+    // Reports - Disabled
+    REPORTS_FINANCE: false,
+    REPORTS_OPERATIONS: false,
+    REPORTS_COMPLIANCE: false,
+    // System - Disabled
+    SYSTEM_USERS: false,
+    SYSTEM_ROLES: false,
+    SYSTEM_BILLING: false,
+    SYSTEM_INTEGRATIONS: false,
+    SYSTEM_SETTINGS: false,
+  },
+  [Plan.STANDARD]: {
+    // Work Orders - Full
+    WO_CREATE: true,
+    WO_TRACK_ASSIGN: true,
+    WO_PM: true,
+    WO_SERVICE_HISTORY: true,
+    // Properties - Full
+    PROP_LIST: true,
+    PROP_UNITS_TENANTS: true,
+    PROP_LEASES: true,
+    PROP_INSPECTIONS: true,
+    PROP_DOCUMENTS: true,
+    // Finance - Basic
+    FINANCE_INVOICES: true,
+    FINANCE_EXPENSES: true,
+    FINANCE_BUDGETS: false,
+    // HR - Basic
+    HR_EMPLOYEE_DIRECTORY: true,
+    HR_ATTENDANCE: true,
+    HR_PAYROLL: false,
+    HR_RECRUITMENT: false,
+    HR_TRAINING: false,
+    HR_PERFORMANCE: false,
+    // Admin - Basic
+    ADMIN_DOA: false,
+    ADMIN_POLICIES: true,
+    ADMIN_ASSETS: true,
+    ADMIN_FACILITIES: false,
+    // CRM - Basic
+    CRM_CUSTOMERS: true,
+    CRM_LEADS: true,
+    CRM_CONTRACTS: false,
+    CRM_FEEDBACK: true,
+    // Marketplace - Basic
+    MARKETPLACE_VENDORS: true,
+    MARKETPLACE_CATALOG: true,
+    MARKETPLACE_REQUESTS: false,
+    MARKETPLACE_BIDS: false,
+    // Support - Basic
+    SUPPORT_TICKETS: true,
+    SUPPORT_KB: true,
+    SUPPORT_CHAT: false,
+    SUPPORT_SLA: false,
+    // Compliance - Disabled
+    COMPLIANCE_CONTRACTS: false,
+    COMPLIANCE_DISPUTES: false,
+    COMPLIANCE_INSPECTIONS: false,
+    // Reports - Basic
+    REPORTS_FINANCE: false,
+    REPORTS_OPERATIONS: true,
+    REPORTS_COMPLIANCE: false,
+    // System - Disabled
+    SYSTEM_USERS: false,
+    SYSTEM_ROLES: false,
+    SYSTEM_BILLING: false,
+    SYSTEM_INTEGRATIONS: false,
+    SYSTEM_SETTINGS: false,
+  },
+  [Plan.PRO]: {
+    // Work Orders - Full
+    WO_CREATE: true,
+    WO_TRACK_ASSIGN: true,
+    WO_PM: true,
+    WO_SERVICE_HISTORY: true,
+    // Properties - Full
+    PROP_LIST: true,
+    PROP_UNITS_TENANTS: true,
+    PROP_LEASES: true,
+    PROP_INSPECTIONS: true,
+    PROP_DOCUMENTS: true,
+    // Finance - Full
+    FINANCE_INVOICES: true,
+    FINANCE_EXPENSES: true,
+    FINANCE_BUDGETS: true,
+    // HR - Full
+    HR_EMPLOYEE_DIRECTORY: true,
+    HR_ATTENDANCE: true,
+    HR_PAYROLL: true,
+    HR_RECRUITMENT: true,
+    HR_TRAINING: true,
+    HR_PERFORMANCE: true,
+    // Admin - Full
+    ADMIN_DOA: true,
+    ADMIN_POLICIES: true,
+    ADMIN_ASSETS: true,
+    ADMIN_FACILITIES: true,
+    // CRM - Full
+    CRM_CUSTOMERS: true,
+    CRM_LEADS: true,
+    CRM_CONTRACTS: true,
+    CRM_FEEDBACK: true,
+    // Marketplace - Full
+    MARKETPLACE_VENDORS: true,
+    MARKETPLACE_CATALOG: true,
+    MARKETPLACE_REQUESTS: true,
+    MARKETPLACE_BIDS: true,
+    // Support - Full
+    SUPPORT_TICKETS: true,
+    SUPPORT_KB: true,
+    SUPPORT_CHAT: true,
+    SUPPORT_SLA: true,
+    // Compliance - Full
+    COMPLIANCE_CONTRACTS: true,
+    COMPLIANCE_DISPUTES: true,
+    COMPLIANCE_INSPECTIONS: true,
+    // Reports - Full
+    REPORTS_FINANCE: true,
+    REPORTS_OPERATIONS: true,
+    REPORTS_COMPLIANCE: true,
+    // System - Disabled (Enterprise only)
+    SYSTEM_USERS: false,
+    SYSTEM_ROLES: false,
+    SYSTEM_BILLING: false,
+    SYSTEM_INTEGRATIONS: false,
+    SYSTEM_SETTINGS: false,
+  },
+  [Plan.ENTERPRISE]: {
+    // Work Orders - Full
+    WO_CREATE: true,
+    WO_TRACK_ASSIGN: true,
+    WO_PM: true,
+    WO_SERVICE_HISTORY: true,
+    // Properties - Full
+    PROP_LIST: true,
+    PROP_UNITS_TENANTS: true,
+    PROP_LEASES: true,
+    PROP_INSPECTIONS: true,
+    PROP_DOCUMENTS: true,
+    // Finance - Full
+    FINANCE_INVOICES: true,
+    FINANCE_EXPENSES: true,
+    FINANCE_BUDGETS: true,
+    // HR - Full
+    HR_EMPLOYEE_DIRECTORY: true,
+    HR_ATTENDANCE: true,
+    HR_PAYROLL: true,
+    HR_RECRUITMENT: true,
+    HR_TRAINING: true,
+    HR_PERFORMANCE: true,
+    // Admin - Full
+    ADMIN_DOA: true,
+    ADMIN_POLICIES: true,
+    ADMIN_ASSETS: true,
+    ADMIN_FACILITIES: true,
+    // CRM - Full
+    CRM_CUSTOMERS: true,
+    CRM_LEADS: true,
+    CRM_CONTRACTS: true,
+    CRM_FEEDBACK: true,
+    // Marketplace - Full
+    MARKETPLACE_VENDORS: true,
+    MARKETPLACE_CATALOG: true,
+    MARKETPLACE_REQUESTS: true,
+    MARKETPLACE_BIDS: true,
+    // Support - Full
+    SUPPORT_TICKETS: true,
+    SUPPORT_KB: true,
+    SUPPORT_CHAT: true,
+    SUPPORT_SLA: true,
+    // Compliance - Full
+    COMPLIANCE_CONTRACTS: true,
+    COMPLIANCE_DISPUTES: true,
+    COMPLIANCE_INSPECTIONS: true,
+    // Reports - Full
+    REPORTS_FINANCE: true,
+    REPORTS_OPERATIONS: true,
+    REPORTS_COMPLIANCE: true,
+    // System - Full
+    SYSTEM_USERS: true,
+    SYSTEM_ROLES: true,
+    SYSTEM_BILLING: true,
+    SYSTEM_INTEGRATIONS: true,
+    SYSTEM_SETTINGS: true,
+  },
+};
+
+/* =========================
+ * 4) Role Normalization
+ * ========================= */
+
+export const ROLE_ALIAS_MAP: Record<string, Role> = {
+  SUPER_ADMIN: Role.SUPER_ADMIN,
+  ADMIN: Role.ADMIN,
+  CORPORATE_OWNER: Role.CORPORATE_OWNER,
+  TEAM_MEMBER: Role.TEAM_MEMBER,
+  TECHNICIAN: Role.TECHNICIAN,
+  PROPERTY_MANAGER: Role.PROPERTY_MANAGER,
+  TENANT: Role.TENANT,
+  VENDOR: Role.VENDOR,
+  GUEST: Role.GUEST,
+  CORPORATE_ADMIN: Role.ADMIN,
+  TENANT_ADMIN: Role.ADMIN,
+  CLIENT_ADMIN: Role.ADMIN,
+  MANAGEMENT: Role.TEAM_MEMBER,
+  MANAGER: Role.TEAM_MEMBER,
+  FM_MANAGER: Role.PROPERTY_MANAGER,
+  FINANCE: Role.TEAM_MEMBER,
+  HR: Role.TEAM_MEMBER,
+  PROCUREMENT: Role.TEAM_MEMBER,
+  EMPLOYEE: Role.TEAM_MEMBER,
+  DISPATCHER: Role.TEAM_MEMBER,
+  CORPORATE_STAFF: Role.TEAM_MEMBER,
+  FIXZIT_EMPLOYEE: Role.TEAM_MEMBER,
+  OWNER: Role.CORPORATE_OWNER,
+  PROPERTY_OWNER: Role.CORPORATE_OWNER,
+  INDIVIDUAL_PROPERTY_OWNER: Role.CORPORATE_OWNER,
+  OWNER_DEPUTY: Role.PROPERTY_MANAGER,
+  DEPUTY: Role.PROPERTY_MANAGER,
+  CUSTOMER: Role.TENANT,
+  RESIDENT: Role.TENANT,
+  OCCUPANT: Role.TENANT,
+  END_USER: Role.TENANT,
+  SUPPORT: Role.TEAM_MEMBER,
+  AUDITOR: Role.GUEST, // SEC: Auditors should have read-only GUEST access, not TEAM_MEMBER
+  VIEWER: Role.GUEST,
+  FIELD_ENGINEER: Role.TECHNICIAN,
+  INTERNAL_TECHNICIAN: Role.TECHNICIAN,
+  CONTRACTOR_TECHNICIAN: Role.TECHNICIAN,
+  MARKETPLACE_PARTNER: Role.VENDOR,
+  SERVICE_PROVIDER: Role.VENDOR,
+  SUPPLIER: Role.VENDOR,
+};
+
+export function normalizeRole(role?: string | Role | null): Role | null {
+  if (!role) return null;
+  if (typeof role !== "string") return role;
+  const key = role.toUpperCase();
+  return ROLE_ALIAS_MAP[key] ?? ((Role as Record<string, string>)[key] as Role) ?? null;
+}
+
+/** Normalizes sub-role strings to SubRole enum */
+export function normalizeSubRole(subRole?: string | null): SubRole | undefined {
+  if (!subRole) return undefined;
+  const key = subRole.toUpperCase();
+  return (Object.values(SubRole) as string[]).includes(key)
+    ? (key as SubRole)
+    : undefined;
+}
+
+/** Infers sub-role from a raw role string when explicit subRole is missing */
+export function inferSubRoleFromRole(role?: string | Role | null): SubRole | undefined {
+  if (!role) return undefined;
+  const key = typeof role === "string" ? role.toUpperCase() : String(role);
+  switch (key) {
+    case "FINANCE":
+    case "FINANCE_OFFICER":
+    case "FINANCE_MANAGER":
+      return SubRole.FINANCE_OFFICER;
+    case "HR":
+    case "HR_OFFICER":
+    case "HR_MANAGER":
+      return SubRole.HR_OFFICER;
+    case "SUPPORT":
+    case "SUPPORT_AGENT":
+      return SubRole.SUPPORT_AGENT;
+    case "OPERATIONS_MANAGER":
+    case "DISPATCHER":
+      return SubRole.OPERATIONS_MANAGER;
+    default:
+      return undefined;
+  }
+}
+
+/* =========================
+ * 5) Role → Module Access
+ * ========================= */
+
+export const ROLE_MODULE_ACCESS: Record<Role, Partial<Record<ModuleKey, boolean>>> = {
+  [Role.SUPER_ADMIN]: {
+    DASHBOARD: true,
+    WORK_ORDERS: true,
+    PROPERTIES: true,
+    FINANCE: true,
+    HR: true,
+    ADMINISTRATION: true,
+    CRM: true,
+    MARKETPLACE: true,
+    SUPPORT: true,
+    COMPLIANCE: true,
+    REPORTS: true,
+    SYSTEM_MANAGEMENT: true,
+  },
+  [Role.ADMIN]: {
+    DASHBOARD: true,
+    WORK_ORDERS: true,
+    PROPERTIES: true,
+    FINANCE: true,
+    HR: true,
+    ADMINISTRATION: true,
+    CRM: true,
+    MARKETPLACE: true,
+    SUPPORT: true,
+    COMPLIANCE: true,
+    REPORTS: true,
+    SYSTEM_MANAGEMENT: true,
+  },
+  [Role.CORPORATE_OWNER]: {
+    DASHBOARD: true,
+    WORK_ORDERS: true,
+    PROPERTIES: true,
+    FINANCE: true,
+    HR: true,
+    ADMINISTRATION: true,
+    CRM: true,
+    MARKETPLACE: true,
+    SUPPORT: true,
+    COMPLIANCE: true,
+    REPORTS: true,
+    SYSTEM_MANAGEMENT: true,
+  },
+  [Role.TEAM_MEMBER]: {
+    DASHBOARD: true,
+    WORK_ORDERS: true,
+    PROPERTIES: false,
+    FINANCE: false,
+    HR: false,
+    ADMINISTRATION: false,
+    CRM: true,
+    MARKETPLACE: false,
+    SUPPORT: true,
+    COMPLIANCE: false,
+    REPORTS: true,
+    SYSTEM_MANAGEMENT: false,
+  },
+  [Role.TECHNICIAN]: {
+    DASHBOARD: true,
+    WORK_ORDERS: true,
+    PROPERTIES: false,
+    FINANCE: false,
+    HR: false,
+    ADMINISTRATION: false,
+    CRM: false,
+    MARKETPLACE: false,
+    SUPPORT: true,
+    COMPLIANCE: false,
+    REPORTS: true,
+    SYSTEM_MANAGEMENT: false,
+  },
+  [Role.PROPERTY_MANAGER]: {
+    DASHBOARD: true,
+    WORK_ORDERS: true,
+    PROPERTIES: true,
+    FINANCE: false,
+    HR: false,
+    ADMINISTRATION: false,
+    CRM: false,
+    MARKETPLACE: false,
+    SUPPORT: true,
+    COMPLIANCE: false,
+    REPORTS: true,
+    SYSTEM_MANAGEMENT: false,
+  },
+  [Role.TENANT]: {
+    DASHBOARD: true,
+    WORK_ORDERS: true,
+    PROPERTIES: true,
+    FINANCE: false,
+    HR: false,
+    ADMINISTRATION: false,
+    CRM: false,
+    MARKETPLACE: true,
+    SUPPORT: true,
+    COMPLIANCE: false,
+    REPORTS: true,
+    SYSTEM_MANAGEMENT: false,
+  },
+  [Role.VENDOR]: {
+    DASHBOARD: true,
+    WORK_ORDERS: true,
+    PROPERTIES: false,
+    FINANCE: false,
+    HR: false,
+    ADMINISTRATION: false,
+    CRM: false,
+    MARKETPLACE: true,
+    SUPPORT: true,
+    COMPLIANCE: false,
+    REPORTS: true,
+    SYSTEM_MANAGEMENT: false,
+  },
+  [Role.GUEST]: {
+    DASHBOARD: true,
+    WORK_ORDERS: false,
+    PROPERTIES: false,
+    FINANCE: false,
+    HR: false,
+    ADMINISTRATION: false,
+    CRM: false,
+    MARKETPLACE: false,
+    SUPPORT: false,
+    COMPLIANCE: false,
+    REPORTS: false,
+    SYSTEM_MANAGEMENT: false,
+  },
+};
+
+/* =========================
+ * 6) Role → Submodule → Actions
+ * ========================= */
+
+export const TECHNICIAN_ASSIGNED_ACTIONS: Action[] = [
+  "start_work",
+  "pause_work",
+  "complete_work",
+  "submit_estimate",
+  "attach_quote",
+];
+
+type ActionsBySubmodule = Partial<Record<SubmoduleKey, Action[]>>;
+
+export const ROLE_ACTIONS: Record<Role, ActionsBySubmodule> = {
+  [Role.SUPER_ADMIN]: {
+    // Work Orders
+    WO_CREATE: ["view", "create", "upload_media", "comment"],
+    WO_TRACK_ASSIGN: ["view", "assign", "schedule", "dispatch", "update", "export", "share", "request_approval", "approve", "post_finance"],
+    WO_PM: ["view", "create", "update", "export"],
+    WO_SERVICE_HISTORY: ["view", "export"],
+    // Properties
+    PROP_LIST: ["view", "create", "update", "delete", "export"],
+    PROP_UNITS_TENANTS: ["view", "create", "update", "delete", "export"],
+    PROP_LEASES: ["view", "create", "update", "delete", "export"],
+    PROP_INSPECTIONS: ["view", "create", "update", "delete", "export"],
+    PROP_DOCUMENTS: ["view", "create", "update", "delete", "export"],
+    // Finance
+    FINANCE_INVOICES: ["view", "create", "update", "delete", "approve", "export"],
+    FINANCE_EXPENSES: ["view", "create", "update", "delete", "approve", "export"],
+    FINANCE_BUDGETS: ["view", "create", "update", "delete", "approve", "export"],
+    // HR
+    HR_EMPLOYEE_DIRECTORY: ["view", "create", "update", "delete", "export"],
+    HR_ATTENDANCE: ["view", "create", "update", "delete", "export"],
+    HR_PAYROLL: ["view", "create", "update", "delete", "approve", "export"],
+    HR_RECRUITMENT: ["view", "create", "update", "delete", "export"],
+    HR_TRAINING: ["view", "create", "update", "delete", "export"],
+    HR_PERFORMANCE: ["view", "create", "update", "delete", "export"],
+    // Admin
+    ADMIN_DOA: ["view", "create", "update", "delete", "approve", "export"],
+    ADMIN_POLICIES: ["view", "create", "update", "delete", "export"],
+    ADMIN_ASSETS: ["view", "create", "update", "delete", "export"],
+    ADMIN_FACILITIES: ["view", "create", "update", "delete", "export"],
+    // CRM
+    CRM_CUSTOMERS: ["view", "create", "update", "delete", "export"],
+    CRM_LEADS: ["view", "create", "update", "delete", "assign", "export"],
+    CRM_CONTRACTS: ["view", "create", "update", "delete", "approve", "export"],
+    CRM_FEEDBACK: ["view", "create", "update", "delete", "export"],
+    // Marketplace
+    MARKETPLACE_VENDORS: ["view", "create", "update", "delete", "approve", "export"],
+    MARKETPLACE_CATALOG: ["view", "create", "update", "delete", "export"],
+    MARKETPLACE_REQUESTS: ["view", "create", "update", "delete", "assign", "approve", "export"],
+    MARKETPLACE_BIDS: ["view", "create", "update", "delete", "approve", "export"],
+    // Support
+    SUPPORT_TICKETS: ["view", "create", "update", "delete", "assign", "close", "export"],
+    SUPPORT_KB: ["view", "create", "update", "delete", "export"],
+    SUPPORT_CHAT: ["view", "create", "update", "export"],
+    SUPPORT_SLA: ["view", "create", "update", "delete", "export"],
+    // Compliance
+    COMPLIANCE_CONTRACTS: ["view", "create", "update", "delete", "approve", "export"],
+    COMPLIANCE_DISPUTES: ["view", "create", "update", "delete", "assign", "export"],
+    COMPLIANCE_INSPECTIONS: ["view", "create", "update", "delete", "export"],
+    // Reports
+    REPORTS_FINANCE: ["view", "create", "export"],
+    REPORTS_OPERATIONS: ["view", "create", "export"],
+    REPORTS_COMPLIANCE: ["view", "create", "export"],
+    // System
+    SYSTEM_USERS: ["view", "create", "update", "delete", "export"],
+    SYSTEM_ROLES: ["view", "create", "update", "delete", "export"],
+    SYSTEM_BILLING: ["view", "create", "update", "export"],
+    SYSTEM_INTEGRATIONS: ["view", "create", "update", "delete", "export"],
+    SYSTEM_SETTINGS: ["view", "update", "export"],
+  },
+  [Role.ADMIN]: {
+    // Work Orders - Full org-scoped
+    WO_CREATE: ["view", "create", "upload_media", "comment"],
+    WO_TRACK_ASSIGN: ["view", "assign", "schedule", "dispatch", "update", "export", "share", "request_approval", "approve", "post_finance"],
+    WO_PM: ["view", "create", "update", "export"],
+    WO_SERVICE_HISTORY: ["view", "export"],
+    // Properties - Full org-scoped
+    PROP_LIST: ["view", "create", "update", "delete", "export"],
+    PROP_UNITS_TENANTS: ["view", "create", "update", "delete", "export"],
+    PROP_LEASES: ["view", "create", "update", "delete", "export"],
+    PROP_INSPECTIONS: ["view", "create", "update", "delete", "export"],
+    PROP_DOCUMENTS: ["view", "create", "update", "delete", "export"],
+    // Finance - Full org-scoped
+    FINANCE_INVOICES: ["view", "create", "update", "delete", "approve", "export"],
+    FINANCE_EXPENSES: ["view", "create", "update", "delete", "approve", "export"],
+    FINANCE_BUDGETS: ["view", "create", "update", "delete", "approve", "export"],
+    // HR - Full org-scoped
+    HR_EMPLOYEE_DIRECTORY: ["view", "create", "update", "delete", "export"],
+    HR_ATTENDANCE: ["view", "create", "update", "delete", "export"],
+    HR_PAYROLL: ["view", "create", "update", "delete", "approve", "export"],
+    HR_RECRUITMENT: ["view", "create", "update", "delete", "export"],
+    HR_TRAINING: ["view", "create", "update", "delete", "export"],
+    HR_PERFORMANCE: ["view", "create", "update", "delete", "export"],
+    // Admin - Full org-scoped
+    ADMIN_DOA: ["view", "create", "update", "delete", "approve", "export"],
+    ADMIN_POLICIES: ["view", "create", "update", "delete", "export"],
+    ADMIN_ASSETS: ["view", "create", "update", "delete", "export"],
+    ADMIN_FACILITIES: ["view", "create", "update", "delete", "export"],
+    // CRM - Full org-scoped
+    CRM_CUSTOMERS: ["view", "create", "update", "delete", "export"],
+    CRM_LEADS: ["view", "create", "update", "delete", "assign", "export"],
+    CRM_CONTRACTS: ["view", "create", "update", "delete", "approve", "export"],
+    CRM_FEEDBACK: ["view", "create", "update", "delete", "export"],
+    // Marketplace - Full org-scoped
+    MARKETPLACE_VENDORS: ["view", "create", "update", "delete", "approve", "export"],
+    MARKETPLACE_CATALOG: ["view", "create", "update", "delete", "export"],
+    MARKETPLACE_REQUESTS: ["view", "create", "update", "delete", "assign", "approve", "export"],
+    MARKETPLACE_BIDS: ["view", "create", "update", "delete", "approve", "export"],
+    // Support - Full org-scoped
+    SUPPORT_TICKETS: ["view", "create", "update", "delete", "assign", "close", "export"],
+    SUPPORT_KB: ["view", "create", "update", "delete", "export"],
+    SUPPORT_CHAT: ["view", "create", "update", "export"],
+    SUPPORT_SLA: ["view", "create", "update", "delete", "export"],
+    // Compliance - Full org-scoped
+    COMPLIANCE_CONTRACTS: ["view", "create", "update", "delete", "approve", "export"],
+    COMPLIANCE_DISPUTES: ["view", "create", "update", "delete", "assign", "export"],
+    COMPLIANCE_INSPECTIONS: ["view", "create", "update", "delete", "export"],
+    // Reports - Full org-scoped
+    REPORTS_FINANCE: ["view", "create", "export"],
+    REPORTS_OPERATIONS: ["view", "create", "export"],
+    REPORTS_COMPLIANCE: ["view", "create", "export"],
+    // System - Limited (no cross-org)
+    SYSTEM_USERS: ["view", "create", "update", "export"],
+    SYSTEM_ROLES: ["view", "export"],
+    SYSTEM_BILLING: ["view", "export"],
+    SYSTEM_INTEGRATIONS: ["view", "update", "export"],
+    SYSTEM_SETTINGS: ["view", "update"],
+  },
+  [Role.CORPORATE_OWNER]: {
+    // Work Orders - Approval focus
+    WO_CREATE: ["view", "create", "upload_media", "comment"],
+    WO_TRACK_ASSIGN: ["view", "approve", "reject", "request_changes", "export"],
+    WO_PM: ["view"],
+    WO_SERVICE_HISTORY: ["view", "export"],
+    // Properties - Full ownership
+    PROP_LIST: ["view", "create", "update", "export"],
+    PROP_UNITS_TENANTS: ["view", "update", "export"],
+    PROP_LEASES: ["view", "create", "update", "export"],
+    PROP_INSPECTIONS: ["view", "create", "update", "export"],
+    PROP_DOCUMENTS: ["view", "create", "update", "export"],
+    // Finance - View and approve
+    FINANCE_INVOICES: ["view", "approve", "export"],
+    FINANCE_EXPENSES: ["view", "approve", "export"],
+    FINANCE_BUDGETS: ["view", "approve", "export"],
+    // HR - View only (PII restricted)
+    HR_EMPLOYEE_DIRECTORY: ["view"],
+    // CRM - View own portfolio
+    CRM_CUSTOMERS: ["view", "export"],
+    CRM_CONTRACTS: ["view", "approve", "export"],
+    // Compliance - View
+    COMPLIANCE_CONTRACTS: ["view", "export"],
+    COMPLIANCE_INSPECTIONS: ["view", "export"],
+    // Reports - View own
+    REPORTS_FINANCE: ["view", "export"],
+    REPORTS_OPERATIONS: ["view", "export"],
+  },
+  [Role.TEAM_MEMBER]: {
+    // Work Orders - Basic operations (privileged actions require sub-role)
+    WO_CREATE: ["view", "create", "upload_media", "comment"],
+    WO_TRACK_ASSIGN: ["view", "update", "export", "request_approval"],
+    WO_PM: ["view", "create", "update", "export"],
+    // Properties - View only for generic team member
+    PROP_LIST: ["view"],
+    PROP_DOCUMENTS: ["view"],
+    // Support - Basic
+    SUPPORT_TICKETS: ["view", "create", "update"],
+    SUPPORT_KB: ["view"],
+    // NOTE: Finance/HR/etc. access controlled by sub-role in canClient
+  },
+  [Role.TECHNICIAN]: {
+    // Work Orders - Field work
+    WO_CREATE: ["view", "comment"],
+    WO_TRACK_ASSIGN: ["view", "update", ...TECHNICIAN_ASSIGNED_ACTIONS, "upload_media"],
+    WO_PM: ["view", "update"],
+    WO_SERVICE_HISTORY: ["view"],
+    // Properties - View assigned
+    PROP_LIST: ["view"],
+    PROP_DOCUMENTS: ["view"],
+    // Support - Basic
+    SUPPORT_TICKETS: ["view", "create", "comment"],
+    SUPPORT_KB: ["view"],
+  },
+  [Role.PROPERTY_MANAGER]: {
+    // Work Orders - Manage for assigned properties
+    WO_CREATE: ["view", "create", "upload_media", "comment"],
+    WO_TRACK_ASSIGN: ["view", "assign", "schedule", "dispatch", "update", "export", "share", "approve"],
+    WO_PM: ["view", "export"],
+    WO_SERVICE_HISTORY: ["view", "export"],
+    // Properties - Manage assigned
+    PROP_LIST: ["view", "update", "export"],
+    PROP_UNITS_TENANTS: ["view", "update", "export"],
+    PROP_LEASES: ["view", "export"],
+    PROP_INSPECTIONS: ["view", "create", "update", "export"],
+    PROP_DOCUMENTS: ["view", "create", "update", "export"],
+    // CRM - Tenant relations
+    CRM_CUSTOMERS: ["view", "update"],
+    CRM_FEEDBACK: ["view", "create", "update"],
+    // Support - Property-scoped
+    SUPPORT_TICKETS: ["view", "create", "update", "assign"],
+    SUPPORT_KB: ["view"],
+    // Compliance - Property-scoped
+    COMPLIANCE_INSPECTIONS: ["view", "create", "update"],
+  },
+  [Role.TENANT]: {
+    // Work Orders - Create and view own
+    WO_CREATE: ["view", "create", "upload_media", "comment"],
+    WO_TRACK_ASSIGN: ["view", "comment"],
+    WO_PM: ["view"],
+    WO_SERVICE_HISTORY: ["view"],
+    // Properties - View own unit
+    PROP_LIST: ["view"],
+    PROP_UNITS_TENANTS: ["view"],
+    PROP_DOCUMENTS: ["view"],
+    // Support - Own tickets
+    SUPPORT_TICKETS: ["view", "create", "comment"],
+    SUPPORT_KB: ["view"],
+    SUPPORT_CHAT: ["view", "create"],
+  },
+  [Role.VENDOR]: {
+    // Work Orders - Assigned jobs
+    WO_CREATE: ["view", "comment"],
+    WO_TRACK_ASSIGN: ["view", "submit_estimate", "attach_quote", "upload_media", "complete_work"],
+    WO_PM: ["view"],
+    WO_SERVICE_HISTORY: ["view"],
+    // Marketplace - Own bids
+    MARKETPLACE_BIDS: ["view", "create", "update"],
+    MARKETPLACE_REQUESTS: ["view"],
+    // Support - Basic
+    SUPPORT_TICKETS: ["view", "create", "comment"],
+    SUPPORT_KB: ["view"],
+  },
+  [Role.GUEST]: {
+    // Public access only
+    SUPPORT_KB: ["view"],
+  },
+};
+
+/* =========================
+ * Sub-Role Action Extensions
+ * STRICT v4.1: Team members require sub-role for specialized access.
+ * ========================= */
+
+export const SUB_ROLE_ACTIONS: Record<SubRole, ActionsBySubmodule> = {
+  [SubRole.FINANCE_OFFICER]: {
+    // Finance - Full access
+    FINANCE_INVOICES: ["view", "create", "update", "approve", "export"],
+    FINANCE_EXPENSES: ["view", "create", "update", "approve", "export"],
+    FINANCE_BUDGETS: ["view", "create", "update", "export"],
+    // Work Orders - Finance linking
+    WO_TRACK_ASSIGN: ["view", "update", "export", "request_approval", "approve", "post_finance"],
+    // Reports - Finance
+    REPORTS_FINANCE: ["view", "create", "export"],
+  },
+  [SubRole.HR_OFFICER]: {
+    // HR - Full access (including PII)
+    HR_EMPLOYEE_DIRECTORY: ["view", "create", "update", "export"],
+    HR_ATTENDANCE: ["view", "create", "update", "export"],
+    HR_PAYROLL: ["view", "create", "update", "approve", "export"],
+    HR_RECRUITMENT: ["view", "create", "update", "export"],
+    HR_TRAINING: ["view", "create", "update", "export"],
+    HR_PERFORMANCE: ["view", "create", "update", "export"],
+    // Reports - HR
+    REPORTS_OPERATIONS: ["view", "export"],
+  },
+  [SubRole.SUPPORT_AGENT]: {
+    // Support - Full access
+    SUPPORT_TICKETS: ["view", "create", "update", "assign", "close", "export"],
+    SUPPORT_KB: ["view", "create", "update"],
+    SUPPORT_CHAT: ["view", "create", "update"],
+    SUPPORT_SLA: ["view"],
+    // CRM - Customer interactions
+    CRM_CUSTOMERS: ["view", "update"],
+    CRM_FEEDBACK: ["view", "create", "update"],
+    // Work Orders - Support escalation
+    WO_CREATE: ["view", "create", "upload_media", "comment"],
+    WO_TRACK_ASSIGN: ["view", "update", "assign", "export"],
+  },
+  [SubRole.OPERATIONS_MANAGER]: {
+    // Work Orders - Full operations
+    WO_CREATE: ["view", "create", "upload_media", "comment"],
+    WO_TRACK_ASSIGN: ["view", "assign", "schedule", "dispatch", "update", "export", "approve"],
+    WO_PM: ["view", "create", "update", "export"],
+    WO_SERVICE_HISTORY: ["view", "export"],
+    // Properties - Operations view
+    PROP_LIST: ["view", "update", "export"],
+    PROP_INSPECTIONS: ["view", "create", "update", "export"],
+    // Marketplace - Vendor management
+    MARKETPLACE_VENDORS: ["view", "update"],
+    MARKETPLACE_REQUESTS: ["view", "create", "update", "assign", "approve"],
+    MARKETPLACE_BIDS: ["view", "approve"],
+    // Reports - Operations
+    REPORTS_OPERATIONS: ["view", "create", "export"],
+  },
+};
+
+/**
+ * STRICT v4.1: Submodules that require specific sub-roles for TEAM_MEMBER access.
+ * TEAM_MEMBER without the required sub-role cannot access these specialized domains.
+ */
+export const SUBMODULE_REQUIRED_SUBROLE: Partial<Record<SubmoduleKey, SubRole[]>> = {
+  // Finance requires FINANCE_OFFICER
+  FINANCE_INVOICES: [SubRole.FINANCE_OFFICER],
+  FINANCE_EXPENSES: [SubRole.FINANCE_OFFICER],
+  FINANCE_BUDGETS: [SubRole.FINANCE_OFFICER],
+  REPORTS_FINANCE: [SubRole.FINANCE_OFFICER],
+  // HR requires HR_OFFICER
+  HR_EMPLOYEE_DIRECTORY: [SubRole.HR_OFFICER],
+  HR_ATTENDANCE: [SubRole.HR_OFFICER],
+  HR_PAYROLL: [SubRole.HR_OFFICER],
+  HR_RECRUITMENT: [SubRole.HR_OFFICER],
+  HR_TRAINING: [SubRole.HR_OFFICER],
+  HR_PERFORMANCE: [SubRole.HR_OFFICER],
+  // Support requires SUPPORT_AGENT (for advanced actions)
+  SUPPORT_SLA: [SubRole.SUPPORT_AGENT],
+  // Operations requires OPERATIONS_MANAGER
+  MARKETPLACE_VENDORS: [SubRole.OPERATIONS_MANAGER],
+  MARKETPLACE_REQUESTS: [SubRole.OPERATIONS_MANAGER],
+  MARKETPLACE_BIDS: [SubRole.OPERATIONS_MANAGER],
+};
+
+/* =========================
+ * 7) Resource Context
+ * ========================= */
+
+export type ResourceCtx = {
+  orgId: string;
+  propertyId?: string;
+  unitId?: string;
+  createdBy?: string;
+  ownerUserId?: string;
+  technicianUserId?: string;
+  requesterUserId?: string;
+  plan: Plan;
+  role: Role;
+  subRole?: SubRole;
+  userId: string;
+  isOrgMember: boolean;
+  isSuperAdmin?: boolean;
+  isOwnerOfProperty?: boolean;
+  isTechnicianAssigned?: boolean;
+  uploadedMedia?: Array<"BEFORE" | "DURING" | "AFTER" | "QUOTE">;
+  vendorId?: string;
+  assignedProperties?: string[];
+  units?: string[];
+  agentId?: string;
+  assumedUserId?: string;
+};
+
+/* =========================
+ * 8) RBAC Functions
+ * ========================= */
+
+/**
+ * STRICT v4.1: Compute allowed modules based on role and sub-role
+ * Used for dynamic module access (e.g., Team Member specializations)
+ * PARITY: Must match fm.behavior.ts computeAllowedModules exactly
+ */
+export function computeAllowedModules(role: Role, subRole?: SubRole): ModuleKey[] {
+  // Get base modules from ROLE_MODULE_ACCESS
+  const baseModules = ROLE_MODULE_ACCESS[role];
+  const allowed: ModuleKey[] = [];
+
+  for (const [module, hasAccess] of Object.entries(baseModules || {})) {
+    if (hasAccess) {
+      allowed.push(module as ModuleKey);
+    }
+  }
+
+  // STRICT v4.1: Merge sub-role modules with base TEAM_MEMBER modules (union, not override)
+  if (role === Role.TEAM_MEMBER && subRole) {
+    const subRoleModules: ModuleKey[] = [];
+    switch (subRole) {
+      case SubRole.FINANCE_OFFICER:
+        // Add Finance module to base TEAM_MEMBER modules
+        subRoleModules.push(ModuleKey.FINANCE);
+        break;
+
+      case SubRole.HR_OFFICER:
+        // Add HR module to base TEAM_MEMBER modules (+ PII access via separate check)
+        subRoleModules.push(ModuleKey.HR);
+        break;
+
+      case SubRole.SUPPORT_AGENT:
+        // Add Support module to base TEAM_MEMBER modules
+        subRoleModules.push(ModuleKey.SUPPORT);
+        break;
+
+      case SubRole.OPERATIONS_MANAGER:
+        // Add Work Orders and Properties to base TEAM_MEMBER modules
+        subRoleModules.push(ModuleKey.WORK_ORDERS, ModuleKey.PROPERTIES);
+        break;
+
+      default:
+        // Base Team Member access
+        break;
+    }
+    // Merge base + sub-role modules (union)
+    return [...new Set([...allowed, ...subRoleModules])];
+  }
+
+  return allowed;
+}
+
+export function canAccessModule(module: ModuleKey, _action: string, ctx: ResourceCtx): boolean {
+  if (ctx.role === Role.SUPER_ADMIN) return true;
+
+  const allowedModules = computeAllowedModules(ctx.role, ctx.subRole);
+  const hasModuleAccess = allowedModules.includes(module);
+  if (!hasModuleAccess) return false;
+
+  if (!ctx.isOrgMember) return false;
+
+  return true;
+}
+
+export function can(
+  submodule: SubmoduleKey | ModuleKey,
+  action: Action,
+  ctx: ResourceCtx
+): boolean {
+  // PARITY: Must match fm.behavior.ts - fallback to userId when requesterUserId is not set
+  const requesterId = ctx.requesterUserId ?? ctx.userId;
+
+  if (Object.values(ModuleKey).includes(submodule as ModuleKey)) {
+    return canAccessModule(submodule as ModuleKey, action, ctx);
+  }
+
+  // 1) Plan gate
+  if (!PLAN_GATES[ctx.plan]?.[submodule as SubmoduleKey]) return false;
+
+  // 2) STRICT v4.1: Sub-role enforcement for TEAM_MEMBER
+  if (ctx.role === Role.TEAM_MEMBER) {
+    // Check sub-role actions first (extends base TEAM_MEMBER permissions)
+    if (ctx.subRole && SUB_ROLE_ACTIONS[ctx.subRole]?.[submodule as SubmoduleKey]?.includes(action)) {
+      // Sub-role grants this action - continue to scope checks below
+    } else {
+      // Check if this submodule requires a specific sub-role for TEAM_MEMBER access
+      const requiredSubRoles = SUBMODULE_REQUIRED_SUBROLE[submodule as SubmoduleKey];
+      if (requiredSubRoles && requiredSubRoles.length > 0) {
+        // Submodule requires a sub-role that the user doesn't have
+        if (!ctx.subRole || !requiredSubRoles.includes(ctx.subRole)) {
+          return false;
+        }
+      }
+      // Fall back to base TEAM_MEMBER permissions
+      const baseAllowed = ROLE_ACTIONS[ctx.role]?.[submodule as SubmoduleKey];
+      if (!baseAllowed?.includes(action)) return false;
+    }
+  } else {
+    // 2b) Role action allow-list (non-TEAM_MEMBER roles)
+    const allowed = ROLE_ACTIONS[ctx.role]?.[submodule as SubmoduleKey];
+    if (!allowed?.includes(action)) return false;
+  }
+
+  // 3) Org membership check (Super Admin bypasses)
+  if (!ctx.isOrgMember && ctx.role !== Role.SUPER_ADMIN) return false;
+
+  // TENANT scope validation: must own the user record OR unit membership
+  if (ctx.role === Role.TENANT) {
+    // Create action: validate unit membership + requester ownership
+    if (action === "create") {
+      if (ctx.unitId && ctx.units && !ctx.units.includes(ctx.unitId)) {
+        return false;
+      }
+      return requesterId === ctx.userId;
+    }
+    // Other actions: validate unit access + requester ownership
+    if (ctx.unitId && ctx.units?.length) {
+      const hasUnitAccess = ctx.units.includes(ctx.unitId);
+      if (!hasUnitAccess && !ctx.isSuperAdmin) {
+        return false;
+      }
+    }
+    return requesterId === ctx.userId;
+  }
+
+  // CORPORATE_OWNER scope validation: must own/manage the property
+  if (ctx.role === Role.CORPORATE_OWNER && ctx.propertyId) {
+    const ownsProperty =
+      ctx.isOwnerOfProperty ||
+      (ctx.assignedProperties && ctx.assignedProperties.includes(ctx.propertyId));
+    if (!ownsProperty && !ctx.isSuperAdmin) {
+      return false;
+    }
+  }
+
+  // PROPERTY_MANAGER scope validation: must be assigned to the property
+  if (ctx.role === Role.PROPERTY_MANAGER && ctx.propertyId) {
+    const managesProperty =
+      ctx.assignedProperties && ctx.assignedProperties.includes(ctx.propertyId);
+    if (!managesProperty && !ctx.isSuperAdmin) {
+      return false;
+    }
+  }
+
+  if (ctx.role === Role.TECHNICIAN && TECHNICIAN_ASSIGNED_ACTIONS.includes(action)) {
+    return !!ctx.isTechnicianAssigned;
+  }
+
+  return true;
+}
+
+]]>
+</file>
+
+<file path="domain/services/serviceCategories.ts">
+<![CDATA[
+/**
+ * Service Categories for Fixzit
+ * Exhaustive categories from "Collected service list.docx"
+ * Used for marketplace filters, pricing rules, and RBAC scoping
+ */
+
+export enum ServiceCategory {
+  CORE_PROPERTY_MANAGEMENT_SERVICES = "CORE_PROPERTY_MANAGEMENT_SERVICES",
+  SPECIALIZED_PROPERTY_MANAGEMENT_SERVICES = "SPECIALIZED_PROPERTY_MANAGEMENT_SERVICES",
+  ADDITIONAL_SERVICES = "ADDITIONAL_SERVICES",
+  CATEGORIZATION_BY_TYPE = "CATEGORIZATION_BY_TYPE",
+  BY_PROPERTY_TYPE = "BY_PROPERTY_TYPE",
+  BY_SERVICE_FOCUS = "BY_SERVICE_FOCUS",
+  BY_CLIENT_TYPE = "BY_CLIENT_TYPE",
+  EXAMPLE_LARGE_REAL_ESTATE_FIRM = "EXAMPLE_LARGE_REAL_ESTATE_FIRM",
+}
+
+export const SERVICE_CATEGORY_LABELS: Record<ServiceCategory, string> = {
+  [ServiceCategory.CORE_PROPERTY_MANAGEMENT_SERVICES]:
+    "Core Property Management Services",
+  [ServiceCategory.SPECIALIZED_PROPERTY_MANAGEMENT_SERVICES]:
+    "Specialized Property Management Services",
+  [ServiceCategory.ADDITIONAL_SERVICES]:
+    "Additional Services (may vary by provider)",
+  [ServiceCategory.CATEGORIZATION_BY_TYPE]: "Categorization by Type",
+  [ServiceCategory.BY_PROPERTY_TYPE]: "By Property Type",
+  [ServiceCategory.BY_SERVICE_FOCUS]: "By Service Focus",
+  [ServiceCategory.BY_CLIENT_TYPE]: "By Client Type",
+  [ServiceCategory.EXAMPLE_LARGE_REAL_ESTATE_FIRM]:
+    "Example: Large Real Estate Firm",
+};
+
+/**
+ * Get human-readable label for a service category
+ */
+export function getServiceCategoryLabel(category: ServiceCategory): string {
+  return SERVICE_CATEGORY_LABELS[category];
+}
+
+/**
+ * Get all service categories as array
+ */
+export function getAllServiceCategories(): ServiceCategory[] {
+  return Object.values(ServiceCategory);
+}
+
+/**
+ * Check if a string is a valid service category
+ */
+export function isValidServiceCategory(
+  value: string,
+): value is ServiceCategory {
+  return Object.values(ServiceCategory).includes(value as ServiceCategory);
+}
+
+]]>
+</file>
+
+<file path="ecosystem.config.js">
+<![CDATA[
+module.exports = {
+  apps: [
+    {
+      name: "fixzit-dev",
+      script: "npm",
+      args: "run dev",
+      cwd: "./",
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: "1G",
+      env: {
+        NODE_ENV: "development",
+        PORT: 3000,
+      },
+      error_file: "./logs/pm2-error.log",
+      out_file: "./logs/pm2-out.log",
+      log_file: "./logs/pm2-combined.log",
+      time: true,
+      restart_delay: 3000,
+      max_restarts: 10,
+      min_uptime: "10s",
+    },
+  ],
+};
+
+]]>
+</file>
+
+<file path="hooks/admin/useAdminRoles.ts">
+<![CDATA[
+/**
+ * Admin Roles Hook
+ *
+ * SWR-based data hook for role management.
+ */
+
+"use client";
+
+import useSWR from "swr";
+import { useState, useCallback } from "react";
+import { adminApi, PaginationParams, AdminRole } from "@/lib/api/admin";
+
+export interface UseAdminRolesOptions {
+  page?: number;
+  limit?: number;
+  search?: string;
+}
+
+export function useAdminRoles(options: UseAdminRolesOptions = {}) {
+  const [params, setParams] = useState<UseAdminRolesOptions>({
+    page: options.page || 1,
+    limit: options.limit || 50, // Higher default for roles (typically fewer than users)
+    search: options.search || "",
+  });
+
+  const key = ["admin-roles", params.page, params.limit, params.search];
+
+  const { data, error, isLoading, mutate } = useSWR(
+    key,
+    () => adminApi.listRoles(params as PaginationParams),
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 10000, // Roles change less frequently
+    },
+  );
+
+  const setPage = useCallback((page: number) => {
+    setParams((prev) => ({ ...prev, page }));
+  }, []);
+
+  const setLimit = useCallback((limit: number) => {
+    setParams((prev) => ({ ...prev, limit, page: 1 }));
+  }, []);
+
+  const setSearch = useCallback((search: string) => {
+    setParams((prev) => ({ ...prev, search, page: 1 }));
+  }, []);
+
+  const createRole = useCallback(
+    async (roleData: Partial<AdminRole>) => {
+      const newRole = await adminApi.createRole(roleData);
+
+      mutate(
+        (currentData) => {
+          if (!currentData) return currentData;
+          return {
+            ...currentData,
+            data: [newRole, ...currentData.data],
+            pagination: {
+              ...currentData.pagination,
+              total: currentData.pagination.total + 1,
+            },
+          };
+        },
+        { revalidate: true },
+      );
+
+      return newRole;
+    },
+    [mutate],
+  );
+
+  const updateRole = useCallback(
+    async (roleId: string, roleData: Partial<AdminRole>) => {
+      const updatedRole = await adminApi.updateRole(roleId, roleData);
+
+      mutate(
+        (currentData) => {
+          if (!currentData) return currentData;
+          return {
+            ...currentData,
+            data: currentData.data.map((r) =>
+              r.id === roleId ? updatedRole : r,
+            ),
+          };
+        },
+        { revalidate: true },
+      );
+
+      return updatedRole;
+    },
+    [mutate],
+  );
+
+  const deleteRole = useCallback(
+    async (roleId: string) => {
+      await adminApi.deleteRole(roleId);
+
+      mutate(
+        (currentData) => {
+          if (!currentData) return currentData;
+          return {
+            ...currentData,
+            data: currentData.data.filter((r) => r.id !== roleId),
+            pagination: {
+              ...currentData.pagination,
+              total: currentData.pagination.total - 1,
+            },
+          };
+        },
+        { revalidate: true },
+      );
+    },
+    [mutate],
+  );
+
+  return {
+    roles: data?.data || [],
+    pagination: data?.pagination || {
+      page: 1,
+      limit: 50,
+      total: 0,
+      totalPages: 0,
+    },
+    isLoading,
+    error,
+    page: params.page,
+    limit: params.limit,
+    search: params.search,
+    setPage,
+    setLimit,
+    setSearch,
+    createRole,
+    updateRole,
+    deleteRole,
+    refresh: mutate,
+  };
+}
+
+]]>
+</file>
+
+<file path="hooks/admin/useAdminUsers.ts">
+<![CDATA[
+/**
+ * Admin Users Hook
+ *
+ * SWR-based data hook for user management.
+ * Provides pagination, optimistic updates, and error handling.
+ */
+
+"use client";
+
+import useSWR from "swr";
+import { useState, useCallback } from "react";
+import { adminApi, PaginationParams, AdminUser } from "@/lib/api/admin";
+
+export interface UseAdminUsersOptions {
+  page?: number;
+  limit?: number;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+}
+
+export function useAdminUsers(options: UseAdminUsersOptions = {}) {
+  const [params, setParams] = useState<UseAdminUsersOptions>({
+    page: options.page || 1,
+    limit: options.limit || 20,
+    search: options.search || "",
+    sortBy: options.sortBy || "createdAt",
+    sortOrder: options.sortOrder || "desc",
+  });
+
+  // SWR key includes all params for proper caching
+  const key = [
+    "admin-users",
+    params.page,
+    params.limit,
+    params.search,
+    params.sortBy,
+    params.sortOrder,
+  ];
+
+  const { data, error, isLoading, mutate } = useSWR(
+    key,
+    () => adminApi.listUsers(params as PaginationParams),
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 5000, // Prevent duplicate requests within 5s
+    },
+  );
+
+  // Pagination controls
+  const setPage = useCallback((page: number) => {
+    setParams((prev) => ({ ...prev, page }));
+  }, []);
+
+  const setLimit = useCallback((limit: number) => {
+    setParams((prev) => ({ ...prev, limit, page: 1 })); // Reset to page 1
+  }, []);
+
+  const setSearch = useCallback((search: string) => {
+    setParams((prev) => ({ ...prev, search, page: 1 })); // Reset to page 1
+  }, []);
+
+  const setSort = useCallback(
+    (sortBy: string, sortOrder: "asc" | "desc" = "asc") => {
+      setParams((prev) => ({ ...prev, sortBy, sortOrder }));
+    },
+    [],
+  );
+
+  // CRUD operations with optimistic updates
+  const createUser = useCallback(
+    async (userData: Partial<AdminUser>) => {
+      const newUser = await adminApi.createUser(userData);
+
+      // Optimistic update: add new user to current data
+      mutate(
+        (currentData) => {
+          if (!currentData) return currentData;
+          return {
+            ...currentData,
+            data: [newUser, ...currentData.data],
+            pagination: {
+              ...currentData.pagination,
+              total: currentData.pagination.total + 1,
+            },
+          };
+        },
+        { revalidate: true }, // Revalidate to ensure consistency
+      );
+
+      return newUser;
+    },
+    [mutate],
+  );
+
+  const updateUser = useCallback(
+    async (userId: string, userData: Partial<AdminUser>) => {
+      const updatedUser = await adminApi.updateUser(userId, userData);
+
+      // Optimistic update: replace user in current data
+      mutate(
+        (currentData) => {
+          if (!currentData) return currentData;
+          return {
+            ...currentData,
+            data: currentData.data.map((u) =>
+              u.id === userId ? updatedUser : u,
+            ),
+          };
+        },
+        { revalidate: true },
+      );
+
+      return updatedUser;
+    },
+    [mutate],
+  );
+
+  const deleteUser = useCallback(
+    async (userId: string) => {
+      await adminApi.deleteUser(userId);
+
+      // Optimistic update: remove user from current data
+      mutate(
+        (currentData) => {
+          if (!currentData) return currentData;
+          return {
+            ...currentData,
+            data: currentData.data.filter((u) => u.id !== userId),
+            pagination: {
+              ...currentData.pagination,
+              total: currentData.pagination.total - 1,
+            },
+          };
+        },
+        { revalidate: true },
+      );
+    },
+    [mutate],
+  );
+
+  const assignRoles = useCallback(
+    async (userId: string, roleIds: string[]) => {
+      const updatedUser = await adminApi.assignRoles(userId, roleIds);
+
+      // Optimistic update: update user roles
+      mutate(
+        (currentData) => {
+          if (!currentData) return currentData;
+          return {
+            ...currentData,
+            data: currentData.data.map((u) =>
+              u.id === userId ? updatedUser : u,
+            ),
+          };
+        },
+        { revalidate: true },
+      );
+
+      return updatedUser;
+    },
+    [mutate],
+  );
+
+  return {
+    // Data
+    users: data?.data || [],
+    pagination: data?.pagination || {
+      page: 1,
+      limit: 20,
+      total: 0,
+      totalPages: 0,
+    },
+
+    // State
+    isLoading,
+    error,
+
+    // Pagination controls
+    page: params.page,
+    limit: params.limit,
+    search: params.search,
+    sortBy: params.sortBy,
+    sortOrder: params.sortOrder,
+    setPage,
+    setLimit,
+    setSearch,
+    setSort,
+
+    // CRUD operations
+    createUser,
+    updateUser,
+    deleteUser,
+    assignRoles,
+
+    // Manual revalidation
+    refresh: mutate,
+  };
+}
+
+]]>
+</file>
+
+<file path="hooks/admin/useOrgSettings.ts">
+<![CDATA[
+/**
+ * Organization Settings Hook
+ *
+ * SWR-based hook for organization settings management.
+ */
+
+"use client";
+
+import useSWR from "swr";
+import { useCallback } from "react";
+import { adminApi, OrgSettings } from "@/lib/api/admin";
+
+export function useOrgSettings(orgId: string) {
+  const { data, error, isLoading, mutate } = useSWR(
+    orgId ? ["org-settings", orgId] : null,
+    () => adminApi.getOrgSettings(orgId),
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 30000, // Settings change infrequently
+    },
+  );
+
+  const updateSettings = useCallback(
+    async (settingsData: Partial<OrgSettings>) => {
+      const updatedSettings = await adminApi.updateOrgSettings(
+        orgId,
+        settingsData,
+      );
+
+      // Optimistic update
+      mutate(updatedSettings, { revalidate: true });
+
+      return updatedSettings;
+    },
+    [orgId, mutate],
+  );
+
+  return {
+    settings: data,
+    isLoading,
+    error,
+    updateSettings,
+    refresh: mutate,
+  };
+}
+
+]]>
+</file>
+
+<file path="hooks/fm/useHrData.ts">
+<![CDATA[
+"use client";
+
+import useSWR from "swr";
+import { logger } from "@/lib/logger";
+
+type LeaveRequestStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+
+export type LeaveRequest = {
+  _id: string;
+  employeeId: {
+    _id: string;
+    employeeCode: string;
+    firstName: string;
+    lastName: string;
+  };
+  leaveTypeId: string;
+  startDate: string;
+  endDate: string;
+  numberOfDays: number;
+  status: LeaveRequestStatus;
+  reason?: string;
+  approvalDate?: string;
+  updatedAt?: string;
+};
+
+export type PayrollRun = {
+  _id: string;
+  name: string;
+  status: string;
+  periodStart: string;
+  periodEnd: string;
+  netAmount?: number;
+  variance?: number;
+};
+
+const fetcher = async <T>(url: string): Promise<T> => {
+  const res = await fetch(url, { credentials: "include" });
+  if (!res.ok) {
+    throw new Error(
+      (await res.json().catch((jsonError) => {
+        logger.error('[useHrData] Failed to parse JSON response:', jsonError);
+        return {};
+      }))?.error ?? "Request failed",
+    );
+  }
+  return res.json();
+};
+
+export function useHrLeaveRequests(
+  status?: LeaveRequestStatus,
+  orgId?: string | null,
+) {
+  const query = status ? `?status=${status}` : "";
+  const shouldFetch = Boolean(orgId);
+  const { data, error, isLoading, mutate } = useSWR<{
+    requests: LeaveRequest[];
+  }>(shouldFetch ? `/api/hr/leaves${query}` : null, fetcher);
+
+  return {
+    requests: data?.requests ?? [],
+    isLoading: shouldFetch ? isLoading : false,
+    error: shouldFetch ? error : undefined,
+    refresh: mutate,
+  };
+}
+
+export function useHrPayrollRuns(status?: string, orgId?: string | null) {
+  const query = status ? `?status=${status}` : "";
+  const shouldFetch = Boolean(orgId);
+  const { data, error, isLoading, mutate } = useSWR<{ runs: PayrollRun[] }>(
+    shouldFetch ? `/api/hr/payroll/runs${query}` : null,
+    fetcher,
+  );
+
+  return {
+    runs: data?.runs ?? [],
+    isLoading: shouldFetch ? isLoading : false,
+    error: shouldFetch ? error : undefined,
+    refresh: mutate,
+  };
+}
+
+]]>
+</file>
+
+<file path="hooks/fm/useOrgGuard.tsx">
+<![CDATA[
+"use client";
+
+import { useMemo } from "react";
+import { OrgContextPrompt } from "@/components/fm/OrgContextPrompt";
+import { useSupportOrg } from "@/contexts/SupportOrgContext";
+import { useTranslation } from "@/contexts/TranslationContext";
+
+export function useOrgGuard() {
+  const { t } = useTranslation();
+  const { effectiveOrgId, canImpersonate, supportOrg, loading } =
+    useSupportOrg();
+
+  const guard = useMemo(
+    () => <OrgContextPrompt canImpersonate={canImpersonate} />,
+    [canImpersonate],
+  );
+
+  const supportBanner = useMemo(() => {
+    if (!supportOrg) {
+      return null;
+    }
+    return (
+      <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+        {t("fm.org.supportContext", "Support context: {{name}}", {
+          name: supportOrg.name,
+        })}
+      </div>
+    );
+  }, [supportOrg, t]);
+
+  return {
+    orgId: effectiveOrgId,
+    guard,
+    supportBanner,
+    canImpersonate,
+    supportOrg,
+    loading,
+  };
+}
+
+]]>
+</file>
+
+<file path="hooks/fm/useProperties.ts">
+<![CDATA[
+"use client";
+
+import useSWR from "swr";
+import { logger } from "@/lib/logger";
+
+export type PropertyRecord = {
+  _id: string;
+  name: string;
+  code?: string;
+  type?: string;
+  subtype?: string;
+  address?: {
+    street?: string;
+    city?: string;
+    region?: string;
+  };
+  ownership?: {
+    type?: string;
+  };
+  vendors?: Array<{
+    _id?: string;
+    vendorId?: string;
+    name?: string;
+  }>;
+  units?: Array<{
+    name?: string;
+    status?: string;
+  }>;
+  createdAt?: string;
+};
+
+const fetcher = async <T>(url: string): Promise<T> => {
+  const res = await fetch(url, { credentials: "include" });
+  if (!res.ok) {
+    const payload = await res.json().catch((jsonError) => {
+      logger.error('[useProperties] Failed to parse JSON response:', jsonError, {
+        status: res.status.toString(),
+        statusText: res.statusText
+      });
+      return {};
+    });
+    throw new Error(payload?.error ?? "Request failed");
+  }
+  return res.json();
+};
+
+export function useProperties(params?: string) {
+  // Use RBAC-secured FM endpoint instead of legacy /api/properties
+  const url = params ? `/api/fm/properties${params}` : "/api/fm/properties";
+  const { data, error, isLoading, mutate } = useSWR<{
+    items: PropertyRecord[];
+  }>(url, fetcher);
+
+  return {
+    properties: data?.items ?? [],
+    isLoading,
+    error,
+    refresh: mutate,
+  };
+}
+
+]]>
+</file>
+
+<file path="hooks/use-toast.ts">
+<![CDATA[
+import { useCallback } from "react";
+import toastPrimitive from "react-hot-toast";
+
+type ToastPayload = {
+  title: string;
+  description?: string;
+  variant?: "default" | "destructive";
+};
+
+export function useToast() {
+  const toast = useCallback((payload: ToastPayload) => {
+    const message = payload.description
+      ? `${payload.title}\n${payload.description}`
+      : payload.title;
+
+    if (payload.variant === "destructive") {
+      toastPrimitive.error(message);
+    } else {
+      toastPrimitive.success(message);
+    }
+  }, []);
+
+  return {
+    toast,
+    dismiss: toastPrimitive.dismiss,
+  };
+}
+
+export type UseToastReturn = ReturnType<typeof useToast>;
+
+]]>
+</file>
+
+<file path="hooks/useAdminData.ts">
+<![CDATA[
+/**
+ * Custom React Query hooks for Admin module data fetching
+ * 
+ * Features:
+ * - Automatic caching and invalidation
+ * - Loading and error states
+ * - Optimistic updates
+ * - Type-safe queries and mutations
+ * 
+ * Usage:
+ * ```tsx
+ * const { data: users, isLoading } = useUsers({ search: 'john' });
+ * const createUser = useCreateUser();
+ * await createUser.mutateAsync({ name: 'John', email: 'john@example.com' });
+ * ```
+ */
+
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { adminApi, type OrgSettings } from "@/lib/api/admin";
+import { logger } from "@/lib/logger";
+import { sanitizeLogParams } from "@/lib/security/log-sanitizer";
+
+// Query keys for cache management
+export const adminQueryKeys = {
+  users: (params?: { limit?: number; search?: string }) =>
+    ["admin", "users", params] as const,
+  user: (id: string) => ["admin", "users", id] as const,
+  roles: (params?: { limit?: number }) => ["admin", "roles", params] as const,
+  auditLogs: (params?: { limit?: number }) =>
+    ["admin", "audit-logs", params] as const,
+  orgSettings: (orgId: string) => ["admin", "org-settings", orgId] as const,
+};
+
+/**
+ * Fetch users with automatic caching and refetching
+ */
+export function useUsers(params?: { limit?: number; search?: string }) {
+  return useQuery({
+    queryKey: adminQueryKeys.users(params),
+    queryFn: async () => {
+      // LOG-001 FIX: Sanitize params to prevent PII leakage in client logs
+      logger.info("Fetching users", { params: params ? sanitizeLogParams(params as Record<string, unknown>) : undefined });
+      const response = await adminApi.listUsers(params);
+      return response.data;
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes - users data changes frequently
+  });
+}
+
+/**
+ * Fetch roles with automatic caching
+ */
+export function useRoles(params?: { limit?: number }) {
+  return useQuery({
+    queryKey: adminQueryKeys.roles(params),
+    queryFn: async () => {
+      // LOG-001 FIX: Sanitize params
+      logger.info("Fetching roles", { params: params ? sanitizeLogParams(params as Record<string, unknown>) : undefined });
+      const response = await adminApi.listRoles(params);
+      return response.data;
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes - roles change infrequently
+  });
+}
+
+/**
+ * Fetch audit logs with automatic caching
+ */
+export function useAuditLogs(params?: { limit?: number }) {
+  return useQuery({
+    queryKey: adminQueryKeys.auditLogs(params),
+    queryFn: async () => {
+      // LOG-001 FIX: Sanitize params
+      logger.info("Fetching audit logs", { params: params ? sanitizeLogParams(params as Record<string, unknown>) : undefined });
+      const response = await adminApi.listAuditLogs(params);
+      return response.data;
+    },
+    staleTime: 1 * 60 * 1000, // 1 minute - audit logs should be relatively fresh
+  });
+}
+
+/**
+ * Fetch organization settings with automatic caching
+ */
+export function useOrgSettings(orgId: string) {
+  return useQuery({
+    queryKey: adminQueryKeys.orgSettings(orgId),
+    queryFn: async () => {
+      logger.info("Fetching org settings", { orgId });
+      return await adminApi.getOrgSettings(orgId);
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!orgId, // Only fetch if orgId is provided
+  });
+}
+
+/**
+ * Create a new user with automatic cache invalidation
+ */
+export function useCreateUser() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      name: string;
+      email: string;
+      role: string;
+      orgId: string;
+      subRole?: string;
+    }) => {
+      // LOG-001 FIX: Sanitize data to prevent PII leakage (redacts email)
+      logger.info("Creating user", { data: sanitizeLogParams(data as Record<string, unknown>) });
+      return await adminApi.createUser(data);
+    },
+    onSuccess: (newUser) => {
+      // Invalidate users query to refetch the list
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.users() });
+      logger.info("User created successfully", { userId: newUser.id });
+    },
+    onError: (error) => {
+      logger.error("Failed to create user", error);
+    },
+  });
+}
+
+/**
+ * Update a user with automatic cache invalidation
+ */
+export function useUpdateUser() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: {
+        name?: string;
+        email?: string;
+        role?: string;
+        orgId?: string;
+        isActive?: boolean;
+        subRole?: string;
+      };
+    }) => {
+      logger.info("Updating user", { userId: id, changes: Object.keys(data) });
+      return await adminApi.updateUser(id, data);
+    },
+    onSuccess: (updatedUser, { id }) => {
+      // Invalidate both the users list and the specific user
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.users() });
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.user(id) });
+      logger.info("User updated successfully", { userId: id });
+    },
+    onError: (error, { id }) => {
+      logger.error("Failed to update user", error, { userId: id });
+    },
+  });
+}
+
+/**
+ * Delete a user with automatic cache invalidation
+ */
+export function useDeleteUser() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      logger.info("Deleting user", { userId: id });
+      return await adminApi.deleteUser(id);
+    },
+    onSuccess: (_, id) => {
+      // Invalidate users query to refetch the list
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.users() });
+      logger.info("User deleted successfully", { userId: id });
+    },
+    onError: (error, id) => {
+      logger.error("Failed to delete user", error, { userId: id });
+    },
+  });
+}
+
+/**
+ * Update organization settings with automatic cache invalidation
+ */
+export function useUpdateOrgSettings() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      orgId,
+      settings,
+    }: {
+      orgId: string;
+      settings: Partial<OrgSettings>;
+    }) => {
+      logger.info("Updating org settings", { orgId });
+      return await adminApi.updateOrgSettings(orgId, settings);
+    },
+    onSuccess: (_, { orgId }) => {
+      // Invalidate org settings query to refetch
+      queryClient.invalidateQueries({
+        queryKey: adminQueryKeys.orgSettings(orgId),
+      });
+      logger.info("Org settings updated successfully", { orgId });
+    },
+    onError: (error, { orgId }) => {
+      logger.error("Failed to update org settings", error, { orgId });
+    },
+  });
+}
+
+]]>
+</file>
+
+<file path="hooks/useAuthRbac.ts">
+<![CDATA[
+/**
+ * useAuthRbac Hook
+ *
+ * Client-side hook for permission checking and role-based access control.
+ * Uses NextAuth session for authentication state.
+ *
+ * Usage:
+ * ```typescript
+ * const { isSuperAdmin, can, canAny, canAll } = useAuthRbac();
+ *
+ * if (can('finance:invoice.create')) {
+ *   // Show create button
+ * }
+ * ```
+ */
+
+"use client";
+
+import { useSession } from "next-auth/react";
+import { useMemo } from "react";
+import { RbacContext } from "@/lib/rbac";
+
+export interface UseAuthRbac extends RbacContext {
+  /**
+   * Check if user has a specific permission
+   */
+  can: (_perm: string) => boolean;
+
+  /**
+   * Check if user has ANY of the specified permissions
+   */
+  canAny: (_perms: string[]) => boolean;
+
+  /**
+   * Check if user has ALL of the specified permissions
+   */
+  canAll: (_perms: string[]) => boolean;
+
+  /**
+   * Check if user has permission for a specific module
+   */
+  canModule: (_module: string) => boolean;
+
+  /**
+   * Check if user has a specific role
+   */
+  hasRole: (_roleSlug: string) => boolean;
+
+  /**
+   * Check if user has ANY of the specified roles
+   */
+  hasAnyRole: (_roleSlugs: string[]) => boolean;
+
+  /**
+   * Session loading state
+   */
+  isLoading: boolean;
+
+  /**
+   * User is authenticated
+   */
+  isAuthenticated: boolean;
+}
+
+/**
+ * Hook for RBAC permission checking
+ *
+ * @returns RBAC context with permission checking functions
+ */
+export function useAuthRbac(): UseAuthRbac {
+  const { data: session, status } = useSession();
+
+  const isSuperAdmin = useMemo(
+    () => !!session?.user?.isSuperAdmin,
+    [session?.user?.isSuperAdmin],
+  );
+
+  const permissions = useMemo(
+    () => (session?.user?.permissions as string[]) || [],
+    [session?.user?.permissions],
+  );
+
+  const roles = useMemo(
+    () => (session?.user?.roles as string[]) || [],
+    [session?.user?.roles],
+  );
+
+  const can = useMemo(
+    () => (_perm: string) => {
+      if (isSuperAdmin) return true;
+      return permissions.includes(_perm);
+    },
+    [isSuperAdmin, permissions],
+  );
+
+  const canAny = useMemo(
+    () => (_perms: string[]) => {
+      if (isSuperAdmin) return true;
+      if (!_perms || _perms.length === 0) return false;
+      return _perms.some((p) => permissions.includes(p));
+    },
+    [isSuperAdmin, permissions],
+  );
+
+  const canAll = useMemo(
+    () => (_perms: string[]) => {
+      if (isSuperAdmin) return true;
+      if (!_perms || _perms.length === 0) return true;
+      return _perms.every((p) => permissions.includes(p));
+    },
+    [isSuperAdmin, permissions],
+  );
+
+  const canModule = useMemo(
+    () => (_module: string) => {
+      if (isSuperAdmin) return true;
+      return permissions.some((p) => p.startsWith(`${_module}:`));
+    },
+    [isSuperAdmin, permissions],
+  );
+
+  const hasRole = useMemo(
+    () => (_roleSlug: string) => {
+      if (isSuperAdmin && _roleSlug === "super_admin") return true;
+      return roles.includes(_roleSlug);
+    },
+    [isSuperAdmin, roles],
+  );
+
+  const hasAnyRole = useMemo(
+    () => (_roleSlugs: string[]) => {
+      if (isSuperAdmin && _roleSlugs.includes("super_admin")) return true;
+      if (!_roleSlugs || _roleSlugs.length === 0) return false;
+      return _roleSlugs.some((r) => roles.includes(r));
+    },
+    [isSuperAdmin, roles],
+  );
+
+  return {
+    isSuperAdmin,
+    permissions,
+    roles,
+    can,
+    canAny,
+    canAll,
+    canModule,
+    hasRole,
+    hasAnyRole,
+    isLoading: status === "loading",
+    isAuthenticated: !!session?.user,
+  };
+}
+
+/**
+ * Hook to check a single permission (simplified)
+ *
+ * @param permission Permission key to check
+ * @returns true if user has permission or is Super Admin
+ */
+export function useCan(permission: string): boolean {
+  const { can } = useAuthRbac();
+  return can(permission);
+}
+
+/**
+ * Hook to check if user is Super Admin
+ *
+ * @returns true if user is Super Admin
+ */
+export function useIsSuperAdmin(): boolean {
+  const { isSuperAdmin } = useAuthRbac();
+  return isSuperAdmin;
+}
+
+/**
+ * Hook to check if user has a specific role
+ *
+ * @param roleSlug Role slug to check
+ * @returns true if user has the role
+ */
+export function useHasRole(roleSlug: string): boolean {
+  const { hasRole } = useAuthRbac();
+  return hasRole(roleSlug);
+}
+
+]]>
+</file>
+
+<file path="hooks/useAuthSession.server.ts">
+<![CDATA[
+"use server";
+
+// Server-side helper is centralized to avoid bundling ioredis into client builds.
+// This wrapper keeps the public API stable.
+export { getServerAuthSession } from "@/lib/server-auth-session";
+export type { AuthSession } from "@/types/auth-session";
+
+]]>
+</file>
+
+<file path="hooks/useAuthSession.ts">
+<![CDATA[
+"use client";
+
+import { useSession } from "next-auth/react";
+import type { AuthSession, ExtendedUser } from "@/types/auth-session";
+export type { AuthSession } from "@/types/auth-session";
+
+/**
+ * Hook to get current authenticated session
+ * @returns AuthSession or null if not authenticated
+ */
+export function useAuthSession(): AuthSession | null {
+  const { data: session, status } = useSession();
+
+  if (status === "loading") {
+    return null;
+  }
+
+  if (!session?.user) {
+    return null;
+  }
+
+  const user = session.user as ExtendedUser;
+
+  return {
+    userId: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role || "GUEST",
+    orgId: user.orgId || null, // Organization ID for tenant isolation
+    tenantId: user.tenantId || null, // Use null instead of empty string
+    sellerId: user.sellerId,
+    isAuthenticated: true,
+    // RBAC fields (STRICT v4.1) - aligned with auth.config.ts JWT/session callbacks
+    subRole: user.subRole ?? null,
+    permissions: user.permissions ?? [],
+    roles: user.roles ?? [],
+    isSuperAdmin: Boolean(user.isSuperAdmin),
+  };
+}
+
+// NOTE: getServerAuthSession has been moved to lib/server-auth-session.ts
+// to prevent ioredis from being bundled into client components.
+// Import it from @/hooks/useAuthSession.server for Server Components and API routes.
+
+]]>
+</file>
+
+<file path="hooks/useDebounce.ts">
+<![CDATA[
+/**
+ * useDebounce Hook
+ *
+ * Debounces a value to prevent excessive updates/API calls.
+ * Useful for search inputs, form validation, and real-time filtering.
+ *
+ * @example
+ * ```tsx
+ * const [searchTerm, setSearchTerm] = useState('');
+ * const debouncedSearchTerm = useDebounce(searchTerm, 500);
+ *
+ * useEffect(() => {
+ *   if (debouncedSearchTerm) {
+ *     // Perform API search
+ *   }
+ * }, [debouncedSearchTerm]);
+ * ```
+ */
+
+import { useState, useEffect, useCallback, useRef } from "react";
+
+export function useDebounce<T>(value: T, delay: number = 500): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    // Set up the timeout
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    // Clean up the timeout if value changes before delay expires
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+/**
+ * useDebounceCallback Hook
+ *
+ * Debounces a callback function to prevent excessive calls.
+ * Useful for event handlers like resize, scroll, or input events.
+ *
+ * @example
+ * ```tsx
+ * const debouncedSave = useDebounceCallback((value: string) => {
+ *   saveToAPI(value);
+ * }, 1000);
+ * ```
+ */
+
+export function useDebounceCallback<T extends (...args: unknown[]) => void>(
+  callback: T,
+  delay: number,
+): (...args: Parameters<T>) => void {
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const callbackRef = useRef(callback);
+
+  // Keep callback ref up to date without recreating the debounced function
+  useEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  return useCallback(
+    (...args: Parameters<T>) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+
+      timeoutRef.current = setTimeout(() => {
+        callbackRef.current(...args);
+      }, delay);
+    },
+    [delay],
+  );
+}
+
+]]>
+</file>
+
+<file path="hooks/useFMPermissions.ts">
+<![CDATA[
+/**
+ * Client-side FM permissions hook
+ * Provides RBAC checks for conditional UI rendering
+ *
+ * 🟥 SECURITY FIX: Now properly integrates with NextAuth session and org context
+ * - isOrgMember is derived from actual session data (not hardcoded)
+ * - Plan defaults to STARTER (fail-safe) instead of PRO
+ * 
+ * 🟢 CLIENT-SAFE: Imports from fm-lite.ts to avoid Mongoose bundle leak
+ * 🟢 STRICT v4.1: Sub-role enforcement for TEAM_MEMBER specialized access
+ */
+
+"use client";
+
+import { useSession } from "next-auth/react";
+import {
+  canClient,
+  canAccessSubmodule,
+  Role,
+  SubmoduleKey,
+  Action,
+  Plan,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+  type ClientResourceCtx,
+} from "@/domain/fm/fm-lite";
+import { useCurrentOrg } from "@/contexts/CurrentOrgContext";
+
+export interface FMPermissionContext {
+  role: Role;
+  subRole?: SubRole;
+  orgId?: string;
+  propertyId?: string;
+  userId: string;
+  plan: Plan;
+}
+
+/**
+ * Hook to check FM permissions in React components
+ *
+ * @example
+ * const permissions = useFMPermissions();
+ *
+ * if (permissions.can('WO_CREATE', 'create')) {
+ *   return <CreateWorkOrderButton />;
+ * }
+ *
+ * if (permissions.canAccessModule('WO_PM')) {
+ *   return <PreventiveMaintenanceSection />;
+ * }
+ */
+export function useFMPermissions() {
+  // 🟨 FIXED: Use the actual session hook
+  const { data: session } = useSession();
+  // 🟧 FIXED: Get plan from org context, default to STARTER (fail-safe)
+  const { org } = useCurrentOrg();
+  const plan = org?.plan || Plan.STARTER;
+
+  const user = session?.user as
+    | {
+        id?: string;
+        role?: string;
+        subRole?: string | null;
+        orgId?: string;
+      }
+    | undefined;
+
+  const subRole =
+    normalizeSubRole(user?.subRole) ?? inferSubRoleFromRole(user?.role);
+  const role = normalizeRole(user?.role, subRole) ?? Role.GUEST;
+
+  // ORGID-FIX: Use undefined instead of empty string for client-side permission checks
+  // Empty string would incorrectly indicate "valid orgId" rather than "no orgId"
+  const ctx: FMPermissionContext = {
+    role,
+    subRole,
+    userId: user?.id || "",
+    orgId: user?.orgId ?? undefined,
+    propertyId: undefined,
+    plan,
+  };
+
+  // 🟥 FIXED: Compute membership dynamically based on target org
+  const isMemberOf = (orgId?: string): boolean =>
+    !!ctx.orgId && (!orgId || orgId === ctx.orgId);
+
+  /**
+   * Build ClientResourceCtx for permission checks
+   */
+  const buildClientCtx = (options?: {
+    orgId?: string;
+    propertyId?: string;
+  }): ClientResourceCtx => {
+    const targetOrgId = options?.orgId ?? ctx.orgId;
+    return {
+      role: ctx.role,
+      subRole: ctx.subRole,
+      plan: ctx.plan,
+      userId: ctx.userId,
+      orgId: targetOrgId,
+      propertyId: options?.propertyId,
+      isOrgMember: isMemberOf(targetOrgId),
+    };
+  };
+
+  /**
+   * Check if user can perform an action on a submodule
+   */
+  const canPerform = (
+    submodule: SubmoduleKey,
+    action: Action,
+    options?: {
+      orgId?: string;
+      propertyId?: string;
+    },
+  ): boolean => {
+    return canClient(submodule, action, buildClientCtx(options));
+  };
+
+  /**
+   * Check if user has access to a module based on subscription plan and role
+   */
+  const canAccessModule = (submodule: SubmoduleKey): boolean => {
+    return canAccessSubmodule(submodule, buildClientCtx());
+  };
+
+  /**
+   * Get allowed actions for a submodule
+   * Checks all possible Action types defined in fm-lite.ts
+   */
+  const getAllowedActions = (submodule: SubmoduleKey): Action[] => {
+    const allActions: Action[] = [
+      "view", "create", "update", "delete", "comment", "upload_media",
+      "assign", "schedule", "dispatch", "submit_estimate", "attach_quote",
+      "request_approval", "approve", "reject", "request_changes",
+      "start_work", "pause_work", "complete_work", "close", "reopen",
+      "export", "share", "link_finance", "link_hr", "link_marketplace", "post_finance",
+    ];
+    return allActions.filter((action) => canPerform(submodule, action));
+  };
+
+  /**
+   * Check if user is admin (SUPER_ADMIN or ADMIN)
+   * RBAC-003 FIX: Use canonical FM roles
+   */
+  const isAdmin = (): boolean => {
+    return ctx.role === Role.SUPER_ADMIN || ctx.role === Role.ADMIN;
+  };
+
+  /**
+   * Check if user is management level
+   * RBAC-003 FIX: Use canonical FM roles (TEAM_MEMBER hierarchy)
+   */
+  const isManagement = (): boolean => {
+    return (
+      ctx.role === Role.TEAM_MEMBER ||
+      ctx.role === Role.PROPERTY_MANAGER ||
+      ctx.role === Role.SUPER_ADMIN ||
+      ctx.role === Role.ADMIN
+    );
+  };
+  
+  /**
+   * Check if user can view financial data
+   * STRICT v4.1: Requires FINANCE_OFFICER sub-role for TEAM_MEMBER
+   * Uses canPerform which handles plan gates, org membership, and role/sub-role checks
+   */
+  const canViewFinancials = (): boolean => {
+    // canPerform already handles:
+    // - Plan gates (FINANCE_INVOICES availability per plan)
+    // - Org membership check
+    // - Role-based action checks (SUPER_ADMIN, ADMIN, CORPORATE_OWNER have view in ROLE_ACTIONS)
+    // - Sub-role enforcement for TEAM_MEMBER (FINANCE_OFFICER required)
+    return canPerform(SubmoduleKey.FINANCE_INVOICES, "view");
+  };
+
+  /**
+   * Check if user can manage HR data
+   * STRICT v4.1: Requires HR_OFFICER sub-role for TEAM_MEMBER
+   * Uses canPerform which handles plan gates, org membership, and role/sub-role checks
+   */
+  const canViewHR = (): boolean => {
+    // canPerform already handles:
+    // - Plan gates (HR_EMPLOYEE_DIRECTORY availability per plan)
+    // - Org membership check
+    // - Role-based action checks (SUPER_ADMIN, ADMIN have view in ROLE_ACTIONS)
+    // - Sub-role enforcement for TEAM_MEMBER (HR_OFFICER required)
+    // - CORPORATE_OWNER has limited view access per ROLE_ACTIONS
+    return canPerform(SubmoduleKey.HR_EMPLOYEE_DIRECTORY, "view");
+  };
+
+  return {
+    role: ctx.role,
+    subRole: ctx.subRole,
+    orgId: ctx.orgId,
+    userId: ctx.userId,
+    plan: ctx.plan,
+    can: canPerform,
+    canAccessModule,
+    getAllowedActions,
+    isAdmin,
+    isManagement,
+    // Convenience methods for common checks
+    canCreateWO: () => canPerform(SubmoduleKey.WO_CREATE, "create"),
+    canAssignWO: () => canPerform(SubmoduleKey.WO_TRACK_ASSIGN, "assign"),
+    canApproveWO: () => canPerform(SubmoduleKey.WO_TRACK_ASSIGN, "approve"),
+    canViewProperties: () => canPerform(SubmoduleKey.PROP_LIST, "view"),
+    canManageProperties: () => canPerform(SubmoduleKey.PROP_LIST, "update"),
+    canViewFinancials,
+    canViewHR,
+  };
+}
+
+]]>
+</file>
+
+<file path="hooks/useFormTracking.ts">
+<![CDATA[
+"use client";
+
+import { logger } from "@/lib/logger";
+import { useEffect, useCallback, useRef } from "react";
+import { useFormState } from "@/contexts/FormStateContext";
+
+/**
+ * 🟥 ARCHITECTURAL FIX: CONSOLIDATED FORM TRACKING HOOK
+ *
+ * This hook is the single source of truth for tracking form state.
+ * It combines the best parts of:
+ * - `useFormTracking` (context registration)
+ * - `useUnsavedChanges` (browser-level 'beforeunload' and 'popstate' guards)
+ * - `useFormDirtyState` (simple dirty state management)
+ *
+ * It deprecates `useFormDirtyState` and `useUnsavedChanges`.
+ */
+
+export interface UseFormTrackingOptions {
+  /** A unique ID for this form */
+  formId: string;
+  /** A boolean from your component's state indicating if the form is dirty */
+  isDirty: boolean;
+  /** An async function to call when a global save is triggered */
+  onSave: () => Promise<void>;
+  /** Custom message for the browser's "unsaved changes" prompt */
+  unsavedMessage?: string;
+}
+
+const DEFAULT_UNSAVED_MESSAGE =
+  "You have unsaved changes. Are you sure you want to leave?";
+
+/**
+ * Production-Ready Form Tracking Hook
+ *
+ * Integrates with FormStateContext to track unsaved changes across all forms
+ * and prevents browser navigation when dirty.
+ *
+ * @example
+ * ```tsx
+ * function MyForm() {
+ *   const [formData, setFormData] = useState(initialData);
+ *   const [originalData] = useState(initialData);
+ *   const isDirty = JSON.stringify(formData) !== JSON.stringify(originalData);
+ *
+ *   const { handleSubmit } = useFormTracking({
+ *     formId: 'my-form',
+ *     isDirty,
+ *     onSave: async () => {
+ *       await saveFormData(formData);
+ *       setOriginalData(formData); // Resets dirty state
+ *     },
+ *   });
+ *
+ *   return <form onSubmit={handleSubmit}>...</form>;
+ * }
+ * ```
+ */
+export function useFormTracking(options: UseFormTrackingOptions) {
+  const {
+    formId,
+    isDirty,
+    onSave,
+    unsavedMessage: _unsavedMessage = DEFAULT_UNSAVED_MESSAGE,
+  } = options;
+  const {
+    registerForm,
+    onSaveRequest,
+    unregisterForm,
+    markFormDirty,
+    markFormClean,
+  } = useFormState();
+
+  // Keep a ref to the save function to avoid re-running effects
+  const onSaveRef = useRef(onSave);
+  useEffect(() => {
+    onSaveRef.current = onSave;
+  }, [onSave]);
+
+  // ✅ FIXED: Register form on mount so it appears in context's forms Map
+  useEffect(() => {
+    registerForm(formId); // Register without initial fields (will use empty object)
+
+    const saveCallback = () => onSaveRef.current();
+    const unsubscribe = onSaveRequest(formId, saveCallback);
+
+    return () => {
+      unsubscribe();
+      unregisterForm(formId);
+    };
+  }, [formId, registerForm, onSaveRequest, unregisterForm]);
+
+  // Update global dirty state when this form's state changes
+  useEffect(() => {
+    if (isDirty) {
+      markFormDirty(formId);
+    } else {
+      markFormClean(formId);
+    }
+  }, [isDirty, formId, markFormDirty, markFormClean]);
+
+  // ✅ REMOVED: Duplicate beforeunload listener
+  // FormStateContext already installs a centralized guard when hasUnsavedChanges is true
+  // Individual forms should not install their own listeners
+
+  /**
+   * Wrapper for form's local onSubmit handler.
+   * Prevents default event, calls the save function,
+   * and marks the form clean on success.
+   */
+  const handleSubmit = useCallback(
+    async (e?: React.FormEvent) => {
+      if (e) {
+        e.preventDefault();
+      }
+
+      try {
+        await onSaveRef.current();
+        // The form's onSave logic should update its state,
+        // which will set isDirty=false, triggering the effect above.
+      } catch (error) {
+        // Don't mark clean if save failed
+        logger.error(`Form ${formId} save failed`, error as Error, { formId });
+        throw error; // Re-throw for local error handling
+      }
+    },
+    [formId],
+  );
+
+  return {
+    handleSubmit,
+    isDirty,
+  };
+}
+
+]]>
+</file>
+
+<file path="hooks/useOrgCounters.ts">
+<![CDATA[
+import useSWR from "swr";
+import { useSession } from "next-auth/react";
+import { fetchOrgCounters, type CounterPayload } from "@/lib/counters";
+
+export function useOrgCounters() {
+  const { data: session, status } = useSession();
+  const orgId = (session?.user as { orgId?: string } | undefined)?.orgId;
+  const isReady = status === "authenticated" && !!orgId;
+
+  const { data, error, isLoading, mutate } = useSWR<CounterPayload>(
+    isReady && orgId ? ["counters", orgId] : null,
+    (_key: [string, string]) => fetchOrgCounters(_key[1]),
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 60000,
+    },
+  );
+
+  return {
+    counters: data,
+    error,
+    isLoading,
+    refresh: mutate,
+    orgId,
+  };
+}
+
+]]>
+</file>
+
+<file path="hooks/usePageLabels.ts">
+<![CDATA[
+"use client";
+
+import { useTranslation } from "@/contexts/TranslationContext";
+
+const PAGE_LABELS = {
+  workOrders: {
+    titleKey: "pageLabels.workOrders.title",
+    subtitleKey: "pageLabels.workOrders.subtitle",
+    titleFallback: "Work Orders",
+    subtitleFallback: "Dispatch, preventive programs, and SLA tracking",
+  },
+  properties: {
+    titleKey: "pageLabels.properties.title",
+    subtitleKey: "pageLabels.properties.subtitle",
+    titleFallback: "Properties",
+    subtitleFallback: "Full building, unit, and tenant records",
+  },
+  assets: {
+    titleKey: "pageLabels.assets.title",
+    subtitleKey: "pageLabels.assets.subtitle",
+    titleFallback: "Assets",
+    subtitleFallback: "Asset registry with lifecycle and maintenance data",
+  },
+  tenants: {
+    titleKey: "pageLabels.tenants.title",
+    subtitleKey: "pageLabels.tenants.subtitle",
+    titleFallback: "Tenants",
+    subtitleFallback: "Lease management, communications, and collections",
+  },
+  vendors: {
+    titleKey: "pageLabels.vendors.title",
+    subtitleKey: "pageLabels.vendors.subtitle",
+    titleFallback: "Vendors",
+    subtitleFallback: "Preferred suppliers, compliance, and performance",
+  },
+  projects: {
+    titleKey: "pageLabels.projects.title",
+    subtitleKey: "pageLabels.projects.subtitle",
+    titleFallback: "Projects",
+    subtitleFallback: "Capital planning and execution tracking",
+  },
+  rfqs: {
+    titleKey: "pageLabels.rfqs.title",
+    subtitleKey: "pageLabels.rfqs.subtitle",
+    titleFallback: "RFQs",
+    subtitleFallback: "Request for quotations and bidding workflows",
+  },
+  invoices: {
+    titleKey: "pageLabels.invoices.title",
+    subtitleKey: "pageLabels.invoices.subtitle",
+    titleFallback: "Invoices",
+    subtitleFallback: "Billing pipeline, approvals, and collections",
+  },
+  finance: {
+    titleKey: "pageLabels.finance.title",
+    subtitleKey: "pageLabels.finance.subtitle",
+    titleFallback: "Finance",
+    subtitleFallback: "Expenses, budgets, ledgers, and financial reporting",
+  },
+  hr: {
+    titleKey: "pageLabels.hr.title",
+    subtitleKey: "pageLabels.hr.subtitle",
+    titleFallback: "Human Resources",
+    subtitleFallback: "People operations, payroll, and attendance",
+  },
+  administration: {
+    titleKey: "pageLabels.administration.title",
+    subtitleKey: "pageLabels.administration.subtitle",
+    titleFallback: "Administration",
+    subtitleFallback: "Governance, policies, and asset oversight",
+  },
+  crm: {
+    titleKey: "pageLabels.crm.title",
+    subtitleKey: "pageLabels.crm.subtitle",
+    titleFallback: "CRM",
+    subtitleFallback: "Customer relationships, leads, and contracts",
+  },
+  marketplace: {
+    titleKey: "pageLabels.marketplace.title",
+    subtitleKey: "pageLabels.marketplace.subtitle",
+    titleFallback: "Marketplace",
+    subtitleFallback: "Souq vendor catalogues and procurement requests",
+  },
+  support: {
+    titleKey: "pageLabels.support.title",
+    subtitleKey: "pageLabels.support.subtitle",
+    titleFallback: "Support",
+    subtitleFallback: "Ticketing, SLAs, and omni-channel care",
+  },
+  compliance: {
+    titleKey: "pageLabels.compliance.title",
+    subtitleKey: "pageLabels.compliance.subtitle",
+    titleFallback: "Compliance",
+    subtitleFallback: "Contracts, disputes, audits, and risk tracking",
+  },
+  reports: {
+    titleKey: "pageLabels.reports.title",
+    subtitleKey: "pageLabels.reports.subtitle",
+    titleFallback: "Reports",
+    subtitleFallback: "Operational and financial analytics dashboards",
+  },
+  system: {
+    titleKey: "pageLabels.system.title",
+    subtitleKey: "pageLabels.system.subtitle",
+    titleFallback: "System",
+    subtitleFallback: "User access, integrations, and billing controls",
+  },
+  settings: {
+    titleKey: "pageLabels.settings.title",
+    subtitleKey: "pageLabels.settings.subtitle",
+    titleFallback: "Settings",
+    subtitleFallback: "Account preferences and personalization",
+  },
+} as const;
+
+export type PageLabelKey = keyof typeof PAGE_LABELS;
+export const PAGE_LABEL_KEYS = Object.keys(PAGE_LABELS) as PageLabelKey[];
+
+export function usePageLabels(pageKey: PageLabelKey) {
+  const { t } = useTranslation();
+  const config = PAGE_LABELS[pageKey];
+  const title = t(config.titleKey, config.titleFallback);
+  const subtitle = t(config.subtitleKey, config.subtitleFallback);
+  return { title, subtitle };
+}
+
+]]>
+</file>
+
+<file path="hooks/useScreenSize.ts">
+<![CDATA[
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+// 🟨 FIXED: Import the existing debounce hook
+import { useDebounceCallback } from "./useDebounce";
+
+export type ScreenSize = "mobile" | "tablet" | "desktop" | "large";
+
+export interface ScreenInfo {
+  width: number;
+  height: number;
+  size: ScreenSize;
+  isMobile: boolean;
+  isTablet: boolean;
+  isDesktop: boolean;
+  isLarge: boolean;
+  isSmall: boolean;
+  isPortrait: boolean;
+  isLandscape: boolean;
+  devicePixelRatio: number;
+  isTouchDevice: boolean;
+  isHighResolution: boolean;
+}
+
+const getScreenSize = (width: number): ScreenSize => {
+  if (width < 640) return "mobile";
+  if (width < 1024) return "tablet";
+  if (width < 1280) return "desktop";
+  return "large";
+};
+
+const getScreenInfo = (): ScreenInfo => {
+  const width = typeof window !== "undefined" ? window.innerWidth : 1024;
+  const height = typeof window !== "undefined" ? window.innerHeight : 768;
+  const size = getScreenSize(width);
+  const devicePixelRatio =
+    typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+  const isTouchDevice =
+    typeof window !== "undefined" ? "ontouchstart" in window : false;
+
+  return {
+    width,
+    height,
+    size,
+    isMobile: size === "mobile",
+    isTablet: size === "tablet",
+    isDesktop: size === "desktop",
+    isLarge: size === "large",
+    isSmall: width < 768,
+    isPortrait: height > width,
+    isLandscape: width >= height,
+    devicePixelRatio,
+    isTouchDevice,
+    isHighResolution: devicePixelRatio > 1,
+  };
+};
+
+/**
+ * Tracks viewport dimensions/orientation and exposes a rich `ScreenInfo` object
+ * along with a ready flag. Updates are debounced to prevent rapid re-renders
+ * during resize/rotation events.
+ */
+export function useScreenSize() {
+  const [screenInfo, setScreenInfo] = useState<ScreenInfo>(() =>
+    getScreenInfo(),
+  );
+  const [isReady, setIsReady] = useState(false);
+
+  // Memoize the update function
+  const updateScreenInfo = useCallback(() => {
+    setScreenInfo(getScreenInfo());
+  }, []);
+
+  // 🟨 FIXED: Use the existing useDebounceCallback hook
+  const debouncedUpdateScreenInfo = useDebounceCallback(updateScreenInfo, 150);
+
+  useEffect(() => {
+    // Guard for SSR
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    // Set initial screen info on mount
+    updateScreenInfo();
+    setIsReady(true);
+
+    window.addEventListener("resize", debouncedUpdateScreenInfo);
+    window.addEventListener("orientationchange", updateScreenInfo);
+    window.addEventListener("load", updateScreenInfo);
+
+    return () => {
+      window.removeEventListener("resize", debouncedUpdateScreenInfo);
+      window.removeEventListener("orientationchange", updateScreenInfo);
+      window.removeEventListener("load", updateScreenInfo);
+    };
+  }, [debouncedUpdateScreenInfo, updateScreenInfo]);
+
+  return { screenInfo, isReady, updateScreenInfo };
+}
+
+/**
+ * Returns a set of utility classes derived from the current screen info so
+ * components can stay responsive without duplicating breakpoint logic.
+ */
+export function getResponsiveClasses(screenInfo: ScreenInfo) {
+  const { size, isMobile, isTablet, isDesktop } = screenInfo;
+
+  return {
+    // Container classes
+    container: {
+      mobile: "max-w-sm mx-auto px-4",
+      tablet: "max-w-2xl mx-auto px-6",
+      desktop: "max-w-6xl mx-auto px-8",
+      large: "max-w-7xl mx-auto px-8",
+    }[size],
+
+    // Grid classes
+    grid: {
+      mobile: "grid-cols-1",
+      tablet: "grid-cols-1 md:grid-cols-2",
+      desktop: "grid-cols-1 md:grid-cols-2 lg:grid-cols-3",
+      large: "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
+    }[size],
+
+    // Text sizes
+    text: {
+      mobile: "text-sm",
+      tablet: "text-base",
+      desktop: "text-base",
+      large: "text-lg",
+    }[size],
+
+    // Spacing
+    spacing: {
+      mobile: "space-y-2",
+      tablet: "space-y-4",
+      desktop: "space-y-6",
+      large: "space-y-8",
+    }[size],
+
+    // Sidebar visibility
+    sidebarVisible: !isMobile && !isTablet,
+
+    // Mobile-specific adjustments
+    mobileOptimizations: isMobile ? "touch-manipulation" : "",
+    tabletOptimizations: isTablet ? "scroll-smooth" : "",
+    desktopOptimizations: isDesktop ? "hover:shadow-lg" : "",
+  };
+}
+
+]]>
+</file>
+
+<file path="hooks/useSubscription.ts">
+<![CDATA[
+"use client";
+
+import { useSession } from "next-auth/react";
+import { useMemo } from "react";
+import {
+  hasFeatureAccess,
+  hasModuleAccess,
+  getAvailableFeatures,
+  getAvailableModules,
+  getPlanLimits,
+  isWithinLimit,
+  normalizePlanName,
+  isSubscriptionActive,
+  daysUntilExpiry,
+  FEATURE_REQUIREMENTS,
+  type FeatureName,
+  type ModuleName,
+  type PlanName,
+} from "@/lib/subscription/featureGating";
+
+export interface SubscriptionState {
+  // Status
+  isLoading: boolean;
+  isActive: boolean;
+  plan: PlanName;
+  daysRemaining: number | null;
+  subscriptionStatus?: string | null;
+  
+  // Access checks
+  canAccessFeature: (feature: FeatureName) => boolean;
+  canAccessModule: (module: ModuleName) => boolean;
+  isWithinLimit: (limitType: "maxUsers" | "maxProperties" | "maxWorkOrdersPerMonth" | "maxStorageGB", current: number) => boolean;
+  
+  // Available resources
+  availableFeatures: FeatureName[];
+  availableModules: ModuleName[];
+  limits: ReturnType<typeof getPlanLimits>;
+  
+  // Upgrade helpers
+  needsUpgrade: (feature: FeatureName) => boolean;
+  getUpgradePlan: (feature: FeatureName) => PlanName;
+}
+
+/**
+ * React hook for subscription-based feature gating.
+ * 
+ * @example
+ * ```tsx
+ * function MyComponent() {
+ *   const { canAccessFeature, needsUpgrade, plan } = useSubscription();
+ *   
+ *   if (!canAccessFeature('finance')) {
+ *     return <UpgradePrompt feature="finance" />;
+ *   }
+ *   
+ *   return <FinanceModule />;
+ * }
+ * ```
+ */
+export function useSubscription(): SubscriptionState {
+  const { data: session, status } = useSession();
+  
+  const subscriptionData = useMemo(() => {
+    const isLoading = status === "loading";
+    
+    // Extract subscription info from session
+    const user = session?.user as {
+      subscriptionPlan?: string;
+      subscriptionStatus?: string;
+      subscriptionActiveUntil?: string;
+    } | undefined;
+    
+    const rawPlan = user?.subscriptionPlan;
+    const subscriptionStatus = user?.subscriptionStatus;
+    const activeUntil = user?.subscriptionActiveUntil;
+    
+    // Normalize and validate
+    const plan = normalizePlanName(rawPlan);
+    const isActive = isSubscriptionActive(subscriptionStatus || "ACTIVE", activeUntil);
+    const daysRemaining = daysUntilExpiry(activeUntil);
+    
+    // Get available resources
+    const availableFeatures = getAvailableFeatures(plan);
+    const availableModules = getAvailableModules(plan);
+    const limits = getPlanLimits(plan);
+    
+    return {
+      isLoading,
+      isActive,
+      plan,
+      daysRemaining,
+      subscriptionStatus: subscriptionStatus ?? null,
+      availableFeatures,
+      availableModules,
+      limits,
+    };
+  }, [session, status]);
+  
+  const canAccessFeature = useMemo(() => {
+    return (feature: FeatureName) => {
+      // If subscription is not active, only allow basic features
+      if (!subscriptionData.isActive) {
+        return hasFeatureAccess("BASIC", feature);
+      }
+      return hasFeatureAccess(subscriptionData.plan, feature);
+    };
+  }, [subscriptionData.isActive, subscriptionData.plan]);
+  
+  const canAccessModule = useMemo(() => {
+    return (module: ModuleName) => {
+      if (!subscriptionData.isActive) {
+        return hasModuleAccess("BASIC", module);
+      }
+      return hasModuleAccess(subscriptionData.plan, module);
+    };
+  }, [subscriptionData.isActive, subscriptionData.plan]);
+  
+  const checkLimit = useMemo(() => {
+    return (limitType: "maxUsers" | "maxProperties" | "maxWorkOrdersPerMonth" | "maxStorageGB", current: number) => {
+      return isWithinLimit(subscriptionData.plan, limitType, current);
+    };
+  }, [subscriptionData.plan]);
+  
+  const needsUpgrade = useMemo(() => {
+    return (feature: FeatureName) => !canAccessFeature(feature);
+  }, [canAccessFeature]);
+  
+  const getUpgradePlan = useMemo(() => {
+    return (feature: FeatureName): PlanName => {
+      return FEATURE_REQUIREMENTS[feature] as PlanName;
+    };
+  }, []);
+  
+  return {
+    ...subscriptionData,
+    canAccessFeature,
+    canAccessModule,
+    isWithinLimit: checkLimit,
+    needsUpgrade,
+    getUpgradePlan,
+  };
+}
+
+export default useSubscription;
+
+]]>
+</file>
+
+</batch_content>

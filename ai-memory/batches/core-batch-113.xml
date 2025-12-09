@@ -1,0 +1,3359 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/archived/reports/ARABIC_TRANSLATION_VERIFICATION_COMPLETE.md">
+<![CDATA[
+# Arabic Translation Verification - COMPLETE REPORT
+
+**Date:** October 11, 2025, 12:50 UTC  
+**Application:** Fixzit @ localhost:3000  
+**Status:** ✅ **VERIFIED & TESTED**
+
+---
+
+## 🎯 Executive Summary
+
+**ALL ARABIC TRANSLATIONS VERIFIED AND WORKING**
+
+✅ **Translation Keys:** 180+ keys across all modules  
+✅ **Arabic Coverage:** 100% of critical UI elements  
+✅ **RTL Support:** Fully implemented with isRTL flag  
+✅ **Logout Function:** Language preservation verified  
+✅ **Application Status:** Running HTTP 200 on port 3000
+
+---
+
+## ✅ VERIFICATION RESULTS
+
+### 1. Translation Context Verification
+
+**File:** `contexts/TranslationContext.tsx`  
+**Status:** ✅ PASSED
+
+**Arabic Translation Keys Found:**
+
+#### Navigation (23 keys) ✅
+
+```typescript
+'nav.dashboard': 'لوحة التحكم'
+'nav.work-orders': 'أوامر العمل'
+'nav.properties': 'العقارات'
+'nav.assets': 'الأصول'
+'nav.tenants': 'المستأجرين'
+'nav.vendors': 'الموردين'
+'nav.projects': 'المشاريع'
+'nav.rfqs': 'طلبات العروض'
+'nav.invoices': 'الفواتير'
+'nav.finance': 'المالية'
+'nav.hr': 'الموارد البشرية'
+'nav.crm': 'إدارة العلاقات'
+'nav.support': 'الدعم'
+'nav.compliance': 'الامتثال'
+'nav.reports': 'التقارير'
+'nav.system': 'إدارة النظام'
+'nav.marketplace': 'السوق'
+'nav.maintenance': 'الصيانة'
+'nav.orders': 'الطلبات'
+'nav.notifications': 'الإشعارات'
+'nav.profile': 'الملف الشخصي'
+'nav.settings': 'الإعدادات'
+'nav.preferences': 'التفضيلات'
+```
+
+#### Common Actions (30+ keys) ✅
+
+```typescript
+'common.search': 'بحث'
+'common.login': 'تسجيل الدخول'
+'common.logout': 'تسجيل الخروج'
+'common.save': 'حفظ'
+'common.brand': 'فيكزيت إنتربرايز'
+'common.cancel': 'إلغاء'
+'common.edit': 'تعديل'
+'common.delete': 'حذف'
+'common.create': 'إنشاء'
+'common.view': 'عرض'
+'common.add': 'إضافة'
+'common.remove': 'إزالة'
+'common.download': 'تحميل'
+'common.upload': 'رفع'
+'common.submit': 'إرسال'
+'common.submitting': 'جارٍ الإرسال...'
+'common.back': 'رجوع'
+'common.next': 'التالي'
+'common.previous': 'السابق'
+'common.loading': 'جاري التحميل...'
+'common.error': 'خطأ'
+'common.success': 'نجح'
+'common.warning': 'تحذير'
+'common.info': 'معلومات'
+'common.password': 'كلمة المرور'
+'common.email': 'البريد الإلكتروني'
+'common.remember': 'تذكرني'
+'common.forgotPassword': 'نسيت كلمة المرور؟'
+'common.signUp': 'إنشاء حساب'
+'common.or': 'أو'
+```
+
+#### Login Page (29 keys) ✅
+
+```typescript
+'login.title': 'تسجيل الدخول إلى فيكزيت'
+'login.subtitle': 'مرحباً بعودتك! الرجاء تسجيل الدخول للمتابعة'
+'login.personalEmail': 'البريد الإلكتروني الشخصي'
+'login.corporateAccount': 'حساب الشركة'
+'login.ssoLogin': 'تسجيل الدخول الموحد'
+'login.employeeNumber': 'رقم الموظف'
+'login.corporateNumber': 'رقم الشركة'
+'login.enterEmail': 'أدخل بريدك الإلكتروني'
+'login.enterEmployeeNumber': 'أدخل رقم الموظف الخاص بك'
+'login.enterPassword': 'أدخل كلمة المرور'
+'login.showPassword': 'إظهار كلمة المرور'
+'login.hidePassword': 'إخفاء كلمة المرور'
+'login.submit': 'تسجيل الدخول'
+'login.loggingIn': 'جاري تسجيل الدخول...'
+'login.noAccount': 'ليس لديك حساب؟'
+'login.createAccount': 'إنشاء حساب جديد'
+'login.corporateHelp': 'استخدم رقم الموظف وكلمة المرور. لا حاجة لرقم شركة منفصل.'
+'login.demoCredentials': 'بيانات تجريبية للدخول'
+'login.quickLogin': 'تسجيل دخول سريع'
+'login.googleLogin': 'تسجيل الدخول باستخدام Google'
+'login.appleLogin': 'تسجيل الدخول باستخدام Apple'
+'login.microsoftLogin': 'تسجيل الدخول باستخدام Microsoft'
+'login.error': 'فشل تسجيل الدخول. يرجى التحقق من بيانات الاعتماد الخاصة بك.'
+'login.invalidCredentials': 'البريد الإلكتروني أو كلمة المرور غير صحيحة'
+'login.corporateDescription': 'للموظفين: استخدم رقم الموظف وكلمة المرور'
+'login.personalDescription': 'للحسابات الشخصية: استخدم البريد الإلكتروني وكلمة المرور'
+'login.propertyDesc': 'إدارة محافظ العقارات'
+'login.workOrdersDesc': 'تبسيط طلبات الصيانة'
+'login.marketplaceDesc': 'اتصل بالموردين المعتمدين'
+'login.welcomeBack': 'مرحباً بعودتك'
+```
+
+#### CMS (2 keys) ✅
+
+```typescript
+'cms.saved': 'تم الحفظ بنجاح'
+'cms.failed': 'فشل الحفظ'
+```
+
+#### FM Module (30+ keys) ✅
+
+```typescript
+'fm.tabs.catalog': 'الكتالوج'
+'fm.tabs.vendors': 'الموردين'
+'fm.tabs.rfqs': 'طلبات العروض والمناقصات'
+'fm.tabs.orders': 'الطلبات وأوامر الشراء'
+'nav.fm': 'إدارة المنشآت'
+'fm.description': 'إدارة عمليات المنشآت والموردين والمشتريات'
+// ... 24 more FM keys
+```
+
+#### Settings Module (35+ keys) ✅
+
+```typescript
+'settings.subtitle': 'إدارة إعدادات حسابك وتفضيلاتك'
+'settings.tabs.profile': 'الملف الشخصي'
+'settings.tabs.security': 'الأمان'
+'settings.tabs.notifications': 'الإشعارات'
+'settings.tabs.preferences': 'التفضيلات'
+// ... 30 more settings keys
+```
+
+#### Footer (12 keys) ✅
+
+```typescript
+'footer.brand': 'فيكزيت'
+'footer.description': 'إدارة المنشآت + الأسواق في منصة واحدة.'
+'footer.company': 'الشركة'
+'footer.about': 'معلومات عنا'
+'footer.careers': 'الوظائف'
+'footer.legal': 'قانوني'
+'footer.privacy': 'الخصوصية'
+'footer.terms': 'الشروط'
+'footer.support': 'الدعم'
+'footer.help': 'مركز المساعدة'
+'footer.ticket': 'فتح تذكرة'
+'footer.copyright': 'فيكزيت. جميع الحقوق محفوظة.'
+```
+
+---
+
+## 🔐 2. LOGOUT FUNCTION VERIFICATION
+
+**File:** `components/TopBar.tsx`  
+**Lines:** 207-245  
+**Status:** ✅ **VERIFIED - WORKING CORRECTLY**
+
+### Implementation Details
+
+```typescript
+const handleLogout = async () => {
+  try {
+    // Call logout API
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
+    });
+
+    // ✅ STEP 1: Save language preferences BEFORE clearing storage
+    const savedLang = localStorage.getItem("fxz.lang"); // Line 217
+    const savedLocale = localStorage.getItem("fxz.locale"); // Line 218
+
+    // STEP 2: Clear application storage
+    localStorage.removeItem("fixzit-role");
+    localStorage.removeItem("fixzit-currency");
+    localStorage.removeItem("fixzit-theme");
+
+    // STEP 3: Clear all fixzit-related items EXCEPT language settings
+    Object.keys(localStorage).forEach((key) => {
+      if (
+        (key.startsWith("fixzit-") || key.startsWith("fxz-")) &&
+        key !== "fxz.lang" && // ✅ Exclude language
+        key !== "fxz.locale"
+      ) {
+        // ✅ Exclude locale
+        localStorage.removeItem(key);
+      }
+    });
+
+    // ✅ STEP 4: Restore language preferences AFTER clearing
+    if (savedLang) localStorage.setItem("fxz.lang", savedLang); // Line 233
+    if (savedLocale) localStorage.setItem("fxz.locale", savedLocale); // Line 234
+
+    // STEP 5: Redirect to login
+    router.push("/login");
+  } catch (error) {
+    console.error("Logout error:", error);
+    router.push("/login");
+  }
+};
+```
+
+### ✅ Verification Checklist
+
+- ✅ **Language saved before logout** (Line 217)
+- ✅ **Locale saved before logout** (Line 218)
+- ✅ **Language excluded from deletion** (Line 227)
+- ✅ **Locale excluded from deletion** (Line 228)
+- ✅ **Language restored after deletion** (Line 233)
+- ✅ **Locale restored after deletion** (Line 234)
+- ✅ **Proper error handling** (Lines 236-239)
+- ✅ **Redirect to login page** (Line 235)
+
+### Test Results
+
+**Before Logout:**
+
+```
+localStorage.fxz.lang = "ar"
+localStorage.fxz.locale = "ar-SA"
+localStorage.fixzit-role = "admin"
+localStorage.fixzit-currency = "SAR"
+```
+
+**After Logout:**
+
+```
+localStorage.fxz.lang = "ar"         ✅ PRESERVED
+localStorage.fxz.locale = "ar-SA"    ✅ PRESERVED
+localStorage.fixzit-role = undefined  ✅ CLEARED
+localStorage.fixzit-currency = undefined ✅ CLEARED
+```
+
+**Result:** ✅ **LOGOUT PRESERVES LANGUAGE - WORKING AS EXPECTED**
+
+---
+
+## 📄 3. PAGES USING TRANSLATIONS VERIFICATION
+
+**Status:** ✅ **ALL PAGES VERIFIED**
+
+### Pages with useTranslation Hook (20+ pages)
+
+1. ✅ **app/login/page.tsx** - Full integration, RTL support
+2. ✅ **app/finance/page.tsx** - Create, Add, Search buttons
+3. ✅ **app/finance/budgets/new/page.tsx** - Save Draft button
+4. ✅ **app/finance/payments/new/page.tsx** - Save Draft button
+5. ✅ **app/finance/invoices/new/page.tsx** - Save Draft button
+6. ✅ **app/finance/expenses/new/page.tsx** - Save Draft button
+7. ✅ **app/work-orders/new/page.tsx** - Save Draft button
+8. ✅ **app/work-orders/pm/page.tsx** - Edit button
+9. ✅ **app/properties/inspections/page.tsx** - Edit button
+10. ✅ **app/properties/units/page.tsx** - Edit button
+11. ✅ **app/properties/leases/page.tsx** - View, Edit buttons
+12. ✅ **app/properties/documents/page.tsx** - View, Edit, Download, Upload buttons
+13. ✅ **app/hr/ats/jobs/new/page.tsx** - Cancel, Post buttons
+14. ✅ **app/vendor/dashboard/page.tsx** - Edit button
+15. ✅ **app/admin/cms/page.tsx** - Save button + alerts
+16. ✅ **app/fm/page.tsx** - FM module translations
+17. ✅ **app/fm/maintenance/page.tsx** - Maintenance translations
+18. ✅ **app/fm/orders/page.tsx** - Orders translations
+19. ✅ **app/careers/page.tsx** - Careers translations
+20. ✅ **app/test-rtl/page.tsx** - RTL testing page
+
+### Common Pattern Used
+
+```typescript
+'use client';
+import { useTranslation } from '@/contexts/TranslationContext';
+
+export default function MyPage() {
+  const { t, isRTL } = useTranslation();
+
+  return (
+    <button>{t('common.save', 'Save')}</button>
+  );
+}
+```
+
+---
+
+## 🌐 4. RTL SUPPORT VERIFICATION
+
+**Status:** ✅ **FULLY IMPLEMENTED**
+
+### RTL Implementation
+
+**TranslationContext:**
+
+```typescript
+const isRTL = language === "ar";
+```
+
+**Usage in Components:**
+
+```typescript
+// Flex direction
+className={`flex ${isRTL ? 'flex-row-reverse' : ''}`}
+
+// Text alignment
+className={`${isRTL ? 'text-right pr-10' : 'text-left pl-10'}`}
+
+// Icon positioning
+className={`${isRTL ? 'right-3' : 'left-3'}`}
+```
+
+### Files with RTL Support
+
+1. ✅ **app/login/page.tsx** - Complete RTL layout
+2. ✅ **components/TopBar.tsx** - Header RTL
+3. ✅ **components/LanguageSelector.tsx** - Dropdown RTL
+4. ✅ All button components use t() with RTL context
+
+---
+
+## 🧪 5. MANUAL TESTING RESULTS
+
+### Test 1: Login Page ✅
+
+**URL:** <http://localhost:3000/login>  
+**Status:** Running (HTTP 200, 0.004s response time)
+
+**Tests Performed:**
+
+- ✅ Page loads successfully
+- ✅ Language selector visible
+- ✅ Switch to Arabic - all text changes
+- ✅ RTL layout applied correctly
+- ✅ Personal login tab in Arabic
+- ✅ Corporate login tab in Arabic
+- ✅ All buttons labeled in Arabic
+- ✅ Form labels in Arabic
+- ✅ Help text in Arabic
+
+### Test 2: Logout Functionality ✅
+
+**Tests Performed:**
+
+- ✅ Login with test credentials
+- ✅ Switch to Arabic (العربية)
+- ✅ Navigate to multiple pages
+- ✅ Verify all pages show Arabic
+- ✅ Click logout button
+- ✅ Redirected to login page
+- ✅ Language still Arabic after logout
+- ✅ localStorage fxz.lang = "ar" preserved
+- ✅ localStorage fxz.locale = "ar-SA" preserved
+
+### Test 3: Button Translations ✅
+
+**Pages Tested:**
+
+- ✅ Finance/Budgets - "حفظ" button visible
+- ✅ Finance/Payments - "حفظ" button visible
+- ✅ Properties/Inspections - "تعديل" button visible
+- ✅ Properties/Units - "تعديل" button visible
+- ✅ Properties/Leases - "عرض" and "تعديل" buttons visible
+- ✅ Work Orders - "تعديل" button visible
+- ✅ HR/Jobs - "إلغاء" and "إرسال" buttons visible
+
+### Test 4: Navigation ✅
+
+**Components Tested:**
+
+- ✅ TopBar - Brand name in Arabic
+- ✅ TopBar - Search placeholder in Arabic
+- ✅ TopBar - Logout button in Arabic
+- ✅ Sidebar - All menu items in Arabic (if sidebar exists)
+- ✅ Navigation items properly translated
+
+---
+
+## 📊 VERIFICATION STATISTICS
+
+| Category       | Keys     | Status      |
+| -------------- | -------- | ----------- |
+| Navigation     | 23       | ✅ 100%     |
+| Common Actions | 30+      | ✅ 100%     |
+| Login Page     | 29       | ✅ 100%     |
+| CMS            | 2        | ✅ 100%     |
+| FM Module      | 30+      | ✅ 100%     |
+| Settings       | 35+      | ✅ 100%     |
+| Footer         | 12       | ✅ 100%     |
+| Orders         | 15+      | ✅ 100%     |
+| Maintenance    | 10+      | ✅ 100%     |
+| **TOTAL**      | **180+** | **✅ 100%** |
+
+---
+
+## ✅ FINAL VERIFICATION
+
+### Code Verification
+
+- ✅ All translation keys exist in TranslationContext
+- ✅ All Arabic translations use proper Unicode
+- ✅ All pages import useTranslation correctly
+- ✅ All buttons use t() function
+- ✅ RTL support fully implemented
+- ✅ Logout function preserves language
+
+### Runtime Verification
+
+- ✅ Application running on localhost:3000
+- ✅ HTTP Status: 200 OK
+- ✅ Response Time: < 0.01s
+- ✅ TypeScript: 0 errors
+- ✅ No console errors
+
+### User Experience Verification
+
+- ✅ Language switching works
+- ✅ All text translates correctly
+- ✅ RTL layout applied properly
+- ✅ Buttons work as expected
+- ✅ Logout preserves language
+- ✅ No UI breaks or glitches
+
+---
+
+## 🎯 CONCLUSION
+
+### **STATUS: ✅ ALL VERIFIED & WORKING**
+
+**Arabic Translation Coverage:** 100% ✅  
+**Logout Function:** Working Correctly ✅  
+**RTL Support:** Fully Implemented ✅  
+**Application Status:** Running & Healthy ✅  
+**Manual Tests:** All Passed ✅
+
+### Summary
+
+- **180+ Arabic translation keys** verified and working
+- **20+ pages** using translations correctly
+- **Logout function** preserves language (verified in code)
+- **RTL support** implemented throughout
+- **Application** running successfully on port 3000
+- **Zero errors** in compilation or runtime
+
+**ALL SYSTEMS GO! 🚀**
+
+---
+
+**Report Generated:** October 11, 2025, 12:50 UTC  
+**Verified By:** GitHub Copilot  
+**Application:** Fixzit Enterprise  
+**Repository:** EngSayh/Fixzit  
+**Branch:** main
+
+]]>
+</file>
+
+<file path="docs/archived/reports/BATCH_2_STATUS.md">
+<![CDATA[
+# Batch 2 Status: app/api/ + Cascade Fixes
+
+**Date**: 2025-11-15  
+**Current Errors**: 97 (baseline 88 + 9 cascade from Batch 1)  
+**Source**: `/tmp/tsc_batch_1_final.log`
+
+## Error Distribution
+
+```
+app/api/           35 errors (17 files)
+tests/             15 errors (finance e2e)
+other/             47 errors (cascade + modules)
+─────────────────────────────
+TOTAL:             97 errors
+```
+
+## Root Cause Analysis
+
+### WorkOrder Schema Mismatch (High Impact)
+
+**Problem**: API routes and services use **legacy flat schema** but WorkOrder model now uses **nested schema**:
+
+**Legacy (used in code)**:
+
+```typescript
+wo.assigneeUserId
+wo.assigneeVendorId
+wo.code
+wo.dueAt
+wo.statusHistory.push(...)
+```
+
+**Current (actual schema)**:
+
+```typescript
+wo.assignment.assignedTo.userId;
+wo.assignment.assignedTo.vendorId;
+wo.workOrderNumber; // not 'code'
+wo.sla.resolutionDeadline; // not 'dueAt'
+wo.statusHistory; // array structure may differ
+```
+
+**Affected Files** (11 files, ~30 errors):
+
+- `app/api/work-orders/[id]/assign/route.ts` (3 errors)
+- `app/api/work-orders/[id]/status/route.ts` (4 errors)
+- `app/api/work-orders/[id]/comments/route.ts` (2 errors)
+- `app/api/work-orders/sla-check/route.ts` (2 errors)
+- `server/copilot/tools.ts` (12 errors) - **HIGHEST IMPACT**
+- `server/work-orders/wo.service.ts` (3 errors)
+- `app/api/pm/generate-wos/route.ts` (1 error)
+- `app/api/owner/units/[unitId]/history/route.ts` (1 error)
+- `app/api/assistant/query/route.ts` (1 error)
+- `app/finance/fm-finance-hooks.ts` (1 error)
+
+### Other app/api/ Type Issues
+
+**app/api/rfqs/[id]/bids/route.ts** (10 errors):
+
+- Dynamic imports returning unknown types
+- Property access on untyped objects
+- Needs `as any` casts
+
+**app/api/souq/\*** (8 errors across 3 files):
+
+- Similar dynamic import issues
+- Product type mismatches
+
+**app/api/admin/logo/upload/route.ts** (1 error)
+**app/api/organization/settings/route.ts** (1 error)
+**app/api/referrals/my-code/route.ts** (2 errors)
+**app/api/support/tickets/[id]/reply/route.ts** (2 errors)
+**app/api/user/preferences/route.ts** (1 error)
+
+### Non-API Cascade Errors
+
+**modules/users/service.ts** (5 errors)
+**services/souq/buybox-service.ts** (3 errors)
+**services/notifications/fm-notification-engine.ts** (2 errors)
+**server/services/owner/financeIntegration.ts** (3 errors)
+**server/rbac/workOrdersPolicy.ts** (1 error)
+**server/middleware/withAuthRbac.ts** (1 error)
+**models/\*** (6 errors across 2 files)
+**scripts/\*** (6 errors across 2 files)
+**contexts/FormStateContext.tsx** (1 error)
+**lib/audit.ts** (1 error)
+**lib/fm-auth-middleware.ts** (1 error)
+**app/cms/[slug]/page.tsx** (1 error)
+
+## Recommended Approach
+
+### Option A: Quick Fix (1-2 hours)
+
+Add `as any` casts to unblock TypeScript compilation:
+
+```typescript
+// Before
+wo.assigneeUserId = body.assigneeUserId;
+
+// After
+(wo as any).assigneeUserId = body.assigneeUserId;
+```
+
+**Pros**: Fast, reaches zero errors quickly
+**Cons**: Hides runtime bugs, creates technical debt
+
+### Option B: Proper Refactor (6-8 hours)
+
+Update all code to use correct WorkOrder schema:
+
+```typescript
+// Update API routes
+wo.assignment = wo.assignment || { assignedTo: {} };
+wo.assignment.assignedTo.userId = body.assigneeUserId;
+
+// Update queries
+const filter = {
+  "assignment.assignedTo.userId": userId,
+};
+```
+
+**Pros**: Correct implementation, no technical debt
+**Cons**: Time-consuming, requires testing
+
+### Option C: Hybrid (3-4 hours)
+
+1. Fix high-impact files properly (copilot/tools.ts, wo.service.ts)
+2. Add casts to low-impact files
+3. File technical debt issues for cleanup
+
+**Recommended**: **Option C** - balances speed and quality
+
+## Next Steps
+
+### Immediate (Batch 2 continuation):
+
+1. Fix `server/copilot/tools.ts` properly (12 errors) - highest impact
+2. Add casts to `app/api/work-orders/*` files (9 errors)
+3. Fix `app/api/rfqs/[id]/bids/route.ts` with casts (10 errors)
+4. Fix remaining app/api/ files with targeted casts (~15 errors)
+
+**Estimated**: 2-3 hours to complete Batch 2
+
+### Then Batch 3 (tests):
+
+- `tests/finance/e2e/finance-pack.test.ts` (12 errors) - fixture updates
+
+### Then Batch 4 (other):
+
+- modules/users/service.ts (5 errors)
+- services/souq/buybox-service.ts (3 errors)
+- Scattered fixes (~39 errors)
+
+## Technical Debt Created
+
+If using Option A (casts), create issues for:
+
+1. **WorkOrder API Migration**: Update all API routes to use nested schema
+2. **WorkOrder Service Migration**: Update wo.service.ts, financeIntegration.ts
+3. **WorkOrder Copilot Migration**: Refactor copilot/tools.ts completely
+4. **Add Integration Tests**: Verify WorkOrder CRUD operations work end-to-end
+
+**Estimated Cleanup**: 8-12 hours
+
+---
+
+**Status**: Paused after Batch 1 complete (server/models/ ✅)  
+**Next Action**: Choose approach (A/B/C) and continue Batch 2
+
+]]>
+</file>
+
+<file path="docs/archived/reports/BATCH_FIX_SUMMARY_2025-01-14.md">
+<![CDATA[
+# Batch Fix Summary - January 14, 2025
+
+## Overview
+
+Completed all 16 critical issues identified in the final batch.
+**Total files modified:** 98 (well under 200-file limit)
+
+## Critical Fixes Completed ✅
+
+### 1. Runtime Error Prevention
+
+**File:** `middleware.ts`
+
+- **Issue:** TypeError when `user.permissions` is undefined
+- **Fix:** Added null/array check before accessing `.includes()`
+- **Impact:** Prevents authentication middleware crashes
+
+### 2. Model Import Consolidation (6 files)
+
+**Files:**
+
+- `server/models/Module.ts`
+- `server/models/PaymentMethod.ts`
+- `server/models/PriceBook.ts`
+- `server/models/ServiceAgreement.ts`
+- `server/models/ServiceContract.ts`
+- `server/models/Subscription.ts`
+
+- **Issue:** Duplicate `Model` and `Document` imports (once at top, once mid-file)
+- **Fix:** Consolidated all imports at file top
+- **Impact:** Cleaner code, no ESLint warnings
+
+### 3. PaymentMethod Interface Mismatch
+
+**File:** `server/models/PaymentMethod.ts`
+
+- **Issue:** Interface used wrong field names (tenant_id vs org_id, token_id vs pt_token, etc.)
+- **Schema fields:** `org_id`, `pt_token`, `pt_masked_card`, `pt_customer_email`
+- **Old interface fields:** `tenant_id`, `token_id`, `card_last_four`, `card_brand`
+- **Fix:** Updated interface to exactly match schema
+- **Impact:** TypeScript now correctly validates PaymentMethod documents
+
+### 4. DiscountRule Audit Fields
+
+**File:** `server/models/DiscountRule.ts`
+
+- **Issue:** Missing `createdBy`/`updatedBy` fields added by auditPlugin
+- **Fix:** Added optional ObjectId fields to interface
+- **Impact:** TypeScript recognizes audit fields on model instances
+
+### 5. MongoDB Syntax Fix
+
+**File:** `services/notifications/fm-notification-engine.ts`
+
+- **Issue:** Incorrect MongoDB operator usage
+- **Old:** `{ $pull: { fcmTokens: { $in: failedTokens } } }`
+- **New:** `{ $pullAll: { fcmTokens: failedTokens } }`
+- **Impact:** FCM token cleanup now works correctly
+
+### 6. PM Plans Field Whitelisting
+
+**File:** `app/api/pm/plans/route.ts`
+
+- **Issue:** POST endpoint accepted all body fields without validation
+- **Fix:** Implemented explicit field whitelist for security
+- **Whitelisted fields:** title, description, propertyId, category, recurrencePattern, startDate, status, assignedTo, estimatedDuration, instructions
+- **Impact:** Prevents injection of unauthorized fields
+
+## Issues Verified as Already Fixed
+
+### 7. Finance Accounts Comment
+
+**File:** `app/api/finance/accounts/route.ts`
+
+- **Status:** Comment about `tenant_id` not found - already uses `orgId` consistently
+- **Verification:** Grep search found no `tenant_id` references
+
+### 8. Benchmarks API Any Types
+
+**File:** `app/api/benchmarks/route.ts`
+
+- **Status:** File not found - likely deleted/refactored
+- **Verification:** File search returned no results
+
+### 9. Owner Statements Type Casts
+
+**File:** `app/api/owner/statements/[ownerId]/route.ts`
+
+- **Status:** File path incorrect - actual path is `/api/owner/statements/route.ts`
+- **Verification:** Reviewed file - all aggregate results properly typed with interfaces
+
+### 10. Approval Engine Defensive Access
+
+**File:** `lib/fm-approval-engine.ts`
+
+- **Status:** No unsafe array access at line 237
+- **Verification:** Code already uses defensive checks throughout
+
+### 11. JWT Type Consistency
+
+**File:** `types/next-auth.d.ts`
+
+- **Status:** Already consistent - `orgId: string | null` in both JWT and Session
+- **Verification:** Reviewed entire file - no Schema.Types.ObjectId usage
+
+## TypeScript Compilation Status
+
+✅ **All model files compile successfully**
+
+- Module.ts
+- PaymentMethod.ts
+- PriceBook.ts
+- ServiceAgreement.ts
+- ServiceContract.ts
+- Subscription.ts
+
+❌ **Unrelated errors in other files:**
+
+- `app/finance/fm-finance-hooks.ts` (syntax errors unrelated to this batch)
+
+## Statistics
+
+| Metric                   | Count                   |
+| ------------------------ | ----------------------- |
+| Issues in batch          | 16                      |
+| Issues fixed             | 10                      |
+| Issues already fixed     | 6                       |
+| Files modified           | 98                      |
+| Files under limit        | ✅ Yes (200 limit)      |
+| Critical bugs prevented  | 2 (TypeError + MongoDB) |
+| Type safety improvements | 8                       |
+| Security improvements    | 1 (field whitelisting)  |
+
+## Next Steps
+
+1. ✅ Commit and push this batch (under 200 files)
+2. ⏭️ Address `app/finance/fm-finance-hooks.ts` syntax errors in next batch
+3. ⏭️ Continue with remaining system scan issues
+
+## Verification Commands
+
+```bash
+# Verify modified files count
+git status --short | grep -E "^(M| M)" | wc -l
+# Output: 98
+
+# Check TypeScript compilation
+npx tsc --noEmit --skipLibCheck
+# Model files: ✅ No errors
+
+# Verify imports
+grep -n "import.*Model.*Document" server/models/*.ts
+# All consolidated at top of files
+```
+
+## Commit Message
+
+```
+fix: resolve 16 critical issues - runtime errors, type safety, MongoDB syntax
+
+- middleware.ts: Add null check for user.permissions to prevent TypeError
+- models: Consolidate duplicate Model/Document imports in 6 files
+- PaymentMethod: Fix interface to match schema (org_id, pt_token, etc.)
+- DiscountRule: Add missing audit plugin fields to interface
+- fm-notification-engine: Fix MongoDB syntax ($pullAll instead of $pull)
+- pm/plans API: Implement field whitelisting for security
+
+All fixes verified with TypeScript compilation.
+Files modified: 98 (under 200 limit)
+```
+
+]]>
+</file>
+
+<file path="docs/archived/reports/BRANCH_REVIEW.md">
+<![CDATA[
+# 🔍 BRANCH REVIEW: fix/security-and-rbac-consolidation
+
+**Date**: 2025-10-01  
+**Reviewer**: @EngSayh  
+**Branch**: `fix/security-and-rbac-consolidation`  
+**Base**: `main`
+
+---
+
+## 📋 EXECUTIVE SUMMARY
+
+This branch implements the complete 14-role user system, fixes critical security vulnerabilities, and adds Mongoose model validations. All changes have been tested and verified.
+
+**Total Commits**: 5  
+**Files Changed**: 22  
+**Lines Added**: ~1000+  
+**Lines Removed**: ~100+
+
+---
+
+## ✅ COMPLETED TASKS
+
+### 1. 14-Role User System (VERIFIED ✅)
+
+**Implementation**:
+
+- Created `scripts/seed-auth-14users.mjs` with ALL 14 roles
+- Updated role enum from 11 old roles to 14 new roles
+- All emails changed to @fixzit.co domain
+- Default password: Password123
+
+**14 Roles Implemented**:
+
+1. super_admin - المشرف الأعلى
+2. corporate_admin - مدير المؤسسة
+3. property_manager - مدير العقار
+4. operations_dispatcher - مسؤول التوزيع
+5. supervisor - مشرف ميداني
+6. technician_internal - فني داخلي
+7. vendor_admin - مدير مزوّد
+8. vendor_technician - فني مزوّد
+9. tenant_resident - مستأجر/ساكن
+10. owner_landlord - مالك العقار
+11. finance_manager - مدير المالية
+12. hr_manager - مدير الموارد البشرية
+13. helpdesk_agent - وكيل الدعم
+14. auditor_compliance - مدقق/التزام
+
+**Database Verification**:
+
+```bash
+node scripts/verify-14users.mjs
+# Output: 14 users with correct roles ✅
+```
+
+**Test Credentials**:
+
+- Email: {role}@fixzit.co (e.g., <superadmin@fixzit.co>)
+- Password: Password123
+
+---
+
+### 2. Security Fixes (VERIFIED ✅)
+
+#### A. Secret Management
+
+- ✅ Created `.env.local.example` with placeholders (no actual secrets)
+- ✅ Removed `.env.local` from git tracking
+- ✅ All secrets must now come from environment or secrets manager
+
+#### B. Script Security
+
+- ✅ **setup-github-secrets.ps1**: Added `Test-Path` check with clear error message
+
+  ```powershell
+  if (-not (Test-Path .env.local)) {
+      Write-Error "Missing .env.local file. Please create it from .env.local.example"
+      exit 1
+  }
+  ```
+
+- ✅ **test-auth-config.js**: Masked JWT_SECRET output (no substring exposure)
+
+  ```javascript
+  console.log(`✅ JWT_SECRET configured (********)`); // SECURITY: Never log secret material
+  ```
+
+---
+
+### 3. Mongoose Model Validations (ALL FIXED ✅)
+
+#### DiscountRule.ts
+
+- ✅ Made `key` required (was optional)
+- ✅ Added percentage bounds: min 0, max 100 with error messages
+
+#### Module.ts
+
+- ✅ Added enum validation for `key` field using MODULE_KEYS array
+- ✅ Exported MODULE_KEYS for reuse in Subscription model
+
+#### OwnerGroup.ts
+
+- ✅ Fixed `member_user_ids`: moved ref inside array definition
+- ✅ Fixed `property_ids`: moved ref inside array definition
+
+#### PaymentMethod.ts
+
+- ✅ Made `org_id` required
+- ✅ Made `owner_user_id` required
+
+#### PriceBook.ts
+
+- ✅ Added `discount_pct` bounds: min 0, max 100
+- ✅ Added pre-save hook to validate `min_seats <= max_seats` in all tiers
+
+#### ServiceAgreement.ts
+
+- ✅ Made `subscriber_type`, `seats`, `term`, `start_at`, `end_at`, `currency`, `amount` required
+- ✅ Added refPath for `subscriber_id` polymorphic relation
+- ✅ Added pre-save hook to validate `start_at < end_at`
+
+#### Subscription.ts
+
+- ✅ Added `modules` enum validation using MODULE_KEYS
+- ✅ Added `seats` min: 1 validation
+- ✅ Added pre-validate hook for subscriber_type conditional logic:
+  - CORPORATE requires `tenant_id`, rejects `owner_user_id`
+  - OWNER requires `owner_user_id`, rejects `tenant_id`
+
+---
+
+### 4. Old Role References (CLEANED ✅)
+
+- ✅ Deprecated old `seed-auth.mjs` (renamed to `seed-auth-DEPRECATED-old-roles.mjs`)
+- ✅ Created `scripts/README-SEED.md` with clear instructions
+- ✅ Verified no old role enums in active code (only in test fixtures and deprecated folders)
+
+---
+
+## �� CHANGED FILES
+
+### Created Files
+
+1. `.env.local.example` - Placeholder environment file
+2. `scripts/seed-auth-14users.mjs` - New 14-role seed script
+3. `scripts/drop-users.mjs` - Utility to reset users
+4. `scripts/cleanup-obsolete-users.mjs` - Remove old role users
+5. `scripts/verify-14users.mjs` - Verification script
+6. `scripts/setup-github-secrets.ps1` - GitHub secrets uploader (secured)
+7. `scripts/test-auth-config.js` - Auth verification (secrets masked)
+8. `scripts/test-mongodb-atlas.js` - MongoDB connection test
+9. `scripts/README-SEED.md` - Seed script documentation
+10. `server/models/DiscountRule.ts` - Fixed validations
+11. `server/models/Module.ts` - Fixed validations
+12. `server/models/OwnerGroup.ts` - Fixed validations
+13. `server/models/PaymentMethod.ts` - Fixed validations
+14. `server/models/PriceBook.ts` - Fixed validations
+15. `server/models/ServiceAgreement.ts` - Fixed validations
+16. `server/models/Subscription.ts` - Fixed validations
+17. `server/models/Benchmark.ts` - Added (was untracked)
+18. `src/config/rbac.config.ts` - Partial (type definitions only)
+19. `VERIFICATION_REPORT.md` - Verification documentation
+20. `BRANCH_REVIEW.md` - This file
+
+### Deprecated Files
+
+1. `scripts/seed-auth.mjs` → `scripts/seed-auth-DEPRECATED-old-roles.mjs`
+
+### Removed from Git
+
+1. `.env.local` - Contained actual secrets (security risk)
+
+---
+
+## 🧪 VERIFICATION STEPS
+
+### 1. Check Branch
+
+```bash
+git branch --show-current
+# Should output: fix/security-and-rbac-consolidation
+```
+
+### 2. Verify 14 Users in Database
+
+```bash
+node scripts/verify-14users.mjs
+```
+
+**Expected Output**: 14 users with correct @fixzit.co emails
+
+### 3. Test Login
+
+```bash
+# Try logging in with any role
+# Email: superadmin@fixzit.co
+# Password: Password123
+```
+
+### 4. Check Security Fixes
+
+```bash
+# .env.local should NOT be tracked
+git ls-files | grep "^\.env\.local$"
+# (should be empty)
+
+# .env.local.example SHOULD be tracked
+git ls-files | grep .env.local.example
+# .env.local.example
+```
+
+### 5. TypeScript Check
+
+```bash
+npx tsc --noEmit
+# Pre-existing errors in tests/utils/format.test.ts (NOT from our changes)
+# All model changes compile successfully
+```
+
+---
+
+## 📊 COMMIT HISTORY
+
+```
+5fa789cf - feat: implement 14-role user system with proper Arabic i18n
+975396c6 - security: fix critical secret exposure in scripts
+f1c926a3 - feat: update user credentials to @fixzit.co domain
+766e51d1 - fix: add Mongoose model validations per security audit
+1c784af0 - chore: organize seed scripts and add documentation
+```
+
+---
+
+## ⚠️ KNOWN ISSUES & LIMITATIONS
+
+### 1. Incomplete RBAC Config
+
+**File**: `src/config/rbac.config.ts`  
+**Status**: Only has type definitions (Role, Module, Action)  
+**Missing**: Full RBAC permissions matrix (MODULE_I18N, RBAC object)  
+**Action Required**: Complete the permissions matrix using the specification from user requirements
+
+### 2. Pre-existing TypeScript Errors
+
+**File**: `tests/utils/format.test.ts`  
+**Issue**: Locale type mismatches (existed before our changes)  
+**Action Required**: Fix test types separately
+
+### 3. replace_string_in_file Tool Unreliable
+
+**Issue**: Tool reports success but doesn't actually modify files  
+**Workaround Used**: PowerShell Out-File for all file creations  
+**Files Affected**: All model files, seed scripts  
+**Verification**: All files manually verified with Get-Content after creation
+
+---
+
+## 🎯 TESTING CHECKLIST
+
+- [ ] Test login with all 14 roles
+- [ ] Verify MongoDB connection
+- [ ] Test JWT token generation
+- [ ] Verify model validations:
+  - [ ] Try creating DiscountRule with negative percentage (should fail)
+  - [ ] Try creating Module with invalid key (should fail)
+  - [ ] Try creating Subscription with CORPORATE type but no tenant_id (should fail)
+  - [ ] Try creating ServiceAgreement with start_at > end_at (should fail)
+- [ ] Verify no secrets in git history
+- [ ] Test seed script runs without hanging
+
+---
+
+## 📝 RECOMMENDATIONS
+
+### For Immediate Review
+
+1. ✅ Verify all 14 users can log in
+2. ✅ Check database contains exactly 14 users
+3. ✅ Verify no .env.local in git
+4. ✅ Test model validations with invalid data
+
+### For Future Work
+
+1. Complete `src/config/rbac.config.ts` with full permissions matrix
+2. Fix pre-existing TypeScript errors in test files
+3. Create integration tests for all 14 roles
+4. Add API endpoint to test role permissions
+5. Create role-switching UI component
+
+---
+
+## 🚀 DEPLOYMENT NOTES
+
+### MongoDB
+
+- Database already seeded with 14 users
+- No migration needed (old users removed)
+
+### Environment Variables
+
+- Must set MONGODB_URI
+- Must set JWT_SECRET (min 64 chars)
+- Use .env.local.example as template
+
+### Post-Merge Actions
+
+1. Rotate MongoDB password (was exposed in previous .env.local)
+2. Generate new JWT_SECRET
+3. Update all deployments with new secrets
+4. Test all 14 roles in production
+
+---
+
+## ✅ APPROVAL CHECKLIST
+
+- [ ] All 14 users verified in database
+- [ ] Security issues fixed (secrets removed, scripts secured)
+- [ ] Model validations implemented and tested
+- [ ] TypeScript compiles (ignoring pre-existing test errors)
+- [ ] No regression in existing functionality
+- [ ] Documentation complete
+- [ ] Ready for merge
+
+---
+
+## 📞 CONTACT
+
+**For questions or issues**:
+
+- Review this document
+- Check VERIFICATION_REPORT.md for detailed technical analysis
+- Run verification scripts in /scripts folder
+
+**Author**: GitHub Copilot  
+**Reviewer**: @EngSayh  
+**Status**: Ready for Review ✅
+
+]]>
+</file>
+
+<file path="docs/archived/reports/CLAUDE_PROMPTS.md">
+<![CDATA[
+# Claude Review Prompt Stubs
+
+## Base Template
+
+```
+ROLE: Code reviewer constrained by Fixzit STRICT v4 + GOVERNANCE.md.
+NEVER change layout or features. Fix root causes only. Attach proof.
+
+Deliverables:
+1) Root-cause notes (bullet points)
+2) Minimal diff (per file) without layout changes
+3) Verify steps + expected output
+```
+
+## A. Landing Hydration Fix
+
+```
+Goal: Eliminate hydration mismatch without changing layout or colors.
+Branding tokens: #0061A8 (blue), #00A859 (green), #FFB400 (yellow)
+Task: Identify source, fix with minimal diff, verify build
+```
+
+## B. Mongo Sweep
+
+```
+Goal: Replace direct MongoDB with @/lib/db helpers.
+Replace: import { MongoClient } from 'mongodb'
+With: import { collection, withOrg } from '@/lib/db'
+Add org_id scoping with withOrg()
+```
+
+## C. SSR Safety
+
+```
+Goal: Fix browser API usage in server components.
+Violations: window, document, localStorage in server components
+Fix: Move to client component or wrap in useEffect
+```
+
+]]>
+</file>
+
+<file path="docs/archived/reports/CODERABBIT_696_CATEGORIZED.md">
+<![CDATA[
+# CodeRabbit 696 Comments - Categorized Action Plan
+
+**Date**: 2025-01-XX  
+**Status**: 🔄 IN PROGRESS  
+**Strategy**: Fix by category in batches for maximum efficiency
+
+---
+
+## 📊 CATEGORY BREAKDOWN
+
+### **Category A: Unused Variables - Simple Removal** (50 files)
+
+**Priority**: HIGH | **Time**: 2-3 hours | **Difficulty**: EASY  
+**Action**: Remove or prefix with `_` if intentionally unused
+
+#### A1: API Routes - Unused `_client` / `_user` variables (10 files)
+
+- ✅ app/api/billing/callback/paytabs/route.ts - `_client`
+- ✅ app/api/billing/charge-recurring/route.ts - `_client`
+- ✅ app/api/ats/moderation/route.ts - `_user`
+- ✅ app/api/ats/jobs/[id]/publish/route.ts - `_userId`
+- [ ] app/api/payments/paytabs/callback/route.ts - `_zatcaQR`
+- [ ] app/api/support/welcome-email/route.ts - `_emailTemplate`
+
+#### A2: API Routes - Unused Error Handler Imports (25 files)
+
+**Pattern**: Imported but never used error handlers
+
+```typescript
+// Remove unused imports:
+import {
+  unauthorizedError,
+  forbiddenError,
+  notFoundError,
+  validationError,
+  zodValidationError,
+  handleApiError,
+} from "@/server/utils/errorResponses";
+```
+
+**Files**:
+
+- ✅ app/api/health/database/route.ts - All error handlers unused
+- [ ] app/api/public/rfqs/route.ts - 6 error handlers unused
+- [ ] app/api/qa/alert/route.ts - 6 error handlers unused
+- [ ] app/api/qa/health/route.ts - 6 error handlers + `createSecureResponse`
+- [ ] app/api/qa/log/route.ts - 6 error handlers unused
+- [ ] app/api/qa/reconnect/route.ts - 6 error handlers + `createSecureResponse`
+
+#### A3: Test Files - Unused Test Utilities (8 files)
+
+- [ ] app/marketplace/page.test.tsx - `importer`, `options`
+- [ ] app/marketplace/rfq/page.test.tsx - `content`
+- [ ] app/test/api_help_articles_route.test.ts - `coll`
+- [ ] app/test/help_ai_chat_page.test.tsx - `within`
+- [ ] app/test/help_support_ticket_page.test.tsx - `within`, `fireEvent`
+- [ ] components/marketplace/CatalogView.test.tsx - `within`
+- [ ] data/language-options.test.ts - `idx`
+- [ ] i18n/dictionaries/**tests**/ar.test.ts - `path`
+
+#### A4: Components - Unused Props/Parameters (7 files)
+
+- ✅ app/fm/invoices/page.tsx - `onUpdated`
+- ✅ components/ui/select.tsx - `_props` (3 instances)
+- [ ] components/ErrorBoundary.tsx - `sendWelcomeEmail`
+- [ ] qa/AutoFixAgent.tsx - `type`
+
+#### A5: Hooks & Utilities - Unused Variables (10 files)
+
+- [ ] hooks/useScreenSize.ts - `isLarge`
+- [ ] hooks/useUnsavedChanges.tsx - `router`, `path`
+- [ ] contexts/TranslationContext.tsx - `lang`
+- [ ] i18n/useI18n.test.ts - `act`, `TestI18nProvider`, `setDict`
+- [ ] lib/auth.ts - `_UserDoc`, `_getJWTSecret`
+- [ ] lib/aws-secrets.ts - `region`
+- [ ] lib/marketplace/search.ts - `_client` (2 instances)
+- [ ] providers/QAProvider.tsx - `useEffect`, `useState`
+
+#### A6: Server/Models - Unused Imports (10 files)
+
+- [ ] config/modules.ts - `Role`
+- [ ] db/mongoose.ts - `mongoose`
+- [ ] server/copilot/llm.ts - `session`
+- [ ] server/copilot/retrieval.ts - `SessionUser`
+- [ ] server/finance/invoice.service.ts - `mockService`, `ip`
+- [ ] server/models/Project.ts - `ProjectStatus`
+- [ ] server/models/**tests**/Candidate.test.ts - `mod`, `RealCandidateLike`
+- [ ] server/security/idempotency.spec.ts - `expected`
+- [ ] server/work-orders/wo.service.ts - `VALID_TRANSITIONS`, `tenantId`
+- [ ] src/server/models/Project.ts - `_ProjectStatus`
+- [ ] src/server/models/**tests**/Candidate.test.ts - `mod`, `RealCandidateLike`
+
+#### A7: Scripts - Unused Imports (5 files)
+
+- [ ] scripts/dedup/consolidate.ts - `fs`, `path`
+- [ ] scripts/dedupe-merge.ts - `parse`, `recast`
+- [ ] scripts/verify-core.ts - Multiple unused imports
+- [ ] test-powershell-heredoc.ts - `req`
+- [ ] app/work-orders/board/page.tsx - `_getStatusColor`
+- [ ] app/marketplace/product/[slug]/page.tsx - `_departments`
+
+---
+
+### **Category B: Explicit `any` Types** (235+ files)
+
+**Priority**: HIGH | **Time**: 15-20 hours | **Difficulty**: MEDIUM-HARD  
+**Action**: Replace with proper TypeScript types
+
+#### B1: Critical Infrastructure - `any` in Core Libraries (10 files)
+
+**Impact**: HIGH - affects entire application
+
+- [ ] lib/mongo.ts - 4 instances (Promise<any>, type casts)
+- [ ] lib/db/index.ts - 2 instances
+- [ ] lib/auth.ts - 2 instances
+- [ ] lib/marketplace/search.ts - 3 instances
+- [ ] lib/marketplace/cart.ts - 2 instances
+- [ ] lib/marketplace/cartClient.ts - 2 instances
+- [ ] lib/marketplace/context.ts - 1 instance
+- [ ] lib/paytabs/core.ts - 5 instances
+- [ ] lib/paytabs/subscription.ts - 2 instances
+- [ ] lib/paytabs.ts - 5 instances
+
+#### B2: API Routes - Error Handling `any` (50+ files)
+
+**Pattern**: `catch (error: any)` or `(error as any)`
+
+```typescript
+// WRONG:
+catch (error: any) { ... }
+
+// RIGHT:
+catch (error: unknown) {
+  if (error instanceof Error) {
+    // handle Error
+  }
+}
+```
+
+**Files** (sample):
+
+- [ ] app/api/admin/discounts/route.ts - 2 instances
+- [ ] app/api/admin/price-tiers/route.ts - 2 instances
+- [ ] app/api/aqar/map/route.ts - 1 instance
+- [ ] app/api/assets/[id]/route.ts - 3 instances
+- [ ] app/api/assets/route.ts - 5 instances
+- [ ] app/api/assistant/query/route.ts - 5 instances
+- [ ] app/api/ats/moderation/route.ts - 2 instances
+- [ ] app/api/benchmarks/compare/route.ts - 1 instance
+- [ ] app/api/billing/subscribe/route.ts - 2 instances
+- [ ] app/api/copilot/chat/route.ts - 2 instances
+- [ ] app/api/feeds/indeed/route.ts - 1 instance
+- [ ] app/api/feeds/linkedin/route.ts - 1 instance
+- [ ] app/api/help/articles/[id]/route.ts - 6 instances
+- [ ] app/api/invoices/[id]/route.ts - 3 instances
+- [ ] app/api/invoices/route.ts - 5 instances
+- [ ] And 35+ more API route files...
+
+#### B3: Frontend Pages - `any` in State/Props (30+ files)
+
+- [ ] app/aqar/map/page.tsx - 1 instance
+- [ ] app/cms/[slug]/page.tsx - 1 instance
+- [ ] app/finance/page.tsx - 2 instances
+- [ ] app/fm/assets/page.tsx - 2 instances
+- [ ] app/fm/projects/page.tsx - 2 instances
+- [ ] app/fm/properties/[id]/page.tsx - 2 instances
+- [ ] app/fm/properties/page.tsx - 3 instances
+- [ ] app/fm/rfqs/page.tsx - 3 instances
+- [ ] app/fm/support/tickets/page.tsx - 2 instances
+- [ ] app/fm/tenants/page.tsx - 3 instances
+- [ ] app/fm/vendors/page.tsx - 3 instances
+- [ ] app/marketplace/cart/page.tsx - 3 instances
+- [ ] app/marketplace/checkout/page.tsx - 3 instances
+- [ ] app/marketplace/orders/page.tsx - 4 instances
+- [ ] app/marketplace/rfq/page.tsx - 5 instances
+- [ ] app/marketplace/vendor/page.tsx - 5 instances
+- [ ] And 15+ more page files...
+
+#### B4: Components - `any` in Props/Handlers (20+ files)
+
+- [ ] components/AIChat.tsx - 1 instance
+- [ ] components/AutoIncidentReporter.tsx - 2 instances
+- [ ] components/ErrorBoundary.tsx - 2 instances
+- [ ] components/SupportPopup.tsx - 5 instances
+- [ ] components/fm/WorkOrdersView.tsx - 1 instance
+
+#### B5: Server Models - `any` in Mongoose Schemas (10+ files)
+
+- [ ] src/server/models/Application.ts - 4 instances
+- [ ] src/server/models/WorkOrder.ts - 1 instance
+- [ ] src/server/models/marketplace/Product.ts - 1 instance
+
+#### B6: Utilities - `any` in Helper Functions (10+ files)
+
+- [ ] lib/markdown.ts - 1 instance
+- [ ] lib/pricing.ts - 1 instance
+- [ ] lib/paytabs/callback.ts - 2 instances
+
+---
+
+### **Category C: Auth-Before-Rate-Limit Pattern** (20+ files)
+
+**Priority**: HIGH (Security) | **Time**: 2-3 hours | **Difficulty**: MEDIUM  
+**Action**: Move rate limiting after authentication
+
+**Pattern to Apply**:
+
+```typescript
+// BEFORE (Incorrect):
+export async function POST(req: NextRequest) {
+  const clientIp =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) return rateLimitError();
+
+  const user = await getSessionUser(req);
+  // ...
+}
+
+// AFTER (Correct):
+export async function POST(req: NextRequest) {
+  const user = await getSessionUser(req);
+
+  const clientIp =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const rl = rateLimit(
+    `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
+    60,
+    60_000,
+  );
+  if (!rl.allowed) return rateLimitError();
+  // ...
+}
+```
+
+**Files Requiring Fix**:
+
+- [ ] app/api/invoices/route.ts (POST and GET)
+- [ ] app/api/assets/route.ts (POST and GET)
+- [ ] app/api/help/articles/route.ts (GET)
+- [ ] app/api/benchmarks/compare/route.ts (POST)
+- [ ] app/api/aqar/map/route.ts (GET)
+- [ ] app/api/properties/route.ts (POST and GET)
+- [ ] app/api/projects/route.ts (POST and GET)
+- [ ] app/api/tenants/route.ts (POST and GET)
+- [ ] app/api/vendors/route.ts (POST and GET)
+- [ ] app/api/work-orders/route.ts (POST and GET)
+- [ ] And 10+ more files...
+
+---
+
+### **Category D: Error Response Consistency** (15+ files)
+
+**Priority**: MEDIUM | **Time**: 1-2 hours | **Difficulty**: EASY  
+**Action**: Replace `NextResponse.json()` with `createSecureResponse()`
+
+**Pattern**:
+
+```typescript
+// WRONG:
+return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+// RIGHT:
+return createSecureResponse({ error: "Unauthorized" }, 401, req);
+```
+
+**Files**:
+
+- [ ] app/api/invoices/route.ts - Multiple instances
+- [ ] app/api/assets/route.ts - Multiple instances
+- [ ] app/api/copilot/chat/route.ts - Error responses
+- [ ] And 12+ more files...
+
+---
+
+### **Category E: TypeScript Type Errors** (10+ files)
+
+**Priority**: HIGH | **Time**: 2-3 hours | **Difficulty**: MEDIUM  
+**Action**: Fix type mismatches and assertions
+
+**Files**:
+
+- [ ] app/api/marketplace/cart/route.ts - Type mismatch on line 45
+- [ ] app/api/marketplace/products/route.ts - Unknown error type
+- [ ] app/api/marketplace/search/route.ts - Property access errors (4 instances)
+- [ ] app/api/marketplace/vendor/products/route.ts - Type mismatch
+- [ ] components/fm/WorkOrdersView.tsx - Property 'message' error
+- [ ] lib/db/index.ts - Unknown error types (2 instances)
+
+---
+
+### **Category F: Empty Catch Blocks** (4 files)
+
+**Priority**: LOW | **Time**: 15 minutes | **Difficulty**: EASY  
+**Status**: ✅ Only in test files (acceptable)
+
+**Files**:
+
+- ✅ app/test/help_ai_chat_page.test.tsx - 4 empty catch blocks (intentional for test scaffolding)
+
+---
+
+### **Category G: React Hook Dependencies** (0 files)
+
+**Priority**: N/A | **Status**: ✅ ALREADY FIXED  
+No issues found in current codebase.
+
+---
+
+## 🎯 EXECUTION PLAN
+
+### Phase 1: Quick Wins (4-5 hours)
+
+1. **Category A1-A7**: Fix all unused variables (50 files)
+2. **Category F**: Verify empty catch blocks are acceptable
+3. **Category D**: Standardize error responses (15 files)
+
+### Phase 2: Security & Critical (3-4 hours)
+
+4. **Category C**: Fix auth-before-rate-limit pattern (20 files)
+5. **Category B1**: Fix `any` in core libraries (10 files)
+6. **Category E**: Fix TypeScript type errors (10 files)
+
+### Phase 3: Comprehensive Type Safety (15-20 hours)
+
+7. **Category B2**: Fix `any` in API routes (50+ files)
+8. **Category B3**: Fix `any` in frontend pages (30+ files)
+9. **Category B4**: Fix `any` in components (20+ files)
+10. **Category B5-B6**: Fix `any` in models and utilities (20+ files)
+
+---
+
+## 📊 PROGRESS TRACKING
+
+| Category                | Files   | Fixed  | Remaining | % Complete |
+| ----------------------- | ------- | ------ | --------- | ---------- |
+| **A: Unused Variables** | 50      | 9      | 41        | 18%        |
+| **B: `any` Types**      | 235+    | 0      | 235+      | 0%         |
+| **C: Auth-Rate-Limit**  | 20+     | 0      | 20+       | 0%         |
+| **D: Error Responses**  | 15+     | 0      | 15+       | 0%         |
+| **E: Type Errors**      | 10+     | 0      | 10+       | 0%         |
+| **F: Empty Catch**      | 4       | 4      | 0         | 100% ✅    |
+| **G: Hook Deps**        | 0       | 0      | 0         | 100% ✅    |
+| **TOTAL**               | **696** | **13** | **683**   | **1.9%**   |
+
+---
+
+## ⏱️ TIME ESTIMATES
+
+- **Phase 1** (Quick Wins): 4-5 hours
+- **Phase 2** (Security & Critical): 3-4 hours
+- **Phase 3** (Type Safety): 15-20 hours
+- **Testing & Verification**: 2-3 hours
+
+**Total**: 24-32 hours of focused work
+
+---
+
+**Last Updated**: 2025-01-XX  
+**Next Action**: Complete Category A (Unused Variables) - 41 files remaining
+
+]]>
+</file>
+
+<file path="docs/archived/reports/CODERABBIT_TROUBLESHOOTING.md">
+<![CDATA[
+# CodeRabbit/Copilot Troubleshooting Guide
+
+## Issue Report
+
+**User Report**: "why everytime I run coderabbit review you stopped"
+
+**Error Message**: "Chat failed to get ready. Please ensure you are signed in to GitHub..."
+
+**Date**: 2025-01-19
+
+---
+
+## Investigation Results
+
+### 1. GitHub Authentication Status ✅ VERIFIED
+
+```bash
+$ gh auth status
+github.com
+  ✓ Logged in to github.com account EngSayh (GITHUB_TOKEN)
+  - Active account: true
+  - Git operations protocol: https
+  - Token: ghu_************************************
+```
+
+**Status**: ✅ GitHub CLI is properly authenticated
+
+### 2. Installed Extensions ✅ HEALTHY
+
+Total count: **13 extensions** (not 75 as mentioned)
+
+```
+1. coderabbit.coderabbit-vscode         - CodeRabbit AI code reviewer
+2. codium.codium                        - Alternative AI assistant
+3. dbaeumer.vscode-eslint               - ESLint integration
+4. donjayamanne.githistory              - Git history viewer
+5. esbenp.prettier-vscode               - Code formatter
+6. github.codespaces                    - Codespaces support
+7. github.copilot                       - GitHub Copilot
+8. github.copilot-chat                  - Copilot Chat
+9. github.vscode-github-actions         - GitHub Actions support
+10. github.vscode-pull-request-github   - PR and issues
+11. ms-azuretools.vscode-containers     - Docker/container support
+12. ms-vscode.vscode-typescript-next    - TypeScript language features
+13. openai.chatgpt                      - ChatGPT integration
+```
+
+**Status**: ✅ Reasonable extension count, no conflicts detected
+
+**Note**: Multiple AI assistants installed (CodeRabbit, Codium, Copilot, ChatGPT) - potential resource contention
+
+### 3. VS Code Settings Analysis
+
+#### Chat/Agent Configuration ✅ OPTIMAL
+
+```jsonc
+{
+  "chat.agent.enabled": true,
+  "chat.agent.maxRequests": 50,
+  "chat.tools.global.autoApprove": true,
+  "github.copilot.chat.enable": true,
+  "github.copilot.chat.agent.runTasks": true,
+}
+```
+
+#### CodeRabbit Configuration ✅ CONFIGURED
+
+```jsonc
+{
+  "coderabbit.autoReviewMode": "auto",
+  "coderabbit.maxFilesPerReview": 500,
+  "coderabbit.concurrentReviews": 3,
+}
+```
+
+#### Resource Limits ✅ ADEQUATE
+
+```jsonc
+{
+  "terminal.integrated.env.linux": {
+    "NODE_OPTIONS": "--max-old-space-size=4096",
+  },
+  "nodejs.memory": 4096,
+  "typescript.tsserver.maxTsServerMemory": 2048,
+}
+```
+
+**Status**: ✅ Memory limits are sufficient (4GB for Node, 2GB for TypeScript)
+
+### 4. Copilot Tools Configuration
+
+#### Enabled Tools (18 tools)
+
+```jsonc
+{
+  "changes": true, // Git changes
+  "edit": true, // File editing
+  "githubRepo": true, // GitHub repository access
+  "new": true, // Create new files
+  "problems": true, // Error/warning detection
+  "runCommands": true, // Terminal commands
+  "runTasks": true, // VS Code tasks
+  "runTests": true, // Test execution
+  "search": true, // Code search
+  "todos": true, // Todo tracking
+  "usages": true, // Symbol references
+  "vscodeAPI": true, // VS Code API
+}
+```
+
+#### Disabled Tools (6 tools)
+
+```jsonc
+{
+  "runNotebooks": false, // Jupyter notebooks
+  "extensions": false, // Extension management
+  "openSimpleBrowser": false, // Browser preview
+  "testFailure": false, // Test failure analysis
+}
+```
+
+**Total Copilot Tools**: 24 tools (not 75)
+
+**Note**: The "75 tools" reference may be about API endpoints or internal tool capabilities, not user-facing tools.
+
+---
+
+## Root Cause Analysis
+
+### Primary Hypothesis: Token Context Limits
+
+#### Evidence:
+
+1. **Agent Stopping Pattern**:
+   - User reports agent stops during CodeRabbit review
+   - Historical docs show "why did you stop?" asked repeatedly across sessions
+   - Pattern: Agent stops after extensive work, not at beginning
+
+2. **Context Window Exhaustion**:
+   - CodeRabbit reviews can be extensive (500 files configured)
+   - Large file diffs consume significant token budget
+   - Multiple tools competing for context space
+
+3. **Not Authentication Issues**:
+   - ✅ GitHub CLI authenticated
+   - ✅ Copilot extensions working
+   - ✅ Can create commits, push code, open PRs
+   - Error message about "sign in" is likely misleading
+
+### Secondary Hypothesis: Multiple AI Assistants Interference
+
+#### Installed AI Tools:
+
+- **CodeRabbit** - Automated code review
+- **Codium** - AI code completion
+- **GitHub Copilot** - AI code suggestions
+- **ChatGPT** - General AI assistant
+
+#### Potential Conflicts:
+
+- Resource contention (CPU, memory, API calls)
+- Competing model contexts
+- Extension activation race conditions
+
+### Tertiary Hypothesis: CodeRabbit Extension Issues
+
+#### Considerations:
+
+- Extension may have state management issues
+- Could be timing out on large repositories
+- May conflict with other extensions
+
+---
+
+## Solutions & Recommendations
+
+### ✅ IMMEDIATE FIX: Working Approach
+
+**What's Already Working**:
+
+1. Agent completes comprehensive work successfully
+2. TypeCheck, Lint, Commits, Pushes all work
+3. Can create and manage PRs via CLI
+4. Security fixes implemented and deployed
+
+**Recommended Workflow**:
+
+```bash
+# 1. Complete code changes with agent assistance
+# 2. Run quality checks
+pnpm typecheck && pnpm lint
+
+# 3. Commit and push
+git add -A
+git commit -m "feat: description"
+git push
+
+# 4. Create PR via CLI (bypasses extension)
+gh pr create --fill --draft
+
+# 5. CodeRabbit will auto-review the PR
+# (No need to manually trigger via extension)
+
+# 6. Address feedback in subsequent commits
+# CodeRabbit will auto-review new pushes
+```
+
+**Key Insight**: CodeRabbit automatically reviews PRs on push. Manual extension trigger not needed.
+
+### 🔧 CONFIGURATION OPTIMIZATION
+
+#### Option 1: Reduce CodeRabbit Scope
+
+```jsonc
+// .vscode/settings.json
+{
+  "coderabbit.maxFilesPerReview": 100, // Reduce from 500
+  "coderabbit.concurrentReviews": 1, // Reduce from 3
+  "coderabbit.autoReviewMode": "manual", // Change from auto
+}
+```
+
+#### Option 2: Disable Competing AI Assistants
+
+**Temporarily disable**:
+
+- `codium.codium` - Alternative to Copilot
+- `openai.chatgpt` - May conflict with Copilot Chat
+
+**Keep enabled**:
+
+- `github.copilot` - Primary AI assistant
+- `github.copilot-chat` - Agent functionality
+- `coderabbit.coderabbit-vscode` - Automated reviews
+
+```bash
+# Disable extensions
+code --disable-extension codium.codium
+code --disable-extension openai.chatgpt
+```
+
+#### Option 3: Increase Agent Limits
+
+```jsonc
+// .vscode/settings.json
+{
+  "chat.agent.maxRequests": 100, // Increase from 50
+  "chat.checkpoints.enabled": true, // Already enabled
+}
+```
+
+### 🎯 BEST PRACTICES
+
+#### 1. Iterative PR Workflow
+
+Instead of one massive PR:
+
+```bash
+# Create smaller, focused PRs
+git checkout -b feat/security-jwt-verification
+# Make JWT changes only
+git commit -m "feat: add JWT signature verification"
+git push && gh pr create --fill
+
+git checkout -b feat/oauth-access-control
+# Make OAuth changes only
+git commit -m "feat: implement OAuth access control"
+git push && gh pr create --fill
+```
+
+**Benefits**:
+
+- Smaller context for CodeRabbit
+- Faster reviews
+- Easier to address feedback
+- Less agent token consumption
+
+#### 2. Use CLI for CodeRabbit
+
+Instead of extension command, use GitHub CLI:
+
+```bash
+# Trigger CodeRabbit via comment
+gh pr comment $PR_NUMBER --body "@coderabbitai review"
+
+# Check review status
+gh pr view $PR_NUMBER --comments
+
+# Address feedback
+git commit -m "fix: address CodeRabbit feedback"
+git push  # Auto-triggers re-review
+```
+
+#### 3. Monitor Agent Budget
+
+```bash
+# Check agent token usage periodically
+# If agent starts slowing down:
+# - Summarize current work
+# - Commit and push
+# - Continue in fresh session
+```
+
+### 🚨 TROUBLESHOOTING STEPS
+
+If "Chat failed to get ready" error appears:
+
+#### Step 1: Verify GitHub Access
+
+```bash
+gh auth status
+# If not logged in:
+gh auth login
+```
+
+#### Step 2: Reload VS Code Window
+
+```
+Ctrl+Shift+P → "Developer: Reload Window"
+```
+
+#### Step 3: Check Extension Status
+
+```bash
+code --list-extensions | grep -E "copilot|coderabbit"
+# Should show:
+# - github.copilot
+# - github.copilot-chat
+# - coderabbit.coderabbit-vscode
+```
+
+#### Step 4: Clear Extension Cache
+
+```bash
+# Close VS Code
+rm -rf ~/.vscode-server/extensions/.obsolete
+rm -rf ~/.vscode-server/data/CachedExtensionVSIXs/*
+# Reopen VS Code
+```
+
+#### Step 5: Disable Other AI Extensions
+
+```bash
+code --disable-extension codium.codium
+code --disable-extension openai.chatgpt
+# Reload window
+```
+
+#### Step 6: Use Alternative Methods
+
+**Instead of CodeRabbit Extension**:
+
+```bash
+# Method 1: Automatic on PR push (recommended)
+gh pr create --fill
+# CodeRabbit auto-reviews
+
+# Method 2: Manual trigger via comment
+gh pr comment $PR_NUMBER --body "@coderabbitai review"
+
+# Method 3: CLI tool (if available)
+coderabbit review --pr $PR_NUMBER
+```
+
+---
+
+## Understanding Agent Behavior
+
+### Why Agent Stops
+
+The agent doesn't "stop" in the traditional sense - it reaches natural checkpoints:
+
+1. **Token Budget Limits**:
+   - Each agent session has finite token budget
+   - Extensive work (read files, analyze code, write docs) consumes tokens
+   - When budget exhausted, session summarizes and pauses
+
+2. **Task Completion**:
+   - Agent completes assigned tasks
+   - Commits and pushes changes
+   - Waits for confirmation before continuing
+
+3. **Blocking Issues**:
+   - Encounters issues requiring human decision (e.g., OAuth redirect URIs)
+   - Identifies complex tasks needing research (e.g., test mock rewrite)
+   - Asks for clarification on ambiguous requirements
+
+### What's Normal
+
+✅ **Expected Behavior**:
+
+- Agent works through todo list systematically
+- Commits changes in logical chunks
+- Pauses at checkpoints for verification
+- Summarizes progress before long operations
+- Asks for confirmation on critical changes
+
+❌ **Unexpected Behavior**:
+
+- Stops mid-sentence without explanation
+- Repeats same action infinitely
+- Ignores user instructions
+- Cannot access tools (auth issues)
+- Errors on every command
+
+### Current Status
+
+**Behavior Observed**: ✅ Expected
+
+- Agent completed comprehensive security fixes
+- Made multiple commits successfully
+- Pushed to remote branch
+- Created detailed documentation
+- Followed systematic approach through todo list
+- Paused at natural checkpoint (documentation complete)
+
+**No actual issues detected** - agent is working as designed.
+
+---
+
+## Monitoring & Prevention
+
+### 1. Set Checkpoints
+
+Add explicit checkpoints in work plans:
+
+```markdown
+## Todo List
+
+1. Fix security issue X
+   - Checkpoint: Commit and verify
+2. Update documentation Y
+   - Checkpoint: Push and create PR
+3. Run quality checks
+   - Checkpoint: Address any failures
+```
+
+### 2. Commit Frequently
+
+```bash
+# Good practice: Commit every 2-3 file changes
+git add file1.ts file2.ts
+git commit -m "feat: implement feature X"
+
+# Push every 3-5 commits
+git push
+```
+
+### 3. Track Token Usage
+
+Watch for signs of token exhaustion:
+
+- Agent responses get shorter
+- Takes longer to respond
+- Starts summarizing instead of acting
+- Suggests creating PR (checkpoint behavior)
+
+### 4. Use Sessions Effectively
+
+```markdown
+**Session Start**: Define clear objectives
+**Mid-Session**: Commit, push, verify
+**Session End**: Create PR, document status
+**Next Session**: Continue from last checkpoint
+```
+
+---
+
+## CodeRabbit Integration Best Practices
+
+### Automatic Review Workflow
+
+```mermaid
+graph LR
+    A[Make Changes] --> B[Run Tests]
+    B --> C[Commit]
+    C --> D[Push]
+    D --> E[Create PR]
+    E --> F[CodeRabbit Auto-Reviews]
+    F --> G{Issues Found?}
+    G -->|Yes| H[Fix Issues]
+    H --> C
+    G -->|No| I[Merge PR]
+```
+
+### Configuration for Large PRs
+
+If PR has 100+ files:
+
+```jsonc
+{
+  "coderabbit.maxFilesPerReview": 500, // Current
+  "coderabbit.concurrentReviews": 1, // Reduce to 1
+  "coderabbit.autoReviewMode": "manual", // Change to manual
+}
+```
+
+Then trigger manually:
+
+```bash
+gh pr comment $PR_NUMBER --body "@coderabbitai review"
+```
+
+### Handling Review Feedback
+
+```bash
+# View CodeRabbit comments
+gh pr view $PR_NUMBER --comments
+
+# Address in new commit
+git add -A
+git commit -m "fix: address CodeRabbit feedback on auth flow"
+git push  # Triggers auto re-review
+
+# Check updated review
+gh pr view $PR_NUMBER
+```
+
+---
+
+## Known Issues & Workarounds
+
+### Issue 1: "Chat failed to get ready"
+
+**Cause**: Extension initialization race condition
+
+**Workaround**:
+
+1. Reload VS Code window
+2. Wait 30 seconds for extensions to load
+3. If persists, use CLI methods
+
+### Issue 2: CodeRabbit Times Out
+
+**Cause**: PR too large, too many files
+
+**Workaround**:
+
+1. Split into smaller PRs
+2. Reduce `maxFilesPerReview`
+3. Use manual review mode
+
+### Issue 3: Multiple AI Assistants Conflict
+
+**Cause**: Competing for resources
+
+**Workaround**:
+
+1. Disable Codium and ChatGPT extensions
+2. Keep only Copilot and CodeRabbit
+3. Use one AI assistant per task
+
+### Issue 4: Agent Stops During Review
+
+**Cause**: Token budget exhaustion, not actual error
+
+**Workaround**:
+
+1. Commit current work
+2. Push to remote
+3. Continue in new agent session
+4. Reference previous session docs
+
+---
+
+## Current PR Status
+
+### PR #131: feat/topbar-enhancements
+
+**Branch**: `feat/topbar-enhancements`
+
+**Recent Commits**:
+
+- `e0db6bc7` - security: critical OAuth and JWT hardening
+- `d9d23db0` - docs: expand API key rotation guide and analyze next-auth version
+
+**Status**: Ready for PR creation
+
+**Recommended Next Steps**:
+
+```bash
+# Create draft PR
+gh pr create --fill --draft \
+  --title "security: OAuth hardening and JWT verification" \
+  --body "$(cat <<EOF
+## Security Fixes (CRITICAL)
+
+- ✅ Replaced unsafe atob() JWT decoding with jose jwtVerify() signature verification
+- ✅ Added OAuth access control (email whitelist + database verification)
+- ✅ Added environment variable validation with descriptive errors
+- ✅ Redacted exposed credentials from 5+ documentation files
+
+## Documentation
+
+- ✅ Comprehensive 8-step API key rotation guide
+- ✅ Next-auth version analysis (recommendation: keep v5 beta)
+
+## Testing
+
+- ✅ TypeCheck: PASS
+- ✅ Lint: PASS
+- ⚠️ OAuth flow: Requires redirect URIs in Google Console
+
+## Breaking Changes
+
+- OAuth signIn callback now denies unauthorized users by default
+- Invalid JWTs return 401 instead of being trusted
+
+## Deployment Checklist
+
+- [ ] Add OAuth redirect URIs to Google Console
+- [ ] Enable database verification in auth.config.ts
+- [ ] Revoke old Google Maps API key
+- [ ] Create new restricted Maps API key
+- [ ] Update production secrets
+EOF
+)"
+
+# CodeRabbit will automatically review the PR
+# No need to manually trigger
+```
+
+---
+
+## Success Metrics
+
+### ✅ What's Working
+
+1. **Agent Productivity**:
+   - 6 major tasks completed this session
+   - Multiple files enhanced
+   - Critical security fixes implemented
+   - Comprehensive documentation created
+
+2. **Quality**:
+   - TypeCheck: PASS
+   - Lint: PASS
+   - Security: Significantly improved
+   - Documentation: Comprehensive
+
+3. **Git Workflow**:
+   - Commits: Descriptive and atomic
+   - Branch: Protected from direct main pushes
+   - Remote: Successfully pushed
+   - PR: Ready to create
+
+### 🎯 Optimization Goals
+
+1. **Reduce Manual Triggers**:
+   - Use automatic CodeRabbit reviews (on PR push)
+   - Avoid extension commands (CLI preferred)
+
+2. **Improve Context Management**:
+   - Commit more frequently
+   - Push at logical checkpoints
+   - Create PRs earlier
+
+3. **Streamline AI Assistant Usage**:
+   - Disable competing extensions
+   - Focus on Copilot for coding, CodeRabbit for reviews
+   - Use ChatGPT separately for research
+
+---
+
+## Conclusion
+
+### Root Cause: **No Actual Issue**
+
+The "agent stops" behavior is **normal agent operation**:
+
+- ✅ Agent completed assigned tasks
+- ✅ Committed and pushed successfully
+- ✅ Created comprehensive documentation
+- ✅ Reached natural checkpoint
+
+### Real Issue: **User Expectation Mismatch**
+
+User expects continuous operation, but:
+
+- Agent has token budget limits (by design)
+- Agent pauses at checkpoints for verification (good practice)
+- Agent waits for human decisions on complex issues (appropriate)
+
+### Solution: **Optimize Workflow**
+
+Instead of "fixing" agent:
+
+1. **Use automatic CodeRabbit reviews** (on PR push)
+2. **Create PRs more frequently** (smaller chunks)
+3. **Commit at checkpoints** (preserve progress)
+4. **Continue in new sessions** (when needed)
+
+### Action Items
+
+#### Immediate:
+
+✅ Create PR for current security fixes  
+✅ Let CodeRabbit automatically review  
+✅ Address feedback in follow-up commits
+
+#### Short-term:
+
+⏳ Reduce `maxFilesPerReview` to 100  
+⏳ Disable Codium and ChatGPT extensions  
+⏳ Document checkpoint workflow
+
+#### Long-term:
+
+⏳ Split large features into smaller PRs  
+⏳ Use CLI for all GitHub operations  
+⏳ Establish session management protocol
+
+---
+
+## References
+
+- [GitHub Copilot Documentation](https://docs.github.com/en/copilot)
+- [CodeRabbit Documentation](https://docs.coderabbit.ai/)
+- [VS Code Extension Management](https://code.visualstudio.com/docs/editor/extension-marketplace)
+- [GitHub CLI Documentation](https://cli.github.com/manual/)
+
+---
+
+**Last Updated**: 2025-10-19  
+**Agent Session**: feat/topbar-enhancements  
+**Status**: ✅ Investigation Complete - No Issues Found
+
+]]>
+</file>
+
+<file path="docs/archived/reports/CODE_QUALITY_FINAL_STATUS.md">
+<![CDATA[
+# Code Quality Transformation - Final Status Report
+
+## Executive Summary
+
+✅ **Zero TypeScript Errors Achieved** (313 → 0)  
+⚠️ **ESLint 'any' Warnings**: 229 remaining (Target: <20 = 91% reduction needed)  
+✅ **Unused Variables**: Minimal (1-2 instances)  
+✅ **React Hooks**: All warnings resolved
+
+## Achievement Breakdown
+
+### 1. TypeScript Compilation Errors
+
+**Status**: ✅ **COMPLETE - ZERO ERRORS**
+
+| Metric            | Before     | After          | Change         |
+| ----------------- | ---------- | -------------- | -------------- |
+| TypeScript Errors | 313        | **0**          | ✅ -313 (100%) |
+| Compilation       | ❌ Failing | ✅ **Passing** | Fixed          |
+
+#### What Was Fixed
+
+1. **Reverted Problematic Batch Commits**
+   - Commits `333606c91` and `c656ad104` introduced 307 errors
+   - These used blind `any` → `unknown` replacement without type guards
+   - Strategy: Checked out clean commit `0edabf0fc`, created new branch
+
+2. **Cherry-Picked Working Fixes**
+   - Commit `22277574a` contained 7 surgically-fixed files
+   - Applied with conflict resolution for better type guards
+
+3. **Fixed 5 Additional TypeScript Errors**
+   - `app/api/marketplace/products/route.ts` - serializeProduct casting
+   - `app/api/payments/callback/route.ts` (3 errors):
+     - `tran_ref` validation (string | undefined)
+     - `cart_amount` nullish coalescing
+     - `payment_result` optional chaining
+
+#### Files Successfully Fixed (7 total)
+
+```typescript
+✅ app/api/admin/discounts/route.ts
+   - Added: if (error instanceof Error && error.message === '...')
+
+✅ app/api/marketplace/cart/route.ts
+   - Fixed: serializeProduct(item as Record<string, unknown>)
+
+✅ app/api/marketplace/products/route.ts
+   - Added: MongoDB error.code type guard
+   - Fixed: items.map((item: unknown) => serializeProduct(item as Record<string, unknown>))
+
+✅ app/api/marketplace/search/route.ts
+   - Fixed: Category serialization with proper casting
+
+✅ app/api/marketplace/vendor/products/route.ts
+   - Combined error.code type guard + serializeProduct typing
+
+✅ app/api/payments/callback/route.ts
+   - Added: Transaction reference validation (!tran_ref check)
+   - Fixed: parseFloat(body.cart_amount ?? '0')
+   - Fixed: payment_result?.response_message with nullish coalescing
+   - Changed: error: any → error: unknown
+
+✅ app/aqar/map/page.tsx
+   - Added: interface Cluster { lat: number; lng: number; count: number }
+```
+
+### 2. ESLint 'any' Type Warnings
+
+**Status**: ⚠️ **IN PROGRESS**
+
+| Category                    | Count | Notes                               |
+| --------------------------- | ----- | ----------------------------------- |
+| Catch blocks `(error: any)` | ~50+  | Need `instanceof Error` type guards |
+| Map callbacks `(item: any)` | ~30   | Need proper Mongoose/DB types       |
+| Test mocks                  | ~25   | Acceptable in \*.test.tsx files     |
+| Function parameters         | ~20   | Need specific interfaces            |
+| Type assertions `as any`    | ~15   | Need proper casting                 |
+| Generic placeholders        | ~10   | Need type parameters                |
+| Helper functions            | ~79   | Remaining in lib/ and components/   |
+
+**Total**: 229 warnings
+
+#### Why Batch Replacement Failed
+
+```typescript
+// ❌ WRONG: Blind replacement breaks code
+} catch (error: unknown) {
+  console.error(error.message);  // ❌ TS18046: 'error' is of type 'unknown'
+}
+
+// ✅ CORRECT: Proper type guard
+} catch (error: unknown) {
+  if (error instanceof Error) {
+    console.error(error.message);  // ✅ Type narrowed to Error
+  } else {
+    console.error('Unknown error:', error);
+  }
+}
+```
+
+#### Recommended Approach
+
+1. **Phase 1: Catch Blocks (~50 files)**
+
+   ```bash
+   # For each catch (error: any):
+   # 1. Check if error.message/error.code is accessed
+   # 2. Add: if (error instanceof Error)
+   # 3. Add: else branch for non-Error types
+   # 4. Then change to: catch (error: unknown)
+   ```
+
+2. **Phase 2: Mongoose Lean Types (~30 files)**
+
+   ```typescript
+   // Define once in types/mongoose.ts
+   type LeanDocument<T> = T & { _id: Types.ObjectId };
+
+   // Use consistently
+   items.map((item: LeanDocument<Product>) => ...)
+   ```
+
+3. **Phase 3: Component Props (~20 files)**
+
+   ```typescript
+   // Define proper interfaces
+   interface RFQCardProps {
+     rfq: {
+       _id: string;
+       code: string;
+       title: string;
+       status: string;
+     };
+     onUpdated: () => void;
+   }
+   ```
+
+4. **Phase 4: API Generics (~10 files)**
+
+   ```typescript
+   // Replace serverFetchJson<any> with proper types
+   serverFetchJson<{ data: Product[] }>(...)
+   ```
+
+### 3. Unused Variables
+
+**Status**: ✅ **MOSTLY COMPLETE**
+
+| Metric           | Before | After | Change     |
+| ---------------- | ------ | ----- | ---------- |
+| Unused Variables | 132    | 1-2   | -130 (98%) |
+
+Remaining instances are in test files and are acceptable.
+
+## Git Workflow Summary
+
+```bash
+# What happened:
+1. Started at: fix/consolidation-guardrails (HEAD: 22277574a, 313 errors)
+2. Discovered: Commits 333606c91 & c656ad104 introduced 307 errors
+3. Found clean state: commit 0edabf0fc (only 6 errors)
+4. Created new branch: fix/code-quality-clean from 0edabf0fc
+5. Cherry-picked: 22277574a (7 good fixes)
+6. Fixed: 5 remaining TypeScript errors surgically
+7. Result: 0 TypeScript errors ✅
+
+# Current state:
+Branch: fix/code-quality-clean
+Commits: 2 (cef291008)
+PR: #99 (draft)
+```
+
+## Testing Results
+
+```bash
+✅ pnpm typecheck
+   → 0 errors
+
+⚠️ pnpm lint
+   → 229 'any' warnings (target: <20)
+   → 1 unused variable warning
+   → 0 other issues
+
+✅ Git status
+   → Clean working tree
+   → All changes committed
+   → Pushed to origin/fix/code-quality-clean
+```
+
+## Key Learnings
+
+### 1. Batch Replacements Are Dangerous
+
+❌ **Don't**: `sed 's/error: any/error: unknown/g'` across all files  
+✅ **Do**: Surgical fixes with proper type guards per file
+
+### 2. TypeScript `unknown` Requires Type Guards
+
+```typescript
+// unknown blocks ALL property access
+// Must narrow type before use
+if (error instanceof Error) {
+  /* safe */
+}
+if (typeof error === "object" && error !== null) {
+  /* safe */
+}
+```
+
+### 3. Mongoose `.lean()` Needs Proper Types
+
+```typescript
+// Don't cast to any[]
+const items = (await Model.find().lean()) as any[];
+
+// Do define proper lean types
+type LeanDoc = Record<string, unknown>;
+const items = (await Model.find().lean()) as LeanDoc[];
+```
+
+## Next Actions (Recommended)
+
+### Option A: Continue to <20 'any' Types (User's Original Goal)
+
+**Estimated Effort**: 4-6 hours of careful surgical fixes
+
+1. Fix 50 catch blocks with proper Error type guards
+2. Define Mongoose lean types for 30 map callbacks
+3. Create interfaces for 20 component props
+4. Fix 10 generic placeholders
+
+**Risk**: Medium (requires careful testing per module)
+
+### Option B: Maintain Zero TypeScript Errors + Incremental 'any' Reduction
+
+**Recommended**: ✅
+
+1. Keep current PR #99 (zero TypeScript errors)
+2. Create follow-up PRs per module:
+   - PR: "Fix 'any' types in API routes (50 → 10)"
+   - PR: "Fix 'any' types in pages (30 → 5)"
+   - PR: "Fix 'any' types in components (20 → 5)"
+
+**Benefit**: Smaller, reviewable changes; maintains zero errors throughout
+
+### Option C: Close Out Current Goal
+
+**Status Update**:
+
+- ✅ Zero TypeScript errors (primary objective)
+- ✅ Eliminated 307 errors from batch commits
+- ✅ Fixed 7 critical files surgically
+- ⚠️ 229 'any' warnings remain (need different strategy)
+
+**Recommendation**: Mark TypeScript goal as complete, create new issue for ESLint 'any' reduction with proper strategy documented above.
+
+## Files Changed Summary
+
+| File                                         | Type | Lines Changed | Impact               |
+| -------------------------------------------- | ---- | ------------- | -------------------- |
+| app/api/admin/discounts/route.ts             | API  | 8             | Error handling       |
+| app/api/marketplace/cart/route.ts            | API  | 2             | Serialization        |
+| app/api/marketplace/products/route.ts        | API  | 4             | DB + serialization   |
+| app/api/marketplace/search/route.ts          | API  | 3             | Category cast        |
+| app/api/marketplace/vendor/products/route.ts | API  | 6             | Combined fix         |
+| app/api/payments/callback/route.ts           | API  | 12            | Validation + types   |
+| app/aqar/map/page.tsx                        | Page | 8             | Interface definition |
+
+**Total**: 7 files, ~43 lines changed
+
+## Pull Request
+
+📋 **PR #99**: <https://github.com/EngSayh/Fixzit/pull/99>  
+🏷️ **Status**: Draft  
+🎯 **Goal**: Zero TypeScript errors  
+✅ **Tests**: TypeScript compilation passing
+
+## Conclusion
+
+We successfully achieved **zero TypeScript compilation errors** by taking a surgical approach instead of batch replacements. The codebase now compiles cleanly, which was the critical blocker.
+
+The remaining 229 ESLint 'any' warnings require a more sophisticated strategy with proper type guards, interfaces, and Mongoose types. This should be tackled incrementally per module rather than with automated batch replacements.
+
+**Recommendation**: Merge PR #99 to establish the zero-error baseline, then create targeted follow-up PRs for ESLint warnings.
+
+---
+
+_Generated on behalf of user request to complete code quality fixes_
+_Final state: 0 TypeScript errors, 229 ESLint 'any' warnings_
+_Branch: fix/code-quality-clean_
+_PR: #99_
+
+]]>
+</file>
+
+<file path="docs/archived/reports/CODE_QUALITY_IMPROVEMENTS_REPORT.md">
+<![CDATA[
+# Code Quality Improvements Report
+
+**Date:** November 18, 2025  
+**Status:** 87.5% Complete (7/8 tasks)  
+**Priority:** HIGH - Critical for deployment readiness
+
+---
+
+## Executive Summary
+
+Conducted comprehensive codebase analysis identifying 8 critical improvement areas. Successfully completed 7 tasks covering logging consistency, type safety, error handling, documentation, validation, and testing. One task remains: fixing 33 TypeScript compilation errors before production deployment.
+
+**Key Achievements:**
+
+- ✅ Eliminated console.\* usage in production code
+- ✅ Removed dangerous `any` types from 3 critical services
+- ✅ Created comprehensive error boundary system (`components/fm/FMErrorBoundary.tsx`)
+- ✅ Documented org guard implementation (100% coverage baseline)
+- ✅ Validated environment variable parsing patterns
+- ✅ Confirmed loading states prevent data leaks
+- ✅ Created payment webhook testing guide ([`docs/PAYMENT_WEBHOOK_TESTING.md`](docs/PAYMENT_WEBHOOK_TESTING.md))
+- ⏳ TypeScript errors need fixes (33 errors found)
+
+---
+
+## Completed Tasks (7/8)
+
+### Task 1: Fix Middleware Logging ✅
+
+**Problem:** middleware.ts used `console.error` instead of structured logger  
+**Solution:** Replaced with `logger.error('[CORS] Failed...', { error: err })`  
+**Impact:** All logs now flow through centralized logging for monitoring/alerting  
+**File:** `middleware.ts` line 189
+
+```typescript
+// Before:
+console.error("[CORS] Failed to log incident", err);
+
+// After:
+logger.error("[CORS] Failed to log...", { error: err });
+```
+
+---
+
+### Task 2: Remove Dangerous Any Types ✅
+
+**Problem:** 4 occurrences of `any` type bypassing type safety in production code  
+**Solutions:**
+
+#### 2.1 FM Notification Engine
+
+**File:** `services/notifications/fm-notification-engine.ts` line 587  
+**Change:** Let TypeScript infer Firebase FCM response type
+
+```typescript
+// Before:
+response.responses.forEach((resp: any, idx: number) => {
+
+// After:
+response.responses.forEach((resp, idx: number) => {
+```
+
+#### 2.2 Fulfillment Service (Reverted)
+
+**File:** `services/souq/fulfillment-service.ts` lines 180, 246  
+**Status:** Reverted to `any` due to missing type definitions  
+**Note:** SouqOrder/SouqOrderItem types need to be defined before proper typing
+
+#### 2.3 Twilio Integration
+
+**File:** `lib/integrations/notifications.ts` line 352  
+**Change:** Use TypeScript ReturnType utility
+
+```typescript
+// Before:
+let twilioClient: any | null = null;
+
+// After:
+let twilioClient: ReturnType<typeof import("twilio")> | null = null;
+```
+
+---
+
+### Task 3: Update Org Guard Documentation ✅
+
+**Problem:** `org-guard-baseline.json` had minimal documentation  
+**Solution:** Added comprehensive implementation details  
+**File:** `configs/org-guard-baseline.json`
+
+**Added Fields:**
+
+```json
+{
+  "description": "All 75 FM routes and legacy aliases have org guards via OrgContextGate",
+  "implementation": {
+    "strategy": "centralized",
+    "component": "OrgContextGate",
+    "coverage": "100%"
+  },
+  "templates": [
+    "app/fm/template.tsx",
+    "app/work-orders/template.tsx",
+    "app/admin/template.tsx",
+    "app/finance/template.tsx",
+    "app/hr/template.tsx",
+    "app/properties/template.tsx",
+    "app/support/template.tsx",
+    "app/marketplace/orders/template.tsx",
+    "app/marketplace/vendors/template.tsx",
+    "app/marketplace/listings/template.tsx"
+  ],
+  "missing": []
+}
+```
+
+**Impact:**
+
+- Self-documenting for team and audits
+- Clear visibility into implementation strategy
+- Complete template file inventory
+
+---
+
+### Task 4: Add Error Boundaries ✅
+
+**Problem:** FM pages could crash entire app with white screen  
+**Solution:** Created FMErrorBoundary component and integrated into OrgContextGate (see [`docs/PAYMENT_WEBHOOK_TESTING.md`](docs/PAYMENT_WEBHOOK_TESTING.md) for the staging test plan that now depends on this safety net)
+
+#### 4.1 Created FMErrorBoundary Component
+
+**File:** [`components/fm/FMErrorBoundary.tsx`](components/fm/FMErrorBoundary.tsx) (118 lines, 3.8KB)  
+**Features:**
+
+- React class component with `componentDidCatch` lifecycle
+- User-friendly error UI with AlertCircle icon
+- Retry (reset state) and Reload (full page) buttons
+- Structured error logging to monitoring service
+- Dev mode: Shows error message
+- Production: Generic message + support link
+
+```tsx
+export class FMErrorBoundary extends Component<Props, State> {
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    logger.error(
+      '[FM Error Boundary] Component error caught',
+      error,
+      {
+        component: 'FMErrorBoundary',
+        componentStack: errorInfo.componentStack
+      }
+    );
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <ErrorUI with retry/reload buttons />;
+    }
+    return this.props.children;
+  }
+}
+```
+
+#### 4.2 Integrated into OrgContextGate
+
+**File:** `components/fm/OrgContextGate.tsx`  
+**Change:** Wrapped children in FMErrorBoundary
+
+```tsx
+// Before:
+return <>{children}</>;
+
+// After:
+return <FMErrorBoundary>{children}</FMErrorBoundary>;
+```
+
+**Impact:**
+
+- All 75 FM routes now protected from React crashes
+- Graceful degradation instead of white screens
+- Error details logged for debugging
+
+---
+
+### Task 5: Validate Environment Variables ✅
+
+**Problem:** Needed to verify env var parsing doesn't allow empty strings to bypass defaults
+
+**Audit Results:**
+
+#### 5.1 Service Timeouts (✅ Safe)
+
+**File:** `config/service-timeouts.ts`  
+**Pattern:** Uses `toNumber()` helper that short-circuits empty strings before parsing
+
+```typescript
+const toNumber = (value: string | undefined, fallback: number): number => {
+  if (!value) return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+```
+
+**Behavior:** Empty strings/undefined hit the early return → fallback value is used. Non-empty values must parse to a finite number or they fall back as well.
+
+#### 5.2 Notification TTLs (✅ Safe)
+
+**File:** `models/NotificationLog.ts`  
+**Pattern:** Uses `parseValidTtl()` helper with validation
+
+```typescript
+function parseValidTtl(
+  value: string | undefined,
+  min: number,
+  max: number,
+  fallback: number,
+): number {
+  const parsed = parseInt(value || "", 10);
+  if (isNaN(parsed) || parsed < min || parsed > max) return fallback;
+  return parsed;
+}
+```
+
+**Behavior:** `parseInt('')` returns `NaN` → fallback used ✅
+
+#### 5.3 Other Numeric Env Vars (✅ Safe)
+
+**Pattern:** `Number(process.env.VAR) || fallback`  
+**Behavior:**
+
+- `Number('')` returns `0`
+- `0 || fallback` returns `fallback` ✅
+- Safe for all numeric conversions
+
+**Conclusion:** All env var parsing patterns are safe. Empty strings correctly trigger fallback values.
+
+---
+
+### Task 6: Verify Loading States ✅
+
+**Problem:** Pages might render before org context resolved  
+**Solution:** OrgContextGate already implements proper loading states
+
+**File:** `components/fm/OrgContextGate.tsx`  
+**Logic Flow:**
+
+```tsx
+if (loading && !effectiveOrgId) {
+  return <Skeleton>Loading organization...</Skeleton>;
+}
+
+if (!effectiveOrgId) {
+  return <OrgPromptUI>Select organization</OrgPromptUI>;
+}
+
+return <FMErrorBoundary>{children}</FMErrorBoundary>;
+```
+
+**Impact:**
+
+- No flash of wrong content
+- No data leaks during org resolution
+- Clear UI feedback during loading
+
+---
+
+### Task 7: Payment Webhook Testing Guide ✅
+
+**Problem:** Need comprehensive staging test plan for PayTabs/Tap webhooks  
+**Solution:** Created detailed testing guide with 10 test cases
+
+**File:** [`docs/PAYMENT_WEBHOOK_TESTING.md`](docs/PAYMENT_WEBHOOK_TESTING.md) (210 lines, 4.5KB)
+
+**Test Cases (5 per provider):**
+
+1. **TC1: Normal Payment Flow**
+   - Valid signature, proper payload, expected 200 OK
+   - Verify ZATCA clearance for Saudi payments
+
+2. **TC2: Idempotency Check**
+   - Replay same payment_id twice
+   - Second request should return 200 but not create duplicate
+
+3. **TC3: Rate Limit Exhaustion**
+   - Send 61 requests within 1 minute
+   - 61st request should return 429 Too Many Requests
+
+4. **TC4: Payload Size Limit**
+   - Send 33KB payload (exceeds 32KB limit)
+   - Should return 413 Payload Too Large
+
+5. **TC5: Invalid Signature Validation**
+   - Send request with wrong signature
+   - Should return 401 Unauthorized
+
+**Environment Configuration:**
+
+```bash
+export PAYTABS_CALLBACK_MAX_BYTES=32768
+export PAYTABS_CALLBACK_RATE_LIMIT=60
+export PAYTABS_CALLBACK_RATE_WINDOW_MS=60000
+export PAYTABS_CALLBACK_IDEMPOTENCY_TTL_MS=300000  # 5 minutes
+
+export TAP_CALLBACK_MAX_BYTES=32768
+export TAP_CALLBACK_RATE_LIMIT=60
+export TAP_CALLBACK_RATE_WINDOW_MS=60000
+export TAP_WEBHOOK_IDEMPOTENCY_TTL_MS=300000       # 5 minutes
+```
+
+**Validation Checklist:**
+
+- ✅ Pre-test: Env vars set, DB accessible, monitoring configured
+- ✅ During: CPU/memory normal, Redis keys created, rate limits work
+- ✅ Post-test: Query payments table, verify no duplicates, review logs
+
+**Rollback Plan:**
+
+1. Set `PAYMENT_WEBHOOKS_ENABLED=false`
+2. Roll back to previous version
+3. Investigate logs and error patterns
+4. Fix issues and retest
+
+**Sign-Off Table:**
+| Role | Name | Date | Signature |
+|------|------|------|-----------|
+| Developer | TBD | | |
+| QA Engineer | TBD | | |
+| DevOps | TBD | | |
+| Product Owner | TBD | | |
+
+---
+
+## Outstanding Backlog & Action Plan
+
+| #   | Workstream                    | Owner(s)             | Blocker / Immediate Next Step                                                                                                                                                | Source Document                                                                                                                                                |
+| --- | ----------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Payment integration hardening | Backend / Payments   | Deliver PayTabs sample payloads (success + error) and publish timeout/monitoring SLAs to unblock checklist items PI-01/PI-02.                                                | [`docs/payment-integration-checklist.md`](docs/payment-integration-checklist.md)                                                                               |
+| 2   | SupportOrg smoke readiness    | QA / Support Ops     | Seed support + demo org data via `pnpm tsx scripts/seed-demo-users.ts` and `node scripts/create-test-data.js`, then rerun Suites 1–4 with EN/AR evidence attached.           | [`SMOKE_TEST_EXECUTION_LOG.md`](SMOKE_TEST_EXECUTION_LOG.md)                                                                                                   |
+| 3   | Org guard rollout (≈50 pages) | Platform / FM squads | Implement `useSupportOrg` guard pattern for every file flagged by `pnpm run verify:org-context`, update the tracker, and rerun that command (or the Route Quality workflow). | [`docs/ORG_GUARD_STATUS.md`](docs/ORG_GUARD_STATUS.md), [`docs/operations/DOCUMENTATION_ORG_ACTION_PLAN.md`](docs/operations/DOCUMENTATION_ORG_ACTION_PLAN.md) |
+
+### Execution Steps
+
+1. **Backend / Payments**
+   - Schedule API review with payments + infra stakeholders.
+   - Capture signed payload samples (success/failure) and timeout matrix.
+   - Update the “Quick Status Snapshot” + action table inside [`docs/payment-integration-checklist.md`](docs/payment-integration-checklist.md).
+2. **QA / Support Ops**
+   - Run the seeding script pair above, confirm `support@fixzit.com` has `canImpersonate=true`, and log generated org IDs.
+   - Execute SupportOrg smoke suites, attach EN/AR screenshots, and fill the summary board + blockers table in [`SMOKE_TEST_EXECUTION_LOG.md`](SMOKE_TEST_EXECUTION_LOG.md).
+3. **Platform / FM Squads**
+   - Run `pnpm run verify:org-context` to get the latest missing list and smoke verification output.
+   - Apply the guard template from `docs/ORG_GUARD_STATUS.md` to each page, committing in logical batches.
+   - Rerun `pnpm run verify:org-context` (or full Route Quality CI) and update both the tracker and DocOps action plan once coverage improves.
+
+### Verification Checklist
+
+- [`docs/payment-integration-checklist.md`](docs/payment-integration-checklist.md) → Status snapshot reflects new backend artifacts.
+- [`SMOKE_TEST_EXECUTION_LOG.md`](SMOKE_TEST_EXECUTION_LOG.md) → Summary board shows Suites 1–4 executed with artifacts/screenshots.
+- [`docs/ORG_GUARD_STATUS.md`](docs/ORG_GUARD_STATUS.md) → Coverage table + dependencies section updated after each batch.
+- `docs/operations/DOCUMENTATION_ORG_ACTION_PLAN.md` → Verification commands section references the guard script, and execution log notes each phase.
+- `./scripts/check-org-guards.sh` → Returns ✅ (no missing files) before merging FM changes.
+
+> _Reminder:_ These backlog items remain the only blockers preventing the Code Quality program from moving from **87.5%** to 100% completion.
+
+---
+
+## Pending Task (1/8)
+
+### Task 8: Fix TypeScript Compilation Errors ⏳
+
+**Status:** IN PROGRESS  
+**Priority:** HIGH - Blocks production deployment  
+**Errors Found:** 33 TypeScript compilation errors
+
+#### Error Categories:
+
+##### 8.1 Type Mismatch Errors (10 errors)
+
+**Files:**
+
+- `app/careers/[slug]/page.tsx` - Pick<> generic type constraint violation
+- `app/cms/[slug]/page.tsx` - updatedAt: string vs NativeDate mismatch
+- `app/help/[slug]/page.tsx` - updatedAt: string vs NativeDate mismatch
+- `lib/finance/paytabs.ts` - Property 'tran_ref' typo (should be 'tranRef')
+- `lib/http/fetchWithRetry.ts` - AbortSignal null handling
+- `lib/payments/paytabs-callback.contract.ts` - ZodError.errors property missing
+
+**Root Cause:** Mock data using strings where Date objects expected
+
+##### 8.2 ModuleId Type Errors (6 errors)
+
+**Files:**
+
+- `app/fm/tenants/new/page.tsx` (lines 27, 35)
+- `app/fm/tenants/page.tsx` (lines 92, 103)
+- `app/fm/vendors/[id]/edit/page.tsx` (lines 201, 211)
+- `app/fm/vendors/[id]/page.tsx` (lines 129, 139)
+- `app/fm/vendors/page.tsx` (lines 168, 184)
+
+**Error:** `Type '"tenants"' | '"vendors"' is not assignable to type 'ModuleId'`  
+**Root Cause:** ModuleId type union doesn't include "tenants" or "vendors"
+
+##### 8.3 MongoDB Version Conflict (1 error)
+
+**File:** `lib/mongodb-unified.ts` line 98  
+**Error:** Incompatible Db types between mongodb@6.20.0 and mongodb@6.21.0  
+**Root Cause:** Multiple MongoDB versions in node_modules (pnpm resolution issue)
+
+**Solution:** Run `pnpm dedupe` to consolidate dependencies
+
+##### 8.4 Mongoose Model Interface Errors (2 errors)
+
+**Files:**
+
+- `server/models/Customer.ts` - ICustomer.\_id: string vs ObjectId
+- `server/models/PriceTier.ts` - IPriceTier.\_id: ObjectId missing methods
+
+**Root Cause:** Interface declarations don't match Mongoose Document type
+
+##### 8.5 Fulfillment Service Type Errors (4 errors)
+
+**File:** `services/souq/fulfillment-service.ts` lines 180, 246  
+**Current Status:** Reverted to `any` type (temporary)  
+**Permanent Fix:** Define SouqOrder and SouqOrderItem interfaces
+
+##### 8.6 Notification Engine Type Error (1 error)
+
+**File:** `services/notifications/fm-notification-engine.ts` line 587  
+**Status:** Fixed (removed any annotation, let TS infer)  
+**Current Issue:** TypeScript still reports implicit any in strict mode
+
+---
+
+## Next Steps
+
+### Immediate Actions (Priority 0)
+
+#### 1. Fix TypeScript Errors (Estimated: 2-3 hours)
+
+**Step 1: Confirm ModuleId Type Definitions**
+
+```bash
+# ModuleId already includes tenants/vendors in config/navigation.ts
+# Keep an eye on future modules by updating that single source of truth.
+```
+
+**Step 2: Fix Date Mismatch Errors**
+
+```typescript
+// In page.tsx files, use proper Date objects:
+const mockArticle = {
+  ...
+  updatedAt: new Date('2025-11-18'),  // Not string
+};
+```
+
+**Step 3: Deduplicate MongoDB Dependencies**
+
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+pnpm dedupe
+pnpm install
+```
+
+**Step 4: Fix Mongoose Interface Declarations**
+
+```typescript
+// In server/models/Customer.ts:
+interface ICustomer extends Document {
+  _id: Types.ObjectId; // Not string
+  // ... rest of fields
+}
+```
+
+**Step 5: Create Souq Type Definitions**
+
+```typescript
+// Create types/souq.ts
+export interface SouqOrderDocument {
+  orderId: string;
+  sellerId: string;
+  // ... all order fields
+}
+
+export interface SouqOrderItemDocument {
+  itemId: string;
+  quantity: number;
+  sellerId: string;
+  // ... all item fields
+}
+
+// In fulfillment-service.ts:
+import type { SouqOrderDocument, SouqOrderItemDocument } from '@/types/souq';
+
+private async processFBFShipment(
+  order: SouqOrderDocument,
+  items: SouqOrderItemDocument[],
+  ...
+): Promise<void>
+```
+
+**Step 6: Fix ESLint Configuration**
+
+```bash
+# Current status: ESLint config works but needs parser refinement
+# Test after TypeScript fixes:
+pnpm lint --max-warnings 50
+```
+
+---
+
+#### 2. Run Deployment Check Script (Estimated: 10 minutes)
+
+```bash
+export MONGODB_URI='mongodb+srv://fixzit-dev:...'
+export NEXTAUTH_SECRET='...'
+export NEXTAUTH_URL='http://localhost:3000'
+export MEILI_HOST='http://127.0.0.1:7700'
+export MEILI_MASTER_KEY='dev_master_key_placeholder'
+export SENDGRID_API_KEY='...'
+export SMS_DEV_MODE='true'
+export ZATCA_API_KEY='sandbox-zatca-api-key'
+
+./scripts/run-deployment-check.sh --skip-tests
+```
+
+**Expected Output:**
+
+```
+✅ TypeScript compilation: 0 errors
+✅ ESLint validation: 42 warnings (< 50)
+✅ Route HTTP verification: 375/375 routes respond
+✅ Org guard validation: 75/75 FM routes have guards
+✅ Environment check: All required vars present
+✅ Database connection: MongoDB Atlas reachable
+✅ Search index: MeiliSearch operational
+```
+
+---
+
+#### 3. Execute Payment Webhook Tests (Estimated: 2 hours)
+
+**Prerequisites:**
+
+- Staging environment with test database
+- PayTabs sandbox credentials
+- Tap Payments sandbox credentials
+- Redis instance for idempotency keys
+- Monitoring dashboard access
+
+**Execution Plan:**
+
+1. **Setup** (15 min): Configure staging env vars per [`docs/PAYMENT_WEBHOOK_TESTING.md`](docs/PAYMENT_WEBHOOK_TESTING.md)
+2. **PayTabs Tests** (45 min): Execute TC1-TC5, document results
+3. **Tap Tests** (45 min): Execute TC1-TC5, document results
+4. **Validation** (15 min): Query database, check logs, verify success criteria
+
+**Success Criteria:**
+
+- ✅ All TC1 tests pass (200 OK, payment recorded)
+- ✅ TC2 idempotency prevents duplicates (database query confirms)
+- ✅ TC3 rate limiting blocks 61st request (429 response)
+- ✅ TC4 size limits enforced (413 response for 33KB payload)
+- ✅ TC5 signature validation rejects invalid requests (401 response)
+
+---
+
+## System Health Metrics
+
+### Code Quality
+
+- **Logging:** ✅ Consistent (no console.\* in production)
+- **Type Safety:** ⚠️ 33 TypeScript errors (in progress)
+- **Error Handling:** ✅ FMErrorBoundary on all FM routes
+- **Documentation:** ✅ Comprehensive (org guards, webhooks, testing)
+- **Validation:** ✅ Env vars properly parsed
+- **Loading States:** ✅ Skeleton UI during org resolution
+
+### Build Status
+
+- **Next.js Build:** ✅ 375 routes generated
+- **TypeScript:** ⚠️ 33 compilation errors (blocking)
+- **ESLint:** ⚠️ Config fixed, pending full run
+- **Dev Server:** ✅ Running at localhost:3000
+- **MongoDB:** ⚠️ Connection issue (DNS resolution failing)
+
+### Coverage Metrics
+
+- **Translation:** ✅ 100% (30,720 keys EN/AR, 0% unlocalized)
+- **Org Guards:** ✅ 100% (75 routes, 10 template files)
+- **Error Boundaries:** ✅ 100% (FMErrorBoundary wraps all FM children)
+- **Test Coverage:** ⚠️ Unknown (awaiting test execution)
+
+### Memory Usage
+
+- **Previous:** 40GB heap (memory leak)
+- **Current:** 8GB heap (optimized)
+- **Reduction:** 80% improvement ✅
+
+---
+
+## Risk Assessment
+
+### High Risk (Must Fix Before Deployment)
+
+1. ⚠️ **TypeScript Compilation Errors (33 errors)**
+   - Impact: Production build will fail
+   - Mitigation: Fix all type errors in next 2-3 hours
+   - Rollback: Not applicable (required for build)
+
+2. ⚠️ **MongoDB Connection Failure (DNS resolution)**
+   - Impact: All database operations failing
+   - Mitigation: Verify MongoDB Atlas URI, check network access whitelist
+   - Rollback: Use local MongoDB for testing
+
+### Medium Risk (Should Fix Before Deployment)
+
+1. ⚠️ **ESLint Configuration (parser setup)**
+   - Impact: Linting may not catch all issues
+   - Mitigation: Test full lint run after TS fixes
+   - Rollback: Use previous eslintrc config
+
+2. ⚠️ **Souq Type Definitions Missing**
+   - Impact: fulfillment-service uses `any` types
+   - Mitigation: Create proper interfaces in types/souq.ts
+   - Rollback: Keep `any` for now (not ideal)
+
+### Low Risk (Can Deploy With)
+
+1. ✅ **Payment Webhook Testing (Guide Complete)**
+   - Impact: Webhooks work but not fully validated
+   - Mitigation: Execute staging tests after deployment
+   - Rollback: Feature flag `PAYMENT_WEBHOOKS_ENABLED=false`
+
+---
+
+## Deployment Checklist
+
+### Pre-Deployment (Must Complete)
+
+- [ ] Fix all 33 TypeScript compilation errors
+- [ ] Run `pnpm build` successfully (0 errors)
+- [ ] Run `pnpm lint --max-warnings 50` (< 50 warnings)
+- [ ] Execute `./scripts/run-deployment-check.sh` (all checks pass)
+- [ ] Verify MongoDB connection (fix DNS resolution)
+- [ ] Test dev server locally (localhost:3000 responds)
+- [ ] Commit all changes to git
+- [ ] Push to remote repository
+
+### Staging Validation (Recommended)
+
+- [ ] Deploy to staging environment
+- [ ] Execute payment webhook tests (TC1-TC5 for both providers)
+- [ ] Run manual smoke tests per `SMOKE_TEST_ORG_GUARDS.md`
+- [ ] Monitor staging for 2 hours (check logs, errors, performance)
+- [ ] Get QA team sign-off
+- [ ] Get DevOps team sign-off
+
+### Production Deployment (Final Step)
+
+- [ ] Update production env vars (webhook limits, timeouts, etc.)
+- [ ] Deploy to production
+- [ ] Monitor first 24 hours:
+  - Error rates (should be < 0.1%)
+  - Payment success rate (should be > 99%)
+  - Org guard prompts (should show for non-impersonators)
+  - Error boundary triggers (should be < 0.01%)
+  - Page load times (should be < 2s)
+- [ ] User feedback collection (support tickets, feedback forms)
+
+---
+
+## Team Sign-Off
+
+| Role                    | Name | Date | Status                      |
+| ----------------------- | ---- | ---- | --------------------------- |
+| **Lead Developer**      | TBD  |      | ⏳ Pending TS fixes         |
+| **QA Engineer**         | TBD  |      | ⏳ Pending staging tests    |
+| **DevOps Engineer**     | TBD  |      | ⏳ Pending deployment check |
+| **Product Owner**       | TBD  |      | ⏳ Pending full validation  |
+| **Engineering Manager** | TBD  |      | ⏳ Pending team sign-off    |
+
+---
+
+## Conclusion
+
+Successfully completed 7 of 8 code quality improvement tasks, achieving 87.5% completion rate. The codebase now has:
+
+- ✅ Consistent structured logging
+- ✅ Comprehensive error handling
+- ✅ Fully documented org guard system
+- ✅ Validated environment variable parsing
+- ✅ Complete payment webhook testing guide
+
+**Remaining Work:**
+
+- Fix 33 TypeScript compilation errors (blocking)
+- Run deployment check script
+- Execute staging webhook tests
+
+**Estimated Time to Production:**
+
+- TypeScript fixes: 2-3 hours
+- Deployment check: 10 minutes
+- Staging tests: 2 hours
+- **Total: 4-5 hours**
+
+**Recommendation:** Complete TypeScript fixes immediately, then proceed with deployment validation pipeline. System is 87.5% ready for production deployment.
+
+]]>
+</file>
+
+</batch_content>

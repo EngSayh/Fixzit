@@ -1,0 +1,3216 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="components/seller/health/ViolationsList.tsx">
+<![CDATA[
+"use client";
+
+import { Badge } from "@/components/ui/badge";
+import { AlertCircle, AlertTriangle, Info } from "lucide-react";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+interface Violation {
+  type: string;
+  severity: string;
+  description: string;
+  action: string;
+  date: string;
+  resolved: boolean;
+}
+
+interface Props {
+  violations: Violation[];
+}
+
+export default function ViolationsList({ violations }: Props) {
+  const auto = useAutoTranslator("seller.health.violations");
+  const getSeverityIcon = (severity: string) => {
+    switch (severity) {
+      case "critical":
+        return <AlertCircle className="w-5 h-5 text-destructive" />;
+      case "major":
+        return <AlertTriangle className="w-5 h-5 text-orange-600" />;
+      case "minor":
+        return <AlertTriangle className="w-5 h-5 text-warning" />;
+      default:
+        return <Info className="w-5 h-5 text-primary" />;
+    }
+  };
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case "critical":
+        return "destructive";
+      case "major":
+        return "destructive";
+      case "minor":
+        return "warning";
+      default:
+        return "secondary";
+    }
+  };
+
+  const getActionColor = (action: string) => {
+    switch (action) {
+      case "permanent_deactivation":
+        return "bg-red-100 text-red-800";
+      case "account_suspension":
+        return "bg-orange-100 text-orange-800";
+      case "listing_suppression":
+        return "bg-yellow-100 text-yellow-800";
+      default:
+        return "bg-primary/10 text-primary-dark";
+    }
+  };
+
+  const formatType = (type: string) => {
+    const fallback = type
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+    return auto(fallback, `types.${type}`);
+  };
+
+  const formatAction = (action: string) => {
+    const fallback = action
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+    return auto(fallback, `actions.${action}`);
+  };
+
+  const formatSeverity = (severity: string) => {
+    const fallback = severity.charAt(0).toUpperCase() + severity.slice(1);
+    return auto(fallback, `severity.${severity}`);
+  };
+
+  if (violations.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4">
+          <AlertCircle className="w-8 h-8 text-success" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          {auto("No Violations", "state.empty.title")}
+        </h3>
+        <p className="text-gray-600">
+          {auto(
+            "Your account has no policy violations. Keep maintaining high standards!",
+            "state.empty.description",
+          )}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-2">
+          {auto("Policy Violations", "header.title")}
+        </h2>
+        <p className="text-gray-600">
+          {auto(
+            "Review and resolve any policy violations to maintain account health.",
+            "header.description",
+          )}
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        {violations.map((violation, index) => (
+          <div
+            key={index}
+            className={`p-4 rounded-lg border ${
+              violation.resolved
+                ? "bg-gray-50 border-gray-200"
+                : "bg-white border-gray-300"
+            }`}
+          >
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-start gap-3">
+                {getSeverityIcon(violation.severity)}
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold text-gray-900">
+                      {formatType(violation.type)}
+                    </h3>
+                    <Badge
+                      variant={getSeverityColor(violation.severity) as never}
+                    >
+                      {formatSeverity(violation.severity)}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    {violation.description}
+                  </p>
+                </div>
+              </div>
+              {violation.resolved && (
+                <Badge
+                  variant="outline"
+                  className="bg-success/5 text-success-dark"
+                >
+                  {auto("Resolved", "status.resolved")}
+                </Badge>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-4">
+                <span className="text-gray-500">
+                  {new Date(violation.date).toLocaleDateString()}
+                </span>
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-medium ${getActionColor(violation.action)}`}
+                >
+                  {formatAction(violation.action)}
+                </span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/seller/kyc/BankDetailsForm.tsx">
+<![CDATA[
+"use client";
+
+import { useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+type BankDetailsFormData = {
+  bankName: string;
+  iban: string;
+  accountHolderName: string;
+  currency: string;
+  swiftCode?: string;
+};
+
+interface Props {
+  onSubmit: (_data: BankDetailsFormData) => Promise<void>;
+  onBack: () => void;
+}
+
+export default function BankDetailsForm({ onSubmit, onBack }: Props) {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const auto = useAutoTranslator("seller.kyc.bankDetails");
+  const bankDetailsSchema = useMemo(
+    () =>
+      z.object({
+        bankName: z
+          .string()
+          .min(2, auto("Bank name required", "validation.bankName")),
+        iban: z
+          .string()
+          .regex(
+            /^SA\d{2}[A-Z0-9]{18}$/,
+            auto("Invalid Saudi IBAN format", "validation.iban"),
+          ),
+        accountHolderName: z
+          .string()
+          .min(
+            2,
+            auto("Account holder name required", "validation.accountHolder"),
+          ),
+        currency: z.string().default("SAR"),
+        swiftCode: z.string().optional(),
+      }),
+    [auto],
+  );
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<BankDetailsFormData>({
+    resolver: zodResolver(bankDetailsSchema),
+    defaultValues: {
+      currency: "SAR",
+    },
+  });
+
+  const handleFormSubmit = async (data: BankDetailsFormData) => {
+    try {
+      setSubmitting(true);
+      setError(null);
+      await onSubmit(data);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : auto("Failed to submit", "errors.submit"),
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">
+          {auto("Bank Account Details", "header.title")}
+        </h2>
+        <p className="text-gray-600 mb-6">
+          {auto(
+            "Enter your bank account details for receiving payments. This must match the business name on your CR.",
+            "header.description",
+          )}
+        </p>
+      </div>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      <div>
+        <Label htmlFor="bankName">
+          {auto("Bank Name *", "fields.bankName.label")}
+        </Label>
+        <select
+          id="bankName"
+          {...register("bankName")}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+        >
+          <option value="">
+            {auto("Select Bank", "fields.bankName.placeholder")}
+          </option>
+          <option value="Al Rajhi Bank">Al Rajhi Bank</option>
+          <option value="National Commercial Bank">
+            National Commercial Bank (NCB)
+          </option>
+          <option value="Riyad Bank">Riyad Bank</option>
+          <option value="Samba Financial Group">Samba Financial Group</option>
+          <option value="Saudi British Bank">Saudi British Bank (SABB)</option>
+          <option value="Alinma Bank">Alinma Bank</option>
+          <option value="Bank AlJazira">Bank AlJazira</option>
+          <option value="Bank Albilad">Bank Albilad</option>
+          <option value="Saudi Investment Bank">Saudi Investment Bank</option>
+          <option value="Arab National Bank">Arab National Bank</option>
+        </select>
+        {errors.bankName && (
+          <p className="text-sm text-destructive mt-1">
+            {errors.bankName.message}
+          </p>
+        )}
+      </div>
+
+      <div>
+        <Label htmlFor="iban">{auto("IBAN *", "fields.iban.label")}</Label>
+        <Input
+          id="iban"
+          {...register("iban")}
+          placeholder={auto(
+            "SA0000000000000000000000",
+            "fields.iban.placeholder",
+          )}
+          maxLength={24}
+        />
+        {errors.iban && (
+          <p className="text-sm text-destructive mt-1">{errors.iban.message}</p>
+        )}
+        <p className="text-xs text-gray-500 mt-1">
+          {auto(
+            "Format: SA followed by 2 digits and 18 alphanumeric characters",
+            "fields.iban.helper",
+          )}
+        </p>
+      </div>
+
+      <div>
+        <Label htmlFor="accountHolderName">
+          {auto("Account Holder Name *", "fields.accountHolder.label")}
+        </Label>
+        <Input
+          id="accountHolderName"
+          {...register("accountHolderName")}
+          placeholder={auto(
+            "Must match business name on CR",
+            "fields.accountHolder.placeholder",
+          )}
+        />
+        {errors.accountHolderName && (
+          <p className="text-sm text-destructive mt-1">
+            {errors.accountHolderName.message}
+          </p>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="currency">
+            {auto("Currency *", "fields.currency.label")}
+          </Label>
+          <select
+            id="currency"
+            {...register("currency")}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+          >
+            <option value="SAR">
+              {auto("SAR - Saudi Riyal", "fields.currency.sar")}
+            </option>
+            <option value="USD">
+              {auto("USD - US Dollar", "fields.currency.usd")}
+            </option>
+            <option value="EUR">
+              {auto("EUR - Euro", "fields.currency.eur")}
+            </option>
+          </select>
+        </div>
+
+        <div>
+          <Label htmlFor="swiftCode">
+            {auto("SWIFT Code (Optional)", "fields.swift.label")}
+          </Label>
+          <Input
+            id="swiftCode"
+            {...register("swiftCode")}
+            placeholder={auto("ABCDSARI", "fields.swift.placeholder")}
+          />
+        </div>
+      </div>
+
+      <Alert>
+        <AlertDescription>
+          <strong>{auto("Important:", "alert.title")} </strong>
+          {auto(
+            "Please ensure your bank account details are accurate. Incorrect information may delay payments.",
+            "alert.message",
+          )}
+        </AlertDescription>
+      </Alert>
+
+      <div className="flex justify-between pt-4">
+        <Button type="button" variant="outline" onClick={onBack}>
+          {auto("Back", "actions.back")}
+        </Button>
+        <Button type="submit" disabled={submitting}>
+          {submitting
+            ? auto("Submitting...", "actions.submitting")
+            : auto("Submit KYC", "actions.submit")}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/seller/kyc/CompanyInfoForm.tsx">
+<![CDATA[
+"use client";
+
+import { useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+type CompanyInfoFormData = {
+  businessNameEn: string;
+  businessNameAr: string;
+  crNumber: string;
+  vatNumber?: string;
+  businessType: "individual" | "llc" | "corporation";
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  province: string;
+  postalCode: string;
+  country: string;
+  contactPhone: string;
+  contactEmail: string;
+};
+
+interface Props {
+  onSubmit: (_data: CompanyInfoFormData) => Promise<void>;
+}
+
+export default function CompanyInfoForm({ onSubmit }: Props) {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const auto = useAutoTranslator("seller.kyc.companyInfo");
+  const companyInfoSchema = useMemo(
+    () =>
+      z.object({
+        businessNameEn: z
+          .string()
+          .min(2, auto("Business name required", "validation.businessNameEn")),
+        businessNameAr: z
+          .string()
+          .min(
+            2,
+            auto("Arabic business name required", "validation.businessNameAr"),
+          ),
+        crNumber: z
+          .string()
+          .regex(
+            /^\d{10}$/,
+            auto("CR number must be 10 digits", "validation.crNumber"),
+          ),
+        vatNumber: z.string().optional(),
+        businessType: z.enum(["individual", "llc", "corporation"]),
+        addressLine1: z
+          .string()
+          .min(5, auto("Address required", "validation.addressLine1")),
+        addressLine2: z.string().optional(),
+        city: z.string().min(2, auto("City required", "validation.city")),
+        province: z
+          .string()
+          .min(2, auto("Province required", "validation.province")),
+        postalCode: z
+          .string()
+          .min(5, auto("Postal code required", "validation.postalCode")),
+        country: z.string().default("SA"),
+        contactPhone: z
+          .string()
+          .min(10, auto("Phone number required", "validation.phone")),
+        contactEmail: z
+          .string()
+          .email(auto("Valid email required", "validation.email")),
+      }),
+    [auto],
+  );
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<CompanyInfoFormData>({
+    resolver: zodResolver(companyInfoSchema),
+    defaultValues: {
+      country: "SA",
+      businessType: "llc",
+    },
+  });
+
+  const handleFormSubmit = async (data: CompanyInfoFormData) => {
+    try {
+      setSubmitting(true);
+      setError(null);
+      await onSubmit(data);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : auto("Failed to submit", "errors.submit"),
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">
+          {auto("Company Information", "header.title")}
+        </h2>
+        <p className="text-gray-600 mb-6">
+          {auto(
+            "Please provide your business details exactly as they appear on your Commercial Registration.",
+            "header.description",
+          )}
+        </p>
+      </div>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Business Name */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="businessNameEn">
+            {auto("Business Name (English) *", "fields.businessNameEn.label")}
+          </Label>
+          <Input
+            id="businessNameEn"
+            {...register("businessNameEn")}
+            placeholder={auto(
+              "ABC Trading Company",
+              "fields.businessNameEn.placeholder",
+            )}
+          />
+          {errors.businessNameEn && (
+            <p className="text-sm text-destructive mt-1">
+              {errors.businessNameEn.message}
+            </p>
+          )}
+        </div>
+
+        <div>
+          <Label htmlFor="businessNameAr">
+            {auto("Business Name (Arabic) *", "fields.businessNameAr.label")}
+          </Label>
+          <Input
+            id="businessNameAr"
+            {...register("businessNameAr")}
+            placeholder={auto(
+              "شركة ABC التجارية",
+              "fields.businessNameAr.placeholder",
+            )}
+            dir="rtl"
+          />
+          {errors.businessNameAr && (
+            <p className="text-sm text-destructive mt-1">
+              {errors.businessNameAr.message}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* CR & VAT */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="crNumber">
+            {auto(
+              "Commercial Registration (CR) Number *",
+              "fields.crNumber.label",
+            )}
+          </Label>
+          <Input
+            id="crNumber"
+            {...register("crNumber")}
+            placeholder={auto("1234567890", "fields.crNumber.placeholder")}
+            maxLength={10}
+          />
+          {errors.crNumber && (
+            <p className="text-sm text-destructive mt-1">
+              {errors.crNumber.message}
+            </p>
+          )}
+          <p className="text-xs text-gray-500 mt-1">
+            {auto("10-digit CR number", "fields.crNumber.helper")}
+          </p>
+        </div>
+
+        <div>
+          <Label htmlFor="vatNumber">
+            {auto("VAT Number (Optional)", "fields.vatNumber.label")}
+          </Label>
+          <Input
+            id="vatNumber"
+            {...register("vatNumber")}
+            placeholder={auto(
+              "300000000000003",
+              "fields.vatNumber.placeholder",
+            )}
+          />
+          {errors.vatNumber && (
+            <p className="text-sm text-destructive mt-1">
+              {errors.vatNumber.message}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Business Type */}
+      <div>
+        <Label htmlFor="businessType">
+          {auto("Business Type *", "fields.businessType.label")}
+        </Label>
+        <select
+          id="businessType"
+          {...register("businessType")}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+        >
+          <option value="individual">
+            {auto(
+              "Individual/Sole Proprietor",
+              "fields.businessType.individual",
+            )}
+          </option>
+          <option value="llc">
+            {auto("Limited Liability Company (LLC)", "fields.businessType.llc")}
+          </option>
+          <option value="corporation">
+            {auto("Corporation", "fields.businessType.corporation")}
+          </option>
+        </select>
+      </div>
+
+      {/* Address */}
+      <div>
+        <Label htmlFor="addressLine1">
+          {auto("Street Address *", "fields.addressLine1.label")}
+        </Label>
+        <Input
+          id="addressLine1"
+          {...register("addressLine1")}
+          placeholder={auto(
+            "123 Main Street",
+            "fields.addressLine1.placeholder",
+          )}
+        />
+        {errors.addressLine1 && (
+          <p className="text-sm text-destructive mt-1">
+            {errors.addressLine1.message}
+          </p>
+        )}
+      </div>
+
+      <div>
+        <Label htmlFor="addressLine2">
+          {auto("Address Line 2 (Optional)", "fields.addressLine2.label")}
+        </Label>
+        <Input
+          id="addressLine2"
+          {...register("addressLine2")}
+          placeholder={auto(
+            "Building 5, Unit 201",
+            "fields.addressLine2.placeholder",
+          )}
+        />
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        <div>
+          <Label htmlFor="city">{auto("City *", "fields.city.label")}</Label>
+          <Input
+            id="city"
+            {...register("city")}
+            placeholder={auto("Riyadh", "fields.city.placeholder")}
+          />
+          {errors.city && (
+            <p className="text-sm text-destructive mt-1">
+              {errors.city.message}
+            </p>
+          )}
+        </div>
+
+        <div>
+          <Label htmlFor="province">
+            {auto("Province *", "fields.province.label")}
+          </Label>
+          <Input
+            id="province"
+            {...register("province")}
+            placeholder={auto("Riyadh", "fields.province.placeholder")}
+          />
+          {errors.province && (
+            <p className="text-sm text-destructive mt-1">
+              {errors.province.message}
+            </p>
+          )}
+        </div>
+
+        <div>
+          <Label htmlFor="postalCode">
+            {auto("Postal Code *", "fields.postalCode.label")}
+          </Label>
+          <Input
+            id="postalCode"
+            {...register("postalCode")}
+            placeholder={auto("12345", "fields.postalCode.placeholder")}
+          />
+          {errors.postalCode && (
+            <p className="text-sm text-destructive mt-1">
+              {errors.postalCode.message}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Contact */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="contactPhone">
+            {auto("Contact Phone *", "fields.contactPhone.label")}
+          </Label>
+          <Input
+            id="contactPhone"
+            {...register("contactPhone")}
+            placeholder={auto(
+              "+966 50 123 4567",
+              "fields.contactPhone.placeholder",
+            )}
+          />
+          {errors.contactPhone && (
+            <p className="text-sm text-destructive mt-1">
+              {errors.contactPhone.message}
+            </p>
+          )}
+        </div>
+
+        <div>
+          <Label htmlFor="contactEmail">
+            {auto("Contact Email *", "fields.contactEmail.label")}
+          </Label>
+          <Input
+            id="contactEmail"
+            type="email"
+            {...register("contactEmail")}
+            placeholder={auto(
+              "contact@example.com",
+              "fields.contactEmail.placeholder",
+            )}
+          />
+          {errors.contactEmail && (
+            <p className="text-sm text-destructive mt-1">
+              {errors.contactEmail.message}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="flex justify-end">
+        <Button type="submit" disabled={submitting}>
+          {submitting
+            ? auto("Submitting...", "actions.submitting")
+            : auto("Continue to Documents", "actions.continue")}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/seller/kyc/DocumentUploadForm.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Upload, FileText, CheckCircle, X } from "lucide-react";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+interface DocumentFile {
+  file: File;
+  preview: string;
+  uploaded: boolean;
+}
+
+interface Props {
+  onSubmit: (data: KYCDocumentsPayload) => Promise<void>;
+  onBack: () => void;
+}
+
+type KYCDocumentKey =
+  | "commercialRegistration"
+  | "vatCertificate"
+  | "nationalId"
+  | "bankLetter";
+
+type KYCDocumentPayload = {
+  fileUrl: string;
+  fileType: "pdf" | "jpg" | "png";
+  uploadedAt?: string;
+  verified: boolean;
+  fileKey?: string;
+};
+
+type KYCDocumentsPayload = {
+  commercialRegistration: KYCDocumentPayload;
+  nationalId: KYCDocumentPayload;
+  bankLetter: KYCDocumentPayload;
+  vatCertificate?: KYCDocumentPayload;
+};
+
+const REQUIRED_DOCUMENTS: Array<{
+  key: KYCDocumentKey;
+  label: string;
+  required: boolean;
+}> = [
+  {
+    key: "commercialRegistration",
+    label: "Commercial Registration Certificate",
+    required: true,
+  },
+  {
+    key: "vatCertificate",
+    label: "VAT Registration Certificate",
+    required: false,
+  },
+  { key: "nationalId", label: "National ID / Iqama", required: true },
+  { key: "bankLetter", label: "Bank Account Letter", required: true },
+];
+
+export default function DocumentUploadForm({ onSubmit, onBack }: Props) {
+  const [documents, setDocuments] = useState<
+    Partial<Record<KYCDocumentKey, DocumentFile | null>>
+  >({});
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const auto = useAutoTranslator("seller.kyc.documents");
+  const fileTypeError = auto(
+    "Only PDF, JPG, and PNG files are allowed",
+    "errors.fileType",
+  );
+  const fileSizeError = auto(
+    "File size must be less than 10MB",
+    "errors.fileSize",
+  );
+  const submitError = auto("Failed to upload documents", "errors.submitFailed");
+  const requiredDocError = auto(
+    "{{label}} is required",
+    "errors.requiredDocument",
+  );
+  const docLabel = (
+    key: (typeof REQUIRED_DOCUMENTS)[number]["key"],
+    fallback: string,
+  ) => auto(fallback, `documents.${key}.label`);
+
+  const normalizeFileType = (mime: string): KYCDocumentPayload["fileType"] => {
+    if (mime === "application/pdf") return "pdf";
+    if (mime === "image/png") return "png";
+    return "jpg";
+  };
+
+  const handleFileChange = (key: KYCDocumentKey, file: File | null) => {
+    if (!file) {
+      setDocuments((prev) => ({ ...prev, [key]: null }));
+      return;
+    }
+
+    // Validate file type
+    const validTypes = ["application/pdf", "image/jpeg", "image/png"];
+    if (!validTypes.includes(file.type)) {
+      setError(fileTypeError);
+      return;
+    }
+
+    // Validate file size (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setError(fileSizeError);
+      return;
+    }
+
+    const preview = URL.createObjectURL(file);
+    setDocuments((prev) => ({
+      ...prev,
+      [key]: { file, preview, uploaded: false },
+    }));
+    setError(null);
+  };
+
+  const handleRemove = (key: KYCDocumentKey) => {
+    setDocuments((prev) => {
+      const newDocs = { ...prev };
+      if (newDocs[key]?.preview) {
+        URL.revokeObjectURL(newDocs[key]!.preview);
+      }
+      delete newDocs[key];
+      return newDocs;
+    });
+  };
+
+  const handleSubmit = async () => {
+    try {
+      setUploading(true);
+      setError(null);
+
+      // Validate required documents
+      for (const doc of REQUIRED_DOCUMENTS) {
+        if (doc.required && !documents[doc.key]) {
+          const label = docLabel(doc.key, doc.label);
+          throw new Error(requiredDocError.replace("{{label}}", label));
+        }
+      }
+
+      const documentPayload: Partial<KYCDocumentsPayload> = {};
+      for (const [key, docFile] of Object.entries(documents)) {
+        const docKey = key as KYCDocumentKey;
+        if (!docFile) continue;
+
+        // Step 1: Request presigned URL
+        const presignRes = await fetch("/api/upload/presigned-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fileName: docFile.file.name,
+            fileType: docFile.file.type,
+            fileSize: docFile.file.size,
+            category: "kyc",
+          }),
+        });
+        if (!presignRes.ok) {
+          throw new Error(await presignRes.text());
+        }
+        const presign = await presignRes.json();
+
+        // Step 2: Upload file to S3 using PUT presigned URL
+        const putHeaders: Record<string, string> = {
+          ...(presign.uploadHeaders ?? {}),
+          "Content-Type": docFile.file.type || "application/octet-stream",
+        };
+
+        const putRes = await fetch(presign.uploadUrl, {
+          method: "PUT",
+          headers: putHeaders,
+          body: docFile.file,
+        });
+        if (!putRes.ok) {
+          throw new Error("Failed to upload document");
+        }
+
+        // Store public URL (strip query params)
+        const publicUrl = presign.uploadUrl.split("?")[0];
+        const fileType = normalizeFileType(docFile.file.type);
+        const payload: KYCDocumentPayload = {
+          fileUrl: publicUrl,
+          fileType,
+          uploadedAt: new Date().toISOString(),
+          verified: false,
+          fileKey: presign.key,
+        };
+
+        if (docKey === "vatCertificate") {
+          documentPayload.vatCertificate = payload;
+        } else if (docKey === "commercialRegistration") {
+          documentPayload.commercialRegistration = payload;
+        } else if (docKey === "nationalId") {
+          documentPayload.nationalId = payload;
+        } else if (docKey === "bankLetter") {
+          documentPayload.bankLetter = payload;
+        }
+      }
+
+      if (
+        !documentPayload.commercialRegistration ||
+        !documentPayload.nationalId ||
+        !documentPayload.bankLetter
+      ) {
+        throw new Error(submitError);
+      }
+
+      await onSubmit(documentPayload as KYCDocumentsPayload);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : submitError);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const allRequiredUploaded = REQUIRED_DOCUMENTS.filter(
+    (doc) => doc.required,
+  ).every((doc) => documents[doc.key]);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">
+          {auto("Upload Documents", "header.title")}
+        </h2>
+        <p className="text-gray-600 mb-6">
+          {auto(
+            "Please upload clear, legible copies of the required documents. Accepted formats: PDF, JPG, PNG (max 10MB each).",
+            "header.description",
+          )}
+        </p>
+      </div>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="space-y-4">
+        {REQUIRED_DOCUMENTS.map((doc) => {
+          const uploaded = documents[doc.key];
+
+          return (
+            <div key={doc.key} className="border rounded-lg p-4">
+              <div className="flex items-start justify-between mb-2">
+                <div>
+                  <Label className="text-base font-medium">
+                    {docLabel(doc.key, doc.label)}{" "}
+                    {doc.required && (
+                      <span className="text-destructive">*</span>
+                    )}
+                  </Label>
+                </div>
+                {uploaded && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleRemove(doc.key)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+
+              {!uploaded ? (
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                    <p className="text-sm text-gray-600">
+                      {auto(
+                        "Click to upload or drag and drop",
+                        "upload.instructions",
+                      )}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {auto("PDF, JPG, PNG (max 10MB)", "upload.formats")}
+                    </p>
+                  </div>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) =>
+                      handleFileChange(doc.key, e.target.files?.[0] || null)
+                    }
+                  />
+                </label>
+              ) : (
+                <div className="flex items-center gap-3 p-3 bg-success/5 rounded-lg">
+                  <CheckCircle className="w-5 h-5 text-success" />
+                  <FileText className="w-5 h-5 text-gray-600" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900">
+                      {uploaded.file.name}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {(uploaded.file.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="flex justify-between pt-4">
+        <Button type="button" variant="outline" onClick={onBack}>
+          {auto("Back", "actions.back")}
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          disabled={!allRequiredUploaded || uploading}
+        >
+          {uploading
+            ? auto("Uploading...", "actions.uploading")
+            : auto("Continue to Bank Details", "actions.next")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/seller/kyc/KYCProgress.tsx">
+<![CDATA[
+"use client";
+
+import { CheckCircle } from "lucide-react";
+
+type Step = "company_info" | "documents" | "bank_details" | "verification";
+
+interface Props {
+  currentStep: Step;
+  completedSteps: Step[];
+}
+
+const STEPS = [
+  { key: "company_info", label: "Company Info", number: 1 },
+  { key: "documents", label: "Documents", number: 2 },
+  { key: "bank_details", label: "Bank Details", number: 3 },
+  { key: "verification", label: "Verification", number: 4 },
+];
+
+export default function KYCProgress({ currentStep, completedSteps }: Props) {
+  const currentStepIndex = STEPS.findIndex((s) => s.key === currentStep);
+
+  return (
+    <div className="w-full py-6">
+      <div className="flex items-center justify-between">
+        {STEPS.map((step, index) => {
+          const isCompleted = completedSteps.includes(step.key as Step);
+          const isCurrent = step.key === currentStep;
+          const isActive = index <= currentStepIndex;
+
+          return (
+            <div key={step.key} className="flex-1 flex items-center">
+              <div className="flex flex-col items-center flex-1">
+                {/* Circle */}
+                <div
+                  className={`
+                  w-10 h-10 rounded-full flex items-center justify-center font-semibold
+                  ${
+                    isCompleted
+                      ? "bg-green-500 text-white"
+                      : isCurrent
+                        ? "bg-primary text-white"
+                        : isActive
+                          ? "bg-gray-300 text-gray-600"
+                          : "bg-gray-200 text-gray-400"
+                  }
+                `}
+                >
+                  {isCompleted ? (
+                    <CheckCircle className="w-6 h-6" />
+                  ) : (
+                    <span>{step.number}</span>
+                  )}
+                </div>
+
+                {/* Label */}
+                <span
+                  className={`
+                  mt-2 text-sm font-medium
+                  ${isCurrent ? "text-primary" : isActive ? "text-gray-700" : "text-gray-400"}
+                `}
+                >
+                  {step.label}
+                </span>
+              </div>
+
+              {/* Line */}
+              {index < STEPS.length - 1 && (
+                <div
+                  className={`
+                  h-0.5 flex-1 mx-2 mb-6
+                  ${isCompleted ? "bg-green-500" : isActive ? "bg-gray-300" : "bg-gray-200"}
+                `}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/seller/pricing/CompetitorAnalysis.tsx">
+<![CDATA[
+"use client";
+
+import { useState, useEffect } from "react";
+import { TrendingUp, TrendingDown } from "lucide-react";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { logger } from "@/lib/logger";
+
+interface CompetitorAnalysisProps {
+  fsin: string;
+}
+
+interface Analysis {
+  lowestPrice: number;
+  highestPrice: number;
+  averagePrice: number;
+  medianPrice: number;
+  totalOffers: number;
+  priceDistribution: Array<{ range: string; count: number }>;
+}
+
+export default function CompetitorAnalysis({ fsin }: CompetitorAnalysisProps) {
+  const [analysis, setAnalysis] = useState<Analysis | null>(null);
+  const [loading, setLoading] = useState(true);
+  const auto = useAutoTranslator("seller.pricing.competitor");
+
+  useEffect(() => {
+    const fetchAnalysis = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/souq/repricer/analysis/${fsin}`);
+        if (!response.ok) throw new Error("Failed to fetch analysis");
+
+        const data = await response.json();
+        setAnalysis(data.analysis);
+      } catch (error) {
+        logger.error("Failed to fetch competitor analysis", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAnalysis();
+  }, [fsin]);
+
+  if (loading) {
+    return (
+      <div className="text-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+      </div>
+    );
+  }
+
+  if (!analysis || analysis.totalOffers === 0) {
+    return (
+      <div className="text-center py-8 text-gray-600">
+        {auto("No competitor data available for this product.", "state.empty")}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Price Metrics */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-primary/5 rounded-lg p-4">
+          <div className="text-sm text-gray-600 mb-1">
+            {auto("Lowest Price", "metrics.lowest")}
+          </div>
+          <div className="text-2xl font-bold text-gray-900">
+            SAR {analysis.lowestPrice.toFixed(2)}
+          </div>
+          <div className="flex items-center text-xs text-success mt-1">
+            <TrendingDown className="w-3 h-3 me-1" />
+            {auto("Best Deal", "metrics.bestDeal")}
+          </div>
+        </div>
+
+        <div className="bg-gray-50 rounded-lg p-4">
+          <div className="text-sm text-gray-600 mb-1">
+            {auto("Average Price", "metrics.average")}
+          </div>
+          <div className="text-2xl font-bold text-gray-900">
+            SAR {analysis.averagePrice.toFixed(2)}
+          </div>
+        </div>
+
+        <div className="bg-gray-50 rounded-lg p-4">
+          <div className="text-sm text-gray-600 mb-1">
+            {auto("Median Price", "metrics.median")}
+          </div>
+          <div className="text-2xl font-bold text-gray-900">
+            SAR {analysis.medianPrice.toFixed(2)}
+          </div>
+        </div>
+
+        <div className="bg-destructive/5 rounded-lg p-4">
+          <div className="text-sm text-gray-600 mb-1">
+            {auto("Highest Price", "metrics.highest")}
+          </div>
+          <div className="text-2xl font-bold text-gray-900">
+            SAR {analysis.highestPrice.toFixed(2)}
+          </div>
+          <div className="flex items-center text-xs text-destructive mt-1">
+            <TrendingUp className="w-3 h-3 me-1" />
+            {auto("Most Expensive", "metrics.mostExpensive")}
+          </div>
+        </div>
+      </div>
+
+      {/* Total Competitors */}
+      <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+        <div className="text-center">
+          <div className="text-3xl font-bold text-primary-dark">
+            {analysis.totalOffers}
+          </div>
+          <div className="text-sm text-primary-dark">
+            {auto("Competing Sellers", "metrics.sellers")}
+          </div>
+        </div>
+      </div>
+
+      {/* Price Distribution */}
+      <div>
+        <h3 className="font-semibold text-gray-900 mb-3">
+          {auto("Price Distribution", "distribution.title")}
+        </h3>
+        <div className="space-y-2">
+          {analysis.priceDistribution.map((bucket, index) => {
+            const maxCount = Math.max(
+              ...analysis.priceDistribution.map((b) => b.count),
+            );
+            const percentage =
+              maxCount > 0 ? (bucket.count / maxCount) * 100 : 0;
+
+            return (
+              <div key={index} className="flex items-center gap-3">
+                <div className="text-xs text-gray-600 w-32">
+                  {auto("SAR {{range}}", "distribution.range").replace(
+                    "{{range}}",
+                    bucket.range,
+                  )}
+                </div>
+                <div className="flex-1 bg-gray-200 rounded-full h-6 overflow-hidden">
+                  <div
+                    className="bg-primary h-full flex items-center justify-end px-2"
+                    style={{ width: `${percentage}%` }}
+                  >
+                    {bucket.count > 0 && (
+                      <span className="text-xs text-white font-medium">
+                        {bucket.count}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Recommendations */}
+      <div className="bg-warning/5 border border-yellow-200 rounded-lg p-4">
+        <h4 className="font-semibold text-yellow-900 mb-2">
+          {auto("Pricing Recommendation", "recommendation.title")}
+        </h4>
+        <p className="text-sm text-warning-foreground">
+          {auto(
+            "To win the Buy Box, price your product below SAR {{lowest}}. The average market price is SAR {{average}}.",
+            "recommendation.body",
+          )
+            .replace("{{lowest}}", analysis.lowestPrice.toFixed(2))
+            .replace("{{average}}", analysis.averagePrice.toFixed(2))}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/seller/pricing/PricingRuleCard.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+interface RepricerSettings {
+  enabled: boolean;
+  rules: Record<
+    string,
+    {
+      enabled: boolean;
+      minPrice: number;
+      maxPrice: number;
+      targetPosition: "win" | "competitive";
+      undercut: number;
+      protectMargin: boolean;
+    }
+  >;
+  defaultRule?: {
+    enabled: boolean;
+    minPrice: number;
+    maxPrice: number;
+    targetPosition: "win" | "competitive";
+    undercut: number;
+    protectMargin: boolean;
+  };
+}
+
+interface Props {
+  settings: RepricerSettings;
+  onUpdate: (_updatedSettings: RepricerSettings) => void;
+}
+
+export default function PricingRuleCard({ settings, onUpdate }: Props) {
+  const [editing, setEditing] = useState(false);
+  const [localRule, setLocalRule] = useState(
+    settings.defaultRule || {
+      enabled: true,
+      minPrice: 0,
+      maxPrice: 1000,
+      targetPosition: "win" as const,
+      undercut: 0.01,
+      protectMargin: true,
+    },
+  );
+
+  const handleSave = async () => {
+    try {
+      const newSettings = {
+        ...settings,
+        defaultRule: localRule,
+      };
+
+      const response = await fetch("/api/souq/repricer/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ settings: newSettings }),
+      });
+
+      if (!response.ok) throw new Error("Failed to save settings");
+
+      onUpdate(newSettings);
+      setEditing(false);
+    } catch (_error) {
+      alert("Failed to save pricing rules");
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <Alert>
+        <AlertDescription>
+          <strong>Default Rule:</strong> This rule applies to all listings that
+          don't have specific rules configured.
+        </AlertDescription>
+      </Alert>
+
+      {!editing ? (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-700">Status</span>
+            <span
+              className={`text-sm font-semibold ${localRule.enabled ? "text-green-600" : "text-gray-600"}`}
+            >
+              {localRule.enabled ? "Enabled" : "Disabled"}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-700">
+              Price Range
+            </span>
+            <span className="text-sm text-gray-900">
+              SAR {localRule.minPrice.toFixed(2)} -{" "}
+              {localRule.maxPrice.toFixed(2)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-700">
+              Target Position
+            </span>
+            <span className="text-sm text-gray-900 capitalize">
+              {localRule.targetPosition}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-700">
+              Undercut Amount
+            </span>
+            <span className="text-sm text-gray-900">
+              SAR {localRule.undercut.toFixed(2)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-700">
+              Protect Margin
+            </span>
+            <span className="text-sm text-gray-900">
+              {localRule.protectMargin ? "Yes" : "No"}
+            </span>
+          </div>
+          <Button onClick={() => setEditing(true)} className="w-full">
+            Edit Rules
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* Enabled Toggle */}
+          <div className="flex items-center justify-between">
+            <Label htmlFor="rule-enabled">Enable Rule</Label>
+            <Switch
+              id="rule-enabled"
+              checked={localRule.enabled}
+              onCheckedChange={(checked) =>
+                setLocalRule({ ...localRule, enabled: checked })
+              }
+            />
+          </div>
+
+          {/* Min Price */}
+          <div>
+            <Label htmlFor="min-price">Minimum Price (SAR)</Label>
+            <Input
+              id="min-price"
+              type="number"
+              step="0.01"
+              value={localRule.minPrice}
+              onChange={(e) =>
+                setLocalRule({
+                  ...localRule,
+                  minPrice: parseFloat(e.target.value) || 0,
+                })
+              }
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Never go below this price
+            </p>
+          </div>
+
+          {/* Max Price */}
+          <div>
+            <Label htmlFor="max-price">Maximum Price (SAR)</Label>
+            <Input
+              id="max-price"
+              type="number"
+              step="0.01"
+              value={localRule.maxPrice}
+              onChange={(e) =>
+                setLocalRule({
+                  ...localRule,
+                  maxPrice: parseFloat(e.target.value) || 0,
+                })
+              }
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Never exceed this price
+            </p>
+          </div>
+
+          {/* Target Position */}
+          <div>
+            <Label htmlFor="target-position">Target Position</Label>
+            <select
+              id="target-position"
+              value={localRule.targetPosition}
+              onChange={(e) =>
+                setLocalRule({
+                  ...localRule,
+                  targetPosition: e.target.value as "win" | "competitive",
+                })
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            >
+              <option value="win">Win Buy Box (most aggressive)</option>
+              <option value="competitive">Stay Competitive (balanced)</option>
+            </select>
+          </div>
+
+          {/* Undercut Amount */}
+          <div>
+            <Label htmlFor="undercut">Undercut Amount (SAR)</Label>
+            <Input
+              id="undercut"
+              type="number"
+              step="0.01"
+              value={localRule.undercut}
+              onChange={(e) =>
+                setLocalRule({
+                  ...localRule,
+                  undercut: parseFloat(e.target.value) || 0,
+                })
+              }
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              How much to undercut the lowest competitor (e.g., 0.01 SAR)
+            </p>
+          </div>
+
+          {/* Protect Margin */}
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="protect-margin">Protect Margin</Label>
+              <p className="text-xs text-gray-500">
+                Don't drop below min price even if losing Buy Box
+              </p>
+            </div>
+            <Switch
+              id="protect-margin"
+              checked={localRule.protectMargin}
+              onCheckedChange={(checked) =>
+                setLocalRule({ ...localRule, protectMargin: checked })
+              }
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2">
+            <Button onClick={handleSave} className="flex-1">
+              Save Changes
+            </Button>
+            <Button
+              onClick={() => setEditing(false)}
+              variant="outline"
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/seller/reviews/RatingSummary.tsx">
+<![CDATA[
+/**
+ * RatingSummary Component - Overall rating statistics
+ */
+"use client";
+
+import React from "react";
+import { Star } from "lucide-react";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+export interface RatingStats {
+  averageRating: number;
+  totalReviews: number;
+  distribution: {
+    5: { count: number; percentage: number };
+    4: { count: number; percentage: number };
+    3: { count: number; percentage: number };
+    2: { count: number; percentage: number };
+    1: { count: number; percentage: number };
+  };
+  verifiedPurchasePercentage?: number;
+}
+
+interface RatingSummaryProps {
+  stats: RatingStats;
+  showVerified?: boolean;
+}
+
+export function RatingSummary({
+  stats,
+  showVerified = true,
+}: RatingSummaryProps) {
+  const {
+    averageRating,
+    totalReviews,
+    distribution,
+    verifiedPurchasePercentage,
+  } = stats;
+  const auto = useAutoTranslator("seller.ratingSummary");
+  const reviewLabel =
+    totalReviews === 1
+      ? auto("review", "reviews.single")
+      : auto("reviews", "reviews.plural");
+
+  return (
+    <div className="bg-white border rounded-lg p-6">
+      {/* Overall Rating */}
+      <div className="flex items-center gap-6 mb-6 pb-6 border-b">
+        <div className="text-center">
+          <div className="text-5xl font-bold text-primary mb-2">
+            {averageRating.toFixed(1)}
+          </div>
+          <div className="flex justify-center mb-2">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Star
+                key={star}
+                className={`w-5 h-5 ${
+                  star <= Math.round(averageRating)
+                    ? "fill-yellow-400 text-yellow-400"
+                    : "text-gray-300"
+                }`}
+              />
+            ))}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {auto("{{count}} {{label}}", "reviews.summary")
+              .replace("{{count}}", totalReviews.toLocaleString())
+              .replace("{{label}}", reviewLabel)}
+          </div>
+        </div>
+
+        {/* Distribution Bars */}
+        <div className="flex-1 space-y-2">
+          {[5, 4, 3, 2, 1].map((rating) => {
+            const ratingKey = rating as 5 | 4 | 3 | 2 | 1;
+            const data = distribution[ratingKey];
+            const percentage = data?.percentage || 0;
+
+            return (
+              <div key={rating} className="flex items-center gap-3">
+                <span className="text-sm font-medium w-12">
+                  {auto("{{rating}} star", "distribution.label").replace(
+                    "{{rating}}",
+                    String(rating),
+                  )}
+                </span>
+                <div className="flex-1 bg-gray-200 rounded-full h-2.5">
+                  <div
+                    className="bg-yellow-400 h-2.5 rounded-full transition-all"
+                    style={{ width: `${percentage}%` }}
+                  />
+                </div>
+                <span className="text-sm text-muted-foreground w-12 text-end">
+                  {percentage}%
+                </span>
+                <span className="text-sm text-muted-foreground w-12 text-end">
+                  ({data?.count || 0})
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Verified Purchase Badge */}
+      {showVerified && verifiedPurchasePercentage !== undefined && (
+        <div className="flex items-center gap-2 text-sm">
+          <div className="bg-success/10 text-success-dark px-3 py-1 rounded-full font-medium">
+            {auto(
+              "{{percentage}}% Verified Purchases",
+              "verified.badge",
+            ).replace("{{percentage}}", String(verifiedPurchasePercentage))}
+          </div>
+          <span className="text-muted-foreground">
+            {auto("Reviews from confirmed buyers", "verified.caption")}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/seller/reviews/ReviewCard.tsx">
+<![CDATA[
+"use client";
+
+/**
+ * ReviewCard Component - Display individual review
+ */
+
+import React, { useState } from "react";
+import { Star, ThumbsUp, Flag, MessageSquare } from "lucide-react";
+import type { SellerReview } from "@/lib/souq/review-types";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+interface ReviewCardProps {
+  review: SellerReview;
+  onMarkHelpful?: (_reviewId: string) => Promise<void>;
+  onReport?: (_reviewId: string, _reason: string) => Promise<void>;
+  showSellerResponse?: boolean;
+}
+
+export function ReviewCard({
+  review,
+  onMarkHelpful,
+  onReport,
+  showSellerResponse = true,
+}: ReviewCardProps) {
+  const [showReportDialog, setShowReportDialog] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const auto = useAutoTranslator("seller.reviewCard");
+
+  const handleMarkHelpful = async () => {
+    if (!onMarkHelpful) return;
+    setIsSubmitting(true);
+    try {
+      await onMarkHelpful(review.reviewId);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleReport = async () => {
+    if (!onReport || !reportReason) return;
+    setIsSubmitting(true);
+    try {
+      await onReport(review.reviewId, reportReason);
+      setShowReportDialog(false);
+      setReportReason("");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const formatDate = (date: Date) => {
+    return new Date(date).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
+  return (
+    <div className="border rounded-lg p-6 bg-white">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="flex">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  className={`w-5 h-5 ${
+                    star <= review.rating
+                      ? "fill-yellow-400 text-yellow-400"
+                      : "text-gray-300"
+                  }`}
+                />
+              ))}
+            </div>
+            <span className="font-semibold">{review.title}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>{review.customerName}</span>
+            {review.isVerifiedPurchase && (
+              <span className="bg-success/10 text-success-dark px-2 py-0.5 rounded text-xs font-medium">
+                {auto("Verified Purchase", "badges.verified")}
+              </span>
+            )}
+            <span>•</span>
+            <span>{formatDate(review.createdAt)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <p className="text-gray-700 mb-4">{review.content}</p>
+
+      {/* Pros & Cons */}
+      {((review.pros && review.pros.length > 0) ||
+        (review.cons && review.cons.length > 0)) && (
+        <div className="grid md:grid-cols-2 gap-4 mb-4">
+          {review.pros && review.pros.length > 0 && (
+            <div>
+              <h4 className="font-semibold text-sm text-success-dark mb-2">
+                {auto("Pros", "sections.pros")}
+              </h4>
+              <ul className="space-y-1">
+                {review.pros.map((pro, index) => (
+                  <li
+                    key={index}
+                    className="text-sm text-gray-600 flex items-start gap-2"
+                  >
+                    <span className="text-success mt-1">+</span>
+                    <span>{pro}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {review.cons && review.cons.length > 0 && (
+            <div>
+              <h4 className="font-semibold text-sm text-destructive-dark mb-2">
+                {auto("Cons", "sections.cons")}
+              </h4>
+              <ul className="space-y-1">
+                {review.cons.map((con, index) => (
+                  <li
+                    key={index}
+                    className="text-sm text-gray-600 flex items-start gap-2"
+                  >
+                    <span className="text-destructive mt-1">-</span>
+                    <span>{con}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Images */}
+      {review.images && review.images.length > 0 && (
+        <div className="flex gap-2 mb-4 overflow-x-auto">
+          {review.images.map((image, index) => (
+            <img
+              key={index}
+              src={image.url}
+              alt={
+                image.caption ||
+                auto("Review image {{index}}", "media.alt").replace(
+                  "{{index}}",
+                  String(index + 1),
+                )
+              }
+              className="w-24 h-24 object-cover rounded-lg border"
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Seller Response */}
+      {showSellerResponse && review.sellerResponse && (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <MessageSquare className="w-4 h-4 text-primary" />
+            <span className="font-semibold text-sm">
+              {auto("Seller Response", "sections.sellerResponse")}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {formatDate(review.sellerResponse.respondedAt)}
+            </span>
+          </div>
+          <p className="text-sm text-gray-700">
+            {review.sellerResponse.content}
+          </p>
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="flex items-center gap-4 pt-4 border-t">
+        <button
+          onClick={handleMarkHelpful}
+          disabled={isSubmitting || !onMarkHelpful}
+          className="flex items-center gap-2 text-sm text-gray-600 hover:text-primary disabled:opacity-50"
+        >
+          <ThumbsUp className="w-4 h-4" />
+          <span>
+            {auto("Helpful ({{count}})", "actions.helpful").replace(
+              "{{count}}",
+              String(review.helpful),
+            )}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setShowReportDialog(true)}
+          disabled={!onReport}
+          className="flex items-center gap-2 text-sm text-gray-600 hover:text-destructive disabled:opacity-50"
+        >
+          <Flag className="w-4 h-4" />
+          <span>{auto("Report", "actions.report")}</span>
+        </button>
+      </div>
+
+      {/* Report Dialog */}
+      {showReportDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">
+              {auto("Report Review", "dialog.title")}
+            </h3>
+            <textarea
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+              placeholder={auto(
+                "Why are you reporting this review?",
+                "dialog.placeholder",
+              )}
+              rows={4}
+              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary mb-4"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowReportDialog(false)}
+                className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
+              >
+                {auto("Cancel", "dialog.cancel")}
+              </button>
+              <button
+                onClick={handleReport}
+                disabled={isSubmitting || !reportReason}
+                className="flex-1 px-4 py-2 bg-destructive text-white rounded-lg hover:bg-destructive-dark disabled:opacity-50"
+              >
+                {isSubmitting
+                  ? auto("Submitting...", "dialog.submitting")
+                  : auto("Report", "actions.report")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/seller/reviews/ReviewForm.tsx">
+<![CDATA[
+"use client";
+
+/**
+ * ReviewForm Component - Submit/edit product reviews
+ */
+
+import React, { useState } from "react";
+import { Star } from "lucide-react";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+export interface ReviewFormData {
+  rating: number;
+  title: string;
+  content: string;
+  pros: string[];
+  cons: string[];
+  images?: Array<{ url: string; caption?: string }>;
+}
+
+interface ReviewFormProps {
+  productId: string;
+  productName: string;
+  orderId?: string;
+  initialData?: Partial<ReviewFormData>;
+  onSubmit: (_data: ReviewFormData) => Promise<void>;
+  onCancel?: () => void;
+}
+
+export function ReviewForm({
+  productId: _productId,
+  productName,
+  orderId,
+  initialData,
+  onSubmit,
+  onCancel,
+}: ReviewFormProps) {
+  const [rating, setRating] = useState(initialData?.rating || 0);
+  const [hoveredRating, setHoveredRating] = useState(0);
+  const [title, setTitle] = useState(initialData?.title || "");
+  const [content, setContent] = useState(initialData?.content || "");
+  const [pros, setPros] = useState<string[]>(initialData?.pros || [""]);
+  const [cons, setCons] = useState<string[]>(initialData?.cons || [""]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const auto = useAutoTranslator("seller.reviewForm");
+  const defaultSubmitError = auto(
+    "Failed to submit review",
+    "errors.submitFailed",
+  );
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    // Validation
+    if (rating === 0) {
+      setError(auto("Please select a rating", "validation.ratingRequired"));
+      return;
+    }
+
+    if (title.length < 5) {
+      setError(
+        auto("Title must be at least 5 characters", "validation.titleLength"),
+      );
+      return;
+    }
+
+    if (content.length < 20) {
+      setError(
+        auto(
+          "Review must be at least 20 characters",
+          "validation.contentLength",
+        ),
+      );
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await onSubmit({
+        rating,
+        title,
+        content,
+        pros: pros.filter((p) => p.trim() !== ""),
+        cons: cons.filter((c) => c.trim() !== ""),
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : defaultSubmitError);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const addPro = () => setPros([...pros, ""]);
+  const addCon = () => setCons([...cons, ""]);
+
+  const updatePro = (index: number, value: string) => {
+    const newPros = [...pros];
+    newPros[index] = value;
+    setPros(newPros);
+  };
+
+  const updateCon = (index: number, value: string) => {
+    const newCons = [...cons];
+    newCons[index] = value;
+    setCons(newCons);
+  };
+
+  const removePro = (index: number) => {
+    setPros(pros.filter((_, i) => i !== index));
+  };
+
+  const removeCon = (index: number) => {
+    setCons(cons.filter((_, i) => i !== index));
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Product Info */}
+      <div className="border-b pb-4">
+        <h2 className="text-2xl font-bold">
+          {auto("Review {{productName}}", "header.title").replace(
+            "{{productName}}",
+            productName,
+          )}
+        </h2>
+        {orderId && (
+          <p className="text-sm text-muted-foreground mt-1">
+            {auto(
+              "Verified Purchase - Order #{{orderId}}",
+              "header.verifiedOrder",
+            ).replace("{{orderId}}", orderId)}
+          </p>
+        )}
+      </div>
+
+      {/* Rating */}
+      <div>
+        <label className="block text-sm font-medium mb-2">
+          {auto("Rating", "rating.label")}{" "}
+          <span className="text-destructive">*</span>
+        </label>
+        <div className="flex gap-2">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button
+              key={star}
+              type="button"
+              onClick={() => setRating(star)}
+              onMouseEnter={() => setHoveredRating(star)}
+              onMouseLeave={() => setHoveredRating(0)}
+              className="transition-transform hover:scale-110"
+            >
+              <Star
+                className={`w-8 h-8 ${
+                  star <= (hoveredRating || rating)
+                    ? "fill-yellow-400 text-yellow-400"
+                    : "text-gray-300"
+                }`}
+              />
+            </button>
+          ))}
+          {rating > 0 && (
+            <span className="ms-2 text-sm text-muted-foreground self-center">
+              {auto("{{rating}} out of 5 stars", "rating.caption").replace(
+                "{{rating}}",
+                String(rating),
+              )}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Title */}
+      <div>
+        <label htmlFor="title" className="block text-sm font-medium mb-2">
+          {auto("Review Title", "fields.title.label")}{" "}
+          <span className="text-destructive">*</span>
+        </label>
+        <input
+          id="title"
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder={auto(
+            "Summarize your experience",
+            "fields.title.placeholder",
+          )}
+          maxLength={200}
+          className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+        />
+        <p className="text-xs text-muted-foreground mt-1">
+          {auto("{{count}}/200 characters", "fields.title.counter").replace(
+            "{{count}}",
+            String(title.length),
+          )}
+        </p>
+      </div>
+
+      {/* Content */}
+      <div>
+        <label htmlFor="content" className="block text-sm font-medium mb-2">
+          {auto("Detailed Review", "fields.content.label")}{" "}
+          <span className="text-destructive">*</span>
+        </label>
+        <textarea
+          id="content"
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder={auto(
+            "Share your experience with this product...",
+            "fields.content.placeholder",
+          )}
+          maxLength={5000}
+          rows={6}
+          className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+        />
+        <p className="text-xs text-muted-foreground mt-1">
+          {auto(
+            "{{count}}/5000 characters (minimum 20)",
+            "fields.content.counter",
+          ).replace("{{count}}", String(content.length))}
+        </p>
+      </div>
+
+      {/* Pros */}
+      <div>
+        <label className="block text-sm font-medium mb-2">
+          {auto("Pros (Optional)", "fields.pros.label")}
+        </label>
+        {pros.map((pro, index) => (
+          <div key={index} className="flex gap-2 mb-2">
+            <input
+              type="text"
+              value={pro}
+              onChange={(e) => updatePro(index, e.target.value)}
+              placeholder={auto(
+                "What did you like?",
+                "fields.pros.placeholder",
+              )}
+              className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <button
+              type="button"
+              onClick={() => removePro(index)}
+              className="px-3 py-2 text-destructive hover:bg-destructive/5 rounded-lg"
+            >
+              {auto("Remove", "actions.remove")}
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={addPro}
+          className="text-sm text-primary hover:underline"
+        >
+          {auto("+ Add Pro", "actions.addPro")}
+        </button>
+      </div>
+
+      {/* Cons */}
+      <div>
+        <label className="block text-sm font-medium mb-2">
+          {auto("Cons (Optional)", "fields.cons.label")}
+        </label>
+        {cons.map((con, index) => (
+          <div key={index} className="flex gap-2 mb-2">
+            <input
+              type="text"
+              value={con}
+              onChange={(e) => updateCon(index, e.target.value)}
+              placeholder={auto(
+                "What could be improved?",
+                "fields.cons.placeholder",
+              )}
+              className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <button
+              type="button"
+              onClick={() => removeCon(index)}
+              className="px-3 py-2 text-destructive hover:bg-destructive/5 rounded-lg"
+            >
+              {auto("Remove", "actions.remove")}
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={addCon}
+          className="text-sm text-primary hover:underline"
+        >
+          {auto("+ Add Con", "actions.addCon")}
+        </button>
+      </div>
+
+      {/* Error */}
+      {error && (
+        <div className="bg-destructive/5 border border-red-200 text-destructive-dark px-4 py-3 rounded-lg">
+          {error}
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="flex gap-3 pt-4 border-t">
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isSubmitting}
+            className="px-6 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
+          >
+            {auto("Cancel", "actions.cancel")}
+          </button>
+        )}
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50"
+        >
+          {isSubmitting
+            ? auto("Submitting...", "actions.submitting")
+            : auto("Submit Review", "actions.submit")}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/seller/reviews/ReviewList.tsx">
+<![CDATA[
+"use client";
+
+/**
+ * ReviewList Component - Paginated list of reviews with filters
+ */
+
+import React, { useState, useEffect } from "react";
+import { ReviewCard } from "./ReviewCard";
+import type { SellerReview } from "@/lib/souq/review-types";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { logger } from "@/lib/logger";
+
+interface ReviewListProps {
+  productId?: string;
+  initialReviews?: SellerReview[];
+  onMarkHelpful?: (_reviewId: string) => Promise<void>;
+  onReport?: (_reviewId: string, _reason: string) => Promise<void>;
+}
+
+interface FilterState {
+  rating: number | null;
+  verifiedOnly: boolean;
+  sortBy: "recent" | "helpful" | "rating";
+}
+
+export function ReviewList({
+  productId,
+  initialReviews = [],
+  onMarkHelpful,
+  onReport,
+}: ReviewListProps) {
+  const [reviews, setReviews] = useState<SellerReview[]>(initialReviews);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [filters, setFilters] = useState<FilterState>({
+    rating: null,
+    verifiedOnly: false,
+    sortBy: "recent",
+  });
+  const auto = useAutoTranslator("seller.reviewList");
+
+  useEffect(() => {
+    if (productId) {
+      fetchReviews();
+    }
+  }, [productId, page, filters]);
+
+  const fetchReviews = async () => {
+    if (!productId) return;
+
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: "20",
+        sortBy: filters.sortBy,
+      });
+
+      if (filters.rating) params.append("rating", filters.rating.toString());
+      if (filters.verifiedOnly) params.append("verifiedOnly", "true");
+
+      const response = await fetch(
+        `/api/souq/reviews?productId=${productId}&${params}`,
+      );
+      const data = await response.json();
+
+      setReviews(data.data || []);
+      setTotalPages(data.pagination?.pages || 1);
+    } catch (error) {
+      logger.error("Failed to fetch reviews", error, {
+        component: "ReviewList",
+        action: "fetchReviews",
+        productId,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFilterChange = (newFilters: Partial<FilterState>) => {
+    setFilters({ ...filters, ...newFilters });
+    setPage(1); // Reset to first page
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Filters */}
+      <div className="flex flex-wrap gap-4 items-center bg-gray-50 p-4 rounded-lg">
+        {/* Rating Filter */}
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            {auto("Filter by Rating", "filters.ratingLabel")}
+          </label>
+          <select
+            value={filters.rating || ""}
+            onChange={(e) =>
+              handleFilterChange({
+                rating: e.target.value ? parseInt(e.target.value) : null,
+              })
+            }
+            className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            <option value="">
+              {auto("All Ratings", "filters.allRatings")}
+            </option>
+            {[5, 4, 3, 2, 1].map((value) => (
+              <option key={value} value={value}>
+                {auto("{{count}} Stars", "filters.ratingOption").replace(
+                  "{{count}}",
+                  String(value),
+                )}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Verified Only */}
+        <div>
+          <label className="flex items-center gap-2 cursor-pointer mt-6">
+            <input
+              type="checkbox"
+              checked={filters.verifiedOnly}
+              onChange={(e) =>
+                handleFilterChange({ verifiedOnly: e.target.checked })
+              }
+              className="w-4 h-4 text-primary"
+            />
+            <span className="text-sm">
+              {auto("Verified Purchases Only", "filters.verifiedOnly")}
+            </span>
+          </label>
+        </div>
+
+        {/* Sort By */}
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            {auto("Sort By", "filters.sortLabel")}
+          </label>
+          <select
+            value={filters.sortBy}
+            onChange={(e) =>
+              handleFilterChange({
+                sortBy: e.target.value as "recent" | "helpful" | "rating",
+              })
+            }
+            className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            <option value="recent">
+              {auto("Most Recent", "filters.sort.recent")}
+            </option>
+            <option value="helpful">
+              {auto("Most Helpful", "filters.sort.helpful")}
+            </option>
+            <option value="rating">
+              {auto("Highest Rating", "filters.sort.rating")}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      {/* Reviews */}
+      {loading ? (
+        <div className="text-center py-12">
+          <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <p className="mt-4 text-muted-foreground">
+            {auto("Loading reviews...", "state.loading")}
+          </p>
+        </div>
+      ) : reviews.length > 0 ? (
+        <div className="space-y-4">
+          {reviews.map((review) => (
+            <ReviewCard
+              key={review.reviewId}
+              review={review}
+              onMarkHelpful={onMarkHelpful}
+              onReport={onReport}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-12 border rounded-lg">
+          <p className="text-muted-foreground">
+            {auto("No reviews found", "state.empty")}
+          </p>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <button
+            onClick={() => setPage(Math.max(1, page - 1))}
+            disabled={page === 1 || loading}
+            className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
+          >
+            {auto("Previous", "pagination.previous")}
+          </button>
+          <span className="text-sm text-muted-foreground">
+            {auto("Page {{page}} of {{total}}", "pagination.summary")
+              .replace("{{page}}", String(page))
+              .replace("{{total}}", String(totalPages))}
+          </span>
+          <button
+            onClick={() => setPage(Math.min(totalPages, page + 1))}
+            disabled={page === totalPages || loading}
+            className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
+          >
+            {auto("Next", "pagination.next")}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/seller/reviews/SellerResponseForm.tsx">
+<![CDATA[
+"use client";
+
+/**
+ * SellerResponseForm Component - Seller response to reviews
+ */
+
+import React, { useState } from "react";
+import { MessageSquare } from "lucide-react";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+interface SellerResponseFormProps {
+  reviewId: string;
+  reviewTitle: string;
+  onSubmit?: (_reviewId: string, _content: string) => Promise<void>;
+  onCancel?: () => void;
+}
+
+async function postSellerResponse(
+  reviewId: string,
+  content: string,
+  defaultErrorMessage: string,
+): Promise<void> {
+  const response = await fetch(
+    `/api/souq/seller-central/reviews/${reviewId}/respond`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ content }),
+    },
+  );
+
+  if (!response.ok) {
+    let message = defaultErrorMessage;
+    try {
+      const data = await response.json();
+      if (typeof data?.error === "string") {
+        message = data.error;
+      }
+    } catch {
+      // ignore JSON parse errors
+    }
+    throw new Error(message);
+  }
+}
+
+export function SellerResponseForm({
+  reviewId,
+  reviewTitle,
+  onSubmit,
+  onCancel,
+}: SellerResponseFormProps) {
+  const [content, setContent] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const auto = useAutoTranslator("seller.reviewResponse");
+  const minLengthError = auto(
+    "Response must be at least 10 characters",
+    "validation.minLength",
+  );
+  const defaultSubmitError = auto(
+    "Failed to submit response",
+    "errors.submitFailed",
+  );
+  const successMessage = auto(
+    "Response submitted successfully",
+    "success.submitted",
+  );
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (content.length < 10) {
+      setError(minLengthError);
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      if (onSubmit) {
+        await onSubmit(reviewId, content);
+      } else {
+        await postSellerResponse(reviewId, content, defaultSubmitError);
+      }
+      setContent("");
+      setSuccess(successMessage);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : defaultSubmitError);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="bg-gray-50 border rounded-lg p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <MessageSquare className="w-5 h-5 text-primary" />
+        <h3 className="font-semibold">
+          {auto("Respond to Review", "header.title")}
+        </h3>
+      </div>
+
+      <p className="text-sm text-muted-foreground mb-3">
+        {auto('Responding to: "{{title}}"', "header.subtitle").replace(
+          "{{title}}",
+          reviewTitle,
+        )}
+      </p>
+
+      <textarea
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        placeholder={auto(
+          "Thank the customer and address their feedback...",
+          "fields.content.placeholder",
+        )}
+        maxLength={1000}
+        rows={4}
+        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+      />
+      <p className="text-xs text-muted-foreground mt-1">
+        {auto(
+          "{{count}}/1000 characters (minimum 10)",
+          "fields.content.counter",
+        ).replace("{{count}}", String(content.length))}
+      </p>
+
+      {error && (
+        <div className="bg-destructive/5 border border-red-200 text-destructive-dark px-3 py-2 rounded-lg text-sm mt-3">
+          {error}
+        </div>
+      )}
+      {success && (
+        <div className="bg-success/5 border border-green-200 text-success-dark px-3 py-2 rounded-lg text-sm mt-3">
+          {success}
+        </div>
+      )}
+
+      <div className="flex gap-2 mt-3">
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isSubmitting}
+            className="px-4 py-2 border rounded-lg hover:bg-white disabled:opacity-50"
+          >
+            {auto("Cancel", "actions.cancel")}
+          </button>
+        )}
+        <button
+          type="submit"
+          disabled={isSubmitting || content.length < 10}
+          className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50"
+        >
+          {isSubmitting
+            ? auto("Submitting...", "actions.submitting")
+            : auto("Post Response", "actions.submit")}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/seller/settlements/BalanceOverview.tsx">
+<![CDATA[
+/**
+ * Balance Overview Component
+ *
+ * Displays seller's balance with available, reserved, and pending amounts.
+ * Shows payout schedule and quick withdrawal action.
+ */
+
+"use client";
+
+import React from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { DollarSign, Clock, Lock, TrendingUp } from "lucide-react";
+
+interface BalanceOverviewProps {
+  balance: {
+    available: number;
+    reserved: number;
+    pending: number;
+    totalEarnings: number;
+    lastPayoutDate?: Date;
+    nextPayoutDate?: Date;
+  };
+  onWithdraw: () => void;
+}
+
+export function BalanceOverview({ balance, onWithdraw }: BalanceOverviewProps) {
+  const formatCurrency = (amount: number) => {
+    return `${amount.toLocaleString("ar-SA")} ر.س`;
+  };
+
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat("ar-SA", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    }).format(date);
+  };
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Available Balance */}
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-success/10 rounded-lg">
+              <DollarSign className="h-5 w-5 text-success" />
+            </div>
+            <h3 className="text-sm font-medium text-gray-600">
+              الرصيد المتاح (Available)
+            </h3>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <p className="text-3xl font-bold text-success">
+            {formatCurrency(balance.available)}
+          </p>
+          <p className="text-xs text-gray-500">
+            جاهز للسحب (Ready to withdraw)
+          </p>
+        </div>
+        <Button
+          onClick={onWithdraw}
+          disabled={balance.available < 500}
+          className="w-full mt-4"
+          variant="default"
+        >
+          {balance.available < 500
+            ? "الحد الأدنى 500 ر.س (Min 500 SAR)"
+            : "طلب سحب (Request Withdrawal)"}
+        </Button>
+      </Card>
+
+      {/* Reserved Balance */}
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-warning/10 rounded-lg">
+              <Lock className="h-5 w-5 text-warning" />
+            </div>
+            <h3 className="text-sm font-medium text-gray-600">
+              الرصيد المحجوز (Reserved)
+            </h3>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <p className="text-3xl font-bold text-warning">
+            {formatCurrency(balance.reserved)}
+          </p>
+          <p className="text-xs text-gray-500">
+            محجوز للمرتجعات (Held for returns - 7-14 days)
+          </p>
+        </div>
+      </Card>
+
+      {/* Pending Balance */}
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Clock className="h-5 w-5 text-primary" />
+            </div>
+            <h3 className="text-sm font-medium text-gray-600">
+              الرصيد المعلق (Pending)
+            </h3>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <p className="text-3xl font-bold text-primary">
+            {formatCurrency(balance.pending)}
+          </p>
+          <p className="text-xs text-gray-500">
+            طلبات قيد التسليم (Orders in transit)
+          </p>
+        </div>
+      </Card>
+
+      {/* Total Earnings */}
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-secondary/20 rounded-lg">
+              <TrendingUp className="h-5 w-5 text-secondary-foreground" />
+            </div>
+            <h3 className="text-sm font-medium text-gray-600">
+              إجمالي الأرباح (Total Earnings)
+            </h3>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <p className="text-3xl font-bold text-secondary-foreground">
+            {formatCurrency(balance.totalEarnings)}
+          </p>
+          <p className="text-xs text-gray-500">منذ البداية (All time)</p>
+        </div>
+      </Card>
+
+      {/* Payout Schedule */}
+      <Card className="p-6 col-span-full">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold mb-2">
+              جدول المدفوعات (Payout Schedule)
+            </h3>
+            <div className="flex items-center gap-8 text-sm">
+              {balance.lastPayoutDate && (
+                <div>
+                  <span className="text-gray-600">
+                    آخر دفعة (Last payout):{" "}
+                  </span>
+                  <span className="font-medium">
+                    {formatDate(balance.lastPayoutDate)}
+                  </span>
+                </div>
+              )}
+              {balance.nextPayoutDate && (
+                <div>
+                  <span className="text-gray-600">
+                    الدفعة القادمة (Next payout):{" "}
+                  </span>
+                  <span className="font-medium text-primary">
+                    {formatDate(balance.nextPayoutDate)}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="text-end text-sm text-gray-500">
+            <p>الدفعات تتم كل جمعة (Payouts every Friday)</p>
+            <p>الحد الأدنى للسحب: 500 ر.س (Minimum: 500 SAR)</p>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/seller/settlements/SettlementStatementView.tsx">
+<![CDATA[
+/**
+ * Settlement Statement View Component
+ * Display detailed settlement statement
+ */
+
+"use client";
+
+import React from "react";
+import { logger } from "@/lib/logger";
+import { Card } from "@/components/ui/card";
+import { Download, FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+interface SettlementStatement {
+  statementId: string;
+  period: { start: Date; end: Date };
+  summary: {
+    totalOrders: number;
+    grossSales: number;
+    platformCommissions: number;
+    gatewayFees: number;
+    vat: number;
+    refunds: number;
+    chargebacks: number;
+    reserves: number;
+    netPayout: number;
+  };
+  transactions: Array<{
+    transactionId: string;
+    orderId: string;
+    type: string;
+    amount: number;
+    timestamp: Date;
+    description: string;
+  }>;
+  status: string;
+  generatedAt: Date;
+  paidAt?: Date;
+}
+
+interface SettlementStatementViewProps {
+  statement: SettlementStatement;
+}
+
+export function SettlementStatementView({
+  statement,
+}: SettlementStatementViewProps) {
+  const formatCurrency = (amount: number) => {
+    return `${amount.toLocaleString("ar-SA")} ر.س`;
+  };
+
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat("ar-SA", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    }).format(new Date(date));
+  };
+
+  const downloadPDF = async () => {
+    try {
+      const { exportToPDF } = await import("@/lib/export-utils");
+
+      // Prepare statement data for PDF
+      const summaryData = [
+        {
+          item: "Gross Sales",
+          amount: `${statement.summary.grossSales.toFixed(2)} SAR`,
+        },
+        {
+          item: "Platform Commission",
+          amount: `-${statement.summary.platformCommissions.toFixed(2)} SAR`,
+        },
+        {
+          item: "Gateway Fees",
+          amount: `-${statement.summary.gatewayFees.toFixed(2)} SAR`,
+        },
+        {
+          item: "VAT on Commission",
+          amount: `-${statement.summary.vat.toFixed(2)} SAR`,
+        },
+        {
+          item: "Refunds",
+          amount: `-${statement.summary.refunds.toFixed(2)} SAR`,
+        },
+        {
+          item: "Chargebacks",
+          amount: `-${statement.summary.chargebacks.toFixed(2)} SAR`,
+        },
+        {
+          item: "Reserves",
+          amount: `-${statement.summary.reserves.toFixed(2)} SAR`,
+        },
+        {
+          item: "Net Payout",
+          amount: `${statement.summary.netPayout.toFixed(2)} SAR`,
+        },
+      ];
+
+      const filename = `statement-${statement.statementId}.pdf`;
+      await exportToPDF(
+        summaryData,
+        [
+          { key: "item", label: "Item" },
+          { key: "amount", label: "Amount" },
+        ],
+        filename,
+        {
+          title: "Settlement Statement",
+          subtitle: `Statement ID: ${statement.statementId} | Period: ${new Date(statement.period.start).toLocaleDateString()} - ${new Date(statement.period.end).toLocaleDateString()}`,
+          orientation: "portrait",
+        },
+      );
+
+      logger.info("Settlement statement downloaded", {
+        statementId: statement.statementId,
+        filename,
+      });
+    } catch (error) {
+      logger.error("Failed to download statement", {
+        error,
+        statementId: statement.statementId,
+      });
+      alert("Failed to download statement. Please try again.");
+    }
+  };
+
+  return (
+    <Card className="p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6 pb-4 border-b">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <FileText className="h-6 w-6 text-primary" />
+            <h2 className="text-2xl font-bold">
+              كشف التسوية (Settlement Statement)
+            </h2>
+          </div>
+          <p className="text-sm text-gray-600">#{statement.statementId}</p>
+          <p className="text-sm text-gray-600">
+            الفترة: {formatDate(statement.period.start)} -{" "}
+            {formatDate(statement.period.end)}
+          </p>
+        </div>
+        <Button onClick={downloadPDF} variant="outline">
+          <Download className="h-4 w-4 me-2" />
+          تحميل PDF (Download)
+        </Button>
+      </div>
+
+      {/* Summary */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="p-4 bg-success/5 rounded-lg">
+          <p className="text-sm text-gray-600 mb-1">إجمالي المبيعات</p>
+          <p className="text-xl font-bold text-success">
+            {formatCurrency(statement.summary.grossSales)}
+          </p>
+        </div>
+        <div className="p-4 bg-destructive/5 rounded-lg">
+          <p className="text-sm text-gray-600 mb-1">العمولات</p>
+          <p className="text-xl font-bold text-destructive">
+            -{formatCurrency(statement.summary.platformCommissions)}
+          </p>
+        </div>
+        <div className="p-4 bg-warning/5 rounded-lg">
+          <p className="text-sm text-gray-600 mb-1">الرسوم والضرائب</p>
+          <p className="text-xl font-bold text-warning">
+            -
+            {formatCurrency(
+              statement.summary.gatewayFees + statement.summary.vat,
+            )}
+          </p>
+        </div>
+        <div className="p-4 bg-primary/5 rounded-lg">
+          <p className="text-sm text-gray-600 mb-1">صافي الدفعة</p>
+          <p className="text-xl font-bold text-primary">
+            {formatCurrency(statement.summary.netPayout)}
+          </p>
+        </div>
+      </div>
+
+      {/* Detailed Breakdown */}
+      <div className="space-y-2 mb-6">
+        <h3 className="font-semibold mb-3">تفصيل الحساب (Breakdown)</h3>
+        <div className="flex justify-between py-2 border-b">
+          <span>إجمالي الطلبات (Total Orders)</span>
+          <span>{statement.summary.totalOrders}</span>
+        </div>
+        <div className="flex justify-between py-2 border-b">
+          <span>إجمالي المبيعات (Gross Sales)</span>
+          <span className="font-medium text-success">
+            {formatCurrency(statement.summary.grossSales)}
+          </span>
+        </div>
+        <div className="flex justify-between py-2 border-b text-destructive">
+          <span>عمولة المنصة 10% (Platform Commission)</span>
+          <span>-{formatCurrency(statement.summary.platformCommissions)}</span>
+        </div>
+        <div className="flex justify-between py-2 border-b text-destructive">
+          <span>رسوم بوابة الدفع 2.5% (Gateway Fees)</span>
+          <span>-{formatCurrency(statement.summary.gatewayFees)}</span>
+        </div>
+        <div className="flex justify-between py-2 border-b text-destructive">
+          <span>ضريبة القيمة المضافة 15% (VAT)</span>
+          <span>-{formatCurrency(statement.summary.vat)}</span>
+        </div>
+        {statement.summary.refunds > 0 && (
+          <div className="flex justify-between py-2 border-b text-destructive">
+            <span>الاستردادات (Refunds)</span>
+            <span>-{formatCurrency(statement.summary.refunds)}</span>
+          </div>
+        )}
+        {statement.summary.reserves > 0 && (
+          <div className="flex justify-between py-2 border-b text-warning">
+            <span>المحجوز للمرتجعات 20% (Reserves)</span>
+            <span>-{formatCurrency(statement.summary.reserves)}</span>
+          </div>
+        )}
+        <div className="flex justify-between py-3 border-t-2 text-lg font-bold">
+          <span>صافي الدفعة (Net Payout)</span>
+          <span className="text-primary">
+            {formatCurrency(statement.summary.netPayout)}
+          </span>
+        </div>
+      </div>
+
+      {/* Status */}
+      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+        <div>
+          <p className="text-sm text-gray-600">الحالة (Status)</p>
+          <p className="font-semibold capitalize">{statement.status}</p>
+        </div>
+        {statement.paidAt && (
+          <div className="text-end">
+            <p className="text-sm text-gray-600">تاريخ الدفع (Paid Date)</p>
+            <p className="font-semibold">{formatDate(statement.paidAt)}</p>
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+]]>
+</file>
+
+</batch_content>

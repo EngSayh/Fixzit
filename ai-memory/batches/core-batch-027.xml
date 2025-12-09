@@ -1,0 +1,2992 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/fm/properties/[id]/page.tsx">
+<![CDATA[
+"use client";
+import { logger } from "@/lib/logger";
+
+import useSWR from "swr";
+import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import GoogleMap from "@/components/GoogleMap";
+import { CardGridSkeleton } from "@/components/skeletons";
+import {
+  Building2,
+  MapPin,
+  DollarSign,
+  Users,
+  Home,
+  Wrench,
+  Shield,
+  ChevronLeft,
+  Edit,
+  Trash2,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react";
+import Link from "next/link";
+import ClientDate from "@/components/ClientDate";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { FmGuardedPage } from "@/components/fm/FmGuardedPage";
+import type { ReactNode } from "react";
+
+interface MaintenanceIssue {
+  resolved?: boolean;
+  severity?: string;
+  description?: string;
+}
+
+interface PropertyUnit {
+  unitNumber?: string;
+  type?: string;
+  area?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  status?: string;
+  tenant?: {
+    name?: string;
+  };
+}
+
+export default function PropertyDetailsPage() {
+  return (
+    <FmGuardedPage moduleId="properties">
+      {({ orgId, supportBanner }) => (
+        <PropertyDetailsContent orgId={orgId} supportBanner={supportBanner} />
+      )}
+    </FmGuardedPage>
+  );
+}
+
+type PropertyDetailsContentProps = {
+  orgId: string;
+  supportBanner?: ReactNode | null;
+};
+
+function PropertyDetailsContent({
+  orgId,
+  supportBanner,
+}: PropertyDetailsContentProps) {
+  const params = useParams();
+  const router = useRouter();
+  const { data: session } = useSession();
+  const { t } = useTranslation();
+  const propertyId = Array.isArray(params?.id) ? params.id[0] : params?.id;
+
+  const handleDelete = async () => {
+    const confirmMessage = t(
+      "fm.properties.detail.actions.confirmDelete",
+      'Delete property "{{name}}"? This cannot be undone.',
+    ).replace("{{name}}", property?.name ?? "");
+
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+    if (!orgId) {
+      toast.error(
+        t("fm.properties.detail.errors.noOrgId", "Organization ID missing"),
+      );
+      return;
+    }
+
+    if (!params?.id) {
+      toast.error(
+        t("fm.properties.detail.errors.noPropertyId", "Property ID missing"),
+      );
+      return;
+    }
+
+    const toastId = toast.loading(
+      t("fm.properties.detail.toasts.deleting", "Deleting property..."),
+    );
+    try {
+      const res = await fetch(`/api/fm/properties/${params.id}`, {
+        method: "DELETE",
+        headers: { "x-tenant-id": orgId },
+      });
+      if (!res.ok) throw new Error("Failed to delete property");
+      toast.success(
+        t(
+          "fm.properties.detail.toasts.success",
+          "Property deleted successfully",
+        ),
+        { id: toastId },
+      );
+      router.push("/fm/properties");
+    } catch (_error) {
+      const message =
+        _error instanceof Error ? _error.message : "Failed to delete property";
+      const failureMessage = t(
+        "fm.properties.detail.toasts.failure",
+        "Failed to delete property: {{message}}",
+      ).replace("{{message}}", message);
+      toast.error(failureMessage, { id: toastId });
+    }
+  };
+
+  const fetcher = (url: string) => {
+    return fetch(url, {
+      headers: { "x-tenant-id": orgId },
+    })
+      .then((r) => r.json())
+      .catch((error) => {
+        logger.error("FM property detail fetch error", error);
+        throw error;
+      });
+  };
+
+  const {
+    data: property,
+    error,
+    isLoading,
+  } = useSWR(
+    orgId && params?.id ? [`/api/fm/properties/${params.id}`, orgId] : null,
+    ([url]) => fetcher(url),
+  );
+
+  if (!session) return <CardGridSkeleton count={3} />;
+  if (error)
+    return (
+      <div>
+        {t("fm.properties.detail.errors.loadFailed", "Failed to load property")}
+      </div>
+    );
+  if (isLoading || !property) return <CardGridSkeleton count={3} />;
+
+  return (
+    <div className="space-y-6">
+      {supportBanner}
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Link href="/fm/properties">
+            <Button variant="ghost" size="sm">
+              <ChevronLeft className="w-4 h-4 me-1" />
+              Back
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold">{property.name}</h1>
+            <p className="text-muted-foreground">{property.code}</p>
+          </div>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (propertyId) {
+                router.push(`/fm/properties/${propertyId}/edit`);
+              }
+            }}
+          >
+            <Edit className="w-4 h-4 me-2" />
+            Edit
+          </Button>
+          <Button
+            variant="outline"
+            className="text-destructive hover:text-destructive"
+            onClick={handleDelete}
+          >
+            <Trash2 className="w-4 h-4 me-2" />
+            Delete
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Details */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Overview Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Building2 className="w-5 h-5 me-2" />
+                Property Overview
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Type</p>
+                  <p className="font-medium">{property.type}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Subtype</p>
+                  <p className="font-medium">{property.subtype || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Area</p>
+                  <p className="font-medium">
+                    {property.details?.totalArea || "N/A"} sqm
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Built Area</p>
+                  <p className="font-medium">
+                    {property.details?.builtArea || "N/A"} sqm
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Year Built</p>
+                  <p className="font-medium">
+                    {property.details?.yearBuilt || "N/A"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Floors</p>
+                  <p className="font-medium">
+                    {property.details?.floors || "N/A"}
+                  </p>
+                </div>
+              </div>
+
+              {property.description && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">
+                      Description
+                    </p>
+                    <p className="text-sm">{property.description}</p>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Location Card with Map */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <MapPin className="w-5 h-5 me-2" />
+                Location
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <p className="font-medium">{property.address?.street}</p>
+                <p className="text-sm text-muted-foreground">
+                  {property.address?.district &&
+                    `${property.address.district}, `}
+                  {property.address?.city}, {property.address?.region}
+                </p>
+                {property.address?.postalCode && (
+                  <p className="text-sm text-muted-foreground">
+                    Postal Code: {property.address.postalCode}
+                  </p>
+                )}
+                {property.address?.nationalAddress && (
+                  <p className="text-sm text-muted-foreground">
+                    National Address: {property.address.nationalAddress}
+                  </p>
+                )}
+              </div>
+
+              {property.address?.coordinates && (
+                <GoogleMap
+                  center={{
+                    lat: property.address.coordinates.lat,
+                    lng: property.address.coordinates.lng,
+                  }}
+                  markers={[
+                    {
+                      position: {
+                        lat: property.address.coordinates.lat,
+                        lng: property.address.coordinates.lng,
+                      },
+                      title: property.name,
+                      info: property.address.street,
+                    },
+                  ]}
+                  height="300px"
+                />
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Units */}
+          {property.units && property.units.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Home className="w-5 h-5 me-2" />
+                  Units ({property.units.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {(property.units as PropertyUnit[]).map((unit, idx) => (
+                    <div
+                      key={unit.unitNumber || `unit-${idx}`}
+                      className="flex items-center justify-between p-3 bg-muted rounded-2xl"
+                    >
+                      <div>
+                        <p className="font-medium">{unit.unitNumber}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {unit.type} • {unit.area} sqm • {unit.bedrooms}BR/
+                          {unit.bathrooms}BA
+                        </p>
+                      </div>
+                      <div className="text-end">
+                        <Badge
+                          className={
+                            unit.status === "OCCUPIED"
+                              ? "bg-success/10 text-success-foreground"
+                              : unit.status === "VACANT"
+                                ? "bg-warning/10 text-warning-foreground"
+                                : "bg-muted text-foreground"
+                          }
+                        >
+                          {unit.status}
+                        </Badge>
+                        {unit.tenant?.name && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {unit.tenant.name}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Right Column - Summary */}
+        <div className="space-y-6">
+          {/* Financial Summary */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <DollarSign className="w-5 h-5 me-2" />
+                Financial Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">
+                  Purchase Price
+                </span>
+                <span className="font-medium">
+                  {property.financial?.purchasePrice?.toLocaleString() || "N/A"}{" "}
+                  SAR
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">
+                  Current Value
+                </span>
+                <span className="font-medium">
+                  {property.financial?.currentValue?.toLocaleString() || "N/A"}{" "}
+                  SAR
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">
+                  Monthly Rent
+                </span>
+                <span className="font-medium">
+                  {property.financial?.monthlyRent?.toLocaleString() || "N/A"}{" "}
+                  SAR
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">
+                  Annual Yield
+                </span>
+                <span className="font-medium">
+                  {property.financial?.annualYield || "N/A"}%
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Ownership */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Users className="w-5 h-5 me-2" />
+                Ownership
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Type</p>
+                <p className="font-medium">
+                  {property.ownership?.type || "N/A"}
+                </p>
+              </div>
+              {property.ownership?.owner && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Owner</p>
+                  <p className="font-medium">{property.ownership.owner.name}</p>
+                  {property.ownership.owner.contact && (
+                    <p className="text-sm text-muted-foreground">
+                      {property.ownership.owner.contact}
+                    </p>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Compliance */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Shield className="w-5 h-5 me-2" />
+                Compliance
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {property.compliance?.buildingPermit && (
+                <div className="flex items-center space-x-2">
+                  <CheckCircle className="w-4 h-4 text-success" />
+                  <span className="text-sm">
+                    Building Permit: {property.compliance.buildingPermit}
+                  </span>
+                </div>
+              )}
+              {property.compliance?.occupancyCertificate && (
+                <div className="flex items-center space-x-2">
+                  <CheckCircle className="w-4 h-4 text-success" />
+                  <span className="text-sm">Occupancy Certificate</span>
+                </div>
+              )}
+              {property.compliance?.insurance?.policyNumber && (
+                <div className="flex items-center space-x-2">
+                  <CheckCircle className="w-4 h-4 text-success" />
+                  <span className="text-sm">
+                    Insurance: {property.compliance.insurance.provider}
+                  </span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Maintenance */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Wrench className="w-5 h-5 me-2" />
+                Maintenance Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Last Inspection</p>
+                <p className="font-medium">
+                  {property.maintenance?.lastInspection ? (
+                    <ClientDate
+                      date={property.maintenance.lastInspection}
+                      format="date-only"
+                    />
+                  ) : (
+                    "N/A"
+                  )}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Next Inspection</p>
+                <p className="font-medium">
+                  {property.maintenance?.nextInspection ? (
+                    <ClientDate
+                      date={property.maintenance.nextInspection}
+                      format="date-only"
+                    />
+                  ) : (
+                    "N/A"
+                  )}
+                </p>
+              </div>
+              {property.maintenance?.issues &&
+                property.maintenance.issues.length > 0 && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Open Issues
+                    </p>
+                    {(property.maintenance.issues as MaintenanceIssue[])
+                      .filter((issue) => !issue.resolved)
+                      .map((issue, idx) => (
+                        <div
+                          key={`issue-${property.id}-${idx}`}
+                          className="flex items-center space-x-2 text-sm"
+                        >
+                          <AlertCircle
+                            className={`w-4 h-4 ${
+                              issue.severity === "HIGH"
+                                ? "text-destructive"
+                                : issue.severity === "MEDIUM"
+                                  ? "text-warning"
+                                  : "text-muted-foreground"
+                            }`}
+                          />
+                          <span>{issue.description}</span>
+                        </div>
+                      ))}
+                  </div>
+                )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/properties/documents/page.tsx">
+<![CDATA[
+"use client";
+
+import React, { useMemo } from "react";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useProperties } from "@/hooks/fm/useProperties";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertCircle, FileText, Upload, RefreshCw, FolderOpen } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { useFMPermissions } from "@/hooks/useFMPermissions";
+import { SubmoduleKey } from "@/domain/fm/fm-lite";
+
+// Document management - will be linked to properties
+// TODO: Implement dedicated /api/fm/documents endpoint for full document management
+
+export default function PropertiesDocumentsPage() {
+  const { t } = useTranslation();
+  const { status: sessionStatus } = useSession();
+  const fmPermissions = useFMPermissions();
+  const { hasOrgContext, guard, supportBanner } = useFmOrgGuard({
+    moduleId: "properties",
+  });
+  const { properties, isLoading, error, refresh } = useProperties("?limit=100");
+
+  const canAccessDocuments = fmPermissions.canAccessModule(
+    SubmoduleKey.PROP_DOCUMENTS
+  );
+  const canManageDocuments =
+    canAccessDocuments && fmPermissions.canManageProperties();
+
+  // Calculate document stats based on properties
+  const stats = useMemo(() => {
+    const totalProperties = properties.length;
+    return {
+      totalDocuments: 0, // Would come from document API
+      propertiesWithDocs: 0,
+      expiringSoon: 0,
+      expired: 0,
+      totalProperties,
+    };
+  }, [properties]);
+
+  if (!hasOrgContext) {
+    return guard;
+  }
+
+  if (sessionStatus === "loading") {
+    return (
+      <div className="space-y-6">
+        <ModuleViewTabs moduleId="properties" />
+        <div className="rounded-xl border border-border bg-card/30 p-6 space-y-3 animate-pulse">
+          <div className="h-4 w-44 rounded-md bg-muted" />
+          <div className="h-4 w-64 rounded-md bg-muted" />
+          <div className="h-3 w-72 rounded-md bg-muted/60" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!canAccessDocuments) {
+    return (
+      <div className="space-y-6">
+        <ModuleViewTabs moduleId="properties" />
+        {supportBanner}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold">
+              {t(
+                "fm.properties.documents.planGate.title",
+                "Document management is not available on your plan"
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-muted-foreground">
+              {t(
+                "fm.properties.documents.planGate.body",
+                "Upgrade your subscription to upload, track expiry dates, and automate compliance alerts."
+              )}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="properties" />
+      {supportBanner}
+
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            {t("fm.properties.documents.title", "Property Documents")}
+          </h1>
+          <p className="text-muted-foreground">
+            {t(
+              "fm.properties.documents.subtitle",
+              "Manage property documents, certificates, and legal files"
+            )}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => refresh()}>
+            <RefreshCw className="me-2 h-4 w-4" />
+            {t("common.refresh", "Refresh")}
+          </Button>
+          {canManageDocuments ? (
+            <Button>
+              <Upload className="me-2 h-4 w-4" />
+              {t("fm.properties.documents.upload", "Upload Document")}
+            </Button>
+          ) : null}
+        </div>
+      </div>
+      {!canManageDocuments ? (
+        <p className="text-sm text-muted-foreground">
+          {t(
+            "fm.properties.documents.viewOnly",
+            "You have view-only access. Contact an admin to manage documents."
+          )}
+        </p>
+      ) : null}
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {t("fm.properties.documents.stats.total", "Total Documents")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-primary">
+              {isLoading ? "—" : stats.totalDocuments}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {t("fm.properties.documents.stats.acrossProperties", "Across {{count}} properties", { count: stats.totalProperties })}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {t("fm.properties.documents.stats.active", "Active Documents")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-success">
+              {isLoading ? "—" : 0}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {t("fm.properties.documents.stats.expiring", "Expiring Soon")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-warning">
+              {isLoading ? "—" : stats.expiringSoon}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {t("fm.properties.documents.stats.expired", "Expired")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-destructive">
+              {isLoading ? "—" : stats.expired}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Upload Area */}
+      <Card>
+        <CardContent className="pt-6">
+          {canManageDocuments ? (
+            <div className="border-2 border-dashed border-border rounded-xl p-8 text-center">
+              <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                {t("fm.properties.documents.uploadArea.title", "Upload Documents")}
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                {t("fm.properties.documents.uploadArea.description", "Drag and drop files here or click to browse")}
+              </p>
+              <Button>
+                {t("fm.properties.documents.uploadArea.button", "Choose Files")}
+              </Button>
+              <p className="text-sm text-muted-foreground mt-2">
+                {t("fm.properties.documents.uploadArea.hint", "Supports PDF, DOC, JPG up to 10MB each")}
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-border bg-muted/40 p-6 text-center text-muted-foreground">
+              {t(
+                "fm.properties.documents.uploadArea.readOnly",
+                "Document upload is restricted to admin/staff roles."
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Properties with Documents */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FolderOpen className="h-5 w-5" />
+            {t("fm.properties.documents.byProperty.title", "Documents by Property")}
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {t(
+              "fm.properties.documents.byProperty.subtitle",
+              "Select a property to view and manage its documents"
+            )}
+          </p>
+        </CardHeader>
+        <CardContent>
+          {error ? (
+            <div className="rounded-lg border border-destructive/60 bg-destructive/5 p-4 text-destructive">
+              <p className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                {t("fm.properties.documents.error", "Unable to load properties.")}
+              </p>
+              <Button
+                size="sm"
+                className="mt-2"
+                variant="outline"
+                onClick={() => refresh()}
+              >
+                {t("common.retry", "Retry")}
+              </Button>
+            </div>
+          ) : isLoading ? (
+            <div className="text-center py-8 text-muted-foreground">
+              {t("common.loading", "Loading...")}
+            </div>
+          ) : properties.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <FolderOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>
+                {t(
+                  "fm.properties.documents.empty",
+                  "No properties found. Create properties first to manage their documents."
+                )}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {properties.map((property) => (
+                <div
+                  key={property._id}
+                  className="flex items-center justify-between p-4 border rounded-xl hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <FolderOpen className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium">{property.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {property.type || "—"} • {property.address?.city || "—"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge variant="outline" className="text-muted-foreground">
+                      {t("fm.properties.documents.noDocuments", "No documents")}
+                    </Badge>
+                    {canManageDocuments ? (
+                      <Button variant="outline" size="sm">
+                        <Upload className="h-4 w-4 me-1" />
+                        {t("fm.properties.documents.addDocument", "Add")}
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Coming Soon Notice */}
+      <Card className="border-dashed">
+        <CardContent className="pt-6">
+          <div className="text-center py-4">
+            <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+            <h3 className="font-semibold mb-2">
+              {t("fm.properties.documents.comingSoon.title", "Full Document Management Coming Soon")}
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              {t(
+                "fm.properties.documents.comingSoon.description",
+                "Document uploads, version control, expiry tracking, and automated compliance alerts will be available in the next release."
+              )}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/properties/inspections/new/page.tsx">
+<![CDATA[
+"use client";
+
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { ClipboardCheck, MapPinned, Users } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+
+export default function CreateInspectionPage() {
+  const { hasOrgContext, guard, supportBanner, orgId } = useFmOrgGuard({
+    moduleId: "properties",
+  });
+  const auto = useAutoTranslator("fm.properties.inspections.new");
+  const [form, setForm] = useState({
+    property: "",
+    type: "",
+    window: "",
+    duration: "",
+    scope: "",
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!form.property || !form.type || !form.window) {
+      toast.error(
+        auto("Please complete the required fields.", "form.validation"),
+      );
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
+      if (orgId) {
+        headers["x-tenant-id"] = orgId;
+      }
+
+      const response = await fetch("/api/properties", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          orgId,
+          name: form.property,
+          type: "COMMERCIAL",
+          subtype: form.type,
+          description: form.scope,
+          address: {
+            street: form.property,
+            city: "Riyadh",
+            region: "Riyadh",
+            coordinates: { lat: 24.7136, lng: 46.6753 },
+          },
+          tags: ["inspection", form.type],
+        }),
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload?.error ?? "Failed to schedule inspection");
+      }
+      toast.success(auto("Inspection request captured.", "next.success"));
+      setForm({ property: "", type: "", window: "", duration: "", scope: "" });
+    } catch (_error) {
+      toast.error(_error instanceof Error ? _error.message : "Request failed");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="properties" />
+      {supportBanner}
+
+      <header className="space-y-2">
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+          {auto("Scheduler", "header.kicker")}
+        </p>
+        <h1 className="text-3xl font-semibold">
+          {auto("Schedule a new inspection", "header.title")}
+        </h1>
+        <p className="text-muted-foreground">
+          {auto(
+            "Capture the basic scope, assets, and team members before dispatching to vendors.",
+            "header.subtitle",
+          )}
+        </p>
+      </header>
+
+      <form onSubmit={handleSubmit}>
+        <Card>
+          <CardHeader>
+            <CardTitle>{auto("Inspection details", "form.title")}</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {auto(
+                "This data feeds the dispatch API and work order templates.",
+                "form.subtitle",
+              )}
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="property">
+                  {auto("Property / asset", "form.property")}
+                </Label>
+                <Input
+                  id="property"
+                  placeholder={auto(
+                    "Olaya Tower 2 - PH Level",
+                    "form.property.placeholder",
+                  )}
+                  value={form.property}
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      property: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="type">
+                  {auto("Inspection type", "form.type")}
+                </Label>
+                <Select
+                  value={form.type}
+                  onValueChange={(value) =>
+                    setForm((prev) => ({ ...prev, type: value }))
+                  }
+                >
+                  <SelectTrigger id="type">
+                    <SelectValue
+                      placeholder={auto("Select type", "form.type.placeholder")}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="handover">
+                      {auto("Handover", "form.type.handover")}
+                    </SelectItem>
+                    <SelectItem value="preventive">
+                      {auto("Preventive", "form.type.preventive")}
+                    </SelectItem>
+                    <SelectItem value="corrective">
+                      {auto("Corrective", "form.type.corrective")}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="window">
+                  {auto("Preferred window", "form.window")}
+                </Label>
+                <Input
+                  id="window"
+                  type="date"
+                  value={form.window}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, window: event.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="duration">
+                  {auto("Duration (hours)", "form.duration")}
+                </Label>
+                <Input
+                  id="duration"
+                  type="number"
+                  placeholder="4"
+                  value={form.duration}
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      duration: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="scope">
+                {auto("Scope / notes", "form.scope")}
+              </Label>
+              <Textarea
+                id="scope"
+                rows={4}
+                placeholder={auto(
+                  "Inspect all HVAC equipment…",
+                  "form.scope.placeholder",
+                )}
+                value={form.scope}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, scope: event.target.value }))
+                }
+              />
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button variant="outline">
+                <MapPinned className="me-2 h-4 w-4" />
+                {auto("Add location pin", "form.addLocation")}
+              </Button>
+              <Button variant="outline">
+                <Users className="me-2 h-4 w-4" />
+                {auto("Assign internal reviewer", "form.assignReviewer")}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="mt-6 border-dashed border-border/70">
+          <CardHeader>
+            <CardTitle>{auto("Next steps", "next.title")}</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {auto(
+                "Save to draft or push directly to /api/properties.",
+                "next.subtitle",
+              )}
+            </p>
+          </CardHeader>
+          <CardContent className="flex gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() =>
+                setForm({
+                  property: "",
+                  type: "",
+                  window: "",
+                  duration: "",
+                  scope: "",
+                })
+              }
+            >
+              {auto("Reset form", "next.reset")}
+            </Button>
+            <Button type="submit" disabled={submitting}>
+              <ClipboardCheck className="me-2 h-4 w-4" />
+              {submitting
+                ? auto("Submitting...", "next.submitting")
+                : auto("Create inspection", "next.create")}
+            </Button>
+          </CardContent>
+        </Card>
+      </form>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/properties/inspections/page.tsx">
+<![CDATA[
+"use client";
+
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import {
+  ClipboardList,
+  Home,
+  MapPin,
+  Shield,
+  Wrench,
+  AlertCircle,
+} from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
+import { useProperties } from "@/hooks/fm/useProperties";
+import { toast } from "sonner";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+
+export default function PropertyInspectionWorkspace() {
+  const { hasOrgContext, guard, supportBanner } = useFmOrgGuard({
+    moduleId: "properties",
+  });
+  const auto = useAutoTranslator("fm.properties.inspections");
+  const { properties, isLoading, error, refresh } = useProperties("?limit=50");
+  const vendorAssignmentsApiEnabled =
+    process.env.NEXT_PUBLIC_VENDOR_ASSIGNMENTS_API_ENABLED === "true";
+  const vendorAssignmentsMocksEnabled =
+    process.env.NEXT_PUBLIC_VENDOR_ASSIGNMENTS_API_MOCKS === "true" ||
+    process.env.NODE_ENV !== "production";
+  const shouldQueryVendorAssignments =
+    vendorAssignmentsApiEnabled || vendorAssignmentsMocksEnabled;
+
+  // Reserve slot feature - placeholder until API is implemented
+  const handleReserveSlot = () => {
+    toast.info(
+      auto(
+        "Inspection scheduling is coming soon. This feature requires the /api/fm/inspections endpoint.",
+        "header.reserve.comingSoon"
+      )
+    );
+  };
+
+  const [vendorCount, setVendorCount] = useState<number>(0);
+
+  const stats = useMemo(() => {
+    const total = properties.length;
+    const risk = properties.filter(
+      (property) => (property.units?.length ?? 0) > 5,
+    );
+    const vendorIds = new Set<string>();
+    properties.forEach((property) =>
+      property.vendors?.forEach((vendor) => {
+        const identifier = vendor?.vendorId ?? vendor?._id ?? vendor?.name;
+        if (identifier) {
+          vendorIds.add(identifier);
+        }
+      }),
+    );
+    const vendorCountValue = vendorCount > 0 ? vendorCount : vendorIds.size;
+
+    return [
+      {
+        label: auto("Upcoming inspections", "metrics.upcoming"),
+        value: total.toString(),
+        hint: auto("Based on scheduled properties", "metrics.upcoming.hint"),
+      },
+      {
+        label: auto("Risk flagged", "metrics.risk"),
+        value: risk.length.toString(),
+        hint: auto("Need QA presence", "metrics.risk.hint"),
+      },
+      {
+        label: auto("Pending reports", "metrics.pendingReports"),
+        value: Math.max(0, total - risk.length).toString(),
+        hint: auto("Awaiting upload", "metrics.pendingReports.hint"),
+      },
+      {
+        label: auto("Vendors scheduled", "metrics.vendors"),
+        value: vendorCountValue.toString(),
+        hint: auto("Across trades", "metrics.vendors.hint"),
+      },
+    ];
+  }, [auto, properties, vendorCount]);
+
+  // Fetch vendor count from API
+  useEffect(() => {
+    if (!shouldQueryVendorAssignments) return;
+
+    const fetchVendorCount = async () => {
+      try {
+        const response = await fetch("/api/fm/inspections/vendor-assignments");
+        if (response.ok) {
+          const data = await response.json();
+          if (data.stats?.uniqueVendors) {
+            setVendorCount(data.stats.uniqueVendors);
+          }
+        }
+      } catch {
+        // Fallback to calculated value on error (already handled in stats)
+      }
+    };
+    fetchVendorCount();
+  }, [properties.length, shouldQueryVendorAssignments]);
+
+  const inspectionQueue = useMemo(() => {
+    return properties.slice(0, 5).map((property, index) => ({
+      id: property.code ?? `INS-${index + 901}`,
+      property: property.name,
+      type: property.type ?? "Preventive",
+      eta: property.createdAt
+        ? new Date(property.createdAt).toLocaleDateString()
+        : auto("TBD", "queue.tbd"),
+      severity: index % 3 === 0 ? "high" : index % 3 === 1 ? "medium" : "low",
+    }));
+  }, [auto, properties]);
+
+  const checklist = [
+    { title: "Scope defined", detail: "Which assets & trades are covered?" },
+    { title: "Access confirmed", detail: "Keys/badges arranged with tenant" },
+    {
+      title: "Vendors assigned",
+      detail: "Mechanical + MEP technicians confirmed",
+    },
+  ];
+
+  if (!hasOrgContext) {
+    return guard;
+  }
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="properties" />
+      {supportBanner}
+
+      <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            {auto("Inspection control", "header.kicker")}
+          </p>
+          <h1 className="text-3xl font-semibold">
+            {auto("Portfolio inspections hub", "header.title")}
+          </h1>
+          <p className="text-muted-foreground">
+            {auto(
+              "Plan, schedule, and track inspections without bouncing between spreadsheets.",
+              "header.subtitle",
+            )}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => refresh()}>
+            <ClipboardList className="me-2 h-4 w-4" />
+            {auto("Import inspection plan", "header.import")}
+          </Button>
+          <Button onClick={handleReserveSlot}>
+            <Home className="me-2 h-4 w-4" />
+            {auto("Reserve inspection slot", "header.reserve")}
+          </Button>
+        </div>
+      </header>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {stats.map((metric) => (
+          <Card key={metric.label}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">
+                {metric.label}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {isLoading ? "—" : metric.value}
+              </div>
+              <p className="text-xs text-muted-foreground">{metric.hint}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{auto("Inspection queue", "queue.title")}</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {auto("Prioritize by severity and SLA impact.", "queue.subtitle")}
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {error ? (
+            <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 text-destructive">
+              <p className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                {auto("Failed to load inspections.", "queue.error")}
+              </p>
+              <Button
+                size="sm"
+                className="mt-2"
+                variant="outline"
+                onClick={() => refresh()}
+              >
+                {auto("Retry", "queue.retry")}
+              </Button>
+            </div>
+          ) : (
+            inspectionQueue.map((item) => (
+              <div
+                key={item.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/70 p-4"
+              >
+                <div>
+                  <p className="font-semibold">{item.property}</p>
+                  <p className="text-sm text-muted-foreground">{item.id}</p>
+                </div>
+                <Badge variant="outline">{item.type}</Badge>
+                <p className="text-sm text-muted-foreground">
+                  {auto("Due", "queue.due")}: {item.eta}
+                </p>
+                <Badge
+                  className={
+                    item.severity === "high"
+                      ? "bg-destructive/15 text-destructive"
+                      : item.severity === "medium"
+                        ? "bg-warning/15 text-warning"
+                        : "bg-muted"
+                  }
+                >
+                  {item.severity}
+                </Badge>
+                <Button size="sm" variant="outline">
+                  {auto("Open worksheet", "queue.open")}
+                </Button>
+              </div>
+            ))
+          )}
+          {!isLoading && !error && inspectionQueue.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              {auto("No inspections scheduled yet.", "queue.empty")}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-dashed border-border/70">
+        <CardHeader>
+          <CardTitle>
+            {auto("Pre-inspection checklist", "checklist.title")}
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {auto(
+              "Lock these items before dispatching teams.",
+              "checklist.subtitle",
+            )}
+          </p>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-3">
+          {checklist.map((item) => (
+            <div
+              key={item.title}
+              className="rounded-xl border border-border/60 p-4"
+            >
+              <p className="font-semibold">
+                {auto(item.title, `checklist.${item.title}`)}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {auto(item.detail, `checklist.${item.title}.detail`)}
+              </p>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{auto("Integrations", "integrations.title")}</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {auto(
+              "Wire this view to /api/properties/inspections for live status.",
+              "integrations.subtitle",
+            )}
+          </p>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+          <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1">
+            <Wrench className="h-4 w-4" />
+            {auto("Vendor scheduler", "integrations.vendor")}
+          </span>
+          <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1">
+            <MapPin className="h-4 w-4" />
+            {auto("Property registry", "integrations.registry")}
+          </span>
+          <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1">
+            <Shield className="h-4 w-4" />
+            {auto("QA audit trail", "integrations.qa")}
+          </span>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/properties/leases/page.tsx">
+<![CDATA[
+"use client";
+
+import React, { useMemo, useState } from "react";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useProperties } from "@/hooks/fm/useProperties";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertCircle, FileText, Plus, RefreshCw } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { useFMPermissions } from "@/hooks/useFMPermissions";
+import { SubmoduleKey } from "@/domain/fm/fm-lite";
+
+// Lease data derived from property records
+// TODO: Implement dedicated /api/fm/leases endpoint for full lease management
+
+export default function PropertiesLeasesPage() {
+  const { t } = useTranslation();
+  const { status: sessionStatus } = useSession();
+  const fmPermissions = useFMPermissions();
+  const { hasOrgContext, guard, supportBanner } = useFmOrgGuard({
+    moduleId: "properties",
+  });
+  const { properties, isLoading, error, refresh } = useProperties("?limit=100");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  const canAccessLeases = fmPermissions.canAccessModule(
+    SubmoduleKey.PROP_LEASES
+  );
+  const canManageLeases =
+    canAccessLeases && fmPermissions.canManageProperties();
+
+  // Derive lease information from properties with occupied units
+  const leaseData = useMemo(() => {
+    const leases: Array<{
+      id: string;
+      property: string;
+      propertyId: string;
+      unit: string;
+      tenant: string;
+      status: string;
+      startDate: string;
+      endDate: string;
+      monthlyRent: number;
+    }> = [];
+
+    properties.forEach((property) => {
+      if (property.units && property.units.length > 0) {
+        property.units.forEach((unit, idx) => {
+          const unitStatus = unit.status?.toLowerCase();
+          if (unitStatus === "occupied") {
+            leases.push({
+              id: `${property._id}-${idx}`,
+              property: property.name,
+              propertyId: property._id,
+              unit: unit.name || `Unit ${idx + 1}`,
+              tenant: "—", // Would come from tenant relationship
+              status: "Active",
+              startDate: property.createdAt || "—",
+              endDate: "—",
+              monthlyRent: 0,
+            });
+          }
+        });
+      }
+    });
+
+    return leases;
+  }, [properties]);
+
+  const filteredLeases = useMemo(() => {
+    if (statusFilter === "all") return leaseData;
+    return leaseData.filter(
+      (lease) => lease.status.toLowerCase() === statusFilter.toLowerCase()
+    );
+  }, [leaseData, statusFilter]);
+
+  const stats = useMemo(() => {
+    const total = leaseData.length;
+    const active = leaseData.filter((l) => l.status === "Active").length;
+    return { total, active };
+  }, [leaseData]);
+
+  if (!hasOrgContext) {
+    return guard;
+  }
+
+  if (sessionStatus === "loading") {
+    return (
+      <div className="space-y-6">
+        <ModuleViewTabs moduleId="properties" />
+        <div className="rounded-xl border border-border bg-card/30 p-6 space-y-3 animate-pulse">
+          <div className="h-4 w-44 rounded-md bg-muted" />
+          <div className="h-4 w-64 rounded-md bg-muted" />
+          <div className="h-3 w-72 rounded-md bg-muted/60" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!canAccessLeases) {
+    return (
+      <div className="space-y-6">
+        <ModuleViewTabs moduleId="properties" />
+        {supportBanner}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold">
+              {t(
+                "fm.properties.leases.planGate.title",
+                "Leases require the Standard plan or above"
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-muted-foreground">
+              {t(
+                "fm.properties.leases.planGate.body",
+                "Upgrade your subscription to enable lease tracking, renewals, and rent visibility."
+              )}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="properties" />
+      {supportBanner}
+
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            {t("fm.properties.leases.title", "Lease Management")}
+          </h1>
+          <p className="text-muted-foreground">
+            {t(
+              "fm.properties.leases.subtitle",
+              "Track and manage property leases across your portfolio"
+            )}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => refresh()}>
+            <RefreshCw className="me-2 h-4 w-4" />
+            {t("common.refresh", "Refresh")}
+          </Button>
+          {canManageLeases ? (
+            <Button>
+              <Plus className="me-2 h-4 w-4" />
+              {t("fm.properties.leases.newLease", "New Lease")}
+            </Button>
+          ) : null}
+        </div>
+      </div>
+      {!canManageLeases ? (
+        <p className="text-sm text-muted-foreground">
+          {t(
+            "fm.properties.leases.viewOnly",
+            "You have view-only access. Contact an admin to manage leases."
+          )}
+        </p>
+      ) : null}
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {t("fm.properties.leases.stats.total", "Total Leases")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-primary">
+              {isLoading ? "—" : stats.total}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {t("fm.properties.leases.stats.hint", "Based on occupied units")}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {t("fm.properties.leases.stats.active", "Active Leases")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-success">
+              {isLoading ? "—" : stats.active}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filter Bar */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-wrap gap-2">
+            {["all", "active"].map((status) => (
+              <Button
+                key={status}
+                variant={statusFilter === status ? "default" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter(status)}
+              >
+                {t(
+                  `fm.properties.leases.filter.${status}`,
+                  status.charAt(0).toUpperCase() + status.slice(1)
+                )}
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Leases Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            {t("fm.properties.leases.list.title", "Lease Records")}
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {t(
+              "fm.properties.leases.list.subtitle",
+              "Lease data derived from occupied units. Full lease management coming soon."
+            )}
+          </p>
+        </CardHeader>
+        <CardContent>
+          {error ? (
+            <div className="rounded-lg border border-destructive/60 bg-destructive/5 p-4 text-destructive">
+              <p className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                {t("fm.properties.leases.error", "Unable to load lease data.")}
+              </p>
+              <Button
+                size="sm"
+                className="mt-2"
+                variant="outline"
+                onClick={() => refresh()}
+              >
+                {t("common.retry", "Retry")}
+              </Button>
+            </div>
+          ) : isLoading ? (
+            <div className="text-center py-8 text-muted-foreground">
+              {t("common.loading", "Loading...")}
+            </div>
+          ) : filteredLeases.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>
+                {t(
+                  "fm.properties.leases.empty",
+                  "No lease records found. Leases will appear when units are marked as occupied."
+                )}
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-muted">
+                  <tr>
+                    <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                      {t("fm.properties.leases.table.property", "Property")}
+                    </th>
+                    <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                      {t("fm.properties.leases.table.unit", "Unit")}
+                    </th>
+                    <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                      {t("fm.properties.leases.table.tenant", "Tenant")}
+                    </th>
+                    <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                      {t("fm.properties.leases.table.status", "Status")}
+                    </th>
+                    <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                      {t("fm.properties.leases.table.actions", "Actions")}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {filteredLeases.map((lease) => (
+                    <tr key={lease.id} className="hover:bg-muted/50">
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <span className="font-medium">{lease.property}</span>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-muted-foreground">
+                        {lease.unit}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-muted-foreground">
+                        {lease.tenant}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <Badge
+                          className={
+                            lease.status === "Active"
+                              ? "bg-success/10 text-success"
+                              : lease.status === "Expiring"
+                                ? "bg-warning/10 text-warning"
+                                : "bg-destructive/10 text-destructive"
+                          }
+                        >
+                          {lease.status}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <Button variant="ghost" size="sm">
+                          {t("common.view", "View")}
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Coming Soon Notice */}
+      <Card className="border-dashed">
+        <CardContent className="pt-6">
+          <div className="text-center py-4">
+            <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+            <h3 className="font-semibold mb-2">
+              {t("fm.properties.leases.comingSoon.title", "Full Lease Management Coming Soon")}
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              {t(
+                "fm.properties.leases.comingSoon.description",
+                "Contract uploads, renewal workflows, rent collection tracking, and financial reporting will be available in the next release."
+              )}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/properties/new/page.tsx">
+<![CDATA[
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { ArrowLeft } from "lucide-react";
+
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { CardGridSkeleton } from "@/components/skeletons";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { CreatePropertyForm } from "../page";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+
+export default function NewPropertyPage() {
+  const router = useRouter();
+  const { t } = useTranslation();
+  const { data: session } = useSession();
+  const { hasOrgContext, guard, supportBanner, orgId } = useFmOrgGuard({
+    moduleId: "properties",
+  });
+
+  if (!session) {
+    return <CardGridSkeleton count={4} />;
+  }
+
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="properties" />
+      {supportBanner}
+
+      <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            {t("fm.properties.new.kicker", "Properties · Creation workspace")}
+          </p>
+          <h1 className="text-3xl font-semibold text-foreground">
+            {t("fm.properties.new.title", "Register a new property")}
+          </h1>
+          <p className="text-muted-foreground">
+            {t(
+              "fm.properties.new.subtitle",
+              "Enrich inventory details, compliance flags, and portfolio metadata before publishing.",
+            )}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="ghost" onClick={() => router.push("/fm/properties")}>
+            <ArrowLeft className="w-4 h-4 me-2" />
+            {t("fm.properties.new.back", "Back to portfolio")}
+          </Button>
+        </div>
+      </header>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            {t("fm.properties.new.sectionTitle", "Property details")}
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {t(
+              "fm.properties.new.sectionDescription",
+              "Captured data is shared with finance, leasing, and maintenance workflows automatically.",
+            )}
+          </p>
+        </CardHeader>
+        <CardContent>
+          <CreatePropertyForm
+            orgId={orgId}
+            onCreated={() => {
+              router.push("/fm/properties");
+            }}
+          />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/properties/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import useSWR from "swr";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
+import { CardGridSkeleton } from "@/components/skeletons";
+import {
+  Building2,
+  Plus,
+  Search,
+  MapPin,
+  Eye,
+  Edit,
+  Trash2,
+  Home,
+  Building,
+  Factory,
+  Map,
+} from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+
+import { logger } from "@/lib/logger";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+interface PropertyUnit {
+  status?: string;
+}
+
+interface PropertyItem {
+  id: string;
+  name?: string;
+  code?: string;
+  type?: string;
+  status?: string;
+  address?: {
+    city?: string;
+    region?: string;
+  };
+  details?: {
+    totalArea?: number;
+    occupancyRate?: number;
+  };
+  financial?: {
+    monthlyRent?: number;
+  };
+  units?: PropertyUnit[];
+}
+
+export default function PropertiesPage() {
+  const { t } = useTranslation();
+  const { data: session } = useSession();
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({
+    moduleId: "properties",
+  });
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+
+  const fetcher = (url: string) => {
+    if (!orgId) {
+      return Promise.reject(new Error("No organization ID"));
+    }
+    return fetch(url)
+      .then((r) => r.json())
+      .catch((error) => {
+        logger.error("FM properties fetch error", error);
+        throw error;
+      });
+  };
+
+  const { data, mutate, isLoading } = useSWR(
+    orgId
+      ? [
+          `/api/fm/properties?search=${encodeURIComponent(search)}&type=${typeFilter}`,
+          orgId,
+        ]
+      : null,
+    ([url]) => fetcher(url),
+  );
+
+  if (!session) {
+    return <CardGridSkeleton count={6} />;
+  }
+
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
+  const properties = data?.items || [];
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="properties" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t("fm.properties.support.activeOrg", "Support context: {{name}}", {
+            name: supportOrg.name,
+          })}
+        </div>
+      )}
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">
+            {t("fm.properties.title", "Property Management")}
+          </h1>
+          <p className="text-muted-foreground">
+            {t(
+              "fm.properties.subtitle",
+              "Real estate portfolio and tenant management",
+            )}
+          </p>
+        </div>
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-success hover:bg-success/90">
+              <Plus className="w-4 h-4 me-2" />
+              {t("fm.properties.newProperty", "New Property")}
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>
+                {t("fm.properties.addProperty", "Add New Property")}
+              </DialogTitle>
+            </DialogHeader>
+            <CreatePropertyForm
+              orgId={orgId}
+              onCreated={() => {
+                mutate();
+                setCreateOpen(false);
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-wrap gap-4">
+            <div className="flex-1 min-w-64">
+              <div className="relative">
+                <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  placeholder={t(
+                    "fm.properties.searchProperties",
+                    "Search properties...",
+                  )}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="ps-10"
+                />
+              </div>
+            </div>
+            <Select
+              value={typeFilter}
+              onValueChange={setTypeFilter}
+              placeholder={t("fm.properties.propertyType", "Property Type")}
+              className="w-48"
+            >
+              <SelectContent>
+                <SelectItem value="">
+                  {t("fm.properties.allTypes", "All Types")}
+                </SelectItem>
+                <SelectItem value="RESIDENTIAL">
+                  {t("fm.properties.residential", "Residential")}
+                </SelectItem>
+                <SelectItem value="COMMERCIAL">
+                  {t("fm.properties.commercial", "Commercial")}
+                </SelectItem>
+                <SelectItem value="INDUSTRIAL">
+                  {t("fm.properties.industrial", "Industrial")}
+                </SelectItem>
+                <SelectItem value="MIXED_USE">
+                  {t("fm.properties.mixedUse", "Mixed Use")}
+                </SelectItem>
+                <SelectItem value="LAND">
+                  {t("fm.properties.land", "Land")}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" className="flex items-center gap-2">
+              <Map className="w-4 h-4" />
+              {t("fm.properties.viewMap", "View Map")}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Properties Grid */}
+      {isLoading ? (
+        <CardGridSkeleton count={6} />
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {(properties as PropertyItem[]).map((property) => (
+              <PropertyCard
+                key={property.id}
+                property={property}
+                orgId={orgId}
+                onUpdated={mutate}
+              />
+            ))}
+          </div>
+
+          {/* Empty State */}
+          {properties.length === 0 && (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Building2 className="w-12 h-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  {t("fm.properties.noProperties", "No Properties Found")}
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  {t(
+                    "fm.properties.noPropertiesText",
+                    "Get started by adding your first property to the portfolio.",
+                  )}
+                </p>
+                <Button
+                  onClick={() => setCreateOpen(true)}
+                  className="bg-success hover:bg-success/90"
+                >
+                  <Plus className="w-4 h-4 me-2" />
+                  {t("fm.properties.addProperty", "Add Property")}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function PropertyCard({
+  property,
+  orgId,
+  onUpdated,
+}: {
+  property: PropertyItem;
+  orgId?: string;
+  onUpdated: () => void;
+}) {
+  const router = useRouter();
+  const { t } = useTranslation();
+
+  const handleDelete = async () => {
+    const confirmMessage = t(
+      "fm.properties.confirmDelete",
+      'Delete property "{{name}}"? This cannot be undone.',
+    ).replace("{{name}}", property.name || "");
+    if (!confirm(confirmMessage)) return;
+    if (!orgId)
+      return toast.error(
+        t("fm.errors.orgIdMissing", "Organization ID missing from session"),
+      );
+
+    const toastId = toast.loading(
+      t("fm.properties.toast.deleting", "Deleting property..."),
+    );
+    try {
+      const res = await fetch(`/api/fm/properties/${property.id}`, {
+        method: "DELETE",
+        headers: { "x-tenant-id": orgId },
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        const message =
+          error &&
+          typeof error === "object" &&
+          "error" in error &&
+          typeof error.error === "string"
+            ? error.error
+            : t(
+                "fm.properties.errors.deleteUnknown",
+                "Failed to delete property",
+              );
+        throw new Error(message);
+      }
+      toast.success(
+        t("fm.properties.toast.deleteSuccess", "Property deleted successfully"),
+        { id: toastId },
+      );
+      onUpdated();
+    } catch (_error) {
+      const message =
+        _error instanceof Error
+          ? _error.message
+          : t(
+              "fm.properties.errors.deleteUnknown",
+              "Failed to delete property",
+            );
+      toast.error(
+        t(
+          "fm.properties.toast.deleteFailed",
+          "Failed to delete property: {{message}}",
+        ).replace("{{message}}", message),
+        { id: toastId },
+      );
+    }
+  };
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case "RESIDENTIAL":
+        return <Home className="w-5 h-5" />;
+      case "COMMERCIAL":
+        return <Building className="w-5 h-5" />;
+      case "INDUSTRIAL":
+        return <Factory className="w-5 h-5" />;
+      default:
+        return <Building2 className="w-5 h-5" />;
+    }
+  };
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case "RESIDENTIAL":
+        return "bg-primary/10 text-primary-foreground";
+      case "COMMERCIAL":
+        return "bg-success/10 text-success-foreground";
+      case "INDUSTRIAL":
+        return "bg-warning/10 text-warning";
+      case "MIXED_USE":
+        return "bg-secondary/10 text-secondary";
+      case "LAND":
+        return "bg-warning/10 text-warning-foreground";
+      default:
+        return "bg-muted text-foreground";
+    }
+  };
+
+  const getTypeLabel = (type: string) => {
+    switch (type) {
+      case "RESIDENTIAL":
+        return t("fm.properties.residential", "Residential");
+      case "COMMERCIAL":
+        return t("fm.properties.commercial", "Commercial");
+      case "INDUSTRIAL":
+        return t("fm.properties.industrial", "Industrial");
+      case "MIXED_USE":
+        return t("fm.properties.mixedUse", "Mixed Use");
+      case "LAND":
+        return t("fm.properties.land", "Land");
+      default:
+        return type?.toLowerCase() || "";
+    }
+  };
+
+  const occupancyRate = property.details?.occupancyRate || 0;
+  const totalUnits = property.units?.length || 0;
+  const occupiedUnits =
+    property.units?.filter((u) => u.status === "OCCUPIED").length || 0;
+
+  return (
+    <Card className="hover:shadow-lg transition-shadow">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center space-x-2">
+            {getTypeIcon(property.type || "")}
+            <div className="flex-1">
+              <CardTitle className="text-lg">{property.name}</CardTitle>
+              <p className="text-sm text-muted-foreground">{property.code}</p>
+            </div>
+          </div>
+          <Badge className={getTypeColor(property.type || "")}>
+            {getTypeLabel(property.type || "")}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center text-sm text-muted-foreground">
+          <MapPin className="w-4 h-4 me-1" />
+          <span>
+            {property.address?.city}, {property.address?.region}
+          </span>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex justify-between">
+            <span className="text-sm text-muted-foreground">
+              {t("fm.properties.totalArea", "Total Area")}:
+            </span>
+            <span className="text-sm font-medium">
+              {property.details?.totalArea || t("common.na", "N/A")} sqm
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-sm text-muted-foreground">
+              {t("fm.properties.units", "Units")}:
+            </span>
+            <span className="text-sm font-medium">
+              {totalUnits} {t("fm.properties.units", "units")}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-sm text-muted-foreground">
+              {t("fm.properties.occupancy", "Occupancy")}:
+            </span>
+            <span className="text-sm font-medium">{occupancyRate}%</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-sm text-muted-foreground">
+              {t("fm.properties.monthlyRent", "Monthly Rent")}:
+            </span>
+            <span className="text-sm font-medium">
+              {property.financial?.monthlyRent?.toLocaleString() ||
+                t("common.na", "N/A")}{" "}
+              SAR
+            </span>
+          </div>
+        </div>
+
+        <Separator />
+
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">
+              {t("fm.properties.status", "Status")}:
+            </span>
+            <div className="flex items-center space-x-2">
+              <div className={`w-2 h-2 rounded-full ${
+                property.status === "INACTIVE" 
+                  ? "bg-destructive/20" 
+                  : property.status === "MAINTENANCE" 
+                    ? "bg-warning/20"
+                    : "bg-success/20"
+              }`}></div>
+              <span className="text-sm font-medium">
+                {property.status 
+                  ? t(`fm.properties.status.${property.status.toLowerCase()}`, property.status)
+                  : t("fm.properties.active", "Active")}
+              </span>
+            </div>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">
+              {t("fm.properties.tenants", "Tenants")}:
+            </span>
+            <span className="text-sm font-medium">
+              {occupiedUnits}/{totalUnits}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex justify-end space-x-2 pt-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push(`/fm/properties/${property.id}`)}
+          >
+            <Eye className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push(`/fm/properties/${property.id}/edit`)}
+          >
+            <Edit className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-destructive hover:text-destructive/90"
+            onClick={handleDelete}
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function CreatePropertyForm({
+  onCreated,
+  orgId,
+}: {
+  onCreated: () => void;
+  orgId: string;
+}) {
+  const { t } = useTranslation();
+
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    type: "",
+    subtype: "",
+    address: {
+      street: "",
+      city: "",
+      region: "",
+      postalCode: "",
+      coordinates: { lat: 24.7136, lng: 46.6753 }, // Default to Riyadh
+      nationalAddress: "",
+      district: "",
+    },
+    details: {
+      totalArea: 0,
+      builtArea: 0,
+      bedrooms: 0,
+      bathrooms: 0,
+      floors: 0,
+      parkingSpaces: 0,
+      yearBuilt: new Date().getFullYear(),
+      occupancyRate: 0,
+    },
+    ownership: {
+      type: "OWNED",
+      owner: {
+        name: "",
+        contact: "",
+        id: "",
+      },
+      lease: {
+        startDate: "",
+        endDate: "",
+        monthlyRent: 0,
+        landlord: "",
+      },
+    },
+    features: {
+      amenities: [] as string[],
+      utilities: {
+        electricity: "",
+        water: "",
+        gas: "",
+        internet: "",
+      },
+      accessibility: {
+        elevator: false,
+        ramp: false,
+        parking: false,
+      },
+    },
+    tags: [] as string[],
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!orgId) {
+      toast.error(
+        t(
+          "fm.errors.noOrgSession",
+          "Error: No organization ID found in session",
+        ),
+      );
+      return;
+    }
+
+    const toastId = toast.loading(
+      t("fm.properties.toast.creating", "Creating property..."),
+    );
+
+    try {
+      const response = await fetch("/api/fm/properties", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tenant-id": orgId,
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        toast.success(
+          t(
+            "fm.properties.toast.createSuccess",
+            "Property created successfully",
+          ),
+          { id: toastId },
+        );
+        onCreated();
+      } else {
+        const error = await response.json().catch(() => ({}));
+        const message =
+          error &&
+          typeof error === "object" &&
+          "error" in error &&
+          typeof error.error === "string"
+            ? error.error
+            : t("fm.properties.errors.unknown", "Unknown error");
+        toast.error(
+          t(
+            "fm.properties.toast.createFailed",
+            "Failed to create property: {{message}}",
+          ).replace("{{message}}", message),
+          { id: toastId },
+        );
+      }
+    } catch (_error) {
+      logger.error("Error creating property:", _error);
+      toast.error(
+        t(
+          "fm.properties.toast.createUnknown",
+          "Error creating property. Please try again.",
+        ),
+        { id: toastId },
+      );
+    }
+  };
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-4 max-h-96 overflow-y-auto"
+    >
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {t("fm.properties.propertyName", "Property Name")} *
+          </label>
+          <Input
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {t("fm.properties.type", "Type")} *
+          </label>
+          <Select
+            value={formData.type}
+            onValueChange={(val) => setFormData({ ...formData, type: val })}
+            placeholder={t("fm.properties.selectType", "Select type")}
+          >
+            <SelectContent>
+              <SelectItem value="RESIDENTIAL">
+                {t("fm.properties.residential", "Residential")}
+              </SelectItem>
+              <SelectItem value="COMMERCIAL">
+                {t("fm.properties.commercial", "Commercial")}
+              </SelectItem>
+              <SelectItem value="INDUSTRIAL">
+                {t("fm.properties.industrial", "Industrial")}
+              </SelectItem>
+              <SelectItem value="MIXED_USE">
+                {t("fm.properties.mixedUse", "Mixed Use")}
+              </SelectItem>
+              <SelectItem value="LAND">
+                {t("fm.properties.land", "Land")}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">
+          {t("fm.properties.description", "Description")}
+        </label>
+        <Textarea
+          value={formData.description}
+          onChange={(e) =>
+            setFormData({ ...formData, description: e.target.value })
+          }
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {t("fm.properties.streetAddress", "Street Address")} *
+          </label>
+          <Input
+            value={formData.address.street}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                address: { ...formData.address, street: e.target.value },
+              })
+            }
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {t("fm.properties.city", "City")} *
+          </label>
+          <Input
+            value={formData.address.city}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                address: { ...formData.address, city: e.target.value },
+              })
+            }
+            required
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {t("fm.properties.region", "Region")} *
+          </label>
+          <Input
+            value={formData.address.region}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                address: { ...formData.address, region: e.target.value },
+              })
+            }
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {t("fm.properties.postalCode", "Postal Code")}
+          </label>
+          <Input
+            value={formData.address.postalCode}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                address: { ...formData.address, postalCode: e.target.value },
+              })
+            }
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {t("fm.properties.totalArea", "Total Area")} (sqm)
+          </label>
+          <Input
+            type="number"
+            value={formData.details.totalArea}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                details: {
+                  ...formData.details,
+                  totalArea: Number(e.target.value),
+                },
+              })
+            }
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {t("fm.properties.builtArea", "Built Area")} (sqm)
+          </label>
+          <Input
+            type="number"
+            value={formData.details.builtArea}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                details: {
+                  ...formData.details,
+                  builtArea: Number(e.target.value),
+                },
+              })
+            }
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {t("fm.properties.bedrooms", "Bedrooms")}
+          </label>
+          <Input
+            type="number"
+            value={formData.details.bedrooms}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                details: {
+                  ...formData.details,
+                  bedrooms: Number(e.target.value),
+                },
+              })
+            }
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {t("fm.properties.bathrooms", "Bathrooms")}
+          </label>
+          <Input
+            type="number"
+            value={formData.details.bathrooms}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                details: {
+                  ...formData.details,
+                  bathrooms: Number(e.target.value),
+                },
+              })
+            }
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {t("fm.properties.floors", "Floors")}
+          </label>
+          <Input
+            type="number"
+            value={formData.details.floors}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                details: {
+                  ...formData.details,
+                  floors: Number(e.target.value),
+                },
+              })
+            }
+          />
+        </div>
+      </div>
+
+      <div className="flex justify-end space-x-2 pt-4">
+        <Button type="submit" className="bg-success hover:bg-success/90">
+          {t("fm.properties.createProperty", "Create Property")}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/fm/properties/units/new/page.tsx">
+<![CDATA[
+"use client";
+
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { ClipboardCheck, Compass, Upload } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+
+export default function CreatePropertyUnitPage() {
+  const auto = useAutoTranslator("fm.properties.units.new");
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({
+    moduleId: "properties",
+  });
+  const [form, setForm] = useState({
+    name: "",
+    type: "",
+    size: "",
+    rent: "",
+    notes: "",
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!form.name || !form.type) {
+      toast.error(auto("Please complete required fields.", "form.validation"));
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const numericSize = form.size ? Number(form.size) : undefined;
+      const numericRent = form.rent ? Number(form.rent) : undefined;
+      const payload: Record<string, unknown> = {
+        name: form.name.trim(),
+        type: form.type.toUpperCase(),
+        description: form.notes.trim() || undefined,
+        organizationId: orgId ?? undefined,
+        address: form.name ? { street: form.name.trim() } : undefined,
+        details: numericSize ? { totalArea: numericSize } : undefined,
+        financials: numericRent ? { annualRent: numericRent } : undefined,
+        ownership: supportOrg
+          ? {
+              type: "OWNED",
+              owner: {
+                name: supportOrg.name,
+                orgId: supportOrg.orgId,
+              },
+            }
+          : undefined,
+        tags: ["unit"],
+      };
+      Object.keys(payload).forEach((key) => {
+        if (payload[key] === undefined || payload[key] === null) {
+          delete payload[key];
+        }
+      });
+      const response = await fetch("/api/properties", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload?.error ?? "Failed to create unit");
+      }
+      toast.success(auto("Unit published successfully.", "next.success"));
+      setForm({ name: "", type: "", size: "", rent: "", notes: "" });
+    } catch (_error) {
+      toast.error(_error instanceof Error ? _error.message : "Request failed");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="properties" />
+
+      <header className="space-y-2">
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+          {auto("Onboarding", "header.kicker")}
+        </p>
+        <h1 className="text-3xl font-semibold">
+          {auto("Create a new unit", "header.title")}
+        </h1>
+        <p className="text-muted-foreground">
+          {auto(
+            "Capture lease + FM metadata so downstream teams can work faster.",
+            "header.subtitle",
+          )}
+        </p>
+      </header>
+
+      <form onSubmit={handleSubmit}>
+        <Card>
+          <CardHeader>
+            <CardTitle>{auto("Unit profile", "form.title")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="name">{auto("Unit name", "form.name")}</Label>
+                <Input
+                  id="name"
+                  placeholder={auto(
+                    "HQ Tower · Floor 18",
+                    "form.name.placeholder",
+                  )}
+                  value={form.name}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, name: event.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="type">{auto("Type", "form.type")}</Label>
+                <Input
+                  id="type"
+                  placeholder={auto(
+                    "Office / Warehouse / Retail…",
+                    "form.type.placeholder",
+                  )}
+                  value={form.type}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, type: event.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="size">{auto("Area (sqm)", "form.size")}</Label>
+                <Input
+                  id="size"
+                  type="number"
+                  placeholder="1345"
+                  value={form.size}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, size: event.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="rent">
+                  {auto("Rent (annual SAR)", "form.rent")}
+                </Label>
+                <Input
+                  id="rent"
+                  type="number"
+                  placeholder="320000"
+                  value={form.rent}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, rent: event.target.value }))
+                  }
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="notes">
+                {auto("Notes for leasing / FM teams", "form.notes")}
+              </Label>
+              <Textarea
+                id="notes"
+                rows={4}
+                placeholder={auto(
+                  "Include special access instructions…",
+                  "form.notes.placeholder",
+                )}
+                value={form.notes}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, notes: event.target.value }))
+                }
+              />
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button type="button" variant="outline">
+                <Upload className="me-2 h-4 w-4" />
+                {auto("Attach floor plan", "form.attachFloorPlan")}
+              </Button>
+              <Button type="button" variant="outline">
+                <Compass className="me-2 h-4 w-4" />
+                {auto("Pin location", "form.pinLocation")}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="mt-6 border-dashed border-border/70">
+          <CardHeader>
+            <CardTitle>{auto("Next steps", "next.title")}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() =>
+                setForm({ name: "", type: "", size: "", rent: "", notes: "" })
+              }
+            >
+              {auto("Clear form", "next.clear")}
+            </Button>
+            <Button type="submit" disabled={submitting}>
+              <ClipboardCheck className="me-2 h-4 w-4" />
+              {submitting
+                ? auto("Publishing...", "next.submitting")
+                : auto("Publish unit", "next.publish")}
+            </Button>
+          </CardContent>
+        </Card>
+      </form>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+</batch_content>

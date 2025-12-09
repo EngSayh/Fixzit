@@ -1,0 +1,3445 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="config/sendgrid.config.ts">
+<![CDATA[
+import { logger } from "@/lib/logger";
+/**
+ * SendGrid Email Service Configuration
+ *
+ * Centralized configuration for all SendGrid features including:
+ * - API key management
+ * - Sender identities (from/reply-to)
+ * - Dynamic templates
+ * - Advanced features (unsubscribe groups, IP pools)
+ * - Webhook verification
+ *
+ * @see https://docs.sendgrid.com/for-developers/sending-email/quickstart-nodejs
+ * @see https://docs.sendgrid.com/ui/sending-email/sender-verification
+ */
+
+import crypto from "crypto";
+import sgMail from "@sendgrid/mail";
+
+export interface SendGridConfig {
+  apiKey: string;
+  from: {
+    email: string;
+    name: string;
+  };
+  replyTo?: {
+    email: string;
+    name: string;
+  };
+  unsubscribeGroupId?: number;
+  ipPoolName?: string;
+  webhookVerificationKey?: string;
+  templates: {
+    welcome?: string;
+    passwordReset?: string;
+    notification?: string;
+    invoice?: string;
+  };
+}
+
+/**
+ * Get SendGrid configuration from environment variables
+ */
+export function getSendGridConfig(): SendGridConfig {
+  const apiKey = process.env.SENDGRID_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("SENDGRID_API_KEY is not configured");
+  }
+
+  // Support both new and legacy environment variable names
+  const fromEmail =
+    process.env.SENDGRID_FROM_EMAIL ||
+    process.env.FROM_EMAIL ||
+    `noreply@${process.env.EMAIL_DOMAIN || "fixzit.co"}`;
+  const fromName = process.env.SENDGRID_FROM_NAME || "Fixzit";
+
+  const replyToEmail = process.env.SENDGRID_REPLY_TO_EMAIL;
+  const replyToName = process.env.SENDGRID_REPLY_TO_NAME || "Fixzit Support";
+
+  return {
+    apiKey,
+    from: {
+      email: fromEmail,
+      name: fromName,
+    },
+    replyTo: replyToEmail
+      ? {
+          email: replyToEmail,
+          name: replyToName,
+        }
+      : undefined,
+    unsubscribeGroupId: process.env.SENDGRID_UNSUBSCRIBE_GROUP_ID
+      ? parseInt(process.env.SENDGRID_UNSUBSCRIBE_GROUP_ID, 10)
+      : undefined,
+    ipPoolName: process.env.SENDGRID_IP_POOL_NAME,
+    webhookVerificationKey: process.env.SENDGRID_WEBHOOK_VERIFICATION_KEY,
+    templates: {
+      welcome: process.env.SENDGRID_TEMPLATE_WELCOME,
+      passwordReset: process.env.SENDGRID_TEMPLATE_PASSWORD_RESET,
+      notification: process.env.SENDGRID_TEMPLATE_NOTIFICATION,
+      invoice: process.env.SENDGRID_TEMPLATE_INVOICE,
+    },
+  };
+}
+
+/**
+ * Initialize SendGrid with API key
+ * Should be called once at application startup
+ */
+export function initializeSendGrid(): void {
+  try {
+    const config = getSendGridConfig();
+    sgMail.setApiKey(config.apiKey);
+    logger.info("✅ SendGrid initialized successfully");
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.warn("SendGrid not configured", {
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+}
+
+/**
+ * Check if SendGrid is properly configured
+ */
+export function isSendGridConfigured(): boolean {
+  return !!(
+    process.env.SENDGRID_API_KEY ||
+    process.env.AWS_SES_ACCESS_KEY ||
+    process.env.EMAIL_SERVICE_ENABLED
+  );
+}
+
+/**
+ * Get base email options with configured sender and reply-to
+ */
+export function getBaseEmailOptions() {
+  const config = getSendGridConfig();
+
+  return {
+    from: {
+      email: config.from.email,
+      name: config.from.name,
+    },
+    replyTo: config.replyTo
+      ? {
+          email: config.replyTo.email,
+          name: config.replyTo.name,
+        }
+      : undefined,
+    trackingSettings: {
+      clickTracking: { enable: true, enableText: false },
+      openTracking: { enable: true },
+    },
+    ...(config.unsubscribeGroupId && {
+      asm: {
+        groupId: config.unsubscribeGroupId,
+      },
+    }),
+    ...(config.ipPoolName && {
+      ipPoolName: config.ipPoolName,
+    }),
+  };
+}
+
+/**
+ * Verify SendGrid webhook signature
+ * SECURITY FIX: Use timing-safe comparison to prevent timing attacks
+ *
+ * @see https://docs.sendgrid.com/for-developers/tracking-events/getting-started-event-webhook-security
+ * @see https://owasp.org/www-community/attacks/Timing_attack
+ */
+export function verifyWebhookSignature(
+  publicKey: string,
+  payload: string,
+  signature: string,
+  timestamp: string,
+): boolean {
+  try {
+    const verificationKey = process.env.SENDGRID_WEBHOOK_VERIFICATION_KEY;
+    const WEBHOOK_TIMESTAMP_MAX_AGE_SECONDS = 5 * 60; // 5 minutes
+
+    // SECURITY: Production MUST have webhook verification enabled
+    if (!verificationKey) {
+      if (process.env.NODE_ENV === "production") {
+        logger.error(
+          "🚨 CRITICAL: SENDGRID_WEBHOOK_VERIFICATION_KEY not configured in production",
+        );
+        logger.error("🚨 Rejecting webhook request for security");
+        return false; // Fail-safe in production
+      }
+      logger.warn(
+        "⚠️ SENDGRID_WEBHOOK_VERIFICATION_KEY not configured - allowing in development",
+      );
+      return true; // Allow in development only
+    }
+
+    // Validate timestamp to prevent replay attacks
+    const requestTimestamp = parseInt(timestamp, 10);
+    const now = Math.floor(Date.now() / 1000);
+
+    if (
+      isNaN(requestTimestamp) ||
+      Math.abs(now - requestTimestamp) > WEBHOOK_TIMESTAMP_MAX_AGE_SECONDS
+    ) {
+      logger.warn("Webhook timestamp expired or invalid", { timestamp });
+      return false;
+    }
+
+    // Compute expected signature using HMAC-SHA256
+    const timestampedPayload = timestamp + payload;
+    const expectedSignature = crypto
+      .createHmac("sha256", verificationKey)
+      .update(timestampedPayload)
+      .digest("base64");
+
+    // CRITICAL SECURITY FIX: Use timing-safe comparison with correct encoding
+    // Both signature and expectedSignature are base64-encoded
+    // Using 'base64' encoding ensures we compare the actual signature bytes
+    const signatureBuffer = Buffer.from(signature, "base64");
+    const expectedBuffer = Buffer.from(expectedSignature, "base64");
+
+    // Both buffers must be same length for timingSafeEqual
+    if (signatureBuffer.length !== expectedBuffer.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(signatureBuffer, expectedBuffer);
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("❌ Webhook verification failed:", { error });
+    return false;
+  }
+}
+
+/**
+ * Get template ID by name
+ */
+export function getTemplateId(
+  templateName: keyof SendGridConfig["templates"],
+): string | undefined {
+  const config = getSendGridConfig();
+  return config.templates[templateName];
+}
+
+]]>
+</file>
+
+<file path="config/service-timeouts.ts">
+<![CDATA[
+const toNumber = (value: string | undefined, fallback: number): number => {
+  if (!value) return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+export const SERVICE_RESILIENCE = {
+  paytabs: {
+    timeouts: {
+      paymentMs: toNumber(process.env.PAYTABS_TIMEOUT_MS, 15_000),
+      payoutMs: toNumber(process.env.PAYTABS_PAYOUT_TIMEOUT_MS, 15_000),
+      verifyMs: toNumber(process.env.PAYTABS_VERIFY_TIMEOUT_MS, 8_000),
+      refundMs: toNumber(process.env.PAYTABS_REFUND_TIMEOUT_MS, 12_000),
+    },
+    retries: {
+      maxAttempts: toNumber(process.env.PAYTABS_MAX_ATTEMPTS, 3),
+      baseDelayMs: toNumber(process.env.PAYTABS_RETRY_DELAY_MS, 750),
+    },
+  },
+  taqnyat: {
+    // Taqnyat SMS provider - CITC-compliant for Saudi Arabia
+    // This is the ONLY production SMS provider for Fixzit
+    timeouts: {
+      smsSendMs: toNumber(process.env.TAQNYAT_TIMEOUT_MS, 30_000),
+      statusMs: toNumber(process.env.TAQNYAT_STATUS_TIMEOUT_MS, 10_000),
+    },
+    retries: {
+      maxAttempts: toNumber(process.env.TAQNYAT_MAX_ATTEMPTS, 2),
+      baseDelayMs: toNumber(process.env.TAQNYAT_RETRY_DELAY_MS, 1_000),
+    },
+  },
+  meilisearch: {
+    timeouts: {
+      searchMs: toNumber(process.env.MEILI_SEARCH_TIMEOUT_MS, 3_000),
+      indexingMs: toNumber(process.env.MEILI_INDEXING_TIMEOUT_MS, 5_000),
+    },
+    retries: {
+      maxAttempts: toNumber(process.env.MEILI_MAX_ATTEMPTS, 3),
+      baseDelayMs: toNumber(process.env.MEILI_RETRY_DELAY_MS, 400),
+    },
+  },
+  zatca: {
+    // Centralized ZATCA API URL - avoids duplication across files
+    clearanceApiUrl:
+      process.env.ZATCA_CLEARANCE_API_URL ||
+      "https://gw-fatoora.zatca.gov.sa/e-invoicing/core/invoices/clearance/single",
+    timeouts: {
+      clearanceMs: toNumber(process.env.ZATCA_TIMEOUT_MS, 10_000),
+    },
+    retries: {
+      maxAttempts: 3,
+      baseDelayMs: 1_000,
+    },
+  },
+} as const;
+
+export type ServiceResilienceKey = keyof typeof SERVICE_RESILIENCE;
+
+]]>
+</file>
+
+<file path="config/sidebarModules.ts">
+<![CDATA[
+import {
+  LayoutDashboard,
+  ClipboardList,
+  Building2,
+  DollarSign,
+  Users,
+  Settings,
+  UserCheck,
+  Headphones,
+  Shield,
+  BarChart3,
+  Cog,
+  Factory,
+} from "lucide-react";
+
+/**
+ * FM App Sidebar Navigation
+ * NOTE: Sub-pages are implemented as TABS on pages, not nested sidebar items
+ * NOTE: Marketplace is a separate top-level app, not an FM sidebar item
+ */
+export const SIDEBAR_ITEMS = [
+  {
+    id: "dashboard",
+    labelKey: "nav.dashboard",
+    icon: LayoutDashboard,
+    path: "/fm/dashboard",
+    group: "Core",
+  },
+  {
+    id: "work-orders",
+    labelKey: "nav.workOrders",
+    icon: ClipboardList,
+    path: "/fm/work-orders",
+    group: "Operations",
+  },
+  {
+    id: "properties",
+    labelKey: "nav.properties",
+    icon: Building2,
+    path: "/fm/properties",
+    group: "Operations",
+  },
+  {
+    id: "vendors",
+    labelKey: "nav.vendors",
+    icon: Factory,
+    path: "/fm/vendors",
+    group: "Operations",
+  },
+  {
+    id: "finance",
+    labelKey: "nav.finance",
+    icon: DollarSign,
+    path: "/fm/finance",
+    group: "Finance",
+  },
+  {
+    id: "hr",
+    labelKey: "nav.hr",
+    icon: Users,
+    path: "/fm/hr",
+    group: "People",
+  },
+  {
+    id: "crm",
+    labelKey: "nav.crm",
+    icon: UserCheck,
+    path: "/fm/crm",
+    group: "Core",
+  },
+  {
+    id: "support",
+    labelKey: "nav.support",
+    icon: Headphones,
+    path: "/fm/support",
+    group: "Support",
+  },
+  {
+    id: "compliance",
+    labelKey: "nav.compliance",
+    icon: Shield,
+    path: "/fm/compliance",
+    group: "Governance",
+  },
+  {
+    id: "reports",
+    labelKey: "nav.reports",
+    icon: BarChart3,
+    path: "/fm/reports",
+    group: "Core",
+  },
+  {
+    id: "administration",
+    labelKey: "nav.admin",
+    icon: Settings,
+    path: "/fm/admin",
+    group: "Operations",
+  },
+  {
+    id: "system",
+    labelKey: "nav.system",
+    icon: Cog,
+    path: "/fm/system",
+    group: "System",
+  },
+];
+
+]]>
+</file>
+
+<file path="config/signup.config.ts">
+<![CDATA[
+/**
+ * Signup Configuration
+ *
+ * ✅ REFACTORED: Imports from single source of truth
+ * No more DRY violations - all data comes from central config
+ */
+
+// ✅ FIX: Import from central config (single source of truth)
+import { LANGUAGE_OPTIONS, type LanguageOption } from "./language-options";
+import { CURRENCIES, type Currency } from "./currencies";
+import { APP_DEFAULTS } from "./constants";
+
+// Re-export types for convenience
+export type { LanguageOption, Currency };
+
+export type UserType = {
+  value: "personal" | "corporate" | "vendor";
+  labelKey: string;
+  descriptionKey: string;
+};
+
+// ✅ REMOVED: SIGNUP_LANGUAGES (use LANGUAGE_OPTIONS directly)
+// ✅ REMOVED: SIGNUP_CURRENCIES (use CURRENCIES directly)
+
+// Re-export for backward compatibility with existing imports
+export { LANGUAGE_OPTIONS as SIGNUP_LANGUAGES };
+export { CURRENCIES as SIGNUP_CURRENCIES };
+
+export const SIGNUP_USER_TYPES: UserType[] = [
+  {
+    value: "personal",
+    labelKey: "signup.accountType.personal",
+    descriptionKey: "signup.accountType.personalDesc",
+  },
+  {
+    value: "corporate",
+    labelKey: "signup.accountType.corporate",
+    descriptionKey: "signup.accountType.corporateDesc",
+  },
+  {
+    value: "vendor",
+    labelKey: "signup.accountType.vendor",
+    descriptionKey: "signup.accountType.vendorDesc",
+  },
+];
+
+/**
+ * Password strength requirements
+ *
+ * Scoring system (via zxcvbn library):
+ * - Score range: 0-4
+ * - 0: Too guessable (risky password)
+ * - 1: Very guessable (protection from throttled online attacks)
+ * - 2: Somewhat guessable (protection from unthrottled online attacks)
+ * - 3: Safely unguessable (moderate protection from offline slow-hash scenario)
+ * - 4: Very unguessable (strong protection from offline slow-hash scenario)
+ *
+ * minScore of 3 ensures "safely unguessable" passwords are required.
+ */
+export const PASSWORD_REQUIREMENTS = {
+  minLength: 8,
+  requireUppercase: true,
+  requireLowercase: true,
+  requireNumber: true,
+  requireSymbol: true,
+  minScore: 3,
+} as const;
+
+// ✅ REMOVED: STORAGE_KEYS (import from config/constants.ts)
+// All components must import STORAGE_KEYS from the central config
+
+export const SIGNUP_DEFAULTS = {
+  // ✅ FIX: Changed to 'ar' to match system-wide default from APP_DEFAULTS
+  language: APP_DEFAULTS.language,
+  currency: APP_DEFAULTS.currency,
+  userType: "personal" as const,
+  newsletter: true,
+} as const;
+
+]]>
+</file>
+
+<file path="config/topbar-modules.ts">
+<![CDATA[
+import type { UserRoleType } from "@/types/user";
+
+export type AppKey = "fm" | "souq" | "aqar";
+export type SearchEntity =
+  | "workOrders"
+  | "properties"
+  | "units"
+  | "tenants"
+  | "vendors"
+  | "invoices"
+  | "products"
+  | "services"
+  | "rfqs"
+  | "orders"
+  | "listings"
+  | "projects"
+  | "agents";
+
+// Canonical constants to avoid repeating string literals across the app
+export const WORK_ORDERS_ENTITY: SearchEntity = "workOrders";
+/** @deprecated Use WORK_ORDERS_ENTITY instead. Kept for API backward compatibility only. */
+export const WORK_ORDERS_ENTITY_LEGACY = "work_orders" as const;
+
+export type ModuleScope =
+  | "dashboard"
+  | "work_orders" // legacy alias for routing/search
+  | "workOrders"
+  | "properties"
+  | "finance"
+  | "hr"
+  | "administration"
+  | "crm"
+  | "support"
+  | "compliance"
+  | "reports"
+  | "system"
+  | "marketplace_materials"
+  | "marketplace_real_estate";
+
+export type SidebarModuleKey =
+  | "dashboard"
+  | "workOrders"
+  | "properties"
+  | "finance"
+  | "hr"
+  | "administration"
+  | "crm"
+  | "marketplace"
+  | "support"
+  | "compliance"
+  | "reports"
+  | "system";
+
+export interface QuickActionConfig {
+  id: string;
+  labelKey: string;
+  fallbackLabel: string;
+  href: string;
+  permission: string;
+  roles?: UserRoleType[];
+}
+
+export interface SavedSearchConfig {
+  id: string;
+  labelKey: string;
+  fallbackLabel: string;
+  query: string;
+  scope?: "module" | "all";
+}
+
+export interface ModuleScopeConfig {
+  id: ModuleScope;
+  app: AppKey;
+  navKey?: SidebarModuleKey;
+  labelKey: string;
+  fallbackLabel: string;
+  searchPlaceholderKey: string;
+  placeholderFallback: string;
+  searchEntities: SearchEntity[];
+  savedSearches: SavedSearchConfig[];
+  quickActions: QuickActionConfig[];
+}
+
+export interface AppConfig {
+  id: AppKey;
+  labelKey: string;
+  routePrefix: string;
+  searchPlaceholderKey: string;
+  searchEntities: SearchEntity[];
+  quickActions: QuickActionConfig[];
+}
+
+export const APPS: Record<AppKey, AppConfig> = {
+  fm: {
+    id: "fm",
+    labelKey: "app.fm",
+    routePrefix: "/fm",
+    searchPlaceholderKey: "search.placeholders.fmDefault",
+    searchEntities: [
+      WORK_ORDERS_ENTITY,
+      "properties",
+      "units",
+      "tenants",
+      "vendors",
+      "invoices",
+    ],
+    quickActions: [
+      {
+        id: "new_wo",
+        labelKey: "dashboard.newWorkOrder",
+        fallbackLabel: "New Work Order",
+        href: "/fm/work-orders/new",
+        permission: "wo.create",
+        roles: [
+          "SUPER_ADMIN",
+          "CORPORATE_ADMIN",
+          "ADMIN",
+          "FM_MANAGER",
+          "DISPATCHER",
+        ],
+      },
+      {
+        id: "new_property",
+        labelKey: "dashboard.addProperty",
+        fallbackLabel: "Add Property",
+        href: "/fm/properties/new",
+        permission: "properties.create",
+        roles: [
+          "SUPER_ADMIN",
+          "CORPORATE_ADMIN",
+          "ADMIN",
+          "FM_MANAGER",
+          "PROPERTY_MANAGER",
+        ],
+      },
+      {
+        id: "new_invoice",
+        labelKey: "dashboard.createInvoice",
+        fallbackLabel: "Create Invoice",
+        href: "/fm/finance/invoices/new",
+        permission: "finance.invoice.create",
+        roles: ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN", "FINANCE"],
+      },
+    ],
+  },
+  souq: {
+    id: "souq",
+    labelKey: "app.souq",
+    routePrefix: "/marketplace",
+    searchPlaceholderKey: "search.placeholders.marketplaceMaterials",
+    searchEntities: ["products", "services", "vendors", "rfqs", "orders"],
+    quickActions: [
+      {
+        id: "new_rfq",
+        labelKey: "souq.newRFQ",
+        fallbackLabel: "Create RFQ",
+        href: "/marketplace/rfqs/new",
+        permission: "souq.rfq.create",
+        roles: ["SUPER_ADMIN", "PROCUREMENT", "FM_MANAGER"],
+      },
+      {
+        id: "new_po",
+        labelKey: "souq.createPO",
+        fallbackLabel: "New Purchase Order",
+        href: "/marketplace/orders/new",
+        permission: "souq.po.create",
+        roles: ["SUPER_ADMIN", "PROCUREMENT", "FINANCE"],
+      },
+      {
+        id: "add_item",
+        labelKey: "souq.addItem",
+        fallbackLabel: "Add Product or Service",
+        href: "/marketplace/items/new",
+        permission: "souq.item.create",
+        roles: ["SUPER_ADMIN", "PROCUREMENT", "VENDOR"],
+      },
+    ],
+  },
+  aqar: {
+    id: "aqar",
+    labelKey: "app.aqar",
+    routePrefix: "/aqar",
+    searchPlaceholderKey: "search.placeholders.marketplaceRealEstate",
+    searchEntities: ["listings", "projects", "agents"],
+    quickActions: [
+      {
+        id: "post_property",
+        labelKey: "aqar.postProperty",
+        fallbackLabel: "New Listing",
+        href: "/aqar/listings/new",
+        permission: "aqar.listing.create",
+        roles: ["SUPER_ADMIN", "PROPERTY_MANAGER", "OWNER"],
+      },
+      {
+        id: "valuation",
+        labelKey: "aqar.newValuation",
+        fallbackLabel: "Request Valuation",
+        href: "/aqar/valuation/new",
+        permission: "aqar.valuation.create",
+        roles: ["SUPER_ADMIN", "PROPERTY_MANAGER", "OWNER"],
+      },
+    ],
+  },
+};
+
+export const DEFAULT_SCOPE: ModuleScope = "dashboard";
+
+// Normalize legacy scope strings to canonical
+// Note: WORK_ORDERS_ENTITY_LEGACY is kept for API backward compatibility but removed from ModuleScope type
+const normalizeScope = (scope: string): ModuleScope =>
+  scope === WORK_ORDERS_ENTITY_LEGACY ? WORK_ORDERS_ENTITY : (scope as ModuleScope);
+
+const MODULE_SCOPE_CONFIG: Record<ModuleScope, ModuleScopeConfig> = {
+  dashboard: {
+    id: "dashboard",
+    app: "fm",
+    navKey: "dashboard",
+    labelKey: "nav.dashboard",
+    fallbackLabel: "Dashboard",
+    searchPlaceholderKey: "search.placeholders.dashboard",
+    placeholderFallback: "Search work orders, properties, tenants…",
+    searchEntities: [WORK_ORDERS_ENTITY, "properties", "tenants"],
+    savedSearches: [
+      {
+        id: "recent-activity",
+        labelKey: "search.saved.recentOperations",
+        fallbackLabel: "Recent operations across modules",
+        query: "status:open updated:<7d",
+        scope: "module",
+      },
+    ],
+    quickActions: [],
+  },
+  workOrders: {
+    id: WORK_ORDERS_ENTITY,
+    app: "fm",
+    navKey: WORK_ORDERS_ENTITY,
+    labelKey: "nav.workOrders",
+    fallbackLabel: "Work Orders",
+    searchPlaceholderKey: "search.placeholders.workOrders",
+    placeholderFallback: "Search work orders, technicians, assets…",
+    searchEntities: [WORK_ORDERS_ENTITY, "properties", "tenants"],
+    savedSearches: [
+      {
+        id: "urgent-wo",
+        labelKey: "search.saved.workOrdersUrgent",
+        fallbackLabel: "Urgent & overdue work orders",
+        query: "status:urgent OR status:overdue",
+        scope: "module",
+      },
+      {
+        id: "preventive-wo",
+        labelKey: "search.saved.workOrdersPreventive",
+        fallbackLabel: "Upcoming preventive maintenance",
+        query: "type:preventive due:<14d",
+        scope: "module",
+      },
+    ],
+    quickActions: [
+      {
+        id: "new_wo",
+        labelKey: "dashboard.newWorkOrder",
+        fallbackLabel: "New Work Order",
+        href: "/fm/work-orders/new",
+        permission: "wo.create",
+        roles: ["SUPER_ADMIN", "CORPORATE_ADMIN", "FM_MANAGER", "DISPATCHER"],
+      },
+      {
+        id: "assign_wo",
+        labelKey: "dashboard.assignWorkOrder",
+        fallbackLabel: "Assign Work Order",
+        href: "/fm/work-orders/board",
+        permission: "wo.assign",
+        roles: ["SUPER_ADMIN", "CORPORATE_ADMIN", "FM_MANAGER", "DISPATCHER"],
+      },
+    ],
+  },
+  work_orders: {
+    id: WORK_ORDERS_ENTITY,
+    app: "fm",
+    navKey: WORK_ORDERS_ENTITY,
+    labelKey: "nav.workOrders",
+    fallbackLabel: "Work Orders",
+    searchPlaceholderKey: "search.placeholders.workOrders",
+    placeholderFallback: "Search work orders, technicians, assets…",
+    searchEntities: [WORK_ORDERS_ENTITY, "properties", "tenants"],
+    savedSearches: [
+      {
+        id: "urgent-wo",
+        labelKey: "search.saved.workOrdersUrgent",
+        fallbackLabel: "Urgent & overdue work orders",
+        query: "status:urgent OR status:overdue",
+        scope: "module",
+      },
+      {
+        id: "preventive-wo",
+        labelKey: "search.saved.workOrdersPreventive",
+        fallbackLabel: "Upcoming preventive maintenance",
+        query: "type:preventive due:<14d",
+        scope: "module",
+      },
+    ],
+    quickActions: [
+      {
+        id: "new_wo",
+        labelKey: "dashboard.newWorkOrder",
+        fallbackLabel: "New Work Order",
+        href: "/fm/work-orders/new",
+        permission: "wo.create",
+        roles: ["SUPER_ADMIN", "CORPORATE_ADMIN", "FM_MANAGER", "DISPATCHER"],
+      },
+      {
+        id: "assign_wo",
+        labelKey: "dashboard.assignWorkOrder",
+        fallbackLabel: "Assign Work Order",
+        href: "/fm/work-orders/board",
+        permission: "wo.assign",
+        roles: ["SUPER_ADMIN", "CORPORATE_ADMIN", "FM_MANAGER", "DISPATCHER"],
+      },
+    ],
+  },
+  properties: {
+    id: "properties",
+    app: "fm",
+    navKey: "properties",
+    labelKey: "nav.properties",
+    fallbackLabel: "Properties",
+    searchPlaceholderKey: "search.placeholders.properties",
+    placeholderFallback: "Search properties, units, tenants…",
+    searchEntities: ["properties", "units", "tenants"],
+    savedSearches: [
+      {
+        id: "vacant-units",
+        labelKey: "search.saved.vacantUnits",
+        fallbackLabel: "Vacant units needing action",
+        query: "status:vacant sort:priority",
+        scope: "module",
+      },
+    ],
+    quickActions: [
+      {
+        id: "new_property",
+        labelKey: "dashboard.addProperty",
+        fallbackLabel: "Add Property",
+        href: "/fm/properties/new",
+        permission: "properties.create",
+        roles: [
+          "SUPER_ADMIN",
+          "CORPORATE_ADMIN",
+          "FM_MANAGER",
+          "PROPERTY_MANAGER",
+        ],
+      },
+    ],
+  },
+  finance: {
+    id: "finance",
+    app: "fm",
+    navKey: "finance",
+    labelKey: "nav.finance",
+    fallbackLabel: "Finance",
+    searchPlaceholderKey: "search.placeholders.finance",
+    placeholderFallback: "Search invoices, payments, vendors…",
+    searchEntities: ["invoices", "vendors", "orders"],
+    savedSearches: [
+      {
+        id: "overdue-invoices",
+        labelKey: "search.saved.financialOverdue",
+        fallbackLabel: "Overdue invoices & payments",
+        query: "invoice:status=overdue",
+        scope: "module",
+      },
+    ],
+    quickActions: [
+      {
+        id: "new_invoice",
+        labelKey: "dashboard.createInvoice",
+        fallbackLabel: "Create Invoice",
+        href: "/fm/finance/invoices/new",
+        permission: "finance.invoice.create",
+        roles: ["SUPER_ADMIN", "CORPORATE_ADMIN", "FINANCE"],
+      },
+      {
+        id: "record_payment",
+        labelKey: "finance.recordPayment",
+        fallbackLabel: "Record Payment",
+        href: "/fm/finance/payments/new",
+        permission: "finance.payment.create",
+        roles: ["SUPER_ADMIN", "CORPORATE_ADMIN", "FINANCE"],
+      },
+    ],
+  },
+  hr: {
+    id: "hr",
+    app: "fm",
+    navKey: "hr",
+    labelKey: "nav.hr",
+    fallbackLabel: "HR",
+    searchPlaceholderKey: "search.placeholders.hr",
+    placeholderFallback: "Search employees, requests, candidates…",
+    searchEntities: ["tenants"],
+    savedSearches: [],
+    quickActions: [],
+  },
+  administration: {
+    id: "administration",
+    app: "fm",
+    navKey: "administration",
+    labelKey: "nav.administration",
+    fallbackLabel: "Administration",
+    searchPlaceholderKey: "search.placeholders.dashboard",
+    placeholderFallback: "Search administrative records…",
+    searchEntities: ["properties", WORK_ORDERS_ENTITY],
+    savedSearches: [],
+    quickActions: [],
+  },
+  crm: {
+    id: "crm",
+    app: "fm",
+    navKey: "crm",
+    labelKey: "nav.crm",
+    fallbackLabel: "CRM",
+    searchPlaceholderKey: "search.placeholders.dashboard",
+    placeholderFallback: "Search customers, leads, contracts…",
+    searchEntities: ["tenants", "properties"],
+    savedSearches: [],
+    quickActions: [],
+  },
+  support: {
+    id: "support",
+    app: "fm",
+    navKey: "support",
+    labelKey: "nav.support",
+    fallbackLabel: "Support",
+    searchPlaceholderKey: "search.placeholders.dashboard",
+    placeholderFallback: "Search tickets and knowledge base…",
+    searchEntities: [WORK_ORDERS_ENTITY],
+    savedSearches: [],
+    quickActions: [],
+  },
+  compliance: {
+    id: "compliance",
+    app: "fm",
+    navKey: "compliance",
+    labelKey: "nav.compliance",
+    fallbackLabel: "Compliance",
+    searchPlaceholderKey: "search.placeholders.dashboard",
+    placeholderFallback: "Search policies, audits, disputes…",
+    searchEntities: [WORK_ORDERS_ENTITY],
+    savedSearches: [],
+    quickActions: [],
+  },
+  reports: {
+    id: "reports",
+    app: "fm",
+    navKey: "reports",
+    labelKey: "nav.reports",
+    fallbackLabel: "Reports",
+    searchPlaceholderKey: "search.placeholders.dashboard",
+    placeholderFallback: "Search reports and dashboards…",
+    searchEntities: [WORK_ORDERS_ENTITY, "properties", "invoices"],
+    savedSearches: [],
+    quickActions: [],
+  },
+  system: {
+    id: "system",
+    app: "fm",
+    navKey: "system",
+    labelKey: "nav.system",
+    fallbackLabel: "System Management",
+    searchPlaceholderKey: "search.placeholders.dashboard",
+    placeholderFallback: "Search users, roles, settings…",
+    searchEntities: ["tenants"],
+    savedSearches: [],
+    quickActions: [],
+  },
+  marketplace_materials: {
+    id: "marketplace_materials",
+    app: "souq",
+    navKey: "marketplace",
+    labelKey: "app.souq",
+    fallbackLabel: "Materials Marketplace",
+    searchPlaceholderKey: "search.placeholders.marketplaceMaterials",
+    placeholderFallback: "Search products, services, RFQs, vendors…",
+    searchEntities: ["products", "services", "vendors", "rfqs", "orders"],
+    savedSearches: [
+      {
+        id: "rfqs-expiring",
+        labelKey: "search.saved.rfqsExpiring",
+        fallbackLabel: "RFQs closing this week",
+        query: "rfq:status=open due:<7d",
+        scope: "module",
+      },
+      {
+        id: "favorite-vendors",
+        labelKey: "search.saved.marketplaceFavorites",
+        fallbackLabel: "Preferred vendors & partners",
+        query: "vendor:favorite=true",
+        scope: "module",
+      },
+    ],
+    quickActions: [
+      {
+        id: "create_rfq",
+        labelKey: "souq.newRFQ",
+        fallbackLabel: "Create RFQ",
+        href: "/marketplace/rfqs/new",
+        permission: "souq.rfq.create",
+        roles: ["SUPER_ADMIN", "PROCUREMENT", "FM_MANAGER"],
+      },
+      {
+        id: "new_po",
+        labelKey: "souq.createPO",
+        fallbackLabel: "New Purchase Order",
+        href: "/marketplace/orders/new",
+        permission: "souq.po.create",
+        roles: ["SUPER_ADMIN", "PROCUREMENT", "FINANCE"],
+      },
+      {
+        id: "add_item",
+        labelKey: "souq.addItem",
+        fallbackLabel: "Add Product or Service",
+        href: "/marketplace/items/new",
+        permission: "souq.item.create",
+        roles: ["SUPER_ADMIN", "PROCUREMENT", "VENDOR"],
+      },
+    ],
+  },
+  marketplace_real_estate: {
+    id: "marketplace_real_estate",
+    app: "aqar",
+    navKey: "marketplace",
+    labelKey: "app.aqar",
+    fallbackLabel: "Real Estate Marketplace",
+    searchPlaceholderKey: "search.placeholders.marketplaceRealEstate",
+    placeholderFallback: "Search listings, projects, brokers…",
+    searchEntities: ["listings", "projects", "agents"],
+    savedSearches: [
+      {
+        id: "new-listings",
+        labelKey: "search.saved.listingsNew",
+        fallbackLabel: "Newest listings on the market",
+        query: "listing:status=active sort:-createdAt",
+        scope: "module",
+      },
+      {
+        id: "luxury",
+        labelKey: "search.saved.listingsLuxury",
+        fallbackLabel: "Premium & luxury inventory",
+        query: "listing:segment=luxury",
+        scope: "module",
+      },
+    ],
+    quickActions: [
+      {
+        id: "new_listing",
+        labelKey: "aqar.postProperty",
+        fallbackLabel: "New Listing",
+        href: "/aqar/listings/new",
+        permission: "aqar.listing.create",
+        roles: ["SUPER_ADMIN", "PROPERTY_MANAGER", "OWNER"],
+      },
+      {
+        id: "valuation",
+        labelKey: "aqar.newValuation",
+        fallbackLabel: "Request Valuation",
+        href: "/aqar/valuation/new",
+        permission: "aqar.valuation.create",
+        roles: ["SUPER_ADMIN", "PROPERTY_MANAGER", "OWNER"],
+      },
+    ],
+  },
+};
+
+// Legacy alias support is handled via normalizeScope() function
+// API backward compatibility: work_orders -> workOrders is done at runtime
+
+const MODULE_ROUTE_MATCHERS: { pattern: RegExp; scope: ModuleScope }[] = [
+  { pattern: /^\/(fm\/)?work-orders/i, scope: WORK_ORDERS_ENTITY },
+  { pattern: /^\/(fm\/)?properties/i, scope: "properties" },
+  { pattern: /^\/(fm\/)?finance/i, scope: "finance" },
+  { pattern: /^\/(fm\/)?hr/i, scope: "hr" },
+  { pattern: /^\/(fm\/)?administration/i, scope: "administration" },
+  { pattern: /^\/(fm\/)?crm/i, scope: "crm" },
+  { pattern: /^\/(fm\/)?support/i, scope: "support" },
+  { pattern: /^\/(fm\/)?compliance/i, scope: "compliance" },
+  { pattern: /^\/(fm\/)?reports/i, scope: "reports" },
+  { pattern: /^\/(fm\/)?system/i, scope: "system" },
+  { pattern: /^\/aqar/i, scope: "marketplace_real_estate" },
+  { pattern: /^\/marketplace/i, scope: "marketplace_materials" },
+  { pattern: /^\/souq/i, scope: "marketplace_materials" },
+  { pattern: /^\/dashboard/i, scope: "dashboard" },
+  { pattern: /^\/fm(\/dashboard)?$/i, scope: "dashboard" },
+];
+
+export function detectAppFromPath(pathname: string): AppKey {
+  if (pathname.startsWith("/aqar")) {
+    return "aqar";
+  }
+  if (pathname.startsWith("/marketplace") || pathname.startsWith("/souq")) {
+    return "souq";
+  }
+  return "fm";
+}
+
+export function detectModuleFromPath(pathname: string): ModuleScope {
+  const target = pathname || "/";
+  const hit = MODULE_ROUTE_MATCHERS.find((matcher) =>
+    matcher.pattern.test(target),
+  );
+  return normalizeScope(hit?.scope ?? DEFAULT_SCOPE);
+}
+
+export function getModuleFromPath(pathname: string): ModuleScope {
+  return detectModuleFromPath(pathname);
+}
+
+export function getModuleSearchConfig(scope: ModuleScope): ModuleScopeConfig {
+  const normalized = normalizeScope(scope);
+  return MODULE_SCOPE_CONFIG[normalized] ?? MODULE_SCOPE_CONFIG[DEFAULT_SCOPE];
+}
+
+export function getModuleSavedSearches(
+  scope: ModuleScope,
+): SavedSearchConfig[] {
+  return getModuleSearchConfig(normalizeScope(scope)).savedSearches;
+}
+
+export function getModuleQuickActions(
+  scope: ModuleScope,
+  app: AppKey,
+): QuickActionConfig[] {
+  const normalized = normalizeScope(scope);
+  const config = MODULE_SCOPE_CONFIG[normalized];
+  if (config && config.quickActions.length) {
+    return config.quickActions;
+  }
+  return APPS[app].quickActions;
+}
+
+export function getNavKeyForScope(
+  scope: ModuleScope,
+): SidebarModuleKey | undefined {
+  const normalized = normalizeScope(scope);
+  return MODULE_SCOPE_CONFIG[normalized]?.navKey;
+}
+
+export function getSearchEntitiesForScope(
+  scope: ModuleScope,
+  app: AppKey,
+): SearchEntity[] {
+  const normalized = normalizeScope(scope);
+  const config = MODULE_SCOPE_CONFIG[normalized];
+  if (config) {
+    return config.searchEntities;
+  }
+  return APPS[app].searchEntities;
+}
+
+]]>
+</file>
+
+<file path="configs/brand.tokens.json">
+<![CDATA[
+{
+  "colors": {
+    "primary": "#0061A8",
+    "secondary": "#00A859",
+    "accent": "#FFB400"
+  }
+}
+
+]]>
+</file>
+
+<file path="configs/org-guard-baseline.json">
+<![CDATA[
+{
+  "generatedAt": "2025-11-18T17:05:00.000Z",
+  "description": "All 75 FM routes and legacy aliases now have org guards via OrgContextGate in template.tsx files",
+  "implementation": {
+    "strategy": "centralized",
+    "component": "OrgContextGate",
+    "coverage": "100%"
+  },
+  "templates": [
+    "app/fm/template.tsx",
+    "app/work-orders/template.tsx",
+    "app/admin/template.tsx",
+    "app/finance/template.tsx",
+    "app/hr/template.tsx",
+    "app/properties/template.tsx",
+    "app/support/template.tsx",
+    "app/marketplace/orders/template.tsx",
+    "app/marketplace/vendors/template.tsx",
+    "app/marketplace/listings/template.tsx"
+  ],
+  "missing": []
+}
+
+]]>
+</file>
+
+<file path="configs/sidebar.snapshot.json">
+<![CDATA[
+[
+  "dashboard",
+  "work-orders:create",
+  "work-orders:assign-track",
+  "properties:list",
+  "finance:invoices",
+  "hr:directory",
+  "administration",
+  "crm",
+  "marketplace",
+  "support",
+  "compliance-legal",
+  "reports-analytics",
+  "system-management"
+]
+
+]]>
+</file>
+
+<file path="contexts/CurrencyContext.tsx">
+<![CDATA[
+"use client";
+import { logger } from "@/lib/logger";
+
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
+export type CurrencyCode = "SAR" | "USD" | "EUR" | "GBP" | "AED";
+
+export type CurrencyOption = {
+  code: CurrencyCode;
+  name: string;
+  symbol: string;
+  flag: string;
+};
+
+export const CURRENCY_OPTIONS = [
+  { code: "SAR", name: "Saudi Riyal", symbol: "﷼", flag: "🇸🇦" },
+  { code: "USD", name: "US Dollar", symbol: "$", flag: "🇺🇸" },
+  { code: "EUR", name: "Euro", symbol: "€", flag: "🇪🇺" },
+  { code: "GBP", name: "Pound Sterling", symbol: "£", flag: "🇬🇧" },
+  { code: "AED", name: "UAE Dirham", symbol: "د.إ", flag: "🇦🇪" },
+] as const satisfies readonly CurrencyOption[];
+
+const DEFAULT_CURRENCY: CurrencyCode = "SAR";
+
+interface CurrencyContextType {
+  currency: CurrencyCode;
+  setCurrency: (currency: CurrencyCode) => void;
+  options: readonly CurrencyOption[];
+}
+
+const CurrencyContext = createContext<CurrencyContextType | undefined>(
+  undefined,
+);
+
+/**
+ * Provides application-wide currency state and persistence to descendants.
+ *
+ * The provider supplies a memoized context value with the current `currency`, a `setCurrency` setter, and the list of supported `options`.
+ * On mount (client-side only) it attempts to initialize the currency from localStorage key `fixzit-currency` if the stored code matches a supported option.
+ * Whenever the currency changes (client-side only) it persists the choice to localStorage (`fixzit-currency`), updates the document `data-currency` attribute, sets a `fxz.currency` cookie, and dispatches a `CustomEvent` named `fixzit:currency-change` with `{ currency }` in `detail`.
+ *
+ * The exposed `setCurrency` validates the provided code against the known options and falls back to the default currency when the code is not recognized.
+ */
+export function CurrencyProvider({ children }: { children: React.ReactNode }) {
+  const [currency, setCurrencyState] = useState<CurrencyCode>(DEFAULT_CURRENCY);
+  const hydratedRef = useRef(false);
+  const skipNextPersistRef = useRef(false);
+
+  // Hydrate from DOM attribute -> localStorage -> cookie once on mount
+  useEffect(() => {
+    try {
+      const fromAttr = document.documentElement.getAttribute(
+        "data-currency",
+      ) as CurrencyCode | null;
+      if (fromAttr && CURRENCY_OPTIONS.some((o) => o.code === fromAttr)) {
+        skipNextPersistRef.current = true;
+        setCurrencyState((prev) => (prev !== fromAttr ? fromAttr : prev));
+      } else {
+        const fromLS = window.localStorage.getItem(
+          "fixzit-currency",
+        ) as CurrencyCode | null;
+        if (fromLS && CURRENCY_OPTIONS.some((o) => o.code === fromLS)) {
+          skipNextPersistRef.current = true;
+          setCurrencyState((prev) => (prev !== fromLS ? fromLS : prev));
+        } else {
+          const match = document.cookie.match(
+            /(?:^|;\s*)fxz\.currency=([^;]+)/,
+          );
+          const fromCookie = (match && match[1]) as CurrencyCode | undefined;
+          if (
+            fromCookie &&
+            CURRENCY_OPTIONS.some((o) => o.code === fromCookie)
+          ) {
+            skipNextPersistRef.current = true;
+            setCurrencyState((prev) =>
+              prev !== fromCookie ? fromCookie : prev,
+            );
+          }
+        }
+      }
+    } catch (error) {
+      logger.warn("Could not hydrate currency preference", { error });
+    } finally {
+      hydratedRef.current = true;
+    }
+  }, []);
+
+  // Cross-tab sync for currency updates written to localStorage
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "fixzit-currency" && typeof e.newValue === "string") {
+        const next = e.newValue as CurrencyCode;
+        if (CURRENCY_OPTIONS.some((o) => o.code === next)) {
+          setCurrencyState((prev) => (prev !== next ? next : prev));
+        }
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  // Persist only after hydration
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    if (skipNextPersistRef.current) {
+      skipNextPersistRef.current = false;
+      return;
+    }
+    try {
+      window.localStorage.setItem("fixzit-currency", currency);
+      document.documentElement.setAttribute("data-currency", currency);
+      const secureAttr =
+        typeof window !== "undefined" &&
+        typeof window.location !== "undefined" &&
+        window.location.protocol === "https:"
+          ? "; Secure"
+          : "";
+      const maxAge = 31536000; // 1 year
+      const expires = new Date(Date.now() + maxAge * 1000).toUTCString();
+      document.cookie = `fxz.currency=${encodeURIComponent(currency)}; Path=/; SameSite=Strict; Max-Age=${maxAge}; Expires=${expires}${secureAttr}`;
+      window.dispatchEvent(
+        new CustomEvent("fixzit:currency-change", {
+          detail: { currency },
+        }),
+      );
+    } catch (error) {
+      logger.warn("Could not persist currency preference", { error });
+    }
+  }, [currency]);
+
+  const setCurrency = (next: CurrencyCode) => {
+    if (!CURRENCY_OPTIONS.some((item) => item.code === next)) return;
+    setCurrencyState(next);
+  };
+
+  const value = useMemo(
+    () => ({
+      currency,
+      setCurrency,
+      options: CURRENCY_OPTIONS,
+    }),
+    [currency],
+  );
+
+  return (
+    <CurrencyContext.Provider value={value}>
+      {children}
+    </CurrencyContext.Provider>
+  );
+}
+
+/**
+ * Hook to access the current currency context.
+ *
+ * Returns the context value provided by CurrencyProvider: an object with
+ * `currency` (current CurrencyCode), `setCurrency` (updater), and `options`
+ * (available CurrencyOption[]). If called outside a provider, returns a safe
+ * fallback using DEFAULT_CURRENCY, a no-op `setCurrency`, and CURRENCY_OPTIONS.
+ *
+ * @returns The currency context or a fallback object when no provider is present.
+ */
+export function useCurrency() {
+  const context = useContext(CurrencyContext);
+  if (!context) {
+    if (process.env.NODE_ENV === "development") {
+      logger.warn(
+        "useCurrency called outside CurrencyProvider. Using fallback values.",
+      );
+    }
+    return {
+      currency: DEFAULT_CURRENCY,
+      setCurrency: () => {
+        if (process.env.NODE_ENV === "development") {
+          logger.warn("setCurrency called outside CurrencyProvider. No-op.");
+        }
+      },
+      options: CURRENCY_OPTIONS,
+    } as CurrencyContextType;
+  }
+  return context;
+}
+
+]]>
+</file>
+
+<file path="contexts/CurrentOrgContext.tsx">
+<![CDATA[
+/**
+ * CurrentOrgContext
+ *
+ * Provides organization context for the currently authenticated user.
+ * Used for plan-based feature gating and multi-tenancy checks.
+ * 
+ * 🟢 FIX: Case-insensitive plan parsing to prevent entitlement downgrades
+ */
+
+"use client";
+
+import React, { createContext, useContext, useMemo, ReactNode } from "react";
+import { useSession } from "next-auth/react";
+import { Plan } from "@/domain/fm/fm-lite";
+
+export interface Organization {
+  id: string;
+  name?: string;
+  plan: Plan;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface CurrentOrgContextValue {
+  org: Organization | null;
+  isLoading: boolean;
+}
+
+const CurrentOrgContext = createContext<CurrentOrgContextValue | undefined>(
+  undefined,
+);
+
+export const useCurrentOrg = (): CurrentOrgContextValue => {
+  const ctx = useContext(CurrentOrgContext);
+  if (!ctx) {
+    throw new Error("useCurrentOrg must be used within a CurrentOrgProvider");
+  }
+  return ctx;
+};
+
+interface CurrentOrgProviderProps {
+  children: ReactNode;
+}
+
+/**
+ * Normalize plan string to Plan enum (case-insensitive).
+ * Handles variations like "Pro", "PRO", "pro" → Plan.PRO
+ * Falls back to STARTER for safety if unrecognized.
+ */
+function normalizePlan(planString?: string | null): Plan {
+  if (!planString) return Plan.STARTER;
+  
+  const normalizedKey = planString.toUpperCase().trim();
+  
+  // Direct enum lookup
+  if (normalizedKey in Plan) {
+    return Plan[normalizedKey as keyof typeof Plan];
+  }
+  
+  // Handle common variations
+  switch (normalizedKey) {
+    case "STARTER":
+    case "FREE":
+    case "BASIC":
+      return Plan.STARTER;
+    case "STANDARD":
+    case "STD":
+      return Plan.STANDARD;
+    case "PRO":
+    case "PROFESSIONAL":
+    case "PREMIUM":
+      return Plan.PRO;
+    case "ENTERPRISE":
+    case "ENT":
+    case "BUSINESS":
+      return Plan.ENTERPRISE;
+    default:
+      // CTX-001 FIX: Log warning for unknown plan before defaulting to STARTER
+      // This helps debug plan misconfigurations in production
+      if (typeof window !== "undefined") {
+        // eslint-disable-next-line no-console -- Intentional: debugging plan misconfigurations
+        console.warn(
+          `[CurrentOrgContext] Unknown plan "${planString}" received, defaulting to STARTER. ` +
+          `Expected one of: STARTER, STANDARD, PRO, ENTERPRISE`
+        );
+      }
+      return Plan.STARTER;
+  }
+}
+
+/**
+ * Provider that derives organization context from the user's session.
+ *
+ * In the future, this can be enhanced to fetch org details from an API.
+ * For now, it derives plan from the session user's orgPlan field.
+ */
+export function CurrentOrgProvider({ children }: CurrentOrgProviderProps) {
+  const { data: session, status } = useSession();
+
+  const value = useMemo<CurrentOrgContextValue>(() => {
+    const isLoading = status === "loading";
+
+    if (!session?.user?.orgId) {
+      return { org: null, isLoading };
+    }
+
+    // Extract plan from session, default to STARTER for fail-safe security
+    const user = session.user as {
+      id: string;
+      orgId?: string;
+      orgPlan?: string;
+      role?: string;
+    };
+
+    // 🟢 FIX: Case-insensitive plan normalization
+    const plan = normalizePlan(user.orgPlan);
+
+    const org: Organization = {
+      id: user.orgId!,
+      plan,
+    };
+
+    return { org, isLoading };
+  }, [session, status]);
+
+  return (
+    <CurrentOrgContext.Provider value={value}>
+      {children}
+    </CurrentOrgContext.Provider>
+  );
+}
+
+export default CurrentOrgContext;
+
+]]>
+</file>
+
+<file path="contexts/FormStateContext.tsx">
+<![CDATA[
+"use client";
+
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  ReactNode,
+} from "react";
+import { logger } from "@/lib/logger";
+
+type AnyValue = unknown;
+
+export interface FormField {
+  name: string;
+  value: AnyValue;
+  initialValue: AnyValue;
+  isDirty: boolean;
+}
+
+export interface FormState {
+  id: string;
+  fields: Map<string, FormField>;
+  isDirty: boolean;
+}
+
+export interface FormStateContextValue {
+  forms: Map<string, FormState>;
+  hasUnsavedChanges: boolean;
+
+  registerForm: (
+    formId: string,
+    initialFields?: Record<string, AnyValue>,
+  ) => void;
+  unregisterForm: (formId: string) => void;
+
+  updateField: (
+    formId: string,
+    fieldName: string,
+    value: AnyValue,
+    initialValue?: AnyValue,
+  ) => void;
+
+  markFormClean: (formId: string) => void;
+  getFormState: (formId: string) => FormState | undefined;
+  isFormDirty: (formId: string) => boolean;
+
+  /** Ask all forms (or a targeted form) to save and await all registered handlers */
+  requestSave: (opts?: { formId?: string }) => Promise<void>;
+
+  /** Legacy-compatible save method across all forms (alias of requestSave) */
+  saveAllForms: () => Promise<void>;
+
+  /** Clear dirty flags on all forms and emit a reset event for consumers */
+  clearAllUnsavedChanges: () => void;
+
+  /** Legacy compatibility helper to mark one form dirty */
+  markFormDirty: (formId: string) => void;
+
+  /**
+   * Register a save handler for a given form id. Returns an unsubscribe function.
+   * Your form can call `onSave` once on mount:
+   *
+   *   useEffect(() => onSaveRequest(formId, async () => { await saveApi(...) }), [formId])
+   */
+  onSaveRequest: (
+    formId: string,
+    callback: () => Promise<void> | void,
+  ) => () => void;
+}
+
+export const FormStateContext = createContext<
+  FormStateContextValue | undefined
+>(undefined);
+
+export const useFormState = (): FormStateContextValue => {
+  const ctx = useContext(FormStateContext);
+  if (!ctx)
+    throw new Error("useFormState must be used within a FormStateProvider");
+  return ctx;
+};
+
+type ProviderProps = { children: ReactNode };
+
+const SAVE_EVENT = "fixzit:save-forms" as const;
+
+export function FormStateProvider({ children }: ProviderProps) {
+  const [forms, setForms] = useState<Map<string, FormState>>(new Map());
+
+  const hasUnsavedChanges = useMemo(
+    () => Array.from(forms.values()).some((f) => f.isDirty),
+    [forms],
+  );
+
+  // ⚡ NEW: Warn on navigation away if there are unsaved changes
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!hasUnsavedChanges) return;
+      e.preventDefault();
+      e.returnValue = ""; // Chrome requires returnValue to be set
+      return "";
+    };
+    if (hasUnsavedChanges) {
+      window.addEventListener("beforeunload", onBeforeUnload);
+      return () => window.removeEventListener("beforeunload", onBeforeUnload);
+    }
+  }, [hasUnsavedChanges]);
+
+  const registerForm = useCallback(
+    (formId: string, initialFields?: Record<string, AnyValue>) => {
+      setForms((prev) => {
+        if (prev.has(formId)) return prev;
+        const next = new Map(prev);
+        const fields = new Map<string, FormField>();
+        if (initialFields) {
+          Object.entries(initialFields).forEach(([name, value]) => {
+            fields.set(name, {
+              name,
+              value,
+              initialValue: value,
+              isDirty: false,
+            });
+          });
+        }
+        next.set(formId, { id: formId, fields, isDirty: false });
+        return next;
+      });
+    },
+    [],
+  );
+
+  const unregisterForm = useCallback((formId: string) => {
+    setForms((prev) => {
+      const newForms = new Map(prev);
+      newForms.delete(formId);
+      return newForms;
+    });
+  }, []);
+
+  const updateField = useCallback(
+    (
+      formId: string,
+      fieldName: string,
+      value: AnyValue,
+      initialValue?: AnyValue,
+    ) => {
+      setForms((prev) => {
+        const newForms = new Map(prev);
+        const form = newForms.get(formId);
+        if (!form) return prev;
+
+        const field = form.fields.get(fieldName);
+        const fieldInitialValue = initialValue ?? field?.initialValue ?? value;
+        const isDirty = value !== fieldInitialValue;
+
+        const newField: FormField = {
+          name: fieldName,
+          value,
+          initialValue: fieldInitialValue,
+          isDirty,
+        };
+
+        const newFormFields = new Map(form.fields);
+        newFormFields.set(fieldName, newField);
+
+        const formIsDirty = Array.from(newFormFields.values()).some(
+          (f) => f.isDirty,
+        );
+
+        newForms.set(formId, {
+          ...form,
+          fields: newFormFields,
+          isDirty: formIsDirty,
+        });
+
+        return newForms;
+      });
+    },
+    [],
+  );
+
+  const markFormClean = useCallback((formId: string) => {
+    setForms((prev) => {
+      const newForms = new Map(prev);
+      const form = newForms.get(formId);
+      if (!form) return prev;
+
+      const cleanFields = new Map();
+      form.fields.forEach((field, name) => {
+        cleanFields.set(name, {
+          ...field,
+          initialValue: field.value,
+          isDirty: false,
+        });
+      });
+
+      newForms.set(formId, {
+        ...form,
+        fields: cleanFields,
+        isDirty: false,
+      });
+
+      return newForms;
+    });
+  }, []);
+
+  const getFormState = useCallback(
+    (formId: string) => {
+      return forms.get(formId);
+    },
+    [forms],
+  );
+
+  const saveAllForms = useCallback(async () => {
+    const dirtyForms = Array.from(forms.values()).filter(
+      (form) => form.isDirty,
+    );
+
+    // ⚡ IMPROVED: Promise aggregation pattern for save coordination
+    const promises: Promise<void>[] = [];
+    if (typeof window !== "undefined") {
+      const saveEvent = new CustomEvent("fixzit:save-forms", {
+        detail: { promises, timestamp: Date.now() },
+      });
+      window.dispatchEvent(saveEvent);
+    }
+
+    // Wait for all registered save handlers to complete
+    try {
+      await Promise.all(promises);
+
+      // Only mark forms clean after successful saves
+      for (const form of dirtyForms) {
+        markFormClean(form.id);
+      }
+    } catch (error) {
+      logger.error("Failed to save one or more forms", error as Error, {
+        formCount: Object.keys(forms).length,
+      });
+      // Keep flags intact so user can retry
+      throw error;
+    }
+  }, [forms, markFormClean]);
+
+  const clearAllUnsavedChanges = useCallback(() => {
+    forms.forEach((form) => markFormClean(form.id));
+
+    // Emit event to notify registered forms to reset themselves
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("fixzit:clear-forms", {
+          detail: { timestamp: Date.now() },
+        }),
+      );
+    }
+  }, [forms, markFormClean]);
+
+  const markFormDirty = useCallback((formId: string) => {
+    setForms((prev) => {
+      const newForms = new Map(prev);
+      const form = newForms.get(formId);
+      if (!form) return prev;
+
+      newForms.set(formId, {
+        ...form,
+        isDirty: true,
+      });
+      return newForms;
+    });
+  }, []);
+
+  const onSaveRequest = useCallback(
+    (formId: string, callback: () => Promise<void> | void) => {
+      // ⚡ IMPROVED: Push promise to aggregator array for coordination
+      const handleSave = (event: Event) => {
+        const customEvent = event as CustomEvent<{
+          formId?: string;
+          promises?: Promise<void>[];
+        }>;
+        const targetFormId = customEvent.detail?.formId;
+
+        // Only run callback if:
+        // 1. No formId in event (global save), OR
+        // 2. Event formId matches this registration's formId
+        if (!targetFormId || targetFormId === formId) {
+          const promise = Promise.resolve()
+            .then(() => callback())
+            .catch((error) => {
+              logger.error(`Form save error (${formId})`, error as Error, {
+                formId,
+              });
+              throw error; // Re-throw so Promise.all() in requestSave() can handle it
+            });
+
+          // If event has promises array, push our promise for coordination
+          if (
+            customEvent.detail?.promises &&
+            Array.isArray(customEvent.detail.promises)
+          ) {
+            customEvent.detail.promises.push(promise);
+          }
+        }
+      };
+
+      if (typeof window !== "undefined") {
+        window.addEventListener(SAVE_EVENT, handleSave as EventListener);
+      }
+
+      // Return cleanup function
+      return () => {
+        if (typeof window !== "undefined") {
+          window.removeEventListener(SAVE_EVENT, handleSave as EventListener);
+        }
+      };
+    },
+    [],
+  );
+
+  // ⚡ NEW: Check if specific form is dirty
+  const isFormDirty = useCallback(
+    (formId: string) => {
+      return forms.get(formId)?.isDirty ?? false;
+    },
+    [forms],
+  );
+
+  // ⚡ NEW: Request save for all or specific form
+  const requestSave = useCallback(async (opts?: { formId?: string }) => {
+    const promises: Promise<void>[] = [];
+    const event = new CustomEvent(SAVE_EVENT, {
+      detail: { formId: opts?.formId, promises },
+    });
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(event);
+    }
+    await Promise.all(promises);
+  }, []);
+
+  const value: FormStateContextValue = {
+    forms,
+    hasUnsavedChanges,
+    registerForm,
+    unregisterForm,
+    updateField,
+    markFormClean,
+    getFormState,
+    saveAllForms,
+    clearAllUnsavedChanges,
+    markFormDirty,
+    onSaveRequest,
+    isFormDirty,
+    requestSave,
+  };
+
+  return (
+    <FormStateContext.Provider value={value}>
+      {children}
+    </FormStateContext.Provider>
+  );
+}
+
+export default FormStateContext;
+
+]]>
+</file>
+
+<file path="contexts/ResponsiveContext.tsx">
+<![CDATA[
+"use client";
+
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
+
+interface ResponsiveContextType {
+  isMobile: boolean;
+  isTablet: boolean;
+  isDesktop: boolean;
+  screenSize: "mobile" | "tablet" | "desktop";
+  // Legacy properties for backward compatibility
+  screenInfo: {
+    isMobile: boolean;
+    isTablet: boolean;
+    isDesktop: boolean;
+    isLarge: boolean;
+    size: string;
+    width?: number;
+    height?: number;
+  };
+  responsiveClasses: {
+    container: string;
+    text: string;
+    spacing: string;
+  };
+}
+
+const ResponsiveContext = createContext<ResponsiveContextType | undefined>(
+  undefined,
+);
+
+interface ResponsiveProviderProps {
+  children: ReactNode;
+}
+
+export function ResponsiveProvider({ children }: ResponsiveProviderProps) {
+  // Always initialize with 'desktop' for SSR consistency
+  // Will be updated on mount to prevent hydration mismatch
+  const [screenSize, setScreenSize] = useState<"mobile" | "tablet" | "desktop">(
+    "desktop",
+  );
+  const [dimensions, setDimensions] = useState<{
+    width?: number;
+    height?: number;
+  }>({
+    width: undefined,
+    height: undefined,
+  });
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      setDimensions({ width, height });
+      if (width < 768) {
+        setScreenSize("mobile");
+      } else if (width < 1024) {
+        setScreenSize("tablet");
+      } else {
+        setScreenSize("desktop");
+      }
+    };
+
+    // Initial check (only on client side)
+    checkScreenSize();
+
+    // Debounced resize handler to prevent excessive re-renders
+    let resizeTimeout: NodeJS.Timeout;
+    const debouncedResize = () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(checkScreenSize, 150);
+    };
+
+    // Add event listener with debouncing
+    window.addEventListener("resize", debouncedResize);
+
+    return () => {
+      clearTimeout(resizeTimeout);
+      window.removeEventListener("resize", debouncedResize);
+    };
+  }, []);
+
+  const value: ResponsiveContextType = {
+    isMobile: screenSize === "mobile",
+    isTablet: screenSize === "tablet",
+    isDesktop: screenSize === "desktop",
+    screenSize,
+    // Legacy screenInfo for backward compatibility
+    screenInfo: {
+      isMobile: screenSize === "mobile",
+      isTablet: screenSize === "tablet",
+      isDesktop: screenSize === "desktop",
+      isLarge: screenSize === "desktop", // Treat desktop as large
+      size: screenSize,
+      width: dimensions.width,
+      height: dimensions.height,
+    },
+    // Legacy responsiveClasses for backward compatibility
+    responsiveClasses: {
+      container:
+        screenSize === "mobile"
+          ? "px-2"
+          : screenSize === "tablet"
+            ? "px-4"
+            : "px-6",
+      text: screenSize === "mobile" ? "text-sm" : "text-base",
+      spacing: screenSize === "mobile" ? "space-y-2" : "space-y-4",
+    },
+  };
+
+  return (
+    <ResponsiveContext.Provider value={value}>
+      {children}
+    </ResponsiveContext.Provider>
+  );
+}
+
+export function useResponsive(): ResponsiveContextType {
+  const context = useContext(ResponsiveContext);
+  if (context === undefined) {
+    throw new Error("useResponsive must be used within a ResponsiveProvider");
+  }
+  return context;
+}
+
+// Backward compatibility alias
+export const useResponsiveLayout = useResponsive;
+
+]]>
+</file>
+
+<file path="contexts/SupportOrgContext.tsx">
+<![CDATA[
+"use client";
+
+import React from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { useSession } from "next-auth/react";
+
+type SupportOrgSummary = {
+  orgId: string;
+  name: string;
+  code?: string | null;
+  registrationNumber?: string | null;
+  subscriptionPlan?: string | null;
+};
+
+type SupportOrgContextValue = {
+  effectiveOrgId: string | null;
+  supportOrg: SupportOrgSummary | null;
+  loading: boolean;
+  canImpersonate: boolean;
+  selectOrgById: (_orgId: string) => Promise<boolean>;
+  clearSupportOrg: () => Promise<void>;
+  refreshSupportOrg: () => Promise<void>;
+};
+
+const SupportOrgContext = createContext<SupportOrgContextValue | undefined>(
+  undefined,
+);
+
+const IMPERSONATION_ENDPOINT = "/api/support/impersonation";
+
+export function SupportOrgProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const { data: session } = useSession();
+  const [supportOrg, setSupportOrg] = useState<SupportOrgSummary | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const isSuperAdmin = Boolean(
+    (session?.user as { isSuperAdmin?: boolean })?.isSuperAdmin,
+  );
+  const sessionOrgId =
+    (session?.user as { orgId?: string | null })?.orgId ?? null;
+
+  const refreshSupportOrg = useCallback(async () => {
+    if (!isSuperAdmin) {
+      setSupportOrg(null);
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(IMPERSONATION_ENDPOINT, {
+        credentials: "include",
+      });
+      if (!res.ok) {
+        setSupportOrg(null);
+        return;
+      }
+      const data = (await res.json()) as {
+        organization?: SupportOrgSummary | null;
+      };
+      setSupportOrg(data.organization ?? null);
+    } catch {
+      setSupportOrg(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [isSuperAdmin]);
+
+  useEffect(() => {
+    if (!isSuperAdmin) {
+      setSupportOrg(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(IMPERSONATION_ENDPOINT, {
+          credentials: "include",
+        });
+        if (!res.ok || cancelled) {
+          return;
+        }
+        const data = (await res.json()) as {
+          organization?: SupportOrgSummary | null;
+        };
+        if (!cancelled) {
+          setSupportOrg(data.organization ?? null);
+        }
+      } catch {
+        if (!cancelled) {
+          setSupportOrg(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isSuperAdmin]);
+
+  const selectOrgById = useCallback(
+    async (orgId: string) => {
+      if (!isSuperAdmin || !orgId) {
+        return false;
+      }
+      setLoading(true);
+      try {
+        const res = await fetch(IMPERSONATION_ENDPOINT, {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ orgId }),
+        });
+        if (!res.ok) {
+          return false;
+        }
+        const data = (await res.json()) as {
+          organization?: SupportOrgSummary | null;
+        };
+        setSupportOrg(data.organization ?? null);
+        return Boolean(data.organization);
+      } catch {
+        return false;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [isSuperAdmin],
+  );
+
+  const clearSupportOrg = useCallback(async () => {
+    if (!isSuperAdmin) {
+      return;
+    }
+    setLoading(true);
+    try {
+      await fetch(IMPERSONATION_ENDPOINT, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      setSupportOrg(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [isSuperAdmin]);
+
+  const effectiveOrgId = supportOrg?.orgId ?? sessionOrgId ?? null;
+
+  const value = useMemo<SupportOrgContextValue>(
+    () => ({
+      effectiveOrgId,
+      supportOrg,
+      loading,
+      canImpersonate: isSuperAdmin,
+      selectOrgById,
+      clearSupportOrg,
+      refreshSupportOrg,
+    }),
+    [
+      effectiveOrgId,
+      supportOrg,
+      loading,
+      isSuperAdmin,
+      selectOrgById,
+      clearSupportOrg,
+      refreshSupportOrg,
+    ],
+  );
+
+  return (
+    <SupportOrgContext.Provider value={value}>
+      {children}
+    </SupportOrgContext.Provider>
+  );
+}
+
+export function useSupportOrg() {
+  const ctx = useContext(SupportOrgContext);
+  if (!ctx) {
+    throw new Error("useSupportOrg must be used within SupportOrgProvider");
+  }
+  return ctx;
+}
+
+]]>
+</file>
+
+<file path="contexts/ThemeContext.tsx">
+<![CDATA[
+"use client";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useSession } from "next-auth/react";
+import { STORAGE_KEYS, APP_DEFAULTS } from "@/config/constants";
+import { logger } from "@/lib/logger";
+
+type ThemeMode = "light" | "dark" | "system";
+type ResolvedTheme = "light" | "dark";
+
+type ThemeContextValue = {
+  theme: ThemeMode;
+  resolvedTheme: ResolvedTheme;
+  setTheme: (_mode: ThemeMode) => void;
+};
+
+const ThemeCtx = createContext<ThemeContextValue | null>(null);
+
+const normalizeTheme = (value?: string | null): ThemeMode | null => {
+  if (!value) return null;
+  const normalized = value.toString().trim().toLowerCase();
+  if (normalized === "light") return "light";
+  if (normalized === "dark") return "dark";
+  if (normalized === "system" || normalized === "auto") return "system";
+  return null;
+};
+
+const getStoredTheme = (): ThemeMode => {
+  if (typeof window === "undefined") {
+    return APP_DEFAULTS.theme;
+  }
+  try {
+    const stored = window.localStorage.getItem(STORAGE_KEYS.theme);
+    return normalizeTheme(stored) ?? APP_DEFAULTS.theme;
+  } catch (error) {
+    logger.warn("Theme: Failed to read from localStorage", { error });
+    return APP_DEFAULTS.theme;
+  }
+};
+
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [theme, setThemeState] = useState<ThemeMode>(APP_DEFAULTS.theme);
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("light");
+  const [hydrated, setHydrated] = useState(false);
+  const mediaQueryRef = useRef<MediaQueryList | null>(null);
+  const { data: session } = useSession();
+
+  const ensureMediaQuery = useCallback(() => {
+    if (typeof window === "undefined") return null;
+    if (!mediaQueryRef.current) {
+      mediaQueryRef.current = window.matchMedia("(prefers-color-scheme: dark)");
+    }
+    return mediaQueryRef.current;
+  }, []);
+
+  const applyTheme = useCallback(
+    (mode: ThemeMode) => {
+      if (typeof document === "undefined") return;
+      const media = ensureMediaQuery();
+      const prefersDark = media?.matches ?? false;
+      const effective =
+        mode === "system" ? (prefersDark ? "dark" : "light") : mode;
+      const root = document.documentElement;
+      root.classList.toggle("dark", effective === "dark");
+      root.dataset.theme = effective;
+      root.style.setProperty(
+        "color-scheme",
+        effective === "dark" ? "dark" : "light",
+      );
+      setResolvedTheme(effective);
+    },
+    [ensureMediaQuery],
+  );
+
+  // Initial load from localStorage
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = getStoredTheme();
+    setThemeState(stored);
+    setHydrated(true);
+  }, []);
+
+  // Sync DOM + listen to system preference when needed
+  useEffect(() => {
+    if (!hydrated) return;
+    applyTheme(theme);
+
+    const media = ensureMediaQuery();
+    if (!media) return;
+
+    if (theme !== "system") {
+      return undefined;
+    }
+
+    const handler = () => applyTheme("system");
+    media.addEventListener("change", handler);
+    return () => media.removeEventListener("change", handler);
+  }, [theme, hydrated, applyTheme, ensureMediaQuery]);
+
+  // Persist to localStorage whenever theme changes
+  useEffect(() => {
+    if (!hydrated || typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(STORAGE_KEYS.theme, theme);
+    } catch (error) {
+      logger.warn("Theme: Failed to persist to localStorage", { error });
+    }
+  }, [theme, hydrated]);
+
+  // Load persisted preference from Mongo via API (optional)
+  useEffect(() => {
+    let cancelled = false;
+    if (!session?.user?.id) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const loadFromDb = async () => {
+      try {
+        const response = await fetch("/api/user/preferences", {
+          cache: "no-store",
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        const remoteTheme = normalizeTheme(data?.preferences?.theme);
+        if (remoteTheme && !cancelled) {
+          setThemeState(remoteTheme);
+        }
+      } catch (error) {
+        logger.warn("Theme: Failed to load remote preference", { error });
+      }
+    };
+
+    loadFromDb().catch((err) =>
+      logger.warn("Theme: Remote load error", { error: err }),
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user?.id]);
+
+  const persistRemote = useCallback(
+    async (mode: ThemeMode) => {
+      if (!session?.user?.id) return;
+      try {
+        await fetch("/api/user/preferences", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ theme: mode }),
+        });
+      } catch (error) {
+        logger.warn("Theme: Failed to persist remote preference", { error });
+      }
+    },
+    [session?.user?.id],
+  );
+
+  const setTheme = useCallback(
+    (mode: ThemeMode) => {
+      setThemeState(mode);
+      applyTheme(mode);
+      if (typeof window !== "undefined") {
+        try {
+          window.localStorage.setItem(STORAGE_KEYS.theme, mode);
+        } catch (error) {
+          logger.warn("Theme: Failed to persist to localStorage", { error });
+        }
+      }
+      void persistRemote(mode);
+    },
+    [applyTheme, persistRemote],
+  );
+
+  const value = useMemo(
+    () => ({
+      theme,
+      resolvedTheme,
+      setTheme,
+    }),
+    [theme, resolvedTheme, setTheme],
+  );
+
+  if (!hydrated) {
+    return null;
+  }
+
+  return <ThemeCtx.Provider value={value}>{children}</ThemeCtx.Provider>;
+}
+
+export const useThemeCtx = () => {
+  const ctx = useContext(ThemeCtx);
+  if (!ctx) throw new Error("useThemeCtx must be used within ThemeProvider");
+  return ctx;
+};
+
+]]>
+</file>
+
+<file path="contexts/TopBarContext.tsx">
+<![CDATA[
+"use client";
+
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import {
+  APPS,
+  AppKey,
+  ModuleScope,
+  QuickActionConfig,
+  SavedSearchConfig,
+  SearchEntity,
+  detectAppFromPath,
+  detectModuleFromPath,
+  getModuleQuickActions,
+  getModuleSavedSearches,
+  getModuleSearchConfig,
+  getNavKeyForScope,
+  getSearchEntitiesForScope,
+} from "@/config/topbar-modules";
+import type { SidebarModuleKey } from "@/config/topbar-modules";
+
+interface TopBarState {
+  app: AppKey;
+  appLabelKey: string;
+  appFallbackLabel: string;
+  appSearchEntities: SearchEntity[];
+  module: ModuleScope;
+  moduleLabelKey: string;
+  moduleFallbackLabel: string;
+  searchPlaceholderKey: string;
+  searchPlaceholderFallback: string;
+  searchEntities: SearchEntity[];
+  quickActions: QuickActionConfig[];
+  savedSearches: SavedSearchConfig[];
+  navKey?: SidebarModuleKey;
+  megaMenuCollapsed: boolean;
+  setMegaMenuCollapsed: (_next: boolean) => void;
+  setApp: (_app: AppKey) => void;
+}
+
+const TopBarContext = createContext<TopBarState | null>(null);
+export { TopBarContext };
+const MEGA_MENU_PREF_KEY = "fixzit:topbar:megaMenuCollapsed";
+const APP_FALLBACK_LABELS: Record<AppKey, string> = {
+  fm: "Facility Management (FM)",
+  souq: "Materials Marketplace (Fixzit Souq)",
+  aqar: "Real Estate Marketplace (Aqar Souq)",
+};
+
+export function TopBarProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { data: session } = useSession();
+  const sessionUser = session?.user as
+    | { id?: string; orgId?: string }
+    | undefined;
+  const userId = sessionUser?.id ?? "anonymous";
+  const orgId = sessionUser?.orgId ?? "global";
+  const megaMenuPrefKey = useMemo(
+    () => `${MEGA_MENU_PREF_KEY}:${orgId}:${userId}`,
+    [orgId, userId],
+  );
+
+  const app = detectAppFromPath(pathname || "/");
+  const moduleScope = detectModuleFromPath(pathname || "/");
+  const appConfig = APPS[app];
+  const moduleConfig = getModuleSearchConfig(moduleScope);
+  const searchEntities = getSearchEntitiesForScope(moduleScope, app);
+  const quickActions = getModuleQuickActions(moduleScope, app);
+  const savedSearches = getModuleSavedSearches(moduleScope);
+  const navKey = getNavKeyForScope(moduleScope);
+
+  const [megaMenuCollapsed, setMegaMenuCollapsedState] = useState<boolean>(
+    () => {
+      if (typeof window === "undefined") return false;
+      return window.localStorage.getItem(megaMenuPrefKey) === "1";
+    },
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = window.localStorage.getItem(megaMenuPrefKey);
+    setMegaMenuCollapsedState(stored === "1");
+  }, [megaMenuPrefKey]);
+
+  const setMegaMenuCollapsed = useCallback(
+    (next: boolean) => {
+      setMegaMenuCollapsedState(next);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(megaMenuPrefKey, next ? "1" : "0");
+      }
+    },
+    [megaMenuPrefKey],
+  );
+
+  // setApp must trigger navigation, not just state change
+  const setApp = (newApp: AppKey) => {
+    const routePrefix = APPS[newApp].routePrefix;
+    router.push(routePrefix);
+  };
+
+  const value = useMemo<TopBarState>(
+    () => ({
+      app,
+      appLabelKey: appConfig.labelKey,
+      appFallbackLabel: APP_FALLBACK_LABELS[app],
+      appSearchEntities: appConfig.searchEntities,
+      module: moduleScope,
+      moduleLabelKey: moduleConfig.labelKey,
+      moduleFallbackLabel: moduleConfig.fallbackLabel,
+      searchPlaceholderKey: moduleConfig.searchPlaceholderKey,
+      searchPlaceholderFallback: moduleConfig.placeholderFallback,
+      searchEntities,
+      quickActions,
+      savedSearches,
+      navKey,
+      megaMenuCollapsed,
+      setMegaMenuCollapsed,
+      setApp,
+    }),
+    [
+      app,
+      appConfig,
+      moduleScope,
+      moduleConfig,
+      searchEntities,
+      quickActions,
+      savedSearches,
+      navKey,
+      megaMenuCollapsed,
+      setMegaMenuCollapsed,
+    ],
+  );
+
+  return (
+    <TopBarContext.Provider value={value}>{children}</TopBarContext.Provider>
+  );
+}
+
+export function useTopBar() {
+  const context = useContext(TopBarContext);
+  if (!context) {
+    throw new Error("useTopBar must be used within TopBarProvider");
+  }
+  return context;
+}
+
+]]>
+</file>
+
+<file path="contexts/TranslationContext.tsx">
+<![CDATA[
+"use client";
+import { logger } from "@/lib/logger";
+import React, {
+  createContext,
+  useContext,
+  ReactNode,
+  useMemo,
+  useState,
+  useEffect,
+} from "react";
+import {
+  LANGUAGE_OPTIONS,
+  findLanguageByCode,
+  findLanguageByLocale,
+  type LanguageCode,
+  type LanguageOption,
+} from "@/config/language-options";
+import { STORAGE_KEYS, APP_DEFAULTS } from "@/config/constants";
+import { useI18n } from "@/i18n/useI18n";
+import type { Locale } from "@/i18n/config";
+
+export type Language = LanguageCode;
+
+type TranslationValues = Record<string, string | number>;
+
+const interpolatePlaceholders = (text: string, values?: TranslationValues) => {
+  if (!values) return text;
+  return text.replace(/{{\s*(\w+)\s*}}/g, (_match, token: string) => {
+    const value = values[token.trim()];
+    return value === undefined ? "" : String(value);
+  });
+};
+
+interface TranslationContextType {
+  language: Language;
+  locale: string;
+  setLanguage: (lang: Language) => void;
+  setLocale: (locale: string) => void;
+  t: (key: string, fallback?: string, values?: TranslationValues) => string;
+  isRTL: boolean;
+}
+
+const TranslationContext = createContext<TranslationContextType | undefined>(
+  undefined,
+);
+
+// ✅ FIX: Use centralized APP_DEFAULTS instead of hardcoded 'ar'
+const DEFAULT_LANGUAGE_OPTION =
+  LANGUAGE_OPTIONS.find((opt) => opt.language === APP_DEFAULTS.language) ||
+  LANGUAGE_OPTIONS[0];
+
+function createFallbackContext(option: LanguageOption): TranslationContextType {
+  return {
+    language: option.language as Language,
+    locale: option.locale,
+    setLanguage: (lang: Language) => {
+      try {
+        if (typeof window !== "undefined") {
+          localStorage.setItem(STORAGE_KEYS.language, lang);
+          logger.warn(
+            "Language preference saved. Please refresh the page for changes to take effect.",
+          );
+        }
+      } catch (error) {
+        logger.warn("Could not save language preference", { error });
+      }
+    },
+    setLocale: (locale: string) => {
+      try {
+        if (typeof window !== "undefined") {
+          localStorage.setItem(STORAGE_KEYS.locale, locale);
+          logger.warn(
+            "Locale preference saved. Please refresh the page for changes to take effect.",
+          );
+        }
+      } catch (error) {
+        logger.warn("Could not save locale preference", { error });
+      }
+    },
+    t: (key: string, fallback: string = key, values?: TranslationValues) =>
+      interpolatePlaceholders(fallback, values),
+    isRTL: option.dir === "rtl",
+  };
+}
+
+type TranslationProviderProps = {
+  children: ReactNode;
+  initialLanguage?: LanguageCode;
+};
+
+export function TranslationProvider({
+  children,
+  initialLanguage,
+}: TranslationProviderProps) {
+  const fallbackOption = useMemo(() => {
+    if (initialLanguage) {
+      return findLanguageByCode(initialLanguage) ?? DEFAULT_LANGUAGE_OPTION;
+    }
+    return DEFAULT_LANGUAGE_OPTION;
+  }, [initialLanguage]);
+
+  // ✅ FIX: Always call useI18n at top level (React Hooks rules) - no try-catch allowed
+  const i18nHookResult = useI18n();
+  const [activeOption, setActiveOption] =
+    useState<LanguageOption>(fallbackOption);
+
+  useEffect(() => {
+    const next =
+      i18nHookResult && i18nHookResult.locale
+        ? (findLanguageByLocale(i18nHookResult.locale) ??
+          findLanguageByCode(i18nHookResult.locale) ??
+          fallbackOption)
+        : fallbackOption;
+    setActiveOption(next);
+  }, [i18nHookResult?.locale, fallbackOption]);
+
+  const contextValue = useMemo(() => {
+    // If i18n hook returns invalid data, use fallback
+    if (!i18nHookResult || !i18nHookResult.locale) {
+      logger.warn("i18n hook returned invalid data, using fallback");
+      return createFallbackContext(fallbackOption);
+    }
+
+    const { dir, setLocale: i18nSetLocale, t: i18nTranslate } = i18nHookResult;
+
+    const setLanguage = (lang: Language) => {
+      const nextOption = findLanguageByCode(lang);
+      if (nextOption) {
+        setActiveOption(nextOption);
+        i18nSetLocale(nextOption.language as Locale);
+      }
+    };
+
+    const setLocale = (locale: string) => {
+      const nextOption =
+        findLanguageByLocale(locale) ?? findLanguageByCode(locale);
+      if (nextOption) {
+        setActiveOption(nextOption);
+        i18nSetLocale(nextOption.language as Locale);
+      } else {
+        // ✅ FIX: Use functional update to get current state (avoids stale closure)
+        setActiveOption((prev) => {
+          i18nSetLocale(prev.language as Locale);
+          return prev;
+        });
+      }
+    };
+
+    const translate = (
+      key: string,
+      fallback: string = key,
+      values?: TranslationValues,
+    ) => {
+      try {
+        const result = i18nTranslate(
+          key,
+          values as Record<string, string | number> | undefined,
+        );
+        if (result === key && fallback) {
+          return interpolatePlaceholders(fallback, values);
+        }
+        return result;
+      } catch (error) {
+        logger.warn(`Translation error for key '${key}'`, { error });
+        return interpolatePlaceholders(fallback, values);
+      }
+    };
+
+    return {
+      language: activeOption.language,
+      locale: activeOption.locale,
+      setLanguage,
+      setLocale,
+      t: translate,
+      isRTL: dir === "rtl",
+    };
+  }, [i18nHookResult, fallbackOption]);
+
+  return (
+    <TranslationContext.Provider value={contextValue}>
+      {children}
+    </TranslationContext.Provider>
+  );
+}
+
+export function useTranslation() {
+  try {
+    const context = useContext(TranslationContext);
+
+    // If context is not available, provide a safe fallback
+    if (!context) {
+      // Create a fallback context object for SSR
+      const fallbackContext: TranslationContextType = {
+        language: APP_DEFAULTS.language,
+        locale: APP_DEFAULTS.locale,
+        setLanguage: (lang: Language) => {
+          try {
+            if (typeof window !== "undefined") {
+              localStorage.setItem(STORAGE_KEYS.language, lang);
+              logger.warn(
+                "Language preference saved. Please refresh the page for changes to take effect.",
+              );
+            }
+          } catch (error) {
+            logger.warn("Could not save language preference", { error });
+          }
+        },
+        setLocale: (locale: string) => {
+          try {
+            if (typeof window !== "undefined") {
+              localStorage.setItem(STORAGE_KEYS.locale, locale);
+              logger.warn(
+                "Locale preference saved. Please refresh the page for changes to take effect.",
+              );
+            }
+          } catch (error) {
+            logger.warn("Could not save locale preference", { error });
+          }
+        },
+        t: (
+          key: string,
+          fallback: string = key,
+          values?: TranslationValues,
+        ): string => interpolatePlaceholders(fallback, values),
+        isRTL: true,
+      };
+      return fallbackContext;
+    }
+
+    return context;
+  } catch (error) {
+    // Ultimate fallback in case of any error
+    logger.warn("useTranslation error", { error });
+    return {
+      language: APP_DEFAULTS.language as Language,
+      locale: APP_DEFAULTS.locale,
+      setLanguage: (_lang: Language) => {},
+      setLocale: () => {},
+      t: (
+        key: string,
+        fallback: string = key,
+        values?: TranslationValues,
+      ): string => interpolatePlaceholders(fallback, values),
+      isRTL: true,
+    };
+  }
+}
+
+]]>
+</file>
+
+<file path="core/ArchitectureGuard.ts">
+<![CDATA[
+/**
+ * Fixzit Core Architecture Guard System
+ * Enforces architectural rules and maintains system integrity
+ * @version 1.0.0
+ */
+
+export class ArchitectureGuard {
+  private static instance: ArchitectureGuard;
+
+  private constructor() {
+    // Private constructor to prevent direct instantiation
+  }
+
+  static getInstance(): ArchitectureGuard {
+    if (!ArchitectureGuard.instance) {
+      ArchitectureGuard.instance = new ArchitectureGuard();
+    }
+    return ArchitectureGuard.instance;
+  }
+
+  validateSystem(): {
+    healthy: boolean;
+    issues: string[];
+    report: { totalComponents: number };
+  } {
+    return {
+      healthy: true,
+      issues: [],
+      report: {
+        totalComponents: 0,
+      },
+    };
+  }
+}
+
+export const architectureGuard = ArchitectureGuard.getInstance();
+
+]]>
+</file>
+
+<file path="data/marketplace-offline.ts">
+<![CDATA[
+export interface OfflineCategory {
+  id: string;
+  slug: string;
+  name: { en: string };
+}
+
+export interface OfflineProduct {
+  id: string;
+  slug: string;
+  title: { en: string };
+  media?: Array<{ url: string; alt?: string }>;
+  buy: {
+    price: number;
+    currency: string;
+    uom: string;
+  };
+  stock?: {
+    onHand: number;
+    reserved: number;
+  };
+}
+
+const categories: OfflineCategory[] = [
+  { id: "cat-hvac", slug: "hvac", name: { en: "HVAC & Air Quality" } },
+  {
+    id: "cat-electrical",
+    slug: "electrical",
+    name: { en: "Electrical Systems" },
+  },
+  {
+    id: "cat-finishes",
+    slug: "finishes",
+    name: { en: "Finishes & Interiors" },
+  },
+  { id: "cat-safety", slug: "safety", name: { en: "Safety & Compliance" } },
+];
+
+const baseProducts: OfflineProduct[] = [
+  {
+    id: "prod-hvac-001",
+    slug: "variable-air-volume-box",
+    title: { en: "Variable Air Volume Box" },
+    buy: { price: 1850, currency: "SAR", uom: "unit" },
+    stock: { onHand: 18, reserved: 3 },
+  },
+  {
+    id: "prod-hvac-002",
+    slug: "uv-air-sterilizer",
+    title: { en: "UV Air Sterilizer Module" },
+    buy: { price: 2600, currency: "SAR", uom: "unit" },
+    stock: { onHand: 11, reserved: 2 },
+  },
+  {
+    id: "prod-electrical-001",
+    slug: "smart-panel-250a",
+    title: { en: "Smart Distribution Panel 250A" },
+    buy: { price: 7800, currency: "SAR", uom: "panel" },
+    stock: { onHand: 6, reserved: 1 },
+  },
+  {
+    id: "prod-electrical-002",
+    slug: "evac-lighting-pack",
+    title: { en: "Emergency Lighting Pack" },
+    buy: { price: 1450, currency: "SAR", uom: "kit" },
+    stock: { onHand: 24, reserved: 5 },
+  },
+  {
+    id: "prod-finishes-001",
+    slug: "acoustic-panel-kit",
+    title: { en: "Acoustic Panel Kit" },
+    buy: { price: 980, currency: "SAR", uom: "pack" },
+    stock: { onHand: 30, reserved: 4 },
+  },
+  {
+    id: "prod-safety-001",
+    slug: "fire-hose-cabinet",
+    title: { en: "Stainless Fire Hose Cabinet" },
+    buy: { price: 2150, currency: "SAR", uom: "unit" },
+    stock: { onHand: 14, reserved: 2 },
+  },
+];
+
+const featured = baseProducts.slice(0, 4);
+
+const carousels = [
+  { category: categories[0], items: baseProducts.slice(0, 3) },
+  { category: categories[1], items: baseProducts.slice(2, 4) },
+  {
+    category: categories[2],
+    items: baseProducts.slice(4, 5).concat(baseProducts.slice(0, 1)),
+  },
+  {
+    category: categories[3],
+    items: baseProducts.slice(5).concat(baseProducts.slice(3, 4)),
+  },
+];
+
+export const MARKETPLACE_OFFLINE_DATA = {
+  categories,
+  featured,
+  carousels,
+};
+
+]]>
+</file>
+
+<file path="data/static-content.ts">
+<![CDATA[
+export type StaticHelpArticle = {
+  slug: string;
+  title: string;
+  category: string;
+  status: "PUBLISHED";
+  content: string;
+  updatedAt: string;
+};
+
+export type StaticCmsPage = {
+  slug: string;
+  title: string;
+  status: "PUBLISHED";
+  content: string;
+  updatedAt: string;
+};
+
+export type StaticJob = {
+  id: string;
+  slug: string;
+  title: string;
+  department: string;
+  status: "published";
+  visibility: "public";
+  descriptionHtml: string;
+  requirements: string[];
+  benefits: string[];
+  location: {
+    city: string;
+    country: string;
+    mode: "onsite" | "remote" | "hybrid";
+  };
+};
+
+const STATIC_HELP_ARTICLES: StaticHelpArticle[] = [
+  {
+    slug: "fm-mobile-operations",
+    title: "Manage Work Orders From Any Device",
+    category: "Work Orders",
+    status: "PUBLISHED",
+    updatedAt: "2024-10-01T09:00:00.000Z",
+    content: [
+      "## Run a mobile-first FM team",
+      "",
+      "1. Download the Fixzit Superapp on iOS/Android.",
+      "2. Sign in with your tenant or technician account.",
+      "3. Enable notifications for urgent work orders.",
+      "",
+      "Use the *Assignments* tab to accept or reassign jobs, capture photos, and attach completion notes directly from the field.",
+    ].join("\n"),
+  },
+  {
+    slug: "souq-seller-care",
+    title: "Resolve Souq Seller Issues In Minutes",
+    category: "Marketplace",
+    status: "PUBLISHED",
+    updatedAt: "2024-09-12T08:30:00.000Z",
+    content: [
+      "## Seller Happiness Playbook",
+      "",
+      "- Monitor the **Account Health** widget for every seller.",
+      "- Trigger an account review when SLA breaches exceed 3 per week.",
+      "- Use the templated responses inside Support > Seller Care.",
+      "",
+      "Tip: Document every dispute in the CRM timeline so finance, compliance, and support remain aligned.",
+    ].join("\n"),
+  },
+  {
+    slug: "finance-close-checklist",
+    title: "Monthly Finance Close Checklist",
+    category: "Finance",
+    status: "PUBLISHED",
+    updatedAt: "2024-08-05T10:15:00.000Z",
+    content: [
+      "## Finance close with confidence",
+      "",
+      "1. Run the **Open Journals** report and lock all posted entries.",
+      "2. Reconcile Tap gateway payouts vs. ledger transactions.",
+      "3. Export VAT-ready statements for compliance.",
+      "",
+      "Use the Workbench automation to notify stakeholders once the close checklist hits 100% completion.",
+    ].join("\n"),
+  },
+];
+
+const STATIC_CMS_PAGES: StaticCmsPage[] = [
+  {
+    slug: "saudi-fm-transformation",
+    title: "Saudi FM Transformation Program",
+    status: "PUBLISHED",
+    updatedAt: "2024-09-18T12:00:00.000Z",
+    content: [
+      "# Saudi FM Transformation Program",
+      "",
+      "The Fixzit platform powers Vision 2030 facilities & asset operations with:",
+      "",
+      "- Enterprise maintenance, compliance, and inspection workflows",
+      "- Unified Souq marketplace for certified vendors",
+      "- Finance, HR, and analytics packs built for Saudi FM leaders",
+      "",
+      "Talk to our transformation office to launch the program across your portfolio in under 8 weeks.",
+    ].join("\n"),
+  },
+  {
+    slug: "souq-marketplace",
+    title: "Fixzit Souq Marketplace",
+    status: "PUBLISHED",
+    updatedAt: "2024-08-22T15:00:00.000Z",
+    content: [
+      "# Fixzit Souq Marketplace",
+      "",
+      "Souq connects procurement teams with vetted FM vendors across the GCC.",
+      "",
+      "### Capabilities",
+      "- Multi-vendor RFQs with SLA scoring",
+      "- Digital contracts & performance dashboards",
+      "- Integrated settlements with Tap Payments",
+      "",
+      "Onboard your supplier base in days and gain 360° visibility over every engagement.",
+    ].join("\n"),
+  },
+];
+
+const STATIC_JOBS: StaticJob[] = [
+  {
+    id: "static-job-senior-fm-analyst",
+    slug: "senior-fm-analyst",
+    title: "Senior FM Transformation Analyst",
+    department: "Strategy & Transformation",
+    status: "published",
+    visibility: "public",
+    descriptionHtml: [
+      "<p>Join the Fixzit transformation office to help enterprise FM customers modernize operations.</p>",
+      "<p>You will map processes, configure Fixzit modules, and mentor customer teams during go-live.</p>",
+      "<p><strong>What you will do:</strong></p>",
+      "<ul>",
+      "<li>Design data-driven playbooks for maintenance, compliance, and Souq procurement.</li>",
+      "<li>Lead discovery workshops with CXOs and field teams.</li>",
+      "<li>Translate KPIs into dashboards and automation flows.</li>",
+      "</ul>",
+    ].join(""),
+    requirements: [
+      "6+ years in FM consulting or operations",
+      "Expertise with CAFM/CMMS solutions",
+      "Strong stakeholder facilitation skills",
+    ],
+    benefits: [
+      "Hybrid work model (Riyadh HQ)",
+      "Annual education & conference budget",
+      "Private medical coverage for family",
+    ],
+    location: {
+      city: "Riyadh",
+      country: "Saudi Arabia",
+      mode: "hybrid",
+    },
+  },
+  {
+    id: "static-job-souq-vendor-lead",
+    slug: "souq-vendor-success-lead",
+    title: "Souq Vendor Success Lead",
+    department: "Marketplace",
+    status: "published",
+    visibility: "public",
+    descriptionHtml: [
+      "<p>Own the end-to-end success program for Fixzit Souq vendors.</p>",
+      "<p>Drive onboarding, training, and quality benchmarks for suppliers serving enterprise portfolios.</p>",
+    ].join(""),
+    requirements: [
+      "Background in marketplace account management",
+      "Arabic & English fluency",
+      "Experience with SLAs and quality frameworks",
+    ],
+    benefits: [
+      "Performance bonus linked to NPS",
+      "Immersive vendor immersion trips",
+    ],
+    location: {
+      city: "Jeddah",
+      country: "Saudi Arabia",
+      mode: "onsite",
+    },
+  },
+];
+
+export function getStaticHelpArticle(slug: string): StaticHelpArticle | null {
+  return STATIC_HELP_ARTICLES.find((article) => article.slug === slug) ?? null;
+}
+
+export function getStaticCmsPage(slug: string): StaticCmsPage | null {
+  return STATIC_CMS_PAGES.find((page) => page.slug === slug) ?? null;
+}
+
+export function getStaticJob(slug: string): StaticJob | null {
+  return STATIC_JOBS.find((job) => job.slug === slug) ?? null;
+}
+
+]]>
+</file>
+
+<file path="db/mongoose.ts">
+<![CDATA[
+import mongoose, { type Connection } from "mongoose";
+import { db as globalConn } from "@/lib/mongo";
+
+let connection: Connection | null = null;
+
+export async function dbConnect(): Promise<Connection> {
+  if (connection) return connection;
+
+  // Use mongoose.connection which is the actual Connection object
+  await globalConn; // Ensure MongoDB is connected
+  connection = mongoose.connection;
+
+  // Respect configured db name when URI does not include a path
+  const dbName = process.env.MONGODB_DB;
+  if (dbName && connection.name !== dbName) {
+    connection = connection.useDb(dbName, { useCache: true });
+  }
+
+  return connection;
+}
+
+export function getMongoose(): Connection {
+  if (!connection) {
+    throw new Error("Mongoose not connected. Call dbConnect() first.");
+  }
+  return connection;
+}
+
+]]>
+</file>
+
+<file path="deployment/mongo-init.js">
+<![CDATA[
+// Initializes MongoDB with a basic admin user and database
+// ⚡ FIXED: Uses environment variables provided by docker-compose (no hardcoded credentials)
+
+// This script runs in the Mongo container context
+
+/* global db, process */
+
+// Create application database and user if provided
+const appDbName = "fixzit";
+const appDb = db.getSiblingDB(appDbName);
+
+// ⚡ FIXED: Read credentials from environment variables (set by docker-compose)
+const appUser = process.env.MONGO_USERNAME || "fixzit_user";
+const appPass = process.env.MONGO_PASSWORD || "fixzit_password";
+
+// Create a user with readWrite role for the application database
+try {
+  appDb.createUser({
+    user: appUser,
+    pwd: appPass,
+    roles: [{ role: "readWrite", db: appDbName }],
+  });
+} catch (e) {
+  // ignore if exists
+}
+
+]]>
+</file>
+
+<file path="dev/credentials.server.ts">
+<![CDATA[
+/**
+ * Demo Credentials Stub for Production Builds
+ *
+ * This file provides disabled defaults for production builds.
+ * It allows the codebase to compile without exposing real credentials.
+ *
+ * For LOCAL DEVELOPMENT with real demo accounts:
+ * 1. Create a file: dev/credentials.local.ts
+ * 2. Export ENABLED = true and your demo credentials
+ * 3. This file will be overridden by the local version
+ *
+ * SECURITY: Never commit real credentials to the repository.
+ */
+
+export interface DemoCredential {
+  role: string;
+  email?: string;
+  employeeNumber?: string;
+  password: string;
+  loginType: "personal" | "corporate";
+  orgId?: string;
+  preferredPath?: string;
+}
+
+// Demo accounts are DISABLED by default
+// Override in credentials.local.ts for development
+export const ENABLED: boolean = false;
+
+// Stub implementations that return empty data
+export function findLoginPayloadByRole(_role: string): DemoCredential | null {
+  // Demo accounts disabled in production builds
+  return null;
+}
+
+export function listSanitized(): {
+  demo: Array<Omit<DemoCredential, "password">>;
+  corporate: Array<Omit<DemoCredential, "password">>;
+} {
+  // Demo accounts disabled in production builds
+  return { demo: [], corporate: [] };
+}
+
+export function assertDemoConfig(): void {
+  // No-op in production builds
+}
+
+]]>
+</file>
+
+<file path="dev/refactoring/README.md">
+<![CDATA[
+# Work-in-Progress Refactorings
+
+This directory contains experimental refactorings and improvements that are not yet complete.
+
+## Files
+
+### vendors-route-crud-factory-wip.ts
+
+**Original**: `app/api/vendors/route.ts` (177 lines)  
+**Status**: Incomplete - has TypeScript errors  
+**Goal**: Reduce to 99 lines (78% reduction) using CRUD factory pattern  
+**Issues**:
+
+- Line 76: `buildVendorFilter` uses undefined `searchParams`
+- Missing proper filter builder implementation
+- Needs testing before deployment
+
+**Next Steps**:
+
+1. Fix `buildVendorFilter` signature
+2. Test with existing vendor endpoints
+3. Ensure backward compatibility
+4. Update tests
+5. Replace original when stable
+
+## Contributing
+
+Before moving any file back to production:
+
+1. Ensure TypeScript compilation passes
+2. All tests pass
+3. No breaking API changes
+4. Document migration path
+
+]]>
+</file>
+
+<file path="docs/AGENT.md">
+<![CDATA[
+# Agent Playbook
+
+## Rules
+
+1. Layout Freeze - no structural changes
+2. Use brand tokens only
+3. Halt–Fix–Verify on all errors
+4. Attach artifacts before proceeding
+
+## Scripts
+
+- npm run consolidate:dry
+- npm run ui:freeze:check
+- npm run sidebar:snapshot
+- npm run i18n:check
+
+]]>
+</file>
+
+</batch_content>

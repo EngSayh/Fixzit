@@ -1,0 +1,3460 @@
+
+You are the "Fixzit Memory Builder" for category: "routes".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "routes",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/api/invoices/[id]/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Invoice } from "@/server/models/Invoice";
+import { z, ZodError } from "zod";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { generateZATCATLV, generateZATCAQR } from "@/lib/zatca";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import {
+  rateLimitError,
+  handleApiError,
+  zodValidationError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+
+const updateInvoiceSchema = z.object({
+  status: z
+    .enum([
+      "DRAFT",
+      "SENT",
+      "VIEWED",
+      "APPROVED",
+      "REJECTED",
+      "PAID",
+      "OVERDUE",
+      "CANCELLED",
+    ])
+    .optional(),
+  payment: z
+    .object({
+      date: z.string(),
+      amount: z.number(),
+      method: z.string(),
+      reference: z.string().optional(),
+      notes: z.string().optional(),
+    })
+    .optional(),
+  approval: z
+    .object({
+      approved: z.boolean(),
+      comments: z.string().optional(),
+    })
+    .optional(),
+});
+
+/**
+ * @openapi
+ * /api/invoices/[id]:
+ *   get:
+ *     summary: invoices/[id] operations
+ *     tags: [invoices]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const user = await getSessionUser(req);
+    // SEC-001: Validate orgId to prevent undefined in tenant-scoped queries
+    if (!user?.orgId) {
+      return createSecureResponse(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        401,
+        req,
+      );
+    }
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+    await connectToDatabase();
+
+    const invoice = await Invoice.findOne({
+      _id: params.id,
+      orgId: user.orgId,
+    });
+
+    if (!invoice) {
+      return createSecureResponse({ error: "Invoice not found" }, 404, req);
+    }
+
+    // Add to history if viewed for first time by recipient
+    if (
+      invoice.status === "SENT" &&
+      invoice.recipient?.customerId &&
+      user.id === invoice.recipient.customerId
+    ) {
+      invoice.status = "VIEWED";
+      invoice.history.push({
+        action: "VIEWED",
+        performedBy: user.id,
+        performedAt: new Date(),
+        details: "Invoice viewed by recipient",
+      });
+      await invoice.save();
+    }
+
+    return createSecureResponse(invoice, 200, req);
+  } catch (error: unknown) {
+    return handleApiError(error);
+  }
+}
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const user = await getSessionUser(req);
+    // SEC-001: Validate orgId to prevent undefined in tenant-scoped queries
+    if (!user?.orgId) {
+      return createSecureResponse(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        401,
+        req,
+      );
+    }
+    await connectToDatabase();
+
+    const data = updateInvoiceSchema.parse(await req.json());
+
+    const invoice = await Invoice.findOne({
+      _id: params.id,
+      orgId: user.orgId,
+    });
+
+    if (!invoice) {
+      return createSecureResponse({ error: "Invoice not found" }, 404, req);
+    }
+
+    // Handle status update
+    if (data.status) {
+      invoice.status = data.status;
+      invoice.history.push({
+        action: data.status,
+        performedBy: user.id,
+        performedAt: new Date(),
+        details: `Invoice status changed to ${data.status}`,
+      });
+
+      // If sending invoice, generate ZATCA XML and sign
+      if (data.status === "SENT") {
+        try {
+          // Prepare ZATCA data from invoice using issuer (seller/from are virtual aliases)
+          const zatcaData = {
+            sellerName: invoice.issuer?.name || "Unknown Seller",
+            vatNumber: invoice.issuer?.taxId || "000000000000000",
+            timestamp: (invoice.issueDate || new Date()).toISOString(),
+            total: invoice.total || 0,
+            vatAmount: invoice.tax || 0,
+          };
+
+          // Generate TLV and QR code (both async)
+          const tlv = await generateZATCATLV(zatcaData);
+          const qrCode = await generateZATCAQR(zatcaData);
+
+          // Update invoice ZATCA fields with proper initialization
+          if (!invoice.zatca) {
+            invoice.zatca = { status: "PENDING" };
+          }
+          invoice.zatca.tlv = tlv;
+          invoice.zatca.qrCode = qrCode;
+          invoice.zatca.generatedAt = new Date();
+          invoice.zatca.status = "GENERATED";
+        } catch (error) {
+          logger.error(
+            "ZATCA generation failed:",
+            error instanceof Error ? error.message : "Unknown error",
+          );
+          if (!invoice.zatca) {
+            invoice.zatca = { status: "FAILED" };
+          } else {
+            invoice.zatca.status = "FAILED";
+          }
+          invoice.zatca.error =
+            error instanceof Error ? error.message : String(error);
+        }
+      }
+    }
+
+    // Handle payment
+    if (data.payment) {
+      invoice.payments.push({
+        ...data.payment,
+        status: "COMPLETED",
+        transactionId: `TXN-${crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase()}`,
+      });
+
+      // Update invoice status if fully paid
+      const totalPaid = invoice.payments.reduce((sum: number, p: unknown) => {
+        const payment = p as { status?: string; amount?: number };
+        return payment.status === "COMPLETED" && payment.amount
+          ? sum + payment.amount
+          : sum;
+      }, 0);
+
+      if (invoice.total && totalPaid >= invoice.total) {
+        invoice.status = "PAID";
+        invoice.history.push({
+          action: "PAID",
+          performedBy: user.id,
+          performedAt: new Date(),
+          details: "Invoice fully paid",
+        });
+      }
+    }
+
+    // Handle approval
+    if (data.approval && invoice.approval) {
+      const level = (
+        invoice.approval.levels as unknown as Array<{
+          approver: string;
+          status: string;
+          approvedAt?: Date;
+          comments?: string;
+        }>
+      ).find((l) => l.approver === user.id && l.status === "PENDING");
+
+      if (level) {
+        level.status = data.approval.approved ? "APPROVED" : "REJECTED";
+        level.approvedAt = new Date();
+        level.comments = data.approval.comments;
+
+        // Check if all levels approved
+        const allApproved = (
+          invoice.approval.levels as unknown as Array<{ status: string }>
+        ).every((l) => l.status === "APPROVED");
+
+        if (allApproved) {
+          invoice.status = "APPROVED";
+          invoice.approval.finalApprover = user.id;
+          invoice.approval.finalApprovedAt = new Date();
+        } else if (!data.approval.approved) {
+          invoice.status = "REJECTED";
+          invoice.approval.rejectionReason = data.approval.comments;
+        }
+
+        invoice.history.push({
+          action: data.approval.approved ? "APPROVED" : "REJECTED",
+          performedBy: user.id,
+          performedAt: new Date(),
+          details:
+            data.approval.comments ||
+            `Invoice ${data.approval.approved ? "approved" : "rejected"}`,
+        });
+      }
+    }
+
+    invoice.updatedBy = user.id;
+    await invoice.save();
+
+    return createSecureResponse(invoice, 200, req);
+  } catch (error: unknown) {
+    // Distinguish validation errors from server errors
+    if (error instanceof ZodError) {
+      return zodValidationError(error, req);
+    }
+    return handleApiError(error);
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const user = await getSessionUser(req);
+    // SEC-001: Validate orgId to prevent undefined in tenant-scoped queries
+    if (!user?.orgId) {
+      return createSecureResponse(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        401,
+        req,
+      );
+    }
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+    await connectToDatabase();
+
+    const invoice = await Invoice.findOne({
+      _id: params.id,
+      orgId: user.orgId,
+      status: "DRAFT",
+    });
+
+    if (!invoice) {
+      return createSecureResponse(
+        { error: "Invoice not found or cannot be deleted" },
+        404,
+        req,
+      );
+    }
+
+    invoice.status = "CANCELLED";
+    invoice.history.push({
+      action: "CANCELLED",
+      performedBy: user.id,
+      performedAt: new Date(),
+      details: "Invoice cancelled",
+    });
+    invoice.updatedBy = user.id;
+    await invoice.save();
+
+    return createSecureResponse({ success: true }, 200, req);
+  } catch (error: unknown) {
+    logger.error(
+      "Invoice DELETE error:",
+      error instanceof Error ? (error as Error).message : "Unknown error",
+    );
+    return handleApiError(error);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/invoices/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Invoice } from "@/server/models/Invoice";
+import { z } from "zod";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { generateZATCAQR } from "@/lib/zatca";
+import { nanoid } from "nanoid";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
+import { COLLECTIONS } from "@/lib/db/collections";
+
+const createInvoiceSchema = z.object({
+  type: z.enum(["SALES", "PURCHASE", "RENTAL", "SERVICE", "MAINTENANCE"]),
+  issuer: z.object({
+    name: z.string(),
+    taxId: z.string(),
+    address: z.string(),
+    phone: z.string().optional(),
+    email: z.string().optional(),
+    registration: z.string().optional(),
+    license: z.string().optional(),
+  }),
+  recipient: z.object({
+    name: z.string(),
+    taxId: z.string().optional(),
+    address: z.string(),
+    phone: z.string().optional(),
+    email: z.string().optional(),
+    nationalId: z.string().optional(),
+    customerId: z.string().optional(),
+  }),
+  issueDate: z.string(),
+  dueDate: z.string(),
+  description: z.string().optional(),
+  items: z.array(
+    z.object({
+      description: z.string(),
+      quantity: z.number(),
+      unitPrice: z.number(),
+      discount: z.number().default(0),
+      tax: z
+        .object({
+          type: z.string().default("VAT"),
+          rate: z.number().default(15),
+          amount: z.number(),
+        })
+        .optional(),
+      total: z.number(),
+      category: z.string().optional(),
+    }),
+  ),
+  currency: z.string().default("SAR"),
+  payment: z
+    .object({
+      method: z.string().optional(),
+      terms: z.string().optional(),
+      instructions: z.string().optional(),
+      account: z
+        .object({
+          bank: z.string().optional(),
+          accountNumber: z.string().optional(),
+          iban: z.string().optional(),
+          swift: z.string().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  related: z
+    .object({
+      workOrderId: z.string().optional(),
+      projectId: z.string().optional(),
+      contractId: z.string().optional(),
+      purchaseOrderId: z.string().optional(),
+    })
+    .optional(),
+});
+
+/**
+ * @openapi
+ * /api/invoices:
+ *   get:
+ *     summary: invoices operations
+ *     tags: [invoices]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  try {
+    await connectToDatabase();
+    const user = await getSessionUser(req);
+
+    // Rate limiting AFTER authentication
+    const clientIp = getClientIP(req);
+    const rl = await smartRateLimit(
+      `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
+      60,
+      60_000,
+    );
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        { status: 401 },
+      );
+    }
+
+    const data = createInvoiceSchema.parse(await req.json());
+
+    // Calculate totals
+    let subtotal = 0;
+    let totalTax = 0;
+    interface TaxSummary {
+      type: string;
+      rate: number;
+      amount: number;
+      category?: string;
+    }
+    const taxes: TaxSummary[] = [];
+
+    data.items.forEach((item) => {
+      const itemSubtotal = item.quantity * item.unitPrice - item.discount;
+      subtotal += itemSubtotal;
+
+      if (item.tax) {
+        const taxAmount = itemSubtotal * (item.tax.rate / 100);
+        totalTax += taxAmount;
+
+        const existingTax = taxes.find(
+          (t) => t.type === item.tax!.type && t.rate === item.tax!.rate,
+        );
+        if (existingTax) {
+          existingTax.amount += taxAmount;
+        } else {
+          taxes.push({
+            type: item.tax.type,
+            rate: item.tax.rate,
+            amount: taxAmount,
+            category: item.category,
+          });
+        }
+      }
+    });
+
+    const total = subtotal + totalTax;
+
+    // Generate atomic invoice number per tenant/year
+    const year = new Date().getFullYear();
+    const result = await Invoice.db
+      .collection(COLLECTIONS.INVOICE_COUNTERS)
+      .findOneAndUpdate(
+        { orgId: user.orgId, year },
+        { $inc: { sequence: 1 } },
+        { upsert: true, returnDocument: "after" },
+      );
+    const sequence = (result as { sequence?: number } | null)?.sequence ?? 1;
+    const number = `INV-${year}-${String(sequence).padStart(5, "0")}`;
+
+    // Generate ZATCA QR code
+    const qrCode = await generateZATCAQR({
+      sellerName: data.issuer.name,
+      vatNumber: data.issuer.taxId,
+      timestamp: new Date(data.issueDate).toISOString(),
+      total: total.toString(),
+      vatAmount: totalTax.toString(),
+    });
+
+    const invoice = await Invoice.create({
+      orgId: user.orgId,
+      number,
+      ...data,
+      subtotal,
+      taxes,
+      total,
+      status: "DRAFT",
+      zatca: {
+        uuid: nanoid(),
+        qrCode,
+        status: "PENDING",
+        phase: 2,
+      },
+      history: [
+        {
+          action: "CREATED",
+          performedBy: user.id,
+          performedAt: new Date(),
+          details: "Invoice created",
+        },
+      ],
+      createdBy: user.id,
+    });
+
+    return createSecureResponse(invoice, 201, req);
+  } catch (error: unknown) {
+    const correlationId = crypto.randomUUID();
+    logger.error("[POST /api/invoices] Error creating invoice:", {
+      correlationId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+
+    if (error instanceof z.ZodError) {
+      return createSecureResponse(
+        {
+          error: "Validation failed",
+          details: error.issues,
+          correlationId,
+        },
+        422,
+        req,
+      );
+    }
+
+    return createSecureResponse(
+      {
+        error: "Failed to create invoice",
+        correlationId,
+      },
+      500,
+      req,
+    );
+  }
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    await connectToDatabase();
+    const user = await getSessionUser(req);
+
+    // Rate limiting AFTER authentication
+    const clientIp = getClientIP(req);
+    const rl = await smartRateLimit(
+      `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
+      60,
+      60_000,
+    );
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        { status: 401 },
+      );
+    }
+
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, Number(searchParams.get("page")) || 1);
+    const limit = Math.min(100, Number(searchParams.get("limit")) || 20);
+    const status = searchParams.get("status");
+    const type = searchParams.get("type");
+    const search = searchParams.get("search");
+
+    const match: Record<string, unknown> = { orgId: user.orgId };
+
+    if (status) match.status = status;
+    if (type) match.type = type;
+    if (search) {
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      match.$or = [
+        { number: { $regex: escapedSearch, $options: "i" } },
+        { "recipient.name": { $regex: escapedSearch, $options: "i" } },
+      ];
+    }
+
+    const [items, total] = await Promise.all([
+      Invoice.find(match)
+        .sort({ issueDate: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit),
+      Invoice.countDocuments(match),
+    ]);
+
+    return NextResponse.json({
+      items,
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit),
+    });
+  } catch (error: unknown) {
+    const correlationId = crypto.randomUUID();
+    logger.error("[GET /api/invoices] Error fetching invoices:", {
+      correlationId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return createSecureResponse(
+      {
+        error: "Failed to fetch invoices",
+        correlationId,
+      },
+      500,
+      req,
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/jobs/process/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { JobQueue, Job } from "@/lib/jobs/queue";
+import sgMail from "@sendgrid/mail";
+import { getSendGridConfig } from "@/config/sendgrid.config";
+import { deleteObject } from "@/lib/storage/s3";
+import { DOMAINS } from "@/lib/config/domains";
+import { joinUrl } from "@/lib/utils/url";
+import { verifySecretHeader } from "@/lib/security/verify-secret-header";
+
+/**
+ * POST /api/jobs/process
+ *
+ * Background job processor endpoint
+ * Processes queued jobs: email invitations, S3 cleanup, etc.
+ *
+ * Can be triggered manually or by a cron job
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    // Allow both authenticated admins and cron jobs (with secret)
+    const cronAuthorized = verifySecretHeader(
+      request,
+      "x-cron-secret",
+      process.env.CRON_SECRET,
+    );
+    const isAuthorized = session?.user?.isSuperAdmin || cronAuthorized;
+
+    if (!isAuthorized) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json().catch(() => ({}));
+    const jobType = body.type; // Optional: process specific job type only
+    const maxJobs = body.maxJobs || 10;
+
+    const processed: { success: string[]; failed: string[] } = {
+      success: [],
+      failed: [],
+    };
+
+    // Process jobs
+    for (let i = 0; i < maxJobs; i++) {
+      const job = await JobQueue.claimJob(jobType);
+      if (!job) break;
+
+      try {
+        await processJob(job);
+        await JobQueue.completeJob(job._id.toString());
+        processed.success.push(job._id.toString());
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        await JobQueue.failJob(job._id.toString(), errorMessage);
+        processed.failed.push(job._id.toString());
+      }
+    }
+
+    // Retry stuck jobs
+    const retriedCount = await JobQueue.retryStuckJobs();
+
+    // Get current stats
+    const stats = await JobQueue.getStats();
+
+    return NextResponse.json({
+      success: true,
+      processed: {
+        success: processed.success.length,
+        failed: processed.failed.length,
+        total: processed.success.length + processed.failed.length,
+      },
+      retried: retriedCount,
+      stats,
+    });
+  } catch (error) {
+    logger.error("Job processor error", error as Error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * Process a single job based on its type
+ */
+async function processJob(job: Job): Promise<void> {
+  logger.info("Processing job", { jobId: job._id.toString(), type: job.type });
+
+  switch (job.type) {
+    case "email-invitation":
+      await processEmailInvitation(job);
+      break;
+
+    case "email-notification":
+      await processEmailNotification(job);
+      break;
+
+    case "s3-cleanup":
+      await processS3Cleanup(job);
+      break;
+
+    default:
+      logger.warn("Unknown job type", {
+        jobId: job._id.toString(),
+        type: job.type,
+      });
+      throw new Error(`Unknown job type: ${job.type}`);
+  }
+}
+
+/**
+ * Process email invitation job
+ */
+async function processEmailInvitation(job: Job): Promise<void> {
+  const { email, firstName, lastName, role, inviteId } = job.payload;
+
+  if (!email || !firstName || !lastName || !role) {
+    throw new Error("Missing required email invitation fields");
+  }
+
+  // Check if SendGrid is configured
+  const config = getSendGridConfig();
+  if (!config.apiKey) {
+    logger.warn("SendGrid not configured, skipping email invitation", {
+      inviteId,
+    });
+    return; // Don't fail the job if email service is not set up
+  }
+
+  sgMail.setApiKey(config.apiKey);
+
+  const baseAppUrl = process.env.NEXT_PUBLIC_APP_URL || DOMAINS.app || DOMAINS.primary;
+  const inviteLink = joinUrl(baseAppUrl, `/signup?invite=${inviteId}`);
+
+  const emailContent = {
+    to: email as string,
+    from: config.from.email,
+    subject: `دعوة للانضمام إلى Fixzit | Invitation to join Fixzit`,
+    html: `
+      <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2>مرحباً ${firstName} ${lastName}!</h2>
+        <p>تمت دعوتك للانضمام إلى منصة Fixzit بصفة <strong>${role}</strong>.</p>
+        <p>
+          <a href="${inviteLink}" style="background-color: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+            قبول الدعوة
+          </a>
+        </p>
+        <hr style="margin: 30px 0; border: 1px solid #eee;">
+        <div dir="ltr">
+          <h2>Hello ${firstName} ${lastName}!</h2>
+          <p>You've been invited to join Fixzit platform as <strong>${role}</strong>.</p>
+          <p>
+            <a href="${inviteLink}" style="background-color: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+              Accept Invitation
+            </a>
+          </p>
+        </div>
+        <hr style="margin: 30px 0; border: 1px solid #eee;">
+        <p style="color: #666; font-size: 12px;">
+          إذا لم تطلب هذه الدعوة، يمكنك تجاهل هذه الرسالة بأمان.<br>
+          If you didn't request this invitation, you can safely ignore this email.
+        </p>
+      </div>
+    `,
+  };
+
+  await sgMail.send(emailContent);
+  logger.info("Invitation email sent", { email, inviteId });
+}
+
+/**
+ * Process generic email notification job
+ */
+async function processEmailNotification(job: Job): Promise<void> {
+  const { to, subject, html } = job.payload;
+
+  if (!to || !subject || !html) {
+    throw new Error("Missing required email notification fields");
+  }
+
+  const config = getSendGridConfig();
+  if (!config.apiKey) {
+    logger.warn("SendGrid not configured, skipping email notification");
+    return;
+  }
+
+  sgMail.setApiKey(config.apiKey);
+
+  await sgMail.send({
+    to: to as string,
+    from: config.from.email,
+    subject: subject as string,
+    html: html as string,
+  });
+
+  logger.info("Notification email sent", { to, subject });
+}
+
+/**
+ * Process S3 cleanup job
+ */
+async function processS3Cleanup(job: Job): Promise<void> {
+  const { keys } = job.payload;
+
+  if (!Array.isArray(keys) || keys.length === 0) {
+    throw new Error("Missing S3 keys for cleanup");
+  }
+
+  const results = {
+    success: 0,
+    failed: 0,
+  };
+
+  for (const key of keys) {
+    try {
+      await deleteObject(key as string);
+      results.success++;
+    } catch (error) {
+      logger.error("Failed to delete S3 object", error as Error, { key });
+      results.failed++;
+    }
+  }
+
+  logger.info("S3 cleanup completed", results);
+
+  // If any deletions failed, throw error to retry the job (idempotent deletes are safe)
+  if (results.failed > 0) {
+    throw new Error(
+      `Failed to delete ${results.failed} of ${keys.length} S3 objects`,
+    );
+  }
+}
+
+/**
+ * GET /api/jobs/process
+ *
+ * Get job queue statistics
+ */
+export async function GET(_request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.isSuperAdmin) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const stats = await JobQueue.getStats();
+
+    return NextResponse.json({
+      success: true,
+      stats,
+    });
+  } catch (error) {
+    logger.error("Job stats error", error as Error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/jobs/sms-sla-monitor/route.ts">
+<![CDATA[
+/**
+ * SMS SLA Monitor Cron Endpoint
+ *
+ * Triggered by cron job to check for SLA breaches and send notifications.
+ * Should be scheduled to run every 1-5 minutes.
+ *
+ * @module app/api/jobs/sms-sla-monitor/route
+ */
+
+import { randomUUID } from "crypto";
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { verifySecretHeader } from "@/lib/security/verify-secret-header";
+import { processSLABreaches, getSLABreachStats } from "@/lib/jobs/sms-sla-monitor";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
+
+/**
+ * POST /api/jobs/sms-sla-monitor
+ *
+ * Run SLA breach check and send notifications
+ * Requires either admin session or cron secret
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const correlationId = request.headers.get("x-correlation-id") || randomUUID();
+    const clientIp = getClientIP(request);
+    const rl = await smartRateLimit(`/api/jobs/sms-sla-monitor:${clientIp}:POST`, 20, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    const session = await auth();
+
+    // Allow both authenticated admins and cron jobs (with secret)
+    const cronAuthorized = verifySecretHeader(
+      request,
+      "x-cron-secret",
+      process.env.CRON_SECRET,
+    );
+    const isSuperAdmin =
+      (session?.user?.role || "").toUpperCase() === "SUPER_ADMIN" ||
+      session?.user?.isSuperAdmin === true;
+    const isAuthorized = isSuperAdmin || cronAuthorized;
+
+    if (!isAuthorized) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    logger.info("[SLA Monitor] Starting breach check", {
+      triggeredBy: cronAuthorized ? "cron" : session?.user?.email,
+      correlationId,
+    });
+
+    const report = await processSLABreaches();
+
+    const res = NextResponse.json({
+      success: true,
+      report,
+    });
+    res.headers.set("x-correlation-id", correlationId);
+    res.headers.set("X-RateLimit-Limit", "20");
+    res.headers.set("X-RateLimit-Remaining", rl.remaining.toString());
+    return res;
+  } catch (error) {
+    logger.error("[SLA Monitor] Endpoint error", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * GET /api/jobs/sms-sla-monitor
+ *
+ * Get SLA breach statistics (requires admin)
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const correlationId = request.headers.get("x-correlation-id") || randomUUID();
+    const clientIp = getClientIP(request);
+    const rl = await smartRateLimit(`/api/jobs/sms-sla-monitor:${clientIp}:GET`, 30, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    const session = await auth();
+
+    const isSuperAdmin =
+      (session?.user?.role || "").toUpperCase() === "SUPER_ADMIN" ||
+      session?.user?.isSuperAdmin === true;
+    if (!isSuperAdmin) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const url = new URL(request.url);
+    const orgId = url.searchParams.get("orgId") || undefined;
+    const sinceParam = url.searchParams.get("since");
+    const since = sinceParam ? new Date(sinceParam) : undefined;
+
+    const stats = await getSLABreachStats(orgId, since);
+
+    const res = NextResponse.json({
+      success: true,
+      stats,
+    });
+    res.headers.set("x-correlation-id", correlationId);
+    res.headers.set("X-RateLimit-Limit", "30");
+    res.headers.set("X-RateLimit-Remaining", rl.remaining.toString());
+    return res;
+  } catch (error) {
+    logger.error("[SLA Monitor] Stats endpoint error", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/kb/ingest/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { upsertArticleEmbeddings, deleteArticleEmbeddings } from "@/kb/ingest";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+
+import { logger } from "@/lib/logger";
+/**
+ * @openapi
+ * /api/kb/ingest:
+ *   get:
+ *     summary: kb/ingest operations
+ *     tags: [kb]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const user = await getSessionUser(req).catch(() => null);
+    if (!user || !["SUPER_ADMIN", "ADMIN"].includes(user.role)) {
+      return createSecureResponse({ error: "Forbidden" }, 403, req);
+    }
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+    const body = await req.json().catch(() => ({}) as unknown);
+    const { articleId, content, lang, roleScopes, route } = body || {};
+    if (!articleId || typeof content !== "string") {
+      return createSecureResponse(
+        { error: "Missing articleId or content" },
+        400,
+        req,
+      );
+    }
+    await upsertArticleEmbeddings({
+      orgId: user.tenantId || null,
+      tenantId: user.tenantId || null,
+      articleId,
+      lang: typeof lang === "string" ? lang : undefined,
+      roleScopes: Array.isArray(roleScopes) ? roleScopes : undefined,
+      route: typeof route === "string" ? route : undefined,
+      content,
+    });
+    return createSecureResponse({ ok: true }, 200, req);
+  } catch (err) {
+    logger.error(
+      "kb/ingest error",
+      err instanceof Error ? err : new Error(String(err)),
+      { route: "POST /api/kb/ingest" },
+    );
+    return createSecureResponse({ error: "Ingest failed" }, 500, req);
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const user = await getSessionUser(req).catch(() => null);
+    if (!user || !["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(user.role)) {
+      return createSecureResponse({ error: "Forbidden" }, 403, req);
+    }
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+    const url = new URL(req.url);
+    const articleId = url.searchParams.get("articleId");
+    if (!articleId)
+      return createSecureResponse({ error: "Missing articleId" }, 400, req);
+    await deleteArticleEmbeddings(articleId, user.tenantId || null);
+    return createSecureResponse({ ok: true }, 200, req);
+  } catch {
+    return createSecureResponse({ error: "Delete failed" }, 500, req);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/kb/search/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+
+import { logger } from "@/lib/logger";
+// Define proper type for search results
+interface SearchResult {
+  articleId: string;
+  chunkId: string;
+  text: string;
+  lang: string;
+  route: string;
+  roleScopes: string[];
+  slug?: string;
+  title?: string;
+  updatedAt?: Date;
+  score?: number;
+}
+
+/**
+ * POST /api/kb/search
+ * Body: { query: number[] (embedding), lang?: string, role?: string, route?: string, limit?: number }
+ * Returns: top-N chunks scoped by tenantId/lang/role/route with vectorSearch or lexical fallback.
+ */
+/**
+ * @openapi
+ * /api/kb/search:
+ *   post:
+ *     summary: kb/search operations
+ *     tags: [kb]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  try {
+    // Best-effort local rate limiting
+    rateLimitAssert(req);
+    const user = await getSessionUser(req).catch(() => null);
+    if (!user) return createSecureResponse({ error: "Unauthorized" }, 401, req);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const query = body?.query as number[] | undefined;
+    const qText = typeof body?.q === "string" ? body.q : undefined;
+    const lang = typeof body?.lang === "string" ? body.lang : undefined;
+    const role = typeof body?.role === "string" ? body.role : undefined;
+    const route = typeof body?.route === "string" ? body.route : undefined;
+    const limitRaw = Number(body?.limit);
+    const limit =
+      Number.isFinite(limitRaw) && limitRaw > 0
+        ? Math.min(12, Math.floor(limitRaw))
+        : 8;
+    if (!Array.isArray(query) || query.length === 0) {
+      return createSecureResponse(
+        { error: "Missing query embedding" },
+        400,
+        req,
+      );
+    }
+
+    const db = await getDatabase();
+    const coll = db.collection(COLLECTIONS.KB_EMBEDDINGS);
+
+    const scope: { $and: Array<Record<string, unknown>> } = {
+      $and: [
+        {
+          $or: [
+            // SEC-001: Use orgId consistently (not tenantId) for tenant isolation
+            ...(user?.orgId ? [{ tenantId: user.orgId }] : []),
+            { tenantId: { $exists: false } },
+            { tenantId: null },
+          ],
+        },
+      ],
+    };
+    if (lang) scope.$and.push({ lang });
+    if (role) scope.$and.push({ roleScopes: { $in: [role] } });
+    if (route) scope.$and.push({ route });
+
+    let results: SearchResult[] = [];
+    try {
+      const pipe = [
+        {
+          $vectorSearch: {
+            index: process.env.KB_VECTOR_INDEX || "kb-embeddings-index",
+            path: "embedding",
+            queryVector: query,
+            numCandidates: 200,
+            limit,
+            filter: scope,
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            articleId: 1,
+            chunkId: 1,
+            text: 1,
+            lang: 1,
+            route: 1,
+            roleScopes: 1,
+            slug: 1,
+            title: 1,
+            updatedAt: 1,
+            score: { $meta: "vectorSearchScore" },
+          },
+        },
+      ];
+      results = (await coll
+        .aggregate(pipe, { maxTimeMS: 3_000 })
+        .toArray()) as unknown as SearchResult[];
+    } catch (vectorError) {
+      logger.warn(
+        `Vector search failed, falling back to lexical search: ${{ vectorError }}`,
+      );
+      // Fallback to lexical search on text; require original question text
+      const safe = new RegExp(
+        (qText || "").toString().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+        "i",
+      );
+      const filter = { ...scope, text: safe } as Record<string, unknown>;
+      results = (await coll
+        .find(filter, {
+          projection: {
+            articleId: 1,
+            chunkId: 1,
+            text: 1,
+            lang: 1,
+            route: 1,
+            roleScopes: 1,
+          },
+        })
+        .limit(limit)
+        .toArray()) as unknown as SearchResult[];
+    }
+
+    return createSecureResponse({ results }, 200, req);
+  } catch (err) {
+    logger.error(
+      "kb/search error",
+      err instanceof Error ? err : new Error(String(err)),
+      { route: "POST /api/kb/search" },
+    );
+    return createSecureResponse({ error: "Search failed" }, 500, req);
+  }
+}
+
+const rateMap = new Map<string, { count: number; ts: number }>();
+function rateLimitAssert(req: NextRequest) {
+  const ip = getClientIP(req);
+  const key = `kb:search:${ip}`;
+  const now = Date.now();
+  const rec = rateMap.get(key) || { count: 0, ts: now };
+  if (now - rec.ts > 60_000) {
+    rec.count = 0;
+    rec.ts = now;
+  }
+  rec.count += 1;
+  rateMap.set(key, rec);
+  const MAX_RATE_PER_MIN_ENV = Number(process.env.KB_SEARCH_MAX_RATE_PER_MIN);
+  const MAX_RATE_PER_MIN =
+    Number.isFinite(MAX_RATE_PER_MIN_ENV) && MAX_RATE_PER_MIN_ENV > 0
+      ? Math.floor(MAX_RATE_PER_MIN_ENV)
+      : 60;
+  if (rec.count > MAX_RATE_PER_MIN) throw new Error("Rate limited");
+}
+
+]]>
+</file>
+
+<file path="app/api/logs/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+
+/**
+ * Server-only logging endpoint for DataDog integration
+ *
+ * SECURITY: DataDog API keys are kept server-side only
+ * Client components call this endpoint instead of directly accessing DataDog
+ *
+ * POST /api/logs
+ * Body: level (info/warn/error), message (string), context (optional object)
+ */
+export async function POST(req: NextRequest) {
+  try {
+    // SECURITY: Require authentication in all environments and ensure tenant context
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const orgId =
+      (session.user as { orgId?: string; tenantId?: string }).orgId ||
+      (session.user as { tenantId?: string }).tenantId ||
+      "";
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Missing organization context" },
+        { status: 400 },
+      );
+    }
+
+    // Rate limit per org/user to prevent abuse of logging pipeline
+    const rlKey = buildOrgAwareRateLimitKey(req, orgId, session.user.id ?? null);
+    const rl = await smartRateLimit(rlKey, 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+
+    if (typeof body !== "object" || body === null) {
+      return NextResponse.json({ error: "Body must be an object" }, { status: 400 });
+    }
+
+    const { level, message, context } = body as Record<string, unknown>;
+
+    // Validate input
+    if (!level || !message || typeof message !== "string") {
+      return NextResponse.json(
+        { error: "Missing required fields: level, message" },
+        { status: 400 },
+      );
+    }
+
+    if (typeof level !== "string" || !["info", "warn", "error"].includes(level)) {
+      return NextResponse.json(
+        { error: "Invalid level. Must be info, warn, or error" },
+        { status: 400 },
+      );
+    }
+
+    // Validate context shape
+    if (context !== undefined && (typeof context !== "object" || context === null)) {
+      return NextResponse.json(
+        { error: "Context must be an object" },
+        { status: 400 },
+      );
+    }
+
+    // Cap message/context size to avoid oversized log ingestion
+    const sanitizedMessage = message.slice(0, 2048);
+    const serializedContext = JSON.stringify(context ?? {});
+    const MAX_CONTEXT_SIZE = 8 * 1024; // 8KB
+    if (serializedContext.length > MAX_CONTEXT_SIZE) {
+      return NextResponse.json(
+        { error: "Context too large" },
+        { status: 400 },
+      );
+    }
+
+    // 🔒 SECURITY: DataDog keys only accessible server-side
+    if (process.env.DATADOG_API_KEY) {
+      try {
+        await fetch("https://http-intake.logs.datadoghq.com/api/v2/logs", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "DD-API-KEY": process.env.DATADOG_API_KEY,
+          },
+          body: JSON.stringify({
+            ddsource: "fixzit",
+            service: "web-app",
+            hostname: req.headers.get("host") || "unknown",
+            level,
+            message: sanitizedMessage,
+            timestamp: new Date().toISOString(),
+            user: session?.user?.email || "anonymous",
+            orgId,
+            ...context,
+          }),
+        });
+      } catch (ddError) {
+        // Silent fail - don't break app if DataDog is unreachable
+        logger.error("Failed to send log to DataDog", { error: ddError });
+      }
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    logger.error("Logging endpoint error", error as Error);
+    return NextResponse.json(
+      { error: "Failed to process log" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/marketplace/cart/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
+import { resolveMarketplaceContext } from "@/lib/marketplace/context";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import Product from "@/server/models/marketplace/Product";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { createSecureResponse } from "@/server/security/headers";
+import { objectIdFrom } from "@/lib/marketplace/objectIds";
+import {
+  serializeOrder,
+  serializeProduct,
+} from "@/lib/marketplace/serializers";
+import { getOrCreateCart, recalcCartTotals } from "@/lib/marketplace/cart";
+import {
+  unauthorizedError,
+  notFoundError,
+  rateLimitError,
+  zodValidationError,
+} from "@/server/utils/errorResponses";
+import { Types } from "mongoose";
+
+interface CartLine {
+  productId: Types.ObjectId | string;
+  qty: number;
+  price: number;
+  currency: string;
+  uom: string;
+  total: number;
+  product?: unknown;
+}
+
+interface CartDocument {
+  lines: CartLine[];
+  save?: () => Promise<unknown>;
+  [key: string]: unknown;
+}
+
+const AddToCartSchema = z.object({
+  productId: z.string(),
+  quantity: z.number().int().positive(),
+});
+
+/**
+ * @openapi
+ * /api/marketplace/cart:
+ *   get:
+ *     summary: marketplace/cart operations
+ *     tags: [marketplace]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const context = await resolveMarketplaceContext(request);
+    if (!context.userId) {
+      const allowAnon =
+        process.env.MARKETPLACE_ALLOW_ANON_CART === "true" ||
+        process.env.NODE_ENV !== "production";
+      if (!allowAnon) {
+        return unauthorizedError();
+      }
+      // Serve an empty cart for unauthenticated verification/local runs to avoid hard failures
+      return createSecureResponse(
+        {
+          ok: true,
+          data: {
+            _id: undefined,
+            orgId: context.orgId.toString(),
+            buyerUserId: undefined,
+            status: "CART",
+            currency: "SAR",
+            totals: { subtotal: 0, vat: 0, grand: 0 },
+            lines: [],
+          },
+        },
+        200,
+        request,
+      );
+    }
+    await connectToDatabase();
+    const cart = (await getOrCreateCart(
+      context.orgId,
+      context.userId,
+    )) as unknown as CartDocument;
+    const productIds = cart.lines.map((line) => line.productId);
+    const products = await Product.find({ _id: { $in: productIds } }).lean();
+    const productMap = new Map(
+      products.map((product) => {
+        const id = (product as { _id: Types.ObjectId })._id.toString();
+        return [id, serializeProduct(product as Record<string, unknown>)];
+      }),
+    );
+
+    return createSecureResponse(
+      {
+        ok: true,
+        data: {
+          ...serializeOrder(cart),
+          lines: cart.lines.map((line) => ({
+            ...line,
+            productId: line.productId.toString(),
+            product: productMap.get(line.productId.toString()),
+          })),
+        },
+      },
+      200,
+      request,
+    );
+  } catch (error) {
+    logger.error(
+      "Marketplace cart fetch failed",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse({ error: "Unable to load cart" }, 500, request);
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const context = await resolveMarketplaceContext(request);
+    if (!context.userId) {
+      return unauthorizedError();
+    }
+
+    // Rate limiting for cart operations
+    const key = `marketplace:cart:${context.userId}`;
+    const rl = await smartRateLimit(key, 60, 60_000); // 60 cart operations per minute
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    const body = await request.json();
+    const payload = AddToCartSchema.parse(body);
+    await connectToDatabase();
+
+    const productId = objectIdFrom(payload.productId);
+    const product = await Product.findOne({
+      _id: productId,
+      orgId: context.orgId,
+    });
+    if (!product) {
+      return notFoundError("Product");
+    }
+
+    const cart = (await getOrCreateCart(
+      context.orgId,
+      context.userId,
+    )) as unknown as CartDocument;
+    const lineIndex = cart.lines.findIndex(
+      (line) => line.productId.toString() === productId.toString(),
+    );
+
+    if (lineIndex >= 0) {
+      cart.lines[lineIndex].qty += payload.quantity;
+      cart.lines[lineIndex].total =
+        cart.lines[lineIndex].qty * cart.lines[lineIndex].price;
+    } else {
+      cart.lines.push({
+        productId,
+        qty: payload.quantity,
+        price: product.buy.price,
+        currency: product.buy.currency,
+        uom: product.buy.uom,
+        total: product.buy.price * payload.quantity,
+      });
+    }
+
+    recalcCartTotals(cart);
+    if (typeof cart.save === "function") {
+      await cart.save();
+    }
+
+    return NextResponse.json({
+      ok: true,
+      data: serializeOrder(cart),
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return zodValidationError(error, request);
+    }
+    logger.error(
+      "Marketplace add to cart failed",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse(
+      { error: "Unable to update cart" },
+      500,
+      request,
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/marketplace/categories/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import Category from "@/server/models/marketplace/Category";
+import { resolveMarketplaceContext } from "@/lib/marketplace/context";
+import { serializeCategory } from "@/lib/marketplace/serializers";
+
+import { createSecureResponse } from "@/server/security/headers";
+
+export const dynamic = "force-dynamic";
+/**
+ * @openapi
+ * /api/marketplace/categories:
+ *   get:
+ *     summary: marketplace/categories operations
+ *     tags: [marketplace]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const context = await resolveMarketplaceContext(request);
+    await connectToDatabase();
+    const categories = await Category.find({ orgId: context.orgId })
+      .sort({ createdAt: 1 })
+      .lean();
+
+    interface CategorySerialized {
+      _id: string;
+      parentId?: string;
+      [key: string]: unknown;
+    }
+
+    const serialized = categories.map((category) =>
+      serializeCategory(category),
+    ) as CategorySerialized[];
+
+    const parentMap = new Map<string, CategorySerialized[]>();
+    serialized.forEach((category) => {
+      const parentId = category.parentId ?? "root";
+      if (!parentMap.has(parentId)) {
+        parentMap.set(parentId, []);
+      }
+      parentMap.get(parentId)!.push(category);
+    });
+
+    interface CategoryNode {
+      _id: string;
+      [key: string]: unknown;
+    }
+
+    const buildTree = (parentId: string | undefined): CategoryNode[] => {
+      const nodes = parentMap.get(parentId ?? "root") ?? [];
+      return (nodes as CategoryNode[]).map((node) => ({
+        ...node,
+        children: buildTree(node._id),
+      }));
+    };
+
+    const tree = buildTree(undefined);
+
+    return NextResponse.json({
+      ok: true,
+      data: serialized,
+      tree,
+    });
+  } catch (error) {
+    logger.error(
+      "Failed to fetch marketplace categories",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse(
+      { error: "Unable to fetch categories" },
+      500,
+      request,
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/marketplace/checkout/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { z } from "zod";
+import { resolveMarketplaceContext } from "@/lib/marketplace/context";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { getOrCreateCart, recalcCartTotals } from "@/lib/marketplace/cart";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { serializeOrder } from "@/lib/marketplace/serializers";
+import { createSecureResponse } from "@/server/security/headers";
+import {
+  unauthorizedError,
+  validationError,
+  rateLimitError,
+  handleApiError,
+} from "@/server/utils/errorResponses";
+
+const CheckoutSchema = z.object({
+  shipTo: z
+    .object({
+      address: z.string().min(1),
+      contact: z.string().min(1),
+      phone: z.string().optional(),
+    })
+    .optional(),
+});
+
+/**
+ * @openapi
+ * /api/marketplace/checkout:
+ *   get:
+ *     summary: marketplace/checkout operations
+ *     tags: [marketplace]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const context = await resolveMarketplaceContext(request);
+    if (!context.userId) {
+      return unauthorizedError();
+    }
+
+    // Rate limiting for checkout operations (distributed for multi-instance)
+    const key = `marketplace:checkout:${context.userId}`;
+    const rl = await smartRateLimit(key, 10, 300_000); // 10 checkouts per 5 minutes
+    if (!rl.allowed) {
+      return rateLimitError("Checkout rate limit exceeded");
+    }
+
+    const body = await request.json();
+    const payload = CheckoutSchema.parse(body ?? {});
+    await connectToDatabase();
+
+    const cart = await getOrCreateCart(context.orgId, context.userId);
+    if (!cart.lines.length) {
+      return validationError("Cart is empty");
+    }
+
+    recalcCartTotals(cart);
+    cart.currency = cart.lines[0]?.currency ?? cart.currency ?? "SAR";
+    cart.shipTo = payload.shipTo ?? cart.shipTo;
+
+    const approvalThreshold = Number(
+      process.env.MARKETPLACE_APPROVAL_THRESHOLD ?? 5000,
+    );
+    if (cart.totals.grand >= approvalThreshold) {
+      cart.status = "APPROVAL";
+      cart.approvals = {
+        required: true,
+        status: "PENDING",
+      };
+    } else {
+      cart.status = "PENDING";
+      cart.approvals = {
+        required: false,
+        status: "APPROVED",
+      };
+    }
+
+    await cart.save();
+
+    return createSecureResponse({
+      ok: true,
+      data: serializeOrder(cart),
+    });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/marketplace/orders/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
+import { resolveMarketplaceContext } from "@/lib/marketplace/context";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import Order from "@/server/models/marketplace/Order";
+import { serializeOrder } from "@/lib/marketplace/serializers";
+import {
+  unauthorizedError,
+  zodValidationError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+
+const QuerySchema = z.object({
+  status: z.string().optional(),
+});
+
+export const dynamic = "force-dynamic";
+/**
+ * @openapi
+ * /api/marketplace/orders:
+ *   get:
+ *     summary: marketplace/orders operations
+ *     tags: [marketplace]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const context = await resolveMarketplaceContext(request);
+    if (!context.userId) {
+      return unauthorizedError();
+    }
+
+    const params = Object.fromEntries(request.nextUrl.searchParams.entries());
+    const query = QuerySchema.parse(params);
+    await connectToDatabase();
+
+    const filter: Record<string, unknown> = {
+      orgId: context.orgId,
+      status: { $ne: "CART" },
+    };
+
+    if (context.role === "VENDOR") {
+      filter.vendorId = context.userId;
+    } else {
+      filter.buyerUserId = context.userId;
+    }
+
+    if (query.status) {
+      filter.status = query.status;
+    }
+
+    const orders = await Order.find(filter).sort({ createdAt: -1 }).limit(50);
+
+    return createSecureResponse({
+      ok: true,
+      data: orders.map((order) => serializeOrder(order)),
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return zodValidationError(error, request);
+    }
+    logger.error(
+      "Marketplace orders fetch failed",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse(
+      { error: "Unable to load orders" },
+      500,
+      request,
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/marketplace/products/[slug]/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { MarketplaceProduct } from "@/server/models/MarketplaceProduct";
+
+type RouteParams =
+  | { params: { slug: string } }
+  | { params: Promise<{ slug: string }> };
+
+function isPromise<T>(value: unknown): value is Promise<T> {
+  return (
+    typeof value === "object" && value !== null && "then" in (value as object)
+  );
+}
+
+const DEFAULT_TENANT =
+  process.env.NEXT_PUBLIC_MARKETPLACE_TENANT || "demo-tenant";
+
+type PriceItem =
+  | { listPrice?: number | null; currency?: string | null }
+  | null
+  | undefined;
+type InventoryItem =
+  | { onHand?: number | null; leadDays?: number | null }
+  | null
+  | undefined;
+
+function buildBuyBox(product: {
+  prices?: PriceItem[];
+  inventories?: InventoryItem[];
+}) {
+  const firstPrice =
+    Array.isArray(product.prices) && product.prices.length > 0
+      ? product.prices[0]
+      : null;
+  const firstInventory =
+    Array.isArray(product.inventories) && product.inventories.length > 0
+      ? product.inventories[0]
+      : null;
+
+  const priceValue =
+    typeof firstPrice?.listPrice === "number" ? firstPrice.listPrice : null;
+  const currencyValue =
+    firstPrice?.currency && firstPrice.currency.trim()
+      ? firstPrice.currency
+      : "SAR";
+
+  const onHand =
+    typeof firstInventory?.onHand === "number" ? firstInventory.onHand : 0;
+  const leadDays =
+    typeof firstInventory?.leadDays === "number" && firstInventory.leadDays > 0
+      ? firstInventory.leadDays
+      : 3;
+
+  return {
+    price: priceValue,
+    currency: currencyValue || "SAR",
+    inStock: onHand > 0,
+    leadDays,
+  };
+}
+
+export async function GET(_request: NextRequest, route: RouteParams) {
+  const params = isPromise(route.params) ? await route.params : route.params;
+  const { slug } = params;
+  const decodedSlug = decodeURIComponent(slug);
+  const tenantId = process.env.NEXT_PUBLIC_MARKETPLACE_TENANT || DEFAULT_TENANT;
+
+  try {
+    const productQuery = MarketplaceProduct.findOne({
+      tenantId,
+      slug: decodedSlug,
+    });
+    const productDoc =
+      typeof (productQuery as { lean?: () => Promise<unknown> })?.lean ===
+      "function"
+        ? await (productQuery as { lean: () => Promise<unknown> }).lean()
+        : await productQuery;
+
+    if (!productDoc) {
+      return NextResponse.json(
+        { ok: false, error: "Product not found" },
+        { status: 404 },
+      );
+    }
+
+    const buyBox = buildBuyBox(
+      productDoc as { prices?: PriceItem[]; inventories?: InventoryItem[] },
+    );
+
+    return NextResponse.json({
+      ok: true,
+      data: {
+        product: productDoc,
+        category: null,
+        buyBox,
+      },
+      product: productDoc,
+      buyBox,
+    });
+  } catch (error) {
+    logger.error(
+      "Failed to load marketplace product",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/marketplace/products/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
+import { resolveMarketplaceContext } from "@/lib/marketplace/context";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { serializeProduct } from "@/lib/marketplace/serializers";
+import { objectIdFrom } from "@/lib/marketplace/objectIds";
+
+import {
+  unauthorizedError,
+  forbiddenError,
+  zodValidationError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+
+const ADMIN_ROLES = new Set([
+  "SUPER_ADMIN",
+  "CORPORATE_ADMIN",
+  "PROCUREMENT",
+  "ADMIN",
+]);
+
+const QuerySchema = z.object({
+  page: z.coerce.number().min(1).default(1),
+  limit: z.coerce.number().min(1).max(100).default(20),
+});
+
+const ProductSchema = z.object({
+  categoryId: z.string(),
+  sku: z.string().min(1),
+  slug: z.string().min(1),
+  title: z.object({ en: z.string().min(1), ar: z.string().optional() }),
+  summary: z.string().optional(),
+  brand: z.string().optional(),
+  standards: z.array(z.string()).optional(),
+  specs: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.array(z.string())])).optional(),
+  media: z
+    .array(
+      z.object({
+        url: z.string().url(),
+        role: z.enum(["GALLERY", "MSDS", "COA"]).optional(),
+        title: z.string().optional(),
+      }),
+    )
+    .optional(),
+  buy: z.object({
+    price: z.number().positive(),
+    currency: z.string().min(1),
+    uom: z.string().min(1),
+    minQty: z.number().positive().optional(),
+    leadDays: z.number().int().nonnegative().optional(),
+  }),
+  stock: z
+    .object({
+      onHand: z.number().int().nonnegative(),
+      reserved: z.number().int().nonnegative(),
+      location: z.string().optional(),
+    })
+    .optional(),
+  status: z.enum(["ACTIVE", "DRAFT", "ARCHIVED"]).optional(),
+});
+
+/**
+ * @openapi
+ * /api/marketplace/products:
+ *   get:
+ *     summary: marketplace/products operations
+ *     tags: [marketplace]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(request: NextRequest) {
+  try {
+    if (process.env.MARKETPLACE_ENABLED !== "true") {
+      return createSecureResponse(
+        { error: "Marketplace endpoint not available in this deployment" },
+        501,
+        request,
+      );
+    }
+    // Use unified database connection
+    await connectToDatabase();
+    const ProductMod = await import(
+      "@/server/models/marketplace/Product"
+    ).catch(() => null);
+    const Product = ProductMod && (ProductMod.default || ProductMod);
+    if (!Product) {
+      return createSecureResponse(
+        {
+          error:
+            "Marketplace Product dependencies are not available in this deployment",
+        },
+        501,
+        request,
+      );
+    }
+    const context = await resolveMarketplaceContext(request);
+    const params = Object.fromEntries(request.nextUrl.searchParams.entries());
+    const query = QuerySchema.parse(params);
+
+    const skip = (query.page - 1) * query.limit;
+    const [items, total] = await Promise.all([
+      Product.find({ orgId: context.orgId })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(query.limit)
+        .lean(),
+      Product.countDocuments({ orgId: context.orgId }),
+    ]);
+
+    return NextResponse.json({
+      ok: true,
+      data: {
+        items: items.map((item: unknown) =>
+          serializeProduct(item as Record<string, unknown>),
+        ),
+        pagination: {
+          page: query.page,
+          limit: query.limit,
+          total,
+          pages: Math.ceil(total / query.limit),
+        },
+      },
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return zodValidationError(error, request);
+    }
+    logger.error(
+      "Marketplace products list failed",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse(
+      { error: "Unable to list products" },
+      500,
+      request,
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    if (process.env.MARKETPLACE_ENABLED !== "true") {
+      return createSecureResponse(
+        { error: "Marketplace endpoint not available in this deployment" },
+        501,
+        request,
+      );
+    }
+    // Use unified database connection
+    await connectToDatabase();
+    const ProductMod = await import(
+      "@/server/models/marketplace/Product"
+    ).catch(() => null);
+    const Product = ProductMod && (ProductMod.default || ProductMod);
+    if (!Product) {
+      return createSecureResponse(
+        {
+          error:
+            "Marketplace Product dependencies are not available in this deployment",
+        },
+        501,
+        request,
+      );
+    }
+    const context = await resolveMarketplaceContext(request);
+    if (!context.userId) {
+      return unauthorizedError();
+    }
+    if (!context.role || !ADMIN_ROLES.has(context.role)) {
+      return forbiddenError();
+    }
+    const body = await request.json();
+    const payload = ProductSchema.parse(body);
+
+    const product = await Product.create({
+      ...payload,
+      orgId: context.orgId,
+      categoryId: objectIdFrom(payload.categoryId),
+      vendorId: payload.brand
+        ? objectIdFrom(`${context.orgId}-${payload.brand}`)
+        : undefined,
+      status: payload.status ?? "ACTIVE",
+    });
+
+    return NextResponse.json(
+      { ok: true, data: serializeProduct(product) },
+      { status: 201 },
+    );
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      return zodValidationError(error, request);
+    }
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code: number }).code === 11000
+    ) {
+      return createSecureResponse(
+        { error: "Duplicate SKU or slug" },
+        409,
+        request,
+      );
+    }
+    logger.error(
+      "Marketplace product creation failed:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse(
+      { error: "Unable to create product" },
+      500,
+      request,
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/marketplace/rfq/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { z } from "zod";
+import { resolveMarketplaceContext } from "@/lib/marketplace/context";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import RFQ from "@/server/models/marketplace/RFQ";
+import { serializeRFQ } from "@/lib/marketplace/serializers";
+import { objectIdFrom } from "@/lib/marketplace/objectIds";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import {
+  unauthorizedError,
+  zodValidationError,
+  rateLimitError,
+  handleApiError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+
+const CreateRFQSchema = z.object({
+  title: z.string().min(1).max(200),
+  description: z.string().optional(),
+  categoryId: z.string().optional(),
+  quantity: z.number().int().positive().optional(),
+  budget: z.number().positive().optional(),
+  currency: z.string().default("SAR"),
+  deadline: z.string().datetime().optional(),
+});
+
+/**
+ * @openapi
+ * /api/marketplace/rfq:
+ *   get:
+ *     summary: List RFQs (Request for Quotations)
+ *     description: Retrieves paginated list of RFQs for the authenticated organization
+ *     tags: [Marketplace, RFQ]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *           maximum: 100
+ *         description: Maximum number of RFQs to return
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [OPEN, CLOSED, AWARDED]
+ *         description: Filter by RFQ status
+ *     responses:
+ *       200:
+ *         description: List of RFQs retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/RFQ'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       429:
+ *         $ref: '#/components/responses/RateLimitExceeded'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+export async function GET(request: NextRequest) {
+  try {
+    // Authentication via marketplace context
+    const context = await resolveMarketplaceContext(request);
+    if (!context.userId) {
+      return unauthorizedError();
+    }
+
+    // Rate limiting - read operations: 60 req/min
+    const key = `marketplace:rfq:list:${context.orgId}`;
+    const rl = await smartRateLimit(key, 60, 60_000);
+    if (!rl.allowed) return rateLimitError();
+
+    // Database connection
+    await connectToDatabase();
+
+    // Query with tenant isolation
+    const rfqs = await RFQ.find({ orgId: context.orgId })
+      .sort({ createdAt: -1 })
+      .limit(50);
+
+    // Secure response
+    return createSecureResponse(
+      { ok: true, data: rfqs.map((rfq) => serializeRFQ(rfq)) },
+      200,
+      request,
+    );
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
+/**
+ * @openapi
+ * /api/marketplace/rfq:
+ *   post:
+ *     summary: Create new RFQ
+ *     description: Creates a new Request for Quotation for the authenticated user's organization
+ *     tags: [Marketplace, RFQ]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title]
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 minLength: 1
+ *                 maxLength: 200
+ *                 example: "Office Furniture for 50-person workspace"
+ *               description:
+ *                 type: string
+ *                 example: "Need ergonomic chairs, desks, and storage"
+ *               categoryId:
+ *                 type: string
+ *                 format: objectId
+ *               quantity:
+ *                 type: integer
+ *                 minimum: 1
+ *                 example: 50
+ *               budget:
+ *                 type: number
+ *                 minimum: 0
+ *                 example: 50000
+ *               currency:
+ *                 type: string
+ *                 default: SAR
+ *                 enum: [SAR, USD, EUR, AED]
+ *               deadline:
+ *                 type: string
+ *                 format: date-time
+ *                 example: "2025-12-31T23:59:59Z"
+ *           example:
+ *             title: "Office Furniture for 50-person workspace"
+ *             description: "Need ergonomic chairs, desks, and storage units"
+ *             categoryId: "507f1f77bcf86cd799439011"
+ *             quantity: 50
+ *             budget: 50000
+ *             currency: "SAR"
+ *             deadline: "2025-12-31T23:59:59Z"
+ *     responses:
+ *       201:
+ *         description: RFQ created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/RFQ'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       429:
+ *         $ref: '#/components/responses/RateLimitExceeded'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+export async function POST(request: NextRequest) {
+  try {
+    // Authentication
+    const context = await resolveMarketplaceContext(request);
+    if (!context.userId) {
+      return unauthorizedError();
+    }
+
+    // Rate limiting - write operations: 20 req/min
+    const key = `marketplace:rfq:create:${context.orgId}`;
+    const rl = await smartRateLimit(key, 20, 60_000);
+    if (!rl.allowed) return rateLimitError();
+
+    // Input validation
+    const body = await request.json();
+    const payload = CreateRFQSchema.parse(body);
+
+    // Database connection
+    await connectToDatabase();
+
+    // Create RFQ with tenant isolation
+    const rfq = await RFQ.create({
+      orgId: context.orgId,
+      requesterId: context.userId,
+      title: payload.title,
+      description: payload.description,
+      categoryId: payload.categoryId
+        ? objectIdFrom(payload.categoryId)
+        : undefined,
+      quantity: payload.quantity,
+      budget: payload.budget,
+      currency: payload.currency,
+      deadline: payload.deadline ? new Date(payload.deadline) : undefined,
+      status: "OPEN",
+    });
+
+    // Secure response
+    return createSecureResponse(
+      { ok: true, data: serializeRFQ(rfq) },
+      201,
+      request,
+    );
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return zodValidationError(error, request);
+    }
+    return handleApiError(error);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/marketplace/search/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
+import { Types } from "mongoose";
+import { resolveMarketplaceContext } from "@/lib/marketplace/context";
+import { searchProducts } from "@/lib/marketplace/search";
+import Category from "@/server/models/marketplace/Category";
+import { serializeCategory } from "@/lib/marketplace/serializers";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+
+import { zodValidationError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+
+const QuerySchema = z.object({
+  q: z.string().optional(),
+  cat: z.string().optional(),
+  brand: z.string().optional(),
+  std: z.string().optional(),
+  min: z.coerce.number().optional(),
+  max: z.coerce.number().optional(),
+  page: z.coerce.number().min(1).default(1),
+  limit: z.coerce.number().min(1).max(100).default(24),
+});
+
+export const dynamic = "force-dynamic";
+/**
+ * @openapi
+ * /api/marketplace/search:
+ *   get:
+ *     summary: marketplace/search operations
+ *     tags: [marketplace]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const params = Object.fromEntries(request.nextUrl.searchParams.entries());
+    const query = QuerySchema.parse(params);
+    const context = await resolveMarketplaceContext(request);
+    await connectToDatabase();
+
+    const categoryDoc = query.cat
+      ? await Category.findOne({ orgId: context.orgId, slug: query.cat }).lean()
+      : undefined;
+
+    const categoryId = categoryDoc?._id as Types.ObjectId | undefined;
+
+    const { items, pagination, facets } = await searchProducts({
+      orgId: context.orgId,
+      q: query.q,
+      categoryId,
+      brand: query.brand,
+      standard: query.std,
+      minPrice: query.min,
+      maxPrice: query.max,
+      limit: query.limit,
+      skip: (query.page - 1) * query.limit,
+    });
+
+    // Fetch categories with error handling
+    let facetCategories: ReturnType<typeof serializeCategory>[] = [];
+    try {
+      const categoryDocs = await Category.find({
+        _id: { $in: facets.categories },
+        orgId: context.orgId,
+      }).lean();
+      facetCategories = categoryDocs.map((doc) => serializeCategory(doc));
+    } catch (error) {
+      logger.error("Error fetching marketplace categories", error as Error);
+      // Continue with empty categories rather than failing entire request
+      facetCategories = [];
+    }
+
+    return NextResponse.json({
+      ok: true,
+      data: {
+        items,
+        pagination: {
+          page: query.page,
+          limit: query.limit,
+          total: pagination.total,
+          pages: Math.ceil(pagination.total / query.limit),
+        },
+        facets: {
+          brands: facets.brands,
+          standards: facets.standards,
+          categories: facetCategories.map((category) => {
+            const cat = category as {
+              slug?: string;
+              name?: { en?: string; ar?: string };
+            };
+            return {
+              slug: cat.slug || "",
+              name: cat.name?.en ?? cat.name?.ar ?? cat.slug ?? "",
+            };
+          }),
+        },
+      },
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return zodValidationError(error, request);
+    }
+    // For unauthenticated/local verification flows, return a safe empty payload instead of 500
+    const allowAnon = process.env.MARKETPLACE_ALLOW_ANON_SEARCH === "true";
+    if (allowAnon) {
+      logger.warn(
+        "Marketplace search failed, returning empty result for anon/local run",
+        {
+          error: error instanceof Error ? error.message : "Unknown error",
+        },
+      );
+      return createSecureResponse(
+        {
+          ok: true,
+          data: {
+            items: [],
+            pagination: { page: 1, limit: 24, total: 0, pages: 0 },
+            facets: {
+              brands: [],
+              standards: [],
+              categories: [],
+            },
+          },
+        },
+        200,
+        request,
+      );
+    }
+
+    logger.error(
+      "Marketplace search failed",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse({ error: "Search failed" }, 500, request);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/marketplace/vendor/products/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
+import { resolveMarketplaceContext } from "@/lib/marketplace/context";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import Product from "@/server/models/marketplace/Product";
+import { serializeProduct } from "@/lib/marketplace/serializers";
+import { objectIdFrom } from "@/lib/marketplace/objectIds";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import {
+  unauthorizedError,
+  forbiddenError,
+  notFoundError,
+  zodValidationError,
+  rateLimitError,
+  duplicateKeyError,
+  handleApiError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+
+const UpsertSchema = z.object({
+  id: z.string().optional(),
+  categoryId: z.string().min(1),
+  sku: z.string().min(1).max(100),
+  slug: z.string().min(1).max(200),
+  title: z.object({
+    en: z.string().min(1).max(500),
+    ar: z.string().max(500).optional(),
+  }),
+  summary: z.string().max(2000).optional(),
+  buy: z.object({
+    price: z.number().positive(),
+    currency: z.string().length(3),
+    uom: z.string().min(1).max(50),
+  }),
+  status: z.enum(["ACTIVE", "DRAFT", "ARCHIVED"]).default("ACTIVE"),
+});
+
+/**
+ * @openapi
+ * /api/marketplace/vendor/products:
+ *   get:
+ *     summary: List vendor products
+ *     description: Retrieves all products for the authenticated vendor's catalog
+ *     tags: [Marketplace, Vendor, Products]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 100
+ *           maximum: 500
+ *         description: Maximum number of products to return
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [ACTIVE, DRAFT, ARCHIVED]
+ *         description: Filter by product status
+ *     responses:
+ *       200:
+ *         description: List of vendor products retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Product'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       429:
+ *         $ref: '#/components/responses/RateLimitExceeded'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+export async function GET(request: NextRequest) {
+  try {
+    // Authentication
+    const context = await resolveMarketplaceContext(request);
+    if (!context.userId) {
+      return unauthorizedError();
+    }
+
+    // Rate limiting - read operations: 60 req/min
+    const key = `marketplace:vendor-products:list:${context.orgId}`;
+    const rl = await smartRateLimit(key, 60, 60_000);
+    if (!rl.allowed) return rateLimitError();
+
+    // Database connection
+    await connectToDatabase();
+
+    // Build filter with tenant isolation
+    const filter: Record<string, unknown> = { orgId: context.orgId };
+    if (context.role === "VENDOR") {
+      filter.vendorId = context.userId;
+    }
+
+    // Query products
+    const products = await Product.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean();
+
+    // Secure response
+    return createSecureResponse(
+      {
+        ok: true,
+        data: products.map((product) =>
+          serializeProduct(product as Record<string, unknown>),
+        ),
+      },
+      200,
+      request,
+    );
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
+/**
+ * @openapi
+ * /api/marketplace/vendor/products:
+ *   post:
+ *     summary: Create or update vendor product
+ *     description: Creates a new product or updates an existing product in the vendor's catalog. Only accessible to users with VENDOR role.
+ *     tags: [Marketplace, Vendor, Products]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [categoryId, sku, slug, title, buy]
+ *             properties:
+ *               _id:
+ *                 type: string
+ *                 format: objectId
+ *                 description: Product ID for updates (omit for new products)
+ *               categoryId:
+ *                 type: string
+ *                 format: objectId
+ *                 example: "507f1f77bcf86cd799439011"
+ *               sku:
+ *                 type: string
+ *                 minLength: 1
+ *                 maxLength: 100
+ *                 example: "DESK-ERG-001"
+ *               slug:
+ *                 type: string
+ *                 minLength: 1
+ *                 maxLength: 200
+ *                 example: "ergonomic-office-desk"
+ *               title:
+ *                 type: object
+ *                 required: [en]
+ *                 properties:
+ *                   en:
+ *                     type: string
+ *                     minLength: 1
+ *                     maxLength: 500
+ *                     example: "Ergonomic Office Desk"
+ *                   ar:
+ *                     type: string
+ *                     maxLength: 500
+ *                     example: "مكتب مكتبي مريح"
+ *               summary:
+ *                 type: string
+ *                 maxLength: 2000
+ *                 example: "Height-adjustable ergonomic desk with cable management"
+ *               buy:
+ *                 type: object
+ *                 required: [price, currency, uom]
+ *                 properties:
+ *                   price:
+ *                     type: number
+ *                     minimum: 0
+ *                     exclusiveMinimum: true
+ *                     example: 2500.00
+ *                   currency:
+ *                     type: string
+ *                     minLength: 3
+ *                     maxLength: 3
+ *                     example: "SAR"
+ *                   uom:
+ *                     type: string
+ *                     minLength: 1
+ *                     maxLength: 50
+ *                     example: "unit"
+ *               status:
+ *                 type: string
+ *                 enum: [ACTIVE, DRAFT, ARCHIVED]
+ *                 default: ACTIVE
+ *           example:
+ *             categoryId: "507f1f77bcf86cd799439011"
+ *             sku: "DESK-ERG-001"
+ *             slug: "ergonomic-office-desk"
+ *             title:
+ *               en: "Ergonomic Office Desk"
+ *               ar: "مكتب مكتبي مريح"
+ *             summary: "Height-adjustable ergonomic desk with cable management"
+ *             buy:
+ *               price: 2500.00
+ *               currency: "SAR"
+ *               uom: "unit"
+ *             status: "ACTIVE"
+ *     responses:
+ *       200:
+ *         description: Product updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Product'
+ *       201:
+ *         description: Product created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Product'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         description: Product not found (for updates)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       409:
+ *         description: Duplicate SKU or slug
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       429:
+ *         $ref: '#/components/responses/RateLimitExceeded'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+export async function POST(request: NextRequest) {
+  try {
+    // Authentication
+    const context = await resolveMarketplaceContext(request);
+    if (!context.userId) {
+      return unauthorizedError();
+    }
+
+    // Authorization - only vendors can manage products
+    if (context.role !== "VENDOR") {
+      return forbiddenError("Only vendors can create or update products");
+    }
+
+    // Rate limiting - write operations: 20 req/min
+    const key = `marketplace:vendor-products:upsert:${context.orgId}`;
+    const rl = await smartRateLimit(key, 20, 60_000);
+    if (!rl.allowed) return rateLimitError();
+
+    // Input validation
+    const body = await request.json();
+    const payload = UpsertSchema.parse(body);
+
+    // Database connection
+    await connectToDatabase();
+
+    // Prepare product data with tenant isolation
+    const data = {
+      orgId: context.orgId,
+      vendorId: context.userId,
+      categoryId: objectIdFrom(payload.categoryId),
+      sku: payload.sku,
+      slug: payload.slug,
+      title: payload.title,
+      summary: payload.summary,
+      buy: payload.buy,
+      status: payload.status,
+    };
+
+    let product;
+    let statusCode = 200;
+
+    if (payload.id) {
+      // Update existing product (with tenant isolation check)
+      product = await Product.findOneAndUpdate(
+        {
+          _id: objectIdFrom(payload.id),
+          orgId: context.orgId,
+          vendorId: context.userId,
+        },
+        { $set: data },
+        { new: true, runValidators: true },
+      );
+
+      if (!product) {
+        return notFoundError("Product");
+      }
+    } else {
+      // Create new product
+      product = await Product.create(data);
+      statusCode = 201;
+    }
+
+    // Secure response
+    return createSecureResponse(
+      { ok: true, data: serializeProduct(product) },
+      statusCode,
+      request,
+    );
+  } catch (error: unknown) {
+    logger.error(
+      "Vendor product creation error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    if (error instanceof z.ZodError) {
+      return zodValidationError(error, request);
+    }
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code: number }).code === 11000
+    ) {
+      return duplicateKeyError("SKU or slug");
+    }
+    return handleApiError(error);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/metrics/circuit-breakers/route.ts">
+<![CDATA[
+/**
+ * Circuit Breaker Metrics Endpoint
+ * GET /api/metrics/circuit-breakers
+ *
+ * Returns Prometheus-compatible metrics for all circuit breakers.
+ * Supports both Prometheus text format and JSON.
+ * 
+ * Query params:
+ * - format=prometheus (default) - Prometheus text format
+ * - format=json - JSON format
+ * 
+ * SECURITY: Protected by optional METRICS_TOKEN for production.
+ * In development, metrics are always accessible.
+ */
+import { NextRequest, NextResponse } from "next/server";
+import { 
+  getPrometheusMetrics, 
+  getCircuitBreakerSummary 
+} from "@/lib/resilience/circuit-breaker-metrics";
+
+export const dynamic = "force-dynamic";
+
+// Optional auth token for metrics endpoint
+const METRICS_TOKEN = process.env.METRICS_TOKEN;
+
+function isAuthorized(request: NextRequest): boolean {
+  // In development, always allow
+  if (process.env.NODE_ENV === "development") {
+    return true;
+  }
+  
+  // If no token configured, allow (operator choice)
+  if (!METRICS_TOKEN) {
+    return true;
+  }
+  
+  // Check Authorization header
+  const authHeader = request.headers.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    const token = authHeader.slice(7);
+    return token === METRICS_TOKEN;
+  }
+  
+  // Check X-Metrics-Token header
+  const metricsToken = request.headers.get("x-metrics-token");
+  return metricsToken === METRICS_TOKEN;
+}
+
+export async function GET(request: NextRequest) {
+  // Optional authentication
+  if (!isAuthorized(request)) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    );
+  }
+
+  const format = request.nextUrl.searchParams.get("format") ?? "prometheus";
+
+  if (format === "json") {
+    const summary = getCircuitBreakerSummary();
+    return NextResponse.json(summary, {
+      headers: {
+        "Cache-Control": "no-store, max-age=0",
+      },
+    });
+  }
+
+  // Default: Prometheus text format
+  const metrics = getPrometheusMetrics();
+  
+  return new NextResponse(metrics, {
+    status: 200,
+    headers: {
+      "Content-Type": "text/plain; version=0.0.4; charset=utf-8",
+      "Cache-Control": "no-store, max-age=0",
+    },
+  });
+}
+
+]]>
+</file>
+
+<file path="app/api/metrics/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { getMetricsRegistry } from "@/lib/monitoring/metrics-registry";
+import { logger } from "@/lib/logger";
+import { requireSuperAdmin } from "@/lib/authz";
+import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+
+export const runtime = "nodejs";
+
+export async function GET(req: NextRequest) {
+  try {
+    // SECURITY: Require SUPER_ADMIN + org context to access metrics
+    let authContext: { id: string; tenantId: string } | null = null;
+    try {
+      authContext = await requireSuperAdmin(req);
+    } catch (error) {
+      if (error instanceof Response) {
+        return error;
+      }
+      return NextResponse.json({ error: "Authentication failed" }, { status: 401 });
+    }
+    if (!authContext?.tenantId) {
+      return NextResponse.json({ error: "Missing organization context" }, { status: 400 });
+    }
+
+    // Rate limiting with org-aware key to avoid abuse
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, authContext.tenantId, authContext.id), 60, 60_000);
+    if (!rl.allowed) return rateLimitError();
+
+    const registry = getMetricsRegistry();
+    const body = await registry.metrics();
+    return new NextResponse(body, {
+      status: 200,
+      headers: {
+        "Content-Type": registry.contentType,
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (error) {
+    logger.error("[Metrics] Failed to render /api/metrics payload", error as Error);
+    return new NextResponse("metrics_unavailable", { status: 500 });
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/notifications/[id]/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { getCollections } from "@/lib/db/collections";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { ObjectId, type ModifyResult } from "mongodb";
+import { z } from "zod";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+import type { NotificationDoc } from "@/lib/models";
+
+const updateNotificationSchema = z.object({
+  read: z.boolean().optional(),
+  archived: z.boolean().optional(),
+});
+
+/**
+ * @openapi
+ * /api/notifications/[id]:
+ *   get:
+ *     summary: notifications/[id] operations
+ *     tags: [notifications]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
+  let orgId: string;
+  try {
+    const user = await getSessionUser(req);
+    orgId = user.orgId;
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+  } catch {
+    return createSecureResponse({ error: "Unauthorized" }, 401, req);
+  }
+  const { id } = await props.params;
+  const { notifications } = await getCollections();
+  const _id = (() => {
+    try {
+      return new ObjectId(id);
+    } catch {
+      return null;
+    }
+  })();
+  if (!_id) return createSecureResponse({ error: "Invalid id" }, 400, req);
+  const doc = await notifications.findOne({ _id, orgId });
+  if (!doc)
+    return createSecureResponse({ error: "Notification not found" }, 404, req);
+  const { _id: rawId, ...rest } = doc;
+  return createSecureResponse({ id: String(rawId), ...rest });
+}
+
+export async function PATCH(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
+  let orgId: string;
+  try {
+    const user = await getSessionUser(req);
+    orgId = user.orgId;
+  } catch {
+    return createSecureResponse({ error: "Unauthorized" }, 401, req);
+  }
+  const { id } = await props.params;
+  const body = updateNotificationSchema.parse(await req.json());
+  const { read, archived } = body;
+  const { notifications } = await getCollections();
+  const _id = (() => {
+    try {
+      return new ObjectId(id);
+    } catch {
+      return null;
+    }
+  })();
+  if (!_id) return createSecureResponse({ error: "Invalid id" }, 400, req);
+
+  const update: {
+    $set: { updatedAt: Date; read?: boolean; archived?: boolean };
+  } = { $set: { updatedAt: new Date() } };
+  if (typeof read === "boolean") update.$set.read = read;
+  if (typeof archived === "boolean") update.$set.archived = archived;
+
+  const updated = (await notifications.findOneAndUpdate(
+    { _id, orgId },
+    update,
+    { returnDocument: "after" },
+  )) as ModifyResult<NotificationDoc> | null;
+  const value = updated?.value;
+  if (!value)
+    return createSecureResponse({ error: "Notification not found" }, 404, req);
+  const { _id: rawId, ...rest } = value;
+  return createSecureResponse({ id: String(rawId), ...rest });
+}
+
+export async function DELETE(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
+  let orgId: string;
+  try {
+    const user = await getSessionUser(req);
+    orgId = user.orgId;
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+  } catch {
+    return createSecureResponse({ error: "Unauthorized" }, 401, req);
+  }
+  const { id } = await props.params;
+  const { notifications } = await getCollections();
+  const _id = (() => {
+    try {
+      return new ObjectId(id);
+    } catch {
+      return null;
+    }
+  })();
+  if (!_id) return createSecureResponse({ error: "Invalid id" }, 400, req);
+  const res = await notifications.deleteOne({ _id, orgId });
+  if (!res.deletedCount)
+    return createSecureResponse({ error: "Notification not found" }, 404, req);
+  return createSecureResponse({ success: true });
+}
+
+]]>
+</file>
+
+<file path="app/api/notifications/bulk/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { z } from "zod";
+import { getCollections } from "@/lib/db/collections";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { ObjectId } from "mongodb";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+
+const bulkActionSchema = z.object({
+  action: z.enum(["mark-read", "mark-unread", "archive", "delete"]),
+  notificationIds: z.array(z.string()),
+});
+
+/**
+ * @openapi
+ * /api/notifications/bulk:
+ *   get:
+ *     summary: notifications/bulk operations
+ *     tags: [notifications]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  let orgId: string;
+  try {
+    const user = await getSessionUser(req);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+    // SEC-001: Validate orgId to prevent undefined in tenant-scoped queries
+    if (!user?.orgId) {
+      return createSecureResponse(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        401,
+        req,
+      );
+    }
+    orgId = user.orgId;
+  } catch {
+    return createSecureResponse({ error: "Unauthorized" }, 401, req);
+  }
+
+  const body = await req.json();
+  const { action, notificationIds } = bulkActionSchema.parse(body);
+  const { notifications } = await getCollections();
+
+  const toObjectId = (id: string) => {
+    try {
+      return new ObjectId(id);
+    } catch {
+      return null;
+    }
+  };
+  const ids = notificationIds.map(toObjectId).filter(Boolean) as ObjectId[];
+  const filter = { _id: { $in: ids }, orgId };
+
+  interface BulkUpdateResult {
+    deletedCount?: number;
+    modifiedCount?: number;
+  }
+
+  let res: BulkUpdateResult;
+  if (action === "delete") {
+    res = await notifications.deleteMany(filter);
+    if (!res.deletedCount)
+      return createSecureResponse(
+        { error: "No notifications found to delete" },
+        404,
+        req,
+      );
+  } else if (action === "archive") {
+    res = await notifications.updateMany(filter, {
+      $set: { archived: true, updatedAt: new Date() },
+    });
+    if (!res.modifiedCount)
+      return createSecureResponse(
+        { error: "No notifications found to archive" },
+        404,
+        req,
+      );
+  } else if (action === "mark-read") {
+    res = await notifications.updateMany(filter, {
+      $set: { read: true, updatedAt: new Date() },
+    });
+    if (!res.modifiedCount)
+      return createSecureResponse(
+        { error: "No notifications found to mark as read" },
+        404,
+        req,
+      );
+  } else if (action === "mark-unread") {
+    res = await notifications.updateMany(filter, {
+      $set: { read: false, updatedAt: new Date() },
+    });
+    if (!res.modifiedCount)
+      return createSecureResponse(
+        { error: "No notifications found to mark as unread" },
+        404,
+        req,
+      );
+  }
+
+  return createSecureResponse({ ok: true }, 200, req);
+}
+
+]]>
+</file>
+
+</batch_content>

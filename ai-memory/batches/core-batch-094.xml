@@ -1,0 +1,3837 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/archived/completion/DEPENDENCY_CLEANUP_COMPLETE_NOV15.md">
+<![CDATA[
+# Dependency Cleanup Complete - November 15, 2024
+
+**Status:** ✅ COMPLETE  
+**Branch:** feat/souq-marketplace-advanced  
+**Time Taken:** 15 minutes
+
+---
+
+## Summary
+
+Successfully removed **50 unused packages** (18 production + 32 devDependencies) plus **597 subdependencies**, reducing bundle size and speeding up installation.
+
+---
+
+## Packages Removed
+
+### Production Dependencies (18 packages)
+
+✅ Removed successfully:
+
+- `@hookform/resolvers` - Form validation (unused)
+- `@radix-ui/react-avatar` - UI component (unused)
+- `@radix-ui/react-dropdown-menu` - UI component (unused)
+- `@radix-ui/react-progress` - UI component (unused)
+- `@radix-ui/react-select` - UI component (unused)
+- `@radix-ui/react-separator` - UI component (unused)
+- `@radix-ui/react-tabs` - UI component (unused)
+- `@radix-ui/react-toast` - UI component (using sonner instead)
+- `@radix-ui/react-tooltip` - UI component (unused)
+- `bcrypt` - Password hashing (using NextAuth instead)
+- `bullmq` - Redis queue (unused)
+- `fast-xml-parser` - XML parsing (unused)
+- `marked` - Markdown parser (using unified/remark)
+- `next-themes` - Theme management (custom ThemeContext)
+- `react-hook-form` - Form management (unused)
+- `react-markdown` - Markdown renderer (using unified/remark)
+- `recharts` - Charting library (unused)
+- `socket.io-client` - WebSocket client (unused)
+
+**Subdependencies freed:** 93
+
+### DevDependencies (32 packages)
+
+#### Babel Dependencies (7 packages)
+
+✅ Removed:
+
+- `@babel/parser`
+- `@babel/preset-env`
+- `@babel/preset-react`
+- `@babel/preset-typescript`
+- `@babel/traverse`
+- `@types/babel__traverse`
+- `@inquirer/prompts`
+
+**Subdependencies freed:** 29
+
+#### ESLint Dependencies (7 packages)
+
+✅ Removed:
+
+- `@typescript-eslint/eslint-plugin`
+- `@typescript-eslint/parser`
+- `eslint-config-next`
+- `eslint-plugin-jsx-a11y`
+- `eslint-plugin-react`
+- `eslint-plugin-react-hooks`
+- `eslint-plugin-unused-imports`
+
+**Subdependencies freed:** 131
+
+#### Testing Dependencies (4 packages)
+
+✅ Removed:
+
+- `@types/jest` (using Vitest)
+- `@vitest/coverage-v8` (not configured)
+- `next-router-mock` (unused)
+- `start-server-and-test` (unused)
+
+**Subdependencies freed:** 65
+
+#### Build Tools (14 packages)
+
+✅ Removed:
+
+- `autoprefixer` (not needed)
+- ~~`cross-env`~~ (REINSTALLED - needed for build script)
+- `import-in-the-middle` (unused)
+- `jscodeshift` (codemod tool - unused)
+- `jscpd` (duplicate detection - unused)
+- `madge` (dependency analysis - unused)
+- `postcss-selector-parser` (unused)
+- `require-in-the-middle` (unused)
+- `rimraf` (using rm -rf)
+- `safe-regex2` (unused)
+- `shx` (cross-platform commands - unused)
+- `ts-morph` (unused)
+- `ts-prune` (dead code detection - unused)
+- `tsconfig-paths` (unused)
+- `wait-on` (unused)
+- `webpack-cli` (Next.js handles bundling)
+
+**Subdependencies freed:** 281
+
+**Note:** `cross-env` was initially removed but reinstalled as it's used in the build script.
+
+#### Kept DevDependencies (As planned)
+
+- `depcheck` ✅ (used in this audit)
+- `postcss` ✅ (required by Tailwind CSS)
+- `prettier` ✅ (code formatting)
+- `ts-node` ✅ (TypeScript script execution)
+
+---
+
+## Impact Analysis
+
+### Package Count Reduction
+
+- **Before:** ~1860 packages (estimated from node_modules)
+- **After:** ~1243 packages (from pnpm output)
+- **Reduction:** ~617 packages (33% reduction)
+
+### Subdependencies Freed
+
+| Category    | Packages Removed | Subdeps Freed |
+| ----------- | ---------------- | ------------- |
+| Production  | 18               | 93            |
+| Babel       | 7                | 29            |
+| ESLint      | 7                | 131           |
+| Testing     | 4                | 65            |
+| Build Tools | 14               | 281           |
+| **TOTAL**   | **50**           | **599**       |
+
+### Installation Time
+
+- **Before:** Variable (with 1860+ packages)
+- **After:** Reduced by ~10-15 seconds per `pnpm install`
+- **Improvement:** Faster CI/CD pipelines
+
+### Bundle Size (Estimated)
+
+- **Production:** ~2-5MB reduction (18 unused deps removed)
+- **Development:** ~50-100MB reduction in node_modules
+
+### Security Benefits
+
+- Fewer packages to audit for vulnerabilities
+- Reduced attack surface
+- Simpler dependency tree
+
+---
+
+## Verification Status
+
+### ✅ Completed
+
+- [x] Removed 18 unused production dependencies
+- [x] Removed 32 unused devDependencies (33 initially, then reinstalled cross-env)
+- [x] Verified cross-env reinstalled for build script
+- [x] Translation improvements committed separately
+
+### ⏳ Pending
+
+- [ ] Full build verification (pnpm build)
+- [ ] Test verification (pnpm test)
+- [ ] Bundle size measurement
+- [ ] PR review and merge
+
+---
+
+## Files Modified
+
+### package.json
+
+- **Production dependencies:** Reduced from X to Y
+- **DevDependencies:** Reduced from X to Y
+- **Total size reduction:** To be measured
+
+### pnpm-lock.yaml
+
+- Updated with new dependency tree
+- 599 fewer subdependencies
+
+---
+
+## Next Steps
+
+1. **Verify Build** (Required before merge)
+
+   ```bash
+   pnpm build
+   ```
+
+   Expected: Successful build with no errors
+
+2. **Verify Tests** (Required before merge)
+
+   ```bash
+   pnpm test
+   ```
+
+   Expected: All tests pass
+
+3. **Measure Bundle** (Optional but recommended)
+
+   ```bash
+   pnpm run analyze
+   ```
+
+   Expected: 2-5MB reduction in bundle size
+
+4. **Commit & Push**
+
+   ```bash
+   git add package.json pnpm-lock.yaml
+   git commit -m "chore: Remove 50 unused dependencies
+
+   - Remove 18 unused production dependencies
+   - Remove 32 unused devDependencies
+   - Free 599 subdependencies
+   - Reduce installation time by 10-15 seconds
+   - Reduce bundle size by 2-5MB
+
+   Based on DEPENDENCY_AUDIT_NOV17.md analysis"
+
+   git push origin feat/souq-marketplace-advanced
+   ```
+
+5. **PR Review**
+   - Address any remaining PR comments
+   - Get approval from reviewers
+   - Merge to main
+   - Delete feat/souq-marketplace-advanced branch
+
+---
+
+## Warnings Addressed
+
+### Peer Dependency Warnings (Acceptable)
+
+These warnings existed before cleanup and are acceptable:
+
+```
+├─┬ mongodb-memory-server 10.3.0
+│ └─┬ mongodb-memory-server-core 10.3.0
+│   └─┬ mongodb 6.20.0
+│     └── ✕ unmet peer gcp-metadata@^5.2.0: found 6.1.1
+├─┬ tailwindcss 3.4.18
+│ └─┬ postcss-load-config 6.0.1
+│   └── ✕ unmet peer yaml@^2.4.2: found 1.10.2
+└─┬ vitest 3.2.4
+  └─┬ vite 7.1.12
+    └── ✕ unmet peer yaml@^2.4.2: found 1.10.2
+```
+
+**Action:** No action needed - these are minor version mismatches in dev dependencies.
+
+---
+
+## File Organization Status
+
+Based on previous session reports:
+
+### ✅ Duplicates Removed (October 2025)
+
+- All duplicate files cleaned up per `docs/reports/DUPLICATE_CLEANUP_REPORT.md`
+- MongoDB connection files consolidated
+- Model directories standardized
+- Import paths fixed (31 files)
+
+### ✅ Files Organized (November 2025)
+
+- Documentation moved to `docs/` subdirectories
+- Reports organized in `docs/reports/`
+- Root directory cleaned (only README.md remains)
+- 453 files properly structured
+
+**Status:** File organization COMPLETE - no action needed.
+
+---
+
+## Related Commits
+
+1. `5c7ebc902` - i18n: Add translation support to administration page
+2. `10f7161bc` - docs: Complete dependency audit and task verification
+3. (This commit) - chore: Remove 50 unused dependencies
+
+---
+
+## Conclusion
+
+Dependency cleanup completed successfully with **50 packages removed** and **599 subdependencies freed**. This results in:
+
+- ✅ 33% reduction in total packages
+- ✅ 10-15 seconds faster installation
+- ✅ 2-5MB smaller bundle size (estimated)
+- ✅ Cleaner dependency tree
+- ✅ Fewer security vulnerabilities to track
+
+**Next:** Verify build and tests, then proceed with PR merge.
+
+---
+
+**Report Generated:** November 15, 2024  
+**Branch:** feat/souq-marketplace-advanced  
+**Status:** ✅ Cleanup Complete, Pending Verification
+
+]]>
+</file>
+
+<file path="docs/archived/completion/EPIC_E_CLAIMS_SYSTEM_COMPLETE.md">
+<![CDATA[
+# EPIC E: A-to-Z Claims System - COMPLETE ✅
+
+**Status**: 100% Complete  
+**Completion Date**: Session 3 - Phase 2 Development  
+**Total Files Created**: 17 files  
+**Total Lines of Code**: ~5,500 lines
+
+---
+
+## Executive Summary
+
+The **A-to-Z Guarantee Claims System** provides comprehensive buyer protection for the Souq Marketplace. This system handles dispute resolution, fraud detection, automated refunds, and multi-party communication between buyers, sellers, and administrators.
+
+### Key Achievement Metrics
+
+- ✅ **6 Claim Types** supported (INR, defective, not-as-described, wrong item, missing parts, counterfeit)
+- ✅ **11 Status States** with automated progression
+- ✅ **Fraud Detection** with 0-100 scoring algorithm (6 indicators)
+- ✅ **Automated Decisions** for low-value claims (<50 SAR)
+- ✅ **48-hour SLA** for seller responses with auto-escalation
+- ✅ **Multi-language** support (Arabic/English)
+- ✅ **Evidence Management** (photos, videos, documents up to 10MB)
+- ✅ **PayTabs Integration** ready for refund processing
+
+---
+
+## Architecture Overview
+
+### System Components
+
+```
+A-to-Z Claims System
+│
+├── Backend Services (3 files)
+│   ├── claim-service.ts         (550 lines) - Core claim lifecycle
+│   ├── investigation-service.ts (470 lines) - Fraud detection & decisions
+│   └── refund-processor.ts      (420 lines) - Payment processing
+│
+├── API Endpoints (6 routes)
+│   ├── /api/souq/claims                     - POST (create), GET (list)
+│   ├── /api/souq/claims/[id]                - GET (details), PUT (update)
+│   ├── /api/souq/claims/[id]/evidence       - POST (upload)
+│   ├── /api/souq/claims/[id]/response       - POST (seller response)
+│   ├── /api/souq/claims/[id]/decision       - POST (admin decision)
+│   └── /api/souq/claims/[id]/appeal         - POST (file appeal)
+│
+├── UI Components (5 components)
+│   ├── ClaimForm.tsx            (350 lines) - File new claim
+│   ├── ClaimDetails.tsx         (650 lines) - View claim with timeline
+│   ├── ClaimList.tsx            (420 lines) - List with filters
+│   ├── ResponseForm.tsx         (280 lines) - Seller response
+│   └── ClaimReviewPanel.tsx     (520 lines) - Admin review dashboard
+│
+└── Pages (3 pages)
+    ├── app/marketplace/buyer/claims/page.tsx           - Buyer portal
+    ├── app/marketplace/seller-central/claims/page.tsx  - Seller portal
+    └── app/admin/claims/page.tsx                       - Admin panel
+```
+
+---
+
+## Technical Implementation
+
+### Backend Services
+
+#### 1. ClaimService (`services/souq/claims/claim-service.ts`)
+
+**Core Responsibilities:**
+
+- Claim lifecycle management (create, update, transition states)
+- Evidence collection and management
+- Seller response tracking
+- Decision recording
+- Appeal processing
+
+**Key Functions:**
+
+```typescript
+-createClaim() - // File new A-to-Z claim
+  getClaim() - // Retrieve claim by ID
+  listClaims() - // Query with filters
+  addEvidence() - // Upload supporting documents
+  addSellerResponse() - // Record seller's proposed solution
+  makeDecision() - // Admin final decision
+  fileAppeal() - // Challenge decision
+  updateStatus() - // Progress claim through workflow
+  getOverdueClaims() - // Find claims past deadline
+  escalateOverdueClaims() - // Auto-escalate late responses
+  getClaimStats(); // Analytics
+```
+
+**Claim Types:**
+
+1. `item-not-received` - Item never delivered (INR)
+2. `defective` - Product is broken/damaged
+3. `not-as-described` - Doesn't match listing
+4. `wrong-item` - Incorrect product sent
+5. `missing-parts` - Incomplete shipment
+6. `counterfeit` - Suspected fake product
+
+**Status Workflow:**
+
+```
+filed → seller-notified → under-investigation →
+pending-seller-response → seller-responded →
+pending-decision → [approved/partially-approved/rejected] →
+[under-appeal (optional)] → closed
+```
+
+**Business Rules:**
+
+- Seller has **48 hours** to respond after notification
+- Claims >48 hours overdue are **auto-escalated** to admin
+- Claims **<50 SAR** can be **auto-resolved** for low fraud scores
+- All parties receive **email + push notifications** for status changes
+
+---
+
+#### 2. InvestigationService (`services/souq/claims/investigation-service.ts`)
+
+**Core Responsibilities:**
+
+- Fraud detection and scoring
+- Evidence quality assessment
+- Automated decision recommendations
+- Pattern recognition
+
+**Key Functions:**
+
+```typescript
+-investigateClaim() - // Main investigation entry point
+  detectFraudIndicators() - // Check 6 fraud patterns
+  calculateFraudScore() - // 0-100 risk score
+  assessEvidenceQuality() - // 4-tier rating system
+  generateRecommendation() - // AI-powered decision suggestion
+  autoResolveClaims() - // Batch process low-value claims
+  getClaimsRequiringReview(); // Priority queue for admin
+```
+
+**Fraud Detection Algorithm:**
+
+The system calculates a **0-100 fraud score** based on 6 indicators:
+
+| Indicator                  | Weight | Description                         |
+| -------------------------- | ------ | ----------------------------------- |
+| Multiple claims from buyer | +30    | >3 claims in 90 days                |
+| Bad buyer history          | +25    | Previous rejected claims            |
+| Tracking shows delivered   | +20    | Carrier confirms delivery           |
+| Late reporting             | +15    | Claim filed >30 days after delivery |
+| Inconsistent evidence      | +10    | Evidence doesn't match claim type   |
+| Insufficient evidence      | +5     | <2 pieces of evidence               |
+
+**Fraud Score Thresholds:**
+
+- **0-30**: Low risk - Auto-approve if <50 SAR
+- **31-60**: Medium risk - Require manual review
+- **61-100**: High risk - Flag for detailed investigation
+
+**Evidence Quality Assessment:**
+
+| Tier      | Criteria                                | Auto-Resolution Eligible |
+| --------- | --------------------------------------- | ------------------------ |
+| Excellent | 5+ pieces, includes tracking + video    | ✅ Yes                   |
+| Good      | 3-4 pieces, includes tracking or photos | ✅ Yes                   |
+| Fair      | 2-3 pieces, basic documentation         | ⚠️ Maybe                 |
+| Poor      | <2 pieces, no tracking or photos        | ❌ No                    |
+
+**Recommendation Engine:**
+
+The system generates outcome suggestions with **confidence levels**:
+
+```typescript
+{
+  recommendedAction: 'approve-full' | 'approve-partial' | 'reject',
+  confidence: 0-100,
+  reasoning: string,
+  suggestedRefundAmount?: number
+}
+```
+
+**Decision Logic by Claim Type:**
+
+1. **Item Not Received (INR)**
+   - Check tracking status first
+   - If no tracking → approve (95% confidence)
+   - If delivered → high fraud score → reject
+   - Medium cases → manual review
+
+2. **Defective Item**
+   - Evidence quality critical
+   - Photos/videos required
+   - Seller response weighted heavily
+   - Replacement often recommended over refund
+
+3. **Not As Described**
+   - Compare evidence to original listing
+   - Check listing accuracy history
+   - Partial refund often appropriate
+
+4. **Wrong Item / Missing Parts**
+   - Quick resolution (usually clear-cut)
+   - Full refund + return shipping
+   - High confidence decisions
+
+5. **Counterfeit**
+   - Requires expert verification
+   - Always manual review
+   - Seller account at risk
+
+---
+
+#### 3. RefundProcessor (`services/souq/claims/refund-processor.ts`)
+
+**Core Responsibilities:**
+
+- Payment gateway integration (PayTabs)
+- Refund execution and retry logic
+- Seller balance deduction
+- Order status updates
+- Notification dispatch
+
+**Key Functions:**
+
+```typescript
+-processRefund() - // Main refund orchestration
+  executeRefund() - // Single refund attempt
+  callPaymentGateway() - // PayTabs API integration
+  scheduleRetry() - // Exponential backoff retry
+  updateRefundStatus() - // Track refund state
+  updateOrderStatus() - // Sync with order system
+  notifyRefundStatus() - // Email/push notifications
+  retryFailedRefunds() - // Batch retry processor (cron)
+  getRefundStats() - // Analytics
+  calculateSellerDeduction() - // Commission + refund
+  deductFromSellerBalance(); // Update seller account
+```
+
+**Refund Processing Flow:**
+
+```
+Decision: Approved
+    ↓
+Calculate refund amount (claim amount + any adjustments)
+    ↓
+Deduct from seller balance (amount + 10% commission)
+    ↓
+Call payment gateway (PayTabs) to reverse transaction
+    ↓
+[Success] → Update refund status → Notify parties → Close claim
+    ↓
+[Failure] → Schedule retry (max 3 attempts)
+    ↓
+[Still Failing] → Alert admin + Manual intervention
+```
+
+**Retry Logic:**
+
+- **Max attempts**: 3
+- **Backoff delays**: 5s, 10s, 15s (exponential)
+- **Failure reasons tracked**: Insufficient funds, gateway error, network timeout
+
+**Payment Gateway Integration:**
+
+Currently structured for **PayTabs** (Saudi Arabia):
+
+```typescript
+interface PaymentGatewayRequest {
+  transactionId: string;
+  amount: number;
+  currency: "SAR";
+  reason: string;
+  metadata: {
+    claimId: string;
+    orderId: string;
+    buyerId: string;
+    sellerId: string;
+  };
+}
+```
+
+**Financial Reconciliation:**
+
+- Refunds deduct from **seller available balance**
+- Platform **10% commission** is also deducted
+- Example: 100 SAR refund = 110 SAR deducted from seller
+- Seller balance can go negative (debt collection process)
+
+---
+
+### API Endpoints
+
+#### 1. `POST /api/souq/claims` - Create Claim
+
+**Authentication**: Required (buyer only)  
+**Request Body**:
+
+```json
+{
+  "orderId": "ORD-12345",
+  "claimType": "item-not-received",
+  "description": "Item never arrived despite marked delivered",
+  "evidence": [
+    {
+      "url": "https://cdn.example.com/evidence1.jpg",
+      "type": "photo",
+      "uploadedBy": "buyer"
+    }
+  ]
+}
+```
+
+**Response**:
+
+```json
+{
+  "claimId": "67890",
+  "claimNumber": "CLM-2024-001234",
+  "status": "filed",
+  "createdAt": "2024-11-16T10:30:00Z"
+}
+```
+
+---
+
+#### 2. `GET /api/souq/claims` - List Claims
+
+**Authentication**: Required  
+**Query Parameters**:
+
+- `status`: Filter by status
+- `claimType`: Filter by type
+- `page`: Pagination
+- `limit`: Page size
+- `search`: Search by claim/order number
+
+**Response**:
+
+```json
+{
+  "claims": [...],
+  "totalPages": 5,
+  "currentPage": 1,
+  "totalCount": 48
+}
+```
+
+---
+
+#### 3. `GET /api/souq/claims/[id]` - Get Claim Details
+
+**Authentication**: Required (buyer, seller, or admin)  
+**Response**: Full claim object with timeline, evidence, responses, decision
+
+---
+
+#### 4. `POST /api/souq/claims/[id]/evidence` - Upload Evidence
+
+**Authentication**: Required  
+**Request Body**:
+
+```json
+{
+  "url": "https://cdn.example.com/additional-proof.mp4",
+  "type": "video",
+  "uploadedBy": "buyer"
+}
+```
+
+---
+
+#### 5. `POST /api/souq/claims/[id]/response` - Seller Response
+
+**Authentication**: Required (seller only)  
+**Request Body**:
+
+```json
+{
+  "solutionType": "partial-refund",
+  "message": "Item was shipped with tracking. Willing to offer 50% refund as goodwill.",
+  "partialRefundAmount": 125.0
+}
+```
+
+---
+
+#### 6. `POST /api/souq/claims/[id]/decision` - Admin Decision
+
+**Authentication**: Required (admin only)  
+**Request Body**:
+
+```json
+{
+  "outcome": "approve-partial",
+  "reason": "Evidence shows item was delivered but damaged during shipping. Partial refund appropriate.",
+  "refundAmount": 150.0
+}
+```
+
+---
+
+#### 7. `POST /api/souq/claims/[id]/appeal` - File Appeal
+
+**Authentication**: Required (buyer or seller)  
+**Request Body**:
+
+```json
+{
+  "reason": "New evidence discovered showing tracking was fraudulent",
+  "additionalEvidence": ["https://cdn.example.com/new-evidence.pdf"]
+}
+```
+
+---
+
+### UI Components
+
+#### 1. ClaimForm.tsx (350 lines)
+
+**Purpose**: File new A-to-Z claim with evidence upload  
+**Features**:
+
+- 6 claim type dropdown (Arabic + English labels)
+- Rich text description (min 20 chars, max 500)
+- Multi-file upload (photos, videos, documents)
+  - Max 10 files
+  - Max 10MB per file
+  - Preview for images
+  - File type validation
+- Order details summary
+- Real-time validation
+- Important information alert box
+
+**User Experience**:
+
+- Drag-and-drop file upload
+- Image preview thumbnails
+- File size/type indicators
+- Character counter
+- Bilingual labels throughout
+- Inline error messages
+
+---
+
+#### 2. ClaimDetails.tsx (650 lines)
+
+**Purpose**: Comprehensive claim view with timeline and evidence  
+**Features**:
+
+- **4 Tabs**:
+  1. Overview - All claim info, parties, responses, decision
+  2. Evidence - Gallery view with lightbox
+  3. Timeline - Chronological event log
+  4. Communication - Messages (coming soon)
+- Status badge with icon
+- Seller response display
+- Admin decision display (color-coded)
+- Appeal status (if filed)
+- Evidence viewer dialog
+- Action buttons (context-aware)
+
+**Timeline Events**:
+
+- Claim filed
+- Seller notified
+- Evidence uploaded
+- Seller responded
+- Investigation completed
+- Decision made
+- Appeal filed
+- Claim closed
+
+**Evidence Gallery**:
+
+- Grid layout (2-4 columns responsive)
+- Click to open full-size viewer
+- Shows uploader (buyer/seller/admin)
+- Upload timestamp
+- File type icons
+
+---
+
+#### 3. ClaimList.tsx (420 lines)
+
+**Purpose**: Browse and filter claims with role-based views  
+**Features**:
+
+- **Role Views**: Buyer, Seller, Admin
+- **Filters**:
+  - Search by claim/order number
+  - Status filter (11 statuses)
+  - Type filter (6 types)
+- **Desktop**: Table view with sorting
+- **Mobile**: Card view (responsive)
+- Pagination (10 per page)
+- Status badges with icons
+- Quick actions
+- Empty states
+
+**Table Columns**:
+
+- Claim number + Order number
+- Type (with Arabic label)
+- Status badge
+- Parties (buyer/seller names)
+- Amount (SAR)
+- Date filed
+- View button
+
+**Mobile Card**:
+
+- Claim # and status
+- Type and amount
+- Party name (role-dependent)
+- Date
+- View details button
+
+---
+
+#### 4. ResponseForm.tsx (280 lines)
+
+**Purpose**: Seller response submission with solution proposals  
+**Features**:
+
+- **4 Solution Types** (radio buttons):
+  1. Full Refund - Agree to refund 100%
+  2. Partial Refund - Offer percentage back (with amount input)
+  3. Replacement - Send new product
+  4. Dispute - Contest with counter-evidence
+- Detailed message textarea (min 20 chars)
+- Claim summary card
+- Response guidelines alert
+- Validation (amount range for partial)
+
+**Business Logic**:
+
+- Partial refund must be between 0 and claim amount
+- Message required (min 20 characters)
+- Auto-saves solution type selection
+- Updates claim status to "seller-responded"
+
+---
+
+#### 5. ClaimReviewPanel.tsx (520 lines)
+
+**Purpose**: Admin dashboard for reviewing and deciding claims  
+**Features**:
+
+- **Statistics Cards** (4 metrics):
+  - Pending review count
+  - High priority count
+  - Potential fraud count
+  - Total claim amount
+- **Filters**:
+  - Search
+  - Status filter
+  - Priority filter
+- **Claims Table**:
+  - Checkbox for bulk selection
+  - Priority badge (high/medium/low)
+  - Fraud score badge (color-coded)
+  - AI recommendation with confidence %
+  - Evidence count
+  - Quick decision button
+- **Bulk Actions**:
+  - Approve selected
+  - Reject selected
+- **Decision Dialog**:
+  - Claim summary
+  - Decision dropdown (approve-full/partial/reject)
+  - Refund amount input (for partial)
+  - Reason textarea (required)
+  - Submission warnings
+
+**Priority System**:
+
+- **High**: Fraud score >70, amount >1000 SAR, appeal cases
+- **Medium**: Standard claims
+- **Low**: Auto-resolvable, low fraud score
+
+**Admin Workflow**:
+
+1. Review priority queue
+2. Check fraud indicators
+3. Review evidence
+4. Read seller response
+5. Review AI recommendation
+6. Make decision with reasoning
+7. Refund auto-processes
+
+---
+
+### Pages
+
+#### 1. Buyer Claims Page (`app/marketplace/buyer/claims/page.tsx`)
+
+**Route**: `/marketplace/buyer/claims`  
+**Purpose**: Buyer portal to manage claims  
+**Features**:
+
+- View all filed claims
+- File new claim (with order selection)
+- View claim details
+- Track status
+- Add additional evidence
+- File appeals
+
+**Navigation Flow**:
+
+```
+List View → Click claim → Details View
+List View → New Claim button → Order selection → Claim form
+Details View → Back to list
+```
+
+---
+
+#### 2. Seller Claims Page (`app/marketplace/seller-central/claims/page.tsx`)
+
+**Route**: `/marketplace/seller-central/claims`  
+**Purpose**: Seller portal to respond to claims  
+**Features**:
+
+- View claims against products
+- 48-hour deadline warning
+- Respond to pending claims
+- View decision outcomes
+- File appeals
+
+**Important Notice**:
+
+- Prominent alert: "Must respond within 48 hours"
+- Auto-escalation warning
+- Consequence of non-response
+
+---
+
+#### 3. Admin Claims Page (`app/admin/claims/page.tsx`)
+
+**Route**: `/admin/claims`  
+**Purpose**: Admin review and decision panel  
+**Features**:
+
+- Full ClaimReviewPanel
+- Priority queue
+- Bulk actions
+- Analytics dashboard
+
+---
+
+## Database Schema
+
+### Claims Collection
+
+```typescript
+interface Claim {
+  _id: ObjectId;
+  claimNumber: string; // CLM-YYYY-NNNNNN
+  orderId: string;
+  buyerId: string;
+  sellerId: string;
+  claimType: ClaimType;
+  status: ClaimStatus;
+  claimAmount: number;
+  description: string;
+  evidence: Evidence[];
+  sellerResponse?: SellerResponse;
+  decision?: Decision;
+  appeal?: Appeal;
+  fraudScore?: number;
+  investigationNotes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  sellerNotifiedAt?: Date;
+  sellerResponseDeadline?: Date;
+  closedAt?: Date;
+}
+```
+
+### Evidence
+
+```typescript
+interface Evidence {
+  url: string;
+  type: "photo" | "video" | "document";
+  uploadedBy: "buyer" | "seller" | "admin";
+  uploadedAt: Date;
+  fileName?: string;
+  fileSize?: number;
+}
+```
+
+### Seller Response
+
+```typescript
+interface SellerResponse {
+  solutionType: "full-refund" | "partial-refund" | "replacement" | "dispute";
+  message: string;
+  partialRefundAmount?: number;
+  respondedAt: Date;
+}
+```
+
+### Decision
+
+```typescript
+interface Decision {
+  outcome: "approve-full" | "approve-partial" | "reject";
+  reason: string;
+  refundAmount?: number;
+  decidedBy: string;
+  decidedAt: Date;
+  recommendedAction?: string;
+  confidence?: number;
+}
+```
+
+### Appeal
+
+```typescript
+interface Appeal {
+  reason: string;
+  additionalEvidence?: string[];
+  status: "pending" | "approved" | "rejected";
+  filedAt: Date;
+  appellant: "buyer" | "seller";
+  reviewedAt?: Date;
+  reviewedBy?: string;
+  reviewNotes?: string;
+}
+```
+
+### Refunds Collection
+
+```typescript
+interface Refund {
+  _id: ObjectId;
+  claimId: string;
+  orderId: string;
+  amount: number;
+  status: "pending" | "processing" | "completed" | "failed";
+  paymentGatewayTransactionId?: string;
+  attempts: number;
+  lastAttemptAt?: Date;
+  nextRetryAt?: Date;
+  failureReason?: string;
+  completedAt?: Date;
+  createdAt: Date;
+}
+```
+
+---
+
+## Business Impact
+
+### Buyer Protection
+
+- ✅ **90-day coverage** from order date
+- ✅ **No-questions-asked** for <50 SAR (low fraud score)
+- ✅ **Fast resolution**: 3-5 business days average
+- ✅ **Multiple claim types** for comprehensive protection
+- ✅ **Evidence-based** decisions (not arbitrary)
+- ✅ **Appeal rights** for both parties
+
+### Seller Accountability
+
+- ✅ **Clear SLA**: 48-hour response window
+- ✅ **Transparent process**: See all evidence and reasoning
+- ✅ **Fair hearing**: Opportunity to dispute with counter-evidence
+- ✅ **Performance tracking**: ODR (Order Defect Rate) impact
+- ✅ **Financial stakes**: Refunds + commission deducted
+
+### Platform Benefits
+
+- ✅ **Trust building**: Buyers feel protected
+- ✅ **Fraud prevention**: AI-powered detection
+- ✅ **Reduced manual work**: Auto-resolution for 30-40% of claims
+- ✅ **Data insights**: Patterns identify problematic sellers
+- ✅ **Compliance**: Consumer protection law adherence
+
+---
+
+## Performance & Scalability
+
+### Optimization Strategies
+
+1. **Database Indexing**:
+
+   ```javascript
+   // Claims collection
+   db.claims.createIndex({ claimNumber: 1 }, { unique: true });
+   db.claims.createIndex({ orderId: 1 });
+   db.claims.createIndex({ buyerId: 1, status: 1 });
+   db.claims.createIndex({ sellerId: 1, status: 1 });
+   db.claims.createIndex({ status: 1, createdAt: -1 });
+   db.claims.createIndex({ fraudScore: -1 });
+
+   // Refunds collection
+   db.refunds.createIndex({ claimId: 1 });
+   db.refunds.createIndex({ status: 1, nextRetryAt: 1 });
+   ```
+
+2. **Caching Strategy**:
+   - Claim details (Redis, 5-minute TTL)
+   - Evidence URLs (CDN, 24-hour TTL)
+   - Seller/buyer profiles (Redis, 15-minute TTL)
+
+3. **Background Jobs** (Cron):
+   - Escalate overdue claims (every 15 minutes)
+   - Retry failed refunds (every hour)
+   - Auto-resolve low-value claims (every 6 hours)
+   - Send reminder notifications (every day at 9 AM)
+
+4. **File Upload**:
+   - Direct upload to CDN (Cloudflare R2 or AWS S3)
+   - Image optimization (WebP conversion, compression)
+   - Virus scanning before accepting
+   - Signed URLs (temporary access)
+
+---
+
+## Security Considerations
+
+### Authentication & Authorization
+
+- ✅ **NextAuth** session-based authentication
+- ✅ **Role-based access control** (RBAC):
+  - Buyer: Can view own claims, file claims, add evidence
+  - Seller: Can view claims against them, respond
+  - Admin: Full access to all claims and decisions
+- ✅ **Ownership verification**: Users can only access their own claims
+- ✅ **API route protection**: All endpoints check session
+
+### Data Protection
+
+- ✅ **PII encryption**: Buyer/seller names encrypted at rest
+- ✅ **Evidence access control**: Signed URLs with expiration
+- ✅ **Audit logging**: All actions logged (who, what, when)
+- ✅ **GDPR compliance**: Right to be forgotten support
+
+### Fraud Prevention
+
+- ✅ **Rate limiting**: Max 5 claims per buyer per day
+- ✅ **IP tracking**: Detect suspicious patterns
+- ✅ **Device fingerprinting**: Cross-reference with known fraudsters
+- ✅ **Blacklist**: Auto-reject from banned users
+
+---
+
+## Testing Checklist
+
+### Unit Tests
+
+- [ ] ClaimService - All CRUD operations
+- [ ] InvestigationService - Fraud scoring algorithm
+- [ ] RefundProcessor - Payment gateway integration
+- [ ] API routes - Request validation and error handling
+
+### Integration Tests
+
+- [ ] End-to-end claim flow (file → investigate → decide → refund)
+- [ ] Seller response workflow
+- [ ] Appeal process
+- [ ] Auto-escalation logic
+
+### UI Tests
+
+- [ ] ClaimForm - File upload and validation
+- [ ] ClaimDetails - Tab navigation and media viewer
+- [ ] ClaimList - Filtering and pagination
+- [ ] ResponseForm - Solution type selection
+- [ ] ClaimReviewPanel - Decision making
+
+### Performance Tests
+
+- [ ] Load test: 1000 concurrent claim filings
+- [ ] Database query performance (indexed vs non-indexed)
+- [ ] File upload speed (10MB files)
+- [ ] API response times (<200ms for GET, <500ms for POST)
+
+---
+
+## Deployment Checklist
+
+### Prerequisites
+
+- [x] MongoDB indexes created
+- [ ] Redis cache configured
+- [ ] CDN setup for evidence files
+- [ ] PayTabs API credentials (production)
+- [ ] Email service configured (SendGrid/AWS SES)
+- [ ] Push notification service (FCM/APNS)
+
+### Configuration
+
+- [ ] Environment variables:
+  ```
+  MONGODB_URI=mongodb://...
+  REDIS_URL=redis://...
+  PAYTABS_API_KEY=...
+  PAYTABS_API_SECRET=...
+  CDN_ENDPOINT=https://cdn.fixzit.com
+  EMAIL_FROM=noreply@fixzit.com
+  ```
+
+### Monitoring
+
+- [ ] Set up error tracking (Sentry)
+- [ ] Configure uptime monitoring (Pingdom)
+- [ ] Set up analytics (Mixpanel/Amplitude)
+- [ ] Create admin dashboard alerts (high fraud scores, overdue claims)
+
+### Cron Jobs
+
+- [ ] Schedule escalation job (every 15 min)
+- [ ] Schedule refund retry job (every hour)
+- [ ] Schedule auto-resolution job (every 6 hours)
+- [ ] Schedule daily reminder emails (9 AM)
+
+---
+
+## Future Enhancements (Phase 3+)
+
+### 1. Advanced Fraud Detection
+
+- Machine learning model trained on historical claims
+- Anomaly detection for evidence tampering
+- Cross-platform verification (social media, carrier APIs)
+
+### 2. Mediation System
+
+- Live chat between buyer and seller
+- Platform mediator role (before admin escalation)
+- Settlement negotiation tools
+
+### 3. Seller Insurance
+
+- Optional claim insurance for sellers
+- Premium tier for high-volume sellers
+- Insurance underwriting based on ODR
+
+### 4. Buyer Reputation System
+
+- Claim history affects buyer trust score
+- Frequent claimants flagged
+- Restrictions on bad-faith buyers
+
+### 5. Video Evidence Enhancement
+
+- In-app video recording
+- Timestamp verification
+- Tamper-proof hashing
+
+### 6. Analytics Dashboard
+
+- Claim trends over time
+- Seller performance rankings
+- Category-based defect rates
+- Financial impact reports
+
+---
+
+## Key Performance Indicators (KPIs)
+
+### Target Metrics
+
+| Metric                   | Target  | Current |
+| ------------------------ | ------- | ------- |
+| Average resolution time  | <5 days | TBD     |
+| Auto-resolution rate     | >30%    | TBD     |
+| Fraud detection accuracy | >85%    | TBD     |
+| Seller response rate     | >90%    | TBD     |
+| Buyer satisfaction       | >4.5/5  | TBD     |
+| Appeal overturn rate     | <15%    | TBD     |
+
+### Financial Metrics
+
+| Metric                     | Projection                |
+| -------------------------- | ------------------------- |
+| Claims volume              | 500-1000/month            |
+| Average claim value        | 200 SAR                   |
+| Total refund amount        | 100,000-200,000 SAR/month |
+| Platform commission impact | 10,000-20,000 SAR/month   |
+
+---
+
+## Integration Points
+
+### Existing Systems
+
+1. **Order Management System**:
+   - Verify order existence
+   - Check order status
+   - Update order after refund
+
+2. **User Management**:
+   - Fetch buyer/seller profiles
+   - Update account health scores
+   - Send notifications
+
+3. **Payment Gateway**:
+   - Process refunds
+   - Handle reversals
+   - Track transactions
+
+4. **Email Service**:
+   - Claim filed notifications
+   - Deadline reminders
+   - Decision announcements
+
+5. **Notification System**:
+   - Push notifications
+   - In-app alerts
+   - SMS (optional)
+
+---
+
+## Documentation for Developers
+
+### Getting Started
+
+1. **Install Dependencies**:
+
+   ```bash
+   cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+   pnpm install
+   ```
+
+2. **Set Up Database**:
+
+   ```bash
+   # Create indexes
+   node scripts/setup-claims-indexes.js
+   ```
+
+3. **Run Development Server**:
+
+   ```bash
+   pnpm dev
+   ```
+
+4. **Access Pages**:
+   - Buyer: http://localhost:3000/marketplace/buyer/claims
+   - Seller: http://localhost:3000/marketplace/seller-central/claims
+   - Admin: http://localhost:3000/admin/claims
+
+### Adding New Claim Types
+
+1. Update `ClaimType` enum in `types/claims.ts`
+2. Add label to `CLAIM_TYPE_LABELS` in UI components
+3. Implement type-specific logic in `InvestigationService.generateRecommendation()`
+4. Update documentation
+
+### Customizing Fraud Detection
+
+Edit `InvestigationService.detectFraudIndicators()`:
+
+- Adjust indicator weights
+- Add new patterns
+- Modify thresholds
+
+---
+
+## Conclusion
+
+The **A-to-Z Claims System** is now **100% complete** with:
+
+- ✅ Full backend infrastructure (services, APIs)
+- ✅ Complete UI components (forms, lists, details, admin panel)
+- ✅ Role-based pages (buyer, seller, admin)
+- ✅ Fraud detection with AI recommendations
+- ✅ Automated refund processing
+- ✅ Multi-language support
+- ✅ Comprehensive evidence management
+
+**Ready for:**
+
+- ✅ Integration testing
+- ✅ User acceptance testing (UAT)
+- ✅ Production deployment
+
+**Next Steps** (EPIC I - Settlement Automation):
+
+- Build settlement calculator
+- Implement payout processor
+- Create seller balance management
+- Generate settlement statements with VAT reporting
+
+---
+
+**Total Session Output:**
+
+- 17 files created
+- ~5,500 lines of code
+- 0 compile errors
+- 100% feature complete
+
+🎉 **EPIC E: A-to-Z Claims System - COMPLETE!** 🎉
+
+]]>
+</file>
+
+<file path="docs/archived/completion/EPIC_F_ADVERTISING_COMPLETE.md">
+<![CDATA[
+# Phase 2 - EPIC F: Advertising System - COMPLETE ✅
+
+**Completion Date**: November 16, 2025
+**Total Files**: 12 files
+**Total Lines of Code**: ~3,700 lines
+**Status**: 100% Complete
+
+## Overview
+
+The advertising system enables sellers to create CPC (cost-per-click) advertising campaigns with sophisticated auction mechanics, real-time budget tracking, and comprehensive performance analytics. Built on a second-price Vickrey auction model with quality scoring.
+
+## Architecture Summary
+
+### Core Services (3 files, ~1,270 lines)
+
+1. **Auction Engine** (`services/souq/ads/auction-engine.ts` - 460 lines)
+   - **Algorithm**: Second-price Vickrey auction
+   - **Quality Score Formula**: (CTR × 0.5) + (Relevance × 0.3) + (Landing Page × 0.2)
+   - **Ad Rank**: Bid Amount × Quality Score
+   - **CPC Calculation**: (Next Highest Ad Rank / Winner's Quality Score) + $0.01
+   - **Auction Types**:
+     - Search Auction: 3 slots for sponsored products in search results
+     - Product Display Auction: 2 slots for PDP sidebar ads
+   - **Event Tracking**: Impressions, clicks, conversions with MongoDB persistence
+
+2. **Budget Manager** (`services/souq/ads/budget-manager.ts` - 340 lines)
+   - **Redis-based**: Atomic operations prevent race conditions
+   - **Daily Caps**: Per-campaign budget limits with automatic reset at midnight
+   - **Lua Script**: Ensures atomic budget charging
+   - **Alert Thresholds**: 75%, 90%, 100% with deduplication
+   - **Auto-Pause**: Campaign automatically pauses at 100% budget
+   - **Spend History**: 30-day aggregated data per campaign
+
+3. **Campaign Service** (`services/souq/ads/campaign-service.ts` - 470 lines)
+   - **Campaign Types**: Sponsored Products, Sponsored Brands, Product Display
+   - **Targeting Options**:
+     - Keyword (exact/phrase/broad match)
+     - Category targeting
+     - Product (ASIN) targeting
+     - Automatic (AI-driven)
+   - **Bidding Strategies**: Manual, Automatic
+   - **Performance Metrics**: CTR, CPC, ACOS, ROAS calculation
+   - **Auto-Bid Generation**: Creates optimized bids based on targeting strategy
+
+### API Endpoints (5 files, ~465 lines)
+
+1. **POST /api/souq/ads/campaigns** - Create campaign
+2. **GET /api/souq/ads/campaigns** - List campaigns with filters
+3. **GET /api/souq/ads/campaigns/[id]** - Get single campaign
+4. **PUT /api/souq/ads/campaigns/[id]** - Update campaign
+5. **DELETE /api/souq/ads/campaigns/[id]** - Delete campaign (cascades to bids)
+6. **GET /api/souq/ads/campaigns/[id]/stats** - Performance statistics
+7. **POST /api/souq/ads/impressions** - Track ad impression
+8. **POST /api/souq/ads/clicks** - Track click and charge budget
+
+**Authentication**: All campaign APIs use NextAuth session validation
+**Ownership**: All modify operations validate seller ownership
+**Error Handling**: 401 (unauthorized), 403 (forbidden), 404 (not found), 402 (insufficient budget), 500 (server error)
+
+### UI Components (4 files, ~1,965 lines)
+
+#### Ad Rendering Components (3 files, ~765 lines)
+
+1. **SponsoredProduct.tsx** (~300 lines)
+   - Product card with "Sponsored" badge (top-right corner)
+   - Intersection Observer for impression tracking (50% visibility threshold)
+   - Click tracking with navigation
+   - Image, title, brand, rating, price, badges, stock status
+   - Hover effects and loading states
+
+2. **SponsoredBrandBanner.tsx** (~280 lines)
+   - Full-width banner with brand logo and headline
+   - Horizontal scrollable product carousel (3-5 products)
+   - Scroll buttons (left/right) with visibility detection
+   - Single impression per banner, per-product click tracking
+   - Positioned at top of search results
+
+3. **ProductDetailAd.tsx** (~185 lines)
+   - Sidebar widget for PDP
+   - Displays 2 sponsored products (compact cards)
+   - Individual impression and click tracking per ad
+   - "Sponsored products related to this item" header
+   - List layout with 96x96px thumbnails
+
+#### Seller Central UI (2 files, ~1,200 lines)
+
+4. **Advertising Dashboard** (`app/marketplace/seller-central/advertising/page.tsx` - 650 lines)
+   - **Overview Tab**:
+     - 5 metric cards: Total Spend, Impressions, Clicks, ACOS, ROAS
+     - Active campaigns summary with budget usage bars
+     - Quick actions (Create Campaign, View Reports)
+   - **Campaigns Tab**:
+     - Campaign list table with sortable columns
+     - Filters: Status (active/paused/ended), Type (sponsored_products/brands/display)
+     - Search by campaign name
+     - Actions: Pause/Resume, Edit, Delete, View Details
+     - Budget progress bars (green/yellow/red based on usage)
+   - **Real-time Data**: Loads campaign stats on page load
+   - **Responsive**: Mobile-friendly grid and table layouts
+
+5. **Performance Report** (`components/seller/advertising/PerformanceReport.tsx` - 550 lines)
+   - **Date Range Selector**: Today, Yesterday, Last 7/30 days, Custom
+   - **Performance Charts**:
+     - Impressions & Clicks over time (dual visualization)
+     - Daily spend bar chart
+     - 7-day mini charts with visual bars
+   - **Keyword Performance Table**:
+     - Columns: Keyword, Campaign, Impressions, Clicks, CTR, Avg CPC, Spend, Conversions, ACOS, ROAS
+     - Sortable by all columns (asc/desc)
+     - CTR trend indicators (up/down icons)
+     - ACOS color coding (green <20%, yellow <30%, red >30%)
+   - **Product Performance Table**:
+     - Columns: Product ID, Name, Campaign, Impressions, Clicks, CTR, Conversions, Revenue, ACOS
+     - Same sorting and color coding as keywords
+   - **Export to CSV**: Downloads complete dataset (all rows, not just visible)
+   - **Pagination**: 50 rows per page with prev/next navigation
+
+## Technical Implementation
+
+### Auction Algorithm
+
+```typescript
+// Second-price Vickrey auction
+1. Fetch all eligible campaigns (active, budget available)
+2. Get matching bids for context (keyword/category/product)
+3. Calculate quality score for each bid (0.1-10 scale)
+4. Calculate ad rank = bidAmount × qualityScore
+5. Sort by ad rank descending
+6. Select top N winners
+7. For each winner:
+   CPC = (nextBid.adRank / winner.qualityScore) + 0.01
+   CPC = Math.min(CPC, winner.maxBid) // Cap at max bid
+```
+
+### Quality Score Components
+
+**CTR Score (0-10)**:
+
+- Formula: `min(CTR × 200, 10)`
+- 0.5% CTR = 1.0 score
+- 5% CTR = 10.0 score
+- Default for new ads: 5% (0.05)
+
+**Relevance Score (0-1)**:
+
+- Exact match: 1.0
+- Partial match: 0.8
+- Word overlap: overlap_count / max_words
+- Category exact: 1.0, broad: 0.3
+
+**Landing Page Quality (0-1)**:
+
+- Formula: `(rating/5 × 0.7) + (min(reviews/100, 1) × 0.3)`
+- Considers product rating and review count
+
+**Final Quality Score**:
+
+```typescript
+qualityScore = (ctrScore × 0.5) + (relevanceScore × 0.3) + (lpqScore × 0.2)
+qualityScore = Math.max(0.1, Math.min(10, qualityScore)) // Clamp to 0.1-10
+```
+
+### Budget Tracking
+
+**Redis Key Format**: `ad_budget:{campaignId}:{YYYY-MM-DD}`
+
+**Atomic Charging (Lua Script)**:
+
+```lua
+local spent = redis.call('GET', KEYS[1]) or '0'
+local spentNum = tonumber(spent)
+local amountNum = tonumber(ARGV[1])
+local budgetNum = tonumber(ARGV[2])
+
+if spentNum + amountNum <= budgetNum then
+  redis.call('INCRBYFLOAT', KEYS[1], amountNum)
+  redis.call('EXPIRE', KEYS[1], 86400) -- 24 hours TTL
+  return 1 -- Success
+else
+  return 0 -- Insufficient budget
+end
+```
+
+**Daily Reset**: Midnight Saudi time (automatic via Redis TTL expiration)
+
+### Impression Tracking
+
+**Client-side Implementation**:
+
+```typescript
+const observer = new IntersectionObserver(
+  (entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting && !impressionTracked) {
+        // Track impression via API
+        fetch("/api/souq/ads/impressions", {
+          method: "POST",
+          body: JSON.stringify({ bidId, campaignId, context }),
+        });
+      }
+    });
+  },
+  { threshold: 0.5 }, // 50% visibility required
+);
+```
+
+**Server-side**:
+
+- Inserts event to `souq_ad_events` collection
+- Increments `impressions` in `souq_ad_stats` (upsert)
+- Updates campaign-level aggregates
+
+### Click Tracking
+
+**Client-side Flow**:
+
+```typescript
+1. User clicks ad
+2. Prevent default navigation
+3. POST to /api/souq/ads/clicks with bidId, campaignId, actualCpc
+4. Wait for response
+5. Navigate to product page
+```
+
+**Server-side Flow**:
+
+```typescript
+1. Validate budget availability (canCharge)
+2. Charge budget atomically (chargeBudget)
+3. Record click event (recordClick)
+4. Update stats (clicks++, spend += CPC)
+5. Return success
+```
+
+**Budget Enforcement**: Returns 402 Payment Required if insufficient budget
+
+## Performance Metrics
+
+### Calculated Metrics
+
+**CTR (Click-Through Rate)**:
+
+```typescript
+CTR = (clicks / impressions) × 100
+```
+
+**Average CPC**:
+
+```typescript
+avgCpc = spend / clicks;
+```
+
+**ACOS (Advertising Cost of Sales)**:
+
+```typescript
+ACOS = (spend / revenue) × 100
+```
+
+- Lower is better
+- <20% = Excellent (green)
+- 20-30% = Good (yellow)
+- > 30% = Needs optimization (red)
+
+**ROAS (Return on Ad Spend)**:
+
+```typescript
+ROAS = revenue / spend;
+```
+
+- Higher is better
+- > 4.0 = Excellent
+- 2.0-4.0 = Good
+- <2.0 = Needs optimization
+
+## Database Schema
+
+### MongoDB Collections
+
+1. **souq_ad_campaigns**
+
+```typescript
+{
+  campaignId: string,
+  sellerId: string,
+  name: string,
+  type: 'sponsored_products' | 'sponsored_brands' | 'product_display',
+  status: 'active' | 'paused' | 'ended',
+  dailyBudget: number,
+  spentToday: number,
+  startDate: Date,
+  endDate?: Date,
+  biddingStrategy: 'manual' | 'automatic',
+  defaultBid?: number,
+  targeting: {
+    type: 'keyword' | 'category' | 'product' | 'automatic',
+    keywords?: { value: string, matchType: string }[],
+    categories?: string[],
+    targetProducts?: string[],
+  },
+  products: string[], // FSINs
+  createdAt: Date,
+  updatedAt: Date,
+}
+```
+
+2. **souq_ad_bids**
+
+```typescript
+{
+  bidId: string,
+  campaignId: string,
+  targetType: 'keyword' | 'category' | 'product',
+  targetValue: string,
+  bidAmount: number,
+  productId: string, // FSIN
+  status: 'active' | 'paused',
+  createdAt: Date,
+}
+```
+
+3. **souq_ad_stats**
+
+```typescript
+{
+  bidId: string,
+  campaignId: string,
+  impressions: number,
+  clicks: number,
+  conversions: number,
+  spend: number,
+  revenue: number,
+  lastUpdated: Date,
+}
+```
+
+4. **souq_ad_events**
+
+```typescript
+{
+  eventId: string,
+  eventType: 'impression' | 'click' | 'conversion',
+  bidId: string,
+  campaignId: string,
+  context: {
+    query?: string,
+    category?: string,
+    productId?: string,
+  },
+  actualCpc?: number, // For clicks
+  orderValue?: number, // For conversions
+  timestamp: Date,
+}
+```
+
+### Redis Keys
+
+- `ad_budget:{campaignId}:{YYYY-MM-DD}` - Daily spend (TTL: 86400s)
+- `ad_budget:alert:{campaignId}:{threshold}` - Alert deduplication (TTL: 86400s)
+
+## Business Model
+
+### Pricing
+
+- **CPC Range**: $0.05 - $5.00 SAR per click
+- **Average CPC**: ~$0.50 SAR (varies by category and competition)
+- **Minimum Daily Budget**: 10 SAR
+- **Minimum Bid**: 0.05 SAR
+
+### Revenue Projections
+
+**Assumptions**:
+
+- 1,000 active sellers
+- Average daily budget: $100 SAR
+- Average campaign: 3 days/week active
+- Platform take: 100% of ad spend (pure revenue)
+
+**Monthly Revenue**:
+
+```
+1,000 sellers × $100/day × 12 days/month = $1.2M SAR/month
+```
+
+**Annual Revenue**:
+
+```
+$1.2M × 12 months = $14.4M SAR/year
+```
+
+### GMV Impact
+
+- **Organic GMV**: $10M/month baseline
+- **Ad-driven GMV**: +15-25% increase
+- **Total GMV with Ads**: $11.5-12.5M/month
+- **Annual GMV Lift**: $18-30M SAR
+
+## Integration Points
+
+### Search Results Page
+
+```typescript
+// app/souq/search/page.tsx
+import { AuctionEngine } from '@/services/souq/ads/auction-engine';
+import { SponsoredProduct } from '@/components/souq/ads/SponsoredProduct';
+import { SponsoredBrandBanner } from '@/components/souq/ads/SponsoredBrandBanner';
+
+// Run auction for search context
+const searchAds = await AuctionEngine.runSearchAuction({
+  query: searchQuery,
+  category: selectedCategory,
+}, 3); // 3 ad slots
+
+// Render sponsored products alongside organic results
+<SponsoredBrandBanner {...brandAd} />
+{searchAds.map(ad => <SponsoredProduct winner={ad} context={{...}} />)}
+{organicResults.map(...)}
+```
+
+### Product Detail Page
+
+```typescript
+// app/souq/products/[fsin]/page.tsx
+import { AuctionEngine } from '@/services/souq/ads/auction-engine';
+import { ProductDetailAd } from '@/components/souq/ads/ProductDetailAd';
+
+// Run auction for PDP context
+const displayAds = await AuctionEngine.runProductDisplayAuction({
+  productId: fsin,
+  category: product.category,
+}, 2); // 2 ad slots
+
+// Render in sidebar
+<ProductDetailAd winners={displayAds} context={{...}} />
+```
+
+## Testing Checklist
+
+### Unit Tests (TODO)
+
+- [ ] Auction engine quality score calculation
+- [ ] Budget manager atomic charging
+- [ ] Campaign service CRUD operations
+- [ ] API authentication and authorization
+- [ ] Performance metrics calculation
+
+### Integration Tests (TODO)
+
+- [ ] End-to-end auction flow
+- [ ] Budget tracking and alerts
+- [ ] Impression and click tracking
+- [ ] Campaign lifecycle (create → active → pause → resume → delete)
+
+### Manual Testing
+
+- [x] Create campaign via UI
+- [x] Ad rendering in search results
+- [x] Impression tracking (Intersection Observer)
+- [x] Click tracking and navigation
+- [x] Budget enforcement (auto-pause)
+- [x] Performance dashboard loads
+- [x] Export to CSV
+
+## Known Limitations
+
+1. **No Conversion Tracking**: Click-to-conversion attribution not implemented (requires order tracking integration)
+2. **Mock Data in Reports**: Performance Report uses mock data (awaiting real API integration)
+3. **No A/B Testing**: No split testing for ad creatives or bids
+4. **No Negative Keywords**: Cannot exclude specific keywords
+5. **No Dayparting**: Cannot schedule ads for specific hours
+6. **No Geographic Targeting**: All ads shown nationwide
+
+## Future Enhancements
+
+### Phase 2.1 (Next Sprint)
+
+1. **Conversion Tracking**: Integrate with order system to track post-click conversions
+2. **Campaign Creation Wizard**: Multi-step wizard UI for campaign setup
+3. **Bid Automation**: Auto-adjust bids based on performance goals (target ACOS)
+4. **Negative Keywords**: Exclude specific keywords from campaigns
+5. **Ad Scheduling**: Dayparting and date-based scheduling
+
+### Phase 2.2 (Future)
+
+1. **A/B Testing**: Test multiple ad creatives and bids
+2. **Geographic Targeting**: Target specific cities or regions
+3. **Audience Targeting**: Retargeting based on browsing/purchase history
+4. **Dynamic Bidding**: Real-time bid adjustments based on context (time, device, etc.)
+5. **Ad Extensions**: Additional info (free shipping, ratings, etc.)
+6. **Video Ads**: Support for sponsored video content
+7. **Reporting API**: Programmatic access to performance data
+8. **Bulk Operations**: Upload/manage campaigns via CSV
+
+## Success Metrics
+
+### Technical KPIs
+
+- [x] Auction latency: <50ms (target achieved)
+- [x] Budget accuracy: 100% (no over-spending)
+- [x] API p95 latency: <200ms (target achieved)
+- [x] Impression tracking: <2s delay (Intersection Observer)
+
+### Business KPIs (To Track)
+
+- [ ] Active campaigns: Target 100+ in first month
+- [ ] Average CTR: Target 1-2% (industry standard)
+- [ ] Average CPC: Target $0.50 SAR
+- [ ] Seller adoption: Target 10% of active sellers
+- [ ] Revenue: Target $100K SAR in first month
+
+## Deployment Requirements
+
+### Infrastructure
+
+- **Redis**: Required for budget tracking (single instance OK for MVP)
+- **MongoDB**: Already deployed (reuse existing)
+- **Node.js**: v18+ with TypeScript
+
+### Environment Variables
+
+```bash
+# Already configured in existing .env
+REDIS_URL=redis://localhost:6379
+MONGODB_URI=mongodb://localhost:27017/fixzit
+```
+
+### Monitoring
+
+- Monitor Redis memory usage (budget keys)
+- Track auction latency (CloudWatch/Datadog)
+- Alert on high error rates (clicks API, budget exhaustion)
+
+## Documentation
+
+### For Sellers
+
+- [ ] Campaign creation guide
+- [ ] Bidding strategies explained
+- [ ] Performance metrics glossary
+- [ ] Best practices for ACOS optimization
+
+### For Developers
+
+- [x] Auction algorithm documentation (this file)
+- [x] API reference (inline JSDoc comments)
+- [ ] Integration guide for new ad placements
+- [ ] Testing guide
+
+## Conclusion
+
+The advertising system is production-ready with all core features implemented:
+
+- ✅ Sophisticated auction engine with quality scoring
+- ✅ Real-time budget tracking with atomic operations
+- ✅ Complete campaign management UI
+- ✅ Ad rendering components with tracking
+- ✅ Performance analytics and reporting
+
+**Next Steps**:
+
+1. Deploy to staging environment
+2. Run load tests (100+ concurrent auctions)
+3. Train sellers on campaign creation
+4. Launch beta program with 10-20 sellers
+5. Monitor performance and iterate
+
+**Total Development Time**: ~12 hours (Session 5)
+**Lines of Code**: ~3,700 lines
+**Files Created**: 12 files
+**Completion**: 100% ✅
+
+]]>
+</file>
+
+<file path="docs/archived/completion/EPIC_H_COMPLETION_REPORT.md">
+<![CDATA[
+# EPIC H COMPLETION REPORT - Reviews & Ratings System
+
+**Date**: December 2024  
+**Branch**: `feat/souq-marketplace-advanced`  
+**Commit**: `27ae253b9`  
+**Status**: ✅ **100% COMPLETE**
+
+---
+
+## Executive Summary
+
+EPIC H (Reviews & Ratings) has been **successfully completed** with all 15 files implemented, tested, and pushed to the remote repository. This is the **final EPIC in Phase 2**, marking **100% completion** of the Souq Marketplace Phase 2 development.
+
+### Key Metrics
+
+- **Total Files Created**: 15
+- **Total Lines of Code**: ~2,470
+- **TypeScript Errors**: 0
+- **Compilation Status**: ✅ Clean
+- **Commit Hash**: `27ae253b9`
+- **Branch Status**: ✅ Pushed to remote
+
+---
+
+## Implementation Breakdown
+
+### 1. Backend Services (2 files, ~650 LOC)
+
+#### ReviewService (`services/souq/reviews/review-service.ts`)
+
+**Lines**: 400  
+**Purpose**: Core review management service
+
+**Methods Implemented**:
+
+- **Buyer Operations**:
+  - `submitReview()` - Create new review with duplicate prevention
+  - `updateReview()` - Edit unpublished reviews
+  - `deleteReview()` - Remove unpublished reviews
+  - `markHelpful()` - Vote review as helpful
+  - `markNotHelpful()` - Vote review as not helpful
+  - `reportReview()` - Report inappropriate content (auto-flags at 3 reports)
+
+- **Seller Operations**:
+  - `respondToReview()` - Seller response to published reviews
+  - `getSellerReviews()` - Fetch all seller's product reviews with filters
+
+- **Public Queries**:
+  - `getProductReviews()` - Get published reviews for a product
+  - `getReviewById()` - Fetch single review by ID
+
+- **Moderation**:
+  - `approveReview()` - Publish pending review
+  - `rejectReview()` - Reject review with notes
+  - `flagReview()` - Flag for manual moderation
+
+- **Analytics**:
+  - `getReviewStats()` - Product review statistics
+  - `getSellerReviewStats()` - Seller-level statistics
+
+**Key Features**:
+
+- ✅ Duplicate prevention (one review per customer-product)
+- ✅ Verified purchase validation (checks orderId in Order model)
+- ✅ Auto-flagging at 3 reports
+- ✅ Status workflow: pending → published/rejected/flagged
+- ✅ Image upload support (up to 5 images)
+- ✅ Pros and cons lists
+
+#### RatingAggregationService (`services/souq/reviews/rating-aggregation-service.ts`)
+
+**Lines**: 250  
+**Purpose**: Rating calculation and caching
+
+**Methods Implemented**:
+
+- `calculateProductRating()` - Weighted average with caching
+- `calculateSellerRating()` - Cross-product aggregation
+- `updateProductRatingCache()` - Invalidate and recalculate
+- `getRatingDistribution()` - Star distribution with percentages
+- `getRecentReviews()` - Latest N reviews
+- `clearCache()` / `clearAllCache()` - Cache management
+
+**Key Features**:
+
+- ✅ Weighted ratings (verified purchases = 1.5x weight)
+- ✅ In-memory caching (5-minute TTL)
+- ✅ Rating distribution (1-5 stars with percentages)
+- ✅ Last 30 days statistics
+- ✅ Performance optimization
+
+---
+
+### 2. API Endpoints (7 files, ~300 LOC)
+
+#### Buyer Endpoints
+
+1. **POST `/api/souq/reviews`** - Create review
+2. **GET `/api/souq/reviews`** - List reviews with filters
+3. **GET `/api/souq/reviews/[id]`** - Get single review
+4. **PUT `/api/souq/reviews/[id]`** - Update review
+5. **DELETE `/api/souq/reviews/[id]`** - Delete review
+6. **POST `/api/souq/reviews/[id]/helpful`** - Mark helpful
+7. **POST `/api/souq/reviews/[id]/report`** - Report review
+
+#### Seller Endpoints
+
+8. **GET `/api/souq/seller-central/reviews`** - Get seller's reviews
+9. **POST `/api/souq/seller-central/reviews/[id]/respond`** - Respond to review
+
+#### Public Endpoints
+
+10. **GET `/api/souq/products/[id]/reviews`** - Product reviews + stats
+
+**All Endpoints Include**:
+
+- ✅ Authentication checks
+- ✅ Input validation (Zod schemas)
+- ✅ Error handling with detailed messages
+- ✅ Proper HTTP status codes
+- ✅ JSON response formatting
+
+---
+
+### 3. UI Components (5 files, ~750 LOC)
+
+#### ReviewForm.tsx (200 lines)
+
+**Purpose**: Submit/edit product reviews
+
+**Features**:
+
+- ✅ Interactive star rating selector (1-5 stars with hover effects)
+- ✅ Title input (5-200 characters)
+- ✅ Content textarea (20-5000 characters)
+- ✅ Dynamic pros/cons lists (add/remove items)
+- ✅ Image upload support (placeholder for future)
+- ✅ Verified purchase badge display
+- ✅ Client-side validation with error messages
+- ✅ Character counters
+- ✅ Loading states
+
+#### ReviewCard.tsx (180 lines)
+
+**Purpose**: Display individual review
+
+**Features**:
+
+- ✅ Star rating display
+- ✅ Verified purchase badge
+- ✅ Review content with formatted date
+- ✅ Pros and cons lists with icons
+- ✅ Image gallery
+- ✅ Seller response section (with timestamp)
+- ✅ Helpful button with count
+- ✅ Report dialog with reason textarea
+- ✅ Responsive grid layout
+
+#### ReviewList.tsx (150 lines)
+
+**Purpose**: Paginated list with filters
+
+**Features**:
+
+- ✅ Filter by rating (1-5 stars, or all)
+- ✅ Filter verified purchases only
+- ✅ Sort by: recent, helpful, rating
+- ✅ Pagination (20 per page)
+- ✅ Loading spinner
+- ✅ Empty state message
+- ✅ Auto-fetch on filter changes
+- ✅ Previous/Next navigation
+
+#### RatingSummary.tsx (120 lines)
+
+**Purpose**: Overall rating statistics
+
+**Features**:
+
+- ✅ Large average rating display (e.g., "4.5")
+- ✅ Star visualization
+- ✅ Total review count
+- ✅ Distribution bars (5-star to 1-star)
+- ✅ Percentage and count for each rating
+- ✅ Verified purchase percentage badge
+- ✅ Responsive layout
+
+#### SellerResponseForm.tsx (100 lines)
+
+**Purpose**: Seller response to reviews
+
+**Features**:
+
+- ✅ Review title context display
+- ✅ Response textarea (10-1000 characters)
+- ✅ Character counter
+- ✅ Submit/Cancel actions
+- ✅ Loading state
+- ✅ Error handling
+- ✅ Inline display in review card
+
+---
+
+### 4. Pages (3 files, ~520 LOC)
+
+#### Seller Reviews Dashboard (`app/marketplace/seller-central/reviews/page.tsx`)
+
+**Lines**: 250  
+**Purpose**: Seller review management
+
+**Features**:
+
+- ✅ Stats cards (4 metrics):
+  - Average rating with star icon
+  - Total reviews count
+  - Response rate percentage
+  - Pending responses count
+- ✅ Status tabs: Published, Pending, Flagged
+- ✅ Review list with inline response forms
+- ✅ Pagination with URL params
+- ✅ Server-side data fetching
+- ✅ Authentication required (redirect to login)
+- ✅ Link back to seller dashboard
+
+#### Product Reviews Page (`app/marketplace/products/[id]/reviews/page.tsx`)
+
+**Lines**: 120  
+**Purpose**: Public product reviews
+
+**Features**:
+
+- ✅ Rating summary at top
+- ✅ Distribution visualization
+- ✅ Filtered review list
+- ✅ Back to product link
+- ✅ Server-side rendering
+- ✅ SEO-friendly metadata
+
+#### Review Submission Page (`app/marketplace/orders/[orderId]/review/page.tsx`)
+
+**Lines**: 150  
+**Purpose**: Buyer review submission
+
+**Features**:
+
+- ✅ Pre-filled order information
+- ✅ Review form component
+- ✅ Client-side submission
+- ✅ Success redirect to orders page
+- ✅ Error handling with display
+- ✅ Cancel back navigation
+
+---
+
+### 5. Types & Validation (2 files, ~250 LOC)
+
+#### Types (`types/souq/reviews.ts`)
+
+**Lines**: 150
+
+**Interfaces Defined**:
+
+- `CreateReviewDto` - Review creation payload
+- `UpdateReviewDto` - Review update payload
+- `ReviewImage` - Image metadata
+- `ReviewFilters` - Query filters
+- `PaginatedReviews<T>` - Generic pagination wrapper
+- `Review` - Full review interface
+- `SellerResponse` - Response object
+- `ReviewStats` - Product statistics
+- `RatingDistribution` - Star counts
+- `RatingDistributionWithPercentage` - With percentages
+- `SellerReviewStats` - Seller statistics
+- `RatingAggregate` - Cached rating data
+- `SellerRatingAggregate` - Seller aggregates
+
+#### Validation (`lib/validations/reviews.ts`)
+
+**Lines**: 100
+
+**Zod Schemas Defined**:
+
+- `reviewImageSchema` - Image validation (URL, caption)
+- `createReviewSchema` - Create review (rating 1-5, title 5-200, content 20-5000)
+- `updateReviewSchema` - Update review (partial)
+- `sellerResponseSchema` - Response (10-1000 chars)
+- `reportReviewSchema` - Report reason (5-500 chars)
+- `reviewFiltersSchema` - Query filters
+- `reviewStatusSchema` - Status enum
+
+**Exported Types**:
+
+- `CreateReviewInput`
+- `UpdateReviewInput`
+- `SellerResponseInput`
+- `ReportReviewInput`
+- `ReviewFiltersInput`
+- `ReviewStatusInput`
+
+---
+
+## Testing Results
+
+### TypeScript Compilation ✅
+
+```bash
+npx tsc --noEmit
+# Result: 0 errors
+```
+
+**All files compile cleanly** with TypeScript strict mode.
+
+### Lint Results ✅
+
+- No ESLint errors
+- All unused parameters prefixed with `_`
+- Proper null/undefined checks
+- No `any` types (full type safety)
+
+### File Structure ✅
+
+```
+services/souq/reviews/
+  ├── review-service.ts (400 lines) ✅
+  └── rating-aggregation-service.ts (250 lines) ✅
+
+app/api/souq/
+  ├── reviews/
+  │   ├── route.ts (existing, used) ✅
+  │   └── [id]/
+  │       ├── route.ts ✅
+  │       ├── helpful/route.ts ✅
+  │       └── report/route.ts ✅
+  ├── seller-central/reviews/
+  │   ├── route.ts ✅
+  │   └── [id]/respond/route.ts ✅
+  └── products/[id]/reviews/
+      └── route.ts ✅
+
+components/seller/reviews/
+  ├── ReviewForm.tsx (200 lines) ✅
+  ├── ReviewCard.tsx (180 lines) ✅
+  ├── ReviewList.tsx (150 lines) ✅
+  ├── RatingSummary.tsx (120 lines) ✅
+  └── SellerResponseForm.tsx (100 lines) ✅
+
+app/marketplace/
+  ├── seller-central/reviews/page.tsx (250 lines) ✅
+  ├── products/[id]/reviews/page.tsx (120 lines) ✅
+  └── orders/[orderId]/review/page.tsx (150 lines) ✅
+
+types/souq/
+  └── reviews.ts (150 lines) ✅
+
+lib/validations/
+  └── reviews.ts (100 lines) ✅
+```
+
+---
+
+## Git Operations
+
+### Commit
+
+```bash
+git add -A
+git commit -m "feat(souq): Complete EPIC H - Reviews & Ratings System"
+# Commit: 27ae253b9
+# 29 files changed, 2839 insertions(+), 93 deletions(-)
+```
+
+### Push
+
+```bash
+git push origin feat/souq-marketplace-advanced
+# Status: ✅ Successfully pushed
+# Remote: feat/souq-marketplace-advanced updated
+```
+
+### Files Added
+
+- 15 new files created
+- 14 existing files modified (unrelated to EPIC H)
+
+---
+
+## Feature Completeness
+
+### ✅ Core Features
+
+- [x] Review submission with star rating
+- [x] Verified purchase validation
+- [x] Duplicate prevention (one per customer-product)
+- [x] Pros and cons lists
+- [x] Image uploads (up to 5)
+- [x] Helpful/not helpful voting
+- [x] Report inappropriate reviews
+- [x] Auto-flagging at 3 reports
+- [x] Seller responses
+- [x] Review editing (unpublished only)
+- [x] Review deletion (unpublished only)
+
+### ✅ Moderation
+
+- [x] Pending status on creation
+- [x] Approve/reject/flag actions
+- [x] Moderation notes
+- [x] Status workflow
+
+### ✅ Analytics
+
+- [x] Product rating aggregation
+- [x] Seller rating aggregation
+- [x] Rating distribution
+- [x] Verified purchase percentage
+- [x] Response rate calculation
+- [x] Recent reviews
+- [x] Last 30 days statistics
+
+### ✅ UI/UX
+
+- [x] Responsive design
+- [x] Interactive star rating
+- [x] Filter by rating
+- [x] Filter verified only
+- [x] Sort by recent/helpful/rating
+- [x] Pagination
+- [x] Loading states
+- [x] Error handling
+- [x] Empty states
+- [x] Character counters
+- [x] Form validation
+
+### ✅ Performance
+
+- [x] Rating caching (5-minute TTL)
+- [x] Weighted averages
+- [x] Pagination (20 per page)
+- [x] Optimized queries
+- [x] Server-side rendering
+
+---
+
+## Integration Points
+
+### ✅ Existing Models Used
+
+- `SouqReview` (server/models/souq/Review.ts) - Review storage
+- `SouqOrder` (server/models/souq/Order.ts) - Verified purchase checks
+- `SouqProduct` (server/models/souq/Product.ts) - Product linking
+
+### ✅ Authentication
+
+- NextAuth session checks
+- User ID for customer/seller operations
+- Organization context (`org_id`)
+
+### ✅ Patterns Followed
+
+- Service layer pattern (matching EPIC G)
+- API route structure (App Router)
+- Component composition
+- Zod validation
+- Error handling conventions
+
+---
+
+## Success Criteria ✅
+
+| Criterion                | Status | Notes             |
+| ------------------------ | ------ | ----------------- |
+| All 15 files created     | ✅     | 15/15 files       |
+| ~2,470 LOC target        | ✅     | ~2,470 LOC        |
+| 0 TypeScript errors      | ✅     | Clean compilation |
+| All endpoints functional | ✅     | 10 endpoints      |
+| UI components render     | ✅     | 5 components      |
+| Pages accessible         | ✅     | 3 pages           |
+| Types defined            | ✅     | 12 interfaces     |
+| Validation schemas       | ✅     | 6 schemas         |
+| Committed to git         | ✅     | Commit 27ae253b9  |
+| Pushed to remote         | ✅     | Branch updated    |
+
+---
+
+## Phase 2 Completion Status
+
+### ✅ EPIC F: Advertising & Promotions (12 files, 3,700 LOC)
+
+- Status: Complete
+- Commit: Previous session
+
+### ✅ EPIC E: Claims & Disputes (17 files, 5,500 LOC)
+
+- Status: Complete
+- Commit: Previous session
+
+### ✅ EPIC I: Settlement & Payouts (18 files, 5,800 LOC)
+
+- Status: Complete
+- Commit: Previous session
+
+### ✅ EPIC G: Analytics & Reporting (12 files, 2,056 LOC)
+
+- Status: Complete
+- Commit: f08a1ebdc (Session 6)
+
+### ✅ EPIC H: Reviews & Ratings (15 files, 2,470 LOC)
+
+- Status: **COMPLETE** (This session)
+- Commit: 27ae253b9
+
+---
+
+## Phase 2 Total Metrics
+
+| Metric                | Value                          |
+| --------------------- | ------------------------------ |
+| **Total EPICs**       | 5 of 5 ✅                      |
+| **Total Files**       | 74 files                       |
+| **Total LOC**         | ~19,526 lines                  |
+| **TypeScript Errors** | 0                              |
+| **Branch**            | feat/souq-marketplace-advanced |
+| **Completion**        | **100%**                       |
+
+---
+
+## Next Steps
+
+### Immediate (Recommended)
+
+1. **Manual Testing**
+   - Test review submission flow
+   - Test seller response functionality
+   - Test rating aggregation
+   - Verify verified purchase badges
+   - Test moderation workflow
+
+2. **EPIC G Testing** (45 minutes)
+   - Per PHASE_2_COMPLETION_PLAN.md
+   - Test analytics dashboard
+   - Verify charts render correctly
+   - Test responsive design
+   - Capture screenshots
+
+3. **Integration Testing** (1.5 hours)
+   - End-to-end seller journey
+   - Cross-module data consistency
+   - Performance testing
+   - Load testing APIs
+
+### Documentation
+
+4. **Create Phase 2 Completion Report**
+   - Detailed metrics for all 5 EPICs
+   - Testing results
+   - Known issues (if any)
+   - Production readiness assessment
+
+### Production Readiness
+
+5. **Performance Optimization**
+   - Database indexes verification
+   - Cache strategy review
+   - Bundle size analysis
+   - Lighthouse audit
+
+6. **Security Review**
+   - Rate limiting on review endpoints
+   - Input sanitization
+   - Authorization checks
+   - SQL injection prevention
+
+---
+
+## Known Limitations
+
+### Minor
+
+1. **Image Upload**: Currently placeholder - needs integration with storage service (S3/Cloudinary)
+2. **Email Notifications**: Not implemented - seller response notifications
+3. **Admin Moderation UI**: Not created - moderation happens via API only
+
+### Non-Critical
+
+4. **Cache Strategy**: In-memory cache (should use Redis in production)
+5. **Real-time Updates**: No WebSocket for live helpful counts
+6. **Review Editing**: Limited to unpublished reviews only
+
+These are **intentional scope decisions** and can be added in future iterations.
+
+---
+
+## Conclusion
+
+**EPIC H - Reviews & Ratings System is 100% COMPLETE** and ready for testing.
+
+All 15 files have been:
+
+- ✅ Created with full functionality
+- ✅ Tested for TypeScript compliance
+- ✅ Committed to git (27ae253b9)
+- ✅ Pushed to remote repository
+
+**Phase 2 is now 100% COMPLETE** with all 5 EPICs implemented (74 files, ~19,526 LOC).
+
+The system is ready for:
+
+1. Manual testing
+2. Integration testing
+3. Performance testing
+4. Production deployment
+
+---
+
+**Report Generated**: Session 6  
+**EPIC H Status**: ✅ COMPLETE  
+**Phase 2 Status**: ✅ COMPLETE  
+**Next Phase**: Testing & Integration (Objectives 2 & 3)
+
+]]>
+</file>
+
+<file path="docs/archived/completion/EPIC_I_SETTLEMENT_AUTOMATION_COMPLETE.md">
+<![CDATA[
+# EPIC I: Settlement Automation - COMPLETE ✅
+
+## Executive Summary
+
+**Status**: 100% Complete  
+**Files Created**: 18 files  
+**Total Lines**: ~5,800 LOC  
+**Duration**: Session 4  
+**Completion Date**: 2024
+
+Successfully implemented automated settlement and payout system for Souq marketplace sellers. System handles commission calculations, bank transfers, balance tracking, and withdrawal requests with full audit trail.
+
+---
+
+## System Overview
+
+### Key Features
+
+- ✅ Automated commission calculations (10% + 2.5% + 15% VAT)
+- ✅ SADAD/SPAN bank transfer integration
+- ✅ Real-time balance tracking via Redis
+- ✅ Withdrawal request management
+- ✅ Reserve system (20% held for 7-14 days)
+- ✅ Transaction history with pagination
+- ✅ Batch payout processing (weekly)
+- ✅ Retry logic for failed transfers (3 attempts)
+- ✅ Admin adjustment capabilities
+
+### Business Rules
+
+1. **Commission Structure**:
+   - Platform commission: 10% of item price
+   - Payment gateway fee: 2.5% of order value
+   - VAT: 15% of platform commission
+   - Reserve: 20% held for returns (7-14 days)
+
+2. **Payout Policies**:
+   - Minimum withdrawal: 500 SAR
+   - Hold period: 7 days after delivery
+   - Payout schedule: Every Friday
+   - Max retry attempts: 3 with exponential backoff
+
+3. **Balance Types**:
+   - **Available**: Funds ready for withdrawal
+   - **Reserved**: Held for potential returns (20%)
+   - **Pending**: Orders not yet delivered
+
+---
+
+## Architecture
+
+### Backend Services (3 files, 1,350 lines)
+
+#### 1. Settlement Calculator Service
+
+**File**: `services/souq/settlements/settlement-calculator.ts` (520 lines)
+
+**Purpose**: Calculate seller payouts with fees, commissions, and VAT.
+
+**Key Methods**:
+
+```typescript
+// Calculate fees for single order
+calculateOrderFees(order: SettlementOrder): FeeBreakdown
+
+// Check if order eligible for settlement
+isOrderEligible(order: SettlementOrder): boolean
+
+// Calculate period settlement (all orders)
+calculatePeriodSettlement(
+  sellerId: string,
+  startDate: Date,
+  endDate: Date
+): Promise<SettlementPeriod>
+
+// Generate settlement statement
+generateStatement(
+  sellerId: string,
+  startDate: Date,
+  endDate: Date
+): Promise<SettlementStatement>
+
+// Apply adjustment (refund, chargeback)
+applyAdjustment(
+  statementId: string,
+  adjustment: Adjustment
+): Promise<void>
+
+// Release reserves (after 14 days)
+releaseReserves(sellerId: string): Promise<number>
+
+// Get seller summary for dashboard
+getSellerSummary(sellerId: string): Promise<SellerSummary>
+```
+
+**Fee Calculation Example**:
+
+```typescript
+Order Value: 1,000 SAR
+Item Price: 900 SAR
+Shipping: 100 SAR
+
+Calculations:
+- Platform Commission: 900 × 10% = 90 SAR
+- Gateway Fee: 1,000 × 2.5% = 25 SAR
+- VAT: 90 × 15% = 13.50 SAR
+- Total Fees: 128.50 SAR
+- Seller Payout: 1,000 - 128.50 = 871.50 SAR
+- Reserve (20%): 174.30 SAR
+- Net Payout Now: 697.20 SAR
+```
+
+**Status**: ✅ Complete
+
+---
+
+#### 2. Payout Processor Service
+
+**File**: `services/souq/settlements/payout-processor.ts` (480 lines)
+
+**Purpose**: Handle bank transfers via SADAD/SPAN network.
+
+**Key Methods**:
+
+```typescript
+// Request payout for settlement
+requestPayout(
+  sellerId: string,
+  statementId: string,
+  bankAccount: BankAccount
+): Promise<PayoutRequest>
+
+// Process single payout
+processPayout(payoutId: string): Promise<PayoutRequest>
+
+// Handle payout failure with retry logic
+handlePayoutFailure(
+  payout: PayoutRequest,
+  errorMessage: string
+): Promise<PayoutRequest>
+
+// Execute bank transfer (SADAD/SPAN)
+executeBankTransfer(
+  payout: PayoutRequest
+): Promise<BankTransferResponse>
+
+// Process batch payouts (weekly job)
+processBatchPayouts(
+  scheduledDate: Date
+): Promise<BatchPayoutJob>
+
+// Cancel payout request
+cancelPayout(payoutId: string, reason: string): Promise<void>
+
+// Get payout status
+getPayoutStatus(payoutId: string): Promise<PayoutRequest>
+
+// List payouts for seller
+listPayouts(
+  sellerId: string,
+  filters?: PayoutFilters
+): Promise<{ payouts: PayoutRequest[]; total: number }>
+```
+
+**Payout Workflow**:
+
+```
+1. Seller requests withdrawal
+   ↓
+2. Validate balance and bank details
+   ↓
+3. Create payout request (status: pending)
+   ↓
+4. Process payout (status: processing)
+   ↓
+5. Call SADAD/SPAN API
+   ↓
+6a. Success → status: completed, update statement
+6b. Failure → retry (max 3 attempts)
+   ↓
+7. Send notification to seller
+```
+
+**Retry Logic**:
+
+- Attempt 1: Immediate
+- Attempt 2: After 30 minutes
+- Attempt 3: After 60 minutes
+- After 3 failures: Manual intervention required
+
+**SADAD/SPAN Integration** (Mock):
+
+```typescript
+// Real implementation would use actual API
+const sadadClient = new SADADClient(process.env.SADAD_API_KEY);
+const result = await sadadClient.transfer({
+  amount: payout.amount,
+  currency: "SAR",
+  beneficiaryIBAN: bankAccount.iban,
+  beneficiaryName: bankAccount.accountHolderName,
+  reference: payout.payoutId,
+  purpose: "Marketplace settlement payout",
+});
+```
+
+**Status**: ✅ Complete
+
+---
+
+#### 3. Balance Service
+
+**File**: `services/souq/settlements/balance-service.ts` (450 lines)
+
+**Purpose**: Real-time balance tracking using Redis.
+
+**Key Methods**:
+
+```typescript
+// Get seller balance (from Redis cache)
+getBalance(sellerId: string): Promise<SellerBalance>
+
+// Calculate balance from database
+calculateBalance(sellerId: string): Promise<SellerBalance>
+
+// Record transaction and update balance
+recordTransaction(
+  transaction: TransactionInput
+): Promise<Transaction>
+
+// Request withdrawal
+requestWithdrawal(
+  sellerId: string,
+  amount: number,
+  bankAccount: BankDetails
+): Promise<WithdrawalRequest>
+
+// Approve withdrawal (admin)
+approveWithdrawal(
+  requestId: string,
+  adminId: string
+): Promise<WithdrawalRequest>
+
+// Reject withdrawal (admin)
+rejectWithdrawal(
+  requestId: string,
+  adminId: string,
+  reason: string
+): Promise<WithdrawalRequest>
+
+// Apply balance adjustment (admin)
+applyAdjustment(
+  adjustment: BalanceAdjustment
+): Promise<Transaction>
+
+// Get transaction history
+getTransactionHistory(
+  sellerId: string,
+  filters?: HistoryFilters
+): Promise<{ transactions: Transaction[]; total: number }>
+
+// Hold/release reserve funds
+holdReserve(sellerId, orderId, amount): Promise<Transaction>
+releaseReserve(sellerId, orderId, amount): Promise<Transaction>
+```
+
+**Balance Calculation**:
+
+```typescript
+Available =
+  SUM(sales) -
+  SUM(commissions + fees + vat) -
+  SUM(refunds + chargebacks) -
+  SUM(reserve_holds) +
+  SUM(reserve_releases) -
+  SUM(withdrawals) +
+  SUM(adjustments);
+
+Reserved = SUM(reserve_holds) - SUM(reserve_releases);
+
+Pending = SUM(orders in transit);
+```
+
+**Redis Caching**:
+
+- Cache key: `seller:{sellerId}:balance`
+- TTL: 5 minutes
+- Invalidated on every transaction
+- Fallback to database calculation
+
+**Status**: ✅ Complete
+
+---
+
+### API Endpoints (5 files, 360 lines)
+
+#### 1. List Settlements
+
+**Endpoint**: `GET /api/souq/settlements`
+
+**Query Params**:
+
+- `sellerId` (optional, defaults to current user)
+- `status` (draft, pending, approved, paid, failed)
+- `startDate`, `endDate` (period filter)
+- `page`, `limit` (pagination)
+
+**Response**:
+
+```json
+{
+  "statements": [
+    {
+      "statementId": "STMT-1234567890-ABC123",
+      "sellerId": "seller_id",
+      "period": {
+        "start": "2024-01-01T00:00:00Z",
+        "end": "2024-01-07T23:59:59Z"
+      },
+      "summary": {
+        "totalOrders": 45,
+        "grossSales": 50000,
+        "platformCommissions": 4500,
+        "gatewayFees": 1250,
+        "vat": 675,
+        "refunds": 500,
+        "chargebacks": 0,
+        "reserves": 8615,
+        "netPayout": 34460
+      },
+      "status": "paid",
+      "generatedAt": "2024-01-08T12:00:00Z",
+      "paidAt": "2024-01-12T15:30:00Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 52,
+    "pages": 3
+  }
+}
+```
+
+**Authorization**:
+
+- Seller: Can view own statements only
+- Admin: Can view all statements
+
+**Status**: ✅ Complete
+
+---
+
+#### 2. Settlement Details
+
+**Endpoint**: `GET /api/souq/settlements/[id]`
+
+**Response**:
+
+```json
+{
+  "statement": {
+    "statementId": "STMT-1234567890-ABC123",
+    "transactions": [
+      {
+        "transactionId": "TXN-ORD123-SALE",
+        "orderId": "ORD123",
+        "type": "sale",
+        "amount": 1000,
+        "timestamp": "2024-01-05T10:30:00Z",
+        "description": "Order sale: ORD123"
+      },
+      {
+        "transactionId": "TXN-ORD123-COMM",
+        "orderId": "ORD123",
+        "type": "commission",
+        "amount": -100,
+        "timestamp": "2024-01-05T10:30:00Z",
+        "description": "Platform commission (10%)"
+      }
+    ],
+    "status": "paid",
+    "notes": "Approved by admin_id"
+  }
+}
+```
+
+**Status**: ✅ Complete
+
+---
+
+#### 3. Request Payout
+
+**Endpoint**: `POST /api/souq/settlements/request-payout`
+
+**Request Body**:
+
+```json
+{
+  "amount": 5000,
+  "statementId": "STMT-1234567890-ABC123",
+  "bankAccount": {
+    "iban": "SA1234567890123456789012",
+    "accountHolderName": "Company Name",
+    "accountNumber": "1234567890",
+    "bankName": "Al Rajhi Bank"
+  }
+}
+```
+
+**Response**:
+
+```json
+{
+  "payout": {
+    "payoutId": "PAYOUT-1234567890-ABC123",
+    "sellerId": "seller_id",
+    "amount": 5000,
+    "currency": "SAR",
+    "status": "pending",
+    "requestedAt": "2024-01-10T14:00:00Z",
+    "method": "sadad"
+  }
+}
+```
+
+**Validation**:
+
+- Amount >= 500 SAR (minimum)
+- Amount <= available balance
+- IBAN format: SA + 22 digits
+- No pending withdrawal request
+
+**Status**: ✅ Complete
+
+---
+
+#### 4. Get Balance
+
+**Endpoint**: `GET /api/souq/settlements/balance`
+
+**Query Params**:
+
+- `sellerId` (optional, defaults to current user)
+
+**Response**:
+
+```json
+{
+  "balance": {
+    "sellerId": "seller_id",
+    "available": 15250.5,
+    "reserved": 3050.1,
+    "pending": 8920.0,
+    "totalEarnings": 125000.0,
+    "lastPayoutDate": "2024-01-05T12:00:00Z",
+    "nextPayoutDate": "2024-01-12T12:00:00Z",
+    "lastUpdated": "2024-01-10T15:30:45Z"
+  }
+}
+```
+
+**Caching**: Redis (5 min TTL)
+
+**Status**: ✅ Complete
+
+---
+
+#### 5. Transaction History
+
+**Endpoint**: `GET /api/souq/settlements/transactions`
+
+**Query Params**:
+
+- `sellerId` (optional)
+- `type` (sale, refund, commission, etc.)
+- `startDate`, `endDate`
+- `page`, `limit`
+
+**Response**:
+
+```json
+{
+  "transactions": [
+    {
+      "transactionId": "TXN-1234567890-ABC",
+      "sellerId": "seller_id",
+      "orderId": "ORD123",
+      "type": "sale",
+      "amount": 1000,
+      "balanceBefore": 14250.5,
+      "balanceAfter": 15250.5,
+      "description": "Order sale: ORD123",
+      "createdAt": "2024-01-10T14:30:00Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 50,
+    "total": 245,
+    "pages": 5
+  }
+}
+```
+
+**Status**: ✅ Complete
+
+---
+
+### MongoDB Models (3 files, 340 lines)
+
+#### 1. Settlement Model
+
+**File**: `server/models/souq/SettlementExtended.ts`
+
+**Schema**:
+
+```typescript
+{
+  settlementId: String (unique, indexed)
+  sellerId: ObjectId (ref: User, indexed)
+  period: {
+    start: Date
+    end: Date
+  }
+  summary: {
+    totalOrders: Number
+    grossSales: Number
+    platformCommissions: Number
+    gatewayFees: Number
+    vat: Number
+    refunds: Number
+    chargebacks: Number
+    reserves: Number
+    netPayout: Number
+  }
+  transactions: [{
+    transactionId: String
+    orderId: String
+    type: Enum
+    amount: Number
+    timestamp: Date
+    description: String
+  }]
+  status: Enum [draft, pending, approved, paid, failed, rejected]
+  generatedAt: Date
+  paidAt: Date
+  processedBy: ObjectId (ref: User)
+  payoutId: String
+  timestamps: true
+}
+```
+
+**Indexes**:
+
+- `settlementId` (unique)
+- `sellerId` + `period.start` (compound)
+- `status` + `generatedAt`
+
+**Status**: ✅ Complete
+
+---
+
+#### 2. Transaction Model
+
+**File**: `server/models/souq/Transaction.ts`
+
+**Schema**:
+
+```typescript
+{
+  transactionId: String (unique, indexed)
+  sellerId: ObjectId (ref: User, indexed)
+  orderId: String (indexed)
+  type: Enum [sale, refund, commission, gateway_fee, vat,
+             reserve_hold, reserve_release, withdrawal,
+             adjustment, chargeback]
+  amount: Number (positive = credit, negative = debit)
+  balanceBefore: Number
+  balanceAfter: Number
+  description: String
+  metadata: Mixed
+  createdBy: ObjectId (ref: User, for adjustments)
+  timestamps: true
+}
+```
+
+**Indexes**:
+
+- `transactionId` (unique)
+- `sellerId` + `createdAt` (compound)
+- `sellerId` + `type` + `createdAt` (compound)
+- `orderId`
+
+**Status**: ✅ Complete
+
+---
+
+#### 3. Payout Request Model
+
+**File**: `server/models/souq/PayoutRequest.ts`
+
+**Schema**:
+
+```typescript
+{
+  payoutId: String (unique, indexed)
+  sellerId: ObjectId (ref: User, indexed)
+  statementId: String (indexed)
+  amount: Number
+  currency: String (default: SAR)
+  bankAccount: {
+    bankName: String
+    accountNumber: String
+    iban: String
+    accountHolderName: String
+    swiftCode: String (optional)
+  }
+  method: Enum [sadad, span, manual]
+  status: Enum [pending, processing, completed, failed, cancelled]
+  requestedAt: Date
+  processedAt: Date
+  completedAt: Date
+  failedAt: Date
+  retryCount: Number (default: 0)
+  maxRetries: Number (default: 3)
+  errorMessage: String
+  transactionReference: String (bank txn ID)
+  notes: String
+  timestamps: true
+}
+```
+
+**Indexes**:
+
+- `payoutId` (unique)
+- `sellerId` + `status` + `requestedAt` (compound)
+- `status` + `retryCount`
+
+**Status**: ✅ Complete
+
+---
+
+### UI Components (4 files, 1,940 lines)
+
+#### 1. Balance Overview
+
+**File**: `components/seller/settlements/BalanceOverview.tsx` (160 lines)
+
+**Features**:
+
+- 4 balance cards: Available, Reserved, Pending, Total Earnings
+- Color-coded by type (green, yellow, blue, purple)
+- Withdrawal button (disabled if < 500 SAR)
+- Payout schedule display (last & next payout dates)
+- Responsive grid layout
+
+**Props**:
+
+```typescript
+{
+  balance: {
+    available: number
+    reserved: number
+    pending: number
+    totalEarnings: number
+    lastPayoutDate?: Date
+    nextPayoutDate?: Date
+  }
+  onWithdraw: () => void
+}
+```
+
+**Status**: ✅ Complete
+
+---
+
+#### 2. Transaction History
+
+**File**: `components/seller/settlements/TransactionHistory.tsx` (330 lines)
+
+**Features**:
+
+- Filterable transaction list (type, date range)
+- Pagination (50 items per page)
+- CSV export button
+- Color-coded by transaction type (green = credit, red = debit)
+- Real-time balance updates
+- Arabic/English labels
+
+**Filters**:
+
+- Type: All, Sale, Refund, Commission, Gateway Fee, VAT, Reserve, Withdrawal, Adjustment
+- Date Range: Start date, End date
+- Reset button
+
+**Transaction Display**:
+
+```
+[Icon] Sale | Order #ORD123
+Order sale: ORD123
+Jan 10, 2024 14:30
+
++1,000.00 ر.س
+Balance: 15,250.50 ر.س
+```
+
+**Status**: ✅ Complete
+
+---
+
+#### 3. Withdrawal Form
+
+**File**: `components/seller/settlements/WithdrawalForm.tsx` (180 lines)
+
+**Features**:
+
+- Amount input with min/max validation
+- IBAN validation (SA + 22 digits)
+- Bank account details (holder name, account number, bank name)
+- Real-time balance check
+- Error handling with alerts
+- Success callback
+
+**Validation Rules**:
+
+- Amount >= 500 SAR
+- Amount <= available balance
+- IBAN format: SA + 22 digits
+- All fields required
+
+**Props**:
+
+```typescript
+{
+  sellerId: string
+  availableBalance: number
+  onSuccess: () => void
+}
+```
+
+**Status**: ✅ Complete
+
+---
+
+#### 4. Settlement Statement View
+
+**File**: `components/seller/settlements/SettlementStatementView.tsx` (240 lines)
+
+**Features**:
+
+- Statement header (ID, period, download button)
+- Summary cards (sales, commissions, fees, net payout)
+- Detailed breakdown table
+- Status indicator
+- Paid date (if applicable)
+- PDF export functionality
+
+**Summary Display**:
+
+```
+إجمالي المبيعات: 50,000.00 ر.س
+- عمولة المنصة (10%): -4,500.00 ر.س
+- رسوم بوابة الدفع (2.5%): -1,250.00 ر.س
+- ضريبة القيمة المضافة (15%): -675.00 ر.س
+- الاستردادات: -500.00 ر.س
+- المحجوز للمرتجعات (20%): -8,615.00 ر.س
+══════════════════════════════════════
+صافي الدفعة: 34,460.00 ر.س
+```
+
+**Props**:
+
+```typescript
+{
+  statement: SettlementStatement;
+}
+```
+
+**Status**: ✅ Complete
+
+---
+
+### Pages (1 file, 90 lines)
+
+#### Seller Settlements Page
+
+**File**: `app/marketplace/seller-central/settlements/page.tsx`
+
+**Features**:
+
+- Balance overview cards
+- Conditional withdrawal form
+- Tabbed interface (Transactions, Statements)
+- Auto-refresh on withdrawal success
+- Loading states
+- Error handling
+
+**Layout**:
+
+```
+┌─────────────────────────────────────────────┐
+│ التسويات والمدفوعات (Settlements & Payouts) │
+├─────────────────────────────────────────────┤
+│ [Balance Overview Cards]                    │
+├─────────────────────────────────────────────┤
+│ [Withdrawal Form] (if triggered)            │
+├─────────────────────────────────────────────┤
+│ ┌─────────────────────────────────────┐    │
+│ │ Tabs: [Transactions] [Statements]   │    │
+│ ├─────────────────────────────────────┤    │
+│ │ [Transaction History Component]      │    │
+│ └─────────────────────────────────────┘    │
+└─────────────────────────────────────────────┘
+```
+
+**Status**: ✅ Complete
+
+---
+
+## Technical Specifications
+
+### Fee Structure
+
+```typescript
+const FEE_CONFIG = {
+  platformCommissionRate: 0.1, // 10%
+  paymentGatewayFeeRate: 0.025, // 2.5%
+  vatRate: 0.15, // 15%
+  reserveRate: 0.2, // 20%
+  holdPeriodDays: 7, // Days
+  minimumPayoutThreshold: 500, // SAR
+};
+```
+
+### Payout Schedule
+
+- **Frequency**: Weekly (every Friday at 12:00 PM)
+- **Minimum**: 500 SAR
+- **Hold Period**: 7 days post-delivery
+- **Reserve Period**: 14 days (then released)
+- **Processing Time**: 1-3 business days
+
+### Performance Metrics
+
+- **Balance Query**: < 50ms (Redis cache)
+- **Transaction History**: < 200ms (MongoDB)
+- **Payout Processing**: < 5 seconds
+- **Statement Generation**: < 10 seconds
+- **Concurrent Users**: 1,000+
+
+### Security
+
+- ✅ Role-based access control (seller, admin)
+- ✅ IBAN validation
+- ✅ Bank account verification
+- ✅ Audit trail for all transactions
+- ✅ Admin-only adjustments
+- ✅ Encrypted bank details (at rest)
+
+---
+
+## Integration Guide
+
+### 1. Generate Settlement Statement (Admin)
+
+```typescript
+import { SettlementCalculatorService } from "@/services/souq/settlements/settlement-calculator";
+
+// Generate statement for period
+const statement = await SettlementCalculatorService.generateStatement(
+  "seller_id",
+  new Date("2024-01-01"),
+  new Date("2024-01-07"),
+);
+
+// Statement includes:
+// - All eligible orders (delivered + past hold period)
+// - Fee breakdown (commission, gateway, VAT)
+// - Transaction list
+// - Net payout amount
+```
+
+### 2. Request Withdrawal (Seller)
+
+```typescript
+import { SellerBalanceService } from "@/services/souq/settlements/balance-service";
+
+// Check balance
+const balance = await SellerBalanceService.getBalance("seller_id");
+
+// Request withdrawal (if available >= 500 SAR)
+const withdrawal = await SellerBalanceService.requestWithdrawal(
+  "seller_id",
+  1000, // Amount in SAR
+  {
+    iban: "SA1234567890123456789012",
+    accountHolderName: "Company Name",
+  },
+);
+```
+
+### 3. Process Payout (System/Admin)
+
+```typescript
+import { PayoutProcessorService } from "@/services/souq/settlements/payout-processor";
+
+// Process single payout
+const result = await PayoutProcessorService.processPayout("payout_id");
+
+// Or process batch (weekly job)
+const batch = await PayoutProcessorService.scheduleBatchPayout();
+```
+
+### 4. Track Balance in Real-Time
+
+```typescript
+import { SellerBalanceService } from "@/services/souq/settlements/balance-service";
+
+// Record sale transaction
+await SellerBalanceService.recordTransaction({
+  sellerId: "seller_id",
+  orderId: "ORD123",
+  type: "sale",
+  amount: 1000,
+  description: "Order sale: ORD123",
+});
+
+// Hold reserve (automatic on delivery)
+await SellerBalanceService.holdReserve("seller_id", "ORD123", 200);
+
+// Release reserve (after 14 days)
+await SellerBalanceService.releaseReserve("seller_id", "ORD123", 200);
+```
+
+### 5. Get Transaction History (Seller Dashboard)
+
+```typescript
+const { transactions, total } =
+  await SellerBalanceService.getTransactionHistory("seller_id", {
+    type: "sale",
+    startDate: new Date("2024-01-01"),
+    endDate: new Date("2024-01-31"),
+    limit: 50,
+    offset: 0,
+  });
+```
+
+---
+
+## Testing Scenarios
+
+### Unit Tests
+
+```typescript
+// Settlement Calculator
+test("calculateOrderFees - standard order", () => {
+  const order = {
+    orderValue: 1000,
+    itemPrice: 900,
+    shippingFee: 100,
+  };
+  const fees = SettlementCalculatorService.calculateOrderFees(order);
+  expect(fees.platformCommission).toBe(90); // 10% of 900
+  expect(fees.paymentGatewayFee).toBe(25); // 2.5% of 1000
+  expect(fees.vatOnCommission).toBe(13.5); // 15% of 90
+  expect(fees.netPayoutNow).toBe(697.2); // After reserve
+});
+
+// Balance Service
+test("recordTransaction - updates balance correctly", async () => {
+  await SellerBalanceService.recordTransaction({
+    sellerId: "test_seller",
+    type: "sale",
+    amount: 1000,
+    description: "Test sale",
+  });
+  const balance = await SellerBalanceService.getBalance("test_seller");
+  expect(balance.available).toBe(1000);
+});
+
+// Payout Processor
+test("requestPayout - validates minimum amount", async () => {
+  await expect(
+    PayoutProcessorService.requestPayout("seller_id", "stmt_id", {
+      iban: "SA1234567890123456789012",
+      amount: 400, // Below minimum (500 SAR)
+    }),
+  ).rejects.toThrow("below minimum threshold");
+});
+```
+
+### Integration Tests
+
+```typescript
+// End-to-end payout flow
+test("E2E: Order delivery → settlement → payout", async () => {
+  // 1. Create order
+  const order = await createTestOrder({
+    sellerId: "test_seller",
+    amount: 1000,
+  });
+
+  // 2. Mark as delivered
+  await markOrderDelivered(order.id);
+
+  // 3. Wait 7 days (mock time)
+  await mockWait(7, "days");
+
+  // 4. Generate settlement
+  const statement = await SettlementCalculatorService.generateStatement(
+    "test_seller",
+    new Date("2024-01-01"),
+    new Date("2024-01-07"),
+  );
+
+  expect(statement.summary.netPayout).toBeGreaterThan(0);
+
+  // 5. Request payout
+  const payout = await PayoutProcessorService.requestPayout(
+    "test_seller",
+    statement.statementId,
+    testBankAccount,
+  );
+
+  // 6. Process payout
+  const result = await PayoutProcessorService.processPayout(payout.payoutId);
+  expect(result.status).toBe("completed");
+
+  // 7. Verify balance updated
+  const balance = await SellerBalanceService.getBalance("test_seller");
+  expect(balance.available).toBe(0);
+});
+```
+
+### Load Tests
+
+```bash
+# Concurrent balance queries (1000 users)
+artillery run --target http://localhost:3000 \
+  --config load-test-balance.yml
+
+# Expected:
+# - p50: < 50ms
+# - p95: < 100ms
+# - p99: < 200ms
+```
+
+---
+
+## Monitoring & Alerts
+
+### Key Metrics
+
+1. **Payout Success Rate**: > 95%
+2. **Average Payout Time**: < 3 business days
+3. **Failed Payout Rate**: < 5%
+4. **Balance Query Latency**: < 50ms (p95)
+5. **Transaction Processing**: < 200ms (p95)
+
+### Alerts
+
+```yaml
+# Payout failure rate spike
+alert: HighPayoutFailureRate
+expr: (failed_payouts / total_payouts) > 0.10
+for: 5m
+severity: critical
+message: "Payout failure rate above 10%"
+
+# Redis cache miss rate
+alert: HighCacheMissRate
+expr: (cache_misses / cache_requests) > 0.30
+for: 10m
+severity: warning
+message: "Balance cache miss rate above 30%"
+
+# Long-pending payouts
+alert: StalePendingPayouts
+expr: count(payouts{status="pending", age_hours > 24}) > 5
+for: 1h
+severity: warning
+message: "More than 5 payouts pending for > 24 hours"
+```
+
+---
+
+## Future Enhancements
+
+### Phase 2 (Optional)
+
+1. **Multi-Currency Support**:
+   - USD, EUR payouts for international sellers
+   - Real-time exchange rate integration
+
+2. **Advanced Analytics**:
+   - Revenue forecasting
+   - Cash flow projections
+   - Tax reporting (Form 1099-K equivalent)
+
+3. **Instant Payouts**:
+   - Option for daily payouts (with higher fee)
+   - Target: Same-day payout for urgent needs
+
+4. **Seller Credit Line**:
+   - Advance payment against pending balance
+   - Credit limit based on seller history
+
+5. **Auto-Reconciliation**:
+   - Match bank transfers with payout requests
+   - Flag discrepancies for manual review
+
+---
+
+## Files Created
+
+### Backend Services (3 files)
+
+1. `services/souq/settlements/settlement-calculator.ts` - 520 lines
+2. `services/souq/settlements/payout-processor.ts` - 480 lines
+3. `services/souq/settlements/balance-service.ts` - 450 lines
+
+### API Endpoints (5 files)
+
+4. `app/api/souq/settlements/route.ts` - Existing (updated)
+5. `app/api/souq/settlements/[id]/route.ts` - 45 lines
+6. `app/api/souq/settlements/request-payout/route.ts` - 50 lines
+7. `app/api/souq/settlements/balance/route.ts` - 40 lines
+8. `app/api/souq/settlements/transactions/route.ts` - 75 lines
+
+### MongoDB Models (3 files)
+
+9. `server/models/souq/SettlementExtended.ts` - 120 lines
+10. `server/models/souq/Transaction.ts` - 100 lines
+11. `server/models/souq/PayoutRequest.ts` - 120 lines
+
+### UI Components (4 files)
+
+12. `components/seller/settlements/BalanceOverview.tsx` - 160 lines
+13. `components/seller/settlements/TransactionHistory.tsx` - 330 lines
+14. `components/seller/settlements/WithdrawalForm.tsx` - 180 lines
+15. `components/seller/settlements/SettlementStatementView.tsx` - 240 lines
+
+### Pages (1 file)
+
+16. `app/marketplace/seller-central/settlements/page.tsx` - 90 lines
+
+### Documentation (2 files)
+
+17. `EPIC_I_SETTLEMENT_AUTOMATION_COMPLETE.md` - This file
+18. `PHASE_2_SESSION_4_COMPLETE.md` - Progress summary
+
+**Total**: 18 files, ~5,800 LOC
+
+---
+
+## Summary
+
+✅ **EPIC I: Settlement Automation** is 100% complete.
+
+**Delivered**:
+
+- 3 backend services (settlement, payout, balance)
+- 5 API endpoints (list, details, request, balance, transactions)
+- 3 MongoDB models (settlement, transaction, payout)
+- 4 UI components (balance, history, form, statement)
+- 1 seller page (settlements dashboard)
+- Comprehensive documentation
+
+**Business Value**:
+
+- **Automated Payouts**: Reduce manual processing time by 90%
+- **Transparent Fees**: Clear breakdown of commissions, fees, VAT
+- **Fraud Prevention**: 7-day hold + 20% reserve system
+- **Scalability**: Redis caching + batch processing for 10,000+ sellers
+- **Compliance**: Full audit trail + VAT calculations
+
+**Next Steps**: Proceed to Phase 2 additional features or comprehensive testing.
+
+---
+
+**Status**: ✅ **COMPLETE**  
+**Session**: 4  
+**Date**: 2024  
+**Author**: GitHub Copilot Agent
+
+]]>
+</file>
+
+</batch_content>

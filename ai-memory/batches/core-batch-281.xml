@@ -1,0 +1,2929 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="tests/smoke/org-context-flow.test.tsx">
+<![CDATA[
+import React from "react";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { renderHook, act, waitFor } from "@testing-library/react";
+import {
+  SupportOrgProvider,
+  useSupportOrg,
+} from "@/contexts/SupportOrgContext";
+
+const mockSession = {
+  user: {
+    isSuperAdmin: true,
+    orgId: null,
+  },
+};
+
+const sessionResponse = {
+  data: mockSession,
+  status: "authenticated",
+};
+
+vi.mock("next-auth/react", () => ({
+  useSession: () => sessionResponse,
+}));
+
+function wrapper({ children }: { children: React.ReactNode }) {
+  return <SupportOrgProvider>{children}</SupportOrgProvider>;
+}
+
+type FetchResponse = {
+  ok?: boolean;
+  body?: unknown;
+};
+
+function mockFetchSequence(responses: FetchResponse[]) {
+  const fetchMock = vi.fn();
+  responses.forEach((res) => {
+    fetchMock.mockResolvedValueOnce({
+      ok: res.ok !== false,
+      json: async () => res.body ?? {},
+    } as Response);
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  return fetchMock;
+}
+
+describe("SupportOrgProvider smoke test", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("hydrates the support organization from the impersonation endpoint", async () => {
+    const fetchMock = mockFetchSequence([
+      { body: { organization: { orgId: "org_seed", name: "Seed Org" } } },
+    ]);
+
+    const { result } = renderHook(() => useSupportOrg(), { wrapper });
+
+    await waitFor(() =>
+      expect(result.current.supportOrg?.orgId).toBe("org_seed"),
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/support/impersonation",
+      expect.objectContaining({ credentials: "include" }),
+    );
+  });
+
+  it("selects an organization via selectOrgById", async () => {
+    const fetchMock = mockFetchSequence([
+      { body: { organization: null } },
+      {
+        body: { organization: { orgId: "org_selected", name: "Selected Org" } },
+      },
+    ]);
+
+    const { result } = renderHook(() => useSupportOrg(), { wrapper });
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      const ok = await result.current.selectOrgById("org_selected");
+      expect(ok).toBe(true);
+    });
+
+    await waitFor(() =>
+      expect(result.current.supportOrg?.orgId).toBe("org_selected"),
+    );
+    const [, postInit] = fetchMock.mock.calls;
+    expect(postInit?.[0]).toBe("/api/support/impersonation");
+    expect(postInit?.[1]).toMatchObject({
+      method: "POST",
+      body: JSON.stringify({ orgId: "org_selected" }),
+    });
+  });
+
+  it("clears impersonation session via clearSupportOrg", async () => {
+    const fetchMock = mockFetchSequence([
+      {
+        body: { organization: { orgId: "org_existing", name: "Existing Org" } },
+      },
+      { body: {} },
+    ]);
+
+    const { result } = renderHook(() => useSupportOrg(), { wrapper });
+    await waitFor(() =>
+      expect(result.current.supportOrg?.orgId).toBe("org_existing"),
+    );
+
+    await act(async () => {
+      await result.current.clearSupportOrg();
+    });
+
+    expect(result.current.supportOrg).toBeNull();
+    const lastCall = fetchMock.mock.calls.at(-1);
+    expect(lastCall?.[1]).toMatchObject({ method: "DELETE" });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/smoke/rtl-dashboard-finance.smoke.spec.ts">
+<![CDATA[
+import { test, expect } from "@playwright/test";
+import {
+  setLocaleToArabic,
+  ADMIN_STATE_PATH,
+  hasAdminState,
+} from "./utils/rtl-helpers";
+
+test.describe("RTL dashboard finance smoke", () => {
+  test.use({ storageState: ADMIN_STATE_PATH });
+
+  test("finance dashboard renders Arabic heading and counters", async ({
+    page,
+  }) => {
+    await page.route("**/api/counters", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          invoices: { total: 20, unpaid: 5, overdue: 2, paid: 13 },
+          revenue: { today: 1000, week: 7000, month: 28000, growth: 12 },
+        }),
+      }),
+    );
+
+    await page.goto("/dashboard/finance");
+    await setLocaleToArabic(page);
+    await page.reload();
+    await page.waitForLoadState("domcontentloaded");
+
+    const pageHeading = page.getByRole("heading", { level: 1 });
+    await expect(pageHeading).toBeVisible({ timeout: 45000 });
+    await expect(pageHeading).toHaveText(/المالية/);
+    await expect(page.locator("text=إجمالي الفواتير")).toBeVisible();
+
+    const dir = await page.evaluate(() =>
+      document.documentElement.getAttribute("dir"),
+    );
+    expect(dir).toBe("rtl");
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/smoke/rtl-dashboard-hr.smoke.spec.ts">
+<![CDATA[
+import { test, expect } from "@playwright/test";
+import {
+  setLocaleToArabic,
+  ADMIN_STATE_PATH,
+  hasAdminState,
+} from "./utils/rtl-helpers";
+
+test.describe("RTL dashboard HR smoke", () => {
+  test.use({ storageState: ADMIN_STATE_PATH });
+
+  test("dashboard tiles render in Arabic and dir=rtl", async ({ page }) => {
+    await page.route("**/api/counters", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          employees: { total: 10, active: 9, on_leave: 1 },
+          attendance: { present: 7, absent: 2, late: 1 },
+        }),
+      }),
+    );
+
+    await page.goto("/dashboard/hr");
+    await setLocaleToArabic(page);
+    await page.reload();
+    await page.waitForLoadState("domcontentloaded");
+
+    await expect(
+      page.getByRole("heading", { name: "الموارد البشرية" }),
+    ).toBeVisible({ timeout: 45000 });
+    await expect(page.locator("text=إجمالي الموظفين")).toBeVisible();
+
+    const dir = await page.evaluate(() =>
+      document.documentElement.getAttribute("dir"),
+    );
+    expect(dir).toBe("rtl");
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/smoke/rtl-dashboard-system.smoke.spec.ts">
+<![CDATA[
+import { test, expect } from "@playwright/test";
+import {
+  setLocaleToArabic,
+  ADMIN_STATE_PATH,
+  hasAdminState,
+} from "./utils/rtl-helpers";
+
+test.describe("RTL dashboard system smoke", () => {
+  test.use({ storageState: ADMIN_STATE_PATH });
+
+  test("system dashboard renders Arabic heading and counters", async ({
+    page,
+  }) => {
+    await page.route("**/api/counters", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          system: { users: 50, roles: 12, tenants: 7 },
+        }),
+      }),
+    );
+
+    await page.goto("/dashboard/system");
+    await setLocaleToArabic(page);
+    await page.reload();
+    await page.waitForLoadState("domcontentloaded");
+
+    const pageHeading = page.getByRole("heading", { level: 1 });
+    await expect(pageHeading).toBeVisible({ timeout: 45000 });
+    await expect(pageHeading).toHaveText(/إدارة النظام/);
+    await expect(page.locator("text=إجمالي المستخدمين")).toBeVisible();
+
+    const dir = await page.evaluate(() =>
+      document.documentElement.getAttribute("dir"),
+    );
+    expect(dir).toBe("rtl");
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/smoke/rtl-layout.smoke.spec.ts">
+<![CDATA[
+import { test, expect } from "@playwright/test";
+import { setLocaleToArabic } from "./utils/rtl-helpers";
+
+test.describe("RTL layout smoke", () => {
+  test("switches to Arabic and sets rtl direction", async ({ page }) => {
+    await page.goto("/");
+    await setLocaleToArabic(page);
+
+    await page.reload();
+    await page.waitForLoadState("domcontentloaded");
+
+    await expect(page.locator("text=احجز عرضًا مباشرًا")).toBeVisible({
+      timeout: 45000,
+    });
+
+    const dir = await page.evaluate(() =>
+      document.documentElement.getAttribute("dir"),
+    );
+    expect(dir).toBe("rtl");
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/smoke/rtl-souq.smoke.spec.ts">
+<![CDATA[
+import { test, expect } from "@playwright/test";
+import { setLocaleToArabic } from "./utils/rtl-helpers";
+
+test.describe("RTL souq smoke", () => {
+  test("souq home renders RTL hero", async ({ page }) => {
+    await page.goto("/souq");
+    await setLocaleToArabic(page);
+    await page.reload();
+    await page.waitForLoadState("domcontentloaded");
+
+    await expect(page.locator("text=سوق فكسزيت")).toBeVisible({
+      timeout: 45000,
+    });
+
+    const dir = await page.evaluate(() =>
+      document.documentElement.getAttribute("dir"),
+    );
+    expect(dir).toBe("rtl");
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/specs/i18n.spec.ts">
+<![CDATA[
+import { test, expect } from '@playwright/test';
+
+/**
+ * INTERNATIONALIZATION (i18n) TESTS
+ * Ensures no missing translation keys appear in the UI
+ * Tests both English and Arabic across key pages
+ */
+
+const KEY_PAGES = [
+  { path: '/', name: 'Landing' },
+  { path: '/app', name: 'App Home' },
+  { path: '/dashboard', name: 'Dashboard' },
+  { path: '/work-orders', name: 'Work Orders' },
+  { path: '/properties', name: 'Properties' },
+  { path: '/finance', name: 'Finance' },
+  { path: '/hr', name: 'HR' },
+  { path: '/marketplace', name: 'Marketplace' }
+];
+
+// Common patterns that indicate missing translations
+const MISSING_KEY_PATTERNS = [
+  /MISSING_TRANSLATION/i,
+  /i18n\.t\(['"]/,
+  /translate\(['"]/,
+  /\{\{[a-z_]+\}\}/i,  // {{key}} template syntax
+  /\[object Object\]/i
+];
+
+const TRANSLATION_CALL_EXCLUSIONS = new Set([
+  'woff',
+  'woff2',
+  'ttf',
+  'otf',
+  'font/woff',
+  'font/woff2',
+  'font/otf',
+]);
+
+function isFalsePositiveTranslationCall(call: string): boolean {
+  if (/\.(woff2?|ttf|eot|otf)\)$/i.test(call)) {
+    return true;
+  }
+  const match = call.match(/['"]([^'"]+)['"]/i);
+  if (!match) {
+    return false;
+  }
+  const key = match[1]?.toLowerCase();
+  return !!key && TRANSLATION_CALL_EXCLUSIONS.has(key);
+}
+
+test.describe('i18n: No Missing Translation Keys', () => {
+  // Set higher timeout for slow pages
+  test.setTimeout(60000);
+  
+  for (const page of KEY_PAGES) {
+    test(`${page.name} (${page.path}): All keys translated`, async ({ page: browser }) => {
+      await browser.goto(page.path, { 
+        waitUntil: 'domcontentloaded', // Changed from networkidle - less strict
+        timeout: 45000 // Increased timeout
+      });
+      
+      // Wait for content to stabilize
+      await browser.waitForTimeout(2000);
+
+      // Get page content
+      const bodyText = await browser.locator('body').innerText();
+      const htmlContent = await browser.content();
+
+      // Check for missing key patterns
+      const foundIssues: string[] = [];
+
+      for (const pattern of MISSING_KEY_PATTERNS) {
+        if (pattern.test(bodyText)) {
+          const matches = bodyText.match(pattern);
+          foundIssues.push(`Pattern "${pattern}" found: ${matches?.[0]}`);
+        }
+      }
+
+      // Check for untranslated function calls in rendered HTML
+      // Exclude font file extensions (woff, woff2, ttf, etc.)
+      if (htmlContent.includes('t(') || htmlContent.includes('translate(')) {
+        const rawCalls = htmlContent.match(/(?:t|translate)\(['"][^'"]+['"]\)/g);
+        const filteredCalls = rawCalls?.filter(call => !isFalsePositiveTranslationCall(call));
+        if (filteredCalls && filteredCalls.length > 0) {
+          foundIssues.push(`Raw translation calls in HTML: ${filteredCalls.slice(0, 3).join(', ')}`);
+        }
+      }
+
+      // Assert no issues found
+      if (foundIssues.length > 0) {
+        console.error(`\n❌ Missing translations on ${page.path}:`);
+        foundIssues.forEach(issue => console.error(`   ${issue}`));
+      }
+      
+      expect(foundIssues, `Missing translations detected:\n${foundIssues.join('\n')}`).toHaveLength(0);
+    });
+  }
+});
+
+test.describe('i18n: Language Switching', () => {
+  test('English to Arabic switch updates content and RTL direction', async ({ page }) => {
+    // Start in English (force locale in URL)
+    await page.goto('/dashboard?locale=en', { waitUntil: 'domcontentloaded' });
+    
+    // Wait for page to stabilize
+    await page.waitForLoadState('networkidle');
+    
+    // Verify LTR (or accept RTL if already set)
+    let dir = await page.evaluate(() => document.documentElement.getAttribute('dir'));
+    const initialDir = dir;
+    console.log(`Initial direction: ${initialDir}`);
+
+    // Switch to Arabic using data-testid for the language selector
+    // The LanguageSelector has data-testid="language-selector" and aria-label containing "Select language"
+    const langSelectorContainer = page.locator('[data-testid="language-selector"]');
+    const langButton = langSelectorContainer.locator('button').first();
+    
+    // Wait for the button to be visible and click it
+    await expect(langButton).toBeVisible({ timeout: 10000 });
+    await langButton.click();
+    
+    // The dropdown uses role="listbox" with role="option" items (not menuitem)
+    // Look for Arabic option which contains "عربي" (Arabic native name) or "Arabic" (English name)
+    const arabicOption = page.locator('[role="option"]').filter({ hasText: /عربي|Arabic/i }).first();
+    await expect(arabicOption).toBeVisible({ timeout: 5000 });
+    await arabicOption.click();
+
+    // Wait for language change to apply (check dir attribute)
+    await expect(async () => {
+      dir = await page.evaluate(() => document.documentElement.getAttribute('dir'));
+      expect(dir).toBe('rtl');
+    }).toPass({ timeout: 10000 });
+
+    // Verify Arabic content is visible
+    const bodyText = await page.locator('body').innerText();
+    const hasArabic = /[\u0600-\u06FF]/.test(bodyText); // Arabic Unicode range
+    expect(hasArabic).toBe(true);
+  });
+
+  test('Currency selector shows SAR and USD options', async ({ page }) => {
+    await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+    
+    // Wait for currency selector to be rendered
+    await page.waitForSelector('[data-testid="currency-selector"]', { timeout: 5000 });
+
+    // Currency selector always includes sr-only accessibility helpers with SAR and USD options
+    // These are present even if the dropdown fails to render (defensive accessibility pattern)
+    const sarOption = page.locator('[role="option"]').filter({ hasText: /^SAR$/i });
+    const usdOption = page.locator('[role="option"]').filter({ hasText: /^USD$/i });
+
+    // Verify both currency options exist (either in dropdown or sr-only helpers)
+    const sarCount = await sarOption.count();
+    const usdCount = await usdOption.count();
+    
+    expect(sarCount, 'Currency selector should have SAR option').toBeGreaterThan(0);
+    expect(usdCount, 'Currency selector should have USD option').toBeGreaterThan(0);
+  });
+});
+
+test.describe('i18n: RTL Layout Integrity', () => {
+  test('Arabic: Sidebar, header, and content are right-aligned', async ({ page }) => {
+    await page.goto('/dashboard?locale=ar', { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(1000);
+
+    // Verify RTL
+    const dir = await page.evaluate(() => document.documentElement.getAttribute('dir'));
+    expect(dir).toBe('rtl');
+
+    // Check key elements have proper text-align
+    const sidebar = page.locator('nav, aside, [role="navigation"]').first();
+    const sidebarAlign = await sidebar.evaluate(el => getComputedStyle(el).textAlign);
+    
+    // In RTL, default should be 'right' or 'start' (which resolves to right)
+    expect(['right', 'start']).toContain(sidebarAlign);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/specs/smoke.spec.ts">
+<![CDATA[
+import { test, expect } from '@playwright/test';
+import type { BrowserContext } from '@playwright/test';
+import { encode as encodeJwt } from 'next-auth/jwt';
+import { randomUUID } from 'crypto';
+
+const AUTH_SECRET =
+  process.env.NEXTAUTH_SECRET ||
+  process.env.AUTH_SECRET ||
+  'test-secret-minimum-32-chars-long-fixzit-jwt-encryption-key';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
+const COOKIE_NAME = BASE_URL.startsWith('https') ? '__Secure-authjs.session-token' : 'authjs.session-token';
+const LEGACY_COOKIE_NAME = BASE_URL.startsWith('https')
+  ? '__Secure-next-auth.session-token'
+  : 'next-auth.session-token';
+const SESSION_COOKIE_PATTERNS = ['session-token', 'session'];
+const hasSessionCookie = async (context: BrowserContext) => {
+  const cookies = await context.cookies();
+  return cookies.some((cookie) => SESSION_COOKIE_PATTERNS.some((pattern) => cookie.name.includes(pattern)));
+};
+
+// Inject a fresh authenticated session before each test to avoid stale storage states
+test.beforeEach(async ({ context }) => {
+  const host = new URL(BASE_URL).hostname;
+  const userId = randomUUID().replace(/-/g, '').slice(0, 24);
+
+  const token = await encodeJwt({
+    secret: AUTH_SECRET,
+    salt: COOKIE_NAME,
+    maxAge: 30 * 24 * 60 * 60,
+    token: {
+      name: 'Smoke Admin',
+      email: 'superadmin@test.fixzit.co',
+      id: userId,
+      sub: userId,
+      role: 'ADMIN',
+      roles: ['ADMIN', 'SUPER_ADMIN'],
+      orgId: process.env.PUBLIC_ORG_ID || process.env.TEST_ORG_ID || 'ffffffffffffffffffffffff',
+      isSuperAdmin: true,
+      permissions: [],
+    },
+  });
+
+  await context.addCookies([
+    {
+      name: COOKIE_NAME,
+      value: token,
+      domain: host,
+      path: '/',
+      httpOnly: true,
+      sameSite: 'Lax',
+      secure: BASE_URL.startsWith('https'),
+    },
+    {
+      name: LEGACY_COOKIE_NAME,
+      value: token,
+      domain: host,
+      path: '/',
+      httpOnly: true,
+      sameSite: 'Lax',
+      secure: BASE_URL.startsWith('https'),
+    },
+  ]);
+
+  await context.addInitScript(() => {
+    localStorage.setItem('fixzit-role', 'super_admin');
+    localStorage.setItem('theme', 'light');
+  });
+});
+/**
+ * COMPREHENSIVE SMOKE TESTS
+ * Tests all major pages across all roles (SuperAdmin, Admin, Manager, Technician, Tenant, Vendor)
+ * in both English and Arabic, ensuring:
+ * - Page loads successfully
+ * - Core layout elements are present (header, sidebar, footer)
+ * - No console errors
+ * - No failed network requests
+ * - RTL/LTR direction is correct
+ * - Language and currency selectors are visible
+ */
+
+const IGNORED_ERROR_PATTERNS = [
+  /status of 404/i,
+  /status of 429/i,
+  /api\/auth\/me/i, // unauthenticated checks are expected on public pages
+];
+
+const CORE_PAGES = [
+  { path: '/', name: 'Landing' },
+  { path: '/dashboard', name: 'Dashboard' },
+  { path: '/work-orders', name: 'Work Orders' },
+  { path: '/properties', name: 'Properties' },
+  { path: '/finance', name: 'Finance' },
+  { path: '/hr', name: 'HR' },
+  { path: '/admin', name: 'Administration' },
+  { path: '/crm', name: 'CRM' },
+  { path: '/marketplace', name: 'Marketplace' },
+  { path: '/support', name: 'Support' },
+  { path: '/compliance', name: 'Compliance' },
+  { path: '/reports', name: 'Reports' },
+  { path: '/system', name: 'System Management' }
+];
+
+const SIDEBAR_ITEMS: Array<{ labels: string[] }> = [
+  { labels: ['Dashboard', 'لوحة التحكم'] },
+  { labels: ['Properties', 'العقارات'] },
+];
+
+const HEADER_OPTIONAL_PATHS = new Set<string>(['/finance', '/hr', '/properties', '/work-orders']);
+const NAV_OPTIONAL_PATHS = new Set<string>(['/', '/finance', '/hr', '/work-orders']);
+const SIDEBAR_OPTIONAL_PATHS = new Set<string>(['/', '/finance', '/hr', '/work-orders']);
+const FOOTER_OPTIONAL_PATHS = new Set<string>(['/dashboard', '/finance', '/hr', '/work-orders']);
+const CURRENCY_OPTIONAL_PATHS = new Set<string>(['/dashboard', '/hr', '/finance', '/work-orders']);
+const LANGUAGE_OPTIONAL_PATHS = new Set<string>(['/work-orders']);
+
+const escapeRegex = (input: string) => input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+test.describe('Global Layout & Navigation - All Pages', () => {
+  for (const page of CORE_PAGES) {
+    test(`${page.name} (${page.path}): Layout integrity + no errors`, async ({ page: browser }) => {
+      const projectName = test.info().project.name;
+      const roleName = projectName.split(':').pop()?.toLowerCase() || '';
+      const financeRestricted = ['tenant', 'vendor', 'technician'].includes(roleName);
+
+      if (financeRestricted && page.path === '/finance') {
+        await browser.goto(page.path, { waitUntil: 'domcontentloaded' });
+        await expect(browser).toHaveURL(/\/login/);
+        return;
+      }
+
+      const errors: string[] = [];
+      const warnings: string[] = [];
+      const networkFailures: Array<{ method: string; url: string; status: number }> = [];
+      const isArabicProject = projectName.includes(':AR:') || projectName.startsWith('AR:');
+
+      // Capture console errors and warnings
+      browser.on('pageerror', (error) => {
+        errors.push(`PageError: ${error.message}`);
+      });
+
+      browser.on('console', (msg) => {
+        const type = msg.type();
+        const text = msg.text();
+        
+        if (type === 'error') {
+          if (IGNORED_ERROR_PATTERNS.some((pattern) => pattern.test(text))) {
+            return;
+          }
+          errors.push(`Console Error: ${text}`);
+        } else if (type === 'warning' && !text.includes('DevTools')) {
+          warnings.push(`Console Warning: ${text}`);
+        }
+      });
+
+      // Capture failed network requests
+      browser.on('response', (response) => {
+        const status = response.status();
+        if (status >= 400) {
+          if (response.url().includes('/api/auth/me')) {
+            return; // public pages may probe session; ignore 401/403 there
+          }
+          if (response.url().includes('/api/user/preferences') && status === 404) {
+            return; // preferences endpoint is optional; ignore missing
+          }
+          networkFailures.push({
+            method: response.request().method(),
+            url: response.url(),
+            status
+          });
+        }
+      });
+
+      // Navigate to page (use domcontentloaded to avoid hanging on long-lived connections)
+      await browser.goto(page.path, {
+        waitUntil: 'domcontentloaded',
+        timeout: 30000,
+      });
+
+      // Wait for main content to stabilize
+      await browser.waitForLoadState('domcontentloaded');
+
+      // ============ LAYOUT ASSERTIONS ============
+      
+      // Header/banner must exist (unless optional path)
+      if (!HEADER_OPTIONAL_PATHS.has(page.path)) {
+        const header = browser.locator('header, [role="banner"]').first();
+        await expect.soft(header).toBeVisible({ timeout: 10000 });
+      }
+
+      // Footer must exist (may be at bottom, need to scroll)
+      if (!FOOTER_OPTIONAL_PATHS.has(page.path)) {
+        const footer = browser.locator('footer, [role="contentinfo"]').first();
+        const footerVisible = await footer.isVisible().catch(() => false);
+        if (!footerVisible) {
+          await browser.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+          await expect.soft(footer).toBeVisible({ timeout: 5000 });
+        }
+      }
+
+      // Sidebar navigation - check for key items
+      const navCount = await browser.getByRole('navigation').count();
+      if (!NAV_OPTIONAL_PATHS.has(page.path)) {
+        expect.soft(navCount, `${page.path} should render navigation sidebar`).toBeGreaterThan(0);
+      }
+      if (navCount > 0 && !SIDEBAR_OPTIONAL_PATHS.has(page.path)) {
+        for (const item of SIDEBAR_ITEMS) {
+          const labelPattern = new RegExp(item.labels.map(escapeRegex).join('|'), 'i');
+          const sidebarItem = browser.getByRole('link', { name: labelPattern }).or(
+            browser.getByRole('button', { name: labelPattern })
+          );
+          const firstItem = sidebarItem.first();
+          await expect.soft(firstItem).toBeVisible({ timeout: 5000 });
+        }
+      }
+
+      // ============ LANGUAGE & CURRENCY SELECTORS ============
+      
+      // Language selector (English/عربي)
+      const langSelector = browser.getByRole('button', { name: /language|lang|عربي|english|en|ar/i });
+      await expect.soft(langSelector.first()).toBeVisible({ timeout: 5000 });
+
+      // Currency selector (SAR/USD)
+      if (!CURRENCY_OPTIONAL_PATHS.has(page.path)) {
+        const currencySelector = browser.getByRole('button', { name: /currency|sar|usd|riyal|dollar/i });
+        await expect.soft(currencySelector.first()).toBeVisible({ timeout: 5000 });
+      }
+
+      // ============ RTL/LTR DIRECTION ============
+      
+      const htmlDir = await browser.evaluate(() => document.documentElement.getAttribute('dir'));
+      
+      if (isArabicProject) {
+        expect(htmlDir).toBe('rtl');
+      } else {
+        expect(htmlDir).toBe('ltr');
+      }
+
+      // ============ ERROR VALIDATION ============
+      
+      // Console errors should be empty
+      if (errors.length > 0) {
+        console.error(`\n❌ Console Errors on ${page.path}:`);
+        errors.forEach(err => console.error(`   ${err}`));
+      }
+      expect(errors, `Console errors found:\n${errors.join('\n')}`).toHaveLength(0);
+
+      // Network failures should be empty (except 404s for optional resources)
+      const hasSession = await hasSessionCookie(browser.context());
+      const criticalFailures = networkFailures.filter((f) => {
+        const isAuthFailure = f.status === 401 || f.status === 403;
+        if (isAuthFailure && !hasSession) {
+          return false; // Allow unauthenticated probes to pass when no session is present
+        }
+        return (
+          f.status >= 500 || // Server errors
+          (f.status === 404 && !f.url.includes('favicon') && !f.url.includes('.map')) || // Missing critical resources
+          isAuthFailure // Auth failures when session is expected
+        );
+      });
+      
+      if (criticalFailures.length > 0) {
+        console.error(`\n❌ Network Failures on ${page.path}:`);
+        criticalFailures.forEach(f => console.error(`   ${f.method} ${f.url} → ${f.status}`));
+      }
+      expect(
+        criticalFailures,
+        `Network failures:\n${criticalFailures.map(f => `${f.method} ${f.url} → ${f.status}`).join('\n')}`
+      ).toHaveLength(0);
+
+      // Warnings are logged but not failed (informational)
+      if (warnings.length > 0) {
+        console.warn(`\n⚠️  Console Warnings on ${page.path} (${warnings.length} total)`);
+        warnings.forEach((w) => console.warn(`   ${w}`));
+      }
+    });
+  }
+});
+
+test.describe('Branding & Theme Consistency', () => {
+  test('Primary brand colors are applied', async ({ page }) => {
+    await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+    if (page.url().includes('/login')) {
+      await expect(page).toHaveURL(/\/login/);
+      return;
+    }
+
+    // Check CSS variables for brand colors
+    const styles = await page.evaluate(() => {
+      const root = getComputedStyle(document.documentElement);
+      return {
+        primary: root.getPropertyValue('--primary'),
+        secondary: root.getPropertyValue('--secondary'),
+        accent: root.getPropertyValue('--accent')
+      };
+    });
+
+    // Expect brand colors to be defined (exact values may vary based on theme)
+    expect.soft(styles.primary).toBeTruthy();
+    expect.soft(styles.secondary).toBeTruthy();
+    expect.soft(styles.accent).toBeTruthy();
+  });
+
+  test('Logo and brand elements are visible', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+    // Logo in header
+    const logo = page
+      .locator(
+        'header img[alt*="fixzit" i], header svg[class*="logo"], header .fxz-topbar-logo, header [data-testid="header-logo-img"]'
+      )
+      .first();
+    await expect.soft(logo).toBeVisible({ timeout: 15000 });
+  });
+});
+
+test.describe('Accessibility Basics', () => {
+  test('Main landmark and proper heading structure', async ({ page }) => {
+    await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+    if (page.url().includes('/login')) {
+      await expect(page).toHaveURL(/\/login/);
+      return;
+    }
+
+    // Main content area
+    const main = page.getByRole('main').first();
+    await expect.soft(main).toBeVisible();
+
+    // At least one h1 heading
+    const h1 = page.locator('h1');
+    expect.soft(await h1.count()).toBeGreaterThan(0);
+  });
+
+  test('Skip to content link for keyboard navigation', async ({ page }) => {
+    await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+    if (page.url().includes('/login')) {
+      await expect(page).toHaveURL(/\/login/);
+      return;
+    }
+
+    // Press Tab to focus skip link (if implemented)
+    await page.keyboard.press('Tab');
+    
+    const skipLink = page.getByRole('link', { name: /skip to content|skip to main/i }).or(
+      page.locator('[data-testid="skip-to-content"]')
+    );
+    const skipLinkExists = await skipLink.count();
+    
+    // This is a recommendation, not a hard requirement
+    if (skipLinkExists === 0) {
+      console.warn('⚠️  Skip to content link not found - consider adding for accessibility');
+    }
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/state/admin.json">
+<![CDATA[
+{
+  "cookies": [
+    {
+      "name": "authjs.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoic3YyOFlWZ05xZDJybHJLeXVuUTRQSUZGdHIwdktCTDR5WF9PR251UEUyV2lEOFlGZHg1OHptbGdCR3NFdU9GVGVaMUZ4MEU0WFB5NUtkTkhuMEs4d3cifQ..GgHT2DR2LdAmiWDdAP3HRQ.m5gTux8bCTk4gY76wka0vt3sPyKHxW-9zKTGXcXwap1IStmkZI10M0gpqBYnQSyTMhg_XTZnKHM81BVUYR7y_W7U8W78pKoUtms_JDJ78JyrWyO9jn45P-BMkYH6TZJfIk83tSA0ux-Nv9_iXj4jGUgWEi-xCHR4GvcnfiF9w_WITsU3qx2wYqGalwCkopYrvSSfzna23XPbHDv6THlFrkIQvLbfw8Jy8HBo0937ssDh0YyfHpfQy80MqBAB0W2yto9tgzInhkO0K03f1iB18eoWrZc7808VvGOspw6If8324dzBXWgqYhqjd9-nXUK-4LxVcMgO3BpLuo40oSR1i8P4kxiH5Ifc2EK9BDDRKCsh_0Y62S8PG8EN-vv0JOss.zjPJXk5hzwm5FL151xNp9TYOT7cLzr2SignHOK0BiZU",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "next-auth.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoic3YyOFlWZ05xZDJybHJLeXVuUTRQSUZGdHIwdktCTDR5WF9PR251UEUyV2lEOFlGZHg1OHptbGdCR3NFdU9GVGVaMUZ4MEU0WFB5NUtkTkhuMEs4d3cifQ..GgHT2DR2LdAmiWDdAP3HRQ.m5gTux8bCTk4gY76wka0vt3sPyKHxW-9zKTGXcXwap1IStmkZI10M0gpqBYnQSyTMhg_XTZnKHM81BVUYR7y_W7U8W78pKoUtms_JDJ78JyrWyO9jn45P-BMkYH6TZJfIk83tSA0ux-Nv9_iXj4jGUgWEi-xCHR4GvcnfiF9w_WITsU3qx2wYqGalwCkopYrvSSfzna23XPbHDv6THlFrkIQvLbfw8Jy8HBo0937ssDh0YyfHpfQy80MqBAB0W2yto9tgzInhkO0K03f1iB18eoWrZc7808VvGOspw6If8324dzBXWgqYhqjd9-nXUK-4LxVcMgO3BpLuo40oSR1i8P4kxiH5Ifc2EK9BDDRKCsh_0Y62S8PG8EN-vv0JOss.zjPJXk5hzwm5FL151xNp9TYOT7cLzr2SignHOK0BiZU",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://localhost:3000",
+      "localStorage": [
+        {
+          "name": "fixzit-role",
+          "value": "admin"
+        },
+        {
+          "name": "fixzit-org",
+          "value": "68dc8955a1ba6ed80ff372dc"
+        }
+      ]
+    }
+  ]
+}
+]]>
+</file>
+
+<file path="tests/state/manager.json">
+<![CDATA[
+{
+  "cookies": [
+    {
+      "name": "authjs.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoic3YyOFlWZ05xZDJybHJLeXVuUTRQSUZGdHIwdktCTDR5WF9PR251UEUyV2lEOFlGZHg1OHptbGdCR3NFdU9GVGVaMUZ4MEU0WFB5NUtkTkhuMEs4d3cifQ..qRCfIOdPbbPiQFewwQJPow.Wgfd2ShNVwGy1m10JwXAKUT8xu19kv69EMuEZW12r2XQtObHeF0ru1wQMTFV40imE-cLKYBgjgeLsNC_ZksQoe1AM1HE73zEvnarvH8Gb8AQXOcPhLH1d2pzJQ8x-Xfe_8CSrQ1hSlvW8Yl50PQG70HEquZZYIY1LINlHoiPgEKwQpCuKFjiWx1m_zkcWRKYiIrCL1UafFJtaXTSx0NuS5-P4UEACG9cIdK0e2fAkRSLji54jp52bT5A8MbyMdWphVNJi7ng1uGJg4UhXafq_cxGVoGhMr1lfShKOyfCFOwIM7dGkOnuAPnfYkvVc26g07W1eApTYIjRLUGtUeisyPj8QenQYQKeEFR32fl_AkNHzyccnhWd-E9iKTG64S0M0U7YjQYK9VuYnSRfhzAZ55eQcOlcGH6FrqplATBX-EY.TP7CmCzDqjEuCrpkTtaL1pZ4YMzk7CItE7_4ZYC1Q44",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "next-auth.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoic3YyOFlWZ05xZDJybHJLeXVuUTRQSUZGdHIwdktCTDR5WF9PR251UEUyV2lEOFlGZHg1OHptbGdCR3NFdU9GVGVaMUZ4MEU0WFB5NUtkTkhuMEs4d3cifQ..qRCfIOdPbbPiQFewwQJPow.Wgfd2ShNVwGy1m10JwXAKUT8xu19kv69EMuEZW12r2XQtObHeF0ru1wQMTFV40imE-cLKYBgjgeLsNC_ZksQoe1AM1HE73zEvnarvH8Gb8AQXOcPhLH1d2pzJQ8x-Xfe_8CSrQ1hSlvW8Yl50PQG70HEquZZYIY1LINlHoiPgEKwQpCuKFjiWx1m_zkcWRKYiIrCL1UafFJtaXTSx0NuS5-P4UEACG9cIdK0e2fAkRSLji54jp52bT5A8MbyMdWphVNJi7ng1uGJg4UhXafq_cxGVoGhMr1lfShKOyfCFOwIM7dGkOnuAPnfYkvVc26g07W1eApTYIjRLUGtUeisyPj8QenQYQKeEFR32fl_AkNHzyccnhWd-E9iKTG64S0M0U7YjQYK9VuYnSRfhzAZ55eQcOlcGH6FrqplATBX-EY.TP7CmCzDqjEuCrpkTtaL1pZ4YMzk7CItE7_4ZYC1Q44",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://localhost:3000",
+      "localStorage": [
+        {
+          "name": "fixzit-role",
+          "value": "manager"
+        },
+        {
+          "name": "fixzit-org",
+          "value": "68dc8955a1ba6ed80ff372dc"
+        }
+      ]
+    }
+  ]
+}
+]]>
+</file>
+
+<file path="tests/state/superadmin.json">
+<![CDATA[
+{
+  "cookies": [
+    {
+      "name": "authjs.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoic3YyOFlWZ05xZDJybHJLeXVuUTRQSUZGdHIwdktCTDR5WF9PR251UEUyV2lEOFlGZHg1OHptbGdCR3NFdU9GVGVaMUZ4MEU0WFB5NUtkTkhuMEs4d3cifQ..n5hZJeB4iNW3OTAseimoQQ.YmmYZtO033j99fRVQlVWObh6vCey-JIpuKMPOCZsuBe_nJPv_IyeV_gTDo0EyFb8QNKmIYxKC9-87_DILZTa88CD2IsRpT8kZrp607RDaoYZUY_R9OLu1FvOAJRKuk6jLFNh3N7qTjdFi_3ZFayoLPIrqPClHPKa1sklIYeT7MRBioYtb2m0a5siMyUsXFGVhmUxvj6loA_PjAfPPJVCJzYuoNRuS_nAdf8011QLaBa7k1MG3YGw-6GJ5u4F1LgQLPiEBKZTsvvFxcHMDpNiNNTL86FMjfqTZ8OdsCWEcP2VpEavmBQjbVwvrPb3qcYP8jdvMgt6C4OcsNIjjj-E7dpLFyAS_FH-VjeUVMu2H4AV33A6YkN7Y-Gi33OPUiSlHDiz_VQJxhS1Cdx_Z0E79l11FWpMT2O_2lAK91MNh_Q.Vh2I9SiGB64IpeAAOXwSttJK5K8DYknZYCqaFoZ77Jw",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "next-auth.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoic3YyOFlWZ05xZDJybHJLeXVuUTRQSUZGdHIwdktCTDR5WF9PR251UEUyV2lEOFlGZHg1OHptbGdCR3NFdU9GVGVaMUZ4MEU0WFB5NUtkTkhuMEs4d3cifQ..n5hZJeB4iNW3OTAseimoQQ.YmmYZtO033j99fRVQlVWObh6vCey-JIpuKMPOCZsuBe_nJPv_IyeV_gTDo0EyFb8QNKmIYxKC9-87_DILZTa88CD2IsRpT8kZrp607RDaoYZUY_R9OLu1FvOAJRKuk6jLFNh3N7qTjdFi_3ZFayoLPIrqPClHPKa1sklIYeT7MRBioYtb2m0a5siMyUsXFGVhmUxvj6loA_PjAfPPJVCJzYuoNRuS_nAdf8011QLaBa7k1MG3YGw-6GJ5u4F1LgQLPiEBKZTsvvFxcHMDpNiNNTL86FMjfqTZ8OdsCWEcP2VpEavmBQjbVwvrPb3qcYP8jdvMgt6C4OcsNIjjj-E7dpLFyAS_FH-VjeUVMu2H4AV33A6YkN7Y-Gi33OPUiSlHDiz_VQJxhS1Cdx_Z0E79l11FWpMT2O_2lAK91MNh_Q.Vh2I9SiGB64IpeAAOXwSttJK5K8DYknZYCqaFoZ77Jw",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://localhost:3000",
+      "localStorage": [
+        {
+          "name": "fixzit-role",
+          "value": "super_admin"
+        },
+        {
+          "name": "fixzit-org",
+          "value": "68dc8955a1ba6ed80ff372dc"
+        }
+      ]
+    }
+  ]
+}
+]]>
+</file>
+
+<file path="tests/state/technician.json">
+<![CDATA[
+{
+  "cookies": [
+    {
+      "name": "authjs.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoic3YyOFlWZ05xZDJybHJLeXVuUTRQSUZGdHIwdktCTDR5WF9PR251UEUyV2lEOFlGZHg1OHptbGdCR3NFdU9GVGVaMUZ4MEU0WFB5NUtkTkhuMEs4d3cifQ..reKKITI9YXDaXxHLjNBOFQ.g0fFBZdPXZg_iC2baZD8a_P2P4q8j3HI2tC5ZkGyj6_j-Xdx8oQKe4mBEwrd9Dk9qG8yfWnfdoPh6cDqxdrB3lnbyoPLHE-58cSfWgH4LgfgskInVlsUPzu8GQ10eZVGkDJqraNCejuySDtgo16sdnVDwH35z012TYRYBmBvHe0P6hc3TMTzYb0QBJCUAU0iGOY1nAmRDLW0ogPKdEJlTUmAOSCjBzLbDF3aPt8wOsIIWrCCOKp8SqpEaqmtd8_yPZLA9F53vBx1KWaAMe_KANl-mX0ZsUNZ11epOUE2VOYl7X_f9KiWQPqL2HLUMwcPcc2745veSDrXwfGMzQjUxSt6BQu9AaELqw7fX3q3M-B2E05rMEAuOQwu0gLnTd4b7_C2OAn6X-Hx8yy1rJpIgw.PY7cliv7kBKVs_h4v7U662Wpabs47JrTYPwSTvW8cl4",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "next-auth.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoic3YyOFlWZ05xZDJybHJLeXVuUTRQSUZGdHIwdktCTDR5WF9PR251UEUyV2lEOFlGZHg1OHptbGdCR3NFdU9GVGVaMUZ4MEU0WFB5NUtkTkhuMEs4d3cifQ..reKKITI9YXDaXxHLjNBOFQ.g0fFBZdPXZg_iC2baZD8a_P2P4q8j3HI2tC5ZkGyj6_j-Xdx8oQKe4mBEwrd9Dk9qG8yfWnfdoPh6cDqxdrB3lnbyoPLHE-58cSfWgH4LgfgskInVlsUPzu8GQ10eZVGkDJqraNCejuySDtgo16sdnVDwH35z012TYRYBmBvHe0P6hc3TMTzYb0QBJCUAU0iGOY1nAmRDLW0ogPKdEJlTUmAOSCjBzLbDF3aPt8wOsIIWrCCOKp8SqpEaqmtd8_yPZLA9F53vBx1KWaAMe_KANl-mX0ZsUNZ11epOUE2VOYl7X_f9KiWQPqL2HLUMwcPcc2745veSDrXwfGMzQjUxSt6BQu9AaELqw7fX3q3M-B2E05rMEAuOQwu0gLnTd4b7_C2OAn6X-Hx8yy1rJpIgw.PY7cliv7kBKVs_h4v7U662Wpabs47JrTYPwSTvW8cl4",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://localhost:3000",
+      "localStorage": [
+        {
+          "name": "fixzit-role",
+          "value": "technician"
+        },
+        {
+          "name": "fixzit-org",
+          "value": "68dc8955a1ba6ed80ff372dc"
+        }
+      ]
+    }
+  ]
+}
+]]>
+</file>
+
+<file path="tests/state/tenant.json">
+<![CDATA[
+{
+  "cookies": [
+    {
+      "name": "authjs.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoic3YyOFlWZ05xZDJybHJLeXVuUTRQSUZGdHIwdktCTDR5WF9PR251UEUyV2lEOFlGZHg1OHptbGdCR3NFdU9GVGVaMUZ4MEU0WFB5NUtkTkhuMEs4d3cifQ..Fcv5GwL4daBUZE8KgjjK7Q.jLLfYSXK1GAvT8uaAhpRgoLZYgVZLfxZT6xo--i2oOsB7_6l4NTExCXqKWm5uPVzOqa1IV_4s2PeeJGYm20C4sfvnGJvrU-LwrgLGVgyLjBlt01PKXsKV9sfNvKh43mxBReyKdlrOLZnMcfqOEEFrjF7DUKBZ1u_NpdT8QI_DB7sFYDfmZUz32wR5Sc0UhGHd00CO-rqpdlzyj9PMWNdFmT4RMYFJVmlbUM8hFHvIRYnuFpPilr8d8w7LvGKz6so_eZrotsvgtJlzTxAXAfgkVmR_-fvK2P6jhfyUs0UewU6u0moKs3uZXZ85A_blfp0UGu8aLRrOBm1zgRM8GHmAQ7U3LWsw0IeYp3yPt-mdqZUwf5YWGipPjcaql8ivrJJ.nDBO90LtZMQwzWySGkPKEyVsjxUpRswGRJwGLbjU4to",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "next-auth.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoic3YyOFlWZ05xZDJybHJLeXVuUTRQSUZGdHIwdktCTDR5WF9PR251UEUyV2lEOFlGZHg1OHptbGdCR3NFdU9GVGVaMUZ4MEU0WFB5NUtkTkhuMEs4d3cifQ..Fcv5GwL4daBUZE8KgjjK7Q.jLLfYSXK1GAvT8uaAhpRgoLZYgVZLfxZT6xo--i2oOsB7_6l4NTExCXqKWm5uPVzOqa1IV_4s2PeeJGYm20C4sfvnGJvrU-LwrgLGVgyLjBlt01PKXsKV9sfNvKh43mxBReyKdlrOLZnMcfqOEEFrjF7DUKBZ1u_NpdT8QI_DB7sFYDfmZUz32wR5Sc0UhGHd00CO-rqpdlzyj9PMWNdFmT4RMYFJVmlbUM8hFHvIRYnuFpPilr8d8w7LvGKz6so_eZrotsvgtJlzTxAXAfgkVmR_-fvK2P6jhfyUs0UewU6u0moKs3uZXZ85A_blfp0UGu8aLRrOBm1zgRM8GHmAQ7U3LWsw0IeYp3yPt-mdqZUwf5YWGipPjcaql8ivrJJ.nDBO90LtZMQwzWySGkPKEyVsjxUpRswGRJwGLbjU4to",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://localhost:3000",
+      "localStorage": [
+        {
+          "name": "fixzit-role",
+          "value": "tenant"
+        },
+        {
+          "name": "fixzit-org",
+          "value": "68dc8955a1ba6ed80ff372dc"
+        }
+      ]
+    }
+  ]
+}
+]]>
+</file>
+
+<file path="tests/state/vendor.json">
+<![CDATA[
+{
+  "cookies": [
+    {
+      "name": "authjs.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoic3YyOFlWZ05xZDJybHJLeXVuUTRQSUZGdHIwdktCTDR5WF9PR251UEUyV2lEOFlGZHg1OHptbGdCR3NFdU9GVGVaMUZ4MEU0WFB5NUtkTkhuMEs4d3cifQ..bz_Dvmy1yEUTC25MSlf6dw.--9hmiZdmNa09DU5sEvJRLM4q_icQzrsxj8sy8c70_UN2zvYnm839Fnu2GhD-dksadLScltHhwj6d-4HA3nNyKq040-mhLPoOrfI-D_xpYOW7EPOoPWSW12mTd-ez6zn7Svm5UTzmAh5TMDTZZXGMNOKmdn4JHVemoP_Kp6i8CnojhXcUrFAdUjJeAprfuFlbjg5R2rX0oDBZSeMNU4VfRPzcVXPS5MEQBm8qRFq5eNHpHnkETm0veyqiAg019fL6JGPKNV87Tux4YZRdCoXqMHMd8J3nKcMcIWmoBQ9zKMy5-_P7QcjkwtrnFhZJG5AFYX0b_POtCup2r2ElDspem4WCaw79EssjQ5yY03vRmo9PI_Nc9ncMeJ4eZJbmIC7.sZpwNIrLbru4LMEiBgMxzrRo7mlopVwsttJj-oPHsRo",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "next-auth.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoic3YyOFlWZ05xZDJybHJLeXVuUTRQSUZGdHIwdktCTDR5WF9PR251UEUyV2lEOFlGZHg1OHptbGdCR3NFdU9GVGVaMUZ4MEU0WFB5NUtkTkhuMEs4d3cifQ..bz_Dvmy1yEUTC25MSlf6dw.--9hmiZdmNa09DU5sEvJRLM4q_icQzrsxj8sy8c70_UN2zvYnm839Fnu2GhD-dksadLScltHhwj6d-4HA3nNyKq040-mhLPoOrfI-D_xpYOW7EPOoPWSW12mTd-ez6zn7Svm5UTzmAh5TMDTZZXGMNOKmdn4JHVemoP_Kp6i8CnojhXcUrFAdUjJeAprfuFlbjg5R2rX0oDBZSeMNU4VfRPzcVXPS5MEQBm8qRFq5eNHpHnkETm0veyqiAg019fL6JGPKNV87Tux4YZRdCoXqMHMd8J3nKcMcIWmoBQ9zKMy5-_P7QcjkwtrnFhZJG5AFYX0b_POtCup2r2ElDspem4WCaw79EssjQ5yY03vRmo9PI_Nc9ncMeJ4eZJbmIC7.sZpwNIrLbru4LMEiBgMxzrRo7mlopVwsttJj-oPHsRo",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://localhost:3000",
+      "localStorage": [
+        {
+          "name": "fixzit-role",
+          "value": "vendor"
+        },
+        {
+          "name": "fixzit-org",
+          "value": "68dc8955a1ba6ed80ff372dc"
+        }
+      ]
+    }
+  ]
+}
+]]>
+</file>
+
+<file path="tests/stubs/ats-permissions.ts">
+<![CDATA[
+export type ATSRole = string;
+export type ATSPermission = string;
+export const hasAnyPermission = () => true;
+export const hasPermission = () => true;
+export const mapUserRoleToATSRole = (role: string) => role as ATSRole;
+
+]]>
+</file>
+
+<file path="tests/stubs/ats-rbac.ts">
+<![CDATA[
+import type { NextRequest } from "next/server";
+
+export const atsRBAC = async (_req: NextRequest, _requiredPermissions: any[]) => ({
+  authorized: true,
+  userId: "user-id",
+  orgId: "org-id",
+  role: "Recruiter" as any,
+  isSuperAdmin: false,
+  atsModule: { enabled: true, jobPostLimit: Number.MAX_SAFE_INTEGER, seats: 1, seatUsage: 0 },
+});
+
+]]>
+</file>
+
+<file path="tests/stubs/auth.ts">
+<![CDATA[
+export const auth = async () => null;
+
+]]>
+</file>
+
+<file path="tests/stubs/blank.ts">
+<![CDATA[
+export const noop = () => undefined;
+export const GET = () => ({ status: 200, body: {} });
+export const POST = () => ({ status: 200, body: {} });
+export const PATCH = () => ({ status: 200, body: {} });
+const blank = {} as any;
+export default blank;
+
+]]>
+</file>
+
+<file path="tests/stubs/errorResponses.ts">
+<![CDATA[
+export const rateLimitError = () => ({ status: 429, body: { error: "rate limit" } } as any);
+
+]]>
+</file>
+
+<file path="tests/stubs/headers.ts">
+<![CDATA[
+export const getClientIP = () => "127.0.0.1";
+export const createSecureResponse = (..._args: unknown[]) => ({ status: 200, body: {} } as any);
+
+]]>
+</file>
+
+<file path="tests/stubs/ip.ts">
+<![CDATA[
+export const getClientIp = () => "127.0.0.1";
+
+]]>
+</file>
+
+<file path="tests/stubs/logger.ts">
+<![CDATA[
+export const logger = {
+  info: (..._args: unknown[]) => undefined,
+  warn: (..._args: unknown[]) => undefined,
+  error: (..._args: unknown[]) => undefined,
+  debug: (..._args: unknown[]) => undefined,
+};
+
+]]>
+</file>
+
+<file path="tests/stubs/models.ts">
+<![CDATA[
+export const Application = {} as any;
+export const Job = {} as any;
+export const Candidate = {} as any;
+export const Interview = {} as any;
+export const AtsSettings = {} as any;
+export const AgentAuditLog = {} as any;
+export const User = {} as any;
+
+]]>
+</file>
+
+<file path="tests/stubs/mongo.ts">
+<![CDATA[
+export const mongoClient = {} as any;
+export const getMongoClient = async () => mongoClient;
+
+]]>
+</file>
+
+<file path="tests/stubs/mongodb-unified.ts">
+<![CDATA[
+export const connectToDatabase = async () => undefined;
+export const disconnectFromDatabase = async () => undefined;
+export const getDb = () => undefined as any;
+
+]]>
+</file>
+
+<file path="tests/stubs/rateLimit.ts">
+<![CDATA[
+export const rateLimit = async () => ({ allowed: true });
+export const rateLimitKey = () => "test-key";
+
+]]>
+</file>
+
+<file path="tests/system/verify-passwords.ts">
+<![CDATA[
+#!/usr/bin/env node
+// ✅ SECURITY FIX: Requires test environment to prevent production DB access
+// This script checks password field integrity for test accounts only
+import { db } from '../../lib/mongo';
+import { User } from '../../server/models/User';
+
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
+async function checkPasswords() {
+  // ✅ SECURITY GATE: Only allow in test environment
+  if (process.env.NODE_ENV === 'production') {
+    console.error('❌ BLOCKED: Cannot run against production database');
+    console.error('Set NODE_ENV=test and use test database URI');
+    process.exit(1);
+  }
+  
+  if (
+    !process.env.TEST_MONGODB_URI &&
+    !process.env.MONGODB_URI?.includes('test') &&
+    !process.env.MONGODB_URI?.includes('localhost')
+  ) {
+    console.error('❌ BLOCKED: Must use test database (TEST_MONGODB_URI or MONGODB_URI with "test" or localhost in name)');
+    process.exit(1);
+  }
+  
+  try {
+    await db;
+    const userCollection = (User as {
+      collection: {
+        find: (filter: { email: { $in: string[] } }) => { toArray: () => Promise<Array<{ email?: string; password?: string }>> };
+      };
+    }).collection;
+
+    const targetEmails = [
+      `superadmin@${EMAIL_DOMAIN}`,
+      `corp.admin@${EMAIL_DOMAIN}`,
+      `manager@${EMAIL_DOMAIN}`,
+    ];
+
+    const users = await userCollection
+      .find({
+        email: { $in: targetEmails },
+      })
+      .toArray();
+    
+    users.forEach((user) => {
+      const hash = (user as { passwordHash?: string; password?: string }).passwordHash || (user as { password?: string }).password;
+      console.log(`\n${user.email}:`);
+      console.log(`  hash field exists: ${!!hash}`);
+      console.log(`  password is bcrypt hash: ${hash?.startsWith('$2')}`);
+      console.log(`  hash length valid: ${hash ? hash.length >= 50 : false}`);
+    });
+    
+    process.exit(0);
+  } catch (error) {
+    console.error('Error:', error);
+    process.exit(1);
+  }
+}
+
+checkPasswords();
+
+]]>
+</file>
+
+<file path="tests/test_mongodb.js">
+<![CDATA[
+const { MongoClient } = require("mongodb");
+
+async function testMongoConnection() {
+  console.log("🔄 Testing MongoDB Cloud Connection...");
+
+  const mongoUri = process.env.MONGODB_URI;
+  const dbName = process.env.MONGODB_DB || "fixzit";
+
+  console.log("📋 Configuration Check:");
+  console.log(`- MONGODB_URI: ${mongoUri ? "✅ Set" : "❌ Missing"}`);
+  console.log(`- MONGODB_DB: ${dbName}`);
+
+  if (!mongoUri) {
+    console.log("❌ MongoDB URI not found in environment variables.");
+    console.log("🔧 Please set MONGODB_URI in your .env.local file");
+    console.log(
+      "Format: mongodb+srv://username:password@cluster.mongodb.net/database",
+    );
+    return false;
+  }
+
+  const safeUri = mongoUri.replace(/\/\/([^:]+):([^@]+)@/, "//***:***@");
+  console.log(`🔗 Connecting to: ${safeUri}`);
+
+  try {
+    const client = new MongoClient(mongoUri);
+    console.log("⏳ Attempting connection...");
+    await client.connect();
+    console.log("✅ Successfully connected to MongoDB!");
+
+    const db = client.db(dbName);
+    const collections = await db.listCollections().toArray();
+    console.log(`📊 Database: ${dbName}`);
+    console.log(`📁 Collections found: ${collections.length}`);
+
+    await client.close();
+    console.log("🎉 MongoDB connection test completed successfully!");
+    return true;
+  } catch (error) {
+    console.log(`❌ MongoDB connection failed: ${error.message}`);
+    return false;
+  }
+}
+
+testMongoConnection().then((success) => process.exit(success ? 0 : 1));
+
+]]>
+</file>
+
+<file path="tests/test_zatca.js">
+<![CDATA[
+console.log("Testing ZATCA system...");
+const crypto = require("crypto");
+const data = {
+  seller: "Test Seller",
+  buyer: "Test Buyer",
+  total: 100,
+  vat: 15,
+};
+const base64Data = Buffer.from(JSON.stringify(data)).toString("base64");
+const tlvData =
+  "01" +
+  Buffer.from("Test Seller").length.toString(16).padStart(2, "0") +
+  Buffer.from("Test Seller").toString("hex") +
+  "02" +
+  Buffer.from("12345").length.toString(16).padStart(2, "0") +
+  Buffer.from("12345").toString("hex");
+console.log("ZATCA TLV Generated:", tlvData.length + " characters");
+console.log("E2E Test: PASSED");
+
+]]>
+</file>
+
+<file path="tests/tsconfig.all.json">
+<![CDATA[
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.json" },
+    { "path": "./api/souq/tsconfig.json" },
+    { "path": "./unit/tsconfig.json" },
+    { "path": "./tsconfig.hr.json" },
+    { "path": "./tsconfig.ats.json" },
+    { "path": "./tsconfig.marketplace.json" }
+  ]
+}
+
+]]>
+</file>
+
+<file path="tests/tsconfig.ats.json">
+<![CDATA[
+{
+  "extends": "./tsconfig.base.json",
+  "include": [
+    "api/ats/**/*.ts",
+    "unit/ats/**/*.ts",
+    "integration/ats/**/*.ts",
+    "../types/vitest.d.ts",
+    "../types/**/*.d.ts"
+  ]
+}
+
+]]>
+</file>
+
+<file path="tests/tsconfig.base.json">
+<![CDATA[
+{
+  "extends": "../tsconfig.vitest.json",
+  "compilerOptions": {
+    "types": [
+      "vitest/globals",
+      "vitest/importMeta",
+      "@testing-library/jest-dom",
+      "node"
+    ]
+  }
+}
+
+]]>
+</file>
+
+<file path="tests/tsconfig.hr.json">
+<![CDATA[
+{
+  "extends": "./tsconfig.base.json",
+  "include": [
+    "api/hr/**/*.ts",
+    "unit/hr/**/*.ts",
+    "integration/hr/**/*.ts",
+    "../types/vitest.d.ts",
+    "../types/**/*.d.ts"
+  ]
+}
+
+]]>
+</file>
+
+<file path="tests/tsconfig.json">
+<![CDATA[
+{
+  // Dedicated config so editors and language services resolve @/* paths in tests
+  "extends": "../tsconfig.vitest.json",
+  "compilerOptions": {
+    "types": ["vitest/globals"]
+  }
+}
+
+]]>
+</file>
+
+<file path="tests/tsconfig.marketplace.json">
+<![CDATA[
+{
+  "extends": "./tsconfig.base.json",
+  "include": [
+    "api/marketplace/**/*.ts",
+    "unit/components/marketplace/**/*.ts",
+    "integration/marketplace/**/*.ts",
+    "../types/vitest.d.ts",
+    "../types/**/*.d.ts"
+  ]
+}
+
+]]>
+</file>
+
+<file path="tests/unit/audit.test.ts">
+<![CDATA[
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+vi.mock('@sentry/nextjs', () => ({
+  captureException: vi.fn(),
+  captureMessage: vi.fn(),
+}));
+
+vi.mock('@/lib/logger', () => ({
+  logger: {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+  },
+}));
+
+vi.mock('@/server/models/AuditLog', () => ({
+  AuditLogModel: {
+    log: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+import { audit } from '@/lib/audit';
+import { AuditLogModel } from '@/server/models/AuditLog';
+import { logger } from '@/lib/logger';
+
+const mockAuditLog = vi.mocked(AuditLogModel);
+const mockLogger = vi.mocked(logger);
+
+describe('audit normalization', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('maps auth.login to LOGIN and preserves rawAction metadata', async () => {
+    await audit({
+      actorId: 'user-1',
+      actorEmail: 'user@example.com',
+      action: 'auth.login',
+      targetType: 'user',
+      orgId: 'org-1',
+    });
+
+    expect(mockAuditLog.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'LOGIN',
+        metadata: expect.objectContaining({
+          rawAction: 'auth.login',
+          actorEmail: '[REDACTED]',
+          source: 'WEB',
+        }),
+        result: expect.objectContaining({ success: true }),
+      }),
+    );
+    expect(mockLogger.error).not.toHaveBeenCalled();
+  });
+
+  it('maps property targetType to PROPERTY', async () => {
+    await audit({
+      actorId: 'user-1',
+      actorEmail: 'user@example.com',
+      action: 'entity.update',
+      targetType: 'property',
+      orgId: 'org-1',
+    });
+
+    expect(mockAuditLog.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entityType: 'PROPERTY',
+      }),
+    );
+  });
+
+  it('maps service_provider targetType to SERVICE_PROVIDER', async () => {
+    await audit({
+      actorId: 'user-1',
+      actorEmail: 'user@example.com',
+      action: 'entity.update',
+      targetType: 'service_provider',
+      orgId: 'org-1',
+    });
+
+    expect(mockAuditLog.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entityType: 'SERVICE_PROVIDER',
+      }),
+    );
+  });
+
+  it('defaults to CUSTOM for unknown actions', async () => {
+    await audit({
+      actorId: 'user-1',
+      actorEmail: 'user@example.com',
+      action: 'unknown.action',
+      targetType: 'user',
+      orgId: 'org-1',
+    });
+
+    expect(mockAuditLog.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'CUSTOM',
+      }),
+    );
+  });
+
+  it('triggers critical alert logger for grant actions using rawAction', async () => {
+    await audit({
+      actorId: 'admin-1',
+      actorEmail: 'admin@example.com',
+      action: 'user.grantSuperAdmin',
+      targetType: 'user',
+      target: 'target@example.com',
+      orgId: 'org-1',
+    });
+
+    expect(mockLogger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('[AUDIT CRITICAL]'),
+      expect.objectContaining({
+        meta: expect.objectContaining({ rawAction: 'user.grantSuperAdmin' }),
+        severity: 'critical',
+      }),
+    );
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/config/domains.test.ts">
+<![CDATA[
+import { describe, it, expect } from "vitest";
+import { DOMAINS, isAllowedOrigin } from "@/lib/config/domains";
+
+describe("isAllowedOrigin", () => {
+  it("allows exact primary origin", () => {
+    expect(isAllowedOrigin(DOMAINS.primary)).toBe(true);
+  });
+
+  it("allows subdomain origins", () => {
+    const host = new URL(DOMAINS.primary).hostname;
+    expect(isAllowedOrigin(`https://app.${host}`)).toBe(true);
+  });
+
+  it("rejects prefixed attacker domains", () => {
+    expect(isAllowedOrigin(`${DOMAINS.primary}.evil.com`)).toBe(false);
+    expect(isAllowedOrigin(`https://app.${new URL(DOMAINS.primary).hostname}.attacker.net`)).toBe(false);
+  });
+
+  it("rejects invalid origins", () => {
+    expect(isAllowedOrigin("not-a-url")).toBe(false);
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/contexts/TranslationContext.test.tsx">
+<![CDATA[
+/**
+ * TranslationProvider + useTranslation tests (Vitest + RTL)
+ */
+
+import React from "react";
+import { render, screen, act } from "@testing-library/react";
+import { describe, it, expect, beforeEach, beforeAll, vi } from "vitest";
+const hoistedMocks = vi.hoisted(() => {
+  const state = { locale: "ar" as "en" | "ar", dir: "rtl" as "ltr" | "rtl" };
+  const setLocale = vi.fn<(locale: "en" | "ar") => void>().mockImplementation((locale) => {
+    // Simulate actual i18n behavior - update state when locale is set
+    state.locale = locale;
+    state.dir = locale === "ar" ? "rtl" : "ltr";
+  });
+  const t = vi.fn<(key: string) => string>();
+  return {
+    state,
+    setLocale,
+    t,
+  };
+});
+
+const mockI18nState = hoistedMocks.state;
+const mockSetLocale = hoistedMocks.setLocale;
+const mockTranslate = hoistedMocks.t;
+
+vi.mock("@/i18n/useI18n", () => ({
+  useI18n: () => ({
+    locale: mockI18nState.locale,
+    dir: mockI18nState.dir,
+    t: mockTranslate,
+    setLocale: mockSetLocale,
+  }),
+}));
+
+vi.mock("@/i18n/config", () => ({
+  DEFAULT_LOCALE: "ar",
+}));
+
+import {
+  TranslationProvider,
+  useTranslation,
+} from "@/contexts/TranslationContext";
+
+type TranslationModule = typeof import("@/contexts/TranslationContext");
+type TranslationContextValue = ReturnType<TranslationModule["useTranslation"]>;
+
+let TranslationProvider: TranslationModule["TranslationProvider"];
+let useTranslationHook: TranslationModule["useTranslation"];
+
+beforeAll(async () => {
+  vi.resetModules();
+  const translationModule = await import("@/contexts/TranslationContext");
+  TranslationProvider = translationModule.TranslationProvider;
+  useTranslationHook = translationModule.useTranslation;
+});
+
+const Capture = ({
+  report,
+}: {
+  report: (value: TranslationContextValue) => void;
+}) => {
+  const ctx = useTranslationHook();
+  report(ctx);
+  return <div data-testid="capture" />;
+};
+
+function renderWithCapture(report: (value: TranslationContextValue) => void) {
+  return render(
+    <TranslationProvider>
+      <Capture report={report} />
+    </TranslationProvider>,
+  );
+}
+
+describe("TranslationProvider / useTranslation", () => {
+  beforeEach(() => {
+    mockI18nState.locale = "ar";
+    mockI18nState.dir = "rtl";
+    mockSetLocale.mockClear();
+    mockTranslate.mockImplementation((key: string) => `i18n:${key}`);
+  });
+
+  it("renders children", () => {
+    render(
+      <TranslationProvider>
+        <div data-testid="child">child</div>
+      </TranslationProvider>,
+    );
+    expect(screen.getByTestId("child")).toBeInTheDocument();
+  });
+
+  it("derives language metadata from useI18n locale", async () => {
+    mockI18nState.locale = "en";
+    mockI18nState.dir = "ltr";
+
+    let captured: TranslationContextValue | null = null;
+    renderWithCapture((value) => {
+      captured = value;
+    });
+
+    expect(captured).not.toBeNull();
+    expect(captured!.language).toBe("en");
+    expect(captured!.locale).toBe("en-GB");
+    expect(captured!.isRTL).toBe(false);
+  });
+
+  it("setLanguage forwards to useI18n.setLocale", async () => {
+    let captured: TranslationContextValue | null = null;
+    renderWithCapture((value) => {
+      captured = value;
+    });
+
+    expect(captured).not.toBeNull();
+    await act(async () => {
+      captured!.setLanguage("en");
+    });
+    expect(mockSetLocale).toHaveBeenCalledWith("en");
+  });
+
+  it("setLocale normalizes friendly locale strings", async () => {
+    let captured: TranslationContextValue | null = null;
+    renderWithCapture((value) => {
+      captured = value;
+    });
+
+    expect(captured).not.toBeNull();
+    await act(async () => {
+      captured!.setLocale("en-GB");
+    });
+    expect(mockSetLocale).toHaveBeenCalledWith("en");
+
+    mockSetLocale.mockClear();
+    await act(async () => {
+      captured!.setLocale("ar-SA");
+    });
+    expect(mockSetLocale).toHaveBeenCalledWith("ar");
+  });
+
+  it("setLocale normalizes supported locale variants", async () => {
+    let captured: TranslationContextValue | null = null;
+    renderWithCapture((value) => {
+      captured = value;
+    });
+
+    expect(captured).not.toBeNull();
+    expect(captured!.language).toBe("ar");
+    
+    await act(async () => {
+      captured!.setLocale("fr-FR");
+    });
+    expect(mockSetLocale).toHaveBeenCalled();
+    const calledWith = mockSetLocale.mock.calls[0][0];
+    expect(calledWith).toBe("fr");
+  });
+
+  it("t(key, fallback) returns fallback when translator returns key", async () => {
+    mockTranslate.mockImplementation((key: string) => key);
+    let captured: TranslationContextValue | null = null;
+    renderWithCapture((value) => {
+      captured = value;
+    });
+
+    expect(captured).not.toBeNull();
+    const result = captured!.t("missing.key", "Fallback value");
+    expect(result).toBe("Fallback value");
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/counters.test.ts">
+<![CDATA[
+import { describe, it, expect } from "vitest";
+import type { BadgeCounts } from "@/config/navigation";
+
+// Local copy of the mapping logic used in ClientSidebar/ClientLayout
+const mapCountersToBadgeCounts = (
+  counters?: any,
+): BadgeCounts | undefined => {
+  if (!counters || typeof counters !== "object") return undefined;
+  const value: BadgeCounts = {};
+  const setCount = (key: keyof BadgeCounts, input?: number) => {
+    if (typeof input === "number" && Number.isFinite(input)) value[key] = input;
+  };
+
+  const {
+    workOrders,
+    finance,
+    invoices,
+    properties,
+    crm,
+    support,
+    marketplace,
+    approvals,
+    rfqs,
+    hrApplications,
+  } = counters;
+
+  setCount("workOrders", workOrders?.total);
+  setCount("pendingWorkOrders", workOrders?.open);
+  setCount("inProgressWorkOrders", workOrders?.inProgress);
+  setCount("urgentWorkOrders", workOrders?.overdue);
+
+  const financeSource = finance ?? invoices ?? {};
+  setCount("pending_invoices", financeSource?.unpaid);
+  setCount("overdue_invoices", financeSource?.overdue);
+
+  setCount("properties_needing_attention", properties?.maintenance);
+
+  setCount("crm_deals", crm?.contracts);
+  setCount("aqar_leads", crm?.leads);
+
+  setCount("open_support_tickets", support?.open);
+
+  setCount("marketplace_orders", marketplace?.orders);
+  setCount("marketplace_products", marketplace?.listings);
+
+  setCount("pending_approvals", approvals?.pending);
+  setCount("open_rfqs", rfqs?.open);
+  setCount("hr_applications", hrApplications?.pending);
+
+  return Object.keys(value).length ? value : undefined;
+};
+
+describe("mapCountersToBadgeCounts", () => {
+  it("maps domain counters to badge keys", () => {
+    const counters = {
+      workOrders: { total: 10, open: 3, inProgress: 2, overdue: 1 },
+      finance: { unpaid: 5, overdue: 2 },
+      properties: { maintenance: 4 },
+      crm: { contracts: 7, leads: 9 },
+      support: { open: 6 },
+      marketplace: { orders: 8, listings: 11 },
+      approvals: { pending: 2 },
+      rfqs: { open: 5 },
+      hrApplications: { pending: 4 },
+    };
+
+    const result = mapCountersToBadgeCounts(counters)!;
+
+    expect(result).toMatchObject({
+      workOrders: 10,
+      pendingWorkOrders: 3,
+      inProgressWorkOrders: 2,
+      urgentWorkOrders: 1,
+      pending_invoices: 5,
+      overdue_invoices: 2,
+      properties_needing_attention: 4,
+      crm_deals: 7,
+      aqar_leads: 9,
+      open_support_tickets: 6,
+      marketplace_orders: 8,
+      marketplace_products: 11,
+      pending_approvals: 2,
+      open_rfqs: 5,
+      hr_applications: 4,
+    });
+  });
+
+  it("ignores non-numeric and missing values", () => {
+    const result = mapCountersToBadgeCounts({
+      finance: { unpaid: "x" },
+      approvals: { pending: null },
+      rfqs: {},
+      hrApplications: { pending: undefined },
+    });
+    expect(result).toBeUndefined();
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/escrow-events.contract.test.ts">
+<![CDATA[
+import { describe, expect, it } from "vitest";
+import { validateEscrowEventPayload } from "@/services/souq/settlements/escrow-events.contract";
+
+const basePayload = {
+  escrowAccountId: "escrow-123",
+  orgId: "org-123",
+  amount: 1500,
+  currency: "SAR",
+  transactionId: "txn-1",
+};
+
+describe("escrow webhook payload contract", () => {
+  it("accepts funded payload with extras", () => {
+    const parsed = validateEscrowEventPayload("escrow.funded", {
+      ...basePayload,
+      sourceId: "order-1",
+      idempotencyKey: "abc",
+    });
+
+    expect(parsed.escrowAccountId).toBe(basePayload.escrowAccountId);
+    expect(parsed.amount).toBe(basePayload.amount);
+    expect(parsed.sourceId).toBe("order-1");
+  });
+
+  it("enforces required escrow id and org id", () => {
+    expect(() =>
+      validateEscrowEventPayload("escrow.created", {
+        amount: 10,
+      }),
+    ).toThrowError();
+  });
+
+  it("supports release payload contract", () => {
+    const parsed = validateEscrowEventPayload("escrow.released", {
+      ...basePayload,
+      releaseId: "rel-1",
+    });
+    expect(parsed.releaseId).toBe("rel-1");
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/finance/finance-encryption.test.ts">
+<![CDATA[
+/**
+ * Unit Tests for Finance Model PII Encryption
+ *
+ * Tests encryption/decryption of PII fields in Invoice and FMFinancialTransaction models.
+ * These tests validate that the encryptionPlugin correctly encrypts/decrypts
+ * sensitive finance data.
+ */
+
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
+import mongoose from "mongoose";
+import { MongoMemoryServer } from "mongodb-memory-server";
+import { generateEncryptionKey, isEncrypted } from "@/lib/security/encryption";
+import {
+  setAuditContext,
+  clearAuditContext,
+} from "@/server/plugins/auditPlugin";
+
+// Mock getModel to avoid model re-registration issues in tests
+vi.mock("@/types/mongoose-compat", () => ({
+  getModel: vi.fn((name: string, schema: mongoose.Schema) => {
+    // Return existing model or create new one
+    if (mongoose.models[name]) {
+      return mongoose.models[name];
+    }
+    return mongoose.model(name, schema);
+  }),
+}));
+
+// Test data factories
+function createTestInvoiceData(overrides = {}) {
+  return {
+    number: `INV-${Date.now()}`,
+    type: "SALES",
+    status: "DRAFT",
+    createdBy: new mongoose.Types.ObjectId(),
+    issueDate: new Date(),
+    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    orgId: new mongoose.Types.ObjectId().toString(),
+    issuer: {
+      name: "Test Company",
+      taxId: "123456789",
+      address: "123 Test Street",
+      phone: "+966500000000",
+      email: "test@example.com",
+    },
+    recipient: {
+      name: "Customer Name",
+      taxId: "987654321",
+      phone: "+966511111111",
+      email: "customer@example.com",
+      nationalId: "1234567890",
+    },
+    payment: {
+      method: "BANK_TRANSFER",
+      terms: "Net 30",
+      account: {
+        bank: "Test Bank",
+        accountNumber: "1234567890123456",
+        iban: "SA0380000000608010167519",
+        swift: "TESTSA00",
+      },
+    },
+    items: [
+      {
+        description: "Test Item",
+        quantity: 1,
+        unitPrice: 100,
+        total: 100,
+      },
+    ],
+    subtotal: 100,
+    total: 100,
+    ...overrides,
+  };
+}
+
+function createTestTransactionData(overrides = {}) {
+  return {
+    transactionNumber: `TXN-${Date.now()}`,
+    type: "PAYMENT",
+    status: "PENDING",
+    createdBy: new mongoose.Types.ObjectId(),
+    propertyId: new mongoose.Types.ObjectId().toString(),
+    ownerId: new mongoose.Types.ObjectId().toString(),
+    orgId: new mongoose.Types.ObjectId().toString(),
+    amount: 1000,
+    currency: "SAR",
+    category: "MAINTENANCE",
+    description: "Test payment",
+    transactionDate: new Date(),
+    paymentDetails: {
+      paymentMethod: "BANK_TRANSFER",
+      paymentRef: "CHK-123456",
+      receivedFrom: "John Doe",
+      bankAccount: "1234567890",
+      notes: "Test payment note",
+    },
+    ...overrides,
+  };
+}
+
+describe("Finance Model PII Encryption", () => {
+  let mongoServer: MongoMemoryServer;
+  const testKey = generateEncryptionKey();
+
+  beforeAll(async () => {
+    // Set encryption key
+    process.env.ENCRYPTION_KEY = testKey;
+
+    // Reset any existing connections (guards against accidental shared connection across tests)
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.disconnect();
+    }
+
+    // Start in-memory MongoDB
+    mongoServer = await MongoMemoryServer.create();
+    const uri = mongoServer.getUri();
+    await mongoose.connect(uri);
+    setAuditContext({ userId: new mongoose.Types.ObjectId() });
+  });
+
+  afterAll(async () => {
+    clearAuditContext();
+    await mongoose.disconnect();
+    await mongoServer.stop();
+    delete process.env.ENCRYPTION_KEY;
+  });
+
+  describe("Invoice Model Encryption", () => {
+    let Invoice: mongoose.Model<mongoose.Document>;
+
+    beforeAll(async () => {
+      // Import Invoice model after mongoose is connected and env is set
+      const mod = await import("@/server/models/Invoice");
+      Invoice = mod.Invoice as mongoose.Model<mongoose.Document>;
+      // Fallback collection for tests if Mongoose hasn't attached it
+      if (!(Invoice as any).collection || !(Invoice as any).collection.findOne) {
+        (Invoice as any).collection = mongoose.connection.collection("invoices");
+      }
+    });
+
+    it("should encrypt issuer PII fields on save", async () => {
+      const data = createTestInvoiceData();
+      const invoice = new Invoice(data);
+      await invoice.save();
+
+      // Read raw document from database to check encryption
+      const raw = await Invoice.collection.findOne({
+        _id: invoice._id,
+      });
+
+      expect(raw).toBeTruthy();
+      expect(isEncrypted(raw?.issuer?.taxId)).toBe(true);
+      expect(isEncrypted(raw?.issuer?.phone)).toBe(true);
+      expect(isEncrypted(raw?.issuer?.email)).toBe(true);
+    });
+
+    it("should encrypt recipient PII fields on save", async () => {
+      const data = createTestInvoiceData();
+      const invoice = new Invoice(data);
+      await invoice.save();
+
+      // Read raw document from database to check encryption
+      const raw = await Invoice.collection.findOne({
+        _id: invoice._id,
+      });
+
+      expect(raw).toBeTruthy();
+      expect(isEncrypted(raw?.recipient?.taxId)).toBe(true);
+      expect(isEncrypted(raw?.recipient?.phone)).toBe(true);
+      expect(isEncrypted(raw?.recipient?.email)).toBe(true);
+      expect(isEncrypted(raw?.recipient?.nationalId)).toBe(true);
+    });
+
+    it("should encrypt payment account fields on save", async () => {
+      const data = createTestInvoiceData();
+      const invoice = new Invoice(data);
+      await invoice.save();
+
+      // Read raw document from database to check encryption
+      const raw = await Invoice.collection.findOne({
+        _id: invoice._id,
+      });
+
+      expect(raw).toBeTruthy();
+      expect(isEncrypted(raw?.payment?.account?.accountNumber)).toBe(true);
+      expect(isEncrypted(raw?.payment?.account?.iban)).toBe(true);
+      expect(isEncrypted(raw?.payment?.account?.swift)).toBe(true);
+    });
+
+    it("should decrypt fields on find", async () => {
+      const data = createTestInvoiceData();
+      const invoice = new Invoice(data);
+      await invoice.save();
+
+      // Find and verify decryption
+      const found = await Invoice.findById(invoice._id);
+      expect(found).toBeTruthy();
+      if (!found) return;
+
+      const foundObj = found.toObject() as Record<string, any>;
+
+      expect(foundObj.issuer.taxId).toBe(data.issuer.taxId);
+      expect(foundObj.issuer.phone).toBe(data.issuer.phone);
+      expect(foundObj.issuer.email).toBe(data.issuer.email);
+      expect(foundObj.recipient.taxId).toBe(data.recipient.taxId);
+      expect(foundObj.recipient.phone).toBe(data.recipient.phone);
+      expect(foundObj.recipient.email).toBe(data.recipient.email);
+      expect(foundObj.recipient.nationalId).toBe(data.recipient.nationalId);
+      expect((foundObj.payment as Record<string, Record<string, unknown>>).account.accountNumber).toBe(data.payment.account.accountNumber);
+      expect((foundObj.payment as Record<string, Record<string, unknown>>).account.iban).toBe(data.payment.account.iban);
+      expect((foundObj.payment as Record<string, Record<string, unknown>>).account.swift).toBe(data.payment.account.swift);
+    });
+
+    it("should re-encrypt on update", async () => {
+      const data = createTestInvoiceData();
+      const invoice = new Invoice(data);
+      await invoice.save();
+
+      // Update with new values
+      const updated = await Invoice.findByIdAndUpdate(
+        invoice._id,
+        {
+          $set: {
+            "issuer.taxId": "999888777",
+            "recipient.nationalId": "0987654321",
+          },
+        },
+        { new: true },
+      );
+
+      // Read raw document
+      const raw = await Invoice.collection.findOne({
+        _id: invoice._id,
+      });
+
+      expect(raw).toBeTruthy();
+      expect(isEncrypted(raw?.issuer?.taxId)).toBe(true);
+      expect(isEncrypted(raw?.recipient?.nationalId)).toBe(true);
+
+      // Verify decryption returns new values
+      const found = await Invoice.findById(invoice._id);
+      expect(found).toBeTruthy();
+      if (!found) return;
+
+      const foundObj = found.toObject() as Record<string, any>;
+      expect(foundObj.issuer.taxId).toBe("999888777");
+      expect(foundObj.recipient.nationalId).toBe("0987654321");
+    });
+
+    it("should skip encryption for null/undefined values", async () => {
+      const data = createTestInvoiceData({
+        issuer: {
+          name: "Test Company",
+          taxId: null,
+          phone: undefined,
+        },
+        recipient: {
+          name: "Customer",
+          taxId: null,
+        },
+        payment: {
+          method: "CASH",
+          account: null,
+        },
+      });
+
+      const invoice = new Invoice(data);
+      await invoice.save();
+
+      const raw = await Invoice.collection.findOne({
+        _id: invoice._id,
+      });
+
+      expect(raw?.issuer?.taxId).toBeNull();
+      expect(raw?.issuer?.phone).toBeUndefined();
+    });
+
+    it("should not double-encrypt already encrypted values", async () => {
+      const data = createTestInvoiceData();
+      const invoice = new Invoice(data);
+      await invoice.save();
+
+      // Get the encrypted value
+      const raw1 = await Invoice.collection.findOne({
+        _id: invoice._id,
+      });
+      const encryptedTaxId = raw1?.issuer?.taxId;
+
+      // Save again (simulate re-save)
+      const found = await Invoice.findById(invoice._id);
+      if (found) {
+        found.set("issuer.name", "Updated Company Name");
+        await found.save();
+      }
+
+      // Get the encrypted value again
+      const raw2 = await Invoice.collection.findOne({
+        _id: invoice._id,
+      });
+
+      // Should still be encrypted but same format (not double-encrypted)
+      expect(isEncrypted(raw2?.issuer?.taxId)).toBe(true);
+    });
+  });
+
+  describe("FMFinancialTransaction Model Encryption", () => {
+    let FMFinancialTransaction: mongoose.Model<mongoose.Document>;
+
+    beforeAll(async () => {
+      // Import model after mongoose is connected and env is set
+      const mod = await import("@/server/models/FMFinancialTransaction");
+      FMFinancialTransaction = mod.FMFinancialTransaction as mongoose.Model<mongoose.Document>;
+      if (!(FMFinancialTransaction as any).collection || !(FMFinancialTransaction as any).collection.findOne) {
+        (FMFinancialTransaction as any).collection = mongoose.connection.collection("fmfinancialtransactions");
+      }
+    });
+
+    it("should encrypt paymentDetails fields on save", async () => {
+      const data = createTestTransactionData();
+      const transaction = new FMFinancialTransaction(data);
+      await transaction.save();
+
+      // Read raw document from database to check encryption
+      const raw = await FMFinancialTransaction.collection.findOne({
+        _id: transaction._id,
+      });
+
+      expect(raw).toBeTruthy();
+      expect(isEncrypted(raw?.paymentDetails?.paymentRef)).toBe(true);
+      expect(isEncrypted(raw?.paymentDetails?.receivedFrom)).toBe(true);
+      expect(isEncrypted(raw?.paymentDetails?.bankAccount)).toBe(true);
+    });
+
+    it("should decrypt fields on find", async () => {
+      const data = createTestTransactionData();
+      const transaction = new FMFinancialTransaction(data);
+      await transaction.save();
+
+      // Find and verify decryption
+      const found = await FMFinancialTransaction.findById(transaction._id);
+      expect(found).toBeTruthy();
+      if (!found) return;
+
+      const foundObj = found.toObject() as Record<string, any>;
+
+      expect(foundObj.paymentDetails.paymentRef).toBe(data.paymentDetails.paymentRef);
+      expect(foundObj.paymentDetails.receivedFrom).toBe(data.paymentDetails.receivedFrom);
+      expect(foundObj.paymentDetails.bankAccount).toBe(data.paymentDetails.bankAccount);
+    });
+
+    it("should re-encrypt on update", async () => {
+      const data = createTestTransactionData();
+      const transaction = new FMFinancialTransaction(data);
+      await transaction.save();
+
+      // Update with new values
+      await FMFinancialTransaction.findByIdAndUpdate(
+        transaction._id,
+        {
+          $set: {
+            "paymentDetails.paymentRef": "CHK-999999",
+            "paymentDetails.receivedFrom": "Jane Smith",
+          },
+        },
+        { new: true },
+      );
+
+      // Read raw document
+      const raw = await FMFinancialTransaction.collection.findOne({
+        _id: transaction._id,
+      });
+
+      expect(raw).toBeTruthy();
+      expect(isEncrypted(raw?.paymentDetails?.paymentRef)).toBe(true);
+      expect(isEncrypted(raw?.paymentDetails?.receivedFrom)).toBe(true);
+
+      // Verify decryption returns new values
+      const found = await FMFinancialTransaction.findById(transaction._id);
+      expect(found).toBeTruthy();
+      if (!found) return;
+
+      const foundObj = found.toObject() as Record<string, any>;
+      expect(foundObj.paymentDetails.paymentRef).toBe("CHK-999999");
+      expect(foundObj.paymentDetails.receivedFrom).toBe("Jane Smith");
+    });
+
+    it("should skip encryption for null/undefined payment details", async () => {
+      const data = createTestTransactionData({
+        paymentDetails: {
+          paymentMethod: "CASH",
+          paymentRef: null,
+          receivedFrom: undefined,
+          bankAccount: null,
+        },
+      });
+
+      const transaction = new FMFinancialTransaction(data);
+      await transaction.save();
+
+      const raw = await FMFinancialTransaction.collection.findOne({
+        _id: transaction._id,
+      });
+
+      expect(raw?.paymentDetails?.paymentRef).toBeNull();
+      expect(raw?.paymentDetails?.bankAccount).toBeNull();
+    });
+
+    it("should handle transactions without payment details", async () => {
+      const data = createTestTransactionData({
+        type: "EXPENSE",
+        paymentDetails: undefined,
+      });
+
+      const transaction = new FMFinancialTransaction(data);
+      await transaction.save();
+
+      const found = await FMFinancialTransaction.findById(transaction._id);
+      expect(found).toBeTruthy();
+    });
+  });
+
+  describe("Cross-model encryption consistency", () => {
+    it("should use same encryption format across models", async () => {
+      const { Invoice } = await import("@/server/models/Invoice");
+      const { FMFinancialTransaction } = await import(
+        "@/server/models/FMFinancialTransaction"
+      );
+
+      const ensureCollection = (
+        model: mongoose.Model<mongoose.Document>,
+        fallback: string,
+      ) => {
+        if (!(model as any).collection || !(model as any).collection.findOne) {
+          (model as any).collection = mongoose.connection.collection(fallback);
+        }
+        return model;
+      };
+
+      ensureCollection(Invoice as mongoose.Model<mongoose.Document>, "invoices");
+      ensureCollection(
+        FMFinancialTransaction as mongoose.Model<mongoose.Document>,
+        "fmfinancialtransactions",
+      );
+
+      const invoiceData = createTestInvoiceData();
+      const transactionData = createTestTransactionData();
+
+      const invoice = new (Invoice as mongoose.Model<mongoose.Document>)(invoiceData);
+      await invoice.save();
+
+      const transaction = new (FMFinancialTransaction as mongoose.Model<mongoose.Document>)(transactionData);
+      await transaction.save();
+
+      // Read raw documents
+      const rawInvoice = await (Invoice as mongoose.Model<mongoose.Document>).collection.findOne({
+        _id: invoice._id,
+      });
+      const rawTransaction = await (FMFinancialTransaction as mongoose.Model<mongoose.Document>).collection.findOne({
+        _id: transaction._id,
+      });
+
+      // Both should use v1: format
+      expect(rawInvoice?.issuer?.taxId).toMatch(/^v1:/);
+      expect(rawTransaction?.paymentDetails?.paymentRef).toMatch(/^v1:/);
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/i18n/I18nProvider.test.tsx">
+<![CDATA[
+// @ts-nocheck
+/**
+ * Testing library and framework:
+ * - This test suite uses React Testing Library with Vitest in a jsdom environment.
+ */
+import React, { useContext } from "react";
+import { render, screen, waitFor, cleanup, act } from "@testing-library/react";
+import { vi, beforeEach, afterEach, describe, test, expect } from "vitest";
+
+/**
+ * Mock config and dictionaries BEFORE importing the module under test
+ * to ensure DICTIONARIES and meta are built from predictable values.
+ */
+vi.mock("@/i18n/config", () => ({
+  DEFAULT_LOCALE: "ar",
+  SUPPORTED_LOCALES: ["en", "ar"],
+  LOCALE_META: {
+    en: { dir: "ltr" },
+    ar: { dir: "rtl" },
+  } as const,
+}));
+
+const DEFAULT_LOCALE = "ar";
+const LOCALE_META = {
+  en: { dir: "ltr" },
+  ar: { dir: "rtl" },
+} as const;
+
+vi.mock("@/i18n/dictionaries/en", () => ({
+  default: { greeting: "Hello", code: "en" },
+}));
+
+vi.mock("@/i18n/dictionaries/ar", () => ({
+  default: { greeting: "مرحبا", code: "ar" },
+}));
+
+import { I18nProvider, I18nContext } from "@/i18n/I18nProvider";
+
+interface I18nContextValue {
+  locale: string;
+  dir: string;
+  dict: Record<string, string>;
+  setLocale: (locale: string, options?: { persist?: boolean }) => Promise<void>;
+}
+
+function resetCookies() {
+  // Expire cookies we know I18nProvider writes
+  const past = "Thu, 01 Jan 1970 00:00:00 GMT";
+  document.cookie = "locale=;expires=" + past + ";path=/";
+  document.cookie = "fxz.locale=;expires=" + past + ";path=/";
+  document.cookie = "fxz.lang=;expires=" + past + ";path=/";
+}
+
+beforeEach(() => {
+  cleanup();
+  localStorage.clear();
+  resetCookies();
+  vi.clearAllMocks();
+  // Provide a default fetch mock
+  global.fetch = vi.fn().mockResolvedValue({ ok: true } as Response);
+});
+
+afterEach(() => {
+  cleanup();
+});
+
+interface I18nContextValue {
+  locale: string;
+  dir: string;
+  dict: Record<string, string>;
+  setLocale: (locale: string, options?: { persist?: boolean }) => Promise<void>;
+}
+
+function CaptureContext(props: {
+  onValue?: (v: I18nContextValue | null) => void;
+}) {
+  const ctx = useContext(I18nContext);
+  if (props.onValue) props.onValue(ctx);
+  return (
+    <div>
+      <div data-testid="locale">{ctx?.locale}</div>
+      <div data-testid="dir">{ctx?.dir}</div>
+      <div data-testid="dict">{JSON.stringify(ctx?.dict)}</div>
+    </div>
+  );
+}
+
+describe("I18nProvider", () => {
+  test("renders children and provides default context values from DEFAULT_LOCALE", async () => {
+    render(
+      <I18nProvider>
+        <CaptureContext />
+      </I18nProvider>,
+    );
+
+    expect(screen.getByTestId("locale").textContent).toBe(DEFAULT_LOCALE);
+    expect(screen.getByTestId("dir").textContent).toBe(
+      LOCALE_META[DEFAULT_LOCALE].dir,
+    );
+
+    // Wait for dictionary to load asynchronously
+    await waitFor(() => {
+      const dict = JSON.parse(screen.getByTestId("dict").textContent || "{}");
+      const expectedDict =
+        DEFAULT_LOCALE === "ar"
+          ? { greeting: "مرحبا", code: "ar" }
+          : { greeting: "Hello", code: "en" };
+      expect(dict).toEqual(expectedDict);
+    });
+
+    // Document attributes should reflect initial locale
+    const defaultDir = LOCALE_META[DEFAULT_LOCALE].dir;
+    expect(document.documentElement.lang).toBe(DEFAULT_LOCALE);
+    expect(document.documentElement.dir).toBe(defaultDir);
+    expect(document.documentElement.classList.contains("rtl")).toBe(
+      defaultDir === "rtl",
+    );
+    expect(document.documentElement.getAttribute("data-locale")).toBe(
+      DEFAULT_LOCALE,
+    );
+    expect(document.body.style.direction).toBe(defaultDir);
+  });
+
+  test("respects initialLocale prop", async () => {
+    render(
+      <I18nProvider initialLocale="ar">
+        <CaptureContext />
+      </I18nProvider>,
+    );
+
+    expect(screen.getByTestId("locale").textContent).toBe("ar");
+    expect(screen.getByTestId("dir").textContent).toBe("rtl");
+
+    // Wait for dictionary to load asynchronously
+    await waitFor(() => {
+      const dict = JSON.parse(screen.getByTestId("dict").textContent || "{}");
+      expect(dict).toEqual({ greeting: "مرحبا", code: "ar" });
+    });
+
+    // Document attributes should reflect RTL
+    expect(document.documentElement.lang).toBe("ar");
+    expect(document.documentElement.dir).toBe("rtl");
+    expect(document.documentElement.classList.contains("rtl")).toBe(true);
+    expect(document.documentElement.getAttribute("data-locale")).toBe("ar");
+    expect(document.body.style.direction).toBe("rtl");
+  });
+
+  test("setLocale updates state, persists to storage and cookies, and POSTs to /api/i18n", async () => {
+    let ctxRef: I18nContextValue | null = null;
+    render(
+      <I18nProvider>
+        <CaptureContext onValue={(v) => (ctxRef = v)} />
+      </I18nProvider>,
+    );
+
+    await act(async () => {
+      ctxRef.setLocale("ar");
+    });
+
+    // State updated
+    expect(screen.getByTestId("locale").textContent).toBe("ar");
+    expect(screen.getByTestId("dir").textContent).toBe("rtl");
+
+    // Storage updated
+    expect(localStorage.getItem("locale")).toBe("ar");
+    expect(localStorage.getItem("fxz.locale")).toBe("ar-SA");
+    expect(localStorage.getItem("fxz.lang")).toBe("ar");
+
+    // Cookies updated
+    expect(document.cookie).toContain("locale=ar");
+    expect(document.cookie).toContain("fxz.locale=ar-SA");
+    expect(document.cookie).toContain("fxz.lang=ar");
+
+    // Fetch called
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledWith("/api/i18n", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ locale: "ar" }),
+    });
+
+    // Document updates + event dispatch
+    const handler = vi.fn();
+    window.addEventListener("fixzit:language-change", handler);
+    await act(async () => {
+      ctxRef?.setLocale("en");
+    });
+
+    // Check document updates for LTR
+    expect(document.documentElement.lang).toBe("en");
+    expect(document.documentElement.dir).toBe("ltr");
+    expect(document.documentElement.classList.contains("rtl")).toBe(false);
+    expect(document.body.style.direction).toBe("ltr");
+
+    // Event emitted with correct detail
+    await waitFor(() => {
+      expect(handler).toHaveBeenCalled();
+    });
+
+    const evt = handler.mock.calls[0][0] as CustomEvent;
+    expect(evt.detail).toMatchObject({
+      locale: "en",
+      language: "en",
+      dir: "ltr",
+    });
+
+    window.removeEventListener("fixzit:language-change", handler);
+  });
+
+  test("setLocale with { persist: false } updates context and DOM but does not touch storage/cookies/fetch", async () => {
+    let ctxRef: I18nContextValue | null = null;
+    render(
+      <I18nProvider>
+        <CaptureContext onValue={(v) => (ctxRef = v)} />
+      </I18nProvider>,
+    );
+
+    // Ensure clean baseline for cookies and storage
+    localStorage.clear();
+    resetCookies();
+    global.fetch = vi.fn().mockResolvedValue({ ok: true } as Response);
+
+    await act(async () => {
+      ctxRef?.setLocale("ar", { persist: false });
+    });
+
+    // State updated
+    expect(screen.getByTestId("locale").textContent).toBe("ar");
+    expect(screen.getByTestId("dir").textContent).toBe("rtl");
+
+    // No storage writes
+    expect(localStorage.getItem("locale")).toBeNull();
+    expect(localStorage.getItem("fxz.locale")).toBeNull();
+    expect(localStorage.getItem("fxz.lang")).toBeNull();
+
+    // No cookies
+    expect(document.cookie).not.toContain("locale=");
+    expect(document.cookie).not.toContain("fxz.locale=");
+    expect(document.cookie).not.toContain("fxz.lang=");
+
+    // No fetch call
+    expect(global.fetch).not.toHaveBeenCalled();
+
+    // DOM reflects RTL
+    expect(document.documentElement.dir).toBe("rtl");
+    expect(document.documentElement.classList.contains("rtl")).toBe(true);
+    expect(document.body.style.direction).toBe("rtl");
+  });
+
+  test("gracefully ignores storage errors while keeping state changes", async () => {
+    // Make localStorage.setItem throw
+    const spy = vi
+      .spyOn(Storage.prototype, "setItem")
+      .mockImplementation(() => {
+        throw new Error("storage-fail");
+      });
+
+    let ctxRef: I18nContextValue | null = null;
+    render(
+      <I18nProvider>
+        <CaptureContext onValue={(v) => (ctxRef = v)} />
+      </I18nProvider>,
+    );
+
+    await act(async () => {
+      ctxRef?.setLocale("ar");
+    });
+
+    // State still updates
+    expect(screen.getByTestId("locale").textContent).toBe("ar");
+    expect(screen.getByTestId("dir").textContent).toBe("rtl");
+
+    // No storage persisted due to error
+    expect(localStorage.getItem("locale")).toBeNull();
+
+    // Cookies not set, fetch not called because error occurs before those lines
+    expect(document.cookie).not.toContain("locale=");
+    expect(global.fetch).not.toHaveBeenCalled();
+
+    spy.mockRestore();
+  });
+
+  test('on mount: applies stored locale from "locale" key if valid and different', async () => {
+    localStorage.setItem("locale", "ar");
+    // Start provider at en; effect should switch to ar
+    render(
+      <I18nProvider initialLocale="en">
+        <CaptureContext />
+      </I18nProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("locale").textContent).toBe("ar");
+    });
+
+    expect(screen.getByTestId("dir").textContent).toBe("rtl");
+  });
+
+  test('on mount: falls back to "fxz.lang" when "locale" is missing', async () => {
+    localStorage.removeItem("locale");
+    localStorage.setItem("fxz.lang", "ar");
+
+    render(
+      <I18nProvider initialLocale="en">
+        <CaptureContext />
+      </I18nProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("locale").textContent).toBe("ar");
+    });
+    expect(screen.getByTestId("dir").textContent).toBe("rtl");
+  });
+
+  test("on mount: ignores invalid stored locale", async () => {
+    localStorage.setItem("locale", "fr"); // unsupported
+    render(
+      <I18nProvider initialLocale="en">
+        <CaptureContext />
+      </I18nProvider>,
+    );
+
+    // Should remain en
+    await waitFor(() => {
+      expect(screen.getByTestId("locale").textContent).toBe("en");
+    });
+    expect(screen.getByTestId("dir").textContent).toBe("ltr");
+  });
+
+  test("dict re-computes when locale changes", async () => {
+    let ctxRef: I18nContextValue | null = null;
+    render(
+      <I18nProvider initialLocale="en">
+        <CaptureContext onValue={(v) => (ctxRef = v)} />
+      </I18nProvider>,
+    );
+
+    // Wait for initial dictionary to load
+    await waitFor(() => {
+      const dictEn = JSON.parse(screen.getByTestId("dict").textContent || "{}");
+      expect(dictEn).toEqual({ greeting: "Hello", code: "en" });
+    });
+
+    await act(async () => {
+      ctxRef?.setLocale("ar");
+    });
+
+    // Wait for Arabic dictionary to load
+    await waitFor(() => {
+      const dictAr = JSON.parse(screen.getByTestId("dict").textContent || "{}");
+      expect(dictAr).toEqual({ greeting: "مرحبا", code: "ar" });
+    });
+  });
+});
+
+]]>
+</file>
+
+<file path="tests/unit/i18n/config.test.ts">
+<![CDATA[
+// Testing framework: Vitest
+import {
+  DEFAULT_LOCALE,
+  SUPPORTED_LOCALES,
+  LOCALE_META,
+  Locale,
+} from "@/i18n/config";
+
+describe("i18n config", () => {
+  describe("DEFAULT_LOCALE", () => {
+    it("should be a supported locale", () => {
+      expect(SUPPORTED_LOCALES).toContain(DEFAULT_LOCALE);
+    });
+
+    it('should equal "ar" by default', () => {
+      expect(DEFAULT_LOCALE).toBe("ar");
+    });
+  });
+
+  describe("SUPPORTED_LOCALES", () => {
+    it("should contain exactly the expected locales in order", () => {
+      expect(SUPPORTED_LOCALES).toEqual(["en", "ar"]);
+    });
+
+    it("should not contain duplicates", () => {
+      const set = new Set(SUPPORTED_LOCALES);
+      expect(set.size).toBe(SUPPORTED_LOCALES.length);
+    });
+
+    it("each supported locale should have corresponding metadata", () => {
+      for (const locale of SUPPORTED_LOCALES) {
+        expect(LOCALE_META).toHaveProperty(locale);
+      }
+    });
+  });
+
+  describe("LOCALE_META", () => {
+    const isDir = (v: unknown): v is "ltr" | "rtl" =>
+      v === "ltr" || v === "rtl";
+    const isFlag = (v: unknown): v is "gb" | "sa" => v === "gb" || v === "sa";
+
+    const expectValidMeta = (locale: Locale) => {
+      const meta = LOCALE_META[locale];
+      expect(meta).toBeTruthy();
+      expect(typeof meta.iso).toBe("string");
+      expect(meta.iso.length).toBeGreaterThan(0);
+      expect(typeof meta.nativeName).toBe("string");
+      expect(meta.nativeName.length).toBeGreaterThan(0);
+      expect(typeof meta.countryName).toBe("string");
+      expect(meta.countryName.length).toBeGreaterThan(0);
+      expect(isDir(meta.dir)).toBe(true);
+      expect(isFlag(meta.flag)).toBe(true);
+    };
+
+    it("should have metadata for every supported locale and only those", () => {
+      // keys in LOCALE_META should match SUPPORTED_LOCALES exactly (as sets)
+      const metaKeys = Object.keys(LOCALE_META).sort();
+      const supportedSorted = [...SUPPORTED_LOCALES].sort();
+      expect(metaKeys).toEqual(supportedSorted);
+    });
+
+    it('should have valid metadata shape for "en"', () => {
+      expectValidMeta("en");
+    });
+
+    it('should have valid metadata shape for "ar"', () => {
+      expectValidMeta("ar");
+    });
+
+    it('should have correct specific values for "en"', () => {
+      expect(LOCALE_META.en).toMatchObject({
+        iso: "EN",
+        nativeName: "English",
+        countryName: "United Kingdom",
+        dir: "ltr",
+        flag: "gb",
+      });
+    });
+
+    it('should have correct specific values for "ar"', () => {
+      expect(LOCALE_META.ar).toMatchObject({
+        iso: "AR",
+        nativeName: "العربية",
+        countryName: "المملكة العربية السعودية",
+        dir: "rtl",
+        flag: "sa",
+      });
+    });
+
+    it("round-trip: accessing metadata for each SUPPORTED_LOCALE should be defined", () => {
+      for (const locale of SUPPORTED_LOCALES) {
+        expect(LOCALE_META[locale]).toBeDefined();
+      }
+    });
+  });
+
+  describe("Type soundness at runtime (defensive checks)", () => {
+    // While TypeScript ensures compile-time safety, we include a defensive runtime check
+    // to catch accidental regressions in emitted JS shapes.
+    it("should not include unexpected locales in LOCALE_META", () => {
+      const allowed: Locale[] = SUPPORTED_LOCALES;
+      const keys = Object.keys(LOCALE_META);
+      for (const k of keys) {
+        expect(allowed.includes(k as Locale)).toBe(true);
+      }
+    });
+  });
+});
+
+]]>
+</file>
+
+</batch_content>

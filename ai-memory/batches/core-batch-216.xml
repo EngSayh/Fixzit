@@ -1,0 +1,3209 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="i18n/sources/workplaceFlexibility.translations.json">
+<![CDATA[
+{
+  "en": {
+    "workplaceFlexibility.arrangements": "الترتيبات المرنة",
+    "workplaceFlexibility.attraction": "جذب المواهب",
+    "workplaceFlexibility.balance": "توازن العمل",
+    "workplaceFlexibility.benefits": "فوائد المرونة",
+    "workplaceFlexibility.culture": "ثقافة المرونة",
+    "workplaceFlexibility.evaluation": "تقييم المرونة",
+    "workplaceFlexibility.flexibility": "مرونة مكان العمل",
+    "workplaceFlexibility.flexible": "العمل المرن",
+    "workplaceFlexibility.hours": "ساعات العمل المرنة",
+    "workplaceFlexibility.implementation": "تنفيذ المرونة",
+    "workplaceFlexibility.location": "الموقع المرن",
+    "workplaceFlexibility.management": "إدارة المرونة",
+    "workplaceFlexibility.options": "خيارات المرونة",
+    "workplaceFlexibility.performance": "أداء العمل",
+    "workplaceFlexibility.policies": "سياسات المرونة",
+    "workplaceFlexibility.productivity": "الإنتاجية المرنة",
+    "workplaceFlexibility.programs": "برامج المرونة",
+    "workplaceFlexibility.retention": "الاحتفاظ بالموظفين",
+    "workplaceFlexibility.satisfaction": "رضا الموظف",
+    "workplaceFlexibility.schedule": "الجدول المرن",
+    "workplaceFlexibility.wellbeing": "رفاهية الموظف",
+    "workplaceFlexibility.workLife": "التوازن بين العمل والحياة"
+  },
+  "ar": {
+    "workplaceFlexibility.arrangements": "الترتيبات المرنة",
+    "workplaceFlexibility.attraction": "جذب المواهب",
+    "workplaceFlexibility.balance": "توازن العمل",
+    "workplaceFlexibility.benefits": "فوائد المرونة",
+    "workplaceFlexibility.culture": "ثقافة المرونة",
+    "workplaceFlexibility.evaluation": "تقييم المرونة",
+    "workplaceFlexibility.flexibility": "مرونة مكان العمل",
+    "workplaceFlexibility.flexible": "العمل المرن",
+    "workplaceFlexibility.hours": "ساعات العمل المرنة",
+    "workplaceFlexibility.implementation": "تنفيذ المرونة",
+    "workplaceFlexibility.location": "الموقع المرن",
+    "workplaceFlexibility.management": "إدارة المرونة",
+    "workplaceFlexibility.options": "خيارات المرونة",
+    "workplaceFlexibility.performance": "أداء العمل",
+    "workplaceFlexibility.policies": "سياسات المرونة",
+    "workplaceFlexibility.productivity": "الإنتاجية المرنة",
+    "workplaceFlexibility.programs": "برامج المرونة",
+    "workplaceFlexibility.retention": "الاحتفاظ بالموظفين",
+    "workplaceFlexibility.satisfaction": "رضا الموظف",
+    "workplaceFlexibility.schedule": "الجدول المرن",
+    "workplaceFlexibility.wellbeing": "رفاهية الموظف",
+    "workplaceFlexibility.workLife": "التوازن بين العمل والحياة"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/sources/workspaceSettings.translations.json">
+<![CDATA[
+{
+  "en": {
+    "workspaceSettings.archived": "Archived",
+    "workspaceSettings.currency": "Default Currency",
+    "workspaceSettings.dateFormat": "Date Format",
+    "workspaceSettings.description": "Description",
+    "workspaceSettings.icon": "Icon",
+    "workspaceSettings.invite": "Invite Members",
+    "workspaceSettings.language": "Default Language",
+    "workspaceSettings.logo": "Logo",
+    "workspaceSettings.members": "Members",
+    "workspaceSettings.name": "Workspace Name",
+    "workspaceSettings.owner": "Workspace Owner",
+    "workspaceSettings.permissions": "Permissions",
+    "workspaceSettings.private": "Private",
+    "workspaceSettings.public": "Public",
+    "workspaceSettings.remove": "Remove Member",
+    "workspaceSettings.settings": "Workspace Settings",
+    "workspaceSettings.theme": "Theme",
+    "workspaceSettings.timeFormat": "Time Format",
+    "workspaceSettings.timezone": "Default Timezone",
+    "workspaceSettings.visibility": "Visibility",
+    "workspaceSettings.workspace": "Workspace"
+  },
+  "ar": {
+    "workspaceSettings.archived": "مؤرشفة",
+    "workspaceSettings.currency": "العملة الافتراضية",
+    "workspaceSettings.dateFormat": "تنسيق التاريخ",
+    "workspaceSettings.description": "الوصف",
+    "workspaceSettings.icon": "الأيقونة",
+    "workspaceSettings.invite": "دعوة أعضاء",
+    "workspaceSettings.language": "اللغة الافتراضية",
+    "workspaceSettings.logo": "الشعار",
+    "workspaceSettings.members": "الأعضاء",
+    "workspaceSettings.name": "اسم مساحة العمل",
+    "workspaceSettings.owner": "مالك مساحة العمل",
+    "workspaceSettings.permissions": "الصلاحيات",
+    "workspaceSettings.private": "خاصة",
+    "workspaceSettings.public": "عامة",
+    "workspaceSettings.remove": "إزالة عضو",
+    "workspaceSettings.settings": "إعدادات مساحة العمل",
+    "workspaceSettings.theme": "السمة",
+    "workspaceSettings.timeFormat": "تنسيق الوقت",
+    "workspaceSettings.timezone": "المنطقة الزمنية الافتراضية",
+    "workspaceSettings.visibility": "الظهور",
+    "workspaceSettings.workspace": "مساحة العمل"
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/ur.json">
+<![CDATA[
+{
+  "landing": {
+    "title": "Fixzit - Complete Property & Facility Management",
+    "subtitle": "Streamline operations, manage work orders, and optimize your real estate portfolio",
+    "hero": {
+      "cta1": "Get Started",
+      "cta2": "Watch Demo",
+      "cta3": "Learn More"
+    },
+    "features": {
+      "title": "Complete Management Solution",
+      "property": {
+        "title": "Property Management",
+        "desc": "Manage your properties, tenants, and leases efficiently",
+        "cta": "Explore Properties"
+      },
+      "workorders": {
+        "title": "Work Order Management",
+        "desc": "Track maintenance requests and assignments in real-time",
+        "cta": "View Work Orders"
+      },
+      "vendors": {
+        "title": "Vendor Management",
+        "desc": "Coordinate with vendors and service providers seamlessly",
+        "cta": "Manage Vendors"
+      },
+      "finance": {
+        "title": "Financial Management",
+        "desc": "Track expenses, invoices, and financial reports",
+        "cta": "View Finances"
+      },
+      "crm": {
+        "title": "CRM & Tenant Relations",
+        "desc": "Build stronger relationships with tenants and clients",
+        "cta": "Explore CRM"
+      },
+      "analytics": {
+        "title": "Analytics & Reports",
+        "desc": "Get insights with comprehensive analytics and reporting",
+        "cta": "View Reports"
+      }
+    },
+    "cta": {
+      "title": "Ready to streamline your operations?",
+      "subtitle": "Join thousands of property managers using Fixzit",
+      "login": "Sign In",
+      "demo": "Request Demo"
+    }
+  },
+  "about": {
+    "metaTitle": "About Fixzit - Property Management Software",
+    "metaDesc": "Learn about Fixzit's mission to revolutionize property and facility management",
+    "title": "About Fixzit",
+    "subtitle": "Transforming Property Management",
+    "statsSection": "Statistics",
+    "clients": "Clients",
+    "uptime": "Uptime",
+    "experience": "Years Experience",
+    "properties": "Properties Managed",
+    "contentSection": "About Our Platform",
+    "contactSection": "Contact Us",
+    "contactTitle": "Get in Touch",
+    "contactDesc": "Have questions? We'd love to hear from you.",
+    "email": "Email Address",
+    "emailLabel": "Your Email",
+    "phone": "Phone Number",
+    "phoneLabel": "Your Phone"
+  },
+  "auth": {
+    "login": {
+      "title": "Sign In",
+      "email": "Email",
+      "username": "Username",
+      "password": "Password",
+      "rememberMe": "Remember me",
+      "forgotPassword": "Forgot password?",
+      "submit": "Sign In",
+      "noAccount": "Don't have an account?",
+      "signup": "Sign up",
+      "welcome": "Welcome back",
+      "subtitle": "Sign in to your account",
+      "personalEmailTab": "Personal Email",
+      "corporateAccountTab": "Corporate Account",
+      "ssoLoginTab": "SSO Login",
+      "personalEmail": "Personal Email",
+      "employeeNumber": "Employee Number",
+      "enterEmail": "Enter your email",
+      "enterEmployeeNumber": "Enter employee number",
+      "enterPassword": "Enter your password",
+      "corporateHelp": "Use your corporate employee ID",
+      "hidePassword": "Hide password",
+      "showPassword": "Show password",
+      "capsLockOn": "Caps Lock is ON",
+      "signingIn": "Signing in...",
+      "signIn": "Sign In",
+      "continueWith": "Or continue with",
+      "orUseAccount": "Or use account",
+      "usePersonalEmail": "Use Personal Email",
+      "useCorporateAccount": "Use Corporate Account",
+      "personalEmailAccounts": "Personal Email Accounts",
+      "corporateAccountEmployee": "Corporate Employee",
+      "employeeHash": "Employee #",
+      "errors": {
+        "emailRequired": "Email is required",
+        "emailInvalid": "Invalid email address",
+        "employeeRequired": "Employee number is required",
+        "employeeInvalid": "Invalid employee number",
+        "passwordRequired": "Password is required",
+        "passwordTooShort": "Password must be at least 8 characters",
+        "invalidCredentials": "Invalid email or password",
+        "loginFailed": "Login failed. Please try again.",
+        "networkError": "Network error. Please check your connection."
+      },
+      "success": {
+        "title": "Login Successful",
+        "message": "Redirecting to dashboard..."
+      }
+    },
+    "logout": {
+      "signingOut": "Signing out...",
+      "pleaseWait": "Please wait"
+    },
+    "signup": {
+      "title": "Create Account",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "username": "Username",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "submit": "Create Account",
+      "hasAccount": "Already have an account?",
+      "login": "Sign in"
+    },
+    "forgotPassword": {
+      "title": "Reset Password",
+      "email": "Email",
+      "submit": "Send Reset Link",
+      "backToLogin": "Back to Sign In"
+    }
+  },
+  "admin": {
+    "administration": {
+      "title": "System Administration",
+      "subtitle": "Manage all aspects of the Fixzit platform"
+    },
+    "users": {
+      "title": "User Management",
+      "description": "Manage users, roles, and permissions",
+      "totalUsers": "Total Users",
+      "activeUsers": "Active Users",
+      "createUser": "Create User",
+      "active": "Active Users",
+      "online": "Online Now",
+      "creating": "Creating user...",
+      "createFailed": "Failed to create user",
+      "createSuccess": "User created successfully",
+      "deleteConfirm": "Are you sure you want to delete this user?",
+      "deleting": "Deleting user...",
+      "deleteFailed": "Failed to delete user",
+      "deleteSuccess": "User deleted successfully",
+      "exportCsv": "Export to CSV",
+      "createNewUser": "Create New User",
+      "email": "Email",
+      "username": "Username",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "phone": "Phone",
+      "role": "Role",
+      "rolePlaceholder": "Select role",
+      "status": "Status",
+      "statusActive": "Active",
+      "inactive": "Inactive",
+      "actions": "Actions",
+      "editUser": "Edit User",
+      "deleteUser": "Delete User",
+      "resetPassword": "Reset Password",
+      "viewDetails": "View Details"
+    },
+    "roles": {
+      "title": "Roles & Permissions",
+      "description": "Configure RBAC policies and permissions",
+      "totalRoles": "Total Roles",
+      "createRole": "Create Role",
+      "editRole": "Edit Role",
+      "deleteRole": "Delete Role",
+      "deleteConfirm": "Are you sure you want to delete this role?",
+      "name": "Role Name",
+      "roleDescription": "Description",
+      "permissions": "Permissions",
+      "assignedUsers": "Assigned Users"
+    },
+    "audit": {
+      "title": "Audit Logs",
+      "description": "View system activity and compliance logs",
+      "recentEvents": "Recent Events",
+      "viewLogs": "View Audit Logs",
+      "action": "Action",
+      "user": "User",
+      "timestamp": "Timestamp",
+      "details": "Details",
+      "ipAddress": "IP Address",
+      "filter": {
+        "dateRange": "Date Range",
+        "user": "Filter by User",
+        "action": "Filter by Action"
+      }
+    },
+    "cms": {
+      "title": "Content Management",
+      "description": "Manage CMS content, pages, and media",
+      "totalPages": "Total Pages"
+    },
+    "settings": {
+      "title": "System Settings",
+      "description": "Configure system-wide settings and preferences",
+      "categories": "Categories"
+    },
+    "features": {
+      "title": "Feature Flags",
+      "description": "Enable/disable features dynamically",
+      "active": "Active Features",
+      "activeFeatures": "Active Features",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "toggle": "Toggle Feature"
+    },
+    "database": {
+      "title": "Database Management",
+      "description": "Monitor database health and performance",
+      "status": "Status",
+      "healthy": "Healthy"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "description": "Manage system notifications and alerts",
+      "pending": "Pending"
+    },
+    "email": {
+      "title": "Email Configuration",
+      "description": "Configure SMTP settings and email templates",
+      "templates": "Templates"
+    },
+    "security": {
+      "title": "Security",
+      "description": "Manage security policies and 2FA",
+      "policies": "Active Policies"
+    },
+    "monitoring": {
+      "title": "System Monitoring",
+      "description": "Real-time system health and metrics",
+      "uptime": "Uptime"
+    },
+    "reports": {
+      "title": "Admin Reports",
+      "description": "Generate admin-level reports and analytics",
+      "generated": "Generated"
+    },
+    "system": {
+      "status": "System",
+      "operational": "Operational",
+      "monitor": "System Monitor"
+    },
+    "title": "Administration",
+    "signInRequired": "Sign in required",
+    "accessDenied": "Access denied",
+    "insufficientPerms": "Insufficient permissions",
+    "superAdminRequired": "Super admin access required",
+    "currentRole": "Current Role",
+    "console": "Admin Console",
+    "consoleDesc": "Manage users, roles, and system settings",
+    "tabs": {
+      "overview": "Overview",
+      "users": "Users",
+      "roles": "Roles & Permissions",
+      "audit": "Audit Logs",
+      "features": "Feature Flags"
+    },
+    "overview": {
+      "title": "Admin Overview",
+      "quickLinks": "Quick Links",
+      "manageUsers": "Manage Users",
+      "manageRoles": "Manage Roles",
+      "viewLogs": "View Audit Logs",
+      "featureSettings": "Feature Settings"
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcomeBack": "Welcome back",
+    "notifications": "Notifications",
+    "quickAction": "Quick Action",
+    "quickActions": "Quick Actions",
+    "activeWorkOrders": "Active Work Orders",
+    "totalProperties": "Total Properties",
+    "assetsUnderMaintenance": "Assets Under Maintenance",
+    "overdueInvoices": "Overdue Invoices",
+    "pending": "Pending",
+    "overdue": "Overdue",
+    "occupied": "Occupied",
+    "needAttention": "Need Attention",
+    "manage": "Manage",
+    "criticalAssets": "Critical Assets",
+    "viewAssets": "View Assets",
+    "sarPending": "SAR Pending",
+    "viewInvoices": "View Invoices",
+    "recentWorkOrders": "Recent Work Orders",
+    "viewAll": "View All",
+    "noRecentWorkOrders": "No recent work orders",
+    "propertyAlerts": "Property Alerts",
+    "units": "Units",
+    "noProperties": "No properties",
+    "newWorkOrder": "New Work Order",
+    "addProperty": "Add Property",
+    "newTenant": "New Tenant",
+    "createInvoice": "Create Invoice",
+    "welcome": "Welcome back",
+    "metrics": {
+      "properties": "Properties",
+      "workOrders": "Work Orders",
+      "tenants": "Tenants",
+      "vendors": "Vendors"
+    },
+    "recentActivity": "Recent Activity"
+  },
+  "workOrders": {
+    "title": "Work Orders",
+    "create": "Create Work Order",
+    "status": {
+      "open": "Open",
+      "inProgress": "In Progress",
+      "pending": "Pending",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "priority": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "fields": {
+      "title": "Title",
+      "description": "Description",
+      "property": "Property",
+      "assignee": "Assigned To",
+      "dueDate": "Due Date",
+      "status": "Status",
+      "priority": "Priority"
+    }
+  },
+  "properties": {
+    "leases": {
+      "active": "Active"
+    },
+    "title": "Properties",
+    "create": "Add Property",
+    "fields": {
+      "name": "Property Name",
+      "address": "Address",
+      "type": "Property Type",
+      "units": "Units",
+      "status": "Status"
+    }
+  },
+  "finance": {
+    "title": "Finance",
+    "invoices": "Invoices",
+    "expenses": "Expenses",
+    "payments": "Payments",
+    "reports": "Financial Reports",
+    "category": {
+      "operational": "Operational",
+      "maintenance": "Maintenance",
+      "capital": "Capital",
+      "utility": "Utility",
+      "administrative": "Administrative",
+      "maintenanceRepair": "Maintenance & Repairs",
+      "utilities": "Utilities",
+      "officeSupplies": "Office Supplies",
+      "electrical": "Electrical",
+      "hvac": "HVAC",
+      "plumbing": "Plumbing",
+      "travel": "Travel",
+      "salaries": "Salaries",
+      "marketing": "Marketing",
+      "rent": "Rent",
+      "insurance": "Insurance",
+      "equipment": "Equipment",
+      "supplies": "Supplies",
+      "services": "Services",
+      "training": "Training",
+      "consulting": "Consulting",
+      "legal": "Legal",
+      "technology": "Technology",
+      "facilities": "Facilities",
+      "security": "Security",
+      "other": "Other"
+    },
+    "accountType": {
+      "ASSET": "Asset",
+      "LIABILITY": "Liability",
+      "EQUITY": "Equity",
+      "REVENUE": "Revenue",
+      "EXPENSE": "Expense"
+    }
+  },
+  "hr": {
+    "stats": {
+      "totalEmployees": "Total Employees",
+      "monthlyPayroll": "Monthly Payroll",
+      "pendingLeave": "Pending Leave Requests",
+      "attendance": "Today's Attendance"
+    },
+    "quickActions": "Quick Actions",
+    "actions": {
+      "addEmployee": "Add Employee",
+      "addEmployeeDesc": "Register a new employee",
+      "processPayroll": "Process Payroll",
+      "processPayrollDesc": "Run monthly payroll",
+      "approveLeave": "Approve Leave",
+      "approveLeaveDesc": "Review leave requests"
+    },
+    "recentActivity": "Recent Activity",
+    "comingSoon": "Recent activity will appear here...",
+    "title": "Human Resources",
+    "tabs": {
+      "dashboard": "Dashboard",
+      "employees": "Employees",
+      "payroll": "Payroll",
+      "leave": "Leave Management",
+      "attendance": "Attendance"
+    }
+  },
+  "crm": {
+    "title": "Customer Relationship Management",
+    "contacts": "Contacts",
+    "leads": "Leads",
+    "opportunities": "Opportunities",
+    "activities": "Activities"
+  },
+  "marketplace": {
+    "title": "Marketplace",
+    "browse": "Browse",
+    "vendors": "Vendors",
+    "services": "Services",
+    "products": "Products",
+    "rfq": "Request for Quote"
+  },
+  "vendors": {
+    "description": "Manage your vendor relationships and service providers",
+    "title": "Vendors",
+    "add": "Add Vendor",
+    "list": "Vendor List",
+    "contracts": "Contracts",
+    "performance": "Performance",
+    "payments": "Payments"
+  },
+  "tenants": {
+    "title": "Tenants",
+    "add": "Add Tenant",
+    "list": "Tenant List",
+    "leases": "Leases",
+    "payments": "Payments",
+    "requests": "Maintenance Requests"
+  },
+  "maintenance": {
+    "description": "Manage equipment maintenance schedules and tasks",
+    "tasks": "Maintenance Tasks",
+    "asset": "Asset",
+    "due": "Due",
+    "assigned": "Assigned to",
+    "title": "Maintenance",
+    "schedule": "Maintenance Schedule",
+    "history": "Maintenance History",
+    "preventive": "Preventive Maintenance"
+  },
+  "support": {
+    "title": "Support",
+    "tickets": "Support Tickets",
+    "knowledge": "Knowledge Base",
+    "faq": "FAQ",
+    "contact": "Contact Support",
+    "errorReport": "Error Report",
+    "category": "Category",
+    "subCategory": "Sub-Category",
+    "type": "Type",
+    "priority": "Priority",
+    "modules": {
+      "FM": "Facility Management",
+      "Souq": "Marketplace",
+      "Aqar": "Property",
+      "Account": "Account",
+      "Billing": "Billing",
+      "Other": "Other"
+    },
+    "categories": {
+      "Technical": "Technical",
+      "Feature Request": "Feature Request",
+      "Billing": "Billing",
+      "Account": "Account",
+      "General": "General",
+      "Bug Report": "Bug Report"
+    },
+    "subCategories": {
+      "Bug Report": "Bug Report",
+      "Performance Issue": "Performance Issue",
+      "UI Error": "UI Error",
+      "API Error": "API Error",
+      "Database Error": "Database Error",
+      "New Feature": "New Feature",
+      "Enhancement": "Enhancement",
+      "Integration": "Integration",
+      "Customization": "Customization",
+      "Mobile App": "Mobile App",
+      "Invoice Issue": "Invoice Issue",
+      "Payment Error": "Payment Error",
+      "Subscription": "Subscription",
+      "Refund": "Refund",
+      "Pricing": "Pricing",
+      "Login Issue": "Login Issue",
+      "Password Reset": "Password Reset",
+      "Profile Update": "Profile Update",
+      "Permissions": "Permissions",
+      "Access Denied": "Access Denied",
+      "Documentation": "Documentation",
+      "Training": "Training",
+      "Support": "Support",
+      "Feedback": "Feedback",
+      "Other": "Other",
+      "Critical Bug": "Critical Bug",
+      "Minor Bug": "Minor Bug",
+      "Cosmetic Issue": "Cosmetic Issue",
+      "Data Error": "Data Error",
+      "Security Issue": "Security Issue"
+    },
+    "types": {
+      "Bug": "Bug",
+      "Feature": "Feature",
+      "Complaint": "Complaint",
+      "Billing": "Billing",
+      "Access": "Access",
+      "Other": "Other"
+    },
+    "priorities": {
+      "Low": "Low",
+      "Medium": "Medium",
+      "High": "High",
+      "Urgent": "Urgent"
+    }
+  },
+  "help": {
+    "title": "Help Center",
+    "search": "Search help articles",
+    "categories": "Categories",
+    "popular": "Popular Articles",
+    "getStarted": "Getting Started"
+  },
+  "souq": {
+    "search": {
+      "placeholder": "Search products, services, vendors..."
+    },
+    "newRFQ": "New RFQ",
+    "createPO": "Create Purchase Order",
+    "addItem": "Add Item"
+  },
+  "aqar": {
+    "search": {
+      "placeholder": "Search properties, projects, agents..."
+    },
+    "postProperty": "Post Property",
+    "newValuation": "New Valuation",
+    "packages": {
+      "errors": {
+        "fetchFailed": "Failed to fetch packages"
+      }
+    }
+  },
+  "common": {
+    "search": "Search...",
+    "all": "All Status",
+    "export": "Export",
+    "view": "View",
+    "edit": "Edit",
+    "delete": "Delete",
+    "loading": "Loading...",
+    "user": "User",
+    "brand": "FIXZIT",
+    "backToHome": "Back to Home",
+    "signIn": "Sign In",
+    "unsavedChanges": "Unsaved Changes",
+    "unsavedChangesMessage": "You have unsaved changes. Are you sure you want to leave this page?",
+    "discard": "Discard Changes",
+    "allCaughtUp": "You're all caught up!",
+    "noNotifications": "No notifications",
+    "unread": "unread",
+    "viewAll": "View All",
+    "preferences": "Preferences",
+    "save": "Save",
+    "cancel": "Cancel",
+    "filter": "Filter",
+    "import": "Import",
+    "error": "Error",
+    "success": "Success",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "actions": "Actions",
+    "unknown": "Unknown",
+    "yes": "Yes",
+    "no": "No",
+    "submit": "Submit",
+    "reset": "Reset",
+    "clear": "Clear",
+    "apply": "Apply",
+    "refresh": "Refresh",
+    "download": "Download",
+    "upload": "Upload",
+    "create": "Create",
+    "update": "Update",
+    "remove": "Remove",
+    "add": "Add",
+    "select": "Select",
+    "selectAll": "Select All",
+    "deselectAll": "Deselect All",
+    "showMore": "Show More",
+    "showLess": "Show Less",
+    "seeAll": "See All",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "required": "Required",
+    "optional": "Optional",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "active": "Active",
+    "inactive": "Inactive",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "draft": "Draft",
+    "published": "Published",
+    "archived": "Archived",
+    "deleted": "Deleted",
+    "errors": {
+      "unexpected": "An unexpected error occurred"
+    }
+  },
+  "app": {
+    "fm": "Facility Management",
+    "souq": "Marketplace",
+    "aqar": "Real Estate",
+    "switchApplication": "Switch Application",
+    "currentApp": "Current application",
+    "searchableEntities": "searchable entities"
+  },
+  "nav": {
+    "orders": "Orders & Purchase Orders",
+    "maintenance": "Maintenance",
+    "vendors": "Vendors",
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "properties": "Properties",
+    "work-orders": "Work Orders",
+    "workOrders": "Work Orders",
+    "assets": "Assets",
+    "tenants": "Tenants",
+    "projects": "Projects",
+    "rfqs": "RFQs",
+    "invoices": "Invoices",
+    "finance": "Finance",
+    "hr": "Human Resources",
+    "crm": "CRM",
+    "marketplace": "Marketplace",
+    "support": "Support",
+    "compliance": "Compliance",
+    "reports": "Reports",
+    "system": "System",
+    "administration": "Administration",
+    "settings": "Settings",
+    "help": "Help",
+    "logout": "Logout",
+    "notifications": "Notifications",
+    "profile": "Profile",
+    "header": "Navigation"
+  },
+  "time": {
+    "justNow": "Just now",
+    "mAgo": "m ago",
+    "hAgo": "h ago",
+    "dAgo": "d ago"
+  },
+  "sidebar": {
+    "role": "Role",
+    "mainNav": "Main navigation",
+    "accountInfo": "Account info",
+    "planLabel": "Plan",
+    "modules": "Modules",
+    "noModules": "No modules available for your role/plan",
+    "account": "Account",
+    "help": "Help",
+    "helpCenter": "Help Center",
+    "category": {
+      "core": "Core",
+      "fm": "Facility Management",
+      "procurement": "Procurement",
+      "finance": "Finance",
+      "hr": "Human Resources",
+      "crm": "Customer Relations",
+      "marketplace": "Marketplace",
+      "support": "Support",
+      "compliance": "Compliance",
+      "reporting": "Reporting",
+      "admin": "Administration"
+    }
+  },
+  "settings": {
+    "subtitle": "Manage your account settings and preferences",
+    "notifications": {
+      "title": "Notification Preferences",
+      "save": "Save Preferences",
+      "email": "Email Notifications",
+      "sms": "SMS Notifications",
+      "push": "Push Notifications",
+      "workOrders": "Work Order Updates",
+      "maintenance": "Maintenance Alerts",
+      "reports": "Report Summaries"
+    },
+    "preferences": {
+      "title": "App Preferences",
+      "language": "Language",
+      "english": "English",
+      "arabic": "Arabic"
+    }
+  },
+  "navigation": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "properties": "Properties",
+    "workOrders": "Work Orders",
+    "finance": "Finance",
+    "vendors": "Vendors",
+    "crm": "CRM",
+    "reports": "Reports",
+    "settings": "Settings",
+    "help": "Help",
+    "logout": "Logout"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "network": "Network error. Please check your connection.",
+    "unauthorized": "You are not authorized to perform this action.",
+    "notFound": "Resource not found.",
+    "validation": "Please check your input and try again."
+  },
+  "validation": {
+    "required": "This field is required",
+    "email": "Please enter a valid email address",
+    "phone": "Please enter a valid phone number",
+    "password": {
+      "min": "Password must be at least 8 characters",
+      "match": "Passwords do not match",
+      "strength": "Password is too weak"
+    },
+    "number": {
+      "min": "Value must be at least {min}",
+      "max": "Value must not exceed {max}",
+      "positive": "Value must be positive"
+    },
+    "date": {
+      "invalid": "Invalid date format",
+      "future": "Date must be in the future",
+      "past": "Date must be in the past"
+    },
+    "file": {
+      "size": "File size exceeds limit",
+      "type": "Invalid file type",
+      "required": "Please upload a file"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "clearAll": "Clear all",
+    "noNotifications": "No notifications",
+    "types": {
+      "workOrder": "Work Order",
+      "payment": "Payment",
+      "message": "Message",
+      "system": "System",
+      "alert": "Alert"
+    }
+  },
+  "forms": {
+    "unsavedChanges": "You have unsaved changes. Are you sure you want to leave?",
+    "saving": "Saving...",
+    "saved": "Saved successfully",
+    "saveFailed": "Failed to save",
+    "required": "Required fields",
+    "optional": "Optional fields"
+  },
+  "test": {
+    "a": "Test value A",
+    "bool": "Boolean test",
+    "hello": "Hello",
+    "missing": {
+      "key": "Missing key test"
+    },
+    "msg": "Message",
+    "nested": {
+      "deep": {
+        "value": "Deep nested value"
+      }
+    },
+    "num": "Number test",
+    "obj": "Object test",
+    "watch-all": "Watch all",
+    "welcome": "Welcome"
+  },
+  "fm": {
+    "tenants": {
+      "title": "Tenant Management",
+      "subtitle": "Customer relationship and lease management",
+      "newTenant": "New Tenant",
+      "addTenant": "Add New Tenant",
+      "searchTenants": "Search tenants...",
+      "tenantType": "Tenant Type",
+      "individual": "Individual",
+      "company": "Company",
+      "government": "Government",
+      "noTenants": "No Tenants Found",
+      "noTenantsText": "Get started by adding your first tenant.",
+      "properties": "Properties",
+      "leaseStatus": "Lease Status",
+      "noActiveLeases": "No Active Leases",
+      "outstandingBalance": "Outstanding Balance",
+      "tenantName": "Tenant Name",
+      "primaryContactName": "Primary Contact Name",
+      "email": "Email",
+      "create": "Add Tenant",
+      "view": "View Tenants",
+      "edit": "Edit Tenant",
+      "delete": "Delete Tenant",
+      "name": "Tenant Name",
+      "phone": "Phone",
+      "unit": "Unit",
+      "leaseStart": "Lease Start",
+      "leaseEnd": "Lease End",
+      "rent": "Rent",
+      "deposit": "Deposit",
+      "status": "Status",
+      "all": "All Tenants",
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "properties": {
+      "allTypes": "All Types",
+      "type": "Type",
+      "selectType": "Select type",
+      "title": "Properties",
+      "create": "Add Property",
+      "view": "View Properties",
+      "edit": "Edit Property",
+      "delete": "Delete Property",
+      "name": "Property Name",
+      "address": "Address",
+      "units": "Units",
+      "totalUnits": "Total Units",
+      "occupiedUnits": "Occupied Units",
+      "vacantUnits": "Vacant Units",
+      "owner": "Owner",
+      "manager": "Manager",
+      "status": "Status",
+      "all": "All Properties",
+      "residential": "Residential",
+      "commercial": "Commercial",
+      "mixed": "Mixed",
+      "details": "Property Details"
+    },
+    "title": "Facility Management",
+    "dashboard": "Dashboard",
+    "workOrders": {
+      "title": "Work Orders",
+      "create": "Create Work Order",
+      "view": "View Work Orders",
+      "edit": "Edit Work Order",
+      "delete": "Delete Work Order",
+      "status": "Status",
+      "priority": "Priority",
+      "assignedTo": "Assigned To",
+      "dueDate": "Due Date",
+      "description": "Description",
+      "property": "Property",
+      "tenant": "Tenant",
+      "all": "All Work Orders",
+      "open": "Open",
+      "pending": "Pending",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "closed": "Closed",
+      "cancelled": "Cancelled",
+      "board": {
+        "title": "Work Orders Board",
+        "description": "Track and assign work orders across all properties"
+      },
+      "history": {
+        "title": "Work Order History"
+      },
+      "pm": {
+        "title": "Preventive Maintenance"
+      },
+      "sla": {
+        "title": "SLA Monitoring"
+      }
+    },
+    "assets": {
+      "title": "Assets",
+      "create": "Add Asset",
+      "view": "View Assets",
+      "edit": "Edit Asset",
+      "delete": "Delete Asset",
+      "name": "Asset Name",
+      "category": "Category",
+      "serialNumber": "Serial Number",
+      "purchaseDate": "Purchase Date",
+      "warranty": "Warranty",
+      "condition": "Condition",
+      "location": "Location",
+      "all": "All Assets"
+    },
+    "vendors": {
+      "title": "Vendors",
+      "create": "Add Vendor",
+      "view": "View Vendors",
+      "edit": "Edit Vendor",
+      "delete": "Delete Vendor",
+      "name": "Vendor Name",
+      "email": "Email",
+      "phone": "Phone",
+      "category": "Category",
+      "rating": "Rating",
+      "status": "Status",
+      "all": "All Vendors",
+      "approved": "Approved",
+      "pending": "Pending",
+      "rejected": "Rejected"
+    },
+    "projects": {
+      "title": "Projects",
+      "create": "Create Project",
+      "view": "View Projects",
+      "edit": "Edit Project",
+      "delete": "Delete Project",
+      "name": "Project Name",
+      "description": "Description",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "budget": "Budget",
+      "spent": "Spent",
+      "status": "Status",
+      "all": "All Projects"
+    },
+    "rfqs": {
+      "title": "Title",
+      "create": "Create RFQ",
+      "view": "View RFQs",
+      "edit": "Edit RFQ",
+      "delete": "Delete RFQ",
+      "rfqNumber": "RFQ Number",
+      "description": "Description",
+      "deadline": "Deadline",
+      "status": "Status",
+      "bids": "Bids",
+      "all": "All RFQs",
+      "open": "Open",
+      "closed": "Closed",
+      "awarded": "Awarded"
+    },
+    "invoices": {
+      "title": "Invoices",
+      "create": "Create Invoice",
+      "view": "View Invoices",
+      "edit": "Edit Invoice",
+      "delete": "Delete Invoice",
+      "invoiceNumber": "Invoice Number",
+      "date": "Date",
+      "dueDate": "Due Date",
+      "amount": "Amount",
+      "paid": "Paid",
+      "outstanding": "Outstanding",
+      "status": "Status",
+      "all": "All Invoices",
+      "draft": "Draft",
+      "sent": "Sent",
+      "overdue": "Overdue"
+    },
+    "common": {
+      "search": "Search",
+      "filter": "Filter",
+      "export": "Export",
+      "import": "Import",
+      "refresh": "Refresh",
+      "add": "Add",
+      "edit": "Edit",
+      "delete": "Delete",
+      "save": "Save",
+      "cancel": "Cancel",
+      "submit": "Submit",
+      "back": "Back",
+      "next": "Next",
+      "previous": "Previous",
+      "loading": "Loading...",
+      "noData": "No data",
+      "error": "Error",
+      "success": "Success",
+      "warning": "Warning",
+      "info": "Info",
+      "confirm": "Confirm",
+      "yes": "Yes",
+      "no": "No",
+      "select": "Select",
+      "selectAll": "Select All",
+      "clearAll": "Clear All",
+      "actions": "Actions"
+    }
+  },
+  "orders": {
+    "pageDescription": "Manage purchase orders and service orders",
+    "tabs": {
+      "purchase": "Purchase Orders",
+      "service": "Service Orders"
+    }
+  },
+  "order": {
+    "vendor": "Vendor",
+    "date": "Order Date",
+    "total": "Total",
+    "items": "Items",
+    "delivery": "Delivery",
+    "amount": "Amount"
+  },
+  "vendor": {
+    "type": "Type",
+    "services": "Services",
+    "code": "Code"
+  },
+  "status": {
+    "draft": "Draft",
+    "submitted": "Submitted",
+    "approved": "Approved",
+    "completed": "Completed",
+    "pending": "Pending",
+    "suspended": "Suspended",
+    "rejected": "Rejected"
+  },
+  "_metadata": {
+    "language": "ur",
+    "languageName": "Urdu",
+    "status": "stub",
+    "notice": "اردو ترجمہ جلد آرہا ہے",
+    "fallbackLanguage": "en",
+    "lastUpdated": "2025-11-16",
+    "translationCoverage": "0%",
+    "description": "Urdu translations - Currently using English fallbacks. Translations coming soon."
+  }
+}
+
+]]>
+</file>
+
+<file path="i18n/useAutoTranslator.ts">
+<![CDATA[
+import { useTranslation } from "@/contexts/TranslationContext";
+
+const slugify = (text: string) =>
+  text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60) || "text";
+
+type InterpolationParams = Record<string, string | number | undefined | null>;
+
+const interpolate = (template: string, params?: InterpolationParams) => {
+  if (!params) {
+    return template;
+  }
+
+  let result = template;
+  let replaced = false;
+
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null) {
+      continue;
+    }
+    const placeholder = `{{${key}}}`;
+    if (result.includes(placeholder)) {
+      result = result.split(placeholder).join(String(value));
+      replaced = true;
+    }
+  }
+
+  if (!replaced) {
+    const supplemental = Object.values(params)
+      .filter(
+        (value): value is string | number =>
+          value !== undefined && value !== null && value !== "",
+      )
+      .map((value) => String(value))
+      .join(", ");
+
+    if (supplemental) {
+      const trimmed = result.trimEnd();
+      const separator = /[.!?]$/.test(trimmed) ? " " : ": ";
+      result = `${trimmed}${separator}${supplemental}`;
+    }
+  }
+
+  return result;
+};
+
+export const useAutoTranslator = (scope: string) => {
+  const { t } = useTranslation();
+  return (fallback: string, id?: string, params?: InterpolationParams) => {
+    let translationKey: string;
+
+    if (id) {
+      if (id.startsWith(`${scope}.`) || id.startsWith("auto.")) {
+        translationKey = id;
+      } else if (id.includes(".")) {
+        translationKey = `${scope}.${id}`;
+      } else {
+        translationKey = `auto.${scope}.${slugify(id)}`;
+      }
+    } else {
+      translationKey = `auto.${scope}.${slugify(fallback)}`;
+    }
+
+    const template = t(translationKey, fallback);
+    return interpolate(template, params);
+  };
+};
+
+]]>
+</file>
+
+<file path="i18n/useI18n.ts">
+<![CDATA[
+import { useContext, useCallback } from "react";
+import { I18nContext } from "./I18nProvider";
+
+type Dict = Record<string, unknown>;
+
+const drill = (path: string, dict: Dict): unknown => {
+  if (path in dict) {
+    return (dict as Record<string, unknown>)[path];
+  }
+
+  return path.split(".").reduce<unknown>((acc, segment) => {
+    if (acc && typeof acc === "object" && segment in acc) {
+      return (acc as Dict)[segment];
+    }
+    return undefined;
+  }, dict);
+};
+
+export function useI18n() {
+  const ctx = useContext(I18nContext);
+  if (!ctx) {
+    throw new Error("useI18n must be used within <I18nProvider />");
+  }
+  const isRTL = ctx.dir === "rtl";
+
+  // FIX: Use useCallback to memoize translation function based on dict reference
+  // This ensures 't' has a stable identity when dict doesn't change,
+  // but updates when dict changes
+  const { dict } = ctx;
+  const t = useCallback(
+    (key: string, vars?: Record<string, string | number>) => {
+      const raw = drill(key, dict) ?? key;
+      if (typeof raw !== "string") {
+        return key;
+      }
+
+      if (!vars) {
+        return raw;
+      }
+
+      return Object.keys(vars).reduce((acc, token) => {
+        return acc.replace(new RegExp(`{${token}}`, "g"), String(vars[token]));
+      }, raw);
+    },
+    [dict], // Recreate function when dict reference changes
+  );
+
+  return { ...ctx, t, isRTL };
+}
+
+export type UseI18nReturn = ReturnType<typeof useI18n>;
+
+]]>
+</file>
+
+<file path="i18n/zh.json">
+<![CDATA[
+{
+  "landing": {
+    "title": "Fixzit - Complete Property & Facility Management",
+    "subtitle": "Streamline operations, manage work orders, and optimize your real estate portfolio",
+    "hero": {
+      "cta1": "Get Started",
+      "cta2": "Watch Demo",
+      "cta3": "Learn More"
+    },
+    "features": {
+      "title": "Complete Management Solution",
+      "property": {
+        "title": "Property Management",
+        "desc": "Manage your properties, tenants, and leases efficiently",
+        "cta": "Explore Properties"
+      },
+      "workorders": {
+        "title": "Work Order Management",
+        "desc": "Track maintenance requests and assignments in real-time",
+        "cta": "View Work Orders"
+      },
+      "vendors": {
+        "title": "Vendor Management",
+        "desc": "Coordinate with vendors and service providers seamlessly",
+        "cta": "Manage Vendors"
+      },
+      "finance": {
+        "title": "Financial Management",
+        "desc": "Track expenses, invoices, and financial reports",
+        "cta": "View Finances"
+      },
+      "crm": {
+        "title": "CRM & Tenant Relations",
+        "desc": "Build stronger relationships with tenants and clients",
+        "cta": "Explore CRM"
+      },
+      "analytics": {
+        "title": "Analytics & Reports",
+        "desc": "Get insights with comprehensive analytics and reporting",
+        "cta": "View Reports"
+      }
+    },
+    "cta": {
+      "title": "Ready to streamline your operations?",
+      "subtitle": "Join thousands of property managers using Fixzit",
+      "login": "Sign In",
+      "demo": "Request Demo"
+    }
+  },
+  "about": {
+    "metaTitle": "About Fixzit - Property Management Software",
+    "metaDesc": "Learn about Fixzit's mission to revolutionize property and facility management",
+    "title": "About Fixzit",
+    "subtitle": "Transforming Property Management",
+    "statsSection": "Statistics",
+    "clients": "Clients",
+    "uptime": "Uptime",
+    "experience": "Years Experience",
+    "properties": "Properties Managed",
+    "contentSection": "About Our Platform",
+    "contactSection": "Contact Us",
+    "contactTitle": "Get in Touch",
+    "contactDesc": "Have questions? We'd love to hear from you.",
+    "email": "Email Address",
+    "emailLabel": "Your Email",
+    "phone": "Phone Number",
+    "phoneLabel": "Your Phone"
+  },
+  "auth": {
+    "login": {
+      "title": "Sign In",
+      "email": "Email",
+      "username": "Username",
+      "password": "Password",
+      "rememberMe": "Remember me",
+      "forgotPassword": "Forgot password?",
+      "submit": "Sign In",
+      "noAccount": "Don't have an account?",
+      "signup": "Sign up",
+      "welcome": "Welcome back",
+      "subtitle": "Sign in to your account",
+      "personalEmailTab": "Personal Email",
+      "corporateAccountTab": "Corporate Account",
+      "ssoLoginTab": "SSO Login",
+      "personalEmail": "Personal Email",
+      "employeeNumber": "Employee Number",
+      "enterEmail": "Enter your email",
+      "enterEmployeeNumber": "Enter employee number",
+      "enterPassword": "Enter your password",
+      "corporateHelp": "Use your corporate employee ID",
+      "hidePassword": "Hide password",
+      "showPassword": "Show password",
+      "capsLockOn": "Caps Lock is ON",
+      "signingIn": "Signing in...",
+      "signIn": "Sign In",
+      "continueWith": "Or continue with",
+      "orUseAccount": "Or use account",
+      "usePersonalEmail": "Use Personal Email",
+      "useCorporateAccount": "Use Corporate Account",
+      "personalEmailAccounts": "Personal Email Accounts",
+      "corporateAccountEmployee": "Corporate Employee",
+      "employeeHash": "Employee #",
+      "errors": {
+        "emailRequired": "Email is required",
+        "emailInvalid": "Invalid email address",
+        "employeeRequired": "Employee number is required",
+        "employeeInvalid": "Invalid employee number",
+        "passwordRequired": "Password is required",
+        "passwordTooShort": "Password must be at least 8 characters",
+        "invalidCredentials": "Invalid email or password",
+        "loginFailed": "Login failed. Please try again.",
+        "networkError": "Network error. Please check your connection."
+      },
+      "success": {
+        "title": "Login Successful",
+        "message": "Redirecting to dashboard..."
+      }
+    },
+    "logout": {
+      "signingOut": "Signing out...",
+      "pleaseWait": "Please wait"
+    },
+    "signup": {
+      "title": "Create Account",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "username": "Username",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "submit": "Create Account",
+      "hasAccount": "Already have an account?",
+      "login": "Sign in"
+    },
+    "forgotPassword": {
+      "title": "Reset Password",
+      "email": "Email",
+      "submit": "Send Reset Link",
+      "backToLogin": "Back to Sign In"
+    }
+  },
+  "admin": {
+    "administration": {
+      "title": "System Administration",
+      "subtitle": "Manage all aspects of the Fixzit platform"
+    },
+    "users": {
+      "title": "User Management",
+      "description": "Manage users, roles, and permissions",
+      "totalUsers": "Total Users",
+      "activeUsers": "Active Users",
+      "createUser": "Create User",
+      "active": "Active Users",
+      "online": "Online Now",
+      "creating": "Creating user...",
+      "createFailed": "Failed to create user",
+      "createSuccess": "User created successfully",
+      "deleteConfirm": "Are you sure you want to delete this user?",
+      "deleting": "Deleting user...",
+      "deleteFailed": "Failed to delete user",
+      "deleteSuccess": "User deleted successfully",
+      "exportCsv": "Export to CSV",
+      "createNewUser": "Create New User",
+      "email": "Email",
+      "username": "Username",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "phone": "Phone",
+      "role": "Role",
+      "rolePlaceholder": "Select role",
+      "status": "Status",
+      "statusActive": "Active",
+      "inactive": "Inactive",
+      "actions": "Actions",
+      "editUser": "Edit User",
+      "deleteUser": "Delete User",
+      "resetPassword": "Reset Password",
+      "viewDetails": "View Details"
+    },
+    "roles": {
+      "title": "Roles & Permissions",
+      "description": "Configure RBAC policies and permissions",
+      "totalRoles": "Total Roles",
+      "createRole": "Create Role",
+      "editRole": "Edit Role",
+      "deleteRole": "Delete Role",
+      "deleteConfirm": "Are you sure you want to delete this role?",
+      "name": "Role Name",
+      "roleDescription": "Description",
+      "permissions": "Permissions",
+      "assignedUsers": "Assigned Users"
+    },
+    "audit": {
+      "title": "Audit Logs",
+      "description": "View system activity and compliance logs",
+      "recentEvents": "Recent Events",
+      "viewLogs": "View Audit Logs",
+      "action": "Action",
+      "user": "User",
+      "timestamp": "Timestamp",
+      "details": "Details",
+      "ipAddress": "IP Address",
+      "filter": {
+        "dateRange": "Date Range",
+        "user": "Filter by User",
+        "action": "Filter by Action"
+      }
+    },
+    "cms": {
+      "title": "Content Management",
+      "description": "Manage CMS content, pages, and media",
+      "totalPages": "Total Pages"
+    },
+    "settings": {
+      "title": "System Settings",
+      "description": "Configure system-wide settings and preferences",
+      "categories": "Categories"
+    },
+    "features": {
+      "title": "Feature Flags",
+      "description": "Enable/disable features dynamically",
+      "active": "Active Features",
+      "activeFeatures": "Active Features",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "toggle": "Toggle Feature"
+    },
+    "database": {
+      "title": "Database Management",
+      "description": "Monitor database health and performance",
+      "status": "Status",
+      "healthy": "Healthy"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "description": "Manage system notifications and alerts",
+      "pending": "Pending"
+    },
+    "email": {
+      "title": "Email Configuration",
+      "description": "Configure SMTP settings and email templates",
+      "templates": "Templates"
+    },
+    "security": {
+      "title": "Security",
+      "description": "Manage security policies and 2FA",
+      "policies": "Active Policies"
+    },
+    "monitoring": {
+      "title": "System Monitoring",
+      "description": "Real-time system health and metrics",
+      "uptime": "Uptime"
+    },
+    "reports": {
+      "title": "Admin Reports",
+      "description": "Generate admin-level reports and analytics",
+      "generated": "Generated"
+    },
+    "system": {
+      "status": "System",
+      "operational": "Operational",
+      "monitor": "System Monitor"
+    },
+    "title": "Administration",
+    "signInRequired": "Sign in required",
+    "accessDenied": "Access denied",
+    "insufficientPerms": "Insufficient permissions",
+    "superAdminRequired": "Super admin access required",
+    "currentRole": "Current Role",
+    "console": "Admin Console",
+    "consoleDesc": "Manage users, roles, and system settings",
+    "tabs": {
+      "overview": "Overview",
+      "users": "Users",
+      "roles": "Roles & Permissions",
+      "audit": "Audit Logs",
+      "features": "Feature Flags"
+    },
+    "overview": {
+      "title": "Admin Overview",
+      "quickLinks": "Quick Links",
+      "manageUsers": "Manage Users",
+      "manageRoles": "Manage Roles",
+      "viewLogs": "View Audit Logs",
+      "featureSettings": "Feature Settings"
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcomeBack": "Welcome back",
+    "notifications": "Notifications",
+    "quickAction": "Quick Action",
+    "quickActions": "Quick Actions",
+    "activeWorkOrders": "Active Work Orders",
+    "totalProperties": "Total Properties",
+    "assetsUnderMaintenance": "Assets Under Maintenance",
+    "overdueInvoices": "Overdue Invoices",
+    "pending": "Pending",
+    "overdue": "Overdue",
+    "occupied": "Occupied",
+    "needAttention": "Need Attention",
+    "manage": "Manage",
+    "criticalAssets": "Critical Assets",
+    "viewAssets": "View Assets",
+    "sarPending": "SAR Pending",
+    "viewInvoices": "View Invoices",
+    "recentWorkOrders": "Recent Work Orders",
+    "viewAll": "View All",
+    "noRecentWorkOrders": "No recent work orders",
+    "propertyAlerts": "Property Alerts",
+    "units": "Units",
+    "noProperties": "No properties",
+    "newWorkOrder": "New Work Order",
+    "addProperty": "Add Property",
+    "newTenant": "New Tenant",
+    "createInvoice": "Create Invoice",
+    "welcome": "Welcome back",
+    "metrics": {
+      "properties": "Properties",
+      "workOrders": "Work Orders",
+      "tenants": "Tenants",
+      "vendors": "Vendors"
+    },
+    "recentActivity": "Recent Activity"
+  },
+  "workOrders": {
+    "title": "Work Orders",
+    "create": "Create Work Order",
+    "status": {
+      "open": "Open",
+      "inProgress": "In Progress",
+      "pending": "Pending",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "priority": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "fields": {
+      "title": "Title",
+      "description": "Description",
+      "property": "Property",
+      "assignee": "Assigned To",
+      "dueDate": "Due Date",
+      "status": "Status",
+      "priority": "Priority"
+    }
+  },
+  "properties": {
+    "leases": {
+      "active": "Active"
+    },
+    "title": "Properties",
+    "create": "Add Property",
+    "fields": {
+      "name": "Property Name",
+      "address": "Address",
+      "type": "Property Type",
+      "units": "Units",
+      "status": "Status"
+    }
+  },
+  "finance": {
+    "title": "Finance",
+    "invoices": "Invoices",
+    "expenses": "Expenses",
+    "payments": "Payments",
+    "reports": "Financial Reports",
+    "category": {
+      "operational": "Operational",
+      "maintenance": "Maintenance",
+      "capital": "Capital",
+      "utility": "Utility",
+      "administrative": "Administrative",
+      "maintenanceRepair": "Maintenance & Repairs",
+      "utilities": "Utilities",
+      "officeSupplies": "Office Supplies",
+      "electrical": "Electrical",
+      "hvac": "HVAC",
+      "plumbing": "Plumbing",
+      "travel": "Travel",
+      "salaries": "Salaries",
+      "marketing": "Marketing",
+      "rent": "Rent",
+      "insurance": "Insurance",
+      "equipment": "Equipment",
+      "supplies": "Supplies",
+      "services": "Services",
+      "training": "Training",
+      "consulting": "Consulting",
+      "legal": "Legal",
+      "technology": "Technology",
+      "facilities": "Facilities",
+      "security": "Security",
+      "other": "Other"
+    },
+    "accountType": {
+      "ASSET": "Asset",
+      "LIABILITY": "Liability",
+      "EQUITY": "Equity",
+      "REVENUE": "Revenue",
+      "EXPENSE": "Expense"
+    }
+  },
+  "hr": {
+    "stats": {
+      "totalEmployees": "Total Employees",
+      "monthlyPayroll": "Monthly Payroll",
+      "pendingLeave": "Pending Leave Requests",
+      "attendance": "Today's Attendance"
+    },
+    "quickActions": "Quick Actions",
+    "actions": {
+      "addEmployee": "Add Employee",
+      "addEmployeeDesc": "Register a new employee",
+      "processPayroll": "Process Payroll",
+      "processPayrollDesc": "Run monthly payroll",
+      "approveLeave": "Approve Leave",
+      "approveLeaveDesc": "Review leave requests"
+    },
+    "recentActivity": "Recent Activity",
+    "comingSoon": "Recent activity will appear here...",
+    "title": "Human Resources",
+    "tabs": {
+      "dashboard": "Dashboard",
+      "employees": "Employees",
+      "payroll": "Payroll",
+      "leave": "Leave Management",
+      "attendance": "Attendance"
+    }
+  },
+  "crm": {
+    "title": "Customer Relationship Management",
+    "contacts": "Contacts",
+    "leads": "Leads",
+    "opportunities": "Opportunities",
+    "activities": "Activities"
+  },
+  "marketplace": {
+    "title": "Marketplace",
+    "browse": "Browse",
+    "vendors": "Vendors",
+    "services": "Services",
+    "products": "Products",
+    "rfq": "Request for Quote"
+  },
+  "vendors": {
+    "description": "Manage your vendor relationships and service providers",
+    "title": "Vendors",
+    "add": "Add Vendor",
+    "list": "Vendor List",
+    "contracts": "Contracts",
+    "performance": "Performance",
+    "payments": "Payments"
+  },
+  "tenants": {
+    "title": "Tenants",
+    "add": "Add Tenant",
+    "list": "Tenant List",
+    "leases": "Leases",
+    "payments": "Payments",
+    "requests": "Maintenance Requests"
+  },
+  "maintenance": {
+    "description": "Manage equipment maintenance schedules and tasks",
+    "tasks": "Maintenance Tasks",
+    "asset": "Asset",
+    "due": "Due",
+    "assigned": "Assigned to",
+    "title": "Maintenance",
+    "schedule": "Maintenance Schedule",
+    "history": "Maintenance History",
+    "preventive": "Preventive Maintenance"
+  },
+  "support": {
+    "title": "Support",
+    "tickets": "Support Tickets",
+    "knowledge": "Knowledge Base",
+    "faq": "FAQ",
+    "contact": "Contact Support",
+    "errorReport": "Error Report",
+    "category": "Category",
+    "subCategory": "Sub-Category",
+    "type": "Type",
+    "priority": "Priority",
+    "modules": {
+      "FM": "Facility Management",
+      "Souq": "Marketplace",
+      "Aqar": "Property",
+      "Account": "Account",
+      "Billing": "Billing",
+      "Other": "Other"
+    },
+    "categories": {
+      "Technical": "Technical",
+      "Feature Request": "Feature Request",
+      "Billing": "Billing",
+      "Account": "Account",
+      "General": "General",
+      "Bug Report": "Bug Report"
+    },
+    "subCategories": {
+      "Bug Report": "Bug Report",
+      "Performance Issue": "Performance Issue",
+      "UI Error": "UI Error",
+      "API Error": "API Error",
+      "Database Error": "Database Error",
+      "New Feature": "New Feature",
+      "Enhancement": "Enhancement",
+      "Integration": "Integration",
+      "Customization": "Customization",
+      "Mobile App": "Mobile App",
+      "Invoice Issue": "Invoice Issue",
+      "Payment Error": "Payment Error",
+      "Subscription": "Subscription",
+      "Refund": "Refund",
+      "Pricing": "Pricing",
+      "Login Issue": "Login Issue",
+      "Password Reset": "Password Reset",
+      "Profile Update": "Profile Update",
+      "Permissions": "Permissions",
+      "Access Denied": "Access Denied",
+      "Documentation": "Documentation",
+      "Training": "Training",
+      "Support": "Support",
+      "Feedback": "Feedback",
+      "Other": "Other",
+      "Critical Bug": "Critical Bug",
+      "Minor Bug": "Minor Bug",
+      "Cosmetic Issue": "Cosmetic Issue",
+      "Data Error": "Data Error",
+      "Security Issue": "Security Issue"
+    },
+    "types": {
+      "Bug": "Bug",
+      "Feature": "Feature",
+      "Complaint": "Complaint",
+      "Billing": "Billing",
+      "Access": "Access",
+      "Other": "Other"
+    },
+    "priorities": {
+      "Low": "Low",
+      "Medium": "Medium",
+      "High": "High",
+      "Urgent": "Urgent"
+    }
+  },
+  "help": {
+    "title": "Help Center",
+    "search": "Search help articles",
+    "categories": "Categories",
+    "popular": "Popular Articles",
+    "getStarted": "Getting Started"
+  },
+  "souq": {
+    "search": {
+      "placeholder": "Search products, services, vendors..."
+    },
+    "newRFQ": "New RFQ",
+    "createPO": "Create Purchase Order",
+    "addItem": "Add Item"
+  },
+  "aqar": {
+    "search": {
+      "placeholder": "Search properties, projects, agents..."
+    },
+    "postProperty": "Post Property",
+    "newValuation": "New Valuation",
+    "packages": {
+      "errors": {
+        "fetchFailed": "Failed to fetch packages"
+      }
+    }
+  },
+  "common": {
+    "search": "Search...",
+    "all": "All Status",
+    "export": "Export",
+    "view": "View",
+    "edit": "Edit",
+    "delete": "Delete",
+    "loading": "Loading...",
+    "user": "User",
+    "brand": "FIXZIT",
+    "backToHome": "Back to Home",
+    "signIn": "Sign In",
+    "unsavedChanges": "Unsaved Changes",
+    "unsavedChangesMessage": "You have unsaved changes. Are you sure you want to leave this page?",
+    "discard": "Discard Changes",
+    "allCaughtUp": "You're all caught up!",
+    "noNotifications": "No notifications",
+    "unread": "unread",
+    "viewAll": "View All",
+    "preferences": "Preferences",
+    "save": "Save",
+    "cancel": "Cancel",
+    "filter": "Filter",
+    "import": "Import",
+    "error": "Error",
+    "success": "Success",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "actions": "Actions",
+    "unknown": "Unknown",
+    "yes": "Yes",
+    "no": "No",
+    "submit": "Submit",
+    "reset": "Reset",
+    "clear": "Clear",
+    "apply": "Apply",
+    "refresh": "Refresh",
+    "download": "Download",
+    "upload": "Upload",
+    "create": "Create",
+    "update": "Update",
+    "remove": "Remove",
+    "add": "Add",
+    "select": "Select",
+    "selectAll": "Select All",
+    "deselectAll": "Deselect All",
+    "showMore": "Show More",
+    "showLess": "Show Less",
+    "seeAll": "See All",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "required": "Required",
+    "optional": "Optional",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "active": "Active",
+    "inactive": "Inactive",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "draft": "Draft",
+    "published": "Published",
+    "archived": "Archived",
+    "deleted": "Deleted",
+    "errors": {
+      "unexpected": "An unexpected error occurred"
+    }
+  },
+  "app": {
+    "fm": "Facility Management",
+    "souq": "Marketplace",
+    "aqar": "Real Estate",
+    "switchApplication": "Switch Application",
+    "currentApp": "Current application",
+    "searchableEntities": "searchable entities"
+  },
+  "nav": {
+    "orders": "Orders & Purchase Orders",
+    "maintenance": "Maintenance",
+    "vendors": "Vendors",
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "properties": "Properties",
+    "work-orders": "Work Orders",
+    "workOrders": "Work Orders",
+    "assets": "Assets",
+    "tenants": "Tenants",
+    "projects": "Projects",
+    "rfqs": "RFQs",
+    "invoices": "Invoices",
+    "finance": "Finance",
+    "hr": "Human Resources",
+    "crm": "CRM",
+    "marketplace": "Marketplace",
+    "support": "Support",
+    "compliance": "Compliance",
+    "reports": "Reports",
+    "system": "System",
+    "administration": "Administration",
+    "settings": "Settings",
+    "help": "Help",
+    "logout": "Logout",
+    "notifications": "Notifications",
+    "profile": "Profile",
+    "header": "Navigation"
+  },
+  "time": {
+    "justNow": "Just now",
+    "mAgo": "m ago",
+    "hAgo": "h ago",
+    "dAgo": "d ago"
+  },
+  "sidebar": {
+    "role": "Role",
+    "mainNav": "Main navigation",
+    "accountInfo": "Account info",
+    "planLabel": "Plan",
+    "modules": "Modules",
+    "noModules": "No modules available for your role/plan",
+    "account": "Account",
+    "help": "Help",
+    "helpCenter": "Help Center",
+    "category": {
+      "core": "Core",
+      "fm": "Facility Management",
+      "procurement": "Procurement",
+      "finance": "Finance",
+      "hr": "Human Resources",
+      "crm": "Customer Relations",
+      "marketplace": "Marketplace",
+      "support": "Support",
+      "compliance": "Compliance",
+      "reporting": "Reporting",
+      "admin": "Administration"
+    }
+  },
+  "settings": {
+    "subtitle": "Manage your account settings and preferences",
+    "notifications": {
+      "title": "Notification Preferences",
+      "save": "Save Preferences",
+      "email": "Email Notifications",
+      "sms": "SMS Notifications",
+      "push": "Push Notifications",
+      "workOrders": "Work Order Updates",
+      "maintenance": "Maintenance Alerts",
+      "reports": "Report Summaries"
+    },
+    "preferences": {
+      "title": "App Preferences",
+      "language": "Language",
+      "english": "English",
+      "arabic": "Arabic"
+    }
+  },
+  "navigation": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "properties": "Properties",
+    "workOrders": "Work Orders",
+    "finance": "Finance",
+    "vendors": "Vendors",
+    "crm": "CRM",
+    "reports": "Reports",
+    "settings": "Settings",
+    "help": "Help",
+    "logout": "Logout"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "network": "Network error. Please check your connection.",
+    "unauthorized": "You are not authorized to perform this action.",
+    "notFound": "Resource not found.",
+    "validation": "Please check your input and try again."
+  },
+  "validation": {
+    "required": "This field is required",
+    "email": "Please enter a valid email address",
+    "phone": "Please enter a valid phone number",
+    "password": {
+      "min": "Password must be at least 8 characters",
+      "match": "Passwords do not match",
+      "strength": "Password is too weak"
+    },
+    "number": {
+      "min": "Value must be at least {min}",
+      "max": "Value must not exceed {max}",
+      "positive": "Value must be positive"
+    },
+    "date": {
+      "invalid": "Invalid date format",
+      "future": "Date must be in the future",
+      "past": "Date must be in the past"
+    },
+    "file": {
+      "size": "File size exceeds limit",
+      "type": "Invalid file type",
+      "required": "Please upload a file"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "clearAll": "Clear all",
+    "noNotifications": "No notifications",
+    "types": {
+      "workOrder": "Work Order",
+      "payment": "Payment",
+      "message": "Message",
+      "system": "System",
+      "alert": "Alert"
+    }
+  },
+  "forms": {
+    "unsavedChanges": "You have unsaved changes. Are you sure you want to leave?",
+    "saving": "Saving...",
+    "saved": "Saved successfully",
+    "saveFailed": "Failed to save",
+    "required": "Required fields",
+    "optional": "Optional fields"
+  },
+  "test": {
+    "a": "Test value A",
+    "bool": "Boolean test",
+    "hello": "Hello",
+    "missing": {
+      "key": "Missing key test"
+    },
+    "msg": "Message",
+    "nested": {
+      "deep": {
+        "value": "Deep nested value"
+      }
+    },
+    "num": "Number test",
+    "obj": "Object test",
+    "watch-all": "Watch all",
+    "welcome": "Welcome"
+  },
+  "fm": {
+    "tenants": {
+      "title": "Tenant Management",
+      "subtitle": "Customer relationship and lease management",
+      "newTenant": "New Tenant",
+      "addTenant": "Add New Tenant",
+      "searchTenants": "Search tenants...",
+      "tenantType": "Tenant Type",
+      "individual": "Individual",
+      "company": "Company",
+      "government": "Government",
+      "noTenants": "No Tenants Found",
+      "noTenantsText": "Get started by adding your first tenant.",
+      "properties": "Properties",
+      "leaseStatus": "Lease Status",
+      "noActiveLeases": "No Active Leases",
+      "outstandingBalance": "Outstanding Balance",
+      "tenantName": "Tenant Name",
+      "primaryContactName": "Primary Contact Name",
+      "email": "Email",
+      "create": "Add Tenant",
+      "view": "View Tenants",
+      "edit": "Edit Tenant",
+      "delete": "Delete Tenant",
+      "name": "Tenant Name",
+      "phone": "Phone",
+      "unit": "Unit",
+      "leaseStart": "Lease Start",
+      "leaseEnd": "Lease End",
+      "rent": "Rent",
+      "deposit": "Deposit",
+      "status": "Status",
+      "all": "All Tenants",
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "properties": {
+      "allTypes": "All Types",
+      "type": "Type",
+      "selectType": "Select type",
+      "title": "Properties",
+      "create": "Add Property",
+      "view": "View Properties",
+      "edit": "Edit Property",
+      "delete": "Delete Property",
+      "name": "Property Name",
+      "address": "Address",
+      "units": "Units",
+      "totalUnits": "Total Units",
+      "occupiedUnits": "Occupied Units",
+      "vacantUnits": "Vacant Units",
+      "owner": "Owner",
+      "manager": "Manager",
+      "status": "Status",
+      "all": "All Properties",
+      "residential": "Residential",
+      "commercial": "Commercial",
+      "mixed": "Mixed",
+      "details": "Property Details"
+    },
+    "title": "Facility Management",
+    "dashboard": "Dashboard",
+    "workOrders": {
+      "title": "Work Orders",
+      "create": "Create Work Order",
+      "view": "View Work Orders",
+      "edit": "Edit Work Order",
+      "delete": "Delete Work Order",
+      "status": "Status",
+      "priority": "Priority",
+      "assignedTo": "Assigned To",
+      "dueDate": "Due Date",
+      "description": "Description",
+      "property": "Property",
+      "tenant": "Tenant",
+      "all": "All Work Orders",
+      "open": "Open",
+      "pending": "Pending",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "closed": "Closed",
+      "cancelled": "Cancelled",
+      "board": {
+        "title": "Work Orders Board",
+        "description": "Track and assign work orders across all properties"
+      },
+      "history": {
+        "title": "Work Order History"
+      },
+      "pm": {
+        "title": "Preventive Maintenance"
+      },
+      "sla": {
+        "title": "SLA Monitoring"
+      }
+    },
+    "assets": {
+      "title": "Assets",
+      "create": "Add Asset",
+      "view": "View Assets",
+      "edit": "Edit Asset",
+      "delete": "Delete Asset",
+      "name": "Asset Name",
+      "category": "Category",
+      "serialNumber": "Serial Number",
+      "purchaseDate": "Purchase Date",
+      "warranty": "Warranty",
+      "condition": "Condition",
+      "location": "Location",
+      "all": "All Assets"
+    },
+    "vendors": {
+      "title": "Vendors",
+      "create": "Add Vendor",
+      "view": "View Vendors",
+      "edit": "Edit Vendor",
+      "delete": "Delete Vendor",
+      "name": "Vendor Name",
+      "email": "Email",
+      "phone": "Phone",
+      "category": "Category",
+      "rating": "Rating",
+      "status": "Status",
+      "all": "All Vendors",
+      "approved": "Approved",
+      "pending": "Pending",
+      "rejected": "Rejected"
+    },
+    "projects": {
+      "title": "Projects",
+      "create": "Create Project",
+      "view": "View Projects",
+      "edit": "Edit Project",
+      "delete": "Delete Project",
+      "name": "Project Name",
+      "description": "Description",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "budget": "Budget",
+      "spent": "Spent",
+      "status": "Status",
+      "all": "All Projects"
+    },
+    "rfqs": {
+      "title": "Title",
+      "create": "Create RFQ",
+      "view": "View RFQs",
+      "edit": "Edit RFQ",
+      "delete": "Delete RFQ",
+      "rfqNumber": "RFQ Number",
+      "description": "Description",
+      "deadline": "Deadline",
+      "status": "Status",
+      "bids": "Bids",
+      "all": "All RFQs",
+      "open": "Open",
+      "closed": "Closed",
+      "awarded": "Awarded"
+    },
+    "invoices": {
+      "title": "Invoices",
+      "create": "Create Invoice",
+      "view": "View Invoices",
+      "edit": "Edit Invoice",
+      "delete": "Delete Invoice",
+      "invoiceNumber": "Invoice Number",
+      "date": "Date",
+      "dueDate": "Due Date",
+      "amount": "Amount",
+      "paid": "Paid",
+      "outstanding": "Outstanding",
+      "status": "Status",
+      "all": "All Invoices",
+      "draft": "Draft",
+      "sent": "Sent",
+      "overdue": "Overdue"
+    },
+    "common": {
+      "search": "Search",
+      "filter": "Filter",
+      "export": "Export",
+      "import": "Import",
+      "refresh": "Refresh",
+      "add": "Add",
+      "edit": "Edit",
+      "delete": "Delete",
+      "save": "Save",
+      "cancel": "Cancel",
+      "submit": "Submit",
+      "back": "Back",
+      "next": "Next",
+      "previous": "Previous",
+      "loading": "Loading...",
+      "noData": "No data",
+      "error": "Error",
+      "success": "Success",
+      "warning": "Warning",
+      "info": "Info",
+      "confirm": "Confirm",
+      "yes": "Yes",
+      "no": "No",
+      "select": "Select",
+      "selectAll": "Select All",
+      "clearAll": "Clear All",
+      "actions": "Actions"
+    }
+  },
+  "orders": {
+    "pageDescription": "Manage purchase orders and service orders",
+    "tabs": {
+      "purchase": "Purchase Orders",
+      "service": "Service Orders"
+    }
+  },
+  "order": {
+    "vendor": "Vendor",
+    "date": "Order Date",
+    "total": "Total",
+    "items": "Items",
+    "delivery": "Delivery",
+    "amount": "Amount"
+  },
+  "vendor": {
+    "type": "Type",
+    "services": "Services",
+    "code": "Code"
+  },
+  "status": {
+    "draft": "Draft",
+    "submitted": "Submitted",
+    "approved": "Approved",
+    "completed": "Completed",
+    "pending": "Pending",
+    "suspended": "Suspended",
+    "rejected": "Rejected"
+  },
+  "_metadata": {
+    "language": "zh",
+    "languageName": "Chinese",
+    "status": "stub",
+    "notice": "中文翻译即将推出",
+    "fallbackLanguage": "en",
+    "lastUpdated": "2025-11-16",
+    "translationCoverage": "0%",
+    "description": "Chinese translations - Currently using English fallbacks. Translations coming soon."
+  }
+}
+
+]]>
+</file>
+
+<file path="instrumentation-node.ts">
+<![CDATA[
+/**
+ * Node.js-specific Instrumentation
+ *
+ * This file contains Node.js-specific initialization code that requires
+ * Node.js-only modules (bullmq, twilio, etc.) and should NOT be bundled
+ * for Edge runtime or client-side.
+ *
+ * @see https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation
+ *
+ * @module instrumentation-node
+ */
+
+import { logger } from "@/lib/logger";
+
+export async function registerNode(): Promise<void> {
+  logger.info("[Instrumentation] Starting Node.js server initialization...");
+
+  try {
+    // Validate environment variables
+    const { validateAllEnv } = await import("@/lib/env-validation");
+    const envResult = validateAllEnv();
+
+    if (!envResult.valid && process.env.NODE_ENV === "production") {
+      logger.error("[Instrumentation] Environment validation failed", {
+        errors: envResult.errors,
+      });
+      // Stop startup in production to avoid running with invalid secrets/config
+      throw new Error("Environment validation failed; see logs for details");
+    }
+
+    // Initialize SMS worker if Redis is configured
+    if (process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL) {
+      const { startSMSWorker } = await import("@/lib/queues/sms-queue");
+      const worker = startSMSWorker();
+
+      if (worker) {
+        logger.info("[Instrumentation] SMS Worker started successfully");
+      } else {
+        logger.info("[Instrumentation] SMS Worker not started (Redis not configured or disabled)");
+      }
+    } else {
+      logger.info("[Instrumentation] Skipping SMS Worker (no Redis configuration)");
+    }
+
+    // Log startup info
+    logger.info("[Instrumentation] Server initialization complete", {
+      nodeEnv: process.env.NODE_ENV,
+      hasRedis: Boolean(process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL),
+      hasTwilio: Boolean(process.env.TWILIO_ACCOUNT_SID),
+      hasUnifonic: Boolean(process.env.UNIFONIC_APP_SID),
+      hasEncryption: Boolean(process.env.ENCRYPTION_KEY || process.env.PII_ENCRYPTION_KEY),
+    });
+  } catch (error) {
+    logger.error("[Instrumentation] Initialization error", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    // In production, re-throw to prevent boot with missing/invalid config
+    // In non-production, log and continue to allow development flexibility
+    if (process.env.NODE_ENV === "production") {
+      throw error;
+    }
+  }
+}
+
+]]>
+</file>
+
+<file path="instrumentation.ts">
+<![CDATA[
+/**
+ * Next.js Instrumentation
+ *
+ * This file is loaded when the Next.js server starts.
+ * Used to initialize workers, validate config, and set up monitoring.
+ *
+ * IMPORTANT: This file must NOT have static imports of Node.js-only modules.
+ * Use dynamic imports with runtime checks to avoid bundling issues.
+ *
+ * @see https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation
+ *
+ * @module instrumentation
+ */
+
+export async function register() {
+  // Only run in Node.js runtime, not Edge or browser
+  // Next.js sets NEXT_RUNTIME to 'nodejs' or 'edge'
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    // Dynamic import of Node.js-specific code
+    // This prevents webpack from bundling Node.js-only modules for Edge/browser
+    const { registerNode } = await import("./instrumentation-node");
+    await registerNode();
+  }
+
+  // Edge runtime initialization can be added here if needed
+  // if (process.env.NEXT_RUNTIME === 'edge') {
+  //   const { registerEdge } = await import('./instrumentation-edge');
+  //   await registerEdge();
+  // }
+}
+
+]]>
+</file>
+
+<file path="jobs/onboarding-expiry-worker.ts">
+<![CDATA[
+import { Worker, Job } from 'bullmq';
+import IORedis from 'ioredis';
+import { connectMongo } from '@/lib/mongo';
+import { logger } from '@/lib/logger';
+import { VerificationDocument, type VerificationDocumentDoc } from '@/server/models/onboarding/VerificationDocument';
+import { VerificationLog } from '@/server/models/onboarding/VerificationLog';
+import { OnboardingCase } from '@/server/models/onboarding/OnboardingCase';
+import { Types } from 'mongoose';
+
+/**
+ * Job payload type for expiry processing
+ * - orgId: Required for tenant-scoped processing (multi-tenant isolation)
+ * - onboardingCaseId: Optional for case-specific processing
+ */
+type ExpiryJob = {
+  orgId: string;
+  onboardingCaseId?: string;
+};
+
+// Constants for system actor (auditability requirement)
+const SYSTEM_ACTOR_ID = new Types.ObjectId('000000000000000000000000');
+
+// Batch size for bulk operations (prevents memory exhaustion)
+const BATCH_SIZE = 500;
+
+// Resolution order: BULLMQ_REDIS_URL → REDIS_URL → REDIS_KEY (Vercel/GitHub naming)
+const redisUrl = process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL || process.env.REDIS_KEY;
+const connection = redisUrl
+  ? new IORedis(redisUrl, { maxRetriesPerRequest: null })
+  : null;
+
+const QUEUE_NAME = process.env.EXPIRY_QUEUE_NAME || 'onboarding-expiry';
+
+/**
+ * Process document expiries for a specific organization
+ * 
+ * Multi-tenant isolation: Scopes queries via OnboardingCase.orgId
+ * Performance: Uses batched bulk updates instead of per-doc saves
+ * Auditability: Uses SYSTEM_ACTOR_ID for performed_by_id
+ * 
+ * CRITICAL FIX: Only expire documents where expiry_date <= NOW (not 30 days ahead!)
+ * The previous implementation expired documents 30 days before their actual expiry.
+ */
+async function processOrgExpiries(orgId: string, onboardingCaseId?: string): Promise<number> {
+  const now = new Date();
+  // CRITICAL FIX: Expire documents that have ACTUALLY expired (expiry_date <= now)
+  // NOT documents that will expire in 30 days
+  const expiryThreshold = now; // Documents expired as of right now
+
+  // Step 1: Find all onboarding cases for this org to get their IDs
+  const caseFilter: Record<string, unknown> = { orgId: new Types.ObjectId(orgId) };
+  if (onboardingCaseId) {
+    caseFilter._id = new Types.ObjectId(onboardingCaseId);
+  }
+
+  const cases = await OnboardingCase.find(caseFilter).select('_id').lean();
+  const caseIds = cases.map(c => c._id);
+
+  if (caseIds.length === 0) {
+    logger.info('[OnboardingExpiry] No onboarding cases found for org', { orgId });
+    return 0;
+  }
+
+  let totalProcessed = 0;
+
+  // Step 2: Process in batches to prevent memory exhaustion
+  while (true) {
+    // CRITICAL FIX: Find documents that are VERIFIED and ACTUALLY expired (expiry_date <= now)
+    // Previously this used threshold = now + 30 days, which expired documents 30 days early!
+    const expiringDocs = await VerificationDocument.find({
+      status: 'VERIFIED',
+      expiry_date: { $lte: expiryThreshold }, // Documents that have actually expired
+      onboarding_case_id: { $in: caseIds },
+    })
+      .limit(BATCH_SIZE)
+      .select('_id')
+      .lean<Pick<VerificationDocumentDoc, '_id'>[]>();
+
+    if (expiringDocs.length === 0) {
+      break; // No more documents to process
+    }
+
+    const docIds = expiringDocs.map(d => d._id);
+
+    // Step 3: Bulk update all documents in batch
+    await VerificationDocument.updateMany(
+      { _id: { $in: docIds } },
+      { $set: { status: 'EXPIRED' } }
+    );
+
+    // Step 4: Bulk insert verification logs for audit trail
+    const logEntries = docIds.map(docId => ({
+      document_id: docId,
+      action: 'STATUS_CHANGE' as const,
+      performed_by_id: SYSTEM_ACTOR_ID,
+      details: {
+        to: 'EXPIRED',
+        reason: 'Auto-expired by worker (document expiry date reached)',
+        orgId, // Include for audit traceability
+      },
+      timestamp: now,
+    }));
+
+    await VerificationLog.insertMany(logEntries);
+
+    totalProcessed += expiringDocs.length;
+
+    // If we got less than batch size, we're done
+    if (expiringDocs.length < BATCH_SIZE) {
+      break;
+    }
+  }
+
+  return totalProcessed;
+}
+
+function buildWorker(): Worker<ExpiryJob> | null {
+  if (!connection) {
+    logger.warn('[OnboardingExpiry] Redis not configured; worker disabled');
+    return null;
+  }
+
+  return new Worker<ExpiryJob>(
+    QUEUE_NAME,
+    async (job: Job<ExpiryJob>) => {
+      await connectMongo();
+
+      const { orgId, onboardingCaseId } = job.data;
+
+      // Validate orgId is provided (tenant isolation requirement)
+      if (!orgId || typeof orgId !== 'string' || orgId.trim() === '') {
+        logger.error('[OnboardingExpiry] Job missing required orgId - skipping to prevent cross-tenant access', {
+          jobId: job.id,
+          jobData: job.data,
+        });
+        return; // Don't throw - just skip malformed jobs
+      }
+
+      const trimmedOrgId = orgId.trim();
+
+      // Validate orgId is a valid ObjectId to prevent crash in processOrgExpiries
+      if (!Types.ObjectId.isValid(trimmedOrgId)) {
+        logger.error('[OnboardingExpiry] Invalid ObjectId format for orgId - skipping malformed job', {
+          jobId: job.id,
+          providedOrgId: orgId,
+        });
+        return; // Don't throw - just skip malformed jobs
+      }
+
+      const count = await processOrgExpiries(trimmedOrgId, onboardingCaseId);
+
+      logger.info('[OnboardingExpiry] Processed expiring documents', {
+        orgId,
+        onboardingCaseId: onboardingCaseId || 'all',
+        count,
+        jobId: job.id,
+      });
+    },
+    {
+      connection,
+      concurrency: 5, // Allow parallel processing of different org jobs
+    },
+  );
+}
+
+export function startOnboardingExpiryWorker(): Worker<ExpiryJob> | null {
+  return buildWorker();
+}
+
+if (require.main === module) {
+  const worker = startOnboardingExpiryWorker();
+  if (worker) {
+    logger.info('[OnboardingExpiry] Worker started', { queue: QUEUE_NAME });
+  } else {
+    // eslint-disable-next-line no-console
+    logger.error('onboarding_expiry:worker_not_started', {
+      reason: 'Redis connection missing',
+    });
+    process.exit(1);
+  }
+}
+
+]]>
+</file>
+
+<file path="jobs/onboarding-ocr-worker.ts">
+<![CDATA[
+import { Worker, Job } from 'bullmq';
+import IORedis from 'ioredis';
+import { connectMongo } from '@/lib/mongo';
+import { logger } from '@/lib/logger';
+import { VerificationDocument } from '@/server/models/onboarding/VerificationDocument';
+import { VerificationLog } from '@/server/models/onboarding/VerificationLog';
+
+type OcrJob = { docId: string; onboardingCaseId: string };
+
+// Resolution order: BULLMQ_REDIS_URL → REDIS_URL → REDIS_KEY (Vercel/GitHub naming)
+const redisUrl = process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL || process.env.REDIS_KEY;
+const connection = redisUrl
+  ? new IORedis(redisUrl, { maxRetriesPerRequest: null })
+  : null;
+
+const QUEUE_NAME = process.env.OCR_QUEUE_NAME || 'onboarding-ocr';
+
+function buildWorker(): Worker<OcrJob> | null {
+  if (!connection) {
+    logger.warn('[OnboardingOCR] Redis not configured; worker disabled');
+    return null;
+  }
+
+  return new Worker<OcrJob>(
+    QUEUE_NAME,
+    async (job: Job<OcrJob>) => {
+      await connectMongo();
+      const doc = await VerificationDocument.findById(job.data.docId);
+      if (!doc) {
+        logger.warn('[OnboardingOCR] Document not found', { jobId: job.id, docId: job.data.docId });
+        return;
+      }
+
+      // Simulated OCR result placeholder; replace with real provider integration
+      doc.ocr_confidence = 0.9;
+      doc.ocr_data = { extracted_text: 'OCR placeholder', fields: {} };
+      doc.status = 'UNDER_REVIEW';
+      await doc.save();
+
+      await VerificationLog.create({
+        document_id: doc._id,
+        action: 'AUTO_CHECK',
+        performed_by_id: undefined,
+        details: { jobId: job.id, confidence: doc.ocr_confidence },
+      });
+
+      logger.info('[OnboardingOCR] Processed document', { jobId: job.id, docId: doc._id.toString() });
+    },
+    { connection },
+  );
+}
+
+export function startOnboardingOcrWorker(): Worker<OcrJob> | null {
+  return buildWorker();
+}
+
+if (require.main === module) {
+  const worker = startOnboardingOcrWorker();
+  if (worker) {
+    logger.info('[OnboardingOCR] Worker started', { queue: QUEUE_NAME });
+  } else {
+    // eslint-disable-next-line no-console
+    logger.error('onboarding_ocr:worker_not_started', {
+      reason: 'Redis connection missing',
+    });
+    process.exit(1);
+  }
+}
+
+]]>
+</file>
+
+<file path="jobs/onboarding-queue.ts">
+<![CDATA[
+import { Queue } from 'bullmq';
+import IORedis from 'ioredis';
+import { Types } from 'mongoose';
+import { logger } from '@/lib/logger';
+
+const OCR_QUEUE_NAME = process.env.OCR_QUEUE_NAME || 'onboarding-ocr';
+const EXPIRY_QUEUE_NAME = process.env.EXPIRY_QUEUE_NAME || 'onboarding-expiry';
+
+// Resolution order: BULLMQ_REDIS_URL → REDIS_URL → REDIS_KEY (Vercel/GitHub naming)
+const redisUrl = process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL || process.env.REDIS_KEY;
+const connection = redisUrl
+  ? new IORedis(redisUrl, { maxRetriesPerRequest: null })
+  : null;
+
+function buildQueue(name: string): Queue | null {
+  if (!connection) {
+    logger.warn(`[OnboardingQueue] Redis not configured, queue "${name}" disabled`);
+    return null;
+  }
+  return new Queue(name, {
+    connection,
+    defaultJobOptions: {
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 5_000 },
+      removeOnComplete: { age: 86_400, count: 500 },
+      removeOnFail: { age: 604_800, count: 500 },
+    },
+  });
+}
+
+const ocrQueue = buildQueue(OCR_QUEUE_NAME);
+const expiryQueue = buildQueue(EXPIRY_QUEUE_NAME);
+
+type OcrJob = { docId: string; onboardingCaseId: string };
+
+/**
+ * ExpiryJob payload type
+ * - orgId: Required for tenant-scoped processing (multi-tenant isolation)
+ * - onboardingCaseId: Optional for case-specific processing
+ */
+type ExpiryJob = {
+  orgId: string;
+  onboardingCaseId?: string;
+};
+
+export async function enqueueOnboardingOcr(data: OcrJob): Promise<string | null> {
+  if (!ocrQueue) return null;
+  try {
+    const job = await ocrQueue.add('ocr', data, { jobId: `ocr-${data.docId}` });
+    return job.id ? String(job.id) : null;
+  } catch (error) {
+    logger.error('[OnboardingQueue] Failed to enqueue OCR job', { error });
+    return null;
+  }
+}
+
+export async function enqueueOnboardingExpiry(data: ExpiryJob): Promise<string | null> {
+  // Validate required orgId to fail fast - worker requires it for tenant isolation
+  if (!data.orgId || typeof data.orgId !== 'string' || data.orgId.trim() === '') {
+    logger.error('[OnboardingQueue] Missing or invalid orgId for expiry job - cannot enqueue without tenant scope', {
+      providedOrgId: data.orgId,
+      onboardingCaseId: data.onboardingCaseId,
+    });
+    return null;
+  }
+
+  // Validate orgId is a valid ObjectId to prevent worker crashes
+  const trimmedOrgId = data.orgId.trim();
+  if (!Types.ObjectId.isValid(trimmedOrgId)) {
+    logger.error('[OnboardingQueue] Invalid ObjectId format for orgId - cannot enqueue malformed job', {
+      providedOrgId: data.orgId,
+      onboardingCaseId: data.onboardingCaseId,
+    });
+    return null;
+  }
+
+  if (!expiryQueue) return null;
+  try {
+    // Use trimmed orgId to ensure consistency
+    const job = await expiryQueue.add('expiry-check', { ...data, orgId: trimmedOrgId });
+    return job.id ? String(job.id) : null;
+  } catch (error) {
+    logger.error('[OnboardingQueue] Failed to enqueue expiry job', { error });
+    return null;
+  }
+}
+
+]]>
+</file>
+
+<file path="jobs/package-activation-queue.ts">
+<![CDATA[
+/**
+ * Package Activation Retry Queue
+ *
+ * Handles background retries for failed package activations after payment.
+ * Uses BullMQ for reliable job processing with exponential backoff.
+ * 
+ * SECURITY: This is a critical queue - Redis is REQUIRED (fail-fast on missing config)
+ * to ensure activation retries are processed reliably.
+ */
+
+import { Queue, Worker, Job } from "bullmq";
+import { logger } from "@/lib/logger";
+import { getRedisClient } from "@/lib/redis";
+import { z } from "zod";
+
+const QUEUE_NAME = "package-activation-retry";
+const MAX_ATTEMPTS = 5;
+
+// Zod schema for job payload validation - enforces tenant isolation
+const ActivationJobDataSchema = z.object({
+  aqarPaymentId: z.string().min(1, "aqarPaymentId is required"),
+  invoiceId: z.string().min(1, "invoiceId is required"),
+  orgId: z.string().min(1, "orgId is required for tenant isolation"),
+  attemptNumber: z.number().optional(),
+});
+
+type ActivationJobData = z.infer<typeof ActivationJobDataSchema>;
+
+// Queue and worker instances (for graceful shutdown)
+let queue: Queue | null = null;
+let activeWorker: Worker | null = null;
+
+/**
+ * Require Redis connection - fail fast if not configured
+ * Critical queues MUST have Redis to ensure reliability
+ */
+function requireRedisConnection(context: string) {
+  const connection = getRedisClient();
+  if (!connection) {
+    throw new Error(
+      `[ActivationQueue] Redis not configured (${context}). ` +
+      `REDIS_URL or REDIS_KEY is required for activation retries - this is a critical queue.`
+    );
+  }
+  return connection;
+}
+
+/**
+ * Get or create the activation retry queue
+ * Throws if Redis is not configured (fail-fast for critical queue)
+ */
+export function getActivationQueue(): Queue {
+  const connection = requireRedisConnection("getActivationQueue");
+
+  if (!queue) {
+    queue = new Queue(QUEUE_NAME, {
+      connection,
+      defaultJobOptions: {
+        attempts: MAX_ATTEMPTS,
+        backoff: {
+          type: "exponential",
+          delay: 60000, // Start with 1 minute
+        },
+        removeOnComplete: {
+          age: 86400, // Keep completed jobs for 24 hours
+          count: 1000,
+        },
+        removeOnFail: {
+          age: 604800, // Keep failed jobs for 7 days
+          count: 5000,
+        },
+      },
+    });
+  }
+
+  return queue;
+}
+
+/**
+ * Enqueue a package activation retry job
+ */
+export async function enqueueActivationRetry(
+  aqarPaymentId: string,
+  invoiceId: string,
+  orgId: string,
+): Promise<string | null> {
+  // Validate payload with Zod schema (fail-closed on invalid data)
+  const parseResult = ActivationJobDataSchema.safeParse({
+    aqarPaymentId,
+    invoiceId,
+    orgId,
+    attemptNumber: 0,
+  });
+
+  if (!parseResult.success) {
+    logger.error("[ActivationQueue] Invalid job payload - tenant isolation requires valid orgId", {
+      aqarPaymentId,
+      invoiceId,
+      orgId,
+      validationErrors: parseResult.error.flatten().fieldErrors,
+    });
+    return null;
+  }
+
+  const activationQueue = getActivationQueue();
+
+  try {
+    // Use deterministic job ID to prevent duplicate concurrent activations
+    // Same payment enqueued twice will dedupe automatically
+    const job = await activationQueue.add(
+      "activate-package",
+      parseResult.data,
+      {
+        jobId: `activation-${aqarPaymentId}`,
+      },
+    );
+
+    logger.info("[ActivationQueue] Enqueued activation retry", {
+      jobId: job.id,
+      aqarPaymentId,
+      invoiceId,
+      orgId,
+    });
+
+    return job.id || null;
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    logger.error("[ActivationQueue] Failed to enqueue retry", {
+      error,
+      aqarPaymentId,
+      invoiceId,
+      orgId,
+    });
+    return null;
+  }
+}
+
+/**
+ * Process activation retry jobs
+ * Call this from a worker process (e.g., in a separate Node.js process or serverless function)
+ * Throws if Redis is not configured (fail-fast for critical queue)
+ * 
+ * NOTE: This function is async to ensure MongoDB is connected before processing.
+ * The Worker is returned after connection is established.
+ */
+export async function startActivationWorker(): Promise<Worker> {
+  // CRITICAL: Ensure MongoDB is connected before any BullMQ handlers run.
+  // In standalone worker processes, mongoose may not be connected yet.
+  const { connectToDatabase } = await import("@/lib/mongodb-unified");
+  await connectToDatabase();
+
+  const connection = requireRedisConnection("startActivationWorker");
+  
+  // Return existing worker if already running
+  if (activeWorker) {
+    logger.warn("[ActivationQueue] Worker already running, returning existing worker");
+    return activeWorker;
+  }
+
+  const worker = new Worker<ActivationJobData>(
+    QUEUE_NAME,
+    async (job: Job<ActivationJobData>) => {
+      // Validate job data with Zod schema (fail-closed on invalid)
+      const parseResult = ActivationJobDataSchema.safeParse(job.data);
+      if (!parseResult.success) {
+        logger.error("[ActivationQueue] Job has invalid payload, failing permanently", {
+          jobId: job.id,
+          validationErrors: parseResult.error.flatten().fieldErrors,
+        });
+        // Throw to mark job as failed (won't retry invalid payloads)
+        throw new Error(`Invalid job payload: ${JSON.stringify(parseResult.error.flatten().fieldErrors)}`);
+      }
+
+      const { aqarPaymentId, invoiceId, orgId } = parseResult.data;
+
+      logger.info("[ActivationQueue] Processing activation retry", {
+        jobId: job.id,
+        aqarPaymentId,
+        invoiceId,
+        orgId,
+        attempt: job.attemptsMade,
+      });
+
+      try {
+        // SECURITY: Import tenant context utilities for scoped operations
+        const { setTenantContext, clearTenantContext } = await import("@/server/plugins/tenantIsolation");
+
+        // Import dynamically to avoid circular dependencies
+        const { activatePackageAfterPayment } = await import(
+          "@/lib/aqar/package-activation"
+        );
+
+        // SECURITY: activatePackageAfterPayment already wraps its operations in withTenantContext,
+        // so we don't wrap here to avoid nested context ownership ambiguity
+        const activated = await activatePackageAfterPayment(aqarPaymentId, orgId);
+
+        // SECURITY: Fail-closed if activation returned false (validation failure)
+        if (!activated) {
+          throw new Error(`Package activation returned false for aqarPaymentId=${aqarPaymentId} - validation failure`);
+        }
+
+        // Update invoice metadata on success with org-scoped query
+        const { Invoice } = await import("@/server/models/Invoice");
+        const { buildOrgScopedFilter } = await import("@/lib/utils/org-scope");
+        // SECURITY: Org-scoped filter prevents cross-tenant invoice modification
+        // buildOrgScopedFilter includes ObjectId variants for mixed storage scenarios
+        const orgScopedInvoiceFilter = buildOrgScopedFilter(invoiceId, orgId);
+        try {
+          setTenantContext({ orgId, userId: "activation-worker" });
+          const invoice = await Invoice.findOne(orgScopedInvoiceFilter);
+          if (invoice && invoice.metadata?.aqarPaymentId === aqarPaymentId) {
+            invoice.metadata.activationStatus = "completed";
+            invoice.metadata.activationCompletedAt = new Date();
+            await invoice.save();
+          }
+        } finally {
+          clearTenantContext();
+        }
+
+        logger.info("[ActivationQueue] Package activated successfully", {
+          aqarPaymentId,
+          invoiceId,
+        });
+        return { success: true, aqarPaymentId, invoiceId };
+      } catch (_error) {
+        const error =
+          _error instanceof Error ? _error : new Error(String(_error));
+        logger.error("[ActivationQueue] Activation attempt failed", {
+          jobId: job.id,
+          aqarPaymentId,
+          invoiceId,
+          attempt: job.attemptsMade,
+          error,
+        });
+
+        // Update invoice metadata on failure with org-scoped query
+        try {
+          const { setTenantContext, clearTenantContext } = await import("@/server/plugins/tenantIsolation");
+          const { Invoice } = await import("@/server/models/Invoice");
+          const { buildOrgScopedFilter } = await import("@/lib/utils/org-scope");
+          // SECURITY: Org-scoped filter prevents cross-tenant invoice modification
+          // buildOrgScopedFilter includes ObjectId variants for mixed storage scenarios
+          const orgScopedInvoiceFilter = buildOrgScopedFilter(invoiceId, orgId);
+          try {
+            setTenantContext({ orgId, userId: "activation-worker" });
+            const invoice = await Invoice.findOne(orgScopedInvoiceFilter);
+            if (invoice && invoice.metadata?.aqarPaymentId === aqarPaymentId) {
+              invoice.metadata.lastActivationError =
+                error instanceof Error ? error.message : String(error);
+              invoice.metadata.lastActivationAttempt = new Date();
+              await invoice.save();
+            }
+          } finally {
+            clearTenantContext();
+          }
+        } catch (updateError) {
+          logger.error("[ActivationQueue] Failed to update invoice metadata", {
+            updateError,
+          });
+        }
+
+        throw error; // Re-throw to trigger retry
+      }
+    },
+    {
+      connection,
+      concurrency: 5,
+      limiter: {
+        max: 10,
+        duration: 60000, // Max 10 jobs per minute
+      },
+    },
+  );
+
+  worker.on("completed", (job) => {
+    logger.info("[ActivationQueue] Job completed", { jobId: job.id });
+  });
+
+  worker.on("failed", (job, error) => {
+    logger.error("[ActivationQueue] Job failed", {
+      jobId: job?.id,
+      attempts: job?.attemptsMade,
+      error,
+    });
+  });
+
+  // Store reference for graceful shutdown
+  activeWorker = worker;
+  
+  logger.info("[ActivationQueue] Worker started");
+  return worker;
+}
+
+/**
+ * Stop the activation worker gracefully
+ * Call this before application shutdown
+ */
+export async function stopActivationWorker(): Promise<void> {
+  if (activeWorker) {
+    logger.info("[ActivationQueue] Stopping worker...");
+    await activeWorker.close();
+    activeWorker = null;
+    logger.info("[ActivationQueue] Worker stopped");
+  }
+}
+
+/**
+ * Graceful shutdown - closes worker, queue, and connection
+ * Call this during application shutdown
+ */
+export async function closeActivationQueue(): Promise<void> {
+  // Stop worker first
+  await stopActivationWorker();
+  
+  // Close queue
+  if (queue) {
+    await queue.close();
+    queue = null;
+  }
+  
+  // Note: Redis connection is managed by lib/redis singleton
+  // Don't disconnect here as it may be shared with other services
+  
+  logger.info("[ActivationQueue] Closed");
+}
+
+]]>
+</file>
+
+</batch_content>

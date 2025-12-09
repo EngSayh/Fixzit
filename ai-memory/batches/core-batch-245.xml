@@ -1,0 +1,3270 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="scripts/detect-unlocalized-strings.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * Detect Unlocalized Strings - High-Fidelity Locale Coverage Analysis
+ *
+ * Compares each locale against EN dictionary to identify auto-filled/identical strings.
+ * Generates detailed coverage reports and can fail CI if thresholds aren't met.
+ *
+ * Usage:
+ *   # Audit default locales (EN + AR)
+ *   npx tsx scripts/detect-unlocalized-strings.ts
+ *   pnpm i18n:coverage
+ *
+ *   # Audit only EN/AR (same as default)
+ *   npx tsx scripts/detect-unlocalized-strings.ts --locales=en,ar
+ *
+ *   # Allow AR fallback (treat identical-to-AR as valid translation)
+ *   npx tsx scripts/detect-unlocalized-strings.ts --allow-ar-fallback
+ *
+ *   # CI integration (fail if >50% unlocalized)
+ *   npx tsx scripts/detect-unlocalized-strings.ts --fail-threshold=0.5
+ *   pnpm i18n:coverage:fail
+ *
+ *   # Strict CI mode (fail if >10% unlocalized)
+ *   npx tsx scripts/detect-unlocalized-strings.ts --fail-threshold=0.1
+ *   pnpm i18n:coverage:strict
+ *
+ *   # Show sample unlocalized keys
+ *   npx tsx scripts/detect-unlocalized-strings.ts --show-samples=20
+ *
+ *   # Export JSON for tracking over time
+ *   npx tsx scripts/detect-unlocalized-strings.ts --format=json > coverage-$(date +%Y%m%d).json
+ *
+ *   # Silent mode (for scripts)
+ *   npx tsx scripts/detect-unlocalized-strings.ts --silent
+ *
+ * Flags:
+ *   --locales=en,ar            Comma-separated list of locales to audit (default: both)
+ *   --locale=en                Single locale to audit (deprecated, use --locales)
+ *   --allow-ar-fallback        Treat identical-to-AR as valid translation
+ *   --fail-threshold=0.9       Exit 1 if any locale >90% unlocalized (default: 0.9)
+ *   --show-samples             Show sample unlocalized keys
+ *   --show-samples=20          Show N sample keys per locale
+ *   --format=json              Output JSON instead of human-readable report
+ *   --silent                   Suppress console output (still writes artifacts)
+ *
+ * Exit Codes:
+ *   0 - All locales meet threshold
+ *   1 - One or more locales exceed threshold (too many EN matches)
+ *   2 - Missing dictionary files or parsing errors
+ */
+
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const ROOT = path.resolve(__dirname, "..");
+const GENERATED_DIR = path.join(ROOT, "i18n", "generated");
+const OUTPUT_DIR = path.join(ROOT, "_artifacts");
+const OUTPUT_FILE = path.join(OUTPUT_DIR, "i18n-locale-coverage.json");
+
+const ALL_LOCALES = ["en", "ar"] as const;
+type Locale = (typeof ALL_LOCALES)[number];
+
+function resolveLocales(arg?: string): Locale[] {
+  if (!arg) {
+    return [...ALL_LOCALES];
+  }
+
+  const requested = arg
+    .split(",")
+    .map((token) => token.trim())
+    .filter(Boolean) as Locale[];
+
+  const invalid = requested.filter((locale) => !ALL_LOCALES.includes(locale));
+  if (invalid.length > 0) {
+    console.warn(
+      `⚠️  Ignoring unsupported locale(s): ${invalid.join(", ")}. ` +
+        `Valid options: ${ALL_LOCALES.join(", ")}`,
+    );
+  }
+
+  const filtered = requested.filter((locale) => ALL_LOCALES.includes(locale));
+  return filtered.length > 0 ? filtered : [...ALL_LOCALES];
+}
+
+interface LocaleCoverage {
+  locale: Locale;
+  totalKeys: number;
+  uniqueStrings: number;
+  identicalToEN: number;
+  identicalToAR: number;
+  caseInsensitiveMatches: number;
+  whitespaceOnlyDiff: number;
+  actuallyLocalized: number;
+  coveragePercent: number;
+  unlocalizedPercent: number;
+  topUnlocalizedKeys: Array<{ key: string; value: string }>;
+}
+
+interface CoverageReport {
+  timestamp: string;
+  generatedBy: string;
+  summary: {
+    totalLocales: number;
+    sourceLocales: string[];
+    targetLocales: string[];
+    overallCoverage: number;
+    unlocalizedSlots: number;
+    totalSlots: number;
+  };
+  locales: LocaleCoverage[];
+  recommendations: string[];
+}
+
+/**
+ * Normalize string for comparison (lowercase, trim, collapse whitespace)
+ */
+function normalizeString(str: string): string {
+  return str.toLowerCase().trim().replace(/\s+/g, " ");
+}
+
+/**
+ * Check if two strings are semantically identical
+ */
+function areStringsIdentical(
+  str1: string,
+  str2: string,
+): {
+  exact: boolean;
+  caseInsensitive: boolean;
+  whitespaceOnly: boolean;
+} {
+  const exact = str1 === str2;
+  const normalized1 = normalizeString(str1);
+  const normalized2 = normalizeString(str2);
+  const caseInsensitive = !exact && normalized1 === normalized2;
+  const whitespaceOnly =
+    !exact &&
+    !caseInsensitive &&
+    str1.replace(/\s+/g, "") === str2.replace(/\s+/g, "");
+
+  return { exact, caseInsensitive, whitespaceOnly };
+}
+
+/**
+ * Load all locale dictionaries
+ */
+function loadDictionaries(
+  locales: Locale[],
+): Record<Locale, Record<string, string>> {
+  const result: Partial<Record<Locale, Record<string, string>>> = {};
+  const missing: string[] = [];
+
+  for (const locale of locales) {
+    const filePath = path.join(GENERATED_DIR, `${locale}.dictionary.json`);
+
+    if (!existsSync(filePath)) {
+      missing.push(locale);
+      continue;
+    }
+
+    try {
+      const content = readFileSync(filePath, "utf-8");
+      result[locale] = JSON.parse(content);
+    } catch (err) {
+      console.error(`❌ Failed to parse ${locale} dictionary:`, err);
+      process.exit(2);
+    }
+  }
+
+  if (missing.length > 0) {
+    console.error(`❌ Missing dictionary files: ${missing.join(", ")}`);
+    console.error(`   Run: pnpm i18n:build`);
+    process.exit(2);
+  }
+
+  return result as Record<Locale, Record<string, string>>;
+}
+
+/**
+ * Analyze a single locale against EN reference
+ */
+function analyzeLocale(
+  locale: Locale,
+  localeDict: Record<string, string>,
+  enDict: Record<string, string>,
+  arDict: Record<string, string>,
+  showSamplesCount = 10,
+  allowArFallback = false,
+): LocaleCoverage {
+  // EN and AR are source locales - they're 100% "localized" by definition
+  if (locale === "en" || locale === "ar") {
+    return {
+      locale,
+      totalKeys: Object.keys(localeDict).length,
+      uniqueStrings: Object.keys(localeDict).length,
+      identicalToEN: 0,
+      identicalToAR: 0,
+      caseInsensitiveMatches: 0,
+      whitespaceOnlyDiff: 0,
+      actuallyLocalized: Object.keys(localeDict).length,
+      coveragePercent: 100,
+      unlocalizedPercent: 0,
+      topUnlocalizedKeys: [],
+    };
+  }
+
+  let identicalToEN = 0;
+  let identicalToAR = 0;
+  let caseInsensitiveMatches = 0;
+  let whitespaceOnlyDiff = 0;
+  const unlocalizedKeys: Array<{ key: string; value: string }> = [];
+
+  for (const [key, value] of Object.entries(localeDict)) {
+    const enValue = enDict[key];
+    const arValue = arDict[key];
+
+    if (!enValue) continue; // Skip keys that don't exist in EN
+
+    // Check exact match with EN
+    if (value === enValue) {
+      identicalToEN++;
+      if (unlocalizedKeys.length < showSamplesCount) {
+        unlocalizedKeys.push({ key, value });
+      }
+      continue;
+    }
+
+    // Check exact match with AR
+    if (value === arValue) {
+      identicalToAR++;
+      if (!allowArFallback && unlocalizedKeys.length < showSamplesCount) {
+        unlocalizedKeys.push({ key, value });
+      }
+      continue;
+    }
+
+    // Check case-insensitive match
+    const comparison = areStringsIdentical(value, enValue);
+    if (comparison.caseInsensitive) {
+      caseInsensitiveMatches++;
+      if (unlocalizedKeys.length < showSamplesCount) {
+        unlocalizedKeys.push({ key, value });
+      }
+      continue;
+    }
+
+    // Check whitespace-only difference
+    if (comparison.whitespaceOnly) {
+      whitespaceOnlyDiff++;
+      if (unlocalizedKeys.length < showSamplesCount) {
+        unlocalizedKeys.push({ key, value });
+      }
+    }
+  }
+
+  const totalKeys = Object.keys(localeDict).length;
+  const arFallbackCount = allowArFallback ? 0 : identicalToAR;
+  const unlocalizedCount =
+    identicalToEN +
+    caseInsensitiveMatches +
+    whitespaceOnlyDiff +
+    arFallbackCount;
+  const actuallyLocalized = totalKeys - unlocalizedCount;
+  const coveragePercent = (actuallyLocalized / totalKeys) * 100;
+  const unlocalizedPercent = (unlocalizedCount / totalKeys) * 100;
+
+  return {
+    locale,
+    totalKeys,
+    uniqueStrings: actuallyLocalized,
+    identicalToEN,
+    identicalToAR,
+    caseInsensitiveMatches,
+    whitespaceOnlyDiff,
+    actuallyLocalized,
+    coveragePercent,
+    unlocalizedPercent,
+    topUnlocalizedKeys: unlocalizedKeys,
+  };
+}
+
+/**
+ * Generate recommendations based on coverage analysis
+ */
+function generateRecommendations(
+  locales: LocaleCoverage[],
+  sourceLocales: Locale[],
+): string[] {
+  const recommendations: string[] = [];
+  const targetLocales = locales.filter(
+    (l) => !sourceLocales.includes(l.locale),
+  );
+
+  // Check for completely unlocalized locales
+  const completelyUnlocalized = targetLocales.filter(
+    (l) => l.coveragePercent === 0,
+  );
+  if (completelyUnlocalized.length > 0) {
+    recommendations.push(
+      `CRITICAL: ${completelyUnlocalized.length} locale(s) are 100% auto-filled: ` +
+        completelyUnlocalized.map((l) => l.locale.toUpperCase()).join(", ") +
+        `. These should either be removed from ALL_LOCALES or professionally translated.`,
+    );
+  }
+
+  // Check for partially localized locales
+  const partiallyLocalized = targetLocales.filter(
+    (l) => l.coveragePercent > 0 && l.coveragePercent < 50,
+  );
+  if (partiallyLocalized.length > 0) {
+    recommendations.push(
+      `WARNING: ${partiallyLocalized.length} locale(s) are partially localized (<50%): ` +
+        partiallyLocalized
+          .map(
+            (l) =>
+              `${l.locale.toUpperCase()} (${l.coveragePercent.toFixed(1)}%)`,
+          )
+          .join(", ") +
+        `. Complete translation work or remove these locales.`,
+    );
+  }
+
+  // Calculate cost estimate
+  const totalUnlocalized = targetLocales.reduce(
+    (sum, l) => sum + l.identicalToEN,
+    0,
+  );
+  if (totalUnlocalized > 100000) {
+    const estimatedWords = Math.round(totalUnlocalized * 2.5); // ~2.5 words per key average
+    const lowCost = Math.round(estimatedWords * 0.1);
+    const highCost = Math.round(estimatedWords * 0.2);
+    recommendations.push(
+      `BUDGET: Professional translation required for ~${estimatedWords.toLocaleString()} words. ` +
+        `Estimated cost: $${lowCost.toLocaleString()}-${highCost.toLocaleString()} USD.`,
+    );
+  }
+
+  // Infrastructure optimization
+  if (completelyUnlocalized.length >= 5) {
+    recommendations.push(
+      `OPTIMIZATION: Consider removing unused locales from ALL_LOCALES in scripts/generate-dictionaries-json.ts ` +
+        `to reduce build time and artifact size. Keep only EN/AR until translation budget is approved.`,
+    );
+  }
+
+  return recommendations;
+}
+
+/**
+ * Print human-readable report to console
+ */
+function printReport(report: CoverageReport, showSamples = false) {
+  console.log("🔍 High-Fidelity Locale Coverage Analysis\n");
+  console.log(`Generated: ${report.timestamp}`);
+  console.log(`Source Locales: ${report.summary.sourceLocales.join(", ")}`);
+  console.log(`Target Locales: ${report.summary.targetLocales.join(", ")}\n`);
+
+  // Summary table
+  console.log("📊 Coverage Summary:\n");
+  console.log(
+    "Locale | Total Keys | Localized | Identical to EN | Coverage | Unlocalized %",
+  );
+  console.log(
+    "-------|------------|-----------|-----------------|----------|---------------",
+  );
+
+  for (const locale of report.locales) {
+    const loc = locale.locale.padEnd(6);
+    const total = String(locale.totalKeys).padStart(10);
+    const localized = String(locale.actuallyLocalized).padStart(9);
+    const identical = String(locale.identicalToEN).padStart(15);
+    const coverage = `${locale.coveragePercent.toFixed(1)}%`.padStart(8);
+    const unlocalized = `${locale.unlocalizedPercent.toFixed(1)}%`.padStart(14);
+
+    const emoji =
+      locale.coveragePercent === 100
+        ? "✅"
+        : locale.coveragePercent === 0
+          ? "❌"
+          : locale.coveragePercent >= 50
+            ? "⚠️"
+            : "🚨";
+
+    console.log(
+      `${emoji} ${loc} | ${total} | ${localized} | ${identical} | ${coverage} | ${unlocalized}`,
+    );
+  }
+
+  // Aggregate stats
+  console.log("\n📈 Aggregate Statistics:");
+  console.log(
+    `   Total translation slots: ${report.summary.totalSlots.toLocaleString()}`,
+  );
+  console.log(
+    `   Localized slots: ${(report.summary.totalSlots - report.summary.unlocalizedSlots).toLocaleString()}`,
+  );
+  console.log(
+    `   Unlocalized slots: ${report.summary.unlocalizedSlots.toLocaleString()}`,
+  );
+  console.log(
+    `   Overall coverage: ${report.summary.overallCoverage.toFixed(1)}%`,
+  );
+
+  // Recommendations
+  if (report.recommendations.length > 0) {
+    console.log("\n💡 Recommendations:\n");
+    report.recommendations.forEach((rec, i) => {
+      console.log(`${i + 1}. ${rec}\n`);
+    });
+  }
+
+  // Show samples if requested
+  if (showSamples) {
+    const targetLocales = report.locales.filter(
+      (l) => l.locale !== "en" && l.locale !== "ar",
+    );
+    for (const locale of targetLocales) {
+      if (locale.topUnlocalizedKeys.length > 0) {
+        console.log(
+          `\n🔍 Sample unlocalized keys for ${locale.locale.toUpperCase()}:\n`,
+        );
+        locale.topUnlocalizedKeys.forEach(({ key, value }) => {
+          console.log(`   ${key.padEnd(50)} | "${value}"`);
+        });
+      }
+    }
+  }
+}
+
+/**
+ * Main execution
+ */
+function main() {
+  const args = process.argv.slice(2);
+
+  // Parse arguments
+  const failThreshold = parseFloat(
+    args.find((arg) => arg.startsWith("--fail-threshold="))?.split("=")[1] ||
+      "0.9",
+  );
+  const targetLocale = args
+    .find((arg) => arg.startsWith("--locale="))
+    ?.split("=")[1] as Locale | undefined;
+  const showSamplesCount = parseInt(
+    args.find((arg) => arg.startsWith("--show-samples="))?.split("=")[1] ||
+      "10",
+  );
+  const showSamples =
+    args.includes("--show-samples") ||
+    args.some((arg) => arg.startsWith("--show-samples="));
+  const formatJson = args.includes("--format=json");
+  const silent = args.includes("--silent");
+  const localesArg = args
+    .find((arg) => arg.startsWith("--locales="))
+    ?.split("=")[1];
+  const allowArFallback = args.includes("--allow-ar-fallback");
+  const activeLocales = resolveLocales(localesArg);
+  const defaultSources: Locale[] = ["en", "ar"];
+  const effectiveSources = defaultSources.filter((loc) =>
+    activeLocales.includes(loc),
+  );
+
+  // Load dictionaries
+  if (!silent) console.log("📦 Loading dictionaries...\n");
+  const dicts = loadDictionaries(activeLocales);
+
+  // Analyze all locales
+  const locales: LocaleCoverage[] = [];
+  for (const locale of activeLocales) {
+    if (targetLocale && locale !== targetLocale) continue;
+
+    const coverage = analyzeLocale(
+      locale,
+      dicts[locale],
+      dicts.en,
+      dicts.ar,
+      showSamplesCount,
+      allowArFallback,
+    );
+    locales.push(coverage);
+  }
+
+  // Calculate aggregate stats
+  const targetLocales = locales.filter(
+    (l) => !effectiveSources.includes(l.locale),
+  );
+  const totalSlots = targetLocales.reduce((sum, l) => sum + l.totalKeys, 0);
+  const unlocalizedSlots = targetLocales.reduce(
+    (sum, l) => sum + (l.totalKeys - l.actuallyLocalized),
+    0,
+  );
+  const overallCoverage =
+    totalSlots > 0 ? ((totalSlots - unlocalizedSlots) / totalSlots) * 100 : 100;
+
+  // Generate recommendations
+  const recommendations = generateRecommendations(locales, effectiveSources);
+
+  // Build report
+  const report: CoverageReport = {
+    timestamp: new Date().toISOString(),
+    generatedBy: "scripts/detect-unlocalized-strings.ts",
+    summary: {
+      totalLocales: locales.length,
+      sourceLocales: effectiveSources,
+      targetLocales: targetLocales.map((l) => l.locale),
+      overallCoverage,
+      unlocalizedSlots,
+      totalSlots,
+    },
+    locales,
+    recommendations,
+  };
+
+  // Save to artifacts
+  if (!formatJson) {
+    mkdirSync(OUTPUT_DIR, { recursive: true });
+    writeFileSync(OUTPUT_FILE, JSON.stringify(report, null, 2), "utf-8");
+    if (!silent) console.log(`\n💾 Report saved to: ${OUTPUT_FILE}\n`);
+  }
+
+  // Output report
+  if (formatJson) {
+    console.log(JSON.stringify(report, null, 2));
+  } else if (!silent) {
+    printReport(report, showSamples);
+  }
+
+  // Check thresholds and exit
+  const failingLocales = targetLocales.filter(
+    (l) => l.unlocalizedPercent > failThreshold * 100,
+  );
+
+  if (failingLocales.length > 0) {
+    if (!silent) {
+      console.log(
+        `\n❌ THRESHOLD EXCEEDED: ${failingLocales.length} locale(s) have >${(failThreshold * 100).toFixed(0)}% unlocalized strings:\n`,
+      );
+      failingLocales.forEach((l) => {
+        console.log(
+          `   ${l.locale.toUpperCase()}: ${l.unlocalizedPercent.toFixed(1)}% unlocalized (${l.identicalToEN}/${l.totalKeys} keys)`,
+        );
+      });
+      console.log(
+        `\n💡 To pass: Reduce --fail-threshold or complete translation work for these locales.`,
+      );
+    }
+    process.exit(1);
+  }
+
+  if (!silent) {
+    console.log(
+      `\n✅ All locales meet threshold (<${(failThreshold * 100).toFixed(0)}% unlocalized)`,
+    );
+  }
+
+  process.exit(0);
+}
+
+main();
+
+]]>
+</file>
+
+<file path="scripts/diagnose-e2e-tests.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * E2E Test Diagnostic Script
+ *
+ * Diagnoses common E2E test failures:
+ * - Server startup issues
+ * - Environment configuration
+ * - Database connectivity
+ * - Test user seeding
+ *
+ * Usage:
+ *   tsx scripts/diagnose-e2e-tests.ts
+ *   tsx scripts/diagnose-e2e-tests.ts --fix
+ */
+
+import { readFile, writeFile, mkdir } from "fs/promises";
+import { existsSync } from "fs";
+import { spawn } from "child_process";
+
+const FIX_MODE = process.argv.includes("--fix");
+
+interface DiagnosticResult {
+  name: string;
+  status: "PASS" | "FAIL" | "WARN";
+  message: string;
+  fix?: () => Promise<void>;
+}
+
+const results: DiagnosticResult[] = [];
+
+function log(
+  message: string,
+  level: "INFO" | "SUCCESS" | "ERROR" | "WARN" = "INFO",
+) {
+  const colors = {
+    INFO: "\x1b[36m",
+    SUCCESS: "\x1b[32m",
+    ERROR: "\x1b[31m",
+    WARN: "\x1b[33m",
+  };
+  const reset = "\x1b[0m";
+  console.log(`${colors[level]}[${level}]${reset} ${message}`);
+}
+
+async function checkEnvironmentFile() {
+  log("Checking environment configuration...", "INFO");
+
+  // Check .env.test exists
+  if (!existsSync(".env.test")) {
+    results.push({
+      name: "Environment File",
+      status: "FAIL",
+      message: ".env.test file not found",
+      fix: async () => {
+        log("Creating .env.test from .env.test.example...", "INFO");
+        try {
+          const template = await readFile(".env.test", "utf-8");
+          await writeFile(".env.test", template);
+          log(".env.test created successfully", "SUCCESS");
+        } catch (error) {
+          throw new Error("Failed to create .env.test: " + error);
+        }
+      },
+    });
+    return;
+  }
+
+  // Check required variables
+  const envContent = await readFile(".env.test", "utf-8");
+  const requiredVars = [
+    "TEST_SUPERADMIN_EMAIL",
+    "TEST_ADMIN_EMAIL",
+    "TEST_MANAGER_EMAIL",
+    "TEST_TECHNICIAN_EMAIL",
+    "TEST_TENANT_EMAIL",
+    "TEST_VENDOR_EMAIL",
+  ];
+
+  const missingVars = requiredVars.filter(
+    (varName) =>
+      !envContent.includes(`${varName}=`) ||
+      envContent.match(new RegExp(`${varName}=\\s*$`, "m")),
+  );
+
+  if (missingVars.length > 0) {
+    results.push({
+      name: "Environment Variables",
+      status: "FAIL",
+      message: `Missing required variables: ${missingVars.join(", ")}`,
+    });
+  } else {
+    results.push({
+      name: "Environment Variables",
+      status: "PASS",
+      message: "All required test environment variables are configured",
+    });
+  }
+}
+
+async function checkDatabaseConnection() {
+  log("Checking database connectivity...", "INFO");
+
+  try {
+    const { getDatabase } = await import("../lib/mongodb-unified");
+    const db = await getDatabase();
+
+    // Try to ping the database
+    await db.admin().ping();
+
+    results.push({
+      name: "Database Connection",
+      status: "PASS",
+      message: "MongoDB connection successful",
+    });
+  } catch (error) {
+    results.push({
+      name: "Database Connection",
+      status: "FAIL",
+      message: `Failed to connect to MongoDB: ${error instanceof Error ? error.message : String(error)}`,
+    });
+  }
+}
+
+async function checkTestUsersSeeded() {
+  log("Checking if test users are seeded...", "INFO");
+
+  try {
+    const { getDatabase } = await import("../lib/mongodb-unified");
+    const { COLLECTIONS } = await import("../lib/db/collections");
+    const db = await getDatabase();
+
+    const users = await db
+      .collection(COLLECTIONS.USERS)
+      .find({
+        email: { $regex: "@test\\.fixzit\\.co$" },
+      })
+      .toArray();
+
+    const requiredRoles = [
+      "SUPER_ADMIN",
+      "ADMIN",
+      "MANAGER",
+      "TECHNICIAN",
+      "TENANT",
+      "VENDOR",
+    ];
+    const existingRoles = users.map((u) => {
+      const role = (u as { role?: string }).role;
+      const professionalRole =
+        typeof u === "object" && u !== null && "professional" in u
+          ? (u as { professional?: { role?: string } }).professional?.role
+          : undefined;
+      return role || professionalRole;
+    });
+    const missingRoles = requiredRoles.filter(
+      (role) => !existingRoles.includes(role),
+    );
+
+    if (missingRoles.length > 0) {
+      results.push({
+        name: "Test Users Seeded",
+        status: "FAIL",
+        message: `Missing test users for roles: ${missingRoles.join(", ")}`,
+        fix: async () => {
+          log("Running test user seeding script...", "INFO");
+          await runCommand("pnpm", [
+            "exec",
+            "tsx",
+            "scripts/seed-test-users.ts",
+          ]);
+        },
+      });
+    } else {
+      results.push({
+        name: "Test Users Seeded",
+        status: "PASS",
+        message: `All ${users.length} test users are seeded`,
+      });
+    }
+  } catch (error) {
+    results.push({
+      name: "Test Users Seeded",
+      status: "WARN",
+      message: `Could not verify test users: ${error instanceof Error ? error.message : String(error)}`,
+    });
+  }
+}
+
+async function checkPlaywrightInstalled() {
+  log("Checking Playwright installation...", "INFO");
+
+  const playwrightDir = "node_modules/@playwright/test";
+
+  if (!existsSync(playwrightDir)) {
+    results.push({
+      name: "Playwright Installation",
+      status: "FAIL",
+      message: "Playwright not installed",
+      fix: async () => {
+        log("Installing Playwright...", "INFO");
+        await runCommand("pnpm", ["add", "-D", "@playwright/test"]);
+        await runCommand("pnpx", ["playwright", "install"]);
+      },
+    });
+    return;
+  }
+
+  // Check if browsers are installed
+  const browsersDir =
+    existsSync(process.env.HOME + "/.cache/ms-playwright") ||
+    existsSync(process.env.HOME + "/Library/Caches/ms-playwright");
+
+  if (!browsersDir) {
+    results.push({
+      name: "Playwright Browsers",
+      status: "FAIL",
+      message: "Playwright browsers not installed",
+      fix: async () => {
+        log("Installing Playwright browsers...", "INFO");
+        await runCommand("pnpx", ["playwright", "install"]);
+      },
+    });
+  } else {
+    results.push({
+      name: "Playwright Installation",
+      status: "PASS",
+      message: "Playwright and browsers are installed",
+    });
+  }
+}
+
+async function checkAuthStateFiles() {
+  log("Checking authentication state files...", "INFO");
+
+  const stateDir = "tests/state";
+  const requiredStates = [
+    "superadmin.json",
+    "admin.json",
+    "manager.json",
+    "technician.json",
+    "tenant.json",
+    "vendor.json",
+  ];
+
+  const missingStates = requiredStates.filter(
+    (state) => !existsSync(`${stateDir}/${state}`),
+  );
+
+  if (missingStates.length > 0) {
+    results.push({
+      name: "Authentication States",
+      status: "FAIL",
+      message: `Missing auth state files: ${missingStates.join(", ")}`,
+      fix: async () => {
+        log("Creating state directory...", "INFO");
+        await mkdir(stateDir, { recursive: true });
+        log(
+          "Run: npx playwright test --project=chromium tests/setup-auth.ts",
+          "INFO",
+        );
+      },
+    });
+  } else {
+    results.push({
+      name: "Authentication States",
+      status: "PASS",
+      message: "All authentication state files exist",
+    });
+  }
+}
+
+async function checkServerStartup() {
+  log("Checking if dev server can start...", "INFO");
+
+  return new Promise<void>((resolve) => {
+    const server = spawn("pnpm", ["dev"], {
+      env: { ...process.env, PORT: "3001" },
+      stdio: "pipe",
+    });
+
+    let output = "";
+    let resolved = false;
+
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        server.kill();
+        results.push({
+          name: "Server Startup",
+          status: "FAIL",
+          message: "Server failed to start within 30 seconds",
+        });
+        resolve();
+      }
+    }, 30000);
+
+    server.stdout.on("data", (data) => {
+      output += data.toString();
+      if (output.includes("Ready") || output.includes("started server")) {
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timeout);
+          server.kill();
+          results.push({
+            name: "Server Startup",
+            status: "PASS",
+            message: "Dev server starts successfully",
+          });
+          resolve();
+        }
+      }
+    });
+
+    server.stderr.on("data", (data) => {
+      const error = data.toString();
+      if (error.includes("Error") || error.includes("EADDRINUSE")) {
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timeout);
+          server.kill();
+          results.push({
+            name: "Server Startup",
+            status: "FAIL",
+            message: `Server error: ${error.substring(0, 200)}`,
+          });
+          resolve();
+        }
+      }
+    });
+
+    server.on("error", (error) => {
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(timeout);
+        results.push({
+          name: "Server Startup",
+          status: "FAIL",
+          message: `Failed to start server: ${error.message}`,
+        });
+        resolve();
+      }
+    });
+  });
+}
+
+function runCommand(command: string, args: string[]): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      stdio: "inherit",
+      shell: true,
+    });
+
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`Command failed with exit code ${code}`));
+      }
+    });
+
+    child.on("error", reject);
+  });
+}
+
+async function main() {
+  console.log("🔍 E2E Test Diagnostics\n");
+  if (FIX_MODE) {
+    log("Running in FIX mode - will attempt to fix issues", "WARN");
+  }
+  console.log("");
+
+  const startTime = Date.now();
+
+  try {
+    await checkEnvironmentFile();
+    await checkPlaywrightInstalled();
+    await checkAuthStateFiles();
+    await checkDatabaseConnection();
+    await checkTestUsersSeeded();
+    // Skip server startup check in CI to save time
+    if (!process.env.CI) {
+      await checkServerStartup();
+    }
+  } catch (error) {
+    log(
+      `Fatal error: ${error instanceof Error ? error.message : String(error)}`,
+      "ERROR",
+    );
+  }
+
+  const duration = Date.now() - startTime;
+
+  // Print summary
+  console.log("\n" + "=".repeat(80));
+  console.log("📋 Diagnostic Results");
+  console.log("=".repeat(80) + "\n");
+
+  const passed = results.filter((r) => r.status === "PASS").length;
+  const failed = results.filter((r) => r.status === "FAIL").length;
+  const warnings = results.filter((r) => r.status === "WARN").length;
+
+  for (const result of results) {
+    const icon =
+      result.status === "PASS" ? "✅" : result.status === "FAIL" ? "❌" : "⚠️";
+    const statusColor =
+      result.status === "PASS"
+        ? "\x1b[32m"
+        : result.status === "FAIL"
+          ? "\x1b[31m"
+          : "\x1b[33m";
+    const reset = "\x1b[0m";
+
+    console.log(`${icon} ${result.name}`);
+    console.log(`   Status: ${statusColor}${result.status}${reset}`);
+    console.log(`   ${result.message}`);
+
+    if (FIX_MODE && result.fix && result.status === "FAIL") {
+      log(`   Attempting to fix...`, "INFO");
+      try {
+        await result.fix();
+        log(`   Fixed successfully`, "SUCCESS");
+      } catch (error) {
+        log(
+          `   Fix failed: ${error instanceof Error ? error.message : String(error)}`,
+          "ERROR",
+        );
+      }
+    }
+    console.log("");
+  }
+
+  console.log("=".repeat(80));
+  console.log(
+    `Total: ${results.length} | Passed: ${passed} | Failed: ${failed} | Warnings: ${warnings}`,
+  );
+  console.log(`Duration: ${duration}ms (${(duration / 1000).toFixed(2)}s)`);
+  console.log("=".repeat(80) + "\n");
+
+  if (failed > 0) {
+    log(`❌ ${failed} diagnostic(s) failed`, "ERROR");
+    if (!FIX_MODE) {
+      log(`Run with --fix flag to attempt automatic fixes`, "INFO");
+    }
+    process.exit(1);
+  } else {
+    log(`✅ All diagnostics passed!`, "SUCCESS");
+    process.exit(0);
+  }
+}
+
+main().catch((error) => {
+  log(
+    `Unhandled error: ${error instanceof Error ? error.message : String(error)}`,
+    "ERROR",
+  );
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/dup_check.py">
+<![CDATA[
+# scripts/dup_check.py
+from __future__ import annotations
+from pathlib import Path
+import ast
+import sys
+import json
+
+ROOT = Path(__file__).resolve().parents[1]
+ART = ROOT / "artifacts"
+ART.mkdir(exist_ok=True)
+
+pyfiles = [
+    p
+    for p in ROOT.rglob("*.py")
+    if ".venv" not in p.parts
+    and "venv" not in p.parts
+    and "artifacts" not in p.parts
+    and "__pycache__" not in p.parts
+    and "site-packages" not in p.parts
+    and p.name != "dup_check.py"
+]
+
+# Basename duplicates
+by_base = {}
+for f in pyfiles:
+    by_base.setdefault(f.name.lower(), []).append(str(f.relative_to(ROOT)))
+base_dupes = {k: v for k, v in by_base.items() if len(v) > 1}
+
+# Top-level defs duplicates (best-effort warning)
+defs = {}
+for f in pyfiles:
+    try:
+        mod = ast.parse(f.read_text(encoding="utf-8"))
+        for node in mod.body:
+            if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
+                name = node.name
+                defs.setdefault(name, []).append(str(f.relative_to(ROOT)))
+    except Exception:
+        pass
+
+def_dupes = {k: v for k, v in defs.items() if len(v) > 1}
+
+issues = []
+if base_dupes:
+    issues.append(
+        {
+            "type": "file:duplicate",
+            "message": "Duplicate basenames",
+            "extra": base_dupes,
+        }
+    )
+if def_dupes:
+    issues.append(
+        {
+            "type": "defs:duplicate",
+            "message": "Duplicate top-level defs (review for consolidation)",
+            "extra": {k: v[:5] for k, v in def_dupes.items()},
+        }
+    )
+
+(ART / "dup-report.json").write_text(
+    json.dumps({"issues": issues}, indent=2), encoding="utf-8"
+)
+lines = ["# Duplicate Report", ""]
+if not issues:
+    lines.append("✅ No duplicates detected")
+else:
+    lines.append(f"❌ Issues: {len(issues)}")
+    for it in issues:
+        lines.append(f"- **{it['type']}**: {it['message']}")
+        if it.get("extra"):
+            if isinstance(it["extra"], dict):
+                for k, arr in list(it["extra"].items())[:20]:
+                    lines.append(f"  - {k}: {arr if isinstance(arr, list) else arr}")
+(ART / "dup-report.md").write_text("\n".join(lines), encoding="utf-8")
+
+sys.exit(1 if base_dupes else 0)
+
+]]>
+</file>
+
+<file path="scripts/email_weekly_bundle.py">
+<![CDATA[
+#!/usr/bin/env python3
+"""
+Email Weekly Bundle - Send per-tenant reports via email
+"""
+
+import argparse
+import datetime
+import os
+import pathlib
+import sys
+
+# Add parent directory to path
+sys.path.append(str(pathlib.Path(__file__).parent.parent))
+
+from scripts.lib.notify import NotifyConfig, latest_report_paths, send_email
+from scripts.weekly_report import main as generate_reports
+
+# Import tenant utilities with fallback
+try:
+    from app.tenant import current_tenant, list_tenants
+except ImportError:
+
+    def current_tenant():
+        return os.getenv("FXZ_TENANT", "default")
+
+    def list_tenants():
+        return [current_tenant()]
+
+
+ARTIFACTS = pathlib.Path(__file__).resolve().parents[1] / "artifacts"
+
+
+def ensure_bundle(tenant: str, do_zip: bool) -> dict:
+    """Ensure reports exist for tenant, regenerating if needed"""
+    timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M")
+
+    if do_zip:
+        # Generate all tenants with ZIP bundle
+        generate_reports(args=argparse.Namespace(tenant=None, all=True, zip=True))
+    else:
+        # Generate single tenant
+        generate_reports(args=argparse.Namespace(tenant=tenant, all=False, zip=False))
+
+    return {"paths": latest_report_paths(tenant), "timestamp": timestamp}
+
+
+def email_tenant(tenant: str, dry_run: bool = False, force_zip: bool = True) -> str:
+    """Send email report for a specific tenant"""
+    config = NotifyConfig(tenant)
+
+    if not config.emails:
+        return f"[{tenant}] skipped: no recipient emails configured"
+
+    # Ensure reports exist
+    bundle_info = ensure_bundle(tenant, do_zip=force_zip)
+    paths = bundle_info["paths"]
+
+    # Prepare email content
+    subject = f"{config.subject_prefix} {tenant} — Weekly Report"
+    body = f"""Tenant: {tenant}
+Generated: {datetime.datetime.now().isoformat()}
+Host: {os.getenv('HOSTNAME', 'unknown')}
+
+Attachments:
+- HTML Report: {paths['html'].name if paths['html'] else 'Not available'}
+- ZIP Bundle: {paths['zip'].name if paths['zip'] else 'Not available'}
+
+This is an automated weekly performance and reliability report for your Fixzit deployment.
+"""
+
+    # Prepare attachments
+    attachments = []
+    if config.attach_html and paths["html"]:
+        attachments.append(paths["html"])
+    if config.attach_zip and paths["zip"]:
+        attachments.append(paths["zip"])
+
+    if dry_run:
+        attachment_names = [p.name for p in attachments]
+        return (
+            f"[DRY-RUN] {tenant} -> {config.emails} | attachments: {attachment_names}"
+        )
+
+    # Send email
+    try:
+        send_email(
+            subject=subject,
+            body_text=body,
+            to=config.emails,
+            cc=config.cc,
+            bcc=config.bcc,
+            attachments=attachments,
+        )
+        return f"[{tenant}] emailed to {len(config.emails)} recipient(s)"
+
+    except Exception as e:
+        return f"[{tenant}] email failed: {e}"
+
+
+def cli():
+    """Command line interface"""
+    parser = argparse.ArgumentParser(description="Email weekly report bundles")
+    parser.add_argument("--tenant", default=os.getenv("FXZ_TENANT"))
+    parser.add_argument("--all", action="store_true", help="Email all tenants")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Show what would be sent"
+    )
+    parser.add_argument("--no-zip", action="store_true", help="Don't create ZIP bundle")
+
+    args = parser.parse_args()
+
+    # Determine tenants to process
+    if args.all or not args.tenant:
+        tenants = list_tenants()
+    else:
+        tenants = [args.tenant]
+
+    # Process each tenant
+    results = []
+    for tenant in tenants:
+        result = email_tenant(tenant, dry_run=args.dry_run, force_zip=not args.no_zip)
+        results.append(result)
+
+    # Print results
+    for result in results:
+        print(result)
+
+
+if __name__ == "__main__":
+    cli()
+
+]]>
+</file>
+
+<file path="scripts/enhance_rtl_system.py">
+<![CDATA[
+#!/usr/bin/env python3
+"""
+Enhance RTL System Across All Pages
+===================================
+
+Ensures perfect RTL layout and styling consistency across all pages
+that use language switching.
+"""
+
+import re
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+PAGES = ROOT / "pages"
+
+
+def read_file(path):
+    """Read file content safely"""
+    try:
+        return path.read_text(encoding="utf-8")
+    except Exception as e:
+        print(f"Error reading {path}: {e}")
+        return None
+
+
+def write_file(path, content):
+    """Write file content safely"""
+    try:
+        path.write_text(content, encoding="utf-8")
+        print(f"✓ Enhanced RTL in {path.name}")
+        return True
+    except Exception as e:
+        print(f"✗ Error writing {path}: {e}")
+        return False
+
+
+def enhance_rtl_styling():
+    """Enhance RTL styling across all pages with language selectors"""
+
+    pages_with_lang_selector = [
+        "01_Dashboard_WorkOS.py",
+        "05_Properties_WorkOS.py",
+        "06_Contracts_WorkOS.py",
+        "08_Payments_WorkOS.py",
+    ]
+
+    for page_name in pages_with_lang_selector:
+        page_file = PAGES / page_name
+
+        if not page_file.exists():
+            print(f"✗ {page_name} not found")
+            continue
+
+        content = read_file(page_file)
+        if not content:
+            continue
+
+        # Check if it has enhanced RTL styling already
+        if "apply_rtl_styling" in content:
+            print(f"✓ {page_name} - already has enhanced RTL")
+            continue
+
+        # Find and replace basic RTL with enhanced version
+        basic_rtl_pattern = r'# Apply RTL CSS if Arabic\nif is_rtl:\s+st\.markdown\("""\s+<style>.*?</style>\s+""", unsafe_allow_html=True\)'
+
+        enhanced_rtl = """# Apply comprehensive RTL styling
+is_rtl = apply_rtl_styling(lang)"""
+
+        new_content = re.sub(
+            basic_rtl_pattern, enhanced_rtl, content, flags=re.MULTILINE | re.DOTALL
+        )
+
+        # Also ensure import is present
+        if "from components.language_selector import" not in new_content:
+            # Add import after other imports
+            import_pattern = r"(from navigation import.*?\n)"
+            import_replacement = r"\1from components.language_selector import render_language_selector, apply_rtl_styling\n"
+            new_content = re.sub(import_pattern, import_replacement, new_content)
+
+        if new_content != content:
+            write_file(page_file, new_content)
+        else:
+            print(f"✓ {page_name} - no RTL changes needed")
+
+
+def add_missing_language_selectors():
+    """Add language selectors to pages that might be missing them"""
+
+    # Check all page files for language usage but missing selectors
+    for page_file in PAGES.glob("*.py"):
+        if page_file.name.startswith("00_"):  # Skip login page
+            continue
+
+        content = read_file(page_file)
+        if not content:
+            continue
+
+        # Skip if already has language selector
+        if "render_language_selector" in content:
+            continue
+
+        # Skip if no language usage
+        if 'st.session_state.get("language"' not in content and '"ar"' not in content:
+            continue
+
+        print(f"📝 {page_file.name} - uses language but missing professional selector")
+
+        # Add after sidebar render
+        pattern = r"(render_sidebar\(\)\n)"
+        replacement = """render_sidebar()
+
+# Professional Language Selection
+from components.language_selector import render_language_selector, apply_rtl_styling
+
+# Render professional language selector
+lang = render_language_selector(position="top-right", show_label=False)
+
+# Apply comprehensive RTL styling
+is_rtl = apply_rtl_styling(lang)
+
+"""
+
+        new_content = re.sub(pattern, replacement, content, flags=re.MULTILINE)
+
+        if new_content != content:
+            write_file(page_file, new_content)
+
+
+def fix_remaining_button_selectors():
+    """Find and fix any remaining ugly button-based language selectors"""
+
+    for page_file in PAGES.glob("*.py"):
+        content = read_file(page_file)
+        if not content:
+            continue
+
+        # Check for ugly button pattern
+        if 'st.button("🇺🇸' in content or 'st.button("🇸🇦' in content:
+            print(f"🔧 Found ugly buttons in {page_file.name}")
+
+            # Replace pattern
+            button_pattern = r"# Language Selection.*?st\.rerun\(\)"
+            button_replacement = """# Professional Language Selection
+from components.language_selector import render_language_selector, apply_rtl_styling
+
+# Render professional language selector  
+language = render_language_selector(position="top-right", show_label=False)
+lang = language"""
+
+            new_content = re.sub(
+                button_pattern,
+                button_replacement,
+                content,
+                flags=re.MULTILINE | re.DOTALL,
+            )
+
+            if new_content != content:
+                write_file(page_file, new_content)
+
+
+def main():
+    """Main function to enhance RTL across all pages"""
+    print("🌍 ENHANCING RTL SYSTEM ACROSS ALL PAGES")
+    print("=" * 50)
+
+    # Step 1: Fix any remaining ugly button selectors
+    print("\n1. Fixing remaining ugly button selectors...")
+    fix_remaining_button_selectors()
+
+    # Step 2: Enhance RTL styling
+    print("\n2. Enhancing RTL styling...")
+    enhance_rtl_styling()
+
+    # Step 3: Add missing language selectors
+    print("\n3. Adding missing language selectors...")
+    add_missing_language_selectors()
+
+    print("\n🎉 RTL SYSTEM ENHANCEMENT COMPLETE!")
+    print("\n✓ All pages now have consistent, professional language switching")
+    print("✓ RTL layout works perfectly across the entire system")
+    print("✓ No more ugly button-based language selectors")
+
+
+if __name__ == "__main__":
+    main()
+
+]]>
+</file>
+
+<file path="scripts/ensure-indexes.ts">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * Script to ensure all database indexes are created
+ * Run this after deployment or when database schema changes
+ *
+ * Usage: tsx scripts/ensure-indexes.ts
+ *        tsx scripts/ensure-indexes.ts --verify
+ */
+
+import { ensureCoreIndexes } from "../lib/db/index";
+import { COLLECTIONS } from "../lib/db/collections";
+import { connectToDatabase } from "../lib/mongodb-unified";
+import mongoose from "mongoose";
+
+// Collections to verify indexes for
+const VERIFY_COLLECTIONS = [
+  COLLECTIONS.WORK_ORDERS,
+  COLLECTIONS.PRODUCTS,
+  COLLECTIONS.ORDERS,
+  COLLECTIONS.INVOICES,
+  COLLECTIONS.SOUQ_WITHDRAWAL_REQUESTS,
+  "supporttickets",
+  "helparticles",
+  "cmspages",
+  "qa_logs",
+  "qa_alerts",
+] as const;
+
+async function verifyIndexes(db: mongoose.mongo.Db) {
+  console.log("\n📋 Verifying indexes on target collections:\n");
+
+  for (const collName of VERIFY_COLLECTIONS) {
+    try {
+      const coll = db.collection(collName);
+      const indexes = await coll.indexes();
+
+      console.log(`\n  📁 ${collName} (${indexes.length} indexes):`);
+
+      // Check for org-scoped unique indexes
+      const orgScopedUniques = indexes.filter(
+        (idx) =>
+          idx.unique &&
+          idx.key &&
+          typeof idx.key === "object" &&
+          "orgId" in idx.key
+      );
+
+      // Check for global uniques (BAD - should be org-scoped)
+      const globalUniques = indexes.filter(
+        (idx) =>
+          idx.unique &&
+          idx.key &&
+          typeof idx.key === "object" &&
+          !("orgId" in idx.key) &&
+          idx.name !== "_id_"
+      );
+
+      if (globalUniques.length > 0) {
+        console.log(`     ⚠️  LEGACY global uniques found (should be dropped):`);
+        for (const idx of globalUniques) {
+          console.log(`        - ${idx.name}: ${JSON.stringify(idx.key)}`);
+        }
+      }
+
+      if (orgScopedUniques.length > 0) {
+        console.log(`     ✅ Org-scoped uniques:`);
+        for (const idx of orgScopedUniques) {
+          const hasPartial = idx.partialFilterExpression ? " (partial)" : "";
+          console.log(`        - ${idx.name}${hasPartial}`);
+        }
+      }
+
+      // Check TTL indexes for QA collections
+      if (collName.startsWith("qa_")) {
+        const ttlIndexes = indexes.filter(
+          (idx) => typeof idx.expireAfterSeconds === "number"
+        );
+        if (ttlIndexes.length > 0) {
+          console.log(`     ⏰ TTL indexes:`);
+          for (const idx of ttlIndexes) {
+            const days = Math.round((idx.expireAfterSeconds ?? 0) / (24 * 60 * 60));
+            console.log(`        - ${idx.name}: ${days} days`);
+          }
+        }
+      }
+    } catch (err) {
+      const error = err as { code?: number; message?: string };
+      // Collection might not exist yet
+      if (error.code === 26) {
+        console.log(`  📁 ${collName}: (collection does not exist yet)`);
+      } else {
+        console.log(`  📁 ${collName}: ❌ Error: ${error.message}`);
+      }
+    }
+  }
+}
+
+async function main() {
+  const verifyOnly = process.argv.includes("--verify");
+
+  console.log("🚀 Starting index creation process...\n");
+
+  try {
+    // Ensure connection
+    await connectToDatabase();
+    console.log("✅ Connected to database\n");
+
+    if (!verifyOnly) {
+      // Create indexes using Mongoose-based ensureCoreIndexes
+      // NOTE: ensureCoreIndexes internally calls createIndexes() from lib/db/collections.ts
+      // so we don't need to call it again here.
+      console.log("📦 Running ensureCoreIndexes (calls createIndexes + Mongoose model indexes)...");
+      await ensureCoreIndexes();
+      console.log("✅ ensureCoreIndexes completed\n");
+    }
+
+    // Verify indexes
+    const db = mongoose.connection.db;
+    if (db) {
+      await verifyIndexes(db);
+    }
+
+    console.log("\n✅ Index operations completed successfully!");
+
+    // Exit successfully
+    process.exit(0);
+  } catch (error) {
+    console.error("\n❌ Error creating indexes:", error);
+    process.exit(1);
+  }
+}
+
+main();
+
+]]>
+</file>
+
+<file path="scripts/final-conflict-cleanup.py">
+<![CDATA[
+#!/usr/bin/env python3
+"""
+Final conflict marker cleanup - removes ALL types of conflict markers
+"""
+import re
+import sys
+from pathlib import Path
+
+files_to_fix = [
+    "app/api/admin/footer/route.ts",
+    "app/api/billing/charge-recurring/route.ts",
+    "app/api/finance/expenses/route.ts",
+    "app/api/marketplace/search/route.ts",
+    "app/api/owner/statements/route.ts",
+    "app/api/work-orders/sla-check/route.ts",
+    "app/aqar/map/page.tsx",
+    "app/aqar/properties/page.tsx",
+    "app/cms/[slug]/page.tsx",
+    "app/finance/fm-finance-hooks.ts",
+    "app/finance/payments/new/page.tsx",
+    "app/hr/payroll/page.tsx",
+    "app/marketplace/admin/page.tsx",
+    "app/marketplace/checkout/page.tsx",
+    "app/marketplace/orders/page.tsx",
+    "app/marketplace/product/[slug]/page.tsx",
+    "app/marketplace/rfq/page.tsx",
+    "app/notifications/page.tsx",
+    "app/souq/catalog/page.tsx",
+    "app/support/my-tickets/page.tsx",
+    "app/work-orders/pm/page.tsx",
+    "components/ClientLayout.tsx",
+    "components/ErrorBoundary.tsx",
+    "components/finance/AccountActivityViewer.tsx",
+    "components/topbar/GlobalSearch.tsx",
+    "contexts/FormStateContext.tsx",
+    "contexts/TranslationContext.tsx",
+    "lib/api/crud-factory.ts",
+    "lib/audit.ts",
+    "lib/audit/middleware.ts",
+    "lib/finance/pricing.ts",
+    "lib/fm-approval-engine.ts",
+    "lib/fm-auth-middleware.ts",
+    "lib/fm-notifications.ts",
+    "lib/mongo.ts",
+    "lib/mongodb-unified.ts",
+    "locales/ar.ts",
+    "locales/en.ts",
+    "server/copilot/tools.ts",
+    "server/middleware/withAuthRbac.ts",
+    "server/models/FeatureFlag.ts",
+    "server/models/finance/Journal.ts",
+    "server/models/finance/Payment.ts",
+    "server/services/owner/financeIntegration.ts",
+    "server/work-orders/wo.service.ts",
+    "tests/system/verify-passwords.ts",
+]
+
+base_dir = Path("/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit")
+
+fixed_count = 0
+error_count = 0
+
+for rel_path in files_to_fix:
+    file_path = base_dir / rel_path
+    
+    if not file_path.exists():
+        print(f"⚠️  Not found: {rel_path}")
+        continue
+    
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        if '<<<<<<< HEAD' not in content and '=======' not in content and '>>>>>>>' not in content:
+            continue
+        
+        # Remove all conflict markers
+        # Pattern 1: Full conflict block (keep incoming)
+        pattern1 = r'<<<<<<< HEAD.*?=======\s*(.*?)\s*>>>>>>> [a-f0-9]{7,40}'
+        content = re.sub(pattern1, r'\1', content, flags=re.DOTALL)
+        
+        # Pattern 2: Standalone markers that might remain
+        content = re.sub(r'^<<<<<<< HEAD\s*\n', '', content, flags=re.MULTILINE)
+        content = re.sub(r'^=======\s*\n', '', content, flags=re.MULTILINE)
+        content = re.sub(r'^>>>>>>> [a-f0-9]{7,40}\s*\n', '', content, flags=re.MULTILINE)
+        
+        # Write back
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        
+        print(f"✅ Fixed: {rel_path}")
+        fixed_count += 1
+        
+    except Exception as e:
+        print(f"❌ Error fixing {rel_path}: {e}")
+        error_count += 1
+
+print()
+print(f"✅ Fixed {fixed_count} files")
+if error_count > 0:
+    print(f"❌ Errors: {error_count} files")
+print()
+print("Verification:")
+print("Run: grep -r '<<<<<<< HEAD' app lib components contexts server tests | wc -l")
+
+]]>
+</file>
+
+<file path="scripts/finance/migrate-journal-postings.ts">
+<![CDATA[
+import { config } from "dotenv";
+import { resolve } from "path";
+
+// Load environment variables BEFORE any other imports
+config({ path: resolve(process.cwd(), ".env.local") });
+
+import {
+  connectToDatabase,
+  disconnectFromDatabase,
+} from "../../lib/mongodb-unified";
+import { minorToDecimal128 } from "../../server/lib/money";
+
+function toMinorDecimal(value?: number) {
+  const asNumber = typeof value === "number" ? value : 0;
+  return minorToDecimal128(BigInt(Math.round(asNumber * 100)));
+}
+
+async function migrateDraftJournals() {
+  await connectToDatabase();
+
+  // Dynamic import to ensure env vars are loaded first
+  const { default: Journal } = await import(
+    "../../server/models/finance/Journal"
+  );
+
+  const journals = await Journal.find({
+    status: "DRAFT",
+    "lines.0": { $exists: true },
+  });
+
+  let migrated = 0;
+
+  for (const journal of journals) {
+    if (journal.postings && journal.postings.length > 0) continue;
+    if (!journal.lines || journal.lines.length === 0) continue;
+
+    const postings = journal.lines.map((line) => {
+      const dimensions: Record<string, unknown> = {};
+      if (line.propertyId) dimensions.propertyId = line.propertyId;
+      if (line.unitId) dimensions.unitId = line.unitId;
+      if (line.ownerId) dimensions.ownerId = line.ownerId;
+      if (line.tenantId) dimensions.tenantId = line.tenantId;
+      if (line.vendorId) dimensions.vendorId = line.vendorId;
+
+      const cleanedDimensions =
+        Object.keys(dimensions).length > 0 ? dimensions : undefined;
+
+      return {
+        accountId: line.accountId,
+        debitMinor: toMinorDecimal(line.debit),
+        creditMinor: toMinorDecimal(line.credit),
+        currency: process.env.FINANCE_BASE_CURRENCY || "SAR",
+        fxRate: 1,
+        memo: line.description,
+        dimensions: cleanedDimensions,
+      };
+    });
+
+    journal.postings = postings;
+    await journal.save();
+    migrated += 1;
+  }
+
+  console.log(`Migrated ${migrated} draft journals to postings format.`);
+  await disconnectFromDatabase();
+}
+
+migrateDraftJournals().catch(async (err) => {
+  console.error("Failed to migrate journals", err);
+  await disconnectFromDatabase();
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/finance/seed-fx.ts">
+<![CDATA[
+import { config } from "dotenv";
+import { resolve } from "path";
+
+// Load environment variables BEFORE any other imports
+config({ path: resolve(process.cwd(), ".env.local") });
+
+const isProdLike =
+  process.env.NODE_ENV === "production" || process.env.CI === "true";
+if (isProdLike) {
+  console.error(
+    "Seeding blocked in production/CI. Set ALLOW_SEED=1 only in non-production.",
+  );
+  process.exit(1);
+}
+if (process.env.ALLOW_SEED !== "1") {
+  console.error("Set ALLOW_SEED=1 to run seed scripts in non-production.");
+  process.exit(1);
+}
+
+import {
+  connectToDatabase,
+  disconnectFromDatabase,
+} from "../../lib/mongodb-unified";
+
+interface SeedRate {
+  baseCurrency: string;
+  quoteCurrency: string;
+  rate: number;
+}
+
+const BASE_RATES: SeedRate[] = [
+  { baseCurrency: "SAR", quoteCurrency: "SAR", rate: 1 },
+  { baseCurrency: "USD", quoteCurrency: "SAR", rate: 3.75 },
+];
+
+async function seedFxRates(orgIds: string[]) {
+  if (orgIds.length === 0) {
+    console.error("Please provide at least one orgId");
+    process.exit(1);
+  }
+
+  await connectToDatabase();
+
+  // Dynamic import to ensure env vars are loaded first
+  const { default: FxRate } = await import(
+    "../../server/models/finance/FxRate"
+  );
+
+  const seedDate = new Date("2000-01-01T00:00:00.000Z");
+  let total = 0;
+
+  for (const orgId of orgIds) {
+    for (const rate of BASE_RATES) {
+      await FxRate.updateOne(
+        {
+          orgId,
+          baseCurrency: rate.baseCurrency,
+          quoteCurrency: rate.quoteCurrency,
+          date: seedDate,
+        },
+        {
+          $set: {
+            rate: rate.rate,
+            source: "seed-script",
+            date: seedDate,
+          },
+        },
+        { upsert: true },
+      );
+      total += 1;
+    }
+  }
+
+  console.log(`Seeded FX rates for ${orgIds.length} orgs (${total} records).`);
+
+  await disconnectFromDatabase();
+}
+
+const orgIds = process.argv.slice(2);
+seedFxRates(orgIds).catch(async (err) => {
+  console.error("Failed to seed FX rates", err);
+  await disconnectFromDatabase();
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/find-missing-locales.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * Find Missing Locale Translations
+ *
+ * Identifies which keys in each locale are auto-filled placeholders
+ * (copied from EN/AR) vs. actual translations.
+ *
+ * Usage:
+ *   npx tsx scripts/find-missing-locales.ts
+ *   npx tsx scripts/find-missing-locales.ts --locale=fr
+ *   npx tsx scripts/find-missing-locales.ts --show-samples
+ */
+
+import { readFileSync, existsSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const ROOT = path.resolve(__dirname, "..");
+const GENERATED_DIR = path.join(ROOT, "i18n", "generated");
+
+const ALL_LOCALES = [
+  "en",
+  "ar",
+  "fr",
+  "pt",
+  "ru",
+  "es",
+  "ur",
+  "hi",
+  "zh",
+] as const;
+type Locale = (typeof ALL_LOCALES)[number];
+
+interface LocaleStats {
+  locale: Locale;
+  totalKeys: number;
+  uniqueTranslations: number;
+  autoFilledFromEN: number;
+  autoFilledFromAR: number;
+  completeness: number;
+}
+
+/**
+ * Load all locale dictionaries
+ */
+function loadDictionaries(): Record<Locale, Record<string, string>> {
+  const result: Partial<Record<Locale, Record<string, string>>> = {};
+
+  for (const locale of ALL_LOCALES) {
+    const filePath = path.join(GENERATED_DIR, `${locale}.dictionary.json`);
+
+    if (!existsSync(filePath)) {
+      console.error(`❌ Missing: ${filePath}`);
+      console.error(`   Run: pnpm i18n:build`);
+      process.exit(1);
+    }
+
+    const content = readFileSync(filePath, "utf-8");
+    result[locale] = JSON.parse(content);
+  }
+
+  return result as Record<Locale, Record<string, string>>;
+}
+
+/**
+ * Analyze translation completeness for each locale
+ */
+function analyzeLocales(
+  dicts: Record<Locale, Record<string, string>>,
+): LocaleStats[] {
+  const stats: LocaleStats[] = [];
+
+  for (const locale of ALL_LOCALES) {
+    if (locale === "en" || locale === "ar") {
+      // EN and AR are the source locales
+      stats.push({
+        locale,
+        totalKeys: Object.keys(dicts[locale]).length,
+        uniqueTranslations: Object.keys(dicts[locale]).length,
+        autoFilledFromEN: 0,
+        autoFilledFromAR: 0,
+        completeness: 100,
+      });
+      continue;
+    }
+
+    const localeDict = dicts[locale];
+    const enDict = dicts.en;
+    const arDict = dicts.ar;
+
+    let autoFilledFromEN = 0;
+    let autoFilledFromAR = 0;
+    let uniqueTranslations = 0;
+
+    for (const [key, value] of Object.entries(localeDict)) {
+      const enValue = enDict[key];
+      const arValue = arDict[key];
+
+      // If value matches EN exactly, it's auto-filled from EN
+      if (value === enValue) {
+        autoFilledFromEN++;
+      }
+      // If value matches AR exactly (and not EN), it's auto-filled from AR
+      else if (value === arValue) {
+        autoFilledFromAR++;
+      }
+      // Otherwise it's a unique translation
+      else {
+        uniqueTranslations++;
+      }
+    }
+
+    const totalKeys = Object.keys(localeDict).length;
+    const completeness = (uniqueTranslations / totalKeys) * 100;
+
+    stats.push({
+      locale,
+      totalKeys,
+      uniqueTranslations,
+      autoFilledFromEN,
+      autoFilledFromAR,
+      completeness,
+    });
+  }
+
+  return stats;
+}
+
+/**
+ * Find sample auto-filled keys for a locale
+ */
+function findAutoFilledSamples(
+  locale: Locale,
+  dicts: Record<Locale, Record<string, string>>,
+  limit = 10,
+): Array<{ key: string; value: string; source: "en" | "ar" }> {
+  if (locale === "en" || locale === "ar") {
+    return [];
+  }
+
+  const samples: Array<{ key: string; value: string; source: "en" | "ar" }> =
+    [];
+  const localeDict = dicts[locale];
+  const enDict = dicts.en;
+  const arDict = dicts.ar;
+
+  for (const [key, value] of Object.entries(localeDict)) {
+    if (samples.length >= limit) break;
+
+    const enValue = enDict[key];
+    const arValue = arDict[key];
+
+    if (value === enValue && value !== arValue) {
+      samples.push({ key, value, source: "en" });
+    } else if (value === arValue && value !== enValue) {
+      samples.push({ key, value, source: "ar" });
+    }
+  }
+
+  return samples;
+}
+
+/**
+ * Main execution
+ */
+function main() {
+  const args = process.argv.slice(2);
+  const targetLocale = args
+    .find((arg) => arg.startsWith("--locale="))
+    ?.split("=")[1] as Locale | undefined;
+  const showSamples = args.includes("--show-samples");
+
+  console.log("🔍 Analyzing translation completeness...\n");
+
+  const dicts = loadDictionaries();
+  const stats = analyzeLocales(dicts);
+
+  // Filter to target locale if specified
+  const filteredStats = targetLocale
+    ? stats.filter((s) => s.locale === targetLocale)
+    : stats;
+
+  if (filteredStats.length === 0) {
+    console.error(`❌ Locale "${targetLocale}" not found`);
+    console.error(`   Available: ${ALL_LOCALES.join(", ")}`);
+    process.exit(1);
+  }
+
+  // Print summary table
+  console.log("📊 Translation Completeness Summary:\n");
+  console.log(
+    "Locale | Total Keys | Unique | Auto-filled (EN) | Auto-filled (AR) | Completeness",
+  );
+  console.log(
+    "-------|------------|--------|------------------|------------------|-------------",
+  );
+
+  for (const stat of filteredStats) {
+    const locale = stat.locale.padEnd(6);
+    const total = String(stat.totalKeys).padStart(10);
+    const unique = String(stat.uniqueTranslations).padStart(6);
+    const autoEN = String(stat.autoFilledFromEN).padStart(16);
+    const autoAR = String(stat.autoFilledFromAR).padStart(16);
+    const completeness = `${stat.completeness.toFixed(1)}%`.padStart(12);
+
+    console.log(
+      `${locale} | ${total} | ${unique} | ${autoEN} | ${autoAR} | ${completeness}`,
+    );
+  }
+
+  // Calculate aggregate stats
+  const targetLocales = filteredStats.filter(
+    (s) => s.locale !== "en" && s.locale !== "ar",
+  );
+  if (targetLocales.length > 0) {
+    const totalKeys = targetLocales.reduce((sum, s) => sum + s.totalKeys, 0);
+    const totalUnique = targetLocales.reduce(
+      (sum, s) => sum + s.uniqueTranslations,
+      0,
+    );
+    const totalAutoEN = targetLocales.reduce(
+      (sum, s) => sum + s.autoFilledFromEN,
+      0,
+    );
+    const totalAutoAR = targetLocales.reduce(
+      (sum, s) => sum + s.autoFilledFromAR,
+      0,
+    );
+    const avgCompleteness = (totalUnique / totalKeys) * 100;
+
+    console.log("\n📈 Aggregate (excluding EN/AR):");
+    console.log(`   Total translation slots: ${totalKeys.toLocaleString()}`);
+    console.log(
+      `   Unique translations: ${totalUnique.toLocaleString()} (${avgCompleteness.toFixed(1)}%)`,
+    );
+    console.log(
+      `   Auto-filled from EN: ${totalAutoEN.toLocaleString()} (${((totalAutoEN / totalKeys) * 100).toFixed(1)}%)`,
+    );
+    console.log(
+      `   Auto-filled from AR: ${totalAutoAR.toLocaleString()} (${((totalAutoAR / totalKeys) * 100).toFixed(1)}%)`,
+    );
+  }
+
+  // Show samples if requested
+  if (
+    showSamples &&
+    targetLocale &&
+    targetLocale !== "en" &&
+    targetLocale !== "ar"
+  ) {
+    console.log(
+      `\n🔍 Sample auto-filled keys for ${targetLocale.toUpperCase()}:\n`,
+    );
+    const samples = findAutoFilledSamples(targetLocale, dicts, 20);
+
+    if (samples.length === 0) {
+      console.log(
+        "   ✅ No auto-filled keys found (all translations are unique)",
+      );
+    } else {
+      samples.forEach(({ key, value, source }) => {
+        console.log(`   ${key.padEnd(50)} | "${value}" (from ${source})`);
+      });
+
+      const stat = stats.find((s) => s.locale === targetLocale);
+      if (
+        stat &&
+        samples.length < stat.autoFilledFromEN + stat.autoFilledFromAR
+      ) {
+        const remaining =
+          stat.autoFilledFromEN + stat.autoFilledFromAR - samples.length;
+        console.log(
+          `\n   ... and ${remaining.toLocaleString()} more auto-filled keys`,
+        );
+      }
+    }
+  }
+
+  // Exit with error if completeness is below threshold
+  const minCompleteness = 50; // Can be adjusted
+  const failingLocales = targetLocales.filter(
+    (s) => s.completeness < minCompleteness,
+  );
+
+  if (failingLocales.length > 0) {
+    console.log(
+      `\n⚠️  Warning: ${failingLocales.length} locale(s) below ${minCompleteness}% completeness:`,
+    );
+    failingLocales.forEach((s) => {
+      console.log(
+        `   - ${s.locale}: ${s.completeness.toFixed(1)}% (${s.uniqueTranslations}/${s.totalKeys} translated)`,
+      );
+    });
+    console.log(
+      "\n💡 Run with --show-samples --locale=<code> to see which keys need translation",
+    );
+
+    // Don't fail build by default (just warn)
+    // Uncomment to make CI fail:
+    // process.exit(1);
+  } else {
+    console.log("\n✅ All locales meet minimum completeness threshold");
+  }
+}
+
+main();
+
+]]>
+</file>
+
+<file path="scripts/fix-duplicate-keys.js">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * Fix Duplicate Translation Keys
+ * Removes duplicate keys from dictionary files while preserving the last occurrence
+ */
+
+const fs = require("fs");
+const path = require("path");
+
+function fixDuplicateKeys(filePath) {
+  console.log(`\n🔍 Processing: ${filePath}`);
+
+  const content = fs.readFileSync(filePath, "utf8");
+  const lines = content.split("\n");
+
+  const seen = new Set();
+  const duplicates = [];
+  const toRemove = [];
+  let bracketDepth = 0;
+
+  // Find all duplicate keys
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // Track bracket depth
+    const openBrackets = (line.match(/{/g) || []).length;
+    const closeBrackets = (line.match(/}/g) || []).length;
+    bracketDepth += openBrackets - closeBrackets;
+
+    // Check for key definitions (key: { or key: "value")
+    const keyMatch = trimmed.match(/^(\w+):\s*(?:\{|\[)/);
+    if (keyMatch && bracketDepth >= 1) {
+      const key = keyMatch[1];
+
+      if (seen.has(key)) {
+        duplicates.push({ key, line: i + 1 });
+        console.log(`   ⚠️  Duplicate found: '${key}' at line ${i + 1}`);
+      } else {
+        seen.add(key);
+      }
+    }
+  }
+
+  console.log(`\n📊 Found ${duplicates.length} duplicate keys`);
+
+  if (duplicates.length === 0) {
+    console.log("   ✅ No duplicates found!");
+    return 0;
+  }
+
+  // For each duplicate, keep the last occurrence and mark earlier ones for removal
+  const duplicatesByKey = {};
+  for (const dup of duplicates) {
+    if (!duplicatesByKey[dup.key]) {
+      duplicatesByKey[dup.key] = [];
+    }
+    duplicatesByKey[dup.key].push(dup.line);
+  }
+
+  console.log(`\n🔧 Processing duplicates...`);
+
+  for (const [key, lineNumbers] of Object.entries(duplicatesByKey)) {
+    // Sort line numbers and keep the last one
+    lineNumbers.sort((a, b) => a - b);
+    const toKeep = lineNumbers[lineNumbers.length - 1];
+    const toDelete = lineNumbers.slice(0, -1);
+
+    console.log(
+      `   📝 '${key}': Keeping line ${toKeep}, removing lines ${toDelete.join(", ")}`,
+    );
+
+    // Mark sections for removal (key line + all lines until next key or closing bracket)
+    for (const lineNum of toDelete) {
+      const startIdx = lineNum - 1;
+      let endIdx = startIdx;
+      let depth = 0;
+
+      // Find the end of this key's section
+      for (let i = startIdx; i < lines.length; i++) {
+        const line = lines[i];
+        const openBrackets = (line.match(/{/g) || []).length;
+        const closeBrackets = (line.match(/}/g) || []).length;
+
+        if (i === startIdx) {
+          // Check if this key has a nested object
+          if (line.includes("{")) {
+            depth = 1;
+          } else {
+            // Simple key-value pair, just this line
+            endIdx = i;
+            break;
+          }
+        } else {
+          depth += openBrackets - closeBrackets;
+          if (depth <= 0) {
+            endIdx = i;
+            break;
+          }
+        }
+      }
+
+      toRemove.push({ start: startIdx, end: endIdx });
+    }
+  }
+
+  // Sort removal ranges in reverse order to maintain indices
+  toRemove.sort((a, b) => b.start - a.start);
+
+  console.log(`\n🗑️  Removing ${toRemove.length} duplicate sections...`);
+
+  // Remove duplicate sections
+  let modifiedLines = [...lines];
+  for (const range of toRemove) {
+    console.log(`   Removing lines ${range.start + 1} to ${range.end + 1}`);
+    modifiedLines.splice(range.start, range.end - range.start + 1);
+  }
+
+  // Write back to file
+  const newContent = modifiedLines.join("\n");
+  fs.writeFileSync(filePath, newContent, "utf8");
+
+  console.log(`\n✅ Fixed! Removed ${toRemove.length} duplicate sections`);
+
+  return toRemove.length;
+}
+
+// Main execution
+const enPath = path.join(__dirname, "../i18n/dictionaries/en.ts");
+const arPath = path.join(__dirname, "../i18n/dictionaries/ar.ts");
+
+console.log("🚀 Starting duplicate key removal...\n");
+
+const enFixed = fixDuplicateKeys(enPath);
+const arFixed = fixDuplicateKeys(arPath);
+
+console.log(`\n${"=".repeat(60)}`);
+console.log(`✅ COMPLETE!`);
+console.log(`   en.ts: ${enFixed} sections removed`);
+console.log(`   ar.ts: ${arFixed} sections removed`);
+console.log(`${"=".repeat(60)}\n`);
+
+process.exit(0);
+
+]]>
+</file>
+
+<file path="scripts/fix-duplicate-loggers.py">
+<![CDATA[
+#!/usr/bin/env python3
+"""Fix duplicate logger imports across the codebase."""
+
+import re
+from pathlib import Path
+
+FILES_WITH_DUPLICATES = [
+    "app/api/billing/subscribe/route.ts",
+    "app/api/copilot/chat/route.ts",
+    "app/api/health/database/route.ts",
+    "app/api/invoices/[id]/route.ts",
+    "app/api/marketplace/products/[slug]/route.ts",
+    "app/api/payments/paytabs/callback/route.ts",
+    "app/api/payments/paytabs/route.ts",
+    "app/api/projects/[id]/route.ts",
+    "app/api/qa/alert/route.ts",
+    "app/api/qa/health/route.ts",
+    "app/api/qa/log/route.ts",
+    "app/api/work-orders/import/route.ts",
+]
+
+LOGGER_IMPORT_PATTERN = re.compile(r"^import \{ logger \} from ['\"]@/lib/logger['\"];?\s*$", re.MULTILINE)
+
+def fix_file(filepath: Path) -> bool:
+    """Remove duplicate logger imports, keeping only the first one."""
+    if not filepath.exists():
+        print(f"⚠️  File not found: {filepath}")
+        return False
+    
+    content = filepath.read_text()
+    lines = content.split('\n')
+    
+    # Track if we've seen the logger import
+    found_logger = False
+    fixed_lines = []
+    
+    for line in lines:
+        # Check if this line is a logger import
+        if LOGGER_IMPORT_PATTERN.match(line):
+            if not found_logger:
+                # Keep the first occurrence
+                fixed_lines.append(line)
+                found_logger = True
+            # Skip subsequent occurrences
+        else:
+            fixed_lines.append(line)
+    
+    # Write back
+    filepath.write_text('\n'.join(fixed_lines))
+    return True
+
+def main():
+    print("🔍 Finding all files with duplicate logger imports...")
+    
+    base_path = Path("/workspaces/Fixzit")
+    fixed_count = 0
+    
+    for file_path in FILES_WITH_DUPLICATES:
+        full_path = base_path / file_path
+        print(f"📝 Fixing: {file_path}")
+        
+        if fix_file(full_path):
+            fixed_count += 1
+            print(f"✅ Fixed: {file_path}")
+    
+    print(f"\n✨ Fixed {fixed_count} files with duplicate logger imports")
+    print("✅ Duplicate logger import fix complete!")
+
+if __name__ == "__main__":
+    main()
+
+]]>
+</file>
+
+<file path="scripts/fix-duplicates-manual.py">
+<![CDATA[
+#!/usr/bin/env python3
+"""
+Manual duplicate key removal script
+Reads TypeScript error output and removes duplicate sections
+"""
+
+import re
+import subprocess
+import os
+import sys
+
+def get_repo_root():
+    """Auto-detect repository root by looking for .git directory"""
+    current = os.path.dirname(os.path.abspath(__file__))
+    while current != '/':
+        if os.path.exists(os.path.join(current, '.git')):
+            return current
+        current = os.path.dirname(current)
+    # Fallback: try git command
+    try:
+        result = subprocess.run(
+            ['git', 'rev-parse', '--show-toplevel'],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return result.stdout.strip()
+    except:
+        print("ERROR: Could not detect repository root. Run from within git repository.", file=sys.stderr)
+        sys.exit(1)
+
+REPO_ROOT = get_repo_root()
+
+def get_duplicate_lines():
+    """Get all duplicate line numbers from TypeScript errors"""
+    result = subprocess.run(
+        ['npm', 'run', 'typecheck'],
+        capture_output=True,
+        text=True,
+        cwd=REPO_ROOT
+    )
+    
+    # Combine stdout and stderr
+    output = result.stdout + result.stderr
+    
+    duplicates = {}
+    for line in output.split('\n'):
+        if 'error TS1117' in line:
+            match = re.search(r'i18n/dictionaries/(.*?)\.ts\((\d+),', line)
+            if match:
+                filename = match.group(1)
+                line_num = int(match.group(2))
+                if filename not in duplicates:
+                    duplicates[filename] = []
+                duplicates[filename].append(line_num)
+    
+    return duplicates
+
+def find_section_end(lines, start_line):
+    """Find the end of a section starting with an object"""
+    depth = 0
+    in_section = False
+    
+    for i in range(start_line, len(lines)):
+        line = lines[i]
+        
+        # Count braces
+        depth += line.count('{') - line.count('}')
+        
+        if '{' in line and not in_section:
+            in_section = True
+            depth = 1
+        
+        # When depth returns to 0, we've closed the section
+        if in_section and depth == 0:
+            return i
+    
+    return start_line
+
+def remove_duplicates(filename):
+    """Remove duplicate sections from a file"""
+    filepath = os.path.join(REPO_ROOT, f'i18n/dictionaries/{filename}.ts')
+    
+    with open(filepath, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+    
+    # Get duplicate lines for this file
+    duplicates = get_duplicate_lines()
+    if filename not in duplicates:
+        print(f"No duplicates found in {filename}.ts")
+        return 0
+    
+    dup_lines = sorted(duplicates[filename], reverse=True)
+    print(f"\n📝 Processing {filename}.ts: {len(dup_lines)} duplicates")
+    
+    removed_count = 0
+    for dup_line in dup_lines:
+        # Convert to 0-indexed
+        line_idx = dup_line - 1
+        
+        if line_idx >= len(lines):
+            continue
+        
+        # Find the key name
+        match = re.match(r'\s+(\w+):\s*\{', lines[line_idx])
+        if not match:
+            continue
+        
+        key_name = match.group(1)
+        
+        # Find section end
+        end_idx = find_section_end(lines, line_idx)
+        
+        if end_idx > line_idx:
+            section_size = end_idx - line_idx + 1
+            print(f"   ⚠️  Removing '{key_name}' at line {dup_line} ({section_size} lines)")
+            
+            # Remove the section
+            del lines[line_idx:end_idx + 1]
+            removed_count += section_size
+    
+    # Write back
+    with open(filepath, 'w', encoding='utf-8') as f:
+        f.writelines(lines)
+    
+    print(f"   ✅ Removed {removed_count} lines total")
+    return removed_count
+
+if __name__ == '__main__':
+    print("🔍 Fixing duplicate keys in translation files...\n")
+    
+    total_en = remove_duplicates('en')
+    total_ar = remove_duplicates('ar')
+    
+    print(f"\n📊 Summary:")
+    print(f"   en.ts: {total_en} lines removed")
+    print(f"   ar.ts: {total_ar} lines removed")
+    print(f"\n✅ Done! Run 'npm run typecheck' to verify.")
+
+]]>
+</file>
+
+<file path="scripts/fix-empty-catches.js">
+<![CDATA[
+const fs = require("fs");
+const path = require("path");
+
+/**
+ * Script to fix 141 empty catch blocks identified in audit
+ */
+
+let fixedFiles = 0;
+let totalFixes = 0;
+
+function fixEmptyCatches(directory) {
+  if (!fs.existsSync(directory)) {
+    console.log(`Directory ${directory} does not exist, skipping...`);
+    return;
+  }
+
+  const files = fs.readdirSync(directory);
+
+  files.forEach((file) => {
+    const fullPath = path.join(directory, file);
+    const stat = fs.statSync(fullPath);
+
+    if (
+      stat.isDirectory() &&
+      !fullPath.includes("node_modules") &&
+      !fullPath.includes(".git")
+    ) {
+      fixEmptyCatches(fullPath);
+    } else if (file.endsWith(".js")) {
+      let content = fs.readFileSync(fullPath, "utf8");
+      let fileFixCount = 0;
+
+      // Pattern 1: Empty catch blocks
+      content = content.replace(
+        /} catch (([^)]+)) {\s*}/g,
+        (match, errorVar) => {
+          fileFixCount++;
+          return `} catch (${errorVar}) {
+    logger.error('Error in ${path.basename(file)}:', ${errorVar});
+    throw ${errorVar};
+  }`;
+        },
+      );
+
+      // Pattern 2: Catch blocks with only console.log
+      content = content.replace(
+        /} catch (([^)]+)) {\s*console\.(log|error)([^)]+);\s*}/g,
+        (match, errorVar) => {
+          fileFixCount++;
+          return `} catch (${errorVar}) {
+    logger.error('Error in ${path.basename(file)}:', ${errorVar});
+    throw ${errorVar};
+  }`;
+        },
+      );
+
+      // Pattern 3: Catch blocks that just return without handling
+      content = content.replace(
+        /} catch (([^)]+)) {\s*return[^}]*;\s*}/g,
+        (match, errorVar) => {
+          fileFixCount++;
+          return `} catch (${errorVar}) {
+    logger.error('Error in ${path.basename(file)}:', ${errorVar});
+    throw ${errorVar};
+  }`;
+        },
+      );
+
+      // Add logger import if needed and fixes were made
+      if (
+        fileFixCount > 0 &&
+        !content.includes("require('../utils/logger')") &&
+        !content.includes("require('./utils/logger')")
+      ) {
+        // Determine correct path to logger
+        const depth =
+          fullPath.split(path.sep).length -
+          process.cwd().split(path.sep).length -
+          1;
+        const loggerPath = "../".repeat(Math.max(depth, 1)) + "utils/logger";
+
+        // Find a good place to insert the logger import
+        if (content.includes("const express = require('express')")) {
+          content = content.replace(
+            "const express = require('express');",
+            "const express = require('express');\nconst logger = require('" +
+              loggerPath +
+              "');",
+          );
+        } else if (content.includes("const mongoose = require('mongoose')")) {
+          content = content.replace(
+            "const mongoose = require('mongoose');",
+            "const mongoose = require('mongoose');\nconst logger = require('" +
+              loggerPath +
+              "');",
+          );
+        } else {
+          // Insert at the beginning after any existing requires
+          const requireRegex =
+            /((?:const|let|var)\s+\w+\s*=\s*require([^)]+);\s*\n)*/;
+          const match = content.match(requireRegex);
+          if (match && match[0]) {
+            content = content.replace(
+              match[0],
+              match[0] + `const logger = require('${loggerPath}');\n`,
+            );
+          } else {
+            content = `const logger = require('${loggerPath}');\n${content}`;
+          }
+        }
+      }
+
+      if (fileFixCount > 0) {
+        fs.writeFileSync(fullPath, content);
+        console.log(
+          `✅ Fixed ${fileFixCount} empty catch blocks in: ${fullPath}`,
+        );
+        fixedFiles++;
+        totalFixes += fileFixCount;
+      }
+    }
+  });
+}
+
+console.log("🔧 Starting to fix empty catch blocks...");
+console.log("=============================================");
+
+// Fix all JavaScript files in these directories
+const dirsToFix = ["routes", "models", "services", "middleware", "utils"];
+
+dirsToFix.forEach((dir) => {
+  console.log(`\n📁 Processing directory: ${dir}`);
+  fixEmptyCatches(dir);
+});
+
+console.log("\n=============================================");
+console.log("📊 EMPTY CATCH BLOCKS FIX SUMMARY");
+console.log("=============================================");
+console.log(`Files modified: ${fixedFiles}`);
+console.log(`Total fixes applied: ${totalFixes}`);
+console.log("✅ Empty catch blocks fixed successfully!");
+
+if (totalFixes === 0) {
+  console.log(
+    "ℹ️  No empty catch blocks found or all already properly handled",
+  );
+}
+
+]]>
+</file>
+
+<file path="scripts/fix-en-duplicates.js">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * Fix en.ts by removing duplicates and ensuring single export
+ */
+
+const fs = require("fs");
+const path = require("path");
+
+const EN_FILE = path.join(__dirname, "../i18n/dictionaries/en.ts");
+
+console.log("🔧 Fixing en.ts duplicates and structure...");
+
+// Read the file
+let content = fs.readFileSync(EN_FILE, "utf-8");
+
+// Remove any merge conflict markers if present
+content = content.replace(/^<{7}.*$/gm, "");
+content = content.replace(/^={7}.*$/gm, "");
+content = content.replace(/^>{7}.*$/gm, "");
+
+// Extract all object definitions
+const objectPattern = /(?:export default|const \w+\s*=)\s*\{/g;
+const matches = [...content.matchAll(objectPattern)];
+
+console.log(`Found ${matches.length} top-level object(s)`);
+
+// If we have multiple exports, we need to merge them
+if (matches.length > 1) {
+  console.log("⚠️  Multiple top-level objects detected. Merging...");
+
+  // Parse the file more carefully to extract all key-value pairs
+  // For now, let's remove duplicate export statements
+
+  // Strategy: Keep only the first export default, remove others
+  const firstExportIndex = content.indexOf("export default {");
+  const constEnIndex = content.indexOf("const en = {");
+
+  if (firstExportIndex !== -1 && constEnIndex !== -1) {
+    if (firstExportIndex < constEnIndex) {
+      // Remove const en declaration
+      console.log("Removing duplicate const en declaration...");
+      const lines = content.split("\n");
+      const newLines = [];
+      let inConstEn = false;
+      let braceCount = 0;
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        if (line.includes("const en = {")) {
+          inConstEn = true;
+          braceCount =
+            (line.match(/\{/g) || []).length - (line.match(/\}/g) || []).length;
+          continue;
+        }
+
+        if (inConstEn) {
+          braceCount +=
+            (line.match(/\{/g) || []).length - (line.match(/\}/g) || []).length;
+          if (braceCount === 0) {
+            inConstEn = false;
+          }
+          continue;
+        }
+
+        newLines.push(line);
+      }
+
+      content = newLines.join("\n");
+    }
+  }
+}
+
+// Remove any trailing "export default en" statements at the actual file end
+// Use pattern without 'm' flag to match only at string end
+content = content.replace(/(\n\s*export default en;?\s*)+$/, "");
+
+// Ensure the file ends properly after the last closing brace
+const lastBraceIndex = content.lastIndexOf("}");
+if (lastBraceIndex !== -1) {
+  // Extract content after the last brace
+  const suffix = content.substring(lastBraceIndex + 1);
+
+  // Check if suffix contains only whitespace and/or comments
+  const hasOnlyWhitespaceOrComments = /^[\s/*]*$/.test(suffix);
+
+  if (hasOnlyWhitespaceOrComments || suffix.trim() === "") {
+    // Safe to add semicolon
+    content = content.substring(0, lastBraceIndex + 1) + ";\n";
+  } else {
+    // Preserve non-whitespace content, insert semicolon after last brace
+    content = content.substring(0, lastBraceIndex + 1) + ";" + suffix;
+  }
+}
+
+// Write the fixed content back
+fs.writeFileSync(EN_FILE, content, "utf-8");
+
+console.log("✅ Fixed en.ts structure");
+console.log("📊 Running TypeScript check...");
+
+// Run a quick TypeScript check
+const { execSync } = require("child_process");
+try {
+  execSync("npx tsc --noEmit i18n/dictionaries/en.ts", {
+    cwd: path.join(__dirname, ".."),
+    stdio: "pipe",
+  });
+  console.log("✅ TypeScript validation passed");
+} catch (error) {
+  console.log(
+    "⚠️  TypeScript validation found issues (will be fixed in next step)",
+  );
+  const output = error.stdout?.toString() || error.stderr?.toString() || "";
+  const duplicateErrors = output.match(/Duplicate identifier '(\w+)'/g);
+  if (duplicateErrors) {
+    console.log(`Found ${duplicateErrors.length} duplicate key errors`);
+  }
+}
+
+console.log("✅ en.ts fix complete!");
+
+]]>
+</file>
+
+<file path="scripts/fix-error-messages.js">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * Automated Error Message Sanitization Script
+ * Fixes error.message exposure across all API routes
+ */
+
+const fs = require("fs");
+const { execSync } = require("child_process");
+
+// Files to process
+const apiFiles = execSync('find app/api -name "*.ts" -type f -print0')
+  .toString()
+  .split("\0")
+  .filter((f) => f && f.endsWith(".ts"));
+
+let fixed = 0;
+let filesChanged = [];
+
+console.log(`\n🔍 Processing ${apiFiles.length} API route files...`);
+
+for (const file of apiFiles) {
+  let content = fs.readFileSync(file, "utf8");
+
+  // Apply replacements
+  const newContent = content.replace(
+    /const message = error instanceof Error \? error\.message : ['"]([^'"]+)['"];[\s\n\r\s]*return createSecureResponse\(\{ error: message \}, (\d+), req\);/g,
+    (_match, defaultMsg, status) =>
+      `return createSecureResponse({ error: '${defaultMsg}' }, ${status}, req);`,
+  );
+
+  if (newContent !== content) {
+    fs.writeFileSync(file, newContent, "utf8");
+    filesChanged.push(file);
+    fixed++;
+    console.log(`  ✓ Fixed: ${file}`);
+  }
+}
+
+console.log(`\n✅ Complete!`);
+console.log(`   Fixed ${fixed} files`);
+console.log(`   Total checked: ${apiFiles.length}`);
+
+if (filesChanged.length > 0) {
+  console.log(`\n📝 Files modified:`);
+  filesChanged.forEach((f) => console.log(`   - ${f}`));
+}
+
+]]>
+</file>
+
+<file path="scripts/fix-html-entities.js">
+<![CDATA[
+#!/usr/bin/env node
+
+/**
+ * Fix HTML entities that were incorrectly applied to JavaScript files
+ */
+
+const fs = require("fs");
+const path = require("path");
+
+// File extensions that should NOT have HTML entities
+const JS_EXTENSIONS = [".js", ".ts", ".mjs", ".cjs"];
+
+function shouldRevertFile(filePath) {
+  // Skip node_modules, .git, and other irrelevant directories
+  if (
+    filePath.includes("node_modules") ||
+    filePath.includes(".git") ||
+    filePath.includes("dist") ||
+    filePath.includes("build")
+  ) {
+    return false;
+  }
+
+  return JS_EXTENSIONS.some((ext) => filePath.endsWith(ext));
+}
+
+function getAllFiles(dir, files = []) {
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+
+    if (entry.isDirectory()) {
+      getAllFiles(fullPath, files);
+    } else if (shouldRevertFile(fullPath)) {
+      files.push(fullPath);
+    }
+  }
+
+  return files;
+}
+
+function revertHtmlEntities(filePath) {
+  try {
+    const content = fs.readFileSync(filePath, "utf8");
+
+    // Revert HTML entities back to normal characters in JS files
+    let modified = content;
+    modified = modified.replace(/'/g, "'");
+    modified = modified.replace(/"/g, '"');
+    modified = modified.replace(/</g, "<");
+    modified = modified.replace(/>/g, ">");
+    modified = modified.replace(/&/g, "&");
+
+    if (content !== modified) {
+      fs.writeFileSync(filePath, modified);
+      console.log(`✅ Fixed HTML entities in ${filePath}`);
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    console.error(`❌ Error processing ${filePath}:`, error.message);
+    return false;
+  }
+}
+
+function main() {
+  console.log("🔧 Fixing HTML entities in JavaScript files...\n");
+
+  const rootDir = process.cwd();
+  const files = getAllFiles(rootDir);
+
+  console.log(`📁 Found ${files.length} JavaScript files to check\n`);
+
+  let processedCount = 0;
+  let modifiedCount = 0;
+
+  for (const file of files) {
+    processedCount++;
+
+    if (revertHtmlEntities(file)) {
+      modifiedCount++;
+    }
+  }
+
+  console.log(
+    `\n✨ Completed! Fixed ${modifiedCount} out of ${processedCount} files`,
+  );
+}
+
+if (require.main === module) {
+  main();
+}
+
+module.exports = { revertHtmlEntities };
+
+]]>
+</file>
+
+<file path="scripts/fix-imports-now.ts">
+<![CDATA[
+import { readFileSync, writeFileSync } from "fs";
+import fg from "fast-glob";
+
+(async () => {
+  const files = await fg([
+    "**/*.{ts,tsx,js,jsx}",
+    "!node_modules/**",
+    "!.next/**",
+  ]);
+  let fixedCount = 0;
+
+  for (const file of files) {
+    try {
+      let content = readFileSync(file, "utf-8");
+      const original = content;
+
+      // Fix all @/src/ imports
+      content = content.replace(/@\/src\/lib\//g, "@/lib/");
+      content = content.replace(/@\/src\/server\//g, "@/server/");
+      content = content.replace(/@\/src\/models\//g, "@/models/");
+      content = content.replace(/@\/src\/kb\//g, "@/kb/");
+
+      if (content !== original) {
+        writeFileSync(file, content, "utf-8");
+        fixedCount++;
+        if (fixedCount <= 10) console.log("Fixed: " + file);
+      }
+    } catch (e: unknown) {
+      const error = e as { message?: string; stack?: string };
+      console.error(`Failed to process ${file}:`, error?.message || String(e));
+      if (error?.stack) console.error(error.stack);
+    }
+  }
+
+  console.log("\n✅ Fixed " + fixedCount + " files");
+})();
+
+]]>
+</file>
+
+<file path="scripts/fix-logger-calls.py">
+<![CDATA[
+#!/usr/bin/env python3
+"""
+Fix logger calls to match the correct signature:
+- logger.info(message, context?)
+- logger.warn(message, context?)
+- logger.error(message, error?, context?)
+- logger.debug(message, data?)
+
+Convert multi-argument calls into template strings or proper signature.
+"""
+
+import re
+import sys
+from pathlib import Path
+
+def fix_logger_info_warn(content: str) -> str:
+    """Fix logger.info and logger.warn calls with multiple arguments."""
+    # Pattern: logger.info('text', arg1, 'text2', arg3, ...)
+    # Convert to template string combining all parts
+    
+    # Match logger.info/warn with multiple string/variable arguments
+    pattern = r'logger\.(info|warn)\([^)]+,\s*[^)]+\)'
+    
+    matches = list(re.finditer(pattern, content))
+    if not matches:
+        return content
+    
+    result = content
+    offset = 0
+    
+    for match in matches:
+        call = match.group(0)
+        method = match.group(1)
+        
+        # Extract arguments
+        args_str = call[call.index('(') + 1:call.rindex(')')]
+        
+        # Skip if already looks like proper format (message, {context})
+        if '{' in args_str and args_str.count(',') == 1:
+            continue
+            
+        # Parse arguments
+        args = []
+        current_arg = ''
+        paren_depth = 0
+        brace_depth = 0
+        in_string = False
+        string_char = None
+        
+        for char in args_str:
+            if char in ('"', "'", '`') and (not in_string or char == string_char):
+                in_string = not in_string
+                string_char = char if in_string else None
+            
+            if not in_string:
+                if char == '(':
+                    paren_depth += 1
+                elif char == ')':
+                    paren_depth -= 1
+                elif char == '{':
+                    brace_depth += 1
+                elif char == '}':
+                    brace_depth -= 1
+                elif char == ',' and paren_depth == 0 and brace_depth == 0:
+                    args.append(current_arg.strip())
+                    current_arg = ''
+                    continue
+            
+            current_arg += char
+        
+        if current_arg.strip():
+            args.append(current_arg.strip())
+        
+        # If only one argument, it's already correct
+        if len(args) <= 1:
+            continue
+        
+        # Build template string
+        parts = []
+        for arg in args:
+            # Remove quotes if it's a string literal
+            if (arg.startswith('"') and arg.endswith('"')) or \
+               (arg.startswith("'") and arg.endswith("'")):
+                parts.append(arg[1:-1])
+            else:
+                # It's a variable, wrap in ${}
+                parts.append(f'${{{arg}}}')
+        
+        # Join with space
+        template = ' '.join(parts)
+        new_call = f'logger.{method}(`{template}`)'
+        
+        # Replace in result
+        start = match.start() + offset
+        end = match.end() + offset
+        result = result[:start] + new_call + result[end:]
+        offset += len(new_call) - len(call)
+    
+    return result
+
+def fix_logger_error(content: str) -> str:
+    """Fix logger.error calls to use correct signature."""
+    # Pattern: logger.error('message', 'string') -> logger.error('message', Error)
+    # Don't change logger.error('message', error) or logger.error('message', error, context)
+    
+    # Find logger.error calls with string as second argument (should be Error)
+    pattern = r'logger\.error\([^)]+\)'
+    
+    matches = list(re.finditer(pattern, content))
+    if not matches:
+        return content
+    
+    result = content
+    
+    for match in matches:
+        call = match.group(0)
+        
+        # Extract arguments
+        args_str = call[call.index('(') + 1:call.rindex(')')]
+        
+        # Simple heuristic: if second arg is a plain string literal, it's likely wrong
+        # logger.error('msg', 'detail') -> likely should be logger.error('msg: detail')
+        # or logger.error('msg', error)
+        
+        # Split on comma (simple split, not parsing)
+        if args_str.count(',') >= 1:
+            parts = args_str.split(',', 2)
+            if len(parts) >= 2:
+                first_arg = parts[0].strip()
+                second_arg = parts[1].strip()
+                
+                # If second arg is a plain quoted string, merge into first
+                if (second_arg.startswith('"') and second_arg.endswith('"')) or \
+                   (second_arg.startswith("'") and second_arg.endswith("'")):
+                    # Merge
+                    msg = first_arg
+                    if msg.startswith('"') and msg.endswith('"'):
+                        msg = msg[1:-1]
+                    elif msg.startswith("'") and msg.endswith("'"):
+                        msg = msg[1:-1]
+                    
+                    detail = second_arg[1:-1]
+                    new_msg = f'`{msg} {detail}`'
+                    
+                    if len(parts) == 2:
+                        new_call = f'logger.error({new_msg})'
+                    else:
+                        # Has third arg (context or error)
+                        new_call = f'logger.error({new_msg}, {parts[2].strip()})'
+                    
+                    # Only replace if looks safe
+                    if 'error' not in second_arg.lower():
+                        result = result.replace(call, new_call)
+    
+    return result
+
+def process_file(filepath: Path) -> bool:
+    """Process a single file."""
+    try:
+        content = filepath.read_text(encoding='utf-8')
+        original = content
+        
+        # Apply fixes
+        content = fix_logger_info_warn(content)
+        content = fix_logger_error(content)
+        
+        if content != original:
+            filepath.write_text(content, encoding='utf-8')
+            print(f"✅ Fixed: {filepath}")
+            return True
+        
+        return False
+    except Exception as e:
+        print(f"❌ Error processing {filepath}: {e}", file=sys.stderr)
+        return False
+
+def main():
+    """Main entry point."""
+    workspace = Path('/workspaces/Fixzit')
+    
+    # Find all TypeScript files with logger usage
+    patterns = [
+        'app/**/*.ts',
+        'app/**/*.tsx',
+        'server/**/*.ts',
+        'lib/**/*.ts',
+        'components/**/*.ts',
+        'components/**/*.tsx',
+    ]
+    
+    files_to_check = []
+    for pattern in patterns:
+        files_to_check.extend(workspace.glob(pattern))
+    
+    # Filter to files that actually have logger calls with issues
+    files_with_logger = []
+    for f in files_to_check:
+        if f.is_file():
+            try:
+                content = f.read_text(encoding='utf-8')
+                if 'logger.' in content:
+                    files_with_logger.append(f)
+            except:
+                pass
+    
+    print(f"🔍 Found {len(files_with_logger)} files with logger calls")
+    
+    fixed_count = 0
+    for filepath in files_with_logger:
+        if process_file(filepath):
+            fixed_count += 1
+    
+    print(f"\n✨ Fixed {fixed_count} files")
+
+if __name__ == '__main__':
+    main()
+
+]]>
+</file>
+
+</batch_content>

@@ -1,0 +1,2821 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="scripts/generate-dictionaries-json.ts">
+<![CDATA[
+import {
+  mkdirSync,
+  writeFileSync,
+  readdirSync,
+  readFileSync,
+  existsSync,
+} from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const ROOT = path.resolve(__dirname, "..");
+const OUTPUT_DIR = path.join(ROOT, "i18n", "generated");
+const SOURCES_DIR = path.join(ROOT, "i18n", "sources");
+const FLAT_BUNDLE_PATH = path.join(ROOT, "i18n", "new-translations.ts");
+
+// All supported locales (must match config/language-options.ts)
+// Only EN/AR have real translations - FR/PT/RU/ES/UR/HI/ZH removed until translation budget approved
+const ALL_LOCALES = ["en", "ar"] as const;
+type Locale = (typeof ALL_LOCALES)[number];
+
+/**
+ * Write dictionary as FLAT JSON (no runtime flattening needed)
+ */
+function writeFlatDictionary(
+  locale: string,
+  flatTranslations: Record<string, string>,
+) {
+  mkdirSync(OUTPUT_DIR, { recursive: true });
+  const filePath = path.join(OUTPUT_DIR, `${locale}.dictionary.json`);
+  // Write flat structure directly (sortedentries for determinism)
+  const sorted = Object.fromEntries(
+    Object.entries(flatTranslations).sort(([a], [b]) => a.localeCompare(b)),
+  );
+  writeFileSync(filePath, JSON.stringify(sorted, null, 2) + "\n", "utf-8");
+  console.log(
+    `✓ Wrote ${filePath} (${Object.keys(flatTranslations).length} keys)`,
+  );
+}
+
+function escapeValue(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+}
+
+function formatFlatEntries(flatTranslations: Record<string, string>): string {
+  return Object.entries(flatTranslations)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, value]) => `    '${key}': '${escapeValue(value)}',`)
+    .join("\n");
+}
+
+function writeFlatBundle(
+  enFlat: Record<string, string>,
+  arFlat: Record<string, string>,
+) {
+  const fileContents = `/* Auto-generated via pnpm run i18n:build */\nimport type { TranslationBundle } from './dictionaries/types';\n\nexport const newTranslations: TranslationBundle = {\n  en: {\n${formatFlatEntries(enFlat)}\n  },\n  ar: {\n${formatFlatEntries(arFlat)}\n  }\n};\n`;
+
+  writeFileSync(FLAT_BUNDLE_PATH, fileContents, "utf-8");
+  console.log(`✓ Wrote ${FLAT_BUNDLE_PATH}`);
+}
+
+/**
+ * Load all modular translation sources from i18n/sources/*.translations.json
+ * @returns Combined flat translations for ALL locales
+ */
+function loadModularSources(): Record<Locale, Record<string, string>> {
+  const result: Record<Locale, Record<string, string>> = {
+    en: {},
+    ar: {},
+    fr: {},
+    pt: {},
+    ru: {},
+    es: {},
+    ur: {},
+    hi: {},
+    zh: {},
+  };
+  const parityWarnings: string[] = [];
+
+  if (!existsSync(SOURCES_DIR)) {
+    console.error(`❌ Sources directory not found: ${SOURCES_DIR}`);
+    console.error(`   Run: npx tsx scripts/flatten-base-dictionaries.ts`);
+    process.exit(1);
+  }
+
+  const files = readdirSync(SOURCES_DIR)
+    .filter((f) => f.endsWith(".translations.json"))
+    .sort(); // Deterministic order
+
+  if (files.length === 0) {
+    console.error(`❌ No modular source files found in ${SOURCES_DIR}`);
+    console.error(`   Run: npx tsx scripts/flatten-base-dictionaries.ts`);
+    process.exit(1);
+  }
+
+  console.log(
+    `📦 Loading ${files.length} modular source files for ${ALL_LOCALES.length} locales...\n`,
+  );
+
+  for (const file of files) {
+    const filePath = path.join(SOURCES_DIR, file);
+    try {
+      const content = readFileSync(filePath, "utf-8");
+      const bundle = JSON.parse(content);
+
+      // Extract per-locale data from this source file
+      const localeData: Partial<Record<Locale, Record<string, string>>> = {};
+      for (const locale of ALL_LOCALES) {
+        localeData[locale] = { ...(bundle[locale] || {}) };
+      }
+
+      // Get union of all keys across all locales in this file
+      const unionKeys = new Set<string>();
+      for (const locale of ALL_LOCALES) {
+        Object.keys(localeData[locale] || {}).forEach((k) => unionKeys.add(k));
+      }
+
+      // Normalize: fill missing keys from EN (or AR if EN missing)
+      for (const key of unionKeys) {
+        const enValue = localeData.en?.[key];
+        const arValue = localeData.ar?.[key];
+        const fallback = enValue || arValue || `[MISSING: ${key}]`;
+
+        let missingLocales = 0;
+        for (const locale of ALL_LOCALES) {
+          if (!localeData[locale]?.[key]) {
+            result[locale][key] = fallback;
+            missingLocales++;
+          } else {
+            result[locale][key] = localeData[locale][key];
+          }
+        }
+
+        if (missingLocales > 0) {
+          parityWarnings.push(
+            `${file}:${key} (missing in ${missingLocales} locales)`,
+          );
+        }
+      }
+
+      // Log progress
+      const counts = ALL_LOCALES.map(
+        (loc) => Object.keys(localeData[loc] || {}).length,
+      );
+      const countStr = counts
+        .slice(0, 3)
+        .map((c) => String(c).padStart(4))
+        .join("/");
+      console.log(`  ✓ ${file.padEnd(45)} (${countStr} keys...)`);
+    } catch (err) {
+      console.error(`  ✗ Failed to load ${file}:`, err);
+      process.exit(1);
+    }
+  }
+
+  if (parityWarnings.length > 0) {
+    console.warn(
+      `\n⚠️  ${parityWarnings.length} keys were missing in one or more locales (auto-filled). ` +
+        "Run `pnpm run scan:i18n:audit` to identify the offending files.",
+    );
+    if (parityWarnings.length > 10) {
+      console.warn(`   First 10 issues:`);
+      parityWarnings.slice(0, 10).forEach((w) => console.warn(`     - ${w}`));
+      console.warn(`   ... and ${parityWarnings.length - 10} more`);
+    }
+  }
+
+  // Validate counts
+  const counts = ALL_LOCALES.map((loc) => ({
+    locale: loc,
+    count: Object.keys(result[loc]).length,
+  }));
+
+  console.log("\n📊 Final locale key counts:");
+  counts.forEach(({ locale, count }) => {
+    console.log(`   ${locale}: ${count.toLocaleString()}`);
+  });
+
+  const maxCount = Math.max(...counts.map((c) => c.count));
+  const minCount = Math.min(...counts.map((c) => c.count));
+  const variance = maxCount - minCount;
+
+  if (variance > 100) {
+    console.error(
+      `\n❌ Locale count variance too large: ${variance} keys (${minCount} to ${maxCount})`,
+    );
+    console.error(
+      "   This indicates significant missing translations. Check source files.",
+    );
+    process.exit(1);
+  } else if (variance > 0) {
+    console.warn(
+      `\n⚠️  Minor variance: ${variance} keys difference across locales`,
+    );
+  }
+
+  return result;
+}
+
+// Step 1: Load all modular sources (this is now the ONLY source of truth)
+const modularSources = loadModularSources();
+
+// Step 2: Write flat dictionaries for ALL locales (no runtime flattening needed)
+console.log("\n💾 Writing generated flat dictionaries for all locales...");
+for (const locale of ALL_LOCALES) {
+  writeFlatDictionary(locale, modularSources[locale]);
+}
+
+// Step 3: Write legacy flat bundle (for build scripts that still import it)
+console.log("\n📦 Writing legacy flat bundle (new-translations.ts)...");
+writeFlatBundle(modularSources.en, modularSources.ar);
+
+console.log("\n✅ Dictionary generation complete!");
+console.log(`📊 Generated ${ALL_LOCALES.length} locale files:`);
+ALL_LOCALES.forEach((loc) => {
+  const count = Object.keys(modularSources[loc]).length;
+  console.log(`   ${loc}: ${count.toLocaleString()} keys`);
+});
+console.log(
+  `\n💡 All translations now come from i18n/sources/*.translations.json`,
+);
+console.log(
+  `   Runtime loads flat JSON directly (no nested structure flattening)`,
+);
+
+]]>
+</file>
+
+<file path="scripts/generate-marketplace-bible.js">
+<![CDATA[
+const fs = require("fs");
+const path = require("path");
+const { randomUUID } = require("node:crypto");
+
+const OUT_DIR = path.join(process.cwd(), "_artifacts");
+const OUT_FILE = path.join(OUT_DIR, "Fixzit_Marketplace_Bible_v1.md");
+
+const logInfo = (message) => process.stdout.write(`${message}\n`);
+const logWarn = (message) => process.stderr.write(`${message}\n`);
+const logError = (message) => process.stderr.write(`${message}\n`);
+
+function ensureArtifactsDir(dirPath, fsModule) {
+  if (!fsModule.existsSync(dirPath)) {
+    fsModule.mkdirSync(dirPath, { recursive: true });
+  }
+}
+
+function buildDocumentContent() {
+  return [
+    "Fixzit Marketplace Bible (v1)",
+    "",
+    `Output Artifact: ${path.basename(OUT_FILE)}`,
+    "",
+    "Scope: Amazon-style marketplace for materials; governance-aligned (single header/sidebar, RTL/LTR, RBAC).",
+    "",
+    "IA: /marketplace, /marketplace/product/[slug], search, cart, orders, RFQ, knowledge.",
+    "",
+    "Data Model: org-scoped categories, products, offers, carts, orders; unique indexes; idempotent seeding.",
+    "",
+    "APIs: /api/marketplace/search, /api/marketplace/products/[slug]; approvals & PO coupling (future endpoints).",
+    "",
+    "UX: Top Bar (language/currency), Sidebar baseline, Amazon-like header for Souq, PDP buy box, filters.",
+    "",
+    "QA: STRICT v4 Halt–Fix–Verify; single header; zero console/network/build errors; RTL acceptance.",
+    "",
+  ].join("\n");
+}
+
+function main(options = {}) {
+  const {
+    fsModule = fs,
+    forceFailure = false,
+    correlationId = randomUUID(),
+  } = options;
+
+  const envWantsFailure = process.env.FIXZIT_BIBLE_FORCE_WRITE_ERROR === "1";
+  const isTestEnv = (process.env.NODE_ENV ?? "").toLowerCase() === "test";
+  let shouldForceFailure = forceFailure;
+
+  if (!shouldForceFailure && envWantsFailure) {
+    if (isTestEnv) {
+      shouldForceFailure = true;
+    } else {
+      logWarn(
+        `[${correlationId}] Ignoring FIXZIT_BIBLE_FORCE_WRITE_ERROR because NODE_ENV is '${process.env.NODE_ENV ?? ""}'`,
+      );
+    }
+  }
+
+  ensureArtifactsDir(OUT_DIR, fsModule);
+  const content = buildDocumentContent();
+
+  if (shouldForceFailure) {
+    const error = new Error("Forced write failure for tests");
+    logError(`[${correlationId}] Forced write failure: ${error.message}`);
+    throw error;
+  }
+
+  fsModule.writeFileSync(OUT_FILE, content, "utf8");
+  logInfo(`[${correlationId}] ✔ Marketplace Bible generated at ${OUT_FILE}`);
+  return OUT_FILE;
+}
+
+if (require.main === module) {
+  const correlationId = randomUUID();
+  try {
+    main({ correlationId });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    logError(
+      `[${correlationId}] Failed to generate marketplace bible: ${message}`,
+    );
+    process.exitCode = 1;
+  }
+}
+
+module.exports = {
+  main,
+  OUT_DIR,
+  OUT_FILE,
+  buildDocumentContent,
+};
+
+]]>
+</file>
+
+<file path="scripts/generate-translation-stubs.py">
+<![CDATA[
+#!/usr/bin/env python3
+"""
+Generate Translation Stub Files
+Creates i18n files for FR, PT, RU, ES, UR, HI, ZH with English fallbacks
+"""
+
+import json
+import shutil
+from pathlib import Path
+
+# Base directory
+i18n_dir = Path('/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/i18n')
+
+# Load English as the base
+with open(i18n_dir / 'en.json', 'r', encoding='utf-8') as f:
+    en_data = json.load(f)
+
+# Language metadata
+languages = {
+    'fr': {'name': 'French', 'notice': 'Traductions françaises à venir'},
+    'pt': {'name': 'Portuguese', 'notice': 'Traduções em português em breve'},
+    'ru': {'name': 'Russian', 'notice': 'Русские переводы скоро появятся'},
+    'es': {'name': 'Spanish', 'notice': 'Traducciones en español próximamente'},
+    'ur': {'name': 'Urdu', 'notice': 'اردو ترجمہ جلد آرہا ہے'},
+    'hi': {'name': 'Hindi', 'notice': 'हिन्दी अनुवाद जल्द ही आ रहे हैं'},
+    'zh': {'name': 'Chinese', 'notice': '中文翻译即将推出'},
+}
+
+print("🌍 Generating Translation Stub Files")
+print("=" * 50)
+
+for lang_code, metadata in languages.items():
+    lang_file = i18n_dir / f'{lang_code}.json'
+    
+    # Create stub data with English fallback + notice
+    stub_data = {
+        **en_data,
+        '_metadata': {
+            'language': lang_code,
+            'languageName': metadata['name'],
+            'status': 'stub',
+            'notice': metadata['notice'],
+            'fallbackLanguage': 'en',
+            'lastUpdated': '2025-11-16',
+            'translationCoverage': '0%',
+            'description': f'{metadata["name"]} translations - Currently using English fallbacks. Translations coming soon.'
+        }
+    }
+    
+    # Write to file
+    with open(lang_file, 'w', encoding='utf-8') as f:
+        json.dump(stub_data, f, ensure_ascii=False, indent=2)
+    
+    print(f"✅ Created: {lang_code}.json ({metadata['name']})")
+    print(f"   Notice: {metadata['notice']}")
+
+print()
+print("✅ All translation stub files created successfully!")
+print()
+print("📝 Next steps:")
+print("   1. Professional translators can now populate these files")
+print("   2. Update '_metadata.translationCoverage' as translation progresses")
+print("   3. English fallbacks ensure the app works in all languages immediately")
+
+]]>
+</file>
+
+<file path="scripts/generate_missing_translations.py">
+<![CDATA[
+#!/usr/bin/env python3
+"""Generate EN + AR translations for missing keys based on audit report."""
+from __future__ import annotations
+import json
+import os
+import re
+import sys
+from pathlib import Path
+from typing import Dict, Tuple
+
+try:
+    from googletrans import Translator  # type: ignore
+except ImportError as exc:  # pragma: no cover
+    print("googletrans is required. Install via `python3 -m pip install googletrans==4.0.0rc1`.", file=sys.stderr)
+    raise
+
+ROOT = Path(__file__).resolve().parents[1]
+AUDIT_JSON = ROOT / 'docs' / 'translations' / 'translation-audit.json'
+ARTIFACT = ROOT / '_artifacts' / 'generated-translations.json'
+NEW_TS = ROOT / 'i18n' / 'new-translations.ts'
+
+MANUAL_EN: Dict[str, str] = {
+    'marketplace.claims.buyer.title': 'Buyer claims',
+    'marketplace.claims.buyer.subtitle': 'Track every claim you have filed and monitor status updates',
+    'marketplace.claims.buyer.newClaim': 'File new claim',
+    'marketplace.claims.seller.title': 'Seller claims desk',
+    'marketplace.claims.seller.subtitle': 'Review open disputes and respond before deadlines',
+    'marketplace.claims.seller.importantNotice': 'Important notice',
+    'marketplace.claims.seller.responseDeadline': 'Respond within 3 calendar days to avoid automatic resolutions',
+    'marketplace.claims.seller.respondToClaim': 'Respond to claim',
+    'marketplace.claims.seller.respondToClaimSubtitle': 'Provide documentation, refunds, or counter evidence to resolve the dispute',
+    'marketplace.settlements.withdrawalSuccess': 'Withdrawal submitted successfully',
+    'marketplace.settlements.pleaseLogin': 'Please sign in to view settlements',
+    'marketplace.settlements.mustBeSeller': 'You must be a registered seller to access settlements',
+    'marketplace.settlements.loading': 'Loading settlements...',
+    'marketplace.settlements.title': 'Seller settlements',
+    'marketplace.settlements.tabs.transactions': 'Transactions',
+    'marketplace.settlements.tabs.statements': 'Statements',
+    'marketplace.settlements.comingSoon': 'Statements export coming soon',
+}
+
+# Pre-translated Arabic overrides for sensitive system text
+MANUAL_AR: Dict[str, str] = {
+    'marketplace.claims.buyer.title': 'مطالبات المشتري',
+    'marketplace.claims.buyer.subtitle': 'تتبع كل مطالبة قدمتها وراقب تحديثات الحالة',
+    'marketplace.claims.buyer.newClaim': 'تقديم مطالبة جديدة',
+    'marketplace.claims.seller.title': 'مكتب مطالبات البائع',
+    'marketplace.claims.seller.subtitle': 'راجع النزاعات المفتوحة واستجب قبل المهل الزمنية',
+    'marketplace.claims.seller.importantNotice': 'تنبيه هام',
+    'marketplace.claims.seller.responseDeadline': 'يجب الرد خلال ٣ أيام تقويمية لتجنب الحسم التلقائي',
+    'marketplace.claims.seller.respondToClaim': 'الرد على المطالبة',
+    'marketplace.claims.seller.respondToClaimSubtitle': 'قدّم المستندات أو المبالغ المستردة أو الأدلة المضادة لحل النزاع',
+    'marketplace.settlements.withdrawalSuccess': 'تم إرسال طلب السحب بنجاح',
+    'marketplace.settlements.pleaseLogin': 'الرجاء تسجيل الدخول لعرض التسويات',
+    'marketplace.settlements.mustBeSeller': 'يجب أن تكون بائعاً مسجلاً للوصول إلى التسويات',
+    'marketplace.settlements.loading': 'جاري تحميل التسويات...',
+    'marketplace.settlements.title': 'تسويات البائع',
+    'marketplace.settlements.tabs.transactions': 'المعاملات',
+    'marketplace.settlements.tabs.statements': 'الكشوفات',
+    'marketplace.settlements.comingSoon': 'تصدير الكشوفات قادم قريباً',
+}
+
+PLACEHOLDER_RE = re.compile(r"{{[^}]+}}")
+
+def mask_placeholders(text: str) -> Tuple[str, Dict[str, str]]:
+    replacements: Dict[str, str] = {}
+    def _repl(match: re.Match[str]) -> str:
+        token = f"__PH{len(replacements)}__"
+        replacements[token] = match.group(0)
+        return token
+    masked = PLACEHOLDER_RE.sub(_repl, text)
+    return masked, replacements
+
+def restore_placeholders(text: str, mapping: Dict[str, str]) -> str:
+    for token, original in mapping.items():
+        text = text.replace(token, original)
+    return text
+
+def find_fallback(key: str, files: list[str]) -> str | None:
+    pattern = re.compile(rf"t\(\s*['\"]{re.escape(key)}['\"]\s*,\s*['\"]([^'\"]+)" )
+    for file in files:
+        path = Path(file)
+        if not path.exists():
+            continue
+        try:
+            content = path.read_text(encoding='utf-8')
+        except Exception:
+            continue
+        match = pattern.search(content)
+        if match:
+            return match.group(1)
+    return None
+
+def load_missing() -> Dict[str, Dict[str, str]]:
+    if not AUDIT_JSON.exists():
+        raise SystemExit(f"Audit file not found at {AUDIT_JSON}")
+    audit = json.loads(AUDIT_JSON.read_text(encoding='utf-8'))
+    data: Dict[str, Dict[str, str]] = {}
+    translator = Translator()
+
+    missing_entries = audit.get('missing', {}).get('used', [])
+    for entry in missing_entries:
+        key = entry['key']
+        fallback = MANUAL_EN.get(key)
+        if not fallback:
+            fallback = find_fallback(key, entry.get('files', []))
+        if not fallback:
+            # fall back to key label transformed
+            fallback = key.split('.')[-1].replace('_', ' ').replace('-', ' ').title()
+        en_text = fallback
+        ar_text = MANUAL_AR.get(key)
+        if not ar_text:
+            masked, placeholders = mask_placeholders(en_text)
+            translated = translator.translate(masked, src='en', dest='ar').text
+            ar_text = restore_placeholders(translated, placeholders)
+        data[key] = {'en': en_text, 'ar': ar_text}
+    return data
+
+def write_ts(entries: Dict[str, Dict[str, str]]) -> None:
+    lines = [
+        '/* Auto-generated via scripts/generate_missing_translations.py */',
+        'export const newTranslations = {',
+        '  en: {'
+    ]
+    for key in sorted(entries):
+        en_val = entries[key]['en'].replace('\\', '\\\\').replace("'", "\\'")
+        lines.append(f"    '{key}': '{en_val}',")
+    lines.append('  },')
+    lines.append('  ar: {')
+    for key in sorted(entries):
+        ar_val = entries[key]['ar'].replace('\\', '\\\\').replace("'", "\\'")
+        lines.append(f"    '{key}': '{ar_val}',")
+    lines.append('  },')
+    lines.append('} as const;')
+    NEW_TS.write_text('\n'.join(lines) + '\n', encoding='utf-8')
+
+
+def write_artifact(entries: Dict[str, Dict[str, str]]) -> None:
+    ARTIFACT.parent.mkdir(parents=True, exist_ok=True)
+    ARTIFACT.write_text(json.dumps(entries, ensure_ascii=False, indent=2), encoding='utf-8')
+
+
+def update_locale_json(entries: Dict[str, Dict[str, str]]) -> None:
+    for lang in ('en', 'ar'):
+        path = ROOT / 'i18n' / f'{lang}.json'
+        data = json.loads(path.read_text(encoding='utf-8'))
+        for key, payload in entries.items():
+            segments = key.split('.')
+            cursor = data
+            for seg in segments[:-1]:
+                next_node = cursor.get(seg)
+                if not isinstance(next_node, dict):
+                    cursor[seg] = {}
+                    next_node = cursor[seg]
+                cursor = next_node
+            cursor[segments[-1]] = payload[lang]
+        path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+
+def main() -> None:
+    entries = load_missing()
+    write_ts(entries)
+    write_artifact(entries)
+    update_locale_json(entries)
+    print(f"Generated {len(entries)} translations.")
+    print(f"Updated {NEW_TS.relative_to(ROOT)} and locale JSON files.")
+
+
+if __name__ == '__main__':
+    main()
+
+]]>
+</file>
+
+<file path="scripts/i18n/check_language_selector.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+console.log("Checking Language Selector standards...");
+console.log("✓ Language selector OK");
+
+]]>
+</file>
+
+<file path="scripts/inspect-user.ts">
+<![CDATA[
+#!/usr/bin/env node
+import { db } from "../lib/mongo";
+import { User } from "../server/models/User";
+
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+
+async function inspectUser() {
+  try {
+    await db;
+    const adminEmail = `admin@${EMAIL_DOMAIN}`;
+    const user = await User.findOne({ email: adminEmail });
+
+    if (user) {
+      console.log(`📋 Existing ${adminEmail} user structure:`);
+      console.log(JSON.stringify(user.toObject(), null, 2));
+    } else {
+      console.log("❌ No user found");
+    }
+
+    process.exit(0);
+  } catch (error) {
+    console.error("Error:", error);
+    process.exit(1);
+  }
+}
+
+inspectUser();
+
+]]>
+</file>
+
+<file path="scripts/janitor.ts">
+<![CDATA[
+// scripts/janitor.ts
+// Moves root junk files into _archive/<timestamp>/ to keep the repo clean.
+// Usage: npm run clean:root  (maps to: tsx scripts/janitor.ts --apply)
+
+import { mkdirSync, renameSync, existsSync, readdirSync, statSync } from "fs";
+import { join } from "path";
+
+const NOW = new Date().toISOString().replace(/[:T]/g, "-").split(".")[0];
+const ARCHIVE_DIR = `_archive/${NOW}`;
+const ROOT = process.cwd();
+
+const MOVE_PATTERNS = [
+  /\.zip$/i,
+  /\.tar(\.gz)?$/i,
+  /\.tgz$/i,
+  /\.gz$/i,
+  /\.log$/i,
+  /\.tmp$/i,
+  /\.bak$/i,
+  /\s(\d+)\./, // duplicates like "config (2).zip"
+];
+
+const ENV_KEEP = new Set([".env.local", "env.example"]);
+
+function shouldMove(file: string) {
+  // don't touch directories
+  const stat = statSync(join(ROOT, file));
+  if (!stat.isFile()) return false;
+
+  // keep key project files
+  if (
+    [
+      "package.json",
+      "package-lock.json",
+      "yarn.lock",
+      "pnpm-lock.yaml",
+      "next.config.js",
+      "postcss.config.js",
+      "tailwind.config.js",
+      "README.md",
+    ].includes(file)
+  ) {
+    return false;
+  }
+
+  // keep main envs
+  if (
+    (file.startsWith(".env") || file.startsWith("env")) &&
+    ENV_KEEP.has(file)
+  ) {
+    return false;
+  }
+
+  // move other env variations
+  if (file.startsWith(".env") || file.startsWith("env")) return true;
+
+  // move matching junk
+  return MOVE_PATTERNS.some((re) => re.test(file));
+}
+
+function main() {
+  const entries = readdirSync(ROOT);
+  const toMove = entries.filter(shouldMove);
+
+  if (!toMove.length) {
+    console.log("Nothing to move. Root is clean ✅");
+    return;
+  }
+  if (!existsSync(ARCHIVE_DIR)) mkdirSync(ARCHIVE_DIR, { recursive: true });
+
+  for (const f of toMove) {
+    const src = join(ROOT, f);
+    const dst = join(ROOT, ARCHIVE_DIR, f);
+    try {
+      renameSync(src, dst);
+      console.log(`Moved: ${f} -> ${ARCHIVE_DIR}/`);
+    } catch (e) {
+      console.warn(`Skip (could not move): ${f}`, e);
+    }
+  }
+  console.log(`\nDone. Moved ${toMove.length} file(s) into ${ARCHIVE_DIR}`);
+}
+
+main();
+
+]]>
+</file>
+
+<file path="scripts/kb-change-stream.ts">
+<![CDATA[
+import "dotenv/config";
+import "tsx/esm";
+import { embedText } from "@/ai/embeddings";
+import { chunkText } from "@/kb/chunk";
+import { getDatabase, disconnectFromDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
+
+async function run() {
+  const db = await getDatabase();
+  const articles = db.collection(COLLECTIONS.HELP_ARTICLES);
+  const kb = db.collection(COLLECTIONS.KB_EMBEDDINGS);
+  console.log("KB Change Stream watcher started…");
+  interface ChangeEvent {
+    operationType: string;
+    fullDocument?: {
+      slug?: string;
+      content?: string;
+      status?: string;
+      lang?: string;
+    };
+  }
+
+  const stream = articles.watch([], { fullDocument: "updateLookup" });
+  stream.on("change", async (ev: ChangeEvent) => {
+    try {
+      if (!["insert", "update", "replace"].includes(ev.operationType)) return;
+      const doc = ev.fullDocument;
+      if (!doc || doc.status !== "PUBLISHED") return;
+      const articleId = doc.slug;
+      const content = String(doc.content || "");
+      const chunks = chunkText(content, 1200, 200);
+      const ops: Array<{
+        updateOne: {
+          filter: Record<string, unknown>;
+          update: Record<string, unknown>;
+          upsert: boolean;
+        };
+      }> = [];
+      let idx = 0;
+      for (const c of chunks) {
+        const emb = await embedText(c.text);
+        ops.push({
+          updateOne: {
+            filter: { articleId, chunkId: idx },
+            update: {
+              $set: {
+                articleId,
+                chunkId: idx,
+                text: c.text,
+                embedding: emb,
+                route: `/help/${articleId}`,
+                lang: doc.lang || "en",
+                roleScopes: ["USER"],
+                updatedAt: new Date(),
+              },
+            },
+            upsert: true,
+          },
+        });
+        idx += 1;
+      }
+      if (ops.length) await kb.bulkWrite(ops, { ordered: false });
+      console.log(
+        `Upserted embeddings for ${articleId} (chunks=${ops.length})`,
+      );
+    } catch (e) {
+      console.warn("KB watcher error:", e);
+    }
+  });
+}
+
+run().catch((err) => {
+  console.error(err);
+  disconnectFromDatabase().finally(() => process.exit(1));
+});
+
+]]>
+</file>
+
+<file path="scripts/lint-collections.js">
+<![CDATA[
+#!/usr/bin/env node
+// Flags hardcoded db.collection("...") usages that are not using COLLECTIONS.
+// Usage: node scripts/lint-collections.js [path...]
+
+const fs = require('fs');
+const path = require('path');
+const glob = require('glob');
+
+const args = process.argv.slice(2);
+// By default, scan runtime and scripts (app/server/lib/modules/scripts).
+// Pass additional paths explicitly if needed.
+const roots = args.length ? args : ['app', 'server', 'lib', 'modules', 'scripts'];
+
+const allowExtensions = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs']);
+const allowLiterals = new Set([
+  // explicit allowlist for non-mongo or test fixtures
+  'memory',
+  '_deployment_test',
+  '_tenant_test',
+  '_perf_test',
+  'test', // generic test DB in scripts
+  'system.version', // Mongo internal collection used for health checks
+]);
+
+let violations = [];
+
+for (const root of roots) {
+  const pattern = path.join(root, '**/*.{ts,tsx,js,mjs,cjs}');
+    const files = glob.sync(pattern, { nodir: true, ignore: ['**/node_modules/**', '**/coverage/**', '**/dist/**', '**/.next/**'] });
+  for (const file of files) {
+    if (file.endsWith('scripts/lint-collections.js')) continue; // skip self
+    const ext = path.extname(file);
+    if (!allowExtensions.has(ext)) continue;
+    const content = fs.readFileSync(file, 'utf8');
+
+    // Rough scan: match .collection("...") where ... is a string literal
+    const regex = /\.collection\((['"])([^'"`]+)\1\)/g;
+    let match;
+    while ((match = regex.exec(content)) !== null) {
+      const literal = match[2];
+      // Skip if looks like COLLECTIONS.* or template expressions
+      if (/COLLECTIONS\./.test(literal)) continue;
+      if (allowLiterals.has(literal)) continue;
+      // Skip allowlisted test-only patterns
+      if (/__mocks__/.test(file) || /tests\//.test(file)) continue;
+
+      const line = content.slice(0, match.index).split('\n').length;
+      violations.push({ file, line, literal });
+    }
+  }
+}
+
+if (violations.length) {
+  console.error('Hardcoded collection literals found (use COLLECTIONS.*):');
+  for (const v of violations) {
+    console.error(` - ${v.file}:${v.line} -> "${v.literal}"`);
+  }
+  process.exit(1);
+} else {
+  console.log('✅ No hardcoded collection literals found');
+}
+
+]]>
+</file>
+
+<file path="scripts/lint-findbyid-orgid.ts">
+<![CDATA[
+/**
+ * Lightweight guard: flags `findById` usages in services/souq without an accompanying orgId check.
+ * This is advisory and not wired into CI to avoid false positives; run manually when touching Souq services.
+ */
+import fs from "fs";
+import path from "path";
+
+const root = path.join(process.cwd(), "services", "souq");
+
+function walk(dir: string, acc: string[] = []): string[] {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      walk(full, acc);
+    } else if (entry.isFile() && full.endsWith(".ts")) {
+      acc.push(full);
+    }
+  }
+  return acc;
+}
+
+const files = fs.existsSync(root) ? walk(root) : [];
+const offenders: Array<{ file: string; line: number; snippet: string }> = [];
+
+for (const file of files) {
+  const content = fs.readFileSync(file, "utf8").split("\n");
+  content.forEach((line, idx) => {
+    if (line.includes("findById(") && !line.includes("orgId")) {
+      offenders.push({
+        file,
+        line: idx + 1,
+        snippet: line.trim(),
+      });
+    }
+  });
+}
+
+if (offenders.length) {
+  console.warn("Potential missing orgId scoping on findById in services/souq:");
+  for (const off of offenders) {
+    console.warn(` - ${off.file}:${off.line} :: ${off.snippet}`);
+  }
+  process.exitCode = 1;
+} else {
+  console.log("No findById usages without orgId hint found in services/souq.");
+}
+
+]]>
+</file>
+
+<file path="scripts/lint-inventory-orgid.ts">
+<![CDATA[
+import fg from "fast-glob";
+import fs from "fs";
+import path from "path";
+import ts from "typescript";
+
+type Violation = { file: string; line: number; col: number; message: string };
+
+const inventoryVarName = "inventoryService";
+const listingModels = new Set(["SouqListing", "SouqProduct"]);
+
+// Methods that take an object literal and must include orgId
+const objectArgMethods = new Set([
+  "initializeInventory",
+  "reserveInventory",
+  "releaseReservation",
+  "convertReservationToSale",
+  "processReturn",
+  "adjustInventory",
+]);
+
+// Methods with an object filters arg that must include orgId
+const objectFilterMethods = new Set(["getSellerInventory"]);
+
+// Methods with positional orgId requirements: map method -> zero-based arg index
+const positionalOrgIndex: Record<string, number> = {
+  receiveStock: 3, // listingId, quantity, performedBy, orgId, reason?
+  getInventory: 1, // listingId, orgId
+  getInventoryHealthReport: 1, // sellerId, orgId
+  cleanExpiredReservations: 0, // orgId
+  updateHealthMetrics: 1, // sellerId, orgId
+  queueLowStockAlerts: 1, // sellerId, orgId
+};
+
+// Known helper functions that provide orgId filtering
+const orgFilterHelpers = new Set([
+  "buildOrgFilter",
+  "buildSouqOrgFilter",
+  "buildOrgIdFilter",
+]);
+
+// Known variable names that contain org filters
+const orgFilterVarNames = new Set([
+  "orgFilter",
+  "orgIdFilter",
+  "baseFilter",
+  "tenantFilter",
+  "query", // Variable that may include orgId
+  "listingOrgFilter", // Souq listing org filter
+  "productOrgFilter", // Souq product org filter
+  "reviewOrgFilter", // Review org filter
+]);
+
+function unwrapExpression(expr: ts.Expression): ts.Expression {
+  // Recursively unwrap parentheses and type assertions
+  if (ts.isParenthesizedExpression(expr)) {
+    return unwrapExpression(expr.expression);
+  }
+  if (ts.isAsExpression(expr)) {
+    return unwrapExpression(expr.expression);
+  }
+  return expr;
+}
+
+function hasOrgIdProp(arg: ts.ObjectLiteralExpression): boolean {
+  return arg.properties.some((prop) => {
+    // Check for direct orgId property
+    if (
+      ts.isPropertyAssignment(prop) ||
+      ts.isShorthandPropertyAssignment(prop)
+    ) {
+      const name = prop.name ?? (ts.isShorthandPropertyAssignment(prop) ? prop.name : undefined);
+      return name?.getText() === "orgId";
+    }
+    // Check for spread of org filter helper or known variable: ...buildOrgFilter(orgId) or ...orgFilter
+    if (ts.isSpreadAssignment(prop)) {
+      const rawExpr = prop.expression;
+      const expr = unwrapExpression(rawExpr);
+      
+      // Handle spread of known variable: ...orgFilter
+      if (ts.isIdentifier(expr)) {
+        const varName = expr.getText();
+        if (orgFilterVarNames.has(varName)) {
+          return true;
+        }
+      }
+      
+      // Handle direct call: ...buildOrgFilter(orgId)
+      if (ts.isCallExpression(expr) && ts.isIdentifier(expr.expression)) {
+        const fnName = expr.expression.getText();
+        if (orgFilterHelpers.has(fnName)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  });
+}
+
+function recordViolation(
+  violations: Violation[],
+  sf: ts.SourceFile,
+  node: ts.Node,
+  message: string,
+) {
+  const { line, character } = sf.getLineAndCharacterOfPosition(node.getStart(sf));
+  
+  // Check for suppression comment in the surrounding context (5 lines before)
+  const lines = sf.text.split("\n");
+  const startLine = Math.max(0, line - 5);
+  const contextLines = lines.slice(startLine, line + 1).join("\n");
+  
+  // Skip if context has orgId-lint-ignore or legacy fallback comment
+  if (contextLines.includes("// orgId-lint-ignore") || 
+      contextLines.includes("// legacy fallback") ||
+      contextLines.includes("/* legacy fallback */")) {
+    return;
+  }
+  
+  violations.push({
+    file: path.relative(process.cwd(), sf.fileName),
+    line: line + 1,
+    col: character + 1,
+    message,
+  });
+}
+
+function checkCall(node: ts.CallExpression, sf: ts.SourceFile, violations: Violation[]) {
+  if (!ts.isPropertyAccessExpression(node.expression)) return;
+  const callee = node.expression;
+  const target = callee.expression.getText(sf);
+
+  // Inventory service guardrails
+  if (target === inventoryVarName) {
+    const method = callee.name.getText(sf);
+  
+    // Object literal methods
+    if (objectArgMethods.has(method)) {
+      const [arg] = node.arguments;
+      if (!arg || !ts.isObjectLiteralExpression(arg) || !hasOrgIdProp(arg)) {
+        recordViolation(
+          violations,
+          sf,
+          node,
+          `${method}() must be called with an object argument containing orgId`,
+        );
+      }
+      return;
+    }
+  
+    // Object filter methods (second arg must have orgId)
+    if (objectFilterMethods.has(method)) {
+      const [, arg] = node.arguments;
+      if (!arg || !ts.isObjectLiteralExpression(arg) || !hasOrgIdProp(arg)) {
+        recordViolation(
+          violations,
+          sf,
+          node,
+          `${method}() second argument must include orgId`,
+        );
+      }
+      return;
+    }
+  
+    // Positional orgId methods
+    if (method in positionalOrgIndex) {
+      const idx = positionalOrgIndex[method];
+      const arg = node.arguments[idx];
+      if (!arg || ts.isOmittedExpression(arg)) {
+        recordViolation(
+          violations,
+          sf,
+          node,
+          `${method}() argument ${idx + 1} must be orgId`,
+        );
+        return;
+      }
+      return;
+    }
+    return;
+  }
+
+  // Listing/Product model guardrails: queries must include orgId in filter object
+  if (listingModels.has(target)) {
+    const method = callee.name.getText(sf);
+    let firstArg = node.arguments[0];
+    const methodsRequiringFilter = new Set([
+      "find",
+      "findOne",
+      "findOneAndUpdate",
+      "updateOne",
+      "updateMany",
+      "deleteOne",
+      "deleteMany",
+      "countDocuments",
+    ]);
+
+    if (methodsRequiringFilter.has(method)) {
+      // Unwrap type assertions: { foo } as Type => { foo }
+      if (firstArg && ts.isAsExpression(firstArg)) {
+        firstArg = firstArg.expression;
+      }
+      if (firstArg && ts.isParenthesizedExpression(firstArg)) {
+        firstArg = firstArg.expression;
+      }
+      
+      // Check if firstArg is a known variable that should contain orgId (e.g., query)
+      if (firstArg && ts.isIdentifier(firstArg)) {
+        const varName = firstArg.getText();
+        if (orgFilterVarNames.has(varName)) {
+          // Variable is assumed to contain orgId - no violation
+          return;
+        }
+      }
+      
+      if (!firstArg || !ts.isObjectLiteralExpression(firstArg) || !hasOrgIdProp(firstArg)) {
+        recordViolation(
+          violations,
+          sf,
+          node,
+          `${target}.${method}() must include orgId in the filter`,
+        );
+      }
+    }
+  }
+}
+
+async function main() {
+  const files = await fg(
+    [
+      "app/api/souq/inventory/**/*.ts",
+      "services/souq/**/*.ts",
+      "app/api/souq/returns/**/*.ts",
+    ],
+    { ignore: ["**/node_modules/**", "**/.next/**"] },
+  );
+
+  const violations: Violation[] = [];
+
+  for (const file of files) {
+    const code = fs.readFileSync(file, "utf8");
+    const sf = ts.createSourceFile(
+      file,
+      code,
+      ts.ScriptTarget.Latest,
+      true,
+      file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+    );
+
+    function visit(node: ts.Node) {
+      if (ts.isCallExpression(node)) {
+        checkCall(node, sf, violations);
+      }
+      ts.forEachChild(node, visit);
+    }
+
+    visit(sf);
+  }
+
+  if (violations.length > 0) {
+    for (const v of violations) {
+      console.error(`${v.file}:${v.line}:${v.col} ${v.message}`);
+    }
+    process.exitCode = 1;
+  }
+}
+
+main().catch((err) => {
+  console.error("lint-inventory-orgid failed", err);
+  process.exitCode = 1;
+});
+
+]]>
+</file>
+
+<file path="scripts/lint-landing-translations.js">
+<![CDATA[
+"use strict";
+
+/**
+ * Guardrail: ensure landing page translations do not contain live operational metrics.
+ *
+ * The check is intentionally simple: fail if any translation string contains a digit,
+ * since real metrics (counts, currency, percentages) are the common leak vector.
+ */
+
+const fs = require("fs");
+const path = require("path");
+
+const TARGET = path.join(
+  __dirname,
+  "..",
+  "i18n",
+  "sources",
+  "landing.translations.json",
+);
+
+function hasDigits(value) {
+  return typeof value === "string" && /\d/.test(value);
+}
+
+function walk(value, keyPath, offenders) {
+  if (Array.isArray(value)) {
+    value.forEach((item, idx) => walk(item, `${keyPath}[${idx}]`, offenders));
+  } else if (value && typeof value === "object") {
+    Object.entries(value).forEach(([k, v]) =>
+      walk(v, keyPath ? `${keyPath}.${k}` : k, offenders),
+    );
+  } else if (hasDigits(value)) {
+    offenders.push(keyPath || "<root>");
+  }
+}
+
+try {
+  if (!fs.existsSync(TARGET)) {
+    console.log("ℹ️  landing translations not found; skipping metric guard.");
+    process.exit(0);
+  }
+
+  const json = JSON.parse(fs.readFileSync(TARGET, "utf8"));
+  const offenders = [];
+  walk(json, "", offenders);
+
+  if (offenders.length > 0) {
+    console.error(
+      "❌ Landing translations contain numeric values (potential live metrics):",
+    );
+    offenders.slice(0, 20).forEach((k) => console.error(` - ${k}`));
+    if (offenders.length > 20) {
+      console.error(` ...and ${offenders.length - 20} more`);
+    }
+    process.exit(1);
+  }
+
+  console.log(
+    "✅ Landing translations clean (no live-looking metrics detected).",
+  );
+  process.exit(0);
+} catch (error) {
+  console.error("❌ Failed to scan landing translations:", error);
+  process.exit(1);
+}
+
+]]>
+</file>
+
+<file path="scripts/lint-rbac-parity.ts">
+<![CDATA[
+#!/usr/bin/env npx tsx
+/**
+ * RBAC Parity Lint Script
+ * 
+ * Validates that RBAC matrices are aligned across:
+ * - domain/fm/fm.behavior.ts (server)
+ * - domain/fm/fm.types.ts (client/shared)
+ * - domain/fm/fm-lite.ts (client-safe façade)
+ * 
+ * Run: pnpm lint:rbac or npx tsx scripts/lint-rbac-parity.ts
+ * 
+ * This prevents drift between server and client RBAC definitions.
+ */
+
+import {
+  Role,
+  SubRole,
+  ModuleKey,
+  ROLE_MODULE_ACCESS as SERVER_ROLE_MODULE_ACCESS,
+  ROLE_ACTIONS as SERVER_ROLE_ACTIONS,
+  SUB_ROLE_ACTIONS as SERVER_SUB_ROLE_ACTIONS,
+  SUBMODULE_REQUIRED_SUBROLE as SERVER_SUBMODULE_REQUIRED_SUBROLE,
+  PLAN_GATES as SERVER_PLAN_GATES,
+  computeAllowedModules as serverComputeAllowedModules,
+} from "../domain/fm/fm.behavior";
+
+import {
+  ROLE_MODULE_ACCESS as CLIENT_ROLE_MODULE_ACCESS,
+  ROLE_ACTIONS as CLIENT_ROLE_ACTIONS,
+  SUB_ROLE_ACTIONS as CLIENT_SUB_ROLE_ACTIONS,
+  SUBMODULE_REQUIRED_SUBROLE as CLIENT_SUBMODULE_REQUIRED_SUBROLE,
+  PLAN_GATES as CLIENT_PLAN_GATES,
+  computeAllowedModules as clientComputeAllowedModules,
+} from "../domain/fm/fm.types";
+
+import {
+  ROLE_MODULES as LITE_ROLE_MODULES,
+  PLAN_GATES as LITE_PLAN_GATES,
+  ROLE_ACTIONS as LITE_ROLE_ACTIONS,
+  SUB_ROLE_ACTIONS as LITE_SUB_ROLE_ACTIONS,
+  SUBMODULE_REQUIRED_SUBROLE as LITE_SUBMODULE_REQUIRED_SUBROLE,
+  computeAllowedModules as liteComputeAllowedModules,
+} from "../domain/fm/fm-lite";
+
+interface ParityError {
+  category: string;
+  message: string;
+  details?: string;
+}
+
+const errors: ParityError[] = [];
+
+function logError(category: string, message: string, details?: string) {
+  errors.push({ category, message, details });
+  console.error(`❌ [${category}] ${message}${details ? `\n   Details: ${details}` : ""}`);
+}
+
+function logSuccess(message: string) {
+  console.log(`✅ ${message}`);
+}
+
+function arraysEqual<T>(a: T[], b: T[]): boolean {
+  if (a.length !== b.length) return false;
+  const sortedA = [...a].sort();
+  const sortedB = [...b].sort();
+  return sortedA.every((val, idx) => val === sortedB[idx]);
+}
+
+function objectsEqual(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
+  const keysA = Object.keys(a).sort();
+  const keysB = Object.keys(b).sort();
+  if (!arraysEqual(keysA, keysB)) return false;
+  return keysA.every((key) => JSON.stringify(a[key]) === JSON.stringify(b[key]));
+}
+
+// ============================================
+// 1. ROLE_MODULE_ACCESS Parity (Server vs Client)
+// ============================================
+function checkRoleModuleAccessParity() {
+  console.log("\n📋 Checking ROLE_MODULE_ACCESS parity (server vs client)...");
+  
+  const serverRoles = Object.keys(SERVER_ROLE_MODULE_ACCESS).sort();
+  const clientRoles = Object.keys(CLIENT_ROLE_MODULE_ACCESS).sort();
+  
+  if (!arraysEqual(serverRoles, clientRoles)) {
+    logError("ROLE_MODULE_ACCESS", "Role keys mismatch", 
+      `Server: ${serverRoles.join(", ")}\nClient: ${clientRoles.join(", ")}`);
+  } else {
+    logSuccess("ROLE_MODULE_ACCESS role keys match");
+  }
+  
+  // Check each role's module access
+  for (const role of Object.values(Role)) {
+    const serverAccess = SERVER_ROLE_MODULE_ACCESS[role] || {};
+    const clientAccess = CLIENT_ROLE_MODULE_ACCESS[role] || {};
+    
+    if (!objectsEqual(serverAccess as Record<string, unknown>, clientAccess as Record<string, unknown>)) {
+      logError("ROLE_MODULE_ACCESS", `Role ${role} module access mismatch`,
+        `Server: ${JSON.stringify(serverAccess)}\nClient: ${JSON.stringify(clientAccess)}`);
+    }
+  }
+}
+
+// ============================================
+// 2. ROLE_ACTIONS Parity (Server vs Client)
+// ============================================
+function checkRoleActionsParity() {
+  console.log("\n📋 Checking ROLE_ACTIONS parity (server vs client)...");
+  
+  for (const role of Object.values(Role)) {
+    const serverActions = SERVER_ROLE_ACTIONS[role] || {};
+    const clientActions = CLIENT_ROLE_ACTIONS[role] || {};
+    
+    const serverKeys = Object.keys(serverActions).sort();
+    const clientKeys = Object.keys(clientActions).sort();
+    
+    if (!arraysEqual(serverKeys, clientKeys)) {
+      logError("ROLE_ACTIONS", `Role ${role} submodule keys mismatch`,
+        `Server: ${serverKeys.join(", ")}\nClient: ${clientKeys.join(", ")}`);
+    } else {
+      // Check action arrays for each submodule
+      for (const submodule of serverKeys) {
+        const serverActionList = (serverActions as Record<string, string[]>)[submodule] || [];
+        const clientActionList = (clientActions as Record<string, string[]>)[submodule] || [];
+        
+        if (!arraysEqual(serverActionList, clientActionList)) {
+          logError("ROLE_ACTIONS", `Role ${role} actions for ${submodule} mismatch`,
+            `Server: ${serverActionList.join(", ")}\nClient: ${clientActionList.join(", ")}`);
+        }
+      }
+    }
+  }
+  
+  if (!errors.some(e => e.category === "ROLE_ACTIONS")) {
+    logSuccess("ROLE_ACTIONS fully aligned");
+  }
+}
+
+// ============================================
+// 3. SUB_ROLE_ACTIONS Parity
+// ============================================
+function checkSubRoleActionsParity() {
+  console.log("\n📋 Checking SUB_ROLE_ACTIONS parity (server vs client)...");
+  
+  for (const subRole of Object.values(SubRole)) {
+    const serverActions = SERVER_SUB_ROLE_ACTIONS[subRole] || {};
+    const clientActions = CLIENT_SUB_ROLE_ACTIONS[subRole] || {};
+    
+    if (!objectsEqual(serverActions as Record<string, unknown>, clientActions as Record<string, unknown>)) {
+      logError("SUB_ROLE_ACTIONS", `SubRole ${subRole} mismatch`,
+        `Server: ${JSON.stringify(serverActions)}\nClient: ${JSON.stringify(clientActions)}`);
+    }
+  }
+  
+  if (!errors.some(e => e.category === "SUB_ROLE_ACTIONS")) {
+    logSuccess("SUB_ROLE_ACTIONS fully aligned");
+  }
+}
+
+// ============================================
+// 4. SUBMODULE_REQUIRED_SUBROLE Parity
+// ============================================
+function checkSubmoduleRequiredSubroleParity() {
+  console.log("\n📋 Checking SUBMODULE_REQUIRED_SUBROLE parity (server vs client)...");
+  
+  if (!objectsEqual(
+    SERVER_SUBMODULE_REQUIRED_SUBROLE as unknown as Record<string, unknown>,
+    CLIENT_SUBMODULE_REQUIRED_SUBROLE as unknown as Record<string, unknown>
+  )) {
+    logError("SUBMODULE_REQUIRED_SUBROLE", "Mismatch between server and client");
+  } else {
+    logSuccess("SUBMODULE_REQUIRED_SUBROLE fully aligned");
+  }
+}
+
+// ============================================
+// 5. PLAN_GATES Parity
+// ============================================
+function checkPlanGatesParity() {
+  console.log("\n📋 Checking PLAN_GATES parity (server vs client)...");
+  
+  if (!objectsEqual(
+    SERVER_PLAN_GATES as unknown as Record<string, unknown>,
+    CLIENT_PLAN_GATES as unknown as Record<string, unknown>
+  )) {
+    logError("PLAN_GATES", "Mismatch between server and client");
+  } else {
+    logSuccess("PLAN_GATES fully aligned");
+  }
+}
+
+// ============================================
+// 5b. PLAN_GATES Parity (Server vs Lite)
+// ============================================
+function checkLitePlanGatesParity() {
+  console.log("\n📋 Checking PLAN_GATES parity (server vs lite)...");
+
+  if (!objectsEqual(
+    SERVER_PLAN_GATES as unknown as Record<string, unknown>,
+    LITE_PLAN_GATES as unknown as Record<string, unknown>
+  )) {
+    logError("PLAN_GATES_LITE", "Mismatch between server and lite");
+  } else {
+    logSuccess("PLAN_GATES_LITE fully aligned");
+  }
+}
+
+// ============================================
+// 6. computeAllowedModules Parity (Server vs Client vs Lite)
+// ============================================
+function checkComputeAllowedModulesParity() {
+  console.log("\n📋 Checking computeAllowedModules parity (server vs client vs lite)...");
+  
+  // Test all roles without sub-roles
+  for (const role of Object.values(Role)) {
+    const serverModules = serverComputeAllowedModules(role).sort();
+    const clientModules = clientComputeAllowedModules(role).sort();
+    const liteModules = liteComputeAllowedModules(role).sort();
+    
+    if (!arraysEqual(serverModules, clientModules)) {
+      logError("computeAllowedModules", `Role ${role} server/client mismatch`,
+        `Server: ${serverModules.join(", ")}\nClient: ${clientModules.join(", ")}`);
+    }
+    
+    if (!arraysEqual(serverModules, liteModules)) {
+      logError("computeAllowedModules", `Role ${role} server/lite mismatch`,
+        `Server: ${serverModules.join(", ")}\nLite: ${liteModules.join(", ")}`);
+    }
+  }
+  
+  // Test TEAM_MEMBER with all sub-roles (union behavior)
+  for (const subRole of Object.values(SubRole)) {
+    const serverModules = serverComputeAllowedModules(Role.TEAM_MEMBER, subRole).sort();
+    const clientModules = clientComputeAllowedModules(Role.TEAM_MEMBER, subRole).sort();
+    const liteModules = liteComputeAllowedModules(Role.TEAM_MEMBER, subRole).sort();
+    
+    if (!arraysEqual(serverModules, clientModules)) {
+      logError("computeAllowedModules", `TEAM_MEMBER + ${subRole} server/client mismatch`,
+        `Server: ${serverModules.join(", ")}\nClient: ${clientModules.join(", ")}`);
+    }
+    
+    if (!arraysEqual(serverModules, liteModules)) {
+      logError("computeAllowedModules", `TEAM_MEMBER + ${subRole} server/lite mismatch`,
+        `Server: ${serverModules.join(", ")}\nLite: ${liteModules.join(", ")}`);
+    }
+    
+    // Verify union behavior: sub-role should NOT lose base modules
+    const baseModules = serverComputeAllowedModules(Role.TEAM_MEMBER).sort();
+    for (const baseModule of baseModules) {
+      if (!serverModules.includes(baseModule)) {
+        logError("computeAllowedModules", `SubRole ${subRole} lost base module ${baseModule}`,
+          "Sub-roles should union with base modules, not replace them");
+      }
+    }
+  }
+  
+  if (!errors.some(e => e.category === "computeAllowedModules")) {
+    logSuccess("computeAllowedModules fully aligned across server/client/lite");
+  }
+}
+
+// ============================================
+// 7. fm-lite ROLE_MODULES vs Server ROLE_MODULE_ACCESS
+// ============================================
+function checkLiteRoleModulesParity() {
+  console.log("\n📋 Checking fm-lite ROLE_MODULES vs server ROLE_MODULE_ACCESS...");
+  
+  for (const role of Object.values(Role)) {
+    const serverModuleAccess = SERVER_ROLE_MODULE_ACCESS[role] || {};
+    const liteModules = LITE_ROLE_MODULES[role] || [];
+    
+    // Convert server boolean map to module array
+    const serverModules = Object.entries(serverModuleAccess)
+      .filter(([, allowed]) => allowed === true)
+      .map(([module]) => module as ModuleKey)
+      .sort();
+    
+    const sortedLiteModules = [...liteModules].sort();
+    
+    if (!arraysEqual(serverModules, sortedLiteModules)) {
+      logError("LITE_ROLE_MODULES", `Role ${role} mismatch with server ROLE_MODULE_ACCESS`,
+        `Server: ${serverModules.join(", ")}\nLite: ${sortedLiteModules.join(", ")}`);
+    }
+  }
+  
+  if (!errors.some(e => e.category === "LITE_ROLE_MODULES")) {
+    logSuccess("fm-lite ROLE_MODULES aligned with server ROLE_MODULE_ACCESS");
+  }
+}
+
+// ============================================
+// 8. fm-lite ROLE_ACTIONS / SUB_ROLE_ACTIONS / SUBMODULE_REQUIRED_SUBROLE parity
+// ============================================
+function checkLiteRoleActionsParity() {
+  console.log("\n📋 Checking fm-lite ROLE_ACTIONS parity (server vs lite)...");
+
+  for (const role of Object.values(Role)) {
+    const serverActions = SERVER_ROLE_ACTIONS[role] || {};
+    const liteActions = LITE_ROLE_ACTIONS[role] || {};
+
+    const serverKeys = Object.keys(serverActions).sort();
+    const liteKeys = Object.keys(liteActions).sort();
+
+    if (!arraysEqual(serverKeys, liteKeys)) {
+      logError("ROLE_ACTIONS_LITE", `Role ${role} submodule keys mismatch`,
+        `Server: ${serverKeys.join(", ")}\nLite: ${liteKeys.join(", ")}`);
+      continue;
+    }
+
+    for (const submodule of serverKeys) {
+      const serverActionList = (serverActions as Record<string, string[]>)[submodule] || [];
+      const liteActionList = (liteActions as Record<string, string[]>)[submodule] || [];
+
+      if (!arraysEqual(serverActionList, liteActionList)) {
+        logError("ROLE_ACTIONS_LITE", `Role ${role} actions for ${submodule} mismatch`,
+          `Server: ${serverActionList.join(", ")}\nLite: ${liteActionList.join(", ")}`);
+      }
+    }
+  }
+
+  if (!errors.some(e => e.category === "ROLE_ACTIONS_LITE")) {
+    logSuccess("fm-lite ROLE_ACTIONS aligned with server");
+  }
+}
+
+function checkLiteSubRoleActionsParity() {
+  console.log("\n📋 Checking fm-lite SUB_ROLE_ACTIONS parity (server vs lite)...");
+
+  for (const subRole of Object.values(SubRole)) {
+    const serverActions = SERVER_SUB_ROLE_ACTIONS[subRole] || {};
+    const liteActions = LITE_SUB_ROLE_ACTIONS[subRole] || {};
+
+    if (!objectsEqual(serverActions as Record<string, unknown>, liteActions as Record<string, unknown>)) {
+      logError("SUB_ROLE_ACTIONS_LITE", `SubRole ${subRole} mismatch`,
+        `Server: ${JSON.stringify(serverActions)}\nLite: ${JSON.stringify(liteActions)}`);
+    }
+  }
+
+  if (!errors.some(e => e.category === "SUB_ROLE_ACTIONS_LITE")) {
+    logSuccess("fm-lite SUB_ROLE_ACTIONS aligned with server");
+  }
+}
+
+function checkLiteSubmoduleRequiredSubroleParity() {
+  console.log("\n📋 Checking fm-lite SUBMODULE_REQUIRED_SUBROLE parity (server vs lite)...");
+
+  if (!objectsEqual(
+    SERVER_SUBMODULE_REQUIRED_SUBROLE as unknown as Record<string, unknown>,
+    LITE_SUBMODULE_REQUIRED_SUBROLE as unknown as Record<string, unknown>
+  )) {
+    logError("SUBMODULE_REQUIRED_SUBROLE_LITE", "Mismatch between server and lite");
+  } else {
+    logSuccess("fm-lite SUBMODULE_REQUIRED_SUBROLE fully aligned with server");
+  }
+}
+
+// ============================================
+// Main
+// ============================================
+async function main() {
+  console.log("🔍 RBAC Parity Lint Check");
+  console.log("=".repeat(50));
+  
+  checkRoleModuleAccessParity();
+  checkRoleActionsParity();
+  checkSubRoleActionsParity();
+  checkSubmoduleRequiredSubroleParity();
+  checkPlanGatesParity();
+  checkLitePlanGatesParity();
+  checkComputeAllowedModulesParity();
+  checkLiteRoleModulesParity();
+  checkLiteRoleActionsParity();
+  checkLiteSubRoleActionsParity();
+  checkLiteSubmoduleRequiredSubroleParity();
+  
+  console.log("\n" + "=".repeat(50));
+  
+  if (errors.length === 0) {
+    console.log("✅ All RBAC parity checks passed!");
+    process.exit(0);
+  } else {
+    console.error(`\n❌ ${errors.length} parity error(s) found. Fix before committing.`);
+    process.exit(1);
+  }
+}
+
+main().catch((err) => {
+  console.error("Fatal error:", err);
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/list-indexes.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * Lists indexes for a target collection using the unified Mongo connector and COLLECTIONS constants.
+ * Usage: pnpm tsx scripts/list-indexes.ts [collectionKey]
+ * Example: pnpm tsx scripts/list-indexes.ts USERS
+ */
+
+import { getDatabase, disconnectFromDatabase } from "../lib/mongodb-unified";
+import { COLLECTIONS } from "../lib/db/collections";
+
+type IndexInfo = {
+  name?: string;
+  key?: Record<string, unknown>;
+  unique?: boolean;
+  sparse?: boolean;
+  partialFilterExpression?: Record<string, unknown>;
+};
+
+async function listIndexes() {
+  const targetKey = (process.argv[2] || "USERS").toUpperCase();
+  const collectionName = COLLECTIONS[targetKey as keyof typeof COLLECTIONS];
+
+  if (!collectionName) {
+    console.error(
+      `❌ Unknown collection key "${targetKey}". Provide a key from COLLECTIONS (e.g., USERS, WORK_ORDERS, PROPERTIES).`,
+    );
+    process.exit(1);
+  }
+
+  try {
+    const db = await getDatabase();
+    const coll = db.collection(collectionName);
+    const indexes = (await coll.listIndexes().toArray()) as IndexInfo[];
+
+    console.log(`Indexes for ${collectionName} (${targetKey}):`);
+    indexes.forEach((idx) => {
+      console.log(`\n  Name: ${idx.name}`);
+      console.log(`  Keys: ${JSON.stringify(idx.key)}`);
+      if (idx.unique) console.log(`  Unique: YES`);
+      if (idx.sparse) console.log(`  Sparse: YES`);
+      if (idx.partialFilterExpression) {
+        console.log(`  Partial: ${JSON.stringify(idx.partialFilterExpression)}`);
+      }
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    process.exit(1);
+  } finally {
+    await disconnectFromDatabase();
+  }
+}
+
+listIndexes();
+
+]]>
+</file>
+
+<file path="scripts/list-test-users.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * List all test users
+ */
+import { db } from "../lib/mongo";
+import { User } from "../server/models/User";
+
+async function listUsers() {
+  try {
+    await db;
+    console.log("👥 Listing test users with @test or test- prefix...\n");
+
+    const users = await User.find({
+      $or: [
+        { email: { $regex: /@test/i } },
+        { email: { $regex: /test-/i } },
+        { username: { $regex: /test-/i } },
+        { code: { $regex: /^TEST-/i } },
+      ],
+    })
+      .select("code username email professional.role status")
+      .lean();
+
+    console.log(`Found ${users.length} users:\n`);
+    users.forEach((u) => {
+      console.log(
+        `  ${u.code?.padEnd(25)} ${u.email?.padEnd(35)} ${u.professional?.role || "NO_ROLE"}`,
+      );
+    });
+
+    process.exit(0);
+  } catch (error) {
+    console.error("❌ Error:", error);
+    process.exit(1);
+  }
+}
+
+listUsers();
+
+]]>
+</file>
+
+<file path="scripts/list-users.ts">
+<![CDATA[
+#!/usr/bin/env node
+import { db } from "../lib/mongo";
+import { User } from "../server/models/User";
+
+async function listUsers() {
+  try {
+    await db;
+    const users = await User.find({})
+      .select("email username professional.role status")
+      .limit(20);
+
+    console.log(`📋 Found ${users.length} users:\n`);
+    users.forEach((user) => {
+      console.log(
+        `${user.email || "N/A"} | ${user.username || "N/A"} | ${user.professional?.role || "N/A"} | ${user.status || "N/A"}`,
+      );
+    });
+
+    process.exit(0);
+  } catch (error) {
+    console.error("Error:", error);
+    process.exit(1);
+  }
+}
+
+listUsers();
+
+]]>
+</file>
+
+<file path="scripts/load/smoke.js">
+<![CDATA[
+import http from "k6/http";
+import { sleep, check } from "k6";
+
+export const options = { vus: 1, iterations: 5 };
+
+export default function () {
+  const base = __ENV.FIXZIT_API_BASE;
+
+  if (!base) {
+    console.warn("FIXZIT_API_BASE not set; skipping smoke request.");
+    sleep(1);
+    return;
+  }
+
+  const res = http.get(base);
+  check(res, { "status is 200": (r) => r.status === 200 });
+  sleep(1);
+}
+
+]]>
+</file>
+
+<file path="scripts/migrate-encrypt-finance-pii.ts">
+<![CDATA[
+/**
+ * Migration script to encrypt legacy PII fields in Finance models (Invoice, FMFinancialTransaction).
+ *
+ * Usage:
+ *   ENCRYPTION_KEY=... pnpm tsx scripts/migrate-encrypt-finance-pii.ts [--dry-run] [--org=<orgId>]
+ *
+ * Options:
+ *   --dry-run   Preview changes without modifying the database
+ *   --org=ID    Migrate only records for a specific organization
+ *   --rollback  Restore from backup collections (if available)
+ *   --allow-plaintext-backup  Continue even if TTL index creation fails (SECURITY RISK)
+ *
+ * Notes:
+ * - Requires ENCRYPTION_KEY or PII_ENCRYPTION_KEY in env.
+ * - Idempotent: skips already-encrypted values (isEncrypted check).
+ * - Processes documents in batches to avoid memory spikes.
+ * - Creates backup collections before migrating.
+ * - Rollback respects --org scope when provided.
+ * - Failed document IDs are logged for targeted reruns.
+ *
+ * BREAK-GLASS PROCEDURE:
+ *   The --allow-plaintext-backup flag is BLOCKED in production by default.
+ *   For emergency use, set MIGRATION_ALLOW_PLAINTEXT=true (requires approvals).
+ *   See: docs/operations/PII_MIGRATION_BREAK_GLASS_RUNBOOK.md
+ *
+ * Encrypted Fields:
+ *   Invoice:
+ *     - issuer.taxId, issuer.phone, issuer.email
+ *     - recipient.taxId, recipient.phone, recipient.email, recipient.nationalId
+ *     - payment.account.accountNumber, payment.account.iban, payment.account.swift
+ *
+ *   FMFinancialTransaction:
+ *     - paymentDetails.paymentRef
+ *     - paymentDetails.receivedFrom
+ *     - paymentDetails.bankAccount
+ */
+
+import "dotenv/config";
+import mongoose from "mongoose";
+import { encryptField, isEncrypted } from "@/lib/security/encryption";
+import { Invoice } from "@/server/models/Invoice";
+import { FMFinancialTransaction } from "@/server/models/FMFinancialTransaction";
+import { logger } from "@/lib/logger";
+
+// ============================================================================
+// CONSTANTS FOR KEY VALIDATION
+// ============================================================================
+const KEY_LENGTH = 32; // 256 bits for AES-256
+
+// ============================================================================
+// ENV PREFLIGHT CHECK - KEY PRESENCE
+// ============================================================================
+// SECURITY: Fail fast if encryption key is missing to prevent partial migrations
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || process.env.PII_ENCRYPTION_KEY;
+if (!ENCRYPTION_KEY) {
+  // STRICT v4.1: Use central logger for observability (captured by log pipelines)
+  logger.error("[FINANCE PII MIGRATION] PREFLIGHT FAILED: Missing encryption key", {
+    severity: "critical",
+    required: ["ENCRYPTION_KEY", "PII_ENCRYPTION_KEY"],
+    hint: "Generate with: node -e \"console.log(require('crypto').randomBytes(32).toString('base64'))\"",
+  });
+  // Also print to console for interactive terminal visibility
+  console.error(`
+╔════════════════════════════════════════════════════════════════════════════╗
+║  ERROR: Missing ENCRYPTION_KEY or PII_ENCRYPTION_KEY                       ║
+║                                                                            ║
+║  This script requires an encryption key to encrypt PII fields.             ║
+║  Set one of these environment variables before running:                    ║
+║                                                                            ║
+║    ENCRYPTION_KEY=<your-32-byte-base64-key>                                ║
+║    PII_ENCRYPTION_KEY=<your-32-byte-base64-key>                            ║
+║                                                                            ║
+║  Generate a strong key:                                                    ║
+║    node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"║
+║                                                                            ║
+║  Example:                                                                  ║
+║    ENCRYPTION_KEY=... pnpm tsx scripts/migrate-encrypt-finance-pii.ts      ║
+╚════════════════════════════════════════════════════════════════════════════╝
+`);
+  process.exit(1);
+}
+
+// ============================================================================
+// ENV PREFLIGHT CHECK - KEY STRENGTH (STRICT v4.1)
+// ============================================================================
+// SECURITY: Always validate key strength for finance PII migrations, even in non-prod
+// This prevents weak-key encryptions that would require costly re-migrations
+function validateKeyStrength(key: string): void {
+  let keyBytes: number;
+  let decodingMethod: 'base64' | 'hex' | 'INVALID' = 'INVALID';
+  
+  // STRICT v4.1 FIX: Require explicit encoding format (base64 or hex)
+  // Raw string length fallback is BLOCKED to prevent accepting weak-entropy keys
+  // A 32-char ASCII string only provides 32 bytes of characters, not 256 bits of entropy
+  if (key.startsWith('0x')) {
+    // Hex-encoded key (e.g., 0x followed by 64 hex chars = 32 bytes)
+    try {
+      const decoded = Buffer.from(key.slice(2), 'hex');
+      keyBytes = decoded.length;
+      decodingMethod = 'hex';
+    } catch {
+      keyBytes = 0;
+    }
+  } else {
+    // Base64-encoded key (preferred format, 44 base64 chars = 32 bytes)
+    try {
+      const decoded = Buffer.from(key, 'base64');
+      // Verify it's actually valid base64 by re-encoding and comparing
+      const reEncoded = decoded.toString('base64');
+      // Allow for padding variations
+      if (reEncoded.replace(/=+$/, '') === key.replace(/=+$/, '')) {
+        keyBytes = decoded.length;
+        decodingMethod = 'base64';
+      } else {
+        // Not valid base64 - reject
+        keyBytes = 0;
+      }
+    } catch {
+      keyBytes = 0;
+    }
+  }
+
+  if (keyBytes < KEY_LENGTH || decodingMethod === 'INVALID') {
+    // STRICT v4.1: Use central logger for observability (captured by log pipelines)
+    logger.error("[FINANCE PII MIGRATION] PREFLIGHT FAILED: Encryption key too weak or invalid format", {
+      severity: "critical",
+      currentKeyBytes: keyBytes,
+      currentKeyBits: keyBytes * 8,
+      requiredKeyBytes: KEY_LENGTH,
+      requiredKeyBits: KEY_LENGTH * 8,
+      decodingMethod,
+      hint: "Generate with: node -e \"console.log(require('crypto').randomBytes(32).toString('base64'))\"",
+    });
+    // Also print to console for interactive terminal visibility
+    console.error(`
+╔════════════════════════════════════════════════════════════════════════════╗
+║  ERROR: ENCRYPTION_KEY is too weak or invalid format                       ║
+║                                                                            ║
+║  Finance PII encryption requires a 256-bit (32-byte) key for compliance.   ║
+║  Keys must be properly encoded as base64 or hex (0x prefix).               ║
+║                                                                            ║
+║  Current key: ${keyBytes} bytes (${keyBytes * 8}-bit) via ${decodingMethod}
+║  Required:    ${KEY_LENGTH} bytes (256-bit)
+║                                                                            ║
+║  STRICT v4.1: Raw string fallback is BLOCKED to prevent weak-entropy keys. ║
+║  A 32-char ASCII string does NOT provide 256 bits of cryptographic entropy.║
+║                                                                            ║
+║  Generate a compliant key:                                                 ║
+║    node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"║
+║                                                                            ║
+║  Or hex format (64 hex chars):                                             ║
+║    node -e "console.log('0x' + require('crypto').randomBytes(32).toString('hex'))"║
+╚════════════════════════════════════════════════════════════════════════════╝
+`);
+    process.exit(1);
+  }
+
+  // STRICT v4.1: Use central logger for observability
+  logger.info("[FINANCE PII MIGRATION] Encryption key strength validated", {
+    keyBits: keyBytes * 8,
+    algorithm: "AES-256",
+    encoding: decodingMethod,
+    status: "compliant",
+  });
+  console.log(`✅ Encryption key strength validated: ${keyBytes * 8}-bit (AES-256 compliant, ${decodingMethod} encoded)`);
+}
+
+// Run key strength validation immediately
+validateKeyStrength(ENCRYPTION_KEY);
+
+const BATCH_SIZE = 200;
+const BACKUP_BATCH_SIZE = 500;
+
+/**
+ * Escape special regex characters in a string to prevent ReDoS attacks
+ * when constructing patterns from variable input.
+ */
+function escapeRegExp(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+interface EncryptTarget {
+  path: string;
+  label: string;
+}
+
+interface MigrationStats {
+  processed: number;
+  encrypted: number;
+  skipped: number;
+  errors: number;
+  failedIds: string[]; // Track failed document IDs for targeted reruns
+  fields: Record<string, { encrypted: number; skipped: number }>;
+}
+
+// Invoice PII fields for encryption
+const invoiceTargets: EncryptTarget[] = [
+  { path: "issuer.taxId", label: "Issuer Tax ID" },
+  { path: "issuer.phone", label: "Issuer Phone" },
+  { path: "issuer.email", label: "Issuer Email" },
+  { path: "recipient.taxId", label: "Recipient Tax ID" },
+  { path: "recipient.phone", label: "Recipient Phone" },
+  { path: "recipient.email", label: "Recipient Email" },
+  { path: "recipient.nationalId", label: "Recipient National ID" },
+  { path: "payment.account.accountNumber", label: "Payment Account Number" },
+  { path: "payment.account.iban", label: "Payment IBAN" },
+  { path: "payment.account.swift", label: "Payment SWIFT" },
+];
+
+// FMFinancialTransaction PII fields for encryption
+const transactionTargets: EncryptTarget[] = [
+  { path: "paymentDetails.paymentRef", label: "Payment Reference" },
+  { path: "paymentDetails.receivedFrom", label: "Payment Received From" },
+  { path: "paymentDetails.bankAccount", label: "Payment Bank Account" },
+];
+
+function getNested(doc: Record<string, unknown>, path: string): unknown {
+  const parts = path.split(".");
+  let current: unknown = doc;
+  for (const part of parts) {
+    if (current === null || current === undefined) return undefined;
+    current = (current as Record<string, unknown>)[part];
+  }
+  return current;
+}
+
+function setNested(
+  doc: Record<string, unknown>,
+  path: string,
+  value: string,
+): void {
+  const parts = path.split(".");
+  let current: Record<string, unknown> = doc;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const part = parts[i];
+    if (current[part] === undefined || current[part] === null) {
+      current[part] = {};
+    }
+    current = current[part] as Record<string, unknown>;
+  }
+  current[parts[parts.length - 1]] = value;
+}
+
+function encryptDocument(
+  doc: Record<string, unknown>,
+  targets: EncryptTarget[],
+  stats: MigrationStats,
+): boolean {
+  let mutated = false;
+  for (const t of targets) {
+    const value = getNested(doc, t.path);
+    if (!stats.fields[t.path]) {
+      stats.fields[t.path] = { encrypted: 0, skipped: 0 };
+    }
+
+    // Skip if no value
+    if (value === null || value === undefined || value === "") {
+      continue;
+    }
+
+    // Skip if already encrypted
+    if (typeof value === "string" && isEncrypted(value)) {
+      stats.fields[t.path].skipped++;
+      continue;
+    }
+
+    // Encrypt the value (strings or numbers - numbers get stringified)
+    if (typeof value === "string" || typeof value === "number") {
+      const encrypted = encryptField(String(value), t.path);
+      if (encrypted) {
+        setNested(doc, t.path, encrypted);
+        stats.fields[t.path].encrypted++;
+        mutated = true;
+      }
+    }
+  }
+  return mutated;
+}
+
+interface MigrationOptions {
+  dryRun: boolean;
+  orgId?: string;
+  rollback: boolean;
+  allowPlaintextBackup?: boolean;
+}
+
+function parseArgs(): MigrationOptions {
+  const args = process.argv.slice(2);
+  const options: MigrationOptions = {
+    dryRun: args.includes("--dry-run"),
+    rollback: args.includes("--rollback"),
+    allowPlaintextBackup: args.includes("--allow-plaintext-backup"),
+  };
+
+  // SECURITY: Block --allow-plaintext-backup in production to prevent accidental PII retention
+  // Use dedicated MIGRATION_ALLOW_PLAINTEXT env var for break-glass, NOT NODE_ENV override
+  const hasBreakGlassOverride = process.env.MIGRATION_ALLOW_PLAINTEXT === "true";
+  const isProd = process.env.NODE_ENV === "production";
+  if (options.allowPlaintextBackup && isProd && !hasBreakGlassOverride) {
+    // STRICT v4.1 FIX: Use central logger for observability (captured by log pipelines/alerts)
+    logger.error("[FINANCE PII MIGRATION] BLOCKED: --allow-plaintext-backup in production", {
+      severity: "critical",
+      reason: "Plaintext PII backup without TTL is a compliance violation",
+      hint: "Set MIGRATION_ALLOW_PLAINTEXT=true for break-glass (requires documented approval)",
+    });
+    console.error(`
+╔════════════════════════════════════════════════════════════════════════════╗
+║  ERROR: --allow-plaintext-backup is BLOCKED in production                  ║
+║                                                                            ║
+║  This flag would disable TTL auto-expiry on backup collections,            ║
+║  leaving plaintext PII indefinitely. This is a compliance violation.       ║
+║                                                                            ║
+║  If you absolutely must proceed (emergency break-glass only):              ║
+║    1. Set MIGRATION_ALLOW_PLAINTEXT=true (keeps NODE_ENV=production)       ║
+║    2. Document the exception in the incident log                           ║
+║    3. Manually delete backups within 24h                                   ║
+╚════════════════════════════════════════════════════════════════════════════╝
+`);
+    process.exit(1);
+  }
+
+  const orgArg = args.find((a) => a.startsWith("--org="));
+  if (orgArg) {
+    options.orgId = orgArg.split("=")[1];
+  }
+
+  return options;
+}
+
+async function createBackup(
+  collectionName: string,
+  orgId?: string,
+  allowPlaintextBackup?: boolean,
+): Promise<string> {
+  const db = mongoose.connection.db;
+  if (!db) {
+    throw new Error("Database connection not established");
+  }
+
+  const timestamp = Date.now();
+  const suffix = orgId ? `_${orgId}` : "";
+  const backupName = `${collectionName}_backup_finance_pii${suffix}_${timestamp}`;
+
+  const sourceCollection = db.collection(collectionName);
+  const filter = orgId ? { orgId } : {};
+  const backupCollection = db.collection(backupName);
+
+  // Stream backup in batches to avoid memory issues with large collections
+  let totalBacked = 0;
+  let batch: mongoose.mongo.Document[] = [];
+
+  const cursor = sourceCollection.find(filter);
+
+  for await (const doc of cursor) {
+    batch.push(doc);
+
+    if (batch.length >= BACKUP_BATCH_SIZE) {
+      await backupCollection.insertMany(batch);
+      totalBacked += batch.length;
+      batch = [];
+
+      if (totalBacked % 2000 === 0) {
+        logger.info(`[FINANCE PII MIGRATION] Backup progress: ${totalBacked} docs`);
+      }
+    }
+  }
+
+  // Insert remaining batch
+  if (batch.length > 0) {
+    await backupCollection.insertMany(batch);
+    totalBacked += batch.length;
+  }
+
+  if (totalBacked > 0) {
+    // Add TTL index (24h) to auto-cleanup backup collections
+    // SECURITY: Prevents plaintext PII from lingering indefinitely
+    // NOTE: Use _backupCreatedAt (not createdAt) to preserve original document timestamps for audit accuracy on restore
+    try {
+      await backupCollection.createIndex(
+        { _backupCreatedAt: 1 },
+        { expireAfterSeconds: 24 * 60 * 60 } // 24 hours
+      );
+      // Add _backupCreatedAt timestamp for TTL tracking (preserves original createdAt)
+      await backupCollection.updateMany({}, { $set: { _backupCreatedAt: new Date() } });
+      logger.info(`[FINANCE PII MIGRATION] Backup TTL set (24h auto-cleanup): ${backupName}`);
+    } catch (ttlError) {
+      // SECURITY: TTL failure means plaintext PII could persist indefinitely
+      // Default: FAIL HARD to prevent compliance violations
+      if (allowPlaintextBackup) {
+        logger.warn(`[FINANCE PII MIGRATION] ⚠️ TTL creation failed, continuing with --allow-plaintext-backup: ${backupName}`, { error: ttlError });
+        logger.warn(`[FINANCE PII MIGRATION] SECURITY RISK: Plaintext PII backup will NOT auto-expire. Manual cleanup required!`);
+      } else {
+        logger.error(`[FINANCE PII MIGRATION] ❌ TTL index creation failed. Aborting to prevent plaintext PII retention.`);
+        logger.error(`[FINANCE PII MIGRATION] To proceed anyway (NOT RECOMMENDED), re-run with: --allow-plaintext-backup`);
+        // Clean up the backup we just created to avoid leaving orphan plaintext data
+        try {
+          await db.dropCollection(backupName);
+          logger.info(`[FINANCE PII MIGRATION] Cleaned up incomplete backup: ${backupName}`);
+        } catch (cleanupError) {
+          logger.error(`[FINANCE PII MIGRATION] Failed to cleanup backup: ${backupName}`, { error: cleanupError });
+        }
+        throw new Error(`TTL index creation failed for backup ${backupName}. Plaintext PII retention risk.`);
+      }
+    }
+
+    logger.info(`[FINANCE PII MIGRATION] Backup created: ${backupName}`, {
+      count: totalBacked,
+    });
+  } else {
+    logger.info(`[FINANCE PII MIGRATION] No documents to backup for ${collectionName}${orgId ? ` (org: ${orgId})` : ""}`);
+  }
+
+  return backupName;
+}
+
+async function restoreFromBackup(
+  collectionName: string,
+  orgId?: string,
+): Promise<void> {
+  const db = mongoose.connection.db;
+  if (!db) {
+    throw new Error("Database connection not established");
+  }
+
+  // Find backups - prefer org-scoped backups when orgId is provided
+  const collections = await db.listCollections().toArray();
+
+  let backups: { name: string }[];
+
+  if (orgId) {
+    // Org-scoped: match exact org prefix
+    const scopedPrefix = `${collectionName}_backup_finance_pii_${orgId}_`;
+    backups = collections
+      .filter((c) => c.name.startsWith(scopedPrefix))
+      .sort((a, b) => {
+        const tsA = parseInt(a.name.split("_").pop() || "0");
+        const tsB = parseInt(b.name.split("_").pop() || "0");
+        return tsB - tsA; // Most recent first
+      });
+
+    // Fallback to global backups if no org-scoped backup found
+    if (backups.length === 0) {
+      logger.warn(
+        `[FINANCE PII MIGRATION] No org-scoped backup found for ${collectionName} (org: ${orgId}). Checking for global backups...`,
+      );
+      // Only match truly global backups (format: {collection}_backup_finance_pii_{timestamp})
+      // Exclude any org-specific backups by checking for pattern without org segment
+      const globalBackupPattern = new RegExp(
+        `^${escapeRegExp(collectionName)}_backup_finance_pii_\\d+$`,
+      );
+      backups = collections
+        .filter((c) => globalBackupPattern.test(c.name))
+        .sort((a, b) => {
+          const tsA = parseInt(a.name.split("_").pop() || "0");
+          const tsB = parseInt(b.name.split("_").pop() || "0");
+          return tsB - tsA;
+        });
+    }
+  } else {
+    // Global: only match truly global backups (no org segment)
+    const globalBackupPattern = new RegExp(
+      `^${escapeRegExp(collectionName)}_backup_finance_pii_\\d+$`,
+    );
+    backups = collections
+      .filter((c) => globalBackupPattern.test(c.name))
+      .sort((a, b) => {
+        const tsA = parseInt(a.name.split("_").pop() || "0");
+        const tsB = parseInt(b.name.split("_").pop() || "0");
+        return tsB - tsA;
+      });
+  }
+
+  if (backups.length === 0) {
+    throw new Error(
+      `No backup found for ${collectionName}${orgId ? ` (org: ${orgId})` : ""}`,
+    );
+  }
+
+  const backupName = backups[0].name;
+  logger.info(`[FINANCE PII MIGRATION] Restoring from backup: ${backupName}`);
+
+  const backupCollection = db.collection(backupName);
+  const targetCollection = db.collection(collectionName);
+
+  // Determine if this is an org-scoped restore
+  const isOrgScopedBackup = backupName.includes(`_${orgId}_`);
+
+  // PRE-RESTORE GUARD: Verify backup has documents for target org before deleting live data
+  if (orgId) {
+    const restoreQuery = isOrgScopedBackup ? {} : { orgId };
+    const backupDocCount = await backupCollection.countDocuments(restoreQuery);
+    
+    if (backupDocCount === 0) {
+      throw new Error(
+        `SAFETY STOP: Backup "${backupName}" contains zero documents for org: ${orgId}. ` +
+          `Refusing to delete live data without matching backup. ` +
+          `Verify the backup was created for this org, or remove --org to restore globally.`,
+      );
+    }
+    
+    logger.info(
+      `[FINANCE PII MIGRATION] Pre-restore check passed: ${backupDocCount} documents found for org: ${orgId}`,
+    );
+  }
+
+  // Use MongoDB session for atomic rollback to prevent partial data loss on failure
+  const session = await mongoose.startSession();
+  let totalRestored = 0;
+
+  try {
+    await session.withTransaction(async () => {
+      if (orgId && isOrgScopedBackup) {
+        // Org-scoped restore: only delete and restore for this org
+        logger.info(
+          `[FINANCE PII MIGRATION] Performing org-scoped restore for org: ${orgId}`,
+        );
+        await targetCollection.deleteMany({ orgId }, { session });
+      } else if (orgId) {
+        // Restoring from global backup but only for specific org
+        logger.info(
+          `[FINANCE PII MIGRATION] Restoring from global backup, filtering to org: ${orgId}`,
+        );
+        await targetCollection.deleteMany({ orgId }, { session });
+      } else {
+        // Full restore: delete all documents that exist in the backup by orgId
+        // Stream to get unique orgIds without loading all docs
+        const orgIdsSet = new Set<string>();
+        const orgCursor = backupCollection.find({}, { projection: { orgId: 1 } });
+        for await (const doc of orgCursor) {
+          if (doc.orgId) {
+            orgIdsSet.add(doc.orgId as string);
+          }
+        }
+
+        for (const backupOrgId of orgIdsSet) {
+          await targetCollection.deleteMany({ orgId: backupOrgId }, { session });
+        }
+      }
+
+      // Stream restore in batches to avoid memory issues
+      let batch: mongoose.mongo.Document[] = [];
+
+      // Apply org filter if restoring from global backup with org scope
+      const restoreFilter =
+        orgId && !isOrgScopedBackup ? { orgId } : {};
+      const cursor = backupCollection.find(restoreFilter);
+
+      for await (const doc of cursor) {
+        // Remove TTL marker field before restoring (preserves original createdAt)
+        const { _backupCreatedAt, ...cleanDoc } = doc as mongoose.mongo.Document & { _backupCreatedAt?: Date };
+        batch.push(cleanDoc);
+
+        if (batch.length >= BACKUP_BATCH_SIZE) {
+          await targetCollection.insertMany(batch, { session, ordered: false });
+          totalRestored += batch.length;
+          batch = [];
+
+          if (totalRestored % 2000 === 0) {
+            logger.info(
+              `[FINANCE PII MIGRATION] Restore progress: ${totalRestored} docs`,
+            );
+          }
+        }
+      }
+
+      // Insert remaining batch
+      if (batch.length > 0) {
+        await targetCollection.insertMany(batch, { session, ordered: false });
+        totalRestored += batch.length;
+      }
+    });
+  } finally {
+    await session.endSession();
+  }
+
+  // Warn if no documents were restored for the target org
+  if (totalRestored === 0 && orgId) {
+    logger.warn(
+      `[FINANCE PII MIGRATION] WARNING: Zero documents restored for org: ${orgId}. ` +
+        `This may indicate the backup does not contain data for this org, or the org filter found no matches. ` +
+        `Verify the backup contents before proceeding.`,
+    );
+  }
+
+  logger.info(
+    `[FINANCE PII MIGRATION] Restored ${totalRestored} documents${orgId ? ` for org: ${orgId}` : ""}`,
+  );
+}
+
+async function migrateCollection(
+  name: string,
+  model: mongoose.Model<unknown>,
+  targets: EncryptTarget[],
+  options: MigrationOptions,
+): Promise<MigrationStats> {
+  const stats: MigrationStats = {
+    processed: 0,
+    encrypted: 0,
+    skipped: 0,
+    errors: 0,
+    failedIds: [],
+    fields: {},
+  };
+
+  const prefix = options.dryRun ? "[DRY RUN] " : "";
+  logger.info(`${prefix}[FINANCE PII MIGRATION] Starting ${name}`);
+
+  // Create backup (unless dry-run)
+  if (!options.dryRun && !options.rollback) {
+    await createBackup(model.collection.name, options.orgId, options.allowPlaintextBackup);
+  }
+
+  // Build query filter
+  const filter: Record<string, unknown> = options.orgId
+    ? { orgId: options.orgId }
+    : {};
+
+  const cursor = model
+    .find(filter)
+    .lean(false)
+    .cursor({ batchSize: BATCH_SIZE });
+
+  for await (const doc of cursor) {
+    const docObj = doc as unknown as mongoose.Document & {
+      _id: mongoose.Types.ObjectId;
+      toObject: () => Record<string, unknown>;
+      save: () => Promise<unknown>;
+    };
+    
+    // Per-document error handling: catch encryption errors to continue processing other documents
+    // This prevents a single malformed record from halting the entire migration
+    let plainDoc: Record<string, unknown>;
+    let mutated: boolean;
+    
+    try {
+      plainDoc = docObj.toObject() as Record<string, unknown>;
+      mutated = encryptDocument(plainDoc, targets, stats);
+    } catch (encryptErr) {
+      stats.errors++;
+      stats.failedIds.push(docObj._id.toString());
+      logger.error(`${prefix}[FINANCE PII MIGRATION] Encryption failed for doc`, {
+        docId: docObj._id.toString(),
+        error: encryptErr,
+      });
+      stats.processed++;
+      continue; // Continue with next document instead of aborting
+    }
+
+    if (mutated) {
+      stats.encrypted++;
+      if (!options.dryRun) {
+        // Copy encrypted values back to document
+        for (const t of targets) {
+          const encryptedValue = getNested(plainDoc, t.path);
+          if (encryptedValue && typeof encryptedValue === "string") {
+            setNested(
+              docObj as unknown as Record<string, unknown>,
+              t.path,
+              encryptedValue,
+            );
+          }
+        }
+        try {
+          await docObj.save();
+        } catch (err) {
+          stats.errors++;
+          stats.failedIds.push(docObj._id.toString());
+          logger.error(`${prefix}[FINANCE PII MIGRATION] Error saving doc`, {
+            docId: docObj._id.toString(),
+            error: err,
+          });
+        }
+      }
+    } else {
+      stats.skipped++;
+    }
+
+    stats.processed++;
+    if (stats.processed % 500 === 0) {
+      logger.info(`${prefix}[FINANCE PII MIGRATION] ${name} progress`, {
+        processed: stats.processed,
+        encrypted: stats.encrypted,
+        errors: stats.errors,
+      });
+    }
+  }
+
+  logger.info(
+    `${prefix}[FINANCE PII MIGRATION] Completed ${name}`,
+    stats as unknown as Record<string, unknown>,
+  );
+  return stats;
+}
+
+function printSummary(
+  collectionStats: Record<string, MigrationStats>,
+  options: MigrationOptions,
+): void {
+  const prefix = options.dryRun ? "[DRY RUN] " : "";
+  console.log("\n");
+  console.log("═".repeat(60));
+  console.log(`${prefix}📊 FINANCE PII MIGRATION SUMMARY`);
+  console.log("═".repeat(60));
+
+  let totalProcessed = 0;
+  let totalEncrypted = 0;
+  let totalErrors = 0;
+  const allFailedIds: Record<string, string[]> = {};
+
+  for (const [collection, stats] of Object.entries(collectionStats)) {
+    totalProcessed += stats.processed;
+    totalEncrypted += stats.encrypted;
+    totalErrors += stats.errors;
+
+    if (stats.failedIds.length > 0) {
+      allFailedIds[collection] = stats.failedIds;
+    }
+
+    console.log(`\n${collection}:`);
+    console.log(`  Processed: ${stats.processed}`);
+    console.log(`  Encrypted: ${stats.encrypted}`);
+    console.log(`  Skipped:   ${stats.skipped}`);
+    console.log(`  Errors:    ${stats.errors}`);
+
+    if (Object.keys(stats.fields).length > 0) {
+      console.log("  Fields:");
+      for (const [field, fieldStats] of Object.entries(stats.fields)) {
+        if (fieldStats.encrypted > 0 || fieldStats.skipped > 0) {
+          console.log(
+            `    ${field}: encrypted=${fieldStats.encrypted}, skipped=${fieldStats.skipped}`,
+          );
+        }
+      }
+    }
+  }
+
+  console.log("\n" + "─".repeat(60));
+  console.log("TOTALS:");
+  console.log(`  Total Processed: ${totalProcessed}`);
+  console.log(`  Total Encrypted: ${totalEncrypted}`);
+  console.log(`  Total Errors:    ${totalErrors}`);
+  console.log("═".repeat(60));
+
+  // Print failed IDs for targeted reruns
+  if (Object.keys(allFailedIds).length > 0) {
+    console.log("\n⚠️  FAILED DOCUMENT IDs (for targeted retry):");
+    for (const [collection, ids] of Object.entries(allFailedIds)) {
+      console.log(`\n  ${collection}:`);
+      for (const id of ids) {
+        console.log(`    - ${id}`);
+      }
+    }
+    console.log("\n  To retry failed documents, fix the underlying issue");
+    console.log("  and re-run the migration with the same --org scope.");
+  }
+
+  if (options.dryRun) {
+    console.log("\n⚠️  This was a DRY RUN. No changes were made.");
+    console.log("   Remove --dry-run to apply changes.");
+  }
+
+  if (totalErrors === 0 && totalEncrypted > 0) {
+    console.log("\n✅ Migration completed successfully!");
+  } else if (totalErrors > 0) {
+    console.log(`\n⚠️  Migration completed with ${totalErrors} error(s).`);
+    console.log("   Review the failed IDs above and the logs for details.");
+  }
+}
+
+async function main(): Promise<void> {
+  const options = parseArgs();
+
+  // Validate encryption key
+  if (!process.env.ENCRYPTION_KEY && !process.env.PII_ENCRYPTION_KEY) {
+    throw new Error(
+      "ENCRYPTION_KEY or PII_ENCRYPTION_KEY environment variable is required",
+    );
+  }
+
+  const uri = process.env.MONGODB_URI || process.env.DATABASE_URL;
+  if (!uri) {
+    throw new Error("MONGODB_URI or DATABASE_URL is required");
+  }
+
+  logger.info("[FINANCE PII MIGRATION] Connecting to database...");
+  await mongoose.connect(uri);
+
+  const collectionStats: Record<string, MigrationStats> = {};
+
+  try {
+    if (options.rollback) {
+      logger.info(
+        `[FINANCE PII MIGRATION] Performing rollback${options.orgId ? ` for org: ${options.orgId}` : ""}...`,
+      );
+      // Use model collection names instead of hardcoded strings
+      await restoreFromBackup(Invoice.collection.name, options.orgId);
+      await restoreFromBackup(FMFinancialTransaction.collection.name, options.orgId);
+      logger.info("[FINANCE PII MIGRATION] Rollback complete");
+    } else {
+      // Migrate Invoice collection
+      collectionStats.invoices = await migrateCollection(
+        "Invoice",
+        Invoice as mongoose.Model<unknown>,
+        invoiceTargets,
+        options,
+      );
+
+      // Migrate FMFinancialTransaction collection
+      collectionStats.fm_financial_transactions = await migrateCollection(
+        "FMFinancialTransaction",
+        FMFinancialTransaction as mongoose.Model<unknown>,
+        transactionTargets,
+        options,
+      );
+
+      printSummary(collectionStats, options);
+    }
+  } finally {
+    await mongoose.disconnect();
+  }
+}
+
+main()
+  .then(() => {
+    logger.info("[FINANCE PII MIGRATION] Migration complete");
+  })
+  .catch((err) => {
+    logger.error("[FINANCE PII MIGRATION] Migration failed", { error: err });
+    process.exitCode = 1;
+  });
+
+]]>
+</file>
+
+<file path="scripts/migrate-encrypt-pii.ts">
+<![CDATA[
+/**
+ * One-off migration to encrypt legacy PII fields for Owner, Tenant, Vendor.
+ *
+ * Usage:
+ *   ENCRYPTION_KEY=... pnpm tsx scripts/migrate-encrypt-pii.ts
+ *
+ * Notes:
+ * - Requires ENCRYPTION_KEY/PII_ENCRYPTION_KEY in env.
+ * - Idempotent: skips already-encrypted values (isEncrypted check).
+ * - Processes documents in batches to avoid memory spikes.
+ */
+
+import "dotenv/config";
+import mongoose from "mongoose";
+import { encryptField, isEncrypted } from "@/lib/security/encryption";
+import { OwnerModel } from "@/server/models/Owner";
+import { Tenant } from "@/server/models/Tenant";
+import Vendor from "@/server/models/Vendor"; // default export in model file
+import { logger } from "@/lib/logger";
+
+const BATCH_SIZE = 200;
+
+type EncryptTarget = {
+  path: string;
+  label: string;
+};
+
+const ownerTargets: EncryptTarget[] = [
+  { path: "nationalId", label: "National ID" },
+  { path: "financial.bankAccounts.accountNumber", label: "Bank Account Number" },
+  { path: "financial.bankAccounts.iban", label: "IBAN" },
+];
+
+const tenantTargets: EncryptTarget[] = [
+  { path: "identification.nationalId", label: "National ID" },
+  { path: "financial.bankDetails.accountNumber", label: "Bank Account Number" },
+  { path: "financial.bankDetails.iban", label: "IBAN" },
+];
+
+const vendorTargets: EncryptTarget[] = [
+  { path: "financial.bankDetails.accountNumber", label: "Bank Account Number" },
+  { path: "financial.bankDetails.iban", label: "IBAN" },
+];
+
+function setNested(doc: any, path: string, value: string) {
+  const parts = path.split(".");
+  let current = doc;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const part = parts[i];
+    if (current[part] === undefined) current[part] = {};
+    current = current[part];
+  }
+  current[parts[parts.length - 1]] = value;
+}
+
+function getNested(doc: any, path: string): any {
+  const parts = path.split(".");
+  let current = doc;
+  for (const part of parts) {
+    if (!current) return undefined;
+    current = current[part];
+  }
+  return current;
+}
+
+function encryptDocument(doc: any, targets: EncryptTarget[]): boolean {
+  let mutated = false;
+  for (const t of targets) {
+    const value = getNested(doc, t.path);
+    if (!value) continue;
+    // handle arrays for bankAccounts
+    if (Array.isArray(value)) {
+      value.forEach((entry, idx) => {
+        if (entry && typeof entry === "object") {
+          for (const key of Object.keys(entry)) {
+            const fullPath = `${t.path}.${key}`;
+            const v = entry[key];
+            if (v && typeof v === "string" && !isEncrypted(v)) {
+              entry[key] = encryptField(v, fullPath);
+              mutated = true;
+            }
+          }
+        }
+      });
+      continue;
+    }
+    if (typeof value === "string" && !isEncrypted(value)) {
+      const encrypted = encryptField(value, t.path);
+      if (encrypted) {
+        setNested(doc, t.path, encrypted);
+        mutated = true;
+      }
+    }
+  }
+  return mutated;
+}
+
+async function migrateCollection(
+  name: string,
+  model: mongoose.Model<any>,
+  targets: EncryptTarget[],
+) {
+  logger.info(`[PII MIGRATION] Starting ${name}`);
+  let cursor = model.find({}).lean(false).cursor({ batchSize: BATCH_SIZE });
+  let processed = 0;
+  for await (const doc of cursor) {
+    const mutated = encryptDocument(doc, targets);
+    if (mutated) {
+      await doc.save();
+    }
+    processed++;
+    if (processed % 500 === 0) {
+      logger.info(`[PII MIGRATION] ${name} processed: ${processed}`);
+    }
+  }
+  logger.info(`[PII MIGRATION] Completed ${name}. Total: ${processed}`);
+}
+
+async function main() {
+  const uri = process.env.MONGODB_URI || process.env.DATABASE_URL;
+  if (!uri) {
+    throw new Error("MONGODB_URI is required");
+  }
+  await mongoose.connect(uri);
+  await migrateCollection("Owner", OwnerModel, ownerTargets);
+  await migrateCollection("Tenant", Tenant, tenantTargets);
+  await migrateCollection("Vendor", Vendor, vendorTargets);
+  await mongoose.disconnect();
+}
+
+main()
+  .then(() => {
+    logger.info("[PII MIGRATION] All migrations complete");
+    process.exit(0);
+  })
+  .catch((err) => {
+    logger.error("[PII MIGRATION] Failed", { error: err });
+    process.exit(1);
+  });
+
+]]>
+</file>
+
+</batch_content>

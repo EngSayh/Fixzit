@@ -1,0 +1,2953 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="components/admin/RBACMatrixTable.tsx">
+<![CDATA[
+"use client";
+
+import React, { useState, useCallback, useEffect } from "react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Save, RotateCcw, Shield, Eye, Plus, Pencil, Trash2 } from "lucide-react";
+import {
+  RBAC_MODULES,
+  RBAC_ROLE_PERMISSIONS,
+  RBAC_ROLE_LABELS,
+  type RBACModule,
+} from "@/config/rbac.matrix";
+
+export interface RolePermission {
+  role: string;
+  roleLabel: string;
+  permissions: {
+    [module: string]: {
+      view: boolean;
+      create: boolean;
+      edit: boolean;
+      delete: boolean;
+    };
+  };
+}
+
+export type Module = RBACModule;
+
+interface RBACMatrixTableProps {
+  roles: RolePermission[];
+  modules: Module[];
+  onChange?: (roles: RolePermission[]) => void;
+  onSave?: (roles: RolePermission[]) => Promise<void>;
+  readOnly?: boolean;
+}
+
+export default function RBACMatrixTable({
+  roles: initialRoles,
+  modules = RBAC_MODULES,
+  onChange,
+  onSave,
+  readOnly = false,
+}: RBACMatrixTableProps) {
+  const [roles, setRoles] = useState<RolePermission[]>(initialRoles);
+  const [isDirty, setIsDirty] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Keep internal state in sync if the parent provides new initial roles (e.g., after load/save)
+  useEffect(() => {
+    setRoles(initialRoles);
+    setIsDirty(false);
+  }, [initialRoles]);
+
+  const handlePermissionChange = useCallback(
+    (roleIndex: number, moduleId: string, permissionType: "view" | "create" | "edit" | "delete", value: boolean) => {
+      setRoles((prevRoles) => {
+        const newRoles = [...prevRoles];
+        const role = { ...newRoles[roleIndex] };
+        role.permissions = { ...role.permissions };
+
+        if (!role.permissions[moduleId]) {
+          role.permissions[moduleId] = { view: false, create: false, edit: false, delete: false };
+        }
+
+        role.permissions[moduleId] = {
+          ...role.permissions[moduleId],
+          [permissionType]: value,
+        };
+
+        // If view is disabled, disable all other permissions
+        if (permissionType === "view" && !value) {
+          role.permissions[moduleId].create = false;
+          role.permissions[moduleId].edit = false;
+          role.permissions[moduleId].delete = false;
+        }
+
+        // If any other permission is enabled, enable view
+        if (permissionType !== "view" && value) {
+          role.permissions[moduleId].view = true;
+        }
+
+        newRoles[roleIndex] = role;
+        onChange?.(newRoles);
+        return newRoles;
+      });
+      setIsDirty(true);
+    },
+    [onChange]
+  );
+
+  const handleSave = async () => {
+    if (!onSave) return;
+    setIsSaving(true);
+    try {
+      await onSave(roles);
+      setIsDirty(false);
+    } catch {
+      // Error handled by parent component
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleReset = () => {
+    setRoles(initialRoles);
+    setIsDirty(false);
+    onChange?.(initialRoles);
+  };
+
+  const getPermissionIcon = (type: "view" | "create" | "edit" | "delete") => {
+    switch (type) {
+      case "view":
+        return <Eye className="h-3 w-3" />;
+      case "create":
+        return <Plus className="h-3 w-3" />;
+      case "edit":
+        return <Pencil className="h-3 w-3" />;
+      case "delete":
+        return <Trash2 className="h-3 w-3" />;
+    }
+  };
+
+  const getRoleBadgeVariant = (role: string): "default" | "secondary" | "destructive" | "outline" => {
+    if (role.includes("SUPER")) return "destructive";
+    if (role.includes("ADMIN") || role.includes("MANAGEMENT")) return "default";
+    return "secondary"; // corporate/staff/owner/tenant
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Role-Based Access Control Matrix
+            </CardTitle>
+            <CardDescription className="mt-2">
+              Configure module access permissions for each role. Changes are highlighted and can be saved or reset.
+            </CardDescription>
+          </div>
+          {!readOnly && onSave && (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleReset}
+                disabled={!isDirty || isSaving}
+              >
+                <RotateCcw className="me-2 h-4 w-4" />
+                Reset
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSave}
+                disabled={!isDirty || isSaving}
+              >
+                <Save className="me-2 h-4 w-4" />
+                {isSaving ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <TooltipProvider>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="sticky start-0 bg-background z-10 min-w-[150px]">
+                    Role / Module
+                  </TableHead>
+                  {modules.map((module) => (
+                    <TableHead key={module.id} className="text-center min-w-[180px]">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="cursor-help">{module.label}</span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{module.description}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {roles.map((role, roleIndex) => (
+                  <TableRow key={role.role}>
+                    <TableCell className="sticky start-0 bg-background z-10 font-medium">
+                      <Badge variant={getRoleBadgeVariant(role.role)}>
+                        {role.roleLabel}
+                      </Badge>
+                    </TableCell>
+                    {modules.map((module) => {
+                      const permissions = role.permissions[module.id] || {
+                        view: false,
+                        create: false,
+                        edit: false,
+                        delete: false,
+                      };
+
+                      return (
+                        <TableCell key={module.id} className="text-center">
+                          <div className="flex justify-center gap-2">
+                            {(["view", "create", "edit", "delete"] as const).map((permType) => (
+                              <Tooltip key={permType}>
+                                <TooltipTrigger asChild>
+                                  <div className="flex flex-col items-center gap-1">
+                                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                      {getPermissionIcon(permType)}
+                                    </span>
+                                    <Switch
+                                      checked={permissions[permType]}
+                                      onCheckedChange={(checked) =>
+                                        handlePermissionChange(roleIndex, module.id, permType, checked)
+                                      }
+                                      disabled={readOnly}
+                                      aria-label={`${role.roleLabel} ${permType} ${module.label}`}
+                                    />
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>
+                                    {role.roleLabel}: {permType.charAt(0).toUpperCase() + permType.slice(1)} {module.label}
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            ))}
+                          </div>
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TooltipProvider>
+        </div>
+
+        {isDirty && (
+          <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-md border border-yellow-200 dark:border-yellow-800">
+            <p className="text-sm text-yellow-700 dark:text-yellow-300">
+              ⚠️ You have unsaved changes. Click &quot;Save Changes&quot; to apply or &quot;Reset&quot; to discard.
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * Default modules derived from shared RBAC source (config/rbac.matrix.ts).
+ * STRICT v4.1: UI consumes the same module list as server RBAC.
+ */
+export const DEFAULT_MODULES: Module[] = RBAC_MODULES;
+
+const normalizePermissions = (
+  permissions: Record<string, { view: boolean; create: boolean; edit: boolean; delete: boolean }> | undefined,
+): Record<string, { view: boolean; create: boolean; edit: boolean; delete: boolean }> => {
+  const filled: Record<string, { view: boolean; create: boolean; edit: boolean; delete: boolean }> = {};
+  for (const mod of RBAC_MODULES) {
+    const base = permissions?.[mod.id];
+    filled[mod.id] = base ?? { view: false, create: false, edit: false, delete: false };
+  }
+  return filled;
+};
+
+/**
+ * STRICT v4.1 Canonical Roles derived from shared RBAC source.
+ * Roles are generated from RBAC matrix config to keep UI aligned with server auth.
+ */
+export const DEFAULT_ROLES: RolePermission[] = Object.entries(RBAC_ROLE_PERMISSIONS).map(
+  ([role, permissions]) => ({
+    role,
+    roleLabel: RBAC_ROLE_LABELS[role] ?? role,
+    permissions: normalizePermissions(permissions as Record<string, { view: boolean; create: boolean; edit: boolean; delete: boolean }>),
+  }),
+);
+
+]]>
+</file>
+
+<file path="components/admin/RoleBadge.tsx">
+<![CDATA[
+/**
+ * RoleBadge Component (STRICT v4.1)
+ * 
+ * Displays role name with proper badge styling.
+ * Automatically normalizes legacy role names to canonical names.
+ * Shows sub-role as secondary badge if present.
+ * 
+ * Features:
+ * - Color-coded by role type
+ * - Displays sub-role badge for Team Members
+ * - Tooltips with role descriptions
+ * - RTL support
+ */
+
+"use client";
+
+import React from "react";
+// Import from client-safe roles module (no mongoose)
+import { Role, SubRole, normalizeRole } from "@/lib/rbac/client-roles";
+import { useTranslation } from "@/contexts/TranslationContext";
+
+interface RoleBadgeProps {
+  role: Role | string;
+  subRole?: SubRole | string | null;
+  size?: "sm" | "md" | "lg";
+  showTooltip?: boolean;
+  className?: string;
+}
+
+// Role display configuration
+// Note: Only canonical STRICT v4.1 roles are defined here.
+// Legacy role aliases (CORPORATE_ADMIN, MANAGER, etc.) are mapped via normalizeRole()
+const ROLE_CONFIG: Partial<Record<Role, { label: string; color: string; description: string }>> = {
+  [Role.SUPER_ADMIN]: {
+    label: "Super Admin",
+    color: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+    description: "Platform administrator with cross-organization access",
+  },
+  [Role.ADMIN]: {
+    label: "Admin",
+    color: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+    description: "Organization administrator with full tenant access",
+  },
+  [Role.CORPORATE_OWNER]: {
+    label: "Corporate Owner",
+    color: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200",
+    description: "Portfolio owner managing multiple properties",
+  },
+  [Role.TEAM_MEMBER]: {
+    label: "Team Member",
+    color: "bg-primary/10 text-primary-dark dark:bg-primary/20 dark:text-primary-light",
+    description: "Corporate staff member with operational access",
+  },
+  [Role.TECHNICIAN]: {
+    label: "Technician",
+    color: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+    description: "Field worker handling work orders",
+  },
+  [Role.PROPERTY_MANAGER]: {
+    label: "Property Manager",
+    color: "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200",
+    description: "Manages assigned properties and units",
+  },
+  [Role.TENANT]: {
+    label: "Tenant",
+    color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+    description: "Property tenant with unit access",
+  },
+  [Role.VENDOR]: {
+    label: "Vendor",
+    color: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
+    description: "External service provider",
+  },
+  [Role.GUEST]: {
+    label: "Guest",
+    color: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
+    description: "Public visitor with limited access",
+  },
+};
+
+const SUB_ROLE_CONFIG: Record<SubRole, { label: string; icon: string }> = {
+  [SubRole.FINANCE_OFFICER]: { label: "Finance Officer", icon: "💰" },
+  [SubRole.HR_OFFICER]: { label: "HR Officer", icon: "👥" },
+  [SubRole.SUPPORT_AGENT]: { label: "Support Agent", icon: "🎧" },
+  [SubRole.OPERATIONS_MANAGER]: { label: "Operations Manager", icon: "⚙️" },
+};
+
+const SIZE_CLASSES = {
+  sm: "px-2 py-0.5 text-xs",
+  md: "px-2.5 py-1 text-sm",
+  lg: "px-3 py-1.5 text-base",
+};
+
+export default function RoleBadge({
+  role,
+  subRole,
+  size = "md",
+  showTooltip = true,
+  className = "",
+}: RoleBadgeProps) {
+  const { t } = useTranslation();
+  
+  // Normalize legacy role names
+  const normalizedRole = normalizeRole(role) || Role.GUEST;
+  const config = ROLE_CONFIG[normalizedRole];
+  
+  if (!config) {
+    return (
+      <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 ${className}`}>
+        {role}
+      </span>
+    );
+  }
+  
+  // Localize role label and description with fallbacks
+  const roleKey = normalizedRole.toLowerCase().replace(/_/g, "");
+  const label = t(`admin.roles.${roleKey}.label`, config.label);
+  const description = t(`admin.roles.${roleKey}.description`, config.description);
+  
+  const sizeClass = SIZE_CLASSES[size];
+  
+  // Localize sub-role if present
+  const subRoleConfig = subRole ? SUB_ROLE_CONFIG[subRole as SubRole] : null;
+  const subRoleKey = subRole ? (subRole as string).toLowerCase().replace(/_/g, "") : "";
+  const subRoleLabel = subRoleConfig 
+    ? t(`admin.subRoles.${subRoleKey}.label`, subRoleConfig.label)
+    : "";
+  
+  return (
+    <div className={`inline-flex items-center gap-1 ${className}`}>
+      {/* Main role badge */}
+      <span
+        className={`inline-flex items-center rounded-full font-medium ${config.color} ${sizeClass}`}
+        title={showTooltip ? description : undefined}
+        role="status"
+        aria-label={t("admin.roles.ariaLabel", `Role: ${label}`, { role: label })}
+      >
+        {label}
+      </span>
+      
+      {/* Sub-role badge (for Team Members) */}
+      {subRole && normalizedRole === Role.TEAM_MEMBER && subRoleConfig && (
+        <span
+          className={`inline-flex items-center rounded-full font-medium bg-primary/10 text-primary dark:bg-primary/10 dark:text-primary-light border border-primary/20 dark:border-primary/30 ${sizeClass}`}
+          title={showTooltip ? t("admin.subRoles.specializationTooltip", `Specialization: ${subRoleLabel}`, { subRole: subRoleLabel }) : undefined}
+          role="status"
+          aria-label={t("admin.subRoles.ariaLabel", `Sub-role: ${subRoleLabel}`, { subRole: subRoleLabel })}
+        >
+          <span className="me-1">{subRoleConfig.icon}</span>
+          {subRoleLabel}
+        </span>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/admin/SubRoleSelector.tsx">
+<![CDATA[
+/**
+ * SubRoleSelector Component (STRICT v4.1)
+ * 
+ * Dropdown for selecting Team Member sub-role specialization.
+ * Only visible when user role is TEAM_MEMBER.
+ * 
+ * Features:
+ * - Displays module access for each sub-role
+ * - Validates selection (only TEAM_MEMBER can have sub-roles)
+ * - RTL support
+ * - WCAG 2.1 AA compliant
+ */
+
+"use client";
+
+import React from "react";
+// Import from client-safe roles module (no mongoose)
+import { SubRole, Role, ModuleKey, computeAllowedModules, normalizeRole, PLAN_GATES, Plan, SubmoduleKey } from "@/lib/rbac/client-roles";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useCurrentOrg } from "@/contexts/CurrentOrgContext";
+
+interface SubRoleSelectorProps {
+  role: Role | string;
+  value?: SubRole | string | null;
+  onChange: (subRole: SubRole | null) => void;
+  disabled?: boolean;
+  required?: boolean;
+  error?: string;
+  className?: string;
+  /** Optional plan override; defaults to org context plan */
+  orgPlan?: Plan;
+}
+
+// Sub-role metadata (i18n keys with fallbacks)
+const SUB_ROLE_INFO_KEYS: Record<SubRole, { labelKey: string; descKey: string; labelFallback: string; descFallback: string; icon: string }> = {
+  [SubRole.FINANCE_OFFICER]: {
+    labelKey: "admin.subRoles.financeOfficer.label",
+    descKey: "admin.subRoles.financeOfficer.description",
+    labelFallback: "Finance Officer",
+    descFallback: "Manages budgets, invoices, and financial reports",
+    icon: "💰",
+  },
+  [SubRole.HR_OFFICER]: {
+    labelKey: "admin.subRoles.hrOfficer.label",
+    descKey: "admin.subRoles.hrOfficer.description",
+    labelFallback: "HR Officer",
+    descFallback: "Manages employee records, payroll, and PII data",
+    icon: "👥",
+  },
+  [SubRole.SUPPORT_AGENT]: {
+    labelKey: "admin.subRoles.supportAgent.label",
+    descKey: "admin.subRoles.supportAgent.description",
+    labelFallback: "Support Agent",
+    descFallback: "Handles customer inquiries and tickets",
+    icon: "🎧",
+  },
+  [SubRole.OPERATIONS_MANAGER]: {
+    labelKey: "admin.subRoles.operationsManager.label",
+    descKey: "admin.subRoles.operationsManager.description",
+    labelFallback: "Operations Manager",
+    descFallback: "Oversees work orders and property operations",
+    icon: "⚙️",
+  },
+};
+
+// Module display names (i18n keys with fallbacks)
+const MODULE_NAME_KEYS: Record<ModuleKey, { key: string; fallback: string }> = {
+  [ModuleKey.DASHBOARD]: { key: "admin.modules.dashboard", fallback: "Dashboard" },
+  [ModuleKey.WORK_ORDERS]: { key: "admin.modules.workOrders", fallback: "Work Orders" },
+  [ModuleKey.PROPERTIES]: { key: "admin.modules.properties", fallback: "Properties" },
+  [ModuleKey.FINANCE]: { key: "admin.modules.finance", fallback: "Finance" },
+  [ModuleKey.HR]: { key: "admin.modules.hr", fallback: "HR" },
+  [ModuleKey.ADMINISTRATION]: { key: "admin.modules.administration", fallback: "Administration" },
+  [ModuleKey.CRM]: { key: "admin.modules.crm", fallback: "CRM" },
+  [ModuleKey.MARKETPLACE]: { key: "admin.modules.marketplace", fallback: "Marketplace" },
+  [ModuleKey.SUPPORT]: { key: "admin.modules.support", fallback: "Support" },
+  [ModuleKey.COMPLIANCE]: { key: "admin.modules.compliance", fallback: "Compliance" },
+  [ModuleKey.REPORTS]: { key: "admin.modules.reports", fallback: "Reports" },
+  [ModuleKey.SYSTEM_MANAGEMENT]: { key: "admin.modules.system", fallback: "System" },
+};
+
+/**
+ * Map ModuleKey → SubmoduleKey for plan-aware filtering.
+ * If a module has no corresponding submodule in PLAN_GATES, check PREMIUM_MODULES.
+ */
+const MODULE_TO_SUBMODULE: Partial<Record<ModuleKey, SubmoduleKey>> = {
+  [ModuleKey.WORK_ORDERS]: SubmoduleKey.WO_CREATE,
+  [ModuleKey.PROPERTIES]: SubmoduleKey.PROP_LIST,
+};
+
+/**
+ * Premium modules require at least STANDARD plan.
+ * These don't have SubmoduleKey entries but should still be plan-gated.
+ */
+const PREMIUM_MODULES: Set<ModuleKey> = new Set([
+  ModuleKey.FINANCE,
+  ModuleKey.HR,
+  ModuleKey.COMPLIANCE,
+  ModuleKey.SYSTEM_MANAGEMENT,
+]);
+
+/**
+ * Check if a plan allows premium modules.
+ * STARTER plan does not include Finance, HR, Compliance, or System Management.
+ */
+const planAllowsPremiumModules = (plan: Plan): boolean => {
+  return plan !== Plan.STARTER;
+};
+
+export default function SubRoleSelector({
+  role,
+  value,
+  onChange,
+  disabled = false,
+  required = false,
+  error,
+  className = "",
+  orgPlan,
+}: SubRoleSelectorProps) {
+  const { t } = useTranslation();
+  const { org } = useCurrentOrg();
+  
+  // Use provided plan or fall back to org context, default to STARTER (fail-safe)
+  const effectivePlan = orgPlan ?? org?.plan ?? Plan.STARTER;
+  
+  // Normalize role to handle case-sensitivity and legacy aliases (EMPLOYEE, MANAGEMENT, etc.)
+  const normalizedRole = normalizeRole(role as string);
+  const isTeamMember = normalizedRole === Role.TEAM_MEMBER;
+  
+  if (!isTeamMember) {
+    return null;
+  }
+  
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedValue = e.target.value;
+    onChange(selectedValue ? (selectedValue as SubRole) : null);
+  };
+  
+  // Get allowed modules for selected sub-role, filtered by plan gates
+  const baseModules = value
+    ? computeAllowedModules(Role.TEAM_MEMBER, value as SubRole)
+    : computeAllowedModules(Role.TEAM_MEMBER);
+  
+  // Filter modules by plan gates to avoid overpromising
+  const planGates = PLAN_GATES[effectivePlan];
+  const allowedModules = baseModules.filter((module) => {
+    // Check if this is a premium module (Finance, HR, Compliance, System)
+    if (PREMIUM_MODULES.has(module)) {
+      return planAllowsPremiumModules(effectivePlan);
+    }
+    // Check if module has a corresponding submodule in plan gates
+    const submodule = MODULE_TO_SUBMODULE[module];
+    if (!submodule) return true;
+    // Check if plan allows this submodule
+    return planGates[submodule] !== false;
+  });
+  
+  return (
+    <div className={`space-y-2 ${className}`}>
+      <label
+        htmlFor="subRole"
+        className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+      >
+        {t("admin.users.form.subRole", "Sub-Role (Specialization)")}
+        {required && <span className="text-red-500 ms-1" aria-label="required">*</span>}
+      </label>
+      
+      <select
+        id="subRole"
+        name="subRole"
+        value={value || ""}
+        onChange={handleChange}
+        disabled={disabled}
+        required={required}
+        className={`block w-full rounded-md border px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500 ${
+          error
+            ? "border-red-500 focus:ring-red-500"
+            : "border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+        }`}
+        aria-describedby={error ? "subRole-error" : "subRole-help"}
+        aria-invalid={error ? "true" : "false"}
+      >
+        <option value="">
+          {t("admin.users.form.subRole.none", "— No specialization (general access) —")}
+        </option>
+        
+        {Object.values(SubRole).map((subRole) => {
+          const info = SUB_ROLE_INFO_KEYS[subRole];
+          return (
+            <option key={subRole} value={subRole}>
+              {info.icon} {t(info.labelKey, info.labelFallback)}
+            </option>
+          );
+        })}
+      </select>
+      
+      {/* Sub-role description */}
+      {value && SUB_ROLE_INFO_KEYS[value as SubRole] && (
+        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          {t(
+            SUB_ROLE_INFO_KEYS[value as SubRole].descKey,
+            SUB_ROLE_INFO_KEYS[value as SubRole].descFallback
+          )}
+        </p>
+      )}
+      
+      {/* Module access preview */}
+      <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
+        <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+          {t("admin.users.form.moduleAccess", "Module Access:")}
+        </p>
+        <div className="flex flex-wrap gap-1">
+          {allowedModules.map((module) => {
+            const nameInfo = MODULE_NAME_KEYS[module];
+            return (
+              <span
+                key={module}
+                className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200"
+              >
+                {t(nameInfo.key, nameInfo.fallback)}
+              </span>
+            );
+          })}
+        </div>
+      </div>
+      
+      {/* Help text */}
+      {!error && (
+        <p id="subRole-help" className="text-xs text-gray-500 dark:text-gray-400">
+          {t(
+            "admin.users.form.subRole.help",
+            "Sub-roles grant access to specialized modules. Leave empty for general Team Member access."
+          )}
+        </p>
+      )}
+      
+      {/* Error message */}
+      {error && (
+        <p id="subRole-error" className="text-sm text-red-600 dark:text-red-400" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/admin/UpgradeModal.tsx">
+<![CDATA[
+'use client';
+import { logger } from '@/lib/logger';
+import { EMAIL_DOMAINS } from '@/lib/config/domains';
+
+import { useState, useEffect, useRef } from 'react';
+
+// ✅ FIXED: Use standard components
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+
+// ✅ FIXED: Add i18n support
+import { useTranslation } from '@/contexts/TranslationContext';
+
+// Lucide icons
+import { Lock, CheckCircle } from 'lucide-react';
+
+interface UpgradeModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  featureName?: string;
+}
+
+/**
+ * ✅ REFACTORED UpgradeModal Component
+ * 
+ * ARCHITECTURE IMPROVEMENTS:
+ * 1. ✅ Standard Dialog/Button components (no hardcoded modal)
+ * 2. ✅ Standard Input component (no raw input elements)
+ * 3. ✅ Full i18n support (20+ translatable strings)
+ * 4. ✅ Semantic tokens (text-success, text-destructive, text-primary)
+ * 5. ✅ FeatureListItem helper component for DRY code
+ * 6. ✅ SuccessView helper component for state management
+ * 7. ✅ Internal success state (NO fragile window.toast)
+ * 8. ✅ State reset on close (prevents stale data on reopen)
+ * 9. ✅ FIXED: Timer cleanup to prevent memory leaks (closeTimer, successTimer)
+ */
+export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps) {
+  const { t } = useTranslation();
+  const [email, setEmail] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
+  const closeTimerRef = useRef<NodeJS.Timeout>();
+  const successTimerRef = useRef<NodeJS.Timeout>();
+
+  // ✅ FIXED: Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    };
+  }, []);
+
+  // ✅ FIXED: Reset state when modal closes to prevent stale data
+  const handleClose = () => {
+    onClose();
+    // Clear any pending timers
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    // Reset state after animation completes (300ms)
+    closeTimerRef.current = setTimeout(() => {
+      setEmail('');
+      setError('');
+      setShowSuccess(false);
+    }, 300);
+  };
+
+  const handleContactSales = async () => {
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email.trim())) {
+      setError(t('upgrade.error.invalidEmail', 'Please enter a valid email address'));
+      return;
+    }
+
+    setError('');
+    setSubmitting(true);
+    try {
+      const response = await fetch('/api/admin/contact-sales', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim(),
+          feature: featureName || t('upgrade.feature.enterprise', 'Enterprise Features'),
+          interest: 'upgrade'
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to submit request');
+      }
+      
+      // ✅ FIXED: Use internal success state instead of window.toast
+      setError('');
+      setShowSuccess(true);
+      
+      // Auto-close after 3 seconds (with cleanup)
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+      successTimerRef.current = setTimeout(() => {
+        setShowSuccess(false);
+        handleClose();
+      }, 3000);
+    } catch (error) {
+      logger.error('Failed to submit contact request', { error });
+      setError(t('upgrade.error.submitFailed', `Failed to submit request. Please email ${EMAIL_DOMAINS.sales} directly.`));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // ✅ FIXED: Success view component
+  if (showSuccess) {
+    return (
+      <Dialog open={isOpen} onOpenChange={handleClose}>
+        <DialogContent className="bg-popover text-popover-foreground border-border">
+          <SuccessView onClose={handleClose} t={t} />
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="bg-popover text-popover-foreground border-border max-w-md">
+        {/* Icon */}
+        <div className="flex justify-center mb-4">
+          <div className="rounded-full bg-primary/10 p-3">
+            <Lock className="w-8 h-8 text-primary" />
+          </div>
+        </div>
+
+        {/* Header */}
+        <DialogHeader>
+          <DialogTitle className="text-foreground text-center">
+            {t('upgrade.title', 'Enterprise Feature')}
+          </DialogTitle>
+          <DialogDescription className="text-muted-foreground text-center">
+            {featureName ? (
+              <>
+                <strong>{featureName}</strong> {t('upgrade.description.feature', 'is available in the Enterprise plan with advanced features and dedicated support.')}
+              </>
+            ) : (
+              t('upgrade.description.default', 'This feature is available in the Enterprise plan with advanced features and dedicated support.')
+            )}
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* Features included */}
+        <div className="bg-muted rounded-2xl p-4 mb-4">
+          <h4 className="font-semibold text-foreground mb-3">
+            {t('upgrade.includes.title', 'Enterprise includes:')}
+          </h4>
+          <ul className="space-y-2">
+            <FeatureListItem text={t('upgrade.feature.premium', 'All Premium features included')} />
+            <FeatureListItem text={t('upgrade.feature.api', 'Advanced API integrations')} />
+            <FeatureListItem text={t('upgrade.feature.support', '24/7 priority support')} />
+            <FeatureListItem text={t('upgrade.feature.sla', 'Custom SLA agreements')} />
+          </ul>
+        </div>
+
+        {/* Contact form */}
+        <div className="mb-4">
+          <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
+            {t('upgrade.email.label', 'Email Address')}
+          </label>
+          <Input
+            type="email"
+            id="email"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (error) setError('');
+            }}
+            placeholder={t('upgrade.email.placeholder', 'your@email.com')}
+            disabled={submitting}
+            className="w-full"
+          />
+          {error && (
+            <p className="mt-2 text-sm text-destructive">
+              {error}
+            </p>
+          )}
+        </div>
+
+        {/* Actions */}
+        <DialogFooter className="flex-row gap-3 sm:gap-3">
+          <Button
+            variant="outline"
+            onClick={handleClose}
+            disabled={submitting}
+            className="flex-1"
+          >
+            {t('upgrade.action.later', 'Maybe Later')}
+          </Button>
+          <Button
+            variant="default"
+            onClick={handleContactSales}
+            disabled={submitting}
+            className="flex-1 font-semibold"
+          >
+            {submitting 
+              ? t('upgrade.action.sending', 'Sending...') 
+              : t('upgrade.action.contact', 'Contact Sales')}
+          </Button>
+        </DialogFooter>
+
+        {/* Alternative contact */}
+        <p className="text-xs text-muted-foreground text-center mt-4">
+          {t('upgrade.alternative.prefix', 'Or email us directly at')}{' '}
+          <a href={`mailto:${EMAIL_DOMAINS.sales}`} className="text-primary hover:underline">
+            {EMAIL_DOMAINS.sales}
+          </a>
+        </p>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * ✅ EXTRACTED: FeatureListItem Helper
+ * Displays a feature with check icon and semantic colors
+ */
+interface FeatureListItemProps {
+  text: string;
+}
+
+function FeatureListItem({ text }: FeatureListItemProps) {
+  return (
+    <li className="flex items-start text-sm text-muted-foreground">
+      <CheckCircle className="w-5 h-5 text-success me-2 flex-shrink-0 mt-0.5" />
+      {text}
+    </li>
+  );
+}
+
+/**
+ * ✅ EXTRACTED: SuccessView Helper
+ * Shows success confirmation after form submission
+ */
+interface SuccessViewProps {
+  onClose: () => void;
+  t: (key: string, fallback?: string) => string;
+}
+
+function SuccessView({ onClose, t }: SuccessViewProps) {
+  return (
+    <>
+      <div className="flex justify-center mb-4">
+        <div className="rounded-full bg-success/10 p-3">
+          <CheckCircle className="w-12 h-12 text-success" />
+        </div>
+      </div>
+
+      <DialogHeader>
+        <DialogTitle className="text-foreground text-center">
+          {t('upgrade.success.title', 'Request Submitted!')}
+        </DialogTitle>
+        <DialogDescription className="text-muted-foreground text-center">
+          {t('upgrade.success.message', 'Thank you! Our sales team will contact you shortly.')}
+        </DialogDescription>
+      </DialogHeader>
+
+      <DialogFooter>
+        <Button
+          variant="default"
+          onClick={onClose}
+          className="w-full"
+        >
+          {t('common.close', 'Close')}
+        </Button>
+      </DialogFooter>
+    </>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/admin/UserModal.tsx">
+<![CDATA[
+"use client";
+
+/**
+ * User Modal Component - User Creation and Editing
+ *
+ * Features:
+ * - Create new users
+ * - Edit existing users
+ * - Sub-role selection for Team Members (STRICT v4.1)
+ * - Form validation
+ * - Real-time module access preview
+ *
+ * RBAC: Super Admin and Corporate Admin only
+ * Compliance: WCAG 2.1 AA
+ */
+
+import React, { useEffect } from 'react';
+import { Save, X, AlertCircle } from 'lucide-react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import AccessibleModal from '@/components/admin/AccessibleModal';
+import SubRoleSelector from '@/components/admin/SubRoleSelector';
+import { Button } from '@/components/ui/button';
+import { normalizeRole, SubRole, Role } from '@/lib/rbac/client-roles';
+import { userFormSchema, type UserFormSchema } from '@/lib/schemas/admin';
+
+export interface UserFormData {
+  name?: string;
+  email?: string;
+  role?: string;
+  subRole?: SubRole | null;
+  status?: 'Active' | 'Inactive' | 'Locked';
+  department?: string;
+  phone?: string;
+}
+
+export interface UserModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (data: UserFormData) => Promise<void>;
+  editingUser?: UserFormData & { id?: string } | null;
+  t: (key: string, fallback?: string) => string;
+}
+
+/**
+ * User Creation/Editing Modal with RBAC Sub-Role Support
+ */
+export default function UserModal({
+  isOpen,
+  onClose,
+  onSave,
+  editingUser,
+  t,
+}: UserModalProps) {
+  // Step 4: React Hook Form + Zod validation
+  const {
+    control,
+    handleSubmit: handleFormSubmit,
+    formState: { errors, isSubmitting },
+    reset,
+    watch,
+    setValue,
+  } = useForm<UserFormSchema>({
+    resolver: zodResolver(userFormSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      role: 'TENANT',
+      subRole: null,
+      status: 'Active',
+      department: '',
+      phone: '',
+    },
+  });
+
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
+  const watchedRole = watch('role');
+  const watchedSubRole = watch('subRole');
+
+  // Initialize form when modal opens or editingUser changes
+  useEffect(() => {
+    if (isOpen) {
+      if (editingUser) {
+        reset({
+          name: editingUser.name || '',
+          email: editingUser.email || '',
+          role: editingUser.role || 'TENANT',
+          subRole: editingUser.subRole || null,
+          status: editingUser.status || 'Active',
+          department: editingUser.department || '',
+          phone: editingUser.phone || '',
+        });
+      } else {
+        // Reset for new user
+        reset({
+          name: '',
+          email: '',
+          role: 'TENANT',
+          subRole: null,
+          status: 'Active',
+          department: '',
+          phone: '',
+        });
+      }
+      setSubmitError(null);
+    }
+  }, [isOpen, editingUser, reset]);
+
+  // TEAM_MEMBER is eligible for sub-roles (FINANCE_OFFICER, HR_OFFICER, SUPPORT_AGENT)
+  const subRoleEligible = new Set<Role>([Role.TEAM_MEMBER]);
+
+  // Clear sub-role when role changes away from TEAM_MEMBER
+  useEffect(() => {
+    const normalizedRole = normalizeRole(watchedRole || '');
+    if (
+      (!normalizedRole || !subRoleEligible.has(normalizedRole)) &&
+      watchedSubRole
+    ) {
+      setValue('subRole', null);
+    }
+  }, [watchedRole, watchedSubRole, setValue]);
+
+  const onSubmit = async (data: UserFormSchema) => {
+    setSubmitError(null);
+    try {
+      await onSave(data);
+      onClose();
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : t('admin.userModal.errors.saveFailed', 'Failed to save user')
+      );
+    }
+  };
+
+  const normalizedRole = normalizeRole(watchedRole || '');
+  const allowSubRole =
+    normalizedRole !== null && subRoleEligible.has(normalizedRole);
+
+  return (
+    <AccessibleModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={
+        editingUser
+          ? t('admin.userModal.titleEdit', 'Edit User')
+          : t('admin.userModal.titleCreate', 'Create New User')
+      }
+      description={
+        editingUser
+          ? t('admin.userModal.descriptionEdit', 'Update user information and permissions')
+          : t('admin.userModal.descriptionCreate', 'Add a new user to the organization')
+      }
+      size="lg"
+      closeOnClickOutside={false}
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
+            <X className="me-2 h-4 w-4" />
+            {t('admin.common.cancel', 'Cancel')}
+          </Button>
+          <Button
+            onClick={handleFormSubmit(onSubmit)}
+            disabled={isSubmitting}
+          >
+            <Save className="me-2 h-4 w-4" />
+            {isSubmitting
+              ? t('admin.common.saving', 'Saving...')
+              : editingUser
+                ? t('admin.common.update', 'Update')
+                : t('admin.common.create', 'Create')}
+          </Button>
+        </>
+      }
+    >
+      <form onSubmit={handleFormSubmit(onSubmit)} className="space-y-6">
+        {/* Global error message */}
+        {submitError && (
+          <div className="p-4 bg-destructive/10 border border-destructive rounded-lg flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+            <div className="text-sm text-destructive">{submitError}</div>
+          </div>
+        )}
+
+        {/* Name */}
+        <div>
+          <label htmlFor="user-name" className="block text-sm font-medium text-foreground mb-2">
+            {t('admin.userModal.fields.name', 'Full Name')}
+            <span className="text-destructive ms-1">*</span>
+          </label>
+          <Controller
+            name="name"
+            control={control}
+            render={({ field }) => (
+              <input
+                {...field}
+                id="user-name"
+                type="text"
+                value={field.value || ''}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent ${
+                  errors.name ? 'border-destructive' : 'border-input'
+                }`}
+                placeholder={t('admin.userModal.placeholders.name', 'John Doe')}
+                disabled={isSubmitting}
+                aria-invalid={!!errors.name}
+                aria-describedby={errors.name ? 'name-error' : undefined}
+              />
+            )}
+          />
+          {errors.name && (
+            <p id="name-error" className="mt-1 text-sm text-destructive">
+              {errors.name.message}
+            </p>
+          )}
+        </div>
+
+        {/* Email */}
+        <div>
+          <label htmlFor="user-email" className="block text-sm font-medium text-foreground mb-2">
+            {t('admin.userModal.fields.email', 'Email Address')}
+            <span className="text-destructive ms-1">*</span>
+          </label>
+          <Controller
+            name="email"
+            control={control}
+            render={({ field }) => (
+              <input
+                {...field}
+                id="user-email"
+                type="email"
+                value={field.value || ''}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent ${
+                  errors.email ? 'border-destructive' : 'border-input'
+                }`}
+                placeholder={t('admin.userModal.placeholders.email', 'john@example.com')}
+                disabled={isSubmitting || !!editingUser}
+                aria-invalid={!!errors.email}
+                aria-describedby={errors.email ? 'email-error' : undefined}
+              />
+            )}
+          />
+          {errors.email && (
+            <p id="email-error" className="mt-1 text-sm text-destructive">
+              {errors.email.message}
+            </p>
+          )}
+          {editingUser && (
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t('admin.userModal.hints.emailImmutable', 'Email cannot be changed after creation')}
+            </p>
+          )}
+        </div>
+
+        {/* Role */}
+        <div>
+          <label htmlFor="user-role" className="block text-sm font-medium text-foreground mb-2">
+            {t('admin.userModal.fields.role', 'Role')}
+            <span className="text-destructive ms-1">*</span>
+          </label>
+          <Controller
+            name="role"
+            control={control}
+            render={({ field }) => (
+              <select
+                {...field}
+                id="user-role"
+                value={field.value || 'TENANT'}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent ${
+                  errors.role ? 'border-destructive' : 'border-input'
+                }`}
+                disabled={isSubmitting}
+                aria-invalid={!!errors.role}
+                aria-describedby={errors.role ? 'role-error' : undefined}
+              >
+                <option value="TENANT">{t('admin.roles.tenant', 'Tenant')}</option>
+                <option value="VENDOR">{t('admin.roles.vendor', 'Vendor')}</option>
+                <option value="TECHNICIAN">{t('admin.roles.technician', 'Technician')}</option>
+                <option value="PROPERTY_MANAGER">{t('admin.roles.propertyManager', 'Property Manager')}</option>
+                <option value="FM_MANAGER">{t('admin.roles.fmManager', 'FM Manager')}</option>
+                <option value="FINANCE">{t('admin.roles.finance', 'Finance')}</option>
+                <option value="HR">{t('admin.roles.hr', 'HR')}</option>
+                <option value="SUPPORT">{t('admin.roles.support', 'Support')}</option>
+                <option value="ADMIN">{t('admin.roles.admin', 'Corporate Admin')}</option>
+                <option value="SUPER_ADMIN">{t('admin.roles.superAdmin', 'Super Admin')}</option>
+              </select>
+            )}
+          />
+          {errors.role && (
+            <p id="role-error" className="mt-1 text-sm text-destructive">
+              {errors.role.message}
+            </p>
+          )}
+        </div>
+
+        {/* Sub-Role Selector (eligible roles only) */}
+        {allowSubRole && (
+          <div>
+            <label htmlFor="user-subrole" className="block text-sm font-medium text-foreground mb-2">
+              {t('admin.userModal.fields.subRole', 'Sub-Role')}
+              <span className="text-destructive ms-1">*</span>
+            </label>
+            <Controller
+              name="subRole"
+              control={control}
+              render={({ field }) => (
+                <SubRoleSelector
+                  role={normalizedRole}
+                  value={field.value || undefined}
+                  onChange={(newSubRole) => field.onChange(newSubRole)}
+                  disabled={isSubmitting}
+                />
+              )}
+            />
+            {errors.subRole && (
+              <p className="mt-2 text-sm text-destructive">{errors.subRole.message}</p>
+            )}
+            <p className="mt-2 text-sm text-muted-foreground">
+              {t(
+                'admin.userModal.hints.subRole',
+                'Sub-roles grant access to specialized modules like Finance, HR, Support, and Operations.'
+              )}
+            </p>
+          </div>
+        )}
+
+        {/* Status */}
+        <div>
+          <label htmlFor="user-status" className="block text-sm font-medium text-foreground mb-2">
+            {t('admin.userModal.fields.status', 'Status')}
+          </label>
+          <Controller
+            name="status"
+            control={control}
+            render={({ field }) => (
+              <select
+                {...field}
+                id="user-status"
+                value={field.value || 'Active'}
+                className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                disabled={isSubmitting}
+              >
+                <option value="Active">{t('admin.status.active', 'Active')}</option>
+                <option value="Inactive">{t('admin.status.inactive', 'Inactive')}</option>
+                <option value="Locked">{t('admin.status.locked', 'Locked')}</option>
+              </select>
+            )}
+          />
+        </div>
+
+        {/* Department (optional) */}
+        <div>
+          <label htmlFor="user-department" className="block text-sm font-medium text-foreground mb-2">
+            {t('admin.userModal.fields.department', 'Department')}
+          </label>
+          <Controller
+            name="department"
+            control={control}
+            render={({ field }) => (
+              <input
+                {...field}
+                id="user-department"
+                type="text"
+                value={field.value || ''}
+                className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                placeholder={t('admin.userModal.placeholders.department', 'e.g., Facilities, Maintenance')}
+                disabled={isSubmitting}
+              />
+            )}
+          />
+        </div>
+
+        {/* Phone (optional) */}
+        <div>
+          <label htmlFor="user-phone" className="block text-sm font-medium text-foreground mb-2">
+            {t('admin.userModal.fields.phone', 'Phone Number')}
+          </label>
+          <Controller
+            name="phone"
+            control={control}
+            render={({ field }) => (
+              <input
+                {...field}
+                id="user-phone"
+                type="tel"
+                value={field.value || ''}
+                className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                placeholder={t('admin.userModal.placeholders.phone', '+1 (555) 123-4567')}
+                disabled={isSubmitting}
+              />
+            )}
+          />
+        </div>
+      </form>
+    </AccessibleModal>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/admin/claims/ClaimReviewPanel.tsx">
+<![CDATA[
+"use client";
+
+import { useState, useEffect, useMemo } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  Filter,
+  Image as ImageIcon,
+  Search,
+  Shield,
+  TrendingUp,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
+
+const STATUS_FILTER_MAP: Record<string, string[]> = {
+  "pending-decision": [
+    "pending_investigation",
+    "pending_seller_response",
+    "under_review",
+    "pending_review",
+  ],
+  "under-investigation": ["pending_investigation", "under_review"],
+  "under-appeal": ["escalated", "under_appeal"],
+};
+
+interface ClaimForReview {
+  claimId: string;
+  claimNumber: string;
+  orderId: string;
+  claimType: string;
+  status: string;
+  claimAmount: number;
+  buyerName: string;
+  sellerName: string;
+  fraudScore: number;
+  riskLevel: "low" | "medium" | "high";
+  recommendedAction:
+    | "approve-full"
+    | "approve-partial"
+    | "reject"
+    | "pending-review";
+  confidence: number;
+  fraudFlags?: string[];
+  evidenceCount: number;
+  createdAt: string;
+  updatedAt?: string;
+  priority: "high" | "medium" | "low";
+}
+
+interface DecisionData {
+  outcome: "approve-full" | "approve-partial" | "reject";
+  reason: string;
+  refundAmount?: number;
+  recommendedAction?: string;
+}
+
+const isValidOutcome = (value: string): value is DecisionData["outcome"] =>
+  value === "approve-full" || value === "approve-partial" || value === "reject";
+
+export default function ClaimReviewPanel() {
+  const { toast } = useToast();
+  const [claims, setClaims] = useState<ClaimForReview[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [reviewStats, setReviewStats] = useState<{
+    pendingReview: number;
+    highPriority: number;
+    highRisk: number;
+    totalAmount: number;
+  } | null>(null);
+  const [selectedClaim, setSelectedClaim] = useState<ClaimForReview | null>(
+    null,
+  );
+  const [showDecisionDialog, setShowDecisionDialog] = useState(false);
+  const [decisionData, setDecisionData] = useState<DecisionData>({
+    outcome: "approve-full",
+    reason: "",
+  });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("pending-decision");
+  const [selectedClaims, setSelectedClaims] = useState<Set<string>>(new Set());
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [bulkAction, setBulkAction] = useState<"approve" | "reject" | null>(
+    null,
+  );
+  const [bulkReason, setBulkReason] = useState("");
+  const [bulkSubmitting, setBulkSubmitting] = useState(false);
+
+  useEffect(() => {
+    fetchClaimsForReview();
+  }, [priorityFilter, statusFilter, searchQuery]);
+
+  const fetchClaimsForReview = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        status: statusFilter,
+      });
+      if (priorityFilter !== "all") {
+        params.append("priority", priorityFilter);
+      }
+      if (searchQuery) {
+        params.append("search", searchQuery);
+      }
+
+      // Use dedicated fraud detection endpoint
+      const response = await fetch(
+        `/api/souq/claims/admin/review?${params.toString()}`,
+      );
+      if (response.ok) {
+        const data: {
+          claims: ClaimForReview[];
+          stats?: {
+            pendingReview: number;
+            highPriority: number;
+            highRisk: number;
+            totalAmount: number;
+          };
+        } = await response.json();
+        setClaims(data.claims || []);
+        setReviewStats(data.stats ?? null);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error ||
+            "فشل تحميل قائمة المطالبات. يرجى المحاولة مرة أخرى.",
+        );
+      }
+    } catch (error) {
+      logger.error("Failed to fetch claims", error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : "تعذر الاتصال بالخادم. يرجى المحاولة مرة أخرى.";
+      toast({
+        variant: "destructive",
+        title: "خطأ في تحميل المطالبات",
+        description: message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMakeDecision = (claim: ClaimForReview) => {
+    setSelectedClaim(claim);
+    const recommended =
+      claim.recommendedAction === "pending-review"
+        ? "approve-full"
+        : claim.recommendedAction;
+    setDecisionData({
+      outcome: recommended as DecisionData["outcome"],
+      reason: "",
+      refundAmount:
+        recommended === "approve-full" ? claim.claimAmount : undefined,
+    });
+    setShowDecisionDialog(true);
+  };
+
+  const submitDecision = async () => {
+    if (!selectedClaim) return;
+
+    if (decisionData.reason.trim().length < 20) {
+      toast({
+        variant: "destructive",
+        title: "خطأ",
+        description: "الرجاء تقديم سبب تفصيلي (20 حرف على الأقل)",
+      });
+      return;
+    }
+
+    if (decisionData.outcome === "approve-partial") {
+      if (
+        !decisionData.refundAmount ||
+        decisionData.refundAmount <= 0 ||
+        decisionData.refundAmount > selectedClaim.claimAmount
+      ) {
+        toast({
+          variant: "destructive",
+          title: "خطأ",
+          description: "الرجاء إدخال مبلغ استرجاع صحيح",
+        });
+        return;
+      }
+    }
+
+    try {
+      const response = await fetch(
+        `/api/souq/claims/${selectedClaim.claimId}/decision`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(decisionData),
+        },
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "فشل إرسال القرار");
+      }
+
+      toast({
+        title: "تم إرسال القرار بنجاح",
+        description: `تم اتخاذ القرار للمطالبة #${selectedClaim.claimNumber}`,
+      });
+
+      setShowDecisionDialog(false);
+      fetchClaimsForReview();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      toast({
+        variant: "destructive",
+        title: "خطأ",
+        description: errorMessage,
+      });
+    }
+  };
+
+  const handleBulkAction = (action: "approve" | "reject") => {
+    if (selectedClaims.size === 0) {
+      toast({
+        variant: "destructive",
+        title: "خطأ",
+        description: "الرجاء اختيار مطالبات أولاً",
+      });
+      return;
+    }
+
+    setBulkAction(action);
+    setBulkReason("");
+    setBulkDialogOpen(true);
+  };
+
+  const submitBulkAction = async () => {
+    if (!bulkAction) return;
+
+    if (bulkReason.trim().length < 20) {
+      toast({
+        variant: "destructive",
+        title: "خطأ",
+        description: "يجب إدخال سبب لا يقل عن 20 حرفاً",
+      });
+      return;
+    }
+
+    setBulkSubmitting(true);
+
+    try {
+      const response = await fetch("/api/souq/claims/admin/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: bulkAction,
+          claimIds: Array.from(selectedClaims),
+          reason: bulkReason.trim(),
+        }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error || "فشل تنفيذ الإجراء الجماعي");
+      }
+
+      toast({
+        title: "تم بنجاح",
+        description:
+          payload.message ||
+          `تمت معالجة ${payload.results?.success ?? selectedClaims.size} مطالبة بنجاح`,
+      });
+
+      setSelectedClaims(new Set());
+      setBulkDialogOpen(false);
+      fetchClaimsForReview();
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      toast({
+        variant: "destructive",
+        title: "خطأ",
+        description: errorMessage,
+      });
+    } finally {
+      setBulkSubmitting(false);
+    }
+  };
+
+  const toggleClaimSelection = (claimId: string) => {
+    const newSelection = new Set(selectedClaims);
+    if (newSelection.has(claimId)) {
+      newSelection.delete(claimId);
+    } else {
+      newSelection.add(claimId);
+    }
+    setSelectedClaims(newSelection);
+  };
+
+  const getPriorityBadge = (priority: string) => {
+    const config = {
+      high: { label: "عالي", variant: "destructive" as const },
+      medium: { label: "متوسط", variant: "default" as const },
+      low: { label: "منخفض", variant: "secondary" as const },
+    };
+    const item = config[priority as keyof typeof config] || config.medium;
+    return <Badge variant={item.variant}>{item.label}</Badge>;
+  };
+
+  const getFraudScoreBadge = (score: number) => {
+    if (score >= 70) {
+      return (
+        <Badge variant="destructive" className="flex items-center gap-1">
+          <AlertCircle className="w-3 h-3" />
+          عالي: {score}
+        </Badge>
+      );
+    } else if (score >= 40) {
+      return (
+        <Badge variant="default" className="flex items-center gap-1">
+          <AlertCircle className="w-3 h-3" />
+          متوسط: {score}
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="secondary" className="flex items-center gap-1">
+        <CheckCircle2 className="w-3 h-3" />
+        منخفض: {score}
+      </Badge>
+    );
+  };
+
+  const getRecommendationBadge = (action: string, confidence: number) => {
+    const labels = {
+      "approve-full": "موافقة كاملة",
+      "approve-partial": "موافقة جزئية",
+      reject: "رفض",
+    };
+    return (
+      <div className="flex items-center gap-2">
+        <Badge variant="outline">
+          {labels[action as keyof typeof labels] || action}
+        </Badge>
+        <span className="text-xs text-muted-foreground">
+          ({confidence}% ثقة)
+        </span>
+      </div>
+    );
+  };
+
+  const handleOutcomeChange = (value: string) => {
+    if (!isValidOutcome(value)) {
+      return;
+    }
+    setDecisionData((prev) => ({ ...prev, outcome: value }));
+  };
+
+  const stats = useMemo(() => {
+    const matchesFilter = (claim: ClaimForReview, filterKey: string) => {
+      const mapped = STATUS_FILTER_MAP[filterKey];
+      return mapped
+        ? mapped.includes(claim.status)
+        : claim.status === filterKey;
+    };
+
+    const pending = claims.filter((c) =>
+      matchesFilter(c, "pending-decision"),
+    ).length;
+    const highPriority = claims.filter((c) => c.priority === "high").length;
+    const highRisk = claims.filter((c) => c.fraudScore >= 70).length;
+    const totalAmount = claims.reduce((sum, c) => sum + c.claimAmount, 0);
+
+    return {
+      pending: reviewStats?.pendingReview ?? pending,
+      highPriority: reviewStats?.highPriority ?? highPriority,
+      highRisk: reviewStats?.highRisk ?? highRisk,
+      totalAmount: reviewStats?.totalAmount ?? totalAmount,
+    };
+  }, [claims, reviewStats]);
+
+  return (
+    <>
+      <Card className="w-full">
+        <CardHeader>
+          <div className="flex items-start justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="w-5 h-5" />
+                لوحة مراجعة المطالبات
+              </CardTitle>
+              <CardDescription>
+                Admin Claims Review Panel - مراجعة واتخاذ القرارات
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleBulkAction("approve")}
+                disabled={selectedClaims.size === 0}
+              >
+                موافقة جماعية ({selectedClaims.size})
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleBulkAction("reject")}
+                disabled={selectedClaims.size === 0}
+              >
+                رفض جماعي ({selectedClaims.size})
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+          {/* Statistics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      بانتظار المراجعة
+                    </p>
+                    <p className="text-2xl font-bold">{stats.pending}</p>
+                  </div>
+                  <Clock className="w-8 h-8 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      عالية الأولوية
+                    </p>
+                    <p className="text-2xl font-bold text-destructive">
+                      {stats.highPriority}
+                    </p>
+                  </div>
+                  <AlertCircle className="w-8 h-8 text-destructive" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      احتيال محتمل
+                    </p>
+                    <p className="text-2xl font-bold text-orange-600">
+                      {stats.highRisk}
+                    </p>
+                  </div>
+                  <AlertCircle className="w-8 h-8 text-orange-600" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      إجمالي المبلغ
+                    </p>
+                    <p className="text-2xl font-bold">
+                      {stats.totalAmount.toLocaleString()} SAR
+                    </p>
+                  </div>
+                  <TrendingUp className="w-8 h-8 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Filters */}
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="بحث برقم المطالبة أو الطلب..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="ps-10"
+              />
+            </div>
+
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full md:w-[200px]">
+                <div className="flex items-center gap-2">
+                  <Filter className="w-4 h-4" />
+                  <SelectValue placeholder="الحالة" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">جميع الحالات</SelectItem>
+                <SelectItem value="pending-decision">بانتظار القرار</SelectItem>
+                <SelectItem value="under-investigation">قيد التحقيق</SelectItem>
+                <SelectItem value="under-appeal">قيد الاستئناف</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+              <SelectTrigger className="w-full md:w-[200px]">
+                <div className="flex items-center gap-2">
+                  <Filter className="w-4 h-4" />
+                  <SelectValue placeholder="الأولوية" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">جميع الأولويات</SelectItem>
+                <SelectItem value="high">عالية</SelectItem>
+                <SelectItem value="medium">متوسطة</SelectItem>
+                <SelectItem value="low">منخفضة</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Claims Table */}
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <Clock className="w-8 h-8 animate-spin" />
+            </div>
+          ) : claims.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-64 text-center">
+              <CheckCircle2 className="w-12 h-12 text-muted-foreground mb-2" />
+              <p className="text-sm">لا توجد مطالبات للمراجعة</p>
+            </div>
+          ) : (
+            <div className="border rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[50px]">
+                      <input
+                        type="checkbox"
+                        checked={
+                          selectedClaims.size === claims.length &&
+                          claims.length > 0
+                        }
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedClaims(
+                              new Set(claims.map((c) => c.claimId)),
+                            );
+                          } else {
+                            setSelectedClaims(new Set());
+                          }
+                        }}
+                      />
+                    </TableHead>
+                    <TableHead>رقم المطالبة</TableHead>
+                    <TableHead>الأولوية</TableHead>
+                    <TableHead>المشتري / البائع</TableHead>
+                    <TableHead>المبلغ</TableHead>
+                    <TableHead>مؤشر الاحتيال</TableHead>
+                    <TableHead>التوصية</TableHead>
+                    <TableHead>الأدلة</TableHead>
+                    <TableHead>التاريخ</TableHead>
+                    <TableHead></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {claims.map((claim) => (
+                    <TableRow
+                      key={claim.claimId}
+                      className={cn(
+                        selectedClaims.has(claim.claimId) && "bg-muted/50",
+                      )}
+                    >
+                      <TableCell>
+                        <input
+                          type="checkbox"
+                          checked={selectedClaims.has(claim.claimId)}
+                          onChange={() => toggleClaimSelection(claim.claimId)}
+                        />
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        <div>
+                          <p>{claim.claimNumber}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Order #{claim.orderId}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell>{getPriorityBadge(claim.priority)}</TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          <p>{claim.buyerName}</p>
+                          <p className="text-muted-foreground">
+                            vs {claim.sellerName}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {claim.claimAmount} SAR
+                      </TableCell>
+                      <TableCell>
+                        {getFraudScoreBadge(claim.fraudScore)}
+                      </TableCell>
+                      <TableCell>
+                        {getRecommendationBadge(
+                          claim.recommendedAction,
+                          claim.confidence,
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <ImageIcon className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm">{claim.evidenceCount}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {new Date(claim.createdAt).toLocaleDateString("ar-SA")}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          onClick={() => handleMakeDecision(claim)}
+                        >
+                          اتخاذ قرار
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Decision Dialog */}
+      <Dialog open={showDecisionDialog} onOpenChange={setShowDecisionDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              اتخاذ قرار - المطالبة #{selectedClaim?.claimNumber}
+            </DialogTitle>
+            <DialogDescription>Make Decision for Claim</DialogDescription>
+          </DialogHeader>
+
+          {selectedClaim && (
+            <div className="space-y-4">
+              {/* Claim Summary */}
+              <div className="bg-muted p-4 rounded-lg space-y-2">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">المبلغ:</p>
+                    <p className="font-medium">
+                      {selectedClaim.claimAmount} SAR
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">مؤشر الاحتيال:</p>
+                    {getFraudScoreBadge(selectedClaim.fraudScore)}
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">التوصية:</p>
+                    {getRecommendationBadge(
+                      selectedClaim.recommendedAction,
+                      selectedClaim.confidence,
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">الأدلة:</p>
+                    <p className="font-medium">
+                      {selectedClaim.evidenceCount} ملف
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Decision Form */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>القرار (Decision) *</Label>
+                  <Select
+                    value={decisionData.outcome}
+                    onValueChange={handleOutcomeChange}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر القرار" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="approve-full">
+                        موافقة كاملة (Full Refund)
+                      </SelectItem>
+                      <SelectItem value="approve-partial">
+                        موافقة جزئية (Partial Refund)
+                      </SelectItem>
+                      <SelectItem value="reject">رفض (Reject Claim)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {decisionData.outcome === "approve-partial" && (
+                  <div className="space-y-2">
+                    <Label>مبلغ الاسترجاع (Refund Amount) *</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max={selectedClaim.claimAmount}
+                        value={decisionData.refundAmount || ""}
+                        onChange={(e) =>
+                          setDecisionData({
+                            ...decisionData,
+                            refundAmount: parseFloat(e.target.value),
+                          })
+                        }
+                        placeholder="0.00"
+                      />
+                      <span className="text-sm">SAR</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      الحد الأقصى: {selectedClaim.claimAmount} SAR
+                    </p>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label>سبب القرار (Decision Reason) *</Label>
+                  <Textarea
+                    placeholder="اشرح سبب القرار بالتفصيل..."
+                    value={decisionData.reason}
+                    onChange={(e) =>
+                      setDecisionData({
+                        ...decisionData,
+                        reason: e.target.value,
+                      })
+                    }
+                    rows={6}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {decisionData.reason.length}/500 - الحد الأدنى 20 حرف
+                  </p>
+                </div>
+
+                <Alert>
+                  <AlertDescription className="text-sm">
+                    <p className="font-medium mb-1">تنبيه:</p>
+                    <ul className="list-disc list-inside space-y-1 text-xs">
+                      <li>القرار سيتم إرساله فوراً للطرفين</li>
+                      <li>في حالة الموافقة، سيتم معالجة الاسترجاع تلقائياً</li>
+                      <li>الطرفان لديهما 7 أيام للاستئناف</li>
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDecisionDialog(false)}
+            >
+              إلغاء
+            </Button>
+            <Button onClick={submitDecision}>تأكيد القرار</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Action Dialog */}
+      <Dialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {bulkAction === "approve" ? "موافقة جماعية" : "رفض جماعي"}
+            </DialogTitle>
+            <DialogDescription>
+              سيجري تطبيق الإجراء على {selectedClaims.size} مطالبة. يرجى توضيح
+              السبب.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <Alert>
+              <AlertDescription className="text-sm">
+                سيتم إخطار المشترين والبائعين بعد تطبيق الإجراء.
+              </AlertDescription>
+            </Alert>
+            <div className="space-y-2">
+              <Label>سبب الإجراء *</Label>
+              <Textarea
+                value={bulkReason}
+                onChange={(e) => setBulkReason(e.target.value)}
+                placeholder="اشرح سبب الموافقة أو الرفض..."
+                rows={4}
+              />
+              <p className="text-xs text-muted-foreground">
+                {bulkReason.length}/500 - الحد الأدنى 20 حرف
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setBulkDialogOpen(false)}
+              disabled={bulkSubmitting}
+            >
+              إلغاء
+            </Button>
+            <Button onClick={submitBulkAction} disabled={bulkSubmitting}>
+              {bulkSubmitting ? "جاري التطبيق..." : "تأكيد الإجراء"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/admin/sms/ProviderHealthDashboard.tsx">
+<![CDATA[
+"use client";
+
+/**
+ * SMS Provider Health Dashboard Component
+ *
+ * Displays real-time health metrics for all SMS providers.
+ * Shows success rates, delivery times, costs, and status.
+ *
+ * @module components/admin/sms/ProviderHealthDashboard
+ */
+import { useState, useEffect, useCallback } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { RefreshCw, CheckCircle2, AlertTriangle, XCircle, Activity } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface ProviderHealth {
+  provider: string;
+  enabled: boolean;
+  configuredOrgs: number;
+  status: "healthy" | "degraded" | "unhealthy" | "unconfigured";
+  last24h: {
+    total: number;
+    delivered: number;
+    failed: number;
+    pending: number;
+    successRate: number;
+    avgDeliveryMs: number | null;
+    totalCost: number;
+  };
+  last7d: {
+    total: number;
+    delivered: number;
+    failed: number;
+    successRate: number;
+    totalCost: number;
+  };
+}
+
+interface HealthData {
+  success: boolean;
+  overallStatus: "healthy" | "degraded" | "unhealthy";
+  providers: ProviderHealth[];
+  totals: {
+    last24h: {
+      total: number;
+      delivered: number;
+      failed: number;
+      pending: number;
+      totalCost: number;
+      successRate: number;
+    };
+    last7d: {
+      total: number;
+      delivered: number;
+      failed: number;
+      totalCost: number;
+      successRate: number;
+    };
+  };
+  generatedAt: string;
+}
+
+const STATUS_ICONS = {
+  healthy: CheckCircle2,
+  degraded: AlertTriangle,
+  unhealthy: XCircle,
+  unconfigured: Activity,
+};
+
+const STATUS_COLORS = {
+  healthy: "text-green-500",
+  degraded: "text-yellow-500",
+  unhealthy: "text-red-500",
+  unconfigured: "text-gray-400",
+};
+
+const STATUS_BG = {
+  healthy: "bg-green-500/10",
+  degraded: "bg-yellow-500/10",
+  unhealthy: "bg-red-500/10",
+  unconfigured: "bg-gray-500/10",
+};
+
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat("en-OM", {
+    style: "currency",
+    currency: "OMR",
+    minimumFractionDigits: 3,
+  }).format(amount);
+}
+
+function formatDuration(ms: number | null): string {
+  if (ms === null) return "N/A";
+  if (ms < 1000) return `${ms}ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
+function ProviderCard({ provider }: { provider: ProviderHealth }) {
+  const StatusIcon = STATUS_ICONS[provider.status];
+
+  return (
+    <Card className={cn("transition-all", provider.enabled ? "" : "opacity-60")}>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg capitalize">{provider.provider}</CardTitle>
+          <Badge
+            variant="outline"
+            className={cn(STATUS_BG[provider.status], STATUS_COLORS[provider.status])}
+          >
+            <StatusIcon className="h-3 w-3 me-1" />
+            {provider.status}
+          </Badge>
+        </div>
+        <CardDescription>
+          {provider.enabled
+            ? `${provider.configuredOrgs} org${provider.configuredOrgs !== 1 ? "s" : ""} configured`
+            : "Not configured"}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {provider.enabled ? (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs text-muted-foreground">24h Success Rate</p>
+              <p className={cn(
+                "text-2xl font-bold",
+                provider.last24h.successRate >= 95 ? "text-green-500" :
+                provider.last24h.successRate >= 80 ? "text-yellow-500" : "text-red-500"
+              )}>
+                {provider.last24h.successRate.toFixed(1)}%
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Avg Delivery</p>
+              <p className="text-2xl font-bold">
+                {formatDuration(provider.last24h.avgDeliveryMs)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">24h Messages</p>
+              <p className="text-lg font-medium">
+                {provider.last24h.delivered}/{provider.last24h.total}
+                {provider.last24h.pending > 0 && (
+                  <span className="text-yellow-500 text-sm ms-1">
+                    (+{provider.last24h.pending} pending)
+                  </span>
+                )}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">24h Cost</p>
+              <p className="text-lg font-medium">
+                {formatCurrency(provider.last24h.totalCost)}
+              </p>
+            </div>
+            <div className="col-span-2 pt-2 border-t">
+              <p className="text-xs text-muted-foreground">7d Totals</p>
+              <p className="text-sm">
+                {provider.last7d.delivered}/{provider.last7d.total} delivered
+                ({provider.last7d.successRate.toFixed(1)}%) •{" "}
+                {formatCurrency(provider.last7d.totalCost)}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            This provider is not configured for any organization.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function OverallStats({ data }: { data: HealthData }) {
+  const StatusIcon = STATUS_ICONS[data.overallStatus];
+
+  return (
+    <Card className={cn(STATUS_BG[data.overallStatus])}>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <StatusIcon className={cn("h-5 w-5", STATUS_COLORS[data.overallStatus])} />
+            System Health: {data.overallStatus.charAt(0).toUpperCase() + data.overallStatus.slice(1)}
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Updated: {new Date(data.generatedAt).toLocaleTimeString()}
+          </p>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div>
+            <p className="text-xs text-muted-foreground">24h Success Rate</p>
+            <p className="text-3xl font-bold">{data.totals.last24h.successRate.toFixed(1)}%</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">24h Messages</p>
+            <p className="text-3xl font-bold">{data.totals.last24h.total.toLocaleString()}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">24h Cost</p>
+            <p className="text-3xl font-bold">{formatCurrency(data.totals.last24h.totalCost)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">7d Messages</p>
+            <p className="text-3xl font-bold">{data.totals.last7d.total.toLocaleString()}</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function LoadingSkeleton() {
+  return (
+    <div className="space-y-4">
+      <Skeleton className="h-40 w-full" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <Skeleton key={i} className="h-60" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function ProviderHealthDashboard() {
+  const [data, setData] = useState<HealthData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    try {
+      const response = await fetch("/api/admin/sms/health");
+      if (!response.ok) {
+        throw new Error(`Failed to fetch: ${response.status}`);
+      }
+      const result = await response.json();
+      setData(result);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load health data");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchData();
+  };
+
+  if (loading) {
+    return <LoadingSkeleton />;
+  }
+
+  if (error) {
+    return (
+      <Card className="bg-red-500/10">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-2 text-red-500">
+            <XCircle className="h-5 w-5" />
+            <span>{error}</span>
+          </div>
+          <Button variant="outline" className="mt-4" onClick={handleRefresh}>
+            <RefreshCw className="h-4 w-4 me-2" />
+            Retry
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">SMS Provider Health</h2>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRefresh}
+          disabled={refreshing}
+        >
+          <RefreshCw className={cn("h-4 w-4 me-2", refreshing && "animate-spin")} />
+          Refresh
+        </Button>
+      </div>
+
+      <OverallStats data={data} />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {data.providers
+          .sort((a, b) => {
+            // Sort: enabled first, then by status severity
+            if (a.enabled !== b.enabled) return a.enabled ? -1 : 1;
+            const statusOrder = { unhealthy: 0, degraded: 1, healthy: 2, unconfigured: 3 };
+            return statusOrder[a.status] - statusOrder[b.status];
+          })
+          .map((provider) => (
+            <ProviderCard key={provider.provider} provider={provider} />
+          ))}
+      </div>
+    </div>
+  );
+}
+
+export default ProviderHealthDashboard;
+
+]]>
+</file>
+
+<file path="components/aqar/AgentCard.tsx">
+<![CDATA[
+"use client";
+
+import Image from "next/image";
+import Link from "next/link";
+import { Star, Award, TrendingUp, CheckCircle } from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { ContactActions } from "./ContactActions";
+
+export interface AgentCardProps {
+  id: string;
+  userId: string;
+  firstName: string;
+  lastName: string;
+  displayName?: string;
+  photo?: string;
+  bio?: {
+    en?: string;
+    ar?: string;
+  };
+  license: {
+    number: string;
+    authority: string;
+    verified: boolean;
+  };
+  specializations: string[];
+  languages: string[];
+  experience: number;
+  contact: {
+    phone: string;
+    whatsapp?: string;
+    email: string;
+  };
+  statistics: {
+    totalListings: number;
+    activeListings: number;
+    soldProperties: number;
+    rentedProperties: number;
+    averageRating: number;
+    totalReviews: number;
+    responseTime: number;
+  };
+  tier: "BASIC" | "PREMIUM" | "ELITE";
+  verified: boolean;
+  featured: boolean;
+}
+
+export default function AgentCard({
+  agent,
+  compact = false,
+}: {
+  agent: AgentCardProps;
+  compact?: boolean;
+}) {
+  const { t, isRTL } = useTranslation();
+
+  const fullName = agent.displayName || `${agent.firstName} ${agent.lastName}`;
+  const bioText = isRTL
+    ? agent.bio?.ar || agent.bio?.en
+    : agent.bio?.en || agent.bio?.ar;
+
+  const getTierColor = (tier: string) => {
+    switch (tier) {
+      case "ELITE":
+        return "from-purple-600 to-purple-800";
+      case "PREMIUM":
+        return "from-blue-600 to-blue-800";
+      default:
+        return "from-gray-600 to-gray-800";
+    }
+  };
+
+  const getTierBadge = (tier: string) => {
+    switch (tier) {
+      case "ELITE":
+        return "👑 Elite Agent";
+      case "PREMIUM":
+        return "⭐ Premium Agent";
+      default:
+        return "Agent";
+    }
+  };
+
+  if (compact) {
+    return (
+      <div className="flex items-center gap-3 p-3 bg-card rounded-2xl border border-border hover:shadow-md transition-shadow">
+        {/* Agent Photo */}
+        <div className="relative">
+          {agent.photo ? (
+            <Image
+              src={agent.photo}
+              alt={fullName}
+              width={48}
+              height={48}
+              className="rounded-full"
+            />
+          ) : (
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-warning to-warning-dark flex items-center justify-center">
+              <span className="text-white font-bold text-lg">
+                {agent.firstName?.trim()?.[0] ?? ""}
+                {agent.lastName?.trim()?.[0] ?? ""}
+              </span>
+            </div>
+          )}
+          {agent.verified && (
+            <div className="absolute -bottom-1 -end-1 bg-success rounded-full p-0.5">
+              <CheckCircle className="w-3 h-3 text-white" />
+            </div>
+          )}
+        </div>
+
+        {/* Agent Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <h4 className="font-semibold text-foreground truncate">
+              {fullName}
+            </h4>
+            {agent.tier !== "BASIC" && (
+              <span className="text-xs">
+                {agent.tier === "ELITE" ? "👑" : "⭐"}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Star className="w-3 h-3 fill-warning text-warning" />
+            <span>
+              {typeof agent.statistics?.averageRating === "number" &&
+              !isNaN(agent.statistics.averageRating)
+                ? agent.statistics.averageRating.toFixed(1)
+                : "N/A"}
+            </span>
+            <span className="text-muted-foreground">•</span>
+            <span>
+              {agent.statistics.activeListings}{" "}
+              {t("aqar.agent.listings", "listings")}
+            </span>
+          </div>
+        </div>
+
+        {/* Contact Buttons */}
+        {agent.contact?.phone && (
+          <ContactActions
+            phone={agent.contact.phone}
+            whatsapp={agent.contact.whatsapp}
+            variant="icon"
+          />
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      href={`/aqar/properties?agent=${agent.id}`}
+      className="block bg-card rounded-2xl shadow-md hover:shadow-xl transition-shadow overflow-hidden group"
+    >
+      {/* Header with Tier Badge */}
+      <div
+        className={`bg-gradient-to-r ${getTierColor(agent.tier)} p-4 text-white`}
+      >
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            {/* Agent Photo */}
+            <div className="relative">
+              {agent.photo ? (
+                <Image
+                  src={agent.photo}
+                  alt={fullName}
+                  width={80}
+                  height={80}
+                  className="rounded-full border-4 border-white/20"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-white/20 border-4 border-white/20 flex items-center justify-center">
+                  <span className="text-white font-bold text-2xl">
+                    {agent.firstName?.trim()?.[0] ?? ""}
+                    {agent.lastName?.trim()?.[0] ?? ""}
+                  </span>
+                </div>
+              )}
+              {agent.verified && (
+                <div className="absolute -bottom-1 -end-1 bg-success rounded-full p-1">
+                  <CheckCircle className="w-4 h-4 text-white" />
+                </div>
+              )}
+            </div>
+
+            {/* Agent Name & Tier */}
+            <div>
+              <h3 className="text-xl font-bold mb-1">{fullName}</h3>
+              <div className="flex items-center gap-2 text-white/90 text-sm">
+                <Award className="w-4 h-4" />
+                <span>{getTierBadge(agent.tier)}</span>
+              </div>
+            </div>
+          </div>
+
+          {agent.featured && (
+            <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold">
+              {t("aqar.propertyCard.featured", "Featured")}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="p-4">
+        {/* License Info */}
+        <div className="mb-4 pb-4 border-b border-border">
+          <div className="flex items-start gap-2 text-sm">
+            <CheckCircle
+              className={`w-4 h-4 mt-0.5 flex-shrink-0 ${agent.license.verified ? "text-success" : "text-muted-foreground"}`}
+            />
+            <div>
+              <p className="font-medium text-foreground">
+                {t("aqar.agent.license", "License")}: {agent.license.number}
+              </p>
+              <p className="text-muted-foreground text-xs">
+                {agent.license.authority}{" "}
+                {agent.license.verified &&
+                  `• ${t("aqar.agent.verified", "Verified")}`}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Statistics Grid */}
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="text-center p-3 bg-muted rounded-2xl">
+            <p className="text-2xl font-bold text-foreground">
+              {agent.statistics.activeListings}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t("aqar.agent.listings", "Active Listings")}
+            </p>
+          </div>
+          <div className="text-center p-3 bg-muted rounded-2xl">
+            <p className="text-2xl font-bold text-foreground">
+              {agent.statistics.soldProperties +
+                agent.statistics.rentedProperties}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t("aqar.agent.propertiesClosed", "Properties Closed")}
+            </p>
+          </div>
+          <div className="text-center p-3 bg-muted rounded-2xl">
+            <div className="flex items-center justify-center gap-1">
+              <Star className="w-4 h-4 fill-warning text-warning" />
+              <p className="text-2xl font-bold text-foreground">
+                {typeof agent.statistics?.averageRating === "number" &&
+                !isNaN(agent.statistics.averageRating)
+                  ? agent.statistics.averageRating.toFixed(1)
+                  : "N/A"}
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {agent.statistics.totalReviews} Reviews
+            </p>
+          </div>
+          <div className="text-center p-3 bg-muted rounded-2xl">
+            <p className="text-2xl font-bold text-foreground">
+              {agent.statistics.responseTime}m
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t("aqar.agent.avgResponse", "Avg Response")}
+            </p>
+          </div>
+        </div>
+
+        {/* Experience & Specializations */}
+        <div className="mb-4 space-y-2">
+          <div className="flex items-center gap-2 text-sm text-foreground">
+            <TrendingUp className="w-4 h-4 text-muted-foreground" />
+            <span className="font-medium">
+              {agent.experience}{" "}
+              {t("aqar.agent.yearsExperience", "years experience")}
+            </span>
+          </div>
+
+          {agent.specializations.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {agent.specializations.map((spec, idx) => (
+                <span
+                  key={idx}
+                  className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full"
+                >
+                  {spec}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {agent.languages.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {agent.languages.map((lang, idx) => (
+                <span
+                  key={idx}
+                  className="px-2 py-1 bg-muted text-foreground text-xs rounded-full"
+                >
+                  {lang}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Bio */}
+        {bioText && (
+          <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+            {bioText}
+          </p>
+        )}
+
+        {/* Contact Buttons */}
+        <ContactActions
+          phone={agent.contact.phone}
+          whatsapp={agent.contact.whatsapp}
+          variant="full"
+        />
+      </div>
+    </Link>
+  );
+}
+
+]]>
+</file>
+
+</batch_content>

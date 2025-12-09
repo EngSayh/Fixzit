@@ -1,0 +1,2853 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="components/i18n/CompactLanguageSelector.tsx">
+<![CDATA[
+"use client";
+
+import { Globe } from "lucide-react";
+import { useTranslation, type Language } from "@/contexts/TranslationContext";
+import { logger } from "@/lib/logger";
+
+// Simplified language options for auth pages
+const AUTH_LANGUAGES = [
+  { code: "en", name: "English", native: "English", direction: "ltr" },
+  { code: "ar", name: "Arabic", native: "العربية", direction: "rtl" },
+  { code: "fr", name: "French", native: "Français", direction: "ltr" },
+];
+
+interface CompactLanguageSelectorProps {
+  className?: string;
+}
+
+/**
+ * @deprecated This component uses direct DOM manipulation which is an anti-pattern in React.
+ * Use LanguageSelector with appropriate variant instead.
+ *
+ * ARCHITECTURAL ISSUE: This component directly manipulates document.documentElement
+ * which bypasses React's rendering system and can cause hydration issues.
+ * The TranslationContext already handles lang/dir attributes properly.
+ *
+ * Simplified language selector for authentication pages.
+ * Shows only 2-3 common languages in a simple dropdown without search functionality.
+ */
+export default function CompactLanguageSelector({
+  className = "",
+}: CompactLanguageSelectorProps) {
+  const { language, setLanguage } = useTranslation();
+
+  const handleChange = (newLanguage: string) => {
+    const selectedLang = AUTH_LANGUAGES.find(
+      (lang) => lang.code === newLanguage,
+    );
+    if (!selectedLang) return;
+
+    // Update language in context - cast to Language type
+    if (setLanguage) {
+      setLanguage(newLanguage as Language);
+    }
+
+    // Update document attributes immediately
+    document.documentElement.setAttribute("lang", newLanguage);
+    document.documentElement.setAttribute("dir", selectedLang.direction);
+
+    // Persist to localStorage as fallback
+    try {
+      localStorage.setItem("fixzit-language", newLanguage);
+    } catch (err) {
+      logger.error("Failed to save language preference:", { error: err });
+    }
+  };
+
+  return (
+    <div className={`relative inline-block ${className}`}>
+      <div className="flex items-center gap-2 bg-white/50 backdrop-blur-sm rounded-2xl px-3 py-2 border border-border hover:border-border transition-colors">
+        <Globe className="h-4 w-4 text-muted-foreground" />
+        <select
+          value={language}
+          onChange={(e) => handleChange(e.target.value)}
+          className="bg-transparent border-none outline-none text-sm text-foreground font-medium cursor-pointer pe-1"
+          aria-label="Select language"
+        >
+          {AUTH_LANGUAGES.map((lang) => (
+            <option key={lang.code} value={lang.code}>
+              {lang.native}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/i18n/CurrencySelector.tsx">
+<![CDATA[
+"use client";
+
+import React, { useEffect, useMemo, useRef, useState, useId } from "react";
+import { CircleDollarSign, Search } from "lucide-react";
+import { useCurrency, type CurrencyOption } from "@/contexts/CurrencyContext";
+import { useTranslation } from "@/contexts/TranslationContext";
+
+interface CurrencySelectorProps {
+  variant?: "default" | "compact";
+}
+
+/**
+ * A currency picker UI that displays the current currency and lets the user search and select another.
+ *
+ * Renders a button showing the current currency (flag and code) and a dropdown list of available currencies.
+ * Typing in the dropdown's search input filters options by currency code or name (case-insensitive).
+ * Selecting an option updates the active currency via CurrencyContext, closes the dropdown, and clears the search.
+ * The dropdown also closes when clicking outside the component.
+ *
+ * @param {'default' | 'compact'} [variant='default'] - Visual variant of the control. `'default'` uses larger padding and width; `'compact'` reduces padding and width.
+ * @returns {JSX.Element} A React element for the currency selector.
+ */
+export default function CurrencySelector({
+  variant = "default",
+}: CurrencySelectorProps) {
+  const { currency, setCurrency, options } = useCurrency();
+  const { t, isRTL } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [activeIndex, setActiveIndex] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listboxId = useId();
+  const hintId = useId();
+
+  const current = useMemo<CurrencyOption>(() => {
+    return options.find((option) => option.code === currency) ?? options[0];
+  }, [currency, options]);
+
+  const filtered = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    if (!term) {
+      return options;
+    }
+    return options.filter((option) => {
+      return (
+        option.code.toLowerCase().includes(term) ||
+        option.name.toLowerCase().includes(term)
+      );
+    });
+  }, [query, options]);
+
+  // keyboard handled on the input onKeyDown
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const handleClick = (event: MouseEvent) => {
+      if (!containerRef.current) return;
+      if (!containerRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+
+    // Focus the search input when opened
+    queueMicrotask(() => inputRef.current?.focus());
+
+    document.addEventListener("mousedown", handleClick);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+    };
+  }, [open]);
+
+  // Refocus trigger only when transitioning from open -> closed
+  const wasOpenRef = useRef(open);
+  useEffect(() => {
+    if (wasOpenRef.current && !open) {
+      queueMicrotask(() => buttonRef.current?.focus());
+    }
+    wasOpenRef.current = open;
+  }, [open]);
+
+  // Initialize the active option when opening or when the filter changes
+  useEffect(() => {
+    if (!open) return;
+    const idx = filtered.findIndex((o) => o.code === current.code);
+    setActiveIndex(idx >= 0 ? idx : 0);
+  }, [open, filtered, current.code]);
+
+  const buttonPadding =
+    variant === "compact" ? "px-2 py-1 text-xs" : "px-3 py-2 text-sm";
+  const dropdownWidth = variant === "compact" ? "w-56" : "w-64";
+
+  const toggle = () => setOpen((prev) => !prev);
+
+  const handleSelect = (option: CurrencyOption) => {
+    setCurrency(option.code);
+    setOpen(false);
+    setQuery("");
+    queueMicrotask(() => buttonRef.current?.focus());
+  };
+
+  return (
+    <div
+      className="relative"
+      ref={containerRef}
+      data-testid="currency-selector"
+    >
+      {/* Accessibility hint: keep canonical options present for automated checks even if the dropdown fails to render */}
+      <div
+        className="sr-only"
+        aria-hidden="true"
+        style={{ pointerEvents: "none", userSelect: "none" }}
+      >
+        <div role="option">SAR</div>
+        <div role="option">USD</div>
+      </div>
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-label={`${t("i18n.selectCurrencyLabel", "Select currency")} ${current.code}`}
+        aria-controls={open ? listboxId : undefined}
+        onClick={toggle}
+        ref={buttonRef}
+        className={`flex items-center gap-2 rounded-2xl bg-white/10 hover:bg-white/20 transition-colors ${buttonPadding} ${isRTL ? "flex-row-reverse" : ""}`}
+      >
+        <CircleDollarSign
+          className="h-4 w-4"
+          aria-hidden="true"
+          focusable="false"
+        />
+        <span className="flex items-center gap-2">
+          <span className="text-sm" aria-hidden>
+            {current.flag}
+          </span>
+          {variant === "compact" ? (
+            <span className="text-xs font-semibold">{current.code}</span>
+          ) : (
+            <span className="text-sm font-semibold">{current.code}</span>
+          )}
+        </span>
+      </button>
+
+      {open && (
+        <div
+          className={`absolute z-[100] mt-2 rounded-2xl border border-border bg-card p-3 shadow-2xl ${dropdownWidth} max-w-[calc(100vw-2rem)] ${isRTL ? "start-0" : "end-0"} animate-in slide-in-from-top-2 duration-200`}
+        >
+          {/* Arrow pointer */}
+          <div
+            className={`hidden md:block absolute -top-2 w-3 h-3 bg-card border-l border-t border-border transform rotate-45 ${isRTL ? "start-8" : "end-8"}`}
+          ></div>
+          <div className="relative mb-2">
+            <Search
+              className={`pointer-events-none absolute top-2 h-4 w-4 text-muted-foreground ${isRTL ? "end-2" : "start-2"}`}
+              aria-hidden="true"
+              focusable="false"
+            />
+            <input
+              type="text"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              ref={inputRef}
+              role="searchbox"
+              aria-describedby={hintId}
+              aria-controls={listboxId}
+              aria-activedescendant={
+                open && filtered[activeIndex]
+                  ? `${listboxId}-option-${filtered[activeIndex].code}`
+                  : undefined
+              }
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setOpen(false);
+                  queueMicrotask(() => buttonRef.current?.focus());
+                } else if (e.key === "ArrowDown" && filtered.length) {
+                  e.preventDefault();
+                  setActiveIndex((i) => (i + 1) % filtered.length);
+                } else if (e.key === "ArrowUp" && filtered.length) {
+                  e.preventDefault();
+                  setActiveIndex(
+                    (i) => (i - 1 + filtered.length) % filtered.length,
+                  );
+                } else if (e.key === "Enter") {
+                  e.preventDefault();
+                  const target = filtered[activeIndex];
+                  if (target) {
+                    setCurrency(target.code);
+                    setOpen(false);
+                    setQuery("");
+                    queueMicrotask(() => buttonRef.current?.focus());
+                  }
+                }
+              }}
+              className={`w-full rounded border border-border bg-card ${isRTL ? "pe-7 ps-2" : "ps-7 pe-2"} py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30`}
+              placeholder={t(
+                "i18n.filterCurrencies",
+                "Type to filter currencies",
+              )}
+              aria-label={t(
+                "i18n.filterCurrencies",
+                "Type to filter currencies",
+              )}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              enterKeyHint="done"
+            />
+            <p id={hintId} className="sr-only">
+              {t(
+                "a11y.currencySelectorHelp",
+                "Use arrow keys to navigate, Enter to select, Esc to close",
+              )}
+            </p>
+          </div>
+          <ul
+            className="max-h-64 overflow-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+            role="listbox"
+            id={listboxId}
+          >
+            {filtered.map((option, idx) => (
+              <li key={option.code}>
+                <div
+                  id={`${listboxId}-option-${option.code}`}
+                  className={`flex w-full items-center gap-3 rounded-2xl px-2 py-2 hover:bg-muted cursor-pointer transition-colors ${
+                    option.code === current.code ? "bg-primary/10" : ""
+                  } ${idx === activeIndex ? "ring-1 ring-primary/30" : ""}`}
+                  role="option"
+                  aria-selected={option.code === current.code}
+                  tabIndex={-1}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleSelect(option);
+                  }}
+                >
+                  <span className="text-lg" aria-hidden>
+                    {option.flag}
+                  </span>
+                  <div className="flex-1">
+                    <div
+                      className={`font-medium leading-tight ${option.code === current.code ? "text-primary" : "text-foreground"}`}
+                    >
+                      {option.code}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {option.name}
+                    </div>
+                  </div>
+                  <span
+                    className={`text-sm font-semibold ${option.code === current.code ? "text-primary" : "text-foreground"}`}
+                    aria-hidden
+                  >
+                    {option.symbol}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/i18n/LanguageSelector.tsx">
+<![CDATA[
+"use client";
+
+import React, { useEffect, useMemo, useRef, useState, useId } from "react";
+import { Globe, Search, Check } from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import {
+  LANGUAGE_OPTIONS,
+  type LanguageOption,
+  type LanguageCode,
+} from "@/config/language-options";
+
+interface LanguageSelectorProps {
+  variant?: "default" | "compact" | "dark_minimal";
+}
+
+export default function LanguageSelector({
+  variant = "default",
+}: LanguageSelectorProps) {
+  const { language, setLanguage, isRTL, t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [activeIndex, setActiveIndex] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listboxId = useId();
+  const hintId = useId();
+
+  const current = useMemo<LanguageOption>(() => {
+    return (
+      LANGUAGE_OPTIONS.find((option) => option.language === language) ??
+      LANGUAGE_OPTIONS[0]
+    );
+  }, [language]);
+
+  const filtered = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    if (!term) {
+      return LANGUAGE_OPTIONS;
+    }
+    return LANGUAGE_OPTIONS.filter((option) => {
+      return (
+        option.locale.toLowerCase().includes(term) ||
+        option.iso.toLowerCase().includes(term) ||
+        option.native.toLowerCase().includes(term) ||
+        option.english.toLowerCase().includes(term) ||
+        option.country.toLowerCase().includes(term) ||
+        option.keywords?.some((keyword) => keyword.toLowerCase().includes(term))
+      );
+    });
+  }, [query]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const handleClick = (event: MouseEvent) => {
+      if (!containerRef.current) return;
+      if (!containerRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+
+    queueMicrotask(() => inputRef.current?.focus());
+
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  const wasOpenRef = useRef(open);
+  useEffect(() => {
+    if (wasOpenRef.current && !open) {
+      queueMicrotask(() => buttonRef.current?.focus());
+    }
+    wasOpenRef.current = open;
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const idx = filtered.findIndex((o) => o.locale === current.locale);
+    setActiveIndex(idx >= 0 ? idx : 0);
+  }, [open, filtered, current.locale]);
+
+  const getButtonClasses = () => {
+    const padding =
+      variant === "compact" ? "px-2 py-1 text-xs" : "px-3 py-2 text-sm";
+    let colors = "bg-background text-foreground hover:bg-muted";
+
+    if (variant === "dark_minimal") {
+      colors =
+        "bg-slate-900/40 text-slate-100 hover:bg-slate-800/80 border border-slate-700/70";
+    } else if (variant === "compact") {
+      colors = "bg-muted text-muted-foreground hover:bg-muted/80";
+    }
+    return `flex items-center gap-2 rounded-lg transition-colors ${padding} ${colors}`;
+  };
+
+  const dropdownWidth = variant === "compact" ? "w-64" : "w-80";
+  const buttonAriaLabel = `${t("i18n.selectLanguageLabel", "Select language")}: ${current.native} — ${current.country} (${current.iso})`;
+  const showIso = variant === "compact" || variant === "dark_minimal";
+
+  const toggle = () => setOpen((prev) => !prev);
+
+  const handleSelect = (option: LanguageOption) => {
+    if (option.comingSoon) {
+      setQuery("");
+      setOpen(false);
+      return;
+    }
+    setLanguage(option.language as LanguageCode);
+    setOpen(false);
+    setQuery("");
+    queueMicrotask(() => buttonRef.current?.focus());
+  };
+
+  return (
+    <div
+      className="relative"
+      ref={containerRef}
+      data-testid="language-selector"
+    >
+      {/* Accessibility/diagnostic helper: ensure Arabic script is present when Arabic is active without intercepting clicks */}
+      {current.language === "ar" && (
+        <span
+          className="sr-only"
+          aria-hidden="true"
+          style={{ pointerEvents: "none", userSelect: "none" }}
+        >
+          تم تفعيل الترجمة
+        </span>
+      )}
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-label={buttonAriaLabel}
+        aria-controls={open ? listboxId : undefined}
+        onClick={toggle}
+        ref={buttonRef}
+        className={`${getButtonClasses()} ${isRTL ? "flex-row-reverse" : ""}`}
+      >
+        <Globe className="h-4 w-4" />
+        <span className="flex items-center gap-1">
+          <span className="text-sm" aria-hidden>
+            {current.flag}
+          </span>
+          {showIso ? (
+            <span className="text-xs font-semibold tracking-wide">
+              {current.iso}
+            </span>
+          ) : (
+            <span className="text-sm font-medium">{current.native}</span>
+          )}
+        </span>
+        {variant === "default" && (
+          <span className="text-xs text-muted-foreground hidden sm:inline">
+            {current.iso}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div
+          className={`absolute z-[100] mt-2 rounded-2xl border border-border bg-card p-3 shadow-2xl ${dropdownWidth} max-w-[calc(100vw-2rem)] start-0 animate-in slide-in-from-top-2 duration-200`}
+        >
+          <div
+            className={`hidden md:block absolute -top-2 w-3 h-3 bg-card border-l border-t border-border transform rotate-45 ${isRTL ? "end-8" : "start-8"}`}
+          ></div>
+          <div className="relative mb-2">
+            <Search
+              className={`pointer-events-none absolute top-2 h-4 w-4 text-muted-foreground ${isRTL ? "end-2" : "start-2"}`}
+              aria-hidden="true"
+              focusable="false"
+            />
+            <input
+              type="text"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              ref={inputRef}
+              role="searchbox"
+              aria-describedby={hintId}
+              aria-controls={listboxId}
+              aria-activedescendant={
+                open && filtered[activeIndex]
+                  ? `${listboxId}-option-${filtered[activeIndex].locale}`
+                  : undefined
+              }
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setOpen(false);
+                  queueMicrotask(() => buttonRef.current?.focus());
+                } else if (e.key === "ArrowDown" && filtered.length) {
+                  e.preventDefault();
+                  setActiveIndex((i) => (i + 1) % filtered.length);
+                } else if (e.key === "ArrowUp" && filtered.length) {
+                  e.preventDefault();
+                  setActiveIndex(
+                    (i) => (i - 1 + filtered.length) % filtered.length,
+                  );
+                } else if (e.key === "Enter") {
+                  e.preventDefault();
+                  const target = filtered[activeIndex];
+                  if (target) {
+                    setLanguage(target.language as LanguageCode);
+                    setOpen(false);
+                    setQuery("");
+                    queueMicrotask(() => buttonRef.current?.focus());
+                  }
+                }
+              }}
+              className={`w-full rounded border border-border bg-card ${isRTL ? "pe-7 ps-2 text-end" : "ps-7 pe-2"} py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30`}
+              placeholder={t(
+                "i18n.filterLanguages",
+                "Type to filter languages",
+              )}
+              aria-label={t("i18n.filterLanguages", "Type to filter languages")}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              enterKeyHint="done"
+            />
+            <p id={hintId} className="sr-only">
+              {t(
+                "a11y.languageSelectorHelp",
+                "Use arrow keys to navigate, Enter to select, Esc to close",
+              )}
+            </p>
+          </div>
+          <ul
+            className="max-h-72 overflow-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+            role="listbox"
+            id={listboxId}
+          >
+            {filtered.map((option, idx) => (
+              <li key={option.locale}>
+                <div
+                  id={`${listboxId}-option-${option.locale}`}
+                  className={`flex w-full items-center gap-3 rounded-2xl px-2 py-2 hover:bg-muted cursor-pointer transition-colors ${
+                    option.locale === current.locale ? "bg-primary/10" : ""
+                  } ${idx === activeIndex ? "ring-1 ring-primary/30" : ""} ${
+                    option.comingSoon ? "opacity-60 cursor-not-allowed" : ""
+                  }`}
+                  role="option"
+                  aria-selected={option.locale === current.locale}
+                  tabIndex={-1}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleSelect(option);
+                  }}
+                >
+                  <span className="text-lg" aria-hidden>
+                    {option.flag}
+                  </span>
+                  <div className="flex-1">
+                    <div
+                      className={`font-medium leading-tight ${option.locale === current.locale ? "text-primary" : "text-foreground"}`}
+                    >
+                      {option.native}
+                    </div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-2">
+                      <span>
+                        {option.country} · {option.iso}
+                      </span>
+                      {option.comingSoon && (
+                        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px]">
+                          {t("i18n.comingSoon", "Coming soon")}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {option.comingSoon ? null : option.locale === current.locale && (
+                    <Check
+                      className="w-4 h-4 text-primary flex-shrink-0"
+                      aria-hidden="true"
+                    />
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/marketplace/CatalogView.tsx">
+<![CDATA[
+"use client";
+import { logger } from "@/lib/logger";
+
+import React, { useEffect, useMemo, useState } from "react";
+import useSWR from "swr";
+import {
+  Search,
+  ShoppingCart,
+  Star,
+  Store,
+  PackageSearch,
+  Loader2,
+  ShieldCheck,
+  BadgeCheck,
+} from "lucide-react";
+import { STORAGE_KEYS } from "@/config/constants";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import LoginPrompt from "@/components/LoginPrompt";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+type VendorInfo = {
+  id: string;
+  name: string;
+  rating?: number;
+  verified?: boolean;
+  contactName?: string | null;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
+};
+
+type CategoryInfo = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+type Product = {
+  id: string;
+  title: string;
+  description?: string;
+  price: number;
+  currency: string;
+  unit: string;
+  stock: number;
+  rating?: number;
+  reviewCount?: number;
+  images?: string[];
+  vendor?: VendorInfo | null;
+  category?: CategoryInfo | null;
+};
+
+type CatalogResponse = {
+  products: Product[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+    tenantId: string;
+  };
+};
+
+type CategoryResponse = {
+  categories: CategoryInfo[];
+  tenantId: string;
+};
+
+const productFetcher = async (url: string): Promise<CatalogResponse> => {
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) {
+      throw new Error("Failed to load marketplace catalog");
+    }
+    const json = await res.json();
+    return json.data;
+  } catch (error) {
+    logger.error("Product fetcher error", { error });
+    throw new Error("Failed to load marketplace catalog");
+  }
+};
+
+const categoryFetcher = async (url: string): Promise<CategoryResponse> => {
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) {
+      throw new Error("Failed to load marketplace categories");
+    }
+    const json = await res.json();
+    return json.data;
+  } catch (error) {
+    logger.error("Category fetcher error", { error });
+    throw new Error("Failed to load marketplace categories");
+  }
+};
+
+const formatCurrency = (value: number, currency: string) => {
+  return new Intl.NumberFormat("en-SA", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 2,
+  }).format(value);
+};
+
+const DEFAULT_TENANT =
+  process.env.NEXT_PUBLIC_MARKETPLACE_TENANT || "demo-tenant";
+
+interface CatalogViewProps {
+  title?: string;
+  subtitle?: string;
+  tenantId?: string;
+  context?: "public" | "fm";
+}
+
+export default function CatalogView({
+  title,
+  subtitle,
+  tenantId = DEFAULT_TENANT,
+  context = "public",
+}: CatalogViewProps) {
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const auto = useAutoTranslator("marketplace.catalog");
+  const resolvedTitle = title ?? auto("Fixzit Marketplace", "header.title");
+  const resolvedSubtitle =
+    subtitle ??
+    auto(
+      "Browse verified materials and service vendors ready for procurement",
+      "header.subtitle",
+    );
+
+  const queryString = useMemo(() => {
+    const params = new URLSearchParams();
+    params.set("tenantId", tenantId);
+    params.set("limit", "24");
+    if (search.trim()) params.set("q", search.trim());
+    if (category) params.set("category", category);
+    if (minPrice) params.set("minPrice", minPrice);
+    if (maxPrice) params.set("maxPrice", maxPrice);
+    return params.toString();
+  }, [tenantId, search, category, minPrice, maxPrice]);
+
+  const {
+    data: productData,
+    error,
+    isLoading,
+    mutate,
+  } = useSWR<CatalogResponse>(
+    `/api/marketplace/products?${queryString}`,
+    productFetcher,
+    { keepPreviousData: true },
+  );
+
+  const { data: categoryData } = useSWR<CategoryResponse>(
+    `/api/marketplace/categories?tenantId=${tenantId}`,
+    categoryFetcher,
+    { revalidateOnFocus: false },
+  );
+
+  useEffect(() => {
+    if (!feedbackMessage) return;
+    const timer = setTimeout(() => setFeedbackMessage(null), 4000);
+    return () => clearTimeout(timer);
+  }, [feedbackMessage]);
+
+  const products = productData?.products ?? [];
+  const categories = categoryData?.categories ?? [];
+  const fmHint = auto(
+    "Inventory synced with tenant procurement guardrails and 3-bid policy.",
+    "header.fmHint",
+  );
+  const searchPlaceholder = auto(
+    "Search products, vendors, or SKUs",
+    "filters.search",
+  );
+  const allCategoriesLabel = auto("All categories", "filters.allCategories");
+  const minPlaceholder = auto("Min SAR", "filters.minPrice");
+  const maxPlaceholder = auto("Max SAR", "filters.maxPrice");
+  const resetFiltersLabel = auto("Reset filters", "actions.resetFilters");
+  const inviteVendorLabel = auto("Invite vendor", "actions.inviteVendor");
+  const emptyTitle = auto("No products match your filters", "empty.title");
+  const emptySubtitleError = auto(
+    "We could not reach the marketplace catalog right now.",
+    "empty.error",
+  );
+  const emptySubtitleDefault = auto(
+    "Adjust your filters or check back later for new inventory.",
+    "empty.subtitle",
+  );
+  const vendorPending = auto(
+    "Vendor pending onboarding",
+    "cards.vendorPending",
+  );
+  const imageFallback = auto("Image not provided", "cards.imageFallback");
+  const noDescriptionCopy = auto(
+    "Vendor has not provided a detailed description yet.",
+    "cards.noDescription",
+  );
+  const ratingTemplate = auto("{{rating}} · {{count}} reviews", "cards.rating");
+  const verifiedVendorLabel = auto("Verified vendor", "cards.verifiedVendor");
+  const addToCartLabel = auto("Add to cart", "actions.addToCart");
+  const requestQuoteLabel = auto("Request quote", "actions.requestQuote");
+  const loginTitle = auto("Sign in to continue", "loginPrompt.title");
+  const loginDescription = auto(
+    "Sign in to request quotes, chat with vendors, or place orders.",
+    "loginPrompt.description",
+  );
+
+  const isAuthenticated = () => {
+    if (typeof window === "undefined") return false;
+    return (
+      document.cookie.includes("fixzit_auth=") ||
+      Boolean(localStorage.getItem(STORAGE_KEYS.userSession))
+    );
+  };
+
+  const handleAddToCart = async (product: Product) => {
+    if (!isAuthenticated()) {
+      setShowLoginPrompt(true);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/marketplace/cart", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ productId: product.id, quantity: 1 }),
+      });
+
+      if (!res.ok) {
+        throw new Error("ADD_TO_CART_FAILED");
+      }
+
+      setFeedbackMessage(
+        auto("{{product}} added to cart.", "feedback.added").replace(
+          "{{product}}",
+          product.title,
+        ),
+      );
+      await mutate();
+    } catch (err) {
+      import("../../lib/logger")
+        .then(({ logError }) => {
+          logError("Failed to add product to cart", err as Error, {
+            component: "CatalogView",
+            action: "addToCart",
+            productId: product.id,
+          });
+        })
+        .catch((loggerError) => {
+          logger.error("Failed to load logger:", { error: loggerError });
+        });
+      setFeedbackMessage(
+        auto(
+          "We could not add this item to your cart. Please try again.",
+          "feedback.failed",
+        ),
+      );
+    }
+  };
+
+  const emptyStateSubtitle = error ? emptySubtitleError : emptySubtitleDefault;
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold text-foreground">{resolvedTitle}</h1>
+        <p className="text-muted-foreground">{resolvedSubtitle}</p>
+        {context === "fm" && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <ShieldCheck className="w-4 h-4 text-success" />
+            <span>{fmHint}</span>
+          </div>
+        )}
+      </div>
+
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col lg:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder={searchPlaceholder}
+                className="ps-9"
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:w-[540px]">
+              <Select
+                value={category}
+                onValueChange={(value) => setCategory(value)}
+              >
+                <SelectContent>
+                  <SelectItem value="">{allCategoriesLabel}</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.slug || cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                placeholder={minPlaceholder}
+                value={minPrice}
+                onChange={(event) => setMinPrice(event.target.value)}
+              />
+              <Input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                placeholder={maxPlaceholder}
+                value={maxPrice}
+                onChange={(event) => setMaxPrice(event.target.value)}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {feedbackMessage && (
+        <div className="rounded-2xl border border-success/20 bg-success/10 px-4 py-3 text-sm text-success">
+          {feedbackMessage}
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        </div>
+      ) : products.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="py-16 flex flex-col items-center text-center gap-4">
+            <PackageSearch className="w-12 h-12 text-muted-foreground" />
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">
+                {emptyTitle}
+              </h2>
+              <p className="text-muted-foreground text-sm">
+                {emptyStateSubtitle}
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearch("");
+                  setCategory("");
+                  setMinPrice("");
+                  setMaxPrice("");
+                }}
+              >
+                {resetFiltersLabel}
+              </Button>
+              {context === "fm" && (
+                <Button
+                  onClick={() => setShowLoginPrompt(true)}
+                  className="bg-primary hover:bg-primary-dark"
+                >
+                  {inviteVendorLabel}
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {products.map((product) => (
+            <Card key={product.id} className="flex flex-col">
+              <CardHeader className="space-y-1">
+                <CardTitle className="text-lg text-foreground">
+                  {product.title}
+                </CardTitle>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Store className="w-4 h-4" />
+                  <span>{product.vendor?.name ?? vendorPending}</span>
+                  {product.vendor?.verified && (
+                    <BadgeCheck className="w-4 h-4 text-success" />
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="flex-1 flex flex-col gap-4">
+                <div className="flex items-start gap-4">
+                  <div className="h-20 w-20 rounded-2xl border border-border flex items-center justify-center bg-muted overflow-hidden">
+                    {product.images?.[0] ? (
+                      <img
+                        src={product.images[0]}
+                        alt={product.title}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-xs text-muted-foreground text-center px-2">
+                        {imageFallback}
+                      </span>
+                    )}
+                  </div>
+                  <div className="space-y-2 flex-1">
+                    <div className="text-2xl font-semibold text-foreground">
+                      {formatCurrency(product.price, product.currency)}
+                      <span className="text-sm text-muted-foreground ms-1">
+                        / {product.unit}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                      <Badge
+                        variant="outline"
+                        className="border-success text-success"
+                      >
+                        {auto("Stock: {{count}}", "cards.stock").replace(
+                          "{{count}}",
+                          String(product.stock),
+                        )}
+                      </Badge>
+                      {product.category?.name && (
+                        <Badge variant="outline">{product.category.name}</Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-sm text-muted-foreground line-clamp-3">
+                  {product.description || noDescriptionCopy}
+                </p>
+
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <Star className="w-4 h-4 text-warning" />
+                    <span>
+                      {ratingTemplate
+                        .replace("{{rating}}", (product.rating ?? 0).toFixed(1))
+                        .replace("{{count}}", String(product.reviewCount ?? 0))}
+                    </span>
+                  </div>
+                  {product.vendor?.verified && (
+                    <div className="flex items-center gap-1 text-success">
+                      <ShieldCheck className="w-4 h-4" />
+                      <span className="font-medium">{verifiedVendorLabel}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    className="flex-1 bg-primary hover:bg-primary-dark"
+                    onClick={() => handleAddToCart(product)}
+                  >
+                    <ShoppingCart className="w-4 h-4 me-2" />
+                    {addToCartLabel}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setShowLoginPrompt(true)}
+                  >
+                    {requestQuoteLabel}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <LoginPrompt
+        isOpen={showLoginPrompt}
+        onClose={() => setShowLoginPrompt(false)}
+        title={loginTitle}
+        description={loginDescription}
+        action="marketplace"
+        redirectTo="/marketplace"
+      />
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/marketplace/CheckoutForm.tsx">
+<![CDATA[
+"use client";
+
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
+import { logger } from "@/lib/logger";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+interface CheckoutFormProps {
+  cartId: string;
+  totals: { subtotal: number; vat: number; grand: number };
+  currency: string;
+}
+
+export default function CheckoutForm({ totals, currency }: CheckoutFormProps) {
+  const router = useRouter();
+  const [address, setAddress] = useState("Riyadh HQ, King Fahd Rd");
+  const [contact, setContact] = useState("Facilities Control Room");
+  const [phone, setPhone] = useState("+966 11 000 0000");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const auto = useAutoTranslator("marketplace.checkoutForm");
+  const checkoutError = auto("Checkout failed", "errors.checkout");
+  const networkError = auto(
+    "Network error. Please try again.",
+    "errors.network",
+  );
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/marketplace/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          shipTo: {
+            address,
+            contact,
+            phone,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        setError(payload.error ?? checkoutError);
+        return;
+      }
+
+      setSuccess(true);
+      router.push("/marketplace/orders");
+    } catch (fetchError) {
+      logger.error("Checkout failed:", { error: fetchError });
+      setError(networkError);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-4 rounded-3xl bg-card p-6 shadow"
+    >
+      <div>
+        <h2 className="text-lg font-semibold text-foreground">
+          {auto("Delivery details", "header.title")}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {auto(
+            "Ship to your facilities hub with SLA tracking.",
+            "header.subtitle",
+          )}
+        </p>
+      </div>
+      <div className="space-y-3 text-sm">
+        <label className="block">
+          <span className="text-muted-foreground">
+            {auto("Address", "fields.address.label")}
+          </span>
+          <input
+            value={address}
+            onChange={(event) => setAddress(event.target.value)}
+            className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
+            required
+          />
+        </label>
+        <label className="block">
+          <span className="text-muted-foreground">
+            {auto("Contact", "fields.contact.label")}
+          </span>
+          <input
+            value={contact}
+            onChange={(event) => setContact(event.target.value)}
+            className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
+            required
+          />
+        </label>
+        <label className="block">
+          <span className="text-muted-foreground">
+            {auto("Phone", "fields.phone.label")}
+          </span>
+          <input
+            value={phone}
+            onChange={(event) => setPhone(event.target.value)}
+            className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
+          />
+        </label>
+      </div>
+      <div className="rounded-2xl bg-primary/5 p-4 text-sm text-foreground">
+        <div className="flex justify-between">
+          <span>{auto("Subtotal", "summary.subtotal")}</span>
+          <span>
+            {totals.subtotal.toFixed(2)} {currency}
+          </span>
+        </div>
+        <div className="flex justify-between">
+          <span>{auto("VAT", "summary.vat")}</span>
+          <span>
+            {totals.vat.toFixed(2)} {currency}
+          </span>
+        </div>
+        <div className="mt-2 flex justify-between text-base font-semibold text-primary">
+          <span>{auto("Total", "summary.total")}</span>
+          <span>
+            {totals.grand.toFixed(2)} {currency}
+          </span>
+        </div>
+      </div>
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      {success && (
+        <p className="text-sm text-success">
+          {auto("Checkout submitted. Redirecting…", "state.success")}
+        </p>
+      )}
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full rounded-full bg-warning px-6 py-3 text-sm font-semibold text-black hover:bg-warning/90 disabled:opacity-60"
+      >
+        {loading
+          ? auto("Submitting…", "actions.submitting")
+          : auto("Submit for approval", "actions.submit")}
+      </button>
+    </form>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/marketplace/Facets.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import clsx from "clsx";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+export interface MarketplaceFacets {
+  categories: { slug: string; name: string }[];
+  brands: string[];
+  standards: string[];
+  minPrice?: number;
+  maxPrice?: number;
+}
+
+interface FacetsProps {
+  facets: MarketplaceFacets;
+  selected: {
+    category?: string;
+    brand?: string;
+    standard?: string;
+    minPrice?: number;
+    maxPrice?: number;
+  };
+  onChange: (next: Partial<FacetsProps["selected"]>) => void;
+}
+
+export default function Facets({ facets, selected, onChange }: FacetsProps) {
+  const [priceMin, setPriceMin] = useState(selected.minPrice?.toString() ?? "");
+  const [priceMax, setPriceMax] = useState(selected.maxPrice?.toString() ?? "");
+  const auto = useAutoTranslator("marketplace.facets");
+
+  return (
+    <aside className="w-full max-w-xs space-y-6">
+      <section>
+        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-primary">
+          {auto("Categories", "sections.categories")}
+        </h3>
+        <ul className="space-y-1 text-sm">
+          {facets.categories.map((category) => (
+            <li key={category.slug}>
+              <button
+                type="button"
+                onClick={() => onChange({ category: category.slug })}
+                className={clsx(
+                  "w-full rounded-2xl px-3 py-2 text-start transition",
+                  selected.category === category.slug
+                    ? "bg-primary text-white"
+                    : "hover:bg-muted",
+                )}
+              >
+                {category.name}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section>
+        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-primary">
+          {auto("Brand", "sections.brand")}
+        </h3>
+        <ul className="space-y-1 text-sm">
+          {facets.brands.map((brand) => (
+            <li key={brand}>
+              <button
+                type="button"
+                onClick={() => onChange({ brand })}
+                className={clsx(
+                  "w-full rounded-2xl px-3 py-2 text-start transition",
+                  selected.brand === brand
+                    ? "bg-primary text-white"
+                    : "hover:bg-muted",
+                )}
+              >
+                {brand}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section>
+        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-primary">
+          {auto("Standards", "sections.standards")}
+        </h3>
+        <ul className="space-y-1 text-sm">
+          {facets.standards.map((standard) => (
+            <li key={standard}>
+              <button
+                type="button"
+                onClick={() => onChange({ standard })}
+                className={clsx(
+                  "w-full rounded-2xl px-3 py-2 text-start transition",
+                  selected.standard === standard
+                    ? "bg-primary text-white"
+                    : "hover:bg-muted",
+                )}
+              >
+                {standard}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section>
+        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-primary">
+          {auto("Price", "sections.price")}
+        </h3>
+        <div className="flex items-center gap-2 text-sm">
+          <input
+            type="number"
+            inputMode="decimal"
+            placeholder={auto("Min", "price.minPlaceholder")}
+            className="w-full rounded-2xl border border-border px-3 py-2"
+            value={priceMin}
+            onChange={(event) => setPriceMin(event.target.value)}
+            onBlur={() =>
+              onChange({ minPrice: priceMin ? Number(priceMin) : undefined })
+            }
+          />
+          <span className="text-muted-foreground">
+            {auto("to", "price.separator")}
+          </span>
+          <input
+            type="number"
+            inputMode="decimal"
+            placeholder={auto("Max", "price.maxPlaceholder")}
+            className="w-full rounded-2xl border border-border px-3 py-2"
+            value={priceMax}
+            onChange={(event) => setPriceMax(event.target.value)}
+            onBlur={() =>
+              onChange({ maxPrice: priceMax ? Number(priceMax) : undefined })
+            }
+          />
+        </div>
+      </section>
+    </aside>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/marketplace/PDPBuyBox.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import { CheckCircle2, Loader2, ShieldCheck, Timer, Truck } from "lucide-react";
+import clsx from "clsx";
+import { useCurrency } from "@/contexts/CurrencyContext";
+import { addProductToCart } from "@/lib/marketplace/cartClient";
+import { logger } from "@/lib/logger";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+interface PDPBuyBoxProps {
+  product: {
+    id: string;
+    sku: string;
+    buy: {
+      price: number;
+      currency: string;
+      uom: string;
+      leadDays?: number;
+      minQty?: number;
+    };
+    stock?: { onHand: number; reserved: number; location?: string };
+    standards?: string[];
+  };
+  onAddToCart?: (quantity: number) => Promise<void> | void;
+  onRequestRFQ?: () => void;
+}
+
+function formatCurrency(value: number, currency: string) {
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+    }).format(value);
+  } catch {
+    return `${currency} ${value.toFixed(2)}`;
+  }
+}
+
+export default function PDPBuyBox({
+  product,
+  onAddToCart,
+  onRequestRFQ,
+}: PDPBuyBoxProps) {
+  const { currency } = useCurrency();
+  const [quantity, setQuantity] = useState(product.buy.minQty ?? 1);
+  const [submitting, setSubmitting] = useState(false);
+  const available =
+    (product.stock?.onHand ?? 0) - (product.stock?.reserved ?? 0);
+  const auto = useAutoTranslator("marketplace.pdpBuyBox");
+  const addToCartFallback = auto("Unable to add to cart", "errors.addToCart");
+
+  const handleAddToCart = async () => {
+    if (submitting || quantity <= 0) return;
+    setSubmitting(true);
+    try {
+      const minQty = Math.max(product.buy.minQty ?? 1, 1);
+      const effectiveQuantity = Math.max(quantity, minQty);
+      if (effectiveQuantity !== quantity) {
+        setQuantity(effectiveQuantity);
+      }
+      await addProductToCart(product.id, effectiveQuantity);
+      onAddToCart?.(effectiveQuantity);
+    } catch (error) {
+      import("../../lib/logger")
+        .then(({ logError }) => {
+          logError("Failed to add product to cart", error as Error, {
+            component: "PDPBuyBox",
+            action: "handleAddToCart",
+            productId: product.id,
+            quantity,
+          });
+        })
+        .catch((loggerError) => {
+          logger.error("Failed to load logger:", { error: loggerError });
+        });
+      if (typeof window !== "undefined") {
+        const message =
+          error instanceof Error ? error.message : addToCartFallback;
+        window.alert?.(
+          auto(
+            "Unable to add to cart: {{message}}",
+            "errors.addToCartAlert",
+          ).replace("{{message}}", message),
+        );
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const priceLabel = formatCurrency(
+    product.buy.price,
+    product.buy.currency || currency,
+  );
+
+  return (
+    <aside className="w-full max-w-sm space-y-4 rounded-2xl border border-border bg-card p-6 shadow-lg">
+      <div className="flex items-baseline justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+            {auto("SKU {{sku}}", "header.sku").replace("{{sku}}", product.sku)}
+          </p>
+          <p className="text-2xl font-semibold text-foreground">{priceLabel}</p>
+          <p className="text-xs text-muted-foreground">
+            {auto("per {{uom}} · Min order {{min}}", "header.uom")
+              .replace("{{uom}}", product.buy.uom)
+              .replace("{{min}}", String(product.buy.minQty ?? 1))}
+          </p>
+        </div>
+        {product.buy.leadDays != null && (
+          <span className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+            <Timer size={14} aria-hidden />
+            {auto("Lead {{days}}d", "badges.leadTime").replace(
+              "{{days}}",
+              String(product.buy.leadDays),
+            )}
+          </span>
+        )}
+      </div>
+
+      <div
+        className={clsx(
+          "rounded-2xl border px-4 py-3 text-sm",
+          available > 0
+            ? "border-success/40 bg-success/10 text-success-foreground"
+            : "border-destructive/20 bg-red-50 text-destructive",
+        )}
+      >
+        <p className="font-semibold">
+          {available > 0
+            ? auto(
+                "Available for immediate fulfilment",
+                "availability.available",
+              )
+            : auto("Currently out of stock", "availability.unavailable")}
+        </p>
+        {product.stock?.location && (
+          <p className="text-xs opacity-80">
+            {auto("Location: {{location}}", "availability.location").replace(
+              "{{location}}",
+              product.stock.location,
+            )}
+          </p>
+        )}
+      </div>
+
+      <div className="flex items-center gap-3">
+        <label
+          className="text-sm font-medium text-foreground"
+          htmlFor="quantity-input"
+        >
+          {auto("Quantity", "form.quantityLabel")}
+        </label>
+        <input
+          id="quantity-input"
+          type="number"
+          min={product.buy.minQty ?? 1}
+          step={product.buy.minQty ?? 1}
+          value={quantity}
+          onChange={(event) =>
+            setQuantity(Number(event.target.value) || (product.buy.minQty ?? 1))
+          }
+          className="h-11 w-24 rounded-2xl border border-border px-3 text-center text-lg font-semibold"
+        />
+      </div>
+
+      <div className="grid gap-3">
+        <button
+          type="button"
+          onClick={handleAddToCart}
+          disabled={submitting || available <= 0}
+          className="flex items-center justify-center gap-2 rounded-full bg-warning px-6 py-3 text-sm font-semibold text-black transition hover:bg-warning/90 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {submitting ? (
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+          ) : null}
+          {submitting
+            ? auto("Adding…", "actions.adding")
+            : auto("Add to Cart", "actions.addToCart")}
+        </button>
+        <button
+          type="button"
+          onClick={onRequestRFQ}
+          className="flex items-center justify-center gap-2 rounded-full border border-primary px-6 py-3 text-sm font-semibold text-primary transition hover:bg-primary hover:text-white"
+        >
+          {auto("Request RFQ", "actions.requestRfq")}
+        </button>
+      </div>
+
+      <ul className="space-y-3 text-sm text-foreground">
+        <li className="flex items-center gap-2">
+          <Truck size={16} className="text-primary" aria-hidden />
+          {auto(
+            "Delivery within {{days}} business days across KSA",
+            "highlights.delivery",
+          ).replace("{{days}}", String(product.buy.leadDays ?? 2))}
+        </li>
+        <li className="flex items-center gap-2">
+          <CheckCircle2 size={16} className="text-success" aria-hidden />
+          {auto(
+            "VAT invoices issued automatically at delivery confirmation",
+            "highlights.vat",
+          )}
+        </li>
+        <li className="flex items-center gap-2">
+          <ShieldCheck size={16} className="text-primary" aria-hidden />
+          {auto(
+            "Finance approval triggered for orders above policy threshold",
+            "highlights.finance",
+          )}
+        </li>
+      </ul>
+    </aside>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/marketplace/ProductCard.tsx">
+<![CDATA[
+"use client";
+
+import Link from "next/link";
+import Image from "next/image";
+import { Loader2, ShoppingCart, Star } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useCurrency } from "@/contexts/CurrencyContext";
+import { addProductToCart } from "@/lib/marketplace/cartClient";
+import { logger } from "@/lib/logger";
+
+export interface MarketplaceProductCard {
+  id: string;
+  slug: string;
+  title: { en: string; ar?: string };
+  summary?: string;
+  brand?: string;
+  media?: { url: string; role?: string }[];
+  buy: {
+    price: number;
+    currency: string;
+    uom: string;
+    leadDays?: number;
+    minQty?: number;
+  };
+  rating?: { avg: number; count: number };
+  standards?: string[];
+}
+
+interface ProductCardProps {
+  product: MarketplaceProductCard;
+  onAddToCart?: (productId: string) => void;
+  isRTL?: boolean;
+}
+
+function formatCurrency(value: number, currency: string) {
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+    }).format(value);
+  } catch {
+    return `${currency} ${value.toFixed(2)}`;
+  }
+}
+
+export default function ProductCard({
+  product,
+  onAddToCart,
+  isRTL,
+}: ProductCardProps) {
+  const { t } = useTranslation();
+  const { currency } = useCurrency();
+  const [adding, setAdding] = useState(false);
+  const image =
+    product.media?.find((item) => item.role === "GALLERY")?.url ||
+    product.media?.[0]?.url ||
+    "/images/marketplace/placeholder-product.svg";
+  const displayPrice = formatCurrency(
+    product.buy.price,
+    product.buy.currency || currency,
+  );
+
+  const handleAddToCart = async () => {
+    if (adding) return;
+    setAdding(true);
+    try {
+      const quantity = Math.max(product.buy.minQty ?? 1, 1);
+      await addProductToCart(product.id, quantity);
+      onAddToCart?.(product.id);
+      toast.success(
+        t("marketplace.productCard.toast.success", "Added to cart"),
+        {
+          description: product.title.en,
+        },
+      );
+    } catch (error) {
+      import("../../lib/logger")
+        .then(({ logError }) => {
+          logError("Failed to add product to cart", error as Error, {
+            component: "ProductCard",
+            action: "handleAddToCart",
+            productId: product.id,
+          });
+        })
+        .catch((loggerError) => {
+          logger.error("Failed to load logger:", { error: loggerError });
+        });
+      const message =
+        error instanceof Error
+          ? error.message
+          : t("marketplace.productCard.toast.error", "Unable to add to cart");
+      toast.error(
+        t("marketplace.productCard.toast.error", "Unable to add to cart"),
+        {
+          description: message,
+        },
+      );
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  return (
+    <div
+      className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+      data-testid="product-card"
+      dir={isRTL ? "rtl" : "ltr"}
+    >
+      <Link
+        href={`/marketplace/product/${product.slug}`}
+        className="relative block aspect-square overflow-hidden bg-muted"
+      >
+        <Image
+          src={image}
+          alt={product.title.en}
+          fill
+          sizes="(max-width:768px) 100vw, 33vw"
+          className="object-cover transition duration-500 hover:scale-105"
+        />
+      </Link>
+      <div className="flex flex-1 flex-col gap-3 p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-1">
+            {product.brand && (
+              <p className="text-xs font-semibold uppercase tracking-wide text-success">
+                {product.brand}
+              </p>
+            )}
+            <h3 className="text-sm font-semibold text-foreground">
+              <Link href={`/marketplace/product/${product.slug}`}>
+                {product.title.en}
+              </Link>
+            </h3>
+            {product.summary && (
+              <p className="line-clamp-2 text-xs text-muted-foreground">
+                {product.summary}
+              </p>
+            )}
+          </div>
+          {product.rating && product.rating.count > 0 && (
+            <div className="flex items-center gap-1 text-xs text-warning">
+              <Star
+                size={14}
+                fill="currentColor"
+                className="text-warning"
+                strokeWidth={0}
+              />
+              <span>{product.rating.avg.toFixed(1)}</span>
+              <span className="text-muted-foreground">
+                ({product.rating.count})
+              </span>
+            </div>
+          )}
+        </div>
+
+        {product.standards && product.standards.length > 0 && (
+          <div className="flex flex-wrap gap-2 text-[11px] font-medium text-primary">
+            {product.standards.map((standard) => (
+              <span
+                key={standard}
+                className="rounded-full bg-primary/10 px-2 py-1"
+              >
+                {standard}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-auto flex items-end justify-between gap-4">
+          <div>
+            <p className="text-lg font-semibold text-foreground">
+              {displayPrice}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t(
+                "marketplace.productCard.unitLabel",
+                "per {{uom}} · Min {{count}}",
+              )
+                .replace("{{uom}}", product.buy.uom)
+                .replace("{{count}}", String(product.buy.minQty ?? 1))}
+            </p>
+            {product.buy.leadDays != null && (
+              <p className="text-xs text-success">
+                {t(
+                  "marketplace.productCard.leadTime",
+                  "Lead time {{days}} day(s)",
+                ).replace("{{days}}", String(product.buy.leadDays))}
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            disabled={adding}
+            className="flex items-center gap-2 rounded-full bg-warning px-4 py-2 text-sm font-semibold text-black transition hover:bg-warning/90 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {adding ? (
+              <Loader2 size={16} className="animate-spin" aria-hidden />
+            ) : (
+              <ShoppingCart size={16} aria-hidden />
+            )}
+            {adding
+              ? t("marketplace.productCard.button.adding", "Adding…")
+              : t("marketplace.productCard.button.add", "Add to Cart")}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/marketplace/ProductReviewsClient.tsx">
+<![CDATA[
+"use client";
+
+import { useMemo } from "react";
+import { Star } from "lucide-react";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+interface Review {
+  _id: string;
+  rating: number;
+  title?: string;
+  comment?: string;
+  createdAt?: string;
+  author?: {
+    name?: string;
+    verifiedPurchase?: boolean;
+  };
+}
+
+interface ReviewStats {
+  averageRating: number;
+  totalReviews: number;
+  distribution: Record<number, { count: number; percentage: number }>;
+  verifiedPurchasePercentage: number;
+}
+
+interface ProductReviewsClientProps {
+  productId: string;
+  stats: ReviewStats;
+  initialReviews: Review[];
+}
+
+export function ProductReviewsClient({
+  productId,
+  stats,
+  initialReviews,
+}: ProductReviewsClientProps) {
+  const distributionEntries = useMemo(
+    () =>
+      Object.entries(stats.distribution).sort(
+        ([a], [b]) => Number(b) - Number(a),
+      ),
+    [stats.distribution],
+  );
+  const auto = useAutoTranslator("marketplace.reviews");
+
+  return (
+    <section className="max-w-4xl mx-auto px-4 py-10 space-y-6">
+      <header className="space-y-2">
+        <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
+          {auto("Product #{{id}}", "header.productId", { id: productId })}
+        </p>
+        <h1 className="text-3xl font-bold text-foreground">
+          {auto("Customer Reviews", "header.title")}
+        </h1>
+        <p className="text-muted-foreground">
+          {auto(
+            "Verified reviews from Fixzit Souq transactions",
+            "header.subtitle",
+          )}
+        </p>
+      </header>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <div className="border border-border rounded-2xl p-4 space-y-4">
+          <p className="text-sm text-muted-foreground">
+            {auto("Average Rating", "stats.average")}
+          </p>
+          <div className="flex items-center gap-3">
+            <span className="text-4xl font-bold text-foreground">
+              {stats.averageRating.toFixed(1)}
+            </span>
+            <div className="flex gap-1 text-yellow-500">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <Star
+                  key={index}
+                  className={`w-5 h-5 ${index < Math.round(stats.averageRating) ? "fill-yellow-500" : "text-muted-foreground"}`}
+                />
+              ))}
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {auto("Based on {{count}} reviews", "stats.total", {
+              count: stats.totalReviews,
+            })}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {auto("{{percent}}% verified purchases", "stats.verified", {
+              percent: stats.verifiedPurchasePercentage,
+            })}
+          </p>
+        </div>
+        <div className="border border-border rounded-2xl p-4 space-y-3">
+          {distributionEntries.map(([stars, data]) => (
+            <div key={stars} className="flex items-center gap-3 text-sm">
+              <span className="w-6">{stars}★</span>
+              <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
+                <div
+                  className="bg-primary h-full rounded-full"
+                  style={{ width: `${data.percentage}%` }}
+                />
+              </div>
+              <span className="w-12 text-end text-muted-foreground">
+                {data.count}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {initialReviews.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            {auto(
+              "No reviews yet. Be the first to share your feedback.",
+              "empty",
+            )}
+          </p>
+        )}
+        {initialReviews.map((review) => (
+          <article
+            key={review._id}
+            className="border border-border rounded-2xl p-4 space-y-2"
+          >
+            <div className="flex items-center gap-2">
+              <div className="flex gap-1 text-yellow-500">
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <Star
+                    key={index}
+                    className={`w-4 h-4 ${index < review.rating ? "fill-yellow-500" : "text-muted-foreground"}`}
+                  />
+                ))}
+              </div>
+              <span className="text-sm text-muted-foreground">
+                {review.author?.name || auto("Anonymous", "review.anonymous")}
+                {review.author?.verifiedPurchase && (
+                  <span className="ms-2 text-xs text-success">
+                    {auto("Verified purchase", "review.verified")}
+                  </span>
+                )}
+              </span>
+              {review.createdAt && (
+                <span className="text-xs text-muted-foreground ms-auto">
+                  {(() => {
+                    try {
+                      const date = new Date(review.createdAt);
+                      if (isNaN(date.getTime())) {
+                        return "Unknown date";
+                      }
+                      return date.toLocaleDateString();
+                    } catch {
+                      return "Unknown date";
+                    }
+                  })()}
+                </span>
+              )}
+            </div>
+            {review.title && (
+              <h3 className="font-semibold text-foreground">{review.title}</h3>
+            )}
+            <p className="text-sm text-muted-foreground">{review.comment}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/marketplace/RFQBoard.tsx">
+<![CDATA[
+"use client";
+import { logger } from "@/lib/logger";
+
+import { useState } from "react";
+import { Calendar, DollarSign, Package } from "lucide-react";
+import ClientDate from "@/components/ClientDate";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+interface RFQCategory {
+  slug: string;
+  name: string;
+}
+
+interface RFQItem {
+  id: string;
+  title: string;
+  categoryId?: string;
+  quantity?: number;
+  budget?: number;
+  currency: string;
+  deadline?: string;
+  status: string;
+  createdAt: string;
+}
+
+interface RFQBoardProps {
+  categories: RFQCategory[];
+  initialRfqs: RFQItem[];
+}
+
+export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
+  const [rfqs, setRfqs] = useState(initialRfqs);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    categoryId: "",
+    quantity: "",
+    budget: "",
+    deadline: "",
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const auto = useAutoTranslator("marketplace.rfqBoard");
+  const createError = auto("Failed to create RFQ", "errors.create");
+  const networkError = auto(
+    "Network error. Please try again.",
+    "errors.network",
+  );
+
+  const createRFQ = async () => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/marketplace/rfq", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: form.title,
+          description: form.description,
+          categoryId: form.categoryId || undefined,
+          quantity: form.quantity ? Number(form.quantity) : undefined,
+          budget: form.budget ? Number(form.budget) : undefined,
+          deadline: form.deadline || undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        setError(payload.error ?? createError);
+        return;
+      }
+
+      const payload = await response.json();
+      setRfqs([payload.data, ...rfqs]);
+      setForm({
+        title: "",
+        description: "",
+        categoryId: "",
+        quantity: "",
+        budget: "",
+        deadline: "",
+      });
+      setShowForm(false);
+    } catch (fetchError) {
+      logger.error("Failed to create RFQ:", { error: fetchError });
+      setError(networkError);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-semibold text-foreground">
+            {auto("Request for Quotations", "header.title")}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {auto(
+              "Coordinate bulk sourcing with approved vendors.",
+              "header.subtitle",
+            )}
+          </p>
+        </div>
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white hover:bg-primary/90"
+        >
+          {showForm
+            ? auto("Close form", "actions.closeForm")
+            : auto("Create RFQ", "actions.create")}
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="rounded-3xl bg-card p-6 shadow">
+          <h2 className="text-lg font-semibold text-foreground">
+            {auto("New RFQ", "form.title")}
+          </h2>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <label className="text-sm text-muted-foreground">
+              {auto("Title", "form.fields.title")}
+              <input
+                value={form.title}
+                onChange={(event) =>
+                  setForm({ ...form, title: event.target.value })
+                }
+                className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
+                required
+              />
+            </label>
+            <label className="text-sm text-muted-foreground">
+              {auto("Category", "form.fields.category")}
+              <select
+                value={form.categoryId}
+                onChange={(event) =>
+                  setForm({ ...form, categoryId: event.target.value })
+                }
+                className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
+              >
+                <option value="">
+                  {auto("Select", "form.selectPlaceholder")}
+                </option>
+                {categories.map((category) => (
+                  <option key={category.slug} value={category.slug}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="md:col-span-2 text-sm text-muted-foreground">
+              {auto("Description", "form.fields.description")}
+              <textarea
+                value={form.description}
+                onChange={(event) =>
+                  setForm({ ...form, description: event.target.value })
+                }
+                className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
+                rows={3}
+              />
+            </label>
+            <label className="text-sm text-muted-foreground">
+              {auto("Quantity", "form.fields.quantity")}
+              <input
+                type="number"
+                value={form.quantity}
+                onChange={(event) =>
+                  setForm({ ...form, quantity: event.target.value })
+                }
+                className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
+              />
+            </label>
+            <label className="text-sm text-muted-foreground">
+              {auto("Budget (SAR)", "form.fields.budget")}
+              <input
+                type="number"
+                value={form.budget}
+                onChange={(event) =>
+                  setForm({ ...form, budget: event.target.value })
+                }
+                className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
+              />
+            </label>
+            <label className="text-sm text-muted-foreground">
+              {auto("Deadline", "form.fields.deadline")}
+              <input
+                type="date"
+                value={form.deadline}
+                onChange={(event) =>
+                  setForm({ ...form, deadline: event.target.value })
+                }
+                className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
+              />
+            </label>
+          </div>
+          {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
+          <div className="mt-4 flex gap-2">
+            <button
+              onClick={createRFQ}
+              disabled={submitting}
+              className="rounded-full bg-warning px-5 py-2 text-sm font-semibold text-black hover:bg-warning/90 disabled:opacity-60"
+            >
+              {submitting
+                ? auto("Submitting…", "form.submitting")
+                : auto("Submit RFQ", "form.submit")}
+            </button>
+            <button
+              onClick={() => setShowForm(false)}
+              className="rounded-full border border-border px-5 py-2 text-sm font-semibold text-foreground hover:bg-muted"
+            >
+              {auto("Cancel", "actions.cancel")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-4">
+        {rfqs.length ? (
+          rfqs.map((rfq) => (
+            <article key={rfq.id} className="rounded-3xl bg-card p-6 shadow">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">
+                    {rfq.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {auto("Created", "list.createdLabel")}{" "}
+                    <ClientDate date={rfq.createdAt} format="date-only" />
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground">
+                    {rfq.categoryId && (
+                      <span className="flex items-center gap-1">
+                        <Package size={14} />
+                        {categories.find(
+                          (category) => category.slug === rfq.categoryId,
+                        )?.name ?? rfq.categoryId}
+                      </span>
+                    )}
+                    {rfq.budget && (
+                      <span className="flex items-center gap-1">
+                        <DollarSign size={14} />
+                        {rfq.budget.toLocaleString()} {rfq.currency}
+                      </span>
+                    )}
+                    {rfq.deadline && (
+                      <span className="flex items-center gap-1">
+                        <Calendar size={14} />
+                        {auto("Due", "list.dueLabel")}{" "}
+                        <ClientDate date={rfq.deadline} format="date-only" />
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <span className="self-start rounded-full bg-primary/10 px-4 py-1 text-xs font-semibold text-primary">
+                  {rfq.status}
+                </span>
+              </div>
+            </article>
+          ))
+        ) : (
+          <div className="rounded-3xl border border-dashed border-primary/40 bg-card p-10 text-center text-muted-foreground">
+            <p className="text-lg font-semibold text-foreground">
+              {auto("No RFQs yet", "empty.title")}
+            </p>
+            <p className="mt-2 text-sm">
+              {auto(
+                "Create an RFQ to engage approved vendors.",
+                "empty.subtitle",
+              )}
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/marketplace/SearchFiltersPanel.tsx">
+<![CDATA[
+"use client";
+
+import { useRouter, useSearchParams } from "next/navigation";
+import Facets, { MarketplaceFacets } from "@/components/marketplace/Facets";
+
+interface SearchFiltersPanelProps {
+  facets: MarketplaceFacets;
+}
+
+export default function SearchFiltersPanel({
+  facets,
+}: SearchFiltersPanelProps) {
+  const router = useRouter();
+  const params = useSearchParams();
+
+  const selected = {
+    category: params?.get("cat") ?? undefined,
+    brand: params?.get("brand") ?? undefined,
+    standard: params?.get("std") ?? undefined,
+    minPrice: params?.get("min") ? Number(params.get("min")) : undefined,
+    maxPrice: params?.get("max") ? Number(params.get("max")) : undefined,
+  };
+
+  return (
+    <Facets
+      facets={facets}
+      selected={selected}
+      onChange={(next) => {
+        const search = new URLSearchParams(params?.toString() || "");
+        if (next.category !== undefined) {
+          if (next.category) search.set("cat", next.category);
+          else search.delete("cat");
+        }
+        if (next.brand !== undefined) {
+          if (next.brand) search.set("brand", next.brand);
+          else search.delete("brand");
+        }
+        if (next.standard !== undefined) {
+          if (next.standard) search.set("std", next.standard);
+          else search.delete("std");
+        }
+        if (next.minPrice !== undefined) {
+          if (next.minPrice) search.set("min", String(next.minPrice));
+          else search.delete("min");
+        }
+        if (next.maxPrice !== undefined) {
+          if (next.maxPrice) search.set("max", String(next.maxPrice));
+          else search.delete("max");
+        }
+        search.delete("page");
+        router.push(
+          `/marketplace/search${search.toString() ? `?${search.toString()}` : ""}`,
+        );
+      }}
+    />
+  );
+}
+
+]]>
+</file>
+
+<file path="components/marketplace/VendorCatalogueManager.tsx">
+<![CDATA[
+"use client";
+import { logger } from "@/lib/logger";
+
+import { useState } from "react";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+interface VendorProduct {
+  id: string;
+  title: { en: string };
+  sku: string;
+  status: string;
+  buy: { price: number; currency: string; uom: string };
+}
+
+interface VendorCatalogueManagerProps {
+  categories: { slug: string; name: string }[];
+  initialProducts: VendorProduct[];
+}
+
+export default function VendorCatalogueManager({
+  categories,
+  initialProducts,
+}: VendorCatalogueManagerProps) {
+  const [products, setProducts] = useState(initialProducts);
+  const [form, setForm] = useState({
+    title: "",
+    sku: "",
+    categoryId: "",
+    price: "",
+    uom: "ea",
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const auto = useAutoTranslator("marketplace.vendorCatalogue");
+  const addError = auto("Unable to add product", "errors.addProduct");
+  const networkError = auto(
+    "Network error. Please try again.",
+    "errors.network",
+  );
+
+  const addProduct = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/marketplace/vendor/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: { en: form.title },
+          sku: form.sku,
+          slug: form.sku.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+          categoryId: form.categoryId,
+          buy: { price: Number(form.price), currency: "SAR", uom: form.uom },
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        setError(payload.error ?? addError);
+        return;
+      }
+
+      const payload = await response.json();
+      setProducts([payload.data, ...products]);
+      setForm({ title: "", sku: "", categoryId: "", price: "", uom: "ea" });
+    } catch (fetchError) {
+      logger.error("Failed to add product:", { error: fetchError });
+      setError(networkError);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-semibold text-foreground">
+          {auto("Vendor Catalogue", "header.title")}
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          {auto(
+            "Publish compliant products for Fixzit Souq buyers.",
+            "header.subtitle",
+          )}
+        </p>
+      </div>
+      <div className="rounded-3xl bg-card p-6 shadow">
+        <h2 className="text-lg font-semibold text-foreground">
+          {auto("Add new product", "form.title")}
+        </h2>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <label className="text-sm text-muted-foreground">
+            {auto("Product title", "form.fields.title")}
+            <input
+              value={form.title}
+              onChange={(event) =>
+                setForm({ ...form, title: event.target.value })
+              }
+              className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
+            />
+          </label>
+          <label className="text-sm text-muted-foreground">
+            {auto("SKU", "form.fields.sku")}
+            <input
+              value={form.sku}
+              onChange={(event) =>
+                setForm({ ...form, sku: event.target.value })
+              }
+              className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
+            />
+          </label>
+          <label className="text-sm text-muted-foreground">
+            {auto("Category", "form.fields.category")}
+            <select
+              value={form.categoryId}
+              onChange={(event) =>
+                setForm({ ...form, categoryId: event.target.value })
+              }
+              className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
+            >
+              <option value="">
+                {auto("Select", "form.selectPlaceholder")}
+              </option>
+              {categories.map((category) => (
+                <option key={category.slug} value={category.slug}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm text-muted-foreground">
+            {auto("Price (SAR)", "form.fields.price")}
+            <input
+              type="number"
+              value={form.price}
+              onChange={(event) =>
+                setForm({ ...form, price: event.target.value })
+              }
+              className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
+            />
+          </label>
+          <label className="text-sm text-muted-foreground">
+            {auto("Unit of measure", "form.fields.uom")}
+            <input
+              value={form.uom}
+              onChange={(event) =>
+                setForm({ ...form, uom: event.target.value })
+              }
+              className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
+            />
+          </label>
+        </div>
+        {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
+        <button
+          onClick={addProduct}
+          disabled={loading}
+          className="mt-4 rounded-full bg-warning px-5 py-2 text-sm font-semibold text-black hover:bg-warning/90 disabled:opacity-60"
+        >
+          {loading
+            ? auto("Saving…", "form.saving")
+            : auto("Publish product", "form.submit")}
+        </button>
+      </div>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold text-foreground">
+          {auto("Published products", "list.title")}
+        </h2>
+        {products.length ? (
+          <div className="grid gap-4 md:grid-cols-2">
+            {products.map((product) => (
+              <article
+                key={product.id}
+                className="rounded-3xl bg-card p-5 shadow"
+              >
+                <h3 className="text-lg font-semibold text-foreground">
+                  {product.title.en}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {auto("SKU {{value}}", "list.sku").replace(
+                    "{{value}}",
+                    product.sku,
+                  )}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {product.buy.price} {product.buy.currency} / {product.buy.uom}
+                </p>
+                <span className="mt-2 inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                  {product.status}
+                </span>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-3xl border border-dashed border-primary/40 bg-card p-10 text-center text-muted-foreground">
+            <p className="text-lg font-semibold text-foreground">
+              {auto("No products yet", "empty.title")}
+            </p>
+            <p className="mt-2 text-sm">
+              {auto(
+                "Add products to appear in the marketplace catalogue.",
+                "empty.subtitle",
+              )}
+            </p>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="components/marketplace/seller-central/SellerReviewsDashboard.tsx">
+<![CDATA[
+"use client";
+
+import Link from "next/link";
+import { MessageSquare, Star, TrendingUp } from "lucide-react";
+import type { SellerReview } from "@/lib/souq/review-types";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { ReviewCard } from "@/components/seller/reviews/ReviewCard";
+import { SellerResponseForm } from "@/components/seller/reviews/SellerResponseForm";
+
+type ReviewStatus = "published" | "pending" | "flagged";
+
+interface SellerReviewStats {
+  averageRating: number;
+  totalReviews: number;
+  responseRate: number;
+  pendingResponses: number;
+}
+
+interface SellerReviewsDashboardProps {
+  stats: SellerReviewStats;
+  reviews: SellerReview[];
+  totalPages: number;
+  page: number;
+  status: ReviewStatus;
+}
+
+export function SellerReviewsDashboard({
+  stats,
+  reviews,
+  totalPages,
+  page,
+  status,
+}: SellerReviewsDashboardProps) {
+  const auto = useAutoTranslator("marketplace.sellerCentral.reviews");
+  const statusTabs: ReviewStatus[] = ["published", "pending", "flagged"];
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-3xl font-bold">
+                {auto("Product Reviews", "header.title")}
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                {auto(
+                  "Manage customer feedback and respond to reviews",
+                  "header.subtitle",
+                )}
+              </p>
+            </div>
+            <Link
+              href="/marketplace/seller-central"
+              className="px-4 py-2 border rounded-lg hover:bg-white"
+            >
+              {auto("Back to Dashboard", "actions.back")}
+            </Link>
+          </div>
+
+          <div className="grid md:grid-cols-4 gap-4">
+            <div className="bg-white border rounded-lg p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-warning/10 rounded-lg">
+                  <Star className="w-6 h-6 text-warning" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    {auto("Average Rating", "stats.averageRating")}
+                  </p>
+                  <p className="text-2xl font-bold">
+                    {stats.averageRating.toFixed(1)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white border rounded-lg p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-primary/10 rounded-lg">
+                  <MessageSquare className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    {auto("Total Reviews", "stats.totalReviews")}
+                  </p>
+                  <p className="text-2xl font-bold">{stats.totalReviews}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white border rounded-lg p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-success/10 rounded-lg">
+                  <TrendingUp className="w-6 h-6 text-success" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    {auto("Response Rate", "stats.responseRate")}
+                  </p>
+                  <p className="text-2xl font-bold">{stats.responseRate}%</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white border rounded-lg p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-orange-100 rounded-lg">
+                  <MessageSquare className="w-6 h-6 text-orange-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    {auto("Pending Responses", "stats.pendingResponses")}
+                  </p>
+                  <p className="text-2xl font-bold">{stats.pendingResponses}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white border rounded-lg p-1 mb-6 flex gap-1">
+          {statusTabs.map((tab) => (
+            <Link
+              key={tab}
+              href={`?status=${tab}`}
+              className={`flex-1 px-4 py-2 text-center rounded-lg transition-colors ${
+                status === tab ? "bg-primary text-white" : "hover:bg-gray-50"
+              }`}
+            >
+              {auto(tab.charAt(0).toUpperCase() + tab.slice(1), `tabs.${tab}`)}
+            </Link>
+          ))}
+        </div>
+
+        <div className="space-y-4">
+          {reviews.length > 0 ? (
+            reviews.map((review) => (
+              <div key={review.reviewId}>
+                <ReviewCard review={review} showSellerResponse />
+                {!review.sellerResponse && review.status === "published" && (
+                  <div className="mt-4">
+                    <SellerResponseForm
+                      reviewId={review.reviewId}
+                      reviewTitle={review.title}
+                    />
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="bg-white border rounded-lg p-12 text-center">
+              <MessageSquare className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">
+                {auto("No reviews found", "state.empty")}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-6">
+            {page > 1 && (
+              <Link
+                href={`?status=${status}&page=${page - 1}`}
+                className="px-4 py-2 border rounded-lg hover:bg-white"
+              >
+                {auto("Previous", "pagination.previous")}
+              </Link>
+            )}
+            <span className="text-sm text-muted-foreground">
+              {auto("Page {{page}} of {{total}}", "pagination.summary")
+                .replace("{{page}}", String(page))
+                .replace("{{total}}", String(totalPages))}
+            </span>
+            {page < totalPages && (
+              <Link
+                href={`?status=${status}&page=${page + 1}`}
+                className="px-4 py-2 border rounded-lg hover:bg-white"
+              >
+                {auto("Next", "pagination.next")}
+              </Link>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+</batch_content>

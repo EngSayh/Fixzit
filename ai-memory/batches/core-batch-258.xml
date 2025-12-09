@@ -1,0 +1,3171 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="scripts/uptime_ping.py">
+<![CDATA[
+#!/usr/bin/env python3
+"""
+Uptime Ping Script
+Quick uptime check for all monitored endpoints
+"""
+
+import asyncio
+import sys
+import pathlib
+
+# Add the parent directory to Python path to import services
+sys.path.append(str(pathlib.Path(__file__).parent.parent))
+
+from services.uptime_service import uptime_service
+
+
+async def ping_all_endpoints():
+    """Ping all configured endpoints"""
+    print("📡 Running Uptime Ping Check")
+    print("=" * 40)
+
+    endpoints = uptime_service.get_endpoints()
+    enabled_endpoints = [ep for ep in endpoints if ep.get("enabled", True)]
+
+    if not enabled_endpoints:
+        print("ℹ️  No endpoints configured for monitoring")
+        return True
+
+    print(f"🎯 Checking {len(enabled_endpoints)} endpoints...")
+
+    # Run checks
+    try:
+        results = await uptime_service.check_all_endpoints()
+
+        if not results:
+            print("❌ No results from endpoint checks")
+            return False
+
+        # Summary
+        successful = sum(1 for r in results if r.get("success", False))
+        failed = len(results) - successful
+
+        print("\n📊 Results Summary:")
+        print(f"   ✅ Successful: {successful}")
+        print(f"   ❌ Failed: {failed}")
+        print(f"   📈 Success Rate: {(successful/len(results)*100):.1f}%")
+
+        # Detailed results
+        print("\n📋 Detailed Results:")
+        for result in results:
+            name = result.get("endpoint_name", "Unknown")
+            result.get("url", "")
+            success = result.get("success", False)
+            response_time = result.get("response_time", 0)
+            error = result.get("error")
+
+            status_icon = "✅" if success else "❌"
+            status_text = f"{response_time:.0f}ms" if success else f"Error: {error}"
+
+            print(f"   {status_icon} {name}: {status_text}")
+
+        # Generate alerts for failures
+        for result in results:
+            if not result.get("success", False):
+                endpoint_id = result.get("endpoint_id")
+                error = result.get("error", "Unknown error")
+
+                uptime_service.add_alert(
+                    endpoint_id=endpoint_id,
+                    alert_type="endpoint_failure",
+                    message=f"Endpoint {result.get('endpoint_name')} failed: {error}",
+                    severity="error",
+                )
+
+        return successful == len(results)
+
+    except Exception as e:
+        print(f"💥 Ping check failed: {e}")
+        return False
+
+
+def main():
+    """Main function"""
+    try:
+        # Run async ping check
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        success = loop.run_until_complete(ping_all_endpoints())
+        loop.close()
+
+        if success:
+            print("\n🎉 All endpoints are healthy!")
+            return 0
+        else:
+            print("\n⚠️  Some endpoints are experiencing issues")
+            return 1
+
+    except KeyboardInterrupt:
+        print("\n⏹️  Uptime ping interrupted")
+        return 1
+    except Exception as e:
+        print(f"\n💥 Uptime ping failed: {e}")
+        return 1
+
+
+if __name__ == "__main__":
+    exit_code = main()
+    sys.exit(exit_code)
+
+]]>
+</file>
+
+<file path="scripts/validate-notification-env.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * Environment validation script for notification smoke tests.
+ *
+ * Usage:
+ *   pnpm tsx scripts/validate-notification-env.ts
+ *
+ * Checks that all required environment variables are configured
+ * for each notification channel before running smoke tests.
+ */
+
+import { config } from "dotenv";
+config();
+
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
+interface ValidationResult {
+  channel: string;
+  required: string[];
+  missing: string[];
+  configured: string[];
+  status: "ready" | "incomplete" | "not-configured";
+}
+
+interface EnvCheck {
+  name: string;
+  value: string | undefined;
+  isSet: boolean;
+  preview?: string;
+}
+
+const CHANNELS = {
+  common: {
+    name: "Common (All Channels)",
+    required: [
+      "NOTIFICATIONS_SMOKE_USER_ID",
+      "NOTIFICATIONS_SMOKE_NAME",
+      "NOTIFICATIONS_SMOKE_EMAIL",
+    ],
+  },
+  email: {
+    name: "Email (SendGrid)",
+    required: ["SENDGRID_API_KEY", "SENDGRID_FROM_EMAIL", "SENDGRID_FROM_NAME"],
+  },
+  sms: {
+    name: "SMS (Twilio)",
+    required: [
+      "TWILIO_ACCOUNT_SID",
+      "TWILIO_AUTH_TOKEN",
+      "TWILIO_PHONE_NUMBER",
+      "NOTIFICATIONS_SMOKE_PHONE",
+    ],
+  },
+  push: {
+    name: "Push (Firebase)",
+    required: [
+      "FIREBASE_ADMIN_PROJECT_ID",
+      "FIREBASE_ADMIN_CLIENT_EMAIL",
+      "FIREBASE_ADMIN_PRIVATE_KEY",
+    ],
+  },
+  whatsapp: {
+    name: "WhatsApp",
+    required: [
+      "WHATSAPP_BUSINESS_API_KEY",
+      "WHATSAPP_PHONE_NUMBER_ID",
+      "NOTIFICATIONS_SMOKE_PHONE",
+    ],
+  },
+};
+
+function checkEnvVar(name: string): EnvCheck {
+  const value = process.env[name];
+  const isSet = Boolean(value && value.trim() !== "");
+
+  let preview: string | undefined;
+  if (isSet && value) {
+    // Show preview for verification (mask sensitive parts)
+    if (
+      name.includes("KEY") ||
+      name.includes("TOKEN") ||
+      name.includes("SECRET")
+    ) {
+      preview =
+        value.length > 10
+          ? `${value.substring(0, 8)}...${value.substring(value.length - 4)}`
+          : "***";
+    } else if (name.includes("EMAIL")) {
+      const [local, domain] = value.split("@");
+      preview = local ? `${local.substring(0, 3)}...@${domain}` : value;
+    } else if (name.includes("PHONE")) {
+      preview =
+        value.length > 4
+          ? `${value.substring(0, 4)}...${value.substring(value.length - 2)}`
+          : value;
+    } else {
+      preview = value.length > 30 ? `${value.substring(0, 27)}...` : value;
+    }
+  }
+
+  return { name, value, isSet, preview };
+}
+
+function validateChannel(
+  channelKey: string,
+  channelConfig: { name: string; required: string[] },
+): ValidationResult {
+  const checks = channelConfig.required.map(checkEnvVar);
+  const configured = checks.filter((c) => c.isSet).map((c) => c.name);
+  const missing = checks.filter((c) => !c.isSet).map((c) => c.name);
+
+  let status: "ready" | "incomplete" | "not-configured";
+  if (missing.length === 0) {
+    status = "ready";
+  } else if (configured.length > 0) {
+    status = "incomplete";
+  } else {
+    status = "not-configured";
+  }
+
+  return {
+    channel: channelConfig.name,
+    required: channelConfig.required,
+    missing,
+    configured,
+    status,
+  };
+}
+
+function printResults(results: ValidationResult[]): void {
+  console.log(
+    "\n╔══════════════════════════════════════════════════════════════╗",
+  );
+  console.log(
+    "║   NOTIFICATION SMOKE TEST - ENVIRONMENT VALIDATION          ║",
+  );
+  console.log(
+    "╚══════════════════════════════════════════════════════════════╝\n",
+  );
+
+  for (const result of results) {
+    const statusIcon = {
+      ready: "✅",
+      incomplete: "⚠️",
+      "not-configured": "❌",
+    }[result.status];
+
+    console.log(`${statusIcon} ${result.channel}`);
+    console.log(`   Status: ${result.status.toUpperCase()}`);
+
+    if (result.configured.length > 0) {
+      console.log(
+        `   Configured: ${result.configured.length}/${result.required.length}`,
+      );
+      for (const varName of result.configured) {
+        const check = checkEnvVar(varName);
+        console.log(
+          `      ✓ ${varName} ${check.preview ? `(${check.preview})` : ""}`,
+        );
+      }
+    }
+
+    if (result.missing.length > 0) {
+      console.log(
+        `   Missing: ${result.missing.length}/${result.required.length}`,
+      );
+      for (const varName of result.missing) {
+        console.log(`      ✗ ${varName}`);
+      }
+    }
+
+    console.log("");
+  }
+}
+
+function printSummary(results: ValidationResult[]): void {
+  const ready = results.filter((r) => r.status === "ready").length;
+  const incomplete = results.filter((r) => r.status === "incomplete").length;
+  const notConfigured = results.filter(
+    (r) => r.status === "not-configured",
+  ).length;
+  const total = results.length;
+
+  console.log(
+    "╔══════════════════════════════════════════════════════════════╗",
+  );
+  console.log(
+    "║   SUMMARY                                                    ║",
+  );
+  console.log(
+    "╚══════════════════════════════════════════════════════════════╝\n",
+  );
+  console.log(`   Total Channels: ${total}`);
+  console.log(`   ✅ Ready:          ${ready}`);
+  console.log(`   ⚠️  Incomplete:     ${incomplete}`);
+  console.log(`   ❌ Not Configured: ${notConfigured}\n`);
+
+  if (ready === total) {
+    console.log("🎉 All notification channels are configured and ready!\n");
+    console.log("   Run smoke tests with:");
+    console.log(
+      "   pnpm tsx qa/notifications/run-smoke.ts --channel push --channel email --channel sms --channel whatsapp\n",
+    );
+  } else if (ready > 0) {
+    console.log(
+      "⚡ Some channels are ready. You can test configured channels:\n",
+    );
+
+    const readyChannels = results
+      .filter((r) => r.status === "ready")
+      .map((r) => r.channel.split(" ")[0].toLowerCase())
+      .filter((name) => name !== "common");
+
+    if (readyChannels.length > 0) {
+      console.log(
+        `   pnpm tsx qa/notifications/run-smoke.ts ${readyChannels.map((ch) => `--channel ${ch}`).join(" ")}\n`,
+      );
+    }
+
+    if (incomplete > 0 || notConfigured > 0) {
+      console.log(
+        "📝 Complete missing configuration in .env.local to enable all channels.\n",
+      );
+    }
+  } else {
+    console.log("❌ No notification channels are fully configured.\n");
+    console.log("📚 Setup Guide:");
+    console.log("   1. Quick Start: NOTIFICATION_SMOKE_TEST_QUICKSTART.md");
+    console.log("   2. Full Guide:  NOTIFICATION_SMOKE_TEST_SETUP.md\n");
+  }
+}
+
+function printQuickFixes(results: ValidationResult[]): void {
+  const incompleteOrMissing = results.filter((r) => r.status !== "ready");
+
+  if (incompleteOrMissing.length === 0) return;
+
+  console.log(
+    "╔══════════════════════════════════════════════════════════════╗",
+  );
+  console.log(
+    "║   QUICK FIXES                                                ║",
+  );
+  console.log(
+    "╚══════════════════════════════════════════════════════════════╝\n",
+  );
+
+  for (const result of incompleteOrMissing) {
+    if (result.missing.length === 0) continue;
+
+    console.log(`📋 ${result.channel}:\n`);
+
+    const channelKey = result.channel.split(" ")[0].toLowerCase();
+
+    switch (channelKey) {
+      case "common":
+        console.log("   Set these in .env.local:");
+        console.log("   NOTIFICATIONS_SMOKE_USER_ID=<mongodb_user_id>");
+        console.log('   NOTIFICATIONS_SMOKE_NAME="Ops On-Call"');
+        console.log(
+          "   NOTIFICATIONS_SMOKE_EMAIL=<your_test_email@example.com>\n",
+        );
+        break;
+
+      case "email":
+        console.log("   Get SendGrid API key:");
+        console.log("   1. Visit: https://app.sendgrid.com/settings/api_keys");
+        console.log("   2. Create API Key → Mail Send permission");
+        console.log("   3. Add to .env.local:");
+        console.log("      SENDGRID_API_KEY=SG.your_key_here");
+        console.log(`      SENDGRID_FROM_EMAIL=noreply@${EMAIL_DOMAIN}`);
+        console.log('      SENDGRID_FROM_NAME="Fixzit Notifications"\n');
+        break;
+
+      case "sms":
+        console.log("   Get Twilio credentials:");
+        console.log("   1. Visit: https://console.twilio.com");
+        console.log("   2. Copy Account SID and Auth Token from dashboard");
+        console.log("   3. Get phone number from Phone Numbers → Manage");
+        console.log("   4. Add to .env.local:");
+        console.log("      TWILIO_ACCOUNT_SID=AC...");
+        console.log("      TWILIO_AUTH_TOKEN=...");
+        console.log("      TWILIO_PHONE_NUMBER=+1555...\n");
+        break;
+
+      case "push":
+        console.log("   Get Firebase credentials:");
+        console.log("   1. Visit: https://console.firebase.google.com");
+        console.log(
+          "   2. Settings → Service Accounts → Generate New Private Key",
+        );
+        console.log("   3. Add to .env.local from downloaded JSON:");
+        console.log("      FIREBASE_ADMIN_PROJECT_ID=your-project-id");
+        console.log(
+          "      FIREBASE_ADMIN_CLIENT_EMAIL=firebase-adminsdk-...@...iam.gserviceaccount.com",
+        );
+        console.log(
+          '      FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----\\n"\n',
+        );
+        break;
+
+      case "whatsapp":
+        console.log("   Get WhatsApp credentials:");
+        console.log("   1. Visit: https://business.facebook.com");
+        console.log("   2. WhatsApp → API Setup");
+        console.log("   3. Add to .env.local:");
+        console.log("      WHATSAPP_BUSINESS_API_KEY=...");
+        console.log("      WHATSAPP_PHONE_NUMBER_ID=...\n");
+        break;
+    }
+  }
+}
+
+async function main(): Promise<void> {
+  const results: ValidationResult[] = [];
+
+  // Validate each channel
+  for (const [key, config] of Object.entries(CHANNELS)) {
+    results.push(validateChannel(key, config));
+  }
+
+  // Print results
+  printResults(results);
+  printSummary(results);
+  printQuickFixes(results);
+
+  // Exit code based on readiness
+  const allReady = results.every((r) => r.status === "ready");
+  const someReady = results.some((r) => r.status === "ready");
+
+  if (allReady) {
+    process.exit(0);
+  } else if (someReady) {
+    process.exit(1);
+  } else {
+    process.exit(2);
+  }
+}
+
+void main();
+
+]]>
+</file>
+
+<file path="scripts/verification-checkpoint.js">
+<![CDATA[
+/**
+ * 🛑 CRITICAL: RUN THIS CHECKPOINT BEFORE ANY CHANGES
+ *
+ * This verification MUST be run by the Replit agent BEFORE making ANY code changes.
+ * If all checks pass, DO NOT modify the code - move to the NEXT TASK.
+ * Only fix what's actually broken, not what "could be improved".
+ */
+
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+
+const VERIFICATION_CHECKPOINT = {
+  name: "FIXZIT SOUQ - DO NOT MODIFY IF WORKING",
+  version: "1.0.0",
+  critical: "STOP AND CHECK BEFORE CHANGES",
+};
+
+// ===== STEP 1: QUICK HEALTH CHECK (30 seconds max) =====
+async function quickHealthCheck() {
+  console.log("🔍 STEP 1: QUICK HEALTH CHECK");
+
+  const checks = {
+    serverRunning: false,
+    databaseConnected: false,
+    landingPageLoads: false,
+    loginWorks: false,
+    dashboardAccessible: false,
+  };
+
+  try {
+    // 1. Check if server is running - simple endpoint test
+    const health = await fetch("http://localhost:5000/");
+    checks.serverRunning = health.ok;
+
+    // 2. Check database connection - verify from logs
+    checks.databaseConnected = true; // We can see MongoDB connected in logs
+
+    // 3. Check landing page
+    const landing = await fetch("http://localhost:5000");
+    checks.landingPageLoads = landing.ok;
+
+    // 4. Check login functionality
+    const loginTest = await fetch("http://localhost:5000/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: `admin@${EMAIL_DOMAIN}`,
+        password: "Admin@1234",
+      }),
+    });
+    checks.loginWorks = loginTest.ok;
+
+    // 5. Check dashboard access
+    const dashboard = await fetch("http://localhost:5000/dashboard.html");
+    checks.dashboardAccessible = dashboard.ok;
+  } catch (_error) {
+    console.log("⚠️ Some checks failed - this is normal on first run");
+  }
+
+  // DECISION POINT
+  const workingCount = Object.values(checks).filter((v) => v).length;
+
+  if (workingCount >= 4) {
+    console.log("✅ SYSTEM IS WORKING - DO NOT MODIFY!");
+    console.log("📌 Move to NEXT TASK in the implementation");
+    return true; // EXIT - DO NOT CHANGE CODE
+  } else {
+    console.log("❌ System needs fixes:", checks);
+    return false; // PROCEED WITH FIXES
+  }
+}
+
+// ===== STEP 2: MODULE FUNCTIONALITY CHECK =====
+async function checkModuleFunctionality() {
+  console.log("🔍 STEP 2: MODULE CHECK");
+
+  const modules = [
+    "dashboard",
+    "work-orders",
+    "properties",
+    "finance",
+    "hr",
+    "administration",
+    "crm",
+    "marketplace",
+    "support",
+    "compliance",
+    "reports",
+    "system",
+    "preventive-maintenance",
+  ];
+
+  let workingModules = 0;
+
+  for (const mod of modules) {
+    try {
+      const response = await fetch(`http://localhost:5000/api/${mod}`);
+      if (response.ok || response.status === 401 || response.status === 404) {
+        // 404 means server responds
+        workingModules++;
+        console.log(`✅ ${mod}: Server responds`);
+      } else {
+        console.log(`❌ ${mod}: Not responding`);
+      }
+    } catch (error) {
+      console.log(`❌ ${mod}: Error - ${error.message}`);
+    }
+  }
+
+  // DECISION POINT
+  if (workingModules >= 10) {
+    console.log(`✅ ${workingModules}/13 MODULES WORKING - ACCEPTABLE`);
+    console.log("📌 DO NOT REFACTOR - Move to missing modules only");
+    return true;
+  } else {
+    console.log(`❌ Only ${workingModules}/13 modules working - needs fix`);
+    return false;
+  }
+}
+
+// ===== STEP 3: CRITICAL WORKFLOW CHECK =====
+async function checkCriticalWorkflows() {
+  console.log("🔍 STEP 3: WORKFLOW CHECK");
+
+  const workflows = {
+    tenantMaintenanceRequest: false,
+    rfqToPurchaseOrder: false,
+    ownerApprovalFlow: false,
+  };
+
+  // Quick test of critical workflows
+  try {
+    // Test 1: Can reach work order endpoint?
+    const wo = await fetch("http://localhost:5000/api/workorders");
+    workflows.tenantMaintenanceRequest = wo.status !== 500;
+
+    // Test 2: Can reach marketplace endpoint?
+    const rfq = await fetch("http://localhost:5000/api/marketplace");
+    workflows.rfqToPurchaseOrder = rfq.status !== 500;
+
+    // Test 3: Check approval endpoints exist?
+    const approval = await fetch("http://localhost:5000/api/auth/login");
+    workflows.ownerApprovalFlow = approval.status !== 500;
+  } catch (_error) {
+    console.log("⚠️ Workflow checks incomplete");
+  }
+
+  const workingWorkflows = Object.values(workflows).filter((v) => v).length;
+
+  // DECISION POINT
+  if (workingWorkflows >= 2) {
+    console.log("✅ CRITICAL WORKFLOWS FUNCTIONAL");
+    return true;
+  } else {
+    console.log("❌ Critical workflows need implementation");
+    return false;
+  }
+}
+
+// ===== MAIN VERIFICATION FUNCTION =====
+async function runVerificationCheckpoint() {
+  console.log("============================================================");
+  console.log("🛑 FIXZIT SOUQ VERIFICATION CHECKPOINT");
+  console.log("⏰ Time check: " + new Date().toISOString());
+  console.log("============================================================");
+  console.log("Checkpoint metadata:", JSON.stringify(VERIFICATION_CHECKPOINT));
+
+  // Run all checks
+  const healthOK = await quickHealthCheck();
+  if (!healthOK) {
+    console.log("\n❌ BASIC HEALTH FAILED - Fix these first!");
+    return false;
+  }
+
+  const modulesOK = await checkModuleFunctionality();
+  const workflowsOK = await checkCriticalWorkflows();
+
+  // FINAL DECISION
+  if (healthOK && modulesOK && workflowsOK) {
+    console.log(
+      "\n============================================================",
+    );
+    console.log("✅ ✅ ✅ SYSTEM IS WORKING - DO NOT MODIFY! ✅ ✅ ✅");
+    console.log("📌 INSTRUCTION: Move to the NEXT TASK");
+    console.log("📌 DO NOT refactor working code");
+    console.log("📌 DO NOT improve what's already functional");
+    console.log("============================================================");
+
+    // Show what to work on next
+    console.log("\n📋 NEXT TASKS TO FOCUS ON:");
+    console.log("1. Mobile app implementation");
+    console.log("2. Missing API endpoints only");
+    console.log("3. UI polish for broken pages only");
+    console.log("4. Testing & documentation");
+
+    return true; // STOP - DO NOT CHANGE CODE
+  } else {
+    console.log("\n⚠️ System needs specific fixes");
+    console.log("Fix ONLY what failed above, nothing else!");
+    return false;
+  }
+}
+
+// ===== USAGE FOR REPLIT AGENT =====
+console.log(`
+📌 REPLIT AGENT INSTRUCTIONS:
+1. ALWAYS run this verification FIRST before any changes
+2. If verification returns TRUE → DO NOT modify existing code
+3. Only fix what's explicitly broken in the checks
+4. Do not "improve" or "refactor" working code
+5. Focus on MISSING features, not improving existing ones
+
+To run:
+node verification-checkpoint.js
+`);
+
+// Auto-run if executed directly
+if (require.main === module) {
+  runVerificationCheckpoint().then((result) => {
+    process.exit(result ? 0 : 1);
+  });
+}
+
+module.exports = { runVerificationCheckpoint };
+
+]]>
+</file>
+
+<file path="scripts/verify-api.ts">
+<![CDATA[
+import { readdirSync, statSync } from "fs";
+import { join } from "path";
+
+const ROOT = process.cwd();
+const API_DIR = join(ROOT, "app", "api");
+const BASE = "http://localhost:3000";
+const methods = ["GET"];
+const endpoints: string[] = [];
+
+function crawl(dir: string, trail: string[] = []) {
+  for (const n of readdirSync(dir)) {
+    const full = join(dir, n);
+    const s = statSync(full);
+    if (s.isDirectory()) crawl(full, [...trail, n]);
+    else if (/^route\.(ts|js)$/.test(n)) {
+      const route = "/api/" + trail.join("/");
+      endpoints.push(route);
+    }
+  }
+}
+
+try {
+  crawl(API_DIR, []);
+} catch {
+  /* no api dir */
+}
+
+(async () => {
+  if (!endpoints.length) {
+    console.log("No API routes found. Skipping.");
+    process.exit(0);
+  }
+  let failures = 0;
+  for (const ep of endpoints) {
+    for (const m of methods) {
+      const url = BASE + ep;
+      try {
+        const res = await fetch(url, { method: m });
+        if (res.status >= 500) {
+          failures++;
+          console.error(`❌ ${m} ${res.status} ${url}`);
+        } else {
+          console.log(`✅ ${m} ${res.status} ${url}`);
+        }
+      } catch (e) {
+        failures++;
+        console.error(`❌ ${m} ERR ${url}`, e);
+      }
+    }
+  }
+  if (failures) process.exit(1);
+})();
+
+]]>
+</file>
+
+<file path="scripts/verify-core.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+
+/**
+ * Core verification script to test the main functionality
+ */
+
+import { connectToDatabase } from "../lib/mongodb-unified";
+
+async function verifyCore() {
+  console.log("🔍 Verifying core functionality...");
+
+  try {
+    // Test 1: Database connection
+    console.log("📊 Testing database connection...");
+    await connectToDatabase();
+    console.log("✅ Database connection successful");
+    console.log("📋 Using unified MongoDB connection");
+
+    // Test 2: JWT secret loading
+    console.log("🔐 Testing JWT configuration...");
+    await import("../lib/auth");
+    console.log("✅ JWT auth module loaded successfully");
+
+    // Test 3: Tenant isolation models
+    console.log("🏢 Testing tenant isolation models...");
+    await import("../server/models/HelpArticle");
+    await import("../server/models/CmsPage");
+    await import("../server/models/SupportTicket");
+
+    console.log("✅ HelpArticle model loaded");
+    console.log("✅ CmsPage model loaded");
+    console.log("✅ SupportTicket model loaded");
+
+    // Test 4: Work order functionality
+    console.log("⚙️ Testing work order functionality...");
+    // wo.repo module was removed, using service instead
+    await import("../server/work-orders/wo.service");
+    console.log("✅ Work order repository loaded");
+
+    // Test 5: Idempotency system
+    console.log("🔄 Testing idempotency system...");
+    const { createIdempotencyKey } = await import(
+      "../server/security/idempotency"
+    );
+    const testKey = createIdempotencyKey("test", { data: "test" });
+    console.log(`✅ Idempotency key generated: ${testKey.substring(0, 20)}...`);
+
+    console.log("🎉 All core functionality verified successfully!");
+    return true;
+  } catch (error) {
+    console.error("❌ Core verification failed:", error);
+    return false;
+  }
+}
+
+if (require.main === module) {
+  verifyCore()
+    .then((success) => {
+      process.exit(success ? 0 : 1);
+    })
+    .catch((error) => {
+      console.error("❌ Fatal error during core verification:", error);
+      process.exit(1);
+    });
+}
+
+export { verifyCore };
+
+]]>
+</file>
+
+<file path="scripts/verify-org-context.ts">
+<![CDATA[
+#!/usr/bin/env ts-node
+
+/**
+ * Organization context verification script
+ * ----------------------------------------
+ * This script validates three things before deployment:
+ * 1. FM routes that are supposed to be org-guarded keep importing/useSupportOrg().
+ * 2. Translation dictionaries contain the org prompt keys for EN/AR.
+ * 3. SupportOrgSwitcher API route files expose the required HTTP handlers.
+ *
+ * The script compares the current guard coverage with configs/org-guard-baseline.json
+ * so we can fail builds only when NEW pages regress, while still reporting when
+ * existing pages get upgraded (so the baseline can be trimmed).
+ */
+
+import fs from "fs";
+import path from "path";
+import fg from "fast-glob";
+
+type BaselineFile = {
+  generatedAt?: string;
+  missing: string[];
+};
+
+type CheckResult = {
+  ok: boolean;
+  warnings: string[];
+};
+
+type GuardScopeConfig = {
+  id: string;
+  description: string;
+  match: RegExp;
+  guardType: "template";
+  templatePath: string;
+  mustContain?: string;
+};
+
+type GuardScopeState = GuardScopeConfig & {
+  satisfied: boolean;
+  error?: string;
+};
+
+const PROJECT_ROOT = path.resolve(__dirname, "..");
+
+function fail(message: string): never {
+  console.error(`\n❌ ${message}`);
+  process.exit(1);
+}
+
+function readJson<T>(filePath: string): T {
+  const raw = fs.readFileSync(filePath, "utf8");
+  return JSON.parse(raw) as T;
+}
+
+const GUARD_SCOPES: GuardScopeConfig[] = [
+  {
+    id: "fm-template",
+    description: "FM routes use app/fm/template.tsx to enforce OrgContextGate",
+    match: /^app\/fm\//,
+    guardType: "template",
+    templatePath: "app/fm/template.tsx",
+    mustContain: "OrgContextGate",
+  },
+];
+
+function evaluateGuardScopes(): GuardScopeState[] {
+  return GUARD_SCOPES.map((scope) => {
+    const abs = path.join(PROJECT_ROOT, scope.templatePath);
+    if (!fs.existsSync(abs)) {
+      return {
+        ...scope,
+        satisfied: false,
+        error: `Missing ${scope.templatePath}`,
+      };
+    }
+    const source = fs.readFileSync(abs, "utf8");
+    if (scope.mustContain && !source.includes(scope.mustContain)) {
+      return {
+        ...scope,
+        satisfied: false,
+        error: `${scope.templatePath} does not reference ${scope.mustContain}`,
+      };
+    }
+    return { ...scope, satisfied: true };
+  });
+}
+
+function checkOrgGuards(): CheckResult {
+  const baselinePath = path.join(
+    PROJECT_ROOT,
+    "configs",
+    "org-guard-baseline.json",
+  );
+  if (!fs.existsSync(baselinePath)) {
+    fail(
+      "Missing configs/org-guard-baseline.json. Run the baseline generator script.",
+    );
+  }
+
+  const baseline = readJson<BaselineFile>(baselinePath);
+  const baselineSet = new Set(baseline.missing);
+  const scopeStates = evaluateGuardScopes();
+  const scopeErrors = scopeStates.filter((scope) => !scope.satisfied);
+
+  const fmPages = fg
+    .sync(["app/fm/**/page.{ts,tsx,js,jsx}"], {
+      cwd: PROJECT_ROOT,
+      dot: false,
+    })
+    .sort();
+
+  const guardTokens = ["useSupportOrg", "useOrgGuard", "useFmOrgGuard"];
+  const missingNow = fmPages.filter((file) => {
+    const scoped = scopeStates.find((scope) => scope.match.test(file));
+    if (scoped && scoped.satisfied) {
+      return false;
+    }
+    const abs = path.join(PROJECT_ROOT, file);
+    const source = fs.readFileSync(abs, "utf8");
+    const hasGuard = guardTokens.some((token) => source.includes(token));
+    return !hasGuard;
+  });
+
+  const missingSet = new Set(missingNow);
+  const newMissing = missingNow.filter((file) => !baselineSet.has(file));
+  const upgraded = baseline.missing.filter((file) => !missingSet.has(file));
+
+  if (scopeErrors.length > 0) {
+    console.error("⚠️  Guard scope validation failed:");
+    scopeErrors.forEach((scope) => {
+      console.error(`   - ${scope.description}: ${scope.error}`);
+    });
+    return { ok: false, warnings: [] };
+  }
+
+  if (newMissing.length > 0) {
+    console.error(
+      "⚠️  The following FM routes are missing useSupportOrg() / useOrgGuard():",
+    );
+    newMissing.forEach((file) => console.error(`   - ${file}`));
+    console.error(
+      "\nUpdate the page(s) to include the org guard or extend configs/org-guard-baseline.json.",
+    );
+    return { ok: false, warnings: [] };
+  }
+
+  const warnings: string[] = [];
+  if (upgraded.length > 0) {
+    warnings.push(
+      `Org guard baseline is stale. Remove the following entries once you confirm the guards are intentional:\n${upgraded
+        .map((file) => `   - ${file}`)
+        .join("\n")}`,
+    );
+  }
+
+  return { ok: true, warnings };
+}
+
+function checkTranslationKeys(): CheckResult {
+  const translationsPath = path.join(
+    PROJECT_ROOT,
+    "i18n",
+    "sources",
+    "fm.translations.json",
+  );
+  if (!fs.existsSync(translationsPath)) {
+    fail("Missing i18n/sources/fm.translations.json.");
+  }
+
+  type Dictionary = Record<string, string>;
+  const dictionary = readJson<{ en: Dictionary; ar: Dictionary }>(
+    translationsPath,
+  );
+  const requiredKeys = [
+    "fm.org.required",
+    "fm.org.selectPrompt",
+    "fm.org.contactAdmin",
+    "fm.org.supportContext",
+  ];
+
+  const languages: Array<[string, Dictionary]> = [
+    ["en", dictionary.en],
+    ["ar", dictionary.ar],
+  ];
+
+  const missing: string[] = [];
+  for (const [lang, values] of languages) {
+    for (const key of requiredKeys) {
+      if (
+        !values ||
+        typeof values[key] !== "string" ||
+        values[key].trim() === ""
+      ) {
+        missing.push(`${lang}:${key}`);
+      }
+    }
+  }
+
+  if (missing.length > 0) {
+    console.error("⚠️  Missing org prompt translation keys:");
+    missing.forEach((entry) => console.error(`   - ${entry}`));
+    return { ok: false, warnings: [] };
+  }
+
+  return { ok: true, warnings: [] };
+}
+
+type ApiExpectation = {
+  file: string;
+  requiredHandlers: string[];
+};
+
+function checkSupportOrgApis(): CheckResult {
+  const expectations: ApiExpectation[] = [
+    {
+      file: "app/api/support/impersonation/route.ts",
+      requiredHandlers: ["GET", "POST", "DELETE"],
+    },
+    {
+      file: "app/api/support/organizations/search/route.ts",
+      requiredHandlers: ["GET"],
+    },
+  ];
+
+  const warnings: string[] = [];
+  const missingHandlers: string[] = [];
+
+  for (const { file, requiredHandlers } of expectations) {
+    const abs = path.join(PROJECT_ROOT, file);
+    if (!fs.existsSync(abs)) {
+      missingHandlers.push(`${file}: file does not exist`);
+      continue;
+    }
+    const source = fs.readFileSync(abs, "utf8");
+    for (const handler of requiredHandlers) {
+      const token = `export async function ${handler}`;
+      if (!source.includes(token)) {
+        missingHandlers.push(`${file}: missing ${handler} handler`);
+      }
+    }
+    if (!source.includes("auth(")) {
+      warnings.push(
+        `${file}: handler does not reference auth() - double check access control.`,
+      );
+    }
+  }
+
+  if (missingHandlers.length > 0) {
+    console.error("⚠️  SupportOrgSwitcher API validation failed:");
+    missingHandlers.forEach((entry) => console.error(`   - ${entry}`));
+    return { ok: false, warnings };
+  }
+
+  return { ok: true, warnings };
+}
+
+function checkOrgContextGate(): CheckResult {
+  const gatePath = path.join(
+    PROJECT_ROOT,
+    "components",
+    "fm",
+    "OrgContextGate.tsx",
+  );
+  if (!fs.existsSync(gatePath)) {
+    console.error("⚠️  Missing components/fm/OrgContextGate.tsx");
+    return { ok: false, warnings: [] };
+  }
+
+  const source = fs.readFileSync(gatePath, "utf8");
+  const issues: string[] = [];
+  if (!source.includes("useSupportOrg")) {
+    issues.push("OrgContextGate does not reference useSupportOrg().");
+  }
+  if (!source.includes("OrgContextPrompt")) {
+    issues.push("OrgContextGate does not render OrgContextPrompt fallback.");
+  }
+
+  if (issues.length > 0) {
+    issues.forEach((issue) => console.error(`⚠️  ${issue}`));
+    return { ok: false, warnings: [] };
+  }
+
+  return { ok: true, warnings: [] };
+}
+
+async function main() {
+  console.log("🔍 Verifying organization context coverage...");
+
+  const guardResult = checkOrgGuards();
+  const translationsResult = checkTranslationKeys();
+  const apiResult = checkSupportOrgApis();
+  const gateResult = checkOrgContextGate();
+
+  const hasFailure = [
+    guardResult,
+    translationsResult,
+    apiResult,
+    gateResult,
+  ].some((res) => !res.ok);
+
+  const aggregatedWarnings = [
+    ...guardResult.warnings,
+    ...apiResult.warnings,
+    ...gateResult.warnings,
+  ];
+  if (aggregatedWarnings.length > 0) {
+    console.warn("\n⚠️  Warnings:");
+    aggregatedWarnings.forEach((warning) => console.warn(warning));
+  }
+
+  if (hasFailure) {
+    fail("Organization context verification failed.");
+  }
+
+  console.log("✅ Organization context checks passed.");
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/verify-passwords.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * Script to verify weak passwords against a MongoDB users collection.
+ * Guarded to prevent accidental production use and to avoid hard-coded secrets.
+ */
+
+import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
+import { COLLECTIONS } from "@/lib/db/collections";
+
+async function verifyPasswords() {
+  try {
+    if (process.env.ALLOW_PASSWORD_AUDIT !== "1") {
+      console.error(
+        "❌ Refusing to run: set ALLOW_PASSWORD_AUDIT=1 and MONGODB_URI explicitly.",
+      );
+      process.exit(1);
+    }
+
+    const mongoUri = process.env.MONGODB_URI;
+    if (!mongoUri) {
+      console.error(
+        "❌ MONGODB_URI not set. Provide the URI via environment variable.",
+      );
+      process.exit(1);
+    }
+
+    console.log("🔐 Verifying weak passwords against MongoDB...\n");
+
+    await mongoose.connect(mongoUri, {
+      serverSelectionTimeoutMS: 10000,
+    });
+
+    console.log("✅ Connected to MongoDB\n");
+
+    const db = mongoose.connection.db;
+    if (!db) throw new Error("Database connection failed");
+
+    // Get users with passwords
+    const users = await db
+      .collection(COLLECTIONS.USERS)
+      .find({ password: { $exists: true, $ne: null } })
+      .project({ email: 1, password: 1 })
+      .toArray();
+
+    console.log(`Found ${users.length} users with password hashes\n`);
+    console.log("=".repeat(80));
+
+    // Common test passwords to try
+    const testPasswords = [
+      "password",
+      "password123",
+      "Password123",
+      "Password@123",
+      "Test@123",
+      "admin123",
+      "Admin@123",
+      "fixzit123",
+      "Fixzit@123",
+      "123456",
+      "test123",
+    ];
+
+    console.log("\n🔍 Testing common passwords...\n");
+
+    for (const user of users) {
+      console.log(`\n📧 ${user.email}`);
+      console.log(`   Hash: ${user.password.substring(0, 30)}...`);
+
+      let found = false;
+      for (const testPassword of testPasswords) {
+        try {
+          const isMatch = await bcrypt.compare(testPassword, user.password);
+          if (isMatch) {
+            console.log(`   ✅ Password matched: "${testPassword}"`);
+            found = true;
+            break;
+          }
+        } catch (_error) {
+          // Skip invalid hashes
+        }
+      }
+
+      if (!found) {
+        console.log(`   ⚠️  None of the common passwords matched`);
+        console.log(`   💡 Reset this account's password if needed`);
+      }
+    }
+
+    console.log("\n" + "=".repeat(80));
+    console.log("\n📋 REPORT SUMMARY:\n");
+    console.log(
+      "   - Matching weak passwords were reported above per account.",
+    );
+    console.log("   - Reset weak credentials immediately.");
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error("\n❌ Error:", err.message);
+    process.exit(1);
+  } finally {
+    await mongoose.disconnect();
+    console.log("\n👋 Disconnected from MongoDB\n");
+  }
+}
+
+verifyPasswords();
+
+]]>
+</file>
+
+<file path="scripts/verify-sanitize-and-signed-urls.ts">
+<![CDATA[
+import assert from "node:assert";
+import { unified } from "unified";
+import remarkParse from "remark-parse";
+import remarkRehype from "remark-rehype";
+import rehypeSanitize from "rehype-sanitize";
+import rehypeStringify from "rehype-stringify";
+
+async function testSanitize() {
+  const md = "# Title\n<script>alert(1)</script>\n**bold**";
+  const file = await unified()
+    .use(remarkParse)
+    .use(remarkRehype)
+    .use(rehypeSanitize)
+    .use(rehypeStringify)
+    .process(md);
+  const html = String(file);
+  assert(!html.includes("<script>"));
+  assert(html.includes("<strong>bold</strong>"));
+}
+
+async function run() {
+  await testSanitize();
+  console.log("OK: sanitize");
+}
+
+run().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/verify.py">
+<![CDATA[
+# scripts/verify.py
+from __future__ import annotations
+import sys
+import subprocess
+from pathlib import Path
+import typer
+from rich import print
+from rich.panel import Panel
+
+app = typer.Typer(add_help_option=True)
+ROOT = Path(__file__).resolve().parents[1]
+SCRIPTS = ROOT / "scripts"
+ART = ROOT / "artifacts"
+ART.mkdir(exist_ok=True)
+
+
+def run(cmd, check=True, capture=False):
+    if isinstance(cmd, str):
+        proc = subprocess.run(cmd, shell=True, capture_output=capture, text=True)
+    else:
+        proc = subprocess.run(cmd, capture_output=capture, text=True)
+    if capture:
+        return proc.returncode, (proc.stdout or ""), (proc.stderr or "")
+    if check and proc.returncode != 0:
+        raise SystemExit(proc.returncode)
+    return proc.returncode
+
+
+@app.command()
+def all(max_passes: int = typer.Option(3, help="Max verification passes")):
+    """Run style, lint, typecheck, tests, deps, routes, DB, and UI review. Auto-fix where safe."""
+    passes = 0
+    while passes < max_passes:
+        passes += 1
+        print(
+            Panel.fit(
+                f"[bold]Fixzit Verify (Streamlit/Python) — Pass {passes}/{max_passes}[/]"
+            )
+        )
+
+        # 1) Style & lint (auto-fix)
+        print("\n[bold]Formatting (Black)[/]")
+        run([sys.executable, "-m", "black", "."], check=False)
+
+        print("\n[bold]Lint (Ruff)[/]")
+        run([sys.executable, "-m", "ruff", "check", ".", "--fix"], check=False)
+
+        # 2) Type checking (mypy)
+        print("\n[bold]Type check (mypy)[/]")
+        rc = run(
+            [sys.executable, "-m", "mypy", "--ignore-missing-imports", "."], check=False
+        )
+        if rc != 0:
+            print("[red]mypy errors — please review output above.")
+            raise SystemExit(rc)
+
+        # 3) Tests (pytest) if present
+        has_tests = (ROOT / "tests").exists()
+        if has_tests:
+            print("\n[bold]Tests (pytest)[/]")
+            rc = run([sys.executable, "-m", "pytest", "-q"], check=False)
+            if rc != 0:
+                print("[red]Tests failing — stopping here.")
+                raise SystemExit(rc)
+        else:
+            print("\n[dim]No tests folder; skipping pytest.[/]")
+
+        # 4) Dependency & security health (non-blocking warnings)
+        print("\n[bold]Dependency health[/]")
+        # pip check
+        rc, out, err = run(
+            [sys.executable, "-m", "pip", "check"], check=False, capture=True
+        )
+        (ART / "pip-check.txt").write_text(out + err)
+        if rc != 0:
+            print("[yellow]pip check reported issues → artifacts/pip-check.txt")
+        # pip-audit
+        rc = run(
+            [
+                sys.executable,
+                "-m",
+                "pip_audit",
+                "-f",
+                "json",
+                "-o",
+                str(ART / "pip-audit.json"),
+            ],
+            check=False,
+        )
+        if rc != 0:
+            print(
+                "[yellow]pip-audit found advisories → artifacts/pip-audit.json (warning)"
+            )
+        # bandit
+        rc = run(
+            [
+                sys.executable,
+                "-m",
+                "bandit",
+                "-q",
+                "-r",
+                ".",
+                "-f",
+                "json",
+                "-o",
+                str(ART / "bandit.json"),
+            ],
+            check=False,
+        )
+        if rc != 0:
+            print("[yellow]Bandit flagged items → artifacts/bandit.json (warning)")
+
+        # 5) Duplicate/structure checks
+        print("\n[bold]Duplicate/file structure checks[/]")
+        rc = run([sys.executable, str(SCRIPTS / "dup_check.py")], check=False)
+        if rc != 0:
+            print("[red]Duplicate issues found. See artifacts/dup-report.md")
+            raise SystemExit(rc)
+
+        # 6) Routes/pages
+        print("\n[bold]Route/page checks[/]")
+        rc = run([sys.executable, str(SCRIPTS / "routes_check.py")], check=False)
+        if rc != 0:
+            print("[red]Route/page check failed. See artifacts/routes-report.md")
+            raise SystemExit(rc)
+
+        # 7) Database integrity (PostgreSQL)
+        print("\n[bold]Database integrity (PostgreSQL)[/]")
+        rc = run([sys.executable, str(SCRIPTS / "db_check.py")], check=False)
+        if rc != 0:
+            print("[red]Database check failed. See artifacts/db-report.md")
+            raise SystemExit(rc)
+
+        # 8) UI review (launch streamlit + crawl pages)
+        print("\n[bold]UI review (headless) — screenshots + issue logs[/]")
+        rc = run([sys.executable, str(SCRIPTS / "ui_review.py")], check=False)
+        if rc != 0:
+            print("[yellow]UI review found blocking issues. See artifacts/ui-report.md")
+            if passes < max_passes:
+                continue
+            else:
+                raise SystemExit(rc)
+
+        print("\n[bold green]✅ All checks passed — no open errors.[/]")
+        return
+
+    raise SystemExit(1)
+
+
+@app.command()
+def quick():
+    """Fast local sanity check (format+lint+routes)."""
+    run([sys.executable, "-m", "black", "."], check=False)
+    run([sys.executable, "-m", "ruff", "check", ".", "--fix"], check=False)
+    run([sys.executable, str(SCRIPTS / "routes_check.py")])
+    print("[green]Quick check OK")
+
+
+if __name__ == "__main__":
+    app()
+
+]]>
+</file>
+
+<file path="scripts/verify.ts">
+<![CDATA[
+import { execSync } from "node:child_process";
+import fs from "fs";
+import pc from "picocolors";
+
+type Gate = { name: string; cmd: string; optional?: boolean };
+
+const gates: Gate[] = [
+  { name: "TypeScript", cmd: "npm run typecheck" },
+  { name: "ESLint", cmd: "npm run lint" },
+  { name: "Build", cmd: "npm run build" },
+  {
+    name: "SSR check",
+    cmd: `grep -R "\\b(window|document|localStorage)\\b" -n app | true`,
+  },
+];
+
+function run(g: Gate) {
+  try {
+    console.log(pc.cyan(`\n▶ ${g.name}`));
+    const out = execSync(g.cmd, { stdio: "pipe", encoding: "utf8" });
+    fs.mkdirSync(".fixzit/artifacts", { recursive: true });
+    fs.writeFileSync(
+      `.fixzit/artifacts/${g.name.replace(/\s+/g, "_")}.log`,
+      out,
+    );
+    if (g.name === "SSR check" && /:\d+:/m.test(out)) {
+      throw new Error(
+        "Direct window/document usage detected in app/* (hydrate risk)",
+      );
+    }
+    console.log(pc.green(`✓ ${g.name} passed`));
+  } catch (e: unknown) {
+    console.log(pc.red(`✗ ${g.name} failed`));
+    const error = e as { stdout?: string; message?: string };
+    console.log(pc.gray(error?.stdout || error?.message || String(e)));
+    process.exit(1);
+  }
+}
+
+console.log(pc.bold("Fixzit Halt–Fix–Verify"));
+for (const g of gates) run(g);
+console.log(pc.bold(pc.green("\nAll core gates passed.")));
+
+]]>
+</file>
+
+<file path="scripts/verify_all.py">
+<![CDATA[
+#!/usr/bin/env python3
+"""
+Comprehensive verification suite for Fixzit application
+Runs multiple checks with auto-fix capabilities
+"""
+
+import sys
+import subprocess
+import json
+import time
+from pathlib import Path
+from datetime import datetime
+from typing import List, Tuple, Dict, Any
+
+# Add parent directory to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+
+# Terminal colors
+class Colors:
+    HEADER = "\033[95m"
+    BLUE = "\033[94m"
+    GREEN = "\033[92m"
+    YELLOW = "\033[93m"
+    RED = "\033[91m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
+    END = "\033[0m"
+
+
+class VerificationSuite:
+    def __init__(self, auto_fix: bool = True, max_passes: int = 3):
+        self.auto_fix = auto_fix
+        self.max_passes = max_passes
+        self.current_pass = 0
+        self.root_dir = Path(__file__).parent.parent
+        self.results = []
+        self.fixes_applied = False
+
+    def print_header(self, text: str):
+        """Print a formatted header"""
+        print(f"\n{Colors.BOLD}{Colors.HEADER}{'='*60}{Colors.END}")
+        print(f"{Colors.BOLD}{Colors.HEADER}{text}{Colors.END}")
+        print(f"{Colors.BOLD}{Colors.HEADER}{'='*60}{Colors.END}")
+
+    def print_step(self, text: str):
+        """Print a step indicator"""
+        print(f"\n{Colors.BLUE}--- {text} ---{Colors.END}")
+
+    def print_success(self, text: str):
+        """Print success message"""
+        print(f"{Colors.GREEN}✅ {text}{Colors.END}")
+
+    def print_error(self, text: str):
+        """Print error message"""
+        print(f"{Colors.RED}❌ {text}{Colors.END}")
+
+    def print_warning(self, text: str):
+        """Print warning message"""
+        print(f"{Colors.YELLOW}⚠️  {text}{Colors.END}")
+
+    def print_info(self, text: str):
+        """Print info message"""
+        print(f"{Colors.BLUE}ℹ️  {text}{Colors.END}")
+
+    def run_command(self, cmd: List[str], timeout: int = 30) -> Tuple[bool, str, str]:
+        """Execute a command and return success, stdout, stderr"""
+        try:
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=timeout, cwd=self.root_dir
+            )
+            return result.returncode == 0, result.stdout, result.stderr
+        except subprocess.TimeoutExpired:
+            return False, "", f"Timeout after {timeout}s"
+        except FileNotFoundError:
+            return False, "", f"Command not found: {cmd[0]}"
+        except Exception as e:
+            return False, "", str(e)
+
+    def check_python_format(self) -> Dict[str, Any]:
+        """Check Python formatting with black"""
+        self.print_step("Python Formatting (black)")
+
+        # Check if black is installed
+        success, _, _ = self.run_command(["python3", "-m", "black", "--version"])
+        if not success:
+            if self.auto_fix:
+                self.print_info("Installing black...")
+                self.run_command(["pip", "install", "black"])
+
+        # Check formatting
+        success, stdout, stderr = self.run_command(
+            ["python3", "-m", "black", "--check", "--diff", "."]
+        )
+
+        if not success and self.auto_fix:
+            self.print_info("Auto-formatting Python files...")
+            fix_success, _, _ = self.run_command(["python3", "-m", "black", "."])
+            if fix_success:
+                self.fixes_applied = True
+                self.print_success("Python files formatted")
+                return {"status": "fixed", "message": "Auto-formatted"}
+            else:
+                self.print_error("Failed to format files")
+                return {"status": "failed", "message": "Format failed"}
+        elif success:
+            self.print_success("Python formatting OK")
+            return {"status": "passed"}
+        else:
+            self.print_error("Formatting issues found")
+            return {"status": "failed", "message": "Needs formatting"}
+
+    def check_python_lint(self) -> Dict[str, Any]:
+        """Check Python linting with pylint"""
+        self.print_step("Python Linting (pylint)")
+
+        # Check if pylint is installed
+        success, _, _ = self.run_command(["python3", "-m", "pylint", "--version"])
+        if not success:
+            if self.auto_fix:
+                self.print_info("Installing pylint...")
+                self.run_command(["pip", "install", "pylint"])
+
+        # Run pylint on key directories
+        dirs = ["pages", "utils", "services"]
+        issues = []
+
+        for directory in dirs:
+            dir_path = self.root_dir / directory
+            if dir_path.exists():
+                success, stdout, stderr = self.run_command(
+                    [
+                        "python3",
+                        "-m",
+                        "pylint",
+                        "--exit-zero",
+                        "--disable=C0114,C0115,C0116,R0913,R0914,R0915,W0613",
+                        str(directory),
+                    ]
+                )
+
+                # Parse score from output
+                if "rated at" in stdout:
+                    score_line = [
+                        line for line in stdout.split("\n") if "rated at" in line
+                    ]
+                    if score_line:
+                        try:
+                            score = float(
+                                score_line[0].split("rated at")[1].split("/")[0].strip()
+                            )
+                            if score < 7.0:
+                                issues.append(f"{directory}: score {score:.2f}/10")
+                        except (ValueError, IndexError):
+                            pass
+
+        if issues:
+            self.print_warning(f"Linting issues: {', '.join(issues)}")
+            return {"status": "warning", "issues": issues}
+        else:
+            self.print_success("Linting checks passed")
+            return {"status": "passed"}
+
+    def check_imports(self) -> Dict[str, Any]:
+        """Verify all required imports are available"""
+        self.print_step("Import Verification")
+
+        required = [
+            "streamlit",
+            "pandas",
+            "psycopg2",
+            "bcrypt",
+            "pytz",
+            "folium",
+            "streamlit_folium",
+            "plotly",
+            "openpyxl",
+            "reportlab",
+            "qrcode",
+            "babel",
+            "hijri_converter",
+            "twilio",
+            "sendgrid",
+            "pyperclip",
+        ]
+
+        missing = []
+        for module in required:
+            try:
+                __import__(module.replace("-", "_"))
+            except ImportError:
+                missing.append(module)
+
+        if missing and self.auto_fix:
+            self.print_info(f"Installing missing packages: {', '.join(missing)}")
+            for pkg in missing:
+                self.run_command(["pip", "install", pkg])
+            self.fixes_applied = True
+
+            # Verify installation
+            still_missing = []
+            for module in missing:
+                try:
+                    __import__(module.replace("-", "_"))
+                except ImportError:
+                    still_missing.append(module)
+
+            if still_missing:
+                self.print_error(f"Failed to install: {', '.join(still_missing)}")
+                return {"status": "failed", "missing": still_missing}
+            else:
+                self.print_success("All packages installed")
+                return {"status": "fixed"}
+        elif missing:
+            self.print_error(f"Missing packages: {', '.join(missing)}")
+            return {"status": "failed", "missing": missing}
+        else:
+            self.print_success("All imports available")
+            return {"status": "passed"}
+
+    def check_streamlit_config(self) -> Dict[str, Any]:
+        """Check Streamlit configuration"""
+        self.print_step("Streamlit Configuration")
+
+        config_dir = self.root_dir / ".streamlit"
+        config_file = config_dir / "config.toml"
+
+        if not config_file.exists():
+            if self.auto_fix:
+                self.print_info("Creating Streamlit config...")
+                config_dir.mkdir(exist_ok=True)
+
+                config_content = """[server]
+headless = true
+address = "0.0.0.0"
+port = 5000
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+primaryColor = "#F6851F"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F0F2F6"
+textColor = "#1F2937"
+"""
+                config_file.write_text(config_content)
+                self.fixes_applied = True
+                self.print_success("Streamlit config created")
+                return {"status": "fixed"}
+            else:
+                self.print_warning("Streamlit config missing")
+                return {"status": "warning"}
+        else:
+            self.print_success("Streamlit config exists")
+            return {"status": "passed"}
+
+    def check_database_schema(self) -> Dict[str, Any]:
+        """Verify database schema"""
+        self.print_step("Database Schema Verification")
+
+        try:
+            from utils.database import get_db_connection
+
+            conn = get_db_connection()
+            if not conn:
+                self.print_error("Cannot connect to database")
+                return {"status": "failed", "error": "Connection failed"}
+
+            cursor = conn.cursor()
+
+            # Check for all required tables
+            required_tables = [
+                "users",
+                "properties",
+                "units",
+                "contracts",
+                "contracts_new",
+                "tickets",
+                "payments",
+                "otp_codes",
+                "notifications",
+                "service_providers",
+                "service_bookings",
+                "service_categories",
+                "hr_services",
+                "hr_service_requests",
+                "referrals",
+                "marketing_campaigns",
+                "coupons",
+                "questionnaires",
+                "wallet_transactions",
+                "invoices",
+                "app_integrations",
+                "owner_associations",
+                "companies",
+                "guided_tours",
+                "login_branding",
+            ]
+
+            cursor.execute(
+                """
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_schema = 'public'
+            """
+            )
+
+            existing_tables = [row[0] for row in cursor.fetchall()]
+            missing_tables = [t for t in required_tables if t not in existing_tables]
+
+            cursor.close()
+            conn.close()
+
+            if missing_tables:
+                self.print_warning(f"Missing tables: {', '.join(missing_tables[:5])}")
+                if len(missing_tables) > 5:
+                    self.print_info(f"... and {len(missing_tables) - 5} more")
+                return {"status": "warning", "missing": missing_tables}
+            else:
+                self.print_success(f"All {len(required_tables)} tables present")
+                return {"status": "passed"}
+
+        except Exception as e:
+            self.print_error(f"Database check failed: {str(e)}")
+            return {"status": "failed", "error": str(e)}
+
+    def check_pages_syntax(self) -> Dict[str, Any]:
+        """Check syntax of all page files"""
+        self.print_step("Page Files Syntax Check")
+
+        pages_dir = self.root_dir / "pages"
+        if not pages_dir.exists():
+            self.print_error("Pages directory not found")
+            return {"status": "failed", "error": "No pages directory"}
+
+        errors = []
+        page_count = 0
+
+        for page_file in sorted(pages_dir.glob("*.py")):
+            page_count += 1
+            try:
+                content = page_file.read_text()
+                compile(content, page_file.name, "exec")
+            except SyntaxError as e:
+                errors.append(f"{page_file.name}: {e.msg} (line {e.lineno})")
+            except Exception as e:
+                errors.append(f"{page_file.name}: {str(e)}")
+
+        if errors:
+            self.print_error(f"{len(errors)} pages have syntax errors:")
+            for error in errors[:3]:
+                print(f"  - {error}")
+            if len(errors) > 3:
+                print(f"  ... and {len(errors) - 3} more")
+            return {"status": "failed", "errors": errors}
+        else:
+            self.print_success(f"All {page_count} pages have valid syntax")
+            return {"status": "passed", "total": page_count}
+
+    def check_security(self) -> Dict[str, Any]:
+        """Basic security checks"""
+        self.print_step("Security Scan")
+
+        issues = []
+
+        # Check for hardcoded secrets in Python files
+        patterns = [
+            (r'api[_\s]*key\s*=\s*["\'][^"\']+["\']', "Hardcoded API key"),
+            (r'password\s*=\s*["\'][^"\']+["\']', "Hardcoded password"),
+            (r'secret[_\s]*key\s*=\s*["\'][^"\']+["\']', "Hardcoded secret"),
+            (r'token\s*=\s*["\'][^"\']+["\']', "Hardcoded token"),
+        ]
+
+        import re
+
+        for py_file in self.root_dir.rglob("*.py"):
+            if "venv" in str(py_file) or "__pycache__" in str(py_file):
+                continue
+
+            try:
+                content = py_file.read_text()
+
+                # Skip if it uses environment variables properly
+                if "os.environ" in content:
+                    continue
+
+                for pattern, desc in patterns:
+                    if re.search(pattern, content, re.IGNORECASE):
+                        rel_path = py_file.relative_to(self.root_dir)
+                        issues.append(f"{rel_path}: {desc}")
+                        break
+
+            except (IOError, UnicodeDecodeError):
+                pass
+
+        if issues:
+            self.print_warning("Potential security issues found:")
+            for issue in issues[:3]:
+                print(f"  - {issue}")
+            if len(issues) > 3:
+                print(f"  ... and {len(issues) - 3} more")
+            return {"status": "warning", "issues": issues}
+        else:
+            self.print_success("No obvious security issues")
+            return {"status": "passed"}
+
+    def run_tests(self) -> Dict[str, Any]:
+        """Run pytest if available"""
+        self.print_step("Running Tests")
+
+        # Check if pytest is installed
+        success, _, _ = self.run_command(["python3", "-m", "pytest", "--version"])
+        if not success:
+            if self.auto_fix:
+                self.print_info("Installing pytest...")
+                self.run_command(["pip", "install", "pytest", "pytest-cov"])
+
+        # Check for tests directory
+        tests_dir = self.root_dir / "tests"
+        if not tests_dir.exists():
+            self.print_info("No tests directory found - creating basic test")
+
+            if self.auto_fix:
+                tests_dir.mkdir(exist_ok=True)
+
+                # Create a basic test
+                test_file = tests_dir / "test_basic.py"
+                test_content = """import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+def test_imports():
+    \"\"\"Test that key modules can be imported\"\"\"
+    import streamlit
+    import pandas
+    import psycopg2
+    assert True
+
+def test_pages_exist():
+    \"\"\"Test that pages directory exists\"\"\"
+    pages_dir = Path(__file__).parent.parent / "pages"
+    assert pages_dir.exists()
+    assert len(list(pages_dir.glob("*.py"))) > 0
+"""
+                test_file.write_text(test_content)
+                self.fixes_applied = True
+
+        # Run tests
+        success, stdout, stderr = self.run_command(
+            ["python3", "-m", "pytest", "-v", "--tb=short"], timeout=60
+        )
+
+        if success:
+            self.print_success("All tests passed")
+            return {"status": "passed"}
+        elif "no tests ran" in stdout.lower() or "no tests ran" in stderr.lower():
+            self.print_info("No tests to run")
+            return {"status": "skipped"}
+        else:
+            self.print_warning("Some tests failed")
+            return {"status": "warning", "output": stderr[:500]}
+
+    def generate_report(self, all_results: List[Dict]) -> None:
+        """Generate final report"""
+        self.print_header("GENERATING REPORTS")
+
+        # Create artifacts directory
+        artifacts_dir = self.root_dir / "artifacts"
+        artifacts_dir.mkdir(exist_ok=True)
+
+        # Calculate statistics
+        total_checks = len(all_results)
+        passed = sum(1 for r in all_results if r.get("status") == "passed")
+        failed = sum(1 for r in all_results if r.get("status") == "failed")
+        fixed = sum(1 for r in all_results if r.get("status") == "fixed")
+        warnings = sum(1 for r in all_results if r.get("status") == "warning")
+
+        # JSON report
+        json_report = {
+            "timestamp": datetime.now().isoformat(),
+            "passes_run": self.current_pass,
+            "auto_fix": self.auto_fix,
+            "statistics": {
+                "total": total_checks,
+                "passed": passed,
+                "failed": failed,
+                "fixed": fixed,
+                "warnings": warnings,
+            },
+            "results": all_results,
+            "overall_status": "PASS" if failed == 0 else "FAIL",
+        }
+
+        json_file = (
+            artifacts_dir / f"verify_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        )
+        with open(json_file, "w") as f:
+            json.dump(json_report, f, indent=2, default=str)
+
+        # Markdown report
+        md_content = [
+            "# Fixzit Verification Report",
+            f"\n**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+            f"**Auto-fix:** {'Enabled' if self.auto_fix else 'Disabled'}",
+            f"**Passes Run:** {self.current_pass}",
+            "\n## Summary",
+            f"- ✅ Passed: {passed}",
+            f"- ❌ Failed: {failed}",
+            f"- 🔧 Fixed: {fixed}",
+            f"- ⚠️  Warnings: {warnings}",
+            f"- 📊 Total Checks: {total_checks}",
+            "\n## Detailed Results\n",
+        ]
+
+        for i, (check_name, result) in enumerate(
+            zip(
+                [
+                    "Format",
+                    "Lint",
+                    "Imports",
+                    "Config",
+                    "Database",
+                    "Pages",
+                    "Security",
+                    "Tests",
+                ],
+                all_results,
+            )
+        ):
+            status = result.get("status", "unknown")
+            icon = {
+                "passed": "✅",
+                "failed": "❌",
+                "fixed": "🔧",
+                "warning": "⚠️",
+                "skipped": "⏭️",
+            }.get(status, "❓")
+            md_content.append(f"### {icon} {check_name}")
+
+            if result.get("message"):
+                md_content.append(f"- {result['message']}")
+            if result.get("error"):
+                md_content.append(f"- Error: {result['error']}")
+            if result.get("missing"):
+                md_content.append(f"- Missing: {', '.join(result['missing'][:5])}")
+
+            md_content.append("")
+
+        md_file = (
+            artifacts_dir / f"verify_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
+        )
+        md_file.write_text("\n".join(md_content))
+
+        self.print_success("Reports saved:")
+        print(f"  📄 {json_file}")
+        print(f"  📝 {md_file}")
+
+    def run_verification(self) -> bool:
+        """Run full verification suite"""
+        self.print_header("FIXZIT VERIFICATION SUITE")
+        print(
+            f"Auto-fix: {Colors.GREEN if self.auto_fix else Colors.RED}{'ENABLED' if self.auto_fix else 'DISABLED'}{Colors.END}"
+        )
+        print(f"Max passes: {self.max_passes}")
+
+        checks = [
+            self.check_python_format,
+            self.check_python_lint,
+            self.check_imports,
+            self.check_streamlit_config,
+            self.check_database_schema,
+            self.check_pages_syntax,
+            self.check_security,
+            self.run_tests,
+        ]
+
+        while self.current_pass < self.max_passes:
+            self.current_pass += 1
+            self.print_header(f"PASS {self.current_pass}/{self.max_passes}")
+
+            self.fixes_applied = False
+            results = []
+
+            for check in checks:
+                try:
+                    result = check()
+                    results.append(result)
+                except Exception as e:
+                    self.print_error(f"Check crashed: {e}")
+                    results.append({"status": "failed", "error": str(e)})
+
+            # Check if we should continue
+            failed_count = sum(1 for r in results if r.get("status") == "failed")
+
+            if failed_count == 0:
+                self.print_header("✅ VERIFICATION PASSED")
+                self.generate_report(results)
+                return True
+
+            if not self.fixes_applied or self.current_pass >= self.max_passes:
+                self.print_header(f"❌ VERIFICATION FAILED ({failed_count} issues)")
+                self.generate_report(results)
+                return False
+
+            self.print_info(f"Fixes applied, running pass {self.current_pass + 1}...")
+            time.sleep(1)
+
+        return False
+
+
+def main():
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Fixzit Verification Suite")
+    parser.add_argument("--no-fix", action="store_true", help="Disable auto-fix")
+    parser.add_argument(
+        "--max-passes", type=int, default=3, help="Maximum passes (default: 3)"
+    )
+
+    args = parser.parse_args()
+
+    suite = VerificationSuite(auto_fix=not args.no_fix, max_passes=args.max_passes)
+
+    success = suite.run_verification()
+    sys.exit(0 if success else 1)
+
+
+if __name__ == "__main__":
+    main()
+
+]]>
+</file>
+
+<file path="scripts/verify_nav_pages.py">
+<![CDATA[
+#!/usr/bin/env python3
+"""
+Verify that all pages configured in nav_config.py actually exist
+"""
+
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from nav_config import NAV
+
+
+def verify_pages():
+    """Check all configured pages exist"""
+    missing_pages = []
+    existing_pages = []
+
+    for group in NAV:
+        for item in group["items"]:
+            # Check item page
+            if "page" in item and item["page"]:
+                if os.path.exists(item["page"]):
+                    existing_pages.append(item["page"])
+                else:
+                    missing_pages.append(
+                        {
+                            "path": item["page"],
+                            "label": item["label"],
+                            "group": group["group"],
+                        }
+                    )
+
+            # Check children pages
+            if "children" in item and item["children"]:
+                for child in item["children"]:
+                    if "page" in child and child["page"]:
+                        if os.path.exists(child["page"]):
+                            existing_pages.append(child["page"])
+                        else:
+                            missing_pages.append(
+                                {
+                                    "path": child["page"],
+                                    "label": child["label"],
+                                    "parent": item["label"],
+                                    "group": group["group"],
+                                }
+                            )
+
+    # Print results
+    print("🔍 NAVIGATION PAGE VERIFICATION")
+    print("=" * 50)
+
+    print(f"\n✅ Existing pages: {len(existing_pages)}")
+    for page in sorted(existing_pages)[:10]:  # Show first 10
+        print(f"   • {page}")
+    if len(existing_pages) > 10:
+        print(f"   ... and {len(existing_pages) - 10} more")
+
+    if missing_pages:
+        print(f"\n❌ Missing pages: {len(missing_pages)}")
+        for missing in missing_pages:
+            parent = missing.get("parent", "")
+            if parent:
+                print(f"   • {missing['path']}")
+                print(f"     ({missing['group']} → {parent} → {missing['label']})")
+            else:
+                print(f"   • {missing['path']}")
+                print(f"     ({missing['group']} → {missing['label']})")
+    else:
+        print("\n🎉 All configured pages exist!")
+
+    print("\n" + "=" * 50)
+    print(f"Total: {len(existing_pages)} existing, {len(missing_pages)} missing")
+
+    return len(missing_pages) == 0
+
+
+if __name__ == "__main__":
+    success = verify_pages()
+    sys.exit(0 if success else 1)
+
+]]>
+</file>
+
+<file path="scripts/verify_system.py">
+<![CDATA[
+"""
+System Verification Script for Fixzit Application
+Checks all components, connections, and workflows
+"""
+
+import sys
+import os
+from pathlib import Path
+
+# Track results
+errors = []
+warnings = []
+success = []
+EMAIL_DOMAIN = os.getenv("EMAIL_DOMAIN", "fixzit.co")
+
+
+def check_database():
+    """Verify database connection and essential tables"""
+    try:
+        # Import from project
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from utils.database import get_db_connection
+
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor()
+
+            # Check essential tables
+            tables = ["users", "properties", "contracts", "tickets", "payments"]
+            for table in tables:
+                cursor.execute(f"SELECT COUNT(*) FROM {table}")
+                count = cursor.fetchone()[0]
+                success.append(f"✓ Table '{table}' exists with {count} records")
+
+            # Check test users
+            cursor.execute(
+                f"SELECT email, role FROM users WHERE email IN ('admin@{EMAIL_DOMAIN}', 'john.smith@{EMAIL_DOMAIN}', 'tenant@example.com')"
+            )
+            users = cursor.fetchall()
+            for email, role in users:
+                success.append(f"✓ Test user {email} ({role}) exists")
+
+            cursor.close()
+            conn.close()
+        else:
+            errors.append("✗ Database connection failed")
+    except Exception as e:
+        errors.append(f"✗ Database check failed: {str(e)}")
+
+
+def check_pages():
+    """Check all pages are importable"""
+    pages_dir = Path("pages")
+    page_files = sorted(pages_dir.glob("*.py"))
+
+    for page_file in page_files:
+        try:
+            # Skip Register and Reset_Password pages (no main function required)
+            if page_file.stem in ["Register", "Reset_Password"]:
+                continue
+
+            # Check if file has main function
+            with open(page_file, "r") as f:
+                content = f.read()
+                if "def main()" in content or '__name__ == "__main__"' in content:
+                    success.append(f"✓ Page {page_file.name} has entry point")
+                else:
+                    warnings.append(f"⚠ Page {page_file.name} missing main() function")
+
+            # Check for common errors
+            if content.count("import") > 50:
+                warnings.append(
+                    f"⚠ Page {page_file.name} has many imports ({content.count('import')})"
+                )
+
+        except Exception as e:
+            errors.append(f"✗ Page {page_file.name} check failed: {str(e)}")
+
+
+def check_services():
+    """Check all services are properly defined"""
+    services_dir = Path("services")
+    service_files = sorted(services_dir.glob("*.py"))
+
+    service_classes = {}
+    for service_file in service_files:
+        try:
+            with open(service_file, "r") as f:
+                content = f.read()
+
+            # Find class definitions
+            import re
+
+            classes = re.findall(r"class\s+(\w*Service\w*)", content)
+
+            if classes:
+                for cls in classes:
+                    if cls in service_classes:
+                        errors.append(
+                            f"✗ Duplicate service class {cls} in {service_file.name} and {service_classes[cls]}"
+                        )
+                    else:
+                        service_classes[cls] = service_file.name
+                        success.append(f"✓ Service {cls} in {service_file.name}")
+            else:
+                if service_file.stem not in [
+                    "__init__",
+                    "attachment_manager",
+                    "automations_engine",
+                    "boards_manager",
+                    "feedback_system",
+                    "tour_system",
+                    "otp_security",
+                    "workspace_theming",
+                ]:
+                    warnings.append(
+                        f"⚠ Service file {service_file.name} has no Service class"
+                    )
+
+        except Exception as e:
+            errors.append(f"✗ Service {service_file.name} check failed: {str(e)}")
+
+
+def check_duplicates():
+    """Check for duplicate page numbers and names"""
+    pages_dir = Path("pages")
+    page_files = sorted(pages_dir.glob("*.py"))
+
+    page_numbers = {}
+    page_names = {}
+
+    for page_file in page_files:
+        # Extract page number if exists
+        name = page_file.stem
+        if name[0].isdigit():
+            # Extract number prefix
+            import re
+
+            match = re.match(r"^(\d+)_(.+)$", name)
+            if match:
+                num = match.group(1)
+                page_name = match.group(2)
+
+                # Check for duplicate numbers
+                if num in page_numbers:
+                    errors.append(
+                        f"✗ Duplicate page number {num}: {page_file.name} and {page_numbers[num]}"
+                    )
+                else:
+                    page_numbers[num] = page_file.name
+
+                # Check for similar names
+                for existing_name, existing_file in page_names.items():
+                    if page_name.lower() == existing_name.lower():
+                        warnings.append(
+                            f"⚠ Similar page names: {page_file.name} and {existing_file}"
+                        )
+
+                page_names[page_name.lower()] = page_file.name
+
+
+def check_imports():
+    """Check for broken imports"""
+    all_files = list(Path("pages").glob("*.py")) + list(Path("services").glob("*.py"))
+
+    for file_path in all_files:
+        try:
+            with open(file_path, "r") as f:
+                content = f.read()
+
+            # Check for imports of deleted files
+            if "ShareVerification" in content and "SecureShareVerify" not in str(
+                file_path
+            ):
+                errors.append(
+                    f"✗ File {file_path.name} imports deleted ShareVerification"
+                )
+            if "ShareVerify" in content and "SecureShareVerify" not in str(file_path):
+                errors.append(f"✗ File {file_path.name} imports deleted ShareVerify")
+            if "ModerationQueue" in content and "ShareModerationQueue" not in str(
+                file_path
+            ):
+                errors.append(
+                    f"✗ File {file_path.name} imports deleted ModerationQueue"
+                )
+
+        except Exception as e:
+            errors.append(f"✗ Import check for {file_path.name} failed: {str(e)}")
+
+
+def main():
+    print("\n" + "=" * 60)
+    print("FIXZIT SYSTEM VERIFICATION")
+    print("=" * 60 + "\n")
+
+    print("🔍 Checking Database...")
+    check_database()
+
+    print("🔍 Checking Pages...")
+    check_pages()
+
+    print("🔍 Checking Services...")
+    check_services()
+
+    print("🔍 Checking for Duplicates...")
+    check_duplicates()
+
+    print("🔍 Checking Imports...")
+    check_imports()
+
+    # Print results
+    print("\n" + "=" * 60)
+    print("VERIFICATION RESULTS")
+    print("=" * 60 + "\n")
+
+    if success:
+        print("✅ SUCCESS (%d):" % len(success))
+        for s in success[:10]:  # Show first 10
+            print(f"   {s}")
+        if len(success) > 10:
+            print(f"   ... and {len(success) - 10} more")
+
+    if warnings:
+        print("\n⚠️  WARNINGS (%d):" % len(warnings))
+        for w in warnings:
+            print(f"   {w}")
+
+    if errors:
+        print("\n❌ ERRORS (%d):" % len(errors))
+        for e in errors:
+            print(f"   {e}")
+        print("\n⚠️  System has errors that need fixing!")
+        sys.exit(1)
+    else:
+        print("\n✅ System verification PASSED! No critical errors found.")
+        print(f"   - {len(success)} checks passed")
+        print(f"   - {len(warnings)} warnings (non-critical)")
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+
+]]>
+</file>
+
+<file path="scripts/weekly_report.py">
+<![CDATA[
+#!/usr/bin/env python3
+"""
+Weekly HTML Report Generator - Multi-Tenant Support
+Creates comprehensive weekly performance and reliability reports per tenant
+"""
+
+import argparse
+import json
+import os
+import pathlib
+import sys
+import zipfile
+from datetime import datetime, timedelta
+from typing import List
+import requests
+
+# Add the parent directory to Python path to import services
+sys.path.append(str(pathlib.Path(__file__).parent.parent))
+
+from services.slo_service import slo_service
+from services.performance_service import performance_service
+from services.uptime_service import uptime_service
+
+# Import tenant utilities
+try:
+    from app.tenant import current_tenant, list_tenants, tenant_data_path
+except ImportError:
+    # Fallback if app.tenant is not available
+    def current_tenant():
+        return os.getenv("FXZ_TENANT", "default")
+
+    def list_tenants():
+        return [current_tenant()]
+
+    def tenant_data_path(tenant=None):
+        return pathlib.Path(".localdata") / (tenant or current_tenant())
+
+
+# Configuration
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+ART = ROOT / "artifacts"
+ART.mkdir(exist_ok=True)
+LOCALDATA = ROOT / ".localdata"
+LOCALDATA.mkdir(exist_ok=True)
+
+EMAIL_WEBHOOK = os.environ.get("FXZ_EMAIL_WEBHOOK")
+ALERT_TO = os.environ.get("FXZ_ALERT_TO", "ops@yourco.com")
+EMAIL_DOMAIN = os.environ.get("EMAIL_DOMAIN", "fixzit.co")
+
+
+def generate_performance_chart_data(tenant: str = None):
+    """Generate data for performance trend charts for specific tenant"""
+    if tenant is None:
+        tenant = current_tenant()
+
+    # Try tenant-specific trends first, then fall back to global
+    trends_file = ART / f"perf-trends-{tenant}.json"
+    if not trends_file.exists():
+        trends_file = ART / "perf-trends.json"
+
+    if not trends_file.exists():
+        return {}
+
+    try:
+        trends_data = json.loads(trends_file.read_text())
+        chart_data = {}
+
+        for route, route_data in trends_data.get("trends", {}).items():
+            daily_averages = route_data.get("daily_averages", {})
+
+            if daily_averages:
+                dates = list(daily_averages.keys())
+                dates.sort()
+
+                chart_data[route] = {
+                    "dates": dates[-7:],  # Last 7 days
+                    "fcp": [daily_averages[date]["fcp_avg"] for date in dates[-7:]],
+                    "lcp": [daily_averages[date]["lcp_avg"] for date in dates[-7:]],
+                    "cls": [daily_averages[date]["cls_avg"] for date in dates[-7:]],
+                }
+
+        return chart_data
+    except Exception as e:
+        print(f"Warning: Could not load trend data: {e}")
+        return {}
+
+
+def generate_html_report(tenant: str = None):
+    """Generate comprehensive HTML report for a specific tenant"""
+    if tenant is None:
+        tenant = current_tenant()
+
+    # Get tenant-specific data
+    slo_status = slo_service.calculate_slo_status()
+    health_score = uptime_service.get_system_health_score()
+    budget_results = performance_service.get_budget_results()
+    latest_metrics = performance_service.get_latest_metrics()
+    recent_alerts = uptime_service.get_alerts()[:10]
+    chart_data = generate_performance_chart_data(tenant)
+
+    # Calculate report period
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=7)
+
+    html_content = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fixzit Weekly Report - {end_date.strftime('%Y-%m-%d')}</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            color: #333;
+        }}
+        .container {{
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }}
+        .header {{
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }}
+        .header h1 {{
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }}
+        .header p {{
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }}
+        .content {{
+            padding: 30px;
+        }}
+        .section {{
+            margin-bottom: 40px;
+        }}
+        .section h2 {{
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }}
+        .metrics-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }}
+        .metric-card {{
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border-left: 4px solid #3498db;
+        }}
+        .metric-card.healthy {{
+            border-left-color: #27ae60;
+        }}
+        .metric-card.warning {{
+            border-left-color: #f39c12;
+        }}
+        .metric-card.critical {{
+            border-left-color: #e74c3c;
+        }}
+        .metric-value {{
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }}
+        .metric-label {{
+            color: #7f8c8d;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }}
+        .metric-target {{
+            color: #95a5a6;
+            font-size: 0.8em;
+            margin-top: 5px;
+        }}
+        .alert-item {{
+            background: #fff5f5;
+            border: 1px solid #fed7d7;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }}
+        .alert-item.warning {{
+            background: #fffbeb;
+            border-color: #fed7aa;
+        }}
+        .alert-item.info {{
+            background: #ebf8ff;
+            border-color: #90cdf4;
+        }}
+        .status-badge {{
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }}
+        .status-healthy {{
+            background: #d4edda;
+            color: #155724;
+        }}
+        .status-warning {{
+            background: #fff3cd;
+            color: #856404;
+        }}
+        .status-critical {{
+            background: #f8d7da;
+            color: #721c24;
+        }}
+        .chart-container {{
+            height: 400px;
+            margin: 20px 0;
+        }}
+        .summary-table {{
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }}
+        .summary-table th,
+        .summary-table td {{
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }}
+        .summary-table th {{
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }}
+        .footer {{
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 0.9em;
+        }}
+        @media (max-width: 768px) {{
+            .metrics-grid {{
+                grid-template-columns: 1fr;
+            }}
+            .container {{
+                margin: 10px;
+                border-radius: 0;
+            }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 Fixzit Weekly Report</h1>
+            <p>Performance & Reliability Summary - Tenant: {tenant}</p>
+            <p>{start_date.strftime('%B %d')} - {end_date.strftime('%B %d, %Y')}</p>
+        </div>
+        
+        <div class="content">
+            <!-- Executive Summary -->
+            <div class="section">
+                <h2>📊 Executive Summary</h2>
+                <div class="metrics-grid">
+                    <div class="metric-card healthy">
+                        <div class="metric-value">{health_score.get('score', 0):.1f}%</div>
+                        <div class="metric-label">System Health Score</div>
+                        <div class="metric-target">Grade: {health_score.get('grade', 'N/A')}</div>
+                    </div>
+                    <div class="metric-card {'healthy' if budget_results and budget_results.get('passed') else 'critical'}">
+                        <div class="metric-value">{'✅' if budget_results and budget_results.get('passed') else '❌'}</div>
+                        <div class="metric-label">Performance Budget</div>
+                        <div class="metric-target">{'All budgets met' if budget_results and budget_results.get('passed') else f'{len(budget_results.get("violations", []))} violations' if budget_results else 'No data'}</div>
+                    </div>
+                    <div class="metric-card {'healthy' if len(recent_alerts) == 0 else 'warning'}">
+                        <div class="metric-value">{len(recent_alerts)}</div>
+                        <div class="metric-label">Active Alerts</div>
+                        <div class="metric-target">Last 7 days</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{health_score.get('endpoints_monitored', 0)}</div>
+                        <div class="metric-label">Monitored Endpoints</div>
+                        <div class="metric-target">Uptime tracking</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- SLO Status -->
+            <div class="section">
+                <h2>🎯 Service Level Objectives</h2>
+                <div class="metrics-grid">
+"""
+
+    # Add SLO cards
+    for slo_id, slo in slo_status.items():
+        status_class = (
+            slo.get("status", "unknown")
+            .replace("healthy", "healthy")
+            .replace("warning", "warning")
+            .replace("critical", "critical")
+        )
+        status_badge_class = f"status-{status_class}"
+
+        html_content += f"""
+                    <div class="metric-card {status_class}">
+                        <div class="metric-value">{slo.get('current_value', 0)}{slo.get('unit', '')}</div>
+                        <div class="metric-label">{slo.get('name', slo_id)}</div>
+                        <div class="metric-target">Target: {slo.get('target', 0)}{slo.get('unit', '')}</div>
+                        <span class="status-badge {status_badge_class}">{slo.get('status', 'unknown')}</span>
+                    </div>
+"""
+
+    # Continue with performance metrics
+    html_content += """
+                </div>
+            </div>
+            
+            <!-- Performance Metrics -->
+            <div class="section">
+                <h2>⚡ Core Web Vitals</h2>
+"""
+
+    if latest_metrics:
+        fcp = latest_metrics.get("fcp", 0)
+        lcp = latest_metrics.get("lcp", 0)
+        cls = latest_metrics.get("cls", 0)
+
+        html_content += f"""
+                <div class="metrics-grid">
+                    <div class="metric-card {'healthy' if fcp <= 1800 else 'warning' if fcp <= 3000 else 'critical'}">
+                        <div class="metric-value">{fcp}ms</div>
+                        <div class="metric-label">First Contentful Paint</div>
+                        <div class="metric-target">Target: ≤ 1.8s</div>
+                    </div>
+                    <div class="metric-card {'healthy' if lcp <= 2500 else 'warning' if lcp <= 4000 else 'critical'}">
+                        <div class="metric-value">{lcp}ms</div>
+                        <div class="metric-label">Largest Contentful Paint</div>
+                        <div class="metric-target">Target: ≤ 2.5s</div>
+                    </div>
+                    <div class="metric-card {'healthy' if cls <= 0.1 else 'warning' if cls <= 0.25 else 'critical'}">
+                        <div class="metric-value">{cls:.3f}</div>
+                        <div class="metric-label">Cumulative Layout Shift</div>
+                        <div class="metric-target">Target: ≤ 0.1</div>
+                    </div>
+                </div>
+"""
+
+        # Add performance trends chart if available
+        if chart_data:
+            html_content += (
+                """
+                <div class="chart-container">
+                    <div id="performanceChart"></div>
+                </div>
+                <script>
+                    var chartData = """
+                + json.dumps(chart_data)
+                + """;
+                    
+                    var traces = [];
+                    var colors = ['#3498db', '#e74c3c', '#f39c12', '#27ae60'];
+                    var colorIndex = 0;
+                    
+                    for (var route in chartData) {
+                        var data = chartData[route];
+                        
+                        traces.push({
+                            x: data.dates,
+                            y: data.fcp,
+                            name: route + ' - FCP',
+                            mode: 'lines+markers',
+                            line: { color: colors[colorIndex % colors.length] }
+                        });
+                        
+                        traces.push({
+                            x: data.dates,
+                            y: data.lcp,
+                            name: route + ' - LCP',
+                            mode: 'lines+markers',
+                            line: { color: colors[(colorIndex + 1) % colors.length], dash: 'dash' }
+                        });
+                        
+                        colorIndex += 2;
+                    }
+                    
+                    var layout = {
+                        title: 'Performance Trends (Last 7 Days)',
+                        xaxis: { title: 'Date' },
+                        yaxis: { title: 'Time (ms)' },
+                        hovermode: 'x unified'
+                    };
+                    
+                    Plotly.newPlot('performanceChart', traces, layout, {responsive: true});
+                </script>
+"""
+            )
+    else:
+        html_content += """
+                <p>No performance metrics available. Run performance tests to generate data.</p>
+"""
+
+    # Add alerts section
+    html_content += """
+            </div>
+            
+            <!-- Recent Alerts -->
+            <div class="section">
+                <h2>🚨 Recent Alerts</h2>
+"""
+
+    if recent_alerts:
+        html_content += """
+                <div class="alerts-list">
+"""
+        for alert in recent_alerts[:5]:  # Show only top 5
+            severity = alert.get("severity", "info")
+            alert_class = "warning" if severity in ["warning", "error"] else "info"
+            timestamp = datetime.fromisoformat(alert.get("datetime", "")).strftime(
+                "%m/%d %H:%M"
+            )
+
+            html_content += f"""
+                    <div class="alert-item {alert_class}">
+                        <strong>{alert.get('type', 'Alert')}</strong> - {alert.get('message', 'No message')}
+                        <br><small>🕒 {timestamp}</small>
+                    </div>
+"""
+        html_content += """
+                </div>
+"""
+    else:
+        html_content += """
+                <p>✅ No alerts in the past week. All systems are operating normally.</p>
+"""
+
+    # Add recommendations
+    html_content += """
+            </div>
+            
+            <!-- Recommendations -->
+            <div class="section">
+                <h2>💡 Recommendations</h2>
+                <ul>
+"""
+
+    recommendations = []
+
+    # Generate recommendations based on current state
+    if budget_results and not budget_results.get("passed"):
+        recommendations.append(
+            "🎯 Performance budget violations detected. Consider optimizing Core Web Vitals."
+        )
+
+    if health_score.get("score", 100) < 95:
+        recommendations.append(
+            "📈 System health score could be improved. Review uptime monitoring alerts."
+        )
+
+    if len(recent_alerts) > 5:
+        recommendations.append(
+            "⚠️ High number of alerts. Consider reviewing alert thresholds and system stability."
+        )
+
+    if not latest_metrics:
+        recommendations.append(
+            "📊 No recent performance metrics. Run performance tests to establish baseline."
+        )
+
+    if not recommendations:
+        recommendations.append(
+            "✅ All systems are performing well. Continue current monitoring practices."
+        )
+
+    for rec in recommendations:
+        html_content += f"<li>{rec}</li>"
+
+    # Close HTML
+    html_content += f"""
+                </ul>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Generated on {end_date.strftime('%Y-%m-%d at %H:%M:%S')} | Fixzit Performance & Reliability Report</p>
+            <p>Tenant: {tenant} | Period: {start_date.strftime('%B %d')} to {end_date.strftime('%B %d, %Y')}</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+
+    return html_content
+
+
+def send_email_report(html_content):
+    """Send email report via webhook"""
+    if not EMAIL_WEBHOOK:
+        print("📧 No email webhook configured (FXZ_EMAIL_WEBHOOK)")
+        return False
+
+    try:
+        # Prepare email payload
+        subject = f"Fixzit Weekly Report - {datetime.now().strftime('%Y-%m-%d')}"
+
+        payload = {
+            "to": ALERT_TO,
+            "subject": subject,
+            "html": html_content,
+            "from": f"reports@{EMAIL_DOMAIN}",
+        }
+
+        response = requests.post(
+            EMAIL_WEBHOOK,
+            json=payload,
+            timeout=30,
+            headers={"Content-Type": "application/json"},
+        )
+
+        if response.status_code == 200:
+            print(f"✅ Email report sent to {ALERT_TO}")
+            return True
+        else:
+            print(f"❌ Email send failed: HTTP {response.status_code}")
+            return False
+
+    except Exception as e:
+        print(f"❌ Email send error: {e}")
+        return False
+
+
+def zip_reports(files: List[pathlib.Path]) -> pathlib.Path:
+    """Bundle multiple reports into a ZIP file"""
+    ts = datetime.now().strftime("%Y%m%d-%H%M")
+    zip_path = ART / f"weekly-reports-{ts}.zip"
+
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+        for file_path in files:
+            if file_path.exists():
+                zf.write(file_path, file_path.name)
+
+    return zip_path
+
+
+def main(args: argparse.Namespace = None):
+    """Generate and optionally send weekly report(s)"""
+    if args is None:
+        parser = argparse.ArgumentParser(description="Generate weekly HTML reports")
+        parser.add_argument("--tenant", help="Generate for specific tenant")
+        parser.add_argument(
+            "--all", action="store_true", help="Generate for all tenants"
+        )
+        parser.add_argument("--zip", action="store_true", help="Create ZIP bundle")
+        args = parser.parse_args()
+
+    print("📊 Generating Weekly Report(s)")
+    print("=" * 40)
+
+    try:
+        generated_files = []
+
+        if args.all:
+            # Generate for all tenants
+            tenants = list_tenants()
+            print(f"📋 Found {len(tenants)} tenant(s): {', '.join(tenants)}")
+
+            for tenant in tenants:
+                print(f"\n🏢 Processing tenant: {tenant}")
+                html_content = generate_html_report(tenant)
+
+                # Save tenant-specific report
+                report_file = ART / f"weekly-report-{tenant}.html"
+                report_file.write_text(html_content, encoding="utf-8")
+                generated_files.append(report_file)
+
+                print(f"✅ Report saved: {report_file}")
+                print(f"📁 File size: {len(html_content):,} bytes")
+        else:
+            # Generate for single tenant
+            tenant = args.tenant or current_tenant()
+            print(f"🏢 Processing tenant: {tenant}")
+
+            html_content = generate_html_report(tenant)
+
+            # Save report
+            report_file = ART / f"weekly-report-{tenant}.html"
+            report_file.write_text(html_content, encoding="utf-8")
+            generated_files.append(report_file)
+
+            print(f"✅ Report saved: {report_file}")
+            print(f"📁 File size: {len(html_content):,} bytes")
+
+        # Create ZIP bundle if requested
+        if args.zip and generated_files:
+            zip_path = zip_reports(generated_files)
+            print(f"📦 ZIP bundle created: {zip_path}")
+            print(f"📁 Bundle size: {zip_path.stat().st_size:,} bytes")
+
+        print("\n🎯 Weekly report generation completed!")
+        print(f"📂 All files saved to: {ART}")
+
+        return 0
+
+    except Exception as e:
+        print(f"💥 Report generation failed: {e}")
+        return 1
+
+
+if __name__ == "__main__":
+    try:
+        exit_code = main()
+        sys.exit(exit_code)
+    except KeyboardInterrupt:
+        print("\n⏹️  Report generation interrupted")
+        sys.exit(1)
+    except Exception as e:
+        print(f"💥 Unexpected error: {e}")
+        sys.exit(1)
+
+]]>
+</file>
+
+<file path="search/synonyms.json">
+<![CDATA[
+{
+  "brand": {
+    "Stanley": ["ستينلي", "ستانلي"],
+    "Makita": ["ماكيتا"],
+    "3M": ["ثري إم", "3 ام"]
+  },
+  "product": {
+    "screwdriver": ["مفك", "سكرو درايفر"],
+    "pipe": ["ماسورة", "أنبوب"],
+    "filter": ["فلتر", "مرشح"],
+    "gloves": ["قفازات", "جوانتي"]
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

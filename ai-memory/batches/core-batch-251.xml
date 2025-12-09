@@ -1,0 +1,3238 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="scripts/property-owner-verification.js">
+<![CDATA[
+// PROPERTY OWNER, DEPUTY, SUBSCRIPTION & DoA VERIFICATION
+const axios = require("axios");
+const BASE_URL = "http://localhost:5000";
+
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+
+const colors = {
+  red: "\x1b[31m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  blue: "\x1b[34m",
+  reset: "\x1b[0m",
+};
+
+async function getAuthToken() {
+  try {
+    const res = await axios.post(`${BASE_URL}/api/auth/login`, {
+      email: `admin@${EMAIL_DOMAIN}`,
+      password: "Admin@1234",
+    });
+    return res.data.token;
+  } catch (_e) {
+    console.log("❌ AUTH FAILED - Backend not running?");
+    return null;
+  }
+}
+
+async function verifyPropertyOwnerFeatures() {
+  console.log("\n" + colors.blue + "=".repeat(80) + colors.reset);
+  console.log(
+    colors.blue +
+      "🏢 PROPERTY OWNER & SUBSCRIPTION SYSTEM VERIFICATION" +
+      colors.reset,
+  );
+  console.log(colors.blue + "=".repeat(80) + colors.reset + "\n");
+
+  const token = await getAuthToken();
+  if (!token) {
+    console.log("❌ Cannot proceed without authentication");
+    return 0;
+  }
+
+  const authHeaders = { Authorization: `Bearer ${token}` };
+
+  const results = {
+    propertyOwner: [],
+    deputy: [],
+    subscription: [],
+    doa: [],
+    revenue: [],
+  };
+
+  // ==========================
+  // 1. PROPERTY OWNER FEATURES
+  // ==========================
+  console.log(
+    colors.yellow + "\n1️⃣ PROPERTY OWNER ROLE FEATURES" + colors.reset,
+  );
+  console.log("-".repeat(60));
+
+  const ownerTests = [
+    {
+      name: "Owner Portfolio Dashboard",
+      test: async () => {
+        const res = await axios.get(`${BASE_URL}/api/owner/dashboard`, {
+          headers: authHeaders,
+        });
+        return res.data.properties && res.data.revenue && res.data.expenses;
+      },
+    },
+    {
+      name: "Property Performance Metrics",
+      test: async () => {
+        const res = await axios.get(
+          `${BASE_URL}/api/owner/properties/performance`,
+          { headers: authHeaders },
+        );
+        return (
+          res.data.occupancyRate && res.data.maintenanceCosts && res.data.roi
+        );
+      },
+    },
+    {
+      name: "FM Corporate Performance Tracking",
+      test: async () => {
+        const res = await axios.get(`${BASE_URL}/api/owner/fm-performance`, {
+          headers: authHeaders,
+        });
+        return (
+          res.data.slaCompliance &&
+          res.data.responseTime &&
+          res.data.costSavings
+        );
+      },
+    },
+    {
+      name: "Owner Approval Queue",
+      test: async () => {
+        const res = await axios.get(`${BASE_URL}/api/owner/approvals/pending`, {
+          headers: authHeaders,
+        });
+        return Array.isArray(res.data) && res.data.length >= 0;
+      },
+    },
+    {
+      name: "Property Financial Statements",
+      test: async () => {
+        const res = await axios.get(
+          `${BASE_URL}/api/owner/properties/123/financials`,
+          { headers: authHeaders },
+        );
+        return res.data.income && res.data.expenses && res.data.netIncome;
+      },
+    },
+  ];
+
+  for (const test of ownerTests) {
+    try {
+      const passed = await test.test();
+      const status = passed
+        ? `${colors.green}✅ WORKING${colors.reset}`
+        : `${colors.red}❌ MISSING${colors.reset}`;
+      console.log(`  ${status} ${test.name}`);
+      results.propertyOwner.push({ name: test.name, passed });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.log(
+        `  ${colors.red}❌ ERROR${colors.reset} ${test.name}: ${message}`,
+      );
+      results.propertyOwner.push({ name: test.name, passed: false });
+    }
+  }
+
+  // ==========================
+  // 2. DEPUTY MANAGEMENT
+  // ==========================
+  console.log(colors.yellow + "\n2️⃣ DEPUTY SYSTEM" + colors.reset);
+  console.log("-".repeat(60));
+
+  const deputyTests = [
+    {
+      name: "Assign Deputy to Property",
+      test: async () => {
+        const res = await axios.post(
+          `${BASE_URL}/api/owner/properties/123/deputy`,
+          {
+            deputyUserId: "user456",
+            permissions: ["approve_maintenance", "view_financials"],
+          },
+          { headers: authHeaders },
+        );
+        return res.data.deputyId && res.data.permissions;
+      },
+    },
+    {
+      name: "List Property Deputies",
+      test: async () => {
+        const res = await axios.get(`${BASE_URL}/api/owner/deputies`, {
+          headers: authHeaders,
+        });
+        return Array.isArray(res.data);
+      },
+    },
+    {
+      name: "Deputy Permission Management",
+      test: async () => {
+        const res = await axios.put(
+          `${BASE_URL}/api/owner/deputies/456/permissions`,
+          {
+            permissions: ["approve_up_to_5000"],
+          },
+          { headers: authHeaders },
+        );
+        return res.data.updated;
+      },
+    },
+  ];
+
+  for (const test of deputyTests) {
+    try {
+      const passed = await test.test();
+      const status = passed
+        ? `${colors.green}✅ WORKING${colors.reset}`
+        : `${colors.red}❌ MISSING${colors.reset}`;
+      console.log(`  ${status} ${test.name}`);
+      results.deputy.push({ name: test.name, passed });
+    } catch (_e) {
+      console.log(`  ${colors.red}❌ ERROR${colors.reset} ${test.name}`);
+      results.deputy.push({ name: test.name, passed: false });
+    }
+  }
+
+  // ==========================
+  // 3. SUBSCRIPTION MANAGEMENT
+  // ==========================
+  console.log(
+    colors.yellow + "\n3️⃣ CORPORATE SUBSCRIPTION SYSTEM" + colors.reset,
+  );
+  console.log("-".repeat(60));
+
+  const subscriptionTests = [
+    {
+      name: "Subscription Plans (Basic/Pro/Enterprise)",
+      test: async () => {
+        const res = await axios.get(`${BASE_URL}/api/subscriptions/plans`, {
+          headers: authHeaders,
+        });
+        return res.data.plans && res.data.plans.length >= 3;
+      },
+    },
+    {
+      name: "Organization Subscription Status",
+      test: async () => {
+        const res = await axios.get(`${BASE_URL}/api/org/subscription`, {
+          headers: authHeaders,
+        });
+        return res.data.plan && res.data.status && res.data.expiryDate;
+      },
+    },
+    {
+      name: "Usage Tracking vs Limits",
+      test: async () => {
+        const res = await axios.get(`${BASE_URL}/api/org/usage`, {
+          headers: authHeaders,
+        });
+        return res.data.properties && res.data.users && res.data.limits;
+      },
+    },
+    {
+      name: "Billing & Payment Management",
+      test: async () => {
+        const res = await axios.get(`${BASE_URL}/api/org/billing`, {
+          headers: authHeaders,
+        });
+        return res.data.invoices && res.data.paymentMethod;
+      },
+    },
+    {
+      name: "Module Access Based on Plan",
+      test: async () => {
+        const res = await axios.get(`${BASE_URL}/api/org/enabled-modules`, {
+          headers: authHeaders,
+        });
+        return res.data.modules && res.data.restrictions;
+      },
+    },
+    {
+      name: "Super Admin Subscription Management",
+      test: async () => {
+        const res = await axios.get(`${BASE_URL}/api/admin/subscriptions`, {
+          headers: authHeaders,
+        });
+        return res.data.organizations && res.data.revenue;
+      },
+    },
+  ];
+
+  for (const test of subscriptionTests) {
+    try {
+      const passed = await test.test();
+      const status = passed
+        ? `${colors.green}✅ WORKING${colors.reset}`
+        : `${colors.red}❌ MISSING${colors.reset}`;
+      console.log(`  ${status} ${test.name}`);
+      results.subscription.push({ name: test.name, passed });
+    } catch (_e) {
+      console.log(`  ${colors.red}❌ ERROR${colors.reset} ${test.name}`);
+      results.subscription.push({ name: test.name, passed: false });
+    }
+  }
+
+  // ==========================
+  // 4. DoA (DELEGATION OF AUTHORITY)
+  // ==========================
+  console.log(
+    colors.yellow + "\n4️⃣ DELEGATION OF AUTHORITY (DoA) SYSTEM" + colors.reset,
+  );
+  console.log("-".repeat(60));
+
+  const doaTests = [
+    {
+      name: "DoA Rules Configuration",
+      test: async () => {
+        const res = await axios.get(`${BASE_URL}/api/admin/doa/rules`, {
+          headers: authHeaders,
+        });
+        return res.data.rules && res.data.thresholds;
+      },
+    },
+    {
+      name: "Cost Threshold Triggers",
+      test: async () => {
+        const res = await axios.post(
+          `${BASE_URL}/api/doa/check`,
+          {
+            workOrderId: "wo123",
+            amount: 10000,
+          },
+          { headers: authHeaders },
+        );
+        return res.data.requiresApproval && res.data.approvers;
+      },
+    },
+    {
+      name: "Sequential Approval Workflow",
+      test: async () => {
+        const res = await axios.get(`${BASE_URL}/api/doa/workflow/wo123`, {
+          headers: authHeaders,
+        });
+        return res.data.steps && res.data.currentStep;
+      },
+    },
+    {
+      name: "Parallel Approval Support",
+      test: async () => {
+        const res = await axios.post(
+          `${BASE_URL}/api/doa/parallel-approval`,
+          {
+            workOrderId: "wo123",
+            approvers: ["owner", "finance"],
+          },
+          { headers: authHeaders },
+        );
+        return res.data.parallelApprovals;
+      },
+    },
+    {
+      name: "Approval SLA & Escalation",
+      test: async () => {
+        const res = await axios.get(`${BASE_URL}/api/doa/sla/wo123`, {
+          headers: authHeaders,
+        });
+        return res.data.slaTime && res.data.escalationPath;
+      },
+    },
+  ];
+
+  for (const test of doaTests) {
+    try {
+      const passed = await test.test();
+      const status = passed
+        ? `${colors.green}✅ WORKING${colors.reset}`
+        : `${colors.red}❌ MISSING${colors.reset}`;
+      console.log(`  ${status} ${test.name}`);
+      results.doa.push({ name: test.name, passed });
+    } catch (_e) {
+      console.log(`  ${colors.red}❌ ERROR${colors.reset} ${test.name}`);
+      results.doa.push({ name: test.name, passed: false });
+    }
+  }
+
+  // ==========================
+  // 5. REVENUE TRACKING
+  // ==========================
+  console.log(colors.yellow + "\n5️⃣ PROPERTY REVENUE TRACKING" + colors.reset);
+  console.log("-".repeat(60));
+
+  const revenueTests = [
+    {
+      name: "Rent Collection Tracking",
+      test: async () => {
+        const res = await axios.get(`${BASE_URL}/api/owner/revenue/rent`, {
+          headers: authHeaders,
+        });
+        return res.data.collected && res.data.pending && res.data.overdue;
+      },
+    },
+    {
+      name: "Maintenance Cost vs Revenue",
+      test: async () => {
+        const res = await axios.get(
+          `${BASE_URL}/api/owner/analysis/cost-revenue`,
+          { headers: authHeaders },
+        );
+        return res.data.maintenanceRatio && res.data.profitMargin;
+      },
+    },
+    {
+      name: "Property ROI Calculation",
+      test: async () => {
+        const res = await axios.get(
+          `${BASE_URL}/api/owner/properties/123/roi`,
+          { headers: authHeaders },
+        );
+        return res.data.roi && res.data.paybackPeriod;
+      },
+    },
+    {
+      name: "FM Performance vs Cost",
+      test: async () => {
+        const res = await axios.get(`${BASE_URL}/api/owner/fm-cost-analysis`, {
+          headers: authHeaders,
+        });
+        return res.data.managementFees && res.data.valueDelivered;
+      },
+    },
+  ];
+
+  for (const test of revenueTests) {
+    try {
+      const passed = await test.test();
+      const status = passed
+        ? `${colors.green}✅ WORKING${colors.reset}`
+        : `${colors.red}❌ MISSING${colors.reset}`;
+      console.log(`  ${status} ${test.name}`);
+      results.revenue.push({ name: test.name, passed });
+    } catch (_e) {
+      console.log(`  ${colors.red}❌ ERROR${colors.reset} ${test.name}`);
+      results.revenue.push({ name: test.name, passed: false });
+    }
+  }
+
+  // ==========================
+  // SUMMARY
+  // ==========================
+  console.log("\n" + colors.blue + "=".repeat(80) + colors.reset);
+  console.log(colors.blue + "📊 VERIFICATION SUMMARY" + colors.reset);
+  console.log(colors.blue + "=".repeat(80) + colors.reset + "\n");
+
+  let totalTests = 0;
+  let totalPassed = 0;
+
+  for (const [category, tests] of Object.entries(results)) {
+    const passed = tests.filter((t) => t.passed).length;
+    totalTests += tests.length;
+    totalPassed += passed;
+
+    const percentage = Math.round((passed / tests.length) * 100);
+    const icon = percentage === 100 ? "✅" : percentage > 50 ? "⚠️" : "❌";
+
+    console.log(
+      `  ${icon} ${category.toUpperCase()}: ${passed}/${tests.length} (${percentage}%)`,
+    );
+  }
+
+  const overallPercentage = Math.round((totalPassed / totalTests) * 100);
+
+  console.log(
+    "\n" + colors.yellow + "📈 OVERALL CRITICAL FEATURES:" + colors.reset,
+  );
+  console.log(`  Total Tests: ${totalTests}`);
+  console.log(`  Passed: ${totalPassed} (${overallPercentage}%)`);
+  console.log(`  Failed: ${totalTests - totalPassed}`);
+
+  if (overallPercentage < 50) {
+    console.log(
+      "\n" + colors.red + "❌ CRITICAL SYSTEMS ARE MISSING!" + colors.reset,
+    );
+    console.log("The system is NOT ready without:");
+    console.log("  - Property Owner dashboard and approval system");
+    console.log("  - Deputy management for delegation");
+    console.log("  - Corporate subscription/billing for SaaS model");
+    console.log("  - DoA approval workflows");
+    console.log("  - Revenue tracking for property owners");
+    console.log("\n" + colors.yellow + "ACTION REQUIRED:" + colors.reset);
+    console.log(
+      'Search chat history for: "property owner", "deputy", "subscription", "DoA", "revenue"',
+    );
+  }
+
+  console.log("\n" + colors.blue + "=".repeat(80) + colors.reset + "\n");
+
+  return overallPercentage;
+}
+
+// Run verification
+(async () => {
+  const percentage = await verifyPropertyOwnerFeatures();
+  process.exit(percentage >= 80 ? 0 : 1);
+})();
+
+]]>
+</file>
+
+<file path="scripts/quick-fix-superadmin.ts">
+<![CDATA[
+/**
+ * Quick Fix for Super Admin Login
+ * Directly updates database without complex logic
+ * 
+ * SEC-051: Password now configurable via DEMO_SUPERADMIN_PASSWORD env var
+ */
+
+import { connectToDatabase } from '../lib/mongodb-unified';
+import { User } from '../server/models/User';
+import bcrypt from 'bcryptjs';
+
+// 🔐 Use configurable email domain for Business.sa rebrand compatibility
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'fixzit.co';
+
+// Safety: block accidental production/CI execution and require explicit opt-in
+const isProdLike = process.env.NODE_ENV === 'production' || process.env.CI === 'true';
+if (isProdLike) {
+  throw new Error('❌ quick-fix-superadmin.ts blocked in production/CI');
+}
+if (process.env.ALLOW_SEED !== '1') {
+  throw new Error('❌ ALLOW_SEED=1 required to run quick-fix-superadmin.ts (prevents accidental prod writes)');
+}
+
+const SUPERADMIN_EMAIL = `superadmin@${EMAIL_DOMAIN}`;
+const PASSWORD_RAW = process.env.DEMO_SUPERADMIN_PASSWORD;
+if (!PASSWORD_RAW) {
+  throw new Error('DEMO_SUPERADMIN_PASSWORD is required (no fallback).');
+}
+// TypeScript: After the throw above, this is guaranteed to be a string
+const PASSWORD: string = PASSWORD_RAW;
+// Use non-dialable test number as default (ITU-T E.164 test range)
+const PHONE = process.env.DEMO_SUPERADMIN_PHONE || '+15005550000';
+
+async function quickFix() {
+  try {
+    await connectToDatabase();
+    console.log('✅ Connected to database');
+
+    const hashedPassword = await bcrypt.hash(PASSWORD, 10);
+
+    const result = await User.updateOne(
+      { email: SUPERADMIN_EMAIL },
+      {
+        $set: {
+          password: hashedPassword,
+          status: 'ACTIVE',
+          isActive: true,
+          role: 'SUPER_ADMIN',
+          isSuperAdmin: true,
+          phone: PHONE,
+          'contact.phone': PHONE,
+          'personal.phone': PHONE,
+          'professional.role': 'SUPER_ADMIN',
+          'security.lastLogin': new Date(),
+        }
+      },
+      { upsert: false }
+    );
+
+    if (result.modifiedCount > 0) {
+      console.log('✅ Super admin updated successfully!');
+      console.log('\nLogin credentials:');
+      console.log(`Email: ${SUPERADMIN_EMAIL}`);
+      // SEC-051: Don't log password - use env var reference instead
+      console.log('Password: [use DEMO_SUPERADMIN_PASSWORD env value]');
+      console.log(`Phone: ${PHONE}`);
+      console.log('\n🎉 You can now login!');
+    } else {
+      console.log('⚠️  No changes made - user may not exist');
+    }
+
+    process.exit(0);
+  } catch (error) {
+    console.error('❌ Error:', error);
+    process.exit(1);
+  }
+}
+
+quickFix();
+
+]]>
+</file>
+
+<file path="scripts/rapid-enhance-all.js">
+<![CDATA[
+#!/usr/bin/env node
+
+/**
+ * RAPID API ROUTE ENHANCEMENT SCRIPT
+ * Processes all remaining routes in batches for 100% completion
+ */
+
+const fs = require("fs");
+const { exec } = require("child_process");
+const util = require("util");
+const execPromise = util.promisify(exec);
+
+// Routes already enhanced (skip these)
+const ENHANCED_ROUTES = new Set([
+  "app/api/auth/login/route.ts",
+  "app/api/auth/signup/route.ts",
+  "app/api/auth/me/route.ts",
+  "app/api/auth/logout/route.ts",
+  "app/api/payments/paytabs/callback/route.ts",
+  "app/api/payments/create/route.ts",
+  "app/api/marketplace/rfq/route.ts",
+  "app/api/subscribe/corporate/route.ts",
+  "app/api/subscribe/owner/route.ts",
+]);
+
+// Standard imports to add
+const STANDARD_IMPORTS = `
+import { rateLimit } from '@/server/security/rateLimit';
+import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { createSecureResponse } from '@/server/security/headers';
+`.trim();
+
+// Check if file needs enhancement
+function needsEnhancement(filePath, content) {
+  if (ENHANCED_ROUTES.has(filePath)) return false;
+
+  const hasRateLimit = content.includes("rateLimit(");
+  const hasOpenAPI = content.includes("@openapi");
+  const hasSecureResponse = content.includes("createSecureResponse");
+
+  return !(hasRateLimit && hasOpenAPI && hasSecureResponse);
+}
+
+// Add imports if missing
+function addMissingImports(content) {
+  if (content.includes("from '@/server/security/rateLimit'")) {
+    return content; // Already has imports
+  }
+
+  const lines = content.split("\n");
+  let lastImportLine = -1;
+
+  // Find last import
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].trim().startsWith("import ")) {
+      lastImportLine = i;
+    }
+  }
+
+  if (lastImportLine === -1) {
+    return STANDARD_IMPORTS + "\n\n" + content;
+  }
+
+  // Insert after last import
+  lines.splice(lastImportLine + 1, 0, "", STANDARD_IMPORTS);
+  return lines.join("\n");
+}
+
+// Replace NextResponse.json with createSecureResponse where appropriate
+function replaceResponses(content) {
+  // Replace success responses
+  content = content.replace(
+    /return NextResponse\.json\(([^,)]+)\);/g,
+    "return createSecureResponse($1, 200, req);",
+  );
+
+  content = content.replace(
+    /return NextResponse\.json\(([^,)]+),\s*\{\s*status:\s*(\d+)\s*\}\);/g,
+    "return createSecureResponse($1, $2, req);",
+  );
+
+  return content;
+}
+
+// Add basic rate limiting (will need manual adjustment for specific limits)
+function addRateLimiting(content, filePath) {
+  // Determine rate limit based on route
+  let limit = 60,
+    window = 60; // Default: 60 req/min
+
+  if (filePath.includes("/auth/")) {
+    limit = 5;
+    window = 900; // 5 req/15min
+  } else if (filePath.includes("/payment") || filePath.includes("/subscribe")) {
+    limit = 10;
+    window = 300; // 10 req/5min
+  } else if (filePath.includes("/admin/")) {
+    limit = 100;
+    window = 60; // 100 req/min
+  }
+
+  // Find GET/POST functions and add rate limiting
+  const rateLimitCode = `
+  // Rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'unknown';
+  const rl = rateLimit(\`\${req.url}:\${clientIp}\`, ${limit}, ${window});
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+`.trim();
+
+  // Add after function declaration
+  content = content.replace(
+    /(export async function (GET|POST|PUT|DELETE)\(req: NextRequest[^)]*\)\s*\{)/g,
+    `$1\n  ${rateLimitCode}\n`,
+  );
+
+  return content;
+}
+
+// Add basic OpenAPI documentation
+function addOpenAPIDoc(content, filePath) {
+  const routePath = filePath.replace("app/api/", "").replace("/route.ts", "");
+  const tag = routePath.split("/")[0];
+
+  const openAPIDoc = `
+/**
+ * @openapi
+ * /api/${routePath}:
+ *   get:
+ *     summary: ${routePath} operations
+ *     tags: [${tag}]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+`.trim();
+
+  // Add before export function
+  if (!content.includes("@openapi")) {
+    content = content.replace(
+      /export async function (GET|POST|PUT|DELETE)/,
+      `${openAPIDoc}\nexport async function $1`,
+    );
+  }
+
+  return content;
+}
+
+// Main enhancement function
+async function enhanceFile(filePath) {
+  try {
+    let content = fs.readFileSync(filePath, "utf8");
+
+    if (!needsEnhancement(filePath, content)) {
+      console.log(`✅ SKIP: ${filePath} (already enhanced)`);
+      return { enhanced: false, reason: "already-done" };
+    }
+
+    console.log(`🔧 ENHANCING: ${filePath}`);
+
+    // Apply enhancements
+    content = addMissingImports(content);
+    content = addRateLimiting(content, filePath);
+    content = addOpenAPIDoc(content, filePath);
+    content = replaceResponses(content);
+
+    // Write back
+    fs.writeFileSync(filePath, content, "utf8");
+
+    console.log(`   ✓ Added imports`);
+    console.log(`   ✓ Added rate limiting`);
+    console.log(`   ✓ Added OpenAPI docs`);
+    console.log(`   ✓ Replaced responses`);
+
+    return { enhanced: true, filePath };
+  } catch (error) {
+    console.error(`❌ ERROR: ${filePath}`, error.message);
+    return { enhanced: false, error: error.message };
+  }
+}
+
+// Find all route files
+async function findAllRoutes() {
+  try {
+    const { stdout } = await execPromise(
+      'find app/api -name "route.ts" -type f | sort',
+    );
+    return stdout.trim().split("\n").filter(Boolean);
+  } catch (error) {
+    console.error("Error finding routes:", error);
+    return [];
+  }
+}
+
+// Main execution
+async function main() {
+  console.log("🚀 RAPID API ROUTE ENHANCEMENT");
+  console.log("================================\n");
+
+  const allRoutes = await findAllRoutes();
+  console.log(`📊 Found ${allRoutes.length} total route files`);
+  console.log(`📊 Already enhanced: ${ENHANCED_ROUTES.size} routes`);
+  console.log(
+    `📊 Remaining: ${allRoutes.length - ENHANCED_ROUTES.size} routes\n`,
+  );
+
+  const results = {
+    enhanced: [],
+    skipped: [],
+    errors: [],
+  };
+
+  // Process in batches
+  for (const routePath of allRoutes) {
+    const result = await enhanceFile(routePath);
+
+    if (result.enhanced) {
+      results.enhanced.push(routePath);
+    } else if (result.error) {
+      results.errors.push({ path: routePath, error: result.error });
+    } else {
+      results.skipped.push(routePath);
+    }
+
+    // Small delay to avoid overwhelming the system
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+
+  console.log("\n================================");
+  console.log("📊 ENHANCEMENT COMPLETE");
+  console.log("================================");
+  console.log(`✅ Enhanced: ${results.enhanced.length} routes`);
+  console.log(`⏭️  Skipped: ${results.skipped.length} routes`);
+  console.log(`❌ Errors: ${results.errors.length} routes`);
+
+  if (results.errors.length > 0) {
+    console.log("\n❌ ERRORS:");
+    results.errors.forEach(({ path, error }) => {
+      console.log(`   ${path}: ${error}`);
+    });
+  }
+
+  console.log("\n💡 Next steps:");
+  console.log("   1. Review enhanced routes for correctness");
+  console.log("   2. Adjust rate limits based on route sensitivity");
+  console.log("   3. Enhance OpenAPI docs with full schemas");
+  console.log(
+    '   4. Run: git add app/api && git commit -m "feat: batch enhance API routes"',
+  );
+  console.log("   5. Run: npm run lint && npm run build");
+}
+
+// Run if called directly
+if (require.main === module) {
+  main().catch(console.error);
+}
+
+module.exports = { enhanceFile, findAllRoutes };
+
+]]>
+</file>
+
+<file path="scripts/rbac/generate-client-roles.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * Generate client-safe RBAC constants from server canon (types/user.ts).
+ * Keeps client bundles free of Mongoose/server code while staying in sync with role definitions.
+ *
+ * Usage:
+ *   pnpm rbac:client:generate   # writes lib/rbac/client-roles.ts
+ *   pnpm rbac:client:check      # exits 1 if file is out of date
+ */
+
+import fs from "fs";
+import path from "node:path";
+import process from "node:process";
+import { fileURLToPath } from "node:url";
+
+// Import server-side role definitions (pure constants, no Mongoose)
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import { UserRole, TEAM_MEMBER_SUB_ROLES } from "../../types/user";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const targetPath = path.resolve(__dirname, "../../lib/rbac/client-roles.ts");
+
+const roles = Array.from(new Set(Object.values(UserRole))).filter(Boolean);
+const subRoles = Array.from(new Set(TEAM_MEMBER_SUB_ROLES)).filter(Boolean);
+const primaryRoles = roles.filter((r) => !subRoles.includes(r));
+
+const header = `/**
+ * Client-safe RBAC definitions (generated).
+ * Source of truth: types/user.ts (UserRole, TEAM_MEMBER_SUB_ROLES).
+ * Do NOT import server-only modules into client bundles.
+ */
+`;
+
+const enumFromArray = (name: string, values: string[]) =>
+  `export enum ${name} {\n${values
+    .map((v) => `  ${v} = "${v}",`)
+    .join("\n")}\n}\n`;
+
+const MODULE_KEYS = [
+  "DASHBOARD",
+  "WORK_ORDERS",
+  "PROPERTIES",
+  "FINANCE",
+  "HR",
+  "ADMINISTRATION",
+  "CRM",
+  "MARKETPLACE",
+  "SUPPORT",
+  "COMPLIANCE",
+  "REPORTS",
+  "SYSTEM_MANAGEMENT",
+] as const;
+
+const roleModulePresets: Record<string, string[]> = {
+  SUPER_ADMIN: ["*"],
+  CORPORATE_ADMIN: ["*"],
+  ADMIN: ["*"],
+  MANAGER: ["*"],
+  CORPORATE_OWNER: ["*"],
+  FM_MANAGER: ["DASHBOARD", "WORK_ORDERS", "PROPERTIES", "REPORTS"],
+  PROPERTY_MANAGER: ["DASHBOARD", "WORK_ORDERS", "PROPERTIES", "REPORTS"],
+  TECHNICIAN: ["DASHBOARD", "WORK_ORDERS", "SUPPORT", "REPORTS"],
+  FINANCE: ["DASHBOARD", "FINANCE", "REPORTS"],
+  FINANCE_MANAGER: ["DASHBOARD", "FINANCE", "REPORTS"],
+  HR: ["DASHBOARD", "HR", "REPORTS"],
+  PROCUREMENT: ["DASHBOARD", "MARKETPLACE", "SUPPORT", "REPORTS"],
+  FINANCE_OFFICER: ["DASHBOARD", "FINANCE", "REPORTS"],
+  HR_OFFICER: ["DASHBOARD", "HR", "REPORTS"],
+  SUPPORT_AGENT: ["DASHBOARD", "SUPPORT", "CRM", "REPORTS"],
+  OPERATIONS_MANAGER: [
+    "DASHBOARD",
+    "WORK_ORDERS",
+    "PROPERTIES",
+    "SUPPORT",
+    "REPORTS",
+  ],
+  OWNER: ["DASHBOARD", "PROPERTIES", "FINANCE", "REPORTS"],
+  TENANT: [
+    "DASHBOARD",
+    "WORK_ORDERS",
+    "PROPERTIES",
+    "MARKETPLACE",
+    "SUPPORT",
+    "REPORTS",
+  ],
+  VENDOR: ["DASHBOARD", "MARKETPLACE", "SUPPORT"],
+  AUDITOR: ["DASHBOARD", "REPORTS"],
+  CUSTOMER: ["DASHBOARD", "MARKETPLACE", "SUPPORT"],
+  VIEWER: ["DASHBOARD", "REPORTS"],
+  EMPLOYEE: ["DASHBOARD", "WORK_ORDERS", "SUPPORT"],
+  SUPPORT: ["DASHBOARD", "SUPPORT", "CRM", "REPORTS"],
+  DISPATCHER: ["DASHBOARD", "WORK_ORDERS", "SUPPORT"],
+};
+
+const aliasMap: Record<string, string> = {
+  TENANT_ADMIN: "ADMIN",
+  CLIENT_ADMIN: "ADMIN",
+  MANAGEMENT: "MANAGER",
+  FM_MANAGER: "FM_MANAGER",
+  FINANCE: "FINANCE",
+  HR: "HR",
+  PROCUREMENT: "PROCUREMENT",
+  EMPLOYEE: "EMPLOYEE",
+  DISPATCHER: "DISPATCHER",
+  SUPPORT: "SUPPORT",
+  AUDITOR: "AUDITOR",
+  VIEWER: "VIEWER",
+  FIELD_ENGINEER: "TECHNICIAN",
+  INTERNAL_TECHNICIAN: "TECHNICIAN",
+  CONTRACTOR_TECHNICIAN: "TECHNICIAN",
+  MARKETPLACE_PARTNER: "VENDOR",
+  SERVICE_PROVIDER: "VENDOR",
+  SUPPLIER: "VENDOR",
+  PROPERTY_OWNER: "CORPORATE_OWNER",
+  OWNER: "CORPORATE_OWNER",
+};
+
+const accessPrincipals = [...primaryRoles, ...subRoles];
+
+const roleModuleLines = accessPrincipals
+  .map((role) => {
+    const keyExpr = subRoles.includes(role)
+      ? `SubRole.${role}`
+      : `Role.${role}`;
+    const preset = roleModulePresets[role] ?? ["DASHBOARD"];
+    const modules =
+      preset.length === 1 && preset[0] === "*"
+        ? "FULL_ACCESS"
+        : `[${preset.map((m) => `ModuleKey.${m}`).join(", ")}]`;
+    return `  [${keyExpr}]: ${modules},`;
+  })
+  .join("\n");
+
+const aliasLines = Object.entries(aliasMap)
+  .map(([alias, target]) => `  ${alias}: Role.${target},`)
+  .join("\n");
+
+const content = `${header}
+${enumFromArray("Role", primaryRoles)}
+${enumFromArray("SubRole", subRoles)}
+
+export enum ModuleKey {
+${MODULE_KEYS.map((key) => `  ${key} = "${key}",`).join("\n")}
+}
+
+const FULL_ACCESS = Object.values(ModuleKey);
+
+// Default module access per role and sub-role
+const ROLE_MODULES: Record<Role | SubRole, ModuleKey[]> = {
+${roleModuleLines}
+} as const;
+
+// Legacy/alias map (must stay in sync with server normalization rules)
+const ALIAS_MAP: Record<string, Role> = {
+${aliasLines}
+};
+
+export function normalizeRole(role?: string | null): Role | null {
+  if (!role) return null;
+  const key = role.toUpperCase();
+  return ALIAS_MAP[key] ?? (Role as Record<string, Role>)[key] ?? null;
+}
+
+export function normalizeSubRole(subRole?: string | null): SubRole | null {
+  if (!subRole) return null;
+  const key = subRole.toUpperCase();
+  return (SubRole as Record<string, SubRole>)[key] ?? null;
+}
+
+export function computeAllowedModules(
+  role: Role | string,
+  subRole?: SubRole | string | null,
+): ModuleKey[] {
+  const normalizedRole = normalizeRole(role) ?? Role.VIEWER;
+  const normalizedSubRole = normalizeSubRole(subRole);
+
+  if (normalizedSubRole && ROLE_MODULES[normalizedSubRole as SubRole]) {
+    return ROLE_MODULES[normalizedSubRole as SubRole];
+  }
+
+  return ROLE_MODULES[normalizedRole] ?? [ModuleKey.DASHBOARD];
+}
+`;
+
+const formatted = content.replace(/\r\n/g, "\n");
+const existing = fs.existsSync(targetPath)
+  ? fs.readFileSync(targetPath, "utf8")
+  : "";
+
+if (process.argv.includes("--check")) {
+  if (existing !== formatted) {
+    console.error(
+      "client-roles.ts is out of date. Run pnpm rbac:client:generate to update.",
+    );
+    process.exit(1);
+  } else {
+    console.log("client-roles.ts is up to date.");
+    process.exit(0);
+  }
+}
+
+fs.writeFileSync(targetPath, formatted, "utf8");
+console.log(`Generated ${path.relative(process.cwd(), targetPath)}`);
+
+]]>
+</file>
+
+<file path="scripts/reality-check.js">
+<![CDATA[
+// Save as: reality-check.js
+// Run: node reality-check.js
+
+const fs = require("fs");
+
+async function verifyRealImplementation() {
+  console.log("\n🔍 EXPOSING TRUTH ABOUT YOUR IMPLEMENTATION\n");
+
+  let realCount = 0;
+  let fakeCount = 0;
+  let missingCount = 0;
+
+  // TEST 1: Work Orders
+  console.log("Testing Work Orders...");
+  try {
+    const res = await fetch("http://localhost:5000/api/workorders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "Test WO",
+        priority: "high",
+        propertyId: "test123",
+        category: "HVAC",
+      }),
+    });
+    const data = await res.json();
+
+    if (data.data && data.data._id && data.data.slaBreachTime) {
+      console.log("✅ Work Orders: REAL implementation with SLA");
+      realCount++;
+    } else if (data.message) {
+      console.log("❌ Work Orders: FAKE - Returns placeholder message");
+      console.log(
+        "   FIX: Search chat for 'const workOrderSchema = new mongoose.Schema'",
+      );
+      console.log("   OR: Use attached file 'workorder-module-complete.js'");
+      fakeCount++;
+    }
+  } catch (e) {
+    console.log("❌ Work Orders: MISSING completely");
+    console.log("   ERROR:", e.message);
+    missingCount++;
+  }
+
+  // TEST 2: ZATCA Invoice
+  console.log("\nTesting Finance/ZATCA...");
+  try {
+    const res = await fetch("http://localhost:5000/api/finance/invoices", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        customer: "Test",
+        amount: 100,
+        tax: 15,
+      }),
+    });
+    const data = await res.json();
+
+    if (data.data && data.data.qrCode && data.data.qrCode.length > 100) {
+      console.log("✅ ZATCA: REAL QR code generation working");
+      realCount++;
+    } else if (data.message) {
+      console.log("❌ ZATCA: FAKE - No QR generation");
+      console.log("   FIX: Search chat for 'function generateZATCAQR'");
+      console.log("   OR: Use attached file 'finance-zatca-complete.js'");
+      fakeCount++;
+    }
+  } catch (e) {
+    console.log("❌ Finance: MISSING completely");
+    console.log("   ERROR:", e.message);
+    missingCount++;
+  }
+
+  // TEST 3: Marketplace RFQ
+  console.log("\nTesting Marketplace...");
+  try {
+    const res = await fetch("http://localhost:5000/api/marketplace/rfq", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "Test RFQ", deadline: new Date() }),
+    });
+    const data = await res.json();
+
+    if (data.data && data.data._id) {
+      console.log("✅ Marketplace: REAL RFQ system");
+      realCount++;
+    } else if (data.message) {
+      console.log("❌ Marketplace: FAKE - Placeholder response");
+      console.log(
+        "   FIX: Search chat for 'const RFQSchema = new mongoose.Schema'",
+      );
+      console.log("   OR: Use attached file 'marketplace-rfq-complete.js'");
+      fakeCount++;
+    }
+  } catch (e) {
+    console.log("❌ Marketplace: MISSING completely");
+    console.log("   ERROR:", e.message);
+    missingCount++;
+  }
+
+  // TEST 4: Properties
+  console.log("\nTesting Properties...");
+  try {
+    const res = await fetch("http://localhost:5000/api/properties", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Test Building",
+        units: [{ number: "101", type: "2BR", rent: 3000 }],
+      }),
+    });
+    const data = await res.json();
+
+    if (data.data && data.data.units && data.data.units.length > 0) {
+      console.log("✅ Properties: REAL with units management");
+      realCount++;
+    } else if (data.message) {
+      console.log("❌ Properties: FAKE - No units/tenants");
+      console.log(
+        "   FIX: Search chat for 'const propertySchema = new mongoose.Schema'",
+      );
+      console.log("   OR: Use attached file 'property-module-complete.js'");
+      fakeCount++;
+    }
+  } catch (e) {
+    console.log("❌ Properties: MISSING completely");
+    console.log("   ERROR:", e.message);
+    missingCount++;
+  }
+
+  // TEST 5: Check for placeholder code in files
+  console.log("\nChecking for placeholder code in files...");
+  const files = [
+    "routes/workorders.js",
+    "routes/finance.js",
+    "routes/marketplace.js",
+    "routes/properties.js",
+  ];
+  files.forEach((file) => {
+    if (fs.existsSync(file)) {
+      const content = fs.readFileSync(file, "utf8");
+      if (
+        content.includes("res.json({ message:") ||
+        content.includes("// TODO") ||
+        content.includes('res.send("')
+      ) {
+        console.log(`❌ ${file}: Contains placeholder code`);
+        fakeCount++;
+      } else {
+        console.log(`✅ ${file}: Appears to have real implementation`);
+      }
+    } else {
+      console.log(`❌ ${file}: File does not exist`);
+      missingCount++;
+    }
+  });
+
+  // RESULTS
+  const total = realCount + fakeCount + missingCount;
+  const percentage = Math.round((realCount / (total > 0 ? total : 1)) * 100);
+
+  console.log("\n" + "=".repeat(60));
+  console.log("📊 REALITY CHECK RESULTS:");
+  console.log("=".repeat(60));
+  console.log(`✅ Real implementations: ${realCount}`);
+  console.log(`❌ Fake/Placeholders: ${fakeCount}`);
+  console.log(`⚠️ Missing completely: ${missingCount}`);
+  console.log(`\n📈 ACTUAL COMPLETION: ${percentage}%`);
+
+  if (percentage < 50) {
+    console.log("\n🚨 SYSTEM IS MOSTLY PLACEHOLDERS!");
+    console.log("📌 REQUIRED: Use attached files OR search chat history");
+  } else if (percentage >= 80) {
+    console.log("\n✅ SYSTEM IS MOSTLY COMPLETE!");
+    console.log("📌 Focus on remaining issues only");
+  }
+
+  return percentage;
+}
+
+// Run immediately
+verifyRealImplementation()
+  .then((percentage) => {
+    console.log(`\n🎯 FINAL RESULT: ${percentage}% REAL COMPLETION`);
+    if (percentage < 100) {
+      console.log("⚠️ ACTION REQUIRED: Fix the failures shown above");
+    } else {
+      console.log("✅ SYSTEM IS 100% COMPLETE!");
+    }
+  })
+  .catch((error) => {
+    console.error("Error running verification:", error);
+  });
+
+]]>
+</file>
+
+<file path="scripts/remove-duplicates-safe.js">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * Remove duplicate keys while preserving nested structure
+ */
+
+const fs = require("fs");
+const path = require("path");
+
+function removeDuplicates(filePath) {
+  console.log(`\n📝 Processing: ${filePath}`);
+
+  const content = fs.readFileSync(filePath, "utf8");
+  const lines = content.split("\n");
+
+  const seenKeys = new Map(); // Map of key -> {line, depth, kept}
+  const linesToRemove = new Set();
+  let currentDepth = 0;
+
+  lines.forEach((line, index) => {
+    // Track depth by counting braces (string-aware)
+    // Simple state machine to ignore braces inside strings
+    let inString = false;
+    let stringChar = null;
+    let escaped = false;
+    let openCount = 0;
+    let closeCount = 0;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+
+      if (char === "\\") {
+        escaped = true;
+        continue;
+      }
+
+      // Toggle string state
+      if ((char === '"' || char === "'" || char === "`") && !inString) {
+        inString = true;
+        stringChar = char;
+        continue;
+      } else if (char === stringChar && inString) {
+        inString = false;
+        stringChar = null;
+        continue;
+      }
+
+      // Only count braces outside strings
+      if (!inString) {
+        if (char === "{") openCount++;
+        if (char === "}") closeCount++;
+      }
+    }
+
+    currentDepth += openCount - closeCount;
+
+    // Match key patterns:  key: value,
+    const keyMatch = line.match(/^\s+(\w+):\s*(["{]|[\w]+)/);
+    if (keyMatch) {
+      const key = keyMatch[1];
+      const lineNum = index + 1;
+
+      const keyId = `${key}_depth${currentDepth}`;
+
+      if (seenKeys.has(keyId)) {
+        // Duplicate found - mark for removal
+        const firstOccurrence = seenKeys.get(keyId);
+        console.log(
+          `   ⚠️  Duplicate '${key}' at line ${lineNum} (first at ${firstOccurrence.line})`,
+        );
+
+        // Mark this line and potentially the whole section for removal
+        linesToRemove.add(index);
+
+        // If next line is opening brace, mark whole section (string-aware)
+        if (index + 1 < lines.length && lines[index + 1].trim() === "{") {
+          let braceDepth = 1;
+          let i = index + 2;
+          linesToRemove.add(index + 1);
+
+          while (i < lines.length && braceDepth > 0) {
+            const l = lines[i];
+
+            // Count braces outside strings
+            let inStr = false;
+            let strChar = null;
+            let esc = false;
+
+            for (let j = 0; j < l.length; j++) {
+              const c = l[j];
+              if (esc) {
+                esc = false;
+                continue;
+              }
+              if (c === "\\") {
+                esc = true;
+                continue;
+              }
+              if ((c === '"' || c === "'" || c === "`") && !inStr) {
+                inStr = true;
+                strChar = c;
+              } else if (c === strChar && inStr) {
+                inStr = false;
+                strChar = null;
+              }
+              if (!inStr) {
+                if (c === "{") braceDepth++;
+                if (c === "}") braceDepth--;
+              }
+            }
+
+            linesToRemove.add(i);
+            if (braceDepth === 0) break;
+            i++;
+          }
+        }
+      } else {
+        seenKeys.set(keyId, { line: lineNum, depth: currentDepth });
+      }
+    }
+  });
+
+  if (linesToRemove.size === 0) {
+    console.log(`   ✅ No duplicates found`);
+    return 0;
+  }
+
+  // Remove marked lines
+  const newLines = lines.filter((_, index) => !linesToRemove.has(index));
+
+  // Write back
+  fs.writeFileSync(filePath, newLines.join("\n"), "utf8");
+
+  console.log(`   ✅ Removed ${linesToRemove.size} lines`);
+  return linesToRemove.size;
+}
+
+function main() {
+  const enPath = path.join(process.cwd(), "i18n/dictionaries/en.ts");
+  const arPath = path.join(process.cwd(), "i18n/dictionaries/ar.ts");
+
+  console.log("🔧 Removing duplicate keys (structure-aware)...");
+
+  const enRemoved = removeDuplicates(enPath);
+  const arRemoved = removeDuplicates(arPath);
+
+  console.log(`\n📊 Summary:`);
+  console.log(`   en.ts: ${enRemoved} lines removed`);
+  console.log(`   ar.ts: ${arRemoved} lines removed`);
+  console.log(`\n✅ Done! Run 'npm run typecheck' to verify.`);
+}
+
+main();
+
+]]>
+</file>
+
+<file path="scripts/remove-duplicates-v2.js">
+<![CDATA[
+#!/usr/bin/env node
+
+/**
+ * Remove duplicate keys from translation files (Version 2)
+ * Removes the SECOND occurrence of each duplicate key
+ */
+
+const fs = require("fs");
+const path = require("path");
+
+const files = [
+  path.join(__dirname, "../i18n/dictionaries/en.ts"),
+  path.join(__dirname, "../i18n/dictionaries/ar.ts"),
+];
+
+function removeDuplicates(filePath) {
+  console.log(`\n📝 Processing: ${filePath}`);
+
+  const content = fs.readFileSync(filePath, "utf-8");
+  const lines = content.split("\n");
+
+  // Track keys at each depth level
+  const seenKeys = new Map(); // key: `${keyName}_depth${depth}`, value: lineIndex
+  const duplicateRanges = []; // Array of {start, end} line ranges to remove
+
+  // Helper: regex to capture keys (supports quoted and unquoted keys)
+  // Matches:    keyName: {   or   'key-name': 'value',   or   "key.name": {
+  const keyRegex = /^(\s*)(?:['"]?)([\w.-]+)(?:['"]?)\s*:\s*(\{|['"])/;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Check for key definition
+    const keyMatch = line.match(keyRegex);
+    if (keyMatch) {
+      const indent = keyMatch[1] || "";
+      const keyName = keyMatch[2];
+      const isObject = keyMatch[3] === "{";
+
+      // Calculate depth based on indentation (assumes 2-space indent)
+      const depth = Math.floor(indent.length / 2);
+      const uniqueKey = `${keyName}_depth${depth}`;
+
+      if (seenKeys.has(uniqueKey)) {
+        const firstOccurrence = seenKeys.get(uniqueKey);
+        console.log(
+          `   ⚠️  Duplicate '${keyName}' at line ${i + 1} (first at ${firstOccurrence + 1})`,
+        );
+
+        if (!isObject) {
+          // Simple value on a single line - remove this line only
+          duplicateRanges.push({ start: i, end: i });
+        } else {
+          // Object value - find matching closing brace using brace balance
+          let braceBalance =
+            (line.match(/\{/g) || []).length - (line.match(/\}/g) || []).length;
+          let endLine = i;
+          while (endLine + 1 < lines.length && braceBalance > 0) {
+            endLine++;
+            const l = lines[endLine];
+            braceBalance += (l.match(/\{/g) || []).length;
+            braceBalance -= (l.match(/\}/g) || []).length;
+          }
+
+          // Push range from start to endLine (inclusive)
+          duplicateRanges.push({ start: i, end: endLine });
+          console.log(`      ↳ Removing lines ${i + 1}-${endLine + 1}`);
+        }
+      } else {
+        // First occurrence - track it
+        seenKeys.set(uniqueKey, i);
+      }
+    }
+  }
+
+  // Remove duplicate ranges (in reverse order to maintain line numbers)
+  let newLines = [...lines];
+  let totalRemoved = 0;
+
+  for (let r = duplicateRanges.length - 1; r >= 0; r--) {
+    const { start, end } = duplicateRanges[r];
+    const removeCount = end - start + 1;
+    newLines.splice(start, removeCount);
+    totalRemoved += removeCount;
+  }
+
+  console.log(`   ✅ Removed ${totalRemoved} lines`);
+
+  // Write back only if something changed
+  if (totalRemoved > 0) {
+    fs.writeFileSync(filePath, newLines.join("\n"), "utf-8");
+  } else {
+    console.log("   (No changes)");
+  }
+
+  return totalRemoved;
+}
+
+// Process files
+console.log("🔍 Removing duplicate keys...\n");
+let totalRemovedEn = 0;
+let totalRemovedAr = 0;
+
+for (const file of files) {
+  try {
+    const removed = removeDuplicates(file);
+    if (file.includes("en.ts")) totalRemovedEn = removed;
+    if (file.includes("ar.ts")) totalRemovedAr = removed;
+  } catch (err) {
+    console.error(`Failed processing ${file}:`, err);
+  }
+}
+
+console.log(`\n📊 Summary:`);
+console.log(`   en.ts: ${totalRemovedEn} lines removed`);
+console.log(`   ar.ts: ${totalRemovedAr} lines removed`);
+console.log(
+  `\n✅ Done! Run 'pnpm tsx scripts/remove-duplicates-v2.js' or 'node scripts/remove-duplicates-v2.js' to execute.`,
+);
+
+]]>
+</file>
+
+<file path="scripts/replace-string-in-file-verbose.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * replace-string-in-file-verbose.ts
+ *
+ * VERBOSE VERSION with detailed logging to debug write issues
+ */
+
+import fg from "fast-glob";
+import fs from "fs";
+import path from "path";
+
+interface Options {
+  paths: string[];
+  search: string;
+  replace: string;
+  regex: boolean;
+  flags?: string;
+  wordMatch: boolean;
+  encoding: BufferEncoding;
+  backup: boolean;
+  dryRun: boolean;
+  includeDot: boolean;
+  autoUnescape: boolean;
+}
+
+interface FileResult {
+  file: string;
+  matched: boolean;
+  replaced: number;
+  skipped?: string;
+  backupPath?: string;
+}
+
+function parseArgs(argv: string[]): Options {
+  const opts: Options = {
+    paths: [],
+    search: "",
+    replace: "",
+    regex: false,
+    flags: undefined,
+    wordMatch: false,
+    encoding: "utf8",
+    backup: false,
+    dryRun: false,
+    includeDot: false,
+    autoUnescape: true,
+  };
+
+  for (let i = 2; i < argv.length; i++) {
+    const arg = argv[i];
+    const next = () => argv[++i];
+    switch (arg) {
+      case "--path":
+        opts.paths.push(String(next() ?? ""));
+        break;
+      case "--search":
+        opts.search = String(next() ?? "");
+        break;
+      case "--replace":
+        opts.replace = String(next() ?? "");
+        break;
+      case "--regex":
+        opts.regex = true;
+        break;
+      case "--flags":
+        opts.flags = String(next() ?? "");
+        break;
+      case "--word-match":
+      case "--wordMatch":
+        opts.wordMatch = true;
+        break;
+      case "--encoding":
+        opts.encoding = String(next() ?? "utf8") as BufferEncoding;
+        break;
+      case "--backup":
+        opts.backup = true;
+        break;
+      case "--dry-run":
+      case "--dryRun":
+        opts.dryRun = true;
+        break;
+      case "--include-dot":
+      case "--includeDot":
+        opts.includeDot = true;
+        break;
+      case "--no-auto-unescape":
+      case "--noAutoUnescape":
+        opts.autoUnescape = false;
+        break;
+      default:
+        if (arg.startsWith("--")) {
+          // ignore unknown flags
+        } else {
+          opts.paths.push(arg);
+        }
+        break;
+    }
+  }
+
+  if (opts.paths.length === 0) throw new Error("--path is required");
+  if (!opts.search) throw new Error("--search is required");
+  if (opts.regex && !opts.flags) {
+    opts.flags = "g";
+  }
+  if (!opts.regex && opts.flags && !opts.flags.includes("g")) {
+    opts.flags = `${opts.flags}g`;
+  }
+  return opts;
+}
+
+function escapeRegExp(literal: string) {
+  return literal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function autoUnescapeRegex(str: string): string {
+  return str.replace(/\\\\([dDwWsSnrtfvbB0(){}[\].+*?^$|\\])/g, "\\$1");
+}
+
+function buildPattern(opts: Options): RegExp {
+  if (opts.regex) {
+    const source = opts.autoUnescape
+      ? autoUnescapeRegex(opts.search)
+      : opts.search;
+    try {
+      return new RegExp(source, opts.flags);
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      throw new Error(
+        `Invalid regex pattern: ${source}. Original: ${opts.search}. Error: ${error.message || String(err)}`,
+      );
+    }
+  }
+  const base = escapeRegExp(opts.search);
+  const src = opts.wordMatch ? `\\b${base}\\b` : base;
+  const flags = opts.flags || "g";
+  return new RegExp(src, flags);
+}
+
+function ensureParentDir(filePath: string) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+}
+
+function createBackup(filePath: string): string {
+  const backupPath = `${filePath}.bak`;
+  ensureParentDir(backupPath);
+  if (!fs.existsSync(backupPath)) {
+    fs.copyFileSync(filePath, backupPath);
+  }
+  return backupPath;
+}
+
+function replaceInContent(
+  content: string,
+  pattern: RegExp,
+  replacement: string,
+): { result: string; count: number } {
+  const matches = content.match(pattern);
+  const count = matches ? matches.length : 0;
+  const result = count > 0 ? content.replace(pattern, replacement) : content;
+  return { result, count };
+}
+
+async function run() {
+  console.error("🔍 VERBOSE MODE - Detailed logging enabled");
+  console.error("");
+
+  const opts = parseArgs(process.argv);
+  console.error("📋 Options:", JSON.stringify(opts, null, 2));
+  console.error("");
+
+  const pattern = buildPattern(opts);
+  console.error("🎯 Pattern:", pattern);
+  console.error("");
+
+  const files = new Set<string>();
+  for (const p of opts.paths) {
+    console.error(`🔎 Searching for files matching: ${p}`);
+    const matches = await fg(p, {
+      dot: opts.includeDot,
+      onlyFiles: true,
+      unique: true,
+      ignore: [
+        "**/node_modules/**",
+        "**/.git/**",
+        "**/.next/**",
+        "**/dist/**",
+        "**/build/**",
+      ],
+    });
+    console.error(`   Found ${matches.length} file(s)`);
+    for (const m of matches) files.add(m);
+  }
+  console.error("");
+
+  if (files.size === 0) {
+    const msg = `No files matched for patterns: ${opts.paths.join(", ")}`;
+    console.error(`❌ ${msg}`);
+    process.exitCode = 2;
+    console.log(
+      JSON.stringify({
+        success: false,
+        message: msg,
+        totalFiles: 0,
+        totalReplacements: 0,
+      }),
+    );
+    return;
+  }
+
+  console.error(`📁 Processing ${files.size} file(s)...`);
+  console.error("");
+
+  const results: FileResult[] = [];
+  let totalReplacements = 0;
+  let fileErrors = 0;
+
+  for (const file of files) {
+    console.error(`📄 File: ${file}`);
+    try {
+      console.error(`   📖 Reading file...`);
+      const original = fs.readFileSync(file, { encoding: opts.encoding });
+      console.error(`   📏 Original size: ${original.length} bytes`);
+      console.error(`   🔍 Searching for pattern...`);
+
+      const { result, count } = replaceInContent(
+        original,
+        pattern,
+        opts.replace,
+      );
+      console.error(`   ✨ Found ${count} match(es)`);
+
+      if (count === 0) {
+        console.error(`   ⏭️  Skipping (no matches)`);
+        results.push({
+          file,
+          matched: true,
+          replaced: 0,
+          skipped: "no matches",
+        });
+        console.error("");
+        continue;
+      }
+
+      console.error(`   📏 New size: ${result.length} bytes`);
+      console.error(
+        `   📊 Size change: ${result.length - original.length} bytes`,
+      );
+
+      let backupPath: string | undefined;
+      if (opts.backup && !opts.dryRun) {
+        console.error(`   💾 Creating backup...`);
+        backupPath = createBackup(file);
+        console.error(`   ✅ Backup created: ${backupPath}`);
+      }
+
+      if (!opts.dryRun) {
+        console.error(`   ✍️  Writing to disk...`);
+        const beforeWrite = Date.now();
+        fs.writeFileSync(file, result, { encoding: opts.encoding });
+        const afterWrite = Date.now();
+        console.error(`   ✅ Write completed in ${afterWrite - beforeWrite}ms`);
+
+        // Verify write
+        const verification = fs.readFileSync(file, { encoding: opts.encoding });
+        if (verification === result) {
+          console.error(`   ✅ Write verified - content matches`);
+        } else {
+          console.error(`   ⚠️  WARNING: Write verification failed!`);
+          console.error(`      Expected length: ${result.length}`);
+          console.error(`      Actual length: ${verification.length}`);
+        }
+      } else {
+        console.error(`   🏃 DRY-RUN: Skipping write`);
+      }
+
+      totalReplacements += count;
+      results.push({
+        file,
+        matched: true,
+        replaced: count,
+        ...(backupPath ? { backupPath } : {}),
+      });
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      console.error(`   ❌ ERROR: ${error.message || String(err)}`);
+      fileErrors++;
+      results.push({
+        file,
+        matched: false,
+        replaced: 0,
+        skipped: error?.message || String(err),
+      });
+    }
+    console.error("");
+  }
+
+  const success = totalReplacements > 0 && fileErrors === 0;
+  const message = opts.dryRun
+    ? `Dry-run complete. ${totalReplacements} replacement(s) would be made across ${files.size} file(s).`
+    : totalReplacements === 0
+      ? `No matches found. 0 replacements across ${files.size} file(s).`
+      : fileErrors > 0
+        ? `Completed with ${totalReplacements} replacement(s), but ${fileErrors} file(s) had errors.`
+        : `Completed with ${totalReplacements} replacement(s) across ${files.size} file(s).`;
+
+  console.error("📊 SUMMARY:");
+  console.error(`   Success: ${success}`);
+  console.error(`   Total files: ${files.size}`);
+  console.error(`   Total replacements: ${totalReplacements}`);
+  console.error(`   Errors: ${fileErrors}`);
+  console.error("");
+
+  const summary = {
+    success,
+    message,
+    totalFiles: files.size,
+    totalReplacements,
+    dryRun: opts.dryRun,
+    backup: opts.backup,
+    regex: opts.regex,
+    wordMatch: opts.wordMatch,
+    includeDot: opts.includeDot,
+    autoUnescape: opts.autoUnescape,
+    details: results,
+  };
+
+  console.log(JSON.stringify(summary, null, 2));
+}
+
+run().catch((err) => {
+  const msg = err?.message || String(err);
+  console.error(`💥 FATAL ERROR: ${msg}`);
+  console.error(err.stack);
+  process.exitCode = 1;
+  console.log(JSON.stringify({ success: false, message: msg }));
+});
+
+]]>
+</file>
+
+<file path="scripts/replace-string-in-file.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * replace-string-in-file.ts
+ *
+ * Reliable, cross-platform "replace string in file" utility.
+ * - Supports literal or regex search
+ * - Supports glob patterns for --path (repeatable)
+ * - Optional word boundary matching for literal search
+ * - Optional backup creation and dry-run mode
+ * - Reports per-file and total replacements, success=false if nothing changed
+ * - Optional auto-unescape for regex patterns to mitigate shell escaping
+ */
+
+import fg from "fast-glob";
+import fs from "fs";
+import path from "path";
+
+interface Options {
+  paths: string[];
+  search: string;
+  replace: string;
+  regex: boolean;
+  flags?: string;
+  wordMatch: boolean;
+  encoding: BufferEncoding;
+  backup: boolean;
+  dryRun: boolean;
+  includeDot: boolean;
+  autoUnescape: boolean; // auto-unescape double-escaped regex sequences
+}
+
+interface FileResult {
+  file: string;
+  matched: boolean; // pattern compiled and file processed
+  replaced: number; // number of replacements in this file
+  skipped?: string; // reason if skipped
+  backupPath?: string; // path to backup if created
+}
+
+function parseArgs(argv: string[]): Options {
+  const opts: Options = {
+    paths: [],
+    search: "",
+    replace: "",
+    regex: false,
+    flags: undefined,
+    wordMatch: false,
+    encoding: "utf8",
+    backup: false,
+    dryRun: false,
+    includeDot: false,
+    autoUnescape: true,
+  };
+
+  for (let i = 2; i < argv.length; i++) {
+    const arg = argv[i];
+    const next = () => argv[++i];
+    switch (arg) {
+      case "--path":
+        opts.paths.push(String(next() ?? ""));
+        break;
+      case "--search":
+        opts.search = String(next() ?? "");
+        break;
+      case "--replace":
+        opts.replace = String(next() ?? "");
+        break;
+      case "--regex":
+        opts.regex = true;
+        break;
+      case "--flags":
+        opts.flags = String(next() ?? "");
+        break;
+      case "--word-match":
+      case "--wordMatch":
+        opts.wordMatch = true;
+        break;
+      case "--encoding":
+        opts.encoding = String(next() ?? "utf8") as BufferEncoding;
+        break;
+      case "--backup":
+        opts.backup = true;
+        break;
+      case "--dry-run":
+      case "--dryRun":
+        opts.dryRun = true;
+        break;
+      case "--include-dot":
+      case "--includeDot":
+        opts.includeDot = true;
+        break;
+      case "--no-auto-unescape":
+      case "--noAutoUnescape":
+        opts.autoUnescape = false;
+        break;
+      default:
+        if (arg.startsWith("--")) {
+          // ignore unknown flags to be forward-compatible
+        } else {
+          // positional treated as path
+          opts.paths.push(arg);
+        }
+        break;
+    }
+  }
+
+  if (opts.paths.length === 0)
+    throw new Error("--path is required (can be repeated or a glob)");
+  if (!opts.search) throw new Error("--search is required");
+  if (opts.regex && !opts.flags) {
+    // default to global replace if not provided
+    opts.flags = "g";
+  }
+  if (!opts.regex && opts.flags && !opts.flags.includes("g")) {
+    // ensure global by default for literal search
+    opts.flags = `${opts.flags}g`;
+  }
+  return opts;
+}
+
+function escapeRegExp(literal: string) {
+  return literal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function autoUnescapeRegex(str: string): string {
+  // Convert common double-escaped sequences to single escaped.
+  // Example: "foo\\(\\d+\\)" -> "foo\(\d+\)"
+  // We only touch sequences starting with \\ followed by typical regex escape letters/symbols.
+  return str.replace(/\\\\([dDwWsSnrtfvbB0(){}[\].+*?^$|\\])/g, "\\$1");
+}
+
+function buildPattern(opts: Options): RegExp {
+  if (opts.regex) {
+    const source = opts.autoUnescape
+      ? autoUnescapeRegex(opts.search)
+      : opts.search;
+    try {
+      return new RegExp(source, opts.flags);
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      throw new Error(
+        `Invalid regex pattern: ${source}. Original: ${opts.search}. Error: ${error.message || String(err)}`,
+      );
+    }
+  }
+  const base = escapeRegExp(opts.search);
+  const src = opts.wordMatch ? `\\b${base}\\b` : base;
+  const flags = opts.flags || "g";
+  return new RegExp(src, flags);
+}
+
+function ensureParentDir(filePath: string) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+}
+
+function createBackup(filePath: string): string {
+  const backupPath = `${filePath}.bak`;
+  ensureParentDir(backupPath);
+  // Do not overwrite an existing backup
+  if (!fs.existsSync(backupPath)) {
+    fs.copyFileSync(filePath, backupPath);
+  }
+  return backupPath;
+}
+
+function replaceInContent(
+  content: string,
+  pattern: RegExp,
+  replacement: string,
+): { result: string; count: number } {
+  // Count matches first so that string replacement can still expand $1, $2 etc.
+  const matches = content.match(pattern);
+  const count = matches ? matches.length : 0;
+  const result = count > 0 ? content.replace(pattern, replacement) : content;
+  return { result, count };
+}
+
+async function run() {
+  const opts = parseArgs(process.argv);
+  const pattern = buildPattern(opts);
+
+  const files = new Set<string>();
+  for (const p of opts.paths) {
+    const matches = await fg(p, {
+      dot: opts.includeDot,
+      onlyFiles: true,
+      unique: true,
+      ignore: [
+        "**/node_modules/**",
+        "**/.git/**",
+        "**/.next/**",
+        "**/dist/**",
+        "**/build/**",
+      ],
+    });
+    for (const m of matches) files.add(m);
+  }
+
+  if (files.size === 0) {
+    const msg = `No files matched for patterns: ${opts.paths.join(", ")}`;
+    console.error(msg);
+    process.exitCode = 2;
+    console.log(
+      JSON.stringify({
+        success: false,
+        message: msg,
+        totalFiles: 0,
+        totalReplacements: 0,
+      }),
+    );
+    return;
+  }
+
+  const results: FileResult[] = [];
+  let totalReplacements = 0;
+  let fileErrors = 0;
+
+  for (const file of files) {
+    try {
+      const original = fs.readFileSync(file, { encoding: opts.encoding });
+      const { result, count } = replaceInContent(
+        original,
+        pattern,
+        opts.replace,
+      );
+
+      if (count === 0) {
+        results.push({
+          file,
+          matched: true,
+          replaced: 0,
+          skipped: "no matches",
+        });
+        continue;
+      }
+
+      let backupPath: string | undefined;
+      if (opts.backup && !opts.dryRun) {
+        backupPath = createBackup(file);
+      }
+
+      if (!opts.dryRun) {
+        fs.writeFileSync(file, result, { encoding: opts.encoding });
+      }
+
+      totalReplacements += count;
+      results.push({
+        file,
+        matched: true,
+        replaced: count,
+        ...(backupPath ? { backupPath } : {}),
+      });
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      fileErrors++;
+      results.push({
+        file,
+        matched: false,
+        replaced: 0,
+        skipped: error?.message || String(err),
+      });
+    }
+  }
+
+  const success = totalReplacements > 0 && fileErrors === 0;
+  const message = opts.dryRun
+    ? `Dry-run complete. ${totalReplacements} replacement(s) would be made across ${files.size} file(s).`
+    : totalReplacements === 0
+      ? `No matches found. 0 replacements across ${files.size} file(s).`
+      : fileErrors > 0
+        ? `Completed with ${totalReplacements} replacement(s), but ${fileErrors} file(s) had errors.`
+        : `Completed with ${totalReplacements} replacement(s) across ${files.size} file(s).`;
+
+  const summary = {
+    success,
+    message,
+    totalFiles: files.size,
+    totalReplacements,
+    dryRun: opts.dryRun,
+    backup: opts.backup,
+    regex: opts.regex,
+    wordMatch: opts.wordMatch,
+    includeDot: opts.includeDot,
+    autoUnescape: opts.autoUnescape,
+    details: results,
+  };
+
+  console.log(JSON.stringify(summary, null, 2));
+}
+
+run().catch((err) => {
+  const msg = err?.message || String(err);
+  console.error(msg);
+  process.exitCode = 1;
+  console.log(JSON.stringify({ success: false, message: msg }));
+});
+
+]]>
+</file>
+
+<file path="scripts/replace.js">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * Simple wrapper for replace-string-in-file that handles escaping automatically
+ * Usage: node scripts/replace.js <path> <search> <replace> [options]
+ */
+
+const { execSync } = require("child_process");
+const path = require("path");
+
+function showHelp() {
+  console.log(`
+Replace String in Files - Simple Interface
+
+Usage:
+  node scripts/replace.js <path> <search> <replace> [options]
+
+Arguments:
+  path      File path or glob pattern (required)
+  search    String or regex to search for (required)
+  replace   Replacement string (required)
+
+Options:
+  --regex         Treat search as regex pattern
+  --word-match    Match whole words only (literal mode)
+  --backup        Create .bak files before modifying
+  --dry-run       Preview changes without modifying files
+  --flags <f>     Regex flags (default: "g")
+
+Examples:
+  # Simple replacement
+  node scripts/replace.js "src/**/*.ts" "oldFunc" "newFunc"
+
+  # Regex with capture groups (NO SHELL ESCAPING NEEDED!)
+  node scripts/replace.js "src/**/*.ts" "foo\\((\\d+)\\)" "bar($1)" --regex
+
+  # Word boundary matching
+  node scripts/replace.js "**/*.md" "test" "exam" --word-match
+
+  # Dry run first
+  node scripts/replace.js "config/*.json" "old" "new" --dry-run
+`);
+}
+
+function main() {
+  const args = process.argv.slice(2);
+
+  if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
+    showHelp();
+    process.exit(0);
+  }
+
+  if (args.length < 3) {
+    console.error("Error: Missing required arguments");
+    showHelp();
+    process.exit(1);
+  }
+
+  const [pathPattern, search, replace, ...options] = args;
+
+  // Build the command with proper escaping
+  const tsxPath = path.join(__dirname, "replace-string-in-file.ts");
+
+  // Use JSON.stringify to properly escape the arguments
+  const cmd = [
+    "npx",
+    "tsx",
+    JSON.stringify(tsxPath),
+    "--path",
+    JSON.stringify(pathPattern),
+    "--search",
+    JSON.stringify(search),
+    "--replace",
+    JSON.stringify(replace),
+    ...options,
+  ].join(" ");
+
+  try {
+    execSync(cmd, { stdio: "inherit", shell: true });
+  } catch (err) {
+    process.exit(err.status || 1);
+  }
+}
+
+main();
+
+]]>
+</file>
+
+<file path="scripts/resolve-json-conflicts.py">
+<![CDATA[
+#!/usr/bin/env python3
+"""
+Smart JSON Conflict Resolver
+Resolves merge conflicts in JSON files by merging keys intelligently
+"""
+
+import json
+import re
+import sys
+from pathlib import Path
+
+def resolve_json_conflicts(file_path):
+    """
+    Resolve conflicts in a JSON file by:
+    1. Extracting HEAD and incoming versions
+    2. Parsing both as JSON
+    3. Merging keys (incoming overwrites HEAD)
+    4. Writing back clean JSON
+    """
+    print(f"→ Resolving {file_path}...")
+    
+    with open(file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    
+    # Check if file has conflicts
+    if '<<<<<<< HEAD' not in content:
+        print(f"  ✓ No conflicts in {file_path}")
+        return True
+    
+    # Strategy: Remove all conflict markers and keep incoming side
+    # This preserves the newer translation keys from the feature branch
+    
+    pattern = r'<<<<<<< HEAD\n(.*?)\n=======\n(.*?)\n>>>>>>> [a-f0-9]{7,40}\n?'
+    
+    def keep_incoming(match):
+        """Keep the incoming (feature branch) version"""
+        head_content = match.group(1)
+        incoming_content = match.group(2)
+        
+        # Keep incoming, which has the new translations
+        return incoming_content + '\n'
+    
+    # Replace all conflict blocks with incoming version
+    resolved_content = re.sub(pattern, keep_incoming, content, flags=re.DOTALL)
+    
+    # Verify it's valid JSON
+    try:
+        json_data = json.loads(resolved_content)
+        # Pretty print back to file
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(json_data, f, ensure_ascii=False, indent=2)
+        print(f"  ✓ Resolved and validated JSON: {file_path}")
+        return True
+    except json.JSONDecodeError as e:
+        print(f"  ✗ JSON validation failed: {e}")
+        # Write the resolved content anyway (might need manual fix)
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(resolved_content)
+        print(f"  ⚠ Wrote resolved content, but manual verification needed")
+        return False
+
+def resolve_script_conflicts(file_path):
+    """Resolve conflicts in script files by keeping incoming"""
+    print(f"→ Resolving {file_path}...")
+    
+    with open(file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    
+    if '<<<<<<< HEAD' not in content:
+        print(f"  ✓ No conflicts in {file_path}")
+        return True
+    
+    # Remove conflict markers, keep incoming
+    pattern = r'<<<<<<< HEAD\n(.*?)\n=======\n(.*?)\n>>>>>>> [a-f0-9]{7,40}\n?'
+    resolved = re.sub(pattern, r'\2\n', content, flags=re.DOTALL)
+    
+    with open(file_path, 'w', encoding='utf-8') as f:
+        f.write(resolved)
+    
+    print(f"  ✓ Resolved: {file_path}")
+    return True
+
+def main():
+    repo_dir = Path('/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit')
+    
+    print("🔧 Smart JSON Conflict Resolver")
+    print("=" * 50)
+    print()
+    
+    # Translation files (JSON)
+    json_files = [
+        repo_dir / 'i18n' / 'ar.json',
+        repo_dir / 'i18n' / 'en.json',
+    ]
+    
+    for json_file in json_files:
+        if json_file.exists():
+            resolve_json_conflicts(json_file)
+        print()
+    
+    # Script files
+    script_files = [
+        repo_dir / 'scripts' / 'smart-merge-conflicts.ts',
+        repo_dir / 'scripts' / 'resolve-all-conflicts.sh',
+    ]
+    
+    for script_file in script_files:
+        if script_file.exists():
+            resolve_script_conflicts(script_file)
+        print()
+    
+    # Doc files
+    doc_files = [
+        repo_dir / 'docs' / 'guides' / 'PR84_CONFLICT_RESOLUTION_GUIDE.md',
+    ]
+    
+    for doc_file in doc_files:
+        if doc_file.exists():
+            resolve_script_conflicts(doc_file)
+        print()
+    
+    print("✅ All files processed!")
+    print()
+    
+    # Verify no conflicts remain
+    import subprocess
+    try:
+        result = subprocess.run(
+            ['grep', '-rl', '<<<<<<< HEAD', '.', '--exclude=pnpm-lock.yaml',
+             '--exclude-dir=node_modules', '--exclude-dir=.next',
+             '--exclude-dir=.archive-2025-11-14'],
+            cwd=repo_dir,
+            capture_output=True,
+            text=True
+        )
+        
+        conflicted_files = result.stdout.strip().split('\n')
+        conflicted_files = [f for f in conflicted_files if f]
+        
+        if conflicted_files:
+            print(f"⚠️  {len(conflicted_files)} files still have conflicts:")
+            for f in conflicted_files:
+                print(f"  - {f}")
+        else:
+            print("✅ No remaining conflicts!")
+            
+    except Exception as e:
+        print(f"Could not verify: {e}")
+
+if __name__ == '__main__':
+    main()
+
+]]>
+</file>
+
+<file path="scripts/scan-hex.js">
+<![CDATA[
+#!/usr/bin/env node
+/**
+ * Brand Color Scanner - STRICT Governance Enforcement
+ *
+ * Scans all source files for hex colors and blocks any that are not
+ * in the approved whitelist. This enforces the Fixzit brand palette.
+ *
+ * Approved Colors:
+ * - Brand: #0061A8 (blue), #00A859 (green), #FFB400 (yellow)
+ * - Grays: #FFFFFF, #111827, #1F2937, #374151, #6B7280, #9CA3AF, #E5E7EB, #F9FAFB
+ * - Semantic: #DC2626 (error), #16A34A (success), #FACC15 (warning), #2563EB (info)
+ *
+ * Banned Colors (must be replaced):
+ * - #023047 → #0061A8 (brand-blue)
+ * - #F6851F → #FFB400 (brand-yellow)
+ *
+ * Usage:
+ *   node scripts/scan-hex.js
+ *   npm run style:scan
+ *
+ * Exit codes:
+ *   0 = All colors approved
+ *   1 = Off-palette colors found
+ */
+
+const { readFileSync, existsSync } = require("fs");
+const { execSync } = require("child_process");
+const { resolve: _resolve } = require("path");
+
+// ============================================================================
+// APPROVED COLOR WHITELIST
+// ============================================================================
+
+const WHITELIST = new Set([
+  // Brand colors (REQUIRED)
+  "#0061A8", // brand-blue (primary)
+  "#00A859", // brand-green (success)
+  "#FFB400", // brand-yellow (warning)
+
+  // Neutral colors (approved)
+  "#FFFFFF", // white
+  "#000000", // black
+
+  // Gray scale (approved)
+  "#111827", // gray-900
+  "#1F2937", // gray-800
+  "#374151", // gray-700
+  "#6B7280", // gray-500
+  "#9CA3AF", // gray-400
+  "#E5E7EB", // gray-200
+  "#F9FAFB", // gray-50
+
+  // Semantic colors (approved)
+  "#DC2626", // red-600 (error)
+  "#16A34A", // green-600 (success alt)
+  "#FACC15", // yellow-400 (warning alt)
+  "#2563EB", // blue-600 (info)
+
+  // Additional approved colors
+  "#F3F4F6", // gray-100
+  "#D1D5DB", // gray-300
+  "#4B5563", // gray-600
+]);
+
+// ============================================================================
+// BANNED COLORS (must be replaced)
+// ============================================================================
+
+const BANNED = {
+  "#023047": "#0061A8", // Replace with brand-blue
+  "#F6851F": "#FFB400", // Replace with brand-yellow
+};
+
+// ============================================================================
+// FILE PATTERNS TO SCAN
+// ============================================================================
+
+const PATTERNS = [
+  "*.tsx",
+  "*.ts",
+  "*.jsx",
+  "*.js",
+  "*.css",
+  "*.scss",
+  "*.sass",
+  "*.less",
+];
+
+// ============================================================================
+// MAIN SCANNER
+// ============================================================================
+
+function scanFiles() {
+  console.log("🎨 Fixzit Brand Color Scanner");
+  console.log("================================\n");
+
+  // Get all files to scan
+  let files = [];
+  try {
+    const gitFiles = execSync("git ls-files", { encoding: "utf8" })
+      .trim()
+      .split("\n")
+      .filter((f) => f && PATTERNS.some((p) => f.endsWith(p.slice(1))));
+    files = gitFiles;
+  } catch (_err) {
+    console.error("❌ Error: Not a git repository or git not available");
+    process.exit(1);
+  }
+
+  if (files.length === 0) {
+    console.log("⚠️  No files found to scan");
+    return;
+  }
+
+  console.log(`📁 Scanning ${files.length} files...\n`);
+
+  const violations = [];
+  const banned = [];
+
+  // Scan each file
+  for (const file of files) {
+    if (!existsSync(file)) continue;
+
+    try {
+      const content = readFileSync(file, "utf8");
+
+      // Match hex colors (3 or 6 digits)
+      const hexPattern = /#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g;
+      const matches = content.match(hexPattern) || [];
+
+      for (const hex of matches) {
+        const normalized = hex.toUpperCase();
+
+        // Check if banned
+        if (BANNED[normalized]) {
+          banned.push({
+            file,
+            color: normalized,
+            replacement: BANNED[normalized],
+            line: getLineNumber(content, hex),
+          });
+        }
+        // Check if not whitelisted
+        else if (!WHITELIST.has(normalized)) {
+          violations.push({
+            file,
+            color: normalized,
+            line: getLineNumber(content, hex),
+          });
+        }
+      }
+    } catch (_err) {
+      // Skip files that can't be read
+      continue;
+    }
+  }
+
+  // Report results
+  if (banned.length === 0 && violations.length === 0) {
+    console.log("✅ All colors are approved!");
+    console.log(`   Scanned: ${files.length} files`);
+    console.log(`   Violations: 0\n`);
+    process.exit(0);
+  }
+
+  // Report banned colors (must be replaced)
+  if (banned.length > 0) {
+    console.error("🚫 BANNED COLORS FOUND (MUST BE REPLACED):");
+    console.error("==========================================\n");
+
+    for (const { file, color, replacement, line } of banned) {
+      console.error(`  ❌ ${file}:${line}`);
+      console.error(`     Found: ${color}`);
+      console.error(`     Replace with: ${replacement}\n`);
+    }
+  }
+
+  // Report off-palette colors
+  if (violations.length > 0) {
+    console.error("⚠️  OFF-PALETTE COLORS FOUND:");
+    console.error("=============================\n");
+
+    // Group by color
+    const grouped = {};
+    for (const v of violations) {
+      if (!grouped[v.color]) grouped[v.color] = [];
+      grouped[v.color].push(`${v.file}:${v.line}`);
+    }
+
+    for (const [color, locations] of Object.entries(grouped)) {
+      console.error(
+        `  ${color} (${locations.length} occurrence${locations.length > 1 ? "s" : ""})`,
+      );
+      for (const loc of locations.slice(0, 5)) {
+        console.error(`    - ${loc}`);
+      }
+      if (locations.length > 5) {
+        console.error(`    ... and ${locations.length - 5} more`);
+      }
+      console.error("");
+    }
+  }
+
+  // Summary
+  console.error("❌ BRAND SCAN FAILED");
+  console.error("===================\n");
+  console.error(`   Banned colors: ${banned.length}`);
+  console.error(`   Off-palette colors: ${violations.length}`);
+  console.error(`   Total violations: ${banned.length + violations.length}\n`);
+
+  console.error("💡 Fix Options:");
+  console.error("   1. Replace with approved brand colors from WHITELIST");
+  console.error("   2. Use Tailwind theme tokens instead of hex");
+  console.error(
+    "   3. Add to whitelist if color is justified (requires approval)\n",
+  );
+
+  console.error("📚 See STRICT_GOVERNANCE.md for approved colors\n");
+
+  process.exit(1);
+}
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+function getLineNumber(content, search) {
+  const lines = content.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].includes(search)) {
+      return i + 1;
+    }
+  }
+  return 1;
+}
+
+// ============================================================================
+// RUN
+// ============================================================================
+
+scanFiles();
+
+]]>
+</file>
+
+<file path="scripts/scan-hydration-issues.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * HYDRATION MISMATCH SCANNER
+ * Scans codebase for React hydration issues
+ * Target: 58 files with hydration errors
+ *
+ * Patterns detected:
+ * 1. Date/time formatting without suppressHydrationWarning
+ * 2. window/document usage in server components
+ * 3. localStorage/sessionStorage without client check
+ * 4. useEffect dependencies causing re-renders
+ * 5. Math.random() in render
+ * 6. Dynamic imports without Suspense
+ */
+
+import { promises as fs } from "fs";
+import { glob } from "glob";
+
+interface HydrationIssue {
+  file: string;
+  line: number;
+  type:
+    | "date-format"
+    | "browser-api"
+    | "storage"
+    | "random"
+    | "dynamic-import"
+    | "use-effect";
+  code: string;
+  severity: "critical" | "major" | "moderate";
+  suggestion: string;
+}
+
+const issues: HydrationIssue[] = [];
+
+const PATTERNS = {
+  dateFormat:
+    /(new\s+Date\([^)]*\)\.to(?:Locale|ISO)?String|\.toLocaleString|\.toLocaleDateString|\.toLocaleTimeString)/g,
+  browserApi: /(window\.|document\.|navigator\.)(?!undefined)/g,
+  localStorage: /(localStorage|sessionStorage)\./g,
+  mathRandom: /Math\.random\(\)/g,
+  dynamicImport: /import\(['"]/g,
+  useEffect: /useEffect\s*\(/g,
+};
+
+async function scanFile(filePath: string): Promise<void> {
+  try {
+    const content = await fs.readFile(filePath, "utf-8");
+    const lines = content.split("\n");
+    const isServerComponent = !content.includes("'use client'");
+
+    lines.forEach((line, index) => {
+      const lineNumber = index + 1;
+
+      // Date formatting without suppressHydrationWarning
+      if (PATTERNS.dateFormat.test(line)) {
+        const contextLines = lines.slice(
+          Math.max(0, index - 2),
+          Math.min(index + 3, lines.length),
+        );
+        const hasSuppressHydration = contextLines.some((l) =>
+          l.includes("suppressHydrationWarning"),
+        );
+
+        if (!hasSuppressHydration) {
+          issues.push({
+            file: filePath,
+            line: lineNumber,
+            type: "date-format",
+            code: line.trim(),
+            severity: "major",
+            suggestion:
+              "Add suppressHydrationWarning={true} or move to client component",
+          });
+        }
+      }
+
+      // Browser APIs in server components
+      if (
+        isServerComponent &&
+        PATTERNS.browserApi.test(line) &&
+        !line.includes("typeof window")
+      ) {
+        issues.push({
+          file: filePath,
+          line: lineNumber,
+          type: "browser-api",
+          code: line.trim(),
+          severity: "critical",
+          suggestion:
+            'Add "use client" directive or check typeof window !== "undefined"',
+        });
+      }
+
+      // localStorage/sessionStorage without check
+      if (PATTERNS.localStorage.test(line) && !line.includes("typeof window")) {
+        issues.push({
+          file: filePath,
+          line: lineNumber,
+          type: "storage",
+          code: line.trim(),
+          severity: "critical",
+          suggestion:
+            'Wrap in typeof window !== "undefined" check or use useEffect',
+        });
+      }
+
+      // Math.random() in render
+      if (
+        PATTERNS.mathRandom.test(line) &&
+        !line.includes("useState") &&
+        !line.includes("useMemo")
+      ) {
+        issues.push({
+          file: filePath,
+          line: lineNumber,
+          type: "random",
+          code: line.trim(),
+          severity: "moderate",
+          suggestion: "Move to useState/useMemo to ensure consistent value",
+        });
+      }
+
+      // Dynamic import without Suspense
+      if (PATTERNS.dynamicImport.test(line)) {
+        const contextLines = lines.slice(
+          Math.max(0, index - 10),
+          Math.min(index + 10, lines.length),
+        );
+        const hasSuspense = contextLines.some((l) => l.includes("<Suspense"));
+
+        if (!hasSuspense) {
+          issues.push({
+            file: filePath,
+            line: lineNumber,
+            type: "dynamic-import",
+            code: line.trim(),
+            severity: "moderate",
+            suggestion: "Wrap component in <Suspense fallback={...}>",
+          });
+        }
+      }
+    });
+  } catch (error) {
+    console.error(`❌ Error scanning ${filePath}:`, error);
+  }
+}
+
+async function main() {
+  console.log("🔍 Scanning for hydration mismatches...\n");
+
+  const files = await glob("**/*.{tsx,jsx}", {
+    ignore: [
+      "node_modules/**",
+      ".next/**",
+      "dist/**",
+      "build/**",
+      "coverage/**",
+      "**/*.test.{tsx,jsx}",
+      "**/*.spec.{tsx,jsx}",
+      "tests/**",
+      "__tests__/**",
+    ],
+    cwd: process.cwd(),
+  });
+
+  console.log(`📂 Found ${files.length} React files to scan\n`);
+
+  for (const file of files) {
+    await scanFile(file);
+  }
+
+  // Group by severity
+  const critical = issues.filter((i) => i.severity === "critical");
+  const major = issues.filter((i) => i.severity === "major");
+  const moderate = issues.filter((i) => i.severity === "moderate");
+
+  console.log("\n📊 SCAN RESULTS\n");
+  console.log(`🔴 Critical: ${critical.length} issues`);
+  console.log(`🟧 Major: ${major.length} issues`);
+  console.log(`🟨 Moderate: ${moderate.length} issues`);
+  console.log(`📝 Total: ${issues.length} issues\n`);
+
+  // Save detailed report
+  const report = {
+    timestamp: new Date().toISOString(),
+    totalFiles: files.length,
+    totalIssues: issues.length,
+    bySeverity: {
+      critical: critical.length,
+      major: major.length,
+      moderate: moderate.length,
+    },
+    byType: {
+      "date-format": issues.filter((i) => i.type === "date-format").length,
+      "browser-api": issues.filter((i) => i.type === "browser-api").length,
+      storage: issues.filter((i) => i.type === "storage").length,
+      random: issues.filter((i) => i.type === "random").length,
+      "dynamic-import": issues.filter((i) => i.type === "dynamic-import")
+        .length,
+      "use-effect": issues.filter((i) => i.type === "use-effect").length,
+    },
+    issues: issues,
+  };
+
+  await fs.mkdir("_artifacts/scans", { recursive: true });
+  await fs.writeFile(
+    "_artifacts/scans/hydration-mismatches.json",
+    JSON.stringify(report, null, 2),
+  );
+
+  // Generate CSV
+  const csv = [
+    "File,Line,Type,Severity,Code,Suggestion",
+    ...issues.map(
+      (i) =>
+        `"${i.file}",${i.line},"${i.type}","${i.severity}","${i.code.replace(/"/g, '""')}","${i.suggestion}"`,
+    ),
+  ].join("\n");
+
+  await fs.writeFile("_artifacts/scans/hydration-mismatches.csv", csv);
+
+  console.log("✅ Reports saved:");
+  console.log("   _artifacts/scans/hydration-mismatches.json");
+  console.log("   _artifacts/scans/hydration-mismatches.csv\n");
+
+  // Show top 20 critical issues
+  if (critical.length > 0) {
+    console.log("\n🔴 TOP 20 CRITICAL ISSUES:\n");
+    critical.slice(0, 20).forEach((issue, index) => {
+      console.log(`${index + 1}. ${issue.file}:${issue.line}`);
+      console.log(`   ${issue.code}`);
+      console.log(`   💡 ${issue.suggestion}`);
+      console.log("");
+    });
+  }
+
+  process.exit(issues.length > 0 ? 1 : 0);
+}
+
+main();
+
+]]>
+</file>
+
+<file path="scripts/scan-index-drift.ts">
+<![CDATA[
+#!/usr/bin/env npx tsx
+/**
+ * Scan for schema-level index definitions that should be centralized.
+ *
+ * Purpose:
+ * - Identify models still calling `.index()` so we can migrate them to
+ *   lib/db/collections.ts and disable schema autoIndex in production.
+ *
+ * Usage:
+ *   pnpm tsx scripts/scan-index-drift.ts
+ */
+
+import fg from "fast-glob";
+import fs from "fs";
+import path from "path";
+
+async function main() {
+  const projectRoot = path.resolve(__dirname, "..");
+  const pattern = path.join(projectRoot, "server/models/**/*.ts").replace(/\\/g, "/");
+  const files = await fg(pattern, { dot: false });
+
+  const offenders: Array<{ file: string; count: number }> = [];
+
+  for (const file of files) {
+    const content = fs.readFileSync(file, "utf-8");
+    const matches = content.match(/\.index\s*\(/g);
+    if (matches && matches.length > 0) {
+      offenders.push({ file: path.relative(projectRoot, file), count: matches.length });
+    }
+  }
+
+  if (offenders.length === 0) {
+    console.log("✅ No schema-level index definitions found.");
+    return;
+  }
+
+  console.log("⚠️  Schema-level index definitions detected (candidate for centralization):");
+  offenders
+    .sort((a, b) => b.count - a.count)
+    .forEach(({ file, count }) => {
+      console.log(` - ${file} (${count} index calls)`);
+    });
+
+  console.log(
+    "\nAction: Move these indexes to lib/db/collections.ts and set autoIndex:false on the schema to avoid IndexOptionsConflict in Atlas.",
+  );
+}
+
+main().catch((err) => {
+  console.error("❌ scan-index-drift failed:", err);
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/scan-unhandled-promises.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * UNHANDLED PROMISE SCANNER
+ * Scans codebase for potential unhandled promise rejections
+ * Target: 230 files with promise usage
+ *
+ * Patterns detected:
+ * 1. new Promise() without .catch()
+ * 2. Promise.all() without .catch()
+ * 3. fetch() without .catch() or try-catch
+ * 4. .then() without .catch()
+ * 5. async functions without try-catch
+ */
+
+import { promises as fs } from "fs";
+import { glob } from "glob";
+
+interface Issue {
+  file: string;
+  line: number;
+  column: number;
+  type:
+    | "new-promise"
+    | "promise-all"
+    | "fetch"
+    | "then-no-catch"
+    | "async-no-try";
+  code: string;
+  severity: "critical" | "major" | "moderate";
+}
+
+const issues: Issue[] = [];
+
+// Patterns to detect
+const PATTERNS = {
+  newPromise: /new\s+Promise\s*\(/g,
+  promiseAll: /Promise\.(all|race|any|allSettled)\s*\(/g,
+  fetch: /(?:await\s+)?fetch\s*\(/g,
+  then: /\.then\s*\(/g,
+  catch: /\.catch\s*\(/g,
+  tryBlock: /try\s*\{/g,
+  asyncFunction: /async\s+(function|\(|\w+\s*\()/g,
+};
+
+async function scanFile(filePath: string): Promise<void> {
+  try {
+    const content = await fs.readFile(filePath, "utf-8");
+    const lines = content.split("\n");
+
+    lines.forEach((line, index) => {
+      const lineNumber = index + 1;
+
+      // Check for new Promise without subsequent .catch
+      if (PATTERNS.newPromise.test(line)) {
+        // Look ahead 10 lines for .catch()
+        const contextLines = lines.slice(
+          index,
+          Math.min(index + 10, lines.length),
+        );
+        const hasCatch = contextLines.some((l) => PATTERNS.catch.test(l));
+
+        if (!hasCatch) {
+          issues.push({
+            file: filePath,
+            line: lineNumber,
+            column: line.indexOf("new Promise"),
+            type: "new-promise",
+            code: line.trim(),
+            severity: "critical",
+          });
+        }
+      }
+
+      // Check for Promise.all/race/any without .catch
+      if (PATTERNS.promiseAll.test(line)) {
+        const contextLines = lines.slice(
+          index,
+          Math.min(index + 10, lines.length),
+        );
+        const hasCatch = contextLines.some((l) => PATTERNS.catch.test(l));
+
+        if (!hasCatch) {
+          issues.push({
+            file: filePath,
+            line: lineNumber,
+            column: line.indexOf("Promise."),
+            type: "promise-all",
+            code: line.trim(),
+            severity: "major",
+          });
+        }
+      }
+
+      // Check for fetch without try-catch
+      if (PATTERNS.fetch.test(line) && line.includes("await")) {
+        // Look back 5 lines for try {
+        const contextLines = lines.slice(Math.max(0, index - 5), index + 1);
+        const hasTry = contextLines.some((l) => PATTERNS.tryBlock.test(l));
+
+        if (!hasTry) {
+          issues.push({
+            file: filePath,
+            line: lineNumber,
+            column: line.indexOf("fetch"),
+            type: "fetch",
+            code: line.trim(),
+            severity: "major",
+          });
+        }
+      }
+
+      // Check for .then() without .catch()
+      if (PATTERNS.then.test(line)) {
+        const contextLines = lines.slice(
+          index,
+          Math.min(index + 5, lines.length),
+        );
+        const hasCatch = contextLines.some((l) => PATTERNS.catch.test(l));
+
+        if (!hasCatch) {
+          issues.push({
+            file: filePath,
+            line: lineNumber,
+            column: line.indexOf(".then"),
+            type: "then-no-catch",
+            code: line.trim(),
+            severity: "moderate",
+          });
+        }
+      }
+    });
+  } catch (error) {
+    console.error(`❌ Error scanning ${filePath}:`, error);
+  }
+}
+
+async function main() {
+  console.log("🔍 Scanning for unhandled promise rejections...\n");
+
+  const files = await glob("**/*.{ts,tsx,js,jsx}", {
+    ignore: [
+      "node_modules/**",
+      ".next/**",
+      "dist/**",
+      "build/**",
+      "coverage/**",
+      "**/*.test.{ts,tsx,js,jsx}",
+      "**/*.spec.{ts,tsx,js,jsx}",
+      "tests/**",
+      "__tests__/**",
+    ],
+    cwd: process.cwd(),
+  });
+
+  console.log(`📂 Found ${files.length} files to scan\n`);
+
+  for (const file of files) {
+    await scanFile(file);
+  }
+
+  // Group by severity
+  const critical = issues.filter((i) => i.severity === "critical");
+  const major = issues.filter((i) => i.severity === "major");
+  const moderate = issues.filter((i) => i.severity === "moderate");
+
+  console.log("\n📊 SCAN RESULTS\n");
+  console.log(`🔴 Critical: ${critical.length} issues`);
+  console.log(`🟧 Major: ${major.length} issues`);
+  console.log(`🟨 Moderate: ${moderate.length} issues`);
+  console.log(`📝 Total: ${issues.length} issues\n`);
+
+  // Save detailed report
+  const report = {
+    timestamp: new Date().toISOString(),
+    totalFiles: files.length,
+    totalIssues: issues.length,
+    bySeverity: {
+      critical: critical.length,
+      major: major.length,
+      moderate: moderate.length,
+    },
+    byType: {
+      "new-promise": issues.filter((i) => i.type === "new-promise").length,
+      "promise-all": issues.filter((i) => i.type === "promise-all").length,
+      fetch: issues.filter((i) => i.type === "fetch").length,
+      "then-no-catch": issues.filter((i) => i.type === "then-no-catch").length,
+      "async-no-try": issues.filter((i) => i.type === "async-no-try").length,
+    },
+    issues: issues,
+  };
+
+  await fs.mkdir("_artifacts/scans", { recursive: true });
+  await fs.writeFile(
+    "_artifacts/scans/unhandled-promises.json",
+    JSON.stringify(report, null, 2),
+  );
+
+  // Generate CSV for easy review
+  const csv = [
+    "File,Line,Type,Severity,Code",
+    ...issues.map(
+      (i) =>
+        `"${i.file}",${i.line},"${i.type}","${i.severity}","${i.code.replace(/"/g, '""')}"`,
+    ),
+  ].join("\n");
+
+  await fs.writeFile("_artifacts/scans/unhandled-promises.csv", csv);
+
+  console.log("✅ Reports saved:");
+  console.log("   _artifacts/scans/unhandled-promises.json");
+  console.log("   _artifacts/scans/unhandled-promises.csv\n");
+
+  // Show top 20 critical issues
+  if (critical.length > 0) {
+    console.log("\n🔴 TOP 20 CRITICAL ISSUES:\n");
+    critical.slice(0, 20).forEach((issue, index) => {
+      console.log(`${index + 1}. ${issue.file}:${issue.line}`);
+      console.log(`   ${issue.code}`);
+      console.log("");
+    });
+  }
+
+  process.exit(issues.length > 0 ? 1 : 0);
+}
+
+main();
+
+]]>
+</file>
+
+</batch_content>

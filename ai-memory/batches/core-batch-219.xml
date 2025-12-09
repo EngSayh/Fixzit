@@ -1,0 +1,3808 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="lib/communication-logger.ts">
+<![CDATA[
+import { ObjectId } from "mongodb";
+import { logger } from "@/lib/logger";
+import { COLLECTIONS } from "@/lib/db/collections";
+
+/**
+ * Normalize orgId to ObjectId, keeping string if invalid.
+ * Returns null if orgId is undefined/null.
+ */
+function normalizeOrgId(orgId: string | ObjectId | undefined | null): ObjectId | string | null {
+  if (orgId === undefined || orgId === null) return null;
+  if (typeof orgId !== "string") return orgId;
+  // Only convert to ObjectId if it's a valid 24-char hex string
+  if (ObjectId.isValid(orgId) && /^[a-fA-F0-9]{24}$/.test(orgId)) {
+    return new ObjectId(orgId);
+  }
+  return orgId; // Keep as string for non-standard org IDs
+}
+
+/**
+ * Communication Log Entry Interface
+ * SECURITY: orgId is required for tenant isolation (STRICT v4.1 compliance)
+ */
+export interface CommunicationLog {
+  _id?: ObjectId;
+  orgId?: string | ObjectId; // Organization for tenant isolation
+  userId: string | ObjectId; // User who received the communication
+  channel: "sms" | "email" | "whatsapp" | "otp";
+  type:
+    | "notification"
+    | "otp"
+    | "marketing"
+    | "transactional"
+    | "alert"
+    | "broadcast";
+  recipient: string; // Phone number or email
+  subject?: string; // For email
+  message: string;
+  status: "pending" | "sent" | "delivered" | "failed" | "read";
+  metadata?: {
+    twilioSid?: string;
+    sendgridId?: string;
+    whatsappId?: string;
+    messageId?: string;
+    email?: string;
+    phone?: string;
+    name?: string;
+    otpCode?: string;
+    otpExpiresAt?: Date;
+    otpAttempts?: number;
+    cost?: number;
+    segments?: number;
+    broadcastId?: string;
+    ipAddress?: string;
+    userAgent?: string;
+    triggeredBy?: string;
+    identifier?: string;
+    priority?: string;
+    rateLimitRemaining?: number;
+    triggeredByEmail?: string;
+  };
+  createdAt: Date;
+  updatedAt: Date;
+  sentAt?: Date;
+  deliveredAt?: Date;
+  failedAt?: Date;
+  readAt?: Date;
+  errorMessage?: string;
+}
+
+/**
+ * Normalize userId to ObjectId, keeping string if invalid.
+ * Demo/test users may have non-ObjectId IDs like "demo-uuid" or "EMP001".
+ */
+function normalizeUserId(userId: string | ObjectId): ObjectId | string {
+  if (typeof userId !== "string") return userId;
+  // Only convert to ObjectId if it's a valid 24-char hex string
+  if (ObjectId.isValid(userId) && /^[a-fA-F0-9]{24}$/.test(userId)) {
+    return new ObjectId(userId);
+  }
+  return userId; // Keep as string for demo/test users
+}
+
+/**
+ * Log communication to database
+ * SECURITY: orgId should be provided for tenant isolation (STRICT v4.1)
+ *
+ * @param log - Communication log data
+ * @returns Success boolean and log ID
+ */
+export async function logCommunication(
+  log: Omit<CommunicationLog, "_id" | "createdAt" | "updatedAt">,
+): Promise<{ success: boolean; logId?: string; error?: string }> {
+  try {
+    const { connectToDatabase, getDatabase } = await import(
+      "@/lib/mongodb-unified"
+    );
+    await connectToDatabase();
+    const db = await getDatabase();
+
+    // SECURITY: Normalize orgId for tenant isolation
+    const normalizedOrgId = normalizeOrgId(log.orgId);
+
+    const communicationLog: CommunicationLog = {
+      ...log,
+      ...(normalizedOrgId !== null && { orgId: normalizedOrgId }),
+      userId: normalizeUserId(log.userId),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const result = await db
+      .collection(COLLECTIONS.COMMUNICATION_LOGS)
+      .insertOne(communicationLog);
+
+    logger.info("[Communication] Logged", {
+      logId: result.insertedId.toString(),
+      orgId: normalizedOrgId ? String(normalizedOrgId) : undefined,
+      userId:
+        typeof log.userId === "string" ? log.userId : log.userId.toString(),
+      channel: log.channel,
+      type: log.type,
+      status: log.status,
+    });
+
+    return {
+      success: true,
+      logId: result.insertedId.toString(),
+    };
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[Communication] Log error", error as Error, {
+      userId:
+        typeof log.userId === "string" ? log.userId : log.userId.toString(),
+      channel: log.channel,
+    });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+/**
+ * Update communication log status
+ * SECURITY: orgId should be provided for tenant-scoped updates (STRICT v4.1)
+ *
+ * @param logId - Communication log ID
+ * @param status - New status
+ * @param metadata - Additional metadata to merge
+ * @param orgId - Organization ID for tenant isolation (optional for backward compatibility)
+ * @returns Success boolean
+ */
+export async function updateCommunicationStatus(
+  logId: string,
+  status: CommunicationLog["status"],
+  metadata?: Partial<CommunicationLog["metadata"]>,
+  orgId?: string | ObjectId,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { connectToDatabase, getDatabase } = await import(
+      "@/lib/mongodb-unified"
+    );
+    await connectToDatabase();
+    const db = await getDatabase();
+
+    // SECURITY: Build query with orgId scoping when provided
+    const query: Record<string, unknown> = { _id: new ObjectId(logId) };
+    const normalizedOrgId = normalizeOrgId(orgId);
+    if (normalizedOrgId !== null) {
+      query.orgId = normalizedOrgId;
+    }
+
+    let update: Record<string, unknown> | { $set: Record<string, unknown> } = {
+      status,
+      updatedAt: new Date(),
+    };
+
+    // Set timestamp based on status
+    if (status === "sent") {
+      (update as Record<string, unknown>).sentAt = new Date();
+    } else if (status === "delivered") {
+      (update as Record<string, unknown>).deliveredAt = new Date();
+    } else if (status === "failed") {
+      (update as Record<string, unknown>).failedAt = new Date();
+    } else if (status === "read") {
+      (update as Record<string, unknown>).readAt = new Date();
+    }
+
+    // Merge metadata
+    if (metadata) {
+      const $set: Record<string, unknown> = {
+        status,
+        updatedAt: new Date(),
+      };
+
+      const baseUpdate = update as Record<string, unknown>;
+      if (baseUpdate.sentAt) $set.sentAt = baseUpdate.sentAt;
+      if (baseUpdate.deliveredAt) $set.deliveredAt = baseUpdate.deliveredAt;
+      if (baseUpdate.failedAt) $set.failedAt = baseUpdate.failedAt;
+      if (baseUpdate.readAt) $set.readAt = baseUpdate.readAt;
+
+      Object.keys(metadata).forEach((key) => {
+        $set[`metadata.${key}`] = (metadata as Record<string, unknown>)[key];
+      });
+
+      update = { $set };
+    }
+
+    // SECURITY: Use org-scoped query for tenant isolation
+    await db
+      .collection(COLLECTIONS.COMMUNICATION_LOGS)
+      .updateOne(
+        query,
+        metadata ? update : { $set: update },
+      );
+
+    logger.info("[Communication] Status updated", {
+      logId,
+      orgId: normalizedOrgId ? String(normalizedOrgId) : undefined,
+      status,
+    });
+
+    return { success: true };
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[Communication] Update status error", error as Error, {
+      logId,
+      status,
+    });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+/**
+ * Get communication history for a user
+ * SECURITY: orgId should be provided for tenant-scoped queries (STRICT v4.1)
+ *
+ * @param userId - User ID
+ * @param options - Query options including orgId for tenant isolation
+ * @returns Communication logs
+ */
+export async function getUserCommunications(
+  userId: string,
+  options?: {
+    orgId?: string | ObjectId;
+    channel?: CommunicationLog["channel"];
+    type?: CommunicationLog["type"];
+    limit?: number;
+    skip?: number;
+  },
+): Promise<CommunicationLog[]> {
+  try {
+    const { connectToDatabase, getDatabase } = await import(
+      "@/lib/mongodb-unified"
+    );
+    await connectToDatabase();
+    const db = await getDatabase();
+
+    // SECURITY: Build query with orgId scoping when provided
+    const query: Record<string, unknown> = { userId: normalizeUserId(userId) };
+    const normalizedOrgId = normalizeOrgId(options?.orgId);
+    if (normalizedOrgId !== null) {
+      query.orgId = normalizedOrgId;
+    }
+
+    if (options?.channel) {
+      query.channel = options.channel;
+    }
+
+    if (options?.type) {
+      query.type = options.type;
+    }
+
+    const logs = await db
+      .collection(COLLECTIONS.COMMUNICATION_LOGS)
+      .find(query)
+      .sort({ createdAt: -1 })
+      .skip(options?.skip || 0)
+      .limit(options?.limit || 50)
+      .toArray();
+
+    return logs.map((log) => ({
+      ...log,
+      _id: log._id?.toString(),
+    })) as unknown as CommunicationLog[];
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error(
+      "[Communication] Get user communications error",
+      error as Error,
+      {
+        userId,
+      },
+    );
+    return [];
+  }
+}
+
+/**
+ * Get communication statistics
+ * SECURITY: orgId should be provided for tenant-scoped queries (STRICT v4.1)
+ *
+ * @param filters - Optional filters including orgId for tenant isolation
+ * @returns Statistics object
+ */
+export async function getCommunicationStats(filters?: {
+  orgId?: string | ObjectId;
+  userId?: string;
+  channel?: CommunicationLog["channel"];
+  startDate?: Date;
+  endDate?: Date;
+}): Promise<{
+  total: number;
+  sent: number;
+  delivered: number;
+  failed: number;
+  pending: number;
+  deliveryRate: number;
+  failureRate: number;
+}> {
+  try {
+    const { connectToDatabase, getDatabase } = await import(
+      "@/lib/mongodb-unified"
+    );
+    await connectToDatabase();
+    const db = await getDatabase();
+
+    const matchStage: Record<string, unknown> = {};
+
+    // SECURITY: Scope by orgId when provided
+    const normalizedOrgId = normalizeOrgId(filters?.orgId);
+    if (normalizedOrgId !== null) {
+      matchStage.orgId = normalizedOrgId;
+    }
+
+    if (filters?.userId) {
+      matchStage.userId = normalizeUserId(filters.userId);
+    }
+
+    if (filters?.channel) {
+      matchStage.channel = filters.channel;
+    }
+
+    if (filters?.startDate || filters?.endDate) {
+      const createdAt: Record<string, Date> = {};
+      if (filters.startDate) {
+        createdAt.$gte = filters.startDate;
+      }
+      if (filters.endDate) {
+        createdAt.$lte = filters.endDate;
+      }
+      matchStage.createdAt = createdAt;
+    }
+
+    const result = await db
+      .collection(COLLECTIONS.COMMUNICATION_LOGS)
+      .aggregate([
+        { $match: matchStage },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: 1 },
+            sent: {
+              $sum: { $cond: [{ $eq: ["$status", "sent"] }, 1, 0] },
+            },
+            delivered: {
+              $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] },
+            },
+            failed: {
+              $sum: { $cond: [{ $eq: ["$status", "failed"] }, 1, 0] },
+            },
+            pending: {
+              $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] },
+            },
+          },
+        },
+      ])
+      .toArray();
+
+    const stats = result[0] || {
+      total: 0,
+      sent: 0,
+      delivered: 0,
+      failed: 0,
+      pending: 0,
+    };
+
+    const deliveryRate =
+      stats.total > 0 ? (stats.delivered / stats.total) * 100 : 0;
+    const failureRate =
+      stats.total > 0 ? (stats.failed / stats.total) * 100 : 0;
+
+    return {
+      total: stats.total,
+      sent: stats.sent,
+      delivered: stats.delivered,
+      failed: stats.failed,
+      pending: stats.pending,
+      deliveryRate,
+      failureRate,
+    };
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[Communication] Get stats error", error as Error);
+    return {
+      total: 0,
+      sent: 0,
+      delivered: 0,
+      failed: 0,
+      pending: 0,
+      deliveryRate: 0,
+      failureRate: 0,
+    };
+  }
+}
+
+]]>
+</file>
+
+<file path="lib/config/brand-colors.ts">
+<![CDATA[
+/**
+ * Centralized Brand Color Configuration
+ *
+ * This file contains all brand colors for the Business.sa rebrand (2025).
+ * Use these constants instead of hardcoding hex values throughout the codebase.
+ *
+ * @module lib/config/brand-colors
+ * @see docs/BRANDING.md for usage guidelines
+ */
+
+/**
+ * Business.sa Primary Brand Colors
+ *
+ * These colors should be used for:
+ * - Primary buttons and CTAs
+ * - Links and interactive elements
+ * - Accent highlights
+ * - Brand identity elements
+ */
+export const BRAND_COLORS = {
+  /** Primary blue - main brand color */
+  primary: "#0061A8",
+
+  /** Dark blue - headers, sidebar, footer */
+  primaryDark: "#1a365d",
+
+  /** Light blue - hover states, backgrounds */
+  primaryLight: "#e6f0f7",
+
+  /** Secondary blue - supporting elements */
+  secondary: "#0e7490",
+
+  /** Accent teal - call-to-actions, highlights */
+  accent: "#00c4cc",
+
+  /** Success green */
+  success: "#22c55e",
+
+  /** Warning amber */
+  warning: "#f97316",
+
+  /** Error/Destructive red */
+  error: "#dc2626",
+
+  /** Info blue */
+  info: "#0070f3",
+} as const;
+
+/**
+ * Neutral Colors for text and backgrounds
+ */
+export const NEUTRAL_COLORS = {
+  /** Primary text color */
+  textPrimary: "#1a1a1a",
+
+  /** Secondary text color */
+  textSecondary: "#666666",
+
+  /** Muted/tertiary text */
+  textMuted: "#999999",
+
+  /** Light background */
+  backgroundLight: "#f9f9f9",
+
+  /** White */
+  white: "#ffffff",
+
+  /** Dark background (for dark mode) */
+  backgroundDark: "#0f172a",
+} as const;
+
+/**
+ * Email Template Colors
+ *
+ * These colors are used in transactional email templates.
+ * They should be inline-safe (no CSS variables) and accessible.
+ */
+export const EMAIL_COLORS = {
+  /** Primary CTA button background */
+  ctaBackground: BRAND_COLORS.primary,
+
+  /** CTA button text */
+  ctaText: NEUTRAL_COLORS.white,
+
+  /** Email header background */
+  headerBackground: BRAND_COLORS.primary,
+
+  /** Email body background */
+  bodyBackground: NEUTRAL_COLORS.backgroundLight,
+
+  /** Primary text in emails */
+  textPrimary: NEUTRAL_COLORS.textPrimary,
+
+  /** Secondary text in emails */
+  textSecondary: NEUTRAL_COLORS.textSecondary,
+
+  /** Link color */
+  linkColor: BRAND_COLORS.primary,
+
+  /** Success message color */
+  success: BRAND_COLORS.success,
+
+  /** Error/warning message color */
+  error: BRAND_COLORS.error,
+} as const;
+
+/**
+ * PDF Generation Colors
+ *
+ * Colors used in PDF documents (invoices, offers, reports).
+ */
+export const PDF_COLORS = {
+  /** Header background */
+  headerBackground: BRAND_COLORS.primary,
+
+  /** Header text */
+  headerText: NEUTRAL_COLORS.white,
+
+  /** Primary accent */
+  accent: BRAND_COLORS.primary,
+
+  /** Table header */
+  tableHeader: BRAND_COLORS.primaryDark,
+
+  /** Table row alternate */
+  tableRowAlt: NEUTRAL_COLORS.backgroundLight,
+} as const;
+
+/**
+ * Chart/Analytics Colors
+ *
+ * Color palette for data visualization.
+ */
+export const CHART_COLORS = {
+  /** Primary data series */
+  series1: BRAND_COLORS.primary,
+
+  /** Secondary data series */
+  series2: BRAND_COLORS.secondary,
+
+  /** Tertiary data series */
+  series3: BRAND_COLORS.accent,
+
+  /** Quaternary data series */
+  series4: "#8b5cf6", // Purple
+
+  /** Quinary data series */
+  series5: "#ec4899", // Pink
+
+  /** Default palette array for charts */
+  palette: [
+    BRAND_COLORS.primary,
+    BRAND_COLORS.secondary,
+    BRAND_COLORS.accent,
+    "#8b5cf6",
+    "#ec4899",
+    "#f59e0b",
+    "#10b981",
+    "#6366f1",
+  ],
+} as const;
+
+/**
+ * Legacy Colors (DEPRECATED)
+ *
+ * These colors are from the old brown/amber theme.
+ * DO NOT USE - kept for reference during migration only.
+ *
+ * @deprecated Use BRAND_COLORS instead
+ */
+export const LEGACY_COLORS = {
+  /** @deprecated Old primary brown */
+  primaryBrown: "#B46B2F",
+
+  /** @deprecated Old accent amber */
+  accentAmber: "#D68B4A",
+} as const;
+
+/**
+ * Get CSS variable compatible color string
+ *
+ * @param color - Hex color from constants
+ * @returns CSS-safe color string
+ */
+export function cssColor(color: string): string {
+  return color;
+}
+
+/**
+ * Convert hex to RGB for email templates
+ *
+ * @param hex - Hex color code
+ * @returns RGB values object
+ */
+export function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result
+    ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16),
+      }
+    : null;
+}
+
+export type BrandColor = keyof typeof BRAND_COLORS;
+export type NeutralColor = keyof typeof NEUTRAL_COLORS;
+export type EmailColor = keyof typeof EMAIL_COLORS;
+
+]]>
+</file>
+
+<file path="lib/config/constants.ts">
+<![CDATA[
+/**
+ * Centralized Configuration Constants
+ *
+ * Single source of truth for all environment variables
+ * Provides type-safe access with runtime validation
+ * Replaces direct process.env.* access throughout the codebase
+ *
+ * SECURITY: All env vars are validated at module load time
+ * Missing required vars in production will throw errors immediately
+ */
+
+import { createHash } from "crypto";
+import { logger } from "@/lib/logger";
+
+type Environment = "development" | "test" | "production";
+
+class ConfigurationError extends Error {
+  constructor(message: string) {
+    super(`[Config Error] ${message}`);
+    this.name = "ConfigurationError";
+  }
+}
+
+/**
+ * Get required environment variable (throws if missing in production)
+ * @deprecated Use getRequiredWithBuildSkip for variables needed at runtime but not build time
+ */
+function _getRequired(key: string, fallback?: string): string {
+  const value = process.env[key];
+  const isProduction = process.env.NODE_ENV === "production";
+  const shouldSkipValidation =
+    SKIP_CONFIG_VALIDATION && (isProduction || IS_NEXT_BUILD);
+
+  if (!value || value.trim() === "") {
+    // During build-time (or when explicitly skipped), fall back to the provided default
+    // so preview builds don't crash when secrets aren't injected. Runtime validation below
+    // still enforces presence in real production environments.
+    if (shouldSkipValidation && fallback !== undefined) {
+      logger.warn(
+        `[Config] ${key} not set; using fallback because SKIP_CONFIG_VALIDATION is enabled`,
+      );
+      return fallback;
+    }
+
+    if (isProduction && !shouldSkipValidation) {
+      throw new ConfigurationError(
+        `Required environment variable ${key} is not set`,
+      );
+    }
+    if (fallback !== undefined) {
+      return fallback;
+    }
+    throw new ConfigurationError(
+      `Required environment variable ${key} is not set (no fallback provided)`,
+    );
+  }
+
+  return value;
+}
+
+/**
+ * Get optional environment variable (returns fallback if missing)
+ */
+function getOptional(key: string, fallback: string = ""): string {
+  return process.env[key] || fallback;
+}
+
+/**
+ * Parse boolean environment variable
+ */
+function getBoolean(key: string, fallback: boolean = false): boolean {
+  const value = process.env[key];
+  if (!value) return fallback;
+  return value.toLowerCase() === "true" || value === "1";
+}
+
+/**
+ * Parse integer environment variable
+ */
+function getInteger(key: string, fallback: number): number {
+  const value = process.env[key];
+  if (!value) return fallback;
+  const parsed = parseInt(value, 10);
+  if (isNaN(parsed)) {
+    throw new ConfigurationError(
+      `${key} must be a valid integer, got: ${value}`,
+    );
+  }
+  return parsed;
+}
+
+// =============================================================================
+// Environment Detection
+// =============================================================================
+
+const NODE_ENV = (process.env.NODE_ENV || "development") as Environment;
+const IS_NEXT_BUILD = process.env.NEXT_PHASE === "phase-production-build";
+const SKIP_CONFIG_VALIDATION =
+  getBoolean("SKIP_CONFIG_VALIDATION") ||
+  getBoolean("SKIP_ENV_VALIDATION") ||
+  getBoolean("DISABLE_MONGODB_FOR_BUILD") ||
+  IS_NEXT_BUILD;
+const IS_VERCEL_PREVIEW =
+  process.env.VERCEL === "1" && process.env.VERCEL_ENV === "preview";
+const IS_CI = process.env.CI === "true" || process.env.CI === "1";
+const IS_BUILD_COMMAND = process.env.npm_lifecycle_event === "build";
+
+// Automatically provision a deterministic secret for preview/CI/builds so the
+// Next.js build step does not fail when NEXTAUTH_SECRET is intentionally not
+// injected (e.g., Vercel preview deployments). Production runtime still fails
+// fast when the secret is missing.
+const shouldAutoProvisionAuthSecret =
+  IS_NEXT_BUILD ||
+  IS_BUILD_COMMAND ||
+  IS_VERCEL_PREVIEW ||
+  IS_CI ||
+  SKIP_CONFIG_VALIDATION;
+
+if (!process.env.NEXTAUTH_SECRET && shouldAutoProvisionAuthSecret) {
+  const seed =
+    process.env.AUTH_SECRET ||
+    process.env.VERCEL_DEPLOYMENT_ID ||
+    process.env.VERCEL_PROJECT_ID ||
+    process.env.VERCEL_URL ||
+    process.env.VERCEL_BRANCH_URL ||
+    process.env.VERCEL_GIT_COMMIT_SHA ||
+    "fixzit-preview-fallback-secret";
+
+  process.env.NEXTAUTH_SECRET = createHash("sha256")
+    .update(seed)
+    .digest("hex");
+
+  logger.warn(
+    "[Config] NEXTAUTH_SECRET missing; generated a temporary secret for build/preview environments. Configure a real secret for production deployments.",
+  );
+}
+
+/**
+ * Get required environment variable (throws if missing in production)
+ * Skips validation during Next.js build phase to allow static analysis
+ */
+function getRequiredWithBuildSkip(key: string, fallback?: string): string {
+  const value = process.env[key];
+
+  if (!value || value.trim() === "") {
+    // During build, use fallback to allow static analysis
+    if (SKIP_CONFIG_VALIDATION && fallback !== undefined) {
+      return fallback;
+    }
+    if (process.env.NODE_ENV === "production" && !SKIP_CONFIG_VALIDATION) {
+      throw new ConfigurationError(
+        `Required environment variable ${key} is not set`,
+      );
+    }
+    if (fallback !== undefined) {
+      return fallback;
+    }
+    throw new ConfigurationError(
+      `Required environment variable ${key} is not set (no fallback provided)`,
+    );
+  }
+
+  return value;
+}
+
+export const Config = {
+  /**
+   * Environment configuration
+   */
+  env: {
+    NODE_ENV,
+    isDevelopment: NODE_ENV === "development",
+    isTest: NODE_ENV === "test",
+    isProduction: NODE_ENV === "production",
+  },
+
+  /**
+   * Application URLs
+   */
+  app: {
+    url: getOptional("APP_URL", "http://localhost:3000"),
+    frontendUrl: getOptional("FRONTEND_URL", "http://localhost:3000"),
+    corsOrigins: getOptional("CORS_ORIGINS", ""),
+  },
+
+  /**
+   * Returns / RMA configuration
+   */
+  returns: {
+    labelBaseUrl: getOptional(
+      "RETURN_LABEL_BASE_URL",
+      getOptional("APP_URL", "http://localhost:3000"),
+    ),
+    originName: getOptional("RETURN_ORIGIN_NAME", "Fixzit Returns Center"),
+    originStreet: getOptional("RETURN_ORIGIN_STREET", "123 Warehouse St"),
+    originCity: getOptional("RETURN_ORIGIN_CITY", "Riyadh"),
+    originState: getOptional("RETURN_ORIGIN_STATE", "Riyadh Province"),
+    originPostalCode: getOptional("RETURN_ORIGIN_POSTAL_CODE", "11564"),
+    originCountry: getOptional("RETURN_ORIGIN_COUNTRY", "SA"),
+  },
+
+  /**
+   * NextAuth / Authentication
+   */
+  auth: {
+    secret: getRequiredWithBuildSkip("NEXTAUTH_SECRET", "dev-secret-change-in-production"),
+    url: getOptional("NEXTAUTH_URL", "http://localhost:3000"),
+
+    // Google OAuth
+    googleClientId: getOptional("GOOGLE_CLIENT_ID"),
+    googleClientSecret: getOptional("GOOGLE_CLIENT_SECRET"),
+
+    // GitHub OAuth
+    githubClientId: getOptional("GITHUB_CLIENT_ID"),
+    githubClientSecret: getOptional("GITHUB_CLIENT_SECRET"),
+
+    // Session configuration
+    sessionMaxAge: getInteger("SESSION_MAX_AGE", 30 * 24 * 60 * 60), // 30 days
+  },
+
+  /**
+   * Database Configuration
+   */
+  database: {
+    mongoUri: getRequiredWithBuildSkip("MONGODB_URI", "mongodb://127.0.0.1:27017/fixzit"),
+    maxPoolSize: getInteger("MONGO_MAX_POOL_SIZE", 10),
+    minPoolSize: getInteger("MONGO_MIN_POOL_SIZE", 2),
+  },
+
+  /**
+   * AWS Configuration
+   */
+  aws: {
+    region: getOptional("AWS_REGION", "us-east-1"),
+    accessKeyId: getOptional("AWS_ACCESS_KEY_ID"),
+    secretAccessKey: getOptional("AWS_SECRET_ACCESS_KEY"),
+
+    // S3 Configuration
+    s3: {
+      bucket: getOptional("AWS_S3_BUCKET", "fixzit-dev-uploads"),
+      uploadsPrefix: getOptional("S3_UPLOADS_PREFIX", "uploads/"),
+      publicUrl: getOptional("S3_PUBLIC_URL", ""),
+    },
+
+    // Antivirus Scanning
+    scan: {
+      enabled: getBoolean("AV_SCAN_ENABLED", false),
+      endpoint: getOptional("AV_SCAN_ENDPOINT"),
+      webhookToken: getOptional("SCAN_WEBHOOK_TOKEN"),
+      statusToken: getOptional("SCAN_STATUS_TOKEN"),
+      statusTokenRequired: getBoolean("SCAN_STATUS_TOKEN_REQUIRED", false),
+      required: getBoolean("S3_SCAN_REQUIRED", false),
+    },
+  },
+
+  /**
+   * Payment Gateway Configuration
+   */
+  payment: {
+    paytabs: {
+      profileId: getOptional("PAYTABS_PROFILE_ID"),
+      serverKey: getOptional("PAYTABS_SERVER_KEY"),
+      clientKey: getOptional("PAYTABS_CLIENT_KEY"),
+      baseUrl: getOptional("PAYTABS_BASE_URL", "https://secure.paytabs.sa"),
+    },
+  },
+
+  /**
+   * Email Configuration
+   */
+  email: {
+    from: getOptional("EMAIL_FROM", `noreply@${getOptional("EMAIL_DOMAIN", "fixzit.co")}`),
+    replyTo: getOptional("EMAIL_REPLY_TO", `support@${getOptional("EMAIL_DOMAIN", "fixzit.co")}`),
+
+    // SMTP (if using direct SMTP)
+    smtp: {
+      host: getOptional("SMTP_HOST"),
+      port: getInteger("SMTP_PORT", 587),
+      user: getOptional("SMTP_USER"),
+      password: getOptional("SMTP_PASSWORD"),
+      secure: getBoolean("SMTP_SECURE", false),
+    },
+
+    // SendGrid
+    sendgrid: {
+      apiKey: getOptional("SENDGRID_API_KEY"),
+    },
+
+    // Resend
+    resend: {
+      apiKey: getOptional("RESEND_API_KEY"),
+    },
+  },
+
+  /**
+   * Company Information
+   */
+  company: {
+    name: getOptional("NEXT_PUBLIC_COMPANY_NAME", "Fixzit"),
+    supportEmail: getOptional("NEXT_PUBLIC_SUPPORT_EMAIL", "support@example.com"),
+    supportPhone: getOptional("NEXT_PUBLIC_SUPPORT_PHONE", "+966 XX XXX XXXX"),
+  },
+
+  /**
+   * Souq / Marketplace
+   */
+  souq: {
+    sellerPortalUrl: getOptional("SELLER_PORTAL_URL", "http://localhost:3000"),
+    sellerSupportEmail: getOptional(
+      "SELLER_SUPPORT_EMAIL",
+      getOptional("NEXT_PUBLIC_SUPPORT_EMAIL", "support@example.com"),
+    ),
+    /**
+     * Review Configuration
+     */
+    reviews: {
+      /** Maximum items per page for paginated review queries (default: 100) */
+      maxPageLimit: getInteger("SOUQ_REVIEWS_MAX_PAGE_LIMIT", 100),
+      /** Number of unique reports before auto-flagging a review (default: 3) */
+      reportFlagThreshold: getInteger("SOUQ_REVIEWS_REPORT_FLAG_THRESHOLD", 3),
+    },
+  },
+
+  /**
+   * Feature Flags
+   */
+  features: {
+    atsEnabled: getBoolean("ATS_ENABLED", false),
+    platformOrgId: getOptional("PLATFORM_ORG_ID"),
+    publicJobsOrgId: getOptional("PUBLIC_JOBS_ORG_ID"),
+  },
+
+  /**
+   * Security & Monitoring
+   */
+  security: {
+    // Sentry
+    sentryDsn: getOptional("NEXT_PUBLIC_SENTRY_DSN"),
+    sentryAuthToken: getOptional("SENTRY_AUTH_TOKEN"),
+
+    // Rate Limiting
+    rateLimitEnabled: getBoolean("RATE_LIMIT_ENABLED", true),
+
+    // CRON Security
+    cronSecret: getOptional("CRON_SECRET"),
+
+    // Route Health Monitoring
+    routeHealthEndpoint: getOptional("ROUTE_HEALTH_ENDPOINT"),
+    routeHealthToken: getOptional("ROUTE_HEALTH_TOKEN"),
+  },
+
+  /**
+   * API Keys & External Services
+   */
+  external: {
+    // Analytics
+    googleAnalyticsId: getOptional("NEXT_PUBLIC_GA_ID"),
+
+    // Maps
+    googleMapsApiKey: getOptional("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"),
+
+    // AI Services
+    openaiApiKey: getOptional("OPENAI_API_KEY"),
+    anthropicApiKey: getOptional("ANTHROPIC_API_KEY"),
+  },
+
+  /**
+   * Development & Testing
+   */
+  dev: {
+    debugMode: getBoolean("DEBUG", false),
+    verboseLogs: getBoolean("VERBOSE_LOGS", false),
+    bypassAuth: getBoolean("BYPASS_AUTH", false), // NEVER enable in production
+  },
+} as const;
+
+// =============================================================================
+// Runtime Validation (Production Only)
+// =============================================================================
+
+if (Config.env.isProduction && !SKIP_CONFIG_VALIDATION) {
+  // Validate critical production configuration
+  const criticalVars = ["NEXTAUTH_SECRET", "MONGODB_URI"];
+
+  const missing = criticalVars.filter((key) => {
+    const value = process.env[key];
+    return !value || value.trim() === "";
+  });
+
+  if (missing.length > 0) {
+    throw new ConfigurationError(
+      `Missing critical environment variables in production: ${missing.join(", ")}`,
+    );
+  }
+
+  // Warn if AWS is not configured (S3 uploads will not work)
+  if (!Config.aws.region || !Config.aws.s3.bucket) {
+    logger.warn(
+      "[Config] AWS not fully configured - S3 file uploads will be disabled",
+    );
+  }
+
+  // Validate MongoDB URI format
+  if (
+    !Config.database.mongoUri.startsWith("mongodb://") &&
+    !Config.database.mongoUri.startsWith("mongodb+srv://")
+  ) {
+    throw new ConfigurationError(
+      "MONGODB_URI must be a valid MongoDB connection string",
+    );
+  }
+
+  // Warn about insecure configurations
+  if (Config.dev.bypassAuth) {
+    logger.error(
+      "[Config] BYPASS_AUTH is enabled in production - THIS IS INSECURE!",
+    );
+  }
+}
+
+// =============================================================================
+// Type Exports
+// =============================================================================
+
+export type ConfigType = typeof Config;
+
+]]>
+</file>
+
+<file path="lib/config/demo-users.ts">
+<![CDATA[
+/**
+ * 🔧 Centralized Demo User Configuration
+ *
+ * This file contains all demo user credentials for development and testing.
+ * All demo users are configurable via environment variables to support white-label deployments.
+ *
+ * ⚠️ SECURITY NOTE (SEC-051):
+ * These passwords are ONLY for local development and should NEVER be used in production.
+ * In production environments:
+ * - Set SAFE_SUPERADMIN_PASSWORD and SAFE_DEFAULT_PASSWORD environment variables
+ * - Or disable demo user seeding entirely
+ * - The passwords below are intentional defaults for developer convenience only
+ *
+ * @module lib/config/demo-users
+ *
+ * Usage:
+ * ```ts
+ * import { DEMO_EMAILS, DEMO_USERS, isDemoEmail, getDemoUserByEmail } from "@/lib/config/demo-users";
+ * ```
+ *
+ * Environment Variables:
+ * - EMAIL_DOMAIN: The domain for demo user emails (default: "fixzit.co")
+ * - SAFE_SUPERADMIN_PASSWORD: Override super admin demo password
+ * - SAFE_DEFAULT_PASSWORD: Override default demo password
+ * - NEXT_PUBLIC_SHOW_DEMO_CREDS: Show demo credentials in UI (default: false in production)
+ */
+
+// Use the same domain as EMAIL_DOMAINS for consistency
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || "fixzit.co";
+
+// SEC-051: Make demo passwords configurable via environment (no hardcoded fallbacks)
+const DEMO_SUPERADMIN_PASSWORD = process.env.DEMO_SUPERADMIN_PASSWORD;
+const DEMO_DEFAULT_PASSWORD = process.env.DEMO_DEFAULT_PASSWORD;
+export const DEMO_PASSWORDS_CONFIGURED = Boolean(
+  DEMO_SUPERADMIN_PASSWORD && DEMO_DEFAULT_PASSWORD,
+);
+const SAFE_SUPERADMIN_PASSWORD =
+  DEMO_SUPERADMIN_PASSWORD || "[set DEMO_SUPERADMIN_PASSWORD]";
+const SAFE_DEFAULT_PASSWORD =
+  DEMO_DEFAULT_PASSWORD || "[set DEMO_DEFAULT_PASSWORD]";
+
+/**
+ * Demo user role definitions with email prefixes
+ * The email is constructed as: `${prefix}@${EMAIL_DOMAIN}`
+ */
+export interface DemoUser {
+  prefix: string;
+  role: string;
+  displayRole: string;
+  description: string;
+  password: string;
+  category: "core" | "corporate" | "vendor" | "property" | "hr";
+}
+
+/**
+ * All demo users with their configuration
+ * Emails are derived dynamically from EMAIL_DOMAIN env var
+ */
+export const DEMO_USER_DEFINITIONS: readonly DemoUser[] = [
+  // Core roles
+  {
+    prefix: "superadmin",
+    role: "SUPER_ADMIN",
+    displayRole: "Super Admin",
+    description: "Full system access",
+    password: SAFE_SUPERADMIN_PASSWORD,
+    category: "core",
+  },
+  {
+    prefix: "admin",
+    role: "ADMIN",
+    displayRole: "Admin",
+    description: "Administrative access",
+    password: SAFE_DEFAULT_PASSWORD,
+    category: "core",
+  },
+  {
+    prefix: "manager",
+    role: "MANAGER",
+    displayRole: "Property Manager",
+    description: "Property management",
+    password: SAFE_DEFAULT_PASSWORD,
+    category: "property",
+  },
+  {
+    prefix: "tenant",
+    role: "TENANT",
+    displayRole: "Tenant",
+    description: "Tenant portal access",
+    password: SAFE_DEFAULT_PASSWORD,
+    category: "property",
+  },
+  {
+    prefix: "vendor",
+    role: "VENDOR",
+    displayRole: "Vendor",
+    description: "Vendor marketplace access",
+    password: SAFE_DEFAULT_PASSWORD,
+    category: "vendor",
+  },
+  {
+    prefix: "owner",
+    role: "OWNER",
+    displayRole: "Property Owner",
+    description: "Property owner access",
+    password: SAFE_DEFAULT_PASSWORD,
+    category: "property",
+  },
+  // Corporate roles
+  {
+    prefix: "corp.admin",
+    role: "CORPORATE_ADMIN",
+    displayRole: "Corporate Admin",
+    description: "Corporate administrative access",
+    password: SAFE_DEFAULT_PASSWORD,
+    category: "corporate",
+  },
+  {
+    prefix: "property.manager",
+    role: "PROPERTY_MANAGER",
+    displayRole: "Property Manager (Corporate)",
+    description: "Corporate property management",
+    password: SAFE_DEFAULT_PASSWORD,
+    category: "corporate",
+  },
+  // Operations roles
+  {
+    prefix: "dispatcher",
+    role: "OPERATIONS_MANAGER",
+    displayRole: "Operations Manager",
+    description: "Work order dispatch",
+    password: SAFE_DEFAULT_PASSWORD,
+    category: "property",
+  },
+  {
+    prefix: "supervisor",
+    role: "MANAGER",
+    displayRole: "Manager",
+    description: "Team supervision",
+    password: SAFE_DEFAULT_PASSWORD,
+    category: "property",
+  },
+  {
+    prefix: "technician",
+    role: "TECHNICIAN",
+    displayRole: "Technician",
+    description: "Field technician access",
+    password: SAFE_DEFAULT_PASSWORD,
+    category: "vendor",
+  },
+  // Vendor roles
+  {
+    prefix: "vendor.admin",
+    role: "VENDOR",
+    displayRole: "Vendor Admin",
+    description: "Vendor administration",
+    password: SAFE_DEFAULT_PASSWORD,
+    category: "vendor",
+  },
+  {
+    prefix: "vendor.tech",
+    role: "VENDOR",
+    displayRole: "Vendor Technician",
+    description: "Vendor technician access",
+    password: SAFE_DEFAULT_PASSWORD,
+    category: "vendor",
+  },
+  // HR/Finance roles
+  {
+    prefix: "finance",
+    role: "FINANCE",
+    displayRole: "Finance",
+    description: "Financial access",
+    password: SAFE_DEFAULT_PASSWORD,
+    category: "hr",
+  },
+  {
+    prefix: "hr",
+    role: "HR",
+    displayRole: "HR Manager",
+    description: "Human resources access",
+    password: SAFE_DEFAULT_PASSWORD,
+    category: "hr",
+  },
+  {
+    prefix: "helpdesk",
+    role: "SUPPORT_AGENT",
+    displayRole: "Support Agent",
+    description: "Support desk access",
+    password: SAFE_DEFAULT_PASSWORD,
+    category: "hr",
+  },
+  {
+    prefix: "auditor",
+    role: "AUDITOR",
+    displayRole: "Auditor",
+    description: "Audit and compliance",
+    password: SAFE_DEFAULT_PASSWORD,
+    category: "hr",
+  },
+  // Corporate employees (for corporate login)
+  {
+    prefix: "emp001",
+    role: "TEAM_MEMBER",
+    displayRole: "Employee 1",
+    description: "Corporate employee access",
+    password: SAFE_DEFAULT_PASSWORD,
+    category: "corporate",
+  },
+  {
+    prefix: "emp002",
+    role: "TEAM_MEMBER",
+    displayRole: "Employee 2",
+    description: "Corporate employee access",
+    password: SAFE_DEFAULT_PASSWORD,
+    category: "corporate",
+  },
+] as const;
+
+/**
+ * Get a demo user's full email address
+ */
+export function getDemoEmail(prefix: string): string {
+  return `${prefix}@${EMAIL_DOMAIN}`;
+}
+
+/**
+ * Generate the set of all demo emails (dynamically from EMAIL_DOMAIN)
+ */
+export function generateDemoEmailsSet(): Set<string> {
+  return new Set(DEMO_USER_DEFINITIONS.map((user) => getDemoEmail(user.prefix)));
+}
+
+/**
+ * Set of all demo user emails for quick lookup
+ * Note: This is evaluated at module load time with the current EMAIL_DOMAIN
+ */
+export const DEMO_EMAILS: Set<string> = generateDemoEmailsSet();
+
+/**
+ * Array of all demo emails for iteration
+ */
+export const DEMO_EMAIL_LIST: string[] = Array.from(DEMO_EMAILS);
+
+/**
+ * Check if an email is a demo user email
+ */
+export function isDemoEmail(email: string | null | undefined): boolean {
+  if (!email) return false;
+  return DEMO_EMAILS.has(email.toLowerCase());
+}
+
+/**
+ * Get demo user by email
+ */
+export function getDemoUserByEmail(
+  email: string
+): (DemoUser & { email: string }) | undefined {
+  const normalizedEmail = email.toLowerCase();
+  const user = DEMO_USER_DEFINITIONS.find(
+    (u) => getDemoEmail(u.prefix).toLowerCase() === normalizedEmail
+  );
+  if (!user) return undefined;
+  return { ...user, email: getDemoEmail(user.prefix) };
+}
+
+/**
+ * Get demo user by prefix (e.g., "superadmin", "admin")
+ */
+export function getDemoUserByPrefix(
+  prefix: string
+): (DemoUser & { email: string }) | undefined {
+  const user = DEMO_USER_DEFINITIONS.find(
+    (u) => u.prefix.toLowerCase() === prefix.toLowerCase()
+  );
+  if (!user) return undefined;
+  return { ...user, email: getDemoEmail(user.prefix) };
+}
+
+/**
+ * Demo employee IDs for corporate login
+ */
+export const DEMO_EMPLOYEE_IDS: Set<string> = new Set([
+  "EMP001",
+  "EMP002",
+  "SA001",
+  "SA-001",
+  "SUPER-001",
+  "MGR-001",
+  "TENANT-001",
+  "VENDOR-001",
+]);
+
+/**
+ * Check if an employee ID is a demo employee
+ */
+export function isDemoEmployeeId(empId: string | null | undefined): boolean {
+  if (!empId) return false;
+  return DEMO_EMPLOYEE_IDS.has(empId.toUpperCase());
+}
+
+/**
+ * Demo credentials for UI display (personal login)
+ * Only includes the main demo accounts shown in login UI
+ */
+export const DEMO_CREDENTIALS_PERSONAL = DEMO_USER_DEFINITIONS.filter((u) =>
+  ["superadmin", "admin", "manager", "tenant", "vendor"].includes(u.prefix)
+).map((u) => ({
+  role: u.displayRole,
+  email: getDemoEmail(u.prefix),
+  password: u.password,
+  description: u.description,
+}));
+
+/**
+ * Demo credentials for corporate login UI
+ */
+export const DEMO_CREDENTIALS_CORPORATE = [
+  {
+    role: "Property Manager (Corporate)",
+    employeeNumber: "EMP001",
+    password: SAFE_DEFAULT_PASSWORD,
+    description: "Corporate account access",
+  },
+  {
+    role: "Admin (Corporate)",
+    employeeNumber: "EMP002",
+    password: SAFE_DEFAULT_PASSWORD,
+    description: "Corporate administrative access",
+  },
+];
+
+/**
+ * Special emails used in specific contexts
+ */
+export const SPECIAL_DEMO_EMAILS = {
+  superadmin: getDemoEmail("superadmin"),
+  admin: getDemoEmail("admin"),
+  testAdmin: getDemoEmail("admin"),
+};
+
+/**
+ * Get the current email domain (for display purposes)
+ */
+export function getEmailDomain(): string {
+  return EMAIL_DOMAIN;
+}
+
+/**
+ * Build a demo email from a prefix and custom domain
+ * Useful for testing with different domains
+ */
+export function buildDemoEmail(prefix: string, domain?: string): string {
+  return `${prefix}@${domain || EMAIL_DOMAIN}`;
+}
+
+/**
+ * Default test user for unit tests
+ */
+export const TEST_USER_DEFAULT = {
+  id: "test-user-id",
+  email: getDemoEmail("admin"),
+  name: "Test Admin",
+  role: "SUPER_ADMIN",
+  orgId: "test-org-id",
+};
+
+]]>
+</file>
+
+<file path="lib/config/domains.ts">
+<![CDATA[
+/**
+ * Domain Configuration
+ *
+ * Centralized domain and URL configuration.
+ * All domain references should use these constants for consistency.
+ *
+ * @module lib/config/domains
+ */
+
+/**
+ * Base domain configuration
+ * Derives from environment variables with sensible defaults
+ */
+export const DOMAINS = {
+  /** Primary application domain */
+  primary: process.env.NEXT_PUBLIC_BASE_URL || "https://fixzit.co",
+
+  /** API domain (same as primary for monolith) */
+  api: process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BASE_URL || "https://fixzit.co",
+
+  /** CDN/Assets domain */
+  cdn: process.env.NEXT_PUBLIC_CDN_URL || process.env.NEXT_PUBLIC_BASE_URL || "https://fixzit.co",
+
+  /** App subdomain for authenticated users */
+  app: process.env.NEXT_PUBLIC_APP_URL || "https://app.fixzit.co",
+
+  /** Dashboard subdomain */
+  dashboard: process.env.NEXT_PUBLIC_DASHBOARD_URL || "https://dashboard.fixzit.co",
+
+  /** Staging environment */
+  staging: process.env.NEXT_PUBLIC_STAGING_URL || "https://staging.fixzit.co",
+} as const;
+
+/**
+ * Email domain configuration
+ * Used for sending emails from the platform
+ */
+export const EMAIL_DOMAINS = {
+  /** Primary email domain */
+  primary: process.env.EMAIL_DOMAIN || "fixzit.co",
+
+  /** No-reply sender */
+  noReply: process.env.SENDGRID_FROM_EMAIL || `noreply@${process.env.EMAIL_DOMAIN || "fixzit.co"}`,
+
+  /** Support email */
+  support: process.env.SUPPORT_EMAIL || `support@${process.env.EMAIL_DOMAIN || "fixzit.co"}`,
+
+  /** Sales email */
+  sales: process.env.SALES_EMAIL || `sales@${process.env.EMAIL_DOMAIN || "fixzit.co"}`,
+
+  /** Privacy inquiries */
+  privacy: process.env.PRIVACY_EMAIL || `privacy@${process.env.EMAIL_DOMAIN || "fixzit.co"}`,
+
+  /** Legal inquiries */
+  legal: process.env.LEGAL_EMAIL || `legal@${process.env.EMAIL_DOMAIN || "fixzit.co"}`,
+
+  /** Notifications sender */
+  notifications: process.env.NOTIFICATIONS_EMAIL || `notifications@${process.env.EMAIL_DOMAIN || "fixzit.co"}`,
+
+  /** Invoices/billing */
+  invoices: process.env.INVOICES_EMAIL || `invoices@${process.env.EMAIL_DOMAIN || "fixzit.co"}`,
+
+  /** Admin notifications/contact */
+  admin: process.env.ADMIN_EMAIL || `admin@${process.env.EMAIL_DOMAIN || "fixzit.co"}`,
+
+  /** Fulfillment notifications */
+  fulfillment: process.env.FULFILLMENT_EMAIL || `fulfillment@${process.env.EMAIL_DOMAIN || "fixzit.co"}`,
+} as const;
+
+/**
+ * Build a full URL from a path
+ *
+ * @param path - The path to append to the base URL
+ * @param base - The base domain to use (defaults to primary)
+ * @returns Full URL string
+ */
+export function buildUrl(path: string, base: keyof typeof DOMAINS = "primary"): string {
+  const baseUrl = DOMAINS[base].replace(/\/$/, "");
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  return `${baseUrl}${cleanPath}`;
+}
+
+/**
+ * Build a mailto link
+ *
+ * @param type - The type of email address to use
+ * @returns mailto: URL
+ */
+export function buildMailto(type: keyof typeof EMAIL_DOMAINS): string {
+  return `mailto:${EMAIL_DOMAINS[type]}`;
+}
+
+/**
+ * Get the current base URL (handles Vercel deployments)
+ *
+ * @returns The current base URL
+ */
+export function getCurrentBaseUrl(): string {
+  // Check for Vercel deployment URL first
+  const vercelUrl = process.env.VERCEL_URL;
+  if (vercelUrl) {
+    return vercelUrl.startsWith("http") ? vercelUrl : `https://${vercelUrl}`;
+  }
+
+  // Fall back to configured base URL
+  return DOMAINS.primary;
+}
+
+/**
+ * CORS allowlist - domains allowed for cross-origin requests
+ */
+export const CORS_ALLOWLIST = [
+  DOMAINS.primary,
+  DOMAINS.app,
+  DOMAINS.dashboard,
+  DOMAINS.staging,
+  DOMAINS.api,
+  // Add www variants
+  DOMAINS.primary.replace("://", "://www."),
+  // Development
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "http://127.0.0.1:3000",
+].filter((url, index, self) => self.indexOf(url) === index); // Dedupe
+
+/**
+ * Check if a URL is in the CORS allowlist
+ */
+export function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return false;
+  try {
+    const parsed = new URL(origin);
+    const normalizedOrigin = parsed.origin;
+    const hostname = parsed.hostname.replace(/^www\./, "");
+    return CORS_ALLOWLIST.some((allowed) => {
+      try {
+        const allowedUrl = new URL(allowed);
+        const allowedHost = allowedUrl.hostname.replace(/^www\./, "");
+        // Allow exact match or subdomains of allowed host
+        return (
+          normalizedOrigin === allowedUrl.origin ||
+          hostname === allowedHost ||
+          hostname.endsWith(`.${allowedHost}`)
+        );
+      } catch {
+        return false;
+      }
+    });
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * External service URLs
+ */
+export const EXTERNAL_URLS = {
+  /** Google Maps API */
+  googleMaps: "https://maps.googleapis.com/maps/api/js",
+
+  /** OpenAI API */
+  openAi: "https://api.openai.com/v1",
+
+  /** PayTabs payment gateway */
+  payTabs: process.env.PAYTABS_BASE_URL || "https://secure.paytabs.sa",
+
+  /** ZATCA e-invoicing */
+  zatca: "https://gw-fatoora.zatca.gov.sa",
+
+  /** Datadog logging */
+  datadog: "https://http-intake.logs.datadoghq.com",
+
+  /** WhatsApp deep link */
+  whatsapp: "https://wa.me",
+} as const;
+
+/**
+ * Build WhatsApp chat link
+ *
+ * @param phone - Phone number (will be cleaned)
+ * @param message - Optional pre-filled message
+ */
+export function buildWhatsAppLink(phone: string, message?: string): string {
+  const cleanPhone = phone.replace(/[^0-9]/g, "");
+  const baseUrl = `${EXTERNAL_URLS.whatsapp}/${cleanPhone}`;
+  if (message) {
+    return `${baseUrl}?text=${encodeURIComponent(message)}`;
+  }
+  return baseUrl;
+}
+
+/**
+ * Check if a domain is trusted (belongs to our platform)
+ */
+export function isTrustedDomain(url: string): boolean {
+  const stripWww = (h: string) => h.replace(/^www\./, "");
+  try {
+    const hostname = new URL(url).hostname;
+    const primaryHost = stripWww(new URL(DOMAINS.primary).hostname);
+    const configuredHosts = [
+      primaryHost,
+      stripWww(new URL(DOMAINS.app).hostname),
+      stripWww(new URL(DOMAINS.dashboard).hostname),
+      stripWww(new URL(DOMAINS.api).hostname),
+      stripWww(new URL(DOMAINS.staging).hostname),
+    ];
+
+    const saVariant = process.env.PRIMARY_SA_DOMAIN
+      ? stripWww(new URL(process.env.PRIMARY_SA_DOMAIN).hostname)
+      : null;
+    if (saVariant) {
+      configuredHosts.push(saVariant);
+    }
+
+    return configuredHosts.some(
+      (host) => hostname === host || hostname.endsWith(`.${host}`),
+    );
+  } catch {
+    return false;
+  }
+}
+
+export type DomainKey = keyof typeof DOMAINS;
+export type EmailDomainKey = keyof typeof EMAIL_DOMAINS;
+
+]]>
+</file>
+
+<file path="lib/cors.ts">
+<![CDATA[
+/**
+ * CORS Helper for Fixzit API Routes
+ *
+ * Runtime-only CORS handling (no global Next.js config conflicts)
+ * Supports credentials, dynamic origins, and proper preflight responses
+ *
+ * @example
+ * import { cors, preflight } from '@/lib/cors';
+ *
+ * export async function OPTIONS(req: Request) {
+ *   return preflight(req) ?? new NextResponse(null, { status: 204 });
+ * }
+ *
+ * export async function GET(req: Request) {
+ *   const res = NextResponse.json({ data: 'example' });
+ *   cors(req, res);
+ *   return res;
+ * }
+ */
+
+import { NextResponse } from "next/server";
+
+const DEFAULT_ORIGINS =
+  process.env.NODE_ENV !== "production"
+    ? ["http://localhost:3000", "http://127.0.0.1:3000"]
+    : [];
+
+const ALLOWED_ORIGINS = [
+  ...DEFAULT_ORIGINS,
+  ...(process.env.ALLOWED_ORIGINS?.split(",").map((o) => o.trim()) || []),
+].filter(Boolean);
+
+/**
+ * Apply CORS headers to a response
+ * Only sets headers if origin is in the allowlist
+ *
+ * @param req - Incoming request (to check origin)
+ * @param res - Response to modify
+ */
+export function cors(req: Request, res: NextResponse): void {
+  const origin = req.headers.get("origin") ?? "";
+  const allow = ALLOWED_ORIGINS.includes(origin) ? origin : "";
+
+  if (allow) {
+    res.headers.set("Access-Control-Allow-Origin", allow);
+    res.headers.set("Vary", "Origin");
+    res.headers.set("Access-Control-Allow-Credentials", "true");
+    res.headers.set(
+      "Access-Control-Allow-Methods",
+      "GET,POST,PUT,DELETE,OPTIONS",
+    );
+    res.headers.set(
+      "Access-Control-Allow-Headers",
+      "Authorization, Content-Type, X-Requested-With, Cookie",
+    );
+    res.headers.set("Access-Control-Max-Age", "86400"); // 24 hours
+  }
+}
+
+/**
+ * Handle OPTIONS preflight requests
+ * Returns a 204 response with CORS headers if method is OPTIONS
+ * Returns null otherwise (let route handler continue)
+ *
+ * @param req - Incoming request
+ * @returns NextResponse for OPTIONS, null otherwise
+ */
+export function preflight(req: Request): NextResponse | null {
+  if (req.method === "OPTIONS") {
+    const res = new NextResponse(null, { status: 204 });
+    cors(req, res);
+    return res;
+  }
+  return null;
+}
+
+]]>
+</file>
+
+<file path="lib/counters.ts">
+<![CDATA[
+import { logger } from "@/lib/logger";
+
+export type CounterPayload = Record<string, unknown>;
+
+/**
+ * Tenant-scoped counters fetcher.
+ * Requires orgId to avoid cross-tenant cache collisions and noisy 400s.
+ */
+export async function fetchOrgCounters(
+  orgId: string,
+  init?: RequestInit,
+): Promise<CounterPayload> {
+  if (!orgId) {
+    throw new Error("Missing orgId for counters fetch");
+  }
+
+  const response = await fetch(
+    `/api/counters?org=${encodeURIComponent(orgId)}`,
+    {
+      credentials: "include",
+      ...init,
+    },
+  );
+
+  if (!response.ok) {
+    const error = new Error(
+      `Failed to fetch counters: ${response.status} ${response.statusText}`,
+    );
+    if (process.env.NODE_ENV === "development") {
+      logger.warn("[Counters] fetch failed", { status: response.status });
+    }
+    throw error;
+  }
+
+  return response.json() as Promise<CounterPayload>;
+}
+
+]]>
+</file>
+
+<file path="lib/database.ts">
+<![CDATA[
+import { logger } from "@/lib/logger";
+// MongoDB Only Configuration
+import {
+  connectToDatabase,
+  getDatabase,
+  checkDatabaseHealth as mongoHealthCheck,
+} from "@/lib/mongodb-unified";
+
+// Re-export unified MongoDB functions
+export { connectToDatabase, getDatabase };
+
+// Database health check (MongoDB only)
+export async function checkDatabaseHealth(): Promise<{
+  mongodb: boolean;
+  errors: string[];
+}> {
+  const errors: string[] = [];
+  let mongodb = false;
+
+  // Check MongoDB
+  try {
+    mongodb = await mongoHealthCheck();
+  } catch (_error: unknown) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    errors.push(
+      `MongoDB: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
+  }
+
+  return { mongodb, errors };
+}
+
+// Graceful shutdown
+const cleanup = async () => {
+  try {
+    const { disconnectFromDatabase } = await import("@/lib/mongodb-unified");
+    await disconnectFromDatabase();
+  } catch {
+    // Error during database cleanup
+  }
+};
+
+process.on("SIGTERM", async () => {
+  logger.info("Received SIGTERM, shutting down gracefully...");
+  await cleanup();
+  process.exit(0);
+});
+
+process.on("SIGINT", async () => {
+  logger.info("Received SIGINT, shutting down gracefully...");
+  await cleanup();
+  process.exit(0);
+});
+
+process.on("uncaughtException", async (err) => {
+  logger.error("💥 Uncaught exception:", err);
+  logger.error("Stack:", err.stack);
+  await cleanup();
+  process.exit(1);
+});
+
+process.on("unhandledRejection", async (reason, promise) => {
+  logger.error("💥 Unhandled rejection at:", promise);
+  logger.error("Reason:", reason);
+  await cleanup();
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="lib/date-utils.ts">
+<![CDATA[
+export type DateInput = Date | number | string | null | undefined;
+
+function normalizeDate(value: DateInput): Date | null {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+  if (typeof value === "number") {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+    const date = new Date(trimmed);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+  return null;
+}
+
+/**
+ * Safely parse any supported date input.
+ * Falls back to the provided fallback value (or current date) when the
+ * input is missing/invalid to avoid runtime `Invalid Date` issues.
+ */
+export function parseDate(
+  value: DateInput,
+  fallback: Date | (() => Date) = () => new Date(),
+): Date {
+  const resolved = normalizeDate(value);
+  if (resolved) {
+    return resolved;
+  }
+
+  const fallbackValue =
+    typeof fallback === "function" ? (fallback as () => Date)() : fallback;
+  const normalizedFallback = normalizeDate(fallbackValue);
+  return normalizedFallback ?? new Date();
+}
+
+]]>
+</file>
+
+<file path="lib/edge-auth-middleware.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { logger } from "./logger";
+import { jwtVerify } from "jose";
+import { getJWTSecret } from "./startup-checks";
+
+export interface EdgeAuthenticatedUser {
+  id: string;
+  email: string;
+  roles: Array<{ name: string; permissions: string[] }>;
+  permissions: string[];
+  organizationId?: string;
+  tenantId?: string;
+}
+
+export interface AuthResult {
+  error?: string;
+  statusCode?: number;
+}
+
+export async function authenticateRequest(
+  request: NextRequest,
+): Promise<EdgeAuthenticatedUser | AuthResult> {
+  try {
+    // Get JWT secret (validated at startup via lib/startup-checks.ts)
+    const secret = getJWTSecret();
+    const secretKey = new TextEncoder().encode(secret);
+
+    // Try to get token from various cookie names
+    const token =
+      request.cookies.get("fz_session")?.value ||
+      request.cookies.get("session")?.value ||
+      request.cookies.get("auth_token")?.value ||
+      request.cookies.get("next-auth.session-token")?.value ||
+      request.cookies.get("fixzit_session")?.value;
+
+    if (!token) {
+      return {
+        error: "No authentication token found",
+        statusCode: 401,
+      };
+    }
+
+    // Verify JWT token with algorithm constraint for security
+    const { payload } = await jwtVerify(token, secretKey, {
+      algorithms: ['HS256'],
+      clockTolerance: 5, // 5 second tolerance for clock skew
+    });
+
+    // Safely extract typed fields from payload (jose JWTPayload is indexable as unknown)
+    const pl: Record<string, unknown> = payload as Record<string, unknown>;
+    const id =
+      typeof payload.sub === "string"
+        ? payload.sub
+        : typeof pl.id === "string"
+          ? (pl.id as string)
+          : "";
+    const email = typeof pl.email === "string" ? (pl.email as string) : "";
+    const roles = Array.isArray(pl.roles)
+      ? (pl.roles as Array<{ name: string; permissions: string[] }>)
+      : [{ name: "guest", permissions: [] }];
+    const permissions = Array.isArray(pl.permissions)
+      ? (pl.permissions as string[])
+      : [];
+    const organizationId =
+      typeof pl.organizationId === "string"
+        ? (pl.organizationId as string)
+        : "";
+    const tenantId =
+      typeof pl.tenantId === "string" ? (pl.tenantId as string) : "";
+
+    // Extract user information from payload
+    const user: EdgeAuthenticatedUser = {
+      id,
+      email,
+      roles,
+      permissions,
+      organizationId,
+      tenantId,
+    };
+
+    return user;
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("Authentication error:", error as Error);
+    return {
+      error: "Invalid or expired token",
+      statusCode: 401,
+    };
+  }
+}
+
+export function hasPermission(
+  user: EdgeAuthenticatedUser,
+  permission: string,
+): boolean {
+  // Super admin has all permissions
+  if (user.roles.some((role) => role.name === "super_admin")) {
+    return true;
+  }
+
+  // Check if user has the specific permission
+  return (
+    user.permissions.includes(permission) ||
+    user.roles.some(
+      (role) =>
+        role.permissions.includes(permission) || role.permissions.includes("*"),
+    )
+  );
+}
+
+export function hasRole(
+  user: EdgeAuthenticatedUser,
+  roleName: string,
+): boolean {
+  return user.roles.some((role) => role.name === roleName);
+}
+
+export function hasAnyRole(
+  user: EdgeAuthenticatedUser,
+  roleNames: string[],
+): boolean {
+  return user.roles.some((role) => roleNames.includes(role.name));
+}
+
+export function getUserPermissions(user: EdgeAuthenticatedUser): string[] {
+  const rolePermissions = user.roles.flatMap((role) => role.permissions);
+  return [...new Set([...user.permissions, ...rolePermissions])];
+}
+
+export function isAdmin(user: EdgeAuthenticatedUser): boolean {
+  return hasAnyRole(user, ["admin", "super_admin"]);
+}
+
+export function isManager(user: EdgeAuthenticatedUser): boolean {
+  return hasAnyRole(user, [
+    "admin",
+    "super_admin",
+    "property_manager",
+    "finance_manager",
+  ]);
+}
+
+export function isTenant(user: EdgeAuthenticatedUser): boolean {
+  return hasRole(user, "tenant");
+}
+
+]]>
+</file>
+
+<file path="lib/email.ts">
+<![CDATA[
+/**
+ * Email Service Utility
+ * Wrapper for SendGrid email functionality with circuit breaker protection
+ */
+
+import { logger } from "@/lib/logger";
+import { EMAIL_DOMAINS } from "@/lib/config/domains";
+import { getCircuitBreaker } from "@/lib/resilience";
+
+// Circuit breaker for SendGrid
+const sendgridBreaker = getCircuitBreaker("sendgrid");
+
+export interface EmailResult {
+  success: boolean;
+  messageId?: string;
+  error?: string;
+}
+
+function maskEmailAddress(address: string): string {
+  const parts = address.split("@");
+  if (parts.length !== 2) return "***";
+  const [user, domain] = parts;
+  if (!user) return `***@${domain}`;
+  const visible = user.slice(0, 2);
+  return `${visible}***@${domain}`;
+}
+
+/**
+ * Sanitize text for safe HTML insertion (XSS prevention)
+ */
+function sanitizeForHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+/**
+ * Send email via SendGrid
+ */
+export async function sendEmail(
+  to: string,
+  subject: string,
+  body: string,
+  options?: {
+    from?: string;
+    html?: string;
+  },
+): Promise<EmailResult> {
+  const maskedTo = maskEmailAddress(to);
+  if (!process.env.SENDGRID_API_KEY) {
+    const error = "SendGrid not configured. Missing SENDGRID_API_KEY";
+    logger.warn("[Email] Configuration missing", { to: maskedTo });
+    return { success: false, error };
+  }
+
+  try {
+    const sgMail = (await import("@sendgrid/mail")).default;
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
+    // Use circuit breaker to protect against SendGrid failures
+    const result = await sendgridBreaker.run(async () => sgMail.send({
+      to,
+      from:
+        options?.from ||
+        process.env.SENDGRID_FROM_EMAIL ||
+        EMAIL_DOMAINS.notifications,
+      subject,
+      text: body,
+      html:
+        options?.html ||
+        `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #333; border-bottom: 2px solid #0070f3; padding-bottom: 10px;">
+            ${sanitizeForHtml(subject)}
+          </h2>
+          <div style="margin: 20px 0; line-height: 1.6; color: #666;">
+            ${sanitizeForHtml(body).replace(/\n/g, "<br>")}
+          </div>
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;" />
+          <p style="color: #999; font-size: 12px; text-align: center;">
+            This is an automated notification from Fixzit.<br>
+            For support, contact ${EMAIL_DOMAINS.support}
+          </p>
+        </div>
+      `,
+    }));
+
+    const messageId =
+      result?.[0]?.headers?.["x-message-id"] ||
+      result?.[0]?.headers?.["X-Message-Id"] ||
+      undefined;
+
+    logger.info("[Email] Message sent successfully", {
+      to: maskedTo,
+      subject,
+      messageId,
+    });
+
+    return {
+      success: true,
+      messageId,
+    };
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[Email] Send failed", {
+      error: errorMessage,
+      to: maskedTo,
+      subject,
+    });
+
+    return {
+      success: false,
+      error: errorMessage,
+    };
+  }
+}
+
+]]>
+</file>
+
+<file path="lib/env-validation.ts">
+<![CDATA[
+/**
+ * Environment Validation Module
+ *
+ * Validates critical environment variables on application startup.
+ * Provides clear error messages when required configuration is missing.
+ *
+ * @module lib/env-validation
+ */
+
+import { logger } from "@/lib/logger";
+
+export interface EnvValidationResult {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+/**
+ * Validate SMS provider configuration
+ */
+export function validateSMSConfig(): EnvValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  // Check for at least one SMS provider
+  const hasTwilio = Boolean(
+    process.env.TWILIO_ACCOUNT_SID &&
+    process.env.TWILIO_AUTH_TOKEN &&
+    process.env.TWILIO_PHONE_NUMBER
+  );
+  // Unifonic is now a first-class implemented provider
+  const hasUnifonic = Boolean(
+    process.env.UNIFONIC_APP_SID &&
+    process.env.UNIFONIC_SENDER_ID
+  );
+  const smsDevMode = process.env.SMS_DEV_MODE === "true";
+
+  if (!hasTwilio && !hasUnifonic && !smsDevMode) {
+    errors.push(
+      "No SMS provider configured. Configure TWILIO_* (ACCOUNT_SID, AUTH_TOKEN, PHONE_NUMBER) or UNIFONIC_* (APP_SID, SENDER_ID) or set SMS_DEV_MODE=true."
+    );
+  }
+
+  // Validate Twilio config completeness
+  if (hasTwilio) {
+    if (!process.env.TWILIO_ACCOUNT_SID) {
+      errors.push("TWILIO_ACCOUNT_SID is missing");
+    }
+    if (!process.env.TWILIO_AUTH_TOKEN) {
+      errors.push("TWILIO_AUTH_TOKEN is missing");
+    }
+    if (!process.env.TWILIO_PHONE_NUMBER) {
+      errors.push("TWILIO_PHONE_NUMBER is missing");
+    }
+  }
+
+  // Validate Unifonic config completeness (partial config is a warning)
+  if (process.env.UNIFONIC_APP_SID && !process.env.UNIFONIC_SENDER_ID) {
+    warnings.push("UNIFONIC_APP_SID is set but UNIFONIC_SENDER_ID is missing; Unifonic SMS will fail.");
+  }
+  if (process.env.UNIFONIC_SENDER_ID && !process.env.UNIFONIC_APP_SID) {
+    warnings.push("UNIFONIC_SENDER_ID is set but UNIFONIC_APP_SID is missing; Unifonic SMS will fail.");
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+  };
+}
+
+/**
+ * Validate job/cron secrets (used by scheduled endpoints)
+ */
+export function validateJobSecrets(): EnvValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  if (!process.env.CRON_SECRET) {
+    if (process.env.NODE_ENV === "production") {
+      errors.push("CRON_SECRET is required for secured cron endpoints.");
+    } else {
+      warnings.push("CRON_SECRET not set. Cron job endpoints will reject secret auth.");
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+  };
+}
+
+/**
+ * Validate encryption configuration
+ */
+export function validateEncryptionConfig(): EnvValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  const encryptionKey = process.env.ENCRYPTION_KEY || process.env.PII_ENCRYPTION_KEY;
+
+  if (!encryptionKey) {
+    if (process.env.NODE_ENV === "production") {
+      errors.push(
+        "ENCRYPTION_KEY is required in production. PII data cannot be encrypted without it."
+      );
+    } else {
+      warnings.push(
+        "ENCRYPTION_KEY not set. Using mock encryption in non-production."
+      );
+    }
+  } else if (encryptionKey.length < 32) {
+    warnings.push(
+      "ENCRYPTION_KEY should be at least 32 characters for AES-256 security."
+    );
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+  };
+}
+
+/**
+ * Validate authentication configuration
+ */
+export function validateAuthConfig(): EnvValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  if (!process.env.AUTH_SECRET && !process.env.NEXTAUTH_SECRET) {
+    if (process.env.NODE_ENV === "production") {
+      errors.push("AUTH_SECRET or NEXTAUTH_SECRET is required in production.");
+    } else {
+      warnings.push("AUTH_SECRET not set. Using ephemeral secret in non-production.");
+    }
+  }
+
+  if (!process.env.JWT_SECRET) {
+    if (process.env.NODE_ENV === "production") {
+      errors.push("JWT_SECRET is required in production.");
+    } else {
+      warnings.push("JWT_SECRET not set. Using ephemeral secret in non-production.");
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+  };
+}
+
+/**
+ * Validate database configuration
+ */
+export function validateDatabaseConfig(): EnvValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  if (!process.env.MONGODB_URI) {
+    errors.push("MONGODB_URI is required. Database connection will fail.");
+  }
+
+  if (!process.env.REDIS_URL && !process.env.UPSTASH_REDIS_REST_URL) {
+    warnings.push(
+      "No Redis configuration found. BullMQ queues and caching will be disabled."
+    );
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+  };
+}
+
+/**
+ * Validate payment gateway configuration (PayTabs, Tap)
+ */
+export function validatePaymentConfig(): EnvValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  const hasPaytabs =
+    Boolean(process.env.PAYTABS_SERVER_KEY) &&
+    Boolean(process.env.PAYTABS_PROFILE_ID);
+  const hasTap = Boolean(process.env.TAP_WEBHOOK_SECRET);
+
+  if (!hasPaytabs) {
+    const msg =
+      "PayTabs credentials missing (PAYTABS_SERVER_KEY, PAYTABS_PROFILE_ID)";
+    if (process.env.NODE_ENV === "production") {
+      errors.push(msg);
+    } else {
+      warnings.push(msg);
+    }
+  }
+
+  if (!hasTap) {
+    const msg = "Tap webhook secret missing (TAP_WEBHOOK_SECRET)";
+    if (process.env.NODE_ENV === "production") {
+      errors.push(msg);
+    } else {
+      warnings.push(msg);
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+  };
+}
+
+/**
+ * Validate all critical environment variables
+ * Call this on application startup
+ */
+export function validateAllEnv(): EnvValidationResult {
+  const results: EnvValidationResult[] = [
+    validateSMSConfig(),
+    validateJobSecrets(),
+    validatePaymentConfig(),
+    validateEncryptionConfig(),
+    validateAuthConfig(),
+    validateDatabaseConfig(),
+  ];
+
+  const allErrors = results.flatMap((r) => r.errors);
+  const allWarnings = results.flatMap((r) => r.warnings);
+
+  // Log warnings
+  for (const warning of allWarnings) {
+    logger.warn(`[Env Validation] ${warning}`);
+  }
+
+  // Log errors
+  for (const error of allErrors) {
+    logger.error(`[Env Validation] ${error}`);
+  }
+
+  const result = {
+    valid: allErrors.length === 0,
+    errors: allErrors,
+    warnings: allWarnings,
+  };
+
+  if (result.valid) {
+    logger.info("[Env Validation] All critical environment variables validated", {
+      warnings: allWarnings.length,
+    });
+  } else {
+    logger.error("[Env Validation] Critical environment variables missing", {
+      errors: allErrors.length,
+      warnings: allWarnings.length,
+    });
+
+    // In production, throw to prevent startup with invalid config
+    if (process.env.NODE_ENV === "production" && allErrors.length > 0) {
+      throw new Error(
+        `Environment validation failed: ${allErrors.join("; ")}`
+      );
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Get configuration status for health check
+ */
+export function getConfigStatus(): Record<string, { configured: boolean; details?: string }> {
+  return {
+    twilio: {
+      configured: Boolean(
+        process.env.TWILIO_ACCOUNT_SID &&
+        process.env.TWILIO_AUTH_TOKEN &&
+        process.env.TWILIO_PHONE_NUMBER
+      ),
+    },
+    unifonic: {
+      configured: Boolean(process.env.UNIFONIC_APP_SID && process.env.UNIFONIC_SENDER_ID),
+    },
+    encryption: {
+      configured: Boolean(
+        process.env.ENCRYPTION_KEY || process.env.PII_ENCRYPTION_KEY
+      ),
+    },
+    mongodb: {
+      configured: Boolean(process.env.MONGODB_URI),
+    },
+    redis: {
+      configured: Boolean(
+        process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL
+      ),
+    },
+    cronSecret: {
+      configured: Boolean(process.env.CRON_SECRET),
+    },
+    sendgrid: {
+      configured: Boolean(process.env.SENDGRID_API_KEY),
+    },
+    s3: {
+      configured: Boolean(
+        process.env.AWS_S3_BUCKET &&
+        process.env.AWS_ACCESS_KEY_ID &&
+        process.env.AWS_SECRET_ACCESS_KEY
+      ),
+    },
+    paytabs: {
+      configured: Boolean(
+        process.env.PAYTABS_SERVER_KEY && process.env.PAYTABS_PROFILE_ID
+      ),
+    },
+    tap: {
+      configured: Boolean(process.env.TAP_WEBHOOK_SECRET),
+    },
+  };
+}
+
+]]>
+</file>
+
+<file path="lib/env.js">
+<![CDATA[
+const isTestEnv =
+  process.env.NODE_ENV === "test" ||
+  process.env.VITEST_WORKER_ID !== undefined ||
+  process.env.JEST_WORKER_ID !== undefined;
+
+function requireEnv(name, options = {}) {
+  const value = process.env[name];
+  const hasValue =
+    value !== undefined && (options.allowEmpty || (value || "").trim() !== "");
+
+  if (hasValue) {
+    return value;
+  }
+
+  if (
+    isTestEnv &&
+    Object.prototype.hasOwnProperty.call(options, "testFallback")
+  ) {
+    process.env[name] = options.testFallback;
+    return options.testFallback;
+  }
+
+  throw new Error(
+    `Missing required environment variable "${name}". Set it in your environment or secrets manager.`,
+  );
+}
+
+function getEnv(name, fallback) {
+  const value = process.env[name];
+  if (value === undefined || value === "") {
+    return fallback;
+  }
+  return value;
+}
+
+module.exports = {
+  requireEnv,
+  getEnv,
+};
+
+]]>
+</file>
+
+<file path="lib/env.ts">
+<![CDATA[
+const isTestEnv =
+  process.env.NODE_ENV === "test" ||
+  process.env.VITEST_WORKER_ID !== undefined ||
+  process.env.JEST_WORKER_ID !== undefined;
+
+type RequireEnvOptions = {
+  /**
+   * Allow returning an empty string (for flags). Defaults to false.
+   */
+  allowEmpty?: boolean;
+  /**
+   * Provide a fallback specifically for test environments.
+   */
+  testFallback?: string;
+  /**
+   * Alternative env var names to check (aliases for different naming conventions).
+   * Useful when Vercel uses different names than the codebase.
+   */
+  aliases?: string[];
+};
+
+export const TEST_JWT_SECRET =
+  "test-secret-key-for-jest-tests-minimum-32-characters-long";
+
+/**
+ * Environment variable aliases for Vercel naming convention compatibility.
+ * Maps codebase names → alternative names used in Vercel dashboard.
+ * 
+ * Example: SENDGRID_API_KEY might be stored as SEND_GRID or SEND_GRID_EMAIL_FIXZIT_TOKEN
+ */
+const ENV_ALIASES: Record<string, string[]> = {
+  // SendGrid - Vercel uses various naming conventions
+  SENDGRID_API_KEY: ["SEND_GRID", "SEND_GRID_EMAIL_FIXZIT_TOKEN", "SENDGRID"],
+  // Google OAuth - alternative naming
+  GOOGLE_CLIENT_ID: ["OAUTH_CLIENT_GOOGLE_ID"],
+  GOOGLE_CLIENT_SECRET: ["OAUTH_CLIENT_GOOGLE_SECRET", "OAUTH_CLIENT_GOOGLE"],
+};
+
+/**
+ * Get environment variable value, checking aliases if primary name not found.
+ */
+function getEnvWithAliases(name: string, aliases?: string[]): string | undefined {
+  // Check primary name first
+  const primaryValue = process.env[name];
+  if (primaryValue !== undefined && primaryValue !== "") {
+    return primaryValue;
+  }
+
+  // Check configured aliases
+  const configuredAliases = aliases || ENV_ALIASES[name] || [];
+  for (const alias of configuredAliases) {
+    const aliasValue = process.env[alias];
+    if (aliasValue !== undefined && aliasValue !== "") {
+      return aliasValue;
+    }
+  }
+
+  return undefined;
+}
+
+export function requireEnv(
+  name: string,
+  options: RequireEnvOptions = {},
+): string {
+  const value = getEnvWithAliases(name, options.aliases);
+  const hasValue =
+    value !== undefined && (options.allowEmpty || value.trim() !== "");
+
+  if (hasValue) {
+    return value as string;
+  }
+
+  if (isTestEnv && options.testFallback !== undefined) {
+    process.env[name] = options.testFallback;
+    return options.testFallback;
+  }
+
+  // Build helpful error message with aliases
+  const aliases = options.aliases || ENV_ALIASES[name] || [];
+  const aliasInfo = aliases.length > 0 ? ` (also checked: ${aliases.join(", ")})` : "";
+  
+  throw new Error(
+    `Missing required environment variable "${name}"${aliasInfo}. Set it in your environment or secrets manager.`,
+  );
+}
+
+export function getEnv(name: string, fallback?: string): string | undefined {
+  const value = getEnvWithAliases(name);
+  if (value === undefined || value === "") {
+    return fallback;
+  }
+  return value;
+}
+
+]]>
+</file>
+
+<file path="lib/errors/ErrorResponse.ts">
+<![CDATA[
+/**
+ * StandardError Response Utility
+ *
+ * Zero-Tolerance Gate 2.G Compliance
+ *
+ * This utility provides standardized error responses across the entire application.
+ * All API routes MUST use these standardized error codes and structures.
+ *
+ * Benefits:
+ * - Consistent error format across all APIs
+ * - Client-friendly error codes for i18n
+ * - Correlation IDs for debugging
+ * - Type-safe error handling
+ * - Centralized error taxonomy
+ */
+
+import { NextResponse } from "next/server";
+
+/**
+ * Standard Error Codes
+ * These codes map to user-facing error messages in the frontend
+ */
+export const ERROR_CODES = {
+  // Authentication & Authorization (40x)
+  UNAUTHORIZED: "UNAUTHORIZED",
+  FORBIDDEN: "FORBIDDEN",
+  SESSION_EXPIRED: "SESSION_EXPIRED",
+  INVALID_CREDENTIALS: "INVALID_CREDENTIALS",
+  INSUFFICIENT_PERMISSIONS: "INSUFFICIENT_PERMISSIONS",
+
+  // Validation (400)
+  VALIDATION_ERROR: "VALIDATION_ERROR",
+  INVALID_INPUT: "INVALID_INPUT",
+  MISSING_REQUIRED_FIELD: "MISSING_REQUIRED_FIELD",
+  INVALID_FORMAT: "INVALID_FORMAT",
+
+  // Resource Errors (404, 409)
+  NOT_FOUND: "NOT_FOUND",
+  RESOURCE_NOT_FOUND: "RESOURCE_NOT_FOUND",
+  ALREADY_EXISTS: "ALREADY_EXISTS",
+  CONFLICT: "CONFLICT",
+
+  // Rate Limiting (429)
+  RATE_LIMIT_EXCEEDED: "RATE_LIMIT_EXCEEDED",
+  TOO_MANY_REQUESTS: "TOO_MANY_REQUESTS",
+
+  // Server Errors (500)
+  INTERNAL_SERVER_ERROR: "INTERNAL_SERVER_ERROR",
+  DATABASE_ERROR: "DATABASE_ERROR",
+  SERVICE_UNAVAILABLE: "SERVICE_UNAVAILABLE",
+  EXTERNAL_SERVICE_ERROR: "EXTERNAL_SERVICE_ERROR",
+
+  // Business Logic Errors
+  BUSINESS_RULE_VIOLATION: "BUSINESS_RULE_VIOLATION",
+  INSUFFICIENT_BALANCE: "INSUFFICIENT_BALANCE",
+  QUOTA_EXCEEDED: "QUOTA_EXCEEDED",
+  OPERATION_NOT_ALLOWED: "OPERATION_NOT_ALLOWED",
+} as const;
+
+export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
+
+/**
+ * Standard Error Response Structure
+ */
+export interface ErrorResponse {
+  error: {
+    code: ErrorCode;
+    message: string;
+    correlationId: string;
+    timestamp: string;
+    details?: Record<string, unknown>;
+    path?: string;
+  };
+}
+
+/**
+ * Standard Error Response Options
+ */
+export interface ErrorResponseOptions {
+  code: ErrorCode;
+  message: string;
+  correlationId?: string;
+  details?: Record<string, unknown>;
+  path?: string;
+  statusCode?: number;
+}
+
+/**
+ * Creates a standardized error response
+ *
+ * @example
+ * ```typescript
+ * return createErrorResponse({
+ *   code: ERROR_CODES.VALIDATION_ERROR,
+ *   message: 'Invalid email format',
+ *   correlationId: crypto.randomUUID(),
+ *   details: { field: 'email', value: body.email },
+ *   statusCode: 400,
+ * });
+ * ```
+ */
+export function createErrorResponse(
+  options: ErrorResponseOptions,
+): NextResponse<ErrorResponse> {
+  const {
+    code,
+    message,
+    correlationId = crypto.randomUUID(),
+    details,
+    path,
+    statusCode = 500,
+  } = options;
+
+  const errorResponse: ErrorResponse = {
+    error: {
+      code,
+      message,
+      correlationId,
+      timestamp: new Date().toISOString(),
+      ...(details && { details }),
+      ...(path && { path }),
+    },
+  };
+
+  return NextResponse.json(errorResponse, { status: statusCode });
+}
+
+/**
+ * Helper: 400 Bad Request
+ */
+export function badRequest(
+  message: string,
+  details?: Record<string, unknown>,
+  correlationId?: string,
+): NextResponse<ErrorResponse> {
+  return createErrorResponse({
+    code: ERROR_CODES.INVALID_INPUT,
+    message,
+    details,
+    correlationId,
+    statusCode: 400,
+  });
+}
+
+/**
+ * Helper: 401 Unauthorized
+ */
+export function unauthorized(
+  message: string = "Authentication required",
+  correlationId?: string,
+): NextResponse<ErrorResponse> {
+  return createErrorResponse({
+    code: ERROR_CODES.UNAUTHORIZED,
+    message,
+    correlationId,
+    statusCode: 401,
+  });
+}
+
+/**
+ * Helper: 403 Forbidden
+ */
+export function forbidden(
+  message: string = "Insufficient permissions",
+  correlationId?: string,
+): NextResponse<ErrorResponse> {
+  return createErrorResponse({
+    code: ERROR_CODES.FORBIDDEN,
+    message,
+    correlationId,
+    statusCode: 403,
+  });
+}
+
+/**
+ * Helper: 404 Not Found
+ */
+export function notFound(
+  message: string = "Resource not found",
+  details?: Record<string, unknown>,
+  correlationId?: string,
+): NextResponse<ErrorResponse> {
+  return createErrorResponse({
+    code: ERROR_CODES.NOT_FOUND,
+    message,
+    details,
+    correlationId,
+    statusCode: 404,
+  });
+}
+
+/**
+ * Helper: 409 Conflict
+ */
+export function conflict(
+  message: string,
+  details?: Record<string, unknown>,
+  correlationId?: string,
+): NextResponse<ErrorResponse> {
+  return createErrorResponse({
+    code: ERROR_CODES.CONFLICT,
+    message,
+    details,
+    correlationId,
+    statusCode: 409,
+  });
+}
+
+/**
+ * Helper: 429 Rate Limit Exceeded
+ */
+export function rateLimitExceeded(
+  message: string = "Too many requests",
+  correlationId?: string,
+): NextResponse<ErrorResponse> {
+  return createErrorResponse({
+    code: ERROR_CODES.RATE_LIMIT_EXCEEDED,
+    message,
+    correlationId,
+    statusCode: 429,
+  });
+}
+
+/**
+ * Helper: 500 Internal Server Error
+ */
+export function serverError(
+  message: string = "Internal server error",
+  details?: Record<string, unknown>,
+  correlationId?: string,
+): NextResponse<ErrorResponse> {
+  return createErrorResponse({
+    code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+    message,
+    details,
+    correlationId,
+    statusCode: 500,
+  });
+}
+
+/**
+ * Helper: 503 Service Unavailable
+ */
+export function serviceUnavailable(
+  message: string = "Service temporarily unavailable",
+  correlationId?: string,
+): NextResponse<ErrorResponse> {
+  return createErrorResponse({
+    code: ERROR_CODES.SERVICE_UNAVAILABLE,
+    message,
+    correlationId,
+    statusCode: 503,
+  });
+}
+
+]]>
+</file>
+
+<file path="lib/errors/secureErrorResponse.ts">
+<![CDATA[
+/**
+ * Secure Error Response Utility
+ * Sanitizes error messages to prevent internal details leakage
+ */
+
+import { logger } from "@/lib/logger";
+import { createSecureResponse } from "@/lib/marketplace/security";
+
+export interface SecureErrorOptions {
+  /** The raw error that occurred */
+  error: unknown;
+  /** User-friendly default message if error type is unknown */
+  defaultMessage?: string;
+  /** HTTP status code */
+  statusCode?: number;
+  /** Whether to log the original error to console (development only) */
+  logError?: boolean;
+}
+
+/**
+ * Known safe error types that can expose their messages
+ */
+const SAFE_ERROR_PATTERNS = [
+  "Authentication required",
+  "Invalid token",
+  "Unauthenticated",
+  "Unauthorized",
+  "Not found",
+  "Invalid input",
+  "Validation failed",
+  "Resource already exists",
+  "Operation not allowed",
+];
+
+/**
+ * Check if an error message is safe to expose to clients
+ */
+function isSafeErrorMessage(message: string): boolean {
+  return SAFE_ERROR_PATTERNS.some((pattern) =>
+    message.toLowerCase().includes(pattern.toLowerCase()),
+  );
+}
+
+/**
+ * Extract a safe error message from an error object
+ */
+function getSafeErrorMessage(error: unknown, defaultMessage: string): string {
+  if (!(error instanceof Error)) {
+    return defaultMessage;
+  }
+
+  // Only expose specific known-safe error messages
+  if (isSafeErrorMessage(error.message)) {
+    return error.message;
+  }
+
+  // For all other errors, return the default message
+  return defaultMessage;
+}
+
+/**
+ * Create a secure error response that doesn't leak internal details
+ * 
+ * @example
+ * ```ts
+ * try {
+ *   const result = await dangerousOperation();
+ *   return createSecureResponse({ success: true, data: result }, { status: 200 });
+ * } catch (_error) {
+   const error = _error instanceof Error ? _error : new Error(String(_error));
+   void error;
+ *   return createSecureErrorResponse({
+ *     error,
+ *     defaultMessage: 'Failed to complete operation',
+ *     statusCode: 500,
+ *   });
+ * }
+ * ```
+ */
+export function createSecureErrorResponse(
+  options: SecureErrorOptions,
+): Response {
+  const {
+    error,
+    defaultMessage = "An unexpected error occurred",
+    statusCode = 500,
+    logError = process.env.NODE_ENV === "development",
+  } = options;
+
+  // Log error in development for debugging
+  if (logError && error instanceof Error) {
+    logger.error("[Secure Error Handler]", error, {
+      name: error.name,
+    });
+  }
+
+  // Get safe message
+  const safeMessage = getSafeErrorMessage(error, defaultMessage);
+
+  // Return secure response with proper ResponseInit
+  return createSecureResponse(
+    {
+      success: false,
+      error: safeMessage,
+    },
+    { status: statusCode },
+  );
+}
+
+]]>
+</file>
+
+<file path="lib/export-utils.ts">
+<![CDATA[
+/**
+ * CSV and PDF Export Utilities
+ *
+ * Provides reusable functions for exporting data to CSV and PDF formats.
+ * Uses papaparse for CSV and jsPDF with autoTable for PDF.
+ */
+
+import { logger } from "@/lib/logger";
+
+type ExportValue =
+  | string
+  | number
+  | boolean
+  | Date
+  | Record<string, unknown>
+  | null
+  | undefined;
+type ExportRow = Record<string, ExportValue>;
+
+/**
+ * Convert array of objects to CSV string
+ */
+export function arrayToCSV<T extends ExportRow>(
+  data: T[],
+  columns?: { key: keyof T; label: string }[],
+): string {
+  if (data.length === 0) {
+    return "";
+  }
+
+  // If columns not specified, use all keys from first object
+  const cols =
+    columns || Object.keys(data[0]).map((key) => ({ key, label: key }));
+
+  // Create header row
+  const headers = cols.map((col) => escapeCsvValue(col.label)).join(",");
+
+  // Create data rows
+  const rows = data.map((row) => {
+    return cols
+      .map((col) => {
+        const value = row[col.key];
+        return escapeCsvValue(formatValue(value));
+      })
+      .join(",");
+  });
+
+  return [headers, ...rows].join("\n");
+}
+
+/**
+ * Escape CSV value (handle commas, quotes, newlines)
+ */
+function escapeCsvValue(value: string): string {
+  if (value == null) return "";
+  const stringValue = String(value);
+
+  // If contains comma, quote, or newline, wrap in quotes and escape quotes
+  if (
+    stringValue.includes(",") ||
+    stringValue.includes('"') ||
+    stringValue.includes("\n")
+  ) {
+    return `"${stringValue.replace(/"/g, '""')}"`;
+  }
+
+  return stringValue;
+}
+
+/**
+ * Format value for CSV (dates, booleans, etc.)
+ */
+function formatValue(value: ExportValue): string {
+  if (value == null) return "";
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
+/**
+ * Download CSV file (client-side)
+ */
+export function downloadCSV(csvContent: string, filename: string): void {
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+
+  link.setAttribute("href", url);
+  link.setAttribute("download", filename);
+  link.style.visibility = "hidden";
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  URL.revokeObjectURL(url);
+  logger.info("[Export] CSV downloaded", { filename });
+}
+
+/**
+ * Export array to CSV and download
+ */
+export function exportToCSV<T extends ExportRow>(
+  data: T[],
+  filename: string,
+  columns?: { key: keyof T; label: string }[],
+): void {
+  try {
+    const csv = arrayToCSV(data, columns);
+    downloadCSV(csv, filename);
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[Export] Failed to export CSV", { error, filename });
+    throw error;
+  }
+}
+
+/**
+ * PDF export configuration
+ */
+export interface PDFExportConfig {
+  title: string;
+  subtitle?: string;
+  orientation?: "portrait" | "landscape";
+  pageSize?: "a4" | "letter";
+  includeDate?: boolean;
+}
+
+/**
+ * Generate PDF from table data (client-side using browser print)
+ * Creates a printable HTML document and triggers print dialog
+ */
+export async function generatePDF<T extends ExportRow>(
+  data: T[],
+  columns: { key: keyof T; label: string }[],
+  config: PDFExportConfig,
+): Promise<void> {
+  try {
+    // Create HTML table
+    let html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>${config.title}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          h1 { font-size: 24px; margin-bottom: 5px; }
+          h2 { font-size: 14px; color: #666; margin-bottom: 10px; font-weight: normal; }
+          .date { font-size: 12px; color: #999; margin-bottom: 20px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th { background: #428bca; color: white; padding: 8px; text-align: left; font-weight: bold; }
+          td { border: 1px solid #ddd; padding: 8px; }
+          tr:nth-child(even) { background: #f9f9f9; }
+          @media print {
+            body { margin: 0; }
+            button { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <h1>${config.title}</h1>
+    `;
+
+    if (config.subtitle) {
+      html += `<h2>${config.subtitle}</h2>`;
+    }
+
+    if (config.includeDate) {
+      html += `<div class="date">Generated: ${new Date().toLocaleString()}</div>`;
+    }
+
+    html += "<table><thead><tr>";
+    columns.forEach((col) => {
+      html += `<th>${col.label}</th>`;
+    });
+    html += "</tr></thead><tbody>";
+
+    data.forEach((row) => {
+      html += "<tr>";
+      columns.forEach((col) => {
+        html += `<td>${formatValue(row[col.key])}</td>`;
+      });
+      html += "</tr>";
+    });
+
+    html += "</tbody></table>";
+    html += `
+        <script>
+          window.onload = function() { window.print(); }
+        </script>
+      </body>
+      </html>
+    `;
+
+    // Open in new window and trigger print
+    const printWindow = window.open("", "_blank");
+    if (printWindow) {
+      printWindow.document.write(html);
+      printWindow.document.close();
+    } else {
+      throw new Error("Failed to open print window. Please allow popups.");
+    }
+
+    logger.info("[Export] PDF print dialog opened", { config });
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[Export] Failed to generate PDF", { error, config });
+    throw error;
+  }
+}
+
+/**
+ * Export to PDF using browser print (no server-side generation needed)
+ */
+export async function exportToPDF<T extends ExportRow>(
+  data: T[],
+  columns: { key: keyof T; label: string }[],
+  filename: string,
+  config: Omit<PDFExportConfig, "includeDate"> & { includeDate?: boolean } = {
+    title: "Export",
+  },
+): Promise<void> {
+  try {
+    const fullConfig: PDFExportConfig = {
+      ...config,
+      includeDate: config.includeDate ?? true,
+    };
+
+    await generatePDF(data, columns, fullConfig);
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error("[Export] Failed to export PDF", { error, filename });
+    throw error;
+  }
+}
+
+]]>
+</file>
+
+<file path="lib/finance/checkout.ts">
+<![CDATA[
+import PriceBook from "@/server/models/PriceBook";
+import Subscription from "@/server/models/Subscription";
+import { quotePrice, BillingCycle, QuoteResult } from "./pricing";
+
+type QuoteSuccess = Extract<QuoteResult, { requiresQuote: false }>;
+
+type QuoteFailure = Extract<QuoteResult, { requiresQuote: true }>;
+
+interface CustomerDetails {
+  name: string;
+  email: string;
+  phone?: string;
+}
+
+interface CheckoutInput {
+  subscriberType: "CORPORATE" | "OWNER";
+  tenantId?: string;
+  ownerUserId?: string;
+  modules: string[];
+  seats: number;
+  billingCycle: BillingCycle;
+  currency: "USD" | "SAR";
+  customer: CustomerDetails;
+  priceBookId?: string;
+  metadata?: Record<string, unknown>;
+}
+
+interface CheckoutSuccess {
+  requiresQuote: false;
+  subscriptionId: string;
+  cartId: string;
+  redirectUrl: string;
+  quote: QuoteSuccess;
+}
+
+interface CheckoutRequiresQuote {
+  requiresQuote: true;
+  quote: QuoteFailure;
+}
+
+export async function createSubscriptionCheckout(
+  input: CheckoutInput,
+): Promise<CheckoutSuccess | CheckoutRequiresQuote> {
+  const billingCycle = input.billingCycle;
+  const currency = input.currency;
+
+  const paytabsDomain = process.env.PAYTABS_DOMAIN;
+  const paytabsProfileId = process.env.PAYTABS_PROFILE_ID;
+  const paytabsServerKey = process.env.PAYTABS_SERVER_KEY;
+  const appUrl = process.env.APP_URL;
+
+  if (!paytabsDomain || !paytabsProfileId || !paytabsServerKey || !appUrl) {
+    throw new Error("PayTabs environment variables are not fully configured");
+  }
+
+  const priceBook = input.priceBookId
+    ? await PriceBook.findById(input.priceBookId)
+    : await PriceBook.findOne({ currency, active: true });
+
+  if (!priceBook) {
+    throw new Error("PriceBook not found");
+  }
+
+  const quote = await quotePrice({
+    priceBookCurrency: currency,
+    seats: input.seats,
+    modules: input.modules,
+    billingCycle,
+  });
+
+  if (quote.requiresQuote) {
+    return { requiresQuote: true, quote };
+  }
+
+  const now = new Date();
+  const periodLengthDays = billingCycle === "ANNUAL" ? 365 : 30;
+  const periodEnd = new Date(now.getTime() + periodLengthDays * 24 * 60 * 60 * 1000);
+
+  const subscription = await Subscription.create({
+    tenant_id:
+      input.subscriberType === "CORPORATE" ? input.tenantId : undefined,
+    owner_user_id:
+      input.subscriberType === "OWNER" ? input.ownerUserId : undefined,
+    subscriber_type: input.subscriberType,
+    modules: input.modules,
+    seats: input.seats,
+    billing_cycle: billingCycle,
+    currency,
+    price_book_id: priceBook._id,
+    amount: quote.total,
+    status: "INCOMPLETE",
+    paytabs: {
+      profile_id: paytabsProfileId,
+      customer_email: input.customer.email,
+    },
+    metadata: input.metadata,
+    current_period_start: now,
+    current_period_end: periodEnd,
+    next_billing_date: periodEnd,
+  });
+
+  const cartId = `SUB-${subscription._id.toString()}`;
+  const payload: Record<string, unknown> = {
+    profile_id: paytabsProfileId,
+    tran_type: "sale",
+    tran_class: "ecom",
+    cart_id: cartId,
+    cart_description: `${input.subscriberType} subscription`,
+    cart_amount: quote.total,
+    cart_currency: currency,
+    customer_details: {
+      name: input.customer.name,
+      email: input.customer.email,
+      phone: input.customer.phone ?? "N/A",
+      street1: "N/A",
+      city: "N/A",
+      state: "N/A",
+      country: "SA",
+      zip: "00000",
+    },
+    return: `${appUrl}/api/paytabs/return`,
+    callback: `${appUrl}/api/paytabs/callback`,
+  };
+
+  if (billingCycle === "MONTHLY") {
+    payload.tokenise = 2;
+  }
+
+  const response = await fetch(`${paytabsDomain}/payment/request`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${paytabsServerKey}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const json = await response.json();
+
+  if (!json.redirect_url) {
+    await subscription.deleteOne();
+    throw new Error("Failed to create PayTabs session");
+  }
+
+  subscription.paytabs = {
+    profile_id: paytabsProfileId,
+    customer_email: input.customer.email,
+    cart_id: cartId,
+  };
+  subscription.amount = quote.total;
+  await subscription.save();
+
+  return {
+    requiresQuote: false,
+    subscriptionId: subscription._id.toString(),
+    cartId,
+    redirectUrl: json.redirect_url,
+    quote,
+  };
+}
+
+]]>
+</file>
+
+<file path="lib/finance/decimal.ts">
+<![CDATA[
+/**
+ * Finance Module - Decimal Math Utilities
+ * Provides precise money calculations using Decimal.js
+ * Avoids floating-point errors in financial calculations
+ */
+
+import Decimal from "decimal.js";
+
+// Configure Decimal.js for currency (2 decimal places)
+Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
+
+/**
+ * Create a Decimal instance from various input types
+ */
+export function decimal(
+  value: number | string | Decimal | null | undefined,
+): Decimal {
+  if (value === "" || value == null) {
+    return new Decimal(0);
+  }
+  return new Decimal(value);
+}
+
+/**
+ * Money Math Operations
+ */
+export const Money = {
+  /**
+   * Add two or more monetary values
+   */
+  add(...values: (number | string | Decimal)[]): Decimal {
+    return values.reduce<Decimal>(
+      (sum, val) => sum.plus(decimal(val)),
+      decimal(0),
+    );
+  },
+
+  /**
+   * Subtract monetary values
+   */
+  subtract(
+    a: number | string | Decimal,
+    b: number | string | Decimal,
+  ): Decimal {
+    return decimal(a).minus(decimal(b));
+  },
+
+  /**
+   * Multiply a monetary value (e.g., quantity × rate)
+   */
+  multiply(
+    a: number | string | Decimal,
+    b: number | string | Decimal,
+  ): Decimal {
+    return decimal(a).times(decimal(b));
+  },
+
+  /**
+   * Divide monetary values
+   */
+  divide(a: number | string | Decimal, b: number | string | Decimal): Decimal {
+    const divisor = decimal(b);
+    if (divisor.isZero()) {
+      throw new RangeError(
+        `Division by zero attempted with dividend: ${a} and divisor: ${b}`,
+      );
+    }
+    return decimal(a).dividedBy(divisor);
+  },
+
+  /**
+   * Calculate percentage of an amount
+   * @param amount - Base amount
+   * @param percentage - Percentage (0-100)
+   */
+  percentage(
+    amount: number | string | Decimal,
+    percentage: number | string | Decimal,
+  ): Decimal {
+    return decimal(amount).times(decimal(percentage)).dividedBy(100);
+  },
+
+  /**
+   * Calculate what percentage one amount is of another
+   * @param part - The part amount
+   * @param whole - The whole amount
+   * @returns Percentage (0-100)
+   */
+  percentageOf(
+    part: number | string | Decimal,
+    whole: number | string | Decimal,
+  ): Decimal {
+    const wholeDec = decimal(whole);
+    if (wholeDec.isZero()) {
+      return decimal(0);
+    }
+    return decimal(part).dividedBy(wholeDec).times(100);
+  },
+
+  /**
+   * Round to 2 decimal places (standard for currency)
+   */
+  round(value: number | string | Decimal): Decimal {
+    return decimal(value).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+  },
+
+  /**
+   * Convert Decimal to number (for storage/display)
+   */
+  toNumber(value: Decimal): number {
+    return value.toNumber();
+  },
+
+  /**
+   * Convert Decimal to fixed string (e.g., "123.45")
+   */
+  toString(value: Decimal, decimalPlaces = 2): string {
+    return value.toFixed(decimalPlaces);
+  },
+
+  /**
+   * Check if value is zero
+   */
+  isZero(value: number | string | Decimal): boolean {
+    return decimal(value).isZero();
+  },
+
+  /**
+   * Check if value is positive
+   */
+  isPositive(value: number | string | Decimal): boolean {
+    return decimal(value).isPositive();
+  },
+
+  /**
+   * Check if value is negative
+   */
+  isNegative(value: number | string | Decimal): boolean {
+    return decimal(value).isNegative();
+  },
+
+  /**
+   * Compare two values
+   * @returns -1 if a < b, 0 if a === b, 1 if a > b
+   */
+  compare(a: number | string | Decimal, b: number | string | Decimal): number {
+    return decimal(a).comparedTo(decimal(b));
+  },
+
+  /**
+   * Get the absolute value
+   */
+  abs(value: number | string | Decimal): Decimal {
+    return decimal(value).abs();
+  },
+
+  /**
+   * Calculate sum of an array of values
+   */
+  sum(values: (number | string | Decimal)[]): Decimal {
+    return values.reduce<Decimal>(
+      (sum, val) => sum.plus(decimal(val)),
+      decimal(0),
+    );
+  },
+
+  /**
+   * Calculate average of an array of values
+   */
+  average(values: (number | string | Decimal)[]): Decimal {
+    if (values.length === 0) return decimal(0);
+    return Money.sum(values).dividedBy(values.length);
+  },
+
+  /**
+   * Get minimum value from array
+   */
+  min(...values: (number | string | Decimal)[]): Decimal {
+    if (values.length === 0) return decimal(0);
+    return Decimal.min(...values.map((v) => decimal(v)));
+  },
+
+  /**
+   * Get maximum value from array
+   */
+  max(...values: (number | string | Decimal)[]): Decimal {
+    if (values.length === 0) return decimal(0);
+    return Decimal.max(...values.map((v) => decimal(v)));
+  },
+};
+
+/**
+ * Budget calculations
+ */
+export const BudgetMath = {
+  /**
+   * Calculate total budget from categories
+   */
+  calculateTotal(categories: Array<{ amount: number }>): Decimal {
+    return Money.sum(categories.map((c) => c.amount));
+  },
+
+  /**
+   * Calculate allocated budget (categories with non-empty names)
+   */
+  calculateAllocated(
+    categories: Array<{ category: string; amount: number }>,
+  ): Decimal {
+    return Money.sum(
+      categories.filter((c) => c.category.trim()).map((c) => c.amount),
+    );
+  },
+
+  /**
+   * Calculate remaining budget
+   */
+  calculateRemaining(total: Decimal, allocated: Decimal): Decimal {
+    return total.minus(allocated);
+  },
+
+  /**
+   * Update category amount from percentage
+   */
+  amountFromPercentage(total: Decimal, percentage: number): Decimal {
+    return Money.percentage(total, percentage);
+  },
+
+  /**
+   * Update category percentage from amount
+   */
+  percentageFromAmount(amount: number, total: Decimal): Decimal {
+    return Money.percentageOf(amount, total);
+  },
+};
+
+/**
+ * Invoice calculations
+ */
+export const InvoiceMath = {
+  /**
+   * Calculate line item amount (quantity × rate)
+   */
+  calculateLineAmount(quantity: number, rate: number): Decimal {
+    return Money.multiply(quantity, rate);
+  },
+
+  /**
+   * Calculate subtotal from line items
+   */
+  calculateSubtotal(lineItems: Array<{ amount: number }>): Decimal {
+    return Money.sum(lineItems.map((item) => item.amount));
+  },
+
+  /**
+   * Calculate tax amount
+   */
+  calculateTax(subtotal: Decimal, taxRate: number): Decimal {
+    return Money.percentage(subtotal, taxRate);
+  },
+
+  /**
+   * Calculate total (subtotal + tax)
+   */
+  calculateTotal(subtotal: Decimal, taxAmount: Decimal): Decimal {
+    return subtotal.plus(taxAmount);
+  },
+};
+
+/**
+ * Payment calculations
+ */
+export const PaymentMath = {
+  /**
+   * Calculate payment allocation across invoices
+   */
+  allocatePayment(
+    totalPayment: Decimal,
+    invoices: Array<{ id: string; amount: number }>,
+  ): Array<{ id: string; allocated: Decimal }> {
+    const allocations: Array<{ id: string; allocated: Decimal }> = [];
+    let remaining = totalPayment;
+
+    for (const invoice of invoices) {
+      if (remaining.isZero() || remaining.isNegative()) break;
+
+      const invoiceAmount = decimal(invoice.amount);
+      const allocated = Decimal.min(remaining, invoiceAmount);
+      const roundedAllocated = Money.round(allocated);
+
+      allocations.push({
+        id: invoice.id,
+        allocated: roundedAllocated,
+      });
+
+      // Subtract the rounded value to prevent rounding drift
+      remaining = remaining.minus(roundedAllocated);
+    }
+
+    return allocations;
+  },
+};
+
+/**
+ * Format a Decimal value as currency string
+ */
+export function formatDecimalCurrency(
+  value: Decimal,
+  currency = "OMR",
+): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Money.toNumber(value));
+}
+
+]]>
+</file>
+
+</batch_content>

@@ -1,0 +1,3406 @@
+
+You are the "Fixzit Memory Builder" for category: "routes".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "routes",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/api/copilot/knowledge/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { upsertKnowledgeDocument } from "@/server/copilot/retrieval";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
+import { verifySecretHeader } from "@/lib/security/verify-secret-header";
+
+const docSchema = z.object({
+  slug: z.string(),
+  title: z.string(),
+  content: z.string(),
+  orgId: z.string().nullable().optional(),
+  roles: z.array(z.string()).optional(),
+  locale: z.enum(["en", "ar"]).optional(),
+  tags: z.array(z.string()).optional(),
+  source: z.string().optional(),
+  checksum: z.string().optional(),
+});
+
+const payloadSchema = z.object({
+  docs: z.array(docSchema),
+});
+
+export const runtime = "nodejs";
+
+/**
+ * @openapi
+ * /api/copilot/knowledge:
+ *   get:
+ *     summary: copilot/knowledge operations
+ *     tags: [copilot]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  // SECURITY FIX: Webhook secret is REQUIRED, not optional
+  // Without this, anyone can inject arbitrary knowledge documents
+  const secret = process.env.COPILOT_WEBHOOK_SECRET;
+  if (!secret) {
+    // Fail closed: If secret is not configured, reject all requests
+    return createSecureResponse({ error: "Webhook not configured" }, 503, req);
+  }
+
+  const isValid = verifySecretHeader(req, "x-webhook-secret", secret);
+  if (!isValid) {
+    return createSecureResponse({ error: "Unauthorized" }, 401, req);
+  }
+
+  const json = await req.json();
+  const payload = payloadSchema.parse(json);
+
+  for (const doc of payload.docs) {
+    await upsertKnowledgeDocument({
+      ...doc,
+      orgId: doc.orgId || undefined,
+    });
+  }
+
+  return NextResponse.json({ ok: true, count: payload.docs.length });
+}
+
+]]>
+</file>
+
+<file path="app/api/copilot/profile/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { resolveCopilotSession } from "@/server/copilot/session";
+import { getPermittedTools } from "@/server/copilot/policy";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+/**
+ * @openapi
+ * /api/copilot/profile:
+ *   get:
+ *     summary: copilot/profile operations
+ *     tags: [copilot]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = getClientIP(req);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  const session = await resolveCopilotSession(req);
+  const tools = getPermittedTools(session.role);
+
+  return NextResponse.json({
+    session,
+    tools,
+    quickActions: tools.map((tool) => ({
+      name: tool,
+      label: mapToolToLabel(tool, session.locale),
+      description: mapToolToDescription(tool, session.locale),
+    })),
+  });
+}
+
+function mapToolToLabel(tool: string, locale: string) {
+  switch (tool) {
+    case "createWorkOrder":
+      return locale === "ar" ? "إنشاء أمر عمل" : "Create work order";
+    case "listMyWorkOrders":
+      return locale === "ar" ? "عرض أوامري" : "My work orders";
+    case "dispatchWorkOrder":
+      return locale === "ar" ? "إسناد أمر عمل" : "Dispatch work order";
+    case "scheduleVisit":
+      return locale === "ar" ? "تحديد موعد" : "Schedule visit";
+    case "uploadWorkOrderPhoto":
+      return locale === "ar" ? "رفع صورة" : "Upload photo";
+    case "ownerStatements":
+      return locale === "ar" ? "بيانات المالك" : "Owner statements";
+    default:
+      return tool;
+  }
+}
+
+function mapToolToDescription(tool: string, locale: string) {
+  switch (tool) {
+    case "createWorkOrder":
+      return locale === "ar"
+        ? "إبلاغ فريق الصيانة بمشكلة جديدة"
+        : "Raise a new maintenance request.";
+    case "listMyWorkOrders":
+      return locale === "ar"
+        ? "استعرض أحدث أوامر العمل المرتبطة بك"
+        : "See your latest maintenance tickets.";
+    case "dispatchWorkOrder":
+      return locale === "ar"
+        ? "إسناد مهمة لفني أو مورد"
+        : "Assign the work order to a technician or vendor.";
+    case "scheduleVisit":
+      return locale === "ar"
+        ? "حدد وقت زيارة أو متابعة"
+        : "Set the next visit date/time.";
+    case "uploadWorkOrderPhoto":
+      return locale === "ar"
+        ? "أرفق صوراً للحالة"
+        : "Attach site photos for context.";
+    case "ownerStatements":
+      return locale === "ar"
+        ? "ملخص الدخل والمصروفات"
+        : "Summaries of income vs expenses.";
+    default:
+      return "";
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/copilot/stream/route.ts">
+<![CDATA[
+import { NextRequest } from "next/server";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
+import { resolveCopilotSession } from "@/server/copilot/session";
+import { evaluateMessagePolicy } from "@/server/copilot/policy";
+import { retrieveKnowledge } from "@/server/copilot/retrieval";
+import { generateCopilotStreamResponse } from "@/server/copilot/llm";
+import { recordAudit } from "@/server/copilot/audit";
+import { classifyIntent, detectSentiment } from "@/server/copilot/classifier";
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
+import { validateSystemGovernors } from "@/server/copilot/governors";
+
+const messageSchema = z.object({
+  role: z.enum(["user", "assistant"]),
+  content: z.string(),
+});
+
+type Message = z.infer<typeof messageSchema>;
+
+const requestSchema = z.object({
+  message: z.string().min(1, "Message is required"),
+  history: z.array(messageSchema).optional(),
+  locale: z.enum(["en", "ar"]).optional(),
+});
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+/**
+ * @openapi
+ * /api/copilot/stream:
+ *   post:
+ *     summary: Stream AI responses using Vercel AI SDK
+ *     tags: [copilot]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               message:
+ *                 type: string
+ *               history:
+ *                 type: array
+ *               locale:
+ *                 type: string
+ *                 enum: [en, ar]
+ *     responses:
+ *       200:
+ *         description: Streaming response
+ *         content:
+ *           text/event-stream:
+ *             schema:
+ *               type: string
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Access denied by system governors
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  try {
+    // Rate limiting - more strict for AI endpoints (distributed for multi-instance)
+    const clientIp = getClientIP(req);
+    const rl = await smartRateLimit(`copilot:stream:${clientIp}`, 30, 60_000); // 30 requests per minute
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    // Resolve user session
+    const session = await resolveCopilotSession(req);
+
+    // Parse and validate request body
+    const json = await req.json();
+    const body = requestSchema.parse(json);
+
+    const locale = body.locale || session.locale;
+    const message = body.message.trim();
+
+    // System Governors - validate user access and intent
+    const governorCheck = await validateSystemGovernors({
+      session,
+      message,
+      locale,
+      endpoint: "stream",
+    });
+
+    if (!governorCheck.allowed) {
+      await recordAudit({
+        session,
+        intent: "policy_denied",
+        status: "DENIED",
+        message: governorCheck.reason,
+        prompt: message,
+        metadata: { governor: governorCheck.governor },
+      });
+
+      return new Response(
+        JSON.stringify({
+          error: governorCheck.reason,
+          governor: governorCheck.governor,
+        }),
+        {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    // Classify intent and detect sentiment
+    const intent = classifyIntent(message, locale);
+    const sentiment = detectSentiment(message);
+
+    // Log negative sentiment for monitoring
+    if (sentiment === "negative") {
+      logger.warn("[copilot:stream] Negative sentiment detected", {
+        userId: session.userId,
+        message: message.slice(0, 100),
+      });
+    }
+
+    // Evaluate message policy
+    const policy = evaluateMessagePolicy({ ...session, locale }, message);
+    if (!policy.allowed) {
+      const response =
+        locale === "ar"
+          ? `لا يمكنني مشاركة هذه المعلومات بسبب قيود الصلاحيات.`
+          : `I cannot share that information due to permission restrictions.`;
+
+      await recordAudit({
+        session,
+        intent: "policy_denied",
+        status: "DENIED",
+        message: response,
+        prompt: message,
+        metadata: { dataClass: policy.dataClass },
+      });
+
+      return new Response(JSON.stringify({ error: response }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Retrieve relevant knowledge
+    const docs = await retrieveKnowledge({ ...session, locale }, message);
+
+    // Generate streaming response
+    const result = await generateCopilotStreamResponse({
+      session: { ...session, locale },
+      prompt: message,
+      history: body.history as Message[],
+      docs,
+    });
+
+    // Record audit for successful request
+    await recordAudit({
+      session,
+      intent,
+      status: "SUCCESS",
+      message: "Stream initiated",
+      prompt: message,
+      metadata: {
+        docIds: docs.map((doc) => doc.id),
+        sentiment,
+      },
+    });
+
+    // Return the streaming response
+    return result.toTextStreamResponse();
+  } catch (error: unknown) {
+    logger.error(
+      "Copilot stream error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+
+    return new Response(
+      JSON.stringify({
+        error: errorMessage,
+        fallback: "An error occurred while processing your request.",
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/counters/route.ts">
+<![CDATA[
+import { NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { getAllCounters } from "@/lib/queries";
+import { logger } from "@/lib/logger";
+import { isTruthy } from "@/lib/utils/env";
+
+/**
+ * GET /api/counters - Fetch live dashboard counters
+ *
+ * Returns aggregated counts from MongoDB for:
+ * - Work orders, invoices, employees, properties
+ * - CRM, support, marketplace, system metrics
+ *
+ * Used by ClientSidebar for badge display and dashboard KPIs
+ */
+export async function GET() {
+  try {
+    // Offline/CI mode: avoid DB lookups to prevent 500s
+    if (isTruthy(process.env.ALLOW_OFFLINE_MONGODB)) {
+      return NextResponse.json({}, { status: 200 });
+    }
+
+    const session = await auth();
+    if (!session?.user) {
+      // Guest: return empty counters to avoid 401 noise on public/unauth pages
+      return NextResponse.json({}, { status: 200 });
+    }
+
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "Organization ID not found" },
+        { status: 400 },
+      );
+    }
+
+    const counters = await getAllCounters(orgId);
+
+    return NextResponse.json(counters);
+  } catch (error) {
+    logger.error("GET /api/counters error", error as Error);
+    return NextResponse.json(
+      { error: "Failed to fetch counters" },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/crm/accounts/share/route.ts">
+<![CDATA[
+"use server";
+
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import {
+  getSessionUser,
+  UnauthorizedError,
+} from "@/server/middleware/withAuthRbac";
+import {
+  setTenantContext,
+  clearTenantContext,
+} from "@/server/plugins/tenantIsolation";
+import {
+  setAuditContext,
+  clearAuditContext,
+} from "@/server/plugins/auditPlugin";
+import { getClientIP } from "@/server/security/headers";
+import CrmLead from "@/server/models/CrmLead";
+import CrmActivity from "@/server/models/CrmActivity";
+import { UserRole, type UserRoleType } from "@/types/user";
+
+const PayloadSchema = z.object({
+  company: z.string().min(1),
+  segment: z.string().optional(),
+  revenue: z.number().nonnegative().optional(),
+  employees: z.number().int().nonnegative().optional(),
+  notes: z.string().optional(),
+});
+
+const ALLOWED_ROLES: ReadonlySet<UserRoleType> = new Set([
+  UserRole.SUPER_ADMIN,
+  UserRole.CORPORATE_ADMIN,
+  UserRole.ADMIN,
+  UserRole.MANAGER,
+  UserRole.FM_MANAGER,
+  UserRole.PROPERTY_MANAGER,
+  // Note: EMPLOYEE deprecated in STRICT v4 - MANAGER covers this use case
+]);
+
+function isUnauthenticatedError(error: unknown): boolean {
+  return (
+    error instanceof UnauthorizedError ||
+    (error instanceof Error &&
+      error.message.toLowerCase().includes("unauthenticated"))
+  );
+}
+
+async function resolveUser(req: NextRequest) {
+  try {
+    const user = await getSessionUser(req);
+    if (!user || !user.orgId || !ALLOWED_ROLES.has(user.role)) {
+      return null;
+    }
+    return user;
+  } catch (error) {
+    if (isUnauthenticatedError(error)) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+export async function POST(req: NextRequest) {
+  const user = await resolveUser(req);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let payload: z.infer<typeof PayloadSchema>;
+  try {
+    payload = PayloadSchema.parse(await req.json());
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Invalid payload", details: error.flatten() },
+        { status: 422 },
+      );
+    }
+    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  }
+
+  await connectToDatabase();
+  setTenantContext({ orgId: user.orgId });
+  setAuditContext({
+    userId: user.id,
+    timestamp: new Date(),
+    ipAddress: getClientIP(req),
+    userAgent: req.headers.get("user-agent") ?? undefined,
+  });
+
+  try {
+    const account =
+      (await CrmLead.findOne({
+        company: payload.company.trim(),
+        kind: "ACCOUNT",
+      })) ??
+      (await CrmLead.create({
+        kind: "ACCOUNT",
+        company: payload.company.trim(),
+        segment: payload.segment,
+        revenue: payload.revenue,
+        employees: payload.employees,
+        notes: payload.notes,
+        stage: "CUSTOMER",
+        status: "OPEN",
+        value: payload.revenue ?? 0,
+        probability: 0.9,
+        owner: user.id,
+        lastContactAt: new Date(),
+      }));
+
+    await CrmActivity.create({
+      leadId: account._id,
+      type: "HANDOFF",
+      summary: payload.notes ?? "Shared with customer success",
+      performedAt: new Date(),
+      owner: user.id,
+      company: account.company,
+      leadStageSnapshot: account.stage,
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    logger.error("[crm/accounts/share] Failed to share account", error as Error);
+    return NextResponse.json(
+      { error: "Failed to share account" },
+      { status: 500 },
+    );
+  } finally {
+    clearTenantContext();
+    clearAuditContext();
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/crm/contacts/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import {
+  getSessionUser,
+  UnauthorizedError,
+} from "@/server/middleware/withAuthRbac";
+import {
+  setTenantContext,
+  clearTenantContext,
+} from "@/server/plugins/tenantIsolation";
+import {
+  setAuditContext,
+  clearAuditContext,
+} from "@/server/plugins/auditPlugin";
+import { getClientIP } from "@/server/security/headers";
+import CrmLead from "@/server/models/CrmLead";
+import type { CrmLeadKind } from "@/server/models/CrmLead";
+import { UserRole, type UserRoleType } from "@/types/user";
+
+// 🔒 STRICT v4: CRM access restricted to Admin roles + SUPPORT_AGENT sub-role
+// EMPLOYEE role removed - use specific sub-roles (SUPPORT_AGENT for CRM access)
+const ALLOWED_ROLES: ReadonlySet<UserRoleType> = new Set([
+  UserRole.SUPER_ADMIN,
+  UserRole.CORPORATE_ADMIN,
+  UserRole.ADMIN,
+  UserRole.MANAGER,
+  UserRole.FM_MANAGER,
+  UserRole.PROPERTY_MANAGER,
+  UserRole.SUPPORT_AGENT, // STRICT v4: CRM-specific sub-role
+]);
+
+const LeadSchema = z.object({
+  type: z.enum(["LEAD", "ACCOUNT"]).default("LEAD"),
+  contact: z.string().min(1).optional(),
+  company: z.string().min(1),
+  email: z.string().email().optional(),
+  phone: z.string().optional(),
+  notes: z.string().optional(),
+  segment: z.string().optional(),
+  revenue: z.number().nonnegative().optional(),
+  employees: z.number().int().nonnegative().optional(),
+  source: z.string().optional(),
+});
+
+function isUnauthenticatedError(error: unknown): boolean {
+  return (
+    error instanceof UnauthorizedError ||
+    (error instanceof Error &&
+      error.message.toLowerCase().includes("unauthenticated"))
+  );
+}
+
+async function resolveUser(req: NextRequest) {
+  try {
+    const user = await getSessionUser(req);
+    if (!user || !user.orgId || !ALLOWED_ROLES.has(user.role)) {
+      return null;
+    }
+    return user;
+  } catch (error) {
+    if (isUnauthenticatedError(error)) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+function estimateValue(
+  kind: CrmLeadKind,
+  revenue?: number,
+  employees?: number,
+) {
+  if (revenue && revenue > 0) {
+    return Math.max(Math.round(revenue * 0.15), 5000);
+  }
+  if (employees && employees > 0) {
+    return Math.max(employees * 1000, 10000);
+  }
+  return kind === "ACCOUNT" ? 75000 : 25000;
+}
+
+export async function GET(req: NextRequest) {
+  const user = await resolveUser(req);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  await connectToDatabase();
+  const url = new URL(req.url);
+  const kind = url.searchParams.get("type")?.toUpperCase();
+  const limitParam = Number(url.searchParams.get("limit") ?? "25");
+  const limit = Number.isFinite(limitParam)
+    ? Math.min(Math.max(Math.trunc(limitParam), 1), 100)
+    : 25;
+  const search = url.searchParams.get("search")?.trim();
+
+  const filter: Record<string, unknown> = {};
+  if (kind && (kind === "LEAD" || kind === "ACCOUNT")) {
+    filter.kind = kind;
+  }
+  if (search) {
+    // SECURITY: Escape regex special characters to prevent ReDoS
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    filter.$or = [
+      { company: new RegExp(escapedSearch, "i") },
+      { contactName: new RegExp(escapedSearch, "i") },
+      { email: new RegExp(escapedSearch, "i") },
+    ];
+  }
+
+  setTenantContext({ orgId: user.orgId });
+  try {
+    const [leads, total] = await Promise.all([
+      CrmLead.find(filter).sort({ updatedAt: -1 }).limit(limit).lean(),
+      CrmLead.countDocuments(filter),
+    ]);
+    return NextResponse.json({ leads, total });
+  } catch (error) {
+    logger.error("[crm/contacts] Failed to list leads", error as Error);
+    return NextResponse.json(
+      { error: "Failed to load CRM contacts" },
+      { status: 500 },
+    );
+  } finally {
+    clearTenantContext();
+  }
+}
+
+export async function POST(req: NextRequest) {
+  const user = await resolveUser(req);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let payload: z.infer<typeof LeadSchema>;
+  try {
+    payload = LeadSchema.parse(await req.json());
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Invalid payload", details: error.flatten() },
+        { status: 422 },
+      );
+    }
+    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  }
+
+  await connectToDatabase();
+  setTenantContext({ orgId: user.orgId });
+  setAuditContext({
+    userId: user.id,
+    timestamp: new Date(),
+    ipAddress: getClientIP(req),
+    userAgent: req.headers.get("user-agent") ?? undefined,
+  });
+
+  try {
+    const value = estimateValue(
+      payload.type,
+      payload.revenue,
+      payload.employees,
+    );
+    const probability = payload.type === "ACCOUNT" ? 0.85 : 0.3;
+    const stage = payload.type === "ACCOUNT" ? "CUSTOMER" : "QUALIFYING";
+    const lead = await CrmLead.create({
+      kind: payload.type,
+      contactName: payload.contact,
+      company: payload.company.trim(),
+      email: payload.email?.trim(),
+      phone: payload.phone?.trim(),
+      segment: payload.segment?.trim(),
+      revenue: payload.revenue,
+      employees: payload.employees,
+      notes: payload.notes,
+      source: payload.source,
+      stage,
+      status: "OPEN",
+      value,
+      probability,
+      owner: user.id,
+      lastContactAt: new Date(),
+    });
+
+    return NextResponse.json({ lead }, { status: 201 });
+  } catch (error) {
+    logger.error("[crm/contacts] Failed to create lead", error as Error);
+    return NextResponse.json(
+      { error: "Failed to capture lead" },
+      { status: 500 },
+    );
+  } finally {
+    clearTenantContext();
+    clearAuditContext();
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/crm/leads/log-call/route.ts">
+<![CDATA[
+"use server";
+
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import {
+  getSessionUser,
+  UnauthorizedError,
+} from "@/server/middleware/withAuthRbac";
+import {
+  setTenantContext,
+  clearTenantContext,
+} from "@/server/plugins/tenantIsolation";
+import {
+  setAuditContext,
+  clearAuditContext,
+} from "@/server/plugins/auditPlugin";
+import { getClientIP } from "@/server/security/headers";
+import CrmLead from "@/server/models/CrmLead";
+import CrmActivity from "@/server/models/CrmActivity";
+import { UserRole, type UserRoleType } from "@/types/user";
+
+const ALLOWED_ROLES: ReadonlySet<UserRoleType> = new Set([
+  UserRole.SUPER_ADMIN,
+  UserRole.CORPORATE_ADMIN,
+  UserRole.ADMIN,
+  UserRole.MANAGER,
+  UserRole.FM_MANAGER,
+  UserRole.PROPERTY_MANAGER,
+  // Note: EMPLOYEE deprecated in STRICT v4 - MANAGER covers this use case
+]);
+
+const PayloadSchema = z.object({
+  contact: z.string().min(1),
+  company: z.string().min(1),
+  email: z.string().email().optional(),
+  phone: z.string().optional(),
+  notes: z.string().min(1),
+});
+
+function isUnauthenticatedError(error: unknown): boolean {
+  return (
+    error instanceof UnauthorizedError ||
+    (error instanceof Error &&
+      error.message.toLowerCase().includes("unauthenticated"))
+  );
+}
+
+async function resolveUser(req: NextRequest) {
+  try {
+    const user = await getSessionUser(req);
+    if (!user || !user.orgId || !ALLOWED_ROLES.has(user.role)) {
+      return null;
+    }
+    return user;
+  } catch (error) {
+    if (isUnauthenticatedError(error)) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+export async function POST(req: NextRequest) {
+  const user = await resolveUser(req);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let payload: z.infer<typeof PayloadSchema>;
+  try {
+    payload = PayloadSchema.parse(await req.json());
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Invalid payload", details: error.flatten() },
+        { status: 422 },
+      );
+    }
+    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  }
+
+  await connectToDatabase();
+  setTenantContext({ orgId: user.orgId });
+  setAuditContext({
+    userId: user.id,
+    timestamp: new Date(),
+    ipAddress: getClientIP(req),
+    userAgent: req.headers.get("user-agent") ?? undefined,
+  });
+
+  try {
+    const lead =
+      (await CrmLead.findOne({ company: payload.company.trim() }).sort({
+        updatedAt: -1,
+      })) ??
+      (await CrmLead.create({
+        kind: "LEAD",
+        contactName: payload.contact,
+        company: payload.company.trim(),
+        email: payload.email?.trim(),
+        phone: payload.phone?.trim(),
+        notes: payload.notes,
+        stage: "QUALIFYING",
+        status: "OPEN",
+        value: 15000,
+        probability: 0.25,
+        owner: user.id,
+        lastContactAt: new Date(),
+      }));
+
+    lead.lastContactAt = new Date();
+    await lead.save();
+
+    await CrmActivity.create({
+      leadId: lead._id,
+      type: "CALL",
+      summary: payload.notes,
+      contactName: payload.contact,
+      company: payload.company,
+      owner: user.id,
+      performedAt: new Date(),
+      leadStageSnapshot: lead.stage,
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    logger.error("[crm/leads/log-call] Failed to log call", error as Error);
+    return NextResponse.json({ error: "Failed to log call" }, { status: 500 });
+  } finally {
+    clearTenantContext();
+    clearAuditContext();
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/crm/overview/route.ts">
+<![CDATA[
+"use server";
+
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import {
+  getSessionUser,
+  UnauthorizedError,
+} from "@/server/middleware/withAuthRbac";
+import {
+  setTenantContext,
+  clearTenantContext,
+} from "@/server/plugins/tenantIsolation";
+import CrmLead from "@/server/models/CrmLead";
+import CrmActivity from "@/server/models/CrmActivity";
+import { UserRole, type UserRoleType } from "@/types/user";
+
+// PHASE-3 FIX: CRM access aligned with STRICT v4.1 canonical matrix
+// CRM should be accessible to: Super Admin, Admin/Corporate Admin, Team Members, Corporate Owner
+// NOT to: Technician, Tenant, Vendor (they have no CRM use case)
+const ALLOWED_ROLES: ReadonlySet<UserRoleType> = new Set([
+  UserRole.SUPER_ADMIN,
+  UserRole.CORPORATE_ADMIN,
+  UserRole.ADMIN,
+  UserRole.MANAGER, // Maps to TEAM_MEMBER in FM domain
+  UserRole.OWNER, // CORPORATE_OWNER - may need CRM for customer management
+  UserRole.SUPPORT_AGENT, // CRM access for support
+  // PHASE-3: Explicitly exclude FM/Property-specific roles
+  // UserRole.FM_MANAGER - NO CRM access
+  // UserRole.PROPERTY_MANAGER - NO CRM access
+  // UserRole.TECHNICIAN - NO CRM access
+  // UserRole.TENANT - NO CRM access
+  // UserRole.VENDOR - NO CRM access
+]);
+
+function isUnauthenticatedError(error: unknown): boolean {
+  return (
+    error instanceof UnauthorizedError ||
+    (error instanceof Error &&
+      error.message.toLowerCase().includes("unauthenticated"))
+  );
+}
+
+async function resolveUser(req: NextRequest) {
+  try {
+    const user = await getSessionUser(req);
+    if (!user || !user.orgId || !ALLOWED_ROLES.has(user.role)) {
+      return null;
+    }
+    return user;
+  } catch (error) {
+    if (isUnauthenticatedError(error)) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+export async function GET(req: NextRequest) {
+  const user = await resolveUser(req);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  await connectToDatabase();
+  setTenantContext({ orgId: user.orgId });
+  try {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    
+    // CRM-001 FIX: All queries MUST be org-scoped per STRICT v4 multi-tenant isolation
+    // Without orgId filter, aggregations expose cross-org CRM data
+    const orgFilter = { orgId: user.orgId };
+
+    const [
+      totalLeads,
+      openPipeline,
+      wonDeals,
+      stageCounts,
+      topAccounts,
+      activities,
+      recentCalls,
+      recentEmails,
+    ] = await Promise.all([
+      // CRM-001 FIX: Add orgId to all countDocuments and aggregations
+      CrmLead.countDocuments({ ...orgFilter, kind: "LEAD" }),
+      CrmLead.aggregate([
+        { $match: { ...orgFilter, kind: "LEAD", status: "OPEN" } },
+        {
+          $group: { _id: null, total: { $sum: "$value" }, count: { $sum: 1 } },
+        },
+      ]),
+      CrmLead.countDocuments({ ...orgFilter, status: "WON" }),
+      CrmLead.aggregate([
+        { $match: orgFilter }, // CRM-001 FIX: Scope stage aggregation to org
+        { $group: { _id: "$stage", total: { $sum: 1 } } },
+      ]),
+      CrmLead.find({ ...orgFilter, kind: "ACCOUNT" }).sort({ revenue: -1 }).limit(5).lean(),
+      CrmActivity.find(orgFilter).sort({ performedAt: -1 }).limit(6).lean(),
+      CrmActivity.countDocuments({
+        ...orgFilter,
+        type: "CALL",
+        performedAt: { $gte: sevenDaysAgo },
+      }),
+      CrmActivity.countDocuments({
+        ...orgFilter,
+        type: "EMAIL",
+        performedAt: { $gte: sevenDaysAgo },
+      }),
+    ]);
+
+    const pipelineTotal = openPipeline[0]?.total ?? 0;
+    const pipelineCount = openPipeline[0]?.count ?? 0;
+    const avgDealSize =
+      pipelineCount > 0 ? Math.round(pipelineTotal / pipelineCount) : 0;
+    const conversionRate =
+      totalLeads > 0 ? Number(((wonDeals / totalLeads) * 100).toFixed(1)) : 0;
+
+    return NextResponse.json({
+      totals: {
+        leads: totalLeads,
+        pipelineValue: pipelineTotal,
+        avgDealSize,
+        conversionRate,
+        activeAccounts: topAccounts.length,
+      },
+      stages: stageCounts.map((entry) => ({
+        stage: entry._id,
+        total: entry.total,
+      })),
+      topAccounts: topAccounts.map((account) => ({
+        id: account._id,
+        company: account.company,
+        revenue: account.revenue ?? 0,
+        segment: account.segment ?? null,
+        owner: account.owner ?? null,
+        notes: account.notes ?? null,
+      })),
+      recentActivities: activities.map((activity) => ({
+        id: activity._id,
+        type: activity.type,
+        summary: activity.summary,
+        performedAt: activity.performedAt,
+        contactName: activity.contactName ?? null,
+        company: activity.company ?? null,
+        leadStage: activity.leadStageSnapshot ?? null,
+      })),
+      activityCounters: {
+        calls7d: recentCalls,
+        emails7d: recentEmails,
+      },
+    });
+  } catch (error) {
+    logger.error("[crm/overview] Failed to load dashboard data", error as Error);
+    return NextResponse.json(
+      { error: "Failed to load CRM overview" },
+      { status: 500 },
+    );
+  } finally {
+    clearTenantContext();
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/dev/check-env/route.ts">
+<![CDATA[
+import { NextResponse } from "next/server";
+import { auth } from "@/auth";
+
+// This endpoint shows which env vars are configured (but not their values for security)
+// SECURITY: Restricted to Super Admins only
+export async function GET() {
+  // Check authentication
+  const session = await auth();
+  if (!session?.user?.isSuperAdmin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  const envVars = {
+    // Core Authentication
+    MONGODB_URI: !!process.env.MONGODB_URI,
+    NEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,
+    NEXTAUTH_URL: !!process.env.NEXTAUTH_URL,
+    JWT_SECRET: !!process.env.JWT_SECRET,
+    INTERNAL_API_SECRET: !!process.env.INTERNAL_API_SECRET,
+
+    // OAuth
+    GOOGLE_CLIENT_ID: !!process.env.GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET: !!process.env.GOOGLE_CLIENT_SECRET,
+
+    // Email
+    SENDGRID_API_KEY: !!process.env.SENDGRID_API_KEY,
+    SENDGRID_FROM_EMAIL: !!process.env.SENDGRID_FROM_EMAIL,
+    SENDGRID_FROM_NAME: !!process.env.SENDGRID_FROM_NAME,
+
+    // SMS
+    TWILIO_ACCOUNT_SID: !!process.env.TWILIO_ACCOUNT_SID,
+    TWILIO_AUTH_TOKEN: !!process.env.TWILIO_AUTH_TOKEN,
+    TWILIO_PHONE_NUMBER: !!process.env.TWILIO_PHONE_NUMBER,
+
+    // Storage
+    AWS_S3_BUCKET: !!process.env.AWS_S3_BUCKET,
+    AWS_REGION: !!process.env.AWS_REGION,
+    AWS_ACCESS_KEY_ID: !!process.env.AWS_ACCESS_KEY_ID,
+    AWS_SECRET_ACCESS_KEY: !!process.env.AWS_SECRET_ACCESS_KEY,
+
+    // Search
+    MEILI_HOST: !!process.env.MEILI_HOST,
+    MEILI_MASTER_KEY: !!process.env.MEILI_MASTER_KEY,
+
+    // Payment
+    PAYTABS_PROFILE_ID: !!process.env.PAYTABS_PROFILE_ID,
+    PAYTABS_SERVER_KEY: !!process.env.PAYTABS_SERVER_KEY,
+    PAYTABS_CLIENT_KEY: !!process.env.PAYTABS_CLIENT_KEY,
+    TAP_SECRET_KEY: !!process.env.TAP_SECRET_KEY,
+    TAP_PUBLIC_KEY: !!process.env.TAP_PUBLIC_KEY,
+
+    // ZATCA
+    ZATCA_API_KEY: !!process.env.ZATCA_API_KEY,
+    ZATCA_API_SECRET: !!process.env.ZATCA_API_SECRET,
+    ZATCA_SELLER_NAME: !!process.env.ZATCA_SELLER_NAME,
+    ZATCA_VAT_NUMBER: !!process.env.ZATCA_VAT_NUMBER,
+    ZATCA_SELLER_ADDRESS: !!process.env.ZATCA_SELLER_ADDRESS,
+    ZATCA_ENVIRONMENT: !!process.env.ZATCA_ENVIRONMENT,
+
+    // AI
+    OPENAI_API_KEY: !!process.env.OPENAI_API_KEY,
+    COPILOT_MODEL: !!process.env.COPILOT_MODEL,
+
+    // Maps
+    GOOGLE_MAPS_API_KEY: !!process.env.GOOGLE_MAPS_API_KEY,
+    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY:
+      !!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+
+    // URLs
+    NEXT_PUBLIC_APP_URL: !!process.env.NEXT_PUBLIC_APP_URL,
+    BASE_URL: !!process.env.BASE_URL,
+    PUBLIC_BASE_URL: !!process.env.PUBLIC_BASE_URL,
+    APP_URL: !!process.env.APP_URL,
+
+    // Redis
+    REDIS_URL: !!process.env.REDIS_URL,
+    REDIS_PASSWORD: !!process.env.REDIS_PASSWORD,
+
+    // Feature Flags
+    ATS_ENABLED: !!process.env.ATS_ENABLED,
+    MARKETPLACE_ENABLED: !!process.env.MARKETPLACE_ENABLED,
+    WO_ENABLED: !!process.env.WO_ENABLED,
+    INVOICE_ENABLED: !!process.env.INVOICE_ENABLED,
+    PROPERTY_ENABLED: !!process.env.PROPERTY_ENABLED,
+
+    // Org IDs
+    PUBLIC_ORG_ID: !!process.env.PUBLIC_ORG_ID,
+    TEST_ORG_ID: !!process.env.TEST_ORG_ID,
+    DEFAULT_ORG_ID: !!process.env.DEFAULT_ORG_ID,
+
+    // Firebase
+    FIREBASE_ADMIN_PROJECT_ID: !!process.env.FIREBASE_ADMIN_PROJECT_ID,
+    FIREBASE_ADMIN_CLIENT_EMAIL: !!process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
+    FIREBASE_ADMIN_PRIVATE_KEY: !!process.env.FIREBASE_ADMIN_PRIVATE_KEY,
+
+    // Notifications
+    NOTIFICATIONS_SMOKE_USER_ID: !!process.env.NOTIFICATIONS_SMOKE_USER_ID,
+    NOTIFICATIONS_SMOKE_NAME: !!process.env.NOTIFICATIONS_SMOKE_NAME,
+    NOTIFICATIONS_SMOKE_EMAIL: !!process.env.NOTIFICATIONS_SMOKE_EMAIL,
+    NOTIFICATIONS_SMOKE_PHONE: !!process.env.NOTIFICATIONS_SMOKE_PHONE,
+    NOTIFICATIONS_TELEMETRY_WEBHOOK:
+      !!process.env.NOTIFICATIONS_TELEMETRY_WEBHOOK,
+    WHATSAPP_BUSINESS_API_KEY: !!process.env.WHATSAPP_BUSINESS_API_KEY,
+    WHATSAPP_PHONE_NUMBER_ID: !!process.env.WHATSAPP_PHONE_NUMBER_ID,
+
+    // Monitoring
+    SENTRY_DSN: !!process.env.SENTRY_DSN,
+    DATADOG_API_KEY: !!process.env.DATADOG_API_KEY,
+
+    // Jobs
+    CRON_SECRET: !!process.env.CRON_SECRET,
+
+    // Security
+    FILE_SIGNING_SECRET: !!process.env.FILE_SIGNING_SECRET,
+    LOG_HASH_SALT: !!process.env.LOG_HASH_SALT,
+
+    // Shipping
+    ARAMEX_ACCOUNT_NUMBER: !!process.env.ARAMEX_ACCOUNT_NUMBER,
+    ARAMEX_USERNAME: !!process.env.ARAMEX_USERNAME,
+    ARAMEX_PASSWORD: !!process.env.ARAMEX_PASSWORD,
+    SMSA_USERNAME: !!process.env.SMSA_USERNAME,
+    SPL_API_KEY: !!process.env.SPL_API_KEY,
+
+    // SMS OTP
+    NEXTAUTH_REQUIRE_SMS_OTP: !!process.env.NEXTAUTH_REQUIRE_SMS_OTP,
+    NEXT_PUBLIC_REQUIRE_SMS_OTP: !!process.env.NEXT_PUBLIC_REQUIRE_SMS_OTP,
+    NEXTAUTH_SUPERADMIN_FALLBACK_PHONE:
+      !!process.env.NEXTAUTH_SUPERADMIN_FALLBACK_PHONE,
+  };
+
+  const configured = Object.entries(envVars).filter(
+    ([_, value]) => value,
+  ).length;
+  const missing = Object.entries(envVars).filter(([_, value]) => !value).length;
+  const total = Object.keys(envVars).length;
+
+  return NextResponse.json({
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV,
+    coverage: {
+      configured,
+      missing,
+      total,
+      percentage: Math.round((configured / total) * 100),
+    },
+    variables: envVars,
+  });
+}
+
+]]>
+</file>
+
+<file path="app/api/dev/demo-accounts/route.ts">
+<![CDATA[
+import { NextResponse } from "next/server";
+
+import { logger } from "@/lib/logger";
+export async function GET() {
+  // SECURITY: Demo accounts ONLY allowed in strict development mode
+  // Historical context: ENABLED flag allowed production demo mode via env var
+  // CRITICAL: This endpoint exposes test credentials and should NEVER be production-accessible
+  if (process.env.NODE_ENV !== "development") {
+    return NextResponse.json({ error: "Not available" }, { status: 404 });
+  }
+
+  try {
+    // Import helpers - keeps logic DRY and secure
+    const { ENABLED, listSanitized, assertDemoConfig } = await import(
+      /* webpackIgnore: true */ "@/dev/credentials.server"
+    );
+
+    if (!ENABLED) {
+      return NextResponse.json({ error: "Demo not enabled" }, { status: 403 });
+    }
+
+    // Run sanity checks in dev (logs warnings for weak passwords/invalid emails)
+    assertDemoConfig();
+
+    // Use helper that never leaks passwords
+    const sanitized = listSanitized();
+
+    return NextResponse.json(sanitized, {
+      headers: { "Cache-Control": "no-store" },
+    });
+  } catch (error) {
+    logger.error("[Dev Demo Accounts] Failed to load credentials:", error);
+    return NextResponse.json(
+      {
+        demo: [],
+        corporate: [],
+        warning:
+          "credentials.server.ts not found. Copy credentials.example.ts to credentials.server.ts",
+      },
+      {
+        headers: { "Cache-Control": "no-store" },
+      },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/dev/demo-login/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+
+import { logger } from "@/lib/logger";
+/**
+ * Type for developer credential payload from dev-only module
+ * Ensures type safety when calling findLoginPayloadByRole
+ * Note: email is required in practice but typed as optional in DemoCredential
+ */
+type DevCredentialPayload = {
+  email?: string; // Made optional to match DemoCredential type
+  password: string;
+  loginType?: "personal" | "corporate";
+  employeeNumber?: string;
+  orgId?: string;
+  preferredPath?: string;
+};
+
+/**
+ * Server-side demo login endpoint
+ * - Looks up server-only credentials by role
+ * - Calls your internal /api/auth/login on the same origin
+ * - Forwards Set-Cookie so the browser session is established
+ * - Returns JSON { ok?, status?, preferredPath? } to the client
+ */
+export async function POST(req: NextRequest) {
+  // SECURITY: Demo login ONLY allowed in strict development mode
+  // CRITICAL: This endpoint bypasses authentication and should NEVER be production-accessible
+  if (process.env.NODE_ENV !== "development") {
+    logger.error(
+      "[SECURITY] Demo login attempted in non-development environment",
+      {
+        nodeEnv: process.env.NODE_ENV,
+        clientIp:
+          req.headers.get("x-forwarded-for") ||
+          req.headers.get("x-real-ip") ||
+          "unknown",
+      },
+    );
+    return withNoStore(
+      NextResponse.json({ error: "Not available" }, { status: 404 }),
+    );
+  }
+
+  // Gate early — dev only
+  // Dynamically import dev-only module (won't be bundled in production)
+  let ENABLED = false;
+  let findLoginPayloadByRole: (
+    role: string,
+  ) => DevCredentialPayload | null = () => null;
+
+  try {
+    // We use a dynamic import to ensure this file is never bundled in production
+    const credentialsModule = await import(
+      /* webpackIgnore: true */ "@/dev/credentials.server"
+    );
+    ENABLED = credentialsModule.ENABLED ?? false;
+    findLoginPayloadByRole = credentialsModule.findLoginPayloadByRole;
+  } catch (e) {
+    // Module not available (e.g., production build) - fail gracefully
+    logger.error("[Dev Demo Login] Failed to load credentials module:", { e });
+    return withNoStore(
+      NextResponse.json({ error: "Demo not enabled" }, { status: 403 }),
+    );
+  }
+
+  if (!ENABLED || typeof findLoginPayloadByRole !== "function") {
+    return withNoStore(
+      NextResponse.json({ error: "Demo not enabled" }, { status: 403 }),
+    );
+  }
+
+  // Parse body safely
+  const body = await safeParseJson<{ role?: unknown }>(req);
+  const role =
+    typeof body.role === "string" && body.role.trim() ? body.role.trim() : null;
+  if (!role) {
+    return withNoStore(
+      NextResponse.json({ error: "role is required" }, { status: 400 }),
+    );
+  }
+
+  // Resolve credential payload (server-only)
+  const payload = findLoginPayloadByRole(role);
+  if (!payload) {
+    return withNoStore(
+      NextResponse.json({ error: "Unknown role" }, { status: 404 }),
+    );
+  }
+
+  // Validate email is present (required for login)
+  if (!payload.email) {
+    logger.error("[Dev Demo Login] Payload missing required email field", {
+      role,
+    });
+    return withNoStore(
+      NextResponse.json(
+        { error: "Invalid demo account configuration" },
+        { status: 500 },
+      ),
+    );
+  }
+
+  // Prepare login data (password never leaves the server)
+  const loginData =
+    payload.loginType === "personal"
+      ? {
+          email: payload.email,
+          password: payload.password,
+          loginType: "personal" as const,
+        }
+      : {
+          employeeNumber: payload.employeeNumber,
+          password: payload.password,
+          loginType: "corporate" as const,
+        };
+
+  try {
+    // Always hit same-origin API so cookies are set for the client's site
+    const url = new URL("/api/auth/login", req.nextUrl.origin);
+
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+      // forward incoming cookies (if any)
+      cookie: req.headers.get("cookie") ?? "",
+      // optional: flag for observability
+      "x-dev-login": "1",
+    };
+    if (payload.orgId) headers["x-org-id"] = payload.orgId;
+
+    const resp = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(loginData),
+      redirect: "manual", // don't auto-follow redirects; we only need cookies + body
+    });
+
+    const data = await safeJsonFromResponse(resp);
+    const res = withNoStore(
+      NextResponse.json(
+        { ...data, preferredPath: payload.preferredPath },
+        { status: resp.status },
+      ),
+    );
+
+    // Forward ALL Set-Cookie headers (handles multiple cookies)
+    forwardSetCookies(resp, res);
+
+    return res;
+  } catch (error) {
+    logger.error("[Dev Demo Login] Error:", error as Error);
+    return withNoStore(
+      NextResponse.json(
+        {
+          error: "Login failed",
+          details: error instanceof Error ? error.message : "Unknown error",
+        },
+        { status: 500 },
+      ),
+    );
+  }
+}
+
+/* ---------------- helpers ---------------- */
+
+function withNoStore<T extends NextResponse>(res: T): T {
+  res.headers.set("Cache-Control", "no-store");
+  return res;
+}
+
+async function safeParseJson<T>(req: NextRequest): Promise<Partial<T>> {
+  try {
+    // Stricter content-type guard - only parse if content-type starts with application/json
+    const ct = req.headers.get("content-type") || "";
+    if (!ct.startsWith("application/json")) {
+      logger.warn(
+        "[Dev Demo Login] safeParseJson: Received non-JSON content-type",
+        { contentType: ct },
+      );
+      return {};
+    }
+    return (await req.json()) as Partial<T>;
+  } catch (e) {
+    logger.error("[Dev Demo Login] safeParseJson: Failed to parse body", { e });
+    return {};
+  }
+}
+
+async function safeJsonFromResponse(resp: Response) {
+  try {
+    const ct = resp.headers.get("content-type") || "";
+    if (!ct.toLowerCase().startsWith("application/json")) {
+      return { ok: resp.ok, status: resp.status };
+    }
+    return await resp.json();
+  } catch {
+    // Handle cases where content-type is json but body is empty
+    return { ok: resp.ok, status: resp.status };
+  }
+}
+
+/**
+ * Forward all Set-Cookie headers from the upstream response to the NextResponse.
+ * Works in Node runtimes that support headers.getSetCookie(); falls back gracefully.
+ */
+function forwardSetCookies(upstream: Response, downstream: NextResponse) {
+  const getSetCookie: undefined | (() => string[]) =
+    upstream.headers.getSetCookie?.bind(upstream.headers);
+
+  if (typeof getSetCookie === "function") {
+    const cookies = getSetCookie();
+    for (const c of cookies) {
+      downstream.headers.append("set-cookie", c);
+    }
+  } else {
+    // Fallback: forward a single Set-Cookie if present (don't split on commas: expires contains commas)
+    const single = upstream.headers.get("set-cookie");
+    if (single) {
+      downstream.headers.set("set-cookie", single);
+    }
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/feeds/indeed/route.ts">
+<![CDATA[
+import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Job } from "@/server/models/Job";
+import { DOMAINS } from "@/lib/config/domains";
+
+export const dynamic = "force-dynamic";
+
+/**
+ * @openapi
+ * /api/feeds/indeed:
+ *   get:
+ *     summary: feeds/indeed operations
+ *     tags: [feeds]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET() {
+  // Check if ATS feeds are enabled
+  if (process.env.ATS_ENABLED !== "true") {
+    const errorXml = `<?xml version="1.0" encoding="UTF-8"?>
+    <source>
+      <publisher>Fixzit</publisher>
+      <publisherurl>${process.env.PUBLIC_BASE_URL || DOMAINS.primary}/careers</publisherurl>
+      <error>ATS feeds not available in this deployment</error>
+    </source>`;
+    return new NextResponse(errorXml, {
+      status: 501,
+      headers: { "Content-Type": "application/xml; charset=utf-8" },
+    });
+  }
+
+  // Define type for job fields needed in XML
+  interface JobFeedDoc {
+    title?: string;
+    publishedAt?: Date;
+    createdAt?: Date;
+    slug?: string;
+    location?: {
+      city?: string;
+      country?: string;
+    };
+    description?: string;
+    salaryRange?: {
+      min?: number;
+      max?: number;
+      currency?: string;
+    };
+    jobType?: string;
+    department?: string;
+  }
+
+  try {
+    await connectToDatabase();
+    // PUBLIC FEEDS: Intentionally cross-tenant for job aggregation.
+    // This exposes only public, published jobs from all organizations
+    // as part of the platform-wide careers feed. This is by design for
+    // job board integrations (LinkedIn, Indeed, etc.).
+    const jobs = (await Job.find({ status: "published", visibility: "public" })
+      .sort({ publishedAt: -1 })
+      .lean()) as JobFeedDoc[];
+
+    const items = (jobs as JobFeedDoc[])
+      .map(
+        (j) => `
+    <job>
+      <title><![CDATA[${j.title}]]]]><![CDATA[></title>
+      <date>${new Date(j.publishedAt || j.createdAt || Date.now()).toUTCString()}</date>
+      <referencenumber>${j.slug}</referencenumber>
+      <url>${process.env.PUBLIC_BASE_URL || DOMAINS.primary}/careers/${j.slug}</url>
+      <company><![CDATA[Fixzit]]]]><![CDATA[></company>
+      <city><![CDATA[${j.location?.city || ""}]]]]><![CDATA[></city>
+      <country><![CDATA[${j.location?.country || ""}]]]]><![CDATA[></country>
+      <description><![CDATA[${j.description || ""}]]]]><![CDATA[></description>
+      <salary><![CDATA[${j.salaryRange?.min || ""}-${j.salaryRange?.max || ""} ${j.salaryRange?.currency || "SAR"}]]]]><![CDATA[></salary>
+      <jobtype>${j.jobType}</jobtype>
+      <category><![CDATA[${j.department || "General"}]]]]><![CDATA[></category>
+    </job>`,
+      )
+      .join("");
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+    <source>
+      <publisher>Fixzit</publisher>
+      <publisherurl>${process.env.PUBLIC_BASE_URL || DOMAINS.primary}/careers</publisherurl>
+      ${items}
+    </source>`;
+
+    return new NextResponse(xml, {
+      headers: { "Content-Type": "application/xml; charset=utf-8" },
+    });
+  } catch (error) {
+    logger.error(
+      "Failed to fetch jobs:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    const errorXml = `<?xml version="1.0" encoding="UTF-8"?>
+    <source>
+      <publisher>Fixzit</publisher>
+      <publisherurl>${process.env.PUBLIC_BASE_URL || DOMAINS.primary}/careers</publisherurl>
+      <error>Failed to fetch jobs</error>
+    </source>`;
+    return new NextResponse(errorXml, {
+      status: 500,
+      headers: { "Content-Type": "application/xml; charset=utf-8" },
+    });
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/feeds/linkedin/route.ts">
+<![CDATA[
+import { NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Job } from "@/server/models/Job";
+import { DOMAINS } from "@/lib/config/domains";
+
+import { createSecureResponse } from "@/server/security/headers";
+
+export const dynamic = "force-dynamic";
+
+/**
+ * @openapi
+ * /api/feeds/linkedin:
+ *   get:
+ *     summary: feeds/linkedin operations
+ *     tags: [feeds]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET() {
+  // Check if ATS feeds are enabled
+  if (process.env.ATS_ENABLED !== "true") {
+    return createSecureResponse(
+      { error: "ATS feeds not available in this deployment" },
+      501,
+    );
+  }
+
+  // Define type for job fields needed in XML
+  interface JobFeedDoc {
+    slug?: string;
+    title?: string;
+    location?: {
+      city?: string;
+      country?: string;
+    };
+    description?: string;
+    jobType?: string;
+    publishedAt?: Date;
+    createdAt?: Date;
+  }
+
+  await connectToDatabase();
+  // PUBLIC FEEDS: Intentionally cross-tenant for job aggregation.
+  // This exposes only public, published jobs from all organizations
+  // as part of the platform-wide careers feed. This is by design for
+  // job board integrations (LinkedIn, Indeed, etc.).
+  const jobs = (await Job.find({ status: "published", visibility: "public" })
+    .sort({ publishedAt: -1 })
+    .lean()) as JobFeedDoc[];
+
+  const items = (jobs as JobFeedDoc[])
+    .map(
+      (j) => `
+    <job>
+      <id>${j.slug}</id>
+      <title><![CDATA[${j.title}]]]]><![CDATA[></title>
+      <company><![CDATA[Fixzit]]]]><![CDATA[></company>
+      <url>${process.env.PUBLIC_BASE_URL || DOMAINS.primary}/careers/${j.slug}</url>
+      <location><![CDATA[${j.location?.city || ""}, ${j.location?.country || ""}]]]]><![CDATA[></location>
+      <description><![CDATA[${j.description || ""}]]]]><![CDATA[></description>
+      <employmentType>${j.jobType}</employmentType>
+      <listingType>Job Posting</listingType>
+      <postedAt>${new Date(j.publishedAt || j.createdAt || Date.now()).toISOString()}</postedAt>
+    </job>`,
+    )
+    .join("");
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+  <jobs>
+    ${items}
+  </jobs>`;
+
+  return new NextResponse(xml, {
+    headers: { "Content-Type": "application/xml; charset=utf-8" },
+  });
+}
+
+]]>
+</file>
+
+<file path="app/api/files/resumes/[file]/route.ts">
+<![CDATA[
+import { NextRequest, NextResponse } from "next/server";
+import fs from "fs/promises";
+import path from "path";
+import crypto from "crypto";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { getPresignedGetUrl, buildResumeKey } from "@/lib/storage/s3";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+
+// Resume files are stored under a non-public project directory with UUID-based names
+const BASE_DIR = path.join(process.cwd(), "private-uploads", "resumes");
+
+/**
+ * @openapi
+ * /api/files/resumes/[file]:
+ *   get:
+ *     summary: files/resumes/[file] operations
+ *     tags: [files]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function GET(
+  req: NextRequest,
+  props: { params: Promise<{ file: string }> },
+) {
+  try {
+    const { file } = await props.params;
+    const user = await getSessionUser(req).catch(() => null);
+    if (!user) return createSecureResponse({ error: "Unauthorized" }, 401, req);
+    const allowed = new Set(["SUPER_ADMIN", "ADMIN", "HR"]);
+    if (!allowed.has(user.role || ""))
+      return createSecureResponse({ error: "Forbidden" }, 403, req);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    const url = new URL(req.url);
+    const token = url.searchParams.get("token") || "";
+    const expParam = url.searchParams.get("exp") || "";
+    const exp = Number(expParam);
+    if (!token || !Number.isFinite(exp))
+      return createSecureResponse({ error: "Missing token" }, 400, req);
+    if (Date.now() > exp)
+      return createSecureResponse({ error: "Token expired" }, 403, req);
+    const safeName = path.basename(file);
+    const tenant = String(user.tenantId || "global");
+    const expected = generateToken(
+      `${tenant}:${safeName}`,
+      exp,
+      String(user.id || ""),
+      tenant,
+    );
+    if (!timingSafeEqual(expected, token))
+      return createSecureResponse({ error: "Invalid token" }, 403, req);
+
+    // Prefer S3 if configured; else local fallback
+    if (process.env.AWS_S3_BUCKET) {
+      const key = buildResumeKey(user.tenantId, safeName);
+      const urlSigned = await getPresignedGetUrl(key, 300);
+      return NextResponse.redirect(urlSigned, { status: 302 });
+    }
+    const filePath = path.join(BASE_DIR, tenant, safeName);
+    const data = await fs.readFile(filePath).catch(() => null);
+    if (!data) return createSecureResponse({ error: "Not found" }, 404, req);
+    const contentType = contentTypeFromName(safeName);
+    const out = new Uint8Array(data.length);
+    out.set(data);
+    return new NextResponse(out, {
+      status: 200,
+      headers: {
+        "Content-Type": contentType,
+        "X-Content-Type-Options": "nosniff",
+        "Content-Disposition": `attachment; filename="${safeName}"`,
+      },
+    });
+  } catch {
+    return createSecureResponse({ error: "Failed to fetch file" }, 500, req);
+  }
+}
+
+export async function POST(
+  req: NextRequest,
+  props: { params: Promise<{ file: string }> },
+) {
+  try {
+    const { file } = await props.params;
+    const user = await getSessionUser(req).catch(() => null);
+    if (!user) return createSecureResponse({ error: "Unauthorized" }, 401, req);
+    const allowed = new Set(["SUPER_ADMIN", "ADMIN", "HR"]);
+    if (!allowed.has(user.role || ""))
+      return createSecureResponse({ error: "Forbidden" }, 403, req);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+    const expires = Date.now() + 1000 * 60 * 10; // 10 minutes
+    const safeName = path.basename(file);
+    const tenant = String(user.tenantId || "global");
+    const token = generateToken(
+      `${tenant}:${safeName}`,
+      expires,
+      String(user.id || ""),
+      tenant,
+    );
+    return NextResponse.json({
+      url: `${new URL(req.url).origin}/api/files/resumes/${encodeURIComponent(safeName)}?token=${encodeURIComponent(token)}&exp=${expires}`,
+    });
+  } catch {
+    return createSecureResponse({ error: "Failed to sign URL" }, 500, req);
+  }
+}
+
+// Extend globalThis for dev file signing secret
+declare global {
+  var __DEV_FILE_SIGN_SECRET__: string | undefined;
+}
+
+function generateToken(
+  name: string,
+  exp: number | undefined,
+  userId: string,
+  tenantId: string,
+) {
+  const raw = process.env.FILE_SIGNING_SECRET;
+  let secret = typeof raw === "string" ? raw.trim() : "";
+  const WEAK = new Set([
+    "",
+    "dev-secret-change-me",
+    "changeme",
+    "secret",
+    "password",
+  ]);
+  if (process.env.NODE_ENV === "production" && WEAK.has(secret)) {
+    throw new Error(
+      "FILE_SIGNING_SECRET must be set to a strong, non-default value in production",
+    );
+  }
+  // In non-production, generate an ephemeral in-memory secret if unset/weak to avoid predictable tokens
+  if (process.env.NODE_ENV !== "production" && WEAK.has(secret)) {
+    if (!globalThis.__DEV_FILE_SIGN_SECRET__) {
+      globalThis.__DEV_FILE_SIGN_SECRET__ = crypto
+        .randomBytes(32)
+        .toString("hex");
+    }
+    secret = globalThis.__DEV_FILE_SIGN_SECRET__;
+  }
+  const payload = `${tenantId}:${userId}:${name}:${exp || ""}`;
+  return crypto.createHmac("sha256", secret).update(payload).digest("hex");
+}
+
+function timingSafeEqual(a: string, b: string) {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  if (ab.length !== bb.length) return false;
+  return crypto.timingSafeEqual(ab, bb);
+}
+
+function contentTypeFromName(name: string) {
+  const lower = name.toLowerCase();
+  if (lower.endsWith(".pdf")) return "application/pdf";
+  if (lower.endsWith(".doc")) return "application/msword";
+  if (lower.endsWith(".docx"))
+    return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  if (lower.endsWith(".txt")) return "text/plain";
+  return "application/octet-stream";
+}
+
+]]>
+</file>
+
+<file path="app/api/files/resumes/presign/route.ts">
+<![CDATA[
+import { randomUUID } from "crypto";
+import { NextRequest, NextResponse } from "next/server";
+import path from "path";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { getPresignedPutUrl, buildResumeKey } from "@/lib/storage/s3";
+import { logger } from "@/lib/logger";
+
+import { smartRateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+import { validateBucketPolicies } from "@/lib/security/s3-policy";
+
+const ALLOWED_TYPES = new Set(["application/pdf", "application/x-pdf"]);
+const ALLOWED_EXTENSIONS = new Set(["pdf"]);
+const MAX_SIZE_BYTES = 5 * 1024 * 1024;
+
+/**
+ * @openapi
+ * /api/files/resumes/presign:
+ *   get:
+ *     summary: files/resumes/presign operations
+ *     tags: [files]
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       401:
+ *         description: Unauthorized
+ *       429:
+ *         description: Rate limit exceeded
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const user = await getSessionUser(req).catch(() => null);
+    if (user && !user.orgId) {
+      logger.error("[Resumes Presign] Authenticated user missing orgId - denying to preserve tenant isolation", {
+        userId: user.id,
+      });
+      return createSecureResponse({ error: "Missing organization context" }, 400, req);
+    }
+    if (!process.env.AWS_S3_BUCKET || !process.env.AWS_REGION) {
+      return createSecureResponse(
+        { error: "Storage not configured" },
+        500,
+        req,
+      );
+    }
+    const scanEnforced = process.env.S3_SCAN_REQUIRED === "true";
+    if (scanEnforced && !process.env.AV_SCAN_ENDPOINT) {
+      return createSecureResponse(
+        { error: "AV scanning not configured" },
+        503,
+        req,
+      );
+    }
+    const policiesOk = await validateBucketPolicies();
+    if (!policiesOk) {
+      return createSecureResponse(
+        { error: "Bucket policy/encryption invalid" },
+        503,
+        req,
+      );
+    }
+
+    // Rate limiting: Authenticated users get tenant-isolated buckets,
+    // anonymous users (careers form) share IP-based bucket with tighter limits
+    const orgId = user?.orgId ?? null;
+    const userId = user?.id ?? null;
+    
+    const rl = await smartRateLimit(
+      buildOrgAwareRateLimitKey(req, orgId, userId),
+      user ? 60 : 20, // tighter window for anonymous callers
+      60_000,
+    );
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
+    const body = await req.json().catch(() => ({}) as Record<string, unknown>);
+    const fileNameRaw = typeof body.fileName === "string" ? body.fileName : "";
+    const contentType =
+      typeof body.contentType === "string" ? body.contentType : "";
+    const size =
+      typeof (body as { size?: number }).size === "number"
+        ? (body as { size?: number }).size
+        : undefined;
+    if (!fileNameRaw || !contentType)
+      return NextResponse.json(
+        { error: "Missing fileName or contentType" },
+        { status: 400 },
+      );
+
+    const baseName = path.basename(fileNameRaw).replace(/[^\w.-]/g, "_");
+    const ext = baseName.split(".").pop()?.toLowerCase();
+    if (!ext || !ALLOWED_EXTENSIONS.has(ext)) {
+      return NextResponse.json(
+        { error: "Unsupported file extension (PDF only)" },
+        { status: 415 },
+      );
+    }
+    if (!ALLOWED_TYPES.has(contentType)) {
+      return NextResponse.json(
+        { error: "Unsupported content type" },
+        { status: 415 },
+      );
+    }
+    if (typeof size === "number" && size > MAX_SIZE_BYTES) {
+      return NextResponse.json(
+        { error: "File too large (max 5MB)" },
+        { status: 400 },
+      );
+    }
+
+    const key = buildResumeKey(
+      user?.tenantId || "public",
+      `${Date.now()}-${randomUUID()}-${baseName}`,
+    );
+    const { url, headers } = await getPresignedPutUrl(key, contentType, 300, {
+      category: "resume",
+      user: user?.id || "anonymous",
+      tenant: user?.tenantId || "public",
+      source: user ? "hr-dashboard" : "careers-form",
+    });
+    return NextResponse.json({ url, key, headers, scanRequired: scanEnforced });
+  } catch (err) {
+    logger.error("[Resumes Presign] error", { error: err });
+    return createSecureResponse({ error: "Failed to presign" }, 500, req);
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/finance/accounts/[id]/route.ts">
+<![CDATA[
+/**
+ * Chart of Accounts Single Account API Routes - Finance Pack Phase 2
+ *
+ * Endpoints:
+ * - GET /api/finance/accounts/[id]     - Get account details
+ * - PUT /api/finance/accounts/[id]     - Update account
+ * - DELETE /api/finance/accounts/[id]  - Deactivate account
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+
+import { dbConnect } from "@/lib/mongodb-unified";
+import ChartAccount from "@/server/models/finance/ChartAccount";
+import LedgerEntry from "@/server/models/finance/LedgerEntry";
+import { runWithContext } from "@/server/lib/authContext";
+import { requirePermission } from "@/config/rbac.config";
+import { Types } from "mongoose";
+import { z } from "zod";
+
+// ============================================================================
+// VALIDATION SCHEMAS
+// ============================================================================
+
+const UpdateAccountSchema = z.object({
+  accountName: z.string().min(1).max(200).optional(),
+  description: z.string().optional(),
+  taxable: z.boolean().optional(),
+  vatRate: z.number().min(0).max(100).optional(), // 0-100 percentage
+  isActive: z.boolean().optional(),
+});
+
+// ============================================================================
+// HELPER: Get User Session
+// ============================================================================
+
+async function getUserSession(_req: NextRequest) {
+  const user = await getSessionUser(_req);
+
+  if (!user) {
+    return null;
+  }
+
+  return {
+    userId: user.id,
+    orgId: user.orgId,
+    role: user.role,
+  };
+}
+
+// ============================================================================
+// GET /api/finance/accounts/[id] - Get account details
+// ============================================================================
+
+import type { RouteContext } from "@/lib/types/route-context";
+
+import { logger } from "@/lib/logger";
+export async function GET(
+  req: NextRequest,
+  context: RouteContext<{ id: string }>,
+) {
+  try {
+    await dbConnect();
+
+    // Auth check
+    const user = await getUserSession(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Authorization check
+    requirePermission(user.role, "finance.accounts.read");
+
+    // Resolve params (Next.js 15 provides params as a Promise)
+    const _params = await Promise.resolve(context.params);
+
+    // Validate account ID
+    if (!Types.ObjectId.isValid(_params.id)) {
+      return NextResponse.json(
+        { error: "Invalid account ID" },
+        { status: 400 },
+      );
+    }
+
+    // Execute with proper context
+    return await runWithContext(
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
+      async () => {
+        // Get account
+        const account = await ChartAccount.findOne({
+          _id: new Types.ObjectId(_params.id),
+          orgId: new Types.ObjectId(user.orgId),
+        });
+
+        if (!account) {
+          return NextResponse.json(
+            { error: "Account not found" },
+            { status: 404 },
+          );
+        }
+
+        // Get parent account if exists (with tenant isolation)
+        let parent = null;
+        if (account.parentId) {
+          parent = await ChartAccount.findOne({
+            _id: account.parentId,
+            orgId: new Types.ObjectId(user.orgId),
+          }).lean();
+        }
+
+        // Get child accounts
+        const children = await ChartAccount.find({
+          orgId: new Types.ObjectId(user.orgId),
+          parentId: account._id,
+        }).lean();
+
+        // Get current balance from most recent ledger entry
+        const latestEntry = await LedgerEntry.findOne({
+          orgId: new Types.ObjectId(user.orgId),
+          accountId: account._id,
+        })
+          .sort({ date: -1, createdAt: -1 })
+          .lean();
+
+        const currentBalance = latestEntry
+          ? (latestEntry as { runningBalance?: number }).runningBalance || 0
+          : 0;
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            ...account.toObject(),
+            parent,
+            children,
+            currentBalance,
+          },
+        });
+      },
+    );
+  } catch (error) {
+    logger.error("GET /api/finance/accounts/[id] error:", error);
+
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
+
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Internal server error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+// ============================================================================
+// PUT /api/finance/accounts/[id] - Update account
+// ============================================================================
+
+export async function PUT(
+  req: NextRequest,
+  context: RouteContext<{ id: string }>,
+) {
+  try {
+    await dbConnect();
+
+    // Auth check
+    const user = await getUserSession(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Authorization check
+    requirePermission(user.role, "finance.accounts.update");
+
+    // Resolve params (Next.js 15 provides params as a Promise)
+    const _params = await Promise.resolve(context.params);
+
+    // Validate account ID
+    if (!Types.ObjectId.isValid(_params.id)) {
+      return NextResponse.json(
+        { error: "Invalid account ID" },
+        { status: 400 },
+      );
+    }
+
+    // Parse and validate request body
+    const body = await req.json();
+    const validated = UpdateAccountSchema.parse(body);
+
+    // Execute with proper context
+    return await runWithContext(
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
+      async () => {
+        // Get account
+        const account = await ChartAccount.findOne({
+          _id: new Types.ObjectId(_params.id),
+          orgId: new Types.ObjectId(user.orgId),
+        });
+
+        if (!account) {
+          return NextResponse.json(
+            { error: "Account not found" },
+            { status: 404 },
+          );
+        }
+
+        // Update fields (only allow updating certain fields)
+        if (validated.accountName !== undefined)
+          account.accountName = validated.accountName;
+        if (validated.description !== undefined)
+          account.description = validated.description;
+        if (validated.taxable !== undefined)
+          account.taxable = validated.taxable;
+        if (validated.vatRate !== undefined)
+          account.vatRate = validated.vatRate;
+
+        // Apply same safeguards as DELETE when deactivating
+        if (
+          validated.isActive !== undefined &&
+          !validated.isActive &&
+          account.isActive
+        ) {
+          // Check for ledger entries
+          const hasEntries = await LedgerEntry.exists({
+            orgId: new Types.ObjectId(user.orgId),
+            accountId: account._id,
+          });
+
+          if (hasEntries) {
+            return NextResponse.json(
+              { error: "Cannot deactivate account with ledger entries" },
+              { status: 400 },
+            );
+          }
+
+          // Check for child accounts
+          const hasChildren = await ChartAccount.exists({
+            orgId: new Types.ObjectId(user.orgId),
+            parentId: account._id,
+          });
+
+          if (hasChildren) {
+            return NextResponse.json(
+              { error: "Cannot deactivate account with child accounts" },
+              { status: 400 },
+            );
+          }
+
+          account.isActive = false;
+        } else if (validated.isActive !== undefined) {
+          account.isActive = validated.isActive;
+        }
+
+        await account.save();
+
+        return NextResponse.json({
+          success: true,
+          data: account,
+        });
+      },
+    );
+  } catch (error) {
+    logger.error("PUT /api/finance/accounts/[id] error:", error);
+
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
+
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          error: "Validation failed",
+          details: error.issues,
+        },
+        { status: 400 },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Internal server error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+// ============================================================================
+// DELETE /api/finance/accounts/[id] - Deactivate account (soft delete)
+// ============================================================================
+
+export async function DELETE(
+  req: NextRequest,
+  context: RouteContext<{ id: string }>,
+) {
+  try {
+    await dbConnect();
+
+    // Auth check
+    const user = await getUserSession(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Authorization check
+    requirePermission(user.role, "finance.accounts.delete");
+
+    // Resolve params (Next.js 15 provides params as a Promise)
+    const _params = await Promise.resolve(context.params);
+
+    // Validate account ID
+    if (!Types.ObjectId.isValid(_params.id)) {
+      return NextResponse.json(
+        { error: "Invalid account ID" },
+        { status: 400 },
+      );
+    }
+
+    // Execute with proper context
+    return await runWithContext(
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
+      async () => {
+        // Get account
+        const account = await ChartAccount.findOne({
+          _id: new Types.ObjectId(_params.id),
+          orgId: new Types.ObjectId(user.orgId),
+        });
+
+        if (!account) {
+          return NextResponse.json(
+            { error: "Account not found" },
+            { status: 404 },
+          );
+        }
+
+        // Prevent deletion if ledger entries exist for this account
+        const hasEntries = await LedgerEntry.exists({
+          orgId: new Types.ObjectId(user.orgId),
+          accountId: account._id,
+        });
+
+        if (hasEntries) {
+          return NextResponse.json(
+            {
+              error:
+                "Cannot delete account with existing ledger entries. Use deactivation instead.",
+            },
+            { status: 400 },
+          );
+        }
+
+        // Check if account has children
+        const hasChildren = await ChartAccount.exists({
+          orgId: new Types.ObjectId(user.orgId),
+          parentId: account._id,
+        });
+
+        if (hasChildren) {
+          return NextResponse.json(
+            {
+              error:
+                "Cannot delete account with child accounts. Delete children first or deactivate instead.",
+            },
+            { status: 400 },
+          );
+        }
+
+        // Soft delete by setting isActive = false
+        account.isActive = false;
+        await account.save();
+
+        return NextResponse.json({
+          success: true,
+          message: "Account deactivated successfully",
+          data: account,
+        });
+      },
+    );
+  } catch (error) {
+    logger.error("DELETE /api/finance/accounts/[id] error:", error);
+
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
+
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Internal server error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/finance/accounts/route.ts">
+<![CDATA[
+/**
+ * Chart of Accounts API Routes - Finance Pack Phase 2
+ *
+ * Endpoints:
+ * - GET  /api/finance/accounts     - List accounts (with hierarchy)
+ * - POST /api/finance/accounts     - Create new account
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+
+import { dbConnect } from "@/lib/mongodb-unified";
+import ChartAccount from "@/server/models/finance/ChartAccount";
+import { runWithContext } from "@/server/lib/authContext";
+import { requirePermission } from "@/config/rbac.config";
+import { Types } from "mongoose";
+import { z } from "zod";
+
+import { logger } from "@/lib/logger";
+// ============================================================================
+// VALIDATION SCHEMAS
+// ============================================================================
+
+const CreateAccountSchema = z.object({
+  accountCode: z.string().min(1, "Account code is required").max(20),
+  accountName: z.string().min(1, "Account name is required").max(200),
+  accountType: z.enum(["ASSET", "LIABILITY", "EQUITY", "REVENUE", "EXPENSE"]),
+  normalBalance: z.enum(["DEBIT", "CREDIT"]),
+  parentId: z
+    .string()
+    .refine((val) => !val || Types.ObjectId.isValid(val), "Invalid parent ID")
+    .optional(),
+  description: z.string().optional(),
+  taxable: z.boolean().optional(),
+  taxRate: z.number().min(0).max(1).optional(),
+  isActive: z.boolean().optional(),
+});
+
+// ============================================================================
+// HELPER: Get User Session
+// ============================================================================
+
+async function getUserSession(_req: NextRequest) {
+  const user = await getSessionUser(_req);
+
+  if (!user) {
+    return null;
+  }
+
+  return {
+    userId: user.id,
+    orgId: user.orgId,
+    role: user.role,
+  };
+}
+
+// ============================================================================
+// GET /api/finance/accounts - List accounts with hierarchy
+// ============================================================================
+
+export async function GET(req: NextRequest) {
+  try {
+    await dbConnect();
+
+    // Auth check
+    const user = await getUserSession(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Authorization check
+    requirePermission(user.role, "finance.accounts.read");
+
+    // Execute with proper context
+    return await runWithContext(
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
+      async () => {
+        // Parse query parameters
+        const { searchParams } = new URL(req.url);
+        const accountType = searchParams.get("accountType");
+        const parentId = searchParams.get("parentId");
+        const includeInactive = searchParams.get("includeInactive") === "true";
+        const flat = searchParams.get("flat") === "true"; // If true, return flat list instead of hierarchy
+
+        // Build query
+        const query: Record<string, unknown> = {
+          orgId: new Types.ObjectId(user.orgId),
+        };
+
+        if (accountType) {
+          query.accountType = accountType;
+        }
+
+        if (parentId) {
+          if (parentId === "null") {
+            query.parentId = null;
+          } else if (Types.ObjectId.isValid(parentId)) {
+            query.parentId = new Types.ObjectId(parentId);
+          }
+        }
+
+        if (!includeInactive) {
+          query.isActive = true;
+        }
+
+        // Get accounts
+        if (flat) {
+          // Return flat list
+          const accounts = await ChartAccount.find(query)
+            .sort({ accountCode: 1 })
+            .lean();
+
+          return NextResponse.json({
+            success: true,
+            data: accounts,
+          });
+        } else {
+          // Return hierarchical structure
+          const allAccounts = await ChartAccount.find(query)
+            .sort({ accountCode: 1 })
+            .lean();
+
+          // Build actual hierarchy tree
+          const hierarchy = buildAccountTree(allAccounts);
+
+          // Filter by account type if specified
+          let filteredHierarchy = hierarchy;
+          if (accountType) {
+            filteredHierarchy = filterTreeByAccountType(hierarchy, accountType);
+          }
+
+          return NextResponse.json({
+            success: true,
+            data: filteredHierarchy,
+          });
+        }
+      },
+    );
+  } catch (error) {
+    logger.error("GET /api/finance/accounts error:", error);
+
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
+
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Internal server error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+// ============================================================================
+// HELPER: Build Account Tree
+// ============================================================================
+
+interface IAccountNode {
+  id: Types.ObjectId;
+  accountCode: string;
+  accountName: string;
+  accountType: string;
+  normalBalance: string;
+  parentId?: Types.ObjectId | null;
+  description?: string;
+  isActive: boolean;
+  currentBalance: number;
+  children?: IAccountNode[];
+  [key: string]: unknown;
+}
+
+function buildAccountTree(accounts: unknown[]): IAccountNode[] {
+  const typedAccounts = accounts as IAccountNode[];
+  const accountMap = new Map<string, IAccountNode>();
+  const roots: IAccountNode[] = [];
+
+  // First pass: create map with children arrays
+  typedAccounts.forEach((account) => {
+    accountMap.set(account.id.toString(), { ...account, children: [] });
+  });
+
+  // Second pass: build tree
+  typedAccounts.forEach((account) => {
+    const node = accountMap.get(account.id.toString());
+    if (!node) return;
+
+    if (account.parentId) {
+      const parent = accountMap.get(account.parentId.toString());
+      if (parent && parent.children) {
+        parent.children.push(node);
+      } else {
+        // Parent not found, treat as root
+        roots.push(node);
+      }
+    } else {
+      roots.push(node);
+    }
+  });
+
+  // Remove empty children arrays for cleaner output
+  const cleanTree = (nodes: IAccountNode[]): IAccountNode[] => {
+    return nodes.map((node) => {
+      const cleaned = { ...node };
+      if (cleaned.children && cleaned.children.length === 0) {
+        delete cleaned.children;
+      } else if (cleaned.children) {
+        cleaned.children = cleanTree(cleaned.children);
+      }
+      return cleaned;
+    });
+  };
+
+  return cleanTree(roots);
+}
+
+function filterTreeByAccountType(
+  tree: IAccountNode[],
+  accountType: string,
+): IAccountNode[] {
+  return tree
+    .filter((node) => node.accountType === accountType)
+    .map((node) => ({
+      ...node,
+      children: node.children
+        ? filterTreeByAccountType(node.children, accountType)
+        : undefined,
+    }));
+}
+
+// ============================================================================
+// POST /api/finance/accounts - Create new account
+// ============================================================================
+
+export async function POST(req: NextRequest) {
+  try {
+    await dbConnect();
+
+    // Auth check
+    const user = await getUserSession(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Authorization check
+    requirePermission(user.role, "finance.accounts.create");
+
+    // Parse and validate request body
+    const body = await req.json();
+    const validated = CreateAccountSchema.parse(body);
+
+    // Execute with proper context
+    return await runWithContext(
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
+      async () => {
+        // Check if account code already exists
+        const existingAccount = await ChartAccount.findOne({
+          orgId: new Types.ObjectId(user.orgId),
+          accountCode: validated.accountCode,
+        });
+
+        if (existingAccount) {
+          return NextResponse.json(
+            {
+              error: `Account code ${validated.accountCode} already exists`,
+            },
+            { status: 400 },
+          );
+        }
+
+        // Validate parent account if provided
+        if (validated.parentId) {
+          const parent = await ChartAccount.findOne({
+            _id: new Types.ObjectId(validated.parentId),
+            orgId: new Types.ObjectId(user.orgId),
+          });
+
+          if (!parent) {
+            return NextResponse.json(
+              {
+                error: "Parent account not found",
+              },
+              { status: 400 },
+            );
+          }
+
+          // Validate account type matches parent
+          if (parent.accountType !== validated.accountType) {
+            return NextResponse.json(
+              {
+                error: `Child account type (${validated.accountType}) must match parent account type (${parent.accountType})`,
+              },
+              { status: 400 },
+            );
+          }
+        }
+
+        // Create new account
+        const account = await ChartAccount.create({
+          orgId: new Types.ObjectId(user.orgId),
+          accountCode: validated.accountCode,
+          accountName: validated.accountName,
+          accountType: validated.accountType,
+          normalBalance: validated.normalBalance,
+          parentId: validated.parentId
+            ? new Types.ObjectId(validated.parentId)
+            : undefined,
+          description: validated.description,
+          taxable: validated.taxable ?? false,
+          taxRate: validated.taxRate,
+          isActive: validated.isActive ?? true,
+          currentBalance: 0,
+          year: new Date().getFullYear(),
+          period: new Date().getMonth() + 1,
+        });
+
+        return NextResponse.json(
+          {
+            success: true,
+            data: account,
+          },
+          { status: 201 },
+        );
+      },
+    );
+  } catch (error) {
+    logger.error("POST /api/finance/accounts error:", error);
+
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
+
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          error: "Validation failed",
+          details: error.issues,
+        },
+        { status: 400 },
+      );
+    }
+
+    if (error instanceof Error) {
+      return NextResponse.json(
+        {
+          error: error.message,
+        },
+        { status: 400 },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/finance/expenses/[id]/[action]/route.ts">
+<![CDATA[
+/**
+ * Expense Approval API Routes
+ * POST /api/finance/expenses/:id/submit - Submit for approval
+ * POST /api/finance/expenses/:id/approve - Approve expense
+ * POST /api/finance/expenses/:id/reject - Reject expense
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { Types } from "mongoose";
+import { z } from "zod";
+import { Expense } from "@/server/models/finance/Expense";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { runWithContext } from "@/server/lib/authContext";
+import { requirePermission } from "@/config/rbac.config";
+
+async function getUserSession(req: NextRequest) {
+  const user = await getSessionUser(req);
+  if (!user || !user.id || !user.orgId) {
+    throw new Error("Unauthorized: Invalid session");
+  }
+  return {
+    userId: user.id,
+    orgId: user.orgId,
+    role: user.role,
+  };
+}
+
+const ApprovalSchema = z.object({
+  comments: z.string().optional(),
+});
+
+import type { RouteContext } from "@/lib/types/route-context";
+
+import { logger } from "@/lib/logger";
+/**
+ * POST /api/finance/expenses/:id/submit|approve|reject
+ */
+export async function POST(
+  req: NextRequest,
+  context: RouteContext<{ id: string; action: string }>,
+) {
+  try {
+    const user = await getUserSession(req);
+
+    // Resolve params (Next.js 15 provides params as a Promise)
+    const _params = await Promise.resolve(context.params);
+
+    if (!Types.ObjectId.isValid(_params.id)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid expense ID" },
+        { status: 400 },
+      );
+    }
+
+    // Use typed action parameter from route context
+    const action = _params.action;
+
+    // Authorization check based on action
+    if (action === "submit") {
+      requirePermission(user.role, "finance.expenses.submit");
+    } else if (action === "approve") {
+      requirePermission(user.role, "finance.expenses.approve");
+    } else if (action === "reject") {
+      requirePermission(user.role, "finance.expenses.reject");
+    } else {
+      return NextResponse.json(
+        { success: false, error: "Invalid action" },
+        { status: 400 },
+      );
+    }
+
+    // Execute with proper context
+    return await runWithContext(
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
+      async () => {
+        const expense = await Expense.findOne({
+          _id: _params.id,
+          orgId: user.orgId,
+        });
+
+        if (!expense) {
+          return NextResponse.json(
+            { success: false, error: "Expense not found" },
+            { status: 404 },
+          );
+        }
+
+        if (action === "submit") {
+          if (expense.status !== "DRAFT") {
+            return NextResponse.json(
+              { success: false, error: "Only draft expenses can be submitted" },
+              { status: 400 },
+            );
+          }
+
+          await expense.submit();
+          await expense.save();
+
+          return NextResponse.json({
+            success: true,
+            data: expense,
+            message: "Expense submitted for approval",
+          });
+        }
+
+        if (action === "approve") {
+          if (expense.status !== "SUBMITTED") {
+            return NextResponse.json(
+              {
+                success: false,
+                error: "Only submitted expenses can be approved",
+              },
+              { status: 400 },
+            );
+          }
+
+          const body = await req.json();
+          const { comments } = ApprovalSchema.parse(body);
+
+          await expense.approve(new Types.ObjectId(user.userId), comments);
+          await expense.save();
+
+          return NextResponse.json({
+            success: true,
+            data: expense,
+            message: "Expense approved",
+          });
+        }
+
+        if (action === "reject") {
+          if (expense.status !== "SUBMITTED") {
+            return NextResponse.json(
+              {
+                success: false,
+                error: "Only submitted expenses can be rejected",
+              },
+              { status: 400 },
+            );
+          }
+
+          const body = await req.json();
+          const { comments } = ApprovalSchema.parse(body);
+
+          if (!comments) {
+            return NextResponse.json(
+              { success: false, error: "Rejection reason is required" },
+              { status: 400 },
+            );
+          }
+
+          await expense.reject(new Types.ObjectId(user.userId), comments);
+          await expense.save();
+
+          return NextResponse.json({
+            success: true,
+            data: expense,
+            message: "Expense rejected",
+          });
+        }
+
+        // Should never reach here due to earlier check
+        return NextResponse.json(
+          { success: false, error: "Invalid action" },
+          { status: 400 },
+        );
+      },
+    );
+  } catch (error) {
+    logger.error("Error processing expense action:", error);
+
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 403 },
+      );
+    }
+
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Validation failed",
+          issues: error.issues,
+        },
+        { status: 400 },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to process expense action",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+<file path="app/api/finance/expenses/[id]/route.ts">
+<![CDATA[
+/**
+ * Individual Expense API Routes
+ * GET /api/finance/expenses/:id - Get single expense
+ * PUT /api/finance/expenses/:id - Update expense
+ * DELETE /api/finance/expenses/:id - Cancel expense
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { Types } from "mongoose";
+import { z } from "zod";
+import { Expense } from "@/server/models/finance/Expense";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { runWithContext } from "@/server/lib/authContext";
+import { requirePermission } from "@/config/rbac.config";
+
+async function getUserSession(req: NextRequest) {
+  const user = await getSessionUser(req);
+  if (!user || !user.id || !user.orgId) {
+    throw new Error("Unauthorized: Invalid session");
+  }
+  return {
+    userId: user.id,
+    orgId: user.orgId,
+    role: user.role,
+  };
+}
+
+import type { RouteContext } from "@/lib/types/route-context";
+
+import { logger } from "@/lib/logger";
+/**
+ * GET /api/finance/expenses/:id
+ */
+export async function GET(
+  req: NextRequest,
+  context: RouteContext<{ id: string }>,
+) {
+  try {
+    const user = await getUserSession(req);
+
+    // Authorization check
+    requirePermission(user.role, "finance.expenses.read");
+
+    // Resolve params (Next.js 15 provides params as a Promise)
+    const _params = await Promise.resolve(context.params);
+
+    if (!Types.ObjectId.isValid(_params.id)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid expense ID" },
+        { status: 400 },
+      );
+    }
+
+    // Execute with proper context
+    return await runWithContext(
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
+      async () => {
+        const expense = await Expense.findOne({
+          _id: _params.id,
+          orgId: user.orgId,
+        });
+
+        if (!expense) {
+          return NextResponse.json(
+            { success: false, error: "Expense not found" },
+            { status: 404 },
+          );
+        }
+
+        return NextResponse.json({
+          success: true,
+          data: expense,
+        });
+      },
+    );
+  } catch (error) {
+    logger.error("Error fetching expense:", error);
+
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 403 },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to fetch expense",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+const UpdateExpenseSchema = z.object({
+  expenseDate: z.coerce.date().optional(),
+  dueDate: z.coerce.date().optional(),
+  description: z.string().optional(),
+  notes: z.string().optional(),
+  lineItems: z.array(z.object({
+    description: z.string().optional(),
+    quantity: z.number().nonnegative().optional(),
+    unitPrice: z.number().nonnegative().optional(),
+    amount: z.number().nonnegative().optional(),
+    taxRate: z.number().nonnegative().optional(),
+    accountId: z.string().optional(),
+  }).refine(
+    (item) => Object.keys(item).length > 0,
+    { message: "Line items cannot be empty objects" }
+  )).optional(),
+  subtotal: z.number().optional(),
+  totalTax: z.number().optional(),
+  totalAmount: z.number().optional(),
+});
+
+/**
+ * PUT /api/finance/expenses/:id
+ * Update expense (only if DRAFT status)
+ */
+export async function PUT(
+  req: NextRequest,
+  context: RouteContext<{ id: string }>,
+) {
+  try {
+    const user = await getUserSession(req);
+
+    // Authorization check
+    requirePermission(user.role, "finance.expenses.update");
+
+    // Resolve params (Next.js 15 provides params as a Promise)
+    const _params = await Promise.resolve(context.params);
+
+    if (!Types.ObjectId.isValid(_params.id)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid expense ID" },
+        { status: 400 },
+      );
+    }
+
+    const body = await req.json();
+    const data = UpdateExpenseSchema.parse(body);
+
+    // Execute with proper context
+    return await runWithContext(
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
+      async () => {
+        const expense = await Expense.findOne({
+          _id: _params.id,
+          orgId: user.orgId,
+        });
+
+        if (!expense) {
+          return NextResponse.json(
+            { success: false, error: "Expense not found" },
+            { status: 404 },
+          );
+        }
+
+        // Only allow updates for DRAFT expenses
+        if (expense.status !== "DRAFT") {
+          return NextResponse.json(
+            { success: false, error: "Only draft expenses can be updated" },
+            { status: 400 },
+          );
+        }
+
+        // Update expense
+        Object.assign(expense, data);
+        expense.updatedBy = new Types.ObjectId(user.userId);
+        await expense.save();
+
+        return NextResponse.json({
+          success: true,
+          data: expense,
+          message: "Expense updated successfully",
+        });
+      },
+    );
+  } catch (error) {
+    logger.error("Error updating expense:", error);
+
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 403 },
+      );
+    }
+
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Validation failed",
+          issues: error.issues,
+        },
+        { status: 400 },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to update expense",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * DELETE /api/finance/expenses/:id
+ * Cancel expense
+ */
+export async function DELETE(
+  req: NextRequest,
+  context: RouteContext<{ id: string }>,
+) {
+  try {
+    const user = await getUserSession(req);
+
+    // Authorization check
+    requirePermission(user.role, "finance.expenses.delete");
+
+    // Resolve params (Next.js 15 provides params as a Promise)
+    const _params = await Promise.resolve(context.params);
+
+    if (!Types.ObjectId.isValid(_params.id)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid expense ID" },
+        { status: 400 },
+      );
+    }
+
+    // Execute with proper context
+    return await runWithContext(
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
+      async () => {
+        const expense = await Expense.findOne({
+          _id: _params.id,
+          orgId: user.orgId,
+        });
+
+        if (!expense) {
+          return NextResponse.json(
+            { success: false, error: "Expense not found" },
+            { status: 404 },
+          );
+        }
+
+        // Only allow cancellation for non-PAID expenses
+        if (expense.status === "PAID") {
+          return NextResponse.json(
+            { success: false, error: "Paid expenses cannot be cancelled" },
+            { status: 400 },
+          );
+        }
+
+        expense.status = "CANCELLED";
+        expense.updatedBy = new Types.ObjectId(user.userId);
+        await expense.save();
+
+        return NextResponse.json({
+          success: true,
+          message: "Expense cancelled successfully",
+        });
+      },
+    );
+  } catch (error) {
+    logger.error("Error cancelling expense:", error);
+
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 403 },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to cancel expense",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+]]>
+</file>
+
+</batch_content>

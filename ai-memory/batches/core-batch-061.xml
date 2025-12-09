@@ -1,0 +1,3096 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/MANUAL_SECURITY_TESTING_GUIDE.md">
+<![CDATA[
+# 🔐 Manual Security Testing Guide
+
+**Last Updated:** November 17, 2025  
+**Prerequisites:** Development environment running, `.env.local` configured  
+**Time Required:** 30-45 minutes  
+**Target:** Validate all security fixes before staging/production deployment
+
+---
+
+## 📋 Overview
+
+This guide provides step-by-step instructions to manually verify all security implementations:
+
+✅ **Rate Limiting** - OTP endpoints protected against brute-force  
+✅ **CORS Policy** - Only trusted origins can access API  
+✅ **Environment Secrets** - No hardcoded values, fail-fast validation  
+✅ **MongoDB Security** - Atlas-only enforcement in production  
+✅ **Docker Secrets** - Compose files require all secrets
+
+---
+
+## 🎯 Test 1: Rate Limiting Validation
+
+### Test 1.1: OTP Send Rate Limiting
+
+**Expected Behavior:** After 10 requests/minute, API returns `429 Too Many Requests`
+
+**Steps:**
+
+```bash
+# Terminal 1: Start dev server
+pnpm dev
+
+# Terminal 2: Run rate limit test
+for i in {1..15}; do
+  echo "Request $i:"
+  curl -X POST http://localhost:3000/api/auth/otp/send \
+    -H "Content-Type: application/json" \
+    -d '{"phoneNumber": "+966501234567"}' \
+    -w "\nHTTP Status: %{http_code}\n\n" \
+    -s | jq '.error // .message' 2>/dev/null || echo "No JSON response"
+  sleep 4
+done
+```
+
+**Expected Output:**
+
+```
+Request 1-10: HTTP Status: 200 (OTP sent successfully)
+Request 11-15: HTTP Status: 429 (Rate limit exceeded)
+```
+
+**Pass Criteria:**
+
+- ✅ First 10 requests succeed
+- ✅ Requests 11-15 return 429
+- ✅ Error message: "Too many requests. Please try again later."
+
+---
+
+### Test 1.2: OTP Verify Rate Limiting
+
+**Expected Behavior:** After 10 requests/minute, API returns `429 Too Many Requests`
+
+**Steps:**
+
+```bash
+# Test OTP verify endpoint
+for i in {1..15}; do
+  echo "Request $i:"
+  curl -X POST http://localhost:3000/api/auth/otp/verify \
+    -H "Content-Type: application/json" \
+    -d '{"phoneNumber": "+966501234567", "otp": "123456"}' \
+    -w "\nHTTP Status: %{http_code}\n\n" \
+    -s | jq '.error // .message' 2>/dev/null || echo "No JSON response"
+  sleep 4
+done
+```
+
+**Expected Output:**
+
+```
+Request 1-10: HTTP Status: 400 or 401 (Invalid OTP - expected)
+Request 11-15: HTTP Status: 429 (Rate limit exceeded)
+```
+
+**Pass Criteria:**
+
+- ✅ Requests 11-15 return 429 (rate limit works)
+- ✅ Rate limiting happens BEFORE OTP validation (security best practice)
+
+---
+
+### Test 1.3: Claims API Rate Limiting
+
+**Expected Behavior:** Claims endpoints protected (10 req/min)
+
+**Steps:**
+
+```bash
+# Get auth token first (replace with actual user credentials)
+TOKEN=$(curl -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "test@fixzit.sa", "password": "test123"}' \
+  -s | jq -r '.token')
+
+# Test claims creation endpoint
+for i in {1..12}; do
+  echo "Request $i:"
+  curl -X POST http://localhost:3000/api/souq/claims \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"orderId": "test", "reason": "damaged"}' \
+    -w "\nHTTP Status: %{http_code}\n\n" \
+    -s | jq '.error // .message' 2>/dev/null || echo "No JSON response"
+  sleep 5
+done
+```
+
+**Pass Criteria:**
+
+- ✅ First 10 requests succeed or fail with business logic errors (not rate limit)
+- ✅ Requests 11-12 return 429
+- ✅ Error message includes rate limit text
+
+---
+
+## 🌐 Test 2: CORS Policy Validation
+
+### Test 2.1: Valid Origin (Should Succeed)
+
+**Expected Behavior:** Requests from allowed origins work
+
+**Steps:**
+
+```bash
+# Test with valid production origin
+curl -X GET http://localhost:3000/api/health \
+  -H "Origin: https://fixzit.sa" \
+  -v 2>&1 | grep -E "(HTTP/|Access-Control)"
+
+# Test with valid staging origin
+curl -X GET http://localhost:3000/api/health \
+  -H "Origin: https://staging.fixzit.sa" \
+  -v 2>&1 | grep -E "(HTTP/|Access-Control)"
+
+# Test with localhost (dev only)
+curl -X GET http://localhost:3000/api/health \
+  -H "Origin: http://localhost:3000" \
+  -v 2>&1 | grep -E "(HTTP/|Access-Control)"
+```
+
+**Expected Output:**
+
+```
+HTTP/1.1 200 OK
+Access-Control-Allow-Origin: https://fixzit.sa
+Access-Control-Allow-Credentials: true
+```
+
+**Pass Criteria:**
+
+- ✅ All valid origins return 200
+- ✅ `Access-Control-Allow-Origin` header matches request origin
+- ✅ `Access-Control-Allow-Credentials: true` present
+
+---
+
+### Test 2.2: Invalid Origin (Should Fail)
+
+**Expected Behavior:** Requests from evil origins blocked
+
+**Steps:**
+
+```bash
+# Test with malicious origin
+curl -X POST http://localhost:3000/api/auth/otp/send \
+  -H "Origin: https://evil.com" \
+  -H "Content-Type: application/json" \
+  -d '{"phoneNumber": "+966501234567"}' \
+  -v 2>&1 | grep -E "(HTTP/|Access-Control)"
+
+# Test with .co domain (should be blocked in production)
+curl -X POST http://localhost:3000/api/auth/otp/send \
+  -H "Origin: https://fixzit.co" \
+  -H "Content-Type: application/json" \
+  -d '{"phoneNumber": "+966501234567"}' \
+  -v 2>&1 | grep -E "(HTTP/|Access-Control)"
+```
+
+**Expected Output:**
+
+```
+HTTP/1.1 403 Forbidden
+(No Access-Control-Allow-Origin header)
+```
+
+**Pass Criteria:**
+
+- ✅ Request returns 403 or 500 (origin rejected)
+- ✅ NO `Access-Control-Allow-Origin` header in response
+- ✅ Error logged in server console: "CORS policy blocked origin: https://evil.com"
+
+---
+
+### Test 2.3: CORS Preflight (OPTIONS)
+
+**Expected Behavior:** Preflight requests handled correctly
+
+**Steps:**
+
+```bash
+# Test OPTIONS preflight request
+curl -X OPTIONS http://localhost:3000/api/auth/otp/send \
+  -H "Origin: https://fixzit.sa" \
+  -H "Access-Control-Request-Method: POST" \
+  -H "Access-Control-Request-Headers: Content-Type" \
+  -v 2>&1 | grep -E "(HTTP/|Access-Control)"
+```
+
+**Expected Output:**
+
+```
+HTTP/1.1 204 No Content
+Access-Control-Allow-Origin: https://fixzit.sa
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: Content-Type, Authorization
+Access-Control-Max-Age: 86400
+```
+
+**Pass Criteria:**
+
+- ✅ Returns 204 No Content
+- ✅ All CORS headers present
+- ✅ Allowed methods include POST
+- ✅ `Max-Age` set (caching enabled)
+
+---
+
+## 🔐 Test 3: Environment Secrets Validation
+
+### Test 3.1: Production Mode Without Secrets
+
+**Expected Behavior:** App fails to start if secrets missing
+
+**Steps:**
+
+```bash
+# Backup current .env.local
+cp .env.local .env.local.backup
+
+# Remove JWT_SECRET and try to start
+sed -i.tmp '/^JWT_SECRET=/d' .env.local
+
+# Try to start in production mode
+NODE_ENV=production pnpm start 2>&1 | head -20
+
+# Restore .env.local
+mv .env.local.backup .env.local
+```
+
+**Expected Output:**
+
+```
+Error: Environment variable JWT_SECRET is required but not set
+    at requireEnv (/lib/env.ts:15:11)
+    at /lib/mongo.ts:8:23
+```
+
+**Pass Criteria:**
+
+- ✅ App exits immediately (doesn't start)
+- ✅ Clear error message about missing JWT_SECRET
+- ✅ No "Server listening on port 3000" message
+
+---
+
+### Test 3.2: Test Fallbacks Work in Development
+
+**Expected Behavior:** Dev mode allows test fallbacks
+
+**Steps:**
+
+```bash
+# Remove JWT_SECRET
+sed -i.tmp '/^JWT_SECRET=/d' .env.local
+
+# Try to start in dev mode
+NODE_ENV=development pnpm dev 2>&1 | grep -E "(JWT_SECRET|using test fallback)" | head -5
+
+# Restore .env.local
+mv .env.local.backup .env.local
+```
+
+**Expected Output:**
+
+```
+⚠️  JWT_SECRET not set, using test fallback (development only)
+✅ JWT_SECRET resolved: dev-secret-... (32 chars)
+```
+
+**Pass Criteria:**
+
+- ✅ App starts successfully in dev mode
+- ✅ Warning logged about test fallback
+- ✅ No crashes
+
+---
+
+### Test 3.3: Validate All Required Secrets Present
+
+**Expected Behavior:** Validation script confirms all secrets set
+
+**Steps:**
+
+```bash
+# Run validation script
+pnpm tsx scripts/validate-notification-env.ts
+```
+
+**Expected Output:**
+
+```
+✅ Checking environment variables...
+
+Core Secrets:
+  ✅ JWT_SECRET: Set (32 characters)
+  ✅ NEXTAUTH_SECRET: Set (44 characters)
+  ✅ MONGODB_URI: Set (mongodb+srv://...)
+
+Notification Secrets:
+  ✅ SENDGRID_API_KEY: Set (SG.****...)
+  ✅ TWILIO_ACCOUNT_SID: Set (AC****)
+  ⚠️  WHATSAPP_BUSINESS_API_KEY: Not set (optional)
+
+All required secrets present!
+```
+
+**Pass Criteria:**
+
+- ✅ All core secrets marked as ✅
+- ✅ Script exits with code 0
+- ✅ Optional secrets can be missing
+
+---
+
+## 🗄️ Test 4: MongoDB Atlas Enforcement
+
+### Test 4.1: Production Rejects Localhost URI
+
+**Expected Behavior:** Production fails if non-Atlas URI used
+
+**Steps:**
+
+```bash
+# Backup MongoDB URI
+ORIGINAL_URI=$(grep "^MONGODB_URI=" .env.local | cut -d'=' -f2-)
+
+# Try localhost URI in production
+sed -i.tmp "s|^MONGODB_URI=.*|MONGODB_URI=mongodb://localhost:27017/fixzit|" .env.local
+
+# Try to connect in production mode
+NODE_ENV=production node -e "require('./lib/mongo.ts')" 2>&1 | head -10
+
+# Restore original URI
+sed -i.tmp "s|^MONGODB_URI=.*|MONGODB_URI=$ORIGINAL_URI|" .env.local
+```
+
+**Expected Output:**
+
+```
+Error: FATAL: Production requires MongoDB Atlas (mongodb+srv:// protocol).
+Local or self-hosted MongoDB is not allowed in production.
+    at enforceAtlasInProduction (/lib/mongo.ts:89:11)
+```
+
+**Pass Criteria:**
+
+- ✅ Connection fails immediately
+- ✅ Error mentions "Atlas-only" or "mongodb+srv://"
+- ✅ No database connection established
+
+---
+
+### Test 4.2: Atlas URI Works in Production
+
+**Expected Behavior:** Atlas URIs allowed in production
+
+**Steps:**
+
+```bash
+# Ensure Atlas URI is set (should already be in .env.local)
+grep "^MONGODB_URI=mongodb+srv://" .env.local
+
+# Test connection in production mode
+NODE_ENV=production node -e "
+  const { connectToDatabase } = require('./lib/mongo.ts');
+  connectToDatabase()
+    .then(() => console.log('✅ Connected to MongoDB Atlas'))
+    .catch(err => console.error('❌ Connection failed:', err.message));
+" 2>&1
+```
+
+**Expected Output:**
+
+```
+✅ Connected to MongoDB Atlas
+```
+
+**Pass Criteria:**
+
+- ✅ Connection succeeds
+- ✅ No warnings about localhost
+- ✅ TLS/SSL enabled automatically
+
+---
+
+### Test 4.3: Development Allows Localhost
+
+**Expected Behavior:** Dev mode allows localhost fallback
+
+**Steps:**
+
+```bash
+# Use localhost in dev mode
+MONGODB_URI=mongodb://localhost:27017/fixzit_dev node -e "
+  const { connectToDatabase } = require('./lib/mongo.ts');
+  connectToDatabase()
+    .then(() => console.log('✅ Connected to local MongoDB'))
+    .catch(err => console.error('❌ Connection failed:', err.message));
+" 2>&1
+```
+
+**Expected Output:**
+
+```
+⚠️  Using localhost MongoDB URI (development only)
+✅ Connected to local MongoDB
+```
+
+**Pass Criteria:**
+
+- ✅ Connection succeeds
+- ✅ Warning logged about localhost
+- ✅ No production enforcement triggered
+
+---
+
+## 🐳 Test 5: Docker Secrets Enforcement
+
+### Test 5.1: Docker Compose Fails Without Secrets
+
+**Expected Behavior:** Compose exits if secrets not set
+
+**Steps:**
+
+```bash
+# Unset all secrets
+unset JWT_SECRET MONGO_INITDB_ROOT_PASSWORD MEILI_MASTER_KEY
+
+# Try to start services
+docker-compose up -d 2>&1 | grep -E "(JWT_SECRET|MONGO_INITDB_ROOT_PASSWORD|MEILI_MASTER_KEY|error)"
+```
+
+**Expected Output:**
+
+```
+ERROR: The variable JWT_SECRET is not set. Set JWT_SECRET before running.
+ERROR: The variable MONGO_INITDB_ROOT_PASSWORD is not set. Set MONGO_INITDB_ROOT_PASSWORD before running.
+ERROR: The variable MEILI_MASTER_KEY is not set. Set MEILI_MASTER_KEY before running.
+```
+
+**Pass Criteria:**
+
+- ✅ `docker-compose up` fails immediately
+- ✅ Clear error messages for each missing secret
+- ✅ No containers started
+
+---
+
+### Test 5.2: Docker Compose Works With Secrets
+
+**Expected Behavior:** Compose starts when secrets provided
+
+**Steps:**
+
+```bash
+# Set all required secrets
+export JWT_SECRET="test-jwt-secret-32-characters-long"
+export MONGO_INITDB_ROOT_PASSWORD="strong_mongo_password_123"
+export MEILI_MASTER_KEY="test-meili-master-key-32-chars"
+
+# Start services
+docker-compose up -d
+
+# Check services started
+docker-compose ps
+
+# Clean up
+docker-compose down
+```
+
+**Expected Output:**
+
+```
+Creating network "fixzit_default" ... done
+Creating fixzit_mongodb_1      ... done
+Creating fixzit_meilisearch_1  ... done
+Creating fixzit_app_1          ... done
+
+NAME                   STATUS
+fixzit_mongodb_1       Up 5 seconds
+fixzit_meilisearch_1   Up 5 seconds
+fixzit_app_1           Up 3 seconds
+```
+
+**Pass Criteria:**
+
+- ✅ All services start successfully
+- ✅ No error messages
+- ✅ Containers show "Up" status
+
+---
+
+## 📊 Test Results Summary
+
+### Quick Checklist
+
+Copy this table to track your test progress:
+
+| Test                             | Status | Notes |
+| -------------------------------- | ------ | ----- |
+| **Rate Limiting**                |        |       |
+| └─ OTP Send (10 req/min)         | ☐      |       |
+| └─ OTP Verify (10 req/min)       | ☐      |       |
+| └─ Claims API (10 req/min)       | ☐      |       |
+| **CORS Policy**                  |        |       |
+| └─ Valid origins allowed         | ☐      |       |
+| └─ Invalid origins blocked       | ☐      |       |
+| └─ Preflight requests work       | ☐      |       |
+| **Environment Secrets**          |        |       |
+| └─ Prod fails without secrets    | ☐      |       |
+| └─ Dev allows test fallbacks     | ☐      |       |
+| └─ Validation script passes      | ☐      |       |
+| **MongoDB Security**             |        |       |
+| └─ Prod rejects localhost        | ☐      |       |
+| └─ Atlas URI works in prod       | ☐      |       |
+| └─ Dev allows localhost          | ☐      |       |
+| **Docker Secrets**               |        |       |
+| └─ Compose fails without secrets | ☐      |       |
+| └─ Compose works with secrets    | ☐      |       |
+
+---
+
+## 🚨 Failure Scenarios
+
+### What to Do If Tests Fail
+
+#### Rate Limiting Tests Fail
+
+```bash
+# Check rate limit middleware is imported
+grep -r "enforceRateLimit" app/api/
+
+# Verify rate limit configuration
+cat lib/middleware/rate-limit.ts
+
+# Check Redis connection (if using Redis backend)
+redis-cli ping
+```
+
+#### CORS Tests Fail
+
+```bash
+# Check CORS allowlist
+cat lib/security/cors-allowlist.ts
+
+# Verify middleware.ts uses allowlist
+grep "isOriginAllowed" middleware.ts
+
+# Check Next.js CORS config
+grep "cors" next.config.js
+```
+
+#### Environment Secrets Tests Fail
+
+```bash
+# Check requireEnv implementation
+cat lib/env.ts
+
+# Verify all production files use requireEnv
+grep -r "requireEnv" lib/ | grep -v node_modules
+
+# Test validation script
+pnpm tsx scripts/validate-notification-env.ts --verbose
+```
+
+#### MongoDB Tests Fail
+
+```bash
+# Check MongoDB connection logic
+cat lib/mongo.ts | grep -A 20 "enforceAtlasInProduction"
+
+# Verify environment variable
+echo $MONGODB_URI
+
+# Test connection manually
+mongosh "$MONGODB_URI" --eval "db.version()"
+```
+
+#### Docker Tests Fail
+
+```bash
+# Check docker-compose.yml syntax
+docker-compose config
+
+# Verify env var substitution
+docker-compose config | grep -E "(JWT_SECRET|MONGO_INITDB_ROOT_PASSWORD)"
+
+# Check for hardcoded values
+grep -E "(jwt_secret|mongo.*password)" docker-compose.yml
+```
+
+---
+
+## 📈 Security Score Calculation
+
+After completing all tests, calculate your security score:
+
+```
+Total Tests: 15
+Passing Tests: ____ / 15
+
+Security Score = (Passing Tests / Total Tests) × 100
+Security Score = (____ / 15) × 100 = _____%
+```
+
+**Grading:**
+
+- 🟢 **90-100%** (14-15 tests): Excellent - Production ready
+- 🟡 **80-89%** (12-13 tests): Good - Minor fixes needed
+- 🟠 **70-79%** (11 tests): Fair - Security review required
+- 🔴 **<70%** (<11 tests): Poor - Do not deploy
+
+---
+
+## ✅ Production Readiness Checklist
+
+Before deploying to production, ensure:
+
+- [ ] All 15 manual tests pass
+- [ ] Security score ≥ 90%
+- [ ] Automated tests added for critical paths
+- [ ] Security scan completed (Snyk/ZAP)
+- [ ] Staging validation completed
+- [ ] Monitoring/alerting configured
+- [ ] Team security review completed
+- [ ] Incident response plan documented
+
+---
+
+## 📚 Related Documentation
+
+- **Security Fixes Report:** `SECURITY_FIXES_COMPLETED.md`
+- **Environment Setup:** `NOTIFICATION_CREDENTIALS_GUIDE.md`
+- **Action Plan:** `ACTION_PLAN_NOV_17.md`
+- **Pending Tasks:** `PENDING_TASKS_NOV_11-17_UPDATED.md`
+
+---
+
+## 🆘 Need Help?
+
+### Common Issues
+
+**Issue:** Rate limiting not working
+
+```bash
+# Solution: Restart dev server (rate limit state resets)
+pkill -f "next dev"
+pnpm dev
+```
+
+**Issue:** CORS headers missing
+
+```bash
+# Solution: Check middleware is running
+grep "middleware.ts" next.config.js
+```
+
+**Issue:** Docker secrets not interpolating
+
+```bash
+# Solution: Use docker-compose config to debug
+export JWT_SECRET="test123"
+docker-compose config | grep JWT_SECRET
+```
+
+---
+
+**Last Updated:** November 17, 2025  
+**Test Environment:** Development (localhost:3000)  
+**Estimated Time:** 30-45 minutes  
+**Prerequisites:** `.env.local` configured, `pnpm dev` running
+
+]]>
+</file>
+
+<file path="docs/MANUAL_SECURITY_TESTING_RESULTS.md">
+<![CDATA[
+# Manual Security Testing Results
+
+**Purpose:** Record manual verification steps for rate limiting, CORS, and MongoDB URI constraints.
+
+**Status:** Not executed locally (environment requires running on staging).
+
+## Rate Limiting Checks (OTP/Claims/Aqar/Support)
+
+| Endpoint                               | Limit   | Expected Result           | Actual Status                        |
+| -------------------------------------- | ------- | ------------------------- | ------------------------------------ |
+| `POST /api/auth/otp/send`              | 10/min  | requests 11-15 return 429 | Pending (requires staging execution) |
+| `POST /api/auth/otp/verify`            | 10/min  | requests 11-15 return 429 | Pending                              |
+| `POST /api/souq/claims`                | 20/min  | requests 21-25 return 429 | Pending                              |
+| `POST /api/souq/claims/[id]/evidence`  | 30/2min | requests >30 return 429   | Pending                              |
+| `POST /api/souq/claims/[id]/response`  | 30/2min | requests >30 return 429   | Pending                              |
+| `GET /api/aqar/pricing`                | 30/min  | requests >30 return 429   | Pending                              |
+| `GET /api/aqar/recommendations`        | 60/min  | requests >60 return 429   | Pending                              |
+| `POST /api/support/tickets/[id]/reply` | 60/min  | requests >60 return 429   | Pending                              |
+
+> **Notes:** Run these loops from a staging instance, collecting response codes and `X-RateLimit` headers. Append results once executed.
+
+## CORS Validation Checks
+
+| Scenario                                    | Expected Behavior                    | Actual Status |
+| ------------------------------------------- | ------------------------------------ | ------------- |
+| Origin `https://fixzit.sa` (prod)           | Allowed with matching header         | Pending       |
+| Origin `https://evil.com`                   | Blocked with 403                     | Pending       |
+| Origin `http://localhost:3000` (dev mode)   | Allowed when `NODE_ENV!==production` | Pending       |
+| Origin `http://localhost:3000` (production) | Denied                               | Pending       |
+
+> **Notes:** Confirm `Access-Control-Allow-Origin` header is emitted only for allowed origins. Capture curl outputs via `curl -i`.
+
+## MongoDB URI Checks
+
+| Scenario                                         | Expected Behavior                           | Actual Status |
+| ------------------------------------------------ | ------------------------------------------- | ------------- |
+| `NODE_ENV=production` without `MONGODB_URI`      | Error thrown (`MONGODB_URI is required...`) | Pending       |
+| `NODE_ENV=production` with `mongodb://localhost` | Error (`Local MongoDB URIs not allowed...`) | Pending       |
+| `NODE_ENV=production` with `mongodb+srv://`      | Successful connection                       | Pending       |
+| `NODE_ENV=development` with no URI               | Connects to `mongodb://127.0.0.1` fallback  | Pending       |
+
+> **Notes:** These checks require running the binary with the respective env combinations. Document console output when done.
+
+## Next Actions
+
+1. Execute the above steps on staging; append timestamps & outputs under each table row.
+2. Convert these results into a summary table within `DEPLOYMENT_READINESS_REPORT.md`.
+3. Re-run this document after each manual verification for traceability.
+
+]]>
+</file>
+
+<file path="docs/MANUAL_UI_TESTING_CHECKLIST.md">
+<![CDATA[
+# Manual UI Testing Checklist
+
+**Status:** Ready for Execution  
+**Prerequisites:** `pnpm dev` server running on http://localhost:3000  
+**Date:** November 18, 2025
+
+---
+
+## Quick Status Dashboard
+
+| Suite                         | Status     | Last Run  | Owner           | Notes                                                            |
+| ----------------------------- | ---------- | --------- | --------------- | ---------------------------------------------------------------- |
+| FM Workflow Navigation        | 🚧 Pending | _TBD_     | QA Team         | Requires seeded demo data for dashboards + KPIs.                 |
+| Navigation & Sidebar (RBAC)   | 🚧 Pending | _TBD_     | QA Team         | Needs four role fixtures (Superadmin + three manager variants).  |
+| Support Organization Switcher | 🔴 Blocked | _TBD_     | Support QA      | Blocked until support user + org records exist in DB.            |
+| Translation & i18n            | 🟡 Partial | _TBD_     | Localization QA | Keys available; still validating finance + toast flows.          |
+| New Features Smoke Tests      | 🟡 Partial | _TBD_     | Feature QA      | Compliance + CRM forms ready; PM to confirm required data seeds. |
+| Performance & Memory          | 🟢 Ready   | _Not Run_ | Platform QA     | Scripts ready; safe to execute after suites 1-5 pass.            |
+
+---
+
+## Prerequisites Verification
+
+Before starting manual tests:
+
+```bash
+# 1. Start development server
+# From the project root, run:
+pnpm dev
+
+# 2. Verify server is responding
+curl -I http://localhost:3000/login
+
+# 3. Check MongoDB connection
+# Should see connection logs in terminal without errors
+```
+
+**Expected:** Server starts on port 3000, MongoDB connects successfully
+
+---
+
+## Test Data & Safety Notes
+
+- **Superadmin login:** `admin@fixzit.com` / `<admin-password>` stored in 1Password → \"Fixzit Superadmin (Dev)\".
+- **Manager - Standard plan:** `manager.standard@fixzit.com` / password per vault.
+- **Manager - Premium plan:** `manager.premium@fixzit.com` / password per vault.
+- **Support user:** `support@fixzit.com` – ensure `canImpersonate=true` and at least two organizations exist for switcher tests.
+- **Org fixtures:** Run `pnpm tsx scripts/seed-demo-users.ts` followed by `node scripts/create-test-data.js` to ensure org, property, and work-order data exist before suites 3 & 4.
+- **Cleanup:** After impersonation, hit `/api/support/impersonation` `DELETE` to avoid polluting other suites. **Note:** For manual cookie clearing, see `/app/logout/page.tsx` for proper implementation (requires clearing Secure variants: `__Secure-*`, `__Host-*`).
+
+---
+
+## Test Suite 1: FM Workflow Navigation
+
+### Objective
+
+Verify all FM (Facilities Management) module pages load correctly with proper translations and navigation.
+
+### Test Cases
+
+#### TC-1.1: FM Dashboard Access
+
+- [ ] Navigate to `/fm/dashboard`
+- [ ] Verify dashboard loads without errors
+- [ ] Check that KPI cards display (work orders, properties, tenants)
+- [ ] Verify quick actions are visible
+- [ ] **Language Toggle:** Switch to Arabic (AR), verify RTL layout
+- [ ] Switch back to English (EN)
+
+**Expected:** Dashboard loads with proper data structure, translations work
+
+#### TC-1.2: FM Finance Module
+
+- [ ] Navigate to `/fm/finance/budgets`
+- [ ] Verify budget list page loads
+- [ ] Check table headers display in current language
+- [ ] Click "Create Budget" button → should navigate to `/fm/finance/budgets/new`
+- [ ] Verify form fields are translated
+- [ ] Check validation messages appear in correct language
+- [ ] Test form submission (can use dummy data)
+- [ ] Navigate to `/fm/finance/expenses`
+- [ ] Navigate to `/fm/finance/payments`
+- [ ] Navigate to `/fm/finance/invoices`
+
+**Expected:** All finance pages load, translations display correctly
+
+#### TC-1.3: FM Properties Module
+
+- [ ] Navigate to `/fm/properties`
+- [ ] Verify property list loads
+- [ ] Click "Add Property" → navigate to `/fm/properties/new`
+- [ ] Test property form validation
+- [ ] Navigate to `/fm/properties/units`
+- [ ] Navigate to `/fm/properties/inspections`
+- [ ] Navigate to `/fm/properties/leases`
+- [ ] Navigate to `/fm/properties/documents`
+
+**Expected:** Property management flows work end-to-end
+
+#### TC-1.4: FM Work Orders
+
+- [ ] Navigate to `/fm/work-orders/board`
+- [ ] Verify Kanban board displays
+- [ ] Check work order cards render
+- [ ] Navigate to `/fm/work-orders/new`
+- [ ] Test work order creation form
+- [ ] Navigate to `/fm/work-orders/approvals`
+- [ ] Navigate to `/fm/work-orders/history`
+- [ ] Navigate to `/fm/work-orders/pm` (preventive maintenance)
+
+**Expected:** Work order management system functional
+
+#### TC-1.5: FM HR Module
+
+- [ ] Navigate to `/fm/hr/directory`
+- [ ] Verify employee directory loads
+- [ ] Navigate to `/fm/hr/employees`
+- [ ] Navigate to `/fm/hr/recruitment`
+- [ ] Navigate to `/fm/hr/leave`
+- [ ] Navigate to `/fm/hr/leave/approvals`
+- [ ] Navigate to `/fm/hr/payroll`
+- [ ] Navigate to `/fm/hr/payroll/run`
+
+**Expected:** HR module pages accessible and functional
+
+#### TC-1.6: FM Compliance Module
+
+- [ ] Navigate to `/fm/compliance`
+- [ ] Verify compliance dashboard loads
+- [ ] Navigate to `/fm/compliance/audits` (NEW PAGE)
+- [ ] Navigate to `/fm/compliance/policies` (NEW PAGE)
+- [ ] Navigate to `/fm/compliance/contracts/new`
+- [ ] Test contract form
+
+**Expected:** New compliance pages load correctly
+
+#### TC-1.7: FM CRM Module
+
+- [ ] Navigate to `/fm/crm`
+- [ ] Verify CRM dashboard loads with overview metrics
+- [ ] Navigate to `/fm/crm/accounts/new`
+- [ ] Test account creation form
+- [ ] Navigate to `/fm/crm/leads/new`
+- [ ] Test lead creation form
+
+**Expected:** CRM integration works
+
+---
+
+## Test Suite 2: Navigation & Sidebar (RBAC)
+
+### Objective
+
+Verify sidebar navigation adapts correctly based on user role and subscription plan.
+
+### Setup
+
+```typescript
+// Test with different user roles:
+// 1. Superadmin (can see everything)
+// 2. Manager (Standard plan)
+// 3. Manager (Premium plan)
+// 4. Standard user
+```
+
+#### TC-2.1: Superadmin Navigation
+
+- [ ] Login as Superadmin
+- [ ] Verify sidebar shows all modules:
+  - Dashboard
+  - FM (all submodules)
+  - Marketplace
+  - Finance
+  - HR
+  - System
+  - CRM
+  - Compliance
+- [ ] Click each top-level menu item
+- [ ] Verify all sub-items expand correctly
+
+**Expected:** Superadmin sees complete navigation tree
+
+#### TC-2.2: Manager (Standard Plan) Navigation
+
+- [ ] Login as Manager with Standard plan
+- [ ] Verify sidebar shows limited modules:
+  - Dashboard
+  - FM (basic modules only)
+  - Properties
+  - Work Orders
+  - Tenants
+- [ ] Verify Premium features are hidden:
+  - Advanced Finance reports
+  - CRM modules
+  - Compliance modules
+- [ ] Attempt to navigate to `/fm/crm` directly via URL
+- [ ] **Expected:** Should redirect to unauthorized page or dashboard
+
+**Expected:** Navigation restricted to Standard plan features
+
+#### TC-2.3: Manager (Premium Plan) Navigation
+
+- [ ] Login as Manager with Premium plan
+- [ ] Verify sidebar shows extended modules:
+  - Dashboard
+  - FM (all submodules)
+  - Finance (full access)
+  - CRM
+  - Compliance
+  - Advanced Reports
+- [ ] Navigate to `/fm/finance/reports`
+- [ ] Navigate to `/fm/crm/accounts`
+- [ ] Navigate to `/fm/compliance/audits`
+
+**Expected:** Premium features accessible, navigation complete
+
+#### TC-2.4: TopBar Module Switching
+
+- [ ] Verify TopBar shows available modules
+- [ ] Click "Facilities" → should stay in FM context
+- [ ] Click "Marketplace" → should navigate to `/marketplace`
+- [ ] Click "Finance" → should navigate to `/finance`
+- [ ] Verify breadcrumbs update correctly
+- [ ] Test module switcher dropdown
+
+**Expected:** TopBar module switching works seamlessly
+
+---
+
+## Test Suite 3: Support Organization Switcher
+
+### Objective
+
+Verify the new SupportOrgSwitcher component allows support staff to impersonate organizations.
+
+### Setup
+
+```bash
+# Must have support role user in database
+# Test organization IDs should exist
+```
+
+#### TC-3.1: Organization Search
+
+- [ ] Login as Support user
+- [ ] Locate SupportOrgSwitcher in TopBar or Settings
+- [ ] Click "Switch Organization"
+- [ ] Search for organization by name
+- [ ] Verify search results display
+
+**Expected:** Organization search API returns results
+
+#### TC-3.2: Organization Impersonation
+
+- [ ] Select an organization from search results
+- [ ] Click "Impersonate"
+- [ ] Verify session switches to selected organization
+- [ ] Check that sidebar updates to show org's accessible modules
+- [ ] Navigate to `/fm/properties`
+- [ ] Verify properties belong to impersonated organization
+
+**Expected:** Impersonation works, data scoped correctly
+
+#### TC-3.3: Exit Impersonation
+
+- [ ] While impersonating, locate "Exit Impersonation" button
+- [ ] Click to exit
+- [ ] Verify session returns to support user's context
+- [ ] Check sidebar returns to support user's permissions
+
+**Expected:** Can safely exit impersonation mode
+
+---
+
+## Test Suite 4: Translation & i18n
+
+### Objective
+
+Verify translation system works across all new pages, especially FM finance module.
+
+#### TC-4.1: Language Toggle
+
+- [ ] Navigate to `/fm/finance/budgets`
+- [ ] Current language: English
+- [ ] Verify page title: "Budgets"
+- [ ] Verify table headers: "Name", "Amount", "Period", "Status"
+- [ ] Click language toggle → Switch to Arabic
+- [ ] Verify page title changes to: "الميزانيات"
+- [ ] Verify table headers translate
+- [ ] Verify RTL layout applies
+
+**Expected:** Complete translation coverage in finance module
+
+#### TC-4.2: Form Validation Messages
+
+- [ ] Navigate to `/fm/finance/expenses/new`
+- [ ] Submit form without filling required fields
+- [ ] Verify validation errors display in current language
+- [ ] Switch language to Arabic
+- [ ] Submit form again
+- [ ] Verify validation errors now in Arabic
+
+**Expected:** Validation messages are translated
+
+#### TC-4.3: Toast Notifications
+
+- [ ] Create a new budget (success scenario)
+- [ ] Verify success toast displays in current language
+- [ ] Switch to Arabic
+- [ ] Create another budget
+- [ ] Verify toast message in Arabic
+
+**Expected:** Runtime notifications are translated
+
+---
+
+## Test Suite 5: New Features Smoke Tests
+
+### TC-5.1: Route Metrics Dashboard
+
+- [ ] Navigate to `/admin/route-metrics`
+- [ ] Verify dashboard loads
+- [ ] Check that route statistics display
+- [ ] Verify charts render (if using Recharts)
+- [ ] Check for any console errors
+
+**Expected:** New admin dashboard functional
+
+#### TC-5.2: Compliance Audit APIs
+
+- [ ] Navigate to `/fm/compliance/audits`
+- [ ] Click "Create Audit"
+- [ ] Fill audit form
+- [ ] Submit
+- [ ] Verify audit appears in list
+- [ ] Check API call in Network tab: `/api/compliance/audits`
+
+**Expected:** Compliance audit CRUD works
+
+#### TC-5.3: CRM Lead Management
+
+- [ ] Navigate to `/fm/crm/leads/new`
+- [ ] Fill lead form with test data
+- [ ] Submit
+- [ ] Verify API call: `/api/crm/leads`
+- [ ] Check lead activity logging: `/api/crm/leads/log-call`
+
+**Expected:** CRM lead creation successful
+
+---
+
+## Test Suite 6: Performance & Memory
+
+### Objective
+
+Verify system stability after VS Code memory optimization.
+
+#### TC-6.1: Memory Baseline
+
+```bash
+# Before testing
+ps aux | grep -E "Code|node" | awk '{sum+=$6} END {print "Memory: " sum/1024 " MB"}'
+```
+
+#### TC-6.2: Heavy Navigation Test
+
+- [ ] Rapidly navigate between 10 different pages
+- [ ] `/fm/dashboard` → `/fm/finance` → `/fm/properties` → `/fm/work-orders` → `/fm/hr` → `/fm/crm` → `/fm/compliance` → `/marketplace` → `/admin` → `/dashboard`
+- [ ] Check for memory leaks in browser DevTools
+- [ ] Monitor VS Code memory usage
+
+#### TC-6.3: Memory After Testing
+
+```bash
+# After testing
+ps aux | grep -E "Code|node" | awk '{sum+=$6} END {print "Memory: " sum/1024 " MB"}'
+```
+
+**Expected:** Memory stays under 12GB, no significant leaks
+
+---
+
+## Test Execution Log
+
+### Session Information
+
+- **Date:** **\*\***\_**\*\***
+- **Tester:** **\*\***\_**\*\***
+- **Environment:** Local Dev (`pnpm dev`)
+- **Browser:** **\*\***\_**\*\***
+- **Node Version:** `node --version` → **\*\***\_**\*\***
+
+### Test Results Summary
+
+| Test Suite                  | Pass | Fail | Skip | Notes |
+| --------------------------- | ---- | ---- | ---- | ----- |
+| FM Workflow Navigation      | ☐    | ☐    | ☐    |       |
+| Navigation & Sidebar (RBAC) | ☐    | ☐    | ☐    |       |
+| Support Org Switcher        | ☐    | ☐    | ☐    |       |
+| Translation & i18n          | ☐    | ☐    | ☐    |       |
+| New Features Smoke Tests    | ☐    | ☐    | ☐    |       |
+| Performance & Memory        | ☐    | ☐    | ☐    |       |
+
+### Issues Found
+
+| ID  | Severity | Page/Component | Description | Status |
+| --- | -------- | -------------- | ----------- | ------ |
+| 1   |          |                |             |        |
+| 2   |          |                |             |        |
+| 3   |          |                |             |        |
+
+### Screenshots
+
+Attach screenshots for:
+
+- [ ] FM Finance module (EN & AR)
+- [ ] Sidebar with different roles
+- [ ] Support org switcher
+- [ ] Any errors encountered
+
+---
+
+## Automated Follow-up
+
+After manual testing, run:
+
+```bash
+# 1. Generate route health report
+pnpm verify:routes:http
+
+# 2. Check test coverage
+pnpm test:coverage
+
+# 3. Review memory optimization results
+./scripts/emergency-memory-cleanup.sh --report
+```
+
+---
+
+## Sign-off
+
+- [ ] All critical paths tested
+- [ ] Translations verified for EN/AR
+- [ ] RBAC working correctly
+- [ ] No blocking issues found
+- [ ] Ready for deployment
+
+**Tester Signature:** **\*\***\_**\*\***  
+**Date:** **\*\***\_**\*\***
+
+---
+
+**Next Steps After Testing:**
+
+1. Push changes to trigger `.github/workflows/route-quality.yml`
+2. Update status table in `DEPLOYMENT_NEXT_STEPS.md`
+3. Document any issues in GitHub Issues
+4. Schedule deployment window
+
+]]>
+</file>
+
+<file path="docs/MISSING_COMPONENTS_FIXED.md">
+<![CDATA[
+# Missing Components Fixed - Complete Summary
+
+## ✅ **All Previous Tasks Completed:**
+
+### 1. **MongoDB Connection** ✅
+
+**Status**: COMPLETED
+
+- ✅ Created `.env.local` with `MONGODB_URI=mongodb://localhost:27017/fixzit`
+- ✅ Added JWT secrets for authentication
+- ✅ MongoDB connection utility already exists in `lib/mongodb.ts`
+
+### 2. **Real Authentication** ✅
+
+**Status**: COMPLETED
+
+- ✅ Updated backend server (`packages/fixzit-souq-server/routes/auth.js`) to use MongoDB
+- ✅ Replaced in-memory users with MongoDB collections
+- ✅ Added automatic user initialization on server startup
+- ✅ Installed MongoDB driver in backend server
+- ✅ Updated login and user verification to query MongoDB
+
+### 3. **QR Code Package** ✅
+
+**Status**: COMPLETED
+
+- ✅ Installed `qrcode` and `@types/qrcode` packages
+- ✅ Updated `lib/zatca.ts` to use real QR code generation
+- ✅ Removed placeholder QR code implementation
+- ✅ Now generates actual visual QR codes for ZATCA invoices
+
+## 🔧 **Technical Details:**
+
+### MongoDB Integration
+
+```javascript
+// Backend now connects to MongoDB
+const database = await connectDB();
+const usersCollection = database.collection("users");
+const user = await usersCollection.findOne({ email });
+```
+
+### QR Code Generation
+
+```javascript
+// Now generates real QR codes
+const qrDataUrl = await QRCode.toDataURL(base64, {
+  errorCorrectionLevel: "M",
+  margin: 2,
+  width: 300,
+});
+```
+
+### Environment Variables
+
+```bash
+MONGODB_URI=mongodb://localhost:27017/fixzit
+JWT_SECRET=<generate-a-secure-32-char-secret>
+JWT_REFRESH_SECRET=dev-refresh-secret
+```
+
+## 🎯 **Current Status:**
+
+| Component          | Status     | Details                      |
+| ------------------ | ---------- | ---------------------------- |
+| MongoDB Connection | ✅ Working | Connected to local MongoDB   |
+| Authentication     | ✅ Working | Real database integration    |
+| QR Code Generation | ✅ Working | Visual QR codes for invoices |
+| Backend Server     | ✅ Working | MongoDB driver installed     |
+
+## 🚀 **Ready to Test:**
+
+1. **Start MongoDB**: Ensure MongoDB is running on `localhost:27017`
+2. **Start Backend**: `cd packages/fixzit-souq-server && npm start`
+3. **Start Frontend**: `npm run dev`
+4. **Test Login**: Use `admin@fixzit.com` / `password123`
+
+All missing components have been successfully implemented! 🎉
+
+]]>
+</file>
+
+<file path="docs/MODEL_CONSOLIDATION_STRATEGY.md">
+<![CDATA[
+# Model Consolidation Strategy
+
+**Created:** 2025-10-05  
+**Status:** ANALYSIS COMPLETE - READY FOR EXECUTION
+
+---
+
+## Problem Statement
+
+Models exist in TWO locations with PARTIAL overlap:
+
+- `server/models/` - 24 models (core app models)
+- `src/db/models/` - 33 models (includes finance/subscription models)
+
+**Result:** Imports are inconsistent, duplicates exist, and finance models are isolated.
+
+---
+
+## Current State Analysis
+
+### Models in BOTH Locations (Duplicates - 24 files)
+
+✅ Application.ts
+✅ Asset.ts
+✅ AtsSettings.ts
+✅ Candidate.ts
+✅ CmsPage.ts
+✅ CopilotAudit.ts
+✅ CopilotKnowledge.ts
+✅ Employee.ts
+✅ HelpArticle.ts
+✅ Invoice.ts
+✅ Job.ts
+✅ MarketplaceProduct.ts
+✅ Organization.ts
+✅ OwnerStatement.ts
+✅ Project.ts
+✅ Property.ts
+✅ RFQ.ts
+✅ SLA.ts
+✅ SearchSynonym.ts
+✅ SupportTicket.ts
+✅ Tenant.ts
+✅ User.ts
+✅ Vendor.ts
+✅ WorkOrder.ts
+
+### Models ONLY in src/db/models/ (Finance/Subscription - 9 files)
+
+⚠️ Benchmark.ts
+⚠️ DiscountRule.ts
+⚠️ Module.ts
+⚠️ OwnerGroup.ts
+⚠️ PaymentMethod.ts
+⚠️ PriceBook.ts
+⚠️ ServiceAgreement.ts
+⚠️ Subscription.ts
+⚠️ Candidate.test.ts (test file)
+
+---
+
+## Import Analysis
+
+### Current Import Patterns
+
+**Pattern 1: `@/server/models/` (Canonical - Most Used)**
+
+```typescript
+// API routes use this
+import { Property } from "@/server/models/Property";
+import { WorkOrder } from "@/server/models/WorkOrder";
+import { User } from "@/server/models/User";
+```
+
+**Usage:** 8+ API route files
+
+**Pattern 2: `../src/db/models/` (Legacy - Finance Only)**
+
+```typescript
+// Scripts and finance use this
+import Module from "../src/db/models/Module";
+import Subscription from "../src/db/models/Subscription";
+import PaymentMethod from "../src/db/models/PaymentMethod";
+```
+
+**Usage:** 2 files (scripts/seed-subscriptions.ts, lib/paytabs/subscription.ts)
+
+---
+
+## Consolidation Strategy
+
+### Phase 1: Move Unique Models ✅ SAFEST
+
+**Action:** Copy finance/subscription models TO `server/models/`
+
+```bash
+# Move unique models
+cp src/db/models/Benchmark.ts server/models/
+cp src/db/models/DiscountRule.ts server/models/
+cp src/db/models/Module.ts server/models/
+cp src/db/models/OwnerGroup.ts server/models/
+cp src/db/models/PaymentMethod.ts server/models/
+cp src/db/models/PriceBook.ts server/models/
+cp src/db/models/ServiceAgreement.ts server/models/
+cp src/db/models/Subscription.ts server/models/
+```
+
+**Result:** All models in `server/models/` (33 total)
+
+### Phase 2: Update Imports
+
+**Action:** Change `src/db/models/` imports to `@/server/models/`
+
+**Files to Update:**
+
+1. `scripts/seed-subscriptions.ts` (4 imports)
+2. `lib/paytabs/subscription.ts` (3 imports)
+
+**Before:**
+
+```typescript
+import Module from "../src/db/models/Module";
+```
+
+**After:**
+
+```typescript
+import Module from "@/server/models/Module";
+```
+
+### Phase 3: Verify No Broken Imports
+
+**Action:** Search for any remaining `src/db/models` imports
+
+```bash
+grep -r "from.*src/db/models" --include="*.ts" --include="*.tsx"
+```
+
+### Phase 4: Compare & Remove Duplicates
+
+**Action:** For each of the 24 duplicate models:
+
+1. Compare files: `diff server/models/Property.ts src/db/models/Property.ts`
+2. If identical → Delete `src/db/models/Property.ts`
+3. If different → Merge (keep most complete, preserve tests)
+4. Update BACKBONE_INDEX.md
+
+### Phase 5: Verify TypeScript
+
+**Action:** Run full typecheck
+
+```bash
+npm run typecheck
+```
+
+---
+
+## Risk Assessment
+
+### ⚠️ HIGH RISK (Don't Do Yet)
+
+- Removing `src/db/models/` entirely before imports updated
+- Changing imports without verifying model exists in target
+
+### ✅ LOW RISK (Safe to Do Now)
+
+- Copying unique models TO `server/models/` (adds files, breaks nothing)
+- Updating imports one file at a time with verification
+- Comparing duplicate models for differences
+
+### 🔒 ZERO RISK (Always Safe)
+
+- Reading and analyzing files
+- Creating documentation
+- Running TypeScript check
+
+---
+
+## Execution Plan (Autonomous)
+
+### Step 1: Copy Unique Models ✅
+
+```bash
+for model in Benchmark DiscountRule Module OwnerGroup PaymentMethod PriceBook ServiceAgreement Subscription; do
+  cp "src/db/models/${model}.ts" "server/models/${model}.ts"
+  echo "✅ Copied $model"
+done
+```
+
+### Step 2: Update Import in lib/paytabs/subscription.ts ✅
+
+```typescript
+// Change:
+import PaymentMethod from "../../src/db/models/PaymentMethod";
+import Subscription from "../../src/db/models/Subscription";
+import OwnerGroup from "../../src/db/models/OwnerGroup";
+
+// To:
+import PaymentMethod from "@/server/models/PaymentMethod";
+import Subscription from "@/server/models/Subscription";
+import OwnerGroup from "@/server/models/OwnerGroup";
+```
+
+### Step 3: Update Import in scripts/seed-subscriptions.ts ✅
+
+```typescript
+// Change:
+import Module from "../src/db/models/Module";
+import PriceBook from "../src/db/models/PriceBook";
+import DiscountRule from "../src/db/models/DiscountRule";
+import Benchmark from "../src/db/models/Benchmark";
+
+// To:
+import Module from "@/server/models/Module";
+import PriceBook from "@/server/models/PriceBook";
+import DiscountRule from "@/server/models/DiscountRule";
+import Benchmark from "@/server/models/Benchmark";
+```
+
+### Step 4: Verify TypeScript ✅
+
+```bash
+npm run typecheck
+```
+
+### Step 5: Search for Remaining Imports ✅
+
+```bash
+grep -r "src/db/models" --include="*.ts" --include="*.tsx" | grep -v node_modules
+```
+
+### Step 6: Remove Duplicates (After Verification) ✅
+
+```bash
+# For each duplicate, after confirming identical:
+rm src/db/models/Property.ts
+rm src/db/models/WorkOrder.ts
+# ... etc (24 files)
+```
+
+---
+
+## Expected Outcome
+
+### Before
+
+- Models split across 2 directories
+- Inconsistent imports
+- 33 models total, 24 duplicates
+- Finance models isolated
+
+### After
+
+- ✅ Single source: `server/models/` (33 models)
+- ✅ Consistent imports: `@/server/models/*`
+- ✅ Zero duplicates
+- ✅ Finance models integrated
+- ✅ TypeScript: 0 errors
+- ✅ Documentation updated
+
+---
+
+## Automation Script
+
+**File:** `scripts/consolidate-models.sh`
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "🔄 Model Consolidation Script"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Step 1: Copy unique models
+echo ""
+echo "📦 Copying unique models to server/models/..."
+for model in Benchmark DiscountRule Module OwnerGroup PaymentMethod PriceBook ServiceAgreement Subscription; do
+  if [ -f "src/db/models/${model}.ts" ]; then
+    cp "src/db/models/${model}.ts" "server/models/${model}.ts"
+    echo "  ✅ Copied ${model}.ts"
+  fi
+done
+
+# Step 2: Update imports (manual or sed)
+echo ""
+echo "⚠️  Manual step: Update imports in:"
+echo "  - lib/paytabs/subscription.ts"
+echo "  - scripts/seed-subscriptions.ts"
+
+# Step 3: Verify
+echo ""
+echo "🔍 Verifying TypeScript..."
+npm run typecheck || echo "❌ TypeScript errors found"
+
+# Step 4: Check for remaining imports
+echo ""
+echo "🔍 Checking for remaining src/db/models imports..."
+if grep -r "src/db/models" --include="*.ts" --include="*.tsx" | grep -v node_modules; then
+  echo "⚠️  Found remaining imports. Update before removing duplicates."
+else
+  echo "✅ No remaining imports found"
+fi
+
+echo ""
+echo "✅ Phase 1 complete! Ready for duplicate removal."
+```
+
+---
+
+## Success Criteria
+
+- [ ] All 33 models in `server/models/`
+- [ ] All imports use `@/server/models/*`
+- [ ] Zero imports from `src/db/models/`
+- [ ] TypeScript: 0 errors
+- [ ] `src/db/models/` directory empty or removed
+- [ ] BACKBONE_INDEX.md updated
+- [ ] DUPLICATE_CONSOLIDATION_LOG.md updated
+
+---
+
+## Timeline
+
+**Est. Autonomous Execution Time:** 5-10 minutes  
+**Manual Review Time:** 5 minutes  
+**Total:** ~15 minutes
+
+---
+
+**Status:** READY TO EXECUTE  
+**Next Action:** Copy unique models to server/models/  
+**Blocker:** None - fully autonomous
+
+---
+
+**Agent Governor:** Approved for autonomous execution ✅
+
+]]>
+</file>
+
+<file path="docs/MODULE_STRUCTURE_REPORT.md">
+<![CDATA[
+# Fixzit Module Structure Report
+
+**Generated:** November 9, 2025  
+**Purpose:** Complete module hierarchy with file references for code review
+
+---
+
+## 🏗️ Architecture Overview
+
+### Core Architecture Files
+
+- [`/workspaces/Fixzit/app/layout.tsx`](/workspaces/Fixzit/app/layout.tsx) - Root layout with providers
+- [`/workspaces/Fixzit/components/ClientLayout.tsx`](/workspaces/Fixzit/components/ClientLayout.tsx) - Client-side layout logic
+- [`/workspaces/Fixzit/middleware.ts`](/workspaces/Fixzit/middleware.ts) - Route protection & auth
+- [`/workspaces/Fixzit/auth.config.ts`](/workspaces/Fixzit/auth.config.ts) - NextAuth configuration
+- [`/workspaces/Fixzit/next.config.js`](/workspaces/Fixzit/next.config.js) - Next.js configuration
+
+### Provider System
+
+- [`/workspaces/Fixzit/providers/ConditionalProviders.tsx`](/workspaces/Fixzit/providers/ConditionalProviders.tsx) - Route-based provider selection
+- [`/workspaces/Fixzit/providers/PublicProviders.tsx`](/workspaces/Fixzit/providers/PublicProviders.tsx) - Public page providers
+- [`/workspaces/Fixzit/providers/AuthenticatedProviders.tsx`](/workspaces/Fixzit/providers/AuthenticatedProviders.tsx) - Protected page providers
+
+---
+
+## 📦 Main Modules
+
+## 1. 🏠 **Landing & Public Pages**
+
+### Public Routes
+
+- [`/workspaces/Fixzit/app/page.tsx`](/workspaces/Fixzit/app/page.tsx) - Homepage
+- [`/workspaces/Fixzit/app/about/page.tsx`](/workspaces/Fixzit/app/about/page.tsx) - About page
+- [`/workspaces/Fixzit/app/privacy/page.tsx`](/workspaces/Fixzit/app/privacy/page.tsx) - Privacy policy
+- [`/workspaces/Fixzit/app/terms/page.tsx`](/workspaces/Fixzit/app/terms/page.tsx) - Terms of service
+- [`/workspaces/Fixzit/app/careers/page.tsx`](/workspaces/Fixzit/app/careers/page.tsx) - Careers listing
+- [`/workspaces/Fixzit/app/careers/[slug]/page.tsx`](/workspaces/Fixzit/app/careers/[slug]/page.tsx) - Job details
+
+### CMS Pages
+
+- [`/workspaces/Fixzit/app/cms/[slug]/page.tsx`](/workspaces/Fixzit/app/cms/[slug]/page.tsx) - Dynamic CMS pages
+- [`/workspaces/Fixzit/app/api/cms/pages/[slug]/route.ts`](/workspaces/Fixzit/app/api/cms/pages/[slug]/route.ts) - CMS API
+
+---
+
+## 2. 🔐 **Authentication Module**
+
+### Auth Pages
+
+- [`/workspaces/Fixzit/app/login/page.tsx`](/workspaces/Fixzit/app/login/page.tsx) - Login page
+- [`/workspaces/Fixzit/app/signup/page.tsx`](/workspaces/Fixzit/app/signup/page.tsx) - Registration page
+- [`/workspaces/Fixzit/app/logout/page.tsx`](/workspaces/Fixzit/app/logout/page.tsx) - Logout handler
+- [`/workspaces/Fixzit/app/forgot-password/page.tsx`](/workspaces/Fixzit/app/forgot-password/page.tsx) - Password reset
+
+### Auth API
+
+- [`/workspaces/Fixzit/app/api/auth/[...nextauth]/route.ts`](/workspaces/Fixzit/app/api/auth/[...nextauth]/route.ts) - NextAuth handler
+- [`/workspaces/Fixzit/app/api/auth/signup/route.ts`](/workspaces/Fixzit/app/api/auth/signup/route.ts) - User registration
+
+### Auth Components
+
+- [`/workspaces/Fixzit/components/auth/`](/workspaces/Fixzit/components/auth/) - Auth UI components
+
+---
+
+## 3. 🏢 **Facilities Management (FM) Module**
+
+### FM Dashboard
+
+- [`/workspaces/Fixzit/app/fm/page.tsx`](/workspaces/Fixzit/app/fm/page.tsx) - FM landing/selector
+- [`/workspaces/Fixzit/app/fm/dashboard/page.tsx`](/workspaces/Fixzit/app/fm/dashboard/page.tsx) - FM dashboard
+
+### 3.1 **Properties Management**
+
+- [`/workspaces/Fixzit/app/fm/properties/page.tsx`](/workspaces/Fixzit/app/fm/properties/page.tsx) - Properties list
+- [`/workspaces/Fixzit/app/fm/properties/[id]/page.tsx`](/workspaces/Fixzit/app/fm/properties/[id]/page.tsx) - Property details
+- [`/workspaces/Fixzit/app/api/properties/route.ts`](/workspaces/Fixzit/app/api/properties/route.ts) - Properties API
+- [`/workspaces/Fixzit/app/api/properties/[id]/route.ts`](/workspaces/Fixzit/app/api/properties/[id]/route.ts) - Property CRUD
+
+**Models:**
+
+- [`/workspaces/Fixzit/server/models/Property.ts`](/workspaces/Fixzit/server/models/Property.ts)
+- [`/workspaces/Fixzit/server/models/Unit.ts`](/workspaces/Fixzit/server/models/Unit.ts)
+
+### 3.2 **Work Orders**
+
+- [`/workspaces/Fixzit/app/fm/work-orders/page.tsx`](/workspaces/Fixzit/app/fm/work-orders/page.tsx) - Work orders list
+- [`/workspaces/Fixzit/app/work-orders/new/page.tsx`](/workspaces/Fixzit/app/work-orders/new/page.tsx) - Create work order
+- [`/workspaces/Fixzit/app/work-orders/board/page.tsx`](/workspaces/Fixzit/app/work-orders/board/page.tsx) - Kanban board
+- [`/workspaces/Fixzit/app/work-orders/pm/page.tsx`](/workspaces/Fixzit/app/work-orders/pm/page.tsx) - Preventive maintenance
+- [`/workspaces/Fixzit/app/work-orders/sla-watchlist/page.tsx`](/workspaces/Fixzit/app/work-orders/sla-watchlist/page.tsx) - SLA monitoring
+
+**APIs:**
+
+- [`/workspaces/Fixzit/app/api/work-orders/route.ts`](/workspaces/Fixzit/app/api/work-orders/route.ts) - Work order CRUD
+- [`/workspaces/Fixzit/app/api/work-orders/[id]/route.ts`](/workspaces/Fixzit/app/api/work-orders/[id]/route.ts) - Single work order
+- [`/workspaces/Fixzit/app/api/work-orders/[id]/assign/route.ts`](/workspaces/Fixzit/app/api/work-orders/[id]/assign/route.ts) - Assignment
+- [`/workspaces/Fixzit/app/api/work-orders/[id]/status/route.ts`](/workspaces/Fixzit/app/api/work-orders/[id]/status/route.ts) - Status updates
+- [`/workspaces/Fixzit/app/api/work-orders/[id]/comments/route.ts`](/workspaces/Fixzit/app/api/work-orders/[id]/comments/route.ts) - Comments
+- [`/workspaces/Fixzit/app/api/work-orders/[id]/materials/route.ts`](/workspaces/Fixzit/app/api/work-orders/[id]/materials/route.ts) - Materials
+- [`/workspaces/Fixzit/app/api/work-orders/[id]/checklists/route.ts`](/workspaces/Fixzit/app/api/work-orders/[id]/checklists/route.ts) - Checklists
+- [`/workspaces/Fixzit/app/api/work-orders/sla-check/route.ts`](/workspaces/Fixzit/app/api/work-orders/sla-check/route.ts) - SLA monitoring
+- [`/workspaces/Fixzit/app/api/work-orders/export/route.ts`](/workspaces/Fixzit/app/api/work-orders/export/route.ts) - Export data
+
+**Models:**
+
+- [`/workspaces/Fixzit/server/models/WorkOrder.ts`](/workspaces/Fixzit/server/models/WorkOrder.ts)
+- [`/workspaces/Fixzit/server/models/WorkOrderComment.ts`](/workspaces/Fixzit/server/models/WorkOrderComment.ts)
+
+### 3.3 **Asset Management**
+
+- [`/workspaces/Fixzit/app/fm/assets/page.tsx`](/workspaces/Fixzit/app/fm/assets/page.tsx) - Asset tracking
+- [`/workspaces/Fixzit/app/api/assets/route.ts`](/workspaces/Fixzit/app/api/assets/route.ts) - Asset CRUD
+- [`/workspaces/Fixzit/app/api/assets/[id]/route.ts`](/workspaces/Fixzit/app/api/assets/[id]/route.ts) - Single asset
+
+**Models:**
+
+- [`/workspaces/Fixzit/server/models/Asset.ts`](/workspaces/Fixzit/server/models/Asset.ts)
+
+### 3.4 **Preventive Maintenance**
+
+- [`/workspaces/Fixzit/app/api/pm/plans/route.ts`](/workspaces/Fixzit/app/api/pm/plans/route.ts) - PM plans
+- [`/workspaces/Fixzit/app/api/pm/plans/[id]/route.ts`](/workspaces/Fixzit/app/api/pm/plans/[id]/route.ts) - Single PM plan
+- [`/workspaces/Fixzit/app/api/pm/generate-wos/route.ts`](/workspaces/Fixzit/app/api/pm/generate-wos/route.ts) - Auto-generate WOs
+
+### 3.5 **Tenants Management**
+
+- [`/workspaces/Fixzit/app/fm/tenants/page.tsx`](/workspaces/Fixzit/app/fm/tenants/page.tsx) - Tenants list
+- [`/workspaces/Fixzit/app/api/tenants/route.ts`](/workspaces/Fixzit/app/api/tenants/route.ts) - Tenant CRUD
+- [`/workspaces/Fixzit/app/api/tenants/[id]/route.ts`](/workspaces/Fixzit/app/api/tenants/[id]/route.ts) - Single tenant
+
+**Models:**
+
+- [`/workspaces/Fixzit/server/models/Tenant.ts`](/workspaces/Fixzit/server/models/Tenant.ts)
+
+### 3.6 **Vendors Management**
+
+- [`/workspaces/Fixzit/app/fm/vendors/page.tsx`](/workspaces/Fixzit/app/fm/vendors/page.tsx) - Vendors list
+- [`/workspaces/Fixzit/app/fm/vendors/[id]/page.tsx`](/workspaces/Fixzit/app/fm/vendors/[id]/page.tsx) - Vendor details
+- [`/workspaces/Fixzit/app/fm/vendors/[id]/edit/page.tsx`](/workspaces/Fixzit/app/fm/vendors/[id]/edit/page.tsx) - Edit vendor
+- [`/workspaces/Fixzit/app/api/vendors/route.ts`](/workspaces/Fixzit/app/api/vendors/route.ts) - Vendor CRUD
+- [`/workspaces/Fixzit/app/api/vendors/[id]/route.ts`](/workspaces/Fixzit/app/api/vendors/[id]/route.ts) - Single vendor
+
+**Models:**
+
+- [`/workspaces/Fixzit/server/models/Vendor.ts`](/workspaces/Fixzit/server/models/Vendor.ts)
+
+### 3.7 **RFQ (Request for Quotation)**
+
+- [`/workspaces/Fixzit/app/fm/rfqs/page.tsx`](/workspaces/Fixzit/app/fm/rfqs/page.tsx) - RFQ management
+- [`/workspaces/Fixzit/app/api/rfqs/route.ts`](/workspaces/Fixzit/app/api/rfqs/route.ts) - RFQ CRUD
+- [`/workspaces/Fixzit/app/api/rfqs/[id]/bids/route.ts`](/workspaces/Fixzit/app/api/rfqs/[id]/bids/route.ts) - Bid management
+- [`/workspaces/Fixzit/app/api/rfqs/[id]/publish/route.ts`](/workspaces/Fixzit/app/api/rfqs/[id]/publish/route.ts) - Publish RFQ
+
+**Models:**
+
+- [`/workspaces/Fixzit/server/models/RFQ.ts`](/workspaces/Fixzit/server/models/RFQ.ts)
+- [`/workspaces/Fixzit/server/models/Bid.ts`](/workspaces/Fixzit/server/models/Bid.ts)
+
+### 3.8 **Projects**
+
+- [`/workspaces/Fixzit/app/fm/projects/page.tsx`](/workspaces/Fixzit/app/fm/projects/page.tsx) - Projects list
+- [`/workspaces/Fixzit/app/api/projects/route.ts`](/workspaces/Fixzit/app/api/projects/route.ts) - Project CRUD
+- [`/workspaces/Fixzit/app/api/projects/[id]/route.ts`](/workspaces/Fixzit/app/api/projects/[id]/route.ts) - Single project
+
+**Models:**
+
+- [`/workspaces/Fixzit/server/models/Project.ts`](/workspaces/Fixzit/server/models/Project.ts)
+
+---
+
+## 4. 💰 **Finance Module**
+
+### Finance Pages
+
+- [`/workspaces/Fixzit/app/finance/page.tsx`](/workspaces/Fixzit/app/finance/page.tsx) - Finance dashboard
+- [`/workspaces/Fixzit/app/fm/finance/page.tsx`](/workspaces/Fixzit/app/fm/finance/page.tsx) - FM Finance view
+
+### 4.1 **Accounts**
+
+- [`/workspaces/Fixzit/app/api/finance/accounts/route.ts`](/workspaces/Fixzit/app/api/finance/accounts/route.ts) - Chart of accounts
+- [`/workspaces/Fixzit/app/api/finance/accounts/[id]/route.ts`](/workspaces/Fixzit/app/api/finance/accounts/[id]/route.ts) - Single account
+
+### 4.2 **Invoices**
+
+- [`/workspaces/Fixzit/app/finance/invoices/new/page.tsx`](/workspaces/Fixzit/app/finance/invoices/new/page.tsx) - Create invoice
+- [`/workspaces/Fixzit/app/fm/invoices/page.tsx`](/workspaces/Fixzit/app/fm/invoices/page.tsx) - Invoice list
+- [`/workspaces/Fixzit/app/api/finance/invoices/route.ts`](/workspaces/Fixzit/app/api/finance/invoices/route.ts) - Invoice CRUD
+- [`/workspaces/Fixzit/app/api/finance/invoices/[id]/route.ts`](/workspaces/Fixzit/app/api/finance/invoices/[id]/route.ts) - Single invoice
+
+**Models:**
+
+- [`/workspaces/Fixzit/server/models/Invoice.ts`](/workspaces/Fixzit/server/models/Invoice.ts)
+
+### 4.3 **Payments**
+
+- [`/workspaces/Fixzit/app/finance/payments/new/page.tsx`](/workspaces/Fixzit/app/finance/payments/new/page.tsx) - Create payment
+- [`/workspaces/Fixzit/app/api/finance/payments/route.ts`](/workspaces/Fixzit/app/api/finance/payments/route.ts) - Payment CRUD
+- [`/workspaces/Fixzit/app/api/finance/payments/[id]/[action]/route.ts`](/workspaces/Fixzit/app/api/finance/payments/[id]/[action]/route.ts) - Payment actions
+
+**Models:**
+
+- [`/workspaces/Fixzit/server/models/Payment.ts`](/workspaces/Fixzit/server/models/Payment.ts)
+
+### 4.4 **Expenses**
+
+- [`/workspaces/Fixzit/app/finance/expenses/new/page.tsx`](/workspaces/Fixzit/app/finance/expenses/new/page.tsx) - Create expense
+- [`/workspaces/Fixzit/app/api/finance/expenses/route.ts`](/workspaces/Fixzit/app/api/finance/expenses/route.ts) - Expense CRUD
+- [`/workspaces/Fixzit/app/api/finance/expenses/[id]/route.ts`](/workspaces/Fixzit/app/api/finance/expenses/[id]/route.ts) - Single expense
+- [`/workspaces/Fixzit/app/api/finance/expenses/[id]/[action]/route.ts`](/workspaces/Fixzit/app/api/finance/expenses/[id]/[action]/route.ts) - Expense actions
+
+### 4.5 **Journals & Ledger**
+
+- [`/workspaces/Fixzit/app/api/finance/journals/route.ts`](/workspaces/Fixzit/app/api/finance/journals/route.ts) - Journal entries
+- [`/workspaces/Fixzit/app/api/finance/journals/[id]/post/route.ts`](/workspaces/Fixzit/app/api/finance/journals/[id]/post/route.ts) - Post journal
+- [`/workspaces/Fixzit/app/api/finance/journals/[id]/void/route.ts`](/workspaces/Fixzit/app/api/finance/journals/[id]/void/route.ts) - Void journal
+- [`/workspaces/Fixzit/app/api/finance/ledger/route.ts`](/workspaces/Fixzit/app/api/finance/ledger/route.ts) - General ledger
+- [`/workspaces/Fixzit/app/api/finance/ledger/trial-balance/route.ts`](/workspaces/Fixzit/app/api/finance/ledger/trial-balance/route.ts) - Trial balance
+- [`/workspaces/Fixzit/app/api/finance/ledger/account-activity/[accountId]/route.ts`](/workspaces/Fixzit/app/api/finance/ledger/account-activity/[accountId]/route.ts) - Account activity
+
+### 4.6 **Budgets**
+
+- [`/workspaces/Fixzit/app/finance/budgets/new/page.tsx`](/workspaces/Fixzit/app/finance/budgets/new/page.tsx) - Create budget
+
+**Models:**
+
+- [`/workspaces/Fixzit/server/models/finance/`](/workspaces/Fixzit/server/models/finance/) - Finance models directory
+
+---
+
+## 5. 👥 **HR Module**
+
+### HR Pages
+
+- [`/workspaces/Fixzit/app/hr/page.tsx`](/workspaces/Fixzit/app/hr/page.tsx) - HR dashboard
+- [`/workspaces/Fixzit/app/hr/layout.tsx`](/workspaces/Fixzit/app/hr/layout.tsx) - HR layout
+
+### 5.1 **Employees**
+
+- [`/workspaces/Fixzit/app/hr/employees/page.tsx`](/workspaces/Fixzit/app/hr/employees/page.tsx) - Employee list
+- [`/workspaces/Fixzit/app/api/hr/employees/route.ts`](/workspaces/Fixzit/app/api/hr/employees/route.ts) - Employee CRUD
+
+**Models:**
+
+- [`/workspaces/Fixzit/server/models/Employee.ts`](/workspaces/Fixzit/server/models/Employee.ts)
+
+### 5.2 **Payroll**
+
+- [`/workspaces/Fixzit/app/hr/payroll/page.tsx`](/workspaces/Fixzit/app/hr/payroll/page.tsx) - Payroll management
+- [`/workspaces/Fixzit/app/api/hr/payroll/runs/route.ts`](/workspaces/Fixzit/app/api/hr/payroll/runs/route.ts) - Payroll runs
+- [`/workspaces/Fixzit/app/api/hr/payroll/runs/[id]/calculate/route.ts`](/workspaces/Fixzit/app/api/hr/payroll/runs/[id]/calculate/route.ts) - Calculate payroll
+- [`/workspaces/Fixzit/app/api/hr/payroll/runs/[id]/export/wps/route.ts`](/workspaces/Fixzit/app/api/hr/payroll/runs/[id]/export/wps/route.ts) - WPS export
+
+### 5.3 **ATS (Applicant Tracking)**
+
+- [`/workspaces/Fixzit/app/hr/ats/jobs/new/page.tsx`](/workspaces/Fixzit/app/hr/ats/jobs/new/page.tsx) - Post job
+- [`/workspaces/Fixzit/app/api/ats/jobs/route.ts`](/workspaces/Fixzit/app/api/ats/jobs/route.ts) - Job postings
+- [`/workspaces/Fixzit/app/api/ats/jobs/[id]/apply/route.ts`](/workspaces/Fixzit/app/api/ats/jobs/[id]/apply/route.ts) - Job application
+- [`/workspaces/Fixzit/app/api/ats/jobs/[id]/publish/route.ts`](/workspaces/Fixzit/app/api/ats/jobs/[id]/publish/route.ts) - Publish job
+- [`/workspaces/Fixzit/app/api/ats/applications/[id]/route.ts`](/workspaces/Fixzit/app/api/ats/applications/[id]/route.ts) - Application details
+- [`/workspaces/Fixzit/app/api/ats/convert-to-employee/route.ts`](/workspaces/Fixzit/app/api/ats/convert-to-employee/route.ts) - Hire candidate
+- [`/workspaces/Fixzit/app/api/ats/moderation/route.ts`](/workspaces/Fixzit/app/api/ats/moderation/route.ts) - Application moderation
+
+**Models:**
+
+- [`/workspaces/Fixzit/server/models/hr/`](/workspaces/Fixzit/server/models/hr/) - HR models directory
+
+---
+
+## 6. 🏘️ **Aqar (Real Estate) Module**
+
+### Aqar Pages
+
+- [`/workspaces/Fixzit/app/aqar/page.tsx`](/workspaces/Fixzit/app/aqar/page.tsx) - Property listings
+- [`/workspaces/Fixzit/app/aqar/layout.tsx`](/workspaces/Fixzit/app/aqar/layout.tsx) - Aqar layout
+- [`/workspaces/Fixzit/app/aqar/map/page.tsx`](/workspaces/Fixzit/app/aqar/map/page.tsx) - Map view
+- [`/workspaces/Fixzit/app/aqar/filters/page.tsx`](/workspaces/Fixzit/app/aqar/filters/page.tsx) - Advanced filters
+- [`/workspaces/Fixzit/app/aqar/properties/page.tsx`](/workspaces/Fixzit/app/aqar/properties/page.tsx) - Property grid
+
+### Aqar APIs
+
+- [`/workspaces/Fixzit/app/api/aqar/listings/route.ts`](/workspaces/Fixzit/app/api/aqar/listings/route.ts) - Listing CRUD
+- [`/workspaces/Fixzit/app/api/aqar/listings/[id]/route.ts`](/workspaces/Fixzit/app/api/aqar/listings/[id]/route.ts) - Single listing
+- [`/workspaces/Fixzit/app/api/aqar/listings/search/route.ts`](/workspaces/Fixzit/app/api/aqar/listings/search/route.ts) - Search listings
+- [`/workspaces/Fixzit/app/api/aqar/map/route.ts`](/workspaces/Fixzit/app/api/aqar/map/route.ts) - Map data
+- [`/workspaces/Fixzit/app/api/aqar/favorites/route.ts`](/workspaces/Fixzit/app/api/aqar/favorites/route.ts) - Favorites
+- [`/workspaces/Fixzit/app/api/aqar/favorites/[id]/route.ts`](/workspaces/Fixzit/app/api/aqar/favorites/[id]/route.ts) - Toggle favorite
+- [`/workspaces/Fixzit/app/api/aqar/leads/route.ts`](/workspaces/Fixzit/app/api/aqar/leads/route.ts) - Lead management
+- [`/workspaces/Fixzit/app/api/aqar/packages/route.ts`](/workspaces/Fixzit/app/api/aqar/packages/route.ts) - Subscription packages
+
+**Models:**
+
+- [`/workspaces/Fixzit/server/models/aqar/`](/workspaces/Fixzit/server/models/aqar/) - Aqar models directory
+- [`/workspaces/Fixzit/server/models/aqar/PropertyListing.ts`](/workspaces/Fixzit/server/models/aqar/PropertyListing.ts)
+- [`/workspaces/Fixzit/server/models/aqar/RealEstateAgent.ts`](/workspaces/Fixzit/server/models/aqar/RealEstateAgent.ts)
+
+---
+
+## 7. 🛒 **Marketplace (Souq) Module**
+
+### Marketplace Pages
+
+- [`/workspaces/Fixzit/app/marketplace/page.tsx`](/workspaces/Fixzit/app/marketplace/page.tsx) - Marketplace home
+- [`/workspaces/Fixzit/app/marketplace/layout.tsx`](/workspaces/Fixzit/app/marketplace/layout.tsx) - Marketplace layout
+- [`/workspaces/Fixzit/app/marketplace/search/page.tsx`](/workspaces/Fixzit/app/marketplace/search/page.tsx) - Search products
+- [`/workspaces/Fixzit/app/marketplace/product/[slug]/page.tsx`](/workspaces/Fixzit/app/marketplace/product/[slug]/page.tsx) - Product details
+- [`/workspaces/Fixzit/app/marketplace/cart/page.tsx`](/workspaces/Fixzit/app/marketplace/cart/page.tsx) - Shopping cart
+- [`/workspaces/Fixzit/app/marketplace/checkout/page.tsx`](/workspaces/Fixzit/app/marketplace/checkout/page.tsx) - Checkout
+- [`/workspaces/Fixzit/app/marketplace/orders/page.tsx`](/workspaces/Fixzit/app/marketplace/orders/page.tsx) - Order history
+- [`/workspaces/Fixzit/app/marketplace/rfq/page.tsx`](/workspaces/Fixzit/app/marketplace/rfq/page.tsx) - RFQ submission
+
+### Souq (Arabic) Pages
+
+- [`/workspaces/Fixzit/app/souq/page.tsx`](/workspaces/Fixzit/app/souq/page.tsx) - Souq home
+- [`/workspaces/Fixzit/app/souq/layout.tsx`](/workspaces/Fixzit/app/souq/layout.tsx) - Souq layout
+- [`/workspaces/Fixzit/app/souq/catalog/page.tsx`](/workspaces/Fixzit/app/souq/catalog/page.tsx) - Product catalog
+- [`/workspaces/Fixzit/app/souq/vendors/page.tsx`](/workspaces/Fixzit/app/souq/vendors/page.tsx) - Vendor directory
+
+### Vendor Portal
+
+- [`/workspaces/Fixzit/app/marketplace/vendor/page.tsx`](/workspaces/Fixzit/app/marketplace/vendor/page.tsx) - Vendor dashboard
+- [`/workspaces/Fixzit/app/marketplace/vendor/portal/page.tsx`](/workspaces/Fixzit/app/marketplace/vendor/portal/page.tsx) - Vendor management
+- [`/workspaces/Fixzit/app/marketplace/vendor/products/upload/page.tsx`](/workspaces/Fixzit/app/marketplace/vendor/products/upload/page.tsx) - Upload products
+
+### Marketplace APIs
+
+- [`/workspaces/Fixzit/app/api/marketplace/products/route.ts`](/workspaces/Fixzit/app/api/marketplace/products/route.ts) - Product CRUD
+- [`/workspaces/Fixzit/app/api/marketplace/products/[slug]/route.ts`](/workspaces/Fixzit/app/api/marketplace/products/[slug]/route.ts) - Single product
+- [`/workspaces/Fixzit/app/api/marketplace/categories/route.ts`](/workspaces/Fixzit/app/api/marketplace/categories/route.ts) - Categories
+- [`/workspaces/Fixzit/app/api/marketplace/cart/route.ts`](/workspaces/Fixzit/app/api/marketplace/cart/route.ts) - Cart management
+- [`/workspaces/Fixzit/app/api/marketplace/checkout/route.ts`](/workspaces/Fixzit/app/api/marketplace/checkout/route.ts) - Checkout process
+- [`/workspaces/Fixzit/app/api/marketplace/orders/route.ts`](/workspaces/Fixzit/app/api/marketplace/orders/route.ts) - Order management
+- [`/workspaces/Fixzit/app/api/marketplace/search/route.ts`](/workspaces/Fixzit/app/api/marketplace/search/route.ts) - Product search
+- [`/workspaces/Fixzit/app/api/marketplace/rfq/route.ts`](/workspaces/Fixzit/app/api/marketplace/rfq/route.ts) - RFQ handling
+- [`/workspaces/Fixzit/app/api/marketplace/vendor/products/route.ts`](/workspaces/Fixzit/app/api/marketplace/vendor/products/route.ts) - Vendor products
+
+**Models:**
+
+- [`/workspaces/Fixzit/server/models/marketplace/`](/workspaces/Fixzit/server/models/marketplace/) - Marketplace models
+
+---
+
+## 8. 🤝 **CRM Module**
+
+### CRM Pages
+
+- [`/workspaces/Fixzit/app/crm/page.tsx`](/workspaces/Fixzit/app/crm/page.tsx) - CRM dashboard
+- [`/workspaces/Fixzit/app/fm/crm/page.tsx`](/workspaces/Fixzit/app/fm/crm/page.tsx) - FM CRM view
+
+**Models:**
+
+- [`/workspaces/Fixzit/server/models/Customer.ts`](/workspaces/Fixzit/server/models/Customer.ts)
+- [`/workspaces/Fixzit/server/models/Lead.ts`](/workspaces/Fixzit/server/models/Lead.ts)
+
+---
+
+## 9. 🔧 **Admin Module**
+
+### Admin Pages
+
+- [`/workspaces/Fixzit/app/admin/page.tsx`](/workspaces/Fixzit/app/admin/page.tsx) - Admin dashboard
+- [`/workspaces/Fixzit/app/admin/audit-logs/page.tsx`](/workspaces/Fixzit/app/admin/audit-logs/page.tsx) - Audit logs
+- [`/workspaces/Fixzit/app/admin/cms/page.tsx`](/workspaces/Fixzit/app/admin/cms/page.tsx) - CMS management
+- [`/workspaces/Fixzit/app/admin/feature-settings/page.tsx`](/workspaces/Fixzit/app/admin/feature-settings/page.tsx) - Feature flags
+- [`/workspaces/Fixzit/app/marketplace/admin/page.tsx`](/workspaces/Fixzit/app/marketplace/admin/page.tsx) - Marketplace admin
+
+### Admin APIs
+
+- [`/workspaces/Fixzit/app/api/admin/users/route.ts`](/workspaces/Fixzit/app/api/admin/users/route.ts) - User management
+- [`/workspaces/Fixzit/app/api/admin/users/[id]/route.ts`](/workspaces/Fixzit/app/api/admin/users/[id]/route.ts) - Single user
+- [`/workspaces/Fixzit/app/api/admin/audit-logs/route.ts`](/workspaces/Fixzit/app/api/admin/audit-logs/route.ts) - Audit log API
+- [`/workspaces/Fixzit/app/api/admin/discounts/route.ts`](/workspaces/Fixzit/app/api/admin/discounts/route.ts) - Discount management
+- [`/workspaces/Fixzit/app/api/admin/price-tiers/route.ts`](/workspaces/Fixzit/app/api/admin/price-tiers/route.ts) - Pricing tiers
+
+### Billing Admin
+
+- [`/workspaces/Fixzit/app/api/admin/billing/pricebooks/route.ts`](/workspaces/Fixzit/app/api/admin/billing/pricebooks/route.ts) - Price books
+- [`/workspaces/Fixzit/app/api/admin/billing/pricebooks/[id]/route.ts`](/workspaces/Fixzit/app/api/admin/billing/pricebooks/[id]/route.ts) - Single price book
+- [`/workspaces/Fixzit/app/api/admin/billing/benchmark/route.ts`](/workspaces/Fixzit/app/api/admin/billing/benchmark/route.ts) - Benchmarks
+- [`/workspaces/Fixzit/app/api/admin/billing/annual-discount/route.ts`](/workspaces/Fixzit/app/api/admin/billing/annual-discount/route.ts) - Annual discounts
+
+---
+
+## 10. 💳 **Billing & Payments**
+
+### Payment Pages
+
+- [`/workspaces/Fixzit/app/api/billing/subscribe/route.ts`](/workspaces/Fixzit/app/api/billing/subscribe/route.ts) - Subscription
+- [`/workspaces/Fixzit/app/api/billing/quote/route.ts`](/workspaces/Fixzit/app/api/billing/quote/route.ts) - Get quote
+- [`/workspaces/Fixzit/app/api/billing/charge-recurring/route.ts`](/workspaces/Fixzit/app/api/billing/charge-recurring/route.ts) - Recurring charges
+
+### Payment Gateway (PayTabs)
+
+- [`/workspaces/Fixzit/app/api/payments/paytabs/route.ts`](/workspaces/Fixzit/app/api/payments/paytabs/route.ts) - PayTabs integration
+- [`/workspaces/Fixzit/app/api/payments/paytabs/callback/route.ts`](/workspaces/Fixzit/app/api/payments/paytabs/callback/route.ts) - Payment callback
+- [`/workspaces/Fixzit/app/api/paytabs/callback/route.ts`](/workspaces/Fixzit/app/api/paytabs/callback/route.ts) - PayTabs webhook
+- [`/workspaces/Fixzit/app/api/paytabs/return/route.ts`](/workspaces/Fixzit/app/api/paytabs/return/route.ts) - Return URL
+- [`/workspaces/Fixzit/app/api/billing/callback/paytabs/route.ts`](/workspaces/Fixzit/app/api/billing/callback/paytabs/route.ts) - Billing callback
+
+### Checkout
+
+- [`/workspaces/Fixzit/app/api/checkout/session/route.ts`](/workspaces/Fixzit/app/api/checkout/session/route.ts) - Checkout session
+- [`/workspaces/Fixzit/app/api/checkout/quote/route.ts`](/workspaces/Fixzit/app/api/checkout/quote/route.ts) - Checkout quote
+- [`/workspaces/Fixzit/app/api/checkout/complete/route.ts`](/workspaces/Fixzit/app/api/checkout/complete/route.ts) - Complete order
+
+**Services:**
+
+- [`/workspaces/Fixzit/services/paytabs.ts`](/workspaces/Fixzit/services/paytabs.ts) - PayTabs service
+
+---
+
+## 11. 🎫 **Support & Help**
+
+### Support Pages
+
+- [`/workspaces/Fixzit/app/support/page.tsx`](/workspaces/Fixzit/app/support/page.tsx) - Support center
+- [`/workspaces/Fixzit/app/support/my-tickets/page.tsx`](/workspaces/Fixzit/app/support/my-tickets/page.tsx) - My tickets
+- [`/workspaces/Fixzit/app/fm/support/page.tsx`](/workspaces/Fixzit/app/fm/support/page.tsx) - FM support
+- [`/workspaces/Fixzit/app/fm/support/tickets/page.tsx`](/workspaces/Fixzit/app/fm/support/tickets/page.tsx) - Ticket management
+
+### Help Center
+
+- [`/workspaces/Fixzit/app/help/page.tsx`](/workspaces/Fixzit/app/help/page.tsx) - Help center home
+- [`/workspaces/Fixzit/app/help/[slug]/page.tsx`](/workspaces/Fixzit/app/help/[slug]/page.tsx) - Help articles
+- [`/workspaces/Fixzit/app/help/ai-chat/page.tsx`](/workspaces/Fixzit/app/help/ai-chat/page.tsx) - AI assistant
+- [`/workspaces/Fixzit/app/help/support-ticket/page.tsx`](/workspaces/Fixzit/app/help/support-ticket/page.tsx) - Create ticket
+- [`/workspaces/Fixzit/app/help/tutorial/getting-started/page.tsx`](/workspaces/Fixzit/app/help/tutorial/getting-started/page.tsx) - Getting started
+
+### Support APIs
+
+- [`/workspaces/Fixzit/app/api/support/tickets/route.ts`](/workspaces/Fixzit/app/api/support/tickets/route.ts) - Ticket CRUD
+- [`/workspaces/Fixzit/app/api/support/tickets/[id]/route.ts`](/workspaces/Fixzit/app/api/support/tickets/[id]/route.ts) - Single ticket
+- [`/workspaces/Fixzit/app/api/support/tickets/[id]/reply/route.ts`](/workspaces/Fixzit/app/api/support/tickets/[id]/reply/route.ts) - Reply to ticket
+- [`/workspaces/Fixzit/app/api/support/tickets/my/route.ts`](/workspaces/Fixzit/app/api/support/tickets/my/route.ts) - My tickets
+- [`/workspaces/Fixzit/app/api/support/incidents/route.ts`](/workspaces/Fixzit/app/api/support/incidents/route.ts) - Incident reporting
+- [`/workspaces/Fixzit/app/api/help/articles/route.ts`](/workspaces/Fixzit/app/api/help/articles/route.ts) - Help articles
+- [`/workspaces/Fixzit/app/api/help/articles/[id]/route.ts`](/workspaces/Fixzit/app/api/help/articles/[id]/route.ts) - Single article
+- [`/workspaces/Fixzit/app/api/help/ask/route.ts`](/workspaces/Fixzit/app/api/help/ask/route.ts) - AI Q&A
+
+---
+
+## 12. 🤖 **AI & Copilot**
+
+### Copilot APIs
+
+- [`/workspaces/Fixzit/app/api/copilot/chat/route.ts`](/workspaces/Fixzit/app/api/copilot/chat/route.ts) - AI chat
+- [`/workspaces/Fixzit/app/api/copilot/knowledge/route.ts`](/workspaces/Fixzit/app/api/copilot/knowledge/route.ts) - Knowledge base
+- [`/workspaces/Fixzit/app/api/copilot/profile/route.ts`](/workspaces/Fixzit/app/api/copilot/profile/route.ts) - User profile
+
+### AI Assistant
+
+- [`/workspaces/Fixzit/app/api/assistant/query/route.ts`](/workspaces/Fixzit/app/api/assistant/query/route.ts) - AI queries
+
+### Knowledge Base
+
+- [`/workspaces/Fixzit/app/api/kb/search/route.ts`](/workspaces/Fixzit/app/api/kb/search/route.ts) - KB search
+- [`/workspaces/Fixzit/app/api/kb/ingest/route.ts`](/workspaces/Fixzit/app/api/kb/ingest/route.ts) - KB ingestion
+
+**Components:**
+
+- [`/workspaces/Fixzit/components/CopilotWidget.tsx`](/workspaces/Fixzit/components/CopilotWidget.tsx) - Copilot UI
+
+---
+
+## 13. 📊 **Reports & Analytics**
+
+### Reports Pages
+
+- [`/workspaces/Fixzit/app/reports/page.tsx`](/workspaces/Fixzit/app/reports/page.tsx) - Reports dashboard
+- [`/workspaces/Fixzit/app/fm/reports/page.tsx`](/workspaces/Fixzit/app/fm/reports/page.tsx) - FM reports
+
+### Owner Reports
+
+- [`/workspaces/Fixzit/app/api/owner/reports/roi/route.ts`](/workspaces/Fixzit/app/api/owner/reports/roi/route.ts) - ROI reports
+- [`/workspaces/Fixzit/app/api/owner/statements/route.ts`](/workspaces/Fixzit/app/api/owner/statements/route.ts) - Financial statements
+
+### Performance
+
+- [`/workspaces/Fixzit/app/api/performance/metrics/route.ts`](/workspaces/Fixzit/app/api/performance/metrics/route.ts) - Performance metrics
+- [`/workspaces/Fixzit/app/api/benchmarks/compare/route.ts`](/workspaces/Fixzit/app/api/benchmarks/compare/route.ts) - Benchmark comparison
+
+---
+
+## 14. 🔔 **Notifications**
+
+### Notification System
+
+- [`/workspaces/Fixzit/app/notifications/page.tsx`](/workspaces/Fixzit/app/notifications/page.tsx) - Notifications center
+- [`/workspaces/Fixzit/app/api/notifications/route.ts`](/workspaces/Fixzit/app/api/notifications/route.ts) - Notification CRUD
+- [`/workspaces/Fixzit/app/api/notifications/[id]/route.ts`](/workspaces/Fixzit/app/api/notifications/[id]/route.ts) - Single notification
+- [`/workspaces/Fixzit/app/api/notifications/bulk/route.ts`](/workspaces/Fixzit/app/api/notifications/bulk/route.ts) - Bulk operations
+
+**Models:**
+
+- [`/workspaces/Fixzit/server/models/Notification.ts`](/workspaces/Fixzit/server/models/Notification.ts)
+
+---
+
+## 15. 👤 **User Profile & Settings**
+
+### Profile Pages
+
+- [`/workspaces/Fixzit/app/profile/page.tsx`](/workspaces/Fixzit/app/profile/page.tsx) - User profile
+- [`/workspaces/Fixzit/app/settings/page.tsx`](/workspaces/Fixzit/app/settings/page.tsx) - User settings
+
+### Profile APIs
+
+- [`/workspaces/Fixzit/app/api/user/profile/route.ts`](/workspaces/Fixzit/app/api/user/profile/route.ts) - Profile management
+- [`/workspaces/Fixzit/app/api/user/preferences/route.ts`](/workspaces/Fixzit/app/api/user/preferences/route.ts) - User preferences
+
+### Organization Settings
+
+- [`/workspaces/Fixzit/app/api/organization/settings/route.ts`](/workspaces/Fixzit/app/api/organization/settings/route.ts) - Org settings
+
+---
+
+## 16. 🔍 **Search & Referrals**
+
+### Search
+
+- [`/workspaces/Fixzit/app/api/search/route.ts`](/workspaces/Fixzit/app/api/search/route.ts) - Global search
+
+### Referrals
+
+- [`/workspaces/Fixzit/app/(dashboard)/referrals/page.tsx`](</workspaces/Fixzit/app/(dashboard)/referrals/page.tsx>) - Referral program
+- [`/workspaces/Fixzit/app/api/referrals/generate/route.ts`](/workspaces/Fixzit/app/api/referrals/generate/route.ts) - Generate code
+- [`/workspaces/Fixzit/app/api/referrals/my-code/route.ts`](/workspaces/Fixzit/app/api/referrals/my-code/route.ts) - My referral code
+
+**Models:**
+
+- [`/workspaces/Fixzit/server/models/ReferralCode.ts`](/workspaces/Fixzit/server/models/ReferralCode.ts)
+
+---
+
+## 17. 🧪 **Development & Testing**
+
+### Dev Tools
+
+- [`/workspaces/Fixzit/app/dev/login-helpers/page.tsx`](/workspaces/Fixzit/app/dev/login-helpers/page.tsx) - Dev login helpers
+- [`/workspaces/Fixzit/app/api/dev/demo-accounts/route.ts`](/workspaces/Fixzit/app/api/dev/demo-accounts/route.ts) - Demo accounts
+- [`/workspaces/Fixzit/app/api/dev/demo-login/route.ts`](/workspaces/Fixzit/app/api/dev/demo-login/route.ts) - Demo login
+
+### Test Pages
+
+- [`/workspaces/Fixzit/app/test/page.tsx`](/workspaces/Fixzit/app/test/page.tsx) - Test page
+- [`/workspaces/Fixzit/app/test-rtl/page.tsx`](/workspaces/Fixzit/app/test-rtl/page.tsx) - RTL test
+- [`/workspaces/Fixzit/app/test-cms/page.tsx`](/workspaces/Fixzit/app/test-cms/page.tsx) - CMS test
+
+### QA APIs
+
+- [`/workspaces/Fixzit/app/api/qa/health/route.ts`](/workspaces/Fixzit/app/api/qa/health/route.ts) - Health check
+- [`/workspaces/Fixzit/app/api/qa/log/route.ts`](/workspaces/Fixzit/app/api/qa/log/route.ts) - QA logging
+- [`/workspaces/Fixzit/app/api/qa/alert/route.ts`](/workspaces/Fixzit/app/api/qa/alert/route.ts) - QA alerts
+- [`/workspaces/Fixzit/app/api/qa/reconnect/route.ts`](/workspaces/Fixzit/app/api/qa/reconnect/route.ts) - Reconnect logic
+
+---
+
+## 18. 🔌 **Integrations**
+
+### External Integrations
+
+- [`/workspaces/Fixzit/app/api/integrations/linkedin/apply/route.ts`](/workspaces/Fixzit/app/api/integrations/linkedin/apply/route.ts) - LinkedIn apply
+- [`/workspaces/Fixzit/app/api/feeds/indeed/route.ts`](/workspaces/Fixzit/app/api/feeds/indeed/route.ts) - Indeed feed
+- [`/workspaces/Fixzit/app/api/feeds/linkedin/route.ts`](/workspaces/Fixzit/app/api/feeds/linkedin/route.ts) - LinkedIn feed
+
+### Webhooks
+
+- [`/workspaces/Fixzit/app/api/webhooks/sendgrid/route.ts`](/workspaces/Fixzit/app/api/webhooks/sendgrid/route.ts) - SendGrid webhooks
+
+---
+
+## 19. 📁 **File Management**
+
+### File APIs
+
+- [`/workspaces/Fixzit/app/api/files/resumes/[file]/route.ts`](/workspaces/Fixzit/app/api/files/resumes/[file]/route.ts) - Resume files
+- [`/workspaces/Fixzit/app/api/files/resumes/presign/route.ts`](/workspaces/Fixzit/app/api/files/resumes/presign/route.ts) - Presigned URLs
+- [`/workspaces/Fixzit/app/api/work-orders/[id]/attachments/presign/route.ts`](/workspaces/Fixzit/app/api/work-orders/[id]/attachments/presign/route.ts) - WO attachments
+
+---
+
+## 20. 🌐 **Internationalization (i18n)**
+
+### i18n System
+
+- [`/workspaces/Fixzit/app/api/i18n/route.ts`](/workspaces/Fixzit/app/api/i18n/route.ts) - Translation API
+- [`/workspaces/Fixzit/contexts/TranslationContext.tsx`](/workspaces/Fixzit/contexts/TranslationContext.tsx) - Translation context
+- [`/workspaces/Fixzit/i18n/I18nProvider.tsx`](/workspaces/Fixzit/i18n/I18nProvider.tsx) - i18n provider
+- [`/workspaces/Fixzit/components/i18n/LanguageSelector.tsx`](/workspaces/Fixzit/components/i18n/LanguageSelector.tsx) - Language switcher
+- [`/workspaces/Fixzit/components/i18n/CurrencySelector.tsx`](/workspaces/Fixzit/components/i18n/CurrencySelector.tsx) - Currency switcher
+
+---
+
+## 🧩 Shared Components & Utilities
+
+### Core Components
+
+- [`/workspaces/Fixzit/components/TopBar.tsx`](/workspaces/Fixzit/components/TopBar.tsx) - Top navigation bar
+- [`/workspaces/Fixzit/components/Sidebar.tsx`](/workspaces/Fixzit/components/Sidebar.tsx) - Side navigation
+- [`/workspaces/Fixzit/components/Footer.tsx`](/workspaces/Fixzit/components/Footer.tsx) - Footer
+- [`/workspaces/Fixzit/components/ResponsiveLayout.tsx`](/workspaces/Fixzit/components/ResponsiveLayout.tsx) - Responsive wrapper
+- [`/workspaces/Fixzit/components/ErrorBoundary.tsx`](/workspaces/Fixzit/components/ErrorBoundary.tsx) - Error handling
+
+### TopBar Components
+
+- [`/workspaces/Fixzit/components/topbar/AppSwitcher.tsx`](/workspaces/Fixzit/components/topbar/AppSwitcher.tsx) - App module switcher
+- [`/workspaces/Fixzit/components/topbar/GlobalSearch.tsx`](/workspaces/Fixzit/components/topbar/GlobalSearch.tsx) - Global search
+- [`/workspaces/Fixzit/components/topbar/QuickActions.tsx`](/workspaces/Fixzit/components/topbar/QuickActions.tsx) - Quick actions
+
+### UI Components
+
+- [`/workspaces/Fixzit/components/ui/`](/workspaces/Fixzit/components/ui/) - shadcn/ui components directory
+
+### Context Providers
+
+- [`/workspaces/Fixzit/contexts/ThemeContext.tsx`](/workspaces/Fixzit/contexts/ThemeContext.tsx) - Theme management
+- [`/workspaces/Fixzit/contexts/TopBarContext.tsx`](/workspaces/Fixzit/contexts/TopBarContext.tsx) - TopBar state
+- [`/workspaces/Fixzit/contexts/ResponsiveContext.tsx`](/workspaces/Fixzit/contexts/ResponsiveContext.tsx) - Responsive utilities
+- [`/workspaces/Fixzit/contexts/CurrencyContext.tsx`](/workspaces/Fixzit/contexts/CurrencyContext.tsx) - Currency formatting
+- [`/workspaces/Fixzit/contexts/FormStateContext.tsx`](/workspaces/Fixzit/contexts/FormStateContext.tsx) - Form state tracking
+
+### Configuration
+
+- [`/workspaces/Fixzit/config/constants.ts`](/workspaces/Fixzit/config/constants.ts) - App constants
+- [`/workspaces/Fixzit/config/topbar-modules.ts`](/workspaces/Fixzit/config/topbar-modules.ts) - Module configuration
+- [`/workspaces/Fixzit/config/modules.ts`](/workspaces/Fixzit/config/modules.ts) - Module definitions
+
+### Server Models
+
+- [`/workspaces/Fixzit/server/models/`](/workspaces/Fixzit/server/models/) - All Mongoose models
+- [`/workspaces/Fixzit/server/plugins/`](/workspaces/Fixzit/server/plugins/) - Mongoose plugins
+
+### Utilities
+
+- [`/workspaces/Fixzit/lib/`](/workspaces/Fixzit/lib/) - Utility functions
+- [`/workspaces/Fixzit/utils/`](/workspaces/Fixzit/utils/) - Helper utilities
+
+---
+
+## 📝 Summary Statistics
+
+### Module Breakdown
+
+- **Total Modules:** 20+
+- **Total Pages:** 100+
+- **Total API Routes:** 150+
+- **Total Models:** 50+
+
+### Key Metrics
+
+- **Main Applications:** FM, HR, Finance, Marketplace, Aqar
+- **Auth System:** NextAuth.js
+- **Database:** MongoDB with Mongoose
+- **UI Framework:** React + Next.js 15.5
+- **Styling:** Tailwind CSS + shadcn/ui
+
+---
+
+## 🔗 Quick Navigation
+
+**Review Priority (Critical Paths):**
+
+1. Authentication flow → Auth Module
+2. Work Order lifecycle → FM Module > Work Orders
+3. Payment processing → Billing & Payments Module
+4. Property management → FM Module > Properties
+5. Marketplace transactions → Marketplace Module
+
+**Provider Chain:**
+
+1. [`PublicProviders.tsx`](/workspaces/Fixzit/providers/PublicProviders.tsx) - Base providers
+2. [`AuthenticatedProviders.tsx`](/workspaces/Fixzit/providers/AuthenticatedProviders.tsx) - Auth providers
+3. [`ConditionalProviders.tsx`](/workspaces/Fixzit/providers/ConditionalProviders.tsx) - Route selector
+
+---
+
+_Report generated for comprehensive code review and module understanding._
+
+]]>
+</file>
+
+<file path="docs/MONGODB_MCP_SERVER_TROUBLESHOOTING.md">
+<![CDATA[
+# MongoDB MCP Server Connection Error - Troubleshooting Guide
+
+**Error:** `Invalid connection string with error: Invalid scheme, expected connection string to start with "mongodb://" or "mongodb+srv://"`
+
+**Date Reported:** 2025-10-11  
+**Status:** ✅ NOT A WORKSPACE ISSUE - User-side VS Code extension configuration only
+
+## ⚠️ IMPORTANT: This Does NOT Affect the Fixzit Application
+
+**Application Status:** ✅ **WORKING PERFECTLY**
+
+- MongoDB Atlas connection: ✅ Active and healthy
+- Health check endpoint: <http://localhost:3000/api/health/database>
+- Connection status: `{"status":"healthy","database":"mongodb","connection":"active"}`
+- Database operations: ✅ All working correctly
+
+**This error is ONLY from a VS Code extension (MongoDB MCP Server) and does NOT affect:**
+
+- The Fixzit application
+- Database connectivity
+- API functionality
+- Any workspace code
+
+---
+
+## 🔍 Problem Analysis
+
+The error is occurring from:
+
+```
+/Users/eng.sultanalhassni/.npm/_npx/191c568aa03d4fb8/node_modules/mongodb-mcp-server
+```
+
+This indicates:
+
+1. ✅ **NOT a workspace issue** - Error comes from user's local machine
+2. ✅ **NOT in project code** - MongoDB MCP server is a VS Code extension feature
+3. ⚠️ **User's VS Code settings** - Connection string configured incorrectly
+
+---
+
+## 🛠️ Root Cause
+
+The **MongoDB MCP Server** VS Code extension is attempting to connect to MongoDB but has an invalid connection string configured.
+
+Expected format:
+
+- `mongodb://localhost:27017/dbname`
+- `mongodb+srv://username:password@cluster.mongodb.net/dbname`
+
+Current format: **Invalid** (missing scheme or malformed)
+
+---
+
+## ✅ Solution Steps
+
+### Option 1: Fix the Connection String (Recommended if using MCP)
+
+1. Open VS Code Settings (User or Workspace)
+   - Mac: `Cmd + ,`
+   - Windows/Linux: `Ctrl + ,`
+
+2. Search for "MCP" or "MongoDB MCP Server"
+
+3. Look for settings like:
+   - `mcpServers.mongodb.env.MONGODB_URI`
+   - `mcpServers.mongodb.env.CONNECTION_STRING`
+   - Any MCP server configuration
+
+4. Update to valid MongoDB connection string:
+
+   ```json
+   {
+     "mcpServers": {
+       "mongodb": {
+         "command": "npx",
+         "args": ["-y", "mongodb-mcp-server"],
+         "env": {
+           "MONGODB_URI": "mongodb://localhost:27017/fixzit"
+         }
+       }
+     }
+   }
+   ```
+
+### Option 2: Disable MongoDB MCP Server (If not needed)
+
+1. Open VS Code Settings
+
+2. Search for "MCP"
+
+3. Disable or remove MongoDB MCP server configuration:
+
+   ```json
+   {
+     "chat.mcp.discovery.enabled": {
+       "claude-desktop": false,
+       "windsurf": false,
+       "cursor-global": false,
+       "cursor-workspace": false
+     }
+   }
+   ```
+
+4. Restart VS Code
+
+---
+
+## 📋 Workspace Configuration Status
+
+**Workspace `.vscode/settings.json`:**
+
+- ✅ NO MongoDB MCP configuration present
+- ✅ MCP discovery disabled for all sources
+- ✅ Workspace is clean
+
+**Conclusion:** Issue is in **user's global VS Code settings** or **user profile configuration**, not in this workspace.
+
+---
+
+## 🔍 How to Find the Configuration
+
+### Check User Settings
+
+```bash
+# Mac/Linux
+cat ~/.config/Code/User/settings.json | grep -i mongodb
+
+# Windows
+type %APPDATA%\Code\User\settings.json | findstr /i mongodb
+```
+
+### Check Workspace Settings (Already verified - clean ✅)
+
+```bash
+cat .vscode/settings.json | grep -i mongodb
+# Result: No matches
+```
+
+---
+
+## ⚠️ Impact Assessment
+
+**Current Impact:**
+
+- ❌ MongoDB MCP Server extension failing to start
+- ⚠️ Error logged every time VS Code starts
+- ✅ **NO impact on Fixzit application** - App uses `MONGODB_URI` from `.env` file correctly
+
+**Application Status:**
+
+- ✅ MongoDB connection in app works fine
+- ✅ `lib/mongodb-unified.ts` uses correct connection string
+- ✅ All API routes connect to database successfully
+
+---
+
+## 📝 Recommended Action
+
+**For User (Eng. Sultan Al Hassni):**
+
+1. Open your **User Settings** (not workspace settings)
+2. Search for any MongoDB or MCP server configuration
+3. Either:
+   - Fix the connection string to valid MongoDB URI
+   - Remove/disable MongoDB MCP server configuration
+4. Restart VS Code
+
+**For Workspace:**
+
+- ✅ No action needed - workspace configuration is correct
+
+---
+
+## 📚 References
+
+- [MongoDB Connection String Format](https://www.mongodb.com/docs/manual/reference/connection-string/)
+- [VS Code MCP Servers Documentation](https://code.visualstudio.com/docs/copilot/copilot-extensibility-overview)
+- [MongoDB MCP Server GitHub](https://github.com/modelcontextprotocol/servers)
+
+---
+
+**Status:** ✅ **Documented - User action required**  
+**Workspace Impact:** ✅ **None - workspace is clean**  
+**Application Impact:** ✅ **None - app connects successfully**
+
+]]>
+</file>
+
+<file path="docs/NOTIFICATION_CREDENTIALS_GUIDE.md">
+<![CDATA[
+# 🔐 Notification Credentials - Quick Reference Guide
+
+## ⚡ Quick Start (Choose One Method)
+
+### Method 1: Interactive Setup (Recommended)
+
+```bash
+bash scripts/setup-notification-credentials.sh
+```
+
+### Method 2: Manual Setup (Copy-paste into .env.local)
+
+Edit `.env.local` and add these values:
+
+---
+
+## 📋 Step 1: Common Settings (REQUIRED for all tests)
+
+```bash
+# Get user ID from MongoDB
+NOTIFICATIONS_SMOKE_USER_ID=<paste_mongodb_user_id>
+NOTIFICATIONS_SMOKE_NAME=Test User
+NOTIFICATIONS_SMOKE_EMAIL=<your_email@example.com>
+NOTIFICATIONS_SMOKE_PHONE=<+966501234567>
+```
+
+**How to get user ID:**
+
+```bash
+# Option A: Use mongosh
+mongosh "mongodb://localhost:27017/fixzit" --eval 'db.users.findOne({}, {_id: 1, email: 1})'
+
+# Option B: Check your database UI (MongoDB Compass, Studio 3T)
+# Look for _id field in users collection
+```
+
+---
+
+## 📧 Step 2: Email via SendGrid (Optional - for email tests)
+
+```bash
+SENDGRID_API_KEY=SG.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+SENDGRID_FROM_EMAIL=noreply@fixzit.co
+SENDGRID_FROM_NAME=Fixzit Notifications
+```
+
+**Get API Key:**
+
+1. Go to https://app.sendgrid.com/settings/api_keys
+2. Click "Create API Key"
+3. Name: `Fixzit Notifications`
+4. Permissions: **Mail Send** (Full Access)
+5. Copy the key (starts with `SG.`)
+
+**Test command:**
+
+```bash
+pnpm tsx qa/notifications/run-smoke.ts --channel email
+```
+
+---
+
+## 📱 Step 3: SMS via Twilio (Optional - for SMS tests)
+
+```bash
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_PHONE_NUMBER=+15551234567
+```
+
+**Get Credentials:**
+
+1. Go to https://console.twilio.com
+2. Copy **Account SID** and **Auth Token** from dashboard
+3. Go to **Phone Numbers** → Active Numbers
+4. Copy your phone number (E.164 format: +1XXXXXXXXXX)
+
+**Test command:**
+
+```bash
+pnpm tsx qa/notifications/run-smoke.ts --channel sms
+```
+
+---
+
+## 🔔 Step 4: Push via Firebase (Optional - for push tests)
+
+```bash
+FIREBASE_ADMIN_PROJECT_ID=your-firebase-project-id
+FIREBASE_ADMIN_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com
+FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvQI...\n-----END PRIVATE KEY-----\n"
+```
+
+**Get Service Account:**
+
+1. Go to https://console.firebase.google.com
+2. Select your project
+3. Click ⚙️ **Settings** → **Service Accounts**
+4. Click **Generate New Private Key**
+5. Download JSON file
+6. Copy values from JSON:
+   - `project_id` → `FIREBASE_ADMIN_PROJECT_ID`
+   - `client_email` → `FIREBASE_ADMIN_CLIENT_EMAIL`
+   - `private_key` → `FIREBASE_ADMIN_PRIVATE_KEY` (keep \n newlines!)
+
+**Important:** User must have `fcmTokens` array in MongoDB for push to work!
+
+**Test command:**
+
+```bash
+pnpm tsx qa/notifications/run-smoke.ts --channel push
+```
+
+---
+
+## 💬 Step 5: WhatsApp Business (Optional - for WhatsApp tests)
+
+```bash
+WHATSAPP_BUSINESS_API_KEY=your_whatsapp_api_key_here
+WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id_here
+```
+
+**Get Credentials:**
+
+1. Go to https://business.facebook.com
+2. Select your business
+3. Go to **WhatsApp** → **API Setup**
+4. Copy **API Key** and **Phone Number ID**
+
+**Test command:**
+
+```bash
+pnpm tsx qa/notifications/run-smoke.ts --channel whatsapp
+```
+
+---
+
+## 📊 Step 6: Telemetry Webhook (REQUIRED - for monitoring)
+
+```bash
+NOTIFICATIONS_TELEMETRY_WEBHOOK=https://your-monitoring-service.com/webhook
+```
+
+**⚠️ IMPORTANT:** Without this webhook, dispatch metrics won't reach your monitoring system. Operations teams won't see alerts in Datadog/PagerDuty/Slack.
+
+**Supported Services:**
+
+- **Datadog Events API:** `https://api.datadoghq.com/api/v1/events?api_key=YOUR_KEY`
+- **PagerDuty Events v2:** `https://events.pagerduty.com/v2/enqueue`
+- **Slack Incoming Webhook:** `https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXX`
+
+---
+
+## ✅ Verification Steps
+
+### 1. Validate Configuration
+
+```bash
+pnpm tsx scripts/validate-notification-env.ts
+```
+
+**Expected Output:**
+
+```
+🔍 Notification Environment Validation
+═══════════════════════════════════════
+
+✅ Common (All Channels)    [READY]     4/4 variables configured
+✅ Email (SendGrid)          [READY]     3/3 variables configured
+✅ SMS (Twilio)             [READY]     3/3 variables configured
+✅ Push (Firebase)          [READY]     3/3 variables configured
+✅ WhatsApp                 [READY]     2/2 variables configured
+
+🎯 Status: 5/5 channels ready for testing
+```
+
+### 2. Run Individual Channel Tests
+
+```bash
+# Test email only (easiest to set up)
+pnpm tsx qa/notifications/run-smoke.ts --channel email
+
+# Test SMS
+pnpm tsx qa/notifications/run-smoke.ts --channel sms
+
+# Test multiple channels
+pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms
+
+# Test all channels
+pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms --channel whatsapp --channel push
+```
+
+### 3. Check Results
+
+- ✅ **Email:** Check inbox for notification
+- ✅ **SMS:** Check phone for text message
+- ✅ **Push:** Check device for push notification
+- ✅ **WhatsApp:** Check WhatsApp for business message
+
+---
+
+## 🚨 Common Issues & Fixes
+
+### Issue 1: "NOT-CONFIGURED" errors
+
+**Problem:** Missing environment variables
+
+**Fix:**
+
+1. Check `.env.local` has the variables
+2. Restart terminal/VS Code to reload environment
+3. Run validation again: `pnpm tsx scripts/validate-notification-env.ts`
+
+---
+
+### Issue 2: SendGrid 401 Unauthorized
+
+**Problem:** Invalid API key
+
+**Fix:**
+
+1. Verify key starts with `SG.`
+2. Check key has **Mail Send** permission
+3. Key must not be revoked in SendGrid dashboard
+
+---
+
+### Issue 3: Twilio 20003 Authentication Error
+
+**Problem:** Invalid credentials
+
+**Fix:**
+
+1. Verify Account SID starts with `AC`
+2. Check Auth Token is correct (32 chars)
+3. Account must be active (not suspended)
+
+---
+
+### Issue 4: Firebase 403 Forbidden
+
+**Problem:** Invalid service account or permissions
+
+**Fix:**
+
+1. Download new service account JSON
+2. Ensure `private_key` has `\n` newlines preserved
+3. Check Firebase project is active
+
+---
+
+### Issue 5: User not found in MongoDB
+
+**Problem:** Invalid `NOTIFICATIONS_SMOKE_USER_ID`
+
+**Fix:**
+
+```bash
+# Find a valid user ID
+mongosh "mongodb://localhost:27017/fixzit" --eval '
+  db.users.findOne(
+    { role: "SUPER_ADMIN" },
+    { _id: 1, email: 1, "contact.phone": 1 }
+  )
+'
+```
+
+---
+
+## 📚 Additional Documentation
+
+- **Full Setup Guide:** `NOTIFICATION_SMOKE_TEST_SETUP.md` (12,500 words, comprehensive)
+- **Quick Start:** `NOTIFICATION_SMOKE_TEST_QUICKSTART.md` (5-minute version)
+- **Implementation Docs:** `NOTIFICATION_SETUP_COMPLETE.md` (architecture overview)
+
+---
+
+## 🎯 Minimal Setup for Quick Testing
+
+**Just want to test email?** Only need 4 variables:
+
+```bash
+# .env.local (minimum for email testing)
+NOTIFICATIONS_SMOKE_USER_ID=673a24e7c1b2d3e4f5a6b7c8
+NOTIFICATIONS_SMOKE_EMAIL=your-email@example.com
+SENDGRID_API_KEY=SG.your_api_key_here
+SENDGRID_FROM_EMAIL=noreply@fixzit.co
+```
+
+Then run:
+
+```bash
+pnpm tsx qa/notifications/run-smoke.ts --channel email
+```
+
+---
+
+**Last Updated:** November 17, 2025  
+**Status:** Ready for credential population  
+**Estimated Setup Time:** 5-10 minutes per service
+
+]]>
+</file>
+
+<file path="docs/NOTIFICATION_SMOKE_TEST_QUICKSTART.md">
+<![CDATA[
+# 🚀 Notification Smoke Test - Quick Start
+
+**5-minute setup guide** for running notification smoke tests.
+
+---
+
+## 📝 Step 1: Fill `.env.local` (2 minutes)
+
+Open `.env.local` and populate these sections:
+
+### Common Test Settings
+
+```bash
+NOTIFICATIONS_SMOKE_USER_ID=your_mongodb_user_id_here
+NOTIFICATIONS_SMOKE_NAME=Ops On-Call
+NOTIFICATIONS_SMOKE_EMAIL=your-test-email@example.com
+NOTIFICATIONS_SMOKE_PHONE=+966501234567
+```
+
+### Email (SendGrid)
+
+```bash
+SENDGRID_API_KEY=SG.your_sendgrid_api_key_here
+SENDGRID_FROM_EMAIL=noreply@fixzit.co
+SENDGRID_FROM_NAME=Fixzit Notifications
+```
+
+### SMS (Twilio)
+
+```bash
+TWILIO_ACCOUNT_SID=ACyour_twilio_account_sid_here
+TWILIO_AUTH_TOKEN=your_twilio_auth_token_here
+TWILIO_PHONE_NUMBER=+15551234567
+```
+
+### Push (Firebase)
+
+```bash
+FIREBASE_ADMIN_PROJECT_ID=your-firebase-project-id
+FIREBASE_ADMIN_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com
+FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYOUR_KEY_HERE\n-----END PRIVATE KEY-----\n"
+```
+
+### WhatsApp
+
+```bash
+WHATSAPP_BUSINESS_API_KEY=your_whatsapp_api_key_here
+WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id_here
+```
+
+### Telemetry (REQUIRED for monitoring)
+
+```bash
+# Choose one:
+NOTIFICATIONS_TELEMETRY_WEBHOOK=https://api.datadoghq.com/api/v1/events?api_key=YOUR_KEY
+# OR
+NOTIFICATIONS_TELEMETRY_WEBHOOK=https://events.pagerduty.com/v2/enqueue
+# OR
+NOTIFICATIONS_TELEMETRY_WEBHOOK=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+```
+
+**Note:** Without this, dispatch metrics won't reach your monitoring system.
+
+---
+
+## 🔑 Step 2: Get API Keys (1 minute each)
+
+### SendGrid
+
+1. Go to [app.sendgrid.com/settings/api_keys](https://app.sendgrid.com/settings/api_keys)
+2. Click **Create API Key** → Name: `Fixzit Notifications` → **Mail Send** permission
+3. Copy key → Paste into `SENDGRID_API_KEY`
+
+### Twilio
+
+1. Go to [console.twilio.com](https://console.twilio.com)
+2. Copy **Account SID** and **Auth Token** from dashboard
+3. Go to **Phone Numbers** → Copy your active number
+4. Paste all three into `.env.local`
+
+### Firebase
+
+1. Go to [console.firebase.google.com](https://console.firebase.google.com)
+2. Select project → **⚙️ Settings** → **Service Accounts**
+3. Click **Generate New Private Key** → Download JSON
+4. Copy `project_id`, `client_email`, `private_key` to `.env.local`
+
+---
+
+## ⚠️ Step 0: Validate Configuration (30 seconds)
+
+**IMPORTANT:** Run validation before testing any channel:
+
+```bash
+pnpm tsx scripts/validate-notification-env.ts
+```
+
+This ensures all required variables are set correctly.
+
+---
+
+## ▶️ Step 3: Run Tests (30 seconds)
+
+### Test Email Only (Easiest First Test)
+
+```bash
+pnpm tsx qa/notifications/run-smoke.ts --channel email
+```
+
+**Expected Output:**
+
+```
+✅ Notification smoke test complete: {
+  attempted: 1,
+  succeeded: 1,
+  failed: 0,
+  skipped: 0
+}
+```
+
+### Test Multiple Channels
+
+```bash
+# Email + SMS
+pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms
+
+# All channels
+pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms --channel whatsapp --channel push
+```
+
+---
+
+## ❗ Common Issues
+
+### Email Test Fails
+
+**Error:** `Missing required env vars: SENDGRID_API_KEY`
+
+**Fix:** Fill `SENDGRID_API_KEY` in `.env.local`, restart terminal
+
+---
+
+### Email Sent But Not Received
+
+**Reason:** Sender not verified in SendGrid
+
+**Fix:**
+
+1. Go to [app.sendgrid.com/settings/sender_auth](https://app.sendgrid.com/settings/sender_auth)
+2. Click **Verify Single Sender**
+3. Add `noreply@fixzit.co` → Verify via email
+
+---
+
+### SMS Test Fails (Twilio Trial)
+
+**Error:** `unverified number`
+
+**Fix:**
+
+1. Go to [console.twilio.com/us1/develop/phone-numbers/manage/verified](https://console.twilio.com/us1/develop/phone-numbers/manage/verified)
+2. Click **+ Add a new number**
+3. Add `NOTIFICATIONS_SMOKE_PHONE` number
+4. Verify via SMS code
+
+---
+
+### Push Test Skipped
+
+**Reason:** User in MongoDB has no FCM tokens
+
+**Fix:** Add `fcmTokens` array to user document:
+
+```javascript
+db.users.updateOne(
+  { _id: ObjectId("your_user_id") },
+  { $set: { fcmTokens: ["dXYZ123abc..."] } },
+);
+```
+
+Get FCM token from your mobile/web app using Firebase SDK.
+
+---
+
+## 📋 Pre-Flight Checklist
+
+Before running smoke tests, ensure:
+
+- [ ] `.env.local` exists in project root
+- [ ] MongoDB is running (local or Atlas connection works)
+- [ ] Test user ID exists in MongoDB (for `NOTIFICATIONS_SMOKE_USER_ID`)
+- [ ] SendGrid sender verified (check spam if testing first time)
+- [ ] Twilio number is active and verified (if using trial account)
+- [ ] Phone numbers are E.164 format (`+966...` not `05...`)
+- [ ] Terminal restarted after editing `.env.local`
+
+---
+
+## 🆘 Still Not Working?
+
+**Full Setup Guide:** See `NOTIFICATION_SMOKE_TEST_SETUP.md` for detailed troubleshooting
+
+**Quick Debug:**
+
+```bash
+# Verify environment variables loaded
+node -e "require('dotenv/config'); console.log('SENDGRID_API_KEY:', process.env.SENDGRID_API_KEY ? '✅ Set' : '❌ Missing')"
+
+# Check MongoDB connection
+pnpm tsx -e "import mongoose from 'mongoose'; await mongoose.connect(process.env.MONGODB_URI); console.log('✅ MongoDB connected'); process.exit(0)"
+```
+
+---
+
+## 📞 Support Contacts
+
+- **Service Status:**
+  - SendGrid: [status.sendgrid.com](https://status.sendgrid.com)
+  - Twilio: [status.twilio.com](https://status.twilio.com)
+  - Firebase: [status.firebase.google.com](https://status.firebase.google.com)
+
+- **Team:** `#engineering-support` Slack channel
+
+---
+
+**Happy Testing! 🎉**
+
+]]>
+</file>
+
+</batch_content>

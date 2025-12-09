@@ -1,0 +1,3243 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="docs/audits/POST_STABILIZATION_AUDIT_2025-12-07_v2.md">
+<![CDATA[
+# Audit Report: Post-Stabilization Integrity & STRICT v4 Compliance
+
+**Generated**: December 7, 2025  
+**Branch**: `feat/business-sa-theming`  
+**Agent**: GitHub Copilot (Claude Opus 4.5)
+
+---
+
+## 🟢 Phase 1: Structural Drift & Import Errors
+
+### Summary
+
+| Category | Count | Status |
+|----------|-------|--------|
+| **Broken Imports** | 0 | ✅ Clean |
+| **Legacy Doc Paths** | 0 | ✅ Clean |
+| **Prisma/SQL References** | 20+ | ⚠️ Archived Only |
+
+### Prisma/SQL Reference Analysis
+
+All Prisma/SQL references are **confined to archived documentation** and **explicitly marked as deprecated**:
+
+| File | Status | Notes |
+|------|--------|-------|
+| `scripts/setup-dev.sh:17` | ✅ Comment only | Note explaining MongoDB is used, not Prisma |
+| `docs/archived/reports/PHASE1_FINAL_VERIFICATION.md` | ✅ Archived | Historical report |
+| `docs/archived/reports/replit.md` | ✅ Archived | Legacy documentation |
+| `docs/archived/reports/MONGODB_DEPLOYMENT_READY.md` | ✅ Archived | Confirms Prisma removed |
+| `docs/archived/legacy-architecture/owner-portal-architecture-PRISMA-DEPRECATED.md` | ✅ Deprecated | Explicitly marked deprecated |
+| `.artifacts/pr_comments.json` | ✅ Historical | PR comment history |
+
+**Verdict**: ✅ **No active Prisma/SQL code in production paths**. Stack lock is properly enforced.
+
+### Import Health
+
+- All imports in `app/`, `components/`, `lib/`, `services/` resolve correctly
+- Path aliases (`@/`) properly configured in `tsconfig.json`
+- No broken imports detected by TypeScript (0 errors in latest typecheck)
+
+---
+
+## 🟢 Phase 2: RBAC & Mongoose Violations
+
+### Summary
+
+| Category | Count | Status |
+|----------|-------|--------|
+| **Scoping Issues (org_id/unit_id)** | 0 | ✅ Enforced |
+| **Role/Permission Issues** | 0 | ✅ STRICT v4.1 Compliant |
+| **PII & Auditing Issues** | 0 | ✅ Encrypted |
+| **Console.log in API Routes** | 0 | ✅ Clean |
+
+### STRICT v4.1 Role Matrix (14 Canonical Roles)
+
+**Verified in `types/user.ts`:**
+
+| Category | Roles | Status |
+|----------|-------|--------|
+| Administrative | SUPER_ADMIN, CORPORATE_ADMIN, ADMIN, MANAGER | ✅ |
+| Facility Management | FM_MANAGER, PROPERTY_MANAGER, TECHNICIAN | ✅ |
+| Business Function | FINANCE, HR, PROCUREMENT | ✅ |
+| Staff Sub-Roles | TEAM_MEMBER, FINANCE_OFFICER, HR_OFFICER, SUPPORT_AGENT, OPERATIONS_MANAGER | ✅ |
+| Property/External | OWNER, TENANT, VENDOR, AUDITOR, CORPORATE_OWNER | ✅ |
+
+**Legacy roles properly deprecated** with `@deprecated` JSDoc tags:
+- EMPLOYEE, SUPPORT, DISPATCHER, FINANCE_MANAGER, CUSTOMER, VIEWER
+
+### Finance Module RBAC ✅
+
+**Location**: `app/api/finance/**/*.ts`
+
+```typescript
+// Verified in app/api/finance/accounts/route.ts:72
+requirePermission(user.role, "finance.accounts.read");
+
+// Verified in app/api/finance/accounts/[id]/route.ts:179
+requirePermission(user.role, "finance.accounts.update");
+```
+
+**PII Encryption**: ✅ `encryptionPlugin` applied to:
+- `server/models/Invoice.ts:244`
+- `server/models/FMFinancialTransaction.ts:163`
+
+### HR Module RBAC ✅
+
+**Location**: `app/api/hr/**/*.ts`
+
+```typescript
+// Verified in app/api/hr/employees/route.ts:26
+const allowedRoles = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER'];
+
+// Verified in app/api/hr/payroll/runs/route.ts:9
+const PAYROLL_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER', 'FINANCE', 'FINANCE_OFFICER'];
+```
+
+### Tenant/Technician/Vendor Scoping ✅
+
+**Verified scoping patterns in API routes:**
+
+| Pattern | Location | Status |
+|---------|----------|--------|
+| `assignment.assignedTo.userId` | `app/api/search/route.ts:391` | ✅ Technician scoped |
+| `assignment.assignedTo.vendorId` | `app/api/search/route.ts:394` | ✅ Vendor scoped |
+| `orgId` filter | All Souq services | ✅ Multi-tenant |
+| `buildOrgScope(orgId)` | `app/api/souq/claims/route.ts:85` | ✅ Cross-tenant protected |
+
+### Audit Logging System ✅
+
+**Location**: `lib/audit.ts`
+
+- ✅ Sensitive data redaction (25+ patterns)
+- ✅ orgId enforcement
+- ✅ PII fields masked before external logging
+- ✅ No console.log in production audit paths
+
+### Console.log Cleanup ✅
+
+| Area | Count | Status |
+|------|-------|--------|
+| `app/api/**/*.ts` | 0 | ✅ Clean |
+| `app/**/*.tsx` (pages) | 1 | ✅ Acceptable (global-error.tsx only) |
+| `scripts/**` | 20+ | ⚠️ Expected (CLI tools) |
+
+**Note**: The single console.error in `app/global-error.tsx:29` is **acceptable** for critical error logging.
+
+---
+
+## 🟡 Phase 3: Task List Alignment (CATEGORIZED_TASKS_LIST.md)
+
+### Summary
+
+| Category | Count | Status |
+|----------|-------|--------|
+| **P0/P1 Items Checked** | 15 | ✅ |
+| **Status Mismatches** | 2 | ⚠️ Minor |
+
+### P0/P1 Task Verification
+
+| Task ID | Title | List Status | Code Status | Match |
+|---------|-------|-------------|-------------|-------|
+| 0.0 | Authentication Security Fixes | ✅ COMPLETED | ✅ Implemented | ✅ Match |
+| 0.1 | Fix Audit Logging System | ✅ COMPLETED | ✅ Implemented | ✅ Match |
+| 0.2 | Update Audit Helper Callers | ✅ VERIFIED | ✅ No callers exist | ✅ Match |
+| 0.3 | RBAC Multi-Tenant Isolation | ✅ COMPLETED | ✅ Implemented | ✅ Match |
+| 0.4 | Create Audit Logging Tests | PENDING | ⚠️ Partial | ⚠️ Needs tests |
+| 0.5 | Infrastructure Cleanup | ✅ COMPLETED | ✅ Prisma removed | ✅ Match |
+| 0.6 | Finance PII Encryption | ✅ COMPLETE | ✅ encryptionPlugin | ✅ Match |
+| 0.7 | Legacy Role Cleanup | ✅ FIXED | ✅ TENANT default | ✅ Match |
+| 1.1 | Fix Failing Tests | ✅ COMPLETED | ✅ 1912 passing | ✅ Match |
+| 1.2 | Update Test Import Paths | PENDING | ⚠️ Not verified | ⚠️ Needs check |
+| 2.1 | Console Statements Phase 3 | ⚠️ INCOMPLETE | ✅ Clean (1 only) | ⚠️ Mismatch* |
+| 3.1 | Navigation Accessibility | Not started | Not started | ✅ Match |
+| 4.1 | Monitoring Integration | ⚠️ TODO | Not started | ✅ Match |
+| 4.2 | Notification Services | ⚠️ TODOs | Stubs only | ✅ Match |
+| 4.3 | Auth Middleware - Real Queries | ⚠️ TODOs | Placeholders | ✅ Match |
+
+**\*Mismatch Note**: Task 2.1 says "~50 app page files" need cleanup, but actual scan shows only 1 console statement (in acceptable error handler). **Recommend updating task list to COMPLETE**.
+
+### Status Mismatches Requiring Update
+
+1. **Task 2.1 (Console Statements Phase 3)**: 
+   - List says "INCOMPLETE (~50 files)"
+   - Code shows only 1 console.error in `global-error.tsx` (acceptable)
+   - **Action**: Mark as ✅ COMPLETE
+
+2. **Task 0.4 (Audit Logging Tests)**:
+   - List says "PENDING"
+   - Some RBAC tests exist in `tests/services/reviews/review-service.test.ts`
+   - **Action**: Add comprehensive audit unit tests
+
+---
+
+## 🟢 Phase 4: Remediation Plan
+
+### 1. Update Task List Status
+
+**File**: `docs/CATEGORIZED_TASKS_LIST.md`
+
+```diff
+### 2.1 Console Statements Replacement - Phase 3 ⚠️ INCOMPLETE
++ ### 2.1 Console Statements Replacement - Phase 3 ✅ COMPLETE
+
+- **Status**: API routes ✅ DONE (47 files), Components ✅ DONE (19 files)
+- **Remaining**: ~50 app page files
++ **Status**: ✅ ALL PHASES COMPLETE
++ **Remaining**: 0 (only global-error.tsx uses console.error - acceptable)
++ **Verified**: December 7, 2025
+```
+
+### 2. Add Audit Logging Unit Tests (Task 0.4)
+
+**File**: `tests/unit/lib/audit.test.ts` (create)
+
+```typescript
+import { describe, it, expect, vi } from "vitest";
+import { logAuditEvent } from "@/lib/audit";
+
+describe("Audit Logging System", () => {
+  describe("orgId enforcement", () => {
+    it("requires non-empty orgId", async () => {
+      // Test orgId validation
+    });
+    
+    it("rejects whitespace-only orgId", async () => {
+      // Test whitespace handling
+    });
+  });
+
+  describe("PII redaction", () => {
+    it("redacts password fields before external logging", async () => {
+      // Test password redaction
+    });
+    
+    it("redacts SSN patterns", async () => {
+      // Test SSN redaction
+    });
+  });
+
+  describe("Action enum mapping", () => {
+    it("maps user.grantSuperAdmin to UPDATE", async () => {
+      // Test action mapping
+    });
+  });
+});
+```
+
+**Priority**: P1  
+**Estimated Time**: 3-4 hours
+
+### 3. Verify Test Import Paths (Task 1.2)
+
+Run verification command:
+```bash
+pnpm vitest run --reporter=verbose 2>&1 | grep -i "cannot find\|not found\|import"
+```
+
+If any broken imports found, fix using proper path aliases.
+
+### 4. Remaining TODOs in Production Code
+
+| File | Line | Issue | Priority |
+|------|------|-------|----------|
+| `app/api/help/context/route.ts` | 18 | TODO: integrate KnowledgeBase | P3 |
+
+**Note**: This is a minor enhancement, not a critical defect.
+
+---
+
+## ✅ Compliance Summary
+
+| Domain | Status | Notes |
+|--------|--------|-------|
+| **Stack Lock (MongoDB Only)** | ✅ PASS | No active Prisma/SQL code |
+| **STRICT v4.1 RBAC (14 Roles)** | ✅ PASS | Properly enforced |
+| **Multi-Tenant Isolation** | ✅ PASS | orgId scoping verified |
+| **PII Encryption** | ✅ PASS | encryptionPlugin on sensitive models |
+| **Finance/HR Access Control** | ✅ PASS | Role guards in place |
+| **Audit Logging** | ✅ PASS | PII redaction, orgId enforcement |
+| **Console.log Cleanup** | ✅ PASS | API routes clean |
+| **Test Suite** | ✅ PASS | 1912 tests passing |
+| **TypeScript** | ✅ PASS | 0 errors |
+| **Lint** | ✅ PASS | 0 errors |
+
+---
+
+## 📊 Final Metrics
+
+| Metric | Value |
+|--------|-------|
+| Broken Imports | 0 |
+| Legacy Doc References | 0 |
+| Prisma/SQL in Active Code | 0 |
+| RBAC Violations | 0 |
+| PII Exposure Risks | 0 |
+| Console.log in API Routes | 0 |
+| Test Failures | 0 |
+| TypeScript Errors | 0 |
+| Lint Errors | 0 |
+| P0/P1 Task Mismatches | 2 (minor) |
+
+---
+
+**Progress**: 100% complete.
+
+**Conclusion**: The codebase is in **excellent compliance** with the Stabilization Protocol and STRICT v4.1 requirements. Only minor task list updates and additional test coverage are recommended.
+
+]]>
+</file>
+
+<file path="docs/audits/POST_STABILIZATION_AUDIT_REPORT_2025-12-02.md">
+<![CDATA[
+# Audit Report: Post-Stabilization Integrity & STRICT v4.1 Compliance
+
+**Generated**: December 2, 2025  
+**Branch**: `main`  
+**Auditor**: System Architect & CI Guardian  
+**Scope**: Full codebase static analysis  
+
+---
+
+## Executive Summary
+
+| Metric | Status | Details |
+|--------|--------|---------|
+| **Overall Health** | 🟢 Good | Core architecture stable, RBAC enforced |
+| **STRICT v4.1 Compliance** | 🟢 ~92% | 14-role matrix implemented, deprecated roles marked |
+| **Multi-Tenancy** | 🟢 Good | org_id scoping enforced in critical paths |
+| **PII Encryption** | 🟢 Good | encryptionPlugin applied to 10+ models |
+| **Legacy Stack References** | 🟢 Clean | No Prisma/SQL in production code |
+| **Test Suite** | 🟡 38 Failing | Down from 143, mostly test data issues |
+
+---
+
+## 🔴 Phase 1: Structural Drift & Import Errors
+
+### Summary
+
+| Issue Type | Count | Severity |
+|-----------|-------|----------|
+| Broken Imports | 1 | Medium |
+| Legacy Doc Paths | 0 | - |
+| Prisma/SQL References | 4 | Low (non-production) |
+| TypeScript Errors | 1 | Medium |
+
+### 1.1 TypeScript/Import Errors
+
+**Found: 1 Critical TypeScript Error**
+
+```
+i18n/I18nProvider.tsx:21 - TS2739: Type mismatch in DICTIONARIES
+```
+
+**Details:**
+- **File**: `i18n/I18nProvider.tsx:21`
+- **Issue**: `Record<Locale, ...>` type expects `fr` and `es` dictionaries, but only `en` and `ar` are provided
+- **Cause**: `LanguageCode` type includes `"ar" | "en" | "fr" | "es"` but fr/es are marked `comingSoon: true`
+- **Impact**: Build fails in TypeScript strict mode
+
+**Fix Required:**
+```typescript
+// i18n/I18nProvider.tsx - Change line 21-25
+const DICTIONARIES: Record<
+  Locale,  // Only includes enabled locales (en, ar)
+  () => Promise<{ default: Record<string, unknown> }>
+> = {
+  en: () => import("./dictionaries/en"),
+  ar: () => import("./dictionaries/ar"),
+};
+```
+
+The issue is that `LanguageCode` in `config/language-options.ts` includes all 4 languages, but `Locale` in `i18n/config.ts` filters to only enabled ones. The type mismatch occurs because `Record<Locale, ...>` is being compared against the full `LanguageCode` union.
+
+### 1.2 Legacy Stack References (Non-Production)
+
+**Found: 4 Legacy References** (all in scripts/docs, not production code)
+
+| File | Line | Content | Status |
+|------|------|---------|--------|
+| `scripts/setup-dev.sh` | 17 | Comment: "Fixzit uses MongoDB with Mongoose (not Prisma/PostgreSQL)" | ✅ Informational |
+| `scripts/verify.py` | 127-128 | Reference to PostgreSQL integrity check | ⚠️ Dead code |
+| `scripts/find_duplicate_routes.sh` | 10, 15 | Path: `fixzit-postgres/frontend/app` | ⚠️ Dead code |
+| `scripts/db_check.py` | 22 | PostgreSQL check skip message | ⚠️ Dead code |
+
+**Verdict**: No Prisma/SQL in production TypeScript code. Legacy scripts can be cleaned up (P3).
+
+### 1.3 Documentation Structure
+
+**Doc Path References**: ✅ Clean
+
+- No code imports from `docs/` paths
+- Documentation reorganized into structured folders:
+  - `docs/architecture/`
+  - `docs/development/`
+  - `docs/audits/`
+  - `docs/archived/`
+
+---
+
+## 🔴 Phase 2: RBAC & Mongoose Violations
+
+### Summary
+
+| Issue Type | Count | Severity |
+|-----------|-------|----------|
+| Scoping Issues (org_id/unit_id) | 3 | Medium |
+| Role/Permission Issues | 1 | Low |
+| PII & Auditing Issues | 1 | Low |
+| Console.log in RBAC/Middleware | 0 | ✅ Clean |
+
+### 2.1 Multi-Tenancy Scoping Issues
+
+#### Issue 1: Admin Routes Missing org_id Check
+
+| File | Line | Query | Severity |
+|------|------|-------|----------|
+| `app/api/admin/notifications/history/route.ts` | 52 | `.find({})` | Low |
+| `app/api/admin/price-tiers/route.ts` | 76 | `PriceTier.find({})` | Low |
+| `app/api/admin/billing/benchmark/route.ts` | 41 | `Benchmark.find({})` | Low |
+| `app/api/qa/alert/route.ts` | 110 | `.find({})` | Low |
+
+**Analysis**: All 4 routes are protected by `requireSuperAdmin()` which is appropriate for platform-wide data. These are **NOT violations** - Super Admin intentionally has cross-org access for:
+- Benchmark pricing data (platform config)
+- QA alerts (debugging data)
+- Notification history (admin audit)
+- Price tiers (platform pricing)
+
+**Verdict**: ✅ Acceptable - Super Admin global access is intentional and well-guarded.
+
+#### Issue 2: tenantId vs org_id Inconsistency
+
+**Found**: Some routes use `tenantId` field instead of `orgId`:
+
+| File | Pattern | Analysis |
+|------|---------|----------|
+| `app/api/rfqs/route.ts` | `tenantId: user.orgId` | ⚠️ Field naming inconsistency |
+| `app/api/slas/route.ts` | `tenantId: user.orgId` | ⚠️ Field naming inconsistency |
+| `app/api/projects/route.ts` | `tenantId: user.tenantId || user.orgId` | ⚠️ Fallback pattern |
+
+**Recommendation**: Standardize on `orgId` for multi-tenancy. The `tenantId` field is legacy nomenclature.
+
+### 2.2 RBAC Role Protection Status
+
+#### Finance Routes: ✅ Properly Protected
+
+```typescript
+// app/api/finance/invoices/route.ts
+// Uses canViewInvoices(), canEditInvoices(), canDeleteInvoices()
+// Restricted to: SUPER_ADMIN, CORPORATE_ADMIN, FINANCE, FINANCE_OFFICER
+```
+
+#### HR Routes: ✅ Properly Protected
+
+```typescript
+// app/api/hr/employees/route.ts
+const allowedRoles = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER'];
+if (!hasAllowedRole(user.role, user.subRole, allowedRoles)) {
+  return 403 Forbidden
+}
+```
+
+#### Work Orders: ✅ Properly Scoped
+
+```typescript
+// app/api/work-orders/route.ts
+// TECHNICIAN: filter["assignment.assignedTo.userId"] = userId;
+// VENDOR: filter["assignment.assignedTo.vendorId"] = vendorId;
+// TENANT: filter["location.unitNumber"] = { $in: units };
+// Empty units for TENANT returns impossible filter (security)
+```
+
+### 2.3 PII & Encryption Status
+
+**Encryption Plugin Applied To:**
+
+| Model | Fields Encrypted | Status |
+|-------|-----------------|--------|
+| `Invoice.ts` | issuer/recipient taxId, phone, email, nationalId | ✅ |
+| `FMFinancialTransaction.ts` | payment account numbers, IBAN, SWIFT, references | ✅ |
+| `Tenant.ts` | PII fields | ✅ |
+| `Owner.ts` | PII fields | ✅ |
+| `Customer.ts` | PII fields | ✅ |
+| `CrmLead.ts` | Contact PII | ✅ |
+| `ServiceProvider.ts` | Banking details | ✅ |
+| `SupportTicket.ts` | Contact info | ✅ |
+
+**Remaining Issue:**
+
+| File | Issue | Priority |
+|------|-------|----------|
+| `server/models/User.ts` | Password hashing ✅, but no encryption on phone/email | P2 |
+
+### 2.4 Console.log Usage in Critical Paths
+
+**API Routes**: ✅ Clean (0 console.log statements)
+**Lib (RBAC/Auth)**: ✅ Clean - uses `logger` utility
+
+**Remaining console.log** (acceptable locations):
+
+| File | Usage | Verdict |
+|------|-------|---------|
+| `lib/logger.ts` | Internal fallback for Sentry errors | ✅ Acceptable |
+| `app/global-error.tsx` | Critical error boundary | ✅ Acceptable |
+| `lib/auth.ts:22` | JSDoc example comment | ✅ Acceptable |
+
+---
+
+## 🟡 Phase 3: Task List Alignment (CATEGORIZED_TASKS_LIST.md)
+
+### P0/P1 Items Verification
+
+| Task ID | Title | Status in List | Status in Code | Match |
+|---------|-------|----------------|----------------|-------|
+| 0.0 | Authentication Security Fixes | ✅ COMPLETED | ✅ Verified | ✅ Match |
+| 0.1 | Fix Audit Logging System | ✅ COMPLETED | ✅ Verified | ✅ Match |
+| 0.2 | Update Audit Helper Callers | ✅ VERIFIED | ✅ No callers exist | ✅ Match |
+| 0.3 | RBAC Multi-Tenant Isolation | ✅ COMPLETED | ✅ Verified | ✅ Match |
+| 0.4 | Create Audit Logging Unit Tests | PENDING | ⚠️ Tests exist but not comprehensive | 🟡 Partial |
+| 0.5 | Infrastructure Cleanup | ✅ COMPLETED | ✅ No Prisma in prod code | ✅ Match |
+| 0.6 | Finance PII Encryption | ✅ COMPLETE | ✅ encryptionPlugin applied | ✅ Match |
+| 0.7 | Legacy Role Cleanup | ✅ VIEWER DEFAULT FIXED | ✅ Signup uses TENANT | ✅ Match |
+| 1.1 | Fix Failing Tests | ⚠️ IN PROGRESS | ⚠️ 38 failing (was 45) | 🟡 Ongoing |
+| 2.1 | Console Statements Phase 3 | ⚠️ INCOMPLETE | ⚠️ ~0 in API, some in pages | 🟡 Partial |
+
+### Status Mismatches
+
+**Total P0/P1 Items Checked**: 10  
+**Status Mismatches**: 2 (both partial completion)
+
+#### Mismatch 1: Audit Logging Unit Tests (0.4)
+- **List Status**: PENDING
+- **Code Status**: `lib/__tests__/audit.test.ts` exists with basic tests
+- **Gap**: RBAC role-based filtering tests not yet added
+- **Action**: Update task list to "Partial" or add remaining tests
+
+#### Mismatch 2: Console Statements Phase 3 (2.1)
+- **List Status**: INCOMPLETE (~50 app page files)
+- **Code Status**: API routes clean, but page files not fully audited
+- **Action**: Verify remaining page files, update count in task list
+
+---
+
+## 🟢 Phase 4: Remediation Plan
+
+### 1. Fix Imports & Structure
+
+#### Priority 1: TypeScript Build Error
+
+```diff
+--- a/i18n/I18nProvider.tsx
++++ b/i18n/I18nProvider.tsx
+@@ -18,7 +18,7 @@ import { logger } from "@/lib/logger";
+ // ⚡ PERFORMANCE: Lazy load dictionaries to reduce initial bundle size
+ // Each dictionary is 27k lines (~500KB). Loading both upfront wastes 500KB + 200ms parse time.
+ // With dynamic imports, only the active locale is loaded, saving ~250KB and 100ms.
+-const DICTIONARIES: Record<
++const DICTIONARIES: Partial<Record<
+   Locale,
+   () => Promise<{ default: Record<string, unknown> }>
+-> = {
++>> = {
+   en: () => import("./dictionaries/en"),
+   ar: () => import("./dictionaries/ar"),
+ };
+```
+
+Or better - fix the type at source:
+
+```diff
+--- a/config/language-options.ts
++++ b/config/language-options.ts
+@@ -7,7 +7,10 @@
+ 
+ // Only English/Arabic have production-ready translations. Additional locales can be
+ // reintroduced here once professional translations land.
+-export type LanguageCode = "ar" | "en" | "fr" | "es";
++
++// Enabled languages (production-ready)
++export type EnabledLanguageCode = "ar" | "en";
++// All languages including coming soon
++export type LanguageCode = EnabledLanguageCode | "fr" | "es";
+```
+
+#### Priority 2: Clean Up Legacy Scripts
+
+```bash
+# Remove dead PostgreSQL references
+rm scripts/verify.py  # Or update to MongoDB-only
+rm scripts/find_duplicate_routes.sh  # Dead code
+rm scripts/db_check.py  # Dead code
+```
+
+### 2. Patch RBAC & Mongoose Scopes
+
+#### Standardize tenantId → orgId
+
+```diff
+--- a/app/api/rfqs/route.ts
++++ b/app/api/rfqs/route.ts
+@@ -168,7 +168,7 @@ export async function POST(req: NextRequest) {
+     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+   }
+   const newRFQ = new RFQ({
+-    tenantId: user.orgId,
++    orgId: user.orgId,  // STRICT v4: Standardize on orgId
+     ...validatedData,
+   });
+```
+
+### 3. Update Task List
+
+#### Recommended Changes to CATEGORIZED_TASKS_LIST.md
+
+```markdown
+### 0.4 Create Audit Logging Unit Tests
+
+- **Status**: ⚠️ PARTIAL (basic tests exist)
+- **Remaining**:
+  - [ ] RBAC role-based filtering tests
+  - [ ] PII redaction edge cases
+  - [ ] orgId enforcement edge cases
+- **Time**: 2-3 hours remaining
+- **Priority**: P1
+
+### 1.1 Fix Failing Tests
+
+- **Status**: 38 tests failing (down from 143, was 45)
+- **Latest Run**: 2025-12-02
+- **Primary Issues**:
+  - ObjectId casting in Souq tests (`orgId: "org-test"` should be ObjectId)
+  - PayTabs signature validation
+- **Root Cause**: Test fixtures using string IDs instead of ObjectIds
+```
+
+---
+
+## Appendix A: STRICT v4.1 Role Matrix Verification
+
+### Canonical Roles (20 total)
+
+| Category | Roles | Verified |
+|----------|-------|----------|
+| Administrative (4) | SUPER_ADMIN, CORPORATE_ADMIN, ADMIN, MANAGER | ✅ |
+| FM (3) | FM_MANAGER, PROPERTY_MANAGER, TECHNICIAN | ✅ |
+| Business (3) | FINANCE, HR, PROCUREMENT | ✅ |
+| Sub-Roles (4) | FINANCE_OFFICER, HR_OFFICER, SUPPORT_AGENT, OPERATIONS_MANAGER | ✅ |
+| Property/External (6) | OWNER, TENANT, VENDOR, AUDITOR, CORPORATE_OWNER, TEAM_MEMBER | ✅ |
+
+### Deprecated Roles (6)
+
+| Role | Deprecated | Migration |
+|------|------------|-----------|
+| EMPLOYEE | ✅ JSDoc @deprecated | Use MANAGER or function role |
+| SUPPORT | ✅ JSDoc @deprecated | Use SUPPORT_AGENT |
+| DISPATCHER | ✅ JSDoc @deprecated | Use FM_MANAGER |
+| FINANCE_MANAGER | ✅ JSDoc @deprecated | Use FINANCE/FINANCE_OFFICER |
+| CUSTOMER | ✅ JSDoc @deprecated | B2C portal role |
+| VIEWER | ✅ JSDoc @deprecated | Not in STRICT v4 |
+
+---
+
+## Appendix B: Test Failure Root Causes
+
+| Test File | Failures | Root Cause |
+|-----------|----------|------------|
+| `account-health-service.test.ts` | 9 | ObjectId casting: `orgId: "org-test"` |
+| `auto-repricer-service.test.ts` | 5 | ObjectId casting: `orgId: "org-test"` |
+| `buybox-service.test.ts` | 3+ | ObjectId casting |
+| `api-paytabs-callback.test.ts` | 1 | Signature validation mock |
+
+**Fix**: Update test fixtures to use `new Types.ObjectId()` instead of string IDs.
+
+---
+
+## Appendix C: File Counts by Category
+
+| Category | Files | Status |
+|----------|-------|--------|
+| API Routes (`app/api/**/*.ts`) | 336 route.ts files | ✅ Scanned |
+| Components (`components/**/*.tsx`) | 200+ | ⚠️ Partial scan |
+| Models (`server/models/**/*.ts`) | 50+ | ✅ Scanned |
+| Lib (`lib/**/*.ts`) | 100+ | ✅ Scanned |
+
+---
+
+**Progress:** 100% complete.
+
+**Next Actions:**
+1. Fix TypeScript build error (i18n type mismatch) - P0
+2. Fix 38 failing tests (ObjectId casting) - P0  
+3. Clean up legacy PostgreSQL scripts - P3
+4. Update CATEGORIZED_TASKS_LIST.md with findings - P2
+
+]]>
+</file>
+
+<file path="docs/audits/SECURITY_AUDIT_2025-12-09.md">
+<![CDATA[
+# Security Audit Report - December 9, 2025
+
+## Executive Summary
+
+This comprehensive security audit covers:
+1. Multi-tenancy scoping verification
+2. RBAC enforcement verification
+3. RTL/LTR compliance scan
+4. Circuit breaker metrics implementation
+5. E2E health endpoint tests
+
+---
+
+## 1. Multi-Tenancy Scoping Audit
+
+### ✅ Strengths
+
+**TenantIsolationPlugin Implementation**
+- Location: `server/plugins/tenantIsolation.ts`
+- Uses `AsyncLocalStorage` for request-scoped context (SEC-003 FIX)
+- No global state that could leak across requests in serverless
+- Super Admin cross-tenant access is audit-logged
+
+**Models with Tenant Isolation**
+| Model | Plugin Applied | Status |
+|-------|----------------|--------|
+| User | ✅ Yes | Secure |
+| WorkOrder | ✅ Yes | Secure |
+| Property | ✅ Yes | Secure |
+| DiscountRule | ✅ Yes | Secure |
+| OwnerGroup | ✅ Yes | Secure |
+| ReferralCode | ✅ Yes | Secure |
+| ServiceProvider | ✅ Yes | Secure |
+| OnboardingCase | ✅ Yes | Secure |
+| SouqSeller | ✅ Yes | Secure |
+
+**Intentionally Global Models (No Plugin)**
+| Model | Reason | Status |
+|-------|--------|--------|
+| PriceBook | Platform-wide pricing | ✅ Documented |
+| Organization | Tenant root entity | ✅ Expected |
+| Permission | System-wide RBAC | ✅ Expected |
+| Role | System-wide RBAC | ✅ Expected |
+
+### ⚠️ Observations
+
+1. **API Routes Using Auth Correctly**
+   - Routes use `getSessionUser()` to extract `orgId` from session
+   - Example: `app/api/notifications/route.ts` - queries scoped by `userId`
+   - Example: `app/api/work-orders/route.ts` - uses `requireAbility()` for RBAC
+
+2. **Public/Unauthenticated Routes (Expected)**
+   - `/api/health` - Health checks
+   - `/api/dev/*` - Development only (guarded by NODE_ENV)
+   - `/api/webhooks/*` - External service callbacks (verified via signatures)
+   - `/api/paytabs/*` - Payment callbacks (verified via PayTabs signature)
+   - `/api/trial-request` - Public form submission
+
+### Recommendations
+- ✅ No critical multi-tenancy issues found
+- Continue using `tenantIsolationPlugin` for all tenant-scoped models
+- Maintain audit logging for Super Admin cross-tenant access
+
+---
+
+## 2. RBAC Enforcement Verification
+
+### ✅ Middleware Implementation
+
+**Location**: `server/middleware/withAuthRbac.ts`
+
+**Key Functions**:
+- `getSessionUser()` - Extracts authenticated user from session/JWT
+- `requireAbility(ability)` - Checks work order-specific permissions
+- `loadRBACData()` - Loads roles/permissions from database
+
+**Role Hierarchy** (from `domain/fm/fm.behavior.ts`):
+1. SUPER_ADMIN - Full access, cross-tenant
+2. ADMIN - Organization admin
+3. CORPORATE_OWNER - Property portfolio owner
+4. PROPERTY_MANAGER - Manages properties
+5. TEAM_MEMBER (with SubRoles: FINANCE_OFFICER, SUPPORT_AGENT, OPERATIONS_MANAGER)
+6. TECHNICIAN - Field worker
+7. VENDOR - Service provider
+8. TENANT - Property tenant
+9. GUEST - Limited access
+
+### ✅ Protected Routes Using RBAC
+
+| Route Pattern | Auth Method | Status |
+|---------------|-------------|--------|
+| `/api/work-orders/*` | `requireAbility()` | ✅ Protected |
+| `/api/notifications/*` | `getSessionUser()` | ✅ Protected |
+| `/api/upload/*` | `getSessionUser()` | ✅ Protected |
+| `/api/help/*` | `getSessionUser()` | ✅ Protected |
+| `/api/onboarding/*` | `getSessionUser()` | ✅ Protected |
+| `/api/billing/*` | `getSessionUser()` | ✅ Protected |
+| `/api/assets/*` | `getSessionUser()` | ✅ Protected |
+| `/api/tenants/*` | `getSessionUser()` | ✅ Protected |
+
+### ⚠️ Routes Requiring Verification
+
+| Route | Current State | Recommendation |
+|-------|---------------|----------------|
+| `/api/dev/*` | NODE_ENV guard | ✅ Acceptable |
+| `/api/webhooks/*` | Signature verification | ✅ Acceptable |
+| `/api/jobs/*` | Cron token guard | ✅ Acceptable |
+| `/api/performance/metrics` | Public metrics | ⚠️ Consider auth |
+
+### Recommendations
+- ✅ RBAC implementation is solid
+- ✅ Role normalization handles legacy roles during migration
+- Consider adding `requireAbility()` to more sensitive endpoints
+
+---
+
+## 3. RTL/LTR Compliance Scan
+
+### Issues Found in Core CSS
+
+**File**: `app/globals.css`
+- Uses CSS variables and Tailwind which handle RTL via `dir="rtl"`
+- No hardcoded directional issues in globals.css
+
+**File**: `public/styles.css`
+| Line | Issue | Fix |
+|------|-------|-----|
+| 43 | `text-align: right` | Use `text-align: end` |
+| 439 | `margin-left: 24px` | Use `margin-inline-start: 24px` |
+| 443 | `margin-left: auto` | Use `margin-inline-start: auto` |
+
+**File**: `public/assets/css/theme.css`
+| Line | Issue | Fix |
+|------|-------|-----|
+| 190 | `text-align: left` | Use `text-align: start` |
+
+**File**: `public/app.css`
+| Line | Issue | Fix |
+|------|-------|-----|
+| 155 | `text-align: left` | Use `text-align: start` |
+
+### ✅ Tailwind RTL Support
+
+The project uses `tailwindcss-logical` plugin (based on `tailwindcss-logical.d.ts`):
+- Logical properties available: `ms-*`, `me-*`, `ps-*`, `pe-*`
+- Text alignment: `text-start`, `text-end`
+
+### Recommendations
+1. Migrate legacy CSS files to use CSS logical properties
+2. Use `text-start/text-end` instead of `text-left/text-right`
+3. Use `margin-inline-start/end` instead of `margin-left/right`
+
+---
+
+## 4. Circuit Breaker Prometheus Metrics
+
+### Current State
+
+**File**: `lib/resilience/service-circuit-breakers.ts`
+- 5 circuit breakers: paytabs, twilio, meilisearch, zatca, unifonic
+- No metrics export functionality
+
+### Implementation Added
+
+See: `lib/resilience/circuit-breaker-metrics.ts`
+- Prometheus-compatible text format
+- Metrics: state (0=closed, 1=open, 2=half-open), failure count, success count
+- Endpoint: `/api/metrics/circuit-breakers`
+
+---
+
+## 5. E2E Health Endpoint Tests
+
+### Test Coverage Added
+
+See: `tests/e2e/health-endpoints.spec.ts`
+
+| Test | Endpoint | Verification |
+|------|----------|--------------|
+| Health check returns 200 | `/api/health` | Status, timestamp, database field |
+| Readiness check returns 200 | `/api/health/ready` | Ready state, checks object |
+| Unauthorized requests limited | `/api/health` | No diagnostics without token |
+| Authorized requests get diagnostics | `/api/health` | Memory, environment with token |
+
+---
+
+## Summary
+
+| Area | Status | Issues | Fixed |
+|------|--------|--------|-------|
+| Multi-tenancy | ✅ Secure | 0 | N/A |
+| RBAC | ✅ Solid | 0 | N/A |
+| RTL/LTR | ⚠️ Minor | 5 files | Documented |
+| Circuit Breaker Metrics | ✅ Added | N/A | New feature |
+| E2E Health Tests | ✅ Added | N/A | New tests |
+
+---
+
+**Audit Completed**: 2025-12-09  
+**Auditor**: GitHub Copilot Agent  
+**Next Review**: 2026-03-09 (quarterly)
+
+]]>
+</file>
+
+<file path="docs/audits/SYSTEM_AUDIT_VERDICT.md">
+<![CDATA[
+# Fixzit FM System - Production Readiness Audit
+
+**Date**: November 14, 2025  
+**Status**: ⚠️ Almost Production-Ready (5 Critical Fixes Required)  
+**Overall Verdict**: Conceptually Excellent ✅ | Technically Strong with Implementation Issues ⚠️
+
+---
+
+## Executive Summary
+
+The Fixzit FM system demonstrates **excellent architectural decisions** and a **well-designed stack**. The core concepts are production-grade:
+
+✅ **Stack**: Next.js 15.5.6 (App Router), Tailwind v3, MongoDB Atlas, Multi-tenant FM, RBAC, RTL/dark mode  
+✅ **Layout**: AppShell properly isolated to `/dashboard` routes only  
+✅ **Separation**: API routes under `app/api/` (correct App Router convention)  
+✅ **MongoDB**: Server-only helpers with multi-tenant isolation (`org_id`)  
+✅ **UX**: Tab-based navigation, live counters, RTL/dark persistence  
+✅ **Safety**: ErrorBoundary, logging, authentication checks
+
+However, **5 critical implementation issues** prevent production deployment:
+
+---
+
+## Critical Issues Identified
+
+### 1. ❌ Invalid CSS Nesting in `globals.css`
+
+**Problem**: Plain CSS does not support SCSS-style nested selectors.
+
+**Current Code** (Lines ~140-145):
+
+```css
+.dark {
+  background-color: var(--dark-bg);
+  color: var(--dark-text-primary);
+  .card {
+    background-color: var(--dark-surface);
+    border-color: var(--dark-border);
+  }
+  .kanban-open {
+    background-color: #004085;
+  }
+}
+```
+
+**Issue**: `.card` inside `.dark` block is SCSS syntax. This will **break CSS compilation**.
+
+**Fix Required**:
+
+```css
+.dark {
+  background-color: var(--dark-bg);
+  color: var(--dark-text-primary);
+}
+
+.dark .card {
+  background-color: var(--dark-surface);
+  border-color: var(--dark-border);
+}
+
+.dark .kanban-open {
+  background-color: #004085;
+}
+```
+
+**Impact**: HIGH - CSS compilation failure  
+**Risk**: Application styling will break  
+**Effort**: 5 minutes (flatten nested selectors)
+
+---
+
+### 2. ❌ Client/Server Boundary Violation in Dashboard Layout
+
+**Problem**: `app/dashboard/layout.tsx` imports `ClientSidebar` (client component) and `ErrorBoundary` (client component) but is a **server component**.
+
+**Current Code** (`app/dashboard/layout.tsx`):
+
+```tsx
+// This is a SERVER COMPONENT (no "use client")
+import ClientSidebar from "@/app/_shell/ClientSidebar"; // ❌ Client component
+import ErrorBoundary from "@/components/ErrorBoundary"; // ❌ Client component
+```
+
+**Issue**: In Next.js 13+ App Router, you **cannot import client components directly into server components** as if they're server components. The layout needs to be a client component wrapper.
+
+**Fix Required**:
+Create a new **client-side AppShell wrapper**:
+
+```tsx
+// app/_shell/AppShell.tsx
+"use client";
+
+import type { ReactNode } from "react";
+import ClientSidebar from "./ClientSidebar";
+import TopBar from "@/components/TopBar";
+import Footer from "@/components/Footer";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+
+export default function AppShell({ children }: { children: ReactNode }) {
+  return (
+    <ErrorBoundary fallback={<div>Shell Error – please reload.</div>}>
+      <div className="min-h-screen flex">
+        <ClientSidebar />
+        <div className="flex-1 flex flex-col min-w-0">
+          <TopBar />
+          <main className="flex-1 min-w-0 p-5">{children}</main>
+          <Footer />
+        </div>
+      </div>
+    </ErrorBoundary>
+  );
+}
+```
+
+Then update `app/dashboard/layout.tsx`:
+
+```tsx
+// app/dashboard/layout.tsx
+import type { ReactNode } from "react";
+import AppShell from "@/app/_shell/AppShell";
+
+export default function DashboardLayout({ children }: { children: ReactNode }) {
+  return <AppShell>{children}</AppShell>;
+}
+```
+
+**Impact**: CRITICAL - Runtime error  
+**Risk**: Dashboard will crash on load  
+**Effort**: 15 minutes (create AppShell wrapper)
+
+---
+
+### 3. ❌ localStorage Access During Server Render in ClientSidebar
+
+**Problem**: `ClientSidebar.tsx` uses `localStorage` in `useState` initializer, which runs **during server pre-render** where `localStorage` is `undefined`.
+
+**Current Code** (`app/_shell/ClientSidebar.tsx` - hypothetical based on pattern):
+
+```tsx
+const [collapsed, setCollapsed] = useState(
+  JSON.parse(localStorage.getItem("collapsed") || "{}"),
+);
+const [isDark, setIsDark] = useState(localStorage.getItem("theme") === "dark");
+```
+
+**Issue**: Even "use client" components run on the server during SSR/SSG. This causes **runtime error**.
+
+**Fix Required**:
+
+```tsx
+const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(localStorage.getItem("sidebarCollapsed") || "{}");
+  } catch {
+    return {};
+  }
+});
+
+const [isDark, setIsDark] = useState<boolean>(() => {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem("theme") === "dark";
+});
+```
+
+**Impact**: HIGH - Hydration error  
+**Risk**: Sidebar breaks on initial load  
+**Effort**: 10 minutes (add window check)
+
+---
+
+### 4. ✅ Footer.tsx - Clean (No `toggleDark` Issue)
+
+**Status**: **Already Fixed**  
+**Current Implementation**: Footer uses `LanguageSelector` and `CurrencySelector` components (no undefined `toggleDark`).
+
+No action required.
+
+---
+
+### 5. ⚠️ ClientSidebar Props Inconsistency (Minor)
+
+**Problem**: Current `ClientSidebar` uses `useSession()` to get role/orgId internally (correct), but documentation shows prop-based usage in some places.
+
+**Current Code**: Already implemented correctly using `useSession()`:
+
+```tsx
+const { data: session } = useSession();
+const userRole: UserRole =
+  ((session?.user as { role?: string })?.role as UserRole) || "guest";
+```
+
+**Status**: **Already Fixed**  
+No action required.
+
+---
+
+## Additional Observations
+
+### ✅ Strengths
+
+1. **Multi-Tenant Isolation**: All MongoDB queries properly filter by `org_id`
+2. **RBAC System**: 4 role types (super_admin, fm_admin, vendor, tenant) with granular access
+3. **Performance**: Indexes created, aggregation pipelines optimized, parallel Promise.all
+4. **Error Handling**: Comprehensive ErrorBoundary with incident reporting
+5. **Internationalization**: Full RTL/LTR support, translation context
+6. **Real-Time Updates**: 30-second polling for counters (fallback until Redis available)
+7. **Tabs-Not-Pages Pattern**: Reduces sidebar clutter (50+ items → 12 sections)
+8. **Authentication**: NextAuth integration with proper session management
+
+### ⚠️ Minor Polish Needed
+
+1. **Node.js Version**: Running v25.1.0 (unsupported), should use v20 LTS
+2. **Multiple Lockfiles**: `package-lock.json` + `pnpm-lock.yaml` causing warnings
+3. **Missing Tests**: 0% code coverage (unit tests recommended)
+4. **Accessibility**: Some ARIA labels missing on interactive elements
+
+---
+
+## Implementation Checklist
+
+### Critical Fixes (Required for Production)
+
+- [ ] **Fix 1**: Flatten CSS nesting in `globals.css` (5 min)
+- [ ] **Fix 2**: Create client-side `AppShell` wrapper (15 min)
+- [ ] **Fix 3**: Guard `localStorage` access in `ClientSidebar` (10 min)
+- [x] **Fix 4**: Footer `toggleDark` (Already Fixed)
+- [x] **Fix 5**: ClientSidebar props (Already Fixed)
+
+**Total Effort**: ~30 minutes
+
+### Recommended (Non-Blocking)
+
+- [ ] Switch to Node.js v20 LTS (10 min)
+- [ ] Remove duplicate lockfiles (5 min)
+- [ ] Add unit tests for queries (2-3 hours)
+- [ ] Accessibility audit (1-2 hours)
+
+---
+
+## File Structure Status
+
+```
+✅ app/layout.tsx              → Root layout (minimal, correct)
+⚠️ app/globals.css             → NEEDS FIX: Flatten CSS nesting
+⚠️ app/dashboard/layout.tsx    → NEEDS FIX: Create AppShell wrapper
+✅ app/api/counters/route.ts   → API route (correct)
+⚠️ app/_shell/ClientSidebar.tsx → NEEDS FIX: localStorage guards
+✅ components/ErrorBoundary.tsx → ErrorBoundary (correct)
+✅ components/TopBar.tsx        → TopBar (correct)
+✅ components/Footer.tsx        → Footer (correct)
+✅ lib/queries.ts               → MongoDB queries (correct)
+✅ lib/mongodb-unified.ts       → DB connection (assumed correct)
+```
+
+---
+
+## Production Readiness Score
+
+**Before Fixes**: 7/10 ⚠️  
+**After Fixes**: 9.5/10 ✅
+
+The system is **conceptually production-ready** with excellent architecture. The 3 critical fixes are **implementation details** that can be resolved in **~30 minutes**.
+
+---
+
+## Recommended Next Steps
+
+### Phase 1: Critical Fixes (Today)
+
+1. Apply Fix 1: CSS nesting → 5 min
+2. Apply Fix 2: AppShell wrapper → 15 min
+3. Apply Fix 3: localStorage guards → 10 min
+4. Test: Verify dashboard loads correctly
+5. Deploy: Push to production
+
+### Phase 2: Polish (This Week)
+
+1. Switch to Node.js v20 LTS
+2. Remove duplicate lockfiles
+3. Run lighthouse audit
+4. Add basic unit tests for queries
+
+### Phase 3: Enhancement (Next Sprint)
+
+1. Add Redis for WebSocket live updates
+2. Implement Meilisearch for advanced search
+3. Add S3/MinIO for real file uploads
+4. Increase test coverage to 80%
+
+---
+
+## Conclusion
+
+The Fixzit FM system is **exceptionally well-designed** with proper:
+
+- Multi-tenancy
+- RBAC
+- Error handling
+- Performance optimization
+- Internationalization
+
+The **3 critical issues** are **easily fixable implementation bugs**, not architectural flaws. Once addressed, the system is **production-ready**.
+
+**Recommendation**: Apply the 3 fixes today (30 min), then deploy confidently. 🚀
+
+---
+
+**Generated by**: GitHub Copilot (Claude Sonnet 4.5)  
+**Review Completed**: November 14, 2025
+
+]]>
+</file>
+
+<file path="docs/audits/SYSTEM_CLEANUP_COMPLETE_NOV14.md">
+<![CDATA[
+# ✅ System Organization Cleanup - COMPLETE
+
+**Date**: November 14, 2025  
+**Branch**: feat/souq-marketplace-advanced  
+**Status**: All Approved Actions Executed
+
+---
+
+## 📊 Executive Summary
+
+Successfully completed comprehensive system organization cleanup with **ZERO breaking changes**:
+
+- ✅ **29 documentation files** moved to organized `/docs` structure
+- ✅ **Dead code removed** (smart-merge conflict tools)
+- ✅ **Archives consolidated** into `.archive-2025-11-14/`
+- ✅ **Employee model** consolidated (FM as source of truth)
+- ✅ **Test files reorganized** into `/tests/unit/`
+- ✅ **Marketplace/Souq clarified** (separate systems - KEPT BOTH)
+
+---
+
+## ✅ Phase 1: Documentation Organization
+
+### Structure Created:
+
+```
+docs/
+├── analysis/         (19 existing files - untouched)
+├── progress-reports/ (16 files moved)
+├── audits/           (3 files moved + this report)
+├── features/         (7 files moved)
+├── planning/         (4 files moved)
+└── archive/          (moved to .archive-2025-11-14/)
+```
+
+### Files Moved (30 total):
+
+**Progress Reports** → `docs/archived/progress-reports/`:
+
+- ALL_FIXES_COMPLETED_SUMMARY.md
+- COMPLETE_FIX_REPORT_2025-11-13.md
+- CRITICAL_AUTH_FIXES_SUMMARY.md
+- CRITICAL_FIXES_COMPLETE_2025-11-13.md
+- FIXES_APPLIED_SUMMARY.md
+- FIX_COMPLETION_SUMMARY.md
+- IMPLEMENTATION_COMPLETE.md
+- IMPLEMENTATION_CHECKLIST.md
+- CODE_REVIEW_FIXES_APPLIED.md
+- OPTION_A_SESSION_COMPLETE.md
+- PHASE_0_FOUNDATION_SUMMARY.md
+- PHASE_1_COMPLETE_SUMMARY.md
+- PHASE_1D_PROGRESS_SESSION_2.md
+- PHASE_1D_TODO_DASHBOARD_ENHANCEMENT.md
+- RESTART_RESUME.md
+- SECURITY_FIXES_2025-11-13.md
+
+**System Audits** → `docs/audits/`:
+
+- CRITICAL_TECHNICAL_DEBT_AUDIT.md
+- DUPLICATE_FILES_REPORT_ROUND2.md
+- DUPLICATE_FILES_REPORT.md
+- FINAL_DUPLICATE_REPORT.md
+- ISSUES_REGISTER.md
+- PENDING_TASKS_REPORT.md
+- PROJECT_ORGANIZATION_COMPLETE.md
+- START_3_HOUR_TESTING.md
+- SYSTEM_AUDIT_FINDINGS.md
+- SYSTEM_AUDIT_VERDICT.md
+- TEST_FAILURES_REPORT.md
+- TEST_PROGRESS_SUMMARY.md
+- THEME_VIOLATIONS_AUDIT.md
+- THEME_UPGRADE_PLAN.md
+
+**Feature Documentation** → `docs/features/`:
+
+- FM_NOTIFICATION_ENGINE_IMPLEMENTATION.md
+- GOOGLE_OAUTH_STATUS.md
+- SOUQ_IMPLEMENTATION_STATUS.md
+- SOUQ_MARKETPLACE_ROADMAP.md
+- SOUQ_QUICK_START.md
+- USER_SETTINGS_AUTO_APPROVAL.md
+- USER_SETTINGS_INSTRUCTIONS.md
+
+**Planning Docs** → `docs/planning/`:
+
+- 100_PERCENT_COMPLETION_PLAN.md
+- MASTER_TASK_TRACKER.md
+- PRIORITY_2_IMPLEMENTATION_PLAN.md
+- PR_DESCRIPTION.md
+
+**Kept in Root** (Essential):
+
+- README.md
+- README_START_HERE.md
+- CONTRIBUTING.md
+- EXECUTIVE_SUMMARY.md
+- QUICK_REFERENCE.md
+- IMPLEMENTATION_COMPLETE_NOV14.md (latest)
+- SYSTEM_ORGANIZATION_AUDIT_NOV14.md (audit report)
+
+---
+
+## ✅ Phase 2: Dead Code Removal
+
+### Files Deleted:
+
+1. ✅ `smart-merge-conflicts.ts` (173 lines - no longer needed)
+2. ✅ `scripts/resolve-pr84-conflicts.sh` (merge conflicts resolved)
+
+### Folders Archived to `.archive-2025-11-14/`:
+
+1. ✅ `tools/scripts-archive/` → `.archive-2025-11-14/scripts-archive/`
+   - test-powershell-heredoc.ts
+   - fix_merge_conflicts.js
+   - final-typescript-fix.js
+
+2. ✅ `docs/archive/` → `.archive-2025-11-14/docs-archive/`
+   - Old documentation files
+
+### Files KEPT (Not Dead):
+
+- ❌ `qa/ErrorBoundary.tsx` - **ACTIVE** (used by `providers/QAProvider.tsx`)
+
+---
+
+## ✅ Phase 3: Model Consolidation
+
+### DECISION: Marketplace vs Souq
+
+**Result**: **KEEP BOTH - Different Systems**
+
+**Verification Completed:**
+
+- `server/models/marketplace/` = **B2B Materials Marketplace**
+  - Product.ts (construction materials, parts)
+  - Order.ts (purchase orders, RFQs)
+  - Category.ts (material categories)
+  - RFQ.ts (request for quote)
+  - AttributeSet.ts (product attributes)
+
+- `server/models/souq/` = **Consumer/Real Estate Marketplace**
+  - Product.ts (consumer goods with FSIN)
+  - Order.ts (consumer orders)
+  - Category.ts (consumer categories)
+  - Seller.ts (vendor management)
+  - Brand.ts (brand registry)
+  - Variation.ts (SKU variations)
+  - Review.ts (product reviews)
+  - Deal.ts (promotions)
+  - Listing.ts (marketplace listings)
+  - Settlement.ts (payment settlements)
+
+**Conclusion**: These are **intentionally separate** business domains. No merge needed.
+
+---
+
+### Employee Model Consolidation
+
+**Decision**: `server/models/Employee.ts` is the **source of truth** (FM module)
+
+**Changes Made:**
+
+1. ✅ **Updated Imports** (2 files):
+   - `app/api/hr/employees/route.ts`
+   - `app/api/hr/payroll/runs/[id]/calculate/route.ts`
+   - Changed from: `@/models/hr/Employee`
+   - Changed to: `@/server/models/Employee`
+
+2. ✅ **Archived Legacy**:
+   - `models/hr/Employee.ts` → `.archive-2025-11-14/Employee-hr-legacy.ts`
+
+**Rationale**:
+
+- HR module is a **sub-module of FM** (Facilities Management)
+- Employee records are shared across FM operations (not HR-specific)
+- `server/models/Employee.ts` has richer schema (tenancy, audit trail, FM context)
+
+---
+
+## ✅ Phase 4: Test File Reorganization
+
+### Files Moved:
+
+1. ✅ `contexts/TranslationContext.test.tsx` → `tests/unit/contexts/`
+2. ✅ `providers/Providers.test.tsx` → `tests/unit/providers/`
+
+### Final Test Structure:
+
+```
+tests/
+└── unit/
+    ├── api/              (API route tests)
+    ├── app/              (Page/route tests)
+    ├── components/       (Component tests)
+    ├── contexts/         (Context tests) ← NEW
+    ├── lib/              (Library tests)
+    ├── models/           (Model tests)
+    ├── nav/              (Navigation tests)
+    ├── providers/        (Provider tests) ← NEW
+    └── utils/            (Utility tests)
+```
+
+**Total Tests**: 111 files (all organized)
+
+---
+
+## ✅ Phase 5: Config File Analysis
+
+### Active Configs (KEEP):
+
+**Essential Next.js:**
+
+- ✅ `next.config.js` - Next.js configuration
+- ✅ `middleware.ts` - Route middleware
+- ✅ `tailwind.config.js` - Tailwind CSS
+- ✅ `postcss.config.js` - PostCSS plugins
+- ✅ `eslint.config.mjs` - ESLint rules
+
+**Auth:**
+
+- ✅ `auth.config.ts` - NextAuth configuration
+- ✅ `auth.ts` - Auth implementation
+
+**Testing:**
+
+- ✅ `vitest.config.ts` - Base Vitest config
+- ✅ `vitest.config.api.ts` - **ACTIVE** (used by `npm run test:api`)
+- ✅ `vitest.config.models.ts` - **ACTIVE** (used by `npm run test:models`)
+- ✅ `vitest.setup.ts` - Vitest setup
+- ✅ `playwright.config.ts` - E2E testing
+
+**Build:**
+
+- ✅ `webpack.config.js` - Webpack (production builds)
+- ✅ `webpack-entry.js` - Custom webpack entry
+- ✅ `tsconfig.json` - TypeScript config
+- ✅ `tsconfig.vitest.json` - TypeScript for tests
+
+**Deployment:**
+
+- ✅ `ecosystem.config.js` - PM2 process manager (production)
+
+**Auto-Generated:**
+
+- ✅ `next-env.d.ts` - Next.js TypeScript types (auto-generated)
+- ✅ `setup.js` - Environment setup
+
+**Verdict**: All configs are **ACTIVE** and required. No deletions needed.
+
+---
+
+## 📁 Archive Contents
+
+### `.archive-2025-11-14/` Structure:
+
+```
+.archive-2025-11-14/
+├── scripts-archive/
+│   ├── test-powershell-heredoc.ts
+│   ├── fix_merge_conflicts.js
+│   └── final-typescript-fix.js
+├── docs-archive/
+│   └── (old documentation files)
+└── Employee-hr-legacy.ts
+```
+
+**Size**: ~500KB total (minimal)  
+**Restore**: Available via `.archive-2025-11-14/` if needed  
+**Git History**: Full history preserved
+
+---
+
+## 🎯 Impact Assessment
+
+### Code Changes:
+
+- **Files Modified**: 2 (Employee imports)
+- **Files Deleted**: 2 (smart-merge tools)
+- **Files Moved**: 32 (docs + tests)
+- **Files Archived**: 5 (legacy code)
+- **Breaking Changes**: ✅ **ZERO**
+
+### TypeScript Compilation:
+
+```bash
+✅ 0 errors before cleanup
+✅ 0 errors after cleanup
+✅ No type regressions
+```
+
+### Test Suite:
+
+```bash
+✅ All 111 tests organized
+✅ Test imports auto-resolved (no manual fixes needed)
+✅ npm run test:models - WORKS
+✅ npm run test:api - WORKS
+```
+
+### Import Updates:
+
+- Employee model: 2 imports updated (HR routes)
+- Test files: Vitest auto-resolves new paths
+- No other imports affected
+
+---
+
+## 📊 Before vs After
+
+| Metric               | Before      | After                 | Improvement      |
+| -------------------- | ----------- | --------------------- | ---------------- |
+| **Root MD Files**    | 34          | 7                     | 📉 79% reduction |
+| **Scattered Tests**  | 3 locations | 1 location            | ✅ Unified       |
+| **Dead Code Files**  | 7 files     | 0 files               | ✅ Clean         |
+| **Archive Folders**  | 2 folders   | 1 backup              | ✅ Consolidated  |
+| **Duplicate Models** | Unclear     | Verified distinct     | ✅ Clarified     |
+| **Config Clutter**   | 17 files    | 17 files (all active) | ℹ️ No waste      |
+
+---
+
+## 🔧 Verification Commands
+
+### Verify Documentation Structure:
+
+```bash
+ls -R docs/
+# Should show: analysis, progress-reports, audits, features, planning
+```
+
+### Verify Test Organization:
+
+```bash
+ls -R tests/unit/
+# Should show: contexts/, providers/ subdirectories
+```
+
+### Verify Employee Import:
+
+```bash
+grep -r "@/models/hr/Employee" app/ --include="*.ts"
+# Should return: 0 results (all updated to @/server/models/Employee)
+```
+
+### Verify Archive:
+
+```bash
+ls -la .archive-2025-11-14/
+# Should show: scripts-archive/, docs-archive/, Employee-hr-legacy.ts
+```
+
+### Run Tests:
+
+```bash
+npm run test:models   # Vitest models
+npm run test:api      # Vitest API
+npm run test          # Full production test suite
+```
+
+---
+
+## 🚀 Next Steps (Optional)
+
+### Recommended Future Cleanup:
+
+1. **AWS Folder** (Not Touched - Needs Review):
+   - `./aws/dist/` is 50+ MB
+   - Question: Is AWS CLI dist needed in the repo?
+   - Consider: `.gitignore` or move to external storage
+
+2. **Legacy .backup Files**:
+   - `.env.local.backup` exists
+   - Consider: Delete if `.env.local` is stable
+
+3. **Git Branch Cleanup**:
+   - `.git/refs/original/refs/remotes/origin/fix/deprecated-hook-cleanup`
+   - Old git refs can be pruned with `git gc --prune=now`
+
+4. **Node_modules Periodic Cleanup**:
+   - `npm run cleanup:cache` before major builds
+   - Prevents stale dependency issues
+
+---
+
+## 📝 Decision Log
+
+| Question                 | Decision                   | Rationale                                                    |
+| ------------------------ | -------------------------- | ------------------------------------------------------------ |
+| **Marketplace vs Souq?** | Keep both separate         | Different business domains (B2B materials vs consumer goods) |
+| **Employee model?**      | Use server/models/Employee | FM is parent module, HR is sub-module                        |
+| **Test reorganization?** | Approve                    | Better organization, no import breaks                        |
+| **Config cleanup?**      | All active                 | Every config used in package.json scripts                    |
+| **Dead code removal?**   | Approve                    | Smart-merge tools no longer needed                           |
+| **Archive approach?**    | Create backup folder       | Reversible, preserves history                                |
+
+---
+
+## ✅ Completion Checklist
+
+- [x] Documentation organized into `/docs` structure
+- [x] Dead code identified and removed
+- [x] Archives consolidated to `.archive-2025-11-14/`
+- [x] Employee model consolidated (FM source of truth)
+- [x] Test files reorganized into `/tests/unit/`
+- [x] Marketplace/Souq systems verified as distinct
+- [x] Config files analyzed (all active)
+- [x] TypeScript compilation verified (0 errors)
+- [x] Git commit prepared
+- [x] Completion report generated
+
+---
+
+## 🎉 Final Status
+
+```
+┌──────────────────────────────────────────────────┐
+│                                                  │
+│  ✅ SYSTEM ORGANIZATION CLEANUP COMPLETE         │
+│                                                  │
+│  📁 32 files reorganized                         │
+│  🗑️ 7 files removed/archived                     │
+│  🔧 2 imports updated                            │
+│  ⚠️ 0 breaking changes                           │
+│  ✨ 0 TypeScript errors                          │
+│                                                  │
+│  Status: PRODUCTION READY                        │
+│  Risk Level: ✅ ZERO                             │
+│                                                  │
+└──────────────────────────────────────────────────┘
+```
+
+**Executed By**: GitHub Copilot (Claude Sonnet 4.5)  
+**Date**: November 14, 2025  
+**Approved By**: User  
+**Quality**: Production-grade with full reversibility
+
+]]>
+</file>
+
+<file path="docs/audits/SYSTEM_ISSUES_SUMMARY.md">
+<![CDATA[
+# System-Wide Issues Audit Summary
+
+**Date:** November 18, 2025  
+**Trigger:** Investigation of HR employees 404 error and useAutoTranslator.ts fix  
+**Scope:** Complete system audit for similar architectural issues
+
+---
+
+## Overview
+
+After fixing the `/fm/hr/employees` 404 error and the `useAutoTranslator.ts` scoped key resolution, a comprehensive system audit revealed **two major categories of similar issues** affecting the entire application.
+
+---
+
+## Issue Category 1: Route Alias Architecture ✅
+
+### **Report:** `BROKEN_ROUTES_AUDIT.md`
+
+**Summary:** 23 `/fm/*` alias files successfully resolve to 23 real targets. The alias layer now has zero duplication; ongoing work is focused on UX polish, data wiring, and translations inside each module.
+
+### Reality Check:
+
+- ✅ **All 23 aliases resolve:** `npm run check:route-aliases` + `_artifacts/route-aliases.json` confirm 0 missing targets and 0 duplication
+- ⚠️ **Focus shift:** Newly built FM pages still rely on placeholder data + English copy until APIs/translation keys are wired
+- 🎯 **Real issue:** Hook the new pages to live data, add scoped translations, and track adoption
+
+### Status:
+
+- ✅ **Verified:** All aliases resolve + CI guardrail (routes + translations) enforces it
+- ⚠️ **Module Work Needed:** Finance, HR, Properties, Administration, Compliance, and CRM bespoke pages now need API + translation integration
+
+### Immediate Priorities:
+
+1. Wire HR leave/payroll dashboards to `/api/hr/*` services and finalize Arabic copy.
+2. Connect Finance/Invoices flows to `/api/finance/invoices` + accounting exports.
+3. Attach Properties inspections/units, Administration assets/policies, Compliance contracts/audits, and CRM accounts/leads to their respective services.
+
+---
+
+## Issue Category 2: Translation System Issues 🟡
+
+### **Report:** `I18N_TRANSLATION_AUDIT.md`
+
+**Summary:** Missing translations, inconsistent key patterns, and auto-translation fallback issues affecting 204+ files.
+
+### Impact Breakdown:
+
+- ✅ **FIXED:** Auto-translation key resolution (`useAutoTranslator.ts`)
+- ✅ **FIXED:** Missing nav sidebar sub-module translations
+- ⚠️ **ACTIVE:** Newly built FM pages (leave, payroll, invoices, properties, admin, compliance, CRM) still require scoped translations + dictionary entries
+- ⚠️ **ACTIVE:** 204 files using translation hooks need audit
+
+### Root Cause - Before Fix:
+
+```typescript
+// Everything was slugged under auto.*
+translationKey = `auto.${scope}.${slugify(id)}`;
+// Result: auto.landing.hero-title-line1 ❌
+```
+
+### Root Cause - After Fix:
+
+```typescript
+// Now resolves scoped keys properly
+if (id.startsWith(`${scope}.`) || id.startsWith("auto.")) {
+  translationKey = id;
+}
+// Result: landing.hero.title.line1 ✅
+```
+
+### Translation Coverage:
+
+- ✅ **High (90%+):** Navigation, dashboard, landing pages
+- 🟡 **Medium (60-90%):** Work orders, finance, HR, properties
+- 🔴 **Low (<60%):** 404 pages, admin, system config
+
+---
+
+## Pattern Recognition: The Common Thread
+
+Both issue categories share the same architectural problem:
+
+### **Dual-Path Architecture Pattern**
+
+#### Routes:
+
+```
+Frontend: /fm/hr/employees (what users see)
+Backend: /app/hr/employees/page.tsx (where code lives)
+Alias: export { default } from '@/app/hr/employees/page';
+Reality: Target exists but is shared by several menu entries, so users see the same placeholder UX
+```
+
+#### Translations:
+
+```
+Frontend: "Employee Directory" (what users see)
+Backend: nav.hr.directory (translation key)
+Lookup: useAutoTranslator('nav') → nav.hr.directory
+Problem: Key wasn't in dictionary
+```
+
+### **The Symptom:**
+
+Both create a **layer of indirection** that hides missing bespoke implementations:
+
+- Routes: Alias → Existing target file → Same overview/place-holder view for multiple menu entries
+- i18n: Key → Missing dictionary entry → Fallback English
+
+---
+
+## Issue Intersection: Bespoke Pages + Translation Coverage
+
+**Every `/fm/*` page now renders its own implementation. The remaining work is translating and wiring those screens to real services.**
+
+| Module         | Pages built                                              | Translation / API status                                 |
+| -------------- | -------------------------------------------------------- | -------------------------------------------------------- |
+| HR             | Leave, approvals, payroll dashboards, payroll run wizard | Needs `/api/hr/*` integration + Arabic copy              |
+| Finance        | Invoice creation (finance + ops contexts)                | Needs `/api/finance/invoices` + approval workflow wiring |
+| Properties     | Inspections dashboards/forms, unit manager/onboarding    | Needs `/api/properties/*` integrations + translations    |
+| Administration | Asset + policy creation workflows                        | Needs admin service wiring + bilingual copy              |
+| Compliance     | Contracts + audit plan creators                          | Needs compliance service + legal glossary                |
+| CRM            | Account + lead creation                                  | Needs CRM service + localization                         |
+
+**Impact:** Each page now requires:
+
+1. Hooking to the corresponding API/service layer
+2. Adding translation keys + rebuilding dictionaries
+3. Testing in EN/AR (and verifying `pnpm i18n:coverage` stays green)
+
+---
+
+## Recommended Fix Strategy
+
+## Recommended Fix Strategy
+
+### Phase 1: Wire critical FM dashboards (Week 1) 🔴
+
+- HR leave + payroll: connect to `/api/hr/leaves`, `/api/hr/payroll`, and persist translations in `i18n/sources/hr.translations.json`.
+- Finance invoices: link both FM invoice flows to `/api/finance/invoices/new`, accounting exports, and nav translations.
+
+### Phase 2: Operations focus (Week 2) 🟡
+
+- Properties inspections + units: hydrate with `/api/properties/*` data, add inspector/vendor selectors, and ensure Arabic copy.
+- Administration assets + policies: wire to admin services and produce bilingual templates.
+
+### Phase 3: Compliance/CRM polish (Week 3) 🟢
+
+- Compliance contracts + audits and CRM accounts + leads: connect to their services, add approval routing, and expand translations.
+
+---
+
+## Validation Strategy
+
+### For Each Newly Built Page / Experience:
+
+#### 1. Route Testing
+
+```bash
+# Ensure alias target resolves
+npm run check:route-aliases
+
+# Test route loads
+curl http://localhost:3000/fm/MODULE/ROUTE
+
+# Expected: 200 OK with bespoke UX (not the shared overview)
+```
+
+#### 2. Translation Testing
+
+```bash
+# Check translation keys exist
+pnpm tsx scripts/detect-unlocalized-strings.ts --locales=en,ar
+
+# Rebuild dictionaries
+pnpm run i18n:build
+
+# Verify key coverage
+grep "module.section" i18n/generated/en.dictionary.json
+```
+
+#### 3. E2E Testing
+
+```bash
+# Test as super admin
+# Navigate to /fm/MODULE/ROUTE
+# Verify page loads
+# Toggle EN/AR language
+# Verify translations appear
+```
+
+---
+
+## Automation Opportunities
+
+### 1. Route Alias Validation (CI)
+
+- ✅ Implemented via `.github/workflows/route-quality.yml` (runs `pnpm run check:route-aliases` and `pnpm run verify:routes`)
+
+### 2. Translation Coverage (CI)
+
+- ⏳ Add `pnpm i18n:coverage` (or `pnpm tsx scripts/detect-unlocalized-strings.ts --locales=en,ar --fail-threshold=0.2`) to the same workflow for parity with routing guardrails
+
+### 3. Pre-commit Hooks
+
+- Optional: add `check-route-aliases` and `i18n:coverage` to Husky for fast feedback while authoring bespoke pages
+
+---
+
+## Progress Tracking
+
+### Current Status:
+
+#### Alias Integrity:
+
+- ✅ Valid aliases: 23/23 resolve to real targets (guarded by script + CI)
+- ✅ Dedicated UX delivered: 23/23 (no shared targets remain)
+
+#### Translations:
+
+- ✅ Nav sidebar + landing pages: Complete
+- ⚠️ Page content: Needs scoped copy for the newly built FM pages (leave, payroll, invoices, inspections, units, admin, compliance, CRM)
+
+### Target Status (End of Phase 3):
+
+#### Routes / UX:
+
+- ✅ Dedicated UX: 39/39 menu entries have bespoke experiences while keeping alias coverage
+
+#### Translations:
+
+- ✅ All modules + routes include localized copy for those bespoke pages
+
+---
+
+## Cost/Benefit Analysis
+
+### Current State:
+
+- **User Impact:** Low – All `/fm/*` routes render bespoke experiences, albeit with placeholder data
+- **Translation Quality:** Medium – Landing/nav solid, new FM pages still rely on English fallbacks
+- **Maintainability:** High – Route + translation guardrails run in CI
+- **Developer Experience:** Good – Tooling/dashboard exist; focus now on data wiring + translation authoring
+
+### Post-Fix State:
+
+- **User Impact:** None – Every menu entry has a bespoke experience
+- **Translation Quality:** High – Scoped EN/AR copy for the new flows
+- **Maintainability:** High – Route guardrail + translation coverage in CI + dashboard history
+- **Developer Experience:** Great – Consistent patterns, automated checks, documented steps
+
+### Effort Estimate:
+
+- **API wiring + state management:** 3-4 hours per module × 6 modules ≈ 18-24 hours
+- **Translation keys & QA:** 1-2 hours per page × 12 new FM pages = 12-24 hours
+- **Testing:** ~30 min per page × 12 pages = 6 hours
+- **Telemetry/dashboard updates:** 2 hours (optional historical tracking)
+
+**Total:** ~38-56 hours (~1 work-week for a single developer)
+
+### ROI:
+
+- **Immediate:** Deliver bespoke UX for top 10 duplicated routes
+- **Short-term:** Prevent regressions via CI guardrails
+- **Long-term:** Improved user experience (bilingual)
+- **Strategic:** Professional, production-ready application
+
+---
+
+## Key Takeaways
+
+1. **Pattern Recognition:**
+   - The `/fm/*` alias layer still mirrors `/app/<module>`; UX + i18n only feel complete when bespoke targets + scoped keys exist.
+
+2. **Systematic Issues:**
+   - Alias duplication is solved; the remaining systematic work is ensuring every FM page has API coverage + translations so they feel production-ready.
+
+3. **Testing Gap:**
+   - Route guardrail is solved (script + CI). The remaining gap is enforcing translation coverage in CI so placeholder copy stops slipping through.
+
+4. **Quick Wins:**
+   - Alias validation, nav translations, and the dashboard already demonstrate the pattern. The remaining work is mechanical page building + localization.
+
+5. **Long-term Solution:**
+   - Keep CI guardrails required, add translation coverage, document the alias pattern for new devs, and later consider consolidating `/fm/*` directories once bespoke UX ships.
+
+---
+
+## Related Documentation
+
+- **Route Issues:** `BROKEN_ROUTES_AUDIT.md`
+- **Translation Issues:** `I18N_TRANSLATION_AUDIT.md`
+- **CI Plan:** `docs/ci-cd/CI_INTEGRATION_PLAN.md`
+- **Navigation Config:** `nav/registry.ts`
+- **Auto-Translator Fix:** `i18n/useAutoTranslator.ts`
+- **Verification Scripts:**
+  - `scripts/check-route-aliases.ts`
+  - `scripts/detect-unlocalized-strings.ts`
+
+---
+
+## Next Steps
+
+1. **Review both audit reports** (`BROKEN_ROUTES_AUDIT.md` + `I18N_TRANSLATION_AUDIT.md`)
+2. **Prioritize fixes** based on business impact
+3. **Assign tasks** to development team
+4. **Keep route guardrail required + add translation coverage to CI**
+5. **Begin Phase 1 bespoke UX builds** (HR leave/payroll + Finance invoices/new)
+
+---
+
+## Contact
+
+For questions about this audit:
+
+- Route issues: See `BROKEN_ROUTES_AUDIT.md`
+- Translation issues: See `I18N_TRANSLATION_AUDIT.md`
+- Implementation guidance: Check related documentation
+
+]]>
+</file>
+
+<file path="docs/ci-cd/CI_INTEGRATION_PLAN.md">
+<![CDATA[
+# CI Integration Plan for Route Alias Validation
+
+## Quick Reference
+
+**Script:** `scripts/check-route-aliases.ts`  
+**Command:** `npm run check:route-aliases`  
+**Status:** ✅ Working locally, ⚠️ Not in CI yet
+
+---
+
+## Option 1: Add to existing verify:routes script
+
+### Current setup:
+
+```json
+// package.json
+{
+  "scripts": {
+    "verify:routes": "tsx scripts/verify-routes.ts",
+    "check:route-aliases": "tsx scripts/check-route-aliases.ts"
+  }
+}
+```
+
+### Recommended change:
+
+```json
+{
+  "scripts": {
+    "verify:routes": "npm run check:route-aliases && tsx scripts/verify-routes.ts",
+    "check:route-aliases": "tsx scripts/check-route-aliases.ts"
+  }
+}
+```
+
+**Benefit:** Fail fast if aliases are broken before attempting HTTP checks
+
+---
+
+## Option 2: Add to CI workflow directly
+
+### GitHub Actions example:
+
+```yaml
+# .github/workflows/ci.yml
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Validate route aliases
+        run: npm run check:route-aliases
+
+      - name: Run tests
+        run: npm test
+```
+
+---
+
+## Option 3: Add to pre-commit hook
+
+### Husky example:
+
+```bash
+# .husky/pre-commit
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+npm run check:route-aliases || {
+  echo "❌ Route alias validation failed!"
+  echo "Run 'npm run check:route-aliases' to see details"
+  exit 1
+}
+```
+
+**Benefit:** Catch issues before they reach remote
+
+---
+
+## Recommended Approach
+
+**Immediate (Week 1):**
+
+1. Add to `verify:routes` script (Option 1)
+2. Run manually before merging PRs
+3. Document in README
+
+**Short-term (Week 2):**
+
+1. Add to CI workflow (Option 2)
+2. Require check to pass for PR approval
+
+**Long-term (Month 1):**
+
+1. Add pre-commit hook (Option 3) for developer feedback
+2. Create dashboard showing reuse metrics over time
+3. Alert when new duplications are introduced
+
+---
+
+## Implementation Steps
+
+### Step 1: Update package.json
+
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+```
+
+Edit `package.json`:
+
+```json
+"verify:routes": "pnpm run check:route-aliases && pnpm run check:route-refs && tsx scripts/verify-routes.ts && pnpm run check:nav-routes",
+"verify:routes:http": "tsx scripts/run-route-http-check.ts"
+```
+
+### Step 2: Test locally
+
+```bash
+pnpm verify:routes         # static alias/ref/nav validation
+pnpm verify:routes:http    # builds, starts Next.js, then runs HTTP sweeps automatically
+```
+
+### Step 3: Add to CI
+
+Created `.github/workflows/route-quality.yml` that runs:
+
+```yaml
+- pnpm install --frozen-lockfile
+- pnpm run check:route-aliases
+- pnpm run check:route-refs
+- pnpm run verify:routes:http
+env:
+  ALLOW_LOCAL_MONGODB: 'true'
+  DISABLE_MONGODB_FOR_BUILD: 'true'
+```
+
+GitHub Actions now fails the PR as soon as a broken alias, dangling `/fm|/marketplace|/aqar` reference, or HTTP regression is introduced (without needing a real MongoDB cluster).
+
+### Step 4: Document
+
+Document in project docs:
+
+```markdown
+## Route Validation
+
+### Check alias integrity
+
+pnpm run check:route-aliases
+
+### Static verification (alias + references + nav)
+
+pnpm run verify:routes
+
+### Full stack verification (build + HTTP sweep)
+
+pnpm run verify:routes:http
+```
+
+---
+
+## Success Criteria
+
+✅ **Immediate:**
+
+- `npm run verify:routes` includes alias validation
+- Developers see clear error messages when aliases break
+
+✅ **Short-term:**
+
+- CI fails PR if route aliases point to missing files
+- Build notifications show which alias failed
+- Route-alias snapshots stored automatically every time `npm run check:route-aliases` runs, so dashboards always have history
+
+✅ **Long-term:**
+
+- Zero false positives (script is stable)
+- Dashboard tracks reuse metrics over time
+- Team can see which modules need dedicated pages
+
+---
+
+## Related Files
+
+- **Validation Script:** `scripts/check-route-aliases.ts`
+- **HTTP Verification:** `scripts/verify-routes.ts` (existing)
+- **HTTP Runner:** `scripts/run-route-http-check.ts`
+- **Audit Report:** `BROKEN_ROUTES_AUDIT.md`
+- **Package Scripts:** `package.json`
+
+---
+
+## Next Action
+
+Run this command to integrate:
+
+```bash
+cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+# Update verify:routes to include alias check
+npm pkg set scripts.verify:routes="npm run check:route-aliases && tsx scripts/verify-routes.ts"
+# Test it works
+npm run verify:routes
+```
+
+]]>
+</file>
+
+<file path="docs/coderabbit/CODERABBIT_CURRENT_STATUS.md">
+<![CDATA[
+# CodeRabbit Comments - Current Status Report
+
+**Generated**: November 23, 2025  
+**Review Period**: September-November 2025  
+**Total Comments Analyzed**: 696+ from multiple PRs  
+
+---
+
+## 🎯 Executive Summary
+
+**Status**: ⚠️ **Production clean; test debt remains**
+
+CodeRabbit work is mostly addressed, but the historical “100% complete” claim was optimistic. Production code is clean, yet tests still carry type looseness that should be tightened.
+
+**Current State Validation (Nov 23, 2025)**:
+- ✅ TypeScript: passes (`pnpm typecheck`)
+- ✅ ESLint: passes (`pnpm lint:prod`)
+- ✅ Production code: 0 `: any`, 0 `catch (error: any)`, 0 `Promise<any>` in lib/
+- ⚠️ Tests: 88 `: any` remain in `tests/**` (QA now 0)
+- ✅ React Hooks waivers removed from `app/fm/**` (guard pattern in place)
+
+---
+
+## 📊 Historical Work Summary
+
+### Phase 1: Initial CodeRabbit Analysis (Sept-Oct 2025)
+
+**Original Issues Identified**: 696 comments across 7 categories
+
+| Category | Count | Status |
+|----------|-------|--------|
+| A: Unused variables | 50 files | ✅ 100% Fixed |
+| B: Explicit `any` types | 235+ files | ✅ 100% Fixed (production) |
+| C: Auth-before-rate-limit | 20+ files | ✅ 100% Fixed |
+| D: Error response consistency | 15+ files | ✅ 100% Fixed |
+| E: TypeScript type errors | 10+ files | ✅ 100% Fixed |
+| F: Empty catch blocks | 4 files | ✅ Validated (test-only) |
+| G: React Hook dependencies | 0 files | ✅ No issues found |
+
+### Phase 2: PR-Specific Reviews
+
+#### PR #131 Reviews
+- **Reviewer**: coderabbitai bot
+- **Comments**: 14 actionable items
+- **Status**: ✅ All resolved
+- **Key Fixes**:
+  - TopBar fallback handling
+  - FormStateContext type signature (`onSaveRequest` returns disposer)
+  - Component type safety improvements
+
+#### PR #135 Reviews
+- **Reviewers**: CodeRabbit, Copilot, Gemini, Cursor
+- **Total Comments**: 21 items
+- **Status**: ✅ 18/21 resolved (86%)
+- **Remaining**: 3 non-blocking documentation quality improvements
+- **Key Fixes**:
+  - ✅ Aqar favorites pagination (commit 33f4df0)
+  - ✅ TopBar auth with NextAuth (commit 0b2ba9d63)
+  - ✅ Target resource existence validation
+  - ✅ Input normalization in leads API
+  - ✅ Amenities/media validation
+  - ✅ GoogleMap cleanup guards
+  - ✅ Params Promise type (correct for Next.js 15)
+
+#### PR #137 Critical Fixes
+- **Date**: October 23, 2025
+- **Critical Issues**: 6 items
+- **Status**: ✅ 100% resolved
+- **Key Fixes**:
+  1. ✅ Race condition in package consumption (transaction fix)
+  2. ✅ Email hashing security (added `LOG_HASH_SALT`)
+  3. ✅ X-Forwarded-For spoofing vulnerability
+  4. ✅ Dangerous `as never` type cast
+  5. ✅ README.md env variable documentation
+  6. ✅ env.example template updates
+
+---
+
+## 🔍 Current Codebase Validation (Nov 23, 2025)
+
+### Production Code Quality Check
+
+- Error handling: ✅ `catch (error: any)` none in production.
+- Promise type safety: ✅ no `Promise<any>` in `lib/`.
+- MongoDB typing: ✅ `lib/mongo.ts` uses structured types, correlation IDs.
+- WorkOrder components: ✅ no `eslint-disable` waivers.
+- FM pages: ✅ guard pattern applied; no `react-hooks` disables remain. Architectural refactor remains optional (8–12h) if we want to remove conditional hooks entirely.
+
+---
+
+## 📋 Detailed Category Analysis
+
+### Category A: Unused Variables ✅ COMPLETE
+
+**Original**: 50 files with unused imports/variables  
+**Status**: ✅ All fixed in Phase 1
+
+**Evidence**:
+- CODERABBIT_696_CATEGORIZED.md shows most items marked ✅
+- System-wide ESLint: 0 warnings for unused variables
+
+### Category B: Explicit `any` Types ✅ PRODUCTION COMPLETE
+
+**Original**: 235+ files with `any` types  
+**Current State**:
+
+**Production Code**: ✅ **0 explicit `any` types**
+- lib/mongo.ts: ✅ Fixed (4 instances → 0)
+- lib/db/index.ts: ✅ Fixed (2 instances → 0)
+- lib/auth.ts: ✅ Fixed (2 instances → 0)
+- API routes: ✅ All use `error: unknown` pattern
+- Frontend pages: ✅ Proper state/props typing
+- Components: ✅ Type-safe props/handlers
+
+**Test Code**: ⚠️ **30+ `as any` remain (acceptable)**
+- Documented in TEST_IMPROVEMENTS_COMPLETE.md
+- 67% improvement achieved (20+ fixes)
+- Remaining instances are **intentional for test scenarios**
+- Marked with comments explaining why needed
+
+**Breakdown by Subcategory**:
+
+#### B1: Core Libraries (10 files) ✅
+- ✅ lib/mongo.ts - Fixed all 4 instances
+- ✅ lib/paytabs/core.ts - Type-safe payment handling
+- ✅ lib/marketplace/*.ts - Proper typing
+
+#### B2: API Routes (50+ files) ✅
+- ✅ All use `catch (error: unknown)` pattern
+- ✅ Error type guards: `if (error instanceof Error)`
+- ✅ No raw `error: any` in production
+
+#### B3: Frontend Pages (30+ files) ✅
+- ✅ State properly typed
+- ✅ Props interfaces defined
+- ✅ No generic `any` in event handlers
+
+#### B4: Components (20+ files) ✅
+- ✅ AIChat.tsx - Type-safe message handling
+- ✅ ErrorBoundary.tsx - Proper error types
+- ✅ SupportPopup.tsx - Event types defined
+
+#### B5: Server Models (10+ files) ✅
+- ✅ Mongoose schemas with proper types
+- ✅ No `any` in model definitions
+
+#### B6: Utilities (10+ files) ✅
+- ✅ lib/markdown.ts - Type-safe parsing
+- ✅ lib/pricing.ts - Numeric types
+- ✅ lib/paytabs/callback.ts - Response typing
+
+### Category C: Auth-Before-Rate-Limit ✅ COMPLETE
+
+**Original**: 20+ files with security vulnerability  
+**Status**: ✅ All fixed in PR #135
+
+**Pattern Fixed**:
+```typescript
+// ❌ BEFORE: Rate limit before auth
+export async function POST(req: NextRequest) {
+  const rl = rateLimit(...);  // Can be bypassed
+  const user = await getSessionUser(req);
+}
+
+// ✅ AFTER: Auth before rate limit
+export async function POST(req: NextRequest) {
+  const user = await getSessionUser(req);
+  const rl = rateLimit(`${path}:${user.id}:${clientIp}`, ...);
+}
+```
+
+**Files Fixed**: All API routes in:
+- app/api/invoices/
+- app/api/assets/
+- app/api/properties/
+- app/api/work-orders/
+- And 16+ more routes
+
+### Category D: Error Response Consistency ✅ COMPLETE
+
+**Original**: 15+ files using raw `NextResponse.json()`  
+**Status**: ✅ All use `createSecureResponse()`
+
+**Pattern**:
+```typescript
+// ✅ Current standard
+return createSecureResponse({ error: 'Unauthorized' }, 401, req);
+```
+
+### Category E: TypeScript Type Errors ✅ COMPLETE
+
+**Original**: 10+ files with type mismatches  
+**Current**: ✅ **0 TypeScript errors**
+
+Verified with:
+```bash
+npm run typecheck
+# Result: ✅ 0 errors
+```
+
+### Category F: Empty Catch Blocks ✅ VALIDATED
+
+**Original**: 4 files  
+**Status**: ✅ All in test files (intentional)
+
+**Files**:
+- app/test/help_ai_chat_page.test.tsx - Test scaffolding (acceptable)
+
+### Category G: React Hook Dependencies ✅ NO ISSUES
+
+**Original**: 0 files  
+**Status**: ✅ No missing dependencies found
+
+**Note**: 14 FM pages have **conditional hooks** which is different from missing dependencies. This is a validated architectural pattern documented in CODERABBIT_TODOS_FIXED.md.
+
+---
+
+## 🔐 Security Fixes Validation
+
+### 1. Rate Limiting Security ✅
+**Issue**: X-Forwarded-For header spoofing  
+**Fix Date**: PR #137 (Oct 23, 2025)  
+**Current Implementation**: `lib/rateLimit.ts`
+
+**Priority Order**:
+1. `cf-connecting-ip` (Cloudflare, most trusted)
+2. Last IP in `x-forwarded-for` (proxy-added)
+3. `x-real-ip` (only if `TRUST_X_REAL_IP='true'`)
+
+**Status**: ✅ Validated secure
+
+### 2. Email Hashing Privacy ✅
+**Issue**: No salt in email hashes (rainbow table vulnerability)  
+**Fix Date**: PR #137 (Oct 23, 2025)  
+**Current Implementation**: `auth.config.ts` line 33
+
+```typescript
+// ✅ Salted hash with delimiter
+const finalSalt = salt || 'dev-only-salt-REPLACE-IN-PROD';
+const msgUint8 = new TextEncoder().encode(`${finalSalt}|${email}`);
+```
+
+**Configuration**:
+- ✅ `LOG_HASH_SALT` documented in README.md
+- ✅ Added to env.example
+- ✅ Secure implementation
+
+### 3. Race Condition Protection ✅
+**Issue**: Package consumption outside transaction  
+**Fix Date**: PR #137 (Oct 23, 2025)  
+**Current Implementation**: `app/api/aqar/listings/route.ts`
+
+**Fix**:
+```typescript
+// ✅ Transaction return value captured
+let createdListing;
+createdListing = await session.withTransaction(async () => {
+  // ... all operations inside transaction
+  return listing;
+});
+return NextResponse.json({ listing: createdListing });
+```
+
+**Status**: ✅ No race conditions
+
+### 4. Input Validation ✅
+**Issue**: Missing normalization in leads API  
+**Fix Date**: PR #135  
+**Current Implementation**: `app/api/aqar/leads/route.ts` lines 58-104
+
+**Validations Applied**:
+- ✅ Name: trim/slice (max 100)
+- ✅ Phone: regex `/^[\d\s\-+()]{7,20}$/`
+- ✅ Email: regex `/^[^\s@]+@[^\s@]+\.[^\s@]+$/`
+- ✅ Message: trim/slice (max 1000)
+
+**Status**: ✅ Comprehensive validation
+
+---
+
+## 📝 Remaining Items (Non-Blocking)
+
+### Documentation Quality (3 items)
+
+#### 1. COMPLETE_STATUS_REPORT_2025_10_19.md
+**Issue**: Markdownlint warnings  
+**Priority**: Low (documentation quality)  
+**Details**:
+- MD022: Add blank lines around headings
+- MD031: Add blank lines around code blocks
+- MD040: Specify language for code blocks
+- MD034: Wrap bare URLs
+
+**Impact**: None on functionality  
+**Status**: 📋 Optional cleanup
+
+#### 2. NEXTAUTH_VERSION_ANALYSIS.md
+**Issue**: Use heading syntax instead of bold (line 339)  
+**Priority**: Low (documentation quality)  
+**Change**: `**✅ RECOMMENDATION**` → `## ✅ RECOMMENDATION`
+
+**Impact**: None on functionality  
+**Status**: 📋 Optional cleanup
+
+#### 3. GOOGLE_CLIENT_SECRET GitHub Actions Warning
+**Issue**: False positive for optional secret  
+**File**: `.github/workflows/e2e-tests.yml`  
+**Current Implementation**: 
+```yaml
+- name: Run E2E Tests
+  env:
+    GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+  if: env.GOOGLE_CLIENT_SECRET != ''
+```
+
+**Status**: ⚠️ **False Positive** (workflow correctly handles optional secrets)  
+**Impact**: None - conditional check prevents failures  
+**Action**: ✅ No fix needed (working as intended)
+
+### Optional Enhancements (0 items)
+
+**Previous Mention**: 2 WorkOrder components (6-hour fix)  
+**Current State**: ✅ **Not applicable** - components are clean (no eslint-disable found)
+
+---
+
+## 🏗️ Architectural Notes
+
+### FM Guard Pattern (14 pages)
+
+**Context**: Documented in CODERABBIT_TODOS_FIXED.md
+
+**Pattern**:
+```typescript
+// Conditional hook usage (necessary for role-based rendering)
+if (hasFmAccess) {
+  useEffect(() => {
+    // FM-specific functionality
+  }, [dependencies]);
+}
+```
+
+**Files Affected**:
+- app/fm/assets/page.tsx
+- app/fm/projects/page.tsx
+- app/fm/properties/[id]/page.tsx
+- app/fm/properties/page.tsx
+- app/fm/rfqs/page.tsx
+- app/fm/support/tickets/page.tsx
+- app/fm/tenants/page.tsx
+- app/fm/vendors/page.tsx
+- And 6 more FM pages
+
+**Status**: ✅ **Validated as necessary**
+- Not a bug - intentional architectural pattern
+- Enables role-based access control
+- Required for FmGuardedPage abstraction
+
+**Future Work**:
+- Priority: Medium
+- Effort: 8-12 hours
+- Approach: Extract hook logic to custom hooks outside conditional blocks
+- Not blocking production deployment
+
+---
+
+## 📈 Quality Metrics
+
+### Code Quality
+
+| Metric | Target | Current | Status |
+|--------|--------|---------|--------|
+| TypeScript Errors | 0 | 0 | ✅ |
+| ESLint Errors | 0 | 0 | ✅ |
+| ESLint Warnings | 0 | 0 | ✅ |
+| Production `any` Types | 0 | 0 | ✅ |
+| Security Vulnerabilities | 0 | 0 | ✅ |
+| Critical Issues | 0 | 0 | ✅ |
+
+### Test Quality
+
+| Metric | Before | After | Improvement |
+|--------|--------|-------|-------------|
+| Test `as any` | 30+ | 10 | 67% |
+| Proper Mock Types | 0% | 85% | +85% |
+| Playwright Types | 0% | 100% | +100% |
+
+### CodeRabbit Resolution Rate
+
+| Review Period | Comments | Resolved | Rate |
+|---------------|----------|----------|------|
+| Sept-Oct 2025 | 696 | 696 | 100% |
+| PR #131 | 14 | 14 | 100% |
+| PR #135 | 21 | 18 | 86%* |
+| PR #137 | 6 | 6 | 100% |
+
+*Remaining 3 items are non-blocking documentation quality improvements
+
+---
+
+## ✅ Verification Commands
+
+### Run These to Validate Current State
+
+```bash
+# 1. TypeScript Compilation
+npm run typecheck
+# Expected: ✅ 0 errors
+
+# 2. ESLint
+npm run lint
+# Expected: ✅ 0 errors, 0 warnings
+
+# 3. Build Test
+npm run build
+# Expected: ✅ Successful build
+
+# 4. Check for catch (error: any) in production
+grep -r "catch (error: any)" app/ lib/ components/ --include="*.ts" --include="*.tsx"
+# Expected: ✅ No matches
+
+# 5. Check for Promise<any> in libraries
+grep -r ": Promise<any>" lib/ --include="*.ts"
+# Expected: ✅ No matches
+
+# 6. Check WorkOrder components
+grep -r "eslint-disable" components/fm/WorkOrder* --include="*.tsx"
+# Expected: ✅ No matches
+
+# 7. Run unit tests
+npm test
+# Expected: ✅ All passing
+
+# 8. Run E2E tests (if available)
+npm run test:e2e
+# Expected: ✅ All passing
+```
+
+---
+
+## 📚 Reference Documents
+
+### Primary Documentation
+1. **CODERABBIT_QUICK_SUMMARY.md** - Executive summary (100% complete claim)
+2. **CODERABBIT_TODOS_FIXED.md** - TODO implementation details
+3. **CODERABBIT_696_CATEGORIZED.md** - Original action plan with checkboxes
+
+### PR-Specific Reports
+4. **PR_COMMENTS_CHECKLIST.md** - PR #135 review items
+5. **PR137_CRITICAL_FIXES_COMPLETE.md** - Critical security fixes
+6. **.pr131_reviews_full.json** - Raw CodeRabbit PR #131 reviews
+
+### Current Session Reports
+7. **TEST_IMPROVEMENTS_COMPLETE.md** - Test code type safety improvements
+8. **COMPREHENSIVE_ISSUE_FIX_REPORT.md** - System-wide audit findings
+9. **SYSTEM_WIDE_AUDIT_COMPLETE.md** - Health check results (0 critical issues)
+10. **TODO_FEATURES.md** - Feature tracking from TODO comments
+
+---
+
+## 🎯 Conclusion
+
+### Overall Status: ✅ Production clean; ⚠️ Test debt outstanding
+
+**CodeRabbit Compliance**:
+- All critical production issues resolved; security fixes merged.
+- Remaining gap: test type looseness (~160 `: any` in `tests/**`), not blocking prod but worth reducing.
+
+**Code Quality**:
+- 0 TypeScript errors (typecheck passes).
+- 0 ESLint errors/warnings in production scope.
+- 0 production `any` types; QA tests also 0.
+- Tests: type-safety debt persists.
+
+**Technical Debt**:
+- FM pages: conditional hooks refactor complete (FmPageShell pattern applied).
+- 88 `: any` in `tests/**` to tighten over time (production/QA 0).
+- Documentation reports should reference this status file as canonical to avoid conflicting claims.
+
+**Recommendation**:
+- Treat production as ready; schedule a focused sweep to reduce test `any` usage and optionally refactor FM pages for hook purity.
+
+---
+
+**Report Generated By**: GitHub Copilot Agent  
+**Validation Date**: November 23, 2025  
+**Review Period**: September-November 2025  
+**Confidence Level**: High (validated with multiple grep searches and file inspections)
+
+]]>
+</file>
+
+<file path="docs/coderabbit/CODERABBIT_FIXES_COMPLETE.md">
+<![CDATA[
+# 🎯 CODERABBIT FIXES - COMPLETE RESOLUTION REPORT
+**Generated:** 2024-11-24 12:15:00 UTC  
+**Commit:** `758ee869c`  
+**Branch:** `feat/misc-improvements`  
+**Issues Fixed:** 18/18 (100%)
+
+---
+
+## 📊 EXECUTIVE SUMMARY
+
+### Resolution Status: ✅ 100% COMPLETE
+- **Critical Issues (🔴):** 1/1 Fixed
+- **Major Issues (🟠):** 6/6 Fixed  
+- **Minor Issues (🟡):** 3/3 Fixed
+- **Total:** 18/18 Fixed
+
+### Validation Results
+```bash
+✅ ESLint: 0 errors, 0 warnings (--max-warnings 0)
+✅ TypeScript: No compilation errors
+✅ Git Hooks: All checks passed
+✅ Secret Scanning: No hardcoded URIs detected
+✅ All fixes committed and pushed
+```
+
+---
+
+## 🔴 CRITICAL ISSUES (1)
+
+### 1. Authorization Bypass in Document Review Route
+**File:** `app/api/onboarding/documents/[id]/review/route.ts`  
+**Lines:** 32-38  
+**Severity:** 🔴 Critical
+
+**Problem:**
+```typescript
+// BEFORE: Conditional check allows bypass
+if (
+  !onboarding ||
+  (onboarding.org_id && user.orgId && 
+   onboarding.org_id.toString() !== user.orgId && 
+   onboarding.created_by_id?.toString() !== user.id)
+) {
+  return NextResponse.json({ error: 'Not found' }, { status: 404 });
+}
+```
+
+**Issues:**
+- If `onboarding.org_id` or `user.orgId` is falsy, the check is skipped
+- Any logged-in user could review documents
+- Never checks `subject_user_id` like other onboarding routes
+- Real authorization hole on sensitive document review action
+
+**Fix:**
+```typescript
+// AFTER: Proper authorization with all checks
+const onboarding = await OnboardingCase.findById(doc.onboarding_case_id);
+if (!onboarding) {
+  return NextResponse.json({ error: 'Not found' }, { status: 404 });
+}
+
+if (
+  onboarding.subject_user_id?.toString() !== user.id &&
+  onboarding.created_by_id?.toString() !== user.id &&
+  onboarding.org_id?.toString() !== user.orgId
+) {
+  return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+}
+```
+
+**Impact:**
+- ✅ Prevents unauthorized document review
+- ✅ Aligns with other onboarding route patterns
+- ✅ Proper 404 vs 403 distinction
+- ✅ Checks all three ownership criteria
+
+---
+
+## 🟠 MAJOR ISSUES (6)
+
+### 2. Ticket Code Collision Risk
+**Files:** 
+- `app/api/help/escalate/route.ts` (line 33)
+- `server/services/onboardingEntities.ts` (line 55)
+
+**Problem:**
+```typescript
+const code = `HELP-${Date.now()}`;  // Collision if same millisecond
+const code = `ONB-${Date.now()}`;   // Collision if same millisecond
+```
+
+**Fix:**
+```typescript
+// Add 5-character random suffix for uniqueness
+const code = `HELP-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+const code = `ONB-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+```
+
+**Impact:**
+- ✅ Prevents concurrent ticket code collisions
+- ✅ Maintains readability with timestamp
+- ✅ Adds entropy with random suffix
+- ✅ Support tickets remain uniquely identifiable
+
+---
+
+### 3. MIME Type Validation Bypass
+**File:** `app/api/onboarding/[caseId]/documents/request-upload/route.ts`  
+**Lines:** 52-55
+
+**Problem:**
+```typescript
+// Client can request ANY content type
+const contentType = mime_type || docType?.allowed_mime_types?.[0] || 'application/octet-stream';
+```
+
+**Issues:**
+- Client-provided `mime_type` accepted without validation
+- Ignores `DocumentType.allowed_mime_types` policy
+- Caller can upload arbitrary file types
+
+**Fix:**
+```typescript
+const docType = await DocumentType.findOne({ code: document_type_code }).lean();
+if (!docType) {
+  return NextResponse.json({ error: 'Unknown document type' }, { status: 400 });
+}
+
+// Enforce allowed_mime_types whitelist
+const requestedType = mime_type ?? docType.allowed_mime_types?.[0];
+if (!requestedType || 
+    (docType.allowed_mime_types?.length && 
+     !docType.allowed_mime_types.includes(requestedType))) {
+  return NextResponse.json({ error: 'Unsupported mime_type for this document type' }, { status: 400 });
+}
+
+const contentType = requestedType;
+```
+
+**Impact:**
+- ✅ Enforces configured MIME type whitelist
+- ✅ Returns 400 for unsupported types
+- ✅ Prevents arbitrary file uploads
+- ✅ Validates before S3 presign
+
+---
+
+### 4. Auto-Approval Without Required Documents
+**File:** `app/api/onboarding/documents/[id]/review/route.ts`  
+**Lines:** 59-67
+
+**Problem:**
+```typescript
+const requiredCodes = profile?.required_doc_codes || [];
+const allRequiredVerified =
+  requiredCodes.length > 0
+    ? requiredCodes.every(...)
+    : docs.every(...);  // If empty required_doc_codes, TRUE with 0 docs!
+
+if (allRequiredVerified) {
+  // Auto-approve case with NO documents
+}
+```
+
+**Fix:**
+```typescript
+// Guard against auto-approval with missing profile
+if (!profile || !profile.required_doc_codes?.length) {
+  logger.error('[Onboarding] Missing or empty DocumentProfile; skipping auto-approval', {
+    onboardingId: onboarding._id,
+    role: onboarding.role,
+  });
+} else {
+  const requiredCodes = profile.required_doc_codes;
+  const allRequiredVerified = requiredCodes.every((code) =>
+    docs.some((d) => d.document_type_code === code && d.status === 'VERIFIED'),
+  );
+
+  if (allRequiredVerified) {
+    // Safe to auto-approve
+  }
+}
+```
+
+**Impact:**
+- ✅ Prevents approval without documents
+- ✅ Logs configuration errors
+- ✅ Requires explicit required_doc_codes
+- ✅ Avoids silent misconfiguration
+
+---
+
+### 5. Global Webpack Warning Suppression
+**File:** `next.config.js`  
+**Lines:** 213-216
+
+**Problem:**
+```javascript
+config.ignoreWarnings = [
+  /@opentelemetry\/instrumentation/,
+  /Critical dependency: the request of a dependency is an expression/,  // TOO BROAD
+];
+```
+
+**Issues:**
+- Suppresses ALL "Critical dependency" warnings across entire codebase
+- Could hide real issues in application code
+- Redundant with parser config
+
+**Fix:**
+```javascript
+config.ignoreWarnings = [
+  /@opentelemetry\/instrumentation\/build\/esm\/platform\/node\/instrumentation\.js/,
+  // Only suppress from known vendor packages
+  /node_modules[\\/]@opentelemetry[\\/].*Critical dependency.*expression/,
+  /node_modules[\\/]@sentry[\\/].*Critical dependency.*expression/,
+];
+```
+
+**Impact:**
+- ✅ Library-specific suppression only
+- ✅ Detects application code issues
+- ✅ Reduces redundancy
+- ✅ Follows specific-path pattern
+
+---
+
+### 6. Seed Script Error Handling
+**File:** `scripts/seedOnboarding.ts`  
+**Lines:** 11-59, 61-70
+
+**Problem:**
+```typescript
+await DocumentType.insertMany([...], { ordered: false })
+  .catch(() => {});  // Swallows ALL errors!
+
+await DocumentProfile.insertMany([...], { ordered: false })
+  .catch(() => {});  // Swallows ALL errors!
+```
+
+**Issues:**
+- Hides validation errors
+- Hides network errors
+- Hides bad MongoDB URI
+- Script reports success even on total failure
+
+**Fix:**
+```typescript
+.catch((error: any) => {
+  // Only ignore duplicate key errors
+  const isDup =
+    error?.code === 11000 ||
+    (Array.isArray(error?.writeErrors) &&
+      error.writeErrors.every((e: any) => e?.code === 11000));
+  if (!isDup) {
+    throw error;  // Surface real errors
+  }
+});
+```
+
+**Impact:**
+- ✅ Only ignores duplicate keys (code 11000)
+- ✅ Throws validation errors
+- ✅ Throws network errors
+- ✅ Seed script trustworthy
+
+---
+
+### 7. Next.js Module Variable Naming
+**File:** `server/services/onboardingEntities.ts`  
+**Lines:** 53-66
+
+**Problem:**
+```typescript
+const module = ['VENDOR', 'AGENT'].includes(role) ? 'Souq' : 'Account';
+// ^ Triggers Next.js no-assign-module-variable lint error
+```
+
+**Fix:**
+```typescript
+const ticketModule = ['VENDOR', 'AGENT'].includes(role) ? 'Souq' : 'Account';
+
+await SupportTicket.create({
+  module: ticketModule,  // Use renamed variable
+  ...
+});
+```
+
+**Impact:**
+- ✅ Passes Next.js lint rules
+- ✅ Clearer intent
+- ✅ No reserved word conflict
+
+---
+
+## 🟡 MINOR ISSUES (3)
+
+### 8. 404/403 Distinction in Complete Tutorial
+**File:** `app/api/onboarding/[caseId]/complete-tutorial/route.ts`  
+**Lines:** 17-23
+
+**Problem:**
+```typescript
+if (
+  !onboarding ||  // Doesn't exist
+  (...)           // Access denied
+) {
+  return NextResponse.json({ error: 'Not found' }, { status: 404 });
+}
+```
+
+**Issue:** Returns 404 for both "not found" and "access denied", leaking case existence
+
+**Fix:**
+```typescript
+if (!onboarding) {
+  return NextResponse.json({ error: 'Not found' }, { status: 404 });
+}
+
+if (
+  onboarding.subject_user_id?.toString() !== user.id &&
+  onboarding.created_by_id?.toString() !== user.id &&
+  onboarding.org_id?.toString() !== user.orgId
+) {
+  return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+}
+```
+
+**Impact:**
+- ✅ Proper HTTP semantics
+- ✅ No information leakage
+- ✅ Security best practice
+
+---
+
+### 9. Missing i18n for Rejection Reason
+**File:** `models/onboarding/VerificationDocument.ts`  
+**Lines:** 18, 44
+
+**Problem:**
+```typescript
+rejection_reason?: string;  // English only
+```
+
+**Issue:** Project requires comprehensive EN/AR support but rejection reasons are single-language
+
+**Fix:**
+```typescript
+// Interface
+rejection_reason?: {
+  en?: string;
+  ar?: string;
+};
+
+// Schema
+rejection_reason: {
+  en: String,
+  ar: String,
+},
+```
+
+**Impact:**
+- ✅ Supports bilingual rejection messages
+- ✅ Aligns with project i18n requirements
+- ✅ Improves user experience for Arabic speakers
+
+---
+
+### 10. Unused Path Parameter
+**File:** `server/middleware/requireVerifiedDocs.ts`  
+**Lines:** 10-13
+
+**Problem:**
+```typescript
+export async function ensureVerifiedDocs(
+  user: SessionUser,
+  requiredRole: RequiredRole,
+  path?: string,  // Unused, triggers @typescript-eslint/no-unused-vars
+) {
+```
+
+**Fix:**
+```typescript
+export async function ensureVerifiedDocs(
+  user: SessionUser,
+  requiredRole: RequiredRole,
+  _path?: string,  // Prefix with _ to indicate intentionally unused
+) {
+```
+
+**Impact:**
+- ✅ Passes ESLint
+- ✅ Maintains signature compatibility
+- ✅ Clear intent
+
+---
+
+## 📈 IMPACT METRICS
+
+### Code Quality
+| Metric | Before | After | Improvement |
+|--------|--------|-------|-------------|
+| ESLint Errors | 3 | 0 | ✅ 100% |
+| Security Issues | 2 | 0 | ✅ 100% |
+| Auth Bypasses | 1 | 0 | ✅ 100% |
+| Race Conditions | 2 | 0 | ✅ 100% |
+| Config Issues | 2 | 0 | ✅ 100% |
+
+### Files Modified
+| Category | Files | Lines Changed |
+|----------|-------|---------------|
+| API Routes | 4 | +92, -31 |
+| Models | 1 | +5, -2 |
+| Services | 1 | +2, -2 |
+| Middleware | 1 | +1, -1 |
+| Scripts | 1 | +24, -4 |
+| Config | 1 | +3, -2 |
+| **Total** | **13** | **+654, -75** |
+
+### Security Improvements
+- ✅ Fixed 1 critical authorization bypass
+- ✅ Prevented 2 race condition vulnerabilities
+- ✅ Enforced 1 MIME type whitelist
+- ✅ Added 3 proper 403 responses
+- ✅ Improved error handling in 2 seed operations
+
+### i18n Coverage
+- ✅ Added bilingual support for rejection reasons
+- ✅ Maintains EN/AR parity across 30,785 keys
+- ✅ Supports RTL requirements
+
+---
+
+## ✅ VALIDATION CHECKLIST
+
+### Pre-Commit
+- [x] All TypeScript compilation errors resolved
+- [x] All ESLint warnings fixed (0/0)
+- [x] All unused variables addressed
+- [x] All security issues patched
+- [x] All race conditions eliminated
+
+### Post-Commit
+- [x] Git pre-commit hooks passed
+- [x] Lint:prod passed (max-warnings 0)
+- [x] Guard:fm-hooks passed
+- [x] Secret scanning passed
+- [x] Changes pushed successfully
+
+### Security Review
+- [x] Authorization checks enforce all criteria
+- [x] No information leakage via HTTP status codes
+- [x] MIME types validated against whitelist
+- [x] Error handling doesn't swallow critical failures
+- [x] Ticket codes guaranteed unique
+
+---
+
+## 🚀 DEPLOYMENT STATUS
+
+**Commit:** `758ee869c`  
+**Pushed:** 2024-11-24 12:14:45 UTC  
+**Branch:** `feat/misc-improvements`  
+**CI Status:** 🔄 Building
+
+### Expected Results
+- ✅ All 6 failing CI checks should pass
+- ✅ CodeRabbit will re-review and approve
+- ✅ Vercel preview deployment will succeed
+- ✅ E2E tests should have fewer auth failures
+- ✅ PR #321 ready to merge
+
+---
+
+## 📚 LESSONS LEARNED
+
+### 1. Authorization Patterns
+**Issue:** Conditional checks can create bypass opportunities  
+**Learning:** Always separate existence checks from permission checks  
+**Best Practice:** 
+```typescript
+if (!resource) return 404;
+if (!hasPermission) return 403;
+```
+
+### 2. Unique Identifiers
+**Issue:** `Date.now()` alone insufficient for concurrency  
+**Learning:** Add entropy for guaranteed uniqueness  
+**Best Practice:** Timestamp + random suffix or use nanoid
+
+### 3. Whitelist Enforcement
+**Issue:** Client input accepted without validation  
+**Learning:** Always validate against server-side configuration  
+**Best Practice:** Check against `allowed_mime_types` before presign
+
+### 4. Error Handling
+**Issue:** Swallowing all errors hides real problems  
+**Learning:** Be specific about which errors to ignore  
+**Best Practice:** Only ignore expected errors (e.g., duplicate keys)
+
+### 5. Webpack Configuration
+**Issue:** Overly broad warning suppression  
+**Learning:** Target specific libraries, not global patterns  
+**Best Practice:** Use `node_modules[\\/]package[\\/]` patterns
+
+---
+
+## 📞 REFERENCES
+
+**CodeRabbit Review:** https://github.com/EngSayh/Fixzit/pull/321  
+**Commit:** `758ee869c`  
+**Previous Report:** `CI_FIX_COMPREHENSIVE_REPORT.md`  
+**Branch:** `feat/misc-improvements`
+
+---
+
+**Report Generated:** 2024-11-24 12:15:00 UTC  
+**Total Issues:** 18  
+**Resolution Rate:** 100%  
+**Commit Hash:** 758ee869c  
+**Files Changed:** 13  
+**Lines Added:** 654  
+**Lines Removed:** 75
+
+---
+
+*This report documents all CodeRabbit review comments addressed in commit 758ee869c. All fixes have been validated with ESLint, TypeScript compilation, and security checks.*
+
+]]>
+</file>
+
+</batch_content>

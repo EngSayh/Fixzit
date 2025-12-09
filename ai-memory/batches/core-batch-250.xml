@@ -1,0 +1,3220 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="scripts/migrations/2025-12-08-backfill-souq-products-orgId.ts">
+<![CDATA[
+#!/usr/bin/env npx tsx
+/**
+ * Migration: Add orgId to souq_products and enforce org-scoped indexes.
+ *
+ * Actions:
+ * 1) Normalize orgId strings -> ObjectId where possible.
+ * 2) Backfill missing orgId from seller.orgId (createdBy reference).
+ * 3) Drop legacy global fsin unique index; create org-scoped indexes:
+ *    - { orgId, fsin } unique
+ *    - { orgId, createdBy, isActive }
+ *    - { orgId, isActive }
+ *
+ * Usage:
+ *   npx tsx scripts/migrations/2025-12-08-backfill-souq-products-orgId.ts --dry-run
+ *   npx tsx scripts/migrations/2025-12-08-backfill-souq-products-orgId.ts
+ */
+
+import "dotenv/config";
+import { ObjectId, type Db } from "mongodb";
+import { getDatabase, disconnectFromDatabase } from "@/lib/mongodb-unified";
+
+const DRY_RUN = process.argv.includes("--dry-run");
+const BATCH_SIZE = 200;
+
+function toObjectId(value: unknown): ObjectId | null {
+  if (value instanceof ObjectId) return value;
+  const str = typeof value === "string" ? value : String(value ?? "");
+  return ObjectId.isValid(str) ? new ObjectId(str) : null;
+}
+
+async function normalizeStringOrgIds(db: Db) {
+  const products = db.collection("souq_products");
+  const res = await products.updateMany(
+    { orgId: { $type: "string" } },
+    [
+      {
+        $set: {
+          orgId: {
+            $cond: [
+              { $regexMatch: { input: "$orgId", regex: /^[0-9a-fA-F]{24}$/ } },
+              { $toObjectId: "$orgId" },
+              "$orgId",
+            ],
+          },
+        },
+      },
+    ],
+    { bypassDocumentValidation: true },
+  );
+  return res.modifiedCount ?? 0;
+}
+
+async function backfillMissingOrgIds(db: Db) {
+  const products = db.collection("souq_products");
+  const sellers = db.collection("souq_sellers");
+
+  const cursor = products.find(
+    {
+      $or: [{ orgId: { $exists: false } }, { orgId: null }],
+    },
+    { projection: { _id: 1, createdBy: 1, fsin: 1 } },
+  );
+
+  let processed = 0;
+  let updated = 0;
+  let missingSeller = 0;
+  let invalidSeller = 0;
+
+  while (await cursor.hasNext()) {
+    const ops = [];
+    for (let i = 0; i < BATCH_SIZE; i++) {
+      const doc = await cursor.next();
+      if (!doc) break;
+      processed++;
+
+      const sellerObjectId = toObjectId(doc.createdBy);
+      if (!sellerObjectId) {
+        invalidSeller++;
+        continue;
+      }
+
+      const seller = await sellers.findOne(
+        { _id: sellerObjectId },
+        { projection: { orgId: 1 } },
+      );
+      const orgId = seller?.orgId;
+      if (!orgId) {
+        missingSeller++;
+        continue;
+      }
+
+      ops.push({
+        updateOne: {
+          filter: { _id: doc._id },
+          update: { $set: { orgId } },
+        },
+      });
+    }
+
+    if (ops.length === 0) continue;
+    if (!DRY_RUN) {
+      const res = await products.bulkWrite(ops, { ordered: false });
+      updated += res.modifiedCount ?? 0;
+    } else {
+      updated += ops.length;
+    }
+  }
+
+  return { processed, updated, missingSeller, invalidSeller };
+}
+
+async function ensureIndexes(db: Db) {
+  const products = db.collection("souq_products");
+  try {
+    await products.dropIndex("fsin_1");
+  } catch (error) {
+    const msg = (error as Error).message || "";
+    if (!/index not found/i.test(msg)) {
+      // eslint-disable-next-line no-console
+      console.warn("[souq_products] dropIndex fsin_1 warning", msg);
+    }
+  }
+
+  await products.createIndex(
+    { orgId: 1, fsin: 1 },
+    { unique: true, name: "souq_products_orgId_fsin_unique" },
+  );
+  await products.createIndex(
+    { orgId: 1, createdBy: 1, isActive: 1 },
+    { name: "souq_products_orgId_createdBy_isActive" },
+  );
+  await products.createIndex(
+    { orgId: 1, isActive: 1 },
+    { name: "souq_products_orgId_isActive" },
+  );
+}
+
+async function main() {
+  const db = await getDatabase();
+
+  const normalized = await normalizeStringOrgIds(db);
+  const backfill = await backfillMissingOrgIds(db);
+
+  if (!DRY_RUN) {
+    await ensureIndexes(db);
+  }
+
+  // eslint-disable-next-line no-console
+  console.log(
+    `[souq_products orgId] normalized=${normalized} backfilled=${backfill.updated}/${backfill.processed}` +
+      ` missingSeller=${backfill.missingSeller} invalidSeller=${backfill.invalidSeller} dryRun=${DRY_RUN}`,
+  );
+
+  await disconnectFromDatabase();
+}
+
+main().catch(async (error) => {
+  // eslint-disable-next-line no-console
+  console.error("[souq_products orgId] migration failed", error);
+  await disconnectFromDatabase();
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/migrations/2025-12-10-normalize-souq-orders-orgid.ts">
+<![CDATA[
+/**
+ * Normalize legacy org_id -> orgId for souq_orders.
+ *
+ * - Converts org_id (any type) to string orgId
+ * - Unsets org_id
+ * - Idempotent (safe to re-run)
+ *
+ * Usage:
+ *   pnpm tsx scripts/migrations/2025-12-10-normalize-souq-orders-orgid.ts
+ *
+ * Set MONGODB_URI in env (or rely on configured default).
+ */
+import { getDatabase } from "@/lib/mongodb-unified";
+
+async function main(): Promise<void> {
+  const db = await getDatabase();
+  const coll = db.collection("souq_orders");
+
+  const sample = await coll
+    .aggregate([
+      { $match: { org_id: { $exists: true } } },
+      { $limit: 5 },
+      { $project: { _id: 1, org_id: 1, orgId: 1 } },
+    ])
+    .toArray();
+  // eslint-disable-next-line no-console
+  console.log("[souq_orders] sample legacy org_id docs:", sample);
+
+  const res = await coll.updateMany(
+    { org_id: { $exists: true } },
+    [
+      { $set: { orgId: { $toString: "$org_id" } } },
+      { $unset: "org_id" },
+    ],
+  );
+
+  // eslint-disable-next-line no-console
+  console.log("[souq_orders] normalized org_id -> orgId", {
+    matched: res.matchedCount,
+    modified: res.modifiedCount,
+  });
+}
+
+main()
+  .then(() => process.exit(0))
+  .catch((err) => {
+    // eslint-disable-next-line no-console
+    console.error(err);
+    process.exit(1);
+  });
+
+
+]]>
+</file>
+
+<file path="scripts/migrations/2025-12-20-normalize-souq-orgId.ts">
+<![CDATA[
+#!/usr/bin/env npx tsx
+/**
+ * Migration: Normalize legacy org_id -> orgId for Souq collections
+ *
+ * Goals:
+ * - Copy legacy `org_id` into `orgId` when `orgId` is missing
+ * - Keep legacy field by default (safe, non-destructive) unless --unset-legacy is passed
+ * - Operates in batches on Atlas 4.2+ using update pipeline ($toString on ObjectId)
+ *
+ * Usage:
+ *   # Dry-run (default)
+ *   npx tsx scripts/migrations/2025-12-20-normalize-souq-orgId.ts
+ *
+ *   # Apply changes (keeps org_id)
+ *   npx tsx scripts/migrations/2025-12-20-normalize-souq-orgId.ts --apply
+ *
+ *   # Apply changes and remove org_id after copy
+ *   npx tsx scripts/migrations/2025-12-20-normalize-souq-orgId.ts --apply --unset-legacy
+ *
+ * Env:
+ *   MONGODB_URI or MONGO_URI must be set. Loads .env.local and .env automatically.
+ */
+
+import { MongoClient } from "mongodb";
+import { config } from "dotenv";
+
+config({ path: ".env.local" });
+config({ path: ".env" });
+
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
+if (!MONGO_URI) {
+  console.error("❌ MONGODB_URI or MONGO_URI is required");
+  process.exit(1);
+}
+
+type TargetCollection = {
+  name: string;
+  description: string;
+};
+
+const TARGETS: TargetCollection[] = [
+  { name: "souq_orders", description: "Marketplace orders" },
+  { name: "souq_reviews", description: "Product reviews" },
+  { name: "claims", description: "Souq claims" },
+  { name: "souq_refunds", description: "Refund records" },
+  { name: "souq_listings", description: "Listings / inventory linkage" },
+  { name: "souq_products", description: "Products catalog" },
+  { name: "souq_inventories", description: "Inventory records" },
+];
+
+type Flags = {
+  apply: boolean;
+  unsetLegacy: boolean;
+  collections?: Set<string>;
+};
+
+function parseArgs(): Flags {
+  const args = process.argv.slice(2);
+  const apply = args.includes("--apply");
+  const unsetLegacy = args.includes("--unset-legacy");
+  const collectionsArg = args.find((a) => a.startsWith("--collections="));
+  const collections = collectionsArg
+    ? new Set(collectionsArg.replace("--collections=", "").split(",").map((s) => s.trim()).filter(Boolean))
+    : undefined;
+  return { apply, unsetLegacy, collections };
+}
+
+async function normalizeCollection(
+  client: MongoClient,
+  target: TargetCollection,
+  flags: Flags,
+): Promise<void> {
+  const db = client.db();
+  const coll = db.collection(target.name);
+  const filter = { org_id: { $exists: true }, orgId: { $exists: false } };
+
+  const count = await coll.countDocuments(filter);
+  if (count === 0) {
+    console.log(`⏭️  ${target.name}: already normalized (no org_id without orgId)`);
+    return;
+  }
+
+  // Sample a few IDs for visibility
+  const sample = await coll
+    .find(filter, { projection: { _id: 1, org_id: 1 }, limit: 5 })
+    .toArray()
+    .catch(() => []);
+
+  console.log(`📦 ${target.name}: ${count} docs need orgId backfill (${target.description})`);
+  if (sample.length > 0) {
+    console.log(
+      `   Samples: ${sample
+        .map((s) => `${s._id} -> ${s.org_id}`)
+        .join(", ")}`,
+    );
+  }
+
+  if (!flags.apply) {
+    console.log("   DRY RUN: no writes performed\n");
+    return;
+  }
+
+  // Use aggregation pipeline update (MongoDB 4.2+) to copy and normalize type
+  const updatePipeline: Record<string, unknown>[] = [
+    {
+      $set: {
+        orgId: {
+          $cond: [
+            { $eq: [{ $type: "$org_id" }, "objectId"] },
+            { $toString: "$org_id" },
+            "$org_id",
+          ],
+        },
+      },
+    },
+  ];
+
+  if (flags.unsetLegacy) {
+    updatePipeline.push({ $unset: "org_id" });
+  }
+
+  const result = await coll.updateMany(filter, updatePipeline as any);
+  console.log(
+    `   ✅ Updated ${result.modifiedCount}/${result.matchedCount} docs (${flags.unsetLegacy ? "moved" : "copied"} org_id -> orgId)\n`,
+  );
+}
+
+async function main() {
+  const flags = parseArgs();
+
+  console.log("\n🔄 Migration: Normalize legacy org_id -> orgId (Souq)");
+  console.log(`📋 Mode: ${flags.apply ? "APPLY" : "DRY RUN"} | Unset legacy: ${flags.unsetLegacy ? "YES" : "NO"}`);
+  console.log(
+    `🗂️  Collections: ${
+      flags.collections ? Array.from(flags.collections).join(",") : "default Souq set"
+    }\n`,
+  );
+
+  const targets = flags.collections
+    ? TARGETS.filter((t) => flags.collections!.has(t.name))
+    : TARGETS;
+
+  const client = new MongoClient(MONGO_URI!);
+
+  try {
+    await client.connect();
+    for (const target of targets) {
+      await normalizeCollection(client, target, flags);
+    }
+    console.log("🎉 Done.");
+  } catch (error) {
+    console.error("❌ Migration failed:", error);
+    process.exitCode = 1;
+  } finally {
+    await client.close().catch(() => undefined);
+  }
+}
+
+void main();
+
+]]>
+</file>
+
+<file path="scripts/migrations/2025-12-22-backfill-souq-orgid.ts">
+<![CDATA[
+/**
+ * Backfill legacy org_id fields and add compound indexes for Souq collections.
+ *
+ * - Copies org_id -> orgId when orgId is missing.
+ * - Adds indexes that include orgId to prevent cross-tenant collisions.
+ *
+ * Run with: pnpm ts-node scripts/migrations/2025-12-22-backfill-souq-orgid.ts
+ */
+import { connectDb } from "../../lib/mongodb-unified";
+
+type CollectionConfig = {
+  name: string;
+  indexSpecs?: Array<{ keys: Record<string, 1 | -1>; options?: Record<string, unknown> }>;
+};
+
+const COLLECTIONS: CollectionConfig[] = [
+  {
+    name: "souq_ad_stats",
+    indexSpecs: [{ keys: { bidId: 1, orgId: 1 }, options: { background: true } }],
+  },
+  {
+    name: "souq_ad_events",
+    indexSpecs: [{ keys: { orgId: 1, bidId: 1 }, options: { background: true } }],
+  },
+  {
+    name: "souq_campaigns",
+    indexSpecs: [{ keys: { campaignId: 1, orgId: 1 }, options: { background: true } }],
+  },
+  {
+    name: "souq_orders",
+    indexSpecs: [{ keys: { orgId: 1, "items.sellerId": 1, deliveredAt: -1 }, options: { background: true } }],
+  },
+  {
+    name: "souq_settlements",
+    indexSpecs: [{ keys: { statementId: 1, orgId: 1 }, options: { background: true } }],
+  },
+  {
+    name: "souq_ad_bids",
+    indexSpecs: [{ keys: { bidId: 1, orgId: 1 }, options: { background: true } }],
+  },
+];
+
+async function backfillOrgId(collectionName: string): Promise<void> {
+  const { connection } = await connectDb();
+  const db = connection.db!;
+  const collection = db.collection(collectionName);
+
+  // Only update documents missing orgId but having org_id
+  const result = await collection.updateMany(
+    { orgId: { $exists: false }, org_id: { $exists: true } },
+    [
+      { $set: { orgId: "$org_id" } },
+      { $unset: "org_id" },
+    ],
+  );
+
+  console.log(
+    `[${collectionName}] backfill matched ${result.matchedCount}, modified ${result.modifiedCount}`,
+  );
+}
+
+async function ensureIndexes(config: CollectionConfig): Promise<void> {
+  if (!config.indexSpecs || config.indexSpecs.length === 0) return;
+  const { connection } = await connectDb();
+  const db = connection.db!;
+  const collection = db.collection(config.name);
+
+  for (const spec of config.indexSpecs) {
+    await collection.createIndex(spec.keys, spec.options ?? { background: true });
+    console.log(`[${config.name}] ensured index ${JSON.stringify(spec.keys)}`);
+  }
+}
+
+async function run(): Promise<void> {
+  for (const config of COLLECTIONS) {
+    await backfillOrgId(config.name);
+    await ensureIndexes(config);
+  }
+  console.log("✅ Backfill and index creation completed.");
+  process.exit(0);
+}
+
+run().catch((err) => {
+  console.error("❌ Migration failed", err);
+  process.exit(1);
+});
+
+
+]]>
+</file>
+
+<file path="scripts/migrations/2025-backfill-admin-notifications-org.ts">
+<![CDATA[
+#!/usr/bin/env npx tsx
+/**
+ * Backfill orgId on legacy admin_notifications documents.
+ *
+ * Strategy:
+ * - Attempt to infer orgId from senderId (users collection) if missing.
+ * - Skip documents that already have orgId.
+ * - Provide --dry-run to preview counts only.
+ *
+ * Run: npx tsx scripts/migrations/2025-backfill-admin-notifications-org.ts [--dry-run]
+ */
+
+import { MongoClient, ObjectId } from "mongodb";
+import { config } from "dotenv";
+import { COLLECTIONS } from "../utils/collections";
+
+config({ path: ".env.local" });
+config({ path: ".env" });
+
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
+if (!MONGO_URI) {
+  console.error("❌ MONGODB_URI or MONGO_URI environment variable is required");
+  process.exit(1);
+}
+
+const DRY_RUN = process.argv.includes("--dry-run");
+const MISSING_ORG_FILTER = {
+  $or: [{ orgId: { $exists: false } }, { orgId: null }, { orgId: "" }],
+};
+
+function normalizeOrgId(orgId: unknown): ObjectId | string | null {
+  if (!orgId) return null;
+  if (orgId instanceof ObjectId) return orgId;
+  if (typeof orgId === "string") {
+    const trimmed = orgId.trim();
+    if (!trimmed) return null;
+    return ObjectId.isValid(trimmed) ? new ObjectId(trimmed) : trimmed;
+  }
+  return null;
+}
+
+async function main() {
+  console.log("🔄 Backfill orgId on admin_notifications");
+  console.log(DRY_RUN ? "📝 DRY RUN MODE" : "✏️  WRITE MODE");
+
+  const client = new MongoClient(MONGO_URI!);
+  await client.connect();
+  const db = client.db();
+
+  const notifications = db.collection(COLLECTIONS.ADMIN_NOTIFICATIONS);
+  const users = db.collection(COLLECTIONS.USERS);
+
+  const missingCount = await notifications.countDocuments(MISSING_ORG_FILTER);
+  console.log(`Found ${missingCount} notifications without orgId`);
+
+  if (missingCount === 0) {
+    await client.close();
+    return;
+  }
+
+  const cursor = notifications.find(MISSING_ORG_FILTER, {
+    projection: { senderId: 1, org_id: 1 },
+  });
+  let updated = 0;
+  let skipped = 0;
+  let inferredFromSender = 0;
+  let inferredFromLegacyField = 0;
+
+  while (await cursor.hasNext()) {
+    const doc = await cursor.next();
+    if (!doc) continue;
+
+    // Prefer legacy org_id on the document itself, then fall back to sender orgId
+    let orgId = normalizeOrgId((doc as { org_id?: unknown }).org_id);
+    if (orgId) {
+      inferredFromLegacyField++;
+    } else {
+      const senderId = (doc as { senderId?: unknown }).senderId;
+      if (!senderId || !ObjectId.isValid(String(senderId))) {
+        skipped++;
+        continue;
+      }
+
+      const sender = await users.findOne(
+        { _id: new ObjectId(String(senderId)) },
+        { projection: { orgId: 1 } },
+      );
+      orgId = normalizeOrgId((sender as { orgId?: unknown })?.orgId);
+      if (orgId) {
+        inferredFromSender++;
+      }
+    }
+
+    if (!orgId) {
+      skipped++;
+      continue;
+    }
+
+    if (!DRY_RUN) {
+      await notifications.updateOne(
+        { _id: doc._id },
+        {
+          $set: { orgId },
+          $unset: { org_id: "" },
+        },
+      );
+    }
+    updated++;
+  }
+
+  console.log(
+    `Updated: ${updated} (sender=${inferredFromSender}, org_id=${inferredFromLegacyField}), Skipped: ${skipped}`,
+  );
+  if (DRY_RUN) {
+    console.log("No writes performed (dry run).");
+  }
+
+  await client.close();
+}
+
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error("❌ Migration failed:", error);
+    process.exit(1);
+  });
+
+]]>
+</file>
+
+<file path="scripts/migrations/2025-create-admin-notifications-indexes.ts">
+<![CDATA[
+#!/usr/bin/env npx tsx
+/**
+ * Migration: Create Admin Notifications Indexes
+ *
+ * Adds indexes for admin_notifications collection:
+ * - { orgId: 1, sentAt: -1 } for org-scoped history queries
+ * - TTL on sentAt to bound retention (90 days)
+ *
+ * Run with: npx tsx scripts/migrations/2025-create-admin-notifications-indexes.ts
+ * Options:
+ *   --dry-run    Preview changes without applying them
+ */
+
+import { MongoClient } from "mongodb";
+import { config } from "dotenv";
+import { COLLECTIONS } from "../utils/collections";
+
+config({ path: ".env.local" });
+config({ path: ".env" });
+
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
+if (!MONGO_URI) {
+  console.error("❌ MONGODB_URI or MONGO_URI environment variable is required");
+  process.exit(1);
+}
+
+const DRY_RUN = process.argv.includes("--dry-run");
+
+const INDEXES_TO_CREATE = [
+  {
+    collection: COLLECTIONS.ADMIN_NOTIFICATIONS,
+    index: { orgId: 1, sentAt: -1 },
+    options: {
+      name: "orgId_sentAt_desc",
+      background: true,
+    },
+  },
+  {
+    collection: COLLECTIONS.ADMIN_NOTIFICATIONS,
+    index: { sentAt: 1 },
+    options: {
+      name: "ttl_admin_notifications_90d",
+      background: true,
+      expireAfterSeconds: 90 * 24 * 60 * 60,
+      // Only apply TTL to docs with orgId to avoid touching legacy rows
+      partialFilterExpression: { orgId: { $exists: true } },
+    },
+  },
+];
+
+async function main() {
+  console.log("🔧 Admin Notifications Index Migration");
+  console.log(DRY_RUN ? "📝 DRY RUN MODE - No changes will be applied\n" : "\n");
+
+  const client = new MongoClient(MONGO_URI!);
+
+  try {
+    await client.connect();
+    console.log("✅ Connected to MongoDB");
+
+    const db = client.db();
+
+    for (const { collection, index, options } of INDEXES_TO_CREATE) {
+      console.log(`\n📊 Creating index on ${collection}:`, index);
+
+      try {
+        const existingIndexes = await db.collection(collection).listIndexes().toArray();
+        const indexExists = existingIndexes.some(
+          (existing) => existing.name === options.name
+        );
+
+        if (indexExists) {
+          console.log(`   ⏭️  Index "${options.name}" already exists, skipping`);
+          continue;
+        }
+
+        if (DRY_RUN) {
+          console.log(`   📝 Would create index:`, { ...index, ...options });
+        } else {
+          await db.collection(collection).createIndex(index, options);
+          console.log(`   ✅ Created index "${options.name}"`);
+        }
+      } catch (error) {
+        console.error(`   ❌ Failed to create index:`, error instanceof Error ? error.message : error);
+      }
+    }
+
+    console.log("\n✅ Migration complete");
+    if (DRY_RUN) {
+      console.log("\n⚠️  This was a dry run. Run without --dry-run to apply changes.");
+    }
+  } finally {
+    await client.close();
+  }
+}
+
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error("❌ Migration failed:", error);
+    process.exit(1);
+  });
+
+]]>
+</file>
+
+<file path="scripts/migrations/2025-create-qa-alerts-indexes.ts">
+<![CDATA[
+#!/usr/bin/env npx tsx
+/**
+ * Migration: Create QA Alerts Indexes
+ * 
+ * AUDIT-2025: Add indexes to qa_alerts collection for performance
+ * 
+ * This migration creates the following indexes:
+ * - { timestamp: -1 } - For efficient reverse chronological queries
+ * - { orgId: 1, timestamp: -1 } - For org-scoped queries (future multi-tenant)
+ * - { timestamp: 1 } with TTL - Auto-delete after 30 days to bound storage
+ * 
+ * Run with: npx tsx scripts/migrations/2025-create-qa-alerts-indexes.ts
+ * 
+ * Options:
+ *   --dry-run    Preview changes without applying them
+ */
+
+import { MongoClient } from "mongodb";
+import { config } from "dotenv";
+
+config({ path: ".env.local" });
+config({ path: ".env" });
+
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
+if (!MONGO_URI) {
+  console.error("❌ MONGODB_URI or MONGO_URI environment variable is required");
+  process.exit(1);
+}
+
+const DRY_RUN = process.argv.includes("--dry-run");
+
+const INDEXES_TO_CREATE = [
+  {
+    collection: "qa_alerts",
+    index: { timestamp: -1 },
+    options: { name: "timestamp_desc", background: true },
+  },
+  {
+    collection: "qa_alerts",
+    index: { orgId: 1, timestamp: -1 },
+    options: { name: "orgId_timestamp", background: true, sparse: true },
+  },
+  {
+    // TTL index: Auto-delete qa_alerts after 30 days to bound storage growth
+    collection: "qa_alerts",
+    index: { timestamp: 1 },
+    options: { 
+      name: "qa_alerts_ttl_30d", 
+      expireAfterSeconds: 30 * 24 * 60 * 60,  // 30 days
+      background: true 
+    },
+  },
+];
+
+async function main() {
+  console.log("🔧 QA Alerts Index Migration");
+  console.log(DRY_RUN ? "📝 DRY RUN MODE - No changes will be applied\n" : "\n");
+
+  const client = new MongoClient(MONGO_URI!);
+
+  try {
+    await client.connect();
+    console.log("✅ Connected to MongoDB");
+
+    const db = client.db();
+
+    for (const { collection, index, options } of INDEXES_TO_CREATE) {
+      console.log(`\n📊 Creating index on ${collection}:`, index);
+      
+      try {
+        // Check if index already exists
+        const existingIndexes = await db.collection(collection).listIndexes().toArray();
+        const indexExists = existingIndexes.some(
+          (existing) => existing.name === options.name
+        );
+
+        if (indexExists) {
+          console.log(`   ⏭️  Index "${options.name}" already exists, skipping`);
+          continue;
+        }
+
+        if (DRY_RUN) {
+          console.log(`   📝 Would create index:`, { ...index, ...options });
+        } else {
+          await db.collection(collection).createIndex(index, options);
+          console.log(`   ✅ Created index "${options.name}"`);
+        }
+      } catch (error) {
+        console.error(`   ❌ Failed to create index:`, error instanceof Error ? error.message : error);
+      }
+    }
+
+    console.log("\n✅ Migration complete");
+    if (DRY_RUN) {
+      console.log("\n⚠️  This was a dry run. Run without --dry-run to apply changes.");
+    }
+  } finally {
+    await client.close();
+  }
+}
+
+main().catch((error) => {
+  console.error("❌ Migration failed:", error);
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/migrations/2025-ensure-audit-log-ttl.ts">
+<![CDATA[
+#!/usr/bin/env npx tsx
+/**
+ * Migration: Ensure audit_logs TTL and supporting indexes exist.
+ *
+ * - Recreate TTL index on { timestamp: 1 } with 2-year retention (if missing)
+ * - Ensure orgId+timestamp compound index exists for org-scoped queries
+ *
+ * Run: npx tsx scripts/migrations/2025-ensure-audit-log-ttl.ts [--dry-run]
+ */
+
+import { MongoClient } from "mongodb";
+import { config } from "dotenv";
+
+config({ path: ".env.local" });
+config({ path: ".env" });
+
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
+if (!MONGO_URI) {
+  console.error("❌ MONGODB_URI or MONGO_URI environment variable is required");
+  process.exit(1);
+}
+
+const DRY_RUN = process.argv.includes("--dry-run");
+
+const INDEXES_TO_CREATE = [
+  {
+    collection: "auditlogs",
+    index: { timestamp: 1 },
+    options: {
+      name: "ttl_auditlogs_2y",
+      background: true,
+      expireAfterSeconds: 2 * 365 * 24 * 60 * 60,
+    },
+  },
+  {
+    collection: "auditlogs",
+    index: { orgId: 1, timestamp: -1 },
+    options: {
+      name: "orgId_timestamp_desc",
+      background: true,
+    },
+  },
+];
+
+async function main() {
+  console.log("🔧 Audit Logs TTL/Index Migration");
+  console.log(DRY_RUN ? "📝 DRY RUN MODE - No changes will be applied\n" : "\n");
+
+  const client = new MongoClient(MONGO_URI!);
+
+  try {
+    await client.connect();
+    console.log("✅ Connected to MongoDB");
+
+    const db = client.db();
+
+    for (const { collection, index, options } of INDEXES_TO_CREATE) {
+      console.log(`\n📊 Ensuring index on ${collection}:`, index);
+
+      try {
+        const existingIndexes = await db.collection(collection).listIndexes().toArray();
+        const exists = existingIndexes.some((existing) => existing.name === options.name);
+        if (exists) {
+          console.log(`   ⏭️  Index "${options.name}" already exists, skipping`);
+          continue;
+        }
+
+        if (DRY_RUN) {
+          console.log(`   📝 Would create index:`, { ...index, ...options });
+        } else {
+          await db.collection(collection).createIndex(index, options);
+          console.log(`   ✅ Created index "${options.name}"`);
+        }
+      } catch (error) {
+        console.error(
+          `   ❌ Failed to create index:`,
+          error instanceof Error ? error.message : error,
+        );
+      }
+    }
+
+    console.log("\n✅ Migration complete");
+    if (DRY_RUN) {
+      console.log("\n⚠️  This was a dry run. Run without --dry-run to apply changes.");
+    }
+  } finally {
+    await client.close();
+  }
+}
+
+main().catch((error) => {
+  console.error("❌ Migration failed:", error);
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/migrations/migrate-permissions-vocabulary.ts">
+<![CDATA[
+/**
+ * Migration: normalize permission vocabulary to canonical "module:action" format.
+ *
+ * - Converts legacy dot-separated permissions (e.g., "workorders.read") to "workorders:read".
+ * - Preserves module wildcards ("module:*") and global wildcard ("*").
+ * - Updates Permission documents (key/module/action), Role.permissions arrays,
+ *   and User.security.permissions arrays where present.
+ *
+ * Usage:
+ *   MONGODB_URI="mongodb+srv://..." pnpm tsx scripts/migrations/migrate-permissions-vocabulary.ts
+ */
+
+import dotenv from "dotenv";
+import { getDatabase, disconnectFromDatabase } from "../../lib/mongodb-unified";
+import { COLLECTIONS } from "../../lib/db/collections";
+
+dotenv.config({ path: ".env.local" });
+dotenv.config();
+
+// Generic helper to normalize a permission string
+const normalizePermission = (perm: string): string => {
+  if (!perm) return perm;
+  if (perm === "*") return "*";
+  // Already canonical
+  if (perm.includes(":")) return perm;
+  // Convert "module.*" → "module:*" and "module.action" → "module:action"
+  const parts = perm.split(".");
+  if (parts.length >= 2) {
+    const [module, ...rest] = parts;
+    const action = rest.join(".");
+    return `${module}:${action}`;
+  }
+  return perm;
+};
+
+// Update array fields in-place
+const normalizePermissionArray = (arr: unknown): string[] | undefined => {
+  if (!Array.isArray(arr)) return undefined;
+  return arr.map((p) => normalizePermission(String(p)));
+};
+
+async function main() {
+  console.log("🔌 Connecting to MongoDB (unified connector)...");
+  const db = await getDatabase();
+  console.log("✅ Connected");
+
+  // 1) Update Permission documents (key/module/action)
+  const permissionColl = db.collection(COLLECTIONS.PERMISSIONS);
+  const perms = await permissionColl.find({}).toArray();
+  for (const perm of perms) {
+    const normalizedKey = normalizePermission(String(perm.key));
+    if (normalizedKey !== perm.key) {
+      const [module, action] = normalizedKey.split(":");
+      await permissionColl.updateOne(
+        { _id: perm._id },
+        {
+          $set: {
+            key: normalizedKey,
+            module,
+            action,
+          },
+        },
+      );
+      console.log(`▶️ Permission key updated: ${perm.key} -> ${normalizedKey}`);
+    }
+  }
+
+  // 2) Update Role.permissions arrays
+  const roleColl = db.collection(COLLECTIONS.ROLES);
+  const roles = await roleColl.find({ permissions: { $exists: true } }).toArray();
+  for (const role of roles) {
+    const updated = normalizePermissionArray(role.permissions);
+    if (updated && JSON.stringify(updated) !== JSON.stringify(role.permissions)) {
+      await roleColl.updateOne(
+        { _id: role._id },
+        { $set: { permissions: updated } },
+      );
+      console.log(`▶️ Role permissions updated: ${role.slug || role._id}`);
+    }
+  }
+
+  // 3) Update User.security.permissions arrays
+  const userColl = db.collection(COLLECTIONS.USERS);
+  const cursor = userColl.find({ "security.permissions": { $exists: true } });
+  // Iterate in batches to avoid loading all docs at once
+  while (await cursor.hasNext()) {
+    const user = await cursor.next();
+    if (!user) break;
+    const updated = normalizePermissionArray(user.security?.permissions);
+    if (updated && JSON.stringify(updated) !== JSON.stringify(user.security.permissions)) {
+      await userColl.updateOne(
+        { _id: user._id },
+        { $set: { "security.permissions": updated } },
+      );
+      console.log(`▶️ User permissions updated: ${user.email || user._id}`);
+    }
+  }
+
+  console.log("✅ Migration complete");
+  await disconnectFromDatabase();
+  process.exit(0);
+}
+
+main().catch((err) => {
+  console.error("❌ Migration failed:", err);
+  void disconnectFromDatabase();
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/mongo/normalize_org_ids.ts">
+<![CDATA[
+/**
+ * Normalize legacy org_id field to orgId for payments.
+ *
+ * - Dry run by default (no writes).
+ * - Use `--apply` to perform updates.
+ *
+ * Behavior:
+ * - Finds documents in `aqar_payments` where `orgId` is missing/null
+ *   but `org_id` exists.
+ * - Copies `org_id` into `orgId` and unsets `org_id`.
+ *
+ * Usage:
+ *   pnpm mongo:normalize          # dry run
+ *   pnpm mongo:normalize:apply    # apply updates
+ */
+
+import { logger } from "@/lib/logger";
+import { connectToDatabase, disconnectFromDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
+import mongoose from "mongoose";
+
+async function main() {
+  const apply = process.argv.includes("--apply");
+
+  await connectToDatabase();
+  const db = mongoose.connection.db;
+  if (!db) {
+    throw new Error("Database connection not available");
+  }
+
+  const collection = db.collection(COLLECTIONS.AQAR_PAYMENTS);
+  const query = {
+    $and: [
+      { $or: [{ orgId: { $exists: false } }, { orgId: null }] },
+      { org_id: { $exists: true, $ne: null } },
+    ],
+  };
+
+  const total = await collection.countDocuments(query);
+  logger.info(`[normalize_org_ids] Found ${total} payments with legacy org_id`);
+
+  if (total === 0) {
+    await disconnectFromDatabase();
+    return;
+  }
+
+  const sample = await collection
+    .find(query, { projection: { _id: 1, org_id: 1 }, limit: 5 })
+    .toArray();
+  logger.info("[normalize_org_ids] Sample documents", sample);
+
+  if (!apply) {
+    logger.info("[normalize_org_ids] Dry run complete. Re-run with --apply to migrate.");
+    await disconnectFromDatabase();
+    return;
+  }
+
+  // Use aggregation-style update to copy org_id -> orgId and unset org_id
+  const result = await collection.updateMany(query, [
+    { $set: { orgId: "$org_id" } },
+    { $unset: "org_id" },
+  ]);
+
+  logger.info("[normalize_org_ids] Update result", {
+    matchedCount: result.matchedCount,
+    modifiedCount: result.modifiedCount,
+  });
+
+  // Drop legacy indexes that reference org_id
+  const indexes = await collection.indexes();
+  const legacyIndexes = indexes.filter((idx) =>
+    Object.keys(idx.key || {}).some((k) => k === "org_id" || k.includes("org_id")),
+  );
+  for (const idx of legacyIndexes) {
+    if (idx.name) {
+      logger.info(`[normalize_org_ids] Dropping legacy index ${idx.name}`);
+      await collection.dropIndex(idx.name).catch((err) => {
+        logger.warn(`[normalize_org_ids] Failed to drop index ${idx.name}`, {
+          message: err instanceof Error ? err.message : String(err),
+        });
+      });
+    }
+  }
+
+  await disconnectFromDatabase();
+}
+
+main().catch((err) => {
+  logger.error("[normalize_org_ids] Migration failed", {
+    message: err instanceof Error ? err.message : String(err),
+  });
+  void disconnectFromDatabase();
+  process.exit(1);
+});
+
+]]>
+</file>
+
+<file path="scripts/mongo-check.ts">
+<![CDATA[
+const uri = process.env.MONGODB_URI || "";
+if (!uri) {
+  console.log("MONGODB_URI not set — skipping DB check.");
+  process.exit(0);
+}
+
+(async () => {
+  try {
+    // Dynamic require to avoid dependency when unused
+    const { MongoClient } = await import("mongodb");
+    const client = new MongoClient(uri, { serverSelectionTimeoutMS: 4000 });
+    await client.connect();
+    await client.db().command({ ping: 1 });
+    await client.close();
+    console.log("MongoDB ping OK ✅");
+  } catch (e) {
+    console.error("MongoDB ping FAILED ❌", e);
+    process.exit(1);
+  }
+})();
+
+]]>
+</file>
+
+<file path="scripts/mongo-init.js">
+<![CDATA[
+/* eslint-disable no-global-assign */
+// MongoDB initialization script
+// This runs when the MongoDB container starts for the first time
+// 🔐 NOTE: Email domain is configurable; works in Mongo shell or Node.
+// For rebranding, set EMAIL_DOMAIN env var (falls back to demo domain).
+const EMAIL_DOMAIN =
+  (typeof process !== "undefined" &&
+    process.env &&
+    process.env.EMAIL_DOMAIN) ||
+  "fixzit.co";
+
+db = db.getSiblingDB("fixzit");
+
+// Create collections with schema validation
+db.createCollection("users", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["email", "orgId"],
+      properties: {
+        email: { bsonType: "string" },
+        orgId: { bsonType: "string" },
+        name: { bsonType: "string" },
+        role: { enum: ["SUPER_ADMIN", "ADMIN", "USER", "VIEWER"] },
+      },
+    },
+  },
+});
+
+db.createCollection("organizations", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["name", "domain"],
+      properties: {
+        name: { bsonType: "string" },
+        domain: { bsonType: "string" },
+        status: { enum: ["ACTIVE", "SUSPENDED", "TRIAL", "CANCELLED"] },
+      },
+    },
+  },
+});
+
+// Create indexes for performance
+db.users.createIndex({ orgId: 1, email: 1 }, { unique: true });
+db.users.createIndex({ orgId: 1 });
+db.organizations.createIndex({ domain: 1 }, { unique: true });
+
+// Create default tenant and admin user
+const defaultOrg = {
+  _id: ObjectId(),
+  name: "Fixzit Demo",
+  domain: "demo-tenant",
+  status: "ACTIVE",
+  settings: {
+    language: "en",
+    currency: "SAR",
+    timezone: "Asia/Riyadh",
+  },
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
+db.organizations.insertOne(defaultOrg);
+
+const adminUser = {
+  _id: ObjectId(),
+  email: "admin@" + EMAIL_DOMAIN,
+  name: "System Administrator",
+  orgId: defaultOrg._id.toString(),
+  role: "SUPER_ADMIN",
+  status: "ACTIVE",
+  // Password: Admin@123 (hashed with bcrypt)
+  password: "$2a$10$rYvLm8Z7YkF5m7mq8B7B0.xGxP7N5m5fK8F5K8F5K8F5K8F5K8F5K",
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
+db.users.insertOne(adminUser);
+
+print("MongoDB initialization complete!");
+print("Default organization created: demo-tenant");
+print("Admin user: admin@" + EMAIL_DOMAIN + " / Admin@123");
+
+]]>
+</file>
+
+<file path="scripts/notifications/replay-dlq.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * Replay pending notification DLQ entries.
+ *
+ * Usage:
+ *   pnpm tsx scripts/notifications/replay-dlq.ts --channel email --limit 25
+ *   pnpm tsx scripts/notifications/replay-dlq.ts --channel all --limit 50 --dry-run
+ */
+
+import {
+  NotificationDeadLetterModel,
+  NotificationLogModel,
+} from "@/server/models/NotificationLog";
+import {
+  connectToDatabase,
+  disconnectFromDatabase,
+} from "@/lib/mongodb-unified";
+import type {
+  NotificationChannel,
+  NotificationPayload,
+} from "@/lib/fm-notifications";
+import {
+  sendFCMNotification,
+  sendEmailNotification,
+  sendSMSNotification,
+  sendWhatsAppNotification,
+} from "@/lib/integrations/notifications";
+import { logger } from "@/lib/logger";
+import { loadEnv } from "@/scripts/utils/load-env";
+import { setDeadLetterBacklog } from "@/lib/monitoring/notification-metrics";
+
+loadEnv();
+
+type ReplayOptions = {
+  channel?: NotificationChannel;
+  limit: number;
+  dryRun: boolean;
+};
+
+type DLQEntry = {
+  payload?: {
+    title?: string;
+    body?: string;
+    deepLink?: string;
+    data?: Record<string, unknown>;
+  };
+  recipient?: {
+    userId?: string;
+    email?: string;
+    phone?: string;
+  };
+  notificationId?: string;
+  event?: string;
+  priority?: string;
+  createdAt?: string | number | Date;
+  status?: string;
+  [key: string]: unknown;
+};
+
+const SUPPORTED_CHANNELS: NotificationChannel[] = [
+  "push",
+  "email",
+  "sms",
+  "whatsapp",
+];
+
+function parseArgs(): ReplayOptions {
+  const args = process.argv.slice(2);
+  const options: ReplayOptions = {
+    limit: 50,
+    dryRun: false,
+  };
+
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (arg === "--channel" && args[i + 1]) {
+      const rawValue = args[i + 1].toLowerCase();
+      if (rawValue === "all") {
+        options.channel = undefined;
+      } else if (SUPPORTED_CHANNELS.includes(rawValue as NotificationChannel)) {
+        options.channel = rawValue as NotificationChannel;
+      } else {
+        throw new Error(
+          `Unsupported channel "${args[i + 1]}". Choose from ${SUPPORTED_CHANNELS.join(", ")} or "all"`,
+        );
+      }
+      i += 1;
+      continue;
+    }
+
+    if (arg.startsWith("--channel=")) {
+      const rawValue = arg.split("=")[1]?.toLowerCase();
+      if (!rawValue) continue;
+      if (rawValue === "all") {
+        options.channel = undefined;
+      } else if (SUPPORTED_CHANNELS.includes(rawValue as NotificationChannel)) {
+        options.channel = rawValue as NotificationChannel;
+      } else {
+        throw new Error(
+          `Unsupported channel "${rawValue}". Choose from ${SUPPORTED_CHANNELS.join(", ")} or "all"`,
+        );
+      }
+      continue;
+    }
+
+    if (arg === "--limit" && args[i + 1]) {
+      options.limit = Math.max(1, parseInt(args[i + 1], 10));
+      i += 1;
+      continue;
+    }
+
+    if (arg === "--dry-run") {
+      options.dryRun = true;
+      continue;
+    }
+  }
+
+  return options;
+}
+
+async function replayEntry(
+  channel: NotificationChannel,
+  entry: DLQEntry,
+): Promise<void> {
+  const payload = entry.payload || {};
+  const recipient = entry.recipient || {};
+
+  const notification: NotificationPayload = {
+    id: entry.notificationId,
+    event: entry.event,
+    recipients: [
+      {
+        userId: recipient.userId || "unknown",
+        name:
+          recipient.userId ||
+          recipient.email ||
+          recipient.phone ||
+          "Unknown Recipient",
+        email: recipient.email,
+        phone: recipient.phone,
+        preferredChannels: [channel],
+      },
+    ],
+    title: payload.title || "Fixzit Notification",
+    body: payload.body || "",
+    deepLink: payload.deepLink,
+    data: payload.data,
+    priority: entry.priority || "normal",
+    createdAt: new Date(entry.createdAt || Date.now()),
+    status: "pending",
+  };
+
+  switch (channel) {
+    case "push":
+      await sendFCMNotification(
+        notification.recipients[0].userId,
+        notification,
+      );
+      break;
+    case "email":
+      await sendEmailNotification(notification.recipients[0], notification);
+      break;
+    case "sms":
+      await sendSMSNotification(notification.recipients[0], notification);
+      break;
+    case "whatsapp":
+      await sendWhatsAppNotification(notification.recipients[0], notification);
+      break;
+    default:
+      throw new Error(`Unsupported channel ${channel}`);
+  }
+}
+
+async function run(): Promise<void> {
+  const options = parseArgs();
+  await connectToDatabase();
+
+  const query: Record<string, unknown> = { status: "pending" };
+  if (options.channel) {
+    query.channel = options.channel;
+  }
+
+  const deadLetters = await NotificationDeadLetterModel.find(query)
+    .sort({ createdAt: 1 })
+    .limit(options.limit)
+    .lean();
+
+  if (deadLetters.length === 0) {
+    logger.info("[DLQ] No pending notification entries found", query);
+    await disconnectFromDatabase();
+    return;
+  }
+
+  logger.info("[DLQ] Processing entries", {
+    count: deadLetters.length,
+    channel: options.channel ?? "all",
+    dryRun: options.dryRun,
+  });
+
+  let succeeded = 0;
+  let failed = 0;
+
+  for (const entry of deadLetters) {
+    const channel = entry.channel as NotificationChannel;
+    const update: Record<string, unknown> = {
+      attempts: (entry.attempts || 0) + 1,
+      lastAttemptAt: new Date(),
+    };
+
+    try {
+      if (!options.dryRun) {
+        await replayEntry(channel, entry);
+        update.status = "replayed";
+        await NotificationDeadLetterModel.updateOne({ _id: entry._id }, update);
+        await NotificationLogModel.updateOne(
+          {
+            notificationId: entry.notificationId,
+            "channelResults.channel": channel,
+          },
+          {
+            $set: {
+              "channelResults.$.status": "sent",
+              "channelResults.$.lastAttemptAt": update.lastAttemptAt,
+              "channelResults.$.attempts": update.attempts,
+            },
+          },
+        );
+      }
+
+      succeeded += 1;
+      logger.info("[DLQ] Replayed notification channel", {
+        notificationId: entry.notificationId,
+        channel,
+        attempts: update.attempts,
+        dryRun: options.dryRun,
+      });
+    } catch (error) {
+      failed += 1;
+      const reason = error instanceof Error ? error.message : String(error);
+      update.status = "pending";
+      update.error = reason;
+      if (!options.dryRun) {
+        await NotificationDeadLetterModel.updateOne({ _id: entry._id }, update);
+      }
+      logger.error("[DLQ] Failed to replay notification channel", {
+        notificationId: entry.notificationId,
+        channel,
+        error: reason,
+      });
+    }
+  }
+
+  logger.info("[DLQ] Replay summary", { succeeded, failed });
+
+  if (!options.dryRun) {
+    const backlog = await NotificationDeadLetterModel.aggregate<{
+      _id: NotificationChannel;
+      count: number;
+    }>([
+      { $match: { status: "pending" } },
+      { $group: { _id: "$channel", count: { $sum: 1 } } },
+    ]);
+
+    const backlogMap = backlog.reduce<
+      Partial<Record<NotificationChannel, number>>
+    >((acc, entry) => {
+      acc[entry._id] = entry.count;
+      return acc;
+    }, {});
+
+    setDeadLetterBacklog(backlogMap);
+  }
+
+  await disconnectFromDatabase();
+}
+
+run().catch((error) => {
+  logger.error("[DLQ] Replay job crashed", { error });
+  process.exitCode = 1;
+});
+
+]]>
+</file>
+
+<file path="scripts/notifications-smoke.ts">
+<![CDATA[
+#!/usr/bin/env tsx
+/**
+ * @deprecated This file has been moved to qa/notifications/run-smoke.ts
+ *
+ * This script is kept for backward compatibility only.
+ * Please update your commands to use:
+ *
+ *   pnpm tsx qa/notifications/run-smoke.ts --channel email
+ *   pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms
+ *   pnpm tsx qa/notifications/run-smoke.ts --channel push --channel email --channel sms --channel whatsapp
+ *
+ * For full documentation, see:
+ * - NOTIFICATION_SMOKE_TEST_QUICKSTART.md
+ * - NOTIFICATION_CREDENTIALS_GUIDE.md
+ */
+
+// Suppress async hooks and inspector
+if (process.stderr?.write) {
+  process.stderr.write("\n⚠️  WARNING: This script has been moved!\n\n");
+  process.stderr.write(
+    "Please use: pnpm tsx qa/notifications/run-smoke.ts --channel <channel>\n\n",
+  );
+  process.stderr.write(
+    "Example: pnpm tsx qa/notifications/run-smoke.ts --channel email\n\n",
+  );
+  process.stderr.write(
+    "For help, see: NOTIFICATION_SMOKE_TEST_QUICKSTART.md\n\n",
+  );
+}
+
+// Exit with error code for CI detection
+process.exitCode = 1;
+process.exit(1);
+
+]]>
+</file>
+
+<file path="scripts/perf_budgets.py">
+<![CDATA[
+#!/usr/bin/env python3
+"""
+Performance Budget Testing Script for Fixzit Streamlit Application
+Launches the app, collects performance metrics, and enforces budgets.
+"""
+
+import json
+import os
+import sys
+import time
+import subprocess
+import signal
+import pathlib
+from contextlib import contextmanager
+from playwright.sync_api import sync_playwright
+
+# Configuration
+ART = pathlib.Path("artifacts")
+ART.mkdir(exist_ok=True)
+
+BUDGETS_FILE = pathlib.Path("perf_budgets.json")
+STREAMLIT_FILE = os.environ.get("FXZ_APP_ENTRY", "app.py")
+APP_PORT = int(os.environ.get("FXZ_APP_PORT", "5000"))
+APP_URL = f"http://localhost:{APP_PORT}"
+
+TIMEOUT = 60_000  # 60 seconds
+
+
+@contextmanager
+def run_streamlit():
+    """Launch Streamlit app and wait for it to be ready"""
+    print(f"🚀 Starting Streamlit app on port {APP_PORT}...")
+
+    proc = subprocess.Popen(
+        [
+            "streamlit",
+            "run",
+            STREAMLIT_FILE,
+            "--server.port",
+            str(APP_PORT),
+            "--server.headless",
+            "true",
+            "--server.address",
+            "0.0.0.0",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+
+    try:
+        # Wait until server is up
+        started = False
+        t0 = time.time()
+
+        while time.time() - t0 < 40:
+            if proc.poll() is not None:
+                raise RuntimeError(
+                    f"Streamlit process exited early with code {proc.returncode}"
+                )
+
+            if proc.stdout:
+                line = proc.stdout.readline()
+            else:
+                line = ""
+            if not line:
+                time.sleep(0.1)
+                continue
+
+            print(f"📡 {line.strip()}")
+
+            if "Running on" in line and f":{APP_PORT}/" in line:
+                started = True
+                print("✅ Streamlit server is ready!")
+                break
+
+        if not started:
+            raise RuntimeError("Streamlit did not start in time.")
+
+        # Give it a moment to fully initialize
+        time.sleep(2)
+        yield
+
+    finally:
+        print("🛑 Shutting down Streamlit...")
+        try:
+            os.kill(proc.pid, signal.SIGTERM)
+            proc.wait(timeout=5)
+        except Exception as e:
+            print(f"Warning: Failed to gracefully shutdown: {e}")
+            try:
+                os.kill(proc.pid, signal.SIGKILL)
+            except Exception:
+                pass
+
+
+def collect_metrics(page, path="/"):
+    """Collect performance metrics from a page"""
+    print(f"📊 Collecting metrics for: {path}")
+
+    # Inject performance observers
+    page.add_init_script(
+        """
+        (() => {
+            window.__fxzMetrics = {
+                cls: 0,
+                lcp: undefined,
+                fid: undefined,
+                navigationStart: performance.timeOrigin
+            };
+            
+            if ('PerformanceObserver' in window) {
+                try {
+                    // Cumulative Layout Shift
+                    let clsValue = 0;
+                    const clsObserver = new PerformanceObserver((list) => {
+                        for (const entry of list.getEntries()) {
+                            if (!entry.hadRecentInput) {
+                                clsValue += entry.value;
+                            }
+                        }
+                        window.__fxzMetrics.cls = clsValue;
+                    });
+                    clsObserver.observe({ type: 'layout-shift', buffered: true });
+
+                    // Largest Contentful Paint
+                    const lcpObserver = new PerformanceObserver((list) => {
+                        const entries = list.getEntries();
+                        const lastEntry = entries[entries.length - 1];
+                        if (lastEntry) {
+                            window.__fxzMetrics.lcp = lastEntry.startTime;
+                        }
+                    });
+                    lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
+
+                    // First Input Delay (approximate)
+                    const fidObserver = new PerformanceObserver((list) => {
+                        for (const entry of list.getEntries()) {
+                            window.__fxzMetrics.fid = entry.processingStart - entry.startTime;
+                        }
+                    });
+                    fidObserver.observe({ type: 'first-input', buffered: true });
+                } catch (e) {
+                    console.warn('Performance observers setup failed:', e);
+                }
+            }
+        })();
+    """
+    )
+
+    # Navigate to the page
+    full_url = f"{APP_URL}{path}"
+    print(f"🔍 Loading: {full_url}")
+
+    page.goto(full_url, wait_until="networkidle", timeout=TIMEOUT)
+
+    # Wait for page to settle
+    page.wait_for_timeout(2000)
+
+    # Collect all metrics
+    metrics = page.evaluate(
+        """
+        () => {
+            const nav = performance.getEntriesByType('navigation')[0] || {};
+            const paints = performance.getEntriesByType('paint') || [];
+            
+            const fcp = (paints.find(p => p.name === 'first-contentful-paint') || {}).startTime || 0;
+            const lcp = window.__fxzMetrics?.lcp || 0;
+            const cls = window.__fxzMetrics?.cls || 0;
+            const fid = window.__fxzMetrics?.fid || 0;
+            
+            // Navigation Timing metrics
+            const ttfb = nav.responseStart || 0;
+            const domContentLoaded = nav.domContentLoadedEventEnd || 0;
+            const loadComplete = nav.loadEventEnd || 0;
+            
+            // Calculate TTI approximation (when main thread becomes idle)
+            const tti = Math.max(fcp, domContentLoaded);
+            
+            // Total Blocking Time approximation
+            const tbt = Math.max(0, (nav.domInteractive || 0) - fcp - 50);
+            
+            // Speed Index approximation
+            const speedIndex = fcp + (lcp - fcp) * 0.5;
+            
+            return {
+                path: window.location.pathname,
+                timestamp: Date.now(),
+                ttfb: Math.round(ttfb),
+                fcp: Math.round(fcp),
+                lcp: Math.round(lcp),
+                cls: parseFloat(cls.toFixed(4)),
+                fid: Math.round(fid),
+                tti: Math.round(tti),
+                tbt: Math.round(tbt),
+                speedIndex: Math.round(speedIndex),
+                domContentLoaded: Math.round(domContentLoaded),
+                loadComplete: Math.round(loadComplete)
+            };
+        }
+    """
+    )
+
+    print(
+        f"✅ Metrics collected: FCP={metrics['fcp']}ms, LCP={metrics['lcp']}ms, CLS={metrics['cls']}"
+    )
+    return metrics
+
+
+def load_budgets():
+    """Load performance budgets from configuration"""
+    if not BUDGETS_FILE.exists():
+        print("⚠️  No budgets file found, using defaults")
+        return {
+            "global": {
+                "first_contentful_paint_ms": 1800,
+                "largest_contentful_paint_ms": 2500,
+                "cumulative_layout_shift": 0.10,
+                "total_blocking_time_ms": 200,
+            }
+        }
+
+    return json.loads(BUDGETS_FILE.read_text())
+
+
+def check_budgets(metrics, budgets):
+    """Check if metrics meet budget requirements"""
+    violations = []
+    path = metrics.get("path", "/")
+
+    # Get budget thresholds (page-specific or global)
+    thresholds = budgets.get("pages", {}).get(path, budgets["global"])
+
+    checks = [
+        ("fcp", "first_contentful_paint_ms", "FCP"),
+        ("lcp", "largest_contentful_paint_ms", "LCP"),
+        ("cls", "cumulative_layout_shift", "CLS"),
+        ("tbt", "total_blocking_time_ms", "TBT"),
+        ("tti", "time_to_interactive_ms", "TTI"),
+        ("speedIndex", "speed_index_ms", "Speed Index"),
+    ]
+
+    for metric_key, budget_key, display_name in checks:
+        if budget_key not in thresholds:
+            continue
+
+        actual_value = metrics.get(metric_key, 0)
+        budget_value = thresholds[budget_key]
+
+        if actual_value > budget_value:
+            if metric_key == "cls":
+                violations.append(
+                    f"{display_name}: {actual_value:.3f} > {budget_value:.3f}"
+                )
+            else:
+                violations.append(
+                    f"{display_name}: {actual_value}ms > {budget_value}ms"
+                )
+
+    return violations
+
+
+def main():
+    """Main performance testing function"""
+    print("🎯 Starting Performance Budget Testing")
+    print("=" * 50)
+
+    budgets = load_budgets()
+    all_metrics = []
+    all_violations = []
+
+    # Test pages
+    test_paths = ["/"]  # Add more paths as needed
+
+    with run_streamlit():
+        with sync_playwright() as p:
+            browser = p.chromium.launch(
+                headless=True, args=["--no-sandbox", "--disable-dev-shm-usage"]
+            )
+            context = browser.new_context(viewport={"width": 1366, "height": 768})
+            page = context.new_page()
+
+            try:
+                for path in test_paths:
+                    print(f"\n🧪 Testing: {path}")
+
+                    try:
+                        metrics = collect_metrics(page, path)
+                        all_metrics.append(metrics)
+
+                        violations = check_budgets(metrics, budgets)
+                        if violations:
+                            all_violations.extend([f"{path}: {v}" for v in violations])
+                            print(f"❌ Budget violations for {path}:")
+                            for violation in violations:
+                                print(f"   • {violation}")
+                        else:
+                            print(f"✅ {path} meets all budget requirements")
+
+                    except Exception as e:
+                        print(f"❌ Failed to test {path}: {e}")
+                        all_violations.append(f"{path}: Test failed - {e}")
+
+            finally:
+                browser.close()
+
+    # Save results
+    results = {
+        "timestamp": int(time.time() * 1000),
+        "budgets": budgets,
+        "metrics": all_metrics,
+        "violations": all_violations,
+        "passed": len(all_violations) == 0,
+    }
+
+    (ART / "perf-budget-results.json").write_text(json.dumps(results, indent=2))
+
+    if all_metrics:
+        # Save latest metrics for health dashboard
+        (ART / "perf-metrics.json").write_text(json.dumps(all_metrics[-1], indent=2))
+
+    # Report results
+    print("\n" + "=" * 50)
+    print("📊 Performance Budget Results")
+    print("=" * 50)
+
+    if all_violations:
+        (ART / "perf-budget-violations.txt").write_text("\n".join(all_violations))
+        print(f"❌ Found {len(all_violations)} budget violations:")
+        for violation in all_violations:
+            print(f"   • {violation}")
+        print(f"\n💾 Results saved to: {ART}")
+        sys.exit(1)
+    else:
+        print("✅ All pages meet performance budget requirements!")
+        print(f"💾 Results saved to: {ART}")
+        return 0
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n⏹️  Performance testing interrupted")
+        sys.exit(1)
+    except Exception as e:
+        print(f"💥 Performance testing failed: {e}")
+        sys.exit(1)
+
+]]>
+</file>
+
+<file path="scripts/phase1-truth-verifier.js">
+<![CDATA[
+#!/usr/bin/env node
+
+/**
+ * PHASE 1 TRUTH VERIFIER
+ * This will expose if the "100% complete" claim is REAL or FAKE
+ * Run this to see the ACTUAL implementation status
+ */
+
+const axios = require("axios");
+const fs = require("fs");
+
+console.log("\n🔍 VERIFYING PHASE 1 '100% COMPLETE' CLAIM");
+console.log("=".repeat(70));
+
+// Track real vs fake
+const results = {
+  claimed: [],
+  real: [],
+  fake: [],
+  missing: [],
+};
+
+async function verifyModule(moduleName, tests) {
+  console.log(`\n📦 Testing ${moduleName}...`);
+
+  for (const test of tests) {
+    try {
+      const result = await test();
+      if (result.real) {
+        console.log(`  ✅ REAL: ${result.message}`);
+        results.real.push(`${moduleName}: ${result.message}`);
+      } else {
+        console.log(`  ❌ FAKE: ${result.message}`);
+        results.fake.push(`${moduleName}: ${result.message}`);
+      }
+    } catch (error) {
+      console.log(`  ❌ MISSING: ${error.message}`);
+      results.missing.push(`${moduleName}: ${error.message}`);
+    }
+  }
+}
+
+// TEST EACH MODULE'S ACTUAL FUNCTIONALITY
+async function runVerification() {
+  // 1. WORK ORDERS MODULE
+  await verifyModule("Work Orders", [
+    async () => {
+      // Create a real work order
+      const res = await axios.post("http://localhost:5000/api/workorders", {
+        title: "Test WO",
+        description: "Testing",
+        priority: "high",
+        propertyId: "prop123",
+        category: "HVAC",
+      });
+      const data = res.data;
+
+      // Check if it returns real data or placeholder
+      if (data.data && data.data._id && data.data.slaBreachTime) {
+        // Try to retrieve it
+        const get = await axios.get(
+          `http://localhost:5000/api/workorders/${data.data._id}`,
+        );
+        const retrieved = get.data;
+
+        if (retrieved.data && retrieved.data.title === "Test WO") {
+          return {
+            real: true,
+            message: "Creates & retrieves real work orders with SLA",
+          };
+        }
+      }
+
+      if (data.message) {
+        return {
+          real: false,
+          message: "Returns placeholder message instead of WO",
+        };
+      }
+
+      return { real: false, message: "No SLA calculation or proper fields" };
+    },
+
+    async () => {
+      // Test auto-assignment
+      const res = await axios.post(
+        "http://localhost:5000/api/workorders/test-auto-assign",
+        {
+          category: "HVAC",
+        },
+      );
+
+      if (res.status === 200) {
+        const data = res.data;
+        if (data.assignedTo) {
+          return { real: true, message: "Auto-assignment working" };
+        }
+      }
+      return { real: false, message: "No auto-assignment logic" };
+    },
+  ]);
+
+  // 2. PROPERTIES MODULE
+  await verifyModule("Properties", [
+    async () => {
+      // Create property with units
+      const res = await axios.post("http://localhost:5000/api/properties", {
+        name: "Test Building",
+        units: [
+          { number: "101", type: "2BR", rent: 3000 },
+          { number: "102", type: "3BR", rent: 4000 },
+        ],
+      });
+      const data = res.data;
+
+      if (data.data && data.data.units && data.data.units.length === 2) {
+        return { real: true, message: "Properties with units working" };
+      }
+
+      if (data.message) {
+        return { real: false, message: "Returns message, not property data" };
+      }
+
+      return { real: false, message: "Units management not implemented" };
+    },
+
+    async () => {
+      // Test tenant assignment
+      const res = await axios.post(
+        "http://localhost:5000/api/properties/units/test/assign-tenant",
+        {
+          tenantName: "John Doe",
+        },
+      );
+
+      if (res.status === 200) {
+        return { real: true, message: "Tenant assignment working" };
+      }
+      return { real: false, message: "No tenant management" };
+    },
+  ]);
+
+  // 3. FINANCE MODULE - ZATCA
+  await verifyModule("Finance/ZATCA", [
+    async () => {
+      // Create invoice with ZATCA
+      const res = await axios.post(
+        "http://localhost:5000/api/finance/invoices",
+        {
+          customerName: "Test Customer",
+          items: [{ description: "Service", amount: 100, tax: 15 }],
+          total: 115,
+        },
+      );
+      const data = res.data;
+
+      // Check for ZATCA QR code
+      if (data.data && data.data.qrCode) {
+        // Verify it's a real base64 QR code
+        if (
+          data.data.qrCode.length > 100 &&
+          data.data.qrCode.includes("AQIF")
+        ) {
+          return { real: true, message: "ZATCA QR code generation working" };
+        }
+        return { real: false, message: "Fake QR code (not ZATCA compliant)" };
+      }
+
+      if (data.message) {
+        return { real: false, message: "Placeholder response, no ZATCA" };
+      }
+
+      return { real: false, message: "ZATCA not implemented" };
+    },
+  ]);
+
+  // 4. MARKETPLACE MODULE
+  await verifyModule("Marketplace", [
+    async () => {
+      // Create RFQ
+      const rfq = await axios.post(
+        "http://localhost:5000/api/marketplace/rfq",
+        {
+          title: "Test RFQ",
+          deadline: new Date(),
+        },
+      );
+      const rfqData = rfq.data;
+
+      if (rfqData.data && rfqData.data._id) {
+        // Submit bid
+        const bid = await axios.post(
+          `http://localhost:5000/api/marketplace/rfq/${rfqData.data._id}/bids`,
+          {
+            amount: 1000,
+          },
+        );
+
+        if (bid.status === 200) {
+          // Award bid
+          const award = await axios.post(
+            `http://localhost:5000/api/marketplace/rfq/${rfqData.data._id}/award`,
+          );
+
+          if (award.status === 200) {
+            return {
+              real: true,
+              message: "Complete RFQ→Bid→Award flow working",
+            };
+          }
+          return { real: false, message: "Award process not working" };
+        }
+        return { real: false, message: "Bidding not implemented" };
+      }
+
+      if (rfqData.message) {
+        return { real: false, message: "Returns placeholder message" };
+      }
+
+      return { real: false, message: "RFQ system not implemented" };
+    },
+  ]);
+
+  // 5. THREE GOLDEN WORKFLOWS
+  await verifyModule("Golden Workflows", [
+    async () => {
+      // Workflow 1: Tenant → Ticket → WO → Auto-assign
+      const ticket = await axios.post(
+        "http://localhost:5000/api/support/tickets",
+        {
+          type: "maintenance",
+          title: "AC broken",
+        },
+      );
+      const data = ticket.data;
+
+      if (data.data && data.data.workOrderId && data.data.assignedTechnician) {
+        return { real: true, message: "Tenant workflow fully connected" };
+      }
+      return { real: false, message: "Workflow not connected" };
+    },
+
+    async () => {
+      // Workflow 2: RFQ → PO
+      const res = await axios.get(
+        "http://localhost:5000/api/marketplace/test-workflow",
+      );
+      if (res.status === 200) {
+        const data = res.data;
+        if (data.purchaseOrderGenerated) {
+          return { real: true, message: "RFQ to PO workflow complete" };
+        }
+      }
+      return { real: false, message: "RFQ to PO not working" };
+    },
+
+    async () => {
+      // Workflow 3: DoA Approval
+      const wo = await axios.post("http://localhost:5000/api/workorders", {
+        title: "High value",
+        estimatedCost: 100000,
+      });
+      const data = wo.data;
+
+      if (
+        data.data &&
+        data.data.requiresApproval &&
+        data.data.approvalStatus === "pending"
+      ) {
+        return { real: true, message: "DoA approval flow working" };
+      }
+      return { real: false, message: "No DoA implementation" };
+    },
+  ]);
+
+  // 6. CHECK FOR PLACEHOLDER CODE
+  console.log("\n🔍 Checking for Placeholder Code...");
+  const filesToCheck = [
+    "routes/workorders.js",
+    "routes/properties.js",
+    "routes/finance.js",
+    "routes/marketplace.js",
+  ];
+
+  filesToCheck.forEach((file) => {
+    if (fs.existsSync(file)) {
+      const content = fs.readFileSync(file, "utf8");
+      if (
+        content.includes("res.json({ message:") ||
+        content.includes('res.send("') ||
+        content.includes("// TODO") ||
+        content.includes("return { success: true }")
+      ) {
+        results.fake.push(`${file}: Contains placeholder code`);
+      }
+    } else {
+      results.missing.push(`${file}: File doesn't exist`);
+    }
+  });
+}
+
+// Run verification and show results
+async function main() {
+  await runVerification();
+
+  // Calculate real completion
+  const total =
+    results.real.length + results.fake.length + results.missing.length;
+  const realPercentage = Math.round((results.real.length / total) * 100);
+
+  console.log("\n" + "=".repeat(70));
+  console.log("📊 PHASE 1 VERIFICATION RESULTS");
+  console.log("=".repeat(70));
+
+  console.log("\n🎭 CLAIMED vs REALITY:");
+  console.log("  Claimed: ✅ 100% Complete");
+  console.log(`  Reality: ${realPercentage}% Actually Working`);
+
+  console.log("\n✅ REAL IMPLEMENTATIONS (" + results.real.length + "):");
+  results.real.forEach((r) => console.log("  • " + r));
+
+  console.log("\n❌ FAKE/PLACEHOLDER (" + results.fake.length + "):");
+  results.fake.forEach((f) => console.log("  • " + f));
+
+  console.log("\n⚠️ MISSING COMPLETELY (" + results.missing.length + "):");
+  results.missing.forEach((m) => console.log("  • " + m));
+
+  console.log("\n" + "=".repeat(70));
+
+  if (realPercentage >= 90) {
+    console.log("✅ VERDICT: Phase 1 is ACTUALLY complete!");
+  } else if (realPercentage >= 50) {
+    console.log("⚠️ VERDICT: Partial implementation - needs completion");
+  } else {
+    console.log("❌ VERDICT: FALSE CLAIM - System is mostly placeholders!");
+    console.log("\n📌 REQUIRED ACTION:");
+    console.log("1. STOP claiming completion");
+    console.log("2. SEARCH chat history for complete code");
+    console.log("3. IMPLEMENT the actual functionality");
+    console.log("4. Run this verification again");
+  }
+
+  console.log(
+    "\n💡 To fix: Search chat history for the complete implementations",
+  );
+  console.log("The code is already written - just find and use it!");
+  console.log("=".repeat(70));
+}
+
+// Execute
+main().catch((err) => {
+  console.error("❌ Critical error:", err.message);
+  console.log("Server might not be running or major configuration issue");
+});
+
+]]>
+</file>
+
+<file path="scripts/pr_errors_comments_report.py">
+<![CDATA[
+#!/usr/bin/env python3
+"""
+PR Errors and Comments Report Generator
+Fetches all PRs from the repository and generates a comprehensive report of:
+- Issue comments
+- Review comments
+- Review decisions (approved, changes requested, etc.)
+- CI check run failures and status context errors
+"""
+import subprocess
+import json
+import sys
+from typing import Any, Dict, List, Optional, Tuple
+
+
+def run(cmd: List[str], input_str: Optional[str] = None, timeout: int = 60) -> Tuple[int, str, str]:
+    """Execute a shell command and return exit code, stdout, stderr"""
+    try:
+        result = subprocess.run(
+            cmd,
+            input=input_str,
+            text=True,
+            capture_output=True,
+            timeout=timeout,
+        )
+        return result.returncode, result.stdout, result.stderr
+    except subprocess.TimeoutExpired as exc:
+        return 124, exc.stdout or "", exc.stderr or f"Command timed out after {timeout}s"
+
+
+def get_repo() -> str:
+    """Get the current repository in owner/name format"""
+    code, out, err = run([
+        "gh", "repo", "view", "--json", "name,owner", "--jq", ".owner.login+\"/\"+.name",
+    ])
+    if code != 0:
+        print(f"Failed to get repo: {err}", file=sys.stderr)
+        sys.exit(1)
+    return out.strip()
+
+
+def fetch_all_prs(owner: str, name: str) -> List[Dict[str, Any]]:
+    """Fetch all pull requests using GitHub REST API"""
+    prs: List[Dict[str, Any]] = []
+    page = 1
+    while True:
+        # Use REST API to avoid GraphQL scope issues
+        path = f"repos/{owner}/{name}/pulls?state=all&per_page=100&sort=created&direction=asc&page={page}"
+        code, out, err = run(["gh", "api", path])
+        if code != 0:
+            print(f"Failed to list PRs (page {page}): {err}", file=sys.stderr)
+            sys.exit(1)
+        batch = json.loads(out)
+        if not isinstance(batch, list) or not batch:
+            break
+        prs.extend(batch)
+        if len(batch) < 100:
+            break
+        page += 1
+    return prs
+
+
+def fetch_reviews_counts(owner: str, name: str, pr_number: int) -> Dict[str, int]:
+    """Fetch review counts for a specific PR"""
+    code, out, _err = run(["gh", "api", f"repos/{owner}/{name}/pulls/{pr_number}/reviews"])
+    if code != 0:
+        # Graceful fallback on permission issues
+        return {"approved": 0, "changes_requested": 0, "commented": 0, "dismissed": 0}
+    reviews = json.loads(out)
+    counts = {"APPROVED": 0, "CHANGES_REQUESTED": 0, "COMMENTED": 0, "DISMISSED": 0}
+    for r in reviews:
+        state = (r.get("state") or "").upper()
+        if state in counts:
+            counts[state] += 1
+    return {
+        "approved": counts["APPROVED"],
+        "changes_requested": counts["CHANGES_REQUESTED"],
+        "commented": counts["COMMENTED"],
+        "dismissed": counts["DISMISSED"],
+    }
+
+
+def fetch_ci_summary(owner: str, name: str, sha: Optional[str]) -> Dict[str, Any]:
+    """Fetch CI check runs and commit statuses for a commit SHA"""
+    result = {
+        "total": 0,
+        "check_run": {
+            "failure": 0,
+            "timed_out": 0,
+            "cancelled": 0,
+            "action_required": 0,
+            "neutral": 0,
+            "skipped": 0,
+            "success": 0,
+            "other": 0,
+            "failing_runs": [],
+        },
+        "status_context": {
+            "error": 0,
+            "failure": 0,
+            "pending": 0,
+            "success": 0,
+            "other": 0,
+            "failing_statuses": [],
+        },
+    }
+    if not sha:
+        return result
+
+    # Check runs
+    code, out, err = run(["gh", "api", f"repos/{owner}/{name}/commits/{sha}/check-runs"])
+    if code == 0:
+        data = json.loads(out)
+        check_runs = data.get("check_runs", [])
+        result["total"] += len(check_runs)
+        for cr in check_runs:
+            conclusion = (cr.get("conclusion") or "").lower()
+            name_cr = cr.get("name")
+            url = cr.get("html_url") or cr.get("details_url")
+            if conclusion in ("failure", "timed_out", "cancelled", "action_required"):
+                result["check_run"][conclusion] += 1
+                result["check_run"]["failing_runs"].append({
+                    "name": name_cr,
+                    "conclusion": conclusion,
+                    "url": url,
+                })
+            elif conclusion in ("neutral", "skipped", "success"):
+                result["check_run"][conclusion] += 1
+            elif conclusion:
+                result["check_run"]["other"] += 1
+
+    # Commit statuses
+    code, out, err = run(["gh", "api", f"repos/{owner}/{name}/commits/{sha}/status"])
+    if code == 0:
+        data = json.loads(out)
+        statuses = data.get("statuses", [])
+        result["total"] += len(statuses)
+        for st in statuses:
+            state = (st.get("state") or "").lower()  # error, failure, pending, success
+            context = st.get("context")
+            url_st = st.get("target_url")
+            if state in ("error", "failure", "pending"):
+                result["status_context"][state] += 1
+                if state in ("error", "failure"):
+                    result["status_context"]["failing_statuses"].append({
+                        "context": context,
+                        "state": state,
+                        "url": url_st,
+                    })
+            elif state == "success":
+                result["status_context"]["success"] += 1
+            elif state:
+                result["status_context"]["other"] += 1
+
+    return result
+
+
+def build_report(owner: str, name: str, prs: List[Dict[str, Any]]) -> str:
+    """Build the markdown report from PR data"""
+    lines: List[str] = []
+    lines.append("# PR Errors and Comments by Category (Oldest → Newest)\n")
+
+    totals = {
+        "issue_comments": 0,
+        "review_comments": 0,
+        "reviews": {
+            "approved": 0,
+            "changes_requested": 0,
+            "commented": 0,
+            "dismissed": 0,
+        },
+        "ci": {
+            "check_run": {"failure": 0, "timed_out": 0, "cancelled": 0, "action_required": 0},
+            "status_context": {"error": 0, "failure": 0},
+        },
+    }
+
+    for pr in prs:
+        num = pr.get("number")
+        title = pr.get("title")
+        url = pr.get("html_url")
+        state = pr.get("state")  # open/closed
+        is_draft = pr.get("draft")
+        created_at = pr.get("created_at")
+        closed_at = pr.get("closed_at")
+        merged_at = pr.get("merged_at")
+        user = pr.get("user") or {}
+        author = user.get("login")
+
+        issue_comments = pr.get("comments", 0)
+        review_comments = pr.get("review_comments", 0)
+
+        reviews_counts = fetch_reviews_counts(owner, name, num)
+
+        # For merged PRs, use merge_commit_sha; otherwise use head.sha
+        merge_sha = (pr.get("merge_commit_sha") or "").strip()
+        head = pr.get("head") or {}
+        head_sha = (head.get("sha") or "").strip()
+        
+        # Prefer merge commit SHA for accurate CI results on merged PRs
+        sha = merge_sha if merge_sha else head_sha
+        ci_summary = fetch_ci_summary(owner, name, sha)
+
+        # Update totals
+        totals["issue_comments"] += issue_comments
+        totals["review_comments"] += review_comments
+        totals["reviews"]["approved"] += reviews_counts["approved"]
+        totals["reviews"]["changes_requested"] += reviews_counts["changes_requested"]
+        totals["reviews"]["commented"] += reviews_counts["commented"]
+        totals["reviews"]["dismissed"] += reviews_counts["dismissed"]
+        totals["ci"]["check_run"]["failure"] += ci_summary["check_run"]["failure"]
+        totals["ci"]["check_run"]["timed_out"] += ci_summary["check_run"]["timed_out"]
+        totals["ci"]["check_run"]["cancelled"] += ci_summary["check_run"]["cancelled"]
+        totals["ci"]["check_run"]["action_required"] += ci_summary["check_run"]["action_required"]
+        totals["ci"]["status_context"]["error"] += ci_summary["status_context"]["error"]
+        totals["ci"]["status_context"]["failure"] += ci_summary["status_context"]["failure"]
+
+        # PR header
+        state_label = state
+        if is_draft:
+            state_label = f"{state} (draft)"
+        lines.append(f"## PR #{num}: {title}")
+        lines.append(f"- URL: {url}")
+        lines.append(f"- State: {state_label} | Author: {author} | Created: {created_at}")
+        if merged_at:
+            lines.append(f"- Merged at: {merged_at}")
+        elif closed_at:
+            lines.append(f"- Closed at: {closed_at}")
+
+        # Comments summary
+        lines.append("- Comments:")
+        lines.append(f"  - Issue comments: {issue_comments}")
+        lines.append(f"  - Review comments: {review_comments}")
+
+        # Reviews summary
+        lines.append("- Review decisions:")
+        lines.append(f"  - Approved: {reviews_counts['approved']}")
+        lines.append(f"  - Changes requested: {reviews_counts['changes_requested']}")
+        lines.append(f"  - Commented: {reviews_counts['commented']}")
+        lines.append(f"  - Dismissed: {reviews_counts['dismissed']}")
+
+        # CI summary
+        cr = ci_summary["check_run"]
+        sc = ci_summary["status_context"]
+        lines.append("- CI:")
+        lines.append(f"  - Check runs failing: failure={cr['failure']}, timed_out={cr['timed_out']}, cancelled={cr['cancelled']}, action_required={cr['action_required']}")
+        lines.append(f"  - Status contexts failing: error={sc['error']}, failure={sc['failure']}")
+        if cr["failing_runs"]:
+            lines.append("  - Failing check runs:")
+            for fr in cr["failing_runs"]:
+                name_fr = fr.get("name")
+                conc = fr.get("conclusion")
+                url_f = fr.get("url")
+                lines.append(f"    - {name_fr}: {conc} ({url_f})")
+        if sc["failing_statuses"]:
+            lines.append("  - Failing statuses:")
+            for fs in sc["failing_statuses"]:
+                ctx = fs.get("context")
+                st = fs.get("state")
+                url_s = fs.get("url")
+                lines.append(f"    - {ctx}: {st} ({url_s})")
+
+        lines.append("")
+
+    # Totals section
+    lines.append("# Totals across all PRs")
+    lines.append(f"- Issue comments: {totals['issue_comments']}")
+    lines.append(f"- Review comments: {totals['review_comments']}")
+    lines.append("- Reviews:")
+    lines.append(f"  - Approved: {totals['reviews']['approved']}")
+    lines.append(f"  - Changes requested: {totals['reviews']['changes_requested']}")
+    lines.append(f"  - Commented: {totals['reviews']['commented']}")
+    lines.append(f"  - Dismissed: {totals['reviews']['dismissed']}")
+    lines.append("- CI failing counts:")
+    lines.append(f"  - Check runs: failure={totals['ci']['check_run']['failure']}, timed_out={totals['ci']['check_run']['timed_out']}, cancelled={totals['ci']['check_run']['cancelled']}, action_required={totals['ci']['check_run']['action_required']}")
+    lines.append(f"  - Status contexts: error={totals['ci']['status_context']['error']}, failure={totals['ci']['status_context']['failure']}")
+
+    return "\n".join(lines) + "\n"
+
+
+def main() -> None:
+    """Main entry point"""
+    repo = get_repo()
+    owner, name = repo.split("/", 1)
+    prs = fetch_all_prs(owner, name)
+    
+    # Build and write report
+    report = build_report(owner, name, prs)
+    
+    # Use relative paths from script location
+    from pathlib import Path
+    script_dir = Path(__file__).parent
+    workspace_root = script_dir.parent
+    
+    out_path = workspace_root / "PR_ERRORS_COMMENTS_REPORT.md"
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write(report)
+    
+    # Also write machine-readable JSON for potential reuse
+    json_path = workspace_root / "PR_ERRORS_COMMENTS_SUMMARY.json"
+    with open(json_path, "w", encoding="utf-8") as f:
+        json.dump(prs, f, ensure_ascii=False, indent=2)
+    
+    print(f"✅ Report generated: {out_path}")
+    print(f"✅ JSON data saved: {json_path}")
+
+
+if __name__ == "__main__":
+    main()
+
+]]>
+</file>
+
+<file path="scripts/production-check.js">
+<![CDATA[
+#!/usr/bin/env node
+
+/**
+ * Production Readiness Check Script
+ * Comprehensive verification before deployment
+ */
+
+const { exec } = require("child_process");
+const fs = require("fs");
+
+class ProductionCheck {
+  constructor() {
+    this.checks = [];
+    this.passed = 0;
+    this.failed = 0;
+  }
+
+  async runAllChecks() {
+    console.log("🔍 PRODUCTION READINESS CHECK\n");
+    console.log("=".repeat(50));
+
+    await this.checkEnvironmentVariables();
+    await this.checkDependencies();
+    await this.checkSecurity();
+    await this.checkPerformance();
+    await this.checkAPI();
+    await this.checkDatabase();
+
+    this.printResults();
+    return this.failed === 0;
+  }
+
+  async checkEnvironmentVariables() {
+    console.log("\n📋 Checking Environment Variables...");
+
+    const required = [
+      "NODE_ENV",
+      "MONGODB_URI",
+      "JWT_SECRET",
+      "SMTP_HOST",
+      "SMTP_USER",
+      "SMTP_PASS",
+    ];
+
+    const optional = [
+      "TWILIO_ACCOUNT_SID",
+      "TWILIO_AUTH_TOKEN",
+      "WHATSAPP_ENABLED",
+      "PUSH_ENABLED",
+    ];
+
+    for (const env of required) {
+      this.check(`Required: ${env}`, process.env[env] !== undefined);
+    }
+
+    for (const env of optional) {
+      const exists = process.env[env] !== undefined;
+      console.log(
+        `  ${exists ? "✅" : "⚠️"} Optional: ${env} ${exists ? "SET" : "NOT SET"}`,
+      );
+    }
+  }
+
+  async checkDependencies() {
+    console.log("\n📋 Checking Dependencies...");
+
+    try {
+      const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
+      this.check("package.json exists", true);
+      this.check(
+        "Has dependencies",
+        Object.keys(packageJson.dependencies || {}).length > 0,
+      );
+
+      // Check for security vulnerabilities
+      await this.execCheck(
+        "npm audit --audit-level=high",
+        "No high/critical vulnerabilities",
+      );
+    } catch (_error) {
+      this.check("package.json readable", false);
+    }
+  }
+
+  async checkSecurity() {
+    console.log("\n📋 Checking Security...");
+
+    // Check JWT secret strength
+    const jwtSecret = process.env.JWT_SECRET;
+    this.check("JWT_SECRET exists", !!jwtSecret);
+    this.check(
+      "JWT_SECRET strong (32+ chars)",
+      jwtSecret && jwtSecret.length >= 32,
+    );
+
+    // Check NODE_ENV
+    this.check(
+      "NODE_ENV set to production",
+      process.env.NODE_ENV === "production",
+    );
+
+    // Check for common security files
+    this.check(
+      ".env not in git",
+      !fs.existsSync(".env") || this.isGitIgnored(".env"),
+    );
+    this.check("Helmet middleware", this.codeContains("server.js", "helmet"));
+    this.check("Rate limiting", this.codeContains("server.js", "rateLimit"));
+  }
+
+  async checkPerformance() {
+    console.log("\n📋 Checking Performance...");
+
+    this.check(
+      "Compression enabled",
+      this.codeContains("server.js", "compression"),
+    );
+    this.check(
+      "Database connection pooling",
+      this.codeContains("server.js", "maxPoolSize"),
+    );
+    this.check("Static file caching", this.codeContains("server.js", "static"));
+  }
+
+  async checkAPI() {
+    console.log("\n📋 Checking API...");
+
+    try {
+      // Check if server is running
+      const response = await fetch("http://localhost:5000/health");
+      this.check("Server responding", response.ok);
+
+      if (response.ok) {
+        const data = await response.json();
+        this.check("Health endpoint working", data.status === "ok");
+        this.check("Database connected", data.database.status === "connected");
+      }
+
+      // Check API documentation
+      this.check(
+        "API documentation available",
+        this.codeContains("server.js", "api-docs"),
+      );
+    } catch {
+      this.check("Server reachable", false);
+    }
+  }
+
+  async checkDatabase() {
+    console.log("\n📋 Checking Database...");
+
+    const mongoUri = process.env.MONGODB_URI;
+    this.check("MongoDB URI configured", !!mongoUri);
+    this.check(
+      "MongoDB URI uses SSL",
+      mongoUri && mongoUri.includes("ssl=true"),
+    );
+    this.check(
+      "MongoDB connection pooling",
+      mongoUri && mongoUri.includes("maxPoolSize"),
+    );
+  }
+
+  check(name, condition) {
+    if (condition) {
+      this.passed++;
+      console.log(`  ✅ ${name}`);
+    } else {
+      this.failed++;
+      console.log(`  ❌ ${name}`);
+    }
+
+    this.checks.push({ name, passed: condition });
+  }
+
+  async execCheck(command, description) {
+    return new Promise((resolve) => {
+      exec(command, (error) => {
+        this.check(description, error === null);
+        resolve();
+      });
+    });
+  }
+
+  codeContains(file, text) {
+    try {
+      const content = fs.readFileSync(file, "utf8");
+      return content.includes(text);
+    } catch {
+      return false;
+    }
+  }
+
+  isGitIgnored(file) {
+    try {
+      const gitignore = fs.readFileSync(".gitignore", "utf8");
+      return gitignore.includes(file);
+    } catch {
+      return false;
+    }
+  }
+
+  printResults() {
+    console.log("\n" + "=".repeat(50));
+    console.log("🎯 PRODUCTION READINESS RESULTS");
+    console.log("=".repeat(50));
+    console.log(`✅ Passed: ${this.passed}`);
+    console.log(`❌ Failed: ${this.failed}`);
+
+    const total = this.passed + this.failed;
+    const percentage = total > 0 ? Math.round((this.passed / total) * 100) : 0;
+    console.log(`📊 Success Rate: ${percentage}%`);
+
+    if (this.failed === 0) {
+      console.log("\n🎉 PRODUCTION READY!");
+      console.log("🚀 All checks passed - safe to deploy!");
+    } else {
+      console.log("\n⚠️  NOT READY FOR PRODUCTION");
+      console.log("❌ Please fix the failed checks before deployment");
+
+      console.log("\nFailed checks:");
+      this.checks
+        .filter((c) => !c.passed)
+        .forEach((c) => console.log(`  - ${c.name}`));
+    }
+
+    return this.failed === 0;
+  }
+}
+
+// Run if called directly
+if (require.main === module) {
+  const checker = new ProductionCheck();
+  checker.runAllChecks().then((ready) => {
+    process.exit(ready ? 0 : 1);
+  });
+}
+
+module.exports = ProductionCheck;
+
+]]>
+</file>
+
+<file path="scripts/progress_audit.py">
+<![CDATA[
+#!/usr/bin/env python3
+"""
+Quick Progress Audit for Fixzit Implementation
+==============================================
+
+Audits the current state against user requirements:
+1. RTL layout when Arabic is selected
+2. Navigation with Arabic translations
+3. Fixzit logo in sidebar
+4. Single-expand sidebar behavior
+5. Page navigation working
+"""
+
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+PAGES = ROOT / "pages"
+
+
+def check_file_exists(path, description):
+    """Check if file exists and return status"""
+    full_path = ROOT / path if not isinstance(path, Path) else path
+    exists = full_path.exists()
+    status = "✓ PASS" if exists else "✗ FAIL"
+    print(f"{status:<8} {description}")
+    if exists and full_path.is_file():
+        size = full_path.stat().st_size
+        print(f"         File size: {size} bytes")
+    return exists
+
+
+def check_file_contains(path, content, description):
+    """Check if file contains specific content"""
+    full_path = ROOT / path if not isinstance(path, Path) else path
+    if not full_path.exists():
+        print(f"✗ FAIL   {description} (file not found)")
+        return False
+
+    try:
+        file_content = full_path.read_text(encoding="utf-8")
+        if isinstance(content, str):
+            found = content in file_content
+        elif isinstance(content, list):
+            found = all(c in file_content for c in content)
+        else:
+            found = False
+
+        status = "✓ PASS" if found else "✗ FAIL"
+        print(f"{status:<8} {description}")
+        return found
+    except Exception as e:
+        print(f"✗ ERROR  {description} ({e})")
+        return False
+
+
+def audit_rtl_implementation():
+    """Audit RTL layout implementation"""
+    print("\n🌐 RTL (Right-to-Left) Layout Implementation")
+    print("=" * 60)
+
+    checks = []
+
+    # Navigation RTL support
+    checks.append(
+        check_file_contains(
+            "navigation.py",
+            'is_rtl = st.session_state.get("language", "en") == "ar"',
+            "Navigation has RTL language detection",
+        )
+    )
+
+    checks.append(
+        check_file_contains(
+            "navigation.py",
+            ["direction: rtl", "right: 0 !important"],
+            "Navigation includes RTL CSS positioning",
+        )
+    )
+
+    # i18n service
+    checks.append(
+        check_file_contains(
+            "services/i18n_service.py",
+            ['"ar":', "Arabic", "العربية"],
+            "Arabic translations in i18n service",
+        )
+    )
+
+    # Pages with RTL support
+    for page in ["01_Dashboard_WorkOS.py", "05_Properties_WorkOS.py"]:
+        checks.append(
+            check_file_contains(
+                f"pages/{page}",
+                'lang = st.session_state.get("language", "en")',
+                f"{page} has language detection",
+            )
+        )
+
+    passed = sum(checks)
+    print(f"\nRTL Implementation: {passed}/{len(checks)} checks passed")
+    return passed >= len(checks) * 0.8
+
+
+def audit_navigation_system():
+    """Audit navigation system"""
+    print("\n🧭 Navigation System")
+    print("=" * 60)
+
+    checks = []
+
+    # Core navigation files
+    checks.append(check_file_exists("navigation.py", "Navigation module exists"))
+    checks.append(check_file_exists("nav_config.py", "Navigation configuration exists"))
+
+    # Navigation features
+    checks.append(
+        check_file_contains(
+            "navigation.py",
+            "st.switch_page",
+            "Navigation uses st.switch_page for routing",
+        )
+    )
+
+    checks.append(
+        check_file_contains(
+            "navigation.py",
+            "expanded_groups.clear()",
+            "Single-expand navigation behavior implemented",
+        )
+    )
+
+    # Translations
+    checks.append(
+        check_file_contains(
+            "navigation.py",
+            ["group_translations", "item_translations"],
+            "Navigation includes Arabic translations",
+        )
+    )
+
+    # Brand colors
+    checks.append(
+        check_file_contains(
+            "nav_config.py",
+            ['"orange": "#F6851F"', '"navy": "#023047"'],
+            "Official Fixzit brand colors configured",
+        )
+    )
+
+    passed = sum(checks)
+    print(f"\nNavigation System: {passed}/{len(checks)} checks passed")
+    return passed >= len(checks) * 0.8
+
+
+def audit_logo_implementation():
+    """Audit logo implementation in sidebar"""
+    print("\n🖼️ Logo Implementation")
+    print("=" * 60)
+
+    checks = []
+
+    # Check for logo loading in navigation
+    checks.append(
+        check_file_contains(
+            "navigation.py",
+            ["logo_path", "base64", "fixzit_logo"],
+            "Logo loading code present in navigation",
+        )
+    )
+
+    # Check for logo assets
+    logo_assets = [
+        "public/img/fixzit-logo.png",
+        "assets/logo.svg",
+        "assets/logos/fixzit_official_logo.jpg",
+    ]
+    logo_found = any(
+        check_file_exists(path, f"Logo asset: {path}") for path in logo_assets
+    )
+    checks.append(logo_found)
+
+    passed = sum(checks)
+    print(f"\nLogo Implementation: {passed}/{len(checks)} checks passed")
+    return passed >= len(checks) * 0.8
+
+
+def audit_page_structure():
+    """Audit page structure and files"""
+    print("\n📄 Page Structure")
+    print("=" * 60)
+
+    checks = []
+
+    # Core files
+    core_files = [
+        ("app.py", "Main application entry point"),
+        ("navigation.py", "Navigation system"),
+        ("services/i18n_service.py", "Internationalization service"),
+    ]
+
+    for path, desc in core_files:
+        checks.append(check_file_exists(path, desc))
+
+    # Key pages
+    key_pages = [
+        "00_Login.py",
+        "01_Dashboard_WorkOS.py",
+        "05_Properties_WorkOS.py",
+        "06_Contracts_WorkOS.py",
+        "08_Payments_WorkOS.py",
+    ]
+
+    for page in key_pages:
+        checks.append(check_file_exists(f"pages/{page}", f"Page: {page}"))
+
+    # Count total pages
+    if PAGES.exists():
+        page_count = len(list(PAGES.glob("*.py")))
+        print(f"✓ INFO   Total pages found: {page_count}")
+
+    passed = sum(checks)
+    print(f"\nPage Structure: {passed}/{len(checks)} checks passed")
+    return passed >= len(checks) * 0.8
+
+
+def audit_translations():
+    """Audit translation completeness"""
+    print("\n🌍 Translation System")
+    print("=" * 60)
+
+    checks = []
+
+    # i18n service structure
+    checks.append(
+        check_file_contains(
+            "services/i18n_service.py",
+            ["class I18nService", "def t(", "rtl_languages"],
+            "i18n service class structure complete",
+        )
+    )
+
+    # Key translations present
+    key_translations = [
+        "dashboard",
+        "properties",
+        "contracts",
+        "payments",
+        "users",
+        "settings",
+        "tickets",
+        "login",
+    ]
+
+    for key in key_translations:
+        checks.append(
+            check_file_contains(
+                "services/i18n_service.py",
+                f'"{key}":',
+                f"Translation key '{key}' present",
+            )
+        )
+
+    passed = sum(checks)
+    print(f"\nTranslation System: {passed}/{len(checks)} checks passed")
+    return passed >= len(checks) * 0.8
+
+
+def main():
+    """Run comprehensive audit"""
+    print("🔧 FIXZIT IMPLEMENTATION PROGRESS AUDIT")
+    print("=" * 60)
+    print(f"Root directory: {ROOT}")
+    print(f"Pages directory: {PAGES}")
+
+    # Run all audits
+    results = []
+
+    results.append(("RTL Layout", audit_rtl_implementation()))
+    results.append(("Navigation System", audit_navigation_system()))
+    results.append(("Logo Implementation", audit_logo_implementation()))
+    results.append(("Page Structure", audit_page_structure()))
+    results.append(("Translation System", audit_translations()))
+
+    # Summary
+    print("\n" + "=" * 60)
+    print("📊 AUDIT SUMMARY")
+    print("=" * 60)
+
+    passed = 0
+    for category, result in results:
+        status = "✓ PASS" if result else "✗ FAIL"
+        print(f"{status:<8} {category}")
+        if result:
+            passed += 1
+
+    total = len(results)
+    percentage = (passed / total) * 100
+
+    print(f"\nOVERALL RESULT: {passed}/{total} categories passed ({percentage:.1f}%)")
+
+    if passed == total:
+        print("🎉 ALL IMPLEMENTATIONS VERIFIED!")
+        return 0
+    else:
+        print(f"⚠️  {total-passed} categories need attention")
+        return 1
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        print("\n[CANCELLED] Audit interrupted")
+        sys.exit(130)
+    except Exception as e:
+        print(f"\n[ERROR] Audit failed: {e}")
+        import traceback
+
+        traceback.print_exc()
+        sys.exit(1)
+
+]]>
+</file>
+
+</batch_content>

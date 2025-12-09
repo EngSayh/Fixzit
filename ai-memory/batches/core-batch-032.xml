@@ -1,0 +1,2716 @@
+
+You are the "Fixzit Memory Builder" for category: "core".
+
+You are given a batch of source files from the Fixzit codebase, wrapped in <file> tags
+inside <batch_content>. Each <file> has a "path" attribute with the repository-relative
+file path, and its contents are wrapped in CDATA.
+
+YOUR TASK:
+1. Read ALL files in <batch_content>.
+2. For EACH file, extract architectural metadata using this schema:
+
+[
+  {
+    "file": "repo-relative/path/to/file.ext",
+    "category": "core",
+    "summary": "One-sentence technical summary of what this file does.",
+    "exports": ["ExportedFunctionOrClassName", "..."],
+    "dependencies": ["ImportedModuleOrPath", "..."]
+  }
+]
+
+RULES:
+- Return ONLY a valid JSON array.
+- NO markdown, NO backticks, NO comments, NO extra text.
+- Include an entry for every file in this batch.
+- If a file has no exports, use "exports": [].
+- If a file has no imports, use "dependencies": [].
+
+<batch_content>
+
+<file path="app/help/support-ticket/page.tsx">
+<![CDATA[
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { Loader2 } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { FormWithNavigation } from "@/components/ui/navigation-buttons";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { logger } from "@/lib/logger";
+
+/**
+ * Renders a support ticket submission form and handles creating tickets via the app API.
+ *
+ * The component displays fields for subject, module, type, priority, description, and contact information.
+ * On submit it sends a POST to /api/support/tickets with a payload containing subject, module, type, priority,
+ * a hard-coded category/subCategory ("General"/"Other"), the description as `text`, and a `requester` object
+ * with name, email, and optional phone. While the request is in progress the submit button is disabled.
+ * On success the form is reset and a success alert is shown; on failure an error alert is shown.
+ *
+ * @returns The support ticket page as a React element.
+ */
+export default function SupportTicketPage() {
+  const auto = useAutoTranslator("help.supportTicket");
+  const { data: session } = useSession();
+
+  const [formData, setFormData] = useState({
+    subject: "",
+    module: "FM",
+    type: "Bug",
+    priority: "Medium",
+    description: "",
+    name: "",
+    email: "",
+    phone: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [toast, setToast] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+
+  // Pre-fill user data from session when available
+  useEffect(() => {
+    if (session?.user) {
+      setFormData((prev) => ({
+        ...prev,
+        name: session.user.name || prev.name,
+        email: session.user.email || prev.email,
+      }));
+    }
+  }, [session]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const submitEl = (e.currentTarget as HTMLFormElement)?.querySelector(
+      'button[type="submit"]',
+    ) as HTMLButtonElement | null;
+    if (submitEl) {
+      submitEl.disabled = true;
+    }
+    setIsSubmitting(true);
+    try {
+      setToast(null);
+      const res = await fetch("/api/support/tickets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subject: formData.subject,
+          module: formData.module,
+          type: formData.type,
+          priority: formData.priority,
+          category: "General",
+          subCategory: "Other",
+          text: formData.description,
+          requester: {
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone || undefined,
+          },
+        }),
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) {
+        const apiMsg =
+          (payload && (payload.error || payload.message)) ||
+          `Request failed (${res.status})`;
+        throw new Error(apiMsg);
+      }
+      const successMessage = auto(
+        "Support Ticket Created Successfully! Our team will respond within 24 hours.",
+        "toast.success",
+      );
+      setToast({
+        type: "success",
+        message: successMessage,
+      });
+      if (typeof alert === "function") {
+        alert(successMessage);
+      }
+      setFormData({
+        subject: "",
+        module: "FM",
+        type: "Bug",
+        priority: "Medium",
+        description: "",
+        name: "",
+        email: "",
+        phone: "",
+      });
+    } catch (err) {
+      const errorMessage = auto(
+        "There was an error submitting your ticket. Please try again.",
+        "toast.error",
+      );
+      setToast({ type: "error", message: errorMessage });
+      if (typeof alert === "function") {
+        alert(errorMessage);
+      }
+      logger.error("[SupportTicket] Submission error", err);
+    } finally {
+      // Defer reset so UI stays in "submitting" state briefly (helps UX and tests)
+      setTimeout(() => setIsSubmitting(false), 50);
+    }
+  };
+
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  return (
+    <div className="min-h-screen bg-muted flex flex-col">
+      <div className="max-w-2xl mx-auto p-4 flex-1 flex flex-col">
+        {toast && (
+          <div
+            className={`mb-4 rounded-2xl px-4 py-3 text-sm ${toast.type === "success" ? "bg-success/10 text-success-foreground border border-success/20" : "bg-destructive/10 text-destructive-foreground border border-destructive/20"}`}
+          >
+            {toast.message}
+          </div>
+        )}
+        <div className="bg-card rounded-2xl shadow-xl p-8">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-foreground mb-2">
+              {auto("Create Support Ticket", "header.title")}
+            </h1>
+            <p className="text-muted-foreground">
+              {auto(
+                "Fill out the form below and our support team will get back to you within 24 hours.",
+                "header.subtitle",
+              )}
+            </p>
+          </div>
+
+          <FormWithNavigation
+            onSubmit={handleSubmit}
+            saving={isSubmitting}
+            showBack
+            showHome
+            showSave={false}
+            position="both"
+          >
+            {/* Subject */}
+            <div>
+              <label
+                htmlFor="subject"
+                className="block text-sm font-medium text-foreground mb-2"
+              >
+                {auto("Subject *", "form.subject.label")}
+              </label>
+              <input
+                type="text"
+                id="subject"
+                name="subject"
+                value={formData.subject}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                placeholder={auto(
+                  "Brief description of your issue",
+                  "form.subject.placeholder",
+                )}
+                required
+              />
+            </div>
+
+            {/* Module and Type */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="module"
+                  className="block text-sm font-medium text-foreground mb-2"
+                >
+                  {auto("Module", "form.module.label")}
+                </label>
+                <select
+                  id="module"
+                  name="module"
+                  value={formData.module}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent bg-card"
+                >
+                  <option value="FM">
+                    {auto("Facility Management", "form.module.options.fm")}
+                  </option>
+                  <option value="Souq">
+                    {auto("Marketplace", "form.module.options.souq")}
+                  </option>
+                  <option value="Aqar">
+                    {auto("Real Estate", "form.module.options.aqar")}
+                  </option>
+                  <option value="Account">
+                    {auto("Account", "form.module.options.account")}
+                  </option>
+                  <option value="Billing">
+                    {auto("Billing", "form.module.options.billing")}
+                  </option>
+                  <option value="Other">
+                    {auto("Other", "form.module.options.other")}
+                  </option>
+                </select>
+              </div>
+              <div>
+                <label
+                  htmlFor="type"
+                  className="block text-sm font-medium text-foreground mb-2"
+                >
+                  {auto("Type", "form.type.label")}
+                </label>
+                <select
+                  id="type"
+                  name="type"
+                  value={formData.type}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent bg-card"
+                >
+                  <option value="Bug">
+                    {auto("Bug Report", "form.type.options.bug")}
+                  </option>
+                  <option value="Feature">
+                    {auto("Feature Request", "form.type.options.feature")}
+                  </option>
+                  <option value="Complaint">
+                    {auto("Complaint", "form.type.options.complaint")}
+                  </option>
+                  <option value="Billing">
+                    {auto("Billing Issue", "form.type.options.billing")}
+                  </option>
+                  <option value="Access">
+                    {auto("Access Issue", "form.type.options.access")}
+                  </option>
+                  <option value="Other">
+                    {auto("Other", "form.type.options.other")}
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            {/* Priority */}
+            <div>
+              <label
+                htmlFor="priority"
+                className="block text-sm font-medium text-foreground mb-2"
+              >
+                {auto("Priority", "form.priority.label")}
+              </label>
+              <select
+                id="priority"
+                name="priority"
+                value={formData.priority}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent bg-card"
+              >
+                <option value="Low">
+                  {auto("Low", "form.priority.options.low")}
+                </option>
+                <option value="Medium">
+                  {auto("Medium", "form.priority.options.medium")}
+                </option>
+                <option value="High">
+                  {auto("High", "form.priority.options.high")}
+                </option>
+                <option value="Urgent">
+                  {auto("Urgent", "form.priority.options.urgent")}
+                </option>
+              </select>
+            </div>
+
+            {/* Description */}
+            <div>
+              <label
+                htmlFor="description"
+                className="block text-sm font-medium text-foreground mb-2"
+              >
+                {auto("Description *", "form.description.label")}
+              </label>
+              <textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent h-32 resize-none"
+                placeholder={auto(
+                  "Please provide detailed information about your issue or request...",
+                  "form.description.placeholder",
+                )}
+                required
+              />
+            </div>
+
+            {/* Contact Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted rounded-2xl">
+              <div>
+                <label
+                  htmlFor="name"
+                  className="block text-sm font-medium text-foreground mb-2"
+                >
+                  {auto("Your Name *", "form.name.label")}
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                  placeholder={auto(
+                    "Enter your full name",
+                    "form.name.placeholder",
+                  )}
+                  required
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-foreground mb-2"
+                >
+                  {auto("Email *", "form.email.label")}
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                  placeholder={auto(
+                    "your.email@example.com",
+                    "form.email.placeholder",
+                  )}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="p-4 bg-muted rounded-2xl">
+              <div>
+                <label
+                  htmlFor="phone"
+                  className="block text-sm font-medium text-foreground mb-2"
+                >
+                  {auto("Phone (optional)", "form.phone.label")}
+                </label>
+                <input
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                  placeholder={auto(
+                    "+966 XX XXX XXXX",
+                    "form.phone.placeholder",
+                  )}
+                />
+              </div>
+            </div>
+            <div className="flex justify-end mt-6">
+              <button
+                type="submit"
+                className="px-6 py-3 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 disabled:opacity-50"
+                disabled={isSubmitting}
+                onClick={() => setIsSubmitting(true)}
+              >
+                {isSubmitting && (
+                  <Loader2 className="inline me-2 h-4 w-4 animate-spin align-middle" />
+                )}
+                {isSubmitting
+                  ? auto("Submitting...", "actions.submitting")
+                  : auto("Submit Ticket", "actions.submit")}
+              </button>
+            </div>
+          </FormWithNavigation>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/help/tutorial/_components/TutorialLayout.tsx">
+<![CDATA[
+import Link from "next/link";
+import {
+  ArrowLeft,
+  BookOpen,
+  CheckCircle2,
+  Clock,
+  ListChecks,
+} from "lucide-react";
+
+type Step = {
+  title: string;
+  items: string[];
+  highlight?: string;
+};
+
+export type TutorialContent = {
+  title: string;
+  summary: string;
+  category: string;
+  difficulty: "Beginner" | "Intermediate" | "Advanced";
+  duration: string;
+  outcomes: string[];
+  steps: Step[];
+  nextActions?: string[];
+};
+
+const difficultyBadge = {
+  Beginner: "bg-success/10 text-success-foreground",
+  Intermediate: "bg-warning/10 text-warning-foreground",
+  Advanced: "bg-destructive/10 text-destructive-foreground",
+} as const;
+
+export function TutorialLayout({ content }: { content: TutorialContent }) {
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
+      <section className="bg-gradient-to-r from-primary via-primary to-success text-primary-foreground py-12">
+        <div className="mx-auto max-w-5xl px-6 flex items-center gap-3 text-sm">
+          <Link
+            href="/help"
+            className="inline-flex items-center gap-2 hover:underline"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Help Center
+          </Link>
+          <span className="opacity-75">/</span>
+          <span className="opacity-90">{content.category}</span>
+        </div>
+        <div className="mx-auto max-w-5xl px-6 pt-4 pb-2">
+          <h1 className="text-3xl font-bold mb-3">{content.title}</h1>
+          <p className="text-lg opacity-90 max-w-3xl">{content.summary}</p>
+          <div className="flex flex-wrap items-center gap-3 mt-4 text-sm">
+            <span className="inline-flex items-center gap-2 bg-white/10 text-white px-3 py-1 rounded-full">
+              <BookOpen className="w-4 h-4" />
+              {content.category}
+            </span>
+            <span className="inline-flex items-center gap-2 bg-white/10 text-white px-3 py-1 rounded-full">
+              <Clock className="w-4 h-4" />
+              {content.duration}
+            </span>
+            <span
+              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${difficultyBadge[content.difficulty]}`}
+            >
+              <ListChecks className="w-4 h-4" />
+              {content.difficulty}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <main className="mx-auto max-w-5xl px-6 py-10 space-y-10">
+        <section className="bg-card border border-border rounded-2xl shadow-sm p-6">
+          <h2 className="text-xl font-semibold text-foreground mb-3">
+            What you will achieve
+          </h2>
+          <ul className="grid md:grid-cols-2 gap-3 text-muted-foreground">
+            {content.outcomes.map((outcome) => (
+              <li key={outcome} className="flex items-start gap-2">
+                <CheckCircle2 className="w-5 h-5 text-success mt-0.5" />
+                <span>{outcome}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-foreground">Steps</h2>
+          <div className="space-y-4">
+            {content.steps.map((step, index) => (
+              <div
+                key={step.title}
+                className="bg-card border border-border rounded-2xl shadow-sm p-6"
+              >
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-semibold">
+                    {index + 1}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground">
+                      {step.title}
+                    </h3>
+                    {step.highlight ? (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {step.highlight}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+                <ul className="space-y-2 text-muted-foreground">
+                  {step.items.map((item) => (
+                    <li key={item} className="flex items-start gap-2">
+                      <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {content.nextActions && content.nextActions.length ? (
+          <section className="bg-primary text-primary-foreground rounded-2xl p-6 space-y-3">
+            <h2 className="text-lg font-semibold">Next actions</h2>
+            <ul className="space-y-2 text-primary-foreground/90">
+              {content.nextActions.map((action) => (
+                <li key={action} className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 mt-0.5" />
+                  <span>{action}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+      </main>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/help/tutorial/financial-reporting/page.tsx">
+<![CDATA[
+import {
+  TutorialLayout,
+  type TutorialContent,
+} from "../_components/TutorialLayout";
+
+const content: TutorialContent = {
+  title: "Financial Reporting & Invoicing",
+  summary:
+    "Set up invoicing, approvals, and reporting so costs and revenue stay transparent.",
+  category: "Finance",
+  difficulty: "Intermediate",
+  duration: "25 min",
+  outcomes: [
+    "Configure invoice templates and approval thresholds",
+    "Connect work orders and vendor bills to financial tracking",
+    "Publish finance dashboards for stakeholders",
+  ],
+  steps: [
+    {
+      title: "Set up invoicing and approvals",
+      highlight:
+        "Keep approvals simple: clear thresholds and backups to avoid bottlenecks.",
+      items: [
+        "Create invoice templates (branding, tax, payment terms).",
+        "Configure approval rules by amount and category.",
+        "Add payment methods and expected settlement timelines.",
+      ],
+    },
+    {
+      title: "Map work orders to costs",
+      items: [
+        "Ensure work orders capture labor, parts, and vendor charges.",
+        "Attach receipts, quotes, and completion evidence for auditability.",
+        "Use cost centers or properties to tag spend correctly.",
+      ],
+    },
+    {
+      title: "Issue and send invoices",
+      items: [
+        "Generate invoices from completed work orders or contracts.",
+        "Send digitally with payment links or bank details.",
+        "Track due dates and reminders; auto-flag overdue invoices.",
+      ],
+    },
+    {
+      title: "Monitor performance",
+      items: [
+        "Use dashboards for collections, aging, and cost vs. budget.",
+        "Export CSV/PDF for finance teams or auditors.",
+        "Review monthly trends to adjust pricing or SLAs.",
+      ],
+    },
+  ],
+  nextActions: [
+    "Align approval thresholds with finance and operations leads.",
+    "Backfill recent invoices so reporting is complete.",
+    "Schedule weekly aging reports to stakeholders.",
+  ],
+};
+
+export const metadata = {
+  title: `${content.title} | Fixzit Help`,
+};
+
+export default function Page() {
+  return <TutorialLayout content={content} />;
+}
+
+]]>
+</file>
+
+<file path="app/help/tutorial/first-work-order/page.tsx">
+<![CDATA[
+import {
+  TutorialLayout,
+  type TutorialContent,
+} from "../_components/TutorialLayout";
+
+const content: TutorialContent = {
+  title: "Creating Your First Work Order",
+  summary:
+    "Draft, assign, and track a work order from start to finish using Fixzit workflows.",
+  category: "Work Orders",
+  difficulty: "Beginner",
+  duration: "10 min",
+  outcomes: [
+    "Create a standardized work order with the right priority and SLA",
+    "Assign the task to a technician or vendor and set due dates",
+    "Track status, notes, and attachments in one place",
+  ],
+  steps: [
+    {
+      title: "Open Work Orders and start a new request",
+      highlight:
+        "Use consistent titles and priorities so routing rules work correctly.",
+      items: [
+        "Go to Work Orders → New Work Order.",
+        "Select property/site and category (Maintenance, HVAC, Electrical, etc.).",
+        "Set priority, due date, and SLA target if applicable.",
+      ],
+    },
+    {
+      title: "Add details and scope",
+      items: [
+        "Describe the issue clearly; add photos or videos for context.",
+        "Choose required skills/tools if your org uses skill routing.",
+        "Attach related assets, past work orders, or manuals.",
+      ],
+    },
+    {
+      title: "Assign and notify",
+      items: [
+        "Assign to an internal technician or approved vendor.",
+        "Set notification preferences (assignee + requester).",
+        "If using vendor assignment, ensure rates and terms are visible.",
+      ],
+    },
+    {
+      title: "Track progress",
+      items: [
+        "Monitor status changes (Open → In Progress → Completed).",
+        "Add technician notes, time logs, and parts used.",
+        "Upload completion photos and obtain requester sign-off if needed.",
+      ],
+    },
+    {
+      title: "Close and review",
+      items: [
+        "Verify resolution, close the work order, and record final time/cost.",
+        "Trigger follow-up tasks or preventive actions if patterns emerge.",
+      ],
+    },
+  ],
+  nextActions: [
+    "Set up default priorities and SLA targets in Work Orders → Settings.",
+    "Create templates for recurring issues (e.g., AC filter change, lighting).",
+    "Enable vendor notifications so assignees get updates instantly.",
+  ],
+};
+
+export const metadata = {
+  title: `${content.title} | Fixzit Help`,
+};
+
+export default function Page() {
+  return <TutorialLayout content={content} />;
+}
+
+]]>
+</file>
+
+<file path="app/help/tutorial/getting-started/page.tsx">
+<![CDATA[
+"use client";
+import { logger } from "@/lib/logger";
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import {
+  ArrowLeft,
+  CheckCircle,
+  Circle,
+  Play,
+  BookOpen,
+  Clock,
+} from "lucide-react";
+import { renderMarkdownSanitized } from "@/lib/markdown";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+
+// HTML escape utility for fallback rendering
+const escapeHtml = (str: string) =>
+  str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+export default function GettingStartedTutorial() {
+  const auto = useAutoTranslator("help.gettingStarted");
+  const [currentStep, setCurrentStep] = useState(0);
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  const [renderedContent, setRenderedContent] = useState<string>("");
+
+  const tutorial = {
+    id: "getting-started",
+    title: "Getting Started with Fixzit FM",
+    description: "Learn the basics of facility management in Fixzit",
+    duration: "15 min",
+    difficulty: "Beginner" as const,
+    steps: [
+      {
+        id: "1",
+        title: "Welcome to Fixzit Enterprise",
+        description: "Overview of the platform and its capabilities",
+        completed: false,
+        content: `
+# Welcome to Fixzit Enterprise
+
+Fixzit Enterprise is a comprehensive facility management platform that combines property operations, maintenance workflows, and procurement into one unified solution.
+
+## What You'll Learn
+
+- Navigate the platform interface
+- Understand the main modules
+- Set up your first property
+- Create your first work order
+- Manage vendors and suppliers
+- Track invoices and payments
+
+## Key Features
+
+- **Properties**: Manage residential and commercial properties
+- **Work Orders**: Create, assign, and track maintenance requests
+- **Vendors**: Source materials and manage supplier relationships
+- **Finance**: Handle invoicing, payments, and reporting
+- **Reports**: Comprehensive analytics and insights
+
+## Platform Benefits
+
+✅ Unified dashboard for all operations
+✅ Real-time tracking and notifications
+✅ Automated workflows and approvals
+✅ Comprehensive reporting and analytics
+✅ Mobile-friendly interface
+✅ Multi-language support
+
+Ready to get started? Click "Next" to begin your journey!
+        `,
+        tips: [
+          "Take your time to explore each section",
+          "Use the help widget for quick assistance",
+          "Bookmark important pages for easy access",
+        ],
+      },
+      {
+        id: "2",
+        title: "Understanding the Dashboard",
+        description: "Learn about the main dashboard and navigation",
+        completed: false,
+        content: `
+# Understanding the Dashboard
+
+The Fixzit dashboard is your command center for all facility management activities.
+
+## Dashboard Sections
+
+### 1. **Top Navigation Bar**
+- Brand logo and search functionality
+- Notifications dropdown
+- Language selector
+- User profile menu
+
+### 2. **Sidebar Navigation**
+- **Dashboard**: Overview and key metrics
+- **Work Orders**: Maintenance requests and tasks
+- **Properties**: Property management
+- **Assets**: Equipment and inventory
+- **Tenants**: Customer management
+- **Vendors**: Supplier network
+- **Projects**: Project management
+- **RFQs**: Procurement requests
+- **Invoices**: Financial management
+- **Finance**: Accounting and reporting
+- **HR**: Human resources management
+- **CRM**: Customer relationship management
+- **Support**: Help and support tickets
+- **Compliance**: Regulatory requirements
+- **Reports**: Analytics and insights
+- **System**: Administrative settings
+
+### 3. **Main Content Area**
+- Quick actions and shortcuts
+- Recent activities and notifications
+- Key performance indicators (KPIs)
+- Upcoming tasks and deadlines
+- System health and status
+
+## Navigation Tips
+
+- Use the sidebar to quickly access different modules
+- The search bar helps you find specific items
+- Notifications keep you updated on important activities
+- The user menu provides access to settings and profile
+
+## Quick Actions
+
+From the dashboard, you can:
+- Create new work orders
+- Add properties
+- Generate reports
+- Access support
+- Manage user settings
+
+Continue to the next step to learn about properties!
+        `,
+        tips: [
+          "Pin frequently used sections to your favorites",
+          "Use keyboard shortcuts for faster navigation",
+          "Check notifications regularly for important updates",
+        ],
+      },
+      {
+        id: "3",
+        title: "Managing Properties",
+        description: "Learn how to add and manage properties",
+        completed: false,
+        content: `
+# Managing Properties
+
+Properties are the foundation of Fixzit Enterprise. Learn how to add and manage your properties effectively.
+
+## Adding a New Property
+
+1. **Navigate to Properties**:
+   - Click "Properties" in the sidebar
+   - Click the "Add Property" button
+
+2. **Basic Information**:
+   - **Property Name**: Enter a descriptive name
+   - **Type**: Select Commercial, Residential, or Mixed
+   - **Address**: Complete address with coordinates
+   - **Description**: Detailed property description
+
+3. **Property Details**:
+   - **Total Area**: Square footage/meters
+   - **Floors**: Number of floors
+   - **Units**: Number of units/spaces
+   - **Year Built**: Construction year
+   - **Occupancy Rate**: Current occupancy percentage
+
+4. **Contact Information**:
+   - Property Manager details
+   - Emergency contacts
+   - Maintenance contacts
+   - Security contacts
+
+5. **Features & Amenities**:
+   - List available amenities
+   - Specify utilities providers
+   - Note accessibility features
+   - Add any special requirements
+
+## Property Management Features
+
+### **Unit Management**
+- Track individual units/apartments
+- Monitor occupancy status
+- Manage lease agreements
+- Handle tenant information
+
+### **Maintenance Tracking**
+- Schedule preventive maintenance
+- Track work order history
+- Monitor equipment warranties
+- Plan capital improvements
+
+### **Financial Overview**
+- Track rental income
+- Monitor operating expenses
+- Generate financial reports
+- Budget planning tools
+
+## Best Practices
+
+- Keep property information up-to-date
+- Regularly update contact information
+- Document all maintenance activities
+- Maintain accurate financial records
+- Use consistent naming conventions
+
+## Next Steps
+
+After adding your properties, you'll be ready to:
+- Create work orders for maintenance
+- Add tenants and manage leases
+- Set up vendor relationships
+- Generate financial reports
+
+Ready to learn about work orders? Click "Next"!
+        `,
+        tips: [
+          "Take photos of your properties for documentation",
+          "Keep emergency contact information current",
+          "Regularly review and update property details",
+          "Use the property code for easy identification",
+        ],
+      },
+      {
+        id: "4",
+        title: "Creating Work Orders",
+        description: "Learn how to create and manage work orders",
+        completed: false,
+        content: `
+# Creating Work Orders
+
+Work orders are the backbone of facility maintenance management in Fixzit.
+
+## Creating a Work Order
+
+1. **Access Work Orders**:
+   - Navigate to "Work Orders" in the sidebar
+   - Click "New Work Order"
+
+2. **Basic Details**:
+   - **Title**: Clear, descriptive title
+   - **Description**: Detailed problem description
+   - **Priority**: Low, Medium, High, or Urgent
+   - **Category**: Select appropriate category
+   - **Property**: Choose affected property
+   - **Location**: Specific location within property
+
+3. **Assignment**:
+   - **Assignee**: Select technician or team
+   - **Supervisor**: Assign oversight if needed
+   - **Due Date**: Set completion deadline
+   - **SLA**: Service level agreement requirements
+
+4. **Additional Information**:
+   - **Estimated Cost**: Budget for the work
+   - **Required Materials**: List needed supplies
+   - **Attachments**: Photos, documents, diagrams
+   - **Special Instructions**: Any important notes
+
+## Work Order Lifecycle
+
+### **1. New** (Draft)
+- Work order created but not submitted
+- Can be edited and saved as draft
+- Not visible to technicians
+
+### **2. Open** (Active)
+- Submitted and assigned to technician
+- Visible in technician's queue
+- Work in progress tracking begins
+
+### **3. In Progress**
+- Technician has started working
+- Regular updates and status changes
+- Time tracking and material usage
+
+### **4. Pending**
+- Waiting for materials or approval
+- Requires additional information
+- Cannot proceed until resolved
+
+### **5. Completed**
+- Work has been finished
+- Quality check performed
+- Ready for closure and billing
+
+### **6. Closed**
+- Work order completed and approved
+- Invoice generated if applicable
+- Added to property maintenance history
+
+## Priority Levels
+
+- **Low**: Non-urgent maintenance (cosmetic repairs)
+- **Medium**: Important but not critical (equipment maintenance)
+- **High**: Urgent issues affecting operations
+- **Urgent**: Critical issues requiring immediate attention
+
+## Best Practices
+
+- Provide detailed descriptions with photos
+- Set realistic due dates and priorities
+- Include all necessary materials in the request
+- Follow up on work order progress
+- Document all work performed
+- Rate the quality of completed work
+
+## Tracking and Reporting
+
+- Real-time status updates
+- Progress notifications
+- Completion reports
+- Quality feedback
+- Cost tracking
+- Performance metrics
+
+Continue to learn about vendor management!
+        `,
+        tips: [
+          "Include photos when creating work orders",
+          "Set realistic priorities based on impact",
+          "Provide clear instructions to avoid confusion",
+          "Follow up on important work orders regularly",
+        ],
+      },
+      {
+        id: "5",
+        title: "Vendor Management",
+        description: "Learn how to work with vendors and suppliers",
+        completed: false,
+        content: `
+# Vendor Management
+
+Effective vendor management is crucial for successful facility operations.
+
+## Adding Vendors
+
+1. **Navigate to Vendors**:
+   - Click "Vendors" in the sidebar
+   - Click "Add Vendor"
+
+2. **Vendor Information**:
+   - **Company Name**: Official business name
+   - **Contact Person**: Primary contact details
+   - **Services**: List of services provided
+   - **Coverage Areas**: Geographic service areas
+   - **Response Time**: Average response time
+   - **Certifications**: Licenses and certifications
+
+3. **Contact Details**:
+   - Primary phone and email
+   - Emergency contact information
+   - Business address
+   - Service hours
+   - Preferred communication method
+
+4. **Service Categories**:
+   - **Electrical**: Wiring, panels, lighting
+   - **Plumbing**: Pipes, fixtures, drainage
+   - **HVAC**: Heating, cooling, ventilation
+   - **Construction**: Building, renovation, repair
+   - **Cleaning**: Janitorial, deep cleaning
+   - **Security**: Systems, personnel, monitoring
+   - **Landscaping**: Grounds, plants, maintenance
+   - **IT Services**: Network, hardware, software
+
+## Vendor Evaluation
+
+### **Performance Metrics**
+- Response time to requests
+- Work completion rate
+- Quality of work performed
+- Adherence to schedules
+- Communication effectiveness
+- Cost competitiveness
+
+### **Rating System**
+- 5 Stars: Exceptional service
+- 4 Stars: Good service with minor issues
+- 3 Stars: Satisfactory service
+- 2 Stars: Needs improvement
+- 1 Star: Poor service
+
+### **Approval Process**
+- **New Vendors**: Require management approval
+- **Preferred Vendors**: Fast-track approval
+- **Emergency Vendors**: Immediate access
+
+## Request for Quote (RFQ) Process
+
+1. **Create RFQ**:
+   - Define project requirements
+   - Set budget parameters
+   - Specify timeline requirements
+   - List technical specifications
+
+2. **Vendor Selection**:
+   - Send RFQ to qualified vendors
+   - Evaluate proposals and quotes
+   - Compare pricing and capabilities
+   - Check vendor availability
+
+3. **Contract Management**:
+   - Review terms and conditions
+   - Negotiate pricing and terms
+   - Execute contracts
+   - Monitor compliance
+
+4. **Performance Tracking**:
+   - Track project milestones
+   - Monitor quality standards
+   - Manage change orders
+   - Process payments
+
+## Best Practices
+
+- Maintain updated vendor database
+- Regular performance reviews
+- Clear communication expectations
+- Document all interactions
+- Emergency contact procedures
+- Regular vendor meetings
+- Performance-based selection
+- Competitive bidding processes
+
+## Cost Management
+
+- **Bulk Purchasing**: Combine orders for better pricing
+- **Preferred Vendors**: Negotiate volume discounts
+- **Seasonal Planning**: Schedule work during off-peak times
+- **Preventive Maintenance**: Reduce emergency repair costs
+- **Warranty Tracking**: Maximize warranty benefits
+
+Continue to learn about tenant relations!
+        `,
+        tips: [
+          "Keep vendor contact information current",
+          "Document all vendor interactions",
+          "Rate vendors after each job completion",
+          "Maintain emergency vendor contacts",
+          "Regularly review vendor performance",
+        ],
+      },
+    ],
+  };
+
+  const markStepComplete = (stepIndex: number) => {
+    setCompletedSteps((prev) => new Set([...prev, stepIndex]));
+  };
+
+  const localizedTutorial = {
+    ...tutorial,
+    title: auto(tutorial.title, "tutorial.title"),
+    description: auto(tutorial.description, "tutorial.description"),
+    duration: auto(tutorial.duration, "tutorial.duration"),
+    difficulty: auto(tutorial.difficulty, "tutorial.difficulty"),
+    steps: tutorial.steps.map((step) => ({
+      ...step,
+      title: auto(step.title, `steps.${step.id}.title`),
+      description: auto(step.description, `steps.${step.id}.description`),
+      content: auto(step.content, `steps.${step.id}.content`),
+      tips:
+        step.tips?.map((tip, index) =>
+          auto(tip, `steps.${step.id}.tips.${index}`),
+        ) ?? [],
+    })),
+  };
+
+  const currentStepData = localizedTutorial.steps[currentStep];
+  const progress = ((currentStep + 1) / localizedTutorial.steps.length) * 100;
+
+  // Render markdown content when step changes
+  useEffect(() => {
+    if (currentStepData?.content) {
+      renderMarkdownSanitized(currentStepData.content)
+        .then((html) => {
+          setRenderedContent(html);
+        })
+        .catch((err) => {
+          logger.error("Failed to render markdown:", { error: err });
+          // Safe fallback: escape HTML and preserve whitespace
+          setRenderedContent(
+            `<div class="whitespace-pre-wrap">${escapeHtml(currentStepData.content)}</div>`,
+          );
+        });
+    }
+  }, [currentStep, currentStepData]);
+
+  return (
+    <div className="min-h-screen bg-muted flex flex-col">
+      <div className="max-w-6xl mx-auto p-6 flex-1 flex flex-col">
+        {/* Header */}
+        <div className="mb-6">
+          <Link
+            href="/help"
+            className="inline-flex items-center gap-2 text-primary hover:text-primary mb-4"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            {auto("Back to Help Center", "header.backLink")}
+          </Link>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground mb-2">
+                {localizedTutorial.title}
+              </h1>
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Clock className="w-4 h-4" />
+                  {localizedTutorial.duration}
+                </div>
+                <span
+                  className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    tutorial.difficulty === "Beginner"
+                      ? "bg-success/10 text-success"
+                      : tutorial.difficulty === "Intermediate"
+                        ? "bg-warning/10 text-warning"
+                        : "bg-destructive/10 text-destructive"
+                  }`}
+                >
+                  {localizedTutorial.difficulty}
+                </span>
+                <div className="flex items-center gap-1">
+                  <BookOpen className="w-4 h-4" />
+                  {localizedTutorial.steps.length}{" "}
+                  {auto("steps", "header.stepsLabel")}
+                </div>
+              </div>
+            </div>
+            <div className="text-end">
+              <div className="text-sm text-muted-foreground">
+                {auto("Progress", "progress.label")}
+              </div>
+              <div className="w-32 bg-muted rounded-full h-2 mt-1">
+                <div
+                  className="bg-primary h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                ></div>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {currentStep + 1} {auto("of", "progress.of")}{" "}
+                {localizedTutorial.steps.length}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Sidebar */}
+          <div className="lg:col-span-1">
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-4 sticky top-6">
+              <h3 className="font-semibold text-foreground mb-4">
+                {auto("Tutorial Steps", "sidebar.title")}
+              </h3>
+              <div className="space-y-2">
+                {localizedTutorial.steps.map((step, index) => (
+                  <button
+                    key={step.id}
+                    onClick={() => setCurrentStep(index)}
+                    className={`w-full text-start p-3 rounded-2xl border transition-colors ${
+                      currentStep === index
+                        ? "border-primary bg-primary/10 text-primary"
+                        : completedSteps.has(index)
+                          ? "border-success bg-success/10 text-success"
+                          : "border-border hover:border-border"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      {completedSteps.has(index) ? (
+                        <CheckCircle className="w-4 h-4 text-success" />
+                      ) : currentStep === index ? (
+                        <Circle className="w-4 h-4 text-primary fill-current" />
+                      ) : (
+                        <Circle className="w-4 h-4 text-muted-foreground" />
+                      )}
+                      <div>
+                        <div className="font-medium text-sm">{step.title}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {step.description}
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="lg:col-span-3">
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-8">
+              {/* Step Header */}
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <Play className="w-5 h-5 text-primary" />
+                  <span className="text-sm font-medium text-primary">
+                    {auto("Step {{number}}", "content.stepLabel").replace(
+                      "{{number}}",
+                      String(currentStep + 1),
+                    )}
+                  </span>
+                </div>
+                <h2 className="text-2xl font-bold text-foreground mb-2">
+                  {currentStepData.title}
+                </h2>
+                <p className="text-muted-foreground">
+                  {currentStepData.description}
+                </p>
+              </div>
+
+              {/* Step Content */}
+              <div className="prose prose-lg max-w-none prose-headings:text-foreground prose-a:text-primary prose-strong:text-foreground">
+                <div dangerouslySetInnerHTML={{ __html: renderedContent }} />
+              </div>
+
+              {/* Tips */}
+              {currentStepData.tips && (
+                <div className="mt-8 p-4 bg-primary/10 rounded-2xl">
+                  <h4 className="font-semibold text-primary mb-2">
+                    💡 {auto("Tips", "content.tipsTitle")}
+                  </h4>
+                  <ul className="space-y-1">
+                    {currentStepData.tips.map((tip, i) => (
+                      <li
+                        key={i}
+                        className="text-primary text-sm flex items-start gap-2"
+                      >
+                        <span className="text-primary mt-1">•</span>
+                        {tip}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Navigation */}
+              <div className="flex items-center justify-between mt-8 pt-6 border-t border-border">
+                <button
+                  onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
+                  disabled={currentStep === 0}
+                  className="flex items-center gap-2 px-4 py-2 text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  ← {auto("Previous", "actions.previous")}
+                </button>
+
+                <button
+                  onClick={() => markStepComplete(currentStep)}
+                  className="flex items-center gap-2 px-4 py-2 bg-success text-white rounded-2xl hover:bg-success transition-colors"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  {auto("Mark Complete", "actions.markComplete")}
+                </button>
+
+                <button
+                  onClick={() =>
+                    setCurrentStep(
+                      Math.min(
+                        localizedTutorial.steps.length - 1,
+                        currentStep + 1,
+                      ),
+                    )
+                  }
+                  disabled={currentStep === localizedTutorial.steps.length - 1}
+                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {auto("Next", "actions.next")} →
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/help/tutorial/tenant-relations/page.tsx">
+<![CDATA[
+import {
+  TutorialLayout,
+  type TutorialContent,
+} from "../_components/TutorialLayout";
+
+const content: TutorialContent = {
+  title: "Tenant Relations & Communication",
+  summary:
+    "Standardize tenant communication, SLAs, and feedback loops to keep satisfaction high.",
+  category: "Customer Service",
+  difficulty: "Beginner",
+  duration: "12 min",
+  outcomes: [
+    "Log and route tenant requests with clear priorities",
+    "Keep tenants updated automatically during the work order lifecycle",
+    "Capture feedback to improve response quality",
+  ],
+  steps: [
+    {
+      title: "Capture tenant requests",
+      highlight: "Use clear categories so routing and reporting stay clean.",
+      items: [
+        "Enable tenant portal or intake form; map request types to work order categories.",
+        "Collect unit/property, contact info, and preferred access times.",
+        "Set default SLAs for common issues (AC, elevators, plumbing).",
+      ],
+    },
+    {
+      title: "Communicate status proactively",
+      items: [
+        "Turn on notifications for submission, assignment, arrival window, and completion.",
+        "Share technician ETA and any access requirements.",
+        "Provide a single thread for updates, photos, and approvals.",
+      ],
+    },
+    {
+      title: "Handle access and appointments",
+      items: [
+        "Capture access notes (keys, security, escorts) on the work order.",
+        "Offer time windows and confirm before dispatch when needed.",
+        "Record delays with reasons to improve future scheduling.",
+      ],
+    },
+    {
+      title: "Close and request feedback",
+      items: [
+        "Share before/after photos and resolution notes on completion.",
+        "Send a quick rating request (1–5) with optional comments.",
+        "Escalate low scores automatically to a manager follow-up queue.",
+      ],
+    },
+  ],
+  nextActions: [
+    "Pre-fill SLA targets for top tenant issue categories.",
+    "Enable tenant notifications in Settings → Communications.",
+    "Add a feedback webhook/email to route low scores to CS managers.",
+  ],
+};
+
+export const metadata = {
+  title: `${content.title} | Fixzit Help`,
+};
+
+export default function Page() {
+  return <TutorialLayout content={content} />;
+}
+
+]]>
+</file>
+
+<file path="app/help/tutorial/vendor-management/page.tsx">
+<![CDATA[
+import {
+  TutorialLayout,
+  type TutorialContent,
+} from "../_components/TutorialLayout";
+
+const content: TutorialContent = {
+  title: "Vendor Management Best Practices",
+  summary:
+    "Onboard vendors, publish RFQs, and approve work with clear SLAs and compliance checks.",
+  category: "Procurement",
+  difficulty: "Intermediate",
+  duration: "20 min",
+  outcomes: [
+    "Create and categorize vendors with compliance and rates captured",
+    "Publish RFQs and compare responses consistently",
+    "Approve jobs and track vendor performance over time",
+  ],
+  steps: [
+    {
+      title: "Onboard and categorize vendors",
+      highlight: "Get documents upfront to reduce delays when issuing RFQs.",
+      items: [
+        "Go to Vendors → Add Vendor; capture trade, regions, and specialties.",
+        "Upload compliance docs (licenses, insurance, HSE) and set expiry reminders.",
+        "Store rate cards (hourly, call-out, materials) for auto-selection in RFQs.",
+      ],
+    },
+    {
+      title: "Set SLA and approval guardrails",
+      items: [
+        "Define response and completion SLAs by category (e.g., HVAC, MEP).",
+        "Assign approvers for spend thresholds (e.g., >SAR 5k requires manager).",
+        "Enable notifications for expiring documents and underperforming vendors.",
+      ],
+    },
+    {
+      title: "Publish an RFQ",
+      items: [
+        "Navigate to RFQs → New RFQ; describe scope and attach plans/photos.",
+        "Select invited vendors or open to approved category vendors.",
+        "Set submission deadline and evaluation criteria (price, SLA, past performance).",
+      ],
+    },
+    {
+      title: "Evaluate and award",
+      items: [
+        "Compare responses side-by-side with normalized price breakdowns.",
+        "Document award rationale and notify winners automatically.",
+        "Generate a PO or service order for the winning vendor.",
+      ],
+    },
+    {
+      title: "Track delivery and performance",
+      items: [
+        "Link vendor work to work orders and capture completion evidence.",
+        "Score vendors on timeliness, quality, and communication.",
+        "Review scores quarterly to adjust preferred vendor lists.",
+      ],
+    },
+  ],
+  nextActions: [
+    "Upload existing vendor documents and set expiry alerts.",
+    "Create RFQ templates for common scopes (cleaning, landscaping, HVAC).",
+    "Turn on vendor scorecards to inform future awards.",
+  ],
+};
+
+export const metadata = {
+  title: `${content.title} | Fixzit Help`,
+};
+
+export default function Page() {
+  return <TutorialLayout content={content} />;
+}
+
+]]>
+</file>
+
+<file path="app/hr/ats/jobs/new/page.tsx">
+<![CDATA[
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FormWithNavigation } from "@/components/ui/navigation-buttons";
+import { useTranslation } from "@/contexts/TranslationContext";
+
+export default function NewJobPage() {
+  const router = useRouter();
+  const { t } = useTranslation();
+  const [submitting, setSubmitting] = useState(false);
+  const [form, setForm] = useState({
+    title: "",
+    department: "",
+    city: "",
+    country: "",
+    jobType: "full-time",
+    salaryMin: "",
+    salaryMax: "",
+    currency: "SAR",
+    description: "",
+  });
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+    const toastId = toast.loading(
+      t("hr.ats.jobs.new.toast.creating", "Creating job posting..."),
+    );
+    try {
+      const res = await fetch("/api/ats/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: form.title,
+          department: form.department,
+          jobType: form.jobType,
+          location: { city: form.city, country: form.country, mode: "onsite" },
+          salaryRange: {
+            min: Number(form.salaryMin) || 0,
+            max: Number(form.salaryMax) || 0,
+            currency: form.currency,
+          },
+          description: form.description,
+          requirements: [],
+          benefits: [],
+          skills: [],
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok)
+        throw new Error(
+          data?.error ||
+            t("hr.ats.jobs.new.toast.error", "Failed to create job"),
+        );
+      toast.success(
+        t("hr.ats.jobs.new.toast.success", "Job posted successfully"),
+        { id: toastId },
+      );
+      router.push("/hr/ats/jobs");
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : t("hr.ats.jobs.new.toast.generic", "Failed to create job"),
+        { id: toastId },
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="p-6">
+      <Card className="max-w-2xl">
+        <CardHeader>
+          <CardTitle>{t("hr.ats.jobs.new.title", "Post New Job")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <FormWithNavigation
+            onSubmit={submit}
+            saving={submitting}
+            showBack
+            showHome
+            position="bottom"
+          >
+            <Input
+              placeholder={t("hr.ats.jobs.new.fields.title", "Job title")}
+              required
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+            />
+            <Input
+              placeholder={t("hr.ats.jobs.new.fields.department", "Department")}
+              required
+              value={form.department}
+              onChange={(e) => setForm({ ...form, department: e.target.value })}
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                placeholder={t("hr.ats.jobs.new.fields.city", "City")}
+                required
+                value={form.city}
+                onChange={(e) => setForm({ ...form, city: e.target.value })}
+              />
+              <Input
+                placeholder={t("hr.ats.jobs.new.fields.country", "Country")}
+                required
+                value={form.country}
+                onChange={(e) => setForm({ ...form, country: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <Input
+                placeholder={t(
+                  "hr.ats.jobs.new.fields.salaryMin",
+                  "Salary Min",
+                )}
+                type="number"
+                value={form.salaryMin}
+                onChange={(e) =>
+                  setForm({ ...form, salaryMin: e.target.value })
+                }
+              />
+              <Input
+                placeholder={t(
+                  "hr.ats.jobs.new.fields.salaryMax",
+                  "Salary Max",
+                )}
+                type="number"
+                value={form.salaryMax}
+                onChange={(e) =>
+                  setForm({ ...form, salaryMax: e.target.value })
+                }
+              />
+              <Input
+                placeholder={t("hr.ats.jobs.new.fields.currency", "Currency")}
+                value={form.currency}
+                onChange={(e) => setForm({ ...form, currency: e.target.value })}
+              />
+            </div>
+            <textarea
+              className="w-full border rounded p-2"
+              rows={6}
+              placeholder={t(
+                "hr.ats.jobs.new.fields.description",
+                "Description",
+              )}
+              value={form.description}
+              onChange={(e) =>
+                setForm({ ...form, description: e.target.value })
+              }
+            />
+          </FormWithNavigation>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/hr/ats/jobs/page.tsx">
+<![CDATA[
+export { default } from "@/app/fm/hr/recruitment/page";
+export * from "@/app/fm/hr/recruitment/page";
+
+]]>
+</file>
+
+<file path="app/hr/attendance/page.tsx">
+<![CDATA[
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { Loader2 } from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import ClientDate from "@/components/ClientDate";
+import { logger } from "@/lib/logger";
+import { Button } from "@/components/ui/button";
+import { buildAttendanceCsv } from "@/lib/hr/attendance-export";
+
+interface EmployeeOption {
+  _id: string;
+  employeeCode: string;
+  firstName: string;
+  lastName: string;
+}
+
+interface EmployeeApiItem {
+  _id: string;
+  employeeCode?: string;
+  firstName?: string;
+  lastName?: string;
+}
+
+interface EmployeesResponse {
+  employees?: EmployeeApiItem[];
+}
+
+type AttendanceStatus = "PRESENT" | "ABSENT" | "LATE" | "ON_LEAVE" | "OFF";
+
+interface AttendanceEntry {
+  _id: string;
+  date: string;
+  status: AttendanceStatus;
+  clockIn?: string;
+  clockOut?: string;
+  overtimeMinutes?: number;
+  source?: "MANUAL" | "IMPORT" | "BIOMETRIC";
+  notes?: string;
+}
+
+export default function AttendancePage() {
+  const { t } = useTranslation();
+  const [employees, setEmployees] = useState<EmployeeOption[]>([]);
+  const [selectedEmployee, setSelectedEmployee] = useState<string>("");
+  const [entries, setEntries] = useState<AttendanceEntry[]>([]);
+  const [statusFilter, setStatusFilter] = useState<AttendanceStatus | "ALL">(
+    "ALL",
+  );
+  const [sourceFilter, setSourceFilter] = useState<
+    "ALL" | "MANUAL" | "IMPORT" | "BIOMETRIC"
+  >("ALL");
+  const [dateRange, setDateRange] = useState(() => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 30);
+    return {
+      from: start.toISOString().slice(0, 10),
+      to: end.toISOString().slice(0, 10),
+    };
+  });
+  const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+
+  useEffect(() => {
+    void loadEmployees();
+  }, []);
+
+  useEffect(() => {
+    if (selectedEmployee) {
+      void fetchAttendance();
+    }
+  }, [selectedEmployee, dateRange.from, dateRange.to]);
+
+  const loadEmployees = async () => {
+    try {
+      const response = await fetch("/api/hr/employees?limit=200");
+      if (response.ok) {
+        const data: EmployeesResponse = await response.json();
+        const mapped = (data.employees || []).map((employee) => ({
+          _id: employee._id,
+          employeeCode: employee.employeeCode ?? "",
+          firstName: employee.firstName ?? "",
+          lastName: employee.lastName ?? "",
+        }));
+        setEmployees(mapped);
+        if (mapped.length > 0) {
+          setSelectedEmployee(mapped[0]._id);
+        }
+      }
+    } catch (error) {
+      logger.error("Error fetching employee options:", error);
+    }
+  };
+
+  const fetchAttendance = async () => {
+    if (!selectedEmployee) return;
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        employeeId: selectedEmployee,
+        from: dateRange.from,
+        to: dateRange.to,
+      });
+      const response = await fetch(`/api/hr/attendance?${params.toString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        setEntries(data.entries || []);
+      }
+    } catch (error) {
+      logger.error("Error loading attendance entries:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const selectedEmployeeObj = employees.find(
+    (emp) => emp._id === selectedEmployee,
+  );
+
+  const attendanceStatusLabels: Record<
+    AttendanceStatus,
+    { key: string; fallback: string }
+  > = {
+    PRESENT: { key: "hr.attendance.status.present", fallback: "Present" },
+    ABSENT: { key: "hr.attendance.status.absent", fallback: "Absent" },
+    LATE: { key: "hr.attendance.status.late", fallback: "Late" },
+    ON_LEAVE: { key: "hr.attendance.status.on_leave", fallback: "On Leave" },
+    OFF: { key: "hr.attendance.status.off", fallback: "Off" },
+  };
+
+  const formatStatus = (status: AttendanceStatus) => {
+    const config = attendanceStatusLabels[status];
+    return t(config.key, config.fallback);
+  };
+
+  const filteredEntries = useMemo(() => {
+    return entries.filter((entry) => {
+      const statusMatch =
+        statusFilter === "ALL" || entry.status === statusFilter;
+      const sourceMatch =
+        sourceFilter === "ALL" || entry.source === sourceFilter;
+      return statusMatch && sourceMatch;
+    });
+  }, [entries, sourceFilter, statusFilter]);
+
+  const statusOptions: { value: AttendanceStatus | "ALL"; label: string }[] = [
+    { value: "ALL", label: t("hr.attendance.filters.all", "All statuses") },
+    { value: "PRESENT", label: t("hr.attendance.status.present", "Present") },
+    { value: "ABSENT", label: t("hr.attendance.status.absent", "Absent") },
+    { value: "LATE", label: t("hr.attendance.status.late", "Late") },
+    {
+      value: "ON_LEAVE",
+      label: t("hr.attendance.status.on_leave", "On Leave"),
+    },
+    { value: "OFF", label: t("hr.attendance.status.off", "Off") },
+  ];
+
+  const sourceOptions: {
+    value: "ALL" | "MANUAL" | "IMPORT" | "BIOMETRIC";
+    label: string;
+  }[] = [
+    {
+      value: "ALL",
+      label: t("hr.attendance.filters.sourceAll", "All sources"),
+    },
+    {
+      value: "MANUAL",
+      label: t("hr.attendance.filters.sourceManual", "Manual"),
+    },
+    {
+      value: "IMPORT",
+      label: t("hr.attendance.filters.sourceImport", "Bulk import"),
+    },
+    {
+      value: "BIOMETRIC",
+      label: t("hr.attendance.filters.sourceBiometric", "Biometric device"),
+    },
+  ];
+  const attendanceSourceLabels: Record<
+    "MANUAL" | "IMPORT" | "BIOMETRIC",
+    { key: string; fallback: string }
+  > = {
+    MANUAL: { key: "hr.attendance.filters.sourceManual", fallback: "Manual" },
+    IMPORT: {
+      key: "hr.attendance.filters.sourceImport",
+      fallback: "Bulk import",
+    },
+    BIOMETRIC: {
+      key: "hr.attendance.filters.sourceBiometric",
+      fallback: "Biometric device",
+    },
+  };
+
+  const handleExportCsv = () => {
+    if (!filteredEntries.length) return;
+    setExporting(true);
+    try {
+      const csv = buildAttendanceCsv(filteredEntries, {
+        employeeCode: selectedEmployeeObj?.employeeCode,
+        dateFrom: dateRange.from,
+        dateTo: dateRange.to,
+      });
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `attendance-${selectedEmployeeObj?.employeeCode || "employee"}-${dateRange.from}-${dateRange.to}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">
+            {t("hr.attendance.title", "Attendance & Time Tracking")}
+          </h2>
+          <p className="text-muted-foreground mt-1">
+            {t(
+              "hr.attendance.subtitle",
+              "Review daily attendance and overtime records",
+            )}
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          disabled={!filteredEntries.length || exporting}
+          onClick={handleExportCsv}
+        >
+          {exporting && <Loader2 className="h-4 w-4 animate-spin me-2" />}
+          {t("hr.attendance.actions.exportCsv", "Export CSV")}
+        </Button>
+      </div>
+
+      <Card>
+        <CardContent className="p-4 flex flex-col gap-4 md:flex-row md:items-center">
+          <div className="flex-1">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
+              {t("hr.attendance.selectEmployee", "Select Employee")}
+            </p>
+            <Select
+              value={selectedEmployee}
+              onValueChange={(value) => setSelectedEmployee(value)}
+            >
+              <SelectTrigger>
+                <SelectValue>
+                  {selectedEmployee
+                    ? employees.find((e) => e._id === selectedEmployee)
+                        ?.firstName +
+                      " " +
+                      employees.find((e) => e._id === selectedEmployee)
+                        ?.lastName
+                    : t("hr.attendance.selectPlaceholder", "Choose employee")}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {employees.map((employee) => (
+                  <SelectItem key={employee._id} value={employee._id}>
+                    {employee.employeeCode} — {employee.firstName}{" "}
+                    {employee.lastName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex gap-4 flex-1 flex-wrap md:flex-nowrap">
+            <div className="flex-1">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
+                {t("hr.attendance.from", "From")}
+              </p>
+              <Input
+                type="date"
+                value={dateRange.from}
+                onChange={(e) =>
+                  setDateRange((prev) => ({ ...prev, from: e.target.value }))
+                }
+              />
+            </div>
+            <div className="flex-1">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
+                {t("hr.attendance.to", "To")}
+              </p>
+              <Input
+                type="date"
+                value={dateRange.to}
+                onChange={(e) =>
+                  setDateRange((prev) => ({ ...prev, to: e.target.value }))
+                }
+              />
+            </div>
+            <div className="flex-1 min-w-[180px]">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
+                {t("hr.attendance.filters.status", "Status")}
+              </p>
+              <Select
+                value={statusFilter}
+                onValueChange={(value) =>
+                  setStatusFilter(value as AttendanceStatus | "ALL")
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue>
+                    {statusOptions.find((o) => o.value === statusFilter)
+                      ?.label || t("hr.attendance.filters.status", "Status")}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {statusOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1 min-w-[180px]">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
+                {t("hr.attendance.filters.source", "Source")}
+              </p>
+              <Select
+                value={sourceFilter}
+                onValueChange={(value) =>
+                  setSourceFilter(
+                    value as "ALL" | "MANUAL" | "IMPORT" | "BIOMETRIC",
+                  )
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue>
+                    {sourceOptions.find((o) => o.value === sourceFilter)
+                      ?.label || t("hr.attendance.filters.source", "Source")}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {sourceOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="px-4 py-3 text-start">
+                    {t("hr.attendance.table.date", "Date")}
+                  </th>
+                  <th className="px-4 py-3 text-start">
+                    {t("hr.attendance.table.status", "Status")}
+                  </th>
+                  <th className="px-4 py-3 text-start">
+                    {t("hr.attendance.table.clockIn", "Clock-in")}
+                  </th>
+                  <th className="px-4 py-3 text-start">
+                    {t("hr.attendance.table.clockOut", "Clock-out")}
+                  </th>
+                  <th className="px-4 py-3 text-start">
+                    {t("hr.attendance.table.overtime", "Overtime")}
+                  </th>
+                  <th className="px-4 py-3 text-start">
+                    {t("hr.attendance.table.source", "Source")}
+                  </th>
+                  <th className="px-4 py-3 text-start">
+                    {t("hr.attendance.table.notes", "Notes")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="py-6 text-center text-muted-foreground"
+                    >
+                      {t("common.loading", "Loading...")}
+                    </td>
+                  </tr>
+                ) : filteredEntries.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="py-6 text-center text-muted-foreground"
+                    >
+                      {t(
+                        "hr.attendance.empty",
+                        "No attendance records for this range",
+                      )}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredEntries.map((entry) => (
+                    <tr key={entry._id} className="border-b border-border/60">
+                      <td className="px-4 py-3 font-medium">
+                        <ClientDate date={entry.date} format="date-only" />
+                      </td>
+                      <td className="px-4 py-3 capitalize">
+                        {formatStatus(entry.status)}
+                      </td>
+                      <td className="px-4 py-3">
+                        {entry.clockIn ? (
+                          <ClientDate date={entry.clockIn} format="time-only" />
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {entry.clockOut ? (
+                          <ClientDate
+                            date={entry.clockOut}
+                            format="time-only"
+                          />
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {entry.overtimeMinutes
+                          ? `${entry.overtimeMinutes} ${t("hr.attendance.minutes", "min")}`
+                          : "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        {entry.source
+                          ? t(
+                              attendanceSourceLabels[entry.source]?.key ??
+                                "hr.attendance.filters.sourceAll",
+                              attendanceSourceLabels[entry.source]?.fallback ??
+                                entry.source.toLowerCase(),
+                            )
+                          : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {entry.notes?.trim() || "—"}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/hr/directory/new/page.tsx">
+<![CDATA[
+export { default } from "@/app/fm/hr/directory/new/page";
+export * from "@/app/fm/hr/directory/new/page";
+
+]]>
+</file>
+
+<file path="app/hr/employees/page.tsx">
+<![CDATA[
+export { default } from "@/app/fm/hr/employees/page";
+export * from "@/app/fm/hr/employees/page";
+
+]]>
+</file>
+
+<file path="app/hr/layout.tsx">
+<![CDATA[
+"use client";
+
+import { useTranslation } from "@/contexts/TranslationContext";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { usePathname, useRouter } from "next/navigation";
+import { Users, DollarSign, Calendar, Clock } from "lucide-react";
+
+export default function HRLayout({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
+  const pathname = usePathname() ?? "";
+  const router = useRouter();
+
+  // Determine active tab from pathname
+  const getActiveTab = () => {
+    if (pathname === "/hr") return "dashboard";
+    if (pathname.startsWith("/hr/employees")) return "employees";
+    if (pathname.startsWith("/hr/payroll")) return "payroll";
+    if (pathname.startsWith("/hr/leave")) return "leave";
+    if (pathname.startsWith("/hr/attendance")) return "attendance";
+    return "dashboard";
+  };
+
+  const handleTabChange = (value: string) => {
+    const routes: Record<string, string> = {
+      dashboard: "/hr",
+      employees: "/hr/employees",
+      payroll: "/hr/payroll",
+      leave: "/hr/leave",
+      attendance: "/hr/attendance",
+    };
+    router.push(routes[value]);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div className="border-b border-border pb-4">
+        <h1 className="text-3xl font-bold text-foreground">
+          {t("hr.title", "Human Resources")}
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          {t(
+            "hr.description",
+            "Manage employees, payroll, leave, and attendance",
+          )}
+        </p>
+      </div>
+
+      {/* Tab Navigation */}
+      <Tabs value={getActiveTab()} onValueChange={handleTabChange}>
+        <TabsList className="grid w-full grid-cols-5 mb-6">
+          <TabsTrigger value="dashboard" className="flex items-center gap-2">
+            <span className="text-lg">📊</span>
+            {t("hr.tabs.dashboard", "Dashboard")}
+          </TabsTrigger>
+          <TabsTrigger value="employees" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            {t("hr.tabs.employees", "Employees")}
+          </TabsTrigger>
+          <TabsTrigger value="payroll" className="flex items-center gap-2">
+            <DollarSign className="h-4 w-4" />
+            {t("hr.tabs.payroll", "Payroll")}
+          </TabsTrigger>
+          <TabsTrigger value="leave" className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            {t("hr.tabs.leave", "Leave")}
+          </TabsTrigger>
+          <TabsTrigger value="attendance" className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            {t("hr.tabs.attendance", "Attendance")}
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {/* Content */}
+      {children}
+    </div>
+  );
+}
+
+]]>
+</file>
+
+<file path="app/hr/leave/approvals/page.tsx">
+<![CDATA[
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import {
+  Loader2,
+  Users,
+  ShieldCheck,
+  Clock8,
+  AlertTriangle,
+  Check,
+  X,
+} from "lucide-react";
+
+import { useTranslation } from "@/contexts/TranslationContext";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import ClientDate from "@/components/ClientDate";
+import { logger } from "@/lib/logger";
+
+type LeaveStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+
+type LeaveRequest = {
+  _id: string;
+  employeeId: {
+    _id: string;
+    employeeCode: string;
+    firstName: string;
+    lastName: string;
+    department?: string;
+  };
+  leaveTypeId: {
+    _id: string;
+    name: string;
+    code: string;
+    isPaid?: boolean;
+  };
+  startDate: string;
+  endDate: string;
+  numberOfDays: number;
+  status: LeaveStatus;
+  reason?: string;
+};
+
+const statusBadgeClasses: Record<LeaveStatus, string> = {
+  PENDING: "bg-warning/10 border-warning/20 text-warning",
+  APPROVED: "bg-success/10 border-success/30 text-success",
+  REJECTED: "bg-destructive/10 border-destructive/30 text-destructive",
+  CANCELLED: "bg-muted text-muted-foreground border-border",
+};
+
+export default function LeaveApprovalsPage() {
+  const { t } = useTranslation();
+  const [requests, setRequests] = useState<LeaveRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [decisionNotes, setDecisionNotes] = useState<Record<string, string>>(
+    {},
+  );
+  const [processing, setProcessing] = useState<string | null>(null);
+
+  const fetchPendingRequests = useCallback(
+    async (signal?: AbortSignal) => {
+      setLoading(true);
+      try {
+        const response = await fetch("/api/hr/leaves?status=PENDING", {
+          signal,
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to load approvals (${response.status})`);
+        }
+        const data = await response.json();
+        if (!signal?.aborted) {
+          setRequests(Array.isArray(data.requests) ? data.requests : []);
+        }
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+        logger.error("Error loading leave approvals", { error });
+        toast.error(
+          t(
+            "hr.leave.approvals.loadError",
+            "Unable to load pending leave approvals. Please retry.",
+          ),
+        );
+      } finally {
+        if (!signal || !signal.aborted) {
+          setLoading(false);
+        }
+      }
+    },
+    [t],
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetchPendingRequests(controller.signal);
+    return () => controller.abort();
+  }, [fetchPendingRequests]);
+
+  const stats = useMemo(() => {
+    if (!requests.length) {
+      return { total: 0, urgent: 0, avgDuration: 0 };
+    }
+    const today = new Date();
+    const normalizedToday = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    );
+    const dayMs = 1000 * 60 * 60 * 24;
+    const urgent = requests.filter((req) => {
+      const start = new Date(req.startDate);
+      const startDay = new Date(
+        start.getFullYear(),
+        start.getMonth(),
+        start.getDate(),
+      );
+      const diffDays = (startDay.getTime() - normalizedToday.getTime()) / dayMs;
+      return diffDays >= 0 && diffDays <= 7;
+    }).length;
+    const avgDuration =
+      requests.reduce((acc, req) => acc + (req.numberOfDays || 0), 0) /
+      requests.length;
+    return {
+      total: requests.length,
+      urgent,
+      avgDuration: Number.isFinite(avgDuration) ? avgDuration : 0,
+    };
+  }, [requests]);
+
+  const handleDecision = async (
+    requestId: string,
+    status: Extract<LeaveStatus, "APPROVED" | "REJECTED">,
+  ) => {
+    setProcessing(`${requestId}-${status}`);
+    const note = decisionNotes[requestId]?.trim();
+
+    try {
+      const response = await fetch("/api/hr/leaves", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leaveRequestId: requestId, status, note }),
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to update leave (#${response.status})`);
+      }
+
+      toast.success(
+        status === "APPROVED"
+          ? t("hr.leave.approvals.approved", "Leave approved")
+          : t("hr.leave.approvals.rejected", "Leave rejected"),
+      );
+      setDecisionNotes((prev) => ({ ...prev, [requestId]: "" }));
+      await fetchPendingRequests();
+    } catch (error) {
+      logger.error("Failed to update leave status from approvals page", {
+        error,
+      });
+      toast.error(
+        t("hr.leave.approvals.updateError", "Unable to update leave request."),
+      );
+    } finally {
+      setProcessing(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="w-6 h-6 text-primary" />
+          <h1 className="text-2xl font-bold text-foreground">
+            {t("hr.leave.approvals.title", "Leave Approvals")}
+          </h1>
+        </div>
+        <p className="text-muted-foreground">
+          {t(
+            "hr.leave.approvals.subtitle",
+            "Review pending requests, capture decision notes, and keep employees informed.",
+          )}
+        </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <SummaryCard
+          icon={<Users className="w-4 h-4 text-primary" />}
+          label={t("hr.leave.approvals.cards.pending", "Pending approvals")}
+          value={stats.total.toString()}
+        />
+        <SummaryCard
+          icon={<AlertTriangle className="w-4 h-4 text-destructive" />}
+          label={t("hr.leave.approvals.cards.urgent", "Starting within 7 days")}
+          value={stats.urgent.toString()}
+        />
+        <SummaryCard
+          icon={<Clock8 className="w-4 h-4 text-muted-foreground" />}
+          label={t(
+            "hr.leave.approvals.cards.avgDuration",
+            "Average request length",
+          )}
+          value={`${stats.avgDuration.toFixed(1)} ${t("hr.leave.approvals.cards.days", "days")}`}
+        />
+      </div>
+
+      {requests.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="py-12 text-center space-y-3">
+            <ShieldCheck className="mx-auto w-10 h-10 text-muted-foreground" />
+            <p className="text-base text-muted-foreground">
+              {t(
+                "hr.leave.approvals.empty",
+                "No pending approvals. Enjoy the calm!",
+              )}
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => {
+                void fetchPendingRequests();
+              }}
+            >
+              {t("hr.leave.approvals.refresh", "Refresh")}
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {requests.map((request) => {
+            const isProcessingApprove =
+              processing === `${request._id}-APPROVED`;
+            const isProcessingReject = processing === `${request._id}-REJECTED`;
+            const isProcessingRequest =
+              isProcessingApprove || isProcessingReject;
+            return (
+              <Card key={request._id} className="border-border">
+                <CardHeader className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <CardTitle className="text-lg">
+                      {request.employeeId.firstName}{" "}
+                      {request.employeeId.lastName}
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      {request.employeeId.employeeCode}
+                      {request.employeeId.department
+                        ? ` · ${request.employeeId.department}`
+                        : ""}
+                    </p>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className={statusBadgeClasses[request.status]}
+                  >
+                    {request.leaveTypeId?.name ||
+                      t("hr.leave.approvals.leave", "Leave")}
+                  </Badge>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div>
+                      <p className="text-xs uppercase text-muted-foreground">
+                        {t("hr.leave.approvals.dates", "Dates")}
+                      </p>
+                      <p className="font-medium flex items-center gap-1">
+                        <ClientDate
+                          date={request.startDate}
+                          format="date-only"
+                        />
+                        <span>→</span>
+                        <ClientDate date={request.endDate} format="date-only" />
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {request.numberOfDays}{" "}
+                        {t("hr.leave.approvals.days", "days")} ·{" "}
+                        {request.leaveTypeId?.isPaid
+                          ? t("hr.leave.approvals.paid", "Paid")
+                          : t("hr.leave.approvals.unpaid", "Unpaid")}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase text-muted-foreground">
+                        {t("hr.leave.approvals.reason", "Reason")}
+                      </p>
+                      <p className="text-sm text-foreground">
+                        {request.reason ||
+                          t(
+                            "hr.leave.approvals.noReason",
+                            "No reason provided",
+                          )}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase text-muted-foreground">
+                        {t("hr.leave.approvals.notes", "Decision notes")}
+                      </p>
+                      <Textarea
+                        placeholder={t(
+                          "hr.leave.approvals.notesPlaceholder",
+                          "Add context for the employee (optional)",
+                        )}
+                        value={decisionNotes[request._id] ?? ""}
+                        onChange={(event) =>
+                          setDecisionNotes((prev) => ({
+                            ...prev,
+                            [request._id]: event.target.value,
+                          }))
+                        }
+                        className="min-h-[90px]"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-3 justify-end">
+                    <Button
+                      variant="outline"
+                      disabled={isProcessingRequest}
+                      onClick={() => handleDecision(request._id, "REJECTED")}
+                    >
+                      {isProcessingReject ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <X className="w-4 h-4 me-2" />
+                      )}
+                      {t("hr.leave.approvals.reject", "Reject")}
+                    </Button>
+                    <Button
+                      disabled={isProcessingRequest}
+                      onClick={() => handleDecision(request._id, "APPROVED")}
+                    >
+                      {isProcessingApprove ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Check className="w-4 h-4 me-2" />
+                      )}
+                      {t("hr.leave.approvals.approve", "Approve")}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SummaryCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <Card>
+      <CardContent className="flex items-center gap-3 py-4">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+          {icon}
+        </div>
+        <div>
+          <p className="text-sm text-muted-foreground">{label}</p>
+          <p className="text-2xl font-semibold text-foreground">{value}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+]]>
+</file>
+
+</batch_content>
